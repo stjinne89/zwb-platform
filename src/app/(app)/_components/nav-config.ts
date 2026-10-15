@@ -64,6 +64,7 @@ export const TRAINER_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/trainer/schema", label: "Schema" },
   { type: "link", href: "/zwbeter-worden/trainer/jaarplan", label: "Jaarplan" },
   { type: "link", href: "/zwbeter-worden/trainer/vermogen", label: "Vermogen" },
+  { type: "link", href: "/zwbeter-worden/trainer/racen", label: "Races" },
   { type: "link", href: "/zwbeter-worden/trainer/doelen", label: "Doelen" },
   { type: "link", href: "/zwbeter-worden/trainer/uitgangspunten", label: "Uitgangspunten" },
   { type: "link", href: "/zwbeter-worden/trainer/voeding", label: "Voeding" },

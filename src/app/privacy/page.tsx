@@ -249,8 +249,12 @@ export default function PrivacyPage() {
             een trainer toegang, dan ziet die je trainingsbelasting (CTL, form),
             je eFTP en je powercurve, ook in W/kg; daarvoor bewaren we bij een
             afgeronde training je gewicht van dat moment. Van een gereden training
-            halen we de vermogensmeting uit intervals.icu op en bewaren we alleen
-            hoeveel seconden je per zone reed, niet de meting zelf. Hersteldata blijft afgeschermd tot je de
+            halen we de vermogensmeting uit intervals.icu op en bewaren we
+            hoeveel seconden je per zone reed, per herhaling van het schema je
+            gemiddelde vermogen, en bij een lange gelijkmatige rit hoe ver
+            vermogen en hartslag uit elkaar liepen; niet de meting zelf. Daaruit
+            ziet je trainer suggesties voor zijn feedback, en onder Races de tips
+            uit je Zwift-races met je eigen rit erbij (die rit bewaren we niet). Hersteldata blijft afgeschermd tot je de
             aparte opt-in aanzet. Je trekt die toegang zelf weer in op de
             trainingspagina.
           </li>

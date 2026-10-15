@@ -44,9 +44,11 @@ export type RiderSegment = {
   elapsed: number;
   watts: number | null;
   wkg: number | null;
-  /** Plek op dit segment in de hele groep, snelste tijd eerst. */
+  /** Plek op dit segment in de hele groep, snelste tijd eerst (zoals FTS telt). */
   rank: number;
   of: number;
+  /** Plek over de streep van dit segment (zoals FAL telt). */
+  falRank: number;
 };
 
 export type RiderAnalysis = {
@@ -67,6 +69,11 @@ export type RiderAnalysis = {
   /** In een ploegentijdrit: niet bij de ploeg gefinisht (later dan de vierde plus de marge). */
   dropped: boolean;
   segments: RiderSegment[];
+  /**
+   * Mediaan van het gemiddelde W/kg van de (hooguit vijf) renners die in de
+   * groep direct voor deze renner finishten; null zonder die gegevens.
+   */
+  aheadWkg: number | null;
 };
 
 export type TeamSection = {
@@ -98,9 +105,13 @@ export type RaceAnalysis = {
   route: Array<{ index: number; name: string; kind: SegmentKind; lap: number }>;
   /** Er was vermogen in de uitslag of de passages. */
   hasPower: boolean;
+  /** Een race zonder draft (Race of Truth): positie en wiel tellen niet. */
+  noDraft: boolean;
   findings: string[];
 };
 
+/** Zoveel renners direct voor iemand tellen mee voor `aheadWkg`. */
+const AHEAD_RIDERS = 5;
 /** Wie later dan de vierde plus dit finisht, reed niet meer met de ploeg. */
 export const DROPPED_MARGIN_MS = 30_000;
 /** Zoveel renners tellen voor de ploegtijd in een TTT. */
@@ -137,6 +148,7 @@ export function analyseRace(
   passages: Passage[],
   /** Platformnaam per Zwift-ID; zonder naam blijft de Zwift-naam ("2. Jeroen (ZWB)"). */
   names: Map<number, string> = new Map(),
+  options: { noDraft?: boolean } = {},
 ): RaceAnalysis {
   const { score } = view;
   const ownIds = new Set(view.ownRiders);
@@ -148,6 +160,18 @@ export function analyseRace(
   const powerByCrossing = new Map<string, Passage>();
   for (const p of passages) powerByCrossing.set(`${p.athleteId}:${p.ts}`, p);
   const resultById = new Map(results.map((r) => [r.profileId, r]));
+  const finishOrder = [...results].filter((r) => r.durationMs != null).sort((a, b) => a.rank - b.rank);
+  /** W/kg van de renners die direct voor deze renner finishten. */
+  const aheadWkg = (id: number): number | null => {
+    const at = finishOrder.findIndex((r) => r.profileId === id);
+    if (at <= 0) return null;
+    const values = finishOrder
+      .slice(Math.max(0, at - AHEAD_RIDERS), at)
+      .flatMap((r) => (r.avgWatts && r.weightKg ? [r.avgWatts / r.weightKg] : []))
+      .sort((a, b) => a - b);
+    if (values.length < 3) return null;
+    return Math.round(values[values.length >> 1] * 100) / 100;
+  };
   const hasPower = results.some((r) => r.avgWatts) || passages.some((p) => p.avgPower);
 
   const route = score.passes.map((pass) => ({ index: pass.index, name: pass.name, kind: segmentKind(pass.name), lap: pass.lap }));
@@ -169,6 +193,7 @@ export function analyseRace(
         const ordered = [...pass.crossings].sort((a, b) => a.elapsed - b.elapsed);
         const at = ordered.findIndex((c) => c.athleteId === r.athleteId);
         if (at < 0) continue;
+        const falRank = [...pass.crossings].sort((a, b) => a.ts - b.ts).findIndex((c) => c.athleteId === r.athleteId) + 1;
         const crossing = ordered[at];
         const raw = powerByCrossing.get(`${crossing.athleteId}:${crossing.ts}`);
         const watts = raw?.avgPower ?? null;
@@ -181,6 +206,7 @@ export function analyseRace(
           wkg: wkgOf(watts, raw?.weightKg ?? kg),
           rank: at + 1,
           of: ordered.length,
+          falRank,
         });
       }
       const cp = result?.criticalPower ?? null;
@@ -197,6 +223,7 @@ export function analyseRace(
         points: score.format === "ttt" ? 0 : r.total,
         dropped: score.format === "ttt" && teamTime !== null && (r.time === null || r.time > teamTime + DROPPED_MARGIN_MS),
         segments,
+        aheadWkg: score.format === "ttt" ? null : aheadWkg(r.athleteId),
       };
     })
     .sort((a, b) => (a.time ?? Infinity) - (b.time ?? Infinity) || a.name.localeCompare(b.name));
@@ -285,6 +312,7 @@ export function analyseRace(
     riders,
     route,
     hasPower,
+    noDraft: options.noDraft ?? false,
     findings,
   };
 }

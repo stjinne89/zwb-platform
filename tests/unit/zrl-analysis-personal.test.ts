@@ -168,6 +168,7 @@ function ride(overrides: Partial<RideAnalysis> = {}): RideAnalysis {
     wbalMin: null,
     drift: null,
     halves: { first: 270, second: 240 },
+    startShare: null,
     cadenceAboveFtp: [],
     series: [],
     ...overrides,
@@ -197,18 +198,22 @@ describe("personalAdvice", () => {
     expect(tips[0].finding).toBe("Je begon op 109% van je FTP (300 W over de eerste 10 minuten) en kwam met 28% W′ aan de voet van KOM 1. In de tweede helft zakte je 11% weg (270 → 240 W).");
   });
 
+  it("noemt bij wegzakken in een tijdrit ook een te snel eerste tiende", () => {
+    const r = analysePersonalRace(race(), 1, NAMES, "tt")!;
+    const tips = personalAdvice(r, ride({ startShare: 112 }), 274);
+    expect(tips[0].finding).toBe("Eerste helft 270 W, tweede helft 240 W: je zakte 11% weg. Het eerste tiende reed je 12% boven je gemiddelde.");
+    expect(tips[0].tip).toContain("hooguit 5% boven je doelvermogen");
+  });
+
   it("noemt in een tijdrit een sterkere tweede helft", () => {
     const r = analysePersonalRace(race(), 1, NAMES, "tt")!;
     const tips = personalAdvice(r, ride({ halves: { first: 240, second: 260 } }), 274);
     expect(tips[0].tip).toBe("Er zat meer in de eerste helft; begin iets harder.");
   });
 
-  it("wijst in een race naar het beste segment, zonder punten of ploeg", () => {
+  it("geeft in een race geen los compliment voor het beste segment", () => {
     const r = analysePersonalRace(race(), 1, NAMES, "race")!;
-    const tips = personalAdvice(r, null, 274);
-    // Relatief het beste: 2e van 3 op de klim gaat voor 2e van 2 op de sprint.
-    expect(tips[0].finding).toBe("Je beste segment was Zwift KOM Reverse: 2e van 3 op 3,75 W/kg.");
-    expect(tips[0].tip).toBe("Daar ben je sterk: zit voor een klim vooraan in de groep.");
+    expect(personalAdvice(r, null, 274)).toEqual([]);
   });
 
   it("geeft in een race geen reserve-tip en geen ploegwoorden", () => {

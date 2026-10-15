@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ownAdvice, rideAdvice, riderRaceAdvice, teamAdvice } from "@/lib/zrl-analysis/advice";
+import { ownAdvice, rideAdvice, riderRaceAdvice, teamAdvice, tttPlanAdvice, type PlanRider } from "@/lib/zrl-analysis/advice";
 import type { RaceAnalysis, RiderAnalysis, RiderSegment } from "@/lib/zrl-analysis/race";
 import type { RideAnalysis, RidePhase } from "@/lib/zrl-analysis/ride";
 
 function seg(index: number, name: string, elapsed: number, watts: number): RiderSegment {
-  return { index, name, kind: /kom/i.test(name) ? "klim" : "sprint", elapsed, watts, wkg: watts / 80, rank: 1, of: 30 };
+  return { index, name, kind: /kom/i.test(name) ? "klim" : "sprint", elapsed, watts, wkg: watts / 80, rank: 1, of: 30, falRank: 1 };
 }
 
 function rider(id: number, name: string, klim1: [number, number], klim2: [number, number], extra: Partial<RiderAnalysis> = {}): RiderAnalysis {
@@ -21,6 +21,7 @@ function rider(id: number, name: string, klim1: [number, number], klim2: [number
     points: 0,
     dropped: false,
     segments: [seg(0, "Sprint", 30, 300), seg(1, "KOM 1", ...klim1), seg(2, "KOM 2", ...klim2)],
+    aheadWkg: null,
     ...extra,
   };
 }
@@ -48,6 +49,7 @@ function ttt(): RaceAnalysis {
       { index: 2, name: "KOM 2", kind: "klim", lap: 1 },
     ],
     hasPower: true,
+    noDraft: false,
     findings: [],
     riders: [
       rider(1, "Koen", [266, 302], [154, 320]),
@@ -104,6 +106,7 @@ function ride(overrides: Partial<RideAnalysis> = {}): RideAnalysis {
     wbalMin: { share: 0, at: 594 },
     drift: { first: 1.61, last: 1.38, change: -15 },
     halves: { first: 265, second: 260 },
+    startShare: null,
     cadenceAboveFtp: [
       { from: 60, seconds: 400 },
       { from: 80, seconds: 100 },
@@ -132,13 +135,11 @@ describe("riderRaceAdvice", () => {
     expect(riderRaceAdvice(a, a.riders[1])).toEqual([]);
   });
 
-  it("wijst in een puntenrace naar het beste segment en meldt geschat vermogen", () => {
+  it("noemt in een puntenrace het beste segment niet los meer, wel geschat vermogen", () => {
     const a = { ...ttt(), format: "points" as const };
     const r = { ...a.riders[0], powerType: "VIRTUAL", segments: [{ ...seg(1, "KOM 1", 266, 302), rank: 3, of: 30 }] };
-    const tips = riderRaceAdvice(a, r);
-    expect(tips[0].finding).toBe("Je beste segment was KOM 1: 3e van 30 op 3,78 W/kg.");
-    expect(tips[0].tip).toContain("de klimmen");
-    expect(tips[1].finding).toBe("Zwift rekende met geschat vermogen.");
+    // Een los compliment voor het beste segment ging naar de helft van alle renners (getoetst 2026-10-15).
+    expect(riderRaceAdvice(a, r).map((t) => t.finding)).toEqual(["Zwift rekende met geschat vermogen."]);
   });
 });
 
@@ -226,5 +227,77 @@ describe("teamAdvice", () => {
     const a = { ...ttt(), format: "points" as const, sections: [], team: { team: "zwb", total: 100, riders: 5, finishers: 5, time: null, rank: 2, league: 5, label: "ZWB" } };
     a.riders = a.riders.map((r, i) => ({ ...r, dropped: false, points: i === 0 ? 60 : 10 }));
     expect(teamAdvice(a)[0].finding).toBe("Koen pakte 60% van de punten van de ploeg.");
+  });
+});
+
+describe("puntenrace: segmenten kiezen en efficiëntie", () => {
+  const points = (): RaceAnalysis => ({ ...ttt(), format: "points" });
+  /** Renner van 80 kg met een beste vijf minuten van 320 W (4 W/kg). */
+  const racer = (segments: RiderSegment[], extra: Partial<RiderAnalysis> = {}) =>
+    rider(1, "Koen", [266, 302], [154, 320], { avgWatts: 240, wkg: 3, criticalPower: { s15: 700, m1: 450, m5: 320, m20: 270 }, segments, ...extra });
+  const hard = (index: number, name: string, rank: number, falRank: number): RiderSegment => ({ ...seg(index, name, 20, 400), rank, falRank, of: 40 });
+
+  it("ziet segmenten hard gereden zonder voorin te komen, en wijst naar het segment dat wel lag", () => {
+    const r = racer([hard(0, "Sprint 1", 25, 30), hard(1, "Sprint 2", 22, 28), hard(2, "Sprint 3", 30, 35), hard(3, "KOM", 4, 6)]);
+    const tips = riderRaceAdvice(points(), r);
+    expect(tips[0].finding).toBe("Je reed 3 segmenten boven je beste vijfminutenvermogen zonder er voorin te komen.");
+    expect(tips[0].tip).toContain("KOM lag je beter (6e over de streep)");
+  });
+
+  it("zegt niets als de harde segmenten wel iets opleverden", () => {
+    const r = racer([hard(0, "Sprint 1", 5, 8), hard(1, "Sprint 2", 22, 28), hard(2, "Sprint 3", 9, 12)]);
+    expect(riderRaceAdvice(points(), r)).toEqual([]);
+  });
+
+  it("ziet meer vermogen dan de renners die vlak voor je finishten, maar niet zonder draft", () => {
+    const r = racer([], { wkg: 3.4, aheadWkg: 3.05 });
+    expect(riderRaceAdvice(points(), r)[0].finding).toBe("Je reed gemiddeld 3,40 W/kg; de renners die vlak voor je finishten 3,05 W/kg.");
+    expect(riderRaceAdvice({ ...points(), noDraft: true }, r)).toEqual([]);
+    expect(riderRaceAdvice(points(), racer([], { wkg: 3.2, aheadWkg: 3.05 }))).toEqual([]);
+  });
+});
+
+describe("teamAdvice: ploeg uit elkaar op een klim", () => {
+  it("noemt het gat tussen de eerste en de vierde over een klim", () => {
+    const a = ttt();
+    a.riders[2] = rider(3, "Wouter", [266, 261], [166, 294]);
+    const tips = teamAdvice(a);
+    expect(tips.map((t) => t.finding)).toContain("Op KOM 2 lag de vierde renner 12,0 s achter de eerste.");
+  });
+});
+
+describe("tttPlanAdvice", () => {
+  const plan = (ftps: number[], pulls: Array<[number, number]>): PlanRider[] =>
+    ["Koen", "Marc", "Wouter", "Stijn", "Jeroen"].map((name, i) => ({
+      zwiftId: i + 1,
+      name,
+      ftp: ftps[i],
+      pullWatts: pulls[i][0],
+      pullSeconds: pulls[i][1],
+    }));
+
+  it("ziet een renner ver onder het teamgemiddelde die toch kopbeurten kreeg", () => {
+    const tips = tttPlanAdvice(ttt(), plan([300, 300, 300, 300, 220], [[370, 30], [370, 30], [370, 30], [370, 30], [270, 30]]));
+    expect(tips[0].finding).toBe("Jeroen heeft een FTP 23% onder het teamgemiddelde, maar kreeg kopbeurten van 30 s.");
+    expect(tips[0].tip).toContain("in het wiel");
+  });
+
+  it("ziet kopbeurten die zachter of harder zijn dan bij snelle ploegen", () => {
+    const low = tttPlanAdvice(ttt(), plan([270, 270, 270, 270, 270], [[290, 30], [290, 30], [290, 30], [290, 30], [290, 30]]));
+    expect(low.map((t) => t.finding)).toContain("De kopbeurten in het plan lagen op 107% van de gemiddelde FTP.");
+    const high = tttPlanAdvice(ttt(), plan([270, 270, 270, 270, 270], [[400, 30], [400, 30], [400, 30], [400, 30], [400, 30]]));
+    expect(high.map((t) => t.tip)).toContain("Dat houden alleen heel sterke ploegen vol; 120 tot 130% is een veiliger doel.");
+  });
+
+  it("ziet een geloste renner die op of boven zijn FTP reed", () => {
+    const a = ttt();
+    a.riders[4] = { ...a.riders[4], avgWatts: 310 };
+    const tips = tttPlanAdvice(a, plan([270, 270, 270, 270, 300], [[330, 30], [330, 30], [330, 30], [330, 30], [350, 60]]));
+    expect(tips.map((t) => t.finding)).toContain("Jeroen reed gemiddeld 103% van zijn FTP en loste toch.");
+  });
+
+  it("doet niets zonder plan of buiten een ploegentijdrit", () => {
+    expect(tttPlanAdvice(ttt(), [])).toEqual([]);
+    expect(tttPlanAdvice({ ...ttt(), format: "points" }, plan([300, 300, 300, 300, 220], [[370, 30], [370, 30], [370, 30], [370, 30], [270, 30]]))).toEqual([]);
   });
 });

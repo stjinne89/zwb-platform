@@ -11,6 +11,7 @@ import { WorkoutBlocks } from "../../_components/workout-blocks";
 import { WorkoutMetricsPanel } from "../../_components/workout-metrics-panel";
 import { reviewWorkoutAsTrainer } from "../../_actions";
 import { formAction, formatDayMonth } from "../../_components/format";
+import { FeedbackField, type FeedbackSuggestion } from "./feedback-field";
 
 export type ReviewQueueItem = {
   workoutId: string;
@@ -28,6 +29,8 @@ export type ReviewQueueItem = {
   athleteFeel: string | null;
   athleteReport: string | null;
   confirmedAt: string;
+  /** Suggesties uit de uitvoering (training-advice.ts); de trainer kiest. */
+  suggestions: FeedbackSuggestion[];
 };
 
 const FEEL_LABELS: Record<string, string> = {
@@ -96,12 +99,7 @@ export function ReviewQueue({ items }: { items: ReviewQueueItem[] }) {
 
               <form action={formAction(reviewWorkoutAsTrainer)} className="space-y-2">
                 <input type="hidden" name="workout_id" value={item.workoutId} />
-                <textarea
-                  name="trainer_feedback"
-                  rows={2}
-                  placeholder="Feedback voor het lid"
-                  className="w-full rounded-md border bg-background px-2 py-1 text-sm"
-                />
+                <FeedbackField name="trainer_feedback" suggestions={item.suggestions} />
                 <div className="flex flex-wrap gap-2">
                   <button
                     name="trainer_status"

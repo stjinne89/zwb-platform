@@ -184,6 +184,7 @@ const GUIDES = [
       "AI maakt conceptschema's; de trainer keurt publicatie goed.",
       "Sla je een doel op, dan krijgt je trainer een melding dat er een concept gedraaid kan worden.",
       "In de coachchat vraag je waarom je schema eruitziet zoals het eruitziet, en wat je trainingsdata zeggen.",
+      "Je trainer ziet bij een gereden training suggesties uit de uitvoering, en onder Races de tips uit je Zwift-races; hij beslist zelf wat hij je als feedback stuurt.",
     ],
   },
   {
@@ -2338,6 +2339,16 @@ export default function HelpPage() {
               wegen mee bij de eerstvolgende aanpassing.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
+              Staat je rit in intervals.icu, dan bekijkt de app ook hoe je de
+              training uitvoerde: per herhaling het vermogen tegenover het doel,
+              hoe ver je op een duurrit in zone 3 of hoger kwam boven wat gepland
+              was, en op een lange gelijkmatige rit hoe ver vermogen en hartslag
+              uit elkaar liepen. Je trainer ziet daar suggesties uit, alleen als
+              er iets opvalt, zoals een eerste herhaling ver boven het doel
+              waarna de rest wegzakte, of een herstelrit die zwaar voelde. Hij
+              beslist zelf wat hij ermee doet.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
               Klik je in de maandkalender op een training die al geweest is, dan
               zie je de geplande opbouw naast wat je gereden hebt. Ook bij een
               gemiste training blijft zichtbaar wat er stond.
@@ -3287,6 +3298,18 @@ Fitness-status: Verbeterend`}
             boven nog W′ had, en of er reserve overbleef tegenover je beste van
             90 dagen. Het plan uit de TTT Planner en de kopbeurten uit de
             TTT-bot gebruiken de tips niet; daar zeggen ze dus niets over.
+          </p>
+        </div>
+
+        <div id="racen-trainer" className="mt-4 scroll-mt-20 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Voor trainers</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Onder Trainer → Races zie je de Zwift-races van het lid met de tips
+            die het lid zelf ook ziet, met de eigen rit erbij. Vink aan welke
+            tips je wilt doorgeven, pas het bericht aan en stuur het naar de
+            coachchat. Bij Beoordelen staan bij een training de suggesties uit
+            de uitvoering; Overnemen zet de tekst in het feedbackveld, waar je
+            hem aanpast voor je opslaat.
           </p>
         </div>
 

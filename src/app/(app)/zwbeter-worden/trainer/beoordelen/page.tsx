@@ -10,6 +10,8 @@
 import { EmptyState } from "@/components/app-ui";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
 import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
+import type { ExecutionAnalysis } from "@/lib/training/execution";
+import { trainingSuggestions } from "@/lib/training/training-advice";
 import { ReviewQueue, type ReviewQueueItem } from "../_components/review-queue";
 import { loadAssignments, trainerViewer } from "../_data";
 
@@ -114,6 +116,15 @@ export default async function TrainerReviewPage() {
         athleteFeel: report.athlete_feel,
         athleteReport: report.athlete_report,
         confirmedAt: report.athlete_confirmed_at,
+        suggestions: trainingSuggestions({
+          intensity: workout.intensity,
+          execution: (metrics as { execution?: ExecutionAnalysis }).execution ?? null,
+          zoneTimes: metrics.zoneTimes ?? null,
+          athleteRpe: report.athlete_rpe,
+          verdict: metrics.verdict,
+          blocks: normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity),
+          ftp: profiel?.ftp_watts == null ? null : Number(profiel.ftp_watts),
+        }),
       },
     ];
   });

@@ -1,10 +1,14 @@
 // Gemeten zonetijden ophalen uit intervals.icu en bij de momentopname zetten.
 // Serverside: de intervals-client ontsleutelt de API-key. De rekenregels staan
-// in zone-times.ts.
+// in zone-times.ts. Uit dezelfde stream komt sinds 2026-10-15 ook de uitvoering
+// per herhaling en de ontkoppeling (execution.ts), voor de suggesties aan de
+// trainer; een training die al zonetijden had, krijgt die alsnog.
 
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { fetchIntervalsActivityStreams } from "@/lib/intervals/client";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
+import { analyseExecution, type ExecutionAnalysis } from "@/lib/training/execution";
+import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
 import {
   pickIntervalsActivity,
   zoneSecondsFromStream,
@@ -47,14 +51,29 @@ export async function fillZoneTimes(
   const open = ((reportRows ?? []) as Array<{
     workout_id: string;
     paired_activity_id: string;
-    metrics_json: (WorkoutMetricsSnapshot & { zoneTimes?: ZoneTimes }) | null;
+    metrics_json: (WorkoutMetricsSnapshot & { zoneTimes?: ZoneTimes; execution?: ExecutionAnalysis }) | null;
   }>)
     .filter((row) => {
       const zoneTimes = row.metrics_json?.zoneTimes;
       if (!row.metrics_json?.hasPowerMeter) return false;
+      // Zonetijden van vóór de uitvoeringsanalyse: alleen die nog aanvullen.
+      if (zoneTimes?.source === "intervals") return !row.metrics_json?.execution;
       return !zoneTimes || (zoneTimes.source === "none" && !zoneTimes.intervalsId);
     });
   if (open.length === 0) return result;
+  const { data: workoutRows } = await admin
+    .from("training_workouts")
+    .select("id, intensity, structure_json")
+    .in(
+      "id",
+      open.map((row) => row.workout_id),
+    );
+  const blocksFor = new Map(
+    ((workoutRows ?? []) as Array<{ id: string; intensity: string; structure_json: unknown }>).map((w) => [
+      w.id,
+      normalizeWorkoutBlocks(w.structure_json, w.intensity as WorkoutIntensity),
+    ]),
+  );
 
   const [{ data: rides }, { data: profile }, { data: activities }] = await Promise.all([
     admin
@@ -98,7 +117,9 @@ export async function fillZoneTimes(
     const ride = rideById.get(String(row.paired_activity_id));
     if (!ride || !ftpWatts) continue;
     const earlier = row.metrics_json?.zoneTimes ?? null;
-    const match = pickIntervalsActivity(
+    // Al zonetijden: dezelfde activiteit opnieuw, alleen voor de uitvoering.
+    const known = earlier?.source === "intervals" ? { intervalsId: earlier.intervalsId } : null;
+    const match = known ?? pickIntervalsActivity(
       {
         startLocal: String(ride.raw?.start_date_local ?? ""),
         movingSeconds: ride.moving_time_seconds == null ? null : Number(ride.moving_time_seconds),
@@ -107,17 +128,27 @@ export async function fillZoneTimes(
     );
 
     let zoneTimes: ZoneTimes | null = null;
+    let execution: ExecutionAnalysis | null = null;
     if (match) {
       if (requests >= FILL_LIMIT) continue;
       requests++;
-      const streams = await fetchIntervalsActivityStreams(conn.api_key, match.intervalsId).catch(
+      const streams = await fetchIntervalsActivityStreams(conn.api_key, match.intervalsId, ["time", "watts", "heartrate"]).catch(
         () => null,
       );
       const watts = streams?.find((stream) => stream.type === "watts")?.data ?? [];
       const time = streams?.find((stream) => stream.type === "time")?.data ?? null;
+      const heartrate = streams?.find((stream) => stream.type === "heartrate")?.data;
       const seconds = zoneSecondsFromStream(watts, time, ftpWatts);
       if (seconds.some((value) => value > 0)) {
-        zoneTimes = { source: "intervals", intervalsId: match.intervalsId, ftpWatts, seconds };
+        zoneTimes = known ? earlier : { source: "intervals", intervalsId: match.intervalsId, ftpWatts, seconds };
+        const blocks = blocksFor.get(row.workout_id);
+        if (blocks && time) {
+          execution = analyseExecution(
+            { time: time.map((t) => Number(t)), watts, heartrate: heartrate ?? undefined },
+            blocks,
+            ftpWatts,
+          );
+        }
       } else if (streams) {
         zoneTimes = { source: "none", checkedAt: now.toISOString(), intervalsId: match.intervalsId };
       }
@@ -129,10 +160,10 @@ export async function fillZoneTimes(
     }
     if (!zoneTimes) continue;
 
-    // Alleen de sleutel zoneTimes erbij; RPE en bevestiging staan in eigen kolommen.
+    // Alleen de sleutels zoneTimes en execution erbij; RPE en bevestiging staan in eigen kolommen.
     const { error } = await admin
       .from("training_workout_reports")
-      .update({ metrics_json: { ...row.metrics_json, zoneTimes } })
+      .update({ metrics_json: { ...row.metrics_json, zoneTimes, ...(execution ? { execution } : {}) } })
       .eq("workout_id", row.workout_id)
       .eq("profile_id", profileId)
       .eq("paired_activity_id", row.paired_activity_id);

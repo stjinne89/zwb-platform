@@ -23,7 +23,7 @@ import { analysePersonalRace, raceKindOf, type PersonalRace, type RaceKind } fro
 import { loadFrrStandingRows } from "@/lib/frr/zwb-standings";
 import { analyseRace, segmentKind, type RaceAnalysis } from "@/lib/zrl-analysis/race";
 import { analyseRide, type RideAnalysis, type RideAnchor } from "@/lib/zrl-analysis/ride";
-import { ownAdvice, personalAdvice, riderRaceAdvice, teamAdvice, type Advice } from "@/lib/zrl-analysis/advice";
+import { ownAdvice, personalAdvice, riderRaceAdvice, teamAdvice, tttPlanAdvice, type Advice, type PlanRider } from "@/lib/zrl-analysis/advice";
 import { routeSegments } from "@/lib/zwift/route-segments";
 import { activityStartMs, pickRaceActivity, type ActivityWithStart } from "@/lib/zrl-analysis/activity";
 
@@ -259,7 +259,8 @@ export async function loadRaceAnalysis(
   const names = new Map(
     (members ?? []).flatMap((m) => (m.display_name ? [[Number(m.zwift_id), String(m.display_name)] as const] : [])),
   );
-  const analysis = analyseRace(view, subgroup?.results ?? [], data?.passages ?? [], names);
+  const noDraft = /race of truth/i.test(`${eventRow.title} ${data?.eventName ?? ""}`);
+  const analysis = analyseRace(view, subgroup?.results ?? [], data?.passages ?? [], names, { noDraft });
   const ftp = Number(profile?.ftp_watts) || null;
 
   const ride = rode && data && subgroup
@@ -268,6 +269,9 @@ export async function loadRaceAnalysis(
 
   const ownRider = rode ? analysis.riders.find((r) => r.athleteId === ownZwiftId) ?? null : null;
   const leads = viewer === "captain" || viewer === "board";
+  const plan = leads && analysis.format === "ttt"
+    ? await loadTttPlan([eventRow.id as string, eventRow.parent_event_id as string | null], eventRow.team_id as string | null)
+    : [];
   return {
     status: "ok",
     event: {
@@ -281,7 +285,7 @@ export async function loadRaceAnalysis(
     ownAthleteId: rode ? ownZwiftId : null,
     ride,
     ownTips: rode ? ownAdvice(analysis, ownRider, ride.status === "ok" ? ride.analysis : null, ftp) : [],
-    teamTips: leads ? teamAdvice(analysis) : [],
+    teamTips: leads ? [...tttPlanAdvice(analysis, plan), ...teamAdvice(analysis)].slice(0, 5) : [],
     riderTips: leads
       ? analysis.riders
           .filter((r) => r.athleteId !== ownZwiftId)
@@ -603,4 +607,39 @@ export async function listRaces(userId: string, access: Access): Promise<ZrlRace
     });
   }
   return [...zrl, ...items.values()].sort((a, b) => b.startAt.localeCompare(a.startAt));
+}
+
+/**
+ * Het plan uit de TTT Planner voor dit event en team: het laatst bijgewerkte,
+ * met FTP en kopbeurten per renner. Leeg zonder plan.
+ */
+export async function loadTttPlan(eventIds: Array<string | null>, teamId: string | null): Promise<PlanRider[]> {
+  const ids = eventIds.filter((id): id is string => Boolean(id));
+  if (ids.length === 0 || !teamId) return [];
+  const admin = createAdminClient();
+  const { data: plans } = await admin
+    .from("ttt_plans")
+    .select("id, published_at, api_response")
+    .in("event_id", ids)
+    .eq("team_id", teamId)
+    .order("updated_at", { ascending: false })
+    .limit(5);
+  // Een concept dat nooit gedeeld is, zegt niets over wat de ploeg reed (Bdev
+  // had op 13 oktober een ongebruikt concept met een andere renner).
+  const used = (plans ?? []).find(
+    (p) => p.published_at || (p.api_response as { source?: string } | null)?.source === "zwiftgopher",
+  );
+  const planId = used?.id as string | undefined;
+  if (!planId) return [];
+  const { data: riders } = await admin
+    .from("ttt_plan_riders")
+    .select("zwift_id, name, ftp_watts, pull_watts, pull_duration_seconds")
+    .eq("plan_id", planId);
+  return (riders ?? []).map((r) => ({
+    zwiftId: Number(r.zwift_id) || null,
+    name: String(r.name),
+    ftp: r.ftp_watts == null ? null : Number(r.ftp_watts),
+    pullWatts: r.pull_watts == null ? null : Number(r.pull_watts),
+    pullSeconds: r.pull_duration_seconds == null ? null : Number(r.pull_duration_seconds),
+  }));
 }

@@ -134,6 +134,75 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
+> **Racestrategie-onderzoek, getoetste tips en trainersuggesties, 2026-10-15 — gebouwd, lokaal getest; niet gepusht; niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Vraag van de eigenaar: onderzoek "zo breed en diepgravend
+> mogelijk" naar strategie in wielerwedstrijden en Zwift-racen, de lessen als tips
+> toevoegen en toetsen aan de raceprestaties, dezelfde filosofie in de
+> trainingsanalyse, en dat in het trainersdeel tonen "zodat de trainer kan
+> besluiten dit in feedback terug te geven". Onderzoek, regels en toets:
+> [racestrategie-onderzoek.md](docs/racestrategie-onderzoek.md).
+>
+> **Wat.**
+>
+> - **Onderzoek** (`docs/racestrategie-onderzoek.md`): pacing, tijdrit,
+>   aerodynamica en Zwift-draft, ploegentijdrit (aanpak van de beste
+>   WTRL-ploegen), massastart, puntenrace, W′ en de onzekerheid ervan,
+>   durability, warming-up, voeding, intensiteitsverdeling, ontkoppeling,
+>   herhalingen, RPE, feedback geven; met bronnen en wat niet kan.
+> - **Nieuwe racetips** (`advice.ts`): segmenten kiezen en efficiëntie in een
+>   puntenrace, de ploeg uit elkaar op een klim, en voor de captain plan tegenover
+>   uitvoering uit de TTT Planner (zwakke renner met beurten, kopvermogen tegenover
+>   120 tot 130% van de gemiddelde FTP, een geloste renner op ≥ 98% van zijn FTP).
+>   In een tijdrit noemt de verdelingstip het eerste tiende. `race.ts` geeft per
+>   segment de plek over de streep (FAL) en per renner het W/kg van de renners
+>   vlak voor hem; `noDraft` voor een Race of Truth. Alleen gepubliceerde of uit
+>   ZwiftGopher geïmporteerde plannen tellen.
+> - **Trainingsanalyse** (`src/lib/training/execution.ts`, `training-advice.ts`):
+>   het schema langs het bestand gelegd, per herhaling vermogen tegenover doel,
+>   ontkoppeling bij een lange gelijkmatige rit. `fillZoneTimes` rekent dat uit
+>   dezelfde stream (nu met hartslag) en bewaart het als `metrics_json.execution`;
+>   oudere trainingen met zonetijden krijgen het binnen het venster alsnog
+>   (hooguit drie verzoeken per keer, zoals voorheen).
+> - **Trainer:** bij Beoordelen staan suggesties boven het feedbackveld, met
+>   Overnemen. Nieuwe tab **Races**: de Zwift-races van het lid met de tips die het
+>   lid ook ziet (met de eigen rit), aan te vinken en als bericht naar de coachchat
+>   te sturen (via `/api/training/chat`). Er gaat niets naar het lid zonder klik.
+> - Hulp (`#racen-trainer`, de feedback na een training, trainer-toegang) en
+>   privacyverklaring bijgewerkt. **Privacytekst voorleggen aan de eigenaar.**
+>
+> **Getoetst.** Alle 28 ZRL-races (137 renners) en de eigen ritten van de eigenaar,
+> alleen lezen. Eerste ronde 93 van 137 renners met een tip: te veel. Na bijstellen
+> 28 van 137; details per regel in het onderzoek, sectie 11. Training op de eigen
+> trainingen: na bijstellen drie suggesties, alle drie terecht. Geen
+> trainingsdata van andere leden gebruikt.
+>
+> **Besluiten van de bouwer, voor de eigenaar om te toetsen.** De drempels (zie de
+> tabellen in sectie 10); dat de trainer de racetips van zijn renner ziet, met de
+> eigen rit; dat de uitvoering per herhaling bewaard wordt.
+>
+> **Bewust niet gebouwd.** Tips over kopbeurtlengte (bronnen spreken elkaar tegen),
+> durability, voeding, warming-up en de start in Zwift (data ontbreekt of het
+> bewijs is te dun); automatisch versturen van tips; suggesties uit trainingsdata
+> van leden zonder trainer.
+>
+> **Getest.** Nieuw: `training-execution.test.ts` (uitlijnen met aanloop,
+> herhalingen, ontkoppeling, elke trainingsregel en wanneer niet);
+> `zrl-analysis-advice.test.ts` uitgebreid (segmenten kiezen, efficiëntie en niet
+> zonder draft, ploeg uit elkaar, de planregels); `zone-times-fill.test.ts` (de
+> uitvoering wordt bewaard en aangevuld, niet twee keer). `tsc`, ESLint en
+> `npm run build` schoon.
+>
+> **Niet geverifieerd.** De pagina's in de browser; een echte intervalsessie
+> (alleen gesimuleerd); hoe de suggesties bij trainers landen.
+>
+> **Niet meer waar.** De privacyverklaring zei dat van een training alleen de
+> seconden per zone bewaard worden; nu ook het vermogen per herhaling en de
+> ontkoppeling (aangepast). De tipregels in de rondes hieronder zijn uitgebreid.
+
+---
+
 > **ZWBeter racen: tips minder generiek, 2026-10-15 — gebouwd, lokaal getest; niet gepusht; niet in de browser bekeken. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
