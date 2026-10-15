@@ -134,7 +134,7 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
-> **Racestrategie-onderzoek, getoetste tips en trainersuggesties, 2026-10-15 — gebouwd, lokaal getest; niet gepusht; niet in de browser bekeken. Geen migratie.**
+> **Racestrategie-onderzoek, getoetste tips en trainersuggesties, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `2b6a979`); niet in de browser bekeken. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
 > **Waarom.** Vraag van de eigenaar: onderzoek "zo breed en diepgravend
@@ -203,7 +203,7 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
-> **ZWBeter racen: tips minder generiek, 2026-10-15 — gebouwd, lokaal getest; niet gepusht; niet in de browser bekeken. Geen migratie.**
+> **ZWBeter racen: tips minder generiek, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `71fd6e1`); niet in de browser bekeken. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
 > **Waarom.** De eigenaar: "Ik zie in de tips vaak terugkomende punten die niet
