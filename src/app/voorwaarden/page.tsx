@@ -4,7 +4,7 @@ import { BackLink } from "@/components/app-ui";
 export const metadata = {
   title: "Gebruikersvoorwaarden — ZWB Cycling",
   description:
-    "De afspraken voor het gebruik van het ZWB Cycling-platform: waar het onderhoudsadvies wel en niet voor is, en hoe we omgaan met citaten van leden.",
+    "De afspraken voor het gebruik van het ZWB Cycling-platform: waar het onderhoudsadvies wel en niet voor is, en hoe we omgaan met citaten en tips van leden.",
 };
 
 const UPDATED = "18 augustus 2026";
@@ -79,15 +79,16 @@ export default function VoorwaardenPage() {
           Bij de onderdelen in Mijn garage staan tips uit drie bronnen: algemene
           onderhoudskennis, samenvattingen van openbaar gepubliceerd advies met
           een verwijzing naar de bron, en uitspraken van ZWB-leden uit de
-          clubgroepen.
+          clubgroepen. Bij Wie weet wat staan tips van leden zelf, per onderwerp
+          en soms bij een event of col.
         </p>
         <p>
           Plaats je iets in een ZWB-groepsapp, dan kan het bestuur dat als citaat
-          overnemen in het platform, met je naam erbij. Je ziet je eigen citaten
-          altijd terug op je profiel en je kunt ze daar zelf aanpassen of
-          verwijderen — zonder dat je iemand om toestemming hoeft te vragen.
-          Verwijder je een citaat, dan verdwijnt het meteen uit de app. Je kunt
-          ook vragen om helemaal geen citaten van jou op te nemen.
+          of als tip bij Wie weet wat overnemen in het platform, met je naam
+          erbij. Je ziet je eigen citaten en tips altijd terug en je kunt ze zelf
+          aanpassen of verwijderen — zonder dat je iemand om toestemming hoeft te
+          vragen. Verwijder je er een, dan verdwijnt hij meteen uit de app. Je
+          kunt ook vragen om helemaal geen citaten of tips van jou op te nemen.
         </p>
         <p>
           Tips zijn ervaringen van fietsers, geen professioneel advies. Wat voor
@@ -108,7 +109,7 @@ export default function VoorwaardenPage() {
       <Section title="5. Wat je zelf plaatst">
         <p>
           Je bent verantwoordelijk voor wat je plaatst: ritverslagen, foto&apos;s,
-          berichten en reacties. Plaats geen materiaal waarvan je de rechten niet
+          tips, berichten en reacties. Plaats geen materiaal waarvan je de rechten niet
           hebt, en geen foto&apos;s van anderen die daar bezwaar tegen hebben. Het
           bestuur kan bijdragen verwijderen die kwetsend zijn, de club schaden of
           in strijd zijn met de wet.

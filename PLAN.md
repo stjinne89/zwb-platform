@@ -64,6 +64,10 @@ gaat stabiliteit voor nieuwe features.
    apart nagekeken.
    - **Protocollen:** `0237_member_protocols.sql` toepassen (2026-10-14). Zonder
      de tabel tonen de pagina's de protocollen, maar starten lukt niet.
+   - **Wie weet wat:** `0239_member_knowledge.sql` toepassen **vóór** het pushen
+     van die ronde (2026-10-15). Zonder de kolom `on_knowledge_message` mislukt
+     het opslaan van de meldingsvoorkeuren op `/profiel`. Eerst de privacy- en
+     voorwaardentekst door de eigenaar laten lezen; zie de ronde "Wie weet wat".
    - **CORE-sensor bij hitte:** `0238_member_protocol_core_sessions.sql`
      toepassen, ná `0237` (2026-10-14). **Zonder `0238` lukt het starten van
      elk protocol niet meer**: de app tekent met de nieuwe toestemmingsversie
@@ -128,9 +132,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0239`
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0240`
 (`0237_member_protocols` is van de protocollen, `0238_member_protocol_core_sessions`
-van de CORE-sensor, beide 2026-10-14).
+van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` van Wie weet wat,
+2026-10-15).
 
 ---
 
@@ -8744,6 +8749,135 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Wie weet wat: kenners, vragen en tips van leden (fase 1)
+
+**2026-10-15.** Commit: de commit die dit blok toevoegt. Migratie
+`0239_member_knowledge.sql` (**nog toepassen**, vóór het pushen). Het onderzoek en
+alle voorstellen staan in [kennis van leden](docs/kennis-van-leden.md).
+
+**Aanleiding.** De eigenaar ziet het kennisnetwerk van de leden als mogelijke
+kracht van ZWB, maar zag niet hoe het platform dat vorm geeft. Hij vroeg om
+voorstellen en onderzoek.
+
+**Waarom geen forum.** `posts` heeft sinds `0019` de soorten `vraag` en `tip`. Dat
+leverde in vier maanden één post op, met 0 reacties. Ritverslagen en event-chat
+bleven even klein. Het onderzoek (90-9-1, impliciete kennis, transactief geheugen,
+gerichte vragen) wijst één kant op: de app moet aanwijzen *wie* iets weet, en
+bewaren wat daaruit komt. Er zijn zeven voorstellen (A–G). De eigenaar koos voor
+fase 1: A (wie weet wat) en B (tips op hun plek), plus het begin van E (een vraag
+aan één kenner).
+
+**Wat.**
+
+- **`/leden/wie-weet-wat`.** Per onderwerp de leden met ervaring, met een korte
+  notitie en de knop "Vraag het aan", plus de nieuwste tips. Onderwerpen zonder
+  kenners staan ingeklapt. In het menu onder Club en als knop op `/leden`.
+- **Meedoen** (`/mijn`).
+  - Een lid kiest tot zes onderwerpen uit een vaste lijst van vijftien
+    (`src/lib/wie-weet-wat/topics.ts`). Er zit geen gezondheidsonderwerp bij.
+  - Het lid tekent een eigen toestemming (`MEMBER_KNOWLEDGE_CONSENT_VERSION`,
+    tabel `member_knowledge`).
+  - Stoppen wist de onderwerpen. Tips en gesprekken blijven staan.
+- **Vragen** (`/vraag`, `/gesprekken`).
+  - Een vraag opent een gesprek tussen twee leden. Alleen die twee lezen het, ook
+    het bestuur niet; dat is dezelfde keuze als bij de coachchat (`0167`).
+  - Een deelnemer kan het gesprek sluiten en eigen berichten verwijderen.
+  - Hooguit tien nieuwe vragen per dag; een trigger bewaakt dat.
+  - Bij een nieuw bericht gaat er een push uit met de nieuwe trigger
+    `on_knowledge_message`. De schakelaar daarvoor staat op `/profiel`.
+  - In de kop staat dan een icoon met het aantal, in beide designs. Het icoon
+    verschijnt alleen als er iets ongelezen is, want push staat maar bij 4 leden
+    aan.
+- **Tips** (`member_tips`, hooguit 300 tekens).
+  - Een lid plaatst een tip zelf, of maakt hem van een eigen bericht met "Maak
+    hier een tip van". Een tip staat dus altijd in de eigen woorden van de auteur.
+  - Tips staan in het overzicht, onder "Weet van" op het profiel van een lid en
+    onder "Van leden" op de eventpagina.
+  - Op de eventpagina gaat het om tips bij het event, bij het moederevent en bij
+    de cols die de pagina op de route herkent.
+  - Moderatie: `community.manage` of `content.moderate_posts` kan een tip
+    verbergen of verwijderen. Een trigger voorkomt dat de auteur een verborgen tip
+    zelf terugzet.
+- **Import.** `/beheer/citaten` kan een bericht uit de groepsapp nu ook als tip bij
+  Wie weet wat opslaan (`source = 'import'`), naast als citaat in Mijn garage.
+- **Data-export.** De export bevat de onderwerpen, de tips, de eigen gesprekken en
+  de zelf geschreven berichten.
+- **Teksten.**
+  - `/privacy#wie-weet-wat` en `/voorwaarden` §3 en §5.
+  - Een blok op `/hulp#wie-weet-wat` en een zoekterm in de hulpzoeker.
+  - Geen uitleg in de schermen zelf.
+
+**Besluiten van de eigenaar.**
+
+- Alle voorstellen spreken aan; eerst fase 1.
+- **Geen telefoonnummers en geen WhatsApp-link.** Eerst lag er een `wa.me`-link
+  voor, met een nummer dat het lid zelf zou opgeven. De eigenaar koos voor
+  berichten in de app. Dan blijven telefoonnummers buiten de app en kan een goed
+  antwoord weer een tip worden.
+- **Toestemming per functie, geen nieuwe `PRIVACY_VERSIONS`.** Dat is de derde
+  uitzondering, na het eetdagboek en de protocollen; zie het commentaar in
+  `src/lib/privacy.ts`.
+- **De eigenaar heeft de privacy- en voorwaardentekst nog niet gelezen.**
+
+**Bewust niet gebouwd.**
+
+- **`maintenance_tips` samenvoegen met `member_tips`.** Die tabel heeft een andere
+  sleutel (onderdeel en fietstype), pro-bronnen met bronlink en seeddata, en leden
+  plaatsen er niets zelf. De WhatsApp-parser wordt wel gedeeld.
+- **Een vraag aan alle kenners van een onderwerp tegelijk.** Eerst zien of
+  één-op-één gebruikt wordt.
+- **Realtime in een gesprek.** De pagina ververst na versturen en bij openen.
+- **Blokkeren of melden.** Sluiten kan wel. Bij 35 leden loopt een probleem via
+  het bestuur.
+- **Tips bij Zwift-routes of per eventtype.**
+- **Vastleggen of een tip uit een gesprek kwam.**
+- **C (wie reed dit al).** Dat laat zien wie waar reed en vraagt een eigen
+  privacybesluit.
+- **D (delen bij wat je maakt), F (AI met clubkennis) en G (clinics).** G kan nu
+  al als gewoon event.
+
+**Niet meer waar.**
+
+- "De volgende vrije is `0239`" (Architectuur): dat is nu `0240`.
+- De geparkeerde "AI-agenten en kennisvragen" en het E2E-chatonderzoek verwijzen nu
+  naar deze ronde.
+
+**Getest.**
+
+- `tsc` zonder nieuwe fouten. De drie meldingen over `@zxing` in
+  `read-barcode.ts` komen doordat deze worktree de `node_modules` van de
+  hoofdmap leent.
+- ESLint op alle geraakte mappen zonder fouten.
+- Nieuw: `member-knowledge-migration.test.ts` (23 tests, `0239` tegen PGlite). De
+  tests dekken:
+  - wie onderwerpen, tips en gesprekken ziet; het bestuur en de moderator blijven
+    buiten het gesprek
+  - een vraag aan jezelf, aan iemand die niet meedoet, aan een wachtend account,
+    en zonder eigen toestemming
+  - de daglimiet, en geen berichten in een gesloten gesprek
+  - bij gelezen zetten verandert alleen de eigen kolom
+  - de wacht op een verborgen tip
+  - lengtechecks
+  - cascade bij het opheffen van een account, en `set null` als een event of col
+    verdwijnt
+- Nieuw: `wie-weet-wat.test.ts` (onderwerpen, ongelezen, tips bij een event), en
+  een geval in `nav-active.test.ts`.
+- Volledige run: 2.405 van de 2.406 tests groen. `admin-areas` en
+  `intervals-ride-sync` liepen onder belasting in een time-out; los zijn ze groen.
+  `omnium-live` mist `.env.local`.
+
+**Niet geverifieerd.**
+
+- `0239` op de echte database (geen Docker of Supabase-config hier), dus ook de
+  RLS met de echte `current_user_has_permission` en `is_approved` niet.
+- **De pagina's in de browser.** De worktree heeft geen `.env.local`, dus de
+  dev-server is niet gestart.
+- Of de pushmelding aankomt.
+- Of de query voor het icoon in de kop licht blijft (`countUnreadThreads`, draait
+  op elke pagina). Dat moet uit de wekelijkse `db-health` blijken.
+- Tips bij cols verschijnen alleen bij toekomstige events met een GPX, want alleen
+  dan leest de pagina de route in.
+
 ### Opgeleverd — Trainersuggesties lezen het bericht van het lid mee
 
 **2026-10-15.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -15582,6 +15716,11 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
 
 ## Bekende open dingen
 
+- **`maintenance_tips` ontbreekt in de data-export** (gezien 2026-10-15, bij Wie
+  weet wat). Citaten van een lid hebben een `profile_id`, maar de tabel staat niet
+  in `PROFILE_TABLES` van `src/app/api/account/export/route.ts`. De oplossing is
+  één regel; die is buiten de ronde gelaten.
+
 - **Omnium:** migratie `0174` is toegepast (eigenaar, 2026-10-02). Nog te doen:
   seizoen `2026-27` plannen en de productie-inrichting voor
   editie 1 (verzet naar november, datum onzeker; was 11 oktober). Zie de ronde
@@ -16057,6 +16196,10 @@ testerfeedback die direct communitywaarde kan leveren.
 **Waarom later/betaalversie:** nuttig, maar privacy- en kennisscope moeten eerst
 strak zijn.
 
+*2026-10-15:* "wie moet ik hebben" is zonder AI opgelost met Wie weet wat
+(`0239`). Een AI die de tips van leden met naam gebruikt, staat daar als voorstel
+F in [kennis van leden](docs/kennis-van-leden.md).
+
 1. Bepaal scope: platformhulp, beleid, functies vinden, "wie moet ik hebben".
 2. Bepaal databronnen: `/hulp`, `PLAN.md`, runbook, publieke content,
    eventueel afgeschermde ledeninformatie met expliciete grenzen.
@@ -16143,7 +16286,10 @@ Ontwerp:
 > geparkeerd. Wat er sindsdien wél is gebouwd, is de coachchat in ZWBeter Worden (migratie
 > `0167`): één besloten gesprek per lid tussen het lid, een AI-coach en zijn aangewezen
 > trainer. Dat is niet E2E-versleuteld en lost geen van de vragen hieronder op — het is een
-> smalle toepassing van optie (B), zonder rooms en zonder WhatsApp-import.
+> smalle toepassing van optie (B), zonder rooms en zonder WhatsApp-import. Sinds 2026-10-15
+> (`0239`) zijn er ook gesprekken tussen twee leden in Wie weet wat, maar alleen over een
+> onderwerp waarin de ander kenner is. Die zijn ook niet E2E-versleuteld, en een clubchat
+> zijn ze niet.
 
 **Kernconclusie: geschiedenis-behoud (WhatsApp-import) en échte E2E zijn
 grotendeels onverenigbaar.** Kies dus eerst het doel.

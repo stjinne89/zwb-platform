@@ -9,6 +9,8 @@ import {
   toCandidates,
   type QuoteCandidate,
 } from "@/lib/maintenance/whatsapp-export";
+import { TIP_MAX, TIP_MIN } from "@/lib/wie-weet-wat/limits";
+import { isKnowledgeTopic } from "@/lib/wie-weet-wat/topics";
 
 export type ImportProfile = { id: string; display_name: string };
 
@@ -92,6 +94,43 @@ export async function saveQuote(input: {
 
   revalidatePath("/mijn-garage");
   revalidatePath("/profiel");
+  return { ok: true as const };
+}
+
+/**
+ * Een bericht uit de groepsapp als tip bij Wie weet wat (0239), onder de naam
+ * van het lid dat het schreef. Dat lid ziet en beheert hem daarna zelf, net als
+ * een citaat in Mijn garage.
+ */
+export async function saveMemberTip(input: { body: string; profileId: string; topic: string }) {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user || !access.has("community.manage")) {
+    return { ok: false as const, error: "Geen recht om tips te beheren." };
+  }
+
+  const body = input.body.trim();
+  if (body.length < TIP_MIN || body.length > TIP_MAX) {
+    return { ok: false as const, error: `Tip moet tussen ${TIP_MIN} en ${TIP_MAX} tekens zijn.` };
+  }
+  if (!isKnowledgeTopic(input.topic)) {
+    return { ok: false as const, error: "Kies een onderwerp." };
+  }
+  if (!input.profileId) {
+    return { ok: false as const, error: "Kies bij wie deze tip hoort." };
+  }
+
+  const { error } = await supabase.from("member_tips").insert({
+    profile_id: input.profileId,
+    topic_slug: input.topic,
+    body,
+    source: "import",
+    created_by: access.user.id,
+  });
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/leden/wie-weet-wat");
+  revalidatePath("/leden/[id]", "page");
   return { ok: true as const };
 }
 

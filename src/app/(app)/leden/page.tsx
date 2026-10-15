@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { EmptyState, PageHeader } from "@/components/app-ui";
+import { buttonVariants } from "@/components/ui/button";
 import { CommunityRoleBadges } from "@/components/community-role-badges";
 import { ApproveButton } from "./_components/approve-button";
 import { ClaimButton } from "./_components/claim-button";
@@ -184,7 +186,14 @@ export default async function LedenPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Leden" />
+      <PageHeader
+        title="Leden"
+        actions={
+          <Link href="/leden/wie-weet-wat" className={buttonVariants({ variant: "outline" })}>
+            Wie weet wat
+          </Link>
+        }
+      />
 
       {canApproveMembers && pendingProfiles.length > 0 && (
         <section className="space-y-3 rounded-2xl border-2 border-accent bg-card p-4">

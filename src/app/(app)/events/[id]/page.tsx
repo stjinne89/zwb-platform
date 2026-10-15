@@ -81,6 +81,9 @@ import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { BackLink } from "@/components/app-ui";
 import { MemberLink } from "@/components/member-link";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
+import { tipsForEvent } from "@/lib/wie-weet-wat/data";
+import { TIP_COLUMNS, loadMembers, type TipRow } from "@/lib/wie-weet-wat/queries";
+import { VanLeden } from "./_components/van-leden";
 
 type RsvpStatus = "yes" | "maybe" | "no";
 type TeamAvailabilityStatus = "available" | "maybe" | "unavailable";
@@ -1146,6 +1149,35 @@ export default async function EventDetailPage({
     }
   }
 
+  // Tips van leden (Wie weet wat, 0239): bij dit event, bij het moederevent en
+  // bij de cols op de route. Cols kent de pagina alleen als hij de route
+  // inleest, dus bij een toekomstig event met GPX; anders alleen de eventtips.
+  const tipEventIds = event.parent_event_id ? [id, event.parent_event_id] : [id];
+  const routeColNames = new Set(
+    (sampledRoute?.climbs ?? []).flatMap((climb) => (climb.name ? [climb.name] : [])),
+  );
+  const tipColNames = new Map(
+    cols.filter((col) => routeColNames.has(col.name)).map((col) => [col.slug, col.name]),
+  );
+  const tipFilter = [
+    `event_id.in.(${tipEventIds.join(",")})`,
+    ...(tipColNames.size > 0 ? [`col_slug.in.(${Array.from(tipColNames.keys()).join(",")})`] : []),
+  ].join(",");
+  const { data: memberTipRows } = await supabase
+    .from("member_tips")
+    .select(TIP_COLUMNS)
+    .or(tipFilter)
+    .order("created_at", { ascending: false })
+    .limit(30);
+  const memberTips = tipsForEvent((memberTipRows ?? []) as TipRow[], {
+    eventIds: tipEventIds,
+    colSlugs: Array.from(tipColNames.keys()),
+  });
+  const memberTipAuthors = await loadMembers(
+    supabase,
+    memberTips.map((tip) => tip.profile_id),
+  );
+
   // Live-chat: initiële berichten (leden zien ook interne via RLS). Ook na de
   // rit ophalen, zodat de chat als archief deel wordt van het ritverslag.
   let initialChat: ChatMessage[] = [];
@@ -1807,6 +1839,15 @@ export default async function EventDetailPage({
         </section>
         )
       )}
+
+      <VanLeden
+        eventId={event.id}
+        tips={memberTips}
+        authors={memberTipAuthors}
+        colNames={tipColNames}
+        viewerId={user?.id ?? ""}
+        canModerate={access.has("community.manage") || access.has("content.moderate_posts")}
+      />
 
       <section className="space-y-3 rounded-lg border bg-card p-4">
         <header className="flex flex-wrap items-center justify-between gap-2">

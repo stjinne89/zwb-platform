@@ -116,7 +116,7 @@ export default async function ProfielPage() {
     supabase
       .from("notification_preferences")
       .select(
-        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_training_chat, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_intervals_visit_reminder",
+        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_training_chat, on_knowledge_message, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_intervals_visit_reminder",
       )
       .eq("profile_id", user.id)
       .maybeSingle(),
@@ -277,6 +277,20 @@ export default async function ProfielPage() {
         <MyQuotes quotes={(myQuotes ?? []) as MyQuote[]} />
       </div>
 
+      <section id="wie-weet-wat" className="scroll-mt-20 rounded-lg border bg-card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Wie weet wat
+          </h2>
+          <Link
+            href="/leden/wie-weet-wat/mijn"
+            className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
+          >
+            Mijn onderwerpen en tips
+          </Link>
+        </div>
+      </section>
+
       <div id="meldingen" className="scroll-mt-20">
         <PushToggle
           vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null}
@@ -286,6 +300,7 @@ export default async function ProfielPage() {
             on_new_badge: pushPrefs?.on_new_badge ?? false,
             on_training_plan: pushPrefs?.on_training_plan ?? true,
             on_training_chat: pushPrefs?.on_training_chat ?? true,
+            on_knowledge_message: pushPrefs?.on_knowledge_message ?? true,
             on_event_reminder: pushPrefs?.on_event_reminder ?? true,
             on_admin_broadcast: pushPrefs?.on_admin_broadcast ?? true,
             on_maintenance_due: pushPrefs?.on_maintenance_due ?? true,

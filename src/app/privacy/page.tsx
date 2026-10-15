@@ -194,6 +194,23 @@ export default function PrivacyPage() {
             Je kunt een protocol altijd stoppen; de gegevens verdwijnen als je
             je account opheft.
           </li>
+          <li id="wie-weet-wat" className="scroll-mt-20">
+            <strong>Wie weet wat (alleen met opt-in):</strong> doe je mee of
+            stel je een vraag, dan teken je daar apart voor. We bewaren de
+            onderwerpen die je kiest met je korte toelichting, de tips die je
+            plaatst en de gesprekken die je voert, met wanneer je ze las.
+            Onderwerpen en tips zien goedgekeurde clubleden, met je naam erbij;
+            ze staan niet op je openbare profiel. Een gesprek zien alleen jij en
+            het andere lid, ook het bestuur niet. Een tip plaats je altijd zelf,
+            ook als hij uit een gesprek komt; het bestuur kan wel een bericht
+            dat je in een clubgroep schreef als tip onder je naam zetten (zie de
+            gebruikersvoorwaarden), en een tip verbergen. Krijg je een bericht,
+            dan sturen we een pushmelding als je die aan hebt staan; die zegt
+            van wie het komt en over welk onderwerp, niet wat erin staat. Er gaat
+            niets naar OpenAI. Stop je, dan verdwijnen je onderwerpen; tips en
+            gesprekken kun je zelf verwijderen, en alles verdwijnt als je je
+            account opheft. Het staat in je data-export.
+          </li>
           <li>
             <strong>Gezondheids­gerelateerde data (alleen met opt-in):</strong>{" "}
             herstel-/wellnessgegevens uit intervals.icu zoals rusthartslag, HRV,

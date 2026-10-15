@@ -38,6 +38,9 @@ const PROFILE_TABLES: string[] = [
   "nutrition_log_meals",
   "nutrition_log_ai_usage",
   "member_protocols",
+  "member_knowledge",
+  "member_knowledge_topics",
+  "member_tips",
 ];
 
 export async function GET() {
@@ -113,6 +116,21 @@ export async function GET() {
       const { data: rows, error } = await admin.from(table).select("*").in("protocol_id", ids);
       if (!error) data[table] = rows ?? [];
     }
+  }
+
+  // Wie weet wat: de gesprekken waarin het lid vrager of kenner is, en de
+  // berichten die het zelf schreef. Die tabellen hebben geen profile_id.
+  {
+    const { data: threads, error } = await admin
+      .from("knowledge_threads")
+      .select("*")
+      .or(`asker_id.eq.${user.id},expert_id.eq.${user.id}`);
+    if (!error) data.knowledge_threads = threads ?? [];
+    const { data: messages, error: messageError } = await admin
+      .from("knowledge_messages")
+      .select("*")
+      .eq("author_id", user.id);
+    if (!messageError) data.knowledge_messages = messages ?? [];
   }
 
   const body = JSON.stringify(data, null, 2);

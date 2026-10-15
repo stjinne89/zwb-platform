@@ -30,6 +30,12 @@
  * Ook de kerntemperatuur van een CORE-sensor bij een hitteprotocol (0238) valt
  * daaronder: die tekst kreeg een eigen protocolversie (`2026-10-14-core`), en
  * alleen runs onder die versie worden uitgelezen.
+ *
+ * **Derde uitzondering: Wie weet wat (2026-10-15).** Onderwerpen, tips en
+ * gesprekken tussen twee leden levert alleen aan wie meedoet of een vraag
+ * stelt; die tekent daarvoor (`MEMBER_KNOWLEDGE_CONSENT_VERSION` in
+ * `src/lib/wie-weet-wat/consent.ts`, tabel `member_knowledge`).
+ * `/privacy#wie-weet-wat` beschrijft het.
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring

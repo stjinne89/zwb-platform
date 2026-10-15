@@ -30,9 +30,9 @@ export default async function CitatenPage() {
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Tips en citaten</h1>
         <p className="text-sm text-muted-foreground">
-          Tips verschijnen bij het bijbehorende onderdeel in Mijn garage. Een lid
-          ziet zijn eigen citaten op zijn profiel en kan ze daar zelf aanpassen of
-          verwijderen — zie de{" "}
+          Tips verschijnen bij het bijbehorende onderdeel in Mijn garage, of bij
+          een onderwerp in Wie weet wat. Een lid ziet zijn eigen citaten en tips
+          en kan ze zelf aanpassen of verwijderen — zie de{" "}
           <Link href="/voorwaarden" className="underline underline-offset-2">
             gebruikersvoorwaarden
           </Link>

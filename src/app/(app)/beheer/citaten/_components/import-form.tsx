@@ -8,7 +8,9 @@ import {
   disciplineLabel,
 } from "@/lib/maintenance/component-types";
 import type { QuoteCandidate } from "@/lib/maintenance/whatsapp-export";
-import { parseExport, saveQuote, type ImportProfile } from "../_actions";
+import { KNOWLEDGE_TOPICS } from "@/lib/wie-weet-wat/topics";
+import { TIP_MAX } from "@/lib/wie-weet-wat/limits";
+import { parseExport, saveMemberTip, saveQuote, type ImportProfile } from "../_actions";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -111,6 +113,9 @@ function CandidateRow({
   onSaved: () => void;
 }) {
   const [profileId, setProfileId] = useState(candidate.matchedProfileId ?? "");
+  // Garage: citaat bij een onderdeel. Wie weet wat: tip bij een onderwerp.
+  const [target, setTarget] = useState<"garage" | "kennis">("garage");
+  const [topic, setTopic] = useState<string>(KNOWLEDGE_TOPICS[0].slug);
   const [type, setType] = useState(COMPONENT_TYPES[0].slug);
   const [discipline, setDiscipline] = useState("");
   const [body, setBody] = useState(candidate.text);
@@ -120,12 +125,15 @@ function CandidateRow({
   function save() {
     setError(null);
     startTransition(async () => {
-      const res = await saveQuote({
-        body,
-        profileId,
-        componentType: type,
-        discipline: discipline || null,
-      });
+      const res =
+        target === "kennis"
+          ? await saveMemberTip({ body, profileId, topic })
+          : await saveQuote({
+              body,
+              profileId,
+              componentType: type,
+              discipline: discipline || null,
+            });
       if (!res.ok) {
         setError(res.error);
         return;
@@ -170,33 +178,62 @@ function CandidateRow({
         </select>
 
         <select
-          aria-label="Onderdeel"
+          aria-label="Bestemming"
           className={SMALL}
-          value={type}
+          value={target}
           disabled={saved}
-          onChange={(e) => setType(e.target.value)}
+          onChange={(e) => setTarget(e.target.value === "kennis" ? "kennis" : "garage")}
         >
-          {COMPONENT_TYPES.map((c) => (
-            <option key={c.slug} value={c.slug}>
-              {c.label}
-            </option>
-          ))}
+          <option value="garage">Mijn garage</option>
+          <option value="kennis">Wie weet wat</option>
         </select>
 
-        <select
-          aria-label="Fietstype"
-          className={SMALL}
-          value={discipline}
-          disabled={saved}
-          onChange={(e) => setDiscipline(e.target.value)}
-        >
-          <option value="">Elk fietstype</option>
-          {DISCIPLINES.map((d) => (
-            <option key={d} value={d}>
-              {disciplineLabel(d)}
-            </option>
-          ))}
-        </select>
+        {target === "kennis" ? (
+          <select
+            aria-label="Onderwerp"
+            className={SMALL}
+            value={topic}
+            disabled={saved}
+            onChange={(e) => setTopic(e.target.value)}
+          >
+            {KNOWLEDGE_TOPICS.map((t) => (
+              <option key={t.slug} value={t.slug}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <>
+            <select
+              aria-label="Onderdeel"
+              className={SMALL}
+              value={type}
+              disabled={saved}
+              onChange={(e) => setType(e.target.value)}
+            >
+              {COMPONENT_TYPES.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              aria-label="Fietstype"
+              className={SMALL}
+              value={discipline}
+              disabled={saved}
+              onChange={(e) => setDiscipline(e.target.value)}
+            >
+              <option value="">Elk fietstype</option>
+              {DISCIPLINES.map((d) => (
+                <option key={d} value={d}>
+                  {disciplineLabel(d)}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
 
         <Button
           type="button"
@@ -204,10 +241,21 @@ function CandidateRow({
           disabled={pending || saved || !profileId}
           onClick={save}
         >
-          {saved ? "Opgeslagen" : pending ? "Opslaan…" : "Als citaat opslaan"}
+          {saved
+            ? "Opgeslagen"
+            : pending
+              ? "Opslaan…"
+              : target === "kennis"
+                ? "Als tip opslaan"
+                : "Als citaat opslaan"}
         </Button>
       </div>
 
+      {target === "kennis" && body.trim().length > TIP_MAX && (
+        <p className="mt-1 text-xs text-destructive">
+          {body.trim().length}/{TIP_MAX}
+        </p>
+      )}
       {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
     </li>
   );

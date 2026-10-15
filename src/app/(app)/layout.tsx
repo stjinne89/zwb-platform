@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { CircleHelp } from "lucide-react";
+import { CircleHelp, MessagesSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { privacyConsentIsCurrent } from "@/lib/privacy";
@@ -18,6 +18,7 @@ import { ADMIN_NAV, NAV_GROUPS, filterNavForPermissions } from "./_components/na
 import { TegelsShell } from "./_components/tegels-shell";
 import { DesignSwitch } from "./_components/design-switch";
 import { DESIGN_PREVIEW_PERMISSION, getDesign } from "@/lib/design";
+import { countUnreadThreads } from "@/lib/wie-weet-wat/queries";
 
 /**
  * Ongeclaimde ledenlijst-regels die op de naam van dit lid lijken en een
@@ -53,13 +54,15 @@ export default async function AppLayout({
   const [supabase, user] = await Promise.all([createClient(), getRequestUser()]);
   if (!user) redirect("/login");
 
-  const [{ data: profile }, access] = await Promise.all([
+  const [{ data: profile }, access, unreadThreads] = await Promise.all([
     supabase
       .from("profiles")
       .select("display_name, avatar_url, zwift_id, zwift_opt_out, sex, privacy_accepted_at, privacy_accepted_version")
       .eq("id", user.id)
       .single(),
     getRequestAccess(),
+    // Wie weet wat: alleen een icoon als er iets ongelezen is.
+    countUnreadThreads(supabase, user.id).catch(() => 0),
   ]);
 
   const displayName = profile?.display_name ?? user.email ?? "";
@@ -104,6 +107,11 @@ export default async function AppLayout({
         back={<BackButton />}
         actions={
           <>
+            <UnreadMessagesLink
+              count={unreadThreads}
+              className="inline-flex size-11 items-center justify-center text-muted-foreground transition hover:text-primary"
+              iconClassName="size-5"
+            />
             <Link
               href="/hulp"
               className="inline-flex size-11 items-center justify-center text-muted-foreground transition hover:text-primary"
@@ -180,6 +188,11 @@ export default async function AppLayout({
 
           {/* Right side: avatar-dropdown + theme + mobile-hamburger */}
           <div className="flex items-center gap-2">
+            <UnreadMessagesLink
+              count={unreadThreads}
+              className="inline-flex rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary"
+              iconClassName="size-4"
+            />
             <Link
               href="/hulp"
               className="hidden rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary md:inline-flex"
@@ -200,5 +213,30 @@ export default async function AppLayout({
       {needsPrivacyConsent && <PrivacyConsentDialog updated={signedBefore} />}
       {needsZwiftId && <ZwiftIdDialog claims={claims} />}
     </div>
+  );
+}
+
+/** Icoon naar de gesprekken van Wie weet wat, alleen bij iets ongelezens. */
+function UnreadMessagesLink({
+  count,
+  className,
+  iconClassName,
+}: {
+  count: number;
+  className: string;
+  iconClassName: string;
+}) {
+  if (count <= 0) return null;
+  return (
+    <Link
+      href="/leden/wie-weet-wat/gesprekken"
+      className={`relative ${className}`}
+      aria-label={`${count} ongelezen ${count === 1 ? "gesprek" : "gesprekken"}`}
+    >
+      <MessagesSquare className={iconClassName} />
+      <span className="absolute top-0 right-0 inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-4 font-semibold text-primary-foreground">
+        {count}
+      </span>
+    </Link>
   );
 }

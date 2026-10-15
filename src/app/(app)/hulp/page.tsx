@@ -174,6 +174,20 @@ const GUIDES = [
     ],
   },
   {
+    id: "wie-weet-wat",
+    icon: Lightbulb,
+    title: "Wie weet wat",
+    bullets: [
+      "Onder Club → Wie weet wat zie je per onderwerp welke leden er ervaring mee hebben, met hun tips.",
+      "Doe mee via Mijn onderwerpen: kies tot zes onderwerpen en zet er eventueel kort bij waarin precies. Daar stop je ook; je onderwerpen verdwijnen dan, je tips en gesprekken blijven.",
+      "Vraag het aan opent een gesprek met dat lid, alleen voor jullie twee. Je krijgt een melding bij een antwoord, en een icoon bovenin zolang er iets ongelezen is.",
+      "Staat er in een gesprek een goed antwoord van jezelf, kies dan Maak hier een tip van. Je kunt alleen je eigen berichten als tip plaatsen.",
+      "Een tip kan ook bij een event horen: onder Van leden op de eventpagina, samen met tips bij de cols op de route.",
+      "Je tips pas je aan of verwijder je in de lijst of onder Mijn onderwerpen. Het bestuur kan een tip verbergen.",
+      "De onderwerpen staan vast, zodat iedereen onder hetzelfde woord zoekt. Gezondheid zit er bewust niet bij.",
+    ],
+  },
+  {
     id: "training",
     icon: Bike,
     title: "Training en trainer-toegang",

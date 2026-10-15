@@ -10,6 +10,9 @@ import { RiderStats } from "./_components/rider-stats";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 import { bikeShownOnProfile, type StravaBikeRow } from "@/lib/strava/bikes";
 import { BackLink } from "@/components/app-ui";
+import { getRequestAccess } from "@/lib/auth/request";
+import { TIP_COLUMNS, type ExpertTopicRow, type TipRow } from "@/lib/wie-weet-wat/queries";
+import { MemberKnowledgeSection } from "../wie-weet-wat/_components/member-knowledge-section";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -58,6 +61,9 @@ export default async function LidProfielPage({ params }: PageProps) {
     { data: milestoneAwards },
     { data: weeklyAwards },
     { data: bikes },
+    { data: knowledgeTopics },
+    { data: knowledgeTips },
+    access,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -93,6 +99,17 @@ export default async function LidProfielPage({ params }: PageProps) {
       .eq("profile_id", id)
       .order("is_primary", { ascending: false })
       .order("distance_m", { ascending: false }),
+    supabase
+      .from("member_knowledge_topics")
+      .select("profile_id, topic_slug, note")
+      .eq("profile_id", id),
+    supabase
+      .from("member_tips")
+      .select(TIP_COLUMNS)
+      .eq("profile_id", id)
+      .order("created_at", { ascending: false })
+      .limit(5),
+    getRequestAccess(),
   ]);
 
   if (!profile) notFound();
@@ -126,14 +143,25 @@ export default async function LidProfielPage({ params }: PageProps) {
           profileRow.public_profile_enabled ? `/profielen/${profileRow.id}` : null
         }
         extraBeforeBadges={
-          showBadges ? (
-            <>
+          <>
+            <MemberKnowledgeSection
+              member={{
+                id: profileRow.id,
+                display_name: profileRow.display_name ?? "",
+                avatar_url: visibleProfile(profileRow).avatar_url,
+              }}
+              topics={(knowledgeTopics ?? []) as ExpertTopicRow[]}
+              tips={(knowledgeTips ?? []) as TipRow[]}
+              viewerId={user.id}
+              canModerate={access.has("community.manage") || access.has("content.moderate_posts")}
+            />
+            {showBadges && (
               <RiderStats
                 profileId={profileRow.id}
                 displayName={profileRow.display_name ?? "Dit lid"}
               />
-            </>
-          ) : null
+            )}
+          </>
         }
       />
     </div>
