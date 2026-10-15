@@ -134,8 +134,8 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
-> **Design tegels: gekleurde tegels nagelopen op het kleurbeleid, 2026-10-15 — gebouwd, lokaal getest; niet in de browser bekeken. Geen migratie.**
-> Commit: de commit die dit blok toevoegt. Niet gepusht.
+> **Design tegels: gekleurde tegels nagelopen op het kleurbeleid, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `88ad78a`); niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
 >
 > **Waarom.** Vraag van de eigenaar: de hele app nalopen op de gekleurde tegels
 > tegen de regel in het kleurbeleid (`globals.css`, 2026-10-13): kleur betekent
