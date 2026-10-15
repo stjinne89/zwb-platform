@@ -525,7 +525,7 @@ const ADMIN_GUIDES = [
       "Op de pagina van een TTT-race opent de captain het plan of begint een nieuw plan, met team en event al ingevuld.",
       "Een ZRL-TTT telt maximaal 5 renners, andere TTT's 8.",
       "Een plan is een concept tot de captain het publiceert. Daarna ziet het hele team het op de racepagina.",
-      "Het Spiekbriefje in de planner (alleen voor captains en beheerders) zet vuistregels, het kopvermogen van het plan tegenover het doel van 120 tot 130% van de gemiddelde FTP, en de lessen uit eerdere ZRL-ploegentijdritten bij elkaar: per race waar de ploeg tijd won of verloor op de dichtstbijzijnde ploeg, en per renner, ook als die toen bij een ander ZWB-team reed.",
+      "Het Spiekbriefje in de planner (alleen voor captains en beheerders) zet vuistregels, het kopvermogen van het plan tegenover het doel van 105 tot 115% van de gemiddelde FTP, en de lessen uit eerdere ZRL-ploegentijdritten bij elkaar: per race waar de ploeg tijd won of verloor op de dichtstbijzijnde ploeg, en per renner, ook als die toen bij een ander ZWB-team reed.",
       "De knop Botlink kopieert een link waarmee de TTT-bot in Discord het plan ophaalt: plak hem achter /ttt plan. Wie de link heeft, ziet namen, Zwift-ID's en kopbeurten; met Link intrekken werkt hij niet meer.",
     ],
   },

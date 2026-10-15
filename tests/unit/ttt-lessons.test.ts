@@ -159,13 +159,13 @@ describe("buildCheatsheet", () => {
   });
 
   it("geeft de opbouw van het plan, en herhaalt die niet bij de race", () => {
-    const riders = record().plan.map((p) => ({ ...p, pullWatts: 290 }));
+    const riders = record().plan.map((p) => ({ ...p, pullWatts: 260 }));
     const sheet = buildCheatsheet({ records: [record({ plan: riders })], teamIds: ["bdev"], riders });
     expect(sheet.plan?.avgFtp).toBeCloseTo(273.2);
-    expect(sheet.plan?.pullShare).toBeCloseTo(290 / 273.2);
-    expect(sheet.races[0].tips).not.toContain(
-      "Snelle ploegen trekken korter en harder, op 120 tot 130% van de gemiddelde FTP, en rusten daarna in het wiel.",
-    );
+    expect(sheet.plan?.pullShare).toBeCloseTo(260 / 273.2);
+    const lowTip = planCompositionAdvice(riders).find((a) => a.finding.startsWith("De kopbeurten"))?.tip;
+    expect(lowTip).toBeDefined();
+    expect(sheet.races[0].tips).not.toContain(lowTip);
   });
 
   it("heeft zonder FTP's geen plancheck", () => {
@@ -189,7 +189,7 @@ describe("planCompositionAdvice", () => {
     expect(planCompositionAdvice(plan([300, 300, 220], [370, 30]))).toEqual([]);
   });
 
-  it("laat kopbeurten tussen 115 en 140% met rust", () => {
-    expect(planCompositionAdvice(plan([270, 270, 270, 270], [335, 30]))).toEqual([]);
+  it("laat kopbeurten tussen 100 en 120% met rust", () => {
+    expect(planCompositionAdvice(plan([270, 270, 270, 270], [300, 30]))).toEqual([]);
   });
 });

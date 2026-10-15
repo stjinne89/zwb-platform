@@ -283,10 +283,13 @@ describe("tttPlanAdvice", () => {
   });
 
   it("ziet kopbeurten die zachter of harder zijn dan bij snelle ploegen", () => {
-    const low = tttPlanAdvice(ttt(), plan([270, 270, 270, 270, 270], [[290, 30], [290, 30], [290, 30], [290, 30], [290, 30]]));
-    expect(low.map((t) => t.finding)).toContain("De kopbeurten in het plan lagen op 107% van de gemiddelde FTP.");
-    const high = tttPlanAdvice(ttt(), plan([270, 270, 270, 270, 270], [[400, 30], [400, 30], [400, 30], [400, 30], [400, 30]]));
-    expect(high.map((t) => t.tip)).toContain("Dat houden alleen heel sterke ploegen vol; 120 tot 130% is een veiliger doel.");
+    const low = tttPlanAdvice(ttt(), plan([270, 270, 270, 270, 270], [[260, 30], [260, 30], [260, 30], [260, 30], [260, 30]]));
+    expect(low.map((t) => t.finding)).toContain("De kopbeurten in het plan lagen op 96% van de gemiddelde FTP.");
+    const high = tttPlanAdvice(ttt(), plan([270, 270, 270, 270, 270], [[335, 30], [335, 30], [335, 30], [335, 30], [335, 30]]));
+    expect(high.map((t) => t.finding)).toContain("De kopbeurten in het plan lagen op 124% van de gemiddelde FTP.");
+    // Bdev op 13 oktober: kopbeurten op 115% zitten binnen de grenzen.
+    const bdev = tttPlanAdvice(ttt(), plan([270, 270, 270, 270, 270], [[310, 30], [310, 30], [310, 30], [310, 30], [310, 30]]));
+    expect(bdev.some((t) => t.finding.startsWith("De kopbeurten"))).toBe(false);
   });
 
   it("ziet een geloste renner die op of boven zijn FTP reed", () => {

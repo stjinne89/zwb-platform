@@ -43,10 +43,10 @@ function Flag({ flag }: { flag: CheatFlag }) {
   );
 }
 
-/** Kopvermogen op een schaal van 100 tot 150% van de gemiddelde FTP, met de doelband. */
+/** Kopvermogen op een schaal van 90 tot 130% van de gemiddelde FTP, met de doelband. */
 function PullGauge({ share }: { share: number }) {
-  const min = 1;
-  const max = 1.5;
+  const min = 0.9;
+  const max = 1.3;
   const at = (v: number) => `${((Math.min(max, Math.max(min, v)) - min) / (max - min)) * 100}%`;
   const inBand = share >= PULL_TARGET.low && share <= PULL_TARGET.high;
   const off = share < PULL_LOW_SHARE || share > PULL_HIGH_SHARE;
@@ -74,11 +74,11 @@ function PullGauge({ share }: { share: number }) {
         />
       </div>
       <div className="relative mt-1 h-4 text-xs text-muted-foreground tabular-nums">
-        <span className="absolute left-0">100%</span>
+        <span className="absolute left-0">{pct(min)}</span>
         <span className="absolute -translate-x-1/2" style={{ left: at((PULL_TARGET.low + PULL_TARGET.high) / 2) }}>
           doel {target}
         </span>
-        <span className="absolute right-0">150%</span>
+        <span className="absolute right-0">{pct(max)}</span>
       </div>
     </div>
   );

@@ -89,6 +89,34 @@ nodig heeft om te stabiliseren. In ZWB's eigen race van 13 oktober duurde een
 overname mediaan 11 tot 15 s (botlogboek), wat bij beurten van 30 s een groot
 deel van de beurt is. Dit is een open vraag; de app zegt er niets over.
 
+### Kopvermogen bijgesteld op eigen data (2026-10-15)
+
+De eigenaar twijfelde aan 120 tot 130%: wie harder trekt, maakt de ploeg sneller,
+en dan gaat ook het vermogen in het wiel omhoog. De eigen ploegentijdrit van
+13 oktober bevestigt dat:
+
+- **Gemeten** (Stijn, vermogen per seconde, rotatie uit het botlogboek): kop op
+  het vlakke 296 tot 314 W, in het wiel 225 tot 263 W, dus 72 tot 89% van het
+  kopvermogen.
+- **Geschat** voor de anderen uit gemiddeld vermogen, kopvermogen uit het plan en
+  koptijd: Koen, Marc en Wouter trapten over de hele race in het wiel 95 tot 96%
+  van hun FTP, 81 tot 84% van hun kopvermogen. Hun kopbeurten lagen op 114 tot
+  118% van de eigen FTP, hun gemiddelde op 99% van de FTP, met beste 20 minuten
+  op 100 tot 103%: aan de grens.
+- **Rekensom:** gemiddeld ≈ aandeel kop × kop + aandeel wiel × 0,8 × kop. Met
+  vijf renners (20% kop) wordt dat 0,84 × kop. Kop op 125% geeft dan gemiddeld
+  105% van de FTP, 40 minuten lang: niet vol te houden. Kop op 105 tot 115% geeft
+  88 tot 97%.
+- ZRL A (2e van 10) reed met kopbeurten op 108% en zat gemiddeld ook op 98 tot
+  101% van de FTP.
+
+De 120 tot 130% van Fitzpatrick komt van topploegen met tot acht renners op
+vlakke parcoursen: kopbeurten van 20 tot 30 s met 3,5 minuut rust, dus zo'n 12%
+van de tijd op kop, en in een lange rij meer draft. In de ZRL rijden vier of vijf
+renners, vaak met klimmen. **Doel in de app: 105 tot 115% van de gemiddelde FTP;
+melding onder 100% of boven 120%.** In het wiel trap je ongeveer 80% van het
+kopvermogen. Nog niet gemeten: een ploeg van zes tot acht op een vlak parcours.
+
 WTRL-regels: de tijd van de vierde renner telt, niet draften op andere ploegen.
 Een bewust "laatste beurt en eraf" van een renner die toch gaat lossen is een
 erkende tactiek.
@@ -220,7 +248,7 @@ Een tip of suggestie komt er alleen als de data een **gevolg** of een
 | Efficiëntie (puntenrace) | draft 25 tot 35% | ≥ 0,25 W/kg meer dan de vijf renners vlak voor je; niet zonder draft (Race of Truth) |
 | Ploeg uit elkaar op een klim (captain) | W/kg-doel op klimmen | vierde renner ≥ 8 s achter de eerste over de klim |
 | Plan: zwakke renner met beurten (captain) | ±10%, 15/20%-regel | FTP ≤ 85% (≤ 80%: alleen wiel) van het gemiddelde |
-| Plan: kopvermogen (captain) | 120 tot 130% van gem. FTP | mediaan < 115% of > 140% |
+| Plan: kopvermogen (captain) | 105 tot 115% van gem. FTP (eigen meting, zie sectie 3) | mediaan < 100% of > 120% |
 | Plan: overbelast (captain) | race ~95% FTP | gelost met gemiddeld ≥ 98% van eigen FTP |
 
 Vervallen na de eerste toets of op aanwijzing van de eigenaar: W′ op boven op
@@ -268,7 +296,7 @@ draft): **28 van de 137 renners** kregen een tip, samen 31.
 | Captain: gelost | 5 | met de klim erbij, en "daarna mocht niemand meer lossen" |
 | Captain: puntenverdeling | 5 | één renner 41 tot 45% van de punten |
 | Captain: ploeg uit elkaar op een klim | 2 | vierde renner 10 en 36 s achter de eerste |
-| Captain: plan kopvermogen | 1 | kopbeurten op 108% van de gemiddelde FTP |
+| Captain: plan kopvermogen | 1 → 0 | kopbeurten op 108% van de gemiddelde FTP; valt sinds de bijgestelde drempel (2026-10-15) binnen het doel |
 | Eigen: start met gevolg, klim te hard begonnen | 1 + 1 | ZRL-ploegentijdrit 13 oktober |
 | Eigen FRR: start met gevolg, tijdrit-verdeling | 1 + 1 | de twee iTT's; geen tip in de zes FRR-wegraces |
 

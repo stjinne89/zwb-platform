@@ -134,6 +134,33 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
+> **Kopvermogen in TTT-plannen bijgesteld: 105 tot 115% in plaats van 120 tot 130%, 2026-10-15 — gebouwd, lokaal getest; niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar twijfelde aan het doel van 120 tot 130% van de
+> gemiddelde FTP: wie harder trekt, maakt de ploeg sneller, en dan trap je ook in
+> het wiel harder. De eigen ploegentijdrit van 13 oktober bevestigt dat: in het
+> wiel ongeveer 80% van het kopvermogen (gemeten bij Stijn 72 tot 89%, geschat
+> bij Koen, Marc en Wouter 81 tot 84%), en met kopbeurten van 114 tot 118% van de
+> eigen FTP reden zij gemiddeld al 99% van de FTP. Uitwerking:
+> [racestrategie-onderzoek.md](docs/racestrategie-onderzoek.md), sectie 3,
+> "Kopvermogen bijgesteld op eigen data".
+>
+> **Wat.** Doel 105 tot 115%; melding onder 100% (`PULL_LOW_SHARE`, was 115%) of
+> boven 120% (`PULL_HIGH_SHARE`, was 140%), met nieuwe tipteksten. Vuistregels
+> in het spiekbriefje: kop 105 tot 115%, in het wiel ± 80% van de kop, gemiddeld
+> ≤ 100% van de eigen FTP; de regel "plek 2 op 95 tot 100%, vanaf plek 3 rond 85%"
+> is eruit. De meter loopt van 90 tot 130%. Hulptekst aangepast.
+>
+> **Niet meer waar.** De drempels "mediaan < 115% of > 140%" en het doel "120 tot
+> 130%" in de rondes hieronder en in het onderzoek (sectie 10 en 11, aangepast).
+> De toets van ZRL A (kopbeurten op 108%) geeft nu geen melding meer.
+>
+> **Bewust niet gebouwd.** Een doel dat met het aantal renners meeschuift: voor
+> zes tot acht renners op het vlakke is er geen eigen meting.
+
+---
+
 > **TTT Planner: het cheatsheet als spiekbriefje, 2026-10-15 — gebouwd, lokaal getest en met echte data bekeken (licht, donker, telefoon); niet gepusht. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >

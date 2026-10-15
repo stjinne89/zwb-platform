@@ -56,9 +56,15 @@ export const CLIMB_SPLIT_S = 8;
 /** Plan: FTP zoveel onder het teamgemiddelde: weinig beurten (Zwift Insider: 15%) of alleen wiel (20%). */
 export const WEAK_FTP_SHARE = 0.85;
 export const DRAFT_ONLY_FTP_SHARE = 0.8;
-/** Plan: kopvermogen tegenover de gemiddelde FTP; topploegen zitten op 120 tot 130%. */
-export const PULL_LOW_SHARE = 1.15;
-export const PULL_HIGH_SHARE = 1.4;
+/**
+ * Plan: kopvermogen tegenover de gemiddelde FTP. Doel 105 tot 115%: in het wiel
+ * trap je zo'n 80% van het kopvermogen, dus harder trekken maakt het wiel ook
+ * zwaarder. Bdev reed op 13 oktober met kopbeurten van 115% gemiddeld 99% van de
+ * FTP. De 120 tot 130% van topploegen geldt voor acht renners op het vlakke
+ * (docs/racestrategie-onderzoek.md, sectie 3).
+ */
+export const PULL_LOW_SHARE = 1.0;
+export const PULL_HIGH_SHARE = 1.2;
 /** Plan: gemiddeld vermogen in de race tegenover de eigen FTP, voor een renner die loste. */
 export const OVERLOADED_SHARE = 0.98;
 
@@ -468,12 +474,12 @@ export function planCompositionAdvice(plan: PlanRider[]): Advice[] {
   if (share !== null && share < PULL_LOW_SHARE) {
     advice.push({
       finding: `De kopbeurten in het plan lagen op ${Math.round(100 * share)}% van de gemiddelde FTP.`,
-      tip: "Snelle ploegen trekken korter en harder, op 120 tot 130% van de gemiddelde FTP, en rusten daarna in het wiel.",
+      tip: "Zo rijdt de ploeg in het wiel bijna even hard als vooraan. Iets hardere beurten, op 105 tot 115% van de gemiddelde FTP, maken de ploeg sneller.",
     });
   } else if (share !== null && share > PULL_HIGH_SHARE) {
     advice.push({
       finding: `De kopbeurten in het plan lagen op ${Math.round(100 * share)}% van de gemiddelde FTP.`,
-      tip: "Dat houden alleen heel sterke ploegen vol; 120 tot 130% is een veiliger doel.",
+      tip: "In het wiel trap je zo'n 80% van het kopvermogen, dus het gemiddelde komt dan boven de FTP. Houd 105 tot 115% aan.",
     });
   }
   return advice;

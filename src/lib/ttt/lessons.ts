@@ -21,13 +21,15 @@ import type { TttRaceRecord } from "@/lib/zrl-analysis/load";
 export type CheatRule = { value: string; text: string };
 
 /**
- * Vuistregels uit het onderzoek (Zwift Insider over de beste WTRL-ploegen, WTRL,
- * en de eigen meting van 13 oktober). Vast, zodat ze bij elk plan klaarstaan.
+ * Vuistregels uit het onderzoek (Zwift Insider over de beste WTRL-ploegen, WTRL)
+ * en de eigen meting van 13 oktober, die het kopvermogen bijstelde. Vast, zodat
+ * ze bij elk plan klaarstaan.
  */
 export const TTT_RULES: CheatRule[] = [
+  { value: "105–115%", text: "Kopvermogen, van de gemiddelde FTP" },
+  { value: "80%", text: "In het wiel van het kopvermogen: harder trekken is ook harder in het wiel" },
+  { value: "≤ 100%", text: "Gemiddeld over de race, van de eigen FTP" },
   { value: "20–30 s", text: "Kopbeurt, daarna rust in het wiel" },
-  { value: "120–130%", text: "Kopvermogen, van de gemiddelde FTP" },
-  { value: "95–100%", text: "Op plek 2 in het wiel; vanaf plek 3 rond 85%" },
   { value: "−15%", text: "FTP onder het gemiddelde: weinig kopbeurten" },
   { value: "−20%", text: "FTP onder het gemiddelde: alleen in het wiel" },
   { value: "≥ 3%", text: "Klim: één W/kg-doel voor de ploeg; vlak: wattdoel" },
@@ -36,8 +38,8 @@ export const TTT_RULES: CheatRule[] = [
   { value: "11–15 s", text: "Kost een wissel: vaste volgorde, overslaan hardop melden" },
 ];
 
-/** De doelband voor het kopvermogen, als deel van de gemiddelde FTP. */
-export const PULL_TARGET = { low: 1.2, high: 1.3 } as const;
+/** De doelband voor het kopvermogen, als deel van de gemiddelde FTP; zie PULL_LOW_SHARE in advice.ts. */
+export const PULL_TARGET = { low: 1.05, high: 1.15 } as const;
 
 /** Een les als label en korte opdracht. */
 export type CheatFlag = {
