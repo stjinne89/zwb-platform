@@ -134,7 +134,7 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
-> **ZWBeter racen: analyse van gereden ZRL-races, 2026-10-15 — gebouwd, lokaal getest; niet gepusht; niet in de browser bekeken. Geen migratie.**
+> **ZWBeter racen: analyse van gereden ZRL-races, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `ae3e554`); door de eigenaar lokaal bekeken ("ziet er al goed uit"), de tips en de nieuwe zichtbaarheid nog niet in de browser. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
 > **Waarom.** Na het handwerkrapport over Bdev (13 oktober, skill `zrl-analyse`)
