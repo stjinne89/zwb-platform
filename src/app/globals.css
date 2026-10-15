@@ -112,6 +112,8 @@
 
 /* ---------- Dark theme ---------- */
 .dark {
+  /* Native onderdelen (uitklaplijsten, schuifbalken, datumkiezers) donker. */
+  color-scheme: dark;
   /* Petrol verdwijnt in een donkere kaart, dus de schaal draait om: druk
      bereden wordt hier juist lichter in plaats van donkerder. */
   --zwblok-club: 60 130 140;       /* teal */
@@ -160,6 +162,12 @@
   body {
     @apply bg-background text-foreground;
     text-rendering: geometricPrecision;
+  }
+  /* De lijst van een <select> neemt de doorschijnende veldachtergrond niet
+     over en valt dan terug op wit, met de lichte tekst erop. */
+  :is(option, optgroup) {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
   }
   html:not(.dark) body {
     background-image:
