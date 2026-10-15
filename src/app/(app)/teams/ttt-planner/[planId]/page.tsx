@@ -5,9 +5,12 @@ import { getRequestAccess } from "@/lib/auth/request";
 import { createClient } from "@/lib/supabase/server";
 import { formatSeconds, routeLabel, zwiftGopherData } from "@/lib/ttt/plan-export";
 import { TttPlanActions } from "../_components/plan-actions";
+import { TttCheatsheet } from "../_components/ttt-cheatsheet";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+// De cheatsheet vult bij een oude snapshot één keer het vermogen aan bij Zwift.
+export const maxDuration = 30;
 
 type PlanRow = {
   id: string;
@@ -127,6 +130,13 @@ export default async function TttPlanDetailPage({
       : Promise.resolve({ data: [] }),
   ]);
   const canManage = access.has("teams.manage_roster") || (captainRows ?? []).length > 0;
+  // Zonder raceteam geldt het plan voor het hoofdteam: dan tellen de races van de subteams.
+  const { data: childTeams } = canManage && !plan.team_id
+    ? await supabase.from("teams").select("id").eq("parent_team_id", plan.parent_team_id)
+    : { data: [] };
+  const cheatsheetTeamIds = plan.team_id
+    ? [plan.team_id]
+    : [plan.parent_team_id, ...((childTeams ?? []) as Array<{ id: string }>).map((t) => t.id)];
 
   const names = new Map(((teamRows ?? []) as NamedRow[]).map((row) => [row.id, row.name ?? null]));
   const parentName = names.get(plan.parent_team_id) ?? "Team";
@@ -273,6 +283,19 @@ export default async function TttPlanDetailPage({
           />
         )}
       </section>
+
+      {canManage && (
+        <TttCheatsheet
+          teamIds={cheatsheetTeamIds}
+          riders={riderRows.map((rider) => ({
+            zwiftId: Number(rider.zwift_id) || null,
+            name: rider.name,
+            ftp: rider.ftp_watts,
+            pullWatts: rider.pull_watts,
+            pullSeconds: rider.pull_duration_seconds,
+          }))}
+        />
+      )}
 
       <section className="rounded-lg border bg-card p-4">
         <h2 className="font-semibold">Tekstexport</h2>

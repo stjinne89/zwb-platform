@@ -293,7 +293,7 @@ describe("tttPlanAdvice", () => {
     const a = ttt();
     a.riders[4] = { ...a.riders[4], avgWatts: 310 };
     const tips = tttPlanAdvice(a, plan([270, 270, 270, 270, 300], [[330, 30], [330, 30], [330, 30], [330, 30], [350, 60]]));
-    expect(tips.map((t) => t.finding)).toContain("Jeroen reed gemiddeld 103% van zijn FTP en loste toch.");
+    expect(tips.map((t) => t.finding)).toContain("Jeroen reed gemiddeld 103% van de eigen FTP en loste toch.");
   });
 
   it("doet niets zonder plan of buiten een ploegentijdrit", () => {

@@ -18,7 +18,7 @@ import {
   fetchIntervalsActivityStreams,
   fetchIntervalsPowerCurve,
 } from "@/lib/intervals/client";
-import { loadZrlLive, loadZwiftRaceData, type RaceData } from "@/lib/zrl-live/snapshot";
+import { loadZrlLive, loadZwiftRaceData, type RaceData, type ZrlLiveView } from "@/lib/zrl-live/snapshot";
 import { analysePersonalRace, raceKindOf, type PersonalRace, type RaceKind } from "@/lib/zrl-analysis/personal";
 import { loadFrrStandingRows } from "@/lib/frr/zwb-standings";
 import { analyseRace, segmentKind, type RaceAnalysis } from "@/lib/zrl-analysis/race";
@@ -251,16 +251,7 @@ export async function loadRaceAnalysis(
   const viewer: ViewerRole | null = before ?? (rode ? "rider" : null);
   if (!viewer) return { status: "no-access" };
 
-  const data = await loadZwiftRaceData(view.event.zwiftEventId);
-  const subgroup = data?.subgroups.find((s) => s.startAt === view.startAt && s.label === view.subgroupLabel);
-  const { data: members } = view.ownRiders.length
-    ? await admin.from("profiles").select("zwift_id, display_name").in("zwift_id", view.ownRiders.map(String))
-    : { data: [] };
-  const names = new Map(
-    (members ?? []).flatMap((m) => (m.display_name ? [[Number(m.zwift_id), String(m.display_name)] as const] : [])),
-  );
-  const noDraft = /race of truth/i.test(`${eventRow.title} ${data?.eventName ?? ""}`);
-  const analysis = analyseRace(view, subgroup?.results ?? [], data?.passages ?? [], names, { noDraft });
+  const { analysis, data, subgroup } = await analyseView(view, eventRow.title as string);
   const ftp = Number(profile?.ftp_watts) || null;
 
   const ride = rode && data && subgroup
@@ -642,4 +633,82 @@ export async function loadTttPlan(eventIds: Array<string | null>, teamId: string
     pullWatts: r.pull_watts == null ? null : Number(r.pull_watts),
     pullSeconds: r.pull_duration_seconds == null ? null : Number(r.pull_duration_seconds),
   }));
+}
+
+/** De ploeganalyse bij een live-stand: ruwe data met vermogen erbij, en platformnamen. */
+async function analyseView(view: ZrlLiveView, title: string) {
+  const data = await loadZwiftRaceData(view.event.zwiftEventId);
+  const subgroup = data?.subgroups.find((s) => s.startAt === view.startAt && s.label === view.subgroupLabel);
+  const { data: members } = view.ownRiders.length
+    ? await createAdminClient().from("profiles").select("zwift_id, display_name").in("zwift_id", view.ownRiders.map(String))
+    : { data: [] };
+  const names = new Map(
+    (members ?? []).flatMap((m) => (m.display_name ? [[Number(m.zwift_id), String(m.display_name)] as const] : [])),
+  );
+  const noDraft = /race of truth/i.test(`${title} ${data?.eventName ?? ""}`);
+  return { analysis: analyseRace(view, subgroup?.results ?? [], data?.passages ?? [], names, { noDraft }), data, subgroup };
+}
+
+/** Een gereden ZRL-ploegentijdrit met de analyse van de ploeg en het plan dat gebruikt is. */
+export type TttRaceRecord = {
+  eventId: string;
+  title: string;
+  startAt: string;
+  teamId: string;
+  teamName: string | null;
+  analysis: RaceAnalysis;
+  plan: PlanRider[];
+};
+
+/**
+ * Alle gereden ZRL-ploegentijdritten van de ZWB-teams, voor de cheatsheet in de
+ * TTT Planner. Alleen races die bevroren zijn: zo kost het laden geen
+ * Zwift-verzoeken, behalve één keer het aanvullen van vermogen bij een oude
+ * snapshot. Zonder toegangscheck: de aanroeper laat dit alleen zien aan wie
+ * teams beheert of captain is.
+ */
+export async function loadTttRaces(): Promise<TttRaceRecord[]> {
+  const admin = createAdminClient();
+  const { data: events } = await admin
+    .from("events")
+    .select("id, title, start_at, team_id, parent_event_id, zwift_event_id, teams(name)")
+    .eq("type", "zrl")
+    .eq("zwift_event_type", "TEAM_TIME_TRIAL")
+    .not("team_id", "is", null)
+    .not("zwift_event_id", "is", null)
+    .lte("start_at", new Date().toISOString())
+    .order("start_at", { ascending: false })
+    .limit(60);
+  const rows = (events ?? []) as Array<{
+    id: string;
+    title: string;
+    start_at: string;
+    team_id: string;
+    parent_event_id: string | null;
+    zwift_event_id: number;
+    teams: { name?: string } | null;
+  }>;
+  if (rows.length === 0) return [];
+  const { data: frozen } = await admin
+    .from("zrl_race_snapshots")
+    .select("zwift_event_id")
+    .in("zwift_event_id", [...new Set(rows.map((r) => String(r.zwift_event_id)))]);
+  const isFrozen = new Set((frozen ?? []).map((f) => String(f.zwift_event_id)));
+  const records: TttRaceRecord[] = [];
+  for (const row of rows.filter((r) => isFrozen.has(String(r.zwift_event_id)))) {
+    const live = await loadZrlLive(row.id);
+    if (live.status !== "ok") continue;
+    const { analysis } = await analyseView(live.view, row.title);
+    if (analysis.format !== "ttt" || !analysis.team) continue;
+    records.push({
+      eventId: row.id,
+      title: row.title,
+      startAt: row.start_at,
+      teamId: row.team_id,
+      teamName: row.teams?.name ?? null,
+      analysis,
+      plan: await loadTttPlan([row.id, row.parent_event_id], row.team_id),
+    });
+  }
+  return records;
 }

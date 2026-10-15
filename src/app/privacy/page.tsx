@@ -114,7 +114,10 @@ export default function PrivacyPage() {
             opstelling stond, de captains van het team en wie teams beheert, zien
             voor de renners van het team vermogen, W/kg, de segmenten en tips per
             renner (die laatste alleen captains en beheerders); het gewicht staat er niet los
-            bij, maar volgt uit vermogen en W/kg, net als op ZwiftPower. Reed je
+            bij, maar volgt uit vermogen en W/kg, net als op ZwiftPower. Plant een
+            captain een ploegentijdrit in de TTT Planner, dan ziet die per renner
+            van het plan ook diens eerdere ZRL-ploegentijdritten bij andere
+            ZWB-teams: W/kg, vermogen op de klimmen en of je loste. Reed je
             zelf mee en heb je intervals.icu gekoppeld, dan halen we bij het
             openen je rit per seconde en je vermogenscurve van de laatste 90 dagen
             op om je eigen rit te analyseren. Die analyse ziet alleen jij, en we

@@ -10,9 +10,12 @@ import {
   type ImportTeam,
   type SavedTttPlan,
 } from "./_components/ttt-import";
+import { TttCheatsheet } from "./_components/ttt-cheatsheet";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+// De cheatsheet vult bij een oude snapshot één keer het vermogen aan bij Zwift.
+export const maxDuration = 30;
 
 type TeamRow = {
   id: string;
@@ -245,6 +248,33 @@ export default async function TttPlannerPage({
     .filter((rider) => rider.teamIds.some((id) => manageable.has(id)))
     .sort((a, b) => a.name.localeCompare(b.name, "nl"));
 
+  // Cheatsheet zodra het team bekend is: de renners van het plan, anders de opstelling.
+  let cheatsheetRiders: Array<{ zwiftId: number | null; name: string; ftp: number | null; pullWatts: number | null; pullSeconds: number | null }> = [];
+  if (start?.teamId && manageable.has(start.teamId)) {
+    if (start.planId) {
+      const { data: planRiders } = await supabase
+        .from("ttt_plan_riders")
+        .select("zwift_id, name, ftp_watts, pull_watts, pull_duration_seconds")
+        .eq("plan_id", start.planId);
+      cheatsheetRiders = ((planRiders ?? []) as Array<{ zwift_id: string | null; name: string; ftp_watts: number | null; pull_watts: number | null; pull_duration_seconds: number | null }>).map((r) => ({
+        zwiftId: Number(r.zwift_id) || null,
+        name: r.name,
+        ftp: r.ftp_watts,
+        pullWatts: r.pull_watts,
+        pullSeconds: r.pull_duration_seconds,
+      }));
+    } else if (start.eventId) {
+      const parentEventId = eventRows.find((event) => event.id === start?.eventId)?.parent_event_id ?? null;
+      const keys = [`${start.eventId}:${start.teamId}`, parentEventId ? `${parentEventId}:${start.teamId}` : ""];
+      cheatsheetRiders = riders
+        .filter((rider) => rider.lineupKeys.some((key) => keys.includes(key)))
+        .map((rider) => ({ zwiftId: Number(rider.zwiftId) || null, name: rider.name, ftp: null, pullWatts: null, pullSeconds: null }));
+    }
+  }
+  const cheatsheetTeamIds = start?.teamId
+    ? [start.teamId, ...teamRows.filter((team) => team.parent_team_id === start?.teamId).map((team) => team.id)]
+    : [];
+
   const savedPlans: SavedTttPlan[] = ((savedPlanRows ?? []) as PlanRow[]).map((plan) => ({
     id: plan.id,
     name: plan.name,
@@ -272,6 +302,10 @@ export default async function TttPlannerPage({
           savedPlans={savedPlans}
           start={start}
         />
+      )}
+
+      {start?.teamId && manageable.has(start.teamId) && (
+        <TttCheatsheet teamIds={cheatsheetTeamIds} riders={cheatsheetRiders} />
       )}
     </div>
   );

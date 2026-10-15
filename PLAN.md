@@ -134,6 +134,63 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
+> **TTT Planner: cheatsheet met lessen uit eerdere ploegentijdritten, 2026-10-15 — gebouwd, lokaal getest; niet gepusht; niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Vraag van de eigenaar: "een cheatsheet met lessen uit de TTTs uit
+> de database per team, of per renner die opgehaald is uit de analyses", bij het
+> plannen in de TTT Planner.
+>
+> **Wat.**
+>
+> - `src/lib/ttt/lessons.ts` (puur): `buildCheatsheet` met zes vaste vuistregels
+>   (uit [racestrategie-onderzoek.md](docs/racestrategie-onderzoek.md), sectie 3,
+>   en de wissels van 13 oktober), "Dit plan" (`planCompositionAdvice`: zwakke
+>   renner met kopbeurten, kopvermogen buiten 115 tot 140% van de gemiddelde
+>   FTP), per race van het team de uitslagregel, twee feiten en de lessen
+>   (`tttPlanAdvice` en `teamAdvice`, zonder wat "Dit plan" al zegt), en per
+>   renner van het plan een regel per eerdere ploegentijdrit, ook bij een ander
+>   ZWB-team, met lessen: waar die loste (met een waarschuwing als het plan weer
+>   een kopbeurt van ≥ 60 s op ≥ 110% van de eigen FTP vraagt), wie op een klim
+>   het meeste vermogen nodig had, en wie op ≥ 98% van de FTP van toen reed en
+>   bij de ploeg bleef.
+> - `loadTttRaces` in `zrl-analysis/load.ts`: alle bevroren ZRL-TTT's van de
+>   ZWB-teams met analyse en het gebruikte plan; `analyseView` gedeeld met
+>   `loadRaceAnalysis`. In de cheatsheet een uur gecachet (`unstable_cache`), in
+>   Suspense, zodat de planner niet wacht. `planCompositionAdvice` is uit
+>   `tttPlanAdvice` gehaald, zodat het ook vóór de race werkt.
+> - Planpagina `/teams/ttt-planner/[id]` en de planner (zodra team en event
+>   gekozen zijn): blok **Cheatsheet**, alleen voor wie het plan beheert. Bij een
+>   plan van het hoofdteam tellen de subteams mee. In de planner zonder plan zijn
+>   de renners die van de opstelling, zonder FTP of kopbeurt.
+> - Hulp (`#ttt-beheer`) en privacyverklaring (`#racen`): een captain ziet de
+>   eerdere ploegentijdritten van een renner ook als die toen bij een ander
+>   ZWB-team reed. **Dat is ruimer dan voorheen; voorleggen aan de eigenaar.**
+>
+> **Getoetst op echte data, alleen lezen.** Zeven ploegentijdritten in de
+> database, alle van 13 oktober; het laden kostte 32 s, omdat bij twee oude
+> snapshots het vermogen nog één keer bij Zwift wordt aangevuld (daarom
+> `maxDuration = 30` op beide pagina's en de cache). Bdev met de opstelling van
+> 13 oktober plus Han Vaessen: de lessen kloppen met de analyse van toen (Jeroen
+> loste op Zwift KOM en kreeg weer 349 W gedurende 60 s; Han verschijnt met de
+> B2-rit). Gepubliceerd plan van ZRL A: de plantip stond eerst dubbel, bij het
+> plan en bij de race (verholpen).
+>
+> **Bewust niet gebouwd.** De cheatsheet voor gewone leden (vermogen van
+> teamgenoten); lessen uit andere races dan ZRL-TTT's (een massastart zegt weinig
+> over een kopbeurt); automatisch het plan aanpassen.
+>
+> **Getest.** Nieuw: `ttt-lessons.test.ts` (teamfilter, uitslagregel, historie
+> bij een ander team, renners zonder ID of zonder rit, de waarschuwing bij een
+> zware kopbeurt, de grens met de FTP van toen, geen dubbele plantip,
+> `planCompositionAdvice` zonder race). `tsc`, ESLint, de testsuite en
+> `npm run build`.
+>
+> **Niet geverifieerd.** De pagina's in de browser; hoe lang de eerste lading op
+> Netlify duurt als de cache leeg is.
+
+---
+
 > **Racestrategie-onderzoek, getoetste tips en trainersuggesties, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `2b6a979`); niet in de browser bekeken. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
@@ -154,7 +211,7 @@ van de CORE-sensor, beide 2026-10-14).
 > - **Nieuwe racetips** (`advice.ts`): segmenten kiezen en efficiëntie in een
 >   puntenrace, de ploeg uit elkaar op een klim, en voor de captain plan tegenover
 >   uitvoering uit de TTT Planner (zwakke renner met beurten, kopvermogen tegenover
->   120 tot 130% van de gemiddelde FTP, een geloste renner op ≥ 98% van zijn FTP).
+>   120 tot 130% van de gemiddelde FTP, een geloste renner op ≥ 98% van de eigen FTP).
 >   In een tijdrit noemt de verdelingstip het eerste tiende. `race.ts` geeft per
 >   segment de plek over de streep (FAL) en per renner het W/kg van de renners
 >   vlak voor hem; `noDraft` voor een Race of Truth. Alleen gepubliceerde of uit

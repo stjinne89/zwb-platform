@@ -92,7 +92,7 @@ function withTeamOn(rider: RiderAnalysis, climb: ReturnType<typeof climbs>[numbe
 }
 
 /** Waar een geloste renner in een ploegentijdrit de ploeg kwijtraakte. */
-function dropClimb(analysis: RaceAnalysis, rider: RiderAnalysis) {
+export function dropClimb(analysis: RaceAnalysis, rider: RiderAnalysis) {
   for (const climb of climbs(analysis)) {
     const own = rider.segments.find((x) => x.index === climb.index);
     if (own && climb.teamElapsed !== null && own.elapsed > climb.teamElapsed + DROP_ON_CLIMB_S) return climb.name;
@@ -101,7 +101,7 @@ function dropClimb(analysis: RaceAnalysis, rider: RiderAnalysis) {
 }
 
 /** In een ploegentijdrit: op welke klim deze renner het meeste vermogen van de ploeg nodig had. */
-function heaviestOnClimb(analysis: RaceAnalysis, rider: RiderAnalysis) {
+export function heaviestOnClimb(analysis: RaceAnalysis, rider: RiderAnalysis) {
   if (analysis.format !== "ttt") return null;
   for (const climb of climbs(analysis)) {
     // Alleen wie de klim met de ploeg reed: ook een renner die later loste, telt hier mee.
@@ -370,7 +370,7 @@ export function teamAdvice(analysis: RaceAnalysis): Advice[] {
       if (split < CLIMB_SPLIT_S) continue;
       advice.push({
         finding: `Op ${climb.name} lag de vierde renner ${nl1.format(split)} s achter de eerste.`,
-        tip: "Rij klimmen op een vast W/kg-doel dat de zwakste klimmer volhoudt, en wacht boven niet: hij moet bij blijven, niet terugkomen.",
+        tip: "Rij klimmen op een vast W/kg-doel dat de zwakste klimmer volhoudt, en wacht boven niet: bijblijven kost minder dan terugkomen.",
       });
       break;
     }
@@ -413,9 +413,32 @@ export function tttPlanAdvice(analysis: RaceAnalysis, plan: PlanRider[]): Advice
   const raced = new Set(analysis.riders.map((r) => r.athleteId));
   const riders = plan.filter((p) => p.ftp && p.zwiftId !== null && raced.has(p.zwiftId));
   if (riders.length < 4) return [];
+  const advice: Advice[] = planCompositionAdvice(riders);
+
+  for (const rider of analysis.riders.filter((r) => r.dropped)) {
+    const p = riders.find((x) => x.zwiftId === rider.athleteId);
+    if (!p?.ftp || !rider.avgWatts) continue;
+    const share = rider.avgWatts / p.ftp;
+    if (share < OVERLOADED_SHARE) continue;
+    advice.push({
+      finding: `${p.name} reed gemiddeld ${Math.round(100 * share)}% van de eigen FTP en loste toch.`,
+      tip: `Het plan vroeg meer dan ${p.name} kon: kortere of minder kopbeurten, of vaker overslaan.`,
+    });
+  }
+  return advice.slice(0, MAX_TIPS);
+}
+
+/**
+ * Een plan tegen de vuistregels van de beste WTRL-ploegen, ook vóór de race: een
+ * renner ver onder de gemiddelde FTP met kopbeurten, en kopvermogen buiten 115 tot
+ * 140% van de gemiddelde FTP. Telt alleen renners met een FTP; met minder dan vier
+ * zegt het niets.
+ */
+export function planCompositionAdvice(plan: PlanRider[]): Advice[] {
+  const riders = plan.filter((p) => p.ftp);
+  if (riders.length < 4) return [];
   const avgFtp = riders.reduce((s, p) => s + (p.ftp as number), 0) / riders.length;
   const advice: Advice[] = [];
-
   for (const p of riders) {
     const share = (p.ftp as number) / avgFtp;
     if (share > WEAK_FTP_SHARE || !p.pullSeconds) continue;
@@ -424,11 +447,10 @@ export function tttPlanAdvice(analysis: RaceAnalysis, plan: PlanRider[]): Advice
       finding: `${p.name} heeft een FTP ${pct}% onder het teamgemiddelde, maar kreeg kopbeurten van ${p.pullSeconds} s.`,
       tip:
         share <= DRAFT_ONLY_FTP_SHARE
-          ? `Laat ${p.name} in het wiel: zo ver onder het gemiddelde kost een kopbeurt meer dan hij de ploeg oplevert.`
+          ? `Laat ${p.name} in het wiel: zo ver onder het gemiddelde kost een kopbeurt meer dan die de ploeg oplevert.`
           : `Geef ${p.name} korte en weinig kopbeurten, en meer rust in het wiel.`,
     });
   }
-
   const pulls = riders.flatMap((p) => (p.pullWatts && p.pullSeconds ? [p.pullWatts] : [])).sort((a, b) => a - b);
   if (pulls.length >= 3) {
     const share = pulls[pulls.length >> 1] / avgFtp;
@@ -445,16 +467,5 @@ export function tttPlanAdvice(analysis: RaceAnalysis, plan: PlanRider[]): Advice
       });
     }
   }
-
-  for (const rider of analysis.riders.filter((r) => r.dropped)) {
-    const p = riders.find((x) => x.zwiftId === rider.athleteId);
-    if (!p?.ftp || !rider.avgWatts) continue;
-    const share = rider.avgWatts / p.ftp;
-    if (share < OVERLOADED_SHARE) continue;
-    advice.push({
-      finding: `${p.name} reed gemiddeld ${Math.round(100 * share)}% van zijn FTP en loste toch.`,
-      tip: `Het plan vroeg meer dan ${p.name} kon: geef hem kortere of minder kopbeurten, of laat hem vaker overslaan.`,
-    });
-  }
-  return advice.slice(0, MAX_TIPS);
+  return advice;
 }
