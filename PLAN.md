@@ -70,10 +70,8 @@ gaat stabiliteit voor nieuwe features.
      een vraag stellen vanaf een tweede account, antwoorden, het antwoord vanaf
      het vragende account als tip bewaren, en de pushmeldingen.
    - **Wie weet wat, tip uit een gesprek:** `0240_member_tips_from_thread.sql`
-     toepassen **vóór** het pushen van die ronde (2026-10-15). Zonder de kolom
-     `message_id` lukt "Bewaar als tip" niet, en toont het gesprek geen
-     bewaarde berichten. De aangepaste privacy- en voorwaardentekst is
-     goedgekeurd (eigenaar, 2026-10-15).
+     is toegepast (eigenaar, 2026-10-15), daarna gepusht. Niet nagekeken op
+     productie. Bij het doorklikken ook "Bewaar als tip" proberen.
    - **CORE-sensor bij hitte:** `0238_member_protocol_core_sessions.sql`
      toepassen, ná `0237` (2026-10-14). **Zonder `0238` lukt het starten van
      elk protocol niet meer**: de app tekent met de nieuwe toestemmingsversie
@@ -8758,7 +8756,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Opgeleverd — Wie weet wat: een tip uit een gesprek bewaart de ontvanger
 
 **2026-10-15.** Commit: de commit die dit blok toevoegt. Migratie
-`0240_member_tips_from_thread.sql` (**nog toepassen**, vóór het pushen).
+`0240_member_tips_from_thread.sql` (toegepast door de eigenaar, 2026-10-15).
 
 **Aanleiding.** In de eerste versie kon je alleen je **eigen** bericht als tip
 plaatsen ("Maak hier een tip van"). De eigenaar wil het omgekeerde. Wie in een
