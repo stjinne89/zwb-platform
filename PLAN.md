@@ -134,7 +134,7 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
-> **"Kleur is klikbaar" in ZWBeter racen en de TTT Planner, 2026-10-15 — gebouwd, typecheck en lint schoon, bekeken op een tijdelijke voorbeeldpagina in het design "tegels"; niet gepusht. Geen migratie.**
+> **"Kleur is klikbaar" in ZWBeter racen en de TTT Planner, 2026-10-15 — gebouwd, typecheck en lint schoon, bekeken op een tijdelijke voorbeeldpagina in het design "tegels"; gepusht naar `main` (eigenaar, 2026-10-15, `fb2fd61`). Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
 > **Waarom.** De eigenaar zag dat deze pagina's het kleurbeleid van het design
@@ -161,7 +161,7 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
-> **TTT Planner: het spiekbriefje als handgeschreven briefje, 2026-10-15 — gebouwd, lokaal getest en met echte data bekeken (licht, donker, telefoon); niet gepusht. Geen migratie.**
+> **TTT Planner: het spiekbriefje als handgeschreven briefje, 2026-10-15 — gebouwd, lokaal getest en met echte data bekeken (licht, donker, telefoon); gepusht naar `main` (eigenaar, 2026-10-15, `caf6b1d`, `c9eddc5`, `bc33ebf`). Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
 > **Waarom.** De eigenaar zag "meer een echt briefje" voor zich. Een schets
@@ -205,7 +205,7 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
-> **Kopvermogen in TTT-plannen bijgesteld: 105 tot 115% in plaats van 120 tot 130%, 2026-10-15 — gebouwd, lokaal getest; niet gepusht. Geen migratie.**
+> **Kopvermogen in TTT-plannen bijgesteld: 105 tot 115% in plaats van 120 tot 130%, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `cd0e378`). Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
 > **Waarom.** De eigenaar twijfelde aan het doel van 120 tot 130% van de
@@ -232,7 +232,7 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
-> **TTT Planner: het cheatsheet als spiekbriefje, 2026-10-15 — gebouwd, lokaal getest en met echte data bekeken (licht, donker, telefoon); niet gepusht. Geen migratie.**
+> **TTT Planner: het cheatsheet als spiekbriefje, 2026-10-15 — gebouwd, lokaal getest en met echte data bekeken (licht, donker, telefoon); gepusht naar `main` (eigenaar, 2026-10-15, `df28c5f`). Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
 > **Waarom.** De eigenaar vond het cheatsheet "veel tekst en moeilijk leesbaar"
