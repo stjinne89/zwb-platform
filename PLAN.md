@@ -155,6 +155,13 @@ van de CORE-sensor, beide 2026-10-14).
 > in een paar woorden; de vuistregels zijn ingekort tot spiekbrieftaal. De
 > cachesleutel is `ttt-races` v2.
 >
+> Daarna, op verzoek ("een beetje rommeliger, gescheurd/gekarteld aan de
+> randjes"): gescheurde randen via een CSS-masker van onregelmatige SVG-stroken
+> (boven het grilligst, als uit een schrift gescheurd), de schaduw als
+> `drop-shadow` op de omhulling zodat die de rand volgt, en een tweede stukje
+> plakband schuin over de hoek rechtsonder. Geen `clip-path`-veelhoek en geen
+> afbeelding.
+>
 > **Niet meer waar.** De ronde hieronder ("het cheatsheet als spiekbriefje")
 > beschrijft een kaart met labels en een aparte kolom vuistregels; die vorm is
 > vervangen. De ritregels per renner (W/kg per klim) staan niet meer op het
