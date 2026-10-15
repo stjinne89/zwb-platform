@@ -72,8 +72,8 @@ gaat stabiliteit voor nieuwe features.
    - **Wie weet wat, tip uit een gesprek:** `0240_member_tips_from_thread.sql`
      toepassen **vóór** het pushen van die ronde (2026-10-15). Zonder de kolom
      `message_id` lukt "Bewaar als tip" niet, en toont het gesprek geen
-     bewaarde berichten. Eerst moet de eigenaar de aangepaste privacy- en
-     voorwaardentekst goedkeuren.
+     bewaarde berichten. De aangepaste privacy- en voorwaardentekst is
+     goedgekeurd (eigenaar, 2026-10-15).
    - **CORE-sensor bij hitte:** `0238_member_protocol_core_sessions.sql`
      toepassen, ná `0237` (2026-10-14). **Zonder `0238` lukt het starten van
      elk protocol niet meer**: de app tekent met de nieuwe toestemmingsversie
@@ -8815,8 +8815,8 @@ groepsapp.
   - "Een tip staat dus altijd in de eigen woorden van de auteur";
   - "Vastleggen of een tip uit een gesprek kwam" (bewust niet gebouwd).
   Beide zijn ter plekke aangevuld.
-- De goedgekeurde privacytekst van eerder vandaag is op dit punt gewijzigd. **De
-  nieuwe tekst is nog niet goedgekeurd.**
+- De goedgekeurde privacytekst van eerder vandaag is op dit punt gewijzigd. De
+  nieuwe tekst is goedgekeurd (eigenaar, 2026-10-15).
 
 **Getest.**
 
