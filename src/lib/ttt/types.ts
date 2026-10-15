@@ -41,22 +41,8 @@ export type TttPlanInput = {
 };
 
 export type TttActionResult =
-  | {
-      ok: true;
-      planId: string;
-      apiResponse?: unknown;
-      riders?: TttPlanRiderInput[];
-      message?: string;
-    }
-  | {
-      ok: false;
-      error: string;
-      statusCode?: number;
-      /** Vanaf wanneer opnieuw optimaliseren zin heeft, in ms sinds 1970. */
-      retryAt?: number;
-      /** ZwiftGopher vond een Zwift-ID niet; de volgende poging rekent met eigen waarden. */
-      useOwnValues?: boolean;
-    };
+  | { ok: true; planId: string; message?: string }
+  | { ok: false; error: string };
 
 // Een ZRL-TTT rijdt met hooguit 5 renners, andere TTT's met 8.
 export function tttMaxRiders(eventType: string | null | undefined) {

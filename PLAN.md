@@ -134,6 +134,83 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
+> **TTT Planner wordt een doorwijspagina naar ZwiftGopher, 2026-10-15 — gebouwd, lokaal getest; niet in de browser gezien, de import niet tegen de echte database en Export Text niet tegen een echte export. Geen migratie.**
+> Commit: de commit die dit blok toevoegt. Niet gepusht.
+>
+> **Waarom.** Vraag van de eigenaar: het plan uit ZwiftGopher (JSON of tekst)
+> in de app kunnen opslaan, "dat werkt denk ik beter dan de planner in de app",
+> en de pagina "eerder als doorwijspagina naar Gopher ontwerpen dan zoals het nu
+> is". Dat lag al in de lijn van 13 oktober: de eigenaar vond de calculator op
+> zwiftgopher.com/TTT handiger, en de TTT-bot las het plan daar al rechtstreeks.
+>
+> **Nu.**
+> - `/teams/ttt-planner`: event, team en plannaam, dan twee stappen. 1: Zwift-ID's
+>   kopiëren (de opstelling van het event, anders het hele team; ook renners
+>   zonder account) en Open ZwiftGopher. 2: Export JSON, Export Link of Export
+>   Text plakken of als bestand kiezen, en Importeren. Rechts de opgeslagen
+>   plannen, met gepubliceerd of concept. Met `?plan=` vervangt de import de
+>   renners van dat plan; publicatie en botlink blijven staan.
+> - `parseGopherExport`, `gopherJsonUrl` (`lib/ttt/zwiftgopher.ts`). JSON: volgorde,
+>   naam, Zwift-ID (de sleutel, tenzij `zr: false`), kopbeurt-watts en -duur,
+>   FTP, gewicht, lengte, `wkg300` (in watt, ondanks de naam) en IF. Tekst: naam,
+>   watts en duur per regel, tab, komma of pipe, kopregel en volgnummer mogen.
+>   Teamtags als "(ZWB)" gaan uit de naam. Een geplakte link haalt de server op
+>   bij `zwiftgopher.com/TTT/?save=…&json=true`, alleen dat adres, 10 s time-out.
+> - `importTttPlan` (`_actions.ts`): zelfde rechten als voorheen (captain,
+>   co-captain of `teams.manage_roster`), herkent ZWB-leden aan hun Zwift-ID,
+>   zet waarden buiten de kolomgrenzen van `0071` op leeg, en bewaart in
+>   `api_response` alleen `{ source: "zwiftgopher", format, importedAt,
+>   teamName, targetSpeedKmh }`, niet de hele export. IF per renner in
+>   `ttt_plan_riders.result`. Status `optimized`, zodat er geen migratie nodig is.
+> - Planpagina `/teams/ttt-planner/[id]`: Publiceren of Publicatie intrekken,
+>   Opnieuw importeren, Botlink, Link intrekken en Verwijderen (nieuw in de UI;
+>   de actie bestond al). Bij een import: renners, doelsnelheid vlak en het
+>   importmoment; bij een oud plan de cijfers van de oude optimizer. Kolom IF
+>   als die er is. Het JSON-blok "Planbestand" is weg, de tekstexport blijft.
+> - Racepagina: "Open in planner" heet "Open plan" en gaat naar de planpagina.
+> - Hulp (`#ttt-beheer`) herschreven; in ZWBeter racen staat nu dat de tips het
+>   plan niet gebruiken, in plaats van dat de app het niet kent.
+>
+> **Weggehaald.** De editor met instellingen, renners toevoegen, slepen,
+> Optimaliseren via de API (`optimizeTttPlan`, `buildZwiftGopherPayload`,
+> `applyZwiftGopherResult`, de terugval op eigen waarden), `saveTttPlan`, de
+> downloads Planbestand, Text en PNG, en `lib/ttt/wtrl-power.ts`. Tests
+> `ttt-zwiftgopher`, `ttt-zwiftgopher-fallback` en `ttt-wtrl-power` mee weg.
+> `ZWIFTGOPHER_API_KEY` en `ZWIFTGOPHER_API_BASE_URL` worden niet meer gelezen
+> (uit `.env.local.example` en de runbook); ze kunnen uit Netlify. ZwiftGopher
+> maakt zelf een afbeelding en tekst, dus de eigen downloads waren dubbel.
+>
+> **Bewust niet gebouwd.** Een voorbeeld vóór het opslaan: de import toont na
+> opslaan de renners met watt en duur, en opnieuw importeren vervangt ze. Renners
+> uit Export Text koppelen aan leden op naam (geen Zwift-ID in de tekst; een
+> verkeerde koppeling is erger dan geen). Bewerken van een plan in ZWB: dat
+> gebeurt in ZwiftGopher.
+>
+> **Niet meer waar.** De rondes van 2026-10-12 over rekenen, eigen waarden en
+> WTRL-vermogen hebben een aantekening gekregen, net als de vraag "of de planner
+> zelf nog nodig is" in de botronde van 2026-10-13.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon op de gewijzigde bestanden (`tsc`
+> meldt alleen `@zxing` in de voedingsscanner, ontbrekend in de gedeelde
+> `node_modules`, los van dit werk). Nieuw: `ttt-gopher-import.test.ts` (6
+> tests: JSON in de vorm van de echte export, tekst met tab, komma, pipe,
+> eenheden en minuten, fouten, links). Lokaal en buiten git ook tegen de twee
+> echte exports van 13 oktober: dezelfde volgorde, watts en duur als de bot toen
+> las. Volledige suite: 2318 van 2319 groen; wat faalt (`admin-areas`,
+> `zwift-club-calendar`, `zwift-subgroup-results`, wisselend per run) zijn
+> time-outs onder belasting die los slagen, plus `omnium-live` zonder `.env.local`.
+>
+> **Niet geverifieerd.**
+> - De pagina's in de browser.
+> - De import tegen de echte database (geen `.env.local` in de worktree).
+> - Export Text: alleen gebouwd op de omschrijving op zwiftgopher.com ("rider
+>   name, pull watts, pull duration, and kit colors", scheidingsteken naar keuze).
+>   Een echte tekstexport is niet gezien; die komt van hun server.
+> - Export Link en het adres dat Export JSON opent: de vorm komt van de bot
+>   (getoetst op 13 oktober), niet opnieuw opgehaald door het platform.
+
+---
+
 > **ZWBeter racen: analyse van gereden ZRL-races, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `ae3e554`); door de eigenaar lokaal bekeken ("ziet er al goed uit"), de tips en de nieuwe zichtbaarheid nog niet in de browser. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
@@ -1030,7 +1107,7 @@ van de CORE-sensor, beide 2026-10-14).
 >
 > **Nu.**
 > - Platform: `ttt_plans.share_token`, knoppen Botlink en Link intrekken in de
->   planner (`shareTttPlan`, `revokeTttPlanShare`), en
+>   planner (sinds 2026-10-15 op de planpagina; `shareTttPlan`, `revokeTttPlanShare`), en
 >   `GET /api/ttt/plan/[token]` zonder sessie (in `PUBLIC_PATHS`). Het antwoord is
 >   `tttPlanExport` (`lib/ttt/plan-export.ts`): naam, event, schatting en per
 >   renner volgorde, naam, Zwift-ID, kopbeurt-watts en -duur. FTP, gewicht en
@@ -1082,7 +1159,9 @@ van de CORE-sensor, beide 2026-10-14).
 > tests. De bot haalt dus niet meer alleen bij het platform op, maar ook bij
 > zwiftgopher.com. Een plan uit ZwiftGopher heeft geen verwacht gemiddelde en
 > krijgt geen tempomelding. De deellink van het platform blijft bestaan; of de
-> planner zelf nog nodig is, is aan de eigenaar.
+> planner zelf nog nodig is, is aan de eigenaar. *(Besloten 2026-10-15: de
+> planner rekent niet meer zelf maar importeert het plan uit ZwiftGopher; zie
+> de ronde van die dag.)*
 >
 > **Ook dezelfde middag, na de eerste oefening in Discord** (de bot logt in,
 > komt in het spraakkanaal en spreekt; de coach is nog niet in een race gehoord):
@@ -1546,6 +1625,7 @@ van de CORE-sensor, beide 2026-10-14).
 ---
 
 > **TTT-planner: Zwift-ID's kopiëren voor zwiftgopher.com/TTT, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien en niet bij ZwiftGopher geplakt.**
+> *Bijgewerkt 2026-10-15: de knop staat nu op de doorwijspagina en kopieert de opstelling van het gekozen event (anders het team), niet meer een raceplan; zie "TTT Planner wordt een doorwijspagina naar ZwiftGopher" (2026-10-15).*
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** Vraag van de eigenaar: de renners van een plan ook in de
@@ -1572,6 +1652,7 @@ van de CORE-sensor, beide 2026-10-14).
 ---
 
 > **TTT-planner rekent op de lijn van zwiftgopher.com, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien.**
+> *Niet meer waar sinds 2026-10-15: de planner rekent niet meer zelf en roept de API van ZwiftGopher niet meer aan; zie "TTT Planner wordt een doorwijspagina naar ZwiftGopher" (2026-10-15).*
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** Bart zag voor ZWB A (ZRL, Watopia Figure 8 Reverse, 13 oktober)
@@ -1641,6 +1722,7 @@ van de CORE-sensor, beide 2026-10-14).
 ---
 
 > **TTT-planner: rekenen met eigen waarden als ZwiftGopher een Zwift-ID niet vindt, 2026-10-12 — gebouwd, lokaal getest, niet tegen ZwiftGopher gemeten.**
+> *Niet meer waar sinds 2026-10-15: Optimaliseren en de terugval op eigen waarden zijn weg; zie "TTT Planner wordt een doorwijspagina naar ZwiftGopher" (2026-10-15).*
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** Melding van de eigenaar, een dag voor de ZRL-TTT: Optimaliseren gaf
@@ -1718,6 +1800,7 @@ van de CORE-sensor, beide 2026-10-14).
 ---
 
 > **TTT-planner: renners zonder account, met vermogen uit WTRL, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien.**
+> *Deels niet meer waar sinds 2026-10-15: renners zonder account staan nog in de Zwift-ID-lijst, maar het vermogen uit WTRL (`lib/ttt/wtrl-power.ts`) is weg; ZwiftGopher zoekt dat zelf op. Zie "TTT Planner wordt een doorwijspagina naar ZwiftGopher" (2026-10-15).*
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** Vraag van de eigenaar: kunnen we via het Zwift-ID de gegevens van
@@ -9216,6 +9299,8 @@ database met deze opstelling.
 ### Gemeten — ZwiftGopher: geen vrije routekeuze, kopbeurtvelden kloppen
 
 **2026-10-09.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+*Sinds 2026-10-15 roept ZWB de API van ZwiftGopher niet meer aan; de route kies je op zwiftgopher.com zelf.*
 
 **Aanleiding.** Stijn vroeg om vrije routekeuze in de TTT Planner, omdat alle
 routes in de database staan. Eén batchverzoek aan `POST /api/optimize` met zijn

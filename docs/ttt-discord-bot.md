@@ -22,7 +22,7 @@ Platform (Netlify)                         Pc met Zwift + Sauce
 ```
 
 - **Platform**: alleen een deellink per plan. `ttt_plans.share_token` (migratie
-  `0229_ttt_plan_share_token.sql`), aangemaakt met de knop Botlink in de planner,
+  `0229_ttt_plan_share_token.sql`), aangemaakt met de knop Botlink op de planpagina,
   in te trekken met Link intrekken. De route leest met de service-role en geeft
   `tttPlanExport` terug (`src/lib/ttt/plan-export.ts`): naam, event, schatting van
   ZwiftGopher en per renner volgorde, naam, Zwift-ID, kopbeurt-watts en -duur.

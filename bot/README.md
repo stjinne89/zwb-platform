@@ -62,7 +62,7 @@ Achtergrond, drempels en wat nog niet gemeten is: `../docs/ttt-discord-bot.md`.
      lang om in Discord te plakken.
    - **ZwiftGopher**, vanaf een andere pc: klik op Export JSON, sla de pagina op
      en geef het bestand mee bij `bestand`.
-   - **TTT Planner** van het platform: klik op Botlink en plak die bij `link`.
+   - **TTT Planner** van het platform: klik op de planpagina op Botlink en plak die bij `link`.
 2. Alleen jij ziet het antwoord, met het deel, de renners, watt en duur. Laad je
    een tweede plan zonder `deel` op te geven, dan vervangt het deel 1; onder het
    antwoord staat dan de knop **Dit is deel 2** om dat recht te zetten.

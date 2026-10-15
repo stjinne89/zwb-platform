@@ -515,18 +515,16 @@ const ADMIN_GUIDES = [
     id: "ttt-beheer",
     title: "TTT Planner en exports",
     bullets: [
-      "Op de pagina van een TTT-race opent de captain de planner; team, event en de opstelling staan dan al klaar.",
+      "Het plan maak je op zwiftgopher.com/TTT; ZWB bewaart het daarna bij het team en het event.",
+      "Kies event en team en klik op Zwift-ID's kopiëren: de ID's van de opstelling, of van het hele team als er nog geen opstelling is, één per regel. Plak ze in het vak Zwift IDs op ZwiftGopher.",
+      "Maak het plan in ZwiftGopher af en kies daar Export JSON, Export Link of Export Text. Plak de JSON, de link of de tekst in het importvak, of kies het bestand, en klik op Importeren.",
+      "Export JSON en Export Link nemen volgorde, kopbeurt-watts en -duur, Zwift-ID, FTP, gewicht en IF mee. Export Text heeft alleen naam, watts en duur.",
+      "Renners met een ZWB-account worden herkend aan hun Zwift-ID. Teamtags zoals (ZWB) gaan uit de naam.",
+      "Opnieuw importeren in een bestaand plan vervangt de renners; publicatie en botlink blijven staan.",
+      "Op de pagina van een TTT-race opent de captain het plan of begint een nieuw plan, met team en event al ingevuld.",
       "Een ZRL-TTT telt maximaal 5 renners, andere TTT's 8.",
-      "Optimaliseren neemt kopbeurten en volgorde van ZwiftGopher over; daarna kun je ze aanpassen.",
-      "300s is het gemeten 5-minutenvermogen uit Intervals, anders zMAP uit WTRL. De calculator op zwiftgopher.com rekent met 130% van de FTP en komt daardoor iets sneller uit; laat je 300s leeg, dan doet de planner dat ook.",
       "Een plan is een concept tot de captain het publiceert. Daarna ziet het hele team het op de racepagina.",
-      "Renners zonder account staan ook in de lijst; FTP, gewicht en 5-minutenvermogen komen dan uit WTRL.",
-      "Renners zonder Zwift-ID worden als aangepaste renner in het plan opgenomen.",
-      "Vindt ZwiftGopher een Zwift-ID niet, dan rekent het plan bij de volgende keer Optimaliseren met de FTP en het gewicht uit het plan, en met 175 cm als Cm leeg is. ZwiftGopher staat één verzoek per minuut toe.",
-      "De knop Zwift-ID's kopieert de ID's van het raceplan, één per regel, om te plakken in het vak Zwift IDs op zwiftgopher.com/TTT.",
       "De knop Botlink kopieert een link waarmee de TTT-bot in Discord het plan ophaalt: plak hem achter /ttt plan. Wie de link heeft, ziet namen, Zwift-ID's en kopbeurten; met Link intrekken werkt hij niet meer.",
-      "De JSON-export bewaart ook velden die ZWB niet zelf bewerkt.",
-      "De tekstexport is bedoeld als leesbare racesheet; de afbeelding als deelbare opstelling.",
     ],
   },
   {
@@ -3260,8 +3258,8 @@ Fitness-status: Verbeterend`}
             steunt: waar je loste, op welke klim je het meeste vermogen nodig
             had, of je W′ boven op een klim op was, of je start harder was dan
             je FTP, en hoe dicht je bij je eigen beste van 90 dagen zat. Het plan
-            uit ZwiftGopher en de kopbeurten uit de TTT-bot kent de app niet;
-            daar zeggen de tips dus niets over.
+            uit de TTT Planner en de kopbeurten uit de TTT-bot gebruiken de tips
+            niet; daar zeggen ze dus niets over.
           </p>
         </div>
 

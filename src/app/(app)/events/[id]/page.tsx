@@ -1524,12 +1524,12 @@ export default async function EventDetailPage({
               <Link
                 href={
                   tttPlan
-                    ? `/teams/ttt-planner?plan=${tttPlan.id}`
+                    ? `/teams/ttt-planner/${tttPlan.id}`
                     : `/teams/ttt-planner?event=${event.id}&team=${event.team_id}`
                 }
                 className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
               >
-                {tttPlan ? "Open in planner" : "TTT-plan maken"}
+                {tttPlan ? "Open plan" : "TTT-plan maken"}
               </Link>
             )}
           </div>
