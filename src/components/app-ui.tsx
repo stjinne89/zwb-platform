@@ -54,18 +54,14 @@ export function SectionHeader({
   title,
   action,
   className,
-  place,
 }: {
   icon?: LucideIcon;
   title: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
-  /** Alleen voor het design "tegels": de plek, en dus de kleur, van het blok. */
-  place?: "vandaag" | "kalender" | "zwbeter" | "club" | "meer" | "geen";
 }) {
   return (
     <div
-      data-place={place}
       className={cn(
         "section-header mb-3 flex items-center justify-between gap-3 border-b border-border/70 pb-2",
         className,

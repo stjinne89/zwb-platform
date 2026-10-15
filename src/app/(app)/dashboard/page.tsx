@@ -1237,7 +1237,6 @@ export default async function DashboardPage({
         <section>
           <SectionHeader
             icon={BadgeCheck}
-            place="zwbeter"
             title="Nieuwste badges"
             action={<InlineMoreLink href="/achievements">Achievements</InlineMoreLink>}
           />

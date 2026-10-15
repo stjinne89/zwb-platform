@@ -196,14 +196,14 @@ export default async function RaceAnalysisPage({ params }: PageProps) {
 
       {ownAthleteId !== null && (
         <section className="space-y-3">
-          <SectionHeader title="Tips voor jou" place="zwbeter" />
+          <SectionHeader title="Tips voor jou" />
           {ownTips.length > 0 ? <TipList tips={ownTips} /> : <EmptyState>Geen opvallende punten in je race.</EmptyState>}
         </section>
       )}
 
       {viewer !== "rider" && (teamTips.length > 0 || riderTips.length > 0) && (
         <section className="space-y-3">
-          <SectionHeader title="Tips voor de ploeg" place="zwbeter" />
+          <SectionHeader title="Tips voor de ploeg" />
           {teamTips.length > 0 && <TipList tips={teamTips} />}
           {riderTips.map((r) => (
             <div key={r.athleteId} className="space-y-2">
@@ -226,7 +226,7 @@ export default async function RaceAnalysisPage({ params }: PageProps) {
 
       {ttt && analysis.gapTrace.length > 0 && analysis.rival && (
         <section className="space-y-3">
-          <SectionHeader title={`Verloop tegenover ${analysis.rival.label}`} place="zwbeter" />
+          <SectionHeader title={`Verloop tegenover ${analysis.rival.label}`} />
           <div className="rounded-lg border bg-card p-3">
             <GapChart points={analysis.gapTrace.map((g) => ({ name: g.name, ahead: g.ahead, climb: g.kind === "klim" }))} rival={analysis.rival.label} />
           </div>
@@ -243,19 +243,19 @@ export default async function RaceAnalysisPage({ params }: PageProps) {
       )}
 
       <section className="space-y-3">
-        <SectionHeader title="Renners" place="zwbeter" />
+        <SectionHeader title="Renners" />
         <RidersTable analysis={analysis} ownAthleteId={ownAthleteId} />
       </section>
 
       {analysis.hasPower && (
         <section className="space-y-3">
-          <SectionHeader title="Segmenten" place="zwbeter" />
+          <SectionHeader title="Segmenten" />
           <SegmentsTable analysis={analysis} />
         </section>
       )}
 
       <section className="space-y-3">
-        <SectionHeader title="Teams in de groep" place="zwbeter" />
+        <SectionHeader title="Teams in de groep" />
         <TeamsTable analysis={analysis} />
       </section>
 

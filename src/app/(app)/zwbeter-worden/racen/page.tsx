@@ -50,19 +50,19 @@ export default async function RacenPage() {
   return (
     <div className="space-y-8">
       <section className="space-y-3">
-        <SectionHeader title="Jouw races" action={<HelpLink href="/hulp#racen" />} place="zwbeter" />
+        <SectionHeader title="Jouw races" action={<HelpLink href="/hulp#racen" />} />
         <OpenRaceForm />
         {own.length === 0 ? <EmptyState>Nog geen gereden Zwift-races.</EmptyState> : <RaceList races={own} />}
       </section>
       {led.length > 0 && (
         <section>
-          <SectionHeader title="Als captain" place="zwbeter" />
+          <SectionHeader title="Als captain" />
           <RaceList races={led} />
         </section>
       )}
       {rest.length > 0 && (
         <section>
-          <SectionHeader title="Andere teams" place="zwbeter" />
+          <SectionHeader title="Andere teams" />
           <RaceList races={rest} />
         </section>
       )}

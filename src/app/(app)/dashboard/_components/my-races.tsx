@@ -264,16 +264,17 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
     .sort((a, b) => a.startAt.localeCompare(b.startAt))
     .slice(0, MAX_RACES);
 
-  // Design "tegels": elke race is een tegel in de kleur van de kalender, met de
-  // starttijd groot en jouw status als label.
+  // Design "tegels": elke race is een petrol tegel, zoals elk event, met de
+  // starttijd groot en jouw status als label. Goud is schaars (kleurbeleid in
+  // globals.css): alleen de eerste race zonder opgave vraagt om actie.
   if (tegels) {
+    const askKey = shown.find((race) => !race.status)?.key;
     return (
       <ul className="contents" aria-label="Jouw races">
         {shown.map((race) => (
           <li
             key={race.key}
-            // Nog niets opgegeven vraagt om actie: goud. Anders petrol, zoals elk event.
-            className={`tg-tile ${race.status ? "tg-kalender" : "tg-vandaag"}`}
+            className={`tg-tile ${race.key === askKey ? "tg-vandaag" : "tg-kalender"}`}
           >
             <span className="tg-tile-small">
               {new Date(race.startAt).toLocaleDateString("nl-NL", {

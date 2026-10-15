@@ -2,8 +2,8 @@ import Link from "next/link";
 import { EmptyState } from "@/components/app-ui";
 
 // Het startscherm van het design "tegels": wat jij vandaag en deze week doet,
-// als tegels in de kleur van de plek waar ze heen leiden. Puur weergave; de
-// dashboardpagina levert de data aan.
+// als tegels in de kleur van hun soort (kleurbeleid in globals.css). Elke tegel
+// is een link. Puur weergave; de dashboardpagina levert de data aan.
 
 export type VandaagWorkout = {
   title: string;

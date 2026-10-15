@@ -60,7 +60,7 @@ export function OwnRide({ ride }: { ride: RideOutcome }) {
     if (!message) return null;
     return (
       <section>
-        <SectionHeader title="Jouw rit" place="zwbeter" />
+        <SectionHeader title="Jouw rit" />
         <EmptyState action={ride.status === "no-intervals" ? <Link href="/zwbeter-worden/vermogen" className="text-sm underline">Vermogen</Link> : undefined}>
           {message}
         </EmptyState>
@@ -71,7 +71,7 @@ export function OwnRide({ ride }: { ride: RideOutcome }) {
   const climbs = a.phases.filter((p) => p.climb).map((p) => ({ name: p.name, from: p.from, to: p.to }));
   return (
     <section className="space-y-4">
-      <SectionHeader title="Jouw rit" action={<HelpLink href="/hulp#racen-eigen-rit" />} place="zwbeter" />
+      <SectionHeader title="Jouw rit" action={<HelpLink href="/hulp#racen-eigen-rit" />} />
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Stat value={`${a.np} W`} label={a.intensity !== null ? `genormaliseerd · IF ${decimal(a.intensity)}` : "genormaliseerd"} />
         <Stat value={`${a.avgWatts} W`} label={`gemiddeld · ${a.kilojoules} kJ`} />

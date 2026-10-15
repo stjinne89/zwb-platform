@@ -68,7 +68,7 @@ export function PersonalRaceView({ outcome }: { outcome: Exclude<PersonalRaceOut
       </div>
 
       <section className="space-y-3">
-        <SectionHeader title="Tips voor jou" place="zwbeter" />
+        <SectionHeader title="Tips voor jou" />
         {tips.length > 0 ? <TipList tips={tips} /> : <EmptyState>Geen opvallende punten in je race.</EmptyState>}
       </section>
 
@@ -88,7 +88,7 @@ export function PersonalRaceView({ outcome }: { outcome: Exclude<PersonalRaceOut
 
       {race.segmentLoss.length > 0 && (
         <section className="space-y-3">
-          <SectionHeader title="Segmenten" place="zwbeter" />
+          <SectionHeader title="Segmenten" />
           <ResponsiveTable
             columns={[
               { key: "name", header: "Segment", cell: (s) => s.name, primary: true },
@@ -119,7 +119,7 @@ export function PersonalRaceView({ outcome }: { outcome: Exclude<PersonalRaceOut
 
       {frr && frr.peers.length > 0 ? (
         <section className="space-y-3">
-          <SectionHeader title={`ZWB in etappe ${frr.stage}`} place="zwbeter" />
+          <SectionHeader title={`ZWB in etappe ${frr.stage}`} />
           <ResponsiveTable
             columns={[
               { key: "name", header: "Renner", cell: (p) => <span className={p.own ? "font-semibold" : undefined}>{p.name}</span>, primary: true },
@@ -135,7 +135,7 @@ export function PersonalRaceView({ outcome }: { outcome: Exclude<PersonalRaceOut
       ) : (
         race.peers.length > 1 && (
           <section className="space-y-3">
-            <SectionHeader title="ZWB in deze race" place="zwbeter" />
+            <SectionHeader title="ZWB in deze race" />
             <ResponsiveTable
               columns={[
                 { key: "name", header: "Renner", cell: (p) => <span className={p.own ? "font-semibold" : undefined}>{p.name}</span>, primary: true },

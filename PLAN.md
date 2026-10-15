@@ -134,6 +134,52 @@ van de CORE-sensor, beide 2026-10-14).
 
 ---
 
+> **Design tegels: gekleurde tegels nagelopen op het kleurbeleid, 2026-10-15 — gebouwd, lokaal getest; niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt. Niet gepusht.
+>
+> **Waarom.** Vraag van de eigenaar: de hele app nalopen op de gekleurde tegels
+> tegen de regel in het kleurbeleid (`globals.css`, 2026-10-13): kleur betekent
+> "hier kun je op tikken", een gekleurd vlak dat nergens heen leidt hoort er niet
+> te zijn, en goud is schaars (hooguit een of twee per scherm).
+>
+> **Nagelopen, in orde.** Elke `tg-tile` is een link of zit in een volledig
+> klikbare tegel: Vandaag (training, events, teamuitslag), Jouw races, Instagram,
+> trainingsadvies en de drie cijfertegels, core, de Club-tegels en de vijf
+> tabs. De ZWBeter-pijlers zijn links (de actieve als paneel, besluit 2026-10-13).
+> `tg-metric` kleurt alleen als het een knop of link is (de fitness- en
+> vormknop); de `MetricCard`s op ZWBeter en de nalevingspagina blijven panelen.
+> Agendarijen zijn links met een gekleurd dagvak.
+>
+> **Aangepast.**
+> - *Goud op Vandaag.* Elke race zonder opgave in Jouw races was goud; met de
+>   training van vandaag erbij konden er vier gouden tegels staan. Nu is alleen
+>   de eerste race zonder opgave goud, de rest petrol met "Nog niet opgegeven"
+>   als label (`my-races.tsx`). Zo blijven het er hooguit twee.
+> - *Dode `place`-prop.* `SectionHeader` had nog `place` ("de plek, en dus de
+>   kleur, van het blok") en zette `data-place`, maar de CSS die daarop kleurde
+>   is op 2026-10-13 verwijderd. Prop en aanroepen (dashboard, ZWBeter racen)
+>   zijn weg. Het commentaar boven `TegelsVandaag` ("in de kleur van de plek waar
+>   ze heen leiden") volgt nu het kleurbeleid.
+>
+> **Bewust niet aangepast.**
+> - Het gekleurde dagvak op de eventpagina en in het jaarplan (A-doel goud,
+>   B-doel petrol, kamp teal) leidt nergens heen. Het is een kleine markering
+>   van de soort, geen tegel; voor de eventkop is dat een eerder besluit van de
+>   eigenaar. Of goud voor een A-doel botst met "goud is jij, nu", ligt bij de
+>   eigenaar.
+> - Instagram-tegels zijn donker petrol (spel en ontdekken), niet sage (de club
+>   en de mensen). De foto bedekt de hele tegel, dus de kleur is alleen te zien
+>   zolang hij laadt.
+> - Kleine gekleurde chips, balkjes en bolletjes elders in de app vallen niet
+>   onder de tegelregel en zijn niet nagelopen. Het open punt van 2026-10-13
+>   (rijen in lijsten die klikbaar zijn zonder kleur) is alleen voor ZWBeter
+>   racen en de TTT Planner opgepakt, met `.tg-link` (ronde hieronder).
+>
+> **Getest.** ESLint op de gewijzigde bestanden: schoon. `tsc --noEmit`: alleen
+> drie bestaande fouten in `read-barcode.ts` omdat `@zxing/browser` en
+> `@zxing/library` niet in de lokale `node_modules` staan; niets in deze
+> wijziging. **Niet getest:** `npm run test`, `npm run build`, en het dashboard
+> met echte data in de browser.
 > **"Kleur is klikbaar" in ZWBeter racen en de TTT Planner, 2026-10-15 — gebouwd, typecheck en lint schoon, bekeken op een tijdelijke voorbeeldpagina in het design "tegels"; gepusht naar `main` (eigenaar, 2026-10-15, `fb2fd61`). Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
@@ -1795,7 +1841,8 @@ van de CORE-sensor, beide 2026-10-14).
 >   `tegels`-prop. De overige secties worden binnen `.tg-dash` via CSS een
 >   gekleurd blok in de kleur van hun plek (`SectionHeader` kreeg daarvoor
 >   `place`; standaard Club, Mijn garage en Ledenvoordeel Meer, Instagram zonder
->   kleur). Clubraces staan niet meer in de bovenste tegels: de eigen races
+>   kleur; *de gekleurde blokken vervielen op 2026-10-13 en `place` is op
+>   2026-10-15 verwijderd*). Clubraces staan niet meer in de bovenste tegels: de eigen races
 >   staan er direct onder.
 > - *Lettertype.* Jost en Albert Sans zijn vervangen door Archivo, met koppen,
 >   tegels en cijfers smaller gezet via de breedte-as. **Niet meer waar:** de
@@ -1906,7 +1953,7 @@ van de CORE-sensor, beide 2026-10-14).
 >   ontdekken. De kalender houdt in het dagvak zijn kleur per eventsoort. De
 >   regel staat als commentaar bij de kleuren in `globals.css`. Doorgevoerd op
 >   het dashboard (training goud alleen als hij vandaag is, anders teal; een
->   race zonder opgave goud; events, teamuitslag, FRR en SRC petrol; badges
+>   race zonder opgave goud, *sinds 2026-10-15 alleen de eerste*; events, teamuitslag, FRR en SRC petrol; badges
 >   teal; Mijn garage goud; ledenvoordeel sage) en op Club (`TILE_STYLE`).
 >   **Niet meer waar:** "een tegel heeft de kleur van de plek waar hij heen
 >   leidt" en "op Club is kleur afwisseling" hierboven.
