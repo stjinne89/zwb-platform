@@ -9531,6 +9531,37 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Onderzocht — veelbelovende trainingsmethodes, met label "experimenteel"
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
+code.
+
+**Aanleiding.** De eigenaar vroeg via PubMed en Consensus te zoeken naar
+veelbelovende trainingsmethodes, protocollen en workouts. Experimenteel mag,
+maar de app moet dat dan zeggen.
+
+**Uitkomst.** Zie [trainingsmethodes-onderzoek-2026-10-16.md](docs/trainingsmethodes-onderzoek-2026-10-16.md).
+- **Veelbelovend:** een blokweek (zes drempelsessies of vijf 30/15-sessies in
+  een week, dan zes dagen herstel), sprintintervallen als onderhoud bij weinig
+  tijd, en sprints in één rustige rit in de overgangsperiode.
+- **Experimenteel:** VO2max-intervallen met snelle start of wisselend vermogen
+  (alleen eenmalige metingen, geen trainingsstudie), brain endurance training,
+  en trainen met bloedstroombeperking.
+- **Niet bouwen:** ischemische preconditionering (niet beter dan placebo),
+  "double threshold" met lactaatmeter (geen fietsstudies), trillingen.
+- Voorstel: `experimenteel` als vierde waarde naast `sterk`, `matig` en
+  `beperkt` in `PROTOCOL_EVIDENCE` (`src/lib/protocols/types.ts`), zodat een lid
+  het verschil ziet tussen "weinig onderzoek" en "effect niet aangetoond".
+
+**Bewust niet gebouwd.** Nog niets: de eigenaar kiest eerst welke methodes in
+de app komen. BFR en ischemische preconditionering worden ook dan geen
+protocol (banden en gemeten afsluitdruk nodig, hogere bloeddruk; geen effect
+boven placebo).
+
+**Niet geverifieerd.** Alleen samenvattingen gelezen, via PubMed en Consensus.
+De DOI's zijn niet in Crossref nagelopen en de studieopzet niet uit de volledige
+artikelen gehaald; dat moet per bron bij het bouwen.
+
 ### Opgeleverd — Profiel: weergaveknop met drie standen
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
