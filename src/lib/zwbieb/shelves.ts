@@ -16,6 +16,7 @@
 // zichzelf); een artikel lezen vertelt niemand iets.
 
 import { NUTRITION_ARTICLES } from "@/lib/nutrition/library";
+import type { MethodLabel } from "@/lib/training/method-label";
 import { STRENGTH_ARTICLES } from "@/lib/training/strength-library";
 import { TRAINING_ARTICLES } from "@/lib/training/training-library";
 
@@ -55,8 +56,11 @@ export const SHELF_DEFS: ShelfDef[] = [
       "trainen/lange-ritten",
       "trainen/intensiteitsverdeling",
       "trainen/korte-intervallen",
+      "trainen/vo2max-wisselend",
+      "trainen/sprints-als-onderhoud",
       "trainen/lage-cadans",
       "trainen/opbouwen",
+      "trainen/blokweek",
     ],
   },
   {
@@ -135,10 +139,15 @@ export const SHELF_DEFS: ShelfDef[] = [
     ],
   },
   {
-    slug: "hitte-ademhaling",
-    label: "Hitte en ademhaling",
+    slug: "bijzondere-vormen",
+    label: "Bijzondere trainingsvormen",
     topics: [],
-    books: ["trainen/hittetraining", "trainen/ademspiertraining"],
+    books: [
+      "trainen/hittetraining",
+      "trainen/ademspiertraining",
+      "trainen/bloedstroombeperking",
+      "trainen/brain-endurance-training",
+    ],
   },
   {
     slug: "gezondheid",
@@ -165,19 +174,25 @@ export type Book = {
   title: string;
   summary: string;
   collection: Collection;
+  /** Veelbelovend of experimenteel (alleen bij trainen); zie method-label.ts. */
+  methodLabel: MethodLabel | null;
 };
 
 export type Shelf = Omit<ShelfDef, "books"> & { books: Book[] };
 
 function allArticles(): Map<BookRef, Book> {
   const books = new Map<BookRef, Book>();
-  const add = (collection: Collection, list: { slug: string; title: string; summary: string }[]) => {
+  const add = (
+    collection: Collection,
+    list: { slug: string; title: string; summary: string; methodLabel?: MethodLabel }[],
+  ) => {
     for (const article of list) {
       books.set(`${collection}/${article.slug}`, {
         href: `${COLLECTION_BASE[collection]}/${article.slug}`,
         title: article.title,
         summary: article.summary,
         collection,
+        methodLabel: article.methodLabel ?? null,
       });
     }
   };

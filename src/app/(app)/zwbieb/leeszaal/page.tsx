@@ -59,6 +59,7 @@ export default async function ZwbiebLeeszaalPage() {
             title: book.title,
             summary: book.summary,
             collection: COLLECTION_LABELS[book.collection],
+            methodLabel: book.methodLabel,
           })),
         }))}
       />

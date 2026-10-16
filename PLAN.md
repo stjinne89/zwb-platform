@@ -9565,16 +9565,23 @@ link naar `/live/[eventId]`, zie de update hierboven).
 **Aanleiding.** In ZWBieb leen je kennis en spullen van een ander lid. De
 eigenaar opperde om er ook de kennisbanken te zetten, per onderwerp ingedeeld,
 zoals in een echte bieb. Die kennisbanken stonden elk bij hun eigen onderdeel:
-trainen (14 artikelen), voeding (25) en core & mobiliteit (12). Een onderwerp
+trainen (19 artikelen), voeding (25) en core & mobiliteit (12). Een onderwerp
 als herstel stond zo verspreid over twee kennisbanken.
 
 **Wat er veranderde.**
-- **Nieuwe tab Leeszaal** (`/zwbieb/leeszaal`), naast Kennis en Spullen. Alle 51
+- **Nieuwe tab Leeszaal** (`/zwbieb/leeszaal`), naast Kennis en Spullen. Alle 56
   artikelen staan op twaalf planken per onderwerp: Trainen, Testen en meten,
   Naar een wedstrijd, Eten en drinken onderweg, Dagelijkse voeding, Herstel,
-  Supplementen, Kracht, Core, rug en mobiliteit, Hitte en ademhaling,
+  Supplementen, Kracht, Core, rug en mobiliteit, Bijzondere trainingsvormen,
   Gezondheid, en Vrouwen en ouder worden. Er is een zoekveld op titel,
-  samenvatting en plank. Elke plank heeft een anker (`#gezondheid`).
+  samenvatting, plank en label. Elke plank heeft een anker (`#gezondheid`).
+- Het label Veelbelovend of Experimenteel van een trainingsartikel (ronde
+  "veelbelovende en experimentele trainingsmethodes", hieronder) staat ook in
+  de leeszaal. Die ronde kwam tijdens het bouwen op main; de vijf nieuwe
+  artikelen staan op Trainen (VO2max met wisselend vermogen, Sprints als
+  onderhoud, Blokweken) en op de plank Bijzondere trainingsvormen
+  (Bloedstroombeperking, Brain endurance training). Die plank heette eerst
+  "Hitte en ademhaling".
 - **De indeling** staat in `src/lib/zwbieb/shelves.ts`. Elk artikel staat op
   precies één plank, zoals een boek één plek heeft in de bieb.
   `zwbieb.test.ts` faalt als een nieuw artikel nog niet op een plank staat.
@@ -9627,7 +9634,7 @@ als herstel stond zo verspreid over twee kennisbanken.
   belasting uit de tijd en zijn los groen. `omnium-live` mist `.env.local`.
 
 **In de browser bekeken** (dev-server, ingelogd door de eigenaar, 2026-10-16):
-- De leeszaal toont alle 51 artikelen. Zoeken werkt: "herstel" geeft drie
+- De leeszaal toont alle 56 artikelen, met de labels. Zoeken werkt: "herstel" geeft drie
   planken. Ankers als `#onderweg` werken. Op 375 px is er geen horizontale
   scroll, en het label van de kennisbank valt daar weg.
 - Een onderwerp (`?onderwerp=trainen-met-schema`) toont "In de leeszaal" met

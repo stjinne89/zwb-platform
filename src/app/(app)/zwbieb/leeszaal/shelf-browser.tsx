@@ -3,12 +3,20 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChevronRight, Search } from "lucide-react";
+import { MethodLabelBadge } from "@/components/method-label-badge";
+import { METHOD_LABEL_TEXT, type MethodLabel } from "@/lib/training/method-label";
 import { TopicBadge } from "../_components/topic-badge";
 
 type ShelfView = {
   slug: string;
   label: string;
-  books: { href: string; title: string; summary: string; collection: string }[];
+  books: {
+    href: string;
+    title: string;
+    summary: string;
+    collection: string;
+    methodLabel: MethodLabel | null;
+  }[];
   topics: { slug: string; label: string; experts: number }[];
 };
 
@@ -30,7 +38,15 @@ export function ShelfBrowser({ shelves }: { shelves: ShelfView[] }) {
         ...shelf,
         books: shelf.books.map((book) => ({
           ...book,
-          haystack: normalize(`${shelf.label} ${book.title} ${book.summary} ${book.collection}`),
+          haystack: normalize(
+            [
+              shelf.label,
+              book.title,
+              book.summary,
+              book.collection,
+              book.methodLabel ? METHOD_LABEL_TEXT[book.methodLabel] : "",
+            ].join(" "),
+          ),
         })),
       })),
     [shelves],
@@ -74,7 +90,10 @@ export function ShelfBrowser({ shelves }: { shelves: ShelfView[] }) {
                       className="flex min-h-[44px] items-center justify-between gap-3 py-2 hover:text-primary"
                     >
                       <span className="min-w-0">
-                        <span className="block text-sm font-medium">{book.title}</span>
+                        <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                          {book.title}
+                          <MethodLabelBadge label={book.methodLabel} />
+                        </span>
                         <span className="line-clamp-1 text-xs text-muted-foreground">{book.summary}</span>
                       </span>
                       <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
