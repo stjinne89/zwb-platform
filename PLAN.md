@@ -125,6 +125,12 @@ gaat stabiliteit voor nieuwe features.
    `strava_fit`). De twee productvragen uit juni (POI's in kalender of livehub,
    achievementkwaliteit) zijn uitgewerkt in de ronde van 2026-10-02 hieronder;
    het besluit ligt bij de eigenaar.
+7. **Wetenschappelijke toets van ZWBasis** (gestart 2026-10-16). Fase 0, het
+   claimregister, is af. Fase 1 (de regels die schema en advies sturen) ligt
+   per onderdeel ter goedkeuring bij de eigenaar. Daarna volgen fase 2
+   (kennisbank trainen), 3 (voeding), 4 (kracht en core), 5 (racen en pacing)
+   en 6 (overig). Zie de ronde hieronder en
+   [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -8752,6 +8758,78 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Lopend — wetenschappelijke toets van ZWBasis (fase 0 af, fase 1 voorgesteld)
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
+codewijziging.
+
+**Waarom.** De eigenaar wil alle wetenschappelijke beweringen in de app laten
+toetsen, en waar meer te halen is, dat in de kennisbank en in de functionaliteit
+verwerken. Dat gaat per fase en per onderdeel: eerst een voorstel, uitvoeren pas
+na akkoord. Het werkdocument is
+[`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
+
+**Fase 0, het claimregister**, staat in dat document: elke claim met plek, bron
+en status, verdeeld over zes fases. De conclusie: de kennisbanken (trainen 8,
+voeding 25, kracht 10 artikelen, 17 protocollen) zijn al onderbouwd. Het gat zit
+in de regels die schema en advies sturen. De opbouwregels in de prompt, de
+FTP-factoren, de readiness-berekening en de TSB-drempels hebben geen bron, of
+een bron die een andere kant op wijst.
+
+**Fase 1, voorgesteld en nog niet uitgevoerd:**
+- *1A Opbouw*: de 10 %-regel bleek in een RCT geen blessures te voorkomen. Hij
+  blijft als voorzichtige standaard, maar heet niet langer "veilig". Er komt een
+  artikel over opbouwen, detraining en CTL/ATL/TSB.
+- *1B FTP-test*: voor 0,75 × ramp is geen validatie gevonden; 0,95 × 20 minuten
+  is per renner ±10 %. Voorgesteld: een artikel, een controle van een nieuwe FTP
+  tegen CP en eFTP, en mogelijk een andere opener in de 20-minutentest.
+- *1C Herstel*: overstappen op ln rMSSD met een persoonlijke band. De
+  verzachtingsregel bij hoge HRV wordt bijgesteld: HRV kan ook stijgen bij
+  overreaching. Er komt een artikel.
+- *1D Zones*: drempelblokken standaard op 90–100 %; een artikel over zones als
+  afspraak.
+- *1E Analyse*: alleen bronnen aanvullen; de drempels blijven.
+
+**Aangevuld met Consensus Pro (dezelfde dag).** De onderzoeksagent van Consensus
+deed één brede ronde over 1A–1E (22.297 papers doorzocht, 20 meegenomen; ruw
+rapport in `docs/consensus/`). Elke nieuwe bron is daarna via PubMed nagelopen.
+Wat er veranderde aan de voorstellen:
+- *1A*: 10 % tegen 24 % opbouw gaf geen verschil in blessurerisico; sprongen van
+  meer dan 30 % wel. Daarom komt "vermijd sprongen van meer dan een kwart" in de
+  prompt.
+- *1B*: de 20-minutentest heeft een meetfout van ~3 %. Nieuw voorstel: een
+  kleiner verschil in de FTP-historie tonen als "gelijk gebleven".
+- *1C*: twee meta-analyses bevestigen dat HRV ook stijgt bij overbelasting.
+  Nieuw voorstel, ter keuze: gevoel en RPE meewegen in de readiness.
+- *1D*: de bovengrens hangt af van de bloklengte: ≥ 15 minuten op 90–95 %,
+  kortere blokken tot 100 %, boven 100 % alleen in blokken van hooguit 8 minuten.
+- *1E*: ideeën voor fase 2: een maandelijkse duurtest (60 minuten op 75 % FTP).
+
+De gewone zoekfunctie van Consensus gaf eerst nog resultaten van het gratis
+abonnement. Na het opnieuw verbinden van de connector (2026-10-16) werkt ook
+die op Pro: twintig resultaten per vraag, met DOI, en zonder limiet bij
+meerdere vragen tegelijk.
+
+**Gevonden, nog niet hersteld** (onderdeel van voorstel 1C):
+`getWellnessSummary()` geeft de AI en de coachchat standaard 21 dagen data,
+terwijl de baseline 30 dagen hoort te zijn en de pagina's 30 dagen gebruiken.
+Hetzelfde lid kan daardoor voor de AI een andere herstelstatus hebben dan op de
+pagina. Verder valt de HRV-reeks terug op SDNN als rMSSD ontbreekt. En
+`CP_FTP_FRACTION = 0,97` (pacing) botst met Karsten 2021, waar CP gemiddeld
+iets *boven* FTP lag. Andere bronnen (MLSS onder FTP, CP ≈ MLSS) wijzen juist
+de kant van 0,97 op. Dat wordt uitgezocht in fase 5.
+
+**Niet lokaal te verifiëren.** Hoeveel leden door een nieuwe HRV-band anders
+worden ingedeeld. Dat vraagt een leesquery op productie, en die komt pas na akkoord.
+
+**Les.** Vier DOI's die uit het geheugen waren aangevuld, bleken fout. Een DOI
+gaat pas de kennisbank in als hij via PubMed of de uitgever is bevestigd.
+
+**Open punt.** Het ruwe Consensus-rapport draagt de voorwaarde "persoonlijk,
+niet-commercieel gebruik; verspreiden vraagt toestemming van de
+rechthebbenden". Het staat lokaal in `docs/consensus/`. Of het in git mag, is
+een keuze van de eigenaar.
 
 ### Opgeleverd — Wie weet wat: een tip uit een gesprek bewaart de ontvanger
 
