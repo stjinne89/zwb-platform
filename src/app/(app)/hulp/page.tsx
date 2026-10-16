@@ -1914,7 +1914,7 @@ export default function HelpPage() {
                 Een{" "}
                 <a
                   className="underline hover:text-primary"
-                  href="https://www.sponet.de/sponet/Record/4080476?lng=en"
+                  href="https://doi.org/10.1123/ijspp.2022-0302"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -1928,7 +1928,7 @@ export default function HelpPage() {
                 Een{" "}
                 <a
                   className="underline hover:text-primary"
-                  href="https://www.dovepress.com/block-periodization-of-endurance-training-a-systematic-review-and-meta-peer-reviewed-article-OAJSM"
+                  href="https://doi.org/10.2147/OAJSM.S180408"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

@@ -1,5 +1,29 @@
 # Wetenschappelijke toets van ZWBasis
 
+**Afgerond op 2026-10-16.** Alle zes fases zijn voorgesteld, goedgekeurd en
+uitgevoerd. Per fase staat in `PLAN.md` een ronde "wetenschappelijke toets".
+
+## Samenvatting: wat er veranderde
+
+| Fase | Wat er veranderde | Migratie |
+|---|---|---|
+| 0 | Claimregister: elke wetenschappelijke bewering met plek, bron en status | — |
+| 1 | Herstel meten met een eigen HRV-band en gevoel erbij (1C). FTP-test met controle tegen CP/eFTP, meetfout en een andere warming-up (1B). Opbouw zonder "veilige 10 %" (1A). Drempelblokken begrensd naar hun lengte (1D). Bronnen bij de trainingsanalyse (1E). | 0241 |
+| 2 | Acht trainingsartikelen hertoetst en twee nieuwe (lange ritten, warming-up). Protocol Duurtest met eigen meting van de ontkoppeling. Korte overbelasting vóór de taper. | — |
+| 3 | Voedingskennisbank hertoetst: eiwit minder stellig, bicarbonaat en bèta-alanine bijgesteld, beperkingen bij alle 25 artikelen. | — |
+| 4 | Kracht hertoetst. Twee nieuwe artikelen (kracht op de fiets, masters), protocol Kracht op de fiets, springserie voor de botten. | 0242 |
+| 5 | Pacing: CP uit FTP naar 1,00, reserve vóór de sprint naar 20 %, variabel vermogen voor tijdrijders. | — |
+| 6 | Rit-fysica binnen de metingen; CORE-sensor met vier validatiestudies; DOI-links op /hulp; privacy ongewijzigd. | — |
+
+**Nog open:**
+- Migraties 0241 en 0242 op productie.
+- De voedingspagina, de sprongfiguur en de Duurtest-reeks in de browser bekijken.
+- Of de AI de nieuwe promptregels volgt (Duurtest, kracht op de fiets,
+  overbelasting, tijdrit); dat blijkt uit nieuwe schema's en plannen.
+- Idee voor het plannenboek: een persoonlijke W′-tijdconstante per lid.
+
+## Oorspronkelijke opdracht
+
 Gestart 2026-10-16 op verzoek van de eigenaar: alle wetenschappelijke beweringen
 in de app toetsen, per onderwerp kijken of verdieping mogelijk is, en die
 verdieping een plek geven in de kennisbank én in de functionaliteit. Per
@@ -115,9 +139,9 @@ en een lijst beperkingen, zoals de bestaande kennisbanken.
 
 | # | Claim | Waar | Status |
 |---|---|---|---|
-| G1 | Fiets 8 kg, luchtconstante 0,24, 85 % van het vermogen tegen de zwaartekracht, buiten ×0,88 | `ride-physics.ts` | ◐ geijkt op Zwift, zo benoemd |
-| G2 | CORE-sensor: doel ~38,5 °C, afwijking t.o.v. rectaal | `protocols/core-temperature.ts` | ✔ |
-| G3 | Teksten op /hulp en in de privacyverklaring | `app/(app)/hulp` | · |
+| G1 | Fiets 8 kg, luchtconstante 0,24, 85 % van het vermogen tegen de zwaartekracht, buiten ×0,88 | `ride-physics.ts` | ✔ binnen de metingen (Lim 2011); Zwift-ijking blijft een eigen keuze (fase 6) |
+| G2 | CORE-sensor: doel ~38,5 °C, afwijking t.o.v. rectaal | `protocols/core-temperature.ts` | ◐ sensor wijkt 0,3–0,5 °C af, richting verschilt; vier studies in de protocollen (fase 6) |
+| G3 | Teksten op /hulp en in de privacyverklaring | `app/(app)/hulp` | ✔ vijf wetenschappelijke links op /hulp nagelopen; privacy zonder claims (fase 6) |
 
 ## Fase 1 — Toets en voorstellen
 
@@ -1070,9 +1094,11 @@ Oorspronkelijke vragen:
 3. 5C–5G uitvoeren zoals voorgesteld (commentaar, prompt en docs, geen andere
    rekenregels)?
 
-## Fase 6 — Overig: rit-fysica, CORE-sensor, /hulp en privacy: voorstel
+## Fase 6 — Overig: rit-fysica, CORE-sensor, /hulp en privacy
 
-Opgesteld 2026-10-16, **nog niet uitgevoerd**.
+Opgesteld 2026-10-16. **Goedgekeurd door de eigenaar ("ja doe dat maar") en
+uitgevoerd op 2026-10-16.** Wat er is gebouwd, staat in `PLAN.md` (ronde
+"wetenschappelijke toets fase 6"). Oorspronkelijk voorstel:
 
 **Hoe gezocht.** Dit zijn smalle onderwerpen. Ik heb ze met gerichte
 Consensus-zoekvragen gedaan, zonder de onderzoeksagent. Alle bronnen hieronder
@@ -1157,7 +1183,11 @@ Na fase 6 is elke regel uit het claimregister getoetst. Voorstel:
   - de nieuwe sprongfiguur en de voedingspagina in de browser;
   - het idee van een persoonlijke W′-tijdconstante, voor het plannenboek.
 
-### Te beslissen door de eigenaar
+### Besluit eigenaar (2026-10-16)
+
+"Ja doe dat maar."
+
+Oorspronkelijke vragen:
 
 1. 6A–6D uitvoeren zoals voorgesteld (commentaren, protocolteksten, DOI-links,
    geen nieuwe getallen)?

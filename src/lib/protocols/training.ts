@@ -98,6 +98,30 @@ export const RONNESTAD_HEAT_2024: KnowledgeSource = {
   kind: "studie",
 };
 
+const GOODS_2023: KnowledgeSource = {
+  citation:
+    "Goods PSR, Maloney P, Miller J, et al. Concurrent validity of the CORE wearable sensor with BodyCap temperature pill to assess core body temperature during an elite women's field hockey heat training camp. Eur J Sport Sci 23(8):1509-1517.",
+  year: 2023,
+  url: doi("10.1080/17461391.2023.2193953"),
+  kind: "studie",
+};
+
+const MCLAUGHLIN_2025: KnowledgeSource = {
+  citation:
+    "McLaughlin BC, Aguilera JT, D'Lugos AC. Validity of the CORE wearable sensor during constant-load cycling exercise in the heat. J Therm Biol 132:104241.",
+  year: 2025,
+  url: doi("10.1016/j.jtherbio.2025.104241"),
+  kind: "studie",
+};
+
+const DAANEN_2023: KnowledgeSource = {
+  citation:
+    "Daanen HAM, Kohlen V, Teunissen LPJ. Heat flux systems for body core temperature assessment during exercise. J Therm Biol 112:103480.",
+  year: 2023,
+  url: doi("10.1016/j.jtherbio.2023.103480"),
+  kind: "studie",
+};
+
 export const VERDEL_2021: KnowledgeSource = {
   citation:
     "Verdel N, et al. Reliability and validity of the CORE sensor to assess core body temperature during cycling exercise. Sensors 21(17):5932.",
@@ -263,10 +287,10 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
       "Het hete bad is getest na hardlopen, bij mannen die niet gewend waren aan de warmte. Bij renners en vrouwen is het minder onderzocht.",
       "Binnen rijden zonder ventilator is niet als zodanig onderzocht. Het werkt via dezelfde prikkel, een hogere kerntemperatuur. Zonder CORE-sensor weet je niet of je warm genoeg was.",
       "De winst geldt voor wedstrijden in de warmte. In koel weer liet de badstudie geen verschil zien.",
-      "De CORE-sensor schat je kerntemperatuur vanaf de huid. In een validatiestudie bij fietsers week ongeveer de helft van de metingen meer dan 0,3 °C af van een rectale meting.",
+      "De CORE-sensor schat je kerntemperatuur vanaf de huid. In vier validatiestudies week hij vaak meer dan 0,3 °C af: soms te laag, vooral bij hoge temperaturen, soms te hoog, vooral later in de rit en bij meer onderhuids vet. Zie de waarde als richting.",
       "Op 38,5 °C werkten renners in de hittepakstudies naartoe. Hoeveel minuten daarboven de app als sessie telt, is een eigen keuze van ZWB.",
     ],
-    sources: [RACINAIS_2015, ZURAWLEW_2016, MCDONALD_2025, VERDEL_2021],
+    sources: [RACINAIS_2015, ZURAWLEW_2016, MCDONALD_2025, VERDEL_2021, GOODS_2023, MCLAUGHLIN_2025, DAANEN_2023],
     article: { href: "/zwbeter-worden/kennis/hittetraining", title: "Hittetraining" },
     aiHint:
       "Hitte-acclimatisatie richting een warme wedstrijd. Plan op elke dag van de fase 'Elke dag warm' een rustige duurrit van minstens 60 minuten, of houd de geplande rit, en zet in description: 'Warm rijden: geen ventilator, extra laag.' Een drempel-, VO2max- of anaerobe sessie rijdt het lid koel; zet daar in description: 'Koel rijden, daarna een heet bad.' De laatste drie dagen voor de wedstrijd hooguit twee korte warme ritten van 30 minuten.",
@@ -326,7 +350,7 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
       "Kleine groepen, vooral (top)renners, en het meeste werk komt van één onderzoeksgroep.",
       "De studies gebruikten een hittekamer van 38 tot 40 °C of een hittepak. Thuis met extra kleding fietsen maakte vrouwen in tien dagen beter bestand tegen hitte, maar verhoogde hun hemoglobine niet.",
       "Stop je, dan is de winst binnen twee weken weg. Drie sessies per week hielden de hemoglobine in een proef wel op peil.",
-      "De CORE-sensor schat je kerntemperatuur vanaf de huid. In een validatiestudie bij fietsers week ongeveer de helft van de metingen meer dan 0,3 °C af van een rectale meting.",
+      "De CORE-sensor schat je kerntemperatuur vanaf de huid. In vier validatiestudies week hij vaak meer dan 0,3 °C af: soms te laag, vooral bij hoge temperaturen, soms te hoog, vooral later in de rit en bij meer onderhuids vet. Zie de waarde als richting.",
       "Op 38,5 °C werkten renners in de hittepakstudies naartoe. Hoeveel minuten daarboven de app als sessie telt, is een eigen keuze van ZWB.",
     ],
     sources: [
@@ -339,6 +363,9 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
       RICHARD_2025,
       MCDONALD_2025,
       VERDEL_2021,
+      GOODS_2023,
+      MCLAUGHLIN_2025,
+      DAANEN_2023,
     ],
     article: { href: "/zwbeter-worden/kennis/hittetraining", title: "Hittetraining" },
     aiHint:

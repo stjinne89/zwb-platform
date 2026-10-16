@@ -126,6 +126,21 @@ auteurs concluderen dat de sensor geen geldige maat voor de kerntemperatuur is.
 [Verdel e.a. 2021](https://doi.org/10.3390/s21175932). Daarom: de app toont de
 waarde als richting en vinkt af, maar het lid kan het vinkje weghalen.
 
+**Aanvulling wetenschappelijke toets fase 6 (2026-10-16).** Er zijn inmiddels
+vier validatiestudies, en ze spreken elkaar tegen over de richting van de fout:
+- Bij hockeysters zat de sensor te laag, meer naarmate het warmer werd, met
+  41–60 % van de metingen meer dan 0,3 °C ernaast.
+  [Goods e.a. 2023](https://doi.org/10.1080/17461391.2023.2193953)
+- Bij fietsers in de hitte zat hij in de tweede helft van de rit ~0,3 °C te
+  hoog, meer bij meer onderhuids vet.
+  [McLaughlin e.a. 2025](https://doi.org/10.1016/j.jtherbio.2025.104241)
+- In een vergelijking van drie sensoren zat hij systematisch iets te hoog.
+  [Daanen e.a. 2023](https://doi.org/10.1016/j.jtherbio.2023.103480)
+
+De beperking in beide hitteprotocollen noemt dat nu. De drempel van 38,5 °C en
+de 30 minuten blijven: met het vinkje dat het lid kan weghalen, past de opzet
+bij een fout van deze grootte.
+
 **Bewust niet gebruikt: de Heat Strain Index.** CORE deelt de HSI in vier
 zones in en noemt zone 3 de trainingszone (advies: 45 tot 60 minuten erin, twee
 tot drie keer per week). De zonegrenzen en de rekenregel zijn van de fabrikant

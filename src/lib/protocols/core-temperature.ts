@@ -13,6 +13,10 @@ import type { Protocol, ProtocolRun, ProtocolTask } from "./types";
  * De kerntemperatuur waar renners in de hittepakstudies naartoe werkten
  * (ongeveer 38,5 °C; zie docs/protocollen-onderzoek.md, sectie CORE). Het
  * aantal minuten per taak (`coreMinutes`) is een eigen keuze.
+ *
+ * De sensor wijkt vaak 0,3–0,5 °C af, per persoon naar boven of beneden
+ * (Verdel 2021; Goods 2023; Daanen 2023; McLaughlin 2025). Daarom vinkt de app
+ * af, maar kan het lid het vinkje weghalen.
  */
 export const CORE_THRESHOLD_C = 38.5;
 

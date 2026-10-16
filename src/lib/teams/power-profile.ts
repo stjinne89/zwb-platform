@@ -38,8 +38,9 @@ export function wkg(watts: number | null | undefined, weightKg: number | null | 
   return Number((watts / weightKg).toFixed(2));
 }
 
-// Aandeel van FTP dat over een lange (duur)rit volgehouden wordt — voor een
-// realistische standaard-tempo-w/kg, lager dan FTP. Door het lid overrulebaar.
+// Aandeel van FTP voor het standaardtempo van het rit-weer op een lange duurrit:
+// lager dan FTP. Een eigen keuze van ZWB, geen gemeten waarde; door het lid te
+// overschrijven. FALLBACK_WKG is evenzo een clubbrede aanname.
 export const ENDURANCE_FTP_FRACTION = 0.72;
 export const FALLBACK_WKG = 2.5; // lid zonder power-profiel
 export const FALLBACK_WEIGHT_KG = 75;

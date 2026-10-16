@@ -125,16 +125,15 @@ gaat stabiliteit voor nieuwe features.
    `strava_fit`). De twee productvragen uit juni (POI's in kalender of livehub,
    achievementkwaliteit) zijn uitgewerkt in de ronde van 2026-10-02 hieronder;
    het besluit ligt bij de eigenaar.
-7. **Wetenschappelijke toets van ZWBasis** (gestart 2026-10-16). Fase 0, het
-   claimregister, is af. Fase 1 (de regels die schema en advies sturen) is
-   uitgevoerd (opbouw, FTP-test, herstel, zones, analyse; 2026-10-16).
-   Migratie `0241` moet nog op productie. Fase 2 (kennisbank trainen, twee
-   nieuwe artikelen, protocol Duurtest, overbelasting vóór de taper) is
-   goedgekeurd en uitgevoerd op 2026-10-16, net als fase 3 (kennisbank
-   voeding) en fase 4 (kracht, core en mobiliteit). Migratie `0242` (springserie)
-   moet nog op productie. Fase 5 (racen en pacing) is ook uitgevoerd. Fase 6
-   (overig: rit-fysica, CORE-sensor, /hulp en privacy) is voorgesteld op
-   2026-10-16 en wacht op akkoord; daarmee is de toets rond. Zie de ronde hieronder en
+7. **Na de wetenschappelijke toets** (afgerond 2026-10-16; zie de rondes
+   "wetenschappelijke toets" hieronder):
+   - Migraties `0241` (warming-up in de FTP-test) en `0242` (springserie) op
+     productie zetten.
+   - De voedingspagina, de sprongfiguur en de Duurtest-reeks in de browser
+     bekijken.
+   - Volgen of de AI de nieuwe regels volgt: Duurtest, kracht op de fiets,
+     overbelasting vóór de taper en variabel vermogen in de tijdrit.
+   Samenvatting per fase bovenaan
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
@@ -8764,6 +8763,43 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — wetenschappelijke toets fase 6: overig, en de toets afgerond
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md),
+fase 6. Goedgekeurd door de eigenaar: "ja doe dat maar".
+
+**Wat er veranderde.**
+- **Rit-fysica** (`ride-estimate.ts`): de luchtweerstand (0,32 m² op de kappen)
+  en de rolweerstand (0,005) kregen een bron (Lim 2011). Ervaren renners
+  haalden ~0,29 m² en ~0,005–0,007, dus de schatting rekent iets trager. De
+  aanname voor de aandrijving heet nu een aanname.
+- **Rit-weer** (`teams/power-profile.ts`): het commentaar bij
+  `ENDURANCE_FTP_FRACTION` noemt het een eigen keuze, geen gemeten waarde.
+- **CORE-sensor**:
+  - De beperking in beide hitteprotocollen noemt vier validatiestudies. Die
+    wezen soms een te lage waarde aan (Goods 2023) en soms een te hoge
+    (McLaughlin 2025, Daanen 2023), naast Verdel 2021.
+  - Dezelfde bronnen staan bij `CORE_THRESHOLD_C` en in
+    `protocollen-onderzoek.md`.
+  - De drempel van 38,5 °C en de 30 minuten blijven.
+- **/hulp**: de links naar de periodiseringsstudies gaan nu naar de DOI
+  (Galán-Rioja 2023, Mølmen 2019). Alle vijf wetenschappelijke links zijn
+  nagelopen en kloppen met de tekst.
+- **Werkdocument**: bovenaan staat een samenvatting per fase met wat nog open
+  is. Het claimregister heeft voor G1–G3 een status.
+- **Actieve lijst**: punt 7 bevat nu alleen wat nog open is na de toets.
+
+**Bewust niet gebouwd.**
+- *Nieuwe waarden in de rit-fysica*: die liggen binnen de metingen, en de
+  pacing rekent met de Zwift-fysica.
+- *Een andere CORE-drempel*: de fout gaat beide kanten op, en het vinkje is al
+  weg te halen.
+- *Wijzigingen in de privacyverklaring*: er staan geen wetenschappelijke
+  claims in, en de toets bracht geen nieuwe gegevens.
+
+**Niet geverifieerd.** Zie "Nog open" bovenaan het werkdocument.
+
 ### Opgeleverd — wetenschappelijke toets fase 5: racen en pacing
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -9209,7 +9245,7 @@ ook stijgt bij overbelasting. Daar ging de verzachtingsregel tegenin.
 worktree niet draait (`omnium-live.test.ts` leest `.env.local`). De build is
 gedraaid met de variabelen uit de `.env.local` van de hoofdmap.
 
-### Lopend — wetenschappelijke toets van ZWBasis (fase 0 tot en met 5 af)
+### Opgeleverd — wetenschappelijke toets van ZWBasis: opzet en fase 0 (afgerond 2026-10-16)
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
 codewijziging.
@@ -9270,8 +9306,9 @@ werkdocument.
 "wetenschappelijke toets fase 4" hierboven. Het voorstel staat in het
 werkdocument.
 
-**Fase 6, voorgesteld op 2026-10-16** (nog geen code). Het voorstel staat in het
-werkdocument.
+**Fase 6, voorgesteld en na akkoord uitgevoerd op 2026-10-16**: zie de ronde
+"wetenschappelijke toets fase 6" hierboven. Daarmee is de toets rond. Kort, zoals
+voorgesteld:
 - Geen getal hoeft te veranderen.
 - De rit-fysica valt binnen de metingen (Lim 2011).
 - De CORE-sensor steunt in de app op één validatiestudie, terwijl er nu vier
