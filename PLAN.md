@@ -152,30 +152,43 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
-> **Design tegels: Beheer als tegelpagina per soort, 2026-10-16 — gebouwd, unit-tests en lint schoon; niet in de browser bekeken; niet gepusht. Geen migratie.**
-> Commit: de commit die dit blok toevoegt.
+> **Design tegels: Beheer met categorietegels en een rij per categorie, zoals ZWBeter, 2026-10-16 — gebouwd, unit-tests, typecheck en lint schoon; niet ingelogd in de browser bekeken; niet gepusht. Geen migratie.**
+> Commits: `c6a1d5a` (eerste versie) en de commit die dit blok bijwerkt.
 >
 > **Waarom.** Het persoonlijke menu rechtsboven toonde onder Beheer vijftien
 > items onder elkaar; op de telefoon liep het menu bijna van het scherm. Vraag
 > van de eigenaar: Beheer net zo oppakken als Club, met categorieën zoals online
-> racen, app en rechten.
+> racen, app en rechten. De eerste versie (`c6a1d5a`) zette alle schermen als
+> tegels onder groepskoppen op één pagina; de eigenaar wilde het zoals ZWBeter:
+> de categorieën als tegels, de schermen eronder als horizontale rij.
 >
 > **Wat.**
 > - Het menu in het design "tegels" heeft onder een scheiding één item
 >   **Beheer** (naar `/beheer`), alleen als er minstens één beheerscherm voor de
 >   gebruiker is. De losse beheerlijst staat er niet meer.
-> - Nieuwe pagina `/beheer`: tegels in vier groepen, alleen de schermen waar de
->   gebruiker recht op heeft; een lege groep valt weg, en wie niets mag gaat
->   naar `/dashboard`.
+> - `BeheerNav` (`_components/beheer-nav.tsx`), zoals `ZwbeterNav`: vier
+>   categorietegels, elk naar het eerste scherm van die categorie; de actieve
+>   is het paneel met de gouden lijn. Daaronder de schermen van de actieve
+>   categorie als `SectionNav`. Geen scherm is de index van die rij, want
+>   ZRL-beheer heeft eigen subpagina's.
 >   - **Online racen** (petrol): ZRL-beheer, FRR-kalender, SRC-kalender, Omnium.
 >   - **Kalender** (petrol): Programma's, Eventscan, Zwift-routes.
 >   - **Community** (sage): WhatsApp-groepen, Media, Tips en citaten,
 >     Badgebeheer, ZWBgame.
 >   - **App** (donker petrol): Rechten, Notificaties, Strava-sync.
+> - `BeheerFrame` (`_components/beheer-frame.tsx`) zet die navigatie boven elk
+>   beheerscherm, via een layout op `/beheer`, `/zwbgame/beheer`, `/community`
+>   en `/media`. Alleen in het design "tegels" en alleen met minstens één
+>   beheerrecht; op een pagina die in geen categorie van de gebruiker valt
+>   (bijv. `/media` zonder `media.manage`) toont hij niets.
+> - `/beheer` zelf toont alleen de kop en de vier tegels. In het huidige design,
+>   of zonder beheerrecht, gaat het naar `/dashboard`.
+> - De kleur van een categorietegel volgt de soort (`.tg-pillar-tone` in
+>   `globals.css`); bij ZWBeter zijn alle pijlers teal.
 > - De indeling staat in `BEHEER_CATEGORIES` (`_components/nav-config.ts`); de
 >   beheerschermen komen uit het register `lib/admin-areas.ts`. Een test eist
 >   dat elk beheergebied in precies één groep staat, zodat een nieuw scherm niet
->   ongemerkt buiten de pagina valt.
+>   ongemerkt buiten de navigatie valt.
 > - WhatsApp-groepen en Media stonden als losse items in `layout.tsx`; ze staan
 >   nu in de groep Community, met dezelfde rechten (`community.manage`,
 >   `media.manage`).
@@ -184,18 +197,22 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 > - Rechten is geen eigen groep: één tegel in een groep oogt als een fout. Het
 >   staat bij App, naast de andere instellingen die de hele app raken.
 > - Het huidige design blijft zoals het is: daar staat de beheerlijst nog in het
->   avatar- en mobiele menu, en linkt er niets naar `/beheer` (net als bij
->   `/club`).
+>   avatar- en mobiele menu, en krijgen de beheerschermen geen navigatie.
 > - `/beheer` hoort bij geen plek in de tabbalk (`placeForPath` geeft `null`),
->   zoals de andere items uit het persoonlijke menu.
+>   zoals de andere items uit het persoonlijke menu. `/zwbgame/beheer` licht
+>   dus nog steeds Club op, en `/community` en `/media` geen tab.
+> - De eigen kop van elk beheerscherm (`PageHeader`) blijft staan; de tegels
+>   erboven hebben geen titel, behalve op `/beheer`.
 >
 > **Getest.** Vitest op `admin-areas`, `design-places` en `nav-active`: alles
 > geslaagd (twee nieuwe tests). ESLint op de gewijzigde bestanden: schoon.
 > `tsc --noEmit`: alleen de bekende `@zxing`-meldingen (pakket ontbreekt in deze
-> worktree).
+> worktree). De dev-server compileert `/beheer`, `/beheer/zrl`, `/media` en
+> `/zwbgame/beheer` zonder fouten (zonder login een doorverwijzing naar `/login`).
 >
-> **Niet geverifieerd.** De pagina en het menu met login in het design
-> "tegels", ook niet hoe de groepskoppen tussen de tegels ogen op de telefoon.
+> **Niet geverifieerd.** De navigatie ingelogd in het design "tegels": hoe de
+> tegels en de rij op de telefoon ogen, en of de actieve categorie op elk
+> scherm klopt.
 
 ---
 

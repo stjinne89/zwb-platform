@@ -893,6 +893,11 @@ a.tg-row:focus-visible,
 .tg-pillar:hover {
   filter: brightness(1.1);
 }
+/* Beheer: de categorietegels hebben de kleur van hun soort (tg-kalender, ...). */
+.tg-pillar-tone {
+  background: var(--tg-bg);
+  color: var(--tg-fg);
+}
 .tg-pillar[aria-current="page"] {
   background: var(--tg-panel);
   color: var(--foreground);
