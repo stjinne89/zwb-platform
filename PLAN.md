@@ -132,8 +132,9 @@ gaat stabiliteit voor nieuwe features.
    nieuwe artikelen, protocol Duurtest, overbelasting vóór de taper) is
    goedgekeurd en uitgevoerd op 2026-10-16, net als fase 3 (kennisbank
    voeding) en fase 4 (kracht, core en mobiliteit). Migratie `0242` (springserie)
-   moet nog op productie. Fase 5 (racen en pacing) is voorgesteld op 2026-10-16
-   en wacht op akkoord; daarna 6 (overig). Zie de ronde hieronder en
+   moet nog op productie. Fase 5 (racen en pacing) is ook uitgevoerd. Volgende
+   stap: het voorstel voor fase 6 (overig: rit-fysica, CORE-sensor, /hulp en
+   privacyteksten). Zie de ronde hieronder en
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
@@ -8763,6 +8764,51 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — wetenschappelijke toets fase 5: racen en pacing
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md),
+fase 5, en [`docs/racestrategie-onderzoek.md`](docs/racestrategie-onderzoek.md)
+§2, §5 en §6. Goedgekeurd door de eigenaar: "akkoord op alle 3 de punten".
+
+**Wat er veranderde, en waarom.**
+- **`CP_FTP_FRACTION` van 0,97 naar 1,00** (`pacing/cp.ts`).
+  - CP bepaald zoals de app dat doet (maximale inspanningen van 2 tot 20
+    minuten) lag in studies gemiddeld gelijk aan of iets boven FTP (Karsten
+    2021, McGrath 2021, Morgan 2018).
+  - Geldt alleen voor leden zonder CP van intervals.icu en zonder bruikbare
+    curve. Hun plan wordt ~3 % minder voorzichtig; de W′-toets blijft.
+- **`RACE_RESERVE_FRACTION` van 15 naar 20 %** (`pacing/plan.ts`).
+  - Het W′-model van de app gaf in echte races op het moment van uitputting
+    nog gemiddeld 21 ± 28 % reserve aan (Millour 2022).
+  - /hulp noemt nu 20 %.
+- **Commentaren**:
+  - `w-prime.ts` noemt de W′-balans een schatting, met de bronnen over de fout.
+  - `cp.ts` noemt de W′-standaard en de grenzen een vuistregel, en zegt dat
+    W′ uit de curve onzekerder is dan CP.
+  - `durability.ts` noemt de beperking dat het met kJ rekent en niet met
+    intensiteit.
+- **Pacingprompt** (`pacing/prompt.ts`):
+  - "Een tijdrijder wint met een vlak tempo" is vervangen door variabel
+    vermogen op een glooiend parcours (±5–10 %, geen pieken).
+  - Nieuw: bij `format` tt begin je hooguit ~5 % boven je gemiddelde.
+  - Het zwaardere eind van een lange rit noemt "vooral na veel werk boven CP".
+  - Test: `tests/unit/pacing-prompt.test.ts`.
+- **Docs**: `racestrategie-onderzoek.md` §2, §5 en §6 hebben de nieuwe bronnen,
+  met DOI's. Millour 2022, Spragg 2024 en Fujii 2025 staan niet in PubMed en
+  zijn via Crossref bevestigd.
+
+**Bewust niet gebouwd.**
+- *Een ander W′-model* (integraal of tweefasig): dezelfde spreiding, of
+  parameters per renner die de app niet heeft.
+- *Een persoonlijke tijdconstante*: die vraagt een testprotocol. Dat idee
+  hoort in het plannenboek.
+- *Drafting uit de literatuur*: de app rekent met de Zwift-fysica.
+
+**Niet geverifieerd.** Hoe de nieuwe factor en reserve uitpakken in echte plannen
+van leden; dat blijkt pas bij het volgende plan. Bestaande opgeslagen plannen
+rekenen pas opnieuw als ze worden herrekend.
+
 ### Opgeleverd — wetenschappelijke toets fase 4: kracht, core en mobiliteit
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
@@ -9163,7 +9209,7 @@ ook stijgt bij overbelasting. Daar ging de verzachtingsregel tegenin.
 worktree niet draait (`omnium-live.test.ts` leest `.env.local`). De build is
 gedraaid met de variabelen uit de `.env.local` van de hoofdmap.
 
-### Lopend — wetenschappelijke toets van ZWBasis (fase 0 tot en met 4 af)
+### Lopend — wetenschappelijke toets van ZWBasis (fase 0 tot en met 5 af)
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
 codewijziging.
@@ -9224,7 +9270,8 @@ werkdocument.
 "wetenschappelijke toets fase 4" hierboven. Het voorstel staat in het
 werkdocument.
 
-**Fase 5, voorgesteld op 2026-10-16** (nog geen code). Het voorstel staat in het
+**Fase 5, voorgesteld en na akkoord uitgevoerd op 2026-10-16**: zie de ronde
+"wetenschappelijke toets fase 5" hierboven. Het voorstel staat in het
 werkdocument. Kort:
 - CP ligt in onderzoek gemiddeld gelijk aan of iets boven FTP, dus
   `CP_FTP_FRACTION` naar 1,00.

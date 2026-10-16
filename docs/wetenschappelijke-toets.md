@@ -104,12 +104,12 @@ en een lijst beperkingen, zoals de bestaande kennisbanken.
 
 | # | Claim | Waar | Status |
 |---|---|---|---|
-| F1 | CP = 0,97 × FTP als alleen FTP bekend is | `pacing/cp.ts` | ⚠ Karsten 2021 vond CP iets *boven* FTP20×0,95 (gemiddeld +7 W). Bij een strikte bepaling liggen CP en MLSS maar een paar watt uit elkaar ([Caen 2024](https://doi.org/10.1007/s40279-024-02075-4)), terwijl MLSS vaak *onder* FTP ligt (1B). De bronnen spreken elkaar hier deels tegen; uitzoeken in fase 5 |
-| F2 | W′ standaard 20 kJ, grenzen 5–50 kJ; CP-fit tussen 2 en 20 min | `pacing/cp.ts` | ◐ |
-| F3 | W′bal-herstel volgens Skiba (τ = 546·e^(−0,01·DCP) + 316) | `pacing/w-prime.ts` | ✔ bron, maar opgesteld in één populatie; hertoetsen |
-| F4 | Durability: CP-afname begrensd op 25 % | `pacing/durability.ts` | ◐ |
+| F1 | CP = 0,97 × FTP als alleen FTP bekend is | `pacing/cp.ts` | ✔ nu 1,00 × FTP (fase 5): CP bepaald zoals de app ligt gemiddeld gelijk aan of iets boven FTP; strikte MLSS is een ander getal |
+| F2 | W′ standaard 20 kJ, grenzen 5–50 kJ; CP-fit tussen 2 en 20 min | `pacing/cp.ts` | ◐ vuistregel, nu zo benoemd; fitvenster klopt met Leo 2021 (fase 5) |
+| F3 | W′bal-herstel volgens Skiba (τ = 546·e^(−0,01·DCP) + 316) | `pacing/w-prime.ts` | ◐ schatting met ~30 % fout in races; reserve vóór de sprint naar 20 % (fase 5) |
+| F4 | Durability: CP-afname begrensd op 25 % | `pacing/durability.ts` | ✔ ruim boven gemeten 10–20 %; beperking: rekent met kJ, niet met intensiteit (fase 5) |
 | F5 | Race- en ZRL-tips, TTT-kopvermogen | `zrl-analysis/`, `racestrategie-onderzoek.md` | ✔ getoetst op eigen data |
-| F6 | Vijf warming-ups per wedstrijdtype | `warming-up-per-wedstrijdtype.md` | ✔ · hertoetsen |
+| F6 | Vijf warming-ups per wedstrijdtype | `warming-up-per-wedstrijdtype.md` | ✔ hertoetst in fase 2 (artikel Warming-up) |
 
 ### G. Overig (fase 6)
 
@@ -907,9 +907,13 @@ Oorspronkelijke vragen:
    weken met een `aiHint`, zodat de AI het als buitenrit inplant?
 5. Het artikel voor masters (4C): ja of nee?
 
-## Fase 5 — Racen en pacing: voorstel
+## Fase 5 — Racen en pacing
 
-Opgesteld 2026-10-16, **nog niet uitgevoerd**.
+Opgesteld 2026-10-16. **Goedgekeurd door de eigenaar ("akkoord op alle 3 de
+punten") en uitgevoerd op 2026-10-16.** Millour 2022, Spragg 2024 en Fujii 2025
+zijn bij uitvoering via Crossref bevestigd; Karsten 2013 via PubMed. Wat er is
+gebouwd, staat in `PLAN.md` (ronde "wetenschappelijke toets fase 5").
+Oorspronkelijk voorstel:
 
 **Hoe gezocht.** De Consensus-agent behandelde CP, FTP, W′ en het herstel van W′
 (regels 1–4). Voor duurvermogen, pacing, drafting en warming-up gaf hij
@@ -1054,7 +1058,11 @@ losse webadressen naar DOI's waar PubMed die bevestigt.
 - *Hitte en voeding in het pacingplan*: daarvoor bestaan protocollen, en de
   prompt geeft bewust geen voedingsadvies.
 
-### Te beslissen door de eigenaar
+### Besluit eigenaar (2026-10-16)
+
+"Helemaal goed, akkoord op alle 3 de punten."
+
+Oorspronkelijke vragen:
 
 1. 5A: CP uit FTP van 0,97 naar **1,00**?
 2. 5B: de reserve vóór de sprint van **15 naar 20 %**, of houden op 15 % met

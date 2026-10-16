@@ -53,6 +53,15 @@ een tijdrit wel.
 - **Een te harde start is dus een echte fout in een tijdrit, een iets hardere
   klim niet.**
 
+**Aanvulling wetenschappelijke toets fase 5 (2026-10-16):** variabel vermogen
+levert het meest op bij lange, doorgaande klimmen en zwaardere renners (Boswell
+2012, DOI 10.1080/02640414.2012.654397). In een model voor 10 km werkte een
+snelle start met daarna constant vermogen goed, en gaf variabel vermogen niet
+altijd winst (Fujii & Alam 2025, DOI 10.1177/17479541251364404, via Crossref).
+De promptregel "een tijdrijder wint met een vlak tempo" is vervangen door
+variabel vermogen op een glooiend parcours (±5–10 %), plus een startregel voor
+`format` tt (hooguit ~5 % boven het gemiddelde).
+
 ## 3. Ploegentijdrit
 
 ### Aerodynamica
@@ -167,6 +176,30 @@ erkende tactiek.
 er altijd een gemeten gevolg bij: het vermogen in de tweede helft van de klim
 zakte weg, of herstel duurde lang.
 
+**Aanvulling wetenschappelijke toets fase 5 (2026-10-16).**
+- De racestudie hierboven is Millour, Lajoie & Domingue (2022), Int J Perform
+  Anal Sport 22(5):656-669, DOI 10.1080/24748668.2023.2176100 (niet in PubMed,
+  via Crossref bevestigd).
+- Het differentiële model overschatte in het lab het herstel van W′ na een
+  3-minutentest (Black e.a. 2022, DOI 10.1249/MSS.0000000000003039).
+- Het herstel vertraagt bij herhaalde inspanningen (Chorley e.a. 2019, DOI
+  10.1123/ijspp.2018-0256), en een tweefasig model past beter (Chorley e.a.
+  2021, DOI 10.1007/s00421-021-04874-3; 2023, DOI
+  10.1080/17461391.2023.2238679).
+- Topsporters herstellen sneller dan Skiba voorspelt (Bartram e.a. 2017, DOI
+  10.1123/ijspp.2017-0034; 2021, DOI 10.1123/ijspp.2020-0444).
+- Geen vaste formule voorspelde uitputting goed (Welburn e.a. 2025, DOI
+  10.1007/s00421-025-05912-0).
+- **Voor het pacingplan:**
+  - De reserve vóór de sprint in een Zwift-wedstrijd ging van 15 naar 20 %.
+  - CP uit FTP ging van 0,97 naar 1,00 × FTP: CP lag in studies met dezelfde
+    bepaling gemiddeld gelijk aan of iets boven FTP (Karsten e.a. 2021, DOI
+    10.3389/fphys.2020.613151; McGrath e.a. 2021, DOI 10.70252/isyh9512;
+    Morgan e.a. 2018, DOI 10.1080/02640414.2018.1535772).
+  - CP uit racedata is bruikbaar, W′ veel minder (Spragg e.a. 2023, DOI
+    10.1080/02640414.2023.2254574; Karsten e.a. 2013, DOI
+    10.1055/s-0033-1349844).
+
 ## 6. Durability
 
 - Durability is wanneer en hoeveel iemands profiel achteruitgaat tijdens lange
@@ -178,6 +211,18 @@ zakte weg, of herstel duurde lang.
 
 **Gevolg:** het eind van een race zegt iets over durability, maar zonder test
 is het niet te scheiden van tactiek. De app geeft er geen tip over.
+
+**Aanvulling wetenschappelijke toets fase 5 (2026-10-16).**
+- De **intensiteit** van eerder werk telt zwaarder dan het aantal kilojoules
+  (Spragg e.a. 2024, Eur J Sport Sci 24(4):449-457, DOI 10.1002/ejsc.12077, via
+  Crossref; Sánchez-Jiménez e.a. 2025).
+- Bij profs zakten vrouwen na veel werk iets meer dan mannen (Mateo-March e.a.
+  2025, DOI 10.1016/j.jsams.2025.02.009). Het pacingplan gebruikt per renner de
+  eigen vermoeidheidscurves, dus dat zit er per persoon al in.
+- Na drie uur zonder koolhydraten zakte CP 15 %, met 120 g/u minder (Norte e.a.
+  2026, DOI 10.1111/sms.70326).
+- De grens van 25 % in `durability.ts` blijft; de promptregel noemt nu "vooral
+  na veel werk boven CP".
 
 ## 7. Warming-up, voeding
 

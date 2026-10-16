@@ -11,6 +11,10 @@
 //
 // Terughoudend gebruikt: zonder vermoeidheidscurves gebeurt er niets, en de
 // afname wordt begrensd. Dit is een correctie, geen tweede model.
+//
+// Beperking (wetenschappelijke toets fase 5, 2026-10-16): de intensiteit van het
+// eerdere werk telt zwaarder dan het aantal kilojoules (Spragg 2024;
+// Sánchez-Jiménez 2025). Deze correctie rekent alleen met kJ.
 
 import { fitCpWPrime, type CurvePoint } from "@/lib/pacing/cp";
 
@@ -30,7 +34,9 @@ export type DurabilityModel = {
 /**
  * Meer dan dit accepteren we niet. Een curve op een hoge kJ-drempel steunt vaak
  * op een handvol ritten; een gefitte afname van veertig procent zegt dan meer
- * over de steekproef dan over de renner.
+ * over de steekproef dan over de renner. Gemeten afnames liggen rond 10–20 % na
+ * veel hard werk (Sánchez-Jiménez 2025) en 15 % na drie uur zonder koolhydraten
+ * (Norte 2026); 25 % laat daar ruimte boven.
  */
 export const MAX_FADE_FRACTION = 0.25;
 

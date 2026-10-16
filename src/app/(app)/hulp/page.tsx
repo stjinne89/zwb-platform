@@ -2944,7 +2944,7 @@ export default function HelpPage() {
                 steile klim scheelt dat weinig. Een wedstrijd krijgt een vaste start
                 (de eerste 700 m gaat het veld hard weg) en een sprint over de laatste
                 300 m, behalve als de finish op een klim ligt. Tot de sprint houdt het
-                plan minstens 15% van je reserve over voor een aanval. Bij een
+                plan minstens 20% van je reserve over voor een aanval. Bij een
                 ploegentijdrit rekent het plan met je kopbeurten naar ploeggrootte.
               </p>
               <p>
