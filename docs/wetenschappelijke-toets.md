@@ -484,6 +484,210 @@ vond wel steun voor de maat zelf:
 **Bewust niet.** Drempels aanpassen: ze zijn op eigen data afgesteld, en de
 literatuur geeft geen betere getallen.
 
+## Fase 2 — Kennisbank trainen: voorstel
+
+Opgesteld 2026-10-16, **nog niet uitgevoerd**. Bronnen gezocht met de
+onderzoeksagent van Consensus Pro (artikelen 1–4; ruw rapport in
+`docs/consensus/`) en met de gewone Pro-zoekfunctie (artikelen 5–8, de nieuwe
+artikelen en de duurtest). DOI's komen uit Consensus. **Elke bron wordt bij
+uitvoering eerst in PubMed bevestigd**, zoals afgesproken na fase 1.
+
+Fase 2 heeft drie delen:
+
+- **2A**: de acht bestaande artikelen hertoetsen.
+- **2B**: twee artikelen die ontbreken.
+- **2C**: het protocol Duurtest.
+
+### 2A. De acht bestaande artikelen
+
+| Artikel | Oordeel | Wat verandert |
+|---|---|---|
+| Lage cadans | ongewijzigd | Geen nieuwe proef bij mannen, ouderen of op tempo/drempel. In de beperkingen komt dat dit nog altijd één proef bij jonge vrouwen is. |
+| Korte intervallen (30/15) | getallen bijwerken | Zie hieronder: het voordeel hangt af van hoe je de blokken rijdt. |
+| Gepolariseerd of piramidaal | **bewering herzien** | Zie hieronder: geen verschil, en voor recreanten eerder piramidaal. |
+| Rustige ritten rustig | **bewering herzien** | Zie hieronder: gepland tempo-werk is nuttig, onbedoeld tempo op een rustige dag blijft de valkuil. |
+| Taper | aanvullen | Zie hieronder: een korte overbelasting vóór de taper helpt. |
+| Hittetraining | **bewering herzien** | Zie hieronder: thuis met extra kleding is wél onderzocht, er zijn data voor vrouwen, en de winst verdwijnt binnen twee weken. |
+| Ademspiertraining | getallen bijwerken | Zie hieronder. |
+| Koud water na de training | getallen bijwerken | Zie hieronder: de meta-analyse bevestigt het artikel. |
+
+**Korte intervallen.**
+- *Steun voor het mechanisme*: 30/15 gaf meer tijd boven 90 % VO2max dan
+  constant rijden (1123 tegen 879 s), bij mannen én vrouwen
+  ([Urianstad 2024](https://doi.org/10.1002/ejsc.12214)).
+- *De inperking*: een onafhankelijke Duitse groep vond dat voordeel alleen bij
+  een vast vermogen, niet als renners zelf voluit reden
+  ([Appelhans 2025](https://doi.org/10.1123/ijspp.2024-0115)).
+- *Voor ZWB*: het voordeel geldt dus juist in ERG-modus op Zwift. Dat komt als
+  punt in het artikel.
+- *Meta-analyse*: bij getrainde fietsers wint geen intervallengte duidelijk
+  ([Norte 2024](https://doi.org/10.47206/ijsc.v4i1.271)).
+
+**Gepolariseerd of piramidaal.**
+- Een netwerk-meta-analyse op individuele deelnemersdata vond geen verschil
+  tussen gepolariseerd en piramidaal voor VO2max of tijdrit.
+- Competitieve sporters leken meer te hebben aan gepolariseerd, recreanten aan
+  piramidaal ([Rosenblat 2025](https://doi.org/10.1007/s40279-024-02149-3)).
+- Bij matig getrainde fietsers voegde extra matige training naast HIIT niets
+  toe ([Moran-MacDonald 2026](https://doi.org/10.1007/s00421-026-06380-w)).
+- *Voor ZWB*: de huidige regel "ZWB schrijft geen verdeling voor" blijft staan
+  en heeft nu meer steun. De zin over een klein voordeel voor gepolariseerd
+  krijgt de nuance voor recreanten.
+
+**Rustige ritten rustig.**
+- Bij goed getrainde fietsers verbeterde een blok met gematigde intervallen
+  (rond tempo) de drempel meer dan een blok met hoge intensiteit (+4,5 tegen
+  +2,1 %) ([Rønnestad 2025](https://doi.org/10.1002/ejsc.70067)).
+- Bij gelijke arbeid vermoeide een zware intervalsessie meer dan een rustige
+  duurrit ([Barranco-Gil 2024](https://doi.org/10.1123/ijspp.2023-0287)).
+- Bij elite-fietsers kon het matige volume met een derde omlaag zonder verlies
+  op de tijdrit ([Christensen 2023](https://doi.org/10.1111/sms.14362)).
+- *Voor het artikel*: gepland tempo- en sweet-spotwerk is nuttig; de valkuil is
+  een rustige dag die ongemerkt tempo wordt.
+- *Voor ZWB*: de trainersuggestie "duurrit werd tempo" blijft dus terecht,
+  maar de toon in het artikel wordt minder absoluut.
+
+**Taper.**
+- Bij elite-fietsers werkte zes dagen overbelasting gevolgd door vijf dagen
+  taper beter dan alleen elf dagen taper
+  ([Rønnestad 2019](https://doi.org/10.1111/sms.13536)).
+- Wang 2023 vond hetzelfde: een taper na een korte overbelasting werkt beter.
+  De 41–60 % en de "hooguit drie weken" blijven staan.
+- *Voor ZWB*: één zin in het artikel, en een voorstel voor de prompt (zie 2D).
+
+**Hittetraining.**
+- *Vrouwen*: vijf weken gaf bij vrouwen +4,0 % en bij mannen +3,5 %
+  hemoglobinemassa, met betere prestaties in normale temperatuur
+  ([Lundby 2023](https://doi.org/10.1152/japplphysiol.00115.2023)).
+- *Thuis met extra kleding*: bij getrainde vrouwen werkte tien dagen thuis
+  fietsen met extra kleding voor acclimatisatie, maar het verhoogde de
+  hemoglobine niet ([Richard 2025](https://doi.org/10.14814/phy2.70631)). Een
+  thermopak werkte even goed als een hittekamer
+  ([Lundby 2021](https://doi.org/10.1016/j.jsams.2021.06.005)).
+- *Afbouw*: twee weken na het stoppen waren hemoglobine en hitteprestatie
+  terug bij af ([Cubel 2024](https://doi.org/10.1080/23328940.2024.2383505)).
+  Drie sessies per week hielden de winst na een hoogtestage vast
+  ([Rønnestad 2024](https://doi.org/10.1249/mss.0000000000003542)).
+- *Te herstellen*: het artikel zegt nu dat thuis met extra kleding niet is
+  onderzocht. Dat klopt niet meer.
+- *Voor ZWB*: het protocol "Hittetraining voor meer hemoglobine" krijgt in de
+  beperkingen de afbouw van twee weken, en in de onderhoudsfase de bron voor
+  drie keer per week.
+
+**Ademspiertraining.**
+- Een meta-analyse vond een gematigd effect op sportprestatie (SMD 0,64)
+  ([Karsten 2018](https://doi.org/10.1016/j.ptsp.2018.09.004)).
+- Een recente proef met een placebogroep vond bij gezonde jonge mannen na vier
+  weken geen winst boven die placebo
+  ([Notter 2023](https://doi.org/10.1038/s41598-023-41580-w)).
+- Bij fietsers gaf zes weken 2,7 % op een tijdrit van 25 km
+  ([Johnson 2007](https://doi.org/10.1007/s00421-007-0551-3)).
+- *Voor het artikel*: het blijft "matig bewijs"; de beperkingen krijgen de
+  placeboproef erbij.
+
+**Koud water na de training.**
+- De meta-analyse bevestigt het artikel: geen effect op duurprestatie (SMD
+  −0,07), wel minder krachtwinst (SMD −0,60)
+  ([Malta 2020](https://doi.org/10.1007/s40279-020-01362-0)).
+- *Voor het artikel*: de getallen erbij, verder ongewijzigd.
+
+### 2B. Twee artikelen die ontbreken
+
+**"Lange ritten en duurvermogen"** (categorie Intensiteit).
+- *Basis*: het onderzoek van 2026-10-11 in `lange-ritten-variatie.md`.
+- *Aanvullingen*:
+  - Bij amateurs verloren de betere renners na 1000 kJ half zoveel op 20
+    minuten (6,5 tegen 12,5 %) ([Barsumyan 2025](https://doi.org/10.3389/fspor.2025.1530162)).
+  - Duurvermogen bepaalt hoeveel je 5-minutenvermogen zakt na een lange rit
+    ([Hamilton 2024](https://doi.org/10.1007/s00421-024-05459-6)).
+  - Harde inspanning kost per kilojoule meer dan rustige
+    ([Sánchez-Jiménez 2025](https://doi.org/10.1007/s00421-025-05885-0)).
+  - Wat het traint (review): jarenlang volume, lange ritten met intensiteit
+    aan het eind, en krachttraining
+    ([Jones 2025](https://doi.org/10.1111/sms.70032)).
+- *In de app*: de elf lange ritten in de workoutbibliotheek linken ernaar.
+
+**"Warming-up"** (categorie Opbouw en piek).
+- *Basis*: `warming-up-per-wedstrijdtype.md`.
+- *Aanvullingen*:
+  - Een meta-analyse vond geen bewijs dat potentiëring (korte harde
+    activaties) duurprestaties verbetert
+    ([Vasconcelos 2023](https://doi.org/10.1249/mss.0000000000003308)).
+  - Voor een tijdrit van 20 minuten maakte de warming-up per saldo niets uit;
+    met sprints begon je alleen harder
+    ([Barranco-Gil 2020](https://doi.org/10.1123/ijspp.2019-0554)).
+  - Voor 3 km scheelde een warming-up 2,8 %
+    ([Hajoglou 2004](https://doi.org/10.1249/01.mss.0000177589.02381.0a)).
+- *Boodschap*: hoe korter en harder de wedstrijd, hoe meer de warming-up telt.
+  Voor lange wedstrijden volstaat kort.
+- *In de app*: de warming-ups bij een race linken ernaar.
+- *Bijvangst voor fase 3*: een warming-up met sprints maakte het effect van
+  bicarbonaat ongedaan ([Gurton 2021](https://doi.org/10.1123/ijspp.2020-0743)).
+  Dat hoort bij het protocol Bicarbonaat.
+
+### 2C. Protocol "Duurtest"
+
+**Wat het lid doet.** Zestien weken lang, eens per vier weken, dezelfde rit:
+
+- 10 minuten inrijden, 60 minuten op 75 % FTP in ERG-modus, 5 minuten
+  uitrijden;
+- met de ventilator, het eten en het drinken telkens hetzelfde.
+
+Het protocol is een kopie van Barsumyan
+([2025](https://doi.org/10.3389/frai.2025.1623384),
+[2026](https://doi.org/10.1186/s13102-026-01678-w)). Bij 17–20 getrainde
+fietsers volgden ontkoppeling en hartslagdrift over vijf maanden betrouwbaar of
+iemand op de training reageerde.
+
+**Wat de app ermee doet.**
+1. Een protocol in `lib/protocols/training.ts`, met bewijs "beperkt" en vier
+   fases van 28 dagen met elk één taak. Een `aiHint` laat de AI de rit één
+   keer per fase inplannen op een rustige dag, nooit direct na een
+   sleutelsessie.
+2. **Meten**: de ontkoppeling over precies het blok van 60 minuten. Nu rekent
+   `execution.ts` alleen bij ritten vanaf 75 minuten, over de hele rit vanaf
+   minuut 10, uitrijden inbegrepen. Een rit die net te vroeg stopt, valt daar
+   buiten. Voor de duurtest komt er een eigen berekening over het werkblok.
+3. **Tonen**: op de protocolpagina een rijtje per test (datum, ontkoppeling,
+   gemiddelde hartslag), met de trend. Een kleinere ontkoppeling bij hetzelfde
+   vermogen is vooruitgang. Geen grens en geen oordeel per test.
+4. Een kort kennisbankstuk via het artikel "Lange ritten en duurvermogen".
+
+**Wat het vraagt.** Hartslag en vermogen per seconde, dus een rit die
+rechtstreeks in intervals.icu staat. Ritten die alleen via Strava binnenkomen,
+hebben die stream niet. Dat staat dan in de beperkingen van het protocol.
+
+**Bewust niet.**
+- *De Lamberts Submaximal Cycle Test*: kort, goed gevalideerd en betrouwbaar
+  ([Lamberts 2009](https://doi.org/10.1136/bjsm.2009.061325)). Maar hij stuurt
+  op vaste hartslagen, en Zwift kan geen ERG op hartslag. Hij meet ook vorm en
+  vermoeidheid, geen duurvermogen.
+- *Een grens of advies per test*: de onderzoekers gebruikten de trend, niet
+  een drempel.
+
+**Migratie?** Waarschijnlijk niet. Protocollen staan in de code, en de
+uitvoeringsgegevens van een geplande training staan al in
+`metrics_json.execution`. Dat wordt bij uitvoering gecontroleerd.
+
+### 2D. Kleine aanpassingen in de app die uit 2A volgen
+
+- **Prompt, korte intervallen**: geen wijziging. ERG is al de standaard op
+  Zwift, en het artikel legt uit waarom dat telt.
+- **Prompt, taper**: bij een A-mikpunt mag de week vóór de taper een korte,
+  zware overbelasting krijgen, maar alleen als de herstelwaarden het toelaten.
+  Dat is een gedragswijziging; **apart te beslissen**.
+- **Protocol hitte**: de beperkingen bijwerken (zie Hittetraining hierboven).
+- **Bibliotheek**: de lange ritten en de warming-ups linken naar hun nieuwe
+  artikel.
+
+### Te beslissen door de eigenaar
+
+1. 2A en 2B uitvoeren zoals voorgesteld?
+2. 2C, het protocol Duurtest: bouwen, inclusief de eigen meting over het
+   werkblok en de trend op de protocolpagina?
+3. 2D taper: een korte overbelasting vóór de taper toestaan in de prompt, of
+   alleen in het artikel noemen?
+
 ## Bronnen fase 1
 
 Gezocht via PubMed (metadata en abstracts) en Consensus, 2026-10-16. Bij

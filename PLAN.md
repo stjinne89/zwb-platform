@@ -128,9 +128,10 @@ gaat stabiliteit voor nieuwe features.
 7. **Wetenschappelijke toets van ZWBasis** (gestart 2026-10-16). Fase 0, het
    claimregister, is af. Fase 1 (de regels die schema en advies sturen) is
    uitgevoerd (opbouw, FTP-test, herstel, zones, analyse; 2026-10-16).
-   Migratie `0241` moet nog op productie. Volgende stap: het voorstel voor fase 2
-   (kennisbank trainen), daarna 3 (voeding), 4 (kracht en core), 5 (racen en
-   pacing) en 6 (overig). Zie de ronde hieronder en
+   Migratie `0241` moet nog op productie. Fase 2 (kennisbank trainen, twee
+   nieuwe artikelen, protocol Duurtest) is voorgesteld op 2026-10-16 en wacht op
+   akkoord; daarna 3 (voeding), 4 (kracht en core), 5 (racen en pacing) en 6
+   (overig). Zie de ronde hieronder en
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
