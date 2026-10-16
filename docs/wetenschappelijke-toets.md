@@ -907,6 +907,161 @@ Oorspronkelijke vragen:
    weken met een `aiHint`, zodat de AI het als buitenrit inplant?
 5. Het artikel voor masters (4C): ja of nee?
 
+## Fase 5 — Racen en pacing: voorstel
+
+Opgesteld 2026-10-16, **nog niet uitgevoerd**.
+
+**Hoe gezocht.** De Consensus-agent behandelde CP, FTP, W′ en het herstel van W′
+(regels 1–4). Voor duurvermogen, pacing, drafting en warming-up gaf hij
+"onvoldoende in deze set"; het ruwe rapport staat in `docs/consensus/`. De rest
+heb ik gericht gezocht. Van de bronnen hieronder staan er 17 in PubMed. Drie
+staan er niet in: Millour 2022, Spragg 2024 en Fujii 2025. Die worden bij
+uitvoering via de uitgever bevestigd, of vallen weg.
+
+**Wat er getoetst is.** Het pacingplan rekent met CP en W′ (`lib/pacing/cp.ts`),
+een W′-balans volgens Skiba (`w-prime.ts`), een afname van CP met het werk
+(`durability.ts`), een reserve vóór de sprint (`plan.ts`) en coachingregels voor
+de AI (`prompt.ts`). De onderbouwing staat in `docs/racestrategie-onderzoek.md`.
+
+**Het beeld.** Er zijn twee getallen waar het onderzoek een andere kant op wijst,
+en één promptregel die een tijdrijder verkeerd adviseert. De rest klopt, maar
+wordt stelliger gebracht dan het bewijs toelaat.
+
+### 5A. CP schatten uit FTP: 0,97 → 1,00
+
+- **Nu**: `CP_FTP_FRACTION = 0,97`. Dat geldt als er alleen een FTP is, geen
+  CP van intervals.icu en geen bruikbare vermogenscurve.
+- **Onderzoek**: CP ligt gemiddeld gelijk aan of iets **boven** FTP.
+  - 7 W erboven, met een individuele spreiding van −19 tot +33 W
+    ([Karsten 2021](https://doi.org/10.3389/fphys.2020.613151)).
+  - 16 W erboven bij goed getrainden
+    ([McGrath 2021](https://doi.org/10.70252/isyh9512)).
+  - Geen gemiddeld verschil, maar ±30 W spreiding
+    ([Morgan 2018](https://doi.org/10.1080/02640414.2018.1535772)).
+- **Waarom die studies hier gelden**: zij bepaalden CP net als de app, met
+  maximale inspanningen van 2 tot 20 minuten. Een strikte MLSS ligt lager
+  (zie 1B en F1), maar dat is een ander getal dan de CP waar het W′-model op
+  rekent.
+- **Voorstel**: 1,00. Voor leden met alleen een FTP wordt het plan ~3 %
+  minder voorzichtig; de W′-toets blijft.
+- **In de tekst**: één factor is een ruwe schatting; per renner kan het ±25 W
+  schelen.
+
+### 5B. De W′-balans: hoe betrouwbaar is "leeg"?
+
+- **Nu**: Skiba's differentiële model, met een vaste tijdconstante. In een
+  Zwift-race houdt het plan tot de sprint 15 % van W′ achter de hand
+  (`RACE_RESERVE_FRACTION`, een eigen keuze van 2026-09-21).
+- **Onderzoek**:
+  - Bij 15 renners in echte races gaf dit model op het moment van uitputting
+    nog gemiddeld **21 ± 28 %** reserve aan (Millour 2022, niet in PubMed). Het
+    eenvoudigere integrale model gaf 0 ± 30 %, het Bartram-model 42 ± 23 %.
+  - In het lab overschatte het differentiële model het herstel van W′ na een
+    3-minutentest ([Black 2022](https://doi.org/10.1249/MSS.0000000000003039)).
+  - Het herstel vertraagt bij herhaalde inspanningen
+    ([Chorley 2019](https://doi.org/10.1123/ijspp.2018-0256)), en een
+    tweefasig model past beter
+    ([Chorley 2021](https://doi.org/10.1007/s00421-021-04874-3);
+    [2023](https://doi.org/10.1080/17461391.2023.2238679)).
+  - Bij topsporters herstelt W′ juist sneller dan Skiba voorspelt
+    ([Bartram 2017](https://doi.org/10.1123/ijspp.2017-0034);
+    [2021](https://doi.org/10.1123/ijspp.2020-0444)).
+  - Geen enkele vaste formule voorspelde uitputting goed. Een persoonlijke
+    tijdconstante is nodig voor precisie
+    ([Welburn 2025](https://doi.org/10.1007/s00421-025-05912-0)).
+- **Gevolg**: het model is bruikbaar als toets, maar "nog 15 % over" is een
+  schatting met een fout van rond de 30 %. In races zat het model gemiddeld
+  aan de optimistische kant.
+- **Voorstel**:
+  - Het model houden; er is geen alternatief dat zonder persoonlijke test
+    beter werkt.
+  - De reserve vóór de sprint van **15 naar 20 %**, omdat het model gemiddeld
+    ~21 % aangaf bij renners die al leeg waren.
+  - De commentaren in `w-prime.ts` noemen het "een schatting", niet "de harde
+    toets".
+
+Zie besluit 2.
+
+### 5C. W′-standaard en het fitvenster
+
+- **20 kJ als standaard, grenzen 5–50 kJ**: plausibel, maar een vuistregel.
+  Getrainde renners zaten rond 18–20 kJ
+  ([Nimmerichter 2020](https://doi.org/10.1123/ijspp.2019-0621)).
+- **W′ uit veld- of racedata is onbetrouwbaar**, CP niet.
+  - CP uit racedata klopte op 5 à 7 W, W′ correleerde niet
+    ([Spragg 2023](https://doi.org/10.1080/02640414.2023.2254574)).
+  - Bij veldtests was de fout in W′ 27 %
+    ([Karsten 2013](https://doi.org/10.1055/s-0033-1349844), DOI bij
+    uitvoering in PubMed bevestigen).
+- **Fitvenster 2–20 minuten**: klopt. Advies is minstens drie maximale
+  inspanningen tussen 2 en 15 minuten
+  ([Leo 2021](https://doi.org/10.1007/s00421-021-04833-y)). Alleen korte
+  inspanningen overschatten CP
+  ([Maturana 2017](https://doi.org/10.1016/j.jsams.2017.11.015)), en een
+  1-minuutpunt meenemen ook ([Nimmerichter 2020](https://doi.org/10.1123/ijspp.2019-0621)).
+- **Voorstel**: geen codewijziging. Het commentaar noemt 20 kJ en de grenzen
+  een vuistregel, en de UI-uitleg van de bron noemt W′ de onzekerste van de
+  twee.
+
+### 5D. Duurvermogen in het plan
+
+- **Begrenzing op 25 %**: ruim genoeg. Na veel werk zakt het vermogen 10–20 %
+  ([Sánchez-Jiménez 2025](https://doi.org/10.1007/s00421-025-05885-0)). Na drie
+  uur zonder koolhydraten zakte CP 15 %
+  ([Norte 2026](https://doi.org/10.1111/sms.70326)).
+- **Beperking die de app niet ziet**: de **intensiteit** van eerder werk telt
+  zwaarder dan het aantal kilojoules
+  ([Leo 2024](https://doi.org/10.1123/ijspp.2023-0451); Spragg 2024, niet in
+  PubMed). De app rekent met kJ-drempels van intervals.icu.
+- **Vrouwen** zakten bij profs na veel werk iets meer
+  ([Mateo-March 2025](https://doi.org/10.1016/j.jsams.2025.02.009)). De app
+  gebruikt per renner de eigen curves, dus dat zit er per persoon al in.
+- **Voorstel**: geen codewijziging. Promptregel aanvullen: "vooral na veel
+  werk boven CP zakt je drempel later in de rit". Beperking in
+  `durability.ts` en in `racestrategie-onderzoek.md` §6.
+
+### 5E. De coachingregels voor de AI (`prompt.ts`)
+
+| Regel | Oordeel | Wat verandert |
+|---|---|---|
+| "Op een lange klim is gelijkmatig bijna altijd sneller dan een aanval; op een korte steile klim het omgekeerde." | klopt | Modellen tonen de grootste winst van variabel vermogen op lange, doorgaande klimmen bij zwaardere renners ([Boswell 2012](https://doi.org/10.1080/02640414.2012.654397)). |
+| "Een tijdrijder wint met een vlak tempo en verliest met pieken." | **bijstellen** | Op een glooiende tijdrit is iets harder bergop en in tegenwind, en zachter bergaf en met de wind mee, sneller dan constant vermogen (Atkinson 2007, al in `racestrategie-onderzoek.md` §2). De regel wordt: "geen pieken, maar wel ongeveer 5–10 % harder op klimmen en in tegenwind en zachter waar het hard gaat". |
+| "Sparen aan het begin." | klopt voor een massastart en een lange tijdrit | Voor een tijdrit: begin hooguit ~5 % boven je gemiddelde (§2). Dat komt er als regel bij voor `format` tt. |
+| "Het laatste deel van een lange rit is zwaarder." | klopt | Aanvulling zoals in 5D. |
+
+### 5F. Wat al klopt of al getoetst is
+
+- **Warming-ups per wedstrijdtype (F6)**: hertoetst in fase 2 (artikel
+  Warming-up). Niets nieuws.
+- **Race- en ZRL-tips en TTT-kopvermogen (F5)**: steunen op de eigen data
+  (`racestrategie-onderzoek.md` §11). Literatuur voegt daar niets aan toe.
+- **Drafting**: de app rekent met de Zwift-fysica, niet met de literatuur.
+  Buiten rekent het plan zonder slipstream, en dat blijft zo.
+
+### 5G. `racestrategie-onderzoek.md`
+
+§5 (W′) en §6 (duurvermogen) krijgen de bronnen hierboven. De bronlijst gaat van
+losse webadressen naar DOI's waar PubMed die bevestigt.
+
+### Bewust niet voorgesteld
+
+- *Overstappen op het integrale of een tweefasig W′-model*: het integrale model
+  lag in races gemiddeld op nul, maar met dezelfde spreiding van ±30 %. Een
+  tweefasig model vraagt parameters per renner, en die heeft de app niet.
+- *Een persoonlijke tijdconstante per lid*: dat vraagt een testprotocol
+  ([Welburn 2025](https://doi.org/10.1007/s00421-025-05912-0)). Mogelijk een
+  later idee voor het plannenboek.
+- *Hitte en voeding in het pacingplan*: daarvoor bestaan protocollen, en de
+  prompt geeft bewust geen voedingsadvies.
+
+### Te beslissen door de eigenaar
+
+1. 5A: CP uit FTP van 0,97 naar **1,00**?
+2. 5B: de reserve vóór de sprint van **15 naar 20 %**, of houden op 15 % met
+   alleen een eerlijkere uitleg?
+3. 5C–5G uitvoeren zoals voorgesteld (commentaar, prompt en docs, geen andere
+   rekenregels)?
+
 ## Bronnen fase 1
 
 Gezocht via PubMed (metadata en abstracts) en Consensus, 2026-10-16. Bij

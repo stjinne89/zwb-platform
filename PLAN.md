@@ -132,8 +132,8 @@ gaat stabiliteit voor nieuwe features.
    nieuwe artikelen, protocol Duurtest, overbelasting vóór de taper) is
    goedgekeurd en uitgevoerd op 2026-10-16, net als fase 3 (kennisbank
    voeding) en fase 4 (kracht, core en mobiliteit). Migratie `0242` (springserie)
-   moet nog op productie. Volgende stap: het voorstel voor fase 5 (racen en
-   pacing); daarna 6 (overig). Zie de ronde hieronder en
+   moet nog op productie. Fase 5 (racen en pacing) is voorgesteld op 2026-10-16
+   en wacht op akkoord; daarna 6 (overig). Zie de ronde hieronder en
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
@@ -9222,7 +9222,18 @@ werkdocument.
 
 **Fase 4, voorgesteld en na akkoord uitgevoerd op 2026-10-16**: zie de ronde
 "wetenschappelijke toets fase 4" hierboven. Het voorstel staat in het
-werkdocument. Kort: de kennisbank kracht was zorgvuldig. Er zijn drie
+werkdocument.
+
+**Fase 5, voorgesteld op 2026-10-16** (nog geen code). Het voorstel staat in het
+werkdocument. Kort:
+- CP ligt in onderzoek gemiddeld gelijk aan of iets boven FTP, dus
+  `CP_FTP_FRACTION` naar 1,00.
+- Het W′-model gaf in races bij uitputting nog ~21 % reserve aan. Daarom gaat
+  de reserve vóór de sprint mogelijk van 15 naar 20 %.
+- De promptregel "een tijdrijder rijdt vlak" wordt variabel vermogen op een
+  glooiend parcours.
+
+Er liggen drie besluiten voor. Kort: de kennisbank kracht was zorgvuldig. Er zijn drie
 nieuwigheden:
 - Krachttraining op de fiets werkt bij goed getrainde renners even goed als
   squats.
