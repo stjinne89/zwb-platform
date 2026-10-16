@@ -152,6 +152,53 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
+> **Design tegels: Beheer als tegelpagina per soort, 2026-10-16 — gebouwd, unit-tests en lint schoon; niet in de browser bekeken; niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Het persoonlijke menu rechtsboven toonde onder Beheer vijftien
+> items onder elkaar; op de telefoon liep het menu bijna van het scherm. Vraag
+> van de eigenaar: Beheer net zo oppakken als Club, met categorieën zoals online
+> racen, app en rechten.
+>
+> **Wat.**
+> - Het menu in het design "tegels" heeft onder een scheiding één item
+>   **Beheer** (naar `/beheer`), alleen als er minstens één beheerscherm voor de
+>   gebruiker is. De losse beheerlijst staat er niet meer.
+> - Nieuwe pagina `/beheer`: tegels in vier groepen, alleen de schermen waar de
+>   gebruiker recht op heeft; een lege groep valt weg, en wie niets mag gaat
+>   naar `/dashboard`.
+>   - **Online racen** (petrol): ZRL-beheer, FRR-kalender, SRC-kalender, Omnium.
+>   - **Kalender** (petrol): Programma's, Eventscan, Zwift-routes.
+>   - **Community** (sage): WhatsApp-groepen, Media, Tips en citaten,
+>     Badgebeheer, ZWBgame.
+>   - **App** (donker petrol): Rechten, Notificaties, Strava-sync.
+> - De indeling staat in `BEHEER_CATEGORIES` (`_components/nav-config.ts`); de
+>   beheerschermen komen uit het register `lib/admin-areas.ts`. Een test eist
+>   dat elk beheergebied in precies één groep staat, zodat een nieuw scherm niet
+>   ongemerkt buiten de pagina valt.
+> - WhatsApp-groepen en Media stonden als losse items in `layout.tsx`; ze staan
+>   nu in de groep Community, met dezelfde rechten (`community.manage`,
+>   `media.manage`).
+>
+> **Bewust niet gedaan.**
+> - Rechten is geen eigen groep: één tegel in een groep oogt als een fout. Het
+>   staat bij App, naast de andere instellingen die de hele app raken.
+> - Het huidige design blijft zoals het is: daar staat de beheerlijst nog in het
+>   avatar- en mobiele menu, en linkt er niets naar `/beheer` (net als bij
+>   `/club`).
+> - `/beheer` hoort bij geen plek in de tabbalk (`placeForPath` geeft `null`),
+>   zoals de andere items uit het persoonlijke menu.
+>
+> **Getest.** Vitest op `admin-areas`, `design-places` en `nav-active`: alles
+> geslaagd (twee nieuwe tests). ESLint op de gewijzigde bestanden: schoon.
+> `tsc --noEmit`: alleen de bekende `@zxing`-meldingen (pakket ontbreekt in deze
+> worktree).
+>
+> **Niet geverifieerd.** De pagina en het menu met login in het design
+> "tegels", ook niet hoe de groepskoppen tussen de tegels ogen op de telefoon.
+
+---
+
 > **Mijn statistieken, ronde 3: tijd per zone, W′bal, duurvermogen en herstel uit intervals.icu, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, `5288920`). Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
@@ -2071,7 +2118,8 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 >   `[data-design="tegels"]` in `globals.css`.
 >
 > **Menubesluiten van de eigenaar, in dit design verwerkt.** Community vervalt
-> als menu. WhatsApp-groepen en Media staan onder Meer bij Beheer, dus alleen
+> als menu. WhatsApp-groepen en Media staan onder Meer bij Beheer (sinds
+> 2026-10-16 in de groep Community op `/beheer`), dus alleen
 > voor wie `community.manage` of `media.manage` heeft: **gewone leden bereiken
 > ze in dit design niet meer via het menu.** Vraag en Aanbod en Ritverslagen
 > staan nergens meer in het menu; de pagina's zelf bestaan nog. Polls staat
@@ -2213,7 +2261,8 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 >   intervalprofiel in de trainingstegel" onder Bewust niet gebouwd.
 > - *Meer is weg: vier plekken.* De plek Meer dubbelde met het persoonlijke
 >   menu rechtsboven en is verwijderd (`/meer` bestaat niet meer). Het menu
->   bevat nu ook Sponsors en, onder Beheer, WhatsApp-groepen en Media; het
+>   bevat nu ook Sponsors en, onder Beheer, WhatsApp-groepen en Media (sinds
+>   2026-10-16 één item Beheer naar de tegelpagina `/beheer`); het
 >   toont de letter van het design. Routes als `/profiel` en `/beheer` horen bij
 >   geen plek meer, dus dan is geen tab actief (`placeForPath` geeft `null`).
 >   **Niet meer waar:** "vijf plekken" en "Meer" overal hierboven, in

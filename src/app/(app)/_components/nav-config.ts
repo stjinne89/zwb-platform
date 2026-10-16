@@ -5,7 +5,8 @@
 // 'group' → dropdown-cluster (desktop) of section-header (mobiel)
 
 import type { CommunityPermission } from "@/lib/permissions";
-import { ADMIN_AREAS } from "@/lib/admin-areas";
+import { ADMIN_AREAS, type AdminAreaKey } from "@/lib/admin-areas";
+import type { PlaceTone } from "@/components/tegels/link-grid";
 
 export type NavLeaf = {
   type: "link";
@@ -162,6 +163,59 @@ export const ADMIN_NAV: AdminNavItem[] = Object.values(ADMIN_AREAS).map((area) =
   label: area.label,
   permission: area.permission,
 }));
+
+function adminLink(key: AdminAreaKey): AdminNavItem {
+  const area = ADMIN_AREAS[key];
+  return { type: "link", href: area.href, label: area.label, permission: area.permission };
+}
+
+export type BeheerCategory = { label: string; tone: PlaceTone; items: AdminNavItem[] };
+
+/**
+ * Design "tegels": het beheer als één pagina met tegels per soort, zoals Club,
+ * in plaats van een lange lijst in het persoonlijke menu (besluit eigenaar,
+ * 2026-10-16). WhatsApp-groepen en Media zijn geen beheergebied maar staan in
+ * dit design wel hier (besluit eigenaar, 2026-10-12).
+ */
+export const BEHEER_CATEGORIES: BeheerCategory[] = [
+  {
+    label: "Online racen",
+    tone: "kalender",
+    items: [adminLink("zrl"), adminLink("frr"), adminLink("src"), adminLink("omnium")],
+  },
+  {
+    label: "Kalender",
+    tone: "kalender",
+    items: [adminLink("programmas"), adminLink("eventScan"), adminLink("zwiftRoutes")],
+  },
+  {
+    label: "Community",
+    tone: "club",
+    items: [
+      { type: "link", href: "/community", label: "WhatsApp-groepen", permission: "community.manage" },
+      { type: "link", href: "/media", label: "Media", permission: "media.manage" },
+      adminLink("citaten"),
+      adminLink("achievements"),
+      adminLink("zwbgame"),
+    ],
+  },
+  {
+    label: "App",
+    tone: "meer",
+    items: [adminLink("rechten"), adminLink("notificaties"), adminLink("strava")],
+  },
+];
+
+/** De beheercategorieën met alleen de items waar de gebruiker recht op heeft;
+ * een lege categorie valt weg. */
+export function beheerCategoriesFor(
+  has: (permission: CommunityPermission) => boolean,
+): BeheerCategory[] {
+  return BEHEER_CATEGORIES.flatMap((category) => {
+    const items = category.items.filter((item) => has(item.permission));
+    return items.length > 0 ? [{ ...category, items }] : [];
+  });
+}
 
 /**
  * Laat alleen de items over waar de gebruiker recht op heeft. Groepen zonder

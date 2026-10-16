@@ -14,7 +14,12 @@ import { BackButton } from "./_components/back-button";
 import { NavProgress } from "./_components/nav-progress";
 import { PrivacyConsentDialog } from "./_components/privacy-consent-dialog";
 import { ZwiftIdDialog, type RosterClaim } from "./_components/zwift-id-dialog";
-import { ADMIN_NAV, NAV_GROUPS, filterNavForPermissions } from "./_components/nav-config";
+import {
+  ADMIN_NAV,
+  NAV_GROUPS,
+  beheerCategoriesFor,
+  filterNavForPermissions,
+} from "./_components/nav-config";
 import { TegelsShell } from "./_components/tegels-shell";
 import { DesignSwitch } from "./_components/design-switch";
 import { DESIGN_PREVIEW_PERMISSION, getDesign } from "@/lib/design";
@@ -121,31 +126,8 @@ export default async function AppLayout({
             </Link>
             <AvatarMenu
               displayName={displayName}
-              adminItems={[
-                ...adminItems,
-                // WhatsApp-groepen en Media staan in dit design onder beheer
-                // (besluit eigenaar, 2026-10-12).
-                ...(access.has("community.manage")
-                  ? [
-                      {
-                        type: "link" as const,
-                        href: "/community",
-                        label: "WhatsApp-groepen",
-                        permission: "community.manage" as const,
-                      },
-                    ]
-                  : []),
-                ...(access.has("media.manage")
-                  ? [
-                      {
-                        type: "link" as const,
-                        href: "/media",
-                        label: "Media",
-                        permission: "media.manage" as const,
-                      },
-                    ]
-                  : []),
-              ]}
+              adminItems={[]}
+              beheerPage={beheerCategoriesFor((permission) => access.has(permission)).length > 0}
               avatarUrl={(profile?.avatar_url as string | null) ?? null}
               showOnMobile
               extraItems={[{ href: "/sponsors", label: "Sponsors" }]}
