@@ -65,7 +65,7 @@ export default async function ProfielPage({
   if (!user) redirect("/login");
 
   // Standaard: het profiel zoals leden het zien. Bewerken en het deelbare
-  // profiel staan links en rechts op de dimmer.
+  // profiel staan links en rechts op de weergaveknop.
   const { weergave } = await searchParams;
   if (weergave === "deelbaar") {
     const toggle = <ProfileViewToggle view="deelbaar" />;

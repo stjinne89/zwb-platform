@@ -1,31 +1,25 @@
 "use client";
 
-import { useOptimistic, useRef, useState, useTransition } from "react";
+import { useOptimistic, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Globe, Pencil, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type ProfileView = "bewerken" | "leden" | "deelbaar";
 
-const VIEWS: { view: ProfileView; href: string; label: string }[] = [
-  { view: "bewerken", href: "/profiel?weergave=bewerken", label: "Bewerken" },
-  { view: "leden", href: "/profiel", label: "Wat leden zien" },
-  { view: "deelbaar", href: "/profiel?weergave=deelbaar", label: "Deelbaar profiel" },
+const VIEWS: { view: ProfileView; href: string; label: string; icon: LucideIcon }[] = [
+  { view: "bewerken", href: "/profiel?weergave=bewerken", label: "Bewerken", icon: Pencil },
+  { view: "leden", href: "/profiel", label: "Wat leden zien", icon: Users },
+  { view: "deelbaar", href: "/profiel?weergave=deelbaar", label: "Deelbaar profiel", icon: Globe },
 ];
 
-/**
- * Gouden dimmer met drie standen. Hoe meer mensen je profiel zien, hoe meer
- * licht: uit bij bewerken, gedimd voor leden, vol voor het deelbare profiel.
- */
+/** Gouden schuifknop met drie standen: bewerken, wat leden zien, deelbaar profiel. */
 export function ProfileViewToggle({ view }: { view: ProfileView }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [shown, setShown] = useOptimistic(view);
-  const [dragPos, setDragPos] = useState<number | null>(null);
-  const plateRef = useRef<HTMLDivElement>(null);
   const radioRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
   const current = VIEWS.findIndex((v) => v.view === shown);
-  const pos = dragPos ?? current;
 
   function select(index: number) {
     const next = VIEWS[index];
@@ -34,13 +28,6 @@ export function ProfileViewToggle({ view }: { view: ProfileView }) {
       setShown(next.view);
       router.push(next.href, { scroll: false });
     });
-  }
-
-  function indexAt(clientX: number) {
-    const rect = plateRef.current?.getBoundingClientRect();
-    if (!rect) return current;
-    const third = rect.width / 3;
-    return Math.min(2, Math.max(0, Math.floor((clientX - rect.left) / third)));
   }
 
   function onKeyDown(event: React.KeyboardEvent, index: number) {
@@ -58,44 +45,17 @@ export function ProfileViewToggle({ view }: { view: ProfileView }) {
   }
 
   return (
-    <div className="dimmer" data-pos={pos} data-dragging={dragPos !== null || undefined}>
+    <div className="flex justify-center">
       <div
-        ref={plateRef}
-        aria-hidden
-        className="dimmer-plate"
-        onPointerDown={(event) => {
-          event.currentTarget.setPointerCapture(event.pointerId);
-          setDragPos(indexAt(event.clientX));
-        }}
-        onPointerMove={(event) => {
-          if (dragPos === null) return;
-          setDragPos(indexAt(event.clientX));
-        }}
-        onPointerUp={(event) => {
-          const index = indexAt(event.clientX);
-          setDragPos(null);
-          select(index);
-        }}
-        onPointerCancel={() => setDragPos(null)}
+        role="radiogroup"
+        aria-label="Profielweergave"
+        className="view-slider"
+        data-pos={current}
       >
-        <span className="dimmer-glow" />
-        <span className="dimmer-screw" />
-        <span className="dimmer-slot">
-          <span className="dimmer-notch" />
-          <span className="dimmer-notch" />
-          <span className="dimmer-notch" />
-        </span>
-        <span className="dimmer-knob">
-          <span className="dimmer-ridge" />
-          <span className="dimmer-lamp" />
-          <span className="dimmer-ridge" />
-        </span>
-        <span className="dimmer-screw" />
-      </div>
-
-      <div role="radiogroup" aria-label="Profielweergave" className="dimmer-labels">
+        <span className="view-slider-knob" aria-hidden />
         {VIEWS.map((option, index) => {
           const active = index === current;
+          const Icon = option.icon;
           return (
             <button
               key={option.view}
@@ -105,12 +65,14 @@ export function ProfileViewToggle({ view }: { view: ProfileView }) {
               type="button"
               role="radio"
               aria-checked={active}
+              aria-label={option.label}
+              title={option.label}
               tabIndex={active ? 0 : -1}
               onClick={() => select(index)}
               onKeyDown={(event) => onKeyDown(event, index)}
-              className={cn("dimmer-label", index === pos && "dimmer-label-active")}
+              className={cn("view-slider-option", active && "view-slider-option-active")}
             >
-              {option.label}
+              <Icon aria-hidden />
             </button>
           );
         })}

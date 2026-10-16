@@ -69,7 +69,7 @@ const GUIDES = [
     title: "Profiel en ledenlijst",
     bullets: [
       "Je profiel bepaalt wat andere leden mogen zien.",
-      "Onder je naam op Profiel staat een gouden schuifknop: links bewerk je je profiel, in het midden zie je het zoals andere leden, rechts zoals een bezoeker je deelbare profiel ziet. Profiel opent in het midden.",
+      "Onder je naam op Profiel staat een schuifknop met drie standen: het potlood om je profiel te bewerken, de mensen voor hoe andere leden het zien en de wereldbol voor je deelbare profiel. Profiel opent in het midden.",
       "Onder Interesses kies je welke eventtypes je wilt zien op de kalender, en welke afstand en hoogtemeters je grens zijn.",
       "Badges blijven zichtbaar op je profiel en in de ledenlijst.",
       "Onder Mijn fietsen tonen we je fietsen uit Strava (naam + kilometers); zonder Strava voeg je een fiets handmatig toe. Je kiest per fiets of die zichtbaar is en zet er een foto bij.",
