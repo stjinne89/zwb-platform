@@ -65,9 +65,10 @@ gaat stabiliteit voor nieuwe features.
    - **Tabbalk op de iPhone:** na het pushen in de beginscherm-app iets typen,
      het toetsenbord sluiten en kijken of de tabbalk onderaan blijft (ronde
      2026-10-16, "Tabbalk blijft hangen na het toetsenbord").
-   - **Fietsen op het ledenprofiel:** `0243_member_profile_bikes.sql` toepassen
-     (2026-10-16). Zonder de functie ziet niemand fietsen op `/leden/[id]`,
-     ook het lid zelf niet. Daarna als ander lid een profiel met fietsen openen.
+   - **Fietsen op het ledenprofiel:** `0243_member_profile_bikes.sql` is op
+     2026-10-16 toegepast via de Supabase-connector, op verzoek van de eigenaar,
+     en daarna gepusht. Nog doen: als ander lid in de app een profiel met
+     fietsen openen.
    - **Profiel, zoals leden je zien:** na het pushen op `/profiel` tussen
      "Bewerken" en "Zoals leden je zien" wisselen en vergelijken met wat een
      ander lid op `/leden/[id]` ziet (ronde 2026-10-16). Niet in de browser
@@ -9247,7 +9248,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Opgeleverd — Fietsen zichtbaar voor andere leden
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
-`0243_member_profile_bikes.sql` (**nog toepassen**; niet lokaal te testen).
+`0243_member_profile_bikes.sql` (toegepast via de Supabase-connector,
+2026-10-16; zie "Controle").
 
 **Aanleiding.** Bij de ronde "Profiel: zoals leden je zien" bleek dat andere
 leden geen fietsen op het ledenprofiel zagen: `strava_bikes` heeft alleen de
@@ -9276,10 +9278,14 @@ het profiel staat. De eigenaar koos ervoor dat leden elkaars fietsen zien.
   eigen onderhoud; met een functie blijft de keuze per fiets de enige poort.
 
 **Controle.** `eslint` op de gewijzigde bestanden is schoon. `tsc` is schoon,
-op de bekende fouten in `read-barcode.ts` en `gopher-image-ocr.ts` na.
+op de bekende fouten in `read-barcode.ts` en `gopher-image-ocr.ts` na. Op
+productie, na het toepassen: de functie is security definer, `anon` mag hem niet
+uitvoeren en `authenticated` wel. In een transactie als een ander goedgekeurd lid
+(rol `authenticated`, `sub` in de JWT-claims) gaf de functie 8 van de 8 zichtbare
+fietsen van een lid, terwijl die kijker in `strava_bikes` zelf 0 rijen ziet.
 
-**Niet geverifieerd.** De migratie op een database (er is geen Docker of
-Supabase-config) en de pagina's in de browser.
+**Niet geverifieerd.** De weigering voor een lid dat nog wacht: er stond geen
+wachtend account om mee te testen. De pagina's in de browser.
 
 ### Opgeleverd — Profiel: zoals leden je zien
 
