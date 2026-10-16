@@ -131,8 +131,8 @@ gaat stabiliteit voor nieuwe features.
    Migratie `0241` moet nog op productie. Fase 2 (kennisbank trainen, twee
    nieuwe artikelen, protocol Duurtest, overbelasting vóór de taper) is
    goedgekeurd en uitgevoerd op 2026-10-16, net als fase 3 (kennisbank
-   voeding). Volgende stap: het voorstel voor fase 4 (kracht en core); daarna 5
-   (racen en pacing) en 6 (overig). Zie de ronde hieronder en
+   voeding). Fase 4 (kracht, core en mobiliteit) is voorgesteld op 2026-10-16
+   en wacht op akkoord; daarna 5 (racen en pacing) en 6 (overig). Zie de ronde hieronder en
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
@@ -9160,7 +9160,20 @@ Wat er veranderde aan de voorstellen:
 
 **Fase 3, voorgesteld en na akkoord uitgevoerd op 2026-10-16**: zie de ronde
 "wetenschappelijke toets fase 3" hierboven. Het voorstel staat in het
-werkdocument. Kort: de voedingskennisbank is grotendeels actueel. Eiwit, en
+werkdocument.
+
+**Fase 4, voorgesteld op 2026-10-16** (nog geen code). Het voorstel staat in het
+werkdocument. Kort: de kennisbank kracht was zorgvuldig. Er zijn drie
+nieuwigheden:
+- Krachttraining op de fiets werkt bij goed getrainde renners even goed als
+  squats.
+- Over springen voor je botten is er nu wel onderzoek.
+- De regel "kracht nooit op een fietsdag" is voorzichtiger dan het onderzoek
+  vraagt.
+
+Verder beweert het codecommentaar bij `MOBILITY_SESSIONS_PER_WEEK` ten onrechte
+dat twee tot drie sessies per week uit de literatuur komen. Er zijn vijf besluiten
+voorgelegd. Kort: de voedingskennisbank is grotendeels actueel. Eiwit, en
 vooral de portie voor het slapen, wordt te stellig gebracht. De beperkingen bij
 bicarbonaat en bèta-alanine kloppen niet meer. De voedingsartikelen missen een
 lijst beperkingen. De Consensus-agent behandelde opnieuw alleen een deel (eiwit

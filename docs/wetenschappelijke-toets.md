@@ -792,6 +792,112 @@ Dit is het meeste werk van fase 3, en het maakt de drie kennisbanken gelijk.
 "Ja op alles": 3A–3C zoals voorgesteld, de tip herformuleren, en beperkingen
 bij alle 25 voedingsartikelen.
 
+## Fase 4 — Kracht, core en mobiliteit: voorstel
+
+Opgesteld 2026-10-16, **nog niet uitgevoerd**.
+
+**Hoe gezocht.**
+- De Consensus-agent behandelde kracht en gecombineerde training (regels 1–5
+  en masters). Over botten, rug, core en rekken gaf hij "onvoldoende in deze
+  set". Het ruwe rapport staat in `docs/consensus/`.
+- De rest heb ik gericht gezocht.
+- Alle bronnen hieronder staan in PubMed. Kırmacı 2026, een RCT bij
+  recreanten, staat er niet in en is daarom niet gebruikt.
+- Van Pallarés 2025 is de volle tekst gelezen; van de andere bronnen de
+  samenvatting.
+
+**Het beeld.** De kennisbank kracht is zorgvuldig: elk artikel heeft al
+beperkingen, en `docs/kracht-literatuur.md` legt elke keuze vast. Er is
+sindsdien vooral iets bijgekomen:
+- **Kracht op de fiets werkt bij goed getrainde renners even goed als squats.**
+  Dat is nieuw en voor ZWB-leden zonder sportschool interessant.
+- **Over botten is er nu wel onderzoek naar springen.** Het artikel zegt dat er
+  geen controleerbare bron is.
+- **De regel "kracht nooit op een fietsdag" is voorzichtiger dan het onderzoek
+  vraagt.**
+- **Eén codecommentaar beweert te veel**: bij `MOBILITY_SESSIONS_PER_WEEK` staat
+  "doel uit de literatuur: twee tot drie sessies per week". Het artikel zegt
+  terecht dat het een eigen keuze is.
+
+### 4A. De tien bestaande artikelen (`strength-library.ts`)
+
+| Artikel | Oordeel | Wat verandert |
+|---|---|---|
+| Zwaar krachtwerk en fietsen | klopt, aanvullen | Nieuwe proeven bij goed getrainde mannen bevestigen het: tien weken squats verhoogden het maximale aerobe vermogen ([Pallarés 2025](https://doi.org/10.5114/biolsport.2025.146790)), en eenbenig en tweebenig verbeterden allebei de tijdrit ([Ji 2021](https://doi.org/10.1519/JSC.0000000000004105)). Bij vrouwelijke renners kwam er in zes weken wel kracht bij, maar geen duurvermogen ([Montalvo-Pérez 2021](https://doi.org/10.3389/fphys.2021.586113)). Voor de sprint werkte sprinttraining op de fiets beter dan zwaar krachtwerk ([Kristoffersen 2019](https://doi.org/10.3389/fphys.2019.01132)). Beperking erbij: de meta-analyse vond geen verschil naar geslacht, niveau of frequentie. |
+| Het gymprogramma | ongewijzigd | — |
+| Kracht vasthouden in het seizoen | aanvullen | Eén sessie per week houdt kracht vast als het gewicht zwaar blijft; ouderen hebben er mogelijk twee nodig ([Spiering 2021](https://doi.org/10.1519/JSC.0000000000003964)). Renners die tien weken geen kracht deden, verloren kracht en dijspier ([Pallarés 2025](https://doi.org/10.5114/biolsport.2025.146790)). |
+| Thuis met lichtere gewichten | klopt | Bron erbij: een netwerk-meta-analyse bevestigt dat spiergroei gelijk is en kracht met zwaarder gewicht meer stijgt ([Lopez 2020](https://doi.org/10.1249/MSS.0000000000002585)). |
+| Kracht en fietsen combineren | **bijstellen** | Volgorde maakt voor duurvermogen weinig uit ([Vikestad 2024](https://doi.org/10.3390/sports12080226); [Held 2026](https://doi.org/10.1007/s40279-026-02401-y)). Krachtwinst lijdt vooral als je beide in dezelfde sessie doet, bij getrainde mensen ([Petré 2021](https://doi.org/10.1007/s40279-021-01426-9)), en bij mannen meer dan bij vrouwen ([Huiberts 2023](https://doi.org/10.1007/s40279-023-01943-9)). De tekst zegt nu dat er "geen onderzoek bij wielrenners" is naar de tijd ertussen. Hij wordt: gescheiden sessies op één dag zijn in onderzoek geen probleem; de regel in de app gaat over spierpijn vóór je sleutelsessie, niet over interferentie. Zie besluit 2. |
+| Wielrennen en je botten | **bewering herzien** | "Niet in een controleerbare bron gevonden" klopt niet meer. Springen verhoogde bij volwassenen de botdichtheid in de dijbeenhals met ~1,5 %, rond 50 sprongen vier keer per week ([Florence 2023](https://doi.org/10.1080/02640414.2024.2312052)). Bij topwielrenners hield vijf keer per week vijf minuten springen, met collageen, die botdichtheid op peil ([Hilkens 2023](https://doi.org/10.1123/ijsnem.2023-0080)). Een overzicht vond weinig studies, maar wel belovende ([Florvåg 2025](https://doi.org/10.1186/s12891-025-08316-5)). Zie besluit 3. |
+| Lage rugpijn bij renners | aanvullen | Een bikefit verminderde rugpijn in drie kleine studies ([Barrajón 2026](https://doi.org/10.7759/cureus.101718)). Core-stabilisatie hielp bij niet-specifieke rugpijn, al was dat niet bij renners onderzocht ([Smrcina 2022](https://doi.org/10.26603/001c.37251)). Het blijft geen behandeling. |
+| Wat core-training doet | ongewijzigd | Geen proef gevonden die core-training op fietsprestatie toetst. |
+| Rekken vlak voor de rit | **bijstellen** | Een nieuwere meta-analyse met alleen gecontroleerde studies vond wel krachtverlies na lang statisch rekken (≥ 60 s), maar geen nadeel voor sprongen en sprints in het algemeen ([Warneke 2024](https://doi.org/10.1016/j.jshs.2024.05.002)). Een netwerk-meta-analyse vond dynamisch rekken het best voor explosieve prestaties ([Li 2023](https://doi.org/10.1186/s13102-023-00703-6)). De serie Voor de rit blijft dynamisch; het "kost prestatie" wordt genuanceerd. |
+| Stijve hamstrings en rugpijn | ongewijzigd | Geen nieuw prospectief onderzoek gevonden. |
+
+**In de code:** het commentaar bij `MOBILITY_SESSIONS_PER_WEEK` noemt het een
+eigen keuze, zoals het artikel. In `docs/kracht-literatuur.md` vervalt
+"niet toegevoegd: een aparte serie voor botgezondheid, bij gebrek aan een
+gecontroleerde bron".
+
+### 4B. Nieuw artikel: kracht op de fiets
+
+Twee publicaties uit één RCT met 37 goed getrainde mannen
+([Barranco-Gil 2024](https://doi.org/10.1249/MSS.0000000000003556);
+[Pallarés 2025](https://doi.org/10.5114/biolsport.2025.146790)):
+- **Wat ze deden**: tien weken, twee keer per week, met 72 uur ertussen. Vijf
+  sets van zeven trappen voluit vanuit stilstand op een helling van 6 %, in
+  een verzet waarbij de cadans gemiddeld rond 43 rpm lag (70 % van de maximale
+  trapkracht). Tussen de sets 4 minuten rust.
+- **Wat het opleverde**: evenveel kracht, Wingate-vermogen en spiermassa als
+  squats met hetzelfde gewicht en volume. Er kwamen geen extra klachten bij;
+  de squatgroep kreeg iets meer stijfheid en pijn (niet significant).
+- **Steun**: bij profs gaven sprintwerk op de fiets en krachtwerk in de
+  sportschool allebei een betere tijdrit
+  ([Valenzuela 2021](https://doi.org/10.1123/ijspp.2020-0305)).
+- **Verschil met "torque"-training**: dit is iets anders dan de bekende
+  torque-intervallen van minuten op lage cadans. Die halen maar ≤ 50 % van de
+  trapkracht, en het bewijs ervoor is wisselend.
+- **Beperkingen**: één onderzoeksgroep, alleen goed getrainde mannen, en
+  buiten op een helling. Of het op een smart trainer net zo werkt, met een
+  vliegwiel en zonder echte helling, is niet getest.
+
+Zie besluit 4: alleen een artikel, of ook een protocol.
+
+### 4C. Nieuw artikel: kracht als je ouder wordt
+
+Veel leden zijn masters. Bij masters-wegrenners gaf kracht- en sprinttraining
+meer spiermassa, kracht en sprintvermogen
+([Del Vecchio 2019](https://doi.org/10.1519/JSC.0000000000001960)). Ouderen
+hebben voor onderhoud mogelijk twee sessies per week nodig in plaats van één
+([Spiering 2021](https://doi.org/10.1519/JSC.0000000000003964)). Het
+ACSM-standpunt van 2026 over krachttraining komt erbij (DOI bij uitvoering
+bevestigen). Het artikel komt in de categorie Kracht, met beperkingen: er zijn
+weinig studies met oudere renners zelf.
+
+### Bewust niet voorgesteld
+
+- *Een artikel over bikefit*: drie kleine studies; het hoort in het artikel
+  over rugpijn, niet los.
+- *Explosieve training of sprongen voor prestatie*: sprinttraining op de fiets
+  werkt voor de sprint beter. Dat zit al in het fietsschema.
+- *Een vrouwspecifiek krachtartikel*: de vrouwenstudies (Vikmoen,
+  Montalvo-Pérez) wijzen dezelfde kant op als bij mannen. Ze komen in het
+  hoofdartikel.
+
+### Te beslissen door de eigenaar
+
+1. 4A uitvoeren zoals voorgesteld?
+2. De regel voor kracht (alleen op een dag zonder rit, drie dagen ertussen):
+   **houden**, met een eerlijkere uitleg? Dat is mijn voorstel, want het gaat
+   om spierpijn vóór sleutelsessies. Of **versoepelen**, zodat kracht ook op
+   een dag met alleen een rustige rit mag?
+3. Botten: alleen het artikel herzien, of ook een **springserie** (rond 50
+   sprongen, drie à vier keer per week, zonder materiaal)? Een nieuwe serie is
+   een seed-migratie, en die is hier niet te testen.
+4. Kracht op de fiets: alleen een **artikel**, of ook een **protocol** van tien
+   weken met een `aiHint`, zodat de AI het als buitenrit inplant?
+5. Het artikel voor masters (4C): ja of nee?
+
 ## Bronnen fase 1
 
 Gezocht via PubMed (metadata en abstracts) en Consensus, 2026-10-16. Bij
