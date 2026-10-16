@@ -1,4 +1,7 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
+import { AchievementBadge } from "@/components/achievement-badge";
+import { createClient } from "@/lib/supabase/server";
 import type { FtpAt } from "@/lib/training/ftp-history";
 import { toTrainingLoadPoints } from "@/lib/training/load-points";
 import {
@@ -37,7 +40,7 @@ import {
   type CompactPoint,
 } from "@/lib/stats/curves";
 import { recoverySeries } from "@/lib/stats/activity-stats";
-import { loadActivityStatsOnce, loadPeriodCurvesOnce, loadStatsWellness, type StatsConnection } from "../_data";
+import { loadActivityStatsOnce, loadMyBadges, loadPeriodCurvesOnce, loadStatsWellness, type StatsConnection } from "../_data";
 import { EnduranceChart, RecoveryChart, WbalChart, ZonesChart } from "./activity-charts";
 import {
   CpChart,
@@ -50,7 +53,7 @@ import {
   YearChart,
 } from "./chart-tiles";
 import { YearCurvesChart } from "./year-curves-chart";
-import { CalendarHeatmap, DisciplineBars, NoData, RecordsList, RidesTable, TotalsGrid, Tile } from "./tiles";
+import { CalendarHeatmap, dayLabel, DisciplineBars, NoData, nl, RecordsList, RidesTable, TotalsGrid, Tile } from "./tiles";
 
 export type TileContext = {
   profileId: string;
@@ -178,6 +181,8 @@ export function StatsTile({ id, context }: { id: TileId; context: TileContext })
           <RecordsList rides={rideRecords(rides)} periods={periodRecords(rides)} />
         </Tile>
       );
+    case "badges":
+      return <BadgesTile context={context} />;
     case "piekvermogen":
     case "cp-wprime":
     case "curve-per-jaar":
@@ -198,6 +203,60 @@ export function StatsTile({ id, context }: { id: TileId; context: TileContext })
         </Tile>
       );
   }
+}
+
+/**
+ * Wat er is behaald, met de nieuwste badges erbij. Los van het gekozen venster:
+ * een badge hoort bij het lid, niet bij een periode op deze pagina.
+ */
+async function BadgesTile({ context }: { context: TileContext }) {
+  const def = tileDef("badges");
+  const supabase = await createClient();
+  const awards = await loadMyBadges(supabase, context.profileId);
+  const milestones = awards.filter((award) => award.award_scope === "milestone").length;
+  const recent = awards.filter((award) => award.achievement_badges).slice(0, 6);
+  return (
+    <Tile
+      title={def.title}
+      width={def.width}
+      actions={
+        <Link href="/profiel#badges" className="text-xs font-medium text-primary hover:underline">
+          Badge-kast
+        </Link>
+      }
+    >
+      {awards.length === 0 ? (
+        <NoData>Nog geen badges.</NoData>
+      ) : (
+        <>
+          <dl className="grid grid-cols-2 gap-3">
+            <div>
+              <dt className="text-xs text-muted-foreground">Mijlpalen</dt>
+              <dd className="text-2xl font-semibold tabular-nums">{nl(milestones)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground">Weekbadges</dt>
+              <dd className="text-2xl font-semibold tabular-nums">{nl(awards.length - milestones)}</dd>
+            </div>
+          </dl>
+          <ul className="mt-4 divide-y">
+            {recent.map((award) => {
+              const badge = award.achievement_badges!;
+              return (
+                <li key={award.id} className="flex items-center gap-3 py-2">
+                  <AchievementBadge title={badge.title} icon={badge.icon} color={badge.color} size="sm" />
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{badge.title}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                    {dayLabel(award.period_start)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </Tile>
+  );
 }
 
 /**

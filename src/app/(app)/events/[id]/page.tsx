@@ -81,8 +81,9 @@ import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { BackLink } from "@/components/app-ui";
 import { MemberLink } from "@/components/member-link";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
-import { tipsForEvent } from "@/lib/wie-weet-wat/data";
-import { TIP_COLUMNS, loadMembers, type TipRow } from "@/lib/wie-weet-wat/queries";
+import { tipsForEvent } from "@/lib/zwbieb/data";
+import { TIP_COLUMNS, loadMembers, loadTopicCatalog, type TipRow } from "@/lib/zwbieb/queries";
+import { topicLabels } from "@/lib/zwbieb/topics";
 import { VanLeden } from "./_components/van-leden";
 
 type RsvpStatus = "yes" | "maybe" | "no";
@@ -1149,7 +1150,7 @@ export default async function EventDetailPage({
     }
   }
 
-  // Tips van leden (Wie weet wat, 0239): bij dit event, bij het moederevent en
+  // Tips van leden (ZWBieb, 0239): bij dit event, bij het moederevent en
   // bij de cols op de route. Cols kent de pagina alleen als hij de route
   // inleest, dus bij een toekomstig event met GPX; anders alleen de eventtips.
   const tipEventIds = event.parent_event_id ? [id, event.parent_event_id] : [id];
@@ -1173,10 +1174,13 @@ export default async function EventDetailPage({
     eventIds: tipEventIds,
     colSlugs: Array.from(tipColNames.keys()),
   });
-  const memberTipAuthors = await loadMembers(
-    supabase,
-    memberTips.map((tip) => tip.profile_id),
-  );
+  const [memberTipAuthors, memberTipTopics] = await Promise.all([
+    loadMembers(
+      supabase,
+      memberTips.map((tip) => tip.profile_id),
+    ),
+    memberTips.length > 0 ? loadTopicCatalog(supabase).then(topicLabels) : Promise.resolve({}),
+  ]);
 
   // Live-chat: initiële berichten (leden zien ook interne via RLS). Ook na de
   // rit ophalen, zodat de chat als archief deel wordt van het ritverslag.
@@ -1845,6 +1849,7 @@ export default async function EventDetailPage({
         tips={memberTips}
         authors={memberTipAuthors}
         colNames={tipColNames}
+        topicNames={memberTipTopics}
         viewerId={user?.id ?? ""}
         canModerate={access.has("community.manage") || access.has("content.moderate_posts")}
       />

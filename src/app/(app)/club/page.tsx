@@ -23,7 +23,6 @@ const TILE_STYLE: Record<string, Pick<PlaceLink, "tone" | "size">> = {
   "/samen-fietsen": { tone: "club", size: "wide" },
   "/polls": { tone: "club" },
   // teal: prestaties en cijfers
-  "/achievements": { tone: "zwbeter" },
   "/stats": { tone: "zwbeter" },
   // donker petrol: spel en ontdekken
   "/zwblokken": { tone: "meer" },

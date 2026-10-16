@@ -30,7 +30,6 @@ export const PLACES: Place[] = [
       "/club",
       "/leden",
       "/teams",
-      "/achievements",
       "/stats",
       "/profiel/segments",
       "/profiel/cols",

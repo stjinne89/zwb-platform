@@ -118,7 +118,7 @@ export async function GET() {
     }
   }
 
-  // Wie weet wat: de gesprekken waarin het lid vrager of kenner is, en de
+  // ZWBieb: de gesprekken waarin het lid vrager of kenner is, en de
   // berichten die het zelf schreef. Die tabellen hebben geen profile_id.
   {
     const { data: threads, error } = await admin

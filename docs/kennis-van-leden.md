@@ -1,5 +1,8 @@
 # Kennis van leden — onderzoek en voorstellen
 
+*Het onderdeel heet sinds 2026-10-16 **ZWBieb** (route `/zwbieb`); daarvoor
+"Wie weet wat". Zie §7.*
+
 2026-10-15. Aanleiding: de eigenaar ziet het kennisnetwerk van de leden als een
 mogelijke kracht van ZWB, maar zag niet voor zich hoe het platform dat vorm geeft.
 Dit document bevat het onderzoek, de voorstellen en wat daarvan is gekozen. Wat er
@@ -110,3 +113,23 @@ Meet na zes weken met alleen geaggregeerde tellingen, zoals bij de gebruiksanaly
 
 Blijft het onder een handvol, dan C en D niet bouwen. Kijk dan eerst of de import
 uit de groepsapp de kennis beter vangt dan zelf schrijven.
+
+## 7. Uitbreiding 2026-10-16: eigen onderwerpen, spullen en de naam ZWBieb
+
+- **Leden voegen zelf onderwerpen toe.** De vaste lijst bleek te krap. Onderwerpen
+  staan sinds `0242` in `knowledge_topics`, met de vijftien van de startlijst
+  erin. Een lid typt een nieuw onderwerp; de app laat eerst zien wat erop lijkt,
+  dezelfde naam twee keer kan niet, en het gaat om hooguit vijf per dag. De
+  moderatie hernoemt of verbergt; verwijderen kan alleen als niemand het
+  gebruikt. De afweging uit §5 (iedereen zoekt onder hetzelfde woord) blijft
+  gelden via die suggesties en de moderatie, niet meer via een vaste lijst.
+- **Wie heeft wat.** Naast kennis ook spullen die een lid wil uitlenen aan een
+  ander ZWB-lid: fietskoffer, momentsleutel, fietsendrager, SeaSucker,
+  werkstandaard, camper, en wat leden zelf toevoegen. Dat is hetzelfde
+  mechanisme: een onderwerp met soort `spullen`, en "Vraag het aan" opent een
+  gesprek. Afspraken over ophalen en schade maken de leden samen; ZWB is geen
+  partij (`/voorwaarden` §3a).
+- **Naam ZWBieb.** "Wie weet wat" dekte de spullen niet. ZWBieb (van de bieb:
+  je leent wat een ander lid weet of heeft) past bij beide en sluit aan op
+  ZWBlokken, ZWBasis en ZWBgame. Gekozen door de eigenaar uit ZWBieb, ZWBuren,
+  ZWBaak en ZWBank.

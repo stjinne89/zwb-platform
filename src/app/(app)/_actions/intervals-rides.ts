@@ -15,7 +15,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 function revalidateRidePages() {
-  for (const path of ["/dashboard", "/achievements", "/stats", "/leden", "/profiel", "/zwblokken"]) {
+  for (const path of ["/dashboard", "/stats/achievements", "/stats", "/leden", "/profiel", "/zwblokken"]) {
     revalidatePath(path);
   }
 }
