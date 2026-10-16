@@ -3,6 +3,7 @@
 // eigen workout te bewaren.
 
 import { Library } from "lucide-react";
+import { MethodLabelBadge } from "@/components/method-label-badge";
 import { INTENSITY_LABELS, WORKOUT_INTENSITIES, type WorkoutIntensity } from "@/lib/training/workouts";
 import { TRAINING_FORMS, trainingFormLabel } from "@/lib/training/training-forms";
 import {
@@ -21,6 +22,8 @@ export type WorkoutTemplateRow = {
   intensity: string;
   is_standard: boolean;
   created_by: string | null;
+  /** Veelbelovend of experimenteel (0246). */
+  method_label?: string | null;
 };
 
 export function WorkoutLibraryPanel({
@@ -69,7 +72,10 @@ export function WorkoutLibraryPanel({
                     className="grid gap-2 p-3 lg:grid-cols-[1fr_auto] lg:items-center"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{template.title}</p>
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-medium">{template.title}</p>
+                        <MethodLabelBadge label={template.method_label} />
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {template.duration_minutes} min · {INTENSITY_LABELS[template.intensity as WorkoutIntensity] ?? template.intensity}
                         {template.description ? ` · ${template.description}` : ""}

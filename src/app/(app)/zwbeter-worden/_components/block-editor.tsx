@@ -16,6 +16,8 @@ import {
   burstSecondsOf,
   INTENSITY_LABELS,
   MAX_BURST_SECONDS,
+  MAX_ON_OFF_SECONDS,
+  onOffOf,
   powerRangePercentForBlock,
   WORKOUT_INTENSITIES,
   type WorkoutBlock,
@@ -33,6 +35,7 @@ function signatureOf(block: WorkoutBlock) {
     block.notes,
     block.intensity,
     block.burstSeconds ?? 0,
+    block.onOff ? `${block.onOff.onSeconds}/${block.onOff.offSeconds}/${block.onOff.offTarget}` : "",
   ].join("|");
 }
 
@@ -106,6 +109,9 @@ export function BlockEditor({
           <input type="hidden" name="block_notes" value={block.notes} />
           <input type="hidden" name="block_intensity" value={block.intensity} />
           <input type="hidden" name="block_burst" value={block.burstSeconds ?? ""} />
+          <input type="hidden" name="block_on" value={block.onOff?.onSeconds ?? ""} />
+          <input type="hidden" name="block_off" value={block.onOff?.offSeconds ?? ""} />
+          <input type="hidden" name="block_off_target" value={block.onOff?.offTarget ?? ""} />
         </div>
       ))}
 
@@ -177,6 +183,11 @@ export function BlockEditor({
               />
               {block.label || "Blok"} {block.durationMinutes}m <PowerText text={block.target} ftpWatts={ftpWatts} />
               {block.burstSeconds ? <span>{block.burstSeconds}s burst</span> : null}
+              {block.onOff ? (
+                <span className="tabular-nums">
+                  {block.onOff.onSeconds}/{block.onOff.offSeconds} s
+                </span>
+              ) : null}
               {group.indexes.length > 1 ? (
                 <span className="font-medium tabular-nums">×{group.indexes.length}</span>
               ) : null}
@@ -276,6 +287,60 @@ export function BlockEditor({
               <input
                 value={current.notes}
                 onChange={(event) => patch({ notes: event.target.value })}
+                className={FIELD}
+              />
+            </label>
+          </div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-3 lg:grid-cols-[90px_90px_1fr]">
+            <label className="text-xs text-muted-foreground">
+              Aan (sec)
+              <input
+                type="number"
+                min="0"
+                max={MAX_ON_OFF_SECONDS}
+                value={current.onOff?.onSeconds ?? ""}
+                onChange={(event) =>
+                  patch({
+                    onOff:
+                      onOffOf({
+                        onSeconds: event.target.value,
+                        offSeconds: current.onOff?.offSeconds ?? 15,
+                        offTarget: current.onOff?.offTarget ?? "50%",
+                      }) ?? undefined,
+                    ...(event.target.value ? { burstSeconds: undefined } : {}),
+                  })
+                }
+                className={FIELD}
+              />
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Uit (sec)
+              <input
+                type="number"
+                min="0"
+                max={MAX_ON_OFF_SECONDS}
+                value={current.onOff?.offSeconds ?? ""}
+                disabled={!current.onOff}
+                onChange={(event) =>
+                  patch({
+                    onOff:
+                      onOffOf({ ...current.onOff, offSeconds: event.target.value }) ?? current.onOff,
+                  })
+                }
+                className={FIELD}
+              />
+            </label>
+            <label className="text-xs text-muted-foreground">
+              Doel uit
+              <input
+                value={current.onOff?.offTarget ?? ""}
+                disabled={!current.onOff}
+                onChange={(event) =>
+                  patch({
+                    onOff: current.onOff ? { ...current.onOff, offTarget: event.target.value } : undefined,
+                  })
+                }
+                placeholder="bv. 50%"
                 className={FIELD}
               />
             </label>

@@ -10,6 +10,7 @@ import { useState } from "react";
 import { CircleHelp, Download, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { Power } from "@/components/power-unit";
+import { MethodLabelBadge } from "@/components/method-label-badge";
 import { ViewOnStrava } from "@/components/strava-brand";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
 import { COMPLIANCE_LABELS, COMPLIANCE_PILLS } from "@/lib/training/compliance";
@@ -54,6 +55,8 @@ export type MemberCalendarItem = {
   source: "zwb" | "intervals" | "rit";
   skipped: boolean;
   missed?: boolean;
+  /** Veelbelovend of experimenteel (0246). */
+  methodLabel?: string | null;
   /** Bij een gereden rit: bij welke training hij hoort, door het lid aan te passen. */
   rideLink?: RideLink;
   /** Alleen voor een gereden rit zonder geplande training. */
@@ -220,7 +223,10 @@ function WorkoutDetail({
     <div className="space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-medium">{item.title}</p>
+          <p className="flex flex-wrap items-center gap-2 font-medium">
+            {item.title}
+            <MethodLabelBadge label={item.methodLabel} />
+          </p>
           <p className="text-xs text-muted-foreground">
             {formatDayMonth(`${item.dateKey}T12:00:00`)}
             {item.durationMinutes ? ` - ${item.durationMinutes} min` : ""}
@@ -375,6 +381,7 @@ export function MemberWorkoutCalendar({
     source: item.source,
     skipped: item.skipped,
     missed: item.missed,
+    methodLabel: item.methodLabel,
   }));
 
   return (

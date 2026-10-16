@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2, ChevronRight, ExternalLink } from "lucide-react";
 import { BackLink } from "@/components/app-ui";
+import { MethodLabelBadge } from "@/components/method-label-badge";
 import type { KnowledgeSource } from "@/lib/knowledge/source";
 import { EVIDENCE_LABELS } from "@/lib/nutrition/library";
 import { PROTOCOLS } from "@/lib/protocols";
@@ -50,7 +51,14 @@ export function KnowledgeArticleView({
 }: {
   backHref: string;
   category: string;
-  article: { title: string; summary: string; points: string[]; limits: string[]; sources: KnowledgeSource[] };
+  article: {
+    title: string;
+    summary: string;
+    points: string[];
+    limits: string[];
+    sources: KnowledgeSource[];
+    methodLabel?: string;
+  };
   articleHref: string;
 }) {
   return (
@@ -60,6 +68,7 @@ export function KnowledgeArticleView({
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{category}</p>
         <h2 className="mt-1 text-xl font-semibold">{article.title}</h2>
         <p className="mt-2 max-w-3xl text-muted-foreground">{article.summary}</p>
+        {article.methodLabel ? <MethodLabelBadge label={article.methodLabel} className="mt-3" /> : null}
       </div>
 
       <ul className="max-w-3xl space-y-2 rounded-lg border bg-card p-5 text-sm">

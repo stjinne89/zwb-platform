@@ -62,6 +62,7 @@ import { loadProtocolsForAi } from "@/lib/protocols/ai-data";
 import { summarizeRecentRides } from "@/lib/training/ride-metrics";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { CAUTION_PREFIX } from "@/lib/training/plan-summary";
+import { methodLabelOf } from "@/lib/training/method-label";
 import {
   goalTypeFromPromptSummary,
   zrlPlanSpecificityCautions,
@@ -535,6 +536,7 @@ export async function insertPlanWorkouts(
         intensity,
         target_type: workout.targetType,
         structure_json: blocks,
+        method_label: methodLabelOf(workout.methodLabel),
         origin: "ai",
         intervals_external_id: `zwb-${plan.id}-${workout.date}-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`,
       }];

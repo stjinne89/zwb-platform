@@ -28,13 +28,14 @@ Drie labels, zodat een lid in de app ziet hoe hard het bewijs is:
 | **Experimenteel** | Het mechanisme of een eenmalige meting wijst de goede kant op, maar er is geen trainingsstudie bij fietsers die het effect over weken laat zien, of de studies spreken elkaar tegen. |
 | **Niet bouwen** | Geen effect boven placebo, niet uit te voeren vanuit de app, of een risico dat het voordeel niet waard is. |
 
-`PROTOCOL_EVIDENCE` kent nu `sterk`, `matig` en `beperkt`
-(`src/lib/protocols/types.ts`). **Voorstel:** voeg `experimenteel` toe als
-vierde waarde, met een eigen label in de lijst en op de protocolpagina. "Beperkt
-bewijs" zegt dat er weinig onderzoek is; "experimenteel" zegt dat het effect op
-prestatie nog niet is aangetoond. Dat verschil moet een lid zien. Voor een
-workoutvorm die de AI-coach plant, hoort hetzelfde woord in de notitie van het
-blok.
+**Gebouwd (2026-10-16), anders dan eerst voorgesteld.** Het voorstel was
+`experimenteel` als vierde waarde van `PROTOCOL_EVIDENCE`. Het werd een apart
+label, `methodLabel` (`src/lib/training/method-label.ts`), met de waarden
+`veelbelovend` en `experimenteel`. Reden: het bewijsniveau (sterk, matig,
+beperkt) zegt hoeveel onderzoek er is, het label of het effect op prestatie al
+vaststaat; een blokweek is "matig bewijs" én "veelbelovend". Het label staat op
+workouts (kolom `method_label`, migratie `0246`), protocollen en
+kennisartikelen, en gaat vooraan in de beschrijving naar intervals.icu.
 
 ## Overzicht
 
@@ -274,13 +275,30 @@ een gewone trainer.
   bekend resultaat, geen nieuwe methode. Of de AI-coach deze vorm plant, is
   niet nagekeken.
 
-## Volgorde als we bouwen
+## Wat er gebouwd is (2026-10-16)
 
-1. `experimenteel` als vierde bewijsniveau in `types.ts`, met label in de lijst.
-2. Protocol "Blokweek" (drempel of 30/15).
-3. AI-regels: sprintonderhoud bij weinig tijd, sprints in de overgangsperiode.
-4. VO2max-variant met snelle start, label experimenteel.
-5. Brain endurance training alleen als de eigenaar dat wil.
+- Label `veelbelovend`/`experimenteel` op workouts, protocollen en artikelen.
+- Protocollen "Blokweek drempel", "Blokweek 30/15" (veelbelovend) en "Brain
+  endurance training" (experimenteel).
+- Bibliotheek: drie sweet-spotsessies en een 30/15-sessie voor de blokweek,
+  "Sprint 6x30s onderhoud" en "Duur 90 met 3x3 sprints" (veelbelovend), drie
+  VO2max-varianten: snelle start, aflopend en wisselend (experimenteel).
+- AI-regels voor sprintonderhoud bij weinig tijd, sprints in de
+  overgangsperiode en VO2max met wisselend vermogen; de AI geeft per workout
+  een `methodLabel` terug.
+- Een workoutblok kan nu korte herhalingen dragen (`onOff`, bijvoorbeeld
+  30/15), zodat de 30/15-week als losse stappen naar intervals.icu gaat.
+- Kennisartikelen: Blokweken, VO2max met wisselend vermogen, Sprints als
+  onderhoud, Brain endurance training, Trainen met bloedstroombeperking.
+
+**Bewust niet gebouwd:**
+- **REHIT (2 x 20 seconden).** Getest bij ongetrainden; ZWB-leden fietsen al.
+  Een sessie van tien minuten met twee sprints kleurt en heet in het schema
+  bovendien "Herstel", omdat het kernwerk korter is dan vijf minuten.
+- **BFR als protocol of workout.** Alleen een kennisartikel; zie boven.
+- **Een Stroop-taak in de app.** Het protocol brain endurance training
+  verwijst naar een taak op telefoon of computer. Zelf bouwen is een aparte
+  stap.
 
 ## Niet nagekeken
 

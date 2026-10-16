@@ -10,6 +10,7 @@
 // zijn eigen samenvattingen; we citeren de bronnen niet letterlijk.
 
 import { doi, type KnowledgeSource } from "@/lib/knowledge/source";
+import type { MethodLabel } from "@/lib/training/method-label";
 import {
   DE_PABLOS_2025,
   HAJGHANBARI_2013,
@@ -26,7 +27,15 @@ import {
   ROMER_2002,
   RICHARD_2025,
   RONNESTAD_HEAT_2022,
+  RONNESTAD_BLOCK_2025,
   RONNESTAD_HEAT_2024,
+  MOLMEN_2025,
+  SOLLI_2024,
+  ALMQUIST_BLOCK_2022,
+  MOLMEN_2019,
+  STAIANO_2023,
+  WANG_BET_2026,
+  DALLAWAY_2025,
   VERDEL_2021,
   ZURAWLEW_2016,
 } from "@/lib/protocols/training";
@@ -59,6 +68,8 @@ export type TrainingArticle = {
   /** Wat de bronnen níét laten zien, of wat een eigen keuze van ZWB is. */
   limits: string[];
   sources: KnowledgeSource[];
+  /** Veelbelovend of experimenteel; zie method-label.ts. */
+  methodLabel?: MethodLabel;
 };
 
 const RONNESTAD_2015: KnowledgeSource = {
@@ -395,14 +406,6 @@ const MORAN_MACDONALD_2026: KnowledgeSource = {
   kind: "studie",
 };
 
-const RONNESTAD_BLOCK_2025: KnowledgeSource = {
-  citation:
-    "Rønnestad BR, Odden IU, Solum KS, et al. Block training with moderate- or high-intensity intervals both improve endurance performance in well-trained cyclists. Eur J Sport Sci 25(11):e70067.",
-  year: 2025,
-  url: doi("10.1002/ejsc.70067"),
-  kind: "studie",
-};
-
 const BARRANCO_GIL_2024: KnowledgeSource = {
   citation:
     "Barranco-Gil D, Alejo LB, Revuelta C, et al. Intensity matters: effect of different work-matched efforts on subsequent performance in cyclists. Int J Sports Physiol Perform 19(10):1006-1011.",
@@ -522,6 +525,136 @@ const VASCONCELOS_2023: KnowledgeSource = {
   year: 2023,
   url: doi("10.1249/MSS.0000000000003308"),
   kind: "review",
+};
+
+// Onderzoeksronde 2026-10-16 (docs/trainingsmethodes-onderzoek-2026-10-16.md);
+// alleen samenvattingen gelezen, via PubMed en Consensus.
+const RONNESTAD_BP_2014: KnowledgeSource = {
+  citation:
+    "Rønnestad BR, et al. Block periodization of high-intensity aerobic intervals provides superior training effects in trained cyclists. Scand J Med Sci Sports.",
+  year: 2014,
+  url: doi("10.1111/j.1600-0838.2012.01485.x"),
+  kind: "studie",
+};
+
+const JEPPESEN_2024: KnowledgeSource = {
+  citation:
+    "Jeppesen JS, et al. Low-volume speed endurance training with reduced volume improves short-term exercise performance in highly trained cyclists. Med Sci Sports Exerc.",
+  year: 2024,
+  url: doi("10.1249/mss.0000000000003453"),
+  kind: "studie",
+};
+
+const HOV_2022: KnowledgeSource = {
+  citation:
+    "Hov H, et al. Aerobic high-intensity intervals are superior to improve VO2max compared with sprint intervals in well-trained men. Scand J Med Sci Sports.",
+  year: 2022,
+  url: doi("10.1111/sms.14251"),
+  kind: "studie",
+};
+
+const ALMQUIST_SPRINT_2020: KnowledgeSource = {
+  citation:
+    "Almquist NW, et al. Effects of including sprints in one weekly low-intensity training session during the transition period of elite cyclists. Front Physiol.",
+  year: 2020,
+  url: doi("10.3389/fphys.2020.01000"),
+  kind: "studie",
+};
+
+const TAYLOR_2021: KnowledgeSource = {
+  citation:
+    "Taylor M, et al. The inclusion of sprints in low-intensity sessions during the transition period of elite cyclists improves endurance performance 6 weeks into the subsequent preparatory period. Int J Sports Physiol Perform.",
+  year: 2021,
+  url: doi("10.1123/ijspp.2020-0594"),
+  kind: "studie",
+};
+
+const DEMAY_2025: KnowledgeSource = {
+  citation:
+    "Demay R, et al. An all-out sprint does not challenge the main goal of an endurance-based training session in cycling. Eur J Appl Physiol.",
+  year: 2025,
+  url: doi("10.1007/s00421-025-06006-7"),
+  kind: "studie",
+};
+
+const BOSSI_2020: KnowledgeSource = {
+  citation:
+    "Bossi AH, Mesquida C, Passfield L, Rønnestad BR, Hopker JG. Optimizing interval training through power-output variation within the work intervals. Int J Sports Physiol Perform 15(7):982-989.",
+  year: 2020,
+  url: doi("10.1123/ijspp.2019-0260"),
+  kind: "studie",
+};
+
+const BELTRAMI_2021: KnowledgeSource = {
+  citation:
+    "Beltrami F, et al. Cardiorespiratory responses to constant and varied-load interval training sessions. Int J Sports Physiol Perform.",
+  year: 2021,
+  url: doi("10.1123/ijspp.2020-0104"),
+  kind: "studie",
+};
+
+const RONNESTAD_FASTSTART_2020: KnowledgeSource = {
+  citation:
+    "Rønnestad BR, Rømer T, Hansen J. Increasing oxygen uptake in well-trained cross-country skiers during work intervals with a fast start. Int J Sports Physiol Perform 15(3):383-389.",
+  year: 2020,
+  url: doi("10.1123/ijspp.2018-0360"),
+  kind: "studie",
+};
+
+const SCHOENMAKERS_2026: KnowledgeSource = {
+  citation:
+    "Schoenmakers P, et al. Time spent at or near VO2max during high-intensity interval training: a systematic review and meta-analysis. BMC Sports Sci Med Rehabil.",
+  year: 2026,
+  url: doi("10.1186/s13102-026-01766-x"),
+  kind: "review",
+};
+
+const ODDEN_2024: KnowledgeSource = {
+  citation:
+    "Odden I, et al. The higher the fraction of maximal oxygen uptake is during interval training, the greater is the cycling performance gain. Eur J Sport Sci.",
+  year: 2024,
+  url: doi("10.1002/ejsc.12202"),
+  kind: "studie",
+};
+
+const WOMMER_2021: KnowledgeSource = {
+  citation:
+    "Wommer D, et al. Similar time near VO2max regardless of work rate manipulation in cycling interval training. Int J Sports Med.",
+  year: 2021,
+  url: doi("10.1055/a-1550-9977"),
+  kind: "studie",
+};
+
+const ZAMBOLIN_2026: KnowledgeSource = {
+  citation:
+    "Zambolin F, et al. Similar performance and muscle adaptations between intervals with and without blood flow restriction in well-trained cyclists. J Appl Physiol.",
+  year: 2026,
+  url: doi("10.1152/japplphysiol.01038.2025"),
+  kind: "studie",
+};
+
+const CASTILLA_LOPEZ_2022: KnowledgeSource = {
+  citation:
+    "Castilla-López C, et al. Blood flow restriction during training for improving the aerobic capacity and sport performance of trained athletes: a systematic review and meta-analysis. J Exerc Sci Fit.",
+  year: 2022,
+  url: doi("10.1016/j.jesf.2022.03.004"),
+  kind: "review",
+};
+
+const ZHANG_BFR_2025: KnowledgeSource = {
+  citation:
+    "Zhang Z, et al. Effects of blood flow restriction training on aerobic capacity and performance in endurance athletes: a systematic review and meta-analysis. BMC Sports Sci Med Rehabil.",
+  year: 2025,
+  url: doi("10.1186/s13102-025-01194-3"),
+  kind: "review",
+};
+
+const THOMAS_2018: KnowledgeSource = {
+  citation:
+    "Thomas HJ, et al. Acute physiological responses to low-intensity blood flow restriction cycling. J Sci Med Sport.",
+  year: 2018,
+  url: doi("10.1016/j.jsams.2018.01.013"),
+  kind: "studie",
 };
 
 export const TRAINING_ARTICLES: TrainingArticle[] = [
@@ -846,6 +979,104 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
     ],
     limits: ["Het onderzoek naar duurtraining is beperkt, vooral op de lange termijn."],
     sources: [BROATCH_2018, MALTA_2021],
+  },
+  {
+    slug: "blokweek",
+    category: "piek",
+    title: "Blokweken",
+    summary:
+      "Een week met vijf of zes harde sessies en daarna zes dagen rustig gaf goed getrainde renners in twee weken een duidelijke stap.",
+    points: [
+      "Zes sessies in zeven dagen met lange blokken op RPE 6 (sweet spot), daarna zes dagen rustig: het vermogen bij 4 mmol lactaat ging 4,0 procent omhoog, tegen 1,3 procent omlaag bij gewone training. Dertig goed getrainde renners.",
+      "Vijf sessies 30/15 in zes dagen, daarna zes dagen rustig: 3,7 tegen 0,7 procent meer vermogen in de laatste minuut van een VO2max-test.",
+      "Naast elkaar bij dezelfde renners verbeterden beide weken het vermogen op 15 minuten. De drempelweek verbeterde de drempel meer (4,5 tegen 2,1 procent), de 30/15-week neigde naar een betere sprint.",
+      "Oudere proeven met één harde week per maand gaven in vier en twaalf weken meer VO2max dan twee harde sessies per week.",
+      "De rustige dagen erna horen bij de methode: de winst werd gemeten na zes dagen herstel.",
+    ],
+    limits: [
+      "Alles komt van één onderzoeksgroep, bij renners met een VO2max rond 70, bijna alleen mannen.",
+      "Over twaalf weken gaf blokperiodisering geen beter resultaat dan een goede gewone opbouw met evenveel belasting. Een meta-analyse vond een klein voordeel, uit studies van matige kwaliteit.",
+      "Hoe lang de winst van één blokweek blijft, is niet onderzocht.",
+    ],
+    sources: [MOLMEN_2025, SOLLI_2024, RONNESTAD_BLOCK_2025, RONNESTAD_BP_2014, ALMQUIST_BLOCK_2022, MOLMEN_2019],
+    methodLabel: "veelbelovend",
+  },
+  {
+    slug: "vo2max-wisselend",
+    category: "intensiteit",
+    title: "VO2max met wisselend vermogen",
+    summary:
+      "Een VO2max-blok dat hard begint en dan iets terugzakt, of dat golft, houdt je langer dicht bij je VO2max bij hetzelfde gemiddelde.",
+    points: [
+      "Fietsers die elk blok van 4 minuten 40 W boven het gemiddelde begonnen en 40 W eronder eindigden, zaten gemiddeld op 89 tegen 86 procent van hun VO2max.",
+      "Met wisselend vermogen binnen het blok zaten goed getrainde renners bijna zeven minuten boven 90 procent van hun VO2max, tegen bijna vijf bij een vast vermogen. Ze vonden het niet zwaarder.",
+      "Een meta-analyse van ruim tweehonderd intervalvormen vond hetzelfde: wisselend vermogen geeft meer tijd bij VO2max.",
+      "Renners die tijdens hun intervallen een hoger deel van hun VO2max haalden, gingen er in negen weken meer op vooruit.",
+    ],
+    limits: [
+      "Alle vergelijkingen zijn metingen tijdens één sessie. Of je er over weken meer van wint dan van gelijkmatige blokken, is niet onderzocht.",
+      "Een studie met blokken van één minuut vond geen verschil.",
+      "De vermogens in de ZWB-workouts zijn een vertaling van de studies, geen geteste dosis.",
+    ],
+    sources: [BELTRAMI_2021, BOSSI_2020, RONNESTAD_FASTSTART_2020, SCHOENMAKERS_2026, ODDEN_2024, WOMMER_2021],
+    methodLabel: "experimenteel",
+  },
+  {
+    slug: "sprints-als-onderhoud",
+    category: "piek",
+    title: "Sprints als onderhoud",
+    summary:
+      "In een week met weinig tijd of na het seizoen houden een paar sprints van 30 seconden je vorm beter vast dan alleen rustig rijden.",
+    points: [
+      "Hooggetrainde renners reden zes weken twee keer per week 6 keer 30 seconden voluit en trainden 30 procent minder. Hun VO2max en duurvermogen bleven gelijk, hun tijdrit van 4 minuten ging 3,8 procent vooruit. Twaalf sprints gaf geen extra winst.",
+      "Elite-renners die na het seizoen drie weken minder trainden, hielden met 3 keer 3 sprints van 30 seconden in één rustige rit per week hun vermogen op 20 minuten vast.",
+      "Zes weken later lag dat vermogen 7,3 procent hoger dan aan het eind van het seizoen, tegen 1,3 procent lager zonder sprints.",
+      "Een sprint midden in een lange rustige rit verandert het verbruik en de zwaarte van die rit niet.",
+    ],
+    limits: [
+      "Kleine groepen, vooral elite-renners.",
+      "Voor je VO2max zelf werken intervallen van een paar minuten beter dan sprints.",
+      "Of het bij clubrenners net zo werkt, is niet onderzocht.",
+    ],
+    sources: [JEPPESEN_2024, ALMQUIST_SPRINT_2020, TAYLOR_2021, DEMAY_2025, HOV_2022],
+    methodLabel: "veelbelovend",
+  },
+  {
+    slug: "brain-endurance-training",
+    category: "naast-de-fiets",
+    title: "Brain endurance training",
+    summary:
+      "Na je training je hoofd moe maken met een concentratietaak, zodat mentale vermoeidheid je in een wedstrijd minder vermogen kost.",
+    points: [
+      "Wegrenners die zes weken na elke training een concentratietaak deden, verbeterden hun tijdrit van 20 minuten meer dan renners die naar neutrale geluiden luisterden. Ze vonden dezelfde inspanning lichter.",
+      "Een meta-analyse vond een duidelijk effect als renners mentaal moe aan de test begonnen.",
+      "Alleen de taak, zonder training, deed niets: het werkt in combinatie.",
+    ],
+    limits: [
+      "Kleine studies, grotendeels van dezelfde onderzoekers. De zekerheid van het bewijs is zeer laag tot matig.",
+      "Als renners fris begonnen, was het effect onzeker.",
+      "Hartslag, lactaat en VO2max veranderden niet; het effect zit in hoe zwaar het voelt.",
+    ],
+    sources: [STAIANO_2023, WANG_BET_2026, DALLAWAY_2025],
+    methodLabel: "experimenteel",
+  },
+  {
+    slug: "bloedstroombeperking",
+    category: "naast-de-fiets",
+    title: "Trainen met bloedstroombeperking",
+    summary:
+      "Banden om je bovenbenen maken een lage belasting zwaar. Interessant als je minder belasting kunt hebben, zoals na een blessure, maar niet zonder begeleiding.",
+    points: [
+      "Goed getrainde renners reden een week intervallen met banden om hun benen. Ze trapten 42 procent minder vermogen en wonnen evenveel als zonder banden.",
+      "Bij getrainde sporters gaf dezelfde training met banden in een meta-analyse geen extra winst; een nieuwere meta-analyse bij duursporters vond wel een matig effect.",
+    ],
+    limits: [
+      "Je hebt speciale banden nodig en een gemeten afsluitdruk per been. Zonder die meting weet je niet hoeveel je afknijpt.",
+      "De bloeddruk stijgt tijdens het fietsen met banden hoger dan bij gewone intervallen.",
+      "Gebruik het alleen met een fysiotherapeut of sportarts. ZWB plant het daarom niet in.",
+    ],
+    sources: [ZAMBOLIN_2026, CASTILLA_LOPEZ_2022, ZHANG_BFR_2025, THOMAS_2018],
+    methodLabel: "experimenteel",
   },
 ];
 

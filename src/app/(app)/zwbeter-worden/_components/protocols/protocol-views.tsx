@@ -22,6 +22,7 @@ import type { DurabilityPoint } from "@/lib/training/durability-test";
 import { shiftDays } from "@/lib/training/season";
 import { cn } from "@/lib/utils";
 import { BackLink } from "@/components/app-ui";
+import { MethodLabelBadge } from "@/components/method-label-badge";
 import { startProtocol, stopProtocol, toggleProtocolTask } from "../../_protocol-actions";
 import { ProtocolStartForm, ProtocolStopButton, ProtocolTaskToggle } from "./protocol-forms";
 
@@ -33,14 +34,17 @@ export function formatDay(day: string): string {
 
 function EvidenceBadge({ protocol }: { protocol: Protocol }) {
   return (
-    <span
-      className={cn(
-        "rounded-full px-2 py-0.5 text-xs font-medium",
-        protocol.evidence === "sterk" ? "bg-primary/10 text-primary" : "bg-secondary text-secondary-foreground",
-      )}
-    >
-      {PROTOCOL_EVIDENCE_LABELS[protocol.evidence]}
-    </span>
+    <>
+      <span
+        className={cn(
+          "rounded-full px-2 py-0.5 text-xs font-medium",
+          protocol.evidence === "sterk" ? "bg-primary/10 text-primary" : "bg-secondary text-secondary-foreground",
+        )}
+      >
+        {PROTOCOL_EVIDENCE_LABELS[protocol.evidence]}
+      </span>
+      <MethodLabelBadge label={protocol.methodLabel} />
+    </>
   );
 }
 

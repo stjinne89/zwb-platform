@@ -9531,6 +9531,86 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — veelbelovende en experimentele trainingsmethodes, met label
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
+`0246_workout_method_labels.sql` (**nog niet toegepast** op productie).
+
+**Aanleiding.** De eigenaar vroeg alles te bouwen wat in
+[het onderzoek](docs/trainingsmethodes-onderzoek-2026-10-16.md) als
+veelbelovend of experimenteel staat, met dat label erbij waar het gebruikt
+wordt, en workouts in de bibliotheek.
+
+**Wat er veranderde.**
+- **Label.** `src/lib/training/method-label.ts`: `veelbelovend` of
+  `experimenteel`. Apart van het bewijsniveau van een protocol (sterk, matig,
+  beperkt): dat zegt hoeveel onderzoek er is, het label of het effect al
+  vaststaat. Het onderzoek stelde eerst een vierde bewijsniveau voor; dat is
+  bij het bouwen losgelaten. Badge `src/components/method-label-badge.tsx`.
+- **Waar het label staat.** Kolom `method_label` op
+  `training_workout_templates` en `training_workouts` (0246). Zichtbaar bij de
+  workouttitel in het schema, in de kalendertooltip en het detail, in de
+  workoutbibliotheek en de trainerskalender, bij protocollen en
+  kennisartikelen. Naar intervals.icu (en zo Zwift) gaat het vooraan in de
+  beschrijving: "Experimenteel. …". Een bibliotheekworkout neemt het label mee
+  bij invoegen en vervangen; de AI geeft per workout een `methodLabel` terug
+  (`ai.ts`, `draft.ts`).
+- **Bibliotheek (0246), negen standaardworkouts.** Veelbelovend: Sweet spot
+  5x10, 6x12 en 7x14 blokweek; VO2max 30/15 blokweek; Sprint 6x30s onderhoud;
+  Duur 90 met 3x3 sprints. Experimenteel: VO2max 5x5 snelle start, 4x4
+  aflopend en 5x5 wisselend.
+- **Korte herhalingen in een blok.** `WorkoutBlock.onOff` (aan/uit in
+  seconden plus een uit-doel): één blok van 9 minuten is 12 x 30/15. Gaat als
+  losse stappen naar intervals.icu (workout_doc en tekst), telt mee in
+  belasting en zonetijd met aan- én uit-deel, de uitvoeringsanalyse vergelijkt
+  met het gemiddelde doel, en een event uit intervals.icu vouwt de stappen
+  terug tot één blok. De trainer kan het instellen in de blokeditor (Aan, Uit,
+  Doel uit). De AI kan het ook (onSeconds/offSeconds/offTarget) en kan nu
+  bursts schrijven (burstSeconds).
+- **Protocollen.** Blokweek drempel en Blokweek 30/15 (matig bewijs,
+  veelbelovend; groep "Blokweek") met een aiHint die de sessies plant; Brain
+  endurance training (beperkt bewijs, experimenteel; geen aiHint, het is geen
+  fietsblok).
+- **AI-regels** (`defaultTrainingPrompt`): sprintonderhoud in een week met
+  minder dan de helft van de gewone tijd of in een periode "rustig" (daar mag
+  nu één korte sprintsessie, telt niet als sleutelsessie); sprints in één
+  rustige rit per week na het laatste A- of B-mikpunt van het seizoen; hooguit
+  één op de drie VO2max-sessies met snelle start, aflopend of wisselend
+  vermogen. Blokken met `onSeconds` vallen niet onder de grens van 8 minuten
+  boven 100% FTP.
+- **Kennisbank trainen**: Blokweken, VO2max met wisselend vermogen, Sprints
+  als onderhoud, Brain endurance training, Trainen met bloedstroombeperking.
+  De bron Rønnestad 2025 verhuisde van `training-library.ts` naar
+  `protocols/training.ts`.
+- `/hulp#protocollen`: blok "Veelbelovend en experimenteel", plus zoekwoorden.
+
+**Bewust niet gebouwd.**
+- REHIT (2 x 20 seconden): getest bij ongetrainden, en zo'n sessie heet in het
+  schema "Herstel" omdat het kernwerk korter is dan vijf minuten.
+- BFR als protocol of workout: alleen een artikel, met het advies het met een
+  fysiotherapeut of sportarts te doen.
+- Een Stroop-taak in de app voor brain endurance training: het protocol
+  verwijst naar een taak op telefoon of computer.
+- Een label voor eigen bibliotheekworkouts van trainers: alleen de
+  standaardset heeft er een.
+
+**Controle.** `tsc` schoon op de bekende fouten na (`read-barcode.ts`,
+`gopher-image-ocr.ts`); `eslint` schoon op de gewijzigde bestanden. Nieuwe tests
+`workout-on-off.test.ts` en `workout-method-labels-migration.test.ts` (0246 in
+PGlite bovenop 0106-0227). De hele unitsuite: alles groen, op drie na die in de
+volle run time-outs gaven of `.env.local` misten en los wel slaagden
+(`omnium-live` heeft `.env.local` nodig en is los niet gedraaid).
+
+**Niet geverifieerd.**
+- 0246 is niet op productie toegepast. Zonder de kolom faalt het pushen naar
+  intervals.icu (`pushWorkoutToIntervals` selecteert `method_label`) en het
+  invoegen uit de bibliotheek. **Eerst de migratie, dan deployen.**
+- De pagina's zijn niet in de browser bekeken (ingelogd), en de AI-uitvoer met
+  het nieuwe schema (methodLabel, onSeconds, burstSeconds) is niet tegen
+  OpenAI gedraaid.
+- Hoe intervals.icu de tekstvorm "12x" in de beschrijving toont; de FIT-export
+  loopt via workout_doc met platte stappen.
+
 ### Onderzocht — veelbelovende trainingsmethodes, met label "experimenteel"
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
@@ -9549,14 +9629,13 @@ maar de app moet dat dan zeggen.
   en trainen met bloedstroombeperking.
 - **Niet bouwen:** ischemische preconditionering (niet beter dan placebo),
   "double threshold" met lactaatmeter (geen fietsstudies), trillingen.
-- Voorstel: `experimenteel` als vierde waarde naast `sterk`, `matig` en
-  `beperkt` in `PROTOCOL_EVIDENCE` (`src/lib/protocols/types.ts`), zodat een lid
-  het verschil ziet tussen "weinig onderzoek" en "effect niet aangetoond".
+- Voorstel: `experimenteel` als vierde waarde in `PROTOCOL_EVIDENCE`. *Bij het
+  bouwen anders gedaan: een apart label `methodLabel`, zie de ronde hierboven.*
 
-**Bewust niet gebouwd.** Nog niets: de eigenaar kiest eerst welke methodes in
-de app komen. BFR en ischemische preconditionering worden ook dan geen
-protocol (banden en gemeten afsluitdruk nodig, hogere bloeddruk; geen effect
-boven placebo).
+**Bewust niet gebouwd.** In deze ronde nog niets; alles wat veelbelovend of
+experimenteel heette is dezelfde dag gebouwd (zie de ronde hierboven). BFR en
+ischemische preconditionering kregen geen protocol (banden en gemeten
+afsluitdruk nodig, hogere bloeddruk; geen effect boven placebo).
 
 **Niet geverifieerd.** Alleen samenvattingen gelezen, via PubMed en Consensus.
 De DOI's zijn niet in Crossref nagelopen en de studieopzet niet uit de volledige

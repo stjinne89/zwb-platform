@@ -105,20 +105,38 @@ type PlannedSecond = {
   label: string;
 };
 
+/**
+ * Bij een 30/15-serie is het gemiddelde over aan én uit het doel waar het
+ * gemeten gemiddelde tegenover staat, niet het aan-doel alleen.
+ */
+function onOffMeanPct(block: WorkoutBlock, onPct: number, ftp: number | null): number {
+  if (!block.onOff) return onPct;
+  const offRange = powerRangePercentForBlock(
+    { label: block.label, durationMinutes: block.durationMinutes, target: block.onOff.offTarget, notes: "", intensity: "recovery" },
+    ftp,
+  );
+  const offPct = offRange ? (offRange[0] + offRange[1]) / 2 : onPct;
+  const { onSeconds, offSeconds } = block.onOff;
+  return (onPct * onSeconds + offPct * offSeconds) / (onSeconds + offSeconds);
+}
+
 /** Het schema als tijdlijn in seconden, met het doel per blok. */
 export function plannedTimeline(blocks: WorkoutBlock[], ftp: number | null): PlannedSecond[] {
   let at = 0;
   return blocks.map((block) => {
     const seconds = Math.max(0, Math.round(block.durationMinutes * 60));
     const range = powerRangePercentForBlock(block, ftp);
-    const mid = range ? (range[0] + range[1]) / 2 : null;
+    const mid = range ? onOffMeanPct(block, (range[0] + range[1]) / 2, ftp) : null;
     const item = {
       start: at,
       end: at + seconds,
       targetWatts: mid !== null && ftp ? Math.round((mid * ftp) / 100) : null,
       work: mid !== null && mid >= WORK_BLOCK_PCT && block.durationMinutes <= MAX_REP_MINUTES,
       steady:
-        range !== null && range[1] - range[0] <= STEADY_MAX_RANGE_PCT && !block.burstSeconds && block.intensity !== "rest",
+        range !== null && range[1] - range[0] <= STEADY_MAX_RANGE_PCT &&
+        !block.burstSeconds &&
+        !block.onOff &&
+        block.intensity !== "rest",
       label: block.label,
     };
     at += seconds;
