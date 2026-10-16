@@ -1493,6 +1493,29 @@ export default function HelpPage() {
               dezelfde periode een jaar eerder.
             </span>
           </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Met intervals.icu komt er meer
+              bij.</strong> intervals.icu kent je hele vermogensmeting, ook van
+              ritten die via Strava binnenkwamen. Daaruit tonen we
+              Piekvermogen (je beste 5 seconden, 1, 5 en 20 minuten per maand of
+              jaar), CP en W&prime; (je kritisch vermogen en je anaerobe reserve,
+              per periode berekend uit je beste inspanningen tussen 2 en 20
+              minuten), eFTP en gewicht, en je powercurve per jaar over elkaar.
+              W/kg rekent met je gewicht van toen. Een week is voor deze tegels
+              te kort; per week tonen ze maanden. Zonder koppeling staan ze bij
+              Tegels aanpassen op slot.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Een maand zonder harde inspanningen tussen 2 en 20 minuten heeft
+              geen geloofwaardige CP en W&prime;. Die blijft leeg in plaats van
+              een dip te tonen die er niet was.
+            </span>
+          </li>
         </ul>
 
         <div className="mt-4">

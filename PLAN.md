@@ -150,6 +150,73 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
+> **Mijn statistieken, ronde 2: piekvermogen, CP en W′, eFTP en de powercurve per jaar uit intervals.icu, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar wilde intervals.icu "uitmelken", met W′ door de jaren
+> als voorbeeld. Strava bewaart per rit alleen samenvattingen (ronde 1). Maar
+> intervals.icu rekent per datumbereik de beste curve uit over alle ritten, ook
+> die via Strava binnenkwamen. Dus elk lid met een koppeling krijgt hier zijn
+> piekvermogen en CP/W′ door de tijd.
+>
+> **Wat.**
+> - `fetchIntervalsPowerCurveRanges` (`src/lib/intervals/client.ts`): powercurves
+>   voor een reeks `r.<van>.<tot>`-bereiken, twaalf per aanroep (dezelfde
+>   kommalijst als de vermoeide curves), na elkaar. `parsePowerCurveList` houdt
+>   elke curve uit `list` apart, op `id` en anders op volgorde. Een mislukte
+>   aanroep laat alleen die periodes leeg.
+> - `src/lib/stats/curves.ts` (puur):
+>   - `compactCurve`: terug naar 32 vaste duren (1 s tot 5 u), het dichtstbijzijnde
+>     punt binnen 10%. `wattsAtDuration` bleek ongeschikt: die heeft minstens 3 s
+>     marge, waardoor 2 en 3 s de 5 s-waarde kregen (door de test gevonden).
+>   - `peakSeries`.
+>   - `cpSeries`: `fitCpWPrime` uit `src/lib/pacing/cp.ts` per periode, 2 tot
+>     20 min. Een fit buiten de grenzen blijft leeg.
+>   - `eftpSeries`: de laatste eFTP en het gemiddelde gewicht per periode.
+> - Cache:
+>   - `loadPeriodCurves` (`stats/ik/_data.ts`): `unstable_cache` van zes uur per
+>     lid en bereikset. De API-key zoekt de cache zelf op met de admin-client,
+>     zodat hij niet in de cachesleutel staat. Komt er niets terug, dan gooit de
+>     loader een fout, zodat een storing niet zes uur onthouden wordt.
+>   - `loadPeriodCurvesOnce` en `loadStatsWellness` (React `cache`): tegels die
+>     dezelfde data lezen, vragen die één keer per weergave.
+> - Vier tegels met bron intervals (op slot zonder koppeling):
+>   - Piekvermogen: per duur te kiezen, watt of W/kg met het gewicht van toen
+>     uit de curve. Standaard aan.
+>   - CP en W′: W′ in kJ op de rechteras. Standaard aan.
+>   - eFTP en gewicht: uit wellness. Standaard uit.
+>   - Powercurve per jaar: hooguit vijf jaar, log-as, eigen
+>     `year-curves-chart.tsx`. Standaard uit.
+> - Per week tellen deze tegels per maand (`curveGranularity`): 52 curves per jaar
+>   zijn te veel vragen, en een week heeft te weinig harde ritten. Ook de
+>   Fitheid-tegel leest nu via `loadStatsWellness`.
+> - Uitleg aangevuld op `/hulp#mijn-statistieken`.
+>
+> **Bewust niet gebouwd.**
+> - `PowerCurveChart` hergebruiken voor de jaarcurves: die is gebouwd rond de
+>   vergelijking met clubleden (clubmediaan, renner-type, vermoeide curves). Een
+>   jaar is geen renner.
+> - De CP en W′ uit intervals' eigen `powerModels`: niet in de API-spec van de
+>   curve bevestigd. De eigen fit is dezelfde die het pacingplan gebruikt.
+> - Een tabel voor de curves: zes uur cache volstaat. Een afgesloten maand
+>   verandert niet.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon. Nieuw `stats-curves.test.ts`
+> (8): de lijstparser, bereiken afgekapt op vandaag, `compactCurve`, pieken, CP
+> en W′ teruggevonden uit een modelcurve, eFTP en gewicht per maand. De vier
+> grafieken bekeken op de tijdelijke voorbeeldpagina met verzonnen curves.
+>
+> **Niet geverifieerd.**
+> - Of intervals.icu twaalf `r.`-bereiken in één aanroep accepteert, en of
+>   `list[].id` het bereik teruggeeft. De kommalijst werkt voor de vermoeide
+>   curves en het `r.`-formaat voor één dag (11 september). De combinatie is niet
+>   tegen de echte API gedraaid, want er is lokaal geen API-key. Gaat het mis,
+>   dan blijven de tegels leeg met "intervals.icu gaf nu geen antwoord".
+> - Hoe lang de eerste weergave duurt bij "Alles" per maand: tien jaar is tien
+>   aanroepen, daarna zes uur uit de cache.
+
+---
+
 > **Mijn statistieken (Stats → Ik), ronde 1: eigen ritgeschiedenis met zelfgekozen tegels, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Migratie `0241_profile_stats_tiles.sql` (niet toegepast).**
 > Commit: de commit die dit blok toevoegt.
 >

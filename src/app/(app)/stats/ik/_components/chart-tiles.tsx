@@ -190,3 +190,123 @@ export function YearChart({ lines }: { lines: YearLineData[] }) {
     />
   );
 }
+
+// ── Intervals-tegels ──────────────────────────────────────────────────────
+
+const PEAK_LABELS = ["5 s", "1 min", "5 min", "20 min"] as const;
+
+export type PeakChartPoint = {
+  label: string;
+  title: string;
+  watts: Array<number | null>;
+  wattsPerKg: Array<number | null>;
+};
+
+type PeakUnit = "w" | "wkg";
+
+/** Beste vermogen per duur per periode; één duur tegelijk, anders drukt de sprint alles plat. */
+export function PeakChart({ points }: { points: PeakChartPoint[] }) {
+  const [duration, setDuration] = useState("3");
+  const [unit, setUnit] = useState<PeakUnit>("w");
+  const index = Number(duration);
+  const hasWkg = points.some((point) => point.wattsPerKg.some((value) => value != null));
+  const values = points.map((point) => (unit === "wkg" ? point.wattsPerKg[index] : point.watts[index]));
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        <Toggle
+          label="Duur"
+          options={PEAK_LABELS.map((label, i) => ({ key: String(i), label }))}
+          value={duration}
+          onChange={setDuration}
+        />
+        {hasWkg && (
+          <Toggle
+            label="Eenheid"
+            options={[
+              { key: "w", label: "Watt" },
+              { key: "wkg", label: "W/kg" },
+            ]}
+            value={unit}
+            onChange={(value) => setUnit(value as PeakUnit)}
+          />
+        )}
+      </div>
+      <PeriodChart
+        ariaLabel={`Beste ${PEAK_LABELS[index]} per periode`}
+        labels={points.map((point) => point.label)}
+        titles={points.map((point) => point.title)}
+        zeroBased={false}
+        series={[
+          {
+            key: "peak",
+            label: `Beste ${PEAK_LABELS[index]}`,
+            color: "var(--chart-1)",
+            kind: "line",
+            values,
+          },
+        ]}
+        format={(value) => (unit === "wkg" ? `${nl(value, 1)}` : `${nl(value)} W`)}
+      />
+    </div>
+  );
+}
+
+export type CpChartPoint = { label: string; title: string; cpWatts: number | null; wPrimeKj: number | null };
+
+export function CpChart({ points }: { points: CpChartPoint[] }) {
+  return (
+    <PeriodChart
+      ariaLabel="CP en W′ per periode"
+      labels={points.map((point) => point.label)}
+      titles={points.map((point) => point.title)}
+      zeroBased={false}
+      series={[
+        { key: "cp", label: "CP", color: "var(--chart-1)", kind: "line", values: points.map((p) => p.cpWatts) },
+        { key: "wp", label: "W′ (kJ)", color: "var(--chart-2)", kind: "line", axis: "right", values: points.map((p) => p.wPrimeKj) },
+      ]}
+      format={(value) => `${nl(value)} W`}
+      formatRight={(value) => `${nl(value, 1)} kJ`}
+    />
+  );
+}
+
+export type EftpChartPoint = { label: string; title: string; eftp: number | null; weightKg: number | null; wkg: number | null };
+
+export function EftpChart({ points }: { points: EftpChartPoint[] }) {
+  const [unit, setUnit] = useState<PeakUnit>("w");
+  const hasWkg = points.some((point) => point.wkg != null);
+  return (
+    <div className="space-y-3">
+      {hasWkg && (
+        <Toggle
+          label="Eenheid"
+          options={[
+            { key: "w", label: "Watt" },
+            { key: "wkg", label: "W/kg" },
+          ]}
+          value={unit}
+          onChange={(value) => setUnit(value as PeakUnit)}
+        />
+      )}
+      <PeriodChart
+        ariaLabel="eFTP en gewicht per periode"
+        labels={points.map((point) => point.label)}
+        titles={points.map((point) => point.title)}
+        zeroBased={false}
+        series={[
+          {
+            key: "eftp",
+            label: unit === "wkg" ? "eFTP (W/kg)" : "eFTP",
+            color: "var(--chart-1)",
+            kind: "line",
+            values: points.map((p) => (unit === "wkg" ? p.wkg : p.eftp)),
+          },
+          { key: "kg", label: "Gewicht", color: "var(--chart-2)", kind: "line", axis: "right", values: points.map((p) => p.weightKg) },
+        ]}
+        format={(value) => (unit === "wkg" ? nl(value, 2) : `${nl(value)} W`)}
+        formatRight={(value) => `${nl(value, 1)} kg`}
+      />
+    </div>
+  );
+}

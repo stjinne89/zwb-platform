@@ -28,6 +28,10 @@ export const STATS_TILES = [
   { id: "kalender", title: "Kalender", source: "strava", width: "full", defaultVisible: false },
   { id: "discipline", title: "Disciplines", source: "strava", width: "half", defaultVisible: false },
   { id: "records", title: "Records", source: "strava", width: "half", defaultVisible: true },
+  { id: "piekvermogen", title: "Piekvermogen", source: "intervals", width: "full", defaultVisible: true },
+  { id: "cp-wprime", title: "CP en W′", source: "intervals", width: "half", defaultVisible: true },
+  { id: "eftp-gewicht", title: "eFTP en gewicht", source: "intervals", width: "half", defaultVisible: false },
+  { id: "curve-per-jaar", title: "Powercurve per jaar", source: "intervals", width: "full", defaultVisible: false },
   { id: "ritten", title: "Ritten", source: "strava", width: "full", defaultVisible: true },
 ] as const satisfies readonly TileDef[];
 

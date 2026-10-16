@@ -1,4 +1,13 @@
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  fetchIntervalsPowerCurveRanges,
+  fetchIntervalsWellness,
+  type IntervalsWellness,
+} from "@/lib/intervals/client";
+import { compactCurve, type CompactPoint } from "@/lib/stats/curves";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { PERSONAL_RIDE_COLUMNS, type PersonalRideRow } from "@/lib/stats/personal";
 
@@ -53,3 +62,41 @@ export async function loadStatsConnection(
     .maybeSingle();
   return data?.api_key && data.athlete_id ? (data as StatsConnection) : null;
 }
+
+/**
+ * Wellness van intervals.icu, één keer per weergave: Fitheid en eFTP lezen
+ * dezelfde reeks.
+ */
+export const loadStatsWellness = cache(
+  async (apiKey: string, athleteId: string, days: number): Promise<IntervalsWellness[] | null> =>
+    fetchIntervalsWellness(apiKey, athleteId, Math.min(3650, Math.max(1, days))).catch(() => null),
+);
+
+/**
+ * Powercurves per periode, zes uur gedeeld tussen weergaven: een afgesloten maand
+ * verandert niet meer, en elke weergave opnieuw tien vragen aan intervals.icu
+ * maakt de pagina traag. De sleutel is het lid plus de bereiken; de API-key
+ * zoekt de cache zelf op, zodat hij niet in de cachesleutel staat.
+ */
+export const loadPeriodCurves = unstable_cache(
+  async (profileId: string, ranges: string[]): Promise<Record<string, CompactPoint[]>> => {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("intervals_connections")
+      .select("athlete_id, api_key")
+      .eq("profile_id", profileId)
+      .maybeSingle();
+    if (!data?.api_key || !data.athlete_id) return {};
+    const curves = await fetchIntervalsPowerCurveRanges(data.api_key, data.athlete_id, ranges);
+    // Niets terug is eerder een storing dan geen ritten: niet zes uur onthouden.
+    if (curves.size === 0 && ranges.length > 0) throw new Error("intervals.icu gaf geen curves.");
+    return Object.fromEntries([...curves].map(([range, points]) => [range, compactCurve(points)]));
+  },
+  ["stats-ik-period-curves", "v1"],
+  { revalidate: 6 * 60 * 60 },
+);
+
+/** Piekvermogen en CP/W′ vragen dezelfde bereiken: één keer per weergave. */
+export const loadPeriodCurvesOnce = cache((profileId: string, rangesKey: string) =>
+  loadPeriodCurves(profileId, rangesKey ? rangesKey.split(",") : []),
+);

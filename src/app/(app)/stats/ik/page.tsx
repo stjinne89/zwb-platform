@@ -82,6 +82,7 @@ export default async function MyStatsPage({ searchParams }: { searchParams: Prom
   };
 
   const context: TileContext = {
+    profileId: user.id,
     per,
     range,
     today,
