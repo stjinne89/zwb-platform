@@ -4,7 +4,7 @@
 -- renners hun test ~5 % lager (Tramontin e.a. 2021). Zie
 -- docs/wetenschappelijke-toets.md, 1B.
 --
--- Alleen de meegeleverde rij; eigen kopieën van een trainer blijven van hem.
+-- Alleen de meegeleverde rij; eigen kopieën van een trainer blijven van de trainer.
 -- Al ingeplande tests houden hun eigen structuur.
 
 update public.training_workout_templates

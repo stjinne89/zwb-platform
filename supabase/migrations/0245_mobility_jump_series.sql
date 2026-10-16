@@ -12,8 +12,8 @@
 -- niet uit zichzelf voorgesteld en niet geteld voor de rust tussen
 -- krachtsessies. Figuur, spiergroepen en materiaal staan in de code.
 --
--- Niet lokaal tegen Supabase gedraaid; tests/unit/mobility-strength-migration.test.ts
--- draait hem in PGlite bovenop 0109–0232.
+-- Toegepast via de Supabase-connector op 2026-10-16 en nagekeken;
+-- tests/unit/mobility-strength-migration.test.ts draait hem in PGlite bovenop 0109–0232.
 
 insert into public.mobility_exercises
   (slug, title, category, region, cue_md, illustration_slug,

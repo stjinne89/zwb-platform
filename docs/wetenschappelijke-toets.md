@@ -16,7 +16,7 @@ uitgevoerd. Per fase staat in `PLAN.md` een ronde "wetenschappelijke toets".
 | 6 | Rit-fysica binnen de metingen; CORE-sensor met vier validatiestudies; DOI-links op /hulp; privacy ongewijzigd. | — |
 
 **Nog open:**
-- Migraties 0244 en 0245 op productie.
+- ~~Migraties 0244 en 0245 op productie~~: toegepast en nagekeken via de Supabase-connector, 2026-10-16.
 - De voedingspagina, de sprongfiguur en de Duurtest-reeks in de browser bekijken.
 - Of de AI de nieuwe promptregels volgt (Duurtest, kracht op de fiets,
   overbelasting, tijdrit); dat blijkt uit nieuwe schema's en plannen.
@@ -222,7 +222,7 @@ TSB-drempels per lid fitten: met de onzekerheid uit Hellard levert dat schijnpre
 ### 1B. FTP-test — uitgevoerd 2026-10-16
 
 Wat er is gebouwd, staat in `PLAN.md` (ronde "wetenschappelijke toets 1B").
-Alle vijf punten zijn uitgevoerd; migratie `0244` moet nog op productie.
+Alle vijf punten zijn uitgevoerd; migratie `0244` staat sinds 2026-10-16 op productie.
 
 **Wat de app doet.** Ramptest (stappen van ~20 W per minuut) → 75 % van de
 hoogste minuut. 20-minutentest → 95 % van het gemiddelde. Na acht weken stelt de
@@ -1179,7 +1179,7 @@ Na fase 6 is elke regel uit het claimregister getoetst. Voorstel:
   veranderd.
 - Punt 7 verhuist in `PLAN.md` van de actieve lijst naar de opgeleverde lijst.
 - Wat nog openstaat, wordt apart genoemd:
-  - migraties 0244 en 0245 op productie;
+  - migraties 0244 en 0245 op productie (gedaan, 2026-10-16);
   - de nieuwe sprongfiguur en de voedingspagina in de browser;
   - het idee van een persoonlijke W′-tijdconstante, voor het plannenboek.
 

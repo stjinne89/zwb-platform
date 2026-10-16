@@ -152,10 +152,10 @@ gaat stabiliteit voor nieuwe features.
    het besluit ligt bij de eigenaar.
 7. **Na de wetenschappelijke toets** (afgerond 2026-10-16; zie de rondes
    "wetenschappelijke toets" hieronder):
-   - Migraties `0244_workout_library_ftp20_warmup` (warming-up in de FTP-test)
-     en `0245_mobility_jump_series` (springserie) op productie zetten. Ze
-     heetten op de branch 0241 en 0242 en zijn bij het samenvoegen met main
-     hernummerd, omdat main die nummers al gebruikte.
+   - Migraties `0244_workout_library_ftp20_warmup` en `0245_mobility_jump_series`
+     staan op productie (via de Supabase-connector, 2026-10-16) en zijn
+     nagekeken. Ze heetten op de branch 0241 en 0242 en zijn bij het
+     samenvoegen met main hernummerd, omdat main die nummers al gebruikte.
    - De voedingspagina, de sprongfiguur en de Duurtest-reeks in de browser
      bekijken.
    - Volgen of de AI de nieuwe regels volgt: Duurtest, kracht op de fiets,
@@ -9962,7 +9962,9 @@ rekenen pas opnieuw als ze worden herrekend.
 ### Opgeleverd — wetenschappelijke toets fase 4: kracht, core en mobiliteit
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
-`0245_mobility_jump_series.sql` (**nog niet op productie**; getest in PGlite).
+`0245_mobility_jump_series.sql` (toegepast via de Supabase-connector,
+2026-10-16; nagekeken: serie `springen` met `countermovement-jump`, 5 × 10, 30 s
+rust, 16 standaard-krachtoefeningen).
 Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md),
 fase 4, en [`docs/kracht-literatuur.md`](docs/kracht-literatuur.md).
 Goedgekeurd door de eigenaar: "alles ja en ook een protocol van 10 weken".
@@ -10011,7 +10013,6 @@ core-sessies per week uit de literatuur komen.
   past niet in de rotatie van core en kracht. Het lid kiest haar zelf.
 
 **Niet geverifieerd.**
-- Migratie 0245 op productie.
 - De figuur van de sprong in de browser.
 - Of de AI het protocol netjes als buitensessie inplant.
 - Kracht op de fiets op een smart trainer is nergens onderzocht.
@@ -10232,8 +10233,10 @@ cautions. Dat vraagt echte generaties, en die kosten geld.
 ### Opgeleverd — wetenschappelijke toets 1B: de FTP-test getoetst
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
-`0244_workout_library_ftp20_warmup.sql` (**nog toe te passen door de
-eigenaar**; lokaal alleen met PGlite getoetst). Onderbouwing:
+`0244_workout_library_ftp20_warmup.sql` (toegepast via de Supabase-connector,
+2026-10-16; nagekeken: de standaardrij van de 20-minutentest heeft Inrijden 15 ·
+Versnellingen 5 · Rustig 5 · Test 20 · Uitrijden 15, samen 60 minuten, gelijk aan
+de code). Onderbouwing:
 [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md), 1B.
 
 **Waarom.**
