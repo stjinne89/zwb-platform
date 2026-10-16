@@ -9877,6 +9877,60 @@ typen (bijv. zoeken), het toetsenbord sluiten, naar de kalender gaan en scrollen
 Werkt het niet, dan is de volgende stap meten wat `innerHeight`,
 `visualViewport.height` en `offsetTop` in die toestand teruggeven.
 
+### Opgeleverd — Darmtraining 150: vervolgprotocol naar 150 g koolhydraten per uur
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie: de
+protocollen staan in code en `member_protocols` accepteert elke slug.
+
+**Waarom.** De eigenaar las over 150 g/u en vroeg of daar een basis voor is en of
+er een gewenningsprotocol van te maken valt. Uitkomst van de literatuurcheck
+(alle bronnen in PubMed, details in
+[`docs/protocollen-onderzoek.md`](docs/protocollen-onderzoek.md), Voeden):
+- Gecontroleerd onderzoek gaat tot 120 g/u; 150 g/u is nooit getest.
+- Wat je inneemt, verbrand je hooguit tot ongeveer 100 g/u.
+- De nieuwste review houdt 120 g/u aan als bovengrens voor getrainde renners.
+- Darmtraining werkt, maar is getest tot 90 g/u.
+
+Mijn advies was op 120 te blijven (optie A). De eigenaar koos optie B: een
+vervolg naar 150, met beperkt bewijs en duidelijke grenzen.
+
+**Wat er is gekomen.**
+- **Protocol `darmtraining-150`** ("Doorbouwen naar 150 gram per uur"), in
+  `src/lib/protocols/nutrition.ts`:
+  - drie weken met 130, 140 en 150 g/u;
+  - twee ritten van minstens drie uur per week;
+  - bewijs "beperkt".
+- **Stopregel**: bij klachten een week terug, en komen ze terug, dan is 120 het
+  plafond.
+- **Niet voor** wie 120 g/u nog niet zonder klachten haalt, en niet voor ritten
+  korter dan drie uur.
+- **Beperkingen**: niet getest, het oxidatieplafond, geen aangetoonde winst, en
+  darmtraining is alleen onderzocht tot 90 g/u.
+- **Darmtraining (60 → 120) krijgt de studies zelf als bron**: Costa 2017,
+  Miall 2018 en de review Martinez 2023.
+- **Kennisartikelen**:
+  - "Darmtraining" noemt het effect (bij hardlopers ongeveer de helft minder
+    klachten) en het vervolgprotocol. Het krijgt ook King 2022 als bron: geen
+    extra prestatiewinst bij topsporters.
+  - "Koolhydraten tijdens de rit" zegt waarom boven 120 g/u niet als advies
+    geldt. Ravikanti 2025 is erbij gekomen, en Wilson 2025 is nu een constante
+    met een DOI-link.
+- **/hulp en zoekwoorden** noemen het vervolg.
+- **Test** in `tests/unit/protocols.test.ts`: het vervolg begint boven het eind
+  van darmtraining en heeft beperkt bewijs.
+
+**Bewust niet.**
+- Darmtraining zelf verlengen. Een lopend protocol zou dan langer worden, en het
+  vervolg moet een bewuste keuze zijn.
+- De doelen in `src/lib/nutrition/targets.ts` boven 120 g/u laten gaan. Het
+  advies in de app blijft maximaal 120; 150 bestaat alleen als protocol dat je
+  zelf start.
+
+**Niet geverifieerd.** De protocolpagina is niet in de browser bekeken. Lokaal:
+typecheck schoon, de protocoltests groen. In de volle testrun liepen vier tests
+in andere bestanden tegen een time-out; los gedraaid slagen ze. `omnium-live`
+mist `.env.local` in deze worktree.
+
 ### Opgeleverd — wetenschappelijke toets fase 6: overig, en de toets afgerond
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -13522,7 +13576,8 @@ drempel die in de code staat.
   met het gewicht van het lid (zie de ronde "Protocollen"). Geen merken blijft.*
 - **Geparkeerd, voor het plannenboek:** zweettest-calculator, boodschappenlijst,
   darmtrainingsschema. *Het darmtrainingsschema is op 2026-10-14
-  gebouwd als protocol "Darmtraining naar 90 tot 120 gram per uur".*
+  gebouwd als protocol "Darmtraining naar 90 tot 120 gram per uur", en op
+  2026-10-16 kwam er een vervolg naar 150 g/u bij ("Darmtraining 150").*
 
 **Nieuwe privacytekst, geen eigen privacyversie.** Lengte en eigen recepten
 zijn alleen voor het lid zelf zichtbaar. Er gaat niets naar andere leden of

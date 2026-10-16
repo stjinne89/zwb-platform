@@ -3558,7 +3558,7 @@ Fitness-status: Verbeterend`}
             ademspiertraining, een maandelijkse duurtest en kracht op de fiets. Bij voeding staan protocollen voor de wedstrijddag
             (cafeïne, natriumbicarbonaat, nitraat, ijsslush, glycerol,
             koolhydraten laden), voor de opbouw (bèta-alanine, creatine,
-            darmtraining), voor herstel (herstellen na een zware wedstrijd,
+            darmtraining, met een vervolg naar 150 gram per uur), voor herstel (herstellen na een zware wedstrijd,
             kersensap) en voor je gezondheid (vitamine D in de winter, collageen
             bij revalidatie). Elk protocol noemt hoe sterk het bewijs is, wat het
             niet laat zien en de bronnen. Wat geen protocol kreeg, zoals visolie,
