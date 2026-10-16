@@ -136,7 +136,9 @@ function parseGopherJson(data: Record<string, unknown>): GopherPlan {
  * Export Text: per renner naam, kopbeurtvermogen, kopbeurtduur en kitkleuren,
  * gescheiden door tab, komma of pipe, met of zonder kopregel (instellingen op
  * zwiftgopher.com/TTT). Regels zonder vermogen en duur, zoals de kopregel,
- * worden overgeslagen. Een volgnummer vooraan mag.
+ * worden overgeslagen. Een volgnummer vooraan mag. Is de vierde kolom een getal
+ * in plaats van een kleur, dan is dat de IF in procenten (zo zet de herkende
+ * afbeelding hem in het importvak).
  */
 function parseGopherText(text: string): GopherPlan {
   const lines = text
@@ -157,6 +159,7 @@ function parseGopherText(text: string): GopherPlan {
     const watts = positive(cells[1]);
     const duration = seconds(cells[2]);
     if (watts == null && duration == null) continue;
+    const intensityFactor = /^\d+(?:[.,]\d+)?$/.test(cells[3] ?? "") ? positive(cells[3]) : null;
     riders.push({
       order: riders.length + 1,
       name: cleanName(cells[0]),
@@ -167,7 +170,7 @@ function parseGopherText(text: string): GopherPlan {
       power300Watts: null,
       pullWatts: watts ? Math.round(watts) : null,
       pullSeconds: duration ?? 0,
-      intensityFactor: null,
+      intensityFactor,
     });
   }
 

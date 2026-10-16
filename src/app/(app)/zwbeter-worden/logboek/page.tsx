@@ -32,6 +32,7 @@ export default async function LogboekPage() {
 
   const header = (
     <PageHeader
+      className="tg-repeats-nav"
       eyebrow="ZWB Training"
       title="Logboek"
       description="Hoe je je voelt, zodat je schema erop kan meebewegen."

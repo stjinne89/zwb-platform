@@ -19,6 +19,7 @@ export function AvatarMenu({
   avatarUrl,
   showOnMobile = false,
   extraItems = [],
+  beheerPage = false,
 }: {
   displayName: string;
   adminItems: AdminNavItem[];
@@ -28,6 +29,8 @@ export function AvatarMenu({
   showOnMobile?: boolean;
   /** Design "tegels": extra eigen items, zoals Sponsors. */
   extraItems?: Array<{ href: string; label: string }>;
+  /** Design "tegels": één link naar /beheer in plaats van de beheerlijst. */
+  beheerPage?: boolean;
 }) {
   return (
     <DropdownMenu>
@@ -54,6 +57,13 @@ export function AvatarMenu({
             {item.label}
           </DropdownMenuItem>
         ))}
+
+        {beheerPage && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem render={<Link href="/beheer" />}>Beheer</DropdownMenuItem>
+          </>
+        )}
 
         {adminItems.length > 0 && (
           <>

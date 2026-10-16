@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { BackLink, HelpLink } from "@/components/app-ui";
+import { BackLink } from "@/components/app-ui";
 import { NewTeamForm } from "./_form";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
@@ -43,7 +43,6 @@ export default async function NewTeamPage({
       <BackLink href="/teams" label="Teams" />
       <header className="flex items-start justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">Nieuw team</h1>
-        <HelpLink href="/hulp#teambeheer" />
       </header>
       <NewTeamForm
         parentTeams={parentTeams ?? []}

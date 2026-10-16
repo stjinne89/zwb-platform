@@ -93,7 +93,7 @@ export function BadgeVault({
   const totalBadges = badges.length;
 
   return (
-    <section className="rounded-lg border bg-card p-6">
+    <section id="badges" className="scroll-mt-20 rounded-lg border bg-card p-6">
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

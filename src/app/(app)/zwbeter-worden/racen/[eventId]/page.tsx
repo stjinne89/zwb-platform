@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { BackLink, EmptyState, HelpLink, SectionHeader } from "@/components/app-ui";
+import { BackLink, EmptyState, SectionHeader } from "@/components/app-ui";
 import { ResponsiveTable, type ResponsiveColumn } from "@/components/ui/responsive-table";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
@@ -189,7 +189,6 @@ export default async function RaceAnalysisPage({ params }: PageProps) {
             <Link href={`/live/zrl/${event.id}`} className="underline">
               Live-stand
             </Link>
-            <HelpLink href="/hulp#racen" />
           </div>
         </div>
       </div>

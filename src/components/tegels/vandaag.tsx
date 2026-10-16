@@ -62,6 +62,13 @@ export type VandaagEvent = {
   place: "kalender";
 };
 
+/** Wie er nu live rijdt op Samen fietsen. Alleen een tegel als er iemand rijdt. */
+export type VandaagLive = {
+  count: number;
+  /** Bijvoorbeeld "Jij en Anna" of "Anna, Bert, Carla en 2 anderen". */
+  riders: string;
+};
+
 export type VandaagStanding = {
   href: string;
   team: string;
@@ -76,22 +83,22 @@ export function TegelsVandaag({
   workout,
   events,
   standing,
+  live,
 }: {
   weekday: string;
   date: string;
   workout: VandaagWorkout | null;
   events: VandaagEvent[];
   standing: VandaagStanding | null;
+  live: VandaagLive | null;
 }) {
-  const empty = !workout && events.length === 0 && !standing;
+  const empty = !workout && events.length === 0 && !standing && !live;
   return (
     <section className="space-y-4">
-      <header className="flex items-end justify-between gap-4">
+      <header className="tg-repeats-nav">
         <h1 className="tg-display">Vandaag</h1>
-        <p className="pb-1 text-right text-sm lowercase leading-tight text-muted-foreground">
-          {weekday}
-          <br />
-          {date}
+        <p className="text-sm lowercase leading-tight text-muted-foreground">
+          {weekday} {date}
         </p>
       </header>
 
@@ -114,6 +121,18 @@ export function TegelsVandaag({
                 <span className="grid min-h-11 place-items-center bg-[var(--tg-paper)] px-5 text-[0.9375rem] font-bold text-[var(--tg-ink)]">
                   Open
                 </span>
+              </span>
+            </Link>
+          )}
+
+          {live && (
+            // Sage: de club en de mensen, net als Samen fietsen onder Club.
+            <Link href="/samen-fietsen" className="tg-tile tg-club">
+              <span className="tg-tile-small">Samen fietsen · nu</span>
+              <span className="tg-tile-title mt-0.5 line-clamp-3">{live.riders}</span>
+              <span className="tg-tile-num">
+                {live.count}
+                <span className="ml-1.5 text-base font-normal tracking-normal opacity-85">live</span>
               </span>
             </Link>
           )}

@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { HelpLink } from "@/components/app-ui";
 import {
   COMMUNITY_ROLE_META,
   COMMUNITY_ROLES,
@@ -66,7 +65,6 @@ export default async function RechtenPage() {
             Rechten per ledengroep
           </h1>
         </div>
-        <HelpLink href="/hulp#rollenbeheer" />
       </header>
 
       {error && (

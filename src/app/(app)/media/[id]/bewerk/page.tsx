@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { BackLink, HelpLink } from "@/components/app-ui";
+import { BackLink } from "@/components/app-ui";
 import { MediaForm, type MediaInitial } from "../../_components/add-form";
 import type { MediaKind } from "@/lib/media-kinds";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
@@ -57,7 +57,6 @@ export default async function EditMediaPage({
         <h1 className="text-3xl font-semibold tracking-tight">
           Media-item bewerken
         </h1>
-        <HelpLink href="/hulp#mediabeheer" />
       </header>
       <MediaForm initial={initial} />
     </div>

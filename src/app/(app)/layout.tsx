@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import { HeaderHelpLink } from "./_components/header-help-link";
 import Link from "next/link";
-import { CircleHelp, MessagesSquare } from "lucide-react";
+import { MessagesSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { privacyConsentIsCurrent } from "@/lib/privacy";
@@ -14,11 +15,16 @@ import { BackButton } from "./_components/back-button";
 import { NavProgress } from "./_components/nav-progress";
 import { PrivacyConsentDialog } from "./_components/privacy-consent-dialog";
 import { ZwiftIdDialog, type RosterClaim } from "./_components/zwift-id-dialog";
-import { ADMIN_NAV, NAV_GROUPS, filterNavForPermissions } from "./_components/nav-config";
+import {
+  ADMIN_NAV,
+  NAV_GROUPS,
+  beheerCategoriesFor,
+  filterNavForPermissions,
+} from "./_components/nav-config";
 import { TegelsShell } from "./_components/tegels-shell";
 import { DesignSwitch } from "./_components/design-switch";
 import { DESIGN_PREVIEW_PERMISSION, getDesign } from "@/lib/design";
-import { countUnreadThreads } from "@/lib/wie-weet-wat/queries";
+import { countUnreadThreads } from "@/lib/zwbieb/queries";
 
 /**
  * Ongeclaimde ledenlijst-regels die op de naam van dit lid lijken en een
@@ -61,7 +67,7 @@ export default async function AppLayout({
       .eq("id", user.id)
       .single(),
     getRequestAccess(),
-    // Wie weet wat: alleen een icoon als er iets ongelezen is.
+    // ZWBieb: alleen een icoon als er iets ongelezen is.
     countUnreadThreads(supabase, user.id).catch(() => 0),
   ]);
 
@@ -112,40 +118,14 @@ export default async function AppLayout({
               className="inline-flex size-11 items-center justify-center text-muted-foreground transition hover:text-primary"
               iconClassName="size-5"
             />
-            <Link
-              href="/hulp"
+            <HeaderHelpLink
               className="inline-flex size-11 items-center justify-center text-muted-foreground transition hover:text-primary"
-              aria-label="Hulp"
-            >
-              <CircleHelp className="size-5" />
-            </Link>
+              iconClassName="size-5"
+            />
             <AvatarMenu
               displayName={displayName}
-              adminItems={[
-                ...adminItems,
-                // WhatsApp-groepen en Media staan in dit design onder beheer
-                // (besluit eigenaar, 2026-10-12).
-                ...(access.has("community.manage")
-                  ? [
-                      {
-                        type: "link" as const,
-                        href: "/community",
-                        label: "WhatsApp-groepen",
-                        permission: "community.manage" as const,
-                      },
-                    ]
-                  : []),
-                ...(access.has("media.manage")
-                  ? [
-                      {
-                        type: "link" as const,
-                        href: "/media",
-                        label: "Media",
-                        permission: "media.manage" as const,
-                      },
-                    ]
-                  : []),
-              ]}
+              adminItems={[]}
+              beheerPage={beheerCategoriesFor((permission) => access.has(permission)).length > 0}
               avatarUrl={(profile?.avatar_url as string | null) ?? null}
               showOnMobile
               extraItems={[{ href: "/sponsors", label: "Sponsors" }]}
@@ -193,13 +173,10 @@ export default async function AppLayout({
               className="inline-flex rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary"
               iconClassName="size-4"
             />
-            <Link
-              href="/hulp"
-              className="hidden rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary md:inline-flex"
-              aria-label="Hulp"
-            >
-              <CircleHelp className="size-4" />
-            </Link>
+            <HeaderHelpLink
+              className="inline-flex rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary"
+              iconClassName="size-4"
+            />
             <AvatarMenu displayName={displayName} adminItems={adminItems} />
             <ThemeToggle />
             <MobileMenu displayName={displayName} adminItems={adminItems} nodes={navNodes} />
@@ -216,7 +193,7 @@ export default async function AppLayout({
   );
 }
 
-/** Icoon naar de gesprekken van Wie weet wat, alleen bij iets ongelezens. */
+/** Icoon naar de gesprekken van ZWBieb, alleen bij iets ongelezens. */
 function UnreadMessagesLink({
   count,
   className,
@@ -229,7 +206,7 @@ function UnreadMessagesLink({
   if (count <= 0) return null;
   return (
     <Link
-      href="/leden/wie-weet-wat/gesprekken"
+      href="/zwbieb/gesprekken"
       className={`relative ${className}`}
       aria-label={`${count} ongelezen ${count === 1 ? "gesprek" : "gesprekken"}`}
     >

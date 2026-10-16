@@ -3,7 +3,7 @@ import { getDesign } from "@/lib/design";
 import { Activity, ArrowRight, LinkIcon, Plus, Trophy, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { HelpLink, PageHeader } from "@/components/app-ui";
+import { PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { SyncResultsButton } from "./_components/sync-results-button";
 import { loadWtrlSummaries } from "@/lib/teams/wtrl-summary";
@@ -298,7 +298,6 @@ export default async function TeamsPage() {
         title="Teams"
         actions={
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-            <HelpLink href="/hulp#teambeheer" />
             <SyncPowerButton scope="self" />
             {canSyncTeams && (
               <>

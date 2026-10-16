@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { HelpLink } from "@/components/app-ui";
+
 import { componentLabel } from "@/lib/maintenance/component-types";
 import { deleteMyQuote, updateMyQuote } from "../_actions/quotes";
 
@@ -54,7 +54,6 @@ export function MyQuotes({ quotes }: { quotes: MyQuote[] }) {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Mijn citaten
         </h2>
-        <HelpLink href="/voorwaarden" />
       </div>
 
       <ul className="mt-3 space-y-3">

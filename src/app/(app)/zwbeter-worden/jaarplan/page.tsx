@@ -6,7 +6,7 @@
 // lib/training/season-data.ts), en wat er wringt staat op de halte waar het
 // speelt.
 
-import { HelpLink, PageHeader } from "@/components/app-ui";
+import { PageHeader } from "@/components/app-ui";
 import { requireViewer, todayKeyAmsterdam } from "../_data";
 import { loadSeason } from "./_data";
 import { SeasonForms } from "./_components/season-forms";
@@ -23,7 +23,7 @@ export default async function JaarplanPage() {
 
   return (
     <div className="max-w-2xl space-y-4">
-      <PageHeader title="Jaarplan" actions={<HelpLink href="/hulp#blokken" />} />
+      <PageHeader title="Jaarplan" className="tg-repeats-nav" />
 
       <SeasonStand today={season.today} targets={season.targets} plans={season.plans} />
 

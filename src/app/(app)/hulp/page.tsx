@@ -5,6 +5,7 @@ import {
   Bike,
   Cake,
   CalendarDays,
+  ChartNoAxesColumn,
   CheckCircle2,
   CircleHelp,
   Download,
@@ -174,17 +175,17 @@ const GUIDES = [
     ],
   },
   {
-    id: "wie-weet-wat",
+    id: "zwbieb",
     icon: Lightbulb,
-    title: "Wie weet wat",
+    title: "ZWBieb",
     bullets: [
-      "Onder Club → Wie weet wat zie je per onderwerp welke leden er ervaring mee hebben, met hun tips.",
-      "Doe mee via Mijn onderwerpen: kies tot zes onderwerpen en zet er eventueel kort bij waarin precies. Daar stop je ook; je onderwerpen verdwijnen dan, je tips en gesprekken blijven.",
-      "Vraag het aan opent een gesprek met dat lid, alleen voor jullie twee. Je krijgt een melding bij een antwoord, en een icoon bovenin zolang er iets ongelezen is.",
+      "ZWBieb (onder Club) is de bieb van de leden. Onder Kennis zie je per onderwerp wie er ervaring mee heeft, met hun tips. Onder Spullen zie je wie iets wil uitlenen, zoals een fietskoffer, momentsleutel, fietsendrager of camper.",
+      "Doe mee via Mijn ZWBieb: kies tot zes onderwerpen en tot vijftien spullen, met eventueel een korte toelichting. Daar stop je ook; je onderwerpen en spullen verdwijnen dan, je tips en gesprekken blijven.",
+      "Staat jouw onderwerp of spul er niet tussen, typ het dan onder Ander onderwerp of Ander spul. De app laat eerst zien wat er al op lijkt. Je kunt er vijf per dag toevoegen. Kies geen onderwerp over je gezondheid: dat ziet de hele club.",
+      "Vraag het aan opent een gesprek met dat lid, alleen voor jullie twee, ook om iets te lenen. Ophalen, terugbrengen en schade spreken jullie samen af. Je krijgt een melding bij een antwoord, en een icoon bovenin zolang er iets ongelezen is.",
       "Krijg je in een gesprek een antwoord dat de club ook moet weten, kies dan Bewaar als tip. De tip komt op naam van wie het schreef; die krijgt een melding en kan hem aanpassen of verwijderen. Je eigen berichten kun je niet als tip bewaren: dat beslist de ander.",
       "Een tip kan ook bij een event horen: onder Van leden op de eventpagina, samen met tips bij de cols op de route.",
-      "Je tips pas je aan of verwijder je in de lijst of onder Mijn onderwerpen. Het bestuur kan een tip verbergen.",
-      "De onderwerpen staan vast, zodat iedereen onder hetzelfde woord zoekt. Gezondheid zit er bewust niet bij.",
+      "Je tips pas je aan of verwijder je in de lijst of onder Mijn ZWBieb. Het bestuur kan een tip verbergen, en een onderwerp hernoemen of verbergen.",
     ],
   },
   {
@@ -235,7 +236,7 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/teams", name: "Teams", text: "Teams, rosters en ZRL-/Ladder-standen, inclusief de TTT-planner." },
   { href: "/src", name: "Sunday Race Club", text: "Je SRC-team per maand en per zondag wie er kan, per categorie." },
   { href: "/leden", name: "Leden", text: "Ledenlijst met categorie en badges; filter op regio of categorie." },
-  { href: "/achievements", name: "Achievements", text: "Al je badges, de weekstanden van deze en vorige week en het herberekenen van badges." },
+  { href: "/stats/achievements", name: "Achievements", text: "Al je badges, de weekstanden van deze en vorige week en het herberekenen van badges." },
   { href: "/zwbeter-worden", name: "ZWBeter Worden", text: "Schema's, AI-coach, je ZWBeterWorden-advies, belasting en de koppelingen." },
   { href: "/zwbeter-worden/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
   { href: "/zwbeter-worden/racen", name: "ZWBeter racen", text: "Je gereden Zwift-races (ZRL, FRR of via een geplakte link): tips, de ploeg of je eigen race, en je rit uit intervals.icu." },
@@ -246,7 +247,7 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/polls", name: "Polls", text: "Snelle stemmingen vanuit de club." },
   { href: "/materiaal", name: "Vraag & Aanbod", text: "Spullen, hulpvragen en tips uitwisselen." },
   { href: "/media", name: "Media", text: "Nieuws, nieuwsbrieven, podcasts, video's en Instagram." },
-  { href: "/stats", name: "Stats", text: "Clubstatistieken en ranglijsten." },
+  { href: "/stats", name: "Stats", text: "Club: de cijfers en ranglijst van alle leden. Ik: je eigen ritten, vermogen en records." },
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
   { href: "/profiel", name: "Profiel", text: "Je gegevens, zichtbaarheid, je fietsen, koppelingen (Strava/intervals) en account." },
 ];
@@ -534,6 +535,7 @@ const ADMIN_GUIDES = [
       "Kies event en team en klik op Zwift-ID's kopiëren: de ID's van de opstelling, of van het hele team als er nog geen opstelling is, één per regel. Plak ze in het vak Zwift IDs op ZwiftGopher.",
       "Maak het plan in ZwiftGopher af en kies daar Export JSON, Export Link of Export Text. Plak de JSON, de link of de tekst in het importvak, of kies het bestand, en klik op Importeren.",
       "Export JSON en Export Link nemen volgorde, kopbeurt-watts en -duur, Zwift-ID, FTP, gewicht en IF mee. Export Text heeft alleen naam, watts en duur.",
+      "Heb je alleen de afbeelding uit ZwiftGopher (Create Image), bijvoorbeeld uit een groepsapp? Kies hem met Bestand of plak hem in het importvak. De app leest de tabel op je eigen toestel; de afbeelding wordt niet verstuurd. Naam, watts, duur en IF komen dan in het vak: controleer ze voor je op Importeren klikt.",
       "Renners met een ZWB-account worden herkend aan hun Zwift-ID. Teamtags zoals (ZWB) gaan uit de naam.",
       "Opnieuw importeren in een bestaand plan vervangt de renners; publicatie en botlink blijven staan.",
       "Op de pagina van een TTT-race opent de captain het plan of begint een nieuw plan, met team en event al ingevuld.",
@@ -1416,6 +1418,162 @@ export default function HelpPage() {
           >
             <Grid3x3 className="size-4 text-primary" />
             Naar ZWBlokken
+          </Link>
+        </div>
+      </section>
+
+      <section
+        id="mijn-statistieken"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <ChartNoAxesColumn className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Mijn statistieken</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Onder Stats &rarr; Ik staat je eigen ritgeschiedenis: per week,
+              maand of jaar, over de laatste 12 maanden tot alles wat je ooit
+              gekoppeld hebt. Alleen jij ziet deze pagina.
+            </p>
+          </div>
+        </header>
+
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Kies je eigen tegels.</strong>{" "}
+              Met Tegels aanpassen zet je tegels aan of uit en zet je ze in je
+              eigen volgorde. Je keuze geldt op al je apparaten.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Club werkt hetzelfde.</strong>{" "}
+              Onder Stats &rarr; Club staan dezelfde grafieken en een eigen
+              tegelkeuze, opgeteld over alle leden, met ook het aantal actieve
+              leden en de ranglijst (op km, uren of hoogtemeters; je eigen plek
+              staat in goud). Kies bovenin een maand of jaar om de totalen, de
+              ranglijst, disciplines en regio&apos;s op die periode te zetten.
+              De clubcijfers worden elke tien minuten bijgewerkt.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Zo lees je een grafiek.</strong>{" "}
+              Het grote cijfer bovenaan hoort bij de laatste periode; schuif
+              met je vinger of muis over de grafiek en het cijfer loopt mee. Goud
+              is de periode waar je naar kijkt en je beste punt. Een streepje
+              over een staaf is dezelfde periode een jaar eerder, de
+              stippellijn is je gemiddelde, en een gestreepte staaf is een
+              periode die nog loopt.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Alles komt uit je ritten op het platform: via Strava, intervals.icu
+              of je eigen upload. Bij een upload (CSV, GPX of FIT) bewaren we
+              geen vermogen of hartslag, dus die ritten tellen alleen mee voor
+              kilometers, uren en hoogtemeters.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Vermogen</strong> toont per
+              periode je hoogste en je gemiddelde NP (genormaliseerd vermogen)
+              van ritten van minstens twintig minuten met een echte
+              vermogensmeter, met je FTP van dat moment als stippellijn. Strava
+              schat het vermogen van ritten zonder meter; die schatting telt hier
+              niet mee.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Watt per hartslag</strong> is
+              je NP gedeeld door je gemiddelde hartslag. Stijgt die lijn, dan
+              trap je bij dezelfde hartslag meer watt: een teken dat je
+              duurvermogen groeit.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Fitheid</strong> is je CTL
+              (fitheid, gemiddelde belasting over zes weken), ATL (vermoeidheid,
+              over een week) en vorm (het verschil). Heb je intervals.icu
+              gekoppeld, dan zie je de waarden van intervals, die ook ritten
+              zonder vermogensmeter op hartslag meetellen. Zonder koppeling
+              rekenen we ze zelf uit de TSS van je ritten met vermogensmeter.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              De vergelijking met vorig jaar bij Totalen gaat over precies
+              dezelfde periode een jaar eerder.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Met intervals.icu komt er meer
+              bij.</strong> intervals.icu kent je hele vermogensmeting, ook van
+              ritten die via Strava binnenkwamen. Daaruit tonen we
+              Piekvermogen (je beste 5 seconden, 1, 5 en 20 minuten per maand of
+              jaar), CP en W&prime; (je kritisch vermogen en je anaerobe reserve,
+              per periode berekend uit je beste inspanningen tussen 2 en 20
+              minuten), eFTP en gewicht, en je powercurve per jaar over elkaar.
+              W/kg rekent met je gewicht van toen. Een week is voor deze tegels
+              te kort; per week tonen ze maanden. Zonder koppeling staan ze bij
+              Tegels aanpassen op slot.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Tijd per zone, W&prime;bal en
+              duurvermogen</strong> rekent intervals.icu uit je meting per rit.
+              Dat kan alleen bij ritten die rechtstreeks in intervals.icu staan
+              (via Garmin, Wahoo of Zwift); een rit die via Strava binnenkwam
+              heeft die gegevens daar niet. Daarom staat onder de tegel hoeveel
+              ritten meetellen. De zones zijn je eigen zones uit intervals.icu.
+              W&prime;bal toont per periode hoe diep je je anaerobe reserve in
+              één rit leegtrok, met je totale arbeid boven FTP als staven.
+              Duurvermogen is je decoupling (hoeveel je hartslag ten opzichte van
+              je vermogen opliep, alleen ritten van minstens anderhalf uur; lager
+              is beter) naast je efficiency factor.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Herstel</strong> (rust-HR,
+              HRV en slaap door de tijd) zie je alleen als je de herstel-opt-in
+              op ZWBeter Worden aan hebt staan.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Een maand zonder harde inspanningen tussen 2 en 20 minuten heeft
+              geen geloofwaardige CP en W&prime;. Die blijft leeg in plaats van
+              een dip te tonen die er niet was.
+            </span>
+          </li>
+        </ul>
+
+        <div className="mt-4">
+          <Link
+            href="/stats/ik"
+            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+          >
+            <ChartNoAxesColumn className="size-4 text-primary" />
+            Naar Mijn statistieken
           </Link>
         </div>
       </section>

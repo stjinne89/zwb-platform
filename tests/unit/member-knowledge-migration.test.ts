@@ -2,11 +2,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
 
-// 0239 en 0240 tegen een geïsoleerde PostgreSQL. Zegt niets over de productiedatabase,
+// 0239, 0240 en 0242 tegen een geïsoleerde PostgreSQL. Zegt niets over de productiedatabase,
 // wel over wie wat mag: onderwerpen en tips zien goedgekeurde leden, een gesprek
 // alleen de twee deelnemers (ook het bestuur niet), en een lid kan een tip die de
 // moderatie verborg niet zelf terugzetten. Een antwoord uit een gesprek (0240)
-// bewaart alleen de ander als tip, nooit de schrijver zelf.
+// bewaart alleen de ander als tip, nooit de schrijver zelf. Onderwerpen (0242)
+// voegt elk lid toe; alleen de moderatie hernoemt, verbergt of verwijdert.
 
 let db: PGlite;
 const migration = (file: string) => readFile(`supabase/migrations/${file}`, "utf8");
@@ -47,6 +48,7 @@ beforeAll(async () => {
 
   await db.exec(await migration("0239_member_knowledge.sql"));
   await db.exec(await migration("0240_member_tips_from_thread.sql"));
+  await db.exec(await migration("0242_knowledge_topics.sql"));
 
   await db.exec(`
     grant usage on schema auth, public to anon, authenticated, service_role;
@@ -423,6 +425,77 @@ describe("tip uit een gesprek (0240)", () => {
     } finally {
       await db.exec("rollback");
     }
+  });
+});
+
+describe("onderwerpen (0242)", () => {
+  const voegToe = (user: string, slug: string, label: string) =>
+    als(
+      user,
+      `insert into public.knowledge_topics(slug, label, created_by) values ('${slug}', '${label}', '${user}') returning slug, label`,
+    );
+
+  it("start met de vijftien onderwerpen en zes spullen uit code", async () => {
+    expect(await aantal(DERDE, "knowledge_topics")).toBe(21);
+    const spullen = await als<{ count: number }>(
+      DERDE,
+      "select count(*)::int as count from public.knowledge_topics where kind = 'spullen'",
+    );
+    expect(spullen[0].count).toBe(6);
+    expect(await aantal(WACHTEND, "knowledge_topics")).toBe(0);
+  });
+
+  it("laat een lid een onderwerp toevoegen, met de naam zonder spaties eromheen", async () => {
+    expect(await voegToe(DERDE, "tijdrijden", "  Tijdrijden ")).toEqual([{ slug: "tijdrijden", label: "Tijdrijden" }]);
+  });
+
+  it("weigert dezelfde naam twee keer, een wachtend account en een ander als maker", async () => {
+    await expect(voegToe(DERDE, "gravel-2", "gravel en BIKEPACKING")).rejects.toThrow();
+    await expect(voegToe(WACHTEND, "tijdrijden", "Tijdrijden")).rejects.toThrow();
+    await expect(
+      als(DERDE, `insert into public.knowledge_topics(slug, label, created_by) values ('tijdrijden', 'Tijdrijden', '${KENNER}')`),
+    ).rejects.toThrow();
+    await expect(
+      als(DERDE, `insert into public.knowledge_topics(slug, label, created_by, sort_order) values ('tijdrijden', 'Tijdrijden', '${DERDE}', 1)`),
+    ).rejects.toThrow();
+  });
+
+  it("stopt na vijf nieuwe onderwerpen per dag, behalve voor de moderatie", async () => {
+    const vijf = [1, 2, 3, 4, 5].map(
+      (n) => `insert into public.knowledge_topics(slug, label, created_by) values ('nieuw-${n}', 'Nieuw ${n}', '${DERDE}')`,
+    );
+    await expect(
+      alsReeks(DERDE, [...vijf, `insert into public.knowledge_topics(slug, label, created_by) values ('nieuw-6', 'Nieuw 6', '${DERDE}')`], "select 1"),
+    ).rejects.toThrow(/Daglimiet/);
+    const zes = [1, 2, 3, 4, 5, 6].map(
+      (n) => `insert into public.knowledge_topics(slug, label, created_by) values ('mod-${n}', 'Mod ${n}', '${MODERATOR}')`,
+    );
+    expect(await alsReeks(MODERATOR, zes, "select 1 as ok")).toHaveLength(1);
+  });
+
+  it("laat alleen de moderatie hernoemen en verbergen", async () => {
+    expect(
+      await als(DERDE, `update public.knowledge_topics set label = 'Gravel' where slug = 'gravel' returning slug`),
+    ).toHaveLength(0);
+    expect(
+      await als(MODERATOR, `update public.knowledge_topics set label = 'Gravel', status = 'hidden' where slug = 'gravel' returning slug`),
+    ).toHaveLength(1);
+  });
+
+  it("verwijdert een onderwerp alleen als niemand het gebruikt", async () => {
+    await expect(als(MODERATOR, `delete from public.knowledge_topics where slug = 'bergen-cols'`)).rejects.toThrow();
+    expect(
+      await als(MODERATOR, `delete from public.knowledge_topics where slug = 'kleding-weer' returning slug`),
+    ).toHaveLength(1);
+  });
+
+  it("weigert een onderwerp dat niet in de lijst staat", async () => {
+    await expect(
+      db.query(`insert into public.member_knowledge_topics(profile_id, topic_slug) values ($1, 'bestaat-niet')`, [KENNER]),
+    ).rejects.toThrow();
+    await expect(
+      db.query(`insert into public.knowledge_topics(slug, label, kind) values ('boot', 'Boot', 'vervoer')`),
+    ).rejects.toThrow();
   });
 });
 

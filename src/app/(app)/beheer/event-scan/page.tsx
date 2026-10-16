@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { ArrowUpRight, Check, EyeOff, Plus } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { HelpLink, PageHeader } from "@/components/app-ui";
+import { PageHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import type { ExternalEventSource } from "@/lib/events/external-scan";
 import {
@@ -141,7 +141,6 @@ export default async function EventScanPage({ searchParams }: PageProps) {
         title="Eventscan"
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <HelpLink href="/hulp#eventbeheer" />
             <form action={publishClubEventsAction}>
               <ClubCalendarButton />
             </form>

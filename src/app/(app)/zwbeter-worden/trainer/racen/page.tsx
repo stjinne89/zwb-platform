@@ -3,7 +3,7 @@
 // races van het lid; de toegang loopt via de toewijzing (trainerContext).
 
 import Link from "next/link";
-import { EmptyState, HelpLink } from "@/components/app-ui";
+import { EmptyState } from "@/components/app-ui";
 import {
   listRaces,
   loadCalendarPersonalRace,
@@ -74,7 +74,6 @@ export default async function TrainerRacesPage({ searchParams }: SearchParamsPro
       <section className="min-w-0 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-lg font-semibold">{selected.title}</h2>
-          <HelpLink href="/hulp#racen-trainer" />
         </div>
         {tips === null ? (
           <EmptyState>Voor deze race is er geen analyse.</EmptyState>

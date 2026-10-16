@@ -99,10 +99,10 @@ const HELP_INDEX: HelpResult[] = [
     terms: "cols segmenten records pr ranglijst kom qom zwb kom alpe ventoux stelvio",
   },
   {
-    title: "Wie weet wat",
-    text: "Leden met ervaring per onderwerp, hun tips en een vraag stellen in de app.",
-    href: "/hulp#wie-weet-wat",
-    terms: "wie weet wat kennis kenner ervaring onderwerp vraag vragen gesprek bericht berichten tip tips van leden advies hulp gravel bikefit sleutelen banden tubeless zwift racen",
+    title: "ZWBieb",
+    text: "Wie weet wat en wie heeft wat: kennis en uitleenspullen van leden, tips en een vraag stellen in de app.",
+    href: "/hulp#zwbieb",
+    terms: "wie weet wat kennis kenner ervaring onderwerp vraag vragen gesprek bericht berichten tip tips van leden advies hulp gravel bikefit sleutelen banden tubeless zwift racen zwbieb bieb wie heeft wat lenen uitlenen spullen fietskoffer momentsleutel fietsendrager seasucker dakdrager camper werkstandaard",
   },
   {
     title: "Live volgen met Garmin of Wahoo",

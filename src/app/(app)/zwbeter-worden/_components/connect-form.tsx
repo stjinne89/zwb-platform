@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { ClipboardPaste } from "lucide-react";
 import { connectIntervalsWithKey } from "../_actions";
-import { HelpLink } from "@/components/app-ui";
+
 import { Button } from "@/components/ui/button";
 
 export function ConnectIntervalsForm() {
@@ -45,7 +45,6 @@ export function ConnectIntervalsForm() {
     <div className="space-y-4 rounded-2xl border bg-card p-6">
       <div className="flex items-start justify-between gap-3">
         <h2 className="text-lg font-semibold">Koppel intervals.icu</h2>
-        <HelpLink href="/hulp#trainingsruimte" />
       </div>
 
       <div className="space-y-2">

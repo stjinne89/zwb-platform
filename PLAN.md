@@ -62,6 +62,17 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **Tabbalk op de iPhone:** na het pushen in de beginscherm-app iets typen,
+     het toetsenbord sluiten en kijken of de tabbalk onderaan blijft (ronde
+     2026-10-16, "Tabbalk blijft hangen na het toetsenbord").
+   - **Fietsen op het ledenprofiel:** `0243_member_profile_bikes.sql` is op
+     2026-10-16 toegepast via de Supabase-connector, op verzoek van de eigenaar,
+     en daarna gepusht. Nog doen: als ander lid in de app een profiel met
+     fietsen openen.
+   - **Profiel, zoals leden je zien:** na het pushen op `/profiel` tussen
+     "Bewerken" en "Zoals leden je zien" wisselen en vergelijken met wat een
+     ander lid op `/leden/[id]` ziet (ronde 2026-10-16). Niet in de browser
+     bekeken.
    - **Protocollen:** `0237_member_protocols.sql` toepassen (2026-10-14). Zonder
      de tabel tonen de pagina's de protocollen, maar starten lukt niet.
    - **Wie weet wat:** `0239_member_knowledge.sql` is toegepast (eigenaar,
@@ -72,6 +83,21 @@ gaat stabiliteit voor nieuwe features.
    - **Wie weet wat, tip uit een gesprek:** `0240_member_tips_from_thread.sql`
      is toegepast (eigenaar, 2026-10-15), daarna gepusht. Niet nagekeken op
      productie. Bij het doorklikken ook "Bewaar als tip" proberen.
+   - **ZWBieb (eigen onderwerpen, spullen):** `0242_knowledge_topics.sql` is
+     op 2026-10-16 toegepast via de Supabase-connector, op verzoek van de
+     eigenaar, en daarna gepusht. De controlequery was vooraf leeg. Achteraf
+     nagekeken: 21 onderwerpen (6 spullen), RLS aan, 4 policies, 3 foreign
+     keys, de trigger en de unieke naamindex. Niet nagekeken: toevoegen en
+     beheren in de app zelf. De
+     privacy- en voorwaardentekst (spullen, §3a) is goedgekeurd, zonder nieuwe
+     toestemmingsversie (eigenaar, 2026-10-16).
+   - **Mijn statistieken (tegelkeuze):** `0241_profile_stats_tiles.sql`
+     toepassen (2026-10-16). Let op: de migratie kreeg dezelfde dag een tweede
+     kolom `club_tiles` voor de clubpagina; pas de versie van de laatste
+     commit toe. Alle code staat sinds 2026-10-16 op `main`;
+     zonder de tabel tonen `/stats` en `/stats/ik` de standaardtegels, maar
+     "Tegels aanpassen" kan niet opslaan. Daarna één keer ingelogd doorklikken: tegels kiezen en
+     opslaan, en met intervals-koppeling de intervals-tegels bekijken.
    - **CORE-sensor bij hitte:** `0238_member_protocol_core_sessions.sql`
      toepassen, ná `0237` (2026-10-14). **Zonder `0238` lukt het starten van
      elk protocol niet meer**: de app tekent met de nieuwe toestemmingsversie
@@ -146,12 +172,742 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0241`
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0244`
 (`0237_member_protocols` is van de protocollen, `0238_member_protocol_core_sessions`
 van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
-`0240_member_tips_from_thread` van Wie weet wat, 2026-10-15).
+`0240_member_tips_from_thread` van Wie weet wat, 2026-10-15;
+`0241_profile_stats_tiles` van Mijn statistieken, `0242_knowledge_topics` van
+ZWBieb en `0243_member_profile_bikes` van de fietsen op het ledenprofiel, alle
+drie 2026-10-16).
 
 ---
+
+> **Achievements als tab onder Stats, plus een Badges-tegel op Stats → Ik, 2026-10-16 — gebouwd, lokaal getest; niet ingelogd in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-16, `727bd23`). Geen migratie.**
+> Commit: `727bd23`.
+>
+> **Waarom.** Voorstel van de eigenaar. Achievements (ranglijsten, hall of fame)
+> en Stats zijn allebei "prestaties en cijfers" en stonden als twee losse items
+> in het Club-menu en als twee tegels op Club. Nu is het één plek: Stats met de
+> tabs "Club | Ik | Achievements".
+>
+> **Wat.**
+> - De route is verhuisd van `/achievements` naar `/stats/achievements`
+>   (`src/app/(app)/stats/achievements/`, inclusief `_actions.ts` en de
+>   afrondknop). Zo valt hij vanzelf onder het menu-item Stats en de plek Club.
+>   `/achievements` geeft een permanente redirect (`next.config.ts`); de
+>   querystring (`?week=vorige`) gaat mee. Gecontroleerd met de dev-server: 308.
+> - `StatsTabs` heeft een derde tab; de achievementspagina toont de tabbalk en
+>   het kopje "ZWB Stats".
+> - Weg uit het Club-menu (`nav-config.ts`), uit de Club-tegels (`club/page.tsx`)
+>   en als eigen prefix uit `design-places.ts` (`/stats` dekt het).
+> - Links, imports en `revalidatePath` bijgewerkt: dashboard, profiel
+>   (Strava-sectie), hulp, beheer Strava, intervals-ritsync, de Strava-import en
+>   de syncknop.
+> - Nieuwe tegel **Badges** (`badges`, half breed, standaard zichtbaar) in
+>   `src/lib/stats/tiles.ts`: aantal mijlpalen en weekbadges en de zes nieuwste
+>   behaalde badges, met een link "Badge-kast" naar `/profiel#badges` (de
+>   badge-kast heeft daarvoor `id="badges"` gekregen). Data via `loadMyBadges`
+>   (`stats/ik/_data.ts`), met de eigen sessie, dus onder de bestaande RLS van
+>   `achievement_awards`. De tegel kijkt niet naar het gekozen venster: een
+>   badge hoort bij het lid, niet bij een periode. Leden met een opgeslagen
+>   tegelkeuze krijgen hem achteraan (`normalizeLayout`); er is geen migratie
+>   nodig.
+>
+> **Bewust niet gebouwd.**
+> - De volledige badge-kast verhuizen naar Stats: die blijft op het profiel,
+>   waar hij ook voor het publieke profiel wordt gebruikt. De tegel is een
+>   samenvatting met een link.
+> - Club-tegel "Stats" breder maken nu Achievements eruit is: eerst zien hoe
+>   het raster er ingelogd uitziet.
+>
+> **Getest.** ESLint schoon op de gewijzigde mappen. `tsc --noEmit` geeft alleen
+> de bestaande fouten over ontbrekende pakketten in deze worktree (`@zxing/*`,
+> `tesseract.js`), niets uit deze ronde. Vitest: alles groen behalve tests die
+> onder volle belasting een time-out gaven (los gedraaid geslaagd) en
+> `omnium-live`, dat `.env.local` nodig heeft.
+>
+> **Niet geverifieerd.** De drie Stats-tabs, de Badges-tegel en het Club-raster
+> ingelogd in de browser (de dev-server draait tegen productie, dus niet
+> ingelogd door Claude); de tegel met echte badges; de sprong naar
+> `/profiel#badges` bij een lid zonder mijlpaal-badges (dan bestaat de
+> badge-kast niet en blijft de pagina bovenaan).
+
+---
+
+> **TTT Planner: plan lezen uit de afbeelding van ZwiftGopher, op het toestel, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, `eb7f5ef`); in de browser getoetst op een losse proefpagina, niet op de echte planner en niet op een telefoon. Geen migratie.**
+> Commit: `eb7f5ef`.
+>
+> **Waarom.** Vraag van de eigenaar: "Zouden we het ook kunnen bouwen dat hij
+> een afbeelding kan lezen?" Gekozen uit twee routes: tekstherkenning op het
+> toestel (tesseract.js), niet via de AI. Dan verlaat de afbeelding met namen en
+> watts van ploeggenoten, ook zonder ZWB-account, de browser niet, en kost het
+> niets per keer.
+>
+> **Nu.**
+> - In het importvak van `/teams/ttt-planner`: Bestand neemt ook een afbeelding,
+>   en een afbeelding plakken in het vak werkt ook. De app herkent de tabel van
+>   Create Image en zet per renner naam, watt, duur en IF als tabel in het vak,
+>   met "N renners gelezen; controleer de getallen." Pas Importeren slaat op,
+>   via de bestaande tekstimport.
+> - `lib/ttt/gopher-image.ts` (zuiver, getest): de herkende woorden met hun
+>   positie naar renners. Elk getal hoort bij de kolomkop recht erboven (Pull
+>   (W), Duration, IF %), dus een extra kolom zoals Show Pull Speed verschuift
+>   niets. De naam is alles in de kolom Zwift Name; het sokje met de kitkleur
+>   ervoor (herkend als "&", "J)", "JF") valt weg. Zonder herkenbare kopregel
+>   geen renners: dan is niet zeker welk getal de kopbeurt is.
+> - `lib/ttt/gopher-image-ocr.ts`: vergroot naar 3072 px breed, grijstinten,
+>   tesseract in de modus "één blok", pas geladen bij de eerste afbeelding
+>   (dynamische import). tesseract.js 7.0.0 is een nieuwe afhankelijkheid.
+> - Export Text: een getal in de vierde kolom is de IF (in plaats van een
+>   kleur), zodat de herkende tabel zijn IF houdt.
+> - Hulp (`#ttt-beheer`): één regel over de afbeelding.
+>
+> **Gemeten op `TTTplan.png` van de eigenaar (12 oktober, 1024 px).**
+> Op ware grootte las tesseract 290 als 200 en 4.2 als 42. In Node met sharp op
+> 2048 px grijs klopte alles. In de browser op 2048 px klopten de getallen maar
+> werd Stijn "stijin"; op 2560 en 3072 px klopte alles, ruim een halve seconde.
+> Daarna in de browser met de echte module, ongeveer 1 s per afbeelding:
+> het origineel, een JPEG van 700 px op kwaliteit 70 (zoals uit een groepsapp)
+> en een nagemaakte screenshot met rand en tekst erboven. Alle watts, duren en
+> IF's klopten in alle drie; in de screenshot werd Stijn "stiin". Namen kunnen
+> dus fout zijn; daarom eerst in het vak, niet meteen opslaan.
+>
+> **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
+> - De rekenkern en de Engelse taaldata komen bij het eerste gebruik van
+>   jsDelivr (standaard van tesseract.js, vaste versie), niet uit de eigen site:
+>   zo komen er geen ruim 10 MB aan bestanden in de repo. jsDelivr ziet dan het
+>   IP-adres van wie een afbeelding leest; het beeld zelf gaat er niet heen.
+>   `/privacy` noemt jsDelivr niet (Google Fonts ook niet). Zelf hosten kan
+>   later als dat gewenst is.
+> - Renners uit een afbeelding hebben geen Zwift-ID en worden niet op naam aan
+>   leden gekoppeld, net als bij Export Text.
+>
+> **Bewust niet gebouwd.** Herkennen via de AI (de tweede route, afgewezen:
+> privacy en kosten). Een foto van een scherm (scheef, met glans): niet geprobeerd
+> en niet beloofd; de kopregel moet herkenbaar zijn.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon. Nieuw: `ttt-gopher-image.test.ts`
+> (6 tests) op de herkende woorden van de echte afbeelding, met verzonnen namen
+> (`tests/fixtures/ttt/gopher-image-words.json`): renners en IF, vastgeplakt
+> sokje, geen kopregel, extra kolom, door de tekstimport, kleur is geen IF.
+> `npm run build` compileert (tesseract.js als dynamische import) en komt door
+> TypeScript; daarna stopt hij bij het prerenderen van `/omnium` om de
+> ontbrekende `.env.local`, zoals eerder.
+>
+> **Niet geverifieerd.** De planner zelf in de browser (inloggen en database;
+> geen `.env.local` in de worktree), een telefoon (geheugen en snelheid van
+> tesseract op een iPhone), en afbeeldingen met andere instellingen van Create
+> Image dan die van 12 oktober.
+
+---
+
+> **Design tegels: Beheer met categorietegels en een rij per categorie, zoals ZWBeter, 2026-10-16 — gebouwd, unit-tests, typecheck en lint schoon; ingelogd bekeken en goedgekeurd door de eigenaar; gepusht naar `main` (eigenaar, 2026-10-16, `b6e72b6`). Geen migratie.**
+> Commits: `c6a1d5a` (eerste versie) en de commit die dit blok bijwerkt.
+>
+> **Waarom.** Het persoonlijke menu rechtsboven toonde onder Beheer vijftien
+> items onder elkaar; op de telefoon liep het menu bijna van het scherm. Vraag
+> van de eigenaar: Beheer net zo oppakken als Club, met categorieën zoals online
+> racen, app en rechten. De eerste versie (`c6a1d5a`) zette alle schermen als
+> tegels onder groepskoppen op één pagina; de eigenaar wilde het zoals ZWBeter:
+> de categorieën als tegels, de schermen eronder als horizontale rij.
+>
+> **Wat.**
+> - Het menu in het design "tegels" heeft onder een scheiding één item
+>   **Beheer** (naar `/beheer`), alleen als er minstens één beheerscherm voor de
+>   gebruiker is. De losse beheerlijst staat er niet meer.
+> - `BeheerNav` (`_components/beheer-nav.tsx`), zoals `ZwbeterNav`: vier
+>   categorietegels, elk naar het eerste scherm van die categorie; de actieve
+>   is het paneel met de gouden lijn. Daaronder de schermen van de actieve
+>   categorie als `SectionNav`. Geen scherm is de index van die rij, want
+>   ZRL-beheer heeft eigen subpagina's.
+>   - **Online racen** (petrol): ZRL-beheer, FRR-kalender, SRC-kalender, Omnium.
+>   - **Kalender** (petrol): Programma's, Eventscan, Zwift-routes.
+>   - **Community** (sage): WhatsApp-groepen, Media, Tips en citaten,
+>     Badgebeheer, ZWBgame.
+>   - **App** (donker petrol): Rechten, Notificaties, Strava-sync.
+> - `BeheerFrame` (`_components/beheer-frame.tsx`) zet die navigatie boven elk
+>   beheerscherm, via een layout op `/beheer`, `/zwbgame/beheer`, `/community`
+>   en `/media`. Alleen in het design "tegels" en alleen met minstens één
+>   beheerrecht; op een pagina die in geen categorie van de gebruiker valt
+>   (bijv. `/media` zonder `media.manage`) toont hij niets.
+> - `/beheer` zelf toont alleen de kop en de vier tegels. In het huidige design,
+>   of zonder beheerrecht, gaat het naar `/dashboard`.
+> - De kleur van een categorietegel volgt de soort (`.tg-pillar-tone` in
+>   `globals.css`); bij ZWBeter zijn alle pijlers teal.
+> - De indeling staat in `BEHEER_CATEGORIES` (`_components/nav-config.ts`); de
+>   beheerschermen komen uit het register `lib/admin-areas.ts`. Een test eist
+>   dat elk beheergebied in precies één groep staat, zodat een nieuw scherm niet
+>   ongemerkt buiten de navigatie valt.
+> - WhatsApp-groepen en Media stonden als losse items in `layout.tsx`; ze staan
+>   nu in de groep Community, met dezelfde rechten (`community.manage`,
+>   `media.manage`).
+>
+> **Bewust niet gedaan.**
+> - Rechten is geen eigen groep: één tegel in een groep oogt als een fout. Het
+>   staat bij App, naast de andere instellingen die de hele app raken.
+> - Het huidige design blijft zoals het is: daar staat de beheerlijst nog in het
+>   avatar- en mobiele menu, en krijgen de beheerschermen geen navigatie.
+> - `/beheer` hoort bij geen plek in de tabbalk (`placeForPath` geeft `null`),
+>   zoals de andere items uit het persoonlijke menu. `/zwbgame/beheer` licht
+>   dus nog steeds Club op, en `/community` en `/media` geen tab.
+> - De eigen kop van elk beheerscherm (`PageHeader`) blijft staan; de tegels
+>   erboven hebben geen titel, behalve op `/beheer`.
+>
+> **Getest.** Vitest op `admin-areas`, `design-places` en `nav-active`: alles
+> geslaagd (twee nieuwe tests). ESLint op de gewijzigde bestanden: schoon.
+> `tsc --noEmit`: alleen de bekende `@zxing`-meldingen (pakket ontbreekt in deze
+> worktree). De dev-server compileert `/beheer`, `/beheer/zrl`, `/media` en
+> `/zwbgame/beheer` zonder fouten (zonder login een doorverwijzing naar `/login`).
+>
+> **Niet geverifieerd.** De eigenaar bekeek `/beheer` ingelogd en keurde het
+> goed (2026-10-16). Niet apart nagelopen: de weergave op de telefoon, en of de
+> actieve categorie op elk scherm klopt (ook `/zwbgame/beheer`, `/community` en
+> `/media`).
+
+---
+
+> **Design tegels: geen titel die de navigatie herhaalt, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, samengevoegd met main in de mergecommit die dit blok bijwerkt). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Eerst voor Stats, daarna voor de hele app: "zwbetertrainen
+> blijkt uit het blok eronder, kalender uit het grotere blok erboven net als
+> club en vandaag. Trek dat door alle pagina's" (eigenaar).
+>
+> **Wat.**
+> - **Nieuwe klasse `.tg-repeats-nav`** (`globals.css`). In "tegels" zet die
+>   de h1 en het bovenkopje (`.page-eyebrow`, nieuw haakje in `PageHeader`)
+>   alleen nog voor schermlezers; elke pagina houdt dus een kop. In klassiek
+>   doet de klasse niets.
+> - **Toegepast waar de titel letterlijk in de navigatie staat:**
+>   - Vandaag, Kalender en Club: de actieve plek in de tabbalk. De datum op
+>     Vandaag en de knop "Nieuw event" blijven.
+>   - ZWBeter trainen, racen, enzovoort: de actieve pijler. De
+>     eenheidskeuze blijft.
+>   - Jaarplan, Logboek en Mijn vermogen: de tab eronder.
+>   - Stats en Stats → Ik deden het al via `StatsTabs`.
+>   - De voorbeeldpagina `/ontwerp-voorbeeld` doet hetzelfde.
+> - **De knop "Uitleg" op Mijn vermogen is weg.** Die deed hetzelfde als de
+>   verdwenen Hulp-links; het vraagteken in de balk gaat daar naar
+>   `/hulp#vermogen`.
+>
+> **Bewust niet verborgen.**
+> - Titels die nergens anders in beeld staan, zoals Teams, Leden,
+>   Achievements en ZWBlokken. Daar is alleen de tab Club actief, dus de titel
+>   is de enige plek die zegt waar je bent.
+> - Titels die inhoud zijn: een eventnaam, een teamnaam, een lid, een
+>   TTT-plan.
+> - Hulplinks midden in een zin of uitleg ("meer over routevoorstellen",
+>   voeding, FIT-export, de Strava-import) blijven; dat zijn geen knoppen naast
+>   een titel.
+> - ZWBgame heeft een eigen spelregels-icoon in zijn eigen opmaak.
+>
+> **Getest.**
+> - `tsc --noEmit` en ESLint schoon, vitest 2477 geslaagd.
+> - Op `/ontwerp-voorbeeld` (Vandaag, Kalender, Club) op 375 px bekeken: de
+>   titel is weg en de pagina begint direct met de inhoud.
+> - Onderweg bleek de dev-server na een productiebuild in dezelfde map een
+>   oude `globals.css` te serveren. Verholpen met een herstart en een lege
+>   `.next`. Dat was een lokaal probleem, niet iets in de code.
+>
+> **Niet geverifieerd.** De echte ZWBeter-, jaarplan-, logboek- en
+> vermogenspagina's in de browser (die vragen een login).
+
+>
+> **Bij het samenvoegen met `main` (2026-10-16).** Main had intussen
+> Achievements als derde tab onder Stats (`727bd23`) en Wie weet wat
+> omgedoopt tot ZWBieb (`/zwbieb`).
+> - `StatsTabs` heeft nu drie pijlers. Achievements staat in donker petrol
+>   (spel en ontdekken), met een titel die in "tegels" verborgen is; de
+>   knoppen in de kop blijven.
+> - De Hulp-link in het nieuwe ZWBieb-overzicht is weg; de knop
+>   "Onderwerpen beheren" blijft.
+> - De hulpkaart wijst `/zwbieb` naar `#zwbieb` en `/stats/achievements` naar
+>   `#badges`.
+> - Na de samenvoeging: `tsc --noEmit` schoon, vitest 2494 geslaagd en
+>   `npm run build` geslaagd. De drie pijlers zijn niet in de browser
+>   bekeken.
+---
+
+> **Ook de Hulp-links bij onderdelen weg, en geen dubbele titel op Stats, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, samengevoegd met main in de mergecommit die dit blok bijwerkt). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Na de ronde hieronder koos de eigenaar ervoor ook de 14 links
+> bij losse onderdelen weg te halen. Daarnaast: "de titel Clubstatistieken /
+> Mijn statistieken staat ook al op de tegel", dus die mocht weg.
+>
+> **Wat.**
+> - **De laatste 14 Hulp-links zijn weg:** de ritimport op het dashboard,
+>   LiveTrack, OwnTracks, Media toevoegen, en op het profiel agenda, citaten
+>   (die wees naar `/voorwaarden`), meldingen en Strava. Verder het
+>   verjaardagsrondje, "Jouw races" en "Jouw rit" bij racen, de race op het
+>   trainersscherm, de intervals-koppeling en de Zwift-ID-dialoog.
+> - **`HelpLink` is uit `src/components/app-ui.tsx` verwijderd**: niets
+>   gebruikt hem nog. De enige weg naar `/hulp` is nu het vraagteken in de
+>   balk, dat naar de uitleg over de huidige pagina gaat (`help-anchors.ts`).
+>   Wat daardoor verloren ging: de sprong naar een specifieke sectie binnen
+>   een pagina. Wie op het profiel op "?" tikt, komt bij "profiel" en niet
+>   bij "agenda" of "Strava". De citaten op het profiel wijzen niet meer naar
+>   de voorwaarden.
+> - **Stats en Stats → Ik zonder zichtbare titel in "tegels".** De pijlers
+>   "Stats club" en "Stats ik" zeggen al waar je bent. `StatsTabs` krijgt de
+>   titel mee en zet hem daar als `sr-only` h1, zodat de pagina voor
+>   schermlezers een kop houdt. In klassiek blijft de paginakop staan,
+>   want daar staan alleen de kleine tabs "Club | Ik".
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon, vitest 2477 geslaagd.
+>
+> **Niet geverifieerd.** In de browser: lokaal geen login.
+
+---
+
+> **Eén vraagteken voor hulp, en dat weet waar je bent, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, samengevoegd met main in de mergecommit die dit blok bijwerkt). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar zag op Stats een "? Hulp" naast de paginatitel,
+> terwijl het vraagteken naast de avatar er al staat: "die lijkt me weg te
+> kunnen". Dat gold voor 24 pagina's.
+>
+> **Wat.**
+> - **De Hulp-link naast de paginatitel is weg** (24 plekken). Het ging om
+>   Achievements, beheer (badges, eventscan, notificaties, programma's,
+>   rechten), WhatsApp-groepen, event bewerken, nieuw event, live, media
+>   bewerken, Stats en Stats → Ik, teams (overzicht, nieuw, team, TTT Planner
+>   en een plan), ZWBlokken, ZWBeter Worden (de kop in beide designs),
+>   jaarplan, Wie weet wat en de koppen van een geanalyseerde race.
+> - **Het vraagteken in de balk weet nu waar je bent.** `HeaderHelpLink`
+>   opent `/hulp#<anker>` voor de huidige pagina, met de kaart in
+>   `src/lib/help-anchors.ts`: een pad met `*` per segment, het langste
+>   patroon wint. Op een pagina zonder eigen uitleg (bv. het dashboard) blijft
+>   het `/hulp`. Zo verwijst het vraagteken ook naar plekken die eerst geen
+>   eigen link hadden, zoals het schema, vermogen, doelen en Mijn garage.
+> - **In het klassieke design staat het vraagteken nu ook op de telefoon.**
+>   Het was daar verborgen (`md:inline-flex`), en de link bij de titel was op
+>   mobiel de weg naar de uitleg.
+>
+> **Eerst bewust laten staan, dezelfde dag toch weggehaald:** 14 links bij
+> één onderdeel van een pagina. Zie het blok hierboven.
+>
+> **Getest.**
+> - `tsc --noEmit` en ESLint schoon, vitest 2477 geslaagd.
+> - Nieuw `help-anchors.test.ts` (4): meest specifiek wint, een vast segment
+>   gaat voor een joker, terugval op `/hulp`, en elk anker in de kaart bestaat
+>   op `/hulp`. Die laatste test faalt als iemand een sectie op /hulp hernoemt.
+>
+> **Niet geverifieerd.** In de browser: de pagina's vragen een login, en die is er lokaal niet. `npm run build` is voor deze ronde niet opnieuw gedraaid.
+
+---
+
+> **Clubstatistieken in dezelfde stijl, met tegelkeuze, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, samengevoegd met main in de mergecommit die dit blok bijwerkt). Migratie `0241_profile_stats_tiles.sql` uitgebreid (nog niet toegepast).**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar wilde de stijl van Stats → Ik ook op `/stats` (Club):
+> dezelfde grafieken en data waar dat kan, en ook daar een eigen tegelkeuze.
+>
+> **Wat.**
+> - `/stats` volledig herbouwd op de onderdelen van Ik:
+>   - dezelfde bediening (per week, maand of jaar, bereik tot "alles"), nu in
+>     `stats/_components/controls.tsx` en gedeeld met Ik;
+>   - dezelfde grafiek met leescijfer, goud voor de gekozen periode,
+>     vorig jaar als streepje, gemiddelde en arcering voor de lopende periode;
+>   - in "tegels" de pijlers Club en Ik.
+> - **Zeven tegels** (`CLUB_STATS_TILES` in `src/lib/stats/tiles.ts`):
+>   - Totalen: km, uren, hm, ritten en actieve leden, tegenover vorig jaar.
+>   - Volume: met "Leden" als grootheid erbij.
+>   - Jaar op jaar: cumulatieve club-km.
+>   - Top riders: op km, uren of hm; je eigen plek in goud en "Jij staat 5e".
+>   - Disciplines.
+>   - Regio's.
+>   - Clubrecords: beste week, maand en jaar, en de maand met de meeste
+>     rijders.
+>
+>   De laatste staat standaard uit.
+> - **Tegelkeuze per pagina.** `0241` kreeg een kolom `club_tiles` naast
+>   `tiles`; de server-action verhuisde naar `stats/_actions.ts`
+>   (`saveStatsTiles(layout, page)`). De migratie was nog niet toegepast, dus
+>   is hij aangepast in plaats van een `0242` toe te voegen.
+> - **Het oude maandfilter blijft**, als periode-chips (`?periode=`, per maand
+>   of jaar): Totalen, Top riders, Disciplines en Regio's gaan dan over die
+>   periode, en Volume licht die periode uit. Per week zijn het te veel chips.
+>   `?month=` uit oude links doet niets meer.
+> - **Data** (`stats/_data.ts`, `src/lib/stats/club.ts`).
+>   - **Vroeger:** elke tien minuten 12 maanden ritten, opgeteld per maand.
+>   - **Nu per kalenderjaar een samenvatting**, gedeeld tussen leden:
+>     - per maand en per week per lid en discipline (voor leden, ranglijst,
+>       disciplines en regio's);
+>     - per dag het clubtotaal (exacte vensters, en vorig jaar tot dezelfde
+>       dag).
+>   - **Verversen:** afgesloten jaren één keer per dag, het lopende jaar elke
+>     tien minuten zoals voorheen. Daardoor kunnen week en "alles" erbij zonder
+>     meer databaseverkeer dan eerst.
+>   - **Randgevallen:** een week over de jaargrens telt uit beide jaren op
+>     (`mergeClubData`).
+>   - **Actieve leden** per venster komen uit de maand- of weekcellen; het
+>     venster begint altijd op een periodegrens.
+> - **Geen pijltjes zonder vergelijking.** Valt het venster van vorig jaar
+>   (deels) vóór de eerste rit, wat bij "alles" altijd zo is, dan toont Totalen
+>   geen ▲/▼. Dat geldt nu ook op Ik.
+> - De oude clubpagina (eigen staafjes per maand, kaartjes met icoon) is weg.
+>
+> **Bewust niet gebouwd.**
+> - Vermogen, fitheid en kalender voor de club: een clubgemiddelde van NP of
+>   CTL zegt niets, en een dagkalender van 35 leden is één grijze vlek.
+> - Een filter op discipline: de club had er geen en de tegel Disciplines laat
+>   de verdeling al zien.
+> - Een aggregatie in de database (view of RPC): dat vraagt een migratie, en de
+>   jaarcache doet hetzelfde zonder.
+>
+> **Getest.**
+> - `tsc --noEmit` en ESLint schoon, vitest 2473 geslaagd, `npm run build` geslaagd.
+> - Nieuw `stats-club.test.ts` (9): dagen in Amsterdamse tijd, week over de
+>   jaargrens, reeksen met leden, vorig jaar tot dezelfde dag, totalen,
+>   disciplines, regio's, ranglijst per periode, records, jaarlijnen.
+> - `stats-tiles.test.ts` controleert in PGlite dat `club_tiles` los van
+>   `tiles` wordt bewaard.
+> - Detector van impeccable schoon.
+> - Bekeken op een tijdelijke voorbeeldpagina met verzonnen clubritten (niet
+>   gecommit): "tegels" op desktop en 375 px met een gekozen maand, en
+>   klassiek per jaar over alles.
+>
+> **Niet geverifieerd.**
+> - De echte clubdata: hoe lang de eerste weergave duurt bij "alles" (elk
+>   jaar één keer de ritten ophalen).
+> - Of een jaarsamenvatting onder de cachegrens van Next blijft. Geschat
+>   ~0,7 MB per jaar bij de huidige ~5.600 ritten; de grens is 2 MB.
+
+---
+
+> **Mijn statistieken: het design "tegels" en grafieken die praten, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, samengevoegd met main in de mergecommit die dit blok bijwerkt). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar vond dat `/stats/ik` te veel op het oude design leunde
+> en wilde de grafieken "een stuk sprekender".
+>
+> **Wat.**
+> - **De grafiek praat** (`src/components/charts/period-chart.tsx`, geldt in
+>   beide designs). Boven elke grafiek staat een groot leescijfer voor de laatste
+>   periode, en het loopt mee met je muis of vinger. Daarom is er geen zwevende
+>   tooltip: het cijfer staat nooit onder je duim. Daarnaast:
+>   - De periode waar je naar kijkt licht goud op ("jij, nu" uit het
+>     kleurbeleid), net als het beste punt (stip met waarde).
+>   - Vlakken onder de hoofdlijn.
+>   - Volume krijgt per staaf een streepje voor dezelfde periode vorig jaar
+>     (`yearEarlier` in `src/lib/stats/personal.ts`: per week 52 weken terug,
+>     zodat de week op maandag blijft beginnen). De lopende periode vergelijkt
+>     tot dezelfde dag, en het gemiddelde van de afgesloten periodes staat als
+>     stippellijn.
+>   - De lopende periode is gearceerd met de schuine banen van het tenue.
+>   - Het leescijfer zegt per grafiek wat ertoe doet: ▲/▼ tegenover vorig jaar,
+>     "km voor op 2025" bij jaar op jaar, het aandeel vanaf Z4 bij de zones.
+> - Kleuren via tokens op `.st-page` (`globals.css`):
+>   - `--st-main` voor je eigen reeks: in "tegels" teal (training en je eigen
+>     cijfers), in klassiek de bestaande `--chart-1`;
+>   - `--st-hi` goud;
+>   - `--st-soft` voor de vergelijking.
+>
+>   Er zijn geen nieuwe tinten bijgekomen; in donker "tegels" is de teal
+>   gemengd met wit, anders verdwijnt hij op nachtpetrol.
+> - **"Tegels" op deze pagina:**
+>   - Club en Ik zijn pijlers zoals bij ZWBeter (`StatsTabs`, nu
+>     design-afhankelijk): Club in sage, Ik in teal, en waar je bent het paneel
+>     met de gouden lijn.
+>   - Leescijfers en totalen in de dunne Barlow (`.st-num`, `.st-kpi`).
+>   - Tegelkoppen in de lichte onderkast (`.st-tile-title`).
+>   - Kalender, disciplines en records in de hoofdkleur.
+> - Totalen zonder kaartjes in de kaart: losse grote cijfers, met per cijfer
+>   ▲/▼ % en één bijschrift "t.o.v. vorig jaar". Op een telefoon is het cijfer
+>   in "tegels" een stap kleiner.
+> - De paginakop verloor zijn bovenkopje.
+> - Op `/hulp#mijn-statistieken` staat hoe je een grafiek leest.
+>
+> **Bewust niet gedaan.**
+> - Gekleurde tegels voor de statistieken zelf: volgens het kleurbeleid is een
+>   gekleurd vlak klikbaar, en deze panelen leiden nergens heen.
+> - De clubpagina `/stats` in dezelfde stijl: buiten deze vraag. Alleen de
+>   tabbalk is gedeeld.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon, vitest 2463 geslaagd, `npm run build` geslaagd. Detector van impeccable:
+> één advies (een losse lettermaat), verholpen. Bekeken op een tijdelijke
+> voorbeeldpagina (niet gecommit) met verzonnen data: "tegels" licht en donker
+> op desktop en 375 px, klassiek op desktop. Daar gezien en verholpen: het
+> gemiddeldelabel liep door een staaf en Totalen was op de telefoon te lang.
+>
+> **Niet geverifieerd.** De echte pagina ingelogd in het design "tegels" via de
+> schakelaar.
+
+---
+
+> **Mijn statistieken, ronde 3: tijd per zone, W′bal, duurvermogen en herstel uit intervals.icu, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, `5288920`). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Het laatste deel van de wens: uit intervals.icu halen wat er te
+> halen valt, zoals "hoeveel uur in zone x" en W′ door de jaren. Ronde 2 deed
+> CP en W′ uit de curves; deze ronde leest de velden die intervals per rit uit de
+> meting rekent.
+>
+> **Afwijking van het plan.** Het plan was een eenmalige backfill van
+> `intervals_activities` over de hele historie, met migratie
+> `0242_intervals_activities_backfill.sql` en een aanvulling op de
+> privacyverklaring. In plaats daarvan haalt `loadActivityStats`
+> (`stats/ik/_data.ts`) de activiteiten van het venster op, per jaar één
+> aanroep. Daarna rekent hij ze om naar totalen per periode
+> (`src/lib/stats/activity-stats.ts`), en alleen die totalen staan zes uur in de
+> `unstable_cache`. Er wordt per rit niets extra bewaard: `intervals_activities`
+> blijft 120 dagen. Daardoor geen migratie, geen nieuwe opslag van ruwe data en
+> geen nieuwe privacytekst. De aangekondigde zin is dus niet voorgelegd. Prijs:
+> de eerste weergave na zes uur haalt de activiteiten opnieuw op.
+>
+> **Wat.**
+> - `fetchIntervalsActivitiesBetween` (`src/lib/intervals/client.ts`): ruwe
+>   activiteiten tussen twee dagen.
+> - `src/lib/stats/activity-stats.ts` (puur):
+>   - `parseZoneTimes`: `icu_zone_times` als `[{id, secs}]`, of een kale lijst
+>     zoals `icu_hr_zone_times`; sweetspot (SS) telt niet, die overlapt Z3/Z4.
+>   - `summarizeIntervalsActivity`: null voor een Strava-stub of een andere
+>     sport.
+>   - `aggregateActivities`: uren per zone, de diepste W′bal-uitputting, kJ
+>     boven FTP, decoupling (alleen ritten van minstens 90 min) en EF, beide
+>     gewogen naar rijtijd.
+>   - `recoverySeries`.
+> - Vijf tegels met bron intervals:
+>   - Tijd per vermogenszone: gestapeld, uren of %, standaard aan.
+>   - Tijd per hartslagzone.
+>   - W′bal en boven FTP.
+>   - Duurvermogen.
+>   - Herstel: rust-HR, HRV en slaap.
+>
+>   Ook deze tegels tellen per week per maand. Onder de tegel staat hoeveel
+>   ritten met meting meetellen.
+> - **Herstel volgt de herstel-opt-in** (`wellness_opt_in`), net als de
+>   herstelkaart op ZWBeter Worden: zonder opt-in staat de tegel op slot met een
+>   link naar `/zwbeter-worden#herstel`. Het tegelregister kreeg daarvoor
+>   `needsWellnessOptIn`, en de tegelkiezer toont per tegel waarom hij op slot
+>   zit.
+> - Zonekleuren: die van de workoutblokken (`ZWIFT_ZONES`), met paars voor Z7.
+> - Uitleg aangevuld op `/hulp#mijn-statistieken`.
+>
+> **Bewust niet gebouwd.**
+> - De zones omrekenen naar de zes Zwift-zones, zoals bij de gereden training
+>   (2026-09-15). Daar moest het passen op de blokkleuren van het schema; hier
+>   gaat het om je eigen trainingsverdeling, en dan zijn de zones die je in
+>   intervals hebt ingesteld de juiste. Omrekenen kan ook niet zonder de stream.
+> - Zonetijden voor ritten via Strava: daarvoor zou de watt-stream van elke rit
+>   nodig zijn (Strava-budget, of intervals' stub zonder stream).
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon, `npm run build` geslaagd. Vitest:
+> 2459 geslaagd met `--maxWorkers=4`. Met de standaardparallelliteit gaven
+> `admin-areas`, `intervals-ride-sync` en `rls-initplan-migration` wisselende
+> time-outs (PGlite onder belasting, sinds er een `.env.local` in de worktree
+> staat en meer suites draaien). Los gedraaid zijn ze groen; niets daarvan raakt
+> deze ronde. Nieuw `stats-activity.test.ts` (6): zonelijst in beide vormen
+> zonder SS, stub en andere sport overslaan, W′ en arbeid in kJ, totalen per
+> maand, decoupling alleen boven 90 min, herstelgemiddelden zonder onmogelijke
+> waarden. De vijf grafieken bekeken op de tijdelijke voorbeeldpagina.
+>
+> **Niet geverifieerd.**
+> - De vorm van `icu_zone_times`, `icu_hr_zone_times`, `icu_max_wbal_depletion`,
+>   `icu_joules_above_ftp`, `decoupling` en `icu_efficiency_factor` in een echt
+>   antwoord. De fixture in `tests/fixtures/intervals/activities.json` heeft ze
+>   niet; de vorm komt uit de API-spec, en de parser kan beide lijstvormen aan.
+> - Hoe groot het antwoord is bij "Alles": per jaar één aanroep van de hele
+>   activiteitenlijst.
+
+---
+
+> **Mijn statistieken, ronde 2: piekvermogen, CP en W′, eFTP en de powercurve per jaar uit intervals.icu, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, `51ad380`). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar wilde intervals.icu "uitmelken", met W′ door de jaren
+> als voorbeeld. Strava bewaart per rit alleen samenvattingen (ronde 1). Maar
+> intervals.icu rekent per datumbereik de beste curve uit over alle ritten, ook
+> die via Strava binnenkwamen. Dus elk lid met een koppeling krijgt hier zijn
+> piekvermogen en CP/W′ door de tijd.
+>
+> **Wat.**
+> - `fetchIntervalsPowerCurveRanges` (`src/lib/intervals/client.ts`): powercurves
+>   voor een reeks `r.<van>.<tot>`-bereiken, twaalf per aanroep (dezelfde
+>   kommalijst als de vermoeide curves), na elkaar. `parsePowerCurveList` houdt
+>   elke curve uit `list` apart, op `id` en anders op volgorde. Een mislukte
+>   aanroep laat alleen die periodes leeg.
+> - `src/lib/stats/curves.ts` (puur):
+>   - `compactCurve`: terug naar 32 vaste duren (1 s tot 5 u), het dichtstbijzijnde
+>     punt binnen 10%. `wattsAtDuration` bleek ongeschikt: die heeft minstens 3 s
+>     marge, waardoor 2 en 3 s de 5 s-waarde kregen (door de test gevonden).
+>   - `peakSeries`.
+>   - `cpSeries`: `fitCpWPrime` uit `src/lib/pacing/cp.ts` per periode, 2 tot
+>     20 min. Een fit buiten de grenzen blijft leeg.
+>   - `eftpSeries`: de laatste eFTP en het gemiddelde gewicht per periode.
+> - Cache:
+>   - `loadPeriodCurves` (`stats/ik/_data.ts`): `unstable_cache` van zes uur per
+>     lid en bereikset. De API-key zoekt de cache zelf op met de admin-client,
+>     zodat hij niet in de cachesleutel staat. Komt er niets terug, dan gooit de
+>     loader een fout, zodat een storing niet zes uur onthouden wordt.
+>   - `loadPeriodCurvesOnce` en `loadStatsWellness` (React `cache`): tegels die
+>     dezelfde data lezen, vragen die één keer per weergave.
+> - Vier tegels met bron intervals (op slot zonder koppeling):
+>   - Piekvermogen: per duur te kiezen, watt of W/kg met het gewicht van toen
+>     uit de curve. Standaard aan.
+>   - CP en W′: W′ in kJ op de rechteras. Standaard aan.
+>   - eFTP en gewicht: uit wellness. Standaard uit.
+>   - Powercurve per jaar: hooguit vijf jaar, log-as, eigen
+>     `year-curves-chart.tsx`. Standaard uit.
+> - Per week tellen deze tegels per maand (`curveGranularity`): 52 curves per jaar
+>   zijn te veel vragen, en een week heeft te weinig harde ritten. Ook de
+>   Fitheid-tegel leest nu via `loadStatsWellness`.
+> - Uitleg aangevuld op `/hulp#mijn-statistieken`.
+>
+> **Bewust niet gebouwd.**
+> - `PowerCurveChart` hergebruiken voor de jaarcurves: die is gebouwd rond de
+>   vergelijking met clubleden (clubmediaan, renner-type, vermoeide curves). Een
+>   jaar is geen renner.
+> - De CP en W′ uit intervals' eigen `powerModels`: niet in de API-spec van de
+>   curve bevestigd. De eigen fit is dezelfde die het pacingplan gebruikt.
+> - Een tabel voor de curves: zes uur cache volstaat. Een afgesloten maand
+>   verandert niet.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon. Nieuw `stats-curves.test.ts`
+> (8): de lijstparser, bereiken afgekapt op vandaag, `compactCurve`, pieken, CP
+> en W′ teruggevonden uit een modelcurve, eFTP en gewicht per maand. De vier
+> grafieken bekeken op de tijdelijke voorbeeldpagina met verzonnen curves.
+>
+> **Niet geverifieerd.**
+> - Of intervals.icu twaalf `r.`-bereiken in één aanroep accepteert, en of
+>   `list[].id` het bereik teruggeeft. De kommalijst werkt voor de vermoeide
+>   curves en het `r.`-formaat voor één dag (11 september). De combinatie is niet
+>   tegen de echte API gedraaid, want er is lokaal geen API-key. Gaat het mis,
+>   dan blijven de tegels leeg met "intervals.icu gaf nu geen antwoord".
+> - Hoe lang de eerste weergave duurt bij "Alles" per maand: tien jaar is tien
+>   aanroepen, daarna zes uur uit de cache.
+
+---
+
+> **Mijn statistieken (Stats → Ik), ronde 1: eigen ritgeschiedenis met zelfgekozen tegels, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, `449774e`). Migratie `0241_profile_stats_tiles.sql` (niet toegepast).**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Wens van de eigenaar: een pagina met je eigen ritgeschiedenis, je
+> vermogensontwikkeling en cijfers per week, maand en jaar. Personaliseerbaar:
+> ieder lid kiest welke tegels het ziet, zodat ieders interessantste data
+> bovenaan staat. Gekozen plek: een tab op /stats ("Club | Ik"), niet in ZWBeter
+> Worden of het avatarmenu. intervals.icu mag maximaal benut worden; Strava-leden
+> krijgen wat met hun data kan. Het plan heeft drie rondes; dit is de eerste. De
+> tweede (piekvermogen, CP en W′ per periode uit intervals-powercurves) en de
+> derde (zones, W′bal, duurvermogen, herstel uit intervals-activiteiten) zijn
+> dezelfde dag gebouwd; zie de twee blokken hierboven.
+>
+> **Wat.**
+> - `/stats/ik` (`src/app/(app)/stats/ik/`), met de tabbalk `StatsTabs` op beide
+>   statspagina's. Bovenaan: per week, maand of jaar (`?per=`), bereik 12 mnd, 2
+>   jaar, 5 jaar of alles (`?bereik=`), en een chip per discipline die het lid
+>   heeft (`?sport=`).
+> - Tien tegels: Totalen (tegenover dezelfde periode een jaar eerder), Volume
+>   (staven km, uren, hm, TSS, kJ of ritten), Vermogen (beste en gemiddelde NP per
+>   periode met de FTP van toen als trap), Fitheid (CTL, ATL en vorm), Watt per
+>   hartslag (NP/HR), Jaar op jaar (cumulatieve km, hooguit vijf jaar), Kalender
+>   (53 weken plus reeksen), Disciplines, Records (rit en week, maand, jaar) en
+>   Ritten (alle ritten, 25 per pagina, met NP, IF, TSS en HR).
+> - Standaard zichtbaar: totalen, volume, vermogen, fitheid, records, ritten.
+>   "Tegels aanpassen" (dialoog met vinkjes en omhoog/omlaag) slaat op in
+>   `profile_stats_tiles` (migratie 0241, RLS: alleen de eigen rij). Het register
+>   staat in `src/lib/stats/tiles.ts`; `normalizeLayout` vult tegels die later
+>   bijkomen zelf aan, dus een nieuwe tegel vraagt geen migratie. Intervals-tegels
+>   (ronde 2 en 3) staan bij leden zonder koppeling op slot met een link naar de
+>   koppeling.
+> - Rekenwerk puur in `src/lib/stats/personal.ts`. De ritten komen uit
+>   `strava_activities` met losse JSON-paden in plaats van heel `raw`, dus zonder
+>   polyline, in pagina's van 1000. TSS en IF via `rideMetricsFromStrava` met de
+>   FTP van de ritdag (`loadFtpAt`). Vermogen en watt per hartslag tellen alleen
+>   ritten met echte meter (`device_watts`) van minstens 20 minuten.
+> - Fitheid: met intervals-koppeling de wellness van intervals (die telt ook ritten
+>   zonder meter op hartslag), anders zelf gerekend uit de eigen TSS (EWMA 42/7,
+>   `fitnessFromTss`). `projectCtl` is niet hergebruikt: die geeft alleen de
+>   eindwaarde, hier is de reeks nodig.
+> - Nieuwe gedeelde grafiek `src/components/charts/period-chart.tsx` (staven,
+>   gestapeld, lijnen, trappen, optionele rechteras), op `ResponsiveChart`. De
+>   marges volgen de langste aslabel.
+> - `DISCIPLINE_LABELS` verhuisd van `stats/page.tsx` naar `src/lib/strava/sports.ts`.
+> - Uitleg op `/hulp#mijn-statistieken`; de pagina zelf heeft geen uitlegtekst.
+>
+> **Meegenomen fout.** `SCROLL_TAB_ITEM` stond in een `"use client"`-module
+> (`scroll-tabs.tsx`). Een server-component die een string uit zo'n module
+> importeert krijgt een client-referentie, niet de klassen. Daardoor misten de
+> maandchips op /stats en de chips op ZWB Segments (`profiel/segments/collecties`)
+> hun hoogte, opvulling en flex. Gezien op de voorbeeldpagina. Nu staat de
+> constante in `src/components/ui/scroll-tab-item.ts`; `scroll-tabs.tsx`
+> exporteert hem door voor client-code.
+>
+> **Bewust niet gebouwd.**
+> - W/kg in de vermogenstegels: er is geen gewichtshistorie, en de huidige
+>   kilo's op oude ritten zouden de lijn vervalsen. Ronde 2 haalt W/kg uit de
+>   intervals-curves, die het gewicht van toen kennen.
+> - Piekvermogen per duur (5 s tot 20 min) voor Strava-leden: Strava-streams
+>   ophalen kost budget onder de atletenlimiet. Alleen via intervals (ronde 2).
+> - Slepen in de tegelkeuze: omhoog/omlaag werkt beter op een telefoon en met een
+>   toetsenbord.
+> - Een kaart of routes: niet nodig, en de start- en eindprivacy van ZWBlokken
+>   zou dan opnieuw moeten.
+> - Inzage voor trainers: eerst eigen gebruik.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon; `npm run build` geslaagd; vitest
+> 2445 geslaagd. Nieuw: `stats-personal.test.ts` (periodes en weekgrens op maandag,
+> venster, FTP per ritdag, NP alleen met meter en 20 min, EWMA, jaar op jaar,
+> reeksen, records) en `stats-tiles.test.ts` (`normalizeLayout`,
+> `parseLayoutInput`, en **migratie 0241 in PGlite**: eigen rij lezen en
+> schrijven, andermans rij niet, alleen een lijst). Alle tegels en de dialoog
+> bekeken op een tijdelijke voorbeeldpagina met verzonnen ritten (niet
+> gecommit), desktop en 375 px. Opslaan gaf daar "Niet ingelogd", zoals bedoeld.
+>
+> **Niet geverifieerd.** De echte pagina ingelogd met eigen ritten; opslaan van
+> de tegelkeuze tegen Supabase; het design "tegels"; de intervals-wellness in
+> Fitheid (dezelfde aanroep als Belasting, maar met een langer bereik, tot tien
+> jaar bij "Alles"). Migratie 0241 is alleen in PGlite gedraaid.
+
+---
+
+> **Design tegels: Samen fietsen naar Club, plus een live-tegel op Vandaag, 2026-10-16 — gebouwd, lokaal getest; alleen het voorbeeldscherm in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-16, `fc1e397`). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** In het design "tegels" stond Samen fietsen alleen als grijs
+> tekstlinkje in de kop van de Kalender. Dat was een invulling van de bouwer en
+> viel weg naast "Nieuw event". De eigenaar vindt de Kalender niet de plek: die
+> is om vooruit te kijken, Samen fietsen gaat om nu en om je tracker koppelen.
+> Besluit eigenaar: een live-tegel op Vandaag, en Samen fietsen als tegel onder
+> Club (met clubgenoten rijden).
+>
+> **Wat.**
+> - Vandaag (`TegelsVandaag`): een sage tegel "Samen fietsen · nu" met wie er
+>   rijdt ("Jij en Anna", hooguit drie namen en dan "en 2 anderen") en het
+>   aantal. Alleen als er iemand live is. Zelfde regel als Samen fietsen: open
+>   sessie, binnen 15 minuten gezien. Eén renner met twee open sessies telt één
+>   keer. De dashboardpagina werkt Garmin en Wahoo eerst bij zoals de Kalender
+>   (`refreshExternalLiveSessions({ detect: false })`), en dat loopt parallel
+>   met de rest van de pagina. Alleen in het design "tegels".
+> - Club (`/club`): tegel Samen fietsen direct na Leden, sage en breed.
+> - Kalender: het linkje in de kop is weg.
+> - `lib/design-places.ts`: `/samen-fietsen` en `/live` horen bij Club, dus
+>   daar licht de tab op.
+> - Het voorbeeldscherm `/ontwerp-voorbeeld` toont de live-tegel en de
+>   Club-tegel met voorbeelddata.
+>
+> **Bewust niet gedaan.**
+> - Geen nieuwe Wahoo-links zoeken vanaf Vandaag (`detect: false`). Dat kost
+>   per gekoppelde link een externe aanvraag, en Vandaag is de drukst bezochte
+>   pagina. Wie met een vaste Wahoo-link rijdt, verschijnt dus pas op de
+>   tegel nadat iemand Samen fietsen of een eventpagina heeft geopend. Dat geldt
+>   nu ook al voor de Kalender.
+> - Het huidige design blijft zoals het is: daar is Samen fietsen een eigen
+>   menu-item en krijgt Vandaag geen tegel.
+> - Het koppelen (Garmin, Wahoo, OwnTracks) blijft op de pagina Samen fietsen
+>   zelf en verhuist niet naar het profiel. Via Club is die pagina nu goed te
+>   vinden.
+>
+> **Getest.** ESLint op de gewijzigde bestanden: schoon. `tsc --noEmit`: alleen
+> de bekende fouten over `@zxing` (pakket ontbreekt in deze worktree), niets
+> uit deze ronde. Vitest: alles geslaagd, behalve tests die `.env.local` nodig
+> hebben of onder volle belasting over hun tijd gingen; die drie slagen los.
+> Nieuw: `tests/unit/live-riders-label.test.ts`.
+>
+> **Niet geverifieerd.** Vandaag en Club met login en echte data, en hoe lang
+> het bijwerken van Garmin en Wahoo de dashboardpagina ophoudt als er iemand
+> live is (hooguit 7 s, de grens van `refreshExternalLiveSessions`).
 
 > **Design tegels: gekleurde tegels nagelopen op het kleurbeleid, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `88ad78a`); niet in de browser bekeken. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
@@ -1799,12 +2555,14 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 >   `[data-design="tegels"]` in `globals.css`.
 >
 > **Menubesluiten van de eigenaar, in dit design verwerkt.** Community vervalt
-> als menu. WhatsApp-groepen en Media staan onder Meer bij Beheer, dus alleen
+> als menu. WhatsApp-groepen en Media staan onder Meer bij Beheer (sinds
+> 2026-10-16 in de groep Community op `/beheer`), dus alleen
 > voor wie `community.manage` of `media.manage` heeft: **gewone leden bereiken
 > ze in dit design niet meer via het menu.** Vraag en Aanbod en Ritverslagen
 > staan nergens meer in het menu; de pagina's zelf bestaan nog. Polls staat
-> onder Club en Samen fietsen bij de kalender (invulling van de bouwer, niet
-> bevestigd).
+> onder Club (invulling van de bouwer, niet bevestigd). Samen fietsen stond
+> eerst bij de kalender; sinds 2026-10-16 staat het onder Club, met een
+> live-tegel op Vandaag (besluit eigenaar).
 >
 > **Bewust niet gebouwd.**
 > - Aan- en afmelden op een tegel, "nog 1 renner nodig" en het intervalprofiel
@@ -1940,7 +2698,8 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 >   intervalprofiel in de trainingstegel" onder Bewust niet gebouwd.
 > - *Meer is weg: vier plekken.* De plek Meer dubbelde met het persoonlijke
 >   menu rechtsboven en is verwijderd (`/meer` bestaat niet meer). Het menu
->   bevat nu ook Sponsors en, onder Beheer, WhatsApp-groepen en Media; het
+>   bevat nu ook Sponsors en, onder Beheer, WhatsApp-groepen en Media (sinds
+>   2026-10-16 één item Beheer naar de tegelpagina `/beheer`); het
 >   toont de letter van het design. Routes als `/profiel` en `/beheer` horen bij
 >   geen plek meer, dus dan is geen tab actief (`placeForPath` geeft `null`).
 >   **Niet meer waar:** "vijf plekken" en "Meer" overal hierboven, in
@@ -1961,9 +2720,11 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 > - *Tabbalk op de iPhone (nog niet op main).* De eigenaar meldde dat de balk
 >   op de iPhone midden in de pagina bleef hangen en met de inhoud meeschoof.
 >   De balk was `position: fixed`; hij is nu `sticky` met `bottom: 0` als
->   laatste kind van de schil. De oorzaak op iOS is niet vastgesteld. Getest in
->   de telefoonweergave van de browser (plakt op elke scrollpositie onderaan);
->   **niet getest op een echte iPhone.**
+>   laatste kind van de schil. Getest in de telefoonweergave van de browser
+>   (plakt op elke scrollpositie onderaan); **niet getest op een echte iPhone.**
+>   *Correctie 2026-10-16:* sticky loste het niet op; de balk bleef af en toe
+>   hangen. De oorzaak is het toetsenbord in de beginscherm-app, zie de ronde
+>   "Tabbalk blijft hangen na het toetsenbord".
 > - *Kleurbeleid voor tegels (besluit eigenaar, 2026-10-12; nog niet op main).*
 >   Kleur zegt wat voor soort ding het is, formaat hoe belangrijk het is.
 >   **Goud**: jij, nu, iets wat vandaag je aandacht vraagt (schaars). **Petrol**:
@@ -8523,8 +9284,12 @@ link naar `/live/[eventId]`, zie de update hierboven).
   RLS, gespiegeld aan `0026`) en een zichtbaarheidskeuze (`show_on_profile`,
   default tonen tenzij gearchiveerd). De sync raakt `image_url`/`show_on_profile`
   nooit aan (upsert zet alleen z'n eigen kolommen). Showcase "Mijn fietsen" op
-  `/profiel` en op het ledenprofiel (`ProfileReadonlyView`), niet op het publieke
-  profiel. Leden zónder Strava voegen handmatig een fiets toe
+  `/profiel`. Op het ledenprofiel (`ProfileReadonlyView`) zag tot 2026-10-16
+  alleen het lid zelf ze: `strava_bikes` heeft alleen de eigen-policy uit `0089`
+  (op productie nagekeken). Sinds `0243` leest het ledenprofiel ze via
+  `get_member_profile_bikes`, voor elk goedgekeurd lid (zie de ronde "Fietsen
+  zichtbaar voor andere leden"). Het publieke profiel toont ze via
+  `get_public_profile_bikes` (`0094`). Leden zónder Strava voegen handmatig een fiets toe
   (`source='manual'`, `profiel/_actions/bikes.ts`): naam, merk/model, optionele
   afstand + foto. Waren showcase-only omdat `/onderhoud` op `source='strava'`
   filterde; sinds Mijn garage (2026-08-18) doen ze volwaardig mee met een eigen
@@ -8762,6 +9527,298 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — Fietsen zichtbaar voor andere leden
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
+`0243_member_profile_bikes.sql` (toegepast via de Supabase-connector,
+2026-10-16; zie "Controle").
+
+**Aanleiding.** Bij de ronde "Profiel: zoals leden je zien" bleek dat andere
+leden geen fietsen op het ledenprofiel zagen: `strava_bikes` heeft alleen de
+eigen-policy uit `0089`. De showcase op `/profiel` vraagt per fiets wel of hij op
+het profiel staat. De eigenaar koos ervoor dat leden elkaars fietsen zien.
+
+**Wat er veranderde.**
+- `0243` voegt `get_member_profile_bikes(target_profile_id)` toe: security
+  definer, alleen voor `authenticated`. Hij geeft de fietsen van een goedgekeurd
+  lid aan een goedgekeurde kijker, met dezelfde regel als het publieke profiel:
+  `coalesce(show_on_profile, not retired)`. Kolommen gelijk aan
+  `get_public_profile_bikes`; de kolomtypes zijn op productie nagekeken.
+- `member-profile.tsx` leest de fietsen via die functie, ook als het lid naar
+  zichzelf kijkt. Zo toont "Zoals leden je zien" op `/profiel` precies wat
+  anderen zien.
+- Privacyverklaring, onder "Account- en profielgegevens": andere leden zien je
+  fietsen (naam, merk en model, afstand, foto) behalve die je verbergt, en
+  bezoekers als je publieke profiel aan staat. **Geen nieuwe versie** in
+  `src/lib/privacy.ts`. Dat wijkt bewust af van de regel daar, net als bij
+  eerdere verruimingen: het gaat om gegevens die het lid zelf voor zijn profiel
+  opgaf, met een keuze per fiets, voor ontvangers die zijn profiel al zien.
+  Goedgekeurd door de eigenaar, zonder nieuwe versie (2026-10-16).
+
+**Bewust niet gedaan.**
+- Een select-policy op `strava_bikes`. Die tabel heeft ook kolommen voor het
+  eigen onderhoud; met een functie blijft de keuze per fiets de enige poort.
+
+**Controle.** `eslint` op de gewijzigde bestanden is schoon. `tsc` is schoon,
+op de bekende fouten in `read-barcode.ts` en `gopher-image-ocr.ts` na. Op
+productie, na het toepassen: de functie is security definer, `anon` mag hem niet
+uitvoeren en `authenticated` wel. In een transactie als een ander goedgekeurd lid
+(rol `authenticated`, `sub` in de JWT-claims) gaf de functie 8 van de 8 zichtbare
+fietsen van een lid, terwijl die kijker in `strava_bikes` zelf 0 rijen ziet.
+
+**Niet geverifieerd.** De weigering voor een lid dat nog wacht: er stond geen
+wachtend account om mee te testen. De pagina's in de browser.
+
+### Opgeleverd — Profiel: zoals leden je zien
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** De eigenaar wilde op de profielpagina kunnen wisselen tussen het
+profiel dat je aanpast en het profiel dat andere leden van je zien.
+
+**Wat er veranderde.**
+- Bovenaan `/profiel` staan twee knoppen: "Bewerken" en "Zoals leden je zien".
+  De tweede is `/profiel?weergave=leden` en toont het ledenprofiel van jezelf;
+  de bewerkdata wordt dan niet geladen. De knoppen hebben dezelfde vorm als
+  "Deze week / Vorige week" op `/achievements`.
+- Het ledenprofiel zit nu in één servercomponent,
+  `leden/[id]/_components/member-profile.tsx`, die `/leden/[id]` en `/profiel`
+  allebei gebruiken. Zo kan de weergave op `/profiel` niet uit de pas lopen met
+  wat een ander lid echt ziet.
+- Kijkt een lid naar zichzelf, dan laat die component alleen zien wat de RLS een
+  ánder lid laat lezen. Dat geldt ook op `/leden/[eigen id]`:
+  - **Fietsen:** in deze ronde eerst helemaal niet, omdat andere leden ze niet
+    konden lezen. Dezelfde dag rechtgezet met `0243`, zie de ronde "Fietsen
+    zichtbaar voor andere leden".
+  - **Alleen gepubliceerde tips.** Een verborgen tip ziet alleen de eigenaar of
+    een moderator (`member_tips_select`, `0239`).
+  - **Geen eigen bewerk- of moderatieknoppen**, wel "Vraag het aan" bij je
+    onderwerpen, zoals een ander lid die ziet. Wie die knop bij zichzelf
+    aanklikt, loopt op de database-check `asker_id <> expert_id` vast.
+
+**Bewust niet gedaan.**
+- Een weergave van het publieke profiel (`/profielen/[id]`). Daar staat al een
+  link naar op het ledenprofiel als het publieke profiel aan staat.
+
+Een lid dat nog wacht op goedkeuring komt niet bij deze weergave: de middleware
+stuurt elk pad behalve `/wachten` door naar `/wachten`. De `is_approved`-filter
+in de component (die anders een 404 geeft) speelt daardoor niet.
+
+**Controle.** `eslint` op de gewijzigde bestanden is schoon. `tsc --noEmit`
+geeft alleen fouten in `read-barcode.ts` en `gopher-image-ocr.ts`: deze worktree
+heeft geen eigen `node_modules`, en in de gedeelde map ontbreken `@zxing` en
+`tesseract.js`.
+
+**Niet geverifieerd.** De pagina's in de browser. Daarvoor moet je met een echt
+account inloggen en deze worktree heeft geen `.env.local`.
+
+### Opgeleverd — ZWBieb: eigen onderwerpen, spullen uitlenen en een nieuwe naam
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
+`0242_knowledge_topics.sql` (toegepast via de Supabase-connector, 2026-10-16;
+controlequery vooraf leeg, tabel, RLS, policies, foreign keys en trigger
+achteraf nagekeken).
+
+**Aanleiding.** De eigenaar vroeg drie dingen:
+- Leden moeten zelf een onderwerp kunnen toevoegen dat er nog niet tussen staat.
+- Naast "wie weet wat" ook "wie heeft wat": spullen die een lid wil uitlenen aan
+  een ander ZWB-lid, zoals een fietskoffer, momentsleutel, fietsendrager,
+  SeaSucker of camper.
+- Een naam die bij allebei past, liefst met ZWB erin. Uit ZWBieb, ZWBuren, ZWBaak
+  en ZWBank koos hij **ZWBieb**: in de bieb leen je wat een ander lid weet of
+  heeft.
+
+**Wat.**
+
+- **`knowledge_topics` (`0242`).**
+  - De onderwerpen staan nu in de database: de vijftien kennisonderwerpen uit
+    code plus zes spullen, elk met een soort (`kennis` of `spullen`).
+  - Foreign keys vanaf `member_knowledge_topics`, `member_tips` en
+    `knowledge_threads`.
+  - Elk goedgekeurd lid kan een onderwerp toevoegen, hooguit vijf per dag
+    (trigger). Dezelfde naam twee keer kan niet; hoofdletters en spaties tellen
+    niet mee.
+  - De moderatie (`community.manage` of `content.moderate_posts`) kan een
+    onderwerp hernoemen en verbergen. Verwijderen lukt alleen als niemand het
+    gebruikt.
+- **Toevoegen.** In "Mijn ZWBieb" heeft elk blok een veld "Ander onderwerp" of
+  "Ander spul". Terwijl je typt, toont de app bestaande onderwerpen die erop
+  lijken (`similarTopics`). Een gekozen of nieuw onderwerp wordt meteen
+  aangevinkt.
+- **Spullen.**
+  - Een eigen tab op `/zwbieb/spullen`, naast Kennis op `/zwbieb`.
+  - In "Mijn ZWBieb" een tweede blok met hooguit vijftien spullen, naast de zes
+    kennisonderwerpen.
+  - Op het profiel staat "Leent uit" naast "Weet van".
+  - "Vraag het aan" opent hetzelfde gesprek.
+- **Beheer.** `/zwbieb/onderwerpen` (tandwiel in de kop, alleen voor de
+  moderatie). Per onderwerp zie je hoe vaak het gebruikt wordt en wie het
+  toevoegde.
+- **Iconen per onderwerp** (ronde "Wie weet wat: een icoon per onderwerp"
+  hieronder, uit een andere sessie) zijn meegenomen. `topic-badge.tsx` staat nu
+  in `src/app/(app)/zwbieb/_components/` en houdt zelf de groepen bij, want de
+  vaste lijst in code is weg. De zes spullen hebben een eigen icoon in de kleur
+  van materiaal. Een onderwerp dat een lid zelf toevoegt, krijgt een lamp
+  (kennis) of een doos (spullen).
+- **Hernoemd naar ZWBieb.**
+  - Routes: `/leden/wie-weet-wat` heet nu `/zwbieb`, met een permanente redirect
+    in `next.config.ts` voor oude links en pushmeldingen.
+  - Code: `src/lib/wie-weet-wat` heet nu `src/lib/zwbieb`.
+  - Het menu-item onder Club, alle labels en de anker `#zwbieb` op `/hulp` en
+    `/privacy` zijn aangepast.
+  - De tabellen houden hun naam (`member_knowledge`, `knowledge_threads`, …).
+- **Teksten.**
+  - `/privacy#zwbieb` noemt nu ook de spullen, en dat de moderatie ziet wie een
+    onderwerp toevoegde.
+  - Nieuwe `/voorwaarden` §3a: lenen spreken leden samen af; ZWB is geen partij
+    en niet aansprakelijk.
+  - `/hulp#zwbieb` en de hulpzoeker zijn bijgewerkt.
+  - `docs/kennis-van-leden.md` heeft een nieuwe §7.
+
+**Besluiten van de eigenaar.** De naam ZWBieb; spullen met dezelfde opzet in een
+eigen tab; leden voegen zelf onderwerpen toe.
+
+**Goedgekeurd door de eigenaar (2026-10-16).**
+- De privacy- en voorwaardentekst, inclusief §3a over lenen.
+- Geen nieuwe toestemmingsversie: `MEMBER_KNOWLEDGE_CONSENT_VERSION` blijft
+  `2026-10-15`. Spullen vult een lid alleen zelf in, binnen dezelfde functie;
+  alleen de tekst verandert. Dat volgt de lijn van "privacy verruimen zonder
+  nieuwe versie".
+
+**Bewust niet gebouwd.**
+- **Onderwerpen samenvoegen.** Bij een dubbeling: hernoemen en de ene verbergen.
+- **Een uitleenregister** (wie heeft wat wanneer geleend), een borg of een
+  agenda per spul. Dat regelt het gesprek.
+- **Een slug hernoemen.** Alleen het label verandert, zodat links blijven
+  werken.
+- **Een categorie per spul** (vervoer, gereedschap). Bij zes spullen is dat niet
+  nodig.
+- **De tabellen hernoemen naar zwbieb.** Dat geeft risico zonder winst.
+
+**Niet meer waar.**
+- "Een vaste lijst van vijftien" (ronde "Wie weet wat" hieronder): leden voegen
+  nu zelf toe. Dat is ter plekke aangevuld.
+- De route `/leden/wie-weet-wat` in eerdere rondes is nu `/zwbieb`, via een
+  redirect.
+- "De volgende vrije is `0242`" (Architectuur): dat is nu `0243`.
+
+**Getest.**
+- `tsc` en ESLint zonder nieuwe fouten.
+- `member-knowledge-migration.test.ts`: 35 tests, inclusief `0242`. Gedekt zijn:
+  - de startlijst van 21 onderwerpen;
+  - toevoegen, met de naam getrimd;
+  - een dubbele naam (hoofdletters tellen niet mee);
+  - een wachtend account, een andere maker of een eigen `sort_order` wordt
+    geweigerd;
+  - de daglimiet, met de moderatie erbuiten;
+  - hernoemen en verbergen alleen door de moderatie;
+  - een onderwerp in gebruik kan niet worden verwijderd;
+  - de foreign key en een onbekende soort.
+- `zwbieb.test.ts`: de startlijsten zijn gelijk aan `0242`, plus de catalogus,
+  slugs en suggesties.
+- Volledige run: alles groen, behalve tests die al bekend waren of alleen onder
+  belasting falen. `admin-areas`, `intervals-ride-sync`, `rls-initplan-migration`
+  en `zwift-club-calendar` zijn los groen. `omnium-live` mist `.env.local`.
+
+**Niet geverifieerd.**
+- `0242` staat op productie en de structuur is nagekeken (zie hierboven). De
+  RLS is niet als lid uitgeprobeerd.
+- De pagina's in de browser: deze worktree heeft geen `.env.local`.
+
+### Opgeleverd — Wie weet wat: een icoon per onderwerp
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt, op de branch
+`claude/profile-design-icons-b0c0b1`, als `6f5cc87` op `main`; gepusht naar
+`main` (eigenaar, 2026-10-16). Geen migratie.
+
+**Aanleiding.** De eigenaar vond het blok "Weet van" op het profiel van een lid
+een kale lijst en vroeg om iconen of plaatjes die bij de onderwerpen horen, ook
+bij Wie weet wat zelf.
+
+**Wat er veranderde.**
+- Elk onderwerp in `src/lib/wie-weet-wat/topics.ts` heeft een groep: rijden,
+  trainen of materiaal (`topicGroup`). De groep bepaalt de tenuekleur: petrol
+  met een goud icoon voor rijden, teal voor trainen, sage voor materiaal. In
+  donker de lichtere petrol en sage van de tegels, anders zakken ze weg.
+- `topic-badge.tsx`: het icoon als vierkant in die kleur, met de schuine baan
+  van het tenue erdoor (`.topic-badge` in `globals.css`). Lucide waar het een
+  passend icoon heeft; schema (trapjeslijn van een intervaltraining), bidon en
+  band zijn zelf getekend in dezelfde lijn. Bij hover of focus kantelt het
+  icoon even, niet bij `prefers-reduced-motion`.
+- Profiel: "Weet van" is een lijst rijen met een groot icoon, het onderwerp en
+  de notitie. Op je eigen profiel twee kolommen (er is geen vraagknop). Op de
+  telefoon is "Vraag het aan" alleen het icoon, op 44px (`AskLink compact`).
+- Wie weet wat: het icoon voor elke onderwerpkop, klein in de knoppen onder
+  "Nog zonder kenners" (die zijn niet meer rond maar licht afgerond, gelijk aan
+  het icoon), bij de keuze van je onderwerpen en voor het onderwerp onder een
+  tip op het profiel.
+
+**Bewust niet gedaan.**
+- Geen foto's: vijftien onderwerpen met een foto worden druk en zwaar op de
+  telefoon, en er zijn geen eigen clubfoto's per onderwerp.
+- Geen eigen kleur per onderwerp: vijftien kleuren zeggen niets. Drie groepen in
+  tenuekleuren wel. Goud (in de tegels "jij, nu") is alleen de lijnkleur van het
+  icoon, geen vlak.
+- Geen icoon in de onderwerpkeuze van het tipformulier en de citatenimport: dat
+  zijn `<select>`-lijsten.
+
+**Niet geverifieerd.** De echte pagina's niet bekeken: lokaal inloggen kon niet.
+Gecontroleerd op een tijdelijke proefpagina met voorbeelddata (niet
+gecommit), in het huidige design en de tegels, licht en donker, desktop en
+telefoon (375 px); daar zonder het tegellettertype. Typecheck en lint schoon,
+afgezien van de bestaande `@zxing`-meldingen in een worktree zonder die
+pakketten.
+
+### Opgeleverd — Tabbalk blijft hangen na het toetsenbord (iPhone)
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt (`fa85aa7` op de eigen branch, als `6dc4250` op `main` gezet); gepusht naar `main` (eigenaar, 2026-10-16). Geen migratie.
+
+**Aanleiding.** De eigenaar meldde dat de tabbalk op de iPhone "af en toe" nog
+steeds midden in beeld hangt, ook na de overstap van `fixed` naar `sticky`
+(2026-10-12). Op de screenshot zit de onderrand van de balk 336 pt boven de
+onderkant van het scherm (iPhone 393×852 pt): precies de hoogte van het
+iPhone-toetsenbord met suggestiebalk. De screenshot is van de app op het
+beginscherm (inhoud loopt onder de statusbalk door, geen Safari-balk).
+
+**Oorzaak.** Een bekende iOS-bug: na het sluiten van het toetsenbord zet WebKit
+het beeld niet terug. `innerHeight`/`visualViewport` blijven te klein of
+`visualViewport.offsetTop` blijft hangen, en alles wat onderaan vastzit staat
+dan een toetsenbordhoogte te hoog, tot de app wordt afgesloten. Dat geldt voor
+`fixed` én `sticky`; daarom hielp de vorige ronde niet. Bronnen: WebKit-bug
+[297779](https://bugs.webkit.org/show_bug.cgi?id=297779) en een
+[beschrijving voor beginscherm-apps](https://dev.to/cederhook/fixing-the-ios-standalone-pwa-keyboard-bug-that-shrinks-your-viewport-for-good-63d).
+"Af en toe" past daarbij: het gebeurt pas na typen ergens in de app, en blijft
+daarna bij elke pagina.
+
+**Wat er veranderde.** `src/components/ios-viewport-herstel.tsx`, in de
+rootlayout. Alleen op iOS in de beginscherm-app houdt het de grootste
+schermhoogte per breedte bij. Na `focusout`, een resize, `pageshow` of terugkeer
+naar de app kijkt het of het beeld kleiner is gebleven (of verschoven) terwijl
+geen veld meer de focus heeft. Zo ja, dan zet het de body heel even op
+`display: none` en terug, met een gedwongen herberekening ertussen, en zet het
+de scrollpositie terug. Die sprong dwingt WebKit het beeld opnieuw te meten.
+Ingezoomd (`visualViewport.scale` > 1) telt niet als hangen. Hoogstens één
+herstel per seconde.
+
+**Bewust niet gedaan.**
+- Niet in Safari zelf: daar verandert de hoogte terecht als de adresbalk in- en
+  uitklapt, en zou het herstel bij elke scroll afgaan.
+- `interactive-widget=resizes-visual` en het vastzetten van `html`/`body` met
+  `position: fixed`: volgens de bron hierboven negeert de beginscherm-app het
+  eerste, en zet het tweede de app vanaf het laden op de kleine hoogte.
+- Geen doorschijnend waas over de sprong heen, zoals de bron voorstelt; eerst
+  zien of de sprong op de iPhone zichtbaar is.
+- De balk terug naar `fixed`: `sticky` werkt in de browser goed, en de bug raakt
+  beide.
+
+**Niet geverifieerd.** Niet getest op een echte iPhone; de bug is lokaal niet na
+te bootsen. Lokaal alleen: typecheck en lint schoon (afgezien van de bestaande
+`@zxing`-meldingen in een worktree zonder die pakketten), en in Chromium dat de
+sprong de scrollpositie terugzet. Op de iPhone testen: in de beginscherm-app iets
+typen (bijv. zoeken), het toetsenbord sluiten, naar de kalender gaan en scrollen.
+Werkt het niet, dan is de volgende stap meten wat `innerHeight`,
+`visualViewport.height` en `offsetTop` in die toestand teruggeven.
 
 ### Opgeleverd — wetenschappelijke toets fase 6: overig, en de toets afgerond
 
@@ -9473,6 +10530,8 @@ aan één kenner).
   notitie en de knop "Vraag het aan", plus de nieuwste tips. Onderwerpen zonder
   kenners staan ingeklapt. In het menu onder Club en als knop op `/leden`.
 - **Meedoen** (`/mijn`).
+  - *Sinds 2026-10-16 (`0242`, ronde "ZWBieb") voegen leden zelf onderwerpen
+    toe, en heet het onderdeel ZWBieb op `/zwbieb`.*
   - Een lid kiest tot zes onderwerpen uit een vaste lijst van vijftien
     (`src/lib/wie-weet-wat/topics.ts`). Er zit geen gezondheidsonderwerp bij.
   - Het lid tekent een eigen toestemming (`MEMBER_KNOWLEDGE_CONSENT_VERSION`,
@@ -16379,7 +17438,7 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   inlogt. De beheerschermen onder `/beheer/omnium` blijven Nederlands. Er komt
   geen i18n-laag; de Omnium-sectie krijgt `lang="en"` op zijn contentwrapper.
 - **Routes Nederlands**: `/kalender`, `/leden`, `/media`, `/community`,
-  `/profiel`, `/achievements` (uitzondering), `/live`. Nieuwe routes
+  `/profiel`, `/stats/achievements` (uitzondering), `/live`. Nieuwe routes
   volgen deze conventie.
 - **Supabase RLS overal aan**, policies per migratie naast de tabel.
 - **Service-role admin client**: alleen in server-acties die expliciet
@@ -16532,7 +17591,7 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   Strava-deel draait één keer per dag per lid (ronde bovenaan). Oorspronkelijk
   (2026-09-23): niet urgent, wel goed om
   te weten. `recomputeMyMilestoneBadges` in
-  `src/app/(app)/achievements/_actions.ts` draait `syncColSegmentTimesForUser`
+  `src/app/(app)/stats/achievements/_actions.ts` (toen nog `achievements/`) draait `syncColSegmentTimesForUser`
   (40 detailcalls) én `syncZwbSegmentsForUser` (40 detailcalls plus
   `applyAuthoritativeSegmentPrs`, tot 100 `GET /segments/{id}`). Eén klik kost dus
   richting 150 calls, ruim 7% van de daglimiet, zonder throttle — en het is een

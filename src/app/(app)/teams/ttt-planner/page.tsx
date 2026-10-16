@@ -1,4 +1,4 @@
-import { BackLink, PageHeader, EmptyState, HelpLink } from "@/components/app-ui";
+import { BackLink, PageHeader, EmptyState } from "@/components/app-ui";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess } from "@/lib/auth/request";
@@ -289,7 +289,7 @@ export default async function TttPlannerPage({
   return (
     <div className="space-y-6">
       <BackLink href="/teams" label="Teams" />
-      <PageHeader eyebrow="Club" title="TTT Planner" actions={<HelpLink href="/hulp#ttt-beheer" />} />
+      <PageHeader eyebrow="Club" title="TTT Planner" />
 
       {teamRows.length === 0 ? (
         <EmptyState>Er zijn nog geen teams om een TTT-plan voor te maken.</EmptyState>

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { IosViewportHerstel } from "@/components/ios-viewport-herstel";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -91,6 +92,7 @@ export default function RootLayout({
         >
           {children}
         </ThemeProvider>
+        <IosViewportHerstel />
       </body>
     </html>
   );

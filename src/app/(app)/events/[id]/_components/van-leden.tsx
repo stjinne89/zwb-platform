@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import type { MemberSummary, TipRow } from "@/lib/wie-weet-wat/queries";
-import { TipItem } from "@/app/(app)/leden/wie-weet-wat/_components/tip-item";
+import type { MemberSummary, TipRow } from "@/lib/zwbieb/queries";
+import { TipItem } from "@/app/(app)/zwbieb/_components/tip-item";
 
-/** Tips van leden bij dit event en de cols op de route (Wie weet wat). */
+/** Tips van leden bij dit event en de cols op de route (ZWBieb). */
 export function VanLeden({
   eventId,
   tips,
@@ -12,6 +12,7 @@ export function VanLeden({
   colNames,
   viewerId,
   canModerate,
+  topicNames,
 }: {
   eventId: string;
   tips: TipRow[];
@@ -19,10 +20,11 @@ export function VanLeden({
   colNames: Map<string, string>;
   viewerId: string;
   canModerate: boolean;
+  topicNames: Record<string, string>;
 }) {
   const addLink = (
     <Link
-      href={`/leden/wie-weet-wat/tip?event=${eventId}`}
+      href={`/zwbieb/tip?event=${eventId}`}
       className={buttonVariants({ variant: "ghost", size: "sm" })}
     >
       <Plus />
@@ -50,7 +52,7 @@ export function VanLeden({
             author={authors.get(tip.profile_id)}
             viewerId={viewerId}
             canModerate={canModerate}
-            showTopic
+            topicName={topicNames[tip.topic_slug] ?? tip.topic_slug}
             colName={tip.col_slug && tip.event_id !== eventId ? colNames.get(tip.col_slug) : undefined}
           />
         ))}

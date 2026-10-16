@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { BackLink, PageHeader, EmptyState, HelpLink } from "@/components/app-ui";
+import { BackLink, PageHeader, EmptyState } from "@/components/app-ui";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { getRequestAccess } from "@/lib/auth/request";
 import { createClient } from "@/lib/supabase/server";
@@ -155,7 +155,6 @@ export default async function TttPlanDetailPage({
         eyebrow="TTT Planner"
         title={plan.name}
         description={`${raceTeamName}${eventTitle ? ` - ${eventTitle}` : ""} - ${plan.published_at ? "gepubliceerd" : "concept"}`}
-        actions={<HelpLink href="/hulp#ttt-beheer" />}
       />
 
       {canManage && (

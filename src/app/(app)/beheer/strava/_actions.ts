@@ -211,7 +211,7 @@ export async function revalidateAfterRecompute() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.has(adminAreaPermission("strava"))) return;
-  revalidatePath("/achievements");
+  revalidatePath("/stats/achievements");
   revalidatePath("/dashboard");
   revalidatePath("/leden");
   revalidatePath("/stats");

@@ -23,9 +23,9 @@ export function ZwbeterNav({ pillars, actions }: { pillars: PillarNav[]; actions
 
   return (
     <div className="space-y-3">
-      <header className="flex flex-wrap items-end justify-between gap-3">
+      <header className="tg-repeats-nav flex flex-wrap items-end justify-end gap-3">
         <h1 className="tg-display">ZWBeter {active.word}</h1>
-        {actions && <div className="pb-1">{actions}</div>}
+        {actions && <div>{actions}</div>}
       </header>
 
       <nav aria-label="ZWBeter" className="grid grid-cols-2 gap-2 md:grid-cols-5 [&>*:last-child:nth-child(odd)]:col-span-2 md:[&>*:last-child:nth-child(odd)]:col-span-1">

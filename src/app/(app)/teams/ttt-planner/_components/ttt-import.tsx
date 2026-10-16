@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { Copy, ExternalLink, FileUp, Import } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { imageRidersText } from "@/lib/ttt/gopher-image";
 import { ZWIFTGOPHER_TTT_URL, zwiftIdExport } from "@/lib/ttt/zwiftgopher";
 import { cn } from "@/lib/utils";
 import { importTttPlan, type TttImportResult } from "../_actions";
@@ -66,6 +67,8 @@ export function TttImport({
   const [source, setSource] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
   const [result, setResult] = useState<TttImportResult | null>(null);
+  const [reading, setReading] = useState(false);
+  const [imageNote, setImageNote] = useState<{ error: boolean; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -107,8 +110,40 @@ export function TttImport({
 
   async function readFile(file: File | undefined) {
     if (!file) return;
-    setSource(await file.text());
     setResult(null);
+    setImageNote(null);
+    if (file.type.startsWith("image/")) {
+      await readImage(file);
+      return;
+    }
+    setSource(await file.text());
+  }
+
+  // Afbeelding uit ZwiftGopher (Create Image): herkend op het toestel, daarna
+  // als tabel in het importvak om te controleren.
+  async function readImage(file: Blob) {
+    setReading(true);
+    try {
+      const { recognizeGopherImage } = await import("@/lib/ttt/gopher-image-ocr");
+      const found = await recognizeGopherImage(file);
+      if (found.length === 0) {
+        setImageNote({ error: true, text: "Geen plan gevonden in de afbeelding." });
+        return;
+      }
+      setSource(imageRidersText(found));
+      setImageNote({ error: false, text: `${found.length} renners gelezen; controleer de getallen.` });
+    } catch {
+      setImageNote({ error: true, text: "De afbeelding lezen lukte niet." });
+    } finally {
+      setReading(false);
+    }
+  }
+
+  function pasteImage(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const file = Array.from(e.clipboardData.files).find((item) => item.type.startsWith("image/"));
+    if (!file) return;
+    e.preventDefault();
+    void readFile(file);
   }
 
   function submit() {
@@ -214,16 +249,18 @@ export function TttImport({
                   onChange={(e) => {
                     setSource(e.target.value);
                     setResult(null);
+                    setImageNote(null);
                   }}
+                  onPaste={pasteImage}
                   rows={5}
                   spellCheck={false}
-                  placeholder="Export JSON, Export Link of Export Text"
+                  placeholder="Export JSON, Export Link, Export Text of afbeelding"
                   className="mt-3 w-full rounded-md border bg-background px-3 py-2 font-mono text-xs"
                 />
                 <input
                   ref={fileRef}
                   type="file"
-                  accept=".json,.txt,.csv,application/json,text/plain"
+                  accept=".json,.txt,.csv,application/json,text/plain,image/*"
                   className="hidden"
                   onChange={(e) => {
                     void readFile(e.target.files?.[0]);
@@ -231,16 +268,26 @@ export function TttImport({
                   }}
                 />
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={() => fileRef.current?.click()}>
+                  <Button variant="outline" disabled={reading} onClick={() => fileRef.current?.click()}>
                     <FileUp className="size-4" />
-                    Bestand
+                    {reading ? "Afbeelding lezen..." : "Bestand"}
                   </Button>
-                  <Button disabled={pending || !source.trim() || !teamId} onClick={submit}>
+                  <Button disabled={pending || reading || !source.trim() || !teamId} onClick={submit}>
                     <Import className="size-4" />
                     {pending ? "Bezig..." : "Importeren"}
                   </Button>
                 </div>
 
+                {imageNote && !result && (
+                  <p
+                    className={cn(
+                      "mt-3 rounded-md px-3 py-2 text-sm",
+                      imageNote.error ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {imageNote.text}
+                  </p>
+                )}
                 {result && !result.ok && (
                   <p className="mt-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                     {result.error}

@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { CalendarPlus, Check, Copy, RotateCw, ShieldOff } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { HelpLink } from "@/components/app-ui";
+
 import { calendarFeedUrls, type CalendarFeedUrls } from "@/lib/calendar/feed-urls";
 import {
   createCalendarFeedToken,
@@ -68,7 +68,6 @@ export function CalendarFeed({ initial }: { initial: CalendarFeedStatus | null }
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Agenda-abonnement
         </h2>
-        <HelpLink href="/hulp#agenda" />
       </header>
 
       {!status ? (

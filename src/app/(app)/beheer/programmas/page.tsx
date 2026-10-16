@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess } from "@/lib/auth/request";
 import { adminAreaPermission } from "@/lib/admin-areas";
-import { EmptyState, HelpLink } from "@/components/app-ui";
+import { EmptyState } from "@/components/app-ui";
 import {
   NewProgramForm,
   ProgramCard,
@@ -64,7 +64,6 @@ export default async function ProgrammasBeheerPage() {
     <div className="space-y-8">
       <header className="flex items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">Programma&apos;s</h1>
-        <HelpLink href="/hulp#eventbeheer" />
       </header>
 
       <section className="space-y-3">

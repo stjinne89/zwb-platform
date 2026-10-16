@@ -19,6 +19,8 @@ import { ProfileExternalLinks } from "@/components/profile-external-links";
 import type { StravaBikeRow } from "@/lib/strava/bikes";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
+import { ProfileViewToggle } from "./_components/profile-view-toggle";
+import { MemberProfile } from "../leden/[id]/_components/member-profile";
 
 type AwardRow = {
   id: string;
@@ -51,10 +53,23 @@ function awardBadge(row: AwardRow) {
     : row.achievement_badges;
 }
 
-export default async function ProfielPage() {
+export default async function ProfielPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ weergave?: string | string[] }>;
+}) {
   const supabase = await createClient();
   const user = await getRequestUser();
   if (!user) redirect("/login");
+
+  if ((await searchParams).weergave === "leden") {
+    return (
+      <div className="mx-auto max-w-3xl space-y-6">
+        <ProfileViewToggle membersView />
+        <MemberProfile profileId={user.id} viewerId={user.id} />
+      </div>
+    );
+  }
 
   const PROFILE_COLUMNS =
     "id, display_name, region, zwift_id, mywhoosh_id, strava_id, intervals_id, zrl_category, zrl_division, sex, wellness_device, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility, event_type_interests, fit_max_distance_km, fit_max_elevation_m";
@@ -190,6 +205,8 @@ export default async function ProfielPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
+      <ProfileViewToggle membersView={false} />
+
       <ProfileHeader
         displayName={profileRow?.display_name ?? ""}
         email={user.email ?? ""}
@@ -277,16 +294,16 @@ export default async function ProfielPage() {
         <MyQuotes quotes={(myQuotes ?? []) as MyQuote[]} />
       </div>
 
-      <section id="wie-weet-wat" className="scroll-mt-20 rounded-lg border bg-card p-4">
+      <section id="zwbieb" className="scroll-mt-20 rounded-lg border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Wie weet wat
+            ZWBieb
           </h2>
           <Link
-            href="/leden/wie-weet-wat/mijn"
+            href="/zwbieb/mijn"
             className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
           >
-            Mijn onderwerpen en tips
+            Mijn ZWBieb
           </Link>
         </div>
       </section>

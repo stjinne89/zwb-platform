@@ -68,6 +68,12 @@ const nextConfig: NextConfig = {
       // /onderhoud heet nu /mijn-garage. Ook hier staan er al pushberichten met
       // de oude URL in omloop.
       { source: "/onderhoud", destination: "/mijn-garage", permanent: true },
+      // Wie weet wat heet sinds 2026-10-16 ZWBieb; oude links en pushmeldingen.
+      { source: "/leden/wie-weet-wat", destination: "/zwbieb", permanent: true },
+      { source: "/leden/wie-weet-wat/:path*", destination: "/zwbieb/:path*", permanent: true },
+      // Achievements is sinds 2026-10-16 een tab onder Stats; oude links en
+      // pushmeldingen. De querystring (?week=vorige) gaat vanzelf mee.
+      { source: "/achievements", destination: "/stats/achievements", permanent: true },
       // ZRL-kalender en WTRL-teams zijn samen ZRL-beheer (2026-10-13).
       { source: "/beheer/zrl-kalender", destination: "/beheer/zrl", permanent: true },
       { source: "/beheer/wtrl-teams", destination: "/beheer/zrl/teams", permanent: true },
