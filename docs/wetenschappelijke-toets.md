@@ -58,8 +58,8 @@ en een lijst beperkingen, zoals de bestaande kennisbanken.
 | A11 | Zones (Zwift/Coggan): Z2 60–75 %, Z3 76–89 %, Z4 90–104 %, Z5 105–118 %, Z6 ≥ 119 % FTP | `workouts.ts` | ◐ afspraak, nu zo benoemd; drempelblokken begrensd naar lengte (1D) |
 | A12 | RPE ↔ %FTP-tabel (RPE 5 = 71–80 %, 7 = 90–104 %, …) | `workouts.ts`, `targets.ts` | ◐ eigen omzetting, nu zo benoemd (1D) |
 | A13 | Duurblokken minstens 65 % FTP | `workouts.ts` prompt | ◐ eigen keuze (ronde 2026-09-21) |
-| A14 | Naleving 80–115 % is "volgens plan" | `compliance.ts` | ◐ eigen keuze, asymmetrie uitgelegd |
-| A15 | Wegzakken ≥ 10 %, te hard begonnen ≥ 5 %, ontkoppeling ≥ 5 % (≥ 75 min, VI ≤ 1,10) | `training-advice.ts`, `execution.ts` | ◐ vuistregels met bron in `racestrategie-onderzoek.md` §8 |
+| A14 | Naleving 80–115 % is "volgens plan" | `compliance.ts` | ◐ productkeuze, nu zo benoemd (1E) |
+| A15 | Wegzakken ≥ 10 %, te hard begonnen ≥ 5 %, ontkoppeling ≥ 5 % (≥ 75 min, VI ≤ 1,10) | `training-advice.ts`, `execution.ts` | ◐ vuistregels; maat ontkoppeling nu onderbouwd in §8 (1E) |
 
 ### B. Opbouwregels in de AI-trainingsprompt (fase 1)
 
@@ -123,7 +123,8 @@ en een lijst beperkingen, zoals de bestaande kennisbanken.
 
 Fase 1 gaat over A en B: de regels die het schema en het advies sturen. Bij elk
 onderdeel staat wat de app doet, wat de literatuur zegt, en een voorstel.
-**Goedgekeurd door de eigenaar op 2026-10-16. 1A–1D zijn uitgevoerd; 1E volgt.**
+**Goedgekeurd door de eigenaar en uitgevoerd op 2026-10-16** (1A–1E; zie de
+rondes in `PLAN.md`).
 
 ### 1A. Opbouw: hoe snel, en wanneer afremmen — uitgevoerd 2026-10-16
 
@@ -440,7 +441,7 @@ het blok lukt.
 blokkleuren, en dat was een bewuste keuze. Zones op hartslag of lactaat: daar
 heeft de app de data niet voor.
 
-### 1E. Trainingsanalyse en naleving
+### 1E. Trainingsanalyse en naleving — uitgevoerd 2026-10-16
 
 **Wat de app doet.** Drempels voor wegzakken, te hard beginnen, ontkoppeling en
 naleving. Die zijn al als vuistregels onderbouwd en op eigen data getoetst

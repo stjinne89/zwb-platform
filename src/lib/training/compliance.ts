@@ -23,7 +23,8 @@ export type ComplianceVerdict = "niet_gereden" | "te_licht" | "volgens_plan" | "
 /**
  * Grenzen rond 100%. Bewust asymmetrisch: een sessie 15% zwaarder rijden gebeurt
  * makkelijk op een goede dag, 20% te licht is een echt signaal dat het schema
- * niet past.
+ * niet past. Een productkeuze, geen getal uit onderzoek
+ * (docs/wetenschappelijke-toets.md, 1E).
  */
 export const COMPLIANCE_LOW = 80;
 export const COMPLIANCE_HIGH = 115;

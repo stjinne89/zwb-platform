@@ -127,10 +127,10 @@ gaat stabiliteit voor nieuwe features.
    het besluit ligt bij de eigenaar.
 7. **Wetenschappelijke toets van ZWBasis** (gestart 2026-10-16). Fase 0, het
    claimregister, is af. Fase 1 (de regels die schema en advies sturen) is
-   goedgekeurd; 1A (opbouw), 1B (FTP-test), 1C (herstel) en 1D (zones) zijn
-   uitgevoerd, 1E volgt. Migratie `0241` moet nog op productie. Daarna fase 2
-   (kennisbank trainen), 3 (voeding), 4 (kracht en core), 5 (racen en pacing)
-   en 6 (overig). Zie de ronde hieronder en
+   uitgevoerd (opbouw, FTP-test, herstel, zones, analyse; 2026-10-16).
+   Migratie `0241` moet nog op productie. Volgende stap: het voorstel voor fase 2
+   (kennisbank trainen), daarna 3 (voeding), 4 (kracht en core), 5 (racen en
+   pacing) en 6 (overig). Zie de ronde hieronder en
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
@@ -8760,6 +8760,25 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — wetenschappelijke toets 1E: trainingsanalyse onderbouwd
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
+gedragswijziging.
+
+**Wat er veranderde.**
+- `docs/racestrategie-onderzoek.md` §8: steun voor ontkoppeling als maat voor
+  duurvermogen (Rothschild 2025, Stevenson 2023, Barsumyan 2025), met de
+  kanttekening dat een gevalideerde grens niet bestaat (Hunter 2025).
+- In `compliance.ts` staat bij de grenzen 80–115 % dat het een productkeuze is.
+
+**Bewust niet gedaan.** De drempels van de trainersuggesties aanpassen: die zijn
+op eigen data afgesteld (`racestrategie-onderzoek.md` §11), en de literatuur
+geeft geen betere getallen.
+
+**Doorgeschoven naar fase 2.** Het idee voor een protocol "Duurtest": eens per
+maand 60 minuten op 75 % FTP, naar Barsumyan. Het staat als voorstel in het
+werkdocument en wordt bij fase 2 voorgelegd.
+
 ### Opgeleverd — wetenschappelijke toets 1D: drempelblokken naar hun lengte
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -8956,7 +8975,7 @@ ook stijgt bij overbelasting. Daar ging de verzachtingsregel tegenin.
 worktree niet draait (`omnium-live.test.ts` leest `.env.local`). De build is
 gedraaid met de variabelen uit de `.env.local` van de hoofdmap.
 
-### Lopend — wetenschappelijke toets van ZWBasis (fase 0 af, 1A–1D uitgevoerd)
+### Lopend — wetenschappelijke toets van ZWBasis (fase 0 en fase 1 af)
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
 codewijziging.
@@ -8976,7 +8995,8 @@ een bron die een andere kant op wijst.
 
 **Fase 1, goedgekeurd door de eigenaar op 2026-10-16** (1A–1E, inclusief de
 punten uit de Consensus-ronde; FTP-signaal bij 8 % voor trainer én lid). 1C is
-uitgevoerd, net als 1A, 1B en 1D (zie de rondes hierboven); 1E volgt:
+uitgevoerd, net als 1A, 1B, 1D en 1E (zie de rondes hierboven). Fase 1 is
+daarmee af:
 - *1A Opbouw*: de 10 %-regel bleek in een RCT geen blessures te voorkomen. Hij
   blijft als voorzichtige standaard, maar heet niet langer "veilig". Er komt een
   artikel over opbouwen, detraining en CTL/ATL/TSB.

@@ -202,6 +202,13 @@ app.
   tweede helft van een gelijkmatige duurrit wijst op een stevige aerobe basis;
   5 tot 10% op beperkingen of vermoeidheid; > 10% meestal te hoog tempo. Een
   vuistregel, geen norm; warmte, voeding en de duur (liefst ~2 uur) tellen mee.
+  *Aangevuld 2026-10-16 (wetenschappelijke toets 1E):* de maat zelf heeft steun.
+  Hoe sterk de hartslag ontkoppelt, hing samen met hoeveel de eerste drempel
+  zakte tijdens een lange rit (r = −0,76; Rothschild 2025). Na twee uur matig
+  fietsen lag het vermogen op die drempel ~10 % lager (Stevenson 2023). Bij een
+  maandelijkse test van 60 minuten op 75 % FTP volgde ontkoppeling of renners
+  op hun training reageerden (Barsumyan 2025). Een gevalideerde grens bestaat
+  niet; meet onder gelijke omstandigheden (Hunter 2025).
 - **Herhalingen.** Bij zelf gekozen tempo zakt het vermogen over drie
   herhalingen ongeveer 3% (Villerius & Grappe); ervaren renners houden het
   vlakker. Coaches hanteren > 10% verschil tussen eerste en laatste herhaling
@@ -345,7 +352,7 @@ alleen met gesimuleerde ritten getest.
 - Warming-up: 10 km sprints [jhse](https://www.jhse.ua.es/article/view/2020-v15-n2-maximal-sprints-warm-up-affect-pacing-performance-cy); 1 km [lida](https://lida.sport-iat.de/ta/Record/4064879); 4 km priming [Loughborough](https://repository.lboro.ac.uk/articles/Improvement_of_oxygen-uptake_kinetics_and_cycling_performance_with_combined_prior_exercise_and_fast_start/9622013/files/17269775.pdf)
 - Voeding: Jeukendrup (2014) [PMC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4008807/); spoeling meta-analyse [lida](https://lida.sport-iat.de/ta/Record/4054040?lng=en); Carter e.a. [Birmingham](https://research.birmingham.ac.uk/en/publications/the-effect-of-carbohydrate-mouth-rinse-on-1-h-cycle-time-trial-pe/)
 - Intensiteitsverdeling: [PMC 2023](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10641476/); [PMC 2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC11329428)
-- Ontkoppeling: [TrainingPeaks](https://www.trainingpeaks.com/learn/articles/aerobic-endurance-and-decoupling/)
+- Ontkoppeling: [TrainingPeaks](https://www.trainingpeaks.com/learn/articles/aerobic-endurance-and-decoupling/); Rothschild e.a. (2025) [doi:10.1007/s00421-025-05815-0](https://doi.org/10.1007/s00421-025-05815-0); Stevenson e.a. (2023) [doi:10.1007/s00421-023-05285-2](https://doi.org/10.1007/s00421-023-05285-2); Barsumyan e.a. (2025) [doi:10.3389/frai.2025.1623384](https://doi.org/10.3389/frai.2025.1623384); Hunter e.a. (2025) [doi:10.1113/EP092120](https://doi.org/10.1113/EP092120)
 - Herhalingen: Villerius & Grappe [Thieme](https://www.thieme-connect.com/products/all/doi/10.1055/s-2006-924209); Chorley & Lamb (2023) [PMC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9933020/); [IES 2015](https://content.iospress.com/articles/isokinetics-and-exercise-science/ies584)
 - RPE: sRPE bij wielrenners [lida](https://lida.sport-iat.de/ta/Record/4043446); lactaat/RPE [Thieme](https://www.thieme-connect.com/products/ejournals/pdf/10.1055/s-2007-1021141.pdf); LSCT [lida](https://lida.sport-iat.de/ta/Record/4034999)
 - Feedback: Carpentier & Mageau [SDT](https://selfdeterminationtheory.org/wp-content/uploads/2016/11/2016_Carpentier_Mageau_JofSportExePsych.pdf); [2014](https://selfdeterminationtheory.org/wp-content/uploads/2015/05/2014_CarpentierMageau_PSAE.pdf); interventie [SDT 2015](https://selfdeterminationtheory.org/wp-content/uploads/2020/10/2015_LangdonHarrisBurdetteRothberger_Development.pdf)
