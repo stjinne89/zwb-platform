@@ -7,6 +7,19 @@ import {
 } from "@/lib/training/workouts";
 
 describe("training prompts", () => {
+  it("noemt 10 % opbouw een keuze en begrenst sprongen", () => {
+    const prompt = defaultTrainingPrompt();
+    expect(prompt).toContain("vermijd sprongen van meer dan een kwart");
+    expect(prompt).toContain("geen bewezen grens");
+    expect(prompt).not.toContain("de sprong veilig te houden");
+  });
+
+  it("begrenst drempelblokken naar hun lengte", () => {
+    const prompt = defaultTrainingPrompt();
+    expect(prompt).toContain("Drempelblokken van 15 minuten of langer krijgen 90-95% FTP");
+    expect(prompt).toContain("Boven 100% FTP alleen in blokken van hooguit 8 minuten");
+  });
+
   it("trekt een weekuitzondering niet door naar andere weken", () => {
     const prompt = planUpdatePrompt();
     expect(prompt).toContain("één specifieke week");

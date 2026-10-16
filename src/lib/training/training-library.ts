@@ -323,6 +323,39 @@ const MUJIKA_PADILLA_2001: KnowledgeSource = {
   kind: "review",
 };
 
+// Zones (wetenschappelijke toets 1D, 2026-10-16). DOI's via PubMed bevestigd.
+const IANNETTA_2020: KnowledgeSource = {
+  citation:
+    "Iannetta D, Inglis EC, Mattu AT, et al. A critical evaluation of current methods for exercise prescription in women and men. Med Sci Sports Exerc 52(2):466-473.",
+  year: 2020,
+  url: doi("10.1249/MSS.0000000000002147"),
+  kind: "studie",
+};
+
+const JAMNICK_2018: KnowledgeSource = {
+  citation:
+    "Jamnick NA, Botella J, Pyne DB, Bishop DJ. Manipulating graded exercise test variables affects the validity of the lactate threshold and VO2peak. PLoS One 13(7):e0199794.",
+  year: 2018,
+  url: doi("10.1371/journal.pone.0199794"),
+  kind: "studie",
+};
+
+const DENHAM_2026: KnowledgeSource = {
+  citation:
+    "Denham J, Scott-Hamilton J, Mills D. Physiological and subjective measures of exercise intensity cycling at 55% and 85% of functional threshold power: findings from a randomised crossover trial. J Sports Sci 44(13):1672-1682.",
+  year: 2026,
+  url: doi("10.1080/02640414.2026.2673477"),
+  kind: "studie",
+};
+
+const SANDERS_2017: KnowledgeSource = {
+  citation:
+    "Sanders D, Myers T, Akubat I. Training-intensity distribution in road cyclists: objective versus subjective measures. Int J Sports Physiol Perform 12(9):1232-1237.",
+  year: 2017,
+  url: doi("10.1123/ijspp.2016-0523"),
+  kind: "studie",
+};
+
 export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "lage-cadans",
@@ -341,6 +374,25 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       "De lange duurritten met lage-cadansblokken in de workoutbibliotheek rijden op tempo en drempel, waar dit bewijs niet voor geldt; ze zijn variatie, geen bewezen winst.",
     ],
     sources: [HEBISZ_2024, HANSEN_RONNESTAD_2017, DE_PABLOS_2025],
+  },
+  {
+    slug: "zones",
+    category: "intensiteit",
+    title: "Zones: een afspraak, geen grens in je lijf",
+    summary:
+      "De zones in ZWB zijn die van Zwift, in procenten van je FTP. Handig om af te spreken, maar dezelfde procent betekent niet voor iedereen hetzelfde.",
+    points: [
+      "Je lijf kent een paar echte overgangen: de eerste drempel, waaronder je lang rustig kunt rijden, en het hoogste vermogen dat nog stabiel blijft. Bij honderd mensen lagen die overgangen op heel verschillende percentages van hun maximum. Een vaste procent zet dus niet iedereen in hetzelfde gebied.",
+      "Het hoogste stabiele vermogen ligt bij veel renners rond 93 tot 96 % van hun FTP, en op hun FTP zelf hielden renners het gemiddeld een half uur tot drie kwartier vol.",
+      "Daarom krijgen lange drempelblokken (vijftien minuten of meer) in ZWB 90 tot 95 % FTP, kortere hooguit 100 %. Boven de 100 % komt alleen in blokken van hooguit acht minuten.",
+      "Op 85 % FTP waren hartslag, ademhaling en gevoel al 'zwaar'. Let dus ook op hartslag en hoe het voelt; die zeggen soms meer dan het wattage.",
+      "De koppeling tussen RPE en een procent FTP in ZWB is een eigen afspraak. Wie zijn training op gevoel indeelt, krijgt een heel ander beeld dan op vermogen of hartslag.",
+    ],
+    limits: [
+      "Waar je eigen drempels liggen, meet je alleen met een inspanningstest met lactaat of ademgassen. ZWB heeft die gegevens niet.",
+      "De studies zijn klein en vaak bij getrainde mannen gedaan.",
+    ],
+    sources: [IANNETTA_2020, JAMNICK_2018, INGLIS_2020, BORSZCZ_2019, WONG_2023, DENHAM_2026, SANDERS_2017],
   },
   {
     slug: "korte-intervallen",

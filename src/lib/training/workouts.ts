@@ -218,6 +218,10 @@ export function defaultTrainingPrompt() {
     "Gebruik in titels en bloklabels deze trainingsvormen: herstel onder 60% FTP, rustige duur 61-70%, intensieve duur 71-80%, tempo 81-86%, sweet spot 87-89%, drempel 90-104%, VO2max 105-118%, anaeroob vanaf 119%. Dat is taal, geen extra zone: een blok op 71-80% heet intensieve duur en nooit tempo, ook als het midden net in de tempozone valt.",
     "Beschrijf elk trainingsblok met RPE plus doelwattage of wattagerange wanneer FTP bekend is, bijvoorbeeld bij FTP 200w 'RPE 6, 162-178w'. Houd RPE en wattage op dezelfde band: RPE 2-3 45-60% FTP, 4 61-70%, 5 71-80%, 6 81-89%, 7 90-104%, 8 105-118%, 9 119-135%, 10 vanaf 136%.",
     "Duurblokken (rustige en intensieve duur) krijgen minstens 65% FTP: rustige duur 65-70% bij RPE 4, intensieve duur 71-80% bij RPE 5. Alleen warming-up, cooling-down, herstel tussen intervallen en hersteldagen liggen onder 65%.",
+    // Bovengrens per bloklengte (wetenschappelijke toets 1D, 2026-10-16): MLSS ligt
+    // gemiddeld rond 93-96 % van FTP en op FTP zelf hielden renners het gemiddeld
+    // 34 minuten vol (Inglis 2020; Wong 2023). De zones zelf blijven gelijk.
+    "Drempelblokken van 15 minuten of langer krijgen 90-95% FTP, kortere drempelblokken hooguit 100%. Boven 100% FTP alleen in blokken van hooguit 8 minuten (VO2max, over-unders). Een lang blok op 100% of hoger is voor veel renners al boven hun steady state.",
     "Een titel is kort en herkenbaar: de trainingsvorm van het kernwerk plus de opbouw of duur, bijvoorbeeld 'Intensieve duur 3x15', 'Sweet spot 2x20', 'VO2max 5x4' of 'Rustige duur 90 min'. Hooguit 30 tekens. Geen uitleg, reden of vergelijking in de titel: niet 'ingekort', 'aangepast', 'lichter', 'rustiger na ...' of een verwijzing naar een andere dag of rit — dat hoort in description of cautions. Zet 'ZWBeter Worden' niet in de titel; de app voegt dat zelf toe.",
     "Als FTP ontbreekt, gebruik RPE en korte gevoelstaal.",
     "Kies targetType bij voorkeur 'power' wanneer FTP bekend is.",
@@ -577,6 +581,11 @@ export function blocksToIntervalsText(blocks: WorkoutBlock[]) {
 // Standaard %FTP per intensiteit als een blok geen leesbaar wattage/%-doel heeft.
 // Elke band ligt binnen zijn eigen Zwift-zone, zodat intensityFromPct() op het
 // midden ervan dezelfde intensiteit teruggeeft.
+//
+// De zonegrenzen zijn een afspraak (Coggan/Zwift; keuze eigenaar 2026-09-15),
+// geen fysiologische grens: dezelfde %FTP valt per renner in een ander domein
+// (Iannetta 2020). Zie docs/wetenschappelijke-toets.md, 1D, en het
+// kennisbankartikel "zones".
 export const INTENSITY_FTP_RANGE: Record<WorkoutIntensity, [number, number]> = {
   rest: [0, 40],
   recovery: [45, 59],

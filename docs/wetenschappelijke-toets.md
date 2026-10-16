@@ -55,8 +55,8 @@ en een lijst beperkingen, zoals de bestaande kennisbanken.
 | A8 | TSB ≤ −25 herstel, ≤ −10 voorzichtig, ≥ 8 klaar; < −40 ernstig | `wellness.ts` `summarizeTrainingReadiness` | ◐ conventie, nu zo benoemd (1A) |
 | A9 | Hoge belasting + HRV boven baseline = goed aangepast, dus verzachten | idem | ✔ bijgesteld: alleen verzachten binnen de band (1C) |
 | A10 | Readiness-schaal ≤ 50 laag, < 70 matig, ≥ 75 goed | idem | ◐ overgenomen van apparaten |
-| A11 | Zones (Zwift/Coggan): Z2 60–75 %, Z3 76–89 %, Z4 90–104 %, Z5 105–118 %, Z6 ≥ 119 % FTP | `workouts.ts` | ◐ afspraak (eigenaar, 2026-09-15); zie 1D |
-| A12 | RPE ↔ %FTP-tabel (RPE 5 = 71–80 %, 7 = 90–104 %, …) | `workouts.ts`, `targets.ts` | ✖ eigen omzetting |
+| A11 | Zones (Zwift/Coggan): Z2 60–75 %, Z3 76–89 %, Z4 90–104 %, Z5 105–118 %, Z6 ≥ 119 % FTP | `workouts.ts` | ◐ afspraak, nu zo benoemd; drempelblokken begrensd naar lengte (1D) |
+| A12 | RPE ↔ %FTP-tabel (RPE 5 = 71–80 %, 7 = 90–104 %, …) | `workouts.ts`, `targets.ts` | ◐ eigen omzetting, nu zo benoemd (1D) |
 | A13 | Duurblokken minstens 65 % FTP | `workouts.ts` prompt | ◐ eigen keuze (ronde 2026-09-21) |
 | A14 | Naleving 80–115 % is "volgens plan" | `compliance.ts` | ◐ eigen keuze, asymmetrie uitgelegd |
 | A15 | Wegzakken ≥ 10 %, te hard begonnen ≥ 5 %, ontkoppeling ≥ 5 % (≥ 75 min, VI ≤ 1,10) | `training-advice.ts`, `execution.ts` | ◐ vuistregels met bron in `racestrategie-onderzoek.md` §8 |
@@ -123,8 +123,7 @@ en een lijst beperkingen, zoals de bestaande kennisbanken.
 
 Fase 1 gaat over A en B: de regels die het schema en het advies sturen. Bij elk
 onderdeel staat wat de app doet, wat de literatuur zegt, en een voorstel.
-**Goedgekeurd door de eigenaar op 2026-10-16. 1A, 1B en 1C zijn uitgevoerd; 1D
-en 1E volgen.**
+**Goedgekeurd door de eigenaar op 2026-10-16. 1A–1D zijn uitgevoerd; 1E volgt.**
 
 ### 1A. Opbouw: hoe snel, en wanneer afremmen — uitgevoerd 2026-10-16
 
@@ -392,7 +391,9 @@ uitgesloten (al zo besloten).
 ingedeeld. Dat kan alleen met een leesquery op `profile_wellness` op productie,
 en die draai ik pas na akkoord.
 
-### 1D. Zones, trainingsvormen en RPE
+### 1D. Zones, trainingsvormen en RPE — uitgevoerd 2026-10-16
+
+Wat er is gebouwd, staat in `PLAN.md` (ronde "wetenschappelijke toets 1D").
 
 **Wat de app doet.** Zes Zwift-zones in %FTP (keuze van de eigenaar,
 2026-09-15). Trainingsvormen als taal: rustige duur 61–70 %, intensieve duur

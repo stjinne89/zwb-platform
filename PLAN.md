@@ -127,8 +127,8 @@ gaat stabiliteit voor nieuwe features.
    het besluit ligt bij de eigenaar.
 7. **Wetenschappelijke toets van ZWBasis** (gestart 2026-10-16). Fase 0, het
    claimregister, is af. Fase 1 (de regels die schema en advies sturen) is
-   goedgekeurd; 1A (opbouw), 1B (FTP-test) en 1C (herstel) zijn uitgevoerd,
-   1D en 1E volgen. Migratie `0241` moet nog op productie. Daarna fase 2
+   goedgekeurd; 1A (opbouw), 1B (FTP-test), 1C (herstel) en 1D (zones) zijn
+   uitgevoerd, 1E volgt. Migratie `0241` moet nog op productie. Daarna fase 2
    (kennisbank trainen), 3 (voeding), 4 (kracht en core), 5 (racen en pacing)
    en 6 (overig). Zie de ronde hieronder en
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
@@ -8760,6 +8760,37 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — wetenschappelijke toets 1D: drempelblokken naar hun lengte
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md), 1D.
+
+**Waarom.** Drempelblokken mochten tot 104 % FTP, ongeacht hun lengte. Het
+hoogste stabiele vermogen (MLSS) ligt gemiddeld rond 93–96 % van FTP. Op FTP
+zelf hielden renners het gemiddeld 34 minuten vol (Wong 2023). Een blok van
+twintig minuten op 100–104 % ligt voor veel renners dus al boven hun steady
+state.
+
+**Wat er veranderde.**
+- **Prompt**: blokken van 15 minuten of langer op 90–95 %, kortere
+  drempelblokken hooguit 100 %, en boven 100 % alleen in blokken van hooguit 8
+  minuten. De zones en hun kleuren blijven gelijk (keuze eigenaar 2026-09-15).
+- **Notities in de code**: bij `INTENSITY_FTP_RANGE` dat de zones een afspraak
+  zijn, en bij `percentRangeForRpe` dat de RPE-omzetting een eigen keuze is.
+- **Kennisbank**: nieuw artikel **Zones: een afspraak, geen grens in je lijf**,
+  met 7 bronnen. Denham 2026 en Sanders 2017 zijn eerst via PubMed nagelopen.
+- **Tests** in `training-prompts.test.ts` voor deze regel én voor de nieuwe
+  opbouwregel uit 1A.
+
+**Bewust niet gedaan.**
+- *Een harde begrenzing in de code na de AI-uitvoer*: doelen staan als tekst
+  in watt of %, soms met RPE erbij. Eerst kijken of de promptregel volstaat;
+  zo niet, dan komt er een vangnet zoals `availability-fit.ts`.
+- *De zonegrenzen zelf aanpassen*: die sluiten aan op Zwift en de blokkleuren.
+
+**Niet geverifieerd.** Of de AI de regel volgt; dat blijkt pas uit nieuwe
+schema's.
+
 ### Opgeleverd — wetenschappelijke toets 1A: opbouw zonder schijnzekerheid
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -8925,7 +8956,7 @@ ook stijgt bij overbelasting. Daar ging de verzachtingsregel tegenin.
 worktree niet draait (`omnium-live.test.ts` leest `.env.local`). De build is
 gedraaid met de variabelen uit de `.env.local` van de hoofdmap.
 
-### Lopend — wetenschappelijke toets van ZWBasis (fase 0 af, 1A–1C uitgevoerd)
+### Lopend — wetenschappelijke toets van ZWBasis (fase 0 af, 1A–1D uitgevoerd)
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
 codewijziging.
@@ -8945,7 +8976,7 @@ een bron die een andere kant op wijst.
 
 **Fase 1, goedgekeurd door de eigenaar op 2026-10-16** (1A–1E, inclusief de
 punten uit de Consensus-ronde; FTP-signaal bij 8 % voor trainer én lid). 1C is
-uitgevoerd, net als 1A en 1B (zie de rondes hierboven); 1D en 1E volgen:
+uitgevoerd, net als 1A, 1B en 1D (zie de rondes hierboven); 1E volgt:
 - *1A Opbouw*: de 10 %-regel bleek in een RCT geen blessures te voorkomen. Hij
   blijft als voorzichtige standaard, maar heet niet langer "veilig". Er komt een
   artikel over opbouwen, detraining en CTL/ATL/TSB.
