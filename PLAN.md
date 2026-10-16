@@ -304,6 +304,32 @@ drie 2026-10-16).
 
 ---
 
+> **Design tegels: persoonlijke menu zonder Hulp en Sponsors; Sponsors naar Club, 2026-10-16 — gebouwd, unit-tests, typecheck en lint schoon; niet in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-16). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Vraag van de eigenaar: Hulp staat dubbel, want het vraagteken
+> naast de avatar gaat ook naar `/hulp`; en Sponsors hoort bij Club.
+>
+> **Wat.**
+> - Het avatar-menu toont geen Hulp meer, in beide designs: overal waar dat
+>   menu staat, staat het vraagteken ernaast.
+> - Design "tegels": Sponsors is uit het avatar-menu en staat als sage tegel op
+>   Club, na Polls. `/sponsors` hoort bij de plek Club, dus daar licht de tab
+>   op. De prop `extraItems` van `AvatarMenu` is weg; Sponsors was het enige
+>   item.
+>
+> **Bewust niet gedaan.** Het mobiele menu van het huidige design houdt Hulp:
+> daar staat geen vraagteken (dat is `hidden md:inline-flex`). In het huidige
+> design blijft Sponsors een eigen menu-item.
+>
+> **Getest.** Vitest op `design-places` (een nieuwe test), `nav-active` en
+> `admin-areas`: geslaagd. ESLint op de gewijzigde bestanden schoon; `tsc`
+> alleen de bekende `@zxing`-meldingen.
+>
+> **Niet geverifieerd.** Club en het menu ingelogd in de browser.
+
+---
+
 > **Design tegels: Beheer met categorietegels en een rij per categorie, zoals ZWBeter, 2026-10-16 — gebouwd, unit-tests, typecheck en lint schoon; ingelogd bekeken en goedgekeurd door de eigenaar; gepusht naar `main` (eigenaar, 2026-10-16, `b6e72b6`). Geen migratie.**
 > Commits: `c6a1d5a` (eerste versie) en de commit die dit blok bijwerkt.
 >
@@ -2701,8 +2727,9 @@ drie 2026-10-16).
 >   intervalprofiel in de trainingstegel" onder Bewust niet gebouwd.
 > - *Meer is weg: vier plekken.* De plek Meer dubbelde met het persoonlijke
 >   menu rechtsboven en is verwijderd (`/meer` bestaat niet meer). Het menu
->   bevat nu ook Sponsors en, onder Beheer, WhatsApp-groepen en Media (sinds
->   2026-10-16 één item Beheer naar de tegelpagina `/beheer`); het
+>   bevat nu ook Sponsors (sinds 2026-10-16 een tegel op Club) en, onder
+>   Beheer, WhatsApp-groepen en Media (sinds 2026-10-16 één item Beheer naar
+>   `/beheer`); het
 >   toont de letter van het design. Routes als `/profiel` en `/beheer` horen bij
 >   geen plek meer, dus dan is geen tab actief (`placeForPath` geeft `null`).
 >   **Niet meer waar:** "vijf plekken" en "Meer" overal hierboven, in
