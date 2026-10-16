@@ -80,6 +80,7 @@ export function ProfileReadonlyView({
   publicLabel = "Publiek profiel",
   extraBeforeBadges,
   bikes,
+  afterHeader,
 }: {
   profile: ReadonlyProfile;
   milestones: MilestoneBadgeRow[];
@@ -91,6 +92,8 @@ export function ProfileReadonlyView({
   extraBeforeBadges?: React.ReactNode;
   /** Op het profiel getoonde fietsen (al gefilterd op zichtbaarheid). */
   bikes?: StravaBikeRow[];
+  /** Direct onder de kop met naam, regio en rollen (bv. de weergaveknop op /profiel). */
+  afterHeader?: React.ReactNode;
 }) {
   const infoTiles = [
     { label: "ZRL-categorie", value: profile.zrl_category },
@@ -117,6 +120,8 @@ export function ProfileReadonlyView({
         earnedCount={earnedMilestoneIds.length}
         totalCount={milestones.length}
       />
+
+      {afterHeader}
 
       <ProfileExternalLinks
         zwiftId={profile.zwift_id}

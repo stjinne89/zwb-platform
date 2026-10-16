@@ -97,7 +97,7 @@ export function OutdoorRouteSuggestions({
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
           Zet een vertrekpunt op{" "}
-          <Link href="/profiel#vertrekpunten" className="underline hover:text-foreground">
+          <Link href="/profiel?weergave=bewerken#vertrekpunten" className="underline hover:text-foreground">
             je profiel
           </Link>
           , dan stelt ZWB hier rondjes voor.

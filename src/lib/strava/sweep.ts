@@ -301,7 +301,7 @@ export async function applyInactivityPolicy(
           {
             title: "Je Strava-koppeling vervalt",
             body: `Open ZWB binnen ${warnGraceDays} dagen om je Strava-koppeling te houden.`,
-            url: "/profiel#strava",
+            url: "/profiel?weergave=bewerken#strava",
             tag: "strava-link-expiring",
           },
           { profileIds: [row.profile_id] },

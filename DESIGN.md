@@ -357,6 +357,16 @@ actie ("meer"-link met pijl), afgesloten met een haarlijn eronder.
 ### Lege staat
 Gestreepte rand, Paper op 70%, één gedempte zin en hooguit één actie.
 
+### Weergaveknop (profiel)
+Een rail met drie standen onder de profielkop: bewerken, wat leden zien en het
+deelbare profiel (`.view-slider` in `globals.css`, `profile-view-toggle.tsx`).
+De rail is Mist met een haarlijn en volledig rond; een effen gouden knop
+(tenuegoud bij licht, nachtgoud bij donker) schuift naar de gekozen stand.
+Iconen in plaats van tekst (potlood, mensen, wereldbol), met de naam als
+tooltip en als label voor schermlezers. Het icoon op de knop staat in inkt,
+de andere in de gedempte tekstkleur. Elke stand is 48 bij 38px in een rail van
+44px hoog. De knop schuift in 0.28s; niet bij `prefers-reduced-motion`.
+
 ## Do's and Don'ts
 
 ### Do:

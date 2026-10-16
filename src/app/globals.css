@@ -1500,3 +1500,69 @@ a.tg-row:focus-visible,
 [data-design="tegels"] .jp-teken:not(.jp-hek, .jp-nu) {
   top: 2.1875rem;
 }
+
+/* Weergaveknop op /profiel (profile-view-toggle.tsx): een rail met drie standen
+   en een effen gouden knop die naar de gekozen stand schuift. Tenuegoud bij
+   licht, nachtgoud bij donker; het icoon op de knop in inkt. */
+.view-slider {
+  --view-slider-gold: oklch(0.63 0.101 77);
+  position: relative;
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--muted);
+}
+.dark .view-slider {
+  --view-slider-gold: oklch(0.72 0.08 80);
+}
+.view-slider-knob {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: 3rem;
+  border-radius: 9999px;
+  background: var(--view-slider-gold);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.25),
+    0 1px 2px oklch(0.2 0.03 70 / 0.25);
+  transform: translateX(calc(100% * var(--view-slider-pos, 1)));
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.view-slider[data-pos="0"] { --view-slider-pos: 0; }
+.view-slider[data-pos="2"] { --view-slider-pos: 2; }
+.view-slider-option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 2.375rem;
+  border-radius: 9999px;
+  color: var(--muted-foreground);
+  transition: color 0.2s ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+.view-slider-option svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+@media (hover: hover) {
+  .view-slider-option:hover {
+    color: var(--foreground);
+  }
+}
+.view-slider-option-active,
+.view-slider-option-active:hover {
+  color: oklch(0.19 0.031 210);
+}
+.view-slider-option:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .view-slider-knob {
+    transition: none;
+  }
+}

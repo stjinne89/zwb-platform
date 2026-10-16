@@ -214,7 +214,7 @@ export async function awardCompletedAchievementWeeks(
         {
           title: "Nieuwe ZWB-badge behaald",
           body,
-          url: "/profiel",
+          url: "/profiel?weergave=bewerken",
           tag: `weekbadges-${profileId}-${currentWeek}`,
         },
         { profileIds: [profileId] },

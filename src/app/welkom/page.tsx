@@ -208,7 +208,7 @@ export default async function WelkomPage() {
     {
       title: "Profiel invullen",
       text: "Vul regio, Zwift/ZRL-info, bio, foto en zichtbaarheid in. Dit maakt ledenlijst, teams en profielkaarten duidelijker.",
-      href: "/profiel",
+      href: "/profiel?weergave=bewerken",
       action: profileComplete ? "Profiel bekijken" : "Profiel aanvullen",
       status: profileComplete ? "done" : canUseIntegrations ? "current" : "upcoming",
       icon: UserRound,
@@ -216,7 +216,7 @@ export default async function WelkomPage() {
     {
       title: "Strava koppelen of importeren",
       text: "Koppel Strava voor automatische sync. Is er geen plek, laat je ritten dan binnenkomen via intervals.icu (zie Hulp), of importeer ze (activities.csv, GPX of FIT) op het dashboard.",
-      href: strava ? "/profiel#strava" : "/dashboard#strava-sync",
+      href: strava ? "/profiel?weergave=bewerken#strava" : "/dashboard#strava-sync",
       action: strava
         ? "Strava bekijken"
         : stravaActivity
@@ -228,7 +228,7 @@ export default async function WelkomPage() {
     {
       title: "Strava syncen voor fietsen",
       text: "Een echte Strava-koppeling vult je fietsen en kilometerstanden automatisch. Zonder koppeling kun je fietsen handmatig toevoegen.",
-      href: strava ? "/dashboard" : "/profiel#fietsen",
+      href: strava ? "/dashboard" : "/profiel?weergave=bewerken#fietsen",
       action: strava ? "Strava syncen" : "Fiets toevoegen",
       status: bike ? "done" : strava ? "current" : canUseIntegrations ? "upcoming" : "upcoming",
       icon: Bike,
@@ -252,7 +252,7 @@ export default async function WelkomPage() {
     {
       title: "Meldingen activeren",
       text: "Zet pushmeldingen aan voor events, live ritten, badges, trainingsschema's, onderhoud en bestuurupdates.",
-      href: "/profiel#meldingen",
+      href: "/profiel?weergave=bewerken#meldingen",
       action: pushSubscription ? "Meldingen bekijken" : "Meldingen instellen",
       status: pushSubscription ? "done" : canUseIntegrations ? "current" : "upcoming",
       icon: Bell,

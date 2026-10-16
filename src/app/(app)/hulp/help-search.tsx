@@ -37,7 +37,7 @@ const HELP_INDEX: HelpResult[] = [
   {
     title: "Strava koppelen",
     text: "OAuth-koppeling voor clubritten, badges, cols, fietsen en trainingscontext.",
-    href: "/profiel#strava",
+    href: "/profiel?weergave=bewerken#strava",
     terms: "strava koppelen sync oauth activiteiten ritten limiet activiteitenrecht opnieuw",
   },
   {

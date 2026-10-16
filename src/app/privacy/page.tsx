@@ -510,7 +510,7 @@ export default function PrivacyPage() {
         <ul className="list-disc space-y-1 pl-5">
           <li>
             je gegevens <strong>in te zien en te downloaden</strong> — via{" "}
-            <Link href="/profiel" className="text-primary underline">
+            <Link href="/profiel?weergave=bewerken" className="text-primary underline">
               je profiel
             </Link>{" "}
             (&ldquo;Download mijn gegevens&rdquo;);
