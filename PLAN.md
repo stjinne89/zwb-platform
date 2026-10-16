@@ -9561,7 +9561,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Opgeleverd — veelbelovende en experimentele trainingsmethodes, met label
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
-`0246_workout_method_labels.sql` (**nog niet toegepast** op productie).
+`0246_workout_method_labels.sql` (toegepast via de Supabase-connector,
+2026-10-16; zie "Controle").
 
 **Aanleiding.** De eigenaar vroeg alles te bouwen wat in
 [het onderzoek](docs/trainingsmethodes-onderzoek-2026-10-16.md) als
@@ -9632,10 +9633,17 @@ PGlite bovenop 0106-0227). De hele unitsuite: alles groen, op drie na die in de
 volle run time-outs gaven of `.env.local` misten en los wel slaagden
 (`omnium-live` heeft `.env.local` nodig en is los niet gedraaid).
 
+**Op productie (2026-10-16, Supabase-connector).** 0246 toegepast als versie
+`20261016140209`. Nagekeken: `method_label` staat op `training_workout_templates`
+en `training_workouts`, beide met de check op `veelbelovend`/`experimenteel`. De
+standaardset ging van 49 naar 58 workouts; precies de negen nieuwe hebben een
+label (zes veelbelovend, drie experimenteel), met per workout een blokduur die
+optelt tot `duration_minutes`, vijf `onOff`-blokken in de 30/15-week en negen
+bursts in "Duur 90 met 3x3 sprints". Geen eigen workouts en geen geplande
+workouts met een label. De code is nog niet gepusht: tot de deploy gebruikt
+productie de kolom niet, en de oude code merkt er niets van.
+
 **Niet geverifieerd.**
-- 0246 is niet op productie toegepast. Zonder de kolom faalt het pushen naar
-  intervals.icu (`pushWorkoutToIntervals` selecteert `method_label`) en het
-  invoegen uit de bibliotheek. **Eerst de migratie, dan deployen.**
 - De pagina's zijn niet in de browser bekeken (ingelogd), en de AI-uitvoer met
   het nieuwe schema (methodLabel, onSeconds, burstSeconds) is niet tegen
   OpenAI gedraaid.
