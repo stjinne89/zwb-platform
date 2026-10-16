@@ -535,6 +535,7 @@ const ADMIN_GUIDES = [
       "Kies event en team en klik op Zwift-ID's kopiëren: de ID's van de opstelling, of van het hele team als er nog geen opstelling is, één per regel. Plak ze in het vak Zwift IDs op ZwiftGopher.",
       "Maak het plan in ZwiftGopher af en kies daar Export JSON, Export Link of Export Text. Plak de JSON, de link of de tekst in het importvak, of kies het bestand, en klik op Importeren.",
       "Export JSON en Export Link nemen volgorde, kopbeurt-watts en -duur, Zwift-ID, FTP, gewicht en IF mee. Export Text heeft alleen naam, watts en duur.",
+      "Heb je alleen de afbeelding uit ZwiftGopher (Create Image), bijvoorbeeld uit een groepsapp? Kies hem met Bestand of plak hem in het importvak. De app leest de tabel op je eigen toestel; de afbeelding wordt niet verstuurd. Naam, watts, duur en IF komen dan in het vak: controleer ze voor je op Importeren klikt.",
       "Renners met een ZWB-account worden herkend aan hun Zwift-ID. Teamtags zoals (ZWB) gaan uit de naam.",
       "Opnieuw importeren in een bestaand plan vervangt de renners; publicatie en botlink blijven staan.",
       "Op de pagina van een TTT-race opent de captain het plan of begint een nieuw plan, met team en event al ingevuld.",

@@ -152,6 +152,73 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
+> **TTT Planner: plan lezen uit de afbeelding van ZwiftGopher, op het toestel, 2026-10-16 — gebouwd, lokaal getest; in de browser getoetst op een losse proefpagina, niet op de echte planner en niet op een telefoon. Geen migratie.**
+> Commit: de commit die dit blok toevoegt. Niet gepusht.
+>
+> **Waarom.** Vraag van de eigenaar: "Zouden we het ook kunnen bouwen dat hij
+> een afbeelding kan lezen?" Gekozen uit twee routes: tekstherkenning op het
+> toestel (tesseract.js), niet via de AI. Dan verlaat de afbeelding met namen en
+> watts van ploeggenoten, ook zonder ZWB-account, de browser niet, en kost het
+> niets per keer.
+>
+> **Nu.**
+> - In het importvak van `/teams/ttt-planner`: Bestand neemt ook een afbeelding,
+>   en een afbeelding plakken in het vak werkt ook. De app herkent de tabel van
+>   Create Image en zet per renner naam, watt, duur en IF als tabel in het vak,
+>   met "N renners gelezen; controleer de getallen." Pas Importeren slaat op,
+>   via de bestaande tekstimport.
+> - `lib/ttt/gopher-image.ts` (zuiver, getest): de herkende woorden met hun
+>   positie naar renners. Elk getal hoort bij de kolomkop recht erboven (Pull
+>   (W), Duration, IF %), dus een extra kolom zoals Show Pull Speed verschuift
+>   niets. De naam is alles in de kolom Zwift Name; het sokje met de kitkleur
+>   ervoor (herkend als "&", "J)", "JF") valt weg. Zonder herkenbare kopregel
+>   geen renners: dan is niet zeker welk getal de kopbeurt is.
+> - `lib/ttt/gopher-image-ocr.ts`: vergroot naar 3072 px breed, grijstinten,
+>   tesseract in de modus "één blok", pas geladen bij de eerste afbeelding
+>   (dynamische import). tesseract.js 7.0.0 is een nieuwe afhankelijkheid.
+> - Export Text: een getal in de vierde kolom is de IF (in plaats van een
+>   kleur), zodat de herkende tabel zijn IF houdt.
+> - Hulp (`#ttt-beheer`): één regel over de afbeelding.
+>
+> **Gemeten op `TTTplan.png` van de eigenaar (12 oktober, 1024 px).**
+> Op ware grootte las tesseract 290 als 200 en 4.2 als 42. In Node met sharp op
+> 2048 px grijs klopte alles. In de browser op 2048 px klopten de getallen maar
+> werd Stijn "stijin"; op 2560 en 3072 px klopte alles, ruim een halve seconde.
+> Daarna in de browser met de echte module, ongeveer 1 s per afbeelding:
+> het origineel, een JPEG van 700 px op kwaliteit 70 (zoals uit een groepsapp)
+> en een nagemaakte screenshot met rand en tekst erboven. Alle watts, duren en
+> IF's klopten in alle drie; in de screenshot werd Stijn "stiin". Namen kunnen
+> dus fout zijn; daarom eerst in het vak, niet meteen opslaan.
+>
+> **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
+> - De rekenkern en de Engelse taaldata komen bij het eerste gebruik van
+>   jsDelivr (standaard van tesseract.js, vaste versie), niet uit de eigen site:
+>   zo komen er geen ruim 10 MB aan bestanden in de repo. jsDelivr ziet dan het
+>   IP-adres van wie een afbeelding leest; het beeld zelf gaat er niet heen.
+>   `/privacy` noemt jsDelivr niet (Google Fonts ook niet). Zelf hosten kan
+>   later als dat gewenst is.
+> - Renners uit een afbeelding hebben geen Zwift-ID en worden niet op naam aan
+>   leden gekoppeld, net als bij Export Text.
+>
+> **Bewust niet gebouwd.** Herkennen via de AI (de tweede route, afgewezen:
+> privacy en kosten). Een foto van een scherm (scheef, met glans): niet geprobeerd
+> en niet beloofd; de kopregel moet herkenbaar zijn.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon. Nieuw: `ttt-gopher-image.test.ts`
+> (6 tests) op de herkende woorden van de echte afbeelding, met verzonnen namen
+> (`tests/fixtures/ttt/gopher-image-words.json`): renners en IF, vastgeplakt
+> sokje, geen kopregel, extra kolom, door de tekstimport, kleur is geen IF.
+> `npm run build` compileert (tesseract.js als dynamische import) en komt door
+> TypeScript; daarna stopt hij bij het prerenderen van `/omnium` om de
+> ontbrekende `.env.local`, zoals eerder.
+>
+> **Niet geverifieerd.** De planner zelf in de browser (inloggen en database;
+> geen `.env.local` in de worktree), een telefoon (geheugen en snelheid van
+> tesseract op een iPhone), en afbeeldingen met andere instellingen van Create
+> Image dan die van 12 oktober.
+
+---
+
 > **Design tegels: Beheer met categorietegels en een rij per categorie, zoals ZWBeter, 2026-10-16 — gebouwd, unit-tests, typecheck en lint schoon; ingelogd bekeken en goedgekeurd door de eigenaar; gepusht naar `main` (eigenaar, 2026-10-16, `b6e72b6`). Geen migratie.**
 > Commits: `c6a1d5a` (eerste versie) en de commit die dit blok bijwerkt.
 >
