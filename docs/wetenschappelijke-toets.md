@@ -96,8 +96,8 @@ en een lijst beperkingen, zoals de bestaande kennisbanken.
 
 | Onderdeel | Status |
 |---|---|
-| 10 krachtartikelen (`strength-library.ts`) | ✔ · hertoetsen |
-| Twee core-/mobiliteitssessies per week als doel (`MOBILITY_SESSIONS_PER_WEEK`) | ✖ geen bron in code |
+| 10 krachtartikelen (`strength-library.ts`) | ✔ hertoetst in fase 4; nu 12 artikelen, plus een protocol en een springserie |
+| Twee core-/mobiliteitssessies per week als doel (`MOBILITY_SESSIONS_PER_WEEK`) | ◐ eigen keuze, nu zo benoemd in de code (fase 4) |
 | Oefeningen en series (in de database, `0109` e.v.) | ✖ beschrijvend, geen bronnen per serie |
 
 ### F. Racen en pacing (fase 5)
@@ -792,9 +792,13 @@ Dit is het meeste werk van fase 3, en het maakt de drie kennisbanken gelijk.
 "Ja op alles": 3A–3C zoals voorgesteld, de tip herformuleren, en beperkingen
 bij alle 25 voedingsartikelen.
 
-## Fase 4 — Kracht, core en mobiliteit: voorstel
+## Fase 4 — Kracht, core en mobiliteit
 
-Opgesteld 2026-10-16, **nog niet uitgevoerd**.
+Opgesteld 2026-10-16. **Goedgekeurd door de eigenaar ("alles ja en ook een
+protocol van 10 weken") en uitgevoerd op 2026-10-16.** Bij besluit 2 is
+gekozen voor de eerste optie, die als voorstel was gemarkeerd: de regel
+houden, met een eerlijkere uitleg. Wat er is gebouwd, staat in `PLAN.md`
+(ronde "wetenschappelijke toets fase 4"). Oorspronkelijk voorstel:
 
 **Hoe gezocht.**
 - De Consensus-agent behandelde kracht en gecombineerde training (regels 1–5
@@ -826,7 +830,7 @@ sindsdien vooral iets bijgekomen:
 | Zwaar krachtwerk en fietsen | klopt, aanvullen | Nieuwe proeven bij goed getrainde mannen bevestigen het: tien weken squats verhoogden het maximale aerobe vermogen ([Pallarés 2025](https://doi.org/10.5114/biolsport.2025.146790)), en eenbenig en tweebenig verbeterden allebei de tijdrit ([Ji 2021](https://doi.org/10.1519/JSC.0000000000004105)). Bij vrouwelijke renners kwam er in zes weken wel kracht bij, maar geen duurvermogen ([Montalvo-Pérez 2021](https://doi.org/10.3389/fphys.2021.586113)). Voor de sprint werkte sprinttraining op de fiets beter dan zwaar krachtwerk ([Kristoffersen 2019](https://doi.org/10.3389/fphys.2019.01132)). Beperking erbij: de meta-analyse vond geen verschil naar geslacht, niveau of frequentie. |
 | Het gymprogramma | ongewijzigd | — |
 | Kracht vasthouden in het seizoen | aanvullen | Eén sessie per week houdt kracht vast als het gewicht zwaar blijft; ouderen hebben er mogelijk twee nodig ([Spiering 2021](https://doi.org/10.1519/JSC.0000000000003964)). Renners die tien weken geen kracht deden, verloren kracht en dijspier ([Pallarés 2025](https://doi.org/10.5114/biolsport.2025.146790)). |
-| Thuis met lichtere gewichten | klopt | Bron erbij: een netwerk-meta-analyse bevestigt dat spiergroei gelijk is en kracht met zwaarder gewicht meer stijgt ([Lopez 2020](https://doi.org/10.1249/MSS.0000000000002585)). |
+| Thuis met lichtere gewichten | klopt | Bron erbij: een netwerk-meta-analyse bevestigt dat spiergroei gelijk is en kracht met zwaarder gewicht meer stijgt ([Lopez 2021](https://doi.org/10.1249/MSS.0000000000002585); in het voorstel stond 2020, PubMed geeft 2021). |
 | Kracht en fietsen combineren | **bijstellen** | Volgorde maakt voor duurvermogen weinig uit ([Vikestad 2024](https://doi.org/10.3390/sports12080226); [Held 2026](https://doi.org/10.1007/s40279-026-02401-y)). Krachtwinst lijdt vooral als je beide in dezelfde sessie doet, bij getrainde mensen ([Petré 2021](https://doi.org/10.1007/s40279-021-01426-9)), en bij mannen meer dan bij vrouwen ([Huiberts 2023](https://doi.org/10.1007/s40279-023-01943-9)). De tekst zegt nu dat er "geen onderzoek bij wielrenners" is naar de tijd ertussen. Hij wordt: gescheiden sessies op één dag zijn in onderzoek geen probleem; de regel in de app gaat over spierpijn vóór je sleutelsessie, niet over interferentie. Zie besluit 2. |
 | Wielrennen en je botten | **bewering herzien** | "Niet in een controleerbare bron gevonden" klopt niet meer. Springen verhoogde bij volwassenen de botdichtheid in de dijbeenhals met ~1,5 %, rond 50 sprongen vier keer per week ([Florence 2023](https://doi.org/10.1080/02640414.2024.2312052)). Bij topwielrenners hield vijf keer per week vijf minuten springen, met collageen, die botdichtheid op peil ([Hilkens 2023](https://doi.org/10.1123/ijsnem.2023-0080)). Een overzicht vond weinig studies, maar wel belovende ([Florvåg 2025](https://doi.org/10.1186/s12891-025-08316-5)). Zie besluit 3. |
 | Lage rugpijn bij renners | aanvullen | Een bikefit verminderde rugpijn in drie kleine studies ([Barrajón 2026](https://doi.org/10.7759/cureus.101718)). Core-stabilisatie hielp bij niet-specifieke rugpijn, al was dat niet bij renners onderzocht ([Smrcina 2022](https://doi.org/10.26603/001c.37251)). Het blijft geen behandeling. |
@@ -870,8 +874,9 @@ meer spiermassa, kracht en sprintvermogen
 ([Del Vecchio 2019](https://doi.org/10.1519/JSC.0000000000001960)). Ouderen
 hebben voor onderhoud mogelijk twee sessies per week nodig in plaats van één
 ([Spiering 2021](https://doi.org/10.1519/JSC.0000000000003964)). Het
-ACSM-standpunt van 2026 over krachttraining komt erbij (DOI bij uitvoering
-bevestigen). Het artikel komt in de categorie Kracht, met beperkingen: er zijn
+ACSM-standpunt van 2026 over krachttraining komt erbij
+([Currier 2026](https://doi.org/10.1249/MSS.0000000000003897), via PubMed
+bevestigd bij uitvoering). Het artikel komt in de categorie Kracht, met beperkingen: er zijn
 weinig studies met oudere renners zelf.
 
 ### Bewust niet voorgesteld
@@ -884,7 +889,11 @@ weinig studies met oudere renners zelf.
   Montalvo-Pérez) wijzen dezelfde kant op als bij mannen. Ze komen in het
   hoofdartikel.
 
-### Te beslissen door de eigenaar
+### Besluit eigenaar (2026-10-16)
+
+"Alles ja en ook een protocol van 10 weken."
+
+Oorspronkelijke vragen:
 
 1. 4A uitvoeren zoals voorgesteld?
 2. De regel voor kracht (alleen op een dag zonder rit, drie dagen ertussen):

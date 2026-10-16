@@ -77,8 +77,10 @@ export type MobilitySession = {
  * mee. */
 const SECONDS_PER_REP = 3;
 
-/** Doel uit de literatuur: programma's van minimaal vier weken, twee tot drie
- * sessies per week. Beide getallen sturen de voortgangsweergave. */
+/** Programma's van minimaal vier weken, zoals in de core-studies
+ * (Rodríguez-Perea 2023). Twee sessies per week is een eigen keuze van ZWB: de
+ * literatuur noemt geen beste frequentie (zie het artikel Wat core-training
+ * doet). Beide getallen sturen de voortgangsweergave. */
 export const MOBILITY_WINDOW_DAYS = 28;
 export const MOBILITY_SESSIONS_PER_WEEK = 2;
 
@@ -237,6 +239,14 @@ export const STRENGTH_MIN_DAYS_BETWEEN = 3;
 export const STRENGTH_MAX_PER_WEEK = 2;
 
 /**
+ * Series met goal "kracht" die buiten de krachtregels vallen: springen voor je
+ * botten is kort, mag drie à vier keer per week en ook op een fietsdag
+ * (Florence 2023; Hilkens 2023). Niet uit zichzelf voorgesteld en niet geteld
+ * voor de rust tussen krachtsessies.
+ */
+export const BONE_SERIES_SLUGS = new Set(["springen"]);
+
+/**
  * Welke krachtserie vandaag past, of null. Alleen op een dag zonder geplande
  * training en zonder rit, minstens drie dagen na de vorige krachtsessie en
  * hooguit twee keer per week. Binnen die grenzen de serie die het langst
@@ -256,7 +266,7 @@ export function recommendStrength<T extends MobilitySeries & { items?: MobilityS
   context: RecommendContext,
 ): T | null {
   if (context.hasPlannedWorkoutToday || context.rodeToday) return null;
-  const strength = series.filter((row) => row.goal === "kracht");
+  const strength = series.filter((row) => row.goal === "kracht" && !BONE_SERIES_SLUGS.has(row.slug));
   if (strength.length === 0) return null;
 
   const strengthIds = new Set(strength.map((row) => row.id));

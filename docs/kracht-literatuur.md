@@ -174,8 +174,33 @@ gevonden; de regel "alleen op een dag zonder training of rit" is een eigen,
 voorzichtige keuze en geen uitkomst uit de literatuur.
 
 **Niet toegevoegd, bij gebrek aan een gecontroleerde bron:** oefeningen voor het
-bovenlichaam, explosieve training (sprongen), en een aparte serie voor
-botgezondheid.
+bovenlichaam en explosieve training voor prestatie. *(Bijgewerkt 2026-10-16,
+wetenschappelijke toets fase 4: een serie voor botgezondheid is er nu wel, zie
+hieronder.)*
+
+## Aanvulling fase 4 (2026-10-16)
+
+De onderbouwing staat in `docs/wetenschappelijke-toets.md`, fase 4. Kort:
+
+- **Springen voor je botten** (`springen`, migratie 0242): vijf sets van tien
+  sprongen uit stand, 30 s rust. Springen verhoogde bij volwassenen de
+  botdichtheid in de dijbeenhals met ~1,5 % bij rond 50 sprongen vier keer per
+  week (Florence 2023, DOI 10.1080/02640414.2024.2312052). Bij topwielrenners
+  hield vijf keer per week vijf minuten springen met collageen die
+  botdichtheid op peil (Hilkens 2023, DOI 10.1123/ijsnem.2023-0080). De serie
+  valt buiten de krachtregels (`BONE_SERIES_SLUGS`): niet uit zichzelf
+  voorgesteld, niet geteld voor de rust tussen krachtsessies.
+- **Kracht op de fiets** (protocol `kracht-op-de-fiets`): 5 × 7 trappen voluit
+  vanuit stilstand op ~6 %, cadans ~40–50, 4 min rust, twee keer per week,
+  tien weken. Even effectief als squats bij goed getrainde mannen
+  (Barranco-Gil 2024, DOI 10.1249/MSS.0000000000003556; Pallarés 2025, DOI
+  10.5114/biolsport.2025.146790; volle tekst gelezen). Op een smart trainer
+  niet getest.
+- **De regel voor krachtsessies blijft** (alleen op een dag zonder rit, drie
+  dagen ertussen, hooguit twee per week). Onderzoek naar combineren laat zien
+  dat dit voorzichtiger is dan nodig voor duurvermogen (Vikestad 2024, Held
+  2026, Petré 2021, Huiberts 2023); de regel gaat over spierpijn vóór
+  sleutelsessies. Dat staat nu zo in het artikel.
 
 ## Oefeningen en hun bron
 
@@ -199,6 +224,7 @@ botgezondheid.
 | Gym: opbouw 3 (`gym-opbouw-3`) | 3 × 6; tweede sessie 3 × 4 | 4, week 7-11 |
 | Gym: onderhoud (`gym-onderhoud`) | 2 × 5, één keer per week | 2 voor de frequentie; dosering eigen keuze |
 | Kracht thuis: met gewicht (`kracht-thuis-gewicht`) | 3 sets, tot je er nog twee over hebt | 8 |
+| Springen voor je botten (`springen`) | 5 × 10 sprongen, 30 s rust | Florence 2023, Hilkens 2023 (fase 4) |
 
 Een serie in de app heeft één aantal herhalingen per oefening. De zwaardere
 tweede sessie van de week staat daarom in de ondertitel van de serie en niet als

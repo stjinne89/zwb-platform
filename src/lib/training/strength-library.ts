@@ -155,6 +155,176 @@ const BEHM_2016: StrengthSource = {
   kind: "review",
 };
 
+// Hertoetst in de wetenschappelijke toets, fase 4 (2026-10-16). DOI's via PubMed
+// bevestigd; zie docs/wetenschappelijke-toets.md.
+export const BARRANCO_GIL_2024_RT: StrengthSource = {
+  citation:
+    "Barranco-Gil D, Hernández-Belmonte A, Rodríguez-Rielves V, et al. Off- and on-bike resistance training in cyclists: a randomized controlled trial. Med Sci Sports Exerc 57(2):296-304.",
+  year: 2024,
+  url: doi("10.1249/MSS.0000000000003556"),
+  kind: "studie",
+};
+
+export const PALLARES_2025: StrengthSource = {
+  citation:
+    "Pallarés JG, Barranco-Gil D, Rodríguez-Rielves V, et al. Cyclists do not need to incorporate off-bike resistance training to increase strength, muscle-tendon structure, and pedaling performance: exploring a high-intensity on-bike method. Biol Sport 42(3):185-195.",
+  year: 2025,
+  url: doi("10.5114/biolsport.2025.146790"),
+  kind: "studie",
+};
+
+export const VALENZUELA_2021_RT: StrengthSource = {
+  citation:
+    "Valenzuela PL, Gil-Cabrera J, Talavera E, et al. On- versus off-bike power training in professional cyclists: a randomized controlled trial. Int J Sports Physiol Perform 16(5):674-681.",
+  year: 2021,
+  url: doi("10.1123/ijspp.2020-0305"),
+  kind: "studie",
+};
+
+const JI_2021: StrengthSource = {
+  citation:
+    "Ji S, Donath L, Wahl P. Effects of alternating unilateral vs. bilateral resistance training on sprint and endurance cycling performance in trained endurance athletes: a 3-armed, randomized, controlled, pilot trial. J Strength Cond Res 36(12):3280-3289.",
+  year: 2021,
+  url: doi("10.1519/JSC.0000000000004105"),
+  kind: "studie",
+};
+
+const MONTALVO_PEREZ_2021: StrengthSource = {
+  citation:
+    "Montalvo-Pérez A, Alejo LB, Valenzuela PL, et al. Traditional versus velocity-based resistance training in competitive female cyclists: a randomized controlled trial. Front Physiol 12:586113.",
+  year: 2021,
+  url: doi("10.3389/fphys.2021.586113"),
+  kind: "studie",
+};
+
+const KRISTOFFERSEN_2019: StrengthSource = {
+  citation:
+    "Kristoffersen M, Sandbakk Ø, Rønnestad BR, Gundersen H. Comparison of short-sprint and heavy strength training on cycling performance. Front Physiol 10:1132.",
+  year: 2019,
+  url: doi("10.3389/fphys.2019.01132"),
+  kind: "studie",
+};
+
+const SPIERING_2021: StrengthSource = {
+  citation:
+    "Spiering BA, Mujika I, Sharp MA, Foulis SA. Maintaining physical performance: the minimal dose of exercise needed to preserve endurance and strength over time. J Strength Cond Res 35(5):1449-1458.",
+  year: 2021,
+  url: doi("10.1519/JSC.0000000000003964"),
+  kind: "review",
+};
+
+const LOPEZ_2021: StrengthSource = {
+  citation:
+    "Lopez P, Radaelli R, Taaffe DR, et al. Resistance training load effects on muscle hypertrophy and strength gain: systematic review and network meta-analysis. Med Sci Sports Exerc 53(6):1206-1216.",
+  year: 2021,
+  url: doi("10.1249/MSS.0000000000002585"),
+  kind: "review",
+};
+
+const CURRIER_2026: StrengthSource = {
+  citation:
+    "Currier BS, D'Souza AC, Singh MAF, et al. American College of Sports Medicine position stand. Resistance training prescription for muscle function, hypertrophy, and physical performance in healthy adults: an overview of reviews. Med Sci Sports Exerc 58(4):851-872.",
+  year: 2026,
+  url: doi("10.1249/MSS.0000000000003897"),
+  kind: "consensus",
+};
+
+const VIKESTAD_2024: StrengthSource = {
+  citation:
+    "Vikestad V, Dalen T. Effect of strength and endurance training sequence on endurance performance. Sports 12(8):226.",
+  year: 2024,
+  url: doi("10.3390/sports12080226"),
+  kind: "review",
+};
+
+const HELD_2026: StrengthSource = {
+  citation:
+    "Held S, Wolf L, Rappelt L, et al. Maximizing adaptations in concurrent training: an umbrella review of meta-analyses. Sports Med 56(6):1489-1512.",
+  year: 2026,
+  url: doi("10.1007/s40279-026-02401-y"),
+  kind: "review",
+};
+
+const PETRE_2021: StrengthSource = {
+  citation:
+    "Petré H, Hemmingsson E, Rosdahl H, Psilander N. Development of maximal dynamic strength during concurrent resistance and endurance training in untrained, moderately trained, and trained individuals: a systematic review and meta-analysis. Sports Med 51(5):991-1010.",
+  year: 2021,
+  url: doi("10.1007/s40279-021-01426-9"),
+  kind: "review",
+};
+
+const HUIBERTS_2023: StrengthSource = {
+  citation:
+    "Huiberts RO, Wüst RCI, van der Zwaard S. Concurrent strength and endurance training: a systematic review and meta-analysis on the impact of sex and training status. Sports Med 54(2):485-503.",
+  year: 2023,
+  url: doi("10.1007/s40279-023-01943-9"),
+  kind: "review",
+};
+
+const FLORENCE_2023: StrengthSource = {
+  citation:
+    "Florence GE, Oosthuyse T, Bosch AN. Skeletal site-specific effects of jump training on bone mineral density in adults: a systematic review and meta-analysis. J Sports Sci 41(23):2063-2076.",
+  year: 2023,
+  url: doi("10.1080/02640414.2024.2312052"),
+  kind: "review",
+};
+
+const HILKENS_2023: StrengthSource = {
+  citation:
+    "Hilkens L, van Schijndel N, Weijer VCR, et al. Jumping exercise combined with collagen supplementation preserves bone mineral density in elite cyclists. Int J Sport Nutr Exerc Metab 34(1):38-47.",
+  year: 2023,
+  url: doi("10.1123/ijsnem.2023-0080"),
+  kind: "studie",
+};
+
+const FLORVAG_2025: StrengthSource = {
+  citation:
+    "Florvåg AG, Berg ØA, Røksund OD, et al. Exercise interventions to improve bone mineral density in athletes participating in low-impact sports: a scoping review. BMC Musculoskelet Disord 26(1):73.",
+  year: 2025,
+  url: doi("10.1186/s12891-025-08316-5"),
+  kind: "review",
+};
+
+const BARRAJON_2026: StrengthSource = {
+  citation:
+    "Barrajón C, Legaz-Arrese A, Cirer-Sastre R, et al. Effects of bike-fitting on lower back pain in cyclists: a systematic review. Cureus 18(1):e101718.",
+  year: 2026,
+  url: doi("10.7759/cureus.101718"),
+  kind: "review",
+};
+
+const SMRCINA_2022: StrengthSource = {
+  citation:
+    "Smrcina Z, Woelfel S, Burcal C. A systematic review of the effectiveness of core stability exercises in patients with non-specific low back pain. Int J Sports Phys Ther 17(5):766-774.",
+  year: 2022,
+  url: doi("10.26603/001c.37251"),
+  kind: "review",
+};
+
+const WARNEKE_2024: StrengthSource = {
+  citation:
+    "Warneke K, Lohmann LH. Revisiting the stretch-induced force deficit: a systematic review with multilevel meta-analysis of acute effects. J Sport Health Sci 13(6):805-819.",
+  year: 2024,
+  url: doi("10.1016/j.jshs.2024.05.002"),
+  kind: "review",
+};
+
+const LI_2023: StrengthSource = {
+  citation:
+    "Li FY, Guo CG, Li HS, et al. A systematic review and net meta-analysis of the effects of different warm-up methods on the acute effects of lower limb explosive strength. BMC Sports Sci Med Rehabil 15(1):106.",
+  year: 2023,
+  url: doi("10.1186/s13102-023-00703-6"),
+  kind: "review",
+};
+
+const DEL_VECCHIO_2019: StrengthSource = {
+  citation:
+    "Del Vecchio L, Stanton R, Reaburn P, et al. Effects of combined strength and sprint training on lean mass, strength, power, and sprint performance in masters road cyclists. J Strength Cond Res 33(1):66-79.",
+  year: 2019,
+  url: doi("10.1519/JSC.0000000000001960"),
+  kind: "studie",
+};
+
 export const STRENGTH_ARTICLES: StrengthArticle[] = [
   {
     slug: "zwaar-krachtwerk-en-fietsen",
@@ -168,17 +338,25 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
       "De bovenbeenspier werd groter zonder dat de renners zwaarder werden.",
       "Een overzichtsstudie over 17 studies en 262 renners vond een effect op fietsefficiëntie, sprintvermogen en fietsprestatie, en geen effect op VO2max.",
       "Het gaat om zwaar werk: gewichten waarmee je vier tot tien herhalingen haalt. Een overzichtsartikel raadt voor fietseconomie zware training aan.",
+      "Nieuwere proeven bij goed getrainde mannen wijzen dezelfde kant op: tien weken squats verhoogden het maximale aerobe vermogen, en eenbenig of tweebenig trainen verbeterde allebei de tijdrit.",
+      "In een kortere proef van zes weken met vrouwelijke renners kwam er wel kracht bij, maar nog geen extra duurvermogen.",
+      "Voor je sprint werkt sprinttraining op de fiets beter: korte sprints gaven meer sprintvermogen, zwaar krachtwerk gaf meer kracht.",
     ],
     limits: [
       "De studies zijn klein: zes tot elf renners in de krachtgroep.",
       "De overzichtsstudie noemt de zekerheid van het bewijs zelf laag en doet daarom geen stevige aanbeveling over de beste invulling.",
       "De deelnemers waren goed getraind en werden begeleid. Of het bij recreatieve renners zonder begeleiding net zo uitpakt, is niet onderzocht.",
+      "De meta-analyse vond geen verschil naar geslacht, niveau of aantal sessies per week; welke invulling het best werkt, weten we dus niet.",
     ],
     sources: [
       RONNESTAD_2010A,
       VIKMOEN_2016,
       RONNESTAD_MUJIKA_2014,
       LLANOS_LAGOS_2026,
+      PALLARES_2025,
+      JI_2021,
+      MONTALVO_PEREZ_2021,
+      KRISTOFFERSEN_2019,
     ],
     series: ["gym-opbouw-1", "gym-opbouw-2", "gym-opbouw-3"],
   },
@@ -215,13 +393,15 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
       "Renners deden twaalf weken twee keer per week zware krachttraining en daarna, in het wedstrijdseizoen, dertien weken één keer per week.",
       "Spieromvang en kracht bleven op het niveau van na de opbouw.",
       "Over de hele periode verbeterden het maximale aerobe vermogen en het vermogen over 40 minuten meer dan bij renners die alleen fietsten.",
+      "Een overzicht over onderhoud: één sessie per week houdt kracht en spier vast zolang het gewicht zwaar blijft. Bij ouderen zijn mogelijk twee sessies nodig.",
+      "Renners die tien weken helemaal geen kracht deden, verloren kracht en dijspier.",
     ],
     limits: [
       "Zes renners per groep.",
       "Hoe de onderhoudssessie er precies uitzag, was voor ons niet te controleren. De twee sets van vijf in de app zijn een eigen invulling; uit de bron komt alleen de frequentie.",
-      "Wat er gebeurt als je in het seizoen helemaal stopt, is in deze studie niet vergeleken.",
+      "Wat stoppen kost voor je fietsprestatie, is niet duidelijk: in de studie waar renners stopten, daalden kracht en spier, maar niet meetbaar hun fietswaarden.",
     ],
-    sources: [RONNESTAD_2010B],
+    sources: [RONNESTAD_2010B, SPIERING_2021, PALLARES_2025],
     series: ["gym-onderhoud"],
   },
   {
@@ -234,6 +414,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
       "Een overzichtsstudie over 21 studies vergeleek lichte gewichten (tot 60% van wat je één keer kunt) met zware. Alle sets gingen door tot de spier het niet meer kon.",
       "De spiergroei was vergelijkbaar. De maximale kracht nam meer toe met zware gewichten.",
       "De thuisserie gebruikt daarom dezelfde vier bewegingen als het gymprogramma, met een dumbbell of kettlebell en een band, en vraagt om door te gaan tot je er nog ongeveer twee herhalingen over hebt.",
+      "Een latere netwerk-meta-analyse en het ACSM-standpunt van 2026 bevestigen dit: voor kracht werkt zwaar gewicht (vanaf ongeveer 80 procent van wat je één keer kunt) het best.",
     ],
     limits: [
       "De deelnemers waren geen wielrenners.",
@@ -241,7 +422,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
       "In de studies gingen de sets door tot falen. De app houdt twee herhalingen over; dat is een eigen, voorzichtiger keuze.",
       "Voor de series met alleen je eigen gewicht geldt dit nog sterker: die maken je benen en romp belastbaarder, maar een effect op je vermogen mag je er niet van verwachten.",
     ],
-    sources: [SCHOENFELD_2017],
+    sources: [SCHOENFELD_2017, LOPEZ_2021, CURRIER_2026],
     series: ["kracht-thuis-gewicht", "kracht-basis", "kracht-klimmen", "kracht-eenbenig"],
   },
   {
@@ -249,35 +430,43 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
     category: "kracht",
     title: "Kracht en fietsen combineren",
     summary:
-      "De studies deden twee krachtsessies per week naast de gewone duurtraining. Over de beste plek in de week zegt het onderzoek bij renners weinig; de regels in de app zijn een voorzichtige eigen keuze.",
+      "De studies deden twee krachtsessies per week naast de gewone duurtraining. Volgorde en dag maken voor je duurvermogen weinig uit; de regels in de app gaan over spierpijn vóór je sleutelsessie.",
     points: [
       "In de studies bij renners kwamen er twee krachtsessies per week bij de normale duurtraining, die gewoon doorging.",
       "De app stelt een krachtserie alleen voor op een dag zonder geplande training en zonder rit, minstens drie dagen na de vorige krachtsessie en hooguit twee keer per week.",
       "Series die materiaal vragen (halterstang, apparaat, dumbbell, band) stelt de app nooit uit zichzelf voor: je kiest ze zelf. Ze tellen wel mee voor de rust ertussen.",
       "Een krachtsessie telt niet mee in je trainingsbelasting, CTL of naleving.",
+      "Meta-analyses vonden dat de volgorde van kracht en duur weinig uitmaakt voor je duurvermogen.",
+      "Krachtwinst lijdt vooral als je beide in één sessie doet, bij getrainde mensen, en bij mannen meer dan bij vrouwen. Gescheiden sessies op één dag gaven dat nadeel niet.",
+      "De serie Springen voor je botten telt niet mee voor de rust tussen krachtsessies: die is kort en mag ook op een fietsdag.",
     ],
     limits: [
-      "Voor het aantal uren tussen kracht en fietsen op dezelfde dag hebben we geen onderzoek bij wielrenners gevonden, alleen adviezen van coaches. Daar staat hier dus geen regel over.",
-      "De drie dagen rust en \"alleen op een rustdag\" komen niet uit de studies. Ze moeten voorkomen dat spierpijn in je volgende sleutelsessie zit.",
+      "De studies naar combineren gingen meestal over niet-wielrenners en maten vooral kracht en VO2max, niet je prestatie in een wedstrijd.",
+      "De drie dagen rust en \"alleen op een rustdag\" komen niet uit de studies en zijn voorzichtiger dan nodig voor je duurvermogen. Ze moeten voorkomen dat spierpijn in je volgende sleutelsessie zit.",
     ],
-    sources: [RONNESTAD_2010A, VIKMOEN_2017, RONNESTAD_MUJIKA_2014],
+    sources: [RONNESTAD_2010A, VIKMOEN_2017, RONNESTAD_MUJIKA_2014, VIKESTAD_2024, HELD_2026, PETRE_2021, HUIBERTS_2023],
   },
   {
     slug: "wielrennen-en-botdichtheid",
     category: "kracht",
     title: "Wielrennen en je botten",
     summary:
-      "Wegwielrenners die veel trainen hebben vaak een lage botdichtheid. Fietsen alleen geeft je botten te weinig prikkel.",
+      "Wegwielrenners die veel trainen hebben vaak een lage botdichtheid. Fietsen alleen geeft je botten te weinig prikkel; springen kan helpen.",
     points: [
       "Een overzichtsstudie over 31 studies vond bij volwassen wegwielrenners een lage botdichtheid op belangrijke plekken, zoals de lendenwervels.",
       "Mountainbiken, of fietsen combineren met een andere sport, lijkt dat effect te verkleinen.",
       "De auteurs zoeken de oorzaak in de vele uren zittend op de fiets, waarbij het zadel je gewicht draagt, en de rust daarna.",
+      "Springen geeft wel een prikkel: bij volwassenen steeg de botdichtheid in de dijbeenhals met ongeveer 1,5 procent, bij rond de 50 sprongen vier keer per week.",
+      "Bij topwielrenners bleef de botdichtheid in de dijbeenhals op peil met vijf keer per week vijf minuten springen, met collageen ervoor; zonder daalde ze.",
+      "Daarom staat er een serie Springen voor je botten: vijf keer tien sprongen. Die mag ook op een fietsdag.",
     ],
     limits: [
-      "De studie schrijft geen oefenprogramma voor. Dat krachttraining dit bij renners herstelt, hebben we niet in een controleerbare bron gevonden; de app belooft er dus niets over.",
-      "Maak je je zorgen over je botdichtheid, bespreek dat dan met je huisarts.",
+      "Er zijn weinig studies bij renners. De topwielrenners kregen ook collageen, dus wat het springen alleen deed, is niet te scheiden.",
+      "Springen belast knieën en enkels. Begin rustig, land zacht en stop bij pijn.",
+      "Maak je je zorgen over je botdichtheid, of heb je botontkalking of gewrichtsklachten, bespreek dat dan eerst met je huisarts.",
     ],
-    sources: [OLMEDILLAS_2012],
+    sources: [OLMEDILLAS_2012, FLORENCE_2023, HILKENS_2023, FLORVAG_2025],
+    series: ["springen"],
   },
   {
     slug: "lage-rugpijn-bij-renners",
@@ -290,13 +479,15 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
       "In een veldstudie reden renners met en zonder chronische lage rugpijn twee uur op hun eigen fiets. De renners met klachten zaten met een rondere onderrug en hun pijn nam in die twee uur toe.",
       "Een overzichtsstudie vond bij renners met rugpijn een rondere onderrug tijdens het fietsen, minder uithoudingsvermogen van de rugstrekkers en een onbalans in de aansturing van de rompspieren. Een lager stuur gaf meer buiging in de onderrug.",
       "De serie Zithouding richt zich daarom op het volhouden van je houding; Fundament op het uithoudingsvermogen van je romp.",
+      "Een bikefit verminderde rugpijn in drie kleine studies.",
+      "Stabiliteitsoefeningen voor de romp verminderden pijn bij mensen met niet-specifieke lage rugpijn, maar die studies gingen niet over renners.",
     ],
     limits: [
       "De veldstudie had acht renners met klachten en negen zonder, en vergeleek alleen. Of de houding de pijn veroorzaakt of andersom, laat ze niet zien.",
       "Dat de series in de app rugpijn voorkomen of verminderen, is niet onderzocht.",
       "Dit is geen behandeling. Bij aanhoudende klachten: ga naar een fysiotherapeut of huisarts.",
     ],
-    sources: [CLARSEN_2010, VAN_HOOF_2012, STREISFELD_2017],
+    sources: [CLARSEN_2010, VAN_HOOF_2012, STREISFELD_2017, BARRAJON_2026, SMRCINA_2022],
     series: ["zithouding", "fundament"],
   },
   {
@@ -318,22 +509,66 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
     series: ["fundament"],
   },
   {
+    slug: "kracht-op-de-fiets",
+    category: "kracht",
+    title: "Kracht op de fiets",
+    summary:
+      "Korte, maximale trappen bergop in een groot verzet gaven bij goed getrainde renners evenveel kracht als squats in de sportschool, zonder extra klachten.",
+    points: [
+      "37 goed getrainde renners deden tien weken twee keer per week óf squats, óf trappen op de fiets met dezelfde zwaarte en hetzelfde volume, óf niets extra.",
+      "Op de fiets: vijf sets van zeven trappen voluit vanuit stilstand op een helling van 6 procent, in een verzet waarbij de cadans rond 43 toeren lag. Tussen de sets vier minuten rust, en minstens drie dagen tussen twee sessies.",
+      "Beide groepen werden even sterk, hun Wingate-vermogen steeg en hun maximale aerobe vermogen ging omhoog. De squatgroep kreeg iets meer stijfheid en pijn in de benen.",
+      "Wie geen kracht deed, verloor in tien weken kracht en dijspier.",
+      "Bij profs gaven sprints op de fiets en krachtwerk in de sportschool allebei een betere tijdrit.",
+      "Dit is iets anders dan torque-intervallen van minuten op lage cadans: daarbij haal je maar de helft van je trapkracht, en het bewijs is wisselend.",
+      "Het protocol Kracht op de fiets volgt deze opzet.",
+    ],
+    limits: [
+      "Eén onderzoeksgroep, alleen goed getrainde mannen.",
+      "Buiten op een helling. Of het op een smart trainer net zo werkt, met een vliegwiel en zonder echte helling, is niet getest.",
+      "In de studie was de zwaarte gemeten als 70 procent van de maximale trapkracht. De app gebruikt de cadans als richtpunt, zoals de onderzoekers op de weg deden.",
+    ],
+    sources: [BARRANCO_GIL_2024_RT, PALLARES_2025, VALENZUELA_2021_RT],
+  },
+  {
+    slug: "kracht-als-je-ouder-wordt",
+    category: "kracht",
+    title: "Kracht als je ouder wordt",
+    summary:
+      "Met de jaren verlies je spiermassa en sprintvermogen. Krachttraining remt dat af, en ouderen hebben er waarschijnlijk iets meer van nodig om het vast te houden.",
+    points: [
+      "Bij masters-wegrenners van rond de vijftig gaven twaalf weken kracht- en sprinttraining meer spiermassa in de benen en een betere sprint.",
+      "Kracht en spier houd je vast met één zware sessie per week; bij ouderen zijn voor de spiermassa mogelijk twee sessies per week nodig.",
+      "Het ACSM-standpunt van 2026: voor kracht werkt zwaar gewicht (vanaf ongeveer 80 procent van wat je één keer kunt), twee à drie sets, minstens twee keer per week.",
+      "Krachttraining en springen zijn ook goed voor je botten, en die worden met de jaren kwetsbaarder; zie Wielrennen en je botten.",
+      "De gymseries en de thuisserie gelden voor masters net zo. Bouw rustiger op als je lang niet met gewicht hebt getraind.",
+    ],
+    limits: [
+      "Er zijn weinig studies met oudere renners zelf; die bij masters had 25 deelnemers en was niet volledig gerandomiseerd.",
+      "Het advies van twee sessies voor ouderen komt uit onderzoek bij niet-sporters.",
+    ],
+    sources: [DEL_VECCHIO_2019, SPIERING_2021, CURRIER_2026],
+    series: ["gym-onderhoud"],
+  },
+  {
     slug: "rekken-voor-de-rit",
     category: "mobiliteit",
     title: "Rekken vlak voor de rit",
     summary:
-      "Lang statisch rekken vlak voor een inspanning kost prestatie. Kort rekken, of dynamisch losmaken, doet dat niet.",
+      "Lang statisch rekken vlak voor een inspanning kost kracht in een krachttest. Voor sprongen en sprints is het nadeel kleiner of afwezig; dynamisch losmaken blijft de veiligste keuze.",
     points: [
       "Direct na statisch rekken was de prestatie gemiddeld 3,7% lager; na dynamisch rekken 1,3% hoger.",
       "De duur maakt uit: een minuut of langer per spiergroep gaf 4,6% verlies, korter dan een minuut 1,1%.",
+      "Een nieuwere meta-analyse met alleen gecontroleerde studies vond na statisch rekken wel minder maximale kracht, vooral na een minuut of langer, maar geen nadeel voor sprongen en sprints in het algemeen.",
+      "Een netwerk-meta-analyse vond dynamisch rekken het best voor sprong en sprint.",
       "Elke vorm van rekken vergroot je bewegingsbereik, maar meestal korter dan een half uur.",
       "De serie Voor de rit is daarom volledig dynamisch; lange rekhoudingen staan in Na de rit.",
     ],
     limits: [
       "De tests volgden drie tot vijf minuten na het rekken. Kwam er na het rekken nog een dynamische warming-up, dan was er geen duidelijk effect op de prestatie meer.",
-      "De studies gaan over allerlei krachttests en sprongen, niet specifiek over fietsen.",
+      "De studies gaan over allerlei krachttests en sprongen, niet specifiek over fietsen. Of rekken je fietsvermogen verandert, is niet onderzocht.",
     ],
-    sources: [BEHM_2016],
+    sources: [BEHM_2016, WARNEKE_2024, LI_2023],
     series: ["voor-de-rit", "na-de-rit"],
   },
   {

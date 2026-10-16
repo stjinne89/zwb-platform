@@ -8,6 +8,30 @@ const WALL_RIGHT = "M 262 30 L 262 192";
 const WALL_LEFT = "M 104 30 L 104 192";
 
 export const STRENGTH_POSES: Record<string, Pose[]> = {
+  // Springen voor je botten (0242): inzakken en in de lucht.
+  "countermovement-jump": [
+    {
+      // Kwart squat, armen naar achteren.
+      hip: [132, 128],
+      shoulder: [152, 78],
+      hand: [118, 134],
+      foot: [150, ANKLE_Y],
+      farFoot: [162, ANKLE_Y],
+      accent: arrow([92, 140], [92, 96]),
+    },
+    {
+      // Gestrekt in de lucht, armen omhoog.
+      hip: [150, 80],
+      shoulder: [150, 26],
+      hand: [178, 14],
+      foot: [150, ANKLE_Y - 24],
+      farFoot: [162, ANKLE_Y - 24],
+      toes: 70,
+      farToes: 70,
+      accent: arrow([92, 96], [92, 140]),
+    },
+  ],
+
   squat: [
     {
       hip: [150, 104],

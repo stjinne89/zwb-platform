@@ -131,8 +131,9 @@ gaat stabiliteit voor nieuwe features.
    Migratie `0241` moet nog op productie. Fase 2 (kennisbank trainen, twee
    nieuwe artikelen, protocol Duurtest, overbelasting vóór de taper) is
    goedgekeurd en uitgevoerd op 2026-10-16, net als fase 3 (kennisbank
-   voeding). Fase 4 (kracht, core en mobiliteit) is voorgesteld op 2026-10-16
-   en wacht op akkoord; daarna 5 (racen en pacing) en 6 (overig). Zie de ronde hieronder en
+   voeding) en fase 4 (kracht, core en mobiliteit). Migratie `0242` (springserie)
+   moet nog op productie. Volgende stap: het voorstel voor fase 5 (racen en
+   pacing); daarna 6 (overig). Zie de ronde hieronder en
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
@@ -8762,6 +8763,63 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — wetenschappelijke toets fase 4: kracht, core en mobiliteit
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
+`0242_mobility_jump_series.sql` (**nog niet op productie**; getest in PGlite).
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md),
+fase 4, en [`docs/kracht-literatuur.md`](docs/kracht-literatuur.md).
+Goedgekeurd door de eigenaar: "alles ja en ook een protocol van 10 weken".
+
+**Waarom.** De kennisbank kracht was zorgvuldig, maar er is nieuw onderzoek:
+- Kracht op de fiets werkt even goed als squats.
+- Springen helpt de botten van renners. Het artikel zei dat daar geen bron
+  voor was.
+- De regel "kracht nooit op een fietsdag" is voorzichtiger dan het onderzoek
+  over combineren vraagt.
+
+Een codecommentaar beweerde verder ten onrechte dat twee tot drie
+core-sessies per week uit de literatuur komen.
+
+**Wat er veranderde.**
+- **21 nieuwe bronnen** in `strength-library.ts`, alle via PubMed bevestigd.
+  Lopez staat in PubMed als 2021 en niet als 2020, zoals in het voorstel.
+- **Artikelen**:
+  - Bijgewerkt: zwaar krachtwerk, kracht vasthouden, thuis met lichtere
+    gewichten, combineren, botten, rugpijn en rekken.
+  - Twee nieuwe artikelen: *Kracht op de fiets* en *Kracht als je ouder
+    wordt*. Er zijn nu 12 krachtartikelen.
+- **Protocol Kracht op de fiets** (groep "Kracht", bewijs beperkt): tien weken
+  twee keer per week 5 × 7 trappen voluit vanuit stilstand op ~6 %, met een
+  `aiHint` die de sessie als korte buitensessie laat inplannen. De core-
+  artikelpagina toont nu ook links naar protocollen.
+- **Springserie** `springen` (migratie 0242): 5 × 10 sprongen uit stand, een
+  nieuwe oefening met figuur en spiergroepen. `BONE_SERIES_SLUGS` in
+  `mobility.ts` houdt de serie buiten de krachtregels: ZWB stelt haar niet uit
+  zichzelf voor, en ze telt niet mee voor de rust tussen krachtsessies.
+- **De regel voor krachtsessies blijft** (besluit 2, eerste optie). Het
+  artikel zegt nu eerlijk dat de regel over spierpijn gaat.
+- **Code**: het commentaar bij `MOBILITY_SESSIONS_PER_WEEK` noemt het een eigen
+  keuze.
+- **/hulp**: een alinea over de springserie, en kracht op de fiets bij de
+  protocollen.
+- **Tests**: de seedtests (figuren, spiergroepen, series, migratie) nemen 0242
+  mee. Er is een test voor de springserie buiten de krachtregels, en de
+  protocoltest accepteert artikelen uit de krachtkennisbank.
+
+**Bewust niet gebouwd.**
+- *De krachtregel versoepelen*: de eigenaar koos voor houden met uitleg.
+- *Een bikefit-artikel en een vrouwspecifiek krachtartikel*: te weinig eigen
+  bewijs. Ze zijn opgenomen in het rugpijnartikel en het hoofdartikel.
+- *Een springserie die de app zelf voorstelt*: de serie mag dagelijks, en dat
+  past niet in de rotatie van core en kracht. Het lid kiest haar zelf.
+
+**Niet geverifieerd.**
+- Migratie 0242 op productie.
+- De figuur van de sprong in de browser.
+- Of de AI het protocol netjes als buitensessie inplant.
+- Kracht op de fiets op een smart trainer is nergens onderzocht.
+
 ### Opgeleverd — wetenschappelijke toets fase 3: kennisbank voeding
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -9105,7 +9163,7 @@ ook stijgt bij overbelasting. Daar ging de verzachtingsregel tegenin.
 worktree niet draait (`omnium-live.test.ts` leest `.env.local`). De build is
 gedraaid met de variabelen uit de `.env.local` van de hoofdmap.
 
-### Lopend — wetenschappelijke toets van ZWBasis (fase 0 tot en met 3 af)
+### Lopend — wetenschappelijke toets van ZWBasis (fase 0 tot en met 4 af)
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
 codewijziging.
@@ -9162,7 +9220,8 @@ Wat er veranderde aan de voorstellen:
 "wetenschappelijke toets fase 3" hierboven. Het voorstel staat in het
 werkdocument.
 
-**Fase 4, voorgesteld op 2026-10-16** (nog geen code). Het voorstel staat in het
+**Fase 4, voorgesteld en na akkoord uitgevoerd op 2026-10-16**: zie de ronde
+"wetenschappelijke toets fase 4" hierboven. Het voorstel staat in het
 werkdocument. Kort: de kennisbank kracht was zorgvuldig. Er zijn drie
 nieuwigheden:
 - Krachttraining op de fiets werkt bij goed getrainde renners even goed als

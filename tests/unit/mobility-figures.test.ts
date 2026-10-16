@@ -33,7 +33,9 @@ describe("figuurregister", () => {
     const weighted = seededIllustrationSlugs("0232_mobility_strength_seed_v2.sql");
     expect(strength).toHaveLength(7);
     expect(weighted).toHaveLength(8);
-    const slugs = [...core, ...strength, ...weighted];
+    const jump = seededIllustrationSlugs("0242_mobility_jump_series.sql");
+    expect(jump).toHaveLength(1);
+    const slugs = [...core, ...strength, ...weighted, ...jump];
 
     const missing = slugs.filter((slug) => !MOBILITY_FIGURES[slug]);
     expect(missing).toEqual([]);

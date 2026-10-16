@@ -114,6 +114,7 @@ describe("protocoldefinities", () => {
       "Intensiteit",
       "Naast de fiets",
       "Testen",
+      "Kracht",
     ]);
     expect(protocolsByGroup("voeden").map((entry) => entry.group)).toEqual([
       "Op de wedstrijddag",

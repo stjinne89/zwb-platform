@@ -3188,6 +3188,14 @@ Fitness-status: Verbeterend`}
             verwachten. Ze maken je benen en romp belastbaarder en je
             trapbeweging per been stabieler.
           </p>
+          <h4 className="mt-4 text-sm font-semibold">Springen voor je botten</h4>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Fietsen belast je botten weinig. De serie Springen voor je botten is
+            vijf keer tien sprongen, in een paar minuten. Doe hem drie à vier
+            keer per week; hij mag ook op een fietsdag en telt niet mee voor de
+            rust tussen krachtsessies. ZWB stelt hem niet uit zichzelf voor.
+            Land zacht en stop bij pijn in je knieën of enkels.
+          </p>
           <h4 className="mt-4 text-sm font-semibold">Gym: zwaar werk</h4>
           <p className="mt-2 text-sm text-muted-foreground">
             De gymseries volgen het programma uit onderzoek bij goed getrainde
@@ -3388,7 +3396,7 @@ Fitness-status: Verbeterend`}
           <p className="mt-2 text-sm text-muted-foreground">
             Bij trainen staan hittetraining (kort voor een warme wedstrijd, of vijf
             weken voor meer hemoglobine), lage cadans bij VO2max en sprints,
-            ademspiertraining en een maandelijkse duurtest. Bij voeding staan protocollen voor de wedstrijddag
+            ademspiertraining, een maandelijkse duurtest en kracht op de fiets. Bij voeding staan protocollen voor de wedstrijddag
             (cafeïne, natriumbicarbonaat, nitraat, ijsslush, glycerol,
             koolhydraten laden), voor de opbouw (bèta-alanine, creatine,
             darmtraining), voor herstel (herstellen na een zware wedstrijd,

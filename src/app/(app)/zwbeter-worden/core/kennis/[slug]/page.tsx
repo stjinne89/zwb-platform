@@ -8,6 +8,7 @@ import {
 } from "@/lib/training/strength-library";
 import { BackLink } from "@/components/app-ui";
 import { loadSeries, requireViewer } from "../../_data";
+import { ProtocolLinks } from "../../../_components/protocols/knowledge-article";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +59,8 @@ export default async function StrengthArticlePage({
           ))}
         </ul>
       </section>
+
+      <ProtocolLinks articleHref={`/zwbeter-worden/core/kennis/${article.slug}`} />
 
       {linked.length > 0 && (
         <section className="max-w-3xl space-y-3">

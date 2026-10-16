@@ -289,6 +289,15 @@ describe("recommendStrength", () => {
     expect(recommendStrength(STRENGTH, rows, today, restDay)).toBeNull();
   });
 
+  it("houdt de springserie buiten de krachtregels", () => {
+    const withJump = [...STRENGTH, series({ id: "j1", slug: "springen", goal: "kracht", level: 1 })];
+    // Gisteren gesprongen: telt niet als krachtsessie, dus kracht mag vandaag.
+    expect(recommendStrength(withJump, [session("2026-08-09", "j1")], today, restDay)?.slug).toBe("kracht-basis");
+    // En de springserie zelf wordt nooit als krachtserie voorgesteld.
+    const onlyJump = [...STANDARD_SERIES, series({ id: "j1", slug: "springen", goal: "kracht", level: 1 })];
+    expect(recommendStrength(onlyJump, [], today, restDay)).toBeNull();
+  });
+
   it("laat core-sessies niet meetellen als krachtsessie", () => {
     const rows = [session("2026-08-09", "series-1"), session("2026-08-08", "series-4")];
     expect(recommendStrength(STRENGTH, rows, today, restDay)?.slug).toBe("kracht-basis");

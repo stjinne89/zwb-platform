@@ -2,6 +2,11 @@
 // in docs/protocollen-onderzoek.md. Teksten zijn eigen samenvattingen.
 
 import { doi, type KnowledgeSource } from "@/lib/knowledge/source";
+import {
+  BARRANCO_GIL_2024_RT,
+  PALLARES_2025,
+  VALENZUELA_2021_RT,
+} from "@/lib/training/strength-library";
 import type { Protocol } from "./types";
 
 export const RACINAIS_2015: KnowledgeSource = {
@@ -459,5 +464,49 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
     measure: "duurtest",
     aiHint:
       "Duurtest. Plan in elk venster van 28 dagen één training met de titel 'Duurtest': 10 minuten inrijden op 55%, één blok van 60 minuten op 75% FTP, 5 minuten uitrijden op 50%. Zet hem op een rustige dag, nooit de dag na een sleutelsessie of een race, en tel hem als duurrit van de week. Verander de opzet niet.",
+  },
+  {
+    slug: "kracht-op-de-fiets",
+    pillar: "trainen",
+    group: "Kracht",
+    title: "Kracht op de fiets",
+    shortLabel: "Kracht fiets",
+    summary:
+      "Tien weken twee keer per week korte, maximale trappen bergop in een groot verzet: krachttraining zonder sportschool.",
+    goal: "Meer kracht en sprintvermogen in je benen, op je eigen fiets.",
+    evidence: "beperkt",
+    anchor: "start",
+    phases: [
+      {
+        key: "blok",
+        title: "Tien weken",
+        fromDay: 0,
+        toDay: 69,
+        tasks: [
+          {
+            key: "sessie",
+            label: "Kracht op de fiets",
+            detail:
+              "Na een kwartier inrijden: 5 keer 7 trappen voluit vanuit stilstand op een helling van ongeveer 6 %, zittend, in een verzet waarbij je gemiddeld 40 tot 50 toeren haalt. Tussen de sets 4 minuten rustig rijden. Haal je meer dan 50 toeren, schakel dan een tandje zwaarder.",
+            perWeek: 2,
+          },
+        ],
+      },
+    ],
+    cautions: [
+      "Laat minstens drie dagen tussen twee sessies, zoals in de studie.",
+      "Kies een rustige helling zonder verkeer en zet de pedaal in een stand waarin je goed kunt aanzetten.",
+      "Stop bij knie- of rugpijn.",
+    ],
+    notFor: ["Bij knieklachten."],
+    limits: [
+      "Eén onderzoeksgroep, alleen goed getrainde mannen, tien weken.",
+      "De studie was buiten op een helling van 6 %. Op een smart trainer is het niet getest; een vliegwiel gedraagt zich anders dan een helling.",
+      "De zwaarte was in het lab gemeten als 70 % van de maximale trapkracht; de cadans is hier het richtpunt, zoals de onderzoekers op de weg deden.",
+    ],
+    sources: [BARRANCO_GIL_2024_RT, PALLARES_2025, VALENZUELA_2021_RT],
+    article: { href: "/zwbeter-worden/core/kennis/kracht-op-de-fiets", title: "Kracht op de fiets" },
+    aiHint:
+      "Kracht op de fiets. Plan in dit venster twee keer per week, met minstens drie dagen ertussen en niet op de dag vóór een sleutelsessie of race, een krachtsessie op de fiets: 15 minuten inrijden, dan 5 keer een blok van 7 trappen voluit vanuit stilstand bergop in een groot verzet (cadans 40-50, zittend) met 4 minuten rustig rijden erna, en 10 minuten uitrijden. Geef de krachtblokken de notitie 'Buiten op een helling van ~6%: 7 trappen voluit vanuit stilstand'. Tel de sessie niet als sleutelsessie; het aantal sleutelsessies per week blijft zoals de periodisering vraagt.",
   },
 ];
