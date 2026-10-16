@@ -130,9 +130,9 @@ gaat stabiliteit voor nieuwe features.
    uitgevoerd (opbouw, FTP-test, herstel, zones, analyse; 2026-10-16).
    Migratie `0241` moet nog op productie. Fase 2 (kennisbank trainen, twee
    nieuwe artikelen, protocol Duurtest, overbelasting vóór de taper) is
-   goedgekeurd en uitgevoerd op 2026-10-16. Volgende stap: het voorstel voor
-   fase 3 (voeding); daarna 4 (kracht en core), 5 (racen en pacing) en 6
-   (overig). Zie de ronde hieronder en
+   goedgekeurd en uitgevoerd op 2026-10-16. Fase 3 (kennisbank voeding) is
+   voorgesteld op 2026-10-16 en wacht op akkoord; daarna 4 (kracht en core), 5
+   (racen en pacing) en 6 (overig). Zie de ronde hieronder en
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
@@ -9093,6 +9093,14 @@ Wat er veranderde aan de voorstellen:
 
 **Fase 2, goedgekeurd en uitgevoerd op 2026-10-16**: zie de ronde
 "wetenschappelijke toets fase 2" hierboven.
+
+**Fase 3, voorgesteld op 2026-10-16** (nog geen code). Het voorstel staat in het
+werkdocument. Kort: de voedingskennisbank is grotendeels actueel. Eiwit, en
+vooral de portie voor het slapen, wordt te stellig gebracht. De beperkingen bij
+bicarbonaat en bèta-alanine kloppen niet meer. De voedingsartikelen missen een
+lijst beperkingen. De Consensus-agent behandelde opnieuw alleen een deel (eiwit
+en koolhydraten); de rest is met gerichte zoekvragen gedaan, en alle 32 nieuwe
+DOI's staan in PubMed.
 
 De gewone zoekfunctie van Consensus gaf eerst nog resultaten van het gratis
 abonnement. Na het opnieuw verbinden van de connector (2026-10-16) werkt ook

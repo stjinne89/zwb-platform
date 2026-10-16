@@ -694,6 +694,102 @@ hartslag loopt dan nog op), dus het zijn 55 gemeten minuten.
 "Akkoord met 2A, 2B en 2C (Duurtest met eigen meting en trend), en neem de
 korte overbelasting vóór de taper op in de prompt."
 
+## Fase 3 — Kennisbank voeding: voorstel
+
+Opgesteld 2026-10-16, **nog niet uitgevoerd**.
+
+**Hoe gezocht.**
+- De onderzoeksagent van Consensus Pro kreeg alle 31 voedingsregels. Hij
+  behandelde alleen koolhydraten en eiwit (regels 1–8) en noemde de rest
+  "onvoldoende in deze set". Het ruwe rapport staat in `docs/consensus/`.
+- De overige regels heb ik gericht gezocht met de Pro-zoekfunctie.
+- Alle 32 nieuwe bronnen hieronder staan in PubMed, met deze DOI's.
+
+**Het beeld.** De voedingskennisbank leunt op de UCI-stukken van 2025–2026 en is
+grotendeels actueel. Het gat zit op drie plekken:
+- **Eiwit wordt te stellig gebracht**, vooral de portie voor het slapen.
+- **Twee beperkingen in protocollen kloppen niet meer**: bicarbonaat en
+  bèta-alanine.
+- **De voedingsartikelen missen een lijst beperkingen.** De trainings- en
+  krachtartikelen hebben die wel.
+
+### 3A. Doelen en tips (`targets.ts`, `tips.ts`)
+
+| Regel | Oordeel | Wat verandert |
+|---|---|---|
+| Koolhydraten per dag naar dagtype (3–5 … 8–12 g/kg) | klopt | Niets. Train-low gaf bij goed getrainde fietsers in vijf weken geen betere prestatie dan evenveel energie met veel koolhydraten ([Prieto-Bellver 2024](https://doi.org/10.3390/nu16020318)). |
+| Eiwit 1,6–2,1 g/kg per dag | klopt | Bron erbij: ~1,8 g/kg als midden, boven 2,0 op rustdagen en bij weinig koolhydraten ([Witard 2025](https://doi.org/10.1007/s40279-025-02203-8)). |
+| Eiwit per maaltijd 0,3–0,4 g/kg | **bijstellen** | De portie blijft als richtgetal. De tekst wordt: dit is geen plafond. 100 g eiwit gaf een grotere en langere aanmaak dan 25 g ([Trommelen 2023](https://doi.org/10.1016/j.xcrm.2023.101324)). Verdelen helpt vooral om je dagtotaal te halen. |
+| 40 g eiwit voor het slapen | **bijstellen** | Het verhoogt de eiwitaanmaak 's nachts ([Trommelen 2023](https://doi.org/10.1007/s40279-023-01822-3), al bron). Maar bij U23-profs die al ruim 2,5 g/kg aten, gaf het geen beter herstel of betere prestatie ([Valenzuela 2023](https://doi.org/10.1080/15502783.2023.2166366)). De tip na een avondrit zegt nu dat het je spieren 's nachts helpt herstellen. Voorstel: hij zegt dat het een makkelijke manier is om je dagtotaal te halen als er na de rit weinig tijd is. |
+| Koolhydraten per uur (30–60 tot 2,5 uur, daarna 60–90) | klopt, tekst aanvullen | De banden blijven. 120 g/u beperkte bij getrainde renners de daling van hun CP na 3 uur meer dan 60 g/u ([Norte 2026](https://doi.org/10.1111/sms.70326)). Bij recreanten werkte 40 g/u na 90 minuten beter dan 90 g/u ([Fleitas-Paniagua 2026](https://doi.org/10.1111/sms.70288)). Drank, gel of reep: gelijk ([Hearris 2022](https://doi.org/10.1152/japplphysiol.00091.2022)). Boodschap: meer is niet vanzelf beter. |
+| Snel herstel: 1,0–1,2 g/kg/u koolhydraten, eiwit erbij | **bijstellen** | De koolhydraten blijven. Bij genoeg koolhydraten gaf eiwit erbij vijf uur later geen betere tijdrit ([Sollie 2023](https://doi.org/10.1111/sms.14364)) en geen snellere glycogeenaanvulling ([Witard 2025](https://doi.org/10.1007/s40279-025-02203-8)). Eiwit blijft in het herstelmoment voor het dagtotaal; de tekst belooft niet langer sneller aanvullen. |
+| Drink zo dat je niet meer dan ~2 % verliest | **bijstellen** | Tot anderhalf uur bij gewone temperatuur volstaat drinken op dorst; vooraf plannen loont bij lange of warme ritten ([Goulet 2019](https://doi.org/10.1007/s40279-018-01051-z), [Kenefick 2018](https://doi.org/10.1007/s40279-017-0844-6)). |
+
+### 3B. Supplementprotocollen (`lib/protocols/nutrition.ts`)
+
+| Protocol | Oordeel | Wat verandert |
+|---|---|---|
+| Cafeïne 3–6 mg/kg | klopt | Gewenning aan koffie maakt het effect niet kleiner ([Carvalho 2022](https://doi.org/10.1007/s40279-022-01685-0)). Het werkt bij vrouwen ([Zhu 2026](https://doi.org/10.3389/fnut.2026.1876198), lage zekerheid). "Een lage dosis werkt ook" wordt "werkt mogelijk ook, minder zeker": bij fietsers was 1–3 mg/kg niet significant ([Chen 2024](https://doi.org/10.1080/15502783.2024.2363789)). |
+| Natriumbicarbonaat | **bewering herzien** | De beperking "bij een lange vlakke tijdrit is het effect klein" klopt niet meer: 16 km ([Leach 2023](https://doi.org/10.1249/MSS.0000000000003263)) en 40 km ([Shannon 2024](https://doi.org/10.1007/s00421-024-05567-3)) gingen sneller. Het venster van 90–180 minuten blijft: een vaste tijd werkt, persoonlijke timing is met capsules niet nodig ([Saunders 2020](https://doi.org/10.1249/MSS.0000000000002313)). Nieuw bij aandachtspunten: een warming-up met sprints maakte de winst in één proef ongedaan ([Gurton 2021](https://doi.org/10.1123/ijspp.2020-0743)), de bijvangst uit fase 2. |
+| Nitraat | klopt | Bron erbij: vooral bij minstens 6 mmol over meer dan drie dagen ([Poon 2025](https://doi.org/10.1007/s40279-025-02194-6)); bij topsporters geen effect op VO2max ([Qin 2026](https://doi.org/10.3389/fnut.2026.1858216)). |
+| IJsslush | klopt | Bron erbij: ijs drinken verbetert prestatie niet consequent; spoelen met menthol wel ([Roriz 2022](https://doi.org/10.3389/fnut.2022.959516)). Dat staat al in de beperkingen. |
+| Bèta-alanine | **bijstellen** | "Inspanningen van één tot vier minuten" wordt "van een halve tot tien minuten, het sterkst rond vier tot tien". Effect na vier weken, sterker bij 5,6–6,4 g ([Georgiou 2024](https://doi.org/10.1123/ijsnem.2024-0027)). |
+| Creatine | klopt | Bronnen erbij: geen effect op duurprestatie ([Fernández-Landa 2023](https://doi.org/10.1007/s40279-023-01823-2)), ook niet bij U23-profs op stage ([Barranco-Gil 2024](https://doi.org/10.1080/15502783.2024.2340574)). Mogelijk wel bij versnellingen en een eindsprint ([Forbes 2023](https://doi.org/10.1080/15502783.2023.2204071)). |
+| Kersensap | klopt | Bronnen erbij: sneller herstel van kracht, met lage tot matige zekerheid ([Daab 2026](https://doi.org/10.1186/s40798-026-00993-3)); poeder werkte opnieuw niet ([Hagele 2026](https://doi.org/10.3390/nu18030443)). |
+| Collageen | klopt (beperkt) | Proeven spreken elkaar tegen: 5 g gaf een dikkere pees ([Jerger 2022](https://doi.org/10.1111/sms.14164)), 15 g niet ([Balshaw 2023](https://doi.org/10.1249/MSS.0000000000003242)). Dat komt in de beperkingen. |
+| Darmtraining | aanvullen | Beperking "betere prestatie boven 90 g/u niet aangetoond" wordt genuanceerd met Norte 2026 (minder verlies van CP na 3 uur). |
+| Herstellen na een wedstrijd | aanvullen | Beperking krijgt Sollie 2023 erbij (zie 3A). |
+| Glycerol, vitamine D, koolhydraten laden | niet opnieuw gezocht | Geen nieuwe aanleiding; bronnen ongewijzigd. |
+
+### 3C. Artikelen (`lib/nutrition/library.ts`)
+
+Bijwerken volgens 3A en 3B: **Eiwit**, **Herstel tussen sessies**, **Brandstof
+volgens de training** (train-low), **Koolhydraten tijdens de rit**, **Vocht en
+zout**, **Supplementen**, **Kersensap**, **Collageen**. Daarnaast:
+
+- **Ketonen**: "geen effect op prestatie" klopt voor een drankje vlak voor of
+  tijdens de wedstrijd ([Brooks 2022](https://doi.org/10.1123/ijsnem.2021-0280)).
+  Na elke training tijdens een overbelastingsblok remde een ketonester de
+  overreaching ([Poffé 2019](https://doi.org/10.1113/JP277831)). Dat is één
+  onderzoeksgroep met kleine groepen mannen. Het advies blijft "niet nodig",
+  maar de tekst wordt eerlijker.
+- **Vrouwen en voeding**: bevestigd door een studie met hormoonmetingen, waarin
+  de cyclusfase geen invloed had op duurprestatie
+  ([Taylor 2024](https://doi.org/10.1249/MSS.0000000000003447)).
+- **IJzer**: schrijft je arts ijzer voor, dan gaf om de dag even goede waarden
+  met minder maagklachten ([Gessler 2023](https://doi.org/10.1016/j.eclinm.2023.102286)).
+  Het advies "nooit op eigen houtje" blijft.
+
+**Niet opnieuw gezocht in deze ronde:** REDs, botgezondheid, weerstand, masters,
+visolie, probiotica, mondspoelen, wat niet werkt, low-carb, gezonde basis,
+vitamine D en indoor. Ze steunen op de UCI-stukken van 2025–2026 of op een
+richtlijn, en er was geen aanleiding.
+
+### 3D. Beperkingen bij elk voedingsartikel
+
+De trainings- en krachtartikelen hebben een lijst "wat het onderzoek níét laat
+zien"; de 25 voedingsartikelen niet. Daardoor staat onzekerheid nu als punt
+tussen de adviezen, of ontbreekt ze. Voorstel:
+- `NutritionArticle` krijgt `limits`, net als `TrainingArticle`.
+- Elk artikel krijgt een tot drie beperkingen.
+- De test eist dat ze er zijn.
+- De voedingspagina toont ze zoals de trainingspagina.
+
+Dit is het meeste werk van fase 3, en het maakt de drie kennisbanken gelijk.
+
+**Bewust niet voorgesteld.**
+- *Een nieuwe band voor koolhydraten per uur naar intensiteit*: de twee proeven
+  van 2026 wijzen verschillende kanten op.
+- *Een lagere standaarddosis cafeïne*: de meta-analyses spreken elkaar tegen.
+- *Nieuwe artikelen (alcohol en herstel, zweettest)*: niet gezocht in deze
+  ronde. Ze horen als idee in het plannenboek.
+
+### Te beslissen door de eigenaar
+
+1. 3A, 3B en 3C uitvoeren zoals voorgesteld?
+2. De tip voor het slapen herformuleren naar "makkelijk je dagtotaal halen"?
+3. 3D: beperkingen bij alle 25 voedingsartikelen, of alleen bij de artikelen
+   die nu worden bijgewerkt?
 
 ## Bronnen fase 1
 
