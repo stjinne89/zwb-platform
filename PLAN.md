@@ -65,6 +65,10 @@ gaat stabiliteit voor nieuwe features.
    - **Tabbalk op de iPhone:** na het pushen in de beginscherm-app iets typen,
      het toetsenbord sluiten en kijken of de tabbalk onderaan blijft (ronde
      2026-10-16, "Tabbalk blijft hangen na het toetsenbord").
+   - **Profiel, zoals leden je zien:** na het pushen op `/profiel` tussen
+     "Bewerken" en "Zoals leden je zien" wisselen en vergelijken met wat een
+     ander lid op `/leden/[id]` ziet (ronde 2026-10-16). Niet in de browser
+     bekeken.
    - **Protocollen:** `0237_member_protocols.sql` toepassen (2026-10-14). Zonder
      de tabel tonen de pagina's de protocollen, maar starten lukt niet.
    - **Wie weet wat:** `0239_member_knowledge.sql` is toegepast (eigenaar,
@@ -8993,8 +8997,12 @@ link naar `/live/[eventId]`, zie de update hierboven).
   RLS, gespiegeld aan `0026`) en een zichtbaarheidskeuze (`show_on_profile`,
   default tonen tenzij gearchiveerd). De sync raakt `image_url`/`show_on_profile`
   nooit aan (upsert zet alleen z'n eigen kolommen). Showcase "Mijn fietsen" op
-  `/profiel` en op het ledenprofiel (`ProfileReadonlyView`), niet op het publieke
-  profiel. Leden zónder Strava voegen handmatig een fiets toe
+  `/profiel`. Op het ledenprofiel (`ProfileReadonlyView`) ziet alleen het lid
+  zelf ze: `strava_bikes` heeft alleen de eigen-policy uit `0089`, dus een ander
+  lid leest geen fietsen (op productie nagekeken, 2026-10-16). Sinds 2026-10-16
+  toont het ledenprofiel ze daarom ook aan het lid zelf niet meer (zie de ronde
+  "Profiel: zoals leden je zien"). Het publieke profiel toont ze wel, via
+  `get_public_profile_bikes` (`0094`). Leden zónder Strava voegen handmatig een fiets toe
   (`source='manual'`, `profiel/_actions/bikes.ts`): naam, merk/model, optionele
   afstand + foto. Waren showcase-only omdat `/onderhoud` op `source='strava'`
   filterde; sinds Mijn garage (2026-08-18) doen ze volwaardig mee met een eigen
@@ -9232,6 +9240,54 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — Profiel: zoals leden je zien
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** De eigenaar wilde op de profielpagina kunnen wisselen tussen het
+profiel dat je aanpast en het profiel dat andere leden van je zien.
+
+**Wat er veranderde.**
+- Bovenaan `/profiel` staan twee knoppen: "Bewerken" en "Zoals leden je zien".
+  De tweede is `/profiel?weergave=leden` en toont het ledenprofiel van jezelf;
+  de bewerkdata wordt dan niet geladen. De knoppen hebben dezelfde vorm als
+  "Deze week / Vorige week" op `/achievements`.
+- Het ledenprofiel zit nu in één servercomponent,
+  `leden/[id]/_components/member-profile.tsx`, die `/leden/[id]` en `/profiel`
+  allebei gebruiken. Zo kan de weergave op `/profiel` niet uit de pas lopen met
+  wat een ander lid echt ziet.
+- Kijkt een lid naar zichzelf, dan laat die component alleen zien wat de RLS een
+  ánder lid laat lezen. Dat geldt ook op `/leden/[eigen id]`:
+  - **Geen fietsen.** `strava_bikes` heeft alleen een eigen-policy (`0089`),
+    dus andere leden zien je fietsen niet; de oude pagina toonde ze alleen
+    wanneer je naar jezelf keek. Op productie nagekeken via de
+    Supabase-connector (2026-10-16).
+  - **Alleen gepubliceerde tips.** Een verborgen tip ziet alleen de eigenaar of
+    een moderator (`member_tips_select`, `0239`).
+  - **Geen eigen bewerk- of moderatieknoppen**, wel "Vraag het aan" bij je
+    onderwerpen, zoals een ander lid die ziet. Wie die knop bij zichzelf
+    aanklikt, loopt op de database-check `asker_id <> expert_id` vast.
+
+**Bewust niet gedaan.**
+- Fietsen zichtbaar maken voor andere leden. De keuze "op profiel tonen" in de
+  fietsenshowcase wekt die verwachting wel, maar dat vraagt een policy of
+  functie op `strava_bikes` en is een privacykeuze van de eigenaar. Eerst
+  voorleggen.
+- Een weergave van het publieke profiel (`/profielen/[id]`). Daar staat al een
+  link naar op het ledenprofiel als het publieke profiel aan staat.
+
+Een lid dat nog wacht op goedkeuring komt niet bij deze weergave: de middleware
+stuurt elk pad behalve `/wachten` door naar `/wachten`. De `is_approved`-filter
+in de component (die anders een 404 geeft) speelt daardoor niet.
+
+**Controle.** `eslint` op de gewijzigde bestanden is schoon. `tsc --noEmit`
+geeft alleen fouten in `read-barcode.ts` en `gopher-image-ocr.ts`: deze worktree
+heeft geen eigen `node_modules`, en in de gedeelde map ontbreken `@zxing` en
+`tesseract.js`.
+
+**Niet geverifieerd.** De pagina's in de browser. Daarvoor moet je met een echt
+account inloggen en deze worktree heeft geen `.env.local`.
 
 ### Opgeleverd — ZWBieb: eigen onderwerpen, spullen uitlenen en een nieuwe naam
 
