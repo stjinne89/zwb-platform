@@ -1,6 +1,8 @@
 // Overzicht-tab: hoe staat de gekozen renner ervoor — belasting, herstel, wat er
 // aankomt en wat er de afgelopen weken is gereden.
 
+import { ftpCheck, loadFtpTests } from "@/lib/training/ftp-test";
+import { FtpCheckNotice } from "../_components/ftp-check-notice";
 import { loadSubjectiveRecovery } from "@/lib/training/subjective-recovery";
 import { Calendar, Mountain } from "lucide-react";
 import { EmptyState } from "@/components/app-ui";
@@ -90,7 +92,7 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
         .order("created_at", { ascending: false }),
     ]);
 
-  const [intervals, subjective] = await Promise.all([
+  const [intervals, subjective, lastTests, { data: sportSettings }] = await Promise.all([
     loadAthleteIntervals(connection, {
       wellnessDays: 730,
       eventDays: 14,
@@ -98,6 +100,12 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
     }),
     // Zonder klachtenlogboek: dat is privé, ook voor de trainer.
     loadSubjectiveRecovery(viewer.admin, athleteId, { includeSymptoms: false }).catch(() => null),
+    loadFtpTests(viewer.admin, athleteId, 1).catch(() => []),
+    viewer.admin
+      .from("profile_sport_settings")
+      .select("cp_watts")
+      .eq("profile_id", athleteId)
+      .maybeSingle(),
   ]);
   const status = computeZwbStatus(intervals.wellness, {
     wellnessOptIn: Boolean(connection?.wellness_opt_in),
@@ -153,6 +161,20 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
           todayKey={todayKeyAmsterdam()}
           fetchError={intervals.fetchError}
         />
+
+        {lastTests[0] ? (
+          <FtpCheckNotice
+            check={ftpCheck({
+              ftpWatts: lastTests[0].ftpWatts,
+              testedOn: lastTests[0].testedOn,
+              todayKey: todayKeyAmsterdam(),
+              cpWatts: sportSettings?.cp_watts == null ? null : Number(sportSettings.cp_watts),
+              eftpWatts: status.eftp,
+            })}
+            ftpWatts={lastTests[0].ftpWatts}
+            own={false}
+          />
+        ) : null}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <MetricCard

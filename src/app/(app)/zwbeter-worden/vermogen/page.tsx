@@ -21,7 +21,9 @@ import {
   comparisonRidersFromRows,
   downsample,
 } from "@/lib/teams/comparison-riders";
-import { asFtpTestType } from "@/lib/training/ftp-test";
+import { asFtpTestType, ftpChange, ftpCheck } from "@/lib/training/ftp-test";
+import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+import { FtpCheckNotice } from "../_components/ftp-check-notice";
 import { ConnectIntervalsForm } from "../_components/connect-form";
 import { FtpTestHistory, type FtpTestHistoryRow } from "../_components/ftp-test-history";
 import { SyncPowerButton } from "../../teams/_components/sync-power-button";
@@ -100,9 +102,10 @@ export default async function PowerPage({
   }>;
   // De historie gaat als los clientonderdeel de pagina in: het lid corrigeert
   // daar een verkeerd ingetypte meting.
-  const ftpTestRows: FtpTestHistoryRow[] = ftpTests.flatMap((test) => {
+  const ftpTestRows: FtpTestHistoryRow[] = ftpTests.flatMap((test, index) => {
     const testType = asFtpTestType(test.test_type);
     if (!testType) return [];
+    const previous = ftpTests[index + 1];
     return [
       {
         id: test.id,
@@ -110,6 +113,7 @@ export default async function PowerPage({
         testType,
         resultWatts: Number(test.result_watts),
         ftpWatts: Number(test.ftp_watts),
+        change: ftpChange(Number(test.ftp_watts), previous ? Number(previous.ftp_watts) : null),
       },
     ];
   });
@@ -287,6 +291,17 @@ export default async function PowerPage({
           {ftpTestRows.length > 0 ? (
             <section className="rounded-lg border bg-card p-4 sm:p-5">
               <h2 className="text-lg font-semibold">FTP-tests</h2>
+              <FtpCheckNotice
+                check={ftpCheck({
+                  ftpWatts: ftpTestRows[0].ftpWatts,
+                  testedOn: ftpTestRows[0].testedOn,
+                  todayKey: amsterdamDayKey(),
+                  cpWatts,
+                  eftpWatts: intervalsEftp,
+                })}
+                ftpWatts={ftpTestRows[0].ftpWatts}
+                own
+              />
               <FtpTestHistory tests={ftpTestRows} />
             </section>
           ) : null}

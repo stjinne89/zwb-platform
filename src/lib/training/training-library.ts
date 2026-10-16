@@ -25,11 +25,19 @@ import {
   ZURAWLEW_2016,
 } from "@/lib/protocols/training";
 
-export const TRAINING_CATEGORIES = ["intensiteit", "piek", "herstel", "omstandigheden", "naast-de-fiets"] as const;
+export const TRAINING_CATEGORIES = [
+  "intensiteit",
+  "testen",
+  "piek",
+  "herstel",
+  "omstandigheden",
+  "naast-de-fiets",
+] as const;
 export type TrainingCategory = (typeof TRAINING_CATEGORIES)[number];
 
 export const TRAINING_CATEGORY_LABELS: Record<TrainingCategory, string> = {
   intensiteit: "Intensiteit",
+  testen: "Testen",
   piek: "Naar een piek",
   herstel: "Herstel",
   omstandigheden: "Hitte",
@@ -176,6 +184,79 @@ const CRAVEN_2022: KnowledgeSource = {
   kind: "review",
 };
 
+// FTP-test (wetenschappelijke toets 1B, 2026-10-16). DOI's via PubMed bevestigd.
+const BORSZCZ_2018: KnowledgeSource = {
+  citation:
+    "Borszcz FK, Tramontin AF, Bossi AH, Carminatti LJ, Costa VP. Functional threshold power in cyclists: validity of the concept and physiological responses. Int J Sports Med 39(10):737-742.",
+  year: 2018,
+  url: doi("10.1055/s-0044-101546"),
+  kind: "studie",
+};
+
+const BORSZCZ_2019: KnowledgeSource = {
+  citation:
+    "Borszcz FK, Tramontin AF, Costa VP. Is the functional threshold power interchangeable with the maximal lactate steady state in trained cyclists? Int J Sports Physiol Perform 14(8):1029-1035.",
+  year: 2019,
+  url: doi("10.1123/ijspp.2018-0572"),
+  kind: "studie",
+};
+
+const MCGRATH_2019: KnowledgeSource = {
+  citation:
+    "McGrath E, Mahony N, Fleming N, Donne B. Is the FTP test a reliable, reproducible and functional assessment tool in highly-trained athletes? Int J Exerc Sci 12(4):1334-1345.",
+  year: 2019,
+  url: doi("10.70252/RQOO7391"),
+  kind: "studie",
+};
+
+const INGLIS_2020: KnowledgeSource = {
+  citation:
+    "Inglis EC, Iannetta D, Passfield L, Murias JM. Maximal lactate steady state versus the 20-minute functional threshold power test in well-trained individuals: \"watts\" the big deal? Int J Sports Physiol Perform 15(4):541-547.",
+  year: 2020,
+  url: doi("10.1123/ijspp.2019-0214"),
+  kind: "studie",
+};
+
+const VALENZUELA_2018: KnowledgeSource = {
+  citation:
+    "Valenzuela PL, Morales JS, Foster C, Lucia A, de la Villa P. Is the functional threshold power a valid surrogate of the lactate threshold? Int J Sports Physiol Perform 13(10):1293-1298.",
+  year: 2018,
+  url: doi("10.1123/ijspp.2018-0008"),
+  kind: "studie",
+};
+
+const WONG_2023: KnowledgeSource = {
+  citation:
+    "Wong S, Burnley M, Mauger AR, Fenghua S, Hopker J. Functional threshold power is not a valid marker of the maximal metabolic steady state. J Sports Sci 40(23):2578-2584.",
+  year: 2023,
+  url: doi("10.1080/02640414.2023.2176045"),
+  kind: "studie",
+};
+
+const TRAMONTIN_2021: KnowledgeSource = {
+  citation:
+    "Tramontin AF, Borszcz FK, Costa V. Functional threshold power estimated from a 20-minute time-trial test is warm-up-dependent. Int J Sports Med 43(5):411-417.",
+  year: 2021,
+  url: doi("10.1055/a-1524-2312"),
+  kind: "studie",
+};
+
+const AZEVEDO_2023: KnowledgeSource = {
+  citation:
+    "Azevedo RA, Fleitas-Paniagua PR, Trpcic M, Iannetta D, Millet GY, Murias JM. Different ramp-incremental slopes elicit similar VO2max and fatigability profiles in females and males despite differences in peak power output. J Appl Physiol 135(1):109-120.",
+  year: 2023,
+  url: doi("10.1152/japplphysiol.00090.2023"),
+  kind: "studie",
+};
+
+const KARSTEN_2021: KnowledgeSource = {
+  citation:
+    "Karsten B, Petrigna L, Klose A, Bianco A, Townsend N, Triska C. Relationship between the critical power test and a 20-min functional threshold power test in cycling. Front Physiol 11:613151.",
+  year: 2021,
+  url: doi("10.3389/fphys.2020.613151"),
+  kind: "studie",
+};
+
 export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "lage-cadans",
@@ -243,6 +324,38 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       "Dat tempo op een rustige dag de harde dag schaadt, is een vuistregel van coaches; direct gemeten is het nauwelijks.",
     ],
     sources: [SEILER_2010, ESTEVE_LANAO_2007, OLIVEIRA_2024],
+  },
+  {
+    slug: "ftp-test",
+    category: "testen",
+    title: "Je FTP: wat de test meet",
+    summary:
+      "Een FTP-test is een goed herhaalbare prestatietest, maar geen exacte meting van je drempel. Per renner zit hij er al gauw een paar procent naast.",
+    points: [
+      "De 20-minutentest is goed herhaalbaar: twee keer testen scheelt meestal maar een paar procent. Een nieuwe FTP die minder dan 3 % afwijkt van de vorige, toont ZWB daarom als gelijk gebleven.",
+      "95 % van je twintig minuten komt op groepsniveau dicht bij de drempel, maar per renner wijkt het al gauw 10 % af. Recreatieve renners komen er vaak iets onder uit.",
+      "Op hun FTP hielden renners het gemiddeld 34 tot 51 minuten vol, geen uur. Een lang drempelblok op 100 % is voor veel renners dus zwaarder dan het lijkt.",
+      "De warming-up telt mee. Na een lange warming-up met een harde blok van vijf minuten reden renners hun test ongeveer 5 % lager. ZWB gebruikt daarom drie korte versnellingen.",
+      "De ramptest neemt 75 % van je hoogste minuut. Dat getal is nooit gepubliceerd getoetst, en de uitkomst hangt af van hoe snel de test oploopt. Wie explosief is, haalt een hoge laatste minuut en komt daardoor vaak te hoog uit; een echte duurrenner eerder te laag.",
+      "Wijkt je test meer dan 8 % af van je vermogenscurve (CP en eFTP uit intervals.icu), dan krijgen jij en je trainer een seintje. Dan is opnieuw testen, of de 20-minutentest kiezen, het overwegen waard.",
+    ],
+    limits: [
+      "De meeste studies zijn klein en gedaan bij getrainde mannen.",
+      "CP en eFTP zijn zelf ook schattingen. Ze zeggen alleen iets als je de laatste tijd ook echt hard hebt gereden.",
+      "Hoe vaak je moet testen is niet onderzocht. Acht weken is een keuze van ZWB.",
+      "Dat explosieve renners op de ramptest hoger uitkomen, volgt uit hoe de test werkt (de hoogste minuut leunt op je anaerobe reserve); als zodanig gemeten is het niet.",
+    ],
+    sources: [
+      BORSZCZ_2018,
+      BORSZCZ_2019,
+      MCGRATH_2019,
+      INGLIS_2020,
+      VALENZUELA_2018,
+      WONG_2023,
+      TRAMONTIN_2021,
+      AZEVEDO_2023,
+      KARSTEN_2021,
+    ],
   },
   {
     slug: "taper",

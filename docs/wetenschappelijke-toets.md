@@ -45,9 +45,9 @@ en een lijst beperkingen, zoals de bestaande kennisbanken.
 
 | # | Claim | Waar | Status |
 |---|---|---|---|
-| A1 | FTP = 0,75 × hoogste minuut van de ramptest (stappen ~20 W/min) | `lib/training/ftp-test.ts` | ⚠ geen gepeerreviewde validatie gevonden; zie 1B |
+| A1 | FTP = 0,75 × hoogste minuut van de ramptest (stappen ~20 W/min) | `lib/training/ftp-test.ts` | ⚠ geen validatie; nu bewaakt door de controle tegen CP/eFTP (1B) |
 | A2 | FTP = 0,95 × 20-minutengemiddelde | idem | ◐ betrouwbaar, maar individueel ruim; zie 1B |
-| A3 | Een FTP ouder dan acht weken verdient een nieuwe test | `workouts.ts` prompt | ◐ eigen keuze, niet zo benoemd |
+| A3 | Een FTP ouder dan acht weken verdient een nieuwe test | `workouts.ts` prompt | ◐ eigen keuze, nu ook zo benoemd (1B) |
 | A4 | HRV-status: 7-daags gemiddelde < 0,90 × baseline = vermoeid, > 1,05 = fris | `wellness.ts` `summarizeWellness` | ✔ vervangen door ln rMSSD-band (1C, 2026-10-16) |
 | A5 | Rust-HR > baseline + 3 slagen = vermoeid | idem | ✔ eigen band, minimaal 3 slagen (1C) |
 | A6 | Afgeleide readiness: neutraal 70, HRV-afwijking × 200, rust-HR × 300, slaapscore ±8 | `wellness.ts` `deriveReadiness` | ◐ nu in banden (15 en 18 punten per band); gewichten blijven eigen keuze (1C) |
@@ -123,8 +123,8 @@ en een lijst beperkingen, zoals de bestaande kennisbanken.
 
 Fase 1 gaat over A en B: de regels die het schema en het advies sturen. Bij elk
 onderdeel staat wat de app doet, wat de literatuur zegt, en een voorstel.
-**Goedgekeurd door de eigenaar op 2026-10-16. 1C is uitgevoerd; 1A, 1B, 1D en
-1E volgen.**
+**Goedgekeurd door de eigenaar op 2026-10-16. 1B en 1C zijn uitgevoerd; 1A, 1D
+en 1E volgen.**
 
 ### 1A. Opbouw: hoe snel, en wanneer afremmen
 
@@ -193,7 +193,10 @@ TSB-drempels (−10, −25, −40) bepalen de trainingsruimte.
 beter onderbouwd getal, en de regel werkt als rem op grillige AI-uitvoer. De
 TSB-drempels per lid fitten: met de onzekerheid uit Hellard levert dat schijnprecisie op.
 
-### 1B. FTP-test
+### 1B. FTP-test — uitgevoerd 2026-10-16
+
+Wat er is gebouwd, staat in `PLAN.md` (ronde "wetenschappelijke toets 1B").
+Alle vijf punten zijn uitgevoerd; migratie `0241` moet nog op productie.
 
 **Wat de app doet.** Ramptest (stappen van ~20 W per minuut) → 75 % van de
 hoogste minuut. 20-minutentest → 95 % van het gemiddelde. Na acht weken stelt de
@@ -258,8 +261,10 @@ AI een nieuwe test voor. De ruwe meting wordt bewaard.
    al weet: de CP uit de vermogenscurve (`pacing/cp.ts`) en de eFTP van
    intervals.icu. Wijkt hij meer dan een afgesproken marge af (voorstel 8 %),
    dan krijgt de trainer een signaal in de cockpit en het lid een korte regel
-   met een link naar het artikel. Een ramptest die bij een uithoudingsrenner te
-   hoog uitvalt, is dan zichtbaar voordat het schema erop draait.
+   met een link naar het artikel. Een ramptest die bij een explosieve renner te
+   hoog uitvalt (de hoogste minuut leunt op de anaerobe reserve), is dan
+   zichtbaar voordat het schema erop draait. *Gecorrigeerd 2026-10-16: hier
+   stond eerst "uithoudingsrenner"; dat was omgedraaid.*
 3. *Prompt*: de achtwekenregel benoemen als eigen keuze ("ZWB stelt na acht
    weken een test voor"), zonder de suggestie dat de FTP dan "verlopen" is.
 4. *Testprotocol*: de opener van de 20-minutentest vervangen door drie korte

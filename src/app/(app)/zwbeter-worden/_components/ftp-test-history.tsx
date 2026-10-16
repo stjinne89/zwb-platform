@@ -22,6 +22,7 @@ import {
   FTP_TEST_RESULT_LABELS,
   FTP_TEST_TYPES,
   ftpFromTest,
+  type FtpChange,
   type FtpTestType,
 } from "@/lib/training/ftp-test";
 import { correctFtpTestResult, removeFtpTestResult } from "../_actions";
@@ -36,7 +37,16 @@ export type FtpTestHistoryRow = {
   testType: FtpTestType;
   resultWatts: number;
   ftpWatts: number;
+  /** Tegenover de test ervóór; binnen de meetfout heet dat "gelijk". */
+  change: FtpChange | null;
 };
+
+function changeLabel(change: FtpChange | null) {
+  if (!change) return null;
+  if (change.same) return "gelijk";
+  const pct = Math.round(change.fraction * 100);
+  return `${pct > 0 ? "+" : "−"}${Math.abs(pct)} %`;
+}
 
 function dateLabel(dayKey: string) {
   return new Date(`${dayKey}T12:00:00Z`).toLocaleDateString("nl-NL", {
@@ -157,6 +167,11 @@ export function FtpTestHistory({ tests }: { tests: FtpTestHistoryRow[] }) {
                   <span className="ml-3 font-medium">
                     <Power watts={test.ftpWatts} /> FTP
                   </span>
+                  {changeLabel(test.change) ? (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      {changeLabel(test.change)}
+                    </span>
+                  ) : null}
                 </span>
                 <span className="flex items-center gap-1">
                   <button

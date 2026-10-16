@@ -46,6 +46,8 @@ import { NO_WORKOUT } from "./_components/ride-link";
 import {
   asFtpTestType,
   deleteFtpTest,
+  ftpChange,
+  ftpCheck,
   FTP_TEST_LABELS,
   FTP_TEST_RESULT_SECONDS,
   recordFtpTest,
@@ -1631,10 +1633,26 @@ export async function saveFtpTestResult(formData: FormData) {
       user.id,
       `FTP bijgewerkt naar ${ftpWatts} W na een ${FTP_TEST_LABELS[testType].toLowerCase()}.`,
     );
+    // De CP die intervals.icu op de hele curve heeft gefit; de eFTP staat
+    // alleen in intervals.icu zelf en komt op Vermogen erbij.
+    const { data: sportSettings } = await admin
+      .from("profile_sport_settings")
+      .select("cp_watts")
+      .eq("profile_id", user.id)
+      .maybeSingle();
+    const check = ftpCheck({
+      ftpWatts,
+      testedOn,
+      todayKey: amsterdamDayKey(),
+      cpWatts: sportSettings?.cp_watts == null ? null : Number(sportSettings.cp_watts),
+      eftpWatts: null,
+    });
     return {
       ok: true as const,
       ftpWatts,
       previousFtpWatts,
+      sameAsBefore: ftpChange(ftpWatts, previousFtpWatts)?.same ?? false,
+      deviationPct: check ? Math.round(check.deviation * 100) : null,
       generationId: replan.started ? replan.generationId : null,
     };
   } catch (err) {

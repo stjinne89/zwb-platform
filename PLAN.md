@@ -127,7 +127,8 @@ gaat stabiliteit voor nieuwe features.
    het besluit ligt bij de eigenaar.
 7. **Wetenschappelijke toets van ZWBasis** (gestart 2026-10-16). Fase 0, het
    claimregister, is af. Fase 1 (de regels die schema en advies sturen) is
-   goedgekeurd; 1C (herstel) is uitgevoerd, 1A, 1B, 1D en 1E volgen. Daarna fase 2
+   goedgekeurd; 1B (FTP-test) en 1C (herstel) zijn uitgevoerd, 1A, 1D en 1E
+   volgen. Migratie `0241` moet nog op productie. Daarna fase 2
    (kennisbank trainen), 3 (voeding), 4 (kracht en core), 5 (racen en pacing)
    en 6 (overig). Zie de ronde hieronder en
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
@@ -8759,6 +8760,64 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — wetenschappelijke toets 1B: de FTP-test getoetst
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
+`0241_workout_library_ftp20_warmup.sql` (**nog toe te passen door de
+eigenaar**; lokaal alleen met PGlite getoetst). Onderbouwing:
+[`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md), 1B.
+
+**Waarom.**
+- De factoren 0,75 (ramp) en 0,95 (20 minuten) zijn conventie: per renner zit
+  een FTP-test al gauw 10 % naast de drempel, en voor de ramptest bestaat geen
+  gepubliceerde validatie.
+- De 20-minutentest is wel goed herhaalbaar (meetfout ~3 %). Daardoor toonde de
+  app ruis als vooruitgang.
+
+**Wat er veranderde.**
+- **Controle tegen de vermogenscurve** (`ftpCheck`, marge 8 %, keuze eigenaar):
+  - Wat wordt vergeleken: de laatste test tegen het gemiddelde van CP en eFTP.
+    Alleen als de test niet ouder is dan acht weken en er minstens één
+    referentie is.
+  - Waar het lid het ziet: een korte melding met link naar het artikel op
+    Vermogen (CP uit intervals.icu of `profile_sport_settings`, eFTP uit de
+    wellness), en een regel na het opslaan van een uitslag (alleen tegen de CP
+    uit `profile_sport_settings`; de eFTP vraagt een call naar intervals.icu).
+  - Waar de trainer het ziet: dezelfde melding op het rennerscherm (CP uit
+    `profile_sport_settings`, eFTP uit de wellness).
+  - Gevolg: op Vermogen kan de CP net anders zijn dan bij de trainer, omdat
+    intervals.icu daar voorgaat.
+- **Meetfout in de historie** (`ftpChange`, 3 %): elke regel op Vermogen toont
+  het verschil met de test ervóór, en een verschil onder 3 % heet "gelijk".
+  Na het opslaan staat er "gelijk binnen de meetfout" bij de oude waarde. De
+  FTP van het profiel gaat wel mee.
+- **Nieuwe warming-up voor de 20-minutentest**:
+  - Wat: geen opener van vijf minuten op 105–115 % meer, maar drie korte
+    versnellingen (Tramontin 2021: ~5 % hogere uitslag). De test duurt nu 60
+    minuten in plaats van 65.
+  - Waar: in `ftpTestBlocks()`, en via `0241` in de standaardrij van de
+    bibliotheek. Een PGlite-test houdt die twee gelijk.
+  - Niet aangepast: al ingeplande tests houden hun structuur.
+- **Prompt**: de achtwekenregel heet nu een keuze van ZWB, geen
+  houdbaarheidsdatum.
+- **Kennisbank**: nieuw artikel **Je FTP: wat de test meet** in een nieuwe
+  categorie Testen, met 9 via PubMed bevestigde bronnen.
+- Tests: `ftp-test.test.ts` (meetfout, controle) en
+  `workout-library-ftp20-migration.test.ts`.
+
+**Gecorrigeerd.** In het werkdocument stond dat een ramptest bij een
+*uithoudingsrenner* te hoog uitvalt. Dat is omgedraaid: de hoogste minuut leunt
+op de anaerobe reserve, dus juist een explosieve renner komt te hoog uit. Ook
+dat is een afleiding uit hoe de test werkt, niet gemeten; zo staat het nu in
+het artikel.
+
+**Bewust niet gedaan.**
+- *De factoren 0,75 en 0,95 aanpassen*: er is geen beter universeel getal; ook
+  88 % bleef te grillig (Inglis 2020).
+- *Een CP-test als derde protocol*: eerst kijken of de controle genoeg is.
+- *Lillo-Beviá 2022 in het artikel*: de DOI komt alleen uit Consensus en is
+  niet via PubMed bevestigd.
+
 ### Opgeleverd — wetenschappelijke toets 1C: herstel meten met een eigen band
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -8831,7 +8890,7 @@ ook stijgt bij overbelasting. Daar ging de verzachtingsregel tegenin.
 worktree niet draait (`omnium-live.test.ts` leest `.env.local`). De build is
 gedraaid met de variabelen uit de `.env.local` van de hoofdmap.
 
-### Lopend — wetenschappelijke toets van ZWBasis (fase 0 af, 1C uitgevoerd)
+### Lopend — wetenschappelijke toets van ZWBasis (fase 0 af, 1B en 1C uitgevoerd)
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
 codewijziging.
@@ -8851,7 +8910,7 @@ een bron die een andere kant op wijst.
 
 **Fase 1, goedgekeurd door de eigenaar op 2026-10-16** (1A–1E, inclusief de
 punten uit de Consensus-ronde; FTP-signaal bij 8 % voor trainer én lid). 1C is
-uitgevoerd (zie de ronde hierboven); 1A, 1B, 1D en 1E volgen:
+uitgevoerd, net als 1B (zie de rondes hierboven); 1A, 1D en 1E volgen:
 - *1A Opbouw*: de 10 %-regel bleek in een RCT geen blessures te voorkomen. Hij
   blijft als voorzichtige standaard, maar heet niet langer "veilig". Er komt een
   artikel over opbouwen, detraining en CTL/ATL/TSB.
