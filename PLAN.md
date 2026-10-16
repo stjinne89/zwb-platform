@@ -78,9 +78,9 @@ gaat stabiliteit voor nieuwe features.
    - **ZWBieb (eigen onderwerpen, spullen):** `0242_knowledge_topics.sql`
      toepassen **vóór** het pushen van die ronde (2026-10-16). Draai eerst de
      controlequery onderaan de migratie; die moet leeg zijn. Zonder `0242`
-     toont de app de startlijst uit code, maar lukt toevoegen niet. Eerst de
-     aangepaste privacy- en voorwaardentekst (spullen, §3a) en de keuze voor
-     geen nieuwe toestemmingsversie door de eigenaar laten goedkeuren.
+     toont de app de startlijst uit code, maar lukt toevoegen niet. De
+     privacy- en voorwaardentekst (spullen, §3a) is goedgekeurd, zonder nieuwe
+     toestemmingsversie (eigenaar, 2026-10-16).
    - **Mijn statistieken (tegelkeuze):** `0241_profile_stats_tiles.sql`
      toepassen (2026-10-16). De code staat sinds 2026-10-16 op `main`; zonder
      de tabel toont `/stats/ik` de standaardtegels, maar "Tegels aanpassen" kan
@@ -9244,12 +9244,12 @@ controlequery onderaan de migratie draaien).
 **Besluiten van de eigenaar.** De naam ZWBieb; spullen met dezelfde opzet in een
 eigen tab; leden voegen zelf onderwerpen toe.
 
-**Voorstel aan de eigenaar, nog niet besloten.**
+**Goedgekeurd door de eigenaar (2026-10-16).**
+- De privacy- en voorwaardentekst, inclusief §3a over lenen.
 - Geen nieuwe toestemmingsversie: `MEMBER_KNOWLEDGE_CONSENT_VERSION` blijft
   `2026-10-15`. Spullen vult een lid alleen zelf in, binnen dezelfde functie;
-  alleen de tekst verandert.
-- Dat volgt de lijn van "privacy verruimen zonder nieuwe versie" en moet worden
-  goedgekeurd samen met de privacy- en voorwaardentekst.
+  alleen de tekst verandert. Dat volgt de lijn van "privacy verruimen zonder
+  nieuwe versie".
 
 **Bewust niet gebouwd.**
 - **Onderwerpen samenvoegen.** Bij een dubbeling: hernoemen en de ene verbergen.
