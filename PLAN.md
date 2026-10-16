@@ -76,8 +76,10 @@ gaat stabiliteit voor nieuwe features.
      is toegepast (eigenaar, 2026-10-15), daarna gepusht. Niet nagekeken op
      productie. Bij het doorklikken ook "Bewaar als tip" proberen.
    - **Mijn statistieken (tegelkeuze):** `0241_profile_stats_tiles.sql`
-     toepassen (2026-10-16). Zonder de tabel toont `/stats/ik` de
-     standaardtegels, maar "Tegels aanpassen" kan niet opslaan.
+     toepassen (2026-10-16). De code staat sinds 2026-10-16 op `main`; zonder
+     de tabel toont `/stats/ik` de standaardtegels, maar "Tegels aanpassen" kan
+     niet opslaan. Daarna één keer ingelogd doorklikken: tegels kiezen en
+     opslaan, en met intervals-koppeling de intervals-tegels bekijken.
    - **CORE-sensor bij hitte:** `0238_member_protocol_core_sessions.sql`
      toepassen, ná `0237` (2026-10-14). **Zonder `0238` lukt het starten van
      elk protocol niet meer**: de app tekent met de nieuwe toestemmingsversie
@@ -150,7 +152,7 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
-> **Mijn statistieken, ronde 3: tijd per zone, W′bal, duurvermogen en herstel uit intervals.icu, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Geen migratie.**
+> **Mijn statistieken, ronde 3: tijd per zone, W′bal, duurvermogen en herstel uit intervals.icu, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, `5288920`). Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
 > **Waarom.** Het laatste deel van de wens: uit intervals.icu halen wat er te
@@ -227,7 +229,7 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
-> **Mijn statistieken, ronde 2: piekvermogen, CP en W′, eFTP en de powercurve per jaar uit intervals.icu, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Geen migratie.**
+> **Mijn statistieken, ronde 2: piekvermogen, CP en W′, eFTP en de powercurve per jaar uit intervals.icu, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, `51ad380`). Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
 > **Waarom.** De eigenaar wilde intervals.icu "uitmelken", met W′ door de jaren
@@ -294,7 +296,7 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
-> **Mijn statistieken (Stats → Ik), ronde 1: eigen ritgeschiedenis met zelfgekozen tegels, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Migratie `0241_profile_stats_tiles.sql` (niet toegepast).**
+> **Mijn statistieken (Stats → Ik), ronde 1: eigen ritgeschiedenis met zelfgekozen tegels, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, `449774e`). Migratie `0241_profile_stats_tiles.sql` (niet toegepast).**
 > Commit: de commit die dit blok toevoegt.
 >
 > **Waarom.** Wens van de eigenaar: een pagina met je eigen ritgeschiedenis, je
