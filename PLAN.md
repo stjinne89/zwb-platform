@@ -9571,6 +9571,12 @@ het deelbare profiel (rechts).
   `?weergave=bewerken#zichtbaarheid` (nieuw anker in `profile-form.tsx`).
 - `/hulp` legt de drie standen in één regel uit.
 
+- Op je eigen ledenprofiel (het midden van de knop, en `/leden/[eigen id]`)
+  staat het blok "Deelbaar profiel" niet meer: dat zit al op de wereldbol.
+  Andere leden zien het blok wel, met de link naar je deelbare profiel. Het
+  midden toont daardoor net iets minder dan wat een ander lid ziet; de eigenaar
+  koos daarvoor (2026-10-16).
+
 **Bewust niet gedaan.**
 - De bewerkweergave even breed maken als de andere twee (`max-w-2xl` tegen
   `max-w-3xl`). Dan verspringt de kop bij het wisselen een beetje, maar de
