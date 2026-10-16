@@ -9108,7 +9108,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Opgeleverd — Wie weet wat: een icoon per onderwerp
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt, op de branch
-`claude/profile-design-icons-b0c0b1`; niet gepusht. Geen migratie.
+`claude/profile-design-icons-b0c0b1`, als `6f5cc87` op `main`; gepusht naar
+`main` (eigenaar, 2026-10-16). Geen migratie.
 
 **Aanleiding.** De eigenaar vond het blok "Weet van" op het profiel van een lid
 een kale lijst en vroeg om iconen of plaatjes die bij de onderwerpen horen, ook
