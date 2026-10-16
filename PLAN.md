@@ -152,7 +152,7 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
-> **Design tegels: Beheer met categorietegels en een rij per categorie, zoals ZWBeter, 2026-10-16 — gebouwd, unit-tests, typecheck en lint schoon; niet ingelogd in de browser bekeken; niet gepusht. Geen migratie.**
+> **Design tegels: Beheer met categorietegels en een rij per categorie, zoals ZWBeter, 2026-10-16 — gebouwd, unit-tests, typecheck en lint schoon; ingelogd bekeken en goedgekeurd door de eigenaar; gepusht naar `main` (eigenaar, 2026-10-16, `b6e72b6`). Geen migratie.**
 > Commits: `c6a1d5a` (eerste versie) en de commit die dit blok bijwerkt.
 >
 > **Waarom.** Het persoonlijke menu rechtsboven toonde onder Beheer vijftien
@@ -210,9 +210,10 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 > worktree). De dev-server compileert `/beheer`, `/beheer/zrl`, `/media` en
 > `/zwbgame/beheer` zonder fouten (zonder login een doorverwijzing naar `/login`).
 >
-> **Niet geverifieerd.** De navigatie ingelogd in het design "tegels": hoe de
-> tegels en de rij op de telefoon ogen, en of de actieve categorie op elk
-> scherm klopt.
+> **Niet geverifieerd.** De eigenaar bekeek `/beheer` ingelogd en keurde het
+> goed (2026-10-16). Niet apart nagelopen: de weergave op de telefoon, en of de
+> actieve categorie op elk scherm klopt (ook `/zwbgame/beheer`, `/community` en
+> `/media`).
 
 ---
 
