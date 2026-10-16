@@ -65,6 +65,9 @@ gaat stabiliteit voor nieuwe features.
    - **Tabbalk op de iPhone:** na het pushen in de beginscherm-app iets typen,
      het toetsenbord sluiten en kijken of de tabbalk onderaan blijft (ronde
      2026-10-16, "Tabbalk blijft hangen na het toetsenbord").
+   - **Fietsen op het ledenprofiel:** `0243_member_profile_bikes.sql` toepassen
+     (2026-10-16). Zonder de functie ziet niemand fietsen op `/leden/[id]`,
+     ook het lid zelf niet. Daarna als ander lid een profiel met fietsen openen.
    - **Profiel, zoals leden je zien:** na het pushen op `/profiel` tussen
      "Bewerken" en "Zoals leden je zien" wisselen en vergelijken met wat een
      ander lid op `/leden/[id]` ziet (ronde 2026-10-16). Niet in de browser
@@ -8997,11 +9000,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
   RLS, gespiegeld aan `0026`) en een zichtbaarheidskeuze (`show_on_profile`,
   default tonen tenzij gearchiveerd). De sync raakt `image_url`/`show_on_profile`
   nooit aan (upsert zet alleen z'n eigen kolommen). Showcase "Mijn fietsen" op
-  `/profiel`. Op het ledenprofiel (`ProfileReadonlyView`) ziet alleen het lid
-  zelf ze: `strava_bikes` heeft alleen de eigen-policy uit `0089`, dus een ander
-  lid leest geen fietsen (op productie nagekeken, 2026-10-16). Sinds 2026-10-16
-  toont het ledenprofiel ze daarom ook aan het lid zelf niet meer (zie de ronde
-  "Profiel: zoals leden je zien"). Het publieke profiel toont ze wel, via
+  `/profiel`. Op het ledenprofiel (`ProfileReadonlyView`) zag tot 2026-10-16
+  alleen het lid zelf ze: `strava_bikes` heeft alleen de eigen-policy uit `0089`
+  (op productie nagekeken). Sinds `0243` leest het ledenprofiel ze via
+  `get_member_profile_bikes`, voor elk goedgekeurd lid (zie de ronde "Fietsen
+  zichtbaar voor andere leden"). Het publieke profiel toont ze via
   `get_public_profile_bikes` (`0094`). Leden zónder Strava voegen handmatig een fiets toe
   (`source='manual'`, `profiel/_actions/bikes.ts`): naam, merk/model, optionele
   afstand + foto. Waren showcase-only omdat `/onderhoud` op `source='strava'`
@@ -9241,6 +9244,43 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Fietsen zichtbaar voor andere leden
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
+`0243_member_profile_bikes.sql` (**nog toepassen**; niet lokaal te testen).
+
+**Aanleiding.** Bij de ronde "Profiel: zoals leden je zien" bleek dat andere
+leden geen fietsen op het ledenprofiel zagen: `strava_bikes` heeft alleen de
+eigen-policy uit `0089`. De showcase op `/profiel` vraagt per fiets wel of hij op
+het profiel staat. De eigenaar koos ervoor dat leden elkaars fietsen zien.
+
+**Wat er veranderde.**
+- `0243` voegt `get_member_profile_bikes(target_profile_id)` toe: security
+  definer, alleen voor `authenticated`. Hij geeft de fietsen van een goedgekeurd
+  lid aan een goedgekeurde kijker, met dezelfde regel als het publieke profiel:
+  `coalesce(show_on_profile, not retired)`. Kolommen gelijk aan
+  `get_public_profile_bikes`; de kolomtypes zijn op productie nagekeken.
+- `member-profile.tsx` leest de fietsen via die functie, ook als het lid naar
+  zichzelf kijkt. Zo toont "Zoals leden je zien" op `/profiel` precies wat
+  anderen zien.
+- Privacyverklaring, onder "Account- en profielgegevens": andere leden zien je
+  fietsen (naam, merk en model, afstand, foto) behalve die je verbergt, en
+  bezoekers als je publieke profiel aan staat. **Geen nieuwe versie** in
+  `src/lib/privacy.ts`. Dat wijkt bewust af van de regel daar, net als bij
+  eerdere verruimingen: het gaat om gegevens die het lid zelf voor zijn profiel
+  opgaf, met een keuze per fiets, voor ontvangers die zijn profiel al zien. Nog
+  door de eigenaar te laten goedkeuren.
+
+**Bewust niet gedaan.**
+- Een select-policy op `strava_bikes`. Die tabel heeft ook kolommen voor het
+  eigen onderhoud; met een functie blijft de keuze per fiets de enige poort.
+
+**Controle.** `eslint` op de gewijzigde bestanden is schoon. `tsc` is schoon,
+op de bekende fouten in `read-barcode.ts` en `gopher-image-ocr.ts` na.
+
+**Niet geverifieerd.** De migratie op een database (er is geen Docker of
+Supabase-config) en de pagina's in de browser.
+
 ### Opgeleverd — Profiel: zoals leden je zien
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -9259,10 +9299,9 @@ profiel dat je aanpast en het profiel dat andere leden van je zien.
   wat een ander lid echt ziet.
 - Kijkt een lid naar zichzelf, dan laat die component alleen zien wat de RLS een
   ánder lid laat lezen. Dat geldt ook op `/leden/[eigen id]`:
-  - **Geen fietsen.** `strava_bikes` heeft alleen een eigen-policy (`0089`),
-    dus andere leden zien je fietsen niet; de oude pagina toonde ze alleen
-    wanneer je naar jezelf keek. Op productie nagekeken via de
-    Supabase-connector (2026-10-16).
+  - **Fietsen:** in deze ronde eerst helemaal niet, omdat andere leden ze niet
+    konden lezen. Dezelfde dag rechtgezet met `0243`, zie de ronde "Fietsen
+    zichtbaar voor andere leden".
   - **Alleen gepubliceerde tips.** Een verborgen tip ziet alleen de eigenaar of
     een moderator (`member_tips_select`, `0239`).
   - **Geen eigen bewerk- of moderatieknoppen**, wel "Vraag het aan" bij je
@@ -9270,10 +9309,6 @@ profiel dat je aanpast en het profiel dat andere leden van je zien.
     aanklikt, loopt op de database-check `asker_id <> expert_id` vast.
 
 **Bewust niet gedaan.**
-- Fietsen zichtbaar maken voor andere leden. De keuze "op profiel tonen" in de
-  fietsenshowcase wekt die verwachting wel, maar dat vraagt een policy of
-  functie op `strava_bikes` en is een privacykeuze van de eigenaar. Eerst
-  voorleggen.
 - Een weergave van het publieke profiel (`/profielen/[id]`). Daar staat al een
   link naar op het ledenprofiel als het publieke profiel aan staat.
 

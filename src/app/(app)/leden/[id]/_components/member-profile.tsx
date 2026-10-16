@@ -45,9 +45,8 @@ function visibleProfile(profile: ProfileRow): ReadonlyProfile {
 
 /**
  * Het ledenprofiel zoals een ander lid het ziet. Kijkt een lid naar zichzelf
- * (via /leden/[id] of de weergave op /profiel), dan toont het alleen wat de
- * RLS een ánder lid laat lezen: geen fietsen (strava_bikes is alleen voor de
- * eigenaar), geen verborgen tips en geen eigen bewerkknoppen.
+ * (via /leden/[id] of de weergave op /profiel), dan toont het alleen wat een
+ * ánder lid ziet: geen verborgen tips en geen eigen bewerkknoppen.
  */
 export async function MemberProfile({
   profileId,
@@ -98,14 +97,8 @@ export async function MemberProfile({
       .eq("profile_id", profileId)
       .eq("award_scope", "weekly")
       .order("period_start", { ascending: false }),
-    self
-      ? Promise.resolve({ data: [] })
-      : supabase
-          .from("strava_bikes")
-          .select("id, name, brand_model, distance_m, retired, image_url, show_on_profile, source")
-          .eq("profile_id", profileId)
-          .order("is_primary", { ascending: false })
-          .order("distance_m", { ascending: false }),
+    // Via een functie: strava_bikes zelf is alleen voor de eigenaar (0089, 0243).
+    supabase.rpc("get_member_profile_bikes", { target_profile_id: profileId }),
     supabase
       .from("member_knowledge_topics")
       .select("profile_id, topic_slug, note")
