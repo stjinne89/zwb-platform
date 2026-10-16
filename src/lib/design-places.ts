@@ -1,6 +1,6 @@
 // De vier plekken van het design "tegels" en welke routes eronder vallen.
-// Profiel, garage, hulp, sponsors en beheer staan in het persoonlijke menu
-// rechtsboven en horen bij geen plek.
+// Profiel, garage en beheer staan in het persoonlijke menu rechtsboven, hulp
+// als vraagteken ernaast; die horen bij geen plek.
 // Los van React, zodat de indeling te testen is.
 
 export type PlaceId = "vandaag" | "kalender" | "zwbeter" | "club";
@@ -43,6 +43,9 @@ export const PLACES: Place[] = [
       // kalenderding, want het gaat om nu (besluit eigenaar, 2026-10-16).
       "/samen-fietsen",
       "/live",
+      // Sponsors: stond in het persoonlijke menu, hoort bij de club (besluit
+      // eigenaar, 2026-10-16).
+      "/sponsors",
     ],
   },
 ];

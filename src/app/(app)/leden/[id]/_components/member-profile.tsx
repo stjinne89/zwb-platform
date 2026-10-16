@@ -46,7 +46,9 @@ function visibleProfile(profile: ProfileRow): ReadonlyProfile {
 /**
  * Het ledenprofiel zoals een ander lid het ziet. Kijkt een lid naar zichzelf
  * (via /leden/[id] of de weergave op /profiel), dan toont het alleen wat een
- * ánder lid ziet: geen verborgen tips en geen eigen bewerkknoppen.
+ * ánder lid ziet: geen verborgen tips en geen eigen bewerkknoppen. Eén
+ * uitzondering: het blok "Deelbaar profiel" valt weg, want dat zit dan al op de
+ * weergaveknop.
  */
 export async function MemberProfile({
   profileId,
@@ -144,8 +146,9 @@ export async function MemberProfile({
       weeklyAwards={weeklyList}
       bikes={shownBikes}
       afterHeader={afterHeader}
+      // Eigen profiel: het deelbare profiel zit al op de weergaveknop.
       publicUrl={
-        profileRow.public_profile_enabled ? `/profielen/${profileRow.id}` : null
+        profileRow.public_profile_enabled && !self ? `/profielen/${profileRow.id}` : null
       }
       extraBeforeBadges={
         <>

@@ -22,6 +22,7 @@ const TILE_STYLE: Record<string, Pick<PlaceLink, "tone" | "size">> = {
   "/leden": { tone: "club", size: "wide" },
   "/samen-fietsen": { tone: "club", size: "wide" },
   "/polls": { tone: "club" },
+  "/sponsors": { tone: "club" },
   // teal: prestaties en cijfers
   "/stats": { tone: "zwbeter" },
   // donker petrol: spel en ontdekken
@@ -61,6 +62,8 @@ export default async function ClubPage() {
       }),
     ),
     { href: "/polls", label: "Polls", ...TILE_STYLE["/polls"] },
+    // Sponsors stond in het persoonlijke menu (besluit eigenaar, 2026-10-16).
+    { href: "/sponsors", label: "Sponsors", ...TILE_STYLE["/sponsors"] },
   ];
 
   return (
