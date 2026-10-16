@@ -634,10 +634,10 @@ export default async function KalenderPage({
 
     return (
       <div className="space-y-4">
-        <header className="flex items-end justify-between gap-3">
+        <header className="tg-repeats-nav flex items-end justify-end gap-3">
           <h1 className="tg-display">Kalender</h1>
           {canCreateEvents && (
-            <Link href="/kalender/nieuw" className="pb-1">
+            <Link href="/kalender/nieuw">
               <Button>Nieuw event</Button>
             </Link>
           )}

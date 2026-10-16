@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Activity, ArrowLeft, CircleHelp, Gauge, Scale, Users, Zap } from "lucide-react";
+import { Activity, ArrowLeft, Gauge, Scale, Users, Zap } from "lucide-react";
 import { PageHeader } from "@/components/app-ui";
 import { Power, PowerWeight } from "@/components/power-unit";
 import { Button } from "@/components/ui/button";
@@ -197,16 +197,11 @@ export default async function PowerPage({
   return (
     <div className="space-y-6">
       <PageHeader
+        className="tg-repeats-nav"
         eyebrow="ZWB Training"
         title="Mijn vermogen"
         actions={
           <div className="flex flex-wrap gap-2">
-            <Link href="/hulp#vermogen">
-              <Button variant="outline">
-                <CircleHelp data-icon="inline-start" />
-                Uitleg
-              </Button>
-            </Link>
             <Link href="/zwbeter-worden">
               <Button variant="outline">
                 <ArrowLeft data-icon="inline-start" />

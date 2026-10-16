@@ -23,7 +23,7 @@ export default async function JaarplanPage() {
 
   return (
     <div className="max-w-2xl space-y-4">
-      <PageHeader title="Jaarplan" />
+      <PageHeader title="Jaarplan" className="tg-repeats-nav" />
 
       <SeasonStand today={season.today} targets={season.targets} plans={season.plans} />
 

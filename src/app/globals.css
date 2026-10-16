@@ -982,6 +982,23 @@ a.tg-row:focus-visible,
   margin-top: 1.75rem;
 }
 
+/* Titels die herhalen wat de navigatie al laat zien: de actieve plek onderin
+   of bovenin (Vandaag, Kalender, Club), een ZWBeter-pijler, of de tab eronder
+   (eigenaar, 2026-10-16). In "tegels" staan ze alleen nog voor schermlezers,
+   met het bovenkopje erbij. Titels die iets zeggen wat nergens anders staat
+   (Teams, een eventnaam, een lid) hebben deze klasse niet en blijven staan. */
+[data-design="tegels"] .tg-repeats-nav :is(h1, .page-eyebrow) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ---------- Mijn statistieken (/stats/ik) ----------
    Grafieken die praten: boven elke grafiek een groot leescijfer dat de
    aanwijzer volgt. Kleur in de grafiek: de hoofdkleur voor je eigen reeks, goud

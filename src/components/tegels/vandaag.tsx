@@ -95,12 +95,10 @@ export function TegelsVandaag({
   const empty = !workout && events.length === 0 && !standing && !live;
   return (
     <section className="space-y-4">
-      <header className="flex items-end justify-between gap-4">
+      <header className="tg-repeats-nav">
         <h1 className="tg-display">Vandaag</h1>
-        <p className="pb-1 text-right text-sm lowercase leading-tight text-muted-foreground">
-          {weekday}
-          <br />
-          {date}
+        <p className="text-sm lowercase leading-tight text-muted-foreground">
+          {weekday} {date}
         </p>
       </header>
 

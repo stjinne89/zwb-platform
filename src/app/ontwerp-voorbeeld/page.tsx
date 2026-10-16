@@ -73,12 +73,12 @@ export default async function OntwerpVoorbeeldPage({
     <TegelsShell actions={<ThemeToggle />}>
       <div className="space-y-6">
         {scherm === "kalender" ? (
-          <div className="space-y-4">
+          <div className="tg-repeats-nav space-y-4">
             <h1 className="tg-display">Kalender</h1>
             <TegelsAgenda past={PAST} upcoming={UPCOMING} todayKey="2026-10-12" empty="Geen aankomende events of trainingen." />
           </div>
         ) : scherm === "club" ? (
-          <div className="space-y-5">
+          <div className="tg-repeats-nav space-y-5">
             <h1 className="tg-display">Club</h1>
             <TegelsLinkGrid
               place="club"

@@ -154,6 +154,54 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
+> **Design tegels: geen titel die de navigatie herhaalt, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Eerst voor Stats, daarna voor de hele app: "zwbetertrainen
+> blijkt uit het blok eronder, kalender uit het grotere blok erboven net als
+> club en vandaag. Trek dat door alle pagina's" (eigenaar).
+>
+> **Wat.**
+> - **Nieuwe klasse `.tg-repeats-nav`** (`globals.css`). In "tegels" zet die
+>   de h1 en het bovenkopje (`.page-eyebrow`, nieuw haakje in `PageHeader`)
+>   alleen nog voor schermlezers; elke pagina houdt dus een kop. In klassiek
+>   doet de klasse niets.
+> - **Toegepast waar de titel letterlijk in de navigatie staat:**
+>   - Vandaag, Kalender en Club: de actieve plek in de tabbalk. De datum op
+>     Vandaag en de knop "Nieuw event" blijven.
+>   - ZWBeter trainen, racen, enzovoort: de actieve pijler. De
+>     eenheidskeuze blijft.
+>   - Jaarplan, Logboek en Mijn vermogen: de tab eronder.
+>   - Stats en Stats → Ik deden het al via `StatsTabs`.
+>   - De voorbeeldpagina `/ontwerp-voorbeeld` doet hetzelfde.
+> - **De knop "Uitleg" op Mijn vermogen is weg.** Die deed hetzelfde als de
+>   verdwenen Hulp-links; het vraagteken in de balk gaat daar naar
+>   `/hulp#vermogen`.
+>
+> **Bewust niet verborgen.**
+> - Titels die nergens anders in beeld staan, zoals Teams, Leden,
+>   Achievements en ZWBlokken. Daar is alleen de tab Club actief, dus de titel
+>   is de enige plek die zegt waar je bent.
+> - Titels die inhoud zijn: een eventnaam, een teamnaam, een lid, een
+>   TTT-plan.
+> - Hulplinks midden in een zin of uitleg ("meer over routevoorstellen",
+>   voeding, FIT-export, de Strava-import) blijven; dat zijn geen knoppen naast
+>   een titel.
+> - ZWBgame heeft een eigen spelregels-icoon in zijn eigen opmaak.
+>
+> **Getest.**
+> - `tsc --noEmit` en ESLint schoon, vitest 2477 geslaagd.
+> - Op `/ontwerp-voorbeeld` (Vandaag, Kalender, Club) op 375 px bekeken: de
+>   titel is weg en de pagina begint direct met de inhoud.
+> - Onderweg bleek de dev-server na een productiebuild in dezelfde map een
+>   oude `globals.css` te serveren. Verholpen met een herstart en een lege
+>   `.next`. Dat was een lokaal probleem, niet iets in de code.
+>
+> **Niet geverifieerd.** De echte ZWBeter-, jaarplan-, logboek- en
+> vermogenspagina's in de browser (die vragen een login).
+
+---
+
 > **Ook de Hulp-links bij onderdelen weg, en geen dubbele titel op Stats, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >

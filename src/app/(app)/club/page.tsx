@@ -65,7 +65,7 @@ export default async function ClubPage() {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="tg-repeats-nav space-y-5">
       <h1 className="tg-display">Club</h1>
       <TegelsLinkGrid place="club" links={links} />
     </div>
