@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { HelpLink } from "@/components/app-ui";
+
 import {
   deletePushSubscription,
   savePushSubscription,
@@ -178,7 +178,6 @@ export function PushToggle({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Notificaties
         </h2>
-        <HelpLink href="/hulp#privacy" />
       </header>
 
       <div className="flex flex-wrap items-center gap-2">

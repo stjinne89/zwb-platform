@@ -3,7 +3,7 @@
 import { useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { HelpLink } from "@/components/app-ui";
+
 import {
   Dialog,
   DialogContent,
@@ -97,7 +97,6 @@ export function ZwiftIdDialog({ claims = [] }: { claims?: RosterClaim[] }) {
         <DialogHeader>
           <div className="flex items-start justify-between gap-3">
             <DialogTitle>Je Zwift-ID ontbreekt</DialogTitle>
-            <HelpLink href="/hulp#zwift-id" />
           </div>
           <DialogDescription>
             Zonder Zwift-ID missen we je in de ZwiftPower- en ZwiftRacing-standen.

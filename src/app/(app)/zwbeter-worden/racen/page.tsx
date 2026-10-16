@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { EmptyState, HelpLink, SectionHeader } from "@/components/app-ui";
+import { EmptyState, SectionHeader } from "@/components/app-ui";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { listRaces, type ZrlRaceListItem } from "@/lib/zrl-analysis/load";
 import { OpenRaceForm } from "./_components/open-race-form";
@@ -50,7 +50,7 @@ export default async function RacenPage() {
   return (
     <div className="space-y-8">
       <section className="space-y-3">
-        <SectionHeader title="Jouw races" action={<HelpLink href="/hulp#racen" />} />
+        <SectionHeader title="Jouw races" />
         <OpenRaceForm />
         {own.length === 0 ? <EmptyState>Nog geen gereden Zwift-races.</EmptyState> : <RaceList races={own} />}
       </section>

@@ -1,7 +1,7 @@
 // Bouwstenen die de ZRL-pagina en de pagina van een individuele race delen.
 
 import Link from "next/link";
-import { EmptyState, HelpLink, SectionHeader } from "@/components/app-ui";
+import { EmptyState, SectionHeader } from "@/components/app-ui";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import type { RideOutcome } from "@/lib/zrl-analysis/load";
 import type { RideAnalysis } from "@/lib/zrl-analysis/ride";
@@ -71,7 +71,7 @@ export function OwnRide({ ride }: { ride: RideOutcome }) {
   const climbs = a.phases.filter((p) => p.climb).map((p) => ({ name: p.name, from: p.from, to: p.to }));
   return (
     <section className="space-y-4">
-      <SectionHeader title="Jouw rit" action={<HelpLink href="/hulp#racen-eigen-rit" />} />
+      <SectionHeader title="Jouw rit" />
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Stat value={`${a.np} W`} label={a.intensity !== null ? `genormaliseerd · IF ${decimal(a.intensity)}` : "genormaliseerd"} />
         <Stat value={`${a.avgWatts} W`} label={`gemiddeld · ${a.kilojoules} kJ`} />

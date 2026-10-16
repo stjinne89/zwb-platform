@@ -154,6 +154,38 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
+> **Ook de Hulp-links bij onderdelen weg, en geen dubbele titel op Stats, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Na de ronde hieronder koos de eigenaar ervoor ook de 14 links
+> bij losse onderdelen weg te halen. Daarnaast: "de titel Clubstatistieken /
+> Mijn statistieken staat ook al op de tegel", dus die mocht weg.
+>
+> **Wat.**
+> - **De laatste 14 Hulp-links zijn weg:** de ritimport op het dashboard,
+>   LiveTrack, OwnTracks, Media toevoegen, en op het profiel agenda, citaten
+>   (die wees naar `/voorwaarden`), meldingen en Strava. Verder het
+>   verjaardagsrondje, "Jouw races" en "Jouw rit" bij racen, de race op het
+>   trainersscherm, de intervals-koppeling en de Zwift-ID-dialoog.
+> - **`HelpLink` is uit `src/components/app-ui.tsx` verwijderd**: niets
+>   gebruikt hem nog. De enige weg naar `/hulp` is nu het vraagteken in de
+>   balk, dat naar de uitleg over de huidige pagina gaat (`help-anchors.ts`).
+>   Wat daardoor verloren ging: de sprong naar een specifieke sectie binnen
+>   een pagina. Wie op het profiel op "?" tikt, komt bij "profiel" en niet
+>   bij "agenda" of "Strava". De citaten op het profiel wijzen niet meer naar
+>   de voorwaarden.
+> - **Stats en Stats → Ik zonder zichtbare titel in "tegels".** De pijlers
+>   "Stats club" en "Stats ik" zeggen al waar je bent. `StatsTabs` krijgt de
+>   titel mee en zet hem daar als `sr-only` h1, zodat de pagina voor
+>   schermlezers een kop houdt. In klassiek blijft de paginakop staan,
+>   want daar staan alleen de kleine tabs "Club | Ik".
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon, vitest 2477 geslaagd.
+>
+> **Niet geverifieerd.** In de browser: lokaal geen login.
+
+---
+
 > **Eén vraagteken voor hulp, en dat weet waar je bent, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
@@ -178,13 +210,8 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 >   Het was daar verborgen (`md:inline-flex`), en de link bij de titel was op
 >   mobiel de weg naar de uitleg.
 >
-> **Bewust niet weggehaald.** 14 links bij één onderdeel van een pagina, die
-> naar uitleg over precies dat onderdeel wijzen: de ritimport op het
-> dashboard, LiveTrack en OwnTracks, Media toevoegen, vier secties op het
-> profiel (agenda, citaten, meldingen, Strava), het verjaardagsrondje,
-> "Jouw races" en "Jouw rit" bij racen, de race op het trainersscherm, de
-> intervals-koppeling en de Zwift-ID-dialoog. Die kunnen bij een volgende
-> ronde nog weg, als de eigenaar dat ook dubbel vindt.
+> **Eerst bewust laten staan, dezelfde dag toch weggehaald:** 14 links bij
+> één onderdeel van een pagina. Zie het blok hierboven.
 >
 > **Getest.**
 > - `tsc --noEmit` en ESLint schoon, vitest 2477 geslaagd.

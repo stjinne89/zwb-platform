@@ -7,7 +7,7 @@ import { disconnectStrava } from "../../achievements/_actions";
 import { switchStravaToIntervals } from "../../_actions/intervals-rides";
 import { refreshMyStravaProfile } from "../_actions";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { HelpLink } from "@/components/app-ui";
+
 import { ConnectWithStrava, StravaAttribution } from "@/components/strava-brand";
 import { cn } from "@/lib/utils";
 import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
@@ -68,9 +68,6 @@ export function StravaSection({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Strava
         </h2>
-        <HelpLink
-          href={missingWriteScope ? "/hulp#strava-samenvatting" : "/hulp#badges"}
-        />
       </div>
 
       {connection && !revoked ? (

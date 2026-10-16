@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Check, Copy, Link2, RotateCw, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { HelpLink } from "@/components/app-ui";
+
 import {
   createLiveMailAddress,
   removeWahooLink,
@@ -230,7 +230,6 @@ export function LiveTrackPanel({
     <section className="space-y-5 rounded-lg border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <h2 className="font-semibold">Garmin of Wahoo LiveTrack</h2>
-        <HelpLink href="/hulp#livetrack" />
       </div>
       {mailEnabled && <GarminBlock status={mailStatus} />}
       <WahooBlock status={wahooStatus} />

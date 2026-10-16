@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { ArrowLeft, ArrowRight, CircleHelp } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function PageHeader({
@@ -97,29 +97,6 @@ export function EmptyState({
         {action}
       </div>
     </div>
-  );
-}
-
-export function HelpLink({
-  href = "/hulp",
-  label = "Hulp",
-  className,
-}: {
-  href?: string;
-  label?: string;
-  className?: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary",
-        className,
-      )}
-    >
-      <CircleHelp className="size-4" />
-      {label}
-    </Link>
   );
 }
 

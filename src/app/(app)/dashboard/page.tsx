@@ -19,13 +19,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { DeleteRitverslagButton } from "../ritverslagen/_components/delete-ritverslag-button";
-import {
-  EmptyState,
-  HelpLink,
-  InlineMoreLink,
-  PageHeader,
-  SectionHeader,
-} from "@/components/app-ui";
+import { EmptyState, InlineMoreLink, PageHeader, SectionHeader } from "@/components/app-ui";
 import { buttonVariants } from "@/components/ui/button";
 import {
   IntervalsRideSyncButton,
@@ -1368,7 +1362,6 @@ export default async function DashboardPage({
                     Koppel intervals.icu
                   </Link>
                 )}
-                <HelpLink href="/hulp#ritten-via-intervals" />
               </div>
             )}
             <StravaImportForm />

@@ -3,7 +3,7 @@ import { Cake } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
-import { BackLink, HelpLink } from "@/components/app-ui";
+import { BackLink } from "@/components/app-ui";
 import { MemberLink } from "@/components/member-link";
 import {
   ageOnBirthday,
@@ -330,7 +330,6 @@ export default async function BirthdayPage({
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                   Rijd je mee?
                 </h2>
-                <HelpLink href="/hulp#verjaardagsrondje" />
               </div>
               <BirthdayRsvpPicker
                 birthdayProfileId={profile.id}

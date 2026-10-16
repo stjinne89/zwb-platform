@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { EmptyState, PageHeader } from "@/components/app-ui";
+import { EmptyState } from "@/components/app-ui";
 import { StravaAttribution } from "@/components/strava-brand";
 import { ScrollTabs } from "@/components/ui/scroll-tabs";
 import { createClient } from "@/lib/supabase/server";
@@ -79,8 +79,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="st-page space-y-4">
-      <PageHeader title="Clubstatistieken" />
-      <StatsTabs active="/stats" />
+      <StatsTabs active="/stats" title="Clubstatistieken" />
 
       {!hasData ? (
         <EmptyState>Nog geen ritten van de club.</EmptyState>
