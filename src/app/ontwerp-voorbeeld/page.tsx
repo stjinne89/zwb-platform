@@ -82,7 +82,7 @@ export default async function OntwerpVoorbeeldPage({
             <h1 className="tg-display">Club</h1>
             <TegelsLinkGrid
               place="club"
-              links={["Leden", "Teams", "Achievements", "Stats", "ZWB Segments", "ZWBlokken", "ZWBgame", "ZWB Omnium", "Sunday Race Club", "Polls"].map(
+              links={["Leden", "Samen fietsen", "Teams", "Achievements", "Stats", "ZWB Segments", "ZWBlokken", "ZWBgame", "ZWB Omnium", "Sunday Race Club", "Polls"].map(
                 (label) => ({ href: `#${label}`, label }),
               )}
             />
@@ -113,6 +113,7 @@ export default async function OntwerpVoorbeeldPage({
               { id: "3", title: "Clubrit Veluwezoom", when: "za 17 okt", time: "09:00", place: "kalender" },
             ]}
             standing={{ href: "#", team: "ZWB B1", competition: "ZRL", position: 3, totalTeams: 12 }}
+            live={{ count: 3, riders: "Anna, Bert en Carla" }}
           />
         )}
         <p className="flex flex-wrap gap-4 text-sm text-muted-foreground">

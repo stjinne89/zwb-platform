@@ -19,7 +19,7 @@ export const PLACES: Place[] = [
     id: "kalender",
     label: "Kalender",
     href: "/kalender",
-    prefixes: ["/kalender", "/events", "/samen-fietsen", "/live", "/verjaardagen", "/ritverslagen"],
+    prefixes: ["/kalender", "/events", "/verjaardagen", "/ritverslagen"],
   },
   { id: "zwbeter", label: "ZWBeter", href: "/zwbeter-worden", prefixes: ["/zwbeter-worden"] },
   {
@@ -40,6 +40,10 @@ export const PLACES: Place[] = [
       "/src",
       "/polls",
       "/programmas",
+      // Samen fietsen: met clubgenoten rijden en je tracker koppelen. Geen
+      // kalenderding, want het gaat om nu (besluit eigenaar, 2026-10-16).
+      "/samen-fietsen",
+      "/live",
     ],
   },
 ];

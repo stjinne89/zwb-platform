@@ -81,7 +81,9 @@ import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { amsterdamDateKey, amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { getDesign } from "@/lib/design";
-import { TegelsVandaag, type VandaagEvent } from "@/components/tegels/vandaag";
+import { TegelsVandaag, type VandaagEvent, type VandaagLive } from "@/components/tegels/vandaag";
+import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
+import { liveRidersLabel } from "@/lib/live/riders-label";
 
 const INSTAGRAM_NON_POST_SOURCES = [INSTAGRAM_STORY_SOURCE, INSTAGRAM_TAG_HIDDEN_SOURCE];
 
@@ -380,6 +382,35 @@ function ActivityRow({
   );
 }
 
+/**
+ * Wie er nu live rijdt: dezelfde regel als Samen fietsen (open sessie, binnen
+ * 15 minuten gezien). Garmin en Wahoo eerst bijwerken, zoals de kalender doet:
+ * zonder nieuwe Wahoo-links te zoeken, want dat gebeurt op Samen fietsen zelf.
+ */
+async function loadLiveNow(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  viewerId: string,
+): Promise<VandaagLive | null> {
+  await refreshExternalLiveSessions({ detect: false });
+  const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  const { data } = await supabase
+    .from("live_sessions")
+    .select("profile_id, profiles(display_name)")
+    .is("ended_at", null)
+    .gte("last_seen_at", cutoff)
+    .order("started_at", { ascending: true });
+  // Eén renner met twee open sessies telt één keer.
+  const byProfile = new Map<string, string>();
+  for (const row of data ?? []) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const name = ((row.profiles as any)?.display_name as string) ?? "ZWB'er";
+    if (!byProfile.has(row.profile_id as string)) byProfile.set(row.profile_id as string, name);
+  }
+  const riders = [...byProfile].map(([profileId, name]) => ({ profileId, name }));
+  if (riders.length === 0) return null;
+  return { count: riders.length, riders: liveRidersLabel(riders, viewerId) };
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -398,6 +429,11 @@ export default async function DashboardPage({
   const rideStatusPromise = user
     ? loadRideSourceStatus(user.id).catch(() => null)
     : Promise.resolve(null);
+  // Wie er nu live rijdt, voor de tegel Samen fietsen in het design "tegels".
+  // Loopt mee met de rest, want Garmin en Wahoo eerst bijwerken kost een oversteek.
+  const livePromise = getDesign()
+    .then((design) => (design === "tegels" && user ? loadLiveNow(supabase, user.id) : null))
+    .catch(() => null);
 
   const nowIso = new Date().toISOString();
   const since7 = new Date();
@@ -872,6 +908,8 @@ export default async function DashboardPage({
         )[0] ?? null;
   }
 
+  const liveNow = await livePromise;
+
   function eventList(events: UpcomingEvent[]) {
     return (
       <ul className="divide-y rounded-lg border bg-card">
@@ -944,6 +982,7 @@ export default async function DashboardPage({
               : null
           }
           events={tileEvents}
+          live={liveNow}
           standing={
             tileStanding && tileStanding.position
               ? {

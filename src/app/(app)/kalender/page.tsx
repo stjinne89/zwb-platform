@@ -636,19 +636,11 @@ export default async function KalenderPage({
       <div className="space-y-4">
         <header className="flex items-end justify-between gap-3">
           <h1 className="tg-display">Kalender</h1>
-          <div className="flex items-center gap-2 pb-1">
-            <Link
-              href="/samen-fietsen"
-              className="inline-flex min-h-11 items-center text-sm font-medium text-muted-foreground hover:text-primary"
-            >
-              Samen fietsen
+          {canCreateEvents && (
+            <Link href="/kalender/nieuw" className="pb-1">
+              <Button>Nieuw event</Button>
             </Link>
-            {canCreateEvents && (
-              <Link href="/kalender/nieuw">
-                <Button>Nieuw event</Button>
-              </Link>
-            )}
-          </div>
+          )}
         </header>
         {filterNav}
         {(olderTopLevelCount ?? 0) > 0 && (

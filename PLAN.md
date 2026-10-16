@@ -143,6 +143,53 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
+> **Design tegels: Samen fietsen naar Club, plus een live-tegel op Vandaag, 2026-10-16 — gebouwd, lokaal getest; alleen het voorbeeldscherm in de browser bekeken. Niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** In het design "tegels" stond Samen fietsen alleen als grijs
+> tekstlinkje in de kop van de Kalender. Dat was een invulling van de bouwer en
+> viel weg naast "Nieuw event". De eigenaar vindt de Kalender niet de plek: die
+> is om vooruit te kijken, Samen fietsen gaat om nu en om je tracker koppelen.
+> Besluit eigenaar: een live-tegel op Vandaag, en Samen fietsen als tegel onder
+> Club (met clubgenoten rijden).
+>
+> **Wat.**
+> - Vandaag (`TegelsVandaag`): een sage tegel "Samen fietsen · nu" met wie er
+>   rijdt ("Jij en Anna", hooguit drie namen en dan "en 2 anderen") en het
+>   aantal. Alleen als er iemand live is. Zelfde regel als Samen fietsen: open
+>   sessie, binnen 15 minuten gezien. Eén renner met twee open sessies telt één
+>   keer. De dashboardpagina werkt Garmin en Wahoo eerst bij zoals de Kalender
+>   (`refreshExternalLiveSessions({ detect: false })`), en dat loopt parallel
+>   met de rest van de pagina. Alleen in het design "tegels".
+> - Club (`/club`): tegel Samen fietsen direct na Leden, sage en breed.
+> - Kalender: het linkje in de kop is weg.
+> - `lib/design-places.ts`: `/samen-fietsen` en `/live` horen bij Club, dus
+>   daar licht de tab op.
+> - Het voorbeeldscherm `/ontwerp-voorbeeld` toont de live-tegel en de
+>   Club-tegel met voorbeelddata.
+>
+> **Bewust niet gedaan.**
+> - Geen nieuwe Wahoo-links zoeken vanaf Vandaag (`detect: false`). Dat kost
+>   per gekoppelde link een externe aanvraag, en Vandaag is de drukst bezochte
+>   pagina. Wie met een vaste Wahoo-link rijdt, verschijnt dus pas op de
+>   tegel nadat iemand Samen fietsen of een eventpagina heeft geopend. Dat geldt
+>   nu ook al voor de Kalender.
+> - Het huidige design blijft zoals het is: daar is Samen fietsen een eigen
+>   menu-item en krijgt Vandaag geen tegel.
+> - Het koppelen (Garmin, Wahoo, OwnTracks) blijft op de pagina Samen fietsen
+>   zelf en verhuist niet naar het profiel. Via Club is die pagina nu goed te
+>   vinden.
+>
+> **Getest.** ESLint op de gewijzigde bestanden: schoon. `tsc --noEmit`: alleen
+> de bekende fouten over `@zxing` (pakket ontbreekt in deze worktree), niets
+> uit deze ronde. Vitest: alles geslaagd, behalve tests die `.env.local` nodig
+> hebben of onder volle belasting over hun tijd gingen; die drie slagen los.
+> Nieuw: `tests/unit/live-riders-label.test.ts`.
+>
+> **Niet geverifieerd.** Vandaag en Club met login en echte data, en hoe lang
+> het bijwerken van Garmin en Wahoo de dashboardpagina ophoudt als er iemand
+> live is (hooguit 7 s, de grens van `refreshExternalLiveSessions`).
+
 > **Design tegels: gekleurde tegels nagelopen op het kleurbeleid, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `88ad78a`); niet in de browser bekeken. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
@@ -1793,8 +1840,9 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 > voor wie `community.manage` of `media.manage` heeft: **gewone leden bereiken
 > ze in dit design niet meer via het menu.** Vraag en Aanbod en Ritverslagen
 > staan nergens meer in het menu; de pagina's zelf bestaan nog. Polls staat
-> onder Club en Samen fietsen bij de kalender (invulling van de bouwer, niet
-> bevestigd).
+> onder Club (invulling van de bouwer, niet bevestigd). Samen fietsen stond
+> eerst bij de kalender; sinds 2026-10-16 staat het onder Club, met een
+> live-tegel op Vandaag (besluit eigenaar).
 >
 > **Bewust niet gebouwd.**
 > - Aan- en afmelden op een tegel, "nog 1 renner nodig" en het intervalprofiel

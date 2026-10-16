@@ -10,6 +10,7 @@ describe("placeForPath", () => {
     expect(placeForPath("/events/abc/pacing")).toBe("kalender");
     expect(placeForPath("/zwbeter-worden/schema")).toBe("zwbeter");
     expect(placeForPath("/teams/ttt-planner")).toBe("club");
+    expect(placeForPath("/samen-fietsen")).toBe("club");
   });
 
   it("kiest de langste passende route", () => {
