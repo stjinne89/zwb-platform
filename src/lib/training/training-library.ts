@@ -38,7 +38,7 @@ export type TrainingCategory = (typeof TRAINING_CATEGORIES)[number];
 export const TRAINING_CATEGORY_LABELS: Record<TrainingCategory, string> = {
   intensiteit: "Intensiteit",
   testen: "Testen",
-  piek: "Naar een piek",
+  piek: "Opbouw en piek",
   herstel: "Herstel",
   omstandigheden: "Hitte",
   "naast-de-fiets": "Naast de fiets",
@@ -257,6 +257,72 @@ const KARSTEN_2021: KnowledgeSource = {
   kind: "studie",
 };
 
+// Opbouwen (wetenschappelijke toets 1A, 2026-10-16). DOI's via PubMed bevestigd;
+// Damsted 2018 heeft in PubMed geen DOI en linkt naar PMC.
+const BUIST_2008: KnowledgeSource = {
+  citation:
+    "Buist I, Bredeweg SW, van Mechelen W, Lemmink KA, Pepping GJ, Diercks RL. No effect of a graded training program on the number of running-related injuries in novice runners: a randomized controlled trial. Am J Sports Med 36(1):33-39.",
+  year: 2008,
+  url: doi("10.1177/0363546507307505"),
+  kind: "studie",
+};
+
+const NIELSEN_2014: KnowledgeSource = {
+  citation:
+    "Nielsen RØ, Parner ET, Nohr EA, Sørensen H, Lind M, Rasmussen S. Excessive progression in weekly running distance and risk of running-related injuries: an association which varies according to type of injury. J Orthop Sports Phys Ther 44(10):739-747.",
+  year: 2014,
+  url: doi("10.2519/jospt.2014.5164"),
+  kind: "studie",
+};
+
+const DAMSTED_2018: KnowledgeSource = {
+  citation:
+    "Damsted C, Glad S, Nielsen RO, Sørensen H, Malisoux L. Is there evidence for an association between changes in training load and running-related injuries? A systematic review. Int J Sports Phys Ther 13(6):931-942.",
+  year: 2018,
+  url: "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6253751/",
+  kind: "review",
+};
+
+const GABBETT_2020: KnowledgeSource = {
+  citation:
+    "Gabbett TJ. Debunking the myths about training load, injury and performance: empirical evidence, hot topics and recommendations for practitioners. Br J Sports Med 54(1):58-66.",
+  year: 2020,
+  url: doi("10.1136/bjsports-2018-099784"),
+  kind: "review",
+};
+
+const JOHNSTON_2019: KnowledgeSource = {
+  citation:
+    "Johnston R, Cahalan R, Bonnett L, et al. Training load and baseline characteristics associated with new injury/pain within an endurance sporting population: a prospective study. Int J Sports Physiol Perform 14(5):590-597.",
+  year: 2019,
+  url: doi("10.1123/ijspp.2018-0644"),
+  kind: "studie",
+};
+
+const IMPELLIZZERI_2020: KnowledgeSource = {
+  citation:
+    "Impellizzeri FM, Tenan MS, Kempton T, Novak A, Coutts AJ. Acute:chronic workload ratio: conceptual issues and fundamental pitfalls. Int J Sports Physiol Perform 15(6):907-913.",
+  year: 2020,
+  url: doi("10.1123/ijspp.2019-0864"),
+  kind: "review",
+};
+
+const HELLARD_2006: KnowledgeSource = {
+  citation:
+    "Hellard P, Avalos M, Lacoste L, Barale F, Chatard JC, Millet GP. Assessing the limitations of the Banister model in monitoring training. J Sports Sci 24(5):509-520.",
+  year: 2006,
+  url: doi("10.1080/02640410500244697"),
+  kind: "studie",
+};
+
+const MUJIKA_PADILLA_2001: KnowledgeSource = {
+  citation:
+    "Mujika I, Padilla S. Cardiorespiratory and metabolic characteristics of detraining in humans. Med Sci Sports Exerc 33(3):413-421.",
+  year: 2001,
+  url: doi("10.1097/00005768-200103000-00013"),
+  kind: "review",
+};
+
 export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "lage-cadans",
@@ -355,6 +421,35 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       TRAMONTIN_2021,
       AZEVEDO_2023,
       KARSTEN_2021,
+    ],
+  },
+  {
+    slug: "opbouwen",
+    category: "piek",
+    title: "Opbouwen: hoe snel mag het?",
+    summary:
+      "Geleidelijk opbouwen en grote sprongen vermijden helpt. Dat het precies 10 % per week moet zijn, is nooit aangetoond.",
+    points: [
+      "In een proef met ruim vijfhonderd beginnende hardlopers gaf een schema volgens de 10 %-regel evenveel blessures als een gewoon schema.",
+      "Tussen 10 en 24 % opbouw per week werd geen verschil gevonden; wie in twee weken meer dan 30 % bijdeed, had wel vaker overbelastingsklachten.",
+      "Een te lage belasting is ook een risico. Bij duursporters, ook fietsers, was het risico op klachten het laagst met weinig pieken en een flinke belasting over vier weken. Daarom plant ZWB een opbouwweek nooit onder wat je nu al rijdt.",
+      "ZWB houdt 10 % per week aan als voorzichtige standaard en vermijdt sprongen van meer dan een kwart.",
+      "Fitness, vermoeidheid en vorm (CTL, ATL en TSB) komen uit een rekenmodel. Op groepsniveau past dat redelijk, maar per renner zijn de onderliggende tijden erg onzeker. De grenzen die ZWB op TSB legt, zijn daarom afspraken, geen metingen.",
+      "Na een pauze van twee tot vier weken zakken je VO2max en bloedvolume al merkbaar; wat je recent hebt opgebouwd, verlies je het snelst. Na meer dan tien dagen rust begint het schema daarom lager en bouwt het in een week of twee terug op.",
+    ],
+    limits: [
+      "Bijna al het onderzoek naar opbouw en blessures is bij hardlopers gedaan. Fietsen belast je lichaam anders, en voor fietsers zijn er geen vergelijkbare proeven.",
+      "Herstelweken (twee tot vier opbouwweken en dan een rustigere week) zijn gangbaar bij coaches, maar niet als zodanig onderzocht.",
+    ],
+    sources: [
+      BUIST_2008,
+      NIELSEN_2014,
+      DAMSTED_2018,
+      GABBETT_2020,
+      JOHNSTON_2019,
+      IMPELLIZZERI_2020,
+      HELLARD_2006,
+      MUJIKA_PADILLA_2001,
     ],
   },
   {

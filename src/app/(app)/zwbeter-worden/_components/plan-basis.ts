@@ -131,7 +131,7 @@ export function planBasisGroups(input: Partial<TrainingAiInput>): BasisGroup[] {
       ],
       effect:
         "Een opbouwweek komt niet onder wat je nu al rijdt, en het schema volgt je ritme van rijdagen en ritduur.",
-      link: { href: "/zwbeter-worden/belasting", label: "Belasting" },
+      link: { href: "/zwbeter-worden/kennis/opbouwen", label: "Opbouwen" },
     });
   }
 

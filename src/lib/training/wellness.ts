@@ -724,6 +724,9 @@ export function summarizeTrainingReadiness({
   let recoveryState: TrainingReadinessSummary["state"] = "unknown";
   let score = 72;
 
+  // De TSB-grenzen (-25, -10, +8) en SEVERE_TSB zijn conventie, geen
+  // fysiologie: de tijdconstanten van het onderliggende Banister-model zijn per
+  // sporter erg onzeker (Hellard 2006). Zie docs/wetenschappelijke-toets.md, 1A.
   if (tsb == null || !Number.isFinite(tsb)) {
     notes.push("TSB ontbreekt, dus trainingsbelasting telt niet mee.");
   } else if (tsb <= -25) {

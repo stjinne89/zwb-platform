@@ -127,8 +127,8 @@ gaat stabiliteit voor nieuwe features.
    het besluit ligt bij de eigenaar.
 7. **Wetenschappelijke toets van ZWBasis** (gestart 2026-10-16). Fase 0, het
    claimregister, is af. Fase 1 (de regels die schema en advies sturen) is
-   goedgekeurd; 1B (FTP-test) en 1C (herstel) zijn uitgevoerd, 1A, 1D en 1E
-   volgen. Migratie `0241` moet nog op productie. Daarna fase 2
+   goedgekeurd; 1A (opbouw), 1B (FTP-test) en 1C (herstel) zijn uitgevoerd,
+   1D en 1E volgen. Migratie `0241` moet nog op productie. Daarna fase 2
    (kennisbank trainen), 3 (voeding), 4 (kracht en core), 5 (racen en pacing)
    en 6 (overig). Zie de ronde hieronder en
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
@@ -8760,6 +8760,41 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — wetenschappelijke toets 1A: opbouw zonder schijnzekerheid
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md), 1A.
+
+**Waarom.** De prompt noemde 10 % groei per week "veilig". In een RCT gaf de
+10 %-regel evenveel blessures, tussen 10 en 24 % werd geen verschil gevonden,
+en pas sprongen boven 30 % gingen samen met meer klachten. Al dat onderzoek komt
+van hardlopers. Een structureel te lage belasting is óók een risico. TSB-grenzen
+zijn conventie: het Banister-model is per sporter erg onzeker.
+
+**Wat er veranderde.**
+- **Prompt**: "standaard ongeveer 10 %, en vermijd sprongen van meer dan een
+  kwart; een voorzichtige keuze van ZWB, geen bewezen grens". De kampregels
+  noemen de grens op sprongen erbij, zodat een kamp er nog steeds overheen mag.
+- **`/hulp`** (De vaste regels) zegt hetzelfde en linkt naar het nieuwe
+  artikel. De tab Uitgangspunten linkt bij "Wat je reed" ook naar het artikel,
+  in plaats van naar Belasting.
+- **Kennisbank**: nieuw artikel **Opbouwen: hoe snel mag het?** met 8 bronnen.
+  De categorie "Naar een piek" heet nu "Opbouw en piek". Mujika & Padilla staat
+  er met het overzicht uit 2001 in, omdat de kennisbanktest bronnen vóór 2001
+  weigert.
+- **`wellness.ts`**: een notitie bij de TSB-grenzen dat ze conventie zijn.
+
+**Bewust niet gedaan.**
+- *Een ander percentage dan 10 %*: geen beter onderbouwd getal, en het remt
+  grillige AI-uitvoer.
+- *TSB-grenzen per lid fitten*: met de onzekerheid uit Hellard 2006 levert dat
+  schijnprecisie op.
+- *De herstelweek op 60–70 %*: gangbaar bij coaches maar niet onderzocht; die
+  blijft als eigen keuze staan en heet zo in het artikel.
+
+**Niet geverifieerd.** Of de AI de nieuwe formulering ook anders gebruikt in
+cautions. Dat vraagt echte generaties, en die kosten geld.
+
 ### Opgeleverd — wetenschappelijke toets 1B: de FTP-test getoetst
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
@@ -8890,7 +8925,7 @@ ook stijgt bij overbelasting. Daar ging de verzachtingsregel tegenin.
 worktree niet draait (`omnium-live.test.ts` leest `.env.local`). De build is
 gedraaid met de variabelen uit de `.env.local` van de hoofdmap.
 
-### Lopend — wetenschappelijke toets van ZWBasis (fase 0 af, 1B en 1C uitgevoerd)
+### Lopend — wetenschappelijke toets van ZWBasis (fase 0 af, 1A–1C uitgevoerd)
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
 codewijziging.
@@ -8910,7 +8945,7 @@ een bron die een andere kant op wijst.
 
 **Fase 1, goedgekeurd door de eigenaar op 2026-10-16** (1A–1E, inclusief de
 punten uit de Consensus-ronde; FTP-signaal bij 8 % voor trainer én lid). 1C is
-uitgevoerd, net als 1B (zie de rondes hierboven); 1A, 1D en 1E volgen:
+uitgevoerd, net als 1A en 1B (zie de rondes hierboven); 1D en 1E volgen:
 - *1A Opbouw*: de 10 %-regel bleek in een RCT geen blessures te voorkomen. Hij
   blijft als voorzichtige standaard, maar heet niet langer "veilig". Er komt een
   artikel over opbouwen, detraining en CTL/ATL/TSB.

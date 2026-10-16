@@ -52,7 +52,7 @@ en een lijst beperkingen, zoals de bestaande kennisbanken.
 | A5 | Rust-HR > baseline + 3 slagen = vermoeid | idem | ✔ eigen band, minimaal 3 slagen (1C) |
 | A6 | Afgeleide readiness: neutraal 70, HRV-afwijking × 200, rust-HR × 300, slaapscore ±8 | `wellness.ts` `deriveReadiness` | ◐ nu in banden (15 en 18 punten per band); gewichten blijven eigen keuze (1C) |
 | A7 | Slaapstaffel < 5,5 / 6,0 / 6,5 uur → aftrek 22 / 14 / 6 | `wellness.ts` | ◐ richting klopt (zie 1C), getallen eigen keuze |
-| A8 | TSB ≤ −25 herstel, ≤ −10 voorzichtig, ≥ 8 klaar; < −40 ernstig | `wellness.ts` `summarizeTrainingReadiness` | ✖ geen bron |
+| A8 | TSB ≤ −25 herstel, ≤ −10 voorzichtig, ≥ 8 klaar; < −40 ernstig | `wellness.ts` `summarizeTrainingReadiness` | ◐ conventie, nu zo benoemd (1A) |
 | A9 | Hoge belasting + HRV boven baseline = goed aangepast, dus verzachten | idem | ✔ bijgesteld: alleen verzachten binnen de band (1C) |
 | A10 | Readiness-schaal ≤ 50 laag, < 70 matig, ≥ 75 goed | idem | ◐ overgenomen van apparaten |
 | A11 | Zones (Zwift/Coggan): Z2 60–75 %, Z3 76–89 %, Z4 90–104 %, Z5 105–118 %, Z6 ≥ 119 % FTP | `workouts.ts` | ◐ afspraak (eigenaar, 2026-09-15); zie 1D |
@@ -65,10 +65,10 @@ en een lijst beperkingen, zoals de bestaande kennisbanken.
 
 | # | Claim | Waar | Status |
 |---|---|---|---|
-| B1 | Weekvolume groeit ±10 % per opbouwweek, "veilig" | `defaultTrainingPrompt` | ⚠ zie 1A |
+| B1 | Weekvolume groeit ±10 % per opbouwweek, "veilig" | `defaultTrainingPrompt` | ✔ nu "voorzichtige standaard, geen sprongen > 25 %" (1A) |
 | B2 | 2–4 opbouwweken, dan een herstelweek | idem | ◐ gangbare praktijk, geen bron |
 | B3 | In de piekweek ≥ 85 % van het urenplafond | idem | ◐ eigen keuze |
-| B4 | Na > 10 dagen rust lager instappen, ~2 weken terug opbouwen | idem | ✔ in lijn met detraining-literatuur; bron ontbreekt in app |
+| B4 | Na > 10 dagen rust lager instappen, ~2 weken terug opbouwen | idem | ✔ in lijn met detraining-literatuur; bron in artikel Opbouwen (1A) |
 | B5 | Taper 1–3 weken, volume 40–60 % omlaag, intensiteit en frequentie gelijk | idem + kennisbank | ✔ Bosquet 2007, Wang 2023 |
 | B6 | Afremmen alleen bij signalen (TSB, ramp rate, HRV, rust-HR, readiness, RPE) | idem | ◐ zie 1A en 1C |
 | B7 | Geen cyclusfase afleiden; reageren op klachten | idem + `symptoms.ts` | ✔ `docs/training-en-cyclus.md` |
@@ -123,10 +123,12 @@ en een lijst beperkingen, zoals de bestaande kennisbanken.
 
 Fase 1 gaat over A en B: de regels die het schema en het advies sturen. Bij elk
 onderdeel staat wat de app doet, wat de literatuur zegt, en een voorstel.
-**Goedgekeurd door de eigenaar op 2026-10-16. 1B en 1C zijn uitgevoerd; 1A, 1D
+**Goedgekeurd door de eigenaar op 2026-10-16. 1A, 1B en 1C zijn uitgevoerd; 1D
 en 1E volgen.**
 
-### 1A. Opbouw: hoe snel, en wanneer afremmen
+### 1A. Opbouw: hoe snel, en wanneer afremmen — uitgevoerd 2026-10-16
+
+Wat er is gebouwd, staat in `PLAN.md` (ronde "wetenschappelijke toets 1A").
 
 **Wat de app doet.** De prompt laat het weekvolume per opbouwweek met ±10 %
 groeien ("weinig genoeg om de sprong veilig te houden"), met 2–4 opbouwweken en

@@ -1996,7 +1996,13 @@ export default function HelpPage() {
               <li>
                 Opbouw in golven: twee tot vier opbouwweken, dan een
                 herstelweek op ongeveer 60 tot 70% van de week ervoor. Het
-                weekvolume groeit met ongeveer 10% per opbouwweek.
+                weekvolume groeit met ongeveer 10% per opbouwweek, zonder
+                sprongen van meer dan een kwart. Die 10% is een voorzichtige
+                keuze, geen bewezen grens; zie{" "}
+                <Link href="/zwbeter-worden/kennis/opbouwen" className="underline">
+                  Opbouwen
+                </Link>
+                .
               </li>
               <li>
                 Je uren per week zijn het volume waar de zwaarste week van een
