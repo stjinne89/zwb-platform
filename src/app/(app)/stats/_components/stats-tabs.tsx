@@ -6,10 +6,13 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { href: "/stats", label: "Club" },
   { href: "/stats/ik", label: "Ik" },
+  { href: "/stats/achievements", label: "Achievements" },
 ] as const;
 
-/** Club- en eigen statistieken; één item "Stats" in het menu. */
-export function StatsTabs({ active }: { active: "/stats" | "/stats/ik" }) {
+type StatsTab = (typeof TABS)[number]["href"];
+
+/** Club- en eigen statistieken en de achievements; één item "Stats" in het menu. */
+export function StatsTabs({ active }: { active: StatsTab }) {
   return (
     <ScrollTabs ariaLabel="Statistieken" variant="panel">
       {TABS.map((tab) => (

@@ -57,6 +57,35 @@ export async function loadTileChoice(supabase: SupabaseClient, profileId: string
   return error ? null : (data?.tiles ?? null);
 }
 
+export type MyBadgeAward = {
+  id: string;
+  period_start: string;
+  award_scope: "weekly" | "milestone";
+  achievement_badges: { title: string; icon: string | null; color: string | null } | null;
+};
+
+/**
+ * De eigen behaalde badges, nieuwste eerst, voor de Badges-tegel. Weekbadges en
+ * mijlpalen samen; de badge-kast op het profiel blijft het volledige overzicht.
+ */
+export async function loadMyBadges(supabase: SupabaseClient, profileId: string): Promise<MyBadgeAward[]> {
+  const { data, error } = await supabase
+    .from("achievement_awards")
+    .select("id, period_start, award_scope, achievement_badges(title, icon, color)")
+    .eq("profile_id", profileId)
+    .order("period_start", { ascending: false })
+    .order("awarded_at", { ascending: false });
+  if (error || !data) return [];
+  return (data as unknown as (Omit<MyBadgeAward, "achievement_badges"> & {
+    achievement_badges: MyBadgeAward["achievement_badges"] | MyBadgeAward["achievement_badges"][];
+  })[]).map((row) => ({
+    ...row,
+    achievement_badges: Array.isArray(row.achievement_badges)
+      ? (row.achievement_badges[0] ?? null)
+      : row.achievement_badges,
+  }));
+}
+
 export type StatsConnection = { athlete_id: string; api_key: string; wellness_opt_in: boolean | null };
 
 export async function loadStatsConnection(

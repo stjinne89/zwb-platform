@@ -161,6 +161,58 @@ ZWBieb, beide 2026-10-16).
 
 ---
 
+> **Achievements als tab onder Stats, plus een Badges-tegel op Stats → Ik, 2026-10-16 — gebouwd, lokaal getest; niet ingelogd in de browser bekeken; niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Voorstel van de eigenaar. Achievements (ranglijsten, hall of fame)
+> en Stats zijn allebei "prestaties en cijfers" en stonden als twee losse items
+> in het Club-menu en als twee tegels op Club. Nu is het één plek: Stats met de
+> tabs "Club | Ik | Achievements".
+>
+> **Wat.**
+> - De route is verhuisd van `/achievements` naar `/stats/achievements`
+>   (`src/app/(app)/stats/achievements/`, inclusief `_actions.ts` en de
+>   afrondknop). Zo valt hij vanzelf onder het menu-item Stats en de plek Club.
+>   `/achievements` geeft een permanente redirect (`next.config.ts`); de
+>   querystring (`?week=vorige`) gaat mee. Gecontroleerd met de dev-server: 308.
+> - `StatsTabs` heeft een derde tab; de achievementspagina toont de tabbalk en
+>   het kopje "ZWB Stats".
+> - Weg uit het Club-menu (`nav-config.ts`), uit de Club-tegels (`club/page.tsx`)
+>   en als eigen prefix uit `design-places.ts` (`/stats` dekt het).
+> - Links, imports en `revalidatePath` bijgewerkt: dashboard, profiel
+>   (Strava-sectie), hulp, beheer Strava, intervals-ritsync, de Strava-import en
+>   de syncknop.
+> - Nieuwe tegel **Badges** (`badges`, half breed, standaard zichtbaar) in
+>   `src/lib/stats/tiles.ts`: aantal mijlpalen en weekbadges en de zes nieuwste
+>   behaalde badges, met een link "Badge-kast" naar `/profiel#badges` (de
+>   badge-kast heeft daarvoor `id="badges"` gekregen). Data via `loadMyBadges`
+>   (`stats/ik/_data.ts`), met de eigen sessie, dus onder de bestaande RLS van
+>   `achievement_awards`. De tegel kijkt niet naar het gekozen venster: een
+>   badge hoort bij het lid, niet bij een periode. Leden met een opgeslagen
+>   tegelkeuze krijgen hem achteraan (`normalizeLayout`); er is geen migratie
+>   nodig.
+>
+> **Bewust niet gebouwd.**
+> - De volledige badge-kast verhuizen naar Stats: die blijft op het profiel,
+>   waar hij ook voor het publieke profiel wordt gebruikt. De tegel is een
+>   samenvatting met een link.
+> - Club-tegel "Stats" breder maken nu Achievements eruit is: eerst zien hoe
+>   het raster er ingelogd uitziet.
+>
+> **Getest.** ESLint schoon op de gewijzigde mappen. `tsc --noEmit` geeft alleen
+> de bestaande fouten over ontbrekende pakketten in deze worktree (`@zxing/*`,
+> `tesseract.js`), niets uit deze ronde. Vitest: alles groen behalve tests die
+> onder volle belasting een time-out gaven (los gedraaid geslaagd) en
+> `omnium-live`, dat `.env.local` nodig heeft.
+>
+> **Niet geverifieerd.** De drie Stats-tabs, de Badges-tegel en het Club-raster
+> ingelogd in de browser (de dev-server draait tegen productie, dus niet
+> ingelogd door Claude); de tegel met echte badges; de sprong naar
+> `/profiel#badges` bij een lid zonder mijlpaal-badges (dan bestaat de
+> badge-kast niet en blijft de pagina bovenaan).
+
+---
+
 > **TTT Planner: plan lezen uit de afbeelding van ZwiftGopher, op het toestel, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, `eb7f5ef`); in de browser getoetst op een losse proefpagina, niet op de echte planner en niet op een telefoon. Geen migratie.**
 > Commit: `eb7f5ef`.
 >
@@ -16406,7 +16458,7 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   inlogt. De beheerschermen onder `/beheer/omnium` blijven Nederlands. Er komt
   geen i18n-laag; de Omnium-sectie krijgt `lang="en"` op zijn contentwrapper.
 - **Routes Nederlands**: `/kalender`, `/leden`, `/media`, `/community`,
-  `/profiel`, `/achievements` (uitzondering), `/live`. Nieuwe routes
+  `/profiel`, `/stats/achievements` (uitzondering), `/live`. Nieuwe routes
   volgen deze conventie.
 - **Supabase RLS overal aan**, policies per migratie naast de tabel.
 - **Service-role admin client**: alleen in server-acties die expliciet
@@ -16559,7 +16611,7 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   Strava-deel draait één keer per dag per lid (ronde bovenaan). Oorspronkelijk
   (2026-09-23): niet urgent, wel goed om
   te weten. `recomputeMyMilestoneBadges` in
-  `src/app/(app)/achievements/_actions.ts` draait `syncColSegmentTimesForUser`
+  `src/app/(app)/stats/achievements/_actions.ts` (toen nog `achievements/`) draait `syncColSegmentTimesForUser`
   (40 detailcalls) én `syncZwbSegmentsForUser` (40 detailcalls plus
   `applyAuthoritativeSegmentPrs`, tot 100 `GET /segments/{id}`). Eén klik kost dus
   richting 150 calls, ruim 7% van de daglimiet, zonder throttle — en het is een

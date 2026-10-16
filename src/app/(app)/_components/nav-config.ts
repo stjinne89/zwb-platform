@@ -107,7 +107,6 @@ export const NAV_GROUPS: NavNode[] = [
       { type: "link", href: "/leden", label: "Leden" },
       { type: "link", href: "/zwbieb", label: "ZWBieb" },
       { type: "link", href: "/teams", label: "Teams" },
-      { type: "link", href: "/achievements", label: "Achievements" },
       { type: "link", href: "/stats", label: "Stats" },
       { type: "link", href: "/profiel/segments/collecties", label: "ZWB Segments" },
       { type: "link", href: "/zwblokken", label: "ZWBlokken" },

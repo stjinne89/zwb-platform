@@ -22,6 +22,7 @@ import {
 import { FinalizeAwardsButton } from "./_components/finalize-awards-button";
 import { StravaSyncButton } from "@/components/strava-sync-button";
 import { getRequestAccess } from "@/lib/auth/request";
+import { StatsTabs } from "../_components/stats-tabs";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -269,6 +270,7 @@ export default async function AchievementsPage({
   return (
     <div className="space-y-8">
       <PageHeader
+        eyebrow="ZWB Stats"
         title="Achievements"
         actions={
         // Ritten binnenhalen (koppelen, syncen, importeren) staat op het
@@ -281,9 +283,11 @@ export default async function AchievementsPage({
         }
       />
 
+      <StatsTabs active="/stats/achievements" />
+
       <nav className="flex flex-wrap gap-2">
         <Link
-          href="/achievements"
+          href="/stats/achievements"
           aria-current={showPrevious ? undefined : "page"}
           className={`rounded-full border px-3 py-1 text-xs ${
             showPrevious ? "hover:bg-secondary" : "bg-foreground text-background"
@@ -292,7 +296,7 @@ export default async function AchievementsPage({
           Deze week
         </Link>
         <Link
-          href="/achievements?week=vorige"
+          href="/stats/achievements?week=vorige"
           aria-current={showPrevious ? "page" : undefined}
           className={`rounded-full border px-3 py-1 text-xs ${
             showPrevious ? "bg-foreground text-background" : "hover:bg-secondary"

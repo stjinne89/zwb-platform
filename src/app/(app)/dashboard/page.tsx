@@ -1277,7 +1277,7 @@ export default async function DashboardPage({
           <SectionHeader
             icon={BadgeCheck}
             title="Nieuwste badges"
-            action={<InlineMoreLink href="/achievements">Achievements</InlineMoreLink>}
+            action={<InlineMoreLink href="/stats/achievements">Achievements</InlineMoreLink>}
           />
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {awards.map((award) => {
