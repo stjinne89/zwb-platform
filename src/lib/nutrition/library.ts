@@ -87,7 +87,7 @@ export const BURKE_2011: NutritionSource = {
   kind: "review",
 };
 
-const MORTON_2026_JNUTR: NutritionSource = {
+export const MORTON_2026_JNUTR: NutritionSource = {
   citation:
     "Morton JP, Fell JM, Gonzalez JT, Hearris MA, Podlogar T, Pugh JN, Wallis GA. Carbohydrate fueling for endurance athletes during exercise. J Nutr 156(5):101442.",
   year: 2026,
@@ -433,6 +433,62 @@ export const HEARRIS_2022: NutritionSource = {
   kind: "studie",
 };
 
+export const RAVIKANTI_2025: NutritionSource = {
+  citation:
+    "Ravikanti S, Silang KG, Martyn HJ, et al. 13C-labelled glucose-fructose show greater exogenous and whole-body CHO oxidation and lower O2 cost of running at 120 versus 60 and 90 g·h-1 in elite male marathoners. J Appl Physiol 139(6):1581-1595.",
+  year: 2025,
+  url: "https://doi.org/10.1152/japplphysiol.00665.2025",
+  kind: "studie",
+};
+
+export const WILSON_2025: NutritionSource = {
+  citation:
+    "Wilson PB. A Narrative Review of the High-Carbohydrate Fueling Revolution (≥100 g/h) in the Professional Peloton. Sports Med 56(2):295–313.",
+  year: 2025,
+  url: "https://doi.org/10.1007/s40279-025-02372-6",
+  kind: "review",
+};
+
+export const COSTA_2017: NutritionSource = {
+  citation:
+    "Costa RJS, Miall A, Khoo A, et al. Gut-training: the impact of two weeks repetitive gut-challenge during exercise on gastrointestinal status, glucose availability, fuel kinetics, and running performance. Appl Physiol Nutr Metab 42(5):547-557.",
+  year: 2017,
+  url: "https://doi.org/10.1139/apnm-2016-0453",
+  kind: "studie",
+};
+
+export const MIALL_2018: NutritionSource = {
+  citation:
+    "Miall A, Khoo A, Rauch C, et al. Two weeks of repetitive gut-challenge reduce exercise-associated gastrointestinal symptoms and malabsorption. Scand J Med Sci Sports 28(2):630-640.",
+  year: 2018,
+  url: "https://doi.org/10.1111/sms.12912",
+  kind: "studie",
+};
+
+export const MARTINEZ_2023: NutritionSource = {
+  citation:
+    "Martinez IG, Mika AS, Biesiekierski JR, Costa RJS. The Effect of Gut-Training and Feeding-Challenge on Markers of Gastrointestinal Status in Response to Endurance Exercise: A Systematic Literature Review. Sports Med 53(6):1175-1200.",
+  year: 2023,
+  url: "https://doi.org/10.1007/s40279-023-01841-0",
+  kind: "review",
+};
+
+export const KING_2022: NutritionSource = {
+  citation:
+    "King AJ, Etxebarria N, Ross ML, et al. Short-Term Very High Carbohydrate Diet and Gut-Training Have Minor Effects on Gastrointestinal Status and Performance in Highly Trained Endurance Athletes. Nutrients 14(9):1929.",
+  year: 2022,
+  url: "https://doi.org/10.3390/nu14091929",
+  kind: "studie",
+};
+
+export const RAUCH_2022: NutritionSource = {
+  citation:
+    "Rauch CE, McCubbin AJ, Gaskell SK, Costa RJS. Feeding Tolerance, Glucose Availability, and Whole-Body Total Carbohydrate and Fat Oxidation in Male Endurance and Ultra-Endurance Runners in Response to Prolonged Exercise, Consuming a Habitual Mixed Macronutrient Diet and Carbohydrate Feeding During Exercise. Front Physiol 12:773054.",
+  year: 2022,
+  url: "https://doi.org/10.3389/fphys.2021.773054",
+  kind: "studie",
+};
+
 export const PRIETO_BELLVER_2024: NutritionSource = {
   citation:
     "Prieto-Bellver G, Diaz-Lara J, Bishop DJ, et al. A five-week periodized carbohydrate diet does not improve maximal lactate steady-state exercise capacity and substrate oxidation in well-trained cyclists compared to a high-carbohydrate diet. Nutrients 16(2):318.",
@@ -711,6 +767,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Een verhouding fructose tot glucose van ongeveer 0,6–1,0 werkt het best. Gewone suiker is 1:1.",
       "Drank, gel of reep maakt voor de opname weinig uit; afwisselen helpt je maag.",
       "Het ≥100 g per uur van het profpeloton is niet zonder meer over te zetten naar recreanten.",
+      "Boven 120 g per uur is nooit getest. Je verbrandt hooguit ongeveer 100 g per uur van wat je eet; de rest blijft in je darmen, en daar komen de klachten vandaan.",
     ],
     limits: [
       "De meeste proeven zijn gedaan met getrainde mannen in een lab.",
@@ -726,13 +783,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
         url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC9734239/",
         kind: "review",
       },
-      {
-        citation:
-          "Wilson PB. A Narrative Review of the High-Carbohydrate Fueling Revolution (≥100 g/h) in the Professional Peloton. Sports Med 56(2):295–313.",
-        year: 2025,
-        url: "https://link.springer.com/article/10.1007/s40279-025-02372-6",
-        kind: "review",
-      },
+      WILSON_2025,
       {
         citation:
           "Jeukendrup AE, et al. UCI Sports Nutrition Project: Race Nutrition for Road Cycling. Int J Sport Nutr Exerc Metab.",
@@ -743,6 +794,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       NORTE_2026,
       FLEITAS_PANIAGUA_2026,
       HEARRIS_2022,
+      RAVIKANTI_2025,
     ],
   },
   {
@@ -754,13 +806,15 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     points: [
       "Oefen op trainingen met de hoeveelheid en de producten die je op wedstrijddag wilt gebruiken.",
       "Verhoog in stappen van ongeveer 10–15 g per uur over een aantal weken.",
+      "Bij hardlopers halveerden twee weken lang elke dag een uur met 90 g per uur de maagklachten ongeveer, en ze namen meer op.",
+      "Wie 120 g per uur zonder klachten haalt, kan in een vervolgprotocol naar 150. Dat is profpraktijk, geen getest advies.",
       "Klachten nemen af als je binnen de aanbevolen hoeveelheden blijft en glucose en fructose mengt.",
       "Voor low-FODMAP-eten en probiotica is het bewijs nog beperkt.",
       "Bij aanhoudende klachten: overleg met een sportdiëtist of arts.",
     ],
     limits: [
       "Er is geen vast onderzocht schema; de stappen per week zijn een afleiding uit de reviews.",
-      "De studies zijn klein en duren hooguit een paar weken.",
+      "De studies zijn klein en duren hooguit een paar weken. Ze gingen tot 90 g per uur, en bij topsporters gaf het geen extra prestatiewinst.",
     ],
     sources: [
       {
@@ -769,6 +823,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
         url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5371619/",
         kind: "review",
       },
+      COSTA_2017,
+      MIALL_2018,
+      MARTINEZ_2023,
+      KING_2022,
       {
         citation:
           "Costa RJS, Gaskell SK, Henningsen K, et al. Sports Dietitians Australia and Ultra Sports Science Foundation Joint Position Statement: Exercise-Associated Gastrointestinal Perturbations and Symptoms. Sports Med 55:1097–1134.",

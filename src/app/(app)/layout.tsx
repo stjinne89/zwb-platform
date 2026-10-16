@@ -128,7 +128,6 @@ export default async function AppLayout({
               beheerPage={beheerCategoriesFor((permission) => access.has(permission)).length > 0}
               avatarUrl={(profile?.avatar_url as string | null) ?? null}
               showOnMobile
-              extraItems={[{ href: "/sponsors", label: "Sponsors" }]}
             />
             <ThemeToggle />
           </>

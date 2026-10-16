@@ -46,6 +46,19 @@ describe("protocoldefinities", () => {
     }
   });
 
+  it("laat darmtraining 150 verdergaan waar darmtraining ophoudt, met beperkt bewijs", () => {
+    const base = protocolBySlug("darmtraining")!;
+    const next = protocolBySlug("darmtraining-150")!;
+    expect(base.phases.at(-1)!.tasks[0].label).toBe("Rit met 110-120 g per uur");
+    expect(next.phases.map((phase) => phase.tasks[0].label)).toEqual([
+      "Rit met 130 g per uur",
+      "Rit met 140 g per uur",
+      "Rit met 150 g per uur",
+    ]);
+    expect(next.evidence).toBe("beperkt");
+    expect(base.evidence).toBe("matig");
+  });
+
   it("laat fases niet overlappen", () => {
     for (const protocol of PROTOCOLS) {
       const sorted = [...protocol.phases].sort((a, b) => a.fromDay - b.fromDay);

@@ -5,6 +5,8 @@
 // die tweede taak kwam er op 18 september 2026 bij, omdat de coach tot dan toe
 // alleen het plan kende en op een vraag over gereden ritten "dat kan ik niet
 // zien" antwoordde. Wat hij daarvoor meekrijgt staat in chat-context.ts.
+// Sinds 16 oktober 2026 krijgt hij ook de kennisbanken mee (lib/knowledge/coach.ts),
+// zodat een vraag over trainen of voeding niet uit de algemene modelkennis komt.
 //
 // Het antwoord loopt bewust in de achtergrond bij OpenAI (background: true) in
 // plaats van synchroon in de POST. Een reasoning-call duurt tientallen seconden
@@ -12,6 +14,8 @@
 // schema-generaties al zo opgelost. De POST zet dus meteen een lege coach-rij
 // neer met status 'pending', en de eerstvolgende GET haalt het antwoord op.
 
+import { coachKnowledgePaths, coachKnowledgeText } from "@/lib/knowledge/coach";
+import { dropUnknownKnowledgeLinks } from "@/lib/knowledge/links";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import {
   getCoachModel,
@@ -35,9 +39,10 @@ export const PENDING_TIMEOUT_MS = 5 * 60_000;
 
 export const COACH_SYSTEM_PROMPT = `Je bent de ZWB-coach in de trainingsruimte van wielervereniging ZWB.
 
-Je doet twee dingen: uitleggen waarom het trainingsschema van dit lid eruitziet zoals het
-eruitziet, en vragen beantwoorden over zijn trainingsdata. Je hebt die data echt — gebruik
-hem, en zeg nooit dat je er niet bij kunt.
+Je doet drie dingen: uitleggen waarom het trainingsschema van dit lid eruitziet zoals het
+eruitziet, vragen beantwoorden over zijn trainingsdata, en vragen beantwoorden over trainen,
+voeding en kracht met de kennisbank van ZWB. Je hebt die data en die kennisbank echt — gebruik
+ze, en zeg nooit dat je er niet bij kunt.
 
 Wat je krijgt:
 - \`schema\`, \`letOp\` en \`generatieInvoer\`: het lopende schema, de "Let op"-regels die erbij
@@ -51,6 +56,26 @@ Wat je krijgt:
 - \`voorkeuren\`: de persoonlijke voorkeuren die nu vastliggen, van het lid zelf of van zijn
   trainer. Die gaan in elk volgend schema mee. Staat een voorkeur er wel maar zie je hem niet
   terug in \`generatieInvoer\`, dan is hij vastgelegd nadat dit schema werd gemaakt.
+- De kennisbank staat onderaan deze instructies: per artikel een pad, een samenvatting, de
+  punten, de beperkingen en de bronnen. Dat is wat ZWB na een toets van de literatuur
+  onderschrijft.
+
+Kennisbank:
+- Gaat een vraag over hoe iets werkt — opbouw, zones, intervallen, herstel, taper, voeding,
+  supplementen, kracht — antwoord dan vanuit de kennisbank, ook als je zelf iets anders weet.
+  Staat er iets in wat een eigen keuze van ZWB is, zeg dan dat het een keuze is en geen bewezen
+  grens.
+- Noem een beperking als die je antwoord raakt: bijvoorbeeld dat het onderzoek bij hardlopers
+  of bij een kleine groep is gedaan.
+- Zegt de kennisbank er niets over, zeg dat dan. Je mag daarna kort algemeen antwoorden, maar
+  noem dan geen studies, percentages of grenzen die niet in de kennisbank staan.
+- Noem een bron alleen zoals hij bij een artikel staat; verzin er geen.
+- Verwijs naar het artikel waar je antwoord op steunt, als link in de vorm
+  [titel](pad) met precies het pad uit de kennisbank, en hooguit twee per antwoord. Geen
+  andere links.
+- Wijkt het schema van dit lid af van de kennisbank, zeg dat eerlijk en leg uit wat de
+  invoer van het schema daarvoor de reden kan zijn. Noem het schema niet fout; de trainer
+  leest mee.
 
 Regels:
 - Je verandert niets aan het schema. Wil het lid iets aanpassen, wijs dan op het vinkje
@@ -76,6 +101,14 @@ Regels:
   je af zoals een trainer ze zegt.
 - De trainer van dit lid leest dit gesprek terug en kan erin reageren. Schrijf dus niets wat
   je niet zou zeggen met de trainer erbij, en presenteer je uitleg niet als diens oordeel.`;
+
+/**
+ * De volledige instructies: de regels en daaronder de kennisbank. Allebei vast,
+ * en ze gaan vóór de context van het lid, zodat OpenAI dit deel uit de cache haalt.
+ */
+export function coachInstructions(): string {
+  return `${COACH_SYSTEM_PROMPT}\n\n# Kennisbank van ZWB\n\n${coachKnowledgeText()}`;
+}
 
 export type CoachHistoryMessage = {
   role: "member" | "trainer" | "coach";
@@ -140,7 +173,7 @@ export async function startCoachAnswer(
 
     const history = ((historyRows ?? []) as CoachHistoryMessage[]).reverse();
     const started = await startCoachAnswerBackground(
-      COACH_SYSTEM_PROMPT,
+      coachInstructions(),
       buildCoachUserText(context, history, question),
     );
 
@@ -207,7 +240,7 @@ export async function settlePendingCoachAnswers(
       if (result.status === "completed") {
         await admin
           .from("training_chat_messages")
-          .update({ body: result.text, status: "sent" })
+          .update({ body: dropUnknownKnowledgeLinks(result.text, coachKnowledgePaths()), status: "sent" })
           .eq("id", row.id);
         continue;
       }

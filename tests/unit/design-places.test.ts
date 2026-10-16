@@ -23,8 +23,12 @@ describe("placeForPath", () => {
     expect(placeForPath("/clubhuis")).toBeNull();
   });
 
+  it("zet Sponsors onder Club", () => {
+    expect(placeForPath("/sponsors")).toBe("club");
+  });
+
   it("geeft geen plek voor het persoonlijke menu en beheer", () => {
-    for (const path of ["/mijn-garage", "/hulp", "/sponsors", "/beheer/rechten"]) {
+    for (const path of ["/mijn-garage", "/hulp", "/beheer", "/beheer/rechten"]) {
       expect(placeForPath(path)).toBeNull();
     }
   });

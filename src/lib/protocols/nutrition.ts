@@ -20,17 +20,23 @@ import {
   GEORGIOU_2024,
   GURTON_2021,
   HAGELE_2026,
+  HEARRIS_2022,
   JERGER_2022,
   LEACH_2023,
+  MARTINEZ_2023,
+  MIALL_2018,
+  MORTON_2026_JNUTR,
   NORTE_2026,
   POON_2025,
   QIN_2026,
+  RAVIKANTI_2025,
   RORIZ_2022,
   SHANNON_2024,
   SOLLIE_2023,
   VALENZUELA_2023,
   ZHU_2026,
   BURKE_2011,
+  COSTA_2017,
   GR_VITAMINE_D,
   HILL_2021,
   HOWATSON_2010,
@@ -45,6 +51,7 @@ import {
   UCI_POSITION,
   UCI_SUPPLEMENTS,
   VAN_ROSENDAL_2010,
+  WILSON_2025,
 } from "@/lib/nutrition/library";
 import type { Protocol, ProtocolTask } from "./types";
 
@@ -582,7 +589,54 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
       "Boven ongeveer 90 gram per uur neem je meer op, en bij getrainde renners zakte de critical power na drie uur minder. Dat een wedstrijd daardoor sneller gaat, is niet aangetoond.",
       "Er is geen vast onderzocht schema; de stappen van 10 gram per week zijn een afleiding uit de reviews.",
     ],
-    sources: [JEUKENDRUP_2017, PODLOGAR_2022, UCI_POSITION, NORTE_2026],
+    sources: [JEUKENDRUP_2017, PODLOGAR_2022, UCI_POSITION, NORTE_2026, COSTA_2017, MIALL_2018, MARTINEZ_2023],
+    article: { href: "/zwbeter-worden/voeding/kennis/darmtraining", title: "Darmtraining en maagklachten" },
+  },
+  // Vervolg op darmtraining, op verzoek van de eigenaar (2026-10-16). Boven 120
+  // g/u is niets getest; daarom beperkt bewijs en een eigen protocol dat je
+  // alleen bewust start, niet een verlenging van darmtraining.
+  {
+    slug: "darmtraining-150",
+    pillar: "voeden",
+    group: "Opbouw",
+    title: "Doorbouwen naar 150 gram per uur",
+    shortLabel: "Darmtraining 150",
+    summary: "Drie weken twee ritten van minstens drie uur per week, met 130, 140 en 150 gram koolhydraten per uur.",
+    goal: "Wennen aan wat profs in lange etappes eten, als je 120 gram per uur al zonder klachten haalt.",
+    evidence: "beperkt",
+    anchor: "start",
+    phases: [130, 140, 150].map((grams, week) => ({
+      key: `week-${week + 1}`,
+      title: `Week ${week + 1}`,
+      fromDay: week * 7,
+      toDay: week * 7 + 6,
+      tasks: [
+        {
+          key: "lange-rit",
+          label: `Rit met ${grams} g per uur`,
+          detail:
+            "Een rit van minstens drie uur. Eet en drink vanaf het eerste kwartier in vaste porties, met een mix van glucose (of maltodextrine) en fructose van ongeveer 1 op 0,8.",
+          perWeek: 2,
+        },
+      ],
+    })),
+    cautions: [
+      "Krijg je krampen, misselijkheid, een vol gevoel of diarree, ga dan een week terug naar de vorige stap.",
+      "Komen de klachten terug, stop dan: dan is 120 gram per uur jouw plafond.",
+      "Train met wat je op de wedstrijddag wilt gebruiken.",
+    ],
+    notFor: [
+      "Als je 120 gram per uur nog niet zonder klachten haalt. Doe dan eerst de darmtraining.",
+      "Voor ritten en races korter dan ongeveer drie uur.",
+      "Bij darmziekten of aanhoudende buikklachten zonder overleg met een arts of sportdiëtist.",
+    ],
+    limits: [
+      "Meer dan 120 gram per uur is nooit in een proef getest. De 150 komt uit de praktijk van profs in lange etappes.",
+      "Je verbrandt hooguit ongeveer 100 gram per uur van wat je eet; de rest blijft langer in je darmen. Bij elite-marathonlopers gaf 120 gram per uur al de meeste misselijkheid en krampen.",
+      "Dat je er sneller van wordt, is niet aangetoond. De nieuwste review houdt 120 gram per uur aan als bovengrens voor getrainde renners.",
+      "Darmtraining is onderzocht tot 90 gram per uur, bij hardlopers, over twee weken. De stappen van 10 gram per week zijn een afleiding.",
+    ],
+    sources: [MORTON_2026_JNUTR, WILSON_2025, HEARRIS_2022, PODLOGAR_2022, RAVIKANTI_2025, MIALL_2018, COSTA_2017],
     article: { href: "/zwbeter-worden/voeding/kennis/darmtraining", title: "Darmtraining en maagklachten" },
   },
   {

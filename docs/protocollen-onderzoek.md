@@ -236,7 +236,8 @@ plafond per inname. Supplementprotocollen zijn er vanaf 18 jaar (AIS).
 | Koolhydraten laden | 10-12 g/kg per dag, 2 dagen; ontbijt 1-4 g/kg | [Burke e.a. 2011](https://doi.org/10.1080/02640414.2011.585473), UCI 2026 |
 | Bèta-alanine | 3,2-6,4 g/dag in giften ≤1,6 g, 8 weken | [Trexler e.a. 2015](https://doi.org/10.1186/s12970-015-0090-y), [Saunders e.a. 2017](https://doi.org/10.1136/bjsports-2016-096396) |
 | Creatine | 0,3 g/kg 5 dagen, daarna 3-5 g/dag | [Kreider e.a. 2017](https://doi.org/10.1186/s12970-017-0173-z) |
-| Darmtraining | 60 → 110-120 g/u in zes weken, 2 ritten per week | [Jeukendrup 2017](https://doi.org/10.1007/s40279-017-0690-6), [Podlogar e.a. 2022](https://doi.org/10.1007/s00421-022-05019-w) |
+| Darmtraining | 60 → 110-120 g/u in zes weken, 2 ritten per week | [Jeukendrup 2017](https://doi.org/10.1007/s40279-017-0690-6), [Podlogar e.a. 2022](https://doi.org/10.1007/s00421-022-05019-w), [Costa e.a. 2017](https://doi.org/10.1139/apnm-2016-0453), [Miall e.a. 2018](https://doi.org/10.1111/sms.12912) |
+| Darmtraining 150 (beperkt bewijs) | 130 → 150 g/u in drie weken, 2 ritten van ≥ 3 uur per week, alleen na 120 g/u zonder klachten | [Morton e.a. 2026](https://doi.org/10.1016/j.tjnut.2026.101442), [Wilson 2025](https://doi.org/10.1007/s40279-025-02372-6), [Ravikanti e.a. 2025](https://doi.org/10.1152/japplphysiol.00665.2025) |
 
 **Afgeleid of eigen keuze:**
 - Plafonds per inname (400 mg cafeïne, 30 g bicarbonaat, 750 g slush) zijn
@@ -245,6 +246,36 @@ plafond per inname. Supplementprotocollen zijn er vanaf 18 jaar (AIS).
   meta-analyses; die studies zelf zijn niet afzonderlijk nagelezen.
 - De stappen van 10 g per week bij darmtraining zijn een afleiding; er is geen
   vast onderzocht schema.
+- **Darmtraining 150 (2026-10-16).** Op verzoek van de eigenaar, na een
+  literatuurcheck die op een advies van maximaal 120 g/u uitkwam. Wat er is:
+  - Gecontroleerd onderzoek gaat tot 120 g/u. 120 g/u werd in elke vorm goed
+    opgenomen ([Hearris e.a. 2022](https://doi.org/10.1152/japplphysiol.00091.2022)).
+  - 120 g/u gaf meer oxidatie van ingenomen koolhydraten dan 90 g/u (1,51 tegen
+    1,29 g/min), maar spaarde het eigen glycogeen niet extra
+    ([Podlogar e.a. 2022](https://doi.org/10.1007/s00421-022-05019-w)).
+  - Bij elite-marathonlopers gaf 120 g/u meer oxidatie en een betere
+    loopeconomie, maar ook de meeste misselijkheid en krampen
+    ([Ravikanti e.a. 2025](https://doi.org/10.1152/japplphysiol.00665.2025)).
+  - De oxidatie van ingenomen koolhydraten loopt dood rond 1,5–1,7 g/min, ofwel
+    90–100 g/u.
+  - 120–200 g/u komt in de praktijk voor, maar is niet onderbouwd. De
+    bovengrens voor getrainde renners ligt mogelijk op 120 g/u
+    ([Morton e.a. 2026](https://doi.org/10.1016/j.tjnut.2026.101442)).
+  - Voor ≥ 100 g/u is er geen duidelijke prestatiewinst, mogelijk wel in
+    meerdaagse koersen ([Wilson 2025](https://doi.org/10.1007/s40279-025-02372-6)).
+  - Darmtraining werkt, maar is getest tot 90 g/u, bij hardlopers, over twee
+    weken. Ongeveer 47–60 % minder klachten en minder malabsorptie
+    ([Costa e.a. 2017](https://doi.org/10.1139/apnm-2016-0453);
+    [Miall e.a. 2018](https://doi.org/10.1111/sms.12912);
+    review [Martinez e.a. 2023](https://doi.org/10.1007/s40279-023-01841-0)).
+    Bij topsporters gaf het geen extra prestatiewinst
+    ([King e.a. 2022](https://doi.org/10.3390/nu14091929)). Bij 90 g/u had
+    38 % malabsorptie ([Rauch e.a. 2022](https://doi.org/10.3389/fphys.2021.773054)).
+
+  Daarom een eigen protocol met beperkt bewijs, geen verlenging van
+  darmtraining: het lid start het bewust, alleen als 120 g/u zonder klachten
+  gaat, op ritten van minstens drie uur, met een stopregel. Het schema van drie
+  stappen van 10 g is een afleiding, net als bij darmtraining.
 - Het uitproberen op een training in de twee weken voor de wedstrijd is een
   aanbeveling uit de reviews, geen getest protocol.
 

@@ -304,6 +304,32 @@ drie 2026-10-16).
 
 ---
 
+> **Design tegels: persoonlijke menu zonder Hulp en Sponsors; Sponsors naar Club, 2026-10-16 — gebouwd, unit-tests, typecheck en lint schoon; niet in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-16). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Vraag van de eigenaar: Hulp staat dubbel, want het vraagteken
+> naast de avatar gaat ook naar `/hulp`; en Sponsors hoort bij Club.
+>
+> **Wat.**
+> - Het avatar-menu toont geen Hulp meer, in beide designs: overal waar dat
+>   menu staat, staat het vraagteken ernaast.
+> - Design "tegels": Sponsors is uit het avatar-menu en staat als sage tegel op
+>   Club, na Polls. `/sponsors` hoort bij de plek Club, dus daar licht de tab
+>   op. De prop `extraItems` van `AvatarMenu` is weg; Sponsors was het enige
+>   item.
+>
+> **Bewust niet gedaan.** Het mobiele menu van het huidige design houdt Hulp:
+> daar staat geen vraagteken (dat is `hidden md:inline-flex`). In het huidige
+> design blijft Sponsors een eigen menu-item.
+>
+> **Getest.** Vitest op `design-places` (een nieuwe test), `nav-active` en
+> `admin-areas`: geslaagd. ESLint op de gewijzigde bestanden schoon; `tsc`
+> alleen de bekende `@zxing`-meldingen.
+>
+> **Niet geverifieerd.** Club en het menu ingelogd in de browser.
+
+---
+
 > **Design tegels: Beheer met categorietegels en een rij per categorie, zoals ZWBeter, 2026-10-16 — gebouwd, unit-tests, typecheck en lint schoon; ingelogd bekeken en goedgekeurd door de eigenaar; gepusht naar `main` (eigenaar, 2026-10-16, `b6e72b6`). Geen migratie.**
 > Commits: `c6a1d5a` (eerste versie) en de commit die dit blok bijwerkt.
 >
@@ -2701,8 +2727,9 @@ drie 2026-10-16).
 >   intervalprofiel in de trainingstegel" onder Bewust niet gebouwd.
 > - *Meer is weg: vier plekken.* De plek Meer dubbelde met het persoonlijke
 >   menu rechtsboven en is verwijderd (`/meer` bestaat niet meer). Het menu
->   bevat nu ook Sponsors en, onder Beheer, WhatsApp-groepen en Media (sinds
->   2026-10-16 één item Beheer naar de tegelpagina `/beheer`); het
+>   bevat nu ook Sponsors (sinds 2026-10-16 een tegel op Club) en, onder
+>   Beheer, WhatsApp-groepen en Media (sinds 2026-10-16 één item Beheer naar
+>   `/beheer`); het
 >   toont de letter van het design. Routes als `/profiel` en `/beheer` horen bij
 >   geen plek meer, dus dan is geen tab actief (`placeForPath` geeft `null`).
 >   **Niet meer waar:** "vijf plekken" en "Meer" overal hierboven, in
@@ -9641,6 +9668,61 @@ afsluitdruk nodig, hogere bloeddruk; geen effect boven placebo).
 De DOI's zijn niet in Crossref nagelopen en de studieopzet niet uit de volledige
 artikelen gehaald; dat moet per bron bij het bouwen.
 
+### Opgeleverd — Coachchat antwoordt met de kennisbank
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Achtergrond: [coachchat](docs/coachchat.md#de-kennisbank-sinds-16-oktober-2026).
+
+**Aanleiding.** De eigenaar vroeg of de AI-coach anders moet nu de kennisbank na
+de wetenschappelijke toets veel meer onderbouwde feiten bevat. De coachchat kreeg
+tot nu toe alleen de data van het lid en beantwoordde vragen over trainen of
+voeding uit de algemene kennis van het model, dus mogelijk met precies de
+beweringen die de toets had bijgesteld (zoals de "veilige 10 %").
+
+**Wat er veranderde.**
+- `src/lib/knowledge/coach.ts` zet de drie kennisbanken (trainen 14, voeding 25,
+  kracht 12 artikelen) om in één vast tekstblok, met per artikel het pad, de
+  punten, de beperkingen en korte bronnen. Ruim 69.000 tekens.
+- `coachInstructions()` in `coach-chat.ts` zet dat onder de systeemprompt. De
+  prompt kreeg een blok "Kennisbank": antwoorden vanuit de kennisbank, eigen
+  keuzes van ZWB zo noemen, beperkingen noemen, geen bronnen verzinnen, zeggen
+  als de kennisbank er niets over zegt, en verwijzen als `[titel](pad)`.
+- De chat maakt van zo'n verwijzing een link, maar alleen naar een pad onder de
+  drie kennisbanken (`src/lib/knowledge/links.ts`). Links naar artikelen die niet
+  bestaan, haalt de server weg voordat het antwoord wordt opgeslagen.
+- `/hulp` zegt bij de coachchat in één alinea dat hij vragen over trainen,
+  voeding en kracht met de kennisbank beantwoordt.
+- `tests/unit/coach-knowledge.test.ts`: elk artikel staat erin met pad, punten
+  en beperkingen, elk pad heeft een artikelpagina, de instructies zijn vast, en
+  alleen kennisbankpaden worden een link.
+
+**Bewust niet gedaan.**
+- **Zoeken met embeddings of een vectoropslag.** Een kleine vijftig artikelen
+  passen in één keer; zoeken voegt alleen infrastructuur en missers toe. Pas
+  heroverwegen als de kennisbanken een veelvoud worden.
+- **De artikelen in de schema-prompt.** Een planner heeft regels nodig, geen
+  leesstof. Daar is het voorstel een andere ronde: de prompt opbouwen uit regels
+  met een id uit het claimregister en een artikel als bron, en regels die niet
+  van toepassing zijn weglaten. Nog niet goedgekeurd.
+- **Overstappen naar een andere AI-aanbieder.** Besproken en uitgesteld: dat
+  vraagt een andere oplossing voor de achtergrondcall (OpenAI's
+  `background: true`), een nieuwe verwerker in de privacyverklaring, en eerst een
+  vast testsetje om de uitkomst te kunnen vergelijken.
+- **Een nieuwe privacyversie.** De kennisbank is geen persoonsgegeven; over het
+  lid gaat er niets anders naar OpenAI dan voorheen.
+
+**Controle.** `vitest` groen op de nieuwe en de bestaande chattests. De volledige
+suite gaf drie fouten die hier niet bij horen: `omnium-live.test.ts` mist
+`.env.local` in deze worktree, en twee tests liepen onder last in een time-out
+en slagen los gedraaid. `eslint` schoon op de gewijzigde bestanden; `tsc` schoon
+op de bekende fouten in `read-barcode.ts` en `gopher-image-ocr.ts` na.
+
+**Niet geverifieerd.** Hoe de coach echt antwoordt: dat vraagt een OpenAI-call
+op productie. Ook niet of de prompt-cache van OpenAI het vaste blok hergebruikt
+(de route logt `usage` niet), wat de extra invoer per vraag kost (naar schatting
+zo'n twintigduizend tokens, niet geteld), en of de links in de chat in de browser
+goed werken.
+
 ### Opgeleverd — Profiel: weergaveknop met drie standen
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -9992,6 +10074,60 @@ sprong de scrollpositie terugzet. Op de iPhone testen: in de beginscherm-app iet
 typen (bijv. zoeken), het toetsenbord sluiten, naar de kalender gaan en scrollen.
 Werkt het niet, dan is de volgende stap meten wat `innerHeight`,
 `visualViewport.height` en `offsetTop` in die toestand teruggeven.
+
+### Opgeleverd — Darmtraining 150: vervolgprotocol naar 150 g koolhydraten per uur
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie: de
+protocollen staan in code en `member_protocols` accepteert elke slug.
+
+**Waarom.** De eigenaar las over 150 g/u en vroeg of daar een basis voor is en of
+er een gewenningsprotocol van te maken valt. Uitkomst van de literatuurcheck
+(alle bronnen in PubMed, details in
+[`docs/protocollen-onderzoek.md`](docs/protocollen-onderzoek.md), Voeden):
+- Gecontroleerd onderzoek gaat tot 120 g/u; 150 g/u is nooit getest.
+- Wat je inneemt, verbrand je hooguit tot ongeveer 100 g/u.
+- De nieuwste review houdt 120 g/u aan als bovengrens voor getrainde renners.
+- Darmtraining werkt, maar is getest tot 90 g/u.
+
+Mijn advies was op 120 te blijven (optie A). De eigenaar koos optie B: een
+vervolg naar 150, met beperkt bewijs en duidelijke grenzen.
+
+**Wat er is gekomen.**
+- **Protocol `darmtraining-150`** ("Doorbouwen naar 150 gram per uur"), in
+  `src/lib/protocols/nutrition.ts`:
+  - drie weken met 130, 140 en 150 g/u;
+  - twee ritten van minstens drie uur per week;
+  - bewijs "beperkt".
+- **Stopregel**: bij klachten een week terug, en komen ze terug, dan is 120 het
+  plafond.
+- **Niet voor** wie 120 g/u nog niet zonder klachten haalt, en niet voor ritten
+  korter dan drie uur.
+- **Beperkingen**: niet getest, het oxidatieplafond, geen aangetoonde winst, en
+  darmtraining is alleen onderzocht tot 90 g/u.
+- **Darmtraining (60 → 120) krijgt de studies zelf als bron**: Costa 2017,
+  Miall 2018 en de review Martinez 2023.
+- **Kennisartikelen**:
+  - "Darmtraining" noemt het effect (bij hardlopers ongeveer de helft minder
+    klachten) en het vervolgprotocol. Het krijgt ook King 2022 als bron: geen
+    extra prestatiewinst bij topsporters.
+  - "Koolhydraten tijdens de rit" zegt waarom boven 120 g/u niet als advies
+    geldt. Ravikanti 2025 is erbij gekomen, en Wilson 2025 is nu een constante
+    met een DOI-link.
+- **/hulp en zoekwoorden** noemen het vervolg.
+- **Test** in `tests/unit/protocols.test.ts`: het vervolg begint boven het eind
+  van darmtraining en heeft beperkt bewijs.
+
+**Bewust niet.**
+- Darmtraining zelf verlengen. Een lopend protocol zou dan langer worden, en het
+  vervolg moet een bewuste keuze zijn.
+- De doelen in `src/lib/nutrition/targets.ts` boven 120 g/u laten gaan. Het
+  advies in de app blijft maximaal 120; 150 bestaat alleen als protocol dat je
+  zelf start.
+
+**Niet geverifieerd.** De protocolpagina is niet in de browser bekeken. Lokaal:
+typecheck schoon, de protocoltests groen. In de volle testrun liepen vier tests
+in andere bestanden tegen een time-out; los gedraaid slagen ze. `omnium-live`
+mist `.env.local` in deze worktree.
 
 ### Opgeleverd — wetenschappelijke toets fase 6: overig, en de toets afgerond
 
@@ -13638,7 +13774,8 @@ drempel die in de code staat.
   met het gewicht van het lid (zie de ronde "Protocollen"). Geen merken blijft.*
 - **Geparkeerd, voor het plannenboek:** zweettest-calculator, boodschappenlijst,
   darmtrainingsschema. *Het darmtrainingsschema is op 2026-10-14
-  gebouwd als protocol "Darmtraining naar 90 tot 120 gram per uur".*
+  gebouwd als protocol "Darmtraining naar 90 tot 120 gram per uur", en op
+  2026-10-16 kwam er een vervolg naar 150 g/u bij ("Darmtraining 150").*
 
 **Nieuwe privacytekst, geen eigen privacyversie.** Lengte en eigen recepten
 zijn alleen voor het lid zelf zichtbaar. Er gaat niets naar andere leden of

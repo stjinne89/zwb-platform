@@ -1903,6 +1903,11 @@ export default function HelpPage() {
             belasting van eerdere ritten niet.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
+            Vragen over trainen, voeding of kracht beantwoordt hij met de
+            kennisbanken van ZWB, met een link naar het artikel waar zijn antwoord
+            op steunt. Zegt de kennisbank er niets over, dan zegt hij dat erbij.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
             Vink je <strong className="text-foreground">Dit raakt mijn schema</strong>{" "}
             aan, dan vraagt je bericht een herziening aan en gaat de tekst mee naar
             de volgende versie van je schema. Handig voor dingen die de app niet
@@ -3559,7 +3564,7 @@ Fitness-status: Verbeterend`}
             blokweken (drempel of 30/15) en brain endurance training. Bij voeding staan protocollen voor de wedstrijddag
             (cafeïne, natriumbicarbonaat, nitraat, ijsslush, glycerol,
             koolhydraten laden), voor de opbouw (bèta-alanine, creatine,
-            darmtraining), voor herstel (herstellen na een zware wedstrijd,
+            darmtraining, met een vervolg naar 150 gram per uur), voor herstel (herstellen na een zware wedstrijd,
             kersensap) en voor je gezondheid (vitamine D in de winter, collageen
             bij revalidatie). Elk protocol noemt hoe sterk het bewijs is, wat het
             niet laat zien en de bronnen. Wat geen protocol kreeg, zoals visolie,
