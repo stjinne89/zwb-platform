@@ -9268,8 +9268,8 @@ het profiel staat. De eigenaar koos ervoor dat leden elkaars fietsen zien.
   bezoekers als je publieke profiel aan staat. **Geen nieuwe versie** in
   `src/lib/privacy.ts`. Dat wijkt bewust af van de regel daar, net als bij
   eerdere verruimingen: het gaat om gegevens die het lid zelf voor zijn profiel
-  opgaf, met een keuze per fiets, voor ontvangers die zijn profiel al zien. Nog
-  door de eigenaar te laten goedkeuren.
+  opgaf, met een keuze per fiets, voor ontvangers die zijn profiel al zien.
+  Goedgekeurd door de eigenaar, zonder nieuwe versie (2026-10-16).
 
 **Bewust niet gedaan.**
 - Een select-policy op `strava_bikes`. Die tabel heeft ook kolommen voor het
