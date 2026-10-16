@@ -22,6 +22,7 @@ import { AskLink } from "./_components/ask-link";
 import { MemberAvatar } from "./_components/member-chip";
 import { MemberLink } from "@/components/member-link";
 import { TipItem } from "./_components/tip-item";
+import { TopicBadge } from "./_components/topic-badge";
 
 type PageProps = {
   searchParams: Promise<{ onderwerp?: string }>;
@@ -121,9 +122,18 @@ export default async function WieWeetWatPage({ searchParams }: PageProps) {
         {filled.map((topic) => (
           <section key={topic.slug} className="rounded-lg border bg-card p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="text-base font-semibold">
-                {focus ? "Kenners" : (
-                  <Link href={`/leden/wie-weet-wat?onderwerp=${topic.slug}`} className="hover:underline">
+              <h2 className="min-w-0 text-base font-semibold">
+                {focus ? (
+                  <span className="flex items-center gap-3">
+                    <TopicBadge slug={topic.slug} />
+                    Kenners
+                  </span>
+                ) : (
+                  <Link
+                    href={`/leden/wie-weet-wat?onderwerp=${topic.slug}`}
+                    className="group flex items-center gap-3 hover:underline"
+                  >
+                    <TopicBadge slug={topic.slug} />
                     {topic.label}
                   </Link>
                 )}
@@ -194,8 +204,9 @@ export default async function WieWeetWatPage({ searchParams }: PageProps) {
               <li key={topic.slug}>
                 <Link
                   href={`/leden/wie-weet-wat?onderwerp=${topic.slug}`}
-                  className="inline-block rounded-full border px-3 py-1 text-sm hover:bg-muted"
+                  className="group inline-flex items-center gap-2 rounded-md border py-1 pr-3 pl-1 text-sm hover:bg-muted"
                 >
+                  <TopicBadge slug={topic.slug} size="sm" />
                   {topic.label}
                 </Link>
               </li>

@@ -5,24 +5,29 @@
 //
 // Bewust geen gezondheidsonderwerp (blessures, herstel na ziekte): wie zich daar
 // als kenner meldt, vertelt de hele club iets over zijn gezondheid.
+//
+// De groep bepaalt de tenuekleur van het icoon (topic-badge.tsx): petrol voor
+// rijden, teal voor trainen, sage voor materiaal.
 
 export const KNOWLEDGE_TOPICS = [
-  { slug: "zwift-racen", label: "Zwift-racen (ZRL, WTRL)" },
-  { slug: "zwift-setup", label: "Zwift-setup en smart trainers" },
-  { slug: "vermogensmeters", label: "Vermogensmeters" },
-  { slug: "trainen-met-schema", label: "Trainen met schema" },
-  { slug: "data-apps", label: "Strava, intervals.icu en Garmin" },
-  { slug: "voeding-onderweg", label: "Eten en drinken onderweg" },
-  { slug: "kracht-core", label: "Kracht en core" },
-  { slug: "bikefit", label: "Bikefit en houding" },
-  { slug: "sleutelen", label: "Sleutelen en onderhoud" },
-  { slug: "banden-tubeless", label: "Banden en tubeless" },
-  { slug: "gravel", label: "Gravel en bikepacking" },
-  { slug: "bergen-cols", label: "Bergen en cols" },
-  { slug: "groepsrijden", label: "Rijden in een groep" },
-  { slug: "toertochten", label: "Toertochten en granfondo's" },
-  { slug: "kleding-weer", label: "Kleding en slecht weer" },
+  { slug: "zwift-racen", label: "Zwift-racen (ZRL, WTRL)", group: "rijden" },
+  { slug: "zwift-setup", label: "Zwift-setup en smart trainers", group: "materiaal" },
+  { slug: "vermogensmeters", label: "Vermogensmeters", group: "trainen" },
+  { slug: "trainen-met-schema", label: "Trainen met schema", group: "trainen" },
+  { slug: "data-apps", label: "Strava, intervals.icu en Garmin", group: "trainen" },
+  { slug: "voeding-onderweg", label: "Eten en drinken onderweg", group: "trainen" },
+  { slug: "kracht-core", label: "Kracht en core", group: "trainen" },
+  { slug: "bikefit", label: "Bikefit en houding", group: "materiaal" },
+  { slug: "sleutelen", label: "Sleutelen en onderhoud", group: "materiaal" },
+  { slug: "banden-tubeless", label: "Banden en tubeless", group: "materiaal" },
+  { slug: "gravel", label: "Gravel en bikepacking", group: "rijden" },
+  { slug: "bergen-cols", label: "Bergen en cols", group: "rijden" },
+  { slug: "groepsrijden", label: "Rijden in een groep", group: "rijden" },
+  { slug: "toertochten", label: "Toertochten en granfondo's", group: "rijden" },
+  { slug: "kleding-weer", label: "Kleding en slecht weer", group: "materiaal" },
 ] as const;
+
+export type KnowledgeTopicGroup = (typeof KNOWLEDGE_TOPICS)[number]["group"];
 
 export type KnowledgeTopicSlug = (typeof KNOWLEDGE_TOPICS)[number]["slug"];
 
@@ -30,6 +35,12 @@ const LABELS = new Map<string, string>(KNOWLEDGE_TOPICS.map((t) => [t.slug, t.la
 
 export function isKnowledgeTopic(slug: unknown): slug is KnowledgeTopicSlug {
   return typeof slug === "string" && LABELS.has(slug);
+}
+
+const GROUPS = new Map<string, KnowledgeTopicGroup>(KNOWLEDGE_TOPICS.map((t) => [t.slug, t.group]));
+
+export function topicGroup(slug: string): KnowledgeTopicGroup | null {
+  return GROUPS.get(slug) ?? null;
 }
 
 export function topicLabel(slug: string): string {

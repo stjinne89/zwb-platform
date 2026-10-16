@@ -3,6 +3,7 @@ import { topicLabel } from "@/lib/wie-weet-wat/topics";
 import type { MemberSummary, TipRow } from "@/lib/wie-weet-wat/queries";
 import { MemberChip } from "./member-chip";
 import { TipActions } from "./tip-actions";
+import { TopicIcon } from "./topic-badge";
 
 export function TipItem({
   tip,
@@ -30,8 +31,9 @@ export function TipItem({
         {showTopic && (
           <Link
             href={`/leden/wie-weet-wat?onderwerp=${tip.topic_slug}`}
-            className="hover:text-primary hover:underline"
+            className="inline-flex items-center gap-1 hover:text-primary hover:underline"
           >
+            <TopicIcon slug={tip.topic_slug} className="size-3.5" />
             {topicLabel(tip.topic_slug)}
           </Link>
         )}

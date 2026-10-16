@@ -9105,6 +9105,49 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Wie weet wat: een icoon per onderwerp
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt, op de branch
+`claude/profile-design-icons-b0c0b1`; niet gepusht. Geen migratie.
+
+**Aanleiding.** De eigenaar vond het blok "Weet van" op het profiel van een lid
+een kale lijst en vroeg om iconen of plaatjes die bij de onderwerpen horen, ook
+bij Wie weet wat zelf.
+
+**Wat er veranderde.**
+- Elk onderwerp in `src/lib/wie-weet-wat/topics.ts` heeft een groep: rijden,
+  trainen of materiaal (`topicGroup`). De groep bepaalt de tenuekleur: petrol
+  met een goud icoon voor rijden, teal voor trainen, sage voor materiaal. In
+  donker de lichtere petrol en sage van de tegels, anders zakken ze weg.
+- `topic-badge.tsx`: het icoon als vierkant in die kleur, met de schuine baan
+  van het tenue erdoor (`.topic-badge` in `globals.css`). Lucide waar het een
+  passend icoon heeft; schema (trapjeslijn van een intervaltraining), bidon en
+  band zijn zelf getekend in dezelfde lijn. Bij hover of focus kantelt het
+  icoon even, niet bij `prefers-reduced-motion`.
+- Profiel: "Weet van" is een lijst rijen met een groot icoon, het onderwerp en
+  de notitie. Op je eigen profiel twee kolommen (er is geen vraagknop). Op de
+  telefoon is "Vraag het aan" alleen het icoon, op 44px (`AskLink compact`).
+- Wie weet wat: het icoon voor elke onderwerpkop, klein in de knoppen onder
+  "Nog zonder kenners" (die zijn niet meer rond maar licht afgerond, gelijk aan
+  het icoon), bij de keuze van je onderwerpen en voor het onderwerp onder een
+  tip op het profiel.
+
+**Bewust niet gedaan.**
+- Geen foto's: vijftien onderwerpen met een foto worden druk en zwaar op de
+  telefoon, en er zijn geen eigen clubfoto's per onderwerp.
+- Geen eigen kleur per onderwerp: vijftien kleuren zeggen niets. Drie groepen in
+  tenuekleuren wel. Goud (in de tegels "jij, nu") is alleen de lijnkleur van het
+  icoon, geen vlak.
+- Geen icoon in de onderwerpkeuze van het tipformulier en de citatenimport: dat
+  zijn `<select>`-lijsten.
+
+**Niet geverifieerd.** De echte pagina's niet bekeken: lokaal inloggen kon niet.
+Gecontroleerd op een tijdelijke proefpagina met voorbeelddata (niet
+gecommit), in het huidige design en de tegels, licht en donker, desktop en
+telefoon (375 px); daar zonder het tegellettertype. Typecheck en lint schoon,
+afgezien van de bestaande `@zxing`-meldingen in een worktree zonder die
+pakketten.
+
 ### Opgeleverd — Tabbalk blijft hangen na het toetsenbord (iPhone)
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt (`fa85aa7` op de eigen branch, als `6dc4250` op `main` gezet); gepusht naar `main` (eigenaar, 2026-10-16). Geen migratie.

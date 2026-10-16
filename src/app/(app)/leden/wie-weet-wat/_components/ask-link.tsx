@@ -8,11 +8,14 @@ export function AskLink({
   expertId,
   topic,
   tipId,
+  compact = false,
   className,
 }: {
   expertId: string;
   topic: string;
   tipId?: string;
+  /** Op de telefoon alleen het icoon, op een duimvlak van 44px. */
+  compact?: boolean;
   className?: string;
 }) {
   const params = new URLSearchParams({ aan: expertId, onderwerp: topic });
@@ -20,10 +23,14 @@ export function AskLink({
   return (
     <Link
       href={`/leden/wie-weet-wat/vraag?${params.toString()}`}
-      className={cn(buttonVariants({ variant: "outline", size: "sm" }), className)}
+      className={cn(
+        buttonVariants({ variant: "outline", size: "sm" }),
+        compact && "max-sm:size-11 max-sm:p-0 max-sm:[&_svg]:size-4.5",
+        className,
+      )}
     >
       <MessageCircleQuestion />
-      Vraag het aan
+      <span className={compact ? "max-sm:sr-only" : undefined}>Vraag het aan</span>
     </Link>
   );
 }

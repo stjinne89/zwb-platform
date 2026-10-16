@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { KNOWLEDGE_TOPICS } from "@/lib/wie-weet-wat/topics";
+import { TopicBadge } from "./topic-badge";
 import { MAX_TOPICS_PER_MEMBER, TOPIC_NOTE_MAX } from "@/lib/wie-weet-wat/limits";
 import { saveMyKnowledge, stopMyKnowledge } from "../_actions";
 
@@ -85,6 +86,7 @@ export function KnowledgeForm({
                   disabled={!checked && count >= MAX_TOPICS_PER_MEMBER}
                   onChange={() => toggle(topic.slug)}
                 />
+                <TopicBadge slug={topic.slug} size="md" />
                 {topic.label}
               </label>
               {checked && (

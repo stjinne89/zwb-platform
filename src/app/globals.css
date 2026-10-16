@@ -341,6 +341,48 @@
   }
 }
 
+/* Icoon van een onderwerp van Wie weet wat (topic-badge.tsx): een vlak in de
+   tenuekleur van de groep met de schuine baan van het tenue erdoor. Petrol met
+   goud voor rijden, teal voor trainen, sage voor materiaal; in donker de lichtere tinten
+   van de tegels, anders zakken petrol en sage weg op nachtpetrol. */
+@layer components {
+  .topic-badge {
+    position: relative;
+    display: inline-grid;
+    flex-shrink: 0;
+    place-items: center;
+    overflow: hidden;
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--topic-bg);
+    color: var(--topic-fg);
+  }
+  .topic-badge::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(118deg, transparent 0 58%, rgb(255 255 255 / 0.13) 58% 78%, transparent 78%);
+  }
+  .topic-badge > svg {
+    position: relative;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .group:hover .topic-badge > svg,
+  .group:focus-visible .topic-badge > svg {
+    transform: rotate(-8deg) scale(1.08);
+  }
+  .topic-rijden { --topic-bg: var(--zwb-petrol); --topic-fg: #d9a75a; }
+  .topic-trainen { --topic-bg: var(--zwb-teal); --topic-fg: #fbfbf7; }
+  .topic-materiaal { --topic-bg: var(--zwb-sage); --topic-fg: var(--zwb-petrol-dark); }
+  .dark .topic-rijden { --topic-bg: #00505f; }
+  .dark .topic-materiaal { --topic-bg: #8ea39e; --topic-fg: #061c22; }
+  .dark .topic-badge { box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08); }
+  @media (prefers-reduced-motion: reduce) {
+    .topic-badge > svg { transition: none; }
+    .group:hover .topic-badge > svg,
+    .group:focus-visible .topic-badge > svg { transform: none; }
+  }
+}
+
 /* ---------- Design "tegels" (proefversie achter een schakelaar) ----------
    Geldt alleen binnen [data-design="tegels"], dat de app-layout zet als het
    cookie aanstaat (lib/design.ts). Het huidige design blijft onaangeroerd.
