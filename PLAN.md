@@ -9558,6 +9558,63 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Maandelijkse literatuurscan van de kennisbank
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Achtergrond: [kennisbank-scan](docs/kennisbank-scan/README.md).
+
+**Aanleiding.** Na de wetenschappelijke toets vroeg de eigenaar om een routine
+die elke maand de nieuwe literatuur scant op bruikbaarheid voor de app en zelf
+een voorstel schrijft wat aangescherpt, toegevoegd of verwijderd moet worden.
+Zonder zo'n ronde veroudert de kennisbank stil, terwijl de coachchat er sinds
+vandaag zijn antwoorden op baseert.
+
+**Wat er veranderde.**
+- `.claude/skills/kennisbank-scan/SKILL.md`: de werkwijze. Eigen worktree en
+  branch `kennisbank-scan/JJJJ-MM` vanaf `main`; bestaande bronnen in PubMed
+  controleren op terugtrekking; per thema zoeken in Consensus en PubMed binnen
+  het venster sinds de vorige scan; schiften op bewijs, populatie en opzet;
+  elke voorgestelde bron bevestigen; een voorstel in vaste vorm. Daarna pas,
+  na akkoord, uitvoeren met test en een ronde hier.
+- `docs/kennisbank-scan/README.md`: het geheugen van de scan. Logboek (de
+  nulmeting is de toets, t/m 2026-10-16), 25 thema's met een Consensus- en een
+  PubMed-zoekvraag, en een lijst met artikelen die bekeken en bewust gelaten zijn,
+  zodat ze niet elke maand terugkomen.
+- `scripts/kennisbank-inventaris.mjs`: leest de drie kennisbanken en de
+  protocollen uit de code (via `jiti`) en geeft per artikel kern, beperkingen
+  en bronnen, en alle 227 bronnen op één lijst (`--ids`: de 201 DOI's en PMID's).
+  Zo werkt de scan altijd met de kennisbank van de huidige commit.
+- Een geplande taak in de Claude-app op de eigen pc,
+  `kennisbank-literatuurscan`, op de 2e van de maand om 09:00 (de 1e is al van de
+  doorlichting van ZWBeter Worden). Hij leest de skill van `main`, dus werkt pas
+  als deze commit op `main` staat. Staat de app uit, dan draait hij bij de
+  volgende start.
+
+**Bewust niet gedaan.**
+- **Zelf uitvoeren.** De scan schrijft alleen een voorstel en commit alleen in
+  `docs/kennisbank-scan/`. Kennisbanktekst en rekenregels veranderen pas na
+  akkoord, zoals bij de toets.
+- **Een cloudroutine.** Die zou pushen en een branch-deploy kunnen starten
+  (Netlify-credits), en de connectors en de lokale checkout zijn op de eigen pc
+  zeker beschikbaar.
+- **Een ronde in dit bestand per scan.** Het logboek staat in
+  `docs/kennisbank-scan/README.md`; hier komt pas iets bij als een voorstel is
+  uitgevoerd. Anders groeit dit bestand met een regel per maand zonder dat er
+  iets aan de app veranderde.
+- **De onderzoeksagent van Consensus** (`create_thread`). Duurt minuten per vraag
+  en is bedoeld voor een synthese; voor een maandelijkse schifting volstaan de
+  gewone zoekfunctie en PubMed.
+
+**Getest.** De inventaris draait in deze worktree (227 bronnen, 71 artikelen en
+protocollen). Eén thema (taper) met de hand geprobeerd: Consensus geeft met het
+jaarfilter veel treffers buiten het onderwerp, en de PubMed-connector negeert
+`date_from` zonder `date_to`. Beide staan als regel in de werkwijze; de
+PubMed-zoekvragen gebruiken daarom `[tiab]`-termen zonder jokertekens.
+
+**Niet geverifieerd.** Een volledige scan is nog niet gedraaid; de eerste is op
+2 november 2026. Of de taak in Auto-modus de worktree en de commit zonder vragen
+mag maken, blijkt dan.
+
 ### Opgeleverd — Coachchat antwoordt met de kennisbank
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.

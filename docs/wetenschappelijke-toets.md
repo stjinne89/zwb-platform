@@ -22,6 +22,9 @@ uitgevoerd. Per fase staat in `PLAN.md` een ronde "wetenschappelijke toets".
   overbelasting, tijdrit); dat blijkt uit nieuwe schema's en plannen.
 - Idee voor het plannenboek: een persoonlijke W′-tijdconstante per lid.
 
+**Bijhouden:** elke maand scant een routine de nieuwe literatuur en schrijft een
+voorstel; zie `docs/kennisbank-scan/README.md`.
+
 ## Oorspronkelijke opdracht
 
 Gestart 2026-10-16 op verzoek van de eigenaar: alle wetenschappelijke beweringen
