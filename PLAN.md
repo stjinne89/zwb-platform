@@ -62,6 +62,9 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **Tabbalk op de iPhone:** na het pushen in de beginscherm-app iets typen,
+     het toetsenbord sluiten en kijken of de tabbalk onderaan blijft (ronde
+     2026-10-16, "Tabbalk blijft hangen na het toetsenbord").
    - **Protocollen:** `0237_member_protocols.sql` toepassen (2026-10-14). Zonder
      de tabel tonen de pagina's de protocollen, maar starten lukt niet.
    - **Wie weet wat:** `0239_member_knowledge.sql` is toegepast (eigenaar,
@@ -1999,9 +2002,11 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 > - *Tabbalk op de iPhone (nog niet op main).* De eigenaar meldde dat de balk
 >   op de iPhone midden in de pagina bleef hangen en met de inhoud meeschoof.
 >   De balk was `position: fixed`; hij is nu `sticky` met `bottom: 0` als
->   laatste kind van de schil. De oorzaak op iOS is niet vastgesteld. Getest in
->   de telefoonweergave van de browser (plakt op elke scrollpositie onderaan);
->   **niet getest op een echte iPhone.**
+>   laatste kind van de schil. Getest in de telefoonweergave van de browser
+>   (plakt op elke scrollpositie onderaan); **niet getest op een echte iPhone.**
+>   *Correctie 2026-10-16:* sticky loste het niet op; de balk bleef af en toe
+>   hangen. De oorzaak is het toetsenbord in de beginscherm-app, zie de ronde
+>   "Tabbalk blijft hangen na het toetsenbord".
 > - *Kleurbeleid voor tegels (besluit eigenaar, 2026-10-12; nog niet op main).*
 >   Kleur zegt wat voor soort ding het is, formaat hoe belangrijk het is.
 >   **Goud**: jij, nu, iets wat vandaag je aandacht vraagt (schaars). **Petrol**:
@@ -8800,6 +8805,56 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — Tabbalk blijft hangen na het toetsenbord (iPhone)
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** De eigenaar meldde dat de tabbalk op de iPhone "af en toe" nog
+steeds midden in beeld hangt, ook na de overstap van `fixed` naar `sticky`
+(2026-10-12). Op de screenshot zit de onderrand van de balk 336 pt boven de
+onderkant van het scherm (iPhone 393×852 pt): precies de hoogte van het
+iPhone-toetsenbord met suggestiebalk. De screenshot is van de app op het
+beginscherm (inhoud loopt onder de statusbalk door, geen Safari-balk).
+
+**Oorzaak.** Een bekende iOS-bug: na het sluiten van het toetsenbord zet WebKit
+het beeld niet terug. `innerHeight`/`visualViewport` blijven te klein of
+`visualViewport.offsetTop` blijft hangen, en alles wat onderaan vastzit staat
+dan een toetsenbordhoogte te hoog, tot de app wordt afgesloten. Dat geldt voor
+`fixed` én `sticky`; daarom hielp de vorige ronde niet. Bronnen: WebKit-bug
+[297779](https://bugs.webkit.org/show_bug.cgi?id=297779) en een
+[beschrijving voor beginscherm-apps](https://dev.to/cederhook/fixing-the-ios-standalone-pwa-keyboard-bug-that-shrinks-your-viewport-for-good-63d).
+"Af en toe" past daarbij: het gebeurt pas na typen ergens in de app, en blijft
+daarna bij elke pagina.
+
+**Wat er veranderde.** `src/components/ios-viewport-herstel.tsx`, in de
+rootlayout. Alleen op iOS in de beginscherm-app houdt het de grootste
+schermhoogte per breedte bij. Na `focusout`, een resize, `pageshow` of terugkeer
+naar de app kijkt het of het beeld kleiner is gebleven (of verschoven) terwijl
+geen veld meer de focus heeft. Zo ja, dan zet het de body heel even op
+`display: none` en terug, met een gedwongen herberekening ertussen, en zet het
+de scrollpositie terug. Die sprong dwingt WebKit het beeld opnieuw te meten.
+Ingezoomd (`visualViewport.scale` > 1) telt niet als hangen. Hoogstens één
+herstel per seconde.
+
+**Bewust niet gedaan.**
+- Niet in Safari zelf: daar verandert de hoogte terecht als de adresbalk in- en
+  uitklapt, en zou het herstel bij elke scroll afgaan.
+- `interactive-widget=resizes-visual` en het vastzetten van `html`/`body` met
+  `position: fixed`: volgens de bron hierboven negeert de beginscherm-app het
+  eerste, en zet het tweede de app vanaf het laden op de kleine hoogte.
+- Geen doorschijnend waas over de sprong heen, zoals de bron voorstelt; eerst
+  zien of de sprong op de iPhone zichtbaar is.
+- De balk terug naar `fixed`: `sticky` werkt in de browser goed, en de bug raakt
+  beide.
+
+**Niet geverifieerd.** Niet getest op een echte iPhone; de bug is lokaal niet na
+te bootsen. Lokaal alleen: typecheck en lint schoon (afgezien van de bestaande
+`@zxing`-meldingen in een worktree zonder die pakketten), en in Chromium dat de
+sprong de scrollpositie terugzet. Op de iPhone testen: in de beginscherm-app iets
+typen (bijv. zoeken), het toetsenbord sluiten, naar de kalender gaan en scrollen.
+Werkt het niet, dan is de volgende stap meten wat `innerHeight`,
+`visualViewport.height` en `offsetTop` in die toestand teruggeven.
 
 ### Opgeleverd — Wie weet wat: een tip uit een gesprek bewaart de ontvanger
 
