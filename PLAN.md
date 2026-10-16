@@ -152,8 +152,8 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
-> **TTT Planner: plan lezen uit de afbeelding van ZwiftGopher, op het toestel, 2026-10-16 — gebouwd, lokaal getest; in de browser getoetst op een losse proefpagina, niet op de echte planner en niet op een telefoon. Geen migratie.**
-> Commit: de commit die dit blok toevoegt. Niet gepusht.
+> **TTT Planner: plan lezen uit de afbeelding van ZwiftGopher, op het toestel, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, `eb7f5ef`); in de browser getoetst op een losse proefpagina, niet op de echte planner en niet op een telefoon. Geen migratie.**
+> Commit: `eb7f5ef`.
 >
 > **Waarom.** Vraag van de eigenaar: "Zouden we het ook kunnen bouwen dat hij
 > een afbeelding kan lezen?" Gekozen uit twee routes: tekstherkenning op het
