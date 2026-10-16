@@ -5,6 +5,7 @@ import {
   Bike,
   Cake,
   CalendarDays,
+  ChartNoAxesColumn,
   CheckCircle2,
   CircleHelp,
   Download,
@@ -246,7 +247,7 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/polls", name: "Polls", text: "Snelle stemmingen vanuit de club." },
   { href: "/materiaal", name: "Vraag & Aanbod", text: "Spullen, hulpvragen en tips uitwisselen." },
   { href: "/media", name: "Media", text: "Nieuws, nieuwsbrieven, podcasts, video's en Instagram." },
-  { href: "/stats", name: "Stats", text: "Clubstatistieken en ranglijsten." },
+  { href: "/stats", name: "Stats", text: "Clubstatistieken en ranglijsten, en onder Ik je eigen ritten, vermogen en records." },
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
   { href: "/profiel", name: "Profiel", text: "Je gegevens, zichtbaarheid, je fietsen, koppelingen (Strava/intervals) en account." },
 ];
@@ -1416,6 +1417,91 @@ export default function HelpPage() {
           >
             <Grid3x3 className="size-4 text-primary" />
             Naar ZWBlokken
+          </Link>
+        </div>
+      </section>
+
+      <section
+        id="mijn-statistieken"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <ChartNoAxesColumn className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Mijn statistieken</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Onder Stats &rarr; Ik staat je eigen ritgeschiedenis: per week,
+              maand of jaar, over de laatste 12 maanden tot alles wat je ooit
+              gekoppeld hebt. Alleen jij ziet deze pagina.
+            </p>
+          </div>
+        </header>
+
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Kies je eigen tegels.</strong>{" "}
+              Met Tegels aanpassen zet je tegels aan of uit en zet je ze in je
+              eigen volgorde. Je keuze geldt op al je apparaten.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              Alles komt uit je ritten op het platform: via Strava, intervals.icu
+              of je eigen upload. Bij een upload (CSV, GPX of FIT) bewaren we
+              geen vermogen of hartslag, dus die ritten tellen alleen mee voor
+              kilometers, uren en hoogtemeters.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Vermogen</strong> toont per
+              periode je hoogste en je gemiddelde NP (genormaliseerd vermogen)
+              van ritten van minstens twintig minuten met een echte
+              vermogensmeter, met je FTP van dat moment als stippellijn. Strava
+              schat het vermogen van ritten zonder meter; die schatting telt hier
+              niet mee.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Watt per hartslag</strong> is
+              je NP gedeeld door je gemiddelde hartslag. Stijgt die lijn, dan
+              trap je bij dezelfde hartslag meer watt: een teken dat je
+              duurvermogen groeit.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Fitheid</strong> is je CTL
+              (fitheid, gemiddelde belasting over zes weken), ATL (vermoeidheid,
+              over een week) en vorm (het verschil). Heb je intervals.icu
+              gekoppeld, dan zie je de waarden van intervals, die ook ritten
+              zonder vermogensmeter op hartslag meetellen. Zonder koppeling
+              rekenen we ze zelf uit de TSS van je ritten met vermogensmeter.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              De vergelijking met vorig jaar bij Totalen gaat over precies
+              dezelfde periode een jaar eerder.
+            </span>
+          </li>
+        </ul>
+
+        <div className="mt-4">
+          <Link
+            href="/stats/ik"
+            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+          >
+            <ChartNoAxesColumn className="size-4 text-primary" />
+            Naar Mijn statistieken
           </Link>
         </div>
       </section>

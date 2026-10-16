@@ -4,24 +4,15 @@ import { Bike, Clock, Mountain, Trophy, Users, MapPin } from "lucide-react";
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRequestUser } from "@/lib/auth/request";
-import { CYCLING_SPORTS } from "@/lib/strava/sports";
+import { CYCLING_SPORTS, DISCIPLINE_LABELS } from "@/lib/strava/sports";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import { MemberLink } from "@/components/member-link";
 import { StravaAttribution } from "@/components/strava-brand";
-import { ScrollTabs, SCROLL_TAB_ITEM } from "@/components/ui/scroll-tabs";
+import { ScrollTabs } from "@/components/ui/scroll-tabs";
+import { SCROLL_TAB_ITEM } from "@/components/ui/scroll-tab-item";
+import { StatsTabs } from "./_components/stats-tabs";
 
 export const dynamic = "force-dynamic";
-
-const DISCIPLINE_LABELS: Record<string, string> = {
-  Ride: "Weg",
-  VirtualRide: "Virtueel (Zwift)",
-  GravelRide: "Gravel",
-  MountainBikeRide: "MTB",
-  EBikeRide: "E-bike",
-  EMountainBikeRide: "E-MTB",
-  Velomobile: "Velomobiel",
-  Handcycle: "Handbike",
-};
 
 /** Eén regel per maand, lid en discipline; `count` is het aantal ritten erin. */
 type ActivityRow = {
@@ -237,6 +228,8 @@ export default async function StatsPage({
         description="Kilometers, hoogtemeters en uren van alle leden — per maand, discipline en regio."
         actions={<HelpLink href="/hulp" />}
       />
+
+      <StatsTabs active="/stats" />
 
       {!hasData ? (
         <EmptyState>

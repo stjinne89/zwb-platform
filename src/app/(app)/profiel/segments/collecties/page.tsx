@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Gauge, Mountain, Repeat, Trophy } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { ScrollTabs, SCROLL_TAB_ITEM } from "@/components/ui/scroll-tabs";
+import { ScrollTabs } from "@/components/ui/scroll-tabs";
+import { SCROLL_TAB_ITEM } from "@/components/ui/scroll-tab-item";
 import { BackLink } from "@/components/app-ui";
 import { GpsLabel } from "@/components/gps-label";
 

@@ -1,0 +1,215 @@
+import Link from "next/link";
+import { Suspense, type ReactNode } from "react";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/auth/request";
+import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
+import { StravaAttribution } from "@/components/strava-brand";
+import { ScrollTabs } from "@/components/ui/scroll-tabs";
+import { SCROLL_TAB_ITEM } from "@/components/ui/scroll-tab-item";
+import { cn } from "@/lib/utils";
+import { DISCIPLINE_LABELS } from "@/lib/strava/sports";
+import { loadFtpAt } from "@/lib/training/ftp-history";
+import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+import {
+  bucketsBetween,
+  GRANULARITIES,
+  parseGranularity,
+  parseRange,
+  personalRidesFromRows,
+  RANGES,
+  windowFor,
+} from "@/lib/stats/personal";
+import { normalizeLayout, STATS_TILES, tileDef, type TileId } from "@/lib/stats/tiles";
+import { StatsTabs } from "../_components/stats-tabs";
+import { loadPersonalRideRows, loadStatsConnection, loadTileChoice } from "./_data";
+import { TileFallback } from "./_components/tiles";
+import { StatsTile, type TileContext } from "./_components/stats-tile";
+import { TileCustomizer } from "./_components/tile-customizer";
+
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
+type Search = Record<string, string | string[] | undefined>;
+
+const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
+
+export default async function MyStatsPage({ searchParams }: { searchParams: Promise<Search> }) {
+  const params = await searchParams;
+  const user = await getRequestUser();
+  if (!user) redirect("/login");
+
+  const per = parseGranularity(first(params.per));
+  const range = parseRange(first(params.bereik));
+  const sport = first(params.sport) ?? null;
+  const page = Math.max(1, Math.floor(Number(first(params.pagina)) || 1));
+
+  const supabase = await createClient();
+  const [rows, profile, choice, connection] = await Promise.all([
+    loadPersonalRideRows(supabase, user.id),
+    supabase.from("profiles").select("ftp_watts").eq("id", user.id).maybeSingle(),
+    loadTileChoice(supabase, user.id),
+    loadStatsConnection(supabase, user.id),
+  ]);
+  const currentFtp = profile.data?.ftp_watts == null ? null : Number(profile.data.ftp_watts);
+  const ftpAt = await loadFtpAt(supabase, user.id, currentFtp);
+
+  const today = amsterdamDayKey();
+  const allRides = personalRidesFromRows(rows, ftpAt);
+  const sports = [...new Set(allRides.map((ride) => ride.sportType ?? "Ride"))];
+  const activeSport = sport && sports.includes(sport) ? sport : null;
+  const rides = activeSport ? allRides.filter((ride) => (ride.sportType ?? "Ride") === activeSport) : allRides;
+
+  const span = windowFor(range, per, today, rides[0]?.day ?? null);
+  const keys = bucketsBetween(span.start, span.end, per);
+  const inWindow = rides.filter((ride) => ride.day >= span.start && ride.day <= span.end);
+
+  const layout = normalizeLayout(choice);
+  const locked = (id: TileId) => tileDef(id).source === "intervals" && !connection;
+  const visible = layout.filter((item) => item.visible && !locked(item.id));
+
+  const href = (changes: Record<string, string | null>) => {
+    const query = new URLSearchParams();
+    const merged: Record<string, string | null> = {
+      per: per === "maand" ? null : per,
+      bereik: range === "12m" ? null : range,
+      sport: activeSport,
+      ...changes,
+    };
+    for (const [key, value] of Object.entries(merged)) if (value) query.set(key, value);
+    const qs = query.toString();
+    return qs ? `/stats/ik?${qs}` : "/stats/ik";
+  };
+
+  const context: TileContext = {
+    per,
+    range,
+    today,
+    span,
+    keys,
+    rides,
+    inWindow,
+    ftpAt,
+    connection,
+    page,
+    pageHref: (next) => href({ pagina: next > 1 ? String(next) : null }),
+  };
+
+  return (
+    <div className="space-y-4">
+      <PageHeader
+        eyebrow="ZWB Stats"
+        title="Mijn statistieken"
+        actions={<HelpLink href="/hulp#mijn-statistieken" />}
+      />
+      <StatsTabs active="/stats/ik" />
+
+      {allRides.length === 0 ? (
+        <EmptyState action={<Link href="/dashboard#strava-sync" className="text-sm font-medium text-primary">Naar Strava-sync</Link>}>
+          Nog geen ritten.
+        </EmptyState>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <ChipRow label="Per">
+                {GRANULARITIES.map((item) => (
+                  <Chip key={item.key} href={href({ per: item.key === "maand" ? null : item.key })} active={per === item.key}>
+                    {item.label}
+                  </Chip>
+                ))}
+              </ChipRow>
+              <ChipRow label="Bereik">
+                {RANGES.map((item) => (
+                  <Chip key={item.key} href={href({ bereik: item.key === "12m" ? null : item.key })} active={range === item.key}>
+                    {item.label}
+                  </Chip>
+                ))}
+              </ChipRow>
+            </div>
+            <TileCustomizer
+              layout={layout}
+              tiles={STATS_TILES.map((tile) => ({ id: tile.id, title: tile.title, locked: locked(tile.id) }))}
+            />
+          </div>
+
+          {sports.length > 1 && (
+            <ScrollTabs ariaLabel="Discipline">
+              <SportChip href={href({ sport: null })} active={!activeSport}>
+                Alles
+              </SportChip>
+              {sports.map((item) => (
+                <SportChip key={item} href={href({ sport: item })} active={activeSport === item}>
+                  {DISCIPLINE_LABELS[item] ?? item}
+                </SportChip>
+              ))}
+            </ScrollTabs>
+          )}
+
+          {visible.length === 0 ? (
+            <EmptyState>Geen tegels gekozen.</EmptyState>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {visible.map((item) => {
+                const def = tileDef(item.id);
+                return (
+                  <Suspense key={item.id} fallback={<TileFallback title={def.title} width={def.width} />}>
+                    <StatsTile id={item.id} context={context} />
+                  </Suspense>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      <StravaAttribution />
+    </div>
+  );
+}
+
+function ChipRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div role="group" aria-label={label} className="inline-flex flex-wrap rounded-md border bg-card p-0.5">
+      {children}
+    </div>
+  );
+}
+
+function Chip({ href, active, children }: { href: string; active: boolean; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      scroll={false}
+      data-active={active ? "true" : undefined}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        SCROLL_TAB_ITEM,
+        "whitespace-nowrap px-2.5",
+        active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function SportChip({ href, active, children }: { href: string; active: boolean; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      scroll={false}
+      data-active={active ? "true" : undefined}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        SCROLL_TAB_ITEM,
+        "whitespace-nowrap rounded-full border",
+        active
+          ? "border-primary bg-primary text-primary-foreground"
+          : "bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
+      )}
+    >
+      {children}
+    </Link>
+  );
+}

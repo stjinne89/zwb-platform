@@ -96,6 +96,4 @@ export function ScrollTabs({
   );
 }
 
-/** Tapdoel van minimaal 44px hoog, zoals de ontwerpregels voorschrijven. */
-export const SCROLL_TAB_ITEM =
-  "flex min-h-11 shrink-0 snap-start items-center gap-1.5 rounded-md px-3 text-sm font-medium transition";
+export { SCROLL_TAB_ITEM } from "./scroll-tab-item";

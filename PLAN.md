@@ -75,6 +75,9 @@ gaat stabiliteit voor nieuwe features.
    - **Wie weet wat, tip uit een gesprek:** `0240_member_tips_from_thread.sql`
      is toegepast (eigenaar, 2026-10-15), daarna gepusht. Niet nagekeken op
      productie. Bij het doorklikken ook "Bewaar als tip" proberen.
+   - **Mijn statistieken (tegelkeuze):** `0241_profile_stats_tiles.sql`
+     toepassen (2026-10-16). Zonder de tabel toont `/stats/ik` de
+     standaardtegels, maar "Tegels aanpassen" kan niet opslaan.
    - **CORE-sensor bij hitte:** `0238_member_protocol_core_sessions.sql`
      toepassen, ná `0237` (2026-10-14). **Zonder `0238` lukt het starten van
      elk protocol niet meer**: de app tekent met de nieuwe toestemmingsversie
@@ -139,10 +142,92 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0241`
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0242`
 (`0237_member_protocols` is van de protocollen, `0238_member_protocol_core_sessions`
 van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
-`0240_member_tips_from_thread` van Wie weet wat, 2026-10-15).
+`0240_member_tips_from_thread` van Wie weet wat, 2026-10-15;
+`0241_profile_stats_tiles` van Mijn statistieken, 2026-10-16).
+
+---
+
+> **Mijn statistieken (Stats → Ik), ronde 1: eigen ritgeschiedenis met zelfgekozen tegels, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Migratie `0241_profile_stats_tiles.sql` (niet toegepast).**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Wens van de eigenaar: een pagina met je eigen ritgeschiedenis, je
+> vermogensontwikkeling en cijfers per week, maand en jaar. Personaliseerbaar:
+> ieder lid kiest welke tegels het ziet, zodat ieders interessantste data
+> bovenaan staat. Gekozen plek: een tab op /stats ("Club | Ik"), niet in ZWBeter
+> Worden of het avatarmenu. intervals.icu mag maximaal benut worden; Strava-leden
+> krijgen wat met hun data kan. Het plan heeft drie rondes; dit is de eerste. De
+> tweede (piekvermogen, CP en W′ per periode uit intervals-powercurves) en de
+> derde (zones, W′bal, duurvermogen, herstel uit intervals-activiteiten) volgen.
+>
+> **Wat.**
+> - `/stats/ik` (`src/app/(app)/stats/ik/`), met de tabbalk `StatsTabs` op beide
+>   statspagina's. Bovenaan: per week, maand of jaar (`?per=`), bereik 12 mnd, 2
+>   jaar, 5 jaar of alles (`?bereik=`), en een chip per discipline die het lid
+>   heeft (`?sport=`).
+> - Tien tegels: Totalen (tegenover dezelfde periode een jaar eerder), Volume
+>   (staven km, uren, hm, TSS, kJ of ritten), Vermogen (beste en gemiddelde NP per
+>   periode met de FTP van toen als trap), Fitheid (CTL, ATL en vorm), Watt per
+>   hartslag (NP/HR), Jaar op jaar (cumulatieve km, hooguit vijf jaar), Kalender
+>   (53 weken plus reeksen), Disciplines, Records (rit en week, maand, jaar) en
+>   Ritten (alle ritten, 25 per pagina, met NP, IF, TSS en HR).
+> - Standaard zichtbaar: totalen, volume, vermogen, fitheid, records, ritten.
+>   "Tegels aanpassen" (dialoog met vinkjes en omhoog/omlaag) slaat op in
+>   `profile_stats_tiles` (migratie 0241, RLS: alleen de eigen rij). Het register
+>   staat in `src/lib/stats/tiles.ts`; `normalizeLayout` vult tegels die later
+>   bijkomen zelf aan, dus een nieuwe tegel vraagt geen migratie. Intervals-tegels
+>   (ronde 2 en 3) staan bij leden zonder koppeling op slot met een link naar de
+>   koppeling.
+> - Rekenwerk puur in `src/lib/stats/personal.ts`. De ritten komen uit
+>   `strava_activities` met losse JSON-paden in plaats van heel `raw`, dus zonder
+>   polyline, in pagina's van 1000. TSS en IF via `rideMetricsFromStrava` met de
+>   FTP van de ritdag (`loadFtpAt`). Vermogen en watt per hartslag tellen alleen
+>   ritten met echte meter (`device_watts`) van minstens 20 minuten.
+> - Fitheid: met intervals-koppeling de wellness van intervals (die telt ook ritten
+>   zonder meter op hartslag), anders zelf gerekend uit de eigen TSS (EWMA 42/7,
+>   `fitnessFromTss`). `projectCtl` is niet hergebruikt: die geeft alleen de
+>   eindwaarde, hier is de reeks nodig.
+> - Nieuwe gedeelde grafiek `src/components/charts/period-chart.tsx` (staven,
+>   gestapeld, lijnen, trappen, optionele rechteras), op `ResponsiveChart`. De
+>   marges volgen de langste aslabel.
+> - `DISCIPLINE_LABELS` verhuisd van `stats/page.tsx` naar `src/lib/strava/sports.ts`.
+> - Uitleg op `/hulp#mijn-statistieken`; de pagina zelf heeft geen uitlegtekst.
+>
+> **Meegenomen fout.** `SCROLL_TAB_ITEM` stond in een `"use client"`-module
+> (`scroll-tabs.tsx`). Een server-component die een string uit zo'n module
+> importeert krijgt een client-referentie, niet de klassen. Daardoor misten de
+> maandchips op /stats en de chips op ZWB Segments (`profiel/segments/collecties`)
+> hun hoogte, opvulling en flex. Gezien op de voorbeeldpagina. Nu staat de
+> constante in `src/components/ui/scroll-tab-item.ts`; `scroll-tabs.tsx`
+> exporteert hem door voor client-code.
+>
+> **Bewust niet gebouwd.**
+> - W/kg in de vermogenstegels: er is geen gewichtshistorie, en de huidige
+>   kilo's op oude ritten zouden de lijn vervalsen. Ronde 2 haalt W/kg uit de
+>   intervals-curves, die het gewicht van toen kennen.
+> - Piekvermogen per duur (5 s tot 20 min) voor Strava-leden: Strava-streams
+>   ophalen kost budget onder de atletenlimiet. Alleen via intervals (ronde 2).
+> - Slepen in de tegelkeuze: omhoog/omlaag werkt beter op een telefoon en met een
+>   toetsenbord.
+> - Een kaart of routes: niet nodig, en de start- en eindprivacy van ZWBlokken
+>   zou dan opnieuw moeten.
+> - Inzage voor trainers: eerst eigen gebruik.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon; `npm run build` geslaagd; vitest
+> 2445 geslaagd. Nieuw: `stats-personal.test.ts` (periodes en weekgrens op maandag,
+> venster, FTP per ritdag, NP alleen met meter en 20 min, EWMA, jaar op jaar,
+> reeksen, records) en `stats-tiles.test.ts` (`normalizeLayout`,
+> `parseLayoutInput`, en **migratie 0241 in PGlite**: eigen rij lezen en
+> schrijven, andermans rij niet, alleen een lijst). Alle tegels en de dialoog
+> bekeken op een tijdelijke voorbeeldpagina met verzonnen ritten (niet
+> gecommit), desktop en 375 px. Opslaan gaf daar "Niet ingelogd", zoals bedoeld.
+>
+> **Niet geverifieerd.** De echte pagina ingelogd met eigen ritten; opslaan van
+> de tegelkeuze tegen Supabase; het design "tegels"; de intervals-wellness in
+> Fitheid (dezelfde aanroep als Belasting, maar met een langer bereik, tot tien
+> jaar bij "Alles"). Migratie 0241 is alleen in PGlite gedraaid.
 
 ---
 

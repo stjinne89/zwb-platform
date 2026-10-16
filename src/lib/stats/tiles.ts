@@ -1,0 +1,95 @@
+// Het register van tegels op /stats/ik, en de keuze van het lid daaruit.
+//
+// Ieder lid kiest zelf welke tegels zichtbaar zijn en in welke volgorde
+// (wens eigenaar, 2026-10-16). De keuze staat in profile_stats_tiles (migratie
+// 0241) als [{ id, visible }]. Wat daar staat is nooit de waarheid over welke
+// tegels bestaan: normalizeLayout laat onbekende id's vallen en zet tegels die er
+// later bij kwamen achteraan, met hun standaardzichtbaarheid.
+
+export type TileSource = "strava" | "intervals";
+
+export type TileDef = {
+  id: string;
+  title: string;
+  /** "intervals": alleen met een intervals.icu-koppeling. */
+  source: TileSource;
+  /** "full" neemt de hele breedte, "half" de helft vanaf lg. */
+  width: "full" | "half";
+  defaultVisible: boolean;
+};
+
+export const STATS_TILES = [
+  { id: "totalen", title: "Totalen", source: "strava", width: "full", defaultVisible: true },
+  { id: "volume", title: "Volume", source: "strava", width: "full", defaultVisible: true },
+  { id: "vermogen", title: "Vermogen", source: "strava", width: "half", defaultVisible: true },
+  { id: "fitheid", title: "Fitheid", source: "strava", width: "half", defaultVisible: true },
+  { id: "efficientie", title: "Watt per hartslag", source: "strava", width: "half", defaultVisible: false },
+  { id: "jaarvergelijking", title: "Jaar op jaar", source: "strava", width: "half", defaultVisible: false },
+  { id: "kalender", title: "Kalender", source: "strava", width: "full", defaultVisible: false },
+  { id: "discipline", title: "Disciplines", source: "strava", width: "half", defaultVisible: false },
+  { id: "records", title: "Records", source: "strava", width: "half", defaultVisible: true },
+  { id: "ritten", title: "Ritten", source: "strava", width: "full", defaultVisible: true },
+] as const satisfies readonly TileDef[];
+
+export type TileId = (typeof STATS_TILES)[number]["id"];
+
+export type TileLayoutItem = { id: TileId; visible: boolean };
+export type TileLayout = TileLayoutItem[];
+
+const TILE_IDS = new Set<string>(STATS_TILES.map((tile) => tile.id));
+
+export function isTileId(value: unknown): value is TileId {
+  return typeof value === "string" && TILE_IDS.has(value);
+}
+
+export function tileDef(id: TileId): TileDef {
+  return STATS_TILES.find((tile) => tile.id === id)!;
+}
+
+export function defaultLayout(tiles: readonly TileDef[] = STATS_TILES): TileLayout {
+  return tiles.map((tile) => ({ id: tile.id as TileId, visible: tile.defaultVisible }));
+}
+
+/**
+ * Maakt van een opgeslagen keuze een volledige lijst: geldige id's in de
+ * gekozen volgorde (dubbele weg), daarna elke tegel die nog ontbrak.
+ */
+export function normalizeLayout(saved: unknown, tiles: readonly TileDef[] = STATS_TILES): TileLayout {
+  const known = new Map(tiles.map((tile) => [tile.id, tile]));
+  const seen = new Set<string>();
+  const layout: TileLayout = [];
+  if (Array.isArray(saved)) {
+    for (const item of saved) {
+      if (!item || typeof item !== "object") continue;
+      const { id, visible } = item as { id?: unknown; visible?: unknown };
+      if (typeof id !== "string" || !known.has(id) || seen.has(id)) continue;
+      seen.add(id);
+      layout.push({ id: id as TileId, visible: visible === true });
+    }
+  }
+  for (const tile of tiles) {
+    if (!seen.has(tile.id)) layout.push({ id: tile.id as TileId, visible: tile.defaultVisible });
+  }
+  return layout;
+}
+
+/**
+ * Wat een lid mag opslaan: een lijst met alleen bekende id's, elk één keer, en
+ * niet meer dan er tegels zijn. Anders null; de server-action slaat dan niets op.
+ */
+export function parseLayoutInput(input: unknown, tiles: readonly TileDef[] = STATS_TILES): TileLayout | null {
+  if (!Array.isArray(input) || input.length > tiles.length) return null;
+  const known = new Set(tiles.map((tile) => tile.id));
+  const seen = new Set<string>();
+  const layout: TileLayout = [];
+  for (const item of input) {
+    if (!item || typeof item !== "object") return null;
+    const { id, visible } = item as { id?: unknown; visible?: unknown };
+    if (typeof id !== "string" || !known.has(id) || seen.has(id) || typeof visible !== "boolean") {
+      return null;
+    }
+    seen.add(id);
+    layout.push({ id: id as TileId, visible });
+  }
+  return layout;
+}
