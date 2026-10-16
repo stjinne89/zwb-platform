@@ -16,14 +16,15 @@ import { cn } from "@/lib/utils";
 import { defaultLayout, type TileLayout } from "@/lib/stats/tiles";
 import { saveStatsTiles } from "../_actions";
 
-export type CustomizerTile = { id: string; title: string; locked: boolean };
+/** `lock`: waarom de tegel op slot zit en waar je dat oplost. */
+export type CustomizerTile = { id: string; title: string; lock: { label: string; href: string } | null };
 
 export function TileCustomizer({
   layout,
   tiles,
 }: {
   layout: TileLayout;
-  /** Titel per tegel, en of hij voor dit lid op slot zit (intervals.icu nodig). */
+  /** Titel per tegel, en of hij voor dit lid op slot zit (intervals.icu of de herstel-opt-in nodig). */
   tiles: CustomizerTile[];
 }) {
   const router = useRouter();
@@ -85,14 +86,14 @@ export function TileCustomizer({
                 <label
                   className={cn(
                     "flex min-h-10 flex-1 items-center gap-3 text-sm",
-                    tile.locked ? "text-muted-foreground" : "cursor-pointer",
+                    tile.lock ? "text-muted-foreground" : "cursor-pointer",
                   )}
                 >
                   <input
                     type="checkbox"
                     className="size-4 accent-[var(--primary)]"
-                    checked={item.visible && !tile.locked}
-                    disabled={tile.locked}
+                    checked={item.visible && !tile.lock}
+                    disabled={tile.lock != null}
                     onChange={(event) =>
                       setDraft((current) =>
                         current.map((entry, i) =>
@@ -103,12 +104,12 @@ export function TileCustomizer({
                   />
                   <span className="min-w-0 flex-1 truncate">{tile.title}</span>
                 </label>
-                {tile.locked ? (
+                {tile.lock ? (
                   <Link
-                    href="/zwbeter-worden/doelen"
+                    href={tile.lock.href}
                     className="shrink-0 rounded-full border px-2 py-0.5 text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground"
                   >
-                    intervals.icu
+                    {tile.lock.label}
                   </Link>
                 ) : null}
                 <div className="flex shrink-0 gap-0.5">

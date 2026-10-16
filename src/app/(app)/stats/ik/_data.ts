@@ -3,11 +3,19 @@ import { unstable_cache } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  fetchIntervalsActivitiesBetween,
   fetchIntervalsPowerCurveRanges,
   fetchIntervalsWellness,
   type IntervalsWellness,
 } from "@/lib/intervals/client";
 import { compactCurve, type CompactPoint } from "@/lib/stats/curves";
+import {
+  aggregateActivities,
+  summarizeIntervalsActivity,
+  type ActivityStats,
+  type ActivitySummary,
+} from "@/lib/stats/activity-stats";
+import { addDays, bucketKey, bucketsBetween, type Granularity } from "@/lib/stats/personal";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { PERSONAL_RIDE_COLUMNS, type PersonalRideRow } from "@/lib/stats/personal";
 
@@ -49,7 +57,7 @@ export async function loadTileChoice(supabase: SupabaseClient, profileId: string
   return error ? null : (data?.tiles ?? null);
 }
 
-export type StatsConnection = { athlete_id: string; api_key: string };
+export type StatsConnection = { athlete_id: string; api_key: string; wellness_opt_in: boolean | null };
 
 export async function loadStatsConnection(
   supabase: SupabaseClient,
@@ -57,7 +65,7 @@ export async function loadStatsConnection(
 ): Promise<StatsConnection | null> {
   const { data } = await supabase
     .from("intervals_connections")
-    .select("athlete_id, api_key")
+    .select("athlete_id, api_key, wellness_opt_in")
     .eq("profile_id", profileId)
     .maybeSingle();
   return data?.api_key && data.athlete_id ? (data as StatsConnection) : null;
@@ -99,4 +107,43 @@ export const loadPeriodCurves = unstable_cache(
 /** Piekvermogen en CP/W′ vragen dezelfde bereiken: één keer per weergave. */
 export const loadPeriodCurvesOnce = cache((profileId: string, rangesKey: string) =>
   loadPeriodCurves(profileId, rangesKey ? rangesKey.split(",") : []),
+);
+
+/** Een jaar per aanroep: tien jaar activiteiten in één antwoord is te groot. */
+const ACTIVITY_CHUNK_DAYS = 366;
+
+/**
+ * Zonetijden, W′bal en duurvermogen per periode uit de intervals-activiteiten.
+ * Per rit bewaren we niets: de activiteiten worden hier omgerekend naar totalen
+ * per periode, en alleen die staan zes uur in de cache. Zo blijft de opslag bij
+ * wat er al was (120 dagen in intervals_activities).
+ */
+export const loadActivityStats = unstable_cache(
+  async (profileId: string, start: string, end: string, per: Granularity): Promise<ActivityStats> => {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("intervals_connections")
+      .select("athlete_id, api_key")
+      .eq("profile_id", profileId)
+      .maybeSingle();
+    const keys = bucketsBetween(start, end, per);
+    if (!data?.api_key || !data.athlete_id) return aggregateActivities([], keys, (day) => bucketKey(day, per));
+    const summaries: ActivitySummary[] = [];
+    for (let from = start; from <= end; from = addDays(from, ACTIVITY_CHUNK_DAYS)) {
+      const to = addDays(from, ACTIVITY_CHUNK_DAYS - 1);
+      const rows = await fetchIntervalsActivitiesBetween(data.api_key, data.athlete_id, from, to > end ? end : to);
+      for (const row of rows) {
+        const summary = summarizeIntervalsActivity(row);
+        if (summary) summaries.push(summary);
+      }
+    }
+    return aggregateActivities(summaries, keys, (day) => bucketKey(day, per));
+  },
+  ["stats-ik-activity-stats", "v1"],
+  { revalidate: 6 * 60 * 60 },
+);
+
+/** Zones, W′bal en duurvermogen lezen hetzelfde: één keer per weergave. */
+export const loadActivityStatsOnce = cache((profileId: string, start: string, end: string, per: Granularity) =>
+  loadActivityStats(profileId, start, end, per),
 );

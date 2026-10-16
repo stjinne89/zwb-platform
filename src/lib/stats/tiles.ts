@@ -16,6 +16,8 @@ export type TileDef = {
   /** "full" neemt de hele breedte, "half" de helft vanaf lg. */
   width: "full" | "half";
   defaultVisible: boolean;
+  /** Hersteldata (rust-HR, HRV, slaap): alleen met de aparte opt-in. */
+  needsWellnessOptIn?: boolean;
 };
 
 export const STATS_TILES = [
@@ -32,6 +34,11 @@ export const STATS_TILES = [
   { id: "cp-wprime", title: "CP en W′", source: "intervals", width: "half", defaultVisible: true },
   { id: "eftp-gewicht", title: "eFTP en gewicht", source: "intervals", width: "half", defaultVisible: false },
   { id: "curve-per-jaar", title: "Powercurve per jaar", source: "intervals", width: "full", defaultVisible: false },
+  { id: "zones-vermogen", title: "Tijd per vermogenszone", source: "intervals", width: "full", defaultVisible: true },
+  { id: "zones-hartslag", title: "Tijd per hartslagzone", source: "intervals", width: "half", defaultVisible: false },
+  { id: "wbal", title: "W′bal en boven FTP", source: "intervals", width: "half", defaultVisible: false },
+  { id: "duurvermogen", title: "Duurvermogen", source: "intervals", width: "half", defaultVisible: false },
+  { id: "herstel", title: "Herstel", source: "intervals", width: "half", defaultVisible: false, needsWellnessOptIn: true },
   { id: "ritten", title: "Ritten", source: "strava", width: "full", defaultVisible: true },
 ] as const satisfies readonly TileDef[];
 

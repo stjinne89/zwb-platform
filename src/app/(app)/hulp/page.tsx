@@ -1511,6 +1511,30 @@ export default function HelpPage() {
           <li className="flex gap-2">
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <span>
+              <strong className="text-foreground">Tijd per zone, W&prime;bal en
+              duurvermogen</strong> rekent intervals.icu uit je meting per rit.
+              Dat kan alleen bij ritten die rechtstreeks in intervals.icu staan
+              (via Garmin, Wahoo of Zwift); een rit die via Strava binnenkwam
+              heeft die gegevens daar niet. Daarom staat onder de tegel hoeveel
+              ritten meetellen. De zones zijn je eigen zones uit intervals.icu.
+              W&prime;bal toont per periode hoe diep je je anaerobe reserve in
+              één rit leegtrok, met je totale arbeid boven FTP als staven.
+              Duurvermogen is je decoupling (hoeveel je hartslag ten opzichte van
+              je vermogen opliep, alleen ritten van minstens anderhalf uur; lager
+              is beter) naast je efficiency factor.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Herstel</strong> (rust-HR,
+              HRV en slaap door de tijd) zie je alleen als je de herstel-opt-in
+              op ZWBeter Worden aan hebt staan.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
               Een maand zonder harde inspanningen tussen 2 en 20 minuten heeft
               geen geloofwaardige CP en W&prime;. Die blijft leeg in plaats van
               een dip te tonen die er niet was.

@@ -150,6 +150,83 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
+> **Mijn statistieken, ronde 3: tijd per zone, W′bal, duurvermogen en herstel uit intervals.icu, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Het laatste deel van de wens: uit intervals.icu halen wat er te
+> halen valt, zoals "hoeveel uur in zone x" en W′ door de jaren. Ronde 2 deed
+> CP en W′ uit de curves; deze ronde leest de velden die intervals per rit uit de
+> meting rekent.
+>
+> **Afwijking van het plan.** Het plan was een eenmalige backfill van
+> `intervals_activities` over de hele historie, met migratie
+> `0242_intervals_activities_backfill.sql` en een aanvulling op de
+> privacyverklaring. In plaats daarvan haalt `loadActivityStats`
+> (`stats/ik/_data.ts`) de activiteiten van het venster op, per jaar één
+> aanroep. Daarna rekent hij ze om naar totalen per periode
+> (`src/lib/stats/activity-stats.ts`), en alleen die totalen staan zes uur in de
+> `unstable_cache`. Er wordt per rit niets extra bewaard: `intervals_activities`
+> blijft 120 dagen. Daardoor geen migratie, geen nieuwe opslag van ruwe data en
+> geen nieuwe privacytekst. De aangekondigde zin is dus niet voorgelegd. Prijs:
+> de eerste weergave na zes uur haalt de activiteiten opnieuw op.
+>
+> **Wat.**
+> - `fetchIntervalsActivitiesBetween` (`src/lib/intervals/client.ts`): ruwe
+>   activiteiten tussen twee dagen.
+> - `src/lib/stats/activity-stats.ts` (puur):
+>   - `parseZoneTimes`: `icu_zone_times` als `[{id, secs}]`, of een kale lijst
+>     zoals `icu_hr_zone_times`; sweetspot (SS) telt niet, die overlapt Z3/Z4.
+>   - `summarizeIntervalsActivity`: null voor een Strava-stub of een andere
+>     sport.
+>   - `aggregateActivities`: uren per zone, de diepste W′bal-uitputting, kJ
+>     boven FTP, decoupling (alleen ritten van minstens 90 min) en EF, beide
+>     gewogen naar rijtijd.
+>   - `recoverySeries`.
+> - Vijf tegels met bron intervals:
+>   - Tijd per vermogenszone: gestapeld, uren of %, standaard aan.
+>   - Tijd per hartslagzone.
+>   - W′bal en boven FTP.
+>   - Duurvermogen.
+>   - Herstel: rust-HR, HRV en slaap.
+>
+>   Ook deze tegels tellen per week per maand. Onder de tegel staat hoeveel
+>   ritten met meting meetellen.
+> - **Herstel volgt de herstel-opt-in** (`wellness_opt_in`), net als de
+>   herstelkaart op ZWBeter Worden: zonder opt-in staat de tegel op slot met een
+>   link naar `/zwbeter-worden#herstel`. Het tegelregister kreeg daarvoor
+>   `needsWellnessOptIn`, en de tegelkiezer toont per tegel waarom hij op slot
+>   zit.
+> - Zonekleuren: die van de workoutblokken (`ZWIFT_ZONES`), met paars voor Z7.
+> - Uitleg aangevuld op `/hulp#mijn-statistieken`.
+>
+> **Bewust niet gebouwd.**
+> - De zones omrekenen naar de zes Zwift-zones, zoals bij de gereden training
+>   (2026-09-15). Daar moest het passen op de blokkleuren van het schema; hier
+>   gaat het om je eigen trainingsverdeling, en dan zijn de zones die je in
+>   intervals hebt ingesteld de juiste. Omrekenen kan ook niet zonder de stream.
+> - Zonetijden voor ritten via Strava: daarvoor zou de watt-stream van elke rit
+>   nodig zijn (Strava-budget, of intervals' stub zonder stream).
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon, `npm run build` geslaagd. Vitest:
+> 2459 geslaagd met `--maxWorkers=4`. Met de standaardparallelliteit gaven
+> `admin-areas`, `intervals-ride-sync` en `rls-initplan-migration` wisselende
+> time-outs (PGlite onder belasting, sinds er een `.env.local` in de worktree
+> staat en meer suites draaien). Los gedraaid zijn ze groen; niets daarvan raakt
+> deze ronde. Nieuw `stats-activity.test.ts` (6): zonelijst in beide vormen
+> zonder SS, stub en andere sport overslaan, W′ en arbeid in kJ, totalen per
+> maand, decoupling alleen boven 90 min, herstelgemiddelden zonder onmogelijke
+> waarden. De vijf grafieken bekeken op de tijdelijke voorbeeldpagina.
+>
+> **Niet geverifieerd.**
+> - De vorm van `icu_zone_times`, `icu_hr_zone_times`, `icu_max_wbal_depletion`,
+>   `icu_joules_above_ftp`, `decoupling` en `icu_efficiency_factor` in een echt
+>   antwoord. De fixture in `tests/fixtures/intervals/activities.json` heeft ze
+>   niet; de vorm komt uit de API-spec, en de parser kan beide lijstvormen aan.
+> - Hoe groot het antwoord is bij "Alles": per jaar één aanroep van de hele
+>   activiteitenlijst.
+
+---
+
 > **Mijn statistieken, ronde 2: piekvermogen, CP en W′, eFTP en de powercurve per jaar uit intervals.icu, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >

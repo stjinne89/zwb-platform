@@ -65,7 +65,15 @@ export default async function MyStatsPage({ searchParams }: { searchParams: Prom
   const inWindow = rides.filter((ride) => ride.day >= span.start && ride.day <= span.end);
 
   const layout = normalizeLayout(choice);
-  const locked = (id: TileId) => tileDef(id).source === "intervals" && !connection;
+  const lockOf = (id: TileId) => {
+    const def = tileDef(id);
+    if (def.source === "intervals" && !connection) return { label: "intervals.icu", href: "/zwbeter-worden/doelen" };
+    if (def.needsWellnessOptIn && !connection?.wellness_opt_in) {
+      return { label: "Herstel-opt-in", href: "/zwbeter-worden#herstel" };
+    }
+    return null;
+  };
+  const locked = (id: TileId) => lockOf(id) != null;
   const visible = layout.filter((item) => item.visible && !locked(item.id));
 
   const href = (changes: Record<string, string | null>) => {
@@ -130,7 +138,7 @@ export default async function MyStatsPage({ searchParams }: { searchParams: Prom
             </div>
             <TileCustomizer
               layout={layout}
-              tiles={STATS_TILES.map((tile) => ({ id: tile.id, title: tile.title, locked: locked(tile.id) }))}
+              tiles={STATS_TILES.map((tile) => ({ id: tile.id, title: tile.title, lock: lockOf(tile.id) }))}
             />
           </div>
 

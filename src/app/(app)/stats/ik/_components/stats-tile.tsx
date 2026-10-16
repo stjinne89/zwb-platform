@@ -6,6 +6,7 @@ import {
   bucketKey,
   bucketLabel,
   bucketsBetween,
+  bucketStart,
   bucketTitle,
   byDiscipline,
   calendarDays,
@@ -31,7 +32,9 @@ import {
   peakSeries,
   type CompactPoint,
 } from "@/lib/stats/curves";
-import { loadPeriodCurvesOnce, loadStatsWellness, type StatsConnection } from "../_data";
+import { recoverySeries } from "@/lib/stats/activity-stats";
+import { loadActivityStatsOnce, loadPeriodCurvesOnce, loadStatsWellness, type StatsConnection } from "../_data";
+import { EnduranceChart, RecoveryChart, WbalChart, ZonesChart } from "./activity-charts";
 import {
   CpChart,
   EfficiencyChart,
@@ -157,6 +160,13 @@ export function StatsTile({ id, context }: { id: TileId; context: TileContext })
       return <CurveTile id={id} context={context} />;
     case "eftp-gewicht":
       return <EftpTile context={context} />;
+    case "zones-vermogen":
+    case "zones-hartslag":
+    case "wbal":
+    case "duurvermogen":
+      return <ActivityTile id={id} context={context} />;
+    case "herstel":
+      return <RecoveryTile context={context} />;
     case "ritten":
       return (
         <Tile title={def.title} width={def.width}>
@@ -284,6 +294,142 @@ async function EftpTile({ context }: { context: TileContext }) {
         />
       ) : (
         <NoData>Geen eFTP of gewicht in intervals.icu in deze periode.</NoData>
+      )}
+    </Tile>
+  );
+}
+
+function ridesNote(rides: number) {
+  return (
+    <p className="mt-2 text-xs text-muted-foreground">
+      {rides === 1 ? "1 rit" : `${rides.toLocaleString("nl-NL")} ritten`} met meting in intervals.icu
+    </p>
+  );
+}
+
+/**
+ * Tegels uit de intervals-activiteiten zelf. Alleen ritten die rechtstreeks in
+ * intervals staan hebben deze velden; de tegel zegt hoeveel ritten meetellen.
+ */
+async function ActivityTile({
+  id,
+  context,
+}: {
+  id: "zones-vermogen" | "zones-hartslag" | "wbal" | "duurvermogen";
+  context: TileContext;
+}) {
+  const def = tileDef(id);
+  const { span, profileId } = context;
+  const per = curveGranularity(context.per);
+  const stats = await loadActivityStatsOnce(profileId, bucketStart(bucketKey(span.start, per), per), span.end, per).catch(
+    () => null,
+  );
+  if (!stats) {
+    return (
+      <Tile title={def.title} width={def.width}>
+        <IntervalsDown />
+      </Tile>
+    );
+  }
+  const multiYear =
+    stats.periods.length > 0 && stats.periods[0].key.slice(0, 4) !== stats.periods.at(-1)!.key.slice(0, 4);
+  const label = (key: string) => bucketLabel(key, per, multiYear);
+  const title = (key: string) => bucketTitle(key, per);
+  const empty = <NoData>Geen ritten met meting in intervals.icu in deze periode.</NoData>;
+
+  if (id === "zones-vermogen" || id === "zones-hartslag") {
+    const power = id === "zones-vermogen";
+    const zoneIds = power
+      ? stats.powerZoneIds
+      : Array.from({ length: stats.hrZoneCount }, (_, index) => `Z${index + 1}`);
+    const points = stats.periods.map((period) => ({
+      label: label(period.key),
+      title: title(period.key),
+      hours: power ? period.powerZoneHours : period.hrZoneHours,
+    }));
+    const any = points.some((point) => point.hours.some((value) => value > 0));
+    return (
+      <Tile title={def.title} width={def.width}>
+        {any ? (
+          <>
+            <ZonesChart points={points} zoneIds={zoneIds} ariaLabel={def.title} />
+            {ridesNote(stats.rides)}
+          </>
+        ) : (
+          empty
+        )}
+      </Tile>
+    );
+  }
+  if (id === "wbal") {
+    const points = stats.periods.map((period) => ({
+      label: label(period.key),
+      title: title(period.key),
+      maxWbalDepletionKj: period.maxWbalDepletionKj,
+      joulesAboveFtpKj: period.joulesAboveFtpKj,
+    }));
+    const any = points.some((point) => point.maxWbalDepletionKj != null || point.joulesAboveFtpKj > 0);
+    return (
+      <Tile title={def.title} width={def.width}>
+        {any ? (
+          <>
+            <WbalChart points={points} />
+            {ridesNote(stats.rides)}
+          </>
+        ) : (
+          empty
+        )}
+      </Tile>
+    );
+  }
+  const points = stats.periods.map((period) => ({
+    label: label(period.key),
+    title: title(period.key),
+    decoupling: period.decoupling,
+    efficiencyFactor: period.efficiencyFactor,
+  }));
+  const any = points.some((point) => point.decoupling != null || point.efficiencyFactor != null);
+  return (
+    <Tile title={def.title} width={def.width}>
+      {any ? (
+        <>
+          <EnduranceChart points={points} />
+          {ridesNote(stats.rides)}
+        </>
+      ) : (
+        empty
+      )}
+    </Tile>
+  );
+}
+
+/** Rust-HR, HRV en slaap; alleen met de herstel-opt-in, net als op ZWBeter Worden. */
+async function RecoveryTile({ context }: { context: TileContext }) {
+  const def = tileDef("herstel");
+  const { span, today, connection, per, keys } = context;
+  if (!connection?.wellness_opt_in) return null;
+  const wellness = await loadStatsWellness(connection.api_key, connection.athlete_id, daysSince(span.start, today));
+  if (!wellness) {
+    return (
+      <Tile title={def.title} width={def.width}>
+        <IntervalsDown />
+      </Tile>
+    );
+  }
+  const multiYear = keys.length > 0 && keys[0].slice(0, 4) !== keys.at(-1)!.slice(0, 4);
+  const points = recoverySeries(keys, wellness, (day) => bucketKey(day, per));
+  return (
+    <Tile title={def.title} width={def.width}>
+      {points.some((point) => point.restingHr != null || point.hrv != null || point.sleepHours != null) ? (
+        <RecoveryChart
+          points={points.map((point) => ({
+            ...point,
+            label: bucketLabel(point.key, per, multiYear),
+            title: bucketTitle(point.key, per),
+          }))}
+        />
+      ) : (
+        <NoData>Geen rust-HR, HRV of slaap in intervals.icu in deze periode.</NoData>
       )}
     </Tile>
   );

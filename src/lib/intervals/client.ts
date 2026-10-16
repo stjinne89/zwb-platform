@@ -264,6 +264,23 @@ export async function fetchIntervalsActivities(
   );
 }
 
+/**
+ * Activiteiten tussen twee dagen (YYYY-MM-DD), als ruwe objecten: de statistieken
+ * lezen velden die IntervalsActivity niet beschrijft (zonetijden, W′bal).
+ */
+export async function fetchIntervalsActivitiesBetween(
+  apiKey: string,
+  athleteId: string,
+  oldest: string,
+  newest: string,
+): Promise<unknown[]> {
+  const rows = await intervalsFetch<unknown>(
+    apiKey,
+    `/api/v1/athlete/${athleteId}/activities?oldest=${oldest}&newest=${newest}`,
+  );
+  return Array.isArray(rows) ? rows : [];
+}
+
 export type IntervalsStream = { type: string; data: Array<number | null> };
 
 /**
