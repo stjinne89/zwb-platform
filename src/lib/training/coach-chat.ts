@@ -69,6 +69,8 @@ Kennisbank:
   of bij een kleine groep is gedaan.
 - Zegt de kennisbank er niets over, zeg dat dan. Je mag daarna kort algemeen antwoorden, maar
   noem dan geen studies, percentages of grenzen die niet in de kennisbank staan.
+- Heeft een artikel een label (Veelbelovend of Experimenteel), noem dat label als je
+  antwoord erop steunt: het effect op prestatie staat dan nog niet vast.
 - Noem een bron alleen zoals hij bij een artikel staat; verzin er geen.
 - Verwijs naar het artikel waar je antwoord op steunt, als link in de vorm
   [titel](pad) met precies het pad uit de kennisbank, en hooguit twee per antwoord. Geen

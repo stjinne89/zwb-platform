@@ -9610,6 +9610,10 @@ wordt, en workouts in de bibliotheek.
   De bron Rønnestad 2025 verhuisde van `training-library.ts` naar
   `protocols/training.ts`.
 - `/hulp#protocollen`: blok "Veelbelovend en experimenteel", plus zoekwoorden.
+- **Coachchat** (na de merge met "Coachchat antwoordt met de kennisbank"): de
+  vijf nieuwe artikelen gaan vanzelf mee; `coach.ts` zet er "Label:
+  Veelbelovend/Experimenteel" bij, en de instructies vragen de coach dat label te
+  noemen als zijn antwoord erop steunt. Niet tegen OpenAI geprobeerd.
 
 **Bewust niet gebouwd.**
 - REHIT (2 x 20 seconden): getest bij ongetrainden, en zo'n sessie heet in het
