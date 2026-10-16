@@ -9,8 +9,8 @@ import {
   toCandidates,
   type QuoteCandidate,
 } from "@/lib/maintenance/whatsapp-export";
-import { TIP_MAX, TIP_MIN } from "@/lib/wie-weet-wat/limits";
-import { isKnowledgeTopic } from "@/lib/wie-weet-wat/topics";
+import { TIP_MAX, TIP_MIN } from "@/lib/zwbieb/limits";
+import { loadTopicCatalog } from "@/lib/zwbieb/queries";
 
 export type ImportProfile = { id: string; display_name: string };
 
@@ -98,7 +98,7 @@ export async function saveQuote(input: {
 }
 
 /**
- * Een bericht uit de groepsapp als tip bij Wie weet wat (0239), onder de naam
+ * Een bericht uit de groepsapp als tip bij ZWBieb (0239), onder de naam
  * van het lid dat het schreef. Dat lid ziet en beheert hem daarna zelf, net als
  * een citaat in Mijn garage.
  */
@@ -113,7 +113,7 @@ export async function saveMemberTip(input: { body: string; profileId: string; to
   if (body.length < TIP_MIN || body.length > TIP_MAX) {
     return { ok: false as const, error: `Tip moet tussen ${TIP_MIN} en ${TIP_MAX} tekens zijn.` };
   }
-  if (!isKnowledgeTopic(input.topic)) {
+  if (!(await loadTopicCatalog(supabase)).isActive(input.topic)) {
     return { ok: false as const, error: "Kies een onderwerp." };
   }
   if (!input.profileId) {
@@ -129,7 +129,7 @@ export async function saveMemberTip(input: { body: string; profileId: string; to
   });
   if (error) return { ok: false as const, error: error.message };
 
-  revalidatePath("/leden/wie-weet-wat");
+  revalidatePath("/zwbieb");
   revalidatePath("/leden/[id]", "page");
   return { ok: true as const };
 }

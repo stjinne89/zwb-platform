@@ -277,16 +277,16 @@ export default async function ProfielPage() {
         <MyQuotes quotes={(myQuotes ?? []) as MyQuote[]} />
       </div>
 
-      <section id="wie-weet-wat" className="scroll-mt-20 rounded-lg border bg-card p-4">
+      <section id="zwbieb" className="scroll-mt-20 rounded-lg border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Wie weet wat
+            ZWBieb
           </h2>
           <Link
-            href="/leden/wie-weet-wat/mijn"
+            href="/zwbieb/mijn"
             className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
           >
-            Mijn onderwerpen en tips
+            Mijn ZWBieb
           </Link>
         </div>
       </section>

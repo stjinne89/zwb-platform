@@ -8,15 +8,15 @@ import {
   disciplineLabel,
 } from "@/lib/maintenance/component-types";
 import type { QuoteCandidate } from "@/lib/maintenance/whatsapp-export";
-import { KNOWLEDGE_TOPICS } from "@/lib/wie-weet-wat/topics";
-import { TIP_MAX } from "@/lib/wie-weet-wat/limits";
+import type { TopicOption } from "@/lib/zwbieb/topics";
+import { TIP_MAX } from "@/lib/zwbieb/limits";
 import { parseExport, saveMemberTip, saveQuote, type ImportProfile } from "../_actions";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
 const SMALL = "rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm";
 
-export function ImportForm() {
+export function ImportForm({ topics }: { topics: TopicOption[] }) {
   const [raw, setRaw] = useState("");
   const [candidates, setCandidates] = useState<QuoteCandidate[] | null>(null);
   const [profiles, setProfiles] = useState<ImportProfile[]>([]);
@@ -88,6 +88,7 @@ export function ImportForm() {
             {shown.map(({ c, i }) => (
               <CandidateRow
                 key={i}
+                topics={topics}
                 candidate={c}
                 profiles={profiles}
                 saved={Boolean(saved[i])}
@@ -102,20 +103,22 @@ export function ImportForm() {
 }
 
 function CandidateRow({
+  topics,
   candidate,
   profiles,
   saved,
   onSaved,
 }: {
+  topics: TopicOption[];
   candidate: QuoteCandidate;
   profiles: ImportProfile[];
   saved: boolean;
   onSaved: () => void;
 }) {
   const [profileId, setProfileId] = useState(candidate.matchedProfileId ?? "");
-  // Garage: citaat bij een onderdeel. Wie weet wat: tip bij een onderwerp.
+  // Garage: citaat bij een onderdeel. ZWBieb: tip bij een onderwerp.
   const [target, setTarget] = useState<"garage" | "kennis">("garage");
-  const [topic, setTopic] = useState<string>(KNOWLEDGE_TOPICS[0].slug);
+  const [topic, setTopic] = useState<string>(topics[0]?.slug ?? "");
   const [type, setType] = useState(COMPONENT_TYPES[0].slug);
   const [discipline, setDiscipline] = useState("");
   const [body, setBody] = useState(candidate.text);
@@ -185,7 +188,7 @@ function CandidateRow({
           onChange={(e) => setTarget(e.target.value === "kennis" ? "kennis" : "garage")}
         >
           <option value="garage">Mijn garage</option>
-          <option value="kennis">Wie weet wat</option>
+          <option value="kennis">ZWBieb</option>
         </select>
 
         {target === "kennis" ? (
@@ -196,7 +199,7 @@ function CandidateRow({
             disabled={saved}
             onChange={(e) => setTopic(e.target.value)}
           >
-            {KNOWLEDGE_TOPICS.map((t) => (
+            {topics.map((t) => (
               <option key={t.slug} value={t.slug}>
                 {t.label}
               </option>

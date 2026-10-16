@@ -194,13 +194,16 @@ export default function PrivacyPage() {
             Je kunt een protocol altijd stoppen; de gegevens verdwijnen als je
             je account opheft.
           </li>
-          <li id="wie-weet-wat" className="scroll-mt-20">
-            <strong>Wie weet wat (alleen met opt-in):</strong> doe je mee of
-            stel je een vraag, dan teken je daar apart voor. We bewaren de
-            onderwerpen die je kiest met je korte toelichting, de tips die je
-            plaatst en de gesprekken die je voert, met wanneer je ze las.
-            Onderwerpen en tips zien goedgekeurde clubleden, met je naam erbij;
-            ze staan niet op je openbare profiel. Een gesprek zien alleen jij en
+          <li id="zwbieb" className="scroll-mt-20">
+            <strong>ZWBieb, eerst &ldquo;Wie weet wat&rdquo; (alleen met
+            opt-in):</strong> doe je mee of stel je een vraag, dan teken je daar
+            apart voor. We bewaren de onderwerpen waar je ervaring mee hebt en
+            de spullen die je wilt uitlenen, met je korte toelichting, de tips
+            die je plaatst en de gesprekken die je voert, met wanneer je ze las.
+            Voeg je zelf een onderwerp of spul toe, dan bewaren we ook dat jij
+            het toevoegde; de moderatie ziet dat. Onderwerpen, spullen en tips
+            zien goedgekeurde clubleden, met je naam erbij; ze staan niet op je
+            openbare profiel. Een gesprek zien alleen jij en
             het andere lid, ook het bestuur niet. Vindt het andere lid een
             bericht van jou in jullie gesprek waardevol, dan kan het dat als tip
             voor de club bewaren, onder jouw naam; je eigen berichten bewaar je
@@ -211,7 +214,7 @@ export default function PrivacyPage() {
             als je die aan hebt staan; die zegt van wie het komt en over welk
             onderwerp, niet wat erin staat. Een tip op jouw naam kun je altijd
             zelf aanpassen of verwijderen. Er gaat
-            niets naar OpenAI. Stop je, dan verdwijnen je onderwerpen; tips en
+            niets naar OpenAI. Stop je, dan verdwijnen je onderwerpen en spullen; tips en
             gesprekken kun je zelf verwijderen, en alles verdwijnt als je je
             account opheft. Het staat in je data-export.
           </li>

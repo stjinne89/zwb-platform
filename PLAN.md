@@ -75,6 +75,12 @@ gaat stabiliteit voor nieuwe features.
    - **Wie weet wat, tip uit een gesprek:** `0240_member_tips_from_thread.sql`
      is toegepast (eigenaar, 2026-10-15), daarna gepusht. Niet nagekeken op
      productie. Bij het doorklikken ook "Bewaar als tip" proberen.
+   - **ZWBieb (eigen onderwerpen, spullen):** `0242_knowledge_topics.sql`
+     toepassen **vóór** het pushen van die ronde (2026-10-16). Draai eerst de
+     controlequery onderaan de migratie; die moet leeg zijn. Zonder `0242`
+     toont de app de startlijst uit code, maar lukt toevoegen niet. Eerst de
+     aangepaste privacy- en voorwaardentekst (spullen, §3a) en de keuze voor
+     geen nieuwe toestemmingsversie door de eigenaar laten goedkeuren.
    - **Mijn statistieken (tegelkeuze):** `0241_profile_stats_tiles.sql`
      toepassen (2026-10-16). De code staat sinds 2026-10-16 op `main`; zonder
      de tabel toont `/stats/ik` de standaardtegels, maar "Tegels aanpassen" kan
@@ -144,11 +150,12 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0242`
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0243`
 (`0237_member_protocols` is van de protocollen, `0238_member_protocol_core_sessions`
 van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 `0240_member_tips_from_thread` van Wie weet wat, 2026-10-15;
-`0241_profile_stats_tiles` van Mijn statistieken, 2026-10-16).
+`0241_profile_stats_tiles` van Mijn statistieken en `0242_knowledge_topics` van
+ZWBieb, beide 2026-10-16).
 
 ---
 
@@ -9172,6 +9179,118 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — ZWBieb: eigen onderwerpen, spullen uitlenen en een nieuwe naam
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
+`0242_knowledge_topics.sql` (**nog toepassen**, vóór het pushen; eerst de
+controlequery onderaan de migratie draaien).
+
+**Aanleiding.** De eigenaar vroeg drie dingen:
+- Leden moeten zelf een onderwerp kunnen toevoegen dat er nog niet tussen staat.
+- Naast "wie weet wat" ook "wie heeft wat": spullen die een lid wil uitlenen aan
+  een ander ZWB-lid, zoals een fietskoffer, momentsleutel, fietsendrager,
+  SeaSucker of camper.
+- Een naam die bij allebei past, liefst met ZWB erin. Uit ZWBieb, ZWBuren, ZWBaak
+  en ZWBank koos hij **ZWBieb**: in de bieb leen je wat een ander lid weet of
+  heeft.
+
+**Wat.**
+
+- **`knowledge_topics` (`0242`).**
+  - De onderwerpen staan nu in de database: de vijftien kennisonderwerpen uit
+    code plus zes spullen, elk met een soort (`kennis` of `spullen`).
+  - Foreign keys vanaf `member_knowledge_topics`, `member_tips` en
+    `knowledge_threads`.
+  - Elk goedgekeurd lid kan een onderwerp toevoegen, hooguit vijf per dag
+    (trigger). Dezelfde naam twee keer kan niet; hoofdletters en spaties tellen
+    niet mee.
+  - De moderatie (`community.manage` of `content.moderate_posts`) kan een
+    onderwerp hernoemen en verbergen. Verwijderen lukt alleen als niemand het
+    gebruikt.
+- **Toevoegen.** In "Mijn ZWBieb" heeft elk blok een veld "Ander onderwerp" of
+  "Ander spul". Terwijl je typt, toont de app bestaande onderwerpen die erop
+  lijken (`similarTopics`). Een gekozen of nieuw onderwerp wordt meteen
+  aangevinkt.
+- **Spullen.**
+  - Een eigen tab op `/zwbieb/spullen`, naast Kennis op `/zwbieb`.
+  - In "Mijn ZWBieb" een tweede blok met hooguit vijftien spullen, naast de zes
+    kennisonderwerpen.
+  - Op het profiel staat "Leent uit" naast "Weet van".
+  - "Vraag het aan" opent hetzelfde gesprek.
+- **Beheer.** `/zwbieb/onderwerpen` (tandwiel in de kop, alleen voor de
+  moderatie). Per onderwerp zie je hoe vaak het gebruikt wordt en wie het
+  toevoegde.
+- **Iconen per onderwerp** (ronde "Wie weet wat: een icoon per onderwerp"
+  hieronder, uit een andere sessie) zijn meegenomen. `topic-badge.tsx` staat nu
+  in `src/app/(app)/zwbieb/_components/` en houdt zelf de groepen bij, want de
+  vaste lijst in code is weg. De zes spullen hebben een eigen icoon in de kleur
+  van materiaal. Een onderwerp dat een lid zelf toevoegt, krijgt een lamp
+  (kennis) of een doos (spullen).
+- **Hernoemd naar ZWBieb.**
+  - Routes: `/leden/wie-weet-wat` heet nu `/zwbieb`, met een permanente redirect
+    in `next.config.ts` voor oude links en pushmeldingen.
+  - Code: `src/lib/wie-weet-wat` heet nu `src/lib/zwbieb`.
+  - Het menu-item onder Club, alle labels en de anker `#zwbieb` op `/hulp` en
+    `/privacy` zijn aangepast.
+  - De tabellen houden hun naam (`member_knowledge`, `knowledge_threads`, …).
+- **Teksten.**
+  - `/privacy#zwbieb` noemt nu ook de spullen, en dat de moderatie ziet wie een
+    onderwerp toevoegde.
+  - Nieuwe `/voorwaarden` §3a: lenen spreken leden samen af; ZWB is geen partij
+    en niet aansprakelijk.
+  - `/hulp#zwbieb` en de hulpzoeker zijn bijgewerkt.
+  - `docs/kennis-van-leden.md` heeft een nieuwe §7.
+
+**Besluiten van de eigenaar.** De naam ZWBieb; spullen met dezelfde opzet in een
+eigen tab; leden voegen zelf onderwerpen toe.
+
+**Voorstel aan de eigenaar, nog niet besloten.**
+- Geen nieuwe toestemmingsversie: `MEMBER_KNOWLEDGE_CONSENT_VERSION` blijft
+  `2026-10-15`. Spullen vult een lid alleen zelf in, binnen dezelfde functie;
+  alleen de tekst verandert.
+- Dat volgt de lijn van "privacy verruimen zonder nieuwe versie" en moet worden
+  goedgekeurd samen met de privacy- en voorwaardentekst.
+
+**Bewust niet gebouwd.**
+- **Onderwerpen samenvoegen.** Bij een dubbeling: hernoemen en de ene verbergen.
+- **Een uitleenregister** (wie heeft wat wanneer geleend), een borg of een
+  agenda per spul. Dat regelt het gesprek.
+- **Een slug hernoemen.** Alleen het label verandert, zodat links blijven
+  werken.
+- **Een categorie per spul** (vervoer, gereedschap). Bij zes spullen is dat niet
+  nodig.
+- **De tabellen hernoemen naar zwbieb.** Dat geeft risico zonder winst.
+
+**Niet meer waar.**
+- "Een vaste lijst van vijftien" (ronde "Wie weet wat" hieronder): leden voegen
+  nu zelf toe. Dat is ter plekke aangevuld.
+- De route `/leden/wie-weet-wat` in eerdere rondes is nu `/zwbieb`, via een
+  redirect.
+- "De volgende vrije is `0242`" (Architectuur): dat is nu `0243`.
+
+**Getest.**
+- `tsc` en ESLint zonder nieuwe fouten.
+- `member-knowledge-migration.test.ts`: 35 tests, inclusief `0242`. Gedekt zijn:
+  - de startlijst van 21 onderwerpen;
+  - toevoegen, met de naam getrimd;
+  - een dubbele naam (hoofdletters tellen niet mee);
+  - een wachtend account, een andere maker of een eigen `sort_order` wordt
+    geweigerd;
+  - de daglimiet, met de moderatie erbuiten;
+  - hernoemen en verbergen alleen door de moderatie;
+  - een onderwerp in gebruik kan niet worden verwijderd;
+  - de foreign key en een onbekende soort.
+- `zwbieb.test.ts`: de startlijsten zijn gelijk aan `0242`, plus de catalogus,
+  slugs en suggesties.
+- Volledige run: alles groen, behalve tests die al bekend waren of alleen onder
+  belasting falen. `admin-areas`, `intervals-ride-sync`, `rls-initplan-migration`
+  en `zwift-club-calendar` zijn los groen. `omnium-live` mist `.env.local`.
+
+**Niet geverifieerd.**
+- `0242` op de echte database. De foreign keys falen als er een slug buiten de
+  startlijst in de data staat; de controlequery staat in de migratie.
+- De pagina's in de browser: deze worktree heeft geen `.env.local`.
+
 ### Opgeleverd — Wie weet wat: een icoon per onderwerp
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt, op de branch
@@ -9376,6 +9495,8 @@ aan één kenner).
   notitie en de knop "Vraag het aan", plus de nieuwste tips. Onderwerpen zonder
   kenners staan ingeklapt. In het menu onder Club en als knop op `/leden`.
 - **Meedoen** (`/mijn`).
+  - *Sinds 2026-10-16 (`0242`, ronde "ZWBieb") voegen leden zelf onderwerpen
+    toe, en heet het onderdeel ZWBieb op `/zwbieb`.*
   - Een lid kiest tot zes onderwerpen uit een vaste lijst van vijftien
     (`src/lib/wie-weet-wat/topics.ts`). Er zit geen gezondheidsonderwerp bij.
   - Het lid tekent een eigen toestemming (`MEMBER_KNOWLEDGE_CONSENT_VERSION`,

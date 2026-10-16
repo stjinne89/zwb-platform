@@ -11,8 +11,9 @@ import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 import { bikeShownOnProfile, type StravaBikeRow } from "@/lib/strava/bikes";
 import { BackLink } from "@/components/app-ui";
 import { getRequestAccess } from "@/lib/auth/request";
-import { TIP_COLUMNS, type ExpertTopicRow, type TipRow } from "@/lib/wie-weet-wat/queries";
-import { MemberKnowledgeSection } from "../wie-weet-wat/_components/member-knowledge-section";
+import { TIP_COLUMNS, loadTopicCatalog, type ExpertTopicRow, type TipRow } from "@/lib/zwbieb/queries";
+import { topicInfo } from "@/lib/zwbieb/topics";
+import { MemberKnowledgeSection } from "@/app/(app)/zwbieb/_components/member-knowledge-section";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -64,6 +65,7 @@ export default async function LidProfielPage({ params }: PageProps) {
     { data: knowledgeTopics },
     { data: knowledgeTips },
     access,
+    topicCatalog,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -110,6 +112,7 @@ export default async function LidProfielPage({ params }: PageProps) {
       .order("created_at", { ascending: false })
       .limit(5),
     getRequestAccess(),
+    loadTopicCatalog(supabase),
   ]);
 
   if (!profile) notFound();
@@ -154,6 +157,7 @@ export default async function LidProfielPage({ params }: PageProps) {
               tips={(knowledgeTips ?? []) as TipRow[]}
               viewerId={user.id}
               canModerate={access.has("community.manage") || access.has("content.moderate_posts")}
+              labels={topicInfo(topicCatalog)}
             />
             {showBadges && (
               <RiderStats

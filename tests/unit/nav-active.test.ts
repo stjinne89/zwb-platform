@@ -21,8 +21,8 @@ function activeLinks(pathname: string, hrefs: string[]) {
 }
 
 describe("activeHrefIn", () => {
-  it("houdt Wie weet wat en Leden uit elkaar", () => {
-    expect(activeLinks("/leden/wie-weet-wat/gesprekken", menuHrefs)).toEqual(["/leden/wie-weet-wat"]);
+  it("houdt ZWBieb en Leden uit elkaar", () => {
+    expect(activeLinks("/zwbieb/gesprekken", menuHrefs)).toEqual(["/zwbieb"]);
     expect(activeLinks("/leden/11111111-1111-1111-1111-111111111111", menuHrefs)).toEqual(["/leden"]);
   });
 

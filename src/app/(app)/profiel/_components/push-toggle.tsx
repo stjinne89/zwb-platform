@@ -269,7 +269,7 @@ export function PushToggle({
             name="on_knowledge_message"
             defaultChecked={initialPreferences.on_knowledge_message}
           />
-          Nieuw bericht in Wie weet wat
+          Nieuw bericht in ZWBieb
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input

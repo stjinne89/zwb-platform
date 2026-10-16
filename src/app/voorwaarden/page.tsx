@@ -79,19 +79,19 @@ export default function VoorwaardenPage() {
           Bij de onderdelen in Mijn garage staan tips uit drie bronnen: algemene
           onderhoudskennis, samenvattingen van openbaar gepubliceerd advies met
           een verwijzing naar de bron, en uitspraken van ZWB-leden uit de
-          clubgroepen. Bij Wie weet wat staan tips van leden zelf, per onderwerp
+          clubgroepen. Bij ZWBieb staan tips van leden zelf, per onderwerp
           en soms bij een event of col.
         </p>
         <p>
           Plaats je iets in een ZWB-groepsapp, dan kan het bestuur dat als citaat
-          of als tip bij Wie weet wat overnemen in het platform, met je naam
+          of als tip bij ZWBieb overnemen in het platform, met je naam
           erbij. Je ziet je eigen citaten en tips altijd terug en je kunt ze zelf
           aanpassen of verwijderen — zonder dat je iemand om toestemming hoeft te
           vragen. Verwijder je er een, dan verdwijnt hij meteen uit de app. Je
           kunt ook vragen om helemaal geen citaten of tips van jou op te nemen.
         </p>
         <p>
-          Hetzelfde geldt voor een antwoord dat je in een gesprek bij Wie weet wat
+          Hetzelfde geldt voor een antwoord dat je in een gesprek bij ZWBieb
           geeft: het lid dat je vraag stelde, of aan wie je antwoordde, kan dat
           als tip voor de club bewaren, onder jouw naam. Je krijgt daar een
           melding van en kunt de tip zelf aanpassen of verwijderen.
@@ -99,6 +99,16 @@ export default function VoorwaardenPage() {
         <p>
           Tips zijn ervaringen van fietsers, geen professioneel advies. Wat voor
           de een werkt, werkt niet per se voor jou.
+        </p>
+      </Section>
+
+      <Section title="3a. Spullen lenen via ZWBieb">
+        <p>
+          Bij ZWBieb kun je laten weten welke spullen je wilt uitlenen aan een
+          ander ZWB-lid. Wat je afspreekt, regelen jullie samen: ophalen,
+          terugbrengen, een vergoeding en wat er gebeurt bij schade of verlies.
+          ZWB is geen partij bij die afspraak en is niet aansprakelijk voor de
+          spullen.
         </p>
       </Section>
 

@@ -189,8 +189,8 @@ export default async function LedenPage() {
       <PageHeader
         title="Leden"
         actions={
-          <Link href="/leden/wie-weet-wat" className={buttonVariants({ variant: "outline" })}>
-            Wie weet wat
+          <Link href="/zwbieb" className={buttonVariants({ variant: "outline" })}>
+            ZWBieb
           </Link>
         }
       />
