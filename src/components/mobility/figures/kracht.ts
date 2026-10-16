@@ -8,7 +8,7 @@ const WALL_RIGHT = "M 262 30 L 262 192";
 const WALL_LEFT = "M 104 30 L 104 192";
 
 export const STRENGTH_POSES: Record<string, Pose[]> = {
-  // Springen voor je botten (0242): inzakken en in de lucht.
+  // Springen voor je botten (0245): inzakken en in de lucht.
   "countermovement-jump": [
     {
       // Kwart squat, armen naar achteren.

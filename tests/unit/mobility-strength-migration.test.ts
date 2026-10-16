@@ -26,7 +26,7 @@ beforeAll(async () => {
     "0159_mobility_strength.sql",
     "0160_mobility_strength_seed.sql",
     "0232_mobility_strength_seed_v2.sql",
-    "0242_mobility_jump_series.sql",
+    "0245_mobility_jump_series.sql",
   ]) {
     await db.exec(await migration(file));
   }
@@ -86,7 +86,7 @@ describe("krachtreeksen (0159 + 0160)", () => {
   });
 
   it("geeft de springserie vijf keer tien sprongen en is opnieuw te draaien", async () => {
-    await db.exec(await migration("0242_mobility_jump_series.sql"));
+    await db.exec(await migration("0245_mobility_jump_series.sql"));
     const { rows } = await db.query<{ sets: number; reps: number }>(
       "select i.sets, i.reps from mobility_series s join mobility_series_items i on i.series_id = s.id where s.slug = 'springen'",
     );

@@ -3,7 +3,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
 import { ftpTestBlocks, ftpTestDurationMinutes } from "@/lib/training/ftp-test";
 
-// 0241 tegen een geïsoleerde PostgreSQL, bovenop de bibliotheek uit 0106, 0107,
+// 0244 tegen een geïsoleerde PostgreSQL, bovenop de bibliotheek uit 0106, 0107,
 // 0133 en 0194. Zegt niets over de productiedatabase zelf.
 
 let db: PGlite;
@@ -28,7 +28,7 @@ beforeAll(async () => {
     "0107_workout_library_seed.sql",
     "0133_workout_library_ftp_tests.sql",
     "0194_workout_library_training_forms.sql",
-    "0241_workout_library_ftp20_warmup.sql",
+    "0244_workout_library_ftp20_warmup.sql",
   ]) {
     await db.exec(await migration(file));
   }
@@ -38,7 +38,7 @@ afterAll(async () => {
   await db?.close();
 });
 
-describe("20-minutentest in de bibliotheek (0241)", () => {
+describe("20-minutentest in de bibliotheek (0244)", () => {
   it("heeft dezelfde blokken en duur als de test die de app zelf inplant", async () => {
     const { rows } = await db.query<Row>(
       "select duration_minutes, structure_json from training_workout_templates where is_standard and test_type = 'twenty_min'",

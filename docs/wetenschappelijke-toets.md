@@ -8,15 +8,15 @@ uitgevoerd. Per fase staat in `PLAN.md` een ronde "wetenschappelijke toets".
 | Fase | Wat er veranderde | Migratie |
 |---|---|---|
 | 0 | Claimregister: elke wetenschappelijke bewering met plek, bron en status | — |
-| 1 | Herstel meten met een eigen HRV-band en gevoel erbij (1C). FTP-test met controle tegen CP/eFTP, meetfout en een andere warming-up (1B). Opbouw zonder "veilige 10 %" (1A). Drempelblokken begrensd naar hun lengte (1D). Bronnen bij de trainingsanalyse (1E). | 0241 |
+| 1 | Herstel meten met een eigen HRV-band en gevoel erbij (1C). FTP-test met controle tegen CP/eFTP, meetfout en een andere warming-up (1B). Opbouw zonder "veilige 10 %" (1A). Drempelblokken begrensd naar hun lengte (1D). Bronnen bij de trainingsanalyse (1E). | 0244 |
 | 2 | Acht trainingsartikelen hertoetst en twee nieuwe (lange ritten, warming-up). Protocol Duurtest met eigen meting van de ontkoppeling. Korte overbelasting vóór de taper. | — |
 | 3 | Voedingskennisbank hertoetst: eiwit minder stellig, bicarbonaat en bèta-alanine bijgesteld, beperkingen bij alle 25 artikelen. | — |
-| 4 | Kracht hertoetst. Twee nieuwe artikelen (kracht op de fiets, masters), protocol Kracht op de fiets, springserie voor de botten. | 0242 |
+| 4 | Kracht hertoetst. Twee nieuwe artikelen (kracht op de fiets, masters), protocol Kracht op de fiets, springserie voor de botten. | 0245 |
 | 5 | Pacing: CP uit FTP naar 1,00, reserve vóór de sprint naar 20 %, variabel vermogen voor tijdrijders. | — |
 | 6 | Rit-fysica binnen de metingen; CORE-sensor met vier validatiestudies; DOI-links op /hulp; privacy ongewijzigd. | — |
 
 **Nog open:**
-- Migraties 0241 en 0242 op productie.
+- Migraties 0244 en 0245 op productie.
 - De voedingspagina, de sprongfiguur en de Duurtest-reeks in de browser bekijken.
 - Of de AI de nieuwe promptregels volgt (Duurtest, kracht op de fiets,
   overbelasting, tijdrit); dat blijkt uit nieuwe schema's en plannen.
@@ -222,7 +222,7 @@ TSB-drempels per lid fitten: met de onzekerheid uit Hellard levert dat schijnpre
 ### 1B. FTP-test — uitgevoerd 2026-10-16
 
 Wat er is gebouwd, staat in `PLAN.md` (ronde "wetenschappelijke toets 1B").
-Alle vijf punten zijn uitgevoerd; migratie `0241` moet nog op productie.
+Alle vijf punten zijn uitgevoerd; migratie `0244` moet nog op productie.
 
 **Wat de app doet.** Ramptest (stappen van ~20 W per minuut) → 75 % van de
 hoogste minuut. 20-minutentest → 95 % van het gemiddelde. Na acht weken stelt de
@@ -1179,7 +1179,7 @@ Na fase 6 is elke regel uit het claimregister getoetst. Voorstel:
   veranderd.
 - Punt 7 verhuist in `PLAN.md` van de actieve lijst naar de opgeleverde lijst.
 - Wat nog openstaat, wordt apart genoemd:
-  - migraties 0241 en 0242 op productie;
+  - migraties 0244 en 0245 op productie;
   - de nieuwe sprongfiguur en de voedingspagina in de browser;
   - het idee van een persoonlijke W′-tijdconstante, voor het plannenboek.
 

@@ -182,7 +182,7 @@ hieronder.)*
 
 De onderbouwing staat in `docs/wetenschappelijke-toets.md`, fase 4. Kort:
 
-- **Springen voor je botten** (`springen`, migratie 0242): vijf sets van tien
+- **Springen voor je botten** (`springen`, migratie 0245): vijf sets van tien
   sprongen uit stand, 30 s rust. Springen verhoogde bij volwassenen de
   botdichtheid in de dijbeenhals met ~1,5 % bij rond 50 sprongen vier keer per
   week (Florence 2023, DOI 10.1080/02640414.2024.2312052). Bij topwielrenners

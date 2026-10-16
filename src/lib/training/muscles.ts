@@ -114,7 +114,7 @@ export const EXERCISE_MUSCLES: Record<string, ExerciseMuscles> = {
   "banded-hip-flexion": m(["heupbuigers"], ["quadriceps", "buik"]),
   "single-leg-calf-raise": m(["kuiten"]),
 
-  // Springen voor je botten (0242)
+  // Springen voor je botten (0245)
   "countermovement-jump": m(["quadriceps", "bilspieren", "kuiten"], ["hamstrings"]),
 };
 

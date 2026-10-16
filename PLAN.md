@@ -153,8 +153,10 @@ gaat stabiliteit voor nieuwe features.
    het besluit ligt bij de eigenaar.
 7. **Na de wetenschappelijke toets** (afgerond 2026-10-16; zie de rondes
    "wetenschappelijke toets" hieronder):
-   - Migraties `0241` (warming-up in de FTP-test) en `0242` (springserie) op
-     productie zetten.
+   - Migraties `0244_workout_library_ftp20_warmup` (warming-up in de FTP-test)
+     en `0245_mobility_jump_series` (springserie) op productie zetten. Ze
+     heetten op de branch 0241 en 0242 en zijn bij het samenvoegen met main
+     hernummerd, omdat main die nummers al gebruikte.
    - De voedingspagina, de sprongfiguur en de Duurtest-reeks in de browser
      bekijken.
    - Volgen of de AI de nieuwe regels volgt: Duurtest, kracht op de fiets,
@@ -172,7 +174,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0244`
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0246`
+(`0244_workout_library_ftp20_warmup` en `0245_mobility_jump_series` zijn van de
+wetenschappelijke toets, 2026-10-16, hernummerd bij het samenvoegen met main)
 (`0237_member_protocols` is van de protocollen, `0238_member_protocol_core_sessions`
 van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 `0240_member_tips_from_thread` van Wie weet wat, 2026-10-15;
@@ -9905,7 +9909,7 @@ rekenen pas opnieuw als ze worden herrekend.
 ### Opgeleverd — wetenschappelijke toets fase 4: kracht, core en mobiliteit
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
-`0242_mobility_jump_series.sql` (**nog niet op productie**; getest in PGlite).
+`0245_mobility_jump_series.sql` (**nog niet op productie**; getest in PGlite).
 Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md),
 fase 4, en [`docs/kracht-literatuur.md`](docs/kracht-literatuur.md).
 Goedgekeurd door de eigenaar: "alles ja en ook een protocol van 10 weken".
@@ -9932,7 +9936,7 @@ core-sessies per week uit de literatuur komen.
   twee keer per week 5 × 7 trappen voluit vanuit stilstand op ~6 %, met een
   `aiHint` die de sessie als korte buitensessie laat inplannen. De core-
   artikelpagina toont nu ook links naar protocollen.
-- **Springserie** `springen` (migratie 0242): 5 × 10 sprongen uit stand, een
+- **Springserie** `springen` (migratie 0245): 5 × 10 sprongen uit stand, een
   nieuwe oefening met figuur en spiergroepen. `BONE_SERIES_SLUGS` in
   `mobility.ts` houdt de serie buiten de krachtregels: ZWB stelt haar niet uit
   zichzelf voor, en ze telt niet mee voor de rust tussen krachtsessies.
@@ -9942,7 +9946,7 @@ core-sessies per week uit de literatuur komen.
   keuze.
 - **/hulp**: een alinea over de springserie, en kracht op de fiets bij de
   protocollen.
-- **Tests**: de seedtests (figuren, spiergroepen, series, migratie) nemen 0242
+- **Tests**: de seedtests (figuren, spiergroepen, series, migratie) nemen 0245
   mee. Er is een test voor de springserie buiten de krachtregels, en de
   protocoltest accepteert artikelen uit de krachtkennisbank.
 
@@ -9954,7 +9958,7 @@ core-sessies per week uit de literatuur komen.
   past niet in de rotatie van core en kracht. Het lid kiest haar zelf.
 
 **Niet geverifieerd.**
-- Migratie 0242 op productie.
+- Migratie 0245 op productie.
 - De figuur van de sprong in de browser.
 - Of de AI het protocol netjes als buitensessie inplant.
 - Kracht op de fiets op een smart trainer is nergens onderzocht.
@@ -10175,7 +10179,7 @@ cautions. Dat vraagt echte generaties, en die kosten geld.
 ### Opgeleverd — wetenschappelijke toets 1B: de FTP-test getoetst
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
-`0241_workout_library_ftp20_warmup.sql` (**nog toe te passen door de
+`0244_workout_library_ftp20_warmup.sql` (**nog toe te passen door de
 eigenaar**; lokaal alleen met PGlite getoetst). Onderbouwing:
 [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md), 1B.
 
@@ -10207,7 +10211,7 @@ eigenaar**; lokaal alleen met PGlite getoetst). Onderbouwing:
   - Wat: geen opener van vijf minuten op 105–115 % meer, maar drie korte
     versnellingen (Tramontin 2021: ~5 % hogere uitslag). De test duurt nu 60
     minuten in plaats van 65.
-  - Waar: in `ftpTestBlocks()`, en via `0241` in de standaardrij van de
+  - Waar: in `ftpTestBlocks()`, en via `0244` in de standaardrij van de
     bibliotheek. Een PGlite-test houdt die twee gelijk.
   - Niet aangepast: al ingeplande tests houden hun structuur.
 - **Prompt**: de achtwekenregel heet nu een keuze van ZWB, geen
