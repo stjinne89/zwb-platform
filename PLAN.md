@@ -146,7 +146,7 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
-> **Design tegels: Samen fietsen naar Club, plus een live-tegel op Vandaag, 2026-10-16 — gebouwd, lokaal getest; alleen het voorbeeldscherm in de browser bekeken. Niet gepusht. Geen migratie.**
+> **Design tegels: Samen fietsen naar Club, plus een live-tegel op Vandaag, 2026-10-16 — gebouwd, lokaal getest; alleen het voorbeeldscherm in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-16, `fc1e397`). Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
 > **Waarom.** In het design "tegels" stond Samen fietsen alleen als grijs
@@ -8808,7 +8808,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Opgeleverd — Tabbalk blijft hangen na het toetsenbord (iPhone)
 
-**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+**2026-10-16.** Commit: de commit die dit blok toevoegt (`fa85aa7` op de eigen branch, als `6dc4250` op `main` gezet); gepusht naar `main` (eigenaar, 2026-10-16). Geen migratie.
 
 **Aanleiding.** De eigenaar meldde dat de tabbalk op de iPhone "af en toe" nog
 steeds midden in beeld hangt, ook na de overstap van `fixed` naar `sticky`
