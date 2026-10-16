@@ -55,6 +55,29 @@ describe("analyseExecution", () => {
     expect(short.decoupling).toBeNull();
   });
 
+  it("meet de Duurtest alleen over het werkblok", () => {
+    const blocks = [
+      block("Inrijden", 10, "55%", "endurance"),
+      block("Duurtest", 60, "75%", "endurance"),
+      block("Uitrijden", 5, "50%", "recovery"),
+    ];
+    const watts = [...new Array(600).fill(140), ...new Array(3600).fill(188), ...new Array(300).fill(125)];
+    // In het werkblok loopt de hartslag op van 140 naar 150; in- en uitrijden liggen veel lager.
+    const heartrate = watts.map((_, i) => (i < 600 ? 110 : i < 4200 ? 140 + (10 * (i - 600)) / 3600 : 115));
+    const e = analyseExecution({ time: watts.map((_, i) => i), watts, heartrate }, blocks, FTP);
+    expect(e.steady).toMatchObject({ label: "Duurtest", minutes: 55, avgWatts: 188 });
+    expect(e.steady!.avgHr).toBeGreaterThan(144);
+    // Alleen de drift in het blok: gemiddeld 143,1 → 147,7 bpm per helft is 3,1 %, zonder het uitrijden.
+    expect(e.steady!.decoupling).toBe(3.1);
+  });
+
+  it("slaat de blokmeting over zonder hartslag of zonder lang blok", () => {
+    const blocks = [block("Duurtest", 60, "75%", "endurance")];
+    const watts = new Array(3600).fill(188);
+    expect(analyseExecution({ time: watts.map((_, i) => i), watts }, blocks, FTP).steady).toBeNull();
+    expect(analyseExecution(ride(FOUR_BY_FOUR, [280, 280, 280, 280]), FOUR_BY_FOUR, FTP).steady).toBeNull();
+  });
+
   it("noemt alleen blokken vanaf sweetspot een herhaling", () => {
     const timeline = plannedTimeline(FOUR_BY_FOUR, FTP);
     expect(timeline.filter((p) => p.work)).toHaveLength(4);

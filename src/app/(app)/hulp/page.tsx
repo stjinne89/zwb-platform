@@ -3387,8 +3387,8 @@ Fitness-status: Verbeterend`}
           <h3 className="text-sm font-semibold">Trainen en voeden</h3>
           <p className="mt-2 text-sm text-muted-foreground">
             Bij trainen staan hittetraining (kort voor een warme wedstrijd, of vijf
-            weken voor meer hemoglobine), lage cadans bij VO2max en sprints, en
-            ademspiertraining. Bij voeding staan protocollen voor de wedstrijddag
+            weken voor meer hemoglobine), lage cadans bij VO2max en sprints,
+            ademspiertraining en een maandelijkse duurtest. Bij voeding staan protocollen voor de wedstrijddag
             (cafeïne, natriumbicarbonaat, nitraat, ijsslush, glycerol,
             koolhydraten laden), voor de opbouw (bèta-alanine, creatine,
             darmtraining), voor herstel (herstellen na een zware wedstrijd,
@@ -3414,6 +3414,21 @@ Fitness-status: Verbeterend`}
             lage cadans houdt de AI-coach er rekening mee in het volgende schema of
             de volgende aanpassing: warme duurritten op hittedagen, en de cadans in
             de notitie van je VO2max- en sprintblokken.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Duurtest</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Volg je de Duurtest, dan plant de AI-coach eens per vier weken een
+            training met de titel Duurtest: een uur op 75 % van je FTP. Na de rit
+            staat op de protocolpagina hoeveel je hartslag in dat uur wegliep van
+            je vermogen (ontkoppeling), met je gemiddelde hartslag en vermogen.
+            Lager op hetzelfde vermogen is beter; een grens voor goed of slecht
+            bestaat niet, dus vergelijk alleen met jezelf. Maakt je trainer het
+            schema, dan noemt je trainer de training ook Duurtest. De
+            meting komt uit intervals.icu; een rit die alleen via Strava
+            binnenkomt, telt niet mee.
           </p>
         </div>
 

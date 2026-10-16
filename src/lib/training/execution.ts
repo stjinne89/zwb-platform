@@ -1,6 +1,7 @@
 // Hoe een geplande training is uitgevoerd, uit het bestand per seconde: per
 // herhaling van de werkblokken het vermogen tegenover het doel, en bij een lange
-// gelijkmatige rit de ontkoppeling van vermogen en hartslag. Puur: geen I/O.
+// gelijkmatige rit de ontkoppeling van vermogen en hartslag, en die van een lang
+// gelijkmatig blok apart (de Duurtest, durability-test.ts). Puur: geen I/O.
 // Wordt bewaard in de momentopname (`metrics_json.execution`), zodat de trainer
 // het ziet zonder nieuw verzoek aan intervals.icu. Regels: training-advice.ts;
 // onderbouwing: docs/racestrategie-onderzoek.md.
@@ -25,6 +26,21 @@ export type ExecutionAnalysis = {
   decoupling: number | null;
   /** Genormaliseerd gedeeld door gemiddeld vermogen over de hele rit. */
   variability: number | null;
+  /**
+   * Het langste gelijkmatige blok van minstens STEADY_BLOCK_MIN_MINUTES, alleen
+   * dat blok. Ontbreekt in momentopnames van vóór 2026-10-16.
+   */
+  steady?: SteadyBlockAnalysis | null;
+};
+
+export type SteadyBlockAnalysis = {
+  label: string;
+  /** Gemeten minuten: het blok zonder zijn eerste STEADY_SETTLE_S. */
+  minutes: number;
+  avgWatts: number;
+  avgHr: number;
+  /** Pw:HR eerste tegenover tweede helft van het blok, in procent. */
+  decoupling: number;
 };
 
 /** Een werkblok begint bij dit deel van de FTP (sweetspot); daaronder is het rust of duur. */
@@ -36,6 +52,14 @@ export const DECOUPLING_MIN_S = 75 * 60;
 export const DECOUPLING_MAX_VI = 1.1;
 /** Het eerste stuk van een rit telt niet mee voor ontkoppeling: dan loopt de hartslag nog op. */
 const DECOUPLING_SKIP_S = 10 * 60;
+/** Een blok telt als gelijkmatig bij een doel van hooguit zo breed (%FTP), zonder burst. */
+const STEADY_MAX_RANGE_PCT = 10;
+/** Een gelijkmatig blok van minstens zo lang (min) krijgt een eigen ontkoppeling. */
+export const STEADY_BLOCK_MIN_MINUTES = 45;
+/** De eerste minuten van dat blok tellen niet mee: dan loopt de hartslag nog op naar het nieuwe vermogen. */
+const STEADY_SETTLE_S = 5 * 60;
+/** Zoveel van de seconden in het blok moet een vermogen én een hartslag hebben. */
+const STEADY_MIN_COVERAGE = 0.8;
 const ALIGN_STEP_S = 5;
 const ALIGN_RANGE_S = [-120, 900] as const;
 
@@ -71,7 +95,15 @@ function normalized(watts: number[]): number {
   return mean(fourth) ** 0.25;
 }
 
-type PlannedSecond = { start: number; end: number; targetWatts: number | null; work: boolean; label: string };
+type PlannedSecond = {
+  start: number;
+  end: number;
+  targetWatts: number | null;
+  work: boolean;
+  /** Eén vast doel, zonder burst: geschikt voor een eigen ontkoppeling. */
+  steady: boolean;
+  label: string;
+};
 
 /** Het schema als tijdlijn in seconden, met het doel per blok. */
 export function plannedTimeline(blocks: WorkoutBlock[], ftp: number | null): PlannedSecond[] {
@@ -85,6 +117,8 @@ export function plannedTimeline(blocks: WorkoutBlock[], ftp: number | null): Pla
       end: at + seconds,
       targetWatts: mid !== null && ftp ? Math.round((mid * ftp) / 100) : null,
       work: mid !== null && mid >= WORK_BLOCK_PCT && block.durationMinutes <= MAX_REP_MINUTES,
+      steady:
+        range !== null && range[1] - range[0] <= STEADY_MAX_RANGE_PCT && !block.burstSeconds && block.intensity !== "rest",
       label: block.label,
     };
     at += seconds;
@@ -123,6 +157,43 @@ export function alignPlan(watts: Array<number | null>, timeline: PlannedSecond[]
   return Number.isFinite(best.score) ? best.offset : 0;
 }
 
+/** Ontkoppeling binnen het langste gelijkmatige blok, of null als dat er niet is of te weinig gemeten is. */
+function steadyBlock(
+  timeline: PlannedSecond[],
+  watts: Array<number | null>,
+  heart: Array<number | null> | null,
+  offset: number,
+): SteadyBlockAnalysis | null {
+  const block = timeline
+    .filter((p) => p.steady && p.end - p.start >= STEADY_BLOCK_MIN_MINUTES * 60)
+    .sort((a, b) => b.end - b.start - (a.end - a.start))[0];
+  if (!block || !heart) return null;
+  const from = offset + block.start + STEADY_SETTLE_S;
+  const to = offset + block.end;
+  if (from < 0 || to > watts.length) return null;
+  const both: Array<[number, number]> = [];
+  for (let t = from; t < to; t++) {
+    const w = watts[t];
+    const h = heart[t];
+    if (w != null && h != null && h > 0) both.push([w, h]);
+  }
+  if (both.length < (to - from) * STEADY_MIN_COVERAGE) return null;
+  const blockWatts = both.map(([w]) => w);
+  const avgWatts = mean(blockWatts);
+  if (avgWatts <= 0 || normalized(blockWatts) / avgWatts > DECOUPLING_MAX_VI) return null;
+  const half = Math.floor(both.length / 2);
+  const ratio = (pairs: Array<[number, number]>) => mean(pairs.map(([w]) => w)) / mean(pairs.map(([, h]) => h));
+  const first = ratio(both.slice(0, half));
+  const second = ratio(both.slice(half));
+  return {
+    label: block.label,
+    minutes: Math.round((to - from) / 60),
+    avgWatts: Math.round(avgWatts),
+    avgHr: Math.round(mean(both.map(([, h]) => h))),
+    decoupling: Math.round((1000 * (first - second)) / first) / 10,
+  };
+}
+
 export function analyseExecution(
   streams: { time: number[]; watts: Array<number | null>; heartrate?: Array<number | null> },
   blocks: WorkoutBlock[],
@@ -132,7 +203,8 @@ export function analyseExecution(
   const heart = streams.heartrate ? perSecond(streams.time, streams.heartrate) : null;
   const timeline = plannedTimeline(blocks, ftp);
   const hasWork = timeline.some((p) => p.work);
-  const offset = hasWork ? alignPlan(watts, timeline) : 0;
+  const hasSteady = timeline.some((p) => p.steady && p.end - p.start >= STEADY_BLOCK_MIN_MINUTES * 60);
+  const offset = hasWork || hasSteady ? alignPlan(watts, timeline) : 0;
 
   const reps: ExecutionRep[] = timeline.flatMap((p) => {
     if (!p.work) return [];
@@ -160,5 +232,5 @@ export function analyseExecution(
     if (first && second) decoupling = Math.round((1000 * (first - second)) / first) / 10;
   }
 
-  return { version: 1, offset, reps, decoupling, variability };
+  return { version: 1, offset, reps, decoupling, variability, steady: steadyBlock(timeline, watts, heart, offset) };
 }

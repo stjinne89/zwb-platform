@@ -129,8 +129,9 @@ gaat stabiliteit voor nieuwe features.
    claimregister, is af. Fase 1 (de regels die schema en advies sturen) is
    uitgevoerd (opbouw, FTP-test, herstel, zones, analyse; 2026-10-16).
    Migratie `0241` moet nog op productie. Fase 2 (kennisbank trainen, twee
-   nieuwe artikelen, protocol Duurtest) is voorgesteld op 2026-10-16 en wacht op
-   akkoord; daarna 3 (voeding), 4 (kracht en core), 5 (racen en pacing) en 6
+   nieuwe artikelen, protocol Duurtest, overbelasting vóór de taper) is
+   goedgekeurd en uitgevoerd op 2026-10-16. Volgende stap: het voorstel voor
+   fase 3 (voeding); daarna 4 (kracht en core), 5 (racen en pacing) en 6
    (overig). Zie de ronde hieronder en
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
 
@@ -8761,6 +8762,70 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — wetenschappelijke toets fase 2: kennisbank trainen en Duurtest
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md),
+fase 2. Goedgekeurd door de eigenaar: 2A, 2B en 2C ("Duurtest met eigen meting
+en trend"), en de korte overbelasting vóór de taper in de prompt.
+
+**Waarom.** De acht trainingsartikelen waren onderbouwd, maar drie beweringen
+waren achterhaald (verdeling, rustige ritten, hitte thuis), en lange ritten en
+de warming-up hadden geen artikel terwijl de app er wel workouts voor heeft.
+Elke nieuwe bron is eerst via PubMed bevestigd; Norte 2024 staat daar niet in en
+is niet gebruikt.
+
+**Wat er veranderde.**
+- **2A, acht artikelen hertoetst** (`training-library.ts`):
+  - *Gepolariseerd of piramidaal*: geen verschil, en recreanten lijken eerder
+    baat te hebben bij piramidaal (Rosenblat 2025).
+  - *Rustige ritten*: gepland tempowerk is nuttig; de valkuil is een rustige dag
+    die ongemerkt tempo wordt.
+  - *Hittetraining*: thuis met extra kleding is wél onderzocht, er zijn data voor
+    vrouwen, en de winst is binnen twee weken weg. Het protocol "Hitte voor meer
+    hemoglobine" kreeg dezelfde beperkingen en bronnen.
+  - *Korte intervallen*: het voordeel van 30/15 geldt bij een vast vermogen (ERG),
+    niet als je zelf voluit rijdt (Appelhans 2025, met Rønnestad als coauteur).
+  - Lage cadans, taper, ademspiertraining en koud water: getallen en bronnen
+    bijgewerkt.
+- **2B, twee nieuwe artikelen**: *Lange ritten en duurvermogen* (6 bronnen) en
+  *Warming-up* (4 bronnen). Bij een warming-up die bij een race klaarstaat, staat
+  een link "Waarom" naar het artikel.
+- **2C, protocol Duurtest** (groep "Testen", bewijs beperkt): vier keer, eens
+  per 28 dagen, 10 minuten inrijden, 60 minuten op 75 % FTP in ERG, 5 minuten
+  uitrijden (naar Barsumyan 2025/2026). De `aiHint` laat de AI hem plannen als
+  training met de titel "Duurtest", op een rustige dag.
+  - *Eigen meting*: `execution.ts` rekent nu bij het langste gelijkmatige blok
+    van minstens 45 minuten een eigen ontkoppeling uit (`steady`), zonder de
+    eerste 5 minuten van dat blok en zonder in- en uitrijden. De bestaande
+    ontkoppeling over de hele rit blijft ongewijzigd.
+  - *Trend*: de protocolpagina toont per Duurtest datum, ontkoppeling,
+    gemiddelde hartslag en vermogen (`durability-test.ts`). Een rit telt als
+    Duurtest aan de titel van de geplande training.
+  - Een Duurtest met zonetijden maar zonder blokmeting wordt eenmalig opnieuw
+    uit intervals.icu gehaald (`zone-times-fill.ts`).
+- **2D, prompt**: vlak vóór een taper mag één overbelastingsweek van ongeveer
+  zes dagen, alleen als herstelwaarden, TSB en ramp_rate het toelaten, en nooit
+  zonder taper erachter (Rønnestad & Vikmoen 2019). De sprongregel uit 1A geldt
+  voor die week niet. Test in `training-prompts.test.ts`.
+- **/hulp**: de Duurtest bij Protocollen, met de titelafspraak voor trainers.
+
+**Bewust niet gebouwd.**
+- *Een link per lange rit in de workoutbibliotheek naar het artikel*: de
+  bibliotheek staat in de database (migratie nodig per template) en het artikel
+  is via de kennisbank te vinden.
+- *Een grens of oordeel per Duurtest*: de onderzoekers keken naar de trend, en
+  een gevalideerde grens voor ontkoppeling bestaat niet.
+- *Automatisch afvinken van de Duurtest*: het lid vinkt zelf af, zoals bij de
+  andere taken zonder sensor.
+- *De Lamberts Submaximal Cycle Test*: stuurt op hartslag, en Zwift kan geen
+  ERG op hartslag.
+
+**Niet geverifieerd.** Of de AI de Duurtest en de overbelastingsweek plant zoals
+gevraagd; dat blijkt pas uit nieuwe schema's. De blokmeting is getest op
+gemaakte data, niet op een echte rit. De filter op `metrics_json->>plannedTitle`
+is niet tegen productie gedraaid.
+
 ### Opgeleverd — wetenschappelijke toets 1E: trainingsanalyse onderbouwd
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
@@ -8777,8 +8842,8 @@ op eigen data afgesteld (`racestrategie-onderzoek.md` §11), en de literatuur
 geeft geen betere getallen.
 
 **Doorgeschoven naar fase 2.** Het idee voor een protocol "Duurtest": eens per
-maand 60 minuten op 75 % FTP, naar Barsumyan. Het staat als voorstel in het
-werkdocument en wordt bij fase 2 voorgelegd.
+maand 60 minuten op 75 % FTP, naar Barsumyan. Gebouwd in fase 2 (zie de ronde
+hierboven).
 
 ### Opgeleverd — wetenschappelijke toets 1D: drempelblokken naar hun lengte
 
@@ -8976,7 +9041,7 @@ ook stijgt bij overbelasting. Daar ging de verzachtingsregel tegenin.
 worktree niet draait (`omnium-live.test.ts` leest `.env.local`). De build is
 gedraaid met de variabelen uit de `.env.local` van de hoofdmap.
 
-### Lopend — wetenschappelijke toets van ZWBasis (fase 0 en fase 1 af)
+### Lopend — wetenschappelijke toets van ZWBasis (fase 0, 1 en 2 af)
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
 codewijziging.
@@ -9025,6 +9090,9 @@ Wat er veranderde aan de voorstellen:
 - *1D*: de bovengrens hangt af van de bloklengte: ≥ 15 minuten op 90–95 %,
   kortere blokken tot 100 %, boven 100 % alleen in blokken van hooguit 8 minuten.
 - *1E*: ideeën voor fase 2: een maandelijkse duurtest (60 minuten op 75 % FTP).
+
+**Fase 2, goedgekeurd en uitgevoerd op 2026-10-16**: zie de ronde
+"wetenschappelijke toets fase 2" hierboven.
 
 De gewone zoekfunctie van Consensus gaf eerst nog resultaten van het gratis
 abonnement. Na het opnieuw verbinden van de connector (2026-10-16) werkt ook

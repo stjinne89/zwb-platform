@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { protocolBySlug, startBlocker, type ProtocolPillar } from "@/lib/protocols";
 import { protocolUsesCore } from "@/lib/protocols/core-temperature";
+import { loadDurabilityTests } from "@/lib/training/durability-test";
 import { loadConnection, requireViewer, todayKeyAmsterdam } from "../../_data";
 import {
   loadActiveRuns,
@@ -48,10 +49,11 @@ export async function ProtocolDetailPage({
   ]);
   const run = runs.find((item) => item.status === "actief") ?? null;
   const usesCore = protocolUsesCore(protocol);
-  const [checks, coreSessions, connection] = await Promise.all([
+  const [checks, coreSessions, connection, durabilityTests] = await Promise.all([
     loadChecks(viewer.supabase, run ? [run.id] : []),
     usesCore ? loadCoreSessions(viewer.supabase, run ? [run.id] : []) : Promise.resolve([]),
     usesCore && run ? loadConnection(viewer) : Promise.resolve(null),
+    protocol.measure === "duurtest" ? loadDurabilityTests(viewer.supabase, viewer.user.id) : Promise.resolve([]),
   ]);
 
   // Net gereden: de kerntemperatuur na het antwoord ophalen, net als op Vandaag.
@@ -70,6 +72,7 @@ export async function ProtocolDetailPage({
       run={run}
       checks={checks}
       coreSessions={coreSessions}
+      durabilityTests={durabilityTests}
       weightKg={profile.weightKg}
       blocker={startBlocker(protocol, profile.ageYears)}
       today={today}

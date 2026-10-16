@@ -94,6 +94,11 @@ export type Protocol = {
    * trainingsprotocollen die het schema raken.
    */
   aiHint?: string;
+  /**
+   * Laat op de protocolpagina de eigen metingen zien. "duurtest": de
+   * ontkoppeling uit de geplande Duurtest (durability-test.ts).
+   */
+  measure?: "duurtest";
 };
 
 /** Een rij uit member_protocols, zoals de app hem gebruikt. */

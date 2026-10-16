@@ -3,6 +3,7 @@
 // Bij een geplande race een warming-up uit de bibliotheek klaarzetten; zie
 // planRaceWarmup().
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import type { WarmupOption } from "@/lib/training/race-warmup";
 import { planRaceWarmup } from "../_actions";
@@ -32,6 +33,9 @@ export function RaceWarmupControl({
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="text-muted-foreground">{warmup.current.title} staat klaar</span>
         <RemoveWorkoutButton workoutId={warmup.current.id} title={warmup.current.title} />
+        <Link href="/zwbeter-worden/kennis/warming-up" className="text-muted-foreground underline">
+          Waarom
+        </Link>
       </div>
     );
   }

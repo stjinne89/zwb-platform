@@ -20,6 +20,13 @@ describe("training prompts", () => {
     expect(prompt).toContain("Boven 100% FTP alleen in blokken van hooguit 8 minuten");
   });
 
+  it("staat een korte overbelasting vóór de taper alleen toe met ruimte in het herstel", () => {
+    const prompt = defaultTrainingPrompt();
+    expect(prompt).toContain("korte overbelastingsweek van ongeveer zes dagen");
+    expect(prompt).toContain("alleen als herstelwaarden, TSB en ramp_rate dat toelaten");
+    expect(prompt).toContain("Een overbelastingsweek zonder taper erachter plan je nooit");
+  });
+
   it("trekt een weekuitzondering niet door naar andere weken", () => {
     const prompt = planUpdatePrompt();
     expect(prompt).toContain("één specifieke week");

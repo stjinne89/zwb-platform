@@ -7,6 +7,7 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { fetchIntervalsActivityStreams } from "@/lib/intervals/client";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
+import { isDurabilityTestTitle } from "@/lib/training/durability-test";
 import { analyseExecution, type ExecutionAnalysis } from "@/lib/training/execution";
 import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
 import {
@@ -56,8 +57,12 @@ export async function fillZoneTimes(
     .filter((row) => {
       const zoneTimes = row.metrics_json?.zoneTimes;
       if (!row.metrics_json?.hasPowerMeter) return false;
-      // Zonetijden van vóór de uitvoeringsanalyse: alleen die nog aanvullen.
-      if (zoneTimes?.source === "intervals") return !row.metrics_json?.execution;
+      // Zonetijden van vóór de uitvoeringsanalyse: alleen die nog aanvullen. Een
+      // Duurtest van vóór de blokmeting (2026-10-16) krijgt die alsnog.
+      if (zoneTimes?.source === "intervals") {
+        const execution = row.metrics_json?.execution;
+        return !execution || (execution.steady === undefined && isDurabilityTestTitle(row.metrics_json?.plannedTitle));
+      }
       return !zoneTimes || (zoneTimes.source === "none" && !zoneTimes.intervalsId);
     });
   if (open.length === 0) return result;

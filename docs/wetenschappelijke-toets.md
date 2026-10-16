@@ -484,9 +484,12 @@ vond wel steun voor de maat zelf:
 **Bewust niet.** Drempels aanpassen: ze zijn op eigen data afgesteld, en de
 literatuur geeft geen betere getallen.
 
-## Fase 2 — Kennisbank trainen: voorstel
+## Fase 2 — Kennisbank trainen
 
-Opgesteld 2026-10-16, **nog niet uitgevoerd**. Bronnen gezocht met de
+Opgesteld 2026-10-16. **Goedgekeurd door de eigenaar en uitgevoerd op
+2026-10-16** (2A, 2B, 2C en de taperregel uit 2D); wat er is gebouwd en wat
+bewust niet, staat in `PLAN.md` (ronde "wetenschappelijke toets fase 2").
+Oorspronkelijk voorstel: Bronnen gezocht met de
 onderzoeksagent van Consensus Pro (artikelen 1–4; ruw rapport in
 `docs/consensus/`) en met de gewone Pro-zoekfunctie (artikelen 5–8, de nieuwe
 artikelen en de duurtest). DOI's komen uit Consensus. **Elke bron wordt bij
@@ -515,7 +518,8 @@ Fase 2 heeft drie delen:
 - *Steun voor het mechanisme*: 30/15 gaf meer tijd boven 90 % VO2max dan
   constant rijden (1123 tegen 879 s), bij mannen én vrouwen
   ([Urianstad 2024](https://doi.org/10.1002/ejsc.12214)).
-- *De inperking*: een onafhankelijke Duitse groep vond dat voordeel alleen bij
+- *De inperking*: een Duitse groep (met Rønnestad als coauteur, dus niet
+  onafhankelijk) vond dat voordeel alleen bij
   een vast vermogen, niet als renners zelf voluit reden
   ([Appelhans 2025](https://doi.org/10.1123/ijspp.2024-0115)).
 - *Voor ZWB*: het voordeel geldt dus juist in ERG-modus op Zwift. Dat komt als
@@ -588,7 +592,8 @@ Fase 2 heeft drie delen:
 **Koud water na de training.**
 - De meta-analyse bevestigt het artikel: geen effect op duurprestatie (SMD
   −0,07), wel minder krachtwinst (SMD −0,60)
-  ([Malta 2020](https://doi.org/10.1007/s40279-020-01362-0)).
+  ([Malta 2021](https://doi.org/10.1007/s40279-020-01362-0)).
+- *Uitgevoerd*: Norte 2024 staat niet in PubMed en is niet gebruikt.
 - *Voor het artikel*: de getallen erbij, verder ongewijzigd.
 
 ### 2B. Twee artikelen die ontbreken
@@ -606,6 +611,9 @@ Fase 2 heeft drie delen:
     aan het eind, en krachttraining
     ([Jones 2025](https://doi.org/10.1111/sms.70032)).
 - *In de app*: de elf lange ritten in de workoutbibliotheek linken ernaar.
+  *Anders uitgevoerd*: geen link per template (de bibliotheek staat in de
+  database); het artikel staat in de kennisbank en het protocol Duurtest linkt
+  ernaar.
 
 **"Warming-up"** (categorie Opbouw en piek).
 - *Basis*: `warming-up-per-wedstrijdtype.md`.
@@ -617,7 +625,7 @@ Fase 2 heeft drie delen:
     met sprints begon je alleen harder
     ([Barranco-Gil 2020](https://doi.org/10.1123/ijspp.2019-0554)).
   - Voor 3 km scheelde een warming-up 2,8 %
-    ([Hajoglou 2004](https://doi.org/10.1249/01.mss.0000177589.02381.0a)).
+    ([Hajoglou 2005](https://doi.org/10.1249/01.mss.0000177589.02381.0a)).
 - *Boodschap*: hoe korter en harder de wedstrijd, hoe meer de warming-up telt.
   Voor lange wedstrijden volstaat kort.
 - *In de app*: de warming-ups bij een race linken ernaar.
@@ -665,9 +673,10 @@ hebben die stream niet. Dat staat dan in de beperkingen van het protocol.
 - *Een grens of advies per test*: de onderzoekers gebruikten de trend, niet
   een drempel.
 
-**Migratie?** Waarschijnlijk niet. Protocollen staan in de code, en de
-uitvoeringsgegevens van een geplande training staan al in
-`metrics_json.execution`. Dat wordt bij uitvoering gecontroleerd.
+**Migratie?** Niet nodig gebleken. De blokmeting staat als `steady` in
+`metrics_json.execution`; een Duurtest wordt herkend aan de titel van de
+geplande training. De meting slaat de eerste 5 minuten van het blok over (de
+hartslag loopt dan nog op), dus het zijn 55 gemeten minuten.
 
 ### 2D. Kleine aanpassingen in de app die uit 2A volgen
 
@@ -675,18 +684,16 @@ uitvoeringsgegevens van een geplande training staan al in
   Zwift, en het artikel legt uit waarom dat telt.
 - **Prompt, taper**: bij een A-mikpunt mag de week vóór de taper een korte,
   zware overbelasting krijgen, maar alleen als de herstelwaarden het toelaten.
-  Dat is een gedragswijziging; **apart te beslissen**.
+  Dat is een gedragswijziging; **goedgekeurd en in de prompt gezet**.
 - **Protocol hitte**: de beperkingen bijwerken (zie Hittetraining hierboven).
 - **Bibliotheek**: de lange ritten en de warming-ups linken naar hun nieuwe
   artikel.
 
-### Te beslissen door de eigenaar
+### Besluit eigenaar (2026-10-16)
 
-1. 2A en 2B uitvoeren zoals voorgesteld?
-2. 2C, het protocol Duurtest: bouwen, inclusief de eigen meting over het
-   werkblok en de trend op de protocolpagina?
-3. 2D taper: een korte overbelasting vóór de taper toestaan in de prompt, of
-   alleen in het artikel noemen?
+"Akkoord met 2A, 2B en 2C (Duurtest met eigen meting en trend), en neem de
+korte overbelasting vóór de taper op in de prompt."
+
 
 ## Bronnen fase 1
 

@@ -52,6 +52,47 @@ export const RONNESTAD_HEAT_2022: KnowledgeSource = {
   kind: "studie",
 };
 
+// Toegevoegd in de wetenschappelijke toets, fase 2 (2026-10-16); via PubMed bevestigd.
+export const LUNDBY_2023: KnowledgeSource = {
+  citation:
+    "Lundby C, Hamarsland H, Hansen J, et al. Hematological, skeletal muscle fiber, and exercise performance adaptations to heat training in elite female and male cyclists. J Appl Physiol 135(1):217-226.",
+  year: 2023,
+  url: doi("10.1152/japplphysiol.00115.2023"),
+  kind: "studie",
+};
+
+export const LUNDBY_2021: KnowledgeSource = {
+  citation:
+    "Lundby C, Svendsen IS, Urianstad T, et al. Training wearing thermal clothing and training in hot ambient conditions are equally effective methods of heat acclimation. J Sci Med Sport 24(8):763-767.",
+  year: 2021,
+  url: doi("10.1016/j.jsams.2021.06.005"),
+  kind: "studie",
+};
+
+export const RICHARD_2025: KnowledgeSource = {
+  citation:
+    "Richard NA, Cheung SS, Koehle MS, et al. Three weeks of heat maintenance potentiates the benefits of heat acclimation in trained females. Physiol Rep 13(22):e70631.",
+  year: 2025,
+  url: doi("10.14814/phy2.70631"),
+  kind: "studie",
+};
+
+export const CUBEL_2024: KnowledgeSource = {
+  citation:
+    "Cubel C, Fischer M, Stampe D, et al. Time-course for onset and decay of physiological adaptations in endurance trained athletes undertaking prolonged heat acclimation training. Temperature 11(4):350-362.",
+  year: 2024,
+  url: doi("10.1080/23328940.2024.2383505"),
+  kind: "studie",
+};
+
+export const RONNESTAD_HEAT_2024: KnowledgeSource = {
+  citation:
+    "Rønnestad BR, Odden I, Urianstad T, et al. Heat suit training preserves the increased hemoglobin mass after altitude camp in elite cyclists. Med Sci Sports Exerc 57(1):81-87.",
+  year: 2024,
+  url: doi("10.1249/MSS.0000000000003542"),
+  kind: "studie",
+};
+
 export const VERDEL_2021: KnowledgeSource = {
   citation:
     "Verdel N, et al. Reliability and validity of the CORE sensor to assess core body temperature during cycling exercise. Sensors 21(17):5932.",
@@ -118,6 +159,38 @@ const HEAT_NOT_FOR = [
   "Bij koorts, een infectie of de dag na een ziekte.",
   "Bij hart- of vaatproblemen, of met medicijnen die je warmteregeling beïnvloeden, zonder overleg met een arts.",
 ];
+
+export const ROTHSCHILD_2025: KnowledgeSource = {
+  citation:
+    "Rothschild JA, Gallo G, Hamilton K, et al. Durability of the moderate-to-heavy intensity transition can be predicted using readily available markers of physiological decoupling. Eur J Appl Physiol 125(10):2911-2920.",
+  year: 2025,
+  url: doi("10.1007/s00421-025-05815-0"),
+  kind: "studie",
+};
+
+const BARSUMYAN_RESPONSE_2025: KnowledgeSource = {
+  citation:
+    "Barsumyan A, Shyla R, Saukkonen A, Soost C, Graw JA, Burchard R. Quantifying training response in cycling based on cardiovascular drift using machine learning. Front Artif Intell 8:1623384.",
+  year: 2025,
+  url: doi("10.3389/frai.2025.1623384"),
+  kind: "studie",
+};
+
+const BARSUMYAN_CADENCE_2026: KnowledgeSource = {
+  citation:
+    "Barsumyan A, Soost C, Graw JA, Burchard R. The relationship between cadence decline, cardiovascular drift and aerobic decoupling as a marker of fatigue in well trained cyclists. BMC Sports Sci Med Rehabil 18(1).",
+  year: 2026,
+  url: doi("10.1186/s13102-026-01678-w"),
+  kind: "studie",
+};
+
+const DURABILITY_TASK = {
+  key: "duurtest",
+  label: "Duurtest",
+  detail:
+    "10 minuten inrijden, 60 minuten op 75% FTP in ERG, 5 minuten uitrijden. Elke keer met dezelfde ventilator, hetzelfde eten en drinken en uitgerust.",
+  once: true,
+};
 
 export const TRAINING_PROTOCOLS: Protocol[] = [
   {
@@ -244,13 +317,24 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
     ],
     notFor: HEAT_NOT_FOR,
     limits: [
-      "De hemoglobinemassa steeg in de studies met ongeveer 2 tot 4 procent. VO2max in koel weer steeg niet in elke studie significant.",
+      "De hemoglobinemassa steeg in de studies met ongeveer 2 tot 4 procent, bij vrouwen net zo goed als bij mannen. VO2max in koel weer steeg niet in elke studie significant.",
       "Kleine groepen, vooral (top)renners, en het meeste werk komt van één onderzoeksgroep.",
-      "De studies gebruikten een hittekamer van 38 tot 40 °C of een hittepak. Thuis zonder ventilator rijden met extra kleding is daar een afleiding van.",
+      "De studies gebruikten een hittekamer van 38 tot 40 °C of een hittepak. Thuis met extra kleding fietsen maakte vrouwen in tien dagen beter bestand tegen hitte, maar verhoogde hun hemoglobine niet.",
+      "Stop je, dan is de winst binnen twee weken weg. Drie sessies per week hielden de hemoglobine in een proef wel op peil.",
       "De CORE-sensor schat je kerntemperatuur vanaf de huid. In een validatiestudie bij fietsers week ongeveer de helft van de metingen meer dan 0,3 °C af van een rectale meting.",
       "Op 38,5 °C werkten renners in de hittepakstudies naartoe. Hoeveel minuten daarboven de app als sessie telt, is een eigen keuze van ZWB.",
     ],
-    sources: [OBERHOLZER_2019, RONNESTAD_HEAT_2021, RONNESTAD_HEAT_2022, MCDONALD_2025, VERDEL_2021],
+    sources: [
+      OBERHOLZER_2019,
+      RONNESTAD_HEAT_2021,
+      RONNESTAD_HEAT_2022,
+      LUNDBY_2023,
+      CUBEL_2024,
+      RONNESTAD_HEAT_2024,
+      RICHARD_2025,
+      MCDONALD_2025,
+      VERDEL_2021,
+    ],
     article: { href: "/zwbeter-worden/kennis/hittetraining", title: "Hittetraining" },
     aiHint:
       "Hittetraining voor hemoglobine. Plan in de fase 'Vijf weken' per week vijf ritten van minstens 50 minuten op rustige of intensieve duur, en in 'Onderhoud' drie per week. Zet in description: 'Warm rijden: geen ventilator, extra kleding.' Sleutelsessies mogen doorgaan maar rijdt het lid koel; een hittesessie is geen extra belasting bovenop het weekvolume.",
@@ -341,5 +425,39 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
     ],
     sources: [ROMER_2002, ILLI_2012, HAJGHANBARI_2013],
     article: { href: "/zwbeter-worden/kennis/ademspiertraining", title: "Ademspiertraining" },
+  },
+  {
+    slug: "duurtest",
+    pillar: "trainen",
+    group: "Testen",
+    title: "Duurtest",
+    shortLabel: "Duurtest",
+    summary:
+      "Vier maanden lang eens per maand een uur op 75% FTP. Je ziet hoeveel je hartslag in dat uur wegloopt van je vermogen, en of dat over de maanden minder wordt.",
+    goal: "Volgen of je duurvermogen groeit.",
+    evidence: "beperkt",
+    anchor: "start",
+    phases: [1, 2, 3, 4].map((month) => ({
+      key: `maand-${month}`,
+      title: `Maand ${month}`,
+      fromDay: (month - 1) * 28,
+      toDay: month * 28 - 1,
+      tasks: [DURABILITY_TASK],
+    })),
+    cautions: [
+      "Rij hem op een rustige dag, niet de dag na een zware training.",
+      "Warmte, slaap en eten verschuiven je hartslag. Houd die zo gelijk mogelijk.",
+    ],
+    notFor: ["Zonder hartslagmeter of vermogensmeter."],
+    limits: [
+      "Eén Duitse groep gebruikte deze test maandelijks bij 17 tot 20 getrainde renners. Minder ontkoppeling viel samen met betere fitheid, maar een grens voor goed of slecht is er niet. ZWB laat daarom alleen je eigen reeks zien.",
+      "ZWB meet alleen het werkblok, zonder de eerste vijf minuten. De meting komt uit intervals.icu; een rit die alleen via Strava binnenkomt, heeft geen gegevens per seconde.",
+      "Vier maanden is een keuze van ZWB; in de studies liep het vijf maanden.",
+    ],
+    sources: [BARSUMYAN_RESPONSE_2025, BARSUMYAN_CADENCE_2026, ROTHSCHILD_2025],
+    article: { href: "/zwbeter-worden/kennis/lange-ritten", title: "Lange ritten en duurvermogen" },
+    measure: "duurtest",
+    aiHint:
+      "Duurtest. Plan in elk venster van 28 dagen één training met de titel 'Duurtest': 10 minuten inrijden op 55%, één blok van 60 minuten op 75% FTP, 5 minuten uitrijden op 50%. Zet hem op een rustige dag, nooit de dag na een sleutelsessie of een race, en tel hem als duurrit van de week. Verander de opzet niet.",
   },
 ];

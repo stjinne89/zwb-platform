@@ -220,10 +220,10 @@ const HELP_INDEX: HelpResult[] = [
   },
   {
     title: "Protocollen",
-    text: "Hitte, lage cadans, ademspiertraining en supplementen: starten, afvinken en de grenzen.",
+    text: "Hitte, lage cadans, ademspiertraining, duurtest en supplementen: starten, afvinken en de grenzen.",
     href: "/hulp#protocollen",
     terms:
-      "protocol protocollen hitte hittetraining warmte acclimatisatie heet bad core sensor kerntemperatuur lichaamstemperatuur hemoglobine lage cadans toeren torque vo2max ademspiertraining ademtrainer supplement supplementen cafeine bicarbonaat natriumbicarbonaat nitraat bietensap ijsslush koolhydraten laden beta-alanine creatine darmtraining glycerol kersensap kersen herstel herstelshake eiwitshake eiwit vitamine d collageen gelatine pees blessure visolie omega-3 probiotica magnesium kramp bcaa cbd curcumine menthol mondspoelen zink vitamine c dosis gewicht nzvt kennisbank taper",
+      "protocol protocollen duurtest duurvermogen ontkoppeling decoupling durability hitte hittetraining warmte acclimatisatie heet bad core sensor kerntemperatuur lichaamstemperatuur hemoglobine lage cadans toeren torque vo2max ademspiertraining ademtrainer supplement supplementen cafeine bicarbonaat natriumbicarbonaat nitraat bietensap ijsslush koolhydraten laden beta-alanine creatine darmtraining glycerol kersensap kersen herstel herstelshake eiwitshake eiwit vitamine d collageen gelatine pees blessure visolie omega-3 probiotica magnesium kramp bcaa cbd curcumine menthol mondspoelen zink vitamine c dosis gewicht nzvt kennisbank taper",
   },
   {
     title: "Voeding",
