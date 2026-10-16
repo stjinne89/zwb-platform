@@ -42,8 +42,12 @@ Bepaal de maand: het argument, anders de huidige maand (`JJJJ-MM`). Werk vanuit
 de hoofdcheckout `C:\Users\sjmma\Projects\zwb-platform`:
 
 ```bash
-git -C C:/Users/sjmma/Projects/zwb-platform worktree add .claude/worktrees/kennisbank-scan-JJJJ-MM -b kennisbank-scan/JJJJ-MM main
+git -C C:/Users/sjmma/Projects/zwb-platform fetch origin main
+git -C C:/Users/sjmma/Projects/zwb-platform worktree add .claude/worktrees/kennisbank-scan-JJJJ-MM -b kennisbank-scan/JJJJ-MM origin/main
 ```
+
+`origin/main` en niet de lokale `main`: wat live staat is de kennisbank die
+leden lezen, en de lokale `main` loopt vaak achter.
 
 Bestaat die branch al, dan is deze maand al gescand: stop en meld dat. Doe al
 het verdere werk in die nieuwe worktree.

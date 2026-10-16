@@ -9571,7 +9571,7 @@ vandaag zijn antwoorden op baseert.
 
 **Wat er veranderde.**
 - `.claude/skills/kennisbank-scan/SKILL.md`: de werkwijze. Eigen worktree en
-  branch `kennisbank-scan/JJJJ-MM` vanaf `main`; bestaande bronnen in PubMed
+  branch `kennisbank-scan/JJJJ-MM` vanaf `origin/main`; bestaande bronnen in PubMed
   controleren op terugtrekking; per thema zoeken in Consensus en PubMed binnen
   het venster sinds de vorige scan; schiften op bewijs, populatie en opzet;
   elke voorgestelde bron bevestigen; een voorstel in vaste vorm. Daarna pas,
@@ -9586,7 +9586,7 @@ vandaag zijn antwoorden op baseert.
   Zo werkt de scan altijd met de kennisbank van de huidige commit.
 - Een geplande taak in de Claude-app op de eigen pc,
   `kennisbank-literatuurscan`, op de 2e van de maand om 09:00 (de 1e is al van de
-  doorlichting van ZWBeter Worden). Hij leest de skill van `main`, dus werkt pas
+  doorlichting van ZWBeter Worden). Hij leest de skill van `origin/main`, dus werkt pas
   als deze commit op `main` staat. Staat de app uit, dan draait hij bij de
   volgende start.
 
