@@ -304,7 +304,8 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 > Worden of het avatarmenu. intervals.icu mag maximaal benut worden; Strava-leden
 > krijgen wat met hun data kan. Het plan heeft drie rondes; dit is de eerste. De
 > tweede (piekvermogen, CP en W′ per periode uit intervals-powercurves) en de
-> derde (zones, W′bal, duurvermogen, herstel uit intervals-activiteiten) volgen.
+> derde (zones, W′bal, duurvermogen, herstel uit intervals-activiteiten) zijn
+> dezelfde dag gebouwd; zie de twee blokken hierboven.
 >
 > **Wat.**
 > - `/stats/ik` (`src/app/(app)/stats/ik/`), met de tabbalk `StatsTabs` op beide
