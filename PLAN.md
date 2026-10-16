@@ -9558,6 +9558,77 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — ZWBieb: de leeszaal, alle kennisbanken per onderwerp
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** In ZWBieb leen je kennis en spullen van een ander lid. De
+eigenaar opperde om er ook de kennisbanken te zetten, per onderwerp ingedeeld,
+zoals in een echte bieb. Die kennisbanken stonden elk bij hun eigen onderdeel:
+trainen (14 artikelen), voeding (25) en core & mobiliteit (12). Een onderwerp
+als herstel stond zo verspreid over twee kennisbanken.
+
+**Wat er veranderde.**
+- **Nieuwe tab Leeszaal** (`/zwbieb/leeszaal`), naast Kennis en Spullen. Alle 51
+  artikelen staan op twaalf planken per onderwerp: Trainen, Testen en meten,
+  Naar een wedstrijd, Eten en drinken onderweg, Dagelijkse voeding, Herstel,
+  Supplementen, Kracht, Core, rug en mobiliteit, Hitte en ademhaling,
+  Gezondheid, en Vrouwen en ouder worden. Er is een zoekveld op titel,
+  samenvatting en plank. Elke plank heeft een anker (`#gezondheid`).
+- **De indeling** staat in `src/lib/zwbieb/shelves.ts`. Elk artikel staat op
+  precies één plank, zoals een boek één plek heeft in de bieb.
+  `zwbieb.test.ts` faalt als een nieuw artikel nog niet op een plank staat.
+- **De artikelen zijn niet verhuisd.** Ze blijven op hun adres onder ZWBeter
+  Worden, want protocollen, de coach en het schema linken daarheen. De leeszaal
+  is een catalogus en linkt naar die adressen.
+- **Kenners bij artikelen, artikelen bij onderwerpen.** Een plank kan wijzen
+  naar onderwerpen van ZWBieb, bijvoorbeeld Eten en drinken onderweg naar
+  `voeding-onderweg`, en Core, rug en mobiliteit naar `kracht-core` en
+  `bikefit`. Daaruit volgt:
+  - Onder elk kennisartikel staat een blok **Vraag een clublid**, met hooguit
+    vijf kenners van die onderwerpen en een knop "Vraag het aan" (je ziet
+    jezelf er niet in). Zonder kenners verschijnt het blok niet.
+  - Bij een onderwerp onder Kennis (`/zwbieb?onderwerp=…`) staat een blok **In
+    de leeszaal**, met de artikelen erover.
+  - Op de leeszaal staan onder een plank de onderwerpen met het aantal kenners.
+- Een plank wijst alleen naar onderwerpen uit de startlijst van `0242`.
+  Onderwerpen die leden zelf toevoegen kan de moderatie hernoemen of verbergen;
+  daarom staat de indeling vast in code. Een slug verandert nooit. Een verborgen
+  onderwerp valt vanzelf weg.
+- De tabs en de knoppen in de kop van ZWBieb zitten in `zwbieb-nav.tsx`, de
+  kennerregel in `expert-row.tsx`. Overzicht en leeszaal gebruiken beide.
+- `/hulp#zwbieb` en de hulpzoeker noemen de leeszaal.
+
+**Bewust niet gebouwd.**
+- **Artikelen verhuizen naar ZWBieb.** Dat breekt de links vanuit protocollen,
+  coach en schema, en bij trainen of voeden is de kennisbank dan niet meer bij
+  de hand.
+- **Leden laten schrijven in de leeszaal.** De kennisbanken worden op bronnen
+  getoetst (wetenschappelijke toets). Kennis van leden loopt via kenners, tips
+  en gesprekken.
+- **De indeling in de database**, of planken die leden zelf maken. Een artikel
+  staat al in code; de plank hoort daarbij.
+- **Een gezondheidsonderwerp in ZWBieb.** Gezondheid krijgt wel een plank, maar
+  zonder kenners. Wie zich als kenner meldt, vertelt de club iets over zichzelf.
+  Een artikel lezen doet dat niet.
+- **Protocollen en recepten in de leeszaal.** Dat zijn geen naslag maar iets om
+  te volgen of te koken. Ze blijven bij Trainen en Voeding.
+
+**Getest.**
+- `zwbieb.test.ts`, drie nieuwe tests:
+  - elk artikel staat op precies één plank;
+  - planken zijn uniek en niet leeg, en wijzen alleen naar onderwerpen uit de
+    startlijst;
+  - een plank opzoeken bij een artikel en bij een onderwerp.
+- `tsc` en ESLint: geen nieuwe fouten (de bekende in `read-barcode.ts` en
+  `gopher-image-ocr.ts` blijven).
+- Volledige run: groen, behalve wat al bekend was. `admin-areas`,
+  `intervals-ride-sync` en `rls-initplan-migration` lopen alleen onder
+  belasting uit de tijd en zijn los groen. `omnium-live` mist `.env.local`.
+
+**Niet geverifieerd.** De ingelogde pagina's in de browser: de dev-server
+draait, maar inloggen moet met een echt account.
+
 ### Opgeleverd — veelbelovende en experimentele trainingsmethodes, met label
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie

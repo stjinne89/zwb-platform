@@ -8,6 +8,7 @@ import { MethodLabelBadge } from "@/components/method-label-badge";
 import type { KnowledgeSource } from "@/lib/knowledge/source";
 import { EVIDENCE_LABELS } from "@/lib/nutrition/library";
 import { PROTOCOLS } from "@/lib/protocols";
+import { ArticleExperts } from "@/app/(app)/zwbieb/_components/article-experts";
 
 /** Protocollen die naar dit kennisartikel verwijzen. */
 export function protocolLinksFor(articleHref: string): { href: string; title: string }[] {
@@ -93,6 +94,8 @@ export function KnowledgeArticleView({
       </section>
 
       <ProtocolLinks articleHref={articleHref} />
+
+      <ArticleExperts articleHref={articleHref} />
 
       <section className="max-w-3xl space-y-3">
         <h3 className="font-semibold">Bronnen</h3>

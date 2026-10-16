@@ -181,6 +181,7 @@ const GUIDES = [
     title: "ZWBieb",
     bullets: [
       "ZWBieb (onder Club) is de bieb van de leden. Onder Kennis zie je per onderwerp wie er ervaring mee heeft, met hun tips. Onder Spullen zie je wie iets wil uitlenen, zoals een fietskoffer, momentsleutel, fietsendrager of camper.",
+      "Onder Leeszaal staan alle artikelen uit de kennisbanken trainen, voeding en core & mobiliteit bij elkaar, per onderwerp, met een zoekveld. Onder een artikel staan clubleden die er ervaring mee hebben; bij een onderwerp onder Kennis staan de artikelen die erover gaan.",
       "Doe mee via Mijn ZWBieb: kies tot zes onderwerpen en tot vijftien spullen, met eventueel een korte toelichting. Daar stop je ook; je onderwerpen en spullen verdwijnen dan, je tips en gesprekken blijven.",
       "Staat jouw onderwerp of spul er niet tussen, typ het dan onder Ander onderwerp of Ander spul. De app laat eerst zien wat er al op lijkt. Je kunt er vijf per dag toevoegen. Kies geen onderwerp over je gezondheid: dat ziet de hele club.",
       "Vraag het aan opent een gesprek met dat lid, alleen voor jullie twee, ook om iets te lenen. Ophalen, terugbrengen en schade spreken jullie samen af. Je krijgt een melding bij een antwoord, en een icoon bovenin zolang er iets ongelezen is.",

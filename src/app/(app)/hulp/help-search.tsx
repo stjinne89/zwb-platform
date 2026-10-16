@@ -102,7 +102,7 @@ const HELP_INDEX: HelpResult[] = [
     title: "ZWBieb",
     text: "Wie weet wat en wie heeft wat: kennis en uitleenspullen van leden, tips en een vraag stellen in de app.",
     href: "/hulp#zwbieb",
-    terms: "wie weet wat kennis kenner ervaring onderwerp vraag vragen gesprek bericht berichten tip tips van leden advies hulp gravel bikefit sleutelen banden tubeless zwift racen zwbieb bieb wie heeft wat lenen uitlenen spullen fietskoffer momentsleutel fietsendrager seasucker dakdrager camper werkstandaard",
+    terms: "wie weet wat kennis kenner ervaring onderwerp vraag vragen gesprek bericht berichten tip tips van leden advies hulp gravel bikefit sleutelen banden tubeless zwift racen zwbieb bieb wie heeft wat lenen uitlenen spullen fietskoffer momentsleutel fietsendrager seasucker dakdrager camper werkstandaard leeszaal kennisbank artikel artikelen lezen boeken plank",
   },
   {
     title: "Live volgen met Garmin of Wahoo",
