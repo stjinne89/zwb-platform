@@ -161,8 +161,8 @@ ZWBieb, beide 2026-10-16).
 
 ---
 
-> **Achievements als tab onder Stats, plus een Badges-tegel op Stats → Ik, 2026-10-16 — gebouwd, lokaal getest; niet ingelogd in de browser bekeken; niet gepusht. Geen migratie.**
-> Commit: de commit die dit blok toevoegt.
+> **Achievements als tab onder Stats, plus een Badges-tegel op Stats → Ik, 2026-10-16 — gebouwd, lokaal getest; niet ingelogd in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-16, `727bd23`). Geen migratie.**
+> Commit: `727bd23`.
 >
 > **Waarom.** Voorstel van de eigenaar. Achievements (ranglijsten, hall of fame)
 > en Stats zijn allebei "prestaties en cijfers" en stonden als twee losse items
