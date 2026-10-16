@@ -87,10 +87,10 @@ en een lijst beperkingen, zoals de bestaande kennisbanken.
 
 | Onderdeel | Status |
 |---|---|
-| 25 kennisbankartikelen, 64 bronnen (`lib/nutrition/library.ts`) | ✔ · hertoetsen |
-| Koolhydraatbanden g/kg per dagtype, eiwit, 40 g eiwit voor het slapen, 1 g/kg koolhydraat voor de rit (`targets.ts`) | ✔ ACSM 2016, UCI 2026 · hertoetsen |
+| 25 kennisbankartikelen (`lib/nutrition/library.ts`) | ✔ hertoetst in fase 3; elk artikel heeft nu beperkingen |
+| Koolhydraatbanden g/kg per dagtype, eiwit, 40 g eiwit voor het slapen, 1 g/kg koolhydraat voor de rit (`targets.ts`) | ✔ hertoetst in fase 3; getallen gelijk, eiwit voor het slapen nu als hulp voor het dagtotaal |
 | Dagtips; regel "nooit minder eten" (`tips.ts`) | ✔ IOC REDs 2023 |
-| 13 voedingsprotocollen: cafeïne, bicarbonaat, nitraat, ijsslush, glycerol, koolhydraten laden, bèta-alanine, creatine, darmtraining, herstel na wedstrijd, kersensap, vitamine D, collageen | ✔ `docs/protocollen-onderzoek.md`, `docs/supplementen-onderzoek.md` · hertoetsen |
+| 13 voedingsprotocollen: cafeïne, bicarbonaat, nitraat, ijsslush, glycerol, koolhydraten laden, bèta-alanine, creatine, darmtraining, herstel na wedstrijd, kersensap, vitamine D, collageen | ✔ `docs/protocollen-onderzoek.md`, `docs/supplementen-onderzoek.md`; hertoetst in fase 3 (bicarbonaat en bèta-alanine bijgesteld) |
 
 ### E. Kracht, core en mobiliteit (fase 4)
 
@@ -694,9 +694,12 @@ hartslag loopt dan nog op), dus het zijn 55 gemeten minuten.
 "Akkoord met 2A, 2B en 2C (Duurtest met eigen meting en trend), en neem de
 korte overbelasting vóór de taper op in de prompt."
 
-## Fase 3 — Kennisbank voeding: voorstel
+## Fase 3 — Kennisbank voeding
 
-Opgesteld 2026-10-16, **nog niet uitgevoerd**.
+Opgesteld 2026-10-16. **Goedgekeurd door de eigenaar ("ja op alles") en
+uitgevoerd op 2026-10-16**: 3A–3D, de herformulering van de tip, en
+beperkingen bij alle 25 artikelen. Wat er is gebouwd, staat in `PLAN.md` (ronde
+"wetenschappelijke toets fase 3"). Oorspronkelijk voorstel:
 
 **Hoe gezocht.**
 - De onderzoeksagent van Consensus Pro kreeg alle 31 voedingsregels. Hij
@@ -730,7 +733,7 @@ grotendeels actueel. Het gat zit op drie plekken:
 | Protocol | Oordeel | Wat verandert |
 |---|---|---|
 | Cafeïne 3–6 mg/kg | klopt | Gewenning aan koffie maakt het effect niet kleiner ([Carvalho 2022](https://doi.org/10.1007/s40279-022-01685-0)). Het werkt bij vrouwen ([Zhu 2026](https://doi.org/10.3389/fnut.2026.1876198), lage zekerheid). "Een lage dosis werkt ook" wordt "werkt mogelijk ook, minder zeker": bij fietsers was 1–3 mg/kg niet significant ([Chen 2024](https://doi.org/10.1080/15502783.2024.2363789)). |
-| Natriumbicarbonaat | **bewering herzien** | De beperking "bij een lange vlakke tijdrit is het effect klein" klopt niet meer: 16 km ([Leach 2023](https://doi.org/10.1249/MSS.0000000000003263)) en 40 km ([Shannon 2024](https://doi.org/10.1007/s00421-024-05567-3)) gingen sneller. Het venster van 90–180 minuten blijft: een vaste tijd werkt, persoonlijke timing is met capsules niet nodig ([Saunders 2020](https://doi.org/10.1249/MSS.0000000000002313)). Nieuw bij aandachtspunten: een warming-up met sprints maakte de winst in één proef ongedaan ([Gurton 2021](https://doi.org/10.1123/ijspp.2020-0743)), de bijvangst uit fase 2. |
+| Natriumbicarbonaat | **bewering herzien** | De beperking "bij een lange vlakke tijdrit is het effect klein" klopt niet meer: 16 km ([Leach 2023](https://doi.org/10.1249/MSS.0000000000003263)) en 40 km ([Shannon 2024](https://doi.org/10.1007/s00421-024-05567-3)) gingen sneller. Het venster van 90–180 minuten blijft: een vaste tijd werkt, persoonlijke timing is met capsules niet nodig ([de Oliveira 2020](https://doi.org/10.1249/MSS.0000000000002313); eerder hier als "Saunders 2020" genoemd, maar Saunders is tweede auteur). Nieuw bij aandachtspunten: een warming-up met sprints maakte de winst in één proef ongedaan ([Gurton 2021](https://doi.org/10.1123/ijspp.2020-0743)), de bijvangst uit fase 2. |
 | Nitraat | klopt | Bron erbij: vooral bij minstens 6 mmol over meer dan drie dagen ([Poon 2025](https://doi.org/10.1007/s40279-025-02194-6)); bij topsporters geen effect op VO2max ([Qin 2026](https://doi.org/10.3389/fnut.2026.1858216)). |
 | IJsslush | klopt | Bron erbij: ijs drinken verbetert prestatie niet consequent; spoelen met menthol wel ([Roriz 2022](https://doi.org/10.3389/fnut.2022.959516)). Dat staat al in de beperkingen. |
 | Bèta-alanine | **bijstellen** | "Inspanningen van één tot vier minuten" wordt "van een halve tot tien minuten, het sterkst rond vier tot tien". Effect na vier weken, sterker bij 5,6–6,4 g ([Georgiou 2024](https://doi.org/10.1123/ijsnem.2024-0027)). |
@@ -757,7 +760,7 @@ zout**, **Supplementen**, **Kersensap**, **Collageen**. Daarnaast:
   de cyclusfase geen invloed had op duurprestatie
   ([Taylor 2024](https://doi.org/10.1249/MSS.0000000000003447)).
 - **IJzer**: schrijft je arts ijzer voor, dan gaf om de dag even goede waarden
-  met minder maagklachten ([Gessler 2023](https://doi.org/10.1016/j.eclinm.2023.102286)).
+  met minder maagklachten ([von Siebenthal 2023](https://doi.org/10.1016/j.eclinm.2023.102286); eerste auteur, eerder hier als "Gessler" genoemd).
   Het advies "nooit op eigen houtje" blijft.
 
 **Niet opnieuw gezocht in deze ronde:** REDs, botgezondheid, weerstand, masters,
@@ -784,12 +787,10 @@ Dit is het meeste werk van fase 3, en het maakt de drie kennisbanken gelijk.
 - *Nieuwe artikelen (alcohol en herstel, zweettest)*: niet gezocht in deze
   ronde. Ze horen als idee in het plannenboek.
 
-### Te beslissen door de eigenaar
+### Besluit eigenaar (2026-10-16)
 
-1. 3A, 3B en 3C uitvoeren zoals voorgesteld?
-2. De tip voor het slapen herformuleren naar "makkelijk je dagtotaal halen"?
-3. 3D: beperkingen bij alle 25 voedingsartikelen, of alleen bij de artikelen
-   die nu worden bijgewerkt?
+"Ja op alles": 3A–3C zoals voorgesteld, de tip herformuleren, en beperkingen
+bij alle 25 voedingsartikelen.
 
 ## Bronnen fase 1
 

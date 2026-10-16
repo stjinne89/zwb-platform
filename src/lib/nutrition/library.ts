@@ -49,6 +49,8 @@ export type NutritionArticle = {
   title: string;
   summary: string;
   points: string[];
+  /** Wat het onderzoek níét laat zien, of wat een eigen keuze van ZWB is. */
+  limits: string[];
   sources: NutritionSource[];
 };
 
@@ -373,6 +375,264 @@ const GUEST_2021_NUTRITION: NutritionSource = {
   kind: "consensus",
 };
 
+// Hertoetst in de wetenschappelijke toets, fase 3 (2026-10-16). DOI's via PubMed
+// bevestigd; zie docs/wetenschappelijke-toets.md.
+export const WITARD_2025: NutritionSource = {
+  citation:
+    "Witard OC, Hearris M, Morgan PT. Protein nutrition for endurance athletes: a metabolic focus on promoting recovery and training adaptation. Sports Med 55(6):1361-1376.",
+  year: 2025,
+  url: "https://doi.org/10.1007/s40279-025-02203-8",
+  kind: "review",
+};
+
+export const TROMMELEN_2023_DOSE: NutritionSource = {
+  citation:
+    "Trommelen J, van Lieshout GAA, Nyakayiru J, et al. The anabolic response to protein ingestion during recovery from exercise has no upper limit in magnitude and duration in vivo in humans. Cell Rep Med 4(12):101324.",
+  year: 2023,
+  url: "https://doi.org/10.1016/j.xcrm.2023.101324",
+  kind: "studie",
+};
+
+export const VALENZUELA_2023: NutritionSource = {
+  citation:
+    "Valenzuela PL, Alejo LB, Montalvo-Pérez A, et al. Pre-sleep protein supplementation in professional cyclists during a training camp: a three-arm randomized controlled trial. J Int Soc Sports Nutr 20(1):2166366.",
+  year: 2023,
+  url: "https://doi.org/10.1080/15502783.2023.2166366",
+  kind: "studie",
+};
+
+export const SOLLIE_2023: NutritionSource = {
+  citation:
+    "Sollie O, Clauss M, Jeppesen PB, et al. Similar performance after intake of carbohydrate plus whey protein and carbohydrate only in the early phase after non-exhaustive cycling. Scand J Med Sci Sports 33(7):1091-1103.",
+  year: 2023,
+  url: "https://doi.org/10.1111/sms.14364",
+  kind: "studie",
+};
+
+export const NORTE_2026: NutritionSource = {
+  citation:
+    "Norte BR, Slinn MM, Johnson KO, et al. Graded carbohydrate ingestion up to 120 g·h-1 attenuates the reduction in critical power following 3 h of moderate-intensity exercise in a dose-dependent manner. Scand J Med Sci Sports 36(6):e70326.",
+  year: 2026,
+  url: "https://doi.org/10.1111/sms.70326",
+  kind: "studie",
+};
+
+export const FLEITAS_PANIAGUA_2026: NutritionSource = {
+  citation:
+    "Fleitas-Paniagua PR, Rasica L, Azevedo RA, et al. Recommended but not high carbohydrate dose improves performance after heavy- but not moderate-intensity exercise in recreationally trained participants. Scand J Med Sci Sports 36(5):e70288.",
+  year: 2026,
+  url: "https://doi.org/10.1111/sms.70288",
+  kind: "studie",
+};
+
+export const HEARRIS_2022: NutritionSource = {
+  citation:
+    "Hearris MA, Pugh JN, Langan-Evans C, et al. 13C-glucose-fructose labeling reveals comparable exogenous CHO oxidation during exercise when consuming 120 g/h in fluid, gel, jelly chew, or coingestion. J Appl Physiol 132(6):1394-1406.",
+  year: 2022,
+  url: "https://doi.org/10.1152/japplphysiol.00091.2022",
+  kind: "studie",
+};
+
+export const PRIETO_BELLVER_2024: NutritionSource = {
+  citation:
+    "Prieto-Bellver G, Diaz-Lara J, Bishop DJ, et al. A five-week periodized carbohydrate diet does not improve maximal lactate steady-state exercise capacity and substrate oxidation in well-trained cyclists compared to a high-carbohydrate diet. Nutrients 16(2):318.",
+  year: 2024,
+  url: "https://doi.org/10.3390/nu16020318",
+  kind: "studie",
+};
+
+export const GOULET_2019: NutritionSource = {
+  citation:
+    "Goulet EDB, Hoffman MD. Impact of ad libitum versus programmed drinking on endurance performance: a systematic review with meta-analysis. Sports Med 49(2):221-232.",
+  year: 2019,
+  url: "https://doi.org/10.1007/s40279-018-01051-z",
+  kind: "review",
+};
+
+export const KENEFICK_2018: NutritionSource = {
+  citation:
+    "Kenefick RW. Drinking strategies: planned drinking versus drinking to thirst. Sports Med 48(Suppl 1):31-37.",
+  year: 2018,
+  url: "https://doi.org/10.1007/s40279-017-0844-6",
+  kind: "review",
+};
+
+export const BROOKS_2022: NutritionSource = {
+  citation:
+    "Brooks E, Lamothe G, Nagpal TS, et al. Acute ingestion of ketone monoesters and precursors do not enhance endurance exercise performance: a systematic review and meta-analysis. Int J Sport Nutr Exerc Metab 32(3):214-225.",
+  year: 2022,
+  url: "https://doi.org/10.1123/ijsnem.2021-0280",
+  kind: "review",
+};
+
+export const POFFE_2019: NutritionSource = {
+  citation:
+    "Poffé C, Ramaekers M, Van Thienen R, et al. Ketone ester supplementation blunts overreaching symptoms during endurance training overload. J Physiol 597(12):3009-3027.",
+  year: 2019,
+  url: "https://doi.org/10.1113/JP277831",
+  kind: "studie",
+};
+
+export const TAYLOR_2024: NutritionSource = {
+  citation:
+    "Taylor MY, Osborne JO, Topranin VM, et al. Menstrual cycle phase has no influence on performance-determining variables in endurance-trained athletes: the FENDURA project. Med Sci Sports Exerc 56(9):1595-1605.",
+  year: 2024,
+  url: "https://doi.org/10.1249/MSS.0000000000003447",
+  kind: "studie",
+};
+
+export const VON_SIEBENTHAL_2023: NutritionSource = {
+  citation:
+    "von Siebenthal HK, Gessler S, Vallelian F, et al. Alternate day versus consecutive day oral iron supplementation in iron-depleted women: a randomized double-blind placebo-controlled study. EClinicalMedicine 65:102286.",
+  year: 2023,
+  url: "https://doi.org/10.1016/j.eclinm.2023.102286",
+  kind: "studie",
+};
+
+export const CARVALHO_2022: NutritionSource = {
+  citation:
+    "Carvalho A, Marticorena FM, Grecco BH, et al. Can I have my coffee and drink it? A systematic review and meta-analysis to determine whether habitual caffeine consumption affects the ergogenic effect of caffeine. Sports Med 52(9):2209-2220.",
+  year: 2022,
+  url: "https://doi.org/10.1007/s40279-022-01685-0",
+  kind: "review",
+};
+
+export const ZHU_2026: NutritionSource = {
+  citation:
+    "Zhu J, Zhang Y, Li M, et al. Acute caffeine ingestion and exercise performance in women: a systematic review and meta-analysis of menstrual-cycle phase and hormonal contraceptive status. Front Nutr 13:1876198.",
+  year: 2026,
+  url: "https://doi.org/10.3389/fnut.2026.1876198",
+  kind: "review",
+};
+
+export const CHEN_2024: NutritionSource = {
+  citation:
+    "Chen B, Ding L, Qin Q, et al. Effect of caffeine ingestion on time trial performance in cyclists: a systematic review and meta-analysis. J Int Soc Sports Nutr 21(1):2363789.",
+  year: 2024,
+  url: "https://doi.org/10.1080/15502783.2024.2363789",
+  kind: "review",
+};
+
+export const LEACH_2023: NutritionSource = {
+  citation:
+    "Leach NK, Hilton NP, Tinnion D, et al. Sodium bicarbonate ingestion in a fasted state improves 16.1-km cycling time-trial performance. Med Sci Sports Exerc 55(12):2299-2307.",
+  year: 2023,
+  url: "https://doi.org/10.1249/MSS.0000000000003263",
+  kind: "studie",
+};
+
+export const SHANNON_2024: NutritionSource = {
+  citation:
+    "Shannon ES, Regnier A, Dobson B, et al. The effect of sodium bicarbonate mini-tablets ingested in a carbohydrate hydrogel system on 40 km cycling time trial performance and metabolism in trained male cyclists. Eur J Appl Physiol 124(12):3671-3682.",
+  year: 2024,
+  url: "https://doi.org/10.1007/s00421-024-05567-3",
+  kind: "studie",
+};
+
+export const GURTON_2021: NutritionSource = {
+  citation:
+    "Gurton WH, Faulkner SH, James RM. Effect of warm-up and sodium bicarbonate ingestion on 4-km cycling time-trial performance. Int J Sports Physiol Perform 16(11):1573-1579.",
+  year: 2021,
+  url: "https://doi.org/10.1123/ijspp.2020-0743",
+  kind: "studie",
+};
+
+export const DE_OLIVEIRA_2020: NutritionSource = {
+  citation:
+    "de Oliveira LF, Saunders B, Yamaguchi G, et al. Is individualization of sodium bicarbonate ingestion based on time to peak necessary? Med Sci Sports Exerc 52(8):1801-1808.",
+  year: 2020,
+  url: "https://doi.org/10.1249/MSS.0000000000002313",
+  kind: "studie",
+};
+
+export const POON_2025: NutritionSource = {
+  citation:
+    "Poon ET, Iu JC, Sum WM, et al. Dietary nitrate supplementation and exercise performance: an umbrella review of 20 published systematic reviews with meta-analyses. Sports Med 55(5):1213-1231.",
+  year: 2025,
+  url: "https://doi.org/10.1007/s40279-025-02194-6",
+  kind: "review",
+};
+
+export const QIN_2026: NutritionSource = {
+  citation:
+    "Qin G, Kim S. Effects of beetroot juice supplementation on maximal oxygen uptake during aerobic exercise: a systematic review and meta-analysis. Front Nutr 13:1858216.",
+  year: 2026,
+  url: "https://doi.org/10.3389/fnut.2026.1858216",
+  kind: "review",
+};
+
+export const RORIZ_2022: NutritionSource = {
+  citation:
+    "Roriz M, Brito P, Teixeira FJ, et al. Performance effects of internal pre- and per-cooling across different exercise and environmental conditions: a systematic review. Front Nutr 9:959516.",
+  year: 2022,
+  url: "https://doi.org/10.3389/fnut.2022.959516",
+  kind: "review",
+};
+
+export const GEORGIOU_2024: NutritionSource = {
+  citation:
+    "Georgiou GD, Antoniou K, Antoniou S, et al. Effect of beta-alanine supplementation on maximal intensity exercise in trained young male individuals: a systematic review and meta-analysis. Int J Sport Nutr Exerc Metab 34(6):397-412.",
+  year: 2024,
+  url: "https://doi.org/10.1123/ijsnem.2024-0027",
+  kind: "review",
+};
+
+export const FERNANDEZ_LANDA_2023: NutritionSource = {
+  citation:
+    "Fernández-Landa J, Santibañez-Gutierrez A, Todorovic N, et al. Effects of creatine monohydrate on endurance performance in a trained population: a systematic review and meta-analysis. Sports Med 53(5):1017-1027.",
+  year: 2023,
+  url: "https://doi.org/10.1007/s40279-023-01823-2",
+  kind: "review",
+};
+
+export const BARRANCO_GIL_2024: NutritionSource = {
+  citation:
+    "Barranco-Gil D, Alejo LB, Revuelta C, et al. High-dose short-term creatine supplementation without beneficial effects in professional cyclists: a randomized controlled trial. J Int Soc Sports Nutr 21(1):2340574.",
+  year: 2024,
+  url: "https://doi.org/10.1080/15502783.2024.2340574",
+  kind: "studie",
+};
+
+export const FORBES_2023: NutritionSource = {
+  citation:
+    "Forbes SC, Candow DG, Neto JHF, et al. Creatine supplementation and endurance performance: surges and sprints to win the race. J Int Soc Sports Nutr 20(1):2204071.",
+  year: 2023,
+  url: "https://doi.org/10.1080/15502783.2023.2204071",
+  kind: "review",
+};
+
+export const DAAB_2026: NutritionSource = {
+  citation:
+    "Daab W, Bouzid MA, Nassis GP, et al. Effects of tart cherry juice supplementation on recovery from exercise-induced muscle damage in athletes: a systematic review and meta-analysis. Sports Med Open 12(1).",
+  year: 2026,
+  url: "https://doi.org/10.1186/s40798-026-00993-3",
+  kind: "review",
+};
+
+export const HAGELE_2026: NutritionSource = {
+  citation:
+    "Hagele AM, Levers KS, Holley KF, et al. Impact of powdered tart cherry supplementation on performance recovery following repeated sprint exercise. Nutrients 18(3):443.",
+  year: 2026,
+  url: "https://doi.org/10.3390/nu18030443",
+  kind: "studie",
+};
+
+export const JERGER_2022: NutritionSource = {
+  citation:
+    "Jerger S, Centner C, Lauber B, et al. Effects of specific collagen peptide supplementation combined with resistance training on Achilles tendon properties. Scand J Med Sci Sports 32(7):1131-1141.",
+  year: 2022,
+  url: "https://doi.org/10.1111/sms.14164",
+  kind: "studie",
+};
+
+export const BALSHAW_2023: NutritionSource = {
+  citation:
+    "Balshaw TG, Funnell MP, McDermott EJ, et al. The effect of specific bioactive collagen peptides on tendon remodeling during 15 wk of lower body resistance training. Med Sci Sports Exerc 55(11):2083-2095.",
+  year: 2023,
+  url: "https://doi.org/10.1249/MSS.0000000000003242",
+  kind: "studie",
+};
+
 export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "brandstof-volgens-training",
@@ -388,7 +648,11 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Eiwit blijft elke dag ongeveer gelijk; koolhydraten schuiven mee met de training.",
       "Ook het soort eten schuift mee. Zware dag: koolhydraatrijk, licht verteerbaar, weinig vezels en weinig volume. Rustdag: meer eiwit, vezels, groente en fruit.",
       "Vet beweegt tegengesteld aan koolhydraten: weinig op zware dagen, wat meer op rustige dagen.",
-      "Bewust met weinig koolhydraten trainen (train-low) kan adaptaties versterken, maar alleen gericht en niet vóór sessies waar kwaliteit telt.",
+      "Bewust met weinig koolhydraten trainen (train-low) verandert je stofwisseling, maar goed getrainde fietsers werden er in vijf weken niet sneller van dan met evenveel energie en veel koolhydraten. Doe het hooguit gericht, en nooit vóór sessies waar kwaliteit telt.",
+    ],
+    limits: [
+      "De banden per dagtype komen uit consensusstukken; ze zijn niet per dagtype in proeven getest.",
+      "Wat je nodig hebt hangt ook af van je tempo en van hoeveel je naast het fietsen beweegt.",
     ],
     sources: [
       UCI_POSITION,
@@ -403,6 +667,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       BURKE_2011,
       ACSM_2016,
       UCI_PLATE,
+      PRIETO_BELLVER_2024,
       {
         citation:
           "Stellingwerff T, Morton JP, Burke LM. A Framework for Periodized Nutrition for Athletics. Int J Sport Nutr Exerc Metab 29(2):141.",
@@ -425,6 +690,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Voor een korte Zwift-race is stapelen niet nodig; een gewone koolhydraatrijke maaltijd volstaat.",
       "Probeer een nieuwe aanpak eerst op een training, nooit voor het eerst op de wedstrijddag.",
     ],
+    limits: [
+      "Hoeveel je vooraf verdraagt, verschilt sterk per persoon; de bandbreedte is daarom ruim.",
+      "De winst van stapelen is gemeten bij inspanningen van meer dan ongeveer anderhalf uur, niet bij korte races.",
+    ],
     sources: [UCI_POSITION, BURKE_2011, ACSM_2016, KERKSICK_2017],
   },
   {
@@ -437,10 +706,15 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Korter dan ongeveer een uur: extra koolhydraten zijn niet nodig. Bij een harde inspanning van 40–75 minuten kan spoelen met sportdrank (5–10 seconden in je mond) helpen.",
       "Eén tot tweeënhalf uur: 30–60 g per uur.",
       "Langer dan tweeënhalf uur: 60–90 g per uur, met 90 als doel als je het verdraagt.",
-      "Tot 120 g per uur komt bij profs voor en vraagt darmtraining. Of het extra oplevert, is nog niet aangetoond.",
+      "Tot 120 g per uur komt bij profs voor en vraagt darmtraining. Bij getrainde renners zakte hun critical power na drie uur minder met 120 dan met 60 g per uur; of dat in een wedstrijd winst geeft, is niet getest.",
+      "Meer is niet vanzelf beter: bij recreanten werkte 40 g per uur na anderhalf uur rijden beter dan 90 g.",
       "Een verhouding fructose tot glucose van ongeveer 0,6–1,0 werkt het best. Gewone suiker is 1:1.",
       "Drank, gel of reep maakt voor de opname weinig uit; afwisselen helpt je maag.",
       "Het ≥100 g per uur van het profpeloton is niet zonder meer over te zetten naar recreanten.",
+    ],
+    limits: [
+      "De meeste proeven zijn gedaan met getrainde mannen in een lab.",
+      "De banden zijn een startpunt; welke hoeveelheid voor jou het best werkt, verschilt per persoon.",
     ],
     sources: [
       UCI_POSITION,
@@ -466,6 +740,9 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
         url: "https://pubmed.ncbi.nlm.nih.gov/41911900/",
         kind: "review",
       },
+      NORTE_2026,
+      FLEITAS_PANIAGUA_2026,
+      HEARRIS_2022,
     ],
   },
   {
@@ -480,6 +757,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Klachten nemen af als je binnen de aanbevolen hoeveelheden blijft en glucose en fructose mengt.",
       "Voor low-FODMAP-eten en probiotica is het bewijs nog beperkt.",
       "Bij aanhoudende klachten: overleg met een sportdiëtist of arts.",
+    ],
+    limits: [
+      "Er is geen vast onderzocht schema; de stappen per week zijn een afleiding uit de reviews.",
+      "De studies zijn klein en duren hooguit een paar weken.",
     ],
     sources: [
       {
@@ -512,10 +793,15 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Begin gehydrateerd en drink naar wat je zweet. Extra natrium is vooral nodig bij lange ritten en veel zweetverlies.",
     points: [
       "Weeg jezelf voor en na een rit: elke kilo verlies is ongeveer een liter vocht.",
-      "Drink tijdens lange ritten zo dat je niet meer dan ongeveer 2% van je gewicht verliest, maar drink niet meer dan je zweet.",
+      "Tot ongeveer anderhalf uur in gewoon weer volstaat drinken op dorst; in proeven reed dat even goed als een vast drinkschema.",
+      "Bij lange of warme ritten loont een plan: drink zo dat je niet meer dan ongeveer 2% van je gewicht verliest, maar drink niet meer dan je zweet.",
       "Bij ritten tot een paar uur volstaat zout naar smaak in je gewone eten.",
       "Bij lange of hete ritten helpt natrium in je bidon. Zweetverlies verschilt sterk per persoon.",
       "Natrium voorladen heeft alleen in specifieke situaties in de hitte zin.",
+    ],
+    limits: [
+      "Zweet- en zoutverlies verschillen zo sterk per persoon dat een algemeen getal weinig zegt; wegen voor en na zegt meer.",
+      "Dat 2% vochtverlies prestatie kost, geldt vooral bij warmte en lange duur, niet bij korte ritten in koel weer.",
     ],
     sources: [
       {
@@ -540,6 +826,8 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
         kind: "review",
       },
       ACSM_2016,
+      GOULET_2019,
+      KENEFICK_2018,
     ],
   },
   {
@@ -556,6 +844,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Cafeïne kan ook bij korte, intensieve races helpen (zie supplementen).",
       "Droog jezelf niet uit voor een weging. Het vochttekort kost binnen, zonder rijwind, meer dan het lagere gewicht oplevert.",
     ],
+    limits: [
+      "Er zijn nauwelijks studies naar voeding bij Zwift-races; de adviezen komen van buitenwedstrijden en het UCI-stuk over esports.",
+      "Hoeveel meer je binnen zweet, hangt af van je ventilator en de temperatuur in de kamer.",
+    ],
     sources: [UCI_ESPORTS, UCI_POSITION, MORTON_2026_JNUTR],
   },
   {
@@ -565,12 +857,16 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     summary:
       "Duursporters hebben meer eiwit nodig dan het algemene advies. Verdeel het over de dag en neem een portie voor het slapen.",
     points: [
-      "Per dag: ongeveer 1,6–2,1 g eiwit per kg lichaamsgewicht.",
+      "Per dag: ongeveer 1,6–2,1 g eiwit per kg lichaamsgewicht, met 1,8 als midden.",
       "De bovenkant past op een rustdag na zwaar werk en in periodes waarin je weinig koolhydraten of energie binnenkrijgt.",
-      "Per maaltijd: ongeveer 0,3–0,4 g/kg, verdeeld over vier tot vijf momenten. Of die verdeling op lange termijn extra oplevert is onzeker; het helpt wel om je dagtotaal te halen.",
+      "Per maaltijd: ongeveer 0,3–0,4 g/kg, verdeeld over vier tot vijf momenten. Dat is geen plafond: na 100 g eiwit maakte het lichaam meer en langer eiwit aan dan na 25 g. Verdelen helpt vooral om je dagtotaal te halen.",
       "Op dagen met heel veel koolhydraten is het dagtotaal lastig te halen. Haal het dan in op de rustdag.",
-      "Ongeveer 40 g eiwit voor het slapen, bijvoorbeeld kwark, verhoogt de eiwitaanmaak 's nachts, ook na duurtraining.",
+      "Ongeveer 40 g eiwit voor het slapen, bijvoorbeeld kwark, verhoogt de eiwitaanmaak 's nachts, ook na duurtraining. Bij profs die al veel eiwit aten, gaf het geen beter herstel of betere prestatie. Het is vooral een makkelijke manier om je dagtotaal te halen.",
       "Plantaardig kan ook; combineer bronnen en neem wat ruimere porties.",
+    ],
+    limits: [
+      "De meeste eiwitstudies meten de eiwitaanmaak in de spier, niet of je er sneller van wordt.",
+      "Het onderzoek naar de portie per maaltijd is vooral gedaan na krachttraining; voor duursporters is er geen goed getal.",
     ],
     sources: [
       UCI_POSITION,
@@ -598,6 +894,9 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
         kind: "studie",
       },
       KERKSICK_2017,
+      WITARD_2025,
+      TROMMELEN_2023_DOSE,
+      VALENZUELA_2023,
     ],
   },
   {
@@ -608,15 +907,19 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Heb je binnen ongeveer acht uur weer een zware sessie, dan telt snel aanvullen. Met meer tijd telt vooral wat je die dag in totaal eet.",
     points: [
       "Snel herstel nodig: 1,0–1,2 g koolhydraten per kg per uur in de eerste vier uur, in kleine porties.",
-      "Neem er eiwit bij, ongeveer 0,3 g/kg; dat helpt spierherstel en maakt snel aanvullen makkelijker.",
+      "Neem er eiwit bij, ongeveer 0,3 g/kg, voor je spierherstel en je dagtotaal. Bij genoeg koolhydraten vult eiwit je glycogeen niet sneller aan.",
       "Volgende zware sessie pas morgen: gewone maaltijden met genoeg koolhydraten volstaan.",
       "Chocolademelk of kwark met fruit zijn praktische opties direct na de rit.",
-      "In een kleine studie met duursporters hielden ze het de dag na een uitputtende rit langer vol als ze in de eerste twee uur eiwit én koolhydraten namen, in plaats van evenveel energie uit alleen koolhydraten.",
+      "In een kleine studie met duursporters hielden ze het de dag na een uitputtende rit langer vol als ze in de eerste twee uur eiwit én koolhydraten namen, in plaats van evenveel energie uit alleen koolhydraten. In een andere proef gaf eiwit erbij vijf uur later geen betere tijdrit.",
       "Een eiwitshake is handig onderweg, maar niet beter dan gewoon eten met evenveel eiwit.",
       "Meer dan 2% van je gewicht verloren aan zweet? Drink in de vier tot zes uur erna 125–150% van dat verlies.",
       "Zout in je herstelmaaltijd of -drank helpt het vocht vast te houden.",
     ],
-    sources: [UCI_POSITION, ACSM_2016, KERKSICK_2017, UCI_PERIODIZATION, RUSTAD_2016],
+    limits: [
+      "Dat eiwit erbij de prestatie de dag erna helpt, rust op één kleine studie; een andere proef vond geen verschil.",
+      "De 1,0–1,2 g/kg per uur is getest bij renners die leeg gereden waren; na een gewone training is haast niet nodig.",
+    ],
+    sources: [UCI_POSITION, ACSM_2016, KERKSICK_2017, UCI_PERIODIZATION, RUSTAD_2016, SOLLIE_2023, WITARD_2025],
   },
   {
     slug: "genoeg-eten-reds",
@@ -630,6 +933,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Signalen: aanhoudende vermoeidheid, stagnerende vorm, vaker blessures of ziek, bij vrouwen een onregelmatige of uitblijvende menstruatie.",
       "Afvallen tijdens zware trainingsblokken vergroot het risico.",
       "Herken je dit? Ga naar een sportarts of sportdiëtist. ZWB geeft bewust geen afvaladvies.",
+    ],
+    limits: [
+      "Energiebeschikbaarheid is buiten een lab moeilijk te meten; er is geen betrouwbare thuistest.",
+      "Over mannelijke recreanten is minder bekend dan over vrouwen en profs.",
     ],
     sources: [
       REDS_2023,
@@ -652,10 +959,14 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     points: [
       "IJzertekort komt bij vrouwelijke duursporters vaker voor; laat bij klachten je bloed prikken.",
       "Een onregelmatige of uitblijvende menstruatie kan wijzen op te weinig energie. Ga daarmee naar een arts.",
-      "Het effect van cyclusfase op prestatie is gemiddeld triviaal en verschilt sterk per persoon.",
+      "Het effect van cyclusfase op prestatie is gemiddeld triviaal en verschilt sterk per persoon. Bij duursporters van wie de cyclus met bloedmetingen was bevestigd, vond een studie geen verschil tussen de fases.",
       "Houd liever bij hoe jij je voelt, bijvoorbeeld in het logboek, dan algemene fase-regels te volgen.",
       "Klachten zoals krampen, een opgeblazen gevoel of vermoeidheid lijken meer uit te maken dan de fase zelf. Pas je eten aan op de klacht, bijvoorbeeld minder vet en minder scherp gekruid bij darmklachten.",
       "Wees voorzichtig met apps die je training of eten alleen op cyclusfase aanpassen.",
+    ],
+    limits: [
+      "Bijna alle studies zijn klein, en lang niet allemaal bevestigen ze de cyclusfase met een bloedmeting.",
+      "Over vrouwen die hormonale anticonceptie gebruiken, is minder bekend.",
     ],
     sources: [
       {
@@ -674,6 +985,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       },
       UCI_POSITION,
       REDS_2023,
+      TAYLOR_2024,
     ],
   },
   {
@@ -687,6 +999,11 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Goede bronnen: rood vlees, peulvruchten, volkorenproducten en groene groenten. Vitamine C bij de maaltijd helpt de opname.",
       "Thee en koffie bij de maaltijd remmen de opname.",
       "Slik geen ijzer op eigen houtje: te veel ijzer is ook schadelijk. Laat eerst je ferritine en hemoglobine meten.",
+      "Schrijft je arts ijzer voor, dan gaf om de dag innemen even goede waarden met minder maagklachten dan elke dag.",
+    ],
+    limits: [
+      "Welke ferritinewaarde voor sporters te laag is, staat niet vast; artsen hanteren verschillende grenzen.",
+      "De studie naar om de dag innemen ging over jonge vrouwen met een tekort, niet specifiek over sporters.",
     ],
     sources: [
       {
@@ -696,6 +1013,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
         url: "https://pubmed.ncbi.nlm.nih.gov/31055680/",
         kind: "review",
       },
+      VON_SIEBENTHAL_2023,
     ],
   },
   {
@@ -711,6 +1029,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Vitamine D komt uit zonlicht, vette vis en verrijkte producten. Laat bij twijfel je bloedwaarde meten; streefwaarde boven 50 en liefst 75 nmol/l.",
       "Eiwit (1,6–2,1 g/kg per dag) is ook voor je botten nodig.",
       "Dit geldt extra voor jonge renners, die nog botmassa opbouwen, en voor oudere renners.",
+    ],
+    limits: [
+      "Dat een calciumrijke maaltijd vooraf je botten op termijn sterker maakt, is niet onderzocht; de studie mat bloedwaarden tijdens één rit.",
+      "Studies die de botten van renners jarenlang volgen naast hun voeding, ontbreken.",
     ],
     sources: [UCI_BONE, UCI_POSITION, REDS_2023, HAAKONSSEN_2015],
   },
@@ -729,6 +1051,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Antioxidanten als supplement kunnen trainingsaanpassing afremmen; bewaar ze voor periodes waarin snel herstel telt. Uit gewone voeding is dat geen punt.",
       "Slaap en stress tellen mee voor je afweer.",
     ],
+    limits: [
+      "Het effect van vitamine C geldt voor mensen onder zware fysieke belasting, in kleine studies; bij clubrenners is het niet apart onderzocht.",
+      "Het bewijs voor zink is onzeker.",
+    ],
     sources: [UCI_ILLNESS, UCI_POSITION, HEMILA_2013, NAULT_2024, PAULSEN_2014],
   },
   {
@@ -741,6 +1067,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Eiwit wordt belangrijker: haal je dagtotaal en verdeel het over de dag.",
       "Genoeg energie, calcium en vitamine D tellen zwaarder, omdat veel fietsen en ouder worden allebei aan je botten trekken. Rond de overgang geldt dat extra.",
       "Dorst wordt een minder betrouwbaar signaal. Drink in de hitte volgens plan in plaats van op gevoel.",
+    ],
+    limits: [
+      "Er zijn weinig studies met oudere renners zelf; de adviezen komen vooral uit onderzoek bij oudere niet-sporters.",
+      "Welke portie eiwit per maaltijd een oudere renner nodig heeft, staat niet vast.",
     ],
     sources: [
       UCI_POSITION,
@@ -770,6 +1100,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Supplementprotocollen zijn er vanaf 18 jaar. Daaronder zijn eten en sportvoeding genoeg.",
       "ZWB noemt bewust geen merken.",
     ],
+    limits: [
+      "Het bewijs per supplement komt vooral van getrainde mannen.",
+      "Effecten zijn gemiddelden: de ene renner reageert wel, de andere niet.",
+    ],
     sources: [IOC_SUPPLEMENTS, UCI_SUPPLEMENTS, GUEST_2021_NUTRITION, AIS_FRAMEWORK, NZVT],
   },
   {
@@ -779,15 +1113,19 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     summary:
       "Zuur kersensap kan je kracht na een zware inspanning sneller terugbrengen, maar alleen als je er een paar dagen vóór begint. Alleen na de wedstrijd drinken is niet onderbouwd.",
     points: [
-      "Een meta-analyse vond sneller herstel van kracht en vermogen na zware inspanning, en een kleiner effect op spierpijn.",
-      "Een review van vijftien studies: de winst kwam steeds als het sap al een paar dagen vóór de inspanning werd gedronken. Voor alleen achteraf drinken is geen bewijs. Kersenpoeder werkte niet.",
+      "Een meta-analyse vond sneller herstel van kracht en vermogen na zware inspanning, en een kleiner effect op spierpijn. Een nieuwere meta-analyse van negentien proeven bevestigt het herstel van kracht, met lage tot matige zekerheid.",
+      "Een review van vijftien studies: de winst kwam steeds als het sap al een paar dagen vóór de inspanning werd gedronken. Voor alleen achteraf drinken is geen bewijs. Kersenpoeder werkte niet, ook niet in een recente proef.",
       "Bij wielrenners die drie dagen achter elkaar zware ritten reden, daalden de ontstekingswaarden; hun tijdrit werd niet beter.",
       "In de studies: twee keer per dag 30 ml concentraat of een glas sap, vanaf vier à vijf dagen voor tot twee dagen na de inspanning.",
       "Voor prestatie zelf is het bewijs dun: een meta-analyse zag een klein effect op duurprestatie, in kleine studies en zonder verband met de dosis.",
       "Gebruik het rond wedstrijden en zware blokken, niet het hele jaar. Hoge doses vitamine C en E remden in een studie de aanpassing aan duurtraining; voor kersensap is dat niet onderzocht.",
       "Curcumine verminderde in een meta-analyse spierpijn en bloedwaarden van spierschade, maar de studies zijn klein. Daarvoor staat geen protocol.",
     ],
-    sources: [HILL_2021, MCHUGH_2022, BELL_2014, HOWATSON_2010, GAO_2020, PAULSEN_2014, BEBA_2022],
+    limits: [
+      "Kleine studies, een deel betaald door de kersenindustrie.",
+      "Of het effect blijft bij langer gebruik, en of het de aanpassing aan training remt, is niet onderzocht.",
+    ],
+    sources: [HILL_2021, MCHUGH_2022, BELL_2014, HOWATSON_2010, GAO_2020, PAULSEN_2014, BEBA_2022, DAAB_2026, HAGELE_2026],
   },
   {
     slug: "collageen",
@@ -798,10 +1136,15 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     points: [
       "In een studie met acht mannen verdubbelde 15 gram gelatine met vitamine C, een uur voor zes minuten touwtjespringen, een bloedwaarde voor collageenaanmaak. 5 gram deed minder.",
       "Een meta-analyse vond dat collageen naast maandenlange krachttraining kleine winst gaf in kracht en spieropbouw en een dikkere pees. Dat ging over krachttraining, niet over fietsen.",
+      "Losse proeven spreken elkaar tegen: 5 g per dag gaf een dikkere achillespees, 15 g per dag deed niets extra voor de kniepees.",
       "Dat een blessure er sneller door geneest, is niet aangetoond.",
       "Fietsen belast pezen weinig. Het ligt vooral voor de hand bij revalidatie, bijvoorbeeld na een val, naast de oefeningen van je fysiotherapeut.",
     ],
-    sources: [SHAW_2017, BISCHOF_2024, IOC_SUPPLEMENTS],
+    limits: [
+      "De studie met gelatine voor het oefenen had acht proefpersonen en mat een bloedwaarde, niet de pees zelf.",
+      "Geen van de proeven ging over wielrenners.",
+    ],
+    sources: [SHAW_2017, BISCHOF_2024, IOC_SUPPLEMENTS, JERGER_2022, BALSHAW_2023],
   },
   {
     slug: "vitamine-d",
@@ -815,6 +1158,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Neem geen hoge doses op eigen houtje. Reviewers wijzen erop dat zeer hoge doses ook nadelen kunnen hebben, en dat routinematig meten zonder klachten weinig zin heeft.",
       "Vette vis en verrijkte producten leveren ook vitamine D.",
       "Vitamine D en calcium tellen samen voor je botten; zie botgezondheid.",
+    ],
+    limits: [
+      "Of extra vitamine D in de winter blessures of ziekte bij renners voorkomt, is niet aangetoond.",
+      "Het advies van de Gezondheidsraad gaat over wie weinig buiten komt; dat dit geldt voor wie in de winter binnen traint, is een afleiding van ZWB.",
     ],
     sources: [GR_VITAMINE_D, OWENS_2018, UCI_BONE],
   },
@@ -831,6 +1178,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Eet je geen vis, dan is een supplement met EPA en DHA een vervanger voor je gezondheid, niet voor je prestatie.",
       "Er is geen dosis met aangetoonde winst voor wielrenners, dus geen protocol.",
     ],
+    limits: [
+      "Prestatiestudies zijn klein en zelden bij fietsers gedaan.",
+      "Of visolie iets toevoegt voor wie al vis eet, is niet aangetoond.",
+    ],
     sources: [PHILPOTT_2019, IOC_SUPPLEMENTS],
   },
   {
@@ -843,6 +1194,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Het ISSN-standpunt ziet mogelijke voordelen voor afweer en darmklachten, steeds voor een bepaalde stam. Wat voor de ene stam geldt, geldt niet voor een andere.",
       "ZWB noemt geen merken en dus geen stammen; daarom staat er geen protocol.",
       "Yoghurt, kwark en kefir horen gewoon bij gevarieerd eten.",
+    ],
+    limits: [
+      "Elk effect geldt voor een bepaalde stam en dosis; een resultaat is niet over te zetten op een ander product.",
+      "De studies bij sporters zijn klein en lopen kort.",
     ],
     sources: [JAGER_2019, UCI_ILLNESS],
   },
@@ -857,6 +1212,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Het heeft alleen zin bij een korte, harde inspanning waarin je niet wilt eten. Bij een rit van meer dan een uur neem je beter gewoon koolhydraten.",
       "Menthol: een meta-analyse vond in de hitte een klein voordeel, vooral bij inname via de mond, en een koeler gevoel. Het effect op prestatie lag op de grens van significant.",
       "Probeer het eerst op een training. Geen protocol: het effect is klein en hangt sterk af van de situatie.",
+    ],
+    limits: [
+      "Spoelen met koolhydraten gaf een iets hoger vermogen, maar geen snellere tijd.",
+      "Menthol is vooral in de hitte getest.",
     ],
     sources: [BRIETZKE_2019, JEFFRIES_2019],
   },
@@ -873,6 +1232,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Vitamine C en E in hoge doses: remden in een studie de aanpassing aan duurtraining.",
       "Ketonen: geen effect op prestatie, zie het artikel over ketonen.",
     ],
+    limits: [
+      "Geen bewijs betekent hier: niet onderzocht, of onderzocht zonder effect bij gezonde sporters.",
+      "De Cochrane-review over magnesium ging vooral over nachtelijke kramp bij ouderen.",
+    ],
     sources: [WOLFE_2017, GARRISON_2020, MCCARTNEY_2020, PAULSEN_2014],
   },
   {
@@ -882,8 +1245,12 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     summary:
       "Ketondrankjes verhogen de ketonen in je bloed, maar maken je in een wedstrijd niet sneller. ZWB raadt ze af.",
     points: [
-      "Een meta-analyse van dertien proeven vond geen effect op prestatie, ook niet op tijdritten en niet voor ketonesters.",
-      "Ze zijn duur, en daarom staat er geen protocol voor in ZWB.",
+      "Een meta-analyse van dertien proeven vond geen effect op prestatie, ook niet op tijdritten en niet voor ketonesters. Een nieuwere meta-analyse vond hetzelfde voor een drankje vlak voor of tijdens de inspanning.",
+      "Na elke training in een zwaar blok van drie weken remde een ketonester de signalen van overbelasting, en de renners hielden meer vol. Dat is één onderzoeksgroep met kleine groepen mannen.",
+      "Ze zijn duur en het bewijs voor herstel is dun; daarom staat er geen protocol voor in ZWB.",
+    ],
+    limits: [
+      "Het herstelonderzoek komt van één groep, met kleine aantallen mannen en een trainingsbelasting die clubrenners zelden halen.",
     ],
     sources: [
       {
@@ -893,6 +1260,8 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
         url: "https://doi.org/10.1123/ijspp.2019-0918",
         kind: "review",
       },
+      BROOKS_2022,
+      POFFE_2019,
     ],
   },
   {
@@ -906,6 +1275,10 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Tegelijk kostte hetzelfde tempo meer zuurstof, en het prestatievoordeel van het trainingsblok verdween.",
       "De groepen met veel of gericht geperiodiseerde koolhydraten werden wél sneller.",
       "Gericht een sessie met weinig koolhydraten doen is iets anders dan structureel low-carb eten; zie brandstof volgens de training.",
+    ],
+    limits: [
+      "De hoofdstudie ging over snelwandelaars van wereldniveau, niet over fietsers.",
+      "Over effecten op lange termijn bij recreanten is weinig bekend.",
     ],
     sources: [
       {
@@ -930,6 +1303,9 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Beperk rood en bewerkt vlees en suikerhoudende dranken buiten de fiets.",
       "Suiker en snelle koolhydraten hebben op en rond de fiets een functie; daarbuiten kies je liever de volkorenvariant.",
       "De voedingswaarden in de recepten komen uit het Nederlands Voedingsstoffenbestand (NEVO) van het RIVM.",
+    ],
+    limits: [
+      "De Richtlijnen goede voeding gaan over de gezondheid van de hele bevolking, niet over prestatie.",
     ],
     sources: [
       {

@@ -130,8 +130,8 @@ gaat stabiliteit voor nieuwe features.
    uitgevoerd (opbouw, FTP-test, herstel, zones, analyse; 2026-10-16).
    Migratie `0241` moet nog op productie. Fase 2 (kennisbank trainen, twee
    nieuwe artikelen, protocol Duurtest, overbelasting vóór de taper) is
-   goedgekeurd en uitgevoerd op 2026-10-16. Fase 3 (kennisbank voeding) is
-   voorgesteld op 2026-10-16 en wacht op akkoord; daarna 4 (kracht en core), 5
+   goedgekeurd en uitgevoerd op 2026-10-16, net als fase 3 (kennisbank
+   voeding). Volgende stap: het voorstel voor fase 4 (kracht en core); daarna 5
    (racen en pacing) en 6 (overig). Zie de ronde hieronder en
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
 
@@ -8762,6 +8762,70 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — wetenschappelijke toets fase 3: kennisbank voeding
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md),
+fase 3. Goedgekeurd door de eigenaar: "ja op alles".
+
+**Waarom.** De voedingskennisbank leunde al op de UCI-stukken van 2025–2026. Er
+waren drie gaten:
+- **Eiwit werd te stellig gebracht.** De tip na een avondrit beloofde beter
+  herstel van 40 g eiwit voor het slapen, maar bij profs die al veel eiwit
+  aten, gaf dat geen beter herstel (Valenzuela 2023).
+- **Twee beperkingen in protocollen klopten niet meer.** Bicarbonaat werkte ook
+  bij tijdritten van 16 en 40 km. Bèta-alanine werkt bij een halve tot tien
+  minuten, niet alleen bij één tot vier.
+- **De voedingsartikelen hadden geen lijst beperkingen.** De trainings- en
+  krachtartikelen hebben die wel.
+
+**Wat er veranderde.**
+- **32 nieuwe bronnen** in `library.ts`, alle via PubMed bevestigd. Twee
+  eerste auteurs bleken anders dan in het voorstel: "Saunders 2020" is
+  de Oliveira 2020, en "Gessler 2023" is von Siebenthal 2023.
+- **Doelen** (`targets.ts`): de getallen blijven gelijk, de onderbouwing staat
+  er nu bij. 0,3–0,4 g/kg per maaltijd is een richtgetal en geen plafond. Eiwit
+  voor het slapen is een hulpmiddel voor het dagtotaal. De banden voor
+  koolhydraten per uur zijn gehouden, omdat de proeven van 2026 tegengestelde
+  kanten op wijzen.
+- **Tip na een avondrit** (`tips.ts`): de tip zegt nu dat je zo makkelijk je
+  dagtotaal haalt, en belooft geen herstel meer. Een test bewaakt dat.
+- **Protocollen** (`lib/protocols/nutrition.ts`):
+  - *Cafeïne*: de lage dosis heet nu "mogelijk, minder zeker". Gewenning aan
+    koffie maakt het effect niet kleiner, en het werkt ook bij vrouwen.
+  - *Bicarbonaat*: de tijdritten van 16 en 40 km staan erin. Je piekwaarde
+    hoef je niet eerst te bepalen. Nieuw aandachtspunt: houd de warming-up
+    rustig, omdat sprints de winst in één proef ongedaan maakten.
+  - *Bèta-alanine*: het doel geldt nu voor een halve tot tien minuten.
+  - *Nitraat, creatine, kersensap, collageen, darmtraining en herstel*: nieuwe
+    bronnen en nauwkeuriger beperkingen.
+- **Artikelen**:
+  - *Eiwit, herstel, brandstof (train-low), koolhydraten tijdens de rit en
+    vocht (drinken op dorst tot ~1,5 uur)* zijn bijgewerkt.
+  - *Vrouwen, ijzer (om de dag als de arts ijzer voorschrijft), kersensap,
+    collageen en ketonen (het herstelonderzoek van Poffé, met de beperking dat
+    het één groep is)* kregen een aanvulling.
+- **Beperkingen bij alle 25 voedingsartikelen.** `NutritionArticle` heeft nu
+  `limits`. De voedingspagina gebruikt dezelfde weergave als de
+  trainingsartikelen, met "Wat dit niet laat zien" en de regel "eigen
+  samenvatting". De test eist beperkingen en geen dubbele bronnen per
+  artikel, en controleert ook de beperkingen op afvaladvies.
+
+**Bewust niet gebouwd.**
+- *De banden voor koolhydraten per uur naar intensiteit* en *een lagere
+  standaarddosis cafeïne*: de nieuwe proeven en meta-analyses spreken elkaar
+  tegen.
+- *Nieuwe artikelen over alcohol en herstel en over een zweettest*: niet
+  onderzocht in deze ronde. Die ideeën horen in het plannenboek.
+- *Opnieuw zoeken naar* REDs, botgezondheid, weerstand, masters, visolie,
+  probiotica, mondspoelen, wat niet werkt, low-carb, gezonde basis, vitamine D,
+  indoor, glycerol en koolhydraten laden: daar was geen aanleiding voor. Die
+  artikelen kregen wel beperkingen.
+
+**Niet geverifieerd.** De nieuwe voedingspagina is gebouwd, maar niet in de
+browser bekeken. De beperkingen zijn eigen samenvattingen en niet door een
+sportdiëtist nagelezen.
+
 ### Opgeleverd — wetenschappelijke toets fase 2: kennisbank trainen en Duurtest
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -9041,7 +9105,7 @@ ook stijgt bij overbelasting. Daar ging de verzachtingsregel tegenin.
 worktree niet draait (`omnium-live.test.ts` leest `.env.local`). De build is
 gedraaid met de variabelen uit de `.env.local` van de hoofdmap.
 
-### Lopend — wetenschappelijke toets van ZWBasis (fase 0, 1 en 2 af)
+### Lopend — wetenschappelijke toets van ZWBasis (fase 0 tot en met 3 af)
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
 codewijziging.
@@ -9094,7 +9158,8 @@ Wat er veranderde aan de voorstellen:
 **Fase 2, goedgekeurd en uitgevoerd op 2026-10-16**: zie de ronde
 "wetenschappelijke toets fase 2" hierboven.
 
-**Fase 3, voorgesteld op 2026-10-16** (nog geen code). Het voorstel staat in het
+**Fase 3, voorgesteld en na akkoord uitgevoerd op 2026-10-16**: zie de ronde
+"wetenschappelijke toets fase 3" hierboven. Het voorstel staat in het
 werkdocument. Kort: de voedingskennisbank is grotendeels actueel. Eiwit, en
 vooral de portie voor het slapen, wordt te stellig gebracht. De beperkingen bij
 bicarbonaat en bèta-alanine kloppen niet meer. De voedingsartikelen missen een
