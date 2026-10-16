@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import { ChevronRight, Search } from "lucide-react";
+import { TopicBadge } from "../_components/topic-badge";
 
 type ShelfView = {
   slug: string;
   label: string;
   books: { href: string; title: string; summary: string; collection: string }[];
+  topics: { slug: string; label: string; experts: number }[];
 };
 
 function normalize(text: string) {
@@ -18,13 +20,7 @@ function normalize(text: string) {
 }
 
 /** De planken van de leeszaal, met zoeken op titel, samenvatting en plank. */
-export function ShelfBrowser({
-  shelves,
-  topicLinks,
-}: {
-  shelves: ShelfView[];
-  topicLinks: Record<string, ReactNode>;
-}) {
+export function ShelfBrowser({ shelves }: { shelves: ShelfView[] }) {
   const [query, setQuery] = useState("");
   const terms = normalize(query).split(/\s+/).filter(Boolean);
 
@@ -89,7 +85,24 @@ export function ShelfBrowser({
                   </li>
                 ))}
               </ul>
-              {terms.length === 0 && topicLinks[shelf.slug]}
+              {terms.length === 0 && shelf.topics.length > 0 && (
+                <ul className="mt-3 flex flex-wrap gap-2 border-t pt-3">
+                  {shelf.topics.map((topic) => (
+                    <li key={topic.slug}>
+                      <Link
+                        href={`/zwbieb?onderwerp=${topic.slug}`}
+                        className="group inline-flex min-h-[44px] items-center gap-2 rounded-md border py-1 pr-3 pl-1 text-sm hover:bg-muted"
+                      >
+                        <TopicBadge slug={topic.slug} kind="kennis" size="sm" />
+                        <span>{topic.label}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {topic.experts === 1 ? "1 kenner" : `${topic.experts} kenners`}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           ))}
         </div>

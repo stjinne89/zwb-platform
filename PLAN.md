@@ -9626,8 +9626,23 @@ als herstel stond zo verspreid over twee kennisbanken.
   `intervals-ride-sync` en `rls-initplan-migration` lopen alleen onder
   belasting uit de tijd en zijn los groen. `omnium-live` mist `.env.local`.
 
-**Niet geverifieerd.** De ingelogde pagina's in de browser: de dev-server
-draait, maar inloggen moet met een echt account.
+**In de browser bekeken** (dev-server, ingelogd door de eigenaar, 2026-10-16):
+- De leeszaal toont alle 51 artikelen. Zoeken werkt: "herstel" geeft drie
+  planken. Ankers als `#onderweg` werken. Op 375 px is er geen horizontale
+  scroll, en het label van de kennisbank valt daar weg.
+- Een onderwerp (`?onderwerp=trainen-met-schema`) toont "In de leeszaal" met
+  zeven artikelen.
+- "Vraag een clublid" staat bij Zones en Vocht en zout. Bij Het gymprogramma
+  (nul kenners) en IJzer (plank zonder onderwerp) staat het er terecht niet.
+  De eigenaar is op dit moment de enige kenner. Om het blok te zien is het
+  filter op jezelf even uitgezet en daarna teruggezet; met een tweede lid is
+  het niet bekeken.
+- De onderwerpen per plank gaan als gewone gegevens naar de client
+  (`shelf-browser.tsx`), niet als React-elementen. Dat gaf in dev een
+  waarschuwing over een ontbrekende `key`.
+
+**Niet geverifieerd.** "Vraag het aan" vanaf een artikel bij een ander lid
+(dezelfde link als in het overzicht), en het geheel op productie.
 
 ### Opgeleverd — veelbelovende en experimentele trainingsmethodes, met label
 
