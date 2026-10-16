@@ -75,10 +75,12 @@ gaat stabiliteit voor nieuwe features.
    - **Wie weet wat, tip uit een gesprek:** `0240_member_tips_from_thread.sql`
      is toegepast (eigenaar, 2026-10-15), daarna gepusht. Niet nagekeken op
      productie. Bij het doorklikken ook "Bewaar als tip" proberen.
-   - **ZWBieb (eigen onderwerpen, spullen):** `0242_knowledge_topics.sql`
-     toepassen **vóór** het pushen van die ronde (2026-10-16). Draai eerst de
-     controlequery onderaan de migratie; die moet leeg zijn. Zonder `0242`
-     toont de app de startlijst uit code, maar lukt toevoegen niet. De
+   - **ZWBieb (eigen onderwerpen, spullen):** `0242_knowledge_topics.sql` is
+     op 2026-10-16 toegepast via de Supabase-connector, op verzoek van de
+     eigenaar, en daarna gepusht. De controlequery was vooraf leeg. Achteraf
+     nagekeken: 21 onderwerpen (6 spullen), RLS aan, 4 policies, 3 foreign
+     keys, de trigger en de unieke naamindex. Niet nagekeken: toevoegen en
+     beheren in de app zelf. De
      privacy- en voorwaardentekst (spullen, §3a) is goedgekeurd, zonder nieuwe
      toestemmingsversie (eigenaar, 2026-10-16).
    - **Mijn statistieken (tegelkeuze):** `0241_profile_stats_tiles.sql`
@@ -9182,8 +9184,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Opgeleverd — ZWBieb: eigen onderwerpen, spullen uitlenen en een nieuwe naam
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
-`0242_knowledge_topics.sql` (**nog toepassen**, vóór het pushen; eerst de
-controlequery onderaan de migratie draaien).
+`0242_knowledge_topics.sql` (toegepast via de Supabase-connector, 2026-10-16;
+controlequery vooraf leeg, tabel, RLS, policies, foreign keys en trigger
+achteraf nagekeken).
 
 **Aanleiding.** De eigenaar vroeg drie dingen:
 - Leden moeten zelf een onderwerp kunnen toevoegen dat er nog niet tussen staat.
@@ -9287,8 +9290,8 @@ eigen tab; leden voegen zelf onderwerpen toe.
   en `zwift-club-calendar` zijn los groen. `omnium-live` mist `.env.local`.
 
 **Niet geverifieerd.**
-- `0242` op de echte database. De foreign keys falen als er een slug buiten de
-  startlijst in de data staat; de controlequery staat in de migratie.
+- `0242` staat op productie en de structuur is nagekeken (zie hierboven). De
+  RLS is niet als lid uitgeprobeerd.
 - De pagina's in de browser: deze worktree heeft geen `.env.local`.
 
 ### Opgeleverd — Wie weet wat: een icoon per onderwerp

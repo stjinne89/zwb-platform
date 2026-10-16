@@ -117,7 +117,7 @@ create policy "knowledge_topics_delete" on public.knowledge_topics
   using (public.current_user_moderates_member_tips());
 
 -- Hooguit vijf nieuwe onderwerpen per dag per lid (TOPICS_PER_DAY in
--- src/lib/wie-weet-wat/limits.ts); de moderatie telt niet mee.
+-- src/lib/zwbieb/limits.ts); de moderatie telt niet mee.
 create or replace function public.knowledge_topics_before_insert()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
