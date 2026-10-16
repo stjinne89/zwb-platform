@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { MessagesSquare, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess } from "@/lib/auth/request";
-import { BackLink, EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
+import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { KNOWLEDGE_TOPICS, isKnowledgeTopic, topicLabel } from "@/lib/wie-weet-wat/topics";
@@ -100,7 +100,6 @@ export default async function WieWeetWatPage({ searchParams }: PageProps) {
             <Link href="/leden/wie-weet-wat/mijn" className={buttonVariants()}>
               {joined ? "Mijn onderwerpen" : "Doe mee"}
             </Link>
-            <HelpLink href="/hulp#wie-weet-wat" />
           </div>
         }
       />

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
+import { EmptyState, PageHeader } from "@/components/app-ui";
 import {
   BulkGroupForm,
   DeleteGroupButton,
@@ -64,9 +64,6 @@ export default async function CommunityPage() {
     <div className="space-y-6">
       <PageHeader
         title="WhatsApp-groepen"
-        actions={
-          canManageCommunity ? <HelpLink href="/hulp#communitybeheer" /> : null
-        }
       />
 
       <section className="space-y-3">

@@ -2,7 +2,7 @@
 // kalender of een geplakte link. Tips bovenaan, de details eronder.
 
 import Link from "next/link";
-import { BackLink, EmptyState, HelpLink, SectionHeader } from "@/components/app-ui";
+import { BackLink, EmptyState, SectionHeader } from "@/components/app-ui";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import type { PersonalRaceOutcome } from "@/lib/zrl-analysis/load";
 import type { RaceKind } from "@/lib/zrl-analysis/personal";
@@ -62,7 +62,6 @@ export function PersonalRaceView({ outcome }: { outcome: Exclude<PersonalRaceOut
                 Event
               </Link>
             )}
-            <HelpLink href="/hulp#racen" />
           </div>
         </div>
       </div>

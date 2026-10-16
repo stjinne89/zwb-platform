@@ -154,6 +154,48 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
+> **Eén vraagteken voor hulp, en dat weet waar je bent, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar zag op Stats een "? Hulp" naast de paginatitel,
+> terwijl het vraagteken naast de avatar er al staat: "die lijkt me weg te
+> kunnen". Dat gold voor 24 pagina's.
+>
+> **Wat.**
+> - **De Hulp-link naast de paginatitel is weg** (24 plekken). Het ging om
+>   Achievements, beheer (badges, eventscan, notificaties, programma's,
+>   rechten), WhatsApp-groepen, event bewerken, nieuw event, live, media
+>   bewerken, Stats en Stats → Ik, teams (overzicht, nieuw, team, TTT Planner
+>   en een plan), ZWBlokken, ZWBeter Worden (de kop in beide designs),
+>   jaarplan, Wie weet wat en de koppen van een geanalyseerde race.
+> - **Het vraagteken in de balk weet nu waar je bent.** `HeaderHelpLink`
+>   opent `/hulp#<anker>` voor de huidige pagina, met de kaart in
+>   `src/lib/help-anchors.ts`: een pad met `*` per segment, het langste
+>   patroon wint. Op een pagina zonder eigen uitleg (bv. het dashboard) blijft
+>   het `/hulp`. Zo verwijst het vraagteken ook naar plekken die eerst geen
+>   eigen link hadden, zoals het schema, vermogen, doelen en Mijn garage.
+> - **In het klassieke design staat het vraagteken nu ook op de telefoon.**
+>   Het was daar verborgen (`md:inline-flex`), en de link bij de titel was op
+>   mobiel de weg naar de uitleg.
+>
+> **Bewust niet weggehaald.** 14 links bij één onderdeel van een pagina, die
+> naar uitleg over precies dat onderdeel wijzen: de ritimport op het
+> dashboard, LiveTrack en OwnTracks, Media toevoegen, vier secties op het
+> profiel (agenda, citaten, meldingen, Strava), het verjaardagsrondje,
+> "Jouw races" en "Jouw rit" bij racen, de race op het trainersscherm, de
+> intervals-koppeling en de Zwift-ID-dialoog. Die kunnen bij een volgende
+> ronde nog weg, als de eigenaar dat ook dubbel vindt.
+>
+> **Getest.**
+> - `tsc --noEmit` en ESLint schoon, vitest 2477 geslaagd.
+> - Nieuw `help-anchors.test.ts` (4): meest specifiek wint, een vast segment
+>   gaat voor een joker, terugval op `/hulp`, en elk anker in de kaart bestaat
+>   op `/hulp`. Die laatste test faalt als iemand een sectie op /hulp hernoemt.
+>
+> **Niet geverifieerd.** In de browser: de pagina's vragen een login, en die is er lokaal niet. `npm run build` is voor deze ronde niet opnieuw gedraaid.
+
+---
+
 > **Clubstatistieken in dezelfde stijl, met tegelkeuze, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Migratie `0241_profile_stats_tiles.sql` uitgebreid (nog niet toegepast).**
 > Commit: de commit die dit blok toevoegt.
 >

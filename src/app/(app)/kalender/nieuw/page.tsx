@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { EventForm } from "./_form";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { BackLink, HelpLink } from "@/components/app-ui";
+import { BackLink } from "@/components/app-ui";
 
 export default async function NewEventPage() {
   const supabase = await createClient();
@@ -22,7 +22,6 @@ export default async function NewEventPage() {
       <BackLink href="/kalender" label="Kalender" />
       <header className="flex items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">Nieuw event</h1>
-        <HelpLink href="/hulp#eventbeheer" />
       </header>
       <EventForm teams={teams ?? []} programs={programs ?? []} />
     </div>

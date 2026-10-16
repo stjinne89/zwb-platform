@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { HelpLink } from "@/components/app-ui";
 import { ManualBadgeManager } from "./_components/manual-badge-manager";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
@@ -97,7 +96,6 @@ export default async function AchievementBeheerPage({ searchParams }: PageProps)
             Achievementbadges beheren
           </h1>
         </div>
-        <HelpLink href="/hulp#badgebeheer" />
       </header>
 
       {profileOptions.length === 0 ? (

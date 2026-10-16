@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import { HeaderHelpLink } from "./_components/header-help-link";
 import Link from "next/link";
-import { CircleHelp, MessagesSquare } from "lucide-react";
+import { MessagesSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { privacyConsentIsCurrent } from "@/lib/privacy";
@@ -112,13 +113,10 @@ export default async function AppLayout({
               className="inline-flex size-11 items-center justify-center text-muted-foreground transition hover:text-primary"
               iconClassName="size-5"
             />
-            <Link
-              href="/hulp"
+            <HeaderHelpLink
               className="inline-flex size-11 items-center justify-center text-muted-foreground transition hover:text-primary"
-              aria-label="Hulp"
-            >
-              <CircleHelp className="size-5" />
-            </Link>
+              iconClassName="size-5"
+            />
             <AvatarMenu
               displayName={displayName}
               adminItems={[
@@ -193,13 +191,10 @@ export default async function AppLayout({
               className="inline-flex rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary"
               iconClassName="size-4"
             />
-            <Link
-              href="/hulp"
-              className="hidden rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary md:inline-flex"
-              aria-label="Hulp"
-            >
-              <CircleHelp className="size-4" />
-            </Link>
+            <HeaderHelpLink
+              className="inline-flex rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary"
+              iconClassName="size-4"
+            />
             <AvatarMenu displayName={displayName} adminItems={adminItems} />
             <ThemeToggle />
             <MobileMenu displayName={displayName} adminItems={adminItems} nodes={navNodes} />

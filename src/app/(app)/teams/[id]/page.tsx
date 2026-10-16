@@ -10,7 +10,7 @@ import {
   pickZrlEventPerTeam,
   type ZrlTeamEvent,
 } from "@/lib/teams/wtrl-results";
-import { BackLink, HelpLink } from "@/components/app-ui";
+import { BackLink } from "@/components/app-ui";
 import { TeamChatLinks } from "@/components/team-chat-links";
 import { Button } from "@/components/ui/button";
 import {
@@ -592,7 +592,6 @@ export default async function TeamDetailPage({
               whatsappGroups={waGroups ?? []}
               discordUrl={team.discord_url}
             />
-            <HelpLink href="/hulp#teambeheer" />
             {canManageRoster && (
               <GraveyardToggle teamId={team.id} isGraveyard={team.is_graveyard ?? false} />
             )}

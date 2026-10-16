@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestUser } from "@/lib/auth/request";
-import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
+import { EmptyState, PageHeader } from "@/components/app-ui";
 import { StravaAttribution } from "@/components/strava-brand";
 import { ScrollTabs } from "@/components/ui/scroll-tabs";
 import { DISCIPLINE_LABELS } from "@/lib/strava/sports";
@@ -105,7 +105,7 @@ export default async function MyStatsPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="st-page space-y-4">
-      <PageHeader title="Mijn statistieken" actions={<HelpLink href="/hulp#mijn-statistieken" />} />
+      <PageHeader title="Mijn statistieken" />
       <StatsTabs active="/stats/ik" />
 
       {allRides.length === 0 ? (

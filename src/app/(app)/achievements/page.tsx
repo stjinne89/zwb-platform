@@ -11,7 +11,7 @@ import {
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { StravaAttribution } from "@/components/strava-brand";
-import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
+import { EmptyState, PageHeader } from "@/components/app-ui";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { MemberLink } from "@/components/member-link";
 import { formatBadgeValue } from "@/lib/achievements/awards";
@@ -274,7 +274,6 @@ export default async function AchievementsPage({
         // Ritten binnenhalen (koppelen, syncen, importeren) staat op het
         // dashboard, bij de ritten zelf. Hier gaat het alleen nog over badges.
         <div className="flex flex-col gap-2 sm:items-end">
-          <HelpLink href="/hulp#badges" />
           <StravaSyncButton variant="badges" />
           {access.has("achievements.finalize") && <FinalizeAwardsButton />}
         </div>
