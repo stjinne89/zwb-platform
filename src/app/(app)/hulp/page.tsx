@@ -1903,6 +1903,11 @@ export default function HelpPage() {
             belasting van eerdere ritten niet.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
+            Vragen over trainen, voeding of kracht beantwoordt hij met de
+            kennisbanken van ZWB, met een link naar het artikel waar zijn antwoord
+            op steunt. Zegt de kennisbank er niets over, dan zegt hij dat erbij.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
             Vink je <strong className="text-foreground">Dit raakt mijn schema</strong>{" "}
             aan, dan vraagt je bericht een herziening aan en gaat de tekst mee naar
             de volgende versie van je schema. Handig voor dingen die de app niet

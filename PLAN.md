@@ -9558,6 +9558,61 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Coachchat antwoordt met de kennisbank
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Achtergrond: [coachchat](docs/coachchat.md#de-kennisbank-sinds-16-oktober-2026).
+
+**Aanleiding.** De eigenaar vroeg of de AI-coach anders moet nu de kennisbank na
+de wetenschappelijke toets veel meer onderbouwde feiten bevat. De coachchat kreeg
+tot nu toe alleen de data van het lid en beantwoordde vragen over trainen of
+voeding uit de algemene kennis van het model, dus mogelijk met precies de
+beweringen die de toets had bijgesteld (zoals de "veilige 10 %").
+
+**Wat er veranderde.**
+- `src/lib/knowledge/coach.ts` zet de drie kennisbanken (trainen 14, voeding 25,
+  kracht 12 artikelen) om in één vast tekstblok, met per artikel het pad, de
+  punten, de beperkingen en korte bronnen. Ruim 69.000 tekens.
+- `coachInstructions()` in `coach-chat.ts` zet dat onder de systeemprompt. De
+  prompt kreeg een blok "Kennisbank": antwoorden vanuit de kennisbank, eigen
+  keuzes van ZWB zo noemen, beperkingen noemen, geen bronnen verzinnen, zeggen
+  als de kennisbank er niets over zegt, en verwijzen als `[titel](pad)`.
+- De chat maakt van zo'n verwijzing een link, maar alleen naar een pad onder de
+  drie kennisbanken (`src/lib/knowledge/links.ts`). Links naar artikelen die niet
+  bestaan, haalt de server weg voordat het antwoord wordt opgeslagen.
+- `/hulp` zegt bij de coachchat in één alinea dat hij vragen over trainen,
+  voeding en kracht met de kennisbank beantwoordt.
+- `tests/unit/coach-knowledge.test.ts`: elk artikel staat erin met pad, punten
+  en beperkingen, elk pad heeft een artikelpagina, de instructies zijn vast, en
+  alleen kennisbankpaden worden een link.
+
+**Bewust niet gedaan.**
+- **Zoeken met embeddings of een vectoropslag.** Een kleine vijftig artikelen
+  passen in één keer; zoeken voegt alleen infrastructuur en missers toe. Pas
+  heroverwegen als de kennisbanken een veelvoud worden.
+- **De artikelen in de schema-prompt.** Een planner heeft regels nodig, geen
+  leesstof. Daar is het voorstel een andere ronde: de prompt opbouwen uit regels
+  met een id uit het claimregister en een artikel als bron, en regels die niet
+  van toepassing zijn weglaten. Nog niet goedgekeurd.
+- **Overstappen naar een andere AI-aanbieder.** Besproken en uitgesteld: dat
+  vraagt een andere oplossing voor de achtergrondcall (OpenAI's
+  `background: true`), een nieuwe verwerker in de privacyverklaring, en eerst een
+  vast testsetje om de uitkomst te kunnen vergelijken.
+- **Een nieuwe privacyversie.** De kennisbank is geen persoonsgegeven; over het
+  lid gaat er niets anders naar OpenAI dan voorheen.
+
+**Controle.** `vitest` groen op de nieuwe en de bestaande chattests. De volledige
+suite gaf drie fouten die hier niet bij horen: `omnium-live.test.ts` mist
+`.env.local` in deze worktree, en twee tests liepen onder last in een time-out
+en slagen los gedraaid. `eslint` schoon op de gewijzigde bestanden; `tsc` schoon
+op de bekende fouten in `read-barcode.ts` en `gopher-image-ocr.ts` na.
+
+**Niet geverifieerd.** Hoe de coach echt antwoordt: dat vraagt een OpenAI-call
+op productie. Ook niet of de prompt-cache van OpenAI het vaste blok hergebruikt
+(de route logt `usage` niet), wat de extra invoer per vraag kost (naar schatting
+zo'n twintigduizend tokens, niet geteld), en of de links in de chat in de browser
+goed werken.
+
 ### Opgeleverd — Profiel: weergaveknop met drie standen
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.

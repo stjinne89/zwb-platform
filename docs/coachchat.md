@@ -1,7 +1,8 @@
 # Coachchat in ZWBeter Worden
 
 Achtergrond bij de ronde van 17 september 2026, bijgewerkt op 18 september 2026
-toen de coach er de trainingsdata bij kreeg. `PLAN.md` heeft de samenvatting;
+toen de coach er de trainingsdata bij kreeg, en op 16 oktober 2026 toen hij de kennisbanken
+kreeg. `PLAN.md` heeft de samenvatting;
 dit stuk bewaart de afwegingen die daar niet in passen.
 
 ## Waarom
@@ -80,6 +81,37 @@ koppeling met sleutels, hij heeft een eigen budget van vier seconden (`withBudge
 mislukking of een tijdsoverschrijding levert `vorm: null` op in plaats van een fout. De
 systeemprompt zegt dat een leeg veld "we weten het niet" betekent. De POST-route kreeg
 `maxDuration = 30`, gelijk aan de andere AI-routes.
+
+## De kennisbank (sinds 16 oktober 2026)
+
+Na de wetenschappelijke toets stonden er drie getoetste kennisbanken in de app (trainen 14,
+voeding 25, kracht 12 artikelen), maar de coach kreeg er geen enkele van te zien. Een vraag
+als "is 10 % per week veilig?" beantwoordde hij dus uit de algemene kennis van het model —
+precies de beweringen die de toets net had bijgesteld.
+
+`src/lib/knowledge/coach.ts` zet alle artikelen om in één tekstblok: per artikel het pad
+waaronder het in de app staat, de samenvatting, de punten, de beperkingen en de bronnen
+(eerste auteur, jaar, soort bewijs). `coachInstructions()` zet dat onder de systeemprompt.
+Samen ruim 69.000 tekens; dat is per vraag naar schatting zo'n twintigduizend tokens extra
+invoer (niet gemeten met de tokenizer).
+
+- **Alles, geen selectie.** Een kleine vijftig artikelen passen in één keer. Zoeken met
+  embeddings en een vectoropslag zou alleen missers en infrastructuur toevoegen.
+- **Vast en vooraan.** Het blok verandert alleen met een commit en staat in `instructions`,
+  vóór de context van het lid. Daardoor kan de automatische prompt-cache van OpenAI het
+  hergebruiken. Of dat ook gebeurt, is niet gecontroleerd: de route logt `usage` niet.
+- **Regels in de prompt.** Antwoord vanuit de kennisbank, ook als het model zelf iets anders
+  weet; noem een eigen keuze van ZWB een keuze; noem een beperking als die het antwoord raakt;
+  verzin geen bronnen; zegt de kennisbank niets, zeg dat dan en noem geen studies of getallen.
+  Wijkt het schema af van de kennisbank, dan zegt de coach dat zonder het schema fout te noemen.
+- **Links.** De coach verwijst als `[titel](pad)`, hooguit twee per antwoord.
+  `src/lib/knowledge/links.ts` maakt daar in de chat alleen een link van als het pad onder een
+  van de drie kennisbanken valt; een link naar buiten of naar een andere pagina blijft tekst,
+  omdat er in het antwoord ook tekst van gebruikers kan terugkomen. Vóór het opslaan haalt
+  `settlePendingCoachAnswers()` links naar niet-bestaande artikelen weg (de titel blijft).
+
+Geen nieuwe privacyversie: de kennisbank is geen persoonsgegeven, en over het lid gaat er
+niets anders naar OpenAI dan voorheen.
 
 ## De achtergrondcall
 
