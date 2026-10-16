@@ -132,9 +132,9 @@ gaat stabiliteit voor nieuwe features.
    nieuwe artikelen, protocol Duurtest, overbelasting vóór de taper) is
    goedgekeurd en uitgevoerd op 2026-10-16, net als fase 3 (kennisbank
    voeding) en fase 4 (kracht, core en mobiliteit). Migratie `0242` (springserie)
-   moet nog op productie. Fase 5 (racen en pacing) is ook uitgevoerd. Volgende
-   stap: het voorstel voor fase 6 (overig: rit-fysica, CORE-sensor, /hulp en
-   privacyteksten). Zie de ronde hieronder en
+   moet nog op productie. Fase 5 (racen en pacing) is ook uitgevoerd. Fase 6
+   (overig: rit-fysica, CORE-sensor, /hulp en privacy) is voorgesteld op
+   2026-10-16 en wacht op akkoord; daarmee is de toets rond. Zie de ronde hieronder en
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
@@ -9269,6 +9269,15 @@ werkdocument.
 **Fase 4, voorgesteld en na akkoord uitgevoerd op 2026-10-16**: zie de ronde
 "wetenschappelijke toets fase 4" hierboven. Het voorstel staat in het
 werkdocument.
+
+**Fase 6, voorgesteld op 2026-10-16** (nog geen code). Het voorstel staat in het
+werkdocument.
+- Geen getal hoeft te veranderen.
+- De rit-fysica valt binnen de metingen (Lim 2011).
+- De CORE-sensor steunt in de app op één validatiestudie, terwijl er nu vier
+  zijn, met een fout van 0,3–0,5 °C naar boven of beneden.
+- De vijf wetenschappelijke links op /hulp kloppen; twee gaan naar een DOI.
+- De privacyverklaring hoeft niet te veranderen.
 
 **Fase 5, voorgesteld en na akkoord uitgevoerd op 2026-10-16**: zie de ronde
 "wetenschappelijke toets fase 5" hierboven. Het voorstel staat in het

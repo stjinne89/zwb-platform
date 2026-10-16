@@ -1070,6 +1070,99 @@ Oorspronkelijke vragen:
 3. 5C–5G uitvoeren zoals voorgesteld (commentaar, prompt en docs, geen andere
    rekenregels)?
 
+## Fase 6 — Overig: rit-fysica, CORE-sensor, /hulp en privacy: voorstel
+
+Opgesteld 2026-10-16, **nog niet uitgevoerd**.
+
+**Hoe gezocht.** Dit zijn smalle onderwerpen. Ik heb ze met gerichte
+Consensus-zoekvragen gedaan, zonder de onderzoeksagent. Alle bronnen hieronder
+staan in PubMed.
+
+**Het beeld.** Geen getal hoeft te veranderen. De rit-fysica valt binnen wat er
+gemeten is. De CORE-sensor steunt in de app op één validatiestudie, terwijl er
+inmiddels vier zijn, en die spreken elkaar tegen. Alle wetenschappelijke links
+op /hulp kloppen, maar twee wijzen niet naar een DOI.
+
+### 6A. Rit-fysica (`ride-estimate.ts`, `ride-physics.ts`, `teams/power-profile.ts`)
+
+| Constante | Oordeel | Wat verandert |
+|---|---|---|
+| `DEFAULT_CDA = 0,32` m² (handen op de kappen) | klopt, iets voorzichtig | Ervaren renners kwamen op de kappen op een luchtweerstand die neerkomt op ~0,29 m², in de beugel ~0,25 ([Lim 2011](https://doi.org/10.1249/MSS.0b013e3181fcb140)). 0,32 rekent iets trager; dat past bij een schatting. Bron erbij in het commentaar. |
+| `DEFAULT_CRR = 0,005` (asfalt) | klopt | Dezelfde studie mat een rolweerstand die neerkomt op ~0,005–0,007, afhankelijk van de bandenspanning. Bron erbij. |
+| `DRIVETRAIN_EFF = 0,97` | aanname | Gangbare waarde, niet opnieuw gezocht. Het commentaar noemt het een aanname. |
+| `FLAT_DRAG_K = 0,24`, `CLIMB_POWER_SHARE = 0,85`, `OUTDOOR_SPEED_PENALTY = 0,88` | eigen ijking | Al zo benoemd: geijkt op Zwift en bedoeld voor de orde van grootte. Geen wijziging. |
+| `ENDURANCE_FTP_FRACTION = 0,72`, `FALLBACK_WKG = 2,5` | eigen keuze | Het commentaar leest nu als feit ("dat volgehouden wordt"). Het wordt "eigen keuze voor het tempo van het rit-weer, door het lid te overschrijven". |
+
+**Bewust niet:** de waarden aanpassen. Het rit-weer en de routevoorstellen
+schatten de orde van grootte, en de pacing rekent met de Zwift-fysica.
+
+### 6B. De CORE-sensor (`core-temperature.ts`, hitteprotocollen, `protocollen-onderzoek.md`)
+
+- **Nu**: de beperking in beide hitteprotocollen noemt één validatiestudie,
+  waarin de helft van de metingen meer dan 0,3 °C afweek
+  ([Verdel 2021](https://doi.org/10.3390/s21175932)).
+- **Erbij**:
+  - Bij hockeysters onderschatte de sensor de kerntemperatuur, meer naarmate
+    het warmer werd, met 41–60 % van de metingen meer dan 0,3 °C ernaast
+    ([Goods 2023](https://doi.org/10.1080/17461391.2023.2193953)).
+  - Bij fietsers in de hitte overschatte hij juist met ~0,3 °C in de tweede
+    helft van de rit, meer bij meer onderhuids vet
+    ([McLaughlin 2025](https://doi.org/10.1016/j.jtherbio.2025.104241)).
+  - In een vergelijking van drie sensoren zat CORE systematisch iets te hoog
+    ([Daanen 2023](https://doi.org/10.1016/j.jtherbio.2023.103480)).
+- **Gevolg**: de fout is rond 0,3–0,5 °C, en per persoon en situatie naar boven
+  of naar beneden. De opzet van de app past daarbij: de waarde is een
+  richting, de app vinkt af, en het lid kan het vinkje weghalen.
+- **Voorstel**:
+  - De beperking in beide hitteprotocollen noemt nu de vier studies en de
+    richting van de fout.
+  - Het commentaar bij `CORE_THRESHOLD_C` en het onderzoeksdocument krijgen de
+    bronnen.
+  - De drempel van 38,5 °C en de 30 minuten blijven.
+
+### 6C. /hulp
+
+- **Gecontroleerd**: de vijf wetenschappelijke links op /hulp. Alle claims
+  kloppen met de bron:
+  - Periodisering: geen model beter over 8–12 weken
+    ([Galán-Rioja 2023](https://doi.org/10.1123/ijspp.2022-0302)).
+  - Blokperiodisering: gunstig, maar uit kleine studies
+    ([Mølmen 2019](https://doi.org/10.2147/OAJSM.S180408)).
+  - Vrij trainen gaf meer uitvallers
+    ([Clemente-Suárez 2021](https://doi.org/10.3390/ijerph182412973)).
+  - De piek viel meestal in de eerste twee weken van de taper
+    ([Aubry 2014](https://doi.org/10.1249/MSS.0000000000000301)).
+  - Taper van zeven dagen tot drie weken
+    ([Wang 2023](https://doi.org/10.1371/journal.pone.0282838)).
+- **Voorstel**: de links naar sponet.de en dovepress.com gaan naar de DOI,
+  zoals de andere bronnen. Verder geen tekstwijziging: de claims die in fase
+  1–5 veranderden, zijn op /hulp al meegenomen.
+
+### 6D. Privacyverklaring
+
+Er staan geen wetenschappelijke claims in, alleen beschrijvingen van welke data
+de app gebruikt. Die kloppen met de code (38,5 °C, HRV, rust-hartslag, slaap).
+De nieuwe onderdelen uit fase 2–5 gebruiken geen nieuwe gegevens: de Duurtest
+rekent met ritdata die al binnenkomt, en de springserie en kracht op de fiets
+met afgevinkte sessies. **Geen wijziging.**
+
+### 6E. De toets afronden
+
+Na fase 6 is elke regel uit het claimregister getoetst. Voorstel:
+- Bovenaan het werkdocument komt een korte samenvatting van wat er per fase is
+  veranderd.
+- Punt 7 verhuist in `PLAN.md` van de actieve lijst naar de opgeleverde lijst.
+- Wat nog openstaat, wordt apart genoemd:
+  - migraties 0241 en 0242 op productie;
+  - de nieuwe sprongfiguur en de voedingspagina in de browser;
+  - het idee van een persoonlijke W′-tijdconstante, voor het plannenboek.
+
+### Te beslissen door de eigenaar
+
+1. 6A–6D uitvoeren zoals voorgesteld (commentaren, protocolteksten, DOI-links,
+   geen nieuwe getallen)?
+2. 6E: de toets daarmee afronden in `PLAN.md` en het werkdocument?
+
 ## Bronnen fase 1
 
 Gezocht via PubMed (metadata en abstracts) en Consensus, 2026-10-16. Bij
