@@ -259,7 +259,7 @@ export default async function LogPage({
 
       {!profile.weightKg && (
         <p className="text-sm">
-          <Link href="/profiel" className="font-medium text-primary hover:underline">
+          <Link href="/profiel?weergave=bewerken" className="font-medium text-primary hover:underline">
             Vul je gewicht in
           </Link>{" "}
           <span className="text-muted-foreground">voor doelen in grammen.</span>

@@ -51,9 +51,11 @@ function visibleProfile(profile: ProfileRow): ReadonlyProfile {
 export async function MemberProfile({
   profileId,
   viewerId,
+  afterHeader,
 }: {
   profileId: string;
   viewerId: string;
+  afterHeader?: React.ReactNode;
 }) {
   const supabase = await createClient();
   const self = profileId === viewerId;
@@ -141,6 +143,7 @@ export async function MemberProfile({
       earnedMilestoneIds={earnedMilestoneIds}
       weeklyAwards={weeklyList}
       bikes={shownBikes}
+      afterHeader={afterHeader}
       publicUrl={
         profileRow.public_profile_enabled ? `/profielen/${profileRow.id}` : null
       }

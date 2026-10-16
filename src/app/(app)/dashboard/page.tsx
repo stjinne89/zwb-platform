@@ -1000,7 +1000,7 @@ export default async function DashboardPage({
           worden, maar dan moet het ergens zichtbaar blijven. */}
       {needsZwiftId && (
         <Link
-          href="/profiel#racen"
+          href="/profiel?weergave=bewerken#racen"
           className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 transition hover:border-amber-500/70 dark:text-amber-300"
         >
           <AlertTriangle className="size-4 shrink-0" />

@@ -69,10 +69,10 @@ gaat stabiliteit voor nieuwe features.
      2026-10-16 toegepast via de Supabase-connector, op verzoek van de eigenaar,
      en daarna gepusht. Nog doen: als ander lid in de app een profiel met
      fietsen openen.
-   - **Profiel, zoals leden je zien:** na het pushen op `/profiel` tussen
-     "Bewerken" en "Zoals leden je zien" wisselen en vergelijken met wat een
-     ander lid op `/leden/[id]` ziet (ronde 2026-10-16). Niet in de browser
-     bekeken.
+   - **Profiel, de gouden dimmer:** na het pushen op de telefoon `/profiel`
+     openen (moet in het midden staan), alle drie de standen proberen, ook
+     slepen, en het midden vergelijken met wat een ander lid op `/leden/[id]`
+     ziet (rondes 2026-10-16). De pagina zelf is niet ingelogd bekeken.
    - **Protocollen:** `0237_member_protocols.sql` toepassen (2026-10-14). Zonder
      de tabel tonen de pagina's de protocollen, maar starten lukt niet.
    - **Wie weet wat:** `0239_member_knowledge.sql` is toegepast (eigenaar,
@@ -9518,6 +9518,59 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Profiel: gouden dimmer met drie standen
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** De eigenaar vroeg de weergaveknop als een gouden lichtknop,
+gecentreerd onder het blok met naam, regio en rollen. Tijdens het bouwen kwam
+er een derde stand bij: bewerken (links), wat leden zien (midden, standaard) en
+het deelbare profiel (rechts).
+
+**Wat er veranderde.**
+- `profile-view-toggle.tsx` is een dimmer: een schuifknop op een plaat van
+  geborsteld tenuegoud, met drie standen. Een wipschakelaar kan geen drie
+  standen; een dimmer wel, en hij past bij de betekenis: hoe meer mensen je
+  zien, hoe meer licht. Uit bij bewerken, gedimd bij leden, vol bij deelbaar,
+  met een lampje in de knop en een warme gloed achter de plaat. Tikken op een
+  stand of label, slepen en pijltjestoetsen werken. De labels zijn de
+  radioknoppen (`role="radiogroup"`). De CSS staat als `.dimmer` onderaan
+  `globals.css` en is vastgelegd in `DESIGN.md` (onderdeel "Dimmer"), met de
+  eigen goudladder en de bewuste schaduw.
+- De dimmer staat in alle drie de weergaven direct onder de profielkop.
+  `ProfileReadonlyView` en `MemberProfile` kregen daarvoor een `afterHeader`.
+- **`/profiel` opent nu in het midden** (wat leden zien). Bewerken is
+  `/profiel?weergave=bewerken`, het deelbare profiel `?weergave=deelbaar`. De
+  oude `?weergave=leden` valt vanzelf op het midden.
+- Alle bestaande links naar `/profiel` en `/profiel#…` die op bewerken doelden
+  wijzen nu naar `?weergave=bewerken` (dashboard, hulp, welkom, kalender, Mijn
+  garage, ZWBeter-pagina's, privacy, stats, segmentcollecties), net als de
+  pushberichten voor nieuwe badges en verlopen Strava (`awards.ts`,
+  `milestone-evaluators.ts`, `strava/sweep.ts`). Alleen het menu-item Profiel
+  opent het midden. Al verstuurde meldingen met `/profiel` komen nu in het
+  midden uit.
+- Het deelbare profiel zit in één component,
+  `profielen/[id]/_components/public-profile.tsx`, die `/profielen/[id]` en de
+  rechterstand gebruiken. Staat het deelbare profiel uit, dan toont de
+  rechterstand een lege staat met "Aanzetten" naar
+  `?weergave=bewerken#zichtbaarheid` (nieuw anker in `profile-form.tsx`).
+- `/hulp` legt de drie standen in één regel uit.
+
+**Bewust niet gedaan.**
+- De bewerkweergave even breed maken als de andere twee (`max-w-2xl` tegen
+  `max-w-3xl`). Dan verspringt de kop bij het wisselen een beetje, maar de
+  formulieren blijven zoals ze waren en de twee andere standen tonen precies de
+  breedte van de echte pagina's.
+
+**Controle.** `eslint` en `tsc` schoon (op de bekende fouten in
+`read-barcode.ts` en `gopher-image-ocr.ts` na). De Impeccable-detector gaf alleen
+adviezen over de eigen goudtinten; die staan nu in `DESIGN.md`. De dimmer is
+los gerenderd met dezelfde CSS, in alle standen, licht en donker, op 700 en
+520 pixels breed (headless Edge).
+
+**Niet geverifieerd.** De ingelogde pagina zelf, slepen op een echte telefoon
+en de terugknop van de browser tussen de standen.
+
 ### Opgeleverd — Fietsen zichtbaar voor andere leden
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
@@ -9568,10 +9621,9 @@ wachtend account om mee te testen. De pagina's in de browser.
 profiel dat je aanpast en het profiel dat andere leden van je zien.
 
 **Wat er veranderde.**
-- Bovenaan `/profiel` staan twee knoppen: "Bewerken" en "Zoals leden je zien".
-  De tweede is `/profiel?weergave=leden` en toont het ledenprofiel van jezelf;
-  de bewerkdata wordt dan niet geladen. De knoppen hebben dezelfde vorm als
-  "Deze week / Vorige week" op `/achievements`.
+- Bovenaan `/profiel` stonden twee knoppen: "Bewerken" en "Zoals leden je
+  zien" (`/profiel?weergave=leden`). Dezelfde dag vervangen door de gouden
+  dimmer met drie standen; zie de ronde "Profiel: gouden dimmer".
 - Het ledenprofiel zit nu in één servercomponent,
   `leden/[id]/_components/member-profile.tsx`, die `/leden/[id]` en `/profiel`
   allebei gebruiken. Zo kan de weergave op `/profiel` niet uit de pas lopen met

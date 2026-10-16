@@ -43,7 +43,7 @@ const START_STEPS = [
   {
     title: "Maak je profiel compleet",
     text: "Naam, foto, regio, Zwift-ID en zichtbaarheid staan onder Profiel.",
-    href: "/profiel",
+    href: "/profiel?weergave=bewerken",
   },
   {
     title: "Strava-data toevoegen",
@@ -53,7 +53,7 @@ const START_STEPS = [
   {
     title: "Zet meldingen aan",
     text: "Voor events, live ritten, badges en trainingsschema's.",
-    href: "/profiel#meldingen",
+    href: "/profiel?weergave=bewerken#meldingen",
   },
   {
     title: "Bekijk de kalender",
@@ -69,6 +69,7 @@ const GUIDES = [
     title: "Profiel en ledenlijst",
     bullets: [
       "Je profiel bepaalt wat andere leden mogen zien.",
+      "Onder je naam op Profiel staat een gouden schuifknop: links bewerk je je profiel, in het midden zie je het zoals andere leden, rechts zoals een bezoeker je deelbare profiel ziet. Profiel opent in het midden.",
       "Onder Interesses kies je welke eventtypes je wilt zien op de kalender, en welke afstand en hoogtemeters je grens zijn.",
       "Badges blijven zichtbaar op je profiel en in de ledenlijst.",
       "Onder Mijn fietsen tonen we je fietsen uit Strava (naam + kilometers); zonder Strava voeg je een fiets handmatig toe. Je kiest per fiets of die zichtbaar is en zet er een foto bij.",
@@ -249,7 +250,7 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/media", name: "Media", text: "Nieuws, nieuwsbrieven, podcasts, video's en Instagram." },
   { href: "/stats", name: "Stats", text: "Club: de cijfers en ranglijst van alle leden. Ik: je eigen ritten, vermogen en records." },
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
-  { href: "/profiel", name: "Profiel", text: "Je gegevens, zichtbaarheid, je fietsen, koppelingen (Strava/intervals) en account." },
+  { href: "/profiel?weergave=bewerken", name: "Profiel", text: "Je gegevens, zichtbaarheid, je fietsen, koppelingen (Strava/intervals) en account." },
 ];
 
 const GARMIN_LIVETRACK_STEPS = [
@@ -1035,7 +1036,7 @@ export default function HelpPage() {
         </div>
 
         <Link
-          href="/profiel"
+          href="/profiel?weergave=bewerken"
           className="mt-4 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
         >
           <UserCircle className="size-4 text-primary" />
@@ -1111,7 +1112,7 @@ export default function HelpPage() {
         </ul>
 
         <Link
-          href="/profiel#agenda"
+          href="/profiel?weergave=bewerken#agenda"
           className="mt-4 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
         >
           <UserCircle className="size-4 text-primary" />
@@ -1698,7 +1699,7 @@ export default function HelpPage() {
             Naar Mijn garage
           </Link>
           <Link
-            href="/profiel#fietsen"
+            href="/profiel?weergave=bewerken#fietsen"
             className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
           >
             <Bike className="size-4 text-primary" />
@@ -3144,7 +3145,7 @@ Fitness-status: Verbeterend`}
             <ol className="mt-2 space-y-2 text-sm text-muted-foreground">
               <li>
                 1. Koppel Strava opnieuw via{" "}
-                <Link href="/profiel" className="underline">
+                <Link href="/profiel?weergave=bewerken" className="underline">
                   je profiel
                 </Link>{" "}
                 en laat het vinkje staan waarmee ZWB je activiteiten mag
@@ -3907,7 +3908,7 @@ Fitness-status: Verbeterend`}
             onder Profiel aanstaan.
           </p>
           <Link
-            href="/profiel#meldingen"
+            href="/profiel?weergave=bewerken#meldingen"
             className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
           >
             Meldingen instellen

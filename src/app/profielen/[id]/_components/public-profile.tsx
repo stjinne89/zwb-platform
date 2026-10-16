@@ -1,0 +1,113 @@
+import { notFound } from "next/navigation";
+import {
+  ProfileReadonlyView,
+  type ReadonlyProfile,
+  type WeeklyAwardView,
+} from "@/components/profile-readonly-view";
+import { createClient } from "@/lib/supabase/server";
+import { type MilestoneBadgeRow } from "@/app/(app)/profiel/_components/badge-vault";
+import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
+import { type StravaBikeRow } from "@/lib/strava/bikes";
+import { StravaAttribution } from "@/components/strava-brand";
+
+type PublicMilestoneRow = MilestoneBadgeRow & {
+  earned: boolean;
+};
+
+type PublicWeeklyRow = {
+  id: string;
+  period_start: string;
+  value: number | string | null;
+  badge_title: string;
+  badge_description: string | null;
+  badge_icon: string | null;
+  badge_color: string | null;
+};
+
+/**
+ * Het deelbare profiel, alleen via de get_public_profile*-functies: wat een
+ * bezoeker buiten de ledenomgeving ziet. Staat het uit, dan `whenOff`, of een
+ * 404 als die ontbreekt.
+ */
+export async function PublicProfile({
+  profileId,
+  afterHeader,
+  whenOff,
+}: {
+  profileId: string;
+  afterHeader?: React.ReactNode;
+  whenOff?: React.ReactNode;
+}) {
+  const supabase = await createClient();
+  const [
+    { data: profileRows },
+    { data: milestoneRows },
+    { data: weeklyRows },
+    { data: bikeRows },
+  ] = await Promise.all([
+    supabase.rpc("get_public_profile", { target_profile_id: profileId }),
+    supabase.rpc("get_public_profile_milestone_badges", {
+      target_profile_id: profileId,
+    }),
+    supabase.rpc("get_public_profile_weekly_awards", { target_profile_id: profileId }),
+    supabase.rpc("get_public_profile_bikes", { target_profile_id: profileId }),
+  ]);
+
+  const profile = (profileRows?.[0] ?? null) as ReadonlyProfile | null;
+  if (!profile) {
+    if (whenOff === undefined) notFound();
+    return whenOff;
+  }
+
+  const publicMilestones = (milestoneRows ?? []) as unknown as PublicMilestoneRow[];
+  const milestones = publicMilestones
+    .filter((badge) => isBadgeVisibleInVault(badge, badge.earned))
+    .map(
+      (badge) =>
+        ({
+        id: badge.id,
+        title: badge.title,
+        description: badge.description,
+        icon: badge.icon,
+        color: badge.color,
+        achievement_code: badge.achievement_code,
+        tier: badge.tier,
+        visual_hint: badge.visual_hint,
+        trigger_source: badge.trigger_source,
+        trigger_config: badge.trigger_config,
+        sort_order: badge.sort_order,
+      }) satisfies MilestoneBadgeRow,
+    );
+  const earnedMilestoneIds = publicMilestones
+    .filter((badge) => badge.earned)
+    .map((badge) => badge.id);
+  const weeklyAwards = ((weeklyRows ?? []) as unknown as PublicWeeklyRow[]).map(
+    (award) =>
+      ({
+        id: award.id,
+        period_start: award.period_start,
+        value: award.value,
+        achievement_badges: {
+          title: award.badge_title,
+          description: award.badge_description,
+          icon: award.badge_icon,
+          color: award.badge_color,
+        },
+      }) satisfies WeeklyAwardView,
+  );
+  const bikes = (bikeRows ?? []) as unknown as StravaBikeRow[];
+
+  return (
+    <>
+      <ProfileReadonlyView
+        profile={profile}
+        milestones={milestones}
+        earnedMilestoneIds={earnedMilestoneIds}
+        weeklyAwards={weeklyAwards}
+        bikes={bikes}
+        afterHeader={afterHeader}
+      />
+      {bikes.length > 0 && <StravaAttribution />}
+    </>
+  );
+}

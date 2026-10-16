@@ -220,7 +220,7 @@ async function BadgesTile({ context }: { context: TileContext }) {
       title={def.title}
       width={def.width}
       actions={
-        <Link href="/profiel#badges" className="text-xs font-medium text-primary hover:underline">
+        <Link href="/profiel?weergave=bewerken#badges" className="text-xs font-medium text-primary hover:underline">
           Badge-kast
         </Link>
       }

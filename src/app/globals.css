@@ -1500,3 +1500,236 @@ a.tg-row:focus-visible,
 [data-design="tegels"] .jp-teken:not(.jp-hek, .jp-nu) {
   top: 2.1875rem;
 }
+
+/* Gouden dimmer op /profiel (profile-view-toggle.tsx): een schuifknop op een
+   plaat van geborsteld tenuegoud, met drie standen. Hoe meer mensen je profiel
+   zien, hoe meer licht: uit (bewerken), gedimd (leden), vol (deelbaar). */
+.dimmer {
+  --dimmer-w: 16.5rem;
+  --dimmer-pos: 1;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding-block: 0.5rem;
+}
+.dimmer[data-pos="0"] { --dimmer-pos: 0; }
+.dimmer[data-pos="2"] { --dimmer-pos: 2; }
+@media (min-width: 640px) {
+  .dimmer { --dimmer-w: 18rem; }
+}
+.dimmer-plate {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: var(--dimmer-w);
+  height: 3.5rem;
+  padding-inline: 0.5rem;
+  border: 1px solid oklch(0.52 0.085 72);
+  border-radius: 0.7rem;
+  background:
+    repeating-linear-gradient(90deg, oklch(1 0 0 / 0.07) 0 1px, transparent 1px 3px),
+    linear-gradient(
+      172deg,
+      oklch(0.89 0.07 88) 0%,
+      oklch(0.76 0.105 80) 40%,
+      oklch(0.65 0.1 76) 70%,
+      oklch(0.79 0.09 84) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.55),
+    inset 0 -1px 0 oklch(0.35 0.06 70 / 0.35),
+    0 1px 1px oklch(0.25 0.04 70 / 0.25),
+    0 6px 14px -6px oklch(0.25 0.04 70 / 0.45);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.dimmer-glow {
+  position: absolute;
+  inset: -2.5rem -2rem;
+  z-index: -1;
+  border-radius: 9999px;
+  background: radial-gradient(
+    closest-side,
+    oklch(0.9 0.12 88 / 0.6),
+    oklch(0.9 0.12 88 / 0.2) 55%,
+    transparent
+  );
+  opacity: 0;
+  transform: scale(0.8);
+  transition:
+    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s,
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
+  pointer-events: none;
+}
+.dark .dimmer-glow {
+  background: radial-gradient(
+    closest-side,
+    oklch(0.82 0.13 84 / 0.45),
+    oklch(0.82 0.13 84 / 0.14) 55%,
+    transparent
+  );
+}
+.dimmer[data-pos="1"] .dimmer-glow {
+  opacity: 0.5;
+  transform: scale(0.9);
+}
+.dimmer[data-pos="2"] .dimmer-glow {
+  opacity: 1;
+  transform: scale(1.1);
+}
+.dimmer-screw {
+  position: relative;
+  width: 0.4375rem;
+  height: 0.4375rem;
+  flex: none;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 30%, oklch(0.93 0.05 90), oklch(0.62 0.09 75) 70%);
+  box-shadow:
+    0 0.5px 0 oklch(1 0 0 / 0.5),
+    inset 0 -0.5px 1px oklch(0.3 0.05 70 / 0.5);
+}
+.dimmer-screw::after {
+  content: "";
+  position: absolute;
+  inset: 45% 12%;
+  border-radius: 1px;
+  background: oklch(0.4 0.06 70 / 0.75);
+  transform: rotate(35deg);
+}
+.dimmer-screw:last-child::after {
+  transform: rotate(-20deg);
+}
+/* De sleuf loopt van de eerste tot de derde stand: 1/6 en 5/6 van de plaat. */
+.dimmer-slot {
+  position: absolute;
+  top: 50%;
+  left: calc(100% / 6 - 0.4375rem);
+  right: calc(100% / 6 - 0.4375rem);
+  height: 0.875rem;
+  margin-top: -0.4375rem;
+  border-radius: 9999px;
+  background: oklch(0.38 0.06 70);
+  box-shadow:
+    inset 0 2px 3px oklch(0.15 0.03 70 / 0.7),
+    0 1px 0 oklch(1 0 0 / 0.4);
+}
+.dimmer-notch {
+  position: absolute;
+  top: 50%;
+  width: 0.25rem;
+  height: 0.25rem;
+  margin: -0.125rem 0 0 -0.125rem;
+  border-radius: 9999px;
+  background: oklch(0.6 0.08 76 / 0.7);
+}
+.dimmer-notch:nth-child(1) { left: 0.4375rem; }
+.dimmer-notch:nth-child(2) { left: 50%; }
+.dimmer-notch:nth-child(3) { left: calc(100% - 0.4375rem); }
+.dimmer-knob {
+  position: absolute;
+  top: 50%;
+  left: calc(100% / 6 * (1 + 2 * var(--dimmer-pos)));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3125rem;
+  width: 3rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: linear-gradient(
+    180deg,
+    oklch(0.92 0.06 90) 0%,
+    oklch(0.78 0.1 82) 45%,
+    oklch(0.66 0.1 76) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.65),
+    inset 0 -1px 0 oklch(0.4 0.07 72 / 0.5),
+    0 2px 3px oklch(0.2 0.04 70 / 0.45),
+    0 6px 10px -4px oklch(0.2 0.04 70 / 0.4);
+  transform: translate(-50%, -50%);
+  transition:
+    left 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.12s ease-out;
+}
+.dimmer[data-dragging] .dimmer-knob {
+  transform: translate(-50%, -50%) scale(0.97);
+  transition-duration: 0.16s, 0.12s;
+}
+@media (hover: hover) {
+  .dimmer-plate:hover .dimmer-knob {
+    filter: brightness(1.04);
+  }
+}
+.dimmer-ridge {
+  width: 2px;
+  height: 1.25rem;
+  border-radius: 1px;
+  background: oklch(0.55 0.09 74 / 0.8);
+  box-shadow: 1px 0 0 oklch(1 0 0 / 0.45);
+}
+.dimmer-lamp {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 9999px;
+  background: oklch(0.42 0.05 70);
+  box-shadow: inset 0 1px 1px oklch(0.15 0.03 70 / 0.7);
+  transition:
+    background-color 0.25s ease-out 0.1s,
+    box-shadow 0.25s ease-out 0.1s;
+}
+.dimmer[data-pos="1"] .dimmer-lamp {
+  background: oklch(0.86 0.1 85);
+  box-shadow:
+    0 0 2px 0.5px oklch(0.88 0.13 88 / 0.8),
+    0 0 6px 1px oklch(0.84 0.14 84 / 0.35);
+}
+.dimmer[data-pos="2"] .dimmer-lamp {
+  background: oklch(0.99 0.04 95);
+  box-shadow:
+    0 0 3px 1px oklch(0.93 0.14 90 / 0.95),
+    0 0 10px 3px oklch(0.86 0.15 85 / 0.6);
+}
+.dimmer-labels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: var(--dimmer-w);
+}
+.dimmer-label {
+  min-height: 2.75rem;
+  padding: 0.25rem;
+  border-radius: 0.4rem;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--muted-foreground);
+  transition: color 0.2s ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+.dimmer-label:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+@media (hover: hover) {
+  .dimmer-label:hover {
+    color: var(--foreground);
+  }
+}
+.dimmer-label-active {
+  font-weight: 500;
+  color: var(--foreground);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dimmer-glow,
+  .dimmer-knob,
+  .dimmer-lamp {
+    transition: none;
+  }
+}

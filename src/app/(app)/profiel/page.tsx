@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/app-ui";
+import { buttonVariants } from "@/components/ui/button";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { AvatarUpload } from "./_components/avatar-upload";
 import { BadgeVault, type MilestoneBadgeRow } from "./_components/badge-vault";
@@ -21,6 +22,7 @@ import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { ProfileViewToggle } from "./_components/profile-view-toggle";
 import { MemberProfile } from "../leden/[id]/_components/member-profile";
+import { PublicProfile } from "@/app/profielen/[id]/_components/public-profile";
 
 type AwardRow = {
   id: string;
@@ -62,11 +64,45 @@ export default async function ProfielPage({
   const user = await getRequestUser();
   if (!user) redirect("/login");
 
-  if ((await searchParams).weergave === "leden") {
+  // Standaard: het profiel zoals leden het zien. Bewerken en het deelbare
+  // profiel staan links en rechts op de dimmer.
+  const { weergave } = await searchParams;
+  if (weergave === "deelbaar") {
+    const toggle = <ProfileViewToggle view="deelbaar" />;
     return (
       <div className="mx-auto max-w-3xl space-y-6">
-        <ProfileViewToggle membersView />
-        <MemberProfile profileId={user.id} viewerId={user.id} />
+        <PublicProfile
+          profileId={user.id}
+          afterHeader={toggle}
+          whenOff={
+            <>
+              {toggle}
+              <EmptyState
+                action={
+                  <Link
+                    href="/profiel?weergave=bewerken#zichtbaarheid"
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                  >
+                    Aanzetten
+                  </Link>
+                }
+              >
+                Je deelbare profiel staat uit.
+              </EmptyState>
+            </>
+          }
+        />
+      </div>
+    );
+  }
+  if (weergave !== "bewerken") {
+    return (
+      <div className="mx-auto max-w-3xl space-y-6">
+        <MemberProfile
+          profileId={user.id}
+          viewerId={user.id}
+          afterHeader={<ProfileViewToggle view="leden" />}
+        />
       </div>
     );
   }
@@ -205,8 +241,6 @@ export default async function ProfielPage({
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <ProfileViewToggle membersView={false} />
-
       <ProfileHeader
         displayName={profileRow?.display_name ?? ""}
         email={user.email ?? ""}
@@ -219,6 +253,8 @@ export default async function ProfielPage({
         earnedCount={earnedMilestoneIds.size}
         totalCount={milestones.length}
       />
+
+      <ProfileViewToggle view="bewerken" />
 
       <ProfileExternalLinks
         zwiftId={profileRow?.zwift_id}

@@ -498,7 +498,7 @@ export default async function KalenderPage({
             </span>
           )}
           {onlyForMe && hiddenCount === 0 && !fitIsInformative(member) && (
-            <Link href="/profiel#interesses" className="text-xs underline">
+            <Link href="/profiel?weergave=bewerken#interesses" className="text-xs underline">
               Stel je interesses in
             </Link>
           )}

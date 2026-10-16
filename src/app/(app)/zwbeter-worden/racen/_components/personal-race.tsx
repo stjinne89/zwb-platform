@@ -28,7 +28,7 @@ export function PersonalRaceView({ outcome }: { outcome: Exclude<PersonalRaceOut
     return (
       <div className="space-y-4">
         <BackLink href="/zwbeter-worden/racen" label="Races" />
-        <EmptyState action={<Link href="/profiel" className="text-sm underline">Profiel</Link>}>
+        <EmptyState action={<Link href="/profiel?weergave=bewerken" className="text-sm underline">Profiel</Link>}>
           Vul je Zwift-ID in op je profiel.
         </EmptyState>
       </div>

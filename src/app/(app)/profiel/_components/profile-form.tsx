@@ -351,7 +351,7 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
         </div>
       </section>
 
-      <section className="space-y-4">
+      <section id="zichtbaarheid" className="scroll-mt-20 space-y-4">
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Zichtbaarheid

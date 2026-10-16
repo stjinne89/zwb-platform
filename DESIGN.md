@@ -357,6 +357,22 @@ actie ("meer"-link met pijl), afgesloten met een haarlijn eronder.
 ### Lege staat
 Gestreepte rand, Paper op 70%, één gedempte zin en hooguit één actie.
 
+### Dimmer (profielweergave)
+De enige plek waar het tenuegoud een materiaal is in plaats van een vlak: een
+schuifknop op een plaat van geborsteld goud, met twee schroefjes, een sleuf en
+drie standen (`.dimmer` in `globals.css`, `profile-view-toggle.tsx`). Hij staat
+gecentreerd onder de profielkop. Hoe meer mensen het profiel zien, hoe meer
+licht: uit (bewerken), gedimd (leden), vol (deelbaar). Een lampje in de knop en
+een warme gloed achter de plaat dragen dat; de labels eronder zijn de radio's.
+
+- **Materiaal:** een eigen goudladder van `oklch(0.89 0.07 88)` (licht) via
+  `oklch(0.76 0.105 80)` tot `oklch(0.65 0.1 76)` (schaduw), met de sleuf in
+  `oklch(0.38 0.06 70)`. Alleen voor dit onderdeel.
+- **Schaduw:** de plaat en de knop zijn fysieke voorwerpen en hebben daarom een
+  lichte schaduw; dat is een bewuste uitzondering op de Platte-vloerregel.
+- **Beweging:** de knop glijdt in 0.32s naar zijn stand, het licht komt 0.1s
+  later; uit bij `prefers-reduced-motion`.
+
 ## Do's and Don'ts
 
 ### Do:

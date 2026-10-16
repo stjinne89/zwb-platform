@@ -414,7 +414,7 @@ export default async function ZwbSegmentsPage({ searchParams }: PageProps) {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <BackLink href="/profiel" label="Profiel" />
+      <BackLink href="/profiel?weergave=bewerken" label="Profiel" />
 
       <header>
         <h1 className="flex items-center gap-2 text-3xl font-semibold tracking-tight">
