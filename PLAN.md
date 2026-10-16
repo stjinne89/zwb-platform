@@ -9577,12 +9577,13 @@ vandaag zijn antwoorden op baseert.
   elke voorgestelde bron bevestigen; een voorstel in vaste vorm. Daarna pas,
   na akkoord, uitvoeren met test en een ronde hier.
 - `docs/kennisbank-scan/README.md`: het geheugen van de scan. Logboek (de
-  nulmeting is de toets, t/m 2026-10-16), 25 thema's met een Consensus- en een
+  nulmeting is de toets, t/m 2026-10-16), 27 thema's met een Consensus- en een
   PubMed-zoekvraag, en een lijst met artikelen die bekeken en bewust gelaten zijn,
   zodat ze niet elke maand terugkomen.
 - `scripts/kennisbank-inventaris.mjs`: leest de drie kennisbanken en de
   protocollen uit de code (via `jiti`) en geeft per artikel kern, beperkingen
-  en bronnen, en alle 227 bronnen op één lijst (`--ids`: de 201 DOI's en PMID's).
+  en bronnen (en het label veelbelovend of experimenteel), en alle 250 bronnen
+  op één lijst (`--ids`: de 224 DOI's en PMID's).
   Zo werkt de scan altijd met de kennisbank van de huidige commit.
 - Een geplande taak in de Claude-app op de eigen pc,
   `kennisbank-literatuurscan`, op de 2e van de maand om 09:00 (de 1e is al van de
@@ -9605,7 +9606,7 @@ vandaag zijn antwoorden op baseert.
   en is bedoeld voor een synthese; voor een maandelijkse schifting volstaan de
   gewone zoekfunctie en PubMed.
 
-**Getest.** De inventaris draait in deze worktree (227 bronnen, 71 artikelen en
+**Getest.** De inventaris draait in deze worktree (250 bronnen, 79 artikelen en
 protocollen). Eén thema (taper) met de hand geprobeerd: Consensus geeft met het
 jaarfilter veel treffers buiten het onderwerp, en de PubMed-connector negeert
 `date_from` zonder `date_to`. Beide staan als regel in de werkwijze; de
@@ -9614,6 +9615,255 @@ PubMed-zoekvragen gebruiken daarom `[tiab]`-termen zonder jokertekens.
 **Niet geverifieerd.** Een volledige scan is nog niet gedraaid; de eerste is op
 2 november 2026. Of de taak in Auto-modus de worktree en de commit zonder vragen
 mag maken, blijkt dan.
+
+### Voorstel — bewijsniveau per kennisartikel (wacht op akkoord)
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen code, geen
+migratie. Uitwerking: [bewijsniveau-kennisbank](docs/bewijsniveau-kennisbank.md).
+
+**Aanleiding.** Na de leeszaal vroeg de eigenaar of alle kennisartikelen, net
+als de nieuwe trainingsmethodes, een label kunnen krijgen waaraan je ziet hoe
+gegrond ze zijn.
+
+**Het voorstel.**
+- Alle 56 artikelen krijgen het bewijsniveau van de protocollen: sterk, matig
+  of beperkt. Dat komt naast Veelbelovend en Experimenteel, zoals bij de
+  trainingsmethodes is afgesproken.
+- Het niveau gaat over het centrale advies van een artikel, met vaste criteria
+  en twee begrenzingen:
+  - alleen een tussenmaat: hooguit matig;
+  - niet bij duursporters onderzocht: hooguit matig.
+- Uitkomst: 10 sterk, 29 matig, 14 beperkt. Drie artikelen die iets afraden
+  (Wat niet werkt, Ketonen, Low-carb en keto) krijgen bij voorkeur geen niveau
+  maar het label Afgeraden.
+- Ingedeeld op de bronnen en beperkingen die al in de app staan, en op de
+  wetenschappelijke toets. Er is niet opnieuw gezocht en de bronnen zijn niet
+  opnieuw gelezen.
+
+**Ligt bij de eigenaar.**
+- Akkoord per artikel.
+- Afgeraden of een niveau voor de drie afraad-artikelen.
+- Het protocol `lage-cadans-vo2max` van matig naar beperkt, zodat het gelijk is
+  aan het artikel.
+
+**Nog niet gebouwd.** Het veld per artikel, de test, de weergave (artikel,
+kennisbanklijsten, leeszaal), het niveau in de coachchat en de uitleg op `/hulp`.
+Dat volgt na akkoord.
+
+### Opgeleverd — ZWBieb: de leeszaal, alle kennisbanken per onderwerp
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** In ZWBieb leen je kennis en spullen van een ander lid. De
+eigenaar opperde om er ook de kennisbanken te zetten, per onderwerp ingedeeld,
+zoals in een echte bieb. Die kennisbanken stonden elk bij hun eigen onderdeel:
+trainen (19 artikelen), voeding (25) en core & mobiliteit (12). Een onderwerp
+als herstel stond zo verspreid over twee kennisbanken.
+
+**Wat er veranderde.**
+- **Nieuwe tab Leeszaal** (`/zwbieb/leeszaal`), naast Kennis en Spullen. Alle 56
+  artikelen staan op twaalf planken per onderwerp: Trainen, Testen en meten,
+  Naar een wedstrijd, Eten en drinken onderweg, Dagelijkse voeding, Herstel,
+  Supplementen, Kracht, Core, rug en mobiliteit, Bijzondere trainingsvormen,
+  Gezondheid, en Vrouwen en ouder worden. Er is een zoekveld op titel,
+  samenvatting, plank en label. Elke plank heeft een anker (`#gezondheid`).
+- Het label Veelbelovend of Experimenteel van een trainingsartikel (ronde
+  "veelbelovende en experimentele trainingsmethodes", hieronder) staat ook in
+  de leeszaal. Die ronde kwam tijdens het bouwen op main; de vijf nieuwe
+  artikelen staan op Trainen (VO2max met wisselend vermogen, Sprints als
+  onderhoud, Blokweken) en op de plank Bijzondere trainingsvormen
+  (Bloedstroombeperking, Brain endurance training). Die plank heette eerst
+  "Hitte en ademhaling".
+- **De indeling** staat in `src/lib/zwbieb/shelves.ts`. Elk artikel staat op
+  precies één plank, zoals een boek één plek heeft in de bieb.
+  `zwbieb.test.ts` faalt als een nieuw artikel nog niet op een plank staat.
+- **De artikelen zijn niet verhuisd.** Ze blijven op hun adres onder ZWBeter
+  Worden, want protocollen, de coach en het schema linken daarheen. De leeszaal
+  is een catalogus en linkt naar die adressen.
+- **Kenners bij artikelen, artikelen bij onderwerpen.** Een plank kan wijzen
+  naar onderwerpen van ZWBieb, bijvoorbeeld Eten en drinken onderweg naar
+  `voeding-onderweg`, en Core, rug en mobiliteit naar `kracht-core` en
+  `bikefit`. Daaruit volgt:
+  - Onder elk kennisartikel staat een blok **Vraag een clublid**, met hooguit
+    vijf kenners van die onderwerpen en een knop "Vraag het aan" (je ziet
+    jezelf er niet in). Zonder kenners verschijnt het blok niet.
+  - Bij een onderwerp onder Kennis (`/zwbieb?onderwerp=…`) staat een blok **In
+    de leeszaal**, met de artikelen erover.
+  - Op de leeszaal staan onder een plank de onderwerpen met het aantal kenners.
+- Een plank wijst alleen naar onderwerpen uit de startlijst van `0242`.
+  Onderwerpen die leden zelf toevoegen kan de moderatie hernoemen of verbergen;
+  daarom staat de indeling vast in code. Een slug verandert nooit. Een verborgen
+  onderwerp valt vanzelf weg.
+- De tabs en de knoppen in de kop van ZWBieb zitten in `zwbieb-nav.tsx`, de
+  kennerregel in `expert-row.tsx`. Overzicht en leeszaal gebruiken beide.
+- `/hulp#zwbieb` en de hulpzoeker noemen de leeszaal.
+
+**Bewust niet gebouwd.**
+- **Artikelen verhuizen naar ZWBieb.** Dat breekt de links vanuit protocollen,
+  coach en schema, en bij trainen of voeden is de kennisbank dan niet meer bij
+  de hand.
+- **Leden laten schrijven in de leeszaal.** De kennisbanken worden op bronnen
+  getoetst (wetenschappelijke toets). Kennis van leden loopt via kenners, tips
+  en gesprekken.
+- **De indeling in de database**, of planken die leden zelf maken. Een artikel
+  staat al in code; de plank hoort daarbij.
+- **Een gezondheidsonderwerp in ZWBieb.** Gezondheid krijgt wel een plank, maar
+  zonder kenners. Wie zich als kenner meldt, vertelt de club iets over zichzelf.
+  Een artikel lezen doet dat niet.
+- **Protocollen en recepten in de leeszaal.** Dat zijn geen naslag maar iets om
+  te volgen of te koken. Ze blijven bij Trainen en Voeding.
+
+**Getest.**
+- `zwbieb.test.ts`, drie nieuwe tests:
+  - elk artikel staat op precies één plank;
+  - planken zijn uniek en niet leeg, en wijzen alleen naar onderwerpen uit de
+    startlijst;
+  - een plank opzoeken bij een artikel en bij een onderwerp.
+- `tsc` en ESLint: geen nieuwe fouten (de bekende in `read-barcode.ts` en
+  `gopher-image-ocr.ts` blijven).
+- Volledige run: groen, behalve wat al bekend was. `admin-areas`,
+  `intervals-ride-sync` en `rls-initplan-migration` lopen alleen onder
+  belasting uit de tijd en zijn los groen. `omnium-live` mist `.env.local`.
+
+**In de browser bekeken** (dev-server, ingelogd door de eigenaar, 2026-10-16):
+- De leeszaal toont alle 56 artikelen, met de labels. Zoeken werkt: "herstel" geeft drie
+  planken. Ankers als `#onderweg` werken. Op 375 px is er geen horizontale
+  scroll, en het label van de kennisbank valt daar weg.
+- Een onderwerp (`?onderwerp=trainen-met-schema`) toont "In de leeszaal" met
+  zeven artikelen.
+- "Vraag een clublid" staat bij Zones en Vocht en zout. Bij Het gymprogramma
+  (nul kenners) en IJzer (plank zonder onderwerp) staat het er terecht niet.
+  De eigenaar is op dit moment de enige kenner. Om het blok te zien is het
+  filter op jezelf even uitgezet en daarna teruggezet; met een tweede lid is
+  het niet bekeken.
+- De onderwerpen per plank gaan als gewone gegevens naar de client
+  (`shelf-browser.tsx`), niet als React-elementen. Dat gaf in dev een
+  waarschuwing over een ontbrekende `key`.
+
+**Niet geverifieerd.** "Vraag het aan" vanaf een artikel bij een ander lid
+(dezelfde link als in het overzicht), en het geheel op productie.
+
+### Opgeleverd — veelbelovende en experimentele trainingsmethodes, met label
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
+`0246_workout_method_labels.sql` (toegepast via de Supabase-connector,
+2026-10-16; zie "Controle").
+
+**Aanleiding.** De eigenaar vroeg alles te bouwen wat in
+[het onderzoek](docs/trainingsmethodes-onderzoek-2026-10-16.md) als
+veelbelovend of experimenteel staat, met dat label erbij waar het gebruikt
+wordt, en workouts in de bibliotheek.
+
+**Wat er veranderde.**
+- **Label.** `src/lib/training/method-label.ts`: `veelbelovend` of
+  `experimenteel`. Apart van het bewijsniveau van een protocol (sterk, matig,
+  beperkt): dat zegt hoeveel onderzoek er is, het label of het effect al
+  vaststaat. Het onderzoek stelde eerst een vierde bewijsniveau voor; dat is
+  bij het bouwen losgelaten. Badge `src/components/method-label-badge.tsx`.
+- **Waar het label staat.** Kolom `method_label` op
+  `training_workout_templates` en `training_workouts` (0246). Zichtbaar bij de
+  workouttitel in het schema, in de kalendertooltip en het detail, in de
+  workoutbibliotheek en de trainerskalender, bij protocollen en
+  kennisartikelen. Naar intervals.icu (en zo Zwift) gaat het vooraan in de
+  beschrijving: "Experimenteel. …". Een bibliotheekworkout neemt het label mee
+  bij invoegen en vervangen; de AI geeft per workout een `methodLabel` terug
+  (`ai.ts`, `draft.ts`).
+- **Bibliotheek (0246), negen standaardworkouts.** Veelbelovend: Sweet spot
+  5x10, 6x12 en 7x14 blokweek; VO2max 30/15 blokweek; Sprint 6x30s onderhoud;
+  Duur 90 met 3x3 sprints. Experimenteel: VO2max 5x5 snelle start, 4x4
+  aflopend en 5x5 wisselend.
+- **Korte herhalingen in een blok.** `WorkoutBlock.onOff` (aan/uit in
+  seconden plus een uit-doel): één blok van 9 minuten is 12 x 30/15. Gaat als
+  losse stappen naar intervals.icu (workout_doc en tekst), telt mee in
+  belasting en zonetijd met aan- én uit-deel, de uitvoeringsanalyse vergelijkt
+  met het gemiddelde doel, en een event uit intervals.icu vouwt de stappen
+  terug tot één blok. De trainer kan het instellen in de blokeditor (Aan, Uit,
+  Doel uit). De AI kan het ook (onSeconds/offSeconds/offTarget) en kan nu
+  bursts schrijven (burstSeconds).
+- **Protocollen.** Blokweek drempel en Blokweek 30/15 (matig bewijs,
+  veelbelovend; groep "Blokweek") met een aiHint die de sessies plant; Brain
+  endurance training (beperkt bewijs, experimenteel; geen aiHint, het is geen
+  fietsblok).
+- **AI-regels** (`defaultTrainingPrompt`): sprintonderhoud in een week met
+  minder dan de helft van de gewone tijd of in een periode "rustig" (daar mag
+  nu één korte sprintsessie, telt niet als sleutelsessie); sprints in één
+  rustige rit per week na het laatste A- of B-mikpunt van het seizoen; hooguit
+  één op de drie VO2max-sessies met snelle start, aflopend of wisselend
+  vermogen. Blokken met `onSeconds` vallen niet onder de grens van 8 minuten
+  boven 100% FTP.
+- **Kennisbank trainen**: Blokweken, VO2max met wisselend vermogen, Sprints
+  als onderhoud, Brain endurance training, Trainen met bloedstroombeperking.
+  De bron Rønnestad 2025 verhuisde van `training-library.ts` naar
+  `protocols/training.ts`.
+- `/hulp#protocollen`: blok "Veelbelovend en experimenteel", plus zoekwoorden.
+- **Coachchat** (na de merge met "Coachchat antwoordt met de kennisbank"): de
+  vijf nieuwe artikelen gaan vanzelf mee; `coach.ts` zet er "Label:
+  Veelbelovend/Experimenteel" bij, en de instructies vragen de coach dat label te
+  noemen als zijn antwoord erop steunt. Niet tegen OpenAI geprobeerd.
+
+**Bewust niet gebouwd.**
+- REHIT (2 x 20 seconden): getest bij ongetrainden, en zo'n sessie heet in het
+  schema "Herstel" omdat het kernwerk korter is dan vijf minuten.
+- BFR als protocol of workout: alleen een artikel, met het advies het met een
+  fysiotherapeut of sportarts te doen.
+- Een Stroop-taak in de app voor brain endurance training: het protocol
+  verwijst naar een taak op telefoon of computer.
+- Een label voor eigen bibliotheekworkouts van trainers: alleen de
+  standaardset heeft er een.
+
+**Controle.** `tsc` schoon op de bekende fouten na (`read-barcode.ts`,
+`gopher-image-ocr.ts`); `eslint` schoon op de gewijzigde bestanden. Nieuwe tests
+`workout-on-off.test.ts` en `workout-method-labels-migration.test.ts` (0246 in
+PGlite bovenop 0106-0227). De hele unitsuite: alles groen, op drie na die in de
+volle run time-outs gaven of `.env.local` misten en los wel slaagden
+(`omnium-live` heeft `.env.local` nodig en is los niet gedraaid).
+
+**Op productie (2026-10-16, Supabase-connector).** 0246 toegepast als versie
+`20261016140209`. Nagekeken: `method_label` staat op `training_workout_templates`
+en `training_workouts`, beide met de check op `veelbelovend`/`experimenteel`. De
+standaardset ging van 49 naar 58 workouts; precies de negen nieuwe hebben een
+label (zes veelbelovend, drie experimenteel), met per workout een blokduur die
+optelt tot `duration_minutes`, vijf `onOff`-blokken in de 30/15-week en negen
+bursts in "Duur 90 met 3x3 sprints". Geen eigen workouts en geen geplande
+workouts met een label. De code is nog niet gepusht: tot de deploy gebruikt
+productie de kolom niet, en de oude code merkt er niets van.
+
+**Niet geverifieerd.**
+- De pagina's zijn niet in de browser bekeken (ingelogd), en de AI-uitvoer met
+  het nieuwe schema (methodLabel, onSeconds, burstSeconds) is niet tegen
+  OpenAI gedraaid.
+- Hoe intervals.icu de tekstvorm "12x" in de beschrijving toont; de FIT-export
+  loopt via workout_doc met platte stappen.
+
+### Onderzocht — veelbelovende trainingsmethodes, met label "experimenteel"
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
+code.
+
+**Aanleiding.** De eigenaar vroeg via PubMed en Consensus te zoeken naar
+veelbelovende trainingsmethodes, protocollen en workouts. Experimenteel mag,
+maar de app moet dat dan zeggen.
+
+**Uitkomst.** Zie [trainingsmethodes-onderzoek-2026-10-16.md](docs/trainingsmethodes-onderzoek-2026-10-16.md).
+- **Veelbelovend:** een blokweek (zes drempelsessies of vijf 30/15-sessies in
+  een week, dan zes dagen herstel), sprintintervallen als onderhoud bij weinig
+  tijd, en sprints in één rustige rit in de overgangsperiode.
+- **Experimenteel:** VO2max-intervallen met snelle start of wisselend vermogen
+  (alleen eenmalige metingen, geen trainingsstudie), brain endurance training,
+  en trainen met bloedstroombeperking.
+- **Niet bouwen:** ischemische preconditionering (niet beter dan placebo),
+  "double threshold" met lactaatmeter (geen fietsstudies), trillingen.
+- Voorstel: `experimenteel` als vierde waarde in `PROTOCOL_EVIDENCE`. *Bij het
+  bouwen anders gedaan: een apart label `methodLabel`, zie de ronde hierboven.*
+
+**Bewust niet gebouwd.** In deze ronde nog niets; alles wat veelbelovend of
+experimenteel heette is dezelfde dag gebouwd (zie de ronde hierboven). BFR en
+ischemische preconditionering kregen geen protocol (banden en gemeten
+afsluitdruk nodig, hogere bloeddruk; geen effect boven placebo).
+
+**Niet geverifieerd.** Alleen samenvattingen gelezen, via PubMed en Consensus.
+De DOI's zijn niet in Crossref nagelopen en de studieopzet niet uit de volledige
+artikelen gehaald; dat moet per bron bij het bouwen.
 
 ### Opgeleverd — Coachchat antwoordt met de kennisbank
 

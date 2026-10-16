@@ -22,7 +22,70 @@ export type WorkoutBlock = {
    * `target`. Zo blijft de duur van elk blok een heel aantal minuten.
    */
   burstSeconds?: number;
+  /**
+   * Het blok bestaat uit korte herhalingen: `onSeconds` op `target`, dan
+   * `offSeconds` op `offTarget`, tot de duur van het blok vol is. Zo blijft een
+   * 30/15-serie één blok van hele minuten (12 x 45 s = 9 min) en gaat ze toch als
+   * losse stappen naar intervals.icu en de fietscomputer. Gaat vóór burstSeconds.
+   */
+  onOff?: OnOffPattern;
 };
+
+export type OnOffPattern = { onSeconds: number; offSeconds: number; offTarget: string };
+
+/** Een herhaling korter dan dit is niet te rijden; langer is een gewoon blok. */
+export const MIN_ON_OFF_SECONDS = 5;
+export const MAX_ON_OFF_SECONDS = 120;
+
+/**
+ * Een bruikbaar aan/uit-patroon, of null. Leest zowel `{ onOff: {...} }` als de
+ * platte velden van de AI-uitvoer (onSeconds, offSeconds, offTarget); 0 betekent
+ * daar "geen patroon".
+ */
+export function onOffOf(value: unknown): OnOffPattern | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const on = Math.round(Number(record.onSeconds));
+  const off = Math.round(Number(record.offSeconds));
+  const inRange = (n: number) => Number.isFinite(n) && n >= MIN_ON_OFF_SECONDS && n <= MAX_ON_OFF_SECONDS;
+  if (!inRange(on) || !inRange(off)) return null;
+  return { onSeconds: on, offSeconds: off, offTarget: String(record.offTarget ?? "").trim() };
+}
+
+/**
+ * De stappen van een aan/uit-blok, in seconden. Past de duur niet precies, dan
+ * komt de rest bij de laatste uit-stap. Null voor een gewoon blok.
+ */
+export function onOffSegments(block: WorkoutBlock): Array<{ seconds: number; on: boolean }> | null {
+  if (!block.onOff) return null;
+  const total = Math.round(block.durationMinutes * 60);
+  const cycle = block.onOff.onSeconds + block.onOff.offSeconds;
+  const reps = Math.floor(total / cycle);
+  if (reps < 1) return null;
+  const segments: Array<{ seconds: number; on: boolean }> = [];
+  for (let rep = 0; rep < reps; rep++) {
+    segments.push({ seconds: block.onOff.onSeconds, on: true });
+    segments.push({ seconds: block.onOff.offSeconds, on: false });
+  }
+  segments[segments.length - 1].seconds += total - reps * cycle;
+  return segments;
+}
+
+/** Aantal herhalingen in een aan/uit-blok. */
+export function onOffReps(block: WorkoutBlock): number {
+  return (onOffSegments(block)?.length ?? 0) / 2;
+}
+
+/** Het uit-deel van een aan/uit-blok als eigen blok, voor doel en belasting. */
+function offPartOf(block: WorkoutBlock): WorkoutBlock {
+  return {
+    label: block.label,
+    durationMinutes: block.durationMinutes,
+    target: block.onOff?.offTarget ?? "",
+    notes: "",
+    intensity: "recovery",
+  };
+}
 
 /** Langer dan dit is geen burst meer maar een interval. */
 export const MAX_BURST_SECONDS = 30;
@@ -213,6 +276,8 @@ export function defaultTrainingPrompt() {
     "Bouw gestructureerde workouts met duidelijke blokken: warming-up, kern, herstel en cooling-down.",
     "Plan uitsluitend op-de-fiets werk: elk blok moet met een fietscomputer te rijden zijn. Geen kracht-, core-, mobiliteits-, stretch- of ademhalingsoefeningen, en geen loop-, zwem- of gymsessies. Is een dag een rustdag, plan dan rust zonder oefeningen; wil je iets naast de fiets adviseren, zet dat hooguit als korte opmerking in cautions.",
     "Schrijf herhalingen expliciet uit als losse structure-blokken: bijvoorbeeld 3x8 min sweet spot met 4 min herstel wordt 8 min werk, 4 min herstel, 8 min werk, 4 min herstel, enzovoort.",
+    "Uitzondering: korte herhalingen onder een minuut, zoals 30/15 of 40/20, schrijf je als één blok van hele minuten met onSeconds, offSeconds en offTarget. 12 keer 30/15 is één blok van 9 minuten met target op het harde deel (bijvoorbeeld 110-120%), onSeconds 30, offSeconds 15 en offTarget '50%'. Elk ander blok krijgt onSeconds 0, offSeconds 0 en offTarget ''.",
+    "Een sprint van hooguit 30 seconden binnen een rustig blok schrijf je met burstSeconds: een blok van 5 minuten op 50-58% met burstSeconds 30 is 30 seconden voluit en daarna losdraaien. Elk ander blok krijgt burstSeconds 0.",
     "De intensity van een blok is de zone waarin het midden van zijn doel valt, in %FTP: recovery onder 60%, endurance 60-75%, tempo 76-89%, threshold 90-104%, vo2max 105-118%, anaerobic vanaf 119%. Kies bij elk doel de intensity van die zone, ook als het blok anders heet.",
     "De intensity van de hele workout is die van het kernwerk: het zwaarste niveau waarop samen minstens vijf minuten wordt gereden. Warming-up en cooling-down tellen niet mee; een paar korte versnellingen ook niet.",
     "Gebruik in titels en bloklabels deze trainingsvormen: herstel onder 60% FTP, rustige duur 61-70%, intensieve duur 71-80%, tempo 81-86%, sweet spot 87-89%, drempel 90-104%, VO2max 105-118%, anaeroob vanaf 119%. Dat is taal, geen extra zone: een blok op 71-80% heet intensieve duur en nooit tempo, ook als het midden net in de tempozone valt.",
@@ -221,7 +286,7 @@ export function defaultTrainingPrompt() {
     // Bovengrens per bloklengte (wetenschappelijke toets 1D, 2026-10-16): MLSS ligt
     // gemiddeld rond 93-96 % van FTP en op FTP zelf hielden renners het gemiddeld
     // 34 minuten vol (Inglis 2020; Wong 2023). De zones zelf blijven gelijk.
-    "Drempelblokken van 15 minuten of langer krijgen 90-95% FTP, kortere drempelblokken hooguit 100%. Boven 100% FTP alleen in blokken van hooguit 8 minuten (VO2max, over-unders). Een lang blok op 100% of hoger is voor veel renners al boven hun steady state.",
+    "Drempelblokken van 15 minuten of langer krijgen 90-95% FTP, kortere drempelblokken hooguit 100%. Boven 100% FTP alleen in blokken van hooguit 8 minuten (VO2max, over-unders). Een lang blok op 100% of hoger is voor veel renners al boven hun steady state. Een blok met onSeconds valt hier niet onder: daar geldt het doel alleen voor het harde deel.",
     "Een titel is kort en herkenbaar: de trainingsvorm van het kernwerk plus de opbouw of duur, bijvoorbeeld 'Intensieve duur 3x15', 'Sweet spot 2x20', 'VO2max 5x4' of 'Rustige duur 90 min'. Hooguit 30 tekens. Geen uitleg, reden of vergelijking in de titel: niet 'ingekort', 'aangepast', 'lichter', 'rustiger na ...' of een verwijzing naar een andere dag of rit — dat hoort in description of cautions. Zet 'ZWBeter Worden' niet in de titel; de app voegt dat zelf toe.",
     "Als FTP ontbreekt, gebruik RPE en korte gevoelstaal.",
     "Kies targetType bij voorkeur 'power' wanneer FTP bekend is.",
@@ -248,7 +313,7 @@ export function defaultTrainingPrompt() {
     "Een mikpunt met priority 'b' is belangrijk maar geen piek: bouw er gewoon doorheen en houd alleen de dag ervóór licht. Bij priority 'c' verander je niets aan de opbouw.",
     "Liggen er meerdere A-mikpunten in de planperiode, richt je dan op de eerste en benoem de tweede in cautions. Naar twee pieken tegelijk toewerken kan niet: de taper van de eerste eet de opbouw van de tweede op.",
     "Een periode met kind 'rust' is vakantie, winterstop of een week waarin het lid er niet is. Plan die dagen rust of hooguit een korte losse rit zonder structuur, en begin geen opbouwblok dat er doorheen loopt: trek het blok ervóór af of zet het erna. Dit is geen voorzichtigheid maar een gegeven — het lid is er niet.",
-    "Een periode met kind 'rustig' is een drukke tijd: plan grofweg de helft van het normale weekvolume en geen sleutelsessies. Endurance en herstel mogen, threshold en vo2max niet.",
+    "Een periode met kind 'rustig' is een drukke tijd: plan grofweg de helft van het normale weekvolume en geen sleutelsessies. Endurance en herstel mogen, threshold en vo2max niet. Eén korte sprintsessie per week als onderhoud mag wel (zie de regel over weinig tijd); die telt niet als sleutelsessie.",
     "Duurde een periode met kind 'rust' langer dan tien dagen, begin er ná onder het weekvolume van ervóór en bouw dat in ongeveer twee weken terug op. Ga niet verder waar je gebleven was: na twee weken niets doen ligt de belastbaarheid lager, hoe goed de weken ervoor ook waren.",
     "Een periode met kind 'kamp' is een trainingskamp: de dagen waarop een amateur traint als een prof. Het lid heeft de hele dag om te fietsen en alle rust eromheen — geen werk, meer slaap, niets anders aan het hoofd. Die tijd is schaars en moet optimaal benut worden: plan veel meer dan in een gewone week, met lange ritten én volwaardige kwaliteitssessies. Als richtpunt geldt anderhalf tot twee keer het normale weekvolume per kampweek. Deze regel gaat vóór goal.maxHoursPerWeek, availability.default, goal.availableDays, de 10%-groei per week en de grens op sprongen van meer dan een kwart; alleen een week die het lid in availability.weeks apart heeft ingevuld blijft leidend. Ook recentLoad.longestRideMinutes en het gewone ritme van recentLoad gelden in het kamp niet als grens.",
     "Kwaliteit hoort bij een trainingskamp. De sleutelsessies uit de periodisering lopen gewoon door en mogen in het kamp zwaarder of talrijker zijn dan thuis: drempel, VO2max en anaeroob werk zijn niet uitgesloten, ook niet naast lange ritten. Houd het kamp niet uit voorzorg licht.",
@@ -279,6 +344,10 @@ export function defaultTrainingPrompt() {
     "protocols zijn trainingsprotocollen die het lid zelf heeft gestart, elk met een venster (from/to), fases met datums en instructions. Volg de instructions binnen het venster van het protocol en binnen alle andere regels: herstel, beschikbaarheid, het urenplafond en de periodisering gaan voor. Een protocol voegt geen belasting toe en verandert het aantal sleutelsessies niet. Kun je een protocol in een week niet volgen, zeg dan in cautions in één zin waarom.",
     "Lage cadans (50-70 toeren) zet je alleen in een bloknotitie als er een protocol 'lage-cadans-vo2max' loopt, en dan uitsluitend bij VO2max-, sprint- en anaerobe blokken. Nooit bij duur, tempo, sweet spot, drempel of herstel: daar is geen winst van lage cadans gevonden. Staat er in preferences of symptoms een knieklacht, rij die blokken dan op eigen cadans en benoem dat in cautions.",
     "Hitte (protocol 'hitte-kort' of 'hitte-lang') verandert het weekvolume niet: een hittesessie is een rustige of intensieve duurrit die het lid warm rijdt, en telt gewoon mee in de weekbelasting. Zet een drempel-, VO2max- of anaerobe sessie nooit als hittesessie.",
+    "Elke workout krijgt een methodLabel. Gewone trainingsvormen krijgen 'geen'. 'veelbelovend' en 'experimenteel' horen alleen bij de methodes hieronder en bij een protocol waarvan de instructions erom vragen. Het label is voor de app; zet het niet in title, description of de bloknotities.",
+    "Weinig tijd (methodLabel 'veelbelovend'): heeft het lid in een week duidelijk minder tijd dan normaal — de week in availability.weeks rekent op tot minder dan de helft van availability.default, of de week valt in een periode met kind 'rustig' — schrap dan niet alle intensiteit. Plan één of, bij genoeg herstel, twee korte sprintsessies: 15 minuten inrijden, 6 sprints van 30 seconden voluit (blokken van 1 minuut op 150-180% met de notitie '30 sec voluit, daarna uitrollen') met 4 minuten herstel ertussen, 10 minuten uitrijden. Niet in een periode met kind 'rust', niet bij vermoeidheidssignalen, en niet de dag vóór een race of test.",
+    "Overgangsperiode (methodLabel 'veelbelovend'): de weken direct na het laatste A- of B-mikpunt van seasonPlan.targets, als er binnen zes weken daarna geen nieuw A- of B-mikpunt ligt. Die weken zijn rustig, maar zet er één rustige duurrit per week in met drie series van drie sprints van 30 seconden: elke sprint een blok van 5 minuten op 50-58% met burstSeconds 30, en 10 minuten rustige duur tussen de series. De rest van die weken blijft rustig.",
+    "VO2max met wisselend vermogen (methodLabel 'experimenteel'): je mag hooguit één op de drie VO2max-sessies rijden als variant met een snelle start of wisselend vermogen binnen het blok, bij hetzelfde gemiddelde. Snelle start: per blok van 5 minuten eerst 1 minuut op 115-118% en dan 4 minuten op 104-108%. Aflopend: per blok van 4 minuten elke minuut lager, van 114-118% via 110-114% en 106-110% naar 102-106%. Wisselend: per blok van 5 minuten elke minuut om en om 115-118% en 100-104%, beginnend hoog. Schrijf elke minuut als eigen blok. Niet in een taper en niet in de eerste week van een schema.",
   ].join("\n");
 }
 
@@ -499,7 +568,8 @@ export function normalizeWorkoutBlocks(value: unknown, fallbackIntensity: Workou
   const blocks = value
     .map((row): WorkoutBlock => {
       const record = (row ?? {}) as Record<string, unknown>;
-      const burstSeconds = burstSecondsOf(record.burstSeconds);
+      const onOff = onOffOf(record.onOff) ?? onOffOf(record);
+      const burstSeconds = onOff ? null : burstSecondsOf(record.burstSeconds);
       return {
         label: String(record.label ?? "Blok").trim() || "Blok",
         durationMinutes: positiveMinutes(record.durationMinutes),
@@ -507,6 +577,7 @@ export function normalizeWorkoutBlocks(value: unknown, fallbackIntensity: Workou
         notes: String(record.notes ?? "").trim(),
         intensity: asIntensity(record.intensity, fallbackIntensity),
         ...(burstSeconds ? { burstSeconds } : {}),
+        ...(onOff ? { onOff } : {}),
       };
     })
     .filter((block) => block.durationMinutes > 0);
@@ -521,6 +592,9 @@ export function blocksFromForm(formData: FormData, fallbackIntensity: WorkoutInt
   const intensities = formData.getAll("block_intensity").map(String);
   const deletes = formData.getAll("block_delete").map(String);
   const bursts = formData.getAll("block_burst").map(String);
+  const ons = formData.getAll("block_on").map(String);
+  const offs = formData.getAll("block_off").map(String);
+  const offTargets = formData.getAll("block_off_target").map(String);
   const max = Math.max(labels.length, durations.length, targets.length, notes.length, intensities.length);
   const blocks: WorkoutBlock[] = [];
 
@@ -531,13 +605,16 @@ export function blocksFromForm(formData: FormData, fallbackIntensity: WorkoutInt
     const note = (notes[i] ?? "").trim();
     const durationMinutes = positiveMinutes(durations[i], 0);
     if (!label && !target && !note && durationMinutes <= 0) continue;
+    const onOff = onOffOf({ onSeconds: ons[i], offSeconds: offs[i], offTarget: offTargets[i] });
+    const burstSeconds = onOff ? null : burstSecondsOf(bursts[i]);
     blocks.push({
       label: label || "Blok",
       durationMinutes: durationMinutes || 5,
       target,
       notes: note,
       intensity: asIntensity(intensities[i], fallbackIntensity),
-      ...(burstSecondsOf(bursts[i]) ? { burstSeconds: burstSecondsOf(bursts[i])! } : {}),
+      ...(burstSeconds ? { burstSeconds } : {}),
+      ...(onOff ? { onOff } : {}),
     });
   }
 
@@ -569,6 +646,23 @@ export function blocksToIntervalsText(blocks: WorkoutBlock[]) {
       const target = targetForIntervals(block.target);
       const suffix = [target, block.notes].filter(Boolean).join(" ");
       const rest = suffix ? ` ${suffix}` : "";
+      const segments = onOffSegments(block);
+      if (segments && block.onOff) {
+        // Een herhaling in intervals.icu-tekst: "12x" met de stappen eronder, en
+        // een lege regel ervoor en erna om de groep af te sluiten.
+        const reps = segments.length / 2;
+        const offTarget = targetForIntervals(block.onOff.offTarget);
+        const lines = [
+          "",
+          `${reps}x`,
+          `- ${block.onOff.onSeconds}s${rest}`,
+          `- ${block.onOff.offSeconds}s${offTarget ? ` ${offTarget}` : ""}`,
+          "",
+        ];
+        const leftover = segments[segments.length - 1].seconds - block.onOff.offSeconds;
+        if (leftover > 0) lines.push(`- ${formatSeconds(leftover)}${offTarget ? ` ${offTarget}` : ""}`);
+        return lines.join("\n");
+      }
       if (!block.burstSeconds) return `- ${block.durationMinutes}m${rest}`;
       const remainder = block.durationMinutes * 60 - block.burstSeconds;
       return [
@@ -858,6 +952,18 @@ export function blocksToWorkoutDoc(
       const duration = Math.round(block.durationMinutes * 60);
       const step: Record<string, unknown> = { duration };
       if (power) step.power = power;
+      const segments = onOffSegments(block);
+      if (segments) {
+        // Platte stappen, geen herhaalgroep: afwijkende velden lieten de
+        // FIT-generator eerder crashen (zie boven).
+        const offPower = blockToPowerTarget(offPartOf(block), ftp);
+        return segments.map((segment) => {
+          const part: Record<string, unknown> = { duration: segment.seconds };
+          const partPower = segment.on ? power : offPower;
+          if (partPower) part.power = partPower;
+          return part;
+        });
+      }
       if (!block.burstSeconds) return [step];
       // Een burst is een eigen stap vooraan; samen houden ze de duur van het blok.
       return [
@@ -916,6 +1022,18 @@ export function estimateTrainingLoad(
 ) {
   return Math.round(
     blocks.reduce((total, block) => {
+      const segments = onOffSegments(block);
+      if (segments) {
+        const on = loadIntensityFactor(block, ftpWatts);
+        const off = loadIntensityFactor(offPartOf(block), ftpWatts);
+        return (
+          total +
+          segments.reduce((sum, segment) => {
+            const factor = segment.on ? on : off;
+            return sum + (segment.seconds / 3600) * factor * factor * 100;
+          }, 0)
+        );
+      }
       const factor = loadIntensityFactor(block, ftpWatts);
       const burstHours = (block.burstSeconds ?? 0) / 3600;
       const burstFactor = (BURST_FTP_RANGE[0] + BURST_FTP_RANGE[1]) / 200;

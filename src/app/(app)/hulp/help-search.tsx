@@ -102,7 +102,7 @@ const HELP_INDEX: HelpResult[] = [
     title: "ZWBieb",
     text: "Wie weet wat en wie heeft wat: kennis en uitleenspullen van leden, tips en een vraag stellen in de app.",
     href: "/hulp#zwbieb",
-    terms: "wie weet wat kennis kenner ervaring onderwerp vraag vragen gesprek bericht berichten tip tips van leden advies hulp gravel bikefit sleutelen banden tubeless zwift racen zwbieb bieb wie heeft wat lenen uitlenen spullen fietskoffer momentsleutel fietsendrager seasucker dakdrager camper werkstandaard",
+    terms: "wie weet wat kennis kenner ervaring onderwerp vraag vragen gesprek bericht berichten tip tips van leden advies hulp gravel bikefit sleutelen banden tubeless zwift racen zwbieb bieb wie heeft wat lenen uitlenen spullen fietskoffer momentsleutel fietsendrager seasucker dakdrager camper werkstandaard leeszaal kennisbank artikel artikelen lezen boeken plank",
   },
   {
     title: "Live volgen met Garmin of Wahoo",
@@ -223,7 +223,7 @@ const HELP_INDEX: HelpResult[] = [
     text: "Hitte, lage cadans, ademspiertraining, duurtest en supplementen: starten, afvinken en de grenzen.",
     href: "/hulp#protocollen",
     terms:
-      "protocol protocollen kracht op de fiets torque duurtest duurvermogen ontkoppeling decoupling durability hitte hittetraining warmte acclimatisatie heet bad core sensor kerntemperatuur lichaamstemperatuur hemoglobine lage cadans toeren torque vo2max ademspiertraining ademtrainer supplement supplementen cafeine bicarbonaat natriumbicarbonaat nitraat bietensap ijsslush koolhydraten laden beta-alanine creatine darmtraining 150 gram per uur glycerol kersensap kersen herstel herstelshake eiwitshake eiwit vitamine d collageen gelatine pees blessure visolie omega-3 probiotica magnesium kramp bcaa cbd curcumine menthol mondspoelen zink vitamine c dosis gewicht nzvt kennisbank taper",
+      "protocol protocollen kracht op de fiets torque duurtest duurvermogen ontkoppeling decoupling durability hitte hittetraining warmte acclimatisatie heet bad core sensor kerntemperatuur lichaamstemperatuur hemoglobine lage cadans toeren torque vo2max ademspiertraining ademtrainer supplement supplementen cafeine bicarbonaat natriumbicarbonaat nitraat bietensap ijsslush koolhydraten laden beta-alanine creatine darmtraining 150 gram per uur glycerol kersensap kersen herstel herstelshake eiwitshake eiwit vitamine d collageen gelatine pees blessure visolie omega-3 probiotica magnesium kramp bcaa cbd curcumine menthol mondspoelen zink vitamine c dosis gewicht nzvt kennisbank taper blokweek blokperiodisering 30/15 brain endurance concentratie stroop mentale vermoeidheid veelbelovend experimenteel snelle start sprint onderhoud overgangsperiode bloedstroombeperking bfr occlusie",
   },
   {
     title: "Voeding",

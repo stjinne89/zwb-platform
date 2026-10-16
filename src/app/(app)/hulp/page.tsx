@@ -181,6 +181,7 @@ const GUIDES = [
     title: "ZWBieb",
     bullets: [
       "ZWBieb (onder Club) is de bieb van de leden. Onder Kennis zie je per onderwerp wie er ervaring mee heeft, met hun tips. Onder Spullen zie je wie iets wil uitlenen, zoals een fietskoffer, momentsleutel, fietsendrager of camper.",
+      "Onder Leeszaal staan alle artikelen uit de kennisbanken trainen, voeding en core & mobiliteit bij elkaar, per onderwerp, met een zoekveld. Onder een artikel staan clubleden die er ervaring mee hebben; bij een onderwerp onder Kennis staan de artikelen die erover gaan.",
       "Doe mee via Mijn ZWBieb: kies tot zes onderwerpen en tot vijftien spullen, met eventueel een korte toelichting. Daar stop je ook; je onderwerpen en spullen verdwijnen dan, je tips en gesprekken blijven.",
       "Staat jouw onderwerp of spul er niet tussen, typ het dan onder Ander onderwerp of Ander spul. De app laat eerst zien wat er al op lijkt. Je kunt er vijf per dag toevoegen. Kies geen onderwerp over je gezondheid: dat ziet de hele club.",
       "Vraag het aan opent een gesprek met dat lid, alleen voor jullie twee, ook om iets te lenen. Ophalen, terugbrengen en schade spreken jullie samen af. Je krijgt een melding bij een antwoord, en een icoon bovenin zolang er iets ongelezen is.",
@@ -3560,7 +3561,8 @@ Fitness-status: Verbeterend`}
           <p className="mt-2 text-sm text-muted-foreground">
             Bij trainen staan hittetraining (kort voor een warme wedstrijd, of vijf
             weken voor meer hemoglobine), lage cadans bij VO2max en sprints,
-            ademspiertraining, een maandelijkse duurtest en kracht op de fiets. Bij voeding staan protocollen voor de wedstrijddag
+            ademspiertraining, een maandelijkse duurtest, kracht op de fiets, twee
+            blokweken (drempel of 30/15) en brain endurance training. Bij voeding staan protocollen voor de wedstrijddag
             (cafeïne, natriumbicarbonaat, nitraat, ijsslush, glycerol,
             koolhydraten laden), voor de opbouw (bèta-alanine, creatine,
             darmtraining, met een vervolg naar 150 gram per uur), voor herstel (herstellen na een zware wedstrijd,
@@ -3586,6 +3588,27 @@ Fitness-status: Verbeterend`}
             lage cadans houdt de AI-coach er rekening mee in het volgende schema of
             de volgende aanpassing: warme duurritten op hittedagen, en de cadans in
             de notitie van je VO2max- en sprintblokken.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Veelbelovend en experimenteel</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Sommige workouts, protocollen en kennisartikelen hebben een label.
+            Veelbelovend: trainingsstudies bij fietsers laten een duidelijk effect
+            zien, maar ze zijn klein, kort of alleen gedaan bij goed getrainde
+            renners. Experimenteel: het effect over weken is bij fietsers nog niet
+            aangetoond, of de studies spreken elkaar tegen. Het label staat bij de
+            workout in je schema en vooraan in de beschrijving in intervals.icu en
+            Zwift.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            De AI-coach gebruikt drie van die methodes ook zonder protocol: korte
+            sprintsessies als onderhoud in een week met weinig tijd, één rustige
+            rit met sprints per week in de rustige weken na je laatste doel van het
+            seizoen, en af en toe een VO2max-sessie met een snelle start of
+            wisselend vermogen. Bij een blokweek zet de coach vijf of zes sessies
+            in één week en daarna zes rustige dagen.
           </p>
         </div>
 

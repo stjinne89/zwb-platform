@@ -213,6 +213,84 @@ const BARSUMYAN_CADENCE_2026: KnowledgeSource = {
   kind: "studie",
 };
 
+// Onderzoeksronde 2026-10-16 (docs/trainingsmethodes-onderzoek-2026-10-16.md).
+// Gevonden via PubMed en Consensus; alleen de samenvattingen gelezen.
+export const RONNESTAD_BLOCK_2025: KnowledgeSource = {
+  citation:
+    "Rønnestad BR, Odden IU, Solum KS, et al. Block training with moderate- or high-intensity intervals both improve endurance performance in well-trained cyclists. Eur J Sport Sci 25(11):e70067.",
+  year: 2025,
+  url: doi("10.1002/ejsc.70067"),
+  kind: "studie",
+};
+
+export const MOLMEN_2025: KnowledgeSource = {
+  citation:
+    "Mølmen KS, Odden I, Sørensen MD, et al. A moderate-intensity interval training block improves endurance performance in well-trained cyclists. Med Sci Sports Exerc 57(8):1780-1789.",
+  year: 2025,
+  url: doi("10.1249/MSS.0000000000003706"),
+  kind: "studie",
+};
+
+export const SOLLI_2024: KnowledgeSource = {
+  citation:
+    "Solli GS, et al. A microcycle of high-intensity short-interval sessions induces improvements in indicators of endurance performance compared to regular training. Eur J Sport Sci.",
+  year: 2024,
+  url: doi("10.1002/ejsc.12223"),
+  kind: "studie",
+};
+
+export const ALMQUIST_BLOCK_2022: KnowledgeSource = {
+  citation:
+    "Almquist NW, et al. No differences between 12 weeks of block- vs. traditional-periodized training in performance adaptations in trained cyclists. Front Physiol 13:837634.",
+  year: 2022,
+  url: doi("10.3389/fphys.2022.837634"),
+  kind: "studie",
+};
+
+export const MOLMEN_2019: KnowledgeSource = {
+  citation:
+    "Mølmen KS, et al. Block periodization of endurance training – a systematic review and meta-analysis. Open Access J Sports Med.",
+  year: 2019,
+  url: doi("10.2147/oajsm.s180408"),
+  kind: "review",
+};
+
+export const STAIANO_2023: KnowledgeSource = {
+  citation:
+    "Staiano W, Marcora S, Romagnoli M, Kirk U, Ring C. Brain endurance training improves endurance and cognitive performance in road cyclists. J Sci Med Sport 26(7):375-385.",
+  year: 2023,
+  url: doi("10.1016/j.jsams.2023.05.008"),
+  kind: "studie",
+};
+
+export const WANG_BET_2026: KnowledgeSource = {
+  citation:
+    "Wang N, et al. The effects of brain endurance training on physical endurance performance under mental fatigue and non-fatigued conditions: a systematic review and meta-analysis. Front Psychol.",
+  year: 2026,
+  url: doi("10.3389/fpsyg.2026.1858200"),
+  kind: "review",
+};
+
+export const DALLAWAY_2025: KnowledgeSource = {
+  citation:
+    "Dallaway N, et al. Effects of separate cognitive training on endurance exercise performance. J Funct Morphol Kinesiol 10(4):391.",
+  year: 2025,
+  url: doi("10.3390/jfmk10040391"),
+  kind: "studie",
+};
+
+const BLOCK_WEEK_NOT_FOR = [
+  "Als je in die week minder dan vijf dagen kunt fietsen.",
+  "In de drie weken voor een A-wedstrijd of tijdens een taper.",
+  "Als je net ziek was of al moe begint.",
+];
+
+const BLOCK_WEEK_LIMITS = [
+  "Alles komt van één onderzoeksgroep in Lillehammer, bij goed getrainde renners met een VO2max rond 70. Bijna alleen mannen.",
+  "Gemeten na zes dagen herstel; hoe lang de winst blijft, is niet onderzocht.",
+  "Over twaalf weken gaf blokperiodisering geen beter resultaat dan een goede gewone opbouw met evenveel belasting.",
+];
+
 const DURABILITY_TASK = {
   key: "duurtest",
   label: "Duurtest",
@@ -535,5 +613,164 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
     article: { href: "/zwbeter-worden/core/kennis/kracht-op-de-fiets", title: "Kracht op de fiets" },
     aiHint:
       "Kracht op de fiets. Plan in dit venster twee keer per week, met minstens drie dagen ertussen en niet op de dag vóór een sleutelsessie of race, een krachtsessie op de fiets: 15 minuten inrijden, dan 5 keer een blok van 7 trappen voluit vanuit stilstand bergop in een groot verzet (cadans 40-50, zittend) met 4 minuten rustig rijden erna, en 10 minuten uitrijden. Geef de krachtblokken de notitie 'Buiten op een helling van ~6%: 7 trappen voluit vanuit stilstand'. Tel de sessie niet als sleutelsessie; het aantal sleutelsessies per week blijft zoals de periodisering vraagt.",
+  },
+  {
+    slug: "blokweek-drempel",
+    pillar: "trainen",
+    group: "Blokweek",
+    title: "Blokweek drempel",
+    shortLabel: "Blokweek",
+    summary:
+      "Zes sweet-spotsessies in zeven dagen, daarna zes dagen rustig. Eén geconcentreerde week voor je drempel.",
+    goal: "Meer vermogen bij je drempel en op 15 minuten.",
+    evidence: "matig",
+    methodLabel: "veelbelovend",
+    anchor: "start",
+    calendar: true,
+    phases: [
+      {
+        key: "blok",
+        title: "Blokweek",
+        fromDay: 0,
+        toDay: 6,
+        tasks: [
+          {
+            key: "sessie",
+            label: "Sweet-spotsessie",
+            detail:
+              "5 tot 7 blokken van 10 tot 14 minuten op 87-89% FTP (RPE 6), met 3 minuten herstel. Begin met 5x10 en bouw in de week op naar 7x14.",
+            perWeek: 6,
+          },
+        ],
+      },
+      {
+        key: "herstel",
+        title: "Herstel",
+        fromDay: 7,
+        toDay: 12,
+        tasks: [
+          {
+            key: "rustig",
+            label: "Rustig rijden",
+            detail: "Rustige duur of herstel, hooguit een uur. Geen intervallen.",
+            perWeek: 3,
+          },
+        ],
+      },
+    ],
+    cautions: [
+      "Rij de blokken zo hard dat je het zes dagen volhoudt, niet harder.",
+      "Slaap je slecht of ben je na drie dagen leeg, sla dan een sessie over.",
+    ],
+    notFor: BLOCK_WEEK_NOT_FOR,
+    limits: [
+      ...BLOCK_WEEK_LIMITS,
+      "De studie stuurde op RPE 14-15. De 87-89% FTP en de 3 minuten herstel zijn een vertaling en een keuze van ZWB.",
+    ],
+    sources: [MOLMEN_2025, RONNESTAD_BLOCK_2025, MOLMEN_2019, ALMQUIST_BLOCK_2022],
+    article: { href: "/zwbeter-worden/kennis/blokweek", title: "Blokweken" },
+    aiHint:
+      "Blokweek drempel (methodLabel 'veelbelovend' op elke blokweeksessie). Plan in de fase 'Blokweek' zes sessies in zeven dagen: 15 minuten inrijden, blokken op 87-89% FTP (RPE 6) met 3 minuten herstel op 50-58%, 10 minuten uitrijden. Bouw op: begin met 5x10, dan 6x12, en eindig met 7x14 minuten. Geen andere intensiteit in die week; de zevende dag is rust. Plan in de fase 'Herstel' alleen rustige duur of herstel van hooguit 60 minuten (methodLabel 'geen'). Deze week mag boven de 10%-groei en de grens op sprongen uitkomen; de herstelweek erna hoort erbij. Herstelsignalen gaan wel voor: schrap dan een sessie en zeg dat in cautions. Passen er door de beschikbaarheid minder dan vijf sessies, plan er dan zoveel als passen en zeg dat in cautions.",
+  },
+  {
+    slug: "blokweek-30-15",
+    pillar: "trainen",
+    group: "Blokweek",
+    title: "Blokweek 30/15",
+    shortLabel: "Blokweek",
+    summary:
+      "Vijf sessies 30/15 in zes dagen, daarna zes dagen rustig. Eén geconcentreerde week voor je VO2max-vermogen.",
+    goal: "Meer vermogen bij je VO2max en een iets betere sprint.",
+    evidence: "matig",
+    methodLabel: "veelbelovend",
+    anchor: "start",
+    calendar: true,
+    phases: [
+      {
+        key: "blok",
+        title: "Blokweek",
+        fromDay: 0,
+        toDay: 5,
+        tasks: [
+          {
+            key: "sessie",
+            label: "30/15-sessie",
+            detail:
+              "5 series van 12 keer 30 seconden hard en 15 seconden rustig, met 3 minuten tussen de series. Rijd alle series even hard.",
+            perWeek: 5,
+          },
+        ],
+      },
+      {
+        key: "herstel",
+        title: "Herstel",
+        fromDay: 6,
+        toDay: 11,
+        tasks: [
+          {
+            key: "rustig",
+            label: "Rustig rijden",
+            detail: "Rustige duur of herstel, hooguit een uur. Geen intervallen.",
+            perWeek: 3,
+          },
+        ],
+      },
+    ],
+    cautions: [
+      "Vijf harde sessies in zes dagen is zwaar. Haal je de wattages van de eerste dag niet meer, rij dan rustig.",
+      "Slaap je slecht of ben je na drie dagen leeg, sla dan een sessie over.",
+    ],
+    notFor: BLOCK_WEEK_NOT_FOR,
+    limits: [
+      ...BLOCK_WEEK_LIMITS,
+      "De studie stuurde op maximale inspanning. De 110-120% FTP voor de harde 30 seconden is een vertaling van ZWB.",
+    ],
+    sources: [SOLLI_2024, RONNESTAD_BLOCK_2025, MOLMEN_2019, ALMQUIST_BLOCK_2022],
+    article: { href: "/zwbeter-worden/kennis/blokweek", title: "Blokweken" },
+    aiHint:
+      "Blokweek 30/15 (methodLabel 'veelbelovend' op elke blokweeksessie). Plan in de fase 'Blokweek' vijf sessies in zes dagen: 15 minuten inrijden, 5 series van 9 minuten met onSeconds 30, offSeconds 15, target 110-120% en offTarget '50%', 3 minuten herstel op 50-58% tussen de series, 10 minuten uitrijden. Geen andere intensiteit in die week; de zesde dag is rust. Plan in de fase 'Herstel' alleen rustige duur of herstel van hooguit 60 minuten (methodLabel 'geen'). Deze week mag boven de 10%-groei en de grens op sprongen uitkomen; de herstelweek erna hoort erbij. Herstelsignalen gaan wel voor: schrap dan een sessie en zeg dat in cautions. Passen er door de beschikbaarheid minder dan vier sessies, plan er dan zoveel als passen en zeg dat in cautions.",
+  },
+  {
+    slug: "brain-endurance-training",
+    pillar: "trainen",
+    group: "Naast de fiets",
+    title: "Brain endurance training",
+    shortLabel: "Concentratie",
+    summary:
+      "Zes weken na je training twintig minuten een concentratietaak, zodat een moe hoofd je minder vermogen kost.",
+    goal: "Langer en harder kunnen als je mentaal moe bent, zoals aan het eind van een lange koers.",
+    evidence: "beperkt",
+    methodLabel: "experimenteel",
+    anchor: "start",
+    phases: [
+      {
+        key: "blok",
+        title: "Zes weken",
+        fromDay: 0,
+        toDay: 41,
+        tasks: [
+          {
+            key: "taak",
+            label: "Concentratietaak na de training",
+            detail:
+              "Direct na je training 20 minuten een taak waarbij je een reflex moet onderdrukken, zoals een Stroop-test: noem de kleur van de letters, niet het woord. Zonder pauze, op je telefoon of computer.",
+            perWeek: 3,
+          },
+        ],
+      },
+    ],
+    cautions: [
+      "De taak moet je hoofd vermoeien. Gaat hij makkelijk, kies dan een snellere of moeilijkere versie.",
+    ],
+    notFor: ["Als je al mentaal overbelast bent of slecht slaapt."],
+    limits: [
+      "Twee kleine proeven bij wegrenners (26 en 24), zes weken lang vijf keer per week.",
+      "Het effect was duidelijk als renners mentaal moe aan de test begonnen; fris was het onzeker.",
+      "De meeste studies komen van dezelfde onderzoekers.",
+      "Alleen de taak, zonder training ervoor, deed niets.",
+      "Drie keer per week is een keuze van ZWB; in de studie was het vijf keer.",
+    ],
+    sources: [STAIANO_2023, WANG_BET_2026, DALLAWAY_2025],
+    article: { href: "/zwbeter-worden/kennis/brain-endurance-training", title: "Brain endurance training" },
   },
 ];

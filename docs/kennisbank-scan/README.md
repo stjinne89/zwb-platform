@@ -49,7 +49,7 @@ twee seconden wachten. Meer dan zestig treffers: voeg
 | # | Thema | Raakt | Consensus (Engels) | PubMed |
 |---|---|---|---|---|
 | T1 | Intensiteitsverdeling | Gepolariseerd of piramidaal; Rustige ritten rustig | training intensity distribution polarized pyramidal endurance cyclists | ("intensity distribution"[tiab] OR polarized[tiab] OR polarised[tiab] OR pyramidal[tiab] OR "low-intensity training"[tiab]) AND S |
-| T2 | Korte en VO2max-intervallen | Korte intervallen (30/15) | high-intensity interval training short intervals VO2max cyclists | ("high-intensity interval"[tiab] OR "interval training"[tiab] OR "sprint interval"[tiab] OR "short intervals"[tiab]) AND S |
+| T2 | Korte en VO2max-intervallen | Korte intervallen (30/15); VO2max met wisselend vermogen; Sprints als onderhoud | high-intensity interval training short intervals VO2max cyclists | ("high-intensity interval"[tiab] OR "interval training"[tiab] OR "sprint interval"[tiab] OR "short intervals"[tiab]) AND S |
 | T3 | Duurvermogen en lange ritten | Lange ritten; protocol Duurtest; `pacing/durability.ts` | durability fatigue resistance prolonged exercise power profile cyclists | (durability[tiab] OR "fatigue resistance"[tiab] OR "prolonged exercise"[tiab] OR decoupling[tiab]) AND S |
 | T4 | FTP, CP en drempels meten | Je FTP; Zones; `ftp-test.ts`, `pacing/cp.ts` | functional threshold power critical power ramp test validity MLSS | "functional threshold power"[tiab] OR "critical power"[tiab] OR "ramp test"[tiab] OR "maximal lactate steady state"[tiab] |
 | T5 | Opbouw en belasting | Opbouwen; `wellness.ts` TSB-banden | training load progression acute chronic workload injury illness endurance athletes | ("training load"[tiab] OR "acute:chronic"[tiab] OR detraining[tiab] OR "training progression"[tiab]) AND S |
@@ -73,6 +73,8 @@ twee seconden wachten. Meer dan zestig treffers: voeg
 | T23 | Rug, core en mobiliteit | Lage rugpijn; Core-training; Rekken; Stijve hamstrings | low back pain cyclists core stability stretching before exercise | ("low back pain"[tiab] OR "core stability"[tiab] OR stretching[tiab] OR "hamstring flexibility"[tiab]) AND S |
 | T24 | Pacing en W′ | `pacing/w-prime.ts`; `docs/racestrategie-onderzoek.md` | W prime balance model pacing cycling races | ("W prime"[tiab] OR "W balance"[tiab] OR "anaerobic work capacity"[tiab] OR pacing[tiab]) AND S |
 | T25 | Indoor en Zwift | Indoor fietsen en Zwift; `ride-physics.ts` | indoor cycling smart trainer esports virtual cycling | "indoor cycling"[tiab] OR "smart trainer"[tiab] OR esports[tiab] OR "virtual cycling"[tiab] OR Zwift[tiab] |
+| T26 | Blokperiodisering | Blokweken; protocollen Blokweek drempel en Blokweek 30/15 | block periodization high-intensity training block endurance cyclists | ("block periodization"[tiab] OR "block periodisation"[tiab] OR "training block"[tiab]) AND S |
+| T27 | Mentale vermoeidheid en BFR | Brain endurance training (artikel en protocol); Trainen met bloedstroombeperking | brain endurance training mental fatigue blood flow restriction endurance performance | ("brain endurance training"[tiab] OR "mental fatigue"[tiab] OR "blood flow restriction"[tiab]) AND (S OR endurance[tiab]) |
 
 ## Gezien en bewust gelaten
 

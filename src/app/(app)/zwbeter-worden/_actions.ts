@@ -65,6 +65,7 @@ import {
 } from "@/lib/training/race-warmup";
 import { encryptSecret } from "@/lib/crypto/secrets";
 import { canCoach } from "@/lib/training/coach-access";
+import { methodLabelOf } from "@/lib/training/method-label";
 import { replanResultMessage } from "@/lib/training/coach-chat";
 import {
   addPreference,
@@ -910,7 +911,7 @@ export async function addWorkoutFromTemplate(formData: FormData) {
         .maybeSingle(),
       admin
         .from("training_workout_templates")
-        .select("title, description, duration_minutes, intensity, target_type, structure_json, test_type")
+        .select("title, description, duration_minutes, intensity, target_type, structure_json, test_type, method_label")
         .eq("id", templateId)
         .maybeSingle(),
     ]);
@@ -938,6 +939,7 @@ export async function addWorkoutFromTemplate(formData: FormData) {
       // Een test uit de bibliotheek blijft een test: alleen met test_type vraagt
       // het schema achteraf om de uitslag en wordt de FTP ermee bijgewerkt.
       test_type: template.test_type ?? null,
+      method_label: methodLabelOf(template.method_label),
       publish_status: "pending",
       // Zelfde vorm als de AI-flow, zodat intervals.icu de workout bij een
       // herpublicatie bijwerkt in plaats van dubbel neer te zetten.
@@ -989,7 +991,7 @@ export async function replaceWorkoutFromTemplate(formData: FormData) {
         .maybeSingle(),
       admin
         .from("training_workout_templates")
-        .select("title, description, duration_minutes, intensity, target_type, structure_json, test_type")
+        .select("title, description, duration_minutes, intensity, target_type, structure_json, test_type, method_label")
         .eq("id", templateId)
         .maybeSingle(),
     ]);
@@ -1011,6 +1013,8 @@ export async function replaceWorkoutFromTemplate(formData: FormData) {
         // Ook als hij leeg is: vervang je een test door een gewone training, dan
         // hoort de uitslagvraag mee te verdwijnen.
         test_type: template.test_type ?? null,
+        // Ook leeg: een gewone workout uit de bibliotheek haalt het label weg.
+        method_label: methodLabelOf(template.method_label),
         publish_status: "pending",
         publish_error: null,
       })

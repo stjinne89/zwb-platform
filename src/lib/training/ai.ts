@@ -17,7 +17,15 @@ export type GeneratedWorkout = {
     target: string;
     notes: string;
     intensity: "recovery" | "endurance" | "tempo" | "threshold" | "vo2max" | "anaerobic" | "race" | "rest";
+    /** Burst aan het begin van het blok, in seconden; 0 zonder. Zie WorkoutBlock.burstSeconds. */
+    burstSeconds?: number;
+    /** Korte herhalingen (30/15): 0 als het blok er geen heeft. Zie WorkoutBlock.onOff. */
+    onSeconds?: number;
+    offSeconds?: number;
+    offTarget?: string;
   }>;
+  /** "veelbelovend" of "experimenteel" voor een methode uit de onderzoeksronde van 2026-10-16; anders "geen". */
+  methodLabel?: "geen" | "veelbelovend" | "experimenteel";
 };
 
 export type GeneratedTrainingPlan = {
@@ -294,6 +302,7 @@ const planSchema = (minWorkouts: number) => ({
           "intensity",
           "targetType",
           "structure",
+          "methodLabel",
         ],
         properties: {
           date: { type: "string" },
@@ -314,17 +323,32 @@ const planSchema = (minWorkouts: number) => ({
             ],
           },
           targetType: { type: "string", enum: ["power", "heart_rate", "rpe", "free"] },
+          methodLabel: { type: "string", enum: ["geen", "veelbelovend", "experimenteel"] },
           structure: {
             type: "array",
             items: {
               type: "object",
               additionalProperties: false,
-              required: ["label", "durationMinutes", "target", "notes", "intensity"],
+              required: [
+                "label",
+                "durationMinutes",
+                "target",
+                "notes",
+                "intensity",
+                "burstSeconds",
+                "onSeconds",
+                "offSeconds",
+                "offTarget",
+              ],
               properties: {
                 label: { type: "string" },
                 durationMinutes: { type: "number" },
                 target: { type: "string" },
                 notes: { type: "string" },
+                burstSeconds: { type: "number" },
+                onSeconds: { type: "number" },
+                offSeconds: { type: "number" },
+                offTarget: { type: "string" },
                 intensity: {
                   type: "string",
                   enum: [

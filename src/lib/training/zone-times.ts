@@ -18,6 +18,7 @@
 // staat in zone-times-fill.ts.
 
 import {
+  onOffSegments,
   powerRangePercentForBlock,
   ZWIFT_ZONES,
   zwiftZoneForPct,
@@ -74,6 +75,17 @@ export function zoneSecondsFromStream(
 export function plannedZoneSeconds(blocks: WorkoutBlock[], ftpWatts: number | null): number[] {
   const seconds = ZWIFT_ZONES.map(() => 0);
   for (const block of blocks) {
+    const segments = onOffSegments(block);
+    if (segments && block.onOff) {
+      // Een 30/15-serie rijdt een derde van de tijd op het uit-doel.
+      const offBlock: WorkoutBlock = { ...block, target: block.onOff.offTarget, intensity: "recovery", onOff: undefined };
+      for (const segment of segments) {
+        const range = powerRangePercentForBlock(segment.on ? block : offBlock, ftpWatts);
+        const pct = range ? (range[0] + range[1]) / 2 : 0;
+        seconds[zwiftZoneForPct(pct).zone - 1] += segment.seconds;
+      }
+      continue;
+    }
     const range = block.intensity === "rest" ? [0, 0] : powerRangePercentForBlock(block, ftpWatts);
     const pct = range ? (range[0] + range[1]) / 2 : 0;
     seconds[zwiftZoneForPct(pct).zone - 1] += block.durationMinutes * 60;

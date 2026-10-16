@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { monthGrid, monthLabel, shiftMonth, WEEKDAY_LABELS } from "@/lib/calendar/month";
 import { INTENSITY_COLORS, INTENSITY_LABELS, type WorkoutIntensity } from "@/lib/training/workouts";
+import { METHOD_LABEL_TEXT, methodLabelOf } from "@/lib/training/method-label";
 import { cn } from "@/lib/utils";
 
 export type CalendarWorkout = {
@@ -28,6 +29,8 @@ export type CalendarWorkout = {
    * historie, maar mag er niet uitzien als iets dat nog gereden moet worden.
    */
   missed?: boolean;
+  /** Veelbelovend of experimenteel; staat in de tooltip. */
+  methodLabel?: string | null;
 };
 
 /**
@@ -50,6 +53,7 @@ function labelFor(workout: CalendarWorkout) {
     workout.missed ? "niet gereden" : null,
     workout.durationMinutes ? `${workout.durationMinutes} min` : null,
     workout.intensityLabel ?? INTENSITY_LABELS[intensity] ?? null,
+    methodLabelOf(workout.methodLabel) ? METHOD_LABEL_TEXT[methodLabelOf(workout.methodLabel)!].toLowerCase() : null,
   ].filter(Boolean);
   return parts.length ? `${workout.title} - ${parts.join(" - ")}` : workout.title;
 }

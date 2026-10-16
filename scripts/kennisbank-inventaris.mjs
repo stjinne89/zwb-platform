@@ -32,6 +32,7 @@ const sections = [
       points: article.points,
       limits: article.limits,
       sources: article.sources,
+      methodLabel: article.methodLabel ?? null,
     })),
   })),
   {
@@ -43,6 +44,7 @@ const sections = [
       points: [],
       limits: protocol.limits,
       sources: protocol.sources,
+      methodLabel: protocol.methodLabel ?? null,
     })),
   },
 ];
@@ -75,6 +77,7 @@ if (process.argv.includes("--ids")) {
     lines.push(`## ${section.title} (${section.items.length})`, "");
     for (const item of section.items) {
       lines.push(`### ${item.title}`, `Pad: ${item.path}`, `Samenvatting: ${item.summary}`);
+      if (item.methodLabel) lines.push(`Label: ${item.methodLabel}`);
       lines.push(...item.points.map((point) => `- ${point}`));
       if (item.limits.length) lines.push("Beperkingen:", ...item.limits.map((limit) => `- ${limit}`));
       lines.push("Bronnen:", ...item.sources.map((source) => `- ${source.year} · ${source.kind} · ${source.citation} · ${source.url}`), "");

@@ -14,6 +14,7 @@
 import { EVIDENCE_LABELS, NUTRITION_ARTICLES } from "@/lib/nutrition/library";
 import type { KnowledgeSource } from "@/lib/knowledge/source";
 import { STRENGTH_ARTICLES } from "@/lib/training/strength-library";
+import { METHOD_LABEL_TEXT, type MethodLabel } from "@/lib/training/method-label";
 import { TRAINING_ARTICLES } from "@/lib/training/training-library";
 
 type Article = {
@@ -23,6 +24,8 @@ type Article = {
   points: string[];
   limits: string[];
   sources: KnowledgeSource[];
+  /** Veelbelovend of experimenteel; de coach noemt het label erbij. */
+  methodLabel?: MethodLabel;
 };
 
 /** De drie kennisbanken met het pad waaronder hun artikelen staan. */
@@ -48,6 +51,7 @@ function articleText(article: Article, basePath: string): string {
   const lines = [
     `### ${article.title}`,
     `Pad: ${basePath}/${article.slug}`,
+    ...(article.methodLabel ? [`Label: ${METHOD_LABEL_TEXT[article.methodLabel]}`] : []),
     `Samenvatting: ${article.summary}`,
     ...article.points.map((point) => `- ${point}`),
   ];

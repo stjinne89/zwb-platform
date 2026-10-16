@@ -1,7 +1,9 @@
 // Weergave van workoutblokken (de gekleurde balk met vermogensbanden) plus de
 // vertaling van een intervals.icu workout_doc naar diezelfde blokvorm.
 
+import { MethodLabelBadge } from "@/components/method-label-badge";
 import { PowerText } from "@/components/power-unit";
+import { methodLabelOf } from "@/lib/training/method-label";
 import { intervalsWeekUrl } from "@/lib/intervals/links";
 import type { IntervalsEvent } from "@/lib/intervals/client";
 import {
@@ -10,6 +12,9 @@ import {
   intensityFromLoad,
   intensityFromPct,
   MAX_BURST_SECONDS,
+  MAX_ON_OFF_SECONDS,
+  MIN_ON_OFF_SECONDS,
+  onOffReps,
   powerRangePercentForBlock,
   type WorkoutBlock,
 } from "@/lib/training/workouts";
@@ -32,20 +37,26 @@ export function WorkoutTitle({
   athleteId?: string;
   className?: string;
 }) {
-  if (workout.intervals_event_id) {
-    return (
-      <a
-        href={intervalsWorkoutUrl(athleteId, workout)}
-        target="_blank"
-        rel="noreferrer"
-        title="Open deze workout in intervals.icu"
-        className={`block ${className} transition hover:text-primary hover:underline`}
-      >
-        {workout.title}
-      </a>
-    );
-  }
-  return <p className={className}>{workout.title}</p>;
+  const title = workout.intervals_event_id ? (
+    <a
+      href={intervalsWorkoutUrl(athleteId, workout)}
+      target="_blank"
+      rel="noreferrer"
+      title="Open deze workout in intervals.icu"
+      className={`block ${className} transition hover:text-primary hover:underline`}
+    >
+      {workout.title}
+    </a>
+  ) : (
+    <p className={className}>{workout.title}</p>
+  );
+  if (!methodLabelOf(workout.method_label)) return title;
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+      <div className="min-w-0">{title}</div>
+      <MethodLabelBadge label={workout.method_label} />
+    </div>
+  );
 }
 
 export function WorkoutBlocks({
@@ -112,6 +123,12 @@ export function WorkoutBlocks({
           >
             {block.label} {block.durationMinutes}m <PowerText text={block.target} ftpWatts={ftpWatts} />
             {block.burstSeconds ? ` · ${block.burstSeconds}s burst` : null}
+            {block.onOff ? (
+              <>
+                {` · ${onOffReps(block)}× ${block.onOff.onSeconds}/${block.onOff.offSeconds} s, uit `}
+                <PowerText text={block.onOff.offTarget} ftpWatts={ftpWatts} />
+              </>
+            ) : null}
           </span>
         ))}
       </div>
@@ -168,6 +185,62 @@ function powerTargetFromStep(row: Record<string, unknown>) {
 
 type TimedBlock = WorkoutBlock & { seconds: number };
 
+/** Zo vaak moet een kort paar terugkomen voordat het een aan/uit-blok is. */
+const MIN_ON_OFF_REPS = 3;
+
+/** Van licht naar zwaar, om het aan- en uit-deel van een paar te herkennen. */
+const HARDNESS = ["rest", "recovery", "endurance", "tempo", "threshold", "vo2max", "anaerobic"];
+
+/**
+ * Een 30/15-serie gaat als losse stappen naar intervals.icu (blocksToWorkoutDoc).
+ * Terug wordt een reeks van minstens drie gelijke korte paren weer één blok,
+ * anders telt elke 30 seconden als eigen minuutblok.
+ */
+function foldOnOff(steps: TimedBlock[]): TimedBlock[] {
+  const out: TimedBlock[] = [];
+  const short = (step: TimedBlock | undefined) =>
+    !!step && step.seconds >= MIN_ON_OFF_SECONDS && step.seconds <= MAX_ON_OFF_SECONDS;
+  const same = (a: TimedBlock, b: TimedBlock) => a.seconds === b.seconds && a.target === b.target;
+  for (let i = 0; i < steps.length; i++) {
+    const on = steps[i];
+    const off = steps[i + 1];
+    // Een burst met de rest van zijn blok (6 s + 54 s) is geen aan/uit-paar: bij
+    // 30/15 en 40/20 is het uit-deel nooit langer en altijd lichter dan het aan-deel.
+    if (
+      !short(on) ||
+      !short(off) ||
+      on.seconds < 10 ||
+      off!.seconds > on.seconds ||
+      HARDNESS.indexOf(off!.intensity) >= HARDNESS.indexOf(on.intensity)
+    ) {
+      out.push(on);
+      continue;
+    }
+    let reps = 1;
+    while (
+      steps[i + reps * 2] &&
+      steps[i + reps * 2 + 1] &&
+      same(steps[i + reps * 2], on) &&
+      same(steps[i + reps * 2 + 1], off!)
+    ) {
+      reps++;
+    }
+    if (reps < MIN_ON_OFF_REPS) {
+      out.push(on);
+      continue;
+    }
+    const seconds = reps * (on.seconds + off!.seconds);
+    out.push({
+      ...on,
+      durationMinutes: Math.max(1, Math.round(seconds / 60)),
+      onOff: { onSeconds: Math.round(on.seconds), offSeconds: Math.round(off!.seconds), offTarget: off!.target },
+      seconds,
+    });
+    i += reps * 2 - 1;
+  }
+  return out;
+}
+
 /**
  * Een burst gaat als eigen korte stap naar intervals.icu (blocksToWorkoutDoc).
  * Terug wordt hij weer het begin van het blok erna, anders telt hij als minuut.
@@ -177,7 +250,7 @@ function foldBursts(steps: TimedBlock[]): WorkoutBlock[] {
   for (let i = 0; i < steps.length; i++) {
     const { seconds, ...block } = steps[i];
     const next = steps[i + 1];
-    if (seconds <= MAX_BURST_SECONDS && next) {
+    if (!block.onOff && seconds <= MAX_BURST_SECONDS && next) {
       const { seconds: nextSeconds, ...rest } = next;
       blocks.push({
         ...rest,
@@ -225,7 +298,7 @@ function intervalStepBlocks(value: unknown): TimedBlock[] {
 export function eventWorkoutBlocks(event: IntervalsEvent): WorkoutBlock[] {
   const doc = recordValue(event.workout_doc);
   const docBlocks = doc
-    ? foldBursts(intervalStepBlocks(doc.steps ?? doc.blocks ?? doc.children))
+    ? foldBursts(foldOnOff(intervalStepBlocks(doc.steps ?? doc.blocks ?? doc.children)))
     : [];
   if (docBlocks.length > 0) return docBlocks;
 

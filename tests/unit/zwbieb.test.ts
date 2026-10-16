@@ -9,6 +9,13 @@ import {
   type TopicRow,
 } from "@/lib/zwbieb/topics";
 import { countUnread, isUnreadFor, tipsForEvent, type ThreadReadState } from "@/lib/zwbieb/data";
+import {
+  SHELF_DEFS,
+  allBookRefs,
+  shelfForArticle,
+  shelves,
+  shelvesForTopic,
+} from "@/lib/zwbieb/shelves";
 
 const A = "a";
 const B = "b";
@@ -114,5 +121,30 @@ describe("tips bij een event", () => {
     ];
     const result = tipsForEvent(tips, { eventIds: ["e1", "moeder"], colSlugs: ["ventoux"] });
     expect(result.map((t) => t.id)).toEqual(["2", "3", "1"]);
+  });
+});
+
+describe("leeszaal", () => {
+  it("zet elk artikel uit de drie kennisbanken op precies één plank", () => {
+    const placed = SHELF_DEFS.flatMap((shelf) => shelf.books as string[]);
+    expect(new Set(placed).size).toBe(placed.length);
+    expect([...placed].sort()).toEqual([...allBookRefs()].sort());
+  });
+
+  it("heeft unieke planken, geen lege, en wijst alleen naar onderwerpen uit de startlijst", () => {
+    const slugs = SHELF_DEFS.map((shelf) => shelf.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+    const builtIn = new Set<string>(BUILT_IN_TOPICS.map((topic) => topic.slug));
+    for (const shelf of shelves()) {
+      expect(shelf.books.length).toBeGreaterThan(0);
+      for (const topic of shelf.topics) expect(builtIn).toContain(topic);
+    }
+  });
+
+  it("vindt de plank bij een artikel en de artikelen bij een onderwerp", () => {
+    expect(shelfForArticle("/zwbeter-worden/voeding/kennis/vocht-en-zout")?.slug).toBe("onderweg");
+    expect(shelfForArticle("/zwbeter-worden/kennis/bestaat-niet")).toBeNull();
+    const kracht = shelvesForTopic("kracht-core").map((shelf) => shelf.slug);
+    expect(kracht).toEqual(["kracht", "core-mobiliteit"]);
   });
 });

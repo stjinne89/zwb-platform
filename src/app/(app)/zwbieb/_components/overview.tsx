@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { MessagesSquare, Plus, Settings2 } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess } from "@/lib/auth/request";
 import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
-import { MemberLink } from "@/components/member-link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TopicKind } from "@/lib/zwbieb/topics";
 import { countUnread } from "@/lib/zwbieb/data";
+import { COLLECTION_LABELS, shelvesForTopic } from "@/lib/zwbieb/shelves";
 import {
   TIP_COLUMNS,
   loadColNames,
@@ -17,20 +17,16 @@ import {
   loadMyThreads,
   loadTopicCatalog,
   type ExpertTopicRow,
-  type MemberSummary,
   type TipRow,
 } from "@/lib/zwbieb/queries";
-import { AskLink } from "./ask-link";
-import { MemberAvatar } from "./member-chip";
+import { ExpertRow } from "./expert-row";
 import { TipItem } from "./tip-item";
 import { TopicBadge } from "./topic-badge";
+import { ZWBIEB_TABS, ZwbiebActions, ZwbiebTabs } from "./zwbieb-nav";
 
 const TIPS_PER_TOPIC = 3;
 
-const TABS: { kind: TopicKind; href: string; label: string }[] = [
-  { kind: "kennis", href: "/zwbieb", label: "Kennis" },
-  { kind: "spullen", href: "/zwbieb/spullen", label: "Spullen" },
-];
+const tabHref = (kind: TopicKind) => ZWBIEB_TABS.find((tab) => tab.tab === kind)!.href;
 
 /**
  * Het overzicht van ZWBieb, per soort: wie weet wat (kennis) en wie heeft wat
@@ -54,7 +50,7 @@ export async function ZwbiebOverview({
   // Een onderwerp hoort bij één tab; staat het in de andere, ga daarheen.
   const focusKind = focus ? catalog.kindOf(focus) : null;
   if (focus && focusKind && focusKind !== kind) {
-    redirect(`${TABS.find((tab) => tab.kind === focusKind)!.href}?onderwerp=${focus}`);
+    redirect(`${tabHref(focusKind)}?onderwerp=${focus}`);
   }
 
   const kindSlugs = catalog.all.filter((row) => row.kind === kind).map((row) => row.slug);
@@ -106,53 +102,20 @@ export async function ZwbiebOverview({
     .filter((t) => focus || t.experts.length > 0 || t.tips.length > 0)
     .sort((a, b) => b.experts.length - a.experts.length);
   const empty = focus ? [] : topics.filter((t) => t.experts.length === 0 && t.tips.length === 0);
-  const base = TABS.find((tab) => tab.kind === kind)!.href;
+  const base = tabHref(kind);
   const peopleHeading = kind === "spullen" ? "Leent uit" : "Kenners";
+  // Bij een onderwerp de artikelen uit de leeszaal die erover gaan.
+  const books = focus ? shelvesForTopic(focus).flatMap((shelf) => shelf.books) : [];
 
   return (
     <div className="space-y-6">
       {focus && <BackLink href={base} label={kind === "spullen" ? "Alle spullen" : "Alle onderwerpen"} />}
       <PageHeader
         title={focus ? catalog.label(focus) : "ZWBieb"}
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Link href="/zwbieb/gesprekken" className={buttonVariants({ variant: "outline" })}>
-              <MessagesSquare />
-              Gesprekken{unread > 0 ? ` (${unread})` : ""}
-            </Link>
-            <Link href="/zwbieb/mijn" className={buttonVariants()}>
-              {joined ? "Mijn ZWBieb" : "Doe mee"}
-            </Link>
-            {canModerate && (
-              <Link
-                href="/zwbieb/onderwerpen"
-                className={buttonVariants({ variant: "ghost" })}
-                aria-label="Onderwerpen beheren"
-              >
-                <Settings2 />
-              </Link>
-            )}
-          </div>
-        }
+        actions={<ZwbiebActions unread={unread} joined={joined} canModerate={canModerate} />}
       />
 
-      {!focus && (
-        <nav aria-label="Soort" className="flex gap-2">
-          {TABS.map((tab) => (
-            <Link
-              key={tab.kind}
-              href={tab.href}
-              aria-current={tab.kind === kind ? "page" : undefined}
-              className={cn(
-                "rounded-full border px-4 py-1.5 text-sm font-medium transition",
-                tab.kind === kind ? "border-primary bg-primary/10 text-primary" : "hover:bg-muted",
-              )}
-            >
-              {tab.label}
-            </Link>
-          ))}
-        </nav>
-      )}
+      {!focus && <ZwbiebTabs current={kind} />}
 
       {filled.length === 0 && (
         <EmptyState
@@ -244,6 +207,32 @@ export async function ZwbiebOverview({
         ))}
       </div>
 
+      {books.length > 0 && (
+        <section className="rounded-lg border bg-card p-4">
+          <h2 className="mb-2 text-base font-semibold">
+            <Link href="/zwbieb/leeszaal" className="hover:underline">
+              In de leeszaal
+            </Link>
+          </h2>
+          <ul className="divide-y">
+            {books.map((book) => (
+              <li key={book.href}>
+                <Link
+                  href={book.href}
+                  className="flex min-h-[44px] items-center justify-between gap-3 text-sm hover:text-primary"
+                >
+                  <span className="min-w-0">{book.title}</span>
+                  <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                    {COLLECTION_LABELS[book.collection]}
+                    <ChevronRight className="size-4" />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {empty.length > 0 && (
         <details className="rounded-lg border bg-card p-4">
           <summary className="cursor-pointer text-sm font-medium">
@@ -265,31 +254,6 @@ export async function ZwbiebOverview({
         </details>
       )}
     </div>
-  );
-}
-
-function ExpertRow({
-  expert,
-  member,
-  self,
-}: {
-  expert: ExpertTopicRow;
-  member: MemberSummary | undefined;
-  self: boolean;
-}) {
-  return (
-    <li className="flex items-center justify-between gap-3">
-      <div className="flex min-w-0 items-center gap-3">
-        <MemberAvatar member={member} />
-        <div className="min-w-0">
-          <MemberLink id={member?.id} className="block truncate text-sm font-medium">
-            {member?.display_name ?? "Lid"}
-          </MemberLink>
-          {expert.note && <p className="truncate text-xs text-muted-foreground">{expert.note}</p>}
-        </div>
-      </div>
-      {!self && <AskLink expertId={expert.profile_id} topic={expert.topic_slug} />}
-    </li>
   );
 }
 

@@ -4,6 +4,7 @@ import {
   TRAINING_CATEGORY_LABELS,
   trainingArticlesByCategory,
 } from "@/lib/training/training-library";
+import { MethodLabelBadge } from "@/components/method-label-badge";
 import { requireViewer } from "../_data";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,10 @@ export default async function TrainingKnowledgePage() {
                     href={`/zwbeter-worden/kennis/${article.slug}`}
                     className="flex min-h-[44px] items-center justify-between gap-3 text-sm hover:text-primary"
                   >
-                    {article.title}
+                    <span className="flex min-w-0 flex-wrap items-center gap-2">
+                      {article.title}
+                      <MethodLabelBadge label={article.methodLabel} />
+                    </span>
                     <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                   </Link>
                 </li>
