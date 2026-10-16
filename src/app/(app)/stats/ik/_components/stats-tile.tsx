@@ -16,6 +16,7 @@ import {
   periodRecords,
   powerTrend,
   previousYearWindow,
+  EMPTY_TOTALS,
   rideRecords,
   streaks,
   totalsBetween,
@@ -76,9 +77,15 @@ export function StatsTile({ id, context }: { id: TileId; context: TileContext })
   switch (id) {
     case "totalen": {
       const before = previousYearWindow(span.start, span.end);
+      // Valt het venster van vorig jaar (deels) vóór je eerste rit, dan zegt het
+      // verschil niets; dan geen pijltjes.
+      const comparable = rides.length > 0 && before.start >= rides[0].day;
       return (
         <Tile title={def.title} width={def.width} actions={<span className="text-xs text-muted-foreground">▲▼ t.o.v. vorig jaar</span>}>
-          <TotalsGrid now={totalsBetween(rides, span.start, span.end)} before={totalsBetween(rides, before.start, before.end)} />
+          <TotalsGrid
+            now={totalsBetween(rides, span.start, span.end)}
+            before={comparable ? totalsBetween(rides, before.start, before.end) : EMPTY_TOTALS}
+          />
         </Tile>
       );
     }
@@ -110,6 +117,7 @@ export function StatsTile({ id, context }: { id: TileId; context: TileContext })
               ...round(row),
               previous: previous[index],
             }))}
+            metrics={["km", "hours", "elevation", "tss", "kilojoules", "rides"]}
           />
         </Tile>
       );

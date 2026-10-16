@@ -75,18 +75,37 @@ function delta(now: number, before: number) {
 }
 
 export function TotalsGrid({ now, before }: { now: Totals; before: Totals }) {
-  const items: Array<{ label: string; value: string; delta: number | null }> = [
-    { label: "Kilometers", value: nl(now.km), delta: delta(now.km, before.km) },
-    { label: "Uren", value: nl(now.hours), delta: delta(now.hours, before.hours) },
-    { label: "Hoogtemeters", value: nl(now.elevation), delta: delta(now.elevation, before.elevation) },
-    { label: "Ritten", value: nl(now.rides), delta: delta(now.rides, before.rides) },
-    { label: "kJ", value: nl(now.kilojoules), delta: delta(now.kilojoules, before.kilojoules) },
-    { label: "TSS", value: nl(now.tss), delta: delta(now.tss, before.tss) },
-  ];
+  return (
+    <KpiGrid
+      items={[
+        { label: "Kilometers", value: nl(now.km), delta: delta(now.km, before.km) },
+        { label: "Uren", value: nl(now.hours), delta: delta(now.hours, before.hours) },
+        { label: "Hoogtemeters", value: nl(now.elevation), delta: delta(now.elevation, before.elevation) },
+        { label: "Ritten", value: nl(now.rides), delta: delta(now.rides, before.rides) },
+        { label: "kJ", value: nl(now.kilojoules), delta: delta(now.kilojoules, before.kilojoules) },
+        { label: "TSS", value: nl(now.tss), delta: delta(now.tss, before.tss) },
+      ]}
+    />
+  );
+}
+
+export type KpiItem = { label: string; value: string; delta: number | null };
+
+/** Procentueel verschil met vorig jaar, of null als er vorig jaar niets was. */
+export function percentDelta(now: number, before: number) {
+  return delta(now, before);
+}
+
+export function KpiGrid({ items }: { items: KpiItem[] }) {
   // Geen kaartjes in de kaart: de cijfers staan los, groot, met een haarlijn
   // ertussen. Kilometers voorop en het grootst: daar kijkt iedereen eerst naar.
   return (
-    <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-6">
+    <dl
+      className={cn(
+        "grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3",
+        items.length === 5 ? "lg:grid-cols-5" : "lg:grid-cols-6",
+      )}
+    >
       {items.map((item, index) => (
         <div key={item.label} className={cn("min-w-0", index === 0 && "col-span-2 sm:col-span-1")}>
           <dt className="text-xs text-muted-foreground">{item.label}</dt>

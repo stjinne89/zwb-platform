@@ -1,13 +1,11 @@
 import Link from "next/link";
-import { Suspense, type ReactNode } from "react";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestUser } from "@/lib/auth/request";
 import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
 import { StravaAttribution } from "@/components/strava-brand";
 import { ScrollTabs } from "@/components/ui/scroll-tabs";
-import { SCROLL_TAB_ITEM } from "@/components/ui/scroll-tab-item";
-import { cn } from "@/lib/utils";
 import { DISCIPLINE_LABELS } from "@/lib/strava/sports";
 import { loadFtpAt } from "@/lib/training/ftp-history";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
@@ -22,6 +20,7 @@ import {
 } from "@/lib/stats/personal";
 import { normalizeLayout, STATS_TILES, tileDef, type TileId } from "@/lib/stats/tiles";
 import { StatsTabs } from "../_components/stats-tabs";
+import { Chip, ChipRow, PillChip } from "../_components/controls";
 import { loadPersonalRideRows, loadStatsConnection, loadTileChoice } from "./_data";
 import { TileFallback } from "./_components/tiles";
 import { StatsTile, type TileContext } from "./_components/stats-tile";
@@ -140,13 +139,13 @@ export default async function MyStatsPage({ searchParams }: { searchParams: Prom
 
           {sports.length > 1 && (
             <ScrollTabs ariaLabel="Discipline">
-              <SportChip href={href({ sport: null })} active={!activeSport}>
+              <PillChip href={href({ sport: null })} active={!activeSport}>
                 Alles
-              </SportChip>
+              </PillChip>
               {sports.map((item) => (
-                <SportChip key={item} href={href({ sport: item })} active={activeSport === item}>
+                <PillChip key={item} href={href({ sport: item })} active={activeSport === item}>
                   {DISCIPLINE_LABELS[item] ?? item}
-                </SportChip>
+                </PillChip>
               ))}
             </ScrollTabs>
           )}
@@ -170,51 +169,5 @@ export default async function MyStatsPage({ searchParams }: { searchParams: Prom
 
       <StravaAttribution />
     </div>
-  );
-}
-
-function ChipRow({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div role="group" aria-label={label} className="inline-flex flex-wrap rounded-md border bg-card p-0.5">
-      {children}
-    </div>
-  );
-}
-
-function Chip({ href, active, children }: { href: string; active: boolean; children: ReactNode }) {
-  return (
-    <Link
-      href={href}
-      scroll={false}
-      data-active={active ? "true" : undefined}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        SCROLL_TAB_ITEM,
-        "whitespace-nowrap px-2.5",
-        active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-      )}
-    >
-      {children}
-    </Link>
-  );
-}
-
-function SportChip({ href, active, children }: { href: string; active: boolean; children: ReactNode }) {
-  return (
-    <Link
-      href={href}
-      scroll={false}
-      data-active={active ? "true" : undefined}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        SCROLL_TAB_ITEM,
-        "whitespace-nowrap rounded-full border",
-        active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
-      )}
-    >
-      {children}
-    </Link>
   );
 }

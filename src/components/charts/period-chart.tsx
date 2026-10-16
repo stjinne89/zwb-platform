@@ -95,6 +95,7 @@ export function PeriodChart({
   openEnd = false,
   reference,
   ghost,
+  selectedIndex = null,
 }: {
   ariaLabel: string;
   /** Kort label per punt, voor de x-as. */
@@ -116,6 +117,8 @@ export function PeriodChart({
   reference?: { value: number; label: string } | null;
   /** Een tweede waarde per periode als streepje over de staaf, bv. vorig jaar. */
   ghost?: { label: string; values: Array<number | null> } | null;
+  /** De periode die zonder aanwijzer getoond wordt; anders de laatste. */
+  selectedIndex?: number | null;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const hatchId = `hatch-${useId().replace(/:/g, "")}`;
@@ -127,7 +130,7 @@ export function PeriodChart({
   const readoutAt = (index: number) =>
     readout?.value ? readout.value(index) : (readoutSeries?.values[index] ?? null);
   const restIndex = readoutSeries ? lastIndexWithValue(labels.map((_, index) => readoutAt(index))) : null;
-  const active = hover ?? restIndex;
+  const active = hover ?? selectedIndex ?? restIndex;
 
   // Gestapelde staven: de as moet tot de hoogste stapel reiken.
   const stackTotals = labels.map((_, index) =>

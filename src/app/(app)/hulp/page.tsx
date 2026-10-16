@@ -247,7 +247,7 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/polls", name: "Polls", text: "Snelle stemmingen vanuit de club." },
   { href: "/materiaal", name: "Vraag & Aanbod", text: "Spullen, hulpvragen en tips uitwisselen." },
   { href: "/media", name: "Media", text: "Nieuws, nieuwsbrieven, podcasts, video's en Instagram." },
-  { href: "/stats", name: "Stats", text: "Clubstatistieken en ranglijsten, en onder Ik je eigen ritten, vermogen en records." },
+  { href: "/stats", name: "Stats", text: "Club: de cijfers en ranglijst van alle leden. Ik: je eigen ritten, vermogen en records." },
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
   { href: "/profiel", name: "Profiel", text: "Je gegevens, zichtbaarheid, je fietsen, koppelingen (Strava/intervals) en account." },
 ];
@@ -1444,6 +1444,18 @@ export default function HelpPage() {
               <strong className="text-foreground">Kies je eigen tegels.</strong>{" "}
               Met Tegels aanpassen zet je tegels aan of uit en zet je ze in je
               eigen volgorde. Je keuze geldt op al je apparaten.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Club werkt hetzelfde.</strong>{" "}
+              Onder Stats &rarr; Club staan dezelfde grafieken en een eigen
+              tegelkeuze, opgeteld over alle leden, met ook het aantal actieve
+              leden en de ranglijst (op km, uren of hoogtemeters; je eigen plek
+              staat in goud). Kies bovenin een maand of jaar om de totalen, de
+              ranglijst, disciplines en regio&apos;s op die periode te zetten.
+              De clubcijfers worden elke tien minuten bijgewerkt.
             </span>
           </li>
           <li className="flex gap-2">

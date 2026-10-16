@@ -62,7 +62,18 @@ export function Toggle<T extends string>({
   );
 }
 
-type VolumeValues = { km: number; hours: number; elevation: number; tss: number; kilojoules: number; rides: number };
+const VOLUME_METRICS = [
+  { key: "km", label: "Km", unit: "km", digits: 0 },
+  { key: "hours", label: "Uren", unit: "u", digits: 1 },
+  { key: "elevation", label: "Hm", unit: "m", digits: 0 },
+  { key: "tss", label: "TSS", unit: "", digits: 0 },
+  { key: "kilojoules", label: "kJ", unit: "kJ", digits: 0 },
+  { key: "rides", label: "Ritten", unit: "", digits: 0 },
+  { key: "members", label: "Leden", unit: "", digits: 0 },
+] as const;
+
+export type VolumeMetric = (typeof VOLUME_METRICS)[number]["key"];
+type VolumeValues = Partial<Record<VolumeMetric, number>>;
 
 export type VolumePoint = VolumeValues & {
   label: string;
@@ -71,30 +82,33 @@ export type VolumePoint = VolumeValues & {
   previous: VolumeValues | null;
 };
 
-const VOLUME_METRICS = [
-  { key: "km", label: "Km", unit: "km", digits: 0 },
-  { key: "hours", label: "Uren", unit: "u", digits: 1 },
-  { key: "elevation", label: "Hm", unit: "m", digits: 0 },
-  { key: "tss", label: "TSS", unit: "", digits: 0 },
-  { key: "kilojoules", label: "kJ", unit: "kJ", digits: 0 },
-  { key: "rides", label: "Ritten", unit: "", digits: 0 },
-] as const;
+const PERSONAL_METRICS: VolumeMetric[] = ["km", "hours", "elevation", "tss", "kilojoules", "rides"];
 
-type VolumeMetric = (typeof VOLUME_METRICS)[number]["key"];
-
-export function VolumeChart({ points, openEnd }: { points: VolumePoint[]; openEnd: boolean }) {
-  const [metric, setMetric] = useState<VolumeMetric>("km");
+export function VolumeChart({
+  points,
+  openEnd,
+  metrics = PERSONAL_METRICS,
+  selectedIndex = null,
+}: {
+  points: VolumePoint[];
+  openEnd: boolean;
+  /** Welke grootheden de schakelaar biedt; de eerste is de standaard. */
+  metrics?: VolumeMetric[];
+  selectedIndex?: number | null;
+}) {
+  const options = VOLUME_METRICS.filter((item) => metrics.includes(item.key));
+  const [metric, setMetric] = useState<VolumeMetric>(metrics[0] ?? "km");
   const def = VOLUME_METRICS.find((item) => item.key === metric)!;
-  const values = points.map((point) => point[metric]);
+  const values = points.map((point) => point[metric] ?? 0);
   // Het gemiddelde over afgesloten periodes; de lopende periode zou het drukken.
   const closed = (openEnd ? values.slice(0, -1) : values).filter((value) => value > 0);
   const average = closed.length > 1 ? closed.reduce((a, b) => a + b, 0) / closed.length : null;
   const digitsFor = (value: number) => (def.digits && !Number.isInteger(value) ? def.digits : 0);
   const fmt = (value: number) => (def.unit ? `${nl(value, digitsFor(value))} ${def.unit}` : nl(value, digitsFor(value)));
-  const hasPrevious = points.some((point) => point.previous && point.previous[metric] > 0);
+  const hasPrevious = points.some((point) => (point.previous?.[metric] ?? 0) > 0);
   return (
     <div className="space-y-3">
-      <Toggle label="Grootheid" options={VOLUME_METRICS} value={metric} onChange={setMetric} />
+      <Toggle label="Grootheid" options={options} value={metric} onChange={setMetric} />
       <PeriodChart
         ariaLabel={`${def.label} per periode`}
         labels={points.map((point) => point.label)}
@@ -103,9 +117,10 @@ export function VolumeChart({ points, openEnd }: { points: VolumePoint[]; openEn
         format={(value) => nl(value, digitsFor(value))}
         readout={{
           series: metric,
-          note: (index) => <Delta now={points[index][metric]} before={points[index].previous?.[metric] ?? null} />,
+          note: (index) => <Delta now={points[index][metric] ?? null} before={points[index].previous?.[metric] ?? null} />,
         }}
         openEnd={openEnd}
+        selectedIndex={selectedIndex}
         reference={average != null ? { value: average, label: `gem. ${fmt(average)}` } : null}
         ghost={hasPrevious ? { label: "Vorig jaar", values: points.map((point) => point.previous?.[metric] ?? null) } : null}
         heightOptions={{ compact: 0.78, comfortable: 0.32, min: 230, max: 380 }}

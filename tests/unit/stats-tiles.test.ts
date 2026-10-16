@@ -107,6 +107,21 @@ describe("migratie 0241", () => {
     ).rejects.toThrow();
   });
 
+  it("bewaart de keuze voor Club los van die voor Ik", async () => {
+    await as(memberId);
+    await db.query(
+      `insert into profile_stats_tiles (profile_id, club_tiles) values ($1, '[{"id":"top","visible":true}]')
+       on conflict (profile_id) do update set club_tiles = excluded.club_tiles`,
+      [memberId],
+    );
+    const { rows } = await db.query<{ tiles: unknown; club_tiles: unknown }>(
+      "select tiles, club_tiles from profile_stats_tiles where profile_id = $1",
+      [memberId],
+    );
+    expect(rows[0].tiles).toEqual([{ id: "totalen", visible: false }]);
+    expect(rows[0].club_tiles).toEqual([{ id: "top", visible: true }]);
+  });
+
   it("weigert iets anders dan een lijst", async () => {
     await expect(
       db.query(`insert into profile_stats_tiles (profile_id, tiles) values ($1, '{}')`, [memberId]),

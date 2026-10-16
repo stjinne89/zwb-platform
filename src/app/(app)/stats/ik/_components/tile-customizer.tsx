@@ -13,23 +13,26 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { defaultLayout, type TileLayout } from "@/lib/stats/tiles";
-import { saveStatsTiles } from "../_actions";
+import { defaultLayout, TILES_BY_PAGE, type StatsPage, type TileLayout } from "@/lib/stats/tiles";
+import { saveStatsTiles } from "../../_actions";
 
 /** `lock`: waarom de tegel op slot zit en waar je dat oplost. */
 export type CustomizerTile = { id: string; title: string; lock: { label: string; href: string } | null };
 
 export function TileCustomizer({
+  page = "ik",
   layout,
   tiles,
 }: {
-  layout: TileLayout;
+  /** Welke pagina: elke pagina heeft zijn eigen keuze. */
+  page?: StatsPage;
+  layout: TileLayout<string>;
   /** Titel per tegel, en of hij voor dit lid op slot zit (intervals.icu of de herstel-opt-in nodig). */
   tiles: CustomizerTile[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<TileLayout>(layout);
+  const [draft, setDraft] = useState<TileLayout<string>>(layout);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const meta = new Map(tiles.map((tile) => [tile.id, tile]));
@@ -47,7 +50,7 @@ export function TileCustomizer({
   function save() {
     setError(null);
     startTransition(async () => {
-      const result = await saveStatsTiles(draft);
+      const result = await saveStatsTiles(draft, page);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -138,7 +141,7 @@ export function TileCustomizer({
         </ul>
         {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
         <DialogFooter className="justify-between">
-          <Button type="button" variant="ghost" size="sm" onClick={() => setDraft(defaultLayout())}>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setDraft(defaultLayout<string>(TILES_BY_PAGE[page]))}>
             Standaard
           </Button>
           <Button type="button" size="sm" disabled={pending} onClick={save}>

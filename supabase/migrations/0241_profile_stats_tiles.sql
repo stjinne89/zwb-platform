@@ -7,12 +7,16 @@
 -- valideert de id's tegen het tegelregister (src/lib/stats/tiles.ts) en vult
 -- nieuwe tegels zelf aan, dus hier alleen de vorm.
 --
+-- `club_tiles` is dezelfde keuze voor /stats (Club); die pagina kreeg dezelfde
+-- tegels op dezelfde dag, voordat deze migratie was toegepast.
+--
 -- Alleen het lid zelf leest en schrijft de eigen rij: het is een voorkeur, geen
 -- gegeven waar anderen iets aan hebben.
 
 create table if not exists public.profile_stats_tiles (
   profile_id uuid primary key references public.profiles(id) on delete cascade,
   tiles jsonb not null default '[]'::jsonb check (jsonb_typeof(tiles) = 'array'),
+  club_tiles jsonb not null default '[]'::jsonb check (jsonb_typeof(club_tiles) = 'array'),
   updated_at timestamptz not null default now()
 );
 

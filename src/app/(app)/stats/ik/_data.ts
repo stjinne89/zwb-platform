@@ -47,14 +47,19 @@ export async function loadPersonalRideRows(
   return rows;
 }
 
-export async function loadTileChoice(supabase: SupabaseClient, profileId: string): Promise<unknown> {
+export async function loadTileChoice(
+  supabase: SupabaseClient,
+  profileId: string,
+  column: "tiles" | "club_tiles" = "tiles",
+): Promise<unknown> {
   // Zonder migratie 0241 (of bij een fout) gewoon de standaardtegels.
   const { data, error } = await supabase
     .from("profile_stats_tiles")
-    .select("tiles")
+    .select(column)
     .eq("profile_id", profileId)
     .maybeSingle();
-  return error ? null : (data?.tiles ?? null);
+  if (error || !data) return null;
+  return (data as Record<string, unknown>)[column] ?? null;
 }
 
 export type StatsConnection = { athlete_id: string; api_key: string; wellness_opt_in: boolean | null };

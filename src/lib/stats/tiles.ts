@@ -44,8 +44,31 @@ export const STATS_TILES = [
 
 export type TileId = (typeof STATS_TILES)[number]["id"];
 
-export type TileLayoutItem = { id: TileId; visible: boolean };
-export type TileLayout = TileLayoutItem[];
+/**
+ * De tegels op /stats (Club). Dezelfde opbouw als Ik, maar opgeteld over alle
+ * leden; alles komt uit strava_activities, dus geen intervals-tegels.
+ */
+export const CLUB_STATS_TILES = [
+  { id: "totalen", title: "Totalen", source: "strava", width: "full", defaultVisible: true },
+  { id: "volume", title: "Volume", source: "strava", width: "full", defaultVisible: true },
+  { id: "jaarvergelijking", title: "Jaar op jaar", source: "strava", width: "half", defaultVisible: true },
+  { id: "top", title: "Top riders", source: "strava", width: "half", defaultVisible: true },
+  { id: "discipline", title: "Disciplines", source: "strava", width: "half", defaultVisible: true },
+  { id: "regio", title: "Regio's", source: "strava", width: "half", defaultVisible: true },
+  { id: "records", title: "Clubrecords", source: "strava", width: "half", defaultVisible: false },
+] as const satisfies readonly TileDef[];
+
+export type ClubTileId = (typeof CLUB_STATS_TILES)[number]["id"];
+
+export type StatsPage = "ik" | "club";
+
+export const TILES_BY_PAGE: Record<StatsPage, readonly TileDef[]> = {
+  ik: STATS_TILES,
+  club: CLUB_STATS_TILES,
+};
+
+export type TileLayoutItem<Id extends string = TileId> = { id: Id; visible: boolean };
+export type TileLayout<Id extends string = TileId> = TileLayoutItem<Id>[];
 
 const TILE_IDS = new Set<string>(STATS_TILES.map((tile) => tile.id));
 
@@ -57,29 +80,36 @@ export function tileDef(id: TileId): TileDef {
   return STATS_TILES.find((tile) => tile.id === id)!;
 }
 
-export function defaultLayout(tiles: readonly TileDef[] = STATS_TILES): TileLayout {
-  return tiles.map((tile) => ({ id: tile.id as TileId, visible: tile.defaultVisible }));
+export function clubTileDef(id: ClubTileId): TileDef {
+  return CLUB_STATS_TILES.find((tile) => tile.id === id)!;
+}
+
+export function defaultLayout<Id extends string = TileId>(tiles: readonly TileDef[] = STATS_TILES): TileLayout<Id> {
+  return tiles.map((tile) => ({ id: tile.id as Id, visible: tile.defaultVisible }));
 }
 
 /**
  * Maakt van een opgeslagen keuze een volledige lijst: geldige id's in de
  * gekozen volgorde (dubbele weg), daarna elke tegel die nog ontbrak.
  */
-export function normalizeLayout(saved: unknown, tiles: readonly TileDef[] = STATS_TILES): TileLayout {
+export function normalizeLayout<Id extends string = TileId>(
+  saved: unknown,
+  tiles: readonly TileDef[] = STATS_TILES,
+): TileLayout<Id> {
   const known = new Map(tiles.map((tile) => [tile.id, tile]));
   const seen = new Set<string>();
-  const layout: TileLayout = [];
+  const layout: TileLayout<Id> = [];
   if (Array.isArray(saved)) {
     for (const item of saved) {
       if (!item || typeof item !== "object") continue;
       const { id, visible } = item as { id?: unknown; visible?: unknown };
       if (typeof id !== "string" || !known.has(id) || seen.has(id)) continue;
       seen.add(id);
-      layout.push({ id: id as TileId, visible: visible === true });
+      layout.push({ id: id as Id, visible: visible === true });
     }
   }
   for (const tile of tiles) {
-    if (!seen.has(tile.id)) layout.push({ id: tile.id as TileId, visible: tile.defaultVisible });
+    if (!seen.has(tile.id)) layout.push({ id: tile.id as Id, visible: tile.defaultVisible });
   }
   return layout;
 }
@@ -88,11 +118,14 @@ export function normalizeLayout(saved: unknown, tiles: readonly TileDef[] = STAT
  * Wat een lid mag opslaan: een lijst met alleen bekende id's, elk één keer, en
  * niet meer dan er tegels zijn. Anders null; de server-action slaat dan niets op.
  */
-export function parseLayoutInput(input: unknown, tiles: readonly TileDef[] = STATS_TILES): TileLayout | null {
+export function parseLayoutInput<Id extends string = TileId>(
+  input: unknown,
+  tiles: readonly TileDef[] = STATS_TILES,
+): TileLayout<Id> | null {
   if (!Array.isArray(input) || input.length > tiles.length) return null;
   const known = new Set(tiles.map((tile) => tile.id));
   const seen = new Set<string>();
-  const layout: TileLayout = [];
+  const layout: TileLayout<Id> = [];
   for (const item of input) {
     if (!item || typeof item !== "object") return null;
     const { id, visible } = item as { id?: unknown; visible?: unknown };
@@ -100,7 +133,7 @@ export function parseLayoutInput(input: unknown, tiles: readonly TileDef[] = STA
       return null;
     }
     seen.add(id);
-    layout.push({ id: id as TileId, visible });
+    layout.push({ id: id as Id, visible });
   }
   return layout;
 }

@@ -76,9 +76,11 @@ gaat stabiliteit voor nieuwe features.
      is toegepast (eigenaar, 2026-10-15), daarna gepusht. Niet nagekeken op
      productie. Bij het doorklikken ook "Bewaar als tip" proberen.
    - **Mijn statistieken (tegelkeuze):** `0241_profile_stats_tiles.sql`
-     toepassen (2026-10-16). De code staat sinds 2026-10-16 op `main`; zonder
-     de tabel toont `/stats/ik` de standaardtegels, maar "Tegels aanpassen" kan
-     niet opslaan. Daarna één keer ingelogd doorklikken: tegels kiezen en
+     toepassen (2026-10-16). Let op: de migratie kreeg dezelfde dag een tweede
+     kolom `club_tiles` voor de clubpagina; pas de versie van de laatste
+     commit toe. De eerste versie van de code staat sinds 2026-10-16 op `main`;
+     zonder de tabel tonen `/stats` en `/stats/ik` de standaardtegels, maar
+     "Tegels aanpassen" kan niet opslaan. Daarna één keer ingelogd doorklikken: tegels kiezen en
      opslaan, en met intervals-koppeling de intervals-tegels bekijken.
    - **CORE-sensor bij hitte:** `0238_member_protocol_core_sessions.sql`
      toepassen, ná `0237` (2026-10-14). **Zonder `0238` lukt het starten van
@@ -149,6 +151,85 @@ een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0242`
 van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 `0240_member_tips_from_thread` van Wie weet wat, 2026-10-15;
 `0241_profile_stats_tiles` van Mijn statistieken, 2026-10-16).
+
+---
+
+> **Clubstatistieken in dezelfde stijl, met tegelkeuze, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Migratie `0241_profile_stats_tiles.sql` uitgebreid (nog niet toegepast).**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar wilde de stijl van Stats → Ik ook op `/stats` (Club):
+> dezelfde grafieken en data waar dat kan, en ook daar een eigen tegelkeuze.
+>
+> **Wat.**
+> - `/stats` volledig herbouwd op de onderdelen van Ik:
+>   - dezelfde bediening (per week, maand of jaar, bereik tot "alles"), nu in
+>     `stats/_components/controls.tsx` en gedeeld met Ik;
+>   - dezelfde grafiek met leescijfer, goud voor de gekozen periode,
+>     vorig jaar als streepje, gemiddelde en arcering voor de lopende periode;
+>   - in "tegels" de pijlers Club en Ik.
+> - **Zeven tegels** (`CLUB_STATS_TILES` in `src/lib/stats/tiles.ts`):
+>   - Totalen: km, uren, hm, ritten en actieve leden, tegenover vorig jaar.
+>   - Volume: met "Leden" als grootheid erbij.
+>   - Jaar op jaar: cumulatieve club-km.
+>   - Top riders: op km, uren of hm; je eigen plek in goud en "Jij staat 5e".
+>   - Disciplines.
+>   - Regio's.
+>   - Clubrecords: beste week, maand en jaar, en de maand met de meeste
+>     rijders.
+>
+>   De laatste staat standaard uit.
+> - **Tegelkeuze per pagina.** `0241` kreeg een kolom `club_tiles` naast
+>   `tiles`; de server-action verhuisde naar `stats/_actions.ts`
+>   (`saveStatsTiles(layout, page)`). De migratie was nog niet toegepast, dus
+>   is hij aangepast in plaats van een `0242` toe te voegen.
+> - **Het oude maandfilter blijft**, als periode-chips (`?periode=`, per maand
+>   of jaar): Totalen, Top riders, Disciplines en Regio's gaan dan over die
+>   periode, en Volume licht die periode uit. Per week zijn het te veel chips.
+>   `?month=` uit oude links doet niets meer.
+> - **Data** (`stats/_data.ts`, `src/lib/stats/club.ts`).
+>   - **Vroeger:** elke tien minuten 12 maanden ritten, opgeteld per maand.
+>   - **Nu per kalenderjaar een samenvatting**, gedeeld tussen leden:
+>     - per maand en per week per lid en discipline (voor leden, ranglijst,
+>       disciplines en regio's);
+>     - per dag het clubtotaal (exacte vensters, en vorig jaar tot dezelfde
+>       dag).
+>   - **Verversen:** afgesloten jaren één keer per dag, het lopende jaar elke
+>     tien minuten zoals voorheen. Daardoor kunnen week en "alles" erbij zonder
+>     meer databaseverkeer dan eerst.
+>   - **Randgevallen:** een week over de jaargrens telt uit beide jaren op
+>     (`mergeClubData`).
+>   - **Actieve leden** per venster komen uit de maand- of weekcellen; het
+>     venster begint altijd op een periodegrens.
+> - **Geen pijltjes zonder vergelijking.** Valt het venster van vorig jaar
+>   (deels) vóór de eerste rit, wat bij "alles" altijd zo is, dan toont Totalen
+>   geen ▲/▼. Dat geldt nu ook op Ik.
+> - De oude clubpagina (eigen staafjes per maand, kaartjes met icoon) is weg.
+>
+> **Bewust niet gebouwd.**
+> - Vermogen, fitheid en kalender voor de club: een clubgemiddelde van NP of
+>   CTL zegt niets, en een dagkalender van 35 leden is één grijze vlek.
+> - Een filter op discipline: de club had er geen en de tegel Disciplines laat
+>   de verdeling al zien.
+> - Een aggregatie in de database (view of RPC): dat vraagt een migratie, en de
+>   jaarcache doet hetzelfde zonder.
+>
+> **Getest.**
+> - `tsc --noEmit` en ESLint schoon, vitest 2473 geslaagd, `npm run build` geslaagd.
+> - Nieuw `stats-club.test.ts` (9): dagen in Amsterdamse tijd, week over de
+>   jaargrens, reeksen met leden, vorig jaar tot dezelfde dag, totalen,
+>   disciplines, regio's, ranglijst per periode, records, jaarlijnen.
+> - `stats-tiles.test.ts` controleert in PGlite dat `club_tiles` los van
+>   `tiles` wordt bewaard.
+> - Detector van impeccable schoon.
+> - Bekeken op een tijdelijke voorbeeldpagina met verzonnen clubritten (niet
+>   gecommit): "tegels" op desktop en 375 px met een gekozen maand, en
+>   klassiek per jaar over alles.
+>
+> **Niet geverifieerd.**
+> - De echte clubdata: hoe lang de eerste weergave duurt bij "alles" (elk
+>   jaar één keer de ritten ophalen).
+> - Of een jaarsamenvatting onder de cachegrens van Next blijft. Geschat
+>   ~0,7 MB per jaar bij de huidige ~5.600 ritten; de grens is 2 MB.
 
 ---
 
