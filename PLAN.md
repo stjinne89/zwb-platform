@@ -9558,6 +9558,40 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Voorstel — bewijsniveau per kennisartikel (wacht op akkoord)
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen code, geen
+migratie. Uitwerking: [bewijsniveau-kennisbank](docs/bewijsniveau-kennisbank.md).
+
+**Aanleiding.** Na de leeszaal vroeg de eigenaar of alle kennisartikelen, net
+als de nieuwe trainingsmethodes, een label kunnen krijgen waaraan je ziet hoe
+gegrond ze zijn.
+
+**Het voorstel.**
+- Alle 56 artikelen krijgen het bewijsniveau van de protocollen: sterk, matig
+  of beperkt. Dat komt naast Veelbelovend en Experimenteel, zoals bij de
+  trainingsmethodes is afgesproken.
+- Het niveau gaat over het centrale advies van een artikel, met vaste criteria
+  en twee begrenzingen:
+  - alleen een tussenmaat: hooguit matig;
+  - niet bij duursporters onderzocht: hooguit matig.
+- Uitkomst: 10 sterk, 29 matig, 14 beperkt. Drie artikelen die iets afraden
+  (Wat niet werkt, Ketonen, Low-carb en keto) krijgen bij voorkeur geen niveau
+  maar het label Afgeraden.
+- Ingedeeld op de bronnen en beperkingen die al in de app staan, en op de
+  wetenschappelijke toets. Er is niet opnieuw gezocht en de bronnen zijn niet
+  opnieuw gelezen.
+
+**Ligt bij de eigenaar.**
+- Akkoord per artikel.
+- Afgeraden of een niveau voor de drie afraad-artikelen.
+- Het protocol `lage-cadans-vo2max` van matig naar beperkt, zodat het gelijk is
+  aan het artikel.
+
+**Nog niet gebouwd.** Het veld per artikel, de test, de weergave (artikel,
+kennisbanklijsten, leeszaal), het niveau in de coachchat en de uitleg op `/hulp`.
+Dat volgt na akkoord.
+
 ### Opgeleverd — ZWBieb: de leeszaal, alle kennisbanken per onderwerp
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
