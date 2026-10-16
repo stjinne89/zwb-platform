@@ -1637,11 +1637,19 @@ export default function HelpPage() {
               Hersteltrend en readiness
             </h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              De hersteltrend vergelijkt je HRV en rusthartslag met je eigen
-              baseline en neemt slaap en de readiness van vandaag mee.
+              De hersteltrend vergelijkt het gemiddelde van je HRV en
+              rusthartslag over de laatste week met je eigen normale band: wat
+              je de dertig dagen daarvoor gewoon was, met een marge die past bij
+              hoe sterk jouw metingen schommelen. Slaap, de readiness van vandaag
+              en hoe je je ritten van de laatste dagen beoordeelde, wegen mee.
               Readiness is een dagsignaal uit intervals.icu; HRV, rusthartslag
               en slaap worden als zevendaagse trend bekeken. Een gunstige HRV
-              kan daardoor naast een middelmatige readiness staan.
+              kan daardoor naast een middelmatige readiness staan. Meer in de
+              kennisbank:{" "}
+              <Link href="/zwbeter-worden/kennis/herstel-meten" className="underline">
+                Herstel meten
+              </Link>
+              .
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Is de readiness van vandaag nog niet binnen, dan zie je de laatste

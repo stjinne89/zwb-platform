@@ -1,12 +1,13 @@
 // Overzicht-tab: hoe staat de gekozen renner ervoor — belasting, herstel, wat er
 // aankomt en wat er de afgelopen weken is gereden.
 
+import { loadSubjectiveRecovery } from "@/lib/training/subjective-recovery";
 import { Calendar, Mountain } from "lucide-react";
 import { EmptyState } from "@/components/app-ui";
 import { PowerWeight } from "@/components/power-unit";
 import { StravaAttribution, ViewOnStrava } from "@/components/strava-brand";
 import { toTrainingLoadPoints } from "@/lib/training/load-points";
-import { summarizeTrainingReadiness, type WellnessDevice } from "@/lib/training/wellness";
+import type { WellnessDevice } from "@/lib/training/wellness";
 import { computeZwbStatus } from "@/lib/training/zwbeterworden";
 import {
   estimateTrainingLoad,
@@ -89,15 +90,20 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
         .order("created_at", { ascending: false }),
     ]);
 
-  const intervals = await loadAthleteIntervals(connection, {
-    wellnessDays: 730,
-    eventDays: 14,
-    admin: viewer.admin,
-  });
+  const [intervals, subjective] = await Promise.all([
+    loadAthleteIntervals(connection, {
+      wellnessDays: 730,
+      eventDays: 14,
+      admin: viewer.admin,
+    }),
+    // Zonder klachtenlogboek: dat is privé, ook voor de trainer.
+    loadSubjectiveRecovery(viewer.admin, athleteId, { includeSymptoms: false }).catch(() => null),
+  ]);
   const status = computeZwbStatus(intervals.wellness, {
     wellnessOptIn: Boolean(connection?.wellness_opt_in),
     sex: athlete?.sex,
     wellnessDevice: (athlete?.wellness_device ?? null) as WellnessDevice | null,
+    subjective,
   });
 
   const activities = (activityRows ?? []) as StravaActivityRow[];
@@ -138,10 +144,7 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
           tsb={status.tsb}
           eftp={status.eftp}
           ctlProjection={ctlProjection}
-          readiness={summarizeTrainingReadiness({
-            tsb: status.tsb,
-            wellness: status.recoverySummary,
-          })}
+          readiness={status.readiness}
           recovery={{
             optedIn: Boolean(connection?.wellness_opt_in),
             summary: status.recoverySummary,

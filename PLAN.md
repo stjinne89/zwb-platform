@@ -126,8 +126,8 @@ gaat stabiliteit voor nieuwe features.
    achievementkwaliteit) zijn uitgewerkt in de ronde van 2026-10-02 hieronder;
    het besluit ligt bij de eigenaar.
 7. **Wetenschappelijke toets van ZWBasis** (gestart 2026-10-16). Fase 0, het
-   claimregister, is af. Fase 1 (de regels die schema en advies sturen) ligt
-   per onderdeel ter goedkeuring bij de eigenaar. Daarna volgen fase 2
+   claimregister, is af. Fase 1 (de regels die schema en advies sturen) is
+   goedgekeurd; 1C (herstel) is uitgevoerd, 1A, 1B, 1D en 1E volgen. Daarna fase 2
    (kennisbank trainen), 3 (voeding), 4 (kracht en core), 5 (racen en pacing)
    en 6 (overig). Zie de ronde hieronder en
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
@@ -8759,7 +8759,79 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
-### Lopend — wetenschappelijke toets van ZWBasis (fase 0 af, fase 1 voorgesteld)
+### Opgeleverd — wetenschappelijke toets 1C: herstel meten met een eigen band
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md), 1C.
+
+**Waarom.** De herstelstatus vergeleek het weekgemiddelde van de HRV met vaste
+grenzen (onder 90 % vermoeid, boven 105 % fris) tegen een baseline waarin die
+week zelf meetelde. Rust-HR telde vanaf +3 slagen. De literatuur gebruikt ln
+rMSSD tegen een persoonlijke band (gemiddelde ± 0,5 SD) en laat zien dat HRV
+ook stijgt bij overbelasting. Daar ging de verzachtingsregel tegenin.
+
+**Wat er veranderde.**
+- `hrvBand()` en `restingHrBand()` in `wellness.ts`: het weekgemiddelde van ln
+  rMSSD tegen het gemiddelde ± 0,5 × SD van de 30 dagen **vóór** de laatste
+  week. Er zijn minstens 3 metingen in de week en 14 in de baseline nodig. Eigen
+  ondergrenzen: een halve band van minstens ~3 % (HRV) en 3 slagen (rust-HR,
+  de oude vaste regel).
+- `deriveReadiness` rekent in banden in plaats van procenten: 15 punten per
+  band onder de norm (tot −25) en hooguit +10 erboven. De invoer is nu
+  delta/halve band; `WellnessSummary` heeft er `hrvBand` en
+  `restingHrRaised` bij.
+- **De verzachtingsregel**: een diep negatieve TSB wordt alleen nog verzacht
+  als HRV en rust-HR in de eigen band liggen, de nachten lang genoeg zijn, de
+  readiness ≥ 70 is en het lid niets zwaars meldt. Een HRV boven de band bij
+  zware belasting geeft geen verzachting meer, maar een notitie dat het ook
+  overbelasting kan zijn.
+- **Eén venster**: `WELLNESS_SUMMARY_DAYS = 40` voor `getWellnessSummary()`
+  (AI en coachchat kregen 21 dagen), `/leden` en het trainersoverzicht (30
+  dagen).
+- **Geen SDNN meer** als terugval voor rMSSD, bij het opslaan en in
+  `computeZwbStatus`. Rijen in `profile_wellness` van vóór vandaag kunnen nog
+  SDNN bevatten; die schuiven binnen 37 dagen uit het venster.
+- **Gevoel weegt mee** (`subjective-recovery.ts`), naar Alfonso 2025:
+  - Wat telt als signaal: een rit van de laatste drie dagen die "slecht"
+    voelde, een rustige rit die "zwaar" voelde of RPE ≥ 7 had, of een
+    klachtenlast ≥ 0,65.
+  - Gevolg: het haalt de ruimte voor kwaliteit weg (−10 punten, hooguit
+    "Beperkte trainingsruimte"), maar zet niemand op herstel.
+  - Waar het meetelt: op de trainingspagina, Belasting, het dashboard en het
+    rennerscherm van de trainer. Bij de trainer zonder klachtenlogboek: dat is
+    privé (privacyverklaring §3).
+  - Het trainerscherm gebruikte een eigen `summarizeTrainingReadiness`-aanroep
+    en neemt nu `status.readiness`, zodat het hetzelfde oordeel toont.
+- Kennisbank: nieuw artikel **Herstel meten: HRV, rusthartslag en slaap** in
+  een nieuwe categorie Herstel, met 8 via PubMed bevestigde bronnen. Daarnaar
+  linken `/hulp` (Hersteltrend) en de tab Uitgangspunten.
+- Tests: `wellness.test.ts` (band, eigen baseline, verzachting, gevoel, geen
+  SDNN) en `subjective-recovery.test.ts`.
+
+**Gemeten op productie** (alleen lezen, alleen totalen, 2026-10-16):
+- Groep: 7 leden met herstel-data in de laatste 37 dagen.
+- Wat veranderde: 2 gaan van "fris" naar "normaal", 2 blijven "fris", en 3
+  hebben te weinig recente data (onveranderd).
+- De halve band lag gemiddeld op 9–12 %, met uitschieters van 3 tot 29 %. De
+  kalibratie van 15 punten per band (gekozen op ~8 %) pakt daardoor iets milder
+  uit dan de oude regel.
+- Beperking: de opgeslagen kopie wordt alleen ververst bij paginabezoek, dus dit
+  is niet elk lid met een koppeling.
+
+**Bewust niet gedaan.**
+- *Dagelijks voorschrijven op HRV* (Vesterinen, Javaloyes): de dag-coach doet
+  dat al grof, en meer sturing op één signaal past niet bij de voorzichtige
+  insteek.
+- *Gevoel in de ledenlijst en het trainersoverzicht*: die tonen alleen een
+  niveaulabel; daar per lid ritverslagen ophalen kost een query per renner.
+- *De privacyverklaring aanpassen*: het klachtenlogboek levert nog steeds een
+  samengevat signaal dat alleen het lid ziet, zoals §3 al zegt.
+
+**Niet geverifieerd.** De volledige `npm run test` heeft één bestand dat in deze
+worktree niet draait (`omnium-live.test.ts` leest `.env.local`). De build is
+gedraaid met de variabelen uit de `.env.local` van de hoofdmap.
+
+### Lopend — wetenschappelijke toets van ZWBasis (fase 0 af, 1C uitgevoerd)
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
 codewijziging.
@@ -8777,7 +8849,9 @@ in de regels die schema en advies sturen. De opbouwregels in de prompt, de
 FTP-factoren, de readiness-berekening en de TSB-drempels hebben geen bron, of
 een bron die een andere kant op wijst.
 
-**Fase 1, voorgesteld en nog niet uitgevoerd:**
+**Fase 1, goedgekeurd door de eigenaar op 2026-10-16** (1A–1E, inclusief de
+punten uit de Consensus-ronde; FTP-signaal bij 8 % voor trainer én lid). 1C is
+uitgevoerd (zie de ronde hierboven); 1A, 1B, 1D en 1E volgen:
 - *1A Opbouw*: de 10 %-regel bleek in een RCT geen blessures te voorkomen. Hij
   blijft als voorzichtige standaard, maar heet niet langer "veilig". Er komt een
   artikel over opbouwen, detraining en CTL/ATL/TSB.
@@ -8811,25 +8885,20 @@ abonnement. Na het opnieuw verbinden van de connector (2026-10-16) werkt ook
 die op Pro: twintig resultaten per vraag, met DOI, en zonder limiet bij
 meerdere vragen tegelijk.
 
-**Gevonden, nog niet hersteld** (onderdeel van voorstel 1C):
-`getWellnessSummary()` geeft de AI en de coachchat standaard 21 dagen data,
-terwijl de baseline 30 dagen hoort te zijn en de pagina's 30 dagen gebruiken.
-Hetzelfde lid kan daardoor voor de AI een andere herstelstatus hebben dan op de
-pagina. Verder valt de HRV-reeks terug op SDNN als rMSSD ontbreekt. En
-`CP_FTP_FRACTION = 0,97` (pacing) botst met Karsten 2021, waar CP gemiddeld
+**Gevonden en in 1C hersteld:** het venster van 21 dagen voor AI en coachchat,
+en de terugval op SDNN. Nog open: `CP_FTP_FRACTION = 0,97` (pacing) botst met Karsten 2021, waar CP gemiddeld
 iets *boven* FTP lag. Andere bronnen (MLSS onder FTP, CP ≈ MLSS) wijzen juist
 de kant van 0,97 op. Dat wordt uitgezocht in fase 5.
 
-**Niet lokaal te verifiëren.** Hoeveel leden door een nieuwe HRV-band anders
-worden ingedeeld. Dat vraagt een leesquery op productie, en die komt pas na akkoord.
+**Niet lokaal te verifiëren.** Hoeveel leden door de nieuwe HRV-band anders
+worden ingedeeld. Inmiddels gemeten, zie de 1C-ronde hierboven.
 
 **Les.** Vier DOI's die uit het geheugen waren aangevuld, bleken fout. Een DOI
 gaat pas de kennisbank in als hij via PubMed of de uitgever is bevestigd.
 
-**Open punt.** Het ruwe Consensus-rapport draagt de voorwaarde "persoonlijk,
-niet-commercieel gebruik; verspreiden vraagt toestemming van de
-rechthebbenden". Het staat lokaal in `docs/consensus/`. Of het in git mag, is
-een keuze van de eigenaar.
+**Consensus-rapport niet in git** (besluit eigenaar, 2026-10-16): het draagt de
+voorwaarde "persoonlijk, niet-commercieel gebruik". Het staat lokaal in
+`docs/consensus/` en is via `.git/info/exclude` buiten git gehouden.
 
 ### Opgeleverd — Wie weet wat: een tip uit een gesprek bewaart de ontvanger
 

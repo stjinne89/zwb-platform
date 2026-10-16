@@ -48,12 +48,12 @@ en een lijst beperkingen, zoals de bestaande kennisbanken.
 | A1 | FTP = 0,75 × hoogste minuut van de ramptest (stappen ~20 W/min) | `lib/training/ftp-test.ts` | ⚠ geen gepeerreviewde validatie gevonden; zie 1B |
 | A2 | FTP = 0,95 × 20-minutengemiddelde | idem | ◐ betrouwbaar, maar individueel ruim; zie 1B |
 | A3 | Een FTP ouder dan acht weken verdient een nieuwe test | `workouts.ts` prompt | ◐ eigen keuze, niet zo benoemd |
-| A4 | HRV-status: 7-daags gemiddelde < 0,90 × baseline = vermoeid, > 1,05 = fris | `wellness.ts` `summarizeWellness` | ⚠ zie 1C |
-| A5 | Rust-HR > baseline + 3 slagen = vermoeid | idem | ✖ vaste grens, geen meetfout meegenomen |
-| A6 | Afgeleide readiness: neutraal 70, HRV-afwijking × 200, rust-HR × 300, slaapscore ±8 | `wellness.ts` `deriveReadiness` | ✖ eigen gewichten |
+| A4 | HRV-status: 7-daags gemiddelde < 0,90 × baseline = vermoeid, > 1,05 = fris | `wellness.ts` `summarizeWellness` | ✔ vervangen door ln rMSSD-band (1C, 2026-10-16) |
+| A5 | Rust-HR > baseline + 3 slagen = vermoeid | idem | ✔ eigen band, minimaal 3 slagen (1C) |
+| A6 | Afgeleide readiness: neutraal 70, HRV-afwijking × 200, rust-HR × 300, slaapscore ±8 | `wellness.ts` `deriveReadiness` | ◐ nu in banden (15 en 18 punten per band); gewichten blijven eigen keuze (1C) |
 | A7 | Slaapstaffel < 5,5 / 6,0 / 6,5 uur → aftrek 22 / 14 / 6 | `wellness.ts` | ◐ richting klopt (zie 1C), getallen eigen keuze |
 | A8 | TSB ≤ −25 herstel, ≤ −10 voorzichtig, ≥ 8 klaar; < −40 ernstig | `wellness.ts` `summarizeTrainingReadiness` | ✖ geen bron |
-| A9 | Hoge belasting + HRV boven baseline = goed aangepast, dus verzachten | idem | ⚠ HRV kan ook stijgen bij overreaching; zie 1C |
+| A9 | Hoge belasting + HRV boven baseline = goed aangepast, dus verzachten | idem | ✔ bijgesteld: alleen verzachten binnen de band (1C) |
 | A10 | Readiness-schaal ≤ 50 laag, < 70 matig, ≥ 75 goed | idem | ◐ overgenomen van apparaten |
 | A11 | Zones (Zwift/Coggan): Z2 60–75 %, Z3 76–89 %, Z4 90–104 %, Z5 105–118 %, Z6 ≥ 119 % FTP | `workouts.ts` | ◐ afspraak (eigenaar, 2026-09-15); zie 1D |
 | A12 | RPE ↔ %FTP-tabel (RPE 5 = 71–80 %, 7 = 90–104 %, …) | `workouts.ts`, `targets.ts` | ✖ eigen omzetting |
@@ -123,7 +123,8 @@ en een lijst beperkingen, zoals de bestaande kennisbanken.
 
 Fase 1 gaat over A en B: de regels die het schema en het advies sturen. Bij elk
 onderdeel staat wat de app doet, wat de literatuur zegt, en een voorstel.
-**Niets hiervan is uitgevoerd.**
+**Goedgekeurd door de eigenaar op 2026-10-16. 1C is uitgevoerd; 1A, 1B, 1D en
+1E volgen.**
 
 ### 1A. Opbouw: hoe snel, en wanneer afremmen
 
@@ -279,7 +280,11 @@ moet blijken of de controle uit punt 2 genoeg is.
 ziet of alleen de trainer, en of punt 4 (andere opener) en punt 5 (meetfout in
 de historie) meegaan.
 
-### 1C. Herstel: HRV, rust-HR, slaap en readiness
+### 1C. Herstel: HRV, rust-HR, slaap en readiness — uitgevoerd 2026-10-16
+
+Wat er is gebouwd, staat in `PLAN.md` (ronde "wetenschappelijke toets 1C"). De
+puntentelling werd 15 per band in plaats van 20, na kalibratie op een
+gangbare halve band van ~8 %; op productie bleek die 9–12 %.
 
 **Wat de app doet.** Het 7-daags gemiddelde van HRV en rust-HR wordt vergeleken
 met een gemiddelde over 30 dagen, waarin die 7 dagen zelf meetellen. Vaste

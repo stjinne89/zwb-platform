@@ -3,6 +3,9 @@ import { Activity, CalendarClock, Dumbbell, Gauge, HeartPulse } from "lucide-rea
 import { InlineMoreLink, SectionHeader } from "@/components/app-ui";
 import { fetchIntervalsWellness, type IntervalsWellness } from "@/lib/intervals/client";
 import { computeZwbStatus } from "@/lib/training/zwbeterworden";
+import { loadSubjectiveRecovery } from "@/lib/training/subjective-recovery";
+import { createClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/auth/request";
 import type { WellnessDevice } from "@/lib/training/wellness";
 import {
   INTENSITY_COLORS,
@@ -63,6 +66,13 @@ export async function TrainingStatus({
   wellnessDevice: WellnessDevice | null;
 }) {
   let wellness: IntervalsWellness[] = [];
+  // Gevoel en klachten van het lid wegen mee in de readiness, net als op de
+  // trainingspagina; anders geven dashboard en ZWBeter een ander oordeel.
+  const subjectivePromise = Promise.all([createClient(), getRequestUser()])
+    .then(([supabase, user]) =>
+      user ? loadSubjectiveRecovery(supabase, user.id, { includeSymptoms: true }) : null,
+    )
+    .catch(() => null);
   if (conn?.api_key && conn.athlete_id) {
     try {
       wellness = await fetchIntervalsWellness(conn.api_key, conn.athlete_id, 90);
@@ -70,11 +80,13 @@ export async function TrainingStatus({
       // intervals.icu onbereikbaar → val terug op het niveau-0-advies
     }
   }
+  const subjective = await subjectivePromise;
 
   const status = computeZwbStatus(wellness, {
     wellnessOptIn: Boolean(conn?.wellness_opt_in),
     sex,
     wellnessDevice,
+    subjective,
   });
   const { advice, ctl, tsb, recoverySummary } = status;
   const hasMetrics = ctl != null || tsb != null || recoverySummary != null;

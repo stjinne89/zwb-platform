@@ -16,7 +16,7 @@ import {
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 import { fetchIntervalsWellness } from "@/lib/intervals/client";
 import { computeZwbStatus } from "@/lib/training/zwbeterworden";
-import type { WellnessDevice } from "@/lib/training/wellness";
+import { WELLNESS_SUMMARY_DAYS, type WellnessDevice } from "@/lib/training/wellness";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 type Profile = {
@@ -158,7 +158,7 @@ export default async function LedenPage() {
     ).map(async (conn) => {
       if (!conn.api_key || !conn.athlete_id) return;
       try {
-        const wellness = await fetchIntervalsWellness(conn.api_key, conn.athlete_id, 30);
+        const wellness = await fetchIntervalsWellness(conn.api_key, conn.athlete_id, WELLNESS_SUMMARY_DAYS);
         const prof = profileById.get(conn.profile_id);
         const { advice } = computeZwbStatus(wellness, {
           wellnessOptIn: Boolean(conn.wellness_opt_in),

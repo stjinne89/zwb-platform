@@ -25,12 +25,13 @@ import {
   ZURAWLEW_2016,
 } from "@/lib/protocols/training";
 
-export const TRAINING_CATEGORIES = ["intensiteit", "piek", "omstandigheden", "naast-de-fiets"] as const;
+export const TRAINING_CATEGORIES = ["intensiteit", "piek", "herstel", "omstandigheden", "naast-de-fiets"] as const;
 export type TrainingCategory = (typeof TRAINING_CATEGORIES)[number];
 
 export const TRAINING_CATEGORY_LABELS: Record<TrainingCategory, string> = {
   intensiteit: "Intensiteit",
   piek: "Naar een piek",
+  herstel: "Herstel",
   omstandigheden: "Hitte",
   "naast-de-fiets": "Naast de fiets",
 };
@@ -107,6 +108,71 @@ const BROATCH_2018: KnowledgeSource = {
     "Broatch JR, Petersen A, Bishop DJ. The influence of post-exercise cold-water immersion on adaptive responses to exercise: a review of the literature. Sports Med 48(6):1369-1387.",
   year: 2018,
   url: doi("10.1007/s40279-018-0910-8"),
+  kind: "review",
+};
+
+// Herstel meten (wetenschappelijke toets 1C, 2026-10-16). DOI's via PubMed bevestigd.
+const PLEWS_2013: KnowledgeSource = {
+  citation:
+    "Plews DJ, Laursen PB, Stanley J, Kilding AE, Buchheit M. Training adaptation and heart rate variability in elite endurance athletes: opening the door to effective monitoring. Sports Med 43(9):773-781.",
+  year: 2013,
+  url: doi("10.1007/s40279-013-0071-8"),
+  kind: "review",
+};
+
+const BUCHHEIT_2014: KnowledgeSource = {
+  citation:
+    "Buchheit M. Monitoring training status with HR measures: do all roads lead to Rome? Front Physiol 5:73.",
+  year: 2014,
+  url: doi("10.3389/fphys.2014.00073"),
+  kind: "review",
+};
+
+const VESTERINEN_2016: KnowledgeSource = {
+  citation:
+    "Vesterinen V, Nummela A, Heikura I, Laine T, Hynynen E, Botella J, Häkkinen K. Individual endurance training prescription with heart rate variability. Med Sci Sports Exerc 48(7):1347-1354.",
+  year: 2016,
+  url: doi("10.1249/MSS.0000000000000910"),
+  kind: "studie",
+};
+
+const JAVALOYES_2019: KnowledgeSource = {
+  citation:
+    "Javaloyes A, Sarabia JM, Lamberts RP, Moya-Ramon M. Training prescription guided by heart-rate variability in cycling. Int J Sports Physiol Perform 14(1):23-32.",
+  year: 2019,
+  url: doi("10.1123/ijspp.2018-0122"),
+  kind: "studie",
+};
+
+const LE_MEUR_2013: KnowledgeSource = {
+  citation:
+    "Le Meur Y, Pichon A, Schaal K, Schmitt L, Louis J, Gueneron J, Vidal PP, Hausswirth C. Evidence of parasympathetic hyperactivity in functionally overreached athletes. Med Sci Sports Exerc 45(11):2061-2071.",
+  year: 2013,
+  url: doi("10.1249/MSS.0b013e3182980125"),
+  kind: "studie",
+};
+
+const MANRESA_ROCAMORA_2021: KnowledgeSource = {
+  citation:
+    "Manresa-Rocamora A, Flatt AA, Casanova-Lizón A, et al. Heart rate-based indices to detect parasympathetic hyperactivity in functionally overreached athletes. A meta-analysis. Scand J Med Sci Sports 31(6):1164-1182.",
+  year: 2021,
+  url: doi("10.1111/sms.13932"),
+  kind: "review",
+};
+
+const ALFONSO_2025: KnowledgeSource = {
+  citation:
+    "Alfonso C, Clarke DC, Capdevila L. Individual training prescribed by heart rate variability, heart rate and well-being scores in experienced cyclists. Sci Rep 15:34023.",
+  year: 2025,
+  url: doi("10.1038/s41598-025-13540-z"),
+  kind: "studie",
+};
+
+const CRAVEN_2022: KnowledgeSource = {
+  citation:
+    "Craven J, McCartney D, Desbrow B, et al. Effects of acute sleep loss on physical performance: a systematic and meta-analytical review. Sports Med 52(11):2669-2690.",
+  year: 2022,
+  url: doi("10.1007/s40279-022-01706-y"),
   kind: "review",
 };
 
@@ -194,6 +260,36 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       "Voor een reeks races, zoals de ZRL, is een lange taper geen goed idee: dan train je niet meer door.",
     ],
     sources: [BOSQUET_2007, WANG_2023],
+  },
+  {
+    slug: "herstel-meten",
+    category: "herstel",
+    title: "Herstel meten: HRV, rusthartslag en slaap",
+    summary:
+      "Je horloge meet elke nacht je HRV en rusthartslag. Eén ochtend zegt weinig; een week vergeleken met je eigen normale waarden zegt wel iets.",
+    points: [
+      "HRV schommelt van dag tot dag flink. Daarom kijkt ZWB naar het gemiddelde van de laatste week, niet naar één nacht.",
+      "Dat weekgemiddelde wordt vergeleken met je eigen normale band: wat je de dertig dagen daarvoor gewoon was, met een marge die past bij hoeveel jouw metingen van nature schommelen.",
+      "Zakt je HRV onder die band, of stijgt je rusthartslag erboven, dan is dat een teken van vermoeidheid. Het schema wordt dan voorzichtiger.",
+      "Een HRV boven je band is niet altijd goed nieuws. Bij sporters die bewust te zwaar trainden, steeg het weekgemiddelde juist. Bij zware belasting telt een hoge HRV daarom niet als geruststelling.",
+      "Wielrenners die op HRV, rusthartslag en hun eigen gevoel samen trainden, gingen er meer op vooruit dan op HRV alleen. ZWB weegt daarom ook mee hoe een rit voelde.",
+      "Een korte nacht kost prestatie: gemiddeld enkele procenten na een nacht van zes uur of minder, vooral als je daarna lang wakker bent.",
+    ],
+    limits: [
+      "Het onderzoek naar sturen op HRV is klein, en de winst ten opzichte van een vast schema is bescheiden.",
+      "Horloges en ringen meten HRV 's nachts, de studies meestal 's ochtends met een borstband. Hoe goed die metingen overeenkomen, verschilt per apparaat.",
+      "De marge van de band (een halve standaardafwijking) is de gangbare keuze in onderzoek; de ondergrens van 3 % voor heel stabiele metingen is een eigen keuze van ZWB.",
+    ],
+    sources: [
+      PLEWS_2013,
+      BUCHHEIT_2014,
+      VESTERINEN_2016,
+      JAVALOYES_2019,
+      LE_MEUR_2013,
+      MANRESA_ROCAMORA_2021,
+      ALFONSO_2025,
+      CRAVEN_2022,
+    ],
   },
   {
     slug: "hittetraining",

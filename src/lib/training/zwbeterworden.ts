@@ -6,6 +6,7 @@ import type { IntervalsWellness } from "@/lib/intervals/client";
 import {
   summarizeTrainingReadiness,
   summarizeWellness,
+  type SubjectiveRecovery,
   type TrainingReadinessSummary,
   type WellnessDevice,
   type WellnessSummary,
@@ -269,10 +270,13 @@ export function computeZwbStatus(
     wellnessOptIn,
     sex,
     wellnessDevice,
+    subjective,
   }: {
     wellnessOptIn: boolean;
     sex?: string | null;
     wellnessDevice?: WellnessDevice | null;
+    /** Gevoel en klachten van het lid; zie loadSubjectiveRecovery. */
+    subjective?: SubjectiveRecovery | null;
   },
 ): ZwbStatus {
   const sorted = [...wellness].sort((a, b) => a.id.localeCompare(b.id));
@@ -288,7 +292,7 @@ export function computeZwbStatus(
           wellness.map((w) => ({
             date: w.id,
             resting_hr: w.restingHR ?? null,
-            hrv: w.hrv ?? w.hrvSDNN ?? null,
+            hrv: w.hrv ?? null,
             sleep_secs: w.sleepSecs ?? null,
             sleep_score: w.sleepScore ?? null,
             readiness: w.readiness ?? null,
@@ -301,7 +305,7 @@ export function computeZwbStatus(
         )
       : null;
 
-  const readiness = summarizeTrainingReadiness({ tsb, wellness: recoverySummary });
+  const readiness = summarizeTrainingReadiness({ tsb, wellness: recoverySummary, subjective });
   const advice = zwbeterWordenAdvice(readiness, sex);
 
   return { ctl, atl, tsb, eftp, recoverySummary, readiness, advice };

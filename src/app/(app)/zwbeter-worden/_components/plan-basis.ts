@@ -169,6 +169,7 @@ export function planBasisGroups(input: Partial<TrainingAiInput>): BasisGroup[] {
       ],
       effect:
         "Bij vermoeidheid, lage readiness, weinig slaap of een hogere rusthartslag schuiven zware sessies op.",
+      link: { href: "/zwbeter-worden/kennis/herstel-meten", label: "Herstel meten" },
     });
   }
 
