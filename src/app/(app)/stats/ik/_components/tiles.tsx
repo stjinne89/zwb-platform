@@ -40,13 +40,14 @@ export function Tile({
 }: {
   title: string;
   width: "full" | "half";
+  /** Rechts naast de titel: een knop, of een kort bijschrift. */
   actions?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <section className={cn("min-w-0 rounded-lg border bg-card p-4", width === "full" && "lg:col-span-2")}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
+        <h2 className="st-tile-title text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
         {actions}
       </div>
       {children}
@@ -82,39 +83,40 @@ export function TotalsGrid({ now, before }: { now: Totals; before: Totals }) {
     { label: "kJ", value: nl(now.kilojoules), delta: delta(now.kilojoules, before.kilojoules) },
     { label: "TSS", value: nl(now.tss), delta: delta(now.tss, before.tss) },
   ];
+  // Geen kaartjes in de kaart: de cijfers staan los, groot, met een haarlijn
+  // ertussen. Kilometers voorop en het grootst: daar kijkt iedereen eerst naar.
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      {items.map((item) => (
-        <div key={item.label} className="rounded-md border bg-background p-3">
-          <div className="text-xs uppercase tracking-wide text-muted-foreground">{item.label}</div>
-          <div className="mt-1 text-2xl font-semibold tabular-nums">{item.value}</div>
+    <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-6">
+      {items.map((item, index) => (
+        <div key={item.label} className={cn("min-w-0", index === 0 && "col-span-2 sm:col-span-1")}>
+          <dt className="text-xs text-muted-foreground">{item.label}</dt>
+          <dd className={cn("mt-1 truncate", index === 0 ? "st-num" : "st-kpi")}>{item.value}</dd>
           {item.delta != null && (
-            <div
+            <dd
               className={cn(
-                "mt-0.5 text-xs tabular-nums",
+                "mt-1 text-xs tabular-nums",
                 item.delta >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-destructive",
               )}
-              title="Tegenover dezelfde periode een jaar eerder"
             >
-              {item.delta >= 0 ? "+" : ""}
-              {item.delta}% t.o.v. vorig jaar
-            </div>
+              {item.delta >= 0 ? "▲" : "▼"} {Math.abs(item.delta)}%
+            </dd>
           )}
         </div>
       ))}
-    </div>
+    </dl>
   );
 }
 
 // ── Kalender ──────────────────────────────────────────────────────────────
 
+/** Dekking van de hoofdkleur per dag: vier stappen, zodat een rustige week niet wegvalt. */
 function level(km: number, max: number) {
-  if (km <= 0) return "bg-muted";
+  if (km <= 0) return 0;
   const ratio = km / Math.max(1, max);
-  if (ratio < 0.25) return "bg-primary/25";
-  if (ratio < 0.5) return "bg-primary/45";
-  if (ratio < 0.75) return "bg-primary/70";
-  return "bg-primary";
+  if (ratio < 0.25) return 0.3;
+  if (ratio < 0.5) return 0.5;
+  if (ratio < 0.75) return 0.75;
+  return 1;
 }
 
 export function CalendarHeatmap({ days, streaks }: { days: CalendarDay[]; streaks: Streaks }) {
@@ -129,23 +131,28 @@ export function CalendarHeatmap({ days, streaks }: { days: CalendarDay[]; streak
         {days.map((day) => (
           <div
             key={day.day}
-            className={cn("aspect-square rounded-[2px]", level(day.km, max))}
+            className={cn("aspect-square rounded-[2px]", day.km <= 0 && "bg-muted")}
+            style={
+              day.km > 0
+                ? { background: "var(--st-main)", opacity: level(day.km, max) }
+                : undefined
+            }
             title={`${dayLabel(day.day)}: ${day.rides ? `${nl(day.km)} km, ${day.rides} rit${day.rides > 1 ? "ten" : ""}` : "geen rit"}`}
           />
         ))}
       </div>
-      <dl className="grid grid-cols-3 gap-3 text-sm">
+      <dl className="grid grid-cols-3 gap-3">
         <div>
           <dt className="text-xs text-muted-foreground">Weken op rij nu</dt>
-          <dd className="text-lg font-semibold tabular-nums">{streaks.currentWeeks}</dd>
+          <dd className="st-kpi mt-1">{streaks.currentWeeks}</dd>
         </div>
         <div>
           <dt className="text-xs text-muted-foreground">Langste reeks weken</dt>
-          <dd className="text-lg font-semibold tabular-nums">{streaks.longestWeeks}</dd>
+          <dd className="st-kpi mt-1">{streaks.longestWeeks}</dd>
         </div>
         <div>
           <dt className="text-xs text-muted-foreground">Langste reeks dagen</dt>
-          <dd className="text-lg font-semibold tabular-nums">{streaks.longestDays}</dd>
+          <dd className="st-kpi mt-1">{streaks.longestDays}</dd>
         </div>
       </dl>
     </div>
@@ -165,7 +172,7 @@ export function DisciplineBars({ rows }: { rows: DisciplineTotals[] }) {
             <span className="shrink-0 tabular-nums">{nl(row.hours)} u</span>
           </div>
           <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(2, (row.hours / max) * 100)}%` }} />
+            <div className="h-full rounded-full" style={{ width: `${Math.max(2, (row.hours / max) * 100)}%`, background: "var(--st-main)" }} />
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {nl(row.km)} km · {nl(row.rides)} ritten
@@ -199,7 +206,7 @@ export function RecordsList({ rides, periods }: { rides: RideRecord[]; periods: 
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-0.5">
-            <span className="font-semibold tabular-nums">{recordValue(record)}</span>
+            <span className="st-kpi st-sm">{recordValue(record)}</span>
             <ViewOnStrava activityId={record.ride.id} />
           </div>
         </li>
@@ -210,7 +217,7 @@ export function RecordsList({ rides, periods }: { rides: RideRecord[]; periods: 
             <p className="font-medium">{record.label}</p>
             <p className="truncate text-xs text-muted-foreground">{bucketTitle(record.key, record.per)}</p>
           </div>
-          <span className="shrink-0 font-semibold tabular-nums">{nl(record.km)} km</span>
+          <span className="st-kpi st-sm shrink-0">{nl(record.km)} km</span>
         </li>
       ))}
     </ul>

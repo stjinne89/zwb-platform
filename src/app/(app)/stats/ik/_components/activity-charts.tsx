@@ -5,10 +5,7 @@
 
 import { useState } from "react";
 import { PeriodChart } from "@/components/charts/period-chart";
-import { Toggle } from "./chart-tiles";
-
-const nl = (value: number, digits = 0) =>
-  value.toLocaleString("nl-NL", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+import { MAIN, SECOND, Toggle, nl } from "./chart-tiles";
 
 /** De zonekleuren van de workoutblokken, met paars voor een zevende zone. */
 const ZONE_COLORS = ["#7f7f7f", "#338cff", "#59bf59", "#ffcc3f", "#ff6639", "#ff330c", "#a03cc8"];
@@ -17,10 +14,16 @@ export type ZoneChartPoint = { label: string; title: string; hours: number[] };
 
 export function ZonesChart({ points, zoneIds, ariaLabel }: { points: ZoneChartPoint[]; zoneIds: string[]; ariaLabel: string }) {
   const [mode, setMode] = useState<"uren" | "pct">("uren");
+  const total = (point: ZoneChartPoint) => point.hours.reduce((sum, value) => sum + value, 0);
   const valueAt = (point: ZoneChartPoint, index: number) => {
     if (mode === "uren") return point.hours[index] ?? 0;
-    const total = point.hours.reduce((sum, value) => sum + value, 0);
-    return total > 0 ? Math.round(((point.hours[index] ?? 0) / total) * 1000) / 10 : 0;
+    const sum = total(point);
+    return sum > 0 ? Math.round(((point.hours[index] ?? 0) / sum) * 1000) / 10 : 0;
+  };
+  // Het deel boven de drempel: alles vanaf de vierde zone.
+  const hardShare = (point: ZoneChartPoint) => {
+    const sum = total(point);
+    return sum > 0 ? Math.round((point.hours.slice(3).reduce((a, b) => a + b, 0) / sum) * 100) : null;
   };
   return (
     <div className="space-y-3">
@@ -37,6 +40,14 @@ export function ZonesChart({ points, zoneIds, ariaLabel }: { points: ZoneChartPo
         ariaLabel={ariaLabel}
         labels={points.map((point) => point.label)}
         titles={points.map((point) => point.title)}
+        readout={{
+          series: zoneIds[0] ?? "",
+          value: (index) => (total(points[index]) > 0 ? Math.round(total(points[index]) * 10) / 10 : null),
+          note: (index) => {
+            const share = hardShare(points[index]);
+            return share == null ? null : <span className="tabular-nums">{share}% vanaf {zoneIds[3] ?? "Z4"}</span>;
+          },
+        }}
         series={zoneIds.map((id, index) => ({
           key: id,
           label: id,
@@ -44,7 +55,7 @@ export function ZonesChart({ points, zoneIds, ariaLabel }: { points: ZoneChartPo
           kind: "bar" as const,
           values: points.map((point) => valueAt(point, index)),
         }))}
-        format={(value) => (mode === "pct" ? `${nl(value)}%` : nl(value, Number.isInteger(value) ? 0 : 1))}
+        format={(value) => (mode === "pct" ? `${nl(value)}%` : `${nl(value, Number.isInteger(value) ? 0 : 1)} u`)}
       />
     </div>
   );
@@ -58,9 +69,10 @@ export function WbalChart({ points }: { points: WbalChartPoint[] }) {
       ariaLabel="W′bal-uitputting en arbeid boven FTP per periode"
       labels={points.map((point) => point.label)}
       titles={points.map((point) => point.title)}
+      readout={{ series: "wbal", note: () => <span>diepste W′bal in één rit</span> }}
       series={[
-        { key: "above", label: "kJ boven FTP", color: "var(--chart-2)", kind: "bar", values: points.map((p) => p.joulesAboveFtpKj) },
-        { key: "wbal", label: "Diepste W′bal", color: "var(--chart-1)", kind: "line", axis: "right", values: points.map((p) => p.maxWbalDepletionKj) },
+        { key: "above", label: "kJ boven FTP", color: SECOND, kind: "bar", values: points.map((p) => p.joulesAboveFtpKj) },
+        { key: "wbal", label: "Diepste W′bal", color: MAIN, kind: "line", axis: "right", peak: true, values: points.map((p) => p.maxWbalDepletionKj) },
       ]}
       format={(value) => nl(value)}
       formatRight={(value) => `${nl(value, 1)} kJ`}
@@ -77,9 +89,10 @@ export function EnduranceChart({ points }: { points: EnduranceChartPoint[] }) {
       labels={points.map((point) => point.label)}
       titles={points.map((point) => point.title)}
       zeroBased={false}
+      readout={{ series: "dec", note: () => <span>decoupling, lager is beter</span> }}
       series={[
-        { key: "dec", label: "Decoupling", color: "var(--chart-1)", kind: "line", values: points.map((p) => p.decoupling) },
-        { key: "ef", label: "EF", color: "var(--chart-2)", kind: "line", axis: "right", values: points.map((p) => p.efficiencyFactor) },
+        { key: "dec", label: "Decoupling", color: MAIN, kind: "line", area: true, values: points.map((p) => p.decoupling) },
+        { key: "ef", label: "EF", color: SECOND, kind: "line", axis: "right", values: points.map((p) => p.efficiencyFactor) },
       ]}
       format={(value) => `${nl(value, 1)}%`}
       formatRight={(value) => nl(value, 2)}
@@ -115,7 +128,8 @@ export function RecoveryChart({ points }: { points: RecoveryChartPoint[] }) {
         labels={points.map((point) => point.label)}
         titles={points.map((point) => point.title)}
         zeroBased={false}
-        series={[{ key: metric, label: def.label, color: "var(--chart-1)", kind: "line", values: points.map((p) => p[metric]) }]}
+        readout={{ series: metric }}
+        series={[{ key: metric, label: def.label, color: MAIN, kind: "line", area: true, values: points.map((p) => p[metric]) }]}
         format={(value) => `${nl(value, def.digits)} ${def.unit}`}
       />
     </div>

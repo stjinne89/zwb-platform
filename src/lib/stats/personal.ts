@@ -297,6 +297,14 @@ export function totalsBetween(rides: PersonalRide[], start: string, end: string)
   return totals;
 }
 
+/**
+ * Dezelfde dag een jaar eerder. Per week 52 weken terug, zodat een week op
+ * maandag blijft beginnen; anders twaalf maanden.
+ */
+export function yearEarlier(day: string, per: Granularity) {
+  return per === "week" ? addDays(day, -364) : addMonths(day, -12);
+}
+
 /** Hetzelfde venster een jaar eerder, voor de vergelijking. */
 export function previousYearWindow(start: string, end: string) {
   return { start: addMonths(start, -12), end: addMonths(end, -12) };

@@ -105,12 +105,8 @@ export default async function MyStatsPage({ searchParams }: { searchParams: Prom
   };
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        eyebrow="ZWB Stats"
-        title="Mijn statistieken"
-        actions={<HelpLink href="/hulp#mijn-statistieken" />}
-      />
+    <div className="st-page space-y-4">
+      <PageHeader title="Mijn statistieken" actions={<HelpLink href="/hulp#mijn-statistieken" />} />
       <StatsTabs active="/stats/ik" />
 
       {allRides.length === 0 ? (

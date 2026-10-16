@@ -3,6 +3,7 @@ import type { FtpAt } from "@/lib/training/ftp-history";
 import { toTrainingLoadPoints } from "@/lib/training/load-points";
 import {
   aggregate,
+  bucketEnd,
   bucketKey,
   bucketLabel,
   bucketsBetween,
@@ -19,8 +20,10 @@ import {
   streaks,
   totalsBetween,
   yearCumulative,
+  yearEarlier,
   type Granularity,
   type PersonalRide,
+  type Totals,
   type RangeKey,
 } from "@/lib/stats/personal";
 import { tileDef, type TileId } from "@/lib/stats/tiles";
@@ -74,25 +77,38 @@ export function StatsTile({ id, context }: { id: TileId; context: TileContext })
     case "totalen": {
       const before = previousYearWindow(span.start, span.end);
       return (
-        <Tile title={def.title} width={def.width}>
+        <Tile title={def.title} width={def.width} actions={<span className="text-xs text-muted-foreground">▲▼ t.o.v. vorig jaar</span>}>
           <TotalsGrid now={totalsBetween(rides, span.start, span.end)} before={totalsBetween(rides, before.start, before.end)} />
         </Tile>
       );
     }
     case "volume": {
       const rows = aggregate(inWindow, keys, per);
+      const openEnd = keys.length > 0 && bucketEnd(keys.at(-1)!, per) > today;
+      const round = (totals: Totals) => ({
+        km: Math.round(totals.km),
+        hours: Math.round(totals.hours * 10) / 10,
+        elevation: Math.round(totals.elevation),
+        tss: Math.round(totals.tss),
+        kilojoules: Math.round(totals.kilojoules),
+        rides: totals.rides,
+      });
+      // Dezelfde periode een jaar eerder. Voor de lopende periode tot dezelfde
+      // dag, anders vergelijk je een halve maand met een hele.
+      const previous = keys.map((key, index) => {
+        const end = openEnd && index === keys.length - 1 ? today : bucketEnd(key, per);
+        const totals = totalsBetween(rides, yearEarlier(bucketStart(key, per), per), yearEarlier(end, per));
+        return totals.rides > 0 ? round(totals) : null;
+      });
       return (
         <Tile title={def.title} width={def.width}>
           <VolumeChart
+            openEnd={openEnd}
             points={rows.map((row, index) => ({
               label: labels[index],
               title: titles[index],
-              km: Math.round(row.km),
-              hours: Math.round(row.hours * 10) / 10,
-              elevation: Math.round(row.elevation),
-              tss: Math.round(row.tss),
-              kilojoules: Math.round(row.kilojoules),
-              rides: row.rides,
+              ...round(row),
+              previous: previous[index],
             }))}
           />
         </Tile>

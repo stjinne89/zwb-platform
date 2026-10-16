@@ -152,6 +152,66 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 
 ---
 
+> **Mijn statistieken: het design "tegels" en grafieken die praten, 2026-10-16 — gebouwd, lokaal getest; niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar vond dat `/stats/ik` te veel op het oude design leunde
+> en wilde de grafieken "een stuk sprekender".
+>
+> **Wat.**
+> - **De grafiek praat** (`src/components/charts/period-chart.tsx`, geldt in
+>   beide designs). Boven elke grafiek staat een groot leescijfer voor de laatste
+>   periode, en het loopt mee met je muis of vinger. Daarom is er geen zwevende
+>   tooltip: het cijfer staat nooit onder je duim. Daarnaast:
+>   - De periode waar je naar kijkt licht goud op ("jij, nu" uit het
+>     kleurbeleid), net als het beste punt (stip met waarde).
+>   - Vlakken onder de hoofdlijn.
+>   - Volume krijgt per staaf een streepje voor dezelfde periode vorig jaar
+>     (`yearEarlier` in `src/lib/stats/personal.ts`: per week 52 weken terug,
+>     zodat de week op maandag blijft beginnen). De lopende periode vergelijkt
+>     tot dezelfde dag, en het gemiddelde van de afgesloten periodes staat als
+>     stippellijn.
+>   - De lopende periode is gearceerd met de schuine banen van het tenue.
+>   - Het leescijfer zegt per grafiek wat ertoe doet: ▲/▼ tegenover vorig jaar,
+>     "km voor op 2025" bij jaar op jaar, het aandeel vanaf Z4 bij de zones.
+> - Kleuren via tokens op `.st-page` (`globals.css`):
+>   - `--st-main` voor je eigen reeks: in "tegels" teal (training en je eigen
+>     cijfers), in klassiek de bestaande `--chart-1`;
+>   - `--st-hi` goud;
+>   - `--st-soft` voor de vergelijking.
+>
+>   Er zijn geen nieuwe tinten bijgekomen; in donker "tegels" is de teal
+>   gemengd met wit, anders verdwijnt hij op nachtpetrol.
+> - **"Tegels" op deze pagina:**
+>   - Club en Ik zijn pijlers zoals bij ZWBeter (`StatsTabs`, nu
+>     design-afhankelijk): Club in sage, Ik in teal, en waar je bent het paneel
+>     met de gouden lijn.
+>   - Leescijfers en totalen in de dunne Barlow (`.st-num`, `.st-kpi`).
+>   - Tegelkoppen in de lichte onderkast (`.st-tile-title`).
+>   - Kalender, disciplines en records in de hoofdkleur.
+> - Totalen zonder kaartjes in de kaart: losse grote cijfers, met per cijfer
+>   ▲/▼ % en één bijschrift "t.o.v. vorig jaar". Op een telefoon is het cijfer
+>   in "tegels" een stap kleiner.
+> - De paginakop verloor zijn bovenkopje.
+> - Op `/hulp#mijn-statistieken` staat hoe je een grafiek leest.
+>
+> **Bewust niet gedaan.**
+> - Gekleurde tegels voor de statistieken zelf: volgens het kleurbeleid is een
+>   gekleurd vlak klikbaar, en deze panelen leiden nergens heen.
+> - De clubpagina `/stats` in dezelfde stijl: buiten deze vraag. Alleen de
+>   tabbalk is gedeeld.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon, vitest 2463 geslaagd, `npm run build` geslaagd. Detector van impeccable:
+> één advies (een losse lettermaat), verholpen. Bekeken op een tijdelijke
+> voorbeeldpagina (niet gecommit) met verzonnen data: "tegels" licht en donker
+> op desktop en 375 px, klassiek op desktop. Daar gezien en verholpen: het
+> gemiddeldelabel liep door een staaf en Totalen was op de telefoon te lang.
+>
+> **Niet geverifieerd.** De echte pagina ingelogd in het design "tegels" via de
+> schakelaar.
+
+---
+
 > **Mijn statistieken, ronde 3: tijd per zone, W′bal, duurvermogen en herstel uit intervals.icu, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, `5288920`). Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >

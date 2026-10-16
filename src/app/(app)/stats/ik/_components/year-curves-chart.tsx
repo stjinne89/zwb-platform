@@ -12,7 +12,8 @@ import { logScale, niceStep } from "@/lib/charts/scale";
 import type { CompactPoint } from "@/lib/stats/curves";
 import { Toggle } from "./chart-tiles";
 
-const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+/** Dit jaar in de hoofdkleur, vorig jaar in de tweede, de jaren daarvoor grijs. */
+const COLORS = ["var(--st-main)", "var(--st-second)", "var(--st-soft)", "var(--st-soft)", "var(--st-soft)"];
 const TICKS = [5, 30, 60, 300, 1200, 3600, 18000];
 const TICKS_COMPACT = [5, 60, 1200, 18000];
 

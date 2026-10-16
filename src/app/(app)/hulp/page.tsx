@@ -1449,6 +1449,18 @@ export default function HelpPage() {
           <li className="flex gap-2">
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <span>
+              <strong className="text-foreground">Zo lees je een grafiek.</strong>{" "}
+              Het grote cijfer bovenaan hoort bij de laatste periode; schuif
+              met je vinger of muis over de grafiek en het cijfer loopt mee. Goud
+              is de periode waar je naar kijkt en je beste punt. Een streepje
+              over een staaf is dezelfde periode een jaar eerder, de
+              stippellijn is je gemiddelde, en een gestreepte staaf is een
+              periode die nog loopt.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
               Alles komt uit je ritten op het platform: via Strava, intervals.icu
               of je eigen upload. Bij een upload (CSV, GPX of FIT) bewaren we
               geen vermogen of hartslag, dus die ritten tellen alleen mee voor

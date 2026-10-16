@@ -982,6 +982,82 @@ a.tg-row:focus-visible,
   margin-top: 1.75rem;
 }
 
+/* ---------- Mijn statistieken (/stats/ik) ----------
+   Grafieken die praten: boven elke grafiek een groot leescijfer dat de
+   aanwijzer volgt. Kleur in de grafiek: de hoofdkleur voor je eigen reeks, goud
+   voor de periode waar je naar kijkt en voor je beste punt (jij, nu), grijs
+   voor de vergelijking met vorig jaar. In "tegels" is de hoofdkleur teal:
+   training en je eigen cijfers. */
+.st-page {
+  --st-main: var(--chart-1);
+  --st-second: var(--chart-2);
+  --st-hi: var(--zwb-gold);
+  --st-soft: color-mix(in oklab, var(--foreground) 34%, transparent);
+}
+.dark .st-page {
+  --st-hi: var(--foreground);
+}
+.st-num {
+  font-size: 2.25rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.st-kpi {
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+}
+[data-design="tegels"] .st-page {
+  --st-main: var(--tg-zwbeter);
+  --st-second: var(--tg-club);
+  --st-hi: var(--tg-vandaag);
+}
+.dark [data-design="tegels"] .st-page {
+  --st-main: color-mix(in oklab, var(--tg-zwbeter) 45%, white);
+}
+[data-design="tegels"] :is(.st-num, .st-kpi) {
+  font-family: var(--tg-display);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+}
+[data-design="tegels"] .st-num {
+  font-size: 3.375rem;
+  line-height: 0.95;
+}
+[data-design="tegels"] .st-kpi {
+  font-size: 2.75rem;
+  line-height: 0.95;
+}
+@media (max-width: 639.98px) {
+  [data-design="tegels"] .st-kpi {
+    font-size: 2.25rem;
+  }
+}
+.st-kpi.st-sm {
+  font-size: 1.375rem;
+}
+[data-design="tegels"] .st-kpi.st-sm {
+  font-size: 2rem;
+}
+/* Tegelkoppen in de lichte onderkast van het design, niet als klein label. */
+[data-design="tegels"] .st-page h2.st-tile-title {
+  font-size: 1.625rem;
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+/* Club en Ik als pijlers, zoals bij ZWBeter: Club in sage (de club), Ik in
+   teal (je eigen cijfers); waar je bent is het paneel met de gouden lijn. */
+.tg-pillar.tg-club:not([aria-current="page"]) {
+  background: var(--tg-bg);
+  color: var(--tg-fg);
+}
+
 /* ---------- Jaarplan: de weg ----------
    Het jaar van boven naar beneden, als een weg van bovenaf gezien. Links het
    wegdek, rechts wat er langs ligt. Het wegdek draagt de boodschap:
