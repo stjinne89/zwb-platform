@@ -11,6 +11,7 @@
 //   node scripts/zwift-playerstate-probe.mjs --ids 111,222 --minutes 10
 //   node scripts/zwift-playerstate-probe.mjs --ids 111 --subgroup auto --minutes 10
 //   node scripts/zwift-playerstate-probe.mjs --ids 111 --minutes 1 --burst 20
+//   node scripts/zwift-playerstate-probe.mjs --ids 111 --subgroup auto --dropin --minutes 5
 //
 // --ids       eigen renners (Zwift-ID's); alleen van hen wordt de hartslag bewaard
 // --subgroup  Zwift-subgroep: ook het hele veld uit de inschrijvingen meten;
@@ -22,6 +23,10 @@
 //             /race-results/entries is twee per seconde per account)
 // --burst     na de meting N verzoeken direct achter elkaar voor de eerste
 //             renner, om de limiet te zien
+// --dropin    in plaats van per renner: elke --interval s één keer
+//             `/relay/dropin`, de lijst waaruit je in Zwift bij iemand aansluit.
+//             Die geeft per wereld renners met afstand, vermogen en snelheid. De
+//             vraag: hoeveel renners van de subgroep staan erin?
 //
 // Het serviceaccount deelt zijn limiet met het platform. Een --burst of een kleine
 // --gap met dat account kan tijdens een race de live ZRL-stand een 429 bezorgen;
@@ -182,6 +187,45 @@ export function toReading(raw) {
   };
 }
 
+// DropInWorldList → DropInWorld → DropInPlayer, ook uit Sauce' zwift.proto.
+const DROPIN_LISTS = { 8: "proPlayers", 9: "followees", 10: "others", 12: "pacerBots" };
+
+function intField(msg, no) {
+  const list = msg.get(no);
+  return list ? fieldValue(list[list.length - 1], "int") : null;
+}
+
+function floatField(msg, no) {
+  const list = msg.get(no);
+  return list ? fieldValue(list[list.length - 1], "float") : null;
+}
+
+/** Per wereld de renners in de drop-in-lijst; namen laten we weg. */
+export function decodeDropIn(buf) {
+  return (parseMessage(buf).get(1) ?? []).map((worldField) => {
+    const world = parseMessage(worldField.bytes);
+    const players = [];
+    for (const [no, list] of Object.entries(DROPIN_LISTS)) {
+      for (const field of world.get(Number(no)) ?? []) {
+        const p = parseMessage(field.bytes);
+        const speed = intField(p, 19);
+        players.push({
+          list,
+          athleteId: intField(p, 1),
+          distanceM: intField(p, 4),
+          timeS: intField(p, 5),
+          routeId: intField(p, 17) == null ? null : Number(p.get(17).at(-1).varint),
+          power: intField(p, 18),
+          speedKmh: speed == null ? null : Math.round(speed / 1e4) / 100,
+          wkg: floatField(p, 22),
+          eventCategory: intField(p, 23),
+        });
+      }
+    }
+    return { courseId: intField(world, 3), zwifters: intField(world, 5), players };
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Zwift
 
@@ -247,6 +291,65 @@ async function fetchState(creds, id) {
   const buf = new Uint8Array(await response.arrayBuffer());
   if (buf.length === 0) return { status: response.status, ms, bytes: 0 };
   return { status: response.status, ms, bytes: buf.length, ...decodePlayerState(buf) };
+}
+
+async function fetchDropIn(creds) {
+  const started = performance.now();
+  const response = await fetch(`${HOST}/relay/dropin`, {
+    headers: { ...HEADERS, accept: "application/x-protobuf-lite", authorization: await authHeader(creds) },
+  });
+  const ms = Math.round(performance.now() - started);
+  if (!response.ok) {
+    await response.arrayBuffer().catch(() => null);
+    return { status: response.status, ms };
+  }
+  const buf = new Uint8Array(await response.arrayBuffer());
+  return { status: response.status, ms, bytes: buf.length, worlds: decodeDropIn(buf) };
+}
+
+async function runDropIn({ creds, ids, ownSet, out, deadline, interval }) {
+  const wanted = new Set(ids.map(Number));
+  const seenEver = new Set();
+  const perRequest = [];
+  const statuses = new Map();
+  let shown = false;
+  while (Date.now() < deadline) {
+    const roundStart = Date.now();
+    const result = await fetchDropIn(creds);
+    statuses.set(result.status, (statuses.get(result.status) ?? 0) + 1);
+    const line = { at: Date.now(), dropin: true, status: result.status, ms: result.ms, bytes: result.bytes };
+    if (result.worlds) {
+      const all = result.worlds.flatMap((w) => w.players);
+      const matched = all.filter((p) => wanted.has(p.athleteId));
+      for (const p of matched) seenEver.add(p.athleteId);
+      perRequest.push({ total: all.length, matched: matched.length });
+      line.worlds = result.worlds.map((w) => ({
+        courseId: w.courseId,
+        zwifters: w.zwifters,
+        listed: Object.fromEntries(Object.values(DROPIN_LISTS).map((l) => [l, w.players.filter((p) => p.list === l).length])),
+      }));
+      line.matched = matched.map(({ list, ...p }) => ({ ...p, list, own: ownSet.has(String(p.athleteId)) }));
+      if (!shown) {
+        shown = true;
+        console.log(`\nEerste dropin (${result.bytes} bytes): ${result.worlds.length} werelden, ${all.length} renners in de lijsten, ${matched.length} van de ${ids.length} uit de meting.`);
+        for (const w of line.worlds) console.log(`  course ${w.courseId}: ${w.zwifters} zwifters, lijsten ${JSON.stringify(w.listed)}`);
+      }
+    }
+    out.write(`${JSON.stringify(line)}\n`);
+    process.stdout.write(`\rDropin-verzoeken: ${perRequest.length + (result.worlds ? 0 : 1)}`);
+    if (result.status === 429) {
+      console.log(`\n429; ${BACKOFF_MS / 1000} s pauze.`);
+      await sleep(BACKOFF_MS);
+      continue;
+    }
+    const wait = interval * 1000 - (Date.now() - roundStart);
+    if (wait > 0) await sleep(wait);
+  }
+  console.log("\n\n=== Samenvatting dropin ===");
+  console.log(`Statussen: ${[...statuses].map(([s, n]) => `${s}×${n}`).join(", ")}`);
+  console.log(`Renners per antwoord: ${spread(perRequest.map((r) => r.total), "")}`);
+  console.log(`Daarvan uit de meting: ${spread(perRequest.map((r) => r.matched), "")} (van ${ids.length})`);
+  console.log(`Ooit gezien uit de meting: ${seenEver.size} van ${ids.length}`);
 }
 
 async function fetchEntrantIds(creds, subgroupId, gap) {
@@ -348,6 +451,15 @@ async function main() {
   fs.mkdirSync(dir, { recursive: true });
   const file = join(dir, `zwift-playerstate-${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`);
   const out = fs.createWriteStream(file);
+
+  if (process.argv.includes("--dropin")) {
+    const deadline = Date.now() + minutes * 60_000;
+    console.log(`Dropin meten tot ${new Date(deadline).toLocaleTimeString("nl-NL")}, elke ${interval} s.`);
+    await runDropIn({ creds, ids, ownSet, out, deadline, interval });
+    out.end();
+    console.log(`\nPer verzoek: ${file}`);
+    return;
+  }
 
   const stats = {
     requests: 0,

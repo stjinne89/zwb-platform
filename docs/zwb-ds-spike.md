@@ -163,6 +163,8 @@ hoofdmap), één renner in de startvak van een event.
 
 Serviceaccount, `--subgroup auto`: subgroep `7381538`, 25 ingeschrevenen. Cijfers
 uit het log tot 14:35:42 (295 verzoeken); de run liep door tot 14:39.
+De logs van beide metingen zijn daarna bij het testen van het script per ongeluk
+gewist; de cijfers hier zijn alles wat ervan over is.
 
 - **Het hele veld komt terug.** 22 van de 25 renners gaven een status, 19 reden
   (snelheid > 0). 51 keer 404: renners die (nog) niet in de wereld waren.
@@ -194,3 +196,119 @@ De burst-test (stap 7) is niet meer nodig: de limiet is hiermee bekend.
 (`tests/unit/zwift-playerstate-probe.test.ts`), en het hele script één keer
 tegen een nagemaakt Zwift (login, inschrijvingen, 200/404/429, burst). **Niet**
 tegen Zwift zelf: dat is de meting.
+
+## Bouwplan route A: het raceoverzicht (voorstel, 2026-10-17)
+
+De eigenaar koos route A en vroeg een bouwplan, met een voorstel waar het
+overzicht in de app komt. Nog niet gebouwd; eerst de keuzes hieronder.
+
+### Nog één meting: de drop-in-lijst
+
+In Sauce' broncode staat een tweede bron: `/relay/dropin`, de lijst waaruit je in
+Zwift bij iemand aansluit. Eén verzoek geeft per wereld lijsten renners
+(`others`, `followees`, `proPlayers`, `pacerBots`) met `athleteId`, `distance`,
+`power`, `speed`, `wkg`, `x`/`y` en `routeId`, maar zonder `eventSubgroupId`.
+Staan de renners van een race daarin, dan is één verzoek om de paar seconden
+genoeg voor **alle** races tegelijk, en speelt de limiet van ~45 per minuut geen
+rol meer. Onbekend is hoeveel renners zo'n lijst bevat; voor de drop-in-knop
+zou een steekproef volstaan.
+
+Meten tijdens een race (sinds 2026-10-17 in het meetscript):
+
+```
+node scripts/zwift-playerstate-probe.mjs --ids <eigen Zwift-ID> --subgroup auto --dropin --minutes 5
+```
+
+De samenvatting zegt hoeveel van de ingeschreven renners in de lijst staan. Ook
+na te kijken in het log: of `distance` in de lijst gelijk loopt met de afstand
+in het event (in de startvak stond de afstand van de spelersstatus op 0).
+
+| Uitkomst | Databron | Wat het overzicht haalt |
+| --- | --- | --- |
+| Bijna het hele veld staat erin | dropin, elke 5 s, één verzoek voor alle races | elke 5 s, alle races tegelijk |
+| Weinig of niemand | spelersstatus per renner, ~40 per minuut verdeeld | 1 race: elke ~35 s; ZRL-avond met 7 divisies: elke paar minuten |
+
+In het tweede geval schat het overzicht de plek tussen twee metingen met de
+laatste snelheid, en ankert het op de sprint- en KOM-passages die het platform al
+ophaalt. Op een ZRL-avond met zeven divisies tegelijk is het dan grof; dat moet
+de eigenaar weten voordat er gebouwd wordt.
+
+### Waar het in de app komt
+
+**Eén nieuwe pagina, `/ds/[eventId]`: "ZWB DS".** Per ZWB-event met een
+Zwift-event, dus niet alleen ZRL maar ook clubraces, FRR en andere races in de
+kalender (`events.zwift_event_id`). Achter de login, in de app-schil. Gemaakt
+als tweede scherm: Zwift op de tablet, ZWB DS op de telefoon ernaast.
+
+Ingangen, allemaal plekken waar de race nu al staat:
+
+1. **Dashboard, "Mijn races".** Tijdens het racevenster (15 min voor de start
+   tot 2 uur erna, hetzelfde venster als nu) krijgt de tegel een rode knop
+   **ZWB DS**, voor elke race met een Zwift-event. Bij ZRL komt die naast de
+   huidige "Live stand".
+2. **Eventpagina, Raceinfo-kaart.** Knop **ZWB DS** naast "Pacingplan" en "Live
+   stand".
+3. **Live ZRL-stand** (`/live/zrl/[eventId]`): een knop naar ZWB DS, en in DS
+   een knop terug naar de stand. De stand zelf blijft publiek en ongewijzigd,
+   voor supporters en de Sauce-overlay.
+4. **`/hulp`:** wat ZWB DS is, hoe vaak het ververst, en de tip dat wie op een
+   computer zwift ook Sauce kan gebruiken. Geen uitleg in het scherm zelf
+   (AGENTS.md).
+
+Bewust niet: in het hoofdmenu (alleen nuttig tijdens een race), publiek (live
+data van tegenstanders), in de Sauce-overlay (wie Sauce heeft, heeft dit niet
+nodig).
+
+### Wat op de pagina staat
+
+Van boven naar beneden, op een telefoon in één kolom:
+
+- **Kop:** racenaam, de subgroep (standaard die van het ingelogde lid, anders die
+  met de meeste ZWB-renners; wisselen met chips), en "bijgewerkt 12 s geleden".
+- **Koersbalk:** de route als balk van start tot finish, met sprints en KOM's
+  (uit `route-segments.json`), de groepen als stippen en ZWB-renners in
+  clubkleur. Een hoogteprofiel kan later, als het pacingplan er een voor de
+  route heeft.
+- **Groepen:** van voor naar achter, per groep het aantal renners, de
+  achterstand op kop in seconden, en welke ZWB-renners erin zitten. Een groep
+  openklappen toont de renners met W/kg.
+- **Onze renners:** per ZWB-renner de plek in het veld, achterstand op kop, nog
+  te rijden kilometers, en de volgende sprint of KOM over zoveel km.
+- **Bij ZRL:** de huidige stand van het team in één regel, met de knop naar de
+  volledige stand.
+
+Geen hartslag van wie dan ook (gezondheidsgegeven), geen kaart.
+
+### Bouwstappen
+
+0. **Dropin-meting** in een race (hierboven). Bepaalt de databron.
+1. **Pure module** `src/lib/ds/field.ts`: van metingen (renner, afstand,
+   snelheid, tijdstip) naar plekken, groepen en achterstanden op één moment,
+   met schatten tussen metingen. Unit-tests met verzonnen velden.
+2. **Zwift-kant:** protobuf-decoder in `src/lib/zwift/` (uit het meetscript),
+   ophalen in `zwift-club.ts` met een apart account (`ZWIFT_DS_USERNAME` /
+   `ZWIFT_DS_PASSWORD` in Netlify). Dropin: één cache-item voor alle races, 5 s.
+   Spelersstatus: een gedeeld budget over alle Netlify-instanties, met de
+   laatste status per renner in een kleine tabel (migratie), na de race leeg.
+3. **Snapshot** `loadDsView(eventId)`: event → Zwift-event → subgroepen →
+   inschrijvingen → ZWB-renners (Zwift-ID's van leden) → veld.
+4. **Pagina** `/ds/[eventId]`, ververst elke 15 s zolang het tabblad zichtbaar
+   is (patroon van `AutoRefresh`), alleen in het racevenster.
+5. **Ingangen**, `/hulp`, en de privacyverklaring (tekst eerst aan de eigenaar).
+6. **Proef in een echte race** door de eigenaar, dan pas pushen.
+
+### Kosten en risico's
+
+- **Netlify:** elke kijker ververst elke 15 s: 240 aanroepen per kijker per uur.
+  Twintig kijkers bij een race van een uur: 4.800. Nog niet tegen het tegoed
+  gelegd.
+- **Zwift:** apart account, zodat een blokkade het serviceaccount niet raakt.
+  Bij de dropin-route is de belasting vast (12 per minuut), los van het aantal
+  races en kijkers.
+- **Featurepauze:** het bestuur overweegt die nog.
+
+### Keuzes voor de eigenaar
+
+1. Alleen voor ingelogde leden (voorstel), of publiek zoals de live stand?
+2. W/kg van tegenstanders tonen (voorstel: ja, dat toont Zwift ook in het spel)?
+3. Ook voor de Omnium (`omnium_edition_events`), of eerst alleen de kalender?

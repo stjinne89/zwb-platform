@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-expect-error -- los .mjs-script zonder typen
-import { decodePlayerState, toReading } from "../../scripts/zwift-playerstate-probe.mjs";
+import { decodeDropIn, decodePlayerState, toReading } from "../../scripts/zwift-playerstate-probe.mjs";
 
 // Een PlayerState zoals Zwift hem zou sturen, met de hand opgebouwd: zo is de
 // decoder te toetsen zonder Zwift-inloggegevens.
@@ -81,5 +81,29 @@ describe("zwift-playerstate-probe", () => {
   it("geeft een lege status zonder velden", () => {
     expect(decodePlayerState(new Uint8Array()).raw).toEqual({});
     expect(toReading({}).cadence).toBe(0);
+  });
+
+  it("leest de drop-in-lijst per wereld, zonder namen", () => {
+    const bytes = (no: number, inner: number[]) => [...varint(BigInt((no << 3) | 2)), ...varint(BigInt(inner.length)), ...inner];
+    const player = (id: number) => [
+      ...int(1, id),
+      ...bytes(2, [...new TextEncoder().encode("Naam")]),
+      ...int(4, 12_000),
+      ...int(18, 280),
+      ...int(19, 40_000_000),
+      ...float(22, 3.5),
+    ];
+    const world = [...int(3, 7), ...int(5, 1234), ...bytes(10, player(5)), ...bytes(9, player(6))];
+    const [decoded] = decodeDropIn(new Uint8Array(bytes(1, world)));
+    expect(decoded.courseId).toBe(7);
+    expect(decoded.zwifters).toBe(1234);
+    expect(decoded.players).toHaveLength(2);
+    expect(decoded.players.find((p: { athleteId: number }) => p.athleteId === 5)).toMatchObject({
+      list: "others",
+      distanceM: 12_000,
+      power: 280,
+      speedKmh: 40,
+    });
+    expect(JSON.stringify(decoded)).not.toContain("Naam");
   });
 });

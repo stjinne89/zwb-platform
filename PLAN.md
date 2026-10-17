@@ -9788,6 +9788,15 @@ met het serviceaccount: in die minuten kreeg het mogelijk ook het platform 429's
 Keuze ligt bij de eigenaar; zie
 [zwb-ds-spike.md](docs/zwb-ds-spike.md#tweede-meting-2026-10-17-1428-1435-eigenaar-hele-subgroep).
 
+**Bouwplan route A, dezelfde dag (voorstel, niet gebouwd).** De eigenaar koos het
+raceoverzicht. Voorstel: een pagina `/ds/[eventId]` achter de login, voor elke
+race met een Zwift-event, met ingangen op het dashboard ("Mijn races"), de
+Raceinfo-kaart en de live ZRL-stand; uitleg op `/hulp`. Eerst nog een meting:
+`/relay/dropin` geeft per wereld renners met afstand en vermogen in één verzoek
+(`--dropin` in het meetscript, getest tegen een nagemaakt Zwift en met een
+unit-test). Staat het veld daarin, dan vervalt de limiet als probleem. Plan,
+plaatsing en open keuzes: [zwb-ds-spike.md](docs/zwb-ds-spike.md#bouwplan-route-a-het-raceoverzicht-voorstel-2026-10-17).
+
 ### Opgeleverd — Kennisartikel Intervallen: tempo, drempel, VO2max en anaeroob
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
