@@ -185,7 +185,7 @@ drie 2026-10-16).
 
 ---
 
-> **Design tegels: lijsten groeien niet meer breder dan hun kaart, 2026-10-17 — gebouwd en ingelogd op 375 px gemeten; niet gepusht. Geen migratie.**
+> **Design tegels: lijsten groeien niet meer breder dan hun kaart, 2026-10-17 — gebouwd en ingelogd op 375 px gemeten; gepusht naar `main` (eigenaar, 2026-10-17, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
 > Commit: de commit die dit blok toevoegt, op `claude/impeccable-design-audit-9d704d`.
 >
 > **Waarom.** Op Stats → Ik was de pagina op een telefoon van 375 px 612 px
