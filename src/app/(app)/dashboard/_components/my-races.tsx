@@ -10,10 +10,11 @@
 // van het dashboard niet ophouden.
 
 import Link from "next/link";
-import { Flag, Radio } from "lucide-react";
+import { Activity, Flag, Radio } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { InlineMoreLink, SectionHeader } from "@/components/app-ui";
 import { CLUB_RACE_TYPES, EVENT_TYPE_LABELS } from "@/lib/event-types";
+import { zwiftDsConfigured } from "@/lib/events/zwift-club";
 
 type RaceEvent = {
   id: string;
@@ -38,6 +39,8 @@ type MyRace = {
   status: RaceStatus;
   lineup: Array<{ name: string; isMe: boolean }>;
   liveHref: string | null;
+  /** ZWB DS (docs/zwb-ds-spike.md): elke race met een Zwift-event, in hetzelfde venster. */
+  dsHref: string | null;
 };
 
 const EVENT_COLUMNS = "id, title, type, start_at, team_id, parent_event_id, zwift_event_id";
@@ -187,13 +190,20 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
     return list.sort((a, b) => a.name.localeCompare(b.name, "nl"));
   }
 
-  function liveHref(event: RaceEvent) {
-    if (event.type !== "zrl" || !event.team_id || !event.zwift_event_id) return null;
+  function inLiveWindow(event: RaceEvent) {
     const start = new Date(event.start_at).getTime();
     const t = now.getTime();
-    return t >= start - LIVE_LEAD_MS && t <= start + STARTED_GRACE_MS
-      ? `/live/zrl/${event.id}`
-      : null;
+    return t >= start - LIVE_LEAD_MS && t <= start + STARTED_GRACE_MS;
+  }
+
+  function liveHref(event: RaceEvent) {
+    if (event.type !== "zrl" || !event.team_id || !event.zwift_event_id) return null;
+    return inLiveWindow(event) ? `/live/zrl/${event.id}` : null;
+  }
+
+  const dsOn = zwiftDsConfigured();
+  function dsHref(event: RaceEvent) {
+    return dsOn && event.zwift_event_id && inLiveWindow(event) ? `/ds/${event.id}` : null;
   }
 
   function teamRace(event: RaceEvent): MyRace {
@@ -213,6 +223,7 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
       status,
       lineup,
       liveHref: liveHref(event),
+      dsHref: dsHref(event),
     };
   }
 
@@ -244,6 +255,7 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
       status: availability.get(key) ?? null,
       lineup: [],
       liveHref: null,
+      dsHref: null,
     });
   }
   for (const event of rsvpEvents) {
@@ -257,6 +269,7 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
       status: "yes",
       lineup: [],
       liveHref: liveHref(event),
+      dsHref: dsHref(event),
     });
   }
 
@@ -302,6 +315,15 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
                 >
                   <Radio className="size-3.5" />
                   Live stand
+                </Link>
+              )}
+              {race.dsHref && (
+                <Link
+                  href={race.dsHref}
+                  className="z-10 inline-flex items-center gap-1 bg-destructive px-2 py-1 text-xs font-semibold text-white"
+                >
+                  <Activity className="size-3.5" />
+                  ZWB DS
                 </Link>
               )}
             </span>
@@ -366,6 +388,15 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
                 >
                   <Radio className="size-3.5" />
                   Live stand
+                </Link>
+              )}
+              {race.dsHref && (
+                <Link
+                  href={race.dsHref}
+                  className="inline-flex items-center gap-1 rounded-full bg-destructive px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-destructive/90"
+                >
+                  <Activity className="size-3.5" />
+                  ZWB DS
                 </Link>
               )}
               <span

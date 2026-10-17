@@ -12,6 +12,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { Button } from "@/components/ui/button";
 import { freezeZrlResultNow, saveZrlTeamAssignment } from "./_actions";
+import { zwiftDsConfigured } from "@/lib/events/zwift-club";
+import { DS_AFTER_MS } from "@/lib/ds/schedule";
 
 type PageProps = {
   params: Promise<{ eventId: string }>;
@@ -159,6 +161,11 @@ export default async function ZrlLivePage({ params, searchParams }: PageProps) {
       <div className="space-y-2">
         <Header title={view.event.title} />
         <Status view={view} />
+        {access.user && zwiftDsConfigured() && view.fetchedAt <= view.startAt + DS_AFTER_MS && (
+          <Link href={`/ds/${view.event.id}`} className="text-sm underline">
+            ZWB DS
+          </Link>
+        )}
         {canAssign && !editing && view.fetchedAt >= view.startAt && (
           <form action={freezeZrlResultNow} className="flex flex-wrap items-center gap-3">
             <input type="hidden" name="event_id" value={view.event.id} />

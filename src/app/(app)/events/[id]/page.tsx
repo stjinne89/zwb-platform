@@ -81,6 +81,8 @@ import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { BackLink } from "@/components/app-ui";
 import { MemberLink } from "@/components/member-link";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
+import { zwiftDsConfigured } from "@/lib/events/zwift-club";
+import { inDsWindow } from "@/lib/ds/schedule";
 import { tipsForEvent } from "@/lib/zwbieb/data";
 import { TIP_COLUMNS, loadMembers, loadTopicCatalog, type TipRow } from "@/lib/zwbieb/queries";
 import { topicLabels } from "@/lib/zwbieb/topics";
@@ -761,6 +763,11 @@ export default async function EventDetailPage({
       : myRaceWithRoute
         ? `/events/${myRaceWithRoute.id}/pacing`
         : null;
+  // ZWB DS rond de start, hetzelfde venster als de knoppen op het dashboard.
+  const dsHref =
+    user && event.zwift_event_id && zwiftDsConfigured() && inDsWindow(new Date(event.start_at).getTime())
+      ? `/ds/${event.id}`
+      : null;
   const linksOf = (eventId: string | null | undefined) =>
     ((linkRows ?? []) as Array<EventLinkRow & { event_id: string }>).filter(
       (row) => row.event_id === eventId,
@@ -1316,6 +1323,7 @@ export default async function EventDetailPage({
       <RaceInfoCard
         pacingHref={pacingHref}
         liveHref={event.type === "zrl" && event.team_id && event.zwift_event_id ? `/live/zrl/${event.id}` : null}
+        dsHref={dsHref}
         racepasses={ownRacepasses}
         signupUrl={event.type === "zrl" ? null : zwiftSignupUrl}
         zwiftLinks={[

@@ -9740,6 +9740,73 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWB DS: raceoverzicht tijdens Zwift-races
+
+**2026-10-17.** Commit: de commit die dit blok toevoegt. Migratie
+`0247_zwb_ds.sql` (**nog niet toegepast**). Niet gepusht.
+
+**Waarom.** Leden die op een tablet zwiften of geen Sauce kunnen draaien, willen
+tijdens een race zien waar de groepen rijden. Onderzoek en metingen in het blok
+hieronder en in [zwb-ds-spike.md](docs/zwb-ds-spike.md). De eigenaar koos na de
+dropin-meting om te bouwen met de spelersstatus per renner, met de limiet zoals
+gemeten.
+
+**Wat er veranderde.**
+- Pagina `/ds/[eventId]` (achter de login): koersbalk met groepen, sprints/KOM's
+  en ZWB'ers; groepen met achterstand en ZWB-namen, open te klappen met W/kg;
+  per ZWB'er plek, achterstand, resterende km en volgende sprint of KOM; wie
+  binnen is. Kiest de Zwift-groep van de kijker, anders die met de meeste
+  ZWB'ers; wisselen met knoppen. Ververst elke 15 s binnen het venster.
+- Databron: `fetchPlayerState` in `zwift-club.ts` met een **eigen Zwift-account**
+  (`ZWIFT_DS_USERNAME`/`ZWIFT_DS_PASSWORD`; zonder die twee staat DS uit en
+  verschijnen de knoppen niet). Decoder `src/lib/zwift/player-state-pb.ts`, leest
+  geen hartslag.
+- Geen poller: elke verversing vraagt hooguit 8 renners op die aan de beurt zijn
+  (`src/lib/ds/schedule.ts`: eigen renners elke 10 s, anderen elke 20 s, wie niet
+  in de wereld is elke minuut), binnen een emmer in de database van 30 per minuut
+  tot 10 (`claim_zwb_ds_budget`, migr. 0247), samen hooguit 40 per minuut onder
+  de gemeten ~45. Laatste status per renner in `zwb_ds_rider_states`, na zes uur
+  gewist. Kijkt niemand, dan gaat er niets naar Zwift.
+- Rekenkern `src/lib/ds/field.ts`: schat iedereen door naar hetzelfde moment met
+  de laatste snelheid (hooguit 60 s), groepen bij meer dan 5 s ertussen, een
+  status ouder dan 3 minuten telt niet mee. Een status uit een ander event
+  (inrijden) telt niet.
+- Ingangen: knop ZWB DS op het dashboard ("Mijn races") en in de Raceinfo-kaart,
+  van 15 minuten voor tot 2 uur na de start, voor elke race met Zwift-event; link
+  op de live ZRL-stand, en "Live stand" op DS bij ZRL. Uitleg op `/hulp` (Teams en
+  wedstrijden).
+- `fetchEntrants` geeft een gewicht mee als Zwift het levert (voor W/kg); anders
+  toont DS watt.
+
+**Bewust niet gebouwd.** Hartslag van wie dan ook. Een kaart. De Omnium (keuze
+eigenaar: eerst de kalender). Meer Zwift-accounts om de limiet te omzeilen
+(grijs gebied in de Zwift-voorwaarden). De volg-route (gevolgde renners staan in
+`/relay/dropin`): niet getest, de eigenaar koos direct bouwen. Publiek maken.
+
+**Gevolg van de limiet.** Bij één race tegelijk is een renner elke ~20 à 50 s
+gemeten; op een ZRL-avond met zeven divisies tegelijk elke paar minuten, en is
+het overzicht grof.
+
+**Getest:** unit-tests (`tests/unit/zwb-ds.test.ts`: doorschatten, groepen,
+binnen, oude status, W/kg, volgende sprint, keuzevolgorde, venster, decoder),
+`tsc`, ESLint op de gewijzigde bestanden, de volledige unit-suite (drie
+time-outs bij gelijktijdig draaien, los groen). `/live/zrl` compileert in de
+dev-server; `/ds` alleen via `tsc` (zonder inlog stuurt de proxy door).
+
+**Niet geverifieerd.**
+- De migratie (geen Docker/Supabase-config). Tot hij is toegepast, toont DS
+  "niet bij te werken" en vraagt het Zwift niets.
+- De pagina in de browser en tegen een echte race: er is lokaal geen
+  `ZWIFT_DS_*` en ik log niet in met een echt account.
+- Of `_eventDistance` de aanloop meetelt (de routelengte doet dat wel), en of
+  de startlijst een gewicht bevat. Zonder gewicht toont DS watt in plaats van
+  W/kg.
+- Netlify-tegoed: 240 aanroepen per kijker per uur, niet tegen het tegoed gelegd.
+
+**Nog te doen voor live:** migratie `0247` toepassen, `ZWIFT_DS_USERNAME` en
+`ZWIFT_DS_PASSWORD` in Netlify zetten (apart, gratis Zwift-account), de
+privacytekst (voorstel aan de eigenaar), pushen, en één race meekijken.
+
 ### Onderzocht — ZWB DS: live race-informatie zonder Sauce
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie, geen

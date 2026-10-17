@@ -22,6 +22,7 @@ import {
   parseMessage,
   type SegmentResult,
 } from "@/lib/zwift/segment-results-pb";
+import { decodePlayerState, type PlayerState } from "@/lib/zwift/player-state-pb";
 
 const TOKEN_URL =
   "https://secure.zwift.com/auth/realms/zwift/protocol/openid-connect/token";
@@ -41,6 +42,8 @@ export type ClubEntrant = {
   zwiftId: string;
   name: string;
   category: string | null;
+  /** Alleen als Zwift een gewicht meegeeft (ZWB DS rekent er W/kg mee). */
+  weightKg?: number;
 };
 
 export type ClubEventResult = {
@@ -119,12 +122,20 @@ function fetchToken(): Promise<string> {
 }
 
 async function requestToken(): Promise<string> {
+  const { accessToken, expiresAt } = await loginZwift(
+    process.env.ZWIFT_USERNAME ?? "",
+    process.env.ZWIFT_PASSWORD ?? "",
+  );
+  tokenCache = { accessToken, expiresAt };
+  return accessToken;
+}
 
+async function loginZwift(username: string, password: string): Promise<{ accessToken: string; expiresAt: number }> {
   const body = new URLSearchParams({
     client_id: ZWIFT_CLIENT_ID,
     grant_type: "password",
-    username: process.env.ZWIFT_USERNAME ?? "",
-    password: process.env.ZWIFT_PASSWORD ?? "",
+    username,
+    password,
   });
 
   const response = await fetch(TOKEN_URL, {
@@ -146,11 +157,61 @@ async function requestToken(): Promise<string> {
   if (!json.access_token) {
     throw new Error("Zwift-login leverde geen token op.");
   }
-  tokenCache = {
+  return {
     accessToken: json.access_token,
     expiresAt: Date.now() + (json.expires_in ?? 3600) * 1000,
   };
-  return json.access_token;
+}
+
+// ZWB DS heeft een eigen Zwift-account: Zwift staat ongeveer 45 spelersstatussen
+// per minuut per account toe, en DS mag die limiet niet delen met de live
+// ZRL-stand of de event-scan (docs/zwb-ds-spike.md).
+let dsTokenCache: { accessToken: string; expiresAt: number } | null = null;
+let dsTokenRequest: Promise<string> | null = null;
+
+export function zwiftDsConfigured(): boolean {
+  return Boolean(process.env.ZWIFT_DS_USERNAME && process.env.ZWIFT_DS_PASSWORD);
+}
+
+function fetchDsToken(): Promise<string> {
+  if (dsTokenCache && dsTokenCache.expiresAt > Date.now() + 30_000) {
+    return Promise.resolve(dsTokenCache.accessToken);
+  }
+  dsTokenRequest ??= loginZwift(process.env.ZWIFT_DS_USERNAME ?? "", process.env.ZWIFT_DS_PASSWORD ?? "")
+    .then((token) => {
+      dsTokenCache = token;
+      return token.accessToken;
+    })
+    .finally(() => {
+      dsTokenRequest = null;
+    });
+  return dsTokenRequest;
+}
+
+export type PlayerStateOutcome =
+  | { status: "ok"; state: PlayerState }
+  /** Niet in de wereld: Zwift geeft 404 (ook vlak voor iemand inlogt). */
+  | { status: "absent" }
+  | { status: "rate-limited" };
+
+/** De spelersstatus van één renner, met het DS-account. */
+export async function fetchPlayerState(zwiftId: string): Promise<PlayerStateOutcome> {
+  if (!/^\d+$/.test(zwiftId)) throw new Error("Ongeldig Zwift-ID.");
+  const token = await fetchDsToken();
+  const response = await safeFetch(`${new URL(apiBase()).origin}/relay/worlds/1/players/${zwiftId}`, {
+    cache: "no-store",
+    headers: {
+      ...ZWIFT_DEFAULT_HEADERS,
+      accept: "application/x-protobuf-lite",
+      authorization: `Bearer ${token}`,
+    },
+  });
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (response.status === 404) return { status: "absent" };
+  if (response.status === 429) return { status: "rate-limited" };
+  if (response.status !== 200) throw new Error(`Zwift-API gaf status ${response.status} voor een spelersstatus.`);
+  const state = decodePlayerState(bytes);
+  return state ? { status: "ok", state } : { status: "absent" };
 }
 
 async function authedJson(url: string): Promise<unknown> {
@@ -281,7 +342,19 @@ type EntrantRow = {
   lastName?: string | null;
   subgroupLabel?: string | null;
   label?: string | null;
+  weight?: number | null;
 };
+
+/**
+ * Zwift-profielen geven het gewicht in grammen. Niet tegen een echte startlijst
+ * gecontroleerd (2026-10-17); een kale kilogramwaarde nemen we ook aan.
+ */
+function entrantWeightKg(weight: unknown): number | null {
+  const value = Number(weight);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  const kg = value > 1000 ? value / 1000 : value;
+  return kg >= 30 && kg <= 250 ? Math.round(kg * 10) / 10 : null;
+}
 
 function entrantName(row: EntrantRow): string {
   if (row.name && row.name.trim()) return row.name.trim();
@@ -340,10 +413,12 @@ export async function fetchEntrants(subgroupIds: string[], options: { strict?: b
       if (options.strict && (!/^\d+$/.test(zwiftId) || !name)) throw new Error("Onvolledige Zwift-inschrijving.");
       if (!zwiftId || !name) continue;
       if (!byId.has(zwiftId)) {
+        const weightKg = entrantWeightKg(row.weight);
         byId.set(zwiftId, {
           zwiftId,
           name,
           category: row.subgroupLabel ?? row.label ?? null,
+          ...(weightKg ? { weightKg } : {}),
         });
       }
     }

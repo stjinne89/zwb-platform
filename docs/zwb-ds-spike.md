@@ -335,3 +335,17 @@ op het moment van plakken.
   per 5 s binnen, voor alle races tegelijk, en gaat het budget per renner
   helemaal naar de tegenstanders. Niet gemeten: of `followees` alle gevolgde
   renners geeft of een deel, en of `distance` daar de afstand in het event is.
+
+## Gebouwd (2026-10-17)
+
+Na de dropin-meting koos de eigenaar om te bouwen met de spelersstatus per
+renner. Wat er staat, wat bewust niet en wat nog niet geverifieerd is: zie het
+blok "Gebouwd — ZWB DS" in `PLAN.md`. Afwijkingen van het bouwplan hierboven:
+
+- Geen aparte API-route: de pagina zelf ververst elke 15 s en vraagt dan
+  hooguit 8 renners op (`src/lib/ds/snapshot.ts`).
+- Het budget is een emmer van 30 per minuut tot 10, niet "~40 verdeeld": zo
+  komt een minuut nooit boven 40, ook niet na een rustige periode.
+- Geen W/kg per groep, wel per renner, en alleen als de startlijst een gewicht
+  geeft; anders watt.
+

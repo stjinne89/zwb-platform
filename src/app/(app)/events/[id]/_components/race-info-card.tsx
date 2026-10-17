@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  Activity,
   ArrowUpRight,
   Bike,
   BookOpen,
@@ -94,6 +95,7 @@ export function RaceLinkChips({
 export function RaceInfoCard({
   pacingHref,
   liveHref,
+  dsHref,
   racepasses,
   signupUrl,
   zwiftLinks,
@@ -102,13 +104,15 @@ export function RaceInfoCard({
   pacingHref: string | null;
   /** ZRL: de live puntenstand. */
   liveHref: string | null;
+  /** ZWB DS: het raceoverzicht, rond de start van een race met Zwift-event. */
+  dsHref: string | null;
   /** ZRL: de WTRL-racepass(es) waarmee je je aanmeldt. */
   racepasses: RaceLink[];
   signupUrl: string | null;
   zwiftLinks: RaceLink[];
   links: RaceLink[];
 }) {
-  const hasActions = Boolean(pacingHref || liveHref || signupUrl || racepasses.length > 0);
+  const hasActions = Boolean(pacingHref || liveHref || dsHref || signupUrl || racepasses.length > 0);
   if (!hasActions && zwiftLinks.length === 0 && links.length === 0) {
     return null;
   }
@@ -147,6 +151,12 @@ export function RaceInfoCard({
             <Link href={liveHref} className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
               <Trophy className="size-3.5" />
               Live stand
+            </Link>
+          )}
+          {dsHref && (
+            <Link href={dsHref} className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
+              <Activity className="size-3.5" />
+              ZWB DS
             </Link>
           )}
           {signupUrl && (

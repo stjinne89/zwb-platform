@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-// @ts-expect-error -- los .mjs-script zonder typen
 import { decodeDropIn, decodePlayerState, toReading } from "../../scripts/zwift-playerstate-probe.mjs";
 
 // Een PlayerState zoals Zwift hem zou sturen, met de hand opgebouwd: zo is de
@@ -50,7 +49,7 @@ const buf = new Uint8Array([
 
 describe("zwift-playerstate-probe", () => {
   it("leest een PlayerState met de veldnummers uit Sauce' zwift.proto", () => {
-    const { raw, unknown } = decodePlayerState(buf);
+    const { raw, unknown } = decodePlayerState(buf) as { raw: Record<string, number>; unknown: number[] };
     expect(raw.athleteId).toBe(123456);
     expect(raw.power).toBe(312);
     expect(raw.timeGap).toBe(-4);

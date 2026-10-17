@@ -497,7 +497,7 @@ async function ownZwiftIds(teamId: string | null, eventIds: string[]): Promise<S
 }
 
 /** "Linda Kuiper [ZWB]", "Femke Vaessen [ZWB-Synergy]". */
-function hasZwbTag(name: string): boolean {
+export function hasZwbTag(name: string): boolean {
   return teamKey(extractTeamTag(name) ?? "").split(" ").includes("zwb");
 }
 
