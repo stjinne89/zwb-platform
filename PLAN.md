@@ -9743,7 +9743,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — ZWB DS: raceoverzicht tijdens Zwift-races
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Migratie
-`0247_zwb_ds.sql` (**nog niet toegepast**). Niet gepusht.
+`0249_zwb_ds.sql` (**nog niet toegepast**; eerst als 0247 geschreven, hernummerd
+omdat `main` intussen 0247 en 0248 had). Niet gepusht.
 
 **Waarom.** Leden die op een tablet zwiften of geen Sauce kunnen draaien, willen
 tijdens een race zien waar de groepen rijden. Onderzoek en metingen in het blok
@@ -9764,7 +9765,7 @@ gemeten.
 - Geen poller: elke verversing vraagt hooguit 8 renners op die aan de beurt zijn
   (`src/lib/ds/schedule.ts`: eigen renners elke 10 s, anderen elke 20 s, wie niet
   in de wereld is elke minuut), binnen een emmer in de database van 30 per minuut
-  tot 10 (`claim_zwb_ds_budget`, migr. 0247), samen hooguit 40 per minuut onder
+  tot 10 (`claim_zwb_ds_budget`, migr. 0249), samen hooguit 40 per minuut onder
   de gemeten ~45. Laatste status per renner in `zwb_ds_rider_states`, na zes uur
   gewist. Kijkt niemand, dan gaat er niets naar Zwift.
 - Rekenkern `src/lib/ds/field.ts`: schat iedereen door naar hetzelfde moment met
@@ -9803,7 +9804,7 @@ dev-server; `/ds` alleen via `tsc` (zonder inlog stuurt de proxy door).
   W/kg.
 - Netlify-tegoed: 240 aanroepen per kijker per uur, niet tegen het tegoed gelegd.
 
-**Nog te doen voor live:** migratie `0247` toepassen, `ZWIFT_DS_USERNAME` en
+**Nog te doen voor live:** migratie `0249` toepassen, `ZWIFT_DS_USERNAME` en
 `ZWIFT_DS_PASSWORD` in Netlify zetten (apart, gratis Zwift-account), de
 privacytekst (voorstel aan de eigenaar), pushen, en één race meekijken.
 

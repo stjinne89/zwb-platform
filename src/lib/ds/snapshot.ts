@@ -5,7 +5,7 @@ import "server-only";
 // Zwift geeft de status per renner en staat ~45 verzoeken per minuut per account
 // toe (docs/zwb-ds-spike.md). Er draait geen poller: elke keer dat iemand de
 // pagina ververst, vragen we een paar renners op die aan de beurt zijn, binnen
-// een budget dat alle kijkers en races delen (migr. 0247). Kijkt niemand, dan
+// een budget dat alle kijkers en races delen (migr. 0249). Kijkt niemand, dan
 // gaat er niets naar Zwift.
 
 import { unstable_cache } from "next/cache";

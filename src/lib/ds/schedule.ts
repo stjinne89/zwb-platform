@@ -1,6 +1,6 @@
 // ZWB DS: welke renners vragen we nu bij Zwift op?
 //
-// Het budget is ~30 statussen per minuut voor alle races samen (migr. 0247). Onze
+// Het budget is ~30 statussen per minuut voor alle races samen (migr. 0249). Onze
 // eigen renners gaan voor, wie het langst niet gemeten is daarna, en wie niet in
 // de wereld was (404) vragen we pas na een minuut opnieuw.
 
