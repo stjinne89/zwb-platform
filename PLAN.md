@@ -9663,7 +9663,7 @@ nieuwe cyclus; het samenstellen kiest daar de sessies) en de kampzwaarte op
 compliance en wellness (de factor 1,5/1,75/2 volgt alleen `experienceLevel`).
 De redenen van `recoverySignals` zelf neemt `planWeeks` niet over, zodat
 samenstellen of `index.ts` ze één keer melden.
-=======
+
 **Samenstellen, 2026-10-17.** Commit: de commit die deze alinea toevoegt. Geen
 migratie. `src/lib/training/engine/compose.ts`: `composePlan()` zet de weken uit
 de periodisering om in workouts op dagen, `planText()` maakt titel, summary en
@@ -9688,7 +9688,63 @@ overgangsrit als blokken met `burstSeconds` — het contract kent die vraag aan 
 catalogus niet, dus ze staan als notitie (TODO in de code); geen hersteltraining
 onder 90 min (een rustdag, niet in de uitvoer); minuten die niet in de
 beschikbare dagen passen worden niet geforceerd maar als reden gemeld.
->>>>>>> refs/heads/claude/motor-samenstellen-5a12db
+=======
+### Opgeleverd — Meetlat voor trainingsschema's, met nulmeting van de AI
+
+**2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Uitkomst en werkwijze: [schema-meetlat](docs/schema-meetlat.md).
+
+**Aanleiding.** ZWB onderzoekt of de OpenAI-aanroepen voor schema's (nieuw schema,
+bijwerking, dagelijkse aanpassing) kunnen worden vervangen door een eigen
+regelmotor op de workoutbibliotheek en de kennisbank. Daarvoor is eerst een
+objectieve maat nodig: de kwaliteit van AI-schema's werd nergens gemeten, en
+`insertPlanWorkouts()` repareerde achteraf alleen een paar dingen. Dezelfde
+controle moet straks AI- en motorschema's naast elkaar beoordelen
+(schaduwdraaien).
+
+**Wat er veranderde.**
+- `src/lib/training/schema-check.ts`: `checkTrainingPlan(input, workouts, { from, to })`
+  geeft een lijst bevindingen `{ regel, ernst, datum, toelichting }`. Puur en
+  deterministisch, en hergebruikt `minutesForDate`/`mondayKey`/`weekdayOf`
+  (availability.ts), `shiftDays`/`daysBetween`/`REBUILD_AFTER_REST_DAYS`
+  (season.ts) en `normalizeWorkoutBlocks`/`alignBlockIntensity`/`alignWorkoutIntensities`/
+  `powerRangePercentForBlock`/`OPTIONAL_REST_RIDE_MINUTES` (workouts.ts). Zeventien
+  regels: beschikbaarheid, vaste afspraken, weekplafond, piekweek ≥ 85%, groei ≤ 25%,
+  herstelweek, niet onder recentLoad, blok- en workoutintensiteit, drempelblokken,
+  boven FTP, korte herstelrit, rustdag als workout, taper zonder piek, sleutelsessies
+  op rij, sleutelsessie vóór race, plus ongeldige datum. Drempels en de gekozen
+  grenzen waar de prompt vaag is staan in de doc.
+- `tests/unit/training-schema-check.test.ts`: 34 tests.
+- `scripts/schema-meetlat.mjs`: haalt alle voltooide generaties op, toetst ze en
+  telt per regel, ook alleen over generaties waarvan de prompt de regel al bevatte
+  en over de laatste 30 dagen.
+
+**Uitkomst (420 generaties, 4.334 workouts).** Dag- en weekregels (plafond,
+beschikbaarheid, vaste afspraken, taper, sleutelsessies op rij) houdt de AI in de
+laatste maand vrijwel altijd vast. De vorm van de opbouw niet: in 13% van de
+recente generaties een sprong van meer dan een kwart tussen opbouwweken, in 8% een
+opbouwweek onder wat het lid nu rijdt, en in 13% blokken in de verkeerde zone.
+Promptregels werken wel zodra ze erin staan: 653 korte herstelritten vóór
+2026-09-19, nul daarna. Vier keer gaf de AI een kapotte datum terug (`2026-10-25},{`).
+
+**Bewust niet gedaan.**
+- **Iets aan de AI-flow of de UI veranderen.** De meetlat draait nergens in de app;
+  hij is een maat, geen vangnet. Of hij later in `insertPlanWorkouts()` komt, is
+  een apart besluit.
+- **Regels die over `cautions` of `summary` gaan** (een reden noemen, de FTP-test
+  aanraden), het ritme van `recentLoad.ridesPerWeek`, kamp-, protocol- en
+  voorkeurregels en titels. Die zijn niet hard te toetsen op de workouts alleen.
+- **De meting via de Supabase-connector.** Die geeft het resultaat terug in het
+  gesprek, en 10 MB aan generaties past daar niet in. Het script gebruikt de
+  gekoppelde Supabase CLI, dezelfde alleen-lezende route als `db-health.mjs`.
+
+**Niet geverifieerd.** De grenzen voor "sterk negatieve TSB" (≤ -20) en "hoge
+ramp_rate" (≥ 8), de marge rond "grofweg 60-70%" en de herkenning van een taper
+zijn keuzes van de meetlat, niet van de eigenaar. De groeiregel is getoetst op 25%
+terwijl de prompt tot 2026-10-16 "ongeveer 10%" zei. De bevindingen voor groei en
+recentLoad zijn met de hand nagelopen op een handvol generaties; dat is een
+steekproef, geen volledige controle.
+>>>>>>> refs/heads/claude/inspiring-diffie-6cd047
 
 ### Opgeleverd — Maandelijkse literatuurscan van de kennisbank
 
