@@ -9590,7 +9590,6 @@ dag-aanpassing volgen als eigen rondes hieronder.
   uitvoer is altijd opnieuw uit te rekenen. Zo is er ook geen migratie nodig.
 - *Coachchat, pacing en maaltijdherkenning.* Taalbegrip of buiten deze ronde.
 
-<<<<<<< HEAD
 **Dag-aanpassing, 2026-10-17.** `src/lib/training/engine/daily.ts`: de
 beslisboom uit `adaptiveDailyPrompt()`. Volgorde: rustperiode → niets; vandaag
 al gereden of een vaste afspraak → vandaag niets; zwaarder dan gepland gisteren
@@ -9637,7 +9636,7 @@ heet geen duurrit meer; kracht op lage cadans botst met de lage-cadansregel),
 de experimentele VO2max-varianten (horen bij een apart besluit in compose),
 en testen en warming-ups (geen sessievorm). Herstel krijgt in- en uitrijden
 van 5 minuten; dat compose herstel onder 90 minuten weglaat, is aan compose.
-=======
+
 **Periodisering, 2026-10-17.** Branch `claude/motor-periodisering-526b69`, geen
 migratie. `src/lib/training/engine/periodization.ts`: `planWeeks(input, window)`
 geeft per kalenderweek soort, volume (inclusief vaste afspraken), plafond,
@@ -9664,7 +9663,32 @@ nieuwe cyclus; het samenstellen kiest daar de sessies) en de kampzwaarte op
 compliance en wellness (de factor 1,5/1,75/2 volgt alleen `experienceLevel`).
 De redenen van `recoverySignals` zelf neemt `planWeeks` niet over, zodat
 samenstellen of `index.ts` ze één keer melden.
->>>>>>> refs/heads/claude/motor-periodisering-526b69
+=======
+**Samenstellen, 2026-10-17.** Commit: de commit die deze alinea toevoegt. Geen
+migratie. `src/lib/training/engine/compose.ts`: `composePlan()` zet de weken uit
+de periodisering om in workouts op dagen, `planText()` maakt titel, summary en
+cautions uit de `EngineReason`s. Per week: alleen dagen met beschikbare minuten,
+geen vaste afspraak, geen rustperiode; het aantal ritten volgt
+`recentLoad.ridesPerWeek` (één rit erbij als de gemiddelde rit anders meer dan
+1,5x de gewende duur wordt); de lange rit op de ruimste dag; sleutelvormen per
+doeltype, wisselend per week, nooit op opeenvolgende dagen of naast een race,
+test of zware vaste rit; de dag vóór een race of test openers; een toegezegde
+race vult de VO2max-plek van een ZRL-week; events die niet in `fixedWorkouts`
+staan komen er met hun eigen duur bij. Weinig tijd geeft sprintsessies,
+de overgangsperiode na het laatste A/B-mikpunt één rustige duurrit met sprints,
+hitte een notitie op een duurrit, lage cadans gaat als `lowCadence` naar de
+catalogus. Tests met een stub-catalogus en handgemaakte weken in
+`tests/unit/engine/compose.test.ts`; nog niet samen met de echte catalogus en
+periodisering gedraaid. *Eigen keuzes, niet uit de prompt:* een aangevinkte dag
+zonder minuten krijgt hooguit 300 min, de overgangsperiode duurt 28 dagen, en
+een FTP-test telt als sleutelsessie van zijn week. In een kamp gelden alleen de
+minuten van een apart ingevulde week (de prompt zet het kamp boven de
+standaardweek), anders 360 min per dag. *Bewust niet:* de sprints van de
+overgangsrit als blokken met `burstSeconds` — het contract kent die vraag aan de
+catalogus niet, dus ze staan als notitie (TODO in de code); geen hersteltraining
+onder 90 min (een rustdag, niet in de uitvoer); minuten die niet in de
+beschikbare dagen passen worden niet geforceerd maar als reden gemeld.
+>>>>>>> refs/heads/claude/motor-samenstellen-5a12db
 
 ### Opgeleverd — Maandelijkse literatuurscan van de kennisbank
 
