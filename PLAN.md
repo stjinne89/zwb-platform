@@ -9590,6 +9590,27 @@ dag-aanpassing volgen als eigen rondes hieronder.
   uitvoer is altijd opnieuw uit te rekenen. Zo is er ook geen migratie nodig.
 - *Coachchat, pacing en maaltijdherkenning.* Taalbegrip of buiten deze ronde.
 
+**Dag-aanpassing, 2026-10-17.** `src/lib/training/engine/daily.ts`: de
+beslisboom uit `adaptiveDailyPrompt()`. Volgorde: rustperiode → niets; vandaag
+al gereden of een vaste afspraak → vandaag niets; zwaarder dan gepland gisteren
+of vermoeid → de eerstvolgende sleutelsessie (drempel, VO2max, anaeroob) wordt
+rustige duur van hooguit 60 minuten, en een rustige rit van vandaag wordt een
+kwart korter; minder tijd → dezelfde vorm ingekort, anders rustige duur; fris
+op eigen melding → een rustige duurrit wordt intensieve duur als morgen geen
+sleutelsessie staat; een rit gevraagd op een vrije dag → rustige duur. Anders
+een lege lijst: het schema blijft. `currentPlan` kent geen blokken, dus een
+gewijzigde training wordt opnieuw uit de catalogus gebouwd. "Zwaarder" is
+≥ 20 % en ≥ 15 minuten langer dan gepland, of RPE ≥ 8 of gevoel zwaar/slecht;
+een rit tot 90 minuten met IF < 0,75 op een dag zonder training is de optionele
+rustdagrit, een verschoven training telt niet. In een kamp tellen TSB en extra
+minuten niet, alleen het lid zelf en de herstelwaarden. Getallen zijn keuzes
+van ZWB. Daarnaast `scripts/engine-export.mjs`: haalt de afgeronde generaties
+(invoer en AI-schema) op naar `.tmp/` voor het naspelen; 420 van de 459 hadden
+op 2026-10-17 een volledige invoer. **Bewust niet:** een training schrappen. Een
+aanpassing vervangt alleen de dagen die ze teruggeeft
+(`retireSupersededWorkouts` zonder bereik), dus een rustdag maken past niet in
+dit formaat; de motor verlicht in plaats daarvan.
+
 ### Opgeleverd — Maandelijkse literatuurscan van de kennisbank
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
