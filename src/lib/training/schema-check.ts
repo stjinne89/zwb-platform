@@ -239,12 +239,27 @@ export function checkTrainingPlan(
     }
 
     const askedToday = workout.date === today && input.today?.availableMinutes != null;
-    const limit = askedToday ? input.today!.availableMinutes! : availability ? minutesForDate(availability, workout.date) : null;
-    if (limit === 0) {
+    // In een kamp geldt alleen een week die het lid apart heeft ingevuld; de
+    // standaardweek en goal.availableDays wijken (defaultTrainingPrompt).
+    const inCamp = inPeriod(workout.date, "kamp");
+    const ownWeek = availability?.weeks.find((week) => week.weekStart === mondayKey(workout.date));
+    const limit = askedToday
+      ? input.today!.availableMinutes!
+      : inCamp
+        ? (ownWeek?.minutesByDay[weekdayOf(workout.date)] ?? null)
+        : availability
+          ? minutesForDate(availability, workout.date)
+          : null;
+    // Een toegezegd event heeft zijn eigen duur; die is een gegeven, geen keuze.
+    const isEvent =
+      workout.intensity === "race" && (input.upcomingEvents ?? []).some((event) => event.date === workout.date);
+    if (isEvent) {
+      // geen beschikbaarheidsoordeel
+    } else if (limit === 0) {
       add("beschikbaarheid", workout.date, `${minutes} min op een dag zonder beschikbare tijd.`);
     } else if (limit != null && minutes > limit) {
       add("beschikbaarheid", workout.date, `${minutes} min, beschikbaar ${limit} min.`);
-    } else if (limit == null && availableDays.size > 0 && !availableDays.has(weekdayOf(workout.date))) {
+    } else if (limit == null && !inCamp && availableDays.size > 0 && !availableDays.has(weekdayOf(workout.date))) {
       add("beschikbaarheid", workout.date, `${minutes} min op een dag buiten goal.availableDays.`);
     }
 
@@ -385,9 +400,27 @@ export function checkTrainingPlan(
     });
   }
 
+  // De taperzone is ruim (tot drie weken vóór het piekmoment). Een week daarin
+  // is pas taper als het volume echt zakt; tot dan loopt de opbouw door en kan
+  // de piekweek er nog in liggen.
+  weeks.forEach((week, index) => {
+    const prev = weeks[index - 1];
+    if (week.special === "taper" && prev && prev.special !== "taper" && prev.minutes > 0 && week.minutes >= prev.minutes * TAPER_STEP) {
+      week.special = null;
+    }
+  });
+
+  // Het piekmoment zelf (de race op de doeldatum of een A-mikpunt) is een
+  // afspraak van het lid en telt niet tegen het urenplafond van zijn week.
+  const peakDays = new Set(taperAnchors);
   for (const week of weeks) {
-    if (capMinutes != null && week.special !== "kamp" && week.aiMinutes > 0 && week.minutes > capMinutes) {
-      add("weekplafond", week.monday, `${hours(week.minutes)} gepland, plafond ${hours(capMinutes)}.`);
+    const sunday = shiftDays(week.monday, 6);
+    const peakMinutes = entries
+      .filter((entry) => entry.intensity === "race" && peakDays.has(entry.date) && entry.date >= week.monday && entry.date <= sunday)
+      .reduce((sum, entry) => sum + entry.minutes, 0);
+    const minutes = week.minutes - peakMinutes;
+    if (capMinutes != null && week.special !== "kamp" && week.aiMinutes > 0 && minutes > capMinutes) {
+      add("weekplafond", week.monday, `${hours(minutes)} gepland, plafond ${hours(capMinutes)}.`);
     }
   }
 

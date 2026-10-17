@@ -415,7 +415,8 @@ export function planWeeks(input: TrainingAiInput, window: PlanWindow): WeekPlan[
     });
     const last = slots.length - 1;
     const lastCeiling = frames[slots[last]].ceiling;
-    const target = lastCeiling != null ? Math.min(PEAK_SHARE * lastCeiling, caps[last]) : null;
+    // Naar boven op vijf minuten: het samenstellen rondt per rit af, en 84,9 % is geen 85 %.
+    const target = lastCeiling != null ? Math.min(Math.ceil((PEAK_SHARE * lastCeiling) / 5) * 5, caps[last]) : null;
     if (forcePeak && target != null && values[last] < target) {
       values[last] = target;
       for (let position = last - 1; position >= 0; position -= 1) {

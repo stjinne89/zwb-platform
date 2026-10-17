@@ -491,3 +491,59 @@ describe("checkTrainingPlan: eerste week van een bijwerking", () => {
     expect(rules(checkTrainingPlan(plan, [...week(MONDAY, [80, 80, 80]), ...week(day(7), [90, 90, 90])]))).toContain("onder-recente-belasting");
   });
 });
+
+describe("checkTrainingPlan: bijgesteld bij het naspelen van de regelmotor", () => {
+  it("laat in een kamp alleen een apart ingevulde week gelden, niet de standaardweek", () => {
+    const camp = input({
+      planWindow: window(1),
+      availability: { default: { ma: 0, di: 60, wo: 0, do: 60, vr: 0, za: 120, zo: 60 }, weeks: [] },
+      seasonPlan: { targets: [], periods: [{ title: "Kamp", from: MONDAY, to: day(6), kind: "kamp" }], nextTargetAfterPlan: null },
+    });
+    expect(rules(checkTrainingPlan(camp, [endurance(MONDAY, 180)]))).not.toContain("beschikbaarheid");
+
+    const own = input({
+      ...camp,
+      availability: { default: null, weeks: [{ weekStart: MONDAY, minutesByDay: { ma: 60 } }] },
+    });
+    expect(rules(checkTrainingPlan(own, [endurance(MONDAY, 180)]))).toContain("beschikbaarheid");
+  });
+
+  it("beoordeelt de duur van een toegezegd event niet op beschikbaarheid", () => {
+    const race = workout(day(6), "race", [block(360, "RPE 7-10", "race")], "Gran fondo");
+    const event = input({
+      planWindow: window(1),
+      availability: { default: { zo: 180 }, weeks: [] },
+      upcomingEvents: [{ title: "Gran fondo", type: "gran_fondo", date: day(6), durationMinutes: 360, distanceKm: 160, elevationM: 2500 }],
+    });
+    expect(rules(checkTrainingPlan(event, [race]))).not.toContain("beschikbaarheid");
+  });
+
+  it("telt de race op de doeldatum niet tegen het weekplafond", () => {
+    const race = workout(day(6), "race", [block(360, "RPE 7-10", "race")], "Gran fondo");
+    const fondo = input({
+      planWindow: window(1),
+      goal: { ...input().goal, type: "gran_fondo", targetDate: day(6), maxHoursPerWeek: 6 },
+    });
+    const workouts = [endurance(day(1), 60), endurance(day(3), 60), race];
+    expect(rules(checkTrainingPlan(fondo, workouts))).not.toContain("weekplafond");
+  });
+
+  it("ziet een piekweek in de taperzone zolang het volume daar nog niet zakt", () => {
+    // Gran fondo op dag 34: de zone van drie weken begint op dag 13, maar de
+    // opbouw loopt door tot en met week 3; pas week 4 zakt.
+    const fondo = input({
+      planWindow: window(5),
+      goal: { ...input().goal, type: "gran_fondo", targetDate: day(34), maxHoursPerWeek: 6 },
+      recentLoad: { ...input().recentLoad, hoursPerWeek: 4 },
+    });
+    const workouts = [
+      ...week(MONDAY, [80, 80, 100]),
+      ...week(day(7), [90, 90, 120]),
+      ...week(day(14), [100, 100, 110]),
+      ...week(day(21), [60, 60, 90]),
+      ...week(day(28), [45, 45, 60]),
+    ];
+    // Week 3 (310 min) is 86 % van 360: geen piekfout, ook al ligt hij in de zone.
+    expect(rules(checkTrainingPlan(fondo, workouts))).not.toContain("piekweek");
+  });
+});

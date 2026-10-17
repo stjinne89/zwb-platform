@@ -168,3 +168,67 @@ signalen wint de lichtere keuze.
   invoer, zonder te zeggen welke welke is. Volgt na het naspelen.
 
 Overstappen is een apart besluit van de eigenaar, op basis van die cijfers.
+
+## Stand na het naspelen (2026-10-17)
+
+Alle onderdelen zijn samengevoegd; `generateEnginePlan()` in
+`src/lib/training/engine/index.ts` is de ingang. `scripts/engine-export.mjs`
+haalt de opgeslagen generaties op, `scripts/engine-replay.mjs` draait de motor
+op elke invoer en legt beide schema's langs de meetlat. Uitkomst:
+[regelmotor-naspelen](regelmotor-naspelen.md).
+
+Generaties met minstens één fout volgens de meetlat, vanaf 2026-09-17 (de
+prompt had toen vrijwel alle regels):
+
+| Soort | Aantal | AI | Motor |
+|---|---:|---:|---:|
+| Dagelijkse aanpassing | 75 | 9 % | 0 % |
+| Bijwerking | 70 | 59 % | 19 % |
+| Nieuw schema | 4 | 2 | 1 |
+
+De motor faalt op geen enkele van de 420 invoeren. Zijn fouten zijn vooral
+één regelconflict (hieronder) en weken die net onder `recentLoad` of net boven
+het plafond uitkomen, bijvoorbeeld omdat een race maar een deel van een dag
+vult. De AI maakt vooral zonefouten (blok- en workoutintensiteit): die maakt
+de motor niet. Groeisprongen maakt hij minder vaak.
+
+De motor verandert bij de dagelijkse aanpassing veel minder: 7 % van de keren
+tegen 47 % bij de AI. Of de AI die andere 40 % terecht ingreep, zegt de meetlat
+niet: die toetst regels, geen trainingswaarde.
+
+### Open besluit: piekweek of groeigrens
+
+Ligt `recentLoad` ver onder het plafond (3 uur per week tegen 14), dan kunnen
+"piekweek ≥ 85 % van het plafond" en "nooit meer dan een kwart erbij" niet
+allebei. De periodisering kiest de groeigrens en zet een reden in cautions; de
+AI kiest meestal de piek. Daardoor scoort de motor op `piekweek` slechter (7 %
+tegen 1 % bij recente bijwerkingen) en op `opbouwgroei` beter (19 % tegen
+29 %). Welke regel voorgaat is een trainingskeuze voor de eigenaar.
+
+### Bijgesteld tijdens het samenvoegen
+
+- **Samenstellen.** Het piekmoment (doeldatum of A-mikpunt) telt niet als
+  volume van zijn week; een event op een dag met een vaste afspraak komt er niet
+  bij; een week die niet in de gekozen dagen past krijgt een rit erbij; een
+  sleutelsessie die langer uitvalt dan zijn deel gaat af van de lange of
+  langste duurrit, en boven het urenplafond vervalt de kortste duurrit;
+  afronden op vijf minuten brengt een week niet meer onder haar doel; een
+  opbouwweek groeit hooguit een kwart boven wat de vorige opbouwweek wérkelijk
+  kreeg (bijvoorbeeld na een week met zeven races), maar nooit onder
+  `recentLoad`; de piekweek is van die rem uitgezonderd.
+- **Periodisering.** Het piekdoel wordt naar boven afgerond op vijf minuten.
+- **Kalender.** De dag vóór een A- of B-mikpunt is licht, net als vóór een race.
+- **Dag-aanpassing.** Een hersteltraining wordt bij vermoeidheid niet ingekort
+  tot onder de 90 minuten, tenzij het lid zelf om een korte rit vraagt.
+- **Ingang.** Invoer van vóór september 2026 mist de ritmevelden van
+  `recentLoad`; die worden uit de totalen afgeleid. Events zonder duur slaat
+  de motor over.
+- **Meetlat.** Vier regels oordeelden strenger dan de prompt; zie
+  [schema-meetlat](schema-meetlat.md), "Bijgesteld".
+
+### Nog niet gedaan
+
+- **Trainers blind laten vergelijken.** De meetlat toetst harde regels; of een
+  schema goed traint, moeten trainers zien. Een vergelijking op dezelfde invoer,
+  zonder te zeggen welk schema van wie is, is de volgende stap.
+- **De motor in de app.** Hij draait alleen in tests en het naspeelscript.

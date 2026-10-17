@@ -23,8 +23,8 @@ import {
   weekdayOf,
 } from "@/lib/training/engine/calendar";
 import { recoverySignals } from "@/lib/training/engine/signals";
+import { sessionToWorkout } from "@/lib/training/engine/workout";
 import type {
-  CatalogSession,
   ComposeArgs,
   EngineReason,
   EngineResult,
@@ -45,6 +45,8 @@ const CAMP_DAY_MINUTES = 360;
 const OPENERS_MINUTES = 60;
 /** Korter is geen zinvolle rit; minder minuten in de week geeft minder ritten. */
 const MIN_RIDE_MINUTES = 30;
+/** Een opbouwweek groeit hooguit een kwart ten opzichte van de vorige (prompt). */
+const MAX_WEEK_GROWTH = 1.25;
 /** Zoveel langer dan gewend mag de gemiddelde rit worden voordat er een rit bij komt. */
 const AVG_DURATION_STRETCH = 1.5;
 /** Overgangsperiode: de weken die binnen zoveel dagen na het laatste A/B-mikpunt beginnen. */
@@ -123,6 +125,12 @@ type State = {
   ftpWatts: number | null;
   workouts: GeneratedWorkout[];
   reasons: EngineReason[];
+  /**
+   * Wat de laatste volledige opbouwweek werkelijk kreeg, inclusief vaste
+   * afspraken. De periodisering rekent met doelen; past een week niet (zeven
+   * races, weinig dagen), dan groeit de volgende vanaf wat er wél stond.
+   */
+  lastBuildMinutes: number | null;
 };
 
 /**
@@ -144,6 +152,7 @@ export function composePlan({ input, window, weeks, buildSession }: ComposeArgs)
     ftpWatts: input.profile.ftpWatts ?? input.intervalsLoad?.eftp ?? null,
     workouts: [],
     reasons: [],
+    lastBuildMinutes: null,
   };
   weeks.forEach((week, index) => composeWeek(state, week, index, range));
   const workouts = [...state.workouts].sort((a, b) => a.date.localeCompare(b.date));
@@ -169,7 +178,9 @@ function composeWeek(state: State, week: WeekPlan, variant: number, range: PlanW
   let eventMinutes = 0;
   for (const day of days) {
     for (const event of eventsOn(input, day)) {
-      if (coveredByFixed(input, day, event.title)) continue;
+      if (coveredByFixed(input, day)) continue;
+      // Oude invoer kende de duur van een event nog niet; zonder duur geen rit.
+      if (!Number.isFinite(event.durationMinutes) || event.durationMinutes <= 0) continue;
       eventDays.add(day);
       eventMinutes += Math.max(0, event.durationMinutes);
       state.workouts.push(raceWorkout(day, event));
@@ -179,16 +190,41 @@ function composeWeek(state: State, week: WeekPlan, variant: number, range: PlanW
 
   if (week.kind === "rust") {
     reason("dag.rust", `Week van ${dayLabel(week.weekStart)}: rustperiode, geen training.`);
+    state.lastBuildMinutes = null;
     return;
   }
 
   const fixed = (input.fixedWorkouts ?? []).filter((workout) => workout.date >= from && workout.date <= to);
+  // Het piekmoment zelf (doeldatum of A-mikpunt) is geen trainingsvolume van zijn
+  // week: anders vult de gran fondo de laatste taperweek en valt de rest weg.
+  const peakMinutes =
+    fixed.filter((workout) => isPeakDay(input, workout.date)).reduce((sum, workout) => sum + Math.max(0, workout.durationMinutes || 0), 0) +
+    [...eventDays].filter((day) => isPeakDay(input, day)).reduce(
+      (sum, day) => sum + eventsOn(input, day).reduce((total, event) => total + Math.max(0, event.durationMinutes), 0),
+      0,
+    );
   const fixedMinutes = fixed.reduce((sum, workout) => sum + Math.max(0, workout.durationMinutes || 0), 0);
   const races = fixed.filter((workout) => workout.kind === "clubevent").length + eventDays.size;
   const tests = fixed.filter((workout) => workout.kind === "ftp_test").length;
 
   const weekDays = daysBetween(week.from, week.to) + 1;
-  const budget = Math.round((week.targetMinutes * days.length) / weekDays) - fixedMinutes - eventMinutes;
+  const building = week.kind === "opbouw" || week.kind === "piek";
+  // De piekweek haalt 85 % van het plafond; die regel gaat vóór de rem op groei.
+  const capGrowth = week.kind === "opbouw";
+  let target = Math.round((week.targetMinutes * days.length) / weekDays);
+  // Nooit onder wat het lid nu al rijdt, ook niet door die rem (prompt).
+  const recentFloor = state.fatigued ? 0 : Math.round((input.recentLoad.hoursPerWeek * 60 * days.length) / 7);
+  const grown = Math.max(Math.floor((state.lastBuildMinutes ?? 0) * MAX_WEEK_GROWTH), recentFloor);
+  if (capGrowth && state.lastBuildMinutes != null && target > grown) {
+    target = grown;
+    reason("dag.groei", `Week van ${dayLabel(week.weekStart)}: hooguit een kwart meer dan de vorige opbouwweek.`);
+  }
+  const budget = target - fixedMinutes - eventMinutes + peakMinutes;
+  const complete = days.length === 7;
+  const recordWeek = (trainingMinutes: number) => {
+    if (building && complete) state.lastBuildMinutes = trainingMinutes + fixedMinutes + eventMinutes - peakMinutes;
+    else if (!building && week.kind !== "herstel") state.lastBuildMinutes = null;
+  };
 
   if (days.some((day) => periodOn(input, day) === "rust")) {
     reason("dag.rust", `Rustperiode in de week van ${dayLabel(week.weekStart)}: die dagen blijven leeg.`);
@@ -205,10 +241,12 @@ function composeWeek(state: State, week: WeekPlan, variant: number, range: PlanW
     if (fixedMinutes + eventMinutes > 0) {
       reason("dag.week_vol", `Week van ${dayLabel(week.weekStart)}: de vaste afspraken vullen het weekvolume.`);
     }
+    recordWeek(0);
     return;
   }
   if (candidates.length === 0) {
     reason("dag.geen_dag", `Week van ${dayLabel(week.weekStart)}: geen beschikbare dag voor training.`, true);
+    recordWeek(0);
     return;
   }
 
@@ -220,12 +258,24 @@ function composeWeek(state: State, week: WeekPlan, variant: number, range: PlanW
     rides = Math.min(candidates.length, Math.max(rides, Math.round(budget / avg)));
   }
   rides = Math.min(rides, Math.max(1, Math.floor(budget / MIN_RIDE_MINUTES)));
+  // Past het weekvolume niet in de gekozen dagen, dan komt er een rit bij in
+  // plaats van dat het volume vervalt. Een dag vóór een race telt alleen als
+  // openers.
+  const roomOf = (days: string[]) =>
+    days.reduce(
+      (sum, day) => sum + (isRaceOrTestDay(input, shiftDays(day, 1)) ? OPENERS_MINUTES : caps.get(day)!),
+      0,
+    );
+  let picked = pickDays(candidates, rides, caps, budget / rides);
+  while (roomOf(picked) < budget && rides < candidates.length) {
+    rides += 1;
+    picked = pickDays(candidates, rides, caps, budget / rides);
+  }
   reason(
     "dag.ritten",
     `Week van ${dayLabel(week.weekStart)}: ${rides} ritten, gewend is ${input.recentLoad.ridesPerWeek} per week.`,
   );
 
-  const picked = pickDays(candidates, rides, caps, budget / rides);
   for (const day of candidates) {
     if (!picked.includes(day)) {
       reason("dag.rustdag", `Rustdag: naar keuze tot ${OPTIONAL_REST_RIDE_MINUTES} minuten rustig fietsen.`, false, day);
@@ -326,8 +376,43 @@ function composeWeek(state: State, week: WeekPlan, variant: number, range: PlanW
     const workout = buildDay(state, plan, week, variant, reason);
     if (workout) built.push({ plan, workout });
   }
+  // Een sleutelsessie kan langer uitvallen dan zijn deel, omdat de kern een
+  // minimum heeft. Dat gaat af van de lange rit of de langste duurrit, zodat de
+  // week binnen haar volume blijft.
+  let over = built.reduce((sum, row) => sum + row.workout.durationMinutes, 0) - budget;
+  const flexible = built
+    .filter((row) => row.plan.role === "lang" || row.plan.role === "duur")
+    .sort((a, b) => b.workout.durationMinutes - a.workout.durationMinutes);
+  for (const row of flexible) {
+    if (over < 5) break;
+    const minutes = Math.max(MIN_RIDE_MINUTES, Math.floor((row.workout.durationMinutes - over) / 5) * 5);
+    if (minutes >= row.workout.durationMinutes) continue;
+    row.plan.minutes = minutes;
+    const smaller = buildDay(state, row.plan, week, variant, reason);
+    if (!smaller) continue;
+    over -= row.workout.durationMinutes - smaller.durationMinutes;
+    row.workout = smaller;
+  }
+  // Staan alle duurritten al op hun minimum en gaat de week nog over het
+  // urenplafond, dan wordt de kortste duurrit een rustdag. Boven het doel maar
+  // onder het plafond mag: dan blijft de rit staan.
+  const ceiling =
+    week.kind === "kamp" || !input.goal.maxHoursPerWeek
+      ? Infinity
+      : Math.round((input.goal.maxHoursPerWeek * 60 * days.length) / 7) - fixedMinutes - eventMinutes + peakMinutes;
+  over = built.reduce((sum, row) => sum + row.workout.durationMinutes, 0) - ceiling;
+  while (over >= 5) {
+    const shortest = built
+      .filter((row) => row.plan.role === "duur")
+      .sort((a, b) => a.workout.durationMinutes - b.workout.durationMinutes)[0];
+    if (!shortest) break;
+    built.splice(built.indexOf(shortest), 1);
+    over -= shortest.workout.durationMinutes;
+    reason("dag.rustdag", `Rustdag: naar keuze tot ${OPTIONAL_REST_RIDE_MINUTES} minuten rustig fietsen.`, false, shortest.plan.date);
+  }
   applyHeatProtocol(state, days, built, reason, week.weekStart);
   state.workouts.push(...built.map((row) => row.workout));
+  recordWeek(built.reduce((sum, row) => sum + row.workout.durationMinutes, 0));
 }
 
 function buildDay(
@@ -375,39 +460,12 @@ function buildDay(
     // TODO(catalogus): het contract kent geen vraag naar "rustige duur met
     // sprints"; tot dat er is staan de sprints als notitie, niet als blokken
     // met burstSeconds.
-    return toWorkout(plan.date, session, {
+    return sessionToWorkout(plan.date, session, {
       note: "Rij drie series van drie sprints van 30 seconden voluit, met 10 minuten rustige duur tussen de series.",
       methodLabel: "veelbelovend",
     });
   }
-  return toWorkout(plan.date, session);
-}
-
-function toWorkout(
-  date: string,
-  session: CatalogSession,
-  extra: { note?: string; methodLabel?: GeneratedWorkout["methodLabel"] } = {},
-): GeneratedWorkout {
-  return {
-    date,
-    title: session.title,
-    description: extra.note ? `${session.description} ${extra.note}`.trim() : session.description,
-    durationMinutes: session.durationMinutes,
-    intensity: session.intensity,
-    targetType: session.targetType,
-    structure: session.blocks.map((block) => ({
-      label: block.label,
-      durationMinutes: block.durationMinutes,
-      target: block.target,
-      notes: block.notes,
-      intensity: block.intensity,
-      burstSeconds: block.onOff ? 0 : (block.burstSeconds ?? 0),
-      onSeconds: block.onOff?.onSeconds ?? 0,
-      offSeconds: block.onOff?.offSeconds ?? 0,
-      offTarget: block.onOff?.offTarget ?? "",
-    })),
-    methodLabel: extra.methodLabel ?? session.methodLabel,
-  };
+  return sessionToWorkout(plan.date, session);
 }
 
 function raceWorkout(
@@ -446,8 +504,12 @@ function raceWorkout(
 }
 
 /** Een event staat al als vaste afspraak als er die dag een clubevent of rit met dezelfde titel is. */
-function coveredByFixed(input: TrainingAiInput, date: string, title: string): boolean {
-  return fixedOn(input, date).some((workout) => workout.kind === "clubevent" || workout.title === title);
+/**
+ * Staat er op de dag van een event al een vaste afspraak, dan is dat het event
+ * (of rijdt het lid die dag iets anders): nooit een tweede training ernaast.
+ */
+function coveredByFixed(input: TrainingAiInput, date: string): boolean {
+  return fixedOn(input, date).length > 0;
 }
 
 /**
@@ -456,11 +518,18 @@ function coveredByFixed(input: TrainingAiInput, date: string, title: string): bo
  */
 function dayCap(input: TrainingAiInput, date: string): number {
   if (periodOn(input, date) === "kamp") {
-    const week = input.availability?.weeks.find((row) => row.weekStart === mondayKey(date));
+    const week = (input.availability?.weeks ?? []).find((row) => row.weekStart === mondayKey(date));
     const own = week?.minutesByDay?.[weekdayOf(date)];
     return own != null ? Math.max(0, Number(own)) : CAMP_DAY_MINUTES;
   }
   return minutesOn(input, date) ?? UNBOUNDED_DAY_MINUTES;
+}
+
+/** De doeldatum van een doel met één piek, of een A-mikpunt. */
+function isPeakDay(input: TrainingAiInput, date: string): boolean {
+  const goal = input.goal;
+  if ((goal.type === "outdoor_event" || goal.type === "gran_fondo") && goal.targetDate?.slice(0, 10) === date) return true;
+  return (input.seasonPlan?.targets ?? []).some((target) => target.priority === "a" && target.date === date);
 }
 
 /** Deze dagen hebben samen minder dan de helft van de standaardweek. */
@@ -591,7 +660,20 @@ function allocateMinutes(
     }
     open = open.filter((plan) => !capped.includes(plan));
   }
+  // Op vijf minuten afronden kan de week onder haar doel brengen (een piekweek
+  // net onder 85 %); het tekort gaat in stappen van vijf naar dagen met ruimte.
+  const wanted = Math.round(all.reduce((sum, plan) => sum + plan.minutes, 0));
   for (const plan of all) plan.minutes = Math.min(plan.cap, Math.round(plan.minutes / 5) * 5);
+  let short = wanted - all.reduce((sum, plan) => sum + plan.minutes, 0);
+  const roomy = all
+    .filter((plan) => plan.role !== "openers")
+    .sort((a, b) => b.cap - b.minutes - (a.cap - a.minutes) || a.date.localeCompare(b.date));
+  for (const plan of roomy) {
+    while (short > 0 && plan.cap - plan.minutes >= 5) {
+      plan.minutes += 5;
+      short -= 5;
+    }
+  }
   const leftover = Math.round(pool);
   if (leftover >= 5) onLeftover(leftover);
 }

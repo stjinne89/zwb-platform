@@ -9571,13 +9571,13 @@ regels, de meeste getallen. De AI gebruikt de 58 standaardworkouts niet: hij
 verzint elke workout zelf. De motor schrijft de regels als code, met dezelfde
 invoer (`TrainingAiInput`) en uitvoer (`GeneratedTrainingPlan`) als de AI.
 
-**Deze ronde: fundament.** `src/lib/training/engine/types.ts` (het contract
+**Fundament, 2026-10-17.** Commit `7cdd04c`. `src/lib/training/engine/types.ts` (het contract
 tussen de onderdelen), `calendar.ts` (beschikbaarheid per dag, vaste
 afspraken, periodes) en `signals.ts` (herstelsignalen met vaste drempels:
 TSB ≤ -30, ramp rate ≥ 8, readiness van het apparaat < 50, klachtenscore >
 0,65; keuzes van ZWB, geen onderzoeksgrenzen). Tests in `tests/unit/engine/`
-met een verzonnen lid. De catalogus, periodisering, het samenstellen en de
-dag-aanpassing volgen als eigen rondes hieronder.
+met een verzonnen lid. De onderdelen hieronder zijn parallel gebouwd op dit
+contract, elk in een eigen worktree, en daarna samengevoegd.
 
 **Bewust niet gebouwd.**
 - *De AI vervangen.* De motor draait ernaast; overstappen is een apart besluit
@@ -9590,7 +9590,7 @@ dag-aanpassing volgen als eigen rondes hieronder.
   uitvoer is altijd opnieuw uit te rekenen. Zo is er ook geen migratie nodig.
 - *Coachchat, pacing en maaltijdherkenning.* Taalbegrip of buiten deze ronde.
 
-**Dag-aanpassing, 2026-10-17.** `src/lib/training/engine/daily.ts`: de
+**Dag-aanpassing, 2026-10-17.** Commit `c192eca`. `src/lib/training/engine/daily.ts`: de
 beslisboom uit `adaptiveDailyPrompt()`. Volgorde: rustperiode → niets; vandaag
 al gereden of een vaste afspraak → vandaag niets; zwaarder dan gepland gisteren
 of vermoeid → de eerstvolgende sleutelsessie (drempel, VO2max, anaeroob) wordt
@@ -9664,7 +9664,7 @@ compliance en wellness (de factor 1,5/1,75/2 volgt alleen `experienceLevel`).
 De redenen van `recoverySignals` zelf neemt `planWeeks` niet over, zodat
 samenstellen of `index.ts` ze één keer melden.
 
-**Samenstellen, 2026-10-17.** Commit: de commit die deze alinea toevoegt. Geen
+**Samenstellen, 2026-10-17.** Commit `f2b40d4`. Geen
 migratie. `src/lib/training/engine/compose.ts`: `composePlan()` zet de weken uit
 de periodisering om in workouts op dagen, `planText()` maakt titel, summary en
 cautions uit de `EngineReason`s. Per week: alleen dagen met beschikbare minuten,
@@ -9678,8 +9678,8 @@ staan komen er met hun eigen duur bij. Weinig tijd geeft sprintsessies,
 de overgangsperiode na het laatste A/B-mikpunt één rustige duurrit met sprints,
 hitte een notitie op een duurrit, lage cadans gaat als `lowCadence` naar de
 catalogus. Tests met een stub-catalogus en handgemaakte weken in
-`tests/unit/engine/compose.test.ts`; nog niet samen met de echte catalogus en
-periodisering gedraaid. *Eigen keuzes, niet uit de prompt:* een aangevinkte dag
+`tests/unit/engine/compose.test.ts`. (Samen met de echte catalogus en
+periodisering gedraaid bij het samenvoegen, zie hieronder.) *Eigen keuzes, niet uit de prompt:* een aangevinkte dag
 zonder minuten krijgt hooguit 300 min, de overgangsperiode duurt 28 dagen, en
 een FTP-test telt als sleutelsessie van zijn week. In een kamp gelden alleen de
 minuten van een apart ingevulde week (de prompt zet het kamp boven de
@@ -9688,10 +9688,36 @@ overgangsrit als blokken met `burstSeconds` — het contract kent die vraag aan 
 catalogus niet, dus ze staan als notitie (TODO in de code); geen hersteltraining
 onder 90 min (een rustdag, niet in de uitvoer); minuten die niet in de
 beschikbare dagen passen worden niet geforceerd maar als reden gemeld.
-=======
+
+**Samenvoegen en naspelen, 2026-10-17.** Commit: de commit die deze alinea
+toevoegt. Geen migratie. De vier branches (catalogus, periodisering,
+samenstellen, meetlat) zijn samengevoegd; `src/lib/training/engine/index.ts`
+(`generateEnginePlan()`) is de ingang, `workout.ts` de gedeelde omzetting naar
+het AI-formaat. `scripts/engine-replay.mjs` draait de motor op de 420 opgeslagen
+invoeren en legt AI en motor langs de meetlat:
+[docs/regelmotor-naspelen.md](docs/regelmotor-naspelen.md). Vanaf 2026-09-17
+heeft 9 % van de dagelijkse aanpassingen van de AI een fout tegen 0 % bij de
+motor, en 59 % van de bijwerkingen tegen 19 %; de motor faalt op geen enkele
+invoer. Het naspelen vond zes motorfouten (taperweek leeg naast de gran fondo,
+afronding onder de 85 %, ritten die niet in de gekozen dagen pasten,
+sleutelsessies die het weekvolume overschreden, groei op doel in plaats van op
+wat er werkelijk stond, de dag vóór een A/B-mikpunt niet licht) en vier regels
+waarop de meetlat strenger was dan de prompt (kamp, event, piekmoment en
+taperzone); beide zijn rechtgezet, details in
+[docs/eigen-regelmotor.md](docs/eigen-regelmotor.md) en
+[docs/schema-meetlat.md](docs/schema-meetlat.md). **Open besluit voor de
+eigenaar:** bij een lid ver onder zijn plafond kunnen "piekweek ≥ 85 %" en
+"nooit meer dan een kwart erbij" niet allebei; de motor kiest de groeigrens, de
+AI meestal de piek. **Bewust niet:** de motor in de app; trainers blind laten
+vergelijken (volgende stap). **Niet geverifieerd:** of de motorschema's goed
+trainen — de meetlat toetst regels, geen trainingswaarde; de volledige testsuite
+draaide groen op drie zware tests na die alleen onder volle belasting een
+time-out gaven en los slagen, en `omnium-live` die `.env.local` nodig heeft.
+Niet gepusht.
+
 ### Opgeleverd — Meetlat voor trainingsschema's, met nulmeting van de AI
 
-**2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
+**2026-10-17.** Commit `77acd48`. Geen migratie.
 Uitkomst en werkwijze: [schema-meetlat](docs/schema-meetlat.md).
 
 **Aanleiding.** ZWB onderzoekt of de OpenAI-aanroepen voor schema's (nieuw schema,
@@ -9719,7 +9745,7 @@ controle moet straks AI- en motorschema's naast elkaar beoordelen
   telt per regel, ook alleen over generaties waarvan de prompt de regel al bevatte
   en over de laatste 30 dagen.
 
-**Uitkomst (420 generaties, 4.334 workouts).** Dag- en weekregels (plafond,
+**Uitkomst (420 generaties, 4.334 workouts; vóór de bijstelling van vier regels bij het naspelen, zie de ronde hierboven).** Dag- en weekregels (plafond,
 beschikbaarheid, vaste afspraken, taper, sleutelsessies op rij) houdt de AI in de
 laatste maand vrijwel altijd vast. De vorm van de opbouw niet: in 13% van de
 recente generaties een sprong van meer dan een kwart tussen opbouwweken, in 8% een
@@ -9744,7 +9770,6 @@ zijn keuzes van de meetlat, niet van de eigenaar. De groeiregel is getoetst op 2
 terwijl de prompt tot 2026-10-16 "ongeveer 10%" zei. De bevindingen voor groei en
 recentLoad zijn met de hand nagelopen op een handvol generaties; dat is een
 steekproef, geen volledige controle.
->>>>>>> refs/heads/claude/inspiring-diffie-6cd047
 
 ### Opgeleverd — Maandelijkse literatuurscan van de kennisbank
 

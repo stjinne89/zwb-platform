@@ -25,7 +25,7 @@ export function minutesOn(input: TrainingAiInput, date: string): number | null {
   const weekday = weekdayOf(date);
   const availability = input.availability;
   if (availability) {
-    const week = availability.weeks.find((row) => row.weekStart === mondayKey(date));
+    const week = (availability.weeks ?? []).find((row) => row.weekStart === mondayKey(date));
     const byDay = week?.minutesByDay ?? availability.default;
     const value = byDay?.[weekday];
     if (value != null) return Math.max(0, Number(value));
@@ -45,11 +45,16 @@ export function eventsOn(input: TrainingAiInput, date: string) {
   return (input.upcomingEvents ?? []).filter((event) => event.date === date);
 }
 
-/** Valt er op deze dag een race, event of test: dan is de dag ervoor licht. */
+/**
+ * Valt er op deze dag een race, event, test of A/B-mikpunt: dan is de dag
+ * ervoor licht. Een mikpunt telt mee omdat de prompt de dag vóór een B-mikpunt
+ * licht wil, en een A-mikpunt is de piek zelf.
+ */
 export function isRaceOrTestDay(input: TrainingAiInput, date: string): boolean {
   return (
     eventsOn(input, date).length > 0 ||
-    fixedOn(input, date).some((workout) => workout.kind === "clubevent" || workout.kind === "ftp_test")
+    fixedOn(input, date).some((workout) => workout.kind === "clubevent" || workout.kind === "ftp_test") ||
+    (input.seasonPlan?.targets ?? []).some((target) => target.priority !== "c" && target.date === date)
   );
 }
 

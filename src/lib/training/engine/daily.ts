@@ -10,9 +10,9 @@
 import { dayIndex } from "@/lib/training/season";
 import { fixedOn, periodOn, shiftDays } from "@/lib/training/engine/calendar";
 import { recoverySignals } from "@/lib/training/engine/signals";
+import { sessionToWorkout } from "@/lib/training/engine/workout";
 import type {
   BuildSession,
-  CatalogSession,
   EngineReason,
   EngineResult,
   GeneratedWorkout,
@@ -66,30 +66,6 @@ export function formOfPlanned(workout: PlannedWorkout): SessionForm | null {
 
 function roundTo5(minutes: number): number {
   return Math.max(5, Math.round(minutes / 5) * 5);
-}
-
-/** CatalogSession als GeneratedWorkout, in het formaat van de AI-uitvoer. */
-export function sessionToWorkout(date: string, session: CatalogSession, note?: string): GeneratedWorkout {
-  return {
-    date,
-    title: session.title,
-    description: note ? `${session.description} ${note}`.trim() : session.description,
-    durationMinutes: session.durationMinutes,
-    intensity: session.intensity,
-    targetType: session.targetType,
-    methodLabel: session.methodLabel,
-    structure: session.blocks.map((block) => ({
-      label: block.label,
-      durationMinutes: block.durationMinutes,
-      target: block.target,
-      notes: block.notes,
-      intensity: block.intensity,
-      burstSeconds: block.burstSeconds ?? 0,
-      onSeconds: block.onOff?.onSeconds ?? 0,
-      offSeconds: block.onOff?.offSeconds ?? 0,
-      offTarget: block.onOff?.offTarget ?? "",
-    })),
-  };
 }
 
 type Yesterday = NonNullable<TrainingAiInput["yesterday"]>;
@@ -177,7 +153,7 @@ export function adaptDay(input: TrainingAiInput, buildSession: BuildSession): En
     const minutes = Math.min(workout.durationMinutes, TIRED_MAX_MINUTES, cap ?? Infinity);
     if (minutes < MIN_RIDE_MINUTES) return null;
     const session = build("rustige_duur", workout.date, minutes, minutes);
-    return session ? sessionToWorkout(workout.date, session, note) : null;
+    return session ? sessionToWorkout(workout.date, session, { note }) : null;
   };
 
   const workouts: GeneratedWorkout[] = [];
@@ -228,11 +204,14 @@ export function adaptDay(input: TrainingAiInput, buildSession: BuildSession): En
     if (tired && !todayBlocked && todayPlanned && !isKeyWorkout(todayPlanned) && target?.date !== today) {
       const form = formOfPlanned(todayPlanned);
       const minutes = roundTo5(Math.min(todayPlanned.durationMinutes * 0.75, availableMinutes ?? Infinity));
-      if (form && minutes >= MIN_RIDE_MINUTES && minutes < todayPlanned.durationMinutes) {
+      // Een hersteltraining korter maken levert een rit onder de 90
+      // minuten op; dat mag alleen als het lid zelf om een korte rit vraagt.
+      const shortRecovery = form === "herstel" && availableMinutes == null;
+      if (form && !shortRecovery && minutes >= MIN_RIDE_MINUTES && minutes < todayPlanned.durationMinutes) {
         const easier = form === "intensieve_duur" || form === "lange_duur" ? "rustige_duur" : form;
         const session = build(easier, today, minutes, minutes);
         if (session) {
-          workouts.push(sessionToWorkout(today, session, "Korter, omdat je vermoeid bent."));
+          workouts.push(sessionToWorkout(today, session, { note: "Korter, omdat je vermoeid bent." }));
           reasons.push({ rule: "dag.te_moe_korter", date: today, text: "Vandaag korter en rustiger.", caution: true });
         }
       }
@@ -252,7 +231,7 @@ export function adaptDay(input: TrainingAiInput, buildSession: BuildSession): En
           ? build("rustige_duur", today, availableMinutes, availableMinutes)
           : null);
       if (session) {
-        workouts.push(sessionToWorkout(today, session, `Ingekort tot ${session.durationMinutes} minuten.`));
+        workouts.push(sessionToWorkout(today, session, { note: `Ingekort tot ${session.durationMinutes} minuten.` }));
         reasons.push({
           rule: session.form === form ? "dag.weinig_tijd" : "dag.weinig_tijd_vervangen",
           date: today,
@@ -283,7 +262,7 @@ export function adaptDay(input: TrainingAiInput, buildSession: BuildSession): En
       const minutes = Math.min(todayPlanned.durationMinutes, availableMinutes ?? Infinity);
       const session = build("intensieve_duur", today, minutes, minutes);
       if (session) {
-        workouts.push(sessionToWorkout(today, session, "Iets steviger, omdat je fris bent."));
+        workouts.push(sessionToWorkout(today, session, { note: "Iets steviger, omdat je fris bent." }));
         reasons.push({
           rule: "dag.fris",
           date: today,

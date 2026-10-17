@@ -2,6 +2,8 @@
 
 **Gemeten op 2026-10-17**, over alle voltooide AI-generaties in productie.
 
+**Bijgesteld op 2026-10-17**, bij het naspelen van de regelmotor: vier regels oordeelden te streng, voor AI en motor gelijk. De cijfers hieronder zijn van vóór die bijstelling; de actuele AI-cijfers staan naast die van de motor in [regelmotor-naspelen](regelmotor-naspelen.md). Zie "Bijgesteld" onderaan.
+
 De meetlat is `checkTrainingPlan()` in
 [`src/lib/training/schema-check.ts`](../src/lib/training/schema-check.ts): een pure,
 deterministische functie die een schema toetst aan de harde regels die tot nu toe
@@ -19,9 +21,9 @@ liggen. Deze meting is de nulmeting van de AI.
 | Regel | Ernst | Wat telt als overtreding |
 |---|---|---|
 | `ongeldige-datum` | fout | Workoutdatum die geen `YYYY-MM-DD` is. Niet gevraagd, wel gevonden: de AI gaf vier keer een datum als `2026-10-25},{` terug. |
-| `beschikbaarheid` | fout | Training op een dag met 0 minuten, of langer dan de minuten van die dag. Eerst de eigen week uit `availability.weeks`, dan `availability.default`, dan `goal.availableDays`. Bij een dag-aanpassing geldt voor vandaag `today.availableMinutes`. |
+| `beschikbaarheid` | fout | Training op een dag met 0 minuten, of langer dan de minuten van die dag. Eerst de eigen week uit `availability.weeks`, dan `availability.default`, dan `goal.availableDays`. Bij een dag-aanpassing geldt voor vandaag `today.availableMinutes`. In een kamp telt alleen een apart ingevulde week; een toegezegd event (`upcomingEvents`, intensity `race`) wordt niet op beschikbaarheid beoordeeld. |
 | `vaste-afspraak` | fout | Training op een dag met een `fixedWorkout`. |
-| `weekplafond` | fout | Weekvolume (eigen workouts plus vaste afspraken) boven `goal.maxHoursPerWeek`, buiten een kampweek. Alleen in weken waarin de planner zelf iets zette. |
+| `weekplafond` | fout | Weekvolume (eigen workouts plus vaste afspraken) boven `goal.maxHoursPerWeek`, buiten een kampweek. Alleen in weken waarin de planner zelf iets zette. De race op de doeldatum of een A-mikpunt telt niet mee. |
 | `piekweek` | fout | Zwaarste week van een opbouwblok onder 85% van het plafond. Het plafond is `maxHoursPerWeek`, of de som van de beschikbaarheid als die krapper is. Vervalt bij een vermoeidheidssignaal. |
 | `opbouwgroei` | waarschuwing | Opbouwweek meer dan 25% boven de opbouwweek ervoor. Na een herstelweek vergelijken we met de opbouwweek daarvóór: terug naar het oude niveau is geen sprong. |
 | `herstelweek` | waarschuwing | Herstelweek buiten 55-75% van de week ervoor. De prompt zegt "grofweg 60-70%"; de marge van vijf punten is een keuze van de meetlat. |
@@ -165,3 +167,14 @@ queryresultaten terug in het gesprek. 420 generaties zijn samen zo'n 10 MB JSON,
 ruim boven wat daar past. Een proef met 20 generaties via de connector werkte, maar
 op die schaal zou de meting uit steekproeven moeten bestaan. De CLI schrijft naar
 een bestand, en dat bleek de bestaande, alleen-lezende route van `db-health.mjs`.
+
+## Bijgesteld bij het naspelen (2026-10-17)
+
+Bij het naspelen van de regelmotor bleek de meetlat op vier plekken iets af te keuren dat de prompt toestaat. Elke bijstelling geldt voor AI en motor gelijk; tests in `tests/unit/training-schema-check.test.ts` ("bijgesteld bij het naspelen").
+
+- **Kamp en beschikbaarheid.** De prompt zet een kamp boven `availability.default` en `goal.availableDays`; alleen een week die het lid apart heeft ingevuld blijft leidend. De meetlat toetste in een kamp toch aan de standaardweek.
+- **Toegezegd event.** De duur van een event is volgens de prompt een gegeven. Staat het niet in `fixedWorkouts` en neemt de planner het daarom zelf op, dan oordeelt de meetlat niet meer over de beschikbaarheid van die dag.
+- **Piekmoment en weekplafond.** De race op de doeldatum (gran fondo, outdoor event) of op een A-mikpunt telt niet tegen het urenplafond van zijn week. Anders kon een taperweek naast een gran fondo van zes uur niets meer bevatten.
+- **Taperzone.** De meetlat zag elke week binnen drie weken vóór het piekmoment als taper, en sloot het opbouwblok daar af. Een taper van twee weken met de piekweek ervóór werd zo afgerekend op een te vroege "piek". Nu is een week in die zone pas taper als het volume echt zakt (onder 90 % van de week ervoor).
+
+De grens voor "sterk negatieve TSB" bleef -20. De motor plant zelf met -30 (`src/lib/training/engine/signals.ts`); de meetlat is als scheidsrechter bewust ruimer, zodat geen van beide planners wordt afgerekend op een grens die de prompt niet noemt.
