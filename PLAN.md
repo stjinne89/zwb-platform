@@ -9590,6 +9590,7 @@ dag-aanpassing volgen als eigen rondes hieronder.
   uitvoer is altijd opnieuw uit te rekenen. Zo is er ook geen migratie nodig.
 - *Coachchat, pacing en maaltijdherkenning.* Taalbegrip of buiten deze ronde.
 
+<<<<<<< HEAD
 **Dag-aanpassing, 2026-10-17.** `src/lib/training/engine/daily.ts`: de
 beslisboom uit `adaptiveDailyPrompt()`. Volgorde: rustperiode → niets; vandaag
 al gereden of een vaste afspraak → vandaag niets; zwaarder dan gepland gisteren
@@ -9636,6 +9637,34 @@ heet geen duurrit meer; kracht op lage cadans botst met de lage-cadansregel),
 de experimentele VO2max-varianten (horen bij een apart besluit in compose),
 en testen en warming-ups (geen sessievorm). Herstel krijgt in- en uitrijden
 van 5 minuten; dat compose herstel onder 90 minuten weglaat, is aan compose.
+=======
+**Periodisering, 2026-10-17.** Branch `claude/motor-periodisering-526b69`, geen
+migratie. `src/lib/training/engine/periodization.ts`: `planWeeks(input, window)`
+geeft per kalenderweek soort, volume (inclusief vaste afspraken), plafond,
+sleutelsessies, niveau en lange rit, elk besluit met een `volume.*`-,
+`sleutel.*`- of `langerit.*`-reden. Eerst liggen kamp, rust, rustig, taper,
+heropbouw en de herstelweek tussen twee blokken vast; de vrije weken daartussen
+worden cycli van 3+1 (beginner 2+1), zo uitgelijnd dat de piekweek vlak vóór
+een taper, rust of kamp valt en een blok met `goalBeyond` op herstel eindigt.
+Daarna vertrekt het volume op `recentLoad`, groeit ~10 % per opbouwweek en
+wordt de piekweek naar 85 % van het plafond getild zolang de stap onder een
+kwart blijft; haalt hij dat niet, dan zegt een reden met caution waarom. Keuzes
+die de prompt openlaat: de grens van een kwart geldt tussen belaste weken (een
+opbouwweek na een herstelweek vergelijkt met de week vóór het herstel), en een
+week met minder beschikbare tijd remt de opbouw daarna niet; het plafond van de
+groei is de mediaan van de weekplafonds. Herstel na een kamp is 65 % van het
+normale weekvolume, niet van het kamp. `lowerCapacity` en `fatigued` werken
+alleen op de eerste week en cyclus van het venster: het zijn signalen van nu.
+Een clubevent op race-intensiteit en een FTP-test tellen als sleutelsessie.
+Zonder plafond groeit het volume tot een kwart boven `recentLoad`. Getoetst in
+`tests/unit/engine/periodization.test.ts`. *Bewust niet:* de
+overbelastingsweek vóór een taper (optioneel in de prompt), de overgangsperiode
+na een A/B-mikpunt als eigen weeksoort (de week na de taper begint gewoon een
+nieuwe cyclus; het samenstellen kiest daar de sessies) en de kampzwaarte op
+compliance en wellness (de factor 1,5/1,75/2 volgt alleen `experienceLevel`).
+De redenen van `recoverySignals` zelf neemt `planWeeks` niet over, zodat
+samenstellen of `index.ts` ze één keer melden.
+>>>>>>> refs/heads/claude/motor-periodisering-526b69
 
 ### Opgeleverd — Maandelijkse literatuurscan van de kennisbank
 
