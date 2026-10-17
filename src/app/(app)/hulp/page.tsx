@@ -3267,10 +3267,10 @@ Fitness-status: Verbeterend`}
             Rijd je een hittesessie met een CORE-sensor, dan leest de app je
             kerntemperatuur uit intervals.icu. Neem de rit op met je fietscomputer
             en laat die rechtstreeks naar intervals.icu syncen. Op een Garmin zet
-            je het CORE-dataveld uit Connect IQ op een datascherm. Een ACE, ROAM 3
-            of BOLT 3 van Wahoo koppelt de sensor als Body Temp; een oudere
-            Wahoo, zoals de BOLT 2, als spierzuurstofsensor (Muscle Oxygen), en
-            dan staat je temperatuur in het veld THb. Een rit die via Strava in
+            je het CORE-dataveld uit Connect IQ op een datascherm. Een Wahoo
+            neemt de sensor mee als je hem koppelt; staat je temperatuur bij een
+            oudere Wahoo in het veld THb (gekoppeld als Muscle Oxygen), dan leest
+            de app hem daar. Een rit die via Strava in
             intervals.icu komt, heeft geen kerntemperatuur. Rijd je op Zwift,
             neem de rit dan ook op je fietscomputer op.
           </p>

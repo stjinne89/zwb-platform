@@ -159,6 +159,17 @@ van de CORE-sensor, beide 2026-10-14).
 >   veld THb. Zonder `core_temperature` neemt de app de THb-stream met de hoogste
 >   mediaan, als die op of boven 36 °C ligt; echte hemoglobine (12 tot 15 g/dl)
 >   en de huidtemperatuur vallen daaronder.
+> - **Korte ritten en `stream_types`** (2026-10-17, na de testrit van de
+>   eigenaar). De rit (`i198325696`, BOLT 2 via de Wahoo-koppeling, 644 s) werd
+>   nooit opgehaald: de app sloeg ritten korter dan de drempel van de taak (30
+>   minuten) over. Dat was een fout: een korte rit moet zijn meting tonen, alleen
+>   niet afvinken. Nu telt elke fietsrit van minstens vijf minuten. Om toch
+>   zuinig te blijven kijkt de app naar `stream_types` in de activiteitenlijst:
+>   zonder `core_temperature` of `thb…` haalt hij niets op, en met vraagt hij alleen
+>   `time` en die stream op. Ontbreekt `stream_types`, dan alles, zoals eerst.
+>   Vastgesteld in de database (Supabase, alleen lezen): de rit had de stream
+>   `core_temperature` en het protocol `hitte-lang` liep met de toestemming
+>   `2026-10-14-core`; er stond geen rij in `member_protocol_core_sessions`.
 > - **Rekenen** (`src/lib/protocols/core-temperature.ts`): hoogste
 >   kerntemperatuur en minuten op of boven **38,5 °C**; een gat tussen metingen
 >   telt hooguit 30 seconden mee, waarden buiten 34 tot 43 °C tellen niet.
@@ -242,8 +253,11 @@ van de CORE-sensor, beide 2026-10-14).
 >   gedraaid.
 > - **De veldnamen met een echte CORE-rit.** `core_temperature` komt uit
 >   forumberichten en de helppagina van CORE, die vanuit de bouwomgeving niet te
->   openen waren. Ook de naam van de THb-stream (`thb`, `thb_2`?) is niet
->   vastgesteld; de app herkent alles wat met `thb` begint. Ook niet nagegaan: dat intervals.icu zonder `types` alle streams
+>   openen waren. *Bijgewerkt 2026-10-17:* de testrit van de eigenaar noemt
+>   `core_temperature` in `stream_types`, dus de naam klopt; de waarden zelf zijn
+>   nog niet door de app gelezen (dat gebeurt na deze fix bij de volgende keer
+>   laden). De naam van een THb-stream (`thb`, `thb_2`?) is niet vastgesteld; de
+>   app herkent alles wat met `thb` begint. Ook niet nagegaan: dat intervals.icu zonder `types` alle streams
 >   teruggeeft. De eigenaar rijdt deze week een rit; kijk daarna of er een rij in
 >   `member_protocol_core_sessions` staat met een waarde, of met lege velden (dan
 >   heet de stream anders).

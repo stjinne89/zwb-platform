@@ -106,7 +106,14 @@ intervals.icu. De app valt daarom terug op een THb-stream als er geen
 bereik valt. Echte hemoglobine (12 tot 15 g/dl) valt erbuiten; staan kern en
 huid op twee kanalen, dan geldt die met de hoogste mediaan als kern. Hoe
 intervals.icu die streams precies noemt, is niet vastgesteld; de app herkent elk
-type dat met `thb` begint. Bronnen: de helppagina van CORE over
+type dat met `thb` begint.
+
+**Eerste echte rit (2026-10-17).** De testrit van de eigenaar
+(`i198325696`, BOLT 2, via de Wahoo-koppeling, 644 seconden) had in
+intervals.icu gewoon een stream `core_temperature`, geen THb. De activiteitenlijst
+noemt per rit `stream_types`; daar stond hij in. De THb-terugval blijft voor
+Wahoo's die de sensor als spierzuurstofsensor koppelen, maar is bij de eigenaar
+niet nodig. Bronnen: de helppagina van CORE over
 intervals.icu en draadjes op het intervals.icu-forum; die konden vanuit de
 bouwomgeving niet worden geopend, alleen de zoekresultaten zijn gelezen.
 

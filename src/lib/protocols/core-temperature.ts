@@ -37,6 +37,14 @@ export type CoreSummary = { maxC: number; minutesAbove: number };
  */
 const THB_MIN_MEDIAN_C = 36;
 
+const CORE_NAME = /(^|_)core_temperature$/i;
+const THB_NAME = /^thb/i;
+
+/** Kan in een stream met deze naam een kerntemperatuur zitten? */
+export function mayHoldCoreTemperature(type: string): boolean {
+  return CORE_NAME.test(type) || THB_NAME.test(type);
+}
+
 /**
  * De kerntemperatuur uit de streams van een rit. intervals.icu noemt hem
  * `core_temperature`; een dataveld uit Connect IQ kan met een voorvoegsel
@@ -50,12 +58,12 @@ const THB_MIN_MEDIAN_C = 36;
 export function coreTemperatureStream(streams: CoreStream[]): Array<number | null> | null {
   const exact = streams.find((stream) => stream.type === "core_temperature");
   if (exact) return exact.data;
-  const named = streams.find((stream) => /(^|_)core_temperature$/i.test(stream.type));
+  const named = streams.find((stream) => CORE_NAME.test(stream.type));
   if (named) return named.data;
 
   let best: { data: Array<number | null>; median: number } | null = null;
   for (const stream of streams) {
-    if (!/^thb/i.test(stream.type)) continue;
+    if (!THB_NAME.test(stream.type)) continue;
     const median = plausibleMedian(stream.data);
     if (median !== null && median >= THB_MIN_MEDIAN_C && (!best || median > best.median)) {
       best = { data: stream.data, median };
@@ -131,20 +139,37 @@ export type CoreActivity = {
   type?: string;
   source?: string | null;
   moving_time?: number;
+  /** Welke streams intervals.icu van de rit heeft, bv. ["time", "watts", "core_temperature"]. */
+  stream_types?: unknown;
   /** Staat bij een rit die intervals.icu van Strava kreeg (isStravaStub). */
   _note?: unknown;
 };
 
-export type CoreCandidate = { run: ProtocolRun; protocol: Protocol; intervalsId: string; day: string };
+export type CoreCandidate = {
+  run: ProtocolRun;
+  protocol: Protocol;
+  intervalsId: string;
+  day: string;
+  /** Op te vragen streams; leeg betekent alle (de lijst zei niet welke er zijn). */
+  streamTypes: string[];
+};
+
+/**
+ * Korter dan dit is geen hittesessie, ook niet om te tonen. Ritten tussen dit
+ * en de drempel van de taak worden wel gemeten en getoond, maar niet afgevinkt.
+ */
+const MIN_RIDE_S = 5 * 60;
 
 /** Zo ver kijkt de app terug naar ritten met kerntemperatuur. */
 export const CORE_WINDOW_DAYS = 14;
 
 /**
- * Welke ritten de moeite van het ophalen waard zijn: fietsritten op een dag met
- * een hittesessie, lang genoeg om de drempel te halen, niet via Strava (die
- * hebben bij intervals.icu geen streams) en nog niet eerder bekeken. Nieuwste
- * eerst, zodat de rit van vandaag voorgaat als het budget op is.
+ * Welke ritten de moeite van het ophalen waard zijn: fietsritten van minstens
+ * vijf minuten op een dag met een hittesessie, niet via Strava (die hebben bij
+ * intervals.icu geen streams), met een stream waar een kerntemperatuur in kan
+ * zitten en nog niet eerder bekeken. Zegt de lijst niet welke streams er zijn,
+ * dan halen we alles op. Nieuwste eerst, zodat de rit van vandaag voorgaat als
+ * het budget op is.
  */
 export function coreCandidates(
   runs: ProtocolRun[],
@@ -164,10 +189,17 @@ export function coreCandidates(
       if (seen.has(`${run.id}|${activity.id}`)) continue;
       if (!isCyclingSportType(activity.type) || activity._note) continue;
       if (String(activity.source ?? "").toUpperCase() === "STRAVA") continue;
-      const minutes = phaseOn(protocol, run, day)?.tasks.flatMap((task) => (task.coreMinutes ? [task.coreMinutes] : []));
-      if (!minutes?.length) continue;
-      if ((activity.moving_time ?? 0) < Math.min(...minutes) * 60) continue;
-      out.push({ run, protocol, intervalsId: String(activity.id), day });
+      if (!phaseOn(protocol, run, day)?.tasks.some((task) => task.coreMinutes)) continue;
+      if ((activity.moving_time ?? 0) < MIN_RIDE_S) continue;
+      let streamTypes: string[] = [];
+      if (Array.isArray(activity.stream_types)) {
+        const coreTypes = activity.stream_types.filter(
+          (type): type is string => typeof type === "string" && mayHoldCoreTemperature(type),
+        );
+        if (coreTypes.length === 0) continue;
+        streamTypes = ["time", ...coreTypes];
+      }
+      out.push({ run, protocol, intervalsId: String(activity.id), day, streamTypes });
     }
   }
   return out.sort((a, b) => b.day.localeCompare(a.day));

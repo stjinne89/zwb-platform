@@ -24,7 +24,10 @@ import type { ProtocolCheck, ProtocolRun } from "./types";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-/** Streams per keer; een rit van een uur met alle streams is een paar honderd kB. */
+/**
+ * Ritten per keer. Meestal zegt de lijst welke streams er zijn en vragen we
+ * alleen tijd en kerntemperatuur op; anders alles, een paar honderd kB per uur.
+ */
 const FETCH_LIMIT = 3;
 
 export async function fillCoreSessions(
@@ -82,7 +85,9 @@ export async function fillCoreSessions(
       if (streamsById.size >= FETCH_LIMIT) continue;
       streamsById.set(
         candidate.intervalsId,
-        await fetchIntervalsActivityStreams(conn.api_key, candidate.intervalsId, []).catch(() => null),
+        await fetchIntervalsActivityStreams(conn.api_key, candidate.intervalsId, candidate.streamTypes).catch(
+          () => null,
+        ),
       );
     }
     const streams = streamsById.get(candidate.intervalsId);

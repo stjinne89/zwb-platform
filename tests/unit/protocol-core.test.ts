@@ -147,7 +147,7 @@ describe("welke ritten de app bekijkt", () => {
         activity("strava", TODAY, { source: "STRAVA" }),
         activity("stub", TODAY, { _note: "STRAVA activities are not available via the API" }),
         activity("loop", TODAY, { type: "Run" }),
-        activity("kort", TODAY, { moving_time: 29 * 60 }),
+        activity("kort", TODAY, { moving_time: 4 * 60 }),
         activity("gezien", TODAY),
         activity("ervoor", "2026-10-11"),
         activity("goed", TODAY),
@@ -156,6 +156,35 @@ describe("welke ritten de app bekijkt", () => {
       TODAY,
     );
     expect(candidates.map((item) => item.intervalsId)).toEqual(["goed"]);
+  });
+
+  it("meet ook een korte rit, zoals de testrit van de eigenaar", () => {
+    // i198325696: 644 seconden op een BOLT 2, via de Wahoo-koppeling.
+    const test = activity("i198325696", TODAY, {
+      moving_time: 644,
+      source: "WAHOO",
+      stream_types: ["time", "watts", "cadence", "heartrate", "distance", "latlng", "velocity_smooth", "core_temperature", "torque"],
+    });
+    expect(coreCandidates([lang], [test], new Set(), TODAY)).toEqual([
+      expect.objectContaining({ intervalsId: "i198325696", streamTypes: ["time", "core_temperature"] }),
+    ]);
+  });
+
+  it("slaat een rit zonder CORE-stream over zonder hem op te halen", () => {
+    const candidates = coreCandidates(
+      [lang],
+      [
+        activity("zonder", TODAY, { stream_types: ["time", "watts", "heartrate"] }),
+        activity("wahoo-oud", TODAY, { stream_types: ["time", "watts", "smo2", "thb", "thb_2"] }),
+        activity("onbekend", TODAY),
+      ],
+      new Set(),
+      TODAY,
+    );
+    expect(candidates.map((item) => [item.intervalsId, item.streamTypes])).toEqual([
+      ["wahoo-oud", ["time", "thb", "thb_2"]],
+      ["onbekend", []],
+    ]);
   });
 
   it("kijkt niet verder terug dan twee weken en niet voorbij het einde", () => {
@@ -238,6 +267,17 @@ describe("fillCoreSessions", () => {
         auto_checked: true,
       },
     ]);
+  });
+
+  it("vraagt alleen tijd en kerntemperatuur op als de lijst de streams noemt", async () => {
+    mocks.activities.mockResolvedValue([
+      activity("r1", TODAY, { moving_time: 644, stream_types: ["time", "watts", "core_temperature"] }),
+    ]);
+    mocks.streams.mockResolvedValue(ride(644, 0).filter((stream) => stream.type !== "watts"));
+    const fake = db();
+    expect(await fill(fake)).toEqual({ measured: 1, empty: 0, checked: 0 });
+    expect(mocks.streams).toHaveBeenCalledWith("k", "r1", ["time", "core_temperature"]);
+    expect(fake.tables.member_protocol_core_sessions[0]).toMatchObject({ minutes_above: 0, auto_checked: false });
   });
 
   it("bewaart te weinig minuten wel, maar vinkt niet af", async () => {
