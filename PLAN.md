@@ -9774,6 +9774,11 @@ Geen namen in de uitvoer; hartslag alleen van de eigen renners. Getest met
 nagemaakt Zwift; **niet** tegen Zwift zelf. Uitleg en wat elke uitvoer
 beantwoordt: [zwb-ds-spike.md](docs/zwb-ds-spike.md#meetscript).
 
+**Eerste meting, 2026-10-17 14:24.** Het serviceaccount krijgt de spelersstatus:
+na 15 s 404 (renner nog niet in de wereld) 15 keer 200, elke 3 s een nieuwe
+status van 2 à 3 s oud, met `eventSubgroupId` al in de startvak. Nog niet gezien:
+vermogen en afstand tijdens het rijden, het hele veld en de limiet.
+
 ### Opgeleverd — Kennisartikel Intervallen: tempo, drempel, VO2max en anaeroob
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.

@@ -142,6 +142,23 @@ Per verzoek een regel in `.tmp/` (in `.gitignore`), zonder namen; hartslag
 alleen van de renners in `--ids`, van de rest alleen óf er hartslag was. Na een
 429 wacht het 30 s, zoals Sauce.
 
+### Eerste meting, 2026-10-17 14:24 (eigenaar, één renner, 1 minuut)
+
+Met het serviceaccount (de `.env.local` was een kopie van die uit de
+hoofdmap), één renner in de startvak van een event.
+
+- **Het endpoint werkt voor een gewoon account.** Eerst 5 keer 404 (15 s; de
+  renner was waarschijnlijk nog niet in de wereld), daarna 15 keer 200.
+- **Vers:** elke status was nieuw ten opzichte van de vorige (om de 3 s), en 2
+  à 3 s oud bij binnenkomst. Antwoordtijd ongeveer 175 ms.
+- **`eventSubgroupId` staat er al in de startvak in**, dus `--subgroup auto`
+  werkt vóór de start.
+- De veldnummers kloppen met Sauce' `zwift.proto`. De "onbekende velden" 14, 22,
+  36, 37, 38, 41 en 43 staan wel in die proto (o.a. `lean`, `canSteer`), maar
+  het script leest ze bewust niet.
+- **Nog niet gezien:** vermogen, snelheid en afstand tijdens het rijden (alles
+  stond op 0 in de startvak), het veld, en de limiet.
+
 **Getest:** de decoder met een nagebouwde PlayerState
 (`tests/unit/zwift-playerstate-probe.test.ts`), en het hele script één keer
 tegen een nagemaakt Zwift (login, inschrijvingen, 200/404/429, burst). **Niet**
