@@ -9576,8 +9576,8 @@ De eigenaar vroeg om zo'n artikel, met een niveau volgens de criteria.
   niet of matig getrainde mensen en vooral op VO2max (regel 1 van de criteria).
   Tempo en sweet spot rusten op twee blokweekproeven van één groep; dat staat in
   de beperkingen. Het niveau staat in `docs/bewijsniveau-kennisbank.md` (trainen
-  nu 20 artikelen, totaal 57) met de aantekening dat het volgens de criteria is
-  ingedeeld en **nog niet apart is goedgekeurd** door de eigenaar.
+  nu 20 artikelen, totaal 57). **Goedgekeurd door de eigenaar op 2026-10-17**,
+  na het bouwen; de tabel zegt dat ook.
 - `workout-support.ts` hangt tempo, sweet spot, drempel, VO2max, anaeroob en
   sprint aan dit artikel, na de specifieke koppelingen (blokweek, wisselend,
   onderhoud, lage cadans). Alle 58 standaardworkouts hebben nu een label.
