@@ -48,6 +48,8 @@ export type ProtocolTask = {
    * CORE_THRESHOLD_C en de app vinkt hem af (core-temperature.ts).
    */
   coreMinutes?: number;
+  /** Zoveel minuten fietsen schrijft de hittesessie voor; de analyse toetst eraan. */
+  rideMinutes?: number;
 };
 
 export type ProtocolPhase = {
@@ -126,4 +128,10 @@ export type ProtocolCoreSession = {
   intervalsId: string;
   maxC: number;
   minutesAbove: number;
+  /** Uit 0239; null bij een rit die eerder werd gemeten. */
+  rideMinutes: number | null;
+  minutesToThreshold: number | null;
+  coveragePct: number | null;
+  /** De app vinkte de sessie af. */
+  autoChecked: boolean;
 };

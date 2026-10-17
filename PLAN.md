@@ -72,8 +72,6 @@ gaat stabiliteit voor nieuwe features.
    - **Profiel, de weergaveknop:** na het pushen op de telefoon `/profiel`
      openen (moet in het midden staan), alle drie de standen proberen en het midden vergelijken met wat een ander lid op `/leden/[id]`
      ziet (rondes 2026-10-16). De pagina zelf is niet ingelogd bekeken.
-   - **Protocollen:** `0237_member_protocols.sql` toepassen (2026-10-14). Zonder
-     de tabel tonen de pagina's de protocollen, maar starten lukt niet.
    - **Wie weet wat:** `0239_member_knowledge.sql` is toegepast (eigenaar,
      2026-10-15), daarna gepusht. Niet nagekeken op productie: de tabellen, de
      RLS en de kolom `on_knowledge_message`. Eén keer doorklikken: meedoen,
@@ -97,12 +95,16 @@ gaat stabiliteit voor nieuwe features.
      zonder de tabel tonen `/stats` en `/stats/ik` de standaardtegels, maar
      "Tegels aanpassen" kan niet opslaan. Daarna één keer ingelogd doorklikken: tegels kiezen en
      opslaan, en met intervals-koppeling de intervals-tegels bekijken.
-   - **CORE-sensor bij hitte:** `0238_member_protocol_core_sessions.sql`
-     toepassen, ná `0237` (2026-10-14). **Zonder `0238` lukt het starten van
-     elk protocol niet meer**: de app tekent met de nieuwe toestemmingsversie
-     `2026-10-14-core`, die pas met `0238` in de check-constraint staat. Daarna
-     een hitteprotocol starten en een rit met de CORE rijden (eigenaar, deze
-     week); zie de ronde "Hittetraining met de CORE-sensor".
+   - **Protocollen en CORE-sensor:** `0237_member_protocols.sql` en
+     `0238_member_protocol_core_sessions.sql` zijn toegepast (eigenaar,
+     2026-10-14). Niet nagekeken met de controlequery's onderaan beide
+     bestanden. De eerste testrit (2026-10-17) liet zien dat de BOLT 2
+     `core_temperature` levert. `0248_member_protocol_core_analysis.sql` (was
+     `0239`, hernummerd: dat nummer was op `main` vergeven) is op 2026-10-17
+     via de Supabase-connector toegepast, op verzoek van de eigenaar, vóór de
+     push. Vooraf: de drie kolommen bestonden niet; achteraf wel. Daarna een echte hittesessie rijden en kijken of het oordeel klopt.
+     Zie de rondes "Hittetraining met de CORE-sensor" en "Analyse per
+     hittesessie".
    - **Strava.** De aanvraag is twee keer afgewezen (gemeld 2026-09-30); de
      eigenaar vraagt om uitleg. Niet een derde keer indienen. Volgende stap is de
      spike zonder code uit [verder zonder Strava](docs/zonder-strava-onderzoek.md)
@@ -173,7 +175,7 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0246`
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0249`
 (`0244_workout_library_ftp20_warmup` en `0245_mobility_jump_series` zijn van de
 wetenschappelijke toets, 2026-10-16, hernummerd bij het samenvoegen met main)
 (`0237_member_protocols` is van de protocollen, `0238_member_protocol_core_sessions`
@@ -181,9 +183,104 @@ van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
 `0240_member_tips_from_thread` van Wie weet wat, 2026-10-15;
 `0241_profile_stats_tiles` van Mijn statistieken, `0242_knowledge_topics` van
 ZWBieb en `0243_member_profile_bikes` van de fietsen op het ledenprofiel, alle
-drie 2026-10-16).
+drie 2026-10-16; `0246_workout_method_labels` en
+`0247_training_engine_comparisons` staan op `main`;
+`0248_member_protocol_core_analysis` is van de analyse per hittesessie,
+2026-10-17, hernummerd van `0239` bij het samenvoegen met main).
 
 ---
+
+> **Analyse per hittesessie, en de lopende protocollen op Vandaag, 2026-10-17 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-17); `0248` toegepast via de Supabase-connector (2026-10-17).**
+> Commit: de commit die dit blok toevoegt. Migratie
+> `0248_member_protocol_core_analysis.sql` (toegepast via de Supabase-connector,
+> op verzoek van de eigenaar, 2026-10-17; hernummerd van `0239`, dat op `main`
+> al vergeven was).
+>
+> **Waarom.** Vraag van de eigenaar: "Ik wil eigenlijk meer dan enkel afvinken,
+> we hebben de kennis dus ik zou graag hebben dat hij ook een analyse maakt op de
+> hittesessie, waarbij als deze niet voldaan heeft aan de protocoleisen hij niet
+> afvinkt en uitlegt waarom en anders ook automatisch afvinkt en dat er op
+> zwbeter vandaag staat welke protocollen lopend zijn."
+>
+> **Wat.**
+>
+> - **Analyse** (`analyzeHeatSession` in `core-temperature.ts`): toetst een rit
+>   aan de taak. Eisen: rijduur (`rideMinutes`: 60, 50 of 30, vijf minuten
+>   speling) en minuten op of boven 38,5 °C (`coreMinutes`). Niet voldaan geeft
+>   per eis één zin waarom ("Je reed 10 minuten; het protocol vraagt er 50."), en
+>   één aanwijzing: warmer beginnen als de drempel pas na 20 minuten kwam,
+>   anders langer doorrijden, de ventilator uit bij een te lage piek, of de
+>   sensor nakijken als die minder dan 60% van de rit mat (dan oordeelt de app
+>   niet over de minuten). Boven 39,5 °C een waarschuwing, ook bij voldaan.
+>   Onderbouwing en eigen keuzes: [protocollen-onderzoek.md](docs/protocollen-onderzoek.md),
+>   "De analyse per sessie".
+> - **Afvinken** gebeurt nu alleen als de analyse "voldaan" zegt; eerder telde
+>   alleen de tijd boven de drempel.
+> - **Opslag** (`0239`): per rit ook `ride_minutes`, `minutes_to_threshold` en
+>   `coverage_pct`. De uitleg zelf staat niet in de database; die rekent de app
+>   bij het tonen uit, zodat een betere tekst ook voor oude ritten geldt.
+> - **Tonen:** onder de hittesessie "Voldaan" of "Niet voldaan" met de meting
+>   en de rijduur, en bij niet voldaan de redenen en de aanwijzing. Op de
+>   detailpagina heet de lijst nu "Hittesessies", met het oordeel per rit. Van
+>   meerdere ritten op één dag toont de app er een die voldoet, anders die met de
+>   meeste minuten.
+> - **Vandaag** (`ProtocolTodayCard`, kop "Lopende protocollen"): elk lopend
+>   protocol staat erin, ook zonder taak vandaag of als het nog moet beginnen,
+>   met de fase en "dag 3 van 56" of "nog 12 dagen tot de wedstrijd"
+>   (`runProgress`). Eerder verdween de kaart op een dag zonder taak.
+> - `/hulp` en `/privacy#protocollen` beschrijven de eisen en de extra getallen.
+>
+> **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
+>
+> - Vaste regels in plaats van een AI-analyse: de privacytekst belooft dat de
+>   kerntemperatuur niet naar OpenAI gaat, en regels zijn te testen en uit te
+>   leggen.
+> - Vijf minuten speling op de rijduur; 20 minuten als grens voor "laat warm";
+>   60% dekking; 39,5 °C als waarschuwing. Alle vier eigen keuzes.
+> - Een vinkje dat het lid zelf zette blijft staan, ook als de analyse "niet
+>   voldaan" zegt. De app haalt nooit een vinkje weg.
+>
+> **Bewust niet gebouwd.**
+>
+> - **Intensiteit toetsen** (vermogen of hartslag): het protocol staat rustige én
+>   intensieve duur toe, en een warme rit hoort niet zwaarder te worden dan
+>   gepland.
+> - **Aanpassing over de weken** (lagere kerntemperatuur bij hetzelfde vermogen):
+>   vraagt meer ritten per lid dan er nu zijn. Eerst zien of leden het gebruiken.
+> - **De analyse naar de AI-coach** of in de coachchat: zelfde privacygrond.
+> - **Een push bij "niet voldaan"**: het oordeel staat op Vandaag, waar het lid
+>   na de rit toch kijkt.
+>
+> **Niet meer waar.**
+>
+> - In de ronde "Hittetraining met de CORE-sensor": afvinken op alleen de
+>   minuten boven de drempel, en de lijst "Kerntemperatuur"; aangepast op hun plek.
+> - In de protocollenronde: "Afvinken op Vandaag" toonde alleen protocollen met
+>   een taak die dag; aangevuld.
+> - `meetsCoreTarget` bestaat niet meer; `analyzeHeatSession` vervangt hem.
+>
+> **Getest.** `tsc` en ESLint zonder fouten. `protocol-core.test.ts`: de
+> analyse (voldaan, piek te laag, te kort boven de drempel met en zonder late
+> start, te korte rit zoals de testrit van de eigenaar, weinig dekking, de
+> waarschuwing, oude rijen zonder de nieuwe velden, elke hittesessie heeft een
+> rijduur), de nieuwe getallen in de samenvatting, en `fillCoreSessions` dat
+> niet afvinkt bij een te korte rit. `protocols.test.ts`: `runProgress` voor
+> een startdatum, aftellen naar de wedstrijd en vóór de eerste dag.
+> `member-protocols-migration.test.ts`: `0239` tegen PGlite (kolommen,
+> grenzen, oude rijen leeg).
+>
+> **Niet geverifieerd.**
+>
+> - `0248` op de echte database: toegepast en de kolommen bestaan, maar nog
+>   geen rij met de nieuwe velden gezien.
+> - Rit `i198327319` (2026-10-17, 15:52) staat als "geen CORE-data" in de
+>   tabel, nog door de oude code opgehaald (alle streams, zonder `types`). Niet
+>   vastgesteld of die rit CORE-data had; zo ja, dan gaf het ophalen zonder
+>   `types` de kerntemperatuur niet terug.
+> - De kaart en het oordeel in de browser.
+> - Of de aanwijzingen in de praktijk helpen; de grenzen zijn niet door een
+>   sportarts of trainer nagekeken.
+
 
 > **Design tegels: lijsten groeien niet meer breder dan hun kaart, 2026-10-17 — gebouwd en ingelogd op 375 px gemeten; gepusht naar `main` (eigenaar, 2026-10-17, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
 > Commit: de commit die dit blok toevoegt, op `claude/impeccable-design-audit-9d704d`.
@@ -1768,9 +1865,9 @@ drie 2026-10-16).
 > `@emnapi/runtime` en `@emnapi/core` 1.11.3. Niet aangepast (los van deze
 > ronde); `npm install` werkt wel.
 
-> **Hittetraining met de CORE-sensor, via intervals.icu, 2026-10-14 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-14), ook de THb-terugval voor oudere Wahoo's; `0238` alleen tegen PGlite getest; nog niet met een echte CORE-rit geprobeerd.**
+> **Hittetraining met de CORE-sensor, via intervals.icu, 2026-10-14 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-14), ook de THb-terugval voor oudere Wahoo's; `0238` toegepast (eigenaar, 2026-10-14); nog niet met een echte CORE-rit geprobeerd.**
 > Commit: de commit die dit blok toevoegt. Migratie
-> `0238_member_protocol_core_sessions.sql` (**nog toepassen, ná `0237`**).
+> `0238_member_protocol_core_sessions.sql` (toegepast door de eigenaar, 2026-10-14).
 >
 > **Waarom.** Vraag van de eigenaar: "Kan er voor de hittetraining ook gewerkt
 > worden met de core sensor en de integreren? Eventueel door middel van
@@ -1797,17 +1894,30 @@ drie 2026-10-16).
 >   veld THb. Zonder `core_temperature` neemt de app de THb-stream met de hoogste
 >   mediaan, als die op of boven 36 °C ligt; echte hemoglobine (12 tot 15 g/dl)
 >   en de huidtemperatuur vallen daaronder.
+> - **Korte ritten en `stream_types`** (2026-10-17, na de testrit van de
+>   eigenaar). De rit (`i198325696`, BOLT 2 via de Wahoo-koppeling, 644 s) werd
+>   nooit opgehaald: de app sloeg ritten korter dan de drempel van de taak (30
+>   minuten) over. Dat was een fout: een korte rit moet zijn meting tonen, alleen
+>   niet afvinken. Nu telt elke fietsrit van minstens vijf minuten. Om toch
+>   zuinig te blijven kijkt de app naar `stream_types` in de activiteitenlijst:
+>   zonder `core_temperature` of `thb…` haalt hij niets op, en met vraagt hij alleen
+>   `time` en die stream op. Ontbreekt `stream_types`, dan alles, zoals eerst.
+>   Vastgesteld in de database (Supabase, alleen lezen): de rit had de stream
+>   `core_temperature` en het protocol `hitte-lang` liep met de toestemming
+>   `2026-10-14-core`; er stond geen rij in `member_protocol_core_sessions`.
 > - **Rekenen** (`src/lib/protocols/core-temperature.ts`): hoogste
 >   kerntemperatuur en minuten op of boven **38,5 °C**; een gat tussen metingen
 >   telt hooguit 30 seconden mee, waarden buiten 34 tot 43 °C tellen niet.
 > - **Afvinken:** een taak kreeg `coreMinutes`. Hittesessie 30 minuten (beide
 >   protocollen, ook onderhoud), korte hittesessie 10. Haalt een rit dat, dan
->   vinkt de app de taak op die dag af, mits hij die dag nog openstaat (het
+>   vinkt de app de taak op die dag af *(sinds 2026-10-17 alleen als de rit aan
+>   alle eisen voldoet, ook de rijduur; zie "Analyse per hittesessie")*, mits hij die dag nog openstaat (het
 >   weekaantal telt mee). Haalt het lid het vinkje weg, dan blijft het weg: de rit
 >   staat als bekeken in `member_protocol_core_sessions` met `auto_checked`.
 > - **Tonen:** bij de hittesessie op Vandaag, op de detailpagina en bij de
 >   trainer (Uitgangspunten) staat "38,8 °C · 42 min boven 38,5 °C"; de
 >   detailpagina heeft een lijst "Kerntemperatuur" met alle ritten van de run.
+>   *Sinds 2026-10-17 met een oordeel erbij en heet de lijst "Hittesessies".*
 > - **Opslag** (`0238`): per rit alleen de samenvatting, niet de meting. Een rit
 >   zonder CORE-data krijgt een lege rij, zodat hij niet opnieuw wordt opgevraagd.
 >   Lezen: het lid en de eigen trainer (`current_user_in_training_chat`);
@@ -1875,11 +1985,16 @@ drie 2026-10-16).
 >
 > **Niet geverifieerd.**
 >
-> - `0238` op de echte database (geen Docker of Supabase-config hier).
+> - Of `0238` op de echte database precies doet wat PGlite liet zien: de
+>   eigenaar heeft hem toegepast (2026-10-14), maar de controlequery's zijn niet
+>   gedraaid.
 > - **De veldnamen met een echte CORE-rit.** `core_temperature` komt uit
 >   forumberichten en de helppagina van CORE, die vanuit de bouwomgeving niet te
->   openen waren. Ook de naam van de THb-stream (`thb`, `thb_2`?) is niet
->   vastgesteld; de app herkent alles wat met `thb` begint. Ook niet nagegaan: dat intervals.icu zonder `types` alle streams
+>   openen waren. *Bijgewerkt 2026-10-17:* de testrit van de eigenaar noemt
+>   `core_temperature` in `stream_types`, dus de naam klopt; de waarden zelf zijn
+>   nog niet door de app gelezen (dat gebeurt na deze fix bij de volgende keer
+>   laden). De naam van een THb-stream (`thb`, `thb_2`?) is niet vastgesteld; de
+>   app herkent alles wat met `thb` begint. Ook niet nagegaan: dat intervals.icu zonder `types` alle streams
 >   teruggeeft. De eigenaar rijdt deze week een rit; kijk daarna of er een rij in
 >   `member_protocol_core_sessions` staat met een waarde, of met lege velden (dan
 >   heet de stream anders).
@@ -9745,7 +9860,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Migratie
 `0249_zwb_ds.sql` (eerst als 0247 geschreven, hernummerd omdat `main` intussen
 0247 en 0248 had). **Toegepast op productie op 2026-10-17** via de
-Supabase-connector, op verzoek van de eigenaar. Niet gepusht.
+Supabase-connector, op verzoek van de eigenaar. **Gepusht naar `main` op
+2026-10-17**, nadat de eigenaar `ZWIFT_DS_USERNAME`/`ZWIFT_DS_PASSWORD` in Netlify
+had gezet.
 
 **Waarom.** Leden die op een tablet zwiften of geen Sauce kunnen draaien, willen
 tijdens een race zien waar de groepen rijden. Onderzoek en metingen in het blok
@@ -9812,9 +9929,8 @@ de startgroep opvragen, ook van niet-leden, alleen voor ingelogde leden, geen
 hartslag, hooguit zes uur bewaard. Akkoord van de eigenaar op 2026-10-17, geen
 nieuwe versie (tekstaanpassing, zie de afspraak over privacytekst).
 
-**Nog te doen voor live:** `ZWIFT_DS_USERNAME` en `ZWIFT_DS_PASSWORD` in
-Netlify zetten (apart, gratis Zwift-account; regelt de eigenaar), pushen (pas op
-teken van de eigenaar), en één race meekijken.
+**Nog te doen:** één race meekijken op productie: of de groepen kloppen, of
+`_eventDistance` de aanloop meetelt en of de startlijst een gewicht geeft.
 
 ### Onderzocht — ZWB DS: live race-informatie zonder Sauce
 
@@ -9881,6 +9997,273 @@ renners over 16 werelden (profs, pacerbots, één gevolgde renner), 0 van de 15
 uit de race. Databron wordt dus de spelersstatus per renner, met de limiet van
 ~45 per minuut. Mogelijk uitweg voor de eigen renners: gevolgde renners staan
 wél in de lijst; niet gemeten of dat schaalt. Keuze opnieuw bij de eigenaar.
+
+### In uitvoering — Eigen regelmotor naast de AI (schaduw)
+
+**2026-10-17.** Ontwerp en afspraken: [docs/eigen-regelmotor.md](docs/eigen-regelmotor.md).
+Geen migratie.
+
+**Waarom.** De eigenaar vroeg of de uitgebreide kennisbank en workoutbibliotheek
+de OpenAI-aanroepen overbodig kunnen maken. Bijna al het AI-gebruik is
+schema's maken (zo'n 170 generaties in 30 dagen voor 8 leden), 18 % van de
+bijwerkingen mislukte, en de prompt is al een regelboek van zo'n negentig
+regels, de meeste getallen. De AI gebruikt de 58 standaardworkouts niet: hij
+verzint elke workout zelf. De motor schrijft de regels als code, met dezelfde
+invoer (`TrainingAiInput`) en uitvoer (`GeneratedTrainingPlan`) als de AI.
+
+**Fundament, 2026-10-17.** Commit `7cdd04c`. `src/lib/training/engine/types.ts` (het contract
+tussen de onderdelen), `calendar.ts` (beschikbaarheid per dag, vaste
+afspraken, periodes) en `signals.ts` (herstelsignalen met vaste drempels:
+TSB ≤ -30, ramp rate ≥ 8, readiness van het apparaat < 50, klachtenscore >
+0,65; keuzes van ZWB, geen onderzoeksgrenzen). Tests in `tests/unit/engine/`
+met een verzonnen lid. De onderdelen hieronder zijn parallel gebouwd op dit
+contract, elk in een eigen worktree, en daarna samengevoegd.
+
+**Bewust niet gebouwd.**
+- *De AI vervangen.* De motor draait ernaast; overstappen is een apart besluit
+  van de eigenaar op basis van de meetlat en het naspelen van opgeslagen
+  generaties.
+- *Gestructureerde voorkeuren.* In de 459 opgeslagen generaties tot 2026-10-17
+  had 2 keer een voorkeur; de motor negeert vrije tekst en meldt dat.
+- *Opslag van motor-uitvoer in de database.* Overbodig: de motor is
+  deterministisch en `prompt_summary` bewaart de volledige invoer, dus de
+  uitvoer is altijd opnieuw uit te rekenen. Zo is er ook geen migratie nodig.
+- *Coachchat, pacing en maaltijdherkenning.* Taalbegrip of buiten deze ronde.
+
+**Dag-aanpassing, 2026-10-17.** Commit `c192eca`. `src/lib/training/engine/daily.ts`: de
+beslisboom uit `adaptiveDailyPrompt()`. Volgorde: rustperiode → niets; vandaag
+al gereden of een vaste afspraak → vandaag niets; zwaarder dan gepland gisteren
+of vermoeid → de eerstvolgende sleutelsessie (drempel, VO2max, anaeroob) wordt
+rustige duur van hooguit 60 minuten, en een rustige rit van vandaag wordt een
+kwart korter; minder tijd → dezelfde vorm ingekort, anders rustige duur; fris
+op eigen melding → een rustige duurrit wordt intensieve duur als morgen geen
+sleutelsessie staat; een rit gevraagd op een vrije dag → rustige duur. Anders
+een lege lijst: het schema blijft. `currentPlan` kent geen blokken, dus een
+gewijzigde training wordt opnieuw uit de catalogus gebouwd. "Zwaarder" is
+≥ 20 % en ≥ 15 minuten langer dan gepland, of RPE ≥ 8 of gevoel zwaar/slecht;
+een rit tot 90 minuten met IF < 0,75 op een dag zonder training is de optionele
+rustdagrit, een verschoven training telt niet. In een kamp tellen TSB en extra
+minuten niet, alleen het lid zelf en de herstelwaarden. Getallen zijn keuzes
+van ZWB. Daarnaast `scripts/engine-export.mjs`: haalt de afgeronde generaties
+(invoer en AI-schema) op naar `.tmp/` voor het naspelen; 420 van de 459 hadden
+op 2026-10-17 een volledige invoer. **Bewust niet:** een training schrappen. Een
+aanpassing vervangt alleen de dagen die ze teruggeeft
+(`retireSupersededWorkouts` zonder bereik), dus een rustdag maken past niet in
+dit formaat; de motor verlicht in plaats daarvan.
+
+**Catalogus, 2026-10-17.** Branch `claude/motor-catalogus-a72999`, geen
+migratie. `src/lib/training/engine/catalog.ts` bouwt per vorm uit
+`SESSION_FORMS` een uitgeschreven sessie (`buildSession`), met
+`minSessionMinutes` als ondergrens en `transitionRide` voor de
+overgangsperiode. Opbouw en notities komen uit de 58 standaardworkouts, de
+doelen uit de promptregels: waar de bibliotheek daarvan afwijkt, wint de
+prompt (drempel 95-102 % wordt 95-100 % onder 15 minuten en 90-95 % vanaf 15,
+VO2max 112-120 % en 115-125 % worden 110-118 %). Doelen staan altijd in %FTP;
+de notitie draagt RPE plus wattage, of zonder FTP RPE plus gevoelstaal.
+`level` schaalt het aantal herhalingen, `variant` kiest de opbouw (drempel
+4x8, 3x12, 2x20, 3x15; VO2max ook 30/15 en 40/20 als `onOff`-blok); past de
+gekozen variant niet in de tijd, dan schuift hij door naar de volgende. Duur
+komt precies op het doel uit (nooit boven `maxMinutes`): eerst gaan
+herhalingen eraf, extra tijd gaat naar in- en uitrijden en daarna naar een
+rustig duurblok na de kern. Sprint (6 x 30 sec, vast aantal zoals de prompt)
+en `transitionRide` (minstens 80 minuten) zijn `veelbelovend`, de rest
+`geen`. Lage cadans komt alleen bij de werkblokken van vo2max, anaeroob en
+sprint, niet bij openers of de sprints in een lange rit. Tests in
+`tests/unit/engine/catalog.test.ts` toetsen elke vorm over duur, niveau en
+variant op de promptregels. *Bewust niet:* de lange ritten met drempel-,
+tempo- of krachtblokken uit 0227/0228 (het kernwerk verschuift dan en de rit
+heet geen duurrit meer; kracht op lage cadans botst met de lage-cadansregel),
+de experimentele VO2max-varianten (horen bij een apart besluit in compose),
+en testen en warming-ups (geen sessievorm). Herstel krijgt in- en uitrijden
+van 5 minuten; dat compose herstel onder 90 minuten weglaat, is aan compose.
+
+**Periodisering, 2026-10-17.** Branch `claude/motor-periodisering-526b69`, geen
+migratie. `src/lib/training/engine/periodization.ts`: `planWeeks(input, window)`
+geeft per kalenderweek soort, volume (inclusief vaste afspraken), plafond,
+sleutelsessies, niveau en lange rit, elk besluit met een `volume.*`-,
+`sleutel.*`- of `langerit.*`-reden. Eerst liggen kamp, rust, rustig, taper,
+heropbouw en de herstelweek tussen twee blokken vast; de vrije weken daartussen
+worden cycli van 3+1 (beginner 2+1), zo uitgelijnd dat de piekweek vlak vóór
+een taper, rust of kamp valt en een blok met `goalBeyond` op herstel eindigt.
+Daarna vertrekt het volume op `recentLoad`, groeit ~10 % per opbouwweek en
+wordt de piekweek naar 85 % van het plafond getild zolang de stap onder een
+kwart blijft; haalt hij dat niet, dan zegt een reden met caution waarom. Keuzes
+die de prompt openlaat: de grens van een kwart geldt tussen belaste weken (een
+opbouwweek na een herstelweek vergelijkt met de week vóór het herstel), en een
+week met minder beschikbare tijd remt de opbouw daarna niet; het plafond van de
+groei is de mediaan van de weekplafonds. Herstel na een kamp is 65 % van het
+normale weekvolume, niet van het kamp. `lowerCapacity` en `fatigued` werken
+alleen op de eerste week en cyclus van het venster: het zijn signalen van nu.
+Een clubevent op race-intensiteit en een FTP-test tellen als sleutelsessie.
+Zonder plafond groeit het volume tot een kwart boven `recentLoad`. Getoetst in
+`tests/unit/engine/periodization.test.ts`. *Bewust niet:* de
+overbelastingsweek vóór een taper (optioneel in de prompt), de overgangsperiode
+na een A/B-mikpunt als eigen weeksoort (de week na de taper begint gewoon een
+nieuwe cyclus; het samenstellen kiest daar de sessies) en de kampzwaarte op
+compliance en wellness (de factor 1,5/1,75/2 volgt alleen `experienceLevel`).
+De redenen van `recoverySignals` zelf neemt `planWeeks` niet over, zodat
+samenstellen of `index.ts` ze één keer melden.
+
+**Samenstellen, 2026-10-17.** Commit `f2b40d4`. Geen
+migratie. `src/lib/training/engine/compose.ts`: `composePlan()` zet de weken uit
+de periodisering om in workouts op dagen, `planText()` maakt titel, summary en
+cautions uit de `EngineReason`s. Per week: alleen dagen met beschikbare minuten,
+geen vaste afspraak, geen rustperiode; het aantal ritten volgt
+`recentLoad.ridesPerWeek` (één rit erbij als de gemiddelde rit anders meer dan
+1,5x de gewende duur wordt); de lange rit op de ruimste dag; sleutelvormen per
+doeltype, wisselend per week, nooit op opeenvolgende dagen of naast een race,
+test of zware vaste rit; de dag vóór een race of test openers; een toegezegde
+race vult de VO2max-plek van een ZRL-week; events die niet in `fixedWorkouts`
+staan komen er met hun eigen duur bij. Weinig tijd geeft sprintsessies,
+de overgangsperiode na het laatste A/B-mikpunt één rustige duurrit met sprints,
+hitte een notitie op een duurrit, lage cadans gaat als `lowCadence` naar de
+catalogus. Tests met een stub-catalogus en handgemaakte weken in
+`tests/unit/engine/compose.test.ts`. (Samen met de echte catalogus en
+periodisering gedraaid bij het samenvoegen, zie hieronder.) *Eigen keuzes, niet uit de prompt:* een aangevinkte dag
+zonder minuten krijgt hooguit 300 min, de overgangsperiode duurt 28 dagen, en
+een FTP-test telt als sleutelsessie van zijn week. In een kamp gelden alleen de
+minuten van een apart ingevulde week (de prompt zet het kamp boven de
+standaardweek), anders 360 min per dag. *Bewust niet:* de sprints van de
+overgangsrit als blokken met `burstSeconds` — het contract kent die vraag aan de
+catalogus niet, dus ze staan als notitie (TODO in de code); geen hersteltraining
+onder 90 min (een rustdag, niet in de uitvoer); minuten die niet in de
+beschikbare dagen passen worden niet geforceerd maar als reden gemeld.
+
+**Samenvoegen en naspelen, 2026-10-17.** Commit: de commit die deze alinea
+toevoegt. Geen migratie. De vier branches (catalogus, periodisering,
+samenstellen, meetlat) zijn samengevoegd; `src/lib/training/engine/index.ts`
+(`generateEnginePlan()`) is de ingang, `workout.ts` de gedeelde omzetting naar
+het AI-formaat. `scripts/engine-replay.mjs` draait de motor op de 420 opgeslagen
+invoeren en legt AI en motor langs de meetlat:
+[docs/regelmotor-naspelen.md](docs/regelmotor-naspelen.md). Vanaf 2026-09-17
+heeft 9 % van de dagelijkse aanpassingen van de AI een fout tegen 0 % bij de
+motor, en 59 % van de bijwerkingen tegen 11 % (na het besluit hieronder); de
+motor faalt op geen enkele invoer. Het naspelen vond zes motorfouten (taperweek leeg naast de gran fondo,
+afronding onder de 85 %, ritten die niet in de gekozen dagen pasten,
+sleutelsessies die het weekvolume overschreden, groei op doel in plaats van op
+wat er werkelijk stond, de dag vóór een A/B-mikpunt niet licht) en vier regels
+waarop de meetlat strenger was dan de prompt (kamp, event, piekmoment en
+taperzone); beide zijn rechtgezet, details in
+[docs/eigen-regelmotor.md](docs/eigen-regelmotor.md) en
+[docs/schema-meetlat.md](docs/schema-meetlat.md). **Besluit van de
+eigenaar (2026-10-17):** bij een lid ver onder zijn plafond kunnen "piekweek ≥
+85 %" en "nooit meer dan een kwart erbij" niet allebei; de groeigrens gaat
+voor, zoals de motor al deed. De meetlat volgt dat (een lagere piek is geen
+fout als 85 % alleen met grotere sprongen kon, en het laatste, nog lopende blok
+van een bijwerking wordt niet op zijn piek beoordeeld). De AI-prompt is bewust
+niet aangepast: dat verandert de schema's van leden en is een eigen besluit.
+**Bewust niet:** de motor in de app. (Trainers blind laten vergelijken stond
+hier als volgende stap; dat is gebouwd, zie hieronder.) **Niet geverifieerd:** of de motorschema's goed
+trainen — de meetlat toetst regels, geen trainingswaarde; de volledige testsuite
+draaide groen op drie zware tests na die alleen onder volle belasting een
+time-out gaven en los slagen, en `omnium-live` die `.env.local` nodig heeft.
+Niet gepusht.
+
+**Blind vergelijken door trainers, 2026-10-17.** Commit `0bd879e`.
+Samengevoegd met de regelmotor-branch. Migratie `0247_training_engine_comparisons.sql` — **toegepast op
+productie op 2026-10-17** na akkoord van de eigenaar, via de Supabase-connector
+(lokaal niet te testen: geen Docker of Supabase-config). Vóór het toepassen
+kwam er een index op `profile_id` bij, voor de cascade bij het verwijderen van
+een lid. Na afloop gecontroleerd: tabel met RLS, beide policies en alle drie de
+indexen staan er; de adviseurs melden voor deze tabel alleen nog ongebruikte
+indexen (de tabel is leeg). De meetlat toetst alleen regels; of de
+motor beter traint moeten trainers zeggen. Nieuw trainerstabblad
+**Vergelijken** (`/zwbeter-worden/trainer/vergelijken`): per opgeslagen
+AI-generatie het schema van de AI (`response_json`) naast dat van de motor,
+ter plekke uitgerekend met `generateEnginePlan()` op `prompt_summary` (niet
+opgeslagen: de motor is deterministisch). De trainer kiest "A beter", "B beter"
+of "gelijk", met een optionele reden van hooguit 280 tekens; pas daarna zegt de
+pagina welke kant van wie was. Welke kant de motor krijgt, volgt uit een hash
+(FNV-1a) van het generatie-id: vast per generatie, over alle generaties ongeveer
+half-half. Pure delen in `src/lib/training/engine-comparison.ts`, tests in
+`tests/unit/engine-comparison.test.ts`. De weergave hergebruikt `WorkoutBlocks`
+uit de beoordelen-tab; uitleg staat op `/hulp#vergelijken`.
+*Afspraken:* toegang zoals Beoordelen — trainer-recht plus actieve koppeling;
+de lijst toont alle toegewezen leden tegelijk, op datum en soort, zonder namen;
+de serveractie controleert `canCoach()` en rekent de motorkant zelf uit, het
+formulier stuurt alleen A/B/gelijk. Tot het oordeel gaat er geen herkomst naar
+de browser. De tabel bewaart de winnaar (`ai`/`engine`/`gelijk`) en welke kant
+de motor had, zodat een latere andere volgorde oude oordelen niet scheeftrekt.
+Eén oordeel per trainer per generatie, alleen invoegen: een oordeel achteraf
+bijstellen na het ontblinden zou de vergelijking niet meer blind maken. De
+teller bovenaan telt de eigen oordelen; de stand motor/AI/gelijk verschijnt pas
+op een generatie die je al beoordeelde. *Bewust niet:* titel, samenvatting en
+aandachtspunten van de schema's tonen — die van de motor zijn sjabloonzinnen en
+verraden hem; de workouttitels, -beschrijvingen en de schrijfwijze van de
+blokdoelen ("RPE 2-3, 155-207w" tegen "173-224 W") doen dat deels ook, dat is
+niet te vermijden zonder de inhoud weg te halen. Generaties van vóór 2026-09-17 —
+die prompt kende nog niet alle regels, zelfde grens als het naspelen. Een
+overzicht over trainers heen: komt pas als er oordelen zijn. Dagaanpassingen
+waarin geen van beide iets wijzigt overslaan: dat vraagt per paginalading de
+volledige invoer van alle ~150 generaties plus evenveel motorruns; ze staan er
+nu als "Beide: geen wijziging" in. Bij een dagaanpassing staat onder de datum
+wat er gepland was, een lege kant heet "Ongewijzigd" en de weektotalen vallen
+weg (die zouden alleen de gewijzigde dagen tellen). *Niet geverifieerd:*
+opslaan van een oordeel in productie — vóór 0247 gaf de actie lokaal "Opslaan
+mislukt" (de toegangscontrole ervoor slaagde); nu de tabel bestaat, is een echt
+oordeel nog niet opgeslagen en de pagina staat nog niet live (niet gepusht). De
+pagina zelf is lokaal in de browser bekeken (desktop en 375 px, geen
+horizontale scroll): lijst van 147 generaties, een bijwerking en een
+dagaanpassing naast elkaar, het formulier, en de ontblinding met een tijdelijk
+in de code gezet oordeel dat daarna weer is weggehaald. tsc groen; volledige
+testsuite groen op twee PGlite/pacing-tests na die onder volle belasting een
+time-out gaven en los slagen. Niet gepusht.
+
+### Opgeleverd — Meetlat voor trainingsschema's, met nulmeting van de AI
+
+**2026-10-17.** Commit `77acd48`. Geen migratie.
+Uitkomst en werkwijze: [schema-meetlat](docs/schema-meetlat.md).
+
+**Aanleiding.** ZWB onderzoekt of de OpenAI-aanroepen voor schema's (nieuw schema,
+bijwerking, dagelijkse aanpassing) kunnen worden vervangen door een eigen
+regelmotor op de workoutbibliotheek en de kennisbank. Daarvoor is eerst een
+objectieve maat nodig: de kwaliteit van AI-schema's werd nergens gemeten, en
+`insertPlanWorkouts()` repareerde achteraf alleen een paar dingen. Dezelfde
+controle moet straks AI- en motorschema's naast elkaar beoordelen
+(schaduwdraaien).
+
+**Wat er veranderde.**
+- `src/lib/training/schema-check.ts`: `checkTrainingPlan(input, workouts, { from, to })`
+  geeft een lijst bevindingen `{ regel, ernst, datum, toelichting }`. Puur en
+  deterministisch, en hergebruikt `minutesForDate`/`mondayKey`/`weekdayOf`
+  (availability.ts), `shiftDays`/`daysBetween`/`REBUILD_AFTER_REST_DAYS`
+  (season.ts) en `normalizeWorkoutBlocks`/`alignBlockIntensity`/`alignWorkoutIntensities`/
+  `powerRangePercentForBlock`/`OPTIONAL_REST_RIDE_MINUTES` (workouts.ts). Zeventien
+  regels: beschikbaarheid, vaste afspraken, weekplafond, piekweek ≥ 85%, groei ≤ 25%,
+  herstelweek, niet onder recentLoad, blok- en workoutintensiteit, drempelblokken,
+  boven FTP, korte herstelrit, rustdag als workout, taper zonder piek, sleutelsessies
+  op rij, sleutelsessie vóór race, plus ongeldige datum. Drempels en de gekozen
+  grenzen waar de prompt vaag is staan in de doc.
+- `tests/unit/training-schema-check.test.ts`: 34 tests.
+- `scripts/schema-meetlat.mjs`: haalt alle voltooide generaties op, toetst ze en
+  telt per regel, ook alleen over generaties waarvan de prompt de regel al bevatte
+  en over de laatste 30 dagen.
+
+**Uitkomst (420 generaties, 4.334 workouts; vóór de bijstelling van vier regels bij het naspelen, zie de ronde hierboven).** Dag- en weekregels (plafond,
+beschikbaarheid, vaste afspraken, taper, sleutelsessies op rij) houdt de AI in de
+laatste maand vrijwel altijd vast. De vorm van de opbouw niet: in 13% van de
+recente generaties een sprong van meer dan een kwart tussen opbouwweken, in 8% een
+opbouwweek onder wat het lid nu rijdt, en in 13% blokken in de verkeerde zone.
+Promptregels werken wel zodra ze erin staan: 653 korte herstelritten vóór
+2026-09-19, nul daarna. Vier keer gaf de AI een kapotte datum terug (`2026-10-25},{`).
+
+**Bewust niet gedaan.**
+- **Iets aan de AI-flow of de UI veranderen.** De meetlat draait nergens in de app;
+  hij is een maat, geen vangnet. Of hij later in `insertPlanWorkouts()` komt, is
+  een apart besluit.
+- **Regels die over `cautions` of `summary` gaan** (een reden noemen, de FTP-test
+  aanraden), het ritme van `recentLoad.ridesPerWeek`, kamp-, protocol- en
+  voorkeurregels en titels. Die zijn niet hard te toetsen op de workouts alleen.
+- **De meting via de Supabase-connector.** Die geeft het resultaat terug in het
+  gesprek, en 10 MB aan generaties past daar niet in. Het script gebruikt de
+  gekoppelde Supabase CLI, dezelfde alleen-lezende route als `db-health.mjs`.
+
+**Niet geverifieerd.** De grenzen voor "sterk negatieve TSB" (≤ -20) en "hoge
+ramp_rate" (≥ 8), de marge rond "grofweg 60-70%" en de herkenning van een taper
+zijn keuzes van de meetlat, niet van de eigenaar. De groeiregel is getoetst op 25%
+terwijl de prompt tot 2026-10-16 "ongeveer 10%" zei. De bevindingen voor groei en
+recentLoad zijn met de hand nagelopen op een handvol generaties; dat is een
+steekproef, geen volledige controle.
 
 ### Opgeleverd — Kennisartikel Intervallen: tempo, drempel, VO2max en anaeroob
 
@@ -11707,7 +12090,7 @@ worktree heeft geen `.env.local` en geen `node_modules`.
 ### Opgeleverd — Protocollen bij trainen en voeden, en een kennisbank trainen
 
 **2026-10-14.** Commit: de commit die dit blok toevoegt. Migratie
-`0237_member_protocols.sql` (**nog toepassen**).
+`0237_member_protocols.sql` (toegepast door de eigenaar, 2026-10-14).
 
 **Aanleiding.** De eigenaar wilde in ZWBeter een deel over protocollen
 (hittetraining, supplementen, training op lage cadans) en vroeg daarnaast uit
@@ -11745,7 +12128,8 @@ voedingsprotocollen bij voeden. Onderzoek en bronnen:
   vastgelegd in `src/lib/privacy.ts`. Eén lopend exemplaar per protocol.
   Supplementen pas vanaf 18 jaar (`profiles.birth_date`, AIS-framework).
 - **Afvinken** op de detailpagina en op **Vandaag** (`ProtocolTodayCard`), voor
-  vandaag en gisteren.
+  vandaag en gisteren. *Sinds 2026-10-17 toont Vandaag alle lopende protocollen,
+  ook zonder taak die dag; zie "Analyse per hittesessie".*
 - **Schema:** hitte en de wedstrijdprotocollen staan als label in de
   maandweergave (`calendarMarkers`, prop `markers` op `WorkoutCalendar`). Geen
   workout, geen TSS, niets naar intervals.icu.
@@ -11809,7 +12193,8 @@ na; die laatste is los groen.
 
 **Niet geverifieerd.**
 
-- `0237` op de echte database (geen Docker of Supabase-config hier).
+- `0237` op de echte database: toegepast door de eigenaar (2026-10-14); de
+  controlequery is niet gedraaid.
 - De pagina's in de browser: de dev-server draaide, maar vraagt een login.
 - Wat de AI met de nieuwe regels en `protocols` werkelijk plant.
 - De inhoud is niet nagekeken door een sportarts, sportdiëtist of trainer. Van

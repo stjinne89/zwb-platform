@@ -201,9 +201,11 @@ export default function PrivacyPage() {
             Volg je een hitteprotocol en heb je intervals.icu gekoppeld, dan
             kijken we bij je ritten op hittedagen of er een kerntemperatuur van
             een CORE-sensor in staat. Daarvan bewaren we per rit alleen de
-            hoogste waarde en hoeveel minuten je op of boven 38,5 °C was, niet
-            de meting zelf. Haal je de drempel, dan vinkt de app de hittesessie
-            voor je af. Jij en je eigen trainer zien die waarden; ze gaan niet
+            hoogste waarde, hoeveel minuten je op of boven 38,5 °C was, na
+            hoeveel minuten je die drempel haalde, hoe lang je reed en hoeveel
+            van de rit de sensor mat; niet de meting zelf. Voldoet de rit aan de
+            hittesessie, dan vinkt de app hem voor je af; anders legt hij uit
+            waarom niet. Dat oordeel rekent de app zelf uit met vaste regels. Jij en je eigen trainer zien die waarden; ze gaan niet
             naar OpenAI.
             Je kunt een protocol altijd stoppen; de gegevens verdwijnen als je
             je account opheft.

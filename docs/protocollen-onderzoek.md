@@ -106,7 +106,16 @@ intervals.icu. De app valt daarom terug op een THb-stream als er geen
 bereik valt. Echte hemoglobine (12 tot 15 g/dl) valt erbuiten; staan kern en
 huid op twee kanalen, dan geldt die met de hoogste mediaan als kern. Hoe
 intervals.icu die streams precies noemt, is niet vastgesteld; de app herkent elk
-type dat met `thb` begint. Bronnen: de helppagina van CORE over
+type dat met `thb` begint.
+
+**Eerste echte rit (2026-10-17).** De testrit van de eigenaar
+(`i198325696`, BOLT 2, via de Wahoo-koppeling, 644 seconden) had in
+intervals.icu gewoon een stream `core_temperature`, geen THb. De activiteitenlijst
+noemt per rit `stream_types`; daar stond hij in. De THb-terugval blijft voor
+Wahoo's die de sensor als spierzuurstofsensor koppelen, maar is bij de eigenaar
+niet nodig.
+
+Bronnen voor de beschrijving hierboven: de helppagina van CORE over
 intervals.icu en draadjes op het intervals.icu-forum; die konden vanuit de
 bouwomgeving niet worden geopend, alleen de zoekresultaten zijn gelezen.
 
@@ -140,6 +149,30 @@ vier validatiestudies, en ze spreken elkaar tegen over de richting van de fout:
 De beperking in beide hitteprotocollen noemt dat nu. De drempel van 38,5 °C en
 de 30 minuten blijven: met het vinkje dat het lid kan weghalen, past de opzet
 bij een fout van deze grootte.
+
+**De analyse per sessie (2026-10-17).** Op verzoek van de eigenaar toetst de
+app een rit aan alle eisen van de hittesessie en legt uit waarom hij niet
+voldoet. Vaste regels in `analyzeHeatSession`, geen AI (kerntemperatuur gaat
+niet naar OpenAI). De eisen:
+
+- **Rijduur** zoals de taak voorschrijft: 60 minuten (warme wedstrijd), 50
+  (hemoglobine), 30 (korte sessie). Uit de protocollen zelf; de consensus noemt
+  60-90 minuten per dag, de hemoglobinestudies 50 minuten. **Eigen keuze:** vijf
+  minuten korter telt nog (uitrijden, een stop).
+- **Minuten op of boven 38,5 °C**: 30, of 10 bij een korte sessie (zie boven,
+  eigen keuze).
+- **Dekking**: mat de sensor minder dan 60% van de rit en zijn er te weinig
+  minuten, dan zegt de app dat het niet zeker is in plaats van "te koud". Eigen
+  keuze; een gat in de meting kan alleen minuten wegnemen, dus bij genoeg minuten
+  telt de sessie gewoon.
+- **Aanwijzing**: haalde je de drempel pas na meer dan 20 minuten, dan is de
+  aanwijzing warmer te beginnen; anders langer door te rijden. Het getal 20 is
+  een eigen keuze, geen bevinding uit een studie.
+- **Waarschuwing vanaf 39,5 °C**, ook als de sessie voldoet: ruim boven de 38,5
+  °C waar de studies naartoe werkten, met de bestaande waarschuwingen
+  (duizeligheid, misselijkheid, hoofdpijn). Geen grens uit een studie; de
+  McDonald-review vond juist dat warmere sessies meer aanpassing geven, dus de
+  app zegt niet dat het "te veel" is, alleen dat het ver boven het doel ligt.
 
 **Bewust niet gebruikt: de Heat Strain Index.** CORE deelt de HSI in vier
 zones in en noemt zone 3 de trainingszone (advies: 45 tot 60 minuten erin, twee

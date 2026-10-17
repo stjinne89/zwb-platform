@@ -2210,6 +2210,34 @@ export default function HelpPage() {
             </p>
           </article>
           <article
+            id="vergelijken"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Voor trainers: schema&apos;s vergelijken</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Naast de AI maakt ZWB schema&apos;s met een eigen regelmotor. Op
+              het trainerstabblad{" "}
+              <Link href="/zwbeter-worden/trainer/vergelijken" className="underline hover:text-primary">
+                Vergelijken
+              </Link>{" "}
+              staan per eerder gemaakt schema twee versies naast elkaar, A en
+              B, gemaakt uit precies dezelfde gegevens. Eén is van de AI, één
+              van de motor; welke van wie is, zie je pas nadat je hebt
+              gekozen. Kies A beter, B beter of gelijk, met eventueel een korte
+              reden. Een oordeel ligt daarna vast.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Je ziet alleen schema&apos;s van leden die jou als trainer hebben
+              aangewezen, gemaakt vanaf 17 september 2026. Titels,
+              samenvattingen en aandachtspunten blijven weg, omdat die de motor
+              verraden; je beoordeelt de trainingen zelf. Bij een
+              dagaanpassing staat onder de datum wat er gepland was, en
+              betekent &ldquo;Ongewijzigd&rdquo; dat die kant de dag liet
+              staan. De teller bovenaan toont je aantal oordelen, en na je
+              keuze hoe vaak de motor won.
+            </p>
+          </article>
+          <article
             id="jaarplan"
             className="scroll-mt-20 rounded-md border bg-background p-4"
           >
@@ -3583,7 +3611,8 @@ Fitness-status: Verbeterend`}
         <div className="mt-4 rounded-md border bg-background p-4">
           <h3 className="text-sm font-semibold">In je schema</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            De taken van vandaag staan op Vandaag. Hitte en de wedstrijddag staan
+            Op Vandaag staan al je lopende protocollen, met de fase, hoever je
+            bent en de taken van vandaag. Hitte en de wedstrijddag staan
             als label in de maandweergave van je schema. Een protocol telt niet mee
             in je trainingsbelasting en gaat niet naar intervals.icu. Bij hitte en
             lage cadans houdt de AI-coach er rekening mee in het volgende schema of
@@ -3648,18 +3677,24 @@ Fitness-status: Verbeterend`}
             Rijd je een hittesessie met een CORE-sensor, dan leest de app je
             kerntemperatuur uit intervals.icu. Neem de rit op met je fietscomputer
             en laat die rechtstreeks naar intervals.icu syncen. Op een Garmin zet
-            je het CORE-dataveld uit Connect IQ op een datascherm. Een ACE, ROAM 3
-            of BOLT 3 van Wahoo koppelt de sensor als Body Temp; een oudere
-            Wahoo, zoals de BOLT 2, als spierzuurstofsensor (Muscle Oxygen), en
-            dan staat je temperatuur in het veld THb. Een rit die via Strava in
+            je het CORE-dataveld uit Connect IQ op een datascherm. Een Wahoo
+            neemt de sensor mee als je hem koppelt; staat je temperatuur bij een
+            oudere Wahoo in het veld THb (gekoppeld als Muscle Oxygen), dan leest
+            de app hem daar. Een rit die via Strava in
             intervals.icu komt, heeft geen kerntemperatuur. Rijd je op Zwift,
             neem de rit dan ook op je fietscomputer op.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Open daarna Vandaag of het protocol. Bij de hittesessie staat dan je
-            hoogste kerntemperatuur en hoeveel minuten je op of boven 38,5 °C
-            was. Bij 30 minuten (10 bij een korte sessie) vinkt de app de sessie
-            af; haal je dat vinkje weg, dan blijft het weg. Een heet bad vink je
+            Open daarna Vandaag of het protocol. De app toetst de rit aan de
+            hittesessie: lang genoeg gereden (60 minuten voor een warme
+            wedstrijd, 50 voor hemoglobine, 30 voor een korte sessie, met vijf
+            minuten speling) en lang genoeg op of boven 38,5 °C (30 minuten, 10
+            bij een korte sessie). Voldoet de rit, dan vinkt de app de sessie
+            af; haal je dat vinkje weg, dan blijft het weg. Voldoet hij niet,
+            dan staat erbij waarom en wat je de volgende keer anders kunt doen.
+            Mat de sensor minder dan 60% van de rit, dan oordeelt de app niet
+            over de minuten; vink de sessie dan zelf af als je weet dat het goed
+            ging. Boven 39,5 °C krijg je een waarschuwing. Een heet bad vink je
             zelf af. Startte je je hitteprotocol vóór deze functie er was, stop
             het dan en start het opnieuw; de toestemming noemt de sensor pas
             sinds die tijd. De sensor schat je kerntemperatuur, dus zie de

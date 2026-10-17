@@ -2,11 +2,12 @@
 // components; afvinken, starten en stoppen zitten in protocol-forms.tsx.
 
 import Link from "next/link";
-import { AlertTriangle, CheckCircle2, ChevronRight, ExternalLink, OctagonX } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronRight, ExternalLink, OctagonX, Thermometer } from "lucide-react";
 import { EVIDENCE_LABELS } from "@/lib/nutrition/library";
 import {
   PROTOCOL_EVIDENCE_LABELS,
   formatDose,
+  phaseOn,
   protocolBySlug,
   protocolsByGroup,
   runEndDate,
@@ -16,8 +17,9 @@ import {
   type ProtocolCoreSession,
   type ProtocolPillar,
   type ProtocolRun,
+  type ProtocolTask,
 } from "@/lib/protocols";
-import { formatCoreSession, protocolUsesCore } from "@/lib/protocols/core-temperature";
+import { analyzeHeatSession, formatCoreSession, protocolUsesCore } from "@/lib/protocols/core-temperature";
 import type { DurabilityPoint } from "@/lib/training/durability-test";
 import { shiftDays } from "@/lib/training/season";
 import { cn } from "@/lib/utils";
@@ -94,11 +96,52 @@ export function ProtocolList({
   );
 }
 
-/** De beste CORE-meting van een run op één dag: de meeste minuten boven de drempel. */
-function bestCoreSession(sessions: ProtocolCoreSession[], runId: string, day: string) {
+/** De beste CORE-meting van een run op één dag: een die voldoet, anders de meeste minuten boven de drempel. */
+function bestCoreSession(sessions: ProtocolCoreSession[], runId: string, day: string, task: ProtocolTask) {
   return sessions
     .filter((session) => session.protocolId === runId && session.day === day)
-    .sort((a, b) => b.minutesAbove - a.minutesAbove || b.maxC - a.maxC)[0];
+    .map((session) => ({ session, met: analyzeHeatSession(task, session).met }))
+    .sort(
+      (a, b) =>
+        Number(b.met) - Number(a.met) ||
+        b.session.minutesAbove - a.session.minutesAbove ||
+        b.session.maxC - a.session.maxC,
+    )[0]?.session;
+}
+
+function coreLine(session: ProtocolCoreSession): string {
+  return session.rideMinutes === null
+    ? formatCoreSession(session)
+    : `${formatCoreSession(session)} · ${session.rideMinutes} min gereden`;
+}
+
+/** Het oordeel over één hittesessie: voldaan, of waarom niet en wat beter kan. */
+function HeatSessionResult({ task, session }: { task: ProtocolTask; session: ProtocolCoreSession }) {
+  const verdict = analyzeHeatSession(task, session);
+  return (
+    <div className="mt-1 space-y-1">
+      <p className={cn("flex items-start gap-1.5 font-medium", verdict.met ? "text-primary" : "text-foreground")}>
+        <Thermometer className="mt-0.5 size-4 shrink-0" />
+        <span className="tabular-nums">
+          {verdict.met ? "Voldaan" : "Niet voldaan"} · {coreLine(session)}
+        </span>
+      </p>
+      {verdict.reasons.length > 0 ? (
+        <ul className="space-y-0.5 pl-5.5 text-muted-foreground">
+          {verdict.reasons.map((reason) => (
+            <li key={reason}>{reason}</li>
+          ))}
+        </ul>
+      ) : null}
+      {verdict.tip ? <p className="pl-5.5">{verdict.tip}</p> : null}
+      {verdict.notes.map((note) => (
+        <p key={note} className="flex items-start gap-1.5">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
+          <span>{note}</span>
+        </p>
+      ))}
+    </div>
+  );
 }
 
 /** De taken van één dag, met vinkjes. Leeg als er die dag niets staat. */
@@ -121,38 +164,38 @@ export function ProtocolDayTasks({
 }) {
   const result = tasksForDay(protocol, run, day, weightKg, checks);
   if (!result || result.tasks.length === 0) return null;
-  const core = bestCoreSession(coreSessions, run.id, day);
   return (
     <ul className="divide-y">
-      {result.tasks.map((task) => (
-        <li key={task.key} className="flex items-start gap-3 py-3">
-          <ProtocolTaskToggle
-            action={toggleProtocolTask}
-            runId={run.id}
-            taskKey={task.key}
-            day={day}
-            done={task.done}
-            label={task.label}
-            disabled={readOnly}
-          />
-          <div className="min-w-0 text-sm">
-            <p className="font-medium">
-              {task.label}
-              {task.amount ? <span className="tabular-nums"> · {task.amount}</span> : null}
-              {task.perWeek ? (
-                <span className="font-normal text-muted-foreground tabular-nums">
-                  {" "}
-                  · {task.weekCount ?? 0} van {task.perWeek} deze week
-                </span>
-              ) : null}
-            </p>
-            {task.coreMinutes && core ? (
-              <p className="mt-0.5 font-medium text-primary tabular-nums">{formatCoreSession(core)}</p>
-            ) : null}
-            <p className="mt-0.5 text-muted-foreground">{task.detail}</p>
-          </div>
-        </li>
-      ))}
+      {result.tasks.map((task) => {
+        const core = task.coreMinutes ? bestCoreSession(coreSessions, run.id, day, task) : undefined;
+        return (
+          <li key={task.key} className="flex items-start gap-3 py-3">
+            <ProtocolTaskToggle
+              action={toggleProtocolTask}
+              runId={run.id}
+              taskKey={task.key}
+              day={day}
+              done={task.done}
+              label={task.label}
+              disabled={readOnly}
+            />
+            <div className="min-w-0 text-sm">
+              <p className="font-medium">
+                {task.label}
+                {task.amount ? <span className="tabular-nums"> · {task.amount}</span> : null}
+                {task.perWeek ? (
+                  <span className="font-normal text-muted-foreground tabular-nums">
+                    {" "}
+                    · {task.weekCount ?? 0} van {task.perWeek} deze week
+                  </span>
+                ) : null}
+              </p>
+              {core ? <HeatSessionResult task={task} session={core} /> : null}
+              <p className="mt-0.5 text-muted-foreground">{task.detail}</p>
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -185,17 +228,29 @@ function dayLabel(protocol: Protocol, fromDay: number, toDay: number): string {
   return `${toDay - fromDay + 1} dagen`;
 }
 
-/** Alle ritten met kerntemperatuur in deze run, nieuwste eerst. */
-function CoreSessionList({ sessions }: { sessions: ProtocolCoreSession[] }) {
-  if (sessions.length === 0) return null;
+/** Alle ritten met kerntemperatuur in deze run, nieuwste eerst, met het oordeel. */
+function CoreSessionList({
+  protocol,
+  run,
+  sessions,
+}: {
+  protocol: Protocol;
+  run: ProtocolRun;
+  sessions: ProtocolCoreSession[];
+}) {
+  const rows = [...sessions].reverse().flatMap((session) => {
+    const task = phaseOn(protocol, run, session.day)?.tasks.find((item) => item.coreMinutes);
+    return task ? [{ session, task }] : [];
+  });
+  if (rows.length === 0) return null;
   return (
     <section className="max-w-3xl space-y-3">
-      <h3 className="font-semibold">Kerntemperatuur</h3>
+      <h3 className="font-semibold">Hittesessies</h3>
       <ul className="divide-y rounded-lg border bg-card px-4 text-sm">
-        {[...sessions].reverse().map((session) => (
-          <li key={session.intervalsId} className="flex flex-wrap items-baseline justify-between gap-2 py-2">
-            <span>{formatDay(session.day)}</span>
-            <span className="tabular-nums text-muted-foreground">{formatCoreSession(session)}</span>
+        {rows.map(({ session, task }) => (
+          <li key={session.intervalsId} className="py-3">
+            <p className="text-muted-foreground">{formatDay(session.day)}</p>
+            <HeatSessionResult task={task} session={session} />
           </li>
         ))}
       </ul>
@@ -321,7 +376,11 @@ export function ProtocolDetail({
       )}
 
       {running ? (
-        <CoreSessionList sessions={coreSessions.filter((session) => session.protocolId === running.id)} />
+        <CoreSessionList
+          protocol={protocol}
+          run={running}
+          sessions={coreSessions.filter((session) => session.protocolId === running.id)}
+        />
       ) : null}
 
       <DurabilityTestList tests={durabilityTests} />
