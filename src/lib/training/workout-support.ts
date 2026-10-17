@@ -3,8 +3,8 @@
 // Een workout krijgt geen eigen bewijsniveau: hij leent het niveau van het
 // artikel, zodat er één plek is waar het niveau staat (docs/bewijsniveau-
 // kennisbank.md). Een workout zonder artikel dat hem direct onderbouwt, krijgt
-// niets; een gewone drempel- of VO2max-workout op een artikel hangen dat iets
-// anders onderzoekt, zou meer zekerheid suggereren dan er is.
+// niets. De gewone tempo-, sweet-spot-, drempel-, VO2max-, anaerobe en
+// sprintintervallen vallen onder het artikel Intervallen.
 //
 // Eigen workouts van trainers krijgen ook niets: ZWB weet niet wat erin staat.
 
@@ -33,6 +33,13 @@ export function workoutSupportSlug(template: TemplateLike): string | null {
       return "rustige-ritten";
     case "duur":
       return template.duration_minutes >= LONG_RIDE_MINUTES ? "lange-ritten" : "rustige-ritten";
+    case "tempo":
+    case "sweetspot":
+    case "drempel":
+    case "vo2max":
+    case "anaeroob":
+    case "sprint":
+      return "intervallen";
     default:
       return null;
   }

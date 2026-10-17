@@ -9558,6 +9558,49 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Kennisartikel Intervallen: tempo, drempel, VO2max en anaeroob
+
+**2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Waarom.** Na de vorige ronde hadden 20 workouts in de bibliotheek geen
+bewijslabel, omdat er geen artikel was dat de gewone intervalvormen onderbouwt.
+De eigenaar vroeg om zo'n artikel, met een niveau volgens de criteria.
+
+**Wat er veranderde.**
+- Nieuw artikel `intervallen` in de kennisbank trainen (categorie Intensiteit),
+  met negen bronnen, alle nagekeken in PubMed: vijf meta-analyses (Milanović
+  2015, Gist 2014, Sloth 2013, Rosenblat 2020, Mølmen 2025) en vier proeven
+  (Seiler 2013, Mølmen 2025, Rønnestad 2025, Neal 2013). Kern: intervallen geven
+  iets meer VO2max dan alleen duur, geen vorm wint duidelijk, dus afwisselen.
+- Niveau **Matig**: meerdere meta-analyses die het eens zijn, maar vooral bij
+  niet of matig getrainde mensen en vooral op VO2max (regel 1 van de criteria).
+  Tempo en sweet spot rusten op twee blokweekproeven van één groep; dat staat in
+  de beperkingen. Het niveau staat in `docs/bewijsniveau-kennisbank.md` (trainen
+  nu 20 artikelen, totaal 57) met de aantekening dat het volgens de criteria is
+  ingedeeld en **nog niet apart is goedgekeurd** door de eigenaar.
+- `workout-support.ts` hangt tempo, sweet spot, drempel, VO2max, anaeroob en
+  sprint aan dit artikel, na de specifieke koppelingen (blokweek, wisselend,
+  onderhoud, lage cadans). Alle 58 standaardworkouts hebben nu een label.
+- In ZWBieb staat het artikel op de plank Trainen, vóór Korte intervallen.
+
+**Bewust niet gedaan.**
+- Geen apart artikel voor tempo en sweet spot met *beperkt*. Dat zou eerlijker
+  zijn voor die twee vormen (er is nauwelijks onderzoek naar), maar de vraag
+  was één artikel. De beperking staat in het artikel; splitsen kan later.
+- Geen nieuwe zoektocht naar alle literatuur: de bronnen zijn gekozen en
+  nagekeken, niet systematisch gezocht. De maandelijkse literatuurscan neemt
+  het artikel vanzelf mee.
+
+**Controle.** Volledige `vitest`: alles groen, op twee PGlite-time-outs na
+(`rls-initplan-migration`, `admin-areas`) die los opnieuw gedraaid slagen.
+`eslint` schoon; `tsc` schoon op de bekende fouten na (`read-barcode.ts`,
+`gopher-image-ocr.ts`, en een kapot gegenereerd `.next/dev/types/validator.ts`
+van de draaiende dev-server).
+
+**In de browser bekeken** (dev-server, 2026-10-17): het artikel toont Matig
+bewijs, de punten, beperkingen en negen bronnen. In de bibliotheek hebben alle
+58 workouts een badge; 20 linken naar Intervallen. Geen consolefouten.
+
 ### Opgeleverd — Workout-bibliotheek: blokken en bewijsniveau per workout
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -9580,13 +9623,11 @@ lid, en de bewijslabels van de kennisbank.
   Het label Veelbelovend of Experimenteel blijft ernaast staan.
 
 **Bewust niet gedaan.**
-- **Geen niveau op 18 workouts**: tempo, sweet spot (behalve de blokweken),
+- ~~Geen niveau op 20 workouts~~ (tempo, sweet spot behalve de blokweken,
   drempel, de gewone VO2max-intervallen, anaeroob, Sprint 6x1 met aanloop en
-  Sprint 8x1. Er is geen kennisartikel dat die vormen direct onderbouwt. Ze aan
-  *Zones* of *Korte intervallen* hangen zou een niveau suggereren voor iets wat
-  dat artikel niet onderzoekt. Wil de eigenaar daar een label, dan eerst een
-  artikel (bijvoorbeeld over drempel- en VO2max-intervallen) met een niveau
-  volgens de criteria.
+  Sprint 8x1): er was geen artikel dat die vormen direct onderbouwde, en ze aan
+  *Zones* of *Korte intervallen* hangen zou een niveau suggereren dat dat artikel
+  niet geeft. **Ingehaald** door de ronde "Kennisartikel Intervallen" hierboven.
 - **Geen niveau op eigen workouts** van trainers: ZWB weet niet wat erin staat.
 - **Geen legenda** in de bibliotheek: dat is uitleg in een featurescherm. De
   badge linkt naar het artikel, en de legenda staat op de kennisbanklijst.
@@ -9599,7 +9640,7 @@ schoon; `tsc` ook, op de bekende fouten in `read-barcode.ts` en
 `gopher-image-ocr.ts` na.
 
 **In de browser bekeken** (dev-server, al ingelogd als trainer, 2026-10-17): alle
-58 workouts tonen hun blokken, 40 hebben een badge met de koppeling hierboven en
+58 workouts tonen hun blokken, 38 hadden toen een badge met de koppeling hierboven en
 de juiste link. Op 375 px geen horizontale scroll, geen consolefouten. Het paneel
 was verborgen, dus de controle liep via de DOM, niet via screenshots.
 

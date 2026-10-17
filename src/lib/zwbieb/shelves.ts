@@ -56,6 +56,7 @@ export const SHELF_DEFS: ShelfDef[] = [
       "trainen/rustige-ritten",
       "trainen/lange-ritten",
       "trainen/intensiteitsverdeling",
+      "trainen/intervallen",
       "trainen/korte-intervallen",
       "trainen/vo2max-wisselend",
       "trainen/sprints-als-onderhoud",

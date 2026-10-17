@@ -25,10 +25,20 @@ describe("onderbouwing van bibliotheekworkouts", () => {
     expect(workoutSupportSlug(standard("herstel", "Herstelrit 45", 45))).toBe("rustige-ritten");
   });
 
-  it("geeft geen niveau zonder artikel dat de workout onderbouwt", () => {
-    expect(workoutSupportSlug(standard("drempel", "Drempel 2x20"))).toBeNull();
-    expect(workoutSupportSlug(standard("vo2max", "VO2max 4x5"))).toBeNull();
-    expect(workoutSupportSlug(standard("anaeroob", "Anaeroob 8x1"))).toBeNull();
+  it("hangt de gewone intervallen aan het artikel Intervallen", () => {
+    for (const [form, title] of [
+      ["tempo", "Tempo 2x15"],
+      ["sweetspot", "Sweet spot 3x10"],
+      ["drempel", "Drempel 2x20"],
+      ["vo2max", "VO2max 4x5"],
+      ["anaeroob", "Anaeroob 8x1"],
+      ["sprint", "Sprint 8x1"],
+    ] as const) {
+      expect(workoutSupportSlug(standard(form, title)), title).toBe("intervallen");
+    }
+  });
+
+  it("geeft eigen workouts geen niveau", () => {
     expect(workoutSupportSlug({ ...standard("test", "Eigen test"), is_standard: false })).toBeNull();
   });
 
@@ -42,6 +52,7 @@ describe("onderbouwing van bibliotheekworkouts", () => {
       ["sprint", "Kracht 6x2 laag toerental", 57],
       ["sprint", "Sprint 6x30s onderhoud", 51],
       ["herstel", "Herstelrit 30", 30],
+      ["drempel", "Drempel 2x20", 75],
     ] as const) {
       expect(workoutSupport(standard(form, title, minutes)), title).not.toBeNull();
     }

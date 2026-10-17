@@ -660,6 +660,62 @@ const THOMAS_2018: KnowledgeSource = {
   kind: "studie",
 };
 
+const MILANOVIC_2015: KnowledgeSource = {
+  citation:
+    "Milanović Z, Sporiš G, Weston M. Effectiveness of high-intensity interval training (HIT) and continuous endurance training for VO2max improvements: a systematic review and meta-analysis of controlled trials. Sports Med 45(10):1469-1481.",
+  year: 2015,
+  url: doi("10.1007/s40279-015-0365-0"),
+  kind: "review",
+};
+
+const MOLMEN_REGRESSION_2025: KnowledgeSource = {
+  citation:
+    "Mølmen KS, Almquist NW, Skattebo Ø. Effects of exercise training on mitochondrial and capillary growth in human skeletal muscle: a systematic review and meta-regression. Sports Med 55(1):115-144.",
+  year: 2025,
+  url: doi("10.1007/s40279-024-02120-2"),
+  kind: "review",
+};
+
+const GIST_2014: KnowledgeSource = {
+  citation:
+    "Gist NH, Fedewa MV, Dishman RK, Cureton KJ. Sprint interval training effects on aerobic capacity: a systematic review and meta-analysis. Sports Med 44(2):269-279.",
+  year: 2014,
+  url: doi("10.1007/s40279-013-0115-0"),
+  kind: "review",
+};
+
+const SLOTH_2013: KnowledgeSource = {
+  citation:
+    "Sloth M, Sloth D, Overgaard K, Dalgas U. Effects of sprint interval training on VO2max and aerobic exercise performance: a systematic review and meta-analysis. Scand J Med Sci Sports 23(6):e341-e352.",
+  year: 2013,
+  url: doi("10.1111/sms.12092"),
+  kind: "review",
+};
+
+const ROSENBLAT_HIIT_SIT_2020: KnowledgeSource = {
+  citation:
+    "Rosenblat MA, Perrotta AS, Thomas SG. Effect of high-intensity interval training versus sprint interval training on time-trial performance: a systematic review and meta-analysis. Sports Med 50(6):1145-1161.",
+  year: 2020,
+  url: doi("10.1007/s40279-020-01264-1"),
+  kind: "review",
+};
+
+const SEILER_INTERVALS_2013: KnowledgeSource = {
+  citation:
+    "Seiler S, Jøranson K, Olesen BV, Hetlelid KJ. Adaptations to aerobic interval training: interactive effects of exercise intensity and total work duration. Scand J Med Sci Sports 23(1):74-83.",
+  year: 2013,
+  url: doi("10.1111/j.1600-0838.2011.01351.x"),
+  kind: "studie",
+};
+
+const NEAL_2013: KnowledgeSource = {
+  citation:
+    "Neal CM, Hunter AM, Brennan L, et al. Six weeks of a polarized training-intensity distribution leads to greater physiological and performance adaptations than a threshold model in trained cyclists. J Appl Physiol 114(4):461-471.",
+  year: 2013,
+  url: doi("10.1152/japplphysiol.00652.2012"),
+  kind: "studie",
+};
+
 export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "lage-cadans",
@@ -746,6 +802,41 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       "Of 30/15 op lange termijn beter is dan lange intervallen, is niet onderzocht; afwisselen ligt voor de hand.",
     ],
     sources: [RONNESTAD_2015, RONNESTAD_2020, URIANSTAD_2024, APPELHANS_2025],
+  },
+  {
+    slug: "intervallen",
+    category: "intensiteit",
+    evidence: "matig",
+    title: "Intervallen: tempo, drempel, VO2max en anaeroob",
+    summary:
+      "Intervallen maken je fitter dan alleen rustig rijden, maar geen enkele vorm is aantoonbaar de beste. Daarom wisselt je schema ze af.",
+    points: [
+      "In een meta-analyse van 28 studies gaven duurtraining en intervallen allebei een grote winst op VO2max. Intervallen gaven iets meer, ongeveer 1,2 ml/kg/min.",
+      "Een analyse van ruim 350 studies vond dat duur, intervallen en sprintintervallen je spieren evenveel mitochondriën gaven. Per uur training deden sprints het meest, en vaker trainen gaf meer winst. Wie minder fit begon, won het meest.",
+      "Sprintintervallen van 30 seconden voluit verhoogden VO2max in twee meta-analyses, gemiddeld met zo'n 8 procent. Dat was evenveel als duurtraining, in veel minder tijd.",
+      "Bij sporters die minstens drie uur per week trainden, vond een meta-analyse van zes proeven op de tijdrit geen verschil tussen VO2max-intervallen en sprintintervallen. Intervallen van vier minuten of langer gaven wel zo'n 2 procent meer winst dan sprints.",
+      "Bij recreatieve fietsers gaf 4 x 8 minuten in zeven weken meer winst dan 4 x 4 of 4 x 16 minuten, ook al reden ze de blokken van 8 minuten minder hard. Langer werk net onder je maximum kan dus meer opleveren dan korter en harder.",
+      "Lange blokken op tempo tot drempel (RPE 14 tot 15) gaven goed getrainde fietsers in een blokweek meer drempelvermogen dan hun gewone training, en evenveel 15-minutenvermogen als een week VO2max-blokken.",
+      "Veel drempelwerk als hoofdmoot werkt minder goed. Bij goed getrainde fietsers gaf zes weken met bijna de helft van de tijd rond de drempel minder winst dan veel rustig rijden met een beetje hard werk.",
+    ],
+    limits: [
+      "De meta-analyses zijn vooral gedaan bij jonge, niet of matig getrainde mensen. Bij getrainde renners zijn de verschillen kleiner en de proeven klein.",
+      "Veel studies meten VO2max, een tussenmaat. Tijdritwinst is minder vaak gemeten.",
+      "Tempo en sweet spot als eigen vorm zijn nauwelijks onderzocht. De proeven met lange gematigde blokken zijn blokweken van één Noorse onderzoeksgroep. Sweet spot is een begrip van coaches, geen gemeten grens.",
+      "De anaerobe intervallen van een minuut in de workoutbibliotheek zijn een vertaling van sprintintervalstudies, geen geteste dosis.",
+      "Hoeveel je van elke vorm rijdt, staat in Gepolariseerd of piramidaal.",
+    ],
+    sources: [
+      MILANOVIC_2015,
+      MOLMEN_REGRESSION_2025,
+      GIST_2014,
+      SLOTH_2013,
+      ROSENBLAT_HIIT_SIT_2020,
+      SEILER_INTERVALS_2013,
+      MOLMEN_2025,
+      RONNESTAD_BLOCK_2025,
+      NEAL_2013,
+    ],
   },
   {
     slug: "intensiteitsverdeling",

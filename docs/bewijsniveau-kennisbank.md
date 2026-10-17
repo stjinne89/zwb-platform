@@ -68,7 +68,7 @@ Twee regels die een niveau begrenzen:
 
 ## Per artikel
 
-### Trainen (19)
+### Trainen (20)
 
 | Artikel | Niveau | Waarom |
 |---|---|---|
@@ -76,6 +76,7 @@ Twee regels die een niveau begrenzen:
 | Zones: een afspraak, geen grens in je lijf | **Matig** | Meerdere studies laten hetzelfde zien: FTP valt niet samen met de drempel, en een vaste procent geeft per persoon iets anders. Wel klein, en vooral bij mannen. De ZWB-zones zelf zijn een afspraak. |
 | Lange ritten en duurvermogen | **Beperkt** | Dat duurvermogen telt, is goed beschreven. Hoe je het traint, is nauwelijks in proeven getest, en dat is het advies. Gelijk aan het protocol Duurtest. |
 | Korte intervallen (30/15) | **Matig** | Gecontroleerde proeven bij fietsers, maar klein en vrijwel allemaal van één groep. Een meta-analyse ziet geen duidelijk winnende lengte. |
+| Intervallen: tempo, drempel, VO2max en anaeroob | **Matig** | Meerdere meta-analyses die het eens zijn: intervallen geven iets meer VO2max dan alleen duur, en geen vorm wint duidelijk. Maar vooral bij niet of matig getrainde mensen, en vooral op VO2max (regel 1). Tempo en sweet spot rusten op twee blokweekproeven van één groep. Toegevoegd 2026-10-17 op verzoek van de eigenaar, zodat de gewone intervalworkouts in de bibliotheek een niveau krijgen; het niveau is volgens de criteria ingedeeld en nog niet apart goedgekeurd. |
 | Gepolariseerd of piramidaal | **Sterk** | Twee meta-analyses, waaronder een op individuele deelnemersdata, komen allebei uit op weinig of geen verschil. |
 | Rustige ritten rustig | **Matig** | Hoe goed getrainde renners hun tijd verdelen, is goed beschreven. Het advies om tempo apart te plannen is een vuistregel van coaches, met een paar kleine proeven, deels bij lopers. |
 | Je FTP: wat de test meet | **Matig** | Veel studies naar betrouwbaarheid en geldigheid, die het eens zijn. Wel klein en vooral bij getrainde mannen; geen meta-analyse. |
@@ -143,10 +144,10 @@ Twee regels die een niveau begrenzen:
 
 | | Sterk | Matig | Beperkt | Afgeraden |
 |---|---|---|---|---|
-| Trainen | 3 | 10 | 6 | – |
+| Trainen | 3 | 11 | 6 | – |
 | Voeding | 7 | 11 | 4 | 3 |
 | Core & mobiliteit | – | 8 | 4 | – |
-| **Totaal (56)** | **10** | **29** | **14** | **3** |
+| **Totaal (57)** | **10** | **30** | **14** | **3** |
 
 Kracht heeft geen *sterk*, omdat bijna al het bewijs klein is of niet bij
 wielrenners is gedaan. Dat klopt met de toets van fase 4.
