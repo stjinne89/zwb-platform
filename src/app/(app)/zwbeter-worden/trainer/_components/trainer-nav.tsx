@@ -19,6 +19,8 @@ import type { TrainerRider } from "../_data";
  * elk lid apart moest aanklikken om te ontdekken dat er iets wachtte.
  */
 const REVIEW_HREF = "/zwbeter-worden/trainer/beoordelen";
+/** Vergelijken gaat net als beoordelen over alle leden, zonder rennerfilter. */
+const COMPARE_HREF = "/zwbeter-worden/trainer/vergelijken";
 /** De doelen-badge telt de gekozen renner; de kiezer toont het per renner. */
 const GOALS_HREF = "/zwbeter-worden/trainer/doelen";
 
@@ -145,7 +147,7 @@ export function TrainerNav({ riders }: { riders: TrainerRider[] }) {
             label: section.label,
             // De wachtrij gaat over alle leden; een rennerfilter zou hem juist
             // weer versmallen tot wat de trainer al niet zag.
-            query: isReview ? undefined : `athlete=${selected.id}`,
+            query: isReview || section.href === COMPARE_HREF ? undefined : `athlete=${selected.id}`,
             badge: isReview
               ? totalPending
               : section.href === GOALS_HREF

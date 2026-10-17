@@ -180,6 +180,12 @@ const HELP_INDEX: HelpResult[] = [
       "uitgangspunten voorkeur voorkeuren persoonlijk meegewogen meewegen waarom schema prompt regels vaste regels onthoud onthouden motivatie intensief intensiever races duur trainer aanvullen coachchat herziening tsb herstel opbouw herstelweek",
   },
   {
+    title: "Voor trainers: schema's vergelijken",
+    text: "Blind kiezen tussen het schema van de AI en dat van de regelmotor.",
+    href: "/hulp#vergelijken",
+    terms: "vergelijken trainer regelmotor motor ai blind a b beter gelijk oordeel schema keuze",
+  },
+  {
     title: "Doeltype en de laatste weken",
     text: "Waarom een gran fondo wel een taper krijgt en basisconditie of ZRL niet.",
     href: "/hulp#doeltype",
