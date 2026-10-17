@@ -171,6 +171,7 @@ export async function MemberProfile({
             <RiderStats
               profileId={profileRow.id}
               displayName={profileRow.display_name ?? "Dit lid"}
+              href={self ? "/stats/ik" : undefined}
             />
           )}
         </>

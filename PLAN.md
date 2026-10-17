@@ -9558,6 +9558,27 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — "… op de fiets" op je eigen profiel linkt naar `/stats/ik`
+
+**2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Wat er veranderde.** De kop van het blok `RiderStats` ("… op de fiets") is op
+je eigen profiel een link naar `/stats/ik`, met een pijltje. `RiderStats` kreeg
+daarvoor een optionele `href`; `member-profile.tsx` geeft die alleen mee als het
+lid naar zichzelf kijkt (`self`). Dat geldt dus voor de weergave "Zoals leden je
+zien" op `/profiel` en voor `/leden/<eigen id>`.
+
+**Bewust niet gedaan.**
+- De hele sectie klikbaar maken: het blok bevat al "Bekijk op Strava"-links, en
+  een link in een link is geen geldige HTML.
+- Een link op andermans profiel: `/stats/ik` toont altijd de stats van de kijker,
+  niet die van het lid.
+
+**Controle.** `eslint` op de gewijzigde bestanden is schoon. `tsc` is schoon, op
+de bekende fouten in `read-barcode.ts` en `gopher-image-ocr.ts` na.
+
+**Niet geverifieerd.** De pagina in de browser.
+
 ### Opgeleverd — Maandelijkse literatuurscan van de kennisbank
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.

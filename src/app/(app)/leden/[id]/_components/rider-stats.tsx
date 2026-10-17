@@ -5,8 +5,10 @@
 // staat — consistent met de badge-sectie. Geen migratie nodig, leest uit
 // bestaande strava_activities.
 
+import Link from "next/link";
 import {
   Bike,
+  ChevronRight,
   Mountain,
   Clock,
   Trophy,
@@ -141,9 +143,11 @@ function MonthHeatmap({ values }: { values: number[] }) {
 export async function RiderStats({
   profileId,
   displayName,
+  href,
 }: {
   profileId: string;
   displayName: string;
+  href?: string;
 }) {
   const supabase = await createClient();
   const { data: rows } = await supabase
@@ -304,9 +308,19 @@ export async function RiderStats({
 
   return (
     <section className="space-y-4 rounded-lg border bg-card p-6">
-      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        <Bike className="size-4 text-primary" />
-        {firstLastName} op de fiets
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        {href ? (
+          <Link href={href} className="group flex items-center gap-2 hover:text-foreground">
+            <Bike className="size-4 text-primary" />
+            {firstLastName} op de fiets
+            <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        ) : (
+          <span className="flex items-center gap-2">
+            <Bike className="size-4 text-primary" />
+            {firstLastName} op de fiets
+          </span>
+        )}
       </h2>
 
       {/* Jaar-totalen */}
