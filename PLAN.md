@@ -185,6 +185,64 @@ drie 2026-10-16).
 
 ---
 
+> **Design tegels, tweede auditronde: paginatitels, cijferkaarten, knoppen en segmentschakelaars, 2026-10-17 — gebouwd, lokaal getest en ingelogd in de browser bekeken (375 px, licht en donker); niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/impeccable-design-audit-9d704d`.
+>
+> **Waarom.** Vervolg op de audit hieronder, op verzoek van de eigenaar: eigen
+> paginakoppen zonder `PageHeader`, de rij cijferkaarten op Teams-detail,
+> omlijnde secundaire knoppen, ronde knoppen en de segmentschakelaars.
+>
+> **Wat.** Bijna alles in CSS binnen `[data-design="tegels"]`. Het klassieke
+> design verandert niet.
+> - *Paginatitels.* Een eigen `h1` met `text-2xl` of `text-3xl` (Teams-detail,
+>   de beheerschermen, SRC, profiel en ledenprofiel, de formulieren) krijgt
+>   dezelfde lichte grote titel als de paginakop. De eventkop en de paginakop
+>   zelf houden hun eigen regel.
+> - *Cijferkaarten.* De drie kaarten Renners, Teamraces en ZRL-starts op
+>   Teams-detail zijn één paneel met drie cijfers, cijfer boven het label, geen
+>   pictogram (klasse `tg-metric-row`).
+> - *Omlijnde knoppen* (variant outline, ook als link): geen rand, een vlak in
+>   `--muted`. Een knop is een actie en krijgt geen plekkleur; de hoofdknop houdt
+>   de actiekleur.
+> - *Ronde knoppen.* De regel die ronde labels recht maakt, geldt nu ook voor
+>   knoppen en labels (schema, core-series, Vermogen). Uitzondering blijft alles
+>   met een `size-`-klasse (avatars, bolletjes).
+> - *Segmentschakelaars.* Watt/W/kg/% FTP, Lijst/Maand, Week/Maand/Jaar, het
+>   bereik op Stats, Mikpunt/Periode en de grafiekschakelaars op Stats → Ik zijn
+>   overal met de hand gebouwd als omlijnde houder (`border p-0.5`) met een
+>   gevulde actieve knop. Ze worden daaraan herkend (`:has(> .bg-primary)`) en
+>   zien er nu uit als de tweede menurij: losse vlakken van 44 px in de kleur van
+>   de plek, de gekozen als paneel met de gouden lijn.
+> - *De kleur van de plek* (`--tg-here`) wordt afgelezen aan de actieve tab van
+>   de schil: goud, petrol, teal of sage; zonder plek (profiel, garage, beheer,
+>   hulp) donker petrol. Klasse `tg-here` zet die kleur op een `tg-link`. De
+>   periodestrip op Stats en `SectionNav` gebruiken die. `SectionNav` kreeg een
+>   optionele `tone`: Beheer geeft de kleur van de categorie mee.
+> - *Filterchips op de kalender* (Alles, Voor mij, Labels): petrol vlakken van
+>   44 px, de gekozen als paneel met de gouden lijn (klasse `tg-chip`).
+>
+> **Bewust niet gedaan.**
+> - Paginatitels omzetten naar `PageHeader`. Dat zou ook het klassieke design
+>   veranderen, en dat staat live voor alle leden.
+> - De gekleurde markeringen van trainingen in de maandkalender van het schema:
+>   dat zijn gegevens in een dagvak, geen knoppen.
+> - De rollabels op profiel en Leden (onder meer Systeemadmin in rood), de vaste
+>   Tailwind-statuskleuren (amber en emerald) en de profielkop met omslagbalk:
+>   voor een volgende ronde.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon. Vitest op `admin-areas`,
+> `design-places` en `nav-active` geslaagd (23). Detector van impeccable:
+> niets op de gewijzigde bestanden. Ingelogd op 375 px bekeken: Teams-detail
+> (titel, cijferpaneel, Watt/W/kg in sage, rustige knoppen, ook licht), het
+> ZWBeter-schema (Watt-schakelaar en Lijst/Maand in teal), Stats (Week/Maand/Jaar
+> en de periodestrip in sage), de kalender (filterchips), Beheer → Tips en
+> citaten (titel, subtabs in de kleur van Community) en het profiel (titel).
+>
+> **Niet geverifieerd.** De overige pagina's met een eigen titel en de
+> grafiekschakelaars op Stats → Ik zijn niet een voor een bekeken; ze vallen
+> onder dezelfde regels. Desktopbreedte niet opnieuw bekeken. Volledige vitest-run
+> en `npm run build` niet opnieuw gedraaid.
+
 > **Design tegels: menu's, dialogen, tweede menurij en de inlogschermen, 2026-10-17 — gebouwd, lokaal getest en ingelogd in de browser bekeken (375 px, licht en donker); niet gepusht. Geen migratie.**
 > Commit: de commit die dit blok toevoegt, op `claude/impeccable-design-audit-9d704d`.
 >
@@ -209,7 +267,9 @@ drie 2026-10-16).
 >   als op de pagina: tekstmaten, onderkast, vlakke velden, knoppen van 44 px.
 > - Tweede menurij: `SectionNav` (onder de ZWBeter-pijlers, bij Voeding, Kracht
 >   en de trainer) en de ZWBieb-tabs krijgen `tg-link` in de kleur van de plek:
->   teal voor ZWBeter, sage voor ZWBieb (de club en de mensen). Waar je bent is
+>   teal voor ZWBeter, sage voor ZWBieb (de club en de mensen). *(Bijgewerkt
+>   later op 2026-10-17: `SectionNav` neemt nu de kleur van de plek waar je bent,
+>   bij Beheer die van de categorie; op ZWBeter blijft dat teal.)* Waar je bent is
 >   het paneel met de gouden lijn, zoals bij de pijlers. `.tg-subnav` haalt de
 >   omkaderde balk weg. De rennerkiezer van de trainer is een teal vlak van 44 px.
 > - Themaknop en terugknop in de balk van tegels zijn 44 px, net als hulp en
@@ -240,7 +300,9 @@ drie 2026-10-16).
 >   rennerkiezer en de ZWBieb-tabs zijn minstens 44 px hoog (Duimregel), en het
 >   "of" boven de magic link is een flexregel in plaats van een lijn met een vlak
 >   erover (ziet er hetzelfde uit).
-> - De rest van de audit staat voor een volgende ronde: eigen paginakoppen zonder
+> - De rest van de audit staat voor een volgende ronde *(bijgewerkt: de tweede
+>   auditronde van dezelfde dag deed de titels, cijferkaarten, knoppen en
+>   schakelaars; de statuskleuren staan nog open)*: eigen paginakoppen zonder
 >   `PageHeader` (Teams-detail, beheerschermen, SRC, profiel en ledenprofiel),
 >   rijen identieke cijferkaarten op Teams-detail, omlijnde secundaire knoppen,
 >   ronde knoppen in het schema, de core-series en Vermogen, de
