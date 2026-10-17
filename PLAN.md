@@ -9795,7 +9795,10 @@ Raceinfo-kaart en de live ZRL-stand; uitleg op `/hulp`. Eerst nog een meting:
 `/relay/dropin` geeft per wereld renners met afstand en vermogen in één verzoek
 (`--dropin` in het meetscript, getest tegen een nagemaakt Zwift en met een
 unit-test). Staat het veld daarin, dan vervalt de limiet als probleem. Plan,
-plaatsing en open keuzes: [zwb-ds-spike.md](docs/zwb-ds-spike.md#bouwplan-route-a-het-raceoverzicht-voorstel-2026-10-17).
+plaatsing en keuzes: [zwb-ds-spike.md](docs/zwb-ds-spike.md#bouwplan-route-a-het-raceoverzicht-voorstel-2026-10-17).
+De eigenaar ging akkoord met de plaatsing en koos: alleen voor leden, W/kg van
+tegenstanders wel (hartslag niet), eerst alleen de kalender. Eerst de
+dropin-meting in een race; die bepaalt de databron.
 
 ### Opgeleverd — Kennisartikel Intervallen: tempo, drempel, VO2max en anaeroob
 

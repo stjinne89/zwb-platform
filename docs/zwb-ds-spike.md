@@ -307,8 +307,12 @@ Geen hartslag van wie dan ook (gezondheidsgegeven), geen kaart.
   races en kijkers.
 - **Featurepauze:** het bestuur overweegt die nog.
 
-### Keuzes voor de eigenaar
+### Keuzes van de eigenaar (2026-10-17)
 
-1. Alleen voor ingelogde leden (voorstel), of publiek zoals de live stand?
-2. W/kg van tegenstanders tonen (voorstel: ja, dat toont Zwift ook in het spel)?
-3. Ook voor de Omnium (`omnium_edition_events`), of eerst alleen de kalender?
+Akkoord met de plaatsing hierboven, en met de drie voorstellen:
+
+1. Alleen voor ingelogde leden, niet publiek.
+2. W/kg van tegenstanders wel tonen, zoals Zwift in het spel; hartslag niet.
+3. Eerst alleen de kalender (`events`); de Omnium later.
+
+Volgende stap: de eigenaar draait de dropin-meting tijdens een race.
