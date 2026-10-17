@@ -9779,6 +9779,15 @@ na 15 s 404 (renner nog niet in de wereld) 15 keer 200, elke 3 s een nieuwe
 status van 2 à 3 s oud, met `eventSubgroupId` al in de startvak. Nog niet gezien:
 vermogen en afstand tijdens het rijden, het hele veld en de limiet.
 
+**Tweede meting, 2026-10-17 14:28.** Hele subgroep (25 renners): 22 gaven een
+status, 19 reden, status mediaan 2,5 s oud. **Limiet ongeveer 45 verzoeken per
+minuut per account** (schuivend venster). Daarmee haalt één account twee renners
+elke 3 s, of het hele veld van 25 elke ~35 s. Sauce-achtige live info voor veel
+leden tegelijk kan zo niet; een veldoverzicht om de halve minuut wel. Gemeten
+met het serviceaccount: in die minuten kreeg het mogelijk ook het platform 429's.
+Keuze ligt bij de eigenaar; zie
+[zwb-ds-spike.md](docs/zwb-ds-spike.md#tweede-meting-2026-10-17-1428-1435-eigenaar-hele-subgroep).
+
 ### Opgeleverd — Kennisartikel Intervallen: tempo, drempel, VO2max en anaeroob
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.

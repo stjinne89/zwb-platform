@@ -159,6 +159,37 @@ hoofdmap), één renner in de startvak van een event.
 - **Nog niet gezien:** vermogen, snelheid en afstand tijdens het rijden (alles
   stond op 0 in de startvak), het veld, en de limiet.
 
+### Tweede meting, 2026-10-17 14:28–14:35 (eigenaar, hele subgroep)
+
+Serviceaccount, `--subgroup auto`: subgroep `7381538`, 25 ingeschrevenen. Cijfers
+uit het log tot 14:35:42 (295 verzoeken); de run liep door tot 14:39.
+
+- **Het hele veld komt terug.** 22 van de 25 renners gaven een status, 19 reden
+  (snelheid > 0). 51 keer 404: renners die (nog) niet in de wereld waren.
+- **Vers tijdens het rijden:** mediaan 2,5 s, p95 3,9 s oud.
+- **De limiet is ongeveer 45 verzoeken per minuut per account.** De eerste 429
+  kwam na 47 verzoeken in 32 s. Daarna elke minuut één 429, telkens na 41 tot 45
+  verzoeken in de voorgaande 60 s; ook direct na 30 s pauze. Dat past bij een
+  schuivend venster van een minuut, niet bij een limiet per seconde. Of die
+  limiet per account of per IP-adres geldt, en of hij gedeeld wordt met de
+  andere Zwift-endpoints die het platform gebruikt, is niet gemeten.
+
+**Gevolg voor route A.** Met één account en ~45 per minuut:
+
+| Wat | Verversing | Renners |
+| --- | --- | --- |
+| Eén renner live | elke 3 s | 2 tegelijk |
+| Eigen renner + ploeg | elke 5 s | 3 à 4 |
+| Hele veld van 25 | elke ~35 s | 25 |
+
+Live gaten en W/kg rond een renner, zoals Sauce, zijn hiermee niet te maken
+voor meer dan een paar leden tegelijk. Wel kan: per race een overzicht van het
+hele veld (plek op de route, afstand tot elkaar) om de halve minuut, iets wat
+Sauce niet geeft. Meer renners kan alleen met meer accounts (grijs gebied in de
+Zwift-voorwaarden) of met route B (de gameclient, zonder deze limiet).
+
+De burst-test (stap 7) is niet meer nodig: de limiet is hiermee bekend.
+
 **Getest:** de decoder met een nagebouwde PlayerState
 (`tests/unit/zwift-playerstate-probe.test.ts`), en het hele script één keer
 tegen een nagemaakt Zwift (login, inschrijvingen, 200/404/429, burst). **Niet**
