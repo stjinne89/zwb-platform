@@ -1,8 +1,8 @@
 // ZWBeter in het design "tegels": de onderdelen van ZWBeter Worden gegroepeerd
-// in vier pijlers, elk met een eigen naam ("ZWBeter trainen", "ZWBeter voeden").
+// in vijf pijlers, elk met een eigen naam ("ZWBeter trainen", "ZWBeter racen").
 // Los van React, zodat de indeling te testen is.
 
-export type PillarId = "trainen" | "voeden" | "kracht" | "coachen";
+export type PillarId = "trainen" | "racen" | "voeden" | "kracht" | "coachen";
 
 export type Pillar = {
   id: PillarId;
@@ -31,6 +31,8 @@ export const ZWBETER_PILLARS: Pillar[] = [
       "/zwbeter-worden/coach",
     ],
   },
+  // Analyse van gereden ZRL-races (2026-10-15), los van het eigen trainen.
+  { id: "racen", word: "racen", hrefs: ["/zwbeter-worden/racen"] },
   { id: "voeden", word: "voeden", hrefs: ["/zwbeter-worden/voeding"] },
   { id: "kracht", word: "kracht", hrefs: ["/zwbeter-worden/core"] },
   { id: "coachen", word: "coachen", hrefs: ["/zwbeter-worden/trainer"] },

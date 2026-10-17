@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { StravaAttribution } from "@/components/strava-brand";
-import { EmptyState, HelpLink, PageHeader } from "@/components/app-ui";
+import { EmptyState, PageHeader } from "@/components/app-ui";
 import { MemberLink } from "@/components/member-link";
 import {
   countNewThisYear,
@@ -169,7 +169,6 @@ export default async function ZwblokkenPage() {
         eyebrow="Club"
         title="ZWBlokken"
         description="Elk blok dat je ooit doorkruist hebt, kleurt in."
-        actions={<HelpLink href="/hulp#zwblokken" />}
       />
 
       {club.total === 0 ? (

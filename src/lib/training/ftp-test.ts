@@ -52,6 +52,86 @@ export function ftpFromTest(type: FtpTestType, resultWatts: number): number {
   return Math.round(resultWatts * FTP_TEST_FACTORS[type]);
 }
 
+/**
+ * De meetfout van een FTP-test als fractie. De 20-minutentest heeft een
+ * typische fout van ~2–3 % (McGrath 2019; Lillo-Beviá 2022: kleinste
+ * aantoonbare verandering ±9 W). Een kleiner verschil met de vorige test is van
+ * ruis niet te onderscheiden. Zie docs/wetenschappelijke-toets.md, 1B.
+ */
+export const FTP_MEASUREMENT_ERROR = 0.03;
+
+export type FtpChange = {
+  /** Verschil met de vorige test, als fractie van die test. */
+  fraction: number;
+  /** Binnen de meetfout: geen vooruitgang en geen achteruitgang. */
+  same: boolean;
+};
+
+/** Hoe een FTP zich verhoudt tot de vorige; null zonder vorige test. */
+export function ftpChange(current: number, previous: number | null): FtpChange | null {
+  if (previous == null || !Number.isFinite(previous) || previous <= 0) return null;
+  const fraction = (current - previous) / previous;
+  return { fraction, same: Math.abs(fraction) < FTP_MEASUREMENT_ERROR };
+}
+
+/**
+ * Vanaf deze afwijking van de vermogenscurve krijgen lid en trainer een
+ * signaal. Keuze van de eigenaar (2026-10-16), ruim boven de meetfout: per
+ * renner wijkt een FTP-test al gauw 10 % af van MLSS of de lactaatdrempel
+ * (Borszcz 2019; Valenzuela 2018), en voor de ramptest bestaat geen validatie.
+ */
+export const FTP_CHECK_MARGIN = 0.08;
+
+/** Ouder dan dit zegt een afwijking meer over de vorm dan over de test. */
+export const FTP_CHECK_MAX_AGE_DAYS = 56;
+
+export type FtpCheck = {
+  /** Afwijking van de test tegenover de referentie, als fractie (+ = test hoger). */
+  deviation: number;
+  /** Het gemiddelde van de beschikbare referenties. */
+  referenceWatts: number;
+  cpWatts: number | null;
+  eftpWatts: number | null;
+};
+
+/**
+ * Past een testuitslag bij wat de rest van de data zegt? CP komt uit de hele
+ * vermogenscurve, eFTP uit de ritten van de laatste tijd; geen van beide is
+ * een meting van de drempel, maar samen zijn ze een onafhankelijke toets. Een
+ * ramptest die bij een explosieve renner te hoog uitvalt (de hoogste minuut
+ * leunt op de anaerobe reserve), komt zo boven water voordat het schema er
+ * weken op draait.
+ *
+ * Null als er niets te melden is: geen referentie, een test ouder dan acht
+ * weken, of een afwijking binnen de marge.
+ */
+export function ftpCheck(input: {
+  ftpWatts: number;
+  testedOn: string;
+  todayKey: string;
+  cpWatts: number | null;
+  eftpWatts: number | null;
+}): FtpCheck | null {
+  const usable = (value: number | null) =>
+    value != null && Number.isFinite(value) && value > 0 ? value : null;
+  const cpWatts = usable(input.cpWatts);
+  const eftpWatts = usable(input.eftpWatts);
+  const references = [cpWatts, eftpWatts].filter((value): value is number => value != null);
+  if (references.length === 0) return null;
+
+  const ageDays = Math.round(
+    (new Date(`${input.todayKey}T12:00:00Z`).getTime() -
+      new Date(`${input.testedOn}T12:00:00Z`).getTime()) /
+      86_400_000,
+  );
+  if (!Number.isFinite(ageDays) || ageDays < 0 || ageDays > FTP_CHECK_MAX_AGE_DAYS) return null;
+
+  const referenceWatts = references.reduce((sum, value) => sum + value, 0) / references.length;
+  const deviation = (input.ftpWatts - referenceWatts) / referenceWatts;
+  if (Math.abs(deviation) <= FTP_CHECK_MARGIN) return null;
+  return { deviation, referenceWatts: Math.round(referenceWatts), cpWatts, eftpWatts };
+}
+
 export function ftpTestTitle(type: FtpTestType): string {
   return `FTP-test (${type === "ramp" ? "ramp" : "20 min"})`;
 }
@@ -87,6 +167,10 @@ export function ftpTestBlocks(type: FtpTestType): WorkoutBlock[] {
           },
         ]
       : [
+          // Sinds 2026-10-16 geen opener van vijf minuten op 105-115 % meer:
+          // na de klassieke warming-up met zo'n blok reden renners hun test
+          // ~5 % lager dan na een korte warming-up met een paar versnellingen
+          // (Tramontin 2021). Zie docs/wetenschappelijke-toets.md, 1B.
           {
             label: "Inrijden",
             durationMinutes: 15,
@@ -95,17 +179,17 @@ export function ftpTestBlocks(type: FtpTestType): WorkoutBlock[] {
             intensity: "endurance",
           },
           {
-            label: "Opener",
+            label: "Versnellingen",
             durationMinutes: 5,
-            target: "105-115%",
-            notes: "Kort scherp, om het systeem open te zetten.",
-            intensity: "vo2max",
+            target: "60-70%",
+            notes: "Drie korte versnellingen van tien seconden op hoge cadans, met een minuut rustig ertussen.",
+            intensity: "endurance",
           },
           {
-            label: "Herstel",
-            durationMinutes: 10,
-            target: "45-55%",
-            notes: "Volledig herstellen voor de test.",
+            label: "Rustig",
+            durationMinutes: 5,
+            target: "50-60%",
+            notes: "Losdraaien voor de test.",
             intensity: "recovery",
           },
           {

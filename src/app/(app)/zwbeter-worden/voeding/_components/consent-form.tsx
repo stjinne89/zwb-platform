@@ -1,7 +1,7 @@
 "use client";
 
-// Iets aanzetten waarvoor het lid apart toestemming geeft: foto en tekst
-// herkennen (naar OpenAI) of de trainer laten meekijken.
+// Iets aanzetten waarvoor het lid apart toestemming geeft: tekst herkennen
+// (naar OpenAI) of de trainer laten meekijken.
 
 import Link from "next/link";
 import { useActionState, type ReactNode } from "react";

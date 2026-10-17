@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readdir, readFile } from "node:fs/promises";
 import { ADMIN_AREAS } from "@/lib/admin-areas";
-import { ADMIN_NAV } from "@/app/(app)/_components/nav-config";
+import {
+  ADMIN_NAV,
+  BEHEER_CATEGORIES,
+  beheerCategoriesFor,
+} from "@/app/(app)/_components/nav-config";
 import { COMMUNITY_PERMISSION_IDS, DEFAULT_ROLE_PERMISSIONS } from "@/lib/permissions";
 
 describe("register van beheergebieden", () => {
@@ -11,6 +15,20 @@ describe("register van beheergebieden", () => {
     for (const area of Object.values(ADMIN_AREAS)) {
       expect(COMMUNITY_PERMISSION_IDS).toContain(area.permission);
     }
+  });
+
+  it("zet elk gebied in precies één beheercategorie", () => {
+    const hrefs = BEHEER_CATEGORIES.flatMap((category) => category.items.map((item) => item.href));
+    expect(new Set(hrefs).size).toBe(hrefs.length);
+    for (const area of Object.values(ADMIN_AREAS)) expect(hrefs).toContain(area.href);
+  });
+
+  it("laat in de beheercategorieën alleen toegestane items en geen lege categorie", () => {
+    const categories = beheerCategoriesFor((permission) => permission === "src.manage");
+    expect(categories).toEqual([
+      expect.objectContaining({ label: "Online racen", items: [expect.objectContaining({ href: "/beheer/src" })] }),
+    ]);
+    expect(beheerCategoriesFor(() => false)).toEqual([]);
   });
 
   it("geeft standaardrollen alleen bestaande rechten", () => {

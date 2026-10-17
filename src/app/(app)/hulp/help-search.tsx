@@ -37,7 +37,7 @@ const HELP_INDEX: HelpResult[] = [
   {
     title: "Strava koppelen",
     text: "OAuth-koppeling voor clubritten, badges, cols, fietsen en trainingscontext.",
-    href: "/profiel#strava",
+    href: "/profiel?weergave=bewerken#strava",
     terms: "strava koppelen sync oauth activiteiten ritten limiet activiteitenrecht opnieuw",
   },
   {
@@ -97,6 +97,12 @@ const HELP_INDEX: HelpResult[] = [
     text: "Automatische herkenning, PR's en segmentranglijsten.",
     href: "/hulp#cols",
     terms: "cols segmenten records pr ranglijst kom qom zwb kom alpe ventoux stelvio",
+  },
+  {
+    title: "ZWBieb",
+    text: "Wie weet wat en wie heeft wat: kennis en uitleenspullen van leden, tips en een vraag stellen in de app.",
+    href: "/hulp#zwbieb",
+    terms: "wie weet wat kennis kenner ervaring onderwerp vraag vragen gesprek bericht berichten tip tips van leden advies hulp gravel bikefit sleutelen banden tubeless zwift racen zwbieb bieb wie heeft wat lenen uitlenen spullen fietskoffer momentsleutel fietsendrager seasucker dakdrager camper werkstandaard leeszaal kennisbank artikel artikelen lezen boeken plank",
   },
   {
     title: "Live volgen met Garmin of Wahoo",
@@ -174,6 +180,12 @@ const HELP_INDEX: HelpResult[] = [
       "uitgangspunten voorkeur voorkeuren persoonlijk meegewogen meewegen waarom schema prompt regels vaste regels onthoud onthouden motivatie intensief intensiever races duur trainer aanvullen coachchat herziening tsb herstel opbouw herstelweek",
   },
   {
+    title: "Voor trainers: schema's vergelijken",
+    text: "Blind kiezen tussen het schema van de AI en dat van de regelmotor.",
+    href: "/hulp#vergelijken",
+    terms: "vergelijken trainer regelmotor motor ai blind a b beter gelijk oordeel schema keuze",
+  },
+  {
     title: "Doeltype en de laatste weken",
     text: "Waarom een gran fondo wel een taper krijgt en basisconditie of ZRL niet.",
     href: "/hulp#doeltype",
@@ -200,17 +212,24 @@ const HELP_INDEX: HelpResult[] = [
   },
   {
     title: "Krachtreeksen",
-    text: "Kracht met eigen gewicht, thuis met gewicht en zwaar in de sportschool.",
+    text: "Kracht met eigen gewicht, thuis met gewicht, zwaar in de sportschool, en springen voor je botten.",
     href: "/hulp#kracht",
     terms:
-      "kracht krachttraining squat lunge step-up benen bilspieren klimmen eenbenig rustdag spierpijn gym sportschool halter halterstang leg press kabel dumbbell kettlebell weerstandsband band zwaar herhalingen opbouw onderhoud",
+      "kracht krachttraining springen sprongen botten botdichtheid squat lunge step-up benen bilspieren klimmen eenbenig rustdag spierpijn gym sportschool halter halterstang leg press kabel dumbbell kettlebell weerstandsband band zwaar herhalingen opbouw onderhoud",
+  },
+  {
+    title: "ZWBeter racen",
+    text: "Analyse van een gereden Zwift-race (ZRL, FRR of een geplakte link): tips, de ploeg of je eigen race, en je rit.",
+    href: "/hulp#racen",
+    terms:
+      "racen race analyse zrl frr flamme rouge etappe tijdslot klassement tijdrit itt link plakken zwiftpower ploegentijdrit ttt puntenrace uitslag ploegtijd tegenstander verloop tussentijd segment sprint klim kom vermogen w/kg zwiftpower los gelost eigen rit bestand np genormaliseerd intensiteit if w-balans wbal critical power hartslag cadans curve",
   },
   {
     title: "Protocollen",
-    text: "Hitte, lage cadans, ademspiertraining en supplementen: starten, afvinken en de grenzen.",
+    text: "Hitte, lage cadans, ademspiertraining, duurtest en supplementen: starten, afvinken en de grenzen.",
     href: "/hulp#protocollen",
     terms:
-      "protocol protocollen hitte hittetraining warmte acclimatisatie heet bad core sensor kerntemperatuur lichaamstemperatuur hemoglobine lage cadans toeren torque vo2max ademspiertraining ademtrainer supplement supplementen cafeine bicarbonaat natriumbicarbonaat nitraat bietensap ijsslush koolhydraten laden beta-alanine creatine darmtraining glycerol kersensap kersen herstel herstelshake eiwitshake eiwit vitamine d collageen gelatine pees blessure visolie omega-3 probiotica magnesium kramp bcaa cbd curcumine menthol mondspoelen zink vitamine c dosis gewicht nzvt kennisbank taper",
+      "protocol protocollen kracht op de fiets torque duurtest duurvermogen ontkoppeling decoupling durability hitte hittetraining warmte acclimatisatie heet bad core sensor kerntemperatuur lichaamstemperatuur hemoglobine lage cadans toeren torque vo2max ademspiertraining ademtrainer supplement supplementen cafeine bicarbonaat natriumbicarbonaat nitraat bietensap ijsslush koolhydraten laden beta-alanine creatine darmtraining 150 gram per uur glycerol kersensap kersen herstel herstelshake eiwitshake eiwit vitamine d collageen gelatine pees blessure visolie omega-3 probiotica magnesium kramp bcaa cbd curcumine menthol mondspoelen zink vitamine c dosis gewicht nzvt kennisbank taper blokweek blokperiodisering 30/15 brain endurance concentratie stroop mentale vermoeidheid veelbelovend experimenteel bewijs bewijsniveau sterk bewijs matig bewijs beperkt bewijs afgeraden meta-analyse snelle start sprint onderhoud overgangsperiode bloedstroombeperking bfr occlusie",
   },
   {
     title: "Voeding",

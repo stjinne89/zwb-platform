@@ -7,7 +7,10 @@ import {
   strengthArticleBySlug,
 } from "@/lib/training/strength-library";
 import { BackLink } from "@/components/app-ui";
+import { EvidenceBadge } from "@/components/evidence-badge";
 import { loadSeries, requireViewer } from "../../_data";
+import { ProtocolLinks } from "../../../_components/protocols/knowledge-article";
+import { ArticleExperts } from "@/app/(app)/zwbieb/_components/article-experts";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +39,7 @@ export default async function StrengthArticlePage({
         </p>
         <h2 className="mt-1 text-xl font-semibold">{article.title}</h2>
         <p className="mt-2 max-w-3xl text-muted-foreground">{article.summary}</p>
+        <EvidenceBadge evidence={article.evidence} className="mt-3" />
       </div>
 
       <ul className="max-w-3xl space-y-2 rounded-lg border bg-card p-5 text-sm">
@@ -58,6 +62,10 @@ export default async function StrengthArticlePage({
           ))}
         </ul>
       </section>
+
+      <ProtocolLinks articleHref={`/zwbeter-worden/core/kennis/${article.slug}`} />
+
+      <ArticleExperts articleHref={`/zwbeter-worden/core/kennis/${article.slug}`} />
 
       {linked.length > 0 && (
         <section className="max-w-3xl space-y-3">

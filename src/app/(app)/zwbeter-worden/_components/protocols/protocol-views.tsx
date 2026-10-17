@@ -20,9 +20,11 @@ import {
   type ProtocolTask,
 } from "@/lib/protocols";
 import { analyzeHeatSession, formatCoreSession, protocolUsesCore } from "@/lib/protocols/core-temperature";
+import type { DurabilityPoint } from "@/lib/training/durability-test";
 import { shiftDays } from "@/lib/training/season";
 import { cn } from "@/lib/utils";
 import { BackLink } from "@/components/app-ui";
+import { MethodLabelBadge } from "@/components/method-label-badge";
 import { startProtocol, stopProtocol, toggleProtocolTask } from "../../_protocol-actions";
 import { ProtocolStartForm, ProtocolStopButton, ProtocolTaskToggle } from "./protocol-forms";
 
@@ -34,14 +36,17 @@ export function formatDay(day: string): string {
 
 function EvidenceBadge({ protocol }: { protocol: Protocol }) {
   return (
-    <span
-      className={cn(
-        "rounded-full px-2 py-0.5 text-xs font-medium",
-        protocol.evidence === "sterk" ? "bg-primary/10 text-primary" : "bg-secondary text-secondary-foreground",
-      )}
-    >
-      {PROTOCOL_EVIDENCE_LABELS[protocol.evidence]}
-    </span>
+    <>
+      <span
+        className={cn(
+          "rounded-full px-2 py-0.5 text-xs font-medium",
+          protocol.evidence === "sterk" ? "bg-primary/10 text-primary" : "bg-secondary text-secondary-foreground",
+        )}
+      >
+        {PROTOCOL_EVIDENCE_LABELS[protocol.evidence]}
+      </span>
+      <MethodLabelBadge label={protocol.methodLabel} />
+    </>
   );
 }
 
@@ -253,12 +258,34 @@ function CoreSessionList({
   );
 }
 
+/** De eigen reeks duurtests, nieuwste bovenaan. Geen oordeel: zie durability-test.ts. */
+function DurabilityTestList({ tests }: { tests: DurabilityPoint[] }) {
+  if (tests.length === 0) return null;
+  return (
+    <section className="max-w-3xl space-y-3">
+      <h3 className="font-semibold">Jouw duurtests</h3>
+      <ul className="divide-y rounded-lg border bg-card px-4 text-sm">
+        {[...tests].reverse().map((test) => (
+          <li key={test.day} className="flex flex-wrap items-baseline justify-between gap-2 py-2">
+            <span>{formatDay(test.day)}</span>
+            <span className="tabular-nums text-muted-foreground">
+              Ontkoppeling {test.decoupling.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} % · {test.avgHr} bpm ·{" "}
+              {test.avgWatts} W
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function ProtocolDetail({
   protocol,
   basePath,
   run,
   checks,
   coreSessions = [],
+  durabilityTests = [],
   weightKg,
   blocker,
   today,
@@ -271,6 +298,7 @@ export function ProtocolDetail({
   run: ProtocolRun | null;
   checks: ProtocolCheck[];
   coreSessions?: ProtocolCoreSession[];
+  durabilityTests?: DurabilityPoint[];
   weightKg: number | null;
   /** Reden waarom dit lid het niet kan starten. */
   blocker: string | null;
@@ -354,6 +382,8 @@ export function ProtocolDetail({
           sessions={coreSessions.filter((session) => session.protocolId === running.id)}
         />
       ) : null}
+
+      <DurabilityTestList tests={durabilityTests} />
 
       <section className="max-w-3xl space-y-3">
         <h3 className="font-semibold">Opzet</h3>

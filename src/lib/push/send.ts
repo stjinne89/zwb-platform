@@ -33,6 +33,8 @@ export type NotificationTrigger =
   | "on_training_plan"
   | "on_workout_review"
   | "on_training_chat"
+  // Een bericht in een gesprek van ZWBieb (0239).
+  | "on_knowledge_message"
   | "on_event_reminder"
   | "on_admin_broadcast"
   | "on_maintenance_due"

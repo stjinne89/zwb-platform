@@ -6,6 +6,8 @@
 // door een workout uit de bibliotheek.
 
 import { useState } from "react";
+import { METHOD_LABEL_TEXT, type MethodLabel } from "@/lib/training/method-label";
+import { MethodLabelBadge } from "@/components/method-label-badge";
 import {
   INTENSITY_LABELS,
   plannedWorkoutIntensity,
@@ -35,6 +37,7 @@ export type CalendarEditWorkout = {
   publishStatus: string;
   /** Een FTP-test houdt zijn eigen intensiteit; zie plannedWorkoutIntensity(). */
   testType?: string | null;
+  methodLabel?: MethodLabel | null;
 };
 
 export type CalendarTemplate = {
@@ -42,6 +45,7 @@ export type CalendarTemplate = {
   title: string;
   durationMinutes: number;
   intensity: string;
+  methodLabel?: MethodLabel | null;
 };
 
 /** Wat het lid over deze training invulde, plus de feedback die er al staat. */
@@ -193,6 +197,7 @@ function WorkoutEditor({
               {templates.map((template) => (
                 <option key={template.id} value={template.id}>
                   {template.title} - {template.durationMinutes} min - {intensityName(template.intensity)}
+                  {template.methodLabel ? ` - ${METHOD_LABEL_TEXT[template.methodLabel]}` : ""}
                 </option>
               ))}
             </select>
@@ -239,6 +244,7 @@ export function TrainerWorkoutCalendar({
       intensityLabel: label,
       source: "zwb",
       skipped: workout.skipped,
+      methodLabel: workout.methodLabel,
     };
   });
 
@@ -254,7 +260,10 @@ export function TrainerWorkoutCalendar({
         {selected ? (
           <>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <p className="font-medium">{selected.title}</p>
+              <p className="flex flex-wrap items-center gap-2 font-medium">
+                {selected.title}
+                <MethodLabelBadge label={selected.methodLabel} />
+              </p>
               <p className="text-xs text-muted-foreground">
                 {selected.dateKey} - {selected.durationMinutes} min -{" "}
                 {planned(selected).label} - {selected.publishStatus}

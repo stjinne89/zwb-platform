@@ -17,6 +17,10 @@ export function percentRangeForIntensity(intensity: string): [number, number] | 
  * intensieve duur (71-80%), RPE 6 tempo tot sweet spot, RPE 7 drempel. Daarvoor
  * liep RPE 5 van 70 tot 80% en viel het midden in zone 2 terwijl de AI zo'n
  * blok "tempo" noemde.
+ *
+ * Een eigen omzetting: een onderbouwde koppeling van RPE aan %FTP bestaat niet,
+ * en RPE en vermogen geven bij wielrenners een heel andere verdeling (Sanders
+ * 2017). Zie docs/wetenschappelijke-toets.md, 1D.
  */
 export function percentRangeForRpe(rpe: number): [number, number] | null {
   if (rpe <= 1) return [0, 45];

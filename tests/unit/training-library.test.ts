@@ -6,6 +6,7 @@ import {
   trainingArticlesByCategory,
 } from "@/lib/training/training-library";
 import { articleBySlug } from "@/lib/nutrition/library";
+import { strengthArticleBySlug } from "@/lib/training/strength-library";
 
 describe("kennisbank trainen", () => {
   it("geeft elk artikel een bron, punten en beperkingen", () => {
@@ -42,8 +43,10 @@ describe("kennisbank trainen", () => {
       if (!protocol.article) continue;
       const training = protocol.article.href.match(/^\/zwbeter-worden\/kennis\/([a-z0-9-]+)$/);
       const nutrition = protocol.article.href.match(/^\/zwbeter-worden\/voeding\/kennis\/([a-z0-9-]+)$/);
+      const strength = protocol.article.href.match(/^\/zwbeter-worden\/core\/kennis\/([a-z0-9-]+)$/);
       if (training) expect(trainingArticleBySlug(training[1]), protocol.slug).not.toBeNull();
       else if (nutrition) expect(articleBySlug(nutrition[1]), protocol.slug).not.toBeNull();
+      else if (strength) expect(strengthArticleBySlug(strength[1]), protocol.slug).not.toBeNull();
       else throw new Error(`${protocol.slug}: onbekende kennisbank ${protocol.article.href}`);
     }
   });

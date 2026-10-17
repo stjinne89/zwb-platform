@@ -11,8 +11,18 @@
 // herstelt een renner die net onder CP rijdt even snel als een die stilstaat, en
 // dat klopt niet.
 //
-// Dit is de harde toets op een pacingplan. Een plan dat de reserve vóór de
-// finish leegtrekt is geen plan — of de AI het nu bedacht heeft of het lid zelf.
+// Dit is de toets op een pacingplan. Een plan dat de reserve vóór de finish
+// leegtrekt is geen plan — of de AI het nu bedacht heeft of het lid zelf.
+//
+// Het blijft een schatting (wetenschappelijke toets fase 5, 2026-10-16):
+//  * In echte races gaf dit model op het moment van uitputting nog gemiddeld
+//    21 ± 28 % reserve aan; het integrale model 0 ± 30 % (Millour 2022).
+//  * Het herstel vertraagt bij herhaalde inspanningen (Chorley 2019), een
+//    tweefasig model past beter (Chorley 2021, 2023), en topsporters herstellen
+//    sneller dan Skiba voorspelt (Bartram 2017).
+//  * Geen vaste formule voorspelde uitputting goed; precisie vraagt een
+//    persoonlijke tijdconstante (Welburn 2025). Die heeft de app niet.
+// Daarom houdt een wedstrijdplan reserve over (RACE_RESERVE_FRACTION).
 
 export type PowerSegment = {
   durationS: number;
@@ -117,7 +127,8 @@ export function wPrimeBalance(
 /**
  * Hoeveel procent van de reserve op het diepste punt verbruikt is. Een plan dat
  * netjes uitkomt eindigt hier rond de 80–95 %: alles gebruiken is precies goed,
- * eroverheen gaan is de finish niet halen.
+ * eroverheen gaan is de finish niet halen. Lees het als richting: de fout van
+ * het model is in races rond de 30 % (zie boven).
  */
 export function deepestDrawPct(
   balance: WPrimeBalance,

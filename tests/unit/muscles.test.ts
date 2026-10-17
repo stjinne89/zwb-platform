@@ -78,8 +78,10 @@ describe("spiergroepen per oefening", () => {
     const weighted = seededExerciseSlugs("0232_mobility_strength_seed_v2.sql");
     expect(strength).toHaveLength(7);
     expect(weighted).toHaveLength(8);
+    const jump = seededExerciseSlugs("0245_mobility_jump_series.sql");
+    expect(jump).toHaveLength(1);
 
-    const missing = [...core, ...strength, ...weighted].filter((slug) => !EXERCISE_MUSCLES[slug]);
+    const missing = [...core, ...strength, ...weighted, ...jump].filter((slug) => !EXERCISE_MUSCLES[slug]);
     expect(missing).toEqual([]);
   });
 

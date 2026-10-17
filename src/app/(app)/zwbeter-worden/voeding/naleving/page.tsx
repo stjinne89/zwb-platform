@@ -4,12 +4,12 @@ import {
   Bell,
   BellOff,
   Bike,
-  Camera,
   ChevronLeft,
   ChevronRight,
   Pause,
   Play,
   RotateCcw,
+  Sparkles,
   UserCheck,
   UserX,
   Wheat,
@@ -259,7 +259,7 @@ export default async function LogPage({
 
       {!profile.weightKg && (
         <p className="text-sm">
-          <Link href="/profiel" className="font-medium text-primary hover:underline">
+          <Link href="/profiel?weergave=bewerken" className="font-medium text-primary hover:underline">
             Vul je gewicht in
           </Link>{" "}
           <span className="text-muted-foreground">voor doelen in grammen.</span>
@@ -312,10 +312,10 @@ export default async function LogPage({
             {!settings.recognition && (
               <ConsentForm
                 action={setRecognitionConsent}
-                text="Mijn foto of omschrijving van een maaltijd gaat naar OpenAI, dat herkent wat erop staat en de hoeveelheden schat. ZWB bewaart de foto niet. Ik controleer elke hoeveelheid voor het bewaren."
+                text="Mijn omschrijving van een maaltijd gaat naar OpenAI, dat herkent wat erin zit en de hoeveelheden schat. Ik controleer elke hoeveelheid voor het bewaren."
               >
-                <Camera className="size-4" />
-                Foto en tekst aanzetten
+                <Sparkles className="size-4" />
+                Tekst herkennen aanzetten
               </ConsentForm>
             )}
             <MealForm
@@ -383,7 +383,7 @@ export default async function LogPage({
         </LogActionButton>
         {settings.recognition && (
           <LogActionButton action={setRecognitionConsent} fields={{ on: "0" }}>
-            Foto en tekst uit
+            Tekst herkennen uit
           </LogActionButton>
         )}
         <DeleteLogButton action={deleteLog} />

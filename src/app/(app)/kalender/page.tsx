@@ -458,7 +458,7 @@ export default async function KalenderPage({
               programs: selectedPrograms,
             })}
             aria-current={onlyForMe ? undefined : "page"}
-            className={`rounded-full border px-3 py-1 text-xs ${
+            className={`tg-link tg-kalender tg-chip rounded-full border px-3 py-1 text-xs ${
               onlyForMe ? "hover:bg-secondary" : "bg-foreground text-background"
             }`}
           >
@@ -471,7 +471,7 @@ export default async function KalenderPage({
               programs: selectedPrograms,
             })}
             aria-current={onlyForMe ? "page" : undefined}
-            className={`rounded-full border px-3 py-1 text-xs ${
+            className={`tg-link tg-kalender tg-chip rounded-full border px-3 py-1 text-xs ${
               onlyForMe ? "bg-foreground text-background" : "hover:bg-secondary"
             }`}
           >
@@ -498,7 +498,7 @@ export default async function KalenderPage({
             </span>
           )}
           {onlyForMe && hiddenCount === 0 && !fitIsInformative(member) && (
-            <Link href="/profiel#interesses" className="text-xs underline">
+            <Link href="/profiel?weergave=bewerken#interesses" className="text-xs underline">
               Stel je interesses in
             </Link>
           )}
@@ -634,21 +634,13 @@ export default async function KalenderPage({
 
     return (
       <div className="space-y-4">
-        <header className="flex items-end justify-between gap-3">
+        <header className="tg-repeats-nav flex items-end justify-end gap-3">
           <h1 className="tg-display">Kalender</h1>
-          <div className="flex items-center gap-2 pb-1">
-            <Link
-              href="/samen-fietsen"
-              className="inline-flex min-h-11 items-center text-sm font-medium text-muted-foreground hover:text-primary"
-            >
-              Samen fietsen
+          {canCreateEvents && (
+            <Link href="/kalender/nieuw">
+              <Button>Nieuw event</Button>
             </Link>
-            {canCreateEvents && (
-              <Link href="/kalender/nieuw">
-                <Button>Nieuw event</Button>
-              </Link>
-            )}
-          </div>
+          )}
         </header>
         {filterNav}
         {(olderTopLevelCount ?? 0) > 0 && (

@@ -16,6 +16,7 @@ function seededSeriesSlugs(): Set<string> {
     "0110_mobility_library_seed.sql",
     "0160_mobility_strength_seed.sql",
     "0232_mobility_strength_seed_v2.sql",
+    "0245_mobility_jump_series.sql",
   ]) {
     const path = fileURLToPath(new URL(`../../supabase/migrations/${file}`, import.meta.url));
     const sql = readFileSync(path, "utf8").replace(/\r\n/g, "\n");
@@ -63,8 +64,8 @@ describe("kennisbank kracht", () => {
 
   it("verwijst alleen naar series die in een seed staan", () => {
     const seeded = seededSeriesSlugs();
-    // Vangnet voor de regex: zeven series uit 0110 en 0160, vijf uit 0232.
-    expect(seeded.size).toBe(12);
+    // Vangnet voor de regex: zeven series uit 0110 en 0160, vijf uit 0232, één uit 0245.
+    expect(seeded.size).toBe(13);
     for (const article of STRENGTH_ARTICLES) {
       for (const slug of article.series ?? []) expect(seeded.has(slug), `${article.slug}: ${slug}`).toBe(true);
     }

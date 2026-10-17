@@ -1,6 +1,6 @@
 // De vier plekken van het design "tegels" en welke routes eronder vallen.
-// Profiel, garage, hulp, sponsors en beheer staan in het persoonlijke menu
-// rechtsboven en horen bij geen plek.
+// Profiel, garage en beheer staan in het persoonlijke menu rechtsboven, hulp
+// als vraagteken ernaast; die horen bij geen plek.
 // Los van React, zodat de indeling te testen is.
 
 export type PlaceId = "vandaag" | "kalender" | "zwbeter" | "club";
@@ -19,7 +19,7 @@ export const PLACES: Place[] = [
     id: "kalender",
     label: "Kalender",
     href: "/kalender",
-    prefixes: ["/kalender", "/events", "/samen-fietsen", "/live", "/verjaardagen", "/ritverslagen"],
+    prefixes: ["/kalender", "/events", "/verjaardagen", "/ritverslagen"],
   },
   { id: "zwbeter", label: "ZWBeter", href: "/zwbeter-worden", prefixes: ["/zwbeter-worden"] },
   {
@@ -30,7 +30,6 @@ export const PLACES: Place[] = [
       "/club",
       "/leden",
       "/teams",
-      "/achievements",
       "/stats",
       "/profiel/segments",
       "/profiel/cols",
@@ -40,6 +39,13 @@ export const PLACES: Place[] = [
       "/src",
       "/polls",
       "/programmas",
+      // Samen fietsen: met clubgenoten rijden en je tracker koppelen. Geen
+      // kalenderding, want het gaat om nu (besluit eigenaar, 2026-10-16).
+      "/samen-fietsen",
+      "/live",
+      // Sponsors: stond in het persoonlijke menu, hoort bij de club (besluit
+      // eigenaar, 2026-10-16).
+      "/sponsors",
     ],
   },
 ];

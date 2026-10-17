@@ -10,7 +10,11 @@
 //     gefit op de hele historie van het lid.
 //  2. De vermogenscurve (rider_power_profiles.curve_points): het tweeparameter-
 //     model P = W′/t + CP is lineair in 1/t, dus een gewone regressie volstaat.
-//  3. FTP: CP ligt daar dicht bij, W′ krijgt een clubbrede aanname.
+//  3. FTP: CP ligt daar gemiddeld op, W′ krijgt een clubbrede aanname.
+//
+// Wetenschappelijke toets fase 5 (2026-10-16, docs/wetenschappelijke-toets.md):
+// CP uit racedata klopt op een paar watt, W′ veel minder (Spragg 2023; Karsten
+// 2013: fout ~27 %). De curve is dus een goede bron voor CP en een zwakke voor W′.
 //  4. Niets: een clubbrede schatting, afgeleid van dezelfde constanten die het
 //     rit-weer gebruikt, zodat er niet twee verschillende "gemiddelde leden"
 //     rondlopen.
@@ -37,20 +41,30 @@ export type CpModel = {
 /**
  * Het venster waarbinnen het tweeparametermodel geldt. Korter dan twee minuten
  * overschat W′ (daar domineert de sprint), langer dan twintig minuten onderschat
- * CP (daar begint de duurzaamheidsafname).
+ * CP (daar begint de duurzaamheidsafname). In lijn met het advies van minstens
+ * drie inspanningen tussen 2 en 15 minuten (Leo 2021); alleen korte punten, of
+ * een 1-minuutpunt, overschatten CP (Maturana 2017; Nimmerichter 2020).
  */
 export const FIT_MIN_SECONDS = 120;
 export const FIT_MAX_SECONDS = 1200;
 const MIN_FIT_POINTS = 3;
 
-/** Grenzen waarbuiten een fit niet geloofwaardig is en we een bron lager pakken. */
+/** Grenzen waarbuiten een fit niet geloofwaardig is en we een bron lager pakken.
+ * Een vuistregel, geen populatiegrens uit onderzoek. */
 const MIN_W_PRIME_J = 5_000;
 const MAX_W_PRIME_J = 50_000;
 
-/** W′ als er alleen een FTP bekend is. Middenmoot voor een getrainde amateur. */
+/** W′ als er alleen een FTP bekend is. Een vuistregel: getrainde renners zaten
+ * in veldtests rond 18–20 kJ (Nimmerichter 2020), met grote spreiding. */
 export const DEFAULT_W_PRIME_J = 20_000;
-/** CP ligt iets onder FTP: FTP is per definitie net niet vol te houden. */
-export const CP_FTP_FRACTION = 0.97;
+/**
+ * CP uit FTP. Tot 2026-10-16 was dit 0,97, maar in studies die CP bepalen zoals
+ * de app (maximale inspanningen van 2 tot 20 minuten) lag CP gemiddeld gelijk
+ * aan of iets boven FTP: +7 W (Karsten 2021), +16 W (McGrath 2021), geen
+ * verschil (Morgan 2018). Per renner kan het ±25 W schelen; één factor is een
+ * ruwe schatting. Zie docs/wetenschappelijke-toets.md, 5A.
+ */
+export const CP_FTP_FRACTION = 1;
 
 function finite(value: unknown): number | null {
   const n = Number(value);

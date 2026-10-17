@@ -1,27 +1,25 @@
-import { BackLink, PageHeader, EmptyState, HelpLink } from "@/components/app-ui";
+import { BackLink, PageHeader, EmptyState } from "@/components/app-ui";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { DEFAULT_TTT_SETTINGS, type TttPlanInput } from "@/lib/ttt/types";
-import { wtrlTttPower, type WtrlTttRow } from "@/lib/ttt/wtrl-power";
-import {
-  TttPlanner,
-  type InitialTttPlan,
-  type PlannerEvent,
-  type PlannerRider,
-  type PlannerTeam,
-  type SavedTttPlan,
-  type TttPlanSeed,
-} from "./_components/ttt-planner";
 import { getRequestAccess } from "@/lib/auth/request";
+import {
+  TttImport,
+  type ImportEvent,
+  type ImportRider,
+  type ImportStart,
+  type ImportTeam,
+  type SavedTttPlan,
+} from "./_components/ttt-import";
+import { TttCheatsheet } from "./_components/ttt-cheatsheet";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+// De cheatsheet vult bij een oude snapshot één keer het vermogen aan bij Zwift.
+export const maxDuration = 30;
 
 type TeamRow = {
   id: string;
   name: string;
-  type: string;
-  division: string | null;
   parent_team_id: string | null;
 };
 
@@ -29,22 +27,7 @@ type MemberRow = {
   team_id: string;
   profile_id: string;
   role: string;
-  profiles?: {
-    display_name?: string | null;
-    zwift_id?: string | null;
-    zrl_category?: string | null;
-    ftp_watts?: number | null;
-    weight_kg?: number | string | null;
-  } | null;
-};
-
-type PowerRow = {
-  profile_id: string;
-  watts_5m: number | null;
-  watts_20m: number | null;
-  ftp_watts: number | null;
-  ftp_wkg: number | string | null;
-  rider_type: string | null;
+  profiles?: { display_name?: string | null; zwift_id?: string | null } | null;
 };
 
 type EventRow = {
@@ -66,9 +49,18 @@ type LineupRow = {
 type RosterEntryRow = {
   id: string;
   name: string;
-  pace_category: string | null;
   zwift_id: string | null;
   team_id: string;
+};
+
+type PlanRow = {
+  id: string;
+  event_id: string | null;
+  parent_team_id: string;
+  team_id: string | null;
+  name: string;
+  published_at: string | null;
+  updated_at: string;
 };
 
 /** Een renner zonder account heeft geen profiel; zijn rosterregel is dan de sleutel. */
@@ -81,105 +73,12 @@ function lineupRiderId(row: Pick<LineupRow, "profile_id" | "roster_entry_id">) {
   return row.roster_entry_id ? rosterRiderId(row.roster_entry_id) : null;
 }
 
-type PlanRow = {
-  id: string;
-  event_id: string | null;
-  parent_team_id: string;
-  team_id: string | null;
-  name: string;
-  route: string;
-  target_speed: number | string | null;
-  intensity: number | null;
-  efficiency: number | null;
-  allow_zero_pulls: boolean | null;
-  min_pull_duration: number | null;
-  max_pull_duration: number | null;
-  duration_interval: number | null;
-  optimization_strategy: string | null;
-  status: string;
-  api_response: unknown;
-  published_at?: string | null;
-  share_token?: string | null;
-  updated_at: string;
-};
+// Events van twee dagen geleden en later; een oudere komt alleen mee als het
+// plan erbij hoort.
+const PAST_EVENTS_MS = 2 * 24 * 60 * 60 * 1000;
 
-type PlanRiderRow = {
-  id: string;
-  profile_id: string | null;
-  is_manual: boolean | null;
-  zwift_id: string | null;
-  name: string;
-  ftp_watts: number | null;
-  weight_kg: number | string | null;
-  height_cm: number | null;
-  power_300_watts: number | null;
-  pull_watts: number | null;
-  pull_duration_seconds: number | null;
-  display_order: number | null;
-  role: string | null;
-  notes: string | null;
-};
-
-function num(value: number | string | null | undefined) {
-  const n = Number(value ?? NaN);
-  return Number.isFinite(n) ? n : null;
-}
-
-function routePreset(value: string): TttPlanInput["settings"]["route"] {
-  if (value === "next_wtrl") return "next_zrl";
-  return value === "next" || value === "next_zrl" ? value : DEFAULT_TTT_SETTINGS.route;
-}
-
-function strategy(value: string | null): TttPlanInput["settings"]["optimizationStrategy"] {
-  return value === "fixed" ? "fixed" : "variable";
-}
-
-function durationInterval(value: number | null): TttPlanInput["settings"]["durationInterval"] {
-  return value === 10 ? 10 : 15;
-}
-
-function mapInitialPlan(plan: PlanRow, riders: PlanRiderRow[]): InitialTttPlan {
-  return {
-    id: plan.id,
-    name: plan.name,
-    eventId: plan.event_id,
-    parentTeamId: plan.parent_team_id,
-    teamId: plan.team_id,
-    settings: {
-      route: routePreset(plan.route),
-      targetSpeed: num(plan.target_speed),
-      intensity: plan.intensity ?? DEFAULT_TTT_SETTINGS.intensity,
-      efficiency: plan.efficiency ?? DEFAULT_TTT_SETTINGS.efficiency,
-      allowZeroPulls: Boolean(plan.allow_zero_pulls),
-      minPullDuration: plan.min_pull_duration ?? DEFAULT_TTT_SETTINGS.minPullDuration,
-      maxPullDuration: plan.max_pull_duration ?? DEFAULT_TTT_SETTINGS.maxPullDuration,
-      durationInterval: durationInterval(plan.duration_interval),
-      optimizationStrategy: strategy(plan.optimization_strategy),
-    },
-    riders: riders
-      .slice()
-      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
-      .map((rider, index) => ({
-        id: rider.id,
-        profileId: rider.profile_id,
-        isManual: Boolean(rider.is_manual),
-        zwiftId: rider.zwift_id ?? "",
-        name: rider.name,
-        ftpWatts: rider.ftp_watts,
-        weightKg: num(rider.weight_kg),
-        heightCm: rider.height_cm,
-        power300Watts: rider.power_300_watts,
-        pullWatts: rider.pull_watts,
-        pullDurationSeconds: rider.pull_duration_seconds,
-        displayOrder: rider.display_order ?? index,
-        role: rider.role,
-        notes: rider.notes,
-      })),
-    status: plan.status,
-    apiResponse: plan.api_response,
-    publishedAt: plan.published_at ?? null,
-    shared: Boolean(plan.share_token),
-  };
+function recentEvent(startAt: string) {
+  return new Date(startAt).getTime() >= Date.now() - PAST_EVENTS_MS;
 }
 
 export default async function TttPlannerPage({
@@ -195,26 +94,14 @@ export default async function TttPlannerPage({
     access,
     { data: teams },
     { data: members },
-    { data: powerRows },
     { data: events },
     { data: lineups },
     { data: savedPlanRows },
     { data: rosterEntries },
-    { data: wtrlTeams },
-    { data: wtrlRiders },
   ] = await Promise.all([
     getRequestAccess(),
-    supabase
-      .from("teams")
-      .select("id, name, type, division, parent_team_id")
-      .order("type")
-      .order("name"),
-    admin
-      .from("team_members")
-      .select("team_id, profile_id, role, profiles(display_name, zwift_id, zrl_category, ftp_watts, weight_kg)"),
-    supabase
-      .from("rider_power_profiles")
-      .select("profile_id, watts_5m, watts_20m, ftp_watts, ftp_wkg, rider_type"),
+    supabase.from("teams").select("id, name, parent_team_id").order("name"),
+    admin.from("team_members").select("team_id, profile_id, role, profiles(display_name, zwift_id)"),
     supabase
       .from("events")
       .select("id, title, type, start_at, team_id, parent_event_id")
@@ -226,225 +113,172 @@ export default async function TttPlannerPage({
       .limit(1000),
     supabase
       .from("ttt_plans")
-      .select("id, event_id, parent_team_id, team_id, name, status, updated_at")
+      .select("id, event_id, parent_team_id, team_id, name, published_at, updated_at")
       .order("updated_at", { ascending: false })
       .limit(30),
     supabase
       .from("roster_entries")
-      .select("id, name, pace_category, zwift_id, team_id")
+      .select("id, name, zwift_id, team_id")
       .is("claimed_by", null)
       .not("team_id", "is", null),
-    supabase.from("wtrl_teams").select("trc_ref, team_id").not("team_id", "is", null),
-    supabase
-      .from("wtrl_team_riders")
-      .select("trc_ref, zwift_id, zftp_w, zftp_wkg, zmap_wkg"),
   ]);
 
   const teamRows = (teams ?? []) as TeamRow[];
   const teamById = new Map(teamRows.map((team) => [team.id, team]));
-  const plannerTeams: PlannerTeam[] = teamRows.map((team) => ({
-    id: team.id,
-    name: team.name,
-    type: team.type,
-    division: team.division,
-    parentTeamId: team.parent_team_id,
-  }));
+  const memberRows = (members ?? []) as unknown as MemberRow[];
 
-  const eventRows = (events ?? []) as EventRow[];
-
-  // Vanaf een TTT-event: het bestaande plan van dat team openen, anders een
-  // nieuw plan met de opstelling van het event.
-  let planId = planParam;
-  let seed: TttPlanSeed | null = null;
-  const seedTeam = seedTeamId ? teamById.get(seedTeamId) : undefined;
-  if (!planId && seedEventId && seedTeam) {
-    let seedEvent = eventRows.find((event) => event.id === seedEventId);
-    if (!seedEvent) {
-      const { data } = await supabase
-        .from("events")
-        .select("id, title, type, start_at, team_id, parent_event_id")
-        .eq("id", seedEventId)
-        .maybeSingle<EventRow>();
-      if (data) {
-        seedEvent = data;
-        eventRows.push(data);
-      }
-    }
-    if (seedEvent) {
-      const eventIds = [seedEvent.id, seedEvent.parent_event_id].filter(Boolean) as string[];
-      const [{ data: existing }, { data: seedLineup }] = await Promise.all([
-        supabase
-          .from("ttt_plans")
-          .select("id")
-          .in("event_id", eventIds)
-          .or(`team_id.eq.${seedTeam.id},parent_team_id.eq.${seedTeam.id}`)
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle<{ id: string }>(),
-        supabase
-          .from("team_event_lineups")
-          .select("profile_id, roster_entry_id")
-          .in("event_id", eventIds)
-          .eq("team_id", seedTeam.id),
-      ]);
-      if (existing) {
-        planId = existing.id;
-      } else {
-        seed = {
-          name: seedEvent.title,
-          eventId: seedEvent.id,
-          parentTeamId: seedTeam.parent_team_id ?? seedTeam.id,
-          teamId: seedTeam.id,
-          riderIds: Array.from(
-            new Set(
-              ((seedLineup ?? []) as Array<Pick<LineupRow, "profile_id" | "roster_entry_id">>)
-                .map(lineupRiderId)
-                .filter((id): id is string => Boolean(id)),
-            ),
-          ),
-        };
+  let manageable = new Set<string>();
+  if (access.has("teams.manage_roster")) {
+    manageable = new Set(teamRows.map((team) => team.id));
+  } else if (access.user) {
+    for (const member of memberRows) {
+      if (member.profile_id !== access.user.id) continue;
+      if (member.role !== "captain" && member.role !== "co-captain") continue;
+      manageable.add(member.team_id);
+      // Een captain van het hoofdteam beheert ook de raceteams eronder.
+      for (const team of teamRows) {
+        if (team.parent_team_id === member.team_id) manageable.add(team.id);
       }
     }
   }
+
+  const importTeams: ImportTeam[] = teamRows
+    .filter((team) => manageable.has(team.id))
+    .map((team) => {
+      const parent = team.parent_team_id ? teamById.get(team.parent_team_id) : undefined;
+      return { id: team.id, label: parent ? `${parent.name} - ${team.name}` : team.name };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label, "nl"));
+
+  // Het plan dat opnieuw wordt geïmporteerd, of het plan van een TTT-event.
+  let start: ImportStart | null = null;
+  const eventRows = (events ?? []) as EventRow[];
+  const fetchEvent = async (id: string) => {
+    const known = eventRows.find((event) => event.id === id);
+    if (known) return known;
+    const { data } = await supabase
+      .from("events")
+      .select("id, title, type, start_at, team_id, parent_event_id")
+      .eq("id", id)
+      .maybeSingle<EventRow>();
+    if (data) eventRows.push(data);
+    return data;
+  };
+
+  let planId = planParam ?? null;
+  const seedTeam = seedTeamId ? teamById.get(seedTeamId) : undefined;
+  if (!planId && seedEventId && seedTeam) {
+    const seedEvent = await fetchEvent(seedEventId);
+    if (seedEvent) {
+      const eventIds = [seedEvent.id, seedEvent.parent_event_id].filter(Boolean) as string[];
+      const { data: existing } = await supabase
+        .from("ttt_plans")
+        .select("id")
+        .in("event_id", eventIds)
+        .or(`team_id.eq.${seedTeam.id},parent_team_id.eq.${seedTeam.id}`)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle<{ id: string }>();
+      if (existing) planId = existing.id;
+      else start = { planId: null, name: seedEvent.title, eventId: seedEvent.id, teamId: seedTeam.id };
+    }
+  }
+  if (planId) {
+    const { data: plan } = await supabase
+      .from("ttt_plans")
+      .select("id, name, event_id, parent_team_id, team_id")
+      .eq("id", planId)
+      .maybeSingle<{ id: string; name: string; event_id: string | null; parent_team_id: string; team_id: string | null }>();
+    if (plan) {
+      if (plan.event_id) await fetchEvent(plan.event_id);
+      start = {
+        planId: plan.id,
+        name: plan.name,
+        eventId: plan.event_id,
+        teamId: plan.team_id ?? plan.parent_team_id,
+      };
+    }
+  }
+
   const eventById = new Map(eventRows.map((event) => [event.id, event]));
-  const plannerEvents: PlannerEvent[] = eventRows
-    .slice()
+  const importEvents: ImportEvent[] = eventRows
+    .filter((event) => recentEvent(event.start_at) || event.id === start?.eventId)
     .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())
     .map((event) => ({
       id: event.id,
       title: event.title,
-      type: event.type,
       startAt: event.start_at,
       teamId: event.team_id,
+      parentEventId: event.parent_event_id,
     }));
 
-  const lineupsByProfile = new Map<string, Set<string>>();
-  for (const lineup of ((lineups ?? []) as LineupRow[])) {
+  const lineupKeys = new Map<string, string[]>();
+  for (const lineup of (lineups ?? []) as LineupRow[]) {
     const riderId = lineupRiderId(lineup);
     if (!riderId) continue;
-    const current = lineupsByProfile.get(riderId) ?? new Set<string>();
-    current.add(lineup.event_id);
-    lineupsByProfile.set(riderId, current);
+    lineupKeys.set(riderId, [...(lineupKeys.get(riderId) ?? []), `${lineup.event_id}:${lineup.team_id}`]);
   }
 
-  const wtrlByZwiftId = wtrlTttPower(
-    (wtrlRiders ?? []) as WtrlTttRow[],
-    new Map(
-      ((wtrlTeams ?? []) as Array<{ trc_ref: string; team_id: string }>).map((row) => [
-        row.trc_ref,
-        row.team_id,
-      ]),
-    ),
-  );
-
-  const powerByProfile = new Map(
-    ((powerRows ?? []) as PowerRow[]).map((row) => [row.profile_id, row]),
-  );
-  const profileMap = new Map<
-    string,
-    {
-      name: string;
-      zwiftId: string | null;
-      zrlCategory: string | null;
-      ftpWatts: number | null;
-      weightKg: number | null;
-      teamIds: Set<string>;
-    }
-  >();
-
-  for (const member of ((members ?? []) as unknown as MemberRow[])) {
-    const existing = profileMap.get(member.profile_id);
-    const profile = member.profiles;
-    const next = existing ?? {
-      name: profile?.display_name ?? "Onbekend",
-      zwiftId: profile?.zwift_id ?? null,
-      zrlCategory: profile?.zrl_category ?? null,
-      ftpWatts: profile?.ftp_watts ?? null,
-      weightKg: num(profile?.weight_kg),
-      teamIds: new Set<string>(),
+  const memberRiders = new Map<string, ImportRider>();
+  for (const member of memberRows) {
+    const rider = memberRiders.get(member.profile_id) ?? {
+      id: member.profile_id,
+      name: member.profiles?.display_name ?? "Onbekend",
+      zwiftId: member.profiles?.zwift_id?.trim() || null,
+      teamIds: [],
+      lineupKeys: lineupKeys.get(member.profile_id) ?? [],
     };
-    next.teamIds.add(member.team_id);
-    profileMap.set(member.profile_id, next);
+    rider.teamIds.push(member.team_id);
+    memberRiders.set(member.profile_id, rider);
   }
-
-  const memberRiders: PlannerRider[] = Array.from(profileMap.entries()).map(([id, profile]) => {
-    const power = powerByProfile.get(id);
-    // Wat het lid zelf niet heeft ingevuld of gekoppeld, komt uit WTRL.
-    const wtrl = profile.zwiftId ? wtrlByZwiftId.get(profile.zwiftId.trim()) : undefined;
-    return {
-      id,
-      unregistered: false,
-      name: profile.name,
-      zwiftId: profile.zwiftId,
-      zrlCategory: profile.zrlCategory,
-      ftpWatts: power?.ftp_watts ?? profile.ftpWatts ?? wtrl?.ftpWatts ?? null,
-      weightKg: profile.weightKg ?? wtrl?.weightKg ?? null,
-      teamIds: Array.from(profile.teamIds),
-      lineupEventIds: Array.from(lineupsByProfile.get(id) ?? []),
-      watts5m: power?.watts_5m ?? wtrl?.power300Watts ?? null,
-      watts20m: power?.watts_20m ?? null,
-      ftpWkg: num(power?.ftp_wkg),
-      riderType: power?.rider_type ?? null,
-    };
-  });
-
-  // Renners zonder account (migr. 0182): naam en Zwift-ID uit het rooster,
-  // vermogen en gewicht uit WTRL. Met het Zwift-ID zoekt ZwiftGopher de rest op.
   const memberZwiftIds = new Set(
-    memberRiders.map((rider) => rider.zwiftId?.trim()).filter(Boolean),
+    Array.from(memberRiders.values()).map((rider) => rider.zwiftId).filter(Boolean),
   );
-  const rosterRiders: PlannerRider[] = ((rosterEntries ?? []) as RosterEntryRow[])
+  // Renners zonder account (migr. 0182), tenzij hun Zwift-ID al bij een lid staat.
+  const rosterRiders: ImportRider[] = ((rosterEntries ?? []) as RosterEntryRow[])
     .filter((entry) => !entry.zwift_id || !memberZwiftIds.has(entry.zwift_id.trim()))
-    .map((entry) => {
-      const id = rosterRiderId(entry.id);
-      const zwiftId = entry.zwift_id?.trim() || null;
-      const wtrl = zwiftId ? wtrlByZwiftId.get(zwiftId) : undefined;
-      return {
-        id,
-        unregistered: true,
-        name: entry.name,
-        zwiftId,
-        zrlCategory: entry.pace_category,
-        ftpWatts: wtrl?.ftpWatts ?? null,
-        weightKg: wtrl?.weightKg ?? null,
-        teamIds: Array.from(new Set([entry.team_id, ...(wtrl?.teamIds ?? [])])),
-        lineupEventIds: Array.from(lineupsByProfile.get(id) ?? []),
-        watts5m: wtrl?.power300Watts ?? null,
-        watts20m: null,
-        ftpWkg: null,
-        riderType: null,
-      };
-    });
+    .map((entry) => ({
+      id: rosterRiderId(entry.id),
+      name: entry.name,
+      zwiftId: entry.zwift_id?.trim() || null,
+      teamIds: [entry.team_id],
+      lineupKeys: lineupKeys.get(rosterRiderId(entry.id)) ?? [],
+    }));
+  const riders = [...memberRiders.values(), ...rosterRiders]
+    .filter((rider) => rider.teamIds.some((id) => manageable.has(id)))
+    .sort((a, b) => a.name.localeCompare(b.name, "nl"));
 
-  const riders = [...memberRiders, ...rosterRiders].sort((a, b) =>
-    a.name.localeCompare(b.name, "nl"),
-  );
-
-  let manageableTeamIds: string[] = [];
-  if (access.has("teams.manage_roster")) {
-    manageableTeamIds = teamRows.map((team) => team.id);
-  } else if (access.user) {
-    manageableTeamIds = ((members ?? []) as unknown as MemberRow[])
-      .filter(
-        (member) =>
-          member.profile_id === access.user?.id &&
-          (member.role === "captain" || member.role === "co-captain"),
-      )
-      .flatMap((member) => {
-        const team = teamById.get(member.team_id);
-        return [member.team_id, team?.parent_team_id].filter(Boolean) as string[];
-      });
-    manageableTeamIds = Array.from(new Set(manageableTeamIds));
+  // Cheatsheet zodra het team bekend is: de renners van het plan, anders de opstelling.
+  let cheatsheetRiders: Array<{ zwiftId: number | null; name: string; ftp: number | null; pullWatts: number | null; pullSeconds: number | null }> = [];
+  if (start?.teamId && manageable.has(start.teamId)) {
+    if (start.planId) {
+      const { data: planRiders } = await supabase
+        .from("ttt_plan_riders")
+        .select("zwift_id, name, ftp_watts, pull_watts, pull_duration_seconds")
+        .eq("plan_id", start.planId);
+      cheatsheetRiders = ((planRiders ?? []) as Array<{ zwift_id: string | null; name: string; ftp_watts: number | null; pull_watts: number | null; pull_duration_seconds: number | null }>).map((r) => ({
+        zwiftId: Number(r.zwift_id) || null,
+        name: r.name,
+        ftp: r.ftp_watts,
+        pullWatts: r.pull_watts,
+        pullSeconds: r.pull_duration_seconds,
+      }));
+    } else if (start.eventId) {
+      const parentEventId = eventRows.find((event) => event.id === start?.eventId)?.parent_event_id ?? null;
+      const keys = [`${start.eventId}:${start.teamId}`, parentEventId ? `${parentEventId}:${start.teamId}` : ""];
+      cheatsheetRiders = riders
+        .filter((rider) => rider.lineupKeys.some((key) => keys.includes(key)))
+        .map((rider) => ({ zwiftId: Number(rider.zwiftId) || null, name: rider.name, ftp: null, pullWatts: null, pullSeconds: null }));
+    }
   }
+  const cheatsheetTeamIds = start?.teamId
+    ? [start.teamId, ...teamRows.filter((team) => team.parent_team_id === start?.teamId).map((team) => team.id)]
+    : [];
 
-  const savedPlans: SavedTttPlan[] = ((savedPlanRows ?? []) as Pick<
-    PlanRow,
-    "id" | "event_id" | "parent_team_id" | "team_id" | "name" | "status" | "updated_at"
-  >[]).map((plan) => ({
+  const savedPlans: SavedTttPlan[] = ((savedPlanRows ?? []) as PlanRow[]).map((plan) => ({
     id: plan.id,
     name: plan.name,
-    status: plan.status,
-    updatedAt: plan.updated_at,
+    published: Boolean(plan.published_at),
     eventTitle: plan.event_id ? eventById.get(plan.event_id)?.title ?? null : null,
     teamName:
       (plan.team_id ? teamById.get(plan.team_id)?.name : null) ??
@@ -452,51 +286,26 @@ export default async function TttPlannerPage({
       null,
   }));
 
-  let initialPlan: InitialTttPlan | null = null;
-  if (planId) {
-    const [{ data: plan }, { data: planRiders }] = await Promise.all([
-      supabase
-        .from("ttt_plans")
-        .select("*")
-        .eq("id", planId)
-        .maybeSingle<PlanRow>(),
-      supabase
-        .from("ttt_plan_riders")
-        .select("*")
-        .eq("plan_id", planId)
-        .order("display_order"),
-    ]);
-    if (plan) {
-      initialPlan = mapInitialPlan(plan, (planRiders ?? []) as PlanRiderRow[]);
-    }
-  }
-
   return (
     <div className="space-y-6">
       <BackLink href="/teams" label="Teams" />
-      <PageHeader
-        eyebrow="Club"
-        title="TTT Planner"
-        actions={
-          <div className="flex items-center gap-2">
-            <HelpLink href="/hulp#ttt-beheer" />
-          </div>
-        }
-      />
+      <PageHeader eyebrow="Club" title="TTT Planner" />
 
-      {plannerTeams.length === 0 ? (
+      {teamRows.length === 0 ? (
         <EmptyState>Er zijn nog geen teams om een TTT-plan voor te maken.</EmptyState>
       ) : (
-        <TttPlanner
-          key={initialPlan?.id ?? (seed ? `seed-${seed.eventId}-${seed.teamId}` : "new")}
-          teams={plannerTeams}
-          events={plannerEvents}
+        <TttImport
+          key={start?.planId ?? (start ? `seed-${start.eventId}-${start.teamId}` : "new")}
+          teams={importTeams}
+          events={importEvents}
           riders={riders}
           savedPlans={savedPlans}
-          manageableTeamIds={manageableTeamIds}
-          initialPlan={initialPlan}
-          seed={seed}
+          start={start}
         />
+      )}
+
+      {start?.teamId && manageable.has(start.teamId) && (
+        <TttCheatsheet teamIds={cheatsheetTeamIds} riders={cheatsheetRiders} />
       )}
     </div>
   );

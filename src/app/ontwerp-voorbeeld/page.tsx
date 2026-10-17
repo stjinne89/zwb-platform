@@ -6,6 +6,8 @@ import { TegelsLinkGrid } from "@/components/tegels/link-grid";
 import { TegelsVandaag } from "@/components/tegels/vandaag";
 import { seasonWarnings, type SeasonWarningInput } from "@/lib/training/season";
 import { TegelsShell } from "../(app)/_components/tegels-shell";
+import { TegelsAuthFrame } from "@/components/tegels/auth-frame";
+import { AuthScreen } from "../(auth)/login/auth-screen";
 import { SeasonRoad } from "../(app)/zwbeter-worden/jaarplan/_components/season-road";
 import { SeasonStand } from "../(app)/zwbeter-worden/jaarplan/_components/season-stand";
 
@@ -14,7 +16,7 @@ import { SeasonStand } from "../(app)/zwbeter-worden/jaarplan/_components/season
 // te controleren zonder de productiedatabase; met echte data kijk je via de
 // schakelaar in de app zelf.
 
-const SCREENS = ["vandaag", "kalender", "club", "jaarplan"] as const;
+const SCREENS = ["vandaag", "kalender", "club", "jaarplan", "inloggen"] as const;
 
 // Een jaar met alles erin: een lopend blok dat bijna afloopt, een vakantie waar
 // nog trainingen in staan, een kamp, lege maanden en een A-doel ver weg.
@@ -69,20 +71,29 @@ export default async function OntwerpVoorbeeldPage({
   if (process.env.NODE_ENV === "production") notFound();
   const { scherm } = await searchParams;
 
+  // De inlogpagina zelf stuurt een ingelogde bezoeker door; hier is hij te zien.
+  if (scherm === "inloggen") {
+    return (
+      <TegelsAuthFrame>
+        <AuthScreen tegels />
+      </TegelsAuthFrame>
+    );
+  }
+
   return (
     <TegelsShell actions={<ThemeToggle />}>
       <div className="space-y-6">
         {scherm === "kalender" ? (
-          <div className="space-y-4">
+          <div className="tg-repeats-nav space-y-4">
             <h1 className="tg-display">Kalender</h1>
             <TegelsAgenda past={PAST} upcoming={UPCOMING} todayKey="2026-10-12" empty="Geen aankomende events of trainingen." />
           </div>
         ) : scherm === "club" ? (
-          <div className="space-y-5">
+          <div className="tg-repeats-nav space-y-5">
             <h1 className="tg-display">Club</h1>
             <TegelsLinkGrid
               place="club"
-              links={["Leden", "Teams", "Achievements", "Stats", "ZWB Segments", "ZWBlokken", "ZWBgame", "ZWB Omnium", "Sunday Race Club", "Polls"].map(
+              links={["Leden", "Samen fietsen", "Teams", "Achievements", "Stats", "ZWB Segments", "ZWBlokken", "ZWBgame", "ZWB Omnium", "Sunday Race Club", "Polls"].map(
                 (label) => ({ href: `#${label}`, label }),
               )}
             />
@@ -113,6 +124,7 @@ export default async function OntwerpVoorbeeldPage({
               { id: "3", title: "Clubrit Veluwezoom", when: "za 17 okt", time: "09:00", place: "kalender" },
             ]}
             standing={{ href: "#", team: "ZWB B1", competition: "ZRL", position: 3, totalTeams: 12 }}
+            live={{ count: 3, riders: "Anna, Bert en Carla" }}
           />
         )}
         <p className="flex flex-wrap gap-4 text-sm text-muted-foreground">

@@ -11,7 +11,9 @@
 // want dan is er iets onderweg dat het lid staat af te wachten.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { MessageCircle, Send, Sparkles, Trash2 } from "lucide-react";
+import { splitKnowledgeLinks } from "@/lib/knowledge/links";
 import { createClient } from "@/lib/supabase/client";
 import { MemberLink } from "@/components/member-link";
 import { Button } from "@/components/ui/button";
@@ -235,7 +237,17 @@ export function CoachChat({
                         message.status === "failed" ? "text-muted-foreground italic" : ""
                       }`}
                     >
-                      {message.body}
+                      {message.role === "coach"
+                        ? splitKnowledgeLinks(message.body).map((segment, i) =>
+                            segment.href ? (
+                              <Link key={i} href={segment.href} className="underline hover:text-primary">
+                                {segment.text}
+                              </Link>
+                            ) : (
+                              segment.text
+                            ),
+                          )
+                        : message.body}
                     </p>
                   )}
 

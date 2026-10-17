@@ -128,7 +128,7 @@ export default async function MijnGaragePage() {
         {header}
         <EmptyState action={<ConnectWithStrava />}>
           Nog geen fietsen. Koppel Strava, of voeg een fiets handmatig toe op je{" "}
-          <Link href="/profiel#fietsen" className="underline underline-offset-2">
+          <Link href="/profiel?weergave=bewerken#fietsen" className="underline underline-offset-2">
             profiel
           </Link>
           .

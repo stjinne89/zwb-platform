@@ -26,13 +26,23 @@ export const DAILY_CARBS_G_PER_KG: Record<FuelDayType, Range> = {
 
 /** Eiwit per dag: 1,6–2,1 g/kg volgens het UCI-positiestandpunt (Burke et al.
  * 2026, tabel 2). De onderkant sluit aan op Kato et al. 2016; de bovenkant is
- * voor rustdagen na zwaar werk en periodes met weinig energie of koolhydraten. */
+ * voor rustdagen na zwaar werk en periodes met weinig energie of koolhydraten.
+ * Witard et al. 2025 noemen ~1,8 g/kg als midden. */
 export const DAILY_PROTEIN_G_PER_KG: Range = { min: 1.6, max: 2.1 };
 
-/** Eiwit per maaltijd: ISSN nutrient timing (Kerksick et al. 2017). */
+/**
+ * Eiwit per maaltijd: ISSN nutrient timing (Kerksick et al. 2017). Een
+ * richtgetal, geen plafond: 100 g gaf meer en langer eiwitaanmaak dan 25 g
+ * (Trommelen et al. 2023, Cell Rep Med). De portie helpt het dagtotaal halen.
+ */
 export const MEAL_PROTEIN_G_PER_KG: Range = { min: 0.3, max: 0.4 };
 
-/** Eiwit voor het slapen: ~40 g (Snijders et al. 2019; Trommelen et al. 2023 gaf 45 g). */
+/**
+ * Eiwit voor het slapen: ~40 g (Snijders et al. 2019; Trommelen et al. 2023 gaf
+ * 45 g). Het verhoogt de eiwitaanmaak 's nachts, maar bij profs die al veel
+ * eiwit aten gaf het geen beter herstel (Valenzuela et al. 2023). Daarom een
+ * hulpmiddel voor het dagtotaal, geen herstelbelofte; zie tips.ts.
+ */
 export const PRE_SLEEP_PROTEIN_G = 40;
 
 /** Snel herstel als de volgende zware sessie binnen ~8 uur valt (ACSM 2016). */
@@ -49,6 +59,9 @@ export const PRE_RIDE_CARBS_G_PER_KG = 1;
  * 2,5 uur 90 g/u als doel; dat is de bovenkant van onze band, omdat meer dan
  * 60 g/u een glucose-fructosemix en darmtraining vraagt. De 120 g/u staat
  * alleen in de tekst: het positiestandpunt noemt het nut ervan nog onbewezen.
+ * Hertoetst 2026-10-16: 120 g/u beperkte bij getrainden de daling van CP na
+ * 3 uur (Norte et al. 2026), maar bij recreanten werkte 40 g/u beter dan 90
+ * (Fleitas-Paniagua et al. 2026). Geen reden om de banden te verschuiven.
  */
 export function rideCarbsPerHour(durationMinutes: number): Range | null {
   if (!Number.isFinite(durationMinutes) || durationMinutes < 60) return null;

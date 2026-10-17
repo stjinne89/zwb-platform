@@ -1,3 +1,4 @@
+import { loadSubjectiveRecovery } from "@/lib/training/subjective-recovery";
 import { StravaAttribution } from "@/components/strava-brand";
 import { EmptyState } from "@/components/app-ui";
 import {
@@ -52,12 +53,15 @@ export default async function ZwbeterWordenLoadPage() {
       .maybeSingle(),
     loadFtpAt(viewer.supabase, viewer.user.id, currentFtp),
   ]);
+  const subjective = await loadSubjectiveRecovery(viewer.supabase, viewer.user.id, {
+    includeSymptoms: true,
+  }).catch(() => null);
 
   // Belasting uit Strava, met TSS en IF uit NP en de FTP die op de ritdag gold —
   // intervals.icu geeft voor Strava-ritten niets terug.
   const activityLoad = rideLoadRows((rideRows ?? []) as StravaRideRow[], ftpAt);
   const loadPoints = toTrainingLoadPoints(snapshot.wellness);
-  const zwbStatus = zwbStatusFor(snapshot.wellness, conn, profile);
+  const zwbStatus = zwbStatusFor(snapshot.wellness, conn, profile, subjective);
   const lastWellnessDay = lastWellnessDayOf(snapshot.wellness);
 
   return (

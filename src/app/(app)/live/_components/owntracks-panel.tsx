@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { Check, Copy, RotateCw, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { HelpLink } from "@/components/app-ui";
+
 import {
   createOwnTracksToken,
   revokeOwnTracksTokens,
@@ -78,7 +78,6 @@ export function OwnTracksPanel({
     <section className="space-y-4 rounded-lg border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <h2 className="font-semibold">OwnTracks live GPS</h2>
-        <HelpLink href="/hulp#owntracks" />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">

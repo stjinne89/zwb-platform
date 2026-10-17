@@ -4,6 +4,7 @@
 // database weet alleen wie welk protocol volgt (0237_member_protocols.sql).
 
 import type { KnowledgeSource } from "@/lib/knowledge/source";
+import type { MethodLabel } from "@/lib/training/method-label";
 
 export type ProtocolPillar = "trainen" | "voeden";
 
@@ -72,6 +73,12 @@ export type Protocol = {
   /** Waarvoor het werkt, in één zin. */
   goal: string;
   evidence: ProtocolEvidence;
+  /**
+   * Veelbelovend of experimenteel: het effect op prestatie staat nog niet vast
+   * (docs/trainingsmethodes-onderzoek-2026-10-16.md). Staat naast het
+   * bewijsniveau, dat zegt hoeveel onderzoek er is.
+   */
+  methodLabel?: MethodLabel;
   anchor: ProtocolAnchor;
   phases: ProtocolPhase[];
   /** Waar je op let tijdens het protocol. */
@@ -96,6 +103,11 @@ export type Protocol = {
    * trainingsprotocollen die het schema raken.
    */
   aiHint?: string;
+  /**
+   * Laat op de protocolpagina de eigen metingen zien. "duurtest": de
+   * ontkoppeling uit de geplande Duurtest (durability-test.ts).
+   */
+  measure?: "duurtest";
 };
 
 /** Een rij uit member_protocols, zoals de app hem gebruikt. */

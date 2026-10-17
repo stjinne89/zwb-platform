@@ -21,6 +21,11 @@ function activeLinks(pathname: string, hrefs: string[]) {
 }
 
 describe("activeHrefIn", () => {
+  it("houdt ZWBieb en Leden uit elkaar", () => {
+    expect(activeLinks("/zwbieb/gesprekken", menuHrefs)).toEqual(["/zwbieb"]);
+    expect(activeLinks("/leden/11111111-1111-1111-1111-111111111111", menuHrefs)).toEqual(["/leden"]);
+  });
+
   it("markeert op een ZWBeter Worden-subpagina alleen die subpagina", () => {
     expect(activeLinks("/zwbeter-worden/schema", menuHrefs)).toEqual(["/zwbeter-worden/schema"]);
     expect(activeLinks("/zwbeter-worden", menuHrefs)).toEqual(["/zwbeter-worden"]);

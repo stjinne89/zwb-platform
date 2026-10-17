@@ -1,3 +1,4 @@
+import { loadSubjectiveRecovery } from "@/lib/training/subjective-recovery";
 import { Calendar, ClipboardList, Mountain, ShieldCheck } from "lucide-react";
 import { getDesign } from "@/lib/design";
 import { ZwiftEventSuggestions } from "./_components/zwift-event-suggestions";
@@ -130,16 +131,19 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
   const pendingReviewPromise = loadPendingReview(viewer, paramString(params.review)).catch(
     () => null,
   );
-  const [memberWorkouts, planSummaries, warmupOptions] = await Promise.all([
+  const [memberWorkouts, planSummaries, warmupOptions, subjective] = await Promise.all([
     loadMemberWorkouts(viewer, snapshot.events),
     loadPlanSummaries(viewer),
     loadWarmupOptions(createAdminClient()).catch(() => []),
+    loadSubjectiveRecovery(viewer.supabase, viewer.user.id, { includeSymptoms: true }).catch(
+      () => null,
+    ),
   ]);
   const todayKey = todayKeyAmsterdam();
   const activities = (stravaRows ?? []) as StravaActivityRow[];
   const totals7 = loadSummary(activities);
 
-  const zwbStatus = zwbStatusFor(snapshot.wellness, conn, profile);
+  const zwbStatus = zwbStatusFor(snapshot.wellness, conn, profile, subjective);
   const advice = zwbStatus.advice;
   const { latest: eftpLatest, delta: eftpDelta } = eftpTrend(snapshot.wellness, 90);
   const eftpValue = eftpLatest ?? snapshot.intervalsFtp ?? profile?.ftp_watts ?? null;

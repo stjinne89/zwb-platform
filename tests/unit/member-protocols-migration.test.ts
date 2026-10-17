@@ -40,7 +40,7 @@ beforeAll(async () => {
     "0167_training_chat.sql",
     "0237_member_protocols.sql",
     "0238_member_protocol_core_sessions.sql",
-    "0239_member_protocol_core_analysis.sql",
+    "0248_member_protocol_core_analysis.sql",
   ]) {
     await db.exec(await migration(file));
   }

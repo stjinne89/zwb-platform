@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   asFtpTestType,
+  ftpChange,
+  ftpCheck,
   ftpFromTest,
   ftpTestBlocks,
   ftpTestDurationMinutes,
@@ -199,5 +201,46 @@ describe("profileFtpAfterChange", () => {
     expect(
       profileFtpAfterChange({ profileFtpWatts: 300, changedFtpWatts: 416, latestFtpWatts: null }),
     ).toEqual({ ftpWatts: 300, changed: false, withoutTest: false });
+  });
+});
+
+describe("ftpChange", () => {
+  it("noemt een verschil binnen de meetfout van ~3 % gelijk", () => {
+    expect(ftpChange(255, 250)?.same).toBe(true);
+    expect(ftpChange(243, 250)?.same).toBe(true);
+    expect(ftpChange(260, 250)).toEqual({ fraction: 0.04, same: false });
+  });
+
+  it("geeft niets zonder vorige test", () => {
+    expect(ftpChange(250, null)).toBeNull();
+    expect(ftpChange(250, 0)).toBeNull();
+  });
+});
+
+describe("ftpCheck", () => {
+  const basis = { testedOn: "2026-10-10", todayKey: "2026-10-16" };
+
+  it("meldt een test die meer dan 8 % van de vermogenscurve afwijkt", () => {
+    const check = ftpCheck({ ...basis, ftpWatts: 300, cpWatts: 270, eftpWatts: 274 });
+    expect(check?.referenceWatts).toBe(272);
+    expect(check!.deviation).toBeGreaterThan(0.08);
+  });
+
+  it("zwijgt binnen de marge, ook met maar één referentie", () => {
+    expect(ftpCheck({ ...basis, ftpWatts: 290, cpWatts: 270, eftpWatts: null })).toBeNull();
+    expect(ftpCheck({ ...basis, ftpWatts: 245, cpWatts: null, eftpWatts: 265 })).toBeNull();
+  });
+
+  it("meldt ook een test die te laag uitvalt", () => {
+    expect(ftpCheck({ ...basis, ftpWatts: 230, cpWatts: 270, eftpWatts: null })!.deviation).toBeLessThan(
+      -0.08,
+    );
+  });
+
+  it("zwijgt zonder referentie of bij een test ouder dan acht weken", () => {
+    expect(ftpCheck({ ...basis, ftpWatts: 300, cpWatts: null, eftpWatts: null })).toBeNull();
+    expect(
+      ftpCheck({ ftpWatts: 300, testedOn: "2026-08-01", todayKey: "2026-10-16", cpWatts: 250, eftpWatts: null }),
+    ).toBeNull();
   });
 });

@@ -18,7 +18,7 @@ export function AvatarMenu({
   adminItems,
   avatarUrl,
   showOnMobile = false,
-  extraItems = [],
+  beheerPage = false,
 }: {
   displayName: string;
   adminItems: AdminNavItem[];
@@ -26,8 +26,8 @@ export function AvatarMenu({
   avatarUrl?: string | null;
   /** Design "tegels": het menu staat ook op de telefoon in de balk. */
   showOnMobile?: boolean;
-  /** Design "tegels": extra eigen items, zoals Sponsors. */
-  extraItems?: Array<{ href: string; label: string }>;
+  /** Design "tegels": één link naar /beheer in plaats van de beheerlijst. */
+  beheerPage?: boolean;
 }) {
   return (
     <DropdownMenu>
@@ -46,7 +46,9 @@ export function AvatarMenu({
         <ChevronDown className="size-3.5" aria-hidden />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-48">
-        {[...AVATAR_NAV, ...extraItems].map((item) => (
+        {/* Hulp staat overal waar dit menu staat al als vraagteken ernaast; in
+            het mobiele menu (huidig design, geen vraagteken) blijft het. */}
+        {AVATAR_NAV.filter((item) => item.href !== "/hulp").map((item) => (
           <DropdownMenuItem
             key={item.href}
             render={<Link href={item.href} />}
@@ -54,6 +56,13 @@ export function AvatarMenu({
             {item.label}
           </DropdownMenuItem>
         ))}
+
+        {beheerPage && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem render={<Link href="/beheer" />}>Beheer</DropdownMenuItem>
+          </>
+        )}
 
         {adminItems.length > 0 && (
           <>

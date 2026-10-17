@@ -47,10 +47,15 @@ export type RideEstimateInput = {
   drivetrainEff?: number;
 };
 
+// Wetenschappelijke toets fase 6 (2026-10-16): ervaren renners haalden op de
+// kappen een luchtweerstand van ~0,29 m² en in de beugel ~0,25 m², en een
+// rolweerstand van ~0,005–0,007 afhankelijk van de bandenspanning (Lim 2011,
+// doi:10.1249/MSS.0b013e3181fcb140). 0,32 rekent dus iets trager; dat past bij
+// een schatting.
 export const DEFAULT_CDA = 0.32; // m² — racefiets, handen op de kappen
 export const DEFAULT_CRR = 0.005; // asfalt, racebanden
 export const AIR_DENSITY = 1.225; // kg/m³ — zeeniveau, 15°C
-export const DRIVETRAIN_EFF = 0.97;
+export const DRIVETRAIN_EFF = 0.97; // aanname: gangbare waarde voor een schone ketting
 export const G = 9.81;
 export const DEFAULT_EQUIPMENT_KG = 9; // fiets + kleding + bidons
 export const MIN_SPEED_MS = 1.5; // ~5.4 km/h — onder dit tempo lopen/stilstaan

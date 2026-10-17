@@ -1,7 +1,18 @@
 import { ZwbLogo } from "@/components/zwb-logo";
+import { TegelsAuthFrame } from "@/components/tegels/auth-frame";
+import { getAuthDesign } from "@/lib/design";
 import { PasswordResetForm } from "./password-reset-form";
 
 export default async function PasswordResetPage() {
+  if ((await getAuthDesign()) === "tegels") {
+    return (
+      <TegelsAuthFrame>
+        <h1 className="tg-display">Nieuw wachtwoord</h1>
+        <PasswordResetForm tegels />
+      </TegelsAuthFrame>
+    );
+  }
+
   return (
     <main className="flex flex-1 items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6 rounded-2xl border bg-card p-8 shadow-sm">

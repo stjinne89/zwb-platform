@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { componentLabel } from "@/lib/maintenance/component-types";
 import { EmptyState } from "@/components/app-ui";
 import { ImportForm } from "./_components/import-form";
+import { loadTopicCatalog } from "@/lib/zwbieb/queries";
 import { TipForm } from "./_components/tip-form";
 import { TipList, type TipRow } from "./_components/tip-list";
 import { getRequestAccess } from "@/lib/auth/request";
@@ -30,9 +31,9 @@ export default async function CitatenPage() {
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">Tips en citaten</h1>
         <p className="text-sm text-muted-foreground">
-          Tips verschijnen bij het bijbehorende onderdeel in Mijn garage. Een lid
-          ziet zijn eigen citaten op zijn profiel en kan ze daar zelf aanpassen of
-          verwijderen — zie de{" "}
+          Tips verschijnen bij het bijbehorende onderdeel in Mijn garage, of bij
+          een onderwerp in ZWBieb. Een lid ziet zijn eigen citaten en tips
+          en kan ze zelf aanpassen of verwijderen — zie de{" "}
           <Link href="/voorwaarden" className="underline underline-offset-2">
             gebruikersvoorwaarden
           </Link>
@@ -44,7 +45,7 @@ export default async function CitatenPage() {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Uit een groepsapp importeren
         </h2>
-        <ImportForm />
+        <ImportForm topics={(await loadTopicCatalog(supabase)).options} />
       </section>
 
       <section className="space-y-3">

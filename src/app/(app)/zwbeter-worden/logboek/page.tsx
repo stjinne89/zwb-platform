@@ -32,6 +32,7 @@ export default async function LogboekPage() {
 
   const header = (
     <PageHeader
+      className="tg-repeats-nav"
       eyebrow="ZWB Training"
       title="Logboek"
       description="Hoe je je voelt, zodat je schema erop kan meebewegen."
@@ -50,7 +51,7 @@ export default async function LogboekPage() {
             Het logboek is nu ingericht op klachten rond de cyclus en daarom
             alleen beschikbaar voor leden met{" "}
             <strong className="text-foreground">Vrouw</strong> bij{" "}
-            <Link href="/profiel" className="underline underline-offset-2">
+            <Link href="/profiel?weergave=bewerken" className="underline underline-offset-2">
               geslacht in je profiel
             </Link>
             .

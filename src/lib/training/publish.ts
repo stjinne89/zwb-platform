@@ -1,4 +1,5 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
+import { describeWithMethodLabel, methodLabelOf } from "@/lib/training/method-label";
 import {
   deleteIntervalsWorkoutEvent,
   upsertIntervalsWorkoutEvent,
@@ -435,6 +436,8 @@ type PublishableWorkout = {
   duration_minutes: number;
   intensity: WorkoutIntensity;
   structure_json: unknown;
+  /** Veelbelovend of experimenteel; komt vooraan in de beschrijving (0246). */
+  method_label?: string | null;
   intervals_event_id: string | null;
   intervals_external_id: string | null;
 };
@@ -488,7 +491,12 @@ async function pushOneWorkout(
       // Met "ZWBeter Worden" ervoor, zodat hij in Zwift en op de fietscomputer
       // herkenbaar is tussen workouts uit andere bronnen.
       name: intervalsWorkoutName(workout.title),
-      description: [intervalsText, workout.description].filter(Boolean).join("\n\n"),
+      description: [
+        intervalsText,
+        describeWithMethodLabel(workout.description, methodLabelOf(workout.method_label)),
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
       category: "WORKOUT",
       type: "Ride",
       target: "POWER",
@@ -547,7 +555,7 @@ export async function pushWorkoutToIntervals(
   const { data: workout } = await admin
     .from("training_workouts")
     .select(
-      "id, profile_id, scheduled_at, title, description, duration_minutes, intensity, structure_json, intervals_event_id, intervals_external_id",
+      "id, profile_id, scheduled_at, title, description, duration_minutes, intensity, structure_json, method_label, intervals_event_id, intervals_external_id",
     )
     .eq("id", workoutId)
     .maybeSingle();

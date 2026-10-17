@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addMediaItem, updateMediaItem } from "../_actions";
-import { HelpLink } from "@/components/app-ui";
+
 import { Button } from "@/components/ui/button";
 import { MEDIA_KINDS, type MediaKind } from "@/lib/media-kinds";
 
@@ -83,7 +83,6 @@ export function MediaForm({ initial }: { initial?: MediaInitial }) {
         <h3 className="text-sm font-medium">
           {isEdit ? "Media-item bewerken" : "Nieuw media-item"}
         </h3>
-        <HelpLink href="/hulp#mediabeheer" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">

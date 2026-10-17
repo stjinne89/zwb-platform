@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { HelpLink, PageHeader } from "@/components/app-ui";
+import { PageHeader } from "@/components/app-ui";
 import { PowerUnitProvider, PowerUnitToggle } from "@/components/power-unit";
 import { parsePowerUnit, POWER_UNIT_COOKIE } from "@/lib/training/power-unit";
 import {
@@ -44,7 +44,7 @@ export default async function ZwbeterWordenLayout({
     (profile?.sex as string | null) ?? null,
   ) as NavLeaf[];
 
-  // Design "tegels": ZWBeter Worden heet daar ZWBeter, met vier pijlers
+  // Design "tegels": ZWBeter Worden heet daar ZWBeter, met vijf pijlers
   // (lib/zwbeter-pillars.ts) in plaats van één rij van elf tabs.
   const tegels = (await getDesign()) === "tegels";
   const pillars = ZWBETER_PILLARS.map((pillar) => ({
@@ -67,10 +67,7 @@ export default async function ZwbeterWordenLayout({
           <ZwbeterNav
             pillars={pillars}
             actions={
-              <div className="flex items-center gap-3">
-                <PowerUnitToggle percent />
-                <HelpLink href="/hulp#trainingsruimte" />
-              </div>
+              <PowerUnitToggle percent />
             }
           />
           {children}
@@ -81,10 +78,7 @@ export default async function ZwbeterWordenLayout({
             eyebrow="ZWB Training"
             title="ZWBeter Worden"
             actions={
-              <div className="flex items-center gap-3">
-                <PowerUnitToggle percent />
-                <HelpLink href="/hulp#trainingsruimte" />
-              </div>
+              <PowerUnitToggle percent />
             }
           />
           <SectionNav items={sections.map(({ href, label }) => ({ href, label }))} />

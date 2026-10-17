@@ -21,7 +21,7 @@ inhoud staat in code: `src/lib/protocols/training.ts` en `nutrition.ts`.
 | Hitte-acclimatisatie voor een warme wedstrijd | sterk | gebouwd (trainen) |
 | Hittetraining voor hemoglobine | matig | gebouwd (trainen) |
 | Kerntemperatuur met een CORE-sensor bij hitte | sensor zwak gevalideerd | gebouwd (trainen), via intervals.icu |
-| Lage cadans bij VO2max en sprints | matig | gebouwd (trainen), via de AI-coach |
+| Lage cadans bij VO2max en sprints | beperkt (was matig; zie [bewijsniveau-kennisbank](bewijsniveau-kennisbank.md), 2026-10-17) | gebouwd (trainen), via de AI-coach |
 | Ademspiertraining | matig | gebouwd (trainen) |
 | Taper | sterk | AI-regel aangescherpt, geen protocol |
 | Cafeïne | sterk | gebouwd (voeden, wedstrijd) |
@@ -113,7 +113,9 @@ type dat met `thb` begint.
 intervals.icu gewoon een stream `core_temperature`, geen THb. De activiteitenlijst
 noemt per rit `stream_types`; daar stond hij in. De THb-terugval blijft voor
 Wahoo's die de sensor als spierzuurstofsensor koppelen, maar is bij de eigenaar
-niet nodig. Bronnen: de helppagina van CORE over
+niet nodig.
+
+Bronnen voor de beschrijving hierboven: de helppagina van CORE over
 intervals.icu en draadjes op het intervals.icu-forum; die konden vanuit de
 bouwomgeving niet worden geopend, alleen de zoekresultaten zijn gelezen.
 
@@ -132,6 +134,21 @@ metingen week meer dan 0,3 °C af van een rectale meting, in 19 én 31 °C. De
 auteurs concluderen dat de sensor geen geldige maat voor de kerntemperatuur is.
 [Verdel e.a. 2021](https://doi.org/10.3390/s21175932). Daarom: de app toont de
 waarde als richting en vinkt af, maar het lid kan het vinkje weghalen.
+
+**Aanvulling wetenschappelijke toets fase 6 (2026-10-16).** Er zijn inmiddels
+vier validatiestudies, en ze spreken elkaar tegen over de richting van de fout:
+- Bij hockeysters zat de sensor te laag, meer naarmate het warmer werd, met
+  41–60 % van de metingen meer dan 0,3 °C ernaast.
+  [Goods e.a. 2023](https://doi.org/10.1080/17461391.2023.2193953)
+- Bij fietsers in de hitte zat hij in de tweede helft van de rit ~0,3 °C te
+  hoog, meer bij meer onderhuids vet.
+  [McLaughlin e.a. 2025](https://doi.org/10.1016/j.jtherbio.2025.104241)
+- In een vergelijking van drie sensoren zat hij systematisch iets te hoog.
+  [Daanen e.a. 2023](https://doi.org/10.1016/j.jtherbio.2023.103480)
+
+De beperking in beide hitteprotocollen noemt dat nu. De drempel van 38,5 °C en
+de 30 minuten blijven: met het vinkje dat het lid kan weghalen, past de opzet
+bij een fout van deze grootte.
 
 **De analyse per sessie (2026-10-17).** Op verzoek van de eigenaar toetst de
 app een rit aan alle eisen van de hittesessie en legt uit waarom hij niet
@@ -252,7 +269,8 @@ plafond per inname. Supplementprotocollen zijn er vanaf 18 jaar (AIS).
 | Koolhydraten laden | 10-12 g/kg per dag, 2 dagen; ontbijt 1-4 g/kg | [Burke e.a. 2011](https://doi.org/10.1080/02640414.2011.585473), UCI 2026 |
 | Bèta-alanine | 3,2-6,4 g/dag in giften ≤1,6 g, 8 weken | [Trexler e.a. 2015](https://doi.org/10.1186/s12970-015-0090-y), [Saunders e.a. 2017](https://doi.org/10.1136/bjsports-2016-096396) |
 | Creatine | 0,3 g/kg 5 dagen, daarna 3-5 g/dag | [Kreider e.a. 2017](https://doi.org/10.1186/s12970-017-0173-z) |
-| Darmtraining | 60 → 110-120 g/u in zes weken, 2 ritten per week | [Jeukendrup 2017](https://doi.org/10.1007/s40279-017-0690-6), [Podlogar e.a. 2022](https://doi.org/10.1007/s00421-022-05019-w) |
+| Darmtraining | 60 → 110-120 g/u in zes weken, 2 ritten per week | [Jeukendrup 2017](https://doi.org/10.1007/s40279-017-0690-6), [Podlogar e.a. 2022](https://doi.org/10.1007/s00421-022-05019-w), [Costa e.a. 2017](https://doi.org/10.1139/apnm-2016-0453), [Miall e.a. 2018](https://doi.org/10.1111/sms.12912) |
+| Darmtraining 150 (beperkt bewijs) | 130 → 150 g/u in drie weken, 2 ritten van ≥ 3 uur per week, alleen na 120 g/u zonder klachten | [Morton e.a. 2026](https://doi.org/10.1016/j.tjnut.2026.101442), [Wilson 2025](https://doi.org/10.1007/s40279-025-02372-6), [Ravikanti e.a. 2025](https://doi.org/10.1152/japplphysiol.00665.2025) |
 
 **Afgeleid of eigen keuze:**
 - Plafonds per inname (400 mg cafeïne, 30 g bicarbonaat, 750 g slush) zijn
@@ -261,6 +279,36 @@ plafond per inname. Supplementprotocollen zijn er vanaf 18 jaar (AIS).
   meta-analyses; die studies zelf zijn niet afzonderlijk nagelezen.
 - De stappen van 10 g per week bij darmtraining zijn een afleiding; er is geen
   vast onderzocht schema.
+- **Darmtraining 150 (2026-10-16).** Op verzoek van de eigenaar, na een
+  literatuurcheck die op een advies van maximaal 120 g/u uitkwam. Wat er is:
+  - Gecontroleerd onderzoek gaat tot 120 g/u. 120 g/u werd in elke vorm goed
+    opgenomen ([Hearris e.a. 2022](https://doi.org/10.1152/japplphysiol.00091.2022)).
+  - 120 g/u gaf meer oxidatie van ingenomen koolhydraten dan 90 g/u (1,51 tegen
+    1,29 g/min), maar spaarde het eigen glycogeen niet extra
+    ([Podlogar e.a. 2022](https://doi.org/10.1007/s00421-022-05019-w)).
+  - Bij elite-marathonlopers gaf 120 g/u meer oxidatie en een betere
+    loopeconomie, maar ook de meeste misselijkheid en krampen
+    ([Ravikanti e.a. 2025](https://doi.org/10.1152/japplphysiol.00665.2025)).
+  - De oxidatie van ingenomen koolhydraten loopt dood rond 1,5–1,7 g/min, ofwel
+    90–100 g/u.
+  - 120–200 g/u komt in de praktijk voor, maar is niet onderbouwd. De
+    bovengrens voor getrainde renners ligt mogelijk op 120 g/u
+    ([Morton e.a. 2026](https://doi.org/10.1016/j.tjnut.2026.101442)).
+  - Voor ≥ 100 g/u is er geen duidelijke prestatiewinst, mogelijk wel in
+    meerdaagse koersen ([Wilson 2025](https://doi.org/10.1007/s40279-025-02372-6)).
+  - Darmtraining werkt, maar is getest tot 90 g/u, bij hardlopers, over twee
+    weken. Ongeveer 47–60 % minder klachten en minder malabsorptie
+    ([Costa e.a. 2017](https://doi.org/10.1139/apnm-2016-0453);
+    [Miall e.a. 2018](https://doi.org/10.1111/sms.12912);
+    review [Martinez e.a. 2023](https://doi.org/10.1007/s40279-023-01841-0)).
+    Bij topsporters gaf het geen extra prestatiewinst
+    ([King e.a. 2022](https://doi.org/10.3390/nu14091929)). Bij 90 g/u had
+    38 % malabsorptie ([Rauch e.a. 2022](https://doi.org/10.3389/fphys.2021.773054)).
+
+  Daarom een eigen protocol met beperkt bewijs, geen verlenging van
+  darmtraining: het lid start het bewust, alleen als 120 g/u zonder klachten
+  gaat, op ritten van minstens drie uur, met een stopregel. Het schema van drie
+  stappen van 10 g is een afleiding, net als bij darmtraining.
 - Het uitproberen op een training in de twee weken voor de wedstrijd is een
   aanbeveling uit de reviews, geen getest protocol.
 

@@ -10,8 +10,12 @@ import {
   type IntervalsWellness,
 } from "@/lib/intervals/client";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
-import type { WellnessDevice } from "@/lib/training/wellness";
-import { refreshWellnessIfStale, summarizeTrainingReadiness } from "@/lib/training/wellness";
+import {
+  refreshWellnessIfStale,
+  summarizeTrainingReadiness,
+  WELLNESS_SUMMARY_DAYS,
+  type WellnessDevice,
+} from "@/lib/training/wellness";
 import { computeZwbStatus, zwbeterWordenAdvice } from "@/lib/training/zwbeterworden";
 import { unansweredCounts } from "@/lib/training/coach-chat";
 import { goalsAwaitingPlan } from "@/lib/training/goals-awaiting-plan";
@@ -282,7 +286,7 @@ async function loadRiderStatus(
     ((connections ?? []) as IntervalsAthleteConnection[]).map(async (connection) => {
       const profile = profiles.get(connection.profile_id);
       try {
-        const wellness = await fetchIntervalsWellness(connection.api_key, connection.athlete_id, 30);
+        const wellness = await fetchIntervalsWellness(connection.api_key, connection.athlete_id, WELLNESS_SUMMARY_DAYS);
         const status = computeZwbStatus(wellness, {
           wellnessOptIn: Boolean(connection.wellness_opt_in),
           sex: profile?.sex,

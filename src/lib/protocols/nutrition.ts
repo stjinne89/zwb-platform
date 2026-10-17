@@ -7,9 +7,36 @@
 
 import { doi, type KnowledgeSource } from "@/lib/knowledge/source";
 import {
+  BALSHAW_2023,
+  BARRANCO_GIL_2024,
   BELL_2014,
   BISCHOF_2024,
+  CARVALHO_2022,
+  CHEN_2024,
+  DAAB_2026,
+  DE_OLIVEIRA_2020,
+  FERNANDEZ_LANDA_2023,
+  FORBES_2023,
+  GEORGIOU_2024,
+  GURTON_2021,
+  HAGELE_2026,
+  HEARRIS_2022,
+  JERGER_2022,
+  LEACH_2023,
+  MARTINEZ_2023,
+  MIALL_2018,
+  MORTON_2026_JNUTR,
+  NORTE_2026,
+  POON_2025,
+  QIN_2026,
+  RAVIKANTI_2025,
+  RORIZ_2022,
+  SHANNON_2024,
+  SOLLIE_2023,
+  VALENZUELA_2023,
+  ZHU_2026,
   BURKE_2011,
+  COSTA_2017,
   GR_VITAMINE_D,
   HILL_2021,
   HOWATSON_2010,
@@ -24,6 +51,7 @@ import {
   UCI_POSITION,
   UCI_SUPPLEMENTS,
   VAN_ROSENDAL_2010,
+  WILSON_2025,
 } from "@/lib/nutrition/library";
 import type { Protocol, ProtocolTask } from "./types";
 
@@ -165,7 +193,7 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     ],
     cautions: [
       ...SUPPLEMENT_CAUTIONS,
-      "Bij een avondrace kost cafeïne vaak nachtrust. Een lage dosis werkt ook.",
+      "Bij een avondrace kost cafeïne vaak nachtrust. Een lagere dosis (1 tot 3 mg per kg) werkt mogelijk ook, maar minder zeker.",
       "Hogere doses geven vaker hartkloppingen, trillen en maagklachten, zonder meer winst.",
     ],
     notFor: [
@@ -173,9 +201,11 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
       "Bij hartritmestoornissen, hoge bloeddruk of zwangerschap zonder overleg met een arts.",
     ],
     limits: [
-      "Hoe sterk het werkt verschilt per persoon. Gewenning aan dagelijkse koffie lijkt het effect nauwelijks kleiner te maken.",
+      "Hoe sterk het werkt verschilt per persoon. Gewenning aan dagelijkse koffie maakt het effect niet kleiner, volgens een meta-analyse van zestig studies.",
+      "Bij vrouwen werkt het ook, maar die studies zijn kleiner en minder zeker.",
+      "Bij fietsers was 1 tot 3 mg per kg in een meta-analyse niet duidelijk effectief; andere analyses vonden wel effect.",
     ],
-    sources: [GUEST_2021, MAUGHAN_2018],
+    sources: [GUEST_2021, MAUGHAN_2018, CARVALHO_2022, ZHU_2026, CHEN_2024],
     article: { href: "/zwbeter-worden/voeding/kennis/supplementen", title: "Supplementen en sportvoeding" },
   },
   {
@@ -217,16 +247,18 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     cautions: [
       ...SUPPLEMENT_CAUTIONS,
       "Diarree, misselijkheid en buikkrampen komen vaak voor. Juist daarom eerst uitproberen.",
+      "In één proef maakte een warming-up met sprints de winst ongedaan; een andere vond dat niet. Houd de warming-up bij voorkeur rustig.",
     ],
     notFor: [
       "Onder de 18.",
       "Bij hoge bloeddruk of nierproblemen zonder overleg met een arts: het is veel natrium.",
     ],
     limits: [
-      "Het werkt het best bij inspanningen van één tot tien minuten. Bij een lange vlakke tijdrit is het effect klein.",
+      "Het werkt het best bij harde stukken van één tot tien minuten, maar ook tijdritten van 16 en 40 km gingen sneller.",
+      "Je piekwaarde hoef je niet eerst te bepalen: tussen ongeveer 75 en 240 minuten na inname is de buffer bij de meeste mensen verhoogd.",
       "Een verdeelde inname over de drie dagen ervoor kan ook, maar staat hier niet als stap.",
     ],
-    sources: [GRGIC_2021, MAUGHAN_2018],
+    sources: [GRGIC_2021, MAUGHAN_2018, LEACH_2023, SHANNON_2024, DE_OLIVEIRA_2020, GURTON_2021],
     article: { href: "/zwbeter-worden/voeding/kennis/supplementen", title: "Supplementen en sportvoeding" },
   },
   {
@@ -276,9 +308,10 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     ],
     notFor: ["Onder de 18."],
     limits: [
-      "Bij goed getrainde renners is het effect kleiner of afwezig. Wie al veel groente eet, haalt er minder uit.",
+      "Bij goed getrainde renners is het effect kleiner of afwezig; bij topsporters veranderde de VO2max niet. Wie al veel groente eet, haalt er minder uit.",
+      "Het werkt het meest consequent bij minstens 6 mmol per dag, meer dan drie dagen achter elkaar.",
     ],
-    sources: [JONES_2018, MAUGHAN_2018],
+    sources: [JONES_2018, MAUGHAN_2018, POON_2025, QIN_2026],
     article: { href: "/zwbeter-worden/voeding/kennis/supplementen", title: "Supplementen en sportvoeding" },
   },
   {
@@ -320,8 +353,9 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     limits: [
       "Voorkoelen helpt in de hitte volgens een meta-analyse, maar voor ijs drinken alleen is het effect onzeker; koud water om het lichaam werkte beter.",
       "Het effect van voorkoelen neemt na zo'n 20 tot 25 minuten rijden af.",
+      "IJs of koude drank verbeterde de prestatie in een overzicht van 43 studies niet consequent; spoelen met menthol wel.",
     ],
-    sources: [BONGERS_2015, CHOO_2018],
+    sources: [BONGERS_2015, CHOO_2018, RORIZ_2022],
     article: { href: "/zwbeter-worden/kennis/hittetraining", title: "Hittetraining" },
   },
   {
@@ -441,7 +475,7 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     title: "Bèta-alanine",
     shortLabel: "Bèta-alanine",
     summary: "Elke dag een paar kleine giften, minstens vier weken, om de buffer in je spieren te vullen.",
-    goal: "Langer volhouden bij harde inspanningen van één tot vier minuten.",
+    goal: "Langer volhouden bij harde inspanningen van een halve tot tien minuten.",
     evidence: "sterk",
     anchor: "start",
     minAge: SUPPLEMENT_MIN_AGE,
@@ -467,10 +501,11 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     ],
     notFor: ["Onder de 18."],
     limits: [
-      "Het effect is klein en vooral te zien bij inspanningen van één tot vier minuten, minder bij lange duur.",
+      "Het effect is klein en vooral te zien bij inspanningen van een halve tot tien minuten, het sterkst bij vier tot tien; minder bij lange duur.",
+      "Na vier weken is het er; met 5,6 tot 6,4 gram per dag is het groter.",
       "Na stoppen zakt de buffer in enkele maanden langzaam terug.",
     ],
-    sources: [TREXLER_2015, SAUNDERS_2017, MAUGHAN_2018],
+    sources: [TREXLER_2015, SAUNDERS_2017, MAUGHAN_2018, GEORGIOU_2024],
     article: { href: "/zwbeter-worden/voeding/kennis/supplementen", title: "Supplementen en sportvoeding" },
   },
   {
@@ -515,9 +550,9 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     ],
     notFor: ["Onder de 18.", "Bij nierproblemen zonder overleg met een arts."],
     limits: [
-      "Voor lange duurprestaties is er geen duidelijke winst; het werkt bij sprints en kracht.",
+      "Voor duurprestatie is er geen winst, ook niet bij profs tijdens een trainingskamp. Het werkt bij sprints en kracht, en mogelijk bij versnellingen en een eindsprint in een lange wedstrijd.",
     ],
-    sources: [KREIDER_2017, MAUGHAN_2018],
+    sources: [KREIDER_2017, MAUGHAN_2018, FERNANDEZ_LANDA_2023, BARRANCO_GIL_2024, FORBES_2023],
     article: { href: "/zwbeter-worden/voeding/kennis/supplementen", title: "Supplementen en sportvoeding" },
   },
   {
@@ -551,10 +586,57 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     ],
     notFor: ["Bij darmziekten of aanhoudende buikklachten zonder overleg met een arts of sportdiëtist."],
     limits: [
-      "Boven ongeveer 90 gram per uur neem je meer op, maar een betere prestatie is niet aangetoond.",
+      "Boven ongeveer 90 gram per uur neem je meer op, en bij getrainde renners zakte de critical power na drie uur minder. Dat een wedstrijd daardoor sneller gaat, is niet aangetoond.",
       "Er is geen vast onderzocht schema; de stappen van 10 gram per week zijn een afleiding uit de reviews.",
     ],
-    sources: [JEUKENDRUP_2017, PODLOGAR_2022, UCI_POSITION],
+    sources: [JEUKENDRUP_2017, PODLOGAR_2022, UCI_POSITION, NORTE_2026, COSTA_2017, MIALL_2018, MARTINEZ_2023],
+    article: { href: "/zwbeter-worden/voeding/kennis/darmtraining", title: "Darmtraining en maagklachten" },
+  },
+  // Vervolg op darmtraining, op verzoek van de eigenaar (2026-10-16). Boven 120
+  // g/u is niets getest; daarom beperkt bewijs en een eigen protocol dat je
+  // alleen bewust start, niet een verlenging van darmtraining.
+  {
+    slug: "darmtraining-150",
+    pillar: "voeden",
+    group: "Opbouw",
+    title: "Doorbouwen naar 150 gram per uur",
+    shortLabel: "Darmtraining 150",
+    summary: "Drie weken twee ritten van minstens drie uur per week, met 130, 140 en 150 gram koolhydraten per uur.",
+    goal: "Wennen aan wat profs in lange etappes eten, als je 120 gram per uur al zonder klachten haalt.",
+    evidence: "beperkt",
+    anchor: "start",
+    phases: [130, 140, 150].map((grams, week) => ({
+      key: `week-${week + 1}`,
+      title: `Week ${week + 1}`,
+      fromDay: week * 7,
+      toDay: week * 7 + 6,
+      tasks: [
+        {
+          key: "lange-rit",
+          label: `Rit met ${grams} g per uur`,
+          detail:
+            "Een rit van minstens drie uur. Eet en drink vanaf het eerste kwartier in vaste porties, met een mix van glucose (of maltodextrine) en fructose van ongeveer 1 op 0,8.",
+          perWeek: 2,
+        },
+      ],
+    })),
+    cautions: [
+      "Krijg je krampen, misselijkheid, een vol gevoel of diarree, ga dan een week terug naar de vorige stap.",
+      "Komen de klachten terug, stop dan: dan is 120 gram per uur jouw plafond.",
+      "Train met wat je op de wedstrijddag wilt gebruiken.",
+    ],
+    notFor: [
+      "Als je 120 gram per uur nog niet zonder klachten haalt. Doe dan eerst de darmtraining.",
+      "Voor ritten en races korter dan ongeveer drie uur.",
+      "Bij darmziekten of aanhoudende buikklachten zonder overleg met een arts of sportdiëtist.",
+    ],
+    limits: [
+      "Meer dan 120 gram per uur is nooit in een proef getest. De 150 komt uit de praktijk van profs in lange etappes.",
+      "Je verbrandt hooguit ongeveer 100 gram per uur van wat je eet; de rest blijft langer in je darmen. Bij elite-marathonlopers gaf 120 gram per uur al de meeste misselijkheid en krampen.",
+      "Dat je er sneller van wordt, is niet aangetoond. De nieuwste review houdt 120 gram per uur aan als bovengrens voor getrainde renners.",
+      "Darmtraining is onderzocht tot 90 gram per uur, bij hardlopers, over twee weken. De stappen van 10 gram per week zijn een afleiding.",
+    ],
+    sources: [MORTON_2026_JNUTR, WILSON_2025, HEARRIS_2022, PODLOGAR_2022, RAVIKANTI_2025, MIALL_2018, COSTA_2017],
     article: { href: "/zwbeter-worden/voeding/kennis/darmtraining", title: "Darmtraining en maagklachten" },
   },
   {
@@ -596,7 +678,7 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
           {
             key: "eiwit-nacht",
             label: "Eiwit voor het slapen",
-            detail: "Ongeveer 40 gram, bijvoorbeeld een grote bak kwark.",
+            detail: "Ongeveer 40 gram, bijvoorbeeld een grote bak kwark. Vooral handig om je dagtotaal te halen.",
           },
         ],
       },
@@ -607,11 +689,11 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     ],
     notFor: [],
     limits: [
-      "Dat eiwit erbij de prestatie de dag erna verbetert, komt uit kleine studies; in één studie met acht duursporters hielden ze het langer vol dan met alleen koolhydraten.",
+      "Dat eiwit erbij de prestatie de dag erna verbetert, komt uit één kleine studie met acht duursporters; een andere proef vond vijf uur later geen verschil met alleen koolhydraten.",
       "Haast is alleen nodig als de volgende zware inspanning binnen ongeveer een dag komt.",
-      "Eiwit voor het slapen verhoogt de eiwitaanmaak 's nachts; of dat je op termijn sneller maakt, is niet aangetoond.",
+      "Eiwit voor het slapen verhoogt de eiwitaanmaak 's nachts; bij profs die al veel eiwit aten, gaf het geen beter herstel.",
     ],
-    sources: [BURKE_2011, KERKSICK_2017, RUSTAD_2016, SNIJDERS_2019, UCI_POSITION],
+    sources: [BURKE_2011, KERKSICK_2017, RUSTAD_2016, SNIJDERS_2019, UCI_POSITION, SOLLIE_2023, VALENZUELA_2023],
     article: { href: "/zwbeter-worden/voeding/kennis/herstel", title: "Herstel tussen sessies" },
   },
   {
@@ -650,11 +732,11 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     ],
     notFor: ["Onder de 18."],
     limits: [
-      "Het effect zit vooral in sneller herstel van kracht; minder spierpijn en lagere ontstekingswaarden zijn minder consistent gevonden.",
+      "Het effect zit vooral in sneller herstel van kracht, met lage tot matige zekerheid; minder spierpijn en lagere ontstekingswaarden zijn minder consistent gevonden.",
       "Bij wielrenners met drie dagen zware ritten daalden de ontstekingswaarden, maar de tijdrit werd niet beter.",
       "Kleine studies, een deel betaald door de kersenindustrie. Kersenpoeder werkte niet.",
     ],
-    sources: [HILL_2021, MCHUGH_2022, BELL_2014, HOWATSON_2010, PAULSEN_2014],
+    sources: [HILL_2021, MCHUGH_2022, BELL_2014, HOWATSON_2010, PAULSEN_2014, DAAB_2026, HAGELE_2026],
     article: { href: "/zwbeter-worden/voeding/kennis/kersensap", title: "Kersensap en andere polyfenolen" },
   },
   {
@@ -728,10 +810,10 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     notFor: ["Onder de 18."],
     limits: [
       "De onderliggende studie had acht proefpersonen en mat een bloedwaarde, niet de pees zelf.",
-      "Langdurig collageen naast krachttraining gaf in een meta-analyse kleine winst in kracht en een dikkere pees, maar niet bij wielrenners.",
+      "Langdurig collageen naast krachttraining gaf in een meta-analyse kleine winst in kracht en een dikkere pees, maar niet bij wielrenners. Losse proeven spreken elkaar tegen: 5 gram per dag hielp de pees, 15 gram niet.",
       "Dat een blessure er sneller door geneest, is niet aangetoond.",
     ],
-    sources: [SHAW_2017, BISCHOF_2024],
+    sources: [SHAW_2017, BISCHOF_2024, JERGER_2022, BALSHAW_2023],
     article: { href: "/zwbeter-worden/voeding/kennis/collageen", title: "Collageen en gelatine" },
   },
 ];

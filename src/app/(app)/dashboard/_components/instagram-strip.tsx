@@ -68,7 +68,6 @@ export function InstagramStrip({ posts, tegels }: { posts: InstagramPost[]; tege
       <SectionHeader
         icon={Images}
         title="Instagram"
-        place="geen"
         action={
           <a
             href={ZWB_INSTAGRAM_URL}

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { inboundDomain } from "@/lib/live/inbound-mail";
-import { HelpLink, PageHeader } from "@/components/app-ui";
+import { PageHeader } from "@/components/app-ui";
 import { LiveBoard } from "./_components/live-board";
 import {
   OwnTracksPanel,
@@ -174,7 +174,7 @@ export default async function LivePage() {
       <PageHeader
         eyebrow="Live"
         title="Samen fietsen"
-        actions={mySession ? <StopLiveButton sessionId={mySession.id} /> : <HelpLink href="/hulp#livetrack" />}
+        actions={mySession ? <StopLiveButton sessionId={mySession.id} /> : null}
       />
 
       <LiveBoard

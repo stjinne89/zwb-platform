@@ -109,14 +109,22 @@ export function FtpTestCard({ todayKey, upcoming, awaitingResult, lastTest }: Ft
       setLooseOpen(false);
       const changed =
         outcome.previousFtpWatts != null
-          ? ` (was ${formatPower(outcome.previousFtpWatts, unit, weightKg)})`
+          ? ` (was ${formatPower(outcome.previousFtpWatts, unit, weightKg)}${
+              outcome.sameAsBefore ? ", gelijk binnen de meetfout" : ""
+            })`
           : "";
       const ftp = formatPower(outcome.ftpWatts, unit, weightKg);
+      const check =
+        outcome.deviationPct != null
+          ? ` Dat ligt ${Math.abs(outcome.deviationPct)} % ${
+              outcome.deviationPct > 0 ? "boven" : "onder"
+            } je vermogenscurve; zie Vermogen.`
+          : "";
       if (outcome.generationId) {
-        setResult(`FTP op ${ftp}${changed}. Je schema wordt bijgewerkt…`);
+        setResult(`FTP op ${ftp}${changed}.${check} Je schema wordt bijgewerkt…`);
         poll.watch(outcome.generationId);
       } else {
-        setResult(`FTP op ${ftp}${changed}.`);
+        setResult(`FTP op ${ftp}${changed}.${check}`);
       }
     } catch {
       poll.setError("Uitslag opslaan is mislukt.");

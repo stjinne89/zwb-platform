@@ -48,7 +48,11 @@ import {
   type PendingReviewWorkout,
   type WorkoutMetricsSnapshot,
 } from "@/lib/training/completion";
-import { refreshWellnessIfStale, type WellnessDevice } from "@/lib/training/wellness";
+import {
+  refreshWellnessIfStale,
+  type SubjectiveRecovery,
+  type WellnessDevice,
+} from "@/lib/training/wellness";
 import { loadFtpAt } from "@/lib/training/ftp-history";
 import { STRAVA_RIDE_COLUMNS, type StravaRideRow } from "@/lib/training/ride-metrics";
 import { unplannedRides, type UnplannedRide } from "@/lib/training/unplanned-rides";
@@ -277,11 +281,13 @@ export function zwbStatusFor(
   wellness: IntervalsWellness[],
   conn: IntervalsConnection | null,
   profile: ProfileRow | null,
+  subjective?: SubjectiveRecovery | null,
 ): ZwbStatus {
   return computeZwbStatus(wellness, {
     wellnessOptIn: Boolean(conn?.wellness_opt_in),
     sex: profile?.sex,
     wellnessDevice: (profile?.wellness_device ?? null) as WellnessDevice | null,
+    subjective,
   });
 }
 

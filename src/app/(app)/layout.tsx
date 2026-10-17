@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import { HeaderHelpLink } from "./_components/header-help-link";
 import Link from "next/link";
-import { CircleHelp } from "lucide-react";
+import { MessagesSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { privacyConsentIsCurrent } from "@/lib/privacy";
@@ -14,10 +15,16 @@ import { BackButton } from "./_components/back-button";
 import { NavProgress } from "./_components/nav-progress";
 import { PrivacyConsentDialog } from "./_components/privacy-consent-dialog";
 import { ZwiftIdDialog, type RosterClaim } from "./_components/zwift-id-dialog";
-import { ADMIN_NAV, NAV_GROUPS, filterNavForPermissions } from "./_components/nav-config";
+import {
+  ADMIN_NAV,
+  NAV_GROUPS,
+  beheerCategoriesFor,
+  filterNavForPermissions,
+} from "./_components/nav-config";
 import { TegelsShell } from "./_components/tegels-shell";
 import { DesignSwitch } from "./_components/design-switch";
 import { DESIGN_PREVIEW_PERMISSION, getDesign } from "@/lib/design";
+import { countUnreadThreads } from "@/lib/zwbieb/queries";
 
 /**
  * Ongeclaimde ledenlijst-regels die op de naam van dit lid lijken en een
@@ -53,13 +60,15 @@ export default async function AppLayout({
   const [supabase, user] = await Promise.all([createClient(), getRequestUser()]);
   if (!user) redirect("/login");
 
-  const [{ data: profile }, access] = await Promise.all([
+  const [{ data: profile }, access, unreadThreads] = await Promise.all([
     supabase
       .from("profiles")
       .select("display_name, avatar_url, zwift_id, zwift_opt_out, sex, privacy_accepted_at, privacy_accepted_version")
       .eq("id", user.id)
       .single(),
     getRequestAccess(),
+    // ZWBieb: alleen een icoon als er iets ongelezen is.
+    countUnreadThreads(supabase, user.id).catch(() => 0),
   ]);
 
   const displayName = profile?.display_name ?? user.email ?? "";
@@ -101,48 +110,26 @@ export default async function AppLayout({
     return (
       <TegelsShell
         before={<NavProgress />}
-        back={<BackButton />}
+        back={<BackButton className="size-11 hover:bg-transparent" />}
         actions={
           <>
-            <Link
-              href="/hulp"
+            <UnreadMessagesLink
+              count={unreadThreads}
               className="inline-flex size-11 items-center justify-center text-muted-foreground transition hover:text-primary"
-              aria-label="Hulp"
-            >
-              <CircleHelp className="size-5" />
-            </Link>
+              iconClassName="size-5"
+            />
+            <HeaderHelpLink
+              className="inline-flex size-11 items-center justify-center text-muted-foreground transition hover:text-primary"
+              iconClassName="size-5"
+            />
             <AvatarMenu
               displayName={displayName}
-              adminItems={[
-                ...adminItems,
-                // WhatsApp-groepen en Media staan in dit design onder beheer
-                // (besluit eigenaar, 2026-10-12).
-                ...(access.has("community.manage")
-                  ? [
-                      {
-                        type: "link" as const,
-                        href: "/community",
-                        label: "WhatsApp-groepen",
-                        permission: "community.manage" as const,
-                      },
-                    ]
-                  : []),
-                ...(access.has("media.manage")
-                  ? [
-                      {
-                        type: "link" as const,
-                        href: "/media",
-                        label: "Media",
-                        permission: "media.manage" as const,
-                      },
-                    ]
-                  : []),
-              ]}
+              adminItems={[]}
+              beheerPage={beheerCategoriesFor((permission) => access.has(permission)).length > 0}
               avatarUrl={(profile?.avatar_url as string | null) ?? null}
               showOnMobile
-              extraItems={[{ href: "/sponsors", label: "Sponsors" }]}
             />
-            <ThemeToggle />
+            <ThemeToggle className="size-11 px-0 text-muted-foreground hover:bg-transparent hover:text-primary [&_svg]:size-5!" />
           </>
         }
         after={
@@ -180,13 +167,15 @@ export default async function AppLayout({
 
           {/* Right side: avatar-dropdown + theme + mobile-hamburger */}
           <div className="flex items-center gap-2">
-            <Link
-              href="/hulp"
-              className="hidden rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary md:inline-flex"
-              aria-label="Hulp"
-            >
-              <CircleHelp className="size-4" />
-            </Link>
+            <UnreadMessagesLink
+              count={unreadThreads}
+              className="inline-flex rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary"
+              iconClassName="size-4"
+            />
+            <HeaderHelpLink
+              className="inline-flex rounded-md p-2 text-muted-foreground transition hover:bg-muted hover:text-primary"
+              iconClassName="size-4"
+            />
             <AvatarMenu displayName={displayName} adminItems={adminItems} />
             <ThemeToggle />
             <MobileMenu displayName={displayName} adminItems={adminItems} nodes={navNodes} />
@@ -200,5 +189,30 @@ export default async function AppLayout({
       {needsPrivacyConsent && <PrivacyConsentDialog updated={signedBefore} />}
       {needsZwiftId && <ZwiftIdDialog claims={claims} />}
     </div>
+  );
+}
+
+/** Icoon naar de gesprekken van ZWBieb, alleen bij iets ongelezens. */
+function UnreadMessagesLink({
+  count,
+  className,
+  iconClassName,
+}: {
+  count: number;
+  className: string;
+  iconClassName: string;
+}) {
+  if (count <= 0) return null;
+  return (
+    <Link
+      href="/zwbieb/gesprekken"
+      className={`relative ${className}`}
+      aria-label={`${count} ongelezen ${count === 1 ? "gesprek" : "gesprekken"}`}
+    >
+      <MessagesSquare className={iconClassName} />
+      <span className="absolute top-0 right-0 inline-flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-4 font-semibold text-primary-foreground">
+        {count}
+      </span>
+    </Link>
   );
 }

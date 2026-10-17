@@ -1,43 +1,23 @@
-import type {
-  TttPlanInput,
-  TttPlanRiderInput,
-  TttSettings,
-} from "@/lib/ttt/types";
+// Het TTT-plan wordt gemaakt op zwiftgopher.com/TTT. ZWB geeft de Zwift-ID's
+// mee en neemt het plan terug over uit Export JSON, Export Link of Export Text.
 
-type OptimizePayload = {
-  request_id: string;
-  team_name: string;
-  route: TttSettings["route"];
-  intensity: number;
-  efficiency: number;
-  allow_zero_pulls: boolean;
-  min_pull_duration: number;
-  max_pull_duration: number;
-  duration_interval: 10 | 15;
-  optimization_strategy: TttSettings["optimizationStrategy"];
-  target_speed?: number;
-  riders?: number[];
-  rider_overrides?: Record<string, Record<string, string | number>>;
-  custom_riders?: Array<Record<string, string | number>>;
-};
+import type { TttPlanRiderInput } from "@/lib/ttt/types";
 
-function positiveNumber(value: number | null | undefined) {
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? value
-    : null;
-}
+export const ZWIFTGOPHER_TTT_URL = "https://www.zwiftgopher.com/TTT/";
 
-function numericZwiftId(value: string) {
-  const trimmed = value.trim();
+function numericZwiftId(value: string | null | undefined) {
+  const trimmed = (value ?? "").trim();
   return /^[0-9]+$/.test(trimmed) ? trimmed : null;
 }
 
 /**
- * De Zwift-ID's van het plan in planvolgorde, één per regel, om te plakken in
- * het vak "Zwift IDs" op zwiftgopher.com/TTT. `missing` noemt wie geen
- * (numeriek) Zwift-ID heeft.
+ * De Zwift-ID's in planvolgorde, één per regel, om te plakken in het vak
+ * "Zwift IDs" op zwiftgopher.com/TTT. `missing` noemt wie geen (numeriek)
+ * Zwift-ID heeft.
  */
-export function zwiftIdExport(riders: TttPlanRiderInput[]) {
+export function zwiftIdExport(
+  riders: Array<Pick<TttPlanRiderInput, "name" | "displayOrder"> & { zwiftId: string | null }>,
+) {
   const ids: string[] = [];
   const missing: string[] = [];
   for (const rider of riders.slice().sort((a, b) => a.displayOrder - b.displayOrder)) {
@@ -48,321 +28,204 @@ export function zwiftIdExport(riders: TttPlanRiderInput[]) {
   return { text: ids.join("\n"), count: ids.length, missing };
 }
 
-// Zonder 300s-waarde rekent ZwiftGopher zelf met 130% van de FTP (gemeten
-// 2026-10-12, `speed_index_source: "ftp_fallback"`). De FTP meesturen als
-// 5-minutenvermogen maakte een renner zwakker dan hij is.
-function riderPower300(rider: TttPlanRiderInput) {
-  return positiveNumber(rider.power300Watts);
-}
-
-/**
- * Lengte voor een renner die ZwiftGopher niet kan opzoeken en van wie ZWB geen
- * lengte heeft (keuze van de eigenaar, 2026-10-12).
- */
-export const FALLBACK_HEIGHT_CM = 175;
-
-/** Genoeg eigen waarden om zonder opzoeking bij ZwiftGopher te rekenen? */
-function hasOwnValues(rider: TttPlanRiderInput) {
-  return Boolean(
-    rider.name.trim() && positiveNumber(rider.ftpWatts) && positiveNumber(rider.weightKg),
-  );
-}
-
-function validateCustomRider(rider: TttPlanRiderInput) {
-  const missing: string[] = [];
-  if (!rider.name.trim()) missing.push("naam");
-  if (!positiveNumber(rider.ftpWatts)) missing.push("FTP");
-  if (!positiveNumber(rider.weightKg)) missing.push("gewicht");
-  if (!positiveNumber(rider.heightCm)) missing.push("lengte");
-  return missing;
-}
-
-/**
- * `ownValues`: Zwift-ID's van renners die als aangepaste renner meegaan, met de
- * waarden uit het plan, in plaats van met hun ID.
- */
-export function buildZwiftGopherPayload(
-  plan: TttPlanInput,
-  ownValues: ReadonlySet<string> = new Set(),
-): OptimizePayload {
-  const riders = plan.riders
-    .slice()
-    .sort((a, b) => a.displayOrder - b.displayOrder);
-  const idRiders: number[] = [];
-  const riderOverrides: OptimizePayload["rider_overrides"] = {};
-  const customRiders: NonNullable<OptimizePayload["custom_riders"]> = [];
-
-  for (const rider of riders) {
-    const zwiftId = numericZwiftId(rider.zwiftId);
-    const power300 = riderPower300(rider);
-
-    if (zwiftId && !rider.isManual && ownValues.has(zwiftId) && hasOwnValues(rider)) {
-      customRiders.push({
-        name: rider.name.trim(),
-        ftp: rider.ftpWatts as number,
-        weight: rider.weightKg as number,
-        height: positiveNumber(rider.heightCm) ?? FALLBACK_HEIGHT_CM,
-        ...(power300 ? { power_300_watts: power300 } : {}),
-      });
-      continue;
-    }
-
-    if (zwiftId && !rider.isManual) {
-      idRiders.push(Number(zwiftId));
-      const overrides: Record<string, string | number> = {};
-      // Geen naam: met een naam in de override schaalt ZwiftGopher de renner
-      // lager in (`training_level` recreational in plaats van pro, ruim een
-      // minuut trager op 30 km; gemeten 2026-10-12).
-      if (positiveNumber(rider.ftpWatts)) overrides.ftp = rider.ftpWatts as number;
-      if (positiveNumber(rider.weightKg)) overrides.weight = rider.weightKg as number;
-      if (positiveNumber(rider.heightCm)) overrides.height = rider.heightCm as number;
-      if (power300) overrides.power_300_watts = power300;
-      if (Object.keys(overrides).length > 0) riderOverrides[zwiftId] = overrides;
-      continue;
-    }
-
-    const missing = validateCustomRider(rider);
-    if (missing.length > 0) {
-      throw new Error(
-        `${rider.name || "Handmatige rider"} mist ${missing.join(", ")} voor ZwiftGopher.`,
-      );
-    }
-
-    customRiders.push({
-      name: rider.name.trim(),
-      ftp: rider.ftpWatts as number,
-      weight: rider.weightKg as number,
-      height: rider.heightCm as number,
-      ...(power300 ? { power_300_watts: power300 } : {}),
-    });
-  }
-
-  const payload: OptimizePayload = {
-    request_id: plan.id ?? `zwb-${Date.now()}`,
-    team_name: plan.name.trim() || "ZWB TTT",
-    route: plan.settings.route,
-    intensity: plan.settings.intensity,
-    efficiency: plan.settings.efficiency,
-    allow_zero_pulls: plan.settings.allowZeroPulls,
-    min_pull_duration: plan.settings.minPullDuration,
-    max_pull_duration: plan.settings.maxPullDuration,
-    duration_interval: plan.settings.durationInterval,
-    optimization_strategy: plan.settings.optimizationStrategy,
-  };
-  if (positiveNumber(plan.settings.targetSpeed)) {
-    payload.target_speed = plan.settings.targetSpeed as number;
-  }
-  if (idRiders.length > 0) payload.riders = idRiders;
-  if (Object.keys(riderOverrides).length > 0) {
-    payload.rider_overrides = riderOverrides;
-  }
-  if (customRiders.length > 0) payload.custom_riders = customRiders;
-  return payload;
-}
-
-type ApiRider = Record<string, unknown>;
-
-// Velden per renner in het antwoord (gemeten op 2026-10-09; de documentatie
-// noemt ze niet): `order` vanaf 1, `pull_power` in watt, `pull_duration` in
-// seconden.
-function numberField(row: ApiRider, key: string) {
-  const raw = row[key];
-  if (raw == null || raw === "") return null;
-  const value = Number(raw);
-  return Number.isFinite(value) ? value : null;
-}
-
-export function zwiftGopherRiders(apiResponse: unknown): ApiRider[] {
-  if (
-    typeof apiResponse === "object" &&
-    apiResponse &&
-    "data" in apiResponse &&
-    typeof apiResponse.data === "object" &&
-    apiResponse.data &&
-    "riders" in apiResponse.data &&
-    Array.isArray(apiResponse.data.riders)
-  ) {
-    return apiResponse.data.riders.filter(
-      (row): row is ApiRider => typeof row === "object" && row !== null,
-    );
-  }
-  return [];
-}
-
-function matchApiRider(
-  rider: TttPlanRiderInput,
-  apiRiders: ApiRider[],
-  taken: Set<number>,
-) {
-  const zwiftId = rider.zwiftId.trim();
-  const name = rider.name.trim().toLowerCase();
-  const free = (index: number) => !taken.has(index);
-  let index = zwiftId
-    ? apiRiders.findIndex((row, i) => free(i) && String(row.zwift_id ?? "") === zwiftId)
-    : -1;
-  if (index < 0 && name) {
-    index = apiRiders.findIndex(
-      (row, i) => free(i) && String(row.name ?? "").trim().toLowerCase() === name,
-    );
-  }
-  return index;
-}
-
-// Neemt kopbeurt-watts, kopbeurtduur en volgorde over uit het antwoord. Renners
-// die ZwiftGopher niet teruggeeft houden hun eigen waarden en sluiten achteraan.
-// Zonder herkende kopbeurten blijft het plan zoals het was.
-export function applyZwiftGopherResult(
-  riders: TttPlanRiderInput[],
-  apiResponse: unknown,
-): { riders: TttPlanRiderInput[]; applied: number } {
-  const apiRiders = zwiftGopherRiders(apiResponse);
-  const taken = new Set<number>();
-  let applied = 0;
-
-  const matched = riders
-    .slice()
-    .sort((a, b) => a.displayOrder - b.displayOrder)
-    .map((rider, inputIndex) => {
-      const apiIndex = matchApiRider(rider, apiRiders, taken);
-      if (apiIndex < 0) {
-        return { rider, inputIndex, rank: Number.POSITIVE_INFINITY };
-      }
-      taken.add(apiIndex);
-      const row = apiRiders[apiIndex];
-      const watts = numberField(row, "pull_power");
-      const duration = numberField(row, "pull_duration");
-      const hasWatts = watts != null && watts > 0;
-      const hasDuration = duration != null && duration >= 0;
-      if (hasWatts || hasDuration) applied += 1;
-      return {
-        rider: {
-          ...rider,
-          ...(hasWatts ? { pullWatts: Math.round(watts) } : {}),
-          ...(hasDuration ? { pullDurationSeconds: Math.round(duration) } : {}),
-        },
-        inputIndex,
-        rank: numberField(row, "order") ?? apiIndex,
-      };
-    });
-
-  if (applied === 0) return { riders, applied };
-
-  return {
-    riders: matched
-      .sort((a, b) => a.rank - b.rank || a.inputIndex - b.inputIndex)
-      .map(({ rider }, index) => ({ ...rider, displayOrder: index })),
-    applied,
-  };
-}
-
-/** Het Zwift-ID uit "Rider 1 (ID: 123) not found - check that the Zwift ID is correct". */
-export function notFoundZwiftId(message: string) {
-  return /\(ID:\s*(\d+)\)\s*not found/i.exec(message)?.[1] ?? null;
-}
-
-/** Eén verzoek per 60 seconden per sleutel (melding van de API, 2026-10-12). */
-const RATE_LIMIT_MS = 60_000;
-
-export type ZwiftGopherError = Error & {
-  statusCode?: number;
-  /** Vanaf wanneer een nieuw verzoek zin heeft, in ms sinds 1970. */
-  retryAt?: number;
-  /** De renner die ZwiftGopher niet vond. */
-  notFound?: TttPlanRiderInput;
+export type GopherPlanRider = {
+  order: number;
+  name: string;
+  zwiftId: string | null;
+  ftpWatts: number | null;
+  weightKg: number | null;
+  heightCm: number | null;
+  power300Watts: number | null;
+  pullWatts: number | null;
+  pullSeconds: number;
+  /** Intensity factor in procenten, zoals ZwiftGopher hem toont. */
+  intensityFactor: number | null;
 };
 
-/** `X-RateLimit-Reset` is een Unix-tijd in seconden. */
-function resetTime(header: string | null) {
-  const value = Number(header ?? NaN);
-  if (!Number.isFinite(value) || value <= 0) return null;
-  return value < 1e12 ? value * 1000 : value;
+export type GopherPlan = {
+  format: "json" | "text";
+  teamName: string | null;
+  /** Doelsnelheid op het vlakke; geen verwacht gemiddelde. */
+  targetSpeedKmh: number | null;
+  intensity: number | null;
+  efficiency: number | null;
+  riders: GopherPlanRider[];
+};
+
+/** Getal uit "316", "316.5", "316 W" of "30s"; anders null. */
+function number(value: unknown) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const match = /^\s*(-?\d+(?:[.,]\d+)?)\s*[a-z%]*\s*$/i.exec(String(value ?? ""));
+  return match ? Number(match[1].replace(",", ".")) : null;
+}
+
+function positive(value: unknown) {
+  const n = number(value);
+  return n != null && n > 0 ? n : null;
+}
+
+/** Seconden uit "45", "45s" of "1:30". */
+function seconds(value: unknown) {
+  const clock = /^\s*(\d+):([0-5]\d)\s*$/.exec(String(value ?? ""));
+  if (clock) return Number(clock[1]) * 60 + Number(clock[2]);
+  const n = number(value);
+  return n != null && n >= 0 ? Math.round(n) : null;
+}
+
+/** Teamtags zoals "[ZWB]" en "(ZWB)" staan al in de teamnaam. */
+function cleanName(name: string) {
+  const clean = name.replace(/\[[^\]]*\]|\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+  return clean || name.trim();
+}
+
+function checkRiders(riders: GopherPlanRider[]) {
+  if (riders.length === 0) throw new Error("Geen renners gevonden in de export.");
+  if (!riders.some((rider) => rider.pullSeconds > 0)) {
+    throw new Error("Geen enkele renner heeft een kopbeurt.");
+  }
+  return riders;
 }
 
 /**
- * ZwiftGopher zoekt een renner op bij ZwiftRacing.app; kent die hem niet, of
- * loopt de opzoeking daar tegen een limiet, dan weigert ZwiftGopher het hele
- * plan. Opnieuw proberen binnen dezelfde klik kan niet (één verzoek per
- * minuut), dus de fout noemt de renner en het moment waarop het weer mag. Met
- * `ownValues` gaat iedereen met eigen FTP en gewicht mee als aangepaste renner,
- * zonder opzoeking.
+ * Export JSON van zwiftgopher.com/TTT (gemeten 2026-10-13, versie 1.14.0):
+ * `riders` is een object per Zwift-ID met `name`, `order` (vanaf 0),
+ * `pull_power`, `pull_duration`, `ftp`, `weight`, `height`, `wkg300` (in watt,
+ * ondanks de naam) en `IF` in procenten. Getallen staan er soms als tekst in.
  */
-export async function optimizeWithZwiftGopher(
-  plan: TttPlanInput,
-  options: { ownValues?: boolean } = {},
-) {
-  const candidates = plan.riders.filter(
-    (rider) => numericZwiftId(rider.zwiftId) && !rider.isManual,
-  );
-  const ownValues = new Set(
-    options.ownValues
-      ? candidates.filter(hasOwnValues).map((rider) => rider.zwiftId.trim())
-      : [],
-  );
-  try {
-    const result = await requestZwiftGopher(buildZwiftGopherPayload(plan, ownValues));
-    return { ...result, ownValueRiders: ownValues.size };
-  } catch (err) {
-    const error = err as ZwiftGopherError;
-    const zwiftId = err instanceof Error ? notFoundZwiftId(err.message) : null;
-    const rider = zwiftId
-      ? candidates.find((row) => row.zwiftId.trim() === zwiftId)
-      : undefined;
-    if (rider) {
-      error.notFound = rider;
-      error.retryAt ??= Date.now() + RATE_LIMIT_MS;
-    }
-    throw error;
-  }
-}
+function parseGopherJson(data: Record<string, unknown>): GopherPlan {
+  const rows = Object.entries(data.riders as Record<string, unknown>)
+    .filter((entry): entry is [string, Record<string, unknown>] =>
+      typeof entry[1] === "object" && entry[1] !== null,
+    )
+    .sort(([, a], [, b]) => Number(a.order ?? 0) - Number(b.order ?? 0));
 
-async function requestZwiftGopher(payload: OptimizePayload) {
-  const apiKey = process.env.ZWIFTGOPHER_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "ZWIFTGOPHER_API_KEY ontbreekt. Maak een key aan via ZwiftGopher en zet hem in de server-env.",
-    );
-  }
-
-  const baseUrl =
-    process.env.ZWIFTGOPHER_API_BASE_URL?.replace(/\/$/, "") ??
-    "https://zwiftgopher.com";
-  const res = await fetch(`${baseUrl}/api/optimize`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-    cache: "no-store",
+  const riders = rows.map(([key, rider], index): GopherPlanRider => {
+    const name = cleanName(String(rider.name || rider.alt_name || ""));
+    if (!name) throw new Error(`Renner ${index + 1} heeft geen naam.`);
+    const pullWatts = positive(rider.pull_power);
+    const power300 = positive(rider.wkg300);
+    const intensityFactor = positive(rider.IF);
+    return {
+      order: index + 1,
+      name,
+      zwiftId: numericZwiftId(key) && rider.zr !== false ? key : null,
+      ftpWatts: positive(rider.ftp),
+      weightKg: positive(rider.weight),
+      heightCm: positive(rider.height),
+      power300Watts: power300 ? Math.round(power300) : null,
+      pullWatts: pullWatts ? Math.round(pullWatts) : null,
+      pullSeconds: seconds(rider.pull_duration) ?? 0,
+      intensityFactor: intensityFactor ? Math.round(intensityFactor * 10) / 10 : null,
+    };
   });
 
-  let body: unknown = null;
+  const team = data.team as { name?: unknown } | undefined;
+  const intensity = number(data.intensity);
+  const efficiency = number(data.efficiency);
+  return {
+    format: "json",
+    teamName: typeof team?.name === "string" && team.name.trim() ? team.name.trim() : null,
+    targetSpeedKmh: positive(data.target_speed),
+    intensity: intensity != null ? Math.round(intensity) : null,
+    efficiency: efficiency != null ? Math.round(efficiency) : null,
+    riders: checkRiders(riders),
+  };
+}
+
+/**
+ * Export Text: per renner naam, kopbeurtvermogen, kopbeurtduur en kitkleuren,
+ * gescheiden door tab, komma of pipe, met of zonder kopregel (instellingen op
+ * zwiftgopher.com/TTT). Regels zonder vermogen en duur, zoals de kopregel,
+ * worden overgeslagen. Een volgnummer vooraan mag. Is de vierde kolom een getal
+ * in plaats van een kleur, dan is dat de IF in procenten (zo zet de herkende
+ * afbeelding hem in het importvak).
+ */
+function parseGopherText(text: string): GopherPlan {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const delimiter = lines.some((line) => line.includes("\t"))
+    ? "\t"
+    : lines.some((line) => line.includes("|"))
+      ? "|"
+      : ",";
+
+  const riders: GopherPlanRider[] = [];
+  for (const line of lines) {
+    let cells = line.split(delimiter).map((cell) => cell.trim());
+    if (/^\d+\.?$/.test(cells[0] ?? "") && number(cells[1]) == null) cells = cells.slice(1);
+    if (cells.length < 3 || !cells[0]) continue;
+    const watts = positive(cells[1]);
+    const duration = seconds(cells[2]);
+    if (watts == null && duration == null) continue;
+    const intensityFactor = /^\d+(?:[.,]\d+)?$/.test(cells[3] ?? "") ? positive(cells[3]) : null;
+    riders.push({
+      order: riders.length + 1,
+      name: cleanName(cells[0]),
+      zwiftId: null,
+      ftpWatts: null,
+      weightKg: null,
+      heightCm: null,
+      power300Watts: null,
+      pullWatts: watts ? Math.round(watts) : null,
+      pullSeconds: duration ?? 0,
+      intensityFactor,
+    });
+  }
+
+  return {
+    format: "text",
+    teamName: null,
+    targetSpeedKmh: null,
+    intensity: null,
+    efficiency: null,
+    riders: checkRiders(riders),
+  };
+}
+
+/** Het plan uit de JSON of de tekst die ZwiftGopher exporteert. */
+export function parseGopherExport(input: string): GopherPlan {
+  const text = input.replace(/^﻿/, "").trim();
+  if (!text) throw new Error("Plak eerst een export uit ZwiftGopher.");
+  if (text.startsWith("{")) {
+    let data: unknown;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error("Dit is geen geldige JSON.");
+    }
+    const riders = (data as Record<string, unknown> | null)?.riders;
+    if (typeof riders !== "object" || !riders || Array.isArray(riders)) {
+      throw new Error("Dit is geen export van ZwiftGopher.");
+    }
+    return parseGopherJson(data as Record<string, unknown>);
+  }
+  return parseGopherText(text);
+}
+
+const GOPHER_HOSTS = ["zwiftgopher.com", "www.zwiftgopher.com"];
+
+/**
+ * Van Export Link (of het adres dat Export JSON opent) naar het JSON-adres, of
+ * null als de invoer geen link van ZwiftGopher is. Alleen dat adres: de server
+ * haalt geen willekeurige URL op.
+ */
+export function gopherJsonUrl(input: string) {
+  let url: URL;
   try {
-    body = await res.json();
+    url = new URL(input.trim());
   } catch {
-    body = await res.text().catch(() => null);
+    return null;
   }
-
-  // Een geweigerd plan kan ook als 200 met `success: false` terugkomen.
-  const refused =
-    typeof body === "object" && body && "success" in body && body.success === false;
-  if (!res.ok || refused) {
-    const retryAt = resetTime(res.headers.get("X-RateLimit-Reset"));
-    const fields = (typeof body === "object" && body ? body : {}) as Record<string, unknown>;
-    const message =
-      typeof fields.message === "string"
-        ? fields.message
-        : typeof fields.error === "string"
-          ? fields.error
-          : `ZwiftGopher API gaf HTTP ${res.status}.`;
-    const error: ZwiftGopherError = new Error(
-      res.status === 429 ? "ZwiftGopher staat één verzoek per minuut toe." : message,
-    );
-    error.statusCode = res.status;
-    if (retryAt) error.retryAt = retryAt;
-    else if (res.status === 429) error.retryAt = Date.now() + RATE_LIMIT_MS;
-    throw error;
+  const save = url.searchParams.get("save");
+  if (!GOPHER_HOSTS.includes(url.hostname) || !/^\/TTT\/?$/.test(url.pathname) || !save) {
+    return null;
   }
+  return `${ZWIFTGOPHER_TTT_URL}?save=${encodeURIComponent(save)}&json=true`;
+}
 
-  return { payload, body };
+/** Lijkt de invoer op een link? Dan moet het een link van ZwiftGopher zijn. */
+export function looksLikeUrl(input: string) {
+  return /^https?:\/\//i.test(input.trim());
 }

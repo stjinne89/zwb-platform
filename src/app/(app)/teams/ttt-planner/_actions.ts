@@ -6,17 +6,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import {
-  applyZwiftGopherResult,
-  buildZwiftGopherPayload,
-  optimizeWithZwiftGopher,
-  type ZwiftGopherError,
+  gopherJsonUrl,
+  looksLikeUrl,
+  parseGopherExport,
+  type GopherPlan,
 } from "@/lib/ttt/zwiftgopher";
-import { tttMaxRiders } from "@/lib/ttt/types";
-import type {
-  TttActionResult,
-  TttPlanInput,
-  TttPlanRiderInput,
-} from "@/lib/ttt/types";
+import { DEFAULT_TTT_SETTINGS, tttMaxRiders } from "@/lib/ttt/types";
+import type { TttActionResult, TttPlanInput, TttPlanRiderInput } from "@/lib/ttt/types";
 
 type ExistingPlan = {
   id: string;
@@ -24,72 +20,6 @@ type ExistingPlan = {
   team_id: string | null;
   event_id: string | null;
 };
-
-function finiteNumber(value: unknown) {
-  const n = Number(value ?? NaN);
-  return Number.isFinite(n) ? n : null;
-}
-
-function cleanString(value: unknown) {
-  return String(value ?? "").trim();
-}
-
-function cleanNullableString(value: unknown) {
-  const text = cleanString(value);
-  return text ? text : null;
-}
-
-function normalizeRiders(riders: TttPlanRiderInput[]) {
-  return riders
-    .slice(0, 8)
-    .map((rider, index) => ({
-      id: rider.id ?? null,
-      profileId: rider.profileId || null,
-      isManual: Boolean(rider.isManual),
-      zwiftId: cleanString(rider.zwiftId),
-      name: cleanString(rider.name),
-      ftpWatts: finiteNumber(rider.ftpWatts),
-      weightKg: finiteNumber(rider.weightKg),
-      heightCm: finiteNumber(rider.heightCm),
-      power300Watts: finiteNumber(rider.power300Watts),
-      pullWatts: finiteNumber(rider.pullWatts),
-      pullDurationSeconds: finiteNumber(rider.pullDurationSeconds),
-      displayOrder: Number.isFinite(Number(rider.displayOrder))
-        ? Number(rider.displayOrder)
-        : index,
-      role: cleanNullableString(rider.role),
-      notes: cleanNullableString(rider.notes),
-    }));
-}
-
-function normalizePlan(input: TttPlanInput): TttPlanInput {
-  return {
-    id: input.id || null,
-    name: cleanString(input.name) || "ZWB TTT plan",
-    eventId: input.eventId || null,
-    parentTeamId: input.parentTeamId,
-    teamId: input.teamId || null,
-    settings: {
-      route: input.settings.route,
-      targetSpeed: finiteNumber(input.settings.targetSpeed),
-      intensity: Math.max(-3, Math.min(3, Number(input.settings.intensity ?? 0))),
-      efficiency: Math.max(-2, Math.min(2, Number(input.settings.efficiency ?? 0))),
-      allowZeroPulls: Boolean(input.settings.allowZeroPulls),
-      minPullDuration: Math.max(
-        10,
-        Math.min(120, Number(input.settings.minPullDuration ?? 30)),
-      ),
-      maxPullDuration: Math.max(
-        30,
-        Math.min(600, Number(input.settings.maxPullDuration ?? 180)),
-      ),
-      durationInterval: input.settings.durationInterval === 10 ? 10 : 15,
-      optimizationStrategy:
-        input.settings.optimizationStrategy === "fixed" ? "fixed" : "variable",
-    },
-    riders: normalizeRiders(input.riders),
-  };
-}
 
 async function canManageTttPlan(parentTeamId: string, teamId?: string | null) {
   const supabase = await createClient();
@@ -128,85 +58,31 @@ async function guardExistingPlan(planId: string) {
   return { ok: true as const, userId: guard.userId, plan };
 }
 
-async function maxRidersFor(eventId: string | null) {
-  if (!eventId) return tttMaxRiders(null);
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("events")
-    .select("type")
-    .eq("id", eventId)
-    .maybeSingle<{ type: string }>();
-  return tttMaxRiders(data?.type);
+function revalidatePlan(planId: string, plan: Pick<ExistingPlan, "parent_team_id" | "team_id" | "event_id">) {
+  revalidatePath("/teams/ttt-planner");
+  revalidatePath(`/teams/ttt-planner/${planId}`);
+  revalidatePath(`/teams/${plan.parent_team_id}`);
+  if (plan.team_id) revalidatePath(`/teams/${plan.team_id}`);
+  if (plan.event_id) revalidatePath(`/events/${plan.event_id}`);
 }
 
-function validatePlan(plan: TttPlanInput, mode: "save" | "optimize", maxRiders: number) {
-  if (!plan.parentTeamId) return "Kies eerst een team.";
-  if (plan.riders.length === 0) return "Voeg minstens een rider toe.";
-  if (plan.riders.length > maxRiders) {
-    return `Een TTT race sheet mag hier maximaal ${maxRiders} riders bevatten.`;
-  }
-  if (mode === "optimize" && plan.riders.length < 2) {
-    return "ZwiftGopher heeft minstens 2 riders nodig.";
-  }
-  if (plan.settings.minPullDuration > plan.settings.maxPullDuration) {
-    return "Minimale pull-duur mag niet hoger zijn dan maximale pull-duur.";
-  }
-  for (const rider of plan.riders) {
-    if (!rider.name) return "Elke rider moet een naam hebben.";
-  }
-  if (mode === "optimize") {
-    try {
-      buildZwiftGopherPayload(plan);
-    } catch (err) {
-      return err instanceof Error ? err.message : "Ongeldige ZwiftGopher-input.";
-    }
-  }
-  return null;
+/** Binnen de grenzen van de kolom (migr. 0071), anders leeg. */
+function within(value: number | null, min: number, max: number) {
+  return value != null && value >= min && value <= max ? value : null;
 }
 
-function responseRiders(apiResponse: unknown): unknown[] {
-  if (
-    typeof apiResponse === "object" &&
-    apiResponse &&
-    "data" in apiResponse &&
-    typeof apiResponse.data === "object" &&
-    apiResponse.data &&
-    "riders" in apiResponse.data &&
-    Array.isArray(apiResponse.data.riders)
-  ) {
-    return apiResponse.data.riders;
-  }
-  return [];
-}
-
-function riderResult(rider: TttPlanRiderInput, apiRiders: unknown[], index: number) {
-  const zwiftId = rider.zwiftId.trim();
-  const byZwift = apiRiders.find(
-    (row) =>
-      typeof row === "object" &&
-      row &&
-      "zwift_id" in row &&
-      String(row.zwift_id) === zwiftId,
-  );
-  if (byZwift) return byZwift;
-  const byName = apiRiders.find(
-    (row) =>
-      typeof row === "object" &&
-      row &&
-      "name" in row &&
-      String(row.name).toLowerCase() === rider.name.toLowerCase(),
-  );
-  return byName ?? apiRiders[index] ?? {};
+function clamp(value: number | null, min: number, max: number, fallback: number) {
+  return value == null ? fallback : Math.max(min, Math.min(max, value));
 }
 
 async function savePlanRows(
   plan: TttPlanInput,
   userId: string,
-  status: "draft" | "optimized" | "error",
-  apiResponse?: unknown,
-  lastError?: string | null,
+  apiResponse: unknown,
+  riderResults: Array<Record<string, unknown>>,
 ) {
   const admin = createAdminClient();
+  const now = new Date().toISOString();
   const planPayload = {
     event_id: plan.eventId,
     parent_team_id: plan.parentTeamId,
@@ -221,21 +97,15 @@ async function savePlanRows(
     max_pull_duration: plan.settings.maxPullDuration,
     duration_interval: plan.settings.durationInterval,
     optimization_strategy: plan.settings.optimizationStrategy,
-    // Opslaan na een optimalisatie laat het antwoord van ZwiftGopher staan.
-    ...(status === "draft" && plan.id
-      ? {}
-      : { status, api_response: apiResponse ?? null }),
-    export_snapshot: {
-      settings: plan.settings,
-      riders: plan.riders,
-      optimizedAt: status === "optimized" ? new Date().toISOString() : null,
-    },
-    last_error: lastError ?? null,
+    status: "optimized",
+    api_response: apiResponse,
+    export_snapshot: { settings: plan.settings, riders: plan.riders, optimizedAt: now },
+    last_error: null,
     updated_by: userId,
-    ...(status === "optimized" ? { optimized_at: new Date().toISOString() } : {}),
+    optimized_at: now,
   };
 
-  const existing = plan.id
+  const saved = plan.id
     ? await admin
         .from("ttt_plans")
         .update(planPayload)
@@ -247,9 +117,8 @@ async function savePlanRows(
         .insert({ ...planPayload, created_by: userId })
         .select("id")
         .single<{ id: string }>();
-
-  if (existing.error) throw new Error(existing.error.message);
-  const planId = existing.data.id;
+  if (saved.error) throw new Error(saved.error.message);
+  const planId = saved.data.id;
 
   const { error: deleteError } = await admin
     .from("ttt_plan_riders")
@@ -257,7 +126,6 @@ async function savePlanRows(
     .eq("plan_id", planId);
   if (deleteError) throw new Error(deleteError.message);
 
-  const apiRiders = responseRiders(apiResponse);
   const rows = plan.riders.map((rider, index) => ({
     plan_id: planId,
     profile_id: rider.profileId,
@@ -273,110 +141,201 @@ async function savePlanRows(
     display_order: index,
     role: rider.role,
     notes: rider.notes,
-    result: riderResult(rider, apiRiders, index),
+    result: riderResults[index] ?? {},
   }));
-
   if (rows.length > 0) {
     const { error: insertError } = await admin.from("ttt_plan_riders").insert(rows);
     if (insertError) throw new Error(insertError.message);
   }
 
-  revalidatePath("/teams/ttt-planner");
-  revalidatePath(`/teams/ttt-planner/${planId}`);
-  revalidatePath(`/teams/${plan.parentTeamId}`);
-  if (plan.teamId) revalidatePath(`/teams/${plan.teamId}`);
-  if (plan.eventId) revalidatePath(`/events/${plan.eventId}`);
+  revalidatePlan(planId, {
+    parent_team_id: plan.parentTeamId,
+    team_id: plan.teamId,
+    event_id: plan.eventId,
+  });
   return planId;
 }
 
-export async function saveTttPlan(
-  input: TttPlanInput,
-  options?: { publish?: boolean },
-): Promise<TttActionResult> {
-  const plan = normalizePlan(input);
-  const validation = validatePlan(plan, "save", await maxRidersFor(plan.eventId));
-  if (validation) return { ok: false, error: validation };
+/** Export Link van ZwiftGopher ophalen; alleen dat adres, met een time-out. */
+async function fetchGopherExport(link: string) {
+  const url = gopherJsonUrl(link);
+  if (!url) throw new Error("Alleen een link van zwiftgopher.com/TTT werkt hier.");
+  const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(10_000) });
+  if (!res.ok) throw new Error(`ZwiftGopher gaf HTTP ${res.status}.`);
+  return res.text();
+}
 
-  const guard = plan.id
-    ? await guardExistingPlan(plan.id)
-    : await canManageTttPlan(plan.parentTeamId, plan.teamId);
+export type TttImportInput = {
+  planId?: string | null;
+  source: string;
+  name: string;
+  eventId: string | null;
+  teamId: string;
+};
+
+export type TttImportResult =
+  | {
+      ok: true;
+      planId: string;
+      message: string;
+      riders: Array<{ name: string; pullWatts: number | null; pullSeconds: number }>;
+    }
+  | { ok: false; error: string };
+
+/**
+ * Een plan uit ZwiftGopher opslaan: Export JSON, Export Link of Export Text.
+ * Met `planId` vervangt de import de renners van dat plan; publicatie en
+ * deellink blijven staan.
+ */
+export async function importTttPlan(input: TttImportInput): Promise<TttImportResult> {
+  const admin = createAdminClient();
+  const { data: team } = await admin
+    .from("teams")
+    .select("id, parent_team_id")
+    .eq("id", input.teamId)
+    .maybeSingle<{ id: string; parent_team_id: string | null }>();
+  if (!team) return { ok: false, error: "Kies eerst een team." };
+  const parentTeamId = team.parent_team_id ?? team.id;
+
+  const guard = await canManageTttPlan(parentTeamId, team.id);
   if (!guard.ok || !guard.userId) {
     return { ok: false, error: guard.error ?? "Geen recht om dit TTT-plan te beheren." };
   }
+  if (input.planId) {
+    const existing = await guardExistingPlan(input.planId);
+    if (!existing.ok) {
+      return { ok: false, error: existing.error ?? "Geen recht om dit TTT-plan te beheren." };
+    }
+  }
+
+  let gopher: GopherPlan;
+  try {
+    const source = looksLikeUrl(input.source)
+      ? await fetchGopherExport(input.source)
+      : input.source;
+    gopher = parseGopherExport(source);
+  } catch (err) {
+    const timeout = err instanceof Error && err.name === "TimeoutError";
+    return {
+      ok: false,
+      error: timeout
+        ? "ZwiftGopher antwoordde niet op tijd."
+        : err instanceof Error
+          ? err.message
+          : "De export is niet te lezen.",
+    };
+  }
+
+  let event: { title: string; type: string } | null = null;
+  if (input.eventId) {
+    const { data } = await admin
+      .from("events")
+      .select("title, type")
+      .eq("id", input.eventId)
+      .maybeSingle<{ title: string; type: string }>();
+    event = data;
+  }
+  const maxRiders = tttMaxRiders(event?.type);
+  if (gopher.riders.length > maxRiders) {
+    return {
+      ok: false,
+      error: `De export heeft ${gopher.riders.length} renners; deze TTT telt er maximaal ${maxRiders}.`,
+    };
+  }
+
+  // Renners met een ZWB-account herkennen aan hun Zwift-ID.
+  const zwiftIds = gopher.riders.map((rider) => rider.zwiftId).filter(Boolean) as string[];
+  const profileByZwiftId = new Map<string, string>();
+  if (zwiftIds.length > 0) {
+    const { data: profiles } = await admin
+      .from("profiles")
+      .select("id, zwift_id")
+      .in("zwift_id", zwiftIds);
+    for (const profile of (profiles ?? []) as Array<{ id: string; zwift_id: string }>) {
+      profileByZwiftId.set(profile.zwift_id.trim(), profile.id);
+    }
+  }
+
+  const riders: TttPlanRiderInput[] = gopher.riders.map((rider, index) => ({
+    profileId: rider.zwiftId ? (profileByZwiftId.get(rider.zwiftId) ?? null) : null,
+    isManual: !rider.zwiftId,
+    zwiftId: rider.zwiftId ?? "",
+    name: rider.name,
+    ftpWatts: within(rider.ftpWatts && Math.round(rider.ftpWatts), 1, 1199),
+    weightKg: within(rider.weightKg, 1, 299),
+    heightCm: within(rider.heightCm && Math.round(rider.heightCm), 100, 230),
+    power300Watts: within(rider.power300Watts, 1, 1999),
+    pullWatts: within(rider.pullWatts, 1, 1999),
+    pullDurationSeconds: Math.min(1200, rider.pullSeconds),
+    displayOrder: index,
+    role: null,
+    notes: null,
+  }));
+
+  const plan: TttPlanInput = {
+    id: input.planId || null,
+    name: input.name.trim() || gopher.teamName || event?.title || "TTT-plan",
+    eventId: input.eventId || null,
+    parentTeamId,
+    teamId: team.id,
+    settings: {
+      ...DEFAULT_TTT_SETTINGS,
+      targetSpeed: within(gopher.targetSpeedKmh, 1, 999),
+      intensity: clamp(gopher.intensity, -3, 3, DEFAULT_TTT_SETTINGS.intensity),
+      efficiency: clamp(gopher.efficiency, -2, 2, DEFAULT_TTT_SETTINGS.efficiency),
+    },
+    riders,
+  };
 
   try {
-    const planId = await savePlanRows(plan, guard.userId, "draft");
-    if (options?.publish === undefined) {
-      return { ok: true, planId, message: "TTT-plan opgeslagen." };
-    }
-    const { error } = await createAdminClient()
-      .from("ttt_plans")
-      .update({ published_at: options.publish ? new Date().toISOString() : null })
-      .eq("id", planId);
-    if (error) throw new Error(error.message);
+    const planId = await savePlanRows(
+      plan,
+      guard.userId,
+      {
+        source: "zwiftgopher",
+        format: gopher.format,
+        importedAt: new Date().toISOString(),
+        teamName: gopher.teamName,
+        targetSpeedKmh: gopher.targetSpeedKmh,
+      },
+      gopher.riders.map((rider) =>
+        rider.intensityFactor != null ? { intensity_factor: rider.intensityFactor } : {},
+      ),
+    );
     return {
       ok: true,
       planId,
-      message: options.publish ? "TTT-plan gepubliceerd." : "Publicatie ingetrokken.",
+      message: `${riders.length} renners geïmporteerd.`,
+      riders: riders.map((rider) => ({
+        name: rider.name,
+        pullWatts: rider.pullWatts,
+        pullSeconds: rider.pullDurationSeconds ?? 0,
+      })),
     };
   } catch (err) {
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Opslaan van TTT-plan faalde.",
-    };
+    return { ok: false, error: err instanceof Error ? err.message : "Opslaan mislukte." };
   }
 }
 
-export async function optimizeTttPlan(
-  input: TttPlanInput,
-  options?: { ownValues?: boolean },
+export async function setTttPlanPublished(
+  planId: string,
+  publish: boolean,
 ): Promise<TttActionResult> {
-  const plan = normalizePlan(input);
-  const validation = validatePlan(plan, "optimize", await maxRidersFor(plan.eventId));
-  if (validation) return { ok: false, error: validation };
-
-  const guard = plan.id
-    ? await guardExistingPlan(plan.id)
-    : await canManageTttPlan(plan.parentTeamId, plan.teamId);
-  if (!guard.ok || !guard.userId) {
+  const guard = await guardExistingPlan(planId);
+  if (!guard.ok || !guard.plan) {
     return { ok: false, error: guard.error ?? "Geen recht om dit TTT-plan te beheren." };
   }
-
-  try {
-    const { body, ownValueRiders } = await optimizeWithZwiftGopher(plan, {
-      ownValues: options?.ownValues === true,
-    });
-    const { riders, applied } = applyZwiftGopherResult(plan.riders, body);
-    const planId = await savePlanRows({ ...plan, riders }, guard.userId, "optimized", body);
-    return {
-      ok: true,
-      planId,
-      apiResponse: body,
-      riders,
-      message:
-        applied === 0
-          ? "Geoptimaliseerd, maar ZwiftGopher gaf geen kopbeurten terug."
-          : ownValueRiders > 0
-            ? "TTT-plan geoptimaliseerd met de waarden uit het plan."
-            : "TTT-plan geoptimaliseerd.",
-    };
-  } catch (err) {
-    if (!(err instanceof Error)) {
-      return { ok: false, error: "ZwiftGopher optimalisatie faalde." };
-    }
-    const { notFound, retryAt, statusCode } = err as ZwiftGopherError;
-    if (!notFound) return { ok: false, error: err.message, statusCode, retryAt };
-    const complete = Boolean(notFound.ftpWatts && notFound.weightKg);
-    return {
-      ok: false,
-      error: complete
-        ? `ZwiftGopher vindt ${notFound.name} niet.`
-        : `ZwiftGopher vindt ${notFound.name} niet. Vul FTP en Kg in.`,
-      statusCode,
-      retryAt,
-      useOwnValues: complete,
-    };
-  }
+  const { error } = await createAdminClient()
+    .from("ttt_plans")
+    .update({ published_at: publish ? new Date().toISOString() : null })
+    .eq("id", planId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePlan(planId, guard.plan);
+  return {
+    ok: true,
+    planId,
+    message: publish ? "TTT-plan gepubliceerd." : "Publicatie ingetrokken.",
+  };
 }
 
 /** Deellink voor de Discord-bot. Een bestaand token blijft staan: de bot kent het al. */
@@ -432,11 +391,6 @@ export async function deleteTttPlan(planId: string): Promise<TttActionResult> {
   const { error } = await admin.from("ttt_plans").delete().eq("id", planId);
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath("/teams/ttt-planner");
-  if (guard.plan) {
-    revalidatePath(`/teams/${guard.plan.parent_team_id}`);
-    if (guard.plan.team_id) revalidatePath(`/teams/${guard.plan.team_id}`);
-    if (guard.plan.event_id) revalidatePath(`/events/${guard.plan.event_id}`);
-  }
+  if (guard.plan) revalidatePlan(planId, guard.plan);
   return { ok: true, planId, message: "TTT-plan verwijderd." };
 }

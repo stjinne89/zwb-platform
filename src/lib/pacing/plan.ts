@@ -217,9 +217,11 @@ export type EvaluateOptions = {
 /**
  * In een Zwift-wedstrijd houdt het plan tot de sprint minstens dit deel van W′
  * achter de hand: voor een aanval die je niet ziet aankomen. Keuze bij de bouw,
- * 21 september 2026.
+ * 21 september 2026, toen 15 %. Sinds 2026-10-16 20 %: het W′-model van de app
+ * gaf in echte races op het moment van uitputting nog gemiddeld 21 ± 28 %
+ * reserve aan (Millour 2022). Zie docs/wetenschappelijke-toets.md, 5B.
  */
-export const RACE_RESERVE_FRACTION = 0.15;
+export const RACE_RESERVE_FRACTION = 0.2;
 
 /**
  * Rekent een plan door: snelheid en tijd per segment via het fysische model,

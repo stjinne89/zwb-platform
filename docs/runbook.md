@@ -119,7 +119,6 @@ vangen, maar weet hier hoe je ze ververst:
 | `STRAVA_CLIENT_SECRET` | Strava OAuth | Nee (tenzij geroteerd) | Strava API-dashboard |
 | `OPENAI_API_KEY` | Trainings-AI | Bij rotatie/quota | OpenAI-dashboard |
 | `INSTAGRAM_ACCESS_TOKEN` | Instagram-sync (`/media` en de cron) | Ja, long-lived token (~60 dgn) | Token uit de Meta-app, "API setup with Instagram login" (begint met `IGAA`; een `EAA`-token is van Facebook en werkt niet). Verlengen: `graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=…` |
-| `ZWIFTGOPHER_API_KEY` | TTT-planner | Bij rotatie | `zwiftgopher.com/api/dashboard.php` |
 | `YOUTUBE_API_KEY` | `/media` YouTube-sync | Quota/rotatie | Google Cloud Console |
 
 Overige secrets (`SUPABASE_SERVICE_ROLE_KEY`, `TOKEN_ENCRYPTION_KEY`, VAPID-keys,
@@ -162,7 +161,7 @@ waarschuwing kunnen wijzigen:
 | Event-scan MyWhoosh | mywhoosh.com HTML + detail-API | scraper | HTML/markup-wijziging |
 | Uitslag-scraper | ChronoRace / RaceResult / generieke HTML | scraper/JSON-API | site-wijziging |
 | ZwiftPower-uitslag | zwiftpower.com | alleen link (geen scrape) | n.v.t. (link blijft werken) |
-| TTT-planner | ZwiftGopher API | API + key | key/endpoint-wijziging |
+| TTT-planner | Export van zwiftgopher.com/TTT (JSON, link of tekst), geen API-key. Een geplakte link haalt de server op bij `zwiftgopher.com/TTT/?save=…&json=true` | geplakte export | ZwiftGopher die de vorm van de export wijzigt; dan meldt de import een fout |
 | TTT-bot (Discord) | eigen proces in `bot/` op de pc met Zwift en Sauce; **draait niet op Netlify**. Haalt het plan op via `/api/ttt/plan/<token>` | Discord-bot + Sauce-websocket + Piper | pc uit, Discord-token ingetrokken, deellink ingetrokken, of Sauce die zijn API wijzigt. Het token staat alleen in `bot/.env` op die pc. Zie [ttt-discord-bot](ttt-discord-bot.md) |
 | Training-AI | OpenAI | API + key | quota/model-wijziging |
 | Strava | officiële OAuth API | API | rate-limit / app-cap |

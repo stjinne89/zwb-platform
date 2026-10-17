@@ -84,6 +84,9 @@ export default function PrivacyPage() {
             <strong>Account- en profielgegevens:</strong> naam, e-mailadres,
             profielfoto, regio, ZRL-categorie, Zwift-/Strava-ID, FTP en gewicht
             (voor zover je die invult), biografie en zichtbaarheids­voorkeuren.
+            Je fietsen (naam, merk en model, afstand en foto) zien andere leden op
+            je profiel, behalve de fietsen die je daar verbergt. Zet je je
+            publieke profiel aan, dan zien bezoekers daarvan ze ook.
           </li>
           <li>
             <strong>ZRL-teamgegevens van WTRL:</strong> voor de ZRL-teams nemen
@@ -101,6 +104,32 @@ export default function PrivacyPage() {
             de TTT-bot in Discord via een geheime link. Wie die link heeft, ziet de
             plannaam en per renner naam, Zwift-ID, kopbeurtvermogen en -duur. De
             ploegleider kan de link intrekken.
+          </li>
+          <li id="racen" className="scroll-mt-20">
+            <strong>Analyse van Zwift-races (ZWBeter racen):</strong> na een
+            ZRL-race bewaren we uit de uitslag en de segmentresultaten van Zwift
+            per renner ook het gemiddelde vermogen, het gewicht, het soort
+            vermogensmeter, het beste vermogen over 15 seconden en 1, 5 en 20
+            minuten, het finishmoment en per sprint of klim het vermogen. Dat is
+            wat Zwift ook in de game en op ZwiftPower laat zien, en het geldt voor
+            iedereen in de groep, ook renners zonder ZWB-account en van andere
+            clubs. Hartslag nemen we niet over. Wie de race reed of in de
+            opstelling stond, de captains van het team en wie teams beheert, zien
+            voor de renners van het team vermogen, W/kg, de segmenten en tips per
+            renner (die laatste alleen captains en beheerders); het gewicht staat er niet los
+            bij, maar volgt uit vermogen en W/kg, net als op ZwiftPower. Plant een
+            captain een ploegentijdrit in de TTT Planner, dan ziet die per renner
+            van het plan ook diens eerdere ZRL-ploegentijdritten bij andere
+            ZWB-teams: W/kg, vermogen op de klimmen en of je loste. Reed je
+            zelf mee en heb je intervals.icu gekoppeld, dan halen we bij het
+            openen je rit per seconde en je vermogenscurve van de laatste 90 dagen
+            op om je eigen rit te analyseren. Die analyse ziet alleen jij, en we
+            bewaren haar niet. Bij een FRR-etappe, een andere Zwift-race uit de
+            kalender of een race waarvan je de link plakt, bewaren we de uitslag
+            en de segmenttijden van je startgroep; vermogen, gewicht en naam alleen
+            van ZWB&apos;ers, van anderen alleen plek en tijden. Een geplakte race
+            halen we alleen op als je zelf in de uitslag staat. Andere ZWB&apos;ers
+            in zo&apos;n race zien jouw plek en tijd, niet je vermogen.
           </li>
           <li>
             <strong>Sunday Race Club (MyWhoosh):</strong> doe je mee aan de SRC,
@@ -140,10 +169,10 @@ export default function PrivacyPage() {
             Naleving uit, dan verwijderen we het hele eetdagboek. Zoek je een
             verpakt product op met de barcode, dan vragen we het op bij Open Food
             Facts; daarbij gaat alleen de barcode mee, niet wie het vraagt. Zet
-            je daarnaast &quot;Foto en tekst&quot; aan (een aparte toestemming),
-            dan gaat een foto of omschrijving van je maaltijd naar OpenAI, dat
-            herkent wat erop staat en de hoeveelheden schat. ZWB bewaart de foto
-            niet; we houden alleen bij wanneer je de herkenning gebruikte, voor
+            je daarnaast &quot;Tekst herkennen&quot; aan (een aparte
+            toestemming), dan gaat je omschrijving van een maaltijd naar OpenAI,
+            dat herkent wat erin zit en de hoeveelheden schat. We houden alleen
+            bij wanneer je de herkenning gebruikte, voor
             de daglimiet. Je eetdagboek staat in je data-export.
           </li>
           <li id="protocollen" className="scroll-mt-20">
@@ -169,6 +198,30 @@ export default function PrivacyPage() {
             naar OpenAI.
             Je kunt een protocol altijd stoppen; de gegevens verdwijnen als je
             je account opheft.
+          </li>
+          <li id="zwbieb" className="scroll-mt-20">
+            <strong>ZWBieb, eerst &ldquo;Wie weet wat&rdquo; (alleen met
+            opt-in):</strong> doe je mee of stel je een vraag, dan teken je daar
+            apart voor. We bewaren de onderwerpen waar je ervaring mee hebt en
+            de spullen die je wilt uitlenen, met je korte toelichting, de tips
+            die je plaatst en de gesprekken die je voert, met wanneer je ze las.
+            Voeg je zelf een onderwerp of spul toe, dan bewaren we ook dat jij
+            het toevoegde; de moderatie ziet dat. Onderwerpen, spullen en tips
+            zien goedgekeurde clubleden, met je naam erbij; ze staan niet op je
+            openbare profiel. Een gesprek zien alleen jij en
+            het andere lid, ook het bestuur niet. Vindt het andere lid een
+            bericht van jou in jullie gesprek waardevol, dan kan het dat als tip
+            voor de club bewaren, onder jouw naam; je eigen berichten bewaar je
+            niet zelf. Het bestuur kan een bericht dat je in een clubgroep
+            schreef als tip onder je naam zetten (zie de
+            gebruikersvoorwaarden), en een tip verbergen. Krijg je een bericht
+            of wordt je antwoord als tip bewaard, dan sturen we een pushmelding
+            als je die aan hebt staan; die zegt van wie het komt en over welk
+            onderwerp, niet wat erin staat. Een tip op jouw naam kun je altijd
+            zelf aanpassen of verwijderen. Er gaat
+            niets naar OpenAI. Stop je, dan verdwijnen je onderwerpen en spullen; tips en
+            gesprekken kun je zelf verwijderen, en alles verdwijnt als je je
+            account opheft. Het staat in je data-export.
           </li>
           <li>
             <strong>Gezondheids­gerelateerde data (alleen met opt-in):</strong>{" "}
@@ -228,8 +281,12 @@ export default function PrivacyPage() {
             een trainer toegang, dan ziet die je trainingsbelasting (CTL, form),
             je eFTP en je powercurve, ook in W/kg; daarvoor bewaren we bij een
             afgeronde training je gewicht van dat moment. Van een gereden training
-            halen we de vermogensmeting uit intervals.icu op en bewaren we alleen
-            hoeveel seconden je per zone reed, niet de meting zelf. Hersteldata blijft afgeschermd tot je de
+            halen we de vermogensmeting uit intervals.icu op en bewaren we
+            hoeveel seconden je per zone reed, per herhaling van het schema je
+            gemiddelde vermogen, en bij een lange gelijkmatige rit hoe ver
+            vermogen en hartslag uit elkaar liepen; niet de meting zelf. Daaruit
+            ziet je trainer suggesties voor zijn feedback, en onder Races de tips
+            uit je Zwift-races met je eigen rit erbij (die rit bewaren we niet). Hersteldata blijft afgeschermd tot je de
             aparte opt-in aanzet. Je trekt die toegang zelf weer in op de
             trainingspagina.
           </li>
@@ -426,7 +483,7 @@ export default function PrivacyPage() {
           <li>
             <strong>OpenAI</strong> — voor het genereren van concept-trainings­schema&apos;s
             en voor de antwoorden in de coachchat, en als je dat aanzet voor het
-            herkennen van een maaltijd uit een foto of omschrijving. Meegestuurd worden relevante
+            herkennen van een maaltijd uit een omschrijving. Meegestuurd worden relevante
             trainingscontext — waaronder je gereden ritten en je vermogensgegevens —
             en, bij de chat, de tekst die je zelf typt; geen directe
             identificatiegegevens waar vermijdbaar.
@@ -455,7 +512,7 @@ export default function PrivacyPage() {
         <ul className="list-disc space-y-1 pl-5">
           <li>
             je gegevens <strong>in te zien en te downloaden</strong> — via{" "}
-            <Link href="/profiel" className="text-primary underline">
+            <Link href="/profiel?weergave=bewerken" className="text-primary underline">
               je profiel
             </Link>{" "}
             (&ldquo;Download mijn gegevens&rdquo;);

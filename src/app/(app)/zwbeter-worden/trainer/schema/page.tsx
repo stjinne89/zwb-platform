@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/app-ui";
 import { PowerWeight } from "@/components/power-unit";
 import { adaptationLabel, groupByRoot } from "@/lib/training/plan-tree";
 import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
+import { methodLabelOf } from "@/lib/training/method-label";
 import { PlanActions } from "../../_components/plan-actions";
 import { PlanUpdateForm } from "../../_components/plan-update-form";
 import {
@@ -74,7 +75,7 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
         .order("created_at", { ascending: false }),
       viewer.supabase
         .from("training_workout_templates")
-        .select("id, form, title, description, duration_minutes, intensity, is_standard, created_by")
+        .select("id, form, title, description, duration_minutes, intensity, is_standard, created_by, method_label, structure_json")
         .order("form")
         .order("duration_minutes"),
     ]);
@@ -134,6 +135,7 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
       skipped: workout.status === "skipped",
       publishStatus: workout.publish_status,
       testType: workout.test_type ?? null,
+      methodLabel: methodLabelOf(workout.method_label),
     }),
   );
   const calendarTemplates: CalendarTemplate[] = templates.map((template) => ({
@@ -141,6 +143,7 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
     title: template.title,
     durationMinutes: template.duration_minutes,
     intensity: template.intensity,
+    methodLabel: methodLabelOf(template.method_label),
   }));
   const calendarReports: CalendarReport[] = ((reportRows ?? []) as WorkoutReportRow[]).map(
     (row) => ({
@@ -176,6 +179,7 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
           planId={runningPlan?.id ?? null}
           defaultDate={todayKeyAmsterdam()}
           viewerId={viewer.user.id}
+          ftpWatts={athlete?.ftp_watts}
         />
 
         <CollapsibleCard

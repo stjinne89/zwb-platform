@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { BackLink, HelpLink } from "@/components/app-ui";
+import { BackLink } from "@/components/app-ui";
 import { EventForm, type EventInitial } from "../../../kalender/nieuw/_form";
 import { DeleteEventButton } from "../_components/delete-event-button";
 import { LinkEditor } from "../_components/link-editor";
@@ -101,7 +101,6 @@ export default async function EditEventPage({
       <BackLink href={`/events/${event.id}`} label="Event" />
       <header className="flex items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">Event bewerken</h1>
-        <HelpLink href="/hulp#eventbeheer" />
       </header>
       <EventForm
         initial={initial}

@@ -16,6 +16,7 @@ import {
 } from "@/lib/training/workouts";
 import { WorkoutBlocks } from "./workout-blocks";
 import { WorkoutMetricsPanel } from "./workout-metrics-panel";
+import { TrainerFeedbackText } from "./trainer-feedback-text";
 import { FEEL_LABELS, formatDayMonth } from "./format";
 import type { WorkoutReportRow, WorkoutRow } from "./types";
 
@@ -231,9 +232,7 @@ export function CompletedWorkouts({
             ) : null}
 
             {item.trainerFeedback ? (
-              <p className="rounded-md border-l-2 border-primary bg-primary/5 p-3 text-sm whitespace-pre-line">
-                {item.trainerFeedback}
-              </p>
+              <TrainerFeedbackText text={item.trainerFeedback} />
             ) : null}
 
             {metrics ? (

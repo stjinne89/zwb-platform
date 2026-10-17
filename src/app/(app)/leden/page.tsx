@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { EmptyState, PageHeader } from "@/components/app-ui";
+import { buttonVariants } from "@/components/ui/button";
 import { CommunityRoleBadges } from "@/components/community-role-badges";
 import { ApproveButton } from "./_components/approve-button";
 import { ClaimButton } from "./_components/claim-button";
@@ -14,7 +16,7 @@ import {
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 import { fetchIntervalsWellness } from "@/lib/intervals/client";
 import { computeZwbStatus } from "@/lib/training/zwbeterworden";
-import type { WellnessDevice } from "@/lib/training/wellness";
+import { WELLNESS_SUMMARY_DAYS, type WellnessDevice } from "@/lib/training/wellness";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 
 type Profile = {
@@ -156,7 +158,7 @@ export default async function LedenPage() {
     ).map(async (conn) => {
       if (!conn.api_key || !conn.athlete_id) return;
       try {
-        const wellness = await fetchIntervalsWellness(conn.api_key, conn.athlete_id, 30);
+        const wellness = await fetchIntervalsWellness(conn.api_key, conn.athlete_id, WELLNESS_SUMMARY_DAYS);
         const prof = profileById.get(conn.profile_id);
         const { advice } = computeZwbStatus(wellness, {
           wellnessOptIn: Boolean(conn.wellness_opt_in),
@@ -184,7 +186,14 @@ export default async function LedenPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Leden" />
+      <PageHeader
+        title="Leden"
+        actions={
+          <Link href="/zwbieb" className={buttonVariants({ variant: "outline" })}>
+            ZWBieb
+          </Link>
+        }
+      />
 
       {canApproveMembers && pendingProfiles.length > 0 && (
         <section className="space-y-3 rounded-2xl border-2 border-accent bg-card p-4">

@@ -26,6 +26,7 @@ beforeAll(async () => {
     "0159_mobility_strength.sql",
     "0160_mobility_strength_seed.sql",
     "0232_mobility_strength_seed_v2.sql",
+    "0245_mobility_jump_series.sql",
   ]) {
     await db.exec(await migration(file));
   }
@@ -55,13 +56,14 @@ describe("krachtreeksen (0159 + 0160)", () => {
       "kracht-klimmen": 5,
       "kracht-thuis-gewicht": 4,
       "na-de-rit": 5,
+      springen: 1,
       "voor-de-rit": 5,
       zithouding: 8,
     });
     const { rows } = await db.query<{ count: number }>(
       "select count(*)::int as count from mobility_exercises where category = 'kracht'",
     );
-    expect(rows[0].count).toBe(15);
+    expect(rows[0].count).toBe(16);
   });
 
   it("draait 0232 opnieuw zonder dubbele items en laat 0160 staan", async () => {
@@ -81,6 +83,14 @@ describe("krachtreeksen (0159 + 0160)", () => {
       { slug: "gym-opbouw-2", reps: 8, sets: 3 },
       { slug: "gym-opbouw-3", reps: 6, sets: 3 },
     ]);
+  });
+
+  it("geeft de springserie vijf keer tien sprongen en is opnieuw te draaien", async () => {
+    await db.exec(await migration("0245_mobility_jump_series.sql"));
+    const { rows } = await db.query<{ sets: number; reps: number }>(
+      "select i.sets, i.reps from mobility_series s join mobility_series_items i on i.series_id = s.id where s.slug = 'springen'",
+    );
+    expect(rows).toEqual([{ sets: 5, reps: 10 }]);
   });
 
   it("is opnieuw te draaien zonder dubbele items", async () => {

@@ -62,14 +62,47 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **Tabbalk op de iPhone:** na het pushen in de beginscherm-app iets typen,
+     het toetsenbord sluiten en kijken of de tabbalk onderaan blijft (ronde
+     2026-10-16, "Tabbalk blijft hangen na het toetsenbord").
+   - **Fietsen op het ledenprofiel:** `0243_member_profile_bikes.sql` is op
+     2026-10-16 toegepast via de Supabase-connector, op verzoek van de eigenaar,
+     en daarna gepusht. Nog doen: als ander lid in de app een profiel met
+     fietsen openen.
+   - **Profiel, de weergaveknop:** na het pushen op de telefoon `/profiel`
+     openen (moet in het midden staan), alle drie de standen proberen en het midden vergelijken met wat een ander lid op `/leden/[id]`
+     ziet (rondes 2026-10-16). De pagina zelf is niet ingelogd bekeken.
+   - **Wie weet wat:** `0239_member_knowledge.sql` is toegepast (eigenaar,
+     2026-10-15), daarna gepusht. Niet nagekeken op productie: de tabellen, de
+     RLS en de kolom `on_knowledge_message`. Eén keer doorklikken: meedoen,
+     een vraag stellen vanaf een tweede account, antwoorden, het antwoord vanaf
+     het vragende account als tip bewaren, en de pushmeldingen.
+   - **Wie weet wat, tip uit een gesprek:** `0240_member_tips_from_thread.sql`
+     is toegepast (eigenaar, 2026-10-15), daarna gepusht. Niet nagekeken op
+     productie. Bij het doorklikken ook "Bewaar als tip" proberen.
+   - **ZWBieb (eigen onderwerpen, spullen):** `0242_knowledge_topics.sql` is
+     op 2026-10-16 toegepast via de Supabase-connector, op verzoek van de
+     eigenaar, en daarna gepusht. De controlequery was vooraf leeg. Achteraf
+     nagekeken: 21 onderwerpen (6 spullen), RLS aan, 4 policies, 3 foreign
+     keys, de trigger en de unieke naamindex. Niet nagekeken: toevoegen en
+     beheren in de app zelf. De
+     privacy- en voorwaardentekst (spullen, §3a) is goedgekeurd, zonder nieuwe
+     toestemmingsversie (eigenaar, 2026-10-16).
+   - **Mijn statistieken (tegelkeuze):** `0241_profile_stats_tiles.sql`
+     toepassen (2026-10-16). Let op: de migratie kreeg dezelfde dag een tweede
+     kolom `club_tiles` voor de clubpagina; pas de versie van de laatste
+     commit toe. Alle code staat sinds 2026-10-16 op `main`;
+     zonder de tabel tonen `/stats` en `/stats/ik` de standaardtegels, maar
+     "Tegels aanpassen" kan niet opslaan. Daarna één keer ingelogd doorklikken: tegels kiezen en
+     opslaan, en met intervals-koppeling de intervals-tegels bekijken.
    - **Protocollen en CORE-sensor:** `0237_member_protocols.sql` en
      `0238_member_protocol_core_sessions.sql` zijn toegepast (eigenaar,
      2026-10-14). Niet nagekeken met de controlequery's onderaan beide
      bestanden. De eerste testrit (2026-10-17) liet zien dat de BOLT 2
      `core_temperature` levert. **Nog toepassen:**
-     `0239_member_protocol_core_analysis.sql`, **vóór** de deploy van de
-     analyse (anders slaat het opslaan van een meting en het tonen ervan stil
-     over). Daarna een echte hittesessie rijden en kijken of het oordeel klopt.
+     `0248_member_protocol_core_analysis.sql` (was `0239`, hernummerd: dat
+     nummer was op `main` vergeven), **vóór** de deploy van de analyse (anders
+     slaat het opslaan van een meting en het tonen ervan stil over). Daarna een echte hittesessie rijden en kijken of het oordeel klopt.
      Zie de rondes "Hittetraining met de CORE-sensor" en "Analyse per
      hittesessie".
    - **Strava.** De aanvraag is twee keer afgewezen (gemeld 2026-09-30); de
@@ -79,6 +112,9 @@ gaat stabiliteit voor nieuwe features.
    - **Ritten via intervals.icu:** live en in gebruik (eigenaar en meerdere
      leden, 2026-10-02; 826 ritten met bron intervals). Niet nagegaan: of de
      fixture van `scripts/intervals-probe.mjs` is vervangen door een echte.
+   - **ZRL-analyse Bdev, 13 oktober:** op de eigen pc `/zrl-analyse Bdev 2026-10-13`
+     draaien (ronde 2026-10-14 hieronder). Liefst snel: hoe lang Zwift de
+     segmentpassages van een race nog teruggeeft, is niet gemeten.
    - **ZRL.** `/live/zrl/[eventId]` tijdens de race van 6 oktober bekijken. Niet
      gemeld: of `ZRL_FREEZE_SECRET` in Netlify staat en de job
      `POST /api/zrl/freeze` (elke 15 min) op cron-job.org draait; kijk na een
@@ -116,6 +152,18 @@ gaat stabiliteit voor nieuwe features.
    `strava_fit`). De twee productvragen uit juni (POI's in kalender of livehub,
    achievementkwaliteit) zijn uitgewerkt in de ronde van 2026-10-02 hieronder;
    het besluit ligt bij de eigenaar.
+7. **Na de wetenschappelijke toets** (afgerond 2026-10-16; zie de rondes
+   "wetenschappelijke toets" hieronder):
+   - Migraties `0244_workout_library_ftp20_warmup` en `0245_mobility_jump_series`
+     staan op productie (via de Supabase-connector, 2026-10-16) en zijn
+     nagekeken. Ze heetten op de branch 0241 en 0242 en zijn bij het
+     samenvoegen met main hernummerd, omdat main die nummers al gebruikte.
+   - De voedingspagina, de sprongfiguur en de Duurtest-reeks in de browser
+     bekijken.
+   - Volgen of de AI de nieuwe regels volgt: Duurtest, kracht op de fiets,
+     overbelasting vóór de taper en variabel vermogen in de tijdrit.
+   Samenvatting per fase bovenaan
+   [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -127,16 +175,24 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0240`
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0249`
+(`0244_workout_library_ftp20_warmup` en `0245_mobility_jump_series` zijn van de
+wetenschappelijke toets, 2026-10-16, hernummerd bij het samenvoegen met main)
 (`0237_member_protocols` is van de protocollen, `0238_member_protocol_core_sessions`
-van de CORE-sensor, beide 2026-10-14; `0239_member_protocol_core_analysis` van de
-analyse per hittesessie, 2026-10-17).
+van de CORE-sensor, beide 2026-10-14; `0239_member_knowledge` en
+`0240_member_tips_from_thread` van Wie weet wat, 2026-10-15;
+`0241_profile_stats_tiles` van Mijn statistieken, `0242_knowledge_topics` van
+ZWBieb en `0243_member_profile_bikes` van de fietsen op het ledenprofiel, alle
+drie 2026-10-16; `0246_workout_method_labels` en
+`0247_training_engine_comparisons` staan op `main`;
+`0248_member_protocol_core_analysis` is van de analyse per hittesessie,
+2026-10-17, hernummerd van `0239` bij het samenvoegen met main).
 
 ---
 
-> **Analyse per hittesessie, en de lopende protocollen op Vandaag, 2026-10-17 — gebouwd, lokaal getest; niet gepusht; `0239` alleen tegen PGlite getest.**
+> **Analyse per hittesessie, en de lopende protocollen op Vandaag, 2026-10-17 — gebouwd, lokaal getest; niet gepusht; `0248` alleen tegen PGlite getest.**
 > Commit: de commit die dit blok toevoegt. Migratie
-> `0239_member_protocol_core_analysis.sql` (**nog toepassen, vóór de deploy**).
+> `0248_member_protocol_core_analysis.sql` (**nog toepassen, vóór de deploy**).
 >
 > **Waarom.** Vraag van de eigenaar: "Ik wil eigenlijk meer dan enkel afvinken,
 > we hebben de kennis dus ik zou graag hebben dat hij ook een analyse maakt op de
@@ -213,11 +269,1594 @@ analyse per hittesessie, 2026-10-17).
 >
 > **Niet geverifieerd.**
 >
-> - `0239` op de echte database.
+> - `0248` op de echte database.
 > - De kaart en het oordeel in de browser.
 > - Of de aanwijzingen in de praktijk helpen; de grenzen zijn niet door een
 >   sportarts of trainer nagekeken.
 
+
+> **Design tegels: lijsten groeien niet meer breder dan hun kaart, 2026-10-17 — gebouwd en ingelogd op 375 px gemeten; gepusht naar `main` (eigenaar, 2026-10-17, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/impeccable-design-audit-9d704d`.
+>
+> **Waarom.** Op Stats → Ik was de pagina op een telefoon van 375 px 612 px
+> breed. De recordrijen (rittitel links, record rechts) waren 579 px in een
+> lijst van 309 px, waardoor de pagina zijwaarts schoof en een dialoog half
+> buiten beeld viel. De oorzaak zat in de tegels-CSS zelf: een lijst met
+> `divide-y` wordt in "tegels" een grid van losse paneelrijen, en een grid
+> zonder kolomdefinitie laat een rij meegroeien met zijn langste
+> niet-afbrekende tekst. `truncate` werkte daardoor niet.
+>
+> **Wat.** De regel voor `divide-y` in "tegels" (`globals.css`) heeft nu één
+> kolom van `minmax(0, 1fr)`. Dat geldt voor alle lijsten in dat design, niet
+> alleen voor de records. In het klassieke design is zo'n lijst geen grid; daar
+> verandert niets.
+>
+> **Getest.** Ingelogd op 375 px: Stats → Ik met de dialoog Tegels aanpassen
+> open (zo trad het op): paginabreedte 375 px, recordrijen 309 px, dialoog
+> binnen beeld. Leden bleef 375 px breed. Geen code buiten de CSS gewijzigd,
+> dus typecheck en tests niet opnieuw gedraaid.
+>
+> **Niet geverifieerd.** Waarom de recordrijen zonder de dialoog 0 px breed
+> meten (ze staan dan buiten de gerenderde lay-out); de overloop trad alleen op
+> zodra ze wel werden opgemaakt. De overige lijsten in "tegels" zijn niet een
+> voor een nagelopen; de regel maakt ze hooguit smaller, nooit breder.
+>
+> **Ook gezien.** De lokale dev-server pakte CSS-wijzigingen in deze worktree
+> niet altijd op (Next koos de hoofdmap als werkruimte vanwege twee
+> lockfiles). Pas na het legen van `.next` in de worktree kwam de wijziging
+> door. Bij een twijfelachtige lokale controle dus eerst de geserveerde CSS
+> nakijken.
+
+> **Design tegels, tweede auditronde: paginatitels, cijferkaarten, knoppen en segmentschakelaars, 2026-10-17 — gebouwd, lokaal getest en ingelogd in de browser bekeken (375 px, licht en donker); gepusht naar `main` (eigenaar, 2026-10-17, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/impeccable-design-audit-9d704d`.
+>
+> **Waarom.** Vervolg op de audit hieronder, op verzoek van de eigenaar: eigen
+> paginakoppen zonder `PageHeader`, de rij cijferkaarten op Teams-detail,
+> omlijnde secundaire knoppen, ronde knoppen en de segmentschakelaars.
+>
+> **Wat.** Bijna alles in CSS binnen `[data-design="tegels"]`. Het klassieke
+> design verandert niet.
+> - *Paginatitels.* Een eigen `h1` met `text-2xl` of `text-3xl` (Teams-detail,
+>   de beheerschermen, SRC, profiel en ledenprofiel, de formulieren) krijgt
+>   dezelfde lichte grote titel als de paginakop. De eventkop en de paginakop
+>   zelf houden hun eigen regel.
+> - *Cijferkaarten.* De drie kaarten Renners, Teamraces en ZRL-starts op
+>   Teams-detail zijn één paneel met drie cijfers, cijfer boven het label, geen
+>   pictogram (klasse `tg-metric-row`).
+> - *Omlijnde knoppen* (variant outline, ook als link): geen rand, een vlak in
+>   `--muted`. Een knop is een actie en krijgt geen plekkleur; de hoofdknop houdt
+>   de actiekleur.
+> - *Ronde knoppen.* De regel die ronde labels recht maakt, geldt nu ook voor
+>   knoppen en labels (schema, core-series, Vermogen). Uitzondering blijft alles
+>   met een `size-`-klasse (avatars, bolletjes).
+> - *Segmentschakelaars.* Watt/W/kg/% FTP, Lijst/Maand, Week/Maand/Jaar, het
+>   bereik op Stats, Mikpunt/Periode en de grafiekschakelaars op Stats → Ik zijn
+>   overal met de hand gebouwd als omlijnde houder (`border p-0.5`) met een
+>   gevulde actieve knop. Ze worden daaraan herkend (`:has(> .bg-primary)`) en
+>   zien er nu uit als de tweede menurij: losse vlakken van 44 px in de kleur van
+>   de plek, de gekozen als paneel met de gouden lijn.
+> - *De kleur van de plek* (`--tg-here`) wordt afgelezen aan de actieve tab van
+>   de schil: goud, petrol, teal of sage; zonder plek (profiel, garage, beheer,
+>   hulp) donker petrol. Klasse `tg-here` zet die kleur op een `tg-link`. De
+>   periodestrip op Stats en `SectionNav` gebruiken die. `SectionNav` kreeg een
+>   optionele `tone`: Beheer geeft de kleur van de categorie mee.
+> - *Filterchips op de kalender* (Alles, Voor mij, Labels): petrol vlakken van
+>   44 px, de gekozen als paneel met de gouden lijn (klasse `tg-chip`).
+>
+> **Bewust niet gedaan.**
+> - Paginatitels omzetten naar `PageHeader`. Dat zou ook het klassieke design
+>   veranderen, en dat staat live voor alle leden.
+> - De gekleurde markeringen van trainingen in de maandkalender van het schema:
+>   dat zijn gegevens in een dagvak, geen knoppen.
+> - De rollabels op profiel en Leden (onder meer Systeemadmin in rood), de vaste
+>   Tailwind-statuskleuren (amber en emerald) en de profielkop met omslagbalk:
+>   voor een volgende ronde.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon. Vitest op `admin-areas`,
+> `design-places` en `nav-active` geslaagd (23). Detector van impeccable:
+> niets op de gewijzigde bestanden. Ingelogd op 375 px bekeken: Teams-detail
+> (titel, cijferpaneel, Watt/W/kg in sage, rustige knoppen, ook licht), het
+> ZWBeter-schema (Watt-schakelaar en Lijst/Maand in teal), Stats (Week/Maand/Jaar
+> en de periodestrip in sage), de kalender (filterchips), Beheer → Tips en
+> citaten (titel, subtabs in de kleur van Community) en het profiel (titel).
+>
+> **Niet geverifieerd.** De overige pagina's met een eigen titel en de
+> grafiekschakelaars op Stats → Ik zijn niet een voor een bekeken; ze vallen
+> onder dezelfde regels. Desktopbreedte niet opnieuw bekeken. Volledige vitest-run
+> en `npm run build` niet opnieuw gedraaid.
+
+> **Design tegels: menu's, dialogen, tweede menurij en de inlogschermen, 2026-10-17 — gebouwd, lokaal getest en ingelogd in de browser bekeken (375 px, licht en donker); gepusht naar `main` (eigenaar, 2026-10-17, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/impeccable-design-audit-9d704d`.
+>
+> **Waarom.** De eigenaar zag dat de inlogpagina en een paar menu's het nieuwe
+> design nog niet volgden. Een audit van alle pagina's in "tegels" bevestigde
+> het: alles buiten `[data-design="tegels"]` hield het oude design.
+> Uitklapmenu's en dialogen renderen in een portal onder `<body>`, en de
+> inlogschermen hebben geen app-layout. Gemeten: het avatar-menu had rijen van
+> 28 px met 14 px tekst naast een schil op 17 px. De tabs onder de
+> ZWBeter-pijlers waren nog de oude omkaderde balk met een gevulde pil, bij licht
+> in petrol (de kleur van de kalender).
+>
+> **Wat.**
+> - De tokens van tegels (`--tg-*`) staan ook op `:root:has([data-design="tegels"])`,
+>   de donkere op `.dark:has(...)`, zodat portals ze kunnen gebruiken. De letter
+>   staat daar bij naam: `--font-tegels` bestaat alleen op de schil.
+> - Uitklapmenu's (`data-slot="dropdown-menu-*"`): recht, zweefschaduw zonder
+>   ring, rijen van 44 px met 17 px tekst, labels in onderkast. De knop Uit staat
+>   als gewone rij.
+> - Dialogen (`data-slot="dialog-*"`): geen rand of ronding, titel in de lichte
+>   tegelletter, sluitknop van 44 px. Binnen de dialoog geldt dezelfde vertaling
+>   als op de pagina: tekstmaten, onderkast, vlakke velden, knoppen van 44 px.
+> - Tweede menurij: `SectionNav` (onder de ZWBeter-pijlers, bij Voeding, Kracht
+>   en de trainer) en de ZWBieb-tabs krijgen `tg-link` in de kleur van de plek:
+>   teal voor ZWBeter, sage voor ZWBieb (de club en de mensen). *(Bijgewerkt
+>   later op 2026-10-17: `SectionNav` neemt nu de kleur van de plek waar je bent,
+>   bij Beheer die van de categorie; op ZWBeter blijft dat teal.)* Waar je bent is
+>   het paneel met de gouden lijn, zoals bij de pijlers. `.tg-subnav` haalt de
+>   omkaderde balk weg. De rennerkiezer van de trainer is een teal vlak van 44 px.
+> - Themaknop en terugknop in de balk van tegels zijn 44 px, net als hulp en
+>   avatar (`className`-prop op `ThemeToggle` en `BackButton`).
+> - Velden in tegels verliezen `shadow-sm` en de oude focusring; focus is de
+>   omlijning in de ringkleur.
+> - Inloggen, wachten op goedkeuring en nieuw wachtwoord hebben in tegels een
+>   eigen kader (`components/tegels/auth-frame.tsx`) met tenuebanen en het
+>   originele logo. Inloggen en Registreren staan als pijlers, de velden zijn
+>   vlak, de hoofdactie is goud en de magic link sage. Een bevestiging is een
+>   paneel met de gouden lijn (`.tg-note`) in plaats van een groene doos.
+>   Wachten en nieuw wachtwoord toonden nog `ZwbLogo` (de drie schuine vlakken);
+>   in tegels nu het origineel. `login/page.tsx` is een servercomponent; de
+>   clientcode staat in `login/auth-screen.tsx`. Het lettertype van tegels staat
+>   in `components/tegels/font.ts`, gedeeld door schil en kader.
+> - `/ontwerp-voorbeeld?scherm=inloggen` toont de inlogpagina in tegels; de echte
+>   stuurt een ingelogde bezoeker door.
+>
+> **Besluit van de bouwer, voor de eigenaar om te toetsen: vóór het inloggen kiest
+> het cookie alleen het design** (`getAuthDesign` in `lib/design.ts`). Daar is
+> nog geen lid om het recht van na te gaan. Het cookie zet alleen de schakelaar,
+> en die vraagt het recht. Wie het met de hand zet, ziet alleen deze drie schermen
+> anders, geen data.
+>
+> **Bewust niet gedaan.**
+> - Het klassieke design blijft zoals het was: de inlogkaart, `ZwbLogo` op
+>   wachten en reset, de menu's. Twee kleine uitzonderingen gelden ook daar: de
+>   rennerkiezer en de ZWBieb-tabs zijn minstens 44 px hoog (Duimregel), en het
+>   "of" boven de magic link is een flexregel in plaats van een lijn met een vlak
+>   erover (ziet er hetzelfde uit).
+> - De rest van de audit staat voor een volgende ronde *(bijgewerkt: de tweede
+>   auditronde van dezelfde dag deed de titels, cijferkaarten, knoppen en
+>   schakelaars; de statuskleuren staan nog open)*: eigen paginakoppen zonder
+>   `PageHeader` (Teams-detail, beheerschermen, SRC, profiel en ledenprofiel),
+>   rijen identieke cijferkaarten op Teams-detail, omlijnde secundaire knoppen,
+>   ronde knoppen in het schema, de core-series en Vermogen, de
+>   segmentschakelaars (Watt/W/kg, Week/Maand, Lijst/Maand) en de vaste
+>   Tailwind-statuskleuren (vooral amber en emerald).
+> - `MobileMenu` en de desktopnavigatie: die horen alleen bij het klassieke design.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon. Vitest: 2562 geslaagd; drie tests
+> liepen in een volle run op een time-out terwijl de dev-server meedraaide, en
+> slaagden los. Ingelogd op localhost met de eigen data van de eigenaar, op
+> 375 px: ZWBeter-schema met de nieuwe tabs, het avatar-menu (gemeten: rijen van
+> 44 px, 17 px tekst, schaduw zonder ring), de dialoog Tegels aanpassen op
+> Stats → Ik, en ZWBieb. De inlogpagina en de resetstand via de voorbeeldpagina,
+> in licht en donker. Detector van impeccable: alleen adviezen dat tegelmaten
+> buiten de typeladder van DESIGN.md vallen. DESIGN.md beschrijft nog het
+> klassieke design.
+>
+> **Niet geverifieerd.** De echte `/login`, `/wachten` en `/wachtwoord-resetten`
+> in tegels: ingelogd stuurt `/login` door, wachten vraagt een niet-goedgekeurd
+> account, reset een resetlink. De trainertabs en de rennerkiezer (niet
+> geopend). De inlogschermen op desktopbreedte. `npm run build` is niet gedraaid.
+>
+> **Bijvondsten.** `/events/[id]/bewerk` geeft lokaal een 500: `link-editor.tsx`
+> (client) haalt via `race-links`, `external-scan` en `safe-fetch` de module
+> `node:net` binnen. Dat is in een aparte sessie opgepakt. `/stats/ik` loopt op
+> 375 px horizontaal over: een rij in een recordtegel is 612 px breed. *(Opgelost
+> op dezelfde dag; de oorzaak bleek de lijstregel van "tegels", zie het blok
+> "lijsten groeien niet meer breder dan hun kaart".)*
+
+> **Achievements als tab onder Stats, plus een Badges-tegel op Stats → Ik, 2026-10-16 — gebouwd, lokaal getest; niet ingelogd in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-16, `727bd23`). Geen migratie.**
+> Commit: `727bd23`.
+>
+> **Waarom.** Voorstel van de eigenaar. Achievements (ranglijsten, hall of fame)
+> en Stats zijn allebei "prestaties en cijfers" en stonden als twee losse items
+> in het Club-menu en als twee tegels op Club. Nu is het één plek: Stats met de
+> tabs "Club | Ik | Achievements".
+>
+> **Wat.**
+> - De route is verhuisd van `/achievements` naar `/stats/achievements`
+>   (`src/app/(app)/stats/achievements/`, inclusief `_actions.ts` en de
+>   afrondknop). Zo valt hij vanzelf onder het menu-item Stats en de plek Club.
+>   `/achievements` geeft een permanente redirect (`next.config.ts`); de
+>   querystring (`?week=vorige`) gaat mee. Gecontroleerd met de dev-server: 308.
+> - `StatsTabs` heeft een derde tab; de achievementspagina toont de tabbalk en
+>   het kopje "ZWB Stats".
+> - Weg uit het Club-menu (`nav-config.ts`), uit de Club-tegels (`club/page.tsx`)
+>   en als eigen prefix uit `design-places.ts` (`/stats` dekt het).
+> - Links, imports en `revalidatePath` bijgewerkt: dashboard, profiel
+>   (Strava-sectie), hulp, beheer Strava, intervals-ritsync, de Strava-import en
+>   de syncknop.
+> - Nieuwe tegel **Badges** (`badges`, half breed, standaard zichtbaar) in
+>   `src/lib/stats/tiles.ts`: aantal mijlpalen en weekbadges en de zes nieuwste
+>   behaalde badges, met een link "Badge-kast" naar `/profiel#badges` (de
+>   badge-kast heeft daarvoor `id="badges"` gekregen). Data via `loadMyBadges`
+>   (`stats/ik/_data.ts`), met de eigen sessie, dus onder de bestaande RLS van
+>   `achievement_awards`. De tegel kijkt niet naar het gekozen venster: een
+>   badge hoort bij het lid, niet bij een periode. Leden met een opgeslagen
+>   tegelkeuze krijgen hem achteraan (`normalizeLayout`); er is geen migratie
+>   nodig.
+>
+> **Bewust niet gebouwd.**
+> - De volledige badge-kast verhuizen naar Stats: die blijft op het profiel,
+>   waar hij ook voor het publieke profiel wordt gebruikt. De tegel is een
+>   samenvatting met een link.
+> - Club-tegel "Stats" breder maken nu Achievements eruit is: eerst zien hoe
+>   het raster er ingelogd uitziet.
+>
+> **Getest.** ESLint schoon op de gewijzigde mappen. `tsc --noEmit` geeft alleen
+> de bestaande fouten over ontbrekende pakketten in deze worktree (`@zxing/*`,
+> `tesseract.js`), niets uit deze ronde. Vitest: alles groen behalve tests die
+> onder volle belasting een time-out gaven (los gedraaid geslaagd) en
+> `omnium-live`, dat `.env.local` nodig heeft.
+>
+> **Niet geverifieerd.** De drie Stats-tabs, de Badges-tegel en het Club-raster
+> ingelogd in de browser (de dev-server draait tegen productie, dus niet
+> ingelogd door Claude); de tegel met echte badges; de sprong naar
+> `/profiel#badges` bij een lid zonder mijlpaal-badges (dan bestaat de
+> badge-kast niet en blijft de pagina bovenaan).
+
+---
+
+> **TTT Planner: plan lezen uit de afbeelding van ZwiftGopher, op het toestel, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, `eb7f5ef`); in de browser getoetst op een losse proefpagina, niet op de echte planner en niet op een telefoon. Geen migratie.**
+> Commit: `eb7f5ef`.
+>
+> **Waarom.** Vraag van de eigenaar: "Zouden we het ook kunnen bouwen dat hij
+> een afbeelding kan lezen?" Gekozen uit twee routes: tekstherkenning op het
+> toestel (tesseract.js), niet via de AI. Dan verlaat de afbeelding met namen en
+> watts van ploeggenoten, ook zonder ZWB-account, de browser niet, en kost het
+> niets per keer.
+>
+> **Nu.**
+> - In het importvak van `/teams/ttt-planner`: Bestand neemt ook een afbeelding,
+>   en een afbeelding plakken in het vak werkt ook. De app herkent de tabel van
+>   Create Image en zet per renner naam, watt, duur en IF als tabel in het vak,
+>   met "N renners gelezen; controleer de getallen." Pas Importeren slaat op,
+>   via de bestaande tekstimport.
+> - `lib/ttt/gopher-image.ts` (zuiver, getest): de herkende woorden met hun
+>   positie naar renners. Elk getal hoort bij de kolomkop recht erboven (Pull
+>   (W), Duration, IF %), dus een extra kolom zoals Show Pull Speed verschuift
+>   niets. De naam is alles in de kolom Zwift Name; het sokje met de kitkleur
+>   ervoor (herkend als "&", "J)", "JF") valt weg. Zonder herkenbare kopregel
+>   geen renners: dan is niet zeker welk getal de kopbeurt is.
+> - `lib/ttt/gopher-image-ocr.ts`: vergroot naar 3072 px breed, grijstinten,
+>   tesseract in de modus "één blok", pas geladen bij de eerste afbeelding
+>   (dynamische import). tesseract.js 7.0.0 is een nieuwe afhankelijkheid.
+> - Export Text: een getal in de vierde kolom is de IF (in plaats van een
+>   kleur), zodat de herkende tabel zijn IF houdt.
+> - Hulp (`#ttt-beheer`): één regel over de afbeelding.
+>
+> **Gemeten op `TTTplan.png` van de eigenaar (12 oktober, 1024 px).**
+> Op ware grootte las tesseract 290 als 200 en 4.2 als 42. In Node met sharp op
+> 2048 px grijs klopte alles. In de browser op 2048 px klopten de getallen maar
+> werd Stijn "stijin"; op 2560 en 3072 px klopte alles, ruim een halve seconde.
+> Daarna in de browser met de echte module, ongeveer 1 s per afbeelding:
+> het origineel, een JPEG van 700 px op kwaliteit 70 (zoals uit een groepsapp)
+> en een nagemaakte screenshot met rand en tekst erboven. Alle watts, duren en
+> IF's klopten in alle drie; in de screenshot werd Stijn "stiin". Namen kunnen
+> dus fout zijn; daarom eerst in het vak, niet meteen opslaan.
+>
+> **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
+> - De rekenkern en de Engelse taaldata komen bij het eerste gebruik van
+>   jsDelivr (standaard van tesseract.js, vaste versie), niet uit de eigen site:
+>   zo komen er geen ruim 10 MB aan bestanden in de repo. jsDelivr ziet dan het
+>   IP-adres van wie een afbeelding leest; het beeld zelf gaat er niet heen.
+>   `/privacy` noemt jsDelivr niet (Google Fonts ook niet). Zelf hosten kan
+>   later als dat gewenst is.
+> - Renners uit een afbeelding hebben geen Zwift-ID en worden niet op naam aan
+>   leden gekoppeld, net als bij Export Text.
+>
+> **Bewust niet gebouwd.** Herkennen via de AI (de tweede route, afgewezen:
+> privacy en kosten). Een foto van een scherm (scheef, met glans): niet geprobeerd
+> en niet beloofd; de kopregel moet herkenbaar zijn.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon. Nieuw: `ttt-gopher-image.test.ts`
+> (6 tests) op de herkende woorden van de echte afbeelding, met verzonnen namen
+> (`tests/fixtures/ttt/gopher-image-words.json`): renners en IF, vastgeplakt
+> sokje, geen kopregel, extra kolom, door de tekstimport, kleur is geen IF.
+> `npm run build` compileert (tesseract.js als dynamische import) en komt door
+> TypeScript; daarna stopt hij bij het prerenderen van `/omnium` om de
+> ontbrekende `.env.local`, zoals eerder.
+>
+> **Niet geverifieerd.** De planner zelf in de browser (inloggen en database;
+> geen `.env.local` in de worktree), een telefoon (geheugen en snelheid van
+> tesseract op een iPhone), en afbeeldingen met andere instellingen van Create
+> Image dan die van 12 oktober.
+
+---
+
+> **Design tegels: persoonlijke menu zonder Hulp en Sponsors; Sponsors naar Club, 2026-10-16 — gebouwd, unit-tests, typecheck en lint schoon; niet in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-16). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Vraag van de eigenaar: Hulp staat dubbel, want het vraagteken
+> naast de avatar gaat ook naar `/hulp`; en Sponsors hoort bij Club.
+>
+> **Wat.**
+> - Het avatar-menu toont geen Hulp meer, in beide designs: overal waar dat
+>   menu staat, staat het vraagteken ernaast.
+> - Design "tegels": Sponsors is uit het avatar-menu en staat als sage tegel op
+>   Club, na Polls. `/sponsors` hoort bij de plek Club, dus daar licht de tab
+>   op. De prop `extraItems` van `AvatarMenu` is weg; Sponsors was het enige
+>   item.
+>
+> **Bewust niet gedaan.** Het mobiele menu van het huidige design houdt Hulp:
+> daar staat geen vraagteken (dat is `hidden md:inline-flex`). In het huidige
+> design blijft Sponsors een eigen menu-item.
+>
+> **Getest.** Vitest op `design-places` (een nieuwe test), `nav-active` en
+> `admin-areas`: geslaagd. ESLint op de gewijzigde bestanden schoon; `tsc`
+> alleen de bekende `@zxing`-meldingen.
+>
+> **Niet geverifieerd.** Club en het menu ingelogd in de browser.
+
+---
+
+> **Design tegels: Beheer met categorietegels en een rij per categorie, zoals ZWBeter, 2026-10-16 — gebouwd, unit-tests, typecheck en lint schoon; ingelogd bekeken en goedgekeurd door de eigenaar; gepusht naar `main` (eigenaar, 2026-10-16, `b6e72b6`). Geen migratie.**
+> Commits: `c6a1d5a` (eerste versie) en de commit die dit blok bijwerkt.
+>
+> **Waarom.** Het persoonlijke menu rechtsboven toonde onder Beheer vijftien
+> items onder elkaar; op de telefoon liep het menu bijna van het scherm. Vraag
+> van de eigenaar: Beheer net zo oppakken als Club, met categorieën zoals online
+> racen, app en rechten. De eerste versie (`c6a1d5a`) zette alle schermen als
+> tegels onder groepskoppen op één pagina; de eigenaar wilde het zoals ZWBeter:
+> de categorieën als tegels, de schermen eronder als horizontale rij.
+>
+> **Wat.**
+> - Het menu in het design "tegels" heeft onder een scheiding één item
+>   **Beheer** (naar `/beheer`), alleen als er minstens één beheerscherm voor de
+>   gebruiker is. De losse beheerlijst staat er niet meer.
+> - `BeheerNav` (`_components/beheer-nav.tsx`), zoals `ZwbeterNav`: vier
+>   categorietegels, elk naar het eerste scherm van die categorie; de actieve
+>   is het paneel met de gouden lijn. Daaronder de schermen van de actieve
+>   categorie als `SectionNav`. Geen scherm is de index van die rij, want
+>   ZRL-beheer heeft eigen subpagina's.
+>   - **Online racen** (petrol): ZRL-beheer, FRR-kalender, SRC-kalender, Omnium.
+>   - **Kalender** (petrol): Programma's, Eventscan, Zwift-routes.
+>   - **Community** (sage): WhatsApp-groepen, Media, Tips en citaten,
+>     Badgebeheer, ZWBgame.
+>   - **App** (donker petrol): Rechten, Notificaties, Strava-sync.
+> - `BeheerFrame` (`_components/beheer-frame.tsx`) zet die navigatie boven elk
+>   beheerscherm, via een layout op `/beheer`, `/zwbgame/beheer`, `/community`
+>   en `/media`. Alleen in het design "tegels" en alleen met minstens één
+>   beheerrecht; op een pagina die in geen categorie van de gebruiker valt
+>   (bijv. `/media` zonder `media.manage`) toont hij niets.
+> - `/beheer` zelf toont alleen de kop en de vier tegels. In het huidige design,
+>   of zonder beheerrecht, gaat het naar `/dashboard`.
+> - De kleur van een categorietegel volgt de soort (`.tg-pillar-tone` in
+>   `globals.css`); bij ZWBeter zijn alle pijlers teal.
+> - De indeling staat in `BEHEER_CATEGORIES` (`_components/nav-config.ts`); de
+>   beheerschermen komen uit het register `lib/admin-areas.ts`. Een test eist
+>   dat elk beheergebied in precies één groep staat, zodat een nieuw scherm niet
+>   ongemerkt buiten de navigatie valt.
+> - WhatsApp-groepen en Media stonden als losse items in `layout.tsx`; ze staan
+>   nu in de groep Community, met dezelfde rechten (`community.manage`,
+>   `media.manage`).
+>
+> **Bewust niet gedaan.**
+> - Rechten is geen eigen groep: één tegel in een groep oogt als een fout. Het
+>   staat bij App, naast de andere instellingen die de hele app raken.
+> - Het huidige design blijft zoals het is: daar staat de beheerlijst nog in het
+>   avatar- en mobiele menu, en krijgen de beheerschermen geen navigatie.
+> - `/beheer` hoort bij geen plek in de tabbalk (`placeForPath` geeft `null`),
+>   zoals de andere items uit het persoonlijke menu. `/zwbgame/beheer` licht
+>   dus nog steeds Club op, en `/community` en `/media` geen tab.
+> - De eigen kop van elk beheerscherm (`PageHeader`) blijft staan; de tegels
+>   erboven hebben geen titel, behalve op `/beheer`.
+>
+> **Getest.** Vitest op `admin-areas`, `design-places` en `nav-active`: alles
+> geslaagd (twee nieuwe tests). ESLint op de gewijzigde bestanden: schoon.
+> `tsc --noEmit`: alleen de bekende `@zxing`-meldingen (pakket ontbreekt in deze
+> worktree). De dev-server compileert `/beheer`, `/beheer/zrl`, `/media` en
+> `/zwbgame/beheer` zonder fouten (zonder login een doorverwijzing naar `/login`).
+>
+> **Niet geverifieerd.** De eigenaar bekeek `/beheer` ingelogd en keurde het
+> goed (2026-10-16). Niet apart nagelopen: de weergave op de telefoon, en of de
+> actieve categorie op elk scherm klopt (ook `/zwbgame/beheer`, `/community` en
+> `/media`).
+
+---
+
+> **Design tegels: geen titel die de navigatie herhaalt, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, samengevoegd met main in de mergecommit die dit blok bijwerkt). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Eerst voor Stats, daarna voor de hele app: "zwbetertrainen
+> blijkt uit het blok eronder, kalender uit het grotere blok erboven net als
+> club en vandaag. Trek dat door alle pagina's" (eigenaar).
+>
+> **Wat.**
+> - **Nieuwe klasse `.tg-repeats-nav`** (`globals.css`). In "tegels" zet die
+>   de h1 en het bovenkopje (`.page-eyebrow`, nieuw haakje in `PageHeader`)
+>   alleen nog voor schermlezers; elke pagina houdt dus een kop. In klassiek
+>   doet de klasse niets.
+> - **Toegepast waar de titel letterlijk in de navigatie staat:**
+>   - Vandaag, Kalender en Club: de actieve plek in de tabbalk. De datum op
+>     Vandaag en de knop "Nieuw event" blijven.
+>   - ZWBeter trainen, racen, enzovoort: de actieve pijler. De
+>     eenheidskeuze blijft.
+>   - Jaarplan, Logboek en Mijn vermogen: de tab eronder.
+>   - Stats en Stats → Ik deden het al via `StatsTabs`.
+>   - De voorbeeldpagina `/ontwerp-voorbeeld` doet hetzelfde.
+> - **De knop "Uitleg" op Mijn vermogen is weg.** Die deed hetzelfde als de
+>   verdwenen Hulp-links; het vraagteken in de balk gaat daar naar
+>   `/hulp#vermogen`.
+>
+> **Bewust niet verborgen.**
+> - Titels die nergens anders in beeld staan, zoals Teams, Leden,
+>   Achievements en ZWBlokken. Daar is alleen de tab Club actief, dus de titel
+>   is de enige plek die zegt waar je bent.
+> - Titels die inhoud zijn: een eventnaam, een teamnaam, een lid, een
+>   TTT-plan.
+> - Hulplinks midden in een zin of uitleg ("meer over routevoorstellen",
+>   voeding, FIT-export, de Strava-import) blijven; dat zijn geen knoppen naast
+>   een titel.
+> - ZWBgame heeft een eigen spelregels-icoon in zijn eigen opmaak.
+>
+> **Getest.**
+> - `tsc --noEmit` en ESLint schoon, vitest 2477 geslaagd.
+> - Op `/ontwerp-voorbeeld` (Vandaag, Kalender, Club) op 375 px bekeken: de
+>   titel is weg en de pagina begint direct met de inhoud.
+> - Onderweg bleek de dev-server na een productiebuild in dezelfde map een
+>   oude `globals.css` te serveren. Verholpen met een herstart en een lege
+>   `.next`. Dat was een lokaal probleem, niet iets in de code.
+>
+> **Niet geverifieerd.** De echte ZWBeter-, jaarplan-, logboek- en
+> vermogenspagina's in de browser (die vragen een login).
+
+>
+> **Bij het samenvoegen met `main` (2026-10-16).** Main had intussen
+> Achievements als derde tab onder Stats (`727bd23`) en Wie weet wat
+> omgedoopt tot ZWBieb (`/zwbieb`).
+> - `StatsTabs` heeft nu drie pijlers. Achievements staat in donker petrol
+>   (spel en ontdekken), met een titel die in "tegels" verborgen is; de
+>   knoppen in de kop blijven.
+> - De Hulp-link in het nieuwe ZWBieb-overzicht is weg; de knop
+>   "Onderwerpen beheren" blijft.
+> - De hulpkaart wijst `/zwbieb` naar `#zwbieb` en `/stats/achievements` naar
+>   `#badges`.
+> - Na de samenvoeging: `tsc --noEmit` schoon, vitest 2494 geslaagd en
+>   `npm run build` geslaagd. De drie pijlers zijn niet in de browser
+>   bekeken.
+---
+
+> **Ook de Hulp-links bij onderdelen weg, en geen dubbele titel op Stats, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, samengevoegd met main in de mergecommit die dit blok bijwerkt). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Na de ronde hieronder koos de eigenaar ervoor ook de 14 links
+> bij losse onderdelen weg te halen. Daarnaast: "de titel Clubstatistieken /
+> Mijn statistieken staat ook al op de tegel", dus die mocht weg.
+>
+> **Wat.**
+> - **De laatste 14 Hulp-links zijn weg:** de ritimport op het dashboard,
+>   LiveTrack, OwnTracks, Media toevoegen, en op het profiel agenda, citaten
+>   (die wees naar `/voorwaarden`), meldingen en Strava. Verder het
+>   verjaardagsrondje, "Jouw races" en "Jouw rit" bij racen, de race op het
+>   trainersscherm, de intervals-koppeling en de Zwift-ID-dialoog.
+> - **`HelpLink` is uit `src/components/app-ui.tsx` verwijderd**: niets
+>   gebruikt hem nog. De enige weg naar `/hulp` is nu het vraagteken in de
+>   balk, dat naar de uitleg over de huidige pagina gaat (`help-anchors.ts`).
+>   Wat daardoor verloren ging: de sprong naar een specifieke sectie binnen
+>   een pagina. Wie op het profiel op "?" tikt, komt bij "profiel" en niet
+>   bij "agenda" of "Strava". De citaten op het profiel wijzen niet meer naar
+>   de voorwaarden.
+> - **Stats en Stats → Ik zonder zichtbare titel in "tegels".** De pijlers
+>   "Stats club" en "Stats ik" zeggen al waar je bent. `StatsTabs` krijgt de
+>   titel mee en zet hem daar als `sr-only` h1, zodat de pagina voor
+>   schermlezers een kop houdt. In klassiek blijft de paginakop staan,
+>   want daar staan alleen de kleine tabs "Club | Ik".
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon, vitest 2477 geslaagd.
+>
+> **Niet geverifieerd.** In de browser: lokaal geen login.
+
+---
+
+> **Eén vraagteken voor hulp, en dat weet waar je bent, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, samengevoegd met main in de mergecommit die dit blok bijwerkt). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar zag op Stats een "? Hulp" naast de paginatitel,
+> terwijl het vraagteken naast de avatar er al staat: "die lijkt me weg te
+> kunnen". Dat gold voor 24 pagina's.
+>
+> **Wat.**
+> - **De Hulp-link naast de paginatitel is weg** (24 plekken). Het ging om
+>   Achievements, beheer (badges, eventscan, notificaties, programma's,
+>   rechten), WhatsApp-groepen, event bewerken, nieuw event, live, media
+>   bewerken, Stats en Stats → Ik, teams (overzicht, nieuw, team, TTT Planner
+>   en een plan), ZWBlokken, ZWBeter Worden (de kop in beide designs),
+>   jaarplan, Wie weet wat en de koppen van een geanalyseerde race.
+> - **Het vraagteken in de balk weet nu waar je bent.** `HeaderHelpLink`
+>   opent `/hulp#<anker>` voor de huidige pagina, met de kaart in
+>   `src/lib/help-anchors.ts`: een pad met `*` per segment, het langste
+>   patroon wint. Op een pagina zonder eigen uitleg (bv. het dashboard) blijft
+>   het `/hulp`. Zo verwijst het vraagteken ook naar plekken die eerst geen
+>   eigen link hadden, zoals het schema, vermogen, doelen en Mijn garage.
+> - **In het klassieke design staat het vraagteken nu ook op de telefoon.**
+>   Het was daar verborgen (`md:inline-flex`), en de link bij de titel was op
+>   mobiel de weg naar de uitleg.
+>
+> **Eerst bewust laten staan, dezelfde dag toch weggehaald:** 14 links bij
+> één onderdeel van een pagina. Zie het blok hierboven.
+>
+> **Getest.**
+> - `tsc --noEmit` en ESLint schoon, vitest 2477 geslaagd.
+> - Nieuw `help-anchors.test.ts` (4): meest specifiek wint, een vast segment
+>   gaat voor een joker, terugval op `/hulp`, en elk anker in de kaart bestaat
+>   op `/hulp`. Die laatste test faalt als iemand een sectie op /hulp hernoemt.
+>
+> **Niet geverifieerd.** In de browser: de pagina's vragen een login, en die is er lokaal niet. `npm run build` is voor deze ronde niet opnieuw gedraaid.
+
+---
+
+> **Clubstatistieken in dezelfde stijl, met tegelkeuze, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, samengevoegd met main in de mergecommit die dit blok bijwerkt). Migratie `0241_profile_stats_tiles.sql` uitgebreid (nog niet toegepast).**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar wilde de stijl van Stats → Ik ook op `/stats` (Club):
+> dezelfde grafieken en data waar dat kan, en ook daar een eigen tegelkeuze.
+>
+> **Wat.**
+> - `/stats` volledig herbouwd op de onderdelen van Ik:
+>   - dezelfde bediening (per week, maand of jaar, bereik tot "alles"), nu in
+>     `stats/_components/controls.tsx` en gedeeld met Ik;
+>   - dezelfde grafiek met leescijfer, goud voor de gekozen periode,
+>     vorig jaar als streepje, gemiddelde en arcering voor de lopende periode;
+>   - in "tegels" de pijlers Club en Ik.
+> - **Zeven tegels** (`CLUB_STATS_TILES` in `src/lib/stats/tiles.ts`):
+>   - Totalen: km, uren, hm, ritten en actieve leden, tegenover vorig jaar.
+>   - Volume: met "Leden" als grootheid erbij.
+>   - Jaar op jaar: cumulatieve club-km.
+>   - Top riders: op km, uren of hm; je eigen plek in goud en "Jij staat 5e".
+>   - Disciplines.
+>   - Regio's.
+>   - Clubrecords: beste week, maand en jaar, en de maand met de meeste
+>     rijders.
+>
+>   De laatste staat standaard uit.
+> - **Tegelkeuze per pagina.** `0241` kreeg een kolom `club_tiles` naast
+>   `tiles`; de server-action verhuisde naar `stats/_actions.ts`
+>   (`saveStatsTiles(layout, page)`). De migratie was nog niet toegepast, dus
+>   is hij aangepast in plaats van een `0242` toe te voegen.
+> - **Het oude maandfilter blijft**, als periode-chips (`?periode=`, per maand
+>   of jaar): Totalen, Top riders, Disciplines en Regio's gaan dan over die
+>   periode, en Volume licht die periode uit. Per week zijn het te veel chips.
+>   `?month=` uit oude links doet niets meer.
+> - **Data** (`stats/_data.ts`, `src/lib/stats/club.ts`).
+>   - **Vroeger:** elke tien minuten 12 maanden ritten, opgeteld per maand.
+>   - **Nu per kalenderjaar een samenvatting**, gedeeld tussen leden:
+>     - per maand en per week per lid en discipline (voor leden, ranglijst,
+>       disciplines en regio's);
+>     - per dag het clubtotaal (exacte vensters, en vorig jaar tot dezelfde
+>       dag).
+>   - **Verversen:** afgesloten jaren één keer per dag, het lopende jaar elke
+>     tien minuten zoals voorheen. Daardoor kunnen week en "alles" erbij zonder
+>     meer databaseverkeer dan eerst.
+>   - **Randgevallen:** een week over de jaargrens telt uit beide jaren op
+>     (`mergeClubData`).
+>   - **Actieve leden** per venster komen uit de maand- of weekcellen; het
+>     venster begint altijd op een periodegrens.
+> - **Geen pijltjes zonder vergelijking.** Valt het venster van vorig jaar
+>   (deels) vóór de eerste rit, wat bij "alles" altijd zo is, dan toont Totalen
+>   geen ▲/▼. Dat geldt nu ook op Ik.
+> - De oude clubpagina (eigen staafjes per maand, kaartjes met icoon) is weg.
+>
+> **Bewust niet gebouwd.**
+> - Vermogen, fitheid en kalender voor de club: een clubgemiddelde van NP of
+>   CTL zegt niets, en een dagkalender van 35 leden is één grijze vlek.
+> - Een filter op discipline: de club had er geen en de tegel Disciplines laat
+>   de verdeling al zien.
+> - Een aggregatie in de database (view of RPC): dat vraagt een migratie, en de
+>   jaarcache doet hetzelfde zonder.
+>
+> **Getest.**
+> - `tsc --noEmit` en ESLint schoon, vitest 2473 geslaagd, `npm run build` geslaagd.
+> - Nieuw `stats-club.test.ts` (9): dagen in Amsterdamse tijd, week over de
+>   jaargrens, reeksen met leden, vorig jaar tot dezelfde dag, totalen,
+>   disciplines, regio's, ranglijst per periode, records, jaarlijnen.
+> - `stats-tiles.test.ts` controleert in PGlite dat `club_tiles` los van
+>   `tiles` wordt bewaard.
+> - Detector van impeccable schoon.
+> - Bekeken op een tijdelijke voorbeeldpagina met verzonnen clubritten (niet
+>   gecommit): "tegels" op desktop en 375 px met een gekozen maand, en
+>   klassiek per jaar over alles.
+>
+> **Niet geverifieerd.**
+> - De echte clubdata: hoe lang de eerste weergave duurt bij "alles" (elk
+>   jaar één keer de ritten ophalen).
+> - Of een jaarsamenvatting onder de cachegrens van Next blijft. Geschat
+>   ~0,7 MB per jaar bij de huidige ~5.600 ritten; de grens is 2 MB.
+
+---
+
+> **Mijn statistieken: het design "tegels" en grafieken die praten, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, samengevoegd met main in de mergecommit die dit blok bijwerkt). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar vond dat `/stats/ik` te veel op het oude design leunde
+> en wilde de grafieken "een stuk sprekender".
+>
+> **Wat.**
+> - **De grafiek praat** (`src/components/charts/period-chart.tsx`, geldt in
+>   beide designs). Boven elke grafiek staat een groot leescijfer voor de laatste
+>   periode, en het loopt mee met je muis of vinger. Daarom is er geen zwevende
+>   tooltip: het cijfer staat nooit onder je duim. Daarnaast:
+>   - De periode waar je naar kijkt licht goud op ("jij, nu" uit het
+>     kleurbeleid), net als het beste punt (stip met waarde).
+>   - Vlakken onder de hoofdlijn.
+>   - Volume krijgt per staaf een streepje voor dezelfde periode vorig jaar
+>     (`yearEarlier` in `src/lib/stats/personal.ts`: per week 52 weken terug,
+>     zodat de week op maandag blijft beginnen). De lopende periode vergelijkt
+>     tot dezelfde dag, en het gemiddelde van de afgesloten periodes staat als
+>     stippellijn.
+>   - De lopende periode is gearceerd met de schuine banen van het tenue.
+>   - Het leescijfer zegt per grafiek wat ertoe doet: ▲/▼ tegenover vorig jaar,
+>     "km voor op 2025" bij jaar op jaar, het aandeel vanaf Z4 bij de zones.
+> - Kleuren via tokens op `.st-page` (`globals.css`):
+>   - `--st-main` voor je eigen reeks: in "tegels" teal (training en je eigen
+>     cijfers), in klassiek de bestaande `--chart-1`;
+>   - `--st-hi` goud;
+>   - `--st-soft` voor de vergelijking.
+>
+>   Er zijn geen nieuwe tinten bijgekomen; in donker "tegels" is de teal
+>   gemengd met wit, anders verdwijnt hij op nachtpetrol.
+> - **"Tegels" op deze pagina:**
+>   - Club en Ik zijn pijlers zoals bij ZWBeter (`StatsTabs`, nu
+>     design-afhankelijk): Club in sage, Ik in teal, en waar je bent het paneel
+>     met de gouden lijn.
+>   - Leescijfers en totalen in de dunne Barlow (`.st-num`, `.st-kpi`).
+>   - Tegelkoppen in de lichte onderkast (`.st-tile-title`).
+>   - Kalender, disciplines en records in de hoofdkleur.
+> - Totalen zonder kaartjes in de kaart: losse grote cijfers, met per cijfer
+>   ▲/▼ % en één bijschrift "t.o.v. vorig jaar". Op een telefoon is het cijfer
+>   in "tegels" een stap kleiner.
+> - De paginakop verloor zijn bovenkopje.
+> - Op `/hulp#mijn-statistieken` staat hoe je een grafiek leest.
+>
+> **Bewust niet gedaan.**
+> - Gekleurde tegels voor de statistieken zelf: volgens het kleurbeleid is een
+>   gekleurd vlak klikbaar, en deze panelen leiden nergens heen.
+> - De clubpagina `/stats` in dezelfde stijl: buiten deze vraag. Alleen de
+>   tabbalk is gedeeld.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon, vitest 2463 geslaagd, `npm run build` geslaagd. Detector van impeccable:
+> één advies (een losse lettermaat), verholpen. Bekeken op een tijdelijke
+> voorbeeldpagina (niet gecommit) met verzonnen data: "tegels" licht en donker
+> op desktop en 375 px, klassiek op desktop. Daar gezien en verholpen: het
+> gemiddeldelabel liep door een staaf en Totalen was op de telefoon te lang.
+>
+> **Niet geverifieerd.** De echte pagina ingelogd in het design "tegels" via de
+> schakelaar.
+
+---
+
+> **Mijn statistieken, ronde 3: tijd per zone, W′bal, duurvermogen en herstel uit intervals.icu, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, `5288920`). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Het laatste deel van de wens: uit intervals.icu halen wat er te
+> halen valt, zoals "hoeveel uur in zone x" en W′ door de jaren. Ronde 2 deed
+> CP en W′ uit de curves; deze ronde leest de velden die intervals per rit uit de
+> meting rekent.
+>
+> **Afwijking van het plan.** Het plan was een eenmalige backfill van
+> `intervals_activities` over de hele historie, met migratie
+> `0242_intervals_activities_backfill.sql` en een aanvulling op de
+> privacyverklaring. In plaats daarvan haalt `loadActivityStats`
+> (`stats/ik/_data.ts`) de activiteiten van het venster op, per jaar één
+> aanroep. Daarna rekent hij ze om naar totalen per periode
+> (`src/lib/stats/activity-stats.ts`), en alleen die totalen staan zes uur in de
+> `unstable_cache`. Er wordt per rit niets extra bewaard: `intervals_activities`
+> blijft 120 dagen. Daardoor geen migratie, geen nieuwe opslag van ruwe data en
+> geen nieuwe privacytekst. De aangekondigde zin is dus niet voorgelegd. Prijs:
+> de eerste weergave na zes uur haalt de activiteiten opnieuw op.
+>
+> **Wat.**
+> - `fetchIntervalsActivitiesBetween` (`src/lib/intervals/client.ts`): ruwe
+>   activiteiten tussen twee dagen.
+> - `src/lib/stats/activity-stats.ts` (puur):
+>   - `parseZoneTimes`: `icu_zone_times` als `[{id, secs}]`, of een kale lijst
+>     zoals `icu_hr_zone_times`; sweetspot (SS) telt niet, die overlapt Z3/Z4.
+>   - `summarizeIntervalsActivity`: null voor een Strava-stub of een andere
+>     sport.
+>   - `aggregateActivities`: uren per zone, de diepste W′bal-uitputting, kJ
+>     boven FTP, decoupling (alleen ritten van minstens 90 min) en EF, beide
+>     gewogen naar rijtijd.
+>   - `recoverySeries`.
+> - Vijf tegels met bron intervals:
+>   - Tijd per vermogenszone: gestapeld, uren of %, standaard aan.
+>   - Tijd per hartslagzone.
+>   - W′bal en boven FTP.
+>   - Duurvermogen.
+>   - Herstel: rust-HR, HRV en slaap.
+>
+>   Ook deze tegels tellen per week per maand. Onder de tegel staat hoeveel
+>   ritten met meting meetellen.
+> - **Herstel volgt de herstel-opt-in** (`wellness_opt_in`), net als de
+>   herstelkaart op ZWBeter Worden: zonder opt-in staat de tegel op slot met een
+>   link naar `/zwbeter-worden#herstel`. Het tegelregister kreeg daarvoor
+>   `needsWellnessOptIn`, en de tegelkiezer toont per tegel waarom hij op slot
+>   zit.
+> - Zonekleuren: die van de workoutblokken (`ZWIFT_ZONES`), met paars voor Z7.
+> - Uitleg aangevuld op `/hulp#mijn-statistieken`.
+>
+> **Bewust niet gebouwd.**
+> - De zones omrekenen naar de zes Zwift-zones, zoals bij de gereden training
+>   (2026-09-15). Daar moest het passen op de blokkleuren van het schema; hier
+>   gaat het om je eigen trainingsverdeling, en dan zijn de zones die je in
+>   intervals hebt ingesteld de juiste. Omrekenen kan ook niet zonder de stream.
+> - Zonetijden voor ritten via Strava: daarvoor zou de watt-stream van elke rit
+>   nodig zijn (Strava-budget, of intervals' stub zonder stream).
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon, `npm run build` geslaagd. Vitest:
+> 2459 geslaagd met `--maxWorkers=4`. Met de standaardparallelliteit gaven
+> `admin-areas`, `intervals-ride-sync` en `rls-initplan-migration` wisselende
+> time-outs (PGlite onder belasting, sinds er een `.env.local` in de worktree
+> staat en meer suites draaien). Los gedraaid zijn ze groen; niets daarvan raakt
+> deze ronde. Nieuw `stats-activity.test.ts` (6): zonelijst in beide vormen
+> zonder SS, stub en andere sport overslaan, W′ en arbeid in kJ, totalen per
+> maand, decoupling alleen boven 90 min, herstelgemiddelden zonder onmogelijke
+> waarden. De vijf grafieken bekeken op de tijdelijke voorbeeldpagina.
+>
+> **Niet geverifieerd.**
+> - De vorm van `icu_zone_times`, `icu_hr_zone_times`, `icu_max_wbal_depletion`,
+>   `icu_joules_above_ftp`, `decoupling` en `icu_efficiency_factor` in een echt
+>   antwoord. De fixture in `tests/fixtures/intervals/activities.json` heeft ze
+>   niet; de vorm komt uit de API-spec, en de parser kan beide lijstvormen aan.
+> - Hoe groot het antwoord is bij "Alles": per jaar één aanroep van de hele
+>   activiteitenlijst.
+
+---
+
+> **Mijn statistieken, ronde 2: piekvermogen, CP en W′, eFTP en de powercurve per jaar uit intervals.icu, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, `51ad380`). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar wilde intervals.icu "uitmelken", met W′ door de jaren
+> als voorbeeld. Strava bewaart per rit alleen samenvattingen (ronde 1). Maar
+> intervals.icu rekent per datumbereik de beste curve uit over alle ritten, ook
+> die via Strava binnenkwamen. Dus elk lid met een koppeling krijgt hier zijn
+> piekvermogen en CP/W′ door de tijd.
+>
+> **Wat.**
+> - `fetchIntervalsPowerCurveRanges` (`src/lib/intervals/client.ts`): powercurves
+>   voor een reeks `r.<van>.<tot>`-bereiken, twaalf per aanroep (dezelfde
+>   kommalijst als de vermoeide curves), na elkaar. `parsePowerCurveList` houdt
+>   elke curve uit `list` apart, op `id` en anders op volgorde. Een mislukte
+>   aanroep laat alleen die periodes leeg.
+> - `src/lib/stats/curves.ts` (puur):
+>   - `compactCurve`: terug naar 32 vaste duren (1 s tot 5 u), het dichtstbijzijnde
+>     punt binnen 10%. `wattsAtDuration` bleek ongeschikt: die heeft minstens 3 s
+>     marge, waardoor 2 en 3 s de 5 s-waarde kregen (door de test gevonden).
+>   - `peakSeries`.
+>   - `cpSeries`: `fitCpWPrime` uit `src/lib/pacing/cp.ts` per periode, 2 tot
+>     20 min. Een fit buiten de grenzen blijft leeg.
+>   - `eftpSeries`: de laatste eFTP en het gemiddelde gewicht per periode.
+> - Cache:
+>   - `loadPeriodCurves` (`stats/ik/_data.ts`): `unstable_cache` van zes uur per
+>     lid en bereikset. De API-key zoekt de cache zelf op met de admin-client,
+>     zodat hij niet in de cachesleutel staat. Komt er niets terug, dan gooit de
+>     loader een fout, zodat een storing niet zes uur onthouden wordt.
+>   - `loadPeriodCurvesOnce` en `loadStatsWellness` (React `cache`): tegels die
+>     dezelfde data lezen, vragen die één keer per weergave.
+> - Vier tegels met bron intervals (op slot zonder koppeling):
+>   - Piekvermogen: per duur te kiezen, watt of W/kg met het gewicht van toen
+>     uit de curve. Standaard aan.
+>   - CP en W′: W′ in kJ op de rechteras. Standaard aan.
+>   - eFTP en gewicht: uit wellness. Standaard uit.
+>   - Powercurve per jaar: hooguit vijf jaar, log-as, eigen
+>     `year-curves-chart.tsx`. Standaard uit.
+> - Per week tellen deze tegels per maand (`curveGranularity`): 52 curves per jaar
+>   zijn te veel vragen, en een week heeft te weinig harde ritten. Ook de
+>   Fitheid-tegel leest nu via `loadStatsWellness`.
+> - Uitleg aangevuld op `/hulp#mijn-statistieken`.
+>
+> **Bewust niet gebouwd.**
+> - `PowerCurveChart` hergebruiken voor de jaarcurves: die is gebouwd rond de
+>   vergelijking met clubleden (clubmediaan, renner-type, vermoeide curves). Een
+>   jaar is geen renner.
+> - De CP en W′ uit intervals' eigen `powerModels`: niet in de API-spec van de
+>   curve bevestigd. De eigen fit is dezelfde die het pacingplan gebruikt.
+> - Een tabel voor de curves: zes uur cache volstaat. Een afgesloten maand
+>   verandert niet.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon. Nieuw `stats-curves.test.ts`
+> (8): de lijstparser, bereiken afgekapt op vandaag, `compactCurve`, pieken, CP
+> en W′ teruggevonden uit een modelcurve, eFTP en gewicht per maand. De vier
+> grafieken bekeken op de tijdelijke voorbeeldpagina met verzonnen curves.
+>
+> **Niet geverifieerd.**
+> - Of intervals.icu twaalf `r.`-bereiken in één aanroep accepteert, en of
+>   `list[].id` het bereik teruggeeft. De kommalijst werkt voor de vermoeide
+>   curves en het `r.`-formaat voor één dag (11 september). De combinatie is niet
+>   tegen de echte API gedraaid, want er is lokaal geen API-key. Gaat het mis,
+>   dan blijven de tegels leeg met "intervals.icu gaf nu geen antwoord".
+> - Hoe lang de eerste weergave duurt bij "Alles" per maand: tien jaar is tien
+>   aanroepen, daarna zes uur uit de cache.
+
+---
+
+> **Mijn statistieken (Stats → Ik), ronde 1: eigen ritgeschiedenis met zelfgekozen tegels, 2026-10-16 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-16, `449774e`). Migratie `0241_profile_stats_tiles.sql` (niet toegepast).**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Wens van de eigenaar: een pagina met je eigen ritgeschiedenis, je
+> vermogensontwikkeling en cijfers per week, maand en jaar. Personaliseerbaar:
+> ieder lid kiest welke tegels het ziet, zodat ieders interessantste data
+> bovenaan staat. Gekozen plek: een tab op /stats ("Club | Ik"), niet in ZWBeter
+> Worden of het avatarmenu. intervals.icu mag maximaal benut worden; Strava-leden
+> krijgen wat met hun data kan. Het plan heeft drie rondes; dit is de eerste. De
+> tweede (piekvermogen, CP en W′ per periode uit intervals-powercurves) en de
+> derde (zones, W′bal, duurvermogen, herstel uit intervals-activiteiten) zijn
+> dezelfde dag gebouwd; zie de twee blokken hierboven.
+>
+> **Wat.**
+> - `/stats/ik` (`src/app/(app)/stats/ik/`), met de tabbalk `StatsTabs` op beide
+>   statspagina's. Bovenaan: per week, maand of jaar (`?per=`), bereik 12 mnd, 2
+>   jaar, 5 jaar of alles (`?bereik=`), en een chip per discipline die het lid
+>   heeft (`?sport=`).
+> - Tien tegels: Totalen (tegenover dezelfde periode een jaar eerder), Volume
+>   (staven km, uren, hm, TSS, kJ of ritten), Vermogen (beste en gemiddelde NP per
+>   periode met de FTP van toen als trap), Fitheid (CTL, ATL en vorm), Watt per
+>   hartslag (NP/HR), Jaar op jaar (cumulatieve km, hooguit vijf jaar), Kalender
+>   (53 weken plus reeksen), Disciplines, Records (rit en week, maand, jaar) en
+>   Ritten (alle ritten, 25 per pagina, met NP, IF, TSS en HR).
+> - Standaard zichtbaar: totalen, volume, vermogen, fitheid, records, ritten.
+>   "Tegels aanpassen" (dialoog met vinkjes en omhoog/omlaag) slaat op in
+>   `profile_stats_tiles` (migratie 0241, RLS: alleen de eigen rij). Het register
+>   staat in `src/lib/stats/tiles.ts`; `normalizeLayout` vult tegels die later
+>   bijkomen zelf aan, dus een nieuwe tegel vraagt geen migratie. Intervals-tegels
+>   (ronde 2 en 3) staan bij leden zonder koppeling op slot met een link naar de
+>   koppeling.
+> - Rekenwerk puur in `src/lib/stats/personal.ts`. De ritten komen uit
+>   `strava_activities` met losse JSON-paden in plaats van heel `raw`, dus zonder
+>   polyline, in pagina's van 1000. TSS en IF via `rideMetricsFromStrava` met de
+>   FTP van de ritdag (`loadFtpAt`). Vermogen en watt per hartslag tellen alleen
+>   ritten met echte meter (`device_watts`) van minstens 20 minuten.
+> - Fitheid: met intervals-koppeling de wellness van intervals (die telt ook ritten
+>   zonder meter op hartslag), anders zelf gerekend uit de eigen TSS (EWMA 42/7,
+>   `fitnessFromTss`). `projectCtl` is niet hergebruikt: die geeft alleen de
+>   eindwaarde, hier is de reeks nodig.
+> - Nieuwe gedeelde grafiek `src/components/charts/period-chart.tsx` (staven,
+>   gestapeld, lijnen, trappen, optionele rechteras), op `ResponsiveChart`. De
+>   marges volgen de langste aslabel.
+> - `DISCIPLINE_LABELS` verhuisd van `stats/page.tsx` naar `src/lib/strava/sports.ts`.
+> - Uitleg op `/hulp#mijn-statistieken`; de pagina zelf heeft geen uitlegtekst.
+>
+> **Meegenomen fout.** `SCROLL_TAB_ITEM` stond in een `"use client"`-module
+> (`scroll-tabs.tsx`). Een server-component die een string uit zo'n module
+> importeert krijgt een client-referentie, niet de klassen. Daardoor misten de
+> maandchips op /stats en de chips op ZWB Segments (`profiel/segments/collecties`)
+> hun hoogte, opvulling en flex. Gezien op de voorbeeldpagina. Nu staat de
+> constante in `src/components/ui/scroll-tab-item.ts`; `scroll-tabs.tsx`
+> exporteert hem door voor client-code.
+>
+> **Bewust niet gebouwd.**
+> - W/kg in de vermogenstegels: er is geen gewichtshistorie, en de huidige
+>   kilo's op oude ritten zouden de lijn vervalsen. Ronde 2 haalt W/kg uit de
+>   intervals-curves, die het gewicht van toen kennen.
+> - Piekvermogen per duur (5 s tot 20 min) voor Strava-leden: Strava-streams
+>   ophalen kost budget onder de atletenlimiet. Alleen via intervals (ronde 2).
+> - Slepen in de tegelkeuze: omhoog/omlaag werkt beter op een telefoon en met een
+>   toetsenbord.
+> - Een kaart of routes: niet nodig, en de start- en eindprivacy van ZWBlokken
+>   zou dan opnieuw moeten.
+> - Inzage voor trainers: eerst eigen gebruik.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon; `npm run build` geslaagd; vitest
+> 2445 geslaagd. Nieuw: `stats-personal.test.ts` (periodes en weekgrens op maandag,
+> venster, FTP per ritdag, NP alleen met meter en 20 min, EWMA, jaar op jaar,
+> reeksen, records) en `stats-tiles.test.ts` (`normalizeLayout`,
+> `parseLayoutInput`, en **migratie 0241 in PGlite**: eigen rij lezen en
+> schrijven, andermans rij niet, alleen een lijst). Alle tegels en de dialoog
+> bekeken op een tijdelijke voorbeeldpagina met verzonnen ritten (niet
+> gecommit), desktop en 375 px. Opslaan gaf daar "Niet ingelogd", zoals bedoeld.
+>
+> **Niet geverifieerd.** De echte pagina ingelogd met eigen ritten; opslaan van
+> de tegelkeuze tegen Supabase; het design "tegels"; de intervals-wellness in
+> Fitheid (dezelfde aanroep als Belasting, maar met een langer bereik, tot tien
+> jaar bij "Alles"). Migratie 0241 is alleen in PGlite gedraaid.
+
+---
+
+> **Design tegels: Samen fietsen naar Club, plus een live-tegel op Vandaag, 2026-10-16 — gebouwd, lokaal getest; alleen het voorbeeldscherm in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-16, `fc1e397`). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** In het design "tegels" stond Samen fietsen alleen als grijs
+> tekstlinkje in de kop van de Kalender. Dat was een invulling van de bouwer en
+> viel weg naast "Nieuw event". De eigenaar vindt de Kalender niet de plek: die
+> is om vooruit te kijken, Samen fietsen gaat om nu en om je tracker koppelen.
+> Besluit eigenaar: een live-tegel op Vandaag, en Samen fietsen als tegel onder
+> Club (met clubgenoten rijden).
+>
+> **Wat.**
+> - Vandaag (`TegelsVandaag`): een sage tegel "Samen fietsen · nu" met wie er
+>   rijdt ("Jij en Anna", hooguit drie namen en dan "en 2 anderen") en het
+>   aantal. Alleen als er iemand live is. Zelfde regel als Samen fietsen: open
+>   sessie, binnen 15 minuten gezien. Eén renner met twee open sessies telt één
+>   keer. De dashboardpagina werkt Garmin en Wahoo eerst bij zoals de Kalender
+>   (`refreshExternalLiveSessions({ detect: false })`), en dat loopt parallel
+>   met de rest van de pagina. Alleen in het design "tegels".
+> - Club (`/club`): tegel Samen fietsen direct na Leden, sage en breed.
+> - Kalender: het linkje in de kop is weg.
+> - `lib/design-places.ts`: `/samen-fietsen` en `/live` horen bij Club, dus
+>   daar licht de tab op.
+> - Het voorbeeldscherm `/ontwerp-voorbeeld` toont de live-tegel en de
+>   Club-tegel met voorbeelddata.
+>
+> **Bewust niet gedaan.**
+> - Geen nieuwe Wahoo-links zoeken vanaf Vandaag (`detect: false`). Dat kost
+>   per gekoppelde link een externe aanvraag, en Vandaag is de drukst bezochte
+>   pagina. Wie met een vaste Wahoo-link rijdt, verschijnt dus pas op de
+>   tegel nadat iemand Samen fietsen of een eventpagina heeft geopend. Dat geldt
+>   nu ook al voor de Kalender.
+> - Het huidige design blijft zoals het is: daar is Samen fietsen een eigen
+>   menu-item en krijgt Vandaag geen tegel.
+> - Het koppelen (Garmin, Wahoo, OwnTracks) blijft op de pagina Samen fietsen
+>   zelf en verhuist niet naar het profiel. Via Club is die pagina nu goed te
+>   vinden.
+>
+> **Getest.** ESLint op de gewijzigde bestanden: schoon. `tsc --noEmit`: alleen
+> de bekende fouten over `@zxing` (pakket ontbreekt in deze worktree), niets
+> uit deze ronde. Vitest: alles geslaagd, behalve tests die `.env.local` nodig
+> hebben of onder volle belasting over hun tijd gingen; die drie slagen los.
+> Nieuw: `tests/unit/live-riders-label.test.ts`.
+>
+> **Niet geverifieerd.** Vandaag en Club met login en echte data, en hoe lang
+> het bijwerken van Garmin en Wahoo de dashboardpagina ophoudt als er iemand
+> live is (hooguit 7 s, de grens van `refreshExternalLiveSessions`).
+
+> **Design tegels: gekleurde tegels nagelopen op het kleurbeleid, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `88ad78a`); niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Vraag van de eigenaar: de hele app nalopen op de gekleurde tegels
+> tegen de regel in het kleurbeleid (`globals.css`, 2026-10-13): kleur betekent
+> "hier kun je op tikken", een gekleurd vlak dat nergens heen leidt hoort er niet
+> te zijn, en goud is schaars (hooguit een of twee per scherm).
+>
+> **Nagelopen, in orde.** Elke `tg-tile` is een link of zit in een volledig
+> klikbare tegel: Vandaag (training, events, teamuitslag), Jouw races, Instagram,
+> trainingsadvies en de drie cijfertegels, core, de Club-tegels en de vijf
+> tabs. De ZWBeter-pijlers zijn links (de actieve als paneel, besluit 2026-10-13).
+> `tg-metric` kleurt alleen als het een knop of link is (de fitness- en
+> vormknop); de `MetricCard`s op ZWBeter en de nalevingspagina blijven panelen.
+> Agendarijen zijn links met een gekleurd dagvak.
+>
+> **Aangepast.**
+> - *Goud op Vandaag.* Elke race zonder opgave in Jouw races was goud; met de
+>   training van vandaag erbij konden er vier gouden tegels staan. Nu is alleen
+>   de eerste race zonder opgave goud, de rest petrol met "Nog niet opgegeven"
+>   als label (`my-races.tsx`). Zo blijven het er hooguit twee.
+> - *Dode `place`-prop.* `SectionHeader` had nog `place` ("de plek, en dus de
+>   kleur, van het blok") en zette `data-place`, maar de CSS die daarop kleurde
+>   is op 2026-10-13 verwijderd. Prop en aanroepen (dashboard, ZWBeter racen)
+>   zijn weg. Het commentaar boven `TegelsVandaag` ("in de kleur van de plek waar
+>   ze heen leiden") volgt nu het kleurbeleid.
+>
+> **Bewust niet aangepast.**
+> - Het gekleurde dagvak op de eventpagina en in het jaarplan (A-doel goud,
+>   B-doel petrol, kamp teal) leidt nergens heen. Het is een kleine markering
+>   van de soort, geen tegel; voor de eventkop is dat een eerder besluit van de
+>   eigenaar. Of goud voor een A-doel botst met "goud is jij, nu", ligt bij de
+>   eigenaar.
+> - Instagram-tegels zijn donker petrol (spel en ontdekken), niet sage (de club
+>   en de mensen). De foto bedekt de hele tegel, dus de kleur is alleen te zien
+>   zolang hij laadt.
+> - Kleine gekleurde chips, balkjes en bolletjes elders in de app vallen niet
+>   onder de tegelregel en zijn niet nagelopen. Het open punt van 2026-10-13
+>   (rijen in lijsten die klikbaar zijn zonder kleur) is alleen voor ZWBeter
+>   racen en de TTT Planner opgepakt, met `.tg-link` (ronde hieronder).
+>
+> **Getest.** ESLint op de gewijzigde bestanden: schoon. `tsc --noEmit`: alleen
+> drie bestaande fouten in `read-barcode.ts` omdat `@zxing/browser` en
+> `@zxing/library` niet in de lokale `node_modules` staan; niets in deze
+> wijziging. **Niet getest:** `npm run test`, `npm run build`, en het dashboard
+> met echte data in de browser.
+> **"Kleur is klikbaar" in ZWBeter racen en de TTT Planner, 2026-10-15 — gebouwd, typecheck en lint schoon, bekeken op een tijdelijke voorbeeldpagina in het design "tegels"; gepusht naar `main` (eigenaar, 2026-10-15, `fb2fd61`). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar zag dat deze pagina's het kleurbeleid van het design
+> "tegels" niet volgden: een tegel met een link hoort een gevulde kleur te
+> hebben (besluit 2026-10-13, "Kleur is klikbaar"). De racelijsten en de
+> opgeslagen plannen werden in "tegels" doorzichtige panelen.
+>
+> **Wat.** Nieuwe klasse `.tg-link` in `globals.css`, alleen actief binnen
+> `[data-design="tegels"]`: een gevuld vlak in de kleur van de soort
+> (`--tg-bg`/`--tg-fg` uit `tg-kalender` enz.), lichter bij hover, en waar je al
+> bent (`aria-current="page"`) het paneel met de gouden lijn zoals bij de
+> ZWBeter-pijlers. Gedempte tekst en pictogrammen nemen de tekstkleur van de tegel
+> over. Toegepast met petrol (`tg-kalender`: wedstrijden, teams en hun uitslagen)
+> op de racelijsten van ZWBeter racen, de racekeuze in het trainersdeel en de
+> opgeslagen plannen in de TTT Planner. In het huidige design verandert niets. De
+> paneelregels voor `bg-card`, `bg-background` en `divide-y` zijn specifieker dan
+> één klasse; daarom staat `.tg-link` op `!important`.
+>
+> **Bewust niet gedaan.** De rest van de app nalopen op klikbare rijen zonder
+> kleur (het open punt bij "Kleur is klikbaar"); alleen de pagina's van deze
+> rondes. Het spiekbriefje blijft papier: daar zit geen link in.
+>
+> **Niet geverifieerd.** Met echte data en login in het design "tegels".
+
+---
+
+> **TTT Planner: het spiekbriefje als handgeschreven briefje, 2026-10-15 — gebouwd, lokaal getest en met echte data bekeken (licht, donker, telefoon); gepusht naar `main` (eigenaar, 2026-10-15, `caf6b1d`, `c9eddc5`, `bc33ebf`). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar zag "meer een echt briefje" voor zich. Een schets
+> (gelinieerd papier, kantlijn, plakband, handschrift) is goedgekeurd: "dit is
+> wat ik in mijn hoofd had", met een getekende balk voor het kopvermogen.
+>
+> **Wat.** Het blok is een papiertje: crème met lijnen, een gouden kantlijn, een
+> strook teal plakband, licht scheef vanaf `sm`. In het donkere thema blijft het
+> papier licht (iets gedimd); de kleuren zijn bewust vaste inktkleuren in het
+> component, geen thema-tokens. Handschrift: Shantell Sans via `next/font`
+> (eerst Kalam geprobeerd: daar lijkt een 1 op een l, en op een spiekbrief vol
+> getallen is dat fataal). Indeling: links "Onthouden" (de belangrijkste regel
+> omcirkeld) en "Vorige keer" met getekende staafjes; rechts "Dit plan" met een
+> getekende lat (doelband als markeerstift, een pijl op het plan) en "Renners".
+> Renners met precies dezelfde lessen staan op één regel; wie vorige keer bij een
+> ander team reed, krijgt dat team erbij; renners zonder les staan samen onderaan.
+> Op de telefoon eerst het plan en de renners. `Advice.short` geeft de teamtips
+> in een paar woorden; de vuistregels zijn ingekort tot spiekbrieftaal. De
+> cachesleutel is `ttt-races` v2.
+>
+> Daarna, op verzoek ("een beetje rommeliger, gescheurd/gekarteld aan de
+> randjes"): gescheurde randen via een CSS-masker van onregelmatige SVG-stroken
+> (boven het grilligst, als uit een schrift gescheurd), de schaduw als
+> `drop-shadow` op de omhulling zodat die de rand volgt, en een tweede stukje
+> plakband schuin over de hoek rechtsonder. Geen `clip-path`-veelhoek en geen
+> afbeelding.
+>
+> Daarna ook het handschrift doorgetrokken in koppen en ondertitels: de laatste
+> stukjes Geist (het aantal ritten, teamnamen, de namen bij de staafjes) zijn
+> handschrift, en Shantell Sans staat nu variabel met de assen `INFM`
+> (informeel) en `BNCE` (dansende letters): de tekst op 70 en 25, de koppen op
+> 100 en 50.
+>
+> **Niet meer waar.** De ronde hieronder ("het cheatsheet als spiekbriefje")
+> beschrijft een kaart met labels en een aparte kolom vuistregels; die vorm is
+> vervangen. De ritregels per renner (W/kg per klim) staan niet meer op het
+> briefje: te veel voor een spiekbrief.
+>
+> **Niet geverifieerd.** De planner zelf met login. De detector meldt de vaste
+> inktkleuren als buiten `DESIGN.md`; dat is bedoeld.
+
+---
+
+> **Kopvermogen in TTT-plannen bijgesteld: 105 tot 115% in plaats van 120 tot 130%, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `cd0e378`). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar twijfelde aan het doel van 120 tot 130% van de
+> gemiddelde FTP: wie harder trekt, maakt de ploeg sneller, en dan trap je ook in
+> het wiel harder. De eigen ploegentijdrit van 13 oktober bevestigt dat: in het
+> wiel ongeveer 80% van het kopvermogen (gemeten bij Stijn 72 tot 89%, geschat
+> bij Koen, Marc en Wouter 81 tot 84%), en met kopbeurten van 114 tot 118% van de
+> eigen FTP reden zij gemiddeld al 99% van de FTP. Uitwerking:
+> [racestrategie-onderzoek.md](docs/racestrategie-onderzoek.md), sectie 3,
+> "Kopvermogen bijgesteld op eigen data".
+>
+> **Wat.** Doel 105 tot 115%; melding onder 100% (`PULL_LOW_SHARE`, was 115%) of
+> boven 120% (`PULL_HIGH_SHARE`, was 140%), met nieuwe tipteksten. Vuistregels
+> in het spiekbriefje: kop 105 tot 115%, in het wiel ± 80% van de kop, gemiddeld
+> ≤ 100% van de eigen FTP; de regel "plek 2 op 95 tot 100%, vanaf plek 3 rond 85%"
+> is eruit. De meter loopt van 90 tot 130%. Hulptekst aangepast.
+>
+> **Niet meer waar.** De drempels "mediaan < 115% of > 140%" en het doel "120 tot
+> 130%" in de rondes hieronder en in het onderzoek (sectie 10 en 11, aangepast).
+> De toets van ZRL A (kopbeurten op 108%) geeft nu geen melding meer.
+>
+> **Bewust niet gebouwd.** Een doel dat met het aantal renners meeschuift: voor
+> zes tot acht renners op het vlakke is er geen eigen meting.
+
+---
+
+> **TTT Planner: het cheatsheet als spiekbriefje, 2026-10-15 — gebouwd, lokaal getest en met echte data bekeken (licht, donker, telefoon); gepusht naar `main` (eigenaar, 2026-10-15, `df28c5f`). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar vond het cheatsheet "veel tekst en moeilijk leesbaar"
+> en wilde het "meer spiekbrief designed".
+>
+> **Wat.** Het blok heet nu **Spiekbriefje**. `lessons.ts` geeft geen zinnen meer
+> maar korte, gestructureerde gegevens; het scherm maakt er een spiekbrief van:
+>
+> - **Vuistregels** als lijst van getal en betekenis (negen regels, de regel over
+>   lossen in twee gesplitst), in een eigen kolom rechts; op de telefoon onderaan.
+> - **Dit plan:** het kopvermogen als meter van 100 tot 150% van de gemiddelde
+>   FTP met de doelband van 120 tot 130%, plus de gemiddelde FTP; zwakke renners
+>   als label ("−23% FTP") met een opdracht van een paar woorden.
+>   `planComposition` in `advice.ts` levert de getallen; `planCompositionAdvice`
+>   maakt er nog steeds de zinnen van voor de race-analyse.
+> - **Renners:** eerst de lessen als gekleurd label met pictogram (waarschuwing,
+>   grens, klim) en een korte opdracht, daaronder de eerdere ritten in kleine
+>   letters.
+> - **Eerdere TTT's:** plek, tijd en het verschil met de dichtstbijzijnde ploeg
+>   bovenaan, per stuk een staafje voor winst of verlies, en alleen de lessen voor
+>   de ploeg als geheel; lessen over één renner staan bij die renner.
+> - Laden toont een skelet in plaats van een zin.
+>
+> **Gecontroleerd.** Met de data van Bdev via een tijdelijke voorbeeldpagina onder
+> `/ontwerp-voorbeeld` (niet gecommit: echte namen en vermogens), in licht en
+> donker, op desktop en telefoonbreedte. De Impeccable-detector vond alleen een
+> lettermaat buiten de schaal (verholpen).
+>
+> **Niet meer waar.** "Zes vaste vuistregels" en de bloknaam Cheatsheet in de
+> ronde hieronder (aangepast).
+>
+> **Niet geverifieerd.** De planner zelf met login.
+
+---
+
+> **TTT Planner: cheatsheet met lessen uit eerdere ploegentijdritten, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `1f340db`); niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Vraag van de eigenaar: "een cheatsheet met lessen uit de TTTs uit
+> de database per team, of per renner die opgehaald is uit de analyses", bij het
+> plannen in de TTT Planner.
+>
+> **Wat.**
+>
+> - `src/lib/ttt/lessons.ts` (puur): `buildCheatsheet` met vaste vuistregels
+>   (uit [racestrategie-onderzoek.md](docs/racestrategie-onderzoek.md), sectie 3,
+>   en de wissels van 13 oktober), "Dit plan" (`planCompositionAdvice`: zwakke
+>   renner met kopbeurten, kopvermogen buiten 115 tot 140% van de gemiddelde
+>   FTP), per race van het team de uitslagregel, twee feiten en de lessen
+>   (`tttPlanAdvice` en `teamAdvice`, zonder wat "Dit plan" al zegt), en per
+>   renner van het plan een regel per eerdere ploegentijdrit, ook bij een ander
+>   ZWB-team, met lessen: waar die loste (met een waarschuwing als het plan weer
+>   een kopbeurt van ≥ 60 s op ≥ 110% van de eigen FTP vraagt), wie op een klim
+>   het meeste vermogen nodig had, en wie op ≥ 98% van de FTP van toen reed en
+>   bij de ploeg bleef.
+> - `loadTttRaces` in `zrl-analysis/load.ts`: alle bevroren ZRL-TTT's van de
+>   ZWB-teams met analyse en het gebruikte plan; `analyseView` gedeeld met
+>   `loadRaceAnalysis`. In de cheatsheet een uur gecachet (`unstable_cache`), in
+>   Suspense, zodat de planner niet wacht. `planCompositionAdvice` is uit
+>   `tttPlanAdvice` gehaald, zodat het ook vóór de race werkt.
+> - Planpagina `/teams/ttt-planner/[id]` en de planner (zodra team en event
+>   gekozen zijn): blok **Cheatsheet** (inmiddels **Spiekbriefje**, zie de ronde
+>   hierboven), alleen voor wie het plan beheert. Bij een
+>   plan van het hoofdteam tellen de subteams mee. In de planner zonder plan zijn
+>   de renners die van de opstelling, zonder FTP of kopbeurt.
+> - Hulp (`#ttt-beheer`) en privacyverklaring (`#racen`): een captain ziet de
+>   eerdere ploegentijdritten van een renner ook als die toen bij een ander
+>   ZWB-team reed. **Dat is ruimer dan voorheen; voorleggen aan de eigenaar.**
+>
+> **Getoetst op echte data, alleen lezen.** Zeven ploegentijdritten in de
+> database, alle van 13 oktober; het laden kostte 32 s, omdat bij twee oude
+> snapshots het vermogen nog één keer bij Zwift wordt aangevuld (daarom
+> `maxDuration = 30` op beide pagina's en de cache). Bdev met de opstelling van
+> 13 oktober plus Han Vaessen: de lessen kloppen met de analyse van toen (Jeroen
+> loste op Zwift KOM en kreeg weer 349 W gedurende 60 s; Han verschijnt met de
+> B2-rit). Gepubliceerd plan van ZRL A: de plantip stond eerst dubbel, bij het
+> plan en bij de race (verholpen).
+>
+> **Bewust niet gebouwd.** De cheatsheet voor gewone leden (vermogen van
+> teamgenoten); lessen uit andere races dan ZRL-TTT's (een massastart zegt weinig
+> over een kopbeurt); automatisch het plan aanpassen.
+>
+> **Getest.** Nieuw: `ttt-lessons.test.ts` (teamfilter, uitslagregel, historie
+> bij een ander team, renners zonder ID of zonder rit, de waarschuwing bij een
+> zware kopbeurt, de grens met de FTP van toen, geen dubbele plantip,
+> `planCompositionAdvice` zonder race). `tsc`, ESLint, de testsuite en
+> `npm run build`.
+>
+> **Niet geverifieerd.** De pagina's in de browser; hoe lang de eerste lading op
+> Netlify duurt als de cache leeg is.
+
+---
+
+> **Racestrategie-onderzoek, getoetste tips en trainersuggesties, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `2b6a979`); niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Vraag van de eigenaar: onderzoek "zo breed en diepgravend
+> mogelijk" naar strategie in wielerwedstrijden en Zwift-racen, de lessen als tips
+> toevoegen en toetsen aan de raceprestaties, dezelfde filosofie in de
+> trainingsanalyse, en dat in het trainersdeel tonen "zodat de trainer kan
+> besluiten dit in feedback terug te geven". Onderzoek, regels en toets:
+> [racestrategie-onderzoek.md](docs/racestrategie-onderzoek.md).
+>
+> **Wat.**
+>
+> - **Onderzoek** (`docs/racestrategie-onderzoek.md`): pacing, tijdrit,
+>   aerodynamica en Zwift-draft, ploegentijdrit (aanpak van de beste
+>   WTRL-ploegen), massastart, puntenrace, W′ en de onzekerheid ervan,
+>   durability, warming-up, voeding, intensiteitsverdeling, ontkoppeling,
+>   herhalingen, RPE, feedback geven; met bronnen en wat niet kan.
+> - **Nieuwe racetips** (`advice.ts`): segmenten kiezen en efficiëntie in een
+>   puntenrace, de ploeg uit elkaar op een klim, en voor de captain plan tegenover
+>   uitvoering uit de TTT Planner (zwakke renner met beurten, kopvermogen tegenover
+>   120 tot 130% van de gemiddelde FTP, een geloste renner op ≥ 98% van de eigen FTP).
+>   In een tijdrit noemt de verdelingstip het eerste tiende. `race.ts` geeft per
+>   segment de plek over de streep (FAL) en per renner het W/kg van de renners
+>   vlak voor hem; `noDraft` voor een Race of Truth. Alleen gepubliceerde of uit
+>   ZwiftGopher geïmporteerde plannen tellen.
+> - **Trainingsanalyse** (`src/lib/training/execution.ts`, `training-advice.ts`):
+>   het schema langs het bestand gelegd, per herhaling vermogen tegenover doel,
+>   ontkoppeling bij een lange gelijkmatige rit. `fillZoneTimes` rekent dat uit
+>   dezelfde stream (nu met hartslag) en bewaart het als `metrics_json.execution`;
+>   oudere trainingen met zonetijden krijgen het binnen het venster alsnog
+>   (hooguit drie verzoeken per keer, zoals voorheen).
+> - **Trainer:** bij Beoordelen staan suggesties boven het feedbackveld, met
+>   Overnemen. Nieuwe tab **Races**: de Zwift-races van het lid met de tips die het
+>   lid ook ziet (met de eigen rit), aan te vinken en als bericht naar de coachchat
+>   te sturen (via `/api/training/chat`). Er gaat niets naar het lid zonder klik.
+> - Hulp (`#racen-trainer`, de feedback na een training, trainer-toegang) en
+>   privacyverklaring bijgewerkt. **Privacytekst voorleggen aan de eigenaar.**
+>
+> **Getoetst.** Alle 28 ZRL-races (137 renners) en de eigen ritten van de eigenaar,
+> alleen lezen. Eerste ronde 93 van 137 renners met een tip: te veel. Na bijstellen
+> 28 van 137; details per regel in het onderzoek, sectie 11. Training op de eigen
+> trainingen: na bijstellen drie suggesties, alle drie terecht. Geen
+> trainingsdata van andere leden gebruikt.
+>
+> **Besluiten van de bouwer, voor de eigenaar om te toetsen.** De drempels (zie de
+> tabellen in sectie 10); dat de trainer de racetips van zijn renner ziet, met de
+> eigen rit; dat de uitvoering per herhaling bewaard wordt.
+>
+> **Bewust niet gebouwd.** Tips over kopbeurtlengte (bronnen spreken elkaar tegen),
+> durability, voeding, warming-up en de start in Zwift (data ontbreekt of het
+> bewijs is te dun); automatisch versturen van tips; suggesties uit trainingsdata
+> van leden zonder trainer.
+>
+> **Getest.** Nieuw: `training-execution.test.ts` (uitlijnen met aanloop,
+> herhalingen, ontkoppeling, elke trainingsregel en wanneer niet);
+> `zrl-analysis-advice.test.ts` uitgebreid (segmenten kiezen, efficiëntie en niet
+> zonder draft, ploeg uit elkaar, de planregels); `zone-times-fill.test.ts` (de
+> uitvoering wordt bewaard en aangevuld, niet twee keer). `tsc`, ESLint en
+> `npm run build` schoon.
+>
+> **Niet geverifieerd.** De pagina's in de browser; een echte intervalsessie
+> (alleen gesimuleerd); hoe de suggesties bij trainers landen.
+>
+> **Niet meer waar.** De privacyverklaring zei dat van een training alleen de
+> seconden per zone bewaard worden; nu ook het vermogen per herhaling en de
+> ontkoppeling (aangepast). De tipregels in de rondes hieronder zijn uitgebreid.
+
+---
+
+> **ZWBeter racen: tips minder generiek, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `71fd6e1`); niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** De eigenaar: "Ik zie in de tips vaak terugkomende punten die niet
+> helemaal kloppen. In een wedstrijd is het logisch dat je op klimmen jezelf
+> leegtrapt [...] In een TT of ttt is dat mss anders, maar het is logisch dat je
+> w bal daar leeg raakt. Ik zou tips toch wat minder generiek willen."
+>
+> **Wat.** Een tip alleen bij een gevolg of een afwijking die bij het soort race
+> past (race, tijdrit, ploegentijdrit), met het getal erbij; regels en drempels in
+> [zrl-analyse.md](docs/zrl-analyse.md) onder Tips.
+>
+> - **Nieuw:** een klim te hard begonnen (tweede helft ≥12% lager en ≥20 s voor de
+>   top leeg), met een richtwaarde in watt; in een ploegentijdrit lang herstel na
+>   een klim (> 2 min tot 25% W′); in een tijdrit een klim onder 90% van het eigen
+>   beste over die duur, alleen als er boven nog W′ was. `ride.ts` geeft daarvoor
+>   per stuk de helften, de W′ aan het begin, hoe lang voor het eind de W′ op was,
+>   het herstel erna en het eigen beste over die duur (`curveAt`).
+> - **Strenger:** een harde start alleen als je met ≤60% W′ aan de eerste klim
+>   begon; reserve alleen in een tijdrit of ploegentijdrit. In een tijdrit gaan
+>   een te harde start en wegzakken samen in één tip.
+> - **Vervallen:** W′ op boven op een klim, "op je maximum", hartslagdrift, lage
+>   cadans, tijdverlies op de snelste van de groep met een trainingstip, en voor
+>   de captain "houd die aanpak vast". Drift, cadans en W′ staan nog in de details.
+>
+> **Getest.** `zrl-analysis-advice.test.ts` herschreven: elke regel, en wanneer er
+> géén tip komt (gelijkmatig leeg op een klim, een start zonder gevolg, reserve in
+> een race, harder op een klim waar je al leeg was). `zrl-analysis-personal.test.ts`
+> en `zrl-analysis-ride.test.ts` aangevuld. Op de eigen ritten van de eigenaar
+> (alleen lezen): ZRL-ploegentijdrit drie tips, FRR-race één, FRR-tijdrit één.
+>
+> **Niet meer waar.** De tipregels in de rondes "ZWBeter racen" en "voor elke
+> Zwift-race" hieronder zijn vervangen; `docs/zrl-analyse.md` is op zijn plek
+> aangepast.
+
+---
+
+> **ZWBeter racen voor elke Zwift-race: FRR, andere kalenderraces en een geplakte link, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `1853fad`); niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Vraag van de eigenaar: "Kan dit verder doorgetrokken worden tot
+> alles wat een Zwiftrace is dus ook de FRR?" Na het voorstel: "ja beiden" (de
+> zichtbaarheid zoals voorgesteld, en een geplakte link nu al). Haalbaarheid
+> en keuzes: [zrl-analyse.md](docs/zrl-analyse.md), sectie "Verder doorgetrokken".
+>
+> **Wat.**
+>
+> - **Elke Zwift-race** (`src/lib/zrl-analysis/personal.ts`, puur): plek en tijd
+>   in de eigen startgroep, achterstand op de winnaar, per segment het verlies op
+>   de snelste van de groep, en de ZWB'ers in dezelfde race (plek en tijd).
+> - **FRR:** de ZWB'ers in dezelfde etappe over alle tijdsloten en de eigen plek
+>   in het klassement van FRR, uit de bestaande FRR-tabellen.
+> - **Tips voor een individuele race** (`personalAdvice`): wegzakken of sterker
+>   eindigen in een tijdrit, de klim met het meeste verlies, het beste segment in
+>   een race; de tips uit het eigen bestand zonder ploegwoorden (`rideAdvice`
+>   kreeg `solo`). `ride.ts` geeft daarvoor het vermogen per helft.
+> - **Geplakte link:** formulier op `/zwbeter-worden/racen`, pagina
+>   `/zwbeter-worden/racen/zwift/[zwiftEventId]`. Staat de race in de kalender,
+>   dan naar die race. Anders eerst event en uitslag; de segmenten pas als het
+>   lid in de uitslag staat (`requireRider`), zodat niemand het serviceaccount
+>   willekeurige races laat ophalen. Wie niet reed, krijgt "Je staat niet in de
+>   uitslag van deze race."
+> - **Bewaren:** `loadZrlRaceData` heet nu `loadZwiftRaceData` en bewaart elke
+>   gereden race in `zrl_race_snapshots` (de naam van de tabel is gebleven). Buiten
+>   de ZRL met `minimizeRaceData`: van wie niet bij ZWB hoort alleen plek, tijd en
+>   segmenttijden. Nieuwe snapshots krijgen `eventType`.
+> - **De lijst** (`listRaces`): ZRL zoals voorheen, plus FRR-slots met een eigen
+>   finishtijd en elke bewaarde race met het eigen Zwift-ID in de uitslag; een
+>   geplakte race staat erin zodra hij één keer bekeken is. Per regel het soort
+>   (ZRL, FRR, Zwift).
+> - `/hulp#racen`, de hulpzoeker, de wegwijzer en de privacyverklaring
+>   (`#racen`) noemen FRR, andere races en de geplakte link. **Privacytekst
+>   voorleggen aan de eigenaar.**
+>
+> **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
+>
+> - Een andere race uit de kalender (geen ZRL, geen FRR) staat pas in de lijst als
+>   hij bewaard is, dus na één bezoek; zonder bewaarde uitslag weet de app niet
+>   wie meereed. Op dit moment is er zo'n race niet (alleen een groepsrit).
+> - Bij FRR telt de eigen plek in het klassement na de laatst verwerkte etappe,
+>   niet die na deze etappe.
+>
+> **Bewust niet gebouwd.** De Ladder (geen Zwift-event in de kalender), SRC
+> (MyWhoosh), en zelf races zoeken buiten de kalender op de naam van een
+> intervals-rit (zou raden zijn). Een tabel met de geplakte races per lid: de
+> bewaarde uitslag zegt al wie meereed.
+>
+> **Getest.** Nieuw: `zrl-analysis-personal.test.ts` (plek, achterstand,
+> segmentverlies, ZWB'ers over de groepen, soort race, `minimizeRaceData` en dat
+> de eigen analyse daarmee gelijk blijft, het ID uit een link, de tips voor een
+> tijdrit en een race zonder ploegwoorden) en twee tests in
+> `zrl-race-data-power.test.ts` (geen segmenten zonder eigen uitslag; bewaren met
+> details alleen van ZWB'ers). **Tegen productie gedraaid, schrijven
+> geblokkeerd:** FRR Ignite etappe 8 voor een lid dat reed (plek in de groep,
+> achterstand, vijf segmenten, vier ZWB'ers in de etappe, plek in het
+> klassement, eigen rit uitgelijnd binnen 9 s) en voor een lid dat niet reed
+> (geen toegang; alleen event en uitslag opgehaald).
+>
+> **Niet geverifieerd.** De pagina's in de browser; een echte geplakte race
+> buiten de kalender (geen Zwift-event-ID van zo'n race bij de hand); hoe lang een
+> eerste bezoek aan een grote openbare race op Netlify duurt (een FRR-slot kostte
+> lokaal 14 s, `maxDuration` 30).
+>
+> **Niet meer waar.** `loadZrlRaceData` bestaat niet meer (nu
+> `loadZwiftRaceData`). De ZRL-ronde hieronder zegt dat oudere snapshots worden
+> aangevuld; dat geldt nog, en nu worden ook niet-bevroren races bewaard zodra ze
+> gereden zijn.
+
+---
+
+> **TTT Planner wordt een doorwijspagina naar ZwiftGopher, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `9650ad1`); niet in de browser gezien, de import niet tegen de echte database en Export Text niet tegen een echte export. Geen migratie.**
+> Commit: `9650ad1`.
+>
+> **Waarom.** Vraag van de eigenaar: het plan uit ZwiftGopher (JSON of tekst)
+> in de app kunnen opslaan, "dat werkt denk ik beter dan de planner in de app",
+> en de pagina "eerder als doorwijspagina naar Gopher ontwerpen dan zoals het nu
+> is". Dat lag al in de lijn van 13 oktober: de eigenaar vond de calculator op
+> zwiftgopher.com/TTT handiger, en de TTT-bot las het plan daar al rechtstreeks.
+>
+> **Nu.**
+> - `/teams/ttt-planner`: event, team en plannaam, dan twee stappen. 1: Zwift-ID's
+>   kopiëren (de opstelling van het event, anders het hele team; ook renners
+>   zonder account) en Open ZwiftGopher. 2: Export JSON, Export Link of Export
+>   Text plakken of als bestand kiezen, en Importeren. Rechts de opgeslagen
+>   plannen, met gepubliceerd of concept. Met `?plan=` vervangt de import de
+>   renners van dat plan; publicatie en botlink blijven staan.
+> - `parseGopherExport`, `gopherJsonUrl` (`lib/ttt/zwiftgopher.ts`). JSON: volgorde,
+>   naam, Zwift-ID (de sleutel, tenzij `zr: false`), kopbeurt-watts en -duur,
+>   FTP, gewicht, lengte, `wkg300` (in watt, ondanks de naam) en IF. Tekst: naam,
+>   watts en duur per regel, tab, komma of pipe, kopregel en volgnummer mogen.
+>   Teamtags als "(ZWB)" gaan uit de naam. Een geplakte link haalt de server op
+>   bij `zwiftgopher.com/TTT/?save=…&json=true`, alleen dat adres, 10 s time-out.
+> - `importTttPlan` (`_actions.ts`): zelfde rechten als voorheen (captain,
+>   co-captain of `teams.manage_roster`), herkent ZWB-leden aan hun Zwift-ID,
+>   zet waarden buiten de kolomgrenzen van `0071` op leeg, en bewaart in
+>   `api_response` alleen `{ source: "zwiftgopher", format, importedAt,
+>   teamName, targetSpeedKmh }`, niet de hele export. IF per renner in
+>   `ttt_plan_riders.result`. Status `optimized`, zodat er geen migratie nodig is.
+> - Planpagina `/teams/ttt-planner/[id]`: Publiceren of Publicatie intrekken,
+>   Opnieuw importeren, Botlink, Link intrekken en Verwijderen (nieuw in de UI;
+>   de actie bestond al). Bij een import: renners, doelsnelheid vlak en het
+>   importmoment; bij een oud plan de cijfers van de oude optimizer. Kolom IF
+>   als die er is. Het JSON-blok "Planbestand" is weg, de tekstexport blijft.
+> - Racepagina: "Open in planner" heet "Open plan" en gaat naar de planpagina.
+> - Hulp (`#ttt-beheer`) herschreven; in ZWBeter racen staat nu dat de tips het
+>   plan niet gebruiken, in plaats van dat de app het niet kent.
+>
+> **Weggehaald.** De editor met instellingen, renners toevoegen, slepen,
+> Optimaliseren via de API (`optimizeTttPlan`, `buildZwiftGopherPayload`,
+> `applyZwiftGopherResult`, de terugval op eigen waarden), `saveTttPlan`, de
+> downloads Planbestand, Text en PNG, en `lib/ttt/wtrl-power.ts`. Tests
+> `ttt-zwiftgopher`, `ttt-zwiftgopher-fallback` en `ttt-wtrl-power` mee weg.
+> `ZWIFTGOPHER_API_KEY` en `ZWIFTGOPHER_API_BASE_URL` worden niet meer gelezen
+> (uit `.env.local.example` en de runbook); ze kunnen uit Netlify (nog te doen
+> door de eigenaar). ZwiftGopher
+> maakt zelf een afbeelding en tekst, dus de eigen downloads waren dubbel.
+>
+> **Bewust niet gebouwd.** Een voorbeeld vóór het opslaan: de import toont na
+> opslaan de renners met watt en duur, en opnieuw importeren vervangt ze. Renners
+> uit Export Text koppelen aan leden op naam (geen Zwift-ID in de tekst; een
+> verkeerde koppeling is erger dan geen). Bewerken van een plan in ZWB: dat
+> gebeurt in ZwiftGopher.
+>
+> **Niet meer waar.** De rondes van 2026-10-12 over rekenen, eigen waarden en
+> WTRL-vermogen hebben een aantekening gekregen, net als de vraag "of de planner
+> zelf nog nodig is" in de botronde van 2026-10-13.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon op de gewijzigde bestanden (`tsc`
+> meldt alleen `@zxing` in de voedingsscanner, ontbrekend in de gedeelde
+> `node_modules`, los van dit werk). Nieuw: `ttt-gopher-import.test.ts` (6
+> tests: JSON in de vorm van de echte export, tekst met tab, komma, pipe,
+> eenheden en minuten, fouten, links). Lokaal en buiten git ook tegen de twee
+> echte exports van 13 oktober: dezelfde volgorde, watts en duur als de bot toen
+> las. Volledige suite: 2318 van 2319 groen; wat faalt (`admin-areas`,
+> `zwift-club-calendar`, `zwift-subgroup-results`, wisselend per run) zijn
+> time-outs onder belasting die los slagen, plus `omnium-live` zonder `.env.local`.
+>
+> **Niet geverifieerd.**
+> - De pagina's in de browser.
+> - De import tegen de echte database (geen `.env.local` in de worktree).
+> - Export Text: alleen gebouwd op de omschrijving op zwiftgopher.com ("rider
+>   name, pull watts, pull duration, and kit colors", scheidingsteken naar keuze).
+>   Een echte tekstexport is niet gezien; die komt van hun server.
+> - Export Link en het adres dat Export JSON opent: de vorm komt van de bot
+>   (getoetst op 13 oktober), niet opnieuw opgehaald door het platform.
+
+---
+
+> **ZWBeter racen: analyse van gereden ZRL-races, 2026-10-15 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-15, `ae3e554`); door de eigenaar lokaal bekeken ("ziet er al goed uit"), de tips en de nieuwe zichtbaarheid nog niet in de browser. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Na het handwerkrapport over Bdev (13 oktober, skill `zrl-analyse`)
+> vroeg de eigenaar: "Kun je kijken of dit soort analyses ook voor andere leden
+> van andere teams kunnen en kun je dit inbouwen in de app, mss in een nieuwe
+> zwbeter racen?" Haalbaarheid, keuzes en wat niet kan:
+> [zrl-analyse.md](docs/zrl-analyse.md).
+>
+> **Haalbaar (gemeten, alleen lezen).** De ploeganalyse voor alle zeven
+> ZRL-teams (28 races sinds 1 september, alle met Zwift-event); de eigen rit
+> voor ongeveer 12 van de 31 platformleden in die teams (eigen bestanden in
+> intervals.icu; ritten via Strava hebben daar geen streams). Zwift geeft
+> segmentvermogen ook achteraf: op 2026-10-15 nog voor 29 september.
+>
+> **Wat.**
+>
+> - **Snapshot met vermogen** (`zwift-club.ts`, `zrl-live/snapshot.ts`):
+>   `fetchSubgroupResults` houdt nu ook gemiddeld vermogen, gewicht, type meter,
+>   beste 15 s/1/5/20 min en het finishmoment over (`resultPowerFields`);
+>   passages houden vermogen en gewicht; nieuwe data krijgt `withPower`.
+>   `loadZrlRaceData` vult een oudere snapshot bij het eerste bezoek één keer
+>   aan (uitslag en segmenten opnieuw, één voor één) en bewaart hem terug met
+>   dezelfde `frozen_at`; lukt een deel niet, dan wordt niets bewaard.
+> - **Ploeganalyse** (`src/lib/zrl-analysis/race.ts`, puur): plaats, ploegtijd
+>   of punten, de tegenstander, in een TTT de voorsprong per tussenpunt en per
+>   stuk (uit de bestaande `splits`), wie los finishte (meer dan 30 s na de
+>   vierde), en per renner vermogen, W/kg, beste 1/5/20 min en per sprint of
+>   klim W/kg en plek in de groep. Korte bevindingen erboven.
+> - **Eigen rit** (`ride.ts`, puur; `load.ts` haalt op): de rit in intervals.icu
+>   die het dichtst bij de eigen start begon, uitgelijnd op Zwifts
+>   segmentvermogen; NP, IF, stukken, beste vermogen tegenover de
+>   90-dagencurve, CP en W′ uit die curve, W′-balans, watt per hartslag en cadans
+>   boven de FTP. Alleen voor het lid zelf, niet bewaard.
+> - **Tips** (`advice.ts`, puur; nagekomen dezelfde dag op verzoek van de
+>   eigenaar: "waar zijn de korte adviezen die in de artifact stonden?"): bovenaan
+>   tips voor de renner zelf (eigen bestand en race), voor captains ook voor de
+>   ploeg en per renner. Vaste regels met het getal erbij; drempels in
+>   [zrl-analyse.md](docs/zrl-analyse.md). Platformnamen in plaats van de
+>   Zwift-namen waar het lid bekend is.
+> - **Wie wat ziet** (eigenaar, 2026-10-15): een lid alleen de eigen races
+>   (opstelling, of de eigen Zwift-ID in de bevroren uitslag); een captain of
+>   co-captain alle races van zijn teams, ook de subteams van een hoofdteam; wie
+>   uitslagen of rosters beheert alles. *Eerst zag elk teamlid alle races van
+>   het team; dat is vervangen.*
+> - **Pagina's:** vijfde pijler **racen** met `/zwbeter-worden/racen` (jouw races,
+>   als captain, andere teams) en
+>   `/zwbeter-worden/racen/[eventId]`, met twee nieuwe grafieken (voorsprong per
+>   tussenpunt; vermogen, hartslag en W′ in drie banden). Menu-item "Racen".
+> - `/hulp#racen` en `#racen-eigen-rit`, de hulpzoeker en de wegwijzer.
+> - **Privacyverklaring** (`#racen`): wat we uit de Zwift-uitslag bewaren, wie het
+>   ziet, en dat de eigen rit alleen voor het lid is en niet bewaard wordt. Geen
+>   nieuwe privacyversie: het zijn Zwift-uitslagen die we al bewaarden, aangevuld
+>   met wat Zwift er openbaar bij toont, en intervals-data die het lid al deelt.
+>   **Voorleggen aan de eigenaar.**
+>
+> **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
+>
+> - Wie uitslagen of rosters beheert, ziet alle races (de eigenaar noemde alleen
+>   lid en captain). De live stand blijft openbaar.
+> - Geen FTP of trainingsdata van ploeggenoten in de ploeganalyse, dus geen %FTP
+>   per ploeggenoot; W/kg en de beste 20 minuten in plaats daarvan.
+> - Hartslag uit de uitslagrij niet bewaren (gezondheidsgegeven, ook van andere
+>   clubs). Vermogen en gewicht van renners van andere clubs worden wel bewaard,
+>   zoals ZwiftPower ze toont; alleen de eigen renners worden getoond.
+> - De tegenstander: de ploeg direct ervoor in de uitslag, of bij een eerste
+>   plaats de tweede.
+>
+> **Bewust niet gebouwd.** Kopbeurten en plantrouw (het botlogboek staat alleen
+> lokaal en meet wie vooraan lag, niet wie trok; eerst de Sauce-meting), plan
+> tegenover uitvoering (ZwiftGopher-plannen werden niet opgeslagen; *sinds de
+> ronde "TTT Planner wordt een doorwijspagina" van dezelfde dag wel, in
+> `ttt_plans`: plan tegenover uitvoering is daarmee een mogelijke volgende
+> stap*), de eigen
+> rit bij de trainer, en automatische adviezen. Redenen in
+> [zrl-analyse.md](docs/zrl-analyse.md).
+>
+> **Getest.** Nieuw: `zrl-analysis-race.test.ts` (TTT per stuk, tegenstander,
+> los, bevindingen, zonder vermogen, puntenrace, uitslagrij lezen met
+> finishmoment en zonder hartslag), `zrl-analysis-ride.test.ts` (uitlijnen, NP,
+> CP-fit, W′-balans, stukken, curve, drift, cadans, activiteit bij de race met
+> zomer- en wintertijd) en `zrl-race-data-power.test.ts` (aanvullen één keer,
+> venster, niets bewaren bij een fout), `zrl-analysis-advice.test.ts` (elke regel,
+> ook dat een renner die later loste op een eerdere klim meetelt en dat een klim
+> waar je bovenaan hersteld was geen tip geeft). `zwbeter-pillars.test.ts` kent
+> racen. Zichtbaarheid tegen productie gelezen: een lid ziet alleen eigen races,
+> de captain van ZRL B ziet B1, B2 en Bdev, die van ZRL A alleen ZRL A.
+> **Tegen productie gedraaid, schrijven geblokkeerd:** Bdev TTT 13-10 (dezelfde
+> cijfers als het handwerk: 1e van 8, +18,1 s op OTR, eigen rit op de watt gelijk,
+> uitlijning 15 s op de watt), Bdev W3 en Zwiftladies B W3 (puntenraces), ZRL C
+> TTT (geen tussentijden: de startrijen waren niet eenduidig, dan geen verloop).
+>
+> **Niet geverifieerd.**
+>
+> - De pagina's in de browser (inloggen kan alleen de eigenaar).
+> - Hoe lang een eerste bezoek aan een oudere race op Netlify duurt: lokaal 8 tot
+>   18 s; `maxDuration` 30, net als de live stand.
+> - De `powerType`-waarde bij zPower; de pagina zegt dan "geschat vermogen".
+>
+> **Niet meer waar.** `fetchSubgroupResults` houdt niet langer "alleen rang en
+> tijd over" (ZRL-analyseblok hieronder en de skill zijn aangepast). ZWBeter in
+> het design tegels heeft vijf pijlers, niet vier.
+
+---
+
+> **ZRL-analyse als opdracht klaargezet, 2026-10-14 — alleen een skill, geen code; uitgevoerd op de pc van de eigenaar op 2026-10-14 (rapport lokaal, niet in git).**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** De eigenaar vroeg een analyse van efficiëntie en kwaliteit per
+> renner en voor de ploeg, voor ZWB Bdev in de ZRL-ploegentijdrit van
+> 13 oktober, naast de planning. In de cloudsessie kon dat niet: het netwerk
+> weigert zwift.com en zwiftpower.com, en `.env.local` (Zwift-serviceaccount,
+> Supabase) en het botlogboek `bot/.cache/ttt-2026-10-13.log` staan alleen op de
+> pc van de eigenaar. Op de vraag of het daar wel kan, staat de opdracht nu klaar
+> om daar te draaien.
+>
+> **Wat.** `.claude/skills/zrl-analyse/SKILL.md`, aan te roepen als
+> `/zrl-analyse [team] [datum]` (zonder argumenten: Bdev, 13 oktober). De skill
+> noemt de bronnen met tabel- en functienamen: team, event, opstelling,
+> `ttt_plans`, `zrl_race_snapshots` en `zrl_team_results` uit Supabase; de
+> ruwe uitslagrijen en de segmentpassages met vermogen van Zwift, via
+> `zwift-club.ts`; het botlogboek (plannen, klok, coachmeldingen, klimmen); de
+> ZwiftGopher-plannen van deel 1 en 2. Daarnaast de maten per renner en voor de
+> ploeg, en de opbouw van het rapport.
+>
+> **Keuzes in de skill.** Alleen lezen. Ruwe data en rapport in
+> `.tmp/zrl-analyse/` en niet in git, want het gaat om vermogen, gewicht en
+> hartslag van ploeggenoten. WTRL niet ophalen (hun verbod, zie
+> `wtrl-results.ts`). `intervals_activities` en `strava_activities` alleen na een
+> ja van de eigenaar, omdat RLS die alleen voor het lid en de trainer openzet. De
+> verwisseling van de plannen voor deel 1 en 2 moet expliciet in de vergelijking
+> met de planning meegenomen worden. De analyse zelf komt niet in dit plan; een
+> aanpassing van de bot die eruit volgt, is een eigen ronde.
+>
+> **Bewust niet gebouwd.** Een vast analysescript in `scripts/`. Het kon hier
+> niet tegen Zwift of de database getest worden, en welke velden een
+> uitslagrij van Zwift heeft, was niet vastgesteld. *Sinds 2026-10-15 wel: zie
+> de ronde ZWBeter racen; `fetchSubgroupResults` houdt nu ook het vermogen over.*
+>
+> **Getest.** Het bundelen dat de skill voorschrijft (esbuild met
+> `--packages=external --alias:@=./src`): `zwift-club.ts`, `route-segments.ts`,
+> `scoring.ts` en `supabase/admin.ts` laden buiten Next, zonder netwerk.
+> `zrl-live/snapshot.ts` niet (`next/cache`); de skill zegt dat.
+>
+> **Uitkomst (2026-10-14).** `/zrl-analyse` werd in die sessie niet als
+> opdracht herkend; de skill is met de hand gevolgd. Zwift gaf de segmentpassages
+> met vermogen een dag later nog, de uitslagrij bleek vermogen, hartslag,
+> gewicht, type meter, beste vermogens en finishmoment te hebben, en
+> `zrl_race_snapshots` had een rij voor die race. Het botlogboek stond in een
+> andere worktree (`ttt-discord-bot-gopherplan-*`). Bevindingen zonder
+> persoonsgegevens: [zrl-analyse.md](docs/zrl-analyse.md).
+>
+> **Ook gezien.** `npm ci` weigert hier: `package-lock.json` mist
+> `@emnapi/runtime` en `@emnapi/core` 1.11.3. Niet aangepast (los van deze
+> ronde); `npm install` werkt wel.
 
 > **Hittetraining met de CORE-sensor, via intervals.icu, 2026-10-14 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-14), ook de THb-terugval voor oudere Wahoo's; `0238` toegepast (eigenaar, 2026-10-14); nog niet met een echte CORE-rit geprobeerd.**
 > Commit: de commit die dit blok toevoegt. Migratie
@@ -536,6 +2175,45 @@ analyse per hittesessie, 2026-10-17).
 
 ---
 
+> **Naleving: foto herkennen weggehaald, 2026-10-15 — gebouwd, lokaal getest, gepusht.**
+> Commit: de commit die dit blok toevoegt. Geen migratie.
+>
+> **Waarom.** De eigenaar probeerde het met een kom kwark en granola; de
+> schatting zat er ver naast. Dat past bij wat de literatuur zegt over
+> samengestelde maaltijden (zie [naleving-voeding-plan.md](docs/naleving-voeding-plan.md), §5).
+> Herkennen uit een getypte omschrijving werkt volgens de eigenaar goed en
+> blijft: daar noemt het lid zelf de hoeveelheden.
+>
+> **Wat.**
+> - De knop Foto in het invoerformulier is weg, net als het verkleinen op het
+>   toestel en `isImageDataUrl`. `startRecognition` en
+>   `recognitionRequestBody` nemen alleen nog tekst; het model krijgt geen beeld
+>   meer.
+> - De instructies voor het model gaan alleen over een omschrijving: genoemde
+>   hoeveelheden overnemen, anders schatten met een band.
+> - De schakelaar heet nu "Tekst herkennen", met een kortere toestemming
+>   zonder foto. Wie eerder voor foto en tekst tekende, houdt de schakelaar aan:
+>   het gebruik is smaller geworden, niet breder.
+> - `/privacy`, `/hulp#voeding` en het commentaar in `src/lib/privacy.ts`
+>   noemen geen foto meer.
+>
+> **Bewust niet gedaan.**
+> - **Geen migratie.** `foto` blijft in de checks van `nutrition_log_meals.source`
+>   en `nutrition_log_ai_usage.kind`, voor de rijen van de proef. De naam
+>   `ai_consent_at` blijft ook.
+> - **De meting (stap 0) vervalt** voor de foto. Model en kostenplafond voor
+>   tekst kunnen uit het gewone gebruik komen.
+> - De barcodescan gebruikt ook een foto, maar leest alleen het nummer; die
+>   blijft.
+>
+> **Niet meer waar:** in de blokken van stap 3 hieronder, en in
+> `docs/naleving-voeding-plan.md`, staat herkennen uit een foto als gebouwd. Dat
+> klopte tot vandaag.
+>
+> **Getest.** TypeScript en eslint schoon; `nutrition-recognize` en
+> `nutrition-log` slagen, met een nieuwe test dat het verzoek geen beeld bevat
+> en de instructies geen foto noemen.
+
 > **Barcode scannen op de iPhone, 2026-10-14 — gebouwd, lokaal getest; niet op een iPhone getest.**
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
@@ -661,7 +2339,7 @@ analyse per hittesessie, 2026-10-17).
 > plafond op twee keer; `weekSummary`: gehaald per dag, lege dag telt niet,
 > zonder gewicht geen oordeel).
 
-> **Naleving stap 3: foto en tekst herkennen, 2026-10-14 — gebouwd, lokaal getest, gepusht; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken, het model niet aangeroepen.**
+> **Naleving stap 3: foto en tekst herkennen, 2026-10-14 — gebouwd, lokaal getest, gepusht; *de foto is op 2026-10-15 weggehaald, zie "Naleving: foto herkennen weggehaald"*; migratie toegepast (eigenaar, 2026-10-14); niet in de browser bekeken, het model niet aangeroepen.**
 > Commit: de commit die dit blok toevoegt. Migratie
 > `0234_nutrition_log_recognition.sql`, toegepast door de eigenaar op 2026-10-14.
 >
@@ -941,7 +2619,7 @@ analyse per hittesessie, 2026-10-17).
 >
 > **Nu.**
 > - Platform: `ttt_plans.share_token`, knoppen Botlink en Link intrekken in de
->   planner (`shareTttPlan`, `revokeTttPlanShare`), en
+>   planner (sinds 2026-10-15 op de planpagina; `shareTttPlan`, `revokeTttPlanShare`), en
 >   `GET /api/ttt/plan/[token]` zonder sessie (in `PUBLIC_PATHS`). Het antwoord is
 >   `tttPlanExport` (`lib/ttt/plan-export.ts`): naam, event, schatting en per
 >   renner volgorde, naam, Zwift-ID, kopbeurt-watts en -duur. FTP, gewicht en
@@ -993,7 +2671,9 @@ analyse per hittesessie, 2026-10-17).
 > tests. De bot haalt dus niet meer alleen bij het platform op, maar ook bij
 > zwiftgopher.com. Een plan uit ZwiftGopher heeft geen verwacht gemiddelde en
 > krijgt geen tempomelding. De deellink van het platform blijft bestaan; of de
-> planner zelf nog nodig is, is aan de eigenaar.
+> planner zelf nog nodig is, is aan de eigenaar. *(Besloten 2026-10-15: de
+> planner rekent niet meer zelf maar importeert het plan uit ZwiftGopher; zie
+> de ronde van die dag.)*
 >
 > **Ook dezelfde middag, na de eerste oefening in Discord** (de bot logt in,
 > komt in het spraakkanaal en spreekt; de coach is nog niet in een race gehoord):
@@ -1191,12 +2871,14 @@ analyse per hittesessie, 2026-10-17).
 >   `[data-design="tegels"]` in `globals.css`.
 >
 > **Menubesluiten van de eigenaar, in dit design verwerkt.** Community vervalt
-> als menu. WhatsApp-groepen en Media staan onder Meer bij Beheer, dus alleen
+> als menu. WhatsApp-groepen en Media staan onder Meer bij Beheer (sinds
+> 2026-10-16 in de groep Community op `/beheer`), dus alleen
 > voor wie `community.manage` of `media.manage` heeft: **gewone leden bereiken
 > ze in dit design niet meer via het menu.** Vraag en Aanbod en Ritverslagen
 > staan nergens meer in het menu; de pagina's zelf bestaan nog. Polls staat
-> onder Club en Samen fietsen bij de kalender (invulling van de bouwer, niet
-> bevestigd).
+> onder Club (invulling van de bouwer, niet bevestigd). Samen fietsen stond
+> eerst bij de kalender; sinds 2026-10-16 staat het onder Club, met een
+> live-tegel op Vandaag (besluit eigenaar).
 >
 > **Bewust niet gebouwd.**
 > - Aan- en afmelden op een tegel, "nog 1 renner nodig" en het intervalprofiel
@@ -1241,6 +2923,9 @@ analyse per hittesessie, 2026-10-17).
 >   paneelrijen, omkaderde vlakken zijn vlakke panelen, ronde labels zijn recht,
 >   knoppen en tabelkoppen zijn onderkast, velden zijn vlak. Dialogen en
 >   uitklapmenu's krijgen via `:has()` dezelfde hoeken en donkere vlakken.
+>   *(Bijgewerkt 2026-10-17: dat bleek niet genoeg. Ze hielden de oude rijen van
+>   28 px, ringen en tekstmaten; sinds die dag krijgen ze ook de tokens, de
+>   letter en duimhoogte, zie de ronde van die dag.)*
 >   **Dit is een vertaling van patronen, geen herontwerp per pagina:** de
 >   opbouw van elk blok is ongewijzigd.
 >
@@ -1252,7 +2937,8 @@ analyse per hittesessie, 2026-10-17).
 >   `tegels`-prop. De overige secties worden binnen `.tg-dash` via CSS een
 >   gekleurd blok in de kleur van hun plek (`SectionHeader` kreeg daarvoor
 >   `place`; standaard Club, Mijn garage en Ledenvoordeel Meer, Instagram zonder
->   kleur). Clubraces staan niet meer in de bovenste tegels: de eigen races
+>   kleur; *de gekleurde blokken vervielen op 2026-10-13 en `place` is op
+>   2026-10-15 verwijderd*). Clubraces staan niet meer in de bovenste tegels: de eigen races
 >   staan er direct onder.
 > - *Lettertype.* Jost en Albert Sans zijn vervangen door Archivo, met koppen,
 >   tegels en cijfers smaller gezet via de breedte-as. **Niet meer waar:** de
@@ -1310,6 +2996,7 @@ analyse per hittesessie, 2026-10-17).
 > - *Verjaardag in de kalender.* Het dagvak toont de profielfoto van het lid
 >   met een donkere waas; zonder foto blijft het goud.
 > - *ZWBeter.* In dit design heet ZWBeter Worden "ZWBeter", met vier pijlers
+>   (*sinds 2026-10-15 vijf: ook **racen***)
 >   in plaats van elf tabs op één rij (`lib/zwbeter-pillars.ts`, getest):
 >   **trainen** (Vandaag, Schema, Jaarplan, Belasting, Vermogen, Doelen,
 >   Logboek, Coach), **voeden** (Voeding; *sinds 2026-10-14 met een eigen
@@ -1330,7 +3017,9 @@ analyse per hittesessie, 2026-10-17).
 >   intervalprofiel in de trainingstegel" onder Bewust niet gebouwd.
 > - *Meer is weg: vier plekken.* De plek Meer dubbelde met het persoonlijke
 >   menu rechtsboven en is verwijderd (`/meer` bestaat niet meer). Het menu
->   bevat nu ook Sponsors en, onder Beheer, WhatsApp-groepen en Media; het
+>   bevat nu ook Sponsors (sinds 2026-10-16 een tegel op Club) en, onder
+>   Beheer, WhatsApp-groepen en Media (sinds 2026-10-16 één item Beheer naar
+>   `/beheer`); het
 >   toont de letter van het design. Routes als `/profiel` en `/beheer` horen bij
 >   geen plek meer, dus dan is geen tab actief (`placeForPath` geeft `null`).
 >   **Niet meer waar:** "vijf plekken" en "Meer" overal hierboven, in
@@ -1351,9 +3040,11 @@ analyse per hittesessie, 2026-10-17).
 > - *Tabbalk op de iPhone (nog niet op main).* De eigenaar meldde dat de balk
 >   op de iPhone midden in de pagina bleef hangen en met de inhoud meeschoof.
 >   De balk was `position: fixed`; hij is nu `sticky` met `bottom: 0` als
->   laatste kind van de schil. De oorzaak op iOS is niet vastgesteld. Getest in
->   de telefoonweergave van de browser (plakt op elke scrollpositie onderaan);
->   **niet getest op een echte iPhone.**
+>   laatste kind van de schil. Getest in de telefoonweergave van de browser
+>   (plakt op elke scrollpositie onderaan); **niet getest op een echte iPhone.**
+>   *Correctie 2026-10-16:* sticky loste het niet op; de balk bleef af en toe
+>   hangen. De oorzaak is het toetsenbord in de beginscherm-app, zie de ronde
+>   "Tabbalk blijft hangen na het toetsenbord".
 > - *Kleurbeleid voor tegels (besluit eigenaar, 2026-10-12; nog niet op main).*
 >   Kleur zegt wat voor soort ding het is, formaat hoe belangrijk het is.
 >   **Goud**: jij, nu, iets wat vandaag je aandacht vraagt (schaars). **Petrol**:
@@ -1362,7 +3053,7 @@ analyse per hittesessie, 2026-10-17).
 >   ontdekken. De kalender houdt in het dagvak zijn kleur per eventsoort. De
 >   regel staat als commentaar bij de kleuren in `globals.css`. Doorgevoerd op
 >   het dashboard (training goud alleen als hij vandaag is, anders teal; een
->   race zonder opgave goud; events, teamuitslag, FRR en SRC petrol; badges
+>   race zonder opgave goud, *sinds 2026-10-15 alleen de eerste*; events, teamuitslag, FRR en SRC petrol; badges
 >   teal; Mijn garage goud; ledenvoordeel sage) en op Club (`TILE_STYLE`).
 >   **Niet meer waar:** "een tegel heeft de kleur van de plek waar hij heen
 >   leidt" en "op Club is kleur afwisseling" hierboven.
@@ -1456,6 +3147,7 @@ analyse per hittesessie, 2026-10-17).
 ---
 
 > **TTT-planner: Zwift-ID's kopiëren voor zwiftgopher.com/TTT, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien en niet bij ZwiftGopher geplakt.**
+> *Bijgewerkt 2026-10-15: de knop staat nu op de doorwijspagina en kopieert de opstelling van het gekozen event (anders het team), niet meer een raceplan; zie "TTT Planner wordt een doorwijspagina naar ZwiftGopher" (2026-10-15).*
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** Vraag van de eigenaar: de renners van een plan ook in de
@@ -1482,6 +3174,7 @@ analyse per hittesessie, 2026-10-17).
 ---
 
 > **TTT-planner rekent op de lijn van zwiftgopher.com, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien.**
+> *Niet meer waar sinds 2026-10-15: de planner rekent niet meer zelf en roept de API van ZwiftGopher niet meer aan; zie "TTT Planner wordt een doorwijspagina naar ZwiftGopher" (2026-10-15).*
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** Bart zag voor ZWB A (ZRL, Watopia Figure 8 Reverse, 13 oktober)
@@ -1551,6 +3244,7 @@ analyse per hittesessie, 2026-10-17).
 ---
 
 > **TTT-planner: rekenen met eigen waarden als ZwiftGopher een Zwift-ID niet vindt, 2026-10-12 — gebouwd, lokaal getest, niet tegen ZwiftGopher gemeten.**
+> *Niet meer waar sinds 2026-10-15: Optimaliseren en de terugval op eigen waarden zijn weg; zie "TTT Planner wordt een doorwijspagina naar ZwiftGopher" (2026-10-15).*
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** Melding van de eigenaar, een dag voor de ZRL-TTT: Optimaliseren gaf
@@ -1628,6 +3322,7 @@ analyse per hittesessie, 2026-10-17).
 ---
 
 > **TTT-planner: renners zonder account, met vermogen uit WTRL, 2026-10-12 — gebouwd, lokaal getest, niet in de browser gezien.**
+> *Deels niet meer waar sinds 2026-10-15: renners zonder account staan nog in de Zwift-ID-lijst, maar het vermogen uit WTRL (`lib/ttt/wtrl-power.ts`) is weg; ZwiftGopher zoekt dat zelf op. Zie "TTT Planner wordt een doorwijspagina naar ZwiftGopher" (2026-10-15).*
 > Commit: de commit die dit blok toevoegt. Geen migratie.
 >
 > **Waarom.** Vraag van de eigenaar: kunnen we via het Zwift-ID de gegevens van
@@ -7909,8 +9604,12 @@ link naar `/live/[eventId]`, zie de update hierboven).
   RLS, gespiegeld aan `0026`) en een zichtbaarheidskeuze (`show_on_profile`,
   default tonen tenzij gearchiveerd). De sync raakt `image_url`/`show_on_profile`
   nooit aan (upsert zet alleen z'n eigen kolommen). Showcase "Mijn fietsen" op
-  `/profiel` en op het ledenprofiel (`ProfileReadonlyView`), niet op het publieke
-  profiel. Leden zónder Strava voegen handmatig een fiets toe
+  `/profiel`. Op het ledenprofiel (`ProfileReadonlyView`) zag tot 2026-10-16
+  alleen het lid zelf ze: `strava_bikes` heeft alleen de eigen-policy uit `0089`
+  (op productie nagekeken). Sinds `0243` leest het ledenprofiel ze via
+  `get_member_profile_bikes`, voor elk goedgekeurd lid (zie de ronde "Fietsen
+  zichtbaar voor andere leden"). Het publieke profiel toont ze via
+  `get_public_profile_bikes` (`0094`). Leden zónder Strava voegen handmatig een fiets toe
   (`source='manual'`, `profiel/_actions/bikes.ts`): naam, merk/model, optionele
   afstand + foto. Waren showcase-only omdat `/onderhoud` op `source='strava'`
   filterde; sinds Mijn garage (2026-08-18) doen ze volwaardig mee met een eigen
@@ -8149,6 +9848,2095 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### In uitvoering — Eigen regelmotor naast de AI (schaduw)
+
+**2026-10-17.** Ontwerp en afspraken: [docs/eigen-regelmotor.md](docs/eigen-regelmotor.md).
+Geen migratie.
+
+**Waarom.** De eigenaar vroeg of de uitgebreide kennisbank en workoutbibliotheek
+de OpenAI-aanroepen overbodig kunnen maken. Bijna al het AI-gebruik is
+schema's maken (zo'n 170 generaties in 30 dagen voor 8 leden), 18 % van de
+bijwerkingen mislukte, en de prompt is al een regelboek van zo'n negentig
+regels, de meeste getallen. De AI gebruikt de 58 standaardworkouts niet: hij
+verzint elke workout zelf. De motor schrijft de regels als code, met dezelfde
+invoer (`TrainingAiInput`) en uitvoer (`GeneratedTrainingPlan`) als de AI.
+
+**Fundament, 2026-10-17.** Commit `7cdd04c`. `src/lib/training/engine/types.ts` (het contract
+tussen de onderdelen), `calendar.ts` (beschikbaarheid per dag, vaste
+afspraken, periodes) en `signals.ts` (herstelsignalen met vaste drempels:
+TSB ≤ -30, ramp rate ≥ 8, readiness van het apparaat < 50, klachtenscore >
+0,65; keuzes van ZWB, geen onderzoeksgrenzen). Tests in `tests/unit/engine/`
+met een verzonnen lid. De onderdelen hieronder zijn parallel gebouwd op dit
+contract, elk in een eigen worktree, en daarna samengevoegd.
+
+**Bewust niet gebouwd.**
+- *De AI vervangen.* De motor draait ernaast; overstappen is een apart besluit
+  van de eigenaar op basis van de meetlat en het naspelen van opgeslagen
+  generaties.
+- *Gestructureerde voorkeuren.* In de 459 opgeslagen generaties tot 2026-10-17
+  had 2 keer een voorkeur; de motor negeert vrije tekst en meldt dat.
+- *Opslag van motor-uitvoer in de database.* Overbodig: de motor is
+  deterministisch en `prompt_summary` bewaart de volledige invoer, dus de
+  uitvoer is altijd opnieuw uit te rekenen. Zo is er ook geen migratie nodig.
+- *Coachchat, pacing en maaltijdherkenning.* Taalbegrip of buiten deze ronde.
+
+**Dag-aanpassing, 2026-10-17.** Commit `c192eca`. `src/lib/training/engine/daily.ts`: de
+beslisboom uit `adaptiveDailyPrompt()`. Volgorde: rustperiode → niets; vandaag
+al gereden of een vaste afspraak → vandaag niets; zwaarder dan gepland gisteren
+of vermoeid → de eerstvolgende sleutelsessie (drempel, VO2max, anaeroob) wordt
+rustige duur van hooguit 60 minuten, en een rustige rit van vandaag wordt een
+kwart korter; minder tijd → dezelfde vorm ingekort, anders rustige duur; fris
+op eigen melding → een rustige duurrit wordt intensieve duur als morgen geen
+sleutelsessie staat; een rit gevraagd op een vrije dag → rustige duur. Anders
+een lege lijst: het schema blijft. `currentPlan` kent geen blokken, dus een
+gewijzigde training wordt opnieuw uit de catalogus gebouwd. "Zwaarder" is
+≥ 20 % en ≥ 15 minuten langer dan gepland, of RPE ≥ 8 of gevoel zwaar/slecht;
+een rit tot 90 minuten met IF < 0,75 op een dag zonder training is de optionele
+rustdagrit, een verschoven training telt niet. In een kamp tellen TSB en extra
+minuten niet, alleen het lid zelf en de herstelwaarden. Getallen zijn keuzes
+van ZWB. Daarnaast `scripts/engine-export.mjs`: haalt de afgeronde generaties
+(invoer en AI-schema) op naar `.tmp/` voor het naspelen; 420 van de 459 hadden
+op 2026-10-17 een volledige invoer. **Bewust niet:** een training schrappen. Een
+aanpassing vervangt alleen de dagen die ze teruggeeft
+(`retireSupersededWorkouts` zonder bereik), dus een rustdag maken past niet in
+dit formaat; de motor verlicht in plaats daarvan.
+
+**Catalogus, 2026-10-17.** Branch `claude/motor-catalogus-a72999`, geen
+migratie. `src/lib/training/engine/catalog.ts` bouwt per vorm uit
+`SESSION_FORMS` een uitgeschreven sessie (`buildSession`), met
+`minSessionMinutes` als ondergrens en `transitionRide` voor de
+overgangsperiode. Opbouw en notities komen uit de 58 standaardworkouts, de
+doelen uit de promptregels: waar de bibliotheek daarvan afwijkt, wint de
+prompt (drempel 95-102 % wordt 95-100 % onder 15 minuten en 90-95 % vanaf 15,
+VO2max 112-120 % en 115-125 % worden 110-118 %). Doelen staan altijd in %FTP;
+de notitie draagt RPE plus wattage, of zonder FTP RPE plus gevoelstaal.
+`level` schaalt het aantal herhalingen, `variant` kiest de opbouw (drempel
+4x8, 3x12, 2x20, 3x15; VO2max ook 30/15 en 40/20 als `onOff`-blok); past de
+gekozen variant niet in de tijd, dan schuift hij door naar de volgende. Duur
+komt precies op het doel uit (nooit boven `maxMinutes`): eerst gaan
+herhalingen eraf, extra tijd gaat naar in- en uitrijden en daarna naar een
+rustig duurblok na de kern. Sprint (6 x 30 sec, vast aantal zoals de prompt)
+en `transitionRide` (minstens 80 minuten) zijn `veelbelovend`, de rest
+`geen`. Lage cadans komt alleen bij de werkblokken van vo2max, anaeroob en
+sprint, niet bij openers of de sprints in een lange rit. Tests in
+`tests/unit/engine/catalog.test.ts` toetsen elke vorm over duur, niveau en
+variant op de promptregels. *Bewust niet:* de lange ritten met drempel-,
+tempo- of krachtblokken uit 0227/0228 (het kernwerk verschuift dan en de rit
+heet geen duurrit meer; kracht op lage cadans botst met de lage-cadansregel),
+de experimentele VO2max-varianten (horen bij een apart besluit in compose),
+en testen en warming-ups (geen sessievorm). Herstel krijgt in- en uitrijden
+van 5 minuten; dat compose herstel onder 90 minuten weglaat, is aan compose.
+
+**Periodisering, 2026-10-17.** Branch `claude/motor-periodisering-526b69`, geen
+migratie. `src/lib/training/engine/periodization.ts`: `planWeeks(input, window)`
+geeft per kalenderweek soort, volume (inclusief vaste afspraken), plafond,
+sleutelsessies, niveau en lange rit, elk besluit met een `volume.*`-,
+`sleutel.*`- of `langerit.*`-reden. Eerst liggen kamp, rust, rustig, taper,
+heropbouw en de herstelweek tussen twee blokken vast; de vrije weken daartussen
+worden cycli van 3+1 (beginner 2+1), zo uitgelijnd dat de piekweek vlak vóór
+een taper, rust of kamp valt en een blok met `goalBeyond` op herstel eindigt.
+Daarna vertrekt het volume op `recentLoad`, groeit ~10 % per opbouwweek en
+wordt de piekweek naar 85 % van het plafond getild zolang de stap onder een
+kwart blijft; haalt hij dat niet, dan zegt een reden met caution waarom. Keuzes
+die de prompt openlaat: de grens van een kwart geldt tussen belaste weken (een
+opbouwweek na een herstelweek vergelijkt met de week vóór het herstel), en een
+week met minder beschikbare tijd remt de opbouw daarna niet; het plafond van de
+groei is de mediaan van de weekplafonds. Herstel na een kamp is 65 % van het
+normale weekvolume, niet van het kamp. `lowerCapacity` en `fatigued` werken
+alleen op de eerste week en cyclus van het venster: het zijn signalen van nu.
+Een clubevent op race-intensiteit en een FTP-test tellen als sleutelsessie.
+Zonder plafond groeit het volume tot een kwart boven `recentLoad`. Getoetst in
+`tests/unit/engine/periodization.test.ts`. *Bewust niet:* de
+overbelastingsweek vóór een taper (optioneel in de prompt), de overgangsperiode
+na een A/B-mikpunt als eigen weeksoort (de week na de taper begint gewoon een
+nieuwe cyclus; het samenstellen kiest daar de sessies) en de kampzwaarte op
+compliance en wellness (de factor 1,5/1,75/2 volgt alleen `experienceLevel`).
+De redenen van `recoverySignals` zelf neemt `planWeeks` niet over, zodat
+samenstellen of `index.ts` ze één keer melden.
+
+**Samenstellen, 2026-10-17.** Commit `f2b40d4`. Geen
+migratie. `src/lib/training/engine/compose.ts`: `composePlan()` zet de weken uit
+de periodisering om in workouts op dagen, `planText()` maakt titel, summary en
+cautions uit de `EngineReason`s. Per week: alleen dagen met beschikbare minuten,
+geen vaste afspraak, geen rustperiode; het aantal ritten volgt
+`recentLoad.ridesPerWeek` (één rit erbij als de gemiddelde rit anders meer dan
+1,5x de gewende duur wordt); de lange rit op de ruimste dag; sleutelvormen per
+doeltype, wisselend per week, nooit op opeenvolgende dagen of naast een race,
+test of zware vaste rit; de dag vóór een race of test openers; een toegezegde
+race vult de VO2max-plek van een ZRL-week; events die niet in `fixedWorkouts`
+staan komen er met hun eigen duur bij. Weinig tijd geeft sprintsessies,
+de overgangsperiode na het laatste A/B-mikpunt één rustige duurrit met sprints,
+hitte een notitie op een duurrit, lage cadans gaat als `lowCadence` naar de
+catalogus. Tests met een stub-catalogus en handgemaakte weken in
+`tests/unit/engine/compose.test.ts`. (Samen met de echte catalogus en
+periodisering gedraaid bij het samenvoegen, zie hieronder.) *Eigen keuzes, niet uit de prompt:* een aangevinkte dag
+zonder minuten krijgt hooguit 300 min, de overgangsperiode duurt 28 dagen, en
+een FTP-test telt als sleutelsessie van zijn week. In een kamp gelden alleen de
+minuten van een apart ingevulde week (de prompt zet het kamp boven de
+standaardweek), anders 360 min per dag. *Bewust niet:* de sprints van de
+overgangsrit als blokken met `burstSeconds` — het contract kent die vraag aan de
+catalogus niet, dus ze staan als notitie (TODO in de code); geen hersteltraining
+onder 90 min (een rustdag, niet in de uitvoer); minuten die niet in de
+beschikbare dagen passen worden niet geforceerd maar als reden gemeld.
+
+**Samenvoegen en naspelen, 2026-10-17.** Commit: de commit die deze alinea
+toevoegt. Geen migratie. De vier branches (catalogus, periodisering,
+samenstellen, meetlat) zijn samengevoegd; `src/lib/training/engine/index.ts`
+(`generateEnginePlan()`) is de ingang, `workout.ts` de gedeelde omzetting naar
+het AI-formaat. `scripts/engine-replay.mjs` draait de motor op de 420 opgeslagen
+invoeren en legt AI en motor langs de meetlat:
+[docs/regelmotor-naspelen.md](docs/regelmotor-naspelen.md). Vanaf 2026-09-17
+heeft 9 % van de dagelijkse aanpassingen van de AI een fout tegen 0 % bij de
+motor, en 59 % van de bijwerkingen tegen 11 % (na het besluit hieronder); de
+motor faalt op geen enkele invoer. Het naspelen vond zes motorfouten (taperweek leeg naast de gran fondo,
+afronding onder de 85 %, ritten die niet in de gekozen dagen pasten,
+sleutelsessies die het weekvolume overschreden, groei op doel in plaats van op
+wat er werkelijk stond, de dag vóór een A/B-mikpunt niet licht) en vier regels
+waarop de meetlat strenger was dan de prompt (kamp, event, piekmoment en
+taperzone); beide zijn rechtgezet, details in
+[docs/eigen-regelmotor.md](docs/eigen-regelmotor.md) en
+[docs/schema-meetlat.md](docs/schema-meetlat.md). **Besluit van de
+eigenaar (2026-10-17):** bij een lid ver onder zijn plafond kunnen "piekweek ≥
+85 %" en "nooit meer dan een kwart erbij" niet allebei; de groeigrens gaat
+voor, zoals de motor al deed. De meetlat volgt dat (een lagere piek is geen
+fout als 85 % alleen met grotere sprongen kon, en het laatste, nog lopende blok
+van een bijwerking wordt niet op zijn piek beoordeeld). De AI-prompt is bewust
+niet aangepast: dat verandert de schema's van leden en is een eigen besluit.
+**Bewust niet:** de motor in de app. (Trainers blind laten vergelijken stond
+hier als volgende stap; dat is gebouwd, zie hieronder.) **Niet geverifieerd:** of de motorschema's goed
+trainen — de meetlat toetst regels, geen trainingswaarde; de volledige testsuite
+draaide groen op drie zware tests na die alleen onder volle belasting een
+time-out gaven en los slagen, en `omnium-live` die `.env.local` nodig heeft.
+Niet gepusht.
+
+**Blind vergelijken door trainers, 2026-10-17.** Commit `0bd879e`.
+Samengevoegd met de regelmotor-branch. Migratie `0247_training_engine_comparisons.sql` — **toegepast op
+productie op 2026-10-17** na akkoord van de eigenaar, via de Supabase-connector
+(lokaal niet te testen: geen Docker of Supabase-config). Vóór het toepassen
+kwam er een index op `profile_id` bij, voor de cascade bij het verwijderen van
+een lid. Na afloop gecontroleerd: tabel met RLS, beide policies en alle drie de
+indexen staan er; de adviseurs melden voor deze tabel alleen nog ongebruikte
+indexen (de tabel is leeg). De meetlat toetst alleen regels; of de
+motor beter traint moeten trainers zeggen. Nieuw trainerstabblad
+**Vergelijken** (`/zwbeter-worden/trainer/vergelijken`): per opgeslagen
+AI-generatie het schema van de AI (`response_json`) naast dat van de motor,
+ter plekke uitgerekend met `generateEnginePlan()` op `prompt_summary` (niet
+opgeslagen: de motor is deterministisch). De trainer kiest "A beter", "B beter"
+of "gelijk", met een optionele reden van hooguit 280 tekens; pas daarna zegt de
+pagina welke kant van wie was. Welke kant de motor krijgt, volgt uit een hash
+(FNV-1a) van het generatie-id: vast per generatie, over alle generaties ongeveer
+half-half. Pure delen in `src/lib/training/engine-comparison.ts`, tests in
+`tests/unit/engine-comparison.test.ts`. De weergave hergebruikt `WorkoutBlocks`
+uit de beoordelen-tab; uitleg staat op `/hulp#vergelijken`.
+*Afspraken:* toegang zoals Beoordelen — trainer-recht plus actieve koppeling;
+de lijst toont alle toegewezen leden tegelijk, op datum en soort, zonder namen;
+de serveractie controleert `canCoach()` en rekent de motorkant zelf uit, het
+formulier stuurt alleen A/B/gelijk. Tot het oordeel gaat er geen herkomst naar
+de browser. De tabel bewaart de winnaar (`ai`/`engine`/`gelijk`) en welke kant
+de motor had, zodat een latere andere volgorde oude oordelen niet scheeftrekt.
+Eén oordeel per trainer per generatie, alleen invoegen: een oordeel achteraf
+bijstellen na het ontblinden zou de vergelijking niet meer blind maken. De
+teller bovenaan telt de eigen oordelen; de stand motor/AI/gelijk verschijnt pas
+op een generatie die je al beoordeelde. *Bewust niet:* titel, samenvatting en
+aandachtspunten van de schema's tonen — die van de motor zijn sjabloonzinnen en
+verraden hem; de workouttitels, -beschrijvingen en de schrijfwijze van de
+blokdoelen ("RPE 2-3, 155-207w" tegen "173-224 W") doen dat deels ook, dat is
+niet te vermijden zonder de inhoud weg te halen. Generaties van vóór 2026-09-17 —
+die prompt kende nog niet alle regels, zelfde grens als het naspelen. Een
+overzicht over trainers heen: komt pas als er oordelen zijn. Dagaanpassingen
+waarin geen van beide iets wijzigt overslaan: dat vraagt per paginalading de
+volledige invoer van alle ~150 generaties plus evenveel motorruns; ze staan er
+nu als "Beide: geen wijziging" in. Bij een dagaanpassing staat onder de datum
+wat er gepland was, een lege kant heet "Ongewijzigd" en de weektotalen vallen
+weg (die zouden alleen de gewijzigde dagen tellen). *Niet geverifieerd:*
+opslaan van een oordeel in productie — vóór 0247 gaf de actie lokaal "Opslaan
+mislukt" (de toegangscontrole ervoor slaagde); nu de tabel bestaat, is een echt
+oordeel nog niet opgeslagen en de pagina staat nog niet live (niet gepusht). De
+pagina zelf is lokaal in de browser bekeken (desktop en 375 px, geen
+horizontale scroll): lijst van 147 generaties, een bijwerking en een
+dagaanpassing naast elkaar, het formulier, en de ontblinding met een tijdelijk
+in de code gezet oordeel dat daarna weer is weggehaald. tsc groen; volledige
+testsuite groen op twee PGlite/pacing-tests na die onder volle belasting een
+time-out gaven en los slagen. Niet gepusht.
+
+### Opgeleverd — Meetlat voor trainingsschema's, met nulmeting van de AI
+
+**2026-10-17.** Commit `77acd48`. Geen migratie.
+Uitkomst en werkwijze: [schema-meetlat](docs/schema-meetlat.md).
+
+**Aanleiding.** ZWB onderzoekt of de OpenAI-aanroepen voor schema's (nieuw schema,
+bijwerking, dagelijkse aanpassing) kunnen worden vervangen door een eigen
+regelmotor op de workoutbibliotheek en de kennisbank. Daarvoor is eerst een
+objectieve maat nodig: de kwaliteit van AI-schema's werd nergens gemeten, en
+`insertPlanWorkouts()` repareerde achteraf alleen een paar dingen. Dezelfde
+controle moet straks AI- en motorschema's naast elkaar beoordelen
+(schaduwdraaien).
+
+**Wat er veranderde.**
+- `src/lib/training/schema-check.ts`: `checkTrainingPlan(input, workouts, { from, to })`
+  geeft een lijst bevindingen `{ regel, ernst, datum, toelichting }`. Puur en
+  deterministisch, en hergebruikt `minutesForDate`/`mondayKey`/`weekdayOf`
+  (availability.ts), `shiftDays`/`daysBetween`/`REBUILD_AFTER_REST_DAYS`
+  (season.ts) en `normalizeWorkoutBlocks`/`alignBlockIntensity`/`alignWorkoutIntensities`/
+  `powerRangePercentForBlock`/`OPTIONAL_REST_RIDE_MINUTES` (workouts.ts). Zeventien
+  regels: beschikbaarheid, vaste afspraken, weekplafond, piekweek ≥ 85%, groei ≤ 25%,
+  herstelweek, niet onder recentLoad, blok- en workoutintensiteit, drempelblokken,
+  boven FTP, korte herstelrit, rustdag als workout, taper zonder piek, sleutelsessies
+  op rij, sleutelsessie vóór race, plus ongeldige datum. Drempels en de gekozen
+  grenzen waar de prompt vaag is staan in de doc.
+- `tests/unit/training-schema-check.test.ts`: 34 tests.
+- `scripts/schema-meetlat.mjs`: haalt alle voltooide generaties op, toetst ze en
+  telt per regel, ook alleen over generaties waarvan de prompt de regel al bevatte
+  en over de laatste 30 dagen.
+
+**Uitkomst (420 generaties, 4.334 workouts; vóór de bijstelling van vier regels bij het naspelen, zie de ronde hierboven).** Dag- en weekregels (plafond,
+beschikbaarheid, vaste afspraken, taper, sleutelsessies op rij) houdt de AI in de
+laatste maand vrijwel altijd vast. De vorm van de opbouw niet: in 13% van de
+recente generaties een sprong van meer dan een kwart tussen opbouwweken, in 8% een
+opbouwweek onder wat het lid nu rijdt, en in 13% blokken in de verkeerde zone.
+Promptregels werken wel zodra ze erin staan: 653 korte herstelritten vóór
+2026-09-19, nul daarna. Vier keer gaf de AI een kapotte datum terug (`2026-10-25},{`).
+
+**Bewust niet gedaan.**
+- **Iets aan de AI-flow of de UI veranderen.** De meetlat draait nergens in de app;
+  hij is een maat, geen vangnet. Of hij later in `insertPlanWorkouts()` komt, is
+  een apart besluit.
+- **Regels die over `cautions` of `summary` gaan** (een reden noemen, de FTP-test
+  aanraden), het ritme van `recentLoad.ridesPerWeek`, kamp-, protocol- en
+  voorkeurregels en titels. Die zijn niet hard te toetsen op de workouts alleen.
+- **De meting via de Supabase-connector.** Die geeft het resultaat terug in het
+  gesprek, en 10 MB aan generaties past daar niet in. Het script gebruikt de
+  gekoppelde Supabase CLI, dezelfde alleen-lezende route als `db-health.mjs`.
+
+**Niet geverifieerd.** De grenzen voor "sterk negatieve TSB" (≤ -20) en "hoge
+ramp_rate" (≥ 8), de marge rond "grofweg 60-70%" en de herkenning van een taper
+zijn keuzes van de meetlat, niet van de eigenaar. De groeiregel is getoetst op 25%
+terwijl de prompt tot 2026-10-16 "ongeveer 10%" zei. De bevindingen voor groei en
+recentLoad zijn met de hand nagelopen op een handvol generaties; dat is een
+steekproef, geen volledige controle.
+
+### Opgeleverd — Kennisartikel Intervallen: tempo, drempel, VO2max en anaeroob
+
+**2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Waarom.** Na de vorige ronde hadden 20 workouts in de bibliotheek geen
+bewijslabel, omdat er geen artikel was dat de gewone intervalvormen onderbouwt.
+De eigenaar vroeg om zo'n artikel, met een niveau volgens de criteria.
+
+**Wat er veranderde.**
+- Nieuw artikel `intervallen` in de kennisbank trainen (categorie Intensiteit),
+  met negen bronnen, alle nagekeken in PubMed: vijf meta-analyses (Milanović
+  2015, Gist 2014, Sloth 2013, Rosenblat 2020, Mølmen 2025) en vier proeven
+  (Seiler 2013, Mølmen 2025, Rønnestad 2025, Neal 2013). Kern: intervallen geven
+  iets meer VO2max dan alleen duur, geen vorm wint duidelijk, dus afwisselen.
+- Niveau **Matig**: meerdere meta-analyses die het eens zijn, maar vooral bij
+  niet of matig getrainde mensen en vooral op VO2max (regel 1 van de criteria).
+  Tempo en sweet spot rusten op twee blokweekproeven van één groep; dat staat in
+  de beperkingen. Het niveau staat in `docs/bewijsniveau-kennisbank.md` (trainen
+  nu 20 artikelen, totaal 57). **Goedgekeurd door de eigenaar op 2026-10-17**,
+  na het bouwen; de tabel zegt dat ook.
+- `workout-support.ts` hangt tempo, sweet spot, drempel, VO2max, anaeroob en
+  sprint aan dit artikel, na de specifieke koppelingen (blokweek, wisselend,
+  onderhoud, lage cadans). Alle 58 standaardworkouts hebben nu een label.
+- In ZWBieb staat het artikel op de plank Trainen, vóór Korte intervallen.
+
+**Bewust niet gedaan.**
+- Geen apart artikel voor tempo en sweet spot met *beperkt*. Dat zou eerlijker
+  zijn voor die twee vormen (er is nauwelijks onderzoek naar), maar de vraag
+  was één artikel. De beperking staat in het artikel; splitsen kan later.
+- Geen nieuwe zoektocht naar alle literatuur: de bronnen zijn gekozen en
+  nagekeken, niet systematisch gezocht. De maandelijkse literatuurscan neemt
+  het artikel vanzelf mee.
+
+**Controle.** Volledige `vitest`: alles groen, op twee PGlite-time-outs na
+(`rls-initplan-migration`, `admin-areas`) die los opnieuw gedraaid slagen.
+`eslint` schoon; `tsc` schoon op de bekende fouten na (`read-barcode.ts`,
+`gopher-image-ocr.ts`, en een kapot gegenereerd `.next/dev/types/validator.ts`
+van de draaiende dev-server).
+
+**In de browser bekeken** (dev-server, 2026-10-17): het artikel toont Matig
+bewijs, de punten, beperkingen en negen bronnen. In de bibliotheek hebben alle
+58 workouts een badge; 20 linken naar Intervallen. Geen consolefouten.
+
+### Opgeleverd — Workout-bibliotheek: blokken en bewijsniveau per workout
+
+**2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Wat er veranderde.** De eigenaar wilde in de workout-bibliotheek van de trainer
+(`/zwbeter-worden/trainer/schema`) dezelfde weergave als in het schema van het
+lid, en de bewijslabels van de kennisbank.
+- **Blokken.** Elke workout toont de gekleurde blokkenbalk (`WorkoutBlocks`),
+  met de FTP van het lid voor de watts. De pagina haalt daarvoor nu ook
+  `structure_json` van `training_workout_templates` op.
+- **Bewijsniveau.** Een workout krijgt geen eigen niveau maar leent dat van het
+  kennisartikel dat hem onderbouwt (`src/lib/training/workout-support.ts`). Zo
+  staat een niveau op één plek (`docs/bewijsniveau-kennisbank.md`) en kan het
+  niet uit elkaar lopen. De badge linkt naar dat artikel. Koppeling:
+  blokweken → *Blokweken*; aflopend, snelle start en wisselend → *VO2max met
+  wisselend vermogen*; 6x30s onderhoud en Duur 90 met 3x3 sprints → *Sprints
+  als onderhoud*; Kracht 6x2 laag toerental → *Lage cadans*; tests → *Je FTP*;
+  warming-ups → *Warming-up*; herstelritten en duurritten onder 150 minuten →
+  *Rustige ritten rustig*; duurritten vanaf 150 minuten → *Lange ritten*.
+  Het label Veelbelovend of Experimenteel blijft ernaast staan.
+
+**Bewust niet gedaan.**
+- ~~Geen niveau op 20 workouts~~ (tempo, sweet spot behalve de blokweken,
+  drempel, de gewone VO2max-intervallen, anaeroob, Sprint 6x1 met aanloop en
+  Sprint 8x1): er was geen artikel dat die vormen direct onderbouwde, en ze aan
+  *Zones* of *Korte intervallen* hangen zou een niveau suggereren dat dat artikel
+  niet geeft. **Ingehaald** door de ronde "Kennisartikel Intervallen" hierboven.
+- **Geen niveau op eigen workouts** van trainers: ZWB weet niet wat erin staat.
+- **Geen legenda** in de bibliotheek: dat is uitleg in een featurescherm. De
+  badge linkt naar het artikel, en de legenda staat op de kennisbanklijst.
+- Het niveau gaat niet mee naar de geplande workout van het lid; alleen de
+  bibliotheek toont het.
+
+**Controle.** `tests/unit/workout-support.test.ts` (nieuw) bewaakt de koppeling
+en dat elk gekoppeld artikel bestaat. `eslint` op de gewijzigde bestanden is
+schoon; `tsc` ook, op de bekende fouten in `read-barcode.ts` en
+`gopher-image-ocr.ts` na.
+
+**In de browser bekeken** (dev-server, al ingelogd als trainer, 2026-10-17): alle
+58 workouts tonen hun blokken, 38 hadden toen een badge met de koppeling hierboven en
+de juiste link. Op 375 px geen horizontale scroll, geen consolefouten. Het paneel
+was verborgen, dus de controle liep via de DOM, niet via screenshots.
+
+### Opgeleverd — "… op de fiets" op je eigen profiel linkt naar `/stats/ik`
+
+**2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Wat er veranderde.** De kop van het blok `RiderStats` ("… op de fiets") is op
+je eigen profiel een link naar `/stats/ik`, met een pijltje. `RiderStats` kreeg
+daarvoor een optionele `href`; `member-profile.tsx` geeft die alleen mee als het
+lid naar zichzelf kijkt (`self`). Dat geldt dus voor de weergave "Zoals leden je
+zien" op `/profiel` en voor `/leden/<eigen id>`.
+
+**Bewust niet gedaan.**
+- De hele sectie klikbaar maken: het blok bevat al "Bekijk op Strava"-links, en
+  een link in een link is geen geldige HTML.
+- Een link op andermans profiel: `/stats/ik` toont altijd de stats van de kijker,
+  niet die van het lid.
+
+**Controle.** `eslint` op de gewijzigde bestanden is schoon. `tsc` is schoon, op
+de bekende fouten in `read-barcode.ts` en `gopher-image-ocr.ts` na.
+
+**Niet geverifieerd.** De pagina in de browser.
+
+### Opgeleverd — Maandelijkse literatuurscan van de kennisbank
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Achtergrond: [kennisbank-scan](docs/kennisbank-scan/README.md).
+
+**Aanleiding.** Na de wetenschappelijke toets vroeg de eigenaar om een routine
+die elke maand de nieuwe literatuur scant op bruikbaarheid voor de app en zelf
+een voorstel schrijft wat aangescherpt, toegevoegd of verwijderd moet worden.
+Zonder zo'n ronde veroudert de kennisbank stil, terwijl de coachchat er sinds
+vandaag zijn antwoorden op baseert.
+
+**Wat er veranderde.**
+- `.claude/skills/kennisbank-scan/SKILL.md`: de werkwijze. Eigen worktree en
+  branch `kennisbank-scan/JJJJ-MM` vanaf `origin/main`; bestaande bronnen in PubMed
+  controleren op terugtrekking; per thema zoeken in Consensus en PubMed binnen
+  het venster sinds de vorige scan; schiften op bewijs, populatie en opzet;
+  elke voorgestelde bron bevestigen; een voorstel in vaste vorm. Daarna pas,
+  na akkoord, uitvoeren met test en een ronde hier.
+- `docs/kennisbank-scan/README.md`: het geheugen van de scan. Logboek (de
+  nulmeting is de toets, t/m 2026-10-16), 27 thema's met een Consensus- en een
+  PubMed-zoekvraag, en een lijst met artikelen die bekeken en bewust gelaten zijn,
+  zodat ze niet elke maand terugkomen.
+- `scripts/kennisbank-inventaris.mjs`: leest de drie kennisbanken en de
+  protocollen uit de code (via `jiti`) en geeft per artikel kern, beperkingen
+  en bronnen (en het label veelbelovend of experimenteel), en alle 250 bronnen
+  op één lijst (`--ids`: de 224 DOI's en PMID's).
+  Zo werkt de scan altijd met de kennisbank van de huidige commit.
+- Een geplande taak in de Claude-app op de eigen pc,
+  `kennisbank-literatuurscan`, op de 2e van de maand om 09:00 (de 1e is al van de
+  doorlichting van ZWBeter Worden). Hij leest de skill van `origin/main`, dus werkt pas
+  als deze commit op `main` staat. Staat de app uit, dan draait hij bij de
+  volgende start.
+
+**Bewust niet gedaan.**
+- **Zelf uitvoeren.** De scan schrijft alleen een voorstel en commit alleen in
+  `docs/kennisbank-scan/`. Kennisbanktekst en rekenregels veranderen pas na
+  akkoord, zoals bij de toets.
+- **Een cloudroutine.** Die zou pushen en een branch-deploy kunnen starten
+  (Netlify-credits), en de connectors en de lokale checkout zijn op de eigen pc
+  zeker beschikbaar.
+- **Een ronde in dit bestand per scan.** Het logboek staat in
+  `docs/kennisbank-scan/README.md`; hier komt pas iets bij als een voorstel is
+  uitgevoerd. Anders groeit dit bestand met een regel per maand zonder dat er
+  iets aan de app veranderde.
+- **De onderzoeksagent van Consensus** (`create_thread`). Duurt minuten per vraag
+  en is bedoeld voor een synthese; voor een maandelijkse schifting volstaan de
+  gewone zoekfunctie en PubMed.
+
+**Getest.** De inventaris draait in deze worktree (250 bronnen, 79 artikelen en
+protocollen). Eén thema (taper) met de hand geprobeerd: Consensus geeft met het
+jaarfilter veel treffers buiten het onderwerp, en de PubMed-connector negeert
+`date_from` zonder `date_to`. Beide staan als regel in de werkwijze; de
+PubMed-zoekvragen gebruiken daarom `[tiab]`-termen zonder jokertekens.
+
+**Niet geverifieerd.** Een volledige scan is nog niet gedraaid; de eerste is op
+2 november 2026. Of de taak in Auto-modus de worktree en de commit zonder vragen
+mag maken, blijkt dan.
+
+### Opgeleverd — bewijsniveau per kennisartikel
+
+**Voorgesteld 2026-10-16 (`2aafc8c`), goedgekeurd en gebouwd 2026-10-17.**
+Commit: de commit die dit blok toevoegt. Geen migratie. Criteria en niveau per
+artikel: [bewijsniveau-kennisbank](docs/bewijsniveau-kennisbank.md).
+
+**Aanleiding.** Na de leeszaal vroeg de eigenaar of alle kennisartikelen, net
+als de nieuwe trainingsmethodes, een label kunnen krijgen waaraan je ziet hoe
+gegrond ze zijn. Bij akkoord vroeg hij er een korte legenda bij, in de
+kennisbanken en in ZWBieb.
+
+**Wat er veranderde.**
+- Elk artikel heeft een veld `evidence`. De waarden zijn die van de protocollen
+  (sterk, matig, beperkt) plus `afgeraden`, en staan in
+  `src/lib/knowledge/evidence.ts`.
+- Het niveau gaat over het centrale advies, met vaste criteria en twee
+  begrenzingen:
+  - alleen een tussenmaat: hooguit matig;
+  - niet bij duursporters: hooguit matig.
+- Uitkomst: 10 sterk, 29 matig, 14 beperkt, 3 afgeraden.
+- Het niveau staat naast Veelbelovend en Experimenteel, en vervangt die niet.
+- **Besluiten van de eigenaar.**
+  - *Wat niet werkt*, *Ketonen* en *Low-carb en keto* krijgen **Afgeraden** in
+    plaats van een niveau.
+  - Het protocol `lage-cadans-vo2max` ging van matig naar **beperkt**, gelijk
+    aan zijn artikel.
+  - Het protocol Koolhydraten laden blijft matig naast een artikel op sterk.
+- **Waar het staat:**
+  - **Badge** (`src/components/evidence-badge.tsx`):
+    - op elk artikel, onder de samenvatting;
+    - achter de titel in de drie kennisbanklijsten;
+    - in de leeszaal, met zoeken op niveau;
+    - in ZWBieb bij een onderwerp ("In de leeszaal").
+  - **Legenda** bovenaan de drie kennisbanklijsten en de leeszaal. Hij toont
+    alleen de niveaus die in die lijst voorkomen. Bij trainen en in de leeszaal
+    staan er ook Veelbelovend en Experimenteel in.
+  - **`/hulp`** heeft een blok "Bewijsniveau" met de criteria in het kort. De
+    hulpzoeker vindt het op "bewijs".
+- **Coachchat.** Elk artikel gaat met "Bewijs: …" mee in het kennisbankblok.
+  De prompt zegt nu:
+  - bij beperkt bewijs zegt de coach dat erbij;
+  - iets afgeraden raadt hij af, ook als het lid erom vraagt.
+- **Kennisbank-scan.** `scripts/kennisbank-inventaris.mjs` zet het niveau
+  ("Bewijs:") bij elk artikel en protocol. Bij protocollen stond het eerst in de
+  samenvatting. De skill `kennisbank-scan` stelt een ander niveau voor onder
+  **Label**, volgens de criteria in het document.
+
+**Bewust niet gebouwd.**
+- **Een niveau per punt binnen een artikel.** Dat zijn honderden oordelen en
+  een onrustige pagina. Twijfel per punt staat in "Wat dit niet laat zien".
+- **Het niveau afleiden uit de soorten bronnen.** Een consensusstuk in de lijst
+  zegt niet dat het advies ervan afhangt; het is een oordeel per artikel.
+
+**Niet meer waar.**
+- `docs/protocollen-onderzoek.md` noemde lage cadans "matig". Dat is daar
+  bijgewerkt.
+
+**Getest.**
+- Nieuw: `article-evidence.test.ts`, vier tests:
+  - elk artikel heeft een geldig niveau;
+  - het niveau is gelijk aan de goedgekeurde tabel in het document; wijkt
+    code af, dan faalt de build;
+  - Afgeraden staat alleen bij de drie artikelen;
+  - het protocol lage cadans is gelijk aan zijn artikel.
+- `coach-knowledge.test.ts`: elk artikel heeft zijn niveau in het blok voor de
+  coach.
+- `tsc` en ESLint: geen nieuwe fouten.
+
+**In de browser bekeken** (dev-server, ingelogd door de eigenaar, 2026-10-17):
+- **Kennisbanklijsten.** De legenda toont per lijst alleen wat erin voorkomt:
+  - voeding: vier niveaus;
+  - trainen: drie niveaus plus Veelbelovend en Experimenteel;
+  - core & mobiliteit: alleen matig en beperkt.
+  Elke titel heeft zijn badge.
+- **Artikelen.** Blokweken toont Matig bewijs naast Veelbelovend. Ketonen toont
+  Afgeraden. Kracht op de fiets toont Beperkt bewijs. Het protocol lage cadans
+  staat op Beperkt bewijs.
+- **ZWBieb.** De leeszaal heeft de legenda en badges. Zoeken op "afgeraden"
+  geeft de drie artikelen. Een onderwerp toont "In de leeszaal" met badges.
+- **Telefoon.** Op 375 px geen horizontale scroll, en geen fouten in de console.
+- In de legenda liepen "Sterk bewijs" en "Matig bewijs" eerst over twee regels.
+  De badge breekt nu niet meer af (`whitespace-nowrap`).
+
+**Niet geverifieerd.** Hoe de coach het niveau in een echt antwoord gebruikt.
+Dat vraagt een OpenAI-call op productie.
+
+### Opgeleverd — ZWBieb: de leeszaal, alle kennisbanken per onderwerp
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** In ZWBieb leen je kennis en spullen van een ander lid. De
+eigenaar opperde om er ook de kennisbanken te zetten, per onderwerp ingedeeld,
+zoals in een echte bieb. Die kennisbanken stonden elk bij hun eigen onderdeel:
+trainen (19 artikelen), voeding (25) en core & mobiliteit (12). Een onderwerp
+als herstel stond zo verspreid over twee kennisbanken.
+
+**Wat er veranderde.**
+- **Nieuwe tab Leeszaal** (`/zwbieb/leeszaal`), naast Kennis en Spullen. Alle 56
+  artikelen staan op twaalf planken per onderwerp: Trainen, Testen en meten,
+  Naar een wedstrijd, Eten en drinken onderweg, Dagelijkse voeding, Herstel,
+  Supplementen, Kracht, Core, rug en mobiliteit, Bijzondere trainingsvormen,
+  Gezondheid, en Vrouwen en ouder worden. Er is een zoekveld op titel,
+  samenvatting, plank en label. Elke plank heeft een anker (`#gezondheid`).
+- Het label Veelbelovend of Experimenteel van een trainingsartikel (ronde
+  "veelbelovende en experimentele trainingsmethodes", hieronder) staat ook in
+  de leeszaal. Die ronde kwam tijdens het bouwen op main; de vijf nieuwe
+  artikelen staan op Trainen (VO2max met wisselend vermogen, Sprints als
+  onderhoud, Blokweken) en op de plank Bijzondere trainingsvormen
+  (Bloedstroombeperking, Brain endurance training). Die plank heette eerst
+  "Hitte en ademhaling".
+- **De indeling** staat in `src/lib/zwbieb/shelves.ts`. Elk artikel staat op
+  precies één plank, zoals een boek één plek heeft in de bieb.
+  `zwbieb.test.ts` faalt als een nieuw artikel nog niet op een plank staat.
+- **De artikelen zijn niet verhuisd.** Ze blijven op hun adres onder ZWBeter
+  Worden, want protocollen, de coach en het schema linken daarheen. De leeszaal
+  is een catalogus en linkt naar die adressen.
+- **Kenners bij artikelen, artikelen bij onderwerpen.** Een plank kan wijzen
+  naar onderwerpen van ZWBieb, bijvoorbeeld Eten en drinken onderweg naar
+  `voeding-onderweg`, en Core, rug en mobiliteit naar `kracht-core` en
+  `bikefit`. Daaruit volgt:
+  - Onder elk kennisartikel staat een blok **Vraag een clublid**, met hooguit
+    vijf kenners van die onderwerpen en een knop "Vraag het aan" (je ziet
+    jezelf er niet in). Zonder kenners verschijnt het blok niet.
+  - Bij een onderwerp onder Kennis (`/zwbieb?onderwerp=…`) staat een blok **In
+    de leeszaal**, met de artikelen erover.
+  - Op de leeszaal staan onder een plank de onderwerpen met het aantal kenners.
+- Een plank wijst alleen naar onderwerpen uit de startlijst van `0242`.
+  Onderwerpen die leden zelf toevoegen kan de moderatie hernoemen of verbergen;
+  daarom staat de indeling vast in code. Een slug verandert nooit. Een verborgen
+  onderwerp valt vanzelf weg.
+- De tabs en de knoppen in de kop van ZWBieb zitten in `zwbieb-nav.tsx`, de
+  kennerregel in `expert-row.tsx`. Overzicht en leeszaal gebruiken beide.
+- `/hulp#zwbieb` en de hulpzoeker noemen de leeszaal.
+
+**Bewust niet gebouwd.**
+- **Artikelen verhuizen naar ZWBieb.** Dat breekt de links vanuit protocollen,
+  coach en schema, en bij trainen of voeden is de kennisbank dan niet meer bij
+  de hand.
+- **Leden laten schrijven in de leeszaal.** De kennisbanken worden op bronnen
+  getoetst (wetenschappelijke toets). Kennis van leden loopt via kenners, tips
+  en gesprekken.
+- **De indeling in de database**, of planken die leden zelf maken. Een artikel
+  staat al in code; de plank hoort daarbij.
+- **Een gezondheidsonderwerp in ZWBieb.** Gezondheid krijgt wel een plank, maar
+  zonder kenners. Wie zich als kenner meldt, vertelt de club iets over zichzelf.
+  Een artikel lezen doet dat niet.
+- **Protocollen en recepten in de leeszaal.** Dat zijn geen naslag maar iets om
+  te volgen of te koken. Ze blijven bij Trainen en Voeding.
+
+**Getest.**
+- `zwbieb.test.ts`, drie nieuwe tests:
+  - elk artikel staat op precies één plank;
+  - planken zijn uniek en niet leeg, en wijzen alleen naar onderwerpen uit de
+    startlijst;
+  - een plank opzoeken bij een artikel en bij een onderwerp.
+- `tsc` en ESLint: geen nieuwe fouten (de bekende in `read-barcode.ts` en
+  `gopher-image-ocr.ts` blijven).
+- Volledige run: groen, behalve wat al bekend was. `admin-areas`,
+  `intervals-ride-sync` en `rls-initplan-migration` lopen alleen onder
+  belasting uit de tijd en zijn los groen. `omnium-live` mist `.env.local`.
+
+**In de browser bekeken** (dev-server, ingelogd door de eigenaar, 2026-10-16):
+- De leeszaal toont alle 56 artikelen, met de labels. Zoeken werkt: "herstel" geeft drie
+  planken. Ankers als `#onderweg` werken. Op 375 px is er geen horizontale
+  scroll, en het label van de kennisbank valt daar weg.
+- Een onderwerp (`?onderwerp=trainen-met-schema`) toont "In de leeszaal" met
+  zeven artikelen.
+- "Vraag een clublid" staat bij Zones en Vocht en zout. Bij Het gymprogramma
+  (nul kenners) en IJzer (plank zonder onderwerp) staat het er terecht niet.
+  De eigenaar is op dit moment de enige kenner. Om het blok te zien is het
+  filter op jezelf even uitgezet en daarna teruggezet; met een tweede lid is
+  het niet bekeken.
+- De onderwerpen per plank gaan als gewone gegevens naar de client
+  (`shelf-browser.tsx`), niet als React-elementen. Dat gaf in dev een
+  waarschuwing over een ontbrekende `key`.
+
+**Niet geverifieerd.** "Vraag het aan" vanaf een artikel bij een ander lid
+(dezelfde link als in het overzicht), en het geheel op productie.
+
+### Opgeleverd — veelbelovende en experimentele trainingsmethodes, met label
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
+`0246_workout_method_labels.sql` (toegepast via de Supabase-connector,
+2026-10-16; zie "Controle").
+
+**Aanleiding.** De eigenaar vroeg alles te bouwen wat in
+[het onderzoek](docs/trainingsmethodes-onderzoek-2026-10-16.md) als
+veelbelovend of experimenteel staat, met dat label erbij waar het gebruikt
+wordt, en workouts in de bibliotheek.
+
+**Wat er veranderde.**
+- **Label.** `src/lib/training/method-label.ts`: `veelbelovend` of
+  `experimenteel`. Apart van het bewijsniveau van een protocol (sterk, matig,
+  beperkt): dat zegt hoeveel onderzoek er is, het label of het effect al
+  vaststaat. Het onderzoek stelde eerst een vierde bewijsniveau voor; dat is
+  bij het bouwen losgelaten. Badge `src/components/method-label-badge.tsx`.
+- **Waar het label staat.** Kolom `method_label` op
+  `training_workout_templates` en `training_workouts` (0246). Zichtbaar bij de
+  workouttitel in het schema, in de kalendertooltip en het detail, in de
+  workoutbibliotheek en de trainerskalender, bij protocollen en
+  kennisartikelen. Naar intervals.icu (en zo Zwift) gaat het vooraan in de
+  beschrijving: "Experimenteel. …". Een bibliotheekworkout neemt het label mee
+  bij invoegen en vervangen; de AI geeft per workout een `methodLabel` terug
+  (`ai.ts`, `draft.ts`).
+- **Bibliotheek (0246), negen standaardworkouts.** Veelbelovend: Sweet spot
+  5x10, 6x12 en 7x14 blokweek; VO2max 30/15 blokweek; Sprint 6x30s onderhoud;
+  Duur 90 met 3x3 sprints. Experimenteel: VO2max 5x5 snelle start, 4x4
+  aflopend en 5x5 wisselend.
+- **Korte herhalingen in een blok.** `WorkoutBlock.onOff` (aan/uit in
+  seconden plus een uit-doel): één blok van 9 minuten is 12 x 30/15. Gaat als
+  losse stappen naar intervals.icu (workout_doc en tekst), telt mee in
+  belasting en zonetijd met aan- én uit-deel, de uitvoeringsanalyse vergelijkt
+  met het gemiddelde doel, en een event uit intervals.icu vouwt de stappen
+  terug tot één blok. De trainer kan het instellen in de blokeditor (Aan, Uit,
+  Doel uit). De AI kan het ook (onSeconds/offSeconds/offTarget) en kan nu
+  bursts schrijven (burstSeconds).
+- **Protocollen.** Blokweek drempel en Blokweek 30/15 (matig bewijs,
+  veelbelovend; groep "Blokweek") met een aiHint die de sessies plant; Brain
+  endurance training (beperkt bewijs, experimenteel; geen aiHint, het is geen
+  fietsblok).
+- **AI-regels** (`defaultTrainingPrompt`): sprintonderhoud in een week met
+  minder dan de helft van de gewone tijd of in een periode "rustig" (daar mag
+  nu één korte sprintsessie, telt niet als sleutelsessie); sprints in één
+  rustige rit per week na het laatste A- of B-mikpunt van het seizoen; hooguit
+  één op de drie VO2max-sessies met snelle start, aflopend of wisselend
+  vermogen. Blokken met `onSeconds` vallen niet onder de grens van 8 minuten
+  boven 100% FTP.
+- **Kennisbank trainen**: Blokweken, VO2max met wisselend vermogen, Sprints
+  als onderhoud, Brain endurance training, Trainen met bloedstroombeperking.
+  De bron Rønnestad 2025 verhuisde van `training-library.ts` naar
+  `protocols/training.ts`.
+- `/hulp#protocollen`: blok "Veelbelovend en experimenteel", plus zoekwoorden.
+- **Coachchat** (na de merge met "Coachchat antwoordt met de kennisbank"): de
+  vijf nieuwe artikelen gaan vanzelf mee; `coach.ts` zet er "Label:
+  Veelbelovend/Experimenteel" bij, en de instructies vragen de coach dat label te
+  noemen als zijn antwoord erop steunt. Niet tegen OpenAI geprobeerd.
+
+**Bewust niet gebouwd.**
+- REHIT (2 x 20 seconden): getest bij ongetrainden, en zo'n sessie heet in het
+  schema "Herstel" omdat het kernwerk korter is dan vijf minuten.
+- BFR als protocol of workout: alleen een artikel, met het advies het met een
+  fysiotherapeut of sportarts te doen.
+- Een Stroop-taak in de app voor brain endurance training: het protocol
+  verwijst naar een taak op telefoon of computer.
+- Een label voor eigen bibliotheekworkouts van trainers: alleen de
+  standaardset heeft er een.
+
+**Controle.** `tsc` schoon op de bekende fouten na (`read-barcode.ts`,
+`gopher-image-ocr.ts`); `eslint` schoon op de gewijzigde bestanden. Nieuwe tests
+`workout-on-off.test.ts` en `workout-method-labels-migration.test.ts` (0246 in
+PGlite bovenop 0106-0227). De hele unitsuite: alles groen, op drie na die in de
+volle run time-outs gaven of `.env.local` misten en los wel slaagden
+(`omnium-live` heeft `.env.local` nodig en is los niet gedraaid).
+
+**Op productie (2026-10-16, Supabase-connector).** 0246 toegepast als versie
+`20261016140209`. Nagekeken: `method_label` staat op `training_workout_templates`
+en `training_workouts`, beide met de check op `veelbelovend`/`experimenteel`. De
+standaardset ging van 49 naar 58 workouts; precies de negen nieuwe hebben een
+label (zes veelbelovend, drie experimenteel), met per workout een blokduur die
+optelt tot `duration_minutes`, vijf `onOff`-blokken in de 30/15-week en negen
+bursts in "Duur 90 met 3x3 sprints". Geen eigen workouts en geen geplande
+workouts met een label. De code is nog niet gepusht: tot de deploy gebruikt
+productie de kolom niet, en de oude code merkt er niets van.
+
+**Niet geverifieerd.**
+- De pagina's zijn niet in de browser bekeken (ingelogd), en de AI-uitvoer met
+  het nieuwe schema (methodLabel, onSeconds, burstSeconds) is niet tegen
+  OpenAI gedraaid.
+- Hoe intervals.icu de tekstvorm "12x" in de beschrijving toont; de FIT-export
+  loopt via workout_doc met platte stappen.
+
+### Onderzocht — veelbelovende trainingsmethodes, met label "experimenteel"
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
+code.
+
+**Aanleiding.** De eigenaar vroeg via PubMed en Consensus te zoeken naar
+veelbelovende trainingsmethodes, protocollen en workouts. Experimenteel mag,
+maar de app moet dat dan zeggen.
+
+**Uitkomst.** Zie [trainingsmethodes-onderzoek-2026-10-16.md](docs/trainingsmethodes-onderzoek-2026-10-16.md).
+- **Veelbelovend:** een blokweek (zes drempelsessies of vijf 30/15-sessies in
+  een week, dan zes dagen herstel), sprintintervallen als onderhoud bij weinig
+  tijd, en sprints in één rustige rit in de overgangsperiode.
+- **Experimenteel:** VO2max-intervallen met snelle start of wisselend vermogen
+  (alleen eenmalige metingen, geen trainingsstudie), brain endurance training,
+  en trainen met bloedstroombeperking.
+- **Niet bouwen:** ischemische preconditionering (niet beter dan placebo),
+  "double threshold" met lactaatmeter (geen fietsstudies), trillingen.
+- Voorstel: `experimenteel` als vierde waarde in `PROTOCOL_EVIDENCE`. *Bij het
+  bouwen anders gedaan: een apart label `methodLabel`, zie de ronde hierboven.*
+
+**Bewust niet gebouwd.** In deze ronde nog niets; alles wat veelbelovend of
+experimenteel heette is dezelfde dag gebouwd (zie de ronde hierboven). BFR en
+ischemische preconditionering kregen geen protocol (banden en gemeten
+afsluitdruk nodig, hogere bloeddruk; geen effect boven placebo).
+
+**Niet geverifieerd.** Alleen samenvattingen gelezen, via PubMed en Consensus.
+De DOI's zijn niet in Crossref nagelopen en de studieopzet niet uit de volledige
+artikelen gehaald; dat moet per bron bij het bouwen.
+
+### Opgeleverd — Coachchat antwoordt met de kennisbank
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Achtergrond: [coachchat](docs/coachchat.md#de-kennisbank-sinds-16-oktober-2026).
+
+**Aanleiding.** De eigenaar vroeg of de AI-coach anders moet nu de kennisbank na
+de wetenschappelijke toets veel meer onderbouwde feiten bevat. De coachchat kreeg
+tot nu toe alleen de data van het lid en beantwoordde vragen over trainen of
+voeding uit de algemene kennis van het model, dus mogelijk met precies de
+beweringen die de toets had bijgesteld (zoals de "veilige 10 %").
+
+**Wat er veranderde.**
+- `src/lib/knowledge/coach.ts` zet de drie kennisbanken (trainen 14, voeding 25,
+  kracht 12 artikelen) om in één vast tekstblok, met per artikel het pad, de
+  punten, de beperkingen en korte bronnen. Ruim 69.000 tekens.
+- `coachInstructions()` in `coach-chat.ts` zet dat onder de systeemprompt. De
+  prompt kreeg een blok "Kennisbank": antwoorden vanuit de kennisbank, eigen
+  keuzes van ZWB zo noemen, beperkingen noemen, geen bronnen verzinnen, zeggen
+  als de kennisbank er niets over zegt, en verwijzen als `[titel](pad)`.
+- De chat maakt van zo'n verwijzing een link, maar alleen naar een pad onder de
+  drie kennisbanken (`src/lib/knowledge/links.ts`). Links naar artikelen die niet
+  bestaan, haalt de server weg voordat het antwoord wordt opgeslagen.
+- `/hulp` zegt bij de coachchat in één alinea dat hij vragen over trainen,
+  voeding en kracht met de kennisbank beantwoordt.
+- `tests/unit/coach-knowledge.test.ts`: elk artikel staat erin met pad, punten
+  en beperkingen, elk pad heeft een artikelpagina, de instructies zijn vast, en
+  alleen kennisbankpaden worden een link.
+
+**Bewust niet gedaan.**
+- **Zoeken met embeddings of een vectoropslag.** Een kleine vijftig artikelen
+  passen in één keer; zoeken voegt alleen infrastructuur en missers toe. Pas
+  heroverwegen als de kennisbanken een veelvoud worden.
+- **De artikelen in de schema-prompt.** Een planner heeft regels nodig, geen
+  leesstof. Daar is het voorstel een andere ronde: de prompt opbouwen uit regels
+  met een id uit het claimregister en een artikel als bron, en regels die niet
+  van toepassing zijn weglaten. Nog niet goedgekeurd.
+- **Overstappen naar een andere AI-aanbieder.** Besproken en uitgesteld: dat
+  vraagt een andere oplossing voor de achtergrondcall (OpenAI's
+  `background: true`), een nieuwe verwerker in de privacyverklaring, en eerst een
+  vast testsetje om de uitkomst te kunnen vergelijken.
+- **Een nieuwe privacyversie.** De kennisbank is geen persoonsgegeven; over het
+  lid gaat er niets anders naar OpenAI dan voorheen.
+
+**Controle.** `vitest` groen op de nieuwe en de bestaande chattests. De volledige
+suite gaf drie fouten die hier niet bij horen: `omnium-live.test.ts` mist
+`.env.local` in deze worktree, en twee tests liepen onder last in een time-out
+en slagen los gedraaid. `eslint` schoon op de gewijzigde bestanden; `tsc` schoon
+op de bekende fouten in `read-barcode.ts` en `gopher-image-ocr.ts` na.
+
+**Niet geverifieerd.** Hoe de coach echt antwoordt: dat vraagt een OpenAI-call
+op productie. Ook niet of de prompt-cache van OpenAI het vaste blok hergebruikt
+(de route logt `usage` niet), wat de extra invoer per vraag kost (naar schatting
+zo'n twintigduizend tokens, niet geteld), en of de links in de chat in de browser
+goed werken.
+
+### Opgeleverd — Profiel: weergaveknop met drie standen
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** De eigenaar vroeg de weergaveknop als een gouden lichtknop,
+gecentreerd onder het blok met naam, regio en rollen. Tijdens het bouwen kwam
+er een derde stand bij: bewerken (links), wat leden zien (midden, standaard) en
+het deelbare profiel (rechts).
+
+**Wat er veranderde.**
+- `profile-view-toggle.tsx` is een rail met drie standen en een effen gouden
+  knop die naar de gekozen stand schuift, met iconen in plaats van tekst:
+  potlood (bewerken), mensen (wat leden zien), wereldbol (deelbaar profiel).
+  De naam staat in de tooltip en is het label voor schermlezers. Tikken en de
+  pijltjestoetsen werken (`role="radiogroup"`). De CSS staat als `.view-slider`
+  onderaan `globals.css` en in `DESIGN.md` (onderdeel "Weergaveknop").
+- Eerst gebouwd als "gouden dimmer": een plaat van geborsteld goud met
+  schroefjes, een lampje in de knop en een gloed die feller werd naarmate meer
+  mensen je zien, met de namen als tekst eronder. De eigenaar vond dat te
+  opzichtig en wilde iconen zonder tekst; daarom dezelfde dag vervangen door de
+  vlakke rail, in de stijl van de rest van de app. Slepen is daarbij vervallen.
+- De knop staat in alle drie de weergaven direct onder de profielkop.
+  `ProfileReadonlyView` en `MemberProfile` kregen daarvoor een `afterHeader`.
+- **`/profiel` opent nu in het midden** (wat leden zien). Bewerken is
+  `/profiel?weergave=bewerken`, het deelbare profiel `?weergave=deelbaar`. De
+  oude `?weergave=leden` valt vanzelf op het midden.
+- Alle bestaande links naar `/profiel` en `/profiel#…` die op bewerken doelden
+  wijzen nu naar `?weergave=bewerken` (dashboard, hulp, welkom, kalender, Mijn
+  garage, ZWBeter-pagina's, privacy, stats, segmentcollecties), net als de
+  pushberichten voor nieuwe badges en verlopen Strava (`awards.ts`,
+  `milestone-evaluators.ts`, `strava/sweep.ts`). Alleen het menu-item Profiel
+  opent het midden. Al verstuurde meldingen met `/profiel` komen nu in het
+  midden uit.
+- Het deelbare profiel zit in één component,
+  `profielen/[id]/_components/public-profile.tsx`, die `/profielen/[id]` en de
+  rechterstand gebruiken. Staat het deelbare profiel uit, dan toont de
+  rechterstand een lege staat met "Aanzetten" naar
+  `?weergave=bewerken#zichtbaarheid` (nieuw anker in `profile-form.tsx`).
+- `/hulp` legt de drie standen in één regel uit.
+
+- Op je eigen ledenprofiel (het midden van de knop, en `/leden/[eigen id]`)
+  staat het blok "Deelbaar profiel" niet meer: dat zit al op de wereldbol.
+  Andere leden zien het blok wel, met de link naar je deelbare profiel. Het
+  midden toont daardoor net iets minder dan wat een ander lid ziet; de eigenaar
+  koos daarvoor (2026-10-16).
+
+**Bewust niet gedaan.**
+- De bewerkweergave even breed maken als de andere twee (`max-w-2xl` tegen
+  `max-w-3xl`). Dan verspringt de kop bij het wisselen een beetje, maar de
+  formulieren blijven zoals ze waren en de twee andere standen tonen precies de
+  breedte van de echte pagina's.
+
+**Controle.** `eslint` en `tsc` schoon (op de bekende fouten in
+`read-barcode.ts` en `gopher-image-ocr.ts` na). De Impeccable-detector geeft op
+de weergaveknop geen meldingen. De knop is los gerenderd met dezelfde CSS, in
+alle standen, licht en donker (headless Edge).
+
+**Niet geverifieerd.** De ingelogde pagina zelf, de knop op een echte telefoon
+en de terugknop van de browser tussen de standen.
+
+### Opgeleverd — Fietsen zichtbaar voor andere leden
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
+`0243_member_profile_bikes.sql` (toegepast via de Supabase-connector,
+2026-10-16; zie "Controle").
+
+**Aanleiding.** Bij de ronde "Profiel: zoals leden je zien" bleek dat andere
+leden geen fietsen op het ledenprofiel zagen: `strava_bikes` heeft alleen de
+eigen-policy uit `0089`. De showcase op `/profiel` vraagt per fiets wel of hij op
+het profiel staat. De eigenaar koos ervoor dat leden elkaars fietsen zien.
+
+**Wat er veranderde.**
+- `0243` voegt `get_member_profile_bikes(target_profile_id)` toe: security
+  definer, alleen voor `authenticated`. Hij geeft de fietsen van een goedgekeurd
+  lid aan een goedgekeurde kijker, met dezelfde regel als het publieke profiel:
+  `coalesce(show_on_profile, not retired)`. Kolommen gelijk aan
+  `get_public_profile_bikes`; de kolomtypes zijn op productie nagekeken.
+- `member-profile.tsx` leest de fietsen via die functie, ook als het lid naar
+  zichzelf kijkt. Zo toont "Zoals leden je zien" op `/profiel` precies wat
+  anderen zien.
+- Privacyverklaring, onder "Account- en profielgegevens": andere leden zien je
+  fietsen (naam, merk en model, afstand, foto) behalve die je verbergt, en
+  bezoekers als je publieke profiel aan staat. **Geen nieuwe versie** in
+  `src/lib/privacy.ts`. Dat wijkt bewust af van de regel daar, net als bij
+  eerdere verruimingen: het gaat om gegevens die het lid zelf voor zijn profiel
+  opgaf, met een keuze per fiets, voor ontvangers die zijn profiel al zien.
+  Goedgekeurd door de eigenaar, zonder nieuwe versie (2026-10-16).
+
+**Bewust niet gedaan.**
+- Een select-policy op `strava_bikes`. Die tabel heeft ook kolommen voor het
+  eigen onderhoud; met een functie blijft de keuze per fiets de enige poort.
+
+**Controle.** `eslint` op de gewijzigde bestanden is schoon. `tsc` is schoon,
+op de bekende fouten in `read-barcode.ts` en `gopher-image-ocr.ts` na. Op
+productie, na het toepassen: de functie is security definer, `anon` mag hem niet
+uitvoeren en `authenticated` wel. In een transactie als een ander goedgekeurd lid
+(rol `authenticated`, `sub` in de JWT-claims) gaf de functie 8 van de 8 zichtbare
+fietsen van een lid, terwijl die kijker in `strava_bikes` zelf 0 rijen ziet.
+
+**Niet geverifieerd.** De weigering voor een lid dat nog wacht: er stond geen
+wachtend account om mee te testen. De pagina's in de browser.
+
+### Opgeleverd — Profiel: zoals leden je zien
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** De eigenaar wilde op de profielpagina kunnen wisselen tussen het
+profiel dat je aanpast en het profiel dat andere leden van je zien.
+
+**Wat er veranderde.**
+- Bovenaan `/profiel` stonden twee knoppen: "Bewerken" en "Zoals leden je
+  zien" (`/profiel?weergave=leden`). Dezelfde dag vervangen door de gouden
+  weergaveknop met drie standen; zie de ronde "Profiel: weergaveknop met drie
+  standen".
+- Het ledenprofiel zit nu in één servercomponent,
+  `leden/[id]/_components/member-profile.tsx`, die `/leden/[id]` en `/profiel`
+  allebei gebruiken. Zo kan de weergave op `/profiel` niet uit de pas lopen met
+  wat een ander lid echt ziet.
+- Kijkt een lid naar zichzelf, dan laat die component alleen zien wat de RLS een
+  ánder lid laat lezen. Dat geldt ook op `/leden/[eigen id]`:
+  - **Fietsen:** in deze ronde eerst helemaal niet, omdat andere leden ze niet
+    konden lezen. Dezelfde dag rechtgezet met `0243`, zie de ronde "Fietsen
+    zichtbaar voor andere leden".
+  - **Alleen gepubliceerde tips.** Een verborgen tip ziet alleen de eigenaar of
+    een moderator (`member_tips_select`, `0239`).
+  - **Geen eigen bewerk- of moderatieknoppen**, wel "Vraag het aan" bij je
+    onderwerpen, zoals een ander lid die ziet. Wie die knop bij zichzelf
+    aanklikt, loopt op de database-check `asker_id <> expert_id` vast.
+
+**Bewust niet gedaan.**
+- Een weergave van het publieke profiel (`/profielen/[id]`). Daar staat al een
+  link naar op het ledenprofiel als het publieke profiel aan staat.
+
+Een lid dat nog wacht op goedkeuring komt niet bij deze weergave: de middleware
+stuurt elk pad behalve `/wachten` door naar `/wachten`. De `is_approved`-filter
+in de component (die anders een 404 geeft) speelt daardoor niet.
+
+**Controle.** `eslint` op de gewijzigde bestanden is schoon. `tsc --noEmit`
+geeft alleen fouten in `read-barcode.ts` en `gopher-image-ocr.ts`: deze worktree
+heeft geen eigen `node_modules`, en in de gedeelde map ontbreken `@zxing` en
+`tesseract.js`.
+
+**Niet geverifieerd.** De pagina's in de browser. Daarvoor moet je met een echt
+account inloggen en deze worktree heeft geen `.env.local`.
+
+### Opgeleverd — ZWBieb: eigen onderwerpen, spullen uitlenen en een nieuwe naam
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
+`0242_knowledge_topics.sql` (toegepast via de Supabase-connector, 2026-10-16;
+controlequery vooraf leeg, tabel, RLS, policies, foreign keys en trigger
+achteraf nagekeken).
+
+**Aanleiding.** De eigenaar vroeg drie dingen:
+- Leden moeten zelf een onderwerp kunnen toevoegen dat er nog niet tussen staat.
+- Naast "wie weet wat" ook "wie heeft wat": spullen die een lid wil uitlenen aan
+  een ander ZWB-lid, zoals een fietskoffer, momentsleutel, fietsendrager,
+  SeaSucker of camper.
+- Een naam die bij allebei past, liefst met ZWB erin. Uit ZWBieb, ZWBuren, ZWBaak
+  en ZWBank koos hij **ZWBieb**: in de bieb leen je wat een ander lid weet of
+  heeft.
+
+**Wat.**
+
+- **`knowledge_topics` (`0242`).**
+  - De onderwerpen staan nu in de database: de vijftien kennisonderwerpen uit
+    code plus zes spullen, elk met een soort (`kennis` of `spullen`).
+  - Foreign keys vanaf `member_knowledge_topics`, `member_tips` en
+    `knowledge_threads`.
+  - Elk goedgekeurd lid kan een onderwerp toevoegen, hooguit vijf per dag
+    (trigger). Dezelfde naam twee keer kan niet; hoofdletters en spaties tellen
+    niet mee.
+  - De moderatie (`community.manage` of `content.moderate_posts`) kan een
+    onderwerp hernoemen en verbergen. Verwijderen lukt alleen als niemand het
+    gebruikt.
+- **Toevoegen.** In "Mijn ZWBieb" heeft elk blok een veld "Ander onderwerp" of
+  "Ander spul". Terwijl je typt, toont de app bestaande onderwerpen die erop
+  lijken (`similarTopics`). Een gekozen of nieuw onderwerp wordt meteen
+  aangevinkt.
+- **Spullen.**
+  - Een eigen tab op `/zwbieb/spullen`, naast Kennis op `/zwbieb`.
+  - In "Mijn ZWBieb" een tweede blok met hooguit vijftien spullen, naast de zes
+    kennisonderwerpen.
+  - Op het profiel staat "Leent uit" naast "Weet van".
+  - "Vraag het aan" opent hetzelfde gesprek.
+- **Beheer.** `/zwbieb/onderwerpen` (tandwiel in de kop, alleen voor de
+  moderatie). Per onderwerp zie je hoe vaak het gebruikt wordt en wie het
+  toevoegde.
+- **Iconen per onderwerp** (ronde "Wie weet wat: een icoon per onderwerp"
+  hieronder, uit een andere sessie) zijn meegenomen. `topic-badge.tsx` staat nu
+  in `src/app/(app)/zwbieb/_components/` en houdt zelf de groepen bij, want de
+  vaste lijst in code is weg. De zes spullen hebben een eigen icoon in de kleur
+  van materiaal. Een onderwerp dat een lid zelf toevoegt, krijgt een lamp
+  (kennis) of een doos (spullen).
+- **Hernoemd naar ZWBieb.**
+  - Routes: `/leden/wie-weet-wat` heet nu `/zwbieb`, met een permanente redirect
+    in `next.config.ts` voor oude links en pushmeldingen.
+  - Code: `src/lib/wie-weet-wat` heet nu `src/lib/zwbieb`.
+  - Het menu-item onder Club, alle labels en de anker `#zwbieb` op `/hulp` en
+    `/privacy` zijn aangepast.
+  - De tabellen houden hun naam (`member_knowledge`, `knowledge_threads`, …).
+- **Teksten.**
+  - `/privacy#zwbieb` noemt nu ook de spullen, en dat de moderatie ziet wie een
+    onderwerp toevoegde.
+  - Nieuwe `/voorwaarden` §3a: lenen spreken leden samen af; ZWB is geen partij
+    en niet aansprakelijk.
+  - `/hulp#zwbieb` en de hulpzoeker zijn bijgewerkt.
+  - `docs/kennis-van-leden.md` heeft een nieuwe §7.
+
+**Besluiten van de eigenaar.** De naam ZWBieb; spullen met dezelfde opzet in een
+eigen tab; leden voegen zelf onderwerpen toe.
+
+**Goedgekeurd door de eigenaar (2026-10-16).**
+- De privacy- en voorwaardentekst, inclusief §3a over lenen.
+- Geen nieuwe toestemmingsversie: `MEMBER_KNOWLEDGE_CONSENT_VERSION` blijft
+  `2026-10-15`. Spullen vult een lid alleen zelf in, binnen dezelfde functie;
+  alleen de tekst verandert. Dat volgt de lijn van "privacy verruimen zonder
+  nieuwe versie".
+
+**Bewust niet gebouwd.**
+- **Onderwerpen samenvoegen.** Bij een dubbeling: hernoemen en de ene verbergen.
+- **Een uitleenregister** (wie heeft wat wanneer geleend), een borg of een
+  agenda per spul. Dat regelt het gesprek.
+- **Een slug hernoemen.** Alleen het label verandert, zodat links blijven
+  werken.
+- **Een categorie per spul** (vervoer, gereedschap). Bij zes spullen is dat niet
+  nodig.
+- **De tabellen hernoemen naar zwbieb.** Dat geeft risico zonder winst.
+
+**Niet meer waar.**
+- "Een vaste lijst van vijftien" (ronde "Wie weet wat" hieronder): leden voegen
+  nu zelf toe. Dat is ter plekke aangevuld.
+- De route `/leden/wie-weet-wat` in eerdere rondes is nu `/zwbieb`, via een
+  redirect.
+- "De volgende vrije is `0242`" (Architectuur): dat is nu `0243`.
+
+**Getest.**
+- `tsc` en ESLint zonder nieuwe fouten.
+- `member-knowledge-migration.test.ts`: 35 tests, inclusief `0242`. Gedekt zijn:
+  - de startlijst van 21 onderwerpen;
+  - toevoegen, met de naam getrimd;
+  - een dubbele naam (hoofdletters tellen niet mee);
+  - een wachtend account, een andere maker of een eigen `sort_order` wordt
+    geweigerd;
+  - de daglimiet, met de moderatie erbuiten;
+  - hernoemen en verbergen alleen door de moderatie;
+  - een onderwerp in gebruik kan niet worden verwijderd;
+  - de foreign key en een onbekende soort.
+- `zwbieb.test.ts`: de startlijsten zijn gelijk aan `0242`, plus de catalogus,
+  slugs en suggesties.
+- Volledige run: alles groen, behalve tests die al bekend waren of alleen onder
+  belasting falen. `admin-areas`, `intervals-ride-sync`, `rls-initplan-migration`
+  en `zwift-club-calendar` zijn los groen. `omnium-live` mist `.env.local`.
+
+**Niet geverifieerd.**
+- `0242` staat op productie en de structuur is nagekeken (zie hierboven). De
+  RLS is niet als lid uitgeprobeerd.
+- De pagina's in de browser: deze worktree heeft geen `.env.local`.
+
+### Opgeleverd — Wie weet wat: een icoon per onderwerp
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt, op de branch
+`claude/profile-design-icons-b0c0b1`, als `6f5cc87` op `main`; gepusht naar
+`main` (eigenaar, 2026-10-16). Geen migratie.
+
+**Aanleiding.** De eigenaar vond het blok "Weet van" op het profiel van een lid
+een kale lijst en vroeg om iconen of plaatjes die bij de onderwerpen horen, ook
+bij Wie weet wat zelf.
+
+**Wat er veranderde.**
+- Elk onderwerp in `src/lib/wie-weet-wat/topics.ts` heeft een groep: rijden,
+  trainen of materiaal (`topicGroup`). De groep bepaalt de tenuekleur: petrol
+  met een goud icoon voor rijden, teal voor trainen, sage voor materiaal. In
+  donker de lichtere petrol en sage van de tegels, anders zakken ze weg.
+- `topic-badge.tsx`: het icoon als vierkant in die kleur, met de schuine baan
+  van het tenue erdoor (`.topic-badge` in `globals.css`). Lucide waar het een
+  passend icoon heeft; schema (trapjeslijn van een intervaltraining), bidon en
+  band zijn zelf getekend in dezelfde lijn. Bij hover of focus kantelt het
+  icoon even, niet bij `prefers-reduced-motion`.
+- Profiel: "Weet van" is een lijst rijen met een groot icoon, het onderwerp en
+  de notitie. Op je eigen profiel twee kolommen (er is geen vraagknop). Op de
+  telefoon is "Vraag het aan" alleen het icoon, op 44px (`AskLink compact`).
+- Wie weet wat: het icoon voor elke onderwerpkop, klein in de knoppen onder
+  "Nog zonder kenners" (die zijn niet meer rond maar licht afgerond, gelijk aan
+  het icoon), bij de keuze van je onderwerpen en voor het onderwerp onder een
+  tip op het profiel.
+
+**Bewust niet gedaan.**
+- Geen foto's: vijftien onderwerpen met een foto worden druk en zwaar op de
+  telefoon, en er zijn geen eigen clubfoto's per onderwerp.
+- Geen eigen kleur per onderwerp: vijftien kleuren zeggen niets. Drie groepen in
+  tenuekleuren wel. Goud (in de tegels "jij, nu") is alleen de lijnkleur van het
+  icoon, geen vlak.
+- Geen icoon in de onderwerpkeuze van het tipformulier en de citatenimport: dat
+  zijn `<select>`-lijsten.
+
+**Niet geverifieerd.** De echte pagina's niet bekeken: lokaal inloggen kon niet.
+Gecontroleerd op een tijdelijke proefpagina met voorbeelddata (niet
+gecommit), in het huidige design en de tegels, licht en donker, desktop en
+telefoon (375 px); daar zonder het tegellettertype. Typecheck en lint schoon,
+afgezien van de bestaande `@zxing`-meldingen in een worktree zonder die
+pakketten.
+
+### Opgeleverd — Tabbalk blijft hangen na het toetsenbord (iPhone)
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt (`fa85aa7` op de eigen branch, als `6dc4250` op `main` gezet); gepusht naar `main` (eigenaar, 2026-10-16). Geen migratie.
+
+**Aanleiding.** De eigenaar meldde dat de tabbalk op de iPhone "af en toe" nog
+steeds midden in beeld hangt, ook na de overstap van `fixed` naar `sticky`
+(2026-10-12). Op de screenshot zit de onderrand van de balk 336 pt boven de
+onderkant van het scherm (iPhone 393×852 pt): precies de hoogte van het
+iPhone-toetsenbord met suggestiebalk. De screenshot is van de app op het
+beginscherm (inhoud loopt onder de statusbalk door, geen Safari-balk).
+
+**Oorzaak.** Een bekende iOS-bug: na het sluiten van het toetsenbord zet WebKit
+het beeld niet terug. `innerHeight`/`visualViewport` blijven te klein of
+`visualViewport.offsetTop` blijft hangen, en alles wat onderaan vastzit staat
+dan een toetsenbordhoogte te hoog, tot de app wordt afgesloten. Dat geldt voor
+`fixed` én `sticky`; daarom hielp de vorige ronde niet. Bronnen: WebKit-bug
+[297779](https://bugs.webkit.org/show_bug.cgi?id=297779) en een
+[beschrijving voor beginscherm-apps](https://dev.to/cederhook/fixing-the-ios-standalone-pwa-keyboard-bug-that-shrinks-your-viewport-for-good-63d).
+"Af en toe" past daarbij: het gebeurt pas na typen ergens in de app, en blijft
+daarna bij elke pagina.
+
+**Wat er veranderde.** `src/components/ios-viewport-herstel.tsx`, in de
+rootlayout. Alleen op iOS in de beginscherm-app houdt het de grootste
+schermhoogte per breedte bij. Na `focusout`, een resize, `pageshow` of terugkeer
+naar de app kijkt het of het beeld kleiner is gebleven (of verschoven) terwijl
+geen veld meer de focus heeft. Zo ja, dan zet het de body heel even op
+`display: none` en terug, met een gedwongen herberekening ertussen, en zet het
+de scrollpositie terug. Die sprong dwingt WebKit het beeld opnieuw te meten.
+Ingezoomd (`visualViewport.scale` > 1) telt niet als hangen. Hoogstens één
+herstel per seconde.
+
+**Bewust niet gedaan.**
+- Niet in Safari zelf: daar verandert de hoogte terecht als de adresbalk in- en
+  uitklapt, en zou het herstel bij elke scroll afgaan.
+- `interactive-widget=resizes-visual` en het vastzetten van `html`/`body` met
+  `position: fixed`: volgens de bron hierboven negeert de beginscherm-app het
+  eerste, en zet het tweede de app vanaf het laden op de kleine hoogte.
+- Geen doorschijnend waas over de sprong heen, zoals de bron voorstelt; eerst
+  zien of de sprong op de iPhone zichtbaar is.
+- De balk terug naar `fixed`: `sticky` werkt in de browser goed, en de bug raakt
+  beide.
+
+**Niet geverifieerd.** Niet getest op een echte iPhone; de bug is lokaal niet na
+te bootsen. Lokaal alleen: typecheck en lint schoon (afgezien van de bestaande
+`@zxing`-meldingen in een worktree zonder die pakketten), en in Chromium dat de
+sprong de scrollpositie terugzet. Op de iPhone testen: in de beginscherm-app iets
+typen (bijv. zoeken), het toetsenbord sluiten, naar de kalender gaan en scrollen.
+Werkt het niet, dan is de volgende stap meten wat `innerHeight`,
+`visualViewport.height` en `offsetTop` in die toestand teruggeven.
+
+### Opgeleverd — Darmtraining 150: vervolgprotocol naar 150 g koolhydraten per uur
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie: de
+protocollen staan in code en `member_protocols` accepteert elke slug.
+
+**Waarom.** De eigenaar las over 150 g/u en vroeg of daar een basis voor is en of
+er een gewenningsprotocol van te maken valt. Uitkomst van de literatuurcheck
+(alle bronnen in PubMed, details in
+[`docs/protocollen-onderzoek.md`](docs/protocollen-onderzoek.md), Voeden):
+- Gecontroleerd onderzoek gaat tot 120 g/u; 150 g/u is nooit getest.
+- Wat je inneemt, verbrand je hooguit tot ongeveer 100 g/u.
+- De nieuwste review houdt 120 g/u aan als bovengrens voor getrainde renners.
+- Darmtraining werkt, maar is getest tot 90 g/u.
+
+Mijn advies was op 120 te blijven (optie A). De eigenaar koos optie B: een
+vervolg naar 150, met beperkt bewijs en duidelijke grenzen.
+
+**Wat er is gekomen.**
+- **Protocol `darmtraining-150`** ("Doorbouwen naar 150 gram per uur"), in
+  `src/lib/protocols/nutrition.ts`:
+  - drie weken met 130, 140 en 150 g/u;
+  - twee ritten van minstens drie uur per week;
+  - bewijs "beperkt".
+- **Stopregel**: bij klachten een week terug, en komen ze terug, dan is 120 het
+  plafond.
+- **Niet voor** wie 120 g/u nog niet zonder klachten haalt, en niet voor ritten
+  korter dan drie uur.
+- **Beperkingen**: niet getest, het oxidatieplafond, geen aangetoonde winst, en
+  darmtraining is alleen onderzocht tot 90 g/u.
+- **Darmtraining (60 → 120) krijgt de studies zelf als bron**: Costa 2017,
+  Miall 2018 en de review Martinez 2023.
+- **Kennisartikelen**:
+  - "Darmtraining" noemt het effect (bij hardlopers ongeveer de helft minder
+    klachten) en het vervolgprotocol. Het krijgt ook King 2022 als bron: geen
+    extra prestatiewinst bij topsporters.
+  - "Koolhydraten tijdens de rit" zegt waarom boven 120 g/u niet als advies
+    geldt. Ravikanti 2025 is erbij gekomen, en Wilson 2025 is nu een constante
+    met een DOI-link.
+- **/hulp en zoekwoorden** noemen het vervolg.
+- **Test** in `tests/unit/protocols.test.ts`: het vervolg begint boven het eind
+  van darmtraining en heeft beperkt bewijs.
+
+**Bewust niet.**
+- Darmtraining zelf verlengen. Een lopend protocol zou dan langer worden, en het
+  vervolg moet een bewuste keuze zijn.
+- De doelen in `src/lib/nutrition/targets.ts` boven 120 g/u laten gaan. Het
+  advies in de app blijft maximaal 120; 150 bestaat alleen als protocol dat je
+  zelf start.
+
+**Niet geverifieerd.** De protocolpagina is niet in de browser bekeken. Lokaal:
+typecheck schoon, de protocoltests groen. In de volle testrun liepen vier tests
+in andere bestanden tegen een time-out; los gedraaid slagen ze. `omnium-live`
+mist `.env.local` in deze worktree.
+
+### Opgeleverd — wetenschappelijke toets fase 6: overig, en de toets afgerond
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md),
+fase 6. Goedgekeurd door de eigenaar: "ja doe dat maar".
+
+**Wat er veranderde.**
+- **Rit-fysica** (`ride-estimate.ts`): de luchtweerstand (0,32 m² op de kappen)
+  en de rolweerstand (0,005) kregen een bron (Lim 2011). Ervaren renners
+  haalden ~0,29 m² en ~0,005–0,007, dus de schatting rekent iets trager. De
+  aanname voor de aandrijving heet nu een aanname.
+- **Rit-weer** (`teams/power-profile.ts`): het commentaar bij
+  `ENDURANCE_FTP_FRACTION` noemt het een eigen keuze, geen gemeten waarde.
+- **CORE-sensor**:
+  - De beperking in beide hitteprotocollen noemt vier validatiestudies. Die
+    wezen soms een te lage waarde aan (Goods 2023) en soms een te hoge
+    (McLaughlin 2025, Daanen 2023), naast Verdel 2021.
+  - Dezelfde bronnen staan bij `CORE_THRESHOLD_C` en in
+    `protocollen-onderzoek.md`.
+  - De drempel van 38,5 °C en de 30 minuten blijven.
+- **/hulp**: de links naar de periodiseringsstudies gaan nu naar de DOI
+  (Galán-Rioja 2023, Mølmen 2019). Alle vijf wetenschappelijke links zijn
+  nagelopen en kloppen met de tekst.
+- **Werkdocument**: bovenaan staat een samenvatting per fase met wat nog open
+  is. Het claimregister heeft voor G1–G3 een status.
+- **Actieve lijst**: punt 7 bevat nu alleen wat nog open is na de toets.
+
+**Bewust niet gebouwd.**
+- *Nieuwe waarden in de rit-fysica*: die liggen binnen de metingen, en de
+  pacing rekent met de Zwift-fysica.
+- *Een andere CORE-drempel*: de fout gaat beide kanten op, en het vinkje is al
+  weg te halen.
+- *Wijzigingen in de privacyverklaring*: er staan geen wetenschappelijke
+  claims in, en de toets bracht geen nieuwe gegevens.
+
+**Niet geverifieerd.** Zie "Nog open" bovenaan het werkdocument.
+
+### Opgeleverd — wetenschappelijke toets fase 5: racen en pacing
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md),
+fase 5, en [`docs/racestrategie-onderzoek.md`](docs/racestrategie-onderzoek.md)
+§2, §5 en §6. Goedgekeurd door de eigenaar: "akkoord op alle 3 de punten".
+
+**Wat er veranderde, en waarom.**
+- **`CP_FTP_FRACTION` van 0,97 naar 1,00** (`pacing/cp.ts`).
+  - CP bepaald zoals de app dat doet (maximale inspanningen van 2 tot 20
+    minuten) lag in studies gemiddeld gelijk aan of iets boven FTP (Karsten
+    2021, McGrath 2021, Morgan 2018).
+  - Geldt alleen voor leden zonder CP van intervals.icu en zonder bruikbare
+    curve. Hun plan wordt ~3 % minder voorzichtig; de W′-toets blijft.
+- **`RACE_RESERVE_FRACTION` van 15 naar 20 %** (`pacing/plan.ts`).
+  - Het W′-model van de app gaf in echte races op het moment van uitputting
+    nog gemiddeld 21 ± 28 % reserve aan (Millour 2022).
+  - /hulp noemt nu 20 %.
+- **Commentaren**:
+  - `w-prime.ts` noemt de W′-balans een schatting, met de bronnen over de fout.
+  - `cp.ts` noemt de W′-standaard en de grenzen een vuistregel, en zegt dat
+    W′ uit de curve onzekerder is dan CP.
+  - `durability.ts` noemt de beperking dat het met kJ rekent en niet met
+    intensiteit.
+- **Pacingprompt** (`pacing/prompt.ts`):
+  - "Een tijdrijder wint met een vlak tempo" is vervangen door variabel
+    vermogen op een glooiend parcours (±5–10 %, geen pieken).
+  - Nieuw: bij `format` tt begin je hooguit ~5 % boven je gemiddelde.
+  - Het zwaardere eind van een lange rit noemt "vooral na veel werk boven CP".
+  - Test: `tests/unit/pacing-prompt.test.ts`.
+- **Docs**: `racestrategie-onderzoek.md` §2, §5 en §6 hebben de nieuwe bronnen,
+  met DOI's. Millour 2022, Spragg 2024 en Fujii 2025 staan niet in PubMed en
+  zijn via Crossref bevestigd.
+
+**Bewust niet gebouwd.**
+- *Een ander W′-model* (integraal of tweefasig): dezelfde spreiding, of
+  parameters per renner die de app niet heeft.
+- *Een persoonlijke tijdconstante*: die vraagt een testprotocol. Dat idee
+  hoort in het plannenboek.
+- *Drafting uit de literatuur*: de app rekent met de Zwift-fysica.
+
+**Niet geverifieerd.** Hoe de nieuwe factor en reserve uitpakken in echte plannen
+van leden; dat blijkt pas bij het volgende plan. Bestaande opgeslagen plannen
+rekenen pas opnieuw als ze worden herrekend.
+
+### Opgeleverd — wetenschappelijke toets fase 4: kracht, core en mobiliteit
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
+`0245_mobility_jump_series.sql` (toegepast via de Supabase-connector,
+2026-10-16; nagekeken: serie `springen` met `countermovement-jump`, 5 × 10, 30 s
+rust, 16 standaard-krachtoefeningen).
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md),
+fase 4, en [`docs/kracht-literatuur.md`](docs/kracht-literatuur.md).
+Goedgekeurd door de eigenaar: "alles ja en ook een protocol van 10 weken".
+
+**Waarom.** De kennisbank kracht was zorgvuldig, maar er is nieuw onderzoek:
+- Kracht op de fiets werkt even goed als squats.
+- Springen helpt de botten van renners. Het artikel zei dat daar geen bron
+  voor was.
+- De regel "kracht nooit op een fietsdag" is voorzichtiger dan het onderzoek
+  over combineren vraagt.
+
+Een codecommentaar beweerde verder ten onrechte dat twee tot drie
+core-sessies per week uit de literatuur komen.
+
+**Wat er veranderde.**
+- **21 nieuwe bronnen** in `strength-library.ts`, alle via PubMed bevestigd.
+  Lopez staat in PubMed als 2021 en niet als 2020, zoals in het voorstel.
+- **Artikelen**:
+  - Bijgewerkt: zwaar krachtwerk, kracht vasthouden, thuis met lichtere
+    gewichten, combineren, botten, rugpijn en rekken.
+  - Twee nieuwe artikelen: *Kracht op de fiets* en *Kracht als je ouder
+    wordt*. Er zijn nu 12 krachtartikelen.
+- **Protocol Kracht op de fiets** (groep "Kracht", bewijs beperkt): tien weken
+  twee keer per week 5 × 7 trappen voluit vanuit stilstand op ~6 %, met een
+  `aiHint` die de sessie als korte buitensessie laat inplannen. De core-
+  artikelpagina toont nu ook links naar protocollen.
+- **Springserie** `springen` (migratie 0245): 5 × 10 sprongen uit stand, een
+  nieuwe oefening met figuur en spiergroepen. `BONE_SERIES_SLUGS` in
+  `mobility.ts` houdt de serie buiten de krachtregels: ZWB stelt haar niet uit
+  zichzelf voor, en ze telt niet mee voor de rust tussen krachtsessies.
+- **De regel voor krachtsessies blijft** (besluit 2, eerste optie). Het
+  artikel zegt nu eerlijk dat de regel over spierpijn gaat.
+- **Code**: het commentaar bij `MOBILITY_SESSIONS_PER_WEEK` noemt het een eigen
+  keuze.
+- **/hulp**: een alinea over de springserie, en kracht op de fiets bij de
+  protocollen.
+- **Tests**: de seedtests (figuren, spiergroepen, series, migratie) nemen 0245
+  mee. Er is een test voor de springserie buiten de krachtregels, en de
+  protocoltest accepteert artikelen uit de krachtkennisbank.
+
+**Bewust niet gebouwd.**
+- *De krachtregel versoepelen*: de eigenaar koos voor houden met uitleg.
+- *Een bikefit-artikel en een vrouwspecifiek krachtartikel*: te weinig eigen
+  bewijs. Ze zijn opgenomen in het rugpijnartikel en het hoofdartikel.
+- *Een springserie die de app zelf voorstelt*: de serie mag dagelijks, en dat
+  past niet in de rotatie van core en kracht. Het lid kiest haar zelf.
+
+**Niet geverifieerd.**
+- De figuur van de sprong in de browser.
+- Of de AI het protocol netjes als buitensessie inplant.
+- Kracht op de fiets op een smart trainer is nergens onderzocht.
+
+### Opgeleverd — wetenschappelijke toets fase 3: kennisbank voeding
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md),
+fase 3. Goedgekeurd door de eigenaar: "ja op alles".
+
+**Waarom.** De voedingskennisbank leunde al op de UCI-stukken van 2025–2026. Er
+waren drie gaten:
+- **Eiwit werd te stellig gebracht.** De tip na een avondrit beloofde beter
+  herstel van 40 g eiwit voor het slapen, maar bij profs die al veel eiwit
+  aten, gaf dat geen beter herstel (Valenzuela 2023).
+- **Twee beperkingen in protocollen klopten niet meer.** Bicarbonaat werkte ook
+  bij tijdritten van 16 en 40 km. Bèta-alanine werkt bij een halve tot tien
+  minuten, niet alleen bij één tot vier.
+- **De voedingsartikelen hadden geen lijst beperkingen.** De trainings- en
+  krachtartikelen hebben die wel.
+
+**Wat er veranderde.**
+- **32 nieuwe bronnen** in `library.ts`, alle via PubMed bevestigd. Twee
+  eerste auteurs bleken anders dan in het voorstel: "Saunders 2020" is
+  de Oliveira 2020, en "Gessler 2023" is von Siebenthal 2023.
+- **Doelen** (`targets.ts`): de getallen blijven gelijk, de onderbouwing staat
+  er nu bij. 0,3–0,4 g/kg per maaltijd is een richtgetal en geen plafond. Eiwit
+  voor het slapen is een hulpmiddel voor het dagtotaal. De banden voor
+  koolhydraten per uur zijn gehouden, omdat de proeven van 2026 tegengestelde
+  kanten op wijzen.
+- **Tip na een avondrit** (`tips.ts`): de tip zegt nu dat je zo makkelijk je
+  dagtotaal haalt, en belooft geen herstel meer. Een test bewaakt dat.
+- **Protocollen** (`lib/protocols/nutrition.ts`):
+  - *Cafeïne*: de lage dosis heet nu "mogelijk, minder zeker". Gewenning aan
+    koffie maakt het effect niet kleiner, en het werkt ook bij vrouwen.
+  - *Bicarbonaat*: de tijdritten van 16 en 40 km staan erin. Je piekwaarde
+    hoef je niet eerst te bepalen. Nieuw aandachtspunt: houd de warming-up
+    rustig, omdat sprints de winst in één proef ongedaan maakten.
+  - *Bèta-alanine*: het doel geldt nu voor een halve tot tien minuten.
+  - *Nitraat, creatine, kersensap, collageen, darmtraining en herstel*: nieuwe
+    bronnen en nauwkeuriger beperkingen.
+- **Artikelen**:
+  - *Eiwit, herstel, brandstof (train-low), koolhydraten tijdens de rit en
+    vocht (drinken op dorst tot ~1,5 uur)* zijn bijgewerkt.
+  - *Vrouwen, ijzer (om de dag als de arts ijzer voorschrijft), kersensap,
+    collageen en ketonen (het herstelonderzoek van Poffé, met de beperking dat
+    het één groep is)* kregen een aanvulling.
+- **Beperkingen bij alle 25 voedingsartikelen.** `NutritionArticle` heeft nu
+  `limits`. De voedingspagina gebruikt dezelfde weergave als de
+  trainingsartikelen, met "Wat dit niet laat zien" en de regel "eigen
+  samenvatting". De test eist beperkingen en geen dubbele bronnen per
+  artikel, en controleert ook de beperkingen op afvaladvies.
+
+**Bewust niet gebouwd.**
+- *De banden voor koolhydraten per uur naar intensiteit* en *een lagere
+  standaarddosis cafeïne*: de nieuwe proeven en meta-analyses spreken elkaar
+  tegen.
+- *Nieuwe artikelen over alcohol en herstel en over een zweettest*: niet
+  onderzocht in deze ronde. Die ideeën horen in het plannenboek.
+- *Opnieuw zoeken naar* REDs, botgezondheid, weerstand, masters, visolie,
+  probiotica, mondspoelen, wat niet werkt, low-carb, gezonde basis, vitamine D,
+  indoor, glycerol en koolhydraten laden: daar was geen aanleiding voor. Die
+  artikelen kregen wel beperkingen.
+
+**Niet geverifieerd.** De nieuwe voedingspagina is gebouwd, maar niet in de
+browser bekeken. De beperkingen zijn eigen samenvattingen en niet door een
+sportdiëtist nagelezen.
+
+### Opgeleverd — wetenschappelijke toets fase 2: kennisbank trainen en Duurtest
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md),
+fase 2. Goedgekeurd door de eigenaar: 2A, 2B en 2C ("Duurtest met eigen meting
+en trend"), en de korte overbelasting vóór de taper in de prompt.
+
+**Waarom.** De acht trainingsartikelen waren onderbouwd, maar drie beweringen
+waren achterhaald (verdeling, rustige ritten, hitte thuis), en lange ritten en
+de warming-up hadden geen artikel terwijl de app er wel workouts voor heeft.
+Elke nieuwe bron is eerst via PubMed bevestigd; Norte 2024 staat daar niet in en
+is niet gebruikt.
+
+**Wat er veranderde.**
+- **2A, acht artikelen hertoetst** (`training-library.ts`):
+  - *Gepolariseerd of piramidaal*: geen verschil, en recreanten lijken eerder
+    baat te hebben bij piramidaal (Rosenblat 2025).
+  - *Rustige ritten*: gepland tempowerk is nuttig; de valkuil is een rustige dag
+    die ongemerkt tempo wordt.
+  - *Hittetraining*: thuis met extra kleding is wél onderzocht, er zijn data voor
+    vrouwen, en de winst is binnen twee weken weg. Het protocol "Hitte voor meer
+    hemoglobine" kreeg dezelfde beperkingen en bronnen.
+  - *Korte intervallen*: het voordeel van 30/15 geldt bij een vast vermogen (ERG),
+    niet als je zelf voluit rijdt (Appelhans 2025, met Rønnestad als coauteur).
+  - Lage cadans, taper, ademspiertraining en koud water: getallen en bronnen
+    bijgewerkt.
+- **2B, twee nieuwe artikelen**: *Lange ritten en duurvermogen* (6 bronnen) en
+  *Warming-up* (4 bronnen). Bij een warming-up die bij een race klaarstaat, staat
+  een link "Waarom" naar het artikel.
+- **2C, protocol Duurtest** (groep "Testen", bewijs beperkt): vier keer, eens
+  per 28 dagen, 10 minuten inrijden, 60 minuten op 75 % FTP in ERG, 5 minuten
+  uitrijden (naar Barsumyan 2025/2026). De `aiHint` laat de AI hem plannen als
+  training met de titel "Duurtest", op een rustige dag.
+  - *Eigen meting*: `execution.ts` rekent nu bij het langste gelijkmatige blok
+    van minstens 45 minuten een eigen ontkoppeling uit (`steady`), zonder de
+    eerste 5 minuten van dat blok en zonder in- en uitrijden. De bestaande
+    ontkoppeling over de hele rit blijft ongewijzigd.
+  - *Trend*: de protocolpagina toont per Duurtest datum, ontkoppeling,
+    gemiddelde hartslag en vermogen (`durability-test.ts`). Een rit telt als
+    Duurtest aan de titel van de geplande training.
+  - Een Duurtest met zonetijden maar zonder blokmeting wordt eenmalig opnieuw
+    uit intervals.icu gehaald (`zone-times-fill.ts`).
+- **2D, prompt**: vlak vóór een taper mag één overbelastingsweek van ongeveer
+  zes dagen, alleen als herstelwaarden, TSB en ramp_rate het toelaten, en nooit
+  zonder taper erachter (Rønnestad & Vikmoen 2019). De sprongregel uit 1A geldt
+  voor die week niet. Test in `training-prompts.test.ts`.
+- **/hulp**: de Duurtest bij Protocollen, met de titelafspraak voor trainers.
+
+**Bewust niet gebouwd.**
+- *Een link per lange rit in de workoutbibliotheek naar het artikel*: de
+  bibliotheek staat in de database (migratie nodig per template) en het artikel
+  is via de kennisbank te vinden.
+- *Een grens of oordeel per Duurtest*: de onderzoekers keken naar de trend, en
+  een gevalideerde grens voor ontkoppeling bestaat niet.
+- *Automatisch afvinken van de Duurtest*: het lid vinkt zelf af, zoals bij de
+  andere taken zonder sensor.
+- *De Lamberts Submaximal Cycle Test*: stuurt op hartslag, en Zwift kan geen
+  ERG op hartslag.
+
+**Niet geverifieerd.** Of de AI de Duurtest en de overbelastingsweek plant zoals
+gevraagd; dat blijkt pas uit nieuwe schema's. De blokmeting is getest op
+gemaakte data, niet op een echte rit. De filter op `metrics_json->>plannedTitle`
+is niet tegen productie gedraaid.
+
+### Opgeleverd — wetenschappelijke toets 1E: trainingsanalyse onderbouwd
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
+gedragswijziging.
+
+**Wat er veranderde.**
+- `docs/racestrategie-onderzoek.md` §8: steun voor ontkoppeling als maat voor
+  duurvermogen (Rothschild 2025, Stevenson 2023, Barsumyan 2025), met de
+  kanttekening dat een gevalideerde grens niet bestaat (Hunter 2025).
+- In `compliance.ts` staat bij de grenzen 80–115 % dat het een productkeuze is.
+
+**Bewust niet gedaan.** De drempels van de trainersuggesties aanpassen: die zijn
+op eigen data afgesteld (`racestrategie-onderzoek.md` §11), en de literatuur
+geeft geen betere getallen.
+
+**Doorgeschoven naar fase 2.** Het idee voor een protocol "Duurtest": eens per
+maand 60 minuten op 75 % FTP, naar Barsumyan. Gebouwd in fase 2 (zie de ronde
+hierboven).
+
+### Opgeleverd — wetenschappelijke toets 1D: drempelblokken naar hun lengte
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md), 1D.
+
+**Waarom.** Drempelblokken mochten tot 104 % FTP, ongeacht hun lengte. Het
+hoogste stabiele vermogen (MLSS) ligt gemiddeld rond 93–96 % van FTP. Op FTP
+zelf hielden renners het gemiddeld 34 minuten vol (Wong 2023). Een blok van
+twintig minuten op 100–104 % ligt voor veel renners dus al boven hun steady
+state.
+
+**Wat er veranderde.**
+- **Prompt**: blokken van 15 minuten of langer op 90–95 %, kortere
+  drempelblokken hooguit 100 %, en boven 100 % alleen in blokken van hooguit 8
+  minuten. De zones en hun kleuren blijven gelijk (keuze eigenaar 2026-09-15).
+- **Notities in de code**: bij `INTENSITY_FTP_RANGE` dat de zones een afspraak
+  zijn, en bij `percentRangeForRpe` dat de RPE-omzetting een eigen keuze is.
+- **Kennisbank**: nieuw artikel **Zones: een afspraak, geen grens in je lijf**,
+  met 7 bronnen. Denham 2026 en Sanders 2017 zijn eerst via PubMed nagelopen.
+- **Tests** in `training-prompts.test.ts` voor deze regel én voor de nieuwe
+  opbouwregel uit 1A.
+
+**Bewust niet gedaan.**
+- *Een harde begrenzing in de code na de AI-uitvoer*: doelen staan als tekst
+  in watt of %, soms met RPE erbij. Eerst kijken of de promptregel volstaat;
+  zo niet, dan komt er een vangnet zoals `availability-fit.ts`.
+- *De zonegrenzen zelf aanpassen*: die sluiten aan op Zwift en de blokkleuren.
+
+**Niet geverifieerd.** Of de AI de regel volgt; dat blijkt pas uit nieuwe
+schema's.
+
+### Opgeleverd — wetenschappelijke toets 1A: opbouw zonder schijnzekerheid
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md), 1A.
+
+**Waarom.** De prompt noemde 10 % groei per week "veilig". In een RCT gaf de
+10 %-regel evenveel blessures, tussen 10 en 24 % werd geen verschil gevonden,
+en pas sprongen boven 30 % gingen samen met meer klachten. Al dat onderzoek komt
+van hardlopers. Een structureel te lage belasting is óók een risico. TSB-grenzen
+zijn conventie: het Banister-model is per sporter erg onzeker.
+
+**Wat er veranderde.**
+- **Prompt**: "standaard ongeveer 10 %, en vermijd sprongen van meer dan een
+  kwart; een voorzichtige keuze van ZWB, geen bewezen grens". De kampregels
+  noemen de grens op sprongen erbij, zodat een kamp er nog steeds overheen mag.
+- **`/hulp`** (De vaste regels) zegt hetzelfde en linkt naar het nieuwe
+  artikel. De tab Uitgangspunten linkt bij "Wat je reed" ook naar het artikel,
+  in plaats van naar Belasting.
+- **Kennisbank**: nieuw artikel **Opbouwen: hoe snel mag het?** met 8 bronnen.
+  De categorie "Naar een piek" heet nu "Opbouw en piek". Mujika & Padilla staat
+  er met het overzicht uit 2001 in, omdat de kennisbanktest bronnen vóór 2001
+  weigert.
+- **`wellness.ts`**: een notitie bij de TSB-grenzen dat ze conventie zijn.
+
+**Bewust niet gedaan.**
+- *Een ander percentage dan 10 %*: geen beter onderbouwd getal, en het remt
+  grillige AI-uitvoer.
+- *TSB-grenzen per lid fitten*: met de onzekerheid uit Hellard 2006 levert dat
+  schijnprecisie op.
+- *De herstelweek op 60–70 %*: gangbaar bij coaches maar niet onderzocht; die
+  blijft als eigen keuze staan en heet zo in het artikel.
+
+**Niet geverifieerd.** Of de AI de nieuwe formulering ook anders gebruikt in
+cautions. Dat vraagt echte generaties, en die kosten geld.
+
+### Opgeleverd — wetenschappelijke toets 1B: de FTP-test getoetst
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Migratie
+`0244_workout_library_ftp20_warmup.sql` (toegepast via de Supabase-connector,
+2026-10-16; nagekeken: de standaardrij van de 20-minutentest heeft Inrijden 15 ·
+Versnellingen 5 · Rustig 5 · Test 20 · Uitrijden 15, samen 60 minuten, gelijk aan
+de code). Onderbouwing:
+[`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md), 1B.
+
+**Waarom.**
+- De factoren 0,75 (ramp) en 0,95 (20 minuten) zijn conventie: per renner zit
+  een FTP-test al gauw 10 % naast de drempel, en voor de ramptest bestaat geen
+  gepubliceerde validatie.
+- De 20-minutentest is wel goed herhaalbaar (meetfout ~3 %). Daardoor toonde de
+  app ruis als vooruitgang.
+
+**Wat er veranderde.**
+- **Controle tegen de vermogenscurve** (`ftpCheck`, marge 8 %, keuze eigenaar):
+  - Wat wordt vergeleken: de laatste test tegen het gemiddelde van CP en eFTP.
+    Alleen als de test niet ouder is dan acht weken en er minstens één
+    referentie is.
+  - Waar het lid het ziet: een korte melding met link naar het artikel op
+    Vermogen (CP uit intervals.icu of `profile_sport_settings`, eFTP uit de
+    wellness), en een regel na het opslaan van een uitslag (alleen tegen de CP
+    uit `profile_sport_settings`; de eFTP vraagt een call naar intervals.icu).
+  - Waar de trainer het ziet: dezelfde melding op het rennerscherm (CP uit
+    `profile_sport_settings`, eFTP uit de wellness).
+  - Gevolg: op Vermogen kan de CP net anders zijn dan bij de trainer, omdat
+    intervals.icu daar voorgaat.
+- **Meetfout in de historie** (`ftpChange`, 3 %): elke regel op Vermogen toont
+  het verschil met de test ervóór, en een verschil onder 3 % heet "gelijk".
+  Na het opslaan staat er "gelijk binnen de meetfout" bij de oude waarde. De
+  FTP van het profiel gaat wel mee.
+- **Nieuwe warming-up voor de 20-minutentest**:
+  - Wat: geen opener van vijf minuten op 105–115 % meer, maar drie korte
+    versnellingen (Tramontin 2021: ~5 % hogere uitslag). De test duurt nu 60
+    minuten in plaats van 65.
+  - Waar: in `ftpTestBlocks()`, en via `0244` in de standaardrij van de
+    bibliotheek. Een PGlite-test houdt die twee gelijk.
+  - Niet aangepast: al ingeplande tests houden hun structuur.
+- **Prompt**: de achtwekenregel heet nu een keuze van ZWB, geen
+  houdbaarheidsdatum.
+- **Kennisbank**: nieuw artikel **Je FTP: wat de test meet** in een nieuwe
+  categorie Testen, met 9 via PubMed bevestigde bronnen.
+- Tests: `ftp-test.test.ts` (meetfout, controle) en
+  `workout-library-ftp20-migration.test.ts`.
+
+**Gecorrigeerd.** In het werkdocument stond dat een ramptest bij een
+*uithoudingsrenner* te hoog uitvalt. Dat is omgedraaid: de hoogste minuut leunt
+op de anaerobe reserve, dus juist een explosieve renner komt te hoog uit. Ook
+dat is een afleiding uit hoe de test werkt, niet gemeten; zo staat het nu in
+het artikel.
+
+**Bewust niet gedaan.**
+- *De factoren 0,75 en 0,95 aanpassen*: er is geen beter universeel getal; ook
+  88 % bleef te grillig (Inglis 2020).
+- *Een CP-test als derde protocol*: eerst kijken of de controle genoeg is.
+- *Lillo-Beviá 2022 in het artikel*: de DOI komt alleen uit Consensus en is
+  niet via PubMed bevestigd.
+
+### Opgeleverd — wetenschappelijke toets 1C: herstel meten met een eigen band
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderbouwing: [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md), 1C.
+
+**Waarom.** De herstelstatus vergeleek het weekgemiddelde van de HRV met vaste
+grenzen (onder 90 % vermoeid, boven 105 % fris) tegen een baseline waarin die
+week zelf meetelde. Rust-HR telde vanaf +3 slagen. De literatuur gebruikt ln
+rMSSD tegen een persoonlijke band (gemiddelde ± 0,5 SD) en laat zien dat HRV
+ook stijgt bij overbelasting. Daar ging de verzachtingsregel tegenin.
+
+**Wat er veranderde.**
+- `hrvBand()` en `restingHrBand()` in `wellness.ts`: het weekgemiddelde van ln
+  rMSSD tegen het gemiddelde ± 0,5 × SD van de 30 dagen **vóór** de laatste
+  week. Er zijn minstens 3 metingen in de week en 14 in de baseline nodig. Eigen
+  ondergrenzen: een halve band van minstens ~3 % (HRV) en 3 slagen (rust-HR,
+  de oude vaste regel).
+- `deriveReadiness` rekent in banden in plaats van procenten: 15 punten per
+  band onder de norm (tot −25) en hooguit +10 erboven. De invoer is nu
+  delta/halve band; `WellnessSummary` heeft er `hrvBand` en
+  `restingHrRaised` bij.
+- **De verzachtingsregel**: een diep negatieve TSB wordt alleen nog verzacht
+  als HRV en rust-HR in de eigen band liggen, de nachten lang genoeg zijn, de
+  readiness ≥ 70 is en het lid niets zwaars meldt. Een HRV boven de band bij
+  zware belasting geeft geen verzachting meer, maar een notitie dat het ook
+  overbelasting kan zijn.
+- **Eén venster**: `WELLNESS_SUMMARY_DAYS = 40` voor `getWellnessSummary()`
+  (AI en coachchat kregen 21 dagen), `/leden` en het trainersoverzicht (30
+  dagen).
+- **Geen SDNN meer** als terugval voor rMSSD, bij het opslaan en in
+  `computeZwbStatus`. Rijen in `profile_wellness` van vóór vandaag kunnen nog
+  SDNN bevatten; die schuiven binnen 37 dagen uit het venster.
+- **Gevoel weegt mee** (`subjective-recovery.ts`), naar Alfonso 2025:
+  - Wat telt als signaal: een rit van de laatste drie dagen die "slecht"
+    voelde, een rustige rit die "zwaar" voelde of RPE ≥ 7 had, of een
+    klachtenlast ≥ 0,65.
+  - Gevolg: het haalt de ruimte voor kwaliteit weg (−10 punten, hooguit
+    "Beperkte trainingsruimte"), maar zet niemand op herstel.
+  - Waar het meetelt: op de trainingspagina, Belasting, het dashboard en het
+    rennerscherm van de trainer. Bij de trainer zonder klachtenlogboek: dat is
+    privé (privacyverklaring §3).
+  - Het trainerscherm gebruikte een eigen `summarizeTrainingReadiness`-aanroep
+    en neemt nu `status.readiness`, zodat het hetzelfde oordeel toont.
+- Kennisbank: nieuw artikel **Herstel meten: HRV, rusthartslag en slaap** in
+  een nieuwe categorie Herstel, met 8 via PubMed bevestigde bronnen. Daarnaar
+  linken `/hulp` (Hersteltrend) en de tab Uitgangspunten.
+- Tests: `wellness.test.ts` (band, eigen baseline, verzachting, gevoel, geen
+  SDNN) en `subjective-recovery.test.ts`.
+
+**Gemeten op productie** (alleen lezen, alleen totalen, 2026-10-16):
+- Groep: 7 leden met herstel-data in de laatste 37 dagen.
+- Wat veranderde: 2 gaan van "fris" naar "normaal", 2 blijven "fris", en 3
+  hebben te weinig recente data (onveranderd).
+- De halve band lag gemiddeld op 9–12 %, met uitschieters van 3 tot 29 %. De
+  kalibratie van 15 punten per band (gekozen op ~8 %) pakt daardoor iets milder
+  uit dan de oude regel.
+- Beperking: de opgeslagen kopie wordt alleen ververst bij paginabezoek, dus dit
+  is niet elk lid met een koppeling.
+
+**Bewust niet gedaan.**
+- *Dagelijks voorschrijven op HRV* (Vesterinen, Javaloyes): de dag-coach doet
+  dat al grof, en meer sturing op één signaal past niet bij de voorzichtige
+  insteek.
+- *Gevoel in de ledenlijst en het trainersoverzicht*: die tonen alleen een
+  niveaulabel; daar per lid ritverslagen ophalen kost een query per renner.
+- *De privacyverklaring aanpassen*: het klachtenlogboek levert nog steeds een
+  samengevat signaal dat alleen het lid ziet, zoals §3 al zegt.
+
+**Niet geverifieerd.** De volledige `npm run test` heeft één bestand dat in deze
+worktree niet draait (`omnium-live.test.ts` leest `.env.local`). De build is
+gedraaid met de variabelen uit de `.env.local` van de hoofdmap.
+
+### Opgeleverd — wetenschappelijke toets van ZWBasis: opzet en fase 0 (afgerond 2026-10-16)
+
+**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
+codewijziging.
+
+**Waarom.** De eigenaar wil alle wetenschappelijke beweringen in de app laten
+toetsen, en waar meer te halen is, dat in de kennisbank en in de functionaliteit
+verwerken. Dat gaat per fase en per onderdeel: eerst een voorstel, uitvoeren pas
+na akkoord. Het werkdocument is
+[`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
+
+**Fase 0, het claimregister**, staat in dat document: elke claim met plek, bron
+en status, verdeeld over zes fases. De conclusie: de kennisbanken (trainen 8,
+voeding 25, kracht 10 artikelen, 17 protocollen) zijn al onderbouwd. Het gat zit
+in de regels die schema en advies sturen. De opbouwregels in de prompt, de
+FTP-factoren, de readiness-berekening en de TSB-drempels hebben geen bron, of
+een bron die een andere kant op wijst.
+
+**Fase 1, goedgekeurd door de eigenaar op 2026-10-16** (1A–1E, inclusief de
+punten uit de Consensus-ronde; FTP-signaal bij 8 % voor trainer én lid). 1C is
+uitgevoerd, net als 1A, 1B, 1D en 1E (zie de rondes hierboven). Fase 1 is
+daarmee af:
+- *1A Opbouw*: de 10 %-regel bleek in een RCT geen blessures te voorkomen. Hij
+  blijft als voorzichtige standaard, maar heet niet langer "veilig". Er komt een
+  artikel over opbouwen, detraining en CTL/ATL/TSB.
+- *1B FTP-test*: voor 0,75 × ramp is geen validatie gevonden; 0,95 × 20 minuten
+  is per renner ±10 %. Voorgesteld: een artikel, een controle van een nieuwe FTP
+  tegen CP en eFTP, en mogelijk een andere opener in de 20-minutentest.
+- *1C Herstel*: overstappen op ln rMSSD met een persoonlijke band. De
+  verzachtingsregel bij hoge HRV wordt bijgesteld: HRV kan ook stijgen bij
+  overreaching. Er komt een artikel.
+- *1D Zones*: drempelblokken standaard op 90–100 %; een artikel over zones als
+  afspraak.
+- *1E Analyse*: alleen bronnen aanvullen; de drempels blijven.
+
+**Aangevuld met Consensus Pro (dezelfde dag).** De onderzoeksagent van Consensus
+deed één brede ronde over 1A–1E (22.297 papers doorzocht, 20 meegenomen; ruw
+rapport in `docs/consensus/`). Elke nieuwe bron is daarna via PubMed nagelopen.
+Wat er veranderde aan de voorstellen:
+- *1A*: 10 % tegen 24 % opbouw gaf geen verschil in blessurerisico; sprongen van
+  meer dan 30 % wel. Daarom komt "vermijd sprongen van meer dan een kwart" in de
+  prompt.
+- *1B*: de 20-minutentest heeft een meetfout van ~3 %. Nieuw voorstel: een
+  kleiner verschil in de FTP-historie tonen als "gelijk gebleven".
+- *1C*: twee meta-analyses bevestigen dat HRV ook stijgt bij overbelasting.
+  Nieuw voorstel, ter keuze: gevoel en RPE meewegen in de readiness.
+- *1D*: de bovengrens hangt af van de bloklengte: ≥ 15 minuten op 90–95 %,
+  kortere blokken tot 100 %, boven 100 % alleen in blokken van hooguit 8 minuten.
+- *1E*: ideeën voor fase 2: een maandelijkse duurtest (60 minuten op 75 % FTP).
+
+**Fase 2, goedgekeurd en uitgevoerd op 2026-10-16**: zie de ronde
+"wetenschappelijke toets fase 2" hierboven.
+
+**Fase 3, voorgesteld en na akkoord uitgevoerd op 2026-10-16**: zie de ronde
+"wetenschappelijke toets fase 3" hierboven. Het voorstel staat in het
+werkdocument.
+
+**Fase 4, voorgesteld en na akkoord uitgevoerd op 2026-10-16**: zie de ronde
+"wetenschappelijke toets fase 4" hierboven. Het voorstel staat in het
+werkdocument.
+
+**Fase 6, voorgesteld en na akkoord uitgevoerd op 2026-10-16**: zie de ronde
+"wetenschappelijke toets fase 6" hierboven. Daarmee is de toets rond. Kort, zoals
+voorgesteld:
+- Geen getal hoeft te veranderen.
+- De rit-fysica valt binnen de metingen (Lim 2011).
+- De CORE-sensor steunt in de app op één validatiestudie, terwijl er nu vier
+  zijn, met een fout van 0,3–0,5 °C naar boven of beneden.
+- De vijf wetenschappelijke links op /hulp kloppen; twee gaan naar een DOI.
+- De privacyverklaring hoeft niet te veranderen.
+
+**Fase 5, voorgesteld en na akkoord uitgevoerd op 2026-10-16**: zie de ronde
+"wetenschappelijke toets fase 5" hierboven. Het voorstel staat in het
+werkdocument. Kort:
+- CP ligt in onderzoek gemiddeld gelijk aan of iets boven FTP, dus
+  `CP_FTP_FRACTION` naar 1,00.
+- Het W′-model gaf in races bij uitputting nog ~21 % reserve aan. Daarom gaat
+  de reserve vóór de sprint mogelijk van 15 naar 20 %.
+- De promptregel "een tijdrijder rijdt vlak" wordt variabel vermogen op een
+  glooiend parcours.
+
+Er liggen drie besluiten voor. Kort: de kennisbank kracht was zorgvuldig. Er zijn drie
+nieuwigheden:
+- Krachttraining op de fiets werkt bij goed getrainde renners even goed als
+  squats.
+- Over springen voor je botten is er nu wel onderzoek.
+- De regel "kracht nooit op een fietsdag" is voorzichtiger dan het onderzoek
+  vraagt.
+
+Verder beweert het codecommentaar bij `MOBILITY_SESSIONS_PER_WEEK` ten onrechte
+dat twee tot drie sessies per week uit de literatuur komen. Er zijn vijf besluiten
+voorgelegd. Kort: de voedingskennisbank is grotendeels actueel. Eiwit, en
+vooral de portie voor het slapen, wordt te stellig gebracht. De beperkingen bij
+bicarbonaat en bèta-alanine kloppen niet meer. De voedingsartikelen missen een
+lijst beperkingen. De Consensus-agent behandelde opnieuw alleen een deel (eiwit
+en koolhydraten); de rest is met gerichte zoekvragen gedaan, en alle 32 nieuwe
+DOI's staan in PubMed.
+
+De gewone zoekfunctie van Consensus gaf eerst nog resultaten van het gratis
+abonnement. Na het opnieuw verbinden van de connector (2026-10-16) werkt ook
+die op Pro: twintig resultaten per vraag, met DOI, en zonder limiet bij
+meerdere vragen tegelijk.
+
+**Gevonden en in 1C hersteld:** het venster van 21 dagen voor AI en coachchat,
+en de terugval op SDNN. Nog open: `CP_FTP_FRACTION = 0,97` (pacing) botst met Karsten 2021, waar CP gemiddeld
+iets *boven* FTP lag. Andere bronnen (MLSS onder FTP, CP ≈ MLSS) wijzen juist
+de kant van 0,97 op. Dat wordt uitgezocht in fase 5.
+
+**Niet lokaal te verifiëren.** Hoeveel leden door de nieuwe HRV-band anders
+worden ingedeeld. Inmiddels gemeten, zie de 1C-ronde hierboven.
+
+**Les.** Vier DOI's die uit het geheugen waren aangevuld, bleken fout. Een DOI
+gaat pas de kennisbank in als hij via PubMed of de uitgever is bevestigd.
+
+**Consensus-rapport niet in git** (besluit eigenaar, 2026-10-16): het draagt de
+voorwaarde "persoonlijk, niet-commercieel gebruik". Het staat lokaal in
+`docs/consensus/` en is via `.git/info/exclude` buiten git gehouden.
+
+### Opgeleverd — Wie weet wat: een tip uit een gesprek bewaart de ontvanger
+
+**2026-10-15.** Commit: de commit die dit blok toevoegt. Migratie
+`0240_member_tips_from_thread.sql` (toegepast door de eigenaar, 2026-10-15).
+
+**Aanleiding.** In de eerste versie kon je alleen je **eigen** bericht als tip
+plaatsen ("Maak hier een tip van"). De eigenaar wil het omgekeerde. Wie in een
+gesprek een antwoord krijgt en dat waardevol vindt, bewaart het als tip voor de
+club. Je eigen bericht kun je niet als tip bewaren: of iets de moeite waard is,
+beslist de ontvanger.
+
+**Wat.**
+
+- In een gesprek staat **"Bewaar als tip"** alleen bij berichten van de ander. Bij
+  een bericht dat al als tip bewaard is, staat in plaats daarvan "Bewaard als tip".
+  Dat zien beide deelnemers.
+- Het tipformulier (`/tip?bericht=`) neemt de tekst en het onderwerp van het
+  gesprek over en toont van wie de tip is.
+  - De ontvanger kan de tekst inkorten tot 300 tekens.
+  - Wie de tip bewaarde, kan hem daarna niet meer aanpassen of verwijderen. De
+    schrijver kan dat wel.
+- De tip staat op naam van de schrijver, met `source = 'gesprek'` en een
+  `message_id` naar het bericht.
+  - Per bericht kan er één tip zijn.
+  - De schrijver krijgt een pushmelding ("X bewaarde je antwoord als tip") met een
+    link naar Mijn onderwerpen, waar zijn tips staan.
+- **Database (`0240`).**
+  - Een tweede pad in de insert-policy van `member_tips`. Een tip uit een gesprek
+    mag alleen als:
+    - het bericht van de ander komt;
+    - je zelf in dat gesprek zit;
+    - `profile_id` de schrijver van het bericht is;
+    - `created_by` jijzelf bent.
+  - Een eigen tip (`lid`) heeft geen `message_id`.
+  - De wacht op `member_tips` bewaakt nu ook `message_id`.
+- **Teksten.**
+  - `/privacy#wie-weet-wat`: de zin "Een tip plaats je altijd zelf" is vervangen.
+    Het andere lid kan je bericht onder jouw naam bewaren, je krijgt een melding
+    en je kunt de tip zelf aanpassen of verwijderen.
+  - `/voorwaarden` §3: een alinea over dezelfde afspraak.
+  - `/hulp#wie-weet-wat` en `docs/kennis-van-leden.md` §5 en §6 zijn bijgewerkt.
+
+**Besluit van de eigenaar.** Een bericht wordt tip door de ontvanger, niet door de
+schrijver. De schrijver gaf toestemming bij Wie weet wat, krijgt een melding en
+houdt de tip in eigen beheer. Dat is hetzelfde model als de import uit de
+groepsapp.
+
+**Bewust niet gebouwd.**
+
+- **Vooraf toestemming van de schrijver per tip.** De tip staat meteen; de
+  schrijver kan hem achteraf aanpassen of verwijderen, net als bij de import.
+- **De tekst ongewijzigd afdwingen.** De ontvanger mag inkorten tot 300 tekens.
+  De schrijver ziet de tip daarna onder zijn eigen naam en kan hem aanpassen.
+
+**Niet meer waar.**
+
+- In de ronde "Wie weet wat" hieronder:
+  - "Een tip staat dus altijd in de eigen woorden van de auteur";
+  - "Vastleggen of een tip uit een gesprek kwam" (bewust niet gebouwd).
+  Beide zijn ter plekke aangevuld.
+- De goedgekeurde privacytekst van eerder vandaag is op dit punt gewijzigd. De
+  nieuwe tekst is goedgekeurd (eigenaar, 2026-10-15).
+
+**Getest.**
+
+- `tsc` en ESLint: geen nieuwe fouten.
+- `member-knowledge-migration.test.ts` heeft nu 28 tests, op `0239` plus `0240`.
+  De nieuwe tests controleren:
+  - de ontvanger bewaart een antwoord op naam van de schrijver (in beide
+    richtingen);
+  - geweigerd: je eigen bericht, een vreemde auteur, een gesprek waar je niet in
+    zit, en een `created_by` namens een ander;
+  - een eigen tip kan geen `message_id` hebben;
+  - één tip per bericht;
+  - de schrijver kan de tip aanpassen, wie hem bewaarde niet;
+  - `message_id` is niet te verplaatsen.
+- Volledige run: 2.413 van de 2.415 tests groen. `admin-areas` en
+  `intervals-ride-sync` liepen weer onder belasting op een time-out en zijn los
+  groen; `omnium-live` mist `.env.local`.
+
+**Niet geverifieerd.**
+
+- `0240` op de echte database.
+- De knop en het formulier in de browser.
+- Of de pushmelding aankomt.
+
+### Opgeleverd — Wie weet wat: kenners, vragen en tips van leden (fase 1)
+
+**2026-10-15.** Commit: de commit die dit blok toevoegt. Migratie
+`0239_member_knowledge.sql` (toegepast door de eigenaar, 2026-10-15). Het onderzoek en
+alle voorstellen staan in [kennis van leden](docs/kennis-van-leden.md).
+
+**Aanleiding.** De eigenaar ziet het kennisnetwerk van de leden als mogelijke
+kracht van ZWB, maar zag niet hoe het platform dat vorm geeft. Hij vroeg om
+voorstellen en onderzoek.
+
+**Waarom geen forum.** `posts` heeft sinds `0019` de soorten `vraag` en `tip`. Dat
+leverde in vier maanden één post op, met 0 reacties. Ritverslagen en event-chat
+bleven even klein. Het onderzoek (90-9-1, impliciete kennis, transactief geheugen,
+gerichte vragen) wijst één kant op: de app moet aanwijzen *wie* iets weet, en
+bewaren wat daaruit komt. Er zijn zeven voorstellen (A–G). De eigenaar koos voor
+fase 1: A (wie weet wat) en B (tips op hun plek), plus het begin van E (een vraag
+aan één kenner).
+
+**Wat.**
+
+- **`/leden/wie-weet-wat`.** Per onderwerp de leden met ervaring, met een korte
+  notitie en de knop "Vraag het aan", plus de nieuwste tips. Onderwerpen zonder
+  kenners staan ingeklapt. In het menu onder Club en als knop op `/leden`.
+- **Meedoen** (`/mijn`).
+  - *Sinds 2026-10-16 (`0242`, ronde "ZWBieb") voegen leden zelf onderwerpen
+    toe, en heet het onderdeel ZWBieb op `/zwbieb`.*
+  - Een lid kiest tot zes onderwerpen uit een vaste lijst van vijftien
+    (`src/lib/wie-weet-wat/topics.ts`). Er zit geen gezondheidsonderwerp bij.
+  - Het lid tekent een eigen toestemming (`MEMBER_KNOWLEDGE_CONSENT_VERSION`,
+    tabel `member_knowledge`).
+  - Stoppen wist de onderwerpen. Tips en gesprekken blijven staan.
+- **Vragen** (`/vraag`, `/gesprekken`).
+  - Een vraag opent een gesprek tussen twee leden. Alleen die twee lezen het, ook
+    het bestuur niet; dat is dezelfde keuze als bij de coachchat (`0167`).
+  - Een deelnemer kan het gesprek sluiten en eigen berichten verwijderen.
+  - Hooguit tien nieuwe vragen per dag; een trigger bewaakt dat.
+  - Bij een nieuw bericht gaat er een push uit met de nieuwe trigger
+    `on_knowledge_message`. De schakelaar daarvoor staat op `/profiel`.
+  - In de kop staat dan een icoon met het aantal, in beide designs. Het icoon
+    verschijnt alleen als er iets ongelezen is, want push staat maar bij 4 leden
+    aan.
+- **Tips** (`member_tips`, hooguit 300 tekens).
+  - Een lid plaatst een tip zelf, of maakt hem van een eigen bericht met "Maak
+    hier een tip van". *Omgedraaid op 2026-10-15 (`0240`, ronde "Tip uit een
+    gesprek bewaart de ontvanger"): alleen de ander kan een bericht als tip
+    bewaren.*
+  - Tips staan in het overzicht, onder "Weet van" op het profiel van een lid en
+    onder "Van leden" op de eventpagina.
+  - Op de eventpagina gaat het om tips bij het event, bij het moederevent en bij
+    de cols die de pagina op de route herkent.
+  - Moderatie: `community.manage` of `content.moderate_posts` kan een tip
+    verbergen of verwijderen. Een trigger voorkomt dat de auteur een verborgen tip
+    zelf terugzet.
+- **Import.** `/beheer/citaten` kan een bericht uit de groepsapp nu ook als tip bij
+  Wie weet wat opslaan (`source = 'import'`), naast als citaat in Mijn garage.
+- **Data-export.** De export bevat de onderwerpen, de tips, de eigen gesprekken en
+  de zelf geschreven berichten.
+- **Teksten.**
+  - `/privacy#wie-weet-wat` en `/voorwaarden` §3 en §5.
+  - Een blok op `/hulp#wie-weet-wat` en een zoekterm in de hulpzoeker.
+  - Geen uitleg in de schermen zelf.
+
+**Besluiten van de eigenaar.**
+
+- Alle voorstellen spreken aan; eerst fase 1.
+- **Geen telefoonnummers en geen WhatsApp-link.** Eerst lag er een `wa.me`-link
+  voor, met een nummer dat het lid zelf zou opgeven. De eigenaar koos voor
+  berichten in de app. Dan blijven telefoonnummers buiten de app en kan een goed
+  antwoord weer een tip worden.
+- **Toestemming per functie, geen nieuwe `PRIVACY_VERSIONS`.** Dat is de derde
+  uitzondering, na het eetdagboek en de protocollen; zie het commentaar in
+  `src/lib/privacy.ts`.
+- **Privacy- en voorwaardentekst goedgekeurd** (eigenaar, 2026-10-15), inclusief
+  twee bewuste keuzes: het bestuur leest geen gesprekken (dus geen moderatie
+  daarvan), en de WhatsApp-import mag berichten ook als tip onder de naam van het
+  lid zetten, met achteraf zelf verwijderen.
+
+**Bewust niet gebouwd.**
+
+- **`maintenance_tips` samenvoegen met `member_tips`.** Die tabel heeft een andere
+  sleutel (onderdeel en fietstype), pro-bronnen met bronlink en seeddata, en leden
+  plaatsen er niets zelf. De WhatsApp-parser wordt wel gedeeld.
+- **Een vraag aan alle kenners van een onderwerp tegelijk.** Eerst zien of
+  één-op-één gebruikt wordt.
+- **Realtime in een gesprek.** De pagina ververst na versturen en bij openen.
+- **Blokkeren of melden.** Sluiten kan wel. Bij 35 leden loopt een probleem via
+  het bestuur.
+- **Tips bij Zwift-routes of per eventtype.**
+- **Vastleggen of een tip uit een gesprek kwam.** *Sinds `0240` wel:
+  `source = 'gesprek'` en `message_id`.*
+- **C (wie reed dit al).** Dat laat zien wie waar reed en vraagt een eigen
+  privacybesluit.
+- **D (delen bij wat je maakt), F (AI met clubkennis) en G (clinics).** G kan nu
+  al als gewoon event.
+
+**Niet meer waar.**
+
+- "De volgende vrije is `0239`" (Architectuur): dat is nu `0240`.
+- De geparkeerde "AI-agenten en kennisvragen" en het E2E-chatonderzoek verwijzen nu
+  naar deze ronde.
+
+**Getest.**
+
+- `tsc` zonder nieuwe fouten. De drie meldingen over `@zxing` in
+  `read-barcode.ts` komen doordat deze worktree de `node_modules` van de
+  hoofdmap leent.
+- ESLint op alle geraakte mappen zonder fouten.
+- Nieuw: `member-knowledge-migration.test.ts` (23 tests, `0239` tegen PGlite). De
+  tests dekken:
+  - wie onderwerpen, tips en gesprekken ziet; het bestuur en de moderator blijven
+    buiten het gesprek
+  - een vraag aan jezelf, aan iemand die niet meedoet, aan een wachtend account,
+    en zonder eigen toestemming
+  - de daglimiet, en geen berichten in een gesloten gesprek
+  - bij gelezen zetten verandert alleen de eigen kolom
+  - de wacht op een verborgen tip
+  - lengtechecks
+  - cascade bij het opheffen van een account, en `set null` als een event of col
+    verdwijnt
+- Nieuw: `wie-weet-wat.test.ts` (onderwerpen, ongelezen, tips bij een event), en
+  een geval in `nav-active.test.ts`.
+- Volledige run: 2.405 van de 2.406 tests groen. `admin-areas` en
+  `intervals-ride-sync` liepen onder belasting in een time-out; los zijn ze groen.
+  `omnium-live` mist `.env.local`.
+
+**Niet geverifieerd.**
+
+- `0239` op de echte database (geen Docker of Supabase-config hier), dus ook de
+  RLS met de echte `current_user_has_permission` en `is_approved` niet.
+- **De pagina's in de browser.** De worktree heeft geen `.env.local`, dus de
+  dev-server is niet gestart.
+- Of de pushmelding aankomt.
+- Of de query voor het icoon in de kop licht blijft (`countUnreadThreads`, draait
+  op elke pagina). Dat moet uit de wekelijkse `db-health` blijken.
+- Tips bij cols verschijnen alleen bij toekomstige events met een GPX, want alleen
+  dan leest de pagina de route in.
+
+### Opgeleverd — Trainersuggesties lezen het bericht van het lid mee
+
+**2026-10-15.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Een lid schreef bij een duurrit: "Voel me sterk en kon me
+moeilijk aan de rustige duur houden." De suggestie bij Beoordelen gaf
+daarna precies dat terug ("51% in zone 3 of hoger. Houd rustige ritten
+rustig…"), zonder op het bericht in te gaan en zonder uitleg waarom. De
+eigenaar vroeg of de tip het bericht kan meenemen, met meer uitleg of een link
+naar de kennisbank.
+
+**Wat.**
+
+- `trainingSuggestions` (`training-advice.ts`) krijgt het bericht en het gevoel
+  van het lid. Bij een duur- of herstelrit die tempo werd: zegt het lid zelf dat
+  inhouden niet lukte, of voelde het goed/sterk, dan opent de tip met "Je merkte
+  het zelf al" of "op een dag dat het goed voelt is inhouden het lastigst" en
+  legt uit waarom (tempo erbovenop kost herstel voor de harde dag). Elke variant
+  noemt nu een plafond in watt: 75% van de FTP waarmee de zonetijden zijn
+  ingedeeld (zone 3 begint bij 76%). Bij een zware rustige rit vraagt de tip niet
+  meer naar slaap, stress of ziekte als het lid die zelf noemde.
+- Een suggestie kan een kennisbankartikel hebben. Overnemen zet `Lees meer:
+  /zwbeter-worden/kennis/<slug>` onder de tekst; bij het lid (kalender en
+  afgewerkte trainingen, `TrainerFeedbackText`) wordt dat pad een link met de
+  titel van het artikel. Een onbekend pad blijft platte tekst.
+- Nieuw artikel **Rustige ritten rustig** (`rustige-ritten`) in de kennisbank
+  trainen, met Seiler 2010, Esteve-Lanao 2007 en Oliveira 2024. In de beperkingen
+  staat dat "tempo schaadt de harde dag" een vuistregel van coaches is en
+  nauwelijks direct gemeten.
+- Test: `tests/unit/training-advice.test.ts` (o.a. het bericht uit de aanleiding,
+  en "niet sterk" telt niet als sterk).
+
+**Bewust niet.**
+
+- **Geen taalmodel** om het bericht te lezen. De suggesties zijn puur en
+  toetsbaar; een paar woordpatronen dekken de gevallen waarin de tip anders moet.
+  Mist een patroon iets, dan blijft de gewone tip staan; de trainer leest het
+  bericht er toch naast en beslist zelf.
+- **Geen kolom voor de link.** De feedback blijft vrije tekst die de trainer kan
+  aanpassen; een pad in de tekst is genoeg en werkt ook voor de trainer die het
+  zelf typt.
+- Alleen de duurrit-tip heeft een artikel; voor de andere regels (wegzakken,
+  ontkoppeling) is er nog geen passend artikel.
+
+**Niet lokaal geverifieerd.** De weergave van de link bij het lid en het
+Overnemen-knopje zijn niet in de browser bekeken (geen ingelogde sessie lokaal);
+logica en tests wel.
+
+### Opgeleverd — uitklaplijsten in het donkere thema donker
+
+**2026-10-15.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** In de TTT Planner (tegels-design, donker) stond de lijst van het
+eventveld wit, met lichtgrijze tekst erop: bijna onleesbaar.
+
+**Oorzaak en wijziging.** Een native `<select>` tekent zijn lijst zelf. De opties
+erfden de lichte tekstkleur, maar niet de halftransparante veldachtergrond
+(`--tg-panel`), dus de browser viel terug op wit. Twee regels in `globals.css`:
+
+- `.dark` zet `color-scheme: dark`, zodat native onderdelen (uitklaplijsten,
+  schuifbalken, datumkiezers) in het donkere thema donker zijn. Dat stond
+  nergens in de app.
+- In de base-laag krijgen `option` en `optgroup` `--popover` als achtergrond en
+  `--popover-foreground` als tekst. Dat geldt in beide designs en beide thema's,
+  dus elke `<select>` in de app, niet alleen die in de TTT Planner.
+
+**Niet lokaal te verifiëren.** Niet in de browser bekeken en niet gebouwd: deze
+worktree heeft geen `.env.local` en geen `node_modules`.
+
 ### Opgeleverd — Protocollen bij trainen en voeden, en een kennisbank trainen
 
 **2026-10-14.** Commit: de commit die dit blok toevoegt. Migratie
@@ -8183,6 +11971,8 @@ voedingsprotocollen bij voeden. Onderzoek en bronnen:
   gepolariseerd of piramidaal, taper, hittetraining, ademspiertraining, koud
   water na de training. Voeding kreeg een artikel "Ketonen" (afgeraden). Een
   artikel linkt naar de protocollen die erop leunen, en omgekeerd.
+  *Op 2026-10-15 kwam er een achtste bij, "Rustige ritten rustig"; zie de ronde
+  "Trainersuggesties lezen het bericht van het lid mee".*
 - **Starten** met eigen toestemming per start (`PROTOCOL_CONSENT_VERSION`,
   kolom `consent_version`), net als het eetdagboek; geen nieuwe privacyversie,
   vastgelegd in `src/lib/privacy.ts`. Eén lopend exemplaar per protocol.
@@ -9128,6 +12918,8 @@ database met deze opstelling.
 ### Gemeten — ZwiftGopher: geen vrije routekeuze, kopbeurtvelden kloppen
 
 **2026-10-09.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+*Sinds 2026-10-15 roept ZWB de API van ZwiftGopher niet meer aan; de route kies je op zwiftgopher.com zelf.*
 
 **Aanleiding.** Stijn vroeg om vrije routekeuze in de TTT Planner, omdat alle
 routes in de database staan. Eén batchverzoek aan `POST /api/optimize` met zijn
@@ -10897,7 +14689,8 @@ drempel die in de code staat.
   met het gewicht van het lid (zie de ronde "Protocollen"). Geen merken blijft.*
 - **Geparkeerd, voor het plannenboek:** zweettest-calculator, boodschappenlijst,
   darmtrainingsschema. *Het darmtrainingsschema is op 2026-10-14
-  gebouwd als protocol "Darmtraining naar 90 tot 120 gram per uur".*
+  gebouwd als protocol "Darmtraining naar 90 tot 120 gram per uur", en op
+  2026-10-16 kwam er een vervolg naar 150 g/u bij ("Darmtraining 150").*
 
 **Nieuwe privacytekst, geen eigen privacyversie.** Lengte en eigen recepten
 zijn alleen voor het lid zelf zichtbaar. Er gaat niets naar andere leden of
@@ -14873,7 +18666,7 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   inlogt. De beheerschermen onder `/beheer/omnium` blijven Nederlands. Er komt
   geen i18n-laag; de Omnium-sectie krijgt `lang="en"` op zijn contentwrapper.
 - **Routes Nederlands**: `/kalender`, `/leden`, `/media`, `/community`,
-  `/profiel`, `/achievements` (uitzondering), `/live`. Nieuwe routes
+  `/profiel`, `/stats/achievements` (uitzondering), `/live`. Nieuwe routes
   volgen deze conventie.
 - **Supabase RLS overal aan**, policies per migratie naast de tabel.
 - **Service-role admin client**: alleen in server-acties die expliciet
@@ -14915,6 +18708,11 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
 ---
 
 ## Bekende open dingen
+
+- **`maintenance_tips` ontbreekt in de data-export** (gezien 2026-10-15, bij Wie
+  weet wat). Citaten van een lid hebben een `profile_id`, maar de tabel staat niet
+  in `PROFILE_TABLES` van `src/app/api/account/export/route.ts`. De oplossing is
+  één regel; die is buiten de ronde gelaten.
 
 - **Omnium:** migratie `0174` is toegepast (eigenaar, 2026-10-02). Nog te doen:
   seizoen `2026-27` plannen en de productie-inrichting voor
@@ -15021,7 +18819,7 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   Strava-deel draait één keer per dag per lid (ronde bovenaan). Oorspronkelijk
   (2026-09-23): niet urgent, wel goed om
   te weten. `recomputeMyMilestoneBadges` in
-  `src/app/(app)/achievements/_actions.ts` draait `syncColSegmentTimesForUser`
+  `src/app/(app)/stats/achievements/_actions.ts` (toen nog `achievements/`) draait `syncColSegmentTimesForUser`
   (40 detailcalls) én `syncZwbSegmentsForUser` (40 detailcalls plus
   `applyAuthoritativeSegmentPrs`, tot 100 `GET /segments/{id}`). Eén klik kost dus
   richting 150 calls, ruim 7% van de daglimiet, zonder throttle — en het is een
@@ -15391,6 +19189,10 @@ testerfeedback die direct communitywaarde kan leveren.
 **Waarom later/betaalversie:** nuttig, maar privacy- en kennisscope moeten eerst
 strak zijn.
 
+*2026-10-15:* "wie moet ik hebben" is zonder AI opgelost met Wie weet wat
+(`0239`). Een AI die de tips van leden met naam gebruikt, staat daar als voorstel
+F in [kennis van leden](docs/kennis-van-leden.md).
+
 1. Bepaal scope: platformhulp, beleid, functies vinden, "wie moet ik hebben".
 2. Bepaal databronnen: `/hulp`, `PLAN.md`, runbook, publieke content,
    eventueel afgeschermde ledeninformatie met expliciete grenzen.
@@ -15477,7 +19279,10 @@ Ontwerp:
 > geparkeerd. Wat er sindsdien wél is gebouwd, is de coachchat in ZWBeter Worden (migratie
 > `0167`): één besloten gesprek per lid tussen het lid, een AI-coach en zijn aangewezen
 > trainer. Dat is niet E2E-versleuteld en lost geen van de vragen hieronder op — het is een
-> smalle toepassing van optie (B), zonder rooms en zonder WhatsApp-import.
+> smalle toepassing van optie (B), zonder rooms en zonder WhatsApp-import. Sinds 2026-10-15
+> (`0239`) zijn er ook gesprekken tussen twee leden in Wie weet wat, maar alleen over een
+> onderwerp waarin de ander kenner is. Die zijn ook niet E2E-versleuteld, en een clubchat
+> zijn ze niet.
 
 **Kernconclusie: geschiedenis-behoud (WhatsApp-import) en échte E2E zijn
 grotendeels onverenigbaar.** Kies dus eerst het doel.

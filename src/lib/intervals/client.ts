@@ -264,6 +264,23 @@ export async function fetchIntervalsActivities(
   );
 }
 
+/**
+ * Activiteiten tussen twee dagen (YYYY-MM-DD), als ruwe objecten: de statistieken
+ * lezen velden die IntervalsActivity niet beschrijft (zonetijden, W′bal).
+ */
+export async function fetchIntervalsActivitiesBetween(
+  apiKey: string,
+  athleteId: string,
+  oldest: string,
+  newest: string,
+): Promise<unknown[]> {
+  const rows = await intervalsFetch<unknown>(
+    apiKey,
+    `/api/v1/athlete/${athleteId}/activities?oldest=${oldest}&newest=${newest}`,
+  );
+  return Array.isArray(rows) ? rows : [];
+}
+
 export type IntervalsStream = { type: string; data: Array<number | null> };
 
 /**
@@ -517,6 +534,64 @@ export function parsePowerCurveSet(payload: unknown): {
     })
     .sort((a, b) => a.afterKj - b.afterKj);
   return { points: base?.points ?? [], fatigueCurves };
+}
+
+/**
+ * Elke curve uit `list` apart, met zijn `id` (de opgevraagde curve, bv.
+ * "r.2026-01-01.2026-01-31"). parsePowerCurveSet voegt ze samen tot één verse
+ * curve plus vermoeide curves; voor een reeks periodes is elke curve er één.
+ */
+export function parsePowerCurveList(payload: unknown): Array<{ id: string | null; points: IntervalsPowerCurvePoint[] }> {
+  const activities = collectPowerCurveActivities(payload);
+  const list =
+    payload && typeof payload === "object" && !Array.isArray(payload)
+      ? (payload as Record<string, unknown>).list
+      : null;
+  if (!Array.isArray(list)) return [];
+  return list.map((entry) => {
+    const id =
+      entry && typeof entry === "object" && !Array.isArray(entry)
+        ? stringField((entry as Record<string, unknown>).id)
+        : null;
+    return { id, points: entry && typeof entry === "object" ? curveEntryPoints(entry, activities) : [] };
+  });
+}
+
+/** Zoveel periodes per aanroep; een jaar per maand is één vraag. */
+const CURVE_RANGES_PER_CALL = 12;
+
+/**
+ * Powercurves voor een reeks datumbereiken ("r.<van>.<tot>", zie
+ * fetchIntervalsDayPowerCurve), per bereik de punten. Bereiken die intervals niet
+ * teruggeeft, of een mislukte aanroep, ontbreken in de uitkomst; de rest komt
+ * gewoon door.
+ */
+export async function fetchIntervalsPowerCurveRanges(
+  apiKey: string,
+  athleteId: string,
+  ranges: string[],
+): Promise<Map<string, IntervalsPowerCurvePoint[]>> {
+  const out = new Map<string, IntervalsPowerCurvePoint[]>();
+  const now = new Date().toISOString().slice(0, 10);
+  for (let start = 0; start < ranges.length; start += CURVE_RANGES_PER_CALL) {
+    const batch = ranges.slice(start, start + CURVE_RANGES_PER_CALL);
+    const query = new URLSearchParams({ curves: batch.join(","), type: "Ride", includeRanks: "false", now });
+    try {
+      const payload = await intervalsFetchFirst<unknown>(apiKey, [
+        `/api/v1/athlete/0/power-curves?${query.toString()}`,
+        `/api/v1/athlete/${athleteId}/power-curves?${query.toString()}`,
+      ]);
+      const curves = parsePowerCurveList(payload);
+      curves.forEach((curve, index) => {
+        // Op id als intervals die teruggeeft, anders op volgorde.
+        const range = curve.id && batch.includes(curve.id) ? curve.id : batch[index];
+        if (range && curve.points.length > 0) out.set(range, curve.points);
+      });
+    } catch {
+      // Deze periodes blijven leeg; de grafiek toont een gat.
+    }
+  }
+  return out;
 }
 
 /** FTP en gewicht uit de athlete-instellingen; het mmp-model gaat voor. */

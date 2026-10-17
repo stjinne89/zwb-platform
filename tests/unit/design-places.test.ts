@@ -10,6 +10,7 @@ describe("placeForPath", () => {
     expect(placeForPath("/events/abc/pacing")).toBe("kalender");
     expect(placeForPath("/zwbeter-worden/schema")).toBe("zwbeter");
     expect(placeForPath("/teams/ttt-planner")).toBe("club");
+    expect(placeForPath("/samen-fietsen")).toBe("club");
   });
 
   it("kiest de langste passende route", () => {
@@ -22,8 +23,12 @@ describe("placeForPath", () => {
     expect(placeForPath("/clubhuis")).toBeNull();
   });
 
+  it("zet Sponsors onder Club", () => {
+    expect(placeForPath("/sponsors")).toBe("club");
+  });
+
   it("geeft geen plek voor het persoonlijke menu en beheer", () => {
-    for (const path of ["/mijn-garage", "/hulp", "/sponsors", "/beheer/rechten"]) {
+    for (const path of ["/mijn-garage", "/hulp", "/beheer", "/beheer/rechten"]) {
       expect(placeForPath(path)).toBeNull();
     }
   });

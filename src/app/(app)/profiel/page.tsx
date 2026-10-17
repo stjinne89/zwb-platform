@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/app-ui";
+import { buttonVariants } from "@/components/ui/button";
 import { AchievementBadge } from "@/components/achievement-badge";
 import { AvatarUpload } from "./_components/avatar-upload";
 import { BadgeVault, type MilestoneBadgeRow } from "./_components/badge-vault";
@@ -19,6 +20,9 @@ import { ProfileExternalLinks } from "@/components/profile-external-links";
 import type { StravaBikeRow } from "@/lib/strava/bikes";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
+import { ProfileViewToggle } from "./_components/profile-view-toggle";
+import { MemberProfile } from "../leden/[id]/_components/member-profile";
+import { PublicProfile } from "@/app/profielen/[id]/_components/public-profile";
 
 type AwardRow = {
   id: string;
@@ -51,10 +55,57 @@ function awardBadge(row: AwardRow) {
     : row.achievement_badges;
 }
 
-export default async function ProfielPage() {
+export default async function ProfielPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ weergave?: string | string[] }>;
+}) {
   const supabase = await createClient();
   const user = await getRequestUser();
   if (!user) redirect("/login");
+
+  // Standaard: het profiel zoals leden het zien. Bewerken en het deelbare
+  // profiel staan links en rechts op de weergaveknop.
+  const { weergave } = await searchParams;
+  if (weergave === "deelbaar") {
+    const toggle = <ProfileViewToggle view="deelbaar" />;
+    return (
+      <div className="mx-auto max-w-3xl space-y-6">
+        <PublicProfile
+          profileId={user.id}
+          afterHeader={toggle}
+          whenOff={
+            <>
+              {toggle}
+              <EmptyState
+                action={
+                  <Link
+                    href="/profiel?weergave=bewerken#zichtbaarheid"
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                  >
+                    Aanzetten
+                  </Link>
+                }
+              >
+                Je deelbare profiel staat uit.
+              </EmptyState>
+            </>
+          }
+        />
+      </div>
+    );
+  }
+  if (weergave !== "bewerken") {
+    return (
+      <div className="mx-auto max-w-3xl space-y-6">
+        <MemberProfile
+          profileId={user.id}
+          viewerId={user.id}
+          afterHeader={<ProfileViewToggle view="leden" />}
+        />
+      </div>
+    );
+  }
 
   const PROFILE_COLUMNS =
     "id, display_name, region, zwift_id, mywhoosh_id, strava_id, intervals_id, zrl_category, zrl_division, sex, wellness_device, ftp_watts, weight_kg, bio, birth_date, share_birthday, is_admin, community_roles, avatar_url, public_profile_enabled, profile_visibility, event_type_interests, fit_max_distance_km, fit_max_elevation_m";
@@ -116,7 +167,7 @@ export default async function ProfielPage() {
     supabase
       .from("notification_preferences")
       .select(
-        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_training_chat, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_intervals_visit_reminder",
+        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_training_chat, on_knowledge_message, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_intervals_visit_reminder",
       )
       .eq("profile_id", user.id)
       .maybeSingle(),
@@ -203,6 +254,8 @@ export default async function ProfielPage() {
         totalCount={milestones.length}
       />
 
+      <ProfileViewToggle view="bewerken" />
+
       <ProfileExternalLinks
         zwiftId={profileRow?.zwift_id}
         stravaId={profileRow?.strava_id || stravaUser?.athlete_username}
@@ -277,6 +330,20 @@ export default async function ProfielPage() {
         <MyQuotes quotes={(myQuotes ?? []) as MyQuote[]} />
       </div>
 
+      <section id="zwbieb" className="scroll-mt-20 rounded-lg border bg-card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            ZWBieb
+          </h2>
+          <Link
+            href="/zwbieb/mijn"
+            className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent"
+          >
+            Mijn ZWBieb
+          </Link>
+        </div>
+      </section>
+
       <div id="meldingen" className="scroll-mt-20">
         <PushToggle
           vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null}
@@ -286,6 +353,7 @@ export default async function ProfielPage() {
             on_new_badge: pushPrefs?.on_new_badge ?? false,
             on_training_plan: pushPrefs?.on_training_plan ?? true,
             on_training_chat: pushPrefs?.on_training_chat ?? true,
+            on_knowledge_message: pushPrefs?.on_knowledge_message ?? true,
             on_event_reminder: pushPrefs?.on_event_reminder ?? true,
             on_admin_broadcast: pushPrefs?.on_admin_broadcast ?? true,
             on_maintenance_due: pushPrefs?.on_maintenance_due ?? true,

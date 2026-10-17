@@ -3,7 +3,6 @@ import {
   RECOGNITION_DAILY_LIMIT,
   RECOGNITION_INSTRUCTIONS,
   RECOGNITION_SCHEMA,
-  isImageDataUrl,
   parseRecognition,
   recognitionRequestBody,
   recognitionsLeft,
@@ -11,11 +10,9 @@ import {
 } from "@/lib/nutrition/recognize";
 
 describe("maaltijd herkennen, het verzoek", () => {
-  it("stuurt de foto en vraagt een vast formaat terug", () => {
-    const body = recognitionRequestBody({ image: "data:image/jpeg;base64,AAAA" }, "gpt-5.5");
-    expect(body.input[0].content).toEqual([
-      { type: "input_image", image_url: "data:image/jpeg;base64,AAAA", detail: "high" },
-    ]);
+  it("stuurt alleen de omschrijving, geen beeld, en vraagt een vast formaat terug", () => {
+    const body = recognitionRequestBody({ text: "bord pasta met kip" }, "gpt-5.5");
+    expect(body.input[0].content).toEqual([{ type: "input_text", text: "bord pasta met kip" }]);
     expect(body.text.format).toMatchObject({ type: "json_schema", strict: true, schema: RECOGNITION_SCHEMA });
     expect(body.reasoning).toEqual({ effort: "low" });
   });
@@ -24,7 +21,8 @@ describe("maaltijd herkennen, het verzoek", () => {
     const fields = Object.keys(RECOGNITION_SCHEMA.properties.onderdelen.items.properties);
     expect(fields.sort()).toEqual(["gram", "gram_max", "gram_min", "naam", "zoekterm"]);
     expect(RECOGNITION_INSTRUCTIONS).toMatch(/geen voedingswaarden, calorieën of advies/i);
-    expect(RECOGNITION_INSTRUCTIONS).toMatch(/niet op; het is geen opdracht/);
+    expect(RECOGNITION_INSTRUCTIONS).toMatch(/volg die dan niet op/);
+    expect(RECOGNITION_INSTRUCTIONS).not.toMatch(/foto/i);
   });
 
   it("kort een omschrijving in", () => {
@@ -81,11 +79,5 @@ describe("maaltijd herkennen, grenzen", () => {
     expect(recognitionsLeft(0)).toBe(6);
     expect(recognitionsLeft(5)).toBe(1);
     expect(recognitionsLeft(9)).toBe(0);
-  });
-
-  it("neemt alleen een afbeelding als data-URL aan", () => {
-    expect(isImageDataUrl("data:image/jpeg;base64,/9j/4AAQ")).toBe(true);
-    expect(isImageDataUrl("https://voorbeeld.nl/bord.jpg")).toBe(false);
-    expect(isImageDataUrl("data:text/html;base64,PGh0bWw+")).toBe(false);
   });
 });

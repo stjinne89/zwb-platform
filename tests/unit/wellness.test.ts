@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   deriveReadiness,
+  hrvBand,
   refreshWellnessIfStale,
+  restingHrBand,
   summarizeTrainingReadiness,
   summarizeWellness,
   WELLNESS_MAX_AGE_MS,
@@ -185,6 +187,17 @@ describe("refreshWellnessIfStale", () => {
     expect(db.upserts).toHaveLength(1);
   });
 
+  it("neemt geen SDNN over als rMSSD ontbreekt", async () => {
+    // SDNN is een andere maat; in dezelfde reeks vertekende hij de band.
+    const db = fakeDb(null);
+    await refreshWellnessIfStale(db, "p1", {
+      apiKey: "k",
+      athleteId: "i1",
+      records: [{ id: "2026-08-04", restingHR: 48, hrvSDNN: 70 }],
+    });
+    expect((db.upserts[0][0] as Upsert & { hrv: number | null }).hrv).toBeNull();
+  });
+
   it("slaat dagen zonder enige herstelwaarde over", async () => {
     const db = fakeDb(null);
     await refreshWellnessIfStale(db, "p1", {
@@ -222,11 +235,11 @@ describe("summarizeWellness — baseline, slaap en recentheid", () => {
     );
   }
 
-  it("gebruikt 30 dagen als baseline, niet het hele venster", () => {
-    // Laatste 30 dagen rond HRV 90, daarvóór een jaar op 120. Met een baseline
+  it("gebruikt de 30 dagen vóór de laatste week als baseline, niet het hele venster", () => {
+    // Laatste 37 dagen rond HRV 90, daarvóór een jaar op 120. Met een baseline
     // over alles zou de recente 90 als "onder baseline" lezen; over 30 dagen niet.
-    const recent = series("2026-06-28", 30, () => ({ hrv: 90 }));
-    const oud = series("2026-05-28", 300, () => ({ hrv: 120 }));
+    const recent = series("2026-06-28", 37, () => ({ hrv: 90 }));
+    const oud = series("2026-05-22", 300, () => ({ hrv: 120 }));
     const summary = summarizeWellness([...recent, ...oud], null, "2026-06-28")!;
     expect(summary.state).not.toBe("fatigued");
     expect(summary.note).not.toContain("HRV onder baseline");
@@ -330,7 +343,7 @@ describe("summarizeWellness — versheidsgrens", () => {
     expect(summary.restingHr).toBeNull();
     expect(summary.sleepHours).toBeNull();
     expect(summary.days).toBe(0);
-    expect(summary.note).toContain("Geen hersteldata van de laatste 30 dagen");
+    expect(summary.note).toContain("Geen hersteldata van de laatste 37 dagen");
     // De laatste meting blijft zichtbaar, zodat het lid weet sinds wanneer.
     expect(summary.latestDate).toBe("2026-02-21");
     expect(summary.note).toContain("2026-02-21");
@@ -348,9 +361,18 @@ describe("summarizeWellness — versheidsgrens", () => {
     expect(summary.hrv).toBe(90);
   });
 
-  it("telt precies 30 dagen voor de baseline", () => {
-    const summary = summarizeWellness(series("2026-06-28", 40), null, "2026-06-28")!;
-    expect(summary.days).toBe(30);
+  it("telt precies 37 dagen: de laatste week plus 30 dagen baseline", () => {
+    const summary = summarizeWellness(series("2026-06-28", 45), null, "2026-06-28")!;
+    expect(summary.days).toBe(37);
+  });
+
+  it("laat de laatste week niet in zijn eigen baseline meetellen", () => {
+    // Tot 2026-10-16 telde de vermoeide week zelf mee en trok hij zijn eigen
+    // maatstaf omlaag. Een week op 80 na een maand op 90 is nu een signaal.
+    const rows = series("2026-06-28", 37, (i) => ({ hrv: i < 7 ? 80 : 90 }));
+    const summary = summarizeWellness(rows, null, "2026-06-28")!;
+    expect(summary.hrvBand).toBe("below");
+    expect(summary.state).toBe("fatigued");
   });
 
   it("negeert rijen met een datum in de toekomst", () => {
@@ -364,34 +386,41 @@ describe("summarizeWellness — versheidsgrens", () => {
 // Readiness blijven in Garmin Connect). Voor die leden rekenen we er zelf een
 // uit de signalen die er wél elke dag zijn.
 describe("deriveReadiness", () => {
+  // Afwijkingen tellen in banden: de halve breedte van de eigen normale band.
   const basis = {
-    hrv: 90,
-    hrvBase: 90,
-    restingHr: 45,
-    rhrBase: 45,
+    hrvDelta: 0,
+    hrvHalf: 0.08,
+    rhrDelta: 0,
+    rhrHalf: 3,
     sleepScore: null,
     baselineDays: 30,
     dataAgeDays: 0,
   };
 
-  it("geeft een neutrale score als alles op de eigen baseline zit", () => {
+  it("geeft een neutrale score als alles in de eigen band zit", () => {
     expect(deriveReadiness(basis)).toBe(70);
   });
 
-  it("zakt als de HRV onder de eigen baseline ligt", () => {
-    // 10% onder baseline raakt de ondergrens van de HRV-bijdrage.
-    expect(deriveReadiness({ ...basis, hrv: 81 })).toBe(50);
+  it("kost 15 punten per band onder de norm, tot een ondergrens", () => {
+    expect(deriveReadiness({ ...basis, hrvDelta: -0.08 })).toBe(55);
+    expect(deriveReadiness({ ...basis, hrvDelta: -0.4 })).toBe(45);
   });
 
-  it("stijgt als de HRV boven de baseline ligt, maar minder hard dan hij zakt", () => {
-    const omhoog = deriveReadiness({ ...basis, hrv: 99 })! - 70;
-    const omlaag = 70 - deriveReadiness({ ...basis, hrv: 81 })!;
-    expect(omhoog).toBeGreaterThan(0);
+  it("stijgt boven de band minder hard dan hij zakt", () => {
+    const omhoog = deriveReadiness({ ...basis, hrvDelta: 0.16 })! - 70;
+    const omlaag = 70 - deriveReadiness({ ...basis, hrvDelta: -0.16 })!;
+    expect(omhoog).toBe(10);
     expect(omhoog).toBeLessThan(omlaag);
   });
 
+  it("weegt dezelfde daling zwaarder bij een lid met stabiele metingen", () => {
+    const stabiel = deriveReadiness({ ...basis, hrvDelta: -0.05, hrvHalf: 0.04 })!;
+    const grillig = deriveReadiness({ ...basis, hrvDelta: -0.05, hrvHalf: 0.12 })!;
+    expect(stabiel).toBeLessThan(grillig);
+  });
+
   it("straft een verhoogde rust-hartslag af", () => {
-    expect(deriveReadiness({ ...basis, restingHr: 48 })!).toBeLessThan(60);
+    expect(deriveReadiness({ ...basis, rhrDelta: 3 })!).toBeLessThan(60);
   });
 
   it("neemt de slaapscore mee als bijstelling rond een neutrale 75", () => {
@@ -400,18 +429,8 @@ describe("deriveReadiness", () => {
   });
 
   it("claimt nooit een 0 of een 100", () => {
-    const bodem = deriveReadiness({
-      ...basis,
-      hrv: 40,
-      restingHr: 60,
-      sleepScore: 10,
-    })!;
-    const plafond = deriveReadiness({
-      ...basis,
-      hrv: 200,
-      restingHr: 35,
-      sleepScore: 100,
-    })!;
+    const bodem = deriveReadiness({ ...basis, hrvDelta: -1, rhrDelta: 20, sleepScore: 10 })!;
+    const plafond = deriveReadiness({ ...basis, hrvDelta: 1, rhrDelta: -20, sleepScore: 100 })!;
     expect(bodem).toBeGreaterThanOrEqual(5);
     expect(plafond).toBeLessThanOrEqual(95);
   });
@@ -422,20 +441,58 @@ describe("deriveReadiness", () => {
 
   it("weigert te rekenen op alleen slaap", () => {
     expect(
-      deriveReadiness({ ...basis, hrv: null, hrvBase: null, restingHr: null, rhrBase: null }),
+      deriveReadiness({ ...basis, hrvDelta: null, hrvHalf: null, rhrDelta: null, rhrHalf: null }),
     ).toBeNull();
   });
 
   it("weigert te rekenen op alleen rust-hartslag", () => {
     // Het verschil tussen week- en maandgemiddelde is daar vaak twee slagen;
     // daarop een oordeel bouwen zet leden op 'matig' door meetruis.
-    expect(deriveReadiness({ ...basis, hrv: null, hrvBase: null })).toBeNull();
+    expect(deriveReadiness({ ...basis, hrvDelta: null, hrvHalf: null })).toBeNull();
   });
 
   it("weigert te rekenen op data die niet vers meer is", () => {
     expect(deriveReadiness({ ...basis, dataAgeDays: 8 })).toBeNull();
     expect(deriveReadiness({ ...basis, dataAgeDays: null })).toBeNull();
     expect(deriveReadiness({ ...basis, dataAgeDays: 7 })).not.toBeNull();
+  });
+});
+
+// De normale band: weekgemiddelde van ln rMSSD tegen gemiddelde ± 0,5 SD van
+// de 30 dagen ervóór (Plews 2012; Vesterinen 2016).
+describe("hrvBand en restingHrBand", () => {
+  const wisselend = (a: number, b: number, n: number) =>
+    Array.from({ length: n }, (_, i) => (i % 2 === 0 ? a : b));
+
+  it("plaatst een week binnen, onder of boven de eigen band", () => {
+    const basis = wisselend(80, 100, 30);
+    expect(hrvBand([90, 90, 90, 90, 90, 90, 90], basis)!.position).toBe("within");
+    expect(hrvBand([75, 75, 75, 75, 75, 75, 75], basis)!.position).toBe("below");
+    expect(hrvBand([110, 110, 110, 110, 110, 110, 110], basis)!.position).toBe("above");
+  });
+
+  it("maakt de band breder bij een lid met meer dagelijkse ruis", () => {
+    const rustig = hrvBand([90, 90, 90], wisselend(85, 95, 30))!;
+    const druk = hrvBand([90, 90, 90], wisselend(70, 115, 30))!;
+    expect(druk.half).toBeGreaterThan(rustig.half);
+  });
+
+  it("houdt een ondergrens aan voor heel stabiele metingen", () => {
+    const band = hrvBand([88, 88, 88], Array(30).fill(90))!;
+    expect(band.half).toBeCloseTo(0.03);
+    expect(band.position).toBe("within");
+  });
+
+  it("geeft geen oordeel met te weinig metingen", () => {
+    expect(hrvBand([90, 90], wisselend(80, 100, 30))).toBeNull();
+    expect(hrvBand([90, 90, 90], wisselend(80, 100, 10))).toBeNull();
+    expect(hrvBand([90, null, 90, null, 90], wisselend(80, 100, 30))).not.toBeNull();
+  });
+
+  it("is voor de rust-hartslag nooit gevoeliger dan drie slagen", () => {
+    const basis = Array(30).fill(45);
+    expect(restingHrBand([47, 47, 47], basis)!.raised).toBe(false);
+    expect(restingHrBand([49, 49, 49], basis)!.raised).toBe(true);
   });
 });
 
@@ -540,7 +597,8 @@ describe("summarizeWellness — readiness afleiden", () => {
     // Een Garmin-lid met een ruime TSB, HRV en rust-HR vrijwel op baseline en
     // een week met ~5,9 uur slaap stond op "herstel voorrang": de slaapaftrek
     // zat in het berekende getal en duwde dat onder de 50. Met een apparaat dat
-    // zelf readiness levert was het bij een aftrek gebleven.
+    // zelf readiness levert was het bij een aftrek gebleven. De baseline heeft
+    // de dagelijkse ruis van een echt horloge; een vlakke reeks heeft geen band.
     const rows = [
       ...series("2026-06-28", 7, () => ({
         hrv: 86,
@@ -548,7 +606,9 @@ describe("summarizeWellness — readiness afleiden", () => {
         sleep_secs: 5.9 * 3600,
         sleep_score: 65,
       })),
-      ...series("2026-06-21", 23),
+      ...series("2026-06-21", 30, (i) =>
+        i % 2 === 0 ? { hrv: 75, resting_hr: 42 } : { hrv: 105, resting_hr: 48 },
+      ),
     ];
     const wellness = summarizeWellness(rows, "garmin", "2026-06-28")!;
     expect(wellness.state).toBe("normal");
@@ -571,18 +631,20 @@ describe("summarizeTrainingReadiness — belasting tegen herstel", () => {
       restingHr: 45,
       hrv: 90,
       sleepHours: 7.5,
-      readiness: 95,
+      readiness: 80,
       readinessSource: "afgeleid",
       readinessDate: "2026-06-28",
       readinessCurrent: true,
       sleepPenalty: 0,
-      state: "fresh",
+      hrvBand: "within",
+      restingHrRaised: false,
+      state: "normal",
       note: "",
       ...over,
     };
   }
 
-  it("laat goed herstel een zware TSB verzachten", () => {
+  it("laat HRV en rust-HR in de eigen band een zware TSB verzachten", () => {
     const result = summarizeTrainingReadiness({ tsb: -26.4, wellness: wellness() });
     expect(result.state).toBe("caution");
     expect(result.notes.join(" ")).toContain("geen herstelrust nodig");
@@ -619,5 +681,66 @@ describe("summarizeTrainingReadiness — belasting tegen herstel", () => {
   it("verzacht niet zonder hersteldata", () => {
     const result = summarizeTrainingReadiness({ tsb: -26.4, wellness: null });
     expect(result.state).toBe("recovery");
+  });
+
+  it("ziet een HRV ver boven de band bij zware belasting niet als geruststelling", () => {
+    // Bij overbelaste sporters steeg het weekgemiddelde juist (Le Meur 2013;
+    // Manresa-Rocamora 2021). Tot 2026-10-16 verzachtte dit naar 'caution'.
+    const result = summarizeTrainingReadiness({
+      tsb: -26.4,
+      wellness: wellness({ hrvBand: "above", state: "fresh", readiness: 92 }),
+    });
+    expect(result.state).toBe("recovery");
+    expect(result.notes.join(" ")).toContain("ook overbelasting");
+  });
+
+  it("verzacht niet bij een verhoogde rust-hartslag of korte nachten", () => {
+    expect(
+      summarizeTrainingReadiness({ tsb: -26.4, wellness: wellness({ restingHrRaised: true }) })
+        .state,
+    ).toBe("recovery");
+    expect(
+      summarizeTrainingReadiness({ tsb: -26.4, wellness: wellness({ sleepPenalty: 6 }) }).state,
+    ).toBe("recovery");
+  });
+});
+
+describe("summarizeTrainingReadiness — gevoel van het lid", () => {
+  const fris: WellnessSummary = {
+    days: 37,
+    latestDate: "2026-06-28",
+    restingHr: 45,
+    hrv: 100,
+    sleepHours: 7.5,
+    readiness: 85,
+    readinessSource: "device",
+    readinessDate: "2026-06-28",
+    readinessCurrent: true,
+    sleepPenalty: 0,
+    hrvBand: "above",
+    restingHrRaised: false,
+    state: "fresh",
+    note: "",
+  };
+  const zwaar = { heavy: true, note: "Een rustige rit van de laatste dagen voelde zwaar." };
+
+  it("haalt de ruimte voor kwaliteit weg als het lid aangeeft dat het zwaar gaat", () => {
+    expect(summarizeTrainingReadiness({ tsb: 12, wellness: fris }).state).toBe("ready");
+    const result = summarizeTrainingReadiness({ tsb: 12, wellness: fris, subjective: zwaar });
+    expect(result.state).toBe("caution");
+    expect(result.notes).toContain(zwaar.note);
+  });
+
+  it("zet niemand op herstel op alleen een zwaar verslag", () => {
+    const result = summarizeTrainingReadiness({ tsb: 12, wellness: null, subjective: zwaar });
+    expect(result.state).toBe("caution");
+  });
+
+  it("verzacht een zware TSB niet als het lid zich slecht voelt", () => {
+    const inBand = { ...fris, hrvBand: "within" as const, state: "normal" as const, readiness: 80 };
+    expect(summarizeTrainingReadiness({ tsb: -26.4, wellness: inBand }).state).toBe("caution");
+    expect(
+      summarizeTrainingReadiness({ tsb: -26.4, wellness: inBand, subjective: zwaar }).state,
+    ).toBe("recovery");
   });
 });

@@ -1,12 +1,15 @@
 // Overzicht-tab: hoe staat de gekozen renner ervoor — belasting, herstel, wat er
 // aankomt en wat er de afgelopen weken is gereden.
 
+import { ftpCheck, loadFtpTests } from "@/lib/training/ftp-test";
+import { FtpCheckNotice } from "../_components/ftp-check-notice";
+import { loadSubjectiveRecovery } from "@/lib/training/subjective-recovery";
 import { Calendar, Mountain } from "lucide-react";
 import { EmptyState } from "@/components/app-ui";
 import { PowerWeight } from "@/components/power-unit";
 import { StravaAttribution, ViewOnStrava } from "@/components/strava-brand";
 import { toTrainingLoadPoints } from "@/lib/training/load-points";
-import { summarizeTrainingReadiness, type WellnessDevice } from "@/lib/training/wellness";
+import type { WellnessDevice } from "@/lib/training/wellness";
 import { computeZwbStatus } from "@/lib/training/zwbeterworden";
 import {
   estimateTrainingLoad,
@@ -89,15 +92,26 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
         .order("created_at", { ascending: false }),
     ]);
 
-  const intervals = await loadAthleteIntervals(connection, {
-    wellnessDays: 730,
-    eventDays: 14,
-    admin: viewer.admin,
-  });
+  const [intervals, subjective, lastTests, { data: sportSettings }] = await Promise.all([
+    loadAthleteIntervals(connection, {
+      wellnessDays: 730,
+      eventDays: 14,
+      admin: viewer.admin,
+    }),
+    // Zonder klachtenlogboek: dat is privé, ook voor de trainer.
+    loadSubjectiveRecovery(viewer.admin, athleteId, { includeSymptoms: false }).catch(() => null),
+    loadFtpTests(viewer.admin, athleteId, 1).catch(() => []),
+    viewer.admin
+      .from("profile_sport_settings")
+      .select("cp_watts")
+      .eq("profile_id", athleteId)
+      .maybeSingle(),
+  ]);
   const status = computeZwbStatus(intervals.wellness, {
     wellnessOptIn: Boolean(connection?.wellness_opt_in),
     sex: athlete?.sex,
     wellnessDevice: (athlete?.wellness_device ?? null) as WellnessDevice | null,
+    subjective,
   });
 
   const activities = (activityRows ?? []) as StravaActivityRow[];
@@ -138,10 +152,7 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
           tsb={status.tsb}
           eftp={status.eftp}
           ctlProjection={ctlProjection}
-          readiness={summarizeTrainingReadiness({
-            tsb: status.tsb,
-            wellness: status.recoverySummary,
-          })}
+          readiness={status.readiness}
           recovery={{
             optedIn: Boolean(connection?.wellness_opt_in),
             summary: status.recoverySummary,
@@ -150,6 +161,20 @@ export default async function TrainerOverviewPage({ searchParams }: SearchParams
           todayKey={todayKeyAmsterdam()}
           fetchError={intervals.fetchError}
         />
+
+        {lastTests[0] ? (
+          <FtpCheckNotice
+            check={ftpCheck({
+              ftpWatts: lastTests[0].ftpWatts,
+              testedOn: lastTests[0].testedOn,
+              todayKey: todayKeyAmsterdam(),
+              cpWatts: sportSettings?.cp_watts == null ? null : Number(sportSettings.cp_watts),
+              eftpWatts: status.eftp,
+            })}
+            ftpWatts={lastTests[0].ftpWatts}
+            own={false}
+          />
+        ) : null}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <MetricCard

@@ -195,8 +195,8 @@ export function nutritionTipForToday(input: NutritionDayInput): NutritionTip {
       kind: "voor_slapen",
       title: "Eiwit voor het slapen",
       body: pick(today, "voor_slapen", [
-        `Na je avondrit helpt ongeveer ${PRE_SLEEP_PROTEIN_G} g eiwit voor het slapen je spieren 's nachts herstellen. Kwark is een makkelijke bron.`,
-        `Avondrit gedaan? Neem voor het slapen ongeveer ${PRE_SLEEP_PROTEIN_G} g eiwit, bijvoorbeeld een flinke bak kwark.`,
+        `Na een avondrit is er weinig tijd om te eten. Met ongeveer ${PRE_SLEEP_PROTEIN_G} g eiwit voor het slapen, bijvoorbeeld kwark, haal je makkelijk je dagtotaal.`,
+        `Avondrit gedaan? Ongeveer ${PRE_SLEEP_PROTEIN_G} g eiwit voor het slapen, zoals een flinke bak kwark, helpt je dagtotaal halen.`,
       ]),
       articleSlug: "eiwit",
       mealMoment: "voor_slapen",

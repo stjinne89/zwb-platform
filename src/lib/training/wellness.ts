@@ -28,8 +28,27 @@ export type WellnessSummary = {
   readinessCurrent: boolean;
   /** Aftrek op de trainingsruimte door korte nachten (0 = genoeg geslapen). */
   sleepPenalty: number;
+  /**
+   * Waar het weekgemiddelde van ln rMSSD ligt ten opzichte van de eigen
+   * normale band; null zonder genoeg metingen. Zie `hrvBand()`.
+   */
+  hrvBand: "below" | "within" | "above" | null;
+  /** Rust-hartslag van deze week boven de eigen band. */
+  restingHrRaised: boolean;
   // Trend t.o.v. eigen baseline: 'fresh' | 'normal' | 'fatigued' | 'unknown'.
   state: "fresh" | "normal" | "fatigued" | "unknown";
+  note: string;
+};
+
+/**
+ * Hoe het lid zich zelf voelt: het verslag na een rit en het klachtenlogboek.
+ * Weegt mee naast HRV en rust-HR, zoals in Alfonso e.a. 2025 (HRV, rust-HR en
+ * welbevinden samen werkten beter dan HRV alleen). Zie
+ * docs/wetenschappelijke-toets.md, 1C.
+ */
+export type SubjectiveRecovery = {
+  /** Het lid gaf de laatste dagen aan dat het zwaar ging. */
+  heavy: boolean;
   note: string;
 };
 
@@ -70,7 +89,10 @@ function wellnessRows(profileId: string, records: IntervalsWellness[]) {
       profile_id: profileId,
       date: r.id, // intervals wellness-id = "YYYY-MM-DD"
       resting_hr: num(r.restingHR),
-      hrv: num(r.hrv ?? r.hrvSDNN),
+      // Alleen rMSSD. SDNN is een andere maat met andere getallen; als
+      // terugval kwam hij in hetzelfde gemiddelde terecht en vertekende hij de
+      // band. Rijen van vóór 2026-10-16 kunnen nog SDNN bevatten.
+      hrv: num(r.hrv),
       sleep_secs: num(r.sleepSecs),
       sleep_score: num(r.sleepScore),
       readiness: num(r.readiness),
@@ -213,6 +235,65 @@ function avg(values: (number | null)[]): number | null {
   return nums.reduce((a, b) => a + b, 0) / nums.length;
 }
 
+/** Steekproef-standaardafwijking; null bij minder dan twee waarden. */
+function sd(values: number[]): number | null {
+  if (values.length < 2) return null;
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  const variance = values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (values.length - 1);
+  return Math.sqrt(variance);
+}
+
+function present(values: (number | null)[]): number[] {
+  return values.filter((v): v is number => v != null && Number.isFinite(v));
+}
+
+export type HrvBand = {
+  /** ln rMSSD van deze week min die van de baseline. */
+  delta: number;
+  /** Halve breedte van de band, in ln-eenheden. */
+  half: number;
+  position: "below" | "within" | "above";
+};
+
+/**
+ * Het weekgemiddelde van ln rMSSD tegenover de normale band van dit lid: het
+ * gemiddelde van de 30 dagen ervóór, ± 0,5 × hun standaardafwijking. De
+ * logaritme omdat HRV scheef verdeeld is; het weekgemiddelde omdat één ochtend
+ * te veel ruis heeft (Plews 2012, 2013; Buchheit 2014).
+ *
+ * Null zonder genoeg metingen: minstens drie deze week en `MIN_BASELINE_DAYS`
+ * in de baseline. Met minder is de band zelf ruis.
+ */
+export function hrvBand(recent: (number | null)[], baseline: (number | null)[]): HrvBand | null {
+  const recentLn = present(recent).filter((v) => v > 0).map(Math.log);
+  const baseLn = present(baseline).filter((v) => v > 0).map(Math.log);
+  if (recentLn.length < MIN_RECENT_VALUES || baseLn.length < MIN_BASELINE_DAYS) return null;
+  const baseSd = sd(baseLn);
+  if (baseSd == null) return null;
+  const delta = avg(recentLn)! - avg(baseLn)!;
+  const half = Math.max(SWC_FACTOR * baseSd, MIN_HRV_HALF_BAND);
+  const position = delta < -half ? "below" : delta > half ? "above" : "within";
+  return { delta, half, position };
+}
+
+/**
+ * Hetzelfde voor de rust-hartslag, in slagen. De band is nooit smaller dan
+ * ±3 slagen, de vaste regel van vóór 2026-10-16.
+ */
+export function restingHrBand(
+  recent: (number | null)[],
+  baseline: (number | null)[],
+): { delta: number; half: number; raised: boolean } | null {
+  const recentValues = present(recent);
+  const baseValues = present(baseline);
+  if (recentValues.length < MIN_RECENT_VALUES || baseValues.length < MIN_BASELINE_DAYS) return null;
+  const baseSd = sd(baseValues);
+  if (baseSd == null) return null;
+  const delta = avg(recentValues)! - avg(baseValues)!;
+  const half = Math.max(SWC_FACTOR * baseSd, MIN_RHR_HALF_BAND);
+  return { delta, half, raised: delta > half };
+}
+
 // Het readiness-veld in intervals.icu is één veld waar elke wellness-bron z'n
 // eigen schaal in duwt. Garmin (Training Readiness), Oura en Whoop leveren
 // 0-100. Polar's Nightly Recharge komt binnen als kleine integer-schaal ("very
@@ -244,8 +325,43 @@ const POLAR_READINESS_TO_100: Record<number, number> = {
   6: 90,
 };
 
-/** Venster waarover HRV en rust-HR hun baseline krijgen. */
+/**
+ * Venster waarover HRV en rust-HR hun baseline krijgen: de 30 dagen vóór de
+ * laatste week. Tot 2026-10-16 telde de laatste week zelf mee, waardoor een
+ * vermoeide week zijn eigen maatstaf omlaag trok.
+ */
 export const BASELINE_DAYS = 30;
+
+/**
+ * Zoveel dagen herstel-data heeft de samenvatting nodig: de laatste week plus
+ * de baseline ervóór, met wat marge. Elke beller haalt minstens dit op, zodat
+ * pagina, AI en coachchat hetzelfde oordeel geven. Tot 2026-10-16 kregen de AI
+ * en de chat 21 dagen en de pagina's 30.
+ */
+export const WELLNESS_SUMMARY_DAYS = 40;
+
+/**
+ * Halve breedte van de normale band als deel van de standaardafwijking van de
+ * dagwaarden in de baseline: de kleinste relevante verandering (Plews 2012,
+ * Vesterinen 2016; docs/wetenschappelijke-toets.md, 1C).
+ */
+export const SWC_FACTOR = 0.5;
+
+/**
+ * Ondergrens voor de halve band van ln rMSSD (~3 %). Eigen keuze: bij een lid
+ * met heel stabiele metingen viel de band anders zo smal dat afronding van het
+ * horloge al een oordeel gaf.
+ */
+const MIN_HRV_HALF_BAND = 0.03;
+
+/**
+ * Ondergrens voor de halve band van de rust-hartslag. Dat was tot 2026-10-16 de
+ * vaste regel (+3 slagen); de band is nu per lid, maar nooit gevoeliger dan dat.
+ */
+const MIN_RHR_HALF_BAND = 3;
+
+/** Minimaal aantal metingen in de laatste week voor een weekoordeel. */
+const MIN_RECENT_VALUES = 3;
 
 /** Ouder dan dit telt readiness niet meer mee en toont de app een streepje. */
 export const READINESS_MAX_AGE_DAYS = 7;
@@ -296,24 +412,37 @@ function clamp(value: number, min: number, max: number) {
  *
  * De schaal volgt de bestaande drempels (≤50 laag, <70 middelmatig, ≥75 goed),
  * zodat een afgeleide waarde net zo leest als die van een Whoop of Polar.
- * Alles wordt afgezet tegen de eigen baseline, niet tegen een absolute norm:
- * een HRV van 95 zegt niets zonder te weten wat voor dit lid gewoon is.
+ * Alles wordt afgezet tegen de eigen band, niet tegen een absolute norm: een
+ * HRV van 95 zegt niets zonder te weten wat voor dit lid gewoon is, en 5 %
+ * minder is bij het ene lid ruis en bij het andere een signaal.
+ *
+ * Sinds 2026-10-16 telt de afwijking in "banden" (de halve breedte van de
+ * normale band, zie `hrvBand()`) in plaats van in procenten. Eén band onder de
+ * norm kost 15 punten. Bij een gangbare dagelijkse spreiding is een halve band
+ * ~8 %, dus dat kost ongeveer wat 8 % lagere HRV eerder kostte (2 punten per
+ * procent). Boven de band levert hooguit 10 punten op: een hoge HRV
+ * bij zware belasting kan ook op overbelasting wijzen (Le Meur 2013,
+ * Manresa-Rocamora 2021).
  *
  * Geeft null zodra er te weinig grond is voor een oordeel — dat is de normale
  * uitkomst voor een horloge dat geen HRV meet, en beter dan een getal dat het
  * trainingsadvies stuurt op ruis.
  */
 export function deriveReadiness(input: {
-  hrv: number | null;
-  hrvBase: number | null;
-  restingHr: number | null;
-  rhrBase: number | null;
+  /** ln rMSSD van deze week min die van de baseline. */
+  hrvDelta: number | null;
+  /** Halve breedte van de HRV-band, in ln-eenheden. */
+  hrvHalf: number | null;
+  /** Rust-hartslag van deze week min die van de baseline, in slagen. */
+  rhrDelta: number | null;
+  /** Halve breedte van de rust-HR-band, in slagen. */
+  rhrHalf: number | null;
   sleepScore: number | null;
   baselineDays: number;
   /** Ouderdom van de nieuwste meting; oude data mag geen vers oordeel opleveren. */
   dataAgeDays: number | null;
 }): number | null {
-  const { hrv, hrvBase, restingHr, rhrBase, sleepScore, baselineDays } = input;
+  const { hrvDelta, hrvHalf, rhrDelta, rhrHalf, sleepScore, baselineDays } = input;
   if (baselineDays < MIN_BASELINE_DAYS) return null;
 
   // Zonder verse meting zegt een herstelgetal niets. Een lid van wie het
@@ -321,8 +450,8 @@ export function deriveReadiness(input: {
   // score op data van vorig seizoen.
   if (input.dataAgeDays == null || input.dataAgeDays > READINESS_MAX_AGE_DAYS) return null;
 
-  const hasHrv = hrv != null && hrvBase != null && hrvBase > 0;
-  const hasRhr = restingHr != null && rhrBase != null && rhrBase > 0;
+  const hasHrv = hrvDelta != null && hrvHalf != null && hrvHalf > 0;
+  const hasRhr = rhrDelta != null && rhrHalf != null && rhrHalf > 0;
 
   // HRV is verplicht. Rust-hartslag alleen is te dun: het verschil tussen een
   // week- en maandgemiddelde is daar vaak twee slagen, en dat is meetruis. Wie
@@ -332,14 +461,13 @@ export function deriveReadiness(input: {
 
   let score = DERIVED_NEUTRAL;
 
-  // HRV onder de eigen baseline is het sterkste vermoeidheidssignaal, dus die
-  // weegt naar beneden zwaarder dan naar boven.
-  score += clamp((hrv! / hrvBase! - 1) * 200, -25, 15);
+  // HRV onder de eigen band is het sterkste vermoeidheidssignaal, dus die weegt
+  // naar beneden zwaarder dan naar boven.
+  score += clamp((hrvDelta! / hrvHalf!) * 15, -25, 10);
 
-  // Verhoogde rust-hartslag wijst op onvoltooid herstel. +3 bpm op een baseline
-  // van 50 is 6% en kost hier ~18 punten — vergelijkbaar met de bestaande regel
-  // die daar de status op 'fatigued' zet.
-  if (hasRhr) score += clamp(((rhrBase! - restingHr!) / rhrBase!) * 300, -20, 10);
+  // Verhoogde rust-hartslag wijst op onvoltooid herstel. Eén band erboven kost
+  // ~18 punten, net als de oude +3 slagen.
+  if (hasRhr) score += clamp((-rhrDelta! / rhrHalf!) * 18, -20, 10);
 
   // Slaapkwaliteit als bijstelling, niet als hoofdmoot: 75 is neutraal.
   if (sleepScore != null) score += clamp((sleepScore - 75) / 3, -8, 8);
@@ -378,7 +506,8 @@ export const SEVERE_TSB = -40;
 
 /**
  * Vat de laatste 7 dagen herstel samen + bepaalt een grove "state" door de
- * recente HRV/rust-HR te vergelijken met de baseline van 30 dagen.
+ * recente HRV/rust-HR te vergelijken met de normale band uit de 30 dagen
+ * daarvóór (`hrvBand`, `restingHrBand`).
  * `device` bepaalt hoe de readiness-schaal geïnterpreteerd wordt (zie boven).
  *
  * De vensters lopen op datum, niet op aantal rijen. Dat is het verschil tussen
@@ -428,13 +557,20 @@ export function summarizeWellness(
     rawReadiness == null ? null : normalizeReadiness(rawReadiness, device);
   const sleepHours = sleepSecs != null ? sleepSecs / 3600 : null;
 
-  // Baseline over de laatste 30 dagen. Over het hele venster (tot 2 jaar) moest
-  // een weekgemiddelde een tweejaarsgemiddelde verslaan om als "fris" te gelden;
-  // dat lukte vrijwel nooit en liet de baseline bovendien meedrijven met
-  // seizoen en vormopbouw.
-  const baselineWindow = sorted.filter((row) => withinDays(row, BASELINE_DAYS));
-  const hrvBase = avg(baselineWindow.map((r) => r.hrv));
-  const rhrBase = avg(baselineWindow.map((r) => r.resting_hr));
+  // Baseline over de 30 dagen vóór de laatste week. Over het hele venster (tot
+  // 2 jaar) moest een weekgemiddelde een tweejaarsgemiddelde verslaan om als
+  // "fris" te gelden; dat lukte vrijwel nooit en liet de baseline bovendien
+  // meedrijven met seizoen en vormopbouw.
+  const freshRows = sorted.filter((row) => withinDays(row, RECENT_DAYS + BASELINE_DAYS));
+  const baselineWindow = freshRows.filter((row) => !withinDays(row, RECENT_DAYS));
+  const hrvPosition = hrvBand(
+    last7.map((r) => r.hrv),
+    baselineWindow.map((r) => r.hrv),
+  );
+  const rhrPosition = restingHrBand(
+    last7.map((r) => r.resting_hr),
+    baselineWindow.map((r) => r.resting_hr),
+  );
 
   // Levert het apparaat geen readiness, dan rekenen we er zelf een uit de
   // signalen die er wél zijn. Dat gebeurt bewust ná de baseline-berekening en
@@ -444,10 +580,10 @@ export function summarizeWellness(
     deviceReadiness != null
       ? null
       : deriveReadiness({
-          hrv,
-          hrvBase,
-          restingHr,
-          rhrBase,
+          hrvDelta: hrvPosition?.delta ?? null,
+          hrvHalf: hrvPosition?.half ?? null,
+          rhrDelta: rhrPosition?.delta ?? null,
+          rhrHalf: rhrPosition?.half ?? null,
           sleepScore,
           baselineDays: baselineWindow.length,
           dataAgeDays: sorted[0] ? daysBetween(sorted[0].date, today) : null,
@@ -470,23 +606,23 @@ export function summarizeWellness(
 
   let state: WellnessSummary["state"] = "unknown";
   const notes: string[] = [];
-  if (hrv != null && hrvBase != null && hrvBase > 0) {
-    const ratio = hrv / hrvBase;
-    if (ratio < 0.9) {
+  if (hrvPosition) {
+    if (hrvPosition.position === "below") {
       state = "fatigued";
-      notes.push("HRV onder baseline (mogelijk vermoeid).");
-    } else if (ratio > 1.05) {
+      notes.push("HRV onder je normale band (mogelijk vermoeid).");
+    } else if (hrvPosition.position === "above") {
+      // 'fresh' blijft de status, maar de tekst claimt geen herstel: een HRV
+      // boven de band komt ook voor bij overbelasting. Bij zware belasting
+      // weegt summarizeTrainingReadiness dat mee.
       state = "fresh";
-      notes.push("HRV boven baseline (goed hersteld).");
+      notes.push("HRV boven je normale band.");
     } else {
       state = "normal";
     }
   }
-  if (state !== "fatigued" && restingHr != null && rhrBase != null) {
-    if (restingHr > rhrBase + 3) {
-      state = "fatigued";
-      notes.push("Rust-hartslag verhoogd t.o.v. baseline.");
-    }
+  if (state !== "fatigued" && rhrPosition?.raised) {
+    state = "fatigued";
+    notes.push("Rust-hartslag boven je normale band.");
   }
   if (deviceReadiness != null && !deviceReadinessCurrent) {
     // Geen oordeel op een oude meting, wel zichtbaar dat hij er is.
@@ -535,14 +671,15 @@ export function summarizeWellness(
   // Alles buiten het venster: er is wél data, maar niets recents. Zonder deze
   // melding zou de app "Herstelwaarden binnen de normale range" tonen op basis
   // van cijfers van maanden geleden.
-  if (baselineWindow.length === 0) {
+  if (freshRows.length === 0) {
     state = "unknown";
     const laatste = sorted[0]?.date;
+    const span = RECENT_DAYS + BASELINE_DAYS;
     notes.length = 0;
     notes.push(
       laatste
-        ? `Geen hersteldata van de laatste ${BASELINE_DAYS} dagen; laatste meting ${laatste}.`
-        : `Geen hersteldata van de laatste ${BASELINE_DAYS} dagen.`,
+        ? `Geen hersteldata van de laatste ${span} dagen; laatste meting ${laatste}.`
+        : `Geen hersteldata van de laatste ${span} dagen.`,
     );
   } else if (notes.length === 0) {
     notes.push(
@@ -555,7 +692,7 @@ export function summarizeWellness(
   return {
     // Aantal dagen met verse data, niet het aantal opgeslagen rijen: dat laatste
     // suggereerde een gevuld venster terwijl het maanden oud kon zijn.
-    days: baselineWindow.length,
+    days: freshRows.length,
     latestDate: sorted[0]?.date ?? null,
     restingHr: restingHr != null ? Math.round(restingHr) : null,
     hrv: hrv != null ? Math.round(hrv) : null,
@@ -565,6 +702,8 @@ export function summarizeWellness(
     readinessDate,
     readinessCurrent,
     sleepPenalty,
+    hrvBand: hrvPosition?.position ?? null,
+    restingHrRaised: rhrPosition?.raised ?? false,
     state,
     note: notes.join(" "),
   };
@@ -573,15 +712,21 @@ export function summarizeWellness(
 export function summarizeTrainingReadiness({
   tsb,
   wellness,
+  subjective,
 }: {
   tsb: number | null | undefined;
   wellness: WellnessSummary | null | undefined;
+  /** Hoe het lid zich voelt; zie `SubjectiveRecovery`. Weglaten = geen signaal. */
+  subjective?: SubjectiveRecovery | null;
 }): TrainingReadinessSummary {
   const notes: string[] = [];
   let loadState: TrainingReadinessSummary["state"] = "unknown";
   let recoveryState: TrainingReadinessSummary["state"] = "unknown";
   let score = 72;
 
+  // De TSB-grenzen (-25, -10, +8) en SEVERE_TSB zijn conventie, geen
+  // fysiologie: de tijdconstanten van het onderliggende Banister-model zijn per
+  // sporter erg onzeker (Hellard 2006). Zie docs/wetenschappelijke-toets.md, 1A.
   if (tsb == null || !Number.isFinite(tsb)) {
     notes.push("TSB ontbreekt, dus trainingsbelasting telt niet mee.");
   } else if (tsb <= -25) {
@@ -641,26 +786,54 @@ export function summarizeTrainingReadiness({
     notes.push(wellness.note);
   }
 
-  // Belastingmodel zegt "herstellen", lichaam zegt "fris". Dat is het beeld van
-  // een renner die goed is aangepast aan zijn blok, niet van iemand die
-  // overtraind raakt: een diep negatieve TSB hoort bij een opbouwblok, en HRV
-  // boven de eigen baseline is het bewijs dat het verwerkt wordt. Zonder deze
-  // verzachting kreeg zo iemand "richt op herstel" terwijl al zijn
-  // hersteldata het tegendeel liet zien.
+  // Het lid zegt zelf dat het zwaar gaat. Dat haalt de ruimte voor kwaliteit
+  // weg, maar zet niemand op herstel: één zwaar verslag is geen overbelasting.
+  if (subjective?.heavy) {
+    score -= 10;
+    if (recoveryState === "ready" || recoveryState === "unknown") recoveryState = "caution";
+    notes.push(subjective.note);
+  }
+
+  const heavyLoad = loadState === "recovery";
+
+  // Een HRV boven de eigen band bij zware belasting is geen geruststelling: in
+  // onderzoek steeg het weekgemiddelde juist bij overbelaste sporters (Le Meur
+  // 2013; Manresa-Rocamora 2021). Tot 2026-10-16 telde dit hier als bewijs van
+  // goede aanpassing.
+  if (heavyLoad && wellness?.hrvBand === "above") {
+    if (recoveryState === "ready") recoveryState = "caution";
+    notes.push(
+      "Je HRV ligt boven je normale band terwijl je belasting hoog is. Dat kan goede aanpassing zijn, maar ook overbelasting.",
+    );
+  }
+
+  // Belastingmodel zegt "herstellen", lichaam zegt "niets aan de hand": HRV en
+  // rust-hartslag in de eigen band, genoeg slaap, geen klachten. Dat is het
+  // beeld van een renner in een opbouwblok, niet van iemand die overtraind
+  // raakt. Zonder deze verzachting kreeg zo iemand "richt op herstel" terwijl
+  // al zijn hersteldata het tegendeel liet zien.
   //
   // Bewust eenzijdig: andersom verzachten we nooit. TSB is een schatting uit een
   // model, HRV en slaap zijn metingen aan het lichaam. Zegt de meting dat er
   // vermoeidheid is, dan wint die altijd — ook bij een keurige TSB.
+  const currentReadiness =
+    wellness && wellness.readinessCurrent !== false ? wellness.readiness : null;
   if (
-    loadState === "recovery" &&
-    recoveryState === "ready" &&
+    heavyLoad &&
+    wellness &&
+    wellness.hrvBand === "within" &&
+    !wellness.restingHrRaised &&
+    wellness.state !== "fatigued" &&
+    wellness.sleepPenalty === 0 &&
+    (currentReadiness == null || currentReadiness >= 70) &&
+    !subjective?.heavy &&
     tsb != null &&
     Number.isFinite(tsb) &&
     tsb > SEVERE_TSB
   ) {
     loadState = "caution";
     notes.push(
-      "Je belasting is hoog, maar je hersteldata is goed: geen herstelrust nodig, wel de scherpte eruit.",
+      "Je belasting is hoog, maar je HRV en rust-hartslag liggen in je normale band: geen herstelrust nodig, wel de scherpte eruit.",
     );
   }
 
@@ -756,7 +929,7 @@ export async function getWellnessSummary(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   profileId: string,
-  days = 21,
+  days = WELLNESS_SUMMARY_DAYS,
 ): Promise<WellnessSummary | null> {
   const oldest = new Date(Date.now() - days * 86400_000)
     .toISOString()

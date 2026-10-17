@@ -1658,7 +1658,7 @@ export async function evaluateMilestonesForUser(
             awarded === 1
               ? "Je hebt een nieuwe achievement-badge behaald."
               : `Je hebt ${awarded} nieuwe achievement-badges behaald.`,
-          url: "/profiel",
+          url: "/profiel?weergave=bewerken",
           tag: `milestones-${profileId}-${new Date().toISOString().slice(0, 10)}`,
         },
         { profileIds: [profileId] },

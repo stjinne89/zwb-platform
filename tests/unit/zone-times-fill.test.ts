@@ -49,13 +49,45 @@ const wahoo = {
   raw: { start_date_local: "2026-09-27T12:40:04", source: "WAHOO" },
 };
 
+/** 5 min inrijden, 3 × 2 min op 300 W met 2 min rust, 5 min uitrijden. */
+const intervalsWorkout = {
+  id: "w1",
+  intensity: "vo2max",
+  structure_json: [
+    { label: "Inrijden", durationMinutes: 5, target: "60%", notes: "", intensity: "endurance" },
+    { label: "Herhaling", durationMinutes: 2, target: "120%", notes: "", intensity: "vo2max" },
+    { label: "Rust", durationMinutes: 2, target: "50%", notes: "", intensity: "recovery" },
+    { label: "Herhaling", durationMinutes: 2, target: "120%", notes: "", intensity: "vo2max" },
+    { label: "Rust", durationMinutes: 2, target: "50%", notes: "", intensity: "recovery" },
+    { label: "Herhaling", durationMinutes: 2, target: "120%", notes: "", intensity: "vo2max" },
+    { label: "Uitrijden", durationMinutes: 5, target: "55%", notes: "", intensity: "recovery" },
+  ],
+};
+
 function db(reportRow: ReturnType<typeof report>, activities: unknown[]) {
   return fakeDb({
     training_workout_reports: [reportRow],
     strava_activities: [ride],
     profiles: [{ id: PROFILE, ftp_watts: 250 }],
     intervals_activities: activities as Record<string, unknown>[],
+    training_workouts: [intervalsWorkout],
   });
+}
+
+/** Het geplande vermogen per seconde, met de herhalingen op 330, 300 en 280 W. */
+function ridden() {
+  const watts: number[] = [];
+  const reps = [330, 300, 280];
+  let rep = 0;
+  for (const block of intervalsWorkout.structure_json) {
+    const seconds = block.durationMinutes * 60;
+    const w = block.label === "Herhaling" ? reps[rep++] : block.label === "Rust" ? 125 : 150;
+    for (let i = 0; i < seconds; i++) watts.push(w);
+  }
+  return [
+    { type: "watts", data: watts },
+    { type: "time", data: watts.map((_, i) => i) },
+  ];
 }
 
 function run(fake: ReturnType<typeof fakeDb>) {
@@ -89,7 +121,7 @@ describe("fillZoneTimes", () => {
       wahoo,
     ]);
     expect(await run(fake)).toEqual({ filled: 1, none: 0 });
-    expect(mocks.streams).toHaveBeenCalledWith("k", "i1");
+    expect(mocks.streams).toHaveBeenCalledWith("k", "i1", ["time", "watts", "heartrate"]);
     const stored = fake.tables.training_workout_reports[0].metrics_json as {
       zoneTimes: { source: string; intervalsId?: string };
     };
@@ -111,6 +143,34 @@ describe("fillZoneTimes", () => {
     expect(await run(fake)).toEqual({ filled: 0, none: 1 });
     expect(mocks.streams).toHaveBeenCalledTimes(1);
 
+    expect(await run(fake)).toEqual({ filled: 0, none: 0 });
+    expect(mocks.streams).toHaveBeenCalledTimes(1);
+  });
+
+  it("bewaart de uitvoering per herhaling bij de zonetijden", async () => {
+    mocks.streams.mockResolvedValue(ridden());
+    const fake = db(report(), [wahoo]);
+    expect(await run(fake)).toEqual({ filled: 1, none: 0 });
+    const stored = fake.tables.training_workout_reports[0].metrics_json as {
+      execution: { reps: Array<{ avgWatts: number; targetWatts: number }>; offset: number };
+    };
+    expect(stored.execution.offset).toBe(0);
+    expect(stored.execution.reps.map((r) => r.avgWatts)).toEqual([330, 300, 280]);
+    expect(stored.execution.reps[0].targetWatts).toBe(300);
+  });
+
+  it("vult de uitvoering aan bij een training die al zonetijden had", async () => {
+    mocks.streams.mockResolvedValue(ridden());
+    const zoneTimes = { source: "intervals", intervalsId: "i1", ftpWatts: 250, seconds: [0, 600, 0, 0, 0, 360] };
+    const fake = db(report(zoneTimes), []);
+    expect(await run(fake)).toEqual({ filled: 1, none: 0 });
+    expect(mocks.streams).toHaveBeenCalledWith("k", "i1", ["time", "watts", "heartrate"]);
+    const stored = fake.tables.training_workout_reports[0].metrics_json as { zoneTimes: unknown; execution: unknown };
+    // De zonetijden blijven zoals ze waren.
+    expect(stored.zoneTimes).toEqual(zoneTimes);
+    expect(stored.execution).toBeTruthy();
+
+    // Een tweede keer vraagt niets meer op.
     expect(await run(fake)).toEqual({ filled: 0, none: 0 });
     expect(mocks.streams).toHaveBeenCalledTimes(1);
   });

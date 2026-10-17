@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { HelpLink } from "@/components/app-ui";
+
 import {
   deletePushSubscription,
   savePushSubscription,
@@ -18,6 +18,7 @@ type Props = {
     on_new_badge: boolean;
     on_training_plan: boolean;
     on_training_chat: boolean;
+    on_knowledge_message: boolean;
     on_event_reminder: boolean;
     on_admin_broadcast: boolean;
     on_maintenance_due: boolean;
@@ -177,7 +178,6 @@ export function PushToggle({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Notificaties
         </h2>
-        <HelpLink href="/hulp#privacy" />
       </header>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -261,6 +261,14 @@ export function PushToggle({
             defaultChecked={initialPreferences.on_training_chat}
           />
           Nieuw bericht in mijn coachchat
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="on_knowledge_message"
+            defaultChecked={initialPreferences.on_knowledge_message}
+          />
+          Nieuw bericht in ZWBieb
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input

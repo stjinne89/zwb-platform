@@ -362,7 +362,65 @@ export async function fetchZwiftRaceResults(eventId: string): Promise<unknown> {
   return authedJson(`${apiBase()}/race-results/entries?event_id=${eventId}`);
 }
 
-export type SubgroupResult = { profileId: number; rank: number; durationMs: number | null };
+/**
+ * Beste vermogen over een vaste duur in deze race, zoals Zwift het in de
+ * uitslagrij zet (`criticalP`).
+ */
+export type RaceCriticalPower = { s15: number | null; m1: number | null; m5: number | null; m20: number | null };
+
+export type SubgroupResult = {
+  profileId: number;
+  rank: number;
+  durationMs: number | null;
+  // Uit dezelfde uitslagrij, voor de analyse achteraf (ZWBeter racen). Ontbreekt
+  // in data van vóór 2026-10-15; zie loadZwiftRaceData in zrl-live/snapshot.ts.
+  // Hartslag staat er ook in, maar bewaren we niet: het is een gezondheidsgegeven,
+  // ook van renners van andere clubs, en de analyse toont het niet.
+  avgWatts?: number | null;
+  weightKg?: number | null;
+  /**
+   * "POWER_METER" bij een vermogensmeter of smart trainer (alle 33 renners op
+   * 2026-10-13). De waarde bij zPower is niet gezien.
+   */
+  powerType?: string | null;
+  criticalPower?: RaceCriticalPower | null;
+  /**
+   * Finishmoment (Unix-ms). Min `durationMs` is de eigen start: in een TTT de
+   * eigen startrij (gecontroleerd 2026-10-13 voor alle 33 renners van groep B).
+   */
+  finishedAt?: number | null;
+};
+
+function positiveNumber(value: unknown): number | null {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
+/** Vermogen, gewicht, meter en finishmoment uit een ruwe uitslagrij van Zwift. */
+export function resultPowerFields(row: Record<string, unknown>): Omit<SubgroupResult, "profileId" | "rank" | "durationMs"> {
+  const sensor = (row.sensorData ?? {}) as Record<string, unknown>;
+  const profile = (row.profileData ?? {}) as Record<string, unknown>;
+  const cp = (row.criticalP ?? null) as Record<string, unknown> | null;
+  const grams = positiveNumber(profile.weightInGrams);
+  const activity = (row.activityData ?? {}) as Record<string, unknown>;
+  // Zwift schrijft "2026-10-13T18:50:17.964+0000"; zonder dubbele punt in de
+  // tijdzone is Date.parse niet overal betrouwbaar.
+  const end = typeof activity.endDate === "string" ? Date.parse(activity.endDate.replace(/([+-]\d\d)(\d\d)$/, "$1:$2")) : NaN;
+  return {
+    finishedAt: Number.isFinite(end) ? end : null,
+    avgWatts: positiveNumber(sensor.avgWatts),
+    weightKg: grams === null ? null : Math.round(grams / 100) / 10,
+    powerType: typeof sensor.powerType === "string" ? sensor.powerType : null,
+    criticalPower: cp
+      ? {
+          s15: positiveNumber(cp.criticalP15Seconds),
+          m1: positiveNumber(cp.criticalP1Minute),
+          m5: positiveNumber(cp.criticalP5Minutes),
+          m20: positiveNumber(cp.criticalP20Minutes),
+        }
+      : null,
+  };
+}
 
 /**
  * Zwift staat op `/race-results/entries` twee verzoeken per seconde toe, voor het
@@ -416,7 +474,12 @@ export async function fetchSubgroupResults(subgroupId: string): Promise<Subgroup
       const rank = Number(row.rank);
       if (!Number.isFinite(profileId) || !Number.isFinite(rank)) continue;
       const duration = Number((row.activityData as Record<string, unknown> | undefined)?.durationInMilliseconds);
-      results.push({ profileId, rank, durationMs: Number.isFinite(duration) ? duration : null });
+      results.push({
+        profileId,
+        rank,
+        durationMs: Number.isFinite(duration) ? duration : null,
+        ...resultPowerFields(row),
+      });
     }
     if (rows.length < 50) break;
   }

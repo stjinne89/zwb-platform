@@ -261,6 +261,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
         source: "zwb" as const,
         skipped: workout.status === "skipped",
         missed: outcome === "gemist",
+        methodLabel: workout.method_label ?? null,
         rideLink,
         detail: {
           outcome,

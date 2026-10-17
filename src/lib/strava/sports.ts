@@ -61,3 +61,15 @@ export function looksVirtual(activity: {
 export function isCyclingSportType(sportType: string | null | undefined): boolean {
   return /ride|cycling|bike/i.test(sportType ?? "");
 }
+
+/** Nederlandse naam per fiets-sport_type; stond eerst alleen op /stats. */
+export const DISCIPLINE_LABELS: Record<string, string> = {
+  Ride: "Weg",
+  VirtualRide: "Virtueel (Zwift)",
+  GravelRide: "Gravel",
+  MountainBikeRide: "MTB",
+  EBikeRide: "E-bike",
+  EMountainBikeRide: "E-MTB",
+  Velomobile: "Velomobiel",
+  Handcycle: "Handbike",
+};

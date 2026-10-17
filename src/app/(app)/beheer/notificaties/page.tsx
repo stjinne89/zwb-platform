@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { HelpLink } from "@/components/app-ui";
 import { BroadcastForm } from "./_components/broadcast-form";
 import { adminAreaPermission } from "@/lib/admin-areas";
 import { getRequestAccess } from "@/lib/auth/request";
@@ -27,7 +26,6 @@ export default async function BroadcastPage() {
         <h1 className="text-3xl font-semibold tracking-tight">
           Notificaties versturen
         </h1>
-        <HelpLink href="/hulp#rollenbeheer" />
       </header>
 
       <section className="rounded-lg border bg-card p-4 text-sm">

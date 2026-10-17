@@ -19,7 +19,7 @@
  * categorie gegevens, maar kreeg op besluit van de eigenaar geen versie hier.
  * Alleen wie Naleving aanzet levert die gegevens aan, en tekent daar apart voor
  * (`LOG_CONSENT_VERSION` in `src/lib/nutrition/log.ts`, tabel
- * `nutrition_log_settings`). Foto en tekst herkennen (naar OpenAI) heeft daarbovenop
+ * `nutrition_log_settings`). Tekst herkennen (naar OpenAI) heeft daarbovenop
  * een eigen toestemming (`ai_consent_at`), net als de trainer laten meekijken
  * (`trainer_consent_at`). `/privacy` beschrijft het wel.
  *
@@ -30,6 +30,12 @@
  * Ook de kerntemperatuur van een CORE-sensor bij een hitteprotocol (0238) valt
  * daaronder: die tekst kreeg een eigen protocolversie (`2026-10-14-core`), en
  * alleen runs onder die versie worden uitgelezen.
+ *
+ * **Derde uitzondering: ZWBieb, eerst "Wie weet wat" (2026-10-15).** Onderwerpen,
+ * spullen om uit te lenen (sinds 2026-10-16), tips en gesprekken tussen twee
+ * leden levert alleen aan wie meedoet of een vraag stelt; die tekent daarvoor (`MEMBER_KNOWLEDGE_CONSENT_VERSION` in
+ * `src/lib/zwbieb/consent.ts`, tabel `member_knowledge`).
+ * `/privacy#zwbieb` beschrijft het.
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring

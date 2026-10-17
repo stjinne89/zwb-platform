@@ -45,9 +45,12 @@ describe("nutritionTipForToday", () => {
     expect(tip.mealMoment).toBe("diner");
   });
 
-  it("raadt na een avondrit eiwit voor het slapen aan", () => {
+  it("raadt na een avondrit eiwit voor het slapen aan, als hulp voor het dagtotaal", () => {
     const tip = nutritionTipForToday({ ...base, ridesToday: [{ minutes: 60, intensity: null, startHour: 19 }] });
     expect(tip.kind).toBe("voor_slapen");
+    // Geen herstelbelofte: bij wie al genoeg eiwit eet, gaf het geen beter herstel (Valenzuela 2023).
+    expect(tip.body).toMatch(/dagtotaal/);
+    expect(tip.body).not.toMatch(/herstel/);
   });
 
   it("zegt bij vermoeidheid juist: eet genoeg", () => {
@@ -135,16 +138,20 @@ describe("kennisbibliotheek", () => {
     for (const article of NUTRITION_ARTICLES) {
       expect(article.sources.length, article.slug).toBeGreaterThan(0);
       expect(article.points.length, article.slug).toBeGreaterThan(0);
+      expect(article.limits.length, article.slug).toBeGreaterThan(0);
+      const urls = article.sources.map((source) => source.url);
+      expect(new Set(urls).size, article.slug).toBe(urls.length);
       for (const source of article.sources) {
         expect(source.url, article.slug).toMatch(/^https:\/\//);
         expect(EVIDENCE_KINDS).toContain(source.kind);
         expect(source.year).toBeGreaterThan(2000);
+        expect(source.year).toBeLessThanOrEqual(2026);
       }
     }
   });
 
   it("geeft nergens afvaladvies", () => {
-    const text = NUTRITION_ARTICLES.flatMap((article) => [article.summary, ...article.points]).join(" ");
+    const text = NUTRITION_ARTICLES.flatMap((article) => [article.summary, ...article.points, ...article.limits]).join(" ");
     expect(text).not.toMatch(/calorietekort|om af te vallen|minder eten om/i);
   });
 });

@@ -40,7 +40,6 @@ export async function FrrStandings({ userId }: { userId: string | null }) {
   return (
     <section>
       <SectionHeader
-        place="kalender"
         icon={Trophy}
         title={`FRR-klassement · na etappe ${afterStage}`}
         action={

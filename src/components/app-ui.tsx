@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { ArrowLeft, ArrowRight, CircleHelp } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function PageHeader({
@@ -31,7 +31,7 @@ export function PageHeader({
       />
       <div className="min-w-0">
         {eyebrow && (
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary/80">
+          <p className="page-eyebrow text-xs font-semibold uppercase tracking-wide text-primary/80">
             {eyebrow}
           </p>
         )}
@@ -54,18 +54,14 @@ export function SectionHeader({
   title,
   action,
   className,
-  place,
 }: {
   icon?: LucideIcon;
   title: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
-  /** Alleen voor het design "tegels": de plek, en dus de kleur, van het blok. */
-  place?: "vandaag" | "kalender" | "zwbeter" | "club" | "meer" | "geen";
 }) {
   return (
     <div
-      data-place={place}
       className={cn(
         "section-header mb-3 flex items-center justify-between gap-3 border-b border-border/70 pb-2",
         className,
@@ -101,29 +97,6 @@ export function EmptyState({
         {action}
       </div>
     </div>
-  );
-}
-
-export function HelpLink({
-  href = "/hulp",
-  label = "Hulp",
-  className,
-}: {
-  href?: string;
-  label?: string;
-  className?: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary",
-        className,
-      )}
-    >
-      <CircleHelp className="size-4" />
-      {label}
-    </Link>
   );
 }
 
