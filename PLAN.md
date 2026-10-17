@@ -9740,6 +9740,29 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Onderzocht — ZWB DS: live race-informatie zonder Sauce
+
+**2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
+code.
+
+**Aanleiding.** Vraag van de eigenaar: kan het platform de gegevens tonen die
+Sauce for Zwift als overlay geeft, voor leden die op een tablet rijden of
+verbindingsproblemen hebben? Werktitel ZWB DS.
+
+**Uitkomst.** Zie [zwb-ds-spike.md](docs/zwb-ds-spike.md). Sauce haalt de status
+van één renner ook via Zwifts HTTP-endpoint `/relay/worlds/1/players/{id}`
+(vermogen, hartslag, cadans, snelheid, draft, afstand in het event). Dat kan het
+platform in principe met een Zwift-account opvragen. Of het serviceaccount dat
+mag en hoe vaak, bepaalt of DS alleen de eigen ploeg of het hele veld kan tonen.
+Voorstel: eerst een meting, lokaal met een script.
+
+**Bewust niet gebouwd.** Nog niets; de eigenaar kiest na het onderzoek. Een
+eigen gameclient zoals Sauce' monitoraccount is afgeraden: altijd-aan server,
+één Zwift-account per gevolgde renner, versleuteld protocol uit GPL-code.
+
+**Niet geverifieerd.** Niets is tegen Zwift gemeten: geen Zwift-inloggegevens in
+de worktree en de Sauce-pc was niet bereikbaar. Alleen Sauce' broncode gelezen.
+
 ### Opgeleverd — Kennisartikel Intervallen: tempo, drempel, VO2max en anaeroob
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
