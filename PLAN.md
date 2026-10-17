@@ -9697,18 +9697,21 @@ het AI-formaat. `scripts/engine-replay.mjs` draait de motor op de 420 opgeslagen
 invoeren en legt AI en motor langs de meetlat:
 [docs/regelmotor-naspelen.md](docs/regelmotor-naspelen.md). Vanaf 2026-09-17
 heeft 9 % van de dagelijkse aanpassingen van de AI een fout tegen 0 % bij de
-motor, en 59 % van de bijwerkingen tegen 19 %; de motor faalt op geen enkele
-invoer. Het naspelen vond zes motorfouten (taperweek leeg naast de gran fondo,
+motor, en 59 % van de bijwerkingen tegen 11 % (na het besluit hieronder); de
+motor faalt op geen enkele invoer. Het naspelen vond zes motorfouten (taperweek leeg naast de gran fondo,
 afronding onder de 85 %, ritten die niet in de gekozen dagen pasten,
 sleutelsessies die het weekvolume overschreden, groei op doel in plaats van op
 wat er werkelijk stond, de dag vóór een A/B-mikpunt niet licht) en vier regels
 waarop de meetlat strenger was dan de prompt (kamp, event, piekmoment en
 taperzone); beide zijn rechtgezet, details in
 [docs/eigen-regelmotor.md](docs/eigen-regelmotor.md) en
-[docs/schema-meetlat.md](docs/schema-meetlat.md). **Open besluit voor de
-eigenaar:** bij een lid ver onder zijn plafond kunnen "piekweek ≥ 85 %" en
-"nooit meer dan een kwart erbij" niet allebei; de motor kiest de groeigrens, de
-AI meestal de piek. **Bewust niet:** de motor in de app; trainers blind laten
+[docs/schema-meetlat.md](docs/schema-meetlat.md). **Besluit van de
+eigenaar (2026-10-17):** bij een lid ver onder zijn plafond kunnen "piekweek ≥
+85 %" en "nooit meer dan een kwart erbij" niet allebei; de groeigrens gaat
+voor, zoals de motor al deed. De meetlat volgt dat (een lagere piek is geen
+fout als 85 % alleen met grotere sprongen kon, en het laatste, nog lopende blok
+van een bijwerking wordt niet op zijn piek beoordeeld). De AI-prompt is bewust
+niet aangepast: dat verandert de schema's van leden en is een eigen besluit. **Bewust niet:** de motor in de app; trainers blind laten
 vergelijken (volgende stap). **Niet geverifieerd:** of de motorschema's goed
 trainen — de meetlat toetst regels, geen trainingswaarde; de volledige testsuite
 draaide groen op drie zware tests na die alleen onder volle belasting een

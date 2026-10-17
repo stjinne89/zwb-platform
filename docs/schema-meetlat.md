@@ -177,4 +177,9 @@ Bij het naspelen van de regelmotor bleek de meetlat op vier plekken iets af te k
 - **Piekmoment en weekplafond.** De race op de doeldatum (gran fondo, outdoor event) of op een A-mikpunt telt niet tegen het urenplafond van zijn week. Anders kon een taperweek naast een gran fondo van zes uur niets meer bevatten.
 - **Taperzone.** De meetlat zag elke week binnen drie weken vóór het piekmoment als taper, en sloot het opbouwblok daar af. Een taper van twee weken met de piekweek ervóór werd zo afgerekend op een te vroege "piek". Nu is een week in die zone pas taper als het volume echt zakt (onder 90 % van de week ervoor).
 
+Daarna, na het besluit van de eigenaar dat de groeigrens vóór de piekweek gaat:
+
+- **Piekweek binnen de groeigrens.** Een piek onder 85 % van het plafond is geen fout als die 85 % alleen te halen was met sprongen van meer dan een kwart per week, gerekend vanaf de week vóór het blok (of `recentLoad`), met vijf procent marge voor afronding.
+- **Laatste blok van een bijwerking.** Een bijwerking eindigt op de einddatum van het oude schema, niet op een blokeinde. Loopt het laatste opbouwblok daar nog, dan oordeelt de meetlat niet over zijn piek; die kan erna liggen (spiegel van de bestaande uitzondering voor het eerste blok).
+
 De grens voor "sterk negatieve TSB" bleef -20. De motor plant zelf met -30 (`src/lib/training/engine/signals.ts`); de meetlat is als scheidsrechter bewust ruimer, zodat geen van beide planners wordt afgerekend op een grens die de prompt niet noemt.

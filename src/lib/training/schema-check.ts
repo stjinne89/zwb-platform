@@ -447,13 +447,27 @@ export function checkTrainingPlan(
   const recentMinutes = input.recentLoad?.hoursPerWeek ? input.recentLoad.hoursPerWeek * 60 : null;
   let lastBuild: Week | null = null;
   let block: Week[] = [];
+  /** Het volume vóór de eerste week van het blok: daarvandaan mag het per week een kwart groeien. */
+  let blockStart: number | null = null;
   // Bij een bijwerking kan het eerste blok al vóór fromDate zijn begonnen; zijn
   // piek ligt dan mogelijk buiten beeld.
   const startedBefore = (first: Week) => flow === "bijwerking" && first.monday === complete[0]?.monday;
-  const closeBlock = () => {
-    if (block.length > 0 && !fatigue && !startedBefore(block[0])) {
+  // Een bijwerking eindigt op de einddatum van het oude schema, niet op het
+  // einde van een blok: loopt het laatste blok daar nog, dan kan zijn piek erna
+  // liggen.
+  const closeBlock = (atWindowEnd = false) => {
+    if (block.length > 0 && !fatigue && !startedBefore(block[0]) && !(atWindowEnd && flow === "bijwerking")) {
       const peak = block.reduce((best, week) => (week.minutes > best.minutes ? week : best));
-      if (peak.capMinutes != null && peak.minutes < peak.capMinutes * PEAK_MIN_SHARE) {
+      // De groeigrens gaat vóór de piekweek (besluit eigenaar, 2026-10-17): is
+      // 85 % niet te halen zonder sprongen van meer dan een kwart, dan is een
+      // lagere piek geen fout.
+      const reachable =
+        blockStart != null && blockStart > 0
+          ? blockStart * MAX_WEEK_GROWTH ** (block.indexOf(peak) + 1)
+          : Infinity;
+      // Vijf procent marge op dat bereik: per week afronden kost een paar minuten.
+      const needed = peak.capMinutes != null ? Math.min(peak.capMinutes * PEAK_MIN_SHARE, reachable * 0.95) : null;
+      if (peak.capMinutes != null && needed != null && peak.minutes < needed - 1) {
         add(
           "piekweek",
           peak.monday,
@@ -506,10 +520,11 @@ export function checkTrainingPlan(
         );
       }
     }
+    if (block.length === 0) blockStart = reference?.minutes ?? recentMinutes;
     block.push(week);
     lastBuild = week;
   });
-  closeBlock();
+  closeBlock(true);
 
   // Taper: alleen met een piekmoment. Herkend aan het woord in een titel, of aan
   // twee weken afbouw op rij aan het eind van de periode.

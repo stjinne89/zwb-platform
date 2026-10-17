@@ -15,8 +15,8 @@ de tabel vanaf 2026-09-17 is de zuivere vergelijking.
 | Soort | Aantal | Motor faalde | Met fout: AI | Met fout: motor | Iets gewijzigd: AI | Iets gewijzigd: motor |
 |---|---:|---:|---:|---:|---:|---:|
 | dagelijkse aanpassing | 75 | 0 | 9% | 0% | 47% | 7% |
-| bijwerking | 70 | 0 | 59% | 19% | 100% | 100% |
-| nieuw schema | 4 | 0 | 50% | 25% | 100% | 100% |
+| bijwerking | 70 | 0 | 59% | 11% | 100% | 100% |
+| nieuw schema | 4 | 0 | 50% | 0% | 100% | 100% |
 | dag-aanpassing (lid) | 1 | 0 | 0% | 0% | 100% | 0% |
 
 Per regel: het aandeel generaties met minstens één bevinding.
@@ -27,7 +27,7 @@ Per regel: het aandeel generaties met minstens één bevinding.
 | beschikbaarheid | fout | 0% / 0% | 0% / 0% | 0% / 0% | 0% / 0% |
 | vaste-afspraak | fout | 3% / 0% | 0% / 0% | 0% / 0% | 0% / 0% |
 | weekplafond | fout | 0% / 0% | 0% / 3% | 0% / 0% | 0% / 0% |
-| piekweek | fout | 0% / 0% | 1% / 7% | 25% / 25% | 0% / 0% |
+| piekweek | fout | 0% / 0% | 0% / 0% | 0% / 0% | 0% / 0% |
 | opbouwgroei | waarschuwing | 0% / 0% | 29% / 19% | 0% / 0% | 0% / 0% |
 | herstelweek | waarschuwing | 0% / 0% | 6% / 6% | 25% / 25% | 0% / 0% |
 | onder-recente-belasting | fout | 0% / 0% | 16% / 11% | 25% / 0% | 0% / 0% |
@@ -46,8 +46,8 @@ Per regel: het aandeel generaties met minstens één bevinding.
 | Soort | Aantal | Motor faalde | Met fout: AI | Met fout: motor | Iets gewijzigd: AI | Iets gewijzigd: motor |
 |---|---:|---:|---:|---:|---:|---:|
 | dagelijkse aanpassing | 218 | 0 | 50% | 0% | 82% | 52% |
-| bijwerking | 157 | 0 | 82% | 22% | 100% | 100% |
-| nieuw schema | 22 | 0 | 91% | 41% | 100% | 100% |
+| bijwerking | 157 | 0 | 82% | 11% | 100% | 100% |
+| nieuw schema | 22 | 0 | 91% | 32% | 100% | 100% |
 | dag-aanpassing (lid) | 20 | 0 | 50% | 5% | 100% | 35% |
 | bijwerking (oud) | 3 | 0 | 100% | 0% | 100% | 100% |
 
@@ -59,7 +59,7 @@ Per regel: het aandeel generaties met minstens één bevinding.
 | beschikbaarheid | fout | 0% / 0% | 4% / 0% | 9% / 0% | 0% / 0% | 0% / 0% |
 | vaste-afspraak | fout | 1% / 0% | 0% / 0% | 0% / 0% | 0% / 0% | 0% / 0% |
 | weekplafond | fout | 0% / 0% | 0% / 1% | 0% / 0% | 0% / 0% | 0% / 0% |
-| piekweek | fout | 0% / 0% | 8% / 16% | 41% / 41% | 0% / 5% | 0% / 0% |
+| piekweek | fout | 0% / 0% | 1% / 1% | 32% / 32% | 0% / 5% | 0% / 0% |
 | opbouwgroei | waarschuwing | 0% / 0% | 31% / 8% | 5% / 9% | 0% / 0% | 0% / 0% |
 | herstelweek | waarschuwing | 0% / 0% | 7% / 3% | 41% / 9% | 0% / 0% | 0% / 0% |
 | onder-recente-belasting | fout | 0% / 0% | 10% / 11% | 5% / 0% | 0% / 0% | 0% / 0% |

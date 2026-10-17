@@ -183,8 +183,8 @@ prompt had toen vrijwel alle regels):
 | Soort | Aantal | AI | Motor |
 |---|---:|---:|---:|
 | Dagelijkse aanpassing | 75 | 9 % | 0 % |
-| Bijwerking | 70 | 59 % | 19 % |
-| Nieuw schema | 4 | 2 | 1 |
+| Bijwerking | 70 | 59 % | 11 % |
+| Nieuw schema | 4 | 2 | 0 |
 
 De motor faalt op geen enkele van de 420 invoeren. Zijn fouten zijn vooral
 één regelconflict (hieronder) en weken die net onder `recentLoad` of net boven
@@ -196,14 +196,15 @@ De motor verandert bij de dagelijkse aanpassing veel minder: 7 % van de keren
 tegen 47 % bij de AI. Of de AI die andere 40 % terecht ingreep, zegt de meetlat
 niet: die toetst regels, geen trainingswaarde.
 
-### Open besluit: piekweek of groeigrens
+### Besluit: de groeigrens gaat vóór de piekweek (eigenaar, 2026-10-17)
 
 Ligt `recentLoad` ver onder het plafond (3 uur per week tegen 14), dan kunnen
 "piekweek ≥ 85 % van het plafond" en "nooit meer dan een kwart erbij" niet
-allebei. De periodisering kiest de groeigrens en zet een reden in cautions; de
-AI kiest meestal de piek. Daardoor scoort de motor op `piekweek` slechter (7 %
-tegen 1 % bij recente bijwerkingen) en op `opbouwgroei` beter (19 % tegen
-29 %). Welke regel voorgaat is een trainingskeuze voor de eigenaar.
+allebei. De eigenaar koos de groeigrens, zoals de periodisering al deed: de
+piekweek komt dan zo hoog als binnen een kwart per week kan, en cautions zegt
+waarom. De meetlat volgt dat besluit: een lagere piek is geen fout als 85 %
+alleen met grotere sprongen te halen was (met vijf procent marge). De AI-prompt
+is niet aangepast; de AI kiest nog meestal de piek.
 
 ### Bijgesteld tijdens het samenvoegen
 

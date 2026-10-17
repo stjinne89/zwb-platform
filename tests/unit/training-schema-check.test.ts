@@ -547,3 +547,21 @@ describe("checkTrainingPlan: bijgesteld bij het naspelen van de regelmotor", () 
     expect(rules(checkTrainingPlan(fondo, workouts))).not.toContain("piekweek");
   });
 });
+
+describe("checkTrainingPlan: groeigrens gaat vóór de piekweek", () => {
+  it("rekent een lagere piek niet aan als 85% alleen met sprongen van meer dan een kwart te halen is", () => {
+    // Lid rijdt 2 uur per week, plafond 14 uur: in twee weken kan het hooguit
+    // 2 → 2,5 → 3,1 uur worden. Een piek van 3 uur is dan geen fout.
+    const plan = input({
+      planWindow: window(3),
+      goal: { ...input().goal, maxHoursPerWeek: 14 },
+      recentLoad: { ...input().recentLoad, hoursPerWeek: 2 },
+    });
+    const capped = [...week(MONDAY, [50, 50, 50]), ...week(day(7), [62, 63, 63]), ...week(day(14), [40, 40, 40])];
+    expect(rules(checkTrainingPlan(plan, capped))).not.toContain("piekweek");
+
+    // Blijft de piek ook onder wat binnen de groeigrens kon, dan wel.
+    const timid = [...week(MONDAY, [40, 40, 40]), ...week(day(7), [40, 40, 45]), ...week(day(14), [30, 30, 30])];
+    expect(rules(checkTrainingPlan(plan, timid))).toContain("piekweek");
+  });
+});
