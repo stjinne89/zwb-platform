@@ -40,6 +40,7 @@ beforeAll(async () => {
     "0167_training_chat.sql",
     "0237_member_protocols.sql",
     "0238_member_protocol_core_sessions.sql",
+    "0239_member_protocol_core_analysis.sql",
   ]) {
     await db.exec(await migration(file));
   }
@@ -247,5 +248,39 @@ describe("kerntemperatuur bij hitte (0238)", () => {
     } finally {
       await db.exec("rollback");
     }
+  });
+});
+
+describe("analyse van een hittesessie (0239)", () => {
+  it("bewaart rijduur, tijd tot de drempel en dekking, en laat ze leeg bij oude ritten", async () => {
+    await db.exec("begin");
+    try {
+      await db.exec(`insert into public.member_protocol_core_sessions
+        (protocol_id, intervals_id, day, max_core_c, minutes_above, ride_minutes, minutes_to_threshold, coverage_pct)
+        values ('${HITTE}', 'i103', '2027-06-04', 38.7, 33, 58, 21, 97)`);
+      const rows = await als<{ intervals_id: string; ride_minutes: number | null; coverage_pct: number | null }>(
+        LID,
+        "select intervals_id, ride_minutes, coverage_pct from public.member_protocol_core_sessions order by intervals_id",
+      );
+      expect(rows).toEqual([
+        { intervals_id: "i101", ride_minutes: null, coverage_pct: null },
+        { intervals_id: "i102", ride_minutes: null, coverage_pct: null },
+        { intervals_id: "i103", ride_minutes: 58, coverage_pct: 97 },
+      ]);
+    } finally {
+      await db.exec("rollback");
+    }
+  });
+
+  it("weigert een dekking boven 100% of een negatieve duur", async () => {
+    const insert = (id: string, ride: number, coverage: number) =>
+      db.query(
+        `insert into public.member_protocol_core_sessions
+           (protocol_id, intervals_id, day, max_core_c, minutes_above, ride_minutes, coverage_pct)
+           values ($1, $2, '2027-06-05', 38.6, 10, $3, $4)`,
+        [HITTE, id, ride, coverage],
+      );
+    await expect(insert("dekking", 50, 101)).rejects.toThrow();
+    await expect(insert("duur", -1, 90)).rejects.toThrow();
   });
 });

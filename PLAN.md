@@ -65,10 +65,13 @@ gaat stabiliteit voor nieuwe features.
    - **Protocollen en CORE-sensor:** `0237_member_protocols.sql` en
      `0238_member_protocol_core_sessions.sql` zijn toegepast (eigenaar,
      2026-10-14). Niet nagekeken met de controlequery's onderaan beide
-     bestanden. Nog te doen: een hitteprotocol starten en een rit met de CORE
-     op de BOLT 2 rijden (eigenaar, deze week); daarna kijken of er een rij met
-     waarden in `member_protocol_core_sessions` staat. Zie de ronde
-     "Hittetraining met de CORE-sensor".
+     bestanden. De eerste testrit (2026-10-17) liet zien dat de BOLT 2
+     `core_temperature` levert. **Nog toepassen:**
+     `0239_member_protocol_core_analysis.sql`, **vóór** de deploy van de
+     analyse (anders slaat het opslaan van een meting en het tonen ervan stil
+     over). Daarna een echte hittesessie rijden en kijken of het oordeel klopt.
+     Zie de rondes "Hittetraining met de CORE-sensor" en "Analyse per
+     hittesessie".
    - **Strava.** De aanvraag is twee keer afgewezen (gemeld 2026-09-30); de
      eigenaar vraagt om uitleg. Niet een derde keer indienen. Volgende stap is de
      spike zonder code uit [verder zonder Strava](docs/zonder-strava-onderzoek.md)
@@ -124,11 +127,97 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0239`
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0240`
 (`0237_member_protocols` is van de protocollen, `0238_member_protocol_core_sessions`
-van de CORE-sensor, beide 2026-10-14).
+van de CORE-sensor, beide 2026-10-14; `0239_member_protocol_core_analysis` van de
+analyse per hittesessie, 2026-10-17).
 
 ---
+
+> **Analyse per hittesessie, en de lopende protocollen op Vandaag, 2026-10-17 — gebouwd, lokaal getest; niet gepusht; `0239` alleen tegen PGlite getest.**
+> Commit: de commit die dit blok toevoegt. Migratie
+> `0239_member_protocol_core_analysis.sql` (**nog toepassen, vóór de deploy**).
+>
+> **Waarom.** Vraag van de eigenaar: "Ik wil eigenlijk meer dan enkel afvinken,
+> we hebben de kennis dus ik zou graag hebben dat hij ook een analyse maakt op de
+> hittesessie, waarbij als deze niet voldaan heeft aan de protocoleisen hij niet
+> afvinkt en uitlegt waarom en anders ook automatisch afvinkt en dat er op
+> zwbeter vandaag staat welke protocollen lopend zijn."
+>
+> **Wat.**
+>
+> - **Analyse** (`analyzeHeatSession` in `core-temperature.ts`): toetst een rit
+>   aan de taak. Eisen: rijduur (`rideMinutes`: 60, 50 of 30, vijf minuten
+>   speling) en minuten op of boven 38,5 °C (`coreMinutes`). Niet voldaan geeft
+>   per eis één zin waarom ("Je reed 10 minuten; het protocol vraagt er 50."), en
+>   één aanwijzing: warmer beginnen als de drempel pas na 20 minuten kwam,
+>   anders langer doorrijden, de ventilator uit bij een te lage piek, of de
+>   sensor nakijken als die minder dan 60% van de rit mat (dan oordeelt de app
+>   niet over de minuten). Boven 39,5 °C een waarschuwing, ook bij voldaan.
+>   Onderbouwing en eigen keuzes: [protocollen-onderzoek.md](docs/protocollen-onderzoek.md),
+>   "De analyse per sessie".
+> - **Afvinken** gebeurt nu alleen als de analyse "voldaan" zegt; eerder telde
+>   alleen de tijd boven de drempel.
+> - **Opslag** (`0239`): per rit ook `ride_minutes`, `minutes_to_threshold` en
+>   `coverage_pct`. De uitleg zelf staat niet in de database; die rekent de app
+>   bij het tonen uit, zodat een betere tekst ook voor oude ritten geldt.
+> - **Tonen:** onder de hittesessie "Voldaan" of "Niet voldaan" met de meting
+>   en de rijduur, en bij niet voldaan de redenen en de aanwijzing. Op de
+>   detailpagina heet de lijst nu "Hittesessies", met het oordeel per rit. Van
+>   meerdere ritten op één dag toont de app er een die voldoet, anders die met de
+>   meeste minuten.
+> - **Vandaag** (`ProtocolTodayCard`, kop "Lopende protocollen"): elk lopend
+>   protocol staat erin, ook zonder taak vandaag of als het nog moet beginnen,
+>   met de fase en "dag 3 van 56" of "nog 12 dagen tot de wedstrijd"
+>   (`runProgress`). Eerder verdween de kaart op een dag zonder taak.
+> - `/hulp` en `/privacy#protocollen` beschrijven de eisen en de extra getallen.
+>
+> **Besluiten van de bouwer, voor de eigenaar om te toetsen.**
+>
+> - Vaste regels in plaats van een AI-analyse: de privacytekst belooft dat de
+>   kerntemperatuur niet naar OpenAI gaat, en regels zijn te testen en uit te
+>   leggen.
+> - Vijf minuten speling op de rijduur; 20 minuten als grens voor "laat warm";
+>   60% dekking; 39,5 °C als waarschuwing. Alle vier eigen keuzes.
+> - Een vinkje dat het lid zelf zette blijft staan, ook als de analyse "niet
+>   voldaan" zegt. De app haalt nooit een vinkje weg.
+>
+> **Bewust niet gebouwd.**
+>
+> - **Intensiteit toetsen** (vermogen of hartslag): het protocol staat rustige én
+>   intensieve duur toe, en een warme rit hoort niet zwaarder te worden dan
+>   gepland.
+> - **Aanpassing over de weken** (lagere kerntemperatuur bij hetzelfde vermogen):
+>   vraagt meer ritten per lid dan er nu zijn. Eerst zien of leden het gebruiken.
+> - **De analyse naar de AI-coach** of in de coachchat: zelfde privacygrond.
+> - **Een push bij "niet voldaan"**: het oordeel staat op Vandaag, waar het lid
+>   na de rit toch kijkt.
+>
+> **Niet meer waar.**
+>
+> - In de ronde "Hittetraining met de CORE-sensor": afvinken op alleen de
+>   minuten boven de drempel, en de lijst "Kerntemperatuur"; aangepast op hun plek.
+> - In de protocollenronde: "Afvinken op Vandaag" toonde alleen protocollen met
+>   een taak die dag; aangevuld.
+> - `meetsCoreTarget` bestaat niet meer; `analyzeHeatSession` vervangt hem.
+>
+> **Getest.** `tsc` en ESLint zonder fouten. `protocol-core.test.ts`: de
+> analyse (voldaan, piek te laag, te kort boven de drempel met en zonder late
+> start, te korte rit zoals de testrit van de eigenaar, weinig dekking, de
+> waarschuwing, oude rijen zonder de nieuwe velden, elke hittesessie heeft een
+> rijduur), de nieuwe getallen in de samenvatting, en `fillCoreSessions` dat
+> niet afvinkt bij een te korte rit. `protocols.test.ts`: `runProgress` voor
+> een startdatum, aftellen naar de wedstrijd en vóór de eerste dag.
+> `member-protocols-migration.test.ts`: `0239` tegen PGlite (kolommen,
+> grenzen, oude rijen leeg).
+>
+> **Niet geverifieerd.**
+>
+> - `0239` op de echte database.
+> - De kaart en het oordeel in de browser.
+> - Of de aanwijzingen in de praktijk helpen; de grenzen zijn niet door een
+>   sportarts of trainer nagekeken.
+
 
 > **Hittetraining met de CORE-sensor, via intervals.icu, 2026-10-14 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-14), ook de THb-terugval voor oudere Wahoo's; `0238` toegepast (eigenaar, 2026-10-14); nog niet met een echte CORE-rit geprobeerd.**
 > Commit: de commit die dit blok toevoegt. Migratie
@@ -175,12 +264,14 @@ van de CORE-sensor, beide 2026-10-14).
 >   telt hooguit 30 seconden mee, waarden buiten 34 tot 43 °C tellen niet.
 > - **Afvinken:** een taak kreeg `coreMinutes`. Hittesessie 30 minuten (beide
 >   protocollen, ook onderhoud), korte hittesessie 10. Haalt een rit dat, dan
->   vinkt de app de taak op die dag af, mits hij die dag nog openstaat (het
+>   vinkt de app de taak op die dag af *(sinds 2026-10-17 alleen als de rit aan
+>   alle eisen voldoet, ook de rijduur; zie "Analyse per hittesessie")*, mits hij die dag nog openstaat (het
 >   weekaantal telt mee). Haalt het lid het vinkje weg, dan blijft het weg: de rit
 >   staat als bekeken in `member_protocol_core_sessions` met `auto_checked`.
 > - **Tonen:** bij de hittesessie op Vandaag, op de detailpagina en bij de
 >   trainer (Uitgangspunten) staat "38,8 °C · 42 min boven 38,5 °C"; de
 >   detailpagina heeft een lijst "Kerntemperatuur" met alle ritten van de run.
+>   *Sinds 2026-10-17 met een oordeel erbij en heet de lijst "Hittesessies".*
 > - **Opslag** (`0238`): per rit alleen de samenvatting, niet de meting. Een rit
 >   zonder CORE-data krijgt een lege rij, zodat hij niet opnieuw wordt opgevraagd.
 >   Lezen: het lid en de eigen trainer (`current_user_in_training_chat`);
@@ -8097,7 +8188,8 @@ voedingsprotocollen bij voeden. Onderzoek en bronnen:
   vastgelegd in `src/lib/privacy.ts`. Eén lopend exemplaar per protocol.
   Supplementen pas vanaf 18 jaar (`profiles.birth_date`, AIS-framework).
 - **Afvinken** op de detailpagina en op **Vandaag** (`ProtocolTodayCard`), voor
-  vandaag en gisteren.
+  vandaag en gisteren. *Sinds 2026-10-17 toont Vandaag alle lopende protocollen,
+  ook zonder taak die dag; zie "Analyse per hittesessie".*
 - **Schema:** hitte en de wedstrijdprotocollen staan als label in de
   maandweergave (`calendarMarkers`, prop `markers` op `WorkoutCalendar`). Geen
   workout, geen TSS, niets naar intervals.icu.

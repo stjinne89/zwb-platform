@@ -13,9 +13,9 @@ import { fetchIntervalsActivities, fetchIntervalsActivityStreams } from "@/lib/i
 import { PROTOCOL_CONSENT_VERSION } from "./consent";
 import {
   CORE_WINDOW_DAYS,
+  analyzeHeatSession,
   coreCandidates,
   coreTemperatureStream,
-  meetsCoreTarget,
   protocolUsesCore,
   summarizeCoreTemperature,
 } from "./core-temperature";
@@ -104,7 +104,10 @@ export async function fillCoreSessions(
       const task = tasksForDay(protocol, run, day, null, checks)?.tasks.find(
         (item) => item.coreMinutes && !item.done,
       );
-      if (task && meetsCoreTarget(task, summary)) {
+      // Alleen afvinken als de rit aan alle eisen van de sessie voldoet; anders
+      // legt de app bij het tonen uit waarom niet.
+      const verdict = task ? analyzeHeatSession(task, { ...summary, rideMinutes: candidate.rideMinutes }) : null;
+      if (task && verdict?.met) {
         const { error } = await admin
           .from("member_protocol_checks")
           .upsert(
@@ -126,6 +129,9 @@ export async function fillCoreSessions(
         day: candidate.day,
         max_core_c: summary?.maxC ?? null,
         minutes_above: summary?.minutesAbove ?? null,
+        ride_minutes: candidate.rideMinutes,
+        minutes_to_threshold: summary?.minutesToThreshold ?? null,
+        coverage_pct: summary?.coveragePct ?? null,
         auto_checked: autoChecked,
       },
       { onConflict: "protocol_id,intervals_id", ignoreDuplicates: true },

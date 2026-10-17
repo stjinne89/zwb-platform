@@ -9,6 +9,7 @@ import {
   protocolsForAi,
   runDates,
   runEndDate,
+  runProgress,
   startBlocker,
   tasksForDay,
   type ProtocolRun,
@@ -267,5 +268,35 @@ describe("agenda en AI", () => {
     expect(ai.map((entry) => entry.slug)).toEqual(["lage-cadans-vo2max"]);
     expect(ai[0].to).toBe("2027-04-25");
     expect(protocolsForAi([cadence], { from: "2027-05-01", to: "2027-06-01" })).toEqual([]);
+  });
+});
+
+describe("voortgang op Vandaag", () => {
+  it("telt de dagen van een protocol met een startdatum", () => {
+    const lang = run("hitte-lang", { startDate: "2026-10-17" });
+    expect(runProgress(protocolBySlug("hitte-lang")!, lang, "2026-10-17")).toEqual({
+      phase: "Vijf weken",
+      label: "dag 1 van 56",
+    });
+    expect(runProgress(protocolBySlug("hitte-lang")!, lang, "2026-11-21")).toEqual({
+      phase: "Onderhoud",
+      label: "dag 36 van 56",
+    });
+  });
+
+  it("telt af naar de wedstrijd", () => {
+    const kort = run("hitte-kort", { raceDate: "2026-11-01" });
+    const protocol = protocolBySlug("hitte-kort")!;
+    expect(runProgress(protocol, kort, "2026-10-19")).toEqual({
+      phase: "Elke dag warm",
+      label: "nog 13 dagen tot de wedstrijd",
+    });
+    expect(runProgress(protocol, kort, "2026-10-31")?.label).toBe("nog 1 dag tot de wedstrijd");
+    expect(runProgress(protocol, kort, "2026-11-01")).toEqual({ phase: "Wedstrijddag", label: "wedstrijddag" });
+  });
+
+  it("geeft niets vóór de eerste dag", () => {
+    const kort = run("hitte-kort", { raceDate: "2027-03-21" });
+    expect(runProgress(protocolBySlug("hitte-kort")!, kort, "2026-10-17")).toBeNull();
   });
 });

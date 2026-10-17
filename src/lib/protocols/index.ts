@@ -91,6 +91,27 @@ export function phaseOn(
   return protocol.phases.find((phase) => day >= phase.fromDay && day <= phase.toDay) ?? null;
 }
 
+/**
+ * Waar een lopende run staat, voor het overzicht op Vandaag: de fase en
+ * "dag 3 van 56" of "nog 12 dagen tot de wedstrijd". Null vóór de eerste dag.
+ */
+export function runProgress(
+  protocol: Protocol,
+  run: Pick<ProtocolRun, "startDate" | "raceDate">,
+  date: string,
+): { phase: string | null; label: string } | null {
+  if (date < run.startDate) return null;
+  const day = dayNumber(protocol, run, date);
+  const phase = phaseOn(protocol, run, date)?.title ?? null;
+  if (protocol.anchor === "wedstrijd") {
+    const days = (n: number) => (n === 1 ? "1 dag" : `${n} dagen`);
+    const label =
+      day < 0 ? `nog ${days(-day)} tot de wedstrijd` : day === 0 ? "wedstrijddag" : `${days(day)} na de wedstrijd`;
+    return { phase, label };
+  }
+  return { phase, label: `dag ${day - firstDay(protocol) + 1} van ${protocolLength(protocol)}` };
+}
+
 /** Een lopende run die voorbij zijn laatste dag is, telt als afgerond. */
 export function isRunOver(protocol: Protocol, run: ProtocolRun, today: string): boolean {
   return run.status !== "actief" || today > runEndDate(protocol, run);

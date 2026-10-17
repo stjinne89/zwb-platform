@@ -133,6 +133,30 @@ auteurs concluderen dat de sensor geen geldige maat voor de kerntemperatuur is.
 [Verdel e.a. 2021](https://doi.org/10.3390/s21175932). Daarom: de app toont de
 waarde als richting en vinkt af, maar het lid kan het vinkje weghalen.
 
+**De analyse per sessie (2026-10-17).** Op verzoek van de eigenaar toetst de
+app een rit aan alle eisen van de hittesessie en legt uit waarom hij niet
+voldoet. Vaste regels in `analyzeHeatSession`, geen AI (kerntemperatuur gaat
+niet naar OpenAI). De eisen:
+
+- **Rijduur** zoals de taak voorschrijft: 60 minuten (warme wedstrijd), 50
+  (hemoglobine), 30 (korte sessie). Uit de protocollen zelf; de consensus noemt
+  60-90 minuten per dag, de hemoglobinestudies 50 minuten. **Eigen keuze:** vijf
+  minuten korter telt nog (uitrijden, een stop).
+- **Minuten op of boven 38,5 °C**: 30, of 10 bij een korte sessie (zie boven,
+  eigen keuze).
+- **Dekking**: mat de sensor minder dan 60% van de rit en zijn er te weinig
+  minuten, dan zegt de app dat het niet zeker is in plaats van "te koud". Eigen
+  keuze; een gat in de meting kan alleen minuten wegnemen, dus bij genoeg minuten
+  telt de sessie gewoon.
+- **Aanwijzing**: haalde je de drempel pas na meer dan 20 minuten, dan is de
+  aanwijzing warmer te beginnen; anders langer door te rijden. Het getal 20 is
+  een eigen keuze, geen bevinding uit een studie.
+- **Waarschuwing vanaf 39,5 °C**, ook als de sessie voldoet: ruim boven de 38,5
+  °C waar de studies naartoe werkten, met de bestaande waarschuwingen
+  (duizeligheid, misselijkheid, hoofdpijn). Geen grens uit een studie; de
+  McDonald-review vond juist dat warmere sessies meer aanpassing geven, dus de
+  app zegt niet dat het "te veel" is, alleen dat het ver boven het doel ligt.
+
 **Bewust niet gebruikt: de Heat Strain Index.** CORE deelt de HSI in vier
 zones in en noemt zone 3 de trainingszone (advies: 45 tot 60 minuten erin, twee
 tot drie keer per week). De zonegrenzen en de rekenregel zijn van de fabrikant

@@ -67,7 +67,9 @@ export async function loadCoreSessions(supabase: Supabase, runIds: string[]): Pr
   if (runIds.length === 0) return [];
   const { data } = await supabase
     .from("member_protocol_core_sessions")
-    .select("protocol_id, intervals_id, day, max_core_c, minutes_above")
+    .select(
+      "protocol_id, intervals_id, day, max_core_c, minutes_above, ride_minutes, minutes_to_threshold, coverage_pct, auto_checked",
+    )
     .in("protocol_id", runIds)
     .not("max_core_c", "is", null)
     .order("day", { ascending: true });
@@ -77,6 +79,10 @@ export async function loadCoreSessions(supabase: Supabase, runIds: string[]): Pr
     day: String(row.day).slice(0, 10),
     maxC: Number(row.max_core_c),
     minutesAbove: Number(row.minutes_above),
+    rideMinutes: row.ride_minutes == null ? null : Number(row.ride_minutes),
+    minutesToThreshold: row.minutes_to_threshold == null ? null : Number(row.minutes_to_threshold),
+    coveragePct: row.coverage_pct == null ? null : Number(row.coverage_pct),
+    autoChecked: Boolean(row.auto_checked),
   }));
 }
 
