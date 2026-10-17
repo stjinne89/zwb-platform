@@ -9743,8 +9743,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — ZWB DS: raceoverzicht tijdens Zwift-races
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Migratie
-`0249_zwb_ds.sql` (**nog niet toegepast**; eerst als 0247 geschreven, hernummerd
-omdat `main` intussen 0247 en 0248 had). Niet gepusht.
+`0249_zwb_ds.sql` (eerst als 0247 geschreven, hernummerd omdat `main` intussen
+0247 en 0248 had). **Toegepast op productie op 2026-10-17** via de
+Supabase-connector, op verzoek van de eigenaar. Niet gepusht.
 
 **Waarom.** Leden die op een tablet zwiften of geen Sauce kunnen draaien, willen
 tijdens een race zien waar de groepen rijden. Onderzoek en metingen in het blok
@@ -9795,8 +9796,10 @@ time-outs bij gelijktijdig draaien, los groen). `/live/zrl` compileert in de
 dev-server; `/ds` alleen via `tsc` (zonder inlog stuurt de proxy door).
 
 **Niet geverifieerd.**
-- De migratie (geen Docker/Supabase-config). Tot hij is toegepast, toont DS
-  "niet bij te werken" en vraagt het Zwift niets.
+- De migratie lokaal (geen Docker/Supabase-config). Op productie wel
+  nagekeken na het toepassen: beide tabellen met RLS en zonder policies,
+  `claim_zwb_ds_budget` alleen uitvoerbaar voor `service_role`, en de emmer gaf
+  3, dan de resterende 7, en na een paar seconden 1. Daarna weer op 10 gezet.
 - De pagina in de browser en tegen een echte race: er is lokaal geen
   `ZWIFT_DS_*` en ik log niet in met een echt account.
 - Of `_eventDistance` de aanloop meetelt (de routelengte doet dat wel), en of
@@ -9809,9 +9812,9 @@ de startgroep opvragen, ook van niet-leden, alleen voor ingelogde leden, geen
 hartslag, hooguit zes uur bewaard. Akkoord van de eigenaar op 2026-10-17, geen
 nieuwe versie (tekstaanpassing, zie de afspraak over privacytekst).
 
-**Nog te doen voor live:** migratie `0249` toepassen, `ZWIFT_DS_USERNAME` en
-`ZWIFT_DS_PASSWORD` in Netlify zetten (apart, gratis Zwift-account), pushen, en
-één race meekijken.
+**Nog te doen voor live:** `ZWIFT_DS_USERNAME` en `ZWIFT_DS_PASSWORD` in
+Netlify zetten (apart, gratis Zwift-account; regelt de eigenaar), pushen (pas op
+teken van de eigenaar), en één race meekijken.
 
 ### Onderzocht — ZWB DS: live race-informatie zonder Sauce
 
