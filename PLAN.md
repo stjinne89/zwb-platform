@@ -9800,6 +9800,12 @@ De eigenaar ging akkoord met de plaatsing en koos: alleen voor leden, W/kg van
 tegenstanders wel (hartslag niet), eerst alleen de kalender. Eerst de
 dropin-meting in een race; die bepaalt de databron.
 
+**Dropin-meting, 2026-10-17 15:42.** De drop-in-lijst bevat het veld niet: 21
+renners over 16 werelden (profs, pacerbots, één gevolgde renner), 0 van de 15
+uit de race. Databron wordt dus de spelersstatus per renner, met de limiet van
+~45 per minuut. Mogelijk uitweg voor de eigen renners: gevolgde renners staan
+wél in de lijst; niet gemeten of dat schaalt. Keuze opnieuw bij de eigenaar.
+
 ### Opgeleverd — Kennisartikel Intervallen: tempo, drempel, VO2max en anaeroob
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.

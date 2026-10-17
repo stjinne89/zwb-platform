@@ -316,3 +316,22 @@ Akkoord met de plaatsing hierboven, en met de drie voorstellen:
 3. Eerst alleen de kalender (`events`); de Omnium later.
 
 Volgende stap: de eigenaar draait de dropin-meting tijdens een race.
+
+### Dropin-meting, 2026-10-17 15:42 (eigenaar)
+
+Serviceaccount, subgroep `7383020` (15 ingeschrevenen), elke 5 s, 45 verzoeken
+op het moment van plakken.
+
+- **De drop-in-lijst bevat het veld niet.** 16 werelden, samen 21 renners: 6
+  profs, 14 pacerbots en 1 renner die het account volgt. `others` was in elke
+  wereld leeg, ook in werelden met honderden zwifters. **0 van de 15** renners
+  uit de race stonden erin.
+- **Gevolg:** de dropin-route vervalt. Overblijft de spelersstatus per renner,
+  met ~40 verzoeken per minuut per account (zie de tabel bij de tweede meting):
+  bij één race het veld elke ~35 s, op een ZRL-avond met zeven divisies
+  tegelijk elke paar minuten.
+- **Wat opviel:** wie het account volgt, staat wél in de lijst (`followees`).
+  Volgt het DS-account de ZWB-renners, dan komen die misschien met één verzoek
+  per 5 s binnen, voor alle races tegelijk, en gaat het budget per renner
+  helemaal naar de tegenstanders. Niet gemeten: of `followees` alle gevolgde
+  renners geeft of een deel, en of `distance` daar de afstand in het event is.
