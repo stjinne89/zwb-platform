@@ -185,7 +185,7 @@ drie 2026-10-16).
 
 ---
 
-> **Design tegels, tweede auditronde: paginatitels, cijferkaarten, knoppen en segmentschakelaars, 2026-10-17 — gebouwd, lokaal getest en ingelogd in de browser bekeken (375 px, licht en donker); niet gepusht. Geen migratie.**
+> **Design tegels, tweede auditronde: paginatitels, cijferkaarten, knoppen en segmentschakelaars, 2026-10-17 — gebouwd, lokaal getest en ingelogd in de browser bekeken (375 px, licht en donker); gepusht naar `main` (eigenaar, 2026-10-17, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
 > Commit: de commit die dit blok toevoegt, op `claude/impeccable-design-audit-9d704d`.
 >
 > **Waarom.** Vervolg op de audit hieronder, op verzoek van de eigenaar: eigen
@@ -243,7 +243,7 @@ drie 2026-10-16).
 > onder dezelfde regels. Desktopbreedte niet opnieuw bekeken. Volledige vitest-run
 > en `npm run build` niet opnieuw gedraaid.
 
-> **Design tegels: menu's, dialogen, tweede menurij en de inlogschermen, 2026-10-17 — gebouwd, lokaal getest en ingelogd in de browser bekeken (375 px, licht en donker); niet gepusht. Geen migratie.**
+> **Design tegels: menu's, dialogen, tweede menurij en de inlogschermen, 2026-10-17 — gebouwd, lokaal getest en ingelogd in de browser bekeken (375 px, licht en donker); gepusht naar `main` (eigenaar, 2026-10-17, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
 > Commit: de commit die dit blok toevoegt, op `claude/impeccable-design-audit-9d704d`.
 >
 > **Waarom.** De eigenaar zag dat de inlogpagina en een paar menu's het nieuwe
