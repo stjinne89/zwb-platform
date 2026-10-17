@@ -99,10 +99,10 @@ gaat stabiliteit voor nieuwe features.
      `0238_member_protocol_core_sessions.sql` zijn toegepast (eigenaar,
      2026-10-14). Niet nagekeken met de controlequery's onderaan beide
      bestanden. De eerste testrit (2026-10-17) liet zien dat de BOLT 2
-     `core_temperature` levert. **Nog toepassen:**
-     `0248_member_protocol_core_analysis.sql` (was `0239`, hernummerd: dat
-     nummer was op `main` vergeven), **vóór** de deploy van de analyse (anders
-     slaat het opslaan van een meting en het tonen ervan stil over). Daarna een echte hittesessie rijden en kijken of het oordeel klopt.
+     `core_temperature` levert. `0248_member_protocol_core_analysis.sql` (was
+     `0239`, hernummerd: dat nummer was op `main` vergeven) is op 2026-10-17
+     via de Supabase-connector toegepast, op verzoek van de eigenaar, vóór de
+     push. Vooraf: de drie kolommen bestonden niet; achteraf wel. Daarna een echte hittesessie rijden en kijken of het oordeel klopt.
      Zie de rondes "Hittetraining met de CORE-sensor" en "Analyse per
      hittesessie".
    - **Strava.** De aanvraag is twee keer afgewezen (gemeld 2026-09-30); de
@@ -190,9 +190,11 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Analyse per hittesessie, en de lopende protocollen op Vandaag, 2026-10-17 — gebouwd, lokaal getest; niet gepusht; `0248` alleen tegen PGlite getest.**
+> **Analyse per hittesessie, en de lopende protocollen op Vandaag, 2026-10-17 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-17); `0248` toegepast via de Supabase-connector (2026-10-17).**
 > Commit: de commit die dit blok toevoegt. Migratie
-> `0248_member_protocol_core_analysis.sql` (**nog toepassen, vóór de deploy**).
+> `0248_member_protocol_core_analysis.sql` (toegepast via de Supabase-connector,
+> op verzoek van de eigenaar, 2026-10-17; hernummerd van `0239`, dat op `main`
+> al vergeven was).
 >
 > **Waarom.** Vraag van de eigenaar: "Ik wil eigenlijk meer dan enkel afvinken,
 > we hebben de kennis dus ik zou graag hebben dat hij ook een analyse maakt op de
@@ -269,7 +271,12 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Niet geverifieerd.**
 >
-> - `0248` op de echte database.
+> - `0248` op de echte database: toegepast en de kolommen bestaan, maar nog
+>   geen rij met de nieuwe velden gezien.
+> - Rit `i198327319` (2026-10-17, 15:52) staat als "geen CORE-data" in de
+>   tabel, nog door de oude code opgehaald (alle streams, zonder `types`). Niet
+>   vastgesteld of die rit CORE-data had; zo ja, dan gaf het ophalen zonder
+>   `types` de kerntemperatuur niet terug.
 > - De kaart en het oordeel in de browser.
 > - Of de aanwijzingen in de praktijk helpen; de grenzen zijn niet door een
 >   sportarts of trainer nagekeken.
