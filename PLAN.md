@@ -9558,6 +9558,38 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### In uitvoering — Eigen regelmotor naast de AI (schaduw)
+
+**2026-10-17.** Ontwerp en afspraken: [docs/eigen-regelmotor.md](docs/eigen-regelmotor.md).
+Geen migratie.
+
+**Waarom.** De eigenaar vroeg of de uitgebreide kennisbank en workoutbibliotheek
+de OpenAI-aanroepen overbodig kunnen maken. Bijna al het AI-gebruik is
+schema's maken (zo'n 170 generaties in 30 dagen voor 8 leden), 18 % van de
+bijwerkingen mislukte, en de prompt is al een regelboek van zo'n negentig
+regels, de meeste getallen. De AI gebruikt de 58 standaardworkouts niet: hij
+verzint elke workout zelf. De motor schrijft de regels als code, met dezelfde
+invoer (`TrainingAiInput`) en uitvoer (`GeneratedTrainingPlan`) als de AI.
+
+**Deze ronde: fundament.** `src/lib/training/engine/types.ts` (het contract
+tussen de onderdelen), `calendar.ts` (beschikbaarheid per dag, vaste
+afspraken, periodes) en `signals.ts` (herstelsignalen met vaste drempels:
+TSB ≤ -30, ramp rate ≥ 8, readiness van het apparaat < 50, klachtenscore >
+0,65; keuzes van ZWB, geen onderzoeksgrenzen). Tests in `tests/unit/engine/`
+met een verzonnen lid. De catalogus, periodisering, het samenstellen en de
+dag-aanpassing volgen als eigen rondes hieronder.
+
+**Bewust niet gebouwd.**
+- *De AI vervangen.* De motor draait ernaast; overstappen is een apart besluit
+  van de eigenaar op basis van de meetlat en het naspelen van opgeslagen
+  generaties.
+- *Gestructureerde voorkeuren.* In de 459 opgeslagen generaties tot 2026-10-17
+  had 2 keer een voorkeur; de motor negeert vrije tekst en meldt dat.
+- *Opslag van motor-uitvoer in de database.* Overbodig: de motor is
+  deterministisch en `prompt_summary` bewaart de volledige invoer, dus de
+  uitvoer is altijd opnieuw uit te rekenen. Zo is er ook geen migratie nodig.
+- *Coachchat, pacing en maaltijdherkenning.* Taalbegrip of buiten deze ronde.
+
 ### Opgeleverd — Maandelijkse literatuurscan van de kennisbank
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
