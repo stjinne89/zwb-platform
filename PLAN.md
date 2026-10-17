@@ -9684,8 +9684,23 @@ kennisbanken en in ZWBieb.
   coach.
 - `tsc` en ESLint: geen nieuwe fouten.
 
-**Niet geverifieerd.** Zie de browsercontrole hieronder. Hoe de coach het
-niveau in een echt antwoord gebruikt, vraagt een OpenAI-call op productie.
+**In de browser bekeken** (dev-server, ingelogd door de eigenaar, 2026-10-17):
+- **Kennisbanklijsten.** De legenda toont per lijst alleen wat erin voorkomt:
+  - voeding: vier niveaus;
+  - trainen: drie niveaus plus Veelbelovend en Experimenteel;
+  - core & mobiliteit: alleen matig en beperkt.
+  Elke titel heeft zijn badge.
+- **Artikelen.** Blokweken toont Matig bewijs naast Veelbelovend. Ketonen toont
+  Afgeraden. Kracht op de fiets toont Beperkt bewijs. Het protocol lage cadans
+  staat op Beperkt bewijs.
+- **ZWBieb.** De leeszaal heeft de legenda en badges. Zoeken op "afgeraden"
+  geeft de drie artikelen. Een onderwerp toont "In de leeszaal" met badges.
+- **Telefoon.** Op 375 px geen horizontale scroll, en geen fouten in de console.
+- In de legenda liepen "Sterk bewijs" en "Matig bewijs" eerst over twee regels.
+  De badge breekt nu niet meer af (`whitespace-nowrap`).
+
+**Niet geverifieerd.** Hoe de coach het niveau in een echt antwoord gebruikt.
+Dat vraagt een OpenAI-call op productie.
 
 ### Opgeleverd — ZWBieb: de leeszaal, alle kennisbanken per onderwerp
 

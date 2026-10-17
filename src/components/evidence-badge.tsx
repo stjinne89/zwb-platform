@@ -21,7 +21,7 @@ export function EvidenceBadge({ evidence, className }: { evidence: ArticleEviden
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium",
+        "inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium",
         STYLES[evidence],
         className,
       )}
@@ -49,7 +49,7 @@ export function EvidenceLegend({
     <dl className="grid gap-x-4 gap-y-1.5 rounded-lg border bg-card p-3 text-xs text-muted-foreground sm:grid-cols-2">
       {ARTICLE_EVIDENCE.filter((level) => present.has(level)).map((level) => (
         <div key={level} className="flex items-start gap-2">
-          <dt>
+          <dt className="shrink-0">
             <EvidenceBadge evidence={level} />
           </dt>
           <dd className="pt-0.5">{ARTICLE_EVIDENCE_LEGEND[level]}</dd>
@@ -58,7 +58,7 @@ export function EvidenceLegend({
       {methodLabels &&
         METHOD_LEGEND.map((item) => (
           <div key={item.label} className="flex items-start gap-2">
-            <dt>
+            <dt className="shrink-0">
               <MethodLabelBadge label={item.label} />
             </dt>
             <dd className="pt-0.5">{item.text}</dd>
