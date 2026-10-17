@@ -29,7 +29,20 @@ dingen maken het wel anders dan de bestaande kennisbanken:
   2022, PMID 35009945; Otani 2018, PMID 28985477). De techniekbladen (Journal of
   Wind Engineering, Sports Engineering) staan niet in PubMed; die zijn via
   Consensus gevonden, met DOI.
-- Van alle bronnen is alleen de samenvatting gelezen. Bij het bouwen gaat elke
+- **Onderzoeksagent van Consensus (Pro)**, op verzoek van de eigenaar, met één
+  brief voor alle zeventien onderwerpen. De agent leest volle teksten en volgt
+  citaties.
+  - Hij vond 62.857 artikelen, waarvan er 139 in aanmerking kwamen en 20 zijn
+    meegenomen.
+  - Daarmee dekte hij alleen lucht en het rekenmodel (onderwerpen 1–5).
+  - Bij de onderwerpen 6–17 (banden, ketting, gewicht, ventilator,
+    vermogensmeters, bikefit, cranks, neusstrips, compressie, zolen, schoenplaatjes)
+    meldt hij "geen bewijs in deze set". Dat betekent niet dat er geen onderzoek
+    is: de gewone zoekfunctie hierboven vond er wel studies voor. Twintig artikelen
+    zijn te weinig voor zeventien onderwerpen.
+  - Het ruwe rapport staat lokaal in `docs/consensus/materiaal-2026-10-17.md`,
+    net als de rapporten van de toets buiten git.
+- Van de bronnen uit de gewone zoekfunctie is alleen de samenvatting gelezen. Bij het bouwen gaat elke
   bron, zoals bij de andere kennisbanken, eerst via PubMed of de uitgever voordat
   hij in de app komt.
 - **Niet gebruikt**: tests van fabrikanten, en onafhankelijke tests die niet
@@ -45,7 +58,16 @@ dingen maken het wel anders dan de bestaande kennisbanken:
   ([Debraux 2011](https://doi.org/10.1080/14763141.2011.592209)).
 - **Houding is de grootste knop.** Bij profs verlaagde alleen een andere houding
   de luchtweerstand met 14 %
-  ([García-López 2008](https://doi.org/10.1080/02640410701501697)). In een
+  ([García-López 2008](https://doi.org/10.1080/02640410701501697)). Een
+  wegrenner die de remgrepen vasthoudt met de onderarmen horizontaal, had 13,9 %
+  minder luchtweerstand dan met gewone remgrepen. Het benodigde vermogen daalde
+  bijna evenveel (13,4 %), omdat lucht op snelheid bijna alle weerstand is
+  ([Barry 2015](https://doi.org/10.1177/1754337114549876)). Van de remgrepen naar
+  de beugel scheelt volgens een recent overzicht 15–20 %
+  ([Maddocks 2025](https://doi.org/10.1007/s12283-025-00495-7)). Bij recreatieve
+  renners scheelde een lage sprinthouding 23–26 %, maar de meting was tussen
+  twee dagen slecht herhaalbaar
+  ([Merkes 2019](https://doi.org/10.1123/ijspp.2018-0560)). In een
   computermodel verschilde de luchtweerstand tussen gangbare houdingen meer dan
   een factor twee. Overzichten: [Malizia 2021](https://doi.org/10.1016/j.jweia.2021.104673)
   (renner en kleding) en [Malizia 2020](https://doi.org/10.1016/j.jweia.2020.104134)
@@ -54,7 +76,12 @@ dingen maken het wel anders dan de bestaande kennisbanken:
   ([García-López 2008](https://doi.org/10.1080/02640410701501697)). In een
   computermodel scheelde de vorm van de helm minder dan 1,5 %, de stand van het
   hoofd 6,4 % ([Beaumont 2018](https://doi.org/10.1016/j.jbiomech.2017.10.042)).
-  Wat je met je hoofd doet, telt dus meer dan welke helm je draagt.
+  Op een testhoofd telden de hoek van het hoofd en hoe de helm aansluit meer dan
+  het aantal of de plek van de ventilatiegaten
+  ([Underwood 2015](https://doi.org/10.1007/s12283-015-0181-7)). Open of dichte
+  gaten scheelden op een pop 3,7–4,1 %
+  ([Novak 2019](https://doi.org/10.1177/1754337118822613)). Wat je met je hoofd
+  doet, telt dus meer dan welke helm je draagt.
 - **Kleding.** Strak zittende stof, met de juiste textuur per lichaamsdeel,
   scheelde in windtunneltests enkele procenten tot zo'n 8 %
   ([Brownlie 2009](https://doi.org/10.1080/19346182.2009.9648499),
@@ -171,9 +198,15 @@ dingen maken het wel anders dan de bestaande kennisbanken:
 ### Natuurkunde als rekenbasis
 
 Wat een kleinere luchtweerstand, een lagere rolweerstand of een lichtere fiets
-in seconden oplevert, volgt uit een rekenmodel dat buiten goed klopt
-(Martin e.a. 1998, *Validation of a mathematical model for road cycling power*,
-J Appl Biomech; nog te bevestigen via de uitgever). ZWB heeft zo'n model al: het
+in seconden oplevert, volgt uit een rekenmodel dat buiten goed klopt.
+- Het gemeten en berekende vermogen kwamen overeen met R² = 0,97 en een
+  standaardfout van 2,7 W ([Martin 1998](https://doi.org/10.1123/jab.14.3.276);
+  niet in PubMed, DOI en samenvatting via Consensus).
+- Op echte routes, ook in de bergen, haalde hetzelfde model correlaties van
+  0,96–0,99 ([Dahmen 2011](https://doi.org/10.1007/s12283-011-0076-1)).
+- Een vergelijkbaar model voorspelde de tijd op een tijdrit van 26 km bij 41
+  renners met gemiddeld 1,7 % afwijking
+  ([Olds 1995](https://doi.org/10.1152/jappl.1995.78.4.1596)). ZWB heeft zo'n model al: het
 pacingplan rekent met luchtweerstand, rolweerstand en gewicht
 (`src/lib/pacing/plan.ts`, `zwift-setup.ts`).
 
@@ -212,7 +245,7 @@ richtlijn.
 | # | Artikel | Plank | Niveau (voorstel) | Kern |
 |---|---|---|---|---|
 | 1 | Waar je watt heen gaan | Lucht | Sterk | Lucht, rollen, aandrijving en klimmen naar snelheid; waarom de winst met de snelheid groeit |
-| 2 | Houding: de grootste winst | Lucht | Sterk | Meerdere windtunnel- en veldmetingen; hoofd en romp tellen het meest |
+| 2 | Houding: de grootste winst | Lucht | Sterk | Meerdere windtunnel- en veldmetingen (14 %, 13,9 %); hoofd, romp en onderarmen tellen het meest |
 | 3 | Helm | Lucht | Matig | Hoofdstand telt meer dan de helm; aerohelm niet voor iedereen beter |
 | 4 | Kleding en pak | Lucht | Matig | Strak zitten en textuur; enkele procenten |
 | 5 | Sokken en overschoenen | Lucht | Beperkt | Eén studie naar schoenen; aero-sokken zelf niet gepubliceerd onderzocht |
@@ -308,3 +341,8 @@ niveau en waarom, en een test houdt code en tabel gelijk.
    tabel; bij compressie is het herstelstuk onzeker, niet weerlegd.
 4. **De volgorde**: eerst alleen de kennisbank (fase 1), of de rekenaar meteen
    mee-ontwerpen.
+5. **Een tweede ronde met de onderzoeksagent** voor de onderwerpen 6–17. De
+   eerste ronde (Pro, 20 artikelen) haalde daar niets op. Twee mogelijkheden:
+   - een ronde in de stand *Deep*, die 50 tot 100 artikelen meeneemt en langer
+     duurt;
+   - een paar kleinere Pro-rondes per groep onderwerpen.

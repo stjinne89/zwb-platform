@@ -10603,6 +10603,17 @@ vroeg of daar een onderdeel voor kan komen, te beginnen met een kennisbank.
 **Niet geverifieerd.** Bronnen zijn op de samenvatting beoordeeld. Drie zijn in
 PubMed bevestigd; de rest gaat bij het bouwen via PubMed of de uitgever.
 
+**Aanvulling (onderzoeksagent Consensus Pro, 2026-10-17).**
+- Eén brief met alle zeventien onderwerpen. Van de 62.857 gevonden artikelen
+  kwamen er 139 in aanmerking en zijn er 20 meegenomen.
+- De agent bevestigde het rekenmodel: Martin 1998 met R² 0,97, en Dahmen 2011
+  op echte routes. Bij houding en helm voegde hij Barry 2015, Underwood 2015 en
+  Maddocks 2025 toe.
+- Voor de onderwerpen 6–17 vond hij in die twintig artikelen niets bruikbaars.
+  Dat is een grens van de ronde, niet een gebrek aan onderzoek.
+- Een tweede ronde (Deep, of kleinere Pro-rondes) ligt bij de eigenaar.
+- Het ruwe rapport staat lokaal in `docs/consensus/`, buiten git.
+
 ### Opgeleverd — bewijsniveau per kennisartikel
 
 **Voorgesteld 2026-10-16 (`2aafc8c`), goedgekeurd en gebouwd 2026-10-17.**
