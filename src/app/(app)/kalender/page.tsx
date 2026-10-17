@@ -458,7 +458,7 @@ export default async function KalenderPage({
               programs: selectedPrograms,
             })}
             aria-current={onlyForMe ? undefined : "page"}
-            className={`rounded-full border px-3 py-1 text-xs ${
+            className={`tg-link tg-kalender tg-chip rounded-full border px-3 py-1 text-xs ${
               onlyForMe ? "hover:bg-secondary" : "bg-foreground text-background"
             }`}
           >
@@ -471,7 +471,7 @@ export default async function KalenderPage({
               programs: selectedPrograms,
             })}
             aria-current={onlyForMe ? "page" : undefined}
-            className={`rounded-full border px-3 py-1 text-xs ${
+            className={`tg-link tg-kalender tg-chip rounded-full border px-3 py-1 text-xs ${
               onlyForMe ? "bg-foreground text-background" : "hover:bg-secondary"
             }`}
           >

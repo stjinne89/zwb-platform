@@ -2,8 +2,9 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function BackButton() {
+export function BackButton({ className }: { className?: string }) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -19,7 +20,10 @@ export function BackButton() {
           router.push("/dashboard");
         }
       }}
-      className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-primary md:hidden"
+      className={cn(
+        "inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-primary md:hidden",
+        className,
+      )}
       aria-label="Terug"
       title="Terug"
     >

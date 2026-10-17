@@ -650,7 +650,9 @@ export default async function TeamDetailPage({
         </section>
       )}
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      {/* tg-metric-row: in het design "tegels" één paneel met drie cijfers in
+          plaats van drie gelijke kaarten. */}
+      <section className="tg-metric-row grid gap-3 sm:grid-cols-3">
         <Metric icon={<Users className="size-4" />} label="Renners" value={rows.length} />
         <Metric icon={<CalendarDays className="size-4" />} label="Teamraces" value={calendarEvents.length} />
         <Metric icon={<Trophy className="size-4" />} label="ZRL-starts" value={rows.reduce((sum, row) => sum + row.zrlStarts, 0)} />
