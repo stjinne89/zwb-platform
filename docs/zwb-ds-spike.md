@@ -118,10 +118,11 @@ Pas na die meting is te zeggen welke versie van DS haalbaar is.
 `ZWIFT_DS_USERNAME`/`ZWIFT_DS_PASSWORD` uit `.env.local`, of anders het
 serviceaccount (`ZWIFT_USERNAME`/`ZWIFT_PASSWORD`). Een apart account heeft de
 voorkeur: het serviceaccount deelt zijn limiet met het platform, dus een meting
-tijdens een race kan de live ZRL-stand een 429 bezorgen.
+tijdens een race kan de live ZRL-stand een 429 bezorgen. `--subgroup auto` neemt
+de subgroep uit de status van de eerste eigen renner.
 
 ```
-node scripts/zwift-playerstate-probe.mjs --ids <eigen Zwift-ID's> --subgroup <subgroep> --minutes 10
+node scripts/zwift-playerstate-probe.mjs --ids <eigen Zwift-ID's> --subgroup auto --minutes 10
 node scripts/zwift-playerstate-probe.mjs --ids <één Zwift-ID> --minutes 1 --burst 20
 ```
 

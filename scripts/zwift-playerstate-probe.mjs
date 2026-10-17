@@ -9,11 +9,12 @@
 // Draai het terwijl de renners rijden, liefst in een race:
 //
 //   node scripts/zwift-playerstate-probe.mjs --ids 111,222 --minutes 10
-//   node scripts/zwift-playerstate-probe.mjs --ids 111 --subgroup 7354711 --minutes 10
+//   node scripts/zwift-playerstate-probe.mjs --ids 111 --subgroup auto --minutes 10
 //   node scripts/zwift-playerstate-probe.mjs --ids 111 --minutes 1 --burst 20
 //
 // --ids       eigen renners (Zwift-ID's); alleen van hen wordt de hartslag bewaard
-// --subgroup  Zwift-subgroep: ook het hele veld uit de inschrijvingen meten
+// --subgroup  Zwift-subgroep: ook het hele veld uit de inschrijvingen meten;
+//             "auto" neemt de subgroep uit de status van de eerste --ids-renner
 // --minutes   duur van de meting (standaard 5)
 // --interval  seconden tussen het begin van twee rondes (standaard 3; Sauce
 //             vraagt dit endpoint niet vaker dan om de 3 s)
@@ -307,7 +308,7 @@ function describeRaw(raw, unknown, own) {
 
 async function main() {
   const own = String(arg("ids", "")).split(",").map((id) => id.trim()).filter((id) => /^\d+$/.test(id));
-  const subgroup = arg("subgroup", null);
+  let subgroup = arg("subgroup", null);
   const minutes = Number(arg("minutes", "5"));
   const interval = Number(arg("interval", "3"));
   const gap = Number(arg("gap", "500"));
@@ -325,6 +326,15 @@ async function main() {
 
   await login(creds);
   console.log(`Ingelogd met ${creds.account}.`);
+
+  if (subgroup === "auto") {
+    const first = await fetchState(creds, own[0]);
+    subgroup = first.raw?.eventSubgroupId ? String(first.raw.eventSubgroupId) : null;
+    console.log(subgroup
+      ? `Subgroep uit de status van ${own[0]}: ${subgroup}.`
+      : `${own[0]} rijdt geen event (status ${first.status}); alleen de eigen renners worden gemeten.`);
+    await sleep(gap);
+  }
 
   const ownSet = new Set(own);
   let field = [];
