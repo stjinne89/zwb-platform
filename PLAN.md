@@ -9711,12 +9711,58 @@ eigenaar (2026-10-17):** bij een lid ver onder zijn plafond kunnen "piekweek ≥
 voor, zoals de motor al deed. De meetlat volgt dat (een lagere piek is geen
 fout als 85 % alleen met grotere sprongen kon, en het laatste, nog lopende blok
 van een bijwerking wordt niet op zijn piek beoordeeld). De AI-prompt is bewust
-niet aangepast: dat verandert de schema's van leden en is een eigen besluit. **Bewust niet:** de motor in de app; trainers blind laten
-vergelijken (volgende stap). **Niet geverifieerd:** of de motorschema's goed
+niet aangepast: dat verandert de schema's van leden en is een eigen besluit.
+**Bewust niet:** de motor in de app. (Trainers blind laten vergelijken stond
+hier als volgende stap; dat is gebouwd, zie hieronder.) **Niet geverifieerd:** of de motorschema's goed
 trainen — de meetlat toetst regels, geen trainingswaarde; de volledige testsuite
 draaide groen op drie zware tests na die alleen onder volle belasting een
 time-out gaven en los slagen, en `omnium-live` die `.env.local` nodig heeft.
 Niet gepusht.
+
+**Blind vergelijken door trainers, 2026-10-17.** Commit `0bd879e`.
+Samengevoegd met de regelmotor-branch. Migratie `0247_training_engine_comparisons.sql` — **geschreven,
+niet toegepast**: lokaal niet te testen (geen Docker of Supabase-config) en pas
+toe te passen na akkoord van de eigenaar. De meetlat toetst alleen regels; of de
+motor beter traint moeten trainers zeggen. Nieuw trainerstabblad
+**Vergelijken** (`/zwbeter-worden/trainer/vergelijken`): per opgeslagen
+AI-generatie het schema van de AI (`response_json`) naast dat van de motor,
+ter plekke uitgerekend met `generateEnginePlan()` op `prompt_summary` (niet
+opgeslagen: de motor is deterministisch). De trainer kiest "A beter", "B beter"
+of "gelijk", met een optionele reden van hooguit 280 tekens; pas daarna zegt de
+pagina welke kant van wie was. Welke kant de motor krijgt, volgt uit een hash
+(FNV-1a) van het generatie-id: vast per generatie, over alle generaties ongeveer
+half-half. Pure delen in `src/lib/training/engine-comparison.ts`, tests in
+`tests/unit/engine-comparison.test.ts`. De weergave hergebruikt `WorkoutBlocks`
+uit de beoordelen-tab; uitleg staat op `/hulp#vergelijken`.
+*Afspraken:* toegang zoals Beoordelen — trainer-recht plus actieve koppeling;
+de lijst toont alle toegewezen leden tegelijk, op datum en soort, zonder namen;
+de serveractie controleert `canCoach()` en rekent de motorkant zelf uit, het
+formulier stuurt alleen A/B/gelijk. Tot het oordeel gaat er geen herkomst naar
+de browser. De tabel bewaart de winnaar (`ai`/`engine`/`gelijk`) en welke kant
+de motor had, zodat een latere andere volgorde oude oordelen niet scheeftrekt.
+Eén oordeel per trainer per generatie, alleen invoegen: een oordeel achteraf
+bijstellen na het ontblinden zou de vergelijking niet meer blind maken. De
+teller bovenaan telt de eigen oordelen; de stand motor/AI/gelijk verschijnt pas
+op een generatie die je al beoordeelde. *Bewust niet:* titel, samenvatting en
+aandachtspunten van de schema's tonen — die van de motor zijn sjabloonzinnen en
+verraden hem; de workouttitels, -beschrijvingen en de schrijfwijze van de
+blokdoelen ("RPE 2-3, 155-207w" tegen "173-224 W") doen dat deels ook, dat is
+niet te vermijden zonder de inhoud weg te halen. Generaties van vóór 2026-09-17 —
+die prompt kende nog niet alle regels, zelfde grens als het naspelen. Een
+overzicht over trainers heen: komt pas als er oordelen zijn. Dagaanpassingen
+waarin geen van beide iets wijzigt overslaan: dat vraagt per paginalading de
+volledige invoer van alle ~150 generaties plus evenveel motorruns; ze staan er
+nu als "Beide: geen wijziging" in. Bij een dagaanpassing staat onder de datum
+wat er gepland was, een lege kant heet "Ongewijzigd" en de weektotalen vallen
+weg (die zouden alleen de gewijzigde dagen tellen). *Niet geverifieerd:*
+opslaan van een oordeel — zonder 0247 in de database geeft de actie "Opslaan
+mislukt" (zo ook in de browser gezien; de toegangscontrole ervoor slaagde). De
+pagina zelf is lokaal in de browser bekeken (desktop en 375 px, geen
+horizontale scroll): lijst van 147 generaties, een bijwerking en een
+dagaanpassing naast elkaar, het formulier, en de ontblinding met een tijdelijk
+in de code gezet oordeel dat daarna weer is weggehaald. tsc groen; volledige
+testsuite groen op twee PGlite/pacing-tests na die onder volle belasting een
+time-out gaven en los slagen. Niet gepusht.
 
 ### Opgeleverd — Meetlat voor trainingsschema's, met nulmeting van de AI
 

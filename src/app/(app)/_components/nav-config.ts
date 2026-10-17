@@ -70,6 +70,7 @@ export const TRAINER_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/trainer/uitgangspunten", label: "Uitgangspunten" },
   { type: "link", href: "/zwbeter-worden/trainer/voeding", label: "Voeding" },
   { type: "link", href: "/zwbeter-worden/trainer/coach", label: "Coachchat" },
+  { type: "link", href: "/zwbeter-worden/trainer/vergelijken", label: "Vergelijken" },
 ];
 
 /** De tabs binnen Voeding. Net als bij de trainer niet in het hoofdmenu: daar

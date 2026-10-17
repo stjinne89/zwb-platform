@@ -2209,6 +2209,34 @@ export default function HelpPage() {
             </p>
           </article>
           <article
+            id="vergelijken"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Voor trainers: schema&apos;s vergelijken</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Naast de AI maakt ZWB schema&apos;s met een eigen regelmotor. Op
+              het trainerstabblad{" "}
+              <Link href="/zwbeter-worden/trainer/vergelijken" className="underline hover:text-primary">
+                Vergelijken
+              </Link>{" "}
+              staan per eerder gemaakt schema twee versies naast elkaar, A en
+              B, gemaakt uit precies dezelfde gegevens. Eén is van de AI, één
+              van de motor; welke van wie is, zie je pas nadat je hebt
+              gekozen. Kies A beter, B beter of gelijk, met eventueel een korte
+              reden. Een oordeel ligt daarna vast.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Je ziet alleen schema&apos;s van leden die jou als trainer hebben
+              aangewezen, gemaakt vanaf 17 september 2026. Titels,
+              samenvattingen en aandachtspunten blijven weg, omdat die de motor
+              verraden; je beoordeelt de trainingen zelf. Bij een
+              dagaanpassing staat onder de datum wat er gepland was, en
+              betekent &ldquo;Ongewijzigd&rdquo; dat die kant de dag liet
+              staan. De teller bovenaan toont je aantal oordelen, en na je
+              keuze hoe vaak de motor won.
+            </p>
+          </article>
+          <article
             id="jaarplan"
             className="scroll-mt-20 rounded-md border bg-background p-4"
           >
