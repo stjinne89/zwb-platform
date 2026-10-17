@@ -10559,6 +10559,49 @@ PubMed-zoekvragen gebruiken daarom `[tiab]`-termen zonder jokertekens.
 2 november 2026. Of de taak in Auto-modus de worktree en de commit zonder vragen
 mag maken, blijkt dan.
 
+### Voorstel — ZWBeter materiaal (wacht op akkoord)
+
+**2026-10-17.** Commit: de commit die dit blok toevoegt. Geen code. Onderzoek en
+voorstel: [materiaal-onderzoek](docs/materiaal-onderzoek-2026-10-17.md).
+
+**Aanleiding.** Behalve met trainen, voeding, kracht en tactiek kun je ook beter
+worden met materiaal en kleine winsten (neusstrips, aero-sokken). De eigenaar
+vroeg of daar een onderdeel voor kan komen, te beginnen met een kennisbank.
+
+**Conclusie van het onderzoek.**
+- Er is genoeg gepubliceerd onderzoek voor zo'n vijftien artikelen, over lucht,
+  rollen, aandrijving, binnen fietsen, lichaam en fiets, en kleine middelen.
+- Veel aerowinst geldt alleen buiten en op snelheid. Binnen bepaalt Zwift de
+  luchtweerstand. Voor de club tellen binnen vooral de ventilator en een
+  vermogensmeter die klopt.
+- Het onderzoek is vooral techniek: windtunnel, testbank en computermodel, met
+  weinig meta-analyses. Het bewijsniveau krijgt daarom een aanvulling:
+  gepubliceerde metingen tellen als bewijs (nieuwe bronsoort `meting`).
+- Neusstrips, compressiekleding en inlegzolen komen uit op Afgeraden.
+
+**Het voorstel.**
+- Een zesde pijler "ZWBeter materiaal" (`/zwbeter-worden/materiaal`), eerst met
+  alleen de kennisbank.
+- Planken in de leeszaal, gekoppeld aan bestaande ZWBieb-onderwerpen.
+- Opname in de coachchat en de kennisbank-scan.
+- Later een rekenaar "Wat levert het op?" op de bestaande pacingfysica.
+
+**Bewust niet.**
+- Merken en koopadvies.
+- Fabrikanttests als bron.
+- Virtueel Zwift-materiaal in de kennisbank (dat is spelmechaniek).
+- Slipstream: dat hoort bij racen.
+- Een rekenhulp voor de zadelhoogte.
+
+**Ligt bij de eigenaar.**
+- Waar: een eigen pijler of onder racen.
+- Of metingen meetellen als bewijs.
+- Afgeraden voor de drie kleine middelen.
+- De volgorde van de fases.
+
+**Niet geverifieerd.** Bronnen zijn op de samenvatting beoordeeld. Drie zijn in
+PubMed bevestigd; de rest gaat bij het bouwen via PubMed of de uitgever.
+
 ### Opgeleverd — bewijsniveau per kennisartikel
 
 **Voorgesteld 2026-10-16 (`2aafc8c`), goedgekeurd en gebouwd 2026-10-17.**
