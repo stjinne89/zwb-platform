@@ -34,7 +34,10 @@ export function SectionNav({
           items.map((item) => item.href).filter((href) => href !== indexHref),
         );
   return (
-    <ScrollTabs variant="panel" ariaLabel="Subnavigatie">
+    // tg-subnav en tg-link doen alleen iets in het design "tegels": daar zijn de
+    // tabs teal vlakken (kleur is klikbaar) en is de actieve het paneel met de
+    // gouden lijn, net als bij de pijlers erboven.
+    <ScrollTabs variant="panel" ariaLabel="Subnavigatie" className="tg-subnav">
       {items.map((item) => {
         const active = item.href === activeHref;
         return (
@@ -45,6 +48,7 @@ export function SectionNav({
             aria-current={active ? "page" : undefined}
             className={cn(
               SCROLL_TAB_ITEM,
+              "tg-link tg-zwbeter",
               active
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",

@@ -403,10 +403,21 @@
   font-family: var(--font-tegels), var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* Dialogen en uitklapmenu's renderen buiten de schil; via :has() krijgen ze
-   dezelfde hoeken en donkere vlakken. */
+/* Dialogen en uitklapmenu's renderen in een portal buiten de schil; via :has()
+   krijgen ze dezelfde tokens. De letter staat hier bij naam: --font-tegels
+   bestaat alleen op de schil zelf. */
 :root:has([data-design="tegels"]) {
   --radius: 0.125rem;
+  --tg-vandaag: #b8873d;
+  --tg-kalender: #004653;
+  --tg-zwbeter: #1f6068;
+  --tg-club: #7f9590;
+  --tg-meer: #0a2b34;
+  --tg-ink: #0a2b34;
+  --tg-paper: #fbfbf7;
+  --tg-band: rgb(255 255 255 / 0.1);
+  --tg-panel: rgb(0 70 83 / 0.07);
+  --tg-display: "Barlow Semi Condensed", var(--font-geist-sans), system-ui, sans-serif;
 }
 .dark:has([data-design="tegels"]) {
   --background: #061c22;
@@ -414,6 +425,13 @@
   --popover: #0d2a32;
   --muted: #12343d;
   --secondary: #17404a;
+  --tg-vandaag: #c4923f;
+  --tg-kalender: #00505f;
+  --tg-club: #8ea39e;
+  --tg-meer: #12343d;
+  --tg-panel: rgb(255 255 255 / 0.055);
+  --tg-ink: #061c22;
+  --tg-paper: #f5f6f0;
 }
 
 .dark [data-design="tegels"] {
@@ -522,6 +540,19 @@ html.dark .app-shell[data-design="tegels"]::before {
 }
 .dark .tg-logo img {
   height: 1.75rem;
+}
+/* Inlogschermen: hetzelfde logo, groter; het staat daar alleen. */
+.tg-logo-lg img {
+  height: 3.5rem;
+}
+.dark .tg-logo-lg img {
+  height: 2.875rem;
+}
+/* Een bevestiging (mail verstuurd): een vlak paneel met de gouden lijn van
+   "waar je nu bent", geen groene doos uit het oude design. */
+.tg-note {
+  background: var(--tg-panel);
+  box-shadow: inset 0 -3px 0 var(--tg-vandaag);
 }
 
 /* Kleurbeleid (eigenaar, 2026-10-12): kleur zegt wat voor soort ding het is,
@@ -747,6 +778,8 @@ a.tg-row:focus-visible,
   border-radius: 0;
   border-color: transparent;
   background-color: var(--tg-panel);
+  /* Geen shadow-sm of focusring uit het oude veld; focus is de omlijning hieronder. */
+  box-shadow: none;
 }
 [data-design="tegels"] :is(input, select, textarea):focus-visible {
   outline: 2px solid var(--ring);
@@ -940,7 +973,8 @@ a.tg-row:focus-visible,
   background: var(--tg-bg);
   color: var(--tg-fg);
 }
-.tg-pillar[aria-current="page"] {
+.tg-pillar[aria-current="page"],
+.tg-pillar[aria-pressed="true"] {
   background: var(--tg-panel);
   color: var(--foreground);
   box-shadow: inset 0 -4px 0 var(--tg-vandaag);
@@ -980,6 +1014,20 @@ a.tg-row:focus-visible,
 @media (prefers-reduced-motion: reduce) {
   [data-design="tegels"] .tg-link { transition: none; }
 }
+/* Tweede menurij (SectionNav onder de pijlers, de trainer-tabs): geen omkaderde
+   balk met een gevulde pil meer, maar losse vlakken in de kleur van de plek.
+   Dubbele klasse: de paneelregel voor bg-card hierboven is specifieker. */
+[data-design="tegels"] .tg-subnav.tg-subnav > div:first-child {
+  gap: 0.375rem;
+  border: 0;
+  background: transparent;
+  padding-block: 0;
+}
+[data-design="tegels"] :is(.tg-subnav, nav) .tg-link {
+  font-family: var(--tg-display);
+  font-size: 1rem;
+  font-weight: 500;
+}
 [data-design="tegels"] .tg-metric .text-2xl {
   font-family: var(--tg-display);
   font-size: 2.5rem;
@@ -1017,10 +1065,142 @@ a.tg-row:focus-visible,
   line-height: 1.1;
 }
 
-/* Uitklapmenu's en dialogen renderen buiten de schil en erfden de oude letter. */
+/* ---- Zwevende lagen buiten de schil ----
+   Uitklapmenu's en dialogen renderen in een portal onder <body>. Zonder deze
+   regels hielden ze het oude design: kleine rijen van 28px, een ring, ronde
+   hoeken en 14px tekst naast een schil op 17px (audit 2026-10-17). Zelfde
+   vertaling als op de pagina: recht, vlak, onderkast, duimhoogte. */
 :root:has([data-design="tegels"]) :is([role="menu"], [role="dialog"], [role="listbox"]) {
-  font-family: "Barlow Semi Condensed", var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--tg-display);
   font-size: 1.0625rem;
+}
+:root:has([data-design="tegels"]) [data-slot="dropdown-menu-content"] {
+  min-width: 13rem;
+  border-radius: 0;
+  padding: 0.25rem 0;
+  background: var(--popover);
+  /* Zweeflaag: alleen schaduw, geen ring. */
+  box-shadow: 0 1.25rem 2.5rem -0.75rem rgb(6 28 34 / 0.45);
+}
+:root:has([data-design="tegels"]) :is(
+  [data-slot="dropdown-menu-item"],
+  [data-slot="dropdown-menu-checkbox-item"],
+  [data-slot="dropdown-menu-radio-item"],
+  [data-slot="dropdown-menu-sub-trigger"]
+) {
+  min-height: 2.75rem;
+  border-radius: 0;
+  padding-inline: 1rem;
+  font-size: 1.0625rem;
+  font-weight: 500;
+}
+:root:has([data-design="tegels"]) :is(
+  [data-slot="dropdown-menu-checkbox-item"],
+  [data-slot="dropdown-menu-radio-item"]
+) {
+  padding-right: 2.5rem;
+}
+:root:has([data-design="tegels"]) :is(
+  [data-slot="dropdown-menu-item"],
+  [data-slot="dropdown-menu-checkbox-item"],
+  [data-slot="dropdown-menu-radio-item"],
+  [data-slot="dropdown-menu-sub-trigger"]
+):is(:focus, [data-highlighted]) {
+  background: var(--muted);
+  color: var(--foreground);
+}
+:root:has([data-design="tegels"]) [data-slot="dropdown-menu-label"] {
+  padding: 0.5rem 1rem 0.25rem;
+  font-size: 0.875rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+:root:has([data-design="tegels"]) [data-slot="dropdown-menu-separator"] {
+  margin: 0.25rem 0;
+}
+/* Een knop in het menu (Uit) staat als gewone rij, niet als kleine knop. */
+:root:has([data-design="tegels"]) [data-slot="dropdown-menu-content"] > div:has(> [data-slot="button"]) {
+  padding: 0;
+}
+:root:has([data-design="tegels"]) [data-slot="dropdown-menu-content"] [data-slot="button"] {
+  width: 100%;
+  height: auto;
+  min-height: 2.75rem;
+  justify-content: flex-start;
+  border-radius: 0;
+  padding-inline: 1rem;
+  font-size: 1.0625rem;
+}
+
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] {
+  border: 0;
+  border-radius: 0;
+  padding: 1.5rem 1.25rem 1.25rem;
+  background: var(--card);
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-title"] {
+  font-family: var(--tg-display);
+  font-size: 1.875rem;
+  font-weight: 300;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--primary);
+}
+.dark:has([data-design="tegels"]) [data-slot="dialog-title"] {
+  color: var(--foreground);
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] > [aria-label="Sluiten"] {
+  top: 0.5rem;
+  right: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0;
+  padding: 0;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] :is(h2, h3) {
+  font-family: var(--tg-display);
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] .text-xs {
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] .text-sm {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] .uppercase {
+  text-transform: none;
+  letter-spacing: 0;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] :is(.font-bold, .font-black, .font-extrabold) {
+  font-weight: 600;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] .font-semibold {
+  font-weight: 500;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] :is(span, a, p, li).rounded-full:not([class*="size-"]) {
+  border-radius: 0;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"]), select, textarea) {
+  border-radius: 0;
+  border-color: transparent;
+  background-color: var(--tg-panel);
+  box-shadow: none;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] :is(input, select, textarea):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] [data-slot="button"] {
+  min-height: 2.75rem;
+  font-family: var(--tg-display);
+  font-size: 1rem;
+  font-weight: 500;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] [data-slot="dialog-footer"] {
+  margin-top: 1.5rem;
 }
 
 /* Dashboard: de tegelrijen staan dicht op elkaar, de blokken met inhoud krijgen
@@ -1117,7 +1297,7 @@ a.tg-row:focus-visible,
 }
 /* Club en Ik als pijlers, zoals bij ZWBeter: Club in sage (de club), Ik in
    teal (je eigen cijfers); waar je bent is het paneel met de gouden lijn. */
-.tg-pillar:is(.tg-club, .tg-meer):not([aria-current="page"]) {
+.tg-pillar:is(.tg-club, .tg-meer):not([aria-current="page"], [aria-pressed="true"]) {
   background: var(--tg-bg);
   color: var(--tg-fg);
 }

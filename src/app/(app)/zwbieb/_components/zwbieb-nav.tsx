@@ -19,8 +19,10 @@ export function ZwbiebTabs({ current }: { current: ZwbiebTab }) {
           key={item.tab}
           href={item.href}
           aria-current={item.tab === current ? "page" : undefined}
+          // tg-link tg-club: in "tegels" sage vlakken (de club en de mensen),
+          // de actieve als paneel met de gouden lijn.
           className={cn(
-            "rounded-full border px-4 py-1.5 text-sm font-medium transition",
+            "tg-link tg-club inline-flex min-h-11 items-center rounded-full border px-4 py-1.5 text-sm font-medium transition",
             item.tab === current ? "border-primary bg-primary/10 text-primary" : "hover:bg-muted",
           )}
         >

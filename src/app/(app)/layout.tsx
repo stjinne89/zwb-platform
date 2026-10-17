@@ -110,7 +110,7 @@ export default async function AppLayout({
     return (
       <TegelsShell
         before={<NavProgress />}
-        back={<BackButton />}
+        back={<BackButton className="size-11 hover:bg-transparent" />}
         actions={
           <>
             <UnreadMessagesLink
@@ -129,7 +129,7 @@ export default async function AppLayout({
               avatarUrl={(profile?.avatar_url as string | null) ?? null}
               showOnMobile
             />
-            <ThemeToggle />
+            <ThemeToggle className="size-11 px-0 text-muted-foreground hover:bg-transparent hover:text-primary [&_svg]:size-5!" />
           </>
         }
         after={
