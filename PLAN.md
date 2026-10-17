@@ -10569,7 +10569,7 @@ worden met materiaal en kleine winsten (neusstrips, aero-sokken). De eigenaar
 vroeg of daar een onderdeel voor kan komen, te beginnen met een kennisbank.
 
 **Conclusie van het onderzoek.**
-- Er is genoeg gepubliceerd onderzoek voor zo'n vijftien artikelen, over lucht,
+- Er is genoeg gepubliceerd onderzoek voor zo'n zestien artikelen, over lucht,
   rollen, aandrijving, binnen fietsen, lichaam en fiets, en kleine middelen.
 - Veel aerowinst geldt alleen buiten en op snelheid. Binnen bepaalt Zwift de
   luchtweerstand. Voor de club tellen binnen vooral de ventilator en een
@@ -10611,8 +10611,27 @@ PubMed bevestigd; de rest gaat bij het bouwen via PubMed of de uitgever.
   Maddocks 2025 toe.
 - Voor de onderwerpen 6–17 vond hij in die twintig artikelen niets bruikbaars.
   Dat is een grens van de ronde, niet een gebrek aan onderzoek.
-- Een tweede ronde (Deep, of kleinere Pro-rondes) ligt bij de eigenaar.
 - Het ruwe rapport staat lokaal in `docs/consensus/`, buiten git.
+
+**Aanvulling (onderzoeksagent Consensus Deep, 2026-10-17, op verzoek van de
+eigenaar).**
+- Een nieuwe zoekopdracht voor de onderwerpen 5–17. Van de 886 artikelen die in
+  aanmerking kwamen, zijn er 100 meegenomen.
+- Nieuw:
+  - wielen en frame: Greenwell 1995 en Jeukendrup & Martin 2001;
+  - slechte wegen: Turner 2024;
+  - ketting: Smit 2023 en Aubert 2023;
+  - smart trainers en vermogensmeters: Peeters 2024, Costa 2026 en
+    Bouillod 2017;
+  - bikefit: Scoz 2021 en een pilot van Hoyt 2025;
+  - schoenplaatjes: Chartogne 2016.
+- Daardoor:
+  - er komt een artikel "Wielen en frame" bij (zestien in totaal);
+  - banden gaan naar *sterk* en ketting naar *matig*;
+  - schoenplaatjes gaan in het bikefit-artikel.
+- Over cranklengte, neusstrips en compressie vond ook Deep niets. Daar blijft
+  de gewone zoekfunctie de basis.
+- In de slottabel van het rapport staat een verkeerde DOI bij vermogensmeters.
 
 ### Opgeleverd — bewijsniveau per kennisartikel
 

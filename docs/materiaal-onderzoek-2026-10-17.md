@@ -7,7 +7,7 @@ De vraag van de eigenaar: naast trainen, voeding, kracht en tactiek kun je ook
 beter worden met materiaal en kleine winsten, zoals neusstrips en aero-sokken.
 Kan ZWB daarvoor iets inrichten, te beginnen met een kennisbank?
 
-Kort antwoord: ja. Er is genoeg onderzoek voor zo'n vijftien artikelen. Twee
+Kort antwoord: ja. Er is genoeg onderzoek voor zo'n zestien artikelen. Twee
 dingen maken het wel anders dan de bestaande kennisbanken:
 
 1. **Veel winst geldt alleen buiten, en pas op snelheid.** De club rijdt vooral
@@ -42,6 +42,18 @@ dingen maken het wel anders dan de bestaande kennisbanken:
     zijn te weinig voor zeventien onderwerpen.
   - Het ruwe rapport staat lokaal in `docs/consensus/materiaal-2026-10-17.md`,
     net als de rapporten van de toets buiten git.
+- **Tweede ronde, stand Deep** (eigenaar, 2026-10-17), alleen voor de onderwerpen
+  5–17, met een nieuwe zoekopdracht.
+  - Van de ruim 54 miljoen gevonden artikelen kwamen er 886 in aanmerking en zijn
+    er 100 meegenomen; 44 worden geciteerd.
+  - Veel nieuws bij wielen, banden, ketting, ventilator, vermogensmeters en
+    bikefit.
+  - Bij cranklengte, neusstrips en compressie vond ook deze ronde niets. Daar
+    blijft de gewone zoekfunctie de basis: een meta-analyse en een proef bij
+    fietsers over neusstrips, en meerdere meta-analyses over compressie.
+  - Eén fout in het rapport: in de slottabel staat bij vermogensmeters DOI
+    10.3390/s22010146. Bouillod 2022 is 10.3390/s22010386.
+  - Rapport lokaal in `docs/consensus/materiaal-deep-2026-10-17.md`.
 - Van de bronnen uit de gewone zoekfunctie is alleen de samenvatting gelezen. Bij het bouwen gaat elke
   bron, zoals bij de andere kennisbanken, eerst via PubMed of de uitgever voordat
   hij in de app komt.
@@ -93,6 +105,20 @@ dingen maken het wel anders dan de bestaande kennisbanken:
   verschil ([Gibertini 2010](https://doi.org/10.1007/s12283-010-0037-0)). Naar
   aero-sokken zelf is geen gepubliceerd onderzoek gevonden, alleen naar
   ruwe stof op cilinders. Dat het werkt, is dus een afleiding.
+- **Wielen en frame.**
+  - Aerowielen gaven in de windtunnel ongeveer 25 % minder luchtweerstand dan een
+    gewoon spaakwiel, gemeten aan het wiel alleen
+    ([Greenwell 1995](https://doi.org/10.1017/s0001924000028281)). In een fiets
+    is het anders: frame en vork verlagen de luchtweerstand van het voorwiel met
+    9–13 % ([Malizia 2021b](https://doi.org/10.1007/s12283-021-00341-6)).
+  - In een rekenmodel voor een tijdrit van 40 km scheelde een aeroframe 1:17 tot
+    1:44 minuut en aerowielen 60–82 seconden
+    ([Jeukendrup & Martin 2001](https://doi.org/10.2165/00007256-200131070-00009)).
+    Dat is solo, in tijdrittempo.
+  - Bij zijwind geeft een dicht wiel veel meer stuurmoment, in een
+    windtunnelmeting dertig keer zoveel
+    ([Mao 2025](https://doi.org/10.1016/j.expthermflusci.2025.111423)). Dat raakt
+    de veiligheid.
 - **Slipstream.** In een groot peloton zakt de luchtweerstand achterin tot 5–10 %
   van die van een renner alleen
   ([Blocken 2018](https://doi.org/10.1016/j.jweia.2018.06.011)). Dat is eerder
@@ -109,6 +135,12 @@ dingen maken het wel anders dan de bestaande kennisbanken:
   bijna niets uit, de spanning wel
   ([Maier 2019](https://doi.org/10.1080/02640414.2018.1530057),
   [Bertucci 2013](https://doi.org/10.1080/02640414.2013.792945)).
+- **Slechte wegen.** Op een matig ruwe weg kost het schudden meer dan de
+  rolweerstand van de band, en op een heel ruwe weg zelfs meer dan de lucht
+  ([Turner 2024](https://doi.org/10.1080/00423114.2024.2304031), een rekenmodel).
+  Lagere spanning en een bredere band verminderen de trillingen
+  ([Crenna 2025](https://doi.org/10.3390/eng6090245)). Bij welke spanning het
+  omslagpunt ligt, is niet vastgesteld.
 - **Brede banden, tubeless en latex** zijn in gepubliceerd onderzoek nauwelijks
   vergeleken. Wat daarover rondgaat, komt vooral van testsites.
 
@@ -119,8 +151,15 @@ dingen maken het wel anders dan de bestaande kennisbanken:
 - Wax gaf op testbanken een beter en stabieler rendement
   ([Dowd 2026](https://doi.org/10.1007/s12283-025-00529-0),
   [Lanaspeze 2025](https://doi.org/10.1051/meca/2025013)). Het gaat om een paar
-  watt, gemeten op een testbank, niet in een wedstrijd. Overzicht:
-  [Liew 2025](https://doi.org/10.3390/machines13010066).
+  watt, gemeten op een testbank, niet in een wedstrijd. Wax met onderdompelen was
+  het meest herhaalbaar en hield ruim 60 uur; een druppelsmeermiddel deed het op
+  hoge snelheid het best. Overzichten:
+  [Liew 2025](https://doi.org/10.3390/machines13010066) en
+  [Aubert 2023](https://doi.org/10.1177/17543371231202562) (hoe dichter een test
+  bij echt fietsen, hoe meer spreiding).
+- Een groter tandwiel achter scheelde op een tandem merkbaar: 2,9 % verlies met
+  53-13 tegen 4,0 % met 53-11
+  ([Smit 2023](https://doi.org/10.1007/s12283-023-00439-z)).
 
 ### Binnen
 
@@ -147,6 +186,15 @@ dingen maken het wel anders dan de bestaande kennisbanken:
   - Directe-aandrijving-trainers kwamen binnen een paar procent van een
     referentiemeter ([Hoon 2016](https://doi.org/10.28985/jsc.v5i3.240),
     [Lillo-Beviá 2017](https://doi.org/10.1123/ijspp.2017-0403)).
+  - Trainers met het wiel erop zijn minder nauwkeurig. Ook een
+    directe-aandrijving-trainer kan bij 100–200 W meer afwijken (samengevat in
+    [Peeters 2024](https://doi.org/10.3389/fspor.2024.1433368)). Bij één smart
+    trainer was de spreiding 5,5 % bij 100 W en 1,6 % bij 300 W
+    ([Costa 2026](https://doi.org/10.28985/1526.jsc.02)).
+  - Een vermogensmeter aan één kant gaf staand 4,4 % minder dan zittend, en week
+    af bij trillingen ([Bouillod 2017](https://doi.org/10.1123/ijspp.2016-0436)).
+    Pedalen gaven bij een hogere cadans iets minder
+    ([Czajkowski 2016](https://doi.org/10.28985/jsc.v5i2.257)).
   - Dat raakt je FTP, je schema en eerlijk racen in de ZRL.
 
 ### Lichaam en fiets
@@ -162,6 +210,20 @@ dingen maken het wel anders dan de bestaande kennisbanken:
   - Bij een enquête onder 849 renners hing een bikefit samen met meer comfort en
     minder pijn, niet met minder blessures
     ([Priego Quesada 2018](https://doi.org/10.1080/17461391.2018.1556738)).
+  - Bij 160 mountainbikers daalden ongemak, vermoeidheid en kniepijn een maand na
+    een bikefit sterk, maar zonder controlegroep
+    ([Scoz 2021](https://doi.org/10.1136/bmjsem-2021-001096)). Een proef met
+    twaalf recreanten vond na een fit 8,6 % meer piekvermogen en iets meer
+    vermogen in de FTP-test; dat is een pilot
+    ([Hoyt 2025](https://doi.org/10.70252/cmdy5909)).
+  - Een overzicht van reviews over de zadelpositie vond tegenstrijdige uitkomsten
+    voor knieklachten en rendement
+    ([Vigário 2024](https://doi.org/10.3390/physiologia4040032)).
+- **Schoenplaatjes.** De plaatjes 15 mm naar voren of achteren zetten veranderde
+  de stand van heup en enkel, maar niet het rendement of het sprintvermogen
+  ([Chartogne 2016](https://doi.org/10.28985/jsc.v5i2.255)). Voor cranklengte,
+  Q-factor en plaatjes zijn er geen duidelijke aanbevelingen
+  ([Husband 2024](https://doi.org/10.1080/02640414.2024.2394752)).
 - **Cranklengte.**
   - Binnen de gangbare maten maakt de lengte voor vermogen en rendement weinig
     uit ([Martin 2001](https://doi.org/10.1007/s004210100400),
@@ -172,7 +234,10 @@ dingen maken het wel anders dan de bestaande kennisbanken:
     ([Delp 2026](https://doi.org/10.64898/2026.09.25.754230)).
 - **Inlegzolen.** Een systematische review en een proef met een nepzool vonden
   geen winst in vermogen ([Yeo 2014](https://doi.org/10.1186/1757-1146-7-31),
-  [Yeo 2016](https://doi.org/10.1016/j.jsams.2015.04.015)).
+  [Yeo 2016](https://doi.org/10.1016/j.jsams.2015.04.015)); zolen met
+  boogsteun ook niet bij recreanten (Meyers 2017, Footwear Science). Een zool met
+  vorm vergroot wel het contactvlak onder de middenvoet (Bousie 2012, J Sci Med
+  Sport). Dat kan bij drukklachten helpen, maar levert geen watt op.
 
 ### Kleine middelen
 
@@ -249,16 +314,17 @@ richtlijn.
 | 3 | Helm | Lucht | Matig | Hoofdstand telt meer dan de helm; aerohelm niet voor iedereen beter |
 | 4 | Kleding en pak | Lucht | Matig | Strak zitten en textuur; enkele procenten |
 | 5 | Sokken en overschoenen | Lucht | Beperkt | Eén studie naar schoenen; aero-sokken zelf niet gepubliceerd onderzocht |
-| 6 | Banden en bandenspanning | Rollen | Matig | Spanning naar ondergrond; te hard kost op slechte weg |
-| 7 | Ketting en smering | Rollen | Beperkt | Testbanken; een paar watt; schoon en goed afgesteld telt |
-| 8 | Ventilator bij binnen fietsen | Binnen | Matig | Luchtstroom houdt je koel en je vermogen hoog |
-| 9 | Klopt je vermogensmeter? | Binnen | Matig | Afwijkingen van een paar procent; ijken, temperatuur, twee meters vergelijken |
-| 10 | Zadelhoogte en bikefit | Lichaam en fiets | Matig | Kniehoek tijdens het fietsen; comfort ja, blessures onzeker |
-| 11 | Cranklengte | Lichaam en fiets | Matig | Maakt voor vermogen weinig uit |
-| 12 | Gewicht van fiets en uitrusting | Lichaam en fiets | Sterk (berekening) | Telt bergop, nauwelijks op het vlak |
-| 13 | Neusstrips | Kleine middelen | Afgeraden | Geen effect, behalve bij een vernauwde neus (arts) |
-| 14 | Compressiekleding | Kleine middelen | Afgeraden | Niet sneller; herstel onzeker |
-| 15 | Inlegzolen | Kleine middelen | Afgeraden | Geen winst in vermogen; bij klachten naar een podotherapeut |
+| 6 | Wielen en frame | Lucht | Matig | Minuten in een solotijdrit, minder in een groep; dichte wielen en zijwind |
+| 7 | Banden en bandenspanning | Rollen | Sterk | Spanning en breedte naar ondergrond; op ruwe weg kost schudden meer dan rollen |
+| 8 | Ketting en smering | Rollen | Matig | Testbanken; een paar watt; groter tandwiel en schone ketting tellen |
+| 9 | Ventilator bij binnen fietsen | Binnen | Matig | Luchtstroom houdt je koel en je vermogen hoog |
+| 10 | Klopt je vermogensmeter? | Binnen | Matig | Afwijkingen van een paar procent; ijken, temperatuur, twee meters vergelijken |
+| 11 | Zadelhoogte, bikefit en schoenplaatjes | Lichaam en fiets | Matig | Kniehoek tijdens het fietsen; comfort ja, blessures onzeker; plaatjes verschuiven doet weinig |
+| 12 | Cranklengte | Lichaam en fiets | Matig | Maakt voor vermogen weinig uit |
+| 13 | Gewicht van fiets en uitrusting | Lichaam en fiets | Sterk (berekening) | Telt bergop, nauwelijks op het vlak |
+| 14 | Neusstrips | Kleine middelen | Afgeraden | Geen effect, behalve bij een vernauwde neus (arts) |
+| 15 | Compressiekleding | Kleine middelen | Afgeraden | Niet sneller; herstel onzeker |
+| 16 | Inlegzolen | Kleine middelen | Afgeraden | Geen winst in vermogen; bij klachten naar een podotherapeut |
 
 Zoals bij de bewijsniveaus: na akkoord komt er een tabel met per artikel het
 niveau en waarom, en een test houdt code en tabel gelijk.
@@ -296,7 +362,7 @@ niveau en waarom, en een test houdt code en tabel gelijk.
 
 ## In fases
 
-1. **Kennisbank** (dit voorstel): vijftien artikelen, bewijsniveaus, planken in
+1. **Kennisbank** (dit voorstel): zestien artikelen, bewijsniveaus, planken in
    de leeszaal, coach en scan. Geen migratie; de inhoud staat in code, zoals bij
    de andere kennisbanken.
 2. **Rekenaar "Wat levert het op?"** Kies een route (een event, of een
@@ -341,8 +407,8 @@ niveau en waarom, en een test houdt code en tabel gelijk.
    tabel; bij compressie is het herstelstuk onzeker, niet weerlegd.
 4. **De volgorde**: eerst alleen de kennisbank (fase 1), of de rekenaar meteen
    mee-ontwerpen.
-5. **Een tweede ronde met de onderzoeksagent** voor de onderwerpen 6–17. De
-   eerste ronde (Pro, 20 artikelen) haalde daar niets op. Twee mogelijkheden:
-   - een ronde in de stand *Deep*, die 50 tot 100 artikelen meeneemt en langer
-     duurt;
-   - een paar kleinere Pro-rondes per groep onderwerpen.
+5. **De niveaus van banden en ventilator.** Banden staan op *sterk*: meerdere
+   metingen in het veld en op de testbank zijn het eens, en Consensus geeft 8 van
+   10. De ventilator staat op *matig*. Consensus geeft ook daar 8 van 10, maar
+   naar onze criteria zijn het een paar kleine proeven, vooral in de hitte,
+   zonder meta-analyse.
