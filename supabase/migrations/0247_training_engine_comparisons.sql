@@ -25,6 +25,10 @@ create table if not exists public.training_engine_comparisons (
 create index if not exists training_engine_comparisons_trainer_idx
   on public.training_engine_comparisons (trainer_id, created_at desc);
 
+-- Voor de cascade bij het verwijderen van een lid (foreign key zonder index).
+create index if not exists training_engine_comparisons_profile_idx
+  on public.training_engine_comparisons (profile_id);
+
 alter table public.training_engine_comparisons enable row level security;
 
 drop policy if exists "training_engine_comparisons_select" on public.training_engine_comparisons;

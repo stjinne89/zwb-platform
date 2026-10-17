@@ -9720,9 +9720,13 @@ time-out gaven en los slagen, en `omnium-live` die `.env.local` nodig heeft.
 Niet gepusht.
 
 **Blind vergelijken door trainers, 2026-10-17.** Commit `0bd879e`.
-Samengevoegd met de regelmotor-branch. Migratie `0247_training_engine_comparisons.sql` — **geschreven,
-niet toegepast**: lokaal niet te testen (geen Docker of Supabase-config) en pas
-toe te passen na akkoord van de eigenaar. De meetlat toetst alleen regels; of de
+Samengevoegd met de regelmotor-branch. Migratie `0247_training_engine_comparisons.sql` — **toegepast op
+productie op 2026-10-17** na akkoord van de eigenaar, via de Supabase-connector
+(lokaal niet te testen: geen Docker of Supabase-config). Vóór het toepassen
+kwam er een index op `profile_id` bij, voor de cascade bij het verwijderen van
+een lid. Na afloop gecontroleerd: tabel met RLS, beide policies en alle drie de
+indexen staan er; de adviseurs melden voor deze tabel alleen nog ongebruikte
+indexen (de tabel is leeg). De meetlat toetst alleen regels; of de
 motor beter traint moeten trainers zeggen. Nieuw trainerstabblad
 **Vergelijken** (`/zwbeter-worden/trainer/vergelijken`): per opgeslagen
 AI-generatie het schema van de AI (`response_json`) naast dat van de motor,
@@ -9755,8 +9759,9 @@ volledige invoer van alle ~150 generaties plus evenveel motorruns; ze staan er
 nu als "Beide: geen wijziging" in. Bij een dagaanpassing staat onder de datum
 wat er gepland was, een lege kant heet "Ongewijzigd" en de weektotalen vallen
 weg (die zouden alleen de gewijzigde dagen tellen). *Niet geverifieerd:*
-opslaan van een oordeel — zonder 0247 in de database geeft de actie "Opslaan
-mislukt" (zo ook in de browser gezien; de toegangscontrole ervoor slaagde). De
+opslaan van een oordeel in productie — vóór 0247 gaf de actie lokaal "Opslaan
+mislukt" (de toegangscontrole ervoor slaagde); nu de tabel bestaat, is een echt
+oordeel nog niet opgeslagen en de pagina staat nog niet live (niet gepusht). De
 pagina zelf is lokaal in de browser bekeken (desktop en 375 px, geen
 horizontale scroll): lijst van 147 generaties, een bijwerking en een
 dagaanpassing naast elkaar, het formulier, en de ontblinding met een tijdelijk
