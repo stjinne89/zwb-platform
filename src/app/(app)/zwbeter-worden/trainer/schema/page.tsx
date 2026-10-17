@@ -75,7 +75,7 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
         .order("created_at", { ascending: false }),
       viewer.supabase
         .from("training_workout_templates")
-        .select("id, form, title, description, duration_minutes, intensity, is_standard, created_by, method_label")
+        .select("id, form, title, description, duration_minutes, intensity, is_standard, created_by, method_label, structure_json")
         .order("form")
         .order("duration_minutes"),
     ]);
@@ -179,6 +179,7 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
           planId={runningPlan?.id ?? null}
           defaultDate={todayKeyAmsterdam()}
           viewerId={viewer.user.id}
+          ftpWatts={athlete?.ftp_watts}
         />
 
         <CollapsibleCard

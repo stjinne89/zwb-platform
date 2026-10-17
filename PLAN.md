@@ -9558,6 +9558,51 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Workout-bibliotheek: blokken en bewijsniveau per workout
+
+**2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Wat er veranderde.** De eigenaar wilde in de workout-bibliotheek van de trainer
+(`/zwbeter-worden/trainer/schema`) dezelfde weergave als in het schema van het
+lid, en de bewijslabels van de kennisbank.
+- **Blokken.** Elke workout toont de gekleurde blokkenbalk (`WorkoutBlocks`),
+  met de FTP van het lid voor de watts. De pagina haalt daarvoor nu ook
+  `structure_json` van `training_workout_templates` op.
+- **Bewijsniveau.** Een workout krijgt geen eigen niveau maar leent dat van het
+  kennisartikel dat hem onderbouwt (`src/lib/training/workout-support.ts`). Zo
+  staat een niveau op één plek (`docs/bewijsniveau-kennisbank.md`) en kan het
+  niet uit elkaar lopen. De badge linkt naar dat artikel. Koppeling:
+  blokweken → *Blokweken*; aflopend, snelle start en wisselend → *VO2max met
+  wisselend vermogen*; 6x30s onderhoud en Duur 90 met 3x3 sprints → *Sprints
+  als onderhoud*; Kracht 6x2 laag toerental → *Lage cadans*; tests → *Je FTP*;
+  warming-ups → *Warming-up*; herstelritten en duurritten onder 150 minuten →
+  *Rustige ritten rustig*; duurritten vanaf 150 minuten → *Lange ritten*.
+  Het label Veelbelovend of Experimenteel blijft ernaast staan.
+
+**Bewust niet gedaan.**
+- **Geen niveau op 18 workouts**: tempo, sweet spot (behalve de blokweken),
+  drempel, de gewone VO2max-intervallen, anaeroob, Sprint 6x1 met aanloop en
+  Sprint 8x1. Er is geen kennisartikel dat die vormen direct onderbouwt. Ze aan
+  *Zones* of *Korte intervallen* hangen zou een niveau suggereren voor iets wat
+  dat artikel niet onderzoekt. Wil de eigenaar daar een label, dan eerst een
+  artikel (bijvoorbeeld over drempel- en VO2max-intervallen) met een niveau
+  volgens de criteria.
+- **Geen niveau op eigen workouts** van trainers: ZWB weet niet wat erin staat.
+- **Geen legenda** in de bibliotheek: dat is uitleg in een featurescherm. De
+  badge linkt naar het artikel, en de legenda staat op de kennisbanklijst.
+- Het niveau gaat niet mee naar de geplande workout van het lid; alleen de
+  bibliotheek toont het.
+
+**Controle.** `tests/unit/workout-support.test.ts` (nieuw) bewaakt de koppeling
+en dat elk gekoppeld artikel bestaat. `eslint` op de gewijzigde bestanden is
+schoon; `tsc` ook, op de bekende fouten in `read-barcode.ts` en
+`gopher-image-ocr.ts` na.
+
+**In de browser bekeken** (dev-server, al ingelogd als trainer, 2026-10-17): alle
+58 workouts tonen hun blokken, 40 hebben een badge met de koppeling hierboven en
+de juiste link. Op 375 px geen horizontale scroll, geen consolefouten. Het paneel
+was verborgen, dus de controle liep via de DOM, niet via screenshots.
+
 ### Opgeleverd — "… op de fiets" op je eigen profiel linkt naar `/stats/ik`
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
