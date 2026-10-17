@@ -6,6 +6,8 @@ import { TegelsLinkGrid } from "@/components/tegels/link-grid";
 import { TegelsVandaag } from "@/components/tegels/vandaag";
 import { seasonWarnings, type SeasonWarningInput } from "@/lib/training/season";
 import { TegelsShell } from "../(app)/_components/tegels-shell";
+import { TegelsAuthFrame } from "@/components/tegels/auth-frame";
+import { AuthScreen } from "../(auth)/login/auth-screen";
 import { SeasonRoad } from "../(app)/zwbeter-worden/jaarplan/_components/season-road";
 import { SeasonStand } from "../(app)/zwbeter-worden/jaarplan/_components/season-stand";
 
@@ -14,7 +16,7 @@ import { SeasonStand } from "../(app)/zwbeter-worden/jaarplan/_components/season
 // te controleren zonder de productiedatabase; met echte data kijk je via de
 // schakelaar in de app zelf.
 
-const SCREENS = ["vandaag", "kalender", "club", "jaarplan"] as const;
+const SCREENS = ["vandaag", "kalender", "club", "jaarplan", "inloggen"] as const;
 
 // Een jaar met alles erin: een lopend blok dat bijna afloopt, een vakantie waar
 // nog trainingen in staan, een kamp, lege maanden en een A-doel ver weg.
@@ -68,6 +70,15 @@ export default async function OntwerpVoorbeeldPage({
 }) {
   if (process.env.NODE_ENV === "production") notFound();
   const { scherm } = await searchParams;
+
+  // De inlogpagina zelf stuurt een ingelogde bezoeker door; hier is hij te zien.
+  if (scherm === "inloggen") {
+    return (
+      <TegelsAuthFrame>
+        <AuthScreen tegels />
+      </TegelsAuthFrame>
+    );
+  }
 
   return (
     <TegelsShell actions={<ThemeToggle />}>

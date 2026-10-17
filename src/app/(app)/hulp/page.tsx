@@ -3620,6 +3620,20 @@ Fitness-status: Verbeterend`}
         </div>
 
         <div className="mt-4 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Bewijsniveau</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Elk kennisartikel en elk protocol zegt hoe gegrond het advies is. Sterk
+            bewijs: een consensusstuk, een richtlijn of meerdere meta-analyses die
+            het eens zijn. Matig bewijs: een meta-analyse of meerdere proeven, maar
+            klein, van één onderzoeksgroep of niet bij duursporters. Beperkt bewijs:
+            een paar kleine studies, of een advies dat is afgeleid. Afgeraden: het
+            onderzoek wijst uit dat het niet helpt. Gaat het bewijs alleen over een
+            tussenmaat, zoals een bloedwaarde, of niet over duursporters, dan is
+            het hooguit matig. De AI-coach weegt zijn antwoord naar het niveau.
+          </p>
+        </div>
+
+        <div className="mt-4 rounded-md border bg-background p-4">
           <h3 className="text-sm font-semibold">Veelbelovend en experimenteel</h3>
           <p className="mt-2 text-sm text-muted-foreground">
             Sommige workouts, protocollen en kennisartikelen hebben een label.

@@ -458,7 +458,7 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
     summary:
       "Acht weken de VO2max-blokken en sprints uit je schema op 50 tot 70 toeren. De AI-coach zet de cadans in de blokken.",
     goal: "Een hogere VO2max en meer maximaal aeroob vermogen dan met dezelfde blokken op je eigen cadans.",
-    evidence: "matig",
+    evidence: "beperkt",
     anchor: "start",
     phases: [
       {

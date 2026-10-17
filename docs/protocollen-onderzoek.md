@@ -21,7 +21,7 @@ inhoud staat in code: `src/lib/protocols/training.ts` en `nutrition.ts`.
 | Hitte-acclimatisatie voor een warme wedstrijd | sterk | gebouwd (trainen) |
 | Hittetraining voor hemoglobine | matig | gebouwd (trainen) |
 | Kerntemperatuur met een CORE-sensor bij hitte | sensor zwak gevalideerd | gebouwd (trainen), via intervals.icu |
-| Lage cadans bij VO2max en sprints | matig | gebouwd (trainen), via de AI-coach |
+| Lage cadans bij VO2max en sprints | beperkt (was matig; zie [bewijsniveau-kennisbank](bewijsniveau-kennisbank.md), 2026-10-17) | gebouwd (trainen), via de AI-coach |
 | Ademspiertraining | matig | gebouwd (trainen) |
 | Taper | sterk | AI-regel aangescherpt, geen protocol |
 | Cafeïne | sterk | gebouwd (voeden, wedstrijd) |

@@ -42,7 +42,9 @@ export function PillChip({ href, active, children }: { href: string; active: boo
       aria-current={active ? "page" : undefined}
       className={cn(
         SCROLL_TAB_ITEM,
-        "whitespace-nowrap rounded-full border",
+        // tg-here: in "tegels" een vlak in de kleur van de plek, de gekozen als
+        // paneel met de gouden lijn.
+        "tg-link tg-here whitespace-nowrap rounded-full border",
         active
           ? "border-primary bg-primary text-primary-foreground"
           : "bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",

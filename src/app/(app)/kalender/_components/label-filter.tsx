@@ -73,7 +73,7 @@ export function LabelFilter({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs outline-none ${
+        className={`tg-link tg-kalender tg-chip inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs outline-none ${
           total > 0 ? "bg-foreground text-background" : "hover:bg-secondary"
         }`}
       >

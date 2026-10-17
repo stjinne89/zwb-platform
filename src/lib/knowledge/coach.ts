@@ -12,6 +12,7 @@
 // verschilt, zodat de prompt-cache van OpenAI hem hergebruikt.
 
 import { EVIDENCE_LABELS, NUTRITION_ARTICLES } from "@/lib/nutrition/library";
+import { ARTICLE_EVIDENCE_LABELS, type ArticleEvidence } from "@/lib/knowledge/evidence";
 import type { KnowledgeSource } from "@/lib/knowledge/source";
 import { STRENGTH_ARTICLES } from "@/lib/training/strength-library";
 import { METHOD_LABEL_TEXT, type MethodLabel } from "@/lib/training/method-label";
@@ -24,6 +25,8 @@ type Article = {
   points: string[];
   limits: string[];
   sources: KnowledgeSource[];
+  /** Hoe gegrond het centrale advies is; de coach weegt zijn antwoord ernaar. */
+  evidence: ArticleEvidence;
   /** Veelbelovend of experimenteel; de coach noemt het label erbij. */
   methodLabel?: MethodLabel;
 };
@@ -51,6 +54,7 @@ function articleText(article: Article, basePath: string): string {
   const lines = [
     `### ${article.title}`,
     `Pad: ${basePath}/${article.slug}`,
+    `Bewijs: ${ARTICLE_EVIDENCE_LABELS[article.evidence]}`,
     ...(article.methodLabel ? [`Label: ${METHOD_LABEL_TEXT[article.methodLabel]}`] : []),
     `Samenvatting: ${article.summary}`,
     ...article.points.map((point) => `- ${point}`),

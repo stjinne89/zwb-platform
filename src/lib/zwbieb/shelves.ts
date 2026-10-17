@@ -15,6 +15,7 @@
 // gezondheidsonderwerp (wie zich als kenner meldt, vertelt de club iets over
 // zichzelf); een artikel lezen vertelt niemand iets.
 
+import type { ArticleEvidence } from "@/lib/knowledge/evidence";
 import { NUTRITION_ARTICLES } from "@/lib/nutrition/library";
 import type { MethodLabel } from "@/lib/training/method-label";
 import { STRENGTH_ARTICLES } from "@/lib/training/strength-library";
@@ -55,6 +56,7 @@ export const SHELF_DEFS: ShelfDef[] = [
       "trainen/rustige-ritten",
       "trainen/lange-ritten",
       "trainen/intensiteitsverdeling",
+      "trainen/intervallen",
       "trainen/korte-intervallen",
       "trainen/vo2max-wisselend",
       "trainen/sprints-als-onderhoud",
@@ -174,6 +176,7 @@ export type Book = {
   title: string;
   summary: string;
   collection: Collection;
+  evidence: ArticleEvidence;
   /** Veelbelovend of experimenteel (alleen bij trainen); zie method-label.ts. */
   methodLabel: MethodLabel | null;
 };
@@ -184,7 +187,13 @@ function allArticles(): Map<BookRef, Book> {
   const books = new Map<BookRef, Book>();
   const add = (
     collection: Collection,
-    list: { slug: string; title: string; summary: string; methodLabel?: MethodLabel }[],
+    list: {
+      slug: string;
+      title: string;
+      summary: string;
+      evidence: ArticleEvidence;
+      methodLabel?: MethodLabel;
+    }[],
   ) => {
     for (const article of list) {
       books.set(`${collection}/${article.slug}`, {
@@ -192,6 +201,7 @@ function allArticles(): Map<BookRef, Book> {
         title: article.title,
         summary: article.summary,
         collection,
+        evidence: article.evidence,
         methodLabel: article.methodLabel ?? null,
       });
     }

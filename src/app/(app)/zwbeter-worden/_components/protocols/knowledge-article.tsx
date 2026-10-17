@@ -8,6 +8,8 @@ import { MethodLabelBadge } from "@/components/method-label-badge";
 import type { KnowledgeSource } from "@/lib/knowledge/source";
 import { EVIDENCE_LABELS } from "@/lib/nutrition/library";
 import { PROTOCOLS } from "@/lib/protocols";
+import type { ArticleEvidence } from "@/lib/knowledge/evidence";
+import { EvidenceBadge } from "@/components/evidence-badge";
 import { ArticleExperts } from "@/app/(app)/zwbieb/_components/article-experts";
 
 /** Protocollen die naar dit kennisartikel verwijzen. */
@@ -59,6 +61,7 @@ export function KnowledgeArticleView({
     limits: string[];
     sources: KnowledgeSource[];
     methodLabel?: string;
+    evidence: ArticleEvidence;
   };
   articleHref: string;
 }) {
@@ -69,7 +72,10 @@ export function KnowledgeArticleView({
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{category}</p>
         <h2 className="mt-1 text-xl font-semibold">{article.title}</h2>
         <p className="mt-2 max-w-3xl text-muted-foreground">{article.summary}</p>
-        {article.methodLabel ? <MethodLabelBadge label={article.methodLabel} className="mt-3" /> : null}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <EvidenceBadge evidence={article.evidence} />
+          <MethodLabelBadge label={article.methodLabel} />
+        </div>
       </div>
 
       <ul className="max-w-3xl space-y-2 rounded-lg border bg-card p-5 text-sm">

@@ -9,6 +9,7 @@
 // De onderbouwing staat uitgebreider in docs/protocollen-onderzoek.md. Teksten
 // zijn eigen samenvattingen; we citeren de bronnen niet letterlijk.
 
+import type { ArticleEvidence } from "@/lib/knowledge/evidence";
 import { doi, type KnowledgeSource } from "@/lib/knowledge/source";
 import type { MethodLabel } from "@/lib/training/method-label";
 import {
@@ -62,6 +63,8 @@ export const TRAINING_CATEGORY_LABELS: Record<TrainingCategory, string> = {
 export type TrainingArticle = {
   slug: string;
   category: TrainingCategory;
+  /** Hoe gegrond het centrale advies is; zie src/lib/knowledge/evidence.ts. */
+  evidence: ArticleEvidence;
   title: string;
   summary: string;
   points: string[];
@@ -657,10 +660,67 @@ const THOMAS_2018: KnowledgeSource = {
   kind: "studie",
 };
 
+const MILANOVIC_2015: KnowledgeSource = {
+  citation:
+    "Milanović Z, Sporiš G, Weston M. Effectiveness of high-intensity interval training (HIT) and continuous endurance training for VO2max improvements: a systematic review and meta-analysis of controlled trials. Sports Med 45(10):1469-1481.",
+  year: 2015,
+  url: doi("10.1007/s40279-015-0365-0"),
+  kind: "review",
+};
+
+const MOLMEN_REGRESSION_2025: KnowledgeSource = {
+  citation:
+    "Mølmen KS, Almquist NW, Skattebo Ø. Effects of exercise training on mitochondrial and capillary growth in human skeletal muscle: a systematic review and meta-regression. Sports Med 55(1):115-144.",
+  year: 2025,
+  url: doi("10.1007/s40279-024-02120-2"),
+  kind: "review",
+};
+
+const GIST_2014: KnowledgeSource = {
+  citation:
+    "Gist NH, Fedewa MV, Dishman RK, Cureton KJ. Sprint interval training effects on aerobic capacity: a systematic review and meta-analysis. Sports Med 44(2):269-279.",
+  year: 2014,
+  url: doi("10.1007/s40279-013-0115-0"),
+  kind: "review",
+};
+
+const SLOTH_2013: KnowledgeSource = {
+  citation:
+    "Sloth M, Sloth D, Overgaard K, Dalgas U. Effects of sprint interval training on VO2max and aerobic exercise performance: a systematic review and meta-analysis. Scand J Med Sci Sports 23(6):e341-e352.",
+  year: 2013,
+  url: doi("10.1111/sms.12092"),
+  kind: "review",
+};
+
+const ROSENBLAT_HIIT_SIT_2020: KnowledgeSource = {
+  citation:
+    "Rosenblat MA, Perrotta AS, Thomas SG. Effect of high-intensity interval training versus sprint interval training on time-trial performance: a systematic review and meta-analysis. Sports Med 50(6):1145-1161.",
+  year: 2020,
+  url: doi("10.1007/s40279-020-01264-1"),
+  kind: "review",
+};
+
+const SEILER_INTERVALS_2013: KnowledgeSource = {
+  citation:
+    "Seiler S, Jøranson K, Olesen BV, Hetlelid KJ. Adaptations to aerobic interval training: interactive effects of exercise intensity and total work duration. Scand J Med Sci Sports 23(1):74-83.",
+  year: 2013,
+  url: doi("10.1111/j.1600-0838.2011.01351.x"),
+  kind: "studie",
+};
+
+const NEAL_2013: KnowledgeSource = {
+  citation:
+    "Neal CM, Hunter AM, Brennan L, et al. Six weeks of a polarized training-intensity distribution leads to greater physiological and performance adaptations than a threshold model in trained cyclists. J Appl Physiol 114(4):461-471.",
+  year: 2013,
+  url: doi("10.1152/japplphysiol.00652.2012"),
+  kind: "studie",
+};
+
 export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "lage-cadans",
     category: "intensiteit",
+    evidence: "beperkt",
     title: "Lage cadans",
     summary:
       "Rijden op lage toeren lijkt alleen iets op te leveren bij hoge intensiteit. Op tempo of drempel is er geen winst gevonden.",
@@ -679,6 +739,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "zones",
     category: "intensiteit",
+    evidence: "matig",
     title: "Zones: een afspraak, geen grens in je lijf",
     summary:
       "De zones in ZWB zijn die van Zwift, in procenten van je FTP. Handig om af te spreken, maar dezelfde procent betekent niet voor iedereen hetzelfde.",
@@ -698,6 +759,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "lange-ritten",
     category: "intensiteit",
+    evidence: "beperkt",
     title: "Lange ritten en duurvermogen",
     summary:
       "Hoe goed je je vermogen vasthoudt na uren rijden, is een eigen eigenschap: duurvermogen. Het beslist veel wedstrijden, en lange ritten trainen het.",
@@ -725,6 +787,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "korte-intervallen",
     category: "intensiteit",
+    evidence: "matig",
     title: "Korte intervallen (30/15)",
     summary:
       "Blokken van 30 seconden hard en 15 seconden rustig gaven in een paar proeven meer winst dan even zware intervallen van vijf minuten.",
@@ -741,8 +804,44 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
     sources: [RONNESTAD_2015, RONNESTAD_2020, URIANSTAD_2024, APPELHANS_2025],
   },
   {
+    slug: "intervallen",
+    category: "intensiteit",
+    evidence: "matig",
+    title: "Intervallen: tempo, drempel, VO2max en anaeroob",
+    summary:
+      "Intervallen maken je fitter dan alleen rustig rijden, maar geen enkele vorm is aantoonbaar de beste. Daarom wisselt je schema ze af.",
+    points: [
+      "In een meta-analyse van 28 studies gaven duurtraining en intervallen allebei een grote winst op VO2max. Intervallen gaven iets meer, ongeveer 1,2 ml/kg/min.",
+      "Een analyse van ruim 350 studies vond dat duur, intervallen en sprintintervallen je spieren evenveel mitochondriën gaven. Per uur training deden sprints het meest, en vaker trainen gaf meer winst. Wie minder fit begon, won het meest.",
+      "Sprintintervallen van 30 seconden voluit verhoogden VO2max in twee meta-analyses, gemiddeld met zo'n 8 procent. Dat was evenveel als duurtraining, in veel minder tijd.",
+      "Bij sporters die minstens drie uur per week trainden, vond een meta-analyse van zes proeven op de tijdrit geen verschil tussen VO2max-intervallen en sprintintervallen. Intervallen van vier minuten of langer gaven wel zo'n 2 procent meer winst dan sprints.",
+      "Bij recreatieve fietsers gaf 4 x 8 minuten in zeven weken meer winst dan 4 x 4 of 4 x 16 minuten, ook al reden ze de blokken van 8 minuten minder hard. Langer werk net onder je maximum kan dus meer opleveren dan korter en harder.",
+      "Lange blokken op tempo tot drempel (RPE 14 tot 15) gaven goed getrainde fietsers in een blokweek meer drempelvermogen dan hun gewone training, en evenveel 15-minutenvermogen als een week VO2max-blokken.",
+      "Veel drempelwerk als hoofdmoot werkt minder goed. Bij goed getrainde fietsers gaf zes weken met bijna de helft van de tijd rond de drempel minder winst dan veel rustig rijden met een beetje hard werk.",
+    ],
+    limits: [
+      "De meta-analyses zijn vooral gedaan bij jonge, niet of matig getrainde mensen. Bij getrainde renners zijn de verschillen kleiner en de proeven klein.",
+      "Veel studies meten VO2max, een tussenmaat. Tijdritwinst is minder vaak gemeten.",
+      "Tempo en sweet spot als eigen vorm zijn nauwelijks onderzocht. De proeven met lange gematigde blokken zijn blokweken van één Noorse onderzoeksgroep. Sweet spot is een begrip van coaches, geen gemeten grens.",
+      "De anaerobe intervallen van een minuut in de workoutbibliotheek zijn een vertaling van sprintintervalstudies, geen geteste dosis.",
+      "Hoeveel je van elke vorm rijdt, staat in Gepolariseerd of piramidaal.",
+    ],
+    sources: [
+      MILANOVIC_2015,
+      MOLMEN_REGRESSION_2025,
+      GIST_2014,
+      SLOTH_2013,
+      ROSENBLAT_HIIT_SIT_2020,
+      SEILER_INTERVALS_2013,
+      MOLMEN_2025,
+      RONNESTAD_BLOCK_2025,
+      NEAL_2013,
+    ],
+  },
+  {
     slug: "intensiteitsverdeling",
     category: "intensiteit",
+    evidence: "sterk",
     title: "Gepolariseerd of piramidaal",
     summary:
       "Of je je harde werk gepolariseerd of piramidaal verdeelt, maakt voor je prestatie weinig uit. Veel rustig rijden is in beide de basis.",
@@ -761,6 +860,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "rustige-ritten",
     category: "intensiteit",
+    evidence: "matig",
     title: "Rustige ritten rustig",
     summary:
       "Goed getrainde duursporters rijden het grootste deel van hun tijd rustig. Gepland tempowerk is nuttig; een rustige rit die ongemerkt tempo wordt, is de valkuil.",
@@ -788,6 +888,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "ftp-test",
     category: "testen",
+    evidence: "matig",
     title: "Je FTP: wat de test meet",
     summary:
       "Een FTP-test is een goed herhaalbare prestatietest, maar geen exacte meting van je drempel. Per renner zit hij er al gauw een paar procent naast.",
@@ -820,6 +921,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "opbouwen",
     category: "piek",
+    evidence: "matig",
     title: "Opbouwen: hoe snel mag het?",
     summary:
       "Geleidelijk opbouwen en grote sprongen vermijden helpt. Dat het precies 10 % per week moet zijn, is nooit aangetoond.",
@@ -849,6 +951,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "warming-up",
     category: "piek",
+    evidence: "matig",
     title: "Warming-up",
     summary:
       "Een warming-up helpt vooral bij korte, harde wedstrijden. Voor een inspanning van twintig minuten of langer maakt hij weinig uit, en sprints erin geven geen extra duurvermogen.",
@@ -868,6 +971,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "taper",
     category: "piek",
+    evidence: "sterk",
     title: "Taper naar een wedstrijd",
     summary:
       "Voor een belangrijke wedstrijd haal je volume weg, maar houd je de intensiteit en het aantal trainingen gelijk.",
@@ -886,6 +990,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "herstel-meten",
     category: "herstel",
+    evidence: "matig",
     title: "Herstel meten: HRV, rusthartslag en slaap",
     summary:
       "Je horloge meet elke nacht je HRV en rusthartslag. Eén ochtend zegt weinig; een week vergeleken met je eigen normale waarden zegt wel iets.",
@@ -916,6 +1021,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "hittetraining",
     category: "omstandigheden",
+    evidence: "sterk",
     title: "Hittetraining",
     summary:
       "Een week tot twee weken dagelijks het warm hebben maakt je beter bestand tegen de hitte. Vijf weken hittetraining verhoogt ook je hemoglobine.",
@@ -951,6 +1057,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "ademspiertraining",
     category: "naast-de-fiets",
+    evidence: "matig",
     title: "Ademspiertraining",
     summary:
       "Inademen tegen weerstand maakt je ademspieren sterker. Bij renners ging een tijdrit daarna wat sneller.",
@@ -969,6 +1076,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "koud-na-training",
     category: "naast-de-fiets",
+    evidence: "matig",
     title: "Koud water na de training",
     summary:
       "Een ijsbad na de training remt vooral de winst van krachttraining. Voor duurwerk lijkt het weinig uit te maken.",
@@ -983,6 +1091,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "blokweek",
     category: "piek",
+    evidence: "matig",
     title: "Blokweken",
     summary:
       "Een week met vijf of zes harde sessies en daarna zes dagen rustig gaf goed getrainde renners in twee weken een duidelijke stap.",
@@ -1004,6 +1113,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "vo2max-wisselend",
     category: "intensiteit",
+    evidence: "beperkt",
     title: "VO2max met wisselend vermogen",
     summary:
       "Een VO2max-blok dat hard begint en dan iets terugzakt, of dat golft, houdt je langer dicht bij je VO2max bij hetzelfde gemiddelde.",
@@ -1024,6 +1134,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "sprints-als-onderhoud",
     category: "piek",
+    evidence: "beperkt",
     title: "Sprints als onderhoud",
     summary:
       "In een week met weinig tijd of na het seizoen houden een paar sprints van 30 seconden je vorm beter vast dan alleen rustig rijden.",
@@ -1044,6 +1155,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "brain-endurance-training",
     category: "naast-de-fiets",
+    evidence: "beperkt",
     title: "Brain endurance training",
     summary:
       "Na je training je hoofd moe maken met een concentratietaak, zodat mentale vermoeidheid je in een wedstrijd minder vermogen kost.",
@@ -1063,6 +1175,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "bloedstroombeperking",
     category: "naast-de-fiets",
+    evidence: "beperkt",
     title: "Trainen met bloedstroombeperking",
     summary:
       "Banden om je bovenbenen maken een lage belasting zwaar. Interessant als je minder belasting kunt hebben, zoals na een blessure, maar niet zonder begeleiding.",

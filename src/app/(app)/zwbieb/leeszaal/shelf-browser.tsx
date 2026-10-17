@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChevronRight, Search } from "lucide-react";
+import { EvidenceBadge } from "@/components/evidence-badge";
 import { MethodLabelBadge } from "@/components/method-label-badge";
+import { ARTICLE_EVIDENCE_LABELS, type ArticleEvidence } from "@/lib/knowledge/evidence";
 import { METHOD_LABEL_TEXT, type MethodLabel } from "@/lib/training/method-label";
 import { TopicBadge } from "../_components/topic-badge";
 
@@ -15,6 +17,7 @@ type ShelfView = {
     title: string;
     summary: string;
     collection: string;
+    evidence: ArticleEvidence;
     methodLabel: MethodLabel | null;
   }[];
   topics: { slug: string; label: string; experts: number }[];
@@ -44,6 +47,7 @@ export function ShelfBrowser({ shelves }: { shelves: ShelfView[] }) {
               book.title,
               book.summary,
               book.collection,
+              ARTICLE_EVIDENCE_LABELS[book.evidence],
               book.methodLabel ? METHOD_LABEL_TEXT[book.methodLabel] : "",
             ].join(" "),
           ),
@@ -92,6 +96,7 @@ export function ShelfBrowser({ shelves }: { shelves: ShelfView[] }) {
                       <span className="min-w-0">
                         <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
                           {book.title}
+                          <EvidenceBadge evidence={book.evidence} />
                           <MethodLabelBadge label={book.methodLabel} />
                         </span>
                         <span className="line-clamp-1 text-xs text-muted-foreground">{book.summary}</span>

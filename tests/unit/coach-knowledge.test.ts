@@ -7,6 +7,7 @@ import {
   coachKnowledgeText,
   shortSourceLabel,
 } from "@/lib/knowledge/coach";
+import { ARTICLE_EVIDENCE_LABELS } from "@/lib/knowledge/evidence";
 import { dropUnknownKnowledgeLinks, splitKnowledgeLinks } from "@/lib/knowledge/links";
 import { COACH_SYSTEM_PROMPT, coachInstructions } from "@/lib/training/coach-chat";
 
@@ -111,6 +112,19 @@ describe("links in een coach-antwoord", () => {
   it("kent elk pad uit de kennisbank als geldige link", () => {
     for (const p of coachKnowledgePaths()) {
       expect(splitKnowledgeLinks(`[x](${p})`)).toEqual([{ text: "x", href: p }]);
+    }
+  });
+});
+
+describe("bewijsniveau voor de coach", () => {
+  it("geeft bij elk artikel het niveau mee", () => {
+    const text = coachKnowledgeText();
+    for (const base of COACH_KNOWLEDGE_BASES) {
+      for (const article of base.articles) {
+        expect(text).toContain(
+          `Pad: ${base.basePath}/${article.slug}\nBewijs: ${ARTICLE_EVIDENCE_LABELS[article.evidence]}\n`,
+        );
+      }
     }
   });
 });

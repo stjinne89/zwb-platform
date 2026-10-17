@@ -1,12 +1,15 @@
 # Bewijsniveau per kennisartikel
 
-**Voorstel, 2026-10-16. Wacht op akkoord van de eigenaar.** Er is nog niets
-gebouwd.
+**Voorgesteld 2026-10-16, goedgekeurd door de eigenaar op 2026-10-17 en
+gebouwd.** De niveaus staan in code bij elk artikel (`evidence`, met
+`src/lib/knowledge/evidence.ts`). `tests/unit/article-evidence.test.ts` laat de
+build falen als een niveau in code afwijkt van de tabel hieronder. Wijzig een
+niveau dus eerst hier.
 
 De eigenaar vroeg of de artikelen in de kennisbanken, net als de nieuwe
 trainingsmethodes, een label kunnen krijgen waaraan je ziet hoe gegrond ze zijn.
-Dit document stelt per artikel een niveau voor. Na akkoord wordt het gebouwd
-(zie "Na akkoord").
+Dit document geeft per artikel het niveau en waarom. Een nieuw artikel krijgt
+een niveau volgens dezelfde criteria.
 
 ## Wat het niveau zegt
 
@@ -49,35 +52,23 @@ Twee regels die een niveau begrenzen:
 - Er is **niet opnieuw gezocht**, en de bronnen zijn voor dit document niet
   opnieuw gelezen. Het is een indeling van wat er al staat, geen nieuwe toets.
 
-## Eerst te beslissen
+## Besluiten van de eigenaar (2026-10-17)
 
-**1. Artikelen die iets afraden.** Bij *Wat niet werkt*, *Ketonen* en *Low-carb
-en keto* zegt het artikel: doe het niet. Daar kan een niveau twee dingen
-betekenen:
-
-- **A.** Hoe zeker die conclusie is. *Ketonen* krijgt dan *Sterk bewijs*: twee
-  meta-analyses vonden geen effect. In een lijst leest "Ketonen — Sterk bewijs"
-  makkelijk als "ketonen werken".
-- **B.** Geen niveau, maar een eigen label **Afgeraden**.
-
-Voorstel: **B**. Het is één woord extra, maar niemand leest het verkeerd. Bij A
-staat hieronder tussen haakjes welk niveau het zou worden.
-
-**2. Lage cadans wijkt af van zijn protocol.** Het protocol
-`lage-cadans-vo2max` staat op *matig*. Het artikel komt hier op *beperkt*: het
-positieve effect rust op één proef bij 24 jonge vrouwen, de systematische review
-vond "geen sterk bewijs", en een torque-proef vond niets. Voorstel: artikel
-*beperkt*, en het protocol ook naar *beperkt*.
-
-**3. Voor de rit en het protocol Koolhydraten laden.** Het artikel komt op
-*sterk*: koolhydraatstapelen voor meer dan anderhalf uur staat in alle
-consensusstukken. Het protocol staat op *matig*. Dat mag zo blijven, want het
-protocol gaat over één precies schema (36–48 uur, 10–12 g/kg), niet over
-stapelen als zodanig. Voorstel: niets veranderen, maar je weet het.
+1. **Afgeraden.** *Wat niet werkt*, *Ketonen* en *Low-carb en keto* raden iets
+   af. Ze krijgen geen niveau maar het label **Afgeraden**. Een niveau leest
+   daar verkeerd: "Ketonen — Sterk bewijs" zou je lezen als "ketonen werken".
+   Twee meta-analyses vonden juist geen effect.
+2. **Lage cadans.** Het artikel staat op *beperkt*: het positieve effect rust op
+   één proef bij 24 jonge vrouwen, de systematische review vond "geen sterk
+   bewijs", en een torque-proef vond niets. Het protocol `lage-cadans-vo2max`
+   ging daarom ook van *matig* naar *beperkt*.
+3. **Voor de rit.** Het artikel staat op *sterk*, het protocol Koolhydraten
+   laden blijft op *matig*. Het protocol gaat over één precies schema (36–48
+   uur, 10–12 g/kg), niet over stapelen als zodanig.
 
 ## Per artikel
 
-### Trainen (19)
+### Trainen (20)
 
 | Artikel | Niveau | Waarom |
 |---|---|---|
@@ -85,6 +76,7 @@ stapelen als zodanig. Voorstel: niets veranderen, maar je weet het.
 | Zones: een afspraak, geen grens in je lijf | **Matig** | Meerdere studies laten hetzelfde zien: FTP valt niet samen met de drempel, en een vaste procent geeft per persoon iets anders. Wel klein, en vooral bij mannen. De ZWB-zones zelf zijn een afspraak. |
 | Lange ritten en duurvermogen | **Beperkt** | Dat duurvermogen telt, is goed beschreven. Hoe je het traint, is nauwelijks in proeven getest, en dat is het advies. Gelijk aan het protocol Duurtest. |
 | Korte intervallen (30/15) | **Matig** | Gecontroleerde proeven bij fietsers, maar klein en vrijwel allemaal van één groep. Een meta-analyse ziet geen duidelijk winnende lengte. |
+| Intervallen: tempo, drempel, VO2max en anaeroob | **Matig** | Meerdere meta-analyses die het eens zijn: intervallen geven iets meer VO2max dan alleen duur, en geen vorm wint duidelijk. Maar vooral bij niet of matig getrainde mensen, en vooral op VO2max (regel 1). Tempo en sweet spot rusten op twee blokweekproeven van één groep. Toegevoegd 2026-10-17 op verzoek van de eigenaar, zodat de gewone intervalworkouts in de bibliotheek een niveau krijgen; het niveau is dezelfde dag door de eigenaar goedgekeurd. |
 | Gepolariseerd of piramidaal | **Sterk** | Twee meta-analyses, waaronder een op individuele deelnemersdata, komen allebei uit op weinig of geen verschil. |
 | Rustige ritten rustig | **Matig** | Hoe goed getrainde renners hun tijd verdelen, is goed beschreven. Het advies om tempo apart te plannen is een vuistregel van coaches, met een paar kleine proeven, deels bij lopers. |
 | Je FTP: wat de test meet | **Matig** | Veel studies naar betrouwbaarheid en geldigheid, die het eens zijn. Wel klein en vooral bij getrainde mannen; geen meta-analyse. |
@@ -126,9 +118,9 @@ stapelen als zodanig. Voorstel: niets veranderen, maar je weet het.
 | Visolie en omega-3 | **Beperkt** | Voor prestatie vooral mechanisme en kleine studies, zelden bij fietsers. |
 | Probiotica | **Beperkt** | Een ISSN-standpunt, maar elk effect hangt af van de stam, en de studies zijn klein en wisselend. |
 | Mondspoelen met koolhydraten of menthol | **Matig** | Twee meta-analyses, met een klein effect dat afhangt van de situatie. |
-| Wat niet werkt | **Afgeraden** *(bij A: Matig)* | Een Cochrane-review over magnesium, reviews over BCAA's en CBD, en een proef over vitamine C en E. Gemengd per middel. |
-| Ketonen | **Afgeraden** *(bij A: Sterk)* | Twee meta-analyses vonden geen effect op prestatie. Het herstelonderzoek is één groep. |
-| Low-carb en keto | **Afgeraden** *(bij A: Matig)* | Eén sterke proef, maar bij snelwandelaars, plus een UCI-review. |
+| Wat niet werkt | **Afgeraden** | Een Cochrane-review over magnesium, reviews over BCAA's en CBD, en een proef over vitamine C en E. Gemengd per middel. |
+| Ketonen | **Afgeraden** | Twee meta-analyses vonden geen effect op prestatie. Het herstelonderzoek is één groep. |
+| Low-carb en keto | **Afgeraden** | Eén sterke proef, maar bij snelwandelaars, plus een UCI-review. |
 | Gezonde basis | **Sterk** | De Richtlijnen goede voeding van de Gezondheidsraad. Die gaan over gezondheid, niet over prestatie; dat staat in de beperkingen. |
 
 ### Core & mobiliteit (12)
@@ -152,24 +144,22 @@ stapelen als zodanig. Voorstel: niets veranderen, maar je weet het.
 
 | | Sterk | Matig | Beperkt | Afgeraden |
 |---|---|---|---|---|
-| Trainen | 3 | 10 | 6 | – |
+| Trainen | 3 | 11 | 6 | – |
 | Voeding | 7 | 11 | 4 | 3 |
 | Core & mobiliteit | – | 8 | 4 | – |
-| **Totaal (56)** | **10** | **29** | **14** | **3** |
+| **Totaal (57)** | **10** | **30** | **14** | **3** |
 
 Kracht heeft geen *sterk*, omdat bijna al het bewijs klein is of niet bij
 wielrenners is gedaan. Dat klopt met de toets van fase 4.
 
-## Na akkoord
+## Waar het staat
 
-- Elk artikel krijgt in code een veld met zijn niveau (of Afgeraden).
-- Een test laat de build falen als een artikel geen niveau heeft.
-- Het niveau komt in beeld:
-  - op het artikel;
-  - in de drie kennisbanklijsten;
-  - in de leeszaal, en je kunt erop zoeken.
-- De coachchat krijgt het niveau mee in zijn kennisbankblok, zodat hij zijn
-  antwoord ernaar weegt.
-- `/hulp` legt de drie niveaus uit, met de criteria hierboven.
-- Bij akkoord op punt 2 gaat ook het protocol `lage-cadans-vo2max` naar
-  *beperkt*.
+- **Op elk artikel**, onder de samenvatting, naast Veelbelovend of
+  Experimenteel.
+- **In de drie kennisbanklijsten**, achter de titel, met een korte legenda
+  bovenaan. De legenda toont alleen de niveaus die in die kennisbank voorkomen.
+- **In ZWBieb**: in de leeszaal, met legenda en zoeken op niveau, en bij een
+  onderwerp in het blok "In de leeszaal".
+- **In de coachchat**: elk artikel gaat met zijn niveau mee. De coach zegt erbij
+  als zijn antwoord op beperkt bewijs steunt, en raadt een afgeraden middel af.
+- **Op `/hulp`**: de criteria in het kort.

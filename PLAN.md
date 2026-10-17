@@ -185,6 +185,151 @@ drie 2026-10-16).
 
 ---
 
+> **Design tegels, tweede auditronde: paginatitels, cijferkaarten, knoppen en segmentschakelaars, 2026-10-17 — gebouwd, lokaal getest en ingelogd in de browser bekeken (375 px, licht en donker); gepusht naar `main` (eigenaar, 2026-10-17, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/impeccable-design-audit-9d704d`.
+>
+> **Waarom.** Vervolg op de audit hieronder, op verzoek van de eigenaar: eigen
+> paginakoppen zonder `PageHeader`, de rij cijferkaarten op Teams-detail,
+> omlijnde secundaire knoppen, ronde knoppen en de segmentschakelaars.
+>
+> **Wat.** Bijna alles in CSS binnen `[data-design="tegels"]`. Het klassieke
+> design verandert niet.
+> - *Paginatitels.* Een eigen `h1` met `text-2xl` of `text-3xl` (Teams-detail,
+>   de beheerschermen, SRC, profiel en ledenprofiel, de formulieren) krijgt
+>   dezelfde lichte grote titel als de paginakop. De eventkop en de paginakop
+>   zelf houden hun eigen regel.
+> - *Cijferkaarten.* De drie kaarten Renners, Teamraces en ZRL-starts op
+>   Teams-detail zijn één paneel met drie cijfers, cijfer boven het label, geen
+>   pictogram (klasse `tg-metric-row`).
+> - *Omlijnde knoppen* (variant outline, ook als link): geen rand, een vlak in
+>   `--muted`. Een knop is een actie en krijgt geen plekkleur; de hoofdknop houdt
+>   de actiekleur.
+> - *Ronde knoppen.* De regel die ronde labels recht maakt, geldt nu ook voor
+>   knoppen en labels (schema, core-series, Vermogen). Uitzondering blijft alles
+>   met een `size-`-klasse (avatars, bolletjes).
+> - *Segmentschakelaars.* Watt/W/kg/% FTP, Lijst/Maand, Week/Maand/Jaar, het
+>   bereik op Stats, Mikpunt/Periode en de grafiekschakelaars op Stats → Ik zijn
+>   overal met de hand gebouwd als omlijnde houder (`border p-0.5`) met een
+>   gevulde actieve knop. Ze worden daaraan herkend (`:has(> .bg-primary)`) en
+>   zien er nu uit als de tweede menurij: losse vlakken van 44 px in de kleur van
+>   de plek, de gekozen als paneel met de gouden lijn.
+> - *De kleur van de plek* (`--tg-here`) wordt afgelezen aan de actieve tab van
+>   de schil: goud, petrol, teal of sage; zonder plek (profiel, garage, beheer,
+>   hulp) donker petrol. Klasse `tg-here` zet die kleur op een `tg-link`. De
+>   periodestrip op Stats en `SectionNav` gebruiken die. `SectionNav` kreeg een
+>   optionele `tone`: Beheer geeft de kleur van de categorie mee.
+> - *Filterchips op de kalender* (Alles, Voor mij, Labels): petrol vlakken van
+>   44 px, de gekozen als paneel met de gouden lijn (klasse `tg-chip`).
+>
+> **Bewust niet gedaan.**
+> - Paginatitels omzetten naar `PageHeader`. Dat zou ook het klassieke design
+>   veranderen, en dat staat live voor alle leden.
+> - De gekleurde markeringen van trainingen in de maandkalender van het schema:
+>   dat zijn gegevens in een dagvak, geen knoppen.
+> - De rollabels op profiel en Leden (onder meer Systeemadmin in rood), de vaste
+>   Tailwind-statuskleuren (amber en emerald) en de profielkop met omslagbalk:
+>   voor een volgende ronde.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon. Vitest op `admin-areas`,
+> `design-places` en `nav-active` geslaagd (23). Detector van impeccable:
+> niets op de gewijzigde bestanden. Ingelogd op 375 px bekeken: Teams-detail
+> (titel, cijferpaneel, Watt/W/kg in sage, rustige knoppen, ook licht), het
+> ZWBeter-schema (Watt-schakelaar en Lijst/Maand in teal), Stats (Week/Maand/Jaar
+> en de periodestrip in sage), de kalender (filterchips), Beheer → Tips en
+> citaten (titel, subtabs in de kleur van Community) en het profiel (titel).
+>
+> **Niet geverifieerd.** De overige pagina's met een eigen titel en de
+> grafiekschakelaars op Stats → Ik zijn niet een voor een bekeken; ze vallen
+> onder dezelfde regels. Desktopbreedte niet opnieuw bekeken. Volledige vitest-run
+> en `npm run build` niet opnieuw gedraaid.
+
+> **Design tegels: menu's, dialogen, tweede menurij en de inlogschermen, 2026-10-17 — gebouwd, lokaal getest en ingelogd in de browser bekeken (375 px, licht en donker); gepusht naar `main` (eigenaar, 2026-10-17, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/impeccable-design-audit-9d704d`.
+>
+> **Waarom.** De eigenaar zag dat de inlogpagina en een paar menu's het nieuwe
+> design nog niet volgden. Een audit van alle pagina's in "tegels" bevestigde
+> het: alles buiten `[data-design="tegels"]` hield het oude design.
+> Uitklapmenu's en dialogen renderen in een portal onder `<body>`, en de
+> inlogschermen hebben geen app-layout. Gemeten: het avatar-menu had rijen van
+> 28 px met 14 px tekst naast een schil op 17 px. De tabs onder de
+> ZWBeter-pijlers waren nog de oude omkaderde balk met een gevulde pil, bij licht
+> in petrol (de kleur van de kalender).
+>
+> **Wat.**
+> - De tokens van tegels (`--tg-*`) staan ook op `:root:has([data-design="tegels"])`,
+>   de donkere op `.dark:has(...)`, zodat portals ze kunnen gebruiken. De letter
+>   staat daar bij naam: `--font-tegels` bestaat alleen op de schil.
+> - Uitklapmenu's (`data-slot="dropdown-menu-*"`): recht, zweefschaduw zonder
+>   ring, rijen van 44 px met 17 px tekst, labels in onderkast. De knop Uit staat
+>   als gewone rij.
+> - Dialogen (`data-slot="dialog-*"`): geen rand of ronding, titel in de lichte
+>   tegelletter, sluitknop van 44 px. Binnen de dialoog geldt dezelfde vertaling
+>   als op de pagina: tekstmaten, onderkast, vlakke velden, knoppen van 44 px.
+> - Tweede menurij: `SectionNav` (onder de ZWBeter-pijlers, bij Voeding, Kracht
+>   en de trainer) en de ZWBieb-tabs krijgen `tg-link` in de kleur van de plek:
+>   teal voor ZWBeter, sage voor ZWBieb (de club en de mensen). *(Bijgewerkt
+>   later op 2026-10-17: `SectionNav` neemt nu de kleur van de plek waar je bent,
+>   bij Beheer die van de categorie; op ZWBeter blijft dat teal.)* Waar je bent is
+>   het paneel met de gouden lijn, zoals bij de pijlers. `.tg-subnav` haalt de
+>   omkaderde balk weg. De rennerkiezer van de trainer is een teal vlak van 44 px.
+> - Themaknop en terugknop in de balk van tegels zijn 44 px, net als hulp en
+>   avatar (`className`-prop op `ThemeToggle` en `BackButton`).
+> - Velden in tegels verliezen `shadow-sm` en de oude focusring; focus is de
+>   omlijning in de ringkleur.
+> - Inloggen, wachten op goedkeuring en nieuw wachtwoord hebben in tegels een
+>   eigen kader (`components/tegels/auth-frame.tsx`) met tenuebanen en het
+>   originele logo. Inloggen en Registreren staan als pijlers, de velden zijn
+>   vlak, de hoofdactie is goud en de magic link sage. Een bevestiging is een
+>   paneel met de gouden lijn (`.tg-note`) in plaats van een groene doos.
+>   Wachten en nieuw wachtwoord toonden nog `ZwbLogo` (de drie schuine vlakken);
+>   in tegels nu het origineel. `login/page.tsx` is een servercomponent; de
+>   clientcode staat in `login/auth-screen.tsx`. Het lettertype van tegels staat
+>   in `components/tegels/font.ts`, gedeeld door schil en kader.
+> - `/ontwerp-voorbeeld?scherm=inloggen` toont de inlogpagina in tegels; de echte
+>   stuurt een ingelogde bezoeker door.
+>
+> **Besluit van de bouwer, voor de eigenaar om te toetsen: vóór het inloggen kiest
+> het cookie alleen het design** (`getAuthDesign` in `lib/design.ts`). Daar is
+> nog geen lid om het recht van na te gaan. Het cookie zet alleen de schakelaar,
+> en die vraagt het recht. Wie het met de hand zet, ziet alleen deze drie schermen
+> anders, geen data.
+>
+> **Bewust niet gedaan.**
+> - Het klassieke design blijft zoals het was: de inlogkaart, `ZwbLogo` op
+>   wachten en reset, de menu's. Twee kleine uitzonderingen gelden ook daar: de
+>   rennerkiezer en de ZWBieb-tabs zijn minstens 44 px hoog (Duimregel), en het
+>   "of" boven de magic link is een flexregel in plaats van een lijn met een vlak
+>   erover (ziet er hetzelfde uit).
+> - De rest van de audit staat voor een volgende ronde *(bijgewerkt: de tweede
+>   auditronde van dezelfde dag deed de titels, cijferkaarten, knoppen en
+>   schakelaars; de statuskleuren staan nog open)*: eigen paginakoppen zonder
+>   `PageHeader` (Teams-detail, beheerschermen, SRC, profiel en ledenprofiel),
+>   rijen identieke cijferkaarten op Teams-detail, omlijnde secundaire knoppen,
+>   ronde knoppen in het schema, de core-series en Vermogen, de
+>   segmentschakelaars (Watt/W/kg, Week/Maand, Lijst/Maand) en de vaste
+>   Tailwind-statuskleuren (vooral amber en emerald).
+> - `MobileMenu` en de desktopnavigatie: die horen alleen bij het klassieke design.
+>
+> **Getest.** `tsc --noEmit` en ESLint schoon. Vitest: 2562 geslaagd; drie tests
+> liepen in een volle run op een time-out terwijl de dev-server meedraaide, en
+> slaagden los. Ingelogd op localhost met de eigen data van de eigenaar, op
+> 375 px: ZWBeter-schema met de nieuwe tabs, het avatar-menu (gemeten: rijen van
+> 44 px, 17 px tekst, schaduw zonder ring), de dialoog Tegels aanpassen op
+> Stats → Ik, en ZWBieb. De inlogpagina en de resetstand via de voorbeeldpagina,
+> in licht en donker. Detector van impeccable: alleen adviezen dat tegelmaten
+> buiten de typeladder van DESIGN.md vallen. DESIGN.md beschrijft nog het
+> klassieke design.
+>
+> **Niet geverifieerd.** De echte `/login`, `/wachten` en `/wachtwoord-resetten`
+> in tegels: ingelogd stuurt `/login` door, wachten vraagt een niet-goedgekeurd
+> account, reset een resetlink. De trainertabs en de rennerkiezer (niet
+> geopend). De inlogschermen op desktopbreedte. `npm run build` is niet gedraaid.
+>
+> **Bijvondsten.** `/events/[id]/bewerk` geeft lokaal een 500: `link-editor.tsx`
+> (client) haalt via `race-links`, `external-scan` en `safe-fetch` de module
+> `node:net` binnen. Dat is in een aparte sessie opgepakt. `/stats/ik` loopt op
+> 375 px horizontaal over: een rij in een recordtegel is 612 px breed.
+
 > **Achievements als tab onder Stats, plus een Badges-tegel op Stats → Ik, 2026-10-16 — gebouwd, lokaal getest; niet ingelogd in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-16, `727bd23`). Geen migratie.**
 > Commit: `727bd23`.
 >
@@ -2636,6 +2781,9 @@ drie 2026-10-16).
 >   paneelrijen, omkaderde vlakken zijn vlakke panelen, ronde labels zijn recht,
 >   knoppen en tabelkoppen zijn onderkast, velden zijn vlak. Dialogen en
 >   uitklapmenu's krijgen via `:has()` dezelfde hoeken en donkere vlakken.
+>   *(Bijgewerkt 2026-10-17: dat bleek niet genoeg. Ze hielden de oude rijen van
+>   28 px, ringen en tekstmaten; sinds die dag krijgen ze ook de tokens, de
+>   letter en duimhoogte, zie de ronde van die dag.)*
 >   **Dit is een vertaling van patronen, geen herontwerp per pagina:** de
 >   opbouw van elk blok is ongewijzigd.
 >
@@ -9825,6 +9973,113 @@ terwijl de prompt tot 2026-10-16 "ongeveer 10%" zei. De bevindingen voor groei e
 recentLoad zijn met de hand nagelopen op een handvol generaties; dat is een
 steekproef, geen volledige controle.
 
+### Opgeleverd — Kennisartikel Intervallen: tempo, drempel, VO2max en anaeroob
+
+**2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Waarom.** Na de vorige ronde hadden 20 workouts in de bibliotheek geen
+bewijslabel, omdat er geen artikel was dat de gewone intervalvormen onderbouwt.
+De eigenaar vroeg om zo'n artikel, met een niveau volgens de criteria.
+
+**Wat er veranderde.**
+- Nieuw artikel `intervallen` in de kennisbank trainen (categorie Intensiteit),
+  met negen bronnen, alle nagekeken in PubMed: vijf meta-analyses (Milanović
+  2015, Gist 2014, Sloth 2013, Rosenblat 2020, Mølmen 2025) en vier proeven
+  (Seiler 2013, Mølmen 2025, Rønnestad 2025, Neal 2013). Kern: intervallen geven
+  iets meer VO2max dan alleen duur, geen vorm wint duidelijk, dus afwisselen.
+- Niveau **Matig**: meerdere meta-analyses die het eens zijn, maar vooral bij
+  niet of matig getrainde mensen en vooral op VO2max (regel 1 van de criteria).
+  Tempo en sweet spot rusten op twee blokweekproeven van één groep; dat staat in
+  de beperkingen. Het niveau staat in `docs/bewijsniveau-kennisbank.md` (trainen
+  nu 20 artikelen, totaal 57). **Goedgekeurd door de eigenaar op 2026-10-17**,
+  na het bouwen; de tabel zegt dat ook.
+- `workout-support.ts` hangt tempo, sweet spot, drempel, VO2max, anaeroob en
+  sprint aan dit artikel, na de specifieke koppelingen (blokweek, wisselend,
+  onderhoud, lage cadans). Alle 58 standaardworkouts hebben nu een label.
+- In ZWBieb staat het artikel op de plank Trainen, vóór Korte intervallen.
+
+**Bewust niet gedaan.**
+- Geen apart artikel voor tempo en sweet spot met *beperkt*. Dat zou eerlijker
+  zijn voor die twee vormen (er is nauwelijks onderzoek naar), maar de vraag
+  was één artikel. De beperking staat in het artikel; splitsen kan later.
+- Geen nieuwe zoektocht naar alle literatuur: de bronnen zijn gekozen en
+  nagekeken, niet systematisch gezocht. De maandelijkse literatuurscan neemt
+  het artikel vanzelf mee.
+
+**Controle.** Volledige `vitest`: alles groen, op twee PGlite-time-outs na
+(`rls-initplan-migration`, `admin-areas`) die los opnieuw gedraaid slagen.
+`eslint` schoon; `tsc` schoon op de bekende fouten na (`read-barcode.ts`,
+`gopher-image-ocr.ts`, en een kapot gegenereerd `.next/dev/types/validator.ts`
+van de draaiende dev-server).
+
+**In de browser bekeken** (dev-server, 2026-10-17): het artikel toont Matig
+bewijs, de punten, beperkingen en negen bronnen. In de bibliotheek hebben alle
+58 workouts een badge; 20 linken naar Intervallen. Geen consolefouten.
+
+### Opgeleverd — Workout-bibliotheek: blokken en bewijsniveau per workout
+
+**2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Wat er veranderde.** De eigenaar wilde in de workout-bibliotheek van de trainer
+(`/zwbeter-worden/trainer/schema`) dezelfde weergave als in het schema van het
+lid, en de bewijslabels van de kennisbank.
+- **Blokken.** Elke workout toont de gekleurde blokkenbalk (`WorkoutBlocks`),
+  met de FTP van het lid voor de watts. De pagina haalt daarvoor nu ook
+  `structure_json` van `training_workout_templates` op.
+- **Bewijsniveau.** Een workout krijgt geen eigen niveau maar leent dat van het
+  kennisartikel dat hem onderbouwt (`src/lib/training/workout-support.ts`). Zo
+  staat een niveau op één plek (`docs/bewijsniveau-kennisbank.md`) en kan het
+  niet uit elkaar lopen. De badge linkt naar dat artikel. Koppeling:
+  blokweken → *Blokweken*; aflopend, snelle start en wisselend → *VO2max met
+  wisselend vermogen*; 6x30s onderhoud en Duur 90 met 3x3 sprints → *Sprints
+  als onderhoud*; Kracht 6x2 laag toerental → *Lage cadans*; tests → *Je FTP*;
+  warming-ups → *Warming-up*; herstelritten en duurritten onder 150 minuten →
+  *Rustige ritten rustig*; duurritten vanaf 150 minuten → *Lange ritten*.
+  Het label Veelbelovend of Experimenteel blijft ernaast staan.
+
+**Bewust niet gedaan.**
+- ~~Geen niveau op 20 workouts~~ (tempo, sweet spot behalve de blokweken,
+  drempel, de gewone VO2max-intervallen, anaeroob, Sprint 6x1 met aanloop en
+  Sprint 8x1): er was geen artikel dat die vormen direct onderbouwde, en ze aan
+  *Zones* of *Korte intervallen* hangen zou een niveau suggereren dat dat artikel
+  niet geeft. **Ingehaald** door de ronde "Kennisartikel Intervallen" hierboven.
+- **Geen niveau op eigen workouts** van trainers: ZWB weet niet wat erin staat.
+- **Geen legenda** in de bibliotheek: dat is uitleg in een featurescherm. De
+  badge linkt naar het artikel, en de legenda staat op de kennisbanklijst.
+- Het niveau gaat niet mee naar de geplande workout van het lid; alleen de
+  bibliotheek toont het.
+
+**Controle.** `tests/unit/workout-support.test.ts` (nieuw) bewaakt de koppeling
+en dat elk gekoppeld artikel bestaat. `eslint` op de gewijzigde bestanden is
+schoon; `tsc` ook, op de bekende fouten in `read-barcode.ts` en
+`gopher-image-ocr.ts` na.
+
+**In de browser bekeken** (dev-server, al ingelogd als trainer, 2026-10-17): alle
+58 workouts tonen hun blokken, 38 hadden toen een badge met de koppeling hierboven en
+de juiste link. Op 375 px geen horizontale scroll, geen consolefouten. Het paneel
+was verborgen, dus de controle liep via de DOM, niet via screenshots.
+
+### Opgeleverd — "… op de fiets" op je eigen profiel linkt naar `/stats/ik`
+
+**2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Wat er veranderde.** De kop van het blok `RiderStats` ("… op de fiets") is op
+je eigen profiel een link naar `/stats/ik`, met een pijltje. `RiderStats` kreeg
+daarvoor een optionele `href`; `member-profile.tsx` geeft die alleen mee als het
+lid naar zichzelf kijkt (`self`). Dat geldt dus voor de weergave "Zoals leden je
+zien" op `/profiel` en voor `/leden/<eigen id>`.
+
+**Bewust niet gedaan.**
+- De hele sectie klikbaar maken: het blok bevat al "Bekijk op Strava"-links, en
+  een link in een link is geen geldige HTML.
+- Een link op andermans profiel: `/stats/ik` toont altijd de stats van de kijker,
+  niet die van het lid.
+
+**Controle.** `eslint` op de gewijzigde bestanden is schoon. `tsc` is schoon, op
+de bekende fouten in `read-barcode.ts` en `gopher-image-ocr.ts` na.
+
+**Niet geverifieerd.** De pagina in de browser.
+
 ### Opgeleverd — Maandelijkse literatuurscan van de kennisbank
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -9883,39 +10138,91 @@ PubMed-zoekvragen gebruiken daarom `[tiab]`-termen zonder jokertekens.
 2 november 2026. Of de taak in Auto-modus de worktree en de commit zonder vragen
 mag maken, blijkt dan.
 
-### Voorstel — bewijsniveau per kennisartikel (wacht op akkoord)
+### Opgeleverd — bewijsniveau per kennisartikel
 
-**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen code, geen
-migratie. Uitwerking: [bewijsniveau-kennisbank](docs/bewijsniveau-kennisbank.md).
+**Voorgesteld 2026-10-16 (`2aafc8c`), goedgekeurd en gebouwd 2026-10-17.**
+Commit: de commit die dit blok toevoegt. Geen migratie. Criteria en niveau per
+artikel: [bewijsniveau-kennisbank](docs/bewijsniveau-kennisbank.md).
 
 **Aanleiding.** Na de leeszaal vroeg de eigenaar of alle kennisartikelen, net
 als de nieuwe trainingsmethodes, een label kunnen krijgen waaraan je ziet hoe
-gegrond ze zijn.
+gegrond ze zijn. Bij akkoord vroeg hij er een korte legenda bij, in de
+kennisbanken en in ZWBieb.
 
-**Het voorstel.**
-- Alle 56 artikelen krijgen het bewijsniveau van de protocollen: sterk, matig
-  of beperkt. Dat komt naast Veelbelovend en Experimenteel, zoals bij de
-  trainingsmethodes is afgesproken.
-- Het niveau gaat over het centrale advies van een artikel, met vaste criteria
-  en twee begrenzingen:
+**Wat er veranderde.**
+- Elk artikel heeft een veld `evidence`. De waarden zijn die van de protocollen
+  (sterk, matig, beperkt) plus `afgeraden`, en staan in
+  `src/lib/knowledge/evidence.ts`.
+- Het niveau gaat over het centrale advies, met vaste criteria en twee
+  begrenzingen:
   - alleen een tussenmaat: hooguit matig;
-  - niet bij duursporters onderzocht: hooguit matig.
-- Uitkomst: 10 sterk, 29 matig, 14 beperkt. Drie artikelen die iets afraden
-  (Wat niet werkt, Ketonen, Low-carb en keto) krijgen bij voorkeur geen niveau
-  maar het label Afgeraden.
-- Ingedeeld op de bronnen en beperkingen die al in de app staan, en op de
-  wetenschappelijke toets. Er is niet opnieuw gezocht en de bronnen zijn niet
-  opnieuw gelezen.
+  - niet bij duursporters: hooguit matig.
+- Uitkomst: 10 sterk, 29 matig, 14 beperkt, 3 afgeraden.
+- Het niveau staat naast Veelbelovend en Experimenteel, en vervangt die niet.
+- **Besluiten van de eigenaar.**
+  - *Wat niet werkt*, *Ketonen* en *Low-carb en keto* krijgen **Afgeraden** in
+    plaats van een niveau.
+  - Het protocol `lage-cadans-vo2max` ging van matig naar **beperkt**, gelijk
+    aan zijn artikel.
+  - Het protocol Koolhydraten laden blijft matig naast een artikel op sterk.
+- **Waar het staat:**
+  - **Badge** (`src/components/evidence-badge.tsx`):
+    - op elk artikel, onder de samenvatting;
+    - achter de titel in de drie kennisbanklijsten;
+    - in de leeszaal, met zoeken op niveau;
+    - in ZWBieb bij een onderwerp ("In de leeszaal").
+  - **Legenda** bovenaan de drie kennisbanklijsten en de leeszaal. Hij toont
+    alleen de niveaus die in die lijst voorkomen. Bij trainen en in de leeszaal
+    staan er ook Veelbelovend en Experimenteel in.
+  - **`/hulp`** heeft een blok "Bewijsniveau" met de criteria in het kort. De
+    hulpzoeker vindt het op "bewijs".
+- **Coachchat.** Elk artikel gaat met "Bewijs: …" mee in het kennisbankblok.
+  De prompt zegt nu:
+  - bij beperkt bewijs zegt de coach dat erbij;
+  - iets afgeraden raadt hij af, ook als het lid erom vraagt.
+- **Kennisbank-scan.** `scripts/kennisbank-inventaris.mjs` zet het niveau
+  ("Bewijs:") bij elk artikel en protocol. Bij protocollen stond het eerst in de
+  samenvatting. De skill `kennisbank-scan` stelt een ander niveau voor onder
+  **Label**, volgens de criteria in het document.
 
-**Ligt bij de eigenaar.**
-- Akkoord per artikel.
-- Afgeraden of een niveau voor de drie afraad-artikelen.
-- Het protocol `lage-cadans-vo2max` van matig naar beperkt, zodat het gelijk is
-  aan het artikel.
+**Bewust niet gebouwd.**
+- **Een niveau per punt binnen een artikel.** Dat zijn honderden oordelen en
+  een onrustige pagina. Twijfel per punt staat in "Wat dit niet laat zien".
+- **Het niveau afleiden uit de soorten bronnen.** Een consensusstuk in de lijst
+  zegt niet dat het advies ervan afhangt; het is een oordeel per artikel.
 
-**Nog niet gebouwd.** Het veld per artikel, de test, de weergave (artikel,
-kennisbanklijsten, leeszaal), het niveau in de coachchat en de uitleg op `/hulp`.
-Dat volgt na akkoord.
+**Niet meer waar.**
+- `docs/protocollen-onderzoek.md` noemde lage cadans "matig". Dat is daar
+  bijgewerkt.
+
+**Getest.**
+- Nieuw: `article-evidence.test.ts`, vier tests:
+  - elk artikel heeft een geldig niveau;
+  - het niveau is gelijk aan de goedgekeurde tabel in het document; wijkt
+    code af, dan faalt de build;
+  - Afgeraden staat alleen bij de drie artikelen;
+  - het protocol lage cadans is gelijk aan zijn artikel.
+- `coach-knowledge.test.ts`: elk artikel heeft zijn niveau in het blok voor de
+  coach.
+- `tsc` en ESLint: geen nieuwe fouten.
+
+**In de browser bekeken** (dev-server, ingelogd door de eigenaar, 2026-10-17):
+- **Kennisbanklijsten.** De legenda toont per lijst alleen wat erin voorkomt:
+  - voeding: vier niveaus;
+  - trainen: drie niveaus plus Veelbelovend en Experimenteel;
+  - core & mobiliteit: alleen matig en beperkt.
+  Elke titel heeft zijn badge.
+- **Artikelen.** Blokweken toont Matig bewijs naast Veelbelovend. Ketonen toont
+  Afgeraden. Kracht op de fiets toont Beperkt bewijs. Het protocol lage cadans
+  staat op Beperkt bewijs.
+- **ZWBieb.** De leeszaal heeft de legenda en badges. Zoeken op "afgeraden"
+  geeft de drie artikelen. Een onderwerp toont "In de leeszaal" met badges.
+- **Telefoon.** Op 375 px geen horizontale scroll, en geen fouten in de console.
+- In de legenda liepen "Sterk bewijs" en "Matig bewijs" eerst over twee regels.
+  De badge breekt nu niet meer af (`whitespace-nowrap`).
+
+**Niet geverifieerd.** Hoe de coach het niveau in een echt antwoord gebruikt.
+Dat vraagt een OpenAI-call op productie.
 
 ### Opgeleverd — ZWBieb: de leeszaal, alle kennisbanken per onderwerp
 

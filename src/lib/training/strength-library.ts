@@ -10,6 +10,7 @@
 // samenvattingen; we citeren de bronnen niet letterlijk. Van de meeste bronnen
 // is alleen de samenvatting gelezen.
 
+import type { ArticleEvidence } from "@/lib/knowledge/evidence";
 import type { EvidenceKind } from "@/lib/nutrition/library";
 
 export const STRENGTH_CATEGORIES = ["kracht", "core", "mobiliteit"] as const;
@@ -31,6 +32,8 @@ export type StrengthSource = {
 export type StrengthArticle = {
   slug: string;
   category: StrengthCategory;
+  /** Hoe gegrond het centrale advies is; zie src/lib/knowledge/evidence.ts. */
+  evidence: ArticleEvidence;
   title: string;
   summary: string;
   points: string[];
@@ -329,6 +332,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
   {
     slug: "zwaar-krachtwerk-en-fietsen",
     category: "kracht",
+    evidence: "matig",
     title: "Maakt zwaar krachtwerk je sneller op de fiets?",
     summary:
       "In studies bij goed getrainde renners wel: zware beentraining naast het fietsen verbeterde fietseconomie en het vermogen in langere tests. De groepen zijn klein en de zekerheid is laag.",
@@ -363,6 +367,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
   {
     slug: "het-gymprogramma",
     category: "kracht",
+    evidence: "beperkt",
     title: "Het gymprogramma: opbouw in drie blokken",
     summary:
       "De gymseries volgen één beschreven onderzoeksprogramma: vier beenoefeningen, drie sets, twee keer per week, van tien naar zes herhalingen.",
@@ -386,6 +391,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
   {
     slug: "kracht-onderhouden-in-het-seizoen",
     category: "kracht",
+    evidence: "matig",
     title: "Kracht vasthouden in het seizoen",
     summary:
       "Na twaalf weken opbouw hield één zware sessie per week de winst in spieromvang en kracht dertien weken vast.",
@@ -407,6 +413,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
   {
     slug: "thuis-met-lichtere-gewichten",
     category: "kracht",
+    evidence: "matig",
     title: "Thuis met lichtere gewichten",
     summary:
       "Met lichtere gewichten groeit de spier vergelijkbaar als je de sets dicht bij het einde van je kunnen brengt. Maximale kracht bouw je beter op met zware gewichten.",
@@ -428,6 +435,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
   {
     slug: "kracht-en-fietsen-combineren",
     category: "kracht",
+    evidence: "matig",
     title: "Kracht en fietsen combineren",
     summary:
       "De studies deden twee krachtsessies per week naast de gewone duurtraining. Volgorde en dag maken voor je duurvermogen weinig uit; de regels in de app gaan over spierpijn vóór je sleutelsessie.",
@@ -449,6 +457,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
   {
     slug: "wielrennen-en-botdichtheid",
     category: "kracht",
+    evidence: "matig",
     title: "Wielrennen en je botten",
     summary:
       "Wegwielrenners die veel trainen hebben vaak een lage botdichtheid. Fietsen alleen geeft je botten te weinig prikkel; springen kan helpen.",
@@ -471,6 +480,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
   {
     slug: "lage-rugpijn-bij-renners",
     category: "core",
+    evidence: "beperkt",
     title: "Lage rugpijn bij wielrenners",
     summary:
       "Rugpijn is de meest voorkomende overbelasting bij renners. Renners met klachten zitten meetbaar ronder in hun onderrug.",
@@ -493,6 +503,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
   {
     slug: "wat-core-training-doet",
     category: "core",
+    evidence: "matig",
     title: "Wat core-training wel en niet doet",
     summary:
       "Core-training verbetert balans en sprongkracht bij gezonde mensen. Dat je er harder van fietst, is niet aangetoond.",
@@ -511,6 +522,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
   {
     slug: "kracht-op-de-fiets",
     category: "kracht",
+    evidence: "beperkt",
     title: "Kracht op de fiets",
     summary:
       "Korte, maximale trappen bergop in een groot verzet gaven bij goed getrainde renners evenveel kracht als squats in de sportschool, zonder extra klachten.",
@@ -533,6 +545,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
   {
     slug: "kracht-als-je-ouder-wordt",
     category: "kracht",
+    evidence: "matig",
     title: "Kracht als je ouder wordt",
     summary:
       "Met de jaren verlies je spiermassa en sprintvermogen. Krachttraining remt dat af, en ouderen hebben er waarschijnlijk iets meer van nodig om het vast te houden.",
@@ -553,6 +566,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
   {
     slug: "rekken-voor-de-rit",
     category: "mobiliteit",
+    evidence: "matig",
     title: "Rekken vlak voor de rit",
     summary:
       "Lang statisch rekken vlak voor een inspanning kost kracht in een krachttest. Voor sprongen en sprints is het nadeel kleiner of afwezig; dynamisch losmaken blijft de veiligste keuze.",
@@ -574,6 +588,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
   {
     slug: "hamstrings-en-rugpijn",
     category: "mobiliteit",
+    evidence: "beperkt",
     title: "Stijve hamstrings en rugpijn",
     summary:
       "Minder beweeglijke hamstrings en een stijve romp gaan samen met een grotere kans dat je later lage rugpijn krijgt. Het verband is er, maar klein.",

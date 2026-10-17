@@ -44,7 +44,7 @@ export function BeheerNav({ categories }: { categories: BeheerNavCategory[] }) {
       </nav>
       {/* Geen enkel scherm is de index van de rij: ZRL-beheer heeft zelf
           subpagina's, dus elke tab telt ook op zijn subroutes. */}
-      {active && active.items.length > 1 && <SectionNav items={active.items} exactHref="/beheer" />}
+      {active && active.items.length > 1 && <SectionNav items={active.items} exactHref="/beheer" tone={active.tone} />}
     </div>
   );
 }

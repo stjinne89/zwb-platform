@@ -9,6 +9,8 @@
 // uitgebreider in docs/voeding-wielrennen.md. Teksten zijn eigen samenvattingen;
 // we citeren de bronnen niet letterlijk.
 
+import type { ArticleEvidence } from "@/lib/knowledge/evidence";
+
 export const EVIDENCE_KINDS = ["consensus", "review", "studie", "richtlijn"] as const;
 export type EvidenceKind = (typeof EVIDENCE_KINDS)[number];
 
@@ -46,6 +48,8 @@ export type NutritionSource = {
 export type NutritionArticle = {
   slug: string;
   category: NutritionCategory;
+  /** Hoe gegrond het centrale advies is; zie src/lib/knowledge/evidence.ts. */
+  evidence: ArticleEvidence;
   title: string;
   summary: string;
   points: string[];
@@ -693,6 +697,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "brandstof-volgens-training",
     category: "basis",
+    evidence: "sterk",
     title: "Brandstof volgens de training",
     summary:
       "Hoeveel koolhydraten je nodig hebt, hangt af van wat je die dag en de dag erna rijdt. Het UCI-consensusstuk noemt dat eten naar het werk dat gedaan moet worden.",
@@ -736,6 +741,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "voor-de-rit",
     category: "op-de-fiets",
+    evidence: "sterk",
     title: "Voor de rit en koolhydraatstapelen",
     summary:
       "Een koolhydraatrijke maaltijd een paar uur vooraf vult je lever- en spierglycogeen aan. Stapelen heeft pas zin voor inspanningen van meer dan ongeveer anderhalf uur.",
@@ -755,6 +761,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "koolhydraten-tijdens-de-rit",
     category: "op-de-fiets",
+    evidence: "sterk",
     title: "Koolhydraten tijdens de rit",
     summary:
       "Hoe langer de rit, hoe meer koolhydraten per uur zinvol zijn. Boven de 60 g per uur heb je een mix van glucose en fructose nodig.",
@@ -800,6 +807,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "darmtraining",
     category: "op-de-fiets",
+    evidence: "matig",
     title: "Darmtraining en maagklachten",
     summary:
       "Je maag en darmen wennen aan eten tijdens inspanning. Wie structureel meer per uur wil opnemen, bouwt dat stap voor stap op.",
@@ -846,6 +854,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "vocht-en-zout",
     category: "op-de-fiets",
+    evidence: "sterk",
     title: "Vocht en zout",
     summary:
       "Begin gehydrateerd en drink naar wat je zweet. Extra natrium is vooral nodig bij lange ritten en veel zweetverlies.",
@@ -891,6 +900,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "indoor-zwift",
     category: "op-de-fiets",
+    evidence: "beperkt",
     title: "Indoor fietsen en Zwift",
     summary:
       "Binnen zweet je meer door gebrek aan rijwind, en races zijn vaak kort en hard. De UCI-review over esports beschrijft wat dat voor je eten en drinken betekent.",
@@ -911,6 +921,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "eiwit",
     category: "herstel",
+    evidence: "matig",
     title: "Eiwit",
     summary:
       "Duursporters hebben meer eiwit nodig dan het algemene advies. Verdeel het over de dag en neem een portie voor het slapen.",
@@ -960,6 +971,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "herstel",
     category: "herstel",
+    evidence: "matig",
     title: "Herstel tussen sessies",
     summary:
       "Heb je binnen ongeveer acht uur weer een zware sessie, dan telt snel aanvullen. Met meer tijd telt vooral wat je die dag in totaal eet.",
@@ -982,6 +994,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "genoeg-eten-reds",
     category: "gezondheid",
+    evidence: "sterk",
     title: "Genoeg eten: energiebeschikbaarheid en REDs",
     summary:
       "Structureel te weinig eten voor je training schaadt je gezondheid én je prestatie. Wielrenners lopen extra risico door de focus op een laag gewicht.",
@@ -1011,6 +1024,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "vrouwen",
     category: "gezondheid",
+    evidence: "matig",
     title: "Vrouwen en voeding",
     summary:
       "Voor vrouwelijke renners verdienen ijzer en genoeg energie extra aandacht. Algemene voedingsregels per cyclusfase zijn niet te onderbouwen.",
@@ -1049,6 +1063,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "ijzer",
     category: "gezondheid",
+    evidence: "matig",
     title: "IJzer",
     summary:
       "IJzer is nodig voor zuurstoftransport. Tekorten komen bij duursporters vaak voor, maar suppleren doe je alleen op basis van bloedwaarden.",
@@ -1077,6 +1092,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "botgezondheid",
     category: "gezondheid",
+    evidence: "matig",
     title: "Botgezondheid",
     summary:
       "Wielrenners hebben gemiddeld een lagere botdichtheid dan andere sporters. Fietsen belast je botten nauwelijks, en lange ritten verhogen de botafbraak.",
@@ -1097,6 +1113,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "weerstand",
     category: "gezondheid",
+    evidence: "matig",
     title: "Weerstand en ziek zijn",
     summary:
       "Verkoudheid en griep komen bij renners vaker voor in zware trainings- en wedstrijdperiodes. Genoeg energie en koolhydraten zijn de belangrijkste voedingsfactor.",
@@ -1118,6 +1135,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "masters",
     category: "gezondheid",
+    evidence: "matig",
     title: "Ouder worden als renner",
     summary:
       "Met de jaren reageren spieren minder sterk op training en eiwit, en nemen spier- en botmassa af. Eten kan dat afremmen.",
@@ -1145,6 +1163,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "supplementen",
     category: "supplementen",
+    evidence: "sterk",
     title: "Supplementen en sportvoeding",
     summary:
       "Eerst de basisvoeding op orde. Een klein aantal supplementen heeft voor wielrennen een sterke onderbouwing, elk voor een specifieke situatie. Voor herstel en gezondheid is het bewijs dunner.",
@@ -1167,6 +1186,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "kersensap",
     category: "supplementen",
+    evidence: "matig",
     title: "Kersensap en andere polyfenolen",
     summary:
       "Zuur kersensap kan je kracht na een zware inspanning sneller terugbrengen, maar alleen als je er een paar dagen vóór begint. Alleen na de wedstrijd drinken is niet onderbouwd.",
@@ -1188,6 +1208,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "collageen",
     category: "supplementen",
+    evidence: "beperkt",
     title: "Collageen en gelatine",
     summary:
       "Gelatine of collageen met vitamine C, een uur voor korte belasting, verhoogt de aanmaak van collageen. Bij een pees- of bandblessure is het een redelijke aanvulling, geen bewezen behandeling.",
@@ -1207,6 +1228,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "vitamine-d",
     category: "supplementen",
+    evidence: "matig",
     title: "Vitamine D",
     summary:
       "Vitamine D maak je vooral aan in de zon. Wie weinig buiten komt, heeft volgens de Gezondheidsraad baat bij een supplement; train je in de winter vooral binnen, dan val je daar waarschijnlijk ook onder.",
@@ -1226,6 +1248,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "omega-3",
     category: "supplementen",
+    evidence: "beperkt",
     title: "Visolie en omega-3",
     summary:
       "Omega-3-vetzuren uit vis zijn goed voor je gezondheid. Als supplement voor prestatie is het bewijs mager; eet liever vette vis.",
@@ -1245,6 +1268,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "probiotica",
     category: "supplementen",
+    evidence: "beperkt",
     title: "Probiotica",
     summary:
       "Probiotica kunnen bij sommige sporters luchtweginfecties en darmklachten iets verminderen, maar het effect hangt af van de bacteriestam en is wisselend.",
@@ -1262,6 +1286,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "mondspoelen",
     category: "supplementen",
+    evidence: "matig",
     title: "Mondspoelen met koolhydraten of menthol",
     summary:
       "Spoelen zonder door te slikken geeft je hersenen een seintje. Bij een korte tijdrit of in de hitte is er een klein effect.",
@@ -1280,6 +1305,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "geen-bewijs",
     category: "supplementen",
+    evidence: "afgeraden",
     title: "Wat niet werkt",
     summary:
       "Een aantal populaire supplementen heeft geen of te weinig bewijs. Zonde van je geld, en elk supplement is een risico op verontreiniging.",
@@ -1299,6 +1325,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "ketonen",
     category: "supplementen",
+    evidence: "afgeraden",
     title: "Ketonen",
     summary:
       "Ketondrankjes verhogen de ketonen in je bloed, maar maken je in een wedstrijd niet sneller. ZWB raadt ze af.",
@@ -1325,6 +1352,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "low-carb-keto",
     category: "basis",
+    evidence: "afgeraden",
     title: "Low-carb en keto",
     summary:
       "Ketogeen eten laat je meer vet verbranden, maar je wordt er bij wedstrijdtempo minder efficiënt van. Voor prestatie is het af te raden.",
@@ -1352,6 +1380,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "gezonde-basis",
     category: "basis",
+    evidence: "sterk",
     title: "Gezonde basis",
     summary:
       "Sportvoeding bouwt voort op gewoon gezond eten. De Nederlandse richtlijnen gelden ook voor renners; je eet er alleen meer bij.",
