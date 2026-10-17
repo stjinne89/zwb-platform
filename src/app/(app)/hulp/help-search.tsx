@@ -12,6 +12,13 @@ type HelpResult = {
 };
 
 const HELP_INDEX: HelpResult[] = [
+  {
+    title: "ZWB DS",
+    text: "Live raceoverzicht tijdens een Zwift-race: groepen, achterstanden en de ZWB'ers, voor je telefoon of tablet.",
+    href: "/hulp#zwb-ds",
+    terms:
+      "zwb ds directeur sportif ds live race overzicht raceoverzicht tweede scherm telefoon tablet ipad sauce groepen groep achterstand gat kop koersbalk sprint kom w/kg wkg watt zwift stand bijwerken",
+  },
   { title: "ZWBgame", text: "Zwift-racegame: ladder, ZRL, FRR-tour, routes, slipstream, W′, powerups, ploegorders, deelname en sportgegevens.", href: "/hulp#zwbgame", terms: "game spel wielrennen koers race zwift ladder club ladder uitdagen zrl wtrl puntenrace race of truth scratch ploegentijdrit ttt fal fts leaguepunten frr flamme rouge tour etappe tijdrit klassement egap trui groen bolletjes blauw bezemwagen punten ploeg peloton blob slipstream draft wiel w' w-prime frisheid tactiek powerup veer aerohelm draft boost supertuck sprint kom lead-out breng me terug dagvorm route ronden liggend landschap volledig scherm standen sparen meerijden naar voren aanvallen ftp gewicht wkg kwaliteiten strava intervals spelprofiel toestemming pauzeren hervatten" },
   {
     title: "FRR-tours",

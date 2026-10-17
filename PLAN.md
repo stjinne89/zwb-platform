@@ -9932,6 +9932,12 @@ nieuwe versie (tekstaanpassing, zie de afspraak over privacytekst).
 **Nog te doen:** één race meekijken op productie: of de groepen kloppen, of
 `_eventDistance` de aanloop meetelt en of de startlijst een gewicht geeft.
 
+**Eigen hulpblok, dezelfde dag.** De eigenaar miste ZWB DS op `/hulp`: de uitleg
+stond als één regel onder Teams en wedstrijden. Nu een eigen blok `#zwb-ds`
+(waar de knop staat, welke groep opent, wat op de pagina staat, hoe oud een
+stand kan zijn, geen hartslag, Sauce voor wie op een computer zwift), een
+verwijzing vanuit Teams en wedstrijden, en een ingang in de hulpzoeker.
+
 ### Onderzocht — ZWB DS: live race-informatie zonder Sauce
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
