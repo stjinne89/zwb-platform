@@ -274,9 +274,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - `0248` op de echte database: toegepast en de kolommen bestaan, maar nog
 >   geen rij met de nieuwe velden gezien.
 > - Rit `i198327319` (2026-10-17, 15:52) staat als "geen CORE-data" in de
->   tabel, nog door de oude code opgehaald (alle streams, zonder `types`). Niet
->   vastgesteld of die rit CORE-data had; zo ja, dan gaf het ophalen zonder
->   `types` de kerntemperatuur niet terug.
+>   tabel. Dat klopt: de eigenaar reed die zonder CORE (2026-10-17). Of
+>   ophalen zonder `types` de kerntemperatuur wel teruggeeft, is daarmee nog
+>   steeds niet vastgesteld; de app vraagt hem nu meestal bij naam op.
 > - De kaart en het oordeel in de browser.
 > - Of de aanwijzingen in de praktijk helpen; de grenzen zijn niet door een
 >   sportarts of trainer nagekeken.
