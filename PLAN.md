@@ -9590,6 +9590,32 @@ dag-aanpassing volgen als eigen rondes hieronder.
   uitvoer is altijd opnieuw uit te rekenen. Zo is er ook geen migratie nodig.
 - *Coachchat, pacing en maaltijdherkenning.* Taalbegrip of buiten deze ronde.
 
+**Catalogus, 2026-10-17.** Branch `claude/motor-catalogus-a72999`, geen
+migratie. `src/lib/training/engine/catalog.ts` bouwt per vorm uit
+`SESSION_FORMS` een uitgeschreven sessie (`buildSession`), met
+`minSessionMinutes` als ondergrens en `transitionRide` voor de
+overgangsperiode. Opbouw en notities komen uit de 58 standaardworkouts, de
+doelen uit de promptregels: waar de bibliotheek daarvan afwijkt, wint de
+prompt (drempel 95-102 % wordt 95-100 % onder 15 minuten en 90-95 % vanaf 15,
+VO2max 112-120 % en 115-125 % worden 110-118 %). Doelen staan altijd in %FTP;
+de notitie draagt RPE plus wattage, of zonder FTP RPE plus gevoelstaal.
+`level` schaalt het aantal herhalingen, `variant` kiest de opbouw (drempel
+4x8, 3x12, 2x20, 3x15; VO2max ook 30/15 en 40/20 als `onOff`-blok); past de
+gekozen variant niet in de tijd, dan schuift hij door naar de volgende. Duur
+komt precies op het doel uit (nooit boven `maxMinutes`): eerst gaan
+herhalingen eraf, extra tijd gaat naar in- en uitrijden en daarna naar een
+rustig duurblok na de kern. Sprint (6 x 30 sec, vast aantal zoals de prompt)
+en `transitionRide` (minstens 80 minuten) zijn `veelbelovend`, de rest
+`geen`. Lage cadans komt alleen bij de werkblokken van vo2max, anaeroob en
+sprint, niet bij openers of de sprints in een lange rit. Tests in
+`tests/unit/engine/catalog.test.ts` toetsen elke vorm over duur, niveau en
+variant op de promptregels. *Bewust niet:* de lange ritten met drempel-,
+tempo- of krachtblokken uit 0227/0228 (het kernwerk verschuift dan en de rit
+heet geen duurrit meer; kracht op lage cadans botst met de lage-cadansregel),
+de experimentele VO2max-varianten (horen bij een apart besluit in compose),
+en testen en warming-ups (geen sessievorm). Herstel krijgt in- en uitrijden
+van 5 minuten; dat compose herstel onder 90 minuten weglaat, is aan compose.
+
 ### Opgeleverd — Maandelijkse literatuurscan van de kennisbank
 
 **2026-10-16.** Commit: de commit die dit blok toevoegt. Geen migratie.
