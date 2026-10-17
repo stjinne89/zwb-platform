@@ -107,7 +107,41 @@ velden tonen, en met een korte reeks verzoeken de limiet zien. Moet gebeuren
 terwijl die renner rijdt, liefst in een race.
 
 - **Lokaal, zonder deploy:** een alleen-lezen script met Zwift-inloggegevens in
-  `.env.local`. Kost geen Netlify-tegoed.
+  `.env.local`. Kost geen Netlify-tegoed. **Gekozen door de eigenaar.**
 - **Op productie:** een knop op `/beheer/event-scan`. Kost een deploy.
 
 Pas na die meting is te zeggen welke versie van DS haalbaar is.
+
+## Meetscript
+
+`scripts/zwift-playerstate-probe.mjs` (2026-10-17). Leest
+`ZWIFT_DS_USERNAME`/`ZWIFT_DS_PASSWORD` uit `.env.local`, of anders het
+serviceaccount (`ZWIFT_USERNAME`/`ZWIFT_PASSWORD`). Een apart account heeft de
+voorkeur: het serviceaccount deelt zijn limiet met het platform, dus een meting
+tijdens een race kan de live ZRL-stand een 429 bezorgen.
+
+```
+node scripts/zwift-playerstate-probe.mjs --ids <eigen Zwift-ID's> --subgroup <subgroep> --minutes 10
+node scripts/zwift-playerstate-probe.mjs --ids <één Zwift-ID> --minutes 1 --burst 20
+```
+
+Wat het meet, en welke vraag het beantwoordt:
+
+| Uitvoer | Vraag |
+| --- | --- |
+| Statussen (200/401/403/404/429) | Krijgt dit account het endpoint? |
+| Eerste antwoord per renner, ruw | Kloppen de veldnummers uit Sauce' `zwift.proto`? |
+| Leeftijd van de status | Hoe vers is wat Zwift geeft? |
+| Nieuwe status / antwoorden, tijd ertussen | Hoe vaak verandert de status echt? |
+| Duur van een ronde, eerste 429 | Past het hele veld binnen een paar seconden? |
+| Renners met deze subgroep in hun status | Zit `eventSubgroupId` erin tijdens een race? |
+| Burst | Waar ligt de limiet? |
+
+Per verzoek een regel in `.tmp/` (in `.gitignore`), zonder namen; hartslag
+alleen van de renners in `--ids`, van de rest alleen óf er hartslag was. Na een
+429 wacht het 30 s, zoals Sauce.
+
+**Getest:** de decoder met een nagebouwde PlayerState
+(`tests/unit/zwift-playerstate-probe.test.ts`), en het hele script één keer
+tegen een nagemaakt Zwift (login, inschrijvingen, 200/404/429, burst). **Niet**
+tegen Zwift zelf: dat is de meting.

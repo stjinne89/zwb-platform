@@ -9763,6 +9763,17 @@ eigen gameclient zoals Sauce' monitoraccount is afgeraden: altijd-aan server,
 **Niet geverifieerd.** Niets is tegen Zwift gemeten: geen Zwift-inloggegevens in
 de worktree en de Sauce-pc was niet bereikbaar. Alleen Sauce' broncode gelezen.
 
+**Meetscript, dezelfde dag.** De eigenaar koos voor meten met een lokaal
+script, en zet zelf de inloggegevens in `.env.local` om het tijdens een
+race te draaien. `scripts/zwift-playerstate-probe.mjs`, alleen lezen: per renner de
+spelersstatus om de paar seconden, met statussen, leeftijd, rondeduur, eerste
+429 en optioneel een burst. Voorkeur voor een apart Zwift-account
+(`ZWIFT_DS_*`), omdat het serviceaccount zijn limiet met het platform deelt.
+Geen namen in de uitvoer; hartslag alleen van de eigen renners. Getest met
+`tests/unit/zwift-playerstate-probe.test.ts` (decoder) en één run tegen een
+nagemaakt Zwift; **niet** tegen Zwift zelf. Uitleg en wat elke uitvoer
+beantwoordt: [zwb-ds-spike.md](docs/zwb-ds-spike.md#meetscript).
+
 ### Opgeleverd — Kennisartikel Intervallen: tempo, drempel, VO2max en anaeroob
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Geen migratie.
