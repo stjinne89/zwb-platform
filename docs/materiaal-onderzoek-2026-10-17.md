@@ -239,6 +239,11 @@ niveau en waarom, en een test houdt code en tabel gelijk.
   en coachen. Met zes staan ze op de telefoon in drie rijen van twee.
 - "Kracht" is ook een zelfstandig naamwoord, dus "ZWBeter materiaal" past in het
   rijtje.
+- **Let op de naam.** `/materiaal` bestaat al: dat is Vraag en Aanbod onder
+  Club, de vroegere Materiaalzone. De pijler komt op een ander adres, maar twee
+  keer "materiaal" in het menu verwart. Mogelijke oplossingen: de pijler
+  "ZWBeter uitrusten" noemen, of "ZWBeter materiaal" houden en in het menu alleen
+  "Vraag en Aanbod" laten staan, zoals nu al.
 - Alternatief: de kennisbank onder ZWBeter racen. Racen heeft nu alleen de
   analyse van ZRL-races. Materiaal is breder dan racen, maar zo komt er geen
   pijler bij die eerst alleen een lijst is.
@@ -293,7 +298,8 @@ niveau en waarom, en een test houdt code en tabel gelijk.
 
 ## Eerst te beslissen
 
-1. **Waar**: een eigen pijler "ZWBeter materiaal" (voorstel), of onder racen.
+1. **Waar en hoe heet het**: een eigen pijler "ZWBeter materiaal" (voorstel), of
+   onder racen; en de naam, gezien Vraag en Aanbod op `/materiaal`.
 2. **Bewijsniveau bij materiaal**: metingen tellen als bewijs, met de nieuwe
    bronsoort `meting` (voorstel), of alleen de bestaande criteria. Met alleen de
    bestaande criteria komt bijna elk artikel over lucht en rollen op *beperkt*,

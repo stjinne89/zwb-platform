@@ -10594,7 +10594,8 @@ vroeg of daar een onderdeel voor kan komen, te beginnen met een kennisbank.
 - Een rekenhulp voor de zadelhoogte.
 
 **Ligt bij de eigenaar.**
-- Waar: een eigen pijler of onder racen.
+- Waar: een eigen pijler of onder racen. Let op de naam: `/materiaal` is al
+  Vraag en Aanbod.
 - Of metingen meetellen als bewijs.
 - Afgeraden voor de drie kleine middelen.
 - De volgorde van de fases.
