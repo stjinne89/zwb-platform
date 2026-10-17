@@ -9616,39 +9616,76 @@ PubMed-zoekvragen gebruiken daarom `[tiab]`-termen zonder jokertekens.
 2 november 2026. Of de taak in Auto-modus de worktree en de commit zonder vragen
 mag maken, blijkt dan.
 
-### Voorstel — bewijsniveau per kennisartikel (wacht op akkoord)
+### Opgeleverd — bewijsniveau per kennisartikel
 
-**2026-10-16.** Commit: de commit die dit blok toevoegt. Geen code, geen
-migratie. Uitwerking: [bewijsniveau-kennisbank](docs/bewijsniveau-kennisbank.md).
+**Voorgesteld 2026-10-16 (`2aafc8c`), goedgekeurd en gebouwd 2026-10-17.**
+Commit: de commit die dit blok toevoegt. Geen migratie. Criteria en niveau per
+artikel: [bewijsniveau-kennisbank](docs/bewijsniveau-kennisbank.md).
 
 **Aanleiding.** Na de leeszaal vroeg de eigenaar of alle kennisartikelen, net
 als de nieuwe trainingsmethodes, een label kunnen krijgen waaraan je ziet hoe
-gegrond ze zijn.
+gegrond ze zijn. Bij akkoord vroeg hij er een korte legenda bij, in de
+kennisbanken en in ZWBieb.
 
-**Het voorstel.**
-- Alle 56 artikelen krijgen het bewijsniveau van de protocollen: sterk, matig
-  of beperkt. Dat komt naast Veelbelovend en Experimenteel, zoals bij de
-  trainingsmethodes is afgesproken.
-- Het niveau gaat over het centrale advies van een artikel, met vaste criteria
-  en twee begrenzingen:
+**Wat er veranderde.**
+- Elk artikel heeft een veld `evidence`. De waarden zijn die van de protocollen
+  (sterk, matig, beperkt) plus `afgeraden`, en staan in
+  `src/lib/knowledge/evidence.ts`.
+- Het niveau gaat over het centrale advies, met vaste criteria en twee
+  begrenzingen:
   - alleen een tussenmaat: hooguit matig;
-  - niet bij duursporters onderzocht: hooguit matig.
-- Uitkomst: 10 sterk, 29 matig, 14 beperkt. Drie artikelen die iets afraden
-  (Wat niet werkt, Ketonen, Low-carb en keto) krijgen bij voorkeur geen niveau
-  maar het label Afgeraden.
-- Ingedeeld op de bronnen en beperkingen die al in de app staan, en op de
-  wetenschappelijke toets. Er is niet opnieuw gezocht en de bronnen zijn niet
-  opnieuw gelezen.
+  - niet bij duursporters: hooguit matig.
+- Uitkomst: 10 sterk, 29 matig, 14 beperkt, 3 afgeraden.
+- Het niveau staat naast Veelbelovend en Experimenteel, en vervangt die niet.
+- **Besluiten van de eigenaar.**
+  - *Wat niet werkt*, *Ketonen* en *Low-carb en keto* krijgen **Afgeraden** in
+    plaats van een niveau.
+  - Het protocol `lage-cadans-vo2max` ging van matig naar **beperkt**, gelijk
+    aan zijn artikel.
+  - Het protocol Koolhydraten laden blijft matig naast een artikel op sterk.
+- **Waar het staat:**
+  - **Badge** (`src/components/evidence-badge.tsx`):
+    - op elk artikel, onder de samenvatting;
+    - achter de titel in de drie kennisbanklijsten;
+    - in de leeszaal, met zoeken op niveau;
+    - in ZWBieb bij een onderwerp ("In de leeszaal").
+  - **Legenda** bovenaan de drie kennisbanklijsten en de leeszaal. Hij toont
+    alleen de niveaus die in die lijst voorkomen. Bij trainen en in de leeszaal
+    staan er ook Veelbelovend en Experimenteel in.
+  - **`/hulp`** heeft een blok "Bewijsniveau" met de criteria in het kort. De
+    hulpzoeker vindt het op "bewijs".
+- **Coachchat.** Elk artikel gaat met "Bewijs: …" mee in het kennisbankblok.
+  De prompt zegt nu:
+  - bij beperkt bewijs zegt de coach dat erbij;
+  - iets afgeraden raadt hij af, ook als het lid erom vraagt.
+- **Kennisbank-scan.** `scripts/kennisbank-inventaris.mjs` zet het niveau
+  ("Bewijs:") bij elk artikel en protocol. Bij protocollen stond het eerst in de
+  samenvatting. De skill `kennisbank-scan` stelt een ander niveau voor onder
+  **Label**, volgens de criteria in het document.
 
-**Ligt bij de eigenaar.**
-- Akkoord per artikel.
-- Afgeraden of een niveau voor de drie afraad-artikelen.
-- Het protocol `lage-cadans-vo2max` van matig naar beperkt, zodat het gelijk is
-  aan het artikel.
+**Bewust niet gebouwd.**
+- **Een niveau per punt binnen een artikel.** Dat zijn honderden oordelen en
+  een onrustige pagina. Twijfel per punt staat in "Wat dit niet laat zien".
+- **Het niveau afleiden uit de soorten bronnen.** Een consensusstuk in de lijst
+  zegt niet dat het advies ervan afhangt; het is een oordeel per artikel.
 
-**Nog niet gebouwd.** Het veld per artikel, de test, de weergave (artikel,
-kennisbanklijsten, leeszaal), het niveau in de coachchat en de uitleg op `/hulp`.
-Dat volgt na akkoord.
+**Niet meer waar.**
+- `docs/protocollen-onderzoek.md` noemde lage cadans "matig". Dat is daar
+  bijgewerkt.
+
+**Getest.**
+- Nieuw: `article-evidence.test.ts`, vier tests:
+  - elk artikel heeft een geldig niveau;
+  - het niveau is gelijk aan de goedgekeurde tabel in het document; wijkt
+    code af, dan faalt de build;
+  - Afgeraden staat alleen bij de drie artikelen;
+  - het protocol lage cadans is gelijk aan zijn artikel.
+- `coach-knowledge.test.ts`: elk artikel heeft zijn niveau in het blok voor de
+  coach.
+- `tsc` en ESLint: geen nieuwe fouten.
+
+**Niet geverifieerd.** Zie de browsercontrole hieronder. Hoe de coach het
+niveau in een echt antwoord gebruikt, vraagt een OpenAI-call op productie.
 
 ### Opgeleverd — ZWBieb: de leeszaal, alle kennisbanken per onderwerp
 

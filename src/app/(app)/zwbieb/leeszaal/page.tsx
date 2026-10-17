@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess } from "@/lib/auth/request";
 import { PageHeader } from "@/components/app-ui";
+import { EvidenceLegend } from "@/components/evidence-badge";
 import { countUnread } from "@/lib/zwbieb/data";
 import { loadMyThreads, loadTopicCatalog } from "@/lib/zwbieb/queries";
 import { COLLECTION_LABELS, shelves } from "@/lib/zwbieb/shelves";
@@ -46,6 +47,7 @@ export default async function ZwbiebLeeszaalPage() {
         }
       />
       <ZwbiebTabs current="leeszaal" />
+      <EvidenceLegend levels={all.flatMap((shelf) => shelf.books.map((book) => book.evidence))} methodLabels />
       <ShelfBrowser
         shelves={all.map((shelf) => ({
           slug: shelf.slug,
@@ -59,6 +61,7 @@ export default async function ZwbiebLeeszaalPage() {
             title: book.title,
             summary: book.summary,
             collection: COLLECTION_LABELS[book.collection],
+            evidence: book.evidence,
             methodLabel: book.methodLabel,
           })),
         }))}

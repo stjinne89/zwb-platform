@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import {
+  TRAINING_ARTICLES,
   TRAINING_CATEGORY_LABELS,
   trainingArticlesByCategory,
 } from "@/lib/training/training-library";
 import { MethodLabelBadge } from "@/components/method-label-badge";
+import { EvidenceBadge, EvidenceLegend } from "@/components/evidence-badge";
 import { requireViewer } from "../_data";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +17,7 @@ export default async function TrainingKnowledgePage() {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Kennisbank</h2>
+      <EvidenceLegend levels={TRAINING_ARTICLES.map((a) => a.evidence)} methodLabels />
       <div className="grid gap-4 sm:grid-cols-2">
         {trainingArticlesByCategory().map(({ category, articles }) => (
           <div key={category} className="rounded-lg border bg-card p-4">
@@ -30,6 +33,7 @@ export default async function TrainingKnowledgePage() {
                   >
                     <span className="flex min-w-0 flex-wrap items-center gap-2">
                       {article.title}
+                      <EvidenceBadge evidence={article.evidence} />
                       <MethodLabelBadge label={article.methodLabel} />
                     </span>
                     <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
