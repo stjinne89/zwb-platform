@@ -754,6 +754,10 @@ a.tg-row:focus-visible,
 }
 [data-design="tegels"] :is(ul, ol, div).divide-y {
   display: grid;
+  /* Eén kolom die niet meegroeit: zonder dit rekte een rij op tot de breedte
+     van zijn langste niet-afbrekende tekst en werkte truncate niet (recordrij
+     op Stats → Ik, 612 px op een telefoon van 375; 2026-10-17). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.375rem;
   border: 0;
   background: transparent;

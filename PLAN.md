@@ -185,6 +185,38 @@ drie 2026-10-16).
 
 ---
 
+> **Design tegels: lijsten groeien niet meer breder dan hun kaart, 2026-10-17 — gebouwd en ingelogd op 375 px gemeten; gepusht naar `main` (eigenaar, 2026-10-17, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/impeccable-design-audit-9d704d`.
+>
+> **Waarom.** Op Stats → Ik was de pagina op een telefoon van 375 px 612 px
+> breed. De recordrijen (rittitel links, record rechts) waren 579 px in een
+> lijst van 309 px, waardoor de pagina zijwaarts schoof en een dialoog half
+> buiten beeld viel. De oorzaak zat in de tegels-CSS zelf: een lijst met
+> `divide-y` wordt in "tegels" een grid van losse paneelrijen, en een grid
+> zonder kolomdefinitie laat een rij meegroeien met zijn langste
+> niet-afbrekende tekst. `truncate` werkte daardoor niet.
+>
+> **Wat.** De regel voor `divide-y` in "tegels" (`globals.css`) heeft nu één
+> kolom van `minmax(0, 1fr)`. Dat geldt voor alle lijsten in dat design, niet
+> alleen voor de records. In het klassieke design is zo'n lijst geen grid; daar
+> verandert niets.
+>
+> **Getest.** Ingelogd op 375 px: Stats → Ik met de dialoog Tegels aanpassen
+> open (zo trad het op): paginabreedte 375 px, recordrijen 309 px, dialoog
+> binnen beeld. Leden bleef 375 px breed. Geen code buiten de CSS gewijzigd,
+> dus typecheck en tests niet opnieuw gedraaid.
+>
+> **Niet geverifieerd.** Waarom de recordrijen zonder de dialoog 0 px breed
+> meten (ze staan dan buiten de gerenderde lay-out); de overloop trad alleen op
+> zodra ze wel werden opgemaakt. De overige lijsten in "tegels" zijn niet een
+> voor een nagelopen; de regel maakt ze hooguit smaller, nooit breder.
+>
+> **Ook gezien.** De lokale dev-server pakte CSS-wijzigingen in deze worktree
+> niet altijd op (Next koos de hoofdmap als werkruimte vanwege twee
+> lockfiles). Pas na het legen van `.next` in de worktree kwam de wijziging
+> door. Bij een twijfelachtige lokale controle dus eerst de geserveerde CSS
+> nakijken.
+
 > **Design tegels, tweede auditronde: paginatitels, cijferkaarten, knoppen en segmentschakelaars, 2026-10-17 — gebouwd, lokaal getest en ingelogd in de browser bekeken (375 px, licht en donker); gepusht naar `main` (eigenaar, 2026-10-17, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
 > Commit: de commit die dit blok toevoegt, op `claude/impeccable-design-audit-9d704d`.
 >
@@ -328,7 +360,9 @@ drie 2026-10-16).
 > **Bijvondsten.** `/events/[id]/bewerk` geeft lokaal een 500: `link-editor.tsx`
 > (client) haalt via `race-links`, `external-scan` en `safe-fetch` de module
 > `node:net` binnen. Dat is in een aparte sessie opgepakt. `/stats/ik` loopt op
-> 375 px horizontaal over: een rij in een recordtegel is 612 px breed.
+> 375 px horizontaal over: een rij in een recordtegel is 612 px breed. *(Opgelost
+> op dezelfde dag; de oorzaak bleek de lijstregel van "tegels", zie het blok
+> "lijsten groeien niet meer breder dan hun kaart".)*
 
 > **Achievements als tab onder Stats, plus een Badges-tegel op Stats → Ik, 2026-10-16 — gebouwd, lokaal getest; niet ingelogd in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-16, `727bd23`). Geen migratie.**
 > Commit: `727bd23`.
