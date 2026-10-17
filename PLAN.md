@@ -9804,9 +9804,14 @@ dev-server; `/ds` alleen via `tsc` (zonder inlog stuurt de proxy door).
   W/kg.
 - Netlify-tegoed: 240 aanroepen per kijker per uur, niet tegen het tegoed gelegd.
 
+**Privacy.** `/privacy` noemt ZWB DS onder Zwift-races (`#zwb-ds`): wat we van
+de startgroep opvragen, ook van niet-leden, alleen voor ingelogde leden, geen
+hartslag, hooguit zes uur bewaard. Akkoord van de eigenaar op 2026-10-17, geen
+nieuwe versie (tekstaanpassing, zie de afspraak over privacytekst).
+
 **Nog te doen voor live:** migratie `0249` toepassen, `ZWIFT_DS_USERNAME` en
-`ZWIFT_DS_PASSWORD` in Netlify zetten (apart, gratis Zwift-account), de
-privacytekst (voorstel aan de eigenaar), pushen, en één race meekijken.
+`ZWIFT_DS_PASSWORD` in Netlify zetten (apart, gratis Zwift-account), pushen, en
+één race meekijken.
 
 ### Onderzocht — ZWB DS: live race-informatie zonder Sauce
 

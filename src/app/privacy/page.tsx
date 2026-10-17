@@ -131,6 +131,17 @@ export default function PrivacyPage() {
             halen we alleen op als je zelf in de uitslag staat. Andere ZWB&apos;ers
             in zo&apos;n race zien jouw plek en tijd, niet je vermogen.
           </li>
+          <li id="zwb-ds" className="scroll-mt-20">
+            <strong>ZWB DS (live raceoverzicht):</strong> tijdens een Zwift-race
+            uit de kalender vragen we bij Zwift van de renners in de startgroep de
+            actuele stand op: afstand in de race, snelheid en vermogen, met de naam
+            en, als Zwift het meegeeft, het gewicht uit de startlijst. Dat geldt
+            ook voor renners zonder ZWB-account en van andere clubs, en het is wat
+            Zwift ook in de game laat zien. Alleen ingelogde leden zien het
+            overzicht, met W/kg per renner. Hartslag lezen en bewaren we niet. De
+            laatste stand per renner bewaren we hooguit zes uur; daarna wissen we
+            hem.
+          </li>
           <li>
             <strong>Sunday Race Club (MyWhoosh):</strong> doe je mee aan de SRC,
             dan leggen we per maand vast onder welk ZWB-team je rijdt, in welke race
