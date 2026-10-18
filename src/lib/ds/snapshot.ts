@@ -17,7 +17,7 @@ import type { RouteProfile } from "@/lib/events/zwift-route-streams";
 import { expandLaps } from "@/lib/pacing/route-profile";
 import { hasZwbTag, pickSubgroup } from "@/lib/zrl-live/snapshot";
 import { buildField, type DsEntrant, type DsField, type DsMark } from "@/lib/ds/field";
-import { DS_AFTER_MS, ridersToCheck } from "@/lib/ds/schedule";
+import { DS_AFTER_MS, NEAR_M, ridersToCheck } from "@/lib/ds/schedule";
 
 /** In de startvak staat iedereen op 0 m: pas vlak voor de start loont vragen. */
 const POLL_LEAD_MS = 2 * 60 * 1000;
@@ -232,12 +232,19 @@ async function refreshStates(
   rows: Map<string, StateRow>,
   now: number,
 ): Promise<{ rateLimited: boolean }> {
+  // Waar de ZWB'ers laatst reden: wie daar dichtbij zat, gaat voor de rest uit.
+  const zwbAt = entrants.flatMap((e) => {
+    const row = rows.get(e.zwiftId);
+    return zwb.has(e.zwiftId) && row?.state_at && row.event_distance_m !== null ? [row.event_distance_m] : [];
+  });
   const due = ridersToCheck(
     entrants.map((e) => {
       const row = rows.get(e.zwiftId);
+      const at = row?.state_at ? row.event_distance_m : null;
       return {
         zwiftId: e.zwiftId,
         zwb: zwb.has(e.zwiftId),
+        near: at !== null && at !== undefined && zwbAt.some((m) => Math.abs(m - at) <= NEAR_M),
         checkedAt: row ? Date.parse(row.checked_at) : null,
         absent: row ? row.state_at === null : false,
       };
