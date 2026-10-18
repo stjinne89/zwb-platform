@@ -41,6 +41,7 @@ const PROFILE_TABLES: string[] = [
   "member_knowledge",
   "member_knowledge_topics",
   "member_tips",
+  "weekly_reviews",
 ];
 
 export async function GET() {

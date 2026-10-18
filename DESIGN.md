@@ -28,6 +28,18 @@ colors:
   zwb-teal: "#1f6068"
   zwb-sage: "#7f9590"
   zwb-gold: "#b8873d"
+  weekoverzicht-paper: "oklch(0.945 0.016 95)"
+  weekoverzicht-ink: "oklch(0.27 0.025 215)"
+  weekoverzicht-soft: "oklch(0.47 0.022 210)"
+  weekoverzicht-cyan: "oklch(0.47 0.085 210)"
+  weekoverzicht-gold: "oklch(0.76 0.135 75)"
+  weekoverzicht-sage: "oklch(0.7 0.04 165)"
+  weekoverzicht-night-paper: "oklch(0.24 0.03 215)"
+  weekoverzicht-night-ink: "oklch(0.94 0.014 90)"
+  weekoverzicht-night-soft: "oklch(0.77 0.018 190)"
+  weekoverzicht-night-cyan: "oklch(0.6 0.085 205)"
+  weekoverzicht-night-gold: "oklch(0.72 0.13 72)"
+  weekoverzicht-night-sage: "oklch(0.6 0.045 165)"
 typography:
   headline:
     fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif"
@@ -59,12 +71,46 @@ typography:
     fontWeight: 400
     lineHeight: 1.43
     letterSpacing: "normal"
+  weekoverzicht-display:
+    fontFamily: "Big Shoulders Stencil, Arial Narrow, sans-serif"
+    fontSize: "clamp(84px, 28vw, 116px)"
+    fontWeight: 900
+    lineHeight: 0.82
+    letterSpacing: "0.005em"
+    fontVariation: "\"opsz\" 72"
+    fontFeature: "\"tnum\""
+  weekoverzicht-display-m:
+    fontFamily: "Big Shoulders Stencil, Arial Narrow, sans-serif"
+    fontSize: "clamp(70px, 23vw, 94px)"
+    fontWeight: 900
+    lineHeight: 0.82
+    letterSpacing: "0.005em"
+    fontVariation: "\"opsz\" 72"
+  weekoverzicht-lead:
+    fontFamily: "Karla, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "21px"
+    fontWeight: 800
+    lineHeight: 1.2
+    letterSpacing: "normal"
+  weekoverzicht-body:
+    fontFamily: "Karla, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "15.5px"
+    fontWeight: 400
+    lineHeight: 1.45
+    letterSpacing: "normal"
+  weekoverzicht-label:
+    fontFamily: "Karla, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "11px"
+    fontWeight: 800
+    lineHeight: 1
+    letterSpacing: "0.08em"
 rounded:
   sm: "0.3rem"
   md: "0.4rem"
   lg: "0.5rem"
   xl: "0.7rem"
   full: "9999px"
+  weekoverzicht-print: "2px"
 spacing:
   xs: "4px"
   sm: "8px"
@@ -119,6 +165,14 @@ components:
     textColor: "{colors.ink}"
     rounded: "{rounded.lg}"
     padding: "16px 16px 16px 20px"
+  weekoverzicht-button:
+    backgroundColor: "{colors.weekoverzicht-ink}"
+    textColor: "{colors.weekoverzicht-paper}"
+    rounded: "{rounded.weekoverzicht-print}"
+    height: "52px"
+  weekoverzicht-chip:
+    textColor: "{colors.weekoverzicht-ink}"
+    padding: "2px 7px"
 ---
 
 # Design System: ZWB Cycling Platform
@@ -395,3 +449,213 @@ de andere in de gedempte tekstkleur. Elke stand is 48 bij 38px in een rail van
 - **Don't** geef een kaart in rust een schaduw.
 - **Don't** gebruik goud als kleine tekst op een lichte ondergrond.
 - **Don't** zet uitlegtekst in schermen of formulieren; die hoort op `/hulp`.
+
+## Eigen register: Weekoverzicht
+
+Eén eigen register binnen het merk, gekozen door de eigenaar op 2026-10-18:
+de week als zeefdrukreeks. Tenue-inkten op vezelig papier, volle schermen die
+pas voor pas worden gedrukt. De bron is `src/components/weekoverzicht/`
+(`week-review.module.css` voor alle tokens, `fonts.ts`, `prints.tsx`,
+`week-review.tsx`, `week-ahead.tsx`). De tokens staan in de frontmatter onder
+het voorvoegsel `weekoverzicht-`.
+
+### Scope
+
+Alleen de weekoverzicht-pop-up (zondagavond, via `launcher.tsx`) en de pagina
+`/weekoverzicht`, die hetzelfde overzicht toont. De voorbeeldpagina
+`/ontwerp-voorbeeld` laat het register zien, verder nergens.
+
+**De Grensregel.** Binnen het register gelden de Platte-vloerregel, de
+Smalle-ladderregel en de Motiefregel van het hoofdsysteem niet, en ook de
+Wisselregel niet (de knop is hier inkt in beide thema's). Omgekeerd lekt er
+niets uit dit register naar de gewone schermen: geen stencilletter, geen
+Karla, geen overdruk, geen papierkorrel, geen paskruisjes, geen
+`weekoverzicht-`-token. Een scherm buiten het overzicht dat er zo uitziet, is
+fout. De Kolomregel, de Duimregel en de Goudregel blijven ook hier gelden.
+
+### Colors
+
+Eigen papier, eigen inkt en drie doorschijnende tenue-inkten, per thema
+apart afgesteld. Ze staan als lokale variabelen op de pop-up (`--paper`,
+`--ink`, `--soft`, `--c`, `--g`, `--s`) en worden alleen daar gebruikt.
+
+- **Vezelpapier** (`weekoverzicht-paper`) / **Petrolpapier**
+  (`weekoverzicht-night-paper`): de ondergrond van elk vel.
+- **Drukinkt** (`weekoverzicht-ink`) / **Nachtinkt**
+  (`weekoverzicht-night-ink`): tekst, assen, de knop, de voortgang.
+- **Zachte inkt** (`weekoverzicht-soft`) / (`weekoverzicht-night-soft`):
+  bijzinnen, metadata, zachte grafieklabels.
+- **Petrol-cyaan** (`weekoverzicht-cyan` / `weekoverzicht-night-cyan`),
+  **Goud** (`weekoverzicht-gold` / `weekoverzicht-night-gold`) en **Salie**
+  (`weekoverzicht-sage` / `weekoverzicht-night-sage`): de drie drukinkten.
+- **Lijn**: drukinkt op 18% (`color-mix(in oklab, inkt 18%, transparent)`),
+  voor de rijlijnen en de lege voortgangsstroken.
+- **Achtergrond achter het vel**: Night Petrol op 72% bij licht, zwart op 70%
+  bij donker.
+
+Per afbeelding draagt elke dataserie één inkt, met een vierkantje van 12px
+als legenda. In de bouw is dat per scherm gekozen (km petrol en tijd goud,
+gepland salie en gedaan petrol, fitness petrol en vermoeidheid goud, eigen
+team goud en de rest salie) en niet strikt één inkt per ZWBeter-onderdeel,
+zoals de richting eerst voorstelde.
+
+**De Overdrukregel.** Inkten zijn effen, doorschijnende vlakken met
+`mix-blend-mode: multiply` op licht papier en `screen` op donker papier. Waar
+twee passen elkaar raken ontstaat de mengkleur; die wordt nooit als eigen
+kleur ingetekend. Geen verlopen, geen dekkende lagen over elkaar.
+
+### Typography
+
+**Display Font:** Big Shoulders Stencil (met Arial Narrow), variabel met de
+`opsz`-as, gewicht 900, alleen in hoofdletters.
+**Body Font:** Karla (met ui-sans-serif, system-ui).
+
+Beide letters laden zonder preload, pas als het overzicht opent.
+
+- **Display** (`weekoverzicht-display`, `opsz` 72): het grote cijfer of
+  "WEEK 42" van elk scherm. Een kleinere maat (`weekoverzicht-display-m`,
+  70 tot 94px) voor de kop van de laatste pagina; op schermen lager dan
+  700px 76 en 64px. Eenheden (km, w) in het cijfer op 0.42em.
+- **Stencil klein** (`opsz` 40): daglabels (24px), waarden in de weekrij
+  (21px), getallen in grafieken (22px, `opsz` 72) en knoppen (20px,
+  spatiëring 0.06em).
+- **Lead** (`weekoverzicht-lead`, Karla 800, 21px, maximaal 20 tekens breed):
+  de ene zin onder het cijfer.
+- **Body** (`weekoverzicht-body`, Karla, 15.5px, maximaal 34 tekens breed, in
+  zachte inkt met vette woorden in drukinkt): de toelichting.
+- **Coach** (Karla 600, 20px, regelhoogte 1.42, maximaal 30 tekens breed): de
+  tekst van de coach; nadruk als een gouden markeerstreep van 0.42em onder de
+  woorden, niet als vet.
+- **Label** (`weekoverzicht-label`, Karla 800, 11px, spatiëring 0.08em,
+  hoofdletters): labels in grafieken, met een rand van 3px in papierkleur
+  zodat ze over inkt leesbaar blijven.
+
+**De Stencilregel.** Stencil is voor cijfers, daglabels, koppen en knoppen;
+elke zin staat in Karla. Een scherm drukt pas als de stencilletter geladen is
+(hooguit 2,5 seconde wachten), zodat er nooit een kop in de terugvalletter
+verschijnt.
+
+### Layout
+
+Eén vel van maximaal 440px breed en de volle schermhoogte (hooguit 940px),
+gecentreerd boven een gedimde achtergrond. Vanaf 640px wordt het een los vel
+(hoogte tot 900px, 48px lucht). Binnen het vel 64px boven (plus de veilige
+rand), 22px opzij en 20px onder. Het beeld van elk scherm loopt over de volle
+breedte van het vel en vult de ruimte tussen tekst en onderkant. Elk scherm
+heeft één groot cijfer, één beeld en hooguit twee zinnen; de coach en de week
+erna wijken daarvan af.
+
+### Elevation & Depth
+
+Diepte komt uit inkt over inkt en uit het papier, niet uit schaduw. Alleen het
+losse vel vanaf 640px zweeft, met één brede schaduw
+(`0 30px 80px -30px rgb(0 0 0 / 0.6)`).
+
+**De Korrelregel.** De papiervezel (`feTurbulence`, fractal noise,
+basisfrequentie 0.62, drie octaven, warm bruin op 42%) ligt bóven de schermen
+en onder de bediening: de inkt neemt de korrel van het papier aan. Volle
+dekking en multiply bij licht, halve dekking en screen bij donker.
+
+**De Registerregel.** In een afbeelding met renners ligt de eerste pas in
+register, in salie of goud; de tweede pas, met dezelfde vormen in petrol,
+rust 3px rechts en 2px omhoog daarnaast, zodat aan elke rand een reepje van
+de onderlaag blijft staan. Dat is de enige pas die uit register staat, ook
+stilstaand en bij verminderde beweging. Alle andere passen staan in register.
+Twee paskruisjes van 16px op halve dekking staan halverwege in de linker- en
+rechtermarge.
+
+### Shapes
+
+Hoekig, zoals gesneden sjablonen. Inktvlakken, sporen en chips hebben geen
+afronding; de knop 2px, het losse vel 6px. Lijnen zijn 1 tot 1,5px in
+drukinkt. Leeg of niet gedaan is een gestippelde salielijn (3 op 3).
+
+De renner is één vaste tekening (`Rider` in `prints.tsx`): een wegrenner op
+een racefiets met dunne velgen, beugelstuur, platte rug en helm, opgebouwd uit
+lijnen in één inkt. Een rit is een renner; een clubrit is een stoet.
+
+### Motion
+
+Eén curve voor alles: exponentieel uit (`cubic-bezier(0.16, 1, 0.3, 1)`).
+
+- **Rakel:** elke pas wordt van links naar rechts ingedrukt (een uitsnede die
+  in 0.75s openschuift) en schuift tegelijk vanaf 6px rechts en 5px omhoog in
+  register (0.9s). De tweede en derde pas volgen na 0.18s en 0.36s.
+- **Uit register:** de verschoven pas ademt na 1,2 seconde langzaam tussen
+  3px/-2px en 6px/-4px (3,4s heen en terug).
+- **Tekst:** komt 8px omhoog en vervaagt in (0.5 en 0.7s, na 0.1s).
+- **Voortgang:** de strook van het huidige scherm vult lineair over de
+  schermtijd (5s opening, 6s per onderdeel, 9s coach; de laatste pagina loopt
+  niet vanzelf). Vasthouden pauzeert strook en klok.
+- **Weekrij:** vulling en schuif volgen de vinger in 0.25s.
+- **Verminderde beweging:** geen overgangen, geen ademende pas (die blijft op
+  3px/-2px staan), stroken staan vol, en het overzicht gaat niet vanzelf
+  verder; tikken en pijltjestoetsen blijven werken.
+
+### Components
+
+**Voortgangsstroken.** Bovenaan, 14px van de randen, één strook van 4px hoog
+per scherm met 4px ertussen. Leeg in lijnkleur, gevuld in drukinkt, zonder
+afronding: gedrukte inktstroken, geen pillen.
+
+**Tikzones en sluiten.** Links 30% van het vel is terug, rechts 70% verder,
+vanaf 60px onder de bovenkant. Langer dan 350ms vasthouden is pauzeren, geen
+tik. Pijltjes links/rechts bladeren, Escape sluit. De sluitknop is 44 bij
+44px rechtsboven, een kruis in drukinkt zonder vlak.
+
+**Knop.** Drukinkt met papierkleurige tekst, 52px hoog, 2px afronding,
+stencil 20px in hoofdletters. De terugknop ernaast is 64px breed, zonder vlak,
+met een rand van 1,5px in drukinkt en een pijl. Indrukken schuift 1px omlaag;
+bezig is 60% dekking.
+
+**Focus.** Een rand van 2px in drukinkt, 2px van het element (de dagbalk
+4px). Niet in goud: tenuegoud haalt op het lichte papier maar 1,8:1, en een
+focusrand moet minstens 3:1 halen.
+
+**Inktgrafieken.** Een `viewBox` van 390 breed, staven van 34 tot 38px op
+50px afstand, de tweede pas 5 tot 8px verschoven als eigen staaf erover. Eén
+as van 1,4px in drukinkt, daglabels eronder. Getallen in stencil boven de
+staaf. Een dag zonder waarde is een gestippeld streepje, geen lege ruimte.
+Het beste van het jaar is de enige echte lijn (1,6px, streepjes 5 op 4);
+verder zijn grafieken vlakken, geen lijntjes.
+
+**Bewerkbare weekrij.** De laatste pagina toont de week erna als zeven
+rijen: daglabel (40px), spoor, waarde (48px), met een lijn erboven en minstens
+62px hoog (54px op lage schermen). Het spoor is 22px hoog met een rand van
+1,2px in drukinkt; de vulling in petrol loopt tot vier uur, events liggen er
+als smallere balken in hun statusinkt overheen, en een schuif van 4 bij 34px
+in drukinkt toont de waarde. Een onzichtbaar schuifveld van 46px hoog ligt
+erover, zodat de duim het haalt. Onder de rij in 13px zachte inkt de training
+van het schema en de eventchips. Eén knop slaat de hele week op.
+
+**Statuschips.** Hoekig, 2px bij 7px, Karla 700 op 12.5px in drukinkt op een
+tint van 50% van de statusinkt: opgesteld goud, aangemeld en misschien salie,
+beschikbaar petrol. Past het event niet in de beschikbare tijd, dan zakt de
+tint naar 15% met een gestippelde rand van 1,5px in drukinkt en staat er
+"meer tijd nodig".
+
+### Do's and Don'ts
+
+#### Do:
+- **Do** gebruik in het weekoverzicht alleen de eigen tokens (`--paper`,
+  `--ink`, `--soft`, `--rule`, `--c`, `--g`, `--s`) en stel ze voor licht en
+  donker allebei af.
+- **Do** druk elke afbeelding als losse passen van effen inkt die met
+  multiply of screen over elkaar vallen.
+- **Do** houd in een afbeelding met renners precies één pas op 3px/-2px uit
+  register, boven een onderlaag in register.
+- **Do** leg de papiervezel boven de afbeeldingen.
+- **Do** geef elk terugblikscherm één groot stencilcijfer, één beeld en hooguit
+  twee zinnen in Karla.
+- **Do** laat het overzicht bij verminderde beweging stilstaan tot het lid
+  tikt.
+
+#### Don't:
+- **Don't** neem stencil, Karla, overdruk, korrel of paskruisjes mee naar
+  gewone schermen.
+- **Don't** teken een mengkleur als eigen kleur in, en gebruik geen verlopen
+  of dekkende lagen.
+- **Don't** maak grafieken van dunne lijntjes of losse cijferkaartjes.
+- **Don't** rond inktvlakken, stroken of chips af.
+- **Don't** zet meer dan één pas uit register.
+- **Don't** laat een scherm drukken voordat de stencilletter er is.

@@ -342,6 +342,17 @@ export default function PrivacyPage() {
             delen.
           </li>
           <li>
+            <strong>Weekoverzicht:</strong> op zondagavond zie je een terugblik
+            op je week. We bewaren per week een samenvatting van je ritten,
+            schema, belasting, vermogen, teamuitslagen, voedings- en
+            corelogboek en clubritten, en of je het overzicht hebt gezien.
+            Alleen jij kunt het lezen. Gebruik je ZWBeter voor je training, dan
+            gaat die samenvatting zonder je naam naar OpenAI om het oordeel van
+            de coach te schrijven, samen met je beschikbaarheid, trainingen en
+            events van de week erna. Het staat in je data-export en verdwijnt
+            als je je account opheft.
+          </li>
+          <li>
             <strong>Persoonlijke voorkeuren:</strong> op het tabblad
             Uitgangspunten, of met het vinkje &ldquo;Onthoud als voorkeur&rdquo; in
             de coachchat, kun je vastleggen wat je schema over jou moet weten. De
@@ -496,7 +507,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>OpenAI</strong> — voor het genereren van concept-trainings­schema&apos;s
-            en voor de antwoorden in de coachchat, en als je dat aanzet voor het
+            en voor de antwoorden in de coachchat en het oordeel in het weekoverzicht, en als je dat aanzet voor het
             herkennen van een maaltijd uit een omschrijving. Meegestuurd worden relevante
             trainingscontext — waaronder je gereden ritten en je vermogensgegevens —
             en, bij de chat, de tekst die je zelf typt; geen directe

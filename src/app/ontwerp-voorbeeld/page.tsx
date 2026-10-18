@@ -13,13 +13,15 @@ import { SeasonStand } from "../(app)/zwbeter-worden/jaarplan/_components/season
 import { DsSections } from "../(app)/ds/[eventId]/_components/ds-sections";
 import { PageHeader } from "@/components/app-ui";
 import { DS_VOORBEELD } from "./ds-voorbeeld";
+import { WEEK_VOORBEELD } from "./weekoverzicht-voorbeeld";
+import { WeekReviewPage } from "@/components/weekoverzicht/review-page";
 
 // Het design "tegels" met voorbeelddata, zonder login. Alleen bij lokaal
 // ontwikkelen: in productie bestaat deze pagina niet. Bedoeld om het uiterlijk
 // te controleren zonder de productiedatabase; met echte data kijk je via de
 // schakelaar in de app zelf.
 
-const SCREENS = ["vandaag", "kalender", "club", "jaarplan", "ds", "inloggen"] as const;
+const SCREENS = ["vandaag", "kalender", "club", "jaarplan", "ds", "weekoverzicht", "inloggen"] as const;
 
 // Een jaar met alles erin: een lopend blok dat bijna afloopt, een vakantie waar
 // nog trainingen in staan, een kamp, lege maanden en een A-doel ver weg.
@@ -73,6 +75,9 @@ export default async function OntwerpVoorbeeldPage({
 }) {
   if (process.env.NODE_ENV === "production") notFound();
   const { scherm } = await searchParams;
+
+  // Het weekoverzicht is een eigen register, los van de schil.
+  if (scherm === "weekoverzicht") return <WeekReviewPage review={WEEK_VOORBEELD} preview />;
 
   // De inlogpagina zelf stuurt een ingelogde bezoeker door; hier is hij te zien.
   if (scherm === "inloggen") {

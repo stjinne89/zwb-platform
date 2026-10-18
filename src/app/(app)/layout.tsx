@@ -25,6 +25,8 @@ import { TegelsShell } from "./_components/tegels-shell";
 import { DesignSwitch } from "./_components/design-switch";
 import { DESIGN_PREVIEW_PERMISSION, getDesign } from "@/lib/design";
 import { countUnreadThreads } from "@/lib/zwbieb/queries";
+import { WeekReviewLauncher } from "@/components/weekoverzicht/launcher";
+import { reviewPeriod } from "@/lib/weekly-review/period";
 
 /**
  * Ongeclaimde ledenlijst-regels die op de naam van dit lid lijken en een
@@ -96,6 +98,15 @@ export default async function AppLayout({
   // komt de dialoog bij de volgende pagina gewoon terug. Alleen ophalen als de
   // vraag ook echt gesteld wordt — deze layout draait op elke pagina.
   const claims = needsZwiftId ? await claimableRosterEntries(supabase, displayName) : [];
+
+  // Het weekoverzicht: zondagavond tot en met woensdag, en nooit boven op een
+  // van de twee vragen hierboven. Of er echt iets klaarstaat vraagt de launcher
+  // zelf na, zodat deze layout er geen query voor doet.
+  const period = reviewPeriod();
+  const weekReview =
+    period.inPopupWindow && !needsPrivacyConsent && !needsZwiftId ? (
+      <WeekReviewLauncher weekStart={period.weekStart} />
+    ) : null;
   const adminItems = ADMIN_NAV.filter((item) => access.has(item.permission));
   const navNodes = filterNavForPermissions(
     NAV_GROUPS,
@@ -136,6 +147,7 @@ export default async function AppLayout({
           <>
             {needsPrivacyConsent && <PrivacyConsentDialog updated={signedBefore} />}
             {needsZwiftId && <ZwiftIdDialog claims={claims} />}
+            {weekReview}
           </>
         }
       >
@@ -188,6 +200,7 @@ export default async function AppLayout({
       </main>
       {needsPrivacyConsent && <PrivacyConsentDialog updated={signedBefore} />}
       {needsZwiftId && <ZwiftIdDialog claims={claims} />}
+      {weekReview}
     </div>
   );
 }
