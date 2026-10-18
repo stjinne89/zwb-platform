@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildField, MAX_EXTRAPOLATE_MS, type DsEntrant } from "@/lib/ds/field";
-import { DS_AFTER_MS, DS_LEAD_MS, inDsWindow, ridersToCheck } from "@/lib/ds/schedule";
+import { DS_AFTER_MS, DS_LEAD_MS, dsAfterMs, inDsWindow, ridersToCheck } from "@/lib/ds/schedule";
 import { decodePlayerState } from "@/lib/zwift/player-state-pb";
 
 const NOW = 1_800_000_000_000;
@@ -147,6 +147,16 @@ describe("ridersToCheck", () => {
     ];
     expect(ridersToCheck(rows, NOW, 1)).toEqual(["b"]);
     expect(ridersToCheck(rows, NOW, 0)).toEqual([]);
+  });
+});
+
+describe("dsAfterMs", () => {
+  it("houdt een lange rit open tot de afstand op 25 km/u gereden is, plus een halfuur", () => {
+    expect(dsAfterMs(null)).toBe(DS_AFTER_MS);
+    expect(dsAfterMs(30)).toBe(DS_AFTER_MS);
+    expect(dsAfterMs(100)).toBe(4.5 * 3600 * 1000);
+    expect(inDsWindow(NOW, NOW + 2.2 * 3600 * 1000, 103)).toBe(true);
+    expect(inDsWindow(NOW, NOW + 2.2 * 3600 * 1000)).toBe(false);
   });
 });
 

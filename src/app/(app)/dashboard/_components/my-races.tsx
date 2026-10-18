@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { InlineMoreLink, SectionHeader } from "@/components/app-ui";
 import { CLUB_RACE_TYPES, EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { zwiftDsConfigured } from "@/lib/events/zwift-club";
+import { inDsWindow } from "@/lib/ds/schedule";
 
 type RaceEvent = {
   id: string;
@@ -24,6 +25,7 @@ type RaceEvent = {
   team_id: string | null;
   parent_event_id: string | null;
   zwift_event_id: number | string | null;
+  distance_km?: number | string | null;
   teams?: { name: string } | { name: string }[] | null;
 };
 
@@ -43,7 +45,7 @@ type MyRace = {
   dsHref: string | null;
 };
 
-const EVENT_COLUMNS = "id, title, type, start_at, team_id, parent_event_id, zwift_event_id";
+const EVENT_COLUMNS = "id, title, type, start_at, team_id, parent_event_id, zwift_event_id, distance_km";
 /** Een race die net begon blijft staan, zodat de live stand bereikbaar is. */
 const STARTED_GRACE_MS = 2 * 60 * 60 * 1000;
 const LIVE_LEAD_MS = 15 * 60 * 1000;
@@ -203,7 +205,10 @@ export async function MyRaces({ userId, tegels }: { userId: string; tegels?: boo
 
   const dsOn = zwiftDsConfigured();
   function dsHref(event: RaceEvent) {
-    return dsOn && event.zwift_event_id && inLiveWindow(event) ? `/ds/${event.id}` : null;
+    if (!dsOn || !event.zwift_event_id) return null;
+    return inDsWindow(new Date(event.start_at).getTime(), now.getTime(), Number(event.distance_km) || null)
+      ? `/ds/${event.id}`
+      : null;
   }
 
   function teamRace(event: RaceEvent): MyRace {

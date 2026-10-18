@@ -765,7 +765,7 @@ export default async function EventDetailPage({
         : null;
   // ZWB DS rond de start, hetzelfde venster als de knoppen op het dashboard.
   const dsHref =
-    user && event.zwift_event_id && zwiftDsConfigured() && inDsWindow(new Date(event.start_at).getTime())
+    user && event.zwift_event_id && zwiftDsConfigured() && inDsWindow(new Date(event.start_at).getTime(), undefined, event.distance_km)
       ? `/ds/${event.id}`
       : null;
   const linksOf = (eventId: string | null | undefined) =>

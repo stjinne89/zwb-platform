@@ -17,7 +17,7 @@ import type { RouteProfile } from "@/lib/events/zwift-route-streams";
 import { expandLaps } from "@/lib/pacing/route-profile";
 import { hasZwbTag, pickSubgroup } from "@/lib/zrl-live/snapshot";
 import { buildField, type DsEntrant, type DsField, type DsMark } from "@/lib/ds/field";
-import { DS_AFTER_MS, NEAR_M, ridersToCheck } from "@/lib/ds/schedule";
+import { dsAfterMs, NEAR_M, ridersToCheck } from "@/lib/ds/schedule";
 
 /** In de startvak staat iedereen op 0 m: pas vlak voor de start loont vragen. */
 const POLL_LEAD_MS = 2 * 60 * 1000;
@@ -333,7 +333,9 @@ export async function loadDsView(
     occupied[0];
 
   const now = Date.now();
-  const live = now >= subgroup.startAt - POLL_LEAD_MS && now <= subgroup.startAt + DS_AFTER_MS;
+  const live =
+    now >= subgroup.startAt - POLL_LEAD_MS &&
+    now <= subgroup.startAt + dsAfterMs(subgroup.distanceM === null ? null : subgroup.distanceM / 1000);
   const rows = new Map<string, StateRow>();
   let problem: DsView["problem"] = null;
   try {

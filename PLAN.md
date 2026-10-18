@@ -10157,6 +10157,15 @@ minuten, voorrang in een veld van 150), `tsc`, ESLint; de modelvergelijking met
 de echte Sauce-data hierboven. **Niet** opnieuw in een rit bekeken na deze
 wijziging.
 
+**Venster naar de afstand, dezelfde dag.** Om 14:30 UTC, twee uur na de start
+van die rit van 103 km, verdween de knop ZWB DS van de eventpagina terwijl het
+veld nog reed; de pagina zelf werkte nog. Het venster loopt nu tot de afstand
+op 25 km/u gereden is plus een halfuur, en minstens twee uur (`dsAfterMs`):
+103 km geeft 4,6 uur. Geldt voor de knop op de eventpagina, op "Jouw races" en
+voor het opvragen bij Zwift. "Jouw races" toont alleen clubraces; een gewone
+Zwift-rit staat daar niet, en clubraces vallen na twee uur nog steeds uit die
+lijst (ongewijzigd, een ZRL-race duurt korter). Unit-test, `tsc`, ESLint.
+
 ### Opgeleverd — Rekenaar materiaal: producten nagetekend
 
 **2026-10-18.** Gepusht naar `main` (eigenaar, 2026-10-18). Commit: de commit die dit blok toevoegt; bouwt voort op

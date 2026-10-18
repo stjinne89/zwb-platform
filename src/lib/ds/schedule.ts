@@ -5,13 +5,27 @@
 // voor, de rest komt eens per minuut aan de beurt als er budget over is. Wie niet
 // in de wereld was (404), vragen we pas na een minuut opnieuw.
 
-/** ZWB DS is er vanaf een kwartier voor de start tot twee uur erna (zoals "Live stand" op het dashboard). */
+/** ZWB DS is er vanaf een kwartier voor de start tot minstens twee uur erna (zoals "Live stand" op het dashboard). */
 export const DS_LEAD_MS = 15 * 60 * 1000;
 export const DS_AFTER_MS = 2 * 60 * 60 * 1000;
+/**
+ * Een lange rit duurt langer dan twee uur: 100 km op 40 km/u is al 2,5 uur, en
+ * om 2 uur na de start verdween de knop terwijl het veld nog reed (2026-10-18).
+ * Daarom tot de afstand op 25 km/u gereden is, plus een halfuur.
+ */
+const SLOW_KMH = 25;
+const AFTER_FINISH_MS = 30 * 60 * 1000;
+
+/** Hoe lang na de start ZWB DS er nog is, voor een event van deze afstand. */
+export function dsAfterMs(distanceKm?: number | null): number {
+  const km = Number(distanceKm);
+  if (!Number.isFinite(km) || km <= 0) return DS_AFTER_MS;
+  return Math.max(DS_AFTER_MS, (km / SLOW_KMH) * 3600 * 1000 + AFTER_FINISH_MS);
+}
 
 /** Valt `now` in het venster rond deze start? */
-export function inDsWindow(startAt: number, now: number = Date.now()): boolean {
-  return now >= startAt - DS_LEAD_MS && now <= startAt + DS_AFTER_MS;
+export function inDsWindow(startAt: number, now: number = Date.now(), distanceKm?: number | null): boolean {
+  return now >= startAt - DS_LEAD_MS && now <= startAt + dsAfterMs(distanceKm);
 }
 
 export const ZWB_MIN_AGE_MS = 10 * 1000;
