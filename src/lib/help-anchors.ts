@@ -45,6 +45,7 @@ export const HELP_ANCHORS: ReadonlyArray<readonly [pattern: string, anchor: stri
   ["/zwbeter-worden/core", "core-mobiliteit"],
   ["/zwbeter-worden/protocollen", "protocollen"],
   ["/zwbeter-worden/voeding", "voeding"],
+  ["/zwbeter-worden/materiaal", "materiaal"],
   ["/beheer", "beheer"],
   ["/beheer/achievements", "badgebeheer"],
   ["/beheer/event-scan", "eventbeheer"],

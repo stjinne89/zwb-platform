@@ -185,7 +185,6 @@ const GUIDES = [
     icon: Users,
     title: "Community, polls, media en ritverslagen",
     bullets: [
-      "Gebruik Vraag & Aanbod voor spullen, hulpvragen en tips.",
       "Polls verzamelen snelle keuzes vanuit de community.",
       "Media bundelt nieuws, mededelingen, video's en podcasts.",
       "Schrijf na een gereden event een ritverslag met vaste kopjes: voorbereiding, verloop, uitslag en leerpunten. Je hoeft niet alles in te vullen; je eigen uitslag staat er al bij als die bekend is.",
@@ -259,12 +258,12 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/zwbeter-worden", name: "ZWBeter Worden", text: "Schema's, AI-coach, je ZWBeterWorden-advies, belasting en de koppelingen." },
   { href: "/zwbeter-worden/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
   { href: "/zwbeter-worden/racen", name: "ZWBeter racen", text: "Je gereden Zwift-races (ZRL, FRR of via een geplakte link): tips, de ploeg of je eigen race, en je rit uit intervals.icu." },
+  { href: "/zwbeter-worden/materiaal", name: "ZWBeter materiaal", text: "Kennisbank over materiaal en kleine winsten, met een rekenaar wat een verandering je oplevert." },
   { href: "/mijn-garage", name: "Mijn garage", text: "Je fietsen en de slijtage van hun onderdelen, met een melding zodra er iets toe is aan vervanging." },
   { href: "/profiel/cols", name: "Cols & segmenten", text: "Welke cols en segmenten je deed, met je PR en de ZWB-ranglijst." },
   { href: "/ritverslagen", name: "Ritverslagen", text: "Schrijf een verslag bij een gereden event; anderen reageren." },
   { href: "/community", name: "Community", text: "Mededelingen en clubnieuws." },
   { href: "/polls", name: "Polls", text: "Snelle stemmingen vanuit de club." },
-  { href: "/materiaal", name: "Vraag & Aanbod", text: "Spullen, hulpvragen en tips uitwisselen." },
   { href: "/media", name: "Media", text: "Nieuws, nieuwsbrieven, podcasts, video's en Instagram." },
   { href: "/stats", name: "Stats", text: "Club: de cijfers en ranglijst van alle leden. Ik: je eigen ritten, vermogen en records." },
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
@@ -3754,6 +3753,67 @@ Fitness-status: Verbeterend`}
               Open de kennisbank trainen
             </Link>
           </div>
+        </div>
+      </section>
+
+      <section
+        id="materiaal"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Bike className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">ZWBeter materiaal</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Een kennisbank over materiaal en kleine winsten, en een rekenaar die
+              laat zien wat een verandering jou oplevert. ZWB noemt geen merken en
+              geeft geen koopadvies.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">De kennisbank</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Over lucht en houding, banden en ketting, binnen fietsen, je fiets
+              afstellen en kleine middelen zoals neusstrips. Veel winst geldt alleen
+              buiten en op snelheid: op Zwift rekent het spel met je virtuele fiets,
+              en tellen vooral een ventilator en een vermogensmeter die klopt.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Hier tellen ook gepubliceerde metingen in een windtunnel, op een
+              testbank of op de weg als bewijs. Sterk bewijs is dan ook: meerdere
+              onafhankelijke onderzoeksgroepen waarvan de metingen met renners het
+              eens zijn. Is alleen op een pop, een testbank of in een computermodel
+              gemeten, dan is het hooguit matig. Zegt het onderzoek dat iets niet
+              helpt, dan staat dat in de samenvatting, met wat zwak is aan dat
+              onderzoek.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">De rekenaar</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Kies een route, je vermogen en je gewicht, en wat je nu hebt en
+              straks overweegt: houding, luchtweerstand van helm, kleding of wielen,
+              banden, gewicht en het rendement van je ketting. De rekenaar rijdt de
+              route twee keer met hetzelfde vermogen en toont het verschil in tijd
+              en in watt.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Hij rekent windstil en met een vast vermogen, zoals het pacingplan.
+              In een groep rekent hij met 70 % van je luchtweerstand; dat is een
+              aanname. Buitenevents met een GPX staan erbij; Zwift-routes niet,
+              want daar bepaalt het spel de fysica. De keuzes voor banden gaan over
+              asfalt; op gravel is de rolweerstand hoger.
+            </p>
+            <Link
+              href="/zwbeter-worden/materiaal/rekenaar"
+              className="mt-3 inline-flex min-h-[44px] items-center text-sm font-medium text-primary hover:underline"
+            >
+              Open de rekenaar
+            </Link>
+          </article>
         </div>
       </section>
 

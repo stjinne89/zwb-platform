@@ -70,6 +70,9 @@ const nextConfig: NextConfig = {
       { source: "/onderhoud", destination: "/mijn-garage", permanent: true },
       // Wie weet wat heet sinds 2026-10-16 ZWBieb; oude links en pushmeldingen.
       { source: "/leden/wie-weet-wat", destination: "/zwbieb", permanent: true },
+      // Vraag en Aanbod is uit de app (2026-10-18); het pad is nu ZWBeter materiaal.
+      { source: "/materiaal", destination: "/zwbeter-worden/materiaal", permanent: true },
+      { source: "/materiaal/:pad*", destination: "/zwbeter-worden/materiaal", permanent: true },
       { source: "/leden/wie-weet-wat/:path*", destination: "/zwbieb/:path*", permanent: true },
       // Achievements is sinds 2026-10-16 een tab onder Stats; oude links en
       // pushmeldingen. De querystring (?week=vorige) gaat vanzelf mee.

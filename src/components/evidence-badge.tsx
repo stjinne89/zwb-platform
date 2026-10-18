@@ -40,9 +40,12 @@ const METHOD_LEGEND = [
 export function EvidenceLegend({
   levels,
   methodLabels = false,
+  texts,
 }: {
   levels: Iterable<ArticleEvidence>;
   methodLabels?: boolean;
+  /** Andere uitleg per niveau, zoals bij de kennisbank materiaal. */
+  texts?: Partial<Record<ArticleEvidence, string>>;
 }) {
   const present = new Set(levels);
   return (
@@ -52,7 +55,7 @@ export function EvidenceLegend({
           <dt className="shrink-0">
             <EvidenceBadge evidence={level} />
           </dt>
-          <dd className="pt-0.5">{ARTICLE_EVIDENCE_LEGEND[level]}</dd>
+          <dd className="pt-0.5">{texts?.[level] ?? ARTICLE_EVIDENCE_LEGEND[level]}</dd>
         </div>
       ))}
       {methodLabels &&

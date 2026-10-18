@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { pillarForPath, type PillarId } from "@/lib/zwbeter-pillars";
+import { cn } from "@/lib/utils";
 import { SectionNav, type SectionLink } from "./section-nav";
 
 export type PillarNav = {
@@ -28,7 +29,14 @@ export function ZwbeterNav({ pillars, actions }: { pillars: PillarNav[]; actions
         {actions && <div>{actions}</div>}
       </header>
 
-      <nav aria-label="ZWBeter" className="grid grid-cols-2 gap-2 md:grid-cols-5 [&>*:last-child:nth-child(odd)]:col-span-2 md:[&>*:last-child:nth-child(odd)]:col-span-1">
+      <nav
+        aria-label="ZWBeter"
+        className={cn(
+          "grid grid-cols-2 gap-2 [&>*:last-child:nth-child(odd)]:col-span-2 md:[&>*:last-child:nth-child(odd)]:col-span-1",
+          // Zes pijlers voor een trainer, vijf voor de rest: altijd één rij.
+          pillars.length > 5 ? "md:grid-cols-6" : "md:grid-cols-5",
+        )}
+      >
         {pillars.map((pillar) => (
           <Link
             key={pillar.id}

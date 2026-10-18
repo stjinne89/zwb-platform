@@ -10,8 +10,8 @@ import { ZwbiebActions, ZwbiebTabs } from "../_components/zwbieb-nav";
 import { ShelfBrowser } from "./shelf-browser";
 
 /**
- * ZWBieb, tab Leeszaal: de artikelen uit de kennisbanken trainen, voeding en
- * kracht, per onderwerp (src/lib/zwbieb/shelves.ts), met de kenners erbij.
+ * ZWBieb, tab Leeszaal: de artikelen uit de kennisbanken trainen, voeding,
+ * kracht en materiaal, per onderwerp (src/lib/zwbieb/shelves.ts), met de kenners erbij.
  */
 export default async function ZwbiebLeeszaalPage() {
   const supabase = await createClient();

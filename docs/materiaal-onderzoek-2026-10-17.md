@@ -1,8 +1,10 @@
 # ZWBeter materiaal: onderzoek en voorstel
 
-**Voorstel 2026-10-17; besluiten van de eigenaar 2026-10-18** (zie "Besluiten").
-Nog niet gebouwd. Er staat nog één vraag open: akkoord op de herziene niveaus en
-op het ontwerp van de rekenaar, en dan bouwen.
+**Voorstel 2026-10-17; besluiten van de eigenaar en gebouwd 2026-10-18.** De
+kennisbank staat in `src/lib/materiaal/library.ts`, de rekenaar in
+`src/lib/materiaal/rekenaar.ts`. `tests/unit/materiaal.test.ts` houdt de niveaus
+in code gelijk aan de tabel "Artikelen en niveaus" hieronder; wijzig een niveau
+dus eerst hier.
 
 De vraag van de eigenaar: naast trainen, voeding, kracht en tactiek kun je ook
 beter worden met materiaal en kleine winsten, zoals neusstrips en aero-sokken.
@@ -356,7 +358,7 @@ Herzien op 2026-10-18 langs de regels hierboven.
 | 12 | Cranklengte | Lichaam en fiets | **Sterk** | Meerdere onafhankelijke proeven zijn het eens: binnen de gangbare maten maakt de lengte voor vermogen en rendement weinig uit (Inbar 1983, Martin 2001, Barratt 2011, Ferrer-Roca 2014, Li 2025). |
 | 13 | Gewicht van fiets en uitrusting | Lichaam en fiets | **Sterk** | Een berekening met het getoetste rekenmodel (zie 1): gewicht telt bergop, nauwelijks op het vlak. |
 | 14 | Neusstrips | Kleine middelen | **Matig** | Een meta-analyse vond geen effect, en een proef bij fietsers ook niet. Een meta-analyse bij lopers zag een klein voordeel, met zeer lage zekerheid: de uitkomsten spreken elkaar tegen. Alleen bij een vernauwde neus hielp een spreider. |
-| 15 | Compressiekleding | Kleine middelen | **Sterk** | Meerdere meta-analyses zijn het eens: tijdens het sporten word je er niet sneller van (da Silva 2018, Wang 2025; Jin 2026 met matige zekerheid). Voor herstel spreken de analyses elkaar tegen, en een verwachtingseffect valt niet uit te sluiten. Dat staat in het artikel. |
+| 15 | Compressiekleding | Kleine middelen | **Sterk** | Meerdere meta-analyses zijn het eens. Tijdens het sporten word je er niet sneller van (da Silva 2018, Wang 2025), en als herstelmiddel geeft het daarna geen betere prestatie (Jin 2026, matige zekerheid). Voor het herstel van kracht spreken de analyses elkaar tegen, en een verwachtingseffect valt niet uit te sluiten. Dat staat in het artikel. |
 | 16 | Inlegzolen | Kleine middelen | **Matig** | Een systematische review en losse proeven, ook een met een nepzool, vinden geen winst in vermogen. Maar de studies zijn klein en wisselend van kwaliteit. |
 
 Uitkomst: 8 sterk, 7 matig, 1 beperkt.
@@ -446,15 +448,16 @@ en een test die de uitkomst naast een handberekening legt.
   fout geeft klachten. Het artikel verwijst naar een bikefitter.
 - **De tabel van Vraag en Aanbod opruimen.** Zie "Waar het komt".
 
-## Nog open
+## Gebouwd (2026-10-18)
 
-- **Akkoord van de eigenaar** op de herziene niveaus en op het ontwerp van de
-  rekenaar. Daarna komt het bouwen, in één ronde:
-  - kennisbank, niveaus en test;
-  - rekenaar;
-  - pijler, pad en Vraag en Aanbod eruit;
-  - leeszaal, coach, scan en `/hulp`.
-- **Bij het bouwen**: elke bron eerst via PubMed of de uitgever. Van de bronnen
-  uit de gewone zoekfunctie is alleen de samenvatting gelezen.
-- **Volgende ronde**: het beleid voor het bewijsniveau voor alle kennisbanken
-  (besluit 2).
+Alles hierboven is gebouwd, op twee na: er is geen vork in de rekenaar (elke
+keuze heeft één bronwaarde), en er is geen keuze voor gravel bij de banden. Zie
+PLAN.md, "Opgeleverd — ZWBeter materiaal".
+
+**Bronnen gecontroleerd.** Ruim dertig bronnen uit sport- en
+sportgeneeskundebladen zijn in PubMed teruggevonden. De techniekbladen staan
+niet in PubMed; die hebben de DOI van de uitgever, via Consensus. Grappe 1999 is
+niet in PubMed gevonden.
+
+**Volgende ronde**: het beleid voor het bewijsniveau voor alle kennisbanken
+(besluit 2), in een eigen sessie.

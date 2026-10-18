@@ -2941,7 +2941,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > 2026-10-16 in de groep Community op `/beheer`), dus alleen
 > voor wie `community.manage` of `media.manage` heeft: **gewone leden bereiken
 > ze in dit design niet meer via het menu.** Vraag en Aanbod en Ritverslagen
-> staan nergens meer in het menu; de pagina's zelf bestaan nog. Polls staat
+> staan nergens meer in het menu; de pagina's zelf bestaan nog. *(Bijgewerkt
+> 2026-10-18: Vraag en Aanbod is uit de app; `/materiaal` is nu ZWBeter
+> materiaal.)* Polls staat
 > onder Club (invulling van de bouwer, niet bevestigd). Samen fietsen stond
 > eerst bij de kalender; sinds 2026-10-16 staat het onder Club, met een
 > live-tegel op Vandaag (besluit eigenaar).
@@ -10559,7 +10561,112 @@ PubMed-zoekvragen gebruiken daarom `[tiab]`-termen zonder jokertekens.
 2 november 2026. Of de taak in Auto-modus de worktree en de commit zonder vragen
 mag maken, blijkt dan.
 
-### Voorstel — ZWBeter materiaal (besluiten genomen, wacht op akkoord om te bouwen)
+### Opgeleverd — ZWBeter materiaal: kennisbank en rekenaar
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderzoek, besluiten en niveaus:
+[materiaal-onderzoek](docs/materiaal-onderzoek-2026-10-17.md). Het voorstel staat
+hieronder.
+
+**Aanleiding.** De eigenaar keurde het voorstel goed ("bouw maar") en vroeg
+tegelijk om een aparte sessie voor het beleid voor het bewijsniveau. Die kon
+deze sessie niet zelf starten, omdat de eigenaar via Remote Control werkte; de
+taak staat als voorstel klaar.
+
+**Wat er veranderde.**
+- **Zesde pijler "ZWBeter materiaal"** (`src/lib/zwbeter-pillars.ts`).
+  - Twee tabs: Kennisbank (`/zwbeter-worden/materiaal/kennis`) en Rekenaar
+    (`/zwbeter-worden/materiaal/rekenaar`). `/zwbeter-worden/materiaal` stuurt door
+    naar de kennisbank.
+  - `/materiaal` en alles eronder verwijst permanent door (`next.config.ts`).
+  - De tegels staan op een breed scherm in één rij: zes voor een trainer, vijf
+    voor de rest. Op de telefoon staan ze in rijen van twee.
+- **Vraag en Aanbod is uit de app.**
+  - Weg: de pagina's onder `src/app/(app)/materiaal/`, `src/lib/categories.ts`,
+    `src/components/post-kind-badge.tsx`, het menu-item in het oude design en de
+    vermeldingen op `/hulp`.
+  - De berichten blijven in de database. Het recht `content.create_posts`
+    blijft bestaan, met een aangepaste omschrijving.
+  - De accountexport neemt de tabellen nog mee.
+- **Kennisbank** (`src/lib/materiaal/library.ts`):
+  - zestien artikelen op vijf planken: Lucht, Rollen en aandrijving, Binnen
+    fietsen, Lichaam en fiets, Kleine middelen;
+  - 8 sterk, 7 matig, 1 beperkt, geen Afgeraden;
+  - een nieuwe bronsoort `meting` (`EVIDENCE_KINDS`);
+  - een eigen legenda (`MATERIAAL_EVIDENCE_LEGEND`), omdat *sterk* hier ook uit
+    meerdere onafhankelijke groepen kan komen.
+- **Rekenaar** (`src/lib/materiaal/rekenaar.ts` plus de pagina):
+  - rekent een route twee keer door met `estimateRide`;
+  - vaste routes: vlak 40 km, heuvelachtig 40 km en een klim van 8 km op 6 %;
+    plus buitenevents met een GPX (60 dagen terug tot 120 dagen vooruit);
+  - vermogen standaard 75 % van je FTP, gewicht uit je profiel; alleen of in een
+    groep;
+  - nu en straks voor houding, extra luchtweerstand in procent, banden en
+    wegdek, fiets en uitrusting in kg, en het rendement van de aandrijving;
+  - bij elke keuze het artikel met de bewijsbadge;
+  - de uitkomst is de tijdwinst en wat die in watt waard is.
+  - Waar de keuzes vandaan komen:
+    - houding: Lim 2011 voor de beugel (−11 %) en Barry 2015 voor onderarmen
+      plat (−13,9 %);
+    - rolweerstand: 0,005 en 0,007, uit Lim 2011 terugberekend;
+    - groep: 70 % luchtweerstand, een aanname met Blocken 2018.
+- **Koppelingen.**
+  - Leeszaal: vijf nieuwe planken, gekoppeld aan de ZWBieb-onderwerpen Bikefit
+    en houding, Banden en tubeless, Sleutelen, Zwift-setup en Vermogensmeters.
+  - Coachchat: kennisbank, links en prompt.
+  - Kennisbank-scan: via het coachblok.
+  - `/hulp`: blok "ZWBeter materiaal", anker en zoekterm.
+
+**Bronnen.** Ruim dertig zijn in PubMed teruggevonden: de sport- en
+sportgeneeskundebladen, onder andere Lim 2011, García-López 2008, Otani 2018,
+Bini 2021, Dinardi 2020 en Jin 2026. De techniekbladen staan niet in PubMed;
+die hebben de DOI van de uitgever, via Consensus. Grappe 1999 is niet in PubMed
+gevonden. Waar de auteurs of pagina's niet zeker waren, staat "et al." of
+ontbreken de pagina's.
+
+**Bewust niet gebouwd.**
+- Een vork (bandbreedte) in de rekenaar. Elke keuze heeft nu één bronwaarde;
+  een vork komt pas als een artikel een bereik geeft.
+- Gravel als keuze bij de banden: daar is geen gepubliceerde rolweerstand voor
+  gevonden. `/hulp` zegt dat de keuzes over asfalt gaan.
+- Zwift-routes in de rekenaar, wind, prijzen, opslaan. Zie het voorstel.
+- Het recht en de tabellen van Vraag en Aanbod opruimen: dat vraagt een migratie.
+- In de leeszaal staat de algemene legenda. Daar staan artikelen van alle
+  kennisbanken door elkaar, en de beleidsronde trekt de regels gelijk.
+
+**Getest.**
+- `materiaal.test.ts`, acht tests:
+  - artikelen hebben een bron en een beperking, een geldige plank, geen
+    Afgeraden, en een DOI;
+  - het niveau is gelijk aan de goedgekeurde tabel in het document;
+  - de rekenaar: geen verschil zonder verandering;
+  - 5 % minder luchtweerstand komt binnen 15 % van een handberekening;
+  - een kilo minder levert bergop meer op dan op het vlak;
+  - in een groep levert aero minder op;
+  - de rolweerstand uit Lim 2011 rekent na;
+  - de vaste routes hebben de goede lengte.
+- `zwbieb.test.ts` (alle artikelen op een plank) en `coach-knowledge.test.ts`
+  (elk pad wordt een link) dekken materiaal nu mee.
+- Volledige run: 2798 groen. `tsc` en ESLint: geen nieuwe fouten.
+
+**In de browser bekeken** (dev-server, ingelogd, 2026-10-18):
+- `/materiaal` stuurt door naar de kennisbank. Zes pijlers staan in één rij,
+  met de juiste tab actief, ook op een artikel.
+- De legenda met de tekst voor materiaal; het artikel Compressiekleding met
+  badge en bronnen.
+- Rekenaar:
+  - onderarmen plat over 40 km vlak bij 206 W: 3:12 sneller, 26 W waard;
+  - een kilo minder op de klim: 24 s;
+  - een komma in een getalveld werkt;
+  - het buitenevent Legacy Gravel (122 km) laadt uit de GPX.
+- Op 375 px geen horizontale scroll, en geen fouten in de console.
+- De leeszaal toont vijf nieuwe planken met zestien artikelen.
+
+**Niet geverifieerd.**
+- Of de oude links naar `/materiaal/<slug>` op productie goed doorverwijzen.
+- Hoe de coach de nieuwe kennisbank gebruikt.
+
+### Voorstel — ZWBeter materiaal (besluiten genomen; gebouwd 2026-10-18, zie hierboven)
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Geen code. Onderzoek en
 voorstel: [materiaal-onderzoek](docs/materiaal-onderzoek-2026-10-17.md).

@@ -1,5 +1,5 @@
-// De leeszaal van ZWBieb: alle artikelen uit de drie kennisbanken (trainen,
-// voeding, kracht) op één plek, per onderwerp in plaats van per onderdeel.
+// De leeszaal van ZWBieb: alle artikelen uit de kennisbanken (trainen, voeding,
+// kracht en, sinds 2026-10-18, materiaal) op één plek, per onderwerp in plaats van per onderdeel.
 //
 // De artikelen blijven waar ze staan: protocollen, de coach en het schema linken
 // naar hun adres onder ZWBeter Worden. De leeszaal is een catalogus erover.
@@ -16,23 +16,26 @@
 // zichzelf); een artikel lezen vertelt niemand iets.
 
 import type { ArticleEvidence } from "@/lib/knowledge/evidence";
+import { MATERIAAL_ARTICLES } from "@/lib/materiaal/library";
 import { NUTRITION_ARTICLES } from "@/lib/nutrition/library";
 import type { MethodLabel } from "@/lib/training/method-label";
 import { STRENGTH_ARTICLES } from "@/lib/training/strength-library";
 import { TRAINING_ARTICLES } from "@/lib/training/training-library";
 
-export type Collection = "trainen" | "voeding" | "kracht";
+export type Collection = "trainen" | "voeding" | "kracht" | "materiaal";
 
 export const COLLECTION_LABELS: Record<Collection, string> = {
   trainen: "Trainen",
   voeding: "Voeding",
   kracht: "Core & mobiliteit",
+  materiaal: "Materiaal",
 };
 
 const COLLECTION_BASE: Record<Collection, string> = {
   trainen: "/zwbeter-worden/kennis",
   voeding: "/zwbeter-worden/voeding/kennis",
   kracht: "/zwbeter-worden/core/kennis",
+  materiaal: "/zwbeter-worden/materiaal/kennis",
 };
 
 /** Een artikel als "kennisbank/slug". */
@@ -151,6 +154,44 @@ export const SHELF_DEFS: ShelfDef[] = [
       "trainen/brain-endurance-training",
     ],
   },
+  // De kennisbank materiaal (2026-10-18).
+  {
+    slug: "lucht-en-houding",
+    label: "Lucht en houding",
+    topics: ["bikefit"],
+    books: [
+      "materiaal/waar-je-watt-heen-gaan",
+      "materiaal/houding",
+      "materiaal/helm",
+      "materiaal/kleding",
+      "materiaal/wielen-en-frame",
+      "materiaal/sokken-en-overschoenen",
+    ],
+  },
+  {
+    slug: "banden-en-ketting",
+    label: "Banden en ketting",
+    topics: ["banden-tubeless", "sleutelen"],
+    books: ["materiaal/banden-en-bandenspanning", "materiaal/ketting-en-smering"],
+  },
+  {
+    slug: "binnen-fietsen",
+    label: "Binnen fietsen",
+    topics: ["zwift-setup", "vermogensmeters"],
+    books: ["materiaal/ventilator", "materiaal/vermogensmeter"],
+  },
+  {
+    slug: "fiets-afstellen",
+    label: "Fiets en lichaam",
+    topics: ["bikefit"],
+    books: ["materiaal/zadelhoogte-en-bikefit", "materiaal/cranklengte", "materiaal/gewicht"],
+  },
+  {
+    slug: "kleine-middelen",
+    label: "Kleine middelen",
+    topics: [],
+    books: ["materiaal/neusstrips", "materiaal/compressiekleding", "materiaal/inlegzolen"],
+  },
   {
     slug: "gezondheid",
     label: "Gezondheid",
@@ -209,6 +250,7 @@ function allArticles(): Map<BookRef, Book> {
   add("trainen", TRAINING_ARTICLES);
   add("voeding", NUTRITION_ARTICLES);
   add("kracht", STRENGTH_ARTICLES);
+  add("materiaal", MATERIAAL_ARTICLES);
   return books;
 }
 
