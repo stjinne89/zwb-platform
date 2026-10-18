@@ -3766,8 +3766,9 @@ Fitness-status: Verbeterend`}
             <h2 className="font-semibold">ZWBeter materiaal</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Een kennisbank over materiaal en kleine winsten, en een rekenaar die
-              laat zien wat een verandering jou oplevert. ZWB noemt geen merken en
-              geeft geen koopadvies.
+              laat zien wat een verandering jou oplevert. ZWB geeft geen
+              koopadvies. Merken staan alleen in de rekenaar, met cijfers uit
+              onafhankelijke tests.
             </p>
           </div>
         </header>
@@ -3796,12 +3797,12 @@ Fitness-status: Verbeterend`}
             <p className="mt-2 text-sm text-muted-foreground">
               Kies een route, het wegdek, je vermogen en je gewicht. Op de renner
               stel je in wat je nu hebt en wat je straks overweegt: helm, houding,
-              fiets en bandenspanning. Tik op een stip op de renner of op een
-              onderdeel eronder. Kleding, het gewicht van je uitrusting en het
-              rendement van je ketting staan onder de renner. De rekenaar rijdt de
-              route twee keer met hetzelfde vermogen en toont het verschil in tijd
-              en in watt, en per onderdeel wat dat apart oplevert. De stippellijn
-              is je houding in de andere opzet.
+              fiets, wielen, banden en kleding. Tik op een stip op de renner of op
+              een onderdeel eronder. De rekenaar rijdt de route twee keer met
+              hetzelfde vermogen en toont het verschil in tijd en in watt, en per
+              onderdeel wat dat apart oplevert. De stippellijn is je houding in de
+              andere opzet. Het tenue kun je wisselen tussen de winter- en de
+              zomereditie; dat verandert de berekening niet.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Hij rekent windstil en met een vast vermogen, zoals het pacingplan.
@@ -3810,9 +3811,24 @@ Fitness-status: Verbeterend`}
               want daar bepaalt het spel de fysica. De keuzes voor banden gaan over
               asfalt; op gravel is de rolweerstand hoger. Op ruw wegdek maakt de
               bandenspanning niets uit, omdat niet gemeten is wanneer een band
-              daar van sneller naar trager omslaat. De winst van een aerofiets en
-              aerowielen komt uit een rekenmodel voor een tijdrit; op de remgrepen
-              ligt die eerder lager.
+              daar van sneller naar trager omslaat.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Helmen, fietsen, wielen, banden en sokken komen uit onafhankelijke
+              tests: windtunneltests van Cyclingnews Labs en de testrol van
+              BicycleRollingResistance. Geen cijfers van fabrikanten. Zo'n test
+              meet op een pop, een fiets zonder renner of een testrol. De rekenaar
+              neemt daarom alleen het verschil met een gewoon product uit dezelfde
+              test, zoals een helm met gaten of een gangbare band, en telt dat op
+              bij zijn eigen model. In de tabel zie je per product dat verschil
+              (CdA of Crr) en wat het jou oplevert op de gekozen route. Het is één
+              test per product; een andere test kan een andere volgorde geven.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              De fietsen zijn getest met hun eigen hoge velgen. Kies je een geteste
+              fiets, dan tellen andere wielen niet mee en staat er bij Wielen "Bij
+              de fiets". Voor shirts en broeken is geen onafhankelijke test
+              gevonden; daar vul je zelf een percentage in.
             </p>
             <Link
               href="/zwbeter-worden/materiaal/rekenaar"

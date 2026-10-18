@@ -4,16 +4,22 @@ import { ARTICLE_EVIDENCE_LABELS } from "@/lib/knowledge/evidence";
 import { EVIDENCE_KINDS } from "@/lib/nutrition/library";
 import { MATERIAAL_ARTICLES, MATERIAAL_CATEGORIES } from "@/lib/materiaal/library";
 import {
-  FIETSEN,
+  BAND_PRODUCTEN,
+  FIETS_PRODUCTEN,
   GROEP_CDA_FACTOR,
+  HELM_PRODUCTEN,
+  SOK_PRODUCTEN,
+  WIEL_PRODUCTEN,
   RUW_CRR,
   SPANNINGEN,
   STANDAARD_OPZET,
   VASTE_ROUTES,
   opzetCda,
   ritSeconden,
+  rolweerstand,
   vergelijkOpzet,
   winstPerOnderdeel,
+  winstPerProduct,
 } from "@/lib/materiaal/rekenaar";
 import { AIR_DENSITY, DRIVETRAIN_EFF } from "@/lib/ride-estimate";
 
@@ -104,25 +110,54 @@ describe("rekenaar", () => {
     expect(RUW_CRR).toBe(SPANNINGEN[1].crr);
   });
 
-  it("leidt de aerofiets af uit Jeukendrup & Martin 2001", () => {
-    // Een aeroframe scheelde op 40 km solo 1:17 tot 1:44, aerowielen 60 tot 82 s.
-    // Terugrekenen met hetzelfde model moet op die tijden uitkomen.
-    const tt = { segments: route("vlak"), cda: 0.25 };
-    const frame = FIETSEN.find((f) => f.id === "aero")!.cdaVerschil - FIETSEN.find((f) => f.id === "aerowielen")!.cdaVerschil;
-    const wielen = FIETSEN.find((f) => f.id === "aerowielen")!.cdaVerschil;
-    const tijd = (watts: number, cda: number) =>
-      ritSeconden(tt.segments, { ...rijder, watts, gewichtKg: 71 }, { ...STANDAARD_OPZET, aeroPct: (cda / 0.32 - 1) * 100 });
-    const winstFrame = tijd(417, tt.cda) - tijd(417, tt.cda + frame);
-    const winstWielen = tijd(417, tt.cda) - tijd(417, tt.cda + wielen);
-    expect(winstFrame).toBeGreaterThan(70);
-    expect(winstFrame).toBeLessThan(110);
-    expect(winstWielen).toBeGreaterThan(55);
-    expect(winstWielen).toBeLessThan(85);
+  it("rekent de helmtest terug naar de gepubliceerde watt", () => {
+    // Cyclingnews: 0,0009 m² is 0,74 W bij 40 km/h; de Oakley Velo Mach scheelde 8,11 W.
+    const oakley = HELM_PRODUCTEN.find((h) => h.id === "oakley-velo-mach")!;
+    const v = 40 / 3.6;
+    expect(-oakley.verschil * 0.5 * 1.2 * v ** 3).toBeCloseTo(8.11, 2);
+    expect((0.0009 / -oakley.verschil) * 8.11).toBeCloseTo(0.74, 1);
   });
 
-  it("maakt een dichte helm en een aerofiets sneller", () => {
-    const helm = vergelijkOpzet({ route: route("vlak"), rijder, nu: STANDAARD_OPZET, straks: { ...STANDAARD_OPZET, helm: "aero" } });
-    const fiets = vergelijkOpzet({ route: route("vlak"), rijder, nu: STANDAARD_OPZET, straks: { ...STANDAARD_OPZET, fiets: "aero" } });
+  it("komt met een geteste racefiets uit op het verschil met renner uit de fietstest", () => {
+    // Tarmac SL8 280,2 W tegen 304,67 W voor de basisfiets, bij 40 km/h.
+    const tarmac = FIETS_PRODUCTEN.find((f) => f.id === "specialized-tarmac-sl8")!;
+    const watt = (304.67 / 0.3702) * -tarmac.verschil;
+    expect(watt).toBeCloseTo(304.67 - 280.2, 0);
+  });
+
+  it("telt wielen niet dubbel bij een geteste racefiets", () => {
+    const wielen = WIEL_PRODUCTEN.find((w) => w.id === "hunt-5am-limitless")!.id;
+    const fiets = "specialized-tarmac-sl8" as const;
+    const zonder = opzetCda({ ...STANDAARD_OPZET, fiets }, false);
+    const met = opzetCda({ ...STANDAARD_OPZET, fiets, wielen }, false);
+    expect(met).toBe(zonder);
+    expect(opzetCda({ ...STANDAARD_OPZET, wielen }, false)).toBeLessThan(opzetCda(STANDAARD_OPZET, false));
+  });
+
+  it("rekent de bandentest om naar een verschil in rolweerstand", () => {
+    // Crr = P / (v·m·g) bij 28,8 km/h en 42,5 kg.
+    const gp = BAND_PRODUCTEN.find((b) => b.id === "conti-gp5000-str-28")!;
+    expect(gp.verschil).toBeCloseTo((9.7 - 12.1) / ((28.8 / 3.6) * 42.5 * 9.81), 6);
+    expect(rolweerstand("hard", "glad", gp.id)).toBeCloseTo(0.005 + gp.verschil, 6);
+    expect(rolweerstand("hard", "glad")).toBe(0.005);
+  });
+
+  it("maakt katoenen sokken trager en aerosokken sneller dan gewone fietssokken", () => {
+    expect(SOK_PRODUCTEN.find((s) => s.id === "katoen")!.verschil).toBeGreaterThan(0);
+    expect(SOK_PRODUCTEN.find((s) => s.id === "acg-v5")!.verschil).toBeLessThan(0);
+  });
+
+  it("geeft per product de winst tegen de basis", () => {
+    const ids = HELM_PRODUCTEN.map((h) => h.id);
+    const winst = winstPerProduct({ route: route("vlak"), rijder, opzet: STANDAARD_OPZET, veld: "helm", ids });
+    expect(winst.get("basis")!.winstSeconden).toBeCloseTo(0, 6);
+    expect(winst.get("oakley-velo-mach")!.winstSeconden).toBeGreaterThan(winst.get("giro-aries")!.winstSeconden);
+    expect(winst.get("lazer-z1")!.winstSeconden).toBeLessThan(0);
+  });
+
+  it("maakt een aerohelm en een geteste racefiets sneller", () => {
+    const helm = vergelijkOpzet({ route: route("vlak"), rijder, nu: STANDAARD_OPZET, straks: { ...STANDAARD_OPZET, helm: "oakley-velo-mach" } });
+    const fiets = vergelijkOpzet({ route: route("vlak"), rijder, nu: STANDAARD_OPZET, straks: { ...STANDAARD_OPZET, fiets: "factor-ostro-vam" } });
     expect(helm.winstSeconden).toBeGreaterThan(0);
     expect(fiets.winstSeconden).toBeGreaterThan(helm.winstSeconden);
   });
@@ -133,9 +168,9 @@ describe("rekenaar", () => {
     expect(los.helm).toBe(0);
     expect(los.fiets).toBe(0);
     expect(los.houding).toBeGreaterThan(0);
-    expect(los.spanning).toBeLessThan(0);
+    expect(los.banden).toBeLessThan(0);
     const totaal = vergelijkOpzet({ route: route("vlak"), rijder, nu: STANDAARD_OPZET, straks }).winstSeconden;
-    expect(Math.abs(los.houding + los.spanning - totaal)).toBeLessThan(5);
+    expect(Math.abs(los.houding + los.banden - totaal)).toBeLessThan(5);
   });
 
   it("heeft vaste routes van de goede lengte", () => {

@@ -23,6 +23,7 @@ const ARTIKELEN = [
   "houding",
   "helm",
   "kleding",
+  "sokken-en-overschoenen",
   "wielen-en-frame",
   "banden-en-bandenspanning",
   "gewicht",

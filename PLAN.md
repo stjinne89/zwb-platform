@@ -10034,6 +10034,102 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Rekenaar materiaal: producttests en het echte tenue
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt; bouwt voort op
+`af77af7e` (De renner in de rekenaar). Geen migratie.
+
+**Aanleiding.** De eigenaar wilde meer uitwerking per onderdeel: tabellen met
+merken uit tests (zoals de meest aerodynamische helm), met CdA en wat het
+oplevert in tijd en watt, voor helm, banden, wielen, kleding enzovoort. Het
+shirt in de vorige ronde was verzonnen; de eigenaar stuurde een foto van het
+winter- en het zomertenue en wilde tussen die twee kunnen wisselen.
+
+**Besluiten van de eigenaar (vragen in deze sessie).**
+- **Merken mogen, alleen uit onafhankelijke tests**: bladen en labs die zelf
+  niets verkopen. Geen cijfers van fabrikanten, geen prijzen, geen koopadvies.
+  Dit draait het eerdere "geen merken" om (zie het voorstel ZWBeter materiaal).
+- **Doorrekenen als verschil met een basis**: per test alleen het verschil met
+  een gewoon product uit diezelfde test, opgeteld bij het getoetste model. Een
+  testrol of pop geeft andere absolute waarden dan de weg.
+
+**Wat er veranderde.**
+- **Producten** (`src/lib/materiaal/producttests.ts`), een selectie per bron:
+  - helmen: Cyclingnews Labs, juli 2025, windtunnel, pop in de beugel,
+    40 km/h, marge ±0,74 W. 23 wegracehelmen tegen de Abus Powerdome;
+    tijdrithelmen weggelaten;
+  - fietsen: Cyclingnews Labs, augustus 2024, met renner, 40 km/h, marge
+    ±0,0047 m². Elf racefietsen tegen een aluminium Trek Emonda uit 2015. De
+    fietsen hadden hun eigen hoge velgen, dus bij een geteste fiets tellen
+    andere wielen niet mee (`wielenBijFiets`);
+  - wielen: Cyclingnews Labs, juli 2026, fiets zonder renner, 40 km/h, banden
+    28 mm, marge ±0,27 W. Veertien wielsets tegen een ondiepe set;
+  - banden: BicycleRollingResistance, testrol 28,8 km/h, 42,5 kg per band,
+    de gratis kolom "RR High". Achttien banden tegen de Continental GP 5000 met
+    binnenband. Het verschil in Crr komt bovenop de rolweerstand uit Lim 2011,
+    zodat het niveau van de weg blijft;
+  - sokken: Cyclingnews Labs, oktober 2026, pop met stilstaande benen,
+    30 km/h, marge ±0,2 W. Veertien paar tegen de Veto 1.0, een gewone fietssok.
+    De clubkledingmaker Kalas zit erbij.
+  Watt bij een testsnelheid is omgerekend met P = ½·ρ·CdA·v³ en ρ = 1,2, zoals
+  de bron zelf doet.
+- **Het model** (`rekenaar.ts`): helm, fiets, wielen en sokken tellen als verschil
+  in m² op de luchtweerstand van de houding; de band als verschil in Crr.
+  `winstPerProduct` rekent per product uit wat het oplevert tegen de basis,
+  op de gekozen route en met de rest van de opzet.
+- **De pagina**: zes onderdelen (Helm, Houding, Fiets, Wielen, Banden,
+  Kleding). Per onderdeel een tabel: product, de gemeten waarde van de bron,
+  het verschil in CdA of Crr, en tijd en watt op jouw route. Zes rijen plus de
+  basis, "Alle tonen" voor de rest; onder de tabel de bron, datum, methode en
+  marge, met een link. Kg en aandrijving staan nu bij Fiets, het eigen
+  percentage bij Kleding ("Shirt en broek").
+- **De renner**: het tenue naar de foto. Winter: blauwgroen met lichtere
+  vlakken, een gouden borstband en gouden mouwboorden. Zomer: wit met het
+  blauwgroene vlak onderaan, de gouden borstband en blauwe mouwboorden. Een
+  schakelaar Winter/Zomer op de renner (alleen beeld, de berekening verandert
+  niet). Witte helm zoals op de foto; witte sokken met een blauwe band. De vorm
+  van helm, frame en velgen volgt het gekozen product.
+- `/hulp`: merken uit onafhankelijke tests, hoe het verschil met de basis werkt,
+  de wielen bij een geteste fiets, en dat er voor shirts geen test is.
+
+**Bewust niet gebouwd.**
+- Fabrikanttests, zoals de claims van Rule 28 of Rapha over hun sokken en
+  shirts. Besluit van de eigenaar.
+- Shirts, pakken en overschoenen als product: geen onafhankelijke test
+  gevonden. Het eigen percentage blijft.
+- Prijzen en gewichten in de tabellen: dat schuift richting koopadvies.
+- De hele database van een bron: alleen een selectie, met bron en link. De
+  betaalde kolommen van BicycleRollingResistance zijn niet gebruikt.
+- De gemeten waarde bij een andere snelheid of windhoek: elke test geeft één
+  gemiddeld getal, en dat nemen we.
+- Een eigen kennisartikel over deze tests. De tests staan niet in PubMed en
+  vallen buiten het bewijsniveau van de kennisbank; ze staan alleen in de
+  rekenaar, met bron.
+
+**Getest.**
+- `materiaal.test.ts`, nu zeventien tests. Nieuw: de helmtest rekent terug
+  naar de gepubliceerde watt; een geteste fiets komt uit op het verschil met
+  renner uit de fietstest; wielen tellen niet dubbel bij een geteste fiets; de
+  bandentest wordt een verschil in Crr; katoenen sokken zijn trager en
+  aerosokken sneller; per product de winst tegen de basis.
+- ESLint op de gewijzigde bestanden: schoon. `tsc`: alleen de twee bekende
+  fouten buiten deze ronde (`read-barcode.ts`, `gopher-image-ocr.ts`, pakketten
+  die in deze worktree ontbreken).
+
+**In de browser bekeken** (dev-server, ingelogd, 2026-10-18):
+- Licht, 800 px: Oakley Velo Mach −0:41 en +5 W over 40 km vlak bij 206 W;
+  Factor Ostro VAM in de beugel −4:53 en 42 W, Wielen toont "Bij de fiets".
+- Winter- en zomertenue allebei bekeken.
+- Donker, 375 px: sokkentabel met namen over twee regels, geen horizontale
+  scroll.
+- De dev-server gaf na de eerste wijziging oude CSS uit `.next/dev`; na het
+  legen van die cache klopte het.
+
+**Niet geverifieerd.**
+- Of de testwaarden over een jaar nog actueel zijn: nieuwe tests vragen om een
+  handmatige update van `producttests.ts`.
+- Hoe het op productie oogt (niet gepusht).
+
 ### Opgeleverd — De renner in de rekenaar van ZWBeter materiaal
 
 **2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -10047,7 +10143,9 @@ bron afgeleid, en bandenspanning en wegdek zijn twee aparte keuzes.
 **Wat er veranderde.**
 - **De renner** (`src/app/(app)/zwbeter-worden/materiaal/rekenaar/renner.tsx`):
   een eigen SVG van opzij, in de tenuekleuren (petrol shirt met de schuine
-  banen in teal, sage en goud). Hij tekent per keuze:
+  banen in teal, sage en goud; *niet meer waar sinds de ronde "Producttests en
+  het echte tenue": het shirt is nu het winter- of zomertenue naar een foto*).
+  Hij tekent per keuze:
   - de houding: romphoek en handen, met ellebogen en knieën uit vaste lengtes,
     en een zachte overgang tussen houdingen (direct bij minder beweging);
   - de helm met gaten of een dichte aerohelm;
@@ -10058,12 +10156,16 @@ bron afgeleid, en bandenspanning en wegdek zijn twee aparte keuzes.
   stippellijn erachter.
 - **De pagina** (`rekenaar.tsx`): een schakelaar Nu/Straks (de rail van de
   profielknop, nu met `--view-slider-w` voor een bredere stand). Je tikt op een
-  stip op de renner of op een van de vier onderdelen eronder. Elk onderdeel
+  stip op de renner of op een van de vier onderdelen eronder (*nu zes*). Elk onderdeel
   toont wat het apart oplevert; de uitkomst staat direct onder de renner.
   Kleding (%), uitrusting (kg) en aandrijving staan onder de renner, voor de
-  gekozen stand. Het wegdek staat bij Route en rijder, omdat het voor nu en
+  gekozen stand (*nu in de onderdelen Kleding en Fiets*). Het wegdek staat bij Route en rijder, omdat het voor nu en
   straks gelijk is.
 - **Het model** (`src/lib/materiaal/rekenaar.ts`):
+  - *niet meer waar sinds de ronde "Producttests en het echte tenue": `HELMEN` en
+    `FIETSEN` zijn vervangen door producten uit onafhankelijke tests. De
+    afleiding hieronder klopte wel met de fietstest (−0,034 tegen gemeten
+    ongeveer −0,03 m²).*
   - `HELMEN`: een dichte helm is 3,9 % minder luchtweerstand, het midden van
     3,7 tot 4,1 % uit het artikel Helm (op een pop);
   - `FIETSEN`: aerowielen 0,015 m² en een aerofiets 0,034 m² minder. Afgeleid
@@ -10963,7 +11065,9 @@ vroeg of daar een onderdeel voor kan komen, te beginnen met een kennisbank.
   ontworpen.
 
 **Bewust niet.**
-- Merken en koopadvies.
+- Merken en koopadvies. *Merken: niet meer waar sinds 2026-10-18 (ronde
+  "Producttests en het echte tenue"): ze staan in de rekenaar, met cijfers uit
+  onafhankelijke tests. Koopadvies blijft eruit.*
 - Fabrikanttests als bron.
 - Virtueel Zwift-materiaal in de kennisbank (dat is spelmechaniek).
 - Slipstream: dat hoort bij racen.

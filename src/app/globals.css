@@ -1887,15 +1887,20 @@ a.tg-row:focus-visible,
 
 /* De renner van de materiaalrekenaar (renner.tsx): het ZWB-tenue van opzij. */
 .renner {
-  --renner-shirt: #004653;
-  --renner-teal: #1f6068;
-  --renner-sage: #7f9590;
-  --renner-goud: #b8873d;
-  --renner-helm: #0a2b34;
-  --renner-gat: var(--card);
+  /* Tenuekleuren naar de foto van het winter- en zomershirt (2026-10-18). */
+  --tenue-blauw: #1c6f87;
+  --tenue-blauw-licht: #3d93ad;
+  --tenue-blauw-lichter: #7cbccf;
+  --tenue-blauw-donker: #145368;
+  --tenue-goud: #c3a06a;
+  --tenue-wit: #f6f7f6;
+  --renner-rand: oklch(0.78 0.015 210);
+  --renner-helm: #f6f7f6;
+  --renner-gat: oklch(0.25 0.02 220);
   --renner-huid: oklch(0.78 0.055 62);
   --renner-broek: oklch(0.2 0.025 220);
   --renner-schoen: oklch(0.97 0.006 103);
+  --renner-sok: oklch(0.97 0.004 210);
   --renner-frame: oklch(0.3 0.045 212);
   --renner-band: oklch(0.2 0.012 220);
   --renner-velg: oklch(0.62 0.02 200);
@@ -1903,11 +1908,12 @@ a.tg-row:focus-visible,
   --renner-weg: var(--border);
 }
 .dark .renner {
-  --renner-shirt: #0d5a68;
-  --renner-teal: #2a7680;
-  --renner-helm: oklch(0.72 0.08 80);
+  --tenue-blauw: #2a7d96;
+  --renner-rand: oklch(1 0 0 / 0);
+  --renner-gat: oklch(0.3 0.02 220);
   --renner-broek: oklch(0.1 0.012 220);
   --renner-schoen: oklch(0.92 0.006 103);
+  --renner-sok: oklch(0.92 0.004 210);
   --renner-frame: oklch(0.86 0.012 210);
   --renner-band: oklch(0.09 0.01 220);
   --renner-velg: oklch(0.55 0.02 210);

@@ -16,6 +16,20 @@ import {
   DRIVETRAIN_EFF,
   estimateRide,
 } from "@/lib/ride-estimate";
+import {
+  BAND_PRODUCTEN,
+  FIETS_PRODUCTEN,
+  HELM_PRODUCTEN,
+  SOK_PRODUCTEN,
+  WIEL_PRODUCTEN,
+  type BandId,
+  type FietsId,
+  type HelmId,
+  type SokId,
+  type WielId,
+} from "@/lib/materiaal/producttests";
+
+export type { BandId, FietsId, HelmId, SokId, WielId };
 
 export type RekenSegment = { distanceM: number; gradient: number };
 export type RekenRoute = { id: string; label: string; segments: RekenSegment[] };
@@ -55,30 +69,15 @@ export const HOUDINGEN = [
 ] as const;
 export type HoudingId = (typeof HOUDINGEN)[number]["id"];
 
-/**
- * Helmen als deel van de luchtweerstand met een gewone helm. Artikel Helm: gaten
- * open of dicht scheelde op een pop 3,7 tot 4,1 %; we nemen het midden.
- */
-export const HELMEN = [
-  { id: "gaten", label: "Helm met gaten", factor: 1 },
-  { id: "aero", label: "Aerohelm, dicht", factor: 1 - 0.039 },
-] as const;
-export type HelmId = (typeof HELMEN)[number]["id"];
-
-/**
- * Fietsen als verschil in luchtweerstand (m²) met een gewone racefiets met
- * spaakwielen. Afgeleid uit Jeukendrup & Martin 2001: een aeroframe scheelde op
- * 40 km solo 1:17 tot 1:44, aerowielen 60 tot 82 s. Met ons model is dat bij
- * elk niveau van renner 0,019 en 0,015 m² minder. Het is een verschil en geen
- * factor, omdat de fiets niet kleiner wordt als jij lager gaat zitten. Gemeten
- * met een tijdritfiets; op de remgrepen ligt de winst eerder lager.
- */
-export const FIETSEN = [
-  { id: "race", label: "Racefiets", cdaVerschil: 0 },
-  { id: "aerowielen", label: "Aerowielen", cdaVerschil: -0.015 },
-  { id: "aero", label: "Aerofiets", cdaVerschil: -0.015 - 0.019 },
-] as const;
-export type FietsId = (typeof FIETSEN)[number]["id"];
+// Helm, fiets, wielen, banden en sokken komen uit onafhankelijke tests; zie
+// producttests.ts. Elk product is een verschil met de basis uit dezelfde test.
+export {
+  BAND_PRODUCTEN,
+  FIETS_PRODUCTEN,
+  HELM_PRODUCTEN,
+  SOK_PRODUCTEN,
+  WIEL_PRODUCTEN,
+} from "@/lib/materiaal/producttests";
 
 /**
  * Rolweerstand. Lim 2011 mat op asfalt bij ongeveer 8 bar 4,2 N en bij 4 bar
@@ -100,9 +99,9 @@ export type WegdekId = (typeof WEGDEKKEN)[number]["id"];
 
 export const RUW_CRR = 0.007;
 
-export function rolweerstand(spanning: SpanningId, wegdek: WegdekId): number {
-  if (wegdek === "ruw") return RUW_CRR;
-  return SPANNINGEN.find((s) => s.id === spanning)?.crr ?? DEFAULT_CRR;
+export function rolweerstand(spanning: SpanningId, wegdek: WegdekId, band: BandId = "basis"): number {
+  const basis = wegdek === "ruw" ? RUW_CRR : (SPANNINGEN.find((s) => s.id === spanning)?.crr ?? DEFAULT_CRR);
+  return basis + (BAND_PRODUCTEN.find((b) => b.id === band)?.verschil ?? 0);
 }
 
 /** Rendement van de aandrijving. 97 % is de aanname van het ZWB-model. */
@@ -112,7 +111,10 @@ export type Opzet = {
   houding: HoudingId;
   helm: HelmId;
   fiets: FietsId;
+  wielen: WielId;
+  banden: BandId;
   spanning: SpanningId;
+  sokken: SokId;
   /** Extra luchtweerstand in procent, bijvoorbeeld van kleding: negatief is minder. */
   aeroPct: number;
   /** Fiets en uitrusting in kg. */
@@ -122,9 +124,12 @@ export type Opzet = {
 
 export const STANDAARD_OPZET: Opzet = {
   houding: "remgrepen",
-  helm: "gaten",
-  fiets: "race",
+  helm: "basis",
+  fiets: "basis",
+  wielen: "basis",
+  banden: "basis",
   spanning: "hard",
+  sokken: "basis",
   aeroPct: 0,
   uitrustingKg: DEFAULT_EQUIPMENT_KG,
   rendement: DRIVETRAIN_EFF,
@@ -140,9 +145,21 @@ export type Rijder = {
 
 export function opzetCda(opzet: Opzet, groep: boolean): number {
   const houding = HOUDINGEN.find((h) => h.id === opzet.houding)?.factor ?? 1;
-  const helm = HELMEN.find((h) => h.id === opzet.helm)?.factor ?? 1;
-  const fiets = FIETSEN.find((f) => f.id === opzet.fiets)?.cdaVerschil ?? 0;
-  return (DEFAULT_CDA * houding * helm + fiets) * (1 + opzet.aeroPct / 100) * (groep ? GROEP_CDA_FACTOR : 1);
+  return (DEFAULT_CDA * houding + materiaalCda(opzet)) * (1 + opzet.aeroPct / 100) * (groep ? GROEP_CDA_FACTOR : 1);
+}
+
+/** Wielen van een geteste fiets? De fietstest mat ze al mee met hun eigen hoge velgen. */
+export function wielenBijFiets(opzet: Pick<Opzet, "fiets">): boolean {
+  return FIETS_PRODUCTEN.find((f) => f.id === opzet.fiets)?.aero ?? false;
+}
+
+/** Verschil in luchtweerstand (m²) van helm, fiets, wielen en sokken met de basis. */
+export function materiaalCda(opzet: Opzet): number {
+  const helm = HELM_PRODUCTEN.find((h) => h.id === opzet.helm)?.verschil ?? 0;
+  const fiets = FIETS_PRODUCTEN.find((f) => f.id === opzet.fiets)?.verschil ?? 0;
+  const wielen = wielenBijFiets(opzet) ? 0 : (WIEL_PRODUCTEN.find((w) => w.id === opzet.wielen)?.verschil ?? 0);
+  const sokken = SOK_PRODUCTEN.find((s) => s.id === opzet.sokken)?.verschil ?? 0;
+  return helm + fiets + wielen + sokken;
 }
 
 /** Tijd in seconden voor deze route, met een vast vermogen over de hele rit. */
@@ -151,7 +168,7 @@ export function ritSeconden(route: RekenSegment[], rijder: Rijder, opzet: Opzet)
     segments: route.map((s) => ({ ...s, watts: rijder.watts })),
     totalMassKg: rijder.gewichtKg + opzet.uitrustingKg,
     cda: opzetCda(opzet, rijder.groep),
-    crr: rolweerstand(opzet.spanning, rijder.wegdek),
+    crr: rolweerstand(opzet.spanning, rijder.wegdek, opzet.banden),
     drivetrainEff: opzet.rendement,
   }).totalSeconds;
 }
@@ -189,7 +206,23 @@ export function vergelijkOpzet(input: {
   return { nuSeconden, straksSeconden, winstSeconden: nuSeconden - straksSeconden, wattWaarde };
 }
 
-export type Onderdeel = "helm" | "houding" | "fiets" | "spanning";
+export type Onderdeel = "helm" | "houding" | "fiets" | "wielen" | "banden" | "kleding";
+
+/** Welke velden van een opzet bij een onderdeel horen. */
+export const ONDERDEEL_VELDEN: Record<Onderdeel, (keyof Opzet)[]> = {
+  helm: ["helm"],
+  houding: ["houding"],
+  fiets: ["fiets", "uitrustingKg", "rendement"],
+  wielen: ["wielen"],
+  banden: ["banden", "spanning"],
+  kleding: ["sokken", "aeroPct"],
+};
+
+function metVelden(opzet: Opzet, van: Opzet, velden: (keyof Opzet)[]): Opzet {
+  const uit = { ...opzet } as Record<keyof Opzet, unknown>;
+  for (const veld of velden) uit[veld] = van[veld];
+  return uit as Opzet;
+}
 
 /**
  * Wat elk onderdeel apart oplevert: nu, met alleen dat onderdeel van straks.
@@ -202,9 +235,30 @@ export function winstPerOnderdeel(input: {
   straks: Opzet;
 }): Record<Onderdeel, number> {
   const nuSeconden = ritSeconden(input.route, input.rijder, input.nu);
-  const los = (onderdeel: Onderdeel) =>
-    input.nu[onderdeel] === input.straks[onderdeel]
-      ? 0
-      : nuSeconden - ritSeconden(input.route, input.rijder, { ...input.nu, [onderdeel]: input.straks[onderdeel] });
-  return { helm: los("helm"), houding: los("houding"), fiets: los("fiets"), spanning: los("spanning") };
+  const uit = {} as Record<Onderdeel, number>;
+  for (const onderdeel of Object.keys(ONDERDEEL_VELDEN) as Onderdeel[]) {
+    const velden = ONDERDEEL_VELDEN[onderdeel];
+    const gelijk = velden.every((veld) => input.nu[veld] === input.straks[veld]);
+    uit[onderdeel] = gelijk ? 0 : nuSeconden - ritSeconden(input.route, input.rijder, metVelden(input.nu, input.straks, velden));
+  }
+  return uit;
+}
+
+/**
+ * Wat elk product oplevert tegen de basis uit zijn test, op deze route en met de
+ * rest van deze opzet. Voor de tabellen met producten.
+ */
+export function winstPerProduct<K extends "helm" | "fiets" | "wielen" | "banden" | "sokken">(input: {
+  route: RekenSegment[];
+  rijder: Rijder;
+  opzet: Opzet;
+  veld: K;
+  ids: readonly Opzet[K][];
+}): Map<Opzet[K], Vergelijking> {
+  const basis = { ...input.opzet, [input.veld]: "basis" } as Opzet;
+  const uit = new Map<Opzet[K], Vergelijking>();
+  for (const id of input.ids) {
+    uit.set(id, vergelijkOpzet({ route: input.route, rijder: input.rijder, nu: basis, straks: { ...input.opzet, [input.veld]: id } }));
+  }
+  return uit;
 }

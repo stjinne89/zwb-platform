@@ -1,7 +1,8 @@
 "use client";
 
 // De renner van de rekenaar: een wielrenner in het ZWB-tenue van opzij, die
-// meebeweegt met de houding, helm, fiets, bandenspanning en het wegdek.
+// meebeweegt met de houding, helm, fiets, wielen, bandenspanning en het wegdek.
+// Het tenue is er in de winter- en de zomereditie, naar een foto van de club.
 //
 // De houding is data: een romphoek en de plek van de handen. Ellebogen en knieën
 // rekent de figuur zelf uit met vaste lengtes, zodat de renner van houding kan
@@ -9,7 +10,7 @@
 // globals.css, voor licht en donker.
 
 import { useEffect, useId, useRef, useState } from "react";
-import type { FietsId, HelmId, HoudingId, Onderdeel, SpanningId, WegdekId } from "@/lib/materiaal/rekenaar";
+import type { HoudingId, Onderdeel, SpanningId, WegdekId } from "@/lib/materiaal/rekenaar";
 
 type P = [number, number];
 
@@ -40,7 +41,16 @@ const POSES: Record<HoudingId, Pose> = {
   onderarmen: { romp: 16, hand: [273, 88] },
 };
 
-export type RennerOpzet = { houding: HoudingId; helm: HelmId; fiets: FietsId; spanning: SpanningId };
+export type Tenue = "winter" | "zomer";
+
+/** Wat de figuur tekent; de pagina leidt het af uit de gekozen producten. */
+export type RennerBeeld = {
+  houding: HoudingId;
+  helm: "aero" | "gaten";
+  aeroFiets: boolean;
+  diepeWielen: boolean;
+  spanning: SpanningId;
+};
 
 const rad = (deg: number) => (deg * Math.PI) / 180;
 const add = (a: P, b: P): P => [a[0] + b[0], a[1] + b[1]];
@@ -70,15 +80,16 @@ function hoofd(romp: number): P {
 }
 
 /** Hoekpunt boven het hoofd, de romp en de fiets: daar staan de knoppen. */
-export function ankers(opzet: RennerOpzet): Record<Onderdeel, P> {
-  const pose = POSES[opzet.houding];
+export function ankers(beeld: RennerBeeld): Record<Onderdeel, P> {
+  const pose = POSES[beeld.houding];
   const h = hoofd(pose.romp);
-  const midden = rompPunt(pose.romp, 46, -24);
   return {
     helm: [h[0] - 2, h[1] - 26],
-    houding: midden,
+    houding: rompPunt(pose.romp, 46, -24),
     fiets: [214, 150],
-    spanning: [VOOR[0] + 36, VOOR[1] + 44],
+    wielen: [ACHTER[0] - 30, ACHTER[1] - 30],
+    banden: [VOOR[0] + 36, VOOR[1] + 44],
+    kleding: [PEDAAL_NA[0] - 22, PEDAAL_NA[1] - 30],
   };
 }
 
@@ -119,35 +130,51 @@ function useHouding(doel: Pose): Pose {
 const ROMP_VORM =
   "M -3 12 L -7 -5 Q -4 -14 6 -15 Q 46 -25 86 -15 Q 97 -11 95 0 Q 92 9 79 10 Q 40 16 -3 12 Z";
 
-function Romp({ romp, clipId, schim }: { romp: number; clipId: string; schim?: boolean }) {
+function Romp({ romp, clipId, tenue, schim }: { romp: number; clipId: string; tenue?: Tenue; schim?: boolean }) {
   const transform = `translate(${pt(HEUP)}) rotate(${f(-romp)})`;
   if (schim) return <path d={ROMP_VORM} transform={transform} className="renner-schim" />;
+  const zomer = tenue === "zomer";
   return (
     <g transform={transform}>
       <clipPath id={clipId}>
         <path d={ROMP_VORM} />
       </clipPath>
-      <path d={ROMP_VORM} fill="var(--renner-shirt)" />
-      <g clipPath={`url(#${clipId})`}>
-        <path d="M 22 30 L 40 30 L 62 -30 L 44 -30 Z" fill="var(--renner-teal)" />
-        <path d="M 40 30 L 50 30 L 72 -30 L 62 -30 Z" fill="var(--renner-sage)" />
-        <path d="M 58 30 L 62 30 L 84 -30 L 80 -30 Z" fill="var(--renner-goud)" />
-        <path d="M -10 14 L 100 14 L 100 6 Q 50 13 -10 7 Z" fill="var(--renner-broek)" opacity="0.9" />
+      <path d={ROMP_VORM} fill={zomer ? "var(--tenue-wit)" : "var(--tenue-blauw)"} />
+      <g key={tenue} clipPath={`url(#${clipId})`} className="renner-wissel">
+        {zomer ? (
+          <>
+            {/* Onderaan het blauwe vlak; de V van de voorkant loopt van opzij gezien schuin. */}
+            <path d="M -12 20 L 30 20 L 44 -30 L -12 -30 Z" fill="var(--tenue-blauw)" />
+            <path d="M -12 -30 L 30 -30 L 4 -4 Z" fill="var(--tenue-blauw-licht)" />
+            <path d="M 4 -4 L 30 20 L -12 20 Z" fill="var(--tenue-blauw-lichter)" opacity="0.7" />
+            <path d="M 18 -30 L 44 -30 L 36 -4 Z" fill="var(--tenue-blauw-donker)" opacity="0.6" />
+          </>
+        ) : (
+          <>
+            <path d="M -12 -30 L 22 -30 L 6 -2 Z" fill="var(--tenue-blauw-licht)" />
+            <path d="M 6 -2 L 32 20 L -12 20 Z" fill="var(--tenue-blauw-lichter)" opacity="0.55" />
+            <path d="M 22 -30 L 46 -30 L 30 4 Z" fill="var(--tenue-blauw-licht)" opacity="0.7" />
+            <path d="M 30 4 L 50 20 L 32 20 Z" fill="var(--tenue-blauw-donker)" opacity="0.6" />
+          </>
+        )}
+        {/* De gouden band op de borst. */}
+        <path d="M 58 20 L 64 20 L 64 1 L 58 2 Z" fill="var(--tenue-goud)" />
       </g>
+      {zomer && <path d={ROMP_VORM} fill="none" stroke="var(--renner-rand)" strokeWidth="1" />}
     </g>
   );
 }
 
-function Helm({ helm }: { helm: HelmId }) {
+function Helm({ helm }: { helm: RennerBeeld["helm"] }) {
   const schaal =
     helm === "aero"
       ? "M -21 3 C -21 -15 -5 -22 8 -19 C 17 -17 21 -10 21 -3 L 14 -4 C 8 -9 -6 -9 -15 5 Z"
       : "M -17 4 C -19 -14 -4 -22 8 -19 C 16 -17 20 -10 21 -3 L 14 -4 C 8 -10 -6 -10 -12 4 Z";
   return (
     <g key={helm} className="renner-wissel">
-      <path d={schaal} fill="var(--renner-helm)" />
+      <path d={schaal} fill="var(--renner-helm)" stroke="var(--renner-rand)" strokeWidth="1" />
       {helm === "aero" ? (
-        <path d="M -18 -2 C -15 -14 -2 -19 10 -16" fill="none" stroke="var(--renner-goud)" strokeWidth="2.2" strokeLinecap="round" />
+        <path d="M -18 -2 C -15 -14 -2 -19 10 -16" fill="none" stroke="var(--renner-gat)" strokeWidth="1.4" strokeLinecap="round" />
       ) : (
         <g stroke="var(--renner-gat)" strokeWidth="2.4" strokeLinecap="round">
           <path d="M -10 -11 L -4 -15" />
@@ -160,7 +187,7 @@ function Helm({ helm }: { helm: HelmId }) {
   );
 }
 
-function Hoofd({ romp, helm }: { romp: number; helm: HelmId }) {
+function Hoofd({ romp, helm }: { romp: number; helm: RennerBeeld["helm"] }) {
   const c = hoofd(romp);
   const knik = (40 - romp) * 0.35;
   return (
@@ -177,11 +204,12 @@ function Nek({ romp }: { romp: number }) {
   return <path d={`M ${pt(van)} L ${pt(hoofd(romp))}`} stroke="var(--renner-huid)" strokeWidth="11" strokeLinecap="round" />;
 }
 
-function Arm({ pose, ver, schim }: { pose: Pose; ver?: boolean; schim?: boolean }) {
+function Arm({ pose, tenue, ver, schim }: { pose: Pose; tenue?: Tenue; ver?: boolean; schim?: boolean }) {
   const s = add(schouder(pose.romp), ver ? [4, -3] : [0, 0]);
   const hand = add(pose.hand, ver ? [4, -3] : [0, 0]);
   const elleboog = gewricht(s, hand, BOVENARM, ONDERARM, 1);
   const mouw: P = [s[0] + (elleboog[0] - s[0]) * 0.45, s[1] + (elleboog[1] - s[1]) * 0.45];
+  const boord: P = [s[0] + (elleboog[0] - s[0]) * 0.38, s[1] + (elleboog[1] - s[1]) * 0.38];
   if (schim) {
     return <path d={`M ${pt(s)} L ${pt(elleboog)} L ${pt(hand)}`} className="renner-schim renner-schim-lijn" />;
   }
@@ -189,7 +217,8 @@ function Arm({ pose, ver, schim }: { pose: Pose; ver?: boolean; schim?: boolean 
     <g opacity={ver ? 0.55 : 1} strokeLinecap="round" strokeLinejoin="round" fill="none">
       <path d={`M ${pt(elleboog)} L ${pt(hand)}`} stroke="var(--renner-huid)" strokeWidth="9.5" />
       <path d={`M ${pt(mouw)} L ${pt(elleboog)}`} stroke="var(--renner-huid)" strokeWidth="11" />
-      <path d={`M ${pt(s)} L ${pt(mouw)}`} stroke="var(--renner-shirt)" strokeWidth="14" />
+      <path d={`M ${pt(s)} L ${pt(mouw)}`} stroke={tenue === "zomer" ? "var(--tenue-wit)" : "var(--tenue-blauw)"} strokeWidth="14" />
+      <path d={`M ${pt(boord)} L ${pt(mouw)}`} stroke={tenue === "zomer" ? "var(--tenue-blauw)" : "var(--tenue-goud)"} strokeWidth="14" strokeLinecap="butt" />
       <circle cx={hand[0]} cy={hand[1]} r="5.5" fill="var(--renner-broek)" stroke="none" />
     </g>
   );
@@ -199,18 +228,23 @@ function Been({ pedaal, ver }: { pedaal: P; ver?: boolean }) {
   const heup = add(HEUP, ver ? [3, -2] : [0, 0]);
   const knie = gewricht(heup, pedaal, DIJ, SCHEEN, -1);
   const broek: P = [heup[0] + (knie[0] - heup[0]) * 0.78, heup[1] + (knie[1] - heup[1]) * 0.78];
+  const langs = (t: number): P => [pedaal[0] + (knie[0] - pedaal[0]) * t, pedaal[1] + (knie[1] - pedaal[1]) * t];
+  const enkel = langs(0.06);
+  const sok = langs(0.3);
+  const sokBand = langs(0.24);
   return (
     <g opacity={ver ? 0.55 : 1} strokeLinecap="round" strokeLinejoin="round" fill="none">
       <path d={`M ${pt(knie)} L ${pt(pedaal)}`} stroke="var(--renner-huid)" strokeWidth="12" />
       <path d={`M ${pt(broek)} L ${pt(knie)}`} stroke="var(--renner-huid)" strokeWidth="14" />
       <path d={`M ${pt(heup)} L ${pt(broek)}`} stroke="var(--renner-broek)" strokeWidth="18" />
+      <path d={`M ${pt(enkel)} L ${pt(sok)}`} stroke="var(--renner-sok)" strokeWidth="12.5" strokeLinecap="butt" />
+      <path d={`M ${pt(sokBand)} L ${pt(sok)}`} stroke="var(--tenue-blauw)" strokeWidth="12.5" strokeLinecap="butt" />
       <path d={`M ${pt(add(pedaal, [-11, -2]))} L ${pt(add(pedaal, [13, 2]))}`} stroke="var(--renner-schoen)" strokeWidth="8" />
     </g>
   );
 }
 
-function Wiel({ c, fiets, spanning }: { c: P; fiets: FietsId; spanning: SpanningId }) {
-  const diep = fiets !== "race";
+function Wiel({ c, diep, spanning }: { c: P; diep: boolean; spanning: SpanningId }) {
   const spaken = diep ? 12 : 18;
   const binnen = diep ? 38 : 49;
   return (
@@ -221,8 +255,8 @@ function Wiel({ c, fiets, spanning }: { c: P; fiets: FietsId; spanning: Spanning
           return <line key={i} x1={c[0] + 4 * Math.cos(a)} y1={c[1] + 4 * Math.sin(a)} x2={c[0] + binnen * Math.cos(a)} y2={c[1] + binnen * Math.sin(a)} />;
         })}
       </g>
-      <circle key={fiets} className="renner-wissel" cx={c[0]} cy={c[1]} r={diep ? 44.5 : 50.5} fill="none" stroke="var(--renner-velg-vlak)" strokeWidth={diep ? 13 : 3.5} />
-      {diep && <circle cx={c[0]} cy={c[1]} r={42} fill="none" stroke="var(--renner-goud)" strokeWidth="1.6" opacity="0.8" />}
+      <circle key={String(diep)} className="renner-wissel" cx={c[0]} cy={c[1]} r={diep ? 44.5 : 50.5} fill="none" stroke="var(--renner-velg-vlak)" strokeWidth={diep ? 13 : 3.5} />
+      {diep && <circle cx={c[0]} cy={c[1]} r={42} fill="none" stroke="var(--tenue-goud)" strokeWidth="1.6" opacity="0.8" />}
       <circle cx={c[0]} cy={c[1]} r={WIEL} fill="none" stroke="var(--renner-band)" strokeWidth="5" />
       {spanning === "zacht" && <ellipse cx={c[0]} cy={GROND - 1.5} rx="12" ry="3" fill="var(--renner-band)" />}
       <circle cx={c[0]} cy={c[1]} r="4" fill="var(--renner-frame)" />
@@ -230,8 +264,7 @@ function Wiel({ c, fiets, spanning }: { c: P; fiets: FietsId; spanning: Spanning
   );
 }
 
-function Frame({ fiets }: { fiets: FietsId }) {
-  const aero = fiets === "aero";
+function Frame({ aero }: { aero: boolean }) {
   const buis = aero ? 9.5 : 5.5;
   const achterbrug: P = aero ? [166, 128] : ZADELBUIS;
   return (
@@ -243,7 +276,7 @@ function Frame({ fiets }: { fiets: FietsId }) {
       <path d={`M ${pt(TRAPAS)} L ${pt(BALHOOFD_ONDER)}`} strokeWidth={aero ? 11 : 6.5} />
       <path d={`M ${pt(BALHOOFD_BOVEN)} L ${pt(BALHOOFD_ONDER)}`} strokeWidth={aero ? 11 : 7} />
       <path d={`M ${pt(BALHOOFD_ONDER)} Q 268 150 ${pt(VOOR)}`} strokeWidth={aero ? 7 : 4.5} />
-      {aero && <path d={`M ${pt(add(TRAPAS, [8, -14]))} L ${pt(add(BALHOOFD_ONDER, [-8, 10]))}`} stroke="var(--renner-goud)" strokeWidth="2" />}
+      {aero && <path d={`M ${pt(add(TRAPAS, [8, -14]))} L ${pt(add(BALHOOFD_ONDER, [-8, 10]))}`} stroke="var(--tenue-goud)" strokeWidth="2" />}
       <path d="M 157 110 L 148 80" strokeWidth="4" />
       <path d="M 131 78 Q 146 74 162 78" strokeWidth="5" />
       <path d={`M ${pt(BALHOOFD_BOVEN)} L 249 94 L 262 92`} strokeWidth={aero ? 6 : 4.5} />
@@ -269,22 +302,23 @@ function Weg({ wegdek }: { wegdek: WegdekId }) {
 }
 
 export function RennerFiguur({
-  opzet,
+  beeld,
   schim,
+  tenue,
   wegdek,
   className,
 }: {
-  opzet: RennerOpzet;
-  /** De andere opzet, als stippellijn erachter. Alleen getekend als de houding verschilt. */
-  schim?: RennerOpzet;
+  beeld: RennerBeeld;
+  /** De houding van de andere opzet, als stippellijn erachter, als die verschilt. */
+  schim?: HoudingId;
+  tenue: Tenue;
   wegdek: WegdekId;
   className?: string;
 }) {
   const id = useId().replace(/:/g, "");
-  const doel = POSES[opzet.houding];
+  const doel = POSES[beeld.houding];
   const pose = useHouding(doel);
-  const toonSchim = schim && schim.houding !== opzet.houding;
-  const schimPose = schim ? POSES[schim.houding] : null;
+  const schimPose = schim && schim !== beeld.houding ? POSES[schim] : null;
 
   return (
     <svg
@@ -294,7 +328,7 @@ export function RennerFiguur({
       aria-hidden="true"
     >
       <Weg wegdek={wegdek} />
-      {toonSchim && schimPose && (
+      {schimPose && (
         <g className="renner-schim-groep">
           <Romp romp={schimPose.romp} clipId={`${id}-s`} schim />
           <Arm pose={schimPose} schim />
@@ -302,15 +336,15 @@ export function RennerFiguur({
         </g>
       )}
       <Been pedaal={PEDAAL_VER} ver />
-      <Arm pose={pose} ver />
-      <Wiel c={ACHTER} fiets={opzet.fiets} spanning={opzet.spanning} />
-      <Wiel c={VOOR} fiets={opzet.fiets} spanning={opzet.spanning} />
-      <Frame fiets={opzet.fiets} />
+      <Arm pose={pose} tenue={tenue} ver />
+      <Wiel c={ACHTER} diep={beeld.diepeWielen} spanning={beeld.spanning} />
+      <Wiel c={VOOR} diep={beeld.diepeWielen} spanning={beeld.spanning} />
+      <Frame aero={beeld.aeroFiets} />
       <Nek romp={pose.romp} />
-      <Romp romp={pose.romp} clipId={`${id}-r`} />
+      <Romp romp={pose.romp} clipId={`${id}-r`} tenue={tenue} />
       <Been pedaal={PEDAAL_NA} />
-      <Hoofd romp={pose.romp} helm={opzet.helm} />
-      <Arm pose={pose} />
+      <Hoofd romp={pose.romp} helm={beeld.helm} />
+      <Arm pose={pose} tenue={tenue} />
     </svg>
   );
 }
