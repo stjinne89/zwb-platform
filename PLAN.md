@@ -62,6 +62,9 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **Eventlink in het eventformulier:** na het pushen een event aanmaken met
+     een Zwift-, een MyWhoosh- en een toertochtlink: vullen de velden zich, en
+     staat de cover na opslaan in storage (ronde 2026-10-18, "Eventlink").
    - **Tabbalk op de iPhone:** na het pushen in de beginscherm-app iets typen,
      het toetsenbord sluiten en kijken of de tabbalk onderaan blijft (ronde
      2026-10-16, "Tabbalk blijft hangen na het toetsenbord").
@@ -190,7 +193,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Hulp in categorieën: tegels in plaats van één lange pagina, 2026-10-18 — gebouwd, unit-tests, typecheck en lint schoon; ingelogd in de browser bekeken (desktop en 375 px, klassiek en tegels); niet gepusht. Geen migratie.**
+> **Hulp in categorieën: tegels in plaats van één lange pagina, 2026-10-18 — gebouwd, unit-tests, typecheck en lint schoon; ingelogd in de browser bekeken (desktop en 375 px, klassiek en tegels); gepusht naar `main` (eigenaar, 2026-10-18, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
 > **Waarom.** Vraag van de eigenaar: `/hulp` was één pagina van ruim 4.000
@@ -242,6 +245,28 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > staat.
 
 ---
+
+> **Eventpagina: knoppen in de kop vallen op mobiel niet meer weg, 2026-10-18 — gebouwd; nagebootst op 375 px in de browser; niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Melding van de eigenaar: op mobiel viel in de kop van de
+> eventpagina een deel van "Deel publieke link" en "Bewerk" weg. De knoppenrij
+> (WhatsApp, publieke link, Bewerk) brak niet af, en in het design "tegels"
+> snijdt de kop (`overflow: hidden`, met het dagvak van 5,25 rem ernaast) alles
+> af wat te breed is.
+>
+> **Wat.** `events/[id]/page.tsx`: de rij met typelabel en knoppen, en de
+> knoppengroep zelf, krijgen `flex-wrap`. Op een smal scherm lopen de knoppen
+> door naar een volgende regel; op desktop blijft alles op één regel.
+>
+> **Bewust niet gedaan.** Knoplabels niet ingekort tot alleen een pictogram:
+> afbreken is genoeg en de labels blijven duidelijk.
+>
+> **Getest.** Losse nabootsing van de kop (zelfde grid en klassen) op 375 px:
+> voor de wijziging afgesneden, erna volledig zichtbaar. Geen lint of
+> typecheck: deze worktree heeft geen `node_modules`; alleen klassen gewijzigd.
+>
+> **Niet geverifieerd.** De echte eventpagina met login op een telefoon.
 
 > **Eventpagina: live renners zonder positie niet meer onzichtbaar, 2026-10-18 — gebouwd, lint en typecheck schoon; gepusht naar `main` (eigenaar, 2026-10-18, `429102f`); niet in de browser bekeken. Geen migratie.**
 > Commit: `429102f`.
@@ -6558,7 +6583,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > 3 over, dus bij A- en B-teams klopten ronden, afstand en hoogtemeters ook niet.
 >
 > **Wat er is.**
-> - "Ophalen" bij de Zwift-eventlink in het eventformulier zet het Start-veld op
+> - "Ophalen" bij de Zwift-eventlink (sinds 2026-10-18 het veld Eventlink bovenaan) in het eventformulier zet het Start-veld op
 >   de start van de eigen subgroep, en neemt ronden en afstand van die groep. De
 >   groep volgt uit de categorieletter van het gekozen ZRL-team ("ZRL A", "B1",
 >   "Bdev", "ZRL Zwiftladies C"; anders die van het hoofdteam). Zonder team of
@@ -10088,6 +10113,209 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — beleid bewijsniveau voor alle kennisbanken
+
+**Voorgesteld (`77449114`), goedgekeurd en gebouwd 2026-10-18; gepusht naar `main`
+(eigenaar, 2026-10-18, `53244d1d`).** Commit `9df3f8cb`; dit blok is daarna
+bijgewerkt. Geen migratie. Beleid, criteria en niveau per
+artikel: [beoordelingsbeleid-bewijsniveau](docs/beoordelingsbeleid-bewijsniveau.md).
+
+**Aanleiding.** De eigenaar vroeg één beleid voor alle kennisbanken, zodat gelijk
+bewijs overal hetzelfde niveau krijgt. "Matig" en "beperkt" vond hij te negatief,
+"veelbelovend" en "experimenteel" positiever dan ze zijn.
+
+**Wat er veranderde.**
+- **Nieuwe woorden**: Stevig onderbouwd, Onderbouwd, Eerste aanwijzingen, ook
+  bij de protocollen. De sleutels in code (`sterk`, `matig`, `beperkt`) bleven.
+- **"Nieuwe methode"** in plaats van Veelbelovend en Experimenteel, in één
+  neutrale stijl, bij workouts, protocollen en de vijf artikelen met een label,
+  en vooraan in de beschrijving naar intervals.icu. De kolom `method_label` en
+  migratie `0246` bleven zoals ze waren.
+- **De conclusie in de badge**: "geen effect" bij *Wat niet werkt*, *Ketonen*,
+  *Neusstrips*, *Compressiekleding* en *Inlegzolen*; "nadelig" bij *Low-carb en
+  keto* (besluit eigenaar). "Afgeraden" bestaat niet meer.
+- **Eén set criteria**: drie routes naar Stevig onderbouwd (consensus, meerdere
+  meta-analyses, drie onafhankelijke groepen), zes begrenzingen, de bronsoort
+  `meting` overal, en een werkwijze voor nieuwe artikelen die de kennisbank-scan
+  volgt. Eén legenda voor alle kennisbanken.
+- **Zeven artikelen kregen een ander niveau**: *Zones*, *Je FTP*,
+  *Darmtraining*, *Herstel tussen sessies*, *Het gymprogramma* en *Kracht op de
+  fiets* omhoog, *Opbouwen* omlaag. Het protocol *Kracht op de fiets* ging mee
+  naar onderbouwd. Uitkomst: 23 stevig onderbouwd, 36 onderbouwd, 14 eerste
+  aanwijzingen.
+- De tekst van *Supplementen en sportvoeding* noemde nitraat en glycerol "sterk
+  onderbouwd", terwijl hun protocollen onderbouwd zijn. Rechtgezet.
+- De protocolpagina's gebruiken nu dezelfde badge als de artikelen.
+- **Coach**: het kennisblok zet de conclusie bij "Bewijs:", de prompt kent de
+  nieuwe woorden, "geen effect" en "nadelig".
+- **`/hulp`**: het blok "Bewijsniveau" is herschreven, "Veelbelovend en
+  experimenteel" heet "Nieuwe methode", en het materiaalblok verwijst ernaar.
+- **Documenten en scan**: de tests lezen de niveaus nu uit het beleidsdocument;
+  `docs/bewijsniveau-kennisbank.md` en de materiaalparagraaf zijn geschiedenis.
+  De skill `kennisbank-scan` en `scripts/kennisbank-inventaris.mjs` volgen het
+  nieuwe beleid.
+
+**Bewust niet.** Een vierde niveau of "Afgeraden" houden; de sleutels in code
+hernoemen; een migratie voor `method_label`; alle protocollen opnieuw
+beoordelen; de vorm "geen effect" bij een keuze tussen twee dingen die allebei
+werken (*Gepolariseerd of piramidaal*, *Cranklengte*). De redenen staan in het
+document.
+
+**Niet meer waar.** Op zeven plekken in eerdere blokken (Workout-bibliotheek,
+ZWBeter materiaal, bewijsniveau per kennisartikel, veelbelovende en
+experimentele trainingsmethodes) stond een correctie bij.
+
+**Hoe beoordeeld.** Op de bronnen die in de app staan. Eén keer opnieuw
+gezocht, in PubMed, voor *Darmtraining* (het position statement van Costa 2025).
+Welke auteurs bij welke groep horen, is afgeleid uit de bronvermeldingen.
+
+**Getest.**
+- `article-evidence.test.ts` (herschreven): geldig niveau en conclusie, gelijk
+  aan de tabel in het beleidsdocument, precies zes artikelen met een conclusie,
+  lage cadans en kracht op de fiets gelijk aan hun protocol.
+- `materiaal.test.ts` en `coach-knowledge.test.ts` met de nieuwe tekst;
+  `workout-on-off.test.ts`: "Nieuwe methode." vooraan, en een oud voorvoegsel
+  wordt vervangen, niet verdubbeld.
+- Hele suite: 2808 van 2809 groen. `omnium-live.test.ts` draait niet zonder
+  `.env.local` in de worktree, en `admin-areas.test.ts` liep één keer in een
+  time-out onder belasting en slaagt los. `tsc`: geen nieuwe fouten (alleen
+  ontbrekende optionele modules `@zxing` en `tesseract.js`, al bekend). ESLint
+  op de gewijzigde bestanden: schoon.
+
+**In de browser bekeken** (dev-server vanuit de worktree, ingelogd, 375 px):
+voeding- en trainenlijst met legenda en nieuwe woorden; materiaallijst met drie
+keer "geen effect"; protocol Kracht op de fiets op Onderbouwd; Blokweek 30/15
+met Nieuwe methode; rekenaar met de langere badge; leeszaal-zoeken op "geen
+effect" geeft de vijf artikelen. Geen horizontale scroll, geen fouten in de
+console.
+
+**Niet geverifieerd.**
+- **intervals.icu**: al gepubliceerde workouts houden "Veelbelovend." of
+  "Experimenteel." vooraan tot ze opnieuw gesynchroniseerd worden; niet getest
+  tegen intervals.icu zelf.
+- Hoe de coach de nieuwe woorden in een echt antwoord gebruikt (vraagt een
+  OpenAI-call op productie).
+
+### Opgeleverd — Eventlink: het eventformulier vult zich uit de link
+
+**2026-10-18.** Commit `a8a7d009`. Geen migratie. **Gepusht naar `main` op
+2026-10-18**, op verzoek van de eigenaar.
+
+**Waarom.** De eigenaar wilde dat een geplakte eventlink bij het aanmaken van
+een event zoveel mogelijk velden invult: eerst voor Zwift, maar ook voor andere
+events. Tot nu toe vulde "Ophalen" bij de Zwift-eventlink alleen start, route,
+ronden en afstand; titel, beschrijving en cover typte de beheerder over.
+
+**Wat er veranderde.**
+- Het veld "Zwift-eventlink" onderaan het formulier is nu **Eventlink**,
+  bovenaan, voor elke link. Ophalen (`lookupEventLink` in
+  `kalender/nieuw/actions.ts`) kiest de bron:
+  - **Zwift**: de publieke event-API zoals eerst, met de koppeling (route,
+    ronden, afstand, eigen ZRL-subgroep) ongewijzigd. Nieuw: titel,
+    omschrijving, de headerafbeelding (`imageUrl`), einde (start plus
+    `durationInSeconds`, alleen als Zwift een duur geeft), locatie "Zwift ·
+    Watopia", categorie (ZRL, FRR en Ladder uit de naam, anders Zwift) en type
+    Training bij een `GROUP_WORKOUT`.
+  - **MyWhoosh** (`event.mywhoosh.com/event/detail/…`): de detail-API die de
+    kalenderscan al gebruikt. Titel, start, afstand, hoogtemeters, omschrijving
+    en categorie (Sunday Race Club of MyWhoosh). Als cover de banner, en anders
+    de routekaart: MyWhoosh geeft bij de geteste SRC-race geen banner.
+  - **Elke andere site**: schema.org-Event uit JSON-LD (ook binnen `@graph`):
+    naam, start, einde, plaats, omschrijving, afbeelding. Zonder JSON-LD de Open
+    Graph-tags. Een tijd zonder tijdzone geldt als Nederlandse tijd, een datum
+    zonder tijd wordt middernacht. Categorie alleen bij een duidelijk woord
+    (granfondo, gravel in de titel, toertocht/cyclo/randonnée).
+- Het formulier vult **alleen lege velden**. Uitzonderingen: de categorie als
+  die nog op de standaard staat, en de start bij Zwift (zoals eerst: de start van
+  de eigen groep is preciezer). Daarna staat er welke velden zijn ingevuld.
+- De cover van de link wordt bij opslaan door de server opgehaald en in
+  `event-photos` onder `covers/<uid>/` gezet, net als een geüploade cover
+  (`cover_image_url` in `EventInput`). Zo hangt de eventpagina niet van een
+  andere site af. Mislukt het ophalen, dan komt het event er zonder cover.
+- Alle verzoeken naar andere sites (`lib/events/link-prefill.ts`) toetsen elke
+  redirect op interne adressen, niet alleen de eerste URL zoals `safeFetch`.
+  HTML tot 2 MB, een afbeelding tot 8 MB en alleen jpeg/png/webp/gif/avif,
+  8 s time-out.
+- `ZwiftEventInfo` heeft er `description` en `imageUrl` bij.
+- `/hulp#events` legt Eventlink uit; de ZRL-uitleg noemt het nieuwe veld.
+
+**Bewust niet gebouwd.**
+- Afstand of route van andere sites raden uit de tekst ("60, 110 en 160 km"):
+  toertochten hebben meestal meerdere afstanden, en een verkeerd getal
+  verandert het trainingsschema.
+- Strava- en Facebook-events: die vragen een login, dus er komt hooguit de
+  Open Graph-titel uit.
+- Velden die al gevuld zijn overschrijven: bij Bewerk zou Ophalen anders een
+  zelf geschreven beschrijving wissen.
+- Type Social bij een Zwift `GROUP_RIDE`: niet elke groepsrit is een social.
+- Einde van een MyWhoosh-event: `duration` staat in de API (300 bij een race
+  van 50 km), maar de eenheid is niet vast te stellen.
+
+**Getest:** `tests/unit/link-prefill.test.ts` (13: JSON-LD met `@graph`, Open
+Graph met sitenaam, online event, datums met en zonder zone, MyWhoosh-HTML,
+inkorten, categorieën, MyWhoosh en Zwift). De bestaande Zwift-tests slagen.
+`tsc` (alleen de bestaande fouten van ontbrekende `@zxing`/`tesseract.js`) en
+ESLint schoon. Rookproef op 2026-10-18 tegen de echte bronnen: een Zwift-event
+(titel, omschrijving, banner), een MyWhoosh-SRC-race (alles behalve een
+banner), amstelgoldrace.nl (alleen Open Graph: titel, omschrijving,
+afbeelding), en het ophalen van een Zwift-banner als png.
+
+**Niet geverifieerd.** Het formulier zelf in de browser: lokaal is er geen
+inlog en deze worktree heeft geen `.env.local`. Dus niet gezien: dat de velden
+zich vullen, de coverpreview van een andere site, en het bewaren van de cover in
+storage onder de RLS van `event-photos`. Niet getest op een echte
+toertochtsite met JSON-LD; dat pad is alleen met een vastgelegde HTML getest.
+De volledige testsuite: vier bestanden faalden in de volle run; apart slagen
+er drie (time-outs onder belasting), en `omnium-live.test.ts` mist
+`.env.local` in de worktree.
+
+### Hersteld — herziening streepte de training van vandaag weg
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Jeroen Janssen had op 17 oktober een lege dag in de
+maandkalender. Productie alleen gelezen (`training_workouts` met
+`superseded_by_plan_id`): de herziening `50cbcebe` (19:23 UTC, `adapt_from_date`
+2026-10-17, eerste nieuwe training op 19-10) streepte "Rustige duur 120 min" van
+17-10 08:00 UTC weg. De herziening van 18:41 die dag (`ddd24311`) had die training
+nog wel teruggezet.
+
+**Oorzaak.** Een herziening (`plan_update`) vervangt met `publishRange` alles in
+[`adapt_from_date`, `end_date`], en `adapt_from_date` is vandaag
+(`amsterdamDayKey()`). Begint het nieuwe schema pas morgen, dan verdwijnt een
+training van vandaag zonder vervanging. Was die gemist of nog niet
+gesynchroniseerd, dan is er geen spoor meer van.
+
+**Wijziging.** `supersedableWorkouts` (`publish.ts`) heeft een zesde regel:
+binnen een bereik blijft een workout staan waarvan het begintijdstip vóór het
+publiceren ligt, tenzij het nieuwe plan die dag zelf iets neerzet. Een training
+van vanavond die nog moet beginnen, en een geschrapte dag later in het bereik,
+vallen nog steeds weg. In Jeroens geval blijft 17-10 staan en vervalt 18-10 wel
+(daar staat alleen zijn Zwift-event). Een onleesbaar `scheduled_at` telt als
+toekomst, dus daar geldt het oude gedrag.
+
+**Bewust niet gebouwd.**
+- *Het bereik laten beginnen bij de eerste nieuwe training.* Dat zou ook
+  toekomstige dagen vóór die training sparen, terwijl een herziening die bewust
+  vrij laat (ziek, rustdagen vooraf; bij Jeroen 18-10) ze moet laten vervallen.
+- *Op het eindtijdstip toetsen in plaats van het begin.* Een training die al
+  begonnen had moeten zijn, kan gaande zijn of gemist; in beide gevallen hoort
+  hij niet zonder vervanging te verdwijnen.
+- *Jeroens weggestreepte training van 17-10 terugzetten.* Dat is een
+  productiewijziging; niet gedaan vanuit deze sessie.
+
+**Niet meer waar.** "mét bereik geldt het hele bereik" (commentaar bij
+`supersedableWorkouts`) en "vervangt dit schema alles van adapt_from_date tot en
+met end_date" (`planUpdateEndDate` in `draft.ts`): beide aangevuld met de
+uitzondering voor wat al voorbij is.
+
+**Getest.** `supersede.test.ts` (drie nieuwe gevallen: voorbij blijft staan,
+voorbij met een nieuwe training die dag wordt vervangen, vanavond wordt
+vervangen) en `active-base-plan.test.ts`; eslint schoon. De bestaande tests met
+een bereik krijgen een vaste `now`, anders vallen hun augustusdatums nu in het
+verleden. Niet in productie nagelopen: pas de volgende herziening laat zien of
+de training van vandaag blijft staan.
+
 ### Gebouwd — ZWB DS: hoogteprofiel en meer rennersdata
 
 **2026-10-18.** Commit: de commit die dit blok toevoegt. Migratie
@@ -10649,7 +10877,8 @@ lid, en de bewijslabels van de kennisbank.
   als onderhoud*; Kracht 6x2 laag toerental → *Lage cadans*; tests → *Je FTP*;
   warming-ups → *Warming-up*; herstelritten en duurritten onder 150 minuten →
   *Rustige ritten rustig*; duurritten vanaf 150 minuten → *Lange ritten*.
-  Het label Veelbelovend of Experimenteel blijft ernaast staan.
+  Het label Nieuwe methode (tot 2026-10-18 Veelbelovend of Experimenteel)
+  blijft ernaast staan.
 
 **Bewust niet gedaan.**
 - ~~Geen niveau op 20 workouts~~ (tempo, sweet spot behalve de blokweken,
@@ -10785,7 +11014,9 @@ taak staat als voorstel klaar.
   - 8 sterk, 7 matig, 1 beperkt, geen Afgeraden;
   - een nieuwe bronsoort `meting` (`EVIDENCE_KINDS`);
   - een eigen legenda (`MATERIAAL_EVIDENCE_LEGEND`), omdat *sterk* hier ook uit
-    meerdere onafhankelijke groepen kan komen.
+    meerdere onafhankelijke groepen kan komen. *(Sinds 2026-10-18 anders: zie "Opgeleverd — beleid bewijsniveau voor alle kennisbanken".)* Die regels
+    gelden nu voor alle kennisbanken, met één legenda; drie artikelen kregen
+    "geen effect" in de badge.
 - **Rekenaar** (`src/lib/materiaal/rekenaar.ts` plus de pagina):
   - rekent een route twee keer door met `estimateRide`;
   - vaste routes: vlak 40 km, heuvelachtig 40 km en een klim van 8 km op 6 %;
@@ -10963,13 +11194,16 @@ kennisbanken en in ZWBieb.
 **Wat er veranderde.**
 - Elk artikel heeft een veld `evidence`. De waarden zijn die van de protocollen
   (sterk, matig, beperkt) plus `afgeraden`, en staan in
-  `src/lib/knowledge/evidence.ts`.
+  `src/lib/knowledge/evidence.ts`. *(Sinds 2026-10-18 anders: zie "Opgeleverd — beleid bewijsniveau voor alle kennisbanken".)* `afgeraden` bestaat niet
+  meer; de woorden zijn Stevig onderbouwd, Onderbouwd en Eerste aanwijzingen, met
+  een conclusie "geen effect" of "nadelig" in de badge.
 - Het niveau gaat over het centrale advies, met vaste criteria en twee
   begrenzingen:
   - alleen een tussenmaat: hooguit matig;
   - niet bij duursporters: hooguit matig.
 - Uitkomst: 10 sterk, 29 matig, 14 beperkt, 3 afgeraden.
 - Het niveau staat naast Veelbelovend en Experimenteel, en vervangt die niet.
+  *(Sinds 2026-10-18 anders: zie "Opgeleverd — beleid bewijsniveau voor alle kennisbanken".)* Die heten nu allebei Nieuwe methode, zonder oordeel.
 - **Besluiten van de eigenaar.**
   - *Wat niet werkt*, *Ketonen* en *Low-carb en keto* krijgen **Afgeraden** in
     plaats van een niveau.
@@ -10990,7 +11224,9 @@ kennisbanken en in ZWBieb.
 - **Coachchat.** Elk artikel gaat met "Bewijs: …" mee in het kennisbankblok.
   De prompt zegt nu:
   - bij beperkt bewijs zegt de coach dat erbij;
-  - iets afgeraden raadt hij af, ook als het lid erom vraagt.
+  - iets afgeraden raadt hij af, ook als het lid erom vraagt. *(Sinds 2026-10-18 anders: zie "Opgeleverd — beleid bewijsniveau voor alle kennisbanken".)* Nu:
+    bij "geen effect" raadt hij het niet aan als iets wat helpt, bij "nadelig"
+    raadt hij het af.
 - **Kennisbank-scan.** `scripts/kennisbank-inventaris.mjs` zet het niveau
   ("Bewijs:") bij elk artikel en protocol. Bij protocollen stond het eerst in de
   samenvatting. De skill `kennisbank-scan` stelt een ander niveau voor onder
@@ -11141,7 +11377,8 @@ wordt, en workouts in de bibliotheek.
 
 **Wat er veranderde.**
 - **Label.** `src/lib/training/method-label.ts`: `veelbelovend` of
-  `experimenteel`. Apart van het bewijsniveau van een protocol (sterk, matig,
+  `experimenteel`. *(Sinds 2026-10-18 anders: zie "Opgeleverd — beleid bewijsniveau voor alle kennisbanken".)* Beide tonen nu "Nieuwe methode", in één
+  neutrale stijl; de waarden bleven. Apart van het bewijsniveau van een protocol (sterk, matig,
   beperkt): dat zegt hoeveel onderzoek er is, het label of het effect al
   vaststaat. Het onderzoek stelde eerst een vierde bewijsniveau voor; dat is
   bij het bouwen losgelaten. Badge `src/components/method-label-badge.tsx`.
@@ -11181,6 +11418,7 @@ wordt, en workouts in de bibliotheek.
   De bron Rønnestad 2025 verhuisde van `training-library.ts` naar
   `protocols/training.ts`.
 - `/hulp#protocollen`: blok "Veelbelovend en experimenteel", plus zoekwoorden.
+  Heet sinds 2026-10-18 "Nieuwe methode".
 - **Coachchat** (na de merge met "Coachchat antwoordt met de kennisbank"): de
   vijf nieuwe artikelen gaan vanzelf mee; `coach.ts` zet er "Label:
   Veelbelovend/Experimenteel" bij, en de instructies vragen de coach dat label te
@@ -18935,7 +19173,7 @@ met een teller voor de volgende klik). Die sync begrenst zichzelf op een
 `followZwbMembers`: hoeveel routes er in een Netlify-functie van 10 s passen hangt
 van de Strava-responstijd af, dus een aantal vooraf kiezen is gokken. `/beheer/zwift-routes` heeft
 nu naast de spike-knop een "Routes ophalen"-knop met statusoverzicht, en het
-eventformulier een veld "Zwift-eventlink" dat route, ronden, afstand en
+eventformulier een veld "Zwift-eventlink" (sinds 2026-10-18 "Eventlink", voor elke link) dat route, ronden, afstand en
 hoogtemeters invult. Een route wordt bij het ophalen alvast als rij in
 `zwift_routes` gezet, anders houdt de foreign key niet voordat de sync heeft
 gedraaid. Tests: `tests/unit/zwift-route.test.ts` (18) en

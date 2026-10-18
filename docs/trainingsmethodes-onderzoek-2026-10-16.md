@@ -37,6 +37,11 @@ vaststaat; een blokweek is "matig bewijs" én "veelbelovend". Het label staat op
 workouts (kolom `method_label`, migratie `0246`), protocollen en
 kennisartikelen, en gaat vooraan in de beschrijving naar intervals.icu.
 
+**Niet meer zo getoond (2026-10-18).** Beide waarden tonen in de app nu
+"Nieuwe methode": het label zegt alleen dat iets geen standaardtraining is, het
+oordeel zit in het bewijsniveau. De waarden in de database bleven. Zie
+[beoordelingsbeleid-bewijsniveau](beoordelingsbeleid-bewijsniveau.md).
+
 ## Overzicht
 
 | Methode | Label | Voorstel |

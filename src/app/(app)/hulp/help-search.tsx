@@ -237,7 +237,7 @@ const HELP_INDEX: HelpResult[] = [
     text: "Hitte, lage cadans, ademspiertraining, duurtest en supplementen: starten, afvinken en de grenzen.",
     href: "/hulp/kennis#protocollen",
     terms:
-      "protocol protocollen kracht op de fiets torque duurtest duurvermogen ontkoppeling decoupling durability hitte hittetraining warmte acclimatisatie heet bad core sensor kerntemperatuur lichaamstemperatuur hemoglobine lage cadans toeren torque vo2max ademspiertraining ademtrainer supplement supplementen cafeine bicarbonaat natriumbicarbonaat nitraat bietensap ijsslush koolhydraten laden beta-alanine creatine darmtraining 150 gram per uur glycerol kersensap kersen herstel herstelshake eiwitshake eiwit vitamine d collageen gelatine pees blessure visolie omega-3 probiotica magnesium kramp bcaa cbd curcumine menthol mondspoelen zink vitamine c dosis gewicht nzvt kennisbank taper blokweek blokperiodisering 30/15 brain endurance concentratie stroop mentale vermoeidheid veelbelovend experimenteel bewijs bewijsniveau sterk bewijs matig bewijs beperkt bewijs afgeraden meta-analyse snelle start sprint onderhoud overgangsperiode bloedstroombeperking bfr occlusie",
+      "protocol protocollen kracht op de fiets torque duurtest duurvermogen ontkoppeling decoupling durability hitte hittetraining warmte acclimatisatie heet bad core sensor kerntemperatuur lichaamstemperatuur hemoglobine lage cadans toeren torque vo2max ademspiertraining ademtrainer supplement supplementen cafeine bicarbonaat natriumbicarbonaat nitraat bietensap ijsslush koolhydraten laden beta-alanine creatine darmtraining 150 gram per uur glycerol kersensap kersen herstel herstelshake eiwitshake eiwit vitamine d collageen gelatine pees blessure visolie omega-3 probiotica magnesium kramp bcaa cbd curcumine menthol mondspoelen zink vitamine c dosis gewicht nzvt kennisbank taper blokweek blokperiodisering 30/15 brain endurance concentratie stroop mentale vermoeidheid nieuwe methode veelbelovend experimenteel bewijs bewijsniveau stevig onderbouwd eerste aanwijzingen geen effect nadelig sterk bewijs matig bewijs beperkt bewijs afgeraden meta-analyse snelle start sprint onderhoud overgangsperiode bloedstroombeperking bfr occlusie",
   },
   {
     title: "Voeding",
@@ -305,7 +305,7 @@ const HELP_INDEX: HelpResult[] = [
     title: "Events en RSVP",
     text: "Kalender, routes, GPX, liveticker en aanmelden.",
     href: "/hulp/wedstrijden#events",
-    terms: "event kalender rsvp route gpx aanmelden aangemeld liveticker voor mij filter verborgen ja nee misschien",
+    terms: "event kalender rsvp route gpx aanmelden aangemeld liveticker voor mij filter verborgen ja nee misschien event aanmaken eventlink link plakken ophalen invullen zwift mywhoosh toertocht cover",
   },
   {
     title: "Verjaardagsrondje",

@@ -16,7 +16,10 @@ export default async function StrengthKnowledgePage() {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Kennisbank</h2>
-      <EvidenceLegend levels={STRENGTH_ARTICLES.map((a) => a.evidence)} />
+      <EvidenceLegend
+        levels={STRENGTH_ARTICLES.map((a) => a.evidence)}
+        conclusions={STRENGTH_ARTICLES.map((a) => a.conclusion)}
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         {strengthArticlesByCategory().map(({ category, articles }) => (
           <div key={category} className="rounded-lg border bg-card p-4">
@@ -32,7 +35,7 @@ export default async function StrengthKnowledgePage() {
                   >
                     <span className="flex min-w-0 flex-wrap items-center gap-2">
                       {article.title}
-                      <EvidenceBadge evidence={article.evidence} />
+                      <EvidenceBadge evidence={article.evidence} conclusion={article.conclusion} />
                     </span>
                     <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                   </Link>

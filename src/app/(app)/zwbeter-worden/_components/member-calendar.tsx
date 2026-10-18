@@ -55,7 +55,7 @@ export type MemberCalendarItem = {
   source: "zwb" | "intervals" | "rit";
   skipped: boolean;
   missed?: boolean;
-  /** Veelbelovend of experimenteel (0246). */
+  /** Nieuwe methode (0246: veelbelovend of experimenteel). */
   methodLabel?: string | null;
   /** Bij een gereden rit: bij welke training hij hoort, door het lid aan te passen. */
   rideLink?: RideLink;

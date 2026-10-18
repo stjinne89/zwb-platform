@@ -115,9 +115,17 @@ describe("label van een trainingsmethode", () => {
   });
 
   it("zet het label één keer vooraan in de beschrijving", () => {
-    expect(describeWithMethodLabel("Elk blok begint hoog.", "experimenteel")).toBe("Experimenteel. Elk blok begint hoog.");
-    expect(describeWithMethodLabel("Experimenteel. Al gedaan.", "experimenteel")).toBe("Experimenteel. Al gedaan.");
-    expect(describeWithMethodLabel(null, "veelbelovend")).toBe("Veelbelovend.");
+    expect(describeWithMethodLabel("Elk blok begint hoog.", "experimenteel")).toBe("Nieuwe methode. Elk blok begint hoog.");
+    expect(describeWithMethodLabel("Nieuwe methode. Al gedaan.", "experimenteel")).toBe("Nieuwe methode. Al gedaan.");
+    expect(describeWithMethodLabel(null, "veelbelovend")).toBe("Nieuwe methode.");
     expect(describeWithMethodLabel("Gewoon.", null)).toBe("Gewoon.");
+  });
+
+  it("vervangt een oud label in plaats van er een tweede voor te zetten", () => {
+    expect(describeWithMethodLabel("Experimenteel. Elk blok begint hoog.", "experimenteel")).toBe(
+      "Nieuwe methode. Elk blok begint hoog.",
+    );
+    expect(describeWithMethodLabel("Veelbelovend.", "veelbelovend")).toBe("Nieuwe methode.");
+    expect(describeWithMethodLabel("Veelbelovend. Gewoon.", null)).toBe("Gewoon.");
   });
 });

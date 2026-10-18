@@ -80,7 +80,7 @@ const FIXED_ORIGINS = new Set(["member", "event"]);
 /**
  * Welke van de gevonden workouts werkelijk vervangen worden.
  *
- * Vijf regels, elk uit een bug:
+ * Zes regels, elk uit een bug:
  * - Alleen wat nog gepland staat. Gereden of gerapporteerde sessies zijn
  *   geschiedenis, geen planning.
  * - Nooit wat het lid zelf heeft vastgezet: een eigen rit of een toegezegd
@@ -96,19 +96,28 @@ const FIXED_ORIGINS = new Set(["member", "event"]);
  * - Buiten een bereik alleen de datums waar dit plan zelf iets neerzet; mét
  *   bereik geldt het hele bereik, zodat een geschrapte trainingsdag ook echt
  *   vervalt.
+ * - Binnen een bereik geen workout waarvan het begintijdstip al voorbij is,
+ *   tenzij dit plan die dag zelf iets neerzet. Het bereik begint op de dag van
+ *   de herziening, maar het nieuwe schema begint vaak pas morgen. Zo verdween
+ *   een gemiste of nog niet gesynchroniseerde training van vandaag spoorloos
+ *   en bleef de dag leeg in de kalender (Jeroen, 17 oktober 2026).
  */
 export function supersedableWorkouts<T extends SupersedeCandidate>(
   candidates: T[],
-  options: { newerPlanIds: Set<string>; dayKeys: Set<string>; wholeRange: boolean },
+  options: { newerPlanIds: Set<string>; dayKeys: Set<string>; wholeRange: boolean; now?: Date },
 ): T[] {
-  return candidates.filter(
-    (row) =>
-      row.status === "planned" &&
-      !FIXED_ORIGINS.has(row.origin ?? "ai") &&
-      !row.test_type &&
-      !options.newerPlanIds.has(row.plan_id) &&
-      (options.wholeRange || options.dayKeys.has(String(row.scheduled_at).slice(0, 10))),
-  );
+  const now = (options.now ?? new Date()).getTime();
+  return candidates.filter((row) => {
+    if (row.status !== "planned") return false;
+    if (FIXED_ORIGINS.has(row.origin ?? "ai")) return false;
+    if (row.test_type) return false;
+    if (options.newerPlanIds.has(row.plan_id)) return false;
+    if (options.dayKeys.has(String(row.scheduled_at).slice(0, 10))) return true;
+    if (!options.wholeRange) return false;
+    // Een onleesbaar tijdstip telt als toekomst: dan geldt het bereik zoals vroeger.
+    const startsAt = Date.parse(String(row.scheduled_at));
+    return Number.isNaN(startsAt) || startsAt >= now;
+  });
 }
 
 /**
@@ -119,7 +128,8 @@ export function supersedableWorkouts<T extends SupersedeCandidate>(
  * Met `range` geldt het hele bereik als vervangen, niet alleen de datums waar
  * het nieuwe schema toevallig ook een workout heeft. Dat is nodig bij een
  * bijwerking: die kan een trainingsdag laten vervallen, en zonder bereik zou de
- * oude workout van die dag blijven staan.
+ * oude workout van die dag blijven staan. Een workout die al begonnen had moeten
+ * zijn, valt alleen weg als dit schema die dag zelf iets neerzet.
  *
  * We markeren ze (superseded_at) in plaats van ze te verwijderen, zodat
  * zichtbaar blijft wat er oorspronkelijk gepland stond. Al gereden of
@@ -436,7 +446,7 @@ type PublishableWorkout = {
   duration_minutes: number;
   intensity: WorkoutIntensity;
   structure_json: unknown;
-  /** Veelbelovend of experimenteel; komt vooraan in de beschrijving (0246). */
+  /** Nieuwe methode (0246); komt vooraan in de beschrijving. */
   method_label?: string | null;
   intervals_event_id: string | null;
   intervals_external_id: string | null;

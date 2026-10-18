@@ -2,9 +2,10 @@
 
 **Voorstel 2026-10-17; besluiten van de eigenaar en gebouwd 2026-10-18.** De
 kennisbank staat in `src/lib/materiaal/library.ts`, de rekenaar in
-`src/lib/materiaal/rekenaar.ts`. `tests/unit/materiaal.test.ts` houdt de niveaus
-in code gelijk aan de tabel "Artikelen en niveaus" hieronder; wijzig een niveau
-dus eerst hier.
+`src/lib/materiaal/rekenaar.ts`. De niveaus per artikel staan sinds 2026-10-18 in
+[beoordelingsbeleid-bewijsniveau](beoordelingsbeleid-bewijsniveau.md); daar leest
+`tests/unit/materiaal.test.ts` ze. De tabel "Artikelen en niveaus" hieronder is
+de geschiedenis.
 
 De vraag van de eigenaar: naast trainen, voeding, kracht en tactiek kun je ook
 beter worden met materiaal en kleine winsten, zoals neusstrips en aero-sokken.
@@ -337,6 +338,12 @@ of meerdere meta-analyses. De derde weg (meerdere onafhankelijke groepen die het
 eens zijn) en het loslaten van "Afgeraden" gelden voorlopig alleen voor
 materiaal. De volgende ronde trekt het beleid gelijk voor alle kennisbanken
 (besluit 2).
+
+**Gedaan op 2026-10-18:**
+[beoordelingsbeleid-bewijsniveau](beoordelingsbeleid-bewijsniveau.md) geldt nu voor
+alle kennisbanken, en de tests lezen de niveaus daar. De niveaus bij materiaal
+veranderden niet; neusstrips, compressie en inlegzolen kregen de vorm "geen
+effect" in de badge.
 
 ## Artikelen en niveaus
 

@@ -17,7 +17,11 @@ export default async function TrainingKnowledgePage() {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Kennisbank</h2>
-      <EvidenceLegend levels={TRAINING_ARTICLES.map((a) => a.evidence)} methodLabels />
+      <EvidenceLegend
+        levels={TRAINING_ARTICLES.map((a) => a.evidence)}
+        conclusions={TRAINING_ARTICLES.map((a) => a.conclusion)}
+        methodLabels
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         {trainingArticlesByCategory().map(({ category, articles }) => (
           <div key={category} className="rounded-lg border bg-card p-4">
@@ -33,7 +37,7 @@ export default async function TrainingKnowledgePage() {
                   >
                     <span className="flex min-w-0 flex-wrap items-center gap-2">
                       {article.title}
-                      <EvidenceBadge evidence={article.evidence} />
+                      <EvidenceBadge evidence={article.evidence} conclusion={article.conclusion} />
                       <MethodLabelBadge label={article.methodLabel} />
                     </span>
                     <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
