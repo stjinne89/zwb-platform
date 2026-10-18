@@ -10559,7 +10559,7 @@ PubMed-zoekvragen gebruiken daarom `[tiab]`-termen zonder jokertekens.
 2 november 2026. Of de taak in Auto-modus de worktree en de commit zonder vragen
 mag maken, blijkt dan.
 
-### Voorstel — ZWBeter materiaal (wacht op akkoord)
+### Voorstel — ZWBeter materiaal (besluiten genomen, wacht op akkoord om te bouwen)
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Geen code. Onderzoek en
 voorstel: [materiaal-onderzoek](docs/materiaal-onderzoek-2026-10-17.md).
@@ -10577,14 +10577,17 @@ vroeg of daar een onderdeel voor kan komen, te beginnen met een kennisbank.
 - Het onderzoek is vooral techniek: windtunnel, testbank en computermodel, met
   weinig meta-analyses. Het bewijsniveau krijgt daarom een aanvulling:
   gepubliceerde metingen tellen als bewijs (nieuwe bronsoort `meting`).
-- Neusstrips, compressiekleding en inlegzolen komen uit op Afgeraden.
+- *Niet meer waar sinds 2026-10-18:* "neusstrips, compressiekleding en
+  inlegzolen komen uit op Afgeraden". De eigenaar wil geen Afgeraden bij
+  materiaal; zie de besluiten hieronder.
 
-**Het voorstel.**
-- Een zesde pijler "ZWBeter materiaal" (`/zwbeter-worden/materiaal`), eerst met
-  alleen de kennisbank.
+**Het voorstel** (bijgewerkt met de besluiten van 2026-10-18).
+- Een zesde pijler "ZWBeter materiaal" met de tabs Kennisbank en Rekenaar, op
+  `/zwbeter-worden/materiaal`. Het korte pad `/materiaal` verwijst ernaar door.
 - Planken in de leeszaal, gekoppeld aan bestaande ZWBieb-onderwerpen.
 - Opname in de coachchat en de kennisbank-scan.
-- Later een rekenaar "Wat levert het op?" op de bestaande pacingfysica.
+- Een rekenaar "Wat levert het op?" op `estimateRide` (buitenmodel), meteen mee
+  ontworpen.
 
 **Bewust niet.**
 - Merken en koopadvies.
@@ -10593,12 +10596,27 @@ vroeg of daar een onderdeel voor kan komen, te beginnen met een kennisbank.
 - Slipstream: dat hoort bij racen.
 - Een rekenhulp voor de zadelhoogte.
 
-**Ligt bij de eigenaar.**
-- Waar: een eigen pijler of onder racen. Let op de naam: `/materiaal` is al
-  Vraag en Aanbod.
-- Of metingen meetellen als bewijs.
-- Afgeraden voor de drie kleine middelen.
-- De volgorde van de fases.
+**Besluiten van de eigenaar (2026-10-18).**
+- **Pad.** Vraag en Aanbod wordt niet meer gebruikt: het pad `/materiaal` gaat
+  over. Vraag en Aanbod gaat uit de app (pagina's, menu, `/hulp`); de berichten
+  blijven in de database.
+- **Metingen tellen als bewijs.** Het beleid voor het beoordelen van artikelen
+  wordt in een volgende ronde verbeterd en vastgelegd, voor alle kennisbanken.
+- **Geen Afgeraden.** Neusstrips, compressie en inlegzolen krijgen een gewoon
+  niveau, met de zwaktes in het artikel.
+- **De rekenaar** wordt meteen mee-ontworpen.
+- **Gelijk op de criteria is gelijk ingedeeld.** Alle zestien zijn daarom
+  opnieuw langs dezelfde regels gelegd:
+  - *sterk* omvat nu ook meerdere onafhankelijke groepen waarvan de metingen of
+    proeven met renners het eens zijn;
+  - alleen een pop, een testbank of een computermodel: hooguit *matig*.
+- **Uitkomst: 8 sterk, 7 matig, 1 beperkt.** Banden en ventilator staan allebei
+  op *sterk*.
+- Deze regels gelden voorlopig alleen voor materiaal. Bij de andere kennisbanken
+  is *sterk* nog: een consensusstuk of meerdere meta-analyses.
+
+**Ligt bij de eigenaar.** Akkoord op de herziene niveaus en het ontwerp van de
+rekenaar, en dan bouwen.
 
 **Niet geverifieerd.** Bronnen zijn op de samenvatting beoordeeld. Drie zijn in
 PubMed bevestigd; de rest gaat bij het bouwen via PubMed of de uitgever.

@@ -1,7 +1,8 @@
 # ZWBeter materiaal: onderzoek en voorstel
 
-**Voorstel, 2026-10-17. Wacht op akkoord van de eigenaar.** Er is nog niets
-gebouwd.
+**Voorstel 2026-10-17; besluiten van de eigenaar 2026-10-18** (zie "Besluiten").
+Nog niet gebouwd. Er staat nog één vraag open: akkoord op de herziene niveaus en
+op het ontwerp van de rekenaar, en dan bouwen.
 
 De vraag van de eigenaar: naast trainen, voeding, kracht en tactiek kun je ook
 beter worden met materiaal en kleine winsten, zoals neusstrips en aero-sokken.
@@ -287,97 +288,148 @@ het vlak:
 Dat soort verhoudingen hoort in de kennisbank. Het past ook bij wat leden
 zelf willen weten: "is dit het geld waard voor hoe ik rijd?"
 
+## Besluiten van de eigenaar (2026-10-18)
+
+1. **Pad.** Vraag en Aanbod wordt niet meer gebruikt, dus het pad `/materiaal`
+   gaat over naar ZWBeter materiaal.
+2. **Metingen tellen als bewijs.** Er komt een bronsoort `meting`. Het beleid
+   voor het beoordelen van artikelen wordt in een volgende ronde verbeterd en
+   vastgelegd, voor alle kennisbanken.
+3. **Geen "Afgeraden".** Neusstrips, compressie en inlegzolen krijgen een gewoon
+   niveau. Wat zwak is aan het onderzoek, staat in het artikel.
+4. **De rekenaar wordt meteen mee-ontworpen** (zie "De rekenaar").
+5. **Gelijk op de criteria is gelijk ingedeeld.** Banden en ventilator voldoen
+   aan dezelfde regel, dus ze krijgen hetzelfde niveau. De niveaus hieronder zijn
+   daarom allemaal opnieuw langs dezelfde regels gelegd.
+
 ## Bewijsniveau bij materiaal
 
-De schaal blijft sterk, matig, beperkt of afgeraden
-(zie [bewijsniveau-kennisbank](bewijsniveau-kennisbank.md)). Er komen twee
-aanvullingen bij:
+De schaal is sterk, matig of beperkt, zoals bij de kennisbanken
+([bewijsniveau-kennisbank](bewijsniveau-kennisbank.md)). Het niveau gaat over de
+conclusie van het artikel. Ook als die conclusie is dat iets niet helpt: dan staat
+dat in de samenvatting, en wat zwak is aan het onderzoek in "Wat dit niet laat
+zien".
 
-1. **Metingen tellen als bewijs.** Een gepubliceerde meting in een windtunnel,
-   op een testbank of in het veld meet de luchtweerstand of het rendement direct.
-   Meerdere onafhankelijke metingen die het eens zijn, tellen voor *sterk*, ook
-   zonder meta-analyse. Eén meting, of metingen van één groep, tellen voor
-   *beperkt* of *matig*.
-2. **Wat het in de wedstrijd oplevert, is een berekening.** Het artikel zegt
-   dat er dan bij ("bij 30 km/h, alleen, op het vlak"). Het niveau gaat over de
-   gemeten weerstand, niet over de seconden.
+| Niveau | Wanneer |
+|---|---|
+| **Sterk** | Een consensusstuk of richtlijn; of meerdere meta-analyses die het eens zijn; of meerdere onafhankelijke onderzoeksgroepen waarvan de metingen of proeven met renners het eens zijn, in de situatie van het advies. |
+| **Matig** | Eén meta-analyse, of meerdere studies die klein zijn, van één groep komen of elkaar tegenspreken. |
+| **Beperkt** | Eén of enkele kleine studies, of een advies dat vooral is afgeleid. |
 
-Een nieuwe soort bron, `meting`, komt dan naast consensus, review, studie en
-richtlijn.
+Drie begrenzingen, alle drie *hooguit matig*:
 
-## Voorgestelde artikelen
+1. **Alleen een tussenmaat**, zoals een bloedwaarde, en geen prestatie of
+   weerstand.
+2. **Niet bij duursporters onderzocht.**
+3. **Alleen op een pop, een testbank of in een computermodel**, zonder metingen
+   met renners. Zo'n meting is precies, maar zegt nog niet hoe het uitpakt met een
+   echte renner op een echte fiets.
 
-| # | Artikel | Plank | Niveau (voorstel) | Kern |
+Wat iets in de wedstrijd oplevert, is een berekening met het gevalideerde
+rekenmodel ([Martin 1998](https://doi.org/10.1123/jab.14.3.276)). Het artikel en
+de rekenaar zeggen dan onder welke omstandigheden: snelheid, alleen of in een
+groep, en het wegdek.
+
+**Verschil met de andere kennisbanken.** Daar is *sterk* nog: een consensusstuk
+of meerdere meta-analyses. De derde weg (meerdere onafhankelijke groepen die het
+eens zijn) en het loslaten van "Afgeraden" gelden voorlopig alleen voor
+materiaal. De volgende ronde trekt het beleid gelijk voor alle kennisbanken
+(besluit 2).
+
+## Artikelen en niveaus
+
+Herzien op 2026-10-18 langs de regels hierboven.
+
+| # | Artikel | Plank | Niveau | Waarom |
 |---|---|---|---|---|
-| 1 | Waar je watt heen gaan | Lucht | Sterk | Lucht, rollen, aandrijving en klimmen naar snelheid; waarom de winst met de snelheid groeit |
-| 2 | Houding: de grootste winst | Lucht | Sterk | Meerdere windtunnel- en veldmetingen (14 %, 13,9 %); hoofd, romp en onderarmen tellen het meest |
-| 3 | Helm | Lucht | Matig | Hoofdstand telt meer dan de helm; aerohelm niet voor iedereen beter |
-| 4 | Kleding en pak | Lucht | Matig | Strak zitten en textuur; enkele procenten |
-| 5 | Sokken en overschoenen | Lucht | Beperkt | Eén studie naar schoenen; aero-sokken zelf niet gepubliceerd onderzocht |
-| 6 | Wielen en frame | Lucht | Matig | Minuten in een solotijdrit, minder in een groep; dichte wielen en zijwind |
-| 7 | Banden en bandenspanning | Rollen | Sterk | Spanning en breedte naar ondergrond; op ruwe weg kost schudden meer dan rollen |
-| 8 | Ketting en smering | Rollen | Matig | Testbanken; een paar watt; groter tandwiel en schone ketting tellen |
-| 9 | Ventilator bij binnen fietsen | Binnen | Matig | Luchtstroom houdt je koel en je vermogen hoog |
-| 10 | Klopt je vermogensmeter? | Binnen | Matig | Afwijkingen van een paar procent; ijken, temperatuur, twee meters vergelijken |
-| 11 | Zadelhoogte, bikefit en schoenplaatjes | Lichaam en fiets | Matig | Kniehoek tijdens het fietsen; comfort ja, blessures onzeker; plaatjes verschuiven doet weinig |
-| 12 | Cranklengte | Lichaam en fiets | Matig | Maakt voor vermogen weinig uit |
-| 13 | Gewicht van fiets en uitrusting | Lichaam en fiets | Sterk (berekening) | Telt bergop, nauwelijks op het vlak |
-| 14 | Neusstrips | Kleine middelen | Afgeraden | Geen effect, behalve bij een vernauwde neus (arts) |
-| 15 | Compressiekleding | Kleine middelen | Afgeraden | Niet sneller; herstel onzeker |
-| 16 | Inlegzolen | Kleine middelen | Afgeraden | Geen winst in vermogen; bij klachten naar een podotherapeut |
+| 1 | Waar je watt heen gaan | Lucht | **Sterk** | Het rekenmodel is door drie onafhankelijke groepen tegen metingen getoetst (Martin 1998, Olds 1995, Dahmen 2011). |
+| 2 | Houding: de grootste winst | Lucht | **Sterk** | Metingen met renners van meerdere groepen zijn het eens: windtunnel bij profs, windtunnel met renners, en veldtests bij recreanten (García-López 2008, Barry 2015, Merkes 2019, Lim 2011). |
+| 3 | Helm | Lucht | **Matig** | Eén studie met renners; de rest gebruikt een pop, een testhoofd of een computermodel (begrenzing 3). |
+| 4 | Kleding en pak | Lucht | **Matig** | Vooral metingen op cilinders en poppen (begrenzing 3). |
+| 5 | Sokken en overschoenen | Lucht | **Beperkt** | Eén windtunnelstudie naar schoenen; naar aero-sokken zelf is niets gepubliceerd. |
+| 6 | Wielen en frame | Lucht | **Matig** | Windtunnel aan het wiel alleen, een gevalideerd computermodel en een rekenmodel; geen metingen met renners (begrenzing 3). |
+| 7 | Banden en bandenspanning | Rollen | **Sterk** | Veldmetingen met renners van meerdere groepen zijn het eens over spanning, band en wegdek (Grappe 1999, Lim 2011, Bertucci 2013, Maier 2019). Bij welke spanning het op een ruwe weg omslaat, is niet vastgesteld. |
+| 8 | Ketting en smering | Rollen | **Matig** | Meerdere onafhankelijke testbanken zijn het eens over spanning en tandwielgrootte, maar alleen op een testbank (begrenzing 3). |
+| 9 | Ventilator bij binnen fietsen | Binnen | **Sterk** | Gecontroleerde proeven met fietsers van meerdere groepen zijn het eens: Otani 2018, Bright 2023, Morrison 2014, Fernández 2022. Het meeste is in de hitte gedaan; bij kamertemperatuur zijn er minder proeven. |
+| 10 | Klopt je vermogensmeter? | Binnen | **Sterk** | Veel onafhankelijke validatiestudies zijn het eens over afwijkingen van een paar procent, afhankelijk van temperatuur, staan, cadans en trillingen. Plus een overzicht van 74 studies (Bouillod 2022). |
+| 11 | Zadelhoogte, bikefit en schoenplaatjes | Lichaam en fiets | **Matig** | Voor de zadelhoogte via de kniehoek is het bewijs sterk (Bini 2021). Voor een bikefit als geheel: comfort uit één ongecontroleerde studie en een enquête, prestatie uit een pilot. |
+| 12 | Cranklengte | Lichaam en fiets | **Sterk** | Meerdere onafhankelijke proeven zijn het eens: binnen de gangbare maten maakt de lengte voor vermogen en rendement weinig uit (Inbar 1983, Martin 2001, Barratt 2011, Ferrer-Roca 2014, Li 2025). |
+| 13 | Gewicht van fiets en uitrusting | Lichaam en fiets | **Sterk** | Een berekening met het getoetste rekenmodel (zie 1): gewicht telt bergop, nauwelijks op het vlak. |
+| 14 | Neusstrips | Kleine middelen | **Matig** | Een meta-analyse vond geen effect, en een proef bij fietsers ook niet. Een meta-analyse bij lopers zag een klein voordeel, met zeer lage zekerheid: de uitkomsten spreken elkaar tegen. Alleen bij een vernauwde neus hielp een spreider. |
+| 15 | Compressiekleding | Kleine middelen | **Sterk** | Meerdere meta-analyses zijn het eens: tijdens het sporten word je er niet sneller van (da Silva 2018, Wang 2025; Jin 2026 met matige zekerheid). Voor herstel spreken de analyses elkaar tegen, en een verwachtingseffect valt niet uit te sluiten. Dat staat in het artikel. |
+| 16 | Inlegzolen | Kleine middelen | **Matig** | Een systematische review en losse proeven, ook een met een nepzool, vinden geen winst in vermogen. Maar de studies zijn klein en wisselend van kwaliteit. |
 
-Zoals bij de bewijsniveaus: na akkoord komt er een tabel met per artikel het
-niveau en waarom, en een test houdt code en tabel gelijk.
+Uitkomst: 8 sterk, 7 matig, 1 beperkt.
+
+Neusstrips, compressie en inlegzolen hebben nu een gewoon niveau. Bij
+compressie is dat *sterk*: het bewijs dat je er tijdens het sporten niet
+sneller van wordt, is stevig. De samenvatting moet dat dus voorop zetten, zodat
+niemand het niveau leest als "werkt".
 
 ## Waar het komt
 
-**Voorstel: een zesde pijler "ZWBeter materiaal"**, op
-`/zwbeter-worden/materiaal`. Hij begint met alleen de kennisbank.
-
-- Het menu en de tegels hebben nu vijf pijlers: trainen, racen, voeden, kracht
-  en coachen. Met zes staan ze op de telefoon in drie rijen van twee.
-- "Kracht" is ook een zelfstandig naamwoord, dus "ZWBeter materiaal" past in het
-  rijtje.
-- **Let op de naam.** `/materiaal` bestaat al: dat is Vraag en Aanbod onder
-  Club, de vroegere Materiaalzone. De pijler komt op een ander adres, maar twee
-  keer "materiaal" in het menu verwart. Mogelijke oplossingen: de pijler
-  "ZWBeter uitrusten" noemen, of "ZWBeter materiaal" houden en in het menu alleen
-  "Vraag en Aanbod" laten staan, zoals nu al.
-- Alternatief: de kennisbank onder ZWBeter racen. Racen heeft nu alleen de
-  analyse van ZRL-races. Materiaal is breder dan racen, maar zo komt er geen
-  pijler bij die eerst alleen een lijst is.
-
-**Wat er verder mee verbonden wordt, zonder nieuwe tabellen:**
-
+- **ZWBeter materiaal** wordt de zesde pijler, met twee tabs: **Kennisbank** en
+  **Rekenaar**.
+- **Het adres.** De pagina's staan, net als de andere pijlers, onder
+  `/zwbeter-worden/materiaal`; daar zitten de tegels en tabs van ZWBeter. Het
+  korte pad `/materiaal` gaat er met een permanente doorverwijzing naartoe.
+- **Vraag en Aanbod verdwijnt uit de app:** de pagina's onder
+  `src/app/(app)/materiaal/`, het menu-item en de vermelding op `/hulp`. De
+  berichten blijven in de database staan. Of die tabel weg kan, is een aparte
+  beslissing met een migratie; dat hoort niet bij deze ronde.
 - **Leeszaal (ZWBieb).** Nieuwe planken Lucht, Rollen, Binnen, Lichaam en fiets,
-  en Kleine middelen. Ze wijzen naar bestaande ZWBieb-onderwerpen: Banden en
-  tubeless, Bikefit en houding, Vermogensmeters, Zwift-setup en smart trainers,
-  Sleutelen en onderhoud, en Kleding en slecht weer. Onder elk artikel staan dan
-  de kenners in de club.
-- **Coachchat.** De kennisbank gaat mee in het blok voor de coach, zoals de
-  andere drie.
-- **Kennisbank-scan.** De maandelijkse scan neemt de vierde kennisbank mee.
-- **ZWBieb Spullen.** Een aerohelm, een skinsuit of een tweede vermogensmeter
-  kun je al uitlenen; er hoeft niets bij.
+  en Kleine middelen. Ze wijzen naar de ZWBieb-onderwerpen Banden en tubeless,
+  Bikefit en houding, Vermogensmeters, Zwift-setup en smart trainers, Sleutelen
+  en onderhoud, en Kleding en slecht weer.
+- **Coachchat en kennisbank-scan** nemen de vierde kennisbank mee, met de
+  niveaus.
+- **`/hulp`** legt de rekenaar en de regels voor het bewijsniveau bij materiaal
+  uit.
 
-## In fases
+## De rekenaar
 
-1. **Kennisbank** (dit voorstel): zestien artikelen, bewijsniveaus, planken in
-   de leeszaal, coach en scan. Geen migratie; de inhoud staat in code, zoals bij
-   de andere kennisbanken.
-2. **Rekenaar "Wat levert het op?"** Kies een route (een event, of een
-   Zwift-route uit de routebibliotheek) en je eigen vermogen en gewicht. Zie wat
-   minder luchtweerstand, lagere rolweerstand of minder gewicht oplevert in
-   seconden. De rekenkern bestaat al in het pacingplan. Alleen voor buiten; voor
-   Zwift-routes met de fysica van het spel.
-3. **Later, apart te beslissen:**
-   - Een protocol "Aerotest": op een vlak stuk heen en terug rijden, en met je
-     eigen vermogensmeter twee houdingen vergelijken
-     ([Lim 2011](https://doi.org/10.1249/mss.0b013e3181fcb140)). Wel tussen
-     dagen slecht herhaalbaar
-     ([Merkes 2019](https://doi.org/10.1123/ijspp.2018-0560)).
-   - Een koppeling met Mijn garage, bijvoorbeeld bandenbreedte en spanning per
-     fiets.
+**Vraag die hij beantwoordt:** wat levert deze verandering mij op, op deze route,
+met mijn vermogen?
+
+**Rekenkern.** Het buitenmodel van ZWB, `estimateRide` in
+`src/lib/ride-estimate.ts`. Die rekent al per stuk route met luchtweerstand,
+rolweerstand, gewicht en het rendement van de aandrijving. Zo'n model is door
+drie groepen tegen metingen getoetst (artikel 1). Er komt één pure functie bij,
+`compareSetups`, die dezelfde route twee keer doorrekent met hetzelfde vermogen,
+en een test die de uitkomst naast een handberekening legt.
+
+**Invoer.**
+- **Route.** Een paar vaste routes (vlak 40 km, heuvelachtig, een klim van
+  8 km), of een buitenevent uit de kalender met een GPX. Zwift-routes niet: daar
+  bepaalt het spel de fysica, niet je echte materiaal.
+- **Vermogen.** Standaard een deel van je FTP, of een eigen getal; gewicht uit
+  je profiel. De uitrusting staat standaard op 9 kg, zoals in het pacingplan.
+- **Alleen of in een groep.** In een groep is de luchtweerstand lager en is de
+  winst van aero dus kleiner. Hoeveel lager, is een aanname; die staat er met
+  bron bij (Blocken 2018).
+- **Wat je verandert**, elk met de bron en het artikel erbij:
+  - houding: op de kappen, in de beugel, of onderarmen horizontaal (−13,9 %,
+    Barry 2015);
+  - helm, kleding en wielen: als luchtweerstand in m² of procent, met een
+    bandbreedte uit de artikelen;
+  - band en spanning: rolweerstand per wegdek;
+  - gewicht in kg;
+  - rendement van de aandrijving: schone of vuile ketting, binnen de bandbreedte
+    uit het artikel.
+
+**Uitkomst.**
+- Tijdwinst in seconden op de route.
+- Hetzelfde uitgedrukt in watt: hoeveel meer vermogen je anders voor diezelfde
+  tijd nodig had.
+- Bij elke verandering het artikel en de bewijsbadge.
+- Bandbreedtes worden een vork ("30–45 s"), niet één schijnzeker getal.
+
+**Bewust niet in de rekenaar.**
+- **Wind.** De rekenaar rekent windstil, zoals het pacingplan. Dat staat op
+  `/hulp`.
+- **Prijzen of "seconden per euro".** Dat is koopadvies.
+- **Opslaan.** Er komt geen tabel en geen migratie bij. Hooguit onthoudt de
+  browser je laatste keuze.
 
 ## Bewust niet
 
@@ -386,29 +438,23 @@ niveau en waarom, en een test houdt code en tabel gelijk.
 - **Tests van fabrikanten en ongepubliceerde testsites als bron.** Niet na te
   gaan.
 - **Virtueel materiaal in Zwift** (welk frame of welke wielen in het spel). Dat
-  is spelmechaniek, geen onderzoek; er past geen bewijsniveau bij. Het pacingplan
-  rekent er al mee, en daar hoort het.
-- **Slipstream en groepsrijden** in deze kennisbank. Dat is tactiek; het hoort
-  bij racen.
-- **Een bikefit-hulp in de app** die zadelhoogte uitrekent. De beste methode
-  meet de kniehoek tijdens het fietsen; een formule uit je binnenbeenlengte is
-  minder goed, en een fout geeft klachten. Het artikel verwijst naar een
-  bikefitter.
+  is spelmechaniek, geen onderzoek; het pacingplan rekent er al mee.
+- **Slipstream en groepsrijden als artikel.** Dat is tactiek en hoort bij racen.
+  De rekenaar gebruikt de slipstream wel, als keuze.
+- **Een rekenhulp voor de zadelhoogte.** De beste methode meet de kniehoek
+  tijdens het fietsen; een formule uit de binnenbeenlengte is minder goed, en een
+  fout geeft klachten. Het artikel verwijst naar een bikefitter.
+- **De tabel van Vraag en Aanbod opruimen.** Zie "Waar het komt".
 
-## Eerst te beslissen
+## Nog open
 
-1. **Waar en hoe heet het**: een eigen pijler "ZWBeter materiaal" (voorstel), of
-   onder racen; en de naam, gezien Vraag en Aanbod op `/materiaal`.
-2. **Bewijsniveau bij materiaal**: metingen tellen als bewijs, met de nieuwe
-   bronsoort `meting` (voorstel), of alleen de bestaande criteria. Met alleen de
-   bestaande criteria komt bijna elk artikel over lucht en rollen op *beperkt*,
-   omdat er geen meta-analyses zijn.
-3. **Afgeraden** voor neusstrips, compressie en inlegzolen. Zo staat het in de
-   tabel; bij compressie is het herstelstuk onzeker, niet weerlegd.
-4. **De volgorde**: eerst alleen de kennisbank (fase 1), of de rekenaar meteen
-   mee-ontwerpen.
-5. **De niveaus van banden en ventilator.** Banden staan op *sterk*: meerdere
-   metingen in het veld en op de testbank zijn het eens, en Consensus geeft 8 van
-   10. De ventilator staat op *matig*. Consensus geeft ook daar 8 van 10, maar
-   naar onze criteria zijn het een paar kleine proeven, vooral in de hitte,
-   zonder meta-analyse.
+- **Akkoord van de eigenaar** op de herziene niveaus en op het ontwerp van de
+  rekenaar. Daarna komt het bouwen, in één ronde:
+  - kennisbank, niveaus en test;
+  - rekenaar;
+  - pijler, pad en Vraag en Aanbod eruit;
+  - leeszaal, coach, scan en `/hulp`.
+- **Bij het bouwen**: elke bron eerst via PubMed of de uitgever. Van de bronnen
+  uit de gewone zoekfunctie is alleen de samenvatting gelezen.
+- **Volgende ronde**: het beleid voor het bewijsniveau voor alle kennisbanken
+  (besluit 2).
