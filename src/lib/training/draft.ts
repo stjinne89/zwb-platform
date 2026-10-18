@@ -1083,7 +1083,7 @@ export async function startTodayAdjustmentDraft(
 /**
  * Einddatum van een bijgewerkt schema: minstens het einde van de periode waarom
  * gevraagd is. Bij publiceren vervangt dit schema alles van adapt_from_date tot en
- * met end_date. Liet de AI het schema eerder eindigen, bijvoorbeeld op een naar
+ * met end_date, behalve wat vóór het publiceren al had moeten beginnen. Liet de AI het schema eerder eindigen, bijvoorbeeld op een naar
  * voren gehaalde doeldatum, dan bleven de oude workouts daarna gewoon staan naast
  * wat hen had moeten vervangen.
  */

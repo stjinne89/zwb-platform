@@ -24,6 +24,8 @@ export type ZwiftEventApiRow = {
   id?: number | string;
   name?: string;
   description?: string | null;
+  /** Headerafbeelding van het event op cdn.zwift.com. */
+  imageUrl?: string | null;
   eventStart?: string;
   distanceInMeters?: number;
   durationInSeconds?: number;

@@ -133,6 +133,7 @@ export default async function OntwerpVoorbeeldPage({
             ]}
             standing={{ href: "#", team: "ZWB B1", competition: "ZRL", position: 3, totalTeams: 12 }}
             live={{ count: 3, riders: "Anna, Bert en Carla" }}
+            liveEvents={[{ id: "4", title: "Legacy Gravel", count: 1, riders: "Dirk" }]}
           />
         )}
         <p className="flex flex-wrap gap-4 text-sm text-muted-foreground">

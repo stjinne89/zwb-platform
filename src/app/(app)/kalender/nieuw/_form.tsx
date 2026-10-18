@@ -7,10 +7,11 @@ import { createClient } from "@/lib/supabase/client";
 import { parseGpx, type GpxSummary } from "@/lib/gpx";
 import {
   createEvent,
-  lookupZwiftEvent,
+  lookupEventLink,
   updateEvent,
-  type ZwiftLookupResult,
+  type ZwiftLookup,
 } from "./actions";
+import type { EventPrefill } from "@/lib/events/link-prefill";
 import { Button } from "@/components/ui/button";
 import { EVENT_KINDS, EVENT_TYPES } from "@/lib/event-types";
 
@@ -40,7 +41,18 @@ export type EventInitial = {
   program_ids?: string[];
 };
 
-type ZwiftLookupOk = Extract<ZwiftLookupResult, { ok: true }>;
+/** Veldnamen in het formulier, voor de melding na Ophalen. */
+const PREFILL_LABELS: Record<string, string> = {
+  title: "titel",
+  type: "categorie",
+  kind: "type",
+  start_at: "start",
+  end_at: "einde",
+  location: "locatie",
+  description: "beschrijving",
+  external_url: "externe link",
+  cover: "cover",
+};
 
 /** Publieke URL van een event-photos-pad (bucket is public). */
 function coverPublicUrl(path: string | null): string | null {
@@ -83,29 +95,83 @@ export function EventForm({
   );
   const [removeExistingCover, setRemoveExistingCover] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [zwiftLink, setZwiftLink] = useState("");
-  const [zwift, setZwift] = useState<ZwiftLookupOk | null>(null);
-  const [zwiftError, setZwiftError] = useState<string | null>(null);
-  const [zwiftPending, startZwiftLookup] = useTransition();
+  // Cover van de eventlink; de server haalt hem bij opslaan op.
+  const [coverRemoteUrl, setCoverRemoteUrl] = useState<string | null>(null);
+  const [eventLink, setEventLink] = useState("");
+  const [prefill, setPrefill] = useState<EventPrefill | null>(null);
+  const [prefilled, setPrefilled] = useState<string[] | null>(null);
+  const [zwift, setZwift] = useState<ZwiftLookup | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [linkPending, startLinkLookup] = useTransition();
+  const formRef = useRef<HTMLFormElement>(null);
   const teamRef = useRef<HTMLSelectElement>(null);
-  const startRef = useRef<HTMLInputElement>(null);
 
   const hasExistingGpx = Boolean(initial?.gpx_path);
   const hasExistingZwift = Boolean(initial?.zwift_event_id);
 
-  function handleZwiftLookup() {
-    setZwiftError(null);
-    startZwiftLookup(async () => {
-      const result = await lookupZwiftEvent(zwiftLink, teamRef.current?.value || null);
+  function formField(name: string) {
+    return formRef.current?.elements.namedItem(name) as
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | HTMLSelectElement
+      | null;
+  }
+
+  /**
+   * Zet een gevonden waarde in een veld. Alleen in een leeg veld, tenzij
+   * `overwrite`: wat de beheerder al heeft ingevuld blijft staan.
+   */
+  function fillField(name: string, value: string | null, overwrite = false): boolean {
+    const field = formField(name);
+    if (!field || !value || field.value === value) return false;
+    if (!overwrite && field.value.trim() !== "") return false;
+    // Een select zonder die optie zou stil leeg worden.
+    if (field instanceof HTMLSelectElement && ![...field.options].some((o) => o.value === value)) {
+      return false;
+    }
+    field.value = value;
+    return true;
+  }
+
+  function applyPrefill(found: EventPrefill, isZwift: boolean) {
+    // Een categorie die nog op de standaard staat, is niet bewust gekozen.
+    const typeUntouched = formField("type")?.value === (initial?.type ?? "outdoor");
+    const filled = [
+      fillField("title", found.title) && "title",
+      fillField("type", found.type, typeUntouched) && "type",
+      fillField("kind", found.kind) && "kind",
+      // De start van de eigen Zwift-groep is preciezer dan wat er stond.
+      fillField("start_at", isoToLocalInput(found.start_at), isZwift) && "start_at",
+      fillField("end_at", isoToLocalInput(found.end_at)) && "end_at",
+      fillField("location", found.location) && "location",
+      fillField("description", found.description) && "description",
+      fillField("external_url", found.external_url) && "external_url",
+    ].filter((name): name is string => Boolean(name));
+
+    if (found.image_url && !coverFile && !coverPreview) {
+      setCoverRemoteUrl(found.image_url);
+      setCoverPreview(found.image_url);
+      setRemoveExistingCover(false);
+      filled.push("cover");
+    }
+    setPrefilled(filled);
+  }
+
+  function handleLinkLookup() {
+    setLinkError(null);
+    setPrefilled(null);
+    startLinkLookup(async () => {
+      const result = await lookupEventLink(eventLink, teamRef.current?.value || null);
       if (!result.ok) {
+        // Zoals eerst bij de Zwift-link: een mislukte link koppelt niets.
         setZwift(null);
-        setZwiftError(result.error);
+        setPrefill(null);
+        setLinkError(result.error);
         return;
       }
-      setZwift(result);
-      if (result.start_at && startRef.current) {
-        startRef.current.value = isoToLocalInput(result.start_at);
-      }
+      setZwift(result.zwift);
+      setPrefill(result.prefill);
+      applyPrefill(result.prefill, result.zwift !== null);
     });
   }
 
@@ -118,12 +184,14 @@ export function EventForm({
     }
     setError(null);
     setCoverFile(file);
+    setCoverRemoteUrl(null);
     setRemoveExistingCover(false);
     setCoverPreview(URL.createObjectURL(file));
   }
 
   function clearCover() {
     setCoverFile(null);
+    setCoverRemoteUrl(null);
     setRemoveExistingCover(true);
     setCoverPreview(null);
   }
@@ -204,6 +272,10 @@ export function EventForm({
           distance_km = zwift.distance_km;
           elevation_m = zwift.elevation_m;
         }
+      } else if (!gpxFile && prefill?.distance_km != null) {
+        // MyWhoosh noemt afstand en hoogtemeters; een GPX gaat ook hier voor.
+        distance_km = prefill.distance_km;
+        elevation_m = prefill.elevation_m;
       }
 
       // Cover-afbeelding: undefined = niet wijzigen, null = verwijderen.
@@ -254,6 +326,7 @@ export function EventForm({
           String(formData.get("live_timing_url") ?? "") || null,
         results_url: String(formData.get("results_url") ?? "") || null,
         cover_image_path,
+        cover_image_url: coverFile ? null : coverRemoteUrl,
         team_id: String(formData.get("team_id") ?? "") || null,
         gpx_path,
         distance_km,
@@ -275,7 +348,95 @@ export function EventForm({
   }
 
   return (
-    <form action={submit} className="space-y-4 rounded-2xl border bg-card p-6">
+    <form ref={formRef} action={submit} className="space-y-4 rounded-2xl border bg-card p-6">
+      <div>
+        <label className="mb-1 block text-sm font-medium">Eventlink (optioneel)</label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            inputMode="url"
+            value={eventLink}
+            onChange={(e) => setEventLink(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                if (eventLink.trim() && !linkPending) handleLinkLookup();
+              }
+            }}
+            placeholder="https://www.zwift.com/events/view/… of de site van het event"
+            className={FIELD_CLASS}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleLinkLookup}
+            disabled={linkPending || !eventLink.trim()}
+          >
+            {linkPending ? "Ophalen..." : "Ophalen"}
+          </Button>
+        </div>
+
+        {prefilled && !zwift && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            {prefilled.length > 0
+              ? `Ingevuld: ${prefilled.map((name) => PREFILL_LABELS[name] ?? name).join(", ")}.`
+              : "Niets nieuws gevonden."}
+          </p>
+        )}
+
+        {hasExistingZwift && !zwift && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Gekoppeld aan Zwift-event {String(initial?.zwift_event_id)}
+            {initial?.laps ? ` · ${initial.laps} ronde(n)` : ""}.
+          </p>
+        )}
+
+        {zwift && (
+          <div className="mt-2 rounded-md border bg-muted/40 p-3 text-sm">
+            <p className="font-medium">{zwift.title}</p>
+            {zwift.start_at && (
+              <p className="text-muted-foreground">
+                Start{" "}
+                {new Date(zwift.start_at).toLocaleTimeString("nl-NL", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                {zwift.subgroup_label ? ` · groep ${zwift.subgroup_label}` : ""}
+              </p>
+            )}
+            <p className="text-muted-foreground">
+              {zwift.route_name ?? "route onbekend"}
+              {zwift.world ? ` · ${zwift.world}` : ""}
+              {zwift.laps ? ` · ${zwift.laps} ronde(n)` : ""}
+              {zwift.distance_km != null
+                ? ` · ${zwift.distance_km.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km`
+                : ""}
+              {zwift.elevation_m != null ? ` · ${zwift.elevation_m} hm` : ""}
+            </p>
+            {zwift.accents > 0 && (
+              <p className="text-muted-foreground">
+                {zwift.accents} klim/sprintsegment(en) op de route.
+              </p>
+            )}
+            {zwift.route_name === null && (
+              <p className="mt-1 text-destructive">Route niet herkend.</p>
+            )}
+            {zwift.profile_missing && zwift.route_name !== null && (
+              <p className="mt-1 text-amber-600 dark:text-amber-400">
+                Profiel nog niet opgehaald.
+              </p>
+            )}
+            {prefilled && prefilled.length > 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Ingevuld: {prefilled.map((name) => PREFILL_LABELS[name] ?? name).join(", ")}.
+              </p>
+            )}
+          </div>
+        )}
+
+        {linkError && <p className="mt-2 text-sm text-destructive">{linkError}</p>}
+      </div>
+
       <div>
         <label className="mb-1 block text-sm font-medium">Titel</label>
         <input
@@ -364,7 +525,6 @@ export function EventForm({
         <div>
           <label className="mb-1 block text-sm font-medium">Start</label>
           <input
-            ref={startRef}
             type="datetime-local"
             name="start_at"
             required
@@ -475,77 +635,6 @@ export function EventForm({
           defaultValue={initial?.results_url ?? ""}
           className={FIELD_CLASS}
         />
-      </div>
-
-      <div>
-        <label className="mb-1 block text-sm font-medium">
-          Zwift-eventlink (optioneel)
-        </label>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            inputMode="url"
-            value={zwiftLink}
-            onChange={(e) => setZwiftLink(e.target.value)}
-            placeholder="https://www.zwift.com/events/view/…"
-            className={FIELD_CLASS}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleZwiftLookup}
-            disabled={zwiftPending || !zwiftLink.trim()}
-          >
-            {zwiftPending ? "Ophalen..." : "Ophalen"}
-          </Button>
-        </div>
-
-        {hasExistingZwift && !zwift && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Gekoppeld aan Zwift-event {String(initial?.zwift_event_id)}
-            {initial?.laps ? ` · ${initial.laps} ronde(n)` : ""}.
-          </p>
-        )}
-
-        {zwift && (
-          <div className="mt-2 rounded-md border bg-muted/40 p-3 text-sm">
-            <p className="font-medium">{zwift.title}</p>
-            {zwift.start_at && (
-              <p className="text-muted-foreground">
-                Start{" "}
-                {new Date(zwift.start_at).toLocaleTimeString("nl-NL", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-                {zwift.subgroup_label ? ` · groep ${zwift.subgroup_label}` : ""}
-              </p>
-            )}
-            <p className="text-muted-foreground">
-              {zwift.route_name ?? "route onbekend"}
-              {zwift.world ? ` · ${zwift.world}` : ""}
-              {zwift.laps ? ` · ${zwift.laps} ronde(n)` : ""}
-              {zwift.distance_km != null
-                ? ` · ${zwift.distance_km.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km`
-                : ""}
-              {zwift.elevation_m != null ? ` · ${zwift.elevation_m} hm` : ""}
-            </p>
-            {zwift.accents > 0 && (
-              <p className="text-muted-foreground">
-                {zwift.accents} klim/sprintsegment(en) op de route.
-              </p>
-            )}
-            {zwift.route_name === null && (
-              <p className="mt-1 text-destructive">Route niet herkend.</p>
-            )}
-            {zwift.profile_missing && zwift.route_name !== null && (
-              <p className="mt-1 text-amber-600 dark:text-amber-400">
-                Profiel nog niet opgehaald.
-              </p>
-            )}
-          </div>
-        )}
-
-        {zwiftError && <p className="mt-2 text-sm text-destructive">{zwiftError}</p>}
       </div>
 
       <div>

@@ -69,6 +69,12 @@ export type VandaagLive = {
   riders: string;
 };
 
+/** Een lopend event waarin nu ZWB'ers live rijden. Eén tegel per event. */
+export type VandaagLiveEvent = VandaagLive & {
+  id: string;
+  title: string;
+};
+
 export type VandaagStanding = {
   href: string;
   team: string;
@@ -84,6 +90,7 @@ export function TegelsVandaag({
   events,
   standing,
   live,
+  liveEvents,
 }: {
   weekday: string;
   date: string;
@@ -91,8 +98,10 @@ export function TegelsVandaag({
   events: VandaagEvent[];
   standing: VandaagStanding | null;
   live: VandaagLive | null;
+  liveEvents: VandaagLiveEvent[];
 }) {
-  const empty = !workout && events.length === 0 && !standing && !live;
+  const empty =
+    !workout && events.length === 0 && !standing && !live && liveEvents.length === 0;
   return (
     <section className="space-y-4">
       <header className="tg-repeats-nav">
@@ -136,6 +145,19 @@ export function TegelsVandaag({
               </span>
             </Link>
           )}
+
+          {liveEvents.map((event) => (
+            // Petrol, net als de andere events.
+            <Link key={event.id} href={`/events/${event.id}`} className="tg-tile tg-kalender">
+              <span className="tg-tile-small line-clamp-1">Event · nu</span>
+              <span className="tg-tile-title mt-0.5 line-clamp-2">{event.title}</span>
+              <span className="mt-1 line-clamp-1 text-[0.9375rem]">{event.riders}</span>
+              <span className="tg-tile-num">
+                {event.count}
+                <span className="ml-1.5 text-base font-normal tracking-normal opacity-85">live</span>
+              </span>
+            </Link>
+          ))}
 
           {events.map((event) => (
             <Link key={event.id} href={`/events/${event.id}`} className={`tg-tile tg-${event.place}`}>

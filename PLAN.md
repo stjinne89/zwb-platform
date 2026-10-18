@@ -62,6 +62,9 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **Eventlink in het eventformulier:** na het pushen een event aanmaken met
+     een Zwift-, een MyWhoosh- en een toertochtlink: vullen de velden zich, en
+     staat de cover na opslaan in storage (ronde 2026-10-18, "Eventlink").
    - **Tabbalk op de iPhone:** na het pushen in de beginscherm-app iets typen,
      het toetsenbord sluiten en kijken of de tabbalk onderaan blijft (ronde
      2026-10-16, "Tabbalk blijft hangen na het toetsenbord").
@@ -190,6 +193,28 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
+> **Eventpagina: knoppen in de kop vallen op mobiel niet meer weg, 2026-10-18 — gebouwd; nagebootst op 375 px in de browser; niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Melding van de eigenaar: op mobiel viel in de kop van de
+> eventpagina een deel van "Deel publieke link" en "Bewerk" weg. De knoppenrij
+> (WhatsApp, publieke link, Bewerk) brak niet af, en in het design "tegels"
+> snijdt de kop (`overflow: hidden`, met het dagvak van 5,25 rem ernaast) alles
+> af wat te breed is.
+>
+> **Wat.** `events/[id]/page.tsx`: de rij met typelabel en knoppen, en de
+> knoppengroep zelf, krijgen `flex-wrap`. Op een smal scherm lopen de knoppen
+> door naar een volgende regel; op desktop blijft alles op één regel.
+>
+> **Bewust niet gedaan.** Knoplabels niet ingekort tot alleen een pictogram:
+> afbreken is genoeg en de labels blijven duidelijk.
+>
+> **Getest.** Losse nabootsing van de kop (zelfde grid en klassen) op 375 px:
+> voor de wijziging afgesneden, erna volledig zichtbaar. Geen lint of
+> typecheck: deze worktree heeft geen `node_modules`; alleen klassen gewijzigd.
+>
+> **Niet geverifieerd.** De echte eventpagina met login op een telefoon.
+
 > **Eventpagina: live renners zonder positie niet meer onzichtbaar, 2026-10-18 — gebouwd, lint en typecheck schoon; gepusht naar `main` (eigenaar, 2026-10-18, `429102f`); niet in de browser bekeken. Geen migratie.**
 > Commit: `429102f`.
 >
@@ -220,6 +245,46 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > keuze "alleen bij kijken" van de eigenaar (2026-09-28) blijft staan.
 >
 > **Niet geverifieerd.** Niet in de browser bekeken.
+
+> **Vandaag: live in een event krijgt een eigen tegel, 2026-10-18 — gebouwd, lokaal getest; voorbeeldscherm in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-18). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Melding van de eigenaar tijdens de Legacy Gravel: twee leden
+> reden live, één zonder event en één in de Legacy Gravel, en beiden stonden
+> samen in de tegel "Samen fietsen · nu". Wens: wie gewoon rijdt en een lopend
+> event met een ZWB'er erin, elk een eigen tegel.
+>
+> **Wat.**
+> - `lib/live/event-riders.ts` verdeelt de live renners. Een renner hoort bij
+>   een event als die ja of misschien zei, het event loopt (vanaf een half uur
+>   voor de start tot een uur na `end_at`, of zonder einde) en de sessie niet
+>   meer dan een uur voor de start begon. Past een renner bij twee events, dan
+>   telt het event dat het laatst begon. De rest blijft Samen fietsen.
+> - Vandaag (`TegelsVandaag`): per lopend event een petrol tegel "Event · nu"
+>   met de titel, wie er rijdt en het aantal, met een link naar de eventpagina.
+>   Hetzelfde event staat dan niet nog eens als gewone eventtegel.
+> - De tegel Samen fietsen toont alleen nog wie bij geen lopend event hoort.
+> - Het voorbeeldscherm toont een live eventtegel.
+>
+> **Gecontroleerd op productie (alleen lezen, 2026-10-18 10:40 UTC).** Twee open
+> sessies: één met "ja" voor de Legacy Gravel (sessie 8 min na de start, event
+> tot 12:50 UTC) en één met "nee" voor een SRC-kwalificatie. Met deze regel komt
+> de eerste in de eventtegel en de tweede in Samen fietsen.
+>
+> **Bewust niet gedaan.**
+> - Geen filter op `mode`: de eventpagina toont alleen buitensessies, maar voor
+>   de tegel gaat het alleen om waar iemand rijdt. Een binnenrenner die zich
+>   voor een event aanmeldde, komt dus in de eventtegel.
+> - Geen koppeling tussen sessie en event in de database: de aanmelding plus de
+>   tijden is genoeg en vraagt geen migratie.
+> - Het huidige design blijft ongewijzigd (daar staat geen live-tegel).
+>
+> **Getest.** Vitest: `tests/unit/live-event-riders.test.ts` (nieuw) en
+> `live-riders-label.test.ts` geslaagd. ESLint op de gewijzigde bestanden:
+> schoon. `tsc --noEmit`: alleen de bekende fouten over `@zxing` en
+> `tesseract.js` (pakketten ontbreken in deze worktree).
+>
+> **Niet geverifieerd.** Vandaag met login en echte data.
 
 > **Eventpagina: vermogen, cadans en hartslag per renner, 2026-10-18 — gebouwd, lint en typecheck schoon; gepusht naar `main` (eigenaar, 2026-10-18, vermogen eerst, cadans en hartslag in een tweede commit); niet in de browser bekeken. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
@@ -1312,7 +1377,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > **Wat.**
 > - Vandaag (`TegelsVandaag`): een sage tegel "Samen fietsen · nu" met wie er
 >   rijdt ("Jij en Anna", hooguit drie namen en dan "en 2 anderen") en het
->   aantal. Alleen als er iemand live is. Zelfde regel als Samen fietsen: open
+>   aantal. Alleen als er iemand live is. Sinds 2026-10-18 staat wie in een lopend
+>   event rijdt in een eigen eventtegel en niet meer hier (zie de ronde
+>   "Vandaag: live in een event krijgt een eigen tegel"). Zelfde regel als Samen fietsen: open
 >   sessie, binnen 15 minuten gezien. Eén renner met twee open sessies telt één
 >   keer. De dashboardpagina werkt Garmin en Wahoo eerst bij zoals de Kalender
 >   (`refreshExternalLiveSessions({ detect: false })`), en dat loopt parallel
@@ -6462,7 +6529,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > 3 over, dus bij A- en B-teams klopten ronden, afstand en hoogtemeters ook niet.
 >
 > **Wat er is.**
-> - "Ophalen" bij de Zwift-eventlink in het eventformulier zet het Start-veld op
+> - "Ophalen" bij de Zwift-eventlink (sinds 2026-10-18 het veld Eventlink bovenaan) in het eventformulier zet het Start-veld op
 >   de start van de eigen subgroep, en neemt ronden en afstand van die groep. De
 >   groep volgt uit de categorieletter van het gekozen ZRL-team ("ZRL A", "B1",
 >   "Bdev", "ZRL Zwiftladies C"; anders die van het hoofdteam). Zonder team of
@@ -10074,6 +10141,126 @@ console.
 - Hoe de coach de nieuwe woorden in een echt antwoord gebruikt (vraagt een
   OpenAI-call op productie).
 - Niet gepusht.
+
+### Opgeleverd — Eventlink: het eventformulier vult zich uit de link
+
+**2026-10-18.** Commit `a8a7d009`. Geen migratie. **Gepusht naar `main` op
+2026-10-18**, op verzoek van de eigenaar.
+
+**Waarom.** De eigenaar wilde dat een geplakte eventlink bij het aanmaken van
+een event zoveel mogelijk velden invult: eerst voor Zwift, maar ook voor andere
+events. Tot nu toe vulde "Ophalen" bij de Zwift-eventlink alleen start, route,
+ronden en afstand; titel, beschrijving en cover typte de beheerder over.
+
+**Wat er veranderde.**
+- Het veld "Zwift-eventlink" onderaan het formulier is nu **Eventlink**,
+  bovenaan, voor elke link. Ophalen (`lookupEventLink` in
+  `kalender/nieuw/actions.ts`) kiest de bron:
+  - **Zwift**: de publieke event-API zoals eerst, met de koppeling (route,
+    ronden, afstand, eigen ZRL-subgroep) ongewijzigd. Nieuw: titel,
+    omschrijving, de headerafbeelding (`imageUrl`), einde (start plus
+    `durationInSeconds`, alleen als Zwift een duur geeft), locatie "Zwift ·
+    Watopia", categorie (ZRL, FRR en Ladder uit de naam, anders Zwift) en type
+    Training bij een `GROUP_WORKOUT`.
+  - **MyWhoosh** (`event.mywhoosh.com/event/detail/…`): de detail-API die de
+    kalenderscan al gebruikt. Titel, start, afstand, hoogtemeters, omschrijving
+    en categorie (Sunday Race Club of MyWhoosh). Als cover de banner, en anders
+    de routekaart: MyWhoosh geeft bij de geteste SRC-race geen banner.
+  - **Elke andere site**: schema.org-Event uit JSON-LD (ook binnen `@graph`):
+    naam, start, einde, plaats, omschrijving, afbeelding. Zonder JSON-LD de Open
+    Graph-tags. Een tijd zonder tijdzone geldt als Nederlandse tijd, een datum
+    zonder tijd wordt middernacht. Categorie alleen bij een duidelijk woord
+    (granfondo, gravel in de titel, toertocht/cyclo/randonnée).
+- Het formulier vult **alleen lege velden**. Uitzonderingen: de categorie als
+  die nog op de standaard staat, en de start bij Zwift (zoals eerst: de start van
+  de eigen groep is preciezer). Daarna staat er welke velden zijn ingevuld.
+- De cover van de link wordt bij opslaan door de server opgehaald en in
+  `event-photos` onder `covers/<uid>/` gezet, net als een geüploade cover
+  (`cover_image_url` in `EventInput`). Zo hangt de eventpagina niet van een
+  andere site af. Mislukt het ophalen, dan komt het event er zonder cover.
+- Alle verzoeken naar andere sites (`lib/events/link-prefill.ts`) toetsen elke
+  redirect op interne adressen, niet alleen de eerste URL zoals `safeFetch`.
+  HTML tot 2 MB, een afbeelding tot 8 MB en alleen jpeg/png/webp/gif/avif,
+  8 s time-out.
+- `ZwiftEventInfo` heeft er `description` en `imageUrl` bij.
+- `/hulp#events` legt Eventlink uit; de ZRL-uitleg noemt het nieuwe veld.
+
+**Bewust niet gebouwd.**
+- Afstand of route van andere sites raden uit de tekst ("60, 110 en 160 km"):
+  toertochten hebben meestal meerdere afstanden, en een verkeerd getal
+  verandert het trainingsschema.
+- Strava- en Facebook-events: die vragen een login, dus er komt hooguit de
+  Open Graph-titel uit.
+- Velden die al gevuld zijn overschrijven: bij Bewerk zou Ophalen anders een
+  zelf geschreven beschrijving wissen.
+- Type Social bij een Zwift `GROUP_RIDE`: niet elke groepsrit is een social.
+- Einde van een MyWhoosh-event: `duration` staat in de API (300 bij een race
+  van 50 km), maar de eenheid is niet vast te stellen.
+
+**Getest:** `tests/unit/link-prefill.test.ts` (13: JSON-LD met `@graph`, Open
+Graph met sitenaam, online event, datums met en zonder zone, MyWhoosh-HTML,
+inkorten, categorieën, MyWhoosh en Zwift). De bestaande Zwift-tests slagen.
+`tsc` (alleen de bestaande fouten van ontbrekende `@zxing`/`tesseract.js`) en
+ESLint schoon. Rookproef op 2026-10-18 tegen de echte bronnen: een Zwift-event
+(titel, omschrijving, banner), een MyWhoosh-SRC-race (alles behalve een
+banner), amstelgoldrace.nl (alleen Open Graph: titel, omschrijving,
+afbeelding), en het ophalen van een Zwift-banner als png.
+
+**Niet geverifieerd.** Het formulier zelf in de browser: lokaal is er geen
+inlog en deze worktree heeft geen `.env.local`. Dus niet gezien: dat de velden
+zich vullen, de coverpreview van een andere site, en het bewaren van de cover in
+storage onder de RLS van `event-photos`. Niet getest op een echte
+toertochtsite met JSON-LD; dat pad is alleen met een vastgelegde HTML getest.
+De volledige testsuite: vier bestanden faalden in de volle run; apart slagen
+er drie (time-outs onder belasting), en `omnium-live.test.ts` mist
+`.env.local` in de worktree.
+
+### Hersteld — herziening streepte de training van vandaag weg
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Jeroen Janssen had op 17 oktober een lege dag in de
+maandkalender. Productie alleen gelezen (`training_workouts` met
+`superseded_by_plan_id`): de herziening `50cbcebe` (19:23 UTC, `adapt_from_date`
+2026-10-17, eerste nieuwe training op 19-10) streepte "Rustige duur 120 min" van
+17-10 08:00 UTC weg. De herziening van 18:41 die dag (`ddd24311`) had die training
+nog wel teruggezet.
+
+**Oorzaak.** Een herziening (`plan_update`) vervangt met `publishRange` alles in
+[`adapt_from_date`, `end_date`], en `adapt_from_date` is vandaag
+(`amsterdamDayKey()`). Begint het nieuwe schema pas morgen, dan verdwijnt een
+training van vandaag zonder vervanging. Was die gemist of nog niet
+gesynchroniseerd, dan is er geen spoor meer van.
+
+**Wijziging.** `supersedableWorkouts` (`publish.ts`) heeft een zesde regel:
+binnen een bereik blijft een workout staan waarvan het begintijdstip vóór het
+publiceren ligt, tenzij het nieuwe plan die dag zelf iets neerzet. Een training
+van vanavond die nog moet beginnen, en een geschrapte dag later in het bereik,
+vallen nog steeds weg. In Jeroens geval blijft 17-10 staan en vervalt 18-10 wel
+(daar staat alleen zijn Zwift-event). Een onleesbaar `scheduled_at` telt als
+toekomst, dus daar geldt het oude gedrag.
+
+**Bewust niet gebouwd.**
+- *Het bereik laten beginnen bij de eerste nieuwe training.* Dat zou ook
+  toekomstige dagen vóór die training sparen, terwijl een herziening die bewust
+  vrij laat (ziek, rustdagen vooraf; bij Jeroen 18-10) ze moet laten vervallen.
+- *Op het eindtijdstip toetsen in plaats van het begin.* Een training die al
+  begonnen had moeten zijn, kan gaande zijn of gemist; in beide gevallen hoort
+  hij niet zonder vervanging te verdwijnen.
+- *Jeroens weggestreepte training van 17-10 terugzetten.* Dat is een
+  productiewijziging; niet gedaan vanuit deze sessie.
+
+**Niet meer waar.** "mét bereik geldt het hele bereik" (commentaar bij
+`supersedableWorkouts`) en "vervangt dit schema alles van adapt_from_date tot en
+met end_date" (`planUpdateEndDate` in `draft.ts`): beide aangevuld met de
+uitzondering voor wat al voorbij is.
+
+**Getest.** `supersede.test.ts` (drie nieuwe gevallen: voorbij blijft staan,
+voorbij met een nieuwe training die dag wordt vervangen, vanavond wordt
+vervangen) en `active-base-plan.test.ts`; eslint schoon. De bestaande tests met
+een bereik krijgen een vaste `now`, anders vallen hun augustusdatums nu in het
+verleden. Niet in productie nagelopen: pas de volgende herziening laat zien of
+de training van vandaag blijft staan.
 
 ### Gebouwd — ZWB DS: hoogteprofiel en meer rennersdata
 
@@ -18932,7 +19119,7 @@ met een teller voor de volgende klik). Die sync begrenst zichzelf op een
 `followZwbMembers`: hoeveel routes er in een Netlify-functie van 10 s passen hangt
 van de Strava-responstijd af, dus een aantal vooraf kiezen is gokken. `/beheer/zwift-routes` heeft
 nu naast de spike-knop een "Routes ophalen"-knop met statusoverzicht, en het
-eventformulier een veld "Zwift-eventlink" dat route, ronden, afstand en
+eventformulier een veld "Zwift-eventlink" (sinds 2026-10-18 "Eventlink", voor elke link) dat route, ronden, afstand en
 hoogtemeters invult. Een route wordt bij het ophalen alvast als rij in
 `zwift_routes` gezet, anders houdt de foreign key niet voordat de sync heeft
 gedraaid. Tests: `tests/unit/zwift-route.test.ts` (18) en
