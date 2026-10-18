@@ -15,6 +15,16 @@ export const STALE_MS = 3 * 60 * 1000;
  */
 export const MAX_EXTRAPOLATE_MS = STALE_MS;
 /**
+ * Zo lang telt de eigen snelheid; daarna die van de renners met een verse
+ * status. Wie op een afdaling op 55 km/u gemeten is, rijdt twee minuten later
+ * misschien bergop. Naast Sauce gelegd (10 min, 207 schattingen, 2026-10-18):
+ * p90 81 m en hooguit 258 m fout, tegen 119 en 331 m met alleen de eigen
+ * snelheid.
+ */
+export const OWN_SPEED_MS = 20 * 1000;
+/** Een status zo vers telt mee voor de snelheid van het veld. */
+const FRESH_MS = 30 * 1000;
+/**
  * Meer dan zoveel seconden tussen twee renners is een nieuwe groep. Ruimer dan
  * in Zwift zelf (1 à 2 s): een halve minuut doorschatten met een snelheid die 2
  * km/u afwijkt, scheelt al 2 s.
@@ -119,6 +129,16 @@ export function buildField(
   const unseen: DsEntrant[] = [];
   const placed: DsRider[] = [];
 
+  // Snelheid van het veld nu: de mediaan van wie net gemeten is en nog rijdt.
+  const freshSpeeds = entrants
+    .flatMap((e) =>
+      e.sample && now - e.sample.stateAt <= FRESH_MS && (routeM === null || e.sample.eventDistanceM < routeM)
+        ? [e.sample.speedKmh]
+        : [],
+    )
+    .sort((a, b) => a - b);
+  const fieldKmh = freshSpeeds.length ? freshSpeeds[Math.floor(freshSpeeds.length / 2)] : null;
+
   for (const entrant of entrants) {
     const sample = entrant.sample;
     if (!sample || now - sample.stateAt > STALE_MS) {
@@ -127,7 +147,11 @@ export function buildField(
     }
     const finished = routeM !== null && sample.eventDistanceM >= routeM;
     const ahead = Math.min(Math.max(now - sample.stateAt, 0), MAX_EXTRAPOLATE_MS);
-    let distanceM = sample.eventDistanceM + ((sample.speedKmh / 3.6) * ahead) / 1000;
+    const own = Math.min(ahead, OWN_SPEED_MS);
+    let distanceM =
+      sample.eventDistanceM +
+      ((sample.speedKmh / 3.6) * own) / 1000 +
+      (((fieldKmh ?? sample.speedKmh) / 3.6) * (ahead - own)) / 1000;
     if (routeM !== null) distanceM = Math.min(distanceM, routeM);
     // Zwift telt rijtijd en arbeid vanaf het moment dat je de startvak in komt;
     // pas na een halve minuut rijden zegt het gemiddelde iets.

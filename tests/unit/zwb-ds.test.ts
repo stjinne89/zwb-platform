@@ -31,6 +31,16 @@ describe("buildField", () => {
     expect(field.riders[1].gapS).toBeCloseTo(5);
   });
 
+  it("gebruikt na 20 s de snelheid van het veld, niet die van een oude afdaling", () => {
+    const field = buildField(
+      [rider("oud", 1000, { ageMs: 120_000, speedKmh: 54 }), rider("vers1", 2295, { speedKmh: 36 }), rider("vers2", 2285, { speedKmh: 36 })],
+      { now: NOW, routeM: null },
+    );
+    // 20 s op 15 m/s, dan 100 s op 10 m/s: 1300 m verder, in plaats van 1800.
+    expect(field.riders.find((r) => r.zwiftId === "oud")?.distanceM).toBeCloseTo(2300);
+    expect(field.groups).toHaveLength(1);
+  });
+
   it("schat een status van twee minuten helemaal door, zodat een groep bij elkaar blijft", () => {
     const field = buildField([rider("a", 1000, { ageMs: 120_000 }), rider("b", 2190)], { now: NOW, routeM: null });
     expect(field.riders.find((r) => r.zwiftId === "a")?.distanceM).toBeCloseTo(2200);

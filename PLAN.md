@@ -10166,6 +10166,19 @@ voor het opvragen bij Zwift. "Jouw races" toont alleen clubraces; een gewone
 Zwift-rit staat daar niet, en clubraces vallen na twee uur nog steeds uit die
 lijst (ongewijzigd, een ZRL-race duurt korter). Unit-test, `tsc`, ESLint.
 
+**Tweede vergelijking met Sauce, dezelfde rit, 14:56–15:06 UTC.** Tien minuten
+Sauce (`scripts/sauce-ds-compare.mjs`, tot 136 renners in beeld) naast de
+DS-statussen zoals ze elke 15 s in de database stonden; 23 momenten, 207
+schattingen. Sauce zag mediaan 2 en hooguit 4 groepen, DS met de herstellingen
+hierboven ook mediaan 2 (hooguit 5): de verzonnen groepen zijn weg. Fout per
+renner met de eigen snelheid: mediaan 25 m, p90 119 m, max 331 m. Een renner die
+op een afdaling op 55 km/u gemeten was, stond twee minuten later te ver vooruit.
+Daarom nu de eigen snelheid voor de eerste 20 s en daarna de mediaan van de
+renners met een status van hooguit 30 s (`OWN_SPEED_MS`): mediaan 22 m, p90 81 m,
+max 258 m. Ook gezien: met één kijker kregen per 30 s mediaan 7 renners een
+verse status (hooguit 13); de eigen renner bleef 11 à 12 s oud. Unit-test,
+`tsc`, ESLint. Niet gepusht.
+
 ### Opgeleverd — Rekenaar materiaal: producten nagetekend
 
 **2026-10-18.** Gepusht naar `main` (eigenaar, 2026-10-18). Commit: de commit die dit blok toevoegt; bouwt voort op
