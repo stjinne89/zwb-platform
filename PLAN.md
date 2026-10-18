@@ -10034,6 +10034,53 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — herziening streepte de training van vandaag weg
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Jeroen Janssen had op 17 oktober een lege dag in de
+maandkalender. Productie alleen gelezen (`training_workouts` met
+`superseded_by_plan_id`): de herziening `50cbcebe` (19:23 UTC, `adapt_from_date`
+2026-10-17, eerste nieuwe training op 19-10) streepte "Rustige duur 120 min" van
+17-10 08:00 UTC weg. De herziening van 18:41 die dag (`ddd24311`) had die training
+nog wel teruggezet.
+
+**Oorzaak.** Een herziening (`plan_update`) vervangt met `publishRange` alles in
+[`adapt_from_date`, `end_date`], en `adapt_from_date` is vandaag
+(`amsterdamDayKey()`). Begint het nieuwe schema pas morgen, dan verdwijnt een
+training van vandaag zonder vervanging. Was die gemist of nog niet
+gesynchroniseerd, dan is er geen spoor meer van.
+
+**Wijziging.** `supersedableWorkouts` (`publish.ts`) heeft een zesde regel:
+binnen een bereik blijft een workout staan waarvan het begintijdstip vóór het
+publiceren ligt, tenzij het nieuwe plan die dag zelf iets neerzet. Een training
+van vanavond die nog moet beginnen, en een geschrapte dag later in het bereik,
+vallen nog steeds weg. In Jeroens geval blijft 17-10 staan en vervalt 18-10 wel
+(daar staat alleen zijn Zwift-event). Een onleesbaar `scheduled_at` telt als
+toekomst, dus daar geldt het oude gedrag.
+
+**Bewust niet gebouwd.**
+- *Het bereik laten beginnen bij de eerste nieuwe training.* Dat zou ook
+  toekomstige dagen vóór die training sparen, terwijl een herziening die bewust
+  vrij laat (ziek, rustdagen vooraf; bij Jeroen 18-10) ze moet laten vervallen.
+- *Op het eindtijdstip toetsen in plaats van het begin.* Een training die al
+  begonnen had moeten zijn, kan gaande zijn of gemist; in beide gevallen hoort
+  hij niet zonder vervanging te verdwijnen.
+- *Jeroens weggestreepte training van 17-10 terugzetten.* Dat is een
+  productiewijziging; niet gedaan vanuit deze sessie.
+
+**Niet meer waar.** "mét bereik geldt het hele bereik" (commentaar bij
+`supersedableWorkouts`) en "vervangt dit schema alles van adapt_from_date tot en
+met end_date" (`planUpdateEndDate` in `draft.ts`): beide aangevuld met de
+uitzondering voor wat al voorbij is.
+
+**Getest.** `supersede.test.ts` (drie nieuwe gevallen: voorbij blijft staan,
+voorbij met een nieuwe training die dag wordt vervangen, vanavond wordt
+vervangen) en `active-base-plan.test.ts`; eslint schoon. De bestaande tests met
+een bereik krijgen een vaste `now`, anders vallen hun augustusdatums nu in het
+verleden. Niet in productie nagelopen: pas de volgende herziening laat zien of
+de training van vandaag blijft staan.
+
 ### Gebouwd — ZWB DS: hoogteprofiel en meer rennersdata
 
 **2026-10-18.** Commit: de commit die dit blok toevoegt. Migratie

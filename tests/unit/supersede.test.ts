@@ -7,6 +7,8 @@ function workout(planId: string, date: string, status = "planned", origin = "ai"
 
 const geenNieuwere = new Set<string>();
 const alleDagen = new Set<string>();
+// Vóór alle datums hieronder, zodat het bereik er volledig overheen valt.
+const nu = new Date("2026-08-01T00:00:00Z");
 
 describe("supersedableWorkouts", () => {
   it("vervangt geplande workouts van een ouder plan binnen het bereik", () => {
@@ -15,6 +17,7 @@ describe("supersedableWorkouts", () => {
       newerPlanIds: geenNieuwere,
       dayKeys: alleDagen,
       wholeRange: true,
+      now: nu,
     });
     expect(result).toHaveLength(2);
   });
@@ -27,6 +30,7 @@ describe("supersedableWorkouts", () => {
       newerPlanIds: new Set(["nieuwer"]),
       dayKeys: alleDagen,
       wholeRange: true,
+      now: nu,
     });
     expect(result.map((row) => row.plan_id)).toEqual(["oud"]);
   });
@@ -43,6 +47,7 @@ describe("supersedableWorkouts", () => {
       newerPlanIds: geenNieuwere,
       dayKeys: alleDagen,
       wholeRange: true,
+      now: nu,
     });
     expect(result).toHaveLength(1);
     expect(result[0].origin).toBe("ai");
@@ -58,6 +63,7 @@ describe("supersedableWorkouts", () => {
       newerPlanIds: geenNieuwere,
       dayKeys: alleDagen,
       wholeRange: true,
+      now: nu,
     });
     expect(result).toHaveLength(1);
     expect(result[0].scheduled_at).toContain("2026-08-13");
@@ -81,6 +87,7 @@ describe("supersedableWorkouts", () => {
       newerPlanIds: geenNieuwere,
       dayKeys: new Set(["2026-08-13"]),
       wholeRange: true,
+      now: nu,
     });
     expect(result).toHaveLength(1);
   });
@@ -99,7 +106,55 @@ describe("supersedableWorkouts en tests", () => {
       newerPlanIds: geenNieuwere,
       dayKeys: alleDagen,
       wholeRange: true,
+      now: nu,
     });
     expect(result.map((row) => row.scheduled_at.slice(0, 10))).toEqual(["2026-08-12"]);
+  });
+});
+
+describe("supersedableWorkouts en wat al voorbij is", () => {
+  // Jeroen, 17 oktober 2026: een herziening om 21:23 (19:23 UTC) met bereik vanaf
+  // die dag, waarvan het eerste nieuwe schema pas op 19 oktober begon.
+  const herziening = new Date("2026-10-17T19:23:00Z");
+  const rows = [
+    { plan_id: "oud", scheduled_at: "2026-10-17T08:00:00+00:00", status: "planned", origin: "ai" },
+    { plan_id: "oud", scheduled_at: "2026-10-18T08:00:00+00:00", status: "planned", origin: "ai" },
+    { plan_id: "oud", scheduled_at: "2026-10-19T08:00:00+00:00", status: "planned", origin: "ai" },
+  ];
+
+  it("laat een training van vandaag staan waarvan het tijdstip al voorbij is", () => {
+    const result = supersedableWorkouts(rows, {
+      newerPlanIds: geenNieuwere,
+      dayKeys: new Set(["2026-10-19"]),
+      wholeRange: true,
+      now: herziening,
+    });
+    expect(result.map((row) => row.scheduled_at.slice(0, 10))).toEqual([
+      "2026-10-18",
+      "2026-10-19",
+    ]);
+  });
+
+  it("vervangt een voorbije training wel als het nieuwe schema die dag iets plant", () => {
+    const result = supersedableWorkouts(rows, {
+      newerPlanIds: geenNieuwere,
+      dayKeys: new Set(["2026-10-17", "2026-10-19"]),
+      wholeRange: true,
+      now: herziening,
+    });
+    expect(result).toHaveLength(3);
+  });
+
+  it("vervangt een training van vandaag die nog moet beginnen", () => {
+    const avond = [
+      { plan_id: "oud", scheduled_at: "2026-10-17T20:00:00+00:00", status: "planned", origin: "ai" },
+    ];
+    const result = supersedableWorkouts(avond, {
+      newerPlanIds: geenNieuwere,
+      dayKeys: new Set(["2026-10-19"]),
+      wholeRange: true,
+      now: herziening,
+    });
+    expect(result).toHaveLength(1);
   });
 });
