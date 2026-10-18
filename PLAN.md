@@ -62,7 +62,10 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
-   - **Weekoverzicht:** `0251_weekly_reviews.sql` toepassen (niet gedaan). Daarna op een
+   - **Weekoverzicht:** `0251_weekly_reviews.sql` is op 2026-10-18 via de
+     Supabase-connector toegepast, op verzoek van de eigenaar. Vooraf bestond de
+     tabel niet; achteraf: 0 rijen, RLS aan, één leespolicy, `authenticated`
+     alleen SELECT, `anon` niets. Daarna op een
      zondagavond na 18:00 de app openen en de pop-up met echte data doorlopen,
      ook de AI-tekst en het opslaan op de laatste pagina. Eén keer op de
      telefoon in een privévenster openen: staat WEEK 42 meteen in de
@@ -202,7 +205,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Weekoverzicht: een pop-up op zondagavond, terug en vooruit, 2026-10-18 — gebouwd; unit-tests, typecheck en lint schoon; met voorbeelddata in de browser bekeken op 390 px en 1440 px, licht en donker (`/ontwerp-voorbeeld?scherm=weekoverzicht`); niet ingelogd met echte data bekeken; niet gepusht. Migratie `0251_weekly_reviews.sql`, niet toegepast.**
+> **Weekoverzicht: een pop-up op zondagavond, terug en vooruit, 2026-10-18 — gebouwd; unit-tests, typecheck en lint schoon; met voorbeelddata in de browser bekeken op 390 px en 1440 px, licht en donker (`/ontwerp-voorbeeld?scherm=weekoverzicht`); niet ingelogd met echte data bekeken; gepusht naar `main` (eigenaar, 2026-10-18, commit `28c77088`). Migratie `0251_weekly_reviews.sql` op 2026-10-18 via de Supabase-connector toegepast, op verzoek van de eigenaar.**
 > Commit: de commit die dit blok toevoegt, op `claude/weekly-member-overview-3ed783`.
 >
 > **Waarom.** Wens van de eigenaar: aan het eind van de week voor ieder lid een
@@ -278,8 +281,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > Bij het documenteren bleek de focusrand in tenuegoud op licht papier maar
 > 1,8:1 te halen; hij is nu drukinkt.
 >
-> **Niet geverifieerd.** De migratie (geen Docker/Supabase-config hier). Het
-> overzicht met echte data, de AI-tekst, en de pop-up in de app zelf; alleen de
+> **Niet geverifieerd.** Het overzicht met echte data, de AI-tekst, en de pop-up in de app zelf; alleen de
 > weergave met voorbeelddata is bekeken. De eerste opening bij een lege cache
 > (letter). `npm run build` faalt hier op drie pakketten die in de gedeelde
 > `node_modules` ontbreken (`@zxing/browser`, `@zxing/library`,
