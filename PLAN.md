@@ -190,6 +190,28 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
+> **Eventpagina: knoppen in de kop vallen op mobiel niet meer weg, 2026-10-18 — gebouwd; nagebootst op 375 px in de browser; niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Melding van de eigenaar: op mobiel viel in de kop van de
+> eventpagina een deel van "Deel publieke link" en "Bewerk" weg. De knoppenrij
+> (WhatsApp, publieke link, Bewerk) brak niet af, en in het design "tegels"
+> snijdt de kop (`overflow: hidden`, met het dagvak van 5,25 rem ernaast) alles
+> af wat te breed is.
+>
+> **Wat.** `events/[id]/page.tsx`: de rij met typelabel en knoppen, en de
+> knoppengroep zelf, krijgen `flex-wrap`. Op een smal scherm lopen de knoppen
+> door naar een volgende regel; op desktop blijft alles op één regel.
+>
+> **Bewust niet gedaan.** Knoplabels niet ingekort tot alleen een pictogram:
+> afbreken is genoeg en de labels blijven duidelijk.
+>
+> **Getest.** Losse nabootsing van de kop (zelfde grid en klassen) op 375 px:
+> voor de wijziging afgesneden, erna volledig zichtbaar. Geen lint of
+> typecheck: deze worktree heeft geen `node_modules`; alleen klassen gewijzigd.
+>
+> **Niet geverifieerd.** De echte eventpagina met login op een telefoon.
+
 > **Eventpagina: live renners zonder positie niet meer onzichtbaar, 2026-10-18 — gebouwd, lint en typecheck schoon; gepusht naar `main` (eigenaar, 2026-10-18, `429102f`); niet in de browser bekeken. Geen migratie.**
 > Commit: `429102f`.
 >
