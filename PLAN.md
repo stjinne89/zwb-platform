@@ -9855,6 +9855,65 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWB DS: hoogteprofiel en meer rennersdata
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt. Migratie
+`0250_zwb_ds_more_rider_data.sql` (**nog niet toegepast**). Niet gepusht.
+
+**Waarom.** De eigenaar bekeek DS tijdens een groepsrit ("Zwift ritje", Zwift-event
+`5739688`, groep C, 21 renners in beeld) en miste data: per renner alleen naam en
+W/kg, en een kale lijn zonder profiel. Gevraagd: meer data van de rijders en het
+profiel op de lijn waarop de bolletjes bewegen.
+
+**Wat er mogelijk bleek.** De spelersstatus die DS al ophaalt, bevat ook cadans,
+draft, rijtijd, arbeid (kJ) en geklommen meters: geen extra verzoek. De Zwift-
+startlijst geeft per renner gewicht, lengte, FTP, leeftijd, land, vermogensbron en
+privacyvlaggen (veldnamen nagekeken met één verzoek op 2026-10-18). De
+routebibliotheek (`zwift_routes`) heeft voor alle 273 routes een hoogteprofiel.
+
+**Wat er veranderde.**
+- Hoogteprofiel van het hele event (aanloop en ronden via `expandLaps`, uitgedund
+  tot 400 punten) met een stip per renner, ZWB'ers in clubkleur. Daaronder een
+  uitvergrote strook van 3 km rond de kijker, of rond de kop als die niet
+  meerijdt, met de ZWB'ers bij naam. Renners die op het scherm bijna samenvallen,
+  worden gestapeld, zodat een groep als groep oogt. Getekend op de echte breedte
+  (ResizeObserver), zodat het op een telefoon even leesbaar is.
+- De stippen schuiven tussen twee standen vier keer per seconde door op hun
+  laatste snelheid (hooguit 20 s). Eerst met een CSS-overgang: die begon bij de
+  positie uit de serverweergave en liep in een tabblad op de achtergrond niet
+  door, waardoor stippen naast de lijn stonden. Daarom zonder overgang.
+- Per ZWB'er: W/kg nu en gemiddeld sinds de start (arbeid / rijtijd, pas na 30 s),
+  km/u, cadans, draft en helling op die plek, plus resterende km en volgende
+  sprint of KOM. ZWB'ers zonder status staan onder "Niet in beeld".
+- Groepen: gemiddelde W/kg, snelheid en helling in de regel; opengeklapt per
+  renner W/kg nu, gemiddeld en km/u.
+- W/kg alleen als de renner in Zwift zijn gewicht toont (`privacy.displayWeight`);
+  anders watt.
+- De onderdelen van de pagina staan in `_components/ds-sections.tsx`, zodat het
+  designvoorbeeld ze kan tonen: `/ontwerp-voorbeeld?scherm=ds` (alleen lokaal)
+  met een verzonnen race van 40 km.
+- `/hulp#zwb-ds` beschrijft het nieuwe scherm.
+
+**Bewust niet gebouwd.** FTP, leeftijd en lengte van renners tonen (persoonlijke
+gegevens; FTP zou ook "% van FTP" mogelijk maken, maar dat is aan de eigenaar).
+Een kaart (x/y staan in de status). Vermogensbron (zPower) en land: kan, niet
+gevraagd. Geschiedenis per renner voor een grafiekje: dat vraagt opslag van meer
+dan de laatste stand.
+
+**Getest:** unit-tests (gemiddeld vermogen, eerste halve minuut, helling,
+groepsgemiddelde, decoder met de nieuwe velden en zonder hartslag), `tsc`,
+ESLint. In de ingebouwde browser bekeken op telefoon- en desktopbreedte, met het
+designvoorbeeld.
+
+**Niet geverifieerd.** De pagina met echte data na deze wijziging (lokaal geen
+inlog). De eenheid van `draft`: Sauce toont hem als watt, maar wat het getal
+precies is, is omstreden. Of `elapsed`/kJ bij een race vanaf de start tellen of
+vanaf het binnenkomen in de startvak.
+
+**Nog te doen voor live:** migratie `0250` toepassen (zonder die kolommen faalt
+het opslaan en vraagt DS Zwift niets meer), de privacytekst aanvullen (voorstel
+aan de eigenaar), pushen.
+
 ### Gebouwd — ZWB DS: raceoverzicht tijdens Zwift-races
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Migratie

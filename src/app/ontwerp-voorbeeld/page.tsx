@@ -10,13 +10,16 @@ import { TegelsAuthFrame } from "@/components/tegels/auth-frame";
 import { AuthScreen } from "../(auth)/login/auth-screen";
 import { SeasonRoad } from "../(app)/zwbeter-worden/jaarplan/_components/season-road";
 import { SeasonStand } from "../(app)/zwbeter-worden/jaarplan/_components/season-stand";
+import { DsSections } from "../(app)/ds/[eventId]/_components/ds-sections";
+import { PageHeader } from "@/components/app-ui";
+import { DS_VOORBEELD } from "./ds-voorbeeld";
 
 // Het design "tegels" met voorbeelddata, zonder login. Alleen bij lokaal
 // ontwikkelen: in productie bestaat deze pagina niet. Bedoeld om het uiterlijk
 // te controleren zonder de productiedatabase; met echte data kijk je via de
 // schakelaar in de app zelf.
 
-const SCREENS = ["vandaag", "kalender", "club", "jaarplan", "inloggen"] as const;
+const SCREENS = ["vandaag", "kalender", "club", "jaarplan", "ds", "inloggen"] as const;
 
 // Een jaar met alles erin: een lopend blok dat bijna afloopt, een vakantie waar
 // nog trainingen in staan, een kamp, lege maanden en een A-doel ver weg.
@@ -97,6 +100,11 @@ export default async function OntwerpVoorbeeldPage({
                 (label) => ({ href: `#${label}`, label }),
               )}
             />
+          </div>
+        ) : scherm === "ds" ? (
+          <div className="mx-auto max-w-3xl space-y-4">
+            <PageHeader eyebrow="ZWB DS" title={DS_VOORBEELD.event.title} />
+            <DsSections view={DS_VOORBEELD} />
           </div>
         ) : scherm === "jaarplan" ? (
           <div className="max-w-2xl space-y-4">

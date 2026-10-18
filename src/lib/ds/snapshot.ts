@@ -13,6 +13,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchEntrants, fetchPlayerState, fetchZwiftEvent, zwiftDsConfigured } from "@/lib/events/zwift-club";
 import { routeFromZwiftId } from "@/lib/events/zwift-route";
 import { routeSegments } from "@/lib/zwift/route-segments";
+import type { RouteProfile } from "@/lib/events/zwift-route-streams";
+import { expandLaps } from "@/lib/pacing/route-profile";
 import { hasZwbTag, pickSubgroup } from "@/lib/zrl-live/snapshot";
 import { buildField, type DsEntrant, type DsField, type DsMark } from "@/lib/ds/field";
 import { DS_AFTER_MS, ridersToCheck } from "@/lib/ds/schedule";
@@ -67,13 +69,105 @@ type StateRow = {
   event_distance_m: number | null;
   speed_kmh: number | null;
   power: number | null;
+  cadence_rpm: number | null;
+  draft: number | null;
+  elapsed_s: number | null;
+  kj: number | null;
+  climbing_m: number | null;
 };
+
+const STATE_COLUMNS =
+  "zwift_id, checked_at, state_at, event_subgroup_id, event_distance_m, speed_kmh, power, cadence_rpm, draft, elapsed_s, kj, climbing_m";
+
+/** Hoogteprofiel van het hele event (aanloop en ronden), uitgedund voor de pagina. */
+export type DsProfile = { distanceM: number[]; altitudeM: number[] };
+/** Genoeg punten voor een scherm, en een pagina die elke 15 s ververst blijft licht. */
+const PROFILE_POINTS = 400;
+/** Zoals het pacingplan: een profiel dat meer dan 10% afwijkt, hoort bij een andere route. */
+const PROFILE_TOLERANCE = 0.1;
+
+async function fetchRouteProfile(routeId: number): Promise<RouteProfile | null> {
+  const { data } = await createAdminClient()
+    .from("zwift_routes")
+    .select("profile")
+    .eq("route_id", routeId)
+    .maybeSingle();
+  const profile = data?.profile as RouteProfile | null | undefined;
+  return profile?.distanceM?.length && profile.altitudeM?.length === profile.distanceM.length ? profile : null;
+}
+
+// Een routeprofiel verandert niet tijdens een race.
+const fetchCachedRouteProfile = unstable_cache(fetchRouteProfile, ["zwb-ds-route-profile", "v1"], { revalidate: 86400 });
+
+function thin(profile: RouteProfile, points: number): DsProfile {
+  const step = Math.max(1, Math.ceil(profile.distanceM.length / points));
+  const distanceM: number[] = [];
+  const altitudeM: number[] = [];
+  for (let i = 0; i < profile.distanceM.length; i += step) {
+    distanceM.push(Math.round(profile.distanceM[i]));
+    altitudeM.push(Math.round(profile.altitudeM[i] * 10) / 10);
+  }
+  const last = profile.distanceM.length - 1;
+  if (distanceM[distanceM.length - 1] !== Math.round(profile.distanceM[last])) {
+    distanceM.push(Math.round(profile.distanceM[last]));
+    altitudeM.push(Math.round(profile.altitudeM[last] * 10) / 10);
+  }
+  return { distanceM, altitudeM };
+}
+
+/** Hoogte op een afstand, lineair tussen twee punten. */
+function altitudeAt(profile: RouteProfile, distanceM: number): number | null {
+  const d = profile.distanceM;
+  if (d.length < 2 || distanceM < d[0] || distanceM > d[d.length - 1]) return null;
+  let lo = 0;
+  let hi = d.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (d[mid] <= distanceM) lo = mid;
+    else hi = mid;
+  }
+  const span = d[hi] - d[lo] || 1;
+  return profile.altitudeM[lo] + ((distanceM - d[lo]) / span) * (profile.altitudeM[hi] - profile.altitudeM[lo]);
+}
+
+/** Helling over 100 m rond een afstand, in procent. */
+function gradeAt(profile: RouteProfile, distanceM: number): number | null {
+  const a = altitudeAt(profile, Math.max(0, distanceM - 50));
+  const b = altitudeAt(profile, distanceM + 50);
+  return a === null || b === null ? null : ((b - a) / 100) * 100;
+}
+
+async function eventProfile(subgroup: DsSubgroup, routeM: number | null): Promise<RouteProfile | null> {
+  const route = subgroup.routeId ? routeFromZwiftId(subgroup.routeId) : null;
+  if (!route || !subgroup.routeId) return null;
+  let lap: RouteProfile | null = null;
+  try {
+    lap = await fetchCachedRouteProfile(subgroup.routeId);
+  } catch {
+    return null;
+  }
+  if (!lap) return null;
+  const lapKm = lap.distanceM[lap.distanceM.length - 1] / 1000;
+  if (Math.abs(lapKm - route.distanceKm) / route.distanceKm > PROFILE_TOLERANCE) return null;
+  const expanded = expandLaps(lap, { leadInKm: route.leadInKm, leadInElevationM: route.leadInElevationM, laps: subgroup.laps });
+  if (routeM === null) return expanded;
+  // Een event dat korter is dan de ronden (distanceInMeters), stopt eerder.
+  const keep = expanded.distanceM.findIndex((m) => m > routeM);
+  return keep > 1
+    ? { distanceM: expanded.distanceM.slice(0, keep + 1), altitudeM: expanded.altitudeM.slice(0, keep + 1) }
+    : expanded;
+}
 
 export type DsView = {
   event: { id: string; title: string; zrlLiveHref: string | null };
   subgroups: Array<{ id: string; label: string; riders: number; zwb: number }>;
   subgroup: { id: string; label: string; startAt: number };
   field: DsField;
+  profile: DsProfile | null;
+  /** Zwift-ID van de kijker als die in dit veld rijdt: daar zoomt de strook op in. */
+  focusId: string | null;
+  /** ZWB'ers in deze groep zonder (verse) status. */
+  zwbUnseen: string[];
   now: number;
   /** Binnen het venster waarin we Zwift vragen. */
   live: boolean;
@@ -158,6 +252,11 @@ async function refreshStates(
         event_distance_m: state?.eventDistanceM ?? null,
         speed_kmh: state?.speedKmh ?? null,
         power: state?.power ?? null,
+        cadence_rpm: state?.cadenceRpm ?? null,
+        draft: state?.draft ?? null,
+        elapsed_s: state?.elapsedS ?? null,
+        kj: state?.kj ?? null,
+        climbing_m: state?.climbingM ?? null,
       };
       return row;
     } catch {
@@ -218,7 +317,7 @@ export async function loadDsView(
   try {
     const { data: stored, error } = await admin
       .from("zwb_ds_rider_states")
-      .select("zwift_id, checked_at, state_at, event_subgroup_id, event_distance_m, speed_kmh, power")
+      .select(STATE_COLUMNS)
       .in("zwift_id", subgroup.entrants.map((e) => Number(e.zwiftId)));
     if (error) throw error;
     for (const row of (stored ?? []) as StateRow[]) rows.set(String(row.zwift_id), row);
@@ -250,12 +349,23 @@ export async function loadDsView(
             eventDistanceM: row.event_distance_m as number,
             speedKmh: row.speed_kmh as number,
             power: row.power,
+            cadenceRpm: row.cadence_rpm,
+            draft: row.draft,
+            elapsedS: row.elapsed_s,
+            kj: row.kj,
           }
         : null,
     };
   });
   const { routeM, marks } = routeMarks(subgroup);
-  const field = buildField(entrants, { now, routeM, marks });
+  const profile = await eventProfile(subgroup, routeM);
+  const field = buildField(entrants, {
+    now,
+    routeM,
+    marks,
+    gradeAt: profile ? (m) => gradeAt(profile, m) : undefined,
+  });
+  const inField = new Set(field.riders.map((r) => r.zwiftId));
   const newest = entrants.reduce((max, e) => Math.max(max, e.sample?.stateAt ?? 0), 0);
 
   return {
@@ -274,6 +384,9 @@ export async function loadDsView(
       })),
       subgroup: { id: subgroup.id, label: subgroup.label, startAt: subgroup.startAt },
       field,
+      profile: profile ? thin(profile, PROFILE_POINTS) : null,
+      focusId: viewer && inField.has(viewer) ? viewer : null,
+      zwbUnseen: entrants.filter((e) => e.zwb && !inField.has(e.zwiftId)).map((e) => e.name),
       now,
       live,
       newestStateAt: newest || null,

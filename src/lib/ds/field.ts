@@ -24,6 +24,11 @@ export type DsSample = {
   eventDistanceM: number;
   speedKmh: number;
   power: number | null;
+  cadenceRpm?: number | null;
+  draft?: number | null;
+  /** Rijtijd en arbeid sinds de start: samen het gemiddelde vermogen. */
+  elapsedS?: number | null;
+  kj?: number | null;
 };
 
 export type DsEntrant = {
@@ -46,6 +51,13 @@ export type DsRider = {
   speedKmh: number;
   watts: number | null;
   wkg: number | null;
+  /** Gemiddeld sinds de start. */
+  avgWatts: number | null;
+  avgWkg: number | null;
+  cadenceRpm: number | null;
+  draft: number | null;
+  /** Helling op de geschatte plek, als het routeprofiel bekend is. */
+  gradePct: number | null;
   /** Leeftijd van de status in seconden. */
   ageS: number;
   finished: boolean;
@@ -62,6 +74,10 @@ export type DsGroup = {
   riders: DsRider[];
   gapS: number;
   speedKmh: number;
+  /** Gemiddelde W/kg van de renners met een bekend gewicht. */
+  wkg: number | null;
+  /** Helling op de kop van de groep. */
+  gradePct: number | null;
 };
 
 export type DsField = {
@@ -85,7 +101,13 @@ function nextMark(marks: DsMark[], distanceM: number): DsRider["next"] {
 
 export function buildField(
   entrants: DsEntrant[],
-  options: { now: number; routeM: number | null; marks?: DsMark[] },
+  options: {
+    now: number;
+    routeM: number | null;
+    marks?: DsMark[];
+    /** Helling in procent op een afstand vanaf de start; null buiten het profiel. */
+    gradeAt?: (distanceM: number) => number | null;
+  },
 ): DsField {
   const { now, routeM } = options;
   const marks = [...(options.marks ?? [])].sort((a, b) => a.atM - b.atM);
@@ -102,6 +124,12 @@ export function buildField(
     const ahead = Math.min(Math.max(now - sample.stateAt, 0), MAX_EXTRAPOLATE_MS);
     let distanceM = sample.eventDistanceM + ((sample.speedKmh / 3.6) * ahead) / 1000;
     if (routeM !== null) distanceM = Math.min(distanceM, routeM);
+    // Zwift telt rijtijd en arbeid vanaf het moment dat je de startvak in komt;
+    // pas na een halve minuut rijden zegt het gemiddelde iets.
+    const avgWatts =
+      sample.kj != null && sample.elapsedS != null && sample.elapsedS >= 30
+        ? (sample.kj * 1000) / sample.elapsedS
+        : null;
     placed.push({
       zwiftId: entrant.zwiftId,
       name: entrant.name,
@@ -110,6 +138,11 @@ export function buildField(
       speedKmh: sample.speedKmh,
       watts: sample.power,
       wkg: sample.power !== null && entrant.weightKg ? sample.power / entrant.weightKg : null,
+      avgWatts,
+      avgWkg: avgWatts !== null && entrant.weightKg ? avgWatts / entrant.weightKg : null,
+      cadenceRpm: sample.cadenceRpm ?? null,
+      draft: sample.draft ?? null,
+      gradePct: finished ? null : (options.gradeAt?.(distanceM) ?? null),
       ageS: Math.max(0, Math.round((now - sample.stateAt) / 1000)),
       finished,
       position: 0,
@@ -130,7 +163,7 @@ export function buildField(
     rider.gapS = (leader.distanceM - rider.distanceM) / speed;
     const previous = racing[i - 1];
     if (!previous || (previous.distanceM - rider.distanceM) / speed > GROUP_GAP_S) {
-      groups.push({ riders: [], gapS: rider.gapS, speedKmh: 0 });
+      groups.push({ riders: [], gapS: rider.gapS, speedKmh: 0, wkg: null, gradePct: rider.gradePct });
     }
     const group = groups[groups.length - 1];
     rider.group = groups.length - 1;
@@ -138,6 +171,8 @@ export function buildField(
   });
   for (const group of groups) {
     group.speedKmh = group.riders.reduce((sum, r) => sum + r.speedKmh, 0) / group.riders.length;
+    const known = group.riders.flatMap((r) => (r.wkg === null ? [] : [r.wkg]));
+    group.wkg = known.length ? known.reduce((sum, w) => sum + w, 0) / known.length : null;
   }
   finished.forEach((rider, i) => {
     rider.position = i + 1;

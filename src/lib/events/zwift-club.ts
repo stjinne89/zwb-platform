@@ -343,11 +343,12 @@ type EntrantRow = {
   subgroupLabel?: string | null;
   label?: string | null;
   weight?: number | null;
+  privacy?: { displayWeight?: boolean | null } | null;
 };
 
 /**
- * Zwift-profielen geven het gewicht in grammen. Niet tegen een echte startlijst
- * gecontroleerd (2026-10-17); een kale kilogramwaarde nemen we ook aan.
+ * Zwift-profielen geven het gewicht in grammen (gezien in een startlijst op
+ * 2026-10-18); een kale kilogramwaarde nemen we ook aan.
  */
 function entrantWeightKg(weight: unknown): number | null {
   const value = Number(weight);
@@ -413,7 +414,8 @@ export async function fetchEntrants(subgroupIds: string[], options: { strict?: b
       if (options.strict && (!/^\d+$/.test(zwiftId) || !name)) throw new Error("Onvolledige Zwift-inschrijving.");
       if (!zwiftId || !name) continue;
       if (!byId.has(zwiftId)) {
-        const weightKg = entrantWeightKg(row.weight);
+        // Wie in Zwift zijn gewicht verbergt, krijgt bij ons ook geen W/kg.
+        const weightKg = row.privacy?.displayWeight === false ? null : entrantWeightKg(row.weight);
         byId.set(zwiftId, {
           zwiftId,
           name,
