@@ -11,7 +11,7 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, Clock, Gauge, MapPin, Maximize2, Route, X } from "lucide-react";
+import { ArrowUpRight, Clock, Gauge, MapPin, Maximize2, Route, X, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { MemberLink } from "@/components/member-link";
 import { parseGpx, type GpxPoint } from "@/lib/gpx";
@@ -99,8 +99,10 @@ export type EventLivePosition = {
   altitude: number | string | null;
   speed_kmh: number | string | null;
   recorded_at: string;
-  /** Afstand volgens de fietscomputer (Garmin/Wahoo); alleen voor leden (0193). */
+  /** Afstand volgens de fietscomputer (Garmin/Wahoo), ook publiek bij rondjes. */
   distance_m?: number | string | null;
+  /** Vermogen; alleen op de eventpagina voor leden, niet publiek (0193). */
+  power_w?: number | string | null;
 };
 
 type Marker = {
@@ -115,6 +117,7 @@ type Marker = {
   recordedAt: string;
   startedAt: string;
   rideKm: number | null;
+  powerW: number | null;
 };
 
 type RouteStats = {
@@ -296,6 +299,7 @@ function latestMarkers(
       speedKmh: toNumber(p.speed_kmh),
       recordedAt: p.recorded_at,
       rideKm: rideKmOf(p.distance_m),
+      powerW: toNumber(p.power_w),
       // "Bezig" = tijd sinds de werkelijke start (event-starttijd, of de
       // sessiestart als die later is). Bewust níét afgeleid uit de eerste
       // opgehaalde positie: die lijst is afgekapt (limit), waardoor de start
@@ -547,6 +551,7 @@ export function EventLiveTicker({
               speedKmh: toNumber(row.speed_kmh),
               recordedAt: row.recorded_at,
               rideKm: rideKmOf(row.distance_m),
+              powerW: toNumber(row.power_w),
               startedAt: previous?.startedAt ?? isoFromTime(baseStart),
             });
             return next;
@@ -867,6 +872,12 @@ function RiderPopup({
         <dd>{formatDuration(rider.elapsedMs)}</dd>
         <dt className="text-muted-foreground">Gemiddeld</dt>
         <dd>{formatKmh(rider.avgKmh)}</dd>
+        {rider.powerW !== null && (
+          <>
+            <dt className="text-muted-foreground">Vermogen</dt>
+            <dd>{rider.powerW} W</dd>
+          </>
+        )}
         <dt className="text-muted-foreground">ETA</dt>
         <dd>
           {rider.eta
@@ -979,6 +990,9 @@ function RiderList({
                     : "-"
                 }
               />
+              {rider.powerW !== null && (
+                <MiniStat icon={Zap} label="Vermogen" value={`${rider.powerW} W`} />
+              )}
             </div>
           </li>
         ))}

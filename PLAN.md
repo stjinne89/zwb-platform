@@ -221,6 +221,21 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Niet geverifieerd.** Niet in de browser bekeken.
 
+> **Eventpagina: vermogen per renner, 2026-10-18 — gebouwd, lint en typecheck schoon; gepusht naar `main` (eigenaar, 2026-10-18); niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Vraag van de eigenaar tijdens de Legacy Gravel: op Samen fietsen
+> stond Rolfs vermogen, op de eventpagina niet.
+>
+> **Wat.** De eventpagina voor leden selecteert `power_w`; de ticker toont
+> "Vermogen" in de rennerkaart en de kaartpopup, alleen als er een waarde is.
+> Het is de waarde van het laatste kaartpunt, gemiddeld over de metingen sinds
+> het vorige punt (~10 s), zoals op Samen fietsen.
+>
+> **Bewust niet gedaan.** Niet op de publieke pagina: `event-snapshot.ts`
+> selecteert `power_w` niet, en de privacytekst zegt dat die alleen positie en
+> (bij rondjes) afstand toont. Cadans en hartslag: niet gevraagd.
+
 > **Publieke ticker: ook de afstand bij een koers in rondjes, 2026-10-18 — gebouwd, lint en typecheck schoon; gepusht naar `main` (eigenaar, 2026-10-18); niet in de browser bekeken. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
@@ -262,7 +277,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   ronde.
 > - Eventpagina (leden) selecteert nu `distance_m` en geeft `distance_km` door.
 >   Dat herziet "bewust niet gebouwd: de waarden op de eventpagina voor leden"
->   uit de ronde van 0193, alleen voor de afstand.
+>   uit de ronde van 0193, voor de afstand (en later dezelfde dag het vermogen,
+>   zie hierboven).
 >
 > **Bewust niet gedaan.** ~~De publieke ticker (`/live/[eventId]`) krijgt geen
 > `distance_m`.~~ Achterhaald dezelfde dag, zie de ronde "publieke ticker"
