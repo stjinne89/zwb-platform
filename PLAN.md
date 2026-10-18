@@ -10393,8 +10393,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZRL-races krijgen dezelfde eventinformatie als een Zwift-event
 
-**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet
-gepusht.
+**2026-10-18.** Commit `06be89e8`. Geen migratie. **Gepusht naar `main` op
+2026-10-18.**
 
 **Waarom.** De eigenaar vroeg of ZRL-races op de kalender net zoveel informatie
 kunnen krijgen als andere Zwift-events. Gemeten op productie (events van de
