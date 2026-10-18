@@ -5,6 +5,9 @@
 [build.environment]
   NODE_VERSION = "22"
   NEXT_TELEMETRY_DISABLED = "1"
+  # De TypeScript-stap van `next build` gebruikt ruim 2,2 GB en liep op
+  # 2026-10-18 tegen de standaard heap-limiet van Node aan (deploy fd06de6).
+  NODE_OPTIONS = "--max-old-space-size=4096"
 
 # Netlify auto-detects Next.js and applies @netlify/plugin-nextjs.
 # Server routes, middleware en API-routes worden als functions gedraaid.

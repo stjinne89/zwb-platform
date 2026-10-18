@@ -268,6 +268,15 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > tabel. Bij een lid zonder ingevulde minuten (alleen het oude `available_days`)
 > staan de dagen op 0; na opslaan staat er een echte weekrij.
 >
+> **Deploy faalde, verholpen (2026-10-18).** De eerste deploy (`fd06de6`) brak af
+> in de TypeScript-stap van `next build`: Node raakte zijn heap kwijt
+> ("Ineffective mark-compacts near heap limit"). Gemeten met `tsc --noEmit
+> --incremental false`: 2,21 GB op `389dada5` (vóór deze ronde), 2,27 GB erna.
+> Het project zat dus al tegen de standaardlimiet aan; deze ronde duwde het er
+> net overheen. `netlify.toml` zet nu `NODE_OPTIONS=--max-old-space-size=4096`.
+> Bewust niet gedaan: de typen van de loader uitkleden; dat wint 55 MB en laat
+> het project op de rand staan.
+>
 > **Eindreview (Impeccable, drie rondes; de derde op verzoek van de eigenaar).**
 > Uitkomst: alle zes punten in de code verholpen. Papierkorrel boven de inkt (de
 > korrel lag eerst onder een geïsoleerde laag en was onzichtbaar), renners die
