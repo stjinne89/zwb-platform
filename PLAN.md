@@ -9950,7 +9950,7 @@ routebibliotheek (`zwift_routes`) heeft voor alle 273 routes een hoogteprofiel.
 - Groepen: gemiddelde W/kg, snelheid en helling in de regel; opengeklapt per
   renner W/kg nu, gemiddeld en km/u.
 - W/kg alleen als de renner in Zwift zijn gewicht toont (`privacy.displayWeight`);
-  anders watt.
+  anders watt. *Teruggedraaid dezelfde dag: zie "Gezien op productie" hieronder.*
 - De onderdelen van de pagina staan in `_components/ds-sections.tsx`, zodat het
   designvoorbeeld ze kan tonen: `/ontwerp-voorbeeld?scherm=ds` (alleen lokaal)
   met een verzonnen race van 40 km.
@@ -9973,7 +9973,8 @@ precies is, is omstreden. Of `elapsed`/kJ bij een race vanaf de start tellen of
 vanaf het binnenkomen in de startvak.
 
 **Privacy.** `/privacy#zwb-ds` noemt nu ook cadans, draft, rijtijd en verbruikte
-energie, en dat het gewicht alleen meekomt als de renner het in Zwift toont.
+energie, en dat het gewicht alleen dient om W/kg te rekenen (eerst: "alleen als
+de renner het in Zwift toont", zie hieronder).
 Tekst door de eigenaar goedgekeurd op 2026-10-18; geen nieuwe versie.
 
 **Gezien op productie na de push (2026-10-18, "Zwift ritje", 100 km).** Drie
@@ -9987,10 +9988,15 @@ dingen klopten niet:
   snelheid, de mediaan van wie nog rijdt. Lokaal herstel, nog niet gepusht.
 - Geen W/kg meer: alle 100 inschrijvers van die groep hebben in Zwift
   `displayWeight` uit (de standaard). De regel "W/kg alleen als de renner zijn
-  gewicht toont" haalt W/kg dus bij vrijwel iedereen weg; de keuze ligt bij de
-  eigenaar.
+  gewicht toont" haalt W/kg dus bij vrijwel iedereen weg. **Keuze eigenaar
+  (2026-10-18): W/kg voor iedereen**, zoals Zwift in het spel; het gewicht zelf
+  staat nergens. `displayWeight` gaat over het gewicht op het Zwift-profiel, niet
+  over W/kg. Privacy- en hulptekst daarop aangepast (tekst akkoord, geen nieuwe
+  versie).
 
-**Nog te doen:** de W/kg-keuze, pushen, en het scherm in een race bekijken.
+Beide herstellingen en de W/kg-keuze zijn op 2026-10-18 naar `main` gepusht.
+
+**Nog te doen:** het scherm in een race bekijken.
 
 ### Gebouwd — ZWB DS: raceoverzicht tijdens Zwift-races
 

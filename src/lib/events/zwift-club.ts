@@ -343,7 +343,6 @@ type EntrantRow = {
   subgroupLabel?: string | null;
   label?: string | null;
   weight?: number | null;
-  privacy?: { displayWeight?: boolean | null } | null;
 };
 
 /**
@@ -414,8 +413,11 @@ export async function fetchEntrants(subgroupIds: string[], options: { strict?: b
       if (options.strict && (!/^\d+$/.test(zwiftId) || !name)) throw new Error("Onvolledige Zwift-inschrijving.");
       if (!zwiftId || !name) continue;
       if (!byId.has(zwiftId)) {
-        // Wie in Zwift zijn gewicht verbergt, krijgt bij ons ook geen W/kg.
-        const weightKg = row.privacy?.displayWeight === false ? null : entrantWeightKg(row.weight);
+        // Alleen om W/kg te rekenen, zoals Zwift dat in het spel bij iedereen toont.
+        // Het gewicht zelf staat nergens. `privacy.displayWeight` staat in Zwift
+        // standaard uit (100 van 100 in een groep op 2026-10-18) en gaat over het
+        // gewicht op het profiel, niet over W/kg; daarom volgen we die niet.
+        const weightKg = entrantWeightKg(row.weight);
         byId.set(zwiftId, {
           zwiftId,
           name,

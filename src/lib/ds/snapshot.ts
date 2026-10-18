@@ -59,7 +59,9 @@ async function fetchDsEvent(zwiftEventId: string): Promise<DsEventData> {
 }
 
 // Startlijsten veranderen tijdens een race nauwelijks; vijf minuten is ruim.
-const fetchCachedDsEvent = unstable_cache(fetchDsEvent, ["zwb-ds-event", "v1"], { revalidate: 300 });
+// Versie in de sleutel: Netlify bewaart deze cache over deploys heen (v2: gewicht
+// weer van iedereen, 2026-10-18).
+const fetchCachedDsEvent = unstable_cache(fetchDsEvent, ["zwb-ds-event", "v2"], { revalidate: 300 });
 
 type StateRow = {
   zwift_id: number;

@@ -135,8 +135,9 @@ export default function PrivacyPage() {
             <strong>ZWB DS (live raceoverzicht):</strong> tijdens een Zwift-race
             uit de kalender vragen we bij Zwift van de renners in de startgroep de
             actuele stand op: afstand in de race, snelheid, vermogen, cadans,
-            draft, rijtijd en verbruikte energie, met de naam en, als de renner
-            dat in Zwift toont, het gewicht uit de startlijst. Dat geldt
+            draft, rijtijd en verbruikte energie, met de naam en het gewicht uit
+            de startlijst; het gewicht alleen om W/kg te rekenen, het staat
+            nergens los. Dat geldt
             ook voor renners zonder ZWB-account en van andere clubs, en het is wat
             Zwift ook in de game laat zien. Alleen ingelogde leden zien het
             overzicht, met W/kg per renner. Hartslag lezen en bewaren we niet. De
