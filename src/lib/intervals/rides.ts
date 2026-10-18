@@ -16,6 +16,7 @@ import type { IntervalsActivity } from "@/lib/intervals/client";
 import { weekStartDate } from "@/lib/strava/client";
 import { syntheticAthleteId } from "@/lib/strava/import";
 import { intervalsRideId } from "@/lib/intervals/ride-id";
+import { isSameRide, type RideFingerprint } from "@/lib/rides/same-ride";
 import { CYCLING_SPORTS, isCyclingSportType } from "@/lib/strava/sports";
 import type { LatLng } from "@/lib/track-polyline";
 import type { TimedPoint } from "@/lib/segments/gps-efforts";
@@ -404,28 +405,7 @@ export function rideRowChanged(
   return !existing || rideSignature(row) !== rideSignature(existing);
 }
 
-/** Wat dedupeRides van een rit nodig heeft. */
-export type RideFingerprint = {
-  id: number | string;
-  start_date: string;
-  distance_m: number | string | null;
-  raw?: unknown;
-};
-
-const SAME_START_MS = 120_000;
-const SAME_DISTANCE = 0.05;
-const SHORT_RIDE_M = 1_000;
-
-export function isSameRide(a: RideFingerprint, b: RideFingerprint): boolean {
-  const startA = Date.parse(a.start_date);
-  const startB = Date.parse(b.start_date);
-  if (!Number.isFinite(startA) || !Number.isFinite(startB)) return false;
-  if (Math.abs(startA - startB) > SAME_START_MS) return false;
-  const distA = Number(a.distance_m) || 0;
-  const distB = Number(b.distance_m) || 0;
-  if (distA < SHORT_RIDE_M && distB < SHORT_RIDE_M) return true;
-  return Math.abs(distA - distB) / Math.max(distA, distB) <= SAME_DISTANCE;
-}
+export { isSameRide, type RideFingerprint } from "@/lib/rides/same-ride";
 
 /** Vermogen telt zwaarder dan een spoor: een Zwift-rit wint van het trainerbestand. */
 function richness(ride: RideFingerprint): number {

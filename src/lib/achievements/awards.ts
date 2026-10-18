@@ -1,5 +1,6 @@
 import { currentAchievementWeek } from "@/lib/strava/client";
 import { sendNotificationToMembers } from "@/lib/push/send";
+import { uniqueRides } from "@/lib/rides/unique-rides";
 
 export type BadgeDefinition = {
   id: string;
@@ -12,7 +13,9 @@ export type BadgeDefinition = {
 };
 
 type ActivityRow = {
+  id: number;
   profile_id: string;
+  start_date: string;
   achievement_week: string;
   distance_m: number | string;
   total_elevation_gain_m: number | string;
@@ -80,10 +83,11 @@ function weekEnd(week: string) {
   return date.toISOString().slice(0, 10);
 }
 
-function aggregate(rows: ActivityRow[]) {
+/** Totalen per lid per week. Een rit die het lid twee keer opnam, telt één keer. */
+export function weeklyScores(rows: ActivityRow[]) {
   const scores = new Map<string, Score>();
 
-  for (const row of rows) {
+  for (const row of uniqueRides(rows)) {
     const key = `${row.achievement_week}:${row.profile_id}`;
     const score =
       scores.get(key) ??
@@ -158,14 +162,14 @@ export async function awardCompletedAchievementWeeks(
   const { data, error } = await supabase
     .from("strava_activities")
     .select(
-      "profile_id, achievement_week, distance_m, total_elevation_gain_m, kudos_count, moving_time_seconds",
+      "id, profile_id, start_date, achievement_week, distance_m, total_elevation_gain_m, kudos_count, moving_time_seconds",
     )
     .lt("achievement_week", currentWeek);
 
   if (error) throw new Error(error.message);
 
   const rows = (data ?? []) as ActivityRow[];
-  const scores = aggregate(rows);
+  const scores = weeklyScores(rows);
   const weeks = Array.from(new Set(scores.map((score) => score.week))).sort();
   const awards = weeks.flatMap((week) => winnersForWeek(scores, week));
 

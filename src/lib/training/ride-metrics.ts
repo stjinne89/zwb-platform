@@ -11,6 +11,7 @@
 
 import type { FtpAt } from "@/lib/training/ftp-history";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+import { uniqueRides } from "@/lib/rides/unique-rides";
 
 /** Strava levert numerieke velden soms als string; alles wat niet telt wordt null. */
 function num(value: unknown): number | null {
@@ -159,9 +160,9 @@ export type RideLoad = {
   hasPowerMeter: boolean;
 };
 
-/** Ritten met hun belasting, nieuwste eerst. */
+/** Ritten met hun belasting, nieuwste eerst. Dezelfde rit twee keer telt één keer. */
 export function rideLoadRows(rides: StravaRideRow[], ftpWatts: number | null | FtpAt): RideLoad[] {
-  return rides
+  return uniqueRides(rides)
     .map((ride) => {
       const metrics = rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, ftpWatts);
       return {

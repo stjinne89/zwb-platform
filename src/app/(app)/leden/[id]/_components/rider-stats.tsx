@@ -23,6 +23,7 @@ import { createClient } from "@/lib/supabase/server";
 import { garminAttribution } from "@/lib/intervals/rides";
 import { StravaAttribution, ViewOnStrava } from "@/components/strava-brand";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
+import { uniqueRides } from "@/lib/rides/unique-rides";
 
 type ActivityRow = {
   id: number;
@@ -159,7 +160,8 @@ export async function RiderStats({
     .in("sport_type", CYCLING_SPORTS)
     .order("start_date", { ascending: false });
 
-  const activities = (rows ?? []) as ActivityRow[];
+  // Een rit die het lid twee keer opnam, telt één keer (lib/rides/unique-rides.ts).
+  const activities = uniqueRides((rows ?? []) as ActivityRow[]);
   if (activities.length === 0) return null;
 
   // ── Jaar-totalen: huidige jaar vs vorige jaar tot zelfde dag-van-jaar

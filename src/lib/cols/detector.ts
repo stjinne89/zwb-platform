@@ -11,6 +11,7 @@
 // terug naar ~100K voor een 1300-rit backfill.
 
 import polyline from "@mapbox/polyline";
+import { trackFirst, uniqueRides } from "@/lib/rides/unique-rides";
 
 type LatLng = [number, number];
 
@@ -25,6 +26,7 @@ export type ColRecord = {
 type StoredActivity = {
   id: number;
   start_date: string;
+  distance_m?: number | string | null;
   total_elevation_gain_m?: number | null;
   raw:
     | {
@@ -199,11 +201,12 @@ type ClimbedRow = {
 // binnengekomen rit de volledige historie van het lid aan egress (gemeten
 // 2026-10-13: 77 MB raw tegenover 21 MB aan polylines over alle leden).
 const DETECTOR_COLUMNS =
-  "id, start_date, total_elevation_gain_m, raw_elevation_gain:raw->total_elevation_gain, polyline:raw->map->>polyline, summary_polyline:raw->map->>summary_polyline";
+  "id, start_date, distance_m, total_elevation_gain_m, raw_elevation_gain:raw->total_elevation_gain, polyline:raw->map->>polyline, summary_polyline:raw->map->>summary_polyline";
 
 type DetectorRow = {
   id: number;
   start_date: string;
+  distance_m: number | string | null;
   total_elevation_gain_m: number | null;
   raw_elevation_gain: number | null;
   polyline: string | null;
@@ -234,6 +237,7 @@ async function fetchAllActivities(
       all.push({
         id: row.id,
         start_date: row.start_date,
+        distance_m: row.distance_m,
         total_elevation_gain_m: row.total_elevation_gain_m,
         raw: {
           total_elevation_gain: row.raw_elevation_gain,
@@ -243,7 +247,9 @@ async function fetchAllActivities(
     }
     if (data.length < PAGE) break;
   }
-  return all;
+  // Een rit die het lid twee keer opnam, telt één keer voor times_climbed. Van
+  // de twee blijft die met een spoor.
+  return uniqueRides(all, trackFirst);
 }
 
 /**

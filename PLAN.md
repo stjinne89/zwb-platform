@@ -10115,6 +10115,54 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — lezers tellen een dubbele opname één keer
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet
+gepusht.
+
+**Waarom.** Na de ingestfix hieronder blijven 19 paren bij 8 leden: ritten die
+het lid zelf met twee toestellen opnam en beide naar Strava zette, of twee keer
+importeerde. Strava heeft ze ook dubbel, dus ZWB wist ze niet. Stats telde ze
+al één keer (`2970a109`, eigen branch); belasting, planner, badges, cols en de
+clubtotalen niet.
+
+**Wat er veranderde.** Eén pure helper, `uniqueRides`
+(`src/lib/rides/unique-rides.ts`), met de regel van de ingest (`isSameRide`:
+zelfde lid, start binnen 120 s, afstand binnen 5%). Van twee opnames blijft die
+met vermogen, dan spoor, dan de Strava-rit; voor de col-detector eerst het
+spoor. Toegepast in `rideLoadRows` (Belasting-pagina), `trainingDataFrom`
+(planner), `todayRidesFrom` (dag-aanpassing), de week-awards (`weeklyScores`,
+nu met `id` en `start_date` in de select), de mijlpalen (`activitiesForEval`),
+de col-detector (`distance_m` erbij in de select), het clubblok op het
+dashboard (cachesleutel naar `v2`, `id` erbij) en de ledenstatistiek op
+`/leden/[id]`. `src/lib/rides/same-ride.ts` en de her-export in
+`intervals/rides.ts` zijn letterlijk overgenomen uit `2970a109`, zodat die
+branch schoon samenvoegt. Tabel per lezer: [docs/dubbele-ritten-2026-10-18.md](docs/dubbele-ritten-2026-10-18.md).
+
+**Bewust niet.**
+- Het koppelen van ritten aan trainingen (naleving, `completion.ts`,
+  `compliance.ts`, ongeplande ritten, context van gisteren): een rapport hangt
+  aan één rit-id, en wegfilteren kan de gekoppelde opname laten verdwijnen.
+- Al uitgereikte badges en week-awards worden niet ingetrokken als ze op een
+  dubbele telling rustten; de week-awards schrijven bij de volgende run wel de
+  nieuwe waarden over de bestaande rij heen (upsert).
+- De helper deelt de rijkdomsregel niet met `dedupeRides` van de ingest: die
+  staat in een stuk van `intervals/rides.ts` dat `2970a109` ook wijzigt.
+
+**Gezien, niet opgelost.** `awardCompletedAchievementWeeks` haalt de hele
+tabel zonder paginering op. `strava_activities` heeft 29.936 rijen
+(2026-10-18) en PostgREST geeft standaard hooguit 1000, dus de week-awards
+rekenen vermoedelijk op een willekeurige deelverzameling. Niet nagegaan welke
+max-rows het project heeft ingesteld.
+
+**Getest:** `tests/unit/unique-rides.test.ts` (helper, en per lezer:
+`rideLoadRows`, `trainingDataFrom`, `todayRidesFrom`, `weeklyScores`,
+`activitiesForEval`, `syncClimbedColsForUser` met de nep-database; het clubblok
+en de ledenstatistiek zijn serverdelen, daar is de helper met clubrijen
+getest). Volledige suite groen behalve `omnium-live` (geen `.env.local` in de
+worktree), ESLint schoon, `tsc` alleen met de bekende ontbrekende pakketten
+(`tesseract.js`, `@zxing`). **Niet** in de app bekeken.
+
 ### Hersteld — intervals-sync zette ritten dubbel naast de Strava-rit
 
 **2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet
@@ -10141,11 +10189,11 @@ eigen intervals-rit in de rand wordt nu niet meer zonder spoor herschreven.
 **Bewust niet.**
 - Geen automatische opruiming door de sync van kopieën die er al staan: dat
   wist ledendata en wacht op de eigenaar.
-- De andere lezers (week-awards, mijlpalen, clubstatistiek dashboard,
-  ledenprofiel, cols `times_climbed`, ZWBeter-belasting) ontdubbelen niet bij
-  het lezen. Na opruiming van de zes kopieën staan alleen nog ritten die het
-  lid zelf twee keer opnam of importeerde (19 paren bij 8 leden); die horen
-  niet bij deze fout. Tabel per lezer in het document.
+- In deze ronde geen ontdubbeling bij het lezen voor de andere lezers. Na
+  opruiming van de zes kopieën staan alleen nog ritten die het lid zelf twee
+  keer opnam of importeerde (19 paren bij 8 leden); die horen niet bij deze
+  fout. *(Achterhaald dezelfde dag: zie "Gebouwd — lezers tellen een dubbele
+  opname één keer" hierboven.)*
 
 **Opruimen: voorstel, niet uitgevoerd.** De zes kopieën van de eigenaar wissen
 (SQL in het document; naar die rijen verwijst niets). Pas doen nadat deze fix

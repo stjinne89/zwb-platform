@@ -27,6 +27,7 @@ import {
   type WeeklyCtlPoint,
 } from "@/lib/training/ride-metrics";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
+import { uniqueRides } from "@/lib/rides/unique-rides";
 import { ftpResolver, loadFtpHistory, type FtpHistoryEntry } from "@/lib/training/ftp-history";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
@@ -300,7 +301,10 @@ export function trainingDataFrom(input: {
   now?: number;
 }): CoachTrainingData {
   const now = input.now ?? Date.now();
-  const rides = [...input.rides].sort((a, b) => String(b.start_date).localeCompare(String(a.start_date)));
+  // Een rit die het lid twee keer opnam, telt één keer (lib/rides/unique-rides.ts).
+  const rides = uniqueRides(input.rides).sort((a, b) =>
+    String(b.start_date).localeCompare(String(a.start_date)),
+  );
   const ftpAt = ftpResolver(input.ftpHistory ?? [], input.ftpWatts);
   const loadRows = rideLoadRows(rides, ftpAt);
 

@@ -107,16 +107,27 @@ eigenaar:
 ## Andere lezers
 
 Stats ontdubbelt bij het lezen sinds commit `2970a109` (nog op een eigen branch,
-niet op `main`). De andere lezers doen dat niet; na opruiming A raakt alleen
-soort B/C ze nog:
+niet op `main`). Sinds de tweede ronde van 2026-10-18 doen de lezers hieronder
+dat ook, met `uniqueRides` (`src/lib/rides/unique-rides.ts`): zelfde lid, start
+binnen 120 s, afstand binnen 5%. Van twee opnames blijft die met vermogen (voor
+de cols: die met een spoor), bij gelijke stand de Strava-rit.
 
-| Lezer | Bestand | Gevolg van een dubbele rij |
-| --- | --- | --- |
-| Week-awards (badges) | `lib/achievements/awards.ts` | km, hm, tijd en kudo's per week dubbel |
-| Mijlpaalbadges | `lib/achievements/milestone-evaluators.ts` | tellers (aantal ritten) dubbel; "langste rit" niet |
-| Clubstatistiek dashboard | `dashboard/_components/club-stats.tsx` | km, hm, uren en aantal dubbel |
-| Ledenprofiel | `leden/[id]/_components/rider-stats.tsx` | idem |
-| Cols | `lib/cols/detector.ts` | `times_climbed` één te hoog |
-| ZWBeter-belasting en planner | `lib/training/training-data.ts`, `zwbeter-worden/belasting/page.tsx` | volume en belasting van die dag dubbel |
-| ZWBlokken | `lib/zwblokken/sync.ts`, `zwift-sync.ts` | geen: upsert per blok |
-| Pacingplan | `lib/pacing/draft.ts` | geen: slaat intervals-rijen over |
+| Lezer | Bestand | Zonder ontdubbelen | Nu |
+| --- | --- | --- | --- |
+| Week-awards (badges) | `lib/achievements/awards.ts` | km, hm, tijd en kudo's per week dubbel | één keer |
+| Mijlpaalbadges | `lib/achievements/milestone-evaluators.ts` | tellers (aantal ritten) dubbel | één keer |
+| Clubstatistiek dashboard | `dashboard/_components/club-stats.tsx` | km, hm, uren en aantal dubbel | één keer |
+| Ledenprofiel | `leden/[id]/_components/rider-stats.tsx` | idem | één keer |
+| Cols | `lib/cols/detector.ts` | `times_climbed` één te hoog | één keer |
+| Belasting en weekgrafiek | `rideLoadRows` (`lib/training/ride-metrics.ts`) | belasting van die dag dubbel | één keer |
+| Planner (coach-context) | `trainingDataFrom` (`lib/training/training-data.ts`) | volume en belasting dubbel | één keer |
+| Dag-aanpassing, "vandaag gereden" | `todayRidesFrom` (`lib/training/adapt-context.ts`) | rit twee keer | één keer |
+| ZWBlokken | `lib/zwblokken/sync.ts`, `zwift-sync.ts` | geen: upsert per blok | ongewijzigd |
+| Pacingplan | `lib/pacing/draft.ts` | geen: slaat intervals-rijen over | ongewijzigd |
+
+Niet aangepast, met reden: het koppelen van ritten aan trainingen (naleving,
+`completion.ts`, `compliance.ts`, de ongeplande ritten in het schema en de
+context van gisteren). Daar hangt een trainingsrapport aan één bepaald rit-id;
+wegfilteren kan juist de gekoppelde opname laten verdwijnen. Een dubbele opname
+verschijnt daar hooguit als extra ongeplande rit. Ook niet: kalender, welkom,
+voeding en de badgepagina, die tellen geen totalen over ritten op.

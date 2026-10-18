@@ -9,6 +9,7 @@ import {
 } from "@/lib/training/ride-metrics";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { loadFtpAt, type FtpAt } from "@/lib/training/ftp-history";
+import { uniqueRides } from "@/lib/rides/unique-rides";
 
 /** Hoeveel dagen vóór gisteren een niet-gereden training nog meetelt als "net gemist". */
 export const RECENTLY_MISSED_DAYS = 3;
@@ -175,7 +176,8 @@ export function todayRidesFrom(input: {
   rides: StravaRideRow[];
   ftpWatts: number | null;
 }): TodayRide[] {
-  return input.rides
+  // Een rit die het lid twee keer opnam, telt één keer (lib/rides/unique-rides.ts).
+  return uniqueRides(input.rides)
     .filter((ride) => amsterdamDayKey(new Date(ride.start_date)) === input.todayKey)
     .sort((a, b) => (b.moving_time_seconds ?? 0) - (a.moving_time_seconds ?? 0))
     .map((ride) => {
