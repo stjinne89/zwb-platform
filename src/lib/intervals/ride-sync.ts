@@ -18,6 +18,7 @@ import {
   intervalsActivityToRideRow,
   intervalsRideId,
   latLngFromStreams,
+  rideCompareFrom,
   rideRowChanged,
   timedTrackFromStreams,
   rideSourceFor,
@@ -164,13 +165,14 @@ export async function syncIntervalsRidesForProfile(
     result.fetched = list.length;
 
     // intervals.icu filtert op datum; een dag marge houdt de randen buiten de
-    // verwijderregel hieronder.
-    const windowStart = new Date(now.getTime() - (days - 1) * 86400_000).toISOString();
+    // verwijderregel hieronder. Ontdubbelen gebeurt wel over de hele lijst
+    // (rideCompareFrom), anders komt de rand er als tweede rij bij.
+    const removeFrom = new Date(now.getTime() - (days - 1) * 86400_000);
     const { data: existingData, error: existingError } = await admin
       .from("strava_activities")
       .select(EXISTING_COLUMNS)
       .eq("profile_id", profileId)
-      .gte("start_date", windowStart);
+      .gte("start_date", rideCompareFrom(removeFrom, list).toISOString());
     if (existingError) throw new Error(existingError.message);
     const existing = (existingData ?? []) as ExistingRow[];
     const existingById = new Map(existing.map((row) => [Number(row.id), row]));
@@ -256,6 +258,7 @@ export async function syncIntervalsRidesForProfile(
       const current = new Set(candidates.map((row) => row.id));
       for (const row of existing) {
         if (row.raw?.import_source !== INTERVALS_IMPORT_SOURCE) continue;
+        if (Date.parse(row.start_date) < removeFrom.getTime()) continue;
         if (!current.has(Number(row.id))) removedIds.push(Number(row.id));
       }
       if (removedIds.length > 0) {

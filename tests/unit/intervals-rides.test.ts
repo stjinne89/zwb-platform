@@ -10,6 +10,7 @@ import {
   isSameRide,
   isUsableIntervalsRide,
   latLngFromStreams,
+  rideCompareFrom,
   rideSourceFor,
   startInstant,
   type IntervalsRideInput,
@@ -227,6 +228,25 @@ describe("dedupeRides", () => {
     const { keep, skipped } = dedupeRides([wahooRow], [imported]);
     expect(keep).toHaveLength(0);
     expect(skipped).toHaveLength(1);
+  });
+});
+
+describe("rideCompareFrom", () => {
+  const removeFrom = new Date("2026-09-01T12:00:00Z");
+
+  it("reikt tot een dag voor de oudste opgehaalde rit", () => {
+    const edge = { ...wahoo, start_date: "2026-08-31T06:30:00Z", start_date_local: "2026-08-31T08:30:00" };
+    expect(rideCompareFrom(removeFrom, [zwift, edge]).toISOString()).toBe("2026-08-30T06:30:00.000Z");
+  });
+
+  it("blijft minstens een dag voor het verwijdervenster", () => {
+    expect(rideCompareFrom(removeFrom, [zwift]).toISOString()).toBe("2026-08-31T12:00:00.000Z");
+    expect(rideCompareFrom(removeFrom, []).toISOString()).toBe("2026-08-31T12:00:00.000Z");
+  });
+
+  it("negeert een rit zonder bruikbare starttijd", () => {
+    const broken = { ...wahoo, start_date: null, start_date_local: "onzin" };
+    expect(rideCompareFrom(removeFrom, [broken]).toISOString()).toBe("2026-08-31T12:00:00.000Z");
   });
 });
 

@@ -5407,7 +5407,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Gevolg om te kennen.** Koppelt het lid daarna intervals.icu, dan slaat de
 > intervals-sync ritten over die al als Strava-rit staan (`dedupeRides`). De
-> bewaarde Strava-versie blijft dan de rit in ZWB.
+> bewaarde Strava-versie blijft dan de rit in ZWB. *(Correctie 2026-10-18: dat
+> gold tot dan niet voor ritten in de rand van het ophaalvenster; die kwamen er
+> als tweede rij bij. Zie "Hersteld — intervals-sync zette ritten dubbel".)*
 >
 > **Bewust niet.**
 > - Geen knop om bewaarde ritten later alsnog te wissen. Dat loopt via het
@@ -10112,6 +10114,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — intervals-sync zette ritten dubbel naast de Strava-rit
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet
+gepusht. Onderzoek en opruimvoorstel: [docs/dubbele-ritten-2026-10-18.md](docs/dubbele-ritten-2026-10-18.md).
+
+**Waarom.** Bij de controle van Stats telde september 2026 bij de eigenaar
+~150 km dubbel: zes ritten stonden als intervals-kopie (id ≤ −10¹²) naast de
+bewaarde Strava-rit.
+
+**Oorzaak.** intervals.icu filtert op de kalenderdag (`oldest=YYYY-MM-DD`), dus
+de sync kreeg ritten tot ruim 30 dagen terug, maar laadde de bestaande ritten
+pas vanaf `now − 29 dagen`. Een rit in die rand vond `dedupeRides` dus niet
+terug; hij werd naast zijn Strava-versie opgeslagen en viel daarna ook buiten
+de verwijderregel. De `synced_at` van elke kopie ligt precies 29 à 30 dagen na
+de rit. Treft leden met dezelfde rit onder een ander id (Strava bewaard bij
+ontkoppelen, of een CSV/GPX-import). Eerst intervals en dan Strava koppelen was
+al afgedekt (de callback wist de intervals-ritten).
+
+**Wat er veranderde.** `rideCompareFrom` (`lib/intervals/rides.ts`): de
+bestaande ritten worden geladen vanaf een dag vóór de oudste opgehaalde rit; de
+verwijderregel kijkt, net als voorheen, alleen vanaf `now − 29 dagen`. Ook een
+eigen intervals-rit in de rand wordt nu niet meer zonder spoor herschreven.
+
+**Bewust niet.**
+- Geen automatische opruiming door de sync van kopieën die er al staan: dat
+  wist ledendata en wacht op de eigenaar.
+- De andere lezers (week-awards, mijlpalen, clubstatistiek dashboard,
+  ledenprofiel, cols `times_climbed`, ZWBeter-belasting) ontdubbelen niet bij
+  het lezen. Na opruiming van de zes kopieën staan alleen nog ritten die het
+  lid zelf twee keer opnam of importeerde (19 paren bij 8 leden); die horen
+  niet bij deze fout. Tabel per lezer in het document.
+
+**Opruimen: voorstel, niet uitgevoerd.** De zes kopieën van de eigenaar wissen
+(SQL in het document; naar die rijen verwijst niets). Pas doen nadat deze fix
+live staat, anders zet de sync de rit van 19 sept er opnieuw bij. Tot de fix
+live staat, komt er bij de eigenaar nog een kopie bij voor elke Strava-rit van
+19 sept t/m 1 okt met een intervals-tegenhanger.
+
+**Getest:** unit-tests (`intervals-ride-sync.test.ts`: rit in de rand naast een
+Strava-rit, faalt zonder de fix; eigen rit in de rand wordt niet gewist;
+`intervals-rides.test.ts`: `rideCompareFrom`). De nep-API filtert nu op
+kalenderdag zoals de echte. `tsc`, ESLint. **Niet** tegen intervals.icu of in
+productie gedraaid.
 
 ### Gebouwd — ZWB DS naast Sauce gelegd: doorschatten en voorrang
 

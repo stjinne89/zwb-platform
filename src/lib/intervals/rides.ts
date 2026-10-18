@@ -162,6 +162,25 @@ export function startLocalStravaStyle(activity: IntervalsRideInput, start: Date)
   }
 }
 
+/**
+ * Vanaf wanneer een sync de bestaande ritten moet kennen om te ontdubbelen.
+ *
+ * intervals.icu filtert op de lokale kalenderdag (`oldest=YYYY-MM-DD`), dus de
+ * lijst begint tot ruim een dag vóór `removeFrom`, het venster van de
+ * verwijderregel. Zag de ontdubbeling alleen dat smalle venster, dan kwam elke
+ * rit uit die rand als tweede rij naast zijn Strava- of importversie, en bleef
+ * staan (PLAN.md, 2026-10-18).
+ */
+export function rideCompareFrom(removeFrom: Date, activities: IntervalsRideInput[]): Date {
+  let earliest = removeFrom.getTime();
+  for (const activity of activities) {
+    const start = startInstant(activity)?.getTime();
+    if (start != null && Number.isFinite(start) && start < earliest) earliest = start;
+  }
+  // Een dag marge: dezelfde rit kan via een andere bron iets eerder starten.
+  return new Date(earliest - 86400_000);
+}
+
 function validPoint(lat: unknown, lng: unknown): LatLng | null {
   const a = Number(lat);
   const b = Number(lng);

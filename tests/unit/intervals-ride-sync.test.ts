@@ -20,9 +20,10 @@ vi.mock("@/lib/intervals/client", async (importOriginal) => {
     ...actual,
     fetchIntervalsActivities: vi.fn(async (_key: string, _athlete: string, days: number) => {
       if (mocks.fetchError) throw mocks.fetchError;
-      const oldest = NOW.getTime() - days * 86400_000;
+      // Zoals de echte API: oldest is een kalenderdag, gefilterd op de lokale start.
+      const oldest = new Date(NOW.getTime() - days * 86400_000).toISOString().slice(0, 10);
       return mocks.activities.filter(
-        (activity) => Date.parse(`${activity.start_date_local}Z`) >= oldest,
+        (activity) => String(activity.start_date_local).slice(0, 10) >= oldest,
       );
     }),
     fetchIntervalsActivityTrack: vi.fn(async (_key: string, id: string) => {
@@ -155,6 +156,56 @@ describe("syncIntervalsRidesForProfile", () => {
     expect(result.duplicates).toBe(2);
     expect(db.tables.strava_activities.find((ride) => ride.id === -12345)).toBeTruthy();
     expect(db.tables.strava_activities).toHaveLength(3);
+  });
+
+  it("slaat een rit uit de rand van het venster over als hij al via Strava staat", async () => {
+    // Productie, 2026-10-18: intervals.icu geeft 30 kalenderdagen, de
+    // ontdubbeling keek maar 29 dagen terug. De rit van 31 augustus kwam er
+    // daardoor naast de Strava-rit bij.
+    const { db, conn } = setup();
+    conn.rides_backfilled_at = "2026-09-01T00:00:00Z";
+    mocks.activities.push({
+      id: "i81230000",
+      source: "WAHOO",
+      type: "Ride",
+      name: "Le dernier",
+      start_date: "2026-08-31T13:45:33Z",
+      start_date_local: "2026-08-31T15:45:33",
+      timezone: "Europe/Amsterdam",
+      distance: 35329,
+      moving_time: 5400,
+    });
+    db.tables.strava_activities.push({
+      id: 20131400295,
+      profile_id: A,
+      name: "Le dernier",
+      start_date: "2026-08-31T13:45:33.000Z",
+      distance_m: 35325,
+      raw: {},
+    });
+
+    const result = await syncIntervalsRidesForProfile(db, conn, { now: NOW });
+    expect(result.error).toBeUndefined();
+    const edge = db.tables.strava_activities.filter(
+      (ride) => String(ride.start_date).startsWith("2026-08-31"),
+    );
+    expect(edge.map((ride) => ride.id)).toEqual([20131400295]);
+  });
+
+  it("verwijdert geen eigen rit uit de rand die de lijst niet meer bevat", async () => {
+    const { db, conn } = setup();
+    conn.rides_backfilled_at = "2026-09-01T00:00:00Z";
+    db.tables.strava_activities.push({
+      id: -1_000_081_230_000,
+      profile_id: A,
+      name: "Le dernier",
+      start_date: "2026-08-31T13:45:33.000Z",
+      distance_m: 35329,
+      raw: { import_source: "intervals" },
+    });
+    const result = await syncIntervalsRidesForProfile(db, conn, { now: NOW });
+    expect(result.removed).toBe(0);
+    expect(db.tables.strava_activities.some((ride) => ride.id === -1_000_081_230_000)).toBe(true);
   });
 
   it("legt een fout vast en schuift toch op", async () => {
