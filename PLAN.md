@@ -10115,8 +10115,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Opgeleverd — Rit inplannen: alleen eigen rit of eigen training
 
-**Gebouwd 2026-10-18, lokaal; niet gepusht.** De commit waarin dit blok staat.
-Geen migratie.
+**Gebouwd 2026-10-18; gepusht naar `main` (eigenaar, 2026-10-18).** Commit
+`32f80716`; dit blok is daarna bijgewerkt. Geen migratie.
 
 **Aanleiding.** De eigenaar wilde het blok "Rit inplannen" op `/zwbeter-worden/schema`
 inperken: clubritten en wedstrijden horen via de kalender te lopen (`EventChoice`,
