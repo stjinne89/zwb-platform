@@ -1,13 +1,13 @@
 // Minimale FIT-lezer voor Wahoo's live-pagina.
 //
 // De pagina zet het spoor van de huidige (of laatste) rit in
-// `window.livetrack_fit`: een lijst base64-strings, elk 4 bytes lengte (LE)
-// plus een gzip'te, complete FIT-file van een paar seconden. Wij lezen alleen
+// `window.livetrack_fit`: een lijst base64-strings, elk een complete FIT-file
+// van een paar seconden: 4 bytes lengte (LE) plus gzip, of alleen zlib. Wij lezen alleen
 // record-berichten (global 20): tijd, positie, hoogte, snelheid, afstand,
 // vermogen, cadans en hartslag.
 // Formaat: FIT SDK, "Flexible and Interoperable Data Transfer Protocol".
 
-import { gunzipSync } from "node:zlib";
+import { gunzipSync, unzipSync } from "node:zlib";
 import { sensorValue, type LiveSample } from "./external-livetrack";
 
 const FIT_EPOCH_S = 631065600; // 1989-12-31T00:00:00Z
@@ -148,11 +148,16 @@ export function parseFitRecords(buf: Uint8Array): LiveSample[] {
   return points;
 }
 
-/** Eén `livetrack_fit`-chunk: 4 bytes lengte, dan gzip. */
+/**
+ * Eén `livetrack_fit`-chunk: 4 bytes lengte en dan gzip, of (nieuwere ELEMNT's,
+ * gezien 2026-10-18) alleen zlib.
+ */
 export function decodeWahooFitChunk(chunk: string): LiveSample[] {
   try {
     const raw = Buffer.from(chunk, "base64");
-    return parseFitRecords(new Uint8Array(gunzipSync(raw.subarray(4))));
+    const gzipAfterLength = raw[4] === 0x1f && raw[5] === 0x8b;
+    const fit = gzipAfterLength ? gunzipSync(raw.subarray(4)) : unzipSync(raw);
+    return parseFitRecords(new Uint8Array(fit));
   } catch {
     return [];
   }

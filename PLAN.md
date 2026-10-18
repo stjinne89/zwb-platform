@@ -204,10 +204,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   gekeken (alleen bij kijken, hooguit elke 3 minuten; ronde 0192). Er is
 >   vandaag geen sessie aangemaakt.
 > - Zijn twee eerdere Wahoo-ritten (4 en 8 oktober) werden wel opgemerkt, maar
->   leverden geen enkele positie op (`external_last_point_at` leeg). De oorzaak
->   is niet vastgesteld: Wahoo is vanuit deze omgeving niet bereikbaar. Mogelijk
->   zit er geen positie in zijn FIT-data (binnenrit, geen GPS-fix) of leest
->   `fit-records.ts` zijn toestel niet goed.
+>   leverden geen enkele positie op (`external_last_point_at` leeg). Oorzaak:
+>   zie de ronde "Wahoo-chunks in zlib" hieronder.
 > - **De bug:** de ticker toonde een sessie zonder positie alleen als die een
 >   `external_track_url` had. Een sessie via de vaste Wahoo-link heeft die
 >   bewust niet (0192), dus zo'n renner viel helemaal weg: niet in de lijst,
@@ -221,9 +219,32 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > **Bewust niet gedaan.** Vaker of zonder kijker naar de Wahoo-link kijken: de
 > keuze "alleen bij kijken" van de eigenaar (2026-09-28) blijft staan.
 >
-> **Niet geverifieerd.** Niet in de browser bekeken. Waarom Rolfs ritten geen
-> posities opleveren: eerstvolgende keer dat hij rijdt zijn live-pagina met
-> `wahooPagePoints` uitlezen (op een plek die Wahoo kan bereiken).
+> **Niet geverifieerd.** Niet in de browser bekeken.
+
+> **Wahoo-chunks in zlib: posities voor nieuwere ELEMNT's, 2026-10-18 — gebouwd, unit-tests, lint en typecheck schoon, getoetst op echte chunks van Rolf; gepusht naar `main` (eigenaar, 2026-10-18). Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Vervolg op de ronde hierboven, tijdens dezelfde race. Rolfs sessie
+> was nu wel opgemerkt, maar bleef op 0 posities. Met akkoord van de eigenaar
+> is op productie tijdelijk `pg_net` aangezet om zijn live-pagina één keer op
+> te halen (deze omgeving kan Wahoo niet bereiken); daarna weer verwijderd,
+> met de opgehaalde pagina.
+>
+> **Oorzaak.** Zijn `livetrack_fit`-chunks zijn kale zlib (`78 DA`), zonder de
+> 4 bytes lengte en zonder gzip. `decodeWahooFitChunk` deed altijd
+> `gunzipSync(raw.subarray(4))`; dat faalde en de `catch` gaf stil een lege
+> lijst. Zo verdween elke positie, en ook hartslag en vermogen. Met zlib
+> leverden drie chunks 10, 10 en 7 records op, allemaal met GPS. De BOLT 2 van
+> de eigenaar stuurt nog het oude formaat.
+>
+> **Wat.** `fit-records.ts`: staat er gzip na 4 bytes (`1f 8b` op positie 4),
+> dan het oude pad; anders `unzipSync`, dat zlib en gzip zelf herkent. Twee
+> tests erbij: een zlib-chunk, en een gzip-chunk waarvan de lengte met `0x78`
+> begint.
+>
+> **Niet geverifieerd.** Of de punten na de deploy echt in `live_positions`
+> landen. De eerstvolgende ophaalronde leest de hele rit tot dan in (hooguit
+> 5.000 punten).
 
 > **Analyse per hittesessie, en de lopende protocollen op Vandaag, 2026-10-17 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-17); `0248` toegepast via de Supabase-connector (2026-10-17).**
 > Commit: de commit die dit blok toevoegt. Migratie
