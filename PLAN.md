@@ -10034,6 +10034,67 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Rekenaar materiaal: producten nagetekend
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt; bouwt voort op
+`bbd962b7`. Geen migratie.
+
+**Aanleiding.** De eigenaar vroeg of helmen, fietsen en wielen zo getekend
+kunnen worden dat ze op het echte product lijken. Besluiten (in deze sessie):
+neutrale kleuren met de vorm als kenmerk, en alles in één keer.
+
+**Wat er veranderde.**
+- **Uiterlijk per product** (`producttests.ts`: `HelmUiterlijk`,
+  `FietsUiterlijk`, `WielUiterlijk`). Alleen vorm; geen logo's, merknamen of
+  merkkleuren op de tekening.
+  - Helmen: profiel van opzij (`gaten`, `rond`, `kort`, `staart`) en het
+    aantal zichtbare openingen, naar de foto's van de Cyclingnews-helmtest. De
+    POC Procen Air, Kask Utopia Y en Abus Gamechanger hebben een staart; de
+    Trek Ballista, Lazer Vento en Met Manta een afgeknotte achterkant.
+  - Wielen: velghoogte voor en achter, aantal spaken voor en achter, en
+    staal, carbon of gekruld, uit de specificaties in de wielentest. Pertual
+    tekent als golvende velg (45–62 mm), de Scribe Élan met gekrulde spaken,
+    de Hunt en Roval Rapide Sprint voor hoger dan achter.
+  - Fietsen: hoe sterk de bovenbuis afloopt, lage of hoge achterbrug, ronde,
+    aero of diepe buizen, het stuur (los, integraal, V-stuurpen van de Cervélo,
+    doorlopend van de Look), een zitbuis die om het wiel buigt, het gat bij de
+    zitknoop van de Madone, de golvende vork van de Dogma en een hoge
+    balhoofdbuis (Aeroad, Foil). Naar de zijaanzichten in de fietstest.
+  - De velgen van de geteste fietsen zijn **bij benadering**, van de testfoto
+    en waar bekend van de standaardwielen (bijv. DT Swiss 62 mm op de Aeroad,
+    Reserve 52/63 op de S5, Syncros 60 op de Foil). Ze tellen niet mee in de
+    berekening; die gebruikt de gemeten CdA van de hele fiets.
+- **Focus in de tekening** (`renner.tsx`): bij Fiets, Wielen en Banden wordt
+  de renner doorzichtig, zodat het frame zichtbaar is. Bij Helm staat er een
+  loep met het hoofd, 1,75 keer zo groot.
+- De gouden ring op aerovelgen en de gouden streep op het aeroframe zijn weg:
+  neutraal, zoals afgesproken.
+
+**Bewust niet gebouwd.**
+- Logo's, decals en merkkleuren: merkrecht, en op dit formaat niet leesbaar.
+- Een aparte tekening per product: de kenmerken zijn data, één tekening leest
+  ze. Een nieuw product uit een volgende test is één regel.
+- Ventilatiegaten op de echte plek per helm: op ongeveer 2 cm is alleen het
+  aantal en de plek (hele kap of vooraan) te zien.
+
+**Getest.**
+- `materiaal.test.ts` (17) groen. ESLint schoon. `tsc`: alleen de twee bekende
+  fouten buiten deze ronde. Detector: alleen de bestaande badge van 10px.
+
+**In de browser bekeken** (dev-server, 2026-10-18), met een tijdelijke
+proefpagina met alle producten naast elkaar (niet gecommit):
+- alle elf fietsen met doorzichtige renner: de kenmerken hierboven zijn te
+  zien;
+- alle 24 helmen in de loep: profiel en openingen verschillen per model;
+- alle 15 wielsets: velghoogte, golvende velg en gekrulde spaken kloppen.
+- In de rekenaar zelf, donker op 800 px: de loep met de POC Procen Air.
+- De dev-server gaf opnieuw oude CSS uit `.next/dev` na een wijziging in
+  `globals.css`; legen en herstarten loste het op.
+
+**Niet geverifieerd.**
+- Of leden de modellen echt herkennen: dat is een oordeel van de eigenaar.
+- Hoe het op productie oogt (niet gepusht).
+
 ### Opgeleverd — Rekenaar materiaal: producttests en het echte tenue
 
 **2026-10-18.** Commit: de commit die dit blok toevoegt; bouwt voort op
@@ -10088,7 +10149,8 @@ winter- en het zomertenue en wilde tussen die twee kunnen wisselen.
   blauwgroene vlak onderaan, de gouden borstband en blauwe mouwboorden. Een
   schakelaar Winter/Zomer op de renner (alleen beeld, de berekening verandert
   niet). Witte helm zoals op de foto; witte sokken met een blauwe band. De vorm
-  van helm, frame en velgen volgt het gekozen product.
+  van helm, frame en velgen volgt het gekozen product. *Sinds de ronde "Producten
+  nagetekend" niet meer in twee standen (aero of niet), maar per product.*
 - `/hulp`: merken uit onafhankelijke tests, hoe het verschil met de basis werkt,
   de wielen bij een geteste fiets, en dat er voor shirts geen test is.
 

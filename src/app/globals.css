@@ -1906,6 +1906,7 @@ a.tg-row:focus-visible,
   --renner-velg: oklch(0.62 0.02 200);
   --renner-velg-vlak: oklch(0.3 0.03 212);
   --renner-weg: var(--border);
+  --renner-rand-loep: var(--border);
 }
 .dark .renner {
   --tenue-blauw: #2a7d96;
@@ -1930,6 +1931,12 @@ a.tg-row:focus-visible,
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+.renner-lichaam {
+  transition: opacity 0.3s ease-out;
+}
+.renner-lichaam[data-wijk] {
+  opacity: 0.18;
 }
 .renner-wissel {
   animation: renner-wissel 0.32s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1963,6 +1970,9 @@ a.tg-row:focus-visible,
 @media (prefers-reduced-motion: reduce) {
   .renner-wissel {
     animation: none;
+  }
+  .renner-lichaam {
+    transition: none;
   }
   .renner-knop {
     transition: none;

@@ -22,6 +22,41 @@ export type ProductTest = {
   url: string;
 };
 
+// Het uiterlijk van een product in de renner van de rekenaar (2026-10-18). Alleen
+// vorm, geen logo's of merkkleuren: de fiets blijft in de neutrale kleur van de
+// tekening. Afgeleid van de foto's in de tests en van de gepubliceerde
+// specificaties (velghoogte, aantal spaken); de velgen van de geteste fietsen
+// zijn bij benadering, van de testfoto.
+
+/** Silhouet van een helm van opzij. */
+export type HelmProfiel = "gaten" | "rond" | "kort" | "staart";
+export type HelmUiterlijk = { profiel: HelmProfiel; gaten: number };
+
+export type WielUiterlijk = {
+  /** Velghoogte in mm, voor en achter. */
+  velg: [number, number];
+  /** Golvende velg: de hoogte loopt tussen `velg[0]` en `velg[1]` rond het wiel. */
+  golvend?: boolean;
+  spaken: [number, number];
+  spaak: "staal" | "carbon" | "gekruld";
+};
+
+export type FietsUiterlijk = {
+  /** Hoogte van de zitknoop: 0 is een vlakke bovenbuis, 1 een sterk aflopende. */
+  aflopend: number;
+  /** Achterbrug laag op de zitbuis in plaats van bij de zitknoop. */
+  staysLaag: boolean;
+  buis: "rond" | "aero" | "diep";
+  stuur: "los" | "integraal" | "v" | "doorlopend";
+  /** Zitbuis die om het achterwiel buigt. */
+  zitbuisBocht?: boolean;
+  /** Een gat waar bovenbuis en zitbuis samenkomen. */
+  gat?: boolean;
+  golvendeVork?: boolean;
+  hoogBalhoofd?: boolean;
+  wielen: WielUiterlijk;
+};
+
 export type Product = {
   id: string;
   naam: string;
@@ -42,39 +77,40 @@ export const TEST_HELMEN: ProductTest = {
 // Watt bespaard bij 40 km/h tegen de Abus Powerdome. De bron zet 0,0009 m² gelijk
 // aan 0,74 W, dus ρ ≈ 1,2. Tijdrithelmen zijn weggelaten: de rekenaar is voor
 // de racefiets.
-const helm = (id: string, naam: string, bespaard: number, vorm: "aero" | "gaten") => ({
+// Profiel en aantal openingen van opzij, naar de foto's van de test.
+const helm = (id: string, naam: string, bespaard: number, profiel: HelmProfiel, gaten: number) => ({
   id,
   naam,
-  vorm,
+  uiterlijk: { profiel, gaten } as HelmUiterlijk,
   verschil: -cdaUitWatt(bespaard, 40),
   gemeten: `${bespaard > 0 ? "−" : "+"}${Math.abs(bespaard).toLocaleString("nl-NL", { minimumFractionDigits: 2 })} W`,
 });
 
 export const HELM_PRODUCTEN = [
-  { ...helm("basis", "Gewone helm met gaten", 0, "gaten"), gemeten: "Abus Powerdome" },
-  helm("oakley-velo-mach", "Oakley Velo Mach", 8.11, "aero"),
-  helm("trek-ballista", "Trek Ballista", 7.53, "aero"),
-  helm("canyon-stingr", "Canyon Stingr", 7.2, "aero"),
-  helm("specialized-evade-3", "Specialized S-Works Evade 3", 6.99, "aero"),
-  helm("kask-utopia-y", "Kask Utopia Y", 6.37, "aero"),
-  helm("van-rysel-rcr-f", "Van Rysel RCR-F", 6.08, "aero"),
-  helm("poc-procen-air", "POC Procen Air (zonder vizier)", 5.98, "aero"),
-  helm("scott-cadence", "Scott Cadence", 5.75, "aero"),
-  helm("specialized-propero-4", "Specialized Propero 4", 4.88, "aero"),
-  helm("met-manta", "Met Manta (maat L)", 4.87, "aero"),
-  helm("abus-gamechanger-2", "Abus Gamechanger 2.0", 4.58, "aero"),
-  helm("lazer-vento", "Lazer Vento Kineticore", 4.14, "aero"),
-  helm("kask-protone-icon", "Kask Protone Icon", 3.54, "aero"),
-  helm("hjc-ibex-3", "HJC Ibex 3", 3.48, "gaten"),
-  helm("giro-aries", "Giro Aries", 2.39, "gaten"),
-  helm("kask-elemento", "Kask Elemento", 1.93, "aero"),
-  helm("specialized-search", "Specialized Search", 1.57, "gaten"),
-  helm("van-rysel-rcr", "Van Rysel RCR", 1.31, "gaten"),
-  helm("poc-cytal", "POC Cytal", 1.17, "gaten"),
-  helm("specialized-prevail-3", "Specialized S-Works Prevail 3", 1.1, "gaten"),
-  helm("trek-velocis", "Trek Velocis", 0.51, "gaten"),
-  helm("smith-trace", "Smith Trace", -0.58, "gaten"),
-  helm("lazer-z1", "Lazer Z1 Kineticore", -0.74, "gaten"),
+  { ...helm("basis", "Gewone helm met gaten", 0, "gaten", 7), gemeten: "Abus Powerdome" },
+  helm("oakley-velo-mach", "Oakley Velo Mach", 8.11, "rond", 3),
+  helm("trek-ballista", "Trek Ballista", 7.53, "kort", 2),
+  helm("canyon-stingr", "Canyon Stingr", 7.2, "rond", 2),
+  helm("specialized-evade-3", "Specialized S-Works Evade 3", 6.99, "rond", 4),
+  helm("kask-utopia-y", "Kask Utopia Y", 6.37, "staart", 3),
+  helm("van-rysel-rcr-f", "Van Rysel RCR-F", 6.08, "rond", 4),
+  helm("poc-procen-air", "POC Procen Air (zonder vizier)", 5.98, "staart", 0),
+  helm("scott-cadence", "Scott Cadence", 5.75, "rond", 3),
+  helm("specialized-propero-4", "Specialized Propero 4", 4.88, "gaten", 5),
+  helm("met-manta", "Met Manta (maat L)", 4.87, "kort", 3),
+  helm("abus-gamechanger-2", "Abus Gamechanger 2.0", 4.58, "staart", 3),
+  helm("lazer-vento", "Lazer Vento Kineticore", 4.14, "kort", 2),
+  helm("kask-protone-icon", "Kask Protone Icon", 3.54, "gaten", 6),
+  helm("hjc-ibex-3", "HJC Ibex 3", 3.48, "gaten", 6),
+  helm("giro-aries", "Giro Aries", 2.39, "gaten", 7),
+  helm("kask-elemento", "Kask Elemento", 1.93, "rond", 5),
+  helm("specialized-search", "Specialized Search", 1.57, "gaten", 6),
+  helm("van-rysel-rcr", "Van Rysel RCR", 1.31, "gaten", 7),
+  helm("poc-cytal", "POC Cytal", 1.17, "gaten", 6),
+  helm("specialized-prevail-3", "Specialized S-Works Prevail 3", 1.1, "gaten", 8),
+  helm("trek-velocis", "Trek Velocis", 0.51, "gaten", 7),
+  helm("smith-trace", "Smith Trace", -0.58, "gaten", 7),
+  helm("lazer-z1", "Lazer Z1 Kineticore", -0.74, "gaten", 8),
 ] as const;
 
 export const TEST_FIETSEN: ProductTest = {
@@ -89,27 +125,41 @@ export const TEST_FIETSEN: ProductTest = {
 // Emonda ALR uit 2015 met ondiepe velgen, velgremmen en ronde stuurbuizen.
 // De geteste fietsen hebben hun eigen hoge velgen; die zitten in het verschil.
 const FIETS_BASIS_CDA = 0.3702;
-const fiets = (id: string, naam: string, cda: number) => ({
+const fiets = (id: string, naam: string, cda: number, uiterlijk: FietsUiterlijk) => ({
   id,
   naam,
   aero: true,
+  uiterlijk,
   verschil: cda - FIETS_BASIS_CDA,
   gemeten: `${cda.toLocaleString("nl-NL", { minimumFractionDigits: 4 })} m²`,
 });
 
 export const FIETS_PRODUCTEN = [
-  { id: "basis", naam: "Gewone racefiets", aero: false, verschil: 0, gemeten: "0,3702 m²" },
-  fiets("specialized-tarmac-sl8", "Specialized S-Works Tarmac SL8", 0.3404),
-  fiets("trek-madone-gen8", "Trek Madone SLR 7 Gen 8", 0.3406),
-  fiets("factor-ostro-vam", "Factor Ostro VAM", 0.3407),
-  fiets("cervelo-s5", "Cervélo S5", 0.3418),
-  fiets("canyon-aeroad-cfr", "Canyon Aeroad CFR", 0.3428),
-  fiets("giant-propel", "Giant Propel Advanced SL 0", 0.3438),
-  fiets("van-rysel-rcr-pro", "Van Rysel RCR Pro", 0.3438),
-  fiets("scott-foil", "Scott Foil RC Pro", 0.3441),
-  fiets("cannondale-supersix-evo-4", "Cannondale SuperSix Evo 4", 0.3442),
-  fiets("pinarello-dogma-f", "Pinarello Dogma F", 0.3444),
-  fiets("look-blade-795", "Look Blade 795 RS", 0.3478),
+  {
+    id: "basis",
+    naam: "Gewone racefiets",
+    aero: false,
+    verschil: 0,
+    gemeten: "0,3702 m²",
+    uiterlijk: {
+      aflopend: 0,
+      staysLaag: false,
+      buis: "rond",
+      stuur: "los",
+      wielen: { velg: [22, 22], spaken: [20, 24], spaak: "staal" },
+    } as FietsUiterlijk,
+  },
+  fiets("specialized-tarmac-sl8", "Specialized S-Works Tarmac SL8", 0.3404, { aflopend: 0.9, staysLaag: true, buis: "aero", stuur: "integraal", wielen: { velg: [51, 60], spaken: [21, 24], spaak: "carbon" } }),
+  fiets("trek-madone-gen8", "Trek Madone SLR 7 Gen 8", 0.3406, { aflopend: 0.7, staysLaag: false, buis: "aero", stuur: "integraal", gat: true, wielen: { velg: [51, 51], spaken: [24, 24], spaak: "staal" } }),
+  fiets("factor-ostro-vam", "Factor Ostro VAM", 0.3407, { aflopend: 0.8, staysLaag: true, buis: "aero", stuur: "integraal", wielen: { velg: [48, 58], spaken: [21, 24], spaak: "staal" } }),
+  fiets("cervelo-s5", "Cervélo S5", 0.3418, { aflopend: 0.5, staysLaag: true, buis: "diep", stuur: "v", zitbuisBocht: true, wielen: { velg: [52, 63], spaken: [24, 24], spaak: "staal" } }),
+  fiets("canyon-aeroad-cfr", "Canyon Aeroad CFR", 0.3428, { aflopend: 0.15, staysLaag: true, buis: "diep", stuur: "integraal", zitbuisBocht: true, hoogBalhoofd: true, wielen: { velg: [62, 62], spaken: [20, 24], spaak: "staal" } }),
+  fiets("giant-propel", "Giant Propel Advanced SL 0", 0.3438, { aflopend: 1, staysLaag: true, buis: "aero", stuur: "integraal", zitbuisBocht: true, wielen: { velg: [50, 50], spaken: [21, 24], spaak: "staal" } }),
+  fiets("van-rysel-rcr-pro", "Van Rysel RCR Pro", 0.3438, { aflopend: 0.6, staysLaag: true, buis: "aero", stuur: "integraal", zitbuisBocht: true, wielen: { velg: [50, 50], spaken: [20, 24], spaak: "staal" } }),
+  fiets("scott-foil", "Scott Foil RC Pro", 0.3441, { aflopend: 0.15, staysLaag: true, buis: "diep", stuur: "integraal", zitbuisBocht: true, hoogBalhoofd: true, wielen: { velg: [60, 60], spaken: [16, 16], spaak: "carbon" } }),
+  fiets("cannondale-supersix-evo-4", "Cannondale SuperSix Evo 4", 0.3442, { aflopend: 0.9, staysLaag: true, buis: "aero", stuur: "integraal", wielen: { velg: [55, 55], spaken: [21, 24], spaak: "staal" } }),
+  fiets("pinarello-dogma-f", "Pinarello Dogma F", 0.3444, { aflopend: 0.7, staysLaag: true, buis: "aero", stuur: "integraal", golvendeVork: true, wielen: { velg: [50, 50], spaken: [21, 24], spaak: "staal" } }),
+  fiets("look-blade-795", "Look Blade 795 RS", 0.3478, { aflopend: 0.1, staysLaag: true, buis: "diep", stuur: "doorlopend", zitbuisBocht: true, wielen: { velg: [47, 47], spaken: [20, 24], spaak: "staal" } }),
 ] as const;
 
 export const TEST_WIELEN: ProductTest = {
@@ -122,30 +172,39 @@ export const TEST_WIELEN: ProductTest = {
 
 // Watt bespaard bij 40 km/h tegen een ondiepe wielset (Arcaris 8848), met een
 // band van 28 mm. De bron rekent met ρ = 1,2.
-const wiel = (id: string, naam: string, bespaard: number) => ({
+// Velghoogte en spaken uit de specificaties in dezelfde test.
+const wiel = (id: string, naam: string, bespaard: number, uiterlijk: WielUiterlijk) => ({
   id,
   naam,
   diep: true,
+  uiterlijk,
   verschil: -cdaUitWatt(bespaard, 40),
   gemeten: `−${bespaard.toLocaleString("nl-NL", { minimumFractionDigits: 2 })} W`,
 });
 
 export const WIEL_PRODUCTEN = [
-  { id: "basis", naam: "Ondiepe velgen", diep: false, verschil: 0, gemeten: "Arcaris 8848" },
-  wiel("hunt-5am-limitless", "Hunt 5AM Limitless", 6.61),
-  wiel("reserve-57-64", "Reserve 57|64 Turbulent Aero", 6.46),
-  wiel("scope-artech-6a", "Scope Artech 6.A", 6.29),
-  wiel("roval-rapide-sprint", "Roval Rapide Sprint CLX", 5.74),
-  wiel("dt-swiss-arc-1100", "DT Swiss ARC 1100 Dicut", 5.26),
-  wiel("syncros-capital-sl-aero-60", "Syncros Capital SL Aero 60", 5.12),
-  wiel("roval-rapide-clx-3", "Roval Rapide CLX III", 4.8),
-  wiel("vision-metron-60", "Vision Metron 60 RS", 4.76),
-  wiel("scribe-core-ultra-6", "Scribe Core Ultra 6", 4.67),
-  wiel("parcours-chrono-gt", "Parcours Chrono GT", 4.67),
-  wiel("pertual-acme", "Pertual ACME 45/62", 4.63),
-  wiel("scribe-elan-ultra-6", "Scribe Élan Ultra 6", 4.54),
-  wiel("crw-ultimo-6060", "CRW Works Ultimo 6060", 4.17),
-  wiel("farsports-evo-c6", "Farsports EVO C6", 3.72),
+  {
+    id: "basis",
+    naam: "Ondiepe velgen",
+    diep: false,
+    verschil: 0,
+    gemeten: "Arcaris 8848",
+    uiterlijk: { velg: [27, 27], spaken: [16, 18], spaak: "carbon" } as WielUiterlijk,
+  },
+  wiel("hunt-5am-limitless", "Hunt 5AM Limitless", 6.61, { velg: [58, 55], spaken: [15, 18], spaak: "carbon" }),
+  wiel("reserve-57-64", "Reserve 57|64 Turbulent Aero", 6.46, { velg: [57, 64], spaken: [24, 24], spaak: "staal" }),
+  wiel("scope-artech-6a", "Scope Artech 6.A", 6.29, { velg: [65, 65], spaken: [18, 24], spaak: "carbon" }),
+  wiel("roval-rapide-sprint", "Roval Rapide Sprint CLX", 5.74, { velg: [63, 58], spaken: [18, 24], spaak: "carbon" }),
+  wiel("dt-swiss-arc-1100", "DT Swiss ARC 1100 Dicut", 5.26, { velg: [62, 62], spaken: [20, 24], spaak: "staal" }),
+  wiel("syncros-capital-sl-aero-60", "Syncros Capital SL Aero 60", 5.12, { velg: [60, 60], spaken: [16, 16], spaak: "carbon" }),
+  wiel("roval-rapide-clx-3", "Roval Rapide CLX III", 4.8, { velg: [51, 48], spaken: [18, 24], spaak: "carbon" }),
+  wiel("vision-metron-60", "Vision Metron 60 RS", 4.76, { velg: [60, 60], spaken: [21, 24], spaak: "carbon" }),
+  wiel("scribe-core-ultra-6", "Scribe Core Ultra 6", 4.67, { velg: [60, 60], spaken: [24, 24], spaak: "staal" }),
+  wiel("parcours-chrono-gt", "Parcours Chrono GT", 4.67, { velg: [62, 65], spaken: [21, 24], spaak: "carbon" }),
+  wiel("pertual-acme", "Pertual ACME 45/62", 4.63, { velg: [45, 62], golvend: true, spaken: [16, 16], spaak: "carbon" }),
+  wiel("scribe-elan-ultra-6", "Scribe Élan Ultra 6", 4.54, { velg: [65, 65], spaken: [20, 20], spaak: "gekruld" }),
+  wiel("crw-ultimo-6060", "CRW Works Ultimo 6060", 4.17, { velg: [60, 60], spaken: [16, 20], spaak: "carbon" }),
+  wiel("farsports-evo-c6", "Farsports EVO C6", 3.72, { velg: [58, 58], spaken: [21, 24], spaak: "staal" }),
 ] as const;
 
 export const TEST_BANDEN: ProductTest = {

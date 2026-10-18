@@ -96,12 +96,14 @@ const PRODUCTEN: Record<ProductVeld, { rijen: readonly ProductRij[]; test: Produ
 const naamVan = (veld: ProductVeld, id: string) => PRODUCTEN[veld].rijen.find((r) => r.id === id)?.naam ?? "";
 
 function beeldVan(opzet: Opzet): RennerBeeld {
-  const aeroFiets = wielenBijFiets(opzet);
+  const fiets = (FIETS_PRODUCTEN.find((f) => f.id === opzet.fiets) ?? FIETS_PRODUCTEN[0]).uiterlijk;
+  const wielen = (WIEL_PRODUCTEN.find((w) => w.id === opzet.wielen) ?? WIEL_PRODUCTEN[0]).uiterlijk;
   return {
     houding: opzet.houding,
-    helm: HELM_PRODUCTEN.find((h) => h.id === opzet.helm)?.vorm ?? "gaten",
-    aeroFiets,
-    diepeWielen: aeroFiets || (WIEL_PRODUCTEN.find((w) => w.id === opzet.wielen)?.diep ?? false),
+    helm: (HELM_PRODUCTEN.find((h) => h.id === opzet.helm) ?? HELM_PRODUCTEN[0]).uiterlijk,
+    fiets,
+    // Een geteste fiets rijdt op zijn eigen wielen, zoals in de test.
+    wielen: wielenBijFiets(opzet) ? fiets.wielen : wielen,
     spanning: opzet.spanning,
   };
 }
@@ -255,7 +257,7 @@ export function Rekenaar({
               </button>
             ))}
           </div>
-          <RennerFiguur beeld={beeld} schim={ander.houding} tenue={tenue} wegdek={wegdek} className="block h-auto w-full" />
+          <RennerFiguur beeld={beeld} schim={ander.houding} tenue={tenue} wegdek={wegdek} focus={onderdeel} className="block h-auto w-full" />
           {ONDERDELEN.map((o) => (
             <button
               key={o.id}
