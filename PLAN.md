@@ -10061,8 +10061,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Opgeleverd — beleid bewijsniveau voor alle kennisbanken
 
-**Voorgesteld (`77449114`), goedgekeurd en gebouwd 2026-10-18.** Commit: de
-commit die dit blok bijwerkt. Geen migratie. Beleid, criteria en niveau per
+**Voorgesteld (`77449114`), goedgekeurd en gebouwd 2026-10-18; gepusht naar `main`
+(eigenaar, 2026-10-18, `53244d1d`).** Commit `9df3f8cb`; dit blok is daarna
+bijgewerkt. Geen migratie. Beleid, criteria en niveau per
 artikel: [beoordelingsbeleid-bewijsniveau](docs/beoordelingsbeleid-bewijsniveau.md).
 
 **Aanleiding.** De eigenaar vroeg één beleid voor alle kennisbanken, zodat gelijk
@@ -10140,7 +10141,6 @@ console.
   tegen intervals.icu zelf.
 - Hoe de coach de nieuwe woorden in een echt antwoord gebruikt (vraagt een
   OpenAI-call op productie).
-- Niet gepusht.
 
 ### Opgeleverd — Eventlink: het eventformulier vult zich uit de link
 
