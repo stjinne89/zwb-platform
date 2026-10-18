@@ -190,8 +190,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Eventpagina: live renners zonder positie niet meer onzichtbaar, 2026-10-18 — gebouwd, lint en typecheck schoon; niet gepusht, niet in de browser bekeken. Geen migratie.**
-> Commit: de commit die dit blok toevoegt.
+> **Eventpagina: live renners zonder positie niet meer onzichtbaar, 2026-10-18 — gebouwd, lint en typecheck schoon; gepusht naar `main` (eigenaar, 2026-10-18, `429102f`); niet in de browser bekeken. Geen migratie.**
+> Commit: `429102f`.
 >
 > **Waarom.** Melding van de eigenaar tijdens de Legacy Gravel in Leuven
 > (2026-10-18, start 09:50): Rolf Buunk reed met zijn Wahoo aan, maar stond niet
