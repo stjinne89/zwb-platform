@@ -10116,7 +10116,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Opgeleverd — Rit inplannen: alleen eigen rit of eigen training
 
 **Gebouwd 2026-10-18; gepusht naar `main` (eigenaar, 2026-10-18).** Commit
-`32f80716`; dit blok is daarna bijgewerkt. Geen migratie.
+`32f80716`; dezelfde dag bijgestuurd (zie "Bijgestuurd" hieronder). Geen migratie.
 
 **Aanleiding.** De eigenaar wilde het blok "Rit inplannen" op `/zwbeter-worden/schema`
 inperken: clubritten en wedstrijden horen via de kalender te lopen (`EventChoice`,
@@ -10127,9 +10127,12 @@ workout uit de bibliotheek kunnen zijn.
 - **Soort**: alleen nog *Eigen rit* en *Eigen training*. Buitenrit, Clubrit en
   Wedstrijd zijn weg, ook uit `RIDE_KINDS` in `planOwnRide`, zodat de server ze
   niet meer aanneemt.
-- **Workout uit de bibliotheek** bij Eigen training: een keuzelijst per
-  trainingsvorm, met "Zelf invullen" als standaard. Kies je een workout, dan
-  verdwijnen Duur en Zwaarte, zie je de blokken, en komt de workout met titel,
+- **Workout uit de bibliotheek** bij Eigen training: dezelfde weergave als de
+  workout-bibliotheek van de trainer (per trainingsvorm, met bewijsniveau,
+  Nieuwe methode, duur, intensiteit, omschrijving en blokken), in een
+  scrollvak, met per workout **Kies**. Niets gekozen is "zelf invullen"; nog een
+  keer op **Gekozen** zet hem terug. Kies je een workout, dan verdwijnen Duur
+  en Zwaarte, en komt de workout met titel,
   blokken, `target_type` en `method_label` in het schema. Hij blijft
   `origin: 'member'`, gaat naar intervals.icu en de herziening plant eromheen,
   net als een vrije rit.
@@ -10155,8 +10158,19 @@ suite: 2828 van 2833 groen; de vijf fouten zijn time-outs onder belasting
 `rls-initplan-migration`) en de
 ontbrekende `.env.local` in de worktree (`omnium-live`); los gedraaid slagen ze.
 
-**Niet geverifieerd.** Niet in de browser bekeken en niet ingelogd een workout
-ingepland; ook niet gecontroleerd dat zo'n workout goed in intervals.icu landt.
+**Bijgestuurd (2026-10-18; gepusht naar `main`, eigenaar).** De eerste versie had een `<select>` met de
+workouts; de eigenaar wilde dezelfde weergave als de bibliotheek. Het
+bewijsniveau wordt op de server bepaald (`loadOwnWorkoutOptions`), zodat
+`training-library.ts` niet in de clientbundel komt.
+
+**In de browser bekeken** (dev-server vanuit de worktree, ingelogd, 800 px en
+375 px): 50 workouts in 8 vormen, kiezen en weer loslaten werkt, Duur en
+Zwaarte verdwijnen bij een gekozen workout. Geen horizontale scroll, geen
+fouten in de console.
+
+**Niet geverifieerd.** Niet echt een workout ingepland (dat schrijft in het
+eigen schema en start een herziening op productie); ook niet gecontroleerd dat
+zo'n workout goed in intervals.icu landt.
 
 ### Opgeleverd — beleid bewijsniveau voor alle kennisbanken
 
