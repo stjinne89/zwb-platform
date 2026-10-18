@@ -19,8 +19,19 @@ import { reloadNextWeek } from "@/app/(app)/weekoverzicht/_actions";
 import s from "./week-review.module.css";
 
 const DAY = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
-/** De balk loopt tot vier uur; meer past wel, de balk is dan vol. */
-const BAR_MINUTES = 240;
+/**
+ * De balk en de schuif delen één schaal. Eerst liep de balk tot vier uur en de
+ * schuif tot zes: het streepje stond dan niet waar de echte schuifknop zat, en
+ * op de iPhone (waar je alleen de knop zelf kunt slepen) gebeurde er niets.
+ */
+const BAR_MINUTES = AVAILABILITY_MAX_MINUTES;
+
+/** Minuten op de plek van de vinger of muis op de balk, in kwartieren. */
+function minutesAt(track: HTMLElement, clientX: number): number {
+  const rect = track.getBoundingClientRect();
+  const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+  return Math.round((ratio * AVAILABILITY_MAX_MINUTES) / AVAILABILITY_STEP_MINUTES) * AVAILABILITY_STEP_MINUTES;
+}
 
 const STATUS_LABEL: Record<NextEventStatus, string> = {
   opgesteld: "Opgesteld",
@@ -56,6 +67,12 @@ export function WeekAhead({ week: initial, onBack, preview = false }: { week: Ne
   const total = minutes.reduce((sum, value) => sum + value, 0);
   const daysOn = minutes.filter((value) => value > 0).length;
   const dirty = useMemo(() => minutes.some((value, i) => value !== saved[i]), [minutes, saved]);
+
+  function setDay(i: number, value: number) {
+    setMinutes((current) => (current[i] === value ? current : current.map((old, j) => (j === i ? value : old))));
+    setStatus(null);
+    setJustSaved(false);
+  }
 
   async function save() {
     if (preview) {
@@ -99,7 +116,22 @@ export function WeekAhead({ week: initial, onBack, preview = false }: { week: Ne
           return (
             <div key={day.day} className={s.row}>
               <span className={s.dn}>{DAY[i]}</span>
-              <div className={s.track}>
+              {/* De balk zelf volgt de vinger: tikken of slepen waar dan ook op de
+                  balk. De schuif eronder blijft voor het toetsenbord. */}
+              <div
+                className={s.track}
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  event.currentTarget.querySelector("input")?.focus({ preventScroll: true });
+                  setDay(i, minutesAt(event.currentTarget, event.clientX));
+                }}
+                onPointerMove={(event) => {
+                  if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                    setDay(i, minutesAt(event.currentTarget, event.clientX));
+                  }
+                }}
+              >
                 <span className={s.fill} style={{ width: `${pct}%` }} />
                 {day.events.map((event) => (
                   <span
@@ -117,13 +149,7 @@ export function WeekAhead({ week: initial, onBack, preview = false }: { week: Ne
                   value={value}
                   aria-label={`Beschikbaar op ${DAY[i]}`}
                   aria-valuetext={value ? `${clock(value)} uur` : "vrij"}
-                  onChange={(event) => {
-                    const next = [...minutes];
-                    next[i] = Number(event.target.value);
-                    setMinutes(next);
-                    setStatus(null);
-                    setJustSaved(false);
-                  }}
+                  onChange={(event) => setDay(i, Number(event.target.value))}
                 />
               </div>
               <span className={s.val}>{value ? clock(value) : "vrij"}</span>

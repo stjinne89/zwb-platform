@@ -15,6 +15,7 @@ import { PageHeader } from "@/components/app-ui";
 import { DS_VOORBEELD } from "./ds-voorbeeld";
 import { WEEK_VOORBEELD } from "./weekoverzicht-voorbeeld";
 import { WeekReviewPage } from "@/components/weekoverzicht/review-page";
+import { WeekReviewDashboardLink } from "@/components/weekoverzicht/dashboard-link";
 
 // Het design "tegels" met voorbeelddata, zonder login. Alleen bij lokaal
 // ontwikkelen: in productie bestaat deze pagina niet. Bedoeld om het uiterlijk
@@ -140,6 +141,11 @@ export default async function OntwerpVoorbeeldPage({
             live={{ count: 3, riders: "Anna, Bert en Carla" }}
             liveEvents={[{ id: "4", title: "Legacy Gravel", count: 1, riders: "Dirk" }]}
           />
+        )}
+        {(!scherm || scherm === "vandaag") && (
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            <WeekReviewDashboardLink tegels />
+          </div>
         )}
         <p className="flex flex-wrap gap-4 text-sm text-muted-foreground">
           Voorbeelddata.

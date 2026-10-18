@@ -262,11 +262,43 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > voorbeeldscherm slaat sindsdien nooit meer op (`preview` in `WeekAhead`).
 >
 > **Bewust niet gebouwd.** Geen pushmelding op zondagavond (niet gevraagd; kan
-> later met de bestaande Web Push). Geen ingang in het menu: de pop-up komt
-> vanzelf, en `/weekoverzicht` staat op `/hulp`. Geen AI-tekst voor leden zonder
+> later met de bestaande Web Push). Geen ingang in het menu of in de
+> ZWBeter-navigatie; wel een vaste plek op het dashboard (zie hieronder). Geen AI-tekst voor leden zonder
 > ZWBeter-training (privacy, zie hierboven). Geen kolom met de vooruitblik in de
 > tabel. Bij een lid zonder ingevulde minuten (alleen het oude `available_days`)
 > staan de dagen op 0; na opslaan staat er een echte weekrij.
+>
+> **Schuiven op de laatste pagina sloegen niet op (2026-10-18, gemeld door de
+> eigenaar), verholpen.** In productie kwam geen enkele schrijfactie naar
+> `training_availability` binnen (Supabase-logs 20:30–21:30 UTC): het opslaan
+> begon niet eens. Oorzaak: de zichtbare balk rekende tot 4 uur, de
+> onzichtbare schuif eronder tot 6 uur, dus het streepje stond niet waar de echte
+> schuifknop zat. Op de iPhone kun je alleen de knop zelf slepen, en die greep je
+> dus mis. Nu delen balk en schuif één schaal (`AVAILABILITY_MAX_MINUTES`), en de
+> balk zelf volgt de vinger: tikken of slepen waar dan ook op de balk, met een
+> raakvlak van 46 px en `touch-action: pan-y`. De schuif blijft voor het
+> toetsenbord en schermlezers. Getest met echte muisklikken en slepen op het
+> voorbeeldscherm (tik op een kwart gaf 1:30, slepen naar driekwart 4:30); niet
+> op een telefoon getest.
+>
+> **Vaste plek op het dashboard (2026-10-18, wens eigenaar).** Zonder ingang
+> vond een lid het overzicht na het wegklikken niet terug. De eigenaar koos het
+> dashboard boven de ZWBeter-navigatie, en wilde dat het er de hele week staat.
+> `WeekReviewDashboardLink` verwijst altijd naar de laatst afgesloten week
+> (`reviewPeriod`): in klassiek een rij onder de paginakop, in tegels een tegel
+> vooraan in de rij met de races. In de stijl van de app, niet in die van de
+> pop-up (De Grensregel in DESIGN.md). Geen query: de link staat er voor
+> iedereen; een lid zonder activiteit ziet op `/weekoverzicht` een lege staat.
+> Bekeken als tegel op `/ontwerp-voorbeeld`; het echte dashboard bewust niet
+> geopend, omdat de ingebouwde browser daar met het account van de eigenaar is
+> ingelogd en de pop-up dan in productie als gezien zou tellen.
+>
+> **Incident: `node_modules` van de hoofdmap gewist (2026-10-18), hersteld.**
+> Bij het opruimen van een tijdelijke worktree (voor de geheugenmeting
+> hieronder) volgde `git worktree remove --force` de junction naar de gedeelde
+> `node_modules` en wiste die. Broncode en git bleven heel; teruggezet met
+> `npm ci`. Les: een worktree met een junction eerst de junction laten
+> verwijderen (`rmdir`), dan pas de worktree.
 >
 > **Deploy faalde, verholpen (2026-10-18).** De eerste deploy (`fd06de6`) brak af
 > in de TypeScript-stap van `next build`: Node raakte zijn heap kwijt

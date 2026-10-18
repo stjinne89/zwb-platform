@@ -56,6 +56,7 @@ import {
 } from "./_components/training-status";
 import type { WellnessDevice } from "@/lib/training/wellness";
 import { MaintenanceStatus } from "./_components/maintenance-status";
+import { WeekReviewDashboardLink } from "@/components/weekoverzicht/dashboard-link";
 import { StravaImportForm } from "@/components/strava-import-form";
 import { StravaSyncButton } from "@/components/strava-sync-button";
 import {
@@ -1062,6 +1063,10 @@ export default async function DashboardPage({
         />
       )}
 
+      {/* Vaste plek voor het weekoverzicht: de hele week, naar de laatst
+          afgesloten week. In tegels staat het in de tegelrij hieronder. */}
+      {!tegels && user && <WeekReviewDashboardLink />}
+
       {/* Blijft staan tot het ID er is: de dialoog bij inloggen mag weggeklikt
           worden, maar dan moet het ergens zichtbaar blijven. */}
       {needsZwiftId && (
@@ -1077,6 +1082,7 @@ export default async function DashboardPage({
       {tegels ? (
         // Eén tegelrij: jouw races, met de Instagram-posts van deze week ernaast.
         <div className="grid grid-cols-2 gap-2 empty:hidden md:grid-cols-4">
+          {user && <WeekReviewDashboardLink tegels />}
           {user && (
             <Suspense fallback={null}>
               <MyRaces userId={user.id} tegels />

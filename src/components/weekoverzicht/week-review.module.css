@@ -463,6 +463,16 @@
   position: relative;
   height: 22px;
   border: 1.2px solid var(--ink);
+  cursor: ew-resize;
+  /* Horizontaal slepen is voor de balk; verticaal mag de pagina blijven. */
+  touch-action: pan-y;
+}
+
+/* Een ruimer raakvlak dan de 22px van de balk, voor de duim. */
+.track::after {
+  content: "";
+  position: absolute;
+  inset: -12px -6px;
 }
 
 .fill,
@@ -494,16 +504,15 @@
   transition: left 0.25s var(--ease);
 }
 
+/* Alleen voor het toetsenbord en schermlezers; aanwijzen gaat via de balk. */
 .track input {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: -12px;
+  inset: 0;
   width: 100%;
-  height: 46px;
+  height: 100%;
   margin: 0;
   opacity: 0;
-  cursor: ew-resize;
+  pointer-events: none;
 }
 
 .track:focus-within {
