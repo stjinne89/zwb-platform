@@ -221,6 +221,46 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Niet geverifieerd.** Niet in de browser bekeken.
 
+> **Vandaag: live in een event krijgt een eigen tegel, 2026-10-18 — gebouwd, lokaal getest; voorbeeldscherm in de browser bekeken; niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Melding van de eigenaar tijdens de Legacy Gravel: twee leden
+> reden live, één zonder event en één in de Legacy Gravel, en beiden stonden
+> samen in de tegel "Samen fietsen · nu". Wens: wie gewoon rijdt en een lopend
+> event met een ZWB'er erin, elk een eigen tegel.
+>
+> **Wat.**
+> - `lib/live/event-riders.ts` verdeelt de live renners. Een renner hoort bij
+>   een event als die ja of misschien zei, het event loopt (vanaf een half uur
+>   voor de start tot een uur na `end_at`, of zonder einde) en de sessie niet
+>   meer dan een uur voor de start begon. Past een renner bij twee events, dan
+>   telt het event dat het laatst begon. De rest blijft Samen fietsen.
+> - Vandaag (`TegelsVandaag`): per lopend event een petrol tegel "Event · nu"
+>   met de titel, wie er rijdt en het aantal, met een link naar de eventpagina.
+>   Hetzelfde event staat dan niet nog eens als gewone eventtegel.
+> - De tegel Samen fietsen toont alleen nog wie bij geen lopend event hoort.
+> - Het voorbeeldscherm toont een live eventtegel.
+>
+> **Gecontroleerd op productie (alleen lezen, 2026-10-18 10:40 UTC).** Twee open
+> sessies: één met "ja" voor de Legacy Gravel (sessie 8 min na de start, event
+> tot 12:50 UTC) en één met "nee" voor een SRC-kwalificatie. Met deze regel komt
+> de eerste in de eventtegel en de tweede in Samen fietsen.
+>
+> **Bewust niet gedaan.**
+> - Geen filter op `mode`: de eventpagina toont alleen buitensessies, maar voor
+>   de tegel gaat het alleen om waar iemand rijdt. Een binnenrenner die zich
+>   voor een event aanmeldde, komt dus in de eventtegel.
+> - Geen koppeling tussen sessie en event in de database: de aanmelding plus de
+>   tijden is genoeg en vraagt geen migratie.
+> - Het huidige design blijft ongewijzigd (daar staat geen live-tegel).
+>
+> **Getest.** Vitest: `tests/unit/live-event-riders.test.ts` (nieuw) en
+> `live-riders-label.test.ts` geslaagd. ESLint op de gewijzigde bestanden:
+> schoon. `tsc --noEmit`: alleen de bekende fouten over `@zxing` en
+> `tesseract.js` (pakketten ontbreken in deze worktree).
+>
+> **Niet geverifieerd.** Vandaag met login en echte data.
+
 > **Eventpagina: vermogen per renner, 2026-10-18 — gebouwd, lint en typecheck schoon; gepusht naar `main` (eigenaar, 2026-10-18); niet in de browser bekeken. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
@@ -1309,7 +1349,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > **Wat.**
 > - Vandaag (`TegelsVandaag`): een sage tegel "Samen fietsen · nu" met wie er
 >   rijdt ("Jij en Anna", hooguit drie namen en dan "en 2 anderen") en het
->   aantal. Alleen als er iemand live is. Zelfde regel als Samen fietsen: open
+>   aantal. Alleen als er iemand live is. Sinds 2026-10-18 staat wie in een lopend
+>   event rijdt in een eigen eventtegel en niet meer hier (zie de ronde
+>   "Vandaag: live in een event krijgt een eigen tegel"). Zelfde regel als Samen fietsen: open
 >   sessie, binnen 15 minuten gezien. Eén renner met twee open sessies telt één
 >   keer. De dashboardpagina werkt Garmin en Wahoo eerst bij zoals de Kalender
 >   (`refreshExternalLiveSessions({ detect: false })`), en dat loopt parallel
