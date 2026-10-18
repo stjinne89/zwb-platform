@@ -16,6 +16,7 @@ import {
   type ZwiftEventInfo,
   type ZwiftRouteInfo,
 } from "@/lib/events/zwift-route";
+import { fillZrlEventDetails } from "@/lib/events/zrl-event-details";
 
 /** Zo ver vooruit: de raceweek die eraan komt. */
 const HORIZON_MS = 3 * 24 * 60 * 60 * 1000;
@@ -23,6 +24,8 @@ const HORIZON_MS = 3 * 24 * 60 * 60 * 1000;
 type SupabaseClient = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  storage: { from: (bucket: string) => any };
 };
 
 type StoredRoute = {
@@ -89,7 +92,9 @@ export async function syncZrlSubgroupRoutes(
 
   const { data: events, error } = await admin
     .from("events")
-    .select("id, title, team_id, zwift_event_id, zwift_route_id, gpx_path")
+    .select(
+      "id, title, team_id, zwift_event_id, zwift_route_id, gpx_path, location, cover_image_path, parent_event_id",
+    )
     .eq("type", "zrl")
     .not("team_id", "is", null)
     .not("zwift_event_id", "is", null)
@@ -104,6 +109,9 @@ export async function syncZrlSubgroupRoutes(
     title: string;
     team_id: string;
     zwift_event_id: number | string;
+    location: string | null;
+    cover_image_path: string | null;
+    parent_event_id: string | null;
   };
   const rows = (events ?? []) as EventRow[];
   if (rows.length === 0) return result;
@@ -129,6 +137,7 @@ export async function syncZrlSubgroupRoutes(
   );
 
   const infoByZwiftEvent = new Map<number, ZwiftEventInfo | null>();
+  const details: Parameters<typeof fillZrlEventDetails>[1] = [];
   for (const row of rows) {
     const zwiftEventId = Number(row.zwift_event_id);
     if (!infoByZwiftEvent.has(zwiftEventId)) {
@@ -143,6 +152,7 @@ export async function syncZrlSubgroupRoutes(
     const info = infoByZwiftEvent.get(zwiftEventId);
     if (!info) continue;
     result.checked += 1;
+    details.push({ row, info });
 
     const update = zrlRouteUpdate(row, info, categoryByTeam.get(row.team_id) ?? null);
     if (!update) continue;
@@ -152,5 +162,7 @@ export async function syncZrlSubgroupRoutes(
     if (updateError) result.notes.push(`${row.title}: ${updateError.message}`);
     else result.updated.push(`${row.title} → ${route?.name ?? update.zwift_route_id}`);
   }
+  // Locatie, cover en omschrijving, zoals bij een gewoon Zwift-event.
+  await fillZrlEventDetails(admin, details, result.notes);
   return result;
 }

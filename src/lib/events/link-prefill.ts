@@ -124,7 +124,7 @@ export function parseEventDate(value: unknown): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-function absoluteHttpUrl(value: unknown, base: string): string | null {
+export function absoluteHttpUrl(value: unknown, base: string): string | null {
   if (typeof value !== "string" || !value.trim()) return null;
   try {
     const url = new URL(value.trim(), base);
@@ -175,6 +175,11 @@ function worldName(slug: string): string {
     .join(" ");
 }
 
+/** "Zwift · Makuri Islands", of null zonder bekende route. */
+export function zwiftLocation(event: Pick<ZwiftEventInfo, "route">): string | null {
+  return event.route?.world ? `Zwift · ${worldName(event.route.world)}` : null;
+}
+
 /** Het voorstel uit een al opgehaald Zwift-event (zie lookupZwiftEvent). */
 export function prefillFromZwift(event: ZwiftEventInfo, start: string | null): EventPrefill {
   const title = event.title || null;
@@ -190,7 +195,7 @@ export function prefillFromZwift(event: ZwiftEventInfo, start: string | null): E
     description,
     start_at: startAt,
     end_at: endAt,
-    location: event.route?.world ? `Zwift · ${worldName(event.route.world)}` : null,
+    location: zwiftLocation(event),
     type: guessEventType("zwift", title, description),
     kind: guessEventKind("zwift", event.eventType),
     image_url: absoluteHttpUrl(event.imageUrl, event.externalUrl),

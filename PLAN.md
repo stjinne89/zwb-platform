@@ -4143,6 +4143,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - Geen knop of melding in beheer; de uitkomst staat alleen in het antwoord van
 >   de cronjob.
 > - De raceweek (het hoofdevent) krijgt geen route uit deze koppeling.
+>   *(Sinds 2026-10-18 wel locatie, cover en omschrijving; zie de ronde
+>   "ZRL-races krijgen dezelfde eventinformatie" in het chronologische werkplan.)*
 >
 > **Risico.** Een verkeerde divisie op `/beheer/wtrl-teams` (op 25 september
 > stonden B1 en B2 fout) geeft het event van een andere divisie, met een andere
@@ -10388,6 +10390,61 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZRL-races krijgen dezelfde eventinformatie als een Zwift-event
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet
+gepusht.
+
+**Waarom.** De eigenaar vroeg of ZRL-races op de kalender net zoveel informatie
+kunnen krijgen als andere Zwift-events. Gemeten op productie (events van de
+laatste 30 dagen): gewone Zwift-events hebben de wereld als locatie
+("Zwift · Watopia"), de banner als cover en de omschrijving van de organisator.
+De 34 gekoppelde ZRL-teamraces hadden geen locatie en geen cover; de raceweken
+erboven hadden niets: geen locatie, cover, omschrijving of afstand. Op de
+kalender stond een raceweek daardoor als titel plus datum. De oorzaak: de
+automatische koppeling (`linkZrlEvents`) nam alleen route, afstand en spelregels
+over, niet wat "Ophalen" in het formulier wel invult.
+
+**Wat er veranderde.**
+- `src/lib/events/zrl-event-details.ts`: vult lege velden uit het al opgehaalde
+  Zwift-event. Het teamevent krijgt locatie en cover; de raceweek ook, plus de
+  omschrijving (de eventpagina toont die al op elk teamevent eronder). Wat een
+  captain zelf invulde blijft staan.
+- Draait in `linkZrlEvents` (bij het koppelen, zonder extra Zwift-verzoek) en in
+  `syncZrlSubgroupRoutes` (al gekoppelde races van de komende drie dagen, met het
+  verzoek dat daar al gebeurde). Zo krijgt ook week 5 van ronde 1 het nog.
+- De WTRL-banner is per ronde voor alle divisies gelijk. Hij staat één keer in
+  `event-photos` onder `covers/zwift/<hash van de URL>.<ext>`; alle events
+  wijzen ernaar. Een event verwijderen ruimt alleen `<event-id>/` op, dus de
+  gedeelde cover blijft.
+- WTRL schrijft apostroffen dubbel ("world''s"); dat wordt rechtgezet.
+- Kalender (`/kalender`, lijst en agenda): een raceweek zonder eigen afstand
+  toont die van zijn teamevents, als bereik als A/B een ronde meer rijden
+  ("28.66–41.2 km"), plus de hoogtemeters (`groupRouteFigures` in
+  `sub-events.ts`).
+- `zwiftLocation` en `absoluteHttpUrl` zijn nu geëxporteerd uit
+  `link-prefill.ts`, zodat "Ophalen" en de ZRL-koppeling dezelfde locatie geven.
+
+**Bewust niet.**
+- Geen eindtijd: Zwift geeft bij de ZRL `durationInSeconds: 0`.
+- Geen omschrijving op het teamevent: die zou onder de gedeelde omschrijving van
+  de raceweek dubbel staan, en de meeste teamevents hebben al "Ronde 1, week 5."
+- Geen afstand of route op de raceweek zelf in de database: teams rijden soms
+  een andere route of ronde, en bij een routewijziging zou die waarde verouderen.
+  De kalender rekent hem bij het tonen uit.
+- Geen backfill van oudere raceweken: alleen wat de uurlijkse run nog tegenkomt
+  (koppeling: komende zeven dagen; routesync: komende drie dagen).
+
+**Getest.** `tsc`, ESLint en `tests/unit/zrl-event-details.test.ts` (8 cases:
+lege velden, wat een captain invulde, apostroffen, vast coverpad, afstand en
+bereik op de kalender). Alle unit-tests: twee time-outs onder volle belasting
+(`admin-areas`, `intervals-ride-sync`) slagen los gedraaid; `omnium-live` mist
+`.env.local` in de worktree. **Niet lokaal te verifiëren:** het schrijven op
+productie en de upload naar `event-photos`. Controle na de deploy: na de
+eerstvolgende uurrun hebben de teamraces van 20 oktober een locatie
+"Zwift · New York" en een cover, en de raceweek "ZRL 2026/27 · R1 · W5" ook een
+omschrijving; op `/kalender` staat bij die raceweek afstand en hoogtemeters.
 
 ### Hersteld — weekbadges zagen maar 1000 ritten
 

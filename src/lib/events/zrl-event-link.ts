@@ -16,6 +16,7 @@
 import { amsterdamDateKey } from "@/lib/birthdays";
 import { safeFetch } from "@/lib/net/safe-fetch";
 import type { ZwiftEventApiRow } from "@/lib/events/external-scan";
+import { fillZrlEventDetails } from "@/lib/events/zrl-event-details";
 import { registerZwiftRoute } from "@/lib/events/zrl-route-sync";
 import {
   eventForSubgroup,
@@ -33,6 +34,8 @@ const HORIZON_MS = 7 * 24 * 60 * 60 * 1000;
 type SupabaseClient = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  storage: { from: (bucket: string) => any };
 };
 
 export type ZrlDivision = {
@@ -180,7 +183,9 @@ export async function linkZrlEvents(
 
   const { data: events, error } = await admin
     .from("events")
-    .select("id, title, team_id, start_at, external_url, gpx_path")
+    .select(
+      "id, title, team_id, start_at, external_url, gpx_path, location, cover_image_path, parent_event_id",
+    )
     .eq("type", "zrl")
     .not("team_id", "is", null)
     .is("zwift_event_id", null)
@@ -190,7 +195,15 @@ export async function linkZrlEvents(
     result.notes.push(error.message);
     return result;
   }
-  type EventRow = StoredEvent & { id: string; title: string; team_id: string; start_at: string };
+  type EventRow = StoredEvent & {
+    id: string;
+    title: string;
+    team_id: string;
+    start_at: string;
+    location: string | null;
+    cover_image_path: string | null;
+    parent_event_id: string | null;
+  };
   const rows = (events ?? []) as EventRow[];
   result.open = rows.length;
   if (rows.length === 0) return result;
@@ -213,6 +226,7 @@ export async function linkZrlEvents(
   if (withDivision.length === 0) return result;
 
   const candidates = await fetchWtrlTaggedEvents();
+  const details: Parameters<typeof fillZrlEventDetails>[1] = [];
   for (const row of withDivision) {
     const link = zrlEventLink(
       row,
@@ -228,8 +242,14 @@ export async function linkZrlEvents(
       .update(link)
       .eq("id", row.id)
       .is("zwift_event_id", null);
-    if (updateError) result.notes.push(`${row.title}: ${updateError.message}`);
-    else result.linked.push(`${row.title} → ${link.zwift_event_id}`);
+    if (updateError) {
+      result.notes.push(`${row.title}: ${updateError.message}`);
+      continue;
+    }
+    result.linked.push(`${row.title} → ${link.zwift_event_id}`);
+    const info = candidates.find((candidate) => candidate.eventId === link.zwift_event_id);
+    if (info) details.push({ row, info });
   }
+  await fillZrlEventDetails(admin, details, result.notes);
   return result;
 }

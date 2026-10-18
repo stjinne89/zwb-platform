@@ -64,3 +64,27 @@ export async function withoutParentEvents<T extends { id: string }>(
   );
   return parents.size === 0 ? rows : rows.filter((row) => !parents.has(row.id));
 }
+
+type RouteFigures = {
+  distance_km?: number | string | null;
+  elevation_m?: number | string | null;
+};
+
+function figureRange(values: Array<number | string | null | undefined>): string | null {
+  const numbers = values.map(Number).filter((value) => Number.isFinite(value) && value > 0);
+  if (numbers.length === 0) return null;
+  const min = Math.min(...numbers);
+  const max = Math.max(...numbers);
+  return min === max ? String(min) : `${min}–${max}`;
+}
+
+/**
+ * Afstand en hoogtemeters voor een overzichtsregel. Een raceweek heeft zelf
+ * geen route; dan gelden die van zijn teamevents, als bereik wanneer A/B een
+ * ronde meer rijden dan C/D: "28.66–41.2".
+ */
+export function groupRouteFigures(event: RouteFigures, children: RouteFigures[]) {
+  const own = (key: keyof RouteFigures) =>
+    figureRange([event[key]]) ?? figureRange(children.map((child) => child[key]));
+  return { distanceKm: own("distance_km"), elevationM: own("elevation_m") };
+}
