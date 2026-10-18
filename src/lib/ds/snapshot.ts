@@ -137,6 +137,18 @@ function gradeAt(profile: RouteProfile, distanceM: number): number | null {
   return a === null || b === null ? null : ((b - a) / 100) * 100;
 }
 
+/**
+ * Ronden die er echt gereden worden. Een event op afstand (100 km op een rondje
+ * van 50) heeft bij Zwift `laps: 1` en een `distanceInMeters`; dan rijdt het veld
+ * zoveel ronden als nodig is (gezien 2026-10-18, "Zwift ritje").
+ */
+function lapsRidden(subgroup: DsSubgroup): number {
+  const route = subgroup.routeId ? routeFromZwiftId(subgroup.routeId) : null;
+  if (!route || !subgroup.distanceM || route.distanceKm <= 0) return subgroup.laps;
+  const needed = Math.ceil((subgroup.distanceM / 1000 - route.leadInKm) / route.distanceKm);
+  return Math.max(subgroup.laps, Math.min(needed, 50));
+}
+
 async function eventProfile(subgroup: DsSubgroup, routeM: number | null): Promise<RouteProfile | null> {
   const route = subgroup.routeId ? routeFromZwiftId(subgroup.routeId) : null;
   if (!route || !subgroup.routeId) return null;
@@ -149,7 +161,7 @@ async function eventProfile(subgroup: DsSubgroup, routeM: number | null): Promis
   if (!lap) return null;
   const lapKm = lap.distanceM[lap.distanceM.length - 1] / 1000;
   if (Math.abs(lapKm - route.distanceKm) / route.distanceKm > PROFILE_TOLERANCE) return null;
-  const expanded = expandLaps(lap, { leadInKm: route.leadInKm, leadInElevationM: route.leadInElevationM, laps: subgroup.laps });
+  const expanded = expandLaps(lap, { leadInKm: route.leadInKm, leadInElevationM: route.leadInElevationM, laps: lapsRidden(subgroup) });
   if (routeM === null) return expanded;
   // Een event dat korter is dan de ronden (distanceInMeters), stopt eerder.
   const keep = expanded.distanceM.findIndex((m) => m > routeM);
@@ -186,10 +198,11 @@ function routeMarks(subgroup: DsSubgroup): { routeM: number | null; marks: DsMar
   const route = subgroup.routeId ? routeFromZwiftId(subgroup.routeId) : null;
   const leadInM = (route?.leadInKm ?? 0) * 1000;
   const lapM = (route?.distanceKm ?? 0) * 1000;
-  const routeM = subgroup.distanceM ?? (route ? leadInM + subgroup.laps * lapM : null);
+  const laps = lapsRidden(subgroup);
+  const routeM = subgroup.distanceM ?? (route ? leadInM + laps * lapM : null);
   const lap = subgroup.routeId && route ? routeSegments(subgroup.routeId, 1) : null;
   const marks: DsMark[] = [];
-  for (let i = 0; lap && i < subgroup.laps; i++) {
+  for (let i = 0; lap && i < laps; i++) {
     for (const ref of lap) {
       const atM = leadInM + i * lapM + ref.offsetM;
       if (routeM === null || atM <= routeM) marks.push({ name: ref.name, atM });

@@ -156,9 +156,13 @@ export function buildField(
   const racing = placed.filter((r) => !r.finished).sort((a, b) => b.distanceM - a.distanceM);
   const leader = racing[0];
   const groups: DsGroup[] = [];
+  // Eén snelheid voor alle tijdsverschillen: de mediaan van wie nog rijdt. Met de
+  // eigen snelheid kreeg een losser op 17 km/u een groter gat dan een groep die
+  // verder terug reed (gezien 2026-10-18).
+  const speeds = racing.map((r) => r.speedKmh / 3.6).sort((a, b) => a - b);
+  const speed = Math.max(speeds[Math.floor(speeds.length / 2)] ?? 0, MIN_SPEED_MS);
 
   racing.forEach((rider, i) => {
-    const speed = Math.max(rider.speedKmh / 3.6, MIN_SPEED_MS);
     rider.position = finished.length + i + 1;
     rider.gapS = (leader.distanceM - rider.distanceM) / speed;
     const previous = racing[i - 1];

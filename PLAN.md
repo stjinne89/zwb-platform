@@ -9976,7 +9976,21 @@ vanaf het binnenkomen in de startvak.
 energie, en dat het gewicht alleen meekomt als de renner het in Zwift toont.
 Tekst door de eigenaar goedgekeurd op 2026-10-18; geen nieuwe versie.
 
-**Nog te doen:** het nieuwe scherm in een echte race bekijken.
+**Gezien op productie na de push (2026-10-18, "Zwift ritje", 100 km).** Drie
+dingen klopten niet:
+- Het profiel stopte halverwege: een event op afstand heeft bij Zwift `laps: 1`
+  en `distanceInMeters: 100000`, op een rondje van ongeveer 50 km. Profiel en
+  sprints/KOM's rollen nu zoveel ronden uit als de afstand vraagt
+  (`lapsRidden`). Lokaal herstel, nog niet gepusht.
+- Achterstanden liepen niet op (+1:01 voor +0:41): elk gat was gerekend met de
+  eigen snelheid, en een losser op 17 km/u kreeg zo een groter gat. Nu met één
+  snelheid, de mediaan van wie nog rijdt. Lokaal herstel, nog niet gepusht.
+- Geen W/kg meer: alle 100 inschrijvers van die groep hebben in Zwift
+  `displayWeight` uit (de standaard). De regel "W/kg alleen als de renner zijn
+  gewicht toont" haalt W/kg dus bij vrijwel iedereen weg; de keuze ligt bij de
+  eigenaar.
+
+**Nog te doen:** de W/kg-keuze, pushen, en het scherm in een race bekijken.
 
 ### Gebouwd — ZWB DS: raceoverzicht tijdens Zwift-races
 

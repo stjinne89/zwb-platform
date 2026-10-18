@@ -47,6 +47,16 @@ describe("buildField", () => {
     expect(field.riders.find((r) => r.zwiftId === "d")?.position).toBe(4);
   });
 
+  it("rekent achterstanden met één snelheid, zodat ze van voor naar achter oplopen", () => {
+    const field = buildField(
+      [rider("a", 2000), rider("b", 1800, { speedKmh: 36 }), rider("c", 1700, { speedKmh: 15 }), rider("d", 1500, { speedKmh: 36 })],
+      { now: NOW, routeM: null },
+    );
+    const gaps = field.groups.map((g) => Math.round(g.gapS));
+    expect(gaps).toEqual([...gaps].sort((x, y) => x - y));
+    expect(field.riders.find((r) => r.zwiftId === "c")?.gapS).toBeCloseTo(30);
+  });
+
   it("zet binnengekomen renners apart en voor in de plaatsen", () => {
     const field = buildField([rider("a", 30_100), rider("b", 29_000)], { now: NOW, routeM: 30_000 });
     expect(field.finished.map((r) => r.zwiftId)).toEqual(["a"]);
