@@ -14,6 +14,7 @@ import {
   GRANULARITIES,
   parseGranularity,
   parseRange,
+  dedupeRideRows,
   personalRidesFromRows,
   RANGES,
   windowFor,
@@ -54,7 +55,7 @@ export default async function MyStatsPage({ searchParams }: { searchParams: Prom
   const ftpAt = await loadFtpAt(supabase, user.id, currentFtp);
 
   const today = amsterdamDayKey();
-  const allRides = personalRidesFromRows(rows, ftpAt);
+  const allRides = personalRidesFromRows(dedupeRideRows(rows), ftpAt);
   const sports = [...new Set(allRides.map((ride) => ride.sportType ?? "Ride"))];
   const activeSport = sport && sports.includes(sport) ? sport : null;
   const rides = activeSport ? allRides.filter((ride) => (ride.sportType ?? "Ride") === activeSport) : allRides;

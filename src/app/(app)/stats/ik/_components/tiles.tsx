@@ -15,7 +15,9 @@ import {
   type RideRecord,
   type Streaks,
   type Totals,
+  EMPTY_TOTALS,
 } from "@/lib/stats/personal";
+import { MIN_COMPARE_RIDES } from "@/lib/stats/compare";
 
 export const nl = (value: number, digits = 0) =>
   value.toLocaleString("nl-NL", { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -74,7 +76,8 @@ function delta(now: number, before: number) {
   return Math.round(((now - before) / before) * 100);
 }
 
-export function TotalsGrid({ now, before }: { now: Totals; before: Totals }) {
+export function TotalsGrid({ now, before: earlier }: { now: Totals; before: Totals }) {
+  const before = earlier.rides >= MIN_COMPARE_RIDES ? earlier : EMPTY_TOTALS;
   return (
     <KpiGrid
       items={[

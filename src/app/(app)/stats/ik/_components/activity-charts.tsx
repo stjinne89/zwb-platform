@@ -43,6 +43,8 @@ export function ZonesChart({ points, zoneIds, ariaLabel }: { points: ZoneChartPo
         readout={{
           series: zoneIds[0] ?? "",
           value: (index) => (total(points[index]) > 0 ? Math.round(total(points[index]) * 10) / 10 : null),
+          // Het grote cijfer is altijd de totale tijd, ook als de as in % staat.
+          format: (value) => `${nl(value, Number.isInteger(value) ? 0 : 1)} u`,
           note: (index) => {
             const share = hardShare(points[index]);
             return share == null ? null : <span className="tabular-nums">{share}% vanaf {zoneIds[3] ?? "Z4"}</span>;
@@ -71,10 +73,10 @@ export function WbalChart({ points }: { points: WbalChartPoint[] }) {
       titles={points.map((point) => point.title)}
       readout={{ series: "wbal", note: () => <span>diepste W′bal in één rit</span> }}
       series={[
-        { key: "above", label: "kJ boven FTP", color: SECOND, kind: "bar", values: points.map((p) => p.joulesAboveFtpKj) },
+        { key: "above", label: "Boven FTP", color: SECOND, kind: "bar", values: points.map((p) => p.joulesAboveFtpKj) },
         { key: "wbal", label: "Diepste W′bal", color: MAIN, kind: "line", axis: "right", peak: true, values: points.map((p) => p.maxWbalDepletionKj) },
       ]}
-      format={(value) => nl(value)}
+      format={(value) => `${nl(value)} kJ`}
       formatRight={(value) => `${nl(value, 1)} kJ`}
     />
   );
@@ -92,8 +94,10 @@ export function EnduranceChart({ points }: { points: EnduranceChartPoint[] }) {
       readout={{ series: "dec", note: () => <span>decoupling, lager is beter</span> }}
       series={[
         { key: "dec", label: "Decoupling", color: MAIN, kind: "line", area: true, values: points.map((p) => p.decoupling) },
-        { key: "ef", label: "EF", color: SECOND, kind: "line", axis: "right", values: points.map((p) => p.efficiencyFactor) },
+        { key: "ef", label: "EF", color: SECOND, kind: "line", axis: "right", muted: true, values: points.map((p) => p.efficiencyFactor) },
       ]}
+      minSpan={6}
+      minSpanRight={0.3}
       format={(value) => `${nl(value, 1)}%`}
       formatRight={(value) => nl(value, 2)}
     />
@@ -108,10 +112,12 @@ export type RecoveryChartPoint = {
   sleepHours: number | null;
 };
 
+// minSpan: een verschil van twee slagen of een half uur slaap mag niet de hele
+// hoogte van de grafiek vullen.
 const RECOVERY_METRICS = [
-  { key: "restingHr", label: "Rust-HR", unit: "bpm", digits: 0 },
-  { key: "hrv", label: "HRV", unit: "ms", digits: 0 },
-  { key: "sleepHours", label: "Slaap", unit: "u", digits: 1 },
+  { key: "restingHr", label: "Rust-HR", unit: "bpm", digits: 0, minSpan: 10 },
+  { key: "hrv", label: "HRV", unit: "ms", digits: 0, minSpan: 20 },
+  { key: "sleepHours", label: "Slaap", unit: "u", digits: 1, minSpan: 2 },
 ] as const;
 
 type RecoveryMetric = (typeof RECOVERY_METRICS)[number]["key"];
@@ -129,8 +135,20 @@ export function RecoveryChart({ points }: { points: RecoveryChartPoint[] }) {
         titles={points.map((point) => point.title)}
         zeroBased={false}
         readout={{ series: metric }}
-        series={[{ key: metric, label: def.label, color: MAIN, kind: "line", area: true, values: points.map((p) => p[metric]) }]}
+        series={[
+          {
+            key: metric,
+            label: def.label,
+            color: MAIN,
+            kind: "line",
+            area: true,
+            // Hele slagen en milliseconden, zoals het cijfer erboven; dan ook een as
+            // in hele getallen.
+            values: points.map((p) => (p[metric] == null ? null : def.digits === 0 ? Math.round(p[metric]) : p[metric])),
+          },
+        ]}
         format={(value) => `${nl(value, def.digits)} ${def.unit}`}
+        minSpan={def.minSpan}
       />
     </div>
   );

@@ -414,8 +414,11 @@ async function ActivityTile({
       </Tile>
     );
   }
-  const multiYear =
-    stats.periods.length > 0 && stats.periods[0].key.slice(0, 4) !== stats.periods.at(-1)!.key.slice(0, 4);
+  // Pas vanaf de eerste periode met een gemeten rit: wie intervals.icu net
+  // koppelde zag anders elf lege maanden, die op "niet gefietst" lijken.
+  const firstMeasured = stats.periods.findIndex((period) => period.rides > 0);
+  const periods = firstMeasured < 0 ? [] : stats.periods.slice(firstMeasured);
+  const multiYear = periods.length > 0 && periods[0].key.slice(0, 4) !== periods.at(-1)!.key.slice(0, 4);
   const label = (key: string) => bucketLabel(key, per, multiYear);
   const title = (key: string) => bucketTitle(key, per);
   const empty = <NoData>Geen ritten met meting in intervals.icu in deze periode.</NoData>;
@@ -425,7 +428,7 @@ async function ActivityTile({
     const zoneIds = power
       ? stats.powerZoneIds
       : Array.from({ length: stats.hrZoneCount }, (_, index) => `Z${index + 1}`);
-    const points = stats.periods.map((period) => ({
+    const points = periods.map((period) => ({
       label: label(period.key),
       title: title(period.key),
       hours: power ? period.powerZoneHours : period.hrZoneHours,
@@ -445,7 +448,7 @@ async function ActivityTile({
     );
   }
   if (id === "wbal") {
-    const points = stats.periods.map((period) => ({
+    const points = periods.map((period) => ({
       label: label(period.key),
       title: title(period.key),
       maxWbalDepletionKj: period.maxWbalDepletionKj,
@@ -465,7 +468,7 @@ async function ActivityTile({
       </Tile>
     );
   }
-  const points = stats.periods.map((period) => ({
+  const points = periods.map((period) => ({
     label: label(period.key),
     title: title(period.key),
     decoupling: period.decoupling,

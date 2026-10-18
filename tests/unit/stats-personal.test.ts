@@ -7,6 +7,7 @@ import {
   bucketLabel,
   bucketsBetween,
   calendarDays,
+  dedupeRideRows,
   efficiencyTrend,
   fitnessFromTss,
   periodRecords,
@@ -202,6 +203,60 @@ describe("vermogen", () => {
     const [point] = efficiencyTrend(rides, ["2026-10"], "maand");
     expect(point.factor).toBe(1.5);
     expect(point.rides).toBe(2);
+  });
+
+  it("neemt voor watt per hartslag alleen duurritten, en niet één losse rit", () => {
+    const rides = [
+      ride("2026-10-01", { normalizedWatts: 210, averageHr: 140, intensityFactor: 0.75 }),
+      ride("2026-10-02", { normalizedWatts: 300, averageHr: 170, intensityFactor: 1.05 }),
+      ride("2026-09-01", { normalizedWatts: 210, averageHr: 140, intensityFactor: 0.75 }),
+    ];
+    const [september, october] = efficiencyTrend(rides, ["2026-09", "2026-10"], "maand");
+    expect(september.factor).toBeNull();
+    expect(october.factor).toBeNull();
+    expect(october.rides).toBe(1);
+  });
+
+  it("laat een onmogelijke NP buiten vermogen en records", () => {
+    // 382 W een uur lang bij een FTP van 274: IF 1,39, een kalibratiefout.
+    const rides = [
+      ride("2026-10-01", { normalizedWatts: 382, intensityFactor: 1.39 }),
+      ride("2026-10-02", { normalizedWatts: 290, intensityFactor: 1.06 }),
+    ];
+    const [point] = powerTrend(rides, ["2026-10"], "maand", () => 274, "2026-10-16");
+    expect(point.bestNp).toBe(290);
+    expect(rideRecords(rides).find((record) => record.label.startsWith("Hoogste NP"))?.value).toBe(290);
+  });
+});
+
+describe("dedupeRideRows", () => {
+  const row = (id: number, start: string, km: number, watts = false): PersonalRideRow => ({
+    id,
+    name: "Rit",
+    sport_type: "Ride",
+    start_date: start,
+    distance_m: km * 1000,
+    total_elevation_gain_m: 100,
+    moving_time_seconds: 3600,
+    average_watts: watts ? 200 : null,
+    device_watts: watts,
+  });
+
+  it("houdt van dezelfde rit uit twee bronnen er één, liefst die met vermogen", () => {
+    const kept = dedupeRideRows([
+      row(-1000191882842, "2026-09-11T13:45:33Z", 35.3),
+      row(20131400295, "2026-09-11T13:45:33Z", 35.3, true),
+      row(20131400296, "2026-09-11T16:27:58Z", 8.5),
+    ]);
+    expect(kept.map((r) => r.id)).toEqual([20131400295, 20131400296]);
+  });
+
+  it("laat twee ritten kort na elkaar met een andere afstand staan", () => {
+    const kept = dedupeRideRows([
+      row(1, "2026-09-14T15:22:58Z", 4.7),
+      row(2, "2026-09-14T15:24:00Z", 42.5),
+    ]);
+    expect(kept).toHaveLength(2);
   });
 });
 
