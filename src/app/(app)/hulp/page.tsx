@@ -104,6 +104,7 @@ const GUIDES = [
       "Elke categorie heeft een eigen kleur, als rand links van de regel en in het label: buitenritten van groen naar blauw, gravel amber, en alles wat virtueel is van rood via oranje (Zwift) naar geel (MyWhoosh). Een training is feller met een bredere rand, een social pastel, en een goed doel heeft een hartje in het label.",
       "Op eventdagen kan de liveticker deelnemers tonen die live tracken.",
       "GPX, routekaart en hoogteprofiel staan op de eventpagina.",
+      "Maak je een event aan, plak dan bovenaan bij Eventlink de link van het event en kies Ophalen. Wat op die pagina staat, komt in de lege velden: titel, start en einde, locatie, beschrijving, de link zelf en een cover, en waar dat duidelijk is ook de categorie. Bij een Zwift-link komen er route, ronden en afstand bij, bij MyWhoosh afstand en hoogtemeters. Bij andere sites hangt het af van wat de organisator op zijn pagina zet; vaak zijn dat alleen titel, beschrijving en afbeelding. Wat je al had ingevuld blijft staan, en kijk de rest na voor je opslaat. De cover wordt bij het opslaan bij ZWB bewaard.",
     ],
   },
   {
@@ -112,7 +113,7 @@ const GUIDES = [
     title: "Teams en wedstrijden",
     bullets: [
       "Teams tonen leden, rosterkoppelingen en bekende wedstrijdstanden.",
-      "Een ZRL-raceweek staat als één event in de kalender, met de informatie die voor alle teams geldt. Daaronder heeft elk team zijn eigen race, met eigen starttijd, Zwift-link en opstelling. Plak je bij Bewerk de Zwift-eventlink en kies je Ophalen, dan komen starttijd, ronden en afstand van de Zwift-groep van dat team (A, B, C of D, uit de teamnaam).",
+      "Een ZRL-raceweek staat als één event in de kalender, met de informatie die voor alle teams geldt. Daaronder heeft elk team zijn eigen race, met eigen starttijd, Zwift-link en opstelling. Plak je bij Bewerk de Zwift-link bij Eventlink en kies je Ophalen, dan komen starttijd, ronden en afstand van de Zwift-groep van dat team (A, B, C of D, uit de teamnaam).",
       "Heeft je team subteams, zoals B met B1 en B2? Dan is het hoofdteam een paraplu: je meldt je per raceweek beschikbaar bij het hoofdteam, op de teampagina of op de raceweek zelf, en de captain deelt je in bij een subteam. Het hoofdteam rijdt zelf geen races.",
       "Voor een ZRL-race meld je je niet op Zwift aan maar met de WTRL-racepass van je team. Die staat bovenaan de race van je team, en op de raceweek bij elk team. Een beheerder zet de passes per ronde op Beheer → ZRL-beheer.",
       "Bovenaan een race staat Raceinfo: je pacingplan en links naar Zwift, ZwiftPower en ZwiftRacing, recon-video's, ZwiftInsider en de racepagina op de ZWB-site. Zwift, ZwiftPower en ZwiftRacing volgen uit de Zwift-koppeling. Bij een ZRL-teamrace zet het platform die koppeling zelf, met starttijd en route, zodra WTRL het event op Zwift publiceert; daarvoor moet de divisie van het team op Beheer → ZRL-beheer → WTRL-teams staan. Heeft de race een Zwift-route, dan staat er ook ZwifterBikes bij: die opent de route, zodat je ziet welke fiets daar het snelst is. Je vermogen, gewicht en lengte vul je daar zelf één keer in; ZwifterBikes onthoudt ze in je browser. De andere links zet een beheerder onderaan Bewerk. De race van je team toont ook de links en de route van de raceweek, en op de raceweek wijst Pacingplan naar de race van je eigen team.",

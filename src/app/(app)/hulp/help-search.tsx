@@ -304,7 +304,7 @@ const HELP_INDEX: HelpResult[] = [
     title: "Events en RSVP",
     text: "Kalender, routes, GPX, liveticker en aanmelden.",
     href: "/hulp#events",
-    terms: "event kalender rsvp route gpx aanmelden aangemeld liveticker voor mij filter verborgen ja nee misschien",
+    terms: "event kalender rsvp route gpx aanmelden aangemeld liveticker voor mij filter verborgen ja nee misschien event aanmaken eventlink link plakken ophalen invullen zwift mywhoosh toertocht cover",
   },
   {
     title: "Verjaardagsrondje",

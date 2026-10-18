@@ -62,6 +62,9 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **Eventlink in het eventformulier:** na het pushen een event aanmaken met
+     een Zwift-, een MyWhoosh- en een toertochtlink: vullen de velden zich, en
+     staat de cover na opslaan in storage (ronde 2026-10-18, "Eventlink").
    - **Tabbalk op de iPhone:** na het pushen in de beginscherm-app iets typen,
      het toetsenbord sluiten en kijken of de tabbalk onderaan blijft (ronde
      2026-10-16, "Tabbalk blijft hangen na het toetsenbord").
@@ -6504,7 +6507,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > 3 over, dus bij A- en B-teams klopten ronden, afstand en hoogtemeters ook niet.
 >
 > **Wat er is.**
-> - "Ophalen" bij de Zwift-eventlink in het eventformulier zet het Start-veld op
+> - "Ophalen" bij de Zwift-eventlink (sinds 2026-10-18 het veld Eventlink bovenaan) in het eventformulier zet het Start-veld op
 >   de start van de eigen subgroep, en neemt ronden en afstand van die groep. De
 >   groep volgt uit de categorieletter van het gekozen ZRL-team ("ZRL A", "B1",
 >   "Bdev", "ZRL Zwiftladies C"; anders die van het hoofdteam). Zonder team of
@@ -10033,6 +10036,79 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — Eventlink: het eventformulier vult zich uit de link
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt, op branch
+`claude/event-link-scraping-2a714b`. Geen migratie. Niet gepusht.
+
+**Waarom.** De eigenaar wilde dat een geplakte eventlink bij het aanmaken van
+een event zoveel mogelijk velden invult: eerst voor Zwift, maar ook voor andere
+events. Tot nu toe vulde "Ophalen" bij de Zwift-eventlink alleen start, route,
+ronden en afstand; titel, beschrijving en cover typte de beheerder over.
+
+**Wat er veranderde.**
+- Het veld "Zwift-eventlink" onderaan het formulier is nu **Eventlink**,
+  bovenaan, voor elke link. Ophalen (`lookupEventLink` in
+  `kalender/nieuw/actions.ts`) kiest de bron:
+  - **Zwift**: de publieke event-API zoals eerst, met de koppeling (route,
+    ronden, afstand, eigen ZRL-subgroep) ongewijzigd. Nieuw: titel,
+    omschrijving, de headerafbeelding (`imageUrl`), einde (start plus
+    `durationInSeconds`, alleen als Zwift een duur geeft), locatie "Zwift ·
+    Watopia", categorie (ZRL, FRR en Ladder uit de naam, anders Zwift) en type
+    Training bij een `GROUP_WORKOUT`.
+  - **MyWhoosh** (`event.mywhoosh.com/event/detail/…`): de detail-API die de
+    kalenderscan al gebruikt. Titel, start, afstand, hoogtemeters, omschrijving
+    en categorie (Sunday Race Club of MyWhoosh). Als cover de banner, en anders
+    de routekaart: MyWhoosh geeft bij de geteste SRC-race geen banner.
+  - **Elke andere site**: schema.org-Event uit JSON-LD (ook binnen `@graph`):
+    naam, start, einde, plaats, omschrijving, afbeelding. Zonder JSON-LD de Open
+    Graph-tags. Een tijd zonder tijdzone geldt als Nederlandse tijd, een datum
+    zonder tijd wordt middernacht. Categorie alleen bij een duidelijk woord
+    (granfondo, gravel in de titel, toertocht/cyclo/randonnée).
+- Het formulier vult **alleen lege velden**. Uitzonderingen: de categorie als
+  die nog op de standaard staat, en de start bij Zwift (zoals eerst: de start van
+  de eigen groep is preciezer). Daarna staat er welke velden zijn ingevuld.
+- De cover van de link wordt bij opslaan door de server opgehaald en in
+  `event-photos` onder `covers/<uid>/` gezet, net als een geüploade cover
+  (`cover_image_url` in `EventInput`). Zo hangt de eventpagina niet van een
+  andere site af. Mislukt het ophalen, dan komt het event er zonder cover.
+- Alle verzoeken naar andere sites (`lib/events/link-prefill.ts`) toetsen elke
+  redirect op interne adressen, niet alleen de eerste URL zoals `safeFetch`.
+  HTML tot 2 MB, een afbeelding tot 8 MB en alleen jpeg/png/webp/gif/avif,
+  8 s time-out.
+- `ZwiftEventInfo` heeft er `description` en `imageUrl` bij.
+- `/hulp#events` legt Eventlink uit; de ZRL-uitleg noemt het nieuwe veld.
+
+**Bewust niet gebouwd.**
+- Afstand of route van andere sites raden uit de tekst ("60, 110 en 160 km"):
+  toertochten hebben meestal meerdere afstanden, en een verkeerd getal
+  verandert het trainingsschema.
+- Strava- en Facebook-events: die vragen een login, dus er komt hooguit de
+  Open Graph-titel uit.
+- Velden die al gevuld zijn overschrijven: bij Bewerk zou Ophalen anders een
+  zelf geschreven beschrijving wissen.
+- Type Social bij een Zwift `GROUP_RIDE`: niet elke groepsrit is een social.
+- Einde van een MyWhoosh-event: `duration` staat in de API (300 bij een race
+  van 50 km), maar de eenheid is niet vast te stellen.
+
+**Getest:** `tests/unit/link-prefill.test.ts` (13: JSON-LD met `@graph`, Open
+Graph met sitenaam, online event, datums met en zonder zone, MyWhoosh-HTML,
+inkorten, categorieën, MyWhoosh en Zwift). De bestaande Zwift-tests slagen.
+`tsc` (alleen de bestaande fouten van ontbrekende `@zxing`/`tesseract.js`) en
+ESLint schoon. Rookproef op 2026-10-18 tegen de echte bronnen: een Zwift-event
+(titel, omschrijving, banner), een MyWhoosh-SRC-race (alles behalve een
+banner), amstelgoldrace.nl (alleen Open Graph: titel, omschrijving,
+afbeelding), en het ophalen van een Zwift-banner als png.
+
+**Niet geverifieerd.** Het formulier zelf in de browser: lokaal is er geen
+inlog en deze worktree heeft geen `.env.local`. Dus niet gezien: dat de velden
+zich vullen, de coverpreview van een andere site, en het bewaren van de cover in
+storage onder de RLS van `event-photos`. Niet getest op een echte
+toertochtsite met JSON-LD; dat pad is alleen met een vastgelegde HTML getest.
+De volledige testsuite: vier bestanden faalden in de volle run; apart slagen
+er drie (time-outs onder belasting), en `omnium-live.test.ts` mist
+`.env.local` in de worktree.
 
 ### Gebouwd — ZWB DS: hoogteprofiel en meer rennersdata
 
@@ -18881,7 +18957,7 @@ met een teller voor de volgende klik). Die sync begrenst zichzelf op een
 `followZwbMembers`: hoeveel routes er in een Netlify-functie van 10 s passen hangt
 van de Strava-responstijd af, dus een aantal vooraf kiezen is gokken. `/beheer/zwift-routes` heeft
 nu naast de spike-knop een "Routes ophalen"-knop met statusoverzicht, en het
-eventformulier een veld "Zwift-eventlink" dat route, ronden, afstand en
+eventformulier een veld "Zwift-eventlink" (sinds 2026-10-18 "Eventlink", voor elke link) dat route, ronden, afstand en
 hoogtemeters invult. Een route wordt bij het ophalen alvast als rij in
 `zwift_routes` gezet, anders houdt de foreign key niet voordat de sync heeft
 gedraaid. Tests: `tests/unit/zwift-route.test.ts` (18) en

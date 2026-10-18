@@ -18,6 +18,14 @@ import {
   zrlCategoryFromTeamName,
   zwiftStartFor,
 } from "@/lib/events/zwift-route";
+import {
+  fetchCoverImage,
+  fetchMyWhooshPrefill,
+  fetchWebPrefill,
+  parseMyWhooshEventUrl,
+  prefillFromZwift,
+  type EventPrefill,
+} from "@/lib/events/link-prefill";
 
 /**
  * De spelregels van het gekoppelde Zwift-event voor het pacingplan (drafting,
@@ -30,6 +38,24 @@ async function storeRulesQuietly(eventId: string, zwiftEventId: number | null | 
   } catch {
     // Het pacingplan haalt ze zelf op zodra een lid het opent.
   }
+}
+
+/**
+ * Haalt de cover van een eventlink op en zet hem onder `covers/<uid>/`, net als
+ * een geüploade cover. Mislukt het, dan komt het event er zonder cover.
+ */
+async function importCover(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  imageUrl: string,
+): Promise<string | null> {
+  const image = await fetchCoverImage(imageUrl);
+  if (!image) return null;
+  const path = `covers/${userId}/${crypto.randomUUID()}.${image.ext}`;
+  const { error } = await supabase.storage
+    .from("event-photos")
+    .upload(path, image.bytes, { contentType: image.contentType });
+  return error ? null : path;
 }
 
 /** Zoveel tijd krijgt het doorzetten van bijgewerkte eventblokken na opslaan. */
@@ -54,6 +80,12 @@ type EventInput = {
   live_timing_url?: string | null;
   results_url?: string | null;
   cover_image_path?: string | null;
+  /**
+   * Cover van de eventlink: bij opslaan opgehaald en in event-photos bewaard,
+   * zodat de eventpagina niet van een andere site afhangt. Alleen gebruikt als
+   * er geen eigen cover is gekozen.
+   */
+  cover_image_url?: string | null;
   team_id?: string | null;
   // Zwift-koppeling: gevuld door "Zwift-eventlink ophalen" in het formulier.
   // undefined = niet wijzigen, null = losmaken.
@@ -82,6 +114,9 @@ function validate(input: EventInput) {
   if (input.results_url && !/^https?:\/\//i.test(input.results_url)) {
     return "Uitslag-URL moet beginnen met https:// of http://";
   }
+  if (input.cover_image_url && !/^https?:\/\//i.test(input.cover_image_url)) {
+    return "Ongeldige cover-URL.";
+  }
   return null;
 }
 
@@ -95,6 +130,11 @@ export async function createEvent(input: EventInput) {
 
   const err = validate(input);
   if (err) return { ok: false as const, error: err };
+
+  let coverPath = input.cover_image_path ?? null;
+  if (!coverPath && input.cover_image_url) {
+    coverPath = await importCover(supabase, access.user.id, input.cover_image_url);
+  }
 
   const { data, error } = await supabase
     .from("events")
@@ -114,7 +154,7 @@ export async function createEvent(input: EventInput) {
       external_url: input.external_url?.trim() || null,
       live_timing_url: input.live_timing_url?.trim() || null,
       results_url: input.results_url?.trim() || null,
-      cover_image_path: input.cover_image_path ?? null,
+      cover_image_path: coverPath,
       team_id: input.team_id || null,
       zwift_event_id: input.zwift_event_id ?? null,
       zwift_route_id: input.zwift_route_id ?? null,
@@ -201,6 +241,10 @@ export async function updateEvent(id: string, input: EventInput) {
   // verwijderen, of de nieuwe waardes bij een upload.
   if (input.cover_image_path !== undefined)
     update.cover_image_path = input.cover_image_path;
+  if (!input.cover_image_path && input.cover_image_url) {
+    const imported = await importCover(supabase, access.user.id, input.cover_image_url);
+    if (imported) update.cover_image_path = imported;
+  }
   if (input.gpx_path !== undefined) update.gpx_path = input.gpx_path;
   if (input.distance_km !== undefined) update.distance_km = input.distance_km;
   if (input.elevation_m !== undefined) update.elevation_m = input.elevation_m;
@@ -296,38 +340,43 @@ export async function deleteEvent(id: string) {
   redirect("/kalender");
 }
 
-export type ZwiftLookupResult =
+export type ZwiftLookup = {
+  zwift_event_id: number;
+  zwift_route_id: number | null;
+  laps: number | null;
+  title: string;
+  external_url: string;
+  route_name: string | null;
+  world: string | null;
+  distance_km: number | null;
+  elevation_m: number | null;
+  accents: number;
+  /** Het profiel van deze route staat nog niet in de bibliotheek. */
+  profile_missing: boolean;
+  /** Start van de eigen subgroep, anders de vroegste (ISO). */
+  start_at: string | null;
+  subgroup_label: string | null;
+};
+
+export type EventLinkLookupResult =
   | { ok: false; error: string }
   | {
       ok: true;
-      zwift_event_id: number;
-      zwift_route_id: number | null;
-      laps: number | null;
-      title: string;
-      external_url: string;
-      route_name: string | null;
-      world: string | null;
-      distance_km: number | null;
-      elevation_m: number | null;
-      accents: number;
-      /** Het profiel van deze route staat nog niet in de bibliotheek. */
-      profile_missing: boolean;
-      /** Start van de eigen subgroep, anders de vroegste (ISO). */
-      start_at: string | null;
-      subgroup_label: string | null;
+      /** Wat in de gewone velden van het formulier kan. */
+      prefill: EventPrefill;
+      /** Alleen bij een Zwift-link: de koppeling met route en ronden. */
+      zwift: ZwiftLookup | null;
     };
 
 /**
- * Haalt een Zwift-event op aan de hand van de link die de beheerder plakt, en
- * registreert de route meteen in `zwift_routes` — anders zou de foreign key van
- * `events.zwift_route_id` niet houden voordat de routesync heeft gedraaid. Het
- * profiel zelf komt uit die sync (/beheer/zwift-routes); dit zet alleen de
- * identificerende velden.
+ * Haalt op wat er over een geplakte eventlink te vinden is, voor het
+ * eventformulier. Een Zwift-link geeft daarnaast de koppeling met route en
+ * ronden; zie lib/events/link-prefill.ts voor de andere bronnen.
  */
-export async function lookupZwiftEvent(
+export async function lookupEventLink(
   link: string,
   teamId?: string | null,
-): Promise<ZwiftLookupResult> {
+): Promise<EventLinkLookupResult> {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false, error: "Niet ingelogd." };
@@ -335,11 +384,37 @@ export async function lookupZwiftEvent(
     return { ok: false, error: "Geen recht om events te bewerken." };
   }
 
-  const eventId = parseZwiftEventUrl(link);
-  if (!eventId) {
-    return { ok: false, error: "Geen geldige Zwift-eventlink of event-id." };
+  const trimmed = link.trim();
+  const zwiftEventId = parseZwiftEventUrl(trimmed);
+  if (zwiftEventId) return lookupZwiftEvent(supabase, zwiftEventId, teamId);
+
+  const myWhooshId = parseMyWhooshEventUrl(trimmed);
+  if (myWhooshId) {
+    const result = await fetchMyWhooshPrefill(myWhooshId);
+    return result.ok ? { ok: true, prefill: result.prefill, zwift: null } : result;
   }
 
+  const url = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    new URL(url);
+  } catch {
+    return { ok: false, error: "Geen geldige link." };
+  }
+  const result = await fetchWebPrefill(url);
+  return result.ok ? { ok: true, prefill: result.prefill, zwift: null } : result;
+}
+
+/**
+ * Een Zwift-event ophalen, en de route meteen in `zwift_routes` registreren —
+ * anders zou de foreign key van `events.zwift_route_id` niet houden voordat de
+ * routesync heeft gedraaid. Het profiel zelf komt uit die sync
+ * (/beheer/zwift-routes); dit zet alleen de identificerende velden.
+ */
+async function lookupZwiftEvent(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  eventId: number,
+  teamId: string | null | undefined,
+): Promise<EventLinkLookupResult> {
   const result = await fetchZwiftPublicEvent(eventId);
   if (!result.ok) return { ok: false, error: result.error };
 
@@ -378,21 +453,25 @@ export async function lookupZwiftEvent(
     profileMissing = !stored?.synced_at;
   }
 
+  const startAt = zwiftStartFor(event, own);
   return {
     ok: true,
-    zwift_event_id: event.eventId,
-    zwift_route_id: route?.routeId ?? null,
-    laps: totals?.laps ?? event.laps,
-    title: event.title,
-    external_url: event.externalUrl,
-    route_name: route?.name ?? null,
-    world: route?.world ?? null,
-    distance_km: totals?.distanceKm ?? event.distanceKm,
-    elevation_m: totals?.elevationM ?? null,
-    accents: route?.accents.length ?? 0,
-    profile_missing: profileMissing,
-    start_at: zwiftStartFor(event, own),
-    subgroup_label: own?.label ?? null,
+    prefill: prefillFromZwift(event, startAt),
+    zwift: {
+      zwift_event_id: event.eventId,
+      zwift_route_id: route?.routeId ?? null,
+      laps: totals?.laps ?? event.laps,
+      title: event.title,
+      external_url: event.externalUrl,
+      route_name: route?.name ?? null,
+      world: route?.world ?? null,
+      distance_km: totals?.distanceKm ?? event.distanceKm,
+      elevation_m: totals?.elevationM ?? null,
+      accents: route?.accents.length ?? 0,
+      profile_missing: profileMissing,
+      start_at: startAt,
+      subgroup_label: own?.label ?? null,
+    },
   };
 }
 
