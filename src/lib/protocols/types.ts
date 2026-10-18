@@ -11,10 +11,12 @@ export type ProtocolPillar = "trainen" | "voeden";
 export const PROTOCOL_EVIDENCE = ["sterk", "matig", "beperkt"] as const;
 export type ProtocolEvidence = (typeof PROTOCOL_EVIDENCE)[number];
 
+// De woorden zeggen wat er bekend is, niet wat er ontbreekt (besluit eigenaar,
+// 2026-10-18; docs/beoordelingsbeleid-bewijsniveau.md). De sleutels bleven.
 export const PROTOCOL_EVIDENCE_LABELS: Record<ProtocolEvidence, string> = {
-  sterk: "Sterk bewijs",
-  matig: "Matig bewijs",
-  beperkt: "Beperkt bewijs",
+  sterk: "Stevig onderbouwd",
+  matig: "Onderbouwd",
+  beperkt: "Eerste aanwijzingen",
 };
 
 /**
@@ -74,9 +76,8 @@ export type Protocol = {
   goal: string;
   evidence: ProtocolEvidence;
   /**
-   * Veelbelovend of experimenteel: het effect op prestatie staat nog niet vast
-   * (docs/trainingsmethodes-onderzoek-2026-10-16.md). Staat naast het
-   * bewijsniveau, dat zegt hoeveel onderzoek er is.
+   * Een nieuwe methode, geen standaardtraining (method-label.ts). Geeft geen
+   * oordeel; dat doet het bewijsniveau.
    */
   methodLabel?: MethodLabel;
   anchor: ProtocolAnchor;

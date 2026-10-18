@@ -99,7 +99,7 @@ export async function PlanBasisView({
         )}
 
         <Link
-          href="/hulp#uitgangspunten"
+          href="/hulp/schema#uitgangspunten"
           className="inline-flex text-sm font-medium text-primary hover:underline"
         >
           De vaste regels

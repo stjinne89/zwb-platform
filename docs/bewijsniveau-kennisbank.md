@@ -2,9 +2,13 @@
 
 **Voorgesteld 2026-10-16, goedgekeurd door de eigenaar op 2026-10-17 en
 gebouwd.** De niveaus staan in code bij elk artikel (`evidence`, met
-`src/lib/knowledge/evidence.ts`). `tests/unit/article-evidence.test.ts` laat de
-build falen als een niveau in code afwijkt van de tabel hieronder. Wijzig een
-niveau dus eerst hier.
+`src/lib/knowledge/evidence.ts`).
+
+**Vervangen op 2026-10-18** door
+[beoordelingsbeleid-bewijsniveau](beoordelingsbeleid-bewijsniveau.md): één
+beleid voor alle kennisbanken, met nieuwe woorden, zonder "Afgeraden", en met een
+herbeoordeling van elk artikel. De tests lezen nu dat document. Wat hieronder
+staat, is de geschiedenis van de eerste indeling.
 
 De eigenaar vroeg of de artikelen in de kennisbanken, net als de nieuwe
 trainingsmethodes, een label kunnen krijgen waaraan je ziet hoe gegrond ze zijn.

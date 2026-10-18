@@ -106,7 +106,7 @@ export type WorkoutRow = {
   zwift_event_id?: number | null;
   /** Gezet wanneer het lid de Zwift-voorstellen wegklikte. */
   zwift_suggestions_dismissed_at?: string | null;
-  /** Veelbelovend of experimenteel (0246); leeg voor een gewone trainingsvorm. */
+  /** Nieuwe methode (0246: veelbelovend of experimenteel); leeg voor een gewone trainingsvorm. */
   method_label?: string | null;
 };
 

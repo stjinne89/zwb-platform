@@ -55,7 +55,7 @@ export type MemberCalendarItem = {
   source: "zwb" | "intervals" | "rit";
   skipped: boolean;
   missed?: boolean;
-  /** Veelbelovend of experimenteel (0246). */
+  /** Nieuwe methode (0246: veelbelovend of experimenteel). */
   methodLabel?: string | null;
   /** Bij een gereden rit: bij welke training hij hoort, door het lid aan te passen. */
   rideLink?: RideLink;
@@ -259,7 +259,7 @@ function WorkoutDetail({
                     Download FIT
                   </a>
                   <Link
-                    href="/hulp#fit-export"
+                    href="/hulp/workouts#fit-export"
                     title="Hulp bij workout op je fietscomputer"
                     aria-label="Hulp bij workout op je fietscomputer"
                     className="inline-flex items-center rounded-md border px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"

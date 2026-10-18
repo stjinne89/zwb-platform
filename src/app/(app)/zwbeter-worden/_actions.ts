@@ -66,6 +66,7 @@ import {
 import { encryptSecret } from "@/lib/crypto/secrets";
 import { canCoach } from "@/lib/training/coach-access";
 import { methodLabelOf } from "@/lib/training/method-label";
+import { ownWorkoutTemplates } from "@/lib/training/own-workouts";
 import { replanResultMessage } from "@/lib/training/coach-chat";
 import {
   addPreference,
@@ -1296,11 +1297,12 @@ export async function setWorkoutDuration(formData: FormData) {
   }
 }
 
-/** Soorten rit die een lid zelf kan inplannen, met hun standaardintensiteit. */
+/**
+ * Soorten rit die een lid zelf kan inplannen, met hun standaardintensiteit.
+ * Clubritten en wedstrijden lopen via de kalender (EventChoice), niet hier.
+ */
 const RIDE_KINDS: Record<string, { title: string; intensity: WorkoutIntensity }> = {
-  buitenrit: { title: "Buitenrit", intensity: "endurance" },
-  clubrit: { title: "Clubrit", intensity: "endurance" },
-  wedstrijd: { title: "Wedstrijd", intensity: "race" },
+  rit: { title: "Eigen rit", intensity: "endurance" },
   eigen: { title: "Eigen training", intensity: "endurance" },
 };
 
@@ -1312,9 +1314,10 @@ const RIDE_EFFORTS: Record<string, WorkoutIntensity> = {
 };
 
 /**
- * Een vrije rit in het eigen schema zetten: een vast moment waar de planner
- * omheen werkt. Geen blokkenstructuur en dus geen FIT — het is een afspraak,
- * geen voorgeschreven training.
+ * Een eigen rit of eigen training in het eigen schema zetten: een vast moment
+ * waar de planner omheen werkt. Zonder bibliotheekworkout is het een vrij blok
+ * zonder structuur — een afspraak, geen voorgeschreven training. Met een
+ * template_id komt de workout uit de standaardbibliotheek, met zijn blokken.
  *
  * Gaat via de service-role omdat RLS leden geen writes op training_workouts
  * toestaat; de eigendomscheck staat daarom hier.
@@ -1327,40 +1330,75 @@ export async function planOwnRide(formData: FormData) {
     const date = mustString(formData.get("date"), "Datum");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Ongeldige datum.");
     const time = optionalString(formData.get("time")) ?? "09:00";
-    const durationMinutes = Math.round(optionalNumber(formData.get("duration_minutes")) ?? 0);
-    if (durationMinutes < 15 || durationMinutes > 480) {
-      throw new Error("Kies een duur tussen 15 en 480 minuten.");
-    }
 
-    const kind = RIDE_KINDS[optionalString(formData.get("kind")) ?? "buitenrit"];
+    const kind = RIDE_KINDS[optionalString(formData.get("kind")) ?? "rit"];
     if (!kind) throw new Error("Ongeldig soort rit.");
-    const effort = RIDE_EFFORTS[optionalString(formData.get("effort")) ?? ""] ?? kind.intensity;
     const note = optionalString(formData.get("note"));
-    const title = optionalString(formData.get("title")) ?? kind.title;
+    const templateId = optionalString(formData.get("template_id"));
 
     const plan = await activeBasePlan(admin, user.id);
     if (!plan) {
       throw new Error("Je hebt nog geen lopend schema om een rit in te plannen.");
     }
 
-    const blocks = normalizeWorkoutBlocks(
-      [{ label: title, durationMinutes, target: "", notes: note ?? "", intensity: effort }],
-      effort,
-    );
-    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48);
-    const { data: created, error } = await admin
-      .from("training_workouts")
-      .insert({
-        plan_id: plan.id,
-        profile_id: user.id,
-        trainer_id: plan.trainer_id,
-        scheduled_at: `${date}T${time}:00+01:00`,
+    let workout: {
+      title: string;
+      description: string | null;
+      duration_minutes: number;
+      intensity: string;
+      target_type: string;
+      structure_json: unknown;
+      method_label: string | null;
+    };
+    if (templateId && kind === RIDE_KINDS.eigen) {
+      const { data } = await ownWorkoutTemplates(
+        admin,
+        "title, description, duration_minutes, intensity, target_type, structure_json, method_label",
+      )
+        .eq("id", templateId)
+        .maybeSingle();
+      const template = data as unknown as Record<string, unknown> | null;
+      if (!template) throw new Error("Workout niet gevonden in de bibliotheek.");
+      workout = {
+        title: String(template.title),
+        description: note ?? (template.description as string | null),
+        duration_minutes: Number(template.duration_minutes),
+        intensity: String(template.intensity),
+        target_type: String(template.target_type),
+        structure_json: template.structure_json,
+        method_label: methodLabelOf(template.method_label as string | null),
+      };
+    } else {
+      const durationMinutes = Math.round(optionalNumber(formData.get("duration_minutes")) ?? 0);
+      if (durationMinutes < 15 || durationMinutes > 480) {
+        throw new Error("Kies een duur tussen 15 en 480 minuten.");
+      }
+      const effort = RIDE_EFFORTS[optionalString(formData.get("effort")) ?? ""] ?? kind.intensity;
+      const title = optionalString(formData.get("title")) ?? kind.title;
+      workout = {
         title,
         description: note,
         duration_minutes: durationMinutes,
         intensity: effort,
         target_type: "free",
-        structure_json: blocks,
+        structure_json: normalizeWorkoutBlocks(
+          [{ label: title, durationMinutes, target: "", notes: note ?? "", intensity: effort }],
+          effort,
+        ),
+        method_label: null,
+      };
+    }
+
+    const title = workout.title;
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48);
+    const { data: created, error } = await admin
+      .from("training_workouts")
+      .insert({
+        ...workout,
+        plan_id: plan.id,
+        profile_id: user.id,
+        trainer_id: plan.trainer_id,
+        scheduled_at: `${date}T${time}:00+01:00`,
         origin: "member",
         publish_status: "pending",
         intervals_external_id: `zwb-${plan.id}-${date}-${slug}`,

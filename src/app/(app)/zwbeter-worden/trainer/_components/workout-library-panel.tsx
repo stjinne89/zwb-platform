@@ -33,7 +33,7 @@ export type WorkoutTemplateRow = {
   intensity: string;
   is_standard: boolean;
   created_by: string | null;
-  /** Veelbelovend of experimenteel (0246). */
+  /** Nieuwe methode (0246: veelbelovend of experimenteel). */
   method_label?: string | null;
   structure_json?: unknown;
 };

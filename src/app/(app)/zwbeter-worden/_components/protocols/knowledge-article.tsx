@@ -8,7 +8,7 @@ import { MethodLabelBadge } from "@/components/method-label-badge";
 import type { KnowledgeSource } from "@/lib/knowledge/source";
 import { EVIDENCE_LABELS } from "@/lib/nutrition/library";
 import { PROTOCOLS } from "@/lib/protocols";
-import type { ArticleEvidence } from "@/lib/knowledge/evidence";
+import type { ArticleConclusion, ArticleEvidence } from "@/lib/knowledge/evidence";
 import { EvidenceBadge } from "@/components/evidence-badge";
 import { ArticleExperts } from "@/app/(app)/zwbieb/_components/article-experts";
 
@@ -62,6 +62,7 @@ export function KnowledgeArticleView({
     sources: KnowledgeSource[];
     methodLabel?: string;
     evidence: ArticleEvidence;
+    conclusion?: ArticleConclusion;
   };
   articleHref: string;
 }) {
@@ -73,7 +74,7 @@ export function KnowledgeArticleView({
         <h2 className="mt-1 text-xl font-semibold">{article.title}</h2>
         <p className="mt-2 max-w-3xl text-muted-foreground">{article.summary}</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <EvidenceBadge evidence={article.evidence} />
+          <EvidenceBadge evidence={article.evidence} conclusion={article.conclusion} />
           <MethodLabelBadge label={article.methodLabel} />
         </div>
       </div>

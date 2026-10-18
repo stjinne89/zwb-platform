@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { ARTICLE_EVIDENCE_LABELS } from "@/lib/knowledge/evidence";
+import { ARTICLE_EVIDENCE, evidenceText } from "@/lib/knowledge/evidence";
 import { EVIDENCE_KINDS } from "@/lib/nutrition/library";
 import { MATERIAAL_ARTICLES, MATERIAAL_CATEGORIES } from "@/lib/materiaal/library";
 import {
@@ -24,10 +24,10 @@ import {
 import { AIR_DENSITY, DRIVETRAIN_EFF } from "@/lib/ride-estimate";
 
 // De kennisbank materiaal (2026-10-18). Het niveau per artikel is goedgekeurd in
-// docs/materiaal-onderzoek-2026-10-17.md ("Artikelen en niveaus"); wijzigt een
-// niveau, dan eerst daar.
+// docs/beoordelingsbeleid-bewijsniveau.md ("Per artikel"); wijzigt een niveau,
+// dan eerst daar.
 
-const doc = readFileSync("docs/materiaal-onderzoek-2026-10-17.md", "utf8");
+const doc = readFileSync("docs/beoordelingsbeleid-bewijsniveau.md", "utf8");
 const route = (id: string) => VASTE_ROUTES.find((r) => r.id === id)!.segments;
 const rijder = { watts: 200, gewichtKg: 75, groep: false, wegdek: "glad" as const };
 
@@ -39,8 +39,7 @@ describe("kennisbank materiaal", () => {
       expect(article.sources.length, article.slug).toBeGreaterThan(0);
       expect(article.limits.length, article.slug).toBeGreaterThan(0);
       expect(MATERIAAL_CATEGORIES).toContain(article.category);
-      // Geen "afgeraden" bij materiaal (besluit eigenaar, 2026-10-18).
-      expect(["sterk", "matig", "beperkt"]).toContain(article.evidence);
+      expect(ARTICLE_EVIDENCE).toContain(article.evidence);
       for (const source of article.sources) {
         expect(EVIDENCE_KINDS).toContain(source.kind);
         expect(source.url).toMatch(/^https:\/\/doi\.org\/10\./);
@@ -53,7 +52,7 @@ describe("kennisbank materiaal", () => {
     for (const article of MATERIAAL_ARTICLES) {
       const row = rows.find((line) => line.includes(`| ${article.title} |`));
       expect(row, `${article.title} staat niet in de tabel`).toBeDefined();
-      expect(row, article.title).toContain(`| **${ARTICLE_EVIDENCE_LABELS[article.evidence].replace(" bewijs", "")}** |`);
+      expect(row, article.title).toContain(`| **${evidenceText(article.evidence, article.conclusion)}** |`);
     }
   });
 });

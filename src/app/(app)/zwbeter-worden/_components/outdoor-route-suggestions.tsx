@@ -113,7 +113,7 @@ export function OutdoorRouteSuggestions({
           <MapPin className="size-4 shrink-0 text-primary" />
           Buiten rijden
           <Link
-            href="/hulp#routevoorstellen"
+            href="/hulp/workouts#routevoorstellen"
             title="Hulp bij routevoorstellen"
             aria-label="Hulp bij routevoorstellen"
             className="text-xs font-normal text-muted-foreground underline hover:text-foreground"
@@ -230,7 +230,7 @@ export function OutdoorRouteSuggestions({
                         GPX
                       </a>
                       <Link
-                        href="/hulp#routevoorstellen"
+                        href="/hulp/workouts#routevoorstellen"
                         className="text-xs text-muted-foreground underline hover:text-foreground"
                       >
                         Op je fietscomputer

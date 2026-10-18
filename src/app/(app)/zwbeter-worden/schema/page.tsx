@@ -72,6 +72,7 @@ import {
 } from "../_data";
 import { calendarMarkers } from "@/lib/protocols";
 import { shiftDays } from "@/lib/training/season";
+import { loadOwnWorkoutOptions } from "@/lib/training/own-workouts";
 import { loadActiveRuns } from "../_protocol-data";
 
 export const dynamic = "force-dynamic";
@@ -150,6 +151,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     ignoredStreak,
     zrlTeamMember,
     warmupOptions,
+    ownWorkoutOptions,
     memberWorkouts,
     zwift,
     outdoor,
@@ -169,6 +171,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     loadIgnoredStreak(viewer),
     loadZrlTeamMembership(viewer),
     loadWarmupOptions(createAdminClient()).catch(() => []),
+    loadOwnWorkoutOptions(createAdminClient()).catch(() => []),
     memberWorkoutsPromise,
     zwiftPromise,
     outdoorPromise,
@@ -474,7 +477,13 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
 
       <EventChoice events={eventChoices} />
 
-      {runningPlan ? <PlanRideForm todayKey={todayKey} /> : null}
+      {runningPlan ? (
+        <PlanRideForm
+          todayKey={todayKey}
+          workouts={ownWorkoutOptions}
+          ftpWatts={profile?.ftp_watts == null ? null : Number(profile.ftp_watts)}
+        />
+      ) : null}
 
       {/* Inplannen doet de trainer; hier vult het lid zijn uitslag in, ook van
           een test die buiten het schema om is gereden. */}

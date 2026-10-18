@@ -446,7 +446,7 @@ type PublishableWorkout = {
   duration_minutes: number;
   intensity: WorkoutIntensity;
   structure_json: unknown;
-  /** Veelbelovend of experimenteel; komt vooraan in de beschrijving (0246). */
+  /** Nieuwe methode (0246); komt vooraan in de beschrijving. */
   method_label?: string | null;
   intervals_event_id: string | null;
   intervals_external_id: string | null;

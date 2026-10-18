@@ -47,7 +47,11 @@ export default async function ZwbiebLeeszaalPage() {
         }
       />
       <ZwbiebTabs current="leeszaal" />
-      <EvidenceLegend levels={all.flatMap((shelf) => shelf.books.map((book) => book.evidence))} methodLabels />
+      <EvidenceLegend
+        levels={all.flatMap((shelf) => shelf.books.map((book) => book.evidence))}
+        conclusions={all.flatMap((shelf) => shelf.books.map((book) => book.conclusion))}
+        methodLabels
+      />
       <ShelfBrowser
         shelves={all.map((shelf) => ({
           slug: shelf.slug,
@@ -62,6 +66,7 @@ export default async function ZwbiebLeeszaalPage() {
             summary: book.summary,
             collection: COLLECTION_LABELS[book.collection],
             evidence: book.evidence,
+            conclusion: book.conclusion,
             methodLabel: book.methodLabel,
           })),
         }))}

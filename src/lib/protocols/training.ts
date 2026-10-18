@@ -583,7 +583,7 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
     summary:
       "Tien weken twee keer per week korte, maximale trappen bergop in een groot verzet: krachttraining zonder sportschool.",
     goal: "Meer kracht en sprintvermogen in je benen, op je eigen fiets.",
-    evidence: "beperkt",
+    evidence: "matig",
     anchor: "start",
     phases: [
       {

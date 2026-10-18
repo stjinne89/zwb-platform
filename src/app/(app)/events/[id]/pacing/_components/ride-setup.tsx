@@ -1,7 +1,7 @@
 "use client";
 
 // De opzet van een Zwift-event: format en fiets. Opslaan rekent het plan
-// meteen door; uitleg staat op /hulp#pacing-zwift.
+// meteen door; uitleg staat op /hulp/racen#pacing-zwift.
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";

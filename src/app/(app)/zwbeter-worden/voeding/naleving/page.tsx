@@ -160,7 +160,7 @@ export default async function LogPage({
         <h2 className="text-xl font-semibold">Naleving</h2>
         <LogConsentForm action={enableLog} />
         <Link
-          href="/hulp#voeding"
+          href="/hulp/kennis#voeding"
           className="inline-flex min-h-[44px] items-center text-sm text-muted-foreground hover:underline"
         >
           Hoe dit werkt
@@ -388,7 +388,7 @@ export default async function LogPage({
         )}
         <DeleteLogButton action={deleteLog} />
         <Link
-          href="/hulp#voeding"
+          href="/hulp/kennis#voeding"
           className="inline-flex min-h-[44px] items-center text-sm text-muted-foreground hover:underline"
         >
           Hoe dit werkt

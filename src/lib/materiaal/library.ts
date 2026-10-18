@@ -1,22 +1,21 @@
 // De kennisbank materiaal en kleine winsten (2026-10-18).
 //
 // Zelfde opzet als de kennisbanken trainen, voeding en kracht: in code, zodat
-// elke bewering en elke bron via een commit gaat. Het onderzoek en het niveau
-// per artikel staan in docs/materiaal-onderzoek-2026-10-17.md; een test houdt
-// code en tabel gelijk. Teksten zijn eigen samenvattingen; we citeren de bronnen
-// niet letterlijk. Van de meeste bronnen is de samenvatting gelezen, van een deel
-// (via de onderzoeksagent van Consensus) ook de volle tekst.
+// elke bewering en elke bron via een commit gaat. Het onderzoek staat in
+// docs/materiaal-onderzoek-2026-10-17.md, het niveau per artikel in
+// docs/beoordelingsbeleid-bewijsniveau.md; een test houdt code en tabel gelijk.
+// Teksten zijn eigen samenvattingen; we citeren de bronnen niet letterlijk. Van
+// de meeste bronnen is de samenvatting gelezen, van een deel (via de
+// onderzoeksagent van Consensus) ook de volle tekst.
 //
 // Anders dan bij de andere kennisbanken:
 // - Veel bronnen zijn metingen (windtunnel, testbank, veld): bronsoort "meting".
-// - Het bewijsniveau volgt de regels voor materiaal (sterk kan ook uit meerdere
-//   onafhankelijke groepen die het eens zijn; pop, testbank of computermodel
-//   alleen is hooguit matig) en kent geen "afgeraden": een artikel dat zegt dat
-//   iets niet helpt, zegt dat in de samenvatting en noemt de zwaktes.
-// - ZWB noemt geen merken en geeft geen koopadvies. Een merknaam staat alleen in
-//   een bronvermelding.
+//   Alleen een pop, testbank of computermodel is hooguit Onderbouwd.
+// - De kennisbank noemt geen merken en geeft geen koopadvies. Een merknaam staat
+//   alleen in een bronvermelding; merken met testcijfers staan in de rekenaar
+//   (producttests.ts).
 
-import type { ArticleEvidence } from "@/lib/knowledge/evidence";
+import type { ArticleConclusion, ArticleEvidence } from "@/lib/knowledge/evidence";
 import { doi, type KnowledgeSource } from "@/lib/knowledge/source";
 
 export const MATERIAAL_CATEGORIES = ["lucht", "rollen", "binnen", "lichaam", "klein"] as const;
@@ -35,6 +34,8 @@ export type MateriaalArticle = {
   category: MateriaalCategory;
   /** Hoe gegrond de conclusie is; zie src/lib/knowledge/evidence.ts. */
   evidence: ArticleEvidence;
+  /** "geen-effect" of "nadelig" als de conclusie is dat iets niet helpt; staat in de badge. */
+  conclusion?: ArticleConclusion;
   title: string;
   summary: string;
   points: string[];
@@ -779,6 +780,7 @@ export const MATERIAAL_ARTICLES: MateriaalArticle[] = [
     slug: "neusstrips",
     category: "klein",
     evidence: "matig",
+    conclusion: "geen-effect",
     title: "Neusstrips",
     summary:
       "Neusstrips maken ademen door je neus makkelijker, maar je fietst er niet harder door. Alleen bij een vernauwde neus kan een spreider helpen.",
@@ -799,6 +801,7 @@ export const MATERIAAL_ARTICLES: MateriaalArticle[] = [
     slug: "compressiekleding",
     category: "klein",
     evidence: "sterk",
+    conclusion: "geen-effect",
     title: "Compressiekleding",
     summary:
       "Compressiekleding maakt je niet sneller, niet tijdens het sporten en niet als herstelmiddel voor de volgende prestatie. Of je er minder spierpijn van hebt, is onzeker.",
@@ -819,6 +822,7 @@ export const MATERIAAL_ARTICLES: MateriaalArticle[] = [
     slug: "inlegzolen",
     category: "klein",
     evidence: "matig",
+    conclusion: "geen-effect",
     title: "Inlegzolen",
     summary:
       "Speciale of op maat gemaakte inlegzolen geven geen extra vermogen. Ze kunnen wel helpen tegen drukklachten onder je voet.",

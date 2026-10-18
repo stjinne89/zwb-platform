@@ -15,7 +15,7 @@
 // gezondheidsonderwerp (wie zich als kenner meldt, vertelt de club iets over
 // zichzelf); een artikel lezen vertelt niemand iets.
 
-import type { ArticleEvidence } from "@/lib/knowledge/evidence";
+import type { ArticleConclusion, ArticleEvidence } from "@/lib/knowledge/evidence";
 import { MATERIAAL_ARTICLES } from "@/lib/materiaal/library";
 import { NUTRITION_ARTICLES } from "@/lib/nutrition/library";
 import type { MethodLabel } from "@/lib/training/method-label";
@@ -218,7 +218,9 @@ export type Book = {
   summary: string;
   collection: Collection;
   evidence: ArticleEvidence;
-  /** Veelbelovend of experimenteel (alleen bij trainen); zie method-label.ts. */
+  /** "geen effect" of "nadelig"; staat in de badge. */
+  conclusion: ArticleConclusion | null;
+  /** Nieuwe methode (alleen bij trainen); zie method-label.ts. */
   methodLabel: MethodLabel | null;
 };
 
@@ -233,6 +235,7 @@ function allArticles(): Map<BookRef, Book> {
       title: string;
       summary: string;
       evidence: ArticleEvidence;
+      conclusion?: ArticleConclusion;
       methodLabel?: MethodLabel;
     }[],
   ) => {
@@ -243,6 +246,7 @@ function allArticles(): Map<BookRef, Book> {
         summary: article.summary,
         collection,
         evidence: article.evidence,
+        conclusion: article.conclusion ?? null,
         methodLabel: article.methodLabel ?? null,
       });
     }
