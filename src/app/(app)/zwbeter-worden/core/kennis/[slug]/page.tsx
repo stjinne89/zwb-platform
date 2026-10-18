@@ -39,7 +39,7 @@ export default async function StrengthArticlePage({
         </p>
         <h2 className="mt-1 text-xl font-semibold">{article.title}</h2>
         <p className="mt-2 max-w-3xl text-muted-foreground">{article.summary}</p>
-        <EvidenceBadge evidence={article.evidence} className="mt-3" />
+        <EvidenceBadge evidence={article.evidence} conclusion={article.conclusion} className="mt-3" />
       </div>
 
       <ul className="max-w-3xl space-y-2 rounded-lg border bg-card p-5 text-sm">

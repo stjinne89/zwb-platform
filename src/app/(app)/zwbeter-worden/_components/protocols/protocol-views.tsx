@@ -5,7 +5,6 @@ import Link from "next/link";
 import { AlertTriangle, CheckCircle2, ChevronRight, ExternalLink, OctagonX, Thermometer } from "lucide-react";
 import { EVIDENCE_LABELS } from "@/lib/nutrition/library";
 import {
-  PROTOCOL_EVIDENCE_LABELS,
   formatDose,
   phaseOn,
   protocolBySlug,
@@ -24,6 +23,7 @@ import type { DurabilityPoint } from "@/lib/training/durability-test";
 import { shiftDays } from "@/lib/training/season";
 import { cn } from "@/lib/utils";
 import { BackLink } from "@/components/app-ui";
+import { EvidenceBadge } from "@/components/evidence-badge";
 import { MethodLabelBadge } from "@/components/method-label-badge";
 import { startProtocol, stopProtocol, toggleProtocolTask } from "../../_protocol-actions";
 import { ProtocolStartForm, ProtocolStopButton, ProtocolTaskToggle } from "./protocol-forms";
@@ -34,17 +34,11 @@ export function formatDay(day: string): string {
   return DATE.format(new Date(`${day}T12:00:00Z`));
 }
 
-function EvidenceBadge({ protocol }: { protocol: Protocol }) {
+// Dezelfde badge als bij een kennisartikel.
+function ProtocolBadges({ protocol }: { protocol: Protocol }) {
   return (
     <>
-      <span
-        className={cn(
-          "rounded-full px-2 py-0.5 text-xs font-medium",
-          protocol.evidence === "sterk" ? "bg-primary/10 text-primary" : "bg-secondary text-secondary-foreground",
-        )}
-      >
-        {PROTOCOL_EVIDENCE_LABELS[protocol.evidence]}
-      </span>
+      <EvidenceBadge evidence={protocol.evidence} />
       <MethodLabelBadge label={protocol.methodLabel} />
     </>
   );
@@ -76,7 +70,7 @@ export function ProtocolList({
                     <span className="min-w-0">
                       <span className="block font-medium">{protocol.title}</span>
                       <span className="mt-1 flex flex-wrap gap-2">
-                        <EvidenceBadge protocol={protocol} />
+                        <ProtocolBadges protocol={protocol} />
                         {activeSlugs.has(protocol.slug) ? (
                           <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
                             Loopt
@@ -316,7 +310,7 @@ export function ProtocolDetail({
         <h2 className="mt-1 text-xl font-semibold">{protocol.title}</h2>
         <p className="mt-2 max-w-3xl text-muted-foreground">{protocol.summary}</p>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-          <EvidenceBadge protocol={protocol} />
+          <ProtocolBadges protocol={protocol} />
           <span className="text-muted-foreground">{protocol.goal}</span>
         </div>
       </div>

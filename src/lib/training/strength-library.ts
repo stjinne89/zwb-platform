@@ -10,7 +10,7 @@
 // samenvattingen; we citeren de bronnen niet letterlijk. Van de meeste bronnen
 // is alleen de samenvatting gelezen.
 
-import type { ArticleEvidence } from "@/lib/knowledge/evidence";
+import type { ArticleConclusion, ArticleEvidence } from "@/lib/knowledge/evidence";
 import type { EvidenceKind } from "@/lib/nutrition/library";
 
 export const STRENGTH_CATEGORIES = ["kracht", "core", "mobiliteit"] as const;
@@ -34,6 +34,8 @@ export type StrengthArticle = {
   category: StrengthCategory;
   /** Hoe gegrond het centrale advies is; zie src/lib/knowledge/evidence.ts. */
   evidence: ArticleEvidence;
+  /** "geen-effect" of "nadelig" als de conclusie is dat iets niet helpt; staat in de badge. */
+  conclusion?: ArticleConclusion;
   title: string;
   summary: string;
   points: string[];
@@ -367,7 +369,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
   {
     slug: "het-gymprogramma",
     category: "kracht",
-    evidence: "beperkt",
+    evidence: "matig",
     title: "Het gymprogramma: opbouw in drie blokken",
     summary:
       "De gymseries volgen één beschreven onderzoeksprogramma: vier beenoefeningen, drie sets, twee keer per week, van tien naar zes herhalingen.",
@@ -522,7 +524,7 @@ export const STRENGTH_ARTICLES: StrengthArticle[] = [
   {
     slug: "kracht-op-de-fiets",
     category: "kracht",
-    evidence: "beperkt",
+    evidence: "matig",
     title: "Kracht op de fiets",
     summary:
       "Korte, maximale trappen bergop in een groot verzet gaven bij goed getrainde renners evenveel kracht als squats in de sportschool, zonder extra klachten.",

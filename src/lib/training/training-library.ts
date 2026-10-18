@@ -9,7 +9,7 @@
 // De onderbouwing staat uitgebreider in docs/protocollen-onderzoek.md. Teksten
 // zijn eigen samenvattingen; we citeren de bronnen niet letterlijk.
 
-import type { ArticleEvidence } from "@/lib/knowledge/evidence";
+import type { ArticleConclusion, ArticleEvidence } from "@/lib/knowledge/evidence";
 import { doi, type KnowledgeSource } from "@/lib/knowledge/source";
 import type { MethodLabel } from "@/lib/training/method-label";
 import {
@@ -65,13 +65,15 @@ export type TrainingArticle = {
   category: TrainingCategory;
   /** Hoe gegrond het centrale advies is; zie src/lib/knowledge/evidence.ts. */
   evidence: ArticleEvidence;
+  /** "geen-effect" of "nadelig" als de conclusie is dat iets niet helpt; staat in de badge. */
+  conclusion?: ArticleConclusion;
   title: string;
   summary: string;
   points: string[];
   /** Wat de bronnen níét laten zien, of wat een eigen keuze van ZWB is. */
   limits: string[];
   sources: KnowledgeSource[];
-  /** Veelbelovend of experimenteel; zie method-label.ts. */
+  /** Nieuwe methode; zie method-label.ts. */
   methodLabel?: MethodLabel;
 };
 
@@ -739,7 +741,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "zones",
     category: "intensiteit",
-    evidence: "matig",
+    evidence: "sterk",
     title: "Zones: een afspraak, geen grens in je lijf",
     summary:
       "De zones in ZWB zijn die van Zwift, in procenten van je FTP. Handig om af te spreken, maar dezelfde procent betekent niet voor iedereen hetzelfde.",
@@ -888,7 +890,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "ftp-test",
     category: "testen",
-    evidence: "matig",
+    evidence: "sterk",
     title: "Je FTP: wat de test meet",
     summary:
       "Een FTP-test is een goed herhaalbare prestatietest, maar geen exacte meting van je drempel. Per renner zit hij er al gauw een paar procent naast.",
@@ -921,7 +923,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
   {
     slug: "opbouwen",
     category: "piek",
-    evidence: "matig",
+    evidence: "beperkt",
     title: "Opbouwen: hoe snel mag het?",
     summary:
       "Geleidelijk opbouwen en grote sprongen vermijden helpt. Dat het precies 10 % per week moet zijn, is nooit aangetoond.",

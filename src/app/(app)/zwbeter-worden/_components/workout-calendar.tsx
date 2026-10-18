@@ -29,7 +29,7 @@ export type CalendarWorkout = {
    * historie, maar mag er niet uitzien als iets dat nog gereden moet worden.
    */
   missed?: boolean;
-  /** Veelbelovend of experimenteel; staat in de tooltip. */
+  /** Nieuwe methode (veelbelovend of experimenteel); staat in de tooltip. */
   methodLabel?: string | null;
 };
 

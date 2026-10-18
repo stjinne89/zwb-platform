@@ -7,7 +7,7 @@ import {
   coachKnowledgeText,
   shortSourceLabel,
 } from "@/lib/knowledge/coach";
-import { ARTICLE_EVIDENCE_LABELS } from "@/lib/knowledge/evidence";
+import { evidenceText } from "@/lib/knowledge/evidence";
 import { dropUnknownKnowledgeLinks, splitKnowledgeLinks } from "@/lib/knowledge/links";
 import { COACH_SYSTEM_PROMPT, coachInstructions } from "@/lib/training/coach-chat";
 
@@ -122,7 +122,7 @@ describe("bewijsniveau voor de coach", () => {
     for (const base of COACH_KNOWLEDGE_BASES) {
       for (const article of base.articles) {
         expect(text).toContain(
-          `Pad: ${base.basePath}/${article.slug}\nBewijs: ${ARTICLE_EVIDENCE_LABELS[article.evidence]}\n`,
+          `Pad: ${base.basePath}/${article.slug}\nBewijs: ${evidenceText(article.evidence, article.conclusion)}\n`,
         );
       }
     }

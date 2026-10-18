@@ -164,10 +164,6 @@ gaat stabiliteit voor nieuwe features.
      overbelasting vóór de taper en variabel vermogen in de tijdrit.
    Samenvatting per fase bovenaan
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
-8. **Beleid bewijsniveau: wacht op akkoord** (voorstel 2026-10-18). Nieuwe
-   woorden, "Nieuwe methode", "geen effect" en een herbeoordeling van alle
-   kennisartikelen; bouwen na akkoord. Zie de ronde "Voorstel — beleid
-   bewijsniveau" en [het voorstel](docs/beoordelingsbeleid-bewijsniveau.md).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -9996,60 +9992,88 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
-### Voorstel — beleid bewijsniveau (wacht op akkoord)
+### Opgeleverd — beleid bewijsniveau voor alle kennisbanken
 
-**Voorgesteld 2026-10-18.** Commit: de commit die dit blok toevoegt. Alleen
-documenten; er is niets gebouwd. Geen migratie. Het voorstel:
-[beoordelingsbeleid-bewijsniveau](docs/beoordelingsbeleid-bewijsniveau.md).
+**Voorgesteld (`77449114`), goedgekeurd en gebouwd 2026-10-18.** Commit: de
+commit die dit blok bijwerkt. Geen migratie. Beleid, criteria en niveau per
+artikel: [beoordelingsbeleid-bewijsniveau](docs/beoordelingsbeleid-bewijsniveau.md).
 
 **Aanleiding.** De eigenaar vroeg één beleid voor alle kennisbanken, zodat gelijk
 bewijs overal hetzelfde niveau krijgt. "Matig" en "beperkt" vond hij te negatief,
-"veelbelovend" en "experimenteel" positiever dan ze zijn. Zijn besluiten van
-2026-10-18 staan in het document; dit voorstel werkt ze uit.
+"veelbelovend" en "experimenteel" positiever dan ze zijn.
 
-**Wat het voorstelt.**
-- **Nieuwe woorden**: Stevig onderbouwd, Onderbouwd, Eerste aanwijzingen. De
-  sleutels in code (`sterk`, `matig`, `beperkt`) blijven.
-- **"Nieuwe methode"** in plaats van Veelbelovend en Experimenteel, bij workouts,
-  protocollen en de vijf artikelen met een label. De kolom `method_label` en
-  migratie `0246` blijven zoals ze zijn; alleen de getoonde tekst, de coachprompt
-  en de tekst naar intervals.icu veranderen.
-- **"Geen effect" in de badge** bij zes artikelen (*Wat niet werkt*, *Ketonen*,
-  *Low-carb en keto*, *Neusstrips*, *Compressiekleding*, *Inlegzolen*).
-  "Afgeraden" verdwijnt.
+**Wat er veranderde.**
+- **Nieuwe woorden**: Stevig onderbouwd, Onderbouwd, Eerste aanwijzingen, ook
+  bij de protocollen. De sleutels in code (`sterk`, `matig`, `beperkt`) bleven.
+- **"Nieuwe methode"** in plaats van Veelbelovend en Experimenteel, in één
+  neutrale stijl, bij workouts, protocollen en de vijf artikelen met een label,
+  en vooraan in de beschrijving naar intervals.icu. De kolom `method_label` en
+  migratie `0246` bleven zoals ze waren.
+- **De conclusie in de badge**: "geen effect" bij *Wat niet werkt*, *Ketonen*,
+  *Neusstrips*, *Compressiekleding* en *Inlegzolen*; "nadelig" bij *Low-carb en
+  keto* (besluit eigenaar). "Afgeraden" bestaat niet meer.
 - **Eén set criteria**: drie routes naar Stevig onderbouwd (consensus, meerdere
   meta-analyses, drie onafhankelijke groepen), zes begrenzingen, de bronsoort
-  `meting` overal, en een werkwijze voor nieuwe artikelen voor de kennisbank-scan.
-- **Herbeoordeling van alle 73 artikelen.** Zeven krijgen een ander niveau:
-  *Zones*, *Je FTP*, *Darmtraining*, *Herstel tussen sessies*, *Het
-  gymprogramma* en *Kracht op de fiets* omhoog, *Opbouwen* omlaag. Het protocol
-  *Kracht op de fiets* gaat mee. Uitkomst: 23 stevig onderbouwd, 36 onderbouwd,
-  14 eerste aanwijzingen.
-- **Lijst van alle plekken** die de bouwronde raakt: badges, legenda's,
-  kennisbanklijsten, leeszaal, rekenaar, protocollen, trainer en schema, coach,
-  intervals.icu, `/hulp`, tests, documenten en de scan.
-
-**Open voor de eigenaar.**
-1. Bij *Low-carb en keto* een tweede vorm "nadelig" in plaats van "geen effect".
-2. Akkoord op de zeven verschuivingen.
+  `meting` overal, en een werkwijze voor nieuwe artikelen die de kennisbank-scan
+  volgt. Eén legenda voor alle kennisbanken.
+- **Zeven artikelen kregen een ander niveau**: *Zones*, *Je FTP*,
+  *Darmtraining*, *Herstel tussen sessies*, *Het gymprogramma* en *Kracht op de
+  fiets* omhoog, *Opbouwen* omlaag. Het protocol *Kracht op de fiets* ging mee
+  naar onderbouwd. Uitkomst: 23 stevig onderbouwd, 36 onderbouwd, 14 eerste
+  aanwijzingen.
+- De tekst van *Supplementen en sportvoeding* noemde nitraat en glycerol "sterk
+  onderbouwd", terwijl hun protocollen onderbouwd zijn. Rechtgezet.
+- De protocolpagina's gebruiken nu dezelfde badge als de artikelen.
+- **Coach**: het kennisblok zet de conclusie bij "Bewijs:", de prompt kent de
+  nieuwe woorden, "geen effect" en "nadelig".
+- **`/hulp`**: het blok "Bewijsniveau" is herschreven, "Veelbelovend en
+  experimenteel" heet "Nieuwe methode", en het materiaalblok verwijst ernaar.
+- **Documenten en scan**: de tests lezen de niveaus nu uit het beleidsdocument;
+  `docs/bewijsniveau-kennisbank.md` en de materiaalparagraaf zijn geschiedenis.
+  De skill `kennisbank-scan` en `scripts/kennisbank-inventaris.mjs` volgen het
+  nieuwe beleid.
 
 **Bewust niet.** Een vierde niveau of "Afgeraden" houden; de sleutels in code
 hernoemen; een migratie voor `method_label`; alle protocollen opnieuw
-beoordelen. De redenen staan in het document.
+beoordelen; de vorm "geen effect" bij een keuze tussen twee dingen die allebei
+werken (*Gepolariseerd of piramidaal*, *Cranklengte*). De redenen staan in het
+document.
 
-**Nu nog waar, na de bouwronde niet meer** (dan corrigeren, niet alleen
-aanvullen): het blok "Opgeleverd — bewijsniveau per kennisartikel" zegt dat het
-niveau naast Veelbelovend en Experimenteel staat en dat er een niveau Afgeraden is;
-het blok "Opgeleverd — veelbelovende en experimentele trainingsmethodes" noemt de
-twee labels als wat een lid ziet.
+**Niet meer waar.** Op zeven plekken in eerdere blokken (Workout-bibliotheek,
+ZWBeter materiaal, bewijsniveau per kennisartikel, veelbelovende en
+experimentele trainingsmethodes) stond een correctie bij.
 
-**Hoe beoordeeld en niet geverifieerd.** Op de bronnen die nu in de app staan.
-Eén keer opnieuw gezocht, in PubMed, voor *Darmtraining*. Welke auteurs bij
-welke groep horen, is afgeleid uit de bronvermeldingen. Er is geen code
-veranderd en dus niets getest; de oude tabellen, waar de tests op lezen, zijn
-niet aangepast. Na de bouwronde intervals.icu nakijken: al gepubliceerde
-workouts houden "Veelbelovend." of "Experimenteel." tot ze opnieuw
-gesynchroniseerd worden.
+**Hoe beoordeeld.** Op de bronnen die in de app staan. Eén keer opnieuw
+gezocht, in PubMed, voor *Darmtraining* (het position statement van Costa 2025).
+Welke auteurs bij welke groep horen, is afgeleid uit de bronvermeldingen.
+
+**Getest.**
+- `article-evidence.test.ts` (herschreven): geldig niveau en conclusie, gelijk
+  aan de tabel in het beleidsdocument, precies zes artikelen met een conclusie,
+  lage cadans en kracht op de fiets gelijk aan hun protocol.
+- `materiaal.test.ts` en `coach-knowledge.test.ts` met de nieuwe tekst;
+  `workout-on-off.test.ts`: "Nieuwe methode." vooraan, en een oud voorvoegsel
+  wordt vervangen, niet verdubbeld.
+- Hele suite: 2808 van 2809 groen. `omnium-live.test.ts` draait niet zonder
+  `.env.local` in de worktree, en `admin-areas.test.ts` liep één keer in een
+  time-out onder belasting en slaagt los. `tsc`: geen nieuwe fouten (alleen
+  ontbrekende optionele modules `@zxing` en `tesseract.js`, al bekend). ESLint
+  op de gewijzigde bestanden: schoon.
+
+**In de browser bekeken** (dev-server vanuit de worktree, ingelogd, 375 px):
+voeding- en trainenlijst met legenda en nieuwe woorden; materiaallijst met drie
+keer "geen effect"; protocol Kracht op de fiets op Onderbouwd; Blokweek 30/15
+met Nieuwe methode; rekenaar met de langere badge; leeszaal-zoeken op "geen
+effect" geeft de vijf artikelen. Geen horizontale scroll, geen fouten in de
+console.
+
+**Niet geverifieerd.**
+- **intervals.icu**: al gepubliceerde workouts houden "Veelbelovend." of
+  "Experimenteel." vooraan tot ze opnieuw gesynchroniseerd worden; niet getest
+  tegen intervals.icu zelf.
+- Hoe de coach de nieuwe woorden in een echt antwoord gebruikt (vraagt een
+  OpenAI-call op productie).
+- Niet gepusht.
 
 ### Gebouwd — ZWB DS: hoogteprofiel en meer rennersdata
 
@@ -10612,7 +10636,8 @@ lid, en de bewijslabels van de kennisbank.
   als onderhoud*; Kracht 6x2 laag toerental → *Lage cadans*; tests → *Je FTP*;
   warming-ups → *Warming-up*; herstelritten en duurritten onder 150 minuten →
   *Rustige ritten rustig*; duurritten vanaf 150 minuten → *Lange ritten*.
-  Het label Veelbelovend of Experimenteel blijft ernaast staan.
+  Het label Nieuwe methode (tot 2026-10-18 Veelbelovend of Experimenteel)
+  blijft ernaast staan.
 
 **Bewust niet gedaan.**
 - ~~Geen niveau op 20 workouts~~ (tempo, sweet spot behalve de blokweken,
@@ -10748,7 +10773,9 @@ taak staat als voorstel klaar.
   - 8 sterk, 7 matig, 1 beperkt, geen Afgeraden;
   - een nieuwe bronsoort `meting` (`EVIDENCE_KINDS`);
   - een eigen legenda (`MATERIAAL_EVIDENCE_LEGEND`), omdat *sterk* hier ook uit
-    meerdere onafhankelijke groepen kan komen.
+    meerdere onafhankelijke groepen kan komen. *(Sinds 2026-10-18 anders: zie "Opgeleverd — beleid bewijsniveau voor alle kennisbanken".)* Die regels
+    gelden nu voor alle kennisbanken, met één legenda; drie artikelen kregen
+    "geen effect" in de badge.
 - **Rekenaar** (`src/lib/materiaal/rekenaar.ts` plus de pagina):
   - rekent een route twee keer door met `estimateRide`;
   - vaste routes: vlak 40 km, heuvelachtig 40 km en een klim van 8 km op 6 %;
@@ -10926,13 +10953,16 @@ kennisbanken en in ZWBieb.
 **Wat er veranderde.**
 - Elk artikel heeft een veld `evidence`. De waarden zijn die van de protocollen
   (sterk, matig, beperkt) plus `afgeraden`, en staan in
-  `src/lib/knowledge/evidence.ts`.
+  `src/lib/knowledge/evidence.ts`. *(Sinds 2026-10-18 anders: zie "Opgeleverd — beleid bewijsniveau voor alle kennisbanken".)* `afgeraden` bestaat niet
+  meer; de woorden zijn Stevig onderbouwd, Onderbouwd en Eerste aanwijzingen, met
+  een conclusie "geen effect" of "nadelig" in de badge.
 - Het niveau gaat over het centrale advies, met vaste criteria en twee
   begrenzingen:
   - alleen een tussenmaat: hooguit matig;
   - niet bij duursporters: hooguit matig.
 - Uitkomst: 10 sterk, 29 matig, 14 beperkt, 3 afgeraden.
 - Het niveau staat naast Veelbelovend en Experimenteel, en vervangt die niet.
+  *(Sinds 2026-10-18 anders: zie "Opgeleverd — beleid bewijsniveau voor alle kennisbanken".)* Die heten nu allebei Nieuwe methode, zonder oordeel.
 - **Besluiten van de eigenaar.**
   - *Wat niet werkt*, *Ketonen* en *Low-carb en keto* krijgen **Afgeraden** in
     plaats van een niveau.
@@ -10953,7 +10983,9 @@ kennisbanken en in ZWBieb.
 - **Coachchat.** Elk artikel gaat met "Bewijs: …" mee in het kennisbankblok.
   De prompt zegt nu:
   - bij beperkt bewijs zegt de coach dat erbij;
-  - iets afgeraden raadt hij af, ook als het lid erom vraagt.
+  - iets afgeraden raadt hij af, ook als het lid erom vraagt. *(Sinds 2026-10-18 anders: zie "Opgeleverd — beleid bewijsniveau voor alle kennisbanken".)* Nu:
+    bij "geen effect" raadt hij het niet aan als iets wat helpt, bij "nadelig"
+    raadt hij het af.
 - **Kennisbank-scan.** `scripts/kennisbank-inventaris.mjs` zet het niveau
   ("Bewijs:") bij elk artikel en protocol. Bij protocollen stond het eerst in de
   samenvatting. De skill `kennisbank-scan` stelt een ander niveau voor onder
@@ -11104,7 +11136,8 @@ wordt, en workouts in de bibliotheek.
 
 **Wat er veranderde.**
 - **Label.** `src/lib/training/method-label.ts`: `veelbelovend` of
-  `experimenteel`. Apart van het bewijsniveau van een protocol (sterk, matig,
+  `experimenteel`. *(Sinds 2026-10-18 anders: zie "Opgeleverd — beleid bewijsniveau voor alle kennisbanken".)* Beide tonen nu "Nieuwe methode", in één
+  neutrale stijl; de waarden bleven. Apart van het bewijsniveau van een protocol (sterk, matig,
   beperkt): dat zegt hoeveel onderzoek er is, het label of het effect al
   vaststaat. Het onderzoek stelde eerst een vierde bewijsniveau voor; dat is
   bij het bouwen losgelaten. Badge `src/components/method-label-badge.tsx`.
@@ -11144,6 +11177,7 @@ wordt, en workouts in de bibliotheek.
   De bron Rønnestad 2025 verhuisde van `training-library.ts` naar
   `protocols/training.ts`.
 - `/hulp#protocollen`: blok "Veelbelovend en experimenteel", plus zoekwoorden.
+  Heet sinds 2026-10-18 "Nieuwe methode".
 - **Coachchat** (na de merge met "Coachchat antwoordt met de kennisbank"): de
   vijf nieuwe artikelen gaan vanzelf mee; `coach.ts` zet er "Label:
   Veelbelovend/Experimenteel" bij, en de instructies vragen de coach dat label te

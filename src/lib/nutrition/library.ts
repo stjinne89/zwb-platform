@@ -9,7 +9,7 @@
 // uitgebreider in docs/voeding-wielrennen.md. Teksten zijn eigen samenvattingen;
 // we citeren de bronnen niet letterlijk.
 
-import type { ArticleEvidence } from "@/lib/knowledge/evidence";
+import type { ArticleConclusion, ArticleEvidence } from "@/lib/knowledge/evidence";
 
 // "meting" (2026-10-18): een gepubliceerde meting in een windtunnel, op een
 // testbank of in het veld, zoals bij de kennisbank materiaal.
@@ -53,6 +53,8 @@ export type NutritionArticle = {
   category: NutritionCategory;
   /** Hoe gegrond het centrale advies is; zie src/lib/knowledge/evidence.ts. */
   evidence: ArticleEvidence;
+  /** "geen-effect" of "nadelig" als de conclusie is dat iets niet helpt; staat in de badge. */
+  conclusion?: ArticleConclusion;
   title: string;
   summary: string;
   points: string[];
@@ -810,7 +812,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "darmtraining",
     category: "op-de-fiets",
-    evidence: "matig",
+    evidence: "sterk",
     title: "Darmtraining en maagklachten",
     summary:
       "Je maag en darmen wennen aan eten tijdens inspanning. Wie structureel meer per uur wil opnemen, bouwt dat stap voor stap op.",
@@ -974,7 +976,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "herstel",
     category: "herstel",
-    evidence: "matig",
+    evidence: "sterk",
     title: "Herstel tussen sessies",
     summary:
       "Heb je binnen ongeveer acht uur weer een zware sessie, dan telt snel aanvullen. Met meer tijd telt vooral wat je die dag in totaal eet.",
@@ -1169,12 +1171,12 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     evidence: "sterk",
     title: "Supplementen en sportvoeding",
     summary:
-      "Eerst de basisvoeding op orde. Een klein aantal supplementen heeft voor wielrennen een sterke onderbouwing, elk voor een specifieke situatie. Voor herstel en gezondheid is het bewijs dunner.",
+      "Eerst de basisvoeding op orde. Een klein aantal supplementen is voor wielrennen stevig onderbouwd, elk voor een specifieke situatie. Voor herstel en gezondheid is het bewijs dunner.",
     points: [
-      "Sterk onderbouwd voor prestatie: cafeïne, creatine, natriumbicarbonaat, bèta-alanine, nitraat (bietensap) en glycerol. Voor elk staat een protocol.",
+      "Stevig onderbouwd voor prestatie: cafeïne, creatine, natriumbicarbonaat en bèta-alanine. Onderbouwd: nitraat (bietensap) en glycerol. Voor elk staat een protocol.",
       "Sportdrank, gels, repen, elektrolyten en eiwitpoeder zijn gewone sportvoeding: handig, maar niet beter dan gewoon eten met dezelfde inhoud.",
       "IJzer, calcium en vitamine D alleen bij een tekort of een duidelijk risico. Voor vitamine D in de winter staat een protocol.",
-      "Veelbelovend, maar het bewijs is dun of wisselend: kersensap en andere polyfenolen, collageen, visolie, probiotica, curcumine en menthol. Kersensap en collageen hebben een protocol.",
+      "Het bewijs is dun of wisselend: kersensap en andere polyfenolen, collageen, visolie, probiotica, curcumine en menthol. Kersensap en collageen hebben een protocol.",
       "Geen of te weinig bewijs: BCAA's, magnesium tegen kramp, CBD en ketonen.",
       "Supplementen kunnen verontreinigd zijn met verboden stoffen. Kies bij voorkeur NZVT-geteste batches.",
       "Supplementprotocollen zijn er vanaf 18 jaar. Daaronder zijn eten en sportvoeding genoeg.",
@@ -1308,7 +1310,8 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "geen-bewijs",
     category: "supplementen",
-    evidence: "afgeraden",
+    evidence: "matig",
+    conclusion: "geen-effect",
     title: "Wat niet werkt",
     summary:
       "Een aantal populaire supplementen heeft geen of te weinig bewijs. Zonde van je geld, en elk supplement is een risico op verontreiniging.",
@@ -1328,7 +1331,8 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "ketonen",
     category: "supplementen",
-    evidence: "afgeraden",
+    evidence: "sterk",
+    conclusion: "geen-effect",
     title: "Ketonen",
     summary:
       "Ketondrankjes verhogen de ketonen in je bloed, maar maken je in een wedstrijd niet sneller. ZWB raadt ze af.",
@@ -1355,7 +1359,8 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
   {
     slug: "low-carb-keto",
     category: "basis",
-    evidence: "afgeraden",
+    evidence: "matig",
+    conclusion: "nadelig",
     title: "Low-carb en keto",
     summary:
       "Ketogeen eten laat je meer vet verbranden, maar je wordt er bij wedstrijdtempo minder efficiënt van. Voor prestatie is het af te raden.",

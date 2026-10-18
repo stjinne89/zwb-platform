@@ -225,7 +225,7 @@ export async function ZwbiebOverview({
                 >
                   <span className="flex min-w-0 flex-wrap items-center gap-2">
                     {book.title}
-                    <EvidenceBadge evidence={book.evidence} />
+                    <EvidenceBadge evidence={book.evidence} conclusion={book.conclusion} />
                     <MethodLabelBadge label={book.methodLabel} />
                   </span>
                   <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">

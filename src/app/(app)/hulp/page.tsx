@@ -3639,27 +3639,37 @@ Fitness-status: Verbeterend`}
         <div className="mt-4 rounded-md border bg-background p-4">
           <h3 className="text-sm font-semibold">Bewijsniveau</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Elk kennisartikel en elk protocol zegt hoe gegrond het advies is. Sterk
-            bewijs: een consensusstuk, een richtlijn of meerdere meta-analyses die
-            het eens zijn. Matig bewijs: een meta-analyse of meerdere proeven, maar
-            klein, van één onderzoeksgroep of niet bij duursporters. Beperkt bewijs:
-            een paar kleine studies, of een advies dat is afgeleid. Afgeraden: het
-            onderzoek wijst uit dat het niet helpt. Gaat het bewijs alleen over een
-            tussenmaat, zoals een bloedwaarde, of niet over duursporters, dan is
-            het hooguit matig. De AI-coach weegt zijn antwoord naar het niveau.
+            Elk kennisartikel en elk protocol zegt hoe gegrond het advies is, in
+            alle kennisbanken op dezelfde manier. Stevig onderbouwd: een
+            consensusstuk of richtlijn, meerdere meta-analyses, of minstens drie
+            onafhankelijke onderzoeksgroepen die het eens zijn. Onderbouwd: meerdere
+            studies in dezelfde richting, maar klein of van één groep. Eerste
+            aanwijzingen: een paar kleine studies, of het mechanisme klopt.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Gepubliceerde metingen in een windtunnel, op een testbank of op de weg
+            tellen ook als bewijs. Hooguit onderbouwd is het als het onderzoek alleen
+            een tussenmaat meet (zoals een bloedwaarde), niet bij duursporters is
+            gedaan, of alleen op een pop, een testbank of in een computermodel.
+            Spreken even goede studies elkaar tegen, dan zijn het eerste
+            aanwijzingen.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Is de conclusie dat iets niet helpt, dan staat dat in de badge,
+            bijvoorbeeld &ldquo;Stevig onderbouwd: geen effect&rdquo;. Schaadt het je
+            prestatie, dan staat er &ldquo;nadelig&rdquo;. De AI-coach weegt zijn
+            antwoord naar het niveau.
           </p>
         </div>
 
         <div className="mt-4 rounded-md border bg-background p-4">
-          <h3 className="text-sm font-semibold">Veelbelovend en experimenteel</h3>
+          <h3 className="text-sm font-semibold">Nieuwe methode</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sommige workouts, protocollen en kennisartikelen hebben een label.
-            Veelbelovend: trainingsstudies bij fietsers laten een duidelijk effect
-            zien, maar ze zijn klein, kort of alleen gedaan bij goed getrainde
-            renners. Experimenteel: het effect over weken is bij fietsers nog niet
-            aangetoond, of de studies spreken elkaar tegen. Het label staat bij de
-            workout in je schema en vooraan in de beschrijving in intervals.icu en
-            Zwift.
+            Sommige workouts, protocollen en kennisartikelen hebben het label Nieuwe
+            methode: een methode uit recent onderzoek die geen standaardtraining is.
+            Het label zegt niet hoe goed het werkt; dat zegt het bewijsniveau
+            ernaast. Het staat bij de workout in je schema en vooraan in de
+            beschrijving in intervals.icu en Zwift.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             De AI-coach gebruikt drie van die methodes ook zonder protocol: korte
@@ -3782,13 +3792,9 @@ Fitness-status: Verbeterend`}
               en tellen vooral een ventilator en een vermogensmeter die klopt.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Hier tellen ook gepubliceerde metingen in een windtunnel, op een
-              testbank of op de weg als bewijs. Sterk bewijs is dan ook: meerdere
-              onafhankelijke onderzoeksgroepen waarvan de metingen met renners het
-              eens zijn. Is alleen op een pop, een testbank of in een computermodel
-              gemeten, dan is het hooguit matig. Zegt het onderzoek dat iets niet
-              helpt, dan staat dat in de samenvatting, met wat zwak is aan dat
-              onderzoek.
+              Veel onderzoek is hier een meting in een windtunnel, op een testbank of
+              op de weg. Hoe dat meetelt voor het bewijsniveau, staat hierboven bij
+              Protocollen, onder &ldquo;Bewijsniveau&rdquo;.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">

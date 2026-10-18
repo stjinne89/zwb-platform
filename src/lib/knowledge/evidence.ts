@@ -1,40 +1,46 @@
-// Het bewijsniveau van een kennisartikel: hoe gegrond het centrale advies is.
+// Het bewijsniveau van een kennisartikel: hoe gegrond het kernadvies is.
 //
-// Dezelfde schaal als de protocollen (PROTOCOL_EVIDENCE in
-// src/lib/protocols/types.ts), plus "afgeraden" voor een artikel dat iets
-// afraadt: "Ketonen — Sterk bewijs" leest als "ketonen werken". Het staat naast
-// het label veelbelovend of experimenteel (method-label.ts): het niveau zegt
-// hoeveel en hoe goed onderzoek er is, het label of het effect al vaststaat.
+// Dezelfde schaal en woorden als de protocollen (PROTOCOL_EVIDENCE in
+// src/lib/protocols/types.ts): Stevig onderbouwd, Onderbouwd, Eerste
+// aanwijzingen. Is de conclusie dat iets niet helpt, dan staat die in de badge
+// ("Stevig onderbouwd: geen effect"); "Ketonen — Stevig onderbouwd" zou je
+// anders lezen als "ketonen werken". Het staat naast het kenmerk Nieuwe methode
+// (method-label.ts), dat geen oordeel geeft.
 //
-// De criteria en het niveau per artikel staan in docs/bewijsniveau-kennisbank.md
-// (goedgekeurd door de eigenaar, 2026-10-17). Een nieuw artikel krijgt een
-// niveau volgens die criteria; een test eist dat elk artikel er een heeft.
+// Het beleid, de criteria en het niveau per artikel staan in
+// docs/beoordelingsbeleid-bewijsniveau.md (goedgekeurd door de eigenaar,
+// 2026-10-18). Een test houdt code en tabel gelijk.
 
-import { PROTOCOL_EVIDENCE_LABELS } from "@/lib/protocols/types";
+import { PROTOCOL_EVIDENCE, PROTOCOL_EVIDENCE_LABELS } from "@/lib/protocols/types";
 
-export const ARTICLE_EVIDENCE = ["sterk", "matig", "beperkt", "afgeraden"] as const;
+export const ARTICLE_EVIDENCE = PROTOCOL_EVIDENCE;
 export type ArticleEvidence = (typeof ARTICLE_EVIDENCE)[number];
 
-export const ARTICLE_EVIDENCE_LABELS: Record<ArticleEvidence, string> = {
-  ...PROTOCOL_EVIDENCE_LABELS,
-  afgeraden: "Afgeraden",
+export const ARTICLE_EVIDENCE_LABELS: Record<ArticleEvidence, string> = PROTOCOL_EVIDENCE_LABELS;
+
+/** De conclusie van een artikel dat zegt dat iets niet helpt, of schaadt. */
+export const ARTICLE_CONCLUSIONS = ["geen-effect", "nadelig"] as const;
+export type ArticleConclusion = (typeof ARTICLE_CONCLUSIONS)[number];
+
+export const ARTICLE_CONCLUSION_LABELS: Record<ArticleConclusion, string> = {
+  "geen-effect": "geen effect",
+  nadelig: "nadelig",
 };
 
-/** De legenda, in de volgorde van de schaal. */
+/** De tekst van de badge: het niveau, en de conclusie als die er is. */
+export function evidenceText(evidence: ArticleEvidence, conclusion?: ArticleConclusion | null): string {
+  const level = ARTICLE_EVIDENCE_LABELS[evidence];
+  return conclusion ? `${level}: ${ARTICLE_CONCLUSION_LABELS[conclusion]}` : level;
+}
+
+/** De legenda, in de volgorde van de schaal. Gelijk voor alle kennisbanken. */
 export const ARTICLE_EVIDENCE_LEGEND: Record<ArticleEvidence, string> = {
-  sterk: "consensus, richtlijn of meerdere meta-analyses die het eens zijn",
-  matig: "een meta-analyse of meerdere proeven, maar klein, van één groep of niet bij duursporters",
-  beperkt: "een paar kleine studies, of een afgeleid advies",
-  afgeraden: "het onderzoek wijst uit dat het niet helpt",
+  sterk: "consensus, meta-analyses, of meerdere onafhankelijke groepen die het eens zijn",
+  matig: "meerdere studies in dezelfde richting, maar klein of van één groep",
+  beperkt: "een paar kleine studies, of het mechanisme klopt",
 };
 
-/**
- * De legenda bij de kennisbank materiaal (besluit eigenaar, 2026-10-18): daar
- * tellen metingen mee, kan sterk ook uit meerdere onafhankelijke groepen komen,
- * en is alleen een pop, testbank of computermodel hooguit matig.
- */
-export const MATERIAAL_EVIDENCE_LEGEND: Partial<Record<ArticleEvidence, string>> = {
-  sterk: "consensus, meta-analyses, of meerdere onafhankelijke groepen waarvan de metingen met renners het eens zijn",
-  matig: "één meta-analyse of meerdere kleine studies, of alleen gemeten op een pop, testbank of in een model",
-  beperkt: "een paar kleine studies, of een afgeleid advies",
+export const ARTICLE_CONCLUSION_LEGEND: Record<ArticleConclusion, string> = {
+  "geen-effect": "het onderzoek vond dat het niet helpt",
+  nadelig: "het onderzoek vond dat het je prestatie schaadt",
 };

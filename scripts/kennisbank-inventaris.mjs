@@ -33,6 +33,7 @@ const sections = [
       limits: article.limits,
       sources: article.sources,
       evidence: article.evidence,
+      conclusion: article.conclusion ?? null,
       methodLabel: article.methodLabel ?? null,
     })),
   })),
@@ -46,6 +47,7 @@ const sections = [
       limits: protocol.limits,
       sources: protocol.sources,
       evidence: protocol.evidence,
+      conclusion: null,
       methodLabel: protocol.methodLabel ?? null,
     })),
   },
@@ -79,7 +81,7 @@ if (process.argv.includes("--ids")) {
     lines.push(`## ${section.title} (${section.items.length})`, "");
     for (const item of section.items) {
       lines.push(`### ${item.title}`, `Pad: ${item.path}`, `Samenvatting: ${item.summary}`);
-      lines.push(`Bewijs: ${item.evidence}`);
+      lines.push(`Bewijs: ${item.evidence}${item.conclusion ? `, ${item.conclusion}` : ""}`);
       if (item.methodLabel) lines.push(`Label: ${item.methodLabel}`);
       lines.push(...item.points.map((point) => `- ${point}`));
       if (item.limits.length) lines.push("Beperkingen:", ...item.limits.map((limit) => `- ${limit}`));
