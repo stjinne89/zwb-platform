@@ -556,12 +556,16 @@ export function SchemaHelp() {
           <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">Zelf een rit inplannen</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Weet je dat je zaterdag met de club rijdt? Zet hem met{" "}
-              <strong className="text-foreground">Rit inplannen</strong> in je
-              schema: soort, datum, duur en zwaarte. Die rit ligt daarna vast — de
-              planner verplaatst of vervangt hem niet, maar zet de rest van de week
-              eromheen en telt de belasting mee. Zo&apos;n rit heeft geen
-              blokkenstructuur en dus geen FIT-bestand; hij staat alleen in ZWB.
+              Ga je zelf een rondje rijden of wil je een eigen training doen? Zet
+              hem met <strong className="text-foreground">Rit inplannen</strong>{" "}
+              in je schema als eigen rit of eigen training, met datum, duur en
+              zwaarte. Die rit ligt daarna vast — de planner verplaatst of
+              vervangt hem niet, maar zet de rest van de week eromheen en telt de
+              belasting mee. Bij een eigen training kun je ook een workout uit de
+              bibliotheek kiezen; die komt met zijn blokken in je schema en gaat
+              naar intervals.icu. Clubritten en wedstrijden zet je er niet zo in:
+              die komen uit de kalender, met{" "}
+              <strong className="text-foreground">Ik doe mee</strong>.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">

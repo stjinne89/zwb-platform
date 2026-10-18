@@ -10113,6 +10113,51 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — Rit inplannen: alleen eigen rit of eigen training
+
+**Gebouwd 2026-10-18, lokaal; niet gepusht.** De commit waarin dit blok staat.
+Geen migratie.
+
+**Aanleiding.** De eigenaar wilde het blok "Rit inplannen" op `/zwbeter-worden/schema`
+inperken: clubritten en wedstrijden horen via de kalender te lopen (`EventChoice`,
+"Ik doe mee"), niet als los ingetypte rit. Wel moest een eigen training een
+workout uit de bibliotheek kunnen zijn.
+
+**Wat er veranderde.**
+- **Soort**: alleen nog *Eigen rit* en *Eigen training*. Buitenrit, Clubrit en
+  Wedstrijd zijn weg, ook uit `RIDE_KINDS` in `planOwnRide`, zodat de server ze
+  niet meer aanneemt.
+- **Workout uit de bibliotheek** bij Eigen training: een keuzelijst per
+  trainingsvorm, met "Zelf invullen" als standaard. Kies je een workout, dan
+  verdwijnen Duur en Zwaarte, zie je de blokken, en komt de workout met titel,
+  blokken, `target_type` en `method_label` in het schema. Hij blijft
+  `origin: 'member'`, gaat naar intervals.icu en de herziening plant eromheen,
+  net als een vrije rit.
+- `src/lib/training/own-workouts.ts`: welke workouts een lid mag kiezen, en het
+  laden ervan via de service-role (RLS laat de bibliotheek alleen aan trainers
+  zien). Alleen de standaardbibliotheek, zonder tests en warming-ups.
+- `/hulp` (Schema → "Zelf een rit inplannen") herschreven. De oude zin dat zo'n
+  rit "alleen in ZWB" staat klopte al niet meer: `planOwnRide` pusht hem naar
+  intervals.icu.
+
+**Bewust niet.**
+- **FTP-tests** in de keuzelijst: een test plannen is trainerswerk
+  (`planFtpTest`), en een test uit de bibliotheek ruimt de dag leeg.
+- **Warming-ups**: die horen bij een race (`planRaceWarmup`).
+- **Eigen (niet-standaard) workouts van trainers**: die zijn van die trainer.
+- **Bestaande ingeplande clubritten of wedstrijden** omzetten: die blijven
+  staan zoals ze zijn.
+
+**Getest.** `tsc`: geen nieuwe fouten (alleen de bekende ontbrekende modules
+`@zxing` en `tesseract.js`). ESLint op de gewijzigde bestanden: schoon. Hele
+suite: 2828 van 2833 groen; de vijf fouten zijn time-outs onder belasting
+(`admin-areas`, `zwift-club-calendar`, `zwift-subgroup-results`,
+`rls-initplan-migration`) en de
+ontbrekende `.env.local` in de worktree (`omnium-live`); los gedraaid slagen ze.
+
+**Niet geverifieerd.** Niet in de browser bekeken en niet ingelogd een workout
+ingepland; ook niet gecontroleerd dat zo'n workout goed in intervals.icu landt.
+
 ### Opgeleverd — beleid bewijsniveau voor alle kennisbanken
 
 **Voorgesteld (`77449114`), goedgekeurd en gebouwd 2026-10-18; gepusht naar `main`
