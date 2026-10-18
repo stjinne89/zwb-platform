@@ -227,8 +227,11 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > **Waarom.** Vervolg op de ronde hierboven, tijdens dezelfde race. Rolfs sessie
 > was nu wel opgemerkt, maar bleef op 0 posities. Met akkoord van de eigenaar
 > is op productie tijdelijk `pg_net` aangezet om zijn live-pagina één keer op
-> te halen (deze omgeving kan Wahoo niet bereiken); daarna weer verwijderd,
-> met de opgehaalde pagina.
+> te halen (deze omgeving kan Wahoo niet bereiken). **`pg_net` staat nog aan:**
+> `drop extension pg_net` werd door de Supabase-connector drie keer
+> afgebroken, ook na akkoord van de eigenaar. De opgehaalde pagina (Rolfs
+> rit tot 10:08) staat daardoor nog in `net._http_response`. Te doen door de
+> eigenaar in de SQL-editor van Supabase: `drop extension pg_net;`.
 >
 > **Oorzaak.** Zijn `livetrack_fit`-chunks zijn kale zlib (`78 DA`), zonder de
 > 4 bytes lengte en zonder gzip. `decodeWahooFitChunk` deed altijd
