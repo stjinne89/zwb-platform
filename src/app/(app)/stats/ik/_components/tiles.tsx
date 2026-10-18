@@ -5,7 +5,11 @@ import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/app-ui";
 import { ViewOnStrava } from "@/components/strava-brand";
 import { ResponsiveTable, type ResponsiveColumn } from "@/components/ui/responsive-table";
+import { helpHrefForAnchor } from "@/lib/help-categories";
 import { DISCIPLINE_LABELS } from "@/lib/strava/sports";
+import type { TileInfo } from "@/lib/stats/tiles";
+import { trainingArticleBySlug } from "@/lib/training/training-library";
+import { TileTitle, type TileTitleInfo } from "../../_components/tile-title";
 import {
   bucketTitle,
   type CalendarDay,
@@ -34,14 +38,28 @@ export function dayLabel(day: string) {
   return `${date} ${MONTHS_SHORT[month - 1]} ${year}`;
 }
 
+/** De uitleg van een tegel met de links erbij: het kennisbankartikel en /hulp. */
+function titleInfo(info: TileInfo | undefined): TileTitleInfo | null {
+  if (!info) return null;
+  const article = info.article ? trainingArticleBySlug(info.article) : null;
+  return {
+    text: info.text,
+    article: article ? { href: `/zwbeter-worden/kennis/${article.slug}`, title: article.title } : null,
+    helpHref: helpHrefForAnchor("mijn-statistieken"),
+  };
+}
+
 export function Tile({
   title,
   width,
+  info,
   actions,
   children,
 }: {
   title: string;
   width: "full" | "half";
+  /** Uitleg achter de titel (hover of tik). */
+  info?: TileInfo;
   /** Rechts naast de titel: een knop, of een kort bijschrift. */
   actions?: ReactNode;
   children: ReactNode;
@@ -49,7 +67,7 @@ export function Tile({
   return (
     <section className={cn("min-w-0 rounded-lg border bg-card p-4", width === "full" && "lg:col-span-2")}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="st-tile-title text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
+        <TileTitle title={title} info={titleInfo(info)} />
         {actions}
       </div>
       {children}

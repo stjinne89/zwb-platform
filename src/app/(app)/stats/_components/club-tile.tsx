@@ -81,6 +81,7 @@ export function ClubTile({ id, context }: { id: ClubTileId; context: ClubTileCon
         <Tile
           title={scopeLabel ? `Totalen · ${scopeLabel}` : def.title}
           width={def.width}
+          info={def.info}
           actions={<span className="text-xs text-muted-foreground">▲▼ t.o.v. vorig jaar</span>}
         >
           <KpiGrid
@@ -110,7 +111,7 @@ export function ClubTile({ id, context }: { id: ClubTileId; context: ClubTileCon
       const openEnd = keys.length > 0 && bucketEnd(keys.at(-1)!, per) > today;
       const selected = period ? keys.indexOf(period) : -1;
       return (
-        <Tile title={def.title} width={def.width}>
+        <Tile title={def.title} width={def.width} info={def.info}>
           <VolumeChart
             openEnd={openEnd}
             metrics={["km", "hours", "elevation", "rides", "members"]}
@@ -131,7 +132,7 @@ export function ClubTile({ id, context }: { id: ClubTileId; context: ClubTileCon
       const years = Array.from({ length: thisYear - firstYear + 1 }, (_, index) => String(firstYear + index));
       const lines = clubYearLines(data, years, today).filter((line) => line.total > 0);
       return (
-        <Tile title={def.title} width={def.width}>
+        <Tile title={def.title} width={def.width} info={def.info}>
           {lines.length ? <YearChart lines={lines} /> : <NoData />}
         </Tile>
       );
@@ -146,7 +147,7 @@ export function ClubTile({ id, context }: { id: ClubTileId; context: ClubTileCon
         elevation: Math.round(row.elevation),
       }));
       return (
-        <Tile title={scopeLabel ? `Top riders · ${scopeLabel}` : def.title} width={def.width}>
+        <Tile title={scopeLabel ? `Top riders · ${scopeLabel}` : def.title} width={def.width} info={def.info}>
           <TopRiders rows={rows} viewerId={viewerId} />
         </Tile>
       );
@@ -162,7 +163,7 @@ export function ClubTile({ id, context }: { id: ClubTileId; context: ClubTileCon
         tss: 0,
       }));
       return (
-        <Tile title={scopeLabel ? `Disciplines · ${scopeLabel}` : def.title} width={def.width}>
+        <Tile title={scopeLabel ? `Disciplines · ${scopeLabel}` : def.title} width={def.width} info={def.info}>
           {rows.length ? <DisciplineBars rows={rows} /> : <NoData />}
         </Tile>
       );
@@ -176,14 +177,14 @@ export function ClubTile({ id, context }: { id: ClubTileId; context: ClubTileCon
         ...all.filter((row) => row.id === UNKNOWN_REGION),
       ];
       return (
-        <Tile title={scopeLabel ? `Regio's · ${scopeLabel}` : def.title} width={def.width}>
+        <Tile title={scopeLabel ? `Regio's · ${scopeLabel}` : def.title} width={def.width} info={def.info}>
           {rows.length ? <RegionBars rows={rows} /> : <NoData />}
         </Tile>
       );
     }
     case "records":
       return (
-        <Tile title={def.title} width={def.width}>
+        <Tile title={def.title} width={def.width} info={def.info}>
           <ul className="divide-y text-sm">
             {clubRecords(data).map((record) => (
               <li key={record.label} className="flex items-center justify-between gap-3 py-2">

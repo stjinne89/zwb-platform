@@ -193,6 +193,42 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
+> **Stats: uitleg achter de titel van elke tegel, 2026-10-18 — gebouwd, typecheck, lint en tests schoon; ingelogd in de browser bekeken (desktop: hover en tik; 375 px: tik); niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/stats-significance-relevance-design-501ed0`.
+>
+> **Waarom.** Vraag van de eigenaar: bij een hover over de titel van een
+> statistiek uitleggen wat die laat zien, eventueel met een link naar de
+> kennisbank. Dit is een bewuste uitzondering op "geen uitleg in schermen"
+> (`AGENTS.md`): de uitleg blijft dicht tot je erom vraagt, en de volledige
+> uitleg blijft op `/hulp`.
+>
+> **Wat.**
+> - `STATS_TILE_INFO` en `CLUB_TILE_INFO` in `src/lib/stats/tiles.ts`: per tegel
+>   één tot drie zinnen, en waar een artikel in de kennisbank trainen over het
+>   onderwerp gaat de slug: vermogen en eFTP → `ftp-test`, fitheid →
+>   `opbouwen`, watt per hartslag en duurvermogen → `lange-ritten`, zones →
+>   `zones`, herstel → `herstel-meten`, piekvermogen en CP → `intervallen`.
+>   `tileDef` en `clubTileDef` geven de uitleg mee, getypeerd per tegel-id.
+> - `stats/_components/tile-title.tsx` (client): de titel is een knop met een
+>   gestippelde onderstreping die een Base UI-popover opent, bij hover op
+>   desktop en met een tik op de telefoon (tikdoel 44 px zonder hogere kop).
+>   Onderin het artikel uit de kennisbank (titel als link) en "Meer uitleg"
+>   naar `/hulp/club#mijn-statistieken`. Escape en buiten klikken sluiten; geen
+>   animatie bij `prefers-reduced-motion`.
+> - `/hulp` (Mijn statistieken) bijgewerkt: de uitleg achter de titel, km per
+>   lid, en de rekenregels uit de vorige ronde (IF boven 1,2 telt niet, watt per
+>   hartslag alleen over duurritten, geen pijltje bij minder dan drie ritten,
+>   dubbele ritten tellen één keer). Die stonden daar nog niet.
+>
+> **Bewust niet gedaan.** Een apart ⓘ-icoon naast de titel: de titel zelf is
+> het doel, dus geen extra element per tegel. Uitleg bij losse cijfers of
+> assen: één uitleg per tegel is genoeg. Geen eigen artikelen over NP, TSS of
+> W′ geschreven; daarvoor linkt de uitleg naar `/hulp`.
+>
+> **Niet geverifieerd.** Het ontwerp "tegels" en het lichte thema niet apart
+> bekeken (alles via tokens). Niet op een echte telefoon getikt; wel met
+> 375 px-emulatie in de browser.
+
 > **Stats nagerekend: dubbele ritten, onmogelijke NP, eerlijkere grafieken, 2026-10-18 — gebouwd, unit-tests, typecheck en lint schoon; ingelogd in de browser bekeken op desktop (Ik en Club) en 375 px (Club en het begin van Ik); niet gepusht. Geen migratie.**
 > Commit: de commit die dit blok toevoegt, op `claude/stats-significance-relevance-design-501ed0`.
 >

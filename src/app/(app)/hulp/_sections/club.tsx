@@ -188,7 +188,9 @@ export function ClubHelp() {
             <span>
               <strong className="text-foreground">Kies je eigen tegels.</strong>{" "}
               Met Tegels aanpassen zet je tegels aan of uit en zet je ze in je
-              eigen volgorde. Je keuze geldt op al je apparaten.
+              eigen volgorde. Je keuze geldt op al je apparaten. Wijs of tik op
+              de titel van een tegel voor een korte uitleg, met een link naar
+              het artikel in de kennisbank als dat er is.
             </span>
           </li>
           <li className="flex gap-2">
@@ -197,8 +199,9 @@ export function ClubHelp() {
               <strong className="text-foreground">Club werkt hetzelfde.</strong>{" "}
               Onder Stats &rarr; Club staan dezelfde grafieken en een eigen
               tegelkeuze, opgeteld over alle leden, met ook het aantal actieve
-              leden en de ranglijst (op km, uren of hoogtemeters; je eigen plek
-              staat in goud). Kies bovenin een maand of jaar om de totalen, de
+              leden, de kilometers per actief lid (zo zie je of de club meer
+              rijdt of vooral groeit) en de ranglijst (op km, uren of
+              hoogtemeters; je eigen plek staat in goud). Kies bovenin een maand of jaar om de totalen, de
               ranglijst, disciplines en regio&apos;s op die periode te zetten.
               De clubcijfers worden elke tien minuten bijgewerkt.
             </span>
@@ -232,16 +235,19 @@ export function ClubHelp() {
               van ritten van minstens twintig minuten met een echte
               vermogensmeter, met je FTP van dat moment als stippellijn. Strava
               schat het vermogen van ritten zonder meter; die schatting telt hier
-              niet mee.
+              niet mee. Een rit met een NP boven 1,2 keer je FTP is een meetfout
+              (bijvoorbeeld een verkeerd gekalibreerde trainer) en telt ook niet.
             </span>
           </li>
           <li className="flex gap-2">
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <span>
               <strong className="text-foreground">Watt per hartslag</strong> is
-              je NP gedeeld door je gemiddelde hartslag. Stijgt die lijn, dan
-              trap je bij dezelfde hartslag meer watt: een teken dat je
-              duurvermogen groeit.
+              je NP gedeeld door je gemiddelde hartslag, alleen over rustige
+              duurritten (tot 85% van je FTP): een race geeft bij hetzelfde hart
+              een andere verhouding. Een periode met minder dan twee van die
+              ritten blijft leeg. Stijgt de lijn, dan trap je bij dezelfde
+              hartslag meer watt: een teken dat je duurvermogen groeit.
             </span>
           </li>
           <li className="flex gap-2">
@@ -259,7 +265,10 @@ export function ClubHelp() {
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <span>
               De vergelijking met vorig jaar bij Totalen gaat over precies
-              dezelfde periode een jaar eerder.
+              dezelfde periode een jaar eerder. Had je toen minder dan drie
+              ritten, dan staat er geen pijltje: een percentage zegt dan niets.
+              Staat een rit dubbel op het platform (via twee koppelingen), dan
+              telt hij één keer.
             </span>
           </li>
           <li className="flex gap-2">

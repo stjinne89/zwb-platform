@@ -84,7 +84,7 @@ export function StatsTile({ id, context }: { id: TileId; context: TileContext })
       // verschil niets; dan geen pijltjes.
       const comparable = rides.length > 0 && before.start >= rides[0].day;
       return (
-        <Tile title={def.title} width={def.width} actions={<span className="text-xs text-muted-foreground">▲▼ t.o.v. vorig jaar</span>}>
+        <Tile title={def.title} width={def.width} info={def.info} actions={<span className="text-xs text-muted-foreground">▲▼ t.o.v. vorig jaar</span>}>
           <TotalsGrid
             now={totalsBetween(rides, span.start, span.end)}
             before={comparable ? totalsBetween(rides, before.start, before.end) : EMPTY_TOTALS}
@@ -111,7 +111,7 @@ export function StatsTile({ id, context }: { id: TileId; context: TileContext })
         return totals.rides > 0 ? round(totals) : null;
       });
       return (
-        <Tile title={def.title} width={def.width}>
+        <Tile title={def.title} width={def.width} info={def.info}>
           <VolumeChart
             openEnd={openEnd}
             points={rows.map((row, index) => ({
@@ -128,7 +128,7 @@ export function StatsTile({ id, context }: { id: TileId; context: TileContext })
     case "vermogen": {
       const points = powerTrend(inWindow, keys, per, context.ftpAt, today);
       return (
-        <Tile title={def.title} width={def.width}>
+        <Tile title={def.title} width={def.width} info={def.info}>
           {points.some((point) => point.rides > 0) ? (
             <PowerChart points={points.map((point, index) => ({ ...point, label: labels[index], title: titles[index] }))} />
           ) : (
@@ -140,7 +140,7 @@ export function StatsTile({ id, context }: { id: TileId; context: TileContext })
     case "efficientie": {
       const points = efficiencyTrend(inWindow, keys, per);
       return (
-        <Tile title={def.title} width={def.width}>
+        <Tile title={def.title} width={def.width} info={def.info}>
           {points.some((point) => point.rides > 0) ? (
             <EfficiencyChart points={points.map((point, index) => ({ ...point, label: labels[index], title: titles[index] }))} />
           ) : (
@@ -156,28 +156,28 @@ export function StatsTile({ id, context }: { id: TileId; context: TileContext })
       const years = Array.from({ length: Number(today.slice(0, 4)) - firstYear + 1 }, (_, index) => String(firstYear + index));
       const lines = yearCumulative(rides, years, today).filter((line) => line.total > 0);
       return (
-        <Tile title={def.title} width={def.width}>
+        <Tile title={def.title} width={def.width} info={def.info}>
           {lines.length ? <YearChart lines={lines} /> : <NoData />}
         </Tile>
       );
     }
     case "kalender":
       return (
-        <Tile title={def.title} width={def.width}>
+        <Tile title={def.title} width={def.width} info={def.info}>
           <CalendarHeatmap days={calendarDays(rides, today)} streaks={streaks(rides, today)} />
         </Tile>
       );
     case "discipline": {
       const rows = byDiscipline(inWindow);
       return (
-        <Tile title={def.title} width={def.width}>
+        <Tile title={def.title} width={def.width} info={def.info}>
           {rows.length ? <DisciplineBars rows={rows} /> : <NoData />}
         </Tile>
       );
     }
     case "records":
       return (
-        <Tile title={def.title} width={def.width}>
+        <Tile title={def.title} width={def.width} info={def.info}>
           <RecordsList rides={rideRecords(rides)} periods={periodRecords(rides)} />
         </Tile>
       );
@@ -198,7 +198,7 @@ export function StatsTile({ id, context }: { id: TileId; context: TileContext })
       return <RecoveryTile context={context} />;
     case "ritten":
       return (
-        <Tile title={def.title} width={def.width}>
+        <Tile title={def.title} width={def.width} info={def.info}>
           <RidesTable rides={[...inWindow].reverse()} page={context.page} pageHref={context.pageHref} />
         </Tile>
       );
@@ -219,6 +219,7 @@ async function BadgesTile({ context }: { context: TileContext }) {
     <Tile
       title={def.title}
       width={def.width}
+      info={def.info}
       actions={
         <Link href="/profiel?weergave=bewerken#badges" className="text-xs font-medium text-primary hover:underline">
           Badge-kast
@@ -277,7 +278,7 @@ async function FitnessTile({ context }: { context: TileContext }) {
   }
   points ??= fitnessFromTss(rides, span.start, today);
   return (
-    <Tile title={def.title} width={def.width}>
+    <Tile title={def.title} width={def.width} info={def.info}>
       {points.length > 1 ? <FitnessChart points={points} /> : <NoData>Geen TSS in deze periode.</NoData>}
     </Tile>
   );
@@ -306,7 +307,7 @@ async function CurveTile({ id, context }: { id: "piekvermogen" | "cp-wprime" | "
   const byRange = await loadPeriodCurvesOnce(profileId, ranges.join(",")).catch(() => null);
   if (!byRange) {
     return (
-      <Tile title={def.title} width={def.width}>
+      <Tile title={def.title} width={def.width} info={def.info}>
         <IntervalsDown />
       </Tile>
     );
@@ -321,7 +322,7 @@ async function CurveTile({ id, context }: { id: "piekvermogen" | "cp-wprime" | "
   if (id === "curve-per-jaar") {
     const years = keys.flatMap((key) => (curves[key]?.length ? [{ year: key, points: curves[key]! }] : []));
     return (
-      <Tile title={def.title} width={def.width}>
+      <Tile title={def.title} width={def.width} info={def.info}>
         {years.length ? <YearCurvesChart curves={years} /> : <NoData>Geen vermogensdata in deze periode.</NoData>}
       </Tile>
     );
@@ -329,7 +330,7 @@ async function CurveTile({ id, context }: { id: "piekvermogen" | "cp-wprime" | "
   if (id === "cp-wprime") {
     const points = cpSeries(keys, curves);
     return (
-      <Tile title={def.title} width={def.width}>
+      <Tile title={def.title} width={def.width} info={def.info}>
         {points.some((point) => point.cpWatts != null) ? (
           <CpChart points={points.map((point, index) => ({ ...point, label: labels[index], title: titles[index] }))} />
         ) : (
@@ -340,7 +341,7 @@ async function CurveTile({ id, context }: { id: "piekvermogen" | "cp-wprime" | "
   }
   const points = peakSeries(keys, curves);
   return (
-    <Tile title={def.title} width={def.width}>
+    <Tile title={def.title} width={def.width} info={def.info}>
       {points.some((point) => point.watts.some((value) => value != null)) ? (
         <PeakChart points={points.map((point, index) => ({ ...point, label: labels[index], title: titles[index] }))} />
       ) : (
@@ -358,7 +359,7 @@ async function EftpTile({ context }: { context: TileContext }) {
   const wellness = await loadStatsWellness(connection.api_key, connection.athlete_id, daysSince(span.start, today));
   if (!wellness) {
     return (
-      <Tile title={def.title} width={def.width}>
+      <Tile title={def.title} width={def.width} info={def.info}>
         <IntervalsDown />
       </Tile>
     );
@@ -366,7 +367,7 @@ async function EftpTile({ context }: { context: TileContext }) {
   const multiYear = keys.length > 0 && keys[0].slice(0, 4) !== keys.at(-1)!.slice(0, 4);
   const points = eftpSeries(keys, wellness, (day) => bucketKey(day, per));
   return (
-    <Tile title={def.title} width={def.width}>
+    <Tile title={def.title} width={def.width} info={def.info}>
       {points.some((point) => point.eftp != null || point.weightKg != null) ? (
         <EftpChart
           points={points.map((point) => ({
@@ -409,7 +410,7 @@ async function ActivityTile({
   );
   if (!stats) {
     return (
-      <Tile title={def.title} width={def.width}>
+      <Tile title={def.title} width={def.width} info={def.info}>
         <IntervalsDown />
       </Tile>
     );
@@ -435,7 +436,7 @@ async function ActivityTile({
     }));
     const any = points.some((point) => point.hours.some((value) => value > 0));
     return (
-      <Tile title={def.title} width={def.width}>
+      <Tile title={def.title} width={def.width} info={def.info}>
         {any ? (
           <>
             <ZonesChart points={points} zoneIds={zoneIds} ariaLabel={def.title} />
@@ -456,7 +457,7 @@ async function ActivityTile({
     }));
     const any = points.some((point) => point.maxWbalDepletionKj != null || point.joulesAboveFtpKj > 0);
     return (
-      <Tile title={def.title} width={def.width}>
+      <Tile title={def.title} width={def.width} info={def.info}>
         {any ? (
           <>
             <WbalChart points={points} />
@@ -476,7 +477,7 @@ async function ActivityTile({
   }));
   const any = points.some((point) => point.decoupling != null || point.efficiencyFactor != null);
   return (
-    <Tile title={def.title} width={def.width}>
+    <Tile title={def.title} width={def.width} info={def.info}>
       {any ? (
         <>
           <EnduranceChart points={points} />
@@ -497,7 +498,7 @@ async function RecoveryTile({ context }: { context: TileContext }) {
   const wellness = await loadStatsWellness(connection.api_key, connection.athlete_id, daysSince(span.start, today));
   if (!wellness) {
     return (
-      <Tile title={def.title} width={def.width}>
+      <Tile title={def.title} width={def.width} info={def.info}>
         <IntervalsDown />
       </Tile>
     );
@@ -505,7 +506,7 @@ async function RecoveryTile({ context }: { context: TileContext }) {
   const multiYear = keys.length > 0 && keys[0].slice(0, 4) !== keys.at(-1)!.slice(0, 4);
   const points = recoverySeries(keys, wellness, (day) => bucketKey(day, per));
   return (
-    <Tile title={def.title} width={def.width}>
+    <Tile title={def.title} width={def.width} info={def.info}>
       {points.some((point) => point.restingHr != null || point.hrv != null || point.sleepHours != null) ? (
         <RecoveryChart
           points={points.map((point) => ({
