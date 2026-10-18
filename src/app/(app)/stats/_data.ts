@@ -20,7 +20,7 @@ async function fetchClubYear(year: string): Promise<ClubData> {
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await admin
       .from("strava_activities")
-      .select("profile_id, start_date, sport_type, distance_m, total_elevation_gain_m, moving_time_seconds")
+      .select("id, profile_id, start_date, sport_type, distance_m, total_elevation_gain_m, moving_time_seconds")
       .gte("start_date", `${year}-01-01T00:00:00Z`)
       .lt("start_date", `${Number(year) + 1}-01-01T00:00:00Z`)
       .in("sport_type", CYCLING_SPORTS)
@@ -36,10 +36,10 @@ async function fetchClubYear(year: string): Promise<ClubData> {
 }
 
 /** Een afgesloten jaar verandert nauwelijks: één keer per dag verversen. */
-const loadClosedYear = unstable_cache(fetchClubYear, ["club-stats-closed-year", "v1"], { revalidate: 24 * 60 * 60 });
+const loadClosedYear = unstable_cache(fetchClubYear, ["club-stats-closed-year", "v2"], { revalidate: 24 * 60 * 60 });
 
 /** Het lopende jaar elke tien minuten, zoals de clubpagina altijd deed. */
-const loadOpenYear = unstable_cache(fetchClubYear, ["club-stats-open-year", "v1"], { revalidate: 10 * 60 });
+const loadOpenYear = unstable_cache(fetchClubYear, ["club-stats-open-year", "v2"], { revalidate: 10 * 60 });
 
 export async function loadClubData(years: string[]): Promise<ClubData> {
   const current = amsterdamDayKey().slice(0, 4);

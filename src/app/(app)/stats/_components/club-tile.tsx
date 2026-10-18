@@ -9,6 +9,7 @@ import {
   clubSeries,
   clubTotals,
   clubYearLines,
+  UNKNOWN_REGION,
   type ClubData,
   type ClubTotals,
 } from "@/lib/stats/club";
@@ -20,6 +21,7 @@ import {
   previousYearWindow,
   type Granularity,
 } from "@/lib/stats/personal";
+import { MIN_COMPARE_RIDES } from "@/lib/stats/compare";
 import { clubTileDef, type ClubTileId } from "@/lib/stats/tiles";
 import { VolumeChart, YearChart } from "../ik/_components/chart-tiles";
 import { DisciplineBars, KpiGrid, NoData, Tile, nl, percentDelta } from "../ik/_components/tiles";
@@ -67,11 +69,19 @@ export function ClubTile({ id, context }: { id: ClubTileId; context: ClubTileCon
       // Valt het venster van vorig jaar (deels) vóór de eerste rit, dan zegt het
       // verschil niets; dan geen pijltjes.
       const comparable = context.firstDay != null && before.start >= context.firstDay;
-      const then = comparable ? clubTotals(data, before.start, before.end, per) : { km: 0, hours: 0, elevation: 0, rides: 0, members: 0 };
+      const earlier = comparable ? clubTotals(data, before.start, before.end, per) : null;
+      const then =
+        earlier && earlier.rides >= MIN_COMPARE_RIDES ? earlier : { km: 0, hours: 0, elevation: 0, rides: 0, members: 0 };
+      // Leden tellen per hele week of maand. Een lopende periode tot vandaag naast
+      // de hele periode van vorig jaar valt dan altijd lager uit.
+      const membersComparable = !(period && endRaw > today);
+      // De club groeit; meer km kan ook betekenen dat er meer leden gekoppeld zijn.
+      const perMember = (totals: ClubTotals) => (totals.members > 0 ? totals.km / totals.members : 0);
       return (
         <Tile
           title={scopeLabel ? `Totalen · ${scopeLabel}` : def.title}
           width={def.width}
+          info={def.info}
           actions={<span className="text-xs text-muted-foreground">▲▼ t.o.v. vorig jaar</span>}
         >
           <KpiGrid
@@ -80,7 +90,16 @@ export function ClubTile({ id, context }: { id: ClubTileId; context: ClubTileCon
               { label: "Uren", value: nl(now.hours), delta: percentDelta(now.hours, then.hours) },
               { label: "Hoogtemeters", value: nl(now.elevation), delta: percentDelta(now.elevation, then.elevation) },
               { label: "Ritten", value: nl(now.rides), delta: percentDelta(now.rides, then.rides) },
-              { label: "Actieve leden", value: nl(now.members), delta: percentDelta(now.members, then.members) },
+              {
+                label: "Actieve leden",
+                value: nl(now.members),
+                delta: membersComparable ? percentDelta(now.members, then.members) : null,
+              },
+              {
+                label: "Km per lid",
+                value: nl(perMember(now)),
+                delta: membersComparable ? percentDelta(perMember(now), perMember(then)) : null,
+              },
             ]}
           />
         </Tile>
@@ -92,7 +111,7 @@ export function ClubTile({ id, context }: { id: ClubTileId; context: ClubTileCon
       const openEnd = keys.length > 0 && bucketEnd(keys.at(-1)!, per) > today;
       const selected = period ? keys.indexOf(period) : -1;
       return (
-        <Tile title={def.title} width={def.width}>
+        <Tile title={def.title} width={def.width} info={def.info}>
           <VolumeChart
             openEnd={openEnd}
             metrics={["km", "hours", "elevation", "rides", "members"]}
@@ -113,7 +132,7 @@ export function ClubTile({ id, context }: { id: ClubTileId; context: ClubTileCon
       const years = Array.from({ length: thisYear - firstYear + 1 }, (_, index) => String(firstYear + index));
       const lines = clubYearLines(data, years, today).filter((line) => line.total > 0);
       return (
-        <Tile title={def.title} width={def.width}>
+        <Tile title={def.title} width={def.width} info={def.info}>
           {lines.length ? <YearChart lines={lines} /> : <NoData />}
         </Tile>
       );
@@ -128,7 +147,7 @@ export function ClubTile({ id, context }: { id: ClubTileId; context: ClubTileCon
         elevation: Math.round(row.elevation),
       }));
       return (
-        <Tile title={scopeLabel ? `Top riders · ${scopeLabel}` : def.title} width={def.width}>
+        <Tile title={scopeLabel ? `Top riders · ${scopeLabel}` : def.title} width={def.width} info={def.info}>
           <TopRiders rows={rows} viewerId={viewerId} />
         </Tile>
       );
@@ -144,23 +163,28 @@ export function ClubTile({ id, context }: { id: ClubTileId; context: ClubTileCon
         tss: 0,
       }));
       return (
-        <Tile title={scopeLabel ? `Disciplines · ${scopeLabel}` : def.title} width={def.width}>
+        <Tile title={scopeLabel ? `Disciplines · ${scopeLabel}` : def.title} width={def.width} info={def.info}>
           {rows.length ? <DisciplineBars rows={rows} /> : <NoData />}
         </Tile>
       );
     }
     case "regio": {
       const regions = new Map(profiles.map((profile) => [profile.id, profile.region]));
-      const rows = clubByRegion(cells, (profileId) => regions.get(profileId) ?? null).slice(0, 12);
+      // Twaalf regio's, plus de leden zonder regio altijd als laatste rij.
+      const all = clubByRegion(cells, (profileId) => regions.get(profileId) ?? null);
+      const rows = [
+        ...all.filter((row) => row.id !== UNKNOWN_REGION).slice(0, 12),
+        ...all.filter((row) => row.id === UNKNOWN_REGION),
+      ];
       return (
-        <Tile title={scopeLabel ? `Regio's · ${scopeLabel}` : def.title} width={def.width}>
+        <Tile title={scopeLabel ? `Regio's · ${scopeLabel}` : def.title} width={def.width} info={def.info}>
           {rows.length ? <RegionBars rows={rows} /> : <NoData />}
         </Tile>
       );
     }
     case "records":
       return (
-        <Tile title={def.title} width={def.width}>
+        <Tile title={def.title} width={def.width} info={def.info}>
           <ul className="divide-y text-sm">
             {clubRecords(data).map((record) => (
               <li key={record.label} className="flex items-center justify-between gap-3 py-2">

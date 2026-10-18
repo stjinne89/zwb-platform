@@ -10,6 +10,7 @@
 // Puur: geen React en geen Supabase, zodat de periodegrenzen in een test
 // vastliggen.
 
+import { isSameRide, SAME_START_MS } from "@/lib/rides/same-ride";
 import type { FtpAt } from "@/lib/training/ftp-history";
 import type { TrainingLoadPoint } from "@/lib/training/load-points";
 import { rideMetricsFromStrava } from "@/lib/training/ride-metrics";
@@ -98,6 +99,35 @@ export type PersonalRide = {
 function amount(value: unknown): number {
   const n = Number(value ?? 0);
   return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function hasPower(row: PersonalRideRow) {
+  return row.device_watts === true && amount(row.average_watts) > 0;
+}
+
+/**
+ * Dezelfde rit twee keer: een intervals-kopie (negatief id) naast de Strava-rit,
+ * of een trainerbestand naast Zwift. De ingest houdt dat meestal tegen, maar niet
+ * als een lid van bron wisselde; dan telde september 2026 ruim 300 km dubbel.
+ * Zelfde start binnen twee minuten en afstand binnen 5% (isSameRide); de rit met
+ * vermogen blijft, anders de eerste. Verwacht rijen op starttijd gesorteerd.
+ */
+export function dedupeRideRows<T extends PersonalRideRow>(rows: T[]): T[] {
+  const kept: T[] = [];
+  for (const row of rows) {
+    const start = Date.parse(row.start_date);
+    let twin = -1;
+    for (let index = kept.length - 1; index >= 0; index -= 1) {
+      if (start - Date.parse(kept[index].start_date) > SAME_START_MS) break;
+      if (isSameRide(kept[index], row)) {
+        twin = index;
+        break;
+      }
+    }
+    if (twin < 0) kept.push(row);
+    else if (hasPower(row) && !hasPower(kept[twin])) kept[twin] = row;
+  }
+  return kept;
 }
 
 /** Leest de rijen in, met TSS en IF op de FTP die op de ritdag gold. */
@@ -280,6 +310,7 @@ export type Totals = {
 
 export const EMPTY_TOTALS: Totals = { rides: 0, km: 0, hours: 0, elevation: 0, kilojoules: 0, tss: 0 };
 
+
 function addRide(totals: Totals, ride: PersonalRide) {
   totals.rides += 1;
   totals.km += ride.distanceKm;
@@ -326,8 +357,20 @@ export function aggregate(rides: PersonalRide[], keys: string[], per: Granularit
 /** Korter dan dit zegt de NP weinig over wat je kunt volhouden. */
 export const POWER_MIN_SECONDS = 20 * 60;
 
+/**
+ * Boven deze IF is een rit van twintig minuten of langer een meetfout (een
+ * trainer die verkeerd gekalibreerd was), geen prestatie: een uur op 1,05 is al
+ * wereldtop. Zo'n rit stond als "Hoogste NP" bovenaan (382 W bij een FTP rond 280).
+ */
+export const MAX_PLAUSIBLE_IF = 1.2;
+
 function countsForPower(ride: PersonalRide) {
-  return ride.hasPowerMeter && ride.normalizedWatts != null && ride.movingSeconds >= POWER_MIN_SECONDS;
+  return (
+    ride.hasPowerMeter &&
+    ride.normalizedWatts != null &&
+    ride.movingSeconds >= POWER_MIN_SECONDS &&
+    (ride.intensityFactor == null || ride.intensityFactor <= MAX_PLAUSIBLE_IF)
+  );
 }
 
 export type PowerPoint = {
@@ -377,13 +420,24 @@ export function powerTrend(
 export type EfficiencyPoint = { key: string; factor: number | null; rides: number };
 
 /**
+ * Duurritten: tot deze IF. Een race of intervaltraining heeft bij hetzelfde
+ * hart een andere verhouding; die ritten mengen maakt van de lijn een maat voor
+ * hoeveel je racete, niet voor je aerobe vorm. Zonder FTP (geen IF) telt de rit.
+ */
+export const EFFICIENCY_MAX_IF = 0.85;
+
+/** Minder ritten in een periode is toeval; dan geen punt. */
+export const EFFICIENCY_MIN_RIDES = 2;
+
+/**
  * Efficiency factor: NP gedeeld door de gemiddelde hartslag, gewogen naar
- * rijtijd. Stijgt hij bij gelijke inspanning, dan trap je meer watt per slag.
+ * rijtijd, over duurritten. Stijgt hij, dan trap je meer watt per slag.
  */
 export function efficiencyTrend(rides: PersonalRide[], keys: string[], per: Granularity): EfficiencyPoint[] {
   const byKey = new Map(keys.map((key) => [key, { power: 0, heart: 0, rides: 0 }]));
   for (const ride of rides) {
     if (!countsForPower(ride) || ride.averageHr == null) continue;
+    if (ride.intensityFactor != null && ride.intensityFactor > EFFICIENCY_MAX_IF) continue;
     const entry = byKey.get(bucketKey(ride.day, per));
     if (!entry) continue;
     entry.power += ride.normalizedWatts! * ride.movingSeconds;
@@ -394,7 +448,10 @@ export function efficiencyTrend(rides: PersonalRide[], keys: string[], per: Gran
     const entry = byKey.get(key)!;
     return {
       key,
-      factor: entry.heart > 0 ? Math.round((entry.power / entry.heart) * 100) / 100 : null,
+      factor:
+        entry.heart > 0 && entry.rides >= EFFICIENCY_MIN_RIDES
+          ? Math.round((entry.power / entry.heart) * 100) / 100
+          : null,
       rides: entry.rides,
     };
   });

@@ -193,6 +193,133 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
+> **Stats: uitleg achter de titel van elke tegel, 2026-10-18 — gebouwd, typecheck, lint en tests schoon; ingelogd in de browser bekeken (desktop: hover en tik; 375 px: tik); niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/stats-significance-relevance-design-501ed0`.
+>
+> **Waarom.** Vraag van de eigenaar: bij een hover over de titel van een
+> statistiek uitleggen wat die laat zien, eventueel met een link naar de
+> kennisbank. Dit is een bewuste uitzondering op "geen uitleg in schermen"
+> (`AGENTS.md`): de uitleg blijft dicht tot je erom vraagt, en de volledige
+> uitleg blijft op `/hulp`.
+>
+> **Wat.**
+> - `STATS_TILE_INFO` en `CLUB_TILE_INFO` in `src/lib/stats/tiles.ts`: per tegel
+>   één tot drie zinnen, en waar een artikel in de kennisbank trainen over het
+>   onderwerp gaat de slug: vermogen en eFTP → `ftp-test`, fitheid →
+>   `opbouwen`, watt per hartslag en duurvermogen → `lange-ritten`, zones →
+>   `zones`, herstel → `herstel-meten`, piekvermogen en CP → `intervallen`.
+>   `tileDef` en `clubTileDef` geven de uitleg mee, getypeerd per tegel-id.
+> - `stats/_components/tile-title.tsx` (client): de titel is een knop met een
+>   gestippelde onderstreping die een Base UI-popover opent, bij hover op
+>   desktop en met een tik op de telefoon (tikdoel 44 px zonder hogere kop).
+>   Onderin het artikel uit de kennisbank (titel als link) en "Meer uitleg"
+>   naar `/hulp/club#mijn-statistieken`. Escape en buiten klikken sluiten; geen
+>   animatie bij `prefers-reduced-motion`.
+> - `/hulp` (Mijn statistieken) bijgewerkt: de uitleg achter de titel, km per
+>   lid, en de rekenregels uit de vorige ronde (IF boven 1,2 telt niet, watt per
+>   hartslag alleen over duurritten, geen pijltje bij minder dan drie ritten,
+>   dubbele ritten tellen één keer). Die stonden daar nog niet.
+>
+> **Bewust niet gedaan.** Een apart ⓘ-icoon naast de titel: de titel zelf is
+> het doel, dus geen extra element per tegel. Uitleg bij losse cijfers of
+> assen: één uitleg per tegel is genoeg. Geen eigen artikelen over NP, TSS of
+> W′ geschreven; daarvoor linkt de uitleg naar `/hulp`.
+>
+> **Niet geverifieerd.** Het ontwerp "tegels" en het lichte thema niet apart
+> bekeken (alles via tokens). Niet op een echte telefoon getikt; wel met
+> 375 px-emulatie in de browser.
+
+> **Stats nagerekend: dubbele ritten, onmogelijke NP, eerlijkere grafieken, 2026-10-18 — gebouwd, unit-tests, typecheck en lint schoon; ingelogd in de browser bekeken op desktop (Ik en Club) en 375 px (Club en het begin van Ik); niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/stats-significance-relevance-design-501ed0`.
+>
+> **Waarom.** Vraag van de eigenaar: controleer de significantie en relevantie
+> van alle statistieken op Stats (Ik en Club) en het design van de grafieken met
+> Impeccable, want bij sommige klopte het niet. Bekeken met de eigen data van de
+> eigenaar en de database (alleen lezen).
+>
+> **Gevonden en verholpen: rekenwerk.**
+> - **Dubbele ritten.** Dezelfde rit stond twee keer in `strava_activities`: een
+>   intervals-kopie (negatief id) naast de Strava-rit, als een lid van bron
+>   wisselt. Bij de eigenaar telde september 2026 daardoor 1.088 km in plaats van
+>   ~930; clubbreed 26 dubbele rijen van 9 leden (803 km). De ingest
+>   (`dedupeRides`) houdt het tegen binnen één sync, niet bij een bronwissel. Nu
+>   ontdubbelen Ik (`dedupeRideRows` in `personal.ts`) en Club
+>   (`summarizeClubRides`) bij het lezen, met dezelfde regel als de ingest:
+>   start binnen twee minuten, afstand binnen 5%. De rit met vermogen blijft.
+>   `isSameRide` staat daarvoor in een eigen puur bestand
+>   (`src/lib/rides/same-ride.ts`; `intervals/rides.ts` exporteert hem door),
+>   want via `intervals/rides.ts` trok de client-bundle van Stats `web-push` en
+>   `node:net` binnen. Clubcache naar `v2`.
+> - **Onmogelijke NP.** "Hoogste NP (20 min+)" was 382 W over 48 minuten (een
+>   Zwift-race, januari 2025) bij een FTP van 274: IF 1,39, een kalibratiefout.
+>   Ritten boven IF 1,2 tellen niet meer mee voor vermogen, watt per hartslag en
+>   het NP-record (`MAX_PLAUSIBLE_IF`). TSS en kJ van zo'n rit tellen wel.
+> - **Watt per hartslag** mengde races en duurritten; dan meet de lijn hoeveel je
+>   racete. Nu alleen ritten tot IF 0,85 (zonder FTP telt de rit), en een periode
+>   met minder dan twee ritten blijft leeg.
+> - **Gemiddelde-lijn bij Volume** liet periodes met nul weg, waardoor het
+>   gemiddelde per week of maand te hoog uitviel. Nu tellen lege periodes mee,
+>   behalve die vóór de eerste rit in beeld.
+> - **Percentages op een kleine basis.** Geen ▲/▼ meer als de vergelijkingsperiode
+>   minder dan drie ritten had (`MIN_COMPARE_RIDES`, `src/lib/stats/compare.ts`),
+>   bij Totalen en in het leescijfer van Volume, Ik en Club.
+> - **Club, actieve leden tegenover vorig jaar.** Leden tellen per hele week of
+>   maand. De lopende periode tot vandaag stond naast de hele periode van vorig
+>   jaar en viel dus altijd lager uit. Nu geen vergelijking (en geen streepje) voor
+>   leden in een lopende periode.
+> - **Club, Km per lid** als zesde cijfer bij Totalen: de club groeit, dus meer km
+>   kan ook betekenen dat er meer leden gekoppeld zijn.
+> - **Club, Regio's.** "Onbekend" (5 leden) stond bovenaan; nu altijd onderaan,
+>   naast de twaalf grootste regio's. Eén schaal voor alle balken.
+>
+> **Gevonden en verholpen: grafieken** (`period-chart.tsx` en de tegels).
+> - **X-as.** Labels vielen op afgeronde posities (nov, jan, feb, apr, mei) en
+>   leken daardoor op ontbrekende maanden. Nu op vaste afstand terug vanaf het
+>   laatste punt; Fitheid en Jaar op jaar zetten ze op het begin van een maand
+>   (`tickCandidates`). Jaar op jaar eindigde met "jan" voor week 53.
+> - **Vlak onder een lijn alleen bij een as vanaf nul.** Op een ingezoomde as
+>   (vermogen, CP, eFTP, watt per hartslag, rust-HR) maakte het vlak een kleine
+>   schommeling groot.
+> - **Minimaal bereik per as** (`minSpan`): gewicht 4 kg (0,8 kg vulde de hele
+>   hoogte), rust-HR 10 slagen, HRV 20 ms, slaap 2 uur, EF 0,3, decoupling 6%.
+> - **Hele getallen op de as** als de reeks uit hele getallen bestaat; rust-HR gaf
+>   63, 65, 68, 70, 73 (stap 2,5 afgerond).
+> - **Zones:** het grote cijfer toonde in de %-stand de totale uren met een
+>   %-teken ("19,1%"). Nu altijd uren (`readout.format`).
+> - **W′bal:** de staaf "boven FTP" stond niet in het leescijfer en de linkeras
+>   had geen eenheid. Nu wel, en een losse staafreeks verschijnt voortaan altijd
+>   in het leescijfer.
+> - **Tweede as rustiger:** W′, gewicht en EF als bijlijn (`muted`), zodat de
+>   hoofdlijn leesbaar blijft.
+> - **Intervals-tegels** (zones, W′bal, duurvermogen) beginnen bij de eerste
+>   periode met een gemeten rit. Wie intervals net koppelde zag elf lege maanden.
+>
+> **Bewust niet gedaan.**
+> - De dubbele rijen in de database opruimen: dat is verwijderen van ledendata
+>   en vraagt een eigen besluit. De lees-ontdubbeling maakt de cijfers nu goed;
+>   de oorzaak (bronwissel) zit in de ingest.
+> - Indoor- en buitenritten scheiden bij watt per hartslag: binnen ligt de
+>   hartslag hoger, maar per maand zijn er dan te weinig ritten.
+> - CP en W′ per maand strenger maken. Een maand zonder maximale inspanningen
+>   geeft een lagere CP; dat is eerlijk ("wat je liet zien"), maar geen fitheid.
+>   Eerst kijken of dat verwarring geeft.
+> - De zonekleuren (hard gecodeerd, gelijk aan de workoutblokken) naar tokens:
+>   ze zijn de vaste conventie in de app.
+> - Een significantietoets op de verschillen: het zijn beschrijvende cijfers
+>   (wat je reed), geen schattingen. De drempel van drie ritten haalt de ruis eruit.
+>
+> **Getest.** Vitest: `stats-personal` (ontdubbelen, IF-grens, duurritten bij watt
+> per hartslag) en `stats-club` (ontdubbelen per lid, Onbekend onderaan); alle
+> unit-tests groen (twee time-outs onder volle belasting, los opnieuw groen).
+> Typecheck schoon op de bekende ontbrekende modules (`@zxing`, `tesseract.js`)
+> na. ESLint en de Impeccable-detector schoon. In de browser met de eigen data:
+> beide pagina's op desktop, Club en het begin van Ik op 375 px (geen zijwaarts
+> schuiven).
+>
+> **Niet geverifieerd.** De laatste kleine wijziging (op de telefoon één x-label
+> meer) is niet meer bekeken: het browserpaneel stond toen verborgen. Het lichte
+> thema niet apart bekeken (alles via tokens). `npm run build` niet gedraaid.
+
 > **Hulp in categorieën: tegels in plaats van één lange pagina, 2026-10-18 — gebouwd, unit-tests, typecheck en lint schoon; ingelogd in de browser bekeken (desktop en 375 px, klassiek en tegels); gepusht naar `main` (eigenaar, 2026-10-18, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
@@ -1145,12 +1272,14 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   tooltip: het cijfer staat nooit onder je duim. Daarnaast:
 >   - De periode waar je naar kijkt licht goud op ("jij, nu" uit het
 >     kleurbeleid), net als het beste punt (stip met waarde).
->   - Vlakken onder de hoofdlijn.
+>   - Vlakken onder de hoofdlijn. ~~Altijd~~ Sinds 2026-10-18 alleen als de as
+>     bij nul begint (zie het blok "Stats nagerekend").
 >   - Volume krijgt per staaf een streepje voor dezelfde periode vorig jaar
 >     (`yearEarlier` in `src/lib/stats/personal.ts`: per week 52 weken terug,
 >     zodat de week op maandag blijft beginnen). De lopende periode vergelijkt
 >     tot dezelfde dag, en het gemiddelde van de afgesloten periodes staat als
->     stippellijn.
+>     stippellijn (sinds 2026-10-18 tellen lege periodes daarin mee, behalve die
+>     vóór de eerste rit in beeld).
 >   - De lopende periode is gearceerd met de schuine banen van het tenue.
 >   - Het leescijfer zegt per grafiek wat ertoe doet: ▲/▼ tegenover vorig jaar,
 >     "km voor op 2025" bij jaar op jaar, het aandeel vanaf Z4 bij de zones.
@@ -1371,7 +1500,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   `strava_activities` met losse JSON-paden in plaats van heel `raw`, dus zonder
 >   polyline, in pagina's van 1000. TSS en IF via `rideMetricsFromStrava` met de
 >   FTP van de ritdag (`loadFtpAt`). Vermogen en watt per hartslag tellen alleen
->   ritten met echte meter (`device_watts`) van minstens 20 minuten.
+>   ritten met echte meter (`device_watts`) van minstens 20 minuten, sinds
+>   2026-10-18 zonder ritten boven IF 1,2 (meetfout), en watt per hartslag alleen
+>   over duurritten tot IF 0,85 met minstens twee per periode.
 > - Fitheid: met intervals-koppeling de wellness van intervals (die telt ook ritten
 >   zonder meter op hartslag), anders zelf gerekend uit de eigen TSS (EWMA 42/7,
 >   `fitnessFromTss`). `projectCtl` is niet hergebruikt: die geeft alleen de
