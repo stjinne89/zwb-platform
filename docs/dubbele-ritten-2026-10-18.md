@@ -106,8 +106,8 @@ eigenaar:
 
 ## Andere lezers
 
-Stats ontdubbelt bij het lezen sinds commit `2970a109` (nog op een eigen branch,
-niet op `main`). Sinds de tweede ronde van 2026-10-18 doen de lezers hieronder
+Stats ontdubbelt bij het lezen sinds commit `2970a109` (op `main` sinds
+2026-10-18). Sinds de tweede ronde van 2026-10-18 doen de lezers hieronder
 dat ook, met `uniqueRides` (`src/lib/rides/unique-rides.ts`): zelfde lid, start
 binnen 120 s, afstand binnen 5%. Van twee opnames blijft die met vermogen (voor
 de cols: die met een spoor), bij gelijke stand de Strava-rit.

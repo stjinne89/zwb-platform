@@ -193,7 +193,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Stats: uitleg achter de titel van elke tegel, 2026-10-18 — gebouwd, typecheck, lint en tests schoon; ingelogd in de browser bekeken (desktop: hover en tik; 375 px: tik); niet gepusht. Geen migratie.**
+> **Stats: uitleg achter de titel van elke tegel, 2026-10-18 — gebouwd, typecheck, lint en tests schoon; ingelogd in de browser bekeken (desktop: hover en tik; 375 px: tik); gepusht naar `main` op 2026-10-18 (commit `45f2eb17`). Geen migratie.**
 > Commit: de commit die dit blok toevoegt, op `claude/stats-significance-relevance-design-501ed0`.
 >
 > **Waarom.** Vraag van de eigenaar: bij een hover over de titel van een
@@ -229,7 +229,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > bekeken (alles via tokens). Niet op een echte telefoon getikt; wel met
 > 375 px-emulatie in de browser.
 
-> **Stats nagerekend: dubbele ritten, onmogelijke NP, eerlijkere grafieken, 2026-10-18 — gebouwd, unit-tests, typecheck en lint schoon; ingelogd in de browser bekeken op desktop (Ik en Club) en 375 px (Club en het begin van Ik); niet gepusht. Geen migratie.**
+> **Stats nagerekend: dubbele ritten, onmogelijke NP, eerlijkere grafieken, 2026-10-18 — gebouwd, unit-tests, typecheck en lint schoon; ingelogd in de browser bekeken op desktop (Ik en Club) en 375 px (Club en het begin van Ik); gepusht naar `main` op 2026-10-18 (commit `2970a109`). Geen migratie.**
 > Commit: de commit die dit blok toevoegt, op `claude/stats-significance-relevance-design-501ed0`.
 >
 > **Waarom.** Vraag van de eigenaar: controleer de significantie en relevantie
@@ -10248,8 +10248,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — weekbadges zagen maar 1000 ritten
 
-**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet
-gepusht. Cijfers en voorstel: [docs/dubbele-ritten-2026-10-18.md](docs/dubbele-ritten-2026-10-18.md#weekbadges-de-run-zag-maar-1000-ritten).
+**2026-10-18.** Commit `273d8b6d`. Geen migratie. **Gepusht naar `main` op
+2026-10-18.** Cijfers en voorstel: [docs/dubbele-ritten-2026-10-18.md](docs/dubbele-ritten-2026-10-18.md#weekbadges-de-run-zag-maar-1000-ritten).
 
 **Waarom.** `awardCompletedAchievementWeeks` las alle ritten van alle leden in
 één select. Met 29.936 rijen gaf PostgREST er 1000, steeds een andere
@@ -10287,13 +10287,13 @@ falen op de oude code. **Niet** tegen productie gedraaid.
 
 ### Gebouwd — lezers tellen een dubbele opname één keer
 
-**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet
-gepusht.
+**2026-10-18.** Commit `19879c68`. Geen migratie. **Gepusht naar `main` op
+2026-10-18.**
 
 **Waarom.** Na de ingestfix hieronder blijven 19 paren bij 8 leden: ritten die
 het lid zelf met twee toestellen opnam en beide naar Strava zette, of twee keer
 importeerde. Strava heeft ze ook dubbel, dus ZWB wist ze niet. Stats telde ze
-al één keer (`2970a109`, eigen branch); belasting, planner, badges, cols en de
+al één keer (`2970a109`, sinds 2026-10-18 op `main`); belasting, planner, badges, cols en de
 clubtotalen niet.
 
 **Wat er veranderde.** Eén pure helper, `uniqueRides`
@@ -10333,8 +10333,8 @@ worktree), ESLint schoon, `tsc` alleen met de bekende ontbrekende pakketten
 
 ### Hersteld — intervals-sync zette ritten dubbel naast de Strava-rit
 
-**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet
-gepusht. Onderzoek en opruimvoorstel: [docs/dubbele-ritten-2026-10-18.md](docs/dubbele-ritten-2026-10-18.md).
+**2026-10-18.** Commit `bc27e46f`. Geen migratie. **Gepusht naar `main` op
+2026-10-18.** Onderzoek en opruimvoorstel: [docs/dubbele-ritten-2026-10-18.md](docs/dubbele-ritten-2026-10-18.md).
 
 **Waarom.** Bij de controle van Stats telde september 2026 bij de eigenaar
 ~150 km dubbel: zes ritten stonden als intervals-kopie (id ≤ −10¹²) naast de
