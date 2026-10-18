@@ -1263,14 +1263,14 @@ export default async function EventDetailPage({
             timeZone: "Europe/Amsterdam",
           })}
         </span>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
               {eventLabel(event.type, event.kind)}
             </span>
             <ProgramBadges programs={programs} />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <WhatsAppShareLink
               text={`${event.title} — ${new Date(event.start_at).toLocaleDateString("nl-NL", {
                 day: "numeric",
