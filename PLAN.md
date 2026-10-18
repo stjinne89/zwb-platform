@@ -9858,7 +9858,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — ZWB DS: hoogteprofiel en meer rennersdata
 
 **2026-10-18.** Commit: de commit die dit blok toevoegt. Migratie
-`0250_zwb_ds_more_rider_data.sql` (**nog niet toegepast**). Niet gepusht.
+`0250_zwb_ds_more_rider_data.sql`, **toegepast op productie op 2026-10-18** via de
+Supabase-connector (vijf kolommen nagekeken). **Gepusht naar `main` op
+2026-10-18**, op verzoek van de eigenaar.
 
 **Waarom.** De eigenaar bekeek DS tijdens een groepsrit ("Zwift ritje", Zwift-event
 `5739688`, groep C, 21 renners in beeld) en miste data: per renner alleen naam en
@@ -9910,9 +9912,11 @@ inlog). De eenheid van `draft`: Sauce toont hem als watt, maar wat het getal
 precies is, is omstreden. Of `elapsed`/kJ bij een race vanaf de start tellen of
 vanaf het binnenkomen in de startvak.
 
-**Nog te doen voor live:** migratie `0250` toepassen (zonder die kolommen faalt
-het opslaan en vraagt DS Zwift niets meer), de privacytekst aanvullen (voorstel
-aan de eigenaar), pushen.
+**Privacy.** `/privacy#zwb-ds` noemt nu ook cadans, draft, rijtijd en verbruikte
+energie, en dat het gewicht alleen meekomt als de renner het in Zwift toont.
+Tekst door de eigenaar goedgekeurd op 2026-10-18; geen nieuwe versie.
+
+**Nog te doen:** het nieuwe scherm in een echte race bekijken.
 
 ### Gebouwd — ZWB DS: raceoverzicht tijdens Zwift-races
 
