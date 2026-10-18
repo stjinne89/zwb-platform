@@ -190,6 +190,41 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
+> **Eventpagina: live renners zonder positie niet meer onzichtbaar, 2026-10-18 — gebouwd, lint en typecheck schoon; niet gepusht, niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Melding van de eigenaar tijdens de Legacy Gravel in Leuven
+> (2026-10-18, start 09:50): Rolf Buunk reed met zijn Wahoo aan, maar stond niet
+> op de eventpagina. Onderzocht in de productiedata:
+> - Aanmelding "ja", vaste Wahoo-link actief (om 09:13 opnieuw geplakt), event
+>   met GPX: alles in orde.
+> - Zijn link werd voor het laatst om 09:47:19 bekeken, drie minuten vóór de
+>   start, en toen liep er nog geen rit. Daarna heeft tot minstens 09:57 niemand
+>   de eventpagina, `/live` of de publieke ticker geopend, dus is er niet meer
+>   gekeken (alleen bij kijken, hooguit elke 3 minuten; ronde 0192). Er is
+>   vandaag geen sessie aangemaakt.
+> - Zijn twee eerdere Wahoo-ritten (4 en 8 oktober) werden wel opgemerkt, maar
+>   leverden geen enkele positie op (`external_last_point_at` leeg). De oorzaak
+>   is niet vastgesteld: Wahoo is vanuit deze omgeving niet bereikbaar. Mogelijk
+>   zit er geen positie in zijn FIT-data (binnenrit, geen GPS-fix) of leest
+>   `fit-records.ts` zijn toestel niet goed.
+> - **De bug:** de ticker toonde een sessie zonder positie alleen als die een
+>   `external_track_url` had. Een sessie via de vaste Wahoo-link heeft die
+>   bewust niet (0192), dus zo'n renner viel helemaal weg: niet in de lijst,
+>   niet in de teller "live". Op `/live` stond hij wel als actief.
+>
+> **Wat.** `event-live-ticker.tsx`: elke actieve sessie zonder recente positie
+> staat in de lijst naast de kaart en telt mee als live, met "Kaart" als er een
+> link is en anders "Geen positie". Geldt ook voor de publieke ticker en de
+> verjaardagsrit, die dezelfde component gebruiken.
+>
+> **Bewust niet gedaan.** Vaker of zonder kijker naar de Wahoo-link kijken: de
+> keuze "alleen bij kijken" van de eigenaar (2026-09-28) blijft staan.
+>
+> **Niet geverifieerd.** Niet in de browser bekeken. Waarom Rolfs ritten geen
+> posities opleveren: eerstvolgende keer dat hij rijdt zijn live-pagina met
+> `wahooPagePoints` uitlezen (op een plek die Wahoo kan bereiken).
+
 > **Analyse per hittesessie, en de lopende protocollen op Vandaag, 2026-10-17 — gebouwd, lokaal getest; gepusht naar `main` (eigenaar, 2026-10-17); `0248` toegepast via de Supabase-connector (2026-10-17).**
 > Commit: de commit die dit blok toevoegt. Migratie
 > `0248_member_protocol_core_analysis.sql` (toegepast via de Supabase-connector,
@@ -6420,7 +6455,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > opgemerkt: `data-workout-state` is dan `in_progress`. De FIT-data bevatte
 > alleen tijd, hartslag en calorieën, geen positie en afstand 0. Zonder GPS-fix
 > (binnen of stilstaand) verschijnt de renner dus wel als actief, maar niet op
-> de kaart. Of er posities komen zodra hij buiten rijdt, moet de proefrit nog
+> de kaart. (Op de eventpagina viel hij tot 2026-10-18 helemaal weg; zie de
+> ronde "live renners zonder positie" van die dag.) Of er posities komen zodra hij buiten rijdt, moet de proefrit nog
 > laten zien.
 
 > **Live volgen via de vaste Wahoo-link, 2026-09-28 — gebouwd; migratie

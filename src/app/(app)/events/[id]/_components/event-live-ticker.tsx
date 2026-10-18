@@ -596,11 +596,10 @@ export function EventLiveTicker({
     return now - new Date(m.recordedAt).getTime() <= STALE_AFTER_MS;
   });
   const riders = visibleMarkers.map((marker) => projectOnRoute(marker, routeStats, now));
-  // Garmin/Wahoo-renners zonder posities: alleen de link naar hun eigen kaart.
+  // Live zonder (recente) positie, bv. de vaste Wahoo-link zonder GPS in de
+  // FIT-data: wel in de lijst, met de link naar hun eigen kaart als die er is.
   const riderIds = new Set(riders.map((r) => r.sessionId));
-  const linkOnly = sessions.filter(
-    (s) => s.externalTrackUrl && !riderIds.has(s.id),
-  );
+  const unplaced = sessions.filter((s) => !riderIds.has(s.id));
   const positions = routeStats.points.map((p) => [p.lat, p.lon] as [number, number]);
   // Zones → route-stukken (LatLng) voor de kaart-band.
   const zoneSegments = zones.map((z) => {
@@ -737,7 +736,7 @@ export function EventLiveTicker({
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
         <div className="rounded-md border bg-background px-3 py-2 text-sm tabular-nums">
-          <strong>{riders.length + linkOnly.length}</strong>{" "}
+          <strong>{riders.length + unplaced.length}</strong>{" "}
               <span className="text-muted-foreground">live</span>
         </div>
       </div>
@@ -769,13 +768,13 @@ export function EventLiveTicker({
           />
           {/* Met pollUrl kijkt een gast mee (/live/[id]): die kan /leden niet in. */}
           <RiderList riders={riders} totalKm={routeStats.totalKm} linkMembers={!pollUrl} />
-          <LinkOnlyList sessions={linkOnly} linkMembers={!pollUrl} />
+          <UnplacedList sessions={unplaced} linkMembers={!pollUrl} />
         </div>
       </div>
 
       {gpxDownloadUrl && <GpxDownloadLink href={gpxDownloadUrl} />}
 
-      {riders.length === 0 && linkOnly.length === 0 && (
+      {riders.length === 0 && unplaced.length === 0 && (
         <div className="rounded-md border border-dashed bg-background p-4 text-sm text-muted-foreground">
           {emptyText}
         </div>
@@ -876,7 +875,7 @@ function RiderPopup({
   );
 }
 
-function LinkOnlyList({
+function UnplacedList({
   sessions,
   linkMembers,
 }: {
@@ -899,15 +898,19 @@ function LinkOnlyList({
               {sourceLabel(session.source)}
             </p>
           </div>
-          <a
-            href={session.externalTrackUrl!}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-1 rounded-md border bg-card px-2.5 py-1 text-xs font-medium hover:bg-secondary"
-          >
-            Kaart
-            <ArrowUpRight className="size-3" />
-          </a>
+          {session.externalTrackUrl ? (
+            <a
+              href={session.externalTrackUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border bg-card px-2.5 py-1 text-xs font-medium hover:bg-secondary"
+            >
+              Kaart
+              <ArrowUpRight className="size-3" />
+            </a>
+          ) : (
+            <span className="shrink-0 text-xs text-muted-foreground">Geen positie</span>
+          )}
         </li>
       ))}
     </ul>
