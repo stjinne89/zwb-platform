@@ -9917,6 +9917,49 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWB DS naast Sauce gelegd: doorschatten en voorrang
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet
+gepusht.
+
+**Waarom.** De eigenaar: "het werkt niet naar behoren", vergelijk met Sauce. Rit
+"WOW - High Speed Ride on TT bikes with draft" (Zwift-event `5740676`, groep C,
+154 renners met een status). Op hetzelfde moment (13:59 UTC) zag Sauce één
+groep van 108 met de eigenaar erin; ZWB DS 41 renners in vier groepen
+(27 / eigenaar +0:19 / +0:36 / +0:52), met de eigenaar op een meting van 80 s.
+
+**Meting.** Nieuw script `scripts/sauce-ds-compare.mjs` legt Sauce' `nearby` en
+`groups` per seconde vast (alleen Zwift-ID's en getallen, in `.tmp/`), twee
+minuten gedraaid tegen de Sauce-pc. Daarna de opgeslagen statussen op drie
+momenten naast Sauce' `eventDistance` gelegd (alleen statussen ≤ 3 min oud):
+
+| Doorschatten | Fout mediaan | p90 | max | Groepen DS | Sauce |
+| --- | --- | --- | --- | --- | --- |
+| Hooguit 60 s (was) | 22–660 m | 577–1028 m | 1,2 km | 7–9 | 1–2 |
+| Helemaal, eigen snelheid | 12–21 m | 49–67 m | 59–155 m | 1 | 1–2 |
+| Helemaal, groepssnelheid | 10–71 m | 53–108 m | 112–151 m | 1 | 1–2 |
+
+**Wat er veranderde.**
+- Doorschatten tot de bestaande grens van 3 minuten in plaats van 60 s, met de
+  eigen snelheid (`MAX_EXTRAPOLATE_MS = STALE_MS`). De grens van 60 s schoof
+  oudere statussen tot 1,2 km te ver terug: daar kwamen de verzonnen groepen
+  vandaan.
+- Strikte voorrang bij het opvragen (`ridersToCheck`): ZWB'ers (elke 10 s), dan
+  renners die laatst binnen 500 m van een ZWB'er reden (elke 20 s), dan nooit
+  gemeten, dan de rest (eens per minuut). Met alleen 30 s voorsprong bleef de
+  eigen renner in een veld van 154 27 minuten ongemeten: wie langer wachtte,
+  won het steeds.
+
+**Grenzen die blijven.** Met 30 statussen per minuut is een veld van 150 niet
+in zijn geheel vers te houden: rond de ZWB'ers wel, verder weg eens per paar
+minuten. Sauce ziet het veld rond de gevolgde renner elke seconde, met
+`eventPosition` en groepen uit het spel zelf; dat blijft beter.
+
+**Getest:** unit-tests (`zwb-ds.test.ts`: doorschatten van een status van twee
+minuten, voorrang in een veld van 150), `tsc`, ESLint; de modelvergelijking met
+de echte Sauce-data hierboven. **Niet** opnieuw in een rit bekeken na deze
+wijziging.
+
 ### Gebouwd — ZWB DS: hoogteprofiel en meer rennersdata
 
 **2026-10-18.** Commit: de commit die dit blok toevoegt. Migratie

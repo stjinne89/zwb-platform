@@ -31,10 +31,11 @@ describe("buildField", () => {
     expect(field.riders[1].gapS).toBeCloseTo(5);
   });
 
-  it("schat niet verder door dan een minuut", () => {
-    const field = buildField([rider("a", 1000, { ageMs: 120_000 })], { now: NOW, routeM: null });
-    expect(field.riders[0].distanceM).toBeCloseTo(1000 + (10 * MAX_EXTRAPOLATE_MS) / 1000);
-    expect(field.riders[0].ageS).toBe(120);
+  it("schat een status van twee minuten helemaal door, zodat een groep bij elkaar blijft", () => {
+    const field = buildField([rider("a", 1000, { ageMs: 120_000 }), rider("b", 2190)], { now: NOW, routeM: null });
+    expect(field.riders.find((r) => r.zwiftId === "a")?.distanceM).toBeCloseTo(2200);
+    expect(field.groups).toHaveLength(1);
+    expect(MAX_EXTRAPOLATE_MS).toBeGreaterThanOrEqual(120_000);
   });
 
   it("deelt in groepen bij meer dan vijf seconden ertussen", () => {
@@ -115,25 +116,34 @@ describe("buildField", () => {
 });
 
 describe("ridersToCheck", () => {
-  it("eerst wie nooit gemeten is, dan eigen renners, dan de oudste", () => {
+  it("eerst ZWB'ers, dan wie bij hen rijdt, dan wie nooit gemeten is, dan de oudste rest", () => {
     const picked = ridersToCheck(
       [
-        { zwiftId: "oud", zwb: false, checkedAt: NOW - 40_000, absent: false },
+        { zwiftId: "oud", zwb: false, checkedAt: NOW - 30 * 60_000, absent: false },
+        { zwiftId: "buur", zwb: false, near: true, checkedAt: NOW - 25_000, absent: false },
         { zwiftId: "zwb", zwb: true, checkedAt: NOW - 15_000, absent: false },
         { zwiftId: "nieuw", zwb: false, checkedAt: null, absent: false },
-        { zwiftId: "vers", zwb: false, checkedAt: NOW - 5_000, absent: false },
+        { zwiftId: "vers", zwb: false, checkedAt: NOW - 30_000, absent: false },
       ],
       NOW,
       10,
     );
-    expect(picked).toEqual(["nieuw", "zwb", "oud"]);
+    expect(picked).toEqual(["zwb", "buur", "nieuw", "oud"]);
+  });
+
+  it("houdt een ZWB'er vers in een groot veld waar de rest al lang wacht", () => {
+    const rows = [
+      ...Array.from({ length: 150 }, (_, i) => ({ zwiftId: `r${i}`, zwb: false, checkedAt: NOW - (5 + i) * 60_000, absent: false })),
+      { zwiftId: "zwb", zwb: true, checkedAt: NOW - 11_000, absent: false },
+    ];
+    expect(ridersToCheck(rows, NOW, 8)[0]).toBe("zwb");
   });
 
   it("vraagt wie niet in de wereld was pas na een minuut opnieuw, en houdt zich aan het maximum", () => {
     const rows = [
       { zwiftId: "weg", zwb: true, checkedAt: NOW - 30_000, absent: true },
-      { zwiftId: "a", zwb: false, checkedAt: NOW - 30_000, absent: false },
-      { zwiftId: "b", zwb: false, checkedAt: NOW - 60_000, absent: false },
+      { zwiftId: "a", zwb: false, checkedAt: NOW - 70_000, absent: false },
+      { zwiftId: "b", zwb: false, checkedAt: NOW - 90_000, absent: false },
     ];
     expect(ridersToCheck(rows, NOW, 1)).toEqual(["b"]);
     expect(ridersToCheck(rows, NOW, 0)).toEqual([]);

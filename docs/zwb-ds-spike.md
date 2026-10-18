@@ -354,3 +354,9 @@ blok "Gebouwd — ZWB DS" in `PLAN.md`. Afwijkingen van het bouwplan hierboven:
 Wat er in de spelersstatus en de startlijst zit en wat DS er nu mee toont: zie
 het blok "ZWB DS: hoogteprofiel en meer rennersdata" in `PLAN.md`.
 
+## Naast Sauce gelegd (2026-10-18)
+
+`scripts/sauce-ds-compare.mjs --url http://<sauce-pc>:1080 --minutes 10` legt
+Sauce' renners en groepen per seconde vast. De vergelijking met ZWB DS en wat
+er daarna veranderde: zie het blok "ZWB DS naast Sauce gelegd" in `PLAN.md`.
+

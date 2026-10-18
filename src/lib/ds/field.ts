@@ -5,10 +5,15 @@
 // minuut oud (docs/zwb-ds-spike.md). Daarom schatten we iedereen door naar
 // hetzelfde moment met zijn laatste snelheid, en pas dan delen we in groepen.
 
-/** Een status ouder dan dit schatten we niet verder door: bergop, bergaf of een aanval maakt het gokken. */
-export const MAX_EXTRAPOLATE_MS = 60 * 1000;
 /** Ouder dan dit telt een renner niet meer mee in het veld. */
 export const STALE_MS = 3 * 60 * 1000;
+/**
+ * Doorschatten tot het einde: naast Sauce gelegd (2026-10-18, groep van 108 op
+ * 40 km/u) zat een status van tot 3 minuten oud dan mediaan 12 à 21 m en hooguit
+ * 155 m naast de echte plek. Met een grens van 60 s schoven oudere statussen tot
+ * 1,2 km te ver terug en zag DS 7 à 9 groepen waar Sauce er 1 à 2 zag.
+ */
+export const MAX_EXTRAPOLATE_MS = STALE_MS;
 /**
  * Meer dan zoveel seconden tussen twee renners is een nieuwe groep. Ruimer dan
  * in Zwift zelf (1 à 2 s): een halve minuut doorschatten met een snelheid die 2
