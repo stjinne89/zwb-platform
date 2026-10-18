@@ -4,13 +4,16 @@ import { ARTICLE_EVIDENCE_LABELS } from "@/lib/knowledge/evidence";
 import { EVIDENCE_KINDS } from "@/lib/nutrition/library";
 import { MATERIAAL_ARTICLES, MATERIAAL_CATEGORIES } from "@/lib/materiaal/library";
 import {
+  FIETSEN,
   GROEP_CDA_FACTOR,
-  ROLWEERSTANDEN,
+  RUW_CRR,
+  SPANNINGEN,
   STANDAARD_OPZET,
   VASTE_ROUTES,
   opzetCda,
   ritSeconden,
   vergelijkOpzet,
+  winstPerOnderdeel,
 } from "@/lib/materiaal/rekenaar";
 import { AIR_DENSITY, DRIVETRAIN_EFF } from "@/lib/ride-estimate";
 
@@ -20,7 +23,7 @@ import { AIR_DENSITY, DRIVETRAIN_EFF } from "@/lib/ride-estimate";
 
 const doc = readFileSync("docs/materiaal-onderzoek-2026-10-17.md", "utf8");
 const route = (id: string) => VASTE_ROUTES.find((r) => r.id === id)!.segments;
-const rijder = { watts: 200, gewichtKg: 75, groep: false };
+const rijder = { watts: 200, gewichtKg: 75, groep: false, wegdek: "glad" as const };
 
 describe("kennisbank materiaal", () => {
   it("heeft unieke artikelen met bron, beperking, plank en geldig niveau", () => {
@@ -86,11 +89,53 @@ describe("rekenaar", () => {
 
   it("rekent de rolweerstand uit Lim 2011 na", () => {
     // 4,2 N en 5,6 N bij ongeveer 85 kg renner en fiets.
-    expect(4.215 / (85 * 9.81)).toBeCloseTo(ROLWEERSTANDEN[0].crr, 3);
-    expect(5.575 / (85 * 9.81)).toBeCloseTo(ROLWEERSTANDEN[1].crr, 2);
-    const hard = ritSeconden(route("vlak"), rijder, { ...STANDAARD_OPZET, crr: ROLWEERSTANDEN[0].crr });
-    const zacht = ritSeconden(route("vlak"), rijder, { ...STANDAARD_OPZET, crr: ROLWEERSTANDEN[1].crr });
+    expect(4.215 / (85 * 9.81)).toBeCloseTo(SPANNINGEN[0].crr, 3);
+    expect(5.575 / (85 * 9.81)).toBeCloseTo(SPANNINGEN[1].crr, 2);
+    const hard = ritSeconden(route("vlak"), rijder, { ...STANDAARD_OPZET, spanning: "hard" });
+    const zacht = ritSeconden(route("vlak"), rijder, { ...STANDAARD_OPZET, spanning: "zacht" });
     expect(zacht).toBeGreaterThan(hard);
+  });
+
+  it("laat de spanning op een ruw wegdek niets uitmaken", () => {
+    const ruw = { ...rijder, wegdek: "ruw" as const };
+    const hard = ritSeconden(route("vlak"), ruw, { ...STANDAARD_OPZET, spanning: "hard" });
+    const zacht = ritSeconden(route("vlak"), ruw, { ...STANDAARD_OPZET, spanning: "zacht" });
+    expect(hard).toBe(zacht);
+    expect(RUW_CRR).toBe(SPANNINGEN[1].crr);
+  });
+
+  it("leidt de aerofiets af uit Jeukendrup & Martin 2001", () => {
+    // Een aeroframe scheelde op 40 km solo 1:17 tot 1:44, aerowielen 60 tot 82 s.
+    // Terugrekenen met hetzelfde model moet op die tijden uitkomen.
+    const tt = { segments: route("vlak"), cda: 0.25 };
+    const frame = FIETSEN.find((f) => f.id === "aero")!.cdaVerschil - FIETSEN.find((f) => f.id === "aerowielen")!.cdaVerschil;
+    const wielen = FIETSEN.find((f) => f.id === "aerowielen")!.cdaVerschil;
+    const tijd = (watts: number, cda: number) =>
+      ritSeconden(tt.segments, { ...rijder, watts, gewichtKg: 71 }, { ...STANDAARD_OPZET, aeroPct: (cda / 0.32 - 1) * 100 });
+    const winstFrame = tijd(417, tt.cda) - tijd(417, tt.cda + frame);
+    const winstWielen = tijd(417, tt.cda) - tijd(417, tt.cda + wielen);
+    expect(winstFrame).toBeGreaterThan(70);
+    expect(winstFrame).toBeLessThan(110);
+    expect(winstWielen).toBeGreaterThan(55);
+    expect(winstWielen).toBeLessThan(85);
+  });
+
+  it("maakt een dichte helm en een aerofiets sneller", () => {
+    const helm = vergelijkOpzet({ route: route("vlak"), rijder, nu: STANDAARD_OPZET, straks: { ...STANDAARD_OPZET, helm: "aero" } });
+    const fiets = vergelijkOpzet({ route: route("vlak"), rijder, nu: STANDAARD_OPZET, straks: { ...STANDAARD_OPZET, fiets: "aero" } });
+    expect(helm.winstSeconden).toBeGreaterThan(0);
+    expect(fiets.winstSeconden).toBeGreaterThan(helm.winstSeconden);
+  });
+
+  it("geeft per onderdeel alleen winst voor wat verandert", () => {
+    const straks = { ...STANDAARD_OPZET, houding: "beugel" as const, spanning: "zacht" as const };
+    const los = winstPerOnderdeel({ route: route("vlak"), rijder, nu: STANDAARD_OPZET, straks });
+    expect(los.helm).toBe(0);
+    expect(los.fiets).toBe(0);
+    expect(los.houding).toBeGreaterThan(0);
+    expect(los.spanning).toBeLessThan(0);
+    const totaal = vergelijkOpzet({ route: route("vlak"), rijder, nu: STANDAARD_OPZET, straks }).winstSeconden;
+    expect(Math.abs(los.houding + los.spanning - totaal)).toBeLessThan(5);
   });
 
   it("heeft vaste routes van de goede lengte", () => {

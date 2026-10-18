@@ -10034,6 +10034,85 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — De renner in de rekenaar van ZWBeter materiaal
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** De eigenaar vroeg om een plaatje van een wielrenner in het
+ZWB-tenue, waarop je helm, fiets, bandendruk en houding kiest en ziet wat dat
+oplevert. De tabel "Wat verandert er?" was te droog. De eigenaar koos (via de
+vragen in deze sessie): de renner vervangt de tabel, de fiets wordt uit een
+bron afgeleid, en bandenspanning en wegdek zijn twee aparte keuzes.
+
+**Wat er veranderde.**
+- **De renner** (`src/app/(app)/zwbeter-worden/materiaal/rekenaar/renner.tsx`):
+  een eigen SVG van opzij, in de tenuekleuren (petrol shirt met de schuine
+  banen in teal, sage en goud). Hij tekent per keuze:
+  - de houding: romphoek en handen, met ellebogen en knieën uit vaste lengtes,
+    en een zachte overgang tussen houdingen (direct bij minder beweging);
+  - de helm met gaten of een dichte aerohelm;
+  - een racefiets met spaakwielen, aerowielen, of een aerofiets met dikkere
+    buizen en hoge velgen;
+  - een platter contactvlak bij zachte banden, en kasseien bij ruw wegdek.
+  Is de houding van nu en straks anders, dan staat de andere houding als
+  stippellijn erachter.
+- **De pagina** (`rekenaar.tsx`): een schakelaar Nu/Straks (de rail van de
+  profielknop, nu met `--view-slider-w` voor een bredere stand). Je tikt op een
+  stip op de renner of op een van de vier onderdelen eronder. Elk onderdeel
+  toont wat het apart oplevert; de uitkomst staat direct onder de renner.
+  Kleding (%), uitrusting (kg) en aandrijving staan onder de renner, voor de
+  gekozen stand. Het wegdek staat bij Route en rijder, omdat het voor nu en
+  straks gelijk is.
+- **Het model** (`src/lib/materiaal/rekenaar.ts`):
+  - `HELMEN`: een dichte helm is 3,9 % minder luchtweerstand, het midden van
+    3,7 tot 4,1 % uit het artikel Helm (op een pop);
+  - `FIETSEN`: aerowielen 0,015 m² en een aerofiets 0,034 m² minder. Afgeleid
+    uit Jeukendrup & Martin 2001 (doi:10.2165/00007256-200131070-00009): een
+    aeroframe scheelde 1:17 tot 1:44 en aerowielen 60 tot 82 s op 40 km solo.
+    Met ons model geeft dat bij elk niveau van renner hetzelfde verschil. Het
+    is een verschil in m² en geen factor, omdat de fiets niet kleiner wordt als
+    jij lager zit;
+  - `SPANNINGEN` en `WEGDEKKEN` vervangen `ROLWEERSTANDEN`: hard (~8 bar)
+    0,005, zacht (~4 bar) 0,007 (Lim 2011); op ruw wegdek 0,007 bij elke
+    spanning;
+  - `winstPerOnderdeel`: wat elk onderdeel apart oplevert. Opgeteld hoeft dat
+    niet precies op de totale winst uit te komen.
+- `/hulp`: de uitleg van de rekenaar beschrijft de renner, de stippellijn,
+  ruw wegdek en de herkomst van de aerofiets.
+
+**Bewust niet gebouwd.**
+- Een bandenspanning als schuif in bar. Er zijn alleen metingen bij ~4 en ~8
+  bar; tussenwaarden zouden verzonnen zijn.
+- Een omslagpunt op ruw wegdek, waar te hard pompen trager wordt. Dat is niet
+  vastgesteld; daarom maakt de spanning daar niets uit.
+- Een tijdrithelm met staart, een tijdritfiets en een los aeroframe als keuze.
+  De rekenaar is voor de racefiets; een los frame zonder aerowielen is zeldzaam.
+- Een losse keuze voor een los of strak shirt. Bij clubtempo is dat niet
+  gemeten (artikel Kleding); het blijft een eigen percentage.
+- De renner uit het clubverhaal (`public/story/riders/cyclist-base.svg`): dat
+  is een stockicoon zonder tenue.
+
+**Getest.**
+- `materiaal.test.ts`, nu twaalf tests. Nieuw: de spanning op ruw wegdek
+  maakt niets uit; de aerofiets rekent terug op de tijden van Jeukendrup &
+  Martin; een dichte helm en een aerofiets zijn sneller; per onderdeel alleen
+  winst voor wat verandert.
+- ESLint op de gewijzigde bestanden: schoon. De Impeccable-detector: alleen de
+  bestaande badge van 10px.
+
+**In de browser bekeken** (dev-server, ingelogd, 2026-10-18):
+- Donker op 800 px: onderarmen plat, aerohelm, aerofiets en zachte banden over
+  40 km vlak bij 206 W: −4:20 en 36 W, met per onderdeel −0:52, −3:12, −2:25 en
+  +2:24; de stippellijn toont de houding van nu.
+- Licht op 375 px met ruw wegdek: kasseien, geen winst voor de banden, geen
+  horizontale scroll.
+- Licht op 1100 px in de stand Nu: rechtop, met de lage houding als stippellijn.
+- Geen fouten in de console.
+
+**Niet geverifieerd.**
+- De overgang tussen houdingen op een echte telefoon.
+- Hoe het op productie oogt (niet gepusht).
+
 ### Hersteld — herziening streepte de training van vandaag weg
 
 **2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -10787,6 +10866,9 @@ taak staat als voorstel klaar.
     groep;
   - nu en straks voor houding, extra luchtweerstand in procent, banden en
     wegdek, fiets en uitrusting in kg, en het rendement van de aandrijving;
+    *niet meer waar sinds 2026-10-18 (De renner in de rekenaar): de tabel is
+    vervangen door de renner, met helm, fiets en bandenspanning als eigen keuze
+    en het wegdek bij de route;*
   - bij elke keuze het artikel met de bewijsbadge;
   - de uitkomst is de tijdwinst en wat die in watt waard is.
   - Waar de keuzes vandaan komen:

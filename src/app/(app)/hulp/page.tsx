@@ -3794,18 +3794,25 @@ Fitness-status: Verbeterend`}
           <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">De rekenaar</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Kies een route, je vermogen en je gewicht, en wat je nu hebt en
-              straks overweegt: houding, luchtweerstand van helm, kleding of wielen,
-              banden, gewicht en het rendement van je ketting. De rekenaar rijdt de
+              Kies een route, het wegdek, je vermogen en je gewicht. Op de renner
+              stel je in wat je nu hebt en wat je straks overweegt: helm, houding,
+              fiets en bandenspanning. Tik op een stip op de renner of op een
+              onderdeel eronder. Kleding, het gewicht van je uitrusting en het
+              rendement van je ketting staan onder de renner. De rekenaar rijdt de
               route twee keer met hetzelfde vermogen en toont het verschil in tijd
-              en in watt.
+              en in watt, en per onderdeel wat dat apart oplevert. De stippellijn
+              is je houding in de andere opzet.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Hij rekent windstil en met een vast vermogen, zoals het pacingplan.
               In een groep rekent hij met 70 % van je luchtweerstand; dat is een
               aanname. Buitenevents met een GPX staan erbij; Zwift-routes niet,
               want daar bepaalt het spel de fysica. De keuzes voor banden gaan over
-              asfalt; op gravel is de rolweerstand hoger.
+              asfalt; op gravel is de rolweerstand hoger. Op ruw wegdek maakt de
+              bandenspanning niets uit, omdat niet gemeten is wanneer een band
+              daar van sneller naar trager omslaat. De winst van een aerofiets en
+              aerowielen komt uit een rekenmodel voor een tijdrit; op de remgrepen
+              ligt die eerder lager.
             </p>
             <Link
               href="/zwbeter-worden/materiaal/rekenaar"

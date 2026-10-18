@@ -56,23 +56,65 @@ export const HOUDINGEN = [
 export type HoudingId = (typeof HOUDINGEN)[number]["id"];
 
 /**
+ * Helmen als deel van de luchtweerstand met een gewone helm. Artikel Helm: gaten
+ * open of dicht scheelde op een pop 3,7 tot 4,1 %; we nemen het midden.
+ */
+export const HELMEN = [
+  { id: "gaten", label: "Helm met gaten", factor: 1 },
+  { id: "aero", label: "Aerohelm, dicht", factor: 1 - 0.039 },
+] as const;
+export type HelmId = (typeof HELMEN)[number]["id"];
+
+/**
+ * Fietsen als verschil in luchtweerstand (m²) met een gewone racefiets met
+ * spaakwielen. Afgeleid uit Jeukendrup & Martin 2001: een aeroframe scheelde op
+ * 40 km solo 1:17 tot 1:44, aerowielen 60 tot 82 s. Met ons model is dat bij
+ * elk niveau van renner 0,019 en 0,015 m² minder. Het is een verschil en geen
+ * factor, omdat de fiets niet kleiner wordt als jij lager gaat zitten. Gemeten
+ * met een tijdritfiets; op de remgrepen ligt de winst eerder lager.
+ */
+export const FIETSEN = [
+  { id: "race", label: "Racefiets", cdaVerschil: 0 },
+  { id: "aerowielen", label: "Aerowielen", cdaVerschil: -0.015 },
+  { id: "aero", label: "Aerofiets", cdaVerschil: -0.015 - 0.019 },
+] as const;
+export type FietsId = (typeof FIETSEN)[number]["id"];
+
+/**
  * Rolweerstand. Lim 2011 mat op asfalt bij ongeveer 8 bar 4,2 N en bij 4 bar
  * 5,6 N; met renner en fiets van ongeveer 85 kg is dat een Crr van ~0,005 en
- * ~0,007. Die tweede waarde staat ook voor een ruw wegdek (Turner 2024).
+ * ~0,007. Op een ruw wegdek rekenen we bij elke spanning met 0,007 (Turner
+ * 2024): bij welke spanning een band daar omslaat, is niet vastgesteld.
  */
-export const ROLWEERSTANDEN = [
-  { crr: 0.005, label: "Hard, goed asfalt" },
-  { crr: 0.007, label: "Zacht of ruw wegdek" },
+export const SPANNINGEN = [
+  { id: "hard", label: "Hard, ~8 bar", crr: 0.005 },
+  { id: "zacht", label: "Zacht, ~4 bar", crr: 0.007 },
 ] as const;
+export type SpanningId = (typeof SPANNINGEN)[number]["id"];
+
+export const WEGDEKKEN = [
+  { id: "glad", label: "Glad asfalt" },
+  { id: "ruw", label: "Ruw wegdek" },
+] as const;
+export type WegdekId = (typeof WEGDEKKEN)[number]["id"];
+
+export const RUW_CRR = 0.007;
+
+export function rolweerstand(spanning: SpanningId, wegdek: WegdekId): number {
+  if (wegdek === "ruw") return RUW_CRR;
+  return SPANNINGEN.find((s) => s.id === spanning)?.crr ?? DEFAULT_CRR;
+}
 
 /** Rendement van de aandrijving. 97 % is de aanname van het ZWB-model. */
 export const RENDEMENTEN = [0.96, DRIVETRAIN_EFF, 0.98] as const;
 
 export type Opzet = {
   houding: HoudingId;
-  /** Extra luchtweerstand in procent: negatief is minder (helm, kleding, wielen). */
+  helm: HelmId;
+  fiets: FietsId;
+  spanning: SpanningId;
+  /** Extra luchtweerstand in procent, bijvoorbeeld van kleding: negatief is minder. */
   aeroPct: number;
-  crr: number;
   /** Fiets en uitrusting in kg. */
   uitrustingKg: number;
   rendement: number;
@@ -80,8 +122,10 @@ export type Opzet = {
 
 export const STANDAARD_OPZET: Opzet = {
   houding: "remgrepen",
+  helm: "gaten",
+  fiets: "race",
+  spanning: "hard",
   aeroPct: 0,
-  crr: DEFAULT_CRR,
   uitrustingKg: DEFAULT_EQUIPMENT_KG,
   rendement: DRIVETRAIN_EFF,
 };
@@ -90,11 +134,15 @@ export type Rijder = {
   watts: number;
   gewichtKg: number;
   groep: boolean;
+  /** Het wegdek hoort bij de route, niet bij je opzet: nu en straks zijn gelijk. */
+  wegdek: WegdekId;
 };
 
 export function opzetCda(opzet: Opzet, groep: boolean): number {
   const houding = HOUDINGEN.find((h) => h.id === opzet.houding)?.factor ?? 1;
-  return DEFAULT_CDA * houding * (1 + opzet.aeroPct / 100) * (groep ? GROEP_CDA_FACTOR : 1);
+  const helm = HELMEN.find((h) => h.id === opzet.helm)?.factor ?? 1;
+  const fiets = FIETSEN.find((f) => f.id === opzet.fiets)?.cdaVerschil ?? 0;
+  return (DEFAULT_CDA * houding * helm + fiets) * (1 + opzet.aeroPct / 100) * (groep ? GROEP_CDA_FACTOR : 1);
 }
 
 /** Tijd in seconden voor deze route, met een vast vermogen over de hele rit. */
@@ -103,7 +151,7 @@ export function ritSeconden(route: RekenSegment[], rijder: Rijder, opzet: Opzet)
     segments: route.map((s) => ({ ...s, watts: rijder.watts })),
     totalMassKg: rijder.gewichtKg + opzet.uitrustingKg,
     cda: opzetCda(opzet, rijder.groep),
-    crr: opzet.crr,
+    crr: rolweerstand(opzet.spanning, rijder.wegdek),
     drivetrainEff: opzet.rendement,
   }).totalSeconds;
 }
@@ -139,4 +187,24 @@ export function vergelijkOpzet(input: {
   const straksSeconden = ritSeconden(input.route, input.rijder, input.straks);
   const wattWaarde = wattsVoorTijd(input.route, straksSeconden, input.rijder, input.nu) - input.rijder.watts;
   return { nuSeconden, straksSeconden, winstSeconden: nuSeconden - straksSeconden, wattWaarde };
+}
+
+export type Onderdeel = "helm" | "houding" | "fiets" | "spanning";
+
+/**
+ * Wat elk onderdeel apart oplevert: nu, met alleen dat onderdeel van straks.
+ * Samen hoeft dat niet precies op de totale winst uit te komen.
+ */
+export function winstPerOnderdeel(input: {
+  route: RekenSegment[];
+  rijder: Rijder;
+  nu: Opzet;
+  straks: Opzet;
+}): Record<Onderdeel, number> {
+  const nuSeconden = ritSeconden(input.route, input.rijder, input.nu);
+  const los = (onderdeel: Onderdeel) =>
+    input.nu[onderdeel] === input.straks[onderdeel]
+      ? 0
+      : nuSeconden - ritSeconden(input.route, input.rijder, { ...input.nu, [onderdeel]: input.straks[onderdeel] });
+  return { helm: los("helm"), houding: los("houding"), fiets: los("fiets"), spanning: los("spanning") };
 }

@@ -6,17 +6,23 @@ import { useMemo, useState } from "react";
 import { EvidenceBadge } from "@/components/evidence-badge";
 import type { ArticleEvidence } from "@/lib/knowledge/evidence";
 import {
+  FIETSEN,
+  HELMEN,
   HOUDINGEN,
   RENDEMENTEN,
-  ROLWEERSTANDEN,
+  SPANNINGEN,
   STANDAARD_OPZET,
   VASTE_ROUTES,
+  WEGDEKKEN,
   vergelijkOpzet,
-  type HoudingId,
+  winstPerOnderdeel,
+  type Onderdeel,
   type Opzet,
   type RekenRoute,
+  type WegdekId,
 } from "@/lib/materiaal/rekenaar";
 import { cn } from "@/lib/utils";
+import { RennerFiguur, VIEWBOX, ankers } from "./renner";
 
 export type ArtikelLink = { href: string; title: string; evidence: ArticleEvidence };
 
@@ -32,6 +38,10 @@ function tijd(seconden: number): string {
   return `${u > 0 ? `${u}:` : ""}${mm}:${String(r).padStart(2, "0")}`;
 }
 
+function verschil(winst: number): string {
+  return `${winst > 0 ? "−" : "+"}${tijd(winst)}`;
+}
+
 function getal(value: string, fallback: number): number {
   if (value.trim() === "") return fallback;
   const parsed = Number(value.replace(",", "."));
@@ -39,6 +49,25 @@ function getal(value: string, fallback: number): number {
 }
 
 const procent = (value: number) => `${(value * 100).toLocaleString("nl-NL", { maximumFractionDigits: 1 })} %`;
+
+type Stand = "nu" | "straks";
+
+const ONDERDELEN: {
+  id: Onderdeel;
+  label: string;
+  artikel: string;
+  opties: readonly { id: string; label: string }[];
+}[] = [
+  { id: "helm", label: "Helm", artikel: "helm", opties: HELMEN },
+  { id: "houding", label: "Houding", artikel: "houding", opties: HOUDINGEN },
+  { id: "fiets", label: "Fiets", artikel: "wielen-en-frame", opties: FIETSEN },
+  { id: "spanning", label: "Banden", artikel: "banden-en-bandenspanning", opties: SPANNINGEN },
+];
+
+const ankerStijl = ([x, y]: [number, number]) => ({
+  left: `${((x - VIEWBOX.x) / VIEWBOX.w) * 100}%`,
+  top: `${((y - VIEWBOX.y) / VIEWBOX.h) * 100}%`,
+});
 
 export function Rekenaar({
   events,
@@ -63,35 +92,35 @@ export function Rekenaar({
   const [watts, setWatts] = useState(String(standaardWatts));
   const [gewicht, setGewicht] = useState(String(standaardGewicht));
   const [groep, setGroep] = useState(false);
-  const [nu, setNu] = useState<Opzet>(STANDAARD_OPZET);
-  const [straks, setStraks] = useState<Opzet>(STANDAARD_OPZET);
+  const [wegdek, setWegdek] = useState<WegdekId>("glad");
+  const [stand, setStand] = useState<Stand>("straks");
+  const [onderdeel, setOnderdeel] = useState<Onderdeel>("houding");
+  const [opzet, setOpzet] = useState<Record<Stand, Opzet>>({ nu: STANDAARD_OPZET, straks: STANDAARD_OPZET });
   // Getalvelden houden hun tekst zelf bij, zodat je kunt wissen en een komma typen.
-  const [tekst, setTekst] = useState({
-    nuAero: "0",
-    straksAero: "0",
-    nuKg: String(STANDAARD_OPZET.uitrustingKg),
-    straksKg: String(STANDAARD_OPZET.uitrustingKg),
+  const [tekst, setTekst] = useState<Record<Stand, { aero: string; kg: string }>>({
+    nu: { aero: "0", kg: String(STANDAARD_OPZET.uitrustingKg) },
+    straks: { aero: "0", kg: String(STANDAARD_OPZET.uitrustingKg) },
   });
 
   const routes = eventRoute ? [...VASTE_ROUTES, eventRoute] : VASTE_ROUTES;
   const route = routes.find((r) => r.id === routeId) ?? VASTE_ROUTES[0];
   const km = route.segments.reduce((sum, s) => sum + s.distanceM, 0) / 1000;
 
-  const uitkomst = useMemo(() => {
+  const { uitkomst, perOnderdeel } = useMemo(() => {
     const rijder = {
       watts: Math.min(1500, Math.max(50, getal(watts, standaardWatts))),
       gewichtKg: Math.min(200, Math.max(30, getal(gewicht, standaardGewicht))),
       groep,
+      wegdek,
     };
-    const aero = (value: string) => Math.min(50, Math.max(-50, getal(value, 0)));
-    const kg = (value: string) => Math.min(40, Math.max(3, getal(value, STANDAARD_OPZET.uitrustingKg)));
-    return vergelijkOpzet({
-      route: route.segments,
-      rijder,
-      nu: { ...nu, aeroPct: aero(tekst.nuAero), uitrustingKg: kg(tekst.nuKg) },
-      straks: { ...straks, aeroPct: aero(tekst.straksAero), uitrustingKg: kg(tekst.straksKg) },
+    const volledig = (s: Stand): Opzet => ({
+      ...opzet[s],
+      aeroPct: Math.min(50, Math.max(-50, getal(tekst[s].aero, 0))),
+      uitrustingKg: Math.min(40, Math.max(3, getal(tekst[s].kg, STANDAARD_OPZET.uitrustingKg))),
     });
-  }, [route, watts, gewicht, groep, nu, straks, tekst, standaardWatts, standaardGewicht]);
+    const input = { route: route.segments, rijder, nu: volledig("nu"), straks: volledig("straks") };
+    return { uitkomst: vergelijkOpzet(input), perOnderdeel: winstPerOnderdeel(input) };
+  }, [route, watts, gewicht, groep, wegdek, opzet, tekst, standaardWatts, standaardGewicht]);
 
   function kiesRoute(value: string) {
     if (value.startsWith("event:")) {
@@ -102,11 +131,163 @@ export function Rekenaar({
     if (eventId) router.replace(pathname);
   }
 
-  const zelfde = uitkomst.winstSeconden === 0;
+  function zet<K extends keyof Opzet>(sleutel: K, waarde: Opzet[K]) {
+    setOpzet((oud) => ({ ...oud, [stand]: { ...oud[stand], [sleutel]: waarde } }));
+  }
+
+  const huidig = opzet[stand];
+  const ander = opzet[stand === "nu" ? "straks" : "nu"];
+  const actief = ONDERDELEN.find((o) => o.id === onderdeel)!;
+  const zelfde = Math.round(uitkomst.winstSeconden) === 0;
   const sneller = uitkomst.winstSeconden > 0;
+  const plekken = ankers(huidig);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
+      <section className="renner overflow-hidden rounded-lg border bg-card">
+        <div className="flex items-center justify-between gap-3 px-4 pt-4">
+          <h2 className="font-semibold">Je opzet</h2>
+          <div role="radiogroup" aria-label="Welke opzet je kiest" className="view-slider view-slider-breed" data-pos={stand === "nu" ? "0" : "1"}>
+            <span className="view-slider-knob" aria-hidden="true" />
+            {(["nu", "straks"] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                role="radio"
+                aria-checked={stand === s}
+                onClick={() => setStand(s)}
+                className={cn("view-slider-option text-sm font-medium", stand === s && "view-slider-option-active")}
+              >
+                {s === "nu" ? "Nu" : "Straks"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative mx-auto max-w-xl px-2">
+          <RennerFiguur opzet={huidig} schim={ander} wegdek={wegdek} className="block h-auto w-full" />
+          {ONDERDELEN.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              tabIndex={-1}
+              aria-hidden="true"
+              onClick={() => setOnderdeel(o.id)}
+              style={ankerStijl(plekken[o.id])}
+              className="renner-knop group absolute grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center transition-[left,top] duration-500"
+              data-actief={onderdeel === o.id || undefined}
+            >
+              <span className="renner-stip" />
+            </button>
+          ))}
+        </div>
+
+        <div aria-live="polite" className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1 border-t px-4 py-3">
+          <div>
+            <p className={cn("text-3xl font-semibold tabular-nums", !zelfde && sneller && "text-primary", !zelfde && !sneller && "text-destructive")}>
+              {zelfde ? "0:00" : verschil(uitkomst.winstSeconden)}
+            </p>
+            <p className="text-sm text-muted-foreground tabular-nums">
+              {tijd(uitkomst.nuSeconden)} → {tijd(uitkomst.straksSeconden)} over {km.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km
+            </p>
+          </div>
+          {!zelfde && (
+            <p className="text-sm tabular-nums">
+              {Math.abs(uitkomst.wattWaarde) < 0.5 ? "Minder dan 1" : Math.abs(Math.round(uitkomst.wattWaarde))} W {sneller ? "waard" : "verlies"}
+            </p>
+          )}
+        </div>
+
+        <div className="border-t p-4">
+          <div role="tablist" aria-label="Onderdeel" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {ONDERDELEN.map((o) => {
+              const keuze = o.opties.find((x) => x.id === huidig[o.id])?.label;
+              const winst = perOnderdeel[o.id];
+              return (
+                <button
+                  key={o.id}
+                  type="button"
+                  role="tab"
+                  id={`tab-${o.id}`}
+                  aria-selected={onderdeel === o.id}
+                  aria-controls="onderdeel-paneel"
+                  onClick={() => setOnderdeel(o.id)}
+                  className={cn(
+                    "min-h-11 rounded-md border px-3 py-2 text-left transition-colors",
+                    onderdeel === o.id ? "border-accent bg-accent/10" : "hover:bg-muted",
+                  )}
+                >
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{o.label}</span>
+                    {Math.round(winst) !== 0 && (
+                      <span className={cn("text-xs font-semibold tabular-nums", winst > 0 ? "text-primary" : "text-destructive")}>
+                        {verschil(winst)}
+                      </span>
+                    )}
+                  </span>
+                  <span className="mt-0.5 block truncate text-sm font-medium">{keuze}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div role="tabpanel" id="onderdeel-paneel" aria-labelledby={`tab-${actief.id}`} className="mt-4 space-y-3">
+            <div role="radiogroup" aria-label={`${actief.label} ${stand}`} className="flex flex-wrap gap-2">
+              {actief.opties.map((optie) => (
+                <button
+                  key={optie.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={huidig[actief.id] === optie.id}
+                  onClick={() => zet(actief.id, optie.id as never)}
+                  className={cn(
+                    "min-h-11 flex-1 whitespace-nowrap rounded-md border px-3 text-sm font-medium",
+                    huidig[actief.id] === optie.id ? "border-primary bg-primary/10 text-primary" : "hover:bg-muted",
+                  )}
+                >
+                  {optie.label}
+                </button>
+              ))}
+            </div>
+            <ArtikelRegel artikelen={[artikelen[actief.artikel]]} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 border-t p-4">
+          <label className="block space-y-1 text-sm">
+            <span className="block truncate text-muted-foreground">Kleding (%)</span>
+            <input
+              className={veld}
+              inputMode="decimal"
+              value={tekst[stand].aero}
+              onChange={(e) => setTekst({ ...tekst, [stand]: { ...tekst[stand], aero: e.target.value } })}
+            />
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span className="block truncate text-muted-foreground">Uitrusting (kg)</span>
+            <input
+              className={veld}
+              inputMode="decimal"
+              value={tekst[stand].kg}
+              onChange={(e) => setTekst({ ...tekst, [stand]: { ...tekst[stand], kg: e.target.value } })}
+            />
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span className="block truncate text-muted-foreground">Aandrijving</span>
+            <select className={veld} value={huidig.rendement} onChange={(e) => zet("rendement", Number(e.target.value))}>
+              {RENDEMENTEN.map((r) => (
+                <option key={r} value={r}>
+                  {procent(r)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="col-span-3">
+            <ArtikelRegel artikelen={[artikelen.kleding, artikelen.gewicht, artikelen["ketting-en-smering"]]} />
+          </div>
+        </div>
+      </section>
+
       <section className="space-y-4 rounded-lg border bg-card p-4">
         <h2 className="font-semibold">Route en rijder</h2>
         <label className="block space-y-1 text-sm">
@@ -131,6 +312,7 @@ export function Rekenaar({
           </select>
         </label>
         {eventFout && <p className="text-sm text-destructive">{eventFout}</p>}
+        <Keuze label="Wegdek" waarde={wegdek} opties={WEGDEKKEN} onKies={setWegdek} />
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1 text-sm">
             <span className="text-muted-foreground">Vermogen (W)</span>
@@ -141,140 +323,63 @@ export function Rekenaar({
             <input className={veld} inputMode="decimal" value={gewicht} onChange={(e) => setGewicht(e.target.value)} />
           </label>
         </div>
-        <div role="radiogroup" aria-label="Rijden" className="flex gap-2">
-          {[
-            { value: false, label: "Alleen" },
-            { value: true, label: "In een groep" },
-          ].map((optie) => (
-            <button
-              key={optie.label}
-              type="button"
-              role="radio"
-              aria-checked={groep === optie.value}
-              onClick={() => setGroep(optie.value)}
-              className={cn(
-                "min-h-[44px] flex-1 rounded-md border px-3 text-sm font-medium",
-                groep === optie.value ? "border-primary bg-primary/10 text-primary" : "hover:bg-muted",
-              )}
-            >
-              {optie.label}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-3 rounded-lg border bg-card p-4" aria-live="polite">
-        <h2 className="font-semibold">Wat het oplevert</h2>
-        <p className="text-3xl font-semibold tabular-nums">
-          {zelfde ? "0:00" : `${sneller ? "−" : "+"}${tijd(uitkomst.winstSeconden)}`}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          {tijd(uitkomst.nuSeconden)} → {tijd(uitkomst.straksSeconden)} over {km.toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km
-        </p>
-        {!zelfde && (
-          <p className="text-sm">
-            Dat is {Math.abs(uitkomst.wattWaarde) < 0.5 ? "minder dan 1" : Math.abs(Math.round(uitkomst.wattWaarde))} W{" "}
-            {sneller ? "waard" : "verlies"}.
-          </p>
-        )}
-      </section>
-
-      <section className="rounded-lg border bg-card p-4 lg:col-span-2">
-        <h2 className="mb-3 font-semibold">Wat verandert er?</h2>
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs text-muted-foreground sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
-          <span className="max-sm:hidden" />
-          <span>Nu</span>
-          <span>Straks</span>
-        </div>
-        <ul className="divide-y">
-          <Rij artikelen={[artikelen.houding]} label="Houding">
-            <select aria-label="Houding nu" className={veld} value={nu.houding} onChange={(e) => setNu({ ...nu, houding: e.target.value as HoudingId })}>
-              {HOUDINGEN.map((h) => (
-                <option key={h.id} value={h.id}>
-                  {h.label}
-                </option>
-              ))}
-            </select>
-            <select aria-label="Houding straks" className={veld} value={straks.houding} onChange={(e) => setStraks({ ...straks, houding: e.target.value as HoudingId })}>
-              {HOUDINGEN.map((h) => (
-                <option key={h.id} value={h.id}>
-                  {h.label}
-                </option>
-              ))}
-            </select>
-          </Rij>
-          <Rij artikelen={[artikelen.helm, artikelen.kleding, artikelen["wielen-en-frame"]]} label="Luchtweerstand van helm, kleding of wielen (%)">
-            <input aria-label="Luchtweerstand nu, in procent" className={veld} inputMode="decimal" value={tekst.nuAero} onChange={(e) => setTekst({ ...tekst, nuAero: e.target.value })} />
-            <input aria-label="Luchtweerstand straks, in procent" className={veld} inputMode="decimal" value={tekst.straksAero} onChange={(e) => setTekst({ ...tekst, straksAero: e.target.value })} />
-          </Rij>
-          <Rij artikelen={[artikelen["banden-en-bandenspanning"]]} label="Banden en wegdek">
-            <select aria-label="Banden en wegdek nu" className={veld} value={nu.crr} onChange={(e) => setNu({ ...nu, crr: Number(e.target.value) })}>
-              {ROLWEERSTANDEN.map((r) => (
-                <option key={r.crr} value={r.crr}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-            <select aria-label="Banden en wegdek straks" className={veld} value={straks.crr} onChange={(e) => setStraks({ ...straks, crr: Number(e.target.value) })}>
-              {ROLWEERSTANDEN.map((r) => (
-                <option key={r.crr} value={r.crr}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          </Rij>
-          <Rij artikelen={[artikelen.gewicht]} label="Fiets en uitrusting (kg)">
-            <input aria-label="Fiets en uitrusting nu, in kg" className={veld} inputMode="decimal" value={tekst.nuKg} onChange={(e) => setTekst({ ...tekst, nuKg: e.target.value })} />
-            <input aria-label="Fiets en uitrusting straks, in kg" className={veld} inputMode="decimal" value={tekst.straksKg} onChange={(e) => setTekst({ ...tekst, straksKg: e.target.value })} />
-          </Rij>
-          <Rij artikelen={[artikelen["ketting-en-smering"]]} label="Rendement van de aandrijving">
-            <select aria-label="Rendement nu" className={veld} value={nu.rendement} onChange={(e) => setNu({ ...nu, rendement: Number(e.target.value) })}>
-              {RENDEMENTEN.map((r) => (
-                <option key={r} value={r}>
-                  {procent(r)}
-                </option>
-              ))}
-            </select>
-            <select aria-label="Rendement straks" className={veld} value={straks.rendement} onChange={(e) => setStraks({ ...straks, rendement: Number(e.target.value) })}>
-              {RENDEMENTEN.map((r) => (
-                <option key={r} value={r}>
-                  {procent(r)}
-                </option>
-              ))}
-            </select>
-          </Rij>
-        </ul>
+        <Keuze
+          label="Rijden"
+          waarde={groep ? "groep" : "alleen"}
+          opties={[
+            { id: "alleen", label: "Alleen" },
+            { id: "groep", label: "In een groep" },
+          ]}
+          onKies={(id) => setGroep(id === "groep")}
+        />
       </section>
     </div>
   );
 }
 
-function Rij({
+function Keuze<T extends string>({
   label,
-  artikelen,
-  children,
+  waarde,
+  opties,
+  onKies,
 }: {
   label: string;
-  artikelen: (ArtikelLink | undefined)[];
-  children: [React.ReactNode, React.ReactNode];
+  waarde: T;
+  opties: readonly { id: T; label: string }[];
+  onKies: (id: T) => void;
 }) {
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-3 gap-y-2 py-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
-      <div className="col-span-2 min-w-0 sm:col-span-1">
-        <p className="text-sm font-medium">{label}</p>
-        <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-          {artikelen.filter((a): a is ArtikelLink => Boolean(a)).map((artikel) => (
-            <li key={artikel.href} className="flex items-center gap-1.5">
-              <Link href={artikel.href} className="text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline">
-                {artikel.title}
-              </Link>
-              <EvidenceBadge evidence={artikel.evidence} className="px-1.5 py-0 text-[10px]" />
-            </li>
-          ))}
-        </ul>
-      </div>
-      {children[0]}
-      {children[1]}
-    </li>
+    <div role="radiogroup" aria-label={label} className="flex gap-2">
+      {opties.map((optie) => (
+        <button
+          key={optie.id}
+          type="button"
+          role="radio"
+          aria-checked={waarde === optie.id}
+          onClick={() => onKies(optie.id)}
+          className={cn(
+            "min-h-11 flex-1 rounded-md border px-3 text-sm font-medium",
+            waarde === optie.id ? "border-primary bg-primary/10 text-primary" : "hover:bg-muted",
+          )}
+        >
+          {optie.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ArtikelRegel({ artikelen }: { artikelen: (ArtikelLink | undefined)[] }) {
+  return (
+    <ul className="flex flex-wrap gap-x-3 gap-y-1">
+      {artikelen.filter((a): a is ArtikelLink => Boolean(a)).map((artikel) => (
+        <li key={artikel.href} className="flex items-center gap-1.5">
+          <Link href={artikel.href} className="text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline">
+            {artikel.title}
+          </Link>
+          <EvidenceBadge evidence={artikel.evidence} className="px-1.5 py-0 text-[10px]" />
+        </li>
+      ))}
+    </ul>
   );
 }
