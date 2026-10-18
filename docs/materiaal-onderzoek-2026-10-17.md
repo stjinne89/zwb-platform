@@ -338,6 +338,11 @@ eens zijn) en het loslaten van "Afgeraden" gelden voorlopig alleen voor
 materiaal. De volgende ronde trekt het beleid gelijk voor alle kennisbanken
 (besluit 2).
 
+**Voorstel daarvoor (2026-10-18, wacht op akkoord):**
+[beoordelingsbeleid-bewijsniveau](beoordelingsbeleid-bewijsniveau.md). De niveaus
+bij materiaal veranderen daarin niet; neusstrips, compressie en inlegzolen krijgen
+de vorm "geen effect" in de badge.
+
 ## Artikelen en niveaus
 
 Herzien op 2026-10-18 langs de regels hierboven.

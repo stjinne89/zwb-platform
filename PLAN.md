@@ -164,6 +164,10 @@ gaat stabiliteit voor nieuwe features.
      overbelasting vóór de taper en variabel vermogen in de tijdrit.
    Samenvatting per fase bovenaan
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
+8. **Beleid bewijsniveau: wacht op akkoord** (voorstel 2026-10-18). Nieuwe
+   woorden, "Nieuwe methode", "geen effect" en een herbeoordeling van alle
+   kennisartikelen; bouwen na akkoord. Zie de ronde "Voorstel — beleid
+   bewijsniveau" en [het voorstel](docs/beoordelingsbeleid-bewijsniveau.md).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -9991,6 +9995,61 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Voorstel — beleid bewijsniveau (wacht op akkoord)
+
+**Voorgesteld 2026-10-18.** Commit: de commit die dit blok toevoegt. Alleen
+documenten; er is niets gebouwd. Geen migratie. Het voorstel:
+[beoordelingsbeleid-bewijsniveau](docs/beoordelingsbeleid-bewijsniveau.md).
+
+**Aanleiding.** De eigenaar vroeg één beleid voor alle kennisbanken, zodat gelijk
+bewijs overal hetzelfde niveau krijgt. "Matig" en "beperkt" vond hij te negatief,
+"veelbelovend" en "experimenteel" positiever dan ze zijn. Zijn besluiten van
+2026-10-18 staan in het document; dit voorstel werkt ze uit.
+
+**Wat het voorstelt.**
+- **Nieuwe woorden**: Stevig onderbouwd, Onderbouwd, Eerste aanwijzingen. De
+  sleutels in code (`sterk`, `matig`, `beperkt`) blijven.
+- **"Nieuwe methode"** in plaats van Veelbelovend en Experimenteel, bij workouts,
+  protocollen en de vijf artikelen met een label. De kolom `method_label` en
+  migratie `0246` blijven zoals ze zijn; alleen de getoonde tekst, de coachprompt
+  en de tekst naar intervals.icu veranderen.
+- **"Geen effect" in de badge** bij zes artikelen (*Wat niet werkt*, *Ketonen*,
+  *Low-carb en keto*, *Neusstrips*, *Compressiekleding*, *Inlegzolen*).
+  "Afgeraden" verdwijnt.
+- **Eén set criteria**: drie routes naar Stevig onderbouwd (consensus, meerdere
+  meta-analyses, drie onafhankelijke groepen), zes begrenzingen, de bronsoort
+  `meting` overal, en een werkwijze voor nieuwe artikelen voor de kennisbank-scan.
+- **Herbeoordeling van alle 73 artikelen.** Zeven krijgen een ander niveau:
+  *Zones*, *Je FTP*, *Darmtraining*, *Herstel tussen sessies*, *Het
+  gymprogramma* en *Kracht op de fiets* omhoog, *Opbouwen* omlaag. Het protocol
+  *Kracht op de fiets* gaat mee. Uitkomst: 23 stevig onderbouwd, 36 onderbouwd,
+  14 eerste aanwijzingen.
+- **Lijst van alle plekken** die de bouwronde raakt: badges, legenda's,
+  kennisbanklijsten, leeszaal, rekenaar, protocollen, trainer en schema, coach,
+  intervals.icu, `/hulp`, tests, documenten en de scan.
+
+**Open voor de eigenaar.**
+1. Bij *Low-carb en keto* een tweede vorm "nadelig" in plaats van "geen effect".
+2. Akkoord op de zeven verschuivingen.
+
+**Bewust niet.** Een vierde niveau of "Afgeraden" houden; de sleutels in code
+hernoemen; een migratie voor `method_label`; alle protocollen opnieuw
+beoordelen. De redenen staan in het document.
+
+**Nu nog waar, na de bouwronde niet meer** (dan corrigeren, niet alleen
+aanvullen): het blok "Opgeleverd — bewijsniveau per kennisartikel" zegt dat het
+niveau naast Veelbelovend en Experimenteel staat en dat er een niveau Afgeraden is;
+het blok "Opgeleverd — veelbelovende en experimentele trainingsmethodes" noemt de
+twee labels als wat een lid ziet.
+
+**Hoe beoordeeld en niet geverifieerd.** Op de bronnen die nu in de app staan.
+Eén keer opnieuw gezocht, in PubMed, voor *Darmtraining*. Welke auteurs bij
+welke groep horen, is afgeleid uit de bronvermeldingen. Er is geen code
+veranderd en dus niets getest; de oude tabellen, waar de tests op lezen, zijn
+niet aangepast. Na de bouwronde intervals.icu nakijken: al gepubliceerde
+workouts houden "Veelbelovend." of "Experimenteel." tot ze opnieuw
+gesynchroniseerd worden.
 
 ### Gebouwd — ZWB DS: hoogteprofiel en meer rennersdata
 

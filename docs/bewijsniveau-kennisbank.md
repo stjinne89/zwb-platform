@@ -6,6 +6,12 @@ gebouwd.** De niveaus staan in code bij elk artikel (`evidence`, met
 build falen als een niveau in code afwijkt van de tabel hieronder. Wijzig een
 niveau dus eerst hier.
 
+**Voorstel tot vervanging (2026-10-18, wacht op akkoord):**
+[beoordelingsbeleid-bewijsniveau](beoordelingsbeleid-bewijsniveau.md) geeft één
+beleid voor alle kennisbanken, met nieuwe woorden, zonder "Afgeraden", en met een
+herbeoordeling van elk artikel. Tot het akkoord en de bouwronde geldt de tabel
+hieronder.
+
 De eigenaar vroeg of de artikelen in de kennisbanken, net als de nieuwe
 trainingsmethodes, een label kunnen krijgen waaraan je ziet hoe gegrond ze zijn.
 Dit document geeft per artikel het niveau en waarom. Een nieuw artikel krijgt
