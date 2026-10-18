@@ -3,10 +3,10 @@
 // Tot 16 oktober 2026 kreeg de coach alleen de data van het lid en antwoordde hij
 // op een vraag als "is 10 % per week veilig?" uit de algemene kennis van het
 // model — precies de beweringen die de wetenschappelijke toets net had
-// bijgesteld. Nu krijgt hij de drie kennisbanken mee, met per artikel het pad
+// bijgesteld. Nu krijgt hij de kennisbanken mee, met per artikel het pad
 // waar het lid het kan nalezen en de beperkingen die erbij horen.
 //
-// Alles, niet een selectie: het zijn een kleine vijftig artikelen, die passen in
+// Alles, niet een selectie: het zijn zo'n zeventig artikelen, die passen in
 // één keer. Zoeken (embeddings, een vectoropslag) zou alleen missers en
 // infrastructuur toevoegen. De tekst is vast en staat vóór alles wat per lid
 // verschilt, zodat de prompt-cache van OpenAI hem hergebruikt.
@@ -14,6 +14,7 @@
 import { EVIDENCE_LABELS, NUTRITION_ARTICLES } from "@/lib/nutrition/library";
 import { ARTICLE_EVIDENCE_LABELS, type ArticleEvidence } from "@/lib/knowledge/evidence";
 import type { KnowledgeSource } from "@/lib/knowledge/source";
+import { MATERIAAL_ARTICLES } from "@/lib/materiaal/library";
 import { STRENGTH_ARTICLES } from "@/lib/training/strength-library";
 import { METHOD_LABEL_TEXT, type MethodLabel } from "@/lib/training/method-label";
 import { TRAINING_ARTICLES } from "@/lib/training/training-library";
@@ -31,11 +32,12 @@ type Article = {
   methodLabel?: MethodLabel;
 };
 
-/** De drie kennisbanken met het pad waaronder hun artikelen staan. */
+/** De kennisbanken met het pad waaronder hun artikelen staan (materiaal sinds 2026-10-18). */
 export const COACH_KNOWLEDGE_BASES: Array<{ title: string; basePath: string; articles: Article[] }> = [
   { title: "Trainen", basePath: "/zwbeter-worden/kennis", articles: TRAINING_ARTICLES },
   { title: "Voeding", basePath: "/zwbeter-worden/voeding/kennis", articles: NUTRITION_ARTICLES },
   { title: "Kracht, core en mobiliteit", basePath: "/zwbeter-worden/core/kennis", articles: STRENGTH_ARTICLES },
+  { title: "Materiaal", basePath: "/zwbeter-worden/materiaal/kennis", articles: MATERIAAL_ARTICLES },
 ];
 
 /**

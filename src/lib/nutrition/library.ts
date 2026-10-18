@@ -11,7 +11,9 @@
 
 import type { ArticleEvidence } from "@/lib/knowledge/evidence";
 
-export const EVIDENCE_KINDS = ["consensus", "review", "studie", "richtlijn"] as const;
+// "meting" (2026-10-18): een gepubliceerde meting in een windtunnel, op een
+// testbank of in het veld, zoals bij de kennisbank materiaal.
+export const EVIDENCE_KINDS = ["consensus", "review", "studie", "richtlijn", "meting"] as const;
 export type EvidenceKind = (typeof EVIDENCE_KINDS)[number];
 
 export const EVIDENCE_LABELS: Record<EvidenceKind, string> = {
@@ -19,6 +21,7 @@ export const EVIDENCE_LABELS: Record<EvidenceKind, string> = {
   review: "Review",
   studie: "Studie",
   richtlijn: "Richtlijn",
+  meting: "Meting",
 };
 
 export const NUTRITION_CATEGORIES = [

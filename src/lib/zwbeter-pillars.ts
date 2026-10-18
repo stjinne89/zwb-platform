@@ -1,8 +1,8 @@
 // ZWBeter in het design "tegels": de onderdelen van ZWBeter Worden gegroepeerd
-// in vijf pijlers, elk met een eigen naam ("ZWBeter trainen", "ZWBeter racen").
+// in zes pijlers, elk met een eigen naam ("ZWBeter trainen", "ZWBeter racen").
 // Los van React, zodat de indeling te testen is.
 
-export type PillarId = "trainen" | "racen" | "voeden" | "kracht" | "coachen";
+export type PillarId = "trainen" | "racen" | "voeden" | "kracht" | "materiaal" | "coachen";
 
 export type Pillar = {
   id: PillarId;
@@ -35,6 +35,8 @@ export const ZWBETER_PILLARS: Pillar[] = [
   { id: "racen", word: "racen", hrefs: ["/zwbeter-worden/racen"] },
   { id: "voeden", word: "voeden", hrefs: ["/zwbeter-worden/voeding"] },
   { id: "kracht", word: "kracht", hrefs: ["/zwbeter-worden/core"] },
+  // Materiaal en kleine winsten (2026-10-18): kennisbank en rekenaar.
+  { id: "materiaal", word: "materiaal", hrefs: ["/zwbeter-worden/materiaal"] },
   { id: "coachen", word: "coachen", hrefs: ["/zwbeter-worden/trainer"] },
 ];
 

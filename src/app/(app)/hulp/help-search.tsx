@@ -246,6 +246,13 @@ const HELP_INDEX: HelpResult[] = [
       "voeding eten koolhydraten eiwit recept recepten menu dagmenu naleving eetdagboek gegeten bijhouden favoriet delen gel sportdrank herstel nevo reds supplementen cafeine hydratatie drinken zout calcium ijzer vezels",
   },
   {
+    title: "ZWBeter materiaal",
+    text: "Kennisbank over materiaal en kleine winsten, met een rekenaar.",
+    href: "/hulp#materiaal",
+    terms:
+      "materiaal aero aerodynamica luchtweerstand cda houding helm kleding skinsuit pak sokken aero-sokken overschoenen wielen frame banden bandenspanning tubeless rolweerstand ketting wax smeren gewicht ventilator fan vermogensmeter powermeter smart trainer kalibreren bikefit zadelhoogte schoenplaatjes cranklengte cranks neusstrips compressie inlegzolen rekenaar watt seconden marginal gains",
+  },
+  {
     title: "Core & mobiliteit",
     text: "Korte series naast de fiets, zelf afvinken, los van je trainingsbelasting.",
     href: "/hulp#core-mobiliteit",
