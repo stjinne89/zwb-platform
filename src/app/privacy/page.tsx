@@ -251,7 +251,8 @@ export default function PrivacyPage() {
             fietscomputer die meet. Je hartslag alleen als je zelf
             &ldquo;Hartslag delen met leden&rdquo; aanzet op Samen fietsen; zet
             je dat uit, dan wissen we de opgeslagen live-hartslag. De publieke
-            eventpagina toont alleen je positie. Dit is per rit opt-in en stopt
+            eventpagina toont alleen je positie en, bij een koers in rondjes, de
+            afstand van je fietscomputer. Dit is per rit opt-in en stopt
             automatisch. Koppel je je
             Garmin, dan ontvangen we bij elke rit de LiveTrack-mail die je zelf
             naar je persoonlijke clubadres laat sturen; uit die mail bewaren we

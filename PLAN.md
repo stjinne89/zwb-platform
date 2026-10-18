@@ -221,6 +221,26 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Niet geverifieerd.** Niet in de browser bekeken.
 
+> **Publieke ticker: ook de afstand bij een koers in rondjes, 2026-10-18 — gebouwd, lint en typecheck schoon; gepusht naar `main` (eigenaar, 2026-10-18); niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Op verzoek van de eigenaar, met aangepaste privacytekst: de
+> publieke pagina `/live/[eventId]` gaf bij de Legacy Gravel nog de afstand
+> binnen één ronde.
+>
+> **Wat.** `event-snapshot.ts` selecteert `distance_m` (geen vermogen, cadans
+> of hartslag) en geeft `distance_km` van het event mee; de publieke pagina
+> geeft die als `raceKm` aan de ticker. De ticker gebruikt de afstand van de
+> fietscomputer alleen bij een koers in rondjes, maar de waarde zit bij elke
+> rit in de publieke API-respons (`/api/live/event/[eventId]`).
+>
+> **Privacy.** `/privacy`: "De publieke eventpagina toont alleen je positie
+> en, bij een koers in rondjes, de afstand van je fietscomputer." Geen nieuwe
+> privacyversie, zoals bij eerdere aanpassingen binnen de live-lijn: de
+> afstand is grotendeels af te leiden uit de positie die al publiek was.
+> Wil de eigenaar dat leden opnieuw akkoord geven, dan is een nieuwe versie in
+> `src/lib/privacy.ts` nodig.
+
 > **Eventticker: afstand bij een koers in rondjes, 2026-10-18 — gebouwd, unit-tests, lint en typecheck schoon; gepusht naar `main` tijdens de race (eigenaar vroeg om de fix, 2026-10-18); niet in de browser bekeken. Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
@@ -244,9 +264,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   Dat herziet "bewust niet gebouwd: de waarden op de eventpagina voor leden"
 >   uit de ronde van 0193, alleen voor de afstand.
 >
-> **Bewust niet gedaan.** De publieke ticker (`/live/[eventId]`) krijgt geen
-> `distance_m`: de privacytekst belooft dat die alleen de positie toont. Daar
-> blijft de afstand bij rondjes dus binnen één ronde. Rondes tellen uit de
+> **Bewust niet gedaan.** ~~De publieke ticker (`/live/[eventId]`) krijgt geen
+> `distance_m`.~~ Achterhaald dezelfde dag, zie de ronde "publieke ticker"
+> hierboven. Rondes tellen uit de
 > positiegeschiedenis: de ticker krijgt hooguit 80 punten per renner, te weinig
 > voor een hele koers. `events.laps` voor buitenritten: niet nodig zolang
 > `distance_km` is ingevuld.
@@ -6458,7 +6478,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Keuzes van de eigenaar.** Tonen: snelheid en afstand, vermogen en cadans,
 > en hartslag per lid opt-in. Alleen voor ingelogde leden: de publieke
-> eventticker selecteert de nieuwe kolommen niet.
+> eventticker selecteert de nieuwe kolommen niet. (Sinds 2026-10-18 wel
+> `distance_m`, voor koersen in rondjes; vermogen, cadans en hartslag niet.)
 >
 > **Wat er is.**
 > - `live_positions` krijgt `power_w`, `cadence_rpm`, `heart_rate` en
@@ -6477,7 +6498,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   opgeslagen live-hartslag van dat lid.
 >
 > **Privacy.** De tekst noemt afstand, vermogen, cadans en de opt-in voor
-> hartslag, en dat de publieke eventpagina alleen de positie toont. Geen
+> hartslag, en dat de publieke eventpagina alleen de positie toont (sinds
+> 2026-10-18: plus de afstand bij een koers in rondjes). Geen
 > nieuwe privacyversie: hartslag is een gezondheidsgegeven, maar de toestemming
 > loopt per lid via de schakelaar, en zonder die schakelaar wordt niets
 > opgeslagen.

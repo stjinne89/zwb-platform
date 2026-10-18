@@ -306,6 +306,7 @@ export default async function PublicLiveTickerPage({ params }: PageProps) {
         <EventLiveTicker
           gpxUrl={event.gpxUrl}
           eventStartAt={event.start_at}
+          raceKm={event.distanceKm}
           sessions={sessions}
           initialPositions={positions}
           cols={cols}
