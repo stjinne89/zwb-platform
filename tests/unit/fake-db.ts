@@ -19,7 +19,11 @@ function likePattern(pattern: string): RegExp {
   return new RegExp(`^${escaped.replace(/%/g, ".*").replace(/_/g, ".")}$`);
 }
 
-export function fakeDb(tables: Record<string, Row[]>) {
+export function fakeDb(
+  tables: Record<string, Row[]>,
+  /** Zoals PostgREST: hooguit zoveel rijen per select (Supabase: 1000). */
+  opts: { maxRows?: number } = {},
+) {
   const calls: Array<{ table: string; op: string; filters: string[] }> = [];
 
   function from(table: string) {
@@ -79,6 +83,7 @@ export function fakeDb(tables: Record<string, Row[]>) {
       }
       if (rangeFrom != null) data = data.slice(rangeFrom, rangeFrom + (limitTo ?? data.length));
       else if (limitTo != null) data = data.slice(0, limitTo);
+      if (opts.maxRows != null) data = data.slice(0, opts.maxRows);
       if (single) {
         if (single === "one" && data.length !== 1) {
           return { data: null, error: { message: "not single" } };

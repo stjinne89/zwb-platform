@@ -131,3 +131,59 @@ context van gisteren). Daar hangt een trainingsrapport aan één bepaald rit-id;
 wegfilteren kan juist de gekoppelde opname laten verdwijnen. Een dubbele opname
 verschijnt daar hooguit als extra ongeplande rit. Ook niet: kalender, welkom,
 voeding en de badgepagina, die tellen geen totalen over ritten op.
+
+## Weekbadges: de run zag maar 1000 ritten
+
+Gevonden tijdens het ontdubbelen. `awardCompletedAchievementWeeks`
+(`src/lib/achievements/awards.ts`) haalde alle ritten van alle leden in één
+select op. `strava_activities` heeft 29.936 rijen; PostgREST geeft er per select
+hooguit 1000 (de instelling staat niet in de rolconfig van de database, dus de
+standaard van Supabase; dat de grens geldt, bleek eerder al bij het clubblok op
+het dashboard). Elke run rekende dus op een andere willekeurige deelverzameling,
+en omdat een award per lid wordt opgeslagen, bleven de winnaars van eerdere
+runs staan.
+
+Gemeten op 2026-10-18 (alleen lezen, week uit de starttijd, zonder
+ontdubbeling):
+
+| | Aantal |
+| --- | --- |
+| Weekbadges in `achievement_awards` | 3.220 |
+| Daarvan de echte winnaar | 296 |
+| Juiste winnaars volgens de ritten | 2.561 |
+| Een volledige herberekening haalt weg / kent toe | 2.924 / 2.265 |
+| Idem, alleen de laatste 8 weken (vanaf 17 aug) | 38 / 19 |
+| Leden die badges verliezen (van de 16 met weekbadges) | 16 |
+
+Daarnaast hebben 2.405 Strava-ritten, gesynct tussen 26 juni en 6 augustus 2026,
+een zondag als `achievement_week` in plaats van de maandag. De huidige ingest
+rekent maandag; de run rekent de week nu zelf uit de starttijd. De pagina met
+weekstanden (`stats/achievements/page.tsx`) filtert nog op de kolom.
+
+### De fix
+
+De run leest gepagineerd en standaard alleen de laatste 8 afgesloten weken
+(`AWARD_WEEKS`). Per herrekende week blijft per badge één winnaar: een eerdere
+winnaar die het niet meer is, verliest de badge. Een melding gaat alleen nog uit
+voor de week die net af is. `POST /api/achievements/finalize?weeks=all`
+herrekent de hele historie.
+
+### Voorstel (niet uitgevoerd)
+
+1. **Bij het live zetten** gebeurt stap a vanzelf bij de eerstvolgende run
+   (elke intervals-sync met een wijziging, de beheeractie "badges vastleggen",
+   de finalize-route): de laatste 8 weken worden rechtgezet, 38 badges eraf en
+   19 erbij. Wie dat niet wil, zet de fix niet live.
+2. **Daarna, als de eigenaar akkoord is:** eenmalig
+   `POST /api/achievements/finalize?weeks=all` (runbook sectie 2). Dat zet de
+   hele historie recht: ongeveer 2.900 badges eraf, 2.300 erbij. Alle 16 leden
+   met weekbadges zien hun aantal veranderen. Er gaan geen meldingen uit.
+3. **Los daarvan:** de 2.405 zondag-weken rechtzetten, zodat de weekstanden-pagina
+   dezelfde weken toont als de badges:
+
+   ```sql
+   -- Eerst tellen: verwacht 2.405 rijen.
+   update strava_activities
+   set achievement_week = date_trunc('week', start_date at time zone 'UTC')::date
+   where extract(isodow from achievement_week) <> 1;
+   ```

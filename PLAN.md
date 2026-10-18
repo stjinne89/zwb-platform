@@ -10115,6 +10115,45 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — weekbadges zagen maar 1000 ritten
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet
+gepusht. Cijfers en voorstel: [docs/dubbele-ritten-2026-10-18.md](docs/dubbele-ritten-2026-10-18.md#weekbadges-de-run-zag-maar-1000-ritten).
+
+**Waarom.** `awardCompletedAchievementWeeks` las alle ritten van alle leden in
+één select. Met 29.936 rijen gaf PostgREST er 1000, steeds een andere
+deelverzameling; omdat een award per lid wordt opgeslagen, bleven de winnaars
+van eerdere runs staan. Gemeten: van de 3.220 weekbadges zijn er 296 de echte
+winnaar; per badge hebben honderden weken meer dan één winnaar en honderden
+geen. Leden kregen bovendien meldingen voor willekeurige oude weken.
+
+**Wat er veranderde.**
+- Gepagineerd lezen (ritten en bestaande awards), standaard alleen de laatste
+  8 afgesloten weken (`AWARD_WEEKS`); `{ weeks: "all" }` herrekent alles, via
+  `POST /api/achievements/finalize?weeks=all` (runbook).
+- Per herrekende week blijft per badge één winnaar: een eerdere winnaar die het
+  niet meer is, verliest de badge (`removed` in het antwoord).
+- De week komt uit de starttijd, niet uit `achievement_week`: 2.405
+  Strava-ritten uit juni–augustus 2026 hebben daar een zondag.
+- Een melding gaat alleen uit voor de week die net af is.
+
+**Let op bij live zetten.** De eerstvolgende run zet de laatste 8 weken recht:
+ongeveer 38 badges eraf en 19 erbij (schatting met SQL, zonder ontdubbeling).
+De hele historie (≈ 2.900 eraf, 2.300 erbij, alle 16 leden met weekbadges)
+alleen na akkoord van de eigenaar met `?weeks=all`. De zondag-weken in
+`strava_activities` rechtzetten is een apart voorstel (SQL in het document);
+de weekstanden-pagina filtert nog op die kolom.
+
+**Bewust niet.** Geen SQL-functie (RPC) voor de weektotalen: dat vraagt een
+migratie die hier niet te testen is, en gepagineerd lezen van 8 weken is klein.
+Een volledige herberekening leest wel alle ~30.000 ritten.
+
+**Getest:** `tests/unit/achievement-week-awards.test.ts` met de nep-database,
+die nu net als PostgREST hooguit 1000 rijen per select kan geven
+(`fakeDb(tables, { maxRows })`): meer dan 1000 ritten, verouderde winnaar in en
+buiten het venster, melding alleen voor de vorige week, zondag-week. Alle vier
+falen op de oude code. **Niet** tegen productie gedraaid.
+
 ### Gebouwd — lezers tellen een dubbele opname één keer
 
 **2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet
@@ -10143,17 +10182,15 @@ branch schoon samenvoegt. Tabel per lezer: [docs/dubbele-ritten-2026-10-18.md](d
 - Het koppelen van ritten aan trainingen (naleving, `completion.ts`,
   `compliance.ts`, ongeplande ritten, context van gisteren): een rapport hangt
   aan één rit-id, en wegfilteren kan de gekoppelde opname laten verdwijnen.
-- Al uitgereikte badges en week-awards worden niet ingetrokken als ze op een
-  dubbele telling rustten; de week-awards schrijven bij de volgende run wel de
-  nieuwe waarden over de bestaande rij heen (upsert).
+- Al uitgereikte mijlpaalbadges worden niet ingetrokken als ze op een dubbele
+  telling rustten. *(Week-awards: zie "Hersteld — weekbadges zagen maar 1000
+  ritten" hierboven; die worden nu per herrekende week rechtgezet.)*
 - De helper deelt de rijkdomsregel niet met `dedupeRides` van de ingest: die
   staat in een stuk van `intervals/rides.ts` dat `2970a109` ook wijzigt.
 
-**Gezien, niet opgelost.** `awardCompletedAchievementWeeks` haalt de hele
-tabel zonder paginering op. `strava_activities` heeft 29.936 rijen
-(2026-10-18) en PostgREST geeft standaard hooguit 1000, dus de week-awards
-rekenen vermoedelijk op een willekeurige deelverzameling. Niet nagegaan welke
-max-rows het project heeft ingesteld.
+**Gezien, toen niet opgelost.** `awardCompletedAchievementWeeks` haalde de
+hele tabel zonder paginering op. *(Opgelost dezelfde dag: "Hersteld —
+weekbadges zagen maar 1000 ritten" hierboven.)*
 
 **Getest:** `tests/unit/unique-rides.test.ts` (helper, en per lezer:
 `rideLoadRows`, `trainingDataFrom`, `todayRidesFrom`, `weeklyScores`,
