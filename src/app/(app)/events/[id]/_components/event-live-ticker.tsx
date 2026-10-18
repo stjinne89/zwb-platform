@@ -11,7 +11,7 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, Clock, Gauge, MapPin, Maximize2, Route, X, Zap } from "lucide-react";
+import { ArrowUpRight, Clock, Gauge, Heart, MapPin, Maximize2, RotateCw, Route, X, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { MemberLink } from "@/components/member-link";
 import { parseGpx, type GpxPoint } from "@/lib/gpx";
@@ -101,8 +101,10 @@ export type EventLivePosition = {
   recorded_at: string;
   /** Afstand volgens de fietscomputer (Garmin/Wahoo), ook publiek bij rondjes. */
   distance_m?: number | string | null;
-  /** Vermogen; alleen op de eventpagina voor leden, niet publiek (0193). */
+  /** Vermogen, cadans en hartslag; alleen op de eventpagina voor leden (0193). */
   power_w?: number | string | null;
+  cadence_rpm?: number | string | null;
+  heart_rate?: number | string | null;
 };
 
 type Marker = {
@@ -118,6 +120,8 @@ type Marker = {
   startedAt: string;
   rideKm: number | null;
   powerW: number | null;
+  cadenceRpm: number | null;
+  heartRate: number | null;
 };
 
 type RouteStats = {
@@ -300,6 +304,8 @@ function latestMarkers(
       recordedAt: p.recorded_at,
       rideKm: rideKmOf(p.distance_m),
       powerW: toNumber(p.power_w),
+      cadenceRpm: toNumber(p.cadence_rpm),
+      heartRate: toNumber(p.heart_rate),
       // "Bezig" = tijd sinds de werkelijke start (event-starttijd, of de
       // sessiestart als die later is). Bewust níét afgeleid uit de eerste
       // opgehaalde positie: die lijst is afgekapt (limit), waardoor de start
@@ -552,6 +558,8 @@ export function EventLiveTicker({
               recordedAt: row.recorded_at,
               rideKm: rideKmOf(row.distance_m),
               powerW: toNumber(row.power_w),
+              cadenceRpm: toNumber(row.cadence_rpm),
+              heartRate: toNumber(row.heart_rate),
               startedAt: previous?.startedAt ?? isoFromTime(baseStart),
             });
             return next;
@@ -878,6 +886,18 @@ function RiderPopup({
             <dd>{rider.powerW} W</dd>
           </>
         )}
+        {rider.cadenceRpm !== null && (
+          <>
+            <dt className="text-muted-foreground">Cadans</dt>
+            <dd>{rider.cadenceRpm} rpm</dd>
+          </>
+        )}
+        {rider.heartRate !== null && (
+          <>
+            <dt className="text-muted-foreground">Hartslag</dt>
+            <dd>{rider.heartRate} bpm</dd>
+          </>
+        )}
         <dt className="text-muted-foreground">ETA</dt>
         <dd>
           {rider.eta
@@ -992,6 +1012,12 @@ function RiderList({
               />
               {rider.powerW !== null && (
                 <MiniStat icon={Zap} label="Vermogen" value={`${rider.powerW} W`} />
+              )}
+              {rider.cadenceRpm !== null && (
+                <MiniStat icon={RotateCw} label="Cadans" value={`${rider.cadenceRpm} rpm`} />
+              )}
+              {rider.heartRate !== null && (
+                <MiniStat icon={Heart} label="Hartslag" value={`${rider.heartRate} bpm`} />
               )}
             </div>
           </li>

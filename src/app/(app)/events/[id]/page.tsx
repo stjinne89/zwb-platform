@@ -1079,7 +1079,7 @@ export default async function EventDetailPage({
     if (sessionIds.length > 0) {
       const { data: positionRows } = await supabase
         .from("live_positions")
-        .select("session_id, profile_id, lat, lng, altitude, speed_kmh, recorded_at, distance_m, power_w")
+        .select("session_id, profile_id, lat, lng, altitude, speed_kmh, recorded_at, distance_m, power_w, cadence_rpm, heart_rate")
         .in("session_id", sessionIds)
         .order("recorded_at", { ascending: false })
         .limit(Math.max(500, sessionIds.length * 80));
