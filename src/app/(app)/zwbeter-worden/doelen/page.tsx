@@ -1,10 +1,9 @@
 import { ClipboardList, ShieldCheck } from "lucide-react";
-import { createTrainingGoal } from "../_actions";
 import { ConnectIntervalsForm } from "../_components/connect-form";
 import { DisconnectIntervalsButton } from "../_components/disconnect-button";
 import { TrainerAccessPanel } from "../_components/trainer-access-panel";
 import { CollapsibleCard } from "../_components/ui";
-import { formAction, formatDayMonth, GOAL_LABELS, paramString } from "../_components/format";
+import { formatDayMonth, GOAL_LABELS, paramString } from "../_components/format";
 import type {
   AssignmentRow,
   GoalRow,
@@ -13,7 +12,7 @@ import type {
 } from "../_components/types";
 import { loadConnection, requireViewer } from "../_data";
 import { GoalAvailability } from "./_components/goal-availability";
-import { SaveGoalButton } from "./_components/save-goal-button";
+import { GoalForm } from "./_components/goal-form";
 import { loadAvailability } from "@/lib/training/availability";
 
 export const dynamic = "force-dynamic";
@@ -109,7 +108,7 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
           />
         </div>
 
-        <form action={formAction(createTrainingGoal)} className="rounded-lg border bg-card p-5">
+        <GoalForm>
           <h2 className="flex items-center gap-2 font-semibold">
             <ClipboardList className="size-5 text-primary" />
             Nieuw trainingsdoel
@@ -206,8 +205,7 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
               />
             </label>
           </div>
-          <SaveGoalButton />
-        </form>
+        </GoalForm>
       </section>
 
       <CollapsibleCard title="Mijn doelen" defaultOpen>

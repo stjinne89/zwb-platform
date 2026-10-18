@@ -10113,6 +10113,47 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — doelformulier slikte de foutmelding in
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Rolf Buunk wees Stijn op 18 oktober als trainer aan en zei een
+doel te hebben gemaakt; op de trainer-tab Doelen stond niets. Productie alleen
+gelezen: de toewijzing staat er (`training_coach_assignments`, 14:52 UTC, actief),
+maar Rolf heeft geen enkele rij in `training_goals` en de edge-logs tonen die dag
+geen schrijfactie op `training_goals`. De trainerpagina klopte dus; het doel is
+nooit opgeslagen.
+
+**Oorzaak.** Het formulier op `/zwbeter-worden/doelen` hing `createTrainingGoal`
+via `formAction()` aan de `action`-prop. Die cast gooit het antwoord weg, en
+`createTrainingGoal` meldt een weigering als `{ ok: false, error }` in plaats
+van te gooien. Rolf heeft geen standaardweek in `training_availability`, alleen
+een week-rij van 28-09, dus het formulier begon met nul minuten per dag. De
+server weigerde het doel ("Vul in hoeveel tijd je per dag hebt"), de knop deed
+"Bezig…" en React leegde daarna het formulier. Dat zag er niet anders uit dan
+een gelukte opslag. Waarschijnlijkste verklaring, niet bewezen: een geweigerde
+action laat geen spoor achter in de Supabase-logs.
+
+**Wijziging.** Nieuw clientcomponent `GoalForm` (`doelen/_components/goal-form.tsx`)
+met `useActionState`. Het toont de fout van de server en verstuurt via `onSubmit`
+in plaats van de `action`-prop, zodat React het formulier na een weigering niet
+leegt. Na een gelukte opslag gaat het formulier wel leeg. De opslaanknop met
+`useFormStatus` (`save-goal-button.tsx`) is erin opgegaan; zijn reden (dubbelklik)
+staat nu in het commentaar van `GoalForm`.
+
+**Bewust niet gebouwd.**
+- *Een week-rij als startwaarde van het formulier.* Dat zou Rolf's 28-09-week
+  stilzwijgend tot standaardweek maken; een zichtbare fout laat het lid kiezen.
+- *De andere formulieren met `formAction()` nalopen* (trainer-schema,
+  kalendereditor, beoordelen, workout-bibliotheek, aanpassingsvoorstel). Daar
+  kan hetzelfde gebeuren; dat is een aparte ronde.
+- *Een doel voor Rolf aanmaken.* Productiewijziging; hij vult het zelf opnieuw in.
+
+**Getest.** `tsc` en eslint schoon voor de gewijzigde bestanden. De resterende
+tsc-fouten komen van pakketten die in de lokale `node_modules` ontbreken
+(`@zxing`, `tesseract.js`). Niet in de browser nagelopen: daarvoor is een
+ingelogd lid zonder standaardweek nodig.
+
 ### Gebouwd — ZWB DS naast Sauce gelegd: doorschatten en voorrang
 
 **2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie.
