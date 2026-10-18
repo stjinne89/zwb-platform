@@ -7,8 +7,13 @@
 // op je profiel, LiveTrack, een dialoog) blijven: die wijzen naar uitleg over
 // precies dat onderdeel.
 //
+// Het anker zegt welk onderwerp; lib/help-categories.ts zegt op welke
+// hulppagina (/hulp/<categorie>) dat staat.
+//
 // Een patroon is een pad waarin "*" één segment vervangt. Het langste patroon
 // dat past wint, dus /zwbeter-worden/jaarplan gaat voor /zwbeter-worden.
+
+import { helpHrefForAnchor } from "@/lib/help-categories";
 
 export const HELP_ANCHORS: ReadonlyArray<readonly [pattern: string, anchor: string]> = [
   ["/kalender", "events"],
@@ -65,7 +70,7 @@ function matches(pattern: string[], path: string[]) {
   return pattern.every((part, index) => part === "*" || part === path[index]);
 }
 
-/** "/hulp#<anker>" voor dit pad, of "/hulp" als er geen eigen uitleg is. */
+/** "/hulp/<categorie>#<anker>" voor dit pad, of "/hulp" als er geen eigen uitleg is. */
 export function helpHrefFor(pathname: string): string {
   const path = segments(pathname);
   let best: { anchor: string; length: number; exact: number } | null = null;
@@ -78,5 +83,5 @@ export function helpHrefFor(pathname: string): string {
       best = { anchor, length: parts.length, exact };
     }
   }
-  return best ? `/hulp#${best.anchor}` : "/hulp";
+  return (best && helpHrefForAnchor(best.anchor)) ?? "/hulp";
 }

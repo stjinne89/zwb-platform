@@ -259,7 +259,7 @@ function WorkoutDetail({
                     Download FIT
                   </a>
                   <Link
-                    href="/hulp#fit-export"
+                    href="/hulp/workouts#fit-export"
                     title="Hulp bij workout op je fietscomputer"
                     aria-label="Hulp bij workout op je fietscomputer"
                     className="inline-flex items-center rounded-md border px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"

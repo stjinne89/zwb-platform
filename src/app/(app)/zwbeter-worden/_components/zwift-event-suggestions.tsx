@@ -216,7 +216,7 @@ export function ZwiftEventSuggestions({
           <Lightbulb className="size-4 shrink-0 text-primary" />
           Op Zwift
           <Link
-            href="/hulp#zwift-voorstellen"
+            href="/hulp/workouts#zwift-voorstellen"
             title="Hulp bij Zwift-voorstellen"
             aria-label="Hulp bij Zwift-voorstellen"
             className="text-xs font-normal text-muted-foreground underline hover:text-foreground"

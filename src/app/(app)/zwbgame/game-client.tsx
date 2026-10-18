@@ -356,7 +356,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
     <header className={styles.header}>
       <div className={styles.brand}><Bike size={26} /><span>ZWB<span className={styles.brandAccent}>game</span><small>ZWIFT-KOERS. JOUW TACTIEK.</small></span></div>
       <div className={styles.headerActions}>
-        <Link href="/hulp#zwbgame" aria-label="Spelregels" title="Spelregels"><CircleHelp size={20} /></Link>
+        <Link href="/hulp/wedstrijden#zwbgame" aria-label="Spelregels" title="Spelregels"><CircleHelp size={20} /></Link>
         {!race && <button onClick={() => setSettings(!settings)} aria-expanded={settings} aria-label="Spelinstellingen"><Settings2 size={20} /></button>}
         <span className={styles.memberPill}><span />{me.rider.name}</span>
       </div>
@@ -495,7 +495,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       {rosterOpen && <section className={styles.roster} aria-label="Clubpeloton">{data.roster.map((r) => <div key={r.id}><Bike size={16} /><strong>{r.name}</strong><span>{labels[r.kind]}</span></div>)}</section>}
       {results.length > 0 && <section className={styles.history}><div className={styles.sectionHeading}><h2>Jouw laatste koersen</h2><button onClick={() => { try { localStorage.removeItem(resultsKey(data.playerId)); setResults([]); } catch { setError("Wissen mislukt."); } }}>Wissen</button></div>{results.slice(0, 5).map((r) => <div key={r.id}><span>{r.route}</span><span>{r.teamRank ? `${r.teamRank[0]}e van ${r.teamRank[1]}` : r.score ? `${r.score[0]}–${r.score[1]}` : `${r.place}/${r.count}`}</span><span>{clock(r.seconds)}</span></div>)}</section>}
     </>}
-    <footer className={styles.footer}><span>ZWBgame <span>•</span> De club aan de start.</span><Link href="/hulp#zwbgame">Spelregels <ArrowUpRight size={13} /></Link>{active.riders.some((r) => r.rider.garmin) && <span>Spelkwaliteiten mede op basis van Garmin-gegevens</span>}</footer>
+    <footer className={styles.footer}><span>ZWBgame <span>•</span> De club aan de start.</span><Link href="/hulp/wedstrijden#zwbgame">Spelregels <ArrowUpRight size={13} /></Link>{active.riders.some((r) => r.rider.garmin) && <span>Spelkwaliteiten mede op basis van Garmin-gegevens</span>}</footer>
   </div>;
 }
 

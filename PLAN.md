@@ -190,6 +190,59 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
+> **Hulp in categorieën: tegels in plaats van één lange pagina, 2026-10-18 — gebouwd, unit-tests, typecheck en lint schoon; ingelogd in de browser bekeken (desktop en 375 px, klassiek en tegels); niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Vraag van de eigenaar: `/hulp` was één pagina van ruim 4.000
+> regels code met alles onder elkaar. Hij wilde het indelen zoals de rest van
+> de app: tegels, en op een tegel de juiste uitleg. De zoekbalk moest blijven
+> werken.
+>
+> **Wat.**
+> - `/hulp` toont nu de kop, de zoekbalk en twaalf categorietegels: Beginnen,
+>   Koppelen, Club en profiel, Events en wedstrijden, Live volgen, Training,
+>   Schema en jaarplan, Workouts en routes, Racen en pacing, Kennis, Problemen
+>   en Beheer. In het design "tegels" zijn het tegels in de kleur van hun soort
+>   (zoals op Club); in het klassieke design kaarten met icoon en een korte regel.
+> - Elke categorie is een eigen pagina `/hulp/<categorie>` met een terugknop,
+>   een tabrij met alle categorieën (`SectionNav`), de zoekbalk en de uitleg. De
+>   oude groep "Trainen" is gesplitst in Training, Schema en jaarplan, Workouts
+>   en routes, Racen en pacing en Kennis; die groep alleen was al groter dan de
+>   rest samen.
+> - De zoekbalk zoekt nog steeds over alles en noemt bij elk resultaat de
+>   categorie. Een resultaat in een andere categorie opent die pagina op het
+>   onderwerp.
+> - Eén bron: `src/lib/help-categories.ts` (categorieën, kleur, ankers). Het
+>   vraagteken in de balk (`help-anchors.ts`) en alle links in de app gaan nu
+>   direct naar `/hulp/<categorie>#<anker>` (71 links in 15 bestanden omgezet).
+>   Een oude link `/hulp#<anker>` (bladwijzer, gedeelde link, de oude
+>   groepskoppen) stuurt `/hulp` in de browser door (`HelpHashRedirect`).
+> - De inhoud is niet herschreven, alleen verhuisd: de lijsten naar
+>   `hulp/_data.ts`, de secties naar `hulp/_sections/<categorie>.tsx`, de korte
+>   gidsen als kaarten via `GuideCards`.
+>
+> **Bewust niet gedaan.** De tekst zelf inkorten of herschrijven: dat is een
+> aparte ronde. De categorietegels op de categoriepagina's herhalen: met twaalf
+> categorieën zou dat op de telefoon zes rijen boven de uitleg zijn; daar staat
+> nu een tabrij. Beheer verbergen voor leden zonder beheerrecht: het stond er
+> eerder ook voor iedereen.
+>
+> **Getest.** Nieuw `help-categories.test.ts`: de ankers van elke categorie
+> zijn precies de id's op die pagina, geen anker in twee categorieën, oude
+> links gaan naar de goede categorie, en elke `/hulp/...#...`-link in `src`
+> bestaat (geen `"/hulp#` meer). `help-anchors.test.ts` aangepast. Volledige
+> vitest: alles groen behalve twee migratietests die onder de belasting van
+> een draaiende dev-server een timeout gaven; apart gedraaid slagen ze. In de
+> browser: `/hulp#jaarplan` komt uit op Schema en jaarplan bij het jaarplan,
+> zoeken op "warming" vanaf Koppelen opent het onderwerp op Schema en
+> jaarplan, geen horizontaal scrollen op 375 px.
+>
+> **Niet geverifieerd.** `npm run build`. Niet elke categoriepagina is in de
+> browser doorgelopen; de test controleert wel dat elke sectie op een pagina
+> staat.
+
+---
+
 > **Eventpagina: live renners zonder positie niet meer onzichtbaar, 2026-10-18 — gebouwd, lint en typecheck schoon; gepusht naar `main` (eigenaar, 2026-10-18, `429102f`); niet in de browser bekeken. Geen migratie.**
 > Commit: `429102f`.
 >
@@ -952,7 +1005,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   en een plan), ZWBlokken, ZWBeter Worden (de kop in beide designs),
 >   jaarplan, Wie weet wat en de koppen van een geanalyseerde race.
 > - **Het vraagteken in de balk weet nu waar je bent.** `HeaderHelpLink`
->   opent `/hulp#<anker>` voor de huidige pagina, met de kaart in
+>   opent `/hulp#<anker>` voor de huidige pagina (sinds 2026-10-18
+>   `/hulp/<categorie>#<anker>`, zie "Hulp in categorieën"), met de kaart in
 >   `src/lib/help-anchors.ts`: een pad met `*` per segment, het langste
 >   patroon wint. Op een pagina zonder eigen uitleg (bv. het dashboard) blijft
 >   het `/hulp`. Zo verwijst het vraagteken ook naar plekken die eerst geen
@@ -968,7 +1022,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - `tsc --noEmit` en ESLint schoon, vitest 2477 geslaagd.
 > - Nieuw `help-anchors.test.ts` (4): meest specifiek wint, een vast segment
 >   gaat voor een joker, terugval op `/hulp`, en elk anker in de kaart bestaat
->   op `/hulp`. Die laatste test faalt als iemand een sectie op /hulp hernoemt.
+>   in een hulpcategorie (sinds 2026-10-18; controleert `help-categories.test.ts`).
 >
 > **Niet geverifieerd.** In de browser: de pagina's vragen een login, en die is er lokaal niet. `npm run build` is voor deze ronde niet opnieuw gedraaid.
 

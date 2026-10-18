@@ -259,7 +259,7 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
       </section>
 
       <Link
-        href="/hulp#voeding"
+        href="/hulp/kennis#voeding"
         className="inline-flex min-h-[44px] items-center text-sm text-muted-foreground hover:underline"
       >
         Hoe dit werkt

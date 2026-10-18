@@ -205,7 +205,7 @@ export function StravaImportForm() {
       {state.kind === "error" ? (
         <p className="text-xs text-destructive">
           {state.message}{" "}
-          <Link href="/hulp#strava-import" className="font-medium underline">
+          <Link href="/hulp/koppelen#strava-import" className="font-medium underline">
             Hulp
           </Link>
         </p>
