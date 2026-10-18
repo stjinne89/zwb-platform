@@ -36,6 +36,7 @@ import {
 import { GpxDownloadLink } from "./gpx-download-link";
 import { POI_TYPES, type EventPoi, type PoiType, type ProfilePoi } from "./poi";
 import { ZONE_COLOR, ZONE_LABEL, type EventZone } from "./zone";
+import { haversineKm, pickRoutePoint, raceTotalKm } from "@/lib/live/route-progress";
 import type { DivIcon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -98,6 +99,8 @@ export type EventLivePosition = {
   altitude: number | string | null;
   speed_kmh: number | string | null;
   recorded_at: string;
+  /** Afstand volgens de fietscomputer (Garmin/Wahoo); alleen voor leden (0193). */
+  distance_m?: number | string | null;
 };
 
 type Marker = {
@@ -111,6 +114,7 @@ type Marker = {
   speedKmh: number | null;
   recordedAt: string;
   startedAt: string;
+  rideKm: number | null;
 };
 
 type RouteStats = {
@@ -123,7 +127,10 @@ type RouteStats = {
 };
 
 type RiderProgress = Marker & {
+  /** Gereden afstand; bij een rondjeskoers die van de fietscomputer. */
   distanceKm: number | null;
+  /** Plek op de GPX (één ronde), voor het hoogteprofiel. */
+  routeKm: number | null;
   remainingKm: number | null;
   progressPct: number | null;
   elapsedMs: number;
@@ -143,18 +150,11 @@ function toNumber(value: number | string | null | undefined) {
   return Number.isFinite(n) ? n : null;
 }
 
-function haversineKm(a: { lat: number; lon: number }, b: { lat: number; lon: number }) {
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const R = 6371;
-  const dLat = toRad(b.lat - a.lat);
-  const dLon = toRad(b.lon - a.lon);
-  const lat1 = toRad(a.lat);
-  const lat2 = toRad(b.lat);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
+function rideKmOf(distanceM: number | string | null | undefined) {
+  const m = toNumber(distanceM);
+  return m !== null && m > 0 ? m / 1000 : null;
 }
+
 
 function buildRouteStats(points: GpxPoint[]): RouteStats | null {
   if (points.length < 2) return null;
@@ -190,23 +190,25 @@ function buildRouteStats(points: GpxPoint[]): RouteStats | null {
   return { points, cumulativeKm, totalKm, minEle, maxEle, gain };
 }
 
-function projectOnRoute(marker: Marker, stats: RouteStats, now: number): RiderProgress {
-  let bestIndex = 0;
-  let bestDistanceKm = Infinity;
-  const rider = { lat: marker.lat, lon: marker.lng };
-
-  for (let i = 0; i < stats.points.length; i++) {
-    const distance = haversineKm(rider, stats.points[i]);
-    if (distance < bestDistanceKm) {
-      bestDistanceKm = distance;
-      bestIndex = i;
-    }
-  }
-
-  const offRouteM = bestDistanceKm * 1000;
+function projectOnRoute(
+  marker: Marker,
+  stats: RouteStats,
+  now: number,
+  race: { totalKm: number; lapRace: boolean },
+): RiderProgress {
+  const { index: bestIndex, offKm } = pickRoutePoint(
+    { lat: marker.lat, lon: marker.lng },
+    stats.points,
+    stats.cumulativeKm,
+    marker.rideKm,
+    OFF_ROUTE_M / 1000,
+  );
+  const offRouteM = offKm * 1000;
   const onRoute = offRouteM <= OFF_ROUTE_M;
-  const distanceKm = onRoute ? stats.cumulativeKm[bestIndex] : null;
-  const remainingKm = distanceKm === null ? null : Math.max(0, stats.totalKm - distanceKm);
+  const routeKm = onRoute ? stats.cumulativeKm[bestIndex] : null;
+  // Rondjes: de plek op de GPX zegt niet hoeveel rondes er al zijn gereden.
+  const distanceKm = race.lapRace ? (marker.rideKm ?? routeKm) : routeKm;
+  const remainingKm = distanceKm === null ? null : Math.max(0, race.totalKm - distanceKm);
   const elapsedMs = Math.max(0, now - new Date(marker.startedAt).getTime());
   const elapsedHours = elapsedMs / 3_600_000;
   const avgKmh =
@@ -225,8 +227,9 @@ function projectOnRoute(marker: Marker, stats: RouteStats, now: number): RiderPr
   return {
     ...marker,
     distanceKm,
+    routeKm,
     remainingKm,
-    progressPct: distanceKm === null ? null : Math.min(100, (distanceKm / stats.totalKm) * 100),
+    progressPct: distanceKm === null ? null : Math.min(100, (distanceKm / race.totalKm) * 100),
     elapsedMs,
     avgKmh,
     eta,
@@ -292,6 +295,7 @@ function latestMarkers(
       altitude: toNumber(p.altitude),
       speedKmh: toNumber(p.speed_kmh),
       recordedAt: p.recorded_at,
+      rideKm: rideKmOf(p.distance_m),
       // "Bezig" = tijd sinds de werkelijke start (event-starttijd, of de
       // sessiestart als die later is). Bewust níét afgeleid uit de eerste
       // opgehaalde positie: die lijst is afgekapt (limit), waardoor de start
@@ -320,6 +324,7 @@ export function EventLiveTicker({
   climbOverrides = [],
   pois = [],
   zones = [],
+  raceKm = null,
   pollUrl,
   heading = DEFAULT_HEADING,
   description = DEFAULT_DESCRIPTION,
@@ -339,6 +344,8 @@ export function EventLiveTicker({
   pois?: EventPoi[];
   /** Geneutraliseerde zones — read-only band op kaart + profiel. */
   zones?: EventZone[];
+  /** Afstand van het event; langer dan de GPX = rondjeskoers. */
+  raceKm?: number | null;
   /**
    * Als gezet wordt deze URL elke 10s gepolled voor een verse
    * {sessions, positions}-snapshot i.p.v. een Supabase Realtime-
@@ -539,6 +546,7 @@ export function EventLiveTicker({
               altitude: toNumber(row.altitude),
               speedKmh: toNumber(row.speed_kmh),
               recordedAt: row.recorded_at,
+              rideKm: rideKmOf(row.distance_m),
               startedAt: previous?.startedAt ?? isoFromTime(baseStart),
             });
             return next;
@@ -595,7 +603,8 @@ export function EventLiveTicker({
     if (!activeIds.has(m.sessionId)) return false;
     return now - new Date(m.recordedAt).getTime() <= STALE_AFTER_MS;
   });
-  const riders = visibleMarkers.map((marker) => projectOnRoute(marker, routeStats, now));
+  const race = raceTotalKm(routeStats.totalKm, raceKm);
+  const riders = visibleMarkers.map((marker) => projectOnRoute(marker, routeStats, now, race));
   // Live zonder (recente) positie, bv. de vaste Wahoo-link zonder GPS in de
   // FIT-data: wel in de lijst, met de link naar hun eigen kaart als die er is.
   const riderIds = new Set(riders.map((r) => r.sessionId));
@@ -718,7 +727,7 @@ export function EventLiveTicker({
             <strong>{rider.name}</strong>
           </Tooltip>
           <Popup>
-            <RiderPopup rider={rider} totalKm={routeStats.totalKm} />
+            <RiderPopup rider={rider} totalKm={race.totalKm} />
           </Popup>
         </CircleMarker>
       ))}
@@ -767,7 +776,7 @@ export function EventLiveTicker({
             zones={zones}
           />
           {/* Met pollUrl kijkt een gast mee (/live/[id]): die kan /leden niet in. */}
-          <RiderList riders={riders} totalKm={routeStats.totalKm} linkMembers={!pollUrl} />
+          <RiderList riders={riders} totalKm={race.totalKm} linkMembers={!pollUrl} />
           <UnplacedList sessions={unplaced} linkMembers={!pollUrl} />
         </div>
       </div>
@@ -1188,11 +1197,11 @@ function LiveProfileChart({
           vectorEffect="non-scaling-stroke"
         />
         {riders
-          .filter((rider) => rider.distanceKm !== null && rider.ele !== null)
+          .filter((rider) => rider.routeKm !== null && rider.ele !== null)
           .map((rider) => (
             <g key={rider.sessionId}>
               <circle
-                cx={xFor(rider.distanceKm ?? 0)}
+                cx={xFor(rider.routeKm ?? 0)}
                 cy={yFor(rider.ele ?? stats.minEle)}
                 r="7"
                 fill="#d4a84e"

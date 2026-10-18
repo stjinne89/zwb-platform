@@ -1079,7 +1079,7 @@ export default async function EventDetailPage({
     if (sessionIds.length > 0) {
       const { data: positionRows } = await supabase
         .from("live_positions")
-        .select("session_id, profile_id, lat, lng, altitude, speed_kmh, recorded_at")
+        .select("session_id, profile_id, lat, lng, altitude, speed_kmh, recorded_at, distance_m")
         .in("session_id", sessionIds)
         .order("recorded_at", { ascending: false })
         .limit(Math.max(500, sessionIds.length * 80));
@@ -1617,6 +1617,7 @@ export default async function EventDetailPage({
             eventStartAt={event.start_at}
             sessions={eventLiveSessions}
             initialPositions={eventLivePositions}
+            raceKm={Number(event.distance_km) || null}
             cols={cols}
             climbOverrides={climbOverrides}
             pois={eventPois}

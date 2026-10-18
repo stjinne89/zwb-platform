@@ -221,6 +221,40 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Niet geverifieerd.** Niet in de browser bekeken.
 
+> **Eventticker: afstand bij een koers in rondjes, 2026-10-18 — gebouwd, unit-tests, lint en typecheck schoon; gepusht naar `main` tijdens de race (eigenaar vroeg om de fix, 2026-10-18); niet in de browser bekeken. Geen migratie.**
+> Commit: de commit die dit blok toevoegt.
+>
+> **Waarom.** Melding van de eigenaar tijdens dezelfde race: de Legacy Gravel
+> is in rondjes (event 122,26 km; uit Rolfs spoor ~31 km per ronde). Wahoo gaf
+> Rolf op 60 km, de ticker niet: die rekende de afstand uit het dichtstbijzijnde
+> GPX-punt, en dat zegt niets over het aantal gereden rondes.
+>
+> **Wat.**
+> - `src/lib/live/route-progress.ts` (nieuw): `raceTotalKm` ziet een
+>   rondjeskoers als de eventafstand meer dan 1,2 × de GPX is; `pickRoutePoint`
+>   kiest bij een route die zichzelf overlapt (alle rondes in één GPX, of heen en
+>   terug) met de ritafstand de juiste doorkomst. Of de GPX van dit event één
+>   ronde of de hele koers is, was niet vast te stellen (alleen de
+>   bestandsgrootte, 284 KB, is zichtbaar); beide gevallen zijn gedekt.
+> - Ticker: bij een rondjeskoers is "Afstand" de afstand van de fietscomputer
+>   (`live_positions.distance_m`), en totaal, procent, gemiddelde en ETA rekenen
+>   met de eventafstand. De stip op het hoogteprofiel blijft op de plek in de
+>   ronde.
+> - Eventpagina (leden) selecteert nu `distance_m` en geeft `distance_km` door.
+>   Dat herziet "bewust niet gebouwd: de waarden op de eventpagina voor leden"
+>   uit de ronde van 0193, alleen voor de afstand.
+>
+> **Bewust niet gedaan.** De publieke ticker (`/live/[eventId]`) krijgt geen
+> `distance_m`: de privacytekst belooft dat die alleen de positie toont. Daar
+> blijft de afstand bij rondjes dus binnen één ronde. Rondes tellen uit de
+> positiegeschiedenis: de ticker krijgt hooguit 80 punten per renner, te weinig
+> voor een hele koers. `events.laps` voor buitenritten: niet nodig zolang
+> `distance_km` is ingevuld.
+>
+> **Niet geverifieerd.** Niet in de browser bekeken. De afstand van de
+> fietscomputer telt vanaf de start van de opname; wie al voor de start opneemt,
+> staat iets te ver.
+
 > **Wahoo-chunks in zlib: posities voor nieuwere ELEMNT's, 2026-10-18 — gebouwd, unit-tests, lint en typecheck schoon, getoetst op echte chunks van Rolf; gepusht naar `main` (eigenaar, 2026-10-18). Geen migratie.**
 > Commit: de commit die dit blok toevoegt.
 >
