@@ -349,3 +349,8 @@ blok "Gebouwd — ZWB DS" in `PLAN.md`. Afwijkingen van het bouwplan hierboven:
 - Geen W/kg per groep, wel per renner, en alleen als de startlijst een gewicht
   geeft; anders watt.
 
+## Tweede ronde: profiel en meer rennersdata (2026-10-18)
+
+Wat er in de spelersstatus en de startlijst zit en wat DS er nu mee toont: zie
+het blok "ZWB DS: hoogteprofiel en meer rennersdata" in `PLAN.md`.
+

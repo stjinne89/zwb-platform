@@ -2975,7 +2975,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > 2026-10-16 in de groep Community op `/beheer`), dus alleen
 > voor wie `community.manage` of `media.manage` heeft: **gewone leden bereiken
 > ze in dit design niet meer via het menu.** Vraag en Aanbod en Ritverslagen
-> staan nergens meer in het menu; de pagina's zelf bestaan nog. Polls staat
+> staan nergens meer in het menu; de pagina's zelf bestaan nog. *(Bijgewerkt
+> 2026-10-18: Vraag en Aanbod is uit de app; `/materiaal` is nu ZWBeter
+> materiaal.)* Polls staat
 > onder Club (invulling van de bouwer, niet bevestigd). Samen fietsen stond
 > eerst bij de kalender; sinds 2026-10-16 staat het onder Club, met een
 > live-tegel op Vandaag (besluit eigenaar).
@@ -9949,6 +9951,89 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWB DS: hoogteprofiel en meer rennersdata
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt. Migratie
+`0250_zwb_ds_more_rider_data.sql`, **toegepast op productie op 2026-10-18** via de
+Supabase-connector (vijf kolommen nagekeken). **Gepusht naar `main` op
+2026-10-18**, op verzoek van de eigenaar.
+
+**Waarom.** De eigenaar bekeek DS tijdens een groepsrit ("Zwift ritje", Zwift-event
+`5739688`, groep C, 21 renners in beeld) en miste data: per renner alleen naam en
+W/kg, en een kale lijn zonder profiel. Gevraagd: meer data van de rijders en het
+profiel op de lijn waarop de bolletjes bewegen.
+
+**Wat er mogelijk bleek.** De spelersstatus die DS al ophaalt, bevat ook cadans,
+draft, rijtijd, arbeid (kJ) en geklommen meters: geen extra verzoek. De Zwift-
+startlijst geeft per renner gewicht, lengte, FTP, leeftijd, land, vermogensbron en
+privacyvlaggen (veldnamen nagekeken met één verzoek op 2026-10-18). De
+routebibliotheek (`zwift_routes`) heeft voor alle 273 routes een hoogteprofiel.
+
+**Wat er veranderde.**
+- Hoogteprofiel van het hele event (aanloop en ronden via `expandLaps`, uitgedund
+  tot 400 punten) met een stip per renner, ZWB'ers in clubkleur. Daaronder een
+  uitvergrote strook van 3 km rond de kijker, of rond de kop als die niet
+  meerijdt, met de ZWB'ers bij naam. Renners die op het scherm bijna samenvallen,
+  worden gestapeld, zodat een groep als groep oogt. Getekend op de echte breedte
+  (ResizeObserver), zodat het op een telefoon even leesbaar is.
+- De stippen schuiven tussen twee standen vier keer per seconde door op hun
+  laatste snelheid (hooguit 20 s). Eerst met een CSS-overgang: die begon bij de
+  positie uit de serverweergave en liep in een tabblad op de achtergrond niet
+  door, waardoor stippen naast de lijn stonden. Daarom zonder overgang.
+- Per ZWB'er: W/kg nu en gemiddeld sinds de start (arbeid / rijtijd, pas na 30 s),
+  km/u, cadans, draft en helling op die plek, plus resterende km en volgende
+  sprint of KOM. ZWB'ers zonder status staan onder "Niet in beeld".
+- Groepen: gemiddelde W/kg, snelheid en helling in de regel; opengeklapt per
+  renner W/kg nu, gemiddeld en km/u.
+- W/kg alleen als de renner in Zwift zijn gewicht toont (`privacy.displayWeight`);
+  anders watt. *Teruggedraaid dezelfde dag: zie "Gezien op productie" hieronder.*
+- De onderdelen van de pagina staan in `_components/ds-sections.tsx`, zodat het
+  designvoorbeeld ze kan tonen: `/ontwerp-voorbeeld?scherm=ds` (alleen lokaal)
+  met een verzonnen race van 40 km.
+- `/hulp#zwb-ds` beschrijft het nieuwe scherm.
+
+**Bewust niet gebouwd.** FTP, leeftijd en lengte van renners tonen (persoonlijke
+gegevens; FTP zou ook "% van FTP" mogelijk maken, maar dat is aan de eigenaar).
+Een kaart (x/y staan in de status). Vermogensbron (zPower) en land: kan, niet
+gevraagd. Geschiedenis per renner voor een grafiekje: dat vraagt opslag van meer
+dan de laatste stand.
+
+**Getest:** unit-tests (gemiddeld vermogen, eerste halve minuut, helling,
+groepsgemiddelde, decoder met de nieuwe velden en zonder hartslag), `tsc`,
+ESLint. In de ingebouwde browser bekeken op telefoon- en desktopbreedte, met het
+designvoorbeeld.
+
+**Niet geverifieerd.** De pagina met echte data na deze wijziging (lokaal geen
+inlog). De eenheid van `draft`: Sauce toont hem als watt, maar wat het getal
+precies is, is omstreden. Of `elapsed`/kJ bij een race vanaf de start tellen of
+vanaf het binnenkomen in de startvak.
+
+**Privacy.** `/privacy#zwb-ds` noemt nu ook cadans, draft, rijtijd en verbruikte
+energie, en dat het gewicht alleen dient om W/kg te rekenen (eerst: "alleen als
+de renner het in Zwift toont", zie hieronder).
+Tekst door de eigenaar goedgekeurd op 2026-10-18; geen nieuwe versie.
+
+**Gezien op productie na de push (2026-10-18, "Zwift ritje", 100 km).** Drie
+dingen klopten niet:
+- Het profiel stopte halverwege: een event op afstand heeft bij Zwift `laps: 1`
+  en `distanceInMeters: 100000`, op een rondje van ongeveer 50 km. Profiel en
+  sprints/KOM's rollen nu zoveel ronden uit als de afstand vraagt
+  (`lapsRidden`). Lokaal herstel, nog niet gepusht.
+- Achterstanden liepen niet op (+1:01 voor +0:41): elk gat was gerekend met de
+  eigen snelheid, en een losser op 17 km/u kreeg zo een groter gat. Nu met één
+  snelheid, de mediaan van wie nog rijdt. Lokaal herstel, nog niet gepusht.
+- Geen W/kg meer: alle 100 inschrijvers van die groep hebben in Zwift
+  `displayWeight` uit (de standaard). De regel "W/kg alleen als de renner zijn
+  gewicht toont" haalt W/kg dus bij vrijwel iedereen weg. **Keuze eigenaar
+  (2026-10-18): W/kg voor iedereen**, zoals Zwift in het spel; het gewicht zelf
+  staat nergens. `displayWeight` gaat over het gewicht op het Zwift-profiel, niet
+  over W/kg. Privacy- en hulptekst daarop aangepast (tekst akkoord, geen nieuwe
+  versie).
+
+Beide herstellingen en de W/kg-keuze zijn op 2026-10-18 naar `main` gepusht.
+
+**Nog te doen:** het scherm in een race bekijken.
+
 ### Gebouwd — ZWB DS: raceoverzicht tijdens Zwift-races
 
 **2026-10-17.** Commit: de commit die dit blok toevoegt. Migratie
@@ -10529,6 +10614,203 @@ PubMed-zoekvragen gebruiken daarom `[tiab]`-termen zonder jokertekens.
 **Niet geverifieerd.** Een volledige scan is nog niet gedraaid; de eerste is op
 2 november 2026. Of de taak in Auto-modus de worktree en de commit zonder vragen
 mag maken, blijkt dan.
+
+### Opgeleverd — ZWBeter materiaal: kennisbank en rekenaar
+
+**2026-10-18.** Commit: de commit die dit blok toevoegt. Geen migratie.
+Onderzoek, besluiten en niveaus:
+[materiaal-onderzoek](docs/materiaal-onderzoek-2026-10-17.md). Het voorstel staat
+hieronder.
+
+**Aanleiding.** De eigenaar keurde het voorstel goed ("bouw maar") en vroeg
+tegelijk om een aparte sessie voor het beleid voor het bewijsniveau. Die kon
+deze sessie niet zelf starten, omdat de eigenaar via Remote Control werkte; de
+taak staat als voorstel klaar.
+
+**Wat er veranderde.**
+- **Zesde pijler "ZWBeter materiaal"** (`src/lib/zwbeter-pillars.ts`).
+  - Twee tabs: Kennisbank (`/zwbeter-worden/materiaal/kennis`) en Rekenaar
+    (`/zwbeter-worden/materiaal/rekenaar`). `/zwbeter-worden/materiaal` stuurt door
+    naar de kennisbank.
+  - `/materiaal` en alles eronder verwijst permanent door (`next.config.ts`).
+  - De tegels staan op een breed scherm in één rij: zes voor een trainer, vijf
+    voor de rest. Op de telefoon staan ze in rijen van twee.
+- **Vraag en Aanbod is uit de app.**
+  - Weg: de pagina's onder `src/app/(app)/materiaal/`, `src/lib/categories.ts`,
+    `src/components/post-kind-badge.tsx`, het menu-item in het oude design en de
+    vermeldingen op `/hulp`.
+  - De berichten blijven in de database. Het recht `content.create_posts`
+    blijft bestaan, met een aangepaste omschrijving.
+  - De accountexport neemt de tabellen nog mee.
+- **Kennisbank** (`src/lib/materiaal/library.ts`):
+  - zestien artikelen op vijf planken: Lucht, Rollen en aandrijving, Binnen
+    fietsen, Lichaam en fiets, Kleine middelen;
+  - 8 sterk, 7 matig, 1 beperkt, geen Afgeraden;
+  - een nieuwe bronsoort `meting` (`EVIDENCE_KINDS`);
+  - een eigen legenda (`MATERIAAL_EVIDENCE_LEGEND`), omdat *sterk* hier ook uit
+    meerdere onafhankelijke groepen kan komen.
+- **Rekenaar** (`src/lib/materiaal/rekenaar.ts` plus de pagina):
+  - rekent een route twee keer door met `estimateRide`;
+  - vaste routes: vlak 40 km, heuvelachtig 40 km en een klim van 8 km op 6 %;
+    plus buitenevents met een GPX (60 dagen terug tot 120 dagen vooruit);
+  - vermogen standaard 75 % van je FTP, gewicht uit je profiel; alleen of in een
+    groep;
+  - nu en straks voor houding, extra luchtweerstand in procent, banden en
+    wegdek, fiets en uitrusting in kg, en het rendement van de aandrijving;
+  - bij elke keuze het artikel met de bewijsbadge;
+  - de uitkomst is de tijdwinst en wat die in watt waard is.
+  - Waar de keuzes vandaan komen:
+    - houding: Lim 2011 voor de beugel (−11 %) en Barry 2015 voor onderarmen
+      plat (−13,9 %);
+    - rolweerstand: 0,005 en 0,007, uit Lim 2011 terugberekend;
+    - groep: 70 % luchtweerstand, een aanname met Blocken 2018.
+- **Koppelingen.**
+  - Leeszaal: vijf nieuwe planken, gekoppeld aan de ZWBieb-onderwerpen Bikefit
+    en houding, Banden en tubeless, Sleutelen, Zwift-setup en Vermogensmeters.
+  - Coachchat: kennisbank, links en prompt.
+  - Kennisbank-scan: via het coachblok.
+  - `/hulp`: blok "ZWBeter materiaal", anker en zoekterm.
+
+**Bronnen.** Ruim dertig zijn in PubMed teruggevonden: de sport- en
+sportgeneeskundebladen, onder andere Lim 2011, García-López 2008, Otani 2018,
+Bini 2021, Dinardi 2020 en Jin 2026. De techniekbladen staan niet in PubMed;
+die hebben de DOI van de uitgever, via Consensus. Grappe 1999 is niet in PubMed
+gevonden. Waar de auteurs of pagina's niet zeker waren, staat "et al." of
+ontbreken de pagina's.
+
+**Bewust niet gebouwd.**
+- Een vork (bandbreedte) in de rekenaar. Elke keuze heeft nu één bronwaarde;
+  een vork komt pas als een artikel een bereik geeft.
+- Gravel als keuze bij de banden: daar is geen gepubliceerde rolweerstand voor
+  gevonden. `/hulp` zegt dat de keuzes over asfalt gaan.
+- Zwift-routes in de rekenaar, wind, prijzen, opslaan. Zie het voorstel.
+- Het recht en de tabellen van Vraag en Aanbod opruimen: dat vraagt een migratie.
+- In de leeszaal staat de algemene legenda. Daar staan artikelen van alle
+  kennisbanken door elkaar, en de beleidsronde trekt de regels gelijk.
+
+**Getest.**
+- `materiaal.test.ts`, acht tests:
+  - artikelen hebben een bron en een beperking, een geldige plank, geen
+    Afgeraden, en een DOI;
+  - het niveau is gelijk aan de goedgekeurde tabel in het document;
+  - de rekenaar: geen verschil zonder verandering;
+  - 5 % minder luchtweerstand komt binnen 15 % van een handberekening;
+  - een kilo minder levert bergop meer op dan op het vlak;
+  - in een groep levert aero minder op;
+  - de rolweerstand uit Lim 2011 rekent na;
+  - de vaste routes hebben de goede lengte.
+- `zwbieb.test.ts` (alle artikelen op een plank) en `coach-knowledge.test.ts`
+  (elk pad wordt een link) dekken materiaal nu mee.
+- Volledige run: 2798 groen. `tsc` en ESLint: geen nieuwe fouten.
+
+**In de browser bekeken** (dev-server, ingelogd, 2026-10-18):
+- `/materiaal` stuurt door naar de kennisbank. Zes pijlers staan in één rij,
+  met de juiste tab actief, ook op een artikel.
+- De legenda met de tekst voor materiaal; het artikel Compressiekleding met
+  badge en bronnen.
+- Rekenaar:
+  - onderarmen plat over 40 km vlak bij 206 W: 3:12 sneller, 26 W waard;
+  - een kilo minder op de klim: 24 s;
+  - een komma in een getalveld werkt;
+  - het buitenevent Legacy Gravel (122 km) laadt uit de GPX.
+- Op 375 px geen horizontale scroll, en geen fouten in de console.
+- De leeszaal toont vijf nieuwe planken met zestien artikelen.
+
+**Niet geverifieerd.**
+- Of de oude links naar `/materiaal/<slug>` op productie goed doorverwijzen.
+- Hoe de coach de nieuwe kennisbank gebruikt.
+
+### Voorstel — ZWBeter materiaal (besluiten genomen; gebouwd 2026-10-18, zie hierboven)
+
+**2026-10-17.** Commit: de commit die dit blok toevoegt. Geen code. Onderzoek en
+voorstel: [materiaal-onderzoek](docs/materiaal-onderzoek-2026-10-17.md).
+
+**Aanleiding.** Behalve met trainen, voeding, kracht en tactiek kun je ook beter
+worden met materiaal en kleine winsten (neusstrips, aero-sokken). De eigenaar
+vroeg of daar een onderdeel voor kan komen, te beginnen met een kennisbank.
+
+**Conclusie van het onderzoek.**
+- Er is genoeg gepubliceerd onderzoek voor zo'n zestien artikelen, over lucht,
+  rollen, aandrijving, binnen fietsen, lichaam en fiets, en kleine middelen.
+- Veel aerowinst geldt alleen buiten en op snelheid. Binnen bepaalt Zwift de
+  luchtweerstand. Voor de club tellen binnen vooral de ventilator en een
+  vermogensmeter die klopt.
+- Het onderzoek is vooral techniek: windtunnel, testbank en computermodel, met
+  weinig meta-analyses. Het bewijsniveau krijgt daarom een aanvulling:
+  gepubliceerde metingen tellen als bewijs (nieuwe bronsoort `meting`).
+- *Niet meer waar sinds 2026-10-18:* "neusstrips, compressiekleding en
+  inlegzolen komen uit op Afgeraden". De eigenaar wil geen Afgeraden bij
+  materiaal; zie de besluiten hieronder.
+
+**Het voorstel** (bijgewerkt met de besluiten van 2026-10-18).
+- Een zesde pijler "ZWBeter materiaal" met de tabs Kennisbank en Rekenaar, op
+  `/zwbeter-worden/materiaal`. Het korte pad `/materiaal` verwijst ernaar door.
+- Planken in de leeszaal, gekoppeld aan bestaande ZWBieb-onderwerpen.
+- Opname in de coachchat en de kennisbank-scan.
+- Een rekenaar "Wat levert het op?" op `estimateRide` (buitenmodel), meteen mee
+  ontworpen.
+
+**Bewust niet.**
+- Merken en koopadvies.
+- Fabrikanttests als bron.
+- Virtueel Zwift-materiaal in de kennisbank (dat is spelmechaniek).
+- Slipstream: dat hoort bij racen.
+- Een rekenhulp voor de zadelhoogte.
+
+**Besluiten van de eigenaar (2026-10-18).**
+- **Pad.** Vraag en Aanbod wordt niet meer gebruikt: het pad `/materiaal` gaat
+  over. Vraag en Aanbod gaat uit de app (pagina's, menu, `/hulp`); de berichten
+  blijven in de database.
+- **Metingen tellen als bewijs.** Het beleid voor het beoordelen van artikelen
+  wordt in een volgende ronde verbeterd en vastgelegd, voor alle kennisbanken.
+- **Geen Afgeraden.** Neusstrips, compressie en inlegzolen krijgen een gewoon
+  niveau, met de zwaktes in het artikel.
+- **De rekenaar** wordt meteen mee-ontworpen.
+- **Gelijk op de criteria is gelijk ingedeeld.** Alle zestien zijn daarom
+  opnieuw langs dezelfde regels gelegd:
+  - *sterk* omvat nu ook meerdere onafhankelijke groepen waarvan de metingen of
+    proeven met renners het eens zijn;
+  - alleen een pop, een testbank of een computermodel: hooguit *matig*.
+- **Uitkomst: 8 sterk, 7 matig, 1 beperkt.** Banden en ventilator staan allebei
+  op *sterk*.
+- Deze regels gelden voorlopig alleen voor materiaal. Bij de andere kennisbanken
+  is *sterk* nog: een consensusstuk of meerdere meta-analyses.
+
+**Ligt bij de eigenaar.** Akkoord op de herziene niveaus en het ontwerp van de
+rekenaar, en dan bouwen.
+
+**Niet geverifieerd.** Bronnen zijn op de samenvatting beoordeeld. Drie zijn in
+PubMed bevestigd; de rest gaat bij het bouwen via PubMed of de uitgever.
+
+**Aanvulling (onderzoeksagent Consensus Pro, 2026-10-17).**
+- Eén brief met alle zeventien onderwerpen. Van de 62.857 gevonden artikelen
+  kwamen er 139 in aanmerking en zijn er 20 meegenomen.
+- De agent bevestigde het rekenmodel: Martin 1998 met R² 0,97, en Dahmen 2011
+  op echte routes. Bij houding en helm voegde hij Barry 2015, Underwood 2015 en
+  Maddocks 2025 toe.
+- Voor de onderwerpen 6–17 vond hij in die twintig artikelen niets bruikbaars.
+  Dat is een grens van de ronde, niet een gebrek aan onderzoek.
+- Het ruwe rapport staat lokaal in `docs/consensus/`, buiten git.
+
+**Aanvulling (onderzoeksagent Consensus Deep, 2026-10-17, op verzoek van de
+eigenaar).**
+- Een nieuwe zoekopdracht voor de onderwerpen 5–17. Van de 886 artikelen die in
+  aanmerking kwamen, zijn er 100 meegenomen.
+- Nieuw:
+  - wielen en frame: Greenwell 1995 en Jeukendrup & Martin 2001;
+  - slechte wegen: Turner 2024;
+  - ketting: Smit 2023 en Aubert 2023;
+  - smart trainers en vermogensmeters: Peeters 2024, Costa 2026 en
+    Bouillod 2017;
+  - bikefit: Scoz 2021 en een pilot van Hoyt 2025;
+  - schoenplaatjes: Chartogne 2016.
+- Daardoor:
+  - er komt een artikel "Wielen en frame" bij (zestien in totaal);
+  - banden gaan naar *sterk* en ketting naar *matig*;
+  - schoenplaatjes gaan in het bikefit-artikel.
+- Over cranklengte, neusstrips en compressie vond ook Deep niets. Daar blijft
+  de gewone zoekfunctie de basis.
+- In de slottabel van het rapport staat een verkeerde DOI bij vermogensmeters.
 
 ### Opgeleverd — bewijsniveau per kennisartikel
 

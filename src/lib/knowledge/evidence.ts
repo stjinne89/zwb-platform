@@ -27,3 +27,14 @@ export const ARTICLE_EVIDENCE_LEGEND: Record<ArticleEvidence, string> = {
   beperkt: "een paar kleine studies, of een afgeleid advies",
   afgeraden: "het onderzoek wijst uit dat het niet helpt",
 };
+
+/**
+ * De legenda bij de kennisbank materiaal (besluit eigenaar, 2026-10-18): daar
+ * tellen metingen mee, kan sterk ook uit meerdere onafhankelijke groepen komen,
+ * en is alleen een pop, testbank of computermodel hooguit matig.
+ */
+export const MATERIAAL_EVIDENCE_LEGEND: Partial<Record<ArticleEvidence, string>> = {
+  sterk: "consensus, meta-analyses, of meerdere onafhankelijke groepen waarvan de metingen met renners het eens zijn",
+  matig: "één meta-analyse of meerdere kleine studies, of alleen gemeten op een pop, testbank of in een model",
+  beperkt: "een paar kleine studies, of een afgeleid advies",
+};

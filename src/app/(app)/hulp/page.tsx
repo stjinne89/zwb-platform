@@ -138,7 +138,9 @@ const GUIDES = [
       "ZWB DS is het raceoverzicht voor een tweede scherm tijdens een Zwift-race, bijvoorbeeld je telefoon naast Zwift op je tablet. Je hebt er geen Sauce of computer voor nodig.",
       "De knop ZWB DS staat bij Raceinfo op de race en bij Jouw races op je dashboard, van een kwartier voor tot twee uur na de start. Hij verschijnt bij elke race in de kalender met een Zwift-event. Bij een ZRL-race staat hij ook op de live stand, en op ZWB DS staat een knop terug naar de stand.",
       "ZWB DS opent in de Zwift-groep waarin jij staat, anders in de groep met de meeste ZWB'ers. Met de knoppen bovenaan wissel je van groep.",
-      "Bovenaan staat de koersbalk: de route van start tot finish, met streepjes voor de sprints en KOM's, een stip per groep en de ZWB'ers in clubkleur. Daaronder per ZWB'er de plek in het veld, de achterstand op kop, de kilometers die nog resten en de volgende sprint of KOM. Onder Groepen staan de groepen van voor naar achter met hun achterstand en de ZWB'ers erin; open een groep om de renners met hun W/kg te zien. Geeft Zwift geen gewicht, dan staat er watt. Wie binnen is, staat onderaan.",
+      "Bovenaan staat het hoogteprofiel van de hele race, met streepjes voor de sprints en KOM's en een stip per renner; de ZWB'ers in clubkleur. Renners die dicht bij elkaar rijden, staan op een stapel, zodat je ziet hoe groot een groep is. Daaronder dezelfde weg uitvergroot, drie kilometer rond jou, of rond de kop als je zelf niet meerijdt. De stippen schuiven tussen twee standen door op hun laatste snelheid.",
+      "Per ZWB'er zie je de plek in het veld, de achterstand op kop, W/kg nu en gemiddeld sinds de start, snelheid, cadans, draft en de helling waar hij of zij rijdt, en daaronder de kilometers die nog resten en de volgende sprint of KOM. ZWB'ers die nog niet in beeld zijn, staan eronder.",
+      "Onder Groepen staan de groepen van voor naar achter met hun achterstand, gemiddelde W/kg, snelheid, helling en de ZWB'ers erin; open een groep om per renner W/kg nu, gemiddeld en snelheid te zien. Geeft Zwift geen gewicht, dan staat er watt in plaats van W/kg. Wie binnen is, staat onderaan.",
       "Zwift geeft maar een beperkt aantal standen per minuut, voor alle races samen. Een stand kan daarom een halve minuut oud zijn, en op een avond met veel races tegelijk ouder; tussendoor schat ZWB DS de plek met de laatste snelheid. Renners die meer dan 5 seconden uit elkaar liggen, staan in een andere groep. Onder de titel staat hoe oud de stand is. Staat er Zwift remt af, dan haperde het bijwerken even.",
       "Hartslag toont ZWB DS van niemand. Wat we opvragen en hoe lang we het bewaren, staat in de privacyverklaring.",
       "Zwift je op een computer, dan geeft Sauce for Zwift dezelfde informatie seconde voor seconde, met de renners om je heen.",
@@ -183,7 +185,6 @@ const GUIDES = [
     icon: Users,
     title: "Community, polls, media en ritverslagen",
     bullets: [
-      "Gebruik Vraag & Aanbod voor spullen, hulpvragen en tips.",
       "Polls verzamelen snelle keuzes vanuit de community.",
       "Media bundelt nieuws, mededelingen, video's en podcasts.",
       "Schrijf na een gereden event een ritverslag met vaste kopjes: voorbereiding, verloop, uitslag en leerpunten. Je hoeft niet alles in te vullen; je eigen uitslag staat er al bij als die bekend is.",
@@ -257,12 +258,12 @@ const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/zwbeter-worden", name: "ZWBeter Worden", text: "Schema's, AI-coach, je ZWBeterWorden-advies, belasting en de koppelingen." },
   { href: "/zwbeter-worden/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
   { href: "/zwbeter-worden/racen", name: "ZWBeter racen", text: "Je gereden Zwift-races (ZRL, FRR of via een geplakte link): tips, de ploeg of je eigen race, en je rit uit intervals.icu." },
+  { href: "/zwbeter-worden/materiaal", name: "ZWBeter materiaal", text: "Kennisbank over materiaal en kleine winsten, met een rekenaar wat een verandering je oplevert." },
   { href: "/mijn-garage", name: "Mijn garage", text: "Je fietsen en de slijtage van hun onderdelen, met een melding zodra er iets toe is aan vervanging." },
   { href: "/profiel/cols", name: "Cols & segmenten", text: "Welke cols en segmenten je deed, met je PR en de ZWB-ranglijst." },
   { href: "/ritverslagen", name: "Ritverslagen", text: "Schrijf een verslag bij een gereden event; anderen reageren." },
   { href: "/community", name: "Community", text: "Mededelingen en clubnieuws." },
   { href: "/polls", name: "Polls", text: "Snelle stemmingen vanuit de club." },
-  { href: "/materiaal", name: "Vraag & Aanbod", text: "Spullen, hulpvragen en tips uitwisselen." },
   { href: "/media", name: "Media", text: "Nieuws, nieuwsbrieven, podcasts, video's en Instagram." },
   { href: "/stats", name: "Stats", text: "Club: de cijfers en ranglijst van alle leden. Ik: je eigen ritten, vermogen en records." },
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
@@ -3752,6 +3753,67 @@ Fitness-status: Verbeterend`}
               Open de kennisbank trainen
             </Link>
           </div>
+        </div>
+      </section>
+
+      <section
+        id="materiaal"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Bike className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">ZWBeter materiaal</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Een kennisbank over materiaal en kleine winsten, en een rekenaar die
+              laat zien wat een verandering jou oplevert. ZWB noemt geen merken en
+              geeft geen koopadvies.
+            </p>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">De kennisbank</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Over lucht en houding, banden en ketting, binnen fietsen, je fiets
+              afstellen en kleine middelen zoals neusstrips. Veel winst geldt alleen
+              buiten en op snelheid: op Zwift rekent het spel met je virtuele fiets,
+              en tellen vooral een ventilator en een vermogensmeter die klopt.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Hier tellen ook gepubliceerde metingen in een windtunnel, op een
+              testbank of op de weg als bewijs. Sterk bewijs is dan ook: meerdere
+              onafhankelijke onderzoeksgroepen waarvan de metingen met renners het
+              eens zijn. Is alleen op een pop, een testbank of in een computermodel
+              gemeten, dan is het hooguit matig. Zegt het onderzoek dat iets niet
+              helpt, dan staat dat in de samenvatting, met wat zwak is aan dat
+              onderzoek.
+            </p>
+          </article>
+          <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">De rekenaar</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Kies een route, je vermogen en je gewicht, en wat je nu hebt en
+              straks overweegt: houding, luchtweerstand van helm, kleding of wielen,
+              banden, gewicht en het rendement van je ketting. De rekenaar rijdt de
+              route twee keer met hetzelfde vermogen en toont het verschil in tijd
+              en in watt.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Hij rekent windstil en met een vast vermogen, zoals het pacingplan.
+              In een groep rekent hij met 70 % van je luchtweerstand; dat is een
+              aanname. Buitenevents met een GPX staan erbij; Zwift-routes niet,
+              want daar bepaalt het spel de fysica. De keuzes voor banden gaan over
+              asfalt; op gravel is de rolweerstand hoger.
+            </p>
+            <Link
+              href="/zwbeter-worden/materiaal/rekenaar"
+              className="mt-3 inline-flex min-h-[44px] items-center text-sm font-medium text-primary hover:underline"
+            >
+              Open de rekenaar
+            </Link>
+          </article>
         </div>
       </section>
 

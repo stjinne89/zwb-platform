@@ -47,6 +47,16 @@ describe("buildField", () => {
     expect(field.riders.find((r) => r.zwiftId === "d")?.position).toBe(4);
   });
 
+  it("rekent achterstanden met één snelheid, zodat ze van voor naar achter oplopen", () => {
+    const field = buildField(
+      [rider("a", 2000), rider("b", 1800, { speedKmh: 36 }), rider("c", 1700, { speedKmh: 15 }), rider("d", 1500, { speedKmh: 36 })],
+      { now: NOW, routeM: null },
+    );
+    const gaps = field.groups.map((g) => Math.round(g.gapS));
+    expect(gaps).toEqual([...gaps].sort((x, y) => x - y));
+    expect(field.riders.find((r) => r.zwiftId === "c")?.gapS).toBeCloseTo(30);
+  });
+
   it("zet binnengekomen renners apart en voor in de plaatsen", () => {
     const field = buildField([rider("a", 30_100), rider("b", 29_000)], { now: NOW, routeM: 30_000 });
     expect(field.finished.map((r) => r.zwiftId)).toEqual(["a"]);
@@ -70,6 +80,28 @@ describe("buildField", () => {
     );
     expect(field.riders[0].wkg).toBeCloseTo(4);
     expect(field.riders[1]).toMatchObject({ wkg: null, watts: 250 });
+  });
+
+  it("rekent gemiddeld vermogen uit arbeid en rijtijd, en geeft helling en groepsgemiddelde", () => {
+    const withWork = (id: string, distanceM: number, kj: number, power: number): DsEntrant => {
+      const entrant = rider(id, distanceM, { power, weightKg: 70 });
+      return { ...entrant, sample: { ...entrant.sample!, kj, elapsedS: 1000, cadenceRpm: 90, draft: 120 } };
+    };
+    const field = buildField([withWork("a", 1000, 210, 280), withWork("b", 995, 245, 350)], {
+      now: NOW,
+      routeM: null,
+      gradeAt: (m) => (m > 900 ? 6 : 0),
+    });
+    expect(field.riders[0]).toMatchObject({ avgWatts: 210, cadenceRpm: 90, draft: 120, gradePct: 6 });
+    expect(field.riders[0].avgWkg).toBeCloseTo(3);
+    expect(field.groups[0].wkg).toBeCloseTo(4.5);
+    expect(field.groups[0].gradePct).toBe(6);
+  });
+
+  it("geeft geen gemiddelde in de eerste halve minuut", () => {
+    const entrant = rider("a", 100, { power: 200, weightKg: 70 });
+    const field = buildField([{ ...entrant, sample: { ...entrant.sample!, kj: 2, elapsedS: 10 } }], { now: NOW, routeM: null });
+    expect(field.riders[0].avgWatts).toBeNull();
   });
 
   it("geeft de volgende sprint of KOM", () => {
@@ -142,20 +174,29 @@ describe("decodePlayerState", () => {
         ...int(1, 4235693),
         ...int(2, 378_223_807_762),
         ...int(6, 41_500_000),
+        ...int(9, 1_500_000),
+        ...int(10, 37),
         ...int(11, 158),
+        ...int(16, 1560),
+        ...int(24, 125_000),
         ...int(12, 312),
         ...int(29, 7381538),
         ...float(34, 236_591),
       ]),
     );
-    expect(state).toEqual({
+    expect(state).toMatchObject({
       athleteId: 4235693,
       ts: 378_223_807_762 + 1_414_016_074_400,
       power: 312,
       speedKmh: 41.5,
       eventDistanceM: 2365.91,
       eventSubgroupId: 7381538,
+      cadenceRpm: 90,
+      draft: 37,
+      elapsedS: 1560,
     });
+    expect(state?.kj).toBeCloseTo(450);
+    expect(state).not.toHaveProperty("heartrate");
   });
 
   it("geeft null zonder renner", () => {

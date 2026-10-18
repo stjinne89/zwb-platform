@@ -44,6 +44,7 @@ export const ZWBETER_WORDEN_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/racen", label: "Racen" },
   { type: "link", href: "/zwbeter-worden/core", label: "Core & mobiliteit" },
   { type: "link", href: "/zwbeter-worden/voeding", label: "Voeding" },
+  { type: "link", href: "/zwbeter-worden/materiaal", label: "Materiaal" },
   { type: "link", href: "/zwbeter-worden/doelen", label: "Doelen" },
   { type: "link", href: "/zwbeter-worden/uitgangspunten", label: "Uitgangspunten" },
   { type: "link", href: "/zwbeter-worden/protocollen", label: "Protocollen" },
@@ -93,6 +94,13 @@ export const KRACHT_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/core/kennis", label: "Kennisbank" },
 ];
 
+/** De tabs binnen Materiaal (de pijler materiaal, 2026-10-18). De pijler zelf
+ * (/zwbeter-worden/materiaal) stuurt door naar de kennisbank. */
+export const MATERIAAL_SECTIONS: NavLeaf[] = [
+  { type: "link", href: "/zwbeter-worden/materiaal/kennis", label: "Kennisbank" },
+  { type: "link", href: "/zwbeter-worden/materiaal/rekenaar", label: "Rekenaar" },
+];
+
 export const NAV_GROUPS: NavNode[] = [
   { type: "link", href: "/kalender", label: "Kalender" },
   { type: "link", href: "/samen-fietsen", label: "Samen fietsen" },
@@ -132,7 +140,6 @@ export const NAV_GROUPS: NavNode[] = [
     items: [
       { type: "link", href: "/community", label: "WhatsApp-groepen" },
       { type: "link", href: "/polls", label: "Polls" },
-      { type: "link", href: "/materiaal", label: "Vraag en Aanbod" },
       { type: "link", href: "/media", label: "Media" },
       { type: "link", href: "/ritverslagen", label: "Ritverslagen" },
     ],

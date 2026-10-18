@@ -346,8 +346,8 @@ type EntrantRow = {
 };
 
 /**
- * Zwift-profielen geven het gewicht in grammen. Niet tegen een echte startlijst
- * gecontroleerd (2026-10-17); een kale kilogramwaarde nemen we ook aan.
+ * Zwift-profielen geven het gewicht in grammen (gezien in een startlijst op
+ * 2026-10-18); een kale kilogramwaarde nemen we ook aan.
  */
 function entrantWeightKg(weight: unknown): number | null {
   const value = Number(weight);
@@ -413,6 +413,10 @@ export async function fetchEntrants(subgroupIds: string[], options: { strict?: b
       if (options.strict && (!/^\d+$/.test(zwiftId) || !name)) throw new Error("Onvolledige Zwift-inschrijving.");
       if (!zwiftId || !name) continue;
       if (!byId.has(zwiftId)) {
+        // Alleen om W/kg te rekenen, zoals Zwift dat in het spel bij iedereen toont.
+        // Het gewicht zelf staat nergens. `privacy.displayWeight` staat in Zwift
+        // standaard uit (100 van 100 in een groep op 2026-10-18) en gaat over het
+        // gewicht op het profiel, niet over W/kg; daarom volgen we die niet.
         const weightKg = entrantWeightKg(row.weight);
         byId.set(zwiftId, {
           zwiftId,

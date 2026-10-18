@@ -52,7 +52,7 @@ export const COMMUNITY_PERMISSIONS = [
   {
     id: "content.create_posts",
     label: "Posts plaatsen",
-    description: "Kan Vraag en Aanbod-posts, vragen en tips plaatsen.",
+    description: "Kon Vraag en Aanbod-posts plaatsen; dat onderdeel is sinds 2026-10-18 uit de app.",
     category: "Content",
   },
   {

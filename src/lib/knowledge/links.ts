@@ -1,14 +1,14 @@
 // Links naar kennisbankartikelen in een coach-antwoord.
 //
-// De coach schrijft een verwijzing als [titel](pad). Alleen paden onder de drie
-// kennisbanken worden een link: het antwoord is modeltekst, en daarin komt ook
+// De coach schrijft een verwijzing als [titel](pad). Alleen paden onder de
+// kennisbanken (ook materiaal, sinds 2026-10-18) worden een link: het antwoord is modeltekst, en daarin komt ook
 // tekst van gebruikers terug (voorkeuren, opmerkingen bij trainingen). Een link
 // naar buiten of naar een andere pagina in de app laten we daarom als tekst staan.
 //
 // Los van lib/knowledge/coach.ts, zodat de chat in de browser dit kan gebruiken
 // zonder de kennisbanken zelf mee te laden.
 
-const KNOWLEDGE_LINK = /\[([^\]\n]{1,160})\]\((\/zwbeter-worden\/(?:voeding\/|core\/)?kennis\/[a-z0-9-]+)\)/g;
+const KNOWLEDGE_LINK = /\[([^\]\n]{1,160})\]\((\/zwbeter-worden\/(?:voeding\/|core\/|materiaal\/)?kennis\/[a-z0-9-]+)\)/g;
 
 export type BodySegment = { text: string; href?: string };
 
