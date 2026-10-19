@@ -190,6 +190,10 @@ gaat stabiliteit voor nieuwe features.
      overbelasting vóór de taper en variabel vermogen in de tijdrit.
    Samenvatting per fase bovenaan
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
+8. **Instructievideo en hulpvideo's** (ronde van 2026-10-19 hieronder). De
+   video's tonen het design "tegels"; zolang dat niet voor iedereen aanstaat,
+   wijken een paar schermen af van wat leden in het klassieke design zien.
+   Bijwerken na een appwijziging: `opname.mjs` en `bouw.mjs --publiceer`.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -10565,6 +10569,101 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — Instructievideo "Aan de slag met ZWBasis" en korte video's in /hulp
+
+**2026-10-16 tot 2026-10-19.** Commit: de commit die dit blok toevoegt. Geen
+migratie. Opgenomen op `main` van `9bb318a`.
+
+**Aanleiding.** Naast de starthelper op `/welkom` wilde de eigenaar een video
+die nieuwe leden stap voor stap wegwijs maakt, en daarna per onderdeel een
+korte video om vanuit `/hulp` naar te linken.
+
+**Wat er veranderde in de app.**
+- `public/hulp-video/`: tien clips (720×1280, zonder geluid, 12 tot 45 s, samen
+  4,9 MB): account aanmaken, de starthelper, de app op je beginscherm, wegwijs
+  in de app, je Zwift-ID, je profiel, Strava koppelen, ritten zonder Strava,
+  meldingen aanzetten en aanmelden voor een event.
+- `/hulp/beginnen` heeft een blok "Korte video's" (anker `videos`, ook in
+  `lib/help-categories.ts`) met alle tien. Daarnaast staat "Bekijk de video"
+  bij de app op je telefoon, Strava opnieuw koppelen, ritten via intervals.icu,
+  het Zwift-ID en meldingen. Lijst en duur in `HELP_VIDEOS` in
+  `hulp/_data.ts`, de links in `hulp/_sections/help-video.tsx`. Een gewone link
+  naar het mp4-bestand: op de telefoon opent de eigen videospeler.
+- `src/middleware.ts`: `mp4` staat bij de uitzonderingen van de matcher, net als
+  de afbeeldingen. Een videospeler haalt een bestand in stukken op, en anders
+  vroeg elk stuk de sessie en het profiel op. Gevolg: de clips zijn ook zonder
+  inloggen te openen; ze tonen alleen demodata.
+
+**Hoe de video's gemaakt worden.** Alles in `scripts/instructievideo/`:
+- `scenes.mjs`: vijftien scènes met per scène de tekst (de ondertitel) en wat
+  er in beeld gebeurt, plus `CLIPS`: welke scènes samen een hulpclip vormen.
+  Welkom en de afsluiting staan alleen in de hele video.
+- `mock-supabase.mjs` + `fixtures.mjs`: een nep-Supabase (PostgREST en Auth) met
+  verzonnen leden en events, alleen op `127.0.0.1`. `serve.mjs` start die plus
+  een Next-devserver op poort 3456 die ermee praat in plaats van met productie.
+- `opname.mjs` neemt elke scène op in telefoonformaat (390×590, 2x).
+  `bouw.mjs` maakt de hele video (1080×1920, 4 min 16 s, met "Stap 3 van 15")
+  en de tien hulpclips, met ondertitels in een balk; `--publiceer` kopieert de
+  clips naar `public/hulp-video/`. Uitvoer in `out/` (niet in git).
+- Bijwerken na een wijziging in de app: `serve.mjs` starten, dan
+  `opname.mjs` en `bouw.mjs --publiceer`. Verandert een duur, dan
+  `HELP_VIDEOS` bijwerken (de duur staat in `out/hulp/clips.json`).
+
+**Waarom zo.**
+- **Een nep-Supabase in plaats van productie.** De lokale app praat met de
+  productiedatabase: een opname zou echte leden tonen (kalender, deelnemers,
+  ledenlijst) en elke klik zou echt iets wegschrijven. Een demo-account in
+  productie zou ook in de ledenlijst verschijnen. Nu staat er alleen "Sanne de
+  Vries" en acht verzonnen clubgenoten in beeld.
+- **Schermafdrukken in plaats van de video-opname van Playwright.** Bij een
+  pixeldichtheid van 2 zetten zowel de opname van Playwright als de screencast
+  van Chromium het beeld op 1x of in een hoek; een schermafdruk met `scale: 2`
+  is wel scherp en haalt rond 20 beelden per seconde (lager zolang de devserver
+  nog compileert, dus eerst opwarmen). De volledige Chromium
+  (`channel: "chromium"`) is nodig: in de afgeslankte headless-versie stond
+  "Choose Files" bij het importveld en meldden de notificaties "Geblokkeerd".
+- **In het design "tegels"** (`VIDEO.design` in `scenes.mjs`), op verzoek van
+  de eigenaar. Dat design staat nog achter het recht
+  `roles.manage_permissions`. In de nep-database krijgt de rol
+  `community_member` (wat een lid zonder rol telt) dat ene recht, zodat het
+  demolid verder een gewoon lid blijft. Wat dat recht extra toont, de designknop
+  en het beheerblok in het persoonlijke menu, verbergt de opname met CSS (niet
+  weghalen: React loopt vast als zijn elementen verdwijnen). Registratie,
+  wachtpagina en `/welkom` zien er in beide designs hetzelfde uit.
+- **In `public/` van de app** (besluit eigenaar, 2026-10-19). Afgevallen:
+  YouTube niet-openbaar (elke update met de hand uploaden) en Supabase Storage
+  (de egress zit al dicht bij de limiet, zie de Actieve volgorde).
+- **Klikken op woorden uit de tekst** (`s.at("woord")`): de tijd schaalt met de
+  plaats van het woord in de ondertitel.
+
+**Bewust niet gedaan.**
+- **Geen stem.** Een computerstem (Edge-stem Colette) is beluisterd en
+  afgewezen; daarna besloot de eigenaar ook zelf niet in te spreken: alleen
+  ondertitels (2026-10-19). De ondersteuning voor een opname per scène in
+  `audio/` is blijven staan, maar wordt niet gebruikt.
+- Geen speler in de hulppagina zelf, alleen een link: er hoeft dan niets te
+  laden tot iemand kijkt.
+- Geen clips voor trainen, live GPS en Mijn garage; die stonden als vervolg in
+  het eerste voorstel.
+- De nep-Supabase speelt alleen na wat deze scènes nodig hebben: geen realtime,
+  geen opslag, ingebedde tabellen alleen eenvoudig. Een nieuwe scène kan dus
+  extra fixtures nodig hebben; onbekende tabellen worden in de console gemeld.
+
+**Let op.** De video's tonen het design "tegels". Zolang dat niet voor iedereen
+aanstaat, zien leden in het klassieke design op een aantal schermen iets anders
+dan in de video (tabs onderin in plaats van het menu rechtsboven, Vandaag in
+plaats van het dashboard). Een paar ondertitels beginnen met "Daarna", omdat ze
+uit de doorlopende video komen.
+
+**Niet geverifieerd.** Lokaal: alle scènes opnieuw opgenomen op `9bb318a`, de
+video's beeld voor beeld nagekeken, en in de demo-app gecontroleerd dat
+`/hulp#videos` naar `/hulp/beginnen#videos` gaat, dat er elf videolinks op
+Beginnen staan en dat een clip met de juiste duur laadt (206 op een
+range-verzoek, zonder omweg via de proxy). Lint, typecheck en build schoon; de
+unit-tests op drie na, en die drie falen los van deze ronde (twee time-outs die
+los wel slagen, en `omnium-live.test.ts` mist `.env.local` in de worktree). Niet
+op een echte telefoon of op Netlify bekeken.
 
 ### Gebouwd — voorZpWelBokaal: wedkantoor voor het veldrijden
 

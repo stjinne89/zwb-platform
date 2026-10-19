@@ -8,6 +8,7 @@ import {
   START_STEPS,
   OVERVIEW,
 } from "../_data";
+import { HelpVideoLink, HelpVideoList } from "./help-video";
 
 export function BeginnenHelp() {
   return (
@@ -26,6 +27,10 @@ export function BeginnenHelp() {
             <p className="mt-1 text-sm text-muted-foreground">{step.text}</p>
           </Link>
         ))}
+      </section>
+
+      <section id="videos" className="scroll-mt-20 rounded-lg border bg-card/90 p-5">
+        <HelpVideoList />
       </section>
 
       <section className="rounded-lg border bg-card/90 p-5">
@@ -101,6 +106,7 @@ export function BeginnenHelp() {
             </ol>
           </article>
         </div>
+        <HelpVideoLink video="app-op-beginscherm" className="mt-4" />
       </section>
 
       <section className="space-y-3">

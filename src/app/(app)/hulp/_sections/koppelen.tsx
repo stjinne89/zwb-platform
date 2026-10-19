@@ -14,6 +14,7 @@ import {
   INTERVALS_RIDE_STEPS,
   INTERVALS_RIDE_NOTES,
 } from "../_data";
+import { HelpVideoLink } from "./help-video";
 
 export function KoppelenHelp() {
   return (
@@ -47,6 +48,7 @@ export function KoppelenHelp() {
           </li>
         </ol>
         <ConnectWithStrava reconnect className="mt-4" />
+        <HelpVideoLink video="strava-koppelen" className="mt-4 flex w-fit" />
       </section>
 
       <section
@@ -97,6 +99,7 @@ export function KoppelenHelp() {
           intervals.icu Settings
           <ExternalLink className="size-3.5" />
         </a>
+        <HelpVideoLink video="zonder-strava" className="mt-3 flex w-fit" />
       </section>
 
       <section
@@ -288,6 +291,7 @@ export function KoppelenHelp() {
               z=. Met dit ene nummer werken ZwiftPower en ZwiftRacing.app
               allebei.
             </p>
+            <HelpVideoLink video="zwift-id" className="mt-3" />
           </article>
 
           <article

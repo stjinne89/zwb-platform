@@ -14,6 +14,27 @@ import {
 
 // De inhoud van de hulp die als lijst op de categoriepagina's staat.
 
+/**
+ * Korte video's per onderdeel, in public/hulp-video/. Gemaakt met
+ * scripts/instructievideo (CLIPS in scenes.mjs) en met demodata, dus zonder
+ * echte leden in beeld. Komt er een clip bij of verandert een duur, dan hier
+ * bijwerken; `bouw.mjs` schrijft de duur in out/hulp/clips.json.
+ */
+export const HELP_VIDEOS = [
+  { id: "account-aanmaken", title: "Account aanmaken", seconds: 45 },
+  { id: "starthelper", title: "De starthelper", seconds: 18 },
+  { id: "app-op-beginscherm", title: "App op je beginscherm", seconds: 21 },
+  { id: "wegwijs", title: "Wegwijs in de app", seconds: 29 },
+  { id: "zwift-id", title: "Je Zwift-ID", seconds: 20 },
+  { id: "profiel", title: "Je profiel", seconds: 27 },
+  { id: "strava-koppelen", title: "Strava koppelen", seconds: 17 },
+  { id: "zonder-strava", title: "Ritten zonder Strava", seconds: 17 },
+  { id: "meldingen", title: "Meldingen aanzetten", seconds: 16 },
+  { id: "aanmelden-event", title: "Aanmelden voor een event", seconds: 12 },
+] as const;
+
+export type HelpVideoId = (typeof HELP_VIDEOS)[number]["id"];
+
 export const START_STEPS = [
   {
     title: "Maak je profiel compleet",
