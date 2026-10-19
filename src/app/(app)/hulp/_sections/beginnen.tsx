@@ -34,9 +34,9 @@ export function BeginnenHelp() {
           <div>
             <h2 className="font-semibold">Net begonnen of werkt iets niet meer?</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Loop de welkomstrondleiding opnieuw door — die loodst je stap voor
-              stap door je profiel, de Strava-/intervals-koppeling en meldingen.
-              Handig als iets niet meer werkt zoals vlak na de eerste installatie.
+              Loop de welkomstrondleiding opnieuw door. Die neemt je stap voor
+              stap mee langs je profiel, de Strava-/intervals-koppeling en
+              meldingen.
             </p>
             <Link
               href="/welkom"

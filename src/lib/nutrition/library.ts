@@ -1002,7 +1002,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     evidence: "sterk",
     title: "Genoeg eten: energiebeschikbaarheid en REDs",
     summary:
-      "Structureel te weinig eten voor je training schaadt je gezondheid én je prestatie. Wielrenners lopen extra risico door de focus op een laag gewicht.",
+      "Structureel te weinig eten voor je training schaadt je gezondheid én je prestatie. Wielrenners lopen extra risico door de nadruk op een laag gewicht.",
     points: [
       "Bij REDs (Relative Energy Deficiency in Sport) houdt je lichaam na de training te weinig energie over voor gewone functies.",
       "Gevolgen kunnen zijn: minder sterke botten, hormonale verstoringen, vaker ziek, slechter herstel en lagere prestaties. Dat geldt voor vrouwen én mannen.",
@@ -1032,7 +1032,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     evidence: "matig",
     title: "Vrouwen en voeding",
     summary:
-      "Voor vrouwelijke renners verdienen ijzer en genoeg energie extra aandacht. Algemene voedingsregels per cyclusfase zijn niet te onderbouwen.",
+      "Let als vrouwelijke renner extra op ijzer en op genoeg eten. Algemene voedingsregels per cyclusfase zijn niet te onderbouwen.",
     points: [
       "IJzertekort komt bij vrouwelijke duursporters vaker voor; laat bij klachten je bloed prikken.",
       "Een onregelmatige of uitblijvende menstruatie kan wijzen op te weinig energie. Ga daarmee naar een arts.",
