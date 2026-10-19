@@ -138,7 +138,7 @@ export default async function WelkomPage() {
           .from("live_tracker_tokens")
           .select("id")
           .eq("profile_id", user.id)
-          .eq("provider", "owntracks")
+          .in("provider", ["mail", "wahoo_link"])
           .is("revoked_at", null)
           .limit(1)
           .maybeSingle(),
@@ -259,9 +259,9 @@ export default async function WelkomPage() {
     },
     {
       title: "Live GPS voorbereiden",
-      text: "Maak een OwnTracks-koppellink voor buitenritten. Per rit kies je zelf of je live zichtbaar bent.",
+      text: "Koppel je Garmin of Wahoo. Bij een buitenrit sta je dan vanzelf op de kaart.",
       href: "/live",
-      action: trackerToken ? "Live openen" : "OwnTracks koppelen",
+      action: trackerToken ? "Live openen" : "Garmin of Wahoo koppelen",
       status: trackerToken ? "done" : canUseIntegrations ? "current" : "upcoming",
       icon: MapPinned,
     },

@@ -5,20 +5,15 @@ import { inboundDomain } from "@/lib/live/inbound-mail";
 import { telegramConfig } from "@/lib/telegram/bot";
 import { PageHeader } from "@/components/app-ui";
 import { LiveBoard } from "./_components/live-board";
-import {
-  OwnTracksPanel,
-  type OwnTracksTokenStatus,
-} from "./_components/owntracks-panel";
 import { LiveTrackPanel } from "./_components/livetrack-panel";
 import { StopLiveButton } from "./_components/stop-button";
 import { TelegramPanel } from "./_components/telegram-panel";
-import type { ActiveSession, RiderStats } from "./types";
+import type { ActiveSession, RiderStats, TrackerTokenStatus } from "./types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const SOURCE_LABELS: Partial<Record<ActiveSession["source"], string>> = {
-  owntracks: "OwnTracks",
   garmin: "Garmin",
   wahoo: "Wahoo",
 };
@@ -93,7 +88,6 @@ export default async function LivePage() {
   const [
     { data: sessionRows },
     { data: positionRows },
-    { data: trackerTokens },
     { data: mailTokens },
     { data: wahooTokens },
     { data: ownProfile },
@@ -112,13 +106,6 @@ export default async function LivePage() {
       .select("session_id, profile_id, lat, lng, recorded_at")
       .order("recorded_at", { ascending: false })
       .limit(500),
-    supabase
-      .from("live_tracker_tokens")
-      .select("id, enabled, last_seen_at, revoked_at, created_at")
-      .eq("profile_id", user.id)
-      .eq("provider", "owntracks")
-      .order("created_at", { ascending: false })
-      .limit(1),
     supabase
       .from("live_tracker_tokens")
       .select("id, enabled, last_seen_at, revoked_at, created_at")
@@ -161,10 +148,8 @@ export default async function LivePage() {
 
   const mySession = sessions.find((s) => s.profileId === user.id) ?? null;
   const outdoorSessions = sessions.filter((s) => s.mode === "outdoor");
-  const trackerStatus =
-    ((trackerTokens?.[0] ?? null) as OwnTracksTokenStatus | null) ?? null;
-  const mailStatus = (mailTokens?.[0] ?? null) as OwnTracksTokenStatus | null;
-  const wahooStatus = (wahooTokens?.[0] ?? null) as OwnTracksTokenStatus | null;
+  const mailStatus = (mailTokens?.[0] ?? null) as TrackerTokenStatus | null;
+  const wahooStatus = (wahooTokens?.[0] ?? null) as TrackerTokenStatus | null;
   const mailPanel = (
     <LiveTrackPanel
       mailStatus={mailStatus}
@@ -209,7 +194,6 @@ export default async function LivePage() {
           )}
           {mailPanel}
           {telegramConfig() && <TelegramPanel linked={Boolean(telegramLink?.chat_id)} />}
-          <OwnTracksPanel tokenStatus={trackerStatus} />
         </div>
       </LiveBoard>
     </div>

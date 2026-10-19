@@ -227,6 +227,44 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
+> **OwnTracks verwijderd, 2026-10-19 — gebouwd; typecheck en lint schoon; unit-tests groen op `omnium-live` na (mist `.env.local` in de worktree); `next build` compileert, maar het prerenderen stopt op `/omnium` om dezelfde reden; niet in de browser bekeken; lokaal gecommit, niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/remove-owntracks-a8331c`.
+>
+> **Waarom.** Op verzoek van de eigenaar. Garmin (LiveTrack-mail) en Wahoo
+> (vaste link) dekken live volgen nu af, zonder handwerk per rit. OwnTracks
+> was omslachtig en werd niet meer gebruikt. Productie op 2026-10-19, alleen
+> gelezen: 45 OwnTracks-sessies van 11 leden ooit, de laatste op 2026-09-18,
+> nul in de laatste 30 dagen; tokens voor het laatst gezien op 2026-09-19.
+> In dezelfde 30 dagen: 19 Garmin-sessies (2 leden) en 6 Wahoo-sessies (2
+> leden).
+>
+> **Wat er weg is.** Het endpoint `/api/live/owntracks`, het OwnTracks-paneel
+> op Samen fietsen met de server actions `createOwnTracksToken` en
+> `revokeOwnTracksTokens`, de OwnTracks-sectie op `/hulp/live-volgen` (stappen,
+> tips, zoekterm, anker `#owntracks`) en de OwnTracks-regel bij
+> probleemoplossing. De stap "Live GPS voorbereiden" op `/welkom` wijst nu naar
+> Garmin of Wahoo en telt een actieve `mail`- of `wahoo_link`-koppeling als
+> gedaan. Het type `OwnTracksTokenStatus` heet nu `TrackerTokenStatus` in
+> `live/types.ts`. De privacytekst noemde OwnTracks al niet; die hoeft niet aan.
+>
+> **Bewust niet gedaan.**
+> - De database blijft zoals hij is (eigenaar): de oude sessies en posities met
+>   `source = 'owntracks'`, de 30 OwnTracks-tokens (11 nog niet ingetrokken) en
+>   de waarde `owntracks` in de checks van `live_sessions.source` en
+>   `live_tracker_tokens.provider`. Om die reden staat `owntracks` ook nog in
+>   de TypeScript-types van de sessiebron; zo'n sessie krijgt nu het label
+>   "ZWB live". Een migratie is het niet waard.
+> - Leden met OwnTracks nog op de telefoon krijgen geen bericht. Hun app krijgt
+>   nu een 404 en doet verder niets.
+>
+> **Gevolg.** Wie geen Garmin of Wahoo heeft, kan niet meer live op de kaart.
+> Komt daar vraag naar, dan is een nieuw endpoint nodig; het Connect
+> IQ-dataveld uit het onderzoek van 2026-09-28 kan niet meer op
+> `/api/live/owntracks` leunen.
+>
+> **Niet geverifieerd.** `/live`, `/welkom` en `/hulp/live-volgen` niet in de
+> browser bekeken.
+
 > **Berichten op de fietscomputer: push voor Garmin, Telegram voor Wahoo, 2026-10-19 — gebouwd; unit-tests (nieuw: `telegram-bot`, `ride-message-recipients`, `ride-messages-migration` op PGlite), typecheck en lint schoon; niet in de browser bekeken; geen echte Telegram-bot of fietscomputer gebruikt; lokaal gecommit (`1e6501c9`), niet gepusht (eigenaar, 2026-10-19). Migratie `0253_ride_messages.sql` op 2026-10-19 via de Supabase-connector op productie toegepast, op verzoek van de eigenaar; daarna nagekeken (kolommen, RLS en de twee policies aanwezig, security-advisor zonder nieuwe melding).**
 > Commit: de commit die dit blok toevoegt, op `claude/wahoo-garmin-direct-messages-598387`.
 >
@@ -2086,7 +2124,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   nu ook al voor de Kalender.
 > - Het huidige design blijft zoals het is: daar is Samen fietsen een eigen
 >   menu-item en krijgt Vandaag geen tegel.
-> - Het koppelen (Garmin, Wahoo, OwnTracks) blijft op de pagina Samen fietsen
+> - Het koppelen (Garmin, Wahoo; OwnTracks tot 2026-10-19) blijft op de pagina Samen fietsen
 >   zelf en verhuist niet naar het profiel. Via Club is die pagina nu goed te
 >   vinden.
 >
@@ -7305,7 +7343,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > **Waarom.** Op verzoek van de eigenaar. Garmin (mail) en Wahoo (vaste link)
 > starten nu vanzelf, en een handmatige indoorstatus (Zwift, MyWhoosh e.d.)
 > vond hij overbodig. Een live-sessie ontstaat nu alleen nog via OwnTracks, de
-> Garmin-mail of de Wahoo-link.
+> Garmin-mail of de Wahoo-link. (Sinds 2026-10-19 niet meer via OwnTracks: zie
+> de ronde "OwnTracks verwijderd".)
 >
 > **Wat er weg is.** `start-form.tsx`, de server actions `startSession`,
 > `updateStatus` en `heartbeat`, en de tellers "Indoor actief" en "Met
@@ -7464,6 +7503,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > spike moet uitwijzen of dat zonder headless browser lukt. Lukt het niet, dan
 > blijft "live, met link" over. Voor Garmin is er dan nog de fallback van een
 > eigen Connect IQ-dataveld dat naar het bestaande `/api/live/owntracks` post.
+> (Dat endpoint is op 2026-10-19 verwijderd; zo'n dataveld vraagt nu een eigen
+> endpoint.)
 >
 > **Bijvangst (bestaande situatie, niet aangepast):**
 > - ~~De handmatige sessie met een LiveTrack-link op `/live` sluit na 15
@@ -7481,7 +7522,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - Geen officiële partner-API's: die zijn niet live.
 > - Geen Connect IQ-dataveld als eerste stap: het dekt alleen Garmin en vraagt
 >   een eigen toolchain en store-proces.
-> - OwnTracks blijft bestaan.
+> - ~~OwnTracks blijft bestaan.~~ Op 2026-10-19 verwijderd, zie de ronde
+>   "OwnTracks verwijderd".
 >
 > **Niet geverifieerd (bij het onderzoek).** Vanuit de cloud-omgeving is geen
 > Garmin- of Wahoo-endpoint aangeroepen; de egress blokkeerde die domeinen. Bij
@@ -9906,6 +9948,10 @@ een curated col-database (`cols` + `profile_climbed_cols`, migraties
 
 ## Sub-plan: ZWB Live "Samen fietsen"
 
+Update 2026-10-19: spoor A (OwnTracks) is verwijderd; outdoor live volgen
+loopt alleen nog via spoor B, Garmin en Wahoo. Zie de ronde "OwnTracks
+verwijderd".
+
 Update 2026-05-26: spoor A is omgebouwd van PWA foreground-GPS naar
 OwnTracks background tracking. De browser-geolocation/wake-lock route is
 verwijderd; echte outdoor posities komen nu binnen via
@@ -9914,7 +9960,7 @@ indicators op eventrijen en linkt direct naar `/live/[eventId]`.
 
 | Spoor | Beschrijving | Status |
 |---|---|:---:|
-| A | Outdoor GPS-tracker via OwnTracks background tracking | ✅ |
+| A | Outdoor GPS-tracker via OwnTracks background tracking | 🗑️ verwijderd 2026-10-19 |
 | B | Externe LiveTrack aggregator (Garmin/Wahoo share-URL per rit) | ✅ gebouwd 2026-09-28 |
 | C | Indoor status-board (handmatige "Ik fiets nu"-toggle) | ⏸️ skip |
 | Bonus | Event liveticker op event-pagina's + publiek deelbaar | ✅ |
@@ -10248,7 +10294,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 - Role-permissions systeem
 - Publieke liveticker (`/live/[eventId]`) deelbaar buiten login
 - OwnTracks background live tracking (`/api/live/owntracks`) met tokenbeheer
-  op `/live`
+  op `/live` (verwijderd op 2026-10-19)
 - Live-indicator op `/kalender`-rijen met directe knop naar `/live/[eventId]`
 - OwnTracks is meermaals in echte ritten getest en werkt goed, ook zonder de
   meest batterij-intensieve stand.

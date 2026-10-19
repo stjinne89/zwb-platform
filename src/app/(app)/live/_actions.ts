@@ -30,57 +30,6 @@ function tokenHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-export async function createOwnTracksToken() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
-
-  const rawToken = `zwb_ot_${randomBytes(32).toString("base64url")}`;
-  const now = new Date().toISOString();
-
-  await supabase
-    .from("live_tracker_tokens")
-    .update({ enabled: false, revoked_at: now })
-    .eq("profile_id", user.id)
-    .eq("provider", "owntracks")
-    .is("revoked_at", null);
-
-  const { error } = await supabase.from("live_tracker_tokens").insert({
-    profile_id: user.id,
-    provider: "owntracks",
-    token_hash: tokenHash(rawToken),
-    label: "OwnTracks",
-    enabled: true,
-  });
-  if (error) return { ok: false as const, error: error.message };
-
-  revalidatePath("/live");
-  revalidatePath("/samen-fietsen");
-  return { ok: true as const, token: rawToken };
-}
-
-export async function revokeOwnTracksTokens() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Niet ingelogd." };
-
-  const { error } = await supabase
-    .from("live_tracker_tokens")
-    .update({ enabled: false, revoked_at: new Date().toISOString() })
-    .eq("profile_id", user.id)
-    .eq("provider", "owntracks")
-    .is("revoked_at", null);
-  if (error) return { ok: false as const, error: error.message };
-
-  revalidatePath("/live");
-  revalidatePath("/samen-fietsen");
-  return { ok: true as const };
-}
-
 export async function createLiveMailAddress() {
   const supabase = await createClient();
   const {

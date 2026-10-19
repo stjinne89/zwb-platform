@@ -47,7 +47,7 @@ function statTiles(stats: RiderStats) {
 
 // Kaart + riderslijst delen één client-boundary, zodat een klik op een outdoor-
 // rider de kaart naar dat lid laat vliegen. De koppelpanelen (Garmin/Wahoo,
-// OwnTracks) blijven server-side en komen via children binnen.
+// Telegram) blijven server-side en komen via children binnen.
 export function LiveBoard({
   sessions,
   outdoorSessions,

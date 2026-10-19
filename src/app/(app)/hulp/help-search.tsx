@@ -125,12 +125,6 @@ const HELP_INDEX: HelpResult[] = [
     terms: "bericht berichten melding meldingen fietscomputer garmin wahoo elemnt edge telegram bot koppelen organisator livechat hergroeperen",
   },
   {
-    title: "Live tracking instellen",
-    text: "OwnTracks, koppellink, locatie-instellingen en controlemodus.",
-    href: "/hulp/live-volgen#owntracks",
-    terms: "owntracks live gps locatie tracking samen fietsen kaart",
-  },
-  {
     title: "ZWB als app installeren",
     text: "Zet de webapp op je beginscherm op iOS of Android.",
     href: "/hulp/beginnen#webapp-installeren",
@@ -385,7 +379,7 @@ export function HelpSearch() {
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Zoek op Strava, badges, OwnTracks..."
+          placeholder="Zoek op Strava, badges, Garmin..."
           className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>

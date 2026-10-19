@@ -11,7 +11,7 @@ import {
   saveWahooLink,
   setHeartRateSharing,
 } from "../_actions";
-import type { OwnTracksTokenStatus } from "./owntracks-panel";
+import type { TrackerTokenStatus } from "../types";
 
 function formatMoment(iso: string | null | undefined, empty: string) {
   return iso
@@ -23,7 +23,7 @@ function formatMoment(iso: string | null | undefined, empty: string) {
     : empty;
 }
 
-function isActive(status: OwnTracksTokenStatus | null) {
+function isActive(status: TrackerTokenStatus | null) {
   return Boolean(status?.enabled && !status.revoked_at);
 }
 
@@ -40,7 +40,7 @@ function StatusTiles({ items }: { items: { label: string; value: string }[] }) {
   );
 }
 
-function GarminBlock({ status }: { status: OwnTracksTokenStatus | null }) {
+function GarminBlock({ status }: { status: TrackerTokenStatus | null }) {
   const [pending, startTransition] = useTransition();
   const [address, setAddress] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -124,7 +124,7 @@ function GarminBlock({ status }: { status: OwnTracksTokenStatus | null }) {
   );
 }
 
-function WahooBlock({ status }: { status: OwnTracksTokenStatus | null }) {
+function WahooBlock({ status }: { status: TrackerTokenStatus | null }) {
   const [pending, startTransition] = useTransition();
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -221,8 +221,8 @@ export function LiveTrackPanel({
   mailEnabled,
   sharingHeartRate,
 }: {
-  mailStatus: OwnTracksTokenStatus | null;
-  wahooStatus: OwnTracksTokenStatus | null;
+  mailStatus: TrackerTokenStatus | null;
+  wahooStatus: TrackerTokenStatus | null;
   mailEnabled: boolean;
   sharingHeartRate: boolean;
 }) {

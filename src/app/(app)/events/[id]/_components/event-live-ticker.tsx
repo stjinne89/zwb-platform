@@ -85,7 +85,6 @@ export type EventLiveSession = {
 };
 
 function sourceLabel(source: EventLiveSource) {
-  if (source === "owntracks") return "OwnTracks live";
   if (source === "garmin") return "Garmin live";
   if (source === "wahoo") return "Wahoo live";
   return "ZWB live";

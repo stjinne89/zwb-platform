@@ -272,7 +272,7 @@ export const GUIDES = [
 export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/dashboard", name: "Dashboard", text: "Je startscherm: deze week, recente clubritten, ritverslagen en nieuws. Hier koppel en synchroniseer je ook je ritten, of importeer je ze (CSV/GPX)." },
   { href: "/kalender", name: "Kalender", text: "Alle events: groepsritten, ZRL, Ladder en socials. RSVP met Ja of Misschien, en filter met Voor mij op wat bij je past, of per label op soort event of programma." },
-  { href: "/samen-fietsen", name: "Samen fietsen", text: "Live kaart van wie er nu rijdt, met livechat. Tracking stel je in via je Garmin of Wahoo, of via OwnTracks." },
+  { href: "/samen-fietsen", name: "Samen fietsen", text: "Live kaart van wie er nu rijdt, met livechat. Tracking stel je in via je Garmin of Wahoo." },
   { href: "/teams", name: "Teams", text: "Teams, rosters en ZRL-/Ladder-standen, inclusief de TTT-planner." },
   { href: "/src", name: "Sunday Race Club", text: "Je SRC-team per maand en per zondag wie er kan, per categorie." },
   { href: "/leden", name: "Leden", text: "Ledenlijst met categorie en badges; filter op regio of categorie." },
@@ -333,46 +333,6 @@ export const RIDE_MESSAGE_NOTES = [
   "Berichten zijn één regel van hoogstens 160 tekens.",
   "Hangt er ook een smartwatch aan je telefoon, dan krijgt de ELEMNT de melding soms niet.",
   "Stoppen kan met Ontkoppelen op Samen fietsen, of met /stop in Telegram. Het vinkje op je profiel zet beide kanalen uit.",
-];
-
-export const OWNTRACKS_STEPS = [
-  {
-    title: "Installeer OwnTracks",
-    text: "Download de gratis OwnTracks-app (iOS App Store of Google Play). Andere apps werken niet.",
-  },
-  {
-    title: "Maak je koppellink",
-    text: "Ga naar Samen fietsen → OwnTracks koppelen. Je ziet één keer een persoonlijke URL. Kopieer die meteen.",
-  },
-  {
-    title: "Zet OwnTracks op HTTP-modus",
-    text: "iPhone: tik op de kaart linksboven op het i-icoon → tandwiel/Instellingen → Mode = Private HTTP. Android: instellingen (tandwiel) → Connection → Mode = Private HTTP. Plak je koppellink in het veld URL.",
-  },
-  {
-    title: "Locatie op 'Altijd toestaan'",
-    text: "Geef de app locatietoegang 'Altijd' (niet 'Bij gebruik') én zet nauwkeurige/precieze locatie aan. Zonder 'Altijd' stopt het tracken zodra je scherm uit gaat.",
-  },
-  {
-    title: "Kies de actieve modus tijdens je rit",
-    text: "De modusbalk staat bovenin het Kaart-scherm. iPhone: kies 'Actie' voor een strak spoor. Die meet vaak en nauwkeurig, maar kost meer accu. 'Significant' (Android: 'Grootte wijzigingen') werkt ook en is aanbevolen voor lager batterijgebruik, maar geeft een minder nauwkeurig spoor. 'Handmatig' en 'Rustig'/'Stop' publiceren geen locaties en geven gaten op de kaart.",
-  },
-  {
-    title: "Rijden en verschijnen",
-    text: "Open OwnTracks aan het begin van je rit. Op Samen fietsen verschijn je vanzelf. Met RSVP Ja of Misschien op een event sta je die dag ook op de eventkaart.",
-  },
-  {
-    title: "Stoppen",
-    text: "Klaar? Zet de modus terug op iPhone 'Significant' (of 'Rustig'), Android 'Grootte wijzigingen' (of 'Stop'), of stop de koppeling op Samen fietsen. Na 15 min zonder positie verdwijn je sowieso automatisch.",
-  },
-];
-
-export const OWNTRACKS_QUALITY_TIPS = [
-  "Zet batterijbesparing of -optimalisatie uit voor OwnTracks. Die schorst de app, en dan krijg je gaten in je spoor.",
-  "Sluit OwnTracks niet af (niet 'wegvegen'); laat 'm op de achtergrond draaien tijdens de rit.",
-  "iPhone: zet Achtergrond-appvernieuwing aan en 'Precieze locatie' aan voor OwnTracks.",
-  "Android: sta 'onbeperkt' accugebruik toe voor OwnTracks en zet 'verwijder app bij niet-gebruik' uit.",
-  "Goede mobiele dekking helpt. In een tunnel of dekkinggat kan het bolletje even stilstaan; de kaart herstelt zich zodra er weer data binnenkomt.",
-  "Eén nieuwe koppellink maken vervangt de oude meteen; gebruik dat als je tracker gestolen/kwijt is.",
 ];
 
 export const WAHOO_STEPS = [
@@ -623,8 +583,7 @@ export const TROUBLESHOOTING = [
   "Strava meldt ontbrekend activiteitenrecht? Koppel opnieuw via Profiel of het dashboard en zet het activiteitenvinkje aan.",
   "Verschijn je niet live met je Garmin? Check of Samen fietsen een laatste mail toont. Staat daar niets, kijk dan in Garmin Connect bij LiveTrack → Sessiedetails of je adres als ontvanger staat, en of Automatisch starten aan staat.",
   "Verschijn je niet live met je Wahoo? Open je Wahoo-link zelf: staat je rit daar niet, dan heeft de ELEMNT-app geen verbinding. Anders verschijn je binnen een paar minuten nadat iemand Samen fietsen opent.",
-  "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', en de modus actief (iPhone 'Actie', Android 'Beweging').",
-  "Bolletje staat stil of viel weg? Meestal een dekkinggat, of de app werd geschorst. De kaart pakt het vanzelf weer op; kijk ook of batterijoptimalisatie uit staat.",
+  "Bolletje staat stil of viel weg? Meestal een dekkinggat. De kaart pakt het vanzelf weer op.",
   "Geen trainingen in beeld? Controleer je intervals.icu API-key.",
   "Geen fietsen onder Mijn fietsen of Mijn garage? Koppel je fiets in Strava aan je ritten en draai daarna een Strava-sync.",
   "Mis je rechten? Vraag bestuur of communitybeheer om je rol te controleren.",
