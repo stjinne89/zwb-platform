@@ -299,8 +299,16 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > is een andere site (Apache), niet de app, en Telegram volgt geen
 > doorverwijzingen.
 >
-> **Niet geverifieerd.** Een ZWB-push op een Garmin Edge, koppelen via Samen
-> fietsen (de webhook zelf antwoordt wel) en een bericht uit de app zelf. Of een ZWB-push op Android via Garmin Connect doorkomt, hangt af
+> **Van begin tot eind getest (2026-10-19, na de deploy).** De eigenaar koppelde
+> via Samen fietsen; `telegram_links` toonde daarna een chat-id (14:32 UTC), dus
+> de webhook werkt. Daarna draaide de echte `deliverRideMessage` één keer tegen
+> productie met alleen de eigenaar als ontvanger: "Bereikt: 1 lid", en het
+> bericht stond op de BOLT 2. De push werd daarbij overgeslagen (VAPID-sleutels
+> staan alleen in Netlify).
+>
+> **Niet geverifieerd.** Een ZWB-push op een Garmin Edge, en de knoppen in de app
+> zelf (vinkje in de eventchat, berichtknop op Samen fietsen): daarvoor is een
+> tweede lid nodig, want een bericht aan jezelf kan bewust niet. Of een ZWB-push op Android via Garmin Connect doorkomt, hangt af
 > van welke app de melding toont (browser of geïnstalleerde ZWB-app). Migratie
 > op PGlite getest en op productie toegepast; het gedrag van de app met de
 > migratie is niet getest. De schermen niet in de browser
