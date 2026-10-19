@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import polyline from "@mapbox/polyline";
-import { looksLikeFit, parseFit } from "@/lib/strava/fit";
-import { stravaActivityFromFit } from "@/lib/strava/import";
+import { looksLikeFit, normalizedPower, parseFit } from "@/lib/strava/fit";
+import { effortRawFields, stravaActivityFromFit } from "@/lib/strava/import";
 import { planRideImport } from "@/lib/strava/import-merge";
 import { isZwiftRide, zwiftBlocksForRide } from "@/lib/zwblokken/zwift";
 
@@ -69,7 +69,6 @@ function record(iso: string, lat: number | null, lon: number | null, distanceM: 
       { num: 1, size: 4, value: lon === null ? 0x7fffffff : semicircles(lon), signed: true },
       { num: 5, size: 4, value: distanceM * 100 },
       { num: 2, size: 2, value: (altitudeM + 500) * 5 },
-      // Vermogen: een veld dat de lezer moet overslaan.
       { num: 7, size: 2, value: 250 },
     ],
   };
@@ -307,6 +306,113 @@ describe("stravaActivityFromFit", () => {
   });
 });
 
+/** Een record per seconde met vermogen, hartslag en cadans. */
+function effortRecord(second: number, watts: number, heartRate: number, cadence: number): Message {
+  const iso = new Date(Date.parse("2026-05-01T18:00:00Z") + second * 1000).toISOString();
+  return {
+    global: 20,
+    fields: [
+      { num: 253, size: 4, value: fitTime(iso) },
+      { num: 0, size: 4, value: semicircles(-11.6366 - second * 0.0001), signed: true },
+      { num: 1, size: 4, value: semicircles(166.9726), signed: true },
+      { num: 5, size: 4, value: second * 1000 },
+      { num: 7, size: 2, value: watts },
+      { num: 3, size: 1, value: heartRate },
+      { num: 4, size: 1, value: cadence },
+    ],
+  };
+}
+
+describe("vermogen uit een FIT-bestand", () => {
+  it("rekent vermogen, hartslag en cadans uit de records", () => {
+    // Twee minuten: eerst 100 W, dan 300 W. Eén seconde freewheelen telt niet mee in de cadans.
+    const records = Array.from({ length: 120 }, (_, s) =>
+      effortRecord(s, s < 60 ? 100 : 300, s < 60 ? 120 : 160, s === 10 ? 0 : 90),
+    );
+    const fit = parseFit(buildFit([fileId(260), ...records]));
+    expect(fit!.effort.averageWatts).toBe(200);
+    expect(fit!.effort.maxWatts).toBe(300);
+    // NP ligt boven het gemiddelde: de harde minuut weegt zwaarder.
+    expect(fit!.effort.normalizedWatts).toBeGreaterThan(200);
+    expect(fit!.effort.normalizedWatts).toBeLessThan(300);
+    expect(fit!.effort.averageHr).toBe(140);
+    expect(fit!.effort.maxHr).toBe(160);
+    expect(fit!.effort.averageCadence).toBe(90);
+    expect(fit!.effort.kilojoules).toBe(24);
+  });
+
+  it("neemt de waarden van de sessie als die er zijn", () => {
+    const records = Array.from({ length: 60 }, (_, s) => effortRecord(s, 200, 150, 90));
+    const sessionWithPower: Message = {
+      global: 18,
+      fields: [
+        { num: 2, size: 4, value: fitTime("2026-05-01T18:00:00Z") },
+        { num: 5, size: 1, value: 2 },
+        { num: 6, size: 1, value: 58 },
+        { num: 8, size: 4, value: 60 * 1000 },
+        { num: 20, size: 2, value: 210 },
+        { num: 21, size: 2, value: 640 },
+        { num: 34, size: 2, value: 233 },
+        { num: 48, size: 4, value: 12_600 },
+      ],
+    };
+    const fit = parseFit(buildFit([fileId(260), ...records, sessionWithPower]));
+    expect(fit!.effort).toMatchObject({
+      averageWatts: 210,
+      maxWatts: 640,
+      normalizedWatts: 233,
+      kilojoules: 13,
+      // Niet in de sessie, dus uit de records.
+      averageHr: 150,
+    });
+  });
+
+  it("geeft de rit vermogen met de veldnamen van Strava", () => {
+    const result = stravaActivityFromFit(zwiftRide, profileId);
+    if (!result.ok) throw new Error(result.error);
+    expect(result.row.raw).toMatchObject({
+      average_watts: 250,
+      device_watts: true,
+      max_watts: 250,
+      kilojoules: 875,
+    });
+    // Vier metingen zijn te weinig voor een NP.
+    expect(result.row.raw.weighted_average_watts).toBeUndefined();
+  });
+
+  it("geeft geen vermogen bij een bestand zonder vermogensmeter", () => {
+    const fit = parseFit(
+      buildFit([
+        fileId(1),
+        { global: 20, fields: [{ num: 253, size: 4, value: fitTime("2025-06-01T08:00:00Z") }, { num: 0, size: 4, value: semicircles(50.85), signed: true }, { num: 1, size: 4, value: semicircles(4.35), signed: true }] },
+      ]),
+    );
+    expect(fit!.effort.averageWatts).toBeNull();
+    expect(effortRawFields(fit!.effort)).toEqual({});
+  });
+});
+
+describe("normalizedPower", () => {
+  const steady = (seconds: number, watts: number, startSecond = 0) =>
+    Array.from({ length: seconds }, (_, s) => ({ timeMs: (startSecond + s) * 1000, watts }));
+
+  it("is bij een vlak vermogen gelijk aan dat vermogen", () => {
+    expect(normalizedPower(steady(600, 220))).toBe(220);
+  });
+
+  it("vult een kort gat op en slaat een pauze over", () => {
+    // Om de 5 s een meting: het gat wordt opgevuld, dus genoeg voor een NP.
+    const sparse = Array.from({ length: 20 }, (_, i) => ({ timeMs: i * 5000, watts: 180 }));
+    expect(normalizedPower(sparse)).toBe(180);
+    // Tien minuten pauze tussen twee blokken: die tellen niet als 0 W mee.
+    expect(normalizedPower([...steady(300, 200), ...steady(300, 200, 900)])).toBe(200);
+  });
+
+  it("geeft null bij minder dan 30 seconden", () => {
+    expect(normalizedPower(steady(20, 300))).toBeNull();
+  });
+});
+
 describe("FIT bij een rit uit activities.csv", () => {
   it("vult het spoor aan en geeft het Zwift-toestel mee", () => {
     const result = stravaActivityFromFit(zwiftRide, profileId);
@@ -329,5 +435,33 @@ describe("FIT bij een rit uit activities.csv", () => {
     expect(plan.attach[0].deviceName).toBe("Zwift");
     // Een hernoemde Zwift-rit: de naam verraadt hem niet, het toestel wel.
     expect(isZwiftRide({ name: "Dinsdagtraining", deviceName: plan.attach[0].deviceName })).toBe(true);
+  });
+
+  // Jeroen Janssen, oktober 2026: activities.csv heeft geen vermogen. De
+  // FIT-bestanden uit dezelfde export wel.
+  it("vult vermogen aan bij een CSV-rit die al spoor en tijd heeft", () => {
+    const result = stravaActivityFromFit(zwiftRide, profileId);
+    if (!result.ok) throw new Error(result.error);
+    const csvRide = {
+      id: 9001,
+      start_date: "2026-09-29T18:01:15.000Z",
+      distance_m: 40_187,
+      import_source: "strava_csv",
+      has_track: true,
+      moving_time_seconds: 3500,
+      total_elevation_gain_m: 420,
+    };
+    const plan = planRideImport([result.row], [{ ...csvRide, has_power: false }]);
+    expect(plan.attach).toEqual([
+      {
+        id: 9001,
+        deviceName: "Zwift",
+        effort: { average_watts: 250, device_watts: true, max_watts: 250, kilojoules: 875 },
+      },
+    ]);
+
+    // Opnieuw uploaden na het aanvullen: niets meer te doen.
+    const again = planRideImport([result.row], [{ ...csvRide, has_power: true }]);
+    expect(again).toEqual({ upsert: [], attach: [], duplicates: 1 });
   });
 });

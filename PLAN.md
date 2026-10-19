@@ -338,7 +338,49 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   in `_actions.ts` is niet lokaal tegen de database getest. Jeroen moet de vier
 >   bestanden opnieuw uploaden. Een weekoverzicht dat al bestaat, past zich daar
 >   niet op aan: `weekly_reviews.summary` wordt alleen opnieuw opgebouwd bij een
->   andere `SUMMARY_VERSION` (`service.ts`).
+>   andere `SUMMARY_VERSION` (`service.ts`). *Gecontroleerd na het pushen:* Jeroen
+>   uploadde de bestanden opnieuw; de vier ritten hebben nu tijd en hoogtemeters.
+>
+>   *Vermogen bij ritten uit activities.csv (2026-10-19, wens eigenaar).* Na de
+>   import zag Jeroen bij al zijn ritten "-" voor vermogen, NP, IF en TSS.
+>   Er was niets weg: activities.csv heeft geen vermogen, en de import nam het
+>   ook nooit over. Vermogen kwam alleen via intervals.icu, en ritten die via
+>   Strava in intervals.icu komen, geeft de API niet door (154 lege regels met
+>   "STRAVA activities are not available via the API", vanaf maart 2026).
+>   Sinds 18 oktober heeft Jeroen Zwift rechtstreeks aan intervals.icu
+>   gekoppeld; die 14 Zwift-ritten (1–18 oktober) hebben vermogen, maar
+>   `dedupeRides` sloeg ze over omdat de CSV-rit er al stond. Twee wijzigingen:
+>   - *Intervals-rit met vermogen vervangt een eigen upload zonder vermogen.*
+>     `importRidesToReplace` (`intervals/rides.ts`) wijst per binnenkomende rit
+>     met vermogen de CSV-, GPX- of FIT-rit zonder vermogen aan die dezelfde rit
+>     is. De sync slaat de intervals-rit op en verwijdert daarna de upload;
+>     `carryOverFromImport` neemt het spoor (als de intervals-rit er geen heeft)
+>     en `gps_segment_times`/`gps_col_times` mee. De verwijderde id's gaan als
+>     `removedActivityIds` naar het nawerk, zodat een gekoppelde training
+>     vrijkomt en aan de vervanger wordt gehangen. Een upload die al vermogen
+>     heeft, blijft staan. Dit verandert de oude test "laat een importrit staan":
+>     een GPX zonder vermogen maakt nu plaats.
+>   - *Vermogen uit FIT-bestanden.* De FIT-lezer (`fit.ts`) leest nu vermogen,
+>     hartslag en cadans uit de records (velden 7, 3, 4) en uit de sessie
+>     (gemiddeld en max vermogen, NP, arbeid, hartslag, cadans). Wat de sessie
+>     niet zegt, wordt uit de records gerekend; NP met `normalizedPower` (30 s
+>     voortschrijdend, korte gaten tot 10 s opgevuld, pauzes overgeslagen).
+>     `effortRawFields` zet het in `raw` met de Strava-namen (`average_watts`,
+>     `weighted_average_watts`, `device_watts` …), zodat `rideMetricsFromStrava`
+>     er IF en TSS uit rekent. Een FIT bij een CSV-rit zonder vermogen vult dat
+>     vermogen aan (`planRideImport`), ook als spoor en tijd er al zijn.
+>
+>   Unit-tests in `intervals-rides`, `intervals-ride-sync`, `strava-fit-import`
+>   en `strava-import`. Niet getest tegen een echt FIT-bestand van Zwift of
+>   Garmin en niet tegen de database: de veldnummers volgen het FIT-profiel.
+>   Voor Jeroen: de 14 Zwift-ritten van oktober wisselt de uurlijkse
+>   intervals-sync na de deploy vanzelf om. De 136 ritten van maart t/m
+>   september hebben allemaal een `.fit.gz` in zijn export; die vult hij aan door
+>   de map `activities` uit dezelfde export te uploaden.
+>   **Niet gebouwd:** vermogen uit GPX-extensies (zijn export bevat alleen FIT
+>   voor die ritten), en een FIT zonder GPS-spoor bij een CSV-rit (wordt nog
+>   steeds overgeslagen; bij Jeroen zijn alle ritten vanaf maart Zwift-ritten met
+>   spoor).
 > - *Altijd de 5 minuten op het vermogensscherm.* Zonder jaarrecord koos het
 >   scherm vast de 5 minuten, een willekeurige keuze. Nu kiest `buildPower` de
 >   duur die het dichtst bij het jaarbeste kwam (`focus`, met het percentage);

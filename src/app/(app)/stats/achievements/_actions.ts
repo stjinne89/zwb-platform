@@ -241,6 +241,8 @@ type ExistingRideRow = {
   track?: string | null;
   moving_time_seconds?: number | null;
   total_elevation_gain_m?: number | string | null;
+  average_watts?: string | null;
+  device_watts?: string | null;
 };
 
 const EXISTING_PAGE = 1000;
@@ -386,7 +388,7 @@ async function importOneFile(
       const from = new Date(Math.min(...times) - 86400_000).toISOString();
       const to = new Date(Math.max(...times) + 86400_000).toISOString();
       const columns = withTracks
-        ? "id, start_date, distance_m, moving_time_seconds, total_elevation_gain_m, import_source:raw->>import_source, track:raw->map->>summary_polyline"
+        ? "id, start_date, distance_m, moving_time_seconds, total_elevation_gain_m, import_source:raw->>import_source, track:raw->map->>summary_polyline, average_watts:raw->>average_watts, device_watts:raw->>device_watts"
         : "id, start_date, distance_m, import_source:raw->>import_source";
       for (let offset = 0; ; offset += EXISTING_PAGE) {
         const { data, error } = await supabase
@@ -408,6 +410,9 @@ async function importOneFile(
             has_track: Boolean(ride.track),
             moving_time_seconds: ride.moving_time_seconds,
             total_elevation_gain_m: ride.total_elevation_gain_m,
+            ...(withTracks
+              ? { has_power: ride.device_watts === "true" && Number(ride.average_watts) > 0 }
+              : {}),
           })),
         );
         if (page.length < EXISTING_PAGE) break;
@@ -426,7 +431,7 @@ async function importOneFile(
 
     // Een GPX of FIT bij een rit uit activities.csv: het spoor erbij, en die rit
     // opnieuw door ZWBlokken (die werken incrementeel op blocks_processed_at).
-    // Had de CSV geen tijd of hoogtemeters, dan komen die uit het bestand.
+    // Had de CSV geen tijd, hoogtemeters of vermogen, dan komen die uit het bestand.
     for (const attachment of plan.attach) {
       const { data: current, error: readError } = await supabase
         .from("strava_activities")
@@ -448,6 +453,7 @@ async function importOneFile(
             ...(attachment.deviceName && !raw.device_name
               ? { device_name: attachment.deviceName }
               : {}),
+            ...(attachment.effort ?? {}),
           },
           ...(attachment.summaryPolyline
             ? { blocks_processed_at: null, zwift_blocks_processed_at: null }
