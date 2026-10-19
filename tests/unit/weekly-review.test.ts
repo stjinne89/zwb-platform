@@ -259,6 +259,9 @@ describe("coachtekst", () => {
       "De belasting schoot omhoog. Dus de frisheid was niet top. **Bdev pakt winst**, mooi. Rijd rustig in 3-4 dagen",
     );
     expect(cleanAiText("Klaar!!")).toBe("Klaar.");
+    expect(cleanAiText("Je bent moe. Kortom, rust dinsdag.")).toBe("Je bent moe. Rust dinsdag.");
+    // Zonder komma blijft het staan: zonder "Daarnaast" wordt het een vraag.
+    expect(cleanAiText("Daarnaast heb je twee keer gereden.")).toBe("Daarnaast heb je twee keer gereden.");
   });
 
   it("vindt inhoud zodra er één onderdeel is", () => {

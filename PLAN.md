@@ -345,6 +345,25 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > blijkt pas bij de eerste overzichten na een deploy. Nog niet toegepast op de
 > coachchat (`COACH_SYSTEM_PROMPT`); dat kan met dezelfde module.
 >
+> *Aanvulling, op verzoek van de eigenaar:* `HUMAN_WRITING_RULES` volgt nu de
+> regels van de Claude-skill avoid-ai-writing (Conor Bronsdon, MIT-licentie,
+> `references/patterns.md`), vertaald naar het Nederlands. Overgenomen:
+> - **Tekens:** geen gedachtestreepjes, hooguit één stuk vet.
+> - **Woorden:** AI-woorden met Nederlandse tegenhangers (cruciaal, naadloos,
+>   landschap, mijlpaal, …), versterkers zonder inhoud, "fungeert als" in plaats
+>   van "is", opvulovergangen.
+> - **Zinnen:** geen "niet X maar Y", geen rijtjes van drie, geen reeks
+>   gelijkvormige zinnetjes, geen gelijk zinsbegin, geen retorische vragen,
+>   geen gestapeld voorbehoud.
+> - **Inhoud:** geen opgeblazen betekenis, geen aankondigingen, geen algemene
+>   afsluiter, geen chatbotzinnen, geen vage bronnen.
+>
+> Weggelaten: de Engelse woordenlijst (delve, tapestry), en kopjes, hashtags en
+> opsommingen. Die komen in drie zinnen Nederlands niet voor. `cleanAiText` haalt
+> ook "Kortom,", "Bovendien," en vergelijkbare woorden weg, maar alleen met een
+> komma erachter. Zonder komma niet: "Daarnaast heb je…" zonder "Daarnaast" wordt
+> een vraag.
+>
 > **Vaste plek op het dashboard (2026-10-18, wens eigenaar).** Zonder ingang
 > vond een lid het overzicht na het wegklikken niet terug. De eigenaar koos het
 > dashboard boven de ZWBeter-navigatie, en wilde dat het er de hele week staat.
