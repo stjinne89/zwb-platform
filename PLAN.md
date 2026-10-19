@@ -10474,6 +10474,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Onderzocht — ZWBgame als tactiekspel: Zwift-racetactiek en bouwvoorstel
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
+code. Niet gepusht.
+
+**Aanleiding.** De eigenaar wil van ZWBgame meer een tactisch spel maken dat
+Zwift-tactiek leert, en vroeg om een grondig onderzoek naar Zwift-racetactiek en
+hoe die in de game past.
+
+**Uitkomst.** Zie [zwbgame-tactiek.md](docs/zwbgame-tactiek.md): een catalogus
+van ruim vijftig tactieken (start, wiel, terrein, aanvallen, achtervolgen,
+powerups, finale, ploeg, formats, koers lezen), per stuk afgezet tegen de engine.
+De belangrijkste bevinding: de game rijdt zoals Zwift vóór Pack Dynamics 4 (een
+blok dat vanzelf doorschuift), en Meerijden volgt elke aanval tot 160% van de
+drempel. Daardoor beslist de speler niet over doortrappen over de top, een aanval
+volgen of gelost raken, en werken slingshot en verrassingsaanval niet. Dat
+verklaart voor een deel het kleine verschil tussen tactieken (een à twee plekken)
+in de balanssimulatie van 2026-09-28. Voorstel in negen modules, te beginnen met
+vertraagde tijd op beslismomenten, Meerijden dat het tempo volgt maar geen
+aanvallen, en slipstream volgens PD4.1, daarna een nabespreking.
+
+**Bewust niet gebouwd.** Nog niets; de eigenaar kiest. In het voorstel afgeraden:
+zelf sturen, wind en waaiers, startvak en opwarmen, fietswissel, categorieën en
+sandbaggers, een losse DS-rol.
+
+**Open voor de eigenaar.** Hoeveel automatische piloot Meerijden houdt (of een
+aparte stand), of een nabespreking met feiten past bij de huisregel over korte
+schermen, en of het voorstel ook in het plannenboek moet.
+
+**Niet geverifieerd.** De slipstreamgetallen zijn tests van Zwift Insider met vier
+renners op een rij; Zwift publiceert zijn model niet. Hoeveel de modules aan
+spreiding tussen tactieken opleveren, blijkt pas uit een nieuwe balanssimulatie.
+
+**Rechtgezet.** In [ZWBgame](docs/zwbgame.md) stond dat de tijdcompressie tussen
+2 en 10 ligt; sinds de ZRL-ronde van 2026-09-28 is dat 2 tot 14.
+
 ### Gebouwd — ZRL-races krijgen dezelfde eventinformatie als een Zwift-event
 
 **2026-10-18.** Commit `06be89e8`. Geen migratie. **Gepusht naar `main` op

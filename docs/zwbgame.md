@@ -5,7 +5,9 @@ het leert het tactische deel van Zwift-racen in de spelvormen die ZWB rijdt. Dez
 ronde bouwt de Zwift-engine, echte Zwift-routes en de Club Ladder; ZRL en FRR-tours
 volgen op dezelfde engine (bouwplan: [ZRL en FRR](zwbgame-zrl-frr.md)). ZRL is
 dezelfde dag gebouwd (spelversie 5), FRR daarna. Versies 1–3 (17–19 september) waren een arcade-clubkoers
-in Flamme Rouge-stijl; zie "Eerdere versies" onderaan.
+in Flamme Rouge-stijl; zie "Eerdere versies" onderaan. Onderzoek naar
+Zwift-racetactiek en een voorstel om de game tactischer te maken (19 oktober 2026,
+nog niet gebouwd): [Tactiek](zwbgame-tactiek.md).
 
 ## Lokale speeltest
 
@@ -80,7 +82,7 @@ gearmashers.com).
 Zelf gedetecteerde klimmen (`klim-…`) krijgen geen boog. De spatiebalk gebruikt hem.
 
 **Tijd.** De client draait per 0,2 s beeldtijd `timeScale` simulatiestappen
-(verwachte racetijd / 390 s, naar boven afgerond, tussen 2 en 10), zodat een race van
+(verwachte racetijd / 390 s, naar boven afgerond, tussen 2 en 14), zodat een race van
 ruim 30 minuten in 5 tot 6,5 minuut speelt. Na je finish rekent de client de rest van
 de race in één keer uit, zodat uitslag en ploegscore compleet zijn. Een race stopt na
 1,8× de verwachte duur; wie dan niet binnen is, scoort niets.
