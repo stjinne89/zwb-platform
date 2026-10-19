@@ -320,6 +320,7 @@ export const LIVETRACK_NOTES = [
 export const RIDE_MESSAGE_GARMIN_STEPS = [
   "Zet op je profiel de ZWB-meldingen aan op je telefoon en vink Bericht op mijn fietscomputer aan. Op een iPhone werkt dat alleen als ZWB als app op je beginscherm staat.",
   "Zet in Garmin Connect de meldingen van je telefoon aan voor je Edge of horloge. Op Android kies je daar per app; vink ZWB of je browser aan.",
+  "Test het met Testbericht op Samen fietsen.",
 ];
 
 export const RIDE_MESSAGE_WAHOO_STEPS = [
