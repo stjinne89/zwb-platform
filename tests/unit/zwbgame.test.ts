@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { applyCommand, botCommands, createRace, fatigueOf, KEY_SCALE, momentAt, standings, stepRace, STEP_SECONDS, stepsPerFrame, timeScale } from "@/lib/zwbgame/engine";
+import { applyCommand, botCommands, createRace, crrAt, fatigueOf, KEY_SCALE, powerupPool, teamOrder, momentAt, standings, stepRace, STEP_SECONDS, stepsPerFrame, timeScale } from "@/lib/zwbgame/engine";
 import { applyChallenge, buildLadderTeams, challengeable, challengeWon, initialLadder, normalizeLadder, OWN_TEAM, teamScore } from "@/lib/zwbgame/ladder";
 import { basicRider, buildRoster, deriveRider, isAllowedActivity, strength } from "@/lib/zwbgame/roster";
 import { elevationAt, gameRouteFrom } from "@/lib/zwbgame/routes";
-import { ladderKey, readResults, readTour, restoreRace, saveKey, serializeRace, tourKey } from "@/lib/zwbgame/storage";
+import { ladderKey, readDrills, readResults, readTour, restoreRace, saveKey, serializeRace, tourKey } from "@/lib/zwbgame/storage";
 import { newTour, scoreStage, stageConfig, tourStandings, type FrrTour } from "@/lib/zwbgame/frr";
 import type { GameRoute, PlayerCommand, RaceState, ZrlFormat } from "@/lib/zwbgame/types";
 import { buildZrlTeams, ownTeamResult, scoreZrl } from "@/lib/zwbgame/zrl";
+import { createDrill, DRILL_ROUTES, DRILLS, drillPassed } from "@/lib/zwbgame/drills";
 import { fixtureRoutes } from "../fixtures/zwbgame/routes";
 
 const roster = Array.from({ length: 30 }, (_, i) => basicRider(String(i), `Renner ${i}`));
@@ -321,7 +322,7 @@ describe("ZWBgame routes, roster and storage", () => {
     expect(resumed.riders.find((r) => r.rider.id === "0")!.rider.source).toBe("basic");
   });
   it("a new game version drops a race in progress, not the ladder or the tour", () => {
-    expect(saveKey("x")).toBe("zwbgame:v6:x:race");
+    expect(saveKey("x")).toBe("zwbgame:v7:x:race");
     expect(ladderKey("x")).toBe("zwbgame:v5:x:ladder");
     expect(tourKey("x")).toBe("zwbgame:v5:x:tour");
   });
@@ -500,5 +501,104 @@ describe("ZWBgame FRR tour", () => {
     const race = stageRace(tour);
     for (let i = 0; i < 500; i++) stepRace(race);
     expect(restoreRace(serializeRace(race), club, fixtureRoutes, "c30")).toEqual(race);
+  });
+});
+
+describe("ZWBgame tactics: debrief, team plans, surfaces, powerups and practice", () => {
+  it("logs your race per kilometre and what you did", () => {
+    const state = create(flat, 9);
+    const me = state.riders.find((r) => r.rider.id === "0")!;
+    while (!state.finished) {
+      const cmds: PlayerCommand[] = state.tick === 3000 ? [{ type: "mode", value: "attack" }] : state.tick === 3400 ? [{ type: "mode", value: "ride" }] : [];
+      stepRace(state, cmds);
+    }
+    expect(state.log.km.length).toBe(Math.ceil(flat.length / 1000));
+    expect(state.log.km.every((k) => k.wbal >= 0 && k.wbal <= 1 && k.wind >= 0)).toBe(true);
+    expect(state.log.events.some((e) => e.kind === "attack")).toBe(true);
+    expect(me.finishTime).not.toBeNull();
+    // Saved and resumed with the log.
+    const mid = create(flat, 9);
+    for (let i = 0; i < 2000; i++) stepRace(mid);
+    expect(restoreRace(serializeRace(mid), roster, fixtureRoutes, "0")!.log).toEqual(mid.log);
+  }, 30000);
+  it("rival teams ride a fixed plan per race; a caught attack brings the next one", () => {
+    const club = Array.from({ length: 60 }, (_, i) => deriveRider(`c${String(i).padStart(2, "0")}`, `C${i}`, { ftp: 170 + i * 3, weight: 75 }, "manual", "v"));
+    const { own, rivals } = buildZrlTeams(club, "c30", null, 3);
+    const state = createRace({ mode: "zrl", format: "scratch", routeId: flat.id, seed: 4, playerId: "c30", squads: [{ id: "own", riders: own.riderIds }, ...rivals.map((t) => ({ id: t.id, riders: t.riderIds }))] }, club, flat);
+    expect(teamOrder(state, "z1")).toBe(teamOrder(state, "z1"));
+    expect(teamOrder(state, "own")).toBe("free");
+    const me = state.riders.find((r) => r.rider.id === "c30")!;
+    state.riders.forEach((r) => { r.distance = 4000 + (r.team === "own" ? 0 : 5); r.surge = 0; r.effort = 0.8; });
+    applyCommand(state, me, { type: "order", value: "onetwo" });
+    me.attacks = 1; me.wbal = me.wprime * 0.3; me.mode = "ride";
+    stepRace(state);
+    expect(state.riders.filter((r) => r.team === "own" && r.job?.kind === "counter")).toHaveLength(1);
+    applyCommand(state, me, { type: "order", value: "hard" });
+    while (state.tick % 10 !== 0) stepRace(state);
+    stepRace(state);
+    expect(state.riders.filter((r) => r.team === "own" && r.job?.kind === "tempo").length).toBeGreaterThan(0);
+  });
+  it("time trial pace follows your tempo; long turns in a team time trial are slower", () => {
+    const { state, me } = pair(road(0, 6000), 3000);
+    state.config = { ...state.config, mode: "frr", stage: { index: 2, kind: "itt" }, field: state.riders.map((r) => r.rider.id) };
+    applyCommand(state, me, { type: "mode", value: "ride" });
+    applyCommand(state, me, { type: "tempo", value: 2 });
+    stepRace(state, [], idle);
+    expect(me.effort).toBeCloseTo(1.03, 2);
+    applyCommand(state, me, { type: "tempo", value: -5 });
+    expect(me.tempo).toBe(-2);
+    const club = Array.from({ length: 60 }, (_, i) => deriveRider(`c${String(i).padStart(2, "0")}`, `C${i}`, { ftp: 170 + i * 3, weight: 75 }, "manual", "v"));
+    const ttt = (order: "short" | "long") => {
+      const s = createDrill("ttt", club, "c30", 5);
+      s.order = order;
+      while (!s.finished) stepRace(s);
+      return ownTeamResult(scoreZrl(s)).time!;
+    };
+    expect(ttt("long")).toBeGreaterThan(ttt("short"));
+  }, 30000);
+  it("rough road is slower, and only where the route says so", () => {
+    const dirt: GameRoute = { ...road(0, 3000), rough: [{ start: 1000, end: 2000, surface: "dirt" }] };
+    expect(crrAt(dirt, 500)).toBe(0.004);
+    expect(crrAt(dirt, 1500)).toBeGreaterThan(0.02);
+    const speedOn = (d: number) => { const { state, me } = pair(dirt, 900); me.distance = d; me.mode = "front"; for (let i = 0; i < 100; i++) stepRace(state, [], idle); return me.speed; };
+    expect(speedOn(1100)).toBeLessThan(speedOn(100) * 0.9);
+    expect(powerupPool(dirt)).toContain("steamroller");
+    expect(powerupPool(road(0))).not.toContain("anvil");
+    expect(powerupPool(road(-0.05))).toContain("anvil");
+  });
+  it("burrito takes your draft away, the ghost hides your attack, not in the final 400 m", () => {
+    const { state, me, lead } = pair(road(0, 6000), 2);
+    lead.active = { id: "burrito", left: 20 };
+    stepRace(state, [], idle);
+    expect(me.sheltered).toBe(false);
+    const ghost = pair(road(0, 6000), 3000);
+    ghost.me.powerup = "ghost";
+    applyCommand(ghost.state, ghost.me, { type: "powerup" });
+    applyCommand(ghost.state, ghost.me, { type: "mode", value: "attack" });
+    for (let i = 0; i < 20; i++) stepRace(ghost.state, [], idle);
+    expect(ghost.me.effort).toBeGreaterThan(1.3);
+    expect(ghost.me.surge).toBe(0);
+    const late = pair(road(0, 6000), 3000);
+    late.me.distance = 5700; late.me.powerup = "ghost";
+    applyCommand(late.state, late.me, { type: "powerup" });
+    expect(late.me.active).toBeNull();
+  });
+  it("every practice race starts, and passing is judged on its goal", () => {
+    const club = Array.from({ length: 60 }, (_, i) => deriveRider(`c${String(i).padStart(2, "0")}`, `C${i}`, { ftp: 170 + i * 3, weight: 75 }, "manual", "v"));
+    for (const drill of DRILLS) {
+      const state = createDrill(drill.id, club, "c30", 7);
+      expect(state.config.drill).toBe(drill.id);
+      expect(state.riders.some((r) => r.rider.id === "c30")).toBe(true);
+      expect(DRILL_ROUTES[drill.id].id).toBe(state.route.id);
+    }
+    const bridge = createDrill("bridge", club, "c30", 7);
+    expect(bridge.riders).toHaveLength(6);
+    const me = bridge.riders.find((r) => r.rider.id === "c30")!;
+    me.finishTime = 300; bridge.finished = true;
+    expect(drillPassed(bridge)).toBe(false);
+    bridge.log.events.push({ d: 900, kind: "back" });
+    expect(drillPassed(bridge)).toBe(true);
+    expect(readDrills(JSON.stringify(["crest", "nope"]))).toEqual([]);
+    expect(readDrills(JSON.stringify(["crest", "ttt"]))).toEqual(["crest", "ttt"]);
   });
 });

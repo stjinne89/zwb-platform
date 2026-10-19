@@ -3,8 +3,9 @@
 Sinds 28 september 2026 (spelversie 4) is ZWBgame een Zwift-racegame op `/zwbgame`.
 Spelversie 6 (19 oktober 2026) maakt hem tactischer: slipstream volgens Pack Dynamics
 4.1, Meerijden dat geen aanvallen meer volgt, en vertraagde tijd waar de koers beslist
-wordt (zie "Spelversie 6" hieronder). ZWBgame
-het leert het tactische deel van Zwift-racen in de spelvormen die ZWB rijdt. Deze
+wordt (zie "Spelversie 6" hieronder). Spelversie 7 (dezelfde dag) voegt een
+nabespreking, oefenkoersen, onverhard, vier powerups, slimmere bots en nieuwe
+ploegorders toe (zie "Spelversie 7"). ZWBgame leert het tactische deel van Zwift-racen in de spelvormen die ZWB rijdt. Deze
 ronde bouwt de Zwift-engine, echte Zwift-routes en de Club Ladder; ZRL en FRR-tours
 volgen op dezelfde engine (bouwplan: [ZRL en FRR](zwbgame-zrl-frr.md)). ZRL is
 dezelfde dag gebouwd (spelversie 5), FRR daarna. Versies 1–3 (17–19 september) waren een arcade-clubkoers
@@ -104,11 +105,17 @@ drempel, en werk boven 70% van de drempel telt voor een vijfde mee; maximaal 25%
 is een **spelkeuze**, geen gemeten fysiologie: zonder zou W′ onder de drempel gratis
 terugkomen en werd steeds vol gas rijden beloond.
 
-**Powerups.** Bij het passeren van het einde van een benoemd Zwift-segment of een
-rondestreep krijg je er één als je slot leeg is: veer, aerohelm of draft boost, met de
-effecten uit `POWERUP_EFFECTS`: veer −10% gewicht 30 s, aerohelm −25% CdA 15 s
+**Powerups (spelversie 7).** Bij het passeren van het einde van een benoemd
+Zwift-segment of een rondestreep krijg je er één als je slot leeg is, uit
+`powerupPool`: veer, aerohelm en draft boost elk twee keer zo vaak als burrito en
+spook; het aambeeld alleen op een route met ≤ −3%, de stoomwals alleen met
+onverhard. Effecten (`GAME_POWERUPS`): veer −10% gewicht 30 s, aerohelm −25% CdA 15 s
 (Zwift Insider), draft boost +50% op de slipstreambesparing 40 s (Zwift-forum en
-gearmashers.com).
+gearmashers.com), stoomwals rolweerstand van asfalt 30 s, aambeeld +10% gewicht 15 s
+alleen bij ≤ −1,5% (**aanname** uit het pacingplan), burrito 20 s geen slipstream
+voor wie achter je zit, spook 15 s geen zichtbare aanval en niet bruikbaar in de
+laatste 400 m (Zwift 1.39, 2023). In Zwift zijn burrito en spook alleen in sommige
+events toegestaan; in de game zitten ze overal in de pool.
 Zelf gedetecteerde klimmen (`klim-…`) krijgen geen boog. De spatiebalk gebruikt hem.
 
 **Tijd (spelversie 6).** De client draait per 0,2 s beeldtijd `timeScale`
@@ -151,7 +158,9 @@ puntenrace en de Race of Truth tellen met `scoreRace` uit `src/lib/zrl-live/scor
 (dezelfde code als het live-dashboard), gevoed met de segmentpassages van de engine
 (`RaceState.passes`). De Race of Truth kent geen slipstream. Scratch telt alleen
 finish en podium. In de ploegentijdrit geeft alleen je eigen ploeg beschutting en rijdt
-Meerijden op 95%. De vierde renner bepaalt de tijd; met minder dan vier renners binnen
+Meerijden in het wiel minstens 95% (85% bij lange beurten); op kop 100%, 92% bij
+lange beurten, en 80% bij "Wacht op de vierde" als de vierde renner meer dan 10 m
+achter ligt. De vierde renner bepaalt de tijd; met minder dan vier renners binnen
 heb je geen uitslag en geen leaguepunten. Leaguepunten: evenveel als er ploegen zijn
 voor de winnaar, dan één minder per plek; bij een gelijke stand dezelfde plek.
 **Niet overgenomen:** de regel dat een ploeg met drie starters achter ploegen met vier
@@ -195,7 +204,16 @@ en getallen (`zwbgame:v5:<lid>:tour`).
 
 **Ploegorders.** Breng me terug: bij een gat van 12–400 m wacht de ploeggenoot met de
 meeste reserve op 45% en sleept je dan op 105% terug. Lead-out: in de laatste 1100 m
-rijdt een ploeggenoot binnen 25 m van je op aanvalstempo voor je uit.
+rijdt een ploeggenoot binnen 25 m van je op aanvalstempo voor je uit, in de laatste
+800 m een tweede (springplanken). Sinds spelversie 7 ook: Maak het hard (ploeggenoten
+binnen 40 m rijden Naar voren tot 1,5 km voor de streep), Niet meewerken
+(ploeggenoten meer dan 15 m achter je sparen), Ga mee (ploeggenoten volgen elke
+zichtbare aanval van een andere ploeg binnen 40 m meteen) en Een-twee (is jouw aanval
+teruggehaald, dan valt de ploeggenoot met de meeste reserve binnen 25 m aan; één
+tegelijk). In de ploegentijdrit: Korte beurten, Lange beurten, Wacht op de vierde.
+Andere ploegen rijden per race een vast plan uit `teamOrder` (seed en route): op een
+heuvelroute vaak hard maken, anders meegaan, een-twee of vrij; in een ploegentijdrit
+korte beurten of wachten op de vierde.
 
 ## Gegevens en toestemming
 
@@ -262,6 +280,78 @@ beperken het tonen van afgeleide gegevens aan anderen en noemen virtuele races
 dit daarom uit; de eigenaar koos op 17 september 2026 voor automatische kwaliteiten
 voor iedereen. Niet uitgezocht of Intervals Strava-activiteiten in de curve via zijn
 API meeneemt.
+
+## Spelversie 7: nabespreking, oefenen en slimmere tegenstanders (19 oktober 2026)
+
+Modules D tot en met I uit [Tactiek](zwbgame-tactiek.md), plus de extra powerups.
+Lopende races van versie 6 vervallen; uitslagen, ladder, tour en gehaalde
+oefeningen staan op vaste sleutels.
+
+- **Nabespreking (D).** De engine houdt voor jou per kilometer bij: racetijd, tijd
+  in de wind, W′ aan het eind, je groep (0 = kopgroep, renners die al binnen zijn
+  tellen als groep ervoor), de grootte ervan en je achterstand; en als momenten je
+  aanvallen, powerups, een lege W′, gelost en terug in de kopgroep (`RaceState.log`,
+  hooguit 80 momenten, alleen getallen; gaat mee in de opslag). Na de finish staat
+  het als drie stroken op één afstandsas, een lijst momenten en een tabel voor
+  schermlezers (`debrief.tsx`).
+- **Koers lezen (G).** In de koerslijst een vlam bij `surge > 0` en een icoon per
+  rennerstype. Geen nieuwe gegevens: type en inspanning had de browser al.
+- **Bots en ploegorders (H).** Zie "Bots" en "Ploegorders" hierboven.
+- **Tijdrittempo en ploegentijdrit (I).** `{ type: "tempo" }` zet je tempo in de
+  tijdrit en de Race of Truth op 97% + 3% per stap (−2 tot +2). Zonder slipstream is
+  Meerijden nu ook in de Race of Truth je tijdrittempo (was 82%).
+- **Onverhard (F).** `GameRoute.rough`: stukken waar een racefiets in Zwift trager
+  rolt (`crrFor(surface, "road") > 0,0045`, dus geen zand), uit `surfaceSections` van
+  het pacingplan, dat het wegdek uit de routevorm haalt (`surfacesAlongShape`). De
+  routecatalogus haalt daarom ook `zwift_routes.shape` op. In beeld een bruine weg en
+  strook, in de HUD het wegdek, en een beslismoment "Onverhard".
+- **Oefenen (E).** `src/lib/zwbgame/drills.ts`: zeven getekende korte koersen met elk
+  een startopstelling en een doel. Niet opgeslagen of hervatbaar; je browser bewaart
+  alleen welke je haalde (`zwbgame:v5:<lid>:drills`).
+
+**Balans** (`npm run zwbgame:balance`, 12 seeds × 3 routes, gemiddelde plek van 24):
+
+| Strategie | FTP 240 | FTP 270 | FTP 300 |
+| --- | --- | --- | --- |
+| Passief | 18,6 | 16,5 | 17,4 |
+| Sparen | 21,8 | 20,3 | 20,8 |
+| Roekeloos | 12,2 | 10,0 | 9,1 |
+| Vol gas | 14,4 | 13,5 | 13,4 |
+| Bot | 15,0 | 12,7 | 10,0 |
+| Tacticus | 7,4 | 6,0 | 2,8 |
+
+Met de slimmere bots wordt de tacticus 1,2–1,9 plek slechter dan in spelversie 6
+(8,3/4,1/2,3); hij wint nog 9 tot 15 plekken op passief. Speeltijd gemiddeld 6,1–6,6
+minuut, hooguit 7,4.
+
+**Oefeningen** (`DRILLS=1 npm run zwbgame:balance`, 10 races per oefening, FTP 270):
+
+| Oefening | Passief | Roekeloos | Bot | Tacticus |
+| --- | --- | --- | --- | --- |
+| Eerste selectie | 0 | 5 | 6 | 9 |
+| Over de top | 0 | 7 | 7 | 10 |
+| Slingshot | 0 | 1 | 0 | 6 |
+| Overbruggen | 0 | 7 | 0 | 5 |
+| Wegrijden | 0 | 3 | 0 | 8 |
+| Puntenjacht | 0 | 5 | 0 | 0 |
+| Ploegentijdrit | 3 | 3 | 3 | 3 (vol gas: 7) |
+
+Passief meerijden haalt geen enkele weg-oefening. De tacticus is niet op punten
+geschreven, dus 0 bij de puntenjacht zegt niets over de haalbaarheid; roekeloos haalt
+hem de helft van de keren. In de ploegentijdrit wint vooral wie zelf beurten op kop
+neemt.
+
+**Verificatie.** Unit-tests (+6): het koerslogboek en opslaan met log, vaste plannen
+van andere ploegen en een-twee en hard maken, tijdrittempo en langere beurten trager,
+onverhard trager en de powerup-pool per route, burrito en spook (ook niet in de
+laatste 400 m), elke oefening start en het doel van overbruggen. Playwright: 22
+groen, met een nieuwe test voor een oefening (gekozen, gereden, uitslag en
+koersverloop, niets bewaard) en de ploegentijdrit-orders. Screenshots op telefoon
+bekeken: oefenlijst, tempo, acht ploegorders en de nabespreking. Die laatste had
+eerst labels in de SVG die op een telefoon onleesbaar klein werden; nu staan ze als
+tekst boven drie losse stroken. **Niet lokaal te verifiëren:** of de routes op
+productie een `shape` hebben, en dus onverhard tonen; met de fixtures alleen in de
+oefening Wegrijden gezien.
 
 ## Spelversie 6: tactiek (19 oktober 2026)
 

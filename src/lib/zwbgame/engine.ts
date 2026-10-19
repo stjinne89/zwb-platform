@@ -1,9 +1,10 @@
 import { recoveryTau } from "@/lib/pacing/w-prime";
-import { POWERUP_EFFECTS, ZWIFT_BASE_BIKE_KG, ZWIFT_BASE_CDA } from "@/lib/pacing/zwift-setup";
+import { POWERUP_EFFECTS, ZWIFT_BASE_BIKE_KG, ZWIFT_BASE_CDA, type PowerupEffect } from "@/lib/pacing/zwift-setup";
+import { crrFor } from "@/lib/zwift/surfaces/crr";
 import { AIR_DENSITY, DRIVETRAIN_EFF, G } from "@/lib/ride-estimate";
 import { basicRider, strength } from "./roster";
 import { GRID_METERS, climbingShare, gradeAt } from "./routes";
-import { GAME_VERSION, OWN_TEAM, type GameRider, type GameRoute, type Mode, type PlayerCommand, type PowerupId, type RaceConfig, type RaceState, type RiderState } from "./types";
+import { GAME_VERSION, OWN_TEAM, type GameRider, type GameRoute, type Mode, type PlayerCommand, type PowerupId, type RaceConfig, type RaceEvent, type RaceState, type RiderState, type TeamOrder } from "./types";
 
 export const STEP_SECONDS = 0.2;
 /**
@@ -76,7 +77,26 @@ const FATIGUE_PER_WPRIME = 0.04;
 export const MAX_FATIGUE = 0.25;
 const ENDURANCE_SHARE = 0.7;
 const ENDURANCE_RATE = 0.2;
-export const POWERUP_IDS: PowerupId[] = ["feather", "aero", "draft"];
+export const POWERUP_IDS: PowerupId[] = ["feather", "aero", "draft", "burrito", "ghost", "anvil", "steamroller"];
+/**
+ * Burrito: for 20 s nobody behind you gets your draft. Ghost: for 15 s nobody
+ * sees you attack, not in the last 400 m. Both as in Zwift since update 1.39 (2023).
+ * The others are the pacing plan's effects.
+ */
+export const GAME_POWERUPS: Record<PowerupId, PowerupEffect> = { ...POWERUP_EFFECTS, burrito: { durationS: 20 }, ghost: { durationS: 15 } };
+/** What a banner can hand out on this course: the anvil only with a real descent, the steamroller only off the tarmac. */
+export function powerupPool(route: GameRoute): PowerupId[] {
+  const pool: PowerupId[] = ["feather", "feather", "aero", "aero", "draft", "draft", "burrito", "ghost"];
+  if (route.grades.some((g) => g <= -0.03)) pool.push("anvil");
+  if (route.rough?.length) pool.push("steamroller");
+  return pool;
+}
+/** Rolling resistance here: Zwift's value for a road bike on this surface. */
+export function crrAt(route: GameRoute, distance: number) {
+  const section = route.rough?.find((s) => distance >= s.start && distance < s.end);
+  return section ? crrFor(section.surface, "road") : CRR;
+}
+const roughAt = (route: GameRoute, distance: number) => route.rough?.find((s) => distance >= s.start && distance < s.end && crrFor(s.surface, "road") >= 0.01);
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
 export function randomAt(seed: number, index: number) {
   let n = (seed ^ Math.imul(index + 1, 0x45d9f3b)) >>> 0;
@@ -122,7 +142,7 @@ export function timeScale(route: GameRoute) {
 export const maxRaceSeconds = (route: GameRoute) => Math.ceil(expectedSeconds(route) * 1.8);
 /** Where the race is decided, time runs this much slower than real time compressed: you get to see it and choose. */
 export const KEY_SCALE = 3;
-export type MomentKind = "start" | "attack" | "gap" | "crest" | "climb" | "sprint" | "kom" | "final";
+export type MomentKind = "start" | "attack" | "gap" | "crest" | "climb" | "rough" | "sprint" | "kom" | "final";
 /**
  * A moment that decides the race, for you: the start, an attack near you, a gap
  * opening, the top or foot of a climb, a sprint or KOM, the final. Null otherwise.
@@ -145,6 +165,8 @@ export function momentAt(state: RaceState): { kind: MomentKind; targetId?: strin
   if (!me.sheltered && (me.mode === "ride" || me.mode === "save") && gap > 6 && gap < 40) return { kind: "gap" };
   if (atCrest(route, d) || (gradeAt(route, d) >= 0.03 && gradeAt(route, d + 100) < 0.015)) return { kind: "crest" };
   if (gradeAt(route, d + 200) >= 0.03 && gradeAt(route, d) < 0.02) return { kind: "climb" };
+  const rough = roughAt(route, d + 200) ?? roughAt(route, d);
+  if (rough && d >= rough.start - 200 && d < rough.start + 100) return { kind: "rough" };
   // A sprint from its run-in, a KOM near the top: where the points are decided.
   const banner = route.accents.find((a) => a.banner && d < a.end && d >= (a.kind === "climb" ? a.end - 250 : a.start - 200));
   if (banner) return { kind: banner.kind === "climb" ? "kom" : "sprint" };
@@ -202,25 +224,58 @@ export function createRace(config: RaceConfig, roster: GameRider[], route: GameR
     return {
       rider, team, distance: -Math.floor(i / 4) * 1.8, lane: (i % 4 - 1.5) * 0.85, speed: 6,
       mode: "ride", targetId: null, effort: 0.8, wbal: wprime, wprime, spent: 0, sheltered: false, tucked: false,
-      powerup: null, active: null, finishTime: null, attacks: 0, shelteredSeconds: 0, surge: 0,
+      powerup: null, active: null, finishTime: null, attacks: 0, shelteredSeconds: 0, surge: 0, tempo: 0,
       form: +(0.94 + randomAt(config.seed, 3000 + i) * 0.12).toFixed(4), job: null,
     };
   });
-  return { version: GAME_VERSION, config, route, tick: 0, riders, order: "free", passes: [], finished: false };
+  return { version: GAME_VERSION, config, route, tick: 0, riders, order: "free", passes: [], log: { km: [], events: [], wind: 0, group: 0 }, finished: false };
+}
+const MAX_EVENTS = 80;
+function logEvent(state: RaceState, event: RaceEvent) {
+  if (state.log.events.length < MAX_EVENTS) state.log.events.push({ ...event, d: Math.round(event.d) });
+}
+/** The debrief: per kilometre how much wind you took, your W′ and your group; when you were dropped or got back. */
+function logPlayer(state: RaceState, player: RiderState, previous: number, wasEmpty: boolean) {
+  const log = state.log;
+  if (!player.sheltered && !player.tucked) log.wind += STEP_SECONDS;
+  if (player.wbal <= 1 && !wasEmpty) logEvent(state, { d: player.distance, kind: "empty" });
+  const crossedKm = Math.floor(player.distance / 1000) > Math.floor(Math.max(0, previous) / 1000) || (player.finishTime !== null && log.km.length < Math.ceil(state.route.length / 1000));
+  if (state.tick % 5 !== 0 && !crossedKm) return;
+  const groups = groupsOf(standings(state).filter((r) => r.finishTime === null || r === player));
+  // Riders already over the line are a group ahead of you.
+  const finishedAhead = state.riders.some((r) => r !== player && r.finishTime !== null && (player.finishTime === null || r.finishTime < player.finishTime - 1.5));
+  const group = Math.max(0, groups.findIndex((g) => g.includes(player))) + (finishedAhead ? 1 : 0);
+  if (group > 0 && log.group === 0) logEvent(state, { d: player.distance, kind: "dropped" });
+  if (group === 0 && log.group > 0) logEvent(state, { d: player.distance, kind: "back" });
+  log.group = group;
+  if (crossedKm) {
+    const front = groups[0]?.[0];
+    log.km.push({ t: Math.round(state.tick * STEP_SECONDS), wind: +log.wind.toFixed(1), wbal: +(player.wbal / player.wprime).toFixed(2), group, size: groups[group]?.length ?? 1, gap: front ? Math.round(Math.max(0, front.distance - player.distance) / Math.max(player.speed, 2)) : 0 });
+    log.wind = 0;
+  }
 }
 export function applyCommand(state: RaceState, rider: RiderState, command: PlayerCommand) {
   if (rider.finishTime !== null) return;
   switch (command.type) {
     case "mode":
-      if (command.value === "attack" && rider.mode !== "attack") rider.attacks++;
+      if (command.value === "attack" && rider.mode !== "attack") {
+        rider.attacks++;
+        if (rider.rider.id === state.config.playerId) logEvent(state, { d: rider.distance, kind: "attack" });
+      }
       rider.mode = command.value;
       rider.targetId = command.targetId ?? null;
       break;
     case "powerup":
-      if (rider.powerup && !rider.active) { rider.active = { id: rider.powerup, left: POWERUP_EFFECTS[rider.powerup].durationS }; rider.powerup = null; }
+      if (rider.powerup && !rider.active && !(rider.powerup === "ghost" && state.route.length - rider.distance < SPRINT_METERS)) {
+        if (rider.rider.id === state.config.playerId) logEvent(state, { d: rider.distance, kind: "powerup", powerup: rider.powerup });
+        rider.active = { id: rider.powerup, left: GAME_POWERUPS[rider.powerup].durationS }; rider.powerup = null;
+      }
       break;
     case "order":
       if (rider.rider.id === state.config.playerId && rider.team === OWN_TEAM) state.order = command.value;
+      break;
+    case "tempo":
+      if (rider.rider.id === state.config.playerId) rider.tempo = clamp(Math.round(command.value), -2, 2);
       break;
   }
 }
@@ -256,12 +311,30 @@ export function teamLeader(state: RaceState, team: RiderState["team"]) {
   return [...members].filter((r) => r.rider.id !== state.config.playerId)
     .sort((a, b) => (hilly ? b.rider.climb - a.rider.climb : b.rider.sprint - a.rider.sprint) || a.rider.id.localeCompare(b.rider.id))[0] ?? null;
 }
+const isTtt = (state: RaceState) => state.config.mode === "zrl" && state.config.format === "ttt";
+/**
+ * What a team rides for: your order for your team; for a rival team a plan fixed
+ * per race from the seed and the course, so you learn to recognise it.
+ */
+export function teamOrder(state: RaceState, team: string | null): TeamOrder {
+  if (!team) return "free";
+  if (team === OWN_TEAM) return state.order;
+  const roll = randomAt(state.config.seed, 12000 + [...team].reduce((h, c) => h * 31 + c.charCodeAt(0), 7) % 10007);
+  if (isTtt(state)) return roll < 0.5 ? "four" : "short";
+  if (climbingShare(state.route) > 0.012 && roll < 0.35) return "hard";
+  return roll < 0.55 ? "cover" : roll < 0.8 ? "onetwo" : "free";
+}
+/** A rider whose attack has just been brought back: spent, no longer going, still among others. */
+function caughtAttacker(state: RaceState, x: RiderState) {
+  return riding(x) && x.attacks > 0 && x.surge === 0 && x.mode !== "attack" && x.effort < 1.05 && x.wbal < x.wprime * 0.6
+    && state.riders.some((y) => y !== x && riding(y) && y.team !== x.team && Math.abs(y.distance - x.distance) < 15);
+}
 /** A ZRL points race or Race of Truth: segments score. */
 export const huntsPoints = (state: RaceState) => state.config.mode === "zrl" && (state.config.format === "points" || state.config.format === "rot");
 /** Hands out team jobs: bring your leader back, lead them out, or hunt segment points. */
 function assignJobs(state: RaceState) {
   // A team time trial is ridden together; nobody works for one rider.
-  if (state.config.mode === "zrl" && state.config.format === "ttt") return;
+  if (isTtt(state)) return;
   for (const team of [...new Set(state.riders.flatMap((r) => (r.team ? [r.team] : [])))]) {
     const members = state.riders.filter((r) => r.team === team);
     const leader = teamLeader(state, team);
@@ -284,8 +357,28 @@ function assignJobs(state: RaceState) {
     }
     const leadout = team === OWN_TEAM ? state.order === "leadout" : true;
     if (leadout && remaining < 1100 && remaining > 150) {
-      const helper = helpers.filter((h) => !h.job && Math.abs(h.distance - leader.distance) < 25 && h.wbal > h.wprime * 0.15).sort((a, b) => b.wbal - a.wbal)[0];
-      if (helper) helper.job = { for: leader.rider.id, kind: "leadout" };
+      // Stepping stones: a second rider goes up the road in the last 800 m.
+      for (let k = 0; k < (remaining < 800 ? 2 : 1); k++) {
+        const helper = helpers.filter((h) => !h.job && Math.abs(h.distance - leader.distance) < 25 && h.wbal > h.wprime * 0.15).sort((a, b) => b.wbal - a.wbal)[0];
+        if (helper) helper.job = { for: leader.rider.id, kind: "leadout" };
+      }
+    }
+    const plan = teamOrder(state, team);
+    const free = helpers.filter((h) => !h.job);
+    if (plan === "hard" && remaining > 1500) {
+      // Make it hard: everyone with the leader rides tempo on the front.
+      for (const h of free) if (Math.abs(h.distance - leader.distance) < 40 && h.wbal > h.wprime * 0.35) h.job = { for: leader.rider.id, kind: "tempo" };
+    } else if (plan === "sit") {
+      // Your teammate is up the road: those behind do not chase.
+      for (const h of free) if (leader.distance - h.distance > 15) h.job = { for: leader.rider.id, kind: "block" };
+    } else if (plan === "cover") {
+      for (const h of free) if (Math.abs(h.distance - leader.distance) < 60 && h.wbal > h.wprime * 0.25) h.job = { for: leader.rider.id, kind: "cover" };
+    } else if (plan === "onetwo" && remaining > 600) {
+      // Your attack comes back: the next one goes. One at a time.
+      const spent = (team === OWN_TEAM ? [leader] : members).find((m) => caughtAttacker(state, m));
+      const going = members.some((m) => m.surge > 0 || m.job?.kind === "counter");
+      const counter = spent && !going ? free.filter((h) => h !== spent && Math.abs(h.distance - spent.distance) < 25 && h.wbal > h.wprime * 0.5).sort((a, b) => b.wbal - a.wbal)[0] : undefined;
+      if (counter && spent) counter.job = { for: spent.rider.id, kind: "counter" };
     }
   }
 }
@@ -327,13 +420,28 @@ export function botCommands(state: RaceState, index: number): PlayerCommand[] {
   }
   if (r.job) {
     // A teammate's job overrides its own race. The engine rides the tow; here only the effort.
-    mode(r.job.kind === "leadout" ? "attack" : "front");
-    if (r.job.kind === "leadout" && r.powerup === "draft") commands.push({ type: "powerup" });
+    switch (r.job.kind) {
+      case "leadout": mode("attack"); if (r.powerup === "draft") commands.push({ type: "powerup" }); break;
+      case "block": mode("save"); break;
+      case "cover": {
+        const mover = state.riders.find((x) => x !== r && riding(x) && x.team !== r.team && x.surge >= 0.5 && x.distance > r.distance && x.distance - r.distance < 40);
+        if (mover && reserve > 0.2) mode("ride", mover.rider.id); else mode(reserve < 0.3 ? "save" : "ride");
+        break;
+      }
+      case "counter":
+        mode("attack");
+        if (r.powerup === "ghost" || r.powerup === "burrito") commands.push({ type: "powerup" });
+        break;
+      default: mode("front");
+    }
     return commands;
   }
   if (r.powerup === "feather" && grade > 0.04 && (r.mode === "attack" || roll < 0.5)) commands.push({ type: "powerup" });
   if (r.powerup === "aero" && (remaining < SPRINT_METERS || (r.mode === "attack" && grade < 0.02))) commands.push({ type: "powerup" });
   if (r.powerup === "draft" && gap > 8 && gap < FOLLOW_RANGE * 2) commands.push({ type: "powerup" });
+  if (r.powerup === "anvil" && grade <= -0.03 && !r.sheltered) commands.push({ type: "powerup" });
+  if (r.powerup === "steamroller" && roughAt(route, r.distance + 60)) commands.push({ type: "powerup" });
+  if ((r.powerup === "burrito" || r.powerup === "ghost") && r.mode === "attack" && grade < 0.02 && remaining > SPRINT_METERS) commands.push({ type: "powerup" });
 
   if (state.tick * STEP_SECONDS < START_SECONDS) { mode(aggression > 0.7 ? "front" : "ride"); return commands; }
   // A leader with a lead-out stays on its wheel until the sprint.
@@ -344,6 +452,8 @@ export function botCommands(state: RaceState, index: number): PlayerCommand[] {
   if (r.mode === "attack" && reserve > 0.4 && (grade > 0.02 || gap > 15)) return commands;
   // An attack nearby: who goes with it depends on character and legs, and on how
   // soon it is seen. A teammate's move is left alone.
+  const climber = r.rider.kind === "climber" || r.rider.kind === "puncher";
+  const protectedLeader = leader === r && remaining > 3000;
   const covering = r.targetId ? state.riders.find((x) => x.rider.id === r.targetId) : undefined;
   if (covering && riding(covering) && covering.distance > r.distance && covering.distance - r.distance < 60 && (covering.effort > 1.1 || covering.distance - r.distance > 6) && reserve > 0.15) { mode("ride", covering.rider.id); return commands; }
   const moverIndex = state.riders.findIndex((x) => x !== r && riding(x) && (!r.team || x.team !== r.team) && x.distance > r.distance && x.distance - r.distance < 40 && x.surge >= noticeDelay(state, index, x.distance - r.distance));
@@ -352,13 +462,20 @@ export function botCommands(state: RaceState, index: number): PlayerCommand[] {
     const chance = 0.2 + aggression * 0.5 + (reserve - 0.5) * 0.5 + (strength(mover.rider) - strength(r.rider)) * 0.5;
     if (randomAt(state.config.seed, 9000 + index * 131 + moverIndex * 17 + mover.attacks) < chance) { mode("ride", mover.rider.id); return commands; }
   }
-  const climber = r.rider.kind === "climber" || r.rider.kind === "puncher";
-  const protectedLeader = leader === r && remaining > 3000;
+  // Where races break: over the top, at the foot of a descent, onto rough road, and
+  // right after an attack is brought back. Later in the race, tired legs invite it.
+  if (!protectedLeader && reserve > 0.5) {
+    const crest = atCrest(route, r.distance) && (climber || aggression > 0.6) && roll < 0.25;
+    const valley = gradeAt(route, r.distance - 150) <= -0.03 && grade > -0.01 && roll < 0.1 + aggression * 0.2;
+    const rough = roughAt(route, r.distance + 80) && !roughAt(route, r.distance - 50) && roll < 0.15 + aggression * 0.3;
+    const counter = reserve > 0.6 && roll2 < 0.05 + aggression * 0.2 && state.riders.some((x) => x !== r && x.team !== r.team && caughtAttacker(state, x) && Math.abs(x.distance - r.distance) < 15);
+    if (crest || valley || rough || counter) { mode("attack"); return commands; }
+  }
   // Over the top without a gap; into the front of the group before a climb.
   if (atCrest(route, r.distance) && reserve > 0.3 && (climber || aggression > 0.6)) { mode("front"); return commands; }
   if (gradeAt(route, r.distance + 250) > 0.03 && grade < 0.02 && reserve > 0.5 && roll < 0.3 + aggression * 0.4) { mode("front"); return commands; }
   if (!protectedLeader && climber && grade > 0.035 && reserve > 0.6 && roll < 0.04 + aggression * 0.12) { mode("attack"); return commands; }
-  if (!protectedLeader && reserve > 0.75 && roll > 0.997 - aggression * 0.004) { mode("attack"); return commands; }
+  if (!protectedLeader && reserve > 0.75 && roll > 0.997 - aggression * 0.004 - (remaining < route.length * 0.35 ? 0.006 : 0)) { mode("attack"); return commands; }
   // A group up the road: the front of this group organises the chase. Alone, a
   // rider decides for itself whether to go across.
   const group = groupAround(state, r);
@@ -373,7 +490,7 @@ export function botCommands(state: RaceState, index: number): PlayerCommand[] {
   mode(roll > 0.9 - aggression * 0.1 && reserve > 0.6 ? "front" : "ride");
   return commands;
 }
-type Snapshot = { id: string; distance: number; lane: number; speed: number; team: RiderState["team"] };
+type Snapshot = { id: string; distance: number; lane: number; speed: number; team: RiderState["team"]; burrito: boolean };
 /**
  * Shelter per rider from one snapshot, front to back: the CdA share saved, by
  * place in the line and distance to the wheel. Alongside a rider in the wind you
@@ -388,7 +505,7 @@ function shelterOf(positions: Snapshot[], rule: "all" | "none" | "team") {
     for (let j = k + 1; j < positions.length; j++) {
       const q = positions[j], gap = q.distance - p.distance;
       if (gap >= SHADOW_GROUP) break;
-      if (gap <= 0.3 || Math.abs(q.lane - p.lane) >= DRAFT_LANE || (rule === "team" && q.team !== p.team)) continue;
+      if (gap <= 0.3 || q.burrito || Math.abs(q.lane - p.lane) >= DRAFT_LANE || (rule === "team" && q.team !== p.team)) continue;
       const inWind = !saving.get(q.id);
       if (inWind && gap < PASS_GAP && rule === "all") continue;
       const shadow = inWind ? SHADOW_RIDER : SHADOW_GROUP;
@@ -417,15 +534,22 @@ export function stepRace(state: RaceState, commands: PlayerCommand[] = [], botPo
   });
   const time = state.tick * STEP_SECONDS;
   // One sort per step: everyone ahead of a rider is the tail of this list.
-  const positions: Snapshot[] = state.riders.filter(riding).map((r) => ({ id: r.rider.id, distance: r.distance, lane: r.lane, speed: r.speed, team: r.team }))
+  const positions: Snapshot[] = state.riders.filter(riding).map((r) => ({ id: r.rider.id, distance: r.distance, lane: r.lane, speed: r.speed, team: r.team, burrito: r.active?.id === "burrito" }))
     .sort((a, b) => a.distance - b.distance || a.id.localeCompare(b.id));
   const byId = new Map(positions.map((p) => [p.id, p]));
   const order = new Map(positions.map((p, i) => [p.id, i]));
   const rule = draftRule(state.config);
-  const ttt = state.config.mode === "zrl" && state.config.format === "ttt";
+  const ttt = isTtt(state);
   const itt = isItt(state.config);
+  // A team time trial waits for its fourth rider when told to: how far back is the fourth?
+  const fourthBack = new Map<string, number>();
+  if (ttt) for (const team of new Set(positions.map((p) => p.team))) {
+    const line = positions.filter((p) => p.team === team).map((p) => p.distance).sort((a, b) => b - a);
+    if (team && line.length >= 4) fourthBack.set(team, line[0] - line[3]);
+  }
   const banners = route.accents.flatMap((a, i) => (a.banner ? [{ a, i }] : []));
   const shelter = shelterOf(positions, rule);
+  const playerBefore = player.distance, playerEmpty = player.wbal <= 1, playerRiding = riding(player);
   // Group sizes on the road, for how hard a turn on the front is.
   const groupSize = new Map<string, number>();
   for (let k = 0, from = 0; k < positions.length; k++) {
@@ -439,8 +563,11 @@ export function stepRace(state: RaceState, commands: PlayerCommand[] = [], botPo
     const grade = gradeAt(route, r.distance);
     const remaining = route.length - r.distance;
     const cp = thresholdAt(r, grade);
-    const effect = r.active ? POWERUP_EFFECTS[r.active.id] : null;
+    const powered = r.active ? GAME_POWERUPS[r.active.id] : null;
+    // The anvil only weighs on a descent.
+    const effect = powered && (powered.maxGradient === undefined || grade <= powered.maxGradient) ? powered : null;
     const mass = RIDER_KG * (1 + (effect?.riderMassFraction ?? 0)) + ZWIFT_BASE_BIKE_KG;
+    const crr = effect?.crr !== undefined ? Math.min(effect.crr, crrAt(route, r.distance)) : crrAt(route, r.distance);
     // In a team time trial you only follow your own team.
     const ahead = positions.slice(order.get(r.rider.id)! + 1).filter((p) => p.distance > r.distance && (!ttt || p.team === r.team));
     const inLane = ahead.find((p) => p.distance - r.distance < RIDE_RANGE && Math.abs(p.lane - r.lane) < 1.2);
@@ -475,9 +602,15 @@ export function stepRace(state: RaceState, commands: PlayerCommand[] = [], botPo
     const tucking = r.mode === "save" && grade <= TUCK_GRADE && r.speed > TUCK_SPEED && !r.sheltered;
     const cda = ZWIFT_BASE_CDA * (effect?.cdaFactor ?? 1) * (tucking ? TUCK_CDA : 1) * (1 - Math.min(0.6, saving));
     const sinA = grade / Math.sqrt(1 + grade * grade), cosA = 1 / Math.sqrt(1 + grade * grade);
-    const resist = (v: number) => 0.5 * AIR_DENSITY * cda * v * v + CRR * mass * G * cosA + mass * G * sinA;
+    const resist = (v: number) => 0.5 * AIR_DENSITY * cda * v * v + crr * mass * G * cosA + mass * G * sinA;
     const v = Math.max(r.speed, 2);
-    const base = ttt ? TTT_BASE : itt ? ITT_BASE : RIDE_BASE + (RIDE_BASE_CLIMB - RIDE_BASE) * clamp((grade - 0.015) / 0.025, 0, 1);
+    // Without drafting (time trial, Race of Truth) riding along is your own time trial pace.
+    const plan = ttt ? teamOrder(state, r.team) : null;
+    const base = ttt ? (plan === "long" ? TTT_BASE - 0.1 : TTT_BASE)
+      : rule === "none" ? ITT_BASE + 0.03 * r.tempo
+      : RIDE_BASE + (RIDE_BASE_CLIMB - RIDE_BASE) * clamp((grade - 0.015) / 0.025, 0, 1);
+    // On the front of a team time trial: short turns go harder, long ones easier, and the fourth rider is waited for.
+    const tttFront = plan === "long" ? 0.92 : plan === "four" && (fourthBack.get(r.team ?? "") ?? 0) > 10 ? 0.8 : 1;
 
     let power: number;
     if (job && r.job?.kind === "bring") {
@@ -497,12 +630,13 @@ export function stepRace(state: RaceState, commands: PlayerCommand[] = [], botPo
       const cap = r.mode === "save" ? SAVE_CAP : wheel === chosen ? FOLLOW_CAP : atCrest(route, r.distance) ? CREST_CAP : r.sheltered ? RIDE_CAP : RIDE_CLOSE_CAP;
       // A team time trial still rotates: the wheel is faster, so riders come through.
       power = clamp(ttt && r.mode === "ride" ? Math.max(hold, cp * base) : hold, 0, cp * cap);
-    } else power = cp * (r.mode === "save" ? 0.7 : base);
+    } else power = cp * (r.mode === "save" ? 0.7 : ttt ? tttFront : base);
     // An empty W′ leaves you at threshold, whatever you ask for.
     if (r.wbal <= 1) power = Math.min(power, cp * 0.97);
     r.tucked = tucking;
     r.effort = +(power / cp).toFixed(3);
-    r.surge = r.effort >= SURGE_EFFORT && !r.sheltered ? +(r.surge + STEP_SECONDS).toFixed(1) : 0;
+    // The ghost hides an attack until it wears off.
+    r.surge = r.effort >= SURGE_EFFORT && !r.sheltered ? (r.active?.id === "ghost" ? 0 : +(r.surge + STEP_SECONDS).toFixed(1)) : 0;
 
     r.spent += Math.max(0, power - cp * ENDURANCE_SHARE) * STEP_SECONDS * ENDURANCE_RATE;
     if (power > cp) { const drawn = Math.min(r.wbal, (power - cp) * STEP_SECONDS); r.wbal -= drawn; r.spent += drawn; }
@@ -529,11 +663,13 @@ export function stepRace(state: RaceState, commands: PlayerCommand[] = [], botPo
       const crossed = arches.findIndex((d) => previous < d && r.distance >= d);
       if (crossed >= 0) {
         const pick = randomAt(state.config.seed, 7000 + index * 97 + Math.round(arches[crossed]));
-        r.powerup = POWERUP_IDS[Math.floor(pick * POWERUP_IDS.length)];
+        const pool = powerupPool(route);
+        r.powerup = pool[Math.floor(pick * pool.length)];
       }
     }
     if (r.distance >= route.length) r.finishTime = time + (route.length - previous) / r.speed;
   });
+  if (playerRiding) logPlayer(state, player, playerBefore, playerEmpty);
   state.tick++;
   state.finished = state.riders.every((r) => !riding(r)) || state.tick * STEP_SECONDS >= maxRaceSeconds(route);
   return state;

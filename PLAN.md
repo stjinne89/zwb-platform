@@ -10476,6 +10476,61 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBgame spelversie 7: nabespreking, oefenen en slimmere tegenstanders
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. Spelversie
+7: lopende races vervallen; uitslagen, ladder, tour en gehaalde oefeningen blijven.
+Niet gepusht.
+
+**Waarom.** De eigenaar vroeg na spelversie 6 om "de verdere punten" te bouwen:
+modules D tot en met I uit het [tactiekvoorstel](docs/zwbgame-tactiek.md) en de
+extra powerups.
+
+**Wat er is.**
+- *Nabespreking:* per kilometer je groep, W′ en tijd in de wind, plus je aanvallen,
+  powerups, lege W′ en wanneer je gelost werd, als drie stroken na de finish.
+- *Koers lezen:* een vlam bij wie zichtbaar aanvalt, een icoon per rennerstype.
+- *Bots:* vallen aan over de top, onderaan een afdaling, op onverhard, vlak na een
+  teruggehaalde aanval en vaker laat in de koers.
+- *Ploegorders:* Maak het hard, Niet meewerken, Ga mee, Een-twee, en een tweede
+  lead-outrenner als springplank. Andere ploegen rijden per race een vast plan. In de
+  ploegentijdrit: korte of lange beurten, of wachten op de vierde.
+- *Tijdrit en Race of Truth:* eigen tempo in stappen van 3% (91–103%).
+- *Onverhard:* uit de wegdekmodule van het pacingplan via de routevorm; trager, in
+  beeld, in de HUD en als beslismoment.
+- *Powerups:* burrito, spook, aambeeld en stoomwals erbij.
+- *Oefenen:* zeven korte koersen met elk één doel, als nieuwe tab.
+- De balanssimulatie meet nu ook de oefeningen (`DRILLS=1`).
+
+Cijfers en details: [ZWBgame, spelversie 7](docs/zwbgame.md#spelversie-7-nabespreking-oefenen-en-slimmere-tegenstanders-19-oktober-2026).
+Kort: de tacticus wordt met slimmere bots 7,4/6,0/2,8e (was 8,3/4,1/2,3), passief
+18,6/16,5/17,4e; passief meerijden haalt geen enkele weg-oefening.
+
+**Eigen keuzes.** De nabespreking toont alleen feiten; de uitleg staat op `/hulp`. De
+vraag uit het voorstel of dat past bij de huisregel over korte schermen ligt nog bij
+de eigenaar. Burrito en spook zitten in elke spelvorm in de pool (in Zwift alleen in
+sommige events). De ploegentijdrit-oefening rijdt tegen vijf referentierenners net
+boven het niveau van je ploeg, omdat de gewone clubploegen of te sterk of te zwak
+waren om iets te leren.
+
+**Bewust niet gebouwd.** Een aparte "laatste beurt"-knop in de ploegentijdrit (dat
+is Aanvallen), een fietswissel voor onverhard, en alles wat het voorstel onder "Niet
+bouwen" zet.
+
+**Getest.** 46 ZWBgame-unit-tests (+6), 22 Playwright-tests (+2: een oefening, de
+ploegentijdrit-orders), `tsc` en lint schoon. Volledige unitsuite groen op de bekende
+uitzonderingen na: `omnium-live` mist `.env.local`, en `admin-areas`,
+`intervals-ride-sync` en `zwift-subgroup-results` liepen onder volle belasting uit de
+tijd (los alle 24 groen). Screenshots op telefoon bekeken (oefenlijst, tempo, acht
+ploegorders, nabespreking); de nabespreking had eerst onleesbare labels, opgelost.
+**Niet geverifieerd:** of de routes op productie een vorm hebben en dus onverhard
+tonen, met de hand spelen op een telefoon, en het speelgevoel.
+
+**Niet meer waar.** In de ronde hieronder (spelversie 6) staat "D tot en met I ...
+bewust niet gebouwd" en dat er in de koerslijst geen inspanning staat: beide gelden
+sinds spelversie 7 niet meer. In [ZWBgame](docs/zwbgame.md) zijn de alinea's over
+powerups, ploegorders, bots en de ploegentijdrit bijgewerkt.
+
 ### Gebouwd — ZWBgame spelversie 6: tactiek telt
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. Spelversie
@@ -10515,7 +10570,7 @@ hooguit 7,4. Volledige tabel en kanttekeningen:
 
 **Bewust niet gebouwd.** D tot en met I uit het voorstel (nabespreking,
 oefenkoersen, onverhard, koers lezen, slimmere bots en ploegorders, tempo in de
-tijdrit). De inspanning van andere renners staat niet in de koerslijst: alleen het
+tijdrit). *Dezelfde dag alsnog gebouwd in spelversie 7, zie hierboven.* De inspanning van andere renners staat niet in de koerslijst: alleen het
 label "Aanval" en de knop Volg. Dat is module G.
 
 **Getest.** 40 ZWBgame-unit-tests (+6), alle 20 Playwright-tests, `tsc` en lint

@@ -58,6 +58,20 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
     };
     strip(groundVertices, "#92b27b");
     strip(roadVertices, "#525e60");
+    // Off the tarmac the road changes colour: dirt, gravel, cobbles.
+    const surfaceColors: Partial<Record<string, string>> = { dirt: "#8a6a46", gravel: "#9a8a70", cobbles: "#6f6a62", brick: "#7a4b3a", wood: "#7b5a3c", snow: "#e8eef0", grass: "#5d8a45" };
+    for (const section of route.rough ?? []) {
+      const color = surfaceColors[section.surface];
+      if (!color) continue;
+      const vertices: number[] = [], own: number[] = [];
+      for (let d = section.start, i = 0; d <= section.end; d += 10, i++) {
+        vertices.push(bend(d) - 5, worldY(d) + 0.02, -d, bend(d) + 5, worldY(d) + 0.02, -d);
+        if (i) { const n = i * 2; own.push(n - 2, n - 1, n, n - 1, n + 1, n); }
+      }
+      const g = geometry(new THREE.BufferGeometry());
+      g.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3)); g.setIndex(own); g.computeVertexNormals();
+      scene.add(new THREE.Mesh(g, material(color)));
+    }
     const dummy = new THREE.Object3D();
     const markerGeo = geometry(new THREE.BoxGeometry(0.11, 0.025, 4));
     // Time runs compressed, so the verge markers are spaced out to keep the picture calm.

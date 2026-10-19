@@ -1,9 +1,10 @@
 # ZWBgame als tactiekspel — onderzoek naar Zwift-racetactiek en bouwvoorstel
 
 Opgesteld op 19 oktober 2026, op vraag van de eigenaar: ZWBgame moet meer een
-tactisch spel worden dat Zwift-tactiek leert. **Status: A, B en C zijn dezelfde dag
-gebouwd (spelversie 6, zie [ZWBgame](zwbgame.md#spelversie-6-tactiek-19-oktober-2026));
-D tot en met I zijn nog niet gebouwd.** De diagnose hieronder gaat over spelversie 5,
+tactisch spel worden dat Zwift-tactiek leert. **Status: alle modules A tot en met I
+zijn dezelfde dag gebouwd: A, B en C in spelversie 6, D tot en met I en de extra
+powerups in spelversie 7 (zie [ZWBgame](zwbgame.md#spelversie-7-nabespreking-oefenen-en-slimmere-tegenstanders-19-oktober-2026)).
+Waar de bouw afwijkt van het voorstel, staat het bij "Voorstel voor de volgorde".** De diagnose hieronder gaat over spelversie 5,
 zoals die toen op `main` stond. Bronnen staan onderaan. Het zijn bijna allemaal
 praktijkverslagen en tests van Zwift Insider en Zwift zelf. Zwift publiceert zijn
 draftmodel niet, dus elk getal over de slipstream is gemeten door derden.
@@ -402,18 +403,30 @@ events toegestaan; in de game per spelvorm aan of uit.
    gebleken: bots die om de beurt op kop gaan en als groep achtervolgen, en een
    zwaardere beurt op kop in een grote groep. Zonder die twee reed een groep op het
    tempo van één renner op 82% en hield elke ontsnapping stand.*
-2. **D**, na de keuze over de huisregel.
+2. **D**, na de keuze over de huisregel. *Gebouwd in spelversie 7: drie stroken per
+   kilometer (groep, W′, tijd in de wind) met een tooltip per kilometer, de momenten
+   als lijst, vier kerngetallen. Alleen feiten; de betekenis staat op `/hulp`. De
+   eigenaar gaf geen apart antwoord op de huisregelvraag, maar vroeg om alle punten
+   te bouwen.*
 3. **G** en de bots uit **H**: zonder bots die tactiek gebruiken, valt er weinig te
-   lezen.
-4. **E** (oefenkoersen), met de lessen op `/hulp`.
-5. **I**, **F** en de ploegorders uit **H**, dan de extra powerups.
+   lezen. *Gebouwd: vlam bij een zichtbare aanval, rennerstype als icoon; bots vallen
+   aan over de top, onderaan een afdaling, op onverhard, na een teruggehaalde aanval en
+   vaker laat in de koers. "Achtervolgen alleen met genoeg renners" zat al in
+   spelversie 6 (groepsachtervolging).*
+4. **E** (oefenkoersen), met de lessen op `/hulp`. *Gebouwd: zeven oefeningen. De
+   ploegentijdrit-oefening rijdt tegen vijf referentierenners net boven jullie niveau,
+   omdat de gewone clubploegen of te sterk of te zwak waren om iets te leren.*
+5. **I**, **F** en de ploegorders uit **H**, dan de extra powerups. *Gebouwd. Tempo in
+   de tijdrit en Race of Truth in stappen van 3% (91–103%). Geen aparte "laatste
+   beurt"-knop: dat is Aanvallen. Onverhard komt uit de wegdekmodule van het
+   pacingplan via de routevorm (`zwift_routes.shape`).*
 
 ## Vragen voor de eigenaar
 
 1. **Hoeveel automatische piloot?** *Beantwoord op 19 oktober 2026: voor iedereen
    alleen het tempo volgen, geen aparte stand.*
 2. **Mag de nabespreking (D)** op het scherm staan als feiten zonder uitleg, met de
-   betekenis op `/hulp`?
+   betekenis op `/hulp`? *Zo gebouwd; nog aan de eigenaar om te beoordelen.*
 3. **Plannenboek.** Volgens AGENTS.md horen toekomstplannen in het plannenboek in je
    Drive. Dit document staat in `docs/` als onderzoek, zoals het ZRL- en FRR-plan
    eerder. Moet ik het voorstel ook in het plannenboek zetten?

@@ -6,6 +6,7 @@ import { botCommands, createRace, groupsOf, momentAt, standings, stepRace, STEP_
 import { deriveRider } from "../../src/lib/zwbgame/roster";
 import { gradeAt } from "../../src/lib/zwbgame/routes";
 import type { GameRider, GameRoute, Mode, PlayerCommand, RaceState } from "../../src/lib/zwbgame/types";
+import { createDrill, DRILLS, drillPassed } from "../../src/lib/zwbgame/drills";
 import { fixtureRoutes } from "../../tests/fixtures/zwbgame/routes";
 
 type Policy = (s: RaceState, i: number) => PlayerCommand[];
@@ -35,6 +36,11 @@ const tactician: Policy = (s, i) => {
   if (r.powerup === "feather" && gradeAt(s.route, r.distance) > 0.04) commands.push({ type: "powerup" });
   if (r.powerup === "draft" && r.sheltered && remaining < 2000) commands.push({ type: "powerup" });
   if (remaining < 280) return [...commands, mode("attack")];
+  // A team time trial: wait for the fourth rider, ride the wheel, empty it at the end.
+  if (s.config.mode === "zrl" && s.config.format === "ttt") return [{ type: "order", value: "four" }, mode(remaining < 500 ? "attack" : "ride")];
+  // Down a steep descent out of the wheel: supertuck.
+  const chasing = s.riders.some((x) => x !== r && x.finishTime === null && x.distance - r.distance > 20 && x.distance - r.distance < 150);
+  if (gradeAt(s.route, r.distance) <= -0.03 && !r.sheltered && r.speed > 16.5 && !chasing) return [...commands, mode("save")];
   const time = s.tick * STEP_SECONDS;
   if (time < 75) return [...commands, mode("front")];
   const order = standings(s).filter((x) => x.finishTime === null);
@@ -46,7 +52,7 @@ const tactician: Policy = (s, i) => {
   const ahead = groups[g - 1];
   if (ahead && remaining > 600) {
     const gap = ahead[ahead.length - 1].distance - r.distance;
-    if (gap < 200 && reserve > 0.25) return [...commands, mode(gap < 40 ? "attack" : "front")];
+    if (gap < 200 && reserve > 0.25) return [...commands, mode(gap < 120 ? "attack" : "front")];
   }
   // A move in your group: follow the wheel of whoever goes.
   const mover = group.find((x) => x !== r && x.distance > r.distance && x.effort > 1.25 && x.distance - r.distance < 40);
@@ -98,6 +104,26 @@ function race(route: GameRoute, seed: number, roster: GameRider[], policy: Polic
 }
 const kinds: Record<string, number> = {};
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+// DRILLS=1: how often each strategy passes each practice race.
+if (process.env.DRILLS) {
+  const roster = club(Number(process.env.FTP ?? 270));
+  const lines: string[] = [];
+  for (const drill of DRILLS) {
+    const rates = Object.entries(strategies).map(([name, policy]) => {
+      let passed = 0;
+      for (let k = 0; k < 10; k++) {
+        const state = createDrill(drill.id, roster, "me", 300 + k * 41);
+        const index = state.riders.findIndex((r) => r.rider.id === "me");
+        while (!state.finished) stepRace(state, state.tick % 10 === 0 ? policy(state, index) : []);
+        if (drillPassed(state)) passed++;
+      }
+      return `${name} ${passed}/10`;
+    });
+    lines.push(`${drill.title.padEnd(16)} ${rates.join(" · ")}`);
+  }
+  process.stdout.write(`${lines.join("\n")}\n`);
+  process.exit(0);
+}
 const seeds = Array.from({ length: Number(process.env.SEEDS ?? 10) }, (_, i) => 101 + i * 37);
 const levels = [Number(process.env.FTP ?? 270), 240, 300].slice(0, Number(process.env.LEVELS ?? 2));
 const started = Date.now();

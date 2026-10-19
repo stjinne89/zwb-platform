@@ -26,7 +26,7 @@ test("ladder challenge, riding modes, team order, pause and save/resume", async 
   await expect(page.getByRole("button", { name: "6 Breng me terug" })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Pauzeren", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Even op adem" })).toBeVisible();
-  const stored = await page.evaluate(() => localStorage.getItem("zwbgame:v6:demo-0:race"));
+  const stored = await page.evaluate(() => localStorage.getItem("zwbgame:v7:demo-0:race"));
   expect(stored).toBeTruthy(); expect(stored).not.toContain("de Vries"); expect(stored).not.toContain("grades");
   await page.reload();
   await page.getByRole("button", { name: "Hervat je koers" }).click();
@@ -56,7 +56,7 @@ test("a won ladder race scores the teams, climbs the ladder and removes the save
   await expect(page.getByRole("heading", { name: /ZWB Demo wint/ })).toBeVisible();
   await expect(page.getByText(/Ladder: plek \d+ → \d+/)).toBeVisible();
   await expect.poll(() => page.evaluate(() => localStorage.getItem("zwbgame:v1:demo-0:results"))).toContain('"score"');
-  expect(await page.evaluate(() => localStorage.getItem("zwbgame:v6:demo-0:race"))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem("zwbgame:v7:demo-0:race"))).toBeNull();
   const ladder = await page.evaluate(() => JSON.parse(localStorage.getItem("zwbgame:v5:demo-0:ladder") ?? "null"));
   expect(ladder.order.at(-1)).not.toBe("own");
   await page.getByRole("button", { name: "Nieuwe koers" }).click();
@@ -87,7 +87,30 @@ test("ZRL: the club race of the week, formats, team points and a TTT", async ({ 
   await page.getByRole("radio", { name: "Ploegentijdrit" }).click();
   await page.getByRole("button", { name: "Start de koers" }).click();
   await expect(page.getByTestId("team-score")).toContainText("BIJ ELKAAR");
-  await expect(page.getByRole("group", { name: "Ploegorder" })).toHaveCount(0);
+  // A team time trial has its own orders: how long the turns are, and waiting for the fourth.
+  await expect(page.getByRole("group", { name: "Ploegorder" }).getByRole("button")).toHaveCount(3);
+  await page.getByRole("button", { name: "7 Wacht op de vierde" }).click();
+  await expect(page.getByRole("button", { name: "7 Wacht op de vierde" })).toHaveAttribute("aria-pressed", "true");
+  expect(errors).toEqual([]);
+});
+
+test("practice: pick a drill, ride it, and see whether you made it", async ({ page }, info) => {
+  test.setTimeout(180000);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Oefenen" }).click();
+  await expect(page.getByRole("region", { name: "Oefenen" }).getByRole("listitem")).toHaveCount(7);
+  await page.getByRole("region", { name: "Oefenen" }).getByRole("listitem").filter({ hasText: "Slingshot" }).getByRole("button").click();
+  await page.getByRole("button", { name: "Start de oefening" }).click();
+  await expect(page.getByRole("heading", { name: "Slingshot" })).toBeVisible();
+  await expect(page.getByText("OEFENEN", { exact: true })).toBeVisible();
+  // A drill is never saved.
+  await page.waitForTimeout(1500);
+  expect(await page.evaluate(() => localStorage.getItem("zwbgame:v7:demo-0:race"))).toBeNull();
+  await expect(page.getByRole("heading", { name: /Gehaald|Niet gehaald/ })).toBeVisible({ timeout: 120000 });
+  await expect(page.getByRole("region", { name: "Koersverloop" })).toBeVisible();
+  await page.screenshot({ path: `.tmp/zwbgame-${info.project.name}-drill.png`, fullPage: true });
   expect(errors).toEqual([]);
 });
 
