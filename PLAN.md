@@ -6753,7 +6753,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > + core · onderhoud · **Clubraces** · Teams en scorebord · Aankomende events · Nieuws
 > · Ritverslagen · foto-nudge · badges · KOM's/QOM's · Training en clubactiviteit
 > (Strava-sync, `#strava-sync` werkt nog) · clubstats · polls en ledenvoordeel ·
-> sponsors. *(Sinds 2026-09-30 staat Instagram tussen trainingsstatus/core en
+> sponsors. *(Sinds 2026-10-19 staan de sponsors niet meer in het dashboard zelf
+> maar onder elke pagina, via de layout.)* *(Sinds 2026-09-30 staat Instagram tussen trainingsstatus/core en
 > onderhoud; zie "ZRL-uitslagen in Teams en scorebord".)*
 >
 > - **Jouw races** (`_components/my-races.tsx`, achter een Suspense): maximaal 3
@@ -10568,6 +10569,33 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — "Met dank aan onze sponsors" onder elke pagina
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. **Gepusht
+naar `main` op 2026-10-19.**
+
+**Waarom.** De eigenaar wil de sponsorstrip onder elke pagina, niet alleen onder
+het dashboard.
+
+**Wat er is.**
+- De logo-strip (`SponsorCarousel`) is verhuisd van `dashboard/_components` naar
+  `(app)/_components`. Een nieuwe servercomponent `SponsorFooter` haalt de
+  sponsors op en staat in `(app)/layout.tsx` onder de pagina-inhoud, in beide
+  designs (klassiek en tegels). Het dashboard toont hem dus niet meer zelf en
+  doet de sponsorquery niet meer.
+- De lijst wordt een uur gedeeld tussen alle leden (`unstable_cache`, service-rol;
+  sponsors zijn publiek leesbaar). Zonder cache zou elke paginaweergave een extra
+  databasevraag kosten. Elke sponsoractie op `/sponsors` leegt de cache meteen
+  (`updateTag`).
+
+**Bewust niet.** Niet op de pagina's buiten de ingelogde app (login, brochure,
+verhaal, privacy, `/live`, `/omnium`): die hebben een eigen layout, en de
+brochure heeft al een eigen sponsorblok. Op `/sponsors` zelf staat de strip ook,
+dubbel met de pagina; de layout kent het pad niet zonder extra clientcode.
+
+**Getest.** `tsc` en lint schoon. **Niet bekeken** in de browser: de pagina's
+vragen een login.
+
 ### Gebouwd — ZWBgame 3D-scène, stap 4: de camera
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe
@@ -10703,6 +10731,7 @@ heuvels aan de horizon en de camera zijn stap 2 tot en met 4.
 (desktop en Pixel 7-emulatie, software-WebGL). Of de schaduwkaart op een echte
 middenklasse-telefoon soepel blijft draaien, is niet gemeten; "3D · zuinig" is de
 uitweg.
+
 ### Gebouwd — kennisbank racen: tactiek in een Zwift-race
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. **Gepusht naar `main` op
@@ -21576,7 +21605,9 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
   Open Graph opgehaald, dubbele/ongeldige overgeslagen.
 - ✅ **Sponsor-bannercarousel** — afgerond 2026-05-29. Subtiele continu
   scrollende logo-strip onderaan `/dashboard` (CSS-marquee, hover-pauze,
-  reduced-motion-safe), logo's linken naar de sponsor-site.
+  reduced-motion-safe), logo's linken naar de sponsor-site. *(Sinds 2026-10-19
+  onder elke pagina in de app, via de layout; zie "Met dank aan onze sponsors"
+  onder elke pagina.)*
 - Challenges, AI-agenten, E2E-chat en Mollie: zie "Geparkeerd — hoort in het
   plannenboek" onderaan.
 - ✅ **Core & mobiliteit als eigen trainingsspoor** — gebouwd (migraties

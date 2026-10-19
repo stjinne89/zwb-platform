@@ -22,6 +22,7 @@ import {
   filterNavForPermissions,
 } from "./_components/nav-config";
 import { TegelsShell } from "./_components/tegels-shell";
+import { SponsorFooter } from "./_components/sponsor-footer";
 import { DesignSwitch } from "./_components/design-switch";
 import { DESIGN_PREVIEW_PERMISSION, getDesign } from "@/lib/design";
 import { countUnreadThreads } from "@/lib/zwbieb/queries";
@@ -152,6 +153,7 @@ export default async function AppLayout({
         }
       >
         {children}
+        <SponsorFooter />
         <DesignSwitch design={design} />
       </TegelsShell>
     );
@@ -196,6 +198,7 @@ export default async function AppLayout({
       </header>
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
         {children}
+        <SponsorFooter />
         {canPreviewDesign && <DesignSwitch design={design} />}
       </main>
       {needsPrivacyConsent && <PrivacyConsentDialog updated={signedBefore} />}
