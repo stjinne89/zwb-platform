@@ -75,7 +75,7 @@ export const HELP_CATEGORIES = [
     label: "Live volgen",
     text: "Met Garmin, Wahoo of OwnTracks op de kaart.",
     tone: "club",
-    anchors: ["livetrack", "owntracks"],
+    anchors: ["livetrack", "ritberichten", "owntracks"],
   },
   {
     id: "training",

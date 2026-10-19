@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUpRight, MapPin } from "lucide-react";
+import { ArrowUpRight, MapPin, MessageSquare } from "lucide-react";
 import { EmptyState } from "@/components/app-ui";
 import { LiveMap, type MapFocus, type PositionRow } from "./live-map";
+import { RiderMessageForm } from "./rider-message-form";
 import type { ActiveSession, RiderStats } from "../types";
 
 const MODE_LABELS: Record<ActiveSession["mode"], string> = {
@@ -52,16 +53,19 @@ export function LiveBoard({
   outdoorSessions,
   initialPositions,
   riderStats,
+  currentUserId,
   children,
 }: {
   sessions: ActiveSession[];
   outdoorSessions: ActiveSession[];
   initialPositions: PositionRow[];
   riderStats: Record<string, RiderStats>;
+  currentUserId: string;
   children: React.ReactNode;
 }) {
   const [focus, setFocus] = useState<MapFocus | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [messageId, setMessageId] = useState<string | null>(null);
 
   const outdoorIds = new Set(outdoorSessions.map((s) => s.id));
 
@@ -134,6 +138,20 @@ export function LiveBoard({
                       ) : (
                         <div className="min-w-0 flex-1">{info}</div>
                       )}
+                      {s.profileId !== currentUserId && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setMessageId((current) => (current === s.id ? null : s.id))
+                          }
+                          aria-expanded={messageId === s.id}
+                          aria-label={`Bericht aan ${s.profileName}`}
+                          title="Bericht op de fietscomputer"
+                          className="inline-flex shrink-0 items-center rounded-md border bg-background px-2 py-1 hover:bg-secondary"
+                        >
+                          <MessageSquare className="size-3.5" />
+                        </button>
+                      )}
                       {s.external_track_url && (
                         <a
                           href={s.external_track_url}
@@ -150,6 +168,7 @@ export function LiveBoard({
                         </a>
                       )}
                     </div>
+                    {messageId === s.id && <RiderMessageForm recipientId={s.profileId} />}
                     {openId === s.id && riderStats[s.id] && (
                       <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {statTiles(riderStats[s.id]).map((tile) => (

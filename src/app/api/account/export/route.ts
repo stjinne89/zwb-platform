@@ -82,6 +82,13 @@ export async function GET() {
     .maybeSingle();
   data.strava_connection = strava ?? null;
 
+  const { data: telegram } = await admin
+    .from("telegram_links")
+    .select("profile_id, chat_id, linked_at, created_at")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+  data.telegram_link = telegram ?? null;
+
   // Overige tabellen met profile_id (best-effort; sla missende tabellen over).
   for (const table of PROFILE_TABLES) {
     try {

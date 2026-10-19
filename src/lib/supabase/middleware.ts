@@ -46,6 +46,8 @@ const PUBLIC_PATHS = [
   "/api/ttt/plan",
   // Geen cron: agenda-apps halen het abonnement op met het token in het pad.
   "/api/agenda",
+  // Telegram roept de bot-webhook aan; de route controleert het geheim zelf.
+  "/api/telegram/webhook",
 ];
 
 // Paden die ook toegankelijk zijn voor ingelogde-maar-nog-niet-goedgekeurde users.

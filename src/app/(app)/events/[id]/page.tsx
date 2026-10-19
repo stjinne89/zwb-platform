@@ -1193,20 +1193,25 @@ export default async function EventDetailPage({
   // rit ophalen, zodat de chat als archief deel wordt van het ritverslag.
   let initialChat: ChatMessage[] = [];
   {
-    const { data: chatRows } = await supabase
-      .from("event_chat_messages")
-      .select(
-        "id, profile_id, guest_name, body, internal_only, created_at, profiles(display_name)",
-      )
-      .eq("event_id", id)
-      .order("created_at", { ascending: false })
-      .limit(eventIsToday ? 50 : 200);
-    initialChat = ((chatRows ?? []) as Array<{
+    const loadChat = (columns: string) =>
+      supabase
+        .from("event_chat_messages")
+        .select(columns)
+        .eq("event_id", id)
+        .order("created_at", { ascending: false })
+        .limit(eventIsToday ? 50 : 200);
+    const chatColumns =
+      "id, profile_id, guest_name, body, internal_only, created_at, profiles(display_name)";
+    // Zonder migratie 0253 bestaat to_riders niet; dan zonder die kolom.
+    const fullChat = await loadChat(`${chatColumns}, to_riders`);
+    const { data: chatRows } = fullChat.error ? await loadChat(chatColumns) : fullChat;
+    initialChat = ((chatRows ?? []) as unknown as Array<{
       id: string;
       profile_id: string | null;
       guest_name: string | null;
       body: string;
       internal_only: boolean | null;
+      to_riders?: boolean | null;
       created_at: string;
       profiles: unknown;
     }>)
@@ -1218,6 +1223,7 @@ export default async function EventDetailPage({
         body: r.body,
         createdAt: r.created_at,
         internal: Boolean(r.internal_only),
+        toRiders: Boolean(r.to_riders),
       }))
       .reverse();
   }
@@ -1644,6 +1650,7 @@ export default async function EventDetailPage({
           currentUserId={user?.id ?? null}
           isMember={Boolean(user)}
           canModerate={access.has("content.moderate_posts")}
+          canMessageRiders={canManage}
           initialMessages={initialChat}
         />
       )}

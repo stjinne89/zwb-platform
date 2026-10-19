@@ -235,6 +235,34 @@ Geen extra cron nodig: `/api/live/cleanup` (elke 15 min) werkt de open
 Garmin/Wahoo-sessies bij, en elke pagina die live-renners toont doet dat ook,
 hooguit één keer per 30 s per sessie.
 
+### Telegram-bot voor berichten op de fietscomputer (eenmalig)
+
+Een Wahoo ELEMNT toont geen pushmeldingen van ZWB, wel Telegram. Zonder bot
+werken de berichten alleen als pushmelding (Garmin en telefoon).
+
+1. Migratie `0253_ride_messages.sql` toepassen vóór de deploy. Zonder die
+   migratie mislukt het opslaan van de meldingsvoorkeuren op `/profiel`
+   (de kolom `on_ride_message` ontbreekt); de eventchat blijft wel werken.
+2. Telegram → `@BotFather` → `/newbot`. Naam bv. "ZWB", gebruikersnaam
+   bv. `ZwbCyclingBot`. Het token gaat naar Netlify als `TELEGRAM_BOT_TOKEN`,
+   de gebruikersnaam (zonder @) als `TELEGRAM_BOT_USERNAME`.
+3. Een geheim kiezen (`openssl rand -hex 24`) en in Netlify zetten als
+   `TELEGRAM_WEBHOOK_SECRET`.
+4. Na de deploy de webhook zetten (één keer, vanaf je eigen pc):
+
+   ```bash
+   curl -s "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+     -d url=https://<site>/api/telegram/webhook \
+     -d secret_token=<GEHEIM> \
+     -d allowed_updates='["message"]'
+   ```
+
+   Controleren met `getWebhookInfo`: `last_error_message` moet leeg zijn.
+
+Pas als `TELEGRAM_BOT_TOKEN` en `TELEGRAM_BOT_USERNAME` er staan, verschijnt
+het koppelpaneel op Samen fietsen. Een lid dat de bot blokkeert, wordt bij het
+volgende bericht vanzelf ontkoppeld.
+
 ---
 
 ## 6. Veelvoorkomende storingen

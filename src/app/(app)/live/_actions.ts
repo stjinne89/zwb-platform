@@ -15,6 +15,16 @@ import {
   mailAddressForCode,
   newMailCode,
 } from "@/lib/live/inbound-mail";
+import { rateLimitHit } from "@/lib/rate-limit";
+import { deliverRideMessage } from "@/lib/ride-messages/deliver";
+import {
+  hashLinkToken,
+  LINK_TOKEN_TTL_MS,
+  newLinkToken,
+  normalizeRideMessage,
+  telegramConfig,
+  telegramStartUrl,
+} from "@/lib/telegram/bot";
 
 function tokenHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
@@ -232,4 +242,93 @@ export async function endSession(sessionId: string) {
   revalidatePath("/live");
   revalidatePath("/samen-fietsen");
   return { ok: true as const };
+}
+
+/**
+ * Eenmalige koppellink voor de Telegram-bot (0253). Een bestaande koppeling
+ * blijft staan tot de bot het nieuwe token ontvangt.
+ */
+export async function createTelegramLink() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+  const config = telegramConfig();
+  if (!config) return { ok: false as const, error: "Niet beschikbaar." };
+
+  const token = newLinkToken();
+  const { error } = await createAdminClient()
+    .from("telegram_links")
+    .upsert(
+      {
+        profile_id: user.id,
+        link_token_hash: hashLinkToken(token),
+        link_token_expires_at: new Date(Date.now() + LINK_TOKEN_TTL_MS).toISOString(),
+      },
+      { onConflict: "profile_id" },
+    );
+  if (error) return { ok: false as const, error: error.message };
+
+  return { ok: true as const, url: telegramStartUrl(config.username, token) };
+}
+
+export async function removeTelegramLink() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  const { error } = await supabase.from("telegram_links").delete().eq("profile_id", user.id);
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/live");
+  revalidatePath("/samen-fietsen");
+  return { ok: true as const };
+}
+
+const LIVE_STALE_MS = 15 * 60 * 1000;
+
+/** Bericht van een lid naar iemand die nu live rijdt, op diens fietscomputer. */
+export async function sendRiderMessage(recipientId: string, rawBody: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+  if (recipientId === user.id) return { ok: false as const, error: "Dat ben je zelf." };
+
+  const body = normalizeRideMessage(rawBody);
+  if (!body) return { ok: false as const, error: "Leeg bericht." };
+
+  const { data: sender } = await supabase
+    .from("profiles")
+    .select("display_name, is_approved")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!sender?.is_approved) return { ok: false as const, error: "Geen toegang." };
+
+  const { data: session } = await supabase
+    .from("live_sessions")
+    .select("id")
+    .eq("profile_id", recipientId)
+    .is("ended_at", null)
+    .gte("last_seen_at", new Date(Date.now() - LIVE_STALE_MS).toISOString())
+    .limit(1)
+    .maybeSingle();
+  if (!session) return { ok: false as const, error: "Deze renner rijdt niet meer live." };
+
+  if (!(await rateLimitHit("ride_message", user.id, 10, 600)).allowed) {
+    return { ok: false as const, error: "Te veel berichten. Wacht even." };
+  }
+
+  const { reached } = await deliverRideMessage(createAdminClient(), {
+    recipientIds: [recipientId],
+    senderName: sender.display_name || "ZWB'er",
+    body,
+    url: "/samen-fietsen",
+    tag: `ride-${recipientId}`,
+  });
+  return { ok: true as const, reached };
 }

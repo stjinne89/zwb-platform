@@ -119,6 +119,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "garmin wahoo edge elemnt livetrack live track live volgen kaart samen fietsen mail adres ontvangers contact deelinstellingen veiligheid tracking sessiedetails",
   },
   {
+    title: "Berichten op je fietscomputer",
+    text: "Garmin via ZWB-meldingen, Wahoo via Telegram.",
+    href: "/hulp/live-volgen#ritberichten",
+    terms: "bericht berichten melding meldingen fietscomputer garmin wahoo elemnt edge telegram bot koppelen organisator livechat hergroeperen",
+  },
+  {
     title: "Live tracking instellen",
     text: "OwnTracks, koppellink, locatie-instellingen en controlemodus.",
     href: "/hulp/live-volgen#owntracks",

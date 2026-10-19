@@ -201,8 +201,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0252`
-(`0249_zwb_ds` en `0250_zwb_ds_more_rider_data` zijn van ZWB DS;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0254`
+(`0252_voorzpwelbokaal` is van het voorZpWelBokaal, 2026-10-19;
+`0253_ride_messages` is van de berichten op de fietscomputer, 2026-10-19;
+`0249_zwb_ds` en `0250_zwb_ds_more_rider_data` zijn van ZWB DS;
 `0251_weekly_reviews` is van het weekoverzicht, 2026-10-18;
 `0244_workout_library_ftp20_warmup` en `0245_mobility_jump_series` zijn van de
 wetenschappelijke toets, 2026-10-16, hernummerd bij het samenvoegen met main)
@@ -217,6 +219,76 @@ drie 2026-10-16; `0246_workout_method_labels` en
 2026-10-17, hernummerd van `0239` bij het samenvoegen met main).
 
 ---
+
+> **Berichten op de fietscomputer: push voor Garmin, Telegram voor Wahoo, 2026-10-19 — gebouwd; unit-tests (nieuw: `telegram-bot`, `ride-message-recipients`, `ride-messages-migration` op PGlite), typecheck en lint schoon; niet in de browser bekeken; geen echte Telegram-bot of fietscomputer gebruikt; lokaal gecommit, niet gepusht (eigenaar, 2026-10-19). Migratie `0253_ride_messages.sql` niet toegepast.**
+> Commit: de commit die dit blok toevoegt, op `claude/wahoo-garmin-direct-messages-598387`.
+>
+> **Getest.** Volledige suite: 2.999 van 3.001 tests geslaagd. De rest waren
+> time-outs onder last in `admin-areas`, `intervals-ride-sync` en
+> `rls-initplan-migration`; los gedraaid slagen ze. `omnium-live` kan in deze
+> worktree niet laden omdat `.env.local` ontbreekt. `help-categories` kent het
+> nieuwe anker `ritberichten` (`src/lib/help-categories.ts`).
+>
+> **Waarom.** Idee uit de club: tijdens Samen fietsen of een event een bericht
+> rechtstreeks op de fietscomputer van een renner zetten. Onderzocht
+> (Wahoo-support, 2026-10-19): de Garmin- en Wahoo-link (LiveTrack) werkt maar
+> één kant op en geen van beide merken heeft een API om tekst naar het toestel te
+> sturen. Wel tonen beide toestellen meldingen van de telefoon. Een Garmin toont
+> ook een ZWB-pushmelding. De ELEMNT toont alleen sms, WhatsApp, Telegram,
+> Signal, Line en WeChat (plus bellen en e-mail), voor oude en nieuwe ELEMNT's.
+> De eigenaar koos Telegram als kanaal voor Wahoo (gratis bot-API; WhatsApp
+> Business vraagt Meta-verificatie, sjablonen en betaalt per bericht).
+>
+> **Wat.**
+> - Eventchat: de maker van het event en wie `events.manage_all` heeft, zien het
+>   vinkje "Ook naar de fietscomputers van de rijders". Ontvangers: wie ja zei,
+>   plus wie misschien zei en nu live rijdt; de afzender niet. Het bericht staat
+>   ook in de chat, met een markering "rijders" (`event_chat_messages.to_riders`).
+>   Na het versturen meldt de chat bij hoeveel rijders het aankwam.
+> - Samen fietsen: per live renner een berichtknop. Elk goedgekeurd lid kan een
+>   renner berichten die nu live rijdt (niet zichzelf). Deze berichten worden
+>   niet bewaard.
+> - Bezorging (`src/lib/ride-messages/deliver.ts`): pushmelding met de nieuwe
+>   trigger `on_ride_message` (vinkje op het profiel, standaard aan) en Telegram
+>   voor wie gekoppeld is. Hetzelfde vinkje zet ook Telegram uit. Eén regel van
+>   hoogstens 160 tekens (`src/lib/telegram/limits.ts`): de ELEMNT toont een smalle
+>   balk en negeert regeleinden. Rem: 10 berichten per 10 minuten per afzender.
+> - Telegram-koppeling: paneel "Berichten via Telegram" op Samen fietsen (alleen
+>   als `TELEGRAM_BOT_TOKEN` en `TELEGRAM_BOT_USERNAME` gezet zijn). Koppelen maakt
+>   een eenmalige `t.me/<bot>?start=<token>`-link (30 minuten, alleen de hash in
+>   `telegram_links`); de webhook `/api/telegram/webhook` (geheim in
+>   `X-Telegram-Bot-Api-Secret-Token`) vult de chat-id. `/stop` in Telegram of
+>   Ontkoppelen op Samen fietsen wist de koppeling; een geblokkeerde bot ontkoppelt
+>   bij het volgende bericht vanzelf. Alleen de server schrijft in
+>   `telegram_links` (RLS: lid ziet en wist de eigen rij).
+> - `sendNotificationToMembers` geeft nu ook terug welke leden bereikt zijn.
+> - `/hulp/live-volgen#ritberichten`, privacyverklaring (nieuw punt plus Telegram
+>   als verwerker; geen nieuwe privacyversie, het is een eigen keuze per lid),
+>   gegevensexport (`telegram_link`), `.env.local.example` en runbook (bot maken,
+>   webhook zetten).
+>
+> **Bewust niet gebouwd.**
+> - Een eigen Connect IQ-veld: alleen Garmin, en de push dekt Garmin al.
+> - WhatsApp Business of sms: kosten per bericht, telefoonnummers opslaan,
+>   Meta-verificatie. Telegram doet hetzelfde op de ELEMNT.
+> - De Tasker-omweg (meldingen doorsturen als sms): niet aan leden te vragen.
+> - Een bericht aan iedereen die op Samen fietsen rijdt: zonder event is er geen
+>   groep of organisator; per renner volstaat.
+> - Berichten vanaf Samen fietsen bewaren: niet nodig voor de functie.
+>
+> **Volgorde bij uitrol.** Eerst `0253` toepassen. Zonder die migratie mislukt
+> het opslaan van de meldingsvoorkeuren op `/profiel` (kolom `on_ride_message`
+> ontbreekt); de eventchat en Samen fietsen vangen de ontbrekende kolom en tabel
+> wel op. Daarna de bot maken en de webhook zetten (runbook, "Telegram-bot").
+>
+> **Niet geverifieerd.** De eigenaar test eerst zonder code: een ZWB-push op een
+> Garmin Edge, een ZWB-push op de BOLT 2 (verwacht: niets) en een Telegram-bericht
+> op de BOLT 2. Of een ZWB-push op Android via Garmin Connect doorkomt, hangt af
+> van welke app de melding toont (browser of geïnstalleerde ZWB-app). Migratie
+> alleen op PGlite getest, niet op Supabase. De schermen niet in de browser
+> bekeken. Onderzoek en bronnen: dit blok (Wahoo-support:
+> "Text, call, and email notifications for ELEMNT ACE, BOLT 3 and ROAM 3" en
+> "Call, text, and email notifications with ELEMNT, BOLT v1/v2, and ROAM v2").
 
 > **Weekoverzicht: een pop-up op zondagavond, terug en vooruit, 2026-10-18 — gebouwd; unit-tests, typecheck en lint schoon; met voorbeelddata in de browser bekeken op 390 px en 1440 px, licht en donker (`/ontwerp-voorbeeld?scherm=weekoverzicht`); niet ingelogd met echte data bekeken; gepusht naar `main` (eigenaar, 2026-10-18, commit `28c77088`). Migratie `0251_weekly_reviews.sql` op 2026-10-18 via de Supabase-connector toegepast, op verzoek van de eigenaar.**
 > Commit: de commit die dit blok toevoegt, op `claude/weekly-member-overview-3ed783`.

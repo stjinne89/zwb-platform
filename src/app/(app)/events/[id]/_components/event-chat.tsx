@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { MessageCircle, Send, Trash2, Lock } from "lucide-react";
+import { Bike, MessageCircle, Send, Trash2, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { RIDE_MESSAGE_MAX } from "@/lib/telegram/limits";
 
 export type ChatMessage = {
   id: string;
@@ -14,6 +15,8 @@ export type ChatMessage = {
   body: string;
   createdAt: string;
   internal: boolean;
+  /** Ging ook naar de fietscomputers van de rijders (0253). */
+  toRiders?: boolean;
 };
 
 const QUICK_EMOJI = ["🔥", "💪", "👏", "🚴", "⛰️", "😅", "🎉", "❤️"];
@@ -33,6 +36,7 @@ export function EventChat({
   currentUserId,
   isMember,
   canModerate,
+  canMessageRiders = false,
   initialMessages,
   readOnly = false,
 }: {
@@ -41,6 +45,8 @@ export function EventChat({
   currentUserId: string | null;
   isMember: boolean;
   canModerate: boolean;
+  /** Maker van het event of beheerder: mag naar de fietscomputers sturen. */
+  canMessageRiders?: boolean;
   initialMessages: ChatMessage[];
   /** Archief-modus: alleen-lezen (geen invoer/realtime), als deel van het ritverslag. */
   readOnly?: boolean;
@@ -49,6 +55,8 @@ export function EventChat({
   const [body, setBody] = useState("");
   const [guestName, setGuestName] = useState("");
   const [internal, setInternal] = useState(false);
+  const [toRiders, setToRiders] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -128,6 +136,7 @@ export function EventChat({
     }
     setSending(true);
     setError(null);
+    setStatus(null);
     try {
       const res = await fetch(base, {
         method: "POST",
@@ -136,11 +145,16 @@ export function EventChat({
           body: text,
           guestName: currentUserId ? undefined : guestName.trim(),
           internalOnly: isMember ? internal : false,
+          toRiders: canMessageRiders ? toRiders : false,
         }),
       });
-      const data = (await res.json()) as { ok: boolean; error?: string };
+      const data = (await res.json()) as { ok: boolean; error?: string; reached?: number };
       if (data.ok) {
         setBody("");
+        if (typeof data.reached === "number") {
+          setStatus(`Op de fietscomputer van ${data.reached} ${data.reached === 1 ? "rijder" : "rijders"}.`);
+          setToRiders(false);
+        }
         refetch();
       } else {
         setError(data.error ?? "Versturen faalde.");
@@ -192,6 +206,12 @@ export function EventChat({
               {m.isGuest && (
                 <span className="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                   gast
+                </span>
+              )}
+              {m.toRiders && (
+                <span className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-xs text-primary">
+                  <Bike className="size-2.5" />
+                  rijders
                 </span>
               )}
               {m.internal && (
@@ -254,7 +274,7 @@ export function EventChat({
               send();
             }
           }}
-          maxLength={500}
+          maxLength={toRiders ? RIDE_MESSAGE_MAX : 500}
           placeholder="Moedig aan…"
           className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
@@ -274,6 +294,18 @@ export function EventChat({
         </label>
       )}
 
+      {canMessageRiders && (
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={toRiders}
+            onChange={(e) => setToRiders(e.target.checked)}
+          />
+          Ook naar de fietscomputers van de rijders
+        </label>
+      )}
+
+      {status && <p className="text-xs text-muted-foreground">{status}</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
         </>
       )}

@@ -15,6 +15,7 @@ type Props = {
   initialPreferences: {
     on_new_event: boolean;
     on_live_started: boolean;
+    on_ride_message: boolean;
     on_new_badge: boolean;
     on_training_plan: boolean;
     on_training_chat: boolean;
@@ -237,6 +238,14 @@ export function PushToggle({
             defaultChecked={initialPreferences.on_live_started}
           />
           Iemand start een live-rit waar ik mee fiets
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="on_ride_message"
+            defaultChecked={initialPreferences.on_ride_message}
+          />
+          Bericht op mijn fietscomputer tijdens een rit
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input

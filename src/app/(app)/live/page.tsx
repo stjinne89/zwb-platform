@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { inboundDomain } from "@/lib/live/inbound-mail";
+import { telegramConfig } from "@/lib/telegram/bot";
 import { PageHeader } from "@/components/app-ui";
 import { LiveBoard } from "./_components/live-board";
 import {
@@ -10,6 +11,7 @@ import {
 } from "./_components/owntracks-panel";
 import { LiveTrackPanel } from "./_components/livetrack-panel";
 import { StopLiveButton } from "./_components/stop-button";
+import { TelegramPanel } from "./_components/telegram-panel";
 import type { ActiveSession, RiderStats } from "./types";
 
 export const dynamic = "force-dynamic";
@@ -95,6 +97,7 @@ export default async function LivePage() {
     { data: mailTokens },
     { data: wahooTokens },
     { data: ownProfile },
+    { data: telegramLink },
   ] = await Promise.all([
     supabase
       .from("live_sessions")
@@ -134,6 +137,12 @@ export default async function LivePage() {
       .from("profiles")
       .select("live_heart_rate_consent_at")
       .eq("id", user.id)
+      .maybeSingle(),
+    // Zonder migratie 0253 bestaat de tabel niet; dan gewoon niet gekoppeld.
+    supabase
+      .from("telegram_links")
+      .select("chat_id")
+      .eq("profile_id", user.id)
       .maybeSingle(),
   ]);
 
@@ -182,6 +191,7 @@ export default async function LivePage() {
         outdoorSessions={outdoorSessions}
         initialPositions={positionRows ?? []}
         riderStats={riderStats}
+        currentUserId={user.id}
       >
         <div className="space-y-4">
           {mySession && (
@@ -198,6 +208,7 @@ export default async function LivePage() {
             </section>
           )}
           {mailPanel}
+          {telegramConfig() && <TelegramPanel linked={Boolean(telegramLink?.chat_id)} />}
           <OwnTracksPanel tokenStatus={trackerStatus} />
         </div>
       </LiveBoard>

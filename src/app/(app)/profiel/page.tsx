@@ -167,7 +167,7 @@ export default async function ProfielPage({
     supabase
       .from("notification_preferences")
       .select(
-        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_training_chat, on_knowledge_message, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_intervals_visit_reminder",
+        "on_new_event, on_live_started, on_ride_message, on_new_badge, on_training_plan, on_training_chat, on_knowledge_message, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_intervals_visit_reminder",
       )
       .eq("profile_id", user.id)
       .maybeSingle(),
@@ -350,6 +350,7 @@ export default async function ProfielPage({
           initialPreferences={{
             on_new_event: pushPrefs?.on_new_event ?? true,
             on_live_started: pushPrefs?.on_live_started ?? true,
+            on_ride_message: pushPrefs?.on_ride_message ?? true,
             on_new_badge: pushPrefs?.on_new_badge ?? false,
             on_training_plan: pushPrefs?.on_training_plan ?? true,
             on_training_chat: pushPrefs?.on_training_chat ?? true,

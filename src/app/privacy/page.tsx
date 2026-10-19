@@ -275,6 +275,17 @@ export default function PrivacyPage() {
             &ldquo;Koppeling stoppen&rdquo; of &ldquo;Ontkoppelen&rdquo;.
           </li>
           <li>
+            <strong>Berichten op je fietscomputer:</strong> de maker van een
+            event of een clublid kan je tijdens een rit een kort bericht sturen.
+            Dat gaat als melding naar je telefoon en, als je Telegram koppelt,
+            via onze Telegram-bot. Bij een Telegram-koppeling bewaren we alleen
+            het nummer van je chat met de bot; de tekst van het bericht en de
+            naam van de afzender gaan via Telegram naar je toe. Een bericht van
+            de organisator staat ook in de livechat van het event; een bericht
+            vanaf Samen fietsen bewaren we niet. Uitzetten kan op je profiel,
+            ontkoppelen op Samen fietsen of met /stop in Telegram.
+          </li>
+          <li>
             <strong>Grofmazig bereden gebied (ZWBlokken):</strong> uit je
             Strava-ritten leiden we af in welke vakken van ongeveer anderhalve
             kilometer je gereden hebt. Die kaart is voor clubleden zichtbaar,
@@ -527,7 +538,8 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Mapbox/OpenStreetMap</strong> (kaarten), <strong>Resend</strong>{" "}
-            (e-mail, ook het ontvangen van je LiveTrack-mail), <strong>Mollie</strong> (eventuele betalingen),
+            (e-mail, ook het ontvangen van je LiveTrack-mail), <strong>Telegram</strong>{" "}
+            (alleen als je die koppelt, voor berichten op je fietscomputer), <strong>Mollie</strong> (eventuele betalingen),
             web-push-diensten (notificaties), en embeds van YouTube/Spotify.
           </li>
         </ul>

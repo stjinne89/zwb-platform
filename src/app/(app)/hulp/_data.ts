@@ -296,6 +296,24 @@ export const LIVETRACK_NOTES = [
   "Een nieuw adres maken vervangt het oude meteen. Koppeling stoppen of ontkoppelen werkt direct; haal het adres daarna ook weg in Garmin Connect.",
 ];
 
+export const RIDE_MESSAGE_GARMIN_STEPS = [
+  "Zet op je profiel de ZWB-meldingen aan op je telefoon en vink Bericht op mijn fietscomputer aan. Op een iPhone werkt dat alleen als ZWB als app op je beginscherm staat.",
+  "Zet in Garmin Connect de meldingen van je telefoon aan voor je Edge of horloge. Op Android kies je daar per app; vink ZWB of je browser aan.",
+];
+
+export const RIDE_MESSAGE_WAHOO_STEPS = [
+  "Installeer Telegram op je telefoon. De ELEMNT toont geen ZWB-meldingen, wel die van Telegram.",
+  "Klik op Samen fietsen bij Berichten via Telegram op Koppelen en dan op Open Telegram. Druk in Telegram op Start.",
+  "Zet in de Wahoo-app bij je ELEMNT de meldingen voor berichten aan (bij een oudere ELEMNT heet dat Alerts).",
+];
+
+export const RIDE_MESSAGE_NOTES = [
+  "De maker van een event stuurt een bericht vanuit de livechat; elk lid kan op Samen fietsen een bericht sturen aan iemand die live rijdt.",
+  "Berichten zijn één regel van hoogstens 160 tekens.",
+  "Hangt er ook een smartwatch aan je telefoon, dan krijgt de ELEMNT de melding soms niet.",
+  "Stoppen kan met Ontkoppelen op Samen fietsen, of met /stop in Telegram. Het vinkje op je profiel zet beide kanalen uit.",
+];
+
 export const OWNTRACKS_STEPS = [
   {
     title: "Installeer OwnTracks",
