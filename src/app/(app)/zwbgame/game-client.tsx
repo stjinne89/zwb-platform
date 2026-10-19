@@ -37,7 +37,7 @@ const orders: { id: TeamOrder; label: string; key: string }[] = [
   { id: "hard", label: "Maak het hard", key: "9" },
   { id: "sit", label: "Niet meewerken", key: "0" },
   { id: "cover", label: "Ga mee", key: "g" },
-  { id: "onetwo", label: "Een-twee", key: "e" },
+  { id: "onetwo", label: "Om beurten aanvallen", key: "o" },
 ];
 const tttOrders: { id: TeamOrder; label: string; key: string }[] = [
   { id: "short", label: "Korte beurten", key: "5" },
@@ -91,6 +91,8 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
   const [results, setResults] = useState<RaceResult[]>([]);
   const [outcome, setOutcome] = useState<Outcome>(null);
   const [overview, setOverview] = useState(false);
+  // The group the camera shows, by a rider in it; null follows you.
+  const [watching, setWatching] = useState<string | null>(null);
   const [lowQuality, setLowQuality] = useState(false);
   const [settings, setSettings] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(false);
@@ -319,7 +321,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       }
       if (!next) throw new Error("Starten mislukt.");
       setOutcome(null);
-      engine.current = next; queue.current = []; setRace({ ...next }); setPaused(false); setSettings(false); save();
+      engine.current = next; queue.current = []; setRace({ ...next }); setPaused(false); setSettings(false); setWatching(null); save();
     } catch (e) { setError(e instanceof Error ? e.message : "Starten mislukt."); }
     finally { setBusy(false); }
   }
@@ -327,7 +329,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
     try { localStorage.removeItem(tourKey(data.playerId)); } catch { /* nothing stored */ }
     setTour(null);
   }
-  function back() { save(); setPaused(true); engine.current = null; setRace(null); setOutcome(null); }
+  function back() { save(); setPaused(true); engine.current = null; setRace(null); setOutcome(null); setWatching(null); }
   async function updatePreferences(visible: boolean, ownProfile: boolean) {
     setBusy(true); setError("");
     try { const result = await saveGamePreferences({ visible, ownProfile }); if (!result.ok) throw new Error(result.error); await reload(); }
@@ -375,6 +377,9 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
   const order = standings(active);
   const place = order.indexOf(me) + 1;
   const groups = groupsOf(order);
+  // A watched rider in your own group, or one that finished, hands the camera back to you.
+  const watchedRider = watching ? active.riders.find((r) => r.rider.id === watching) : undefined;
+  const watched = watchedRider && watchedRider.finishTime === null && !groups.find((g) => g.includes(me))?.includes(watchedRider) ? watchedRider : undefined;
   const finishedCount = order.filter((r) => r.finishTime !== null).length;
   const remaining = Math.max(0, shown.length - me.distance);
   const next = accentAhead(shown, me.distance);
@@ -427,7 +432,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       </form>
     </section>}
     <div className={styles.stage} data-testid="game-stage">
-      <RaceScene state={active} overview={overview} lowQuality={lowQuality} raised={Boolean(race) && landscape} stepTicks={ticks} />
+      <RaceScene state={active} overview={overview} lowQuality={lowQuality} raised={Boolean(race) && landscape} stepTicks={ticks} watchId={race ? watched?.rider.id : undefined} />
       <div className={styles.stageShade} />
       {!race ? <div className={styles.hero}>
         <span className={styles.eyebrow}>ZWB CYCLING • {modeNames[mode]}</span>
@@ -449,12 +454,16 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
             const mine = group.includes(me);
             const gap = i === 0 ? 0 : (groups[0][0].distance - group[0].distance) / Math.max(group[0].speed, 5);
             const mates = group.filter((r) => r.team === OWN_TEAM).length, rivals = group.filter((r) => r.team && r.team !== OWN_TEAM).length;
-            return <li key={group[0].rider.id} data-mine={mine || undefined}>
-              <span>{i === 0 && !finishedCount ? "Kop" : `+${clock(gap)}`}</span>
-              <strong>{group.length}</strong>
-              {score && <small>{mates}–{rivals}</small>}
-              {zrl && mates > 0 && <small><Shield size={10} />{mates}</small>}
-              {mine && <em>Jij</em>}
+            const label = i === 0 && !finishedCount ? "Kop" : `+${clock(gap)}`;
+            const shownHere = watched ? group.includes(watched) : mine;
+            return <li key={group[0].rider.id} data-mine={mine || undefined} data-watching={(watched && shownHere) || undefined}>
+              <button type="button" aria-pressed={shownHere} aria-label={mine ? `Jouw groep, ${group.length} renners` : `Bekijk groep ${label}, ${group.length} renners`} onClick={() => setWatching(mine ? null : group[0].rider.id)}>
+                <span>{label}</span>
+                <strong>{group.length}</strong>
+                {score && <small>{mates}–{rivals}</small>}
+                {zrl && mates > 0 && <small><Shield size={10} />{mates}</small>}
+                {mine && <em>Jij</em>}
+              </button>
             </li>;
           })}
         </ol>

@@ -10569,6 +10569,40 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBgame liggend: hoogteprofiel, groep bekijken, conditiebalk en "Om beurten aanvallen"
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe
+spelversie. **Gepusht naar `main` op 2026-10-19.**
+
+**Waarom.** De eigenaar speelde liggend op de telefoon en zag drie dingen: een donkere
+balk die over de hele breedte liep, geen hoogteprofiel tijdens de race, en de wens om
+op een groep te tikken en die groep in beeld te krijgen.
+
+**Wat er is.**
+- *Conditiebalk:* op telefoons tot 760 px breed gaf de staande regel `.conditions`
+  een rechterrand mee, waardoor de balk liggend tot de andere kant van het scherm
+  doorliep. Liggend is hij nu zo breed als de inhoud, met hoogstens ruim de helft van
+  het scherm.
+- *Hoogteprofiel:* het profiel met sprints, KOM's, ronden, onverhard en jouw plek
+  staat liggend rechtsboven, onder de knoppen voor camera en kwaliteit.
+- *Groep bekijken:* de groepen bovenin zijn knoppen. Een tik op een andere groep
+  laat de camera langs de weg naar die groep glijden (een sprong van meer dan 500 m
+  gaat direct); de knop krijgt een blauwe rand. Een tik op je eigen groep, of als die
+  groep in de jouwe opgaat of finisht, en de camera volgt jou weer. De gouden ring
+  blijft op jou. Werkt ook staand en op desktop.
+- *Ploegorder hernoemd:* "Een-twee" heet nu "Om beurten aanvallen", met toets O in
+  plaats van E. De eigenaar vond de oude naam onduidelijk. De werking is gelijk
+  (`onetwo` in de code en in opgeslagen races blijft, dus geen nieuwe spelversie).
+- Uitleg op `/hulp` (ZWBgame, liggend spelen, ploegorders) en zoektermen bijgewerkt.
+- De browsertest voor een liggende telefoon controleert nu ook het profiel, de
+  breedte van de conditiebalk en dat je eigen groep de getoonde is.
+
+**Bewust niet gedaan.** "Maak het hard" houdt zijn naam: voorgesteld was "Tempo op
+kop", maar de eigenaar koos ervoor het zo te laten. De andere ordernamen zijn ook
+ongewijzigd. De ploegorders nemen liggend veel ruimte in; daar is niets aan gedaan.
+
+**Niet lokaal te controleren.** Getest op 760 × 351 en 844 × 390 in de lokale demo,
+niet op de telefoon van de eigenaar zelf.
 ### Gebouwd — "Met dank aan onze sponsors" onder elke pagina
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. **Gepusht

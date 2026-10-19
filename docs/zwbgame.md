@@ -216,11 +216,11 @@ rijdt een ploeggenoot binnen 25 m van je op aanvalstempo voor je uit, in de laat
 800 m een tweede (springplanken). Sinds spelversie 7 ook: Maak het hard (ploeggenoten
 binnen 40 m rijden Naar voren tot 1,5 km voor de streep), Niet meewerken
 (ploeggenoten meer dan 15 m achter je sparen), Ga mee (ploeggenoten volgen elke
-zichtbare aanval van een andere ploeg binnen 40 m meteen) en Een-twee (is jouw aanval
+zichtbare aanval van een andere ploeg binnen 40 m meteen) en Om beurten aanvallen (toets O, tot 19 oktober 2026 Een-twee; is jouw aanval
 teruggehaald, dan valt de ploeggenoot met de meeste reserve binnen 25 m aan; één
 tegelijk). In de ploegentijdrit: Korte beurten, Lange beurten, Wacht op de vierde.
 Andere ploegen rijden per race een vast plan uit `teamOrder` (seed en route): op een
-heuvelroute vaak hard maken, anders meegaan, een-twee of vrij; in een ploegentijdrit
+heuvelroute vaak hard maken, anders meegaan, om beurten aanvallen of vrij; in een ploegentijdrit
 korte beurten of wachten op de vierde.
 
 ## Gegevens en toestemming

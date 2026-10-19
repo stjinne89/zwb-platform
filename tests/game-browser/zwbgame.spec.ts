@@ -202,5 +202,11 @@ test("landscape phone: the race fills the screen with the controls in reach", as
   await page.keyboard.press("ArrowUp");
   await expect(page.getByRole("button", { name: "4 Aanvallen" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("list", { name: "Groepen" })).toBeVisible();
+  // The course profile stays in view, and the conditions bar does not run across the screen.
+  await expect(page.getByRole("img", { name: "Hoogteprofiel route" })).toBeVisible();
+  const conditions = (await page.getByText("drempel").locator("..").boundingBox())!;
+  expect(conditions.x + conditions.width).toBeLessThan(844 * 0.6);
+  // Your own group is the one shown.
+  await expect(page.getByRole("list", { name: "Groepen" }).getByRole("button", { pressed: true })).toContainText("Jij");
   await page.screenshot({ path: `.tmp/zwbgame-${info.project.name}-landscape.png` });
 });

@@ -12,8 +12,9 @@ import { createForest, createRidges, groundGeometry, smoothstep } from "./scener
 /**
  * raised: controls cover the lower part of the screen, so the picture shifts up.
  * stepTicks: simulation steps per shown step (time compression).
+ * watchId: a rider whose group the camera shows instead of yours.
  */
-type Props = { state: RaceState; overview: boolean; lowQuality: boolean; raised?: boolean; stepTicks?: number };
+type Props = { state: RaceState; overview: boolean; lowQuality: boolean; raised?: boolean; stepTicks?: number; watchId?: string };
 const bend = (d: number) => Math.sin(d / 450) * 35 + Math.sin(d / 180) * 7;
 // Late-morning sun from the right and a little ahead: shadows fall left of the riders, in view.
 const SUN = new THREE.Vector3(0.55, 0.72, -0.42).normalize();
@@ -34,11 +35,11 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-export default function RaceScene({ state, overview, lowQuality, raised = false, stepTicks = 1 }: Props) {
+export default function RaceScene({ state, overview, lowQuality, raised = false, stepTicks = 1, watchId }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const latest = useRef({ state, overview, raised, stepTicks });
+  const latest = useRef({ state, overview, raised, stepTicks, watchId });
   const [failed, setFailed] = useState(false);
-  useEffect(() => { latest.current = { state, overview, raised, stepTicks }; }, [state, overview, raised, stepTicks]);
+  useEffect(() => { latest.current = { state, overview, raised, stepTicks, watchId }; }, [state, overview, raised, stepTicks, watchId]);
   const route = state.route;
   const riderCount = state.riders.length;
   const teamKey = state.riders.map((r) => r.team ?? "").join("");
@@ -178,7 +179,7 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
     const motion = new Map<string, { crank: number; tuck: number; stand: number }>();
     const look = new THREE.Vector3(), atRider = new THREE.Vector3(), roadAhead = new THREE.Vector3(), roadRight = new THREE.Vector3();
     // The camera rig works in the road's own frame: metres right of, above and behind the player.
-    const rig = { right: 8, up: 8.5, back: 17, lift: 0, lane: 0, fov: 48, finish: 0, idle: 0 };
+    const rig = { right: 8, up: 8.5, back: 17, lift: 0, lane: 0, fov: 48, finish: 0, idle: 0, shift: 0, target: "", focus: 0 };
     let appliedRaise: boolean | null = null;
     const frameView = () => {
       const { width, height } = element.getBoundingClientRect();
@@ -224,7 +225,14 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
         shown.lane = shown.fromLane + (shown.toLane - shown.fromLane) * alpha;
       }
       const me = current.state.riders.find((r) => r.rider.id === current.state.config.playerId)!;
-      const focus = Math.min(displayed.get(me.rider.id)!.distance, route.length + 10);
+      // The camera follows you, or the rider whose group you chose to watch.
+      const target = (current.watchId && current.state.riders.find((r) => r.rider.id === current.watchId)) || me;
+      const targetD = Math.min(displayed.get(target.rider.id)!.distance, route.length + 10);
+      // Switching groups glides along the road; a jump of more than 500 m cuts straight there.
+      if (target.rider.id !== rig.target) { rig.shift = rig.target && Math.abs(rig.focus - targetD) < 500 ? rig.focus - targetD : 0; rig.target = target.rider.id; }
+      rig.shift *= Math.exp(-dt * 2.5);
+      const focus = targetD + rig.shift;
+      rig.focus = focus;
       const focusY = worldY(focus), focusX = bend(focus);
       // Following the rider along the road is exact; everything else about the camera eases.
       const ease = (rate: number) => initialized ? 1 - Math.exp(-dt * rate) : 1;
@@ -233,13 +241,13 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
       // Climbs lift the camera so the road ahead stays in view; descents bring it down for speed.
       rig.lift += ((current.overview ? 0 : Math.max(-2.2, Math.min(3, terrainGrade(focus) * 28))) - rig.lift) * ease(1.5);
       // Lane changes are followed halfway and softly, so swerving does not shake the picture.
-      rig.lane += (displayed.get(me.rider.id)!.lane * 0.5 - rig.lane) * ease(2);
+      rig.lane += (displayed.get(target.rider.id)!.lane * 0.5 - rig.lane) * ease(2);
       // After your finish the camera swings round to the front and looks back at you.
       rig.finish += ((me.finishTime !== null && !current.overview ? 1 : 0) - rig.finish) * ease(0.6);
       // Standing still (start screen, pause): a slow drift keeps the picture alive.
       rig.idle += ((now - tickAt > 1200 ? 1 : 0) - rig.idle) * ease(0.8);
       // A wider view at speed and when you go out of the saddle.
-      const fov = current.overview ? 48 : 46 + smoothstep(8, 17, me.speed) * 6 + (motion.get(me.rider.id)?.stand ?? 0) * 4;
+      const fov = current.overview ? 48 : 46 + smoothstep(8, 17, target.speed) * 6 + (motion.get(target.rider.id)?.stand ?? 0) * 4;
       rig.fov += (fov - rig.fov) * ease(2);
       if (Math.abs(camera.fov - rig.fov) > 0.01) { camera.fov = rig.fov; camera.updateProjectionMatrix(); }
       initialized = true;
@@ -280,11 +288,11 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
         const helping = r.team === "own" && r.rider.id !== current.state.config.playerId;
         dummy.position.set(bend(d) + position.lane, worldY(d) + 0.035, -d); dummy.rotation.set(-Math.PI / 2, 0, 0); dummy.scale.setScalar(helping ? 1 : 0); dummy.updateMatrix(); helperMarkers.setMatrixAt(i, dummy.matrix);
         blobs.setMatrixAt(i, matrix.multiplyMatrices(parent.matrix, blobLocal));
+        if (r === me) playerMarker.position.set(bend(d) + position.lane, worldY(d) + 0.04, -d);
         peloton.place(i, parent.matrix, m.tuck, m.stand, m.crank);
       });
       peloton.commit();
       helperMarkers.instanceMatrix.needsUpdate = true; blobs.instanceMatrix.needsUpdate = true;
-      playerMarker.position.set(focusX + displayed.get(me.rider.id)!.lane, focusY + 0.04, -focus);
       if (!document.hidden) renderer.render(scene, camera);
       frame = requestAnimationFrame(render);
     };
