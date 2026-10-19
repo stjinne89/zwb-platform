@@ -197,7 +197,9 @@ export function PowerPrint({ power }: { power: PowerSection }) {
   const y = (v: number) => 230 - ((v - low) / Math.max(1, high - low)) * 200;
   const weekPath = `M22 230 ${power.points.map((point, i) => (point.week != null ? `L${xs(i)} ${y(point.week)}` : "")).join(" ")} L${xs(power.points.length - 1)} 230 Z`;
   const best = power.points.map((point, i) => (point.best != null ? `${xs(i)} ${y(point.best)}` : null)).filter(Boolean);
-  const recordIndex = power.record ? power.points.findIndex((point) => point.seconds === power.record?.seconds) : -1;
+  // Het record, of anders de duur die het dichtst bij het jaarbeste kwam.
+  const marked = power.record ?? power.focus ?? null;
+  const recordIndex = marked ? power.points.findIndex((point) => point.seconds === marked.seconds) : -1;
   return (
     <svg viewBox="0 0 390 280" aria-label="Piekvermogen van de week">
       <g className={pass(1)}>{points.length ? <path className={s.fg} d={weekPath} /> : null}</g>
@@ -210,11 +212,11 @@ export function PowerPrint({ power }: { power: PowerSection }) {
       {power.points.map((point, i) => (
         <Label key={point.label} x={xs(i)} y={252} anchor={i === 0 ? "start" : i === power.points.length - 1 ? "end" : "middle"}>{point.label}</Label>
       ))}
-      {recordIndex >= 0 && power.record ? (
+      {recordIndex >= 0 && marked ? (
         <g className={pass(3)}>
-          <circle className={s.fc} cx={xs(recordIndex)} cy={y(power.record.watts)} r={9} />
-          <Label x={xs(recordIndex) + (recordIndex > 2 ? -14 : 14)} y={y(power.record.watts) - 12} anchor={recordIndex > 2 ? "end" : "start"}>
-            {power.record.watts} W · record
+          <circle className={s.fc} cx={xs(recordIndex)} cy={y(marked.watts)} r={9} />
+          <Label x={xs(recordIndex) + (recordIndex > 2 ? -14 : 14)} y={y(marked.watts) - 12} anchor={recordIndex > 2 ? "end" : "start"}>
+            {marked.watts} W{power.record ? " · record" : ""}
           </Label>
         </g>
       ) : null}

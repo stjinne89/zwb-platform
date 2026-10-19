@@ -100,7 +100,13 @@ function buildSlides(
             <small>km</small>
           </h2>
           <p className={`${s.sub} ${s.txt}`}>
-            {rides.count === 1 ? "Eén rit" : `${rides.count} ritten`}, <b>{clock(rides.movingMinutes)} uur</b>
+            {rides.count === 1 ? "Eén rit" : `${rides.count} ritten`}
+            {/* Een CSV-import zonder tijden geeft 0 minuten: dan geen "0:00 uur". */}
+            {rides.movingMinutes > 0 ? (
+              <>
+                , <b>{clock(rides.movingMinutes)} uur</b>
+              </>
+            ) : null}
             {rides.elevationM > 0 ? (
               <>
                 {" "}en <b>{elevation(rides.elevationM)} hoogtemeters</b>
@@ -175,10 +181,7 @@ function buildSlides(
   }
 
   if (power) {
-    const shown = power.record ?? (() => {
-      const point = power.points.find((p) => p.seconds === 300 && p.week) ?? power.points.find((p) => p.week);
-      return point ? { label: point.label, watts: point.week as number, wattsPerKg: null, seconds: point.seconds } : null;
-    })();
+    const shown = power.record ?? power.focus;
     if (shown) {
       slides.push({
         key: "power",
@@ -196,6 +199,10 @@ function buildSlides(
             {power.record?.wattsPerKg ? (
               <p className={`${s.sub} ${s.txt}`}>
                 <b>{power.record.wattsPerKg.toLocaleString("nl-NL")} W/kg</b>.
+              </p>
+            ) : power.focus?.percentOfBest ? (
+              <p className={`${s.sub} ${s.txt}`}>
+                <b>{power.focus.percentOfBest}%</b> van je jaarbeste.
               </p>
             ) : null}
             <div className={s.art}>

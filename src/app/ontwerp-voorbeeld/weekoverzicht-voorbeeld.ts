@@ -9,7 +9,7 @@ export const WEEK_VOORBEELD: WeekReview = {
   coachText:
     "Sterke week. Je trainde gericht en dat zag je donderdag: **312 W over 5 minuten is een nieuwe grens**. Woensdag overslaan na die zware dinsdag was slim. Begin volgende week rustig; de VO2-blokken van dinsdag rijd je op gevoel.",
   summary: {
-    version: 1,
+    version: 2,
     weekStart: "2026-10-12",
     weekEnd: "2026-10-18",
     firstName: "Sanne",
@@ -66,6 +66,7 @@ export const WEEK_VOORBEELD: WeekReview = {
         { seconds: 3600, label: "60m", week: 221, best: 238 },
       ],
       record: { seconds: 300, label: "5m", watts: 312, wattsPerKg: 4.3 },
+      focus: null,
     },
     teams: {
       results: [{ team: "ZWB Lynx", event: "ZRL ronde 3", day: "2026-10-15", rank: 3, teams: 18, riderPosition: 4, riderCategory: "B" }],

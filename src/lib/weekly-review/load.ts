@@ -33,6 +33,7 @@ import {
   buildTeams,
   eventMinutes,
   firstNameOf,
+  keepRiddenTeams,
   SUMMARY_VERSION,
   type NextEvent,
   type NextWeek,
@@ -124,6 +125,7 @@ export async function buildWeekSummary(admin: Admin, profileId: string, weekStar
     curves,
     teamResults,
     riderResults,
+    lineupRows,
     srcRows,
     mealRows,
     mobilityRows,
@@ -169,6 +171,13 @@ export async function buildWeekSummary(admin: Admin, profileId: string, weekStar
       .gte("round_at", window.from)
       .lte("round_at", window.to)
       .then(({ data }) => (data ?? []) as Array<{ team_id: string | null; position: number | null; category: string | null; round_at: string | null }>),
+    admin
+      .from("team_event_lineups")
+      .select("team_id, events!inner(start_at)")
+      .eq("profile_id", profileId)
+      .gte("events.start_at", window.from)
+      .lte("events.start_at", window.to)
+      .then(({ data }) => (data ?? []) as Array<{ team_id: string | null; events: One<{ start_at: string }> }>),
     admin
       .from("src_results")
       .select("category_rank, category, events!inner(title, start_at)")
@@ -228,23 +237,32 @@ export async function buildWeekSummary(admin: Admin, profileId: string, weekStar
     ? buildPower(compactCurve(curves.get(weekRange) ?? []), compactCurve(curves.get(yearRange) ?? []), weightKg)
     : null;
 
-  // Teams: de teamuitslag met de eigen plaats erbij, als het lid meereed
-  const results: TeamResult[] = teamResults.flatMap((row) => {
+  // Teams: de teamuitslag met de eigen plaats erbij, als het lid meereed. Bij
+  // twee teams alleen het team waarin het lid die dag reed of opgesteld stond.
+  const rode = [
+    ...riderResults.flatMap((rider) => (rider.team_id && rider.round_at ? [{ teamId: rider.team_id, day: dayOf(rider.round_at) }] : [])),
+    ...lineupRows.flatMap((row) => {
+      const event = one(row.events);
+      return row.team_id && event ? [{ teamId: row.team_id, day: dayOf(event.start_at) }] : [];
+    }),
+  ];
+  const teamRows = teamResults.flatMap((row) => {
     const event = one(row.events);
     if (!event || !inWeek(event.start_at) || !row.team_id) return [];
-    const day = dayOf(event.start_at);
-    const own = riderResults.find((rider) => rider.team_id === row.team_id && rider.round_at && dayOf(rider.round_at) === day);
-    return [
-      {
-        team: teamNames.get(row.team_id) ?? "Je team",
-        event: event.title,
-        day,
-        rank: row.rank,
-        teams: row.teams,
-        riderPosition: own?.position ?? null,
-        riderCategory: own?.category ?? null,
-      },
-    ];
+    return [{ ...row, teamId: row.team_id, event, day: dayOf(event.start_at) }];
+  });
+  const results: TeamResult[] = keepRiddenTeams(teamRows, rode).map((row) => {
+    const { day, event } = row;
+    const own = riderResults.find((rider) => rider.team_id === row.teamId && rider.round_at && dayOf(rider.round_at) === day);
+    return {
+      team: teamNames.get(row.teamId) ?? "Je team",
+      event: event.title,
+      day,
+      rank: row.rank,
+      teams: row.teams,
+      riderPosition: own?.position ?? null,
+      riderCategory: own?.category ?? null,
+    };
   });
   const src = srcRows.flatMap((row) => {
     const event = one(row.events);

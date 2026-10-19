@@ -12,7 +12,8 @@ import type { PersonalRide } from "@/lib/stats/personal";
 import type { CompactPoint } from "@/lib/stats/curves";
 import { addDays, weekDays } from "@/lib/weekly-review/period";
 
-export const SUMMARY_VERSION = 1;
+/** 2: vermogen kreeg `focus`, teams alleen het team waarin het lid reed. */
+export const SUMMARY_VERSION = 2;
 
 export type DayKm = { day: string; km: number; minutes: number };
 
@@ -49,6 +50,11 @@ export type PowerSection = {
   points: PowerPoint[];
   /** De langste duur waarop deze week het beste van het afgelopen jaar werd verbeterd. */
   record: { seconds: number; label: string; watts: number; wattsPerKg: number | null } | null;
+  /**
+   * Zonder record: de duur die het dichtst bij het jaarbeste kwam, met dat
+   * aandeel in procenten. Eerst stond hier altijd de 5 minuten, zonder reden.
+   */
+  focus: { seconds: number; label: string; watts: number; percentOfBest: number | null } | null;
 };
 
 export type TeamResult = {
@@ -256,10 +262,42 @@ export function buildPower(week: CompactPoint[], best: CompactPoint[], weightKg:
           wattsPerKg: weightKg ? Math.round(((top.week as number) / weightKg) * 10) / 10 : null,
         }
       : null,
+    focus: top ? null : powerFocus(points),
   };
 }
 
+/**
+ * De duur waarop de week het dichtst bij het jaarbeste kwam. Bij gelijke stand
+ * de langere duur. Zonder jaarcurve de 20 minuten, anders de langste die er is.
+ */
+function powerFocus(points: PowerPoint[]): PowerSection["focus"] {
+  const compared = points.filter((point) => point.week != null && point.best != null && point.best > 0);
+  if (compared.length) {
+    const share = (point: PowerPoint) => (point.week as number) / (point.best as number);
+    const best = compared.reduce((pick, point) => (share(point) >= share(pick) ? point : pick));
+    return { seconds: best.seconds, label: best.label, watts: best.week as number, percentOfBest: Math.round(share(best) * 100) };
+  }
+  const known = points.filter((point) => point.week != null);
+  const pick = known.find((point) => point.seconds === 1200) ?? known[known.length - 1];
+  return pick ? { seconds: pick.seconds, label: pick.label, watts: pick.week as number, percentOfBest: null } : null;
+}
+
 // ── Teams ─────────────────────────────────────────────────────────────────
+
+/**
+ * Wie in twee teams zit, reed per wedstrijddag maar voor één ervan. Weten we
+ * voor welk team (eigen uitslag of opstelling), dan alleen die uitslag; weten
+ * we het niet, dan blijven alle teams van die dag staan.
+ */
+export function keepRiddenTeams<T extends { teamId: string; day: string }>(
+  results: T[],
+  rode: Array<{ teamId: string; day: string }>,
+): T[] {
+  return results.filter((result) => {
+    const sameDay = rode.filter((entry) => entry.day === result.day);
+    return sameDay.length === 0 || sameDay.some((entry) => entry.teamId === result.teamId);
+  });
+}
 
 export function buildTeams(results: TeamResult[], src: TeamsSection["src"]): TeamsSection | null {
   if (results.length === 0 && src.length === 0) return null;

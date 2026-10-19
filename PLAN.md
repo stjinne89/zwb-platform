@@ -295,6 +295,34 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > opslaan in voorbeeldmodus); de overlap met de onderbalk zelf zit alleen in de
 > ingelogde schil en is niet lokaal nagespeeld, en niet op een telefoon getest.
 >
+> **Drie fouten uit de eerste echte overzichten (2026-10-19, gemeld door de
+> eigenaar).**
+> - *"0:00 uur" bij Jeroen Janssen.* Het overzicht rekent goed: zijn ritten
+>   staan met `moving_time_seconds = 0` én `elapsed_time_seconds = 0` in
+>   `strava_activities` (770 van 1555, alle ritten sinds 2026-08-22, allemaal
+>   `import_source: strava_csv`; ook de hoogtemeters zijn 0). Zijn CSV-export heeft
+>   kennelijk tijdkolommen die `src/lib/strava/import.ts` niet herkent. Dat is
+>   **niet** opgelost: daarvoor is de kopregel van zijn CSV nodig. Het overzicht
+>   laat de uren nu weg als ze 0 zijn. Ook bij Moniek Groothuis (74) en Martijn
+>   Duijm (24) staan ritten zonder tijd, maar hun recente ritten hebben wel tijd.
+> - *Altijd de 5 minuten op het vermogensscherm.* Zonder jaarrecord koos het
+>   scherm vast de 5 minuten, een willekeurige keuze. Nu kiest `buildPower` de
+>   duur die het dichtst bij het jaarbeste kwam (`focus`, met het percentage);
+>   zonder jaarcurve de 20 minuten. De grafiek markeert die duur ook.
+> - *Teamprestatie van het verkeerde team.* Wie in twee ZRL-teams zit, kreeg de
+>   uitslag van beide teams; het scherm toonde de eerste, en dat was bij Jeroen
+>   het team waarin hij niet reed. `keepRiddenTeams` houdt per wedstrijddag
+>   alleen het team over waarvoor het lid een eigen uitslag
+>   (`zrl_rider_results`) of een opstelling (`team_event_lineups.team_id`) heeft.
+>   Is dat niet bekend, dan blijven alle teams staan.
+>
+> `SUMMARY_VERSION` is daarvoor 2 geworden. Een oudere samenvatting werd tot nu
+> toe weggegooid en opnieuw gemaakt. Dat zette 'gezien' terug, waardoor de pop-up
+> opnieuw verscheen, en het kostte een nieuwe coachtekst. Nu wordt alleen
+> `summary` opnieuw opgebouwd; `seen_at` en de coachtekst blijven staan. Unit-tests
+> voor `focus` en `keepRiddenTeams` (met Jeroens echte vermogenscijfers); het
+> opnieuw opbouwen in productie is niet lokaal getest.
+>
 > **Vaste plek op het dashboard (2026-10-18, wens eigenaar).** Zonder ingang
 > vond een lid het overzicht na het wegklikken niet terug. De eigenaar koos het
 > dashboard boven de ZWBeter-navigatie, en wilde dat het er de hele week staat.

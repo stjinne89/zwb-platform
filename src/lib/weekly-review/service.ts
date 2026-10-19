@@ -126,11 +126,18 @@ export async function loadWeekReview(
   // de vooruitblik niet lezen.
   if (onlyUnseen && row?.seen_at) return null;
   const next = await buildNextWeekFor(admin, profileId, nextWeekStart);
-  // Een samenvatting van een oudere vorm opnieuw maken: anders mist de pop-up
-  // velden die de weergave verwacht.
+  // Een samenvatting van een oudere vorm opnieuw opbouwen: anders mist de pop-up
+  // velden die de weergave verwacht, of blijft een inmiddels herstelde fout
+  // staan. Gezien en de coachtekst blijven: de rij weggooien liet de pop-up
+  // opnieuw verschijnen bij wie hem al had weggeklikt.
   if (row && row.summary?.version !== SUMMARY_VERSION) {
-    await admin.from("weekly_reviews").delete().eq("profile_id", profileId).eq("week_start", weekStart);
-    row = null;
+    const summary = await buildWeekSummary(admin, profileId, weekStart);
+    await admin
+      .from("weekly_reviews")
+      .update({ summary, updated_at: new Date().toISOString() })
+      .eq("profile_id", profileId)
+      .eq("week_start", weekStart);
+    row = { ...row, summary };
   }
   if (!row && create) row = await createRow(admin, profileId, weekStart, next);
   if (!row) return null;

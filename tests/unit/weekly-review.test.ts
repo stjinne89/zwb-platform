@@ -9,6 +9,7 @@ import {
   buildRides,
   eventMinutes,
   hasContent,
+  keepRiddenTeams,
   mergeEvents,
   type NextEvent,
   type WeekSummary,
@@ -130,7 +131,35 @@ describe("buildPower", () => {
   });
 
   it("noemt geen record zonder geschiedenis", () => {
-    expect(buildPower(curve([900, 450, 312, 270, 230]), [], 72)?.record).toBeNull();
+    const section = buildPower(curve([900, 450, 312, 270, 230]), [], 72);
+    expect(section?.record).toBeNull();
+    expect(section?.focus).toEqual({ seconds: 1200, label: "20m", watts: 270, percentOfBest: null });
+  });
+
+  it("toont zonder record de duur die het dichtst bij het jaarbeste kwam", () => {
+    // De week van Jeroen, 12–18 oktober: de 20 minuten kwamen het dichtst bij.
+    const section = buildPower(curve([751, 467, 346, 310, 237]), curve([1250, 565, 396, 352, 316]), 80);
+    expect(section?.record).toBeNull();
+    expect(section?.focus).toEqual({ seconds: 1200, label: "20m", watts: 310, percentOfBest: 88 });
+  });
+});
+
+describe("keepRiddenTeams", () => {
+  const results = [
+    { teamId: "zrl-c", day: "2026-10-13" },
+    { teamId: "bdev", day: "2026-10-13" },
+    { teamId: "zrl-c", day: "2026-10-20" },
+  ];
+
+  it("houdt bij twee teams alleen het team waarin het lid reed", () => {
+    expect(keepRiddenTeams(results, [{ teamId: "bdev", day: "2026-10-13" }])).toEqual([
+      { teamId: "bdev", day: "2026-10-13" },
+      { teamId: "zrl-c", day: "2026-10-20" },
+    ]);
+  });
+
+  it("laat alle teams staan als niet bekend is waarin het lid reed", () => {
+    expect(keepRiddenTeams(results, [])).toEqual(results);
   });
 });
 
