@@ -2,9 +2,9 @@
 // opslaan, en waarin de Strava-export de meeste ritten bewaart (.fit.gz).
 //
 // Een eigen lezer in plaats van een pakket: we hebben alleen de punten van het
-// spoor en de kengetallen van de sessie nodig. Al het andere (vermogen, hartslag,
-// ronden, ontwikkelaarsvelden) slaan we over aan de hand van de veldgroottes uit
-// de definitie, zonder het te ontcijferen.
+// spoor, vermogen, hartslag en cadans, en de kengetallen van de sessie nodig.
+// Al het andere (ronden, ontwikkelaarsvelden) slaan we over aan de hand van de
+// veldgroottes uit de definitie, zonder het te ontcijferen.
 //
 // Puur: geen database, geen zlib. Uitpakken doet de aanroeper.
 //
@@ -52,7 +52,57 @@ export type FitActivity = {
     distanceM: number | null;
     ascentM: number | null;
   } | null;
+  /** Vermogen, hartslag en cadans; uit de sessie, anders uit de records. */
+  effort: FitEffort;
 };
+
+export type FitEffort = {
+  averageWatts: number | null;
+  maxWatts: number | null;
+  normalizedWatts: number | null;
+  kilojoules: number | null;
+  averageHr: number | null;
+  maxHr: number | null;
+  averageCadence: number | null;
+};
+
+/** Een gat tot zo lang tussen twee vermogensmetingen houdt de vorige waarde vast. */
+const POWER_HOLD_SECONDS = 10;
+const NP_WINDOW_SECONDS = 30;
+
+/**
+ * Genormaliseerd vermogen: het voortschrijdend gemiddelde over 30 s, tot de
+ * vierde macht, gemiddeld, en daar de vierdemachtswortel van. De metingen komen
+ * per seconde terug; een kort gat houdt de vorige waarde vast, een lang gat
+ * (pauze) telt niet mee.
+ */
+export function normalizedPower(samples: Array<{ timeMs: number; watts: number }>): number | null {
+  const sorted = [...samples].sort((a, b) => a.timeMs - b.timeMs);
+  const perSecond: number[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    perSecond.push(sorted[i].watts);
+    const next = sorted[i + 1];
+    if (!next) break;
+    const gap = Math.round((next.timeMs - sorted[i].timeMs) / 1000);
+    if (gap > 1 && gap <= POWER_HOLD_SECONDS) {
+      for (let s = 1; s < gap; s++) perSecond.push(sorted[i].watts);
+    }
+  }
+  if (perSecond.length < NP_WINDOW_SECONDS) return null;
+  let windowSum = 0;
+  let fourthSum = 0;
+  let count = 0;
+  for (let i = 0; i < perSecond.length; i++) {
+    windowSum += perSecond[i];
+    if (i >= NP_WINDOW_SECONDS) windowSum -= perSecond[i - NP_WINDOW_SECONDS];
+    if (i >= NP_WINDOW_SECONDS - 1) {
+      fourthSum += (windowSum / NP_WINDOW_SECONDS) ** 4;
+      count += 1;
+    }
+  }
+  const np = (fourthSum / count) ** 0.25;
+  return np > 0 ? Math.round(np) : null;
+}
 
 type Field = { num: number; size: number; offset: number };
 type Definition = { global: number; littleEndian: boolean; fields: Field[]; size: number };
@@ -91,8 +141,17 @@ function decode(bytes: Uint8Array): FitActivity | null {
     lastRecordMs: null,
     recordDistanceM: null,
     session: null,
+    effort: emptyEffort(),
   };
   let fallbackSport: { sport: number | null; subSport: number | null } | null = null;
+  // Wat de sessie zelf zegt; ontbreekt een waarde, dan rekenen we hem uit de records.
+  let sessionEffort: FitEffort | null = null;
+  const powerSamples: Array<{ timeMs: number; watts: number }> = [];
+  let hrSum = 0;
+  let hrCount = 0;
+  let hrMax = 0;
+  let cadenceSum = 0;
+  let cadenceCount = 0;
 
   /** Eén veld uit een bericht, of null als het ontbreekt of "ongeldig" is. */
   function read(def: Definition, at: number, num: number, signed = false): number | null {
@@ -183,6 +242,20 @@ function decode(bytes: Uint8Array): FitActivity | null {
         }
         const distance = read(def, pos, 5);
         if (distance !== null) activity.recordDistanceM = distance / 100;
+        const watts = read(def, pos, 7);
+        if (watts !== null && timeMs !== undefined) powerSamples.push({ timeMs, watts });
+        const heartRate = read(def, pos, 3);
+        if (heartRate !== null && heartRate > 0) {
+          hrSum += heartRate;
+          hrCount += 1;
+          hrMax = Math.max(hrMax, heartRate);
+        }
+        // Cadans 0 is freewheelen; Strava telt die niet mee in het gemiddelde.
+        const cadence = read(def, pos, 4);
+        if (cadence !== null && cadence > 0) {
+          cadenceSum += cadence;
+          cadenceCount += 1;
+        }
         const lat = read(def, pos, 0, true);
         const lon = read(def, pos, 1, true);
         // Precies 0,0 is een toestel zonder fix, geen plek waar iemand fietst.
@@ -207,6 +280,16 @@ function decode(bytes: Uint8Array): FitActivity | null {
           distanceM: distance !== null ? distance / 100 : null,
           ascentM: read(def, pos, 22),
         };
+        const work = read(def, pos, 48);
+        sessionEffort = {
+          averageWatts: read(def, pos, 20),
+          maxWatts: read(def, pos, 21),
+          normalizedWatts: read(def, pos, 34),
+          kilojoules: work !== null ? Math.round(work / 1000) : null,
+          averageHr: read(def, pos, 16),
+          maxHr: read(def, pos, 17),
+          averageCadence: read(def, pos, 18),
+        };
       } else if (def.global === MESSAGE_SPORT && !fallbackSport) {
         fallbackSport = { sport: read(def, pos, 0), subSport: read(def, pos, 1) };
       } else if (def.global === MESSAGE_FILE_ID && activity.fileType === null) {
@@ -225,5 +308,47 @@ function decode(bytes: Uint8Array): FitActivity | null {
     activity.sport = fallbackSport.sport;
     activity.subSport = fallbackSport.subSport;
   }
+
+  // Uit de records, voor wat de sessie niet zegt. Het gemiddelde vermogen telt
+  // de nullen mee, net als Zwift en Strava. De arbeid is het gemiddelde maal de
+  // rijtijd, zoals Strava de kJ rekent.
+  let wattsTotal = 0;
+  let wattsMax = 0;
+  for (const sample of powerSamples) {
+    wattsTotal += sample.watts;
+    wattsMax = Math.max(wattsMax, sample.watts);
+  }
+  const averageWatts = powerSamples.length > 0 ? wattsTotal / powerSamples.length : null;
+  const rideSeconds = activity.session?.timerSeconds ?? powerSamples.length;
+  const fromRecords: FitEffort = {
+    averageWatts: averageWatts !== null ? Math.round(averageWatts) : null,
+    maxWatts: wattsMax,
+    normalizedWatts: normalizedPower(powerSamples),
+    kilojoules: averageWatts !== null ? Math.round((averageWatts * rideSeconds) / 1000) : null,
+    averageHr: hrCount > 0 ? Math.round(hrSum / hrCount) : null,
+    maxHr: hrMax,
+    averageCadence: cadenceCount > 0 ? Math.round(cadenceSum / cadenceCount) : null,
+  };
+  const effort = emptyEffort();
+  for (const key of Object.keys(effort) as Array<keyof FitEffort>) {
+    effort[key] = positiveOrNull(sessionEffort?.[key]) ?? positiveOrNull(fromRecords[key]);
+  }
+  activity.effort = effort;
   return activity;
+}
+
+function positiveOrNull(value: number | null | undefined): number | null {
+  return value != null && value > 0 ? value : null;
+}
+
+function emptyEffort(): FitEffort {
+  return {
+    averageWatts: null,
+    maxWatts: null,
+    normalizedWatts: null,
+    kilojoules: null,
+    averageHr: null,
+    maxHr: null,
+    averageCadence: null,
+  };
 }

@@ -10,7 +10,7 @@ import {
   retrieveCoachAnswerBackground,
   startCoachAnswerBackground,
 } from "@/lib/training/ai";
-import { coachInput, fallbackCoachText, WEEK_COACH_PROMPT } from "@/lib/weekly-review/coach-text";
+import { coachInput, fallbackCoachText, finishCoachText, WEEK_COACH_PROMPT } from "@/lib/weekly-review/coach-text";
 import { buildNextWeekFor, buildWeekSummary, usesTraining } from "@/lib/weekly-review/load";
 import type { NextWeek, WeekSummary } from "@/lib/weekly-review/summary";
 import { hasContent, SUMMARY_VERSION } from "@/lib/weekly-review/summary";
@@ -97,7 +97,7 @@ async function settleCoach(admin: Admin, profileId: string, row: Row): Promise<R
   const started = row.coach_started_at ? Date.parse(row.coach_started_at) : 0;
   const result = await retrieveCoachAnswerBackground(row.coach_response_id).catch(() => null);
   let update: Partial<Row> | null = null;
-  if (result?.status === "completed") update = { coach_status: "done", coach_text: result.text.trim() };
+  if (result?.status === "completed") update = { coach_status: "done", coach_text: finishCoachText(result.text) };
   else if (result && result.status !== "queued" && result.status !== "in_progress") update = { coach_status: "failed" };
   else if (Date.now() - started > COACH_TIMEOUT_MS) update = { coach_status: "failed" };
   if (!update) return row;
@@ -126,11 +126,18 @@ export async function loadWeekReview(
   // de vooruitblik niet lezen.
   if (onlyUnseen && row?.seen_at) return null;
   const next = await buildNextWeekFor(admin, profileId, nextWeekStart);
-  // Een samenvatting van een oudere vorm opnieuw maken: anders mist de pop-up
-  // velden die de weergave verwacht.
+  // Een samenvatting van een oudere vorm opnieuw opbouwen: anders mist de pop-up
+  // velden die de weergave verwacht, of blijft een inmiddels herstelde fout
+  // staan. Gezien en de coachtekst blijven: de rij weggooien liet de pop-up
+  // opnieuw verschijnen bij wie hem al had weggeklikt.
   if (row && row.summary?.version !== SUMMARY_VERSION) {
-    await admin.from("weekly_reviews").delete().eq("profile_id", profileId).eq("week_start", weekStart);
-    row = null;
+    const summary = await buildWeekSummary(admin, profileId, weekStart);
+    await admin
+      .from("weekly_reviews")
+      .update({ summary, updated_at: new Date().toISOString() })
+      .eq("profile_id", profileId)
+      .eq("week_start", weekStart);
+    row = { ...row, summary };
   }
   if (!row && create) row = await createRow(admin, profileId, weekStart, next);
   if (!row) return null;

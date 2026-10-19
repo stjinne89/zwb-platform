@@ -172,14 +172,16 @@ export function WeekAhead({ week: initial, onBack, preview = false }: { week: Ne
           );
         })}
       </div>
-      <p className={s.status} role="status">{status}</p>
-      <div className={s.act}>
-        <button type="button" className={`${s.btn} ${s.alt}`} onClick={onBack} aria-label="Vorig scherm">
-          <ChevronLeft className="mx-auto size-6" strokeWidth={2.4} />
-        </button>
-        <button type="button" className={s.btn} onClick={save} disabled={busy}>
-          {busy ? "Opslaan…" : justSaved && !dirty ? "Opgeslagen" : "Beschikbaarheid opslaan"}
-        </button>
+      <div className={s.foot}>
+        <p className={s.status} role="status">{status}</p>
+        <div className={s.act}>
+          <button type="button" className={`${s.btn} ${s.alt}`} onClick={onBack} aria-label="Vorig scherm">
+            <ChevronLeft className="mx-auto size-6" strokeWidth={2.4} />
+          </button>
+          <button type="button" className={s.btn} onClick={save} disabled={busy}>
+            {busy ? "Opslaan…" : justSaved && !dirty ? "Opgeslagen" : "Beschikbaarheid opslaan"}
+          </button>
+        </div>
       </div>
     </>
   );

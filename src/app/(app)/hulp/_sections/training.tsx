@@ -227,7 +227,7 @@ export function TrainingHelp() {
           <p className="mt-2 text-sm text-muted-foreground">
             Het gesprek blijft staan en de trainers die jij hebt aangewezen lezen
             het terug en kunnen erin reageren. Het bestuur niet. Over pijn,
-            blessures of ziekte geeft de coach geen advies — daarvoor ga je naar je
+            blessures of ziekte geeft de coach geen advies; daarvoor ga je naar je
             trainer of een arts.
           </p>
           <Link
@@ -250,8 +250,8 @@ export function TrainingHelp() {
             <h2 className="font-semibold">Mijn vermogen en de powercurve</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               De powercurve toont je beste gemiddelde vermogen voor iedere duur
-              binnen de gekozen periode. De eigen curve wordt live uit
-              intervals.icu geladen.
+              binnen de gekozen periode. Je eigen curve komt live uit
+              intervals.icu.
             </p>
           </div>
         </header>
@@ -459,7 +459,7 @@ Fitness-status: Verbeterend`}
               </li>
               <li>
                 Het blokje verschijnt pas als intervals.icu je rit heeft
-                verwerkt — meestal binnen een uur.
+                verwerkt, meestal binnen een uur.
               </li>
               <li>
                 Wie jouw Strava-rit kan zien, ziet ook deze samenvatting. Je

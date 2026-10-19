@@ -12,6 +12,7 @@ import {
   FIT_SUB_SPORT_VIRTUAL,
   parseFit,
   type FitActivity,
+  type FitEffort,
 } from "@/lib/strava/fit";
 
 export type ImportedStravaActivity = {
@@ -802,6 +803,27 @@ function measureTrack(points: GpxTrackPoint[]) {
   };
 }
 
+/**
+ * Vermogen, hartslag en cadans met de veldnamen van Strava, zodat
+ * rideMetricsFromStrava er NP, IF en TSS uit rekent. Alleen wat het bestand heeft;
+ * device_watts alleen bij gemeten vermogen.
+ */
+export function effortRawFields(effort: FitEffort | undefined): Record<string, number | boolean> {
+  if (!effort) return {};
+  const fields: Record<string, number | boolean> = {};
+  if (effort.averageWatts) {
+    fields.average_watts = effort.averageWatts;
+    fields.device_watts = true;
+  }
+  if (effort.normalizedWatts) fields.weighted_average_watts = effort.normalizedWatts;
+  if (effort.maxWatts) fields.max_watts = effort.maxWatts;
+  if (effort.kilojoules) fields.kilojoules = effort.kilojoules;
+  if (effort.averageHr) fields.average_heartrate = effort.averageHr;
+  if (effort.maxHr) fields.max_heartrate = effort.maxHr;
+  if (effort.averageCadence) fields.average_cadence = effort.averageCadence;
+  return fields;
+}
+
 /** De rij van een rit uit een bestand met spoor (GPX of FIT). */
 function trackRideRow(input: {
   profileId: string;
@@ -816,6 +838,7 @@ function trackRideRow(input: {
   elapsedTime: number;
   points: GpxTrackPoint[];
   deviceName?: string;
+  effort?: FitEffort;
 }): ImportedStravaActivity {
   const startIso = input.start.toISOString();
   // Het spoor laat cols, ZWB-segmenten en ZWBlokken meetellen, net als bij een
@@ -849,6 +872,7 @@ function trackRideRow(input: {
       filename: null,
       ...(input.deviceName ? { device_name: input.deviceName } : {}),
       ...(track ? { map: { summary_polyline: track } } : {}),
+      ...effortRawFields(input.effort),
     },
     synced_at: syncedAt,
     efforts_fetched_at: syncedAt,
@@ -942,6 +966,7 @@ export function stravaActivityFromFit(
       elapsedTime,
       points,
       deviceName: fromZwift ? ZWIFT_DEVICE_NAME : undefined,
+      effort: activity.effort,
     }),
     track: timedPoints.map((point) => ({ lat: point.lat, lon: point.lon, t: point.timeMs! })),
   };

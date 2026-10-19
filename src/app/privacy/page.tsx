@@ -80,6 +80,18 @@ export default function PrivacyPage() {
             twintig uitslagen blijven lokaal bewaard totdat je die wist. Browserdata
             op andere apparaten kunnen we niet op afstand wissen.
           </li>
+          <li id="voorzpwelbokaal" className="scroll-mt-20">
+            <strong>voorZpWelBokaal:</strong> alleen als je zelf op Meedoen tikt.
+            Dan bewaren we per seizoen dat je meedoet, je inzetten (renner, soort
+            inzet, quotering en aantal ZWBallen) en je antwoorden op de
+            bonusvragen. Clubleden zien op de lei je naam met je saldo, hoeveel
+            ballen er nog openstaan en hoeveel inzetten raak waren. Je inzetten en
+            antwoorden zien andere leden pas vanaf de start van die wedstrijd. De
+            quoteringen komen uit de openbare veldritratings, startlijsten en
+            uitslagen van CyclingFlash; daar gaan geen gegevens van jou heen. Met
+            Stoppen op je briefjes wis je je deelname van dat seizoen, met al je
+            inzetten en antwoorden.
+          </li>
           <li>
             <strong>Account- en profielgegevens:</strong> naam, e-mailadres,
             profielfoto, regio, ZRL-categorie, Zwift-/Strava-ID, FTP en gewicht

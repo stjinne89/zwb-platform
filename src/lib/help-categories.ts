@@ -23,7 +23,7 @@ export const HELP_CATEGORIES = [
     label: "Beginnen",
     text: "Eerste stappen, de app op je telefoon en wat je waar vindt.",
     tone: "club",
-    anchors: ["webapp-installeren"],
+    anchors: ["webapp-installeren", "videos"],
     legacy: ["beginnen"],
   },
   {
@@ -66,9 +66,9 @@ export const HELP_CATEGORIES = [
   {
     id: "wedstrijden",
     label: "Events en wedstrijden",
-    text: "Kalender, teams, ZRL, FRR, SRC, ZWB DS en ZWBgame.",
+    text: "Kalender, teams, ZRL, FRR, SRC, ZWB DS, ZWBgame en voorZpWelBokaal.",
     tone: "kalender",
-    anchors: ["events", "teams", "zwb-ds", "zwbgame"],
+    anchors: ["events", "teams", "zwb-ds", "zwbgame", "voorzpwelbokaal"],
   },
   {
     id: "live-volgen",
@@ -119,6 +119,7 @@ export const HELP_CATEGORIES = [
     tone: "kalender",
     anchors: [
       "racen",
+      "racen-kennis",
       "racen-trainer",
       "racen-eigen-rit",
       "pacing",

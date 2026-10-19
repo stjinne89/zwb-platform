@@ -343,9 +343,49 @@ describe("planRideImport", () => {
   });
 
   it("overschrijft geen CSV-rit die al een spoor heeft", () => {
-    const plan = planRideImport([incoming()], [existing({ has_track: true })]);
+    const plan = planRideImport(
+      [incoming()],
+      [existing({ has_track: true, moving_time_seconds: 5900, total_elevation_gain_m: 280 })],
+    );
     expect(plan.duplicates).toBe(1);
     expect(plan.attach).toHaveLength(0);
+  });
+
+  it("neemt tijd en hoogtemeters over als de CSV-rit daar 0 had", () => {
+    const plan = planRideImport(
+      [incoming()],
+      [existing({ moving_time_seconds: 0, total_elevation_gain_m: 0 })],
+    );
+    expect(plan.attach).toEqual([
+      { id: 9001, summaryPolyline: track, movingTime: 6000, elapsedTime: 6500, elevationGainM: 300 },
+    ]);
+  });
+
+  // Jeroen Janssen, 18 oktober 2026: de GPX hing het spoor aan zijn CSV-ritten,
+  // maar de tijd bleef 0. Opnieuw uploaden vult nu alleen de tijd aan.
+  it("vult de tijd aan bij een CSV-rit die het spoor al kreeg", () => {
+    const plan = planRideImport(
+      [incoming()],
+      [existing({ has_track: true, moving_time_seconds: 0, total_elevation_gain_m: 280 })],
+    );
+    expect(plan.attach).toEqual([{ id: 9001, movingTime: 6000, elapsedTime: 6500 }]);
+    expect(plan.duplicates).toBe(0);
+  });
+
+  it("laat een bekende tijd staan als alleen de hoogtemeters 0 waren", () => {
+    const plan = planRideImport(
+      [incoming()],
+      [existing({ has_track: true, moving_time_seconds: 5900, total_elevation_gain_m: "0.00" })],
+    );
+    expect(plan.attach).toEqual([{ id: 9001, elevationGainM: 300 }]);
+  });
+
+  it("vult niets aan bij een rit van intervals.icu zonder tijd", () => {
+    const plan = planRideImport(
+      [incoming()],
+      [existing({ import_source: "intervals", moving_time_seconds: 0 })],
+    );
+    expect(plan).toEqual({ upsert: [], attach: [], duplicates: 1 });
   });
 
   it("werkt dezelfde GPX opnieuw bij onder zijn eigen id", () => {

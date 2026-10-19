@@ -4,15 +4,17 @@ import { ARTICLE_CONCLUSIONS, ARTICLE_EVIDENCE, evidenceText } from "@/lib/knowl
 import { MATERIAAL_ARTICLES } from "@/lib/materiaal/library";
 import { NUTRITION_ARTICLES } from "@/lib/nutrition/library";
 import { protocolBySlug } from "@/lib/protocols";
+import { RACEN_ARTICLES } from "@/lib/racen/library";
 import { STRENGTH_ARTICLES } from "@/lib/training/strength-library";
 import { TRAINING_ARTICLES } from "@/lib/training/training-library";
 
 // Elk kennisartikel heeft een bewijsniveau, en dat niveau is het niveau dat de
 // eigenaar heeft goedgekeurd in docs/beoordelingsbeleid-bewijsniveau.md. Wijzigt
 // een niveau, dan eerst daar. De kennisbank materiaal staat in dezelfde tabel en
-// wordt ook in materiaal.test.ts gecontroleerd.
+// wordt ook in materiaal.test.ts gecontroleerd. De kennisbank racen (2026-10-19)
+// staat er ook in.
 
-const ARTICLES = [...TRAINING_ARTICLES, ...NUTRITION_ARTICLES, ...STRENGTH_ARTICLES];
+const ARTICLES = [...TRAINING_ARTICLES, ...NUTRITION_ARTICLES, ...STRENGTH_ARTICLES, ...RACEN_ARTICLES];
 const doc = readFileSync("docs/beoordelingsbeleid-bewijsniveau.md", "utf8");
 
 describe("bewijsniveau per kennisartikel", () => {

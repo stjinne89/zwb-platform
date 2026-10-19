@@ -30,6 +30,27 @@ export function RacenHelp() {
           </div>
         </header>
 
+        <div id="racen-kennis" className="mt-4 scroll-mt-20 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">De kennisbank racen</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Onder Racen → Kennisbank staat wat er bekend is over tactiek in een
+            Zwift-race: het wiel en je plek in de groep, wat een race vraagt,
+            klimmen, aanvallen, ontsnappen, de sprint, de ploegentijdrit en de
+            spelregels van Zwift. Dezelfde artikelen staan in de ZWBieb op de plank
+            Racetactiek, en de coach kent ze.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Over tactiek in Zwift zelf is weinig onderzoek gepubliceerd. Het meeste
+            bewijs komt uit de echte koers: metingen van de slipstream, en analyses
+            van ontsnappingen en sprints bij de profs. Voor Zwift geldt dat alleen
+            voor zover het spel de natuurkunde nabootst; zo&apos;n advies staat daarom
+            op Eerste aanwijzingen. Hoe Zwift rekent (powerups, supertuck, het
+            peloton sinds Pack Dynamics 4) komt van Zwift en uit tests van Zwift
+            Insider. Dat telt niet als bewijs en staat bij de beperkingen van elk
+            artikel.
+          </p>
+        </div>
+
         <div className="mt-4 rounded-md border bg-background p-4">
           <h3 className="text-sm font-semibold">Waar de cijfers vandaan komen</h3>
           <p className="mt-2 text-sm text-muted-foreground">

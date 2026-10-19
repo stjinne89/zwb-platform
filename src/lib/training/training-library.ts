@@ -900,7 +900,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       "Op hun FTP hielden renners het gemiddeld 34 tot 51 minuten vol, geen uur. Een lang drempelblok op 100 % is voor veel renners dus zwaarder dan het lijkt.",
       "De warming-up telt mee. Na een lange warming-up met een harde blok van vijf minuten reden renners hun test ongeveer 5 % lager. ZWB gebruikt daarom drie korte versnellingen.",
       "De ramptest neemt 75 % van je hoogste minuut. Dat getal is nooit gepubliceerd getoetst, en de uitkomst hangt af van hoe snel de test oploopt. Wie explosief is, haalt een hoge laatste minuut en komt daardoor vaak te hoog uit; een echte duurrenner eerder te laag.",
-      "Wijkt je test meer dan 8 % af van je vermogenscurve (CP en eFTP uit intervals.icu), dan krijgen jij en je trainer een seintje. Dan is opnieuw testen, of de 20-minutentest kiezen, het overwegen waard.",
+      "Wijkt je test meer dan 8 % af van je vermogenscurve (CP en eFTP uit intervals.icu), dan krijgen jij en je trainer een seintje. Overweeg dan om opnieuw te testen, of kies de 20-minutentest.",
     ],
     limits: [
       "De meeste studies zijn klein en gedaan bij getrainde mannen.",

@@ -9,11 +9,13 @@ import {
   buildRides,
   eventMinutes,
   hasContent,
+  keepRiddenTeams,
   mergeEvents,
   type NextEvent,
   type WeekSummary,
 } from "@/lib/weekly-review/summary";
-import { coachInput, emphasisParts, fallbackCoachText } from "@/lib/weekly-review/coach-text";
+import { coachInput, emphasisParts, fallbackCoachText, finishCoachText, spokenEvent } from "@/lib/weekly-review/coach-text";
+import { cleanAiText } from "@/lib/ai-writing";
 import type { PersonalRide } from "@/lib/stats/personal";
 
 const ride = (day: string, km: number, minutes: number, name = "Rit"): PersonalRide => ({
@@ -130,7 +132,35 @@ describe("buildPower", () => {
   });
 
   it("noemt geen record zonder geschiedenis", () => {
-    expect(buildPower(curve([900, 450, 312, 270, 230]), [], 72)?.record).toBeNull();
+    const section = buildPower(curve([900, 450, 312, 270, 230]), [], 72);
+    expect(section?.record).toBeNull();
+    expect(section?.focus).toEqual({ seconds: 1200, label: "20m", watts: 270, percentOfBest: null });
+  });
+
+  it("toont zonder record de duur die het dichtst bij het jaarbeste kwam", () => {
+    // De week van Jeroen, 12–18 oktober: de 20 minuten kwamen het dichtst bij.
+    const section = buildPower(curve([751, 467, 346, 310, 237]), curve([1250, 565, 396, 352, 316]), 80);
+    expect(section?.record).toBeNull();
+    expect(section?.focus).toEqual({ seconds: 1200, label: "20m", watts: 310, percentOfBest: 88 });
+  });
+});
+
+describe("keepRiddenTeams", () => {
+  const results = [
+    { teamId: "zrl-c", day: "2026-10-13" },
+    { teamId: "bdev", day: "2026-10-13" },
+    { teamId: "zrl-c", day: "2026-10-20" },
+  ];
+
+  it("houdt bij twee teams alleen het team waarin het lid reed", () => {
+    expect(keepRiddenTeams(results, [{ teamId: "bdev", day: "2026-10-13" }])).toEqual([
+      { teamId: "bdev", day: "2026-10-13" },
+      { teamId: "zrl-c", day: "2026-10-20" },
+    ]);
+  });
+
+  it("laat alle teams staan als niet bekend is waarin het lid reed", () => {
+    expect(keepRiddenTeams(results, [])).toEqual(results);
   });
 });
 
@@ -202,6 +232,36 @@ describe("coachtekst", () => {
     expect(text).toContain("**1 rit, 38 km.**");
     expect(text).toContain("Je deed 1 van de 2 trainingen uit je schema. Eén bleef liggen.");
     expect(emphasisParts(text).filter((part) => part.strong)).toHaveLength(1);
+  });
+
+  it("geeft de vorm in woorden en events zoals een renner ze zegt", () => {
+    const input = coachInput(
+      {
+        ...summary,
+        form: { source: "intervals", ctlStart: 60, ctlEnd: 64, atlEnd: 111.6, tsbEnd: -47.5, weeks: [] },
+        teams: { results: [{ team: "Bdev", event: "ZRL 2026/27 · R1 · W4 · Bdev", day: "2026-10-13", rank: 1, teams: 8, riderPosition: null, riderCategory: null }], src: [] },
+      },
+      null,
+    );
+    expect(input).not.toMatch(/tsb|atl|ctl|-47/i);
+    expect(input).toContain("erg moe");
+    expect(input).toContain("fitter geworden");
+    expect(input).toContain('"event": "ZRL-race"');
+    expect(spokenEvent("ZRL 2026/27 · R1 · W5")).toBe("ZRL-race");
+    expect(spokenEvent("Clubrit Amerongen · B")).toBe("Clubrit Amerongen");
+  });
+
+  it("haalt de vaste AI-tekens uit de coachtekst", () => {
+    // Een echte tekst van 2026-10-19, met er een streep en een tweede vet bij.
+    const raw =
+      "De belasting schoot omhoog; dus de frisheid was niet top. **Bdev pakt winst** — mooi! Rijd **rustig** in 3–4 dagen 💪";
+    expect(finishCoachText(raw)).toBe(
+      "De belasting schoot omhoog. Dus de frisheid was niet top. **Bdev pakt winst**, mooi. Rijd rustig in 3-4 dagen",
+    );
+    expect(cleanAiText("Klaar!!")).toBe("Klaar.");
+    expect(cleanAiText("Je bent moe. Kortom, rust dinsdag.")).toBe("Je bent moe. Rust dinsdag.");
+    // Zonder komma blijft het staan: zonder "Daarnaast" wordt het een vraag.
+    expect(cleanAiText("Daarnaast heb je twee keer gereden.")).toBe("Daarnaast heb je twee keer gereden.");
   });
 
   it("vindt inhoud zodra er één onderdeel is", () => {

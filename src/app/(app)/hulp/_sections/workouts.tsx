@@ -45,7 +45,7 @@ export function WorkoutsHelp() {
             </h3>
             <p className="mt-2 text-sm text-muted-foreground">
               Wahoo importeert geplande workouts <strong>niet</strong> uit een
-              los bestand — dan krijg je de melding &ldquo;geen geldige
+              los bestand. Dan krijg je de melding &ldquo;geen geldige
               GPX&rdquo;, omdat de app het als route probeert te lezen. Geplande
               workouts komen binnen via een koppeling. Koppel intervals.icu één
               keer aan Wahoo, daarna synct het schema vanzelf:
@@ -197,7 +197,7 @@ export function WorkoutsHelp() {
             <p className="mt-3 text-sm text-muted-foreground">
               Weten we iets niet, dan telt dat punt niet mee in plaats van dat
               het aftrek geeft. Een event scoort dus nooit lager omdat Zwift een
-              veld niet meestuurt — het is dan alleen op minder punten
+              veld niet meestuurt; het is dan alleen op minder punten
               vergeleken.
             </p>
           </div>

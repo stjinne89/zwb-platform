@@ -15,6 +15,7 @@ import { EVIDENCE_LABELS, NUTRITION_ARTICLES } from "@/lib/nutrition/library";
 import { evidenceText, type ArticleConclusion, type ArticleEvidence } from "@/lib/knowledge/evidence";
 import type { KnowledgeSource } from "@/lib/knowledge/source";
 import { MATERIAAL_ARTICLES } from "@/lib/materiaal/library";
+import { RACEN_ARTICLES } from "@/lib/racen/library";
 import { STRENGTH_ARTICLES } from "@/lib/training/strength-library";
 import { METHOD_LABEL_TEXT, type MethodLabel } from "@/lib/training/method-label";
 import { TRAINING_ARTICLES } from "@/lib/training/training-library";
@@ -34,12 +35,13 @@ type Article = {
   methodLabel?: MethodLabel;
 };
 
-/** De kennisbanken met het pad waaronder hun artikelen staan (materiaal sinds 2026-10-18). */
+/** De kennisbanken met het pad waaronder hun artikelen staan (materiaal sinds 2026-10-18, racen sinds 2026-10-19). */
 export const COACH_KNOWLEDGE_BASES: Array<{ title: string; basePath: string; articles: Article[] }> = [
   { title: "Trainen", basePath: "/zwbeter-worden/kennis", articles: TRAINING_ARTICLES },
   { title: "Voeding", basePath: "/zwbeter-worden/voeding/kennis", articles: NUTRITION_ARTICLES },
   { title: "Kracht, core en mobiliteit", basePath: "/zwbeter-worden/core/kennis", articles: STRENGTH_ARTICLES },
   { title: "Materiaal", basePath: "/zwbeter-worden/materiaal/kennis", articles: MATERIAAL_ARTICLES },
+  { title: "Racen", basePath: "/zwbeter-worden/racen/kennis", articles: RACEN_ARTICLES },
 ];
 
 /**

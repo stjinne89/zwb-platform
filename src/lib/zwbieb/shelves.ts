@@ -1,5 +1,5 @@
 // De leeszaal van ZWBieb: alle artikelen uit de kennisbanken (trainen, voeding,
-// kracht en, sinds 2026-10-18, materiaal) op één plek, per onderwerp in plaats van per onderdeel.
+// kracht, sinds 2026-10-18 materiaal en sinds 2026-10-19 racen) op één plek, per onderwerp in plaats van per onderdeel.
 //
 // De artikelen blijven waar ze staan: protocollen, de coach en het schema linken
 // naar hun adres onder ZWBeter Worden. De leeszaal is een catalogus erover.
@@ -18,17 +18,19 @@
 import type { ArticleConclusion, ArticleEvidence } from "@/lib/knowledge/evidence";
 import { MATERIAAL_ARTICLES } from "@/lib/materiaal/library";
 import { NUTRITION_ARTICLES } from "@/lib/nutrition/library";
+import { RACEN_ARTICLES } from "@/lib/racen/library";
 import type { MethodLabel } from "@/lib/training/method-label";
 import { STRENGTH_ARTICLES } from "@/lib/training/strength-library";
 import { TRAINING_ARTICLES } from "@/lib/training/training-library";
 
-export type Collection = "trainen" | "voeding" | "kracht" | "materiaal";
+export type Collection = "trainen" | "voeding" | "kracht" | "materiaal" | "racen";
 
 export const COLLECTION_LABELS: Record<Collection, string> = {
   trainen: "Trainen",
   voeding: "Voeding",
   kracht: "Core & mobiliteit",
   materiaal: "Materiaal",
+  racen: "Racen",
 };
 
 const COLLECTION_BASE: Record<Collection, string> = {
@@ -36,6 +38,7 @@ const COLLECTION_BASE: Record<Collection, string> = {
   voeding: "/zwbeter-worden/voeding/kennis",
   kracht: "/zwbeter-worden/core/kennis",
   materiaal: "/zwbeter-worden/materiaal/kennis",
+  racen: "/zwbeter-worden/racen/kennis",
 };
 
 /** Een artikel als "kennisbank/slug". */
@@ -79,6 +82,23 @@ export const SHELF_DEFS: ShelfDef[] = [
     label: "Naar een wedstrijd",
     topics: ["zwift-racen", "toertochten"],
     books: ["voeding/voor-de-rit", "trainen/warming-up", "trainen/taper"],
+  },
+  // De kennisbank racen (2026-10-19): tactiek in een Zwift-race.
+  {
+    slug: "racetactiek",
+    label: "Racetactiek",
+    topics: ["zwift-racen"],
+    books: [
+      "racen/wat-een-zwift-race-vraagt",
+      "racen/in-het-wiel",
+      "racen/positie-in-de-groep",
+      "racen/klimmen-in-de-groep",
+      "racen/aanvallen-en-volgen",
+      "racen/ontsnappen",
+      "racen/de-sprint",
+      "racen/ploegentijdrit",
+      "racen/zwift-spelregels",
+    ],
   },
   {
     slug: "onderweg",
@@ -255,6 +275,7 @@ function allArticles(): Map<BookRef, Book> {
   add("voeding", NUTRITION_ARTICLES);
   add("kracht", STRENGTH_ARTICLES);
   add("materiaal", MATERIAAL_ARTICLES);
+  add("racen", RACEN_ARTICLES);
   return books;
 }
 

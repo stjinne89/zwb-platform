@@ -35,6 +35,7 @@ export const PLACES: Place[] = [
       "/profiel/cols",
       "/zwblokken",
       "/zwbgame",
+      "/voorzpwelbokaal",
       "/omnium",
       "/src",
       "/polls",

@@ -94,6 +94,13 @@ export const KRACHT_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/core/kennis", label: "Kennisbank" },
 ];
 
+/** De tabs binnen Racen: je races en, sinds 2026-10-19, de kennisbank racen. Een
+ * race (/racen/<id>) valt onder Jouw races, een artikel onder Kennisbank. */
+export const RACEN_SECTIONS: NavLeaf[] = [
+  { type: "link", href: "/zwbeter-worden/racen", label: "Jouw races" },
+  { type: "link", href: "/zwbeter-worden/racen/kennis", label: "Kennisbank" },
+];
+
 /** De tabs binnen Materiaal (de pijler materiaal, 2026-10-18). De pijler zelf
  * (/zwbeter-worden/materiaal) stuurt door naar de kennisbank. */
 export const MATERIAAL_SECTIONS: NavLeaf[] = [
@@ -126,12 +133,7 @@ export const NAV_GROUPS: NavNode[] = [
         label: "ZWB Omnium",
       },
       { type: "link", href: "/src", label: "Sunday Race Club" },
-      {
-        type: "link",
-        href: "https://voorzpwelbokaal.netlify.app/",
-        label: "voorZpWelBokaal",
-        external: true,
-      },
+      { type: "link", href: "/voorzpwelbokaal", label: "voorZpWelBokaal" },
     ],
   },
   {
@@ -204,6 +206,7 @@ export const BEHEER_CATEGORIES: BeheerCategory[] = [
       adminLink("citaten"),
       adminLink("achievements"),
       adminLink("zwbgame"),
+      adminLink("bokaal"),
     ],
   },
   {

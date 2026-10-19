@@ -8,6 +8,7 @@ import {
   START_STEPS,
   OVERVIEW,
 } from "../_data";
+import { HelpVideoLink, HelpVideoList } from "./help-video";
 
 export function BeginnenHelp() {
   return (
@@ -28,15 +29,19 @@ export function BeginnenHelp() {
         ))}
       </section>
 
+      <section id="videos" className="scroll-mt-20 rounded-lg border bg-card/90 p-5">
+        <HelpVideoList />
+      </section>
+
       <section className="rounded-lg border bg-card/90 p-5">
         <div className="flex items-start gap-3">
           <Sparkles className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
             <h2 className="font-semibold">Net begonnen of werkt iets niet meer?</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Loop de welkomstrondleiding opnieuw door — die loodst je stap voor
-              stap door je profiel, de Strava-/intervals-koppeling en meldingen.
-              Handig als iets niet meer werkt zoals vlak na de eerste installatie.
+              Loop de welkomstrondleiding opnieuw door. Die neemt je stap voor
+              stap mee langs je profiel, de Strava-/intervals-koppeling en
+              meldingen.
             </p>
             <Link
               href="/welkom"
@@ -101,6 +106,7 @@ export function BeginnenHelp() {
             </ol>
           </article>
         </div>
+        <HelpVideoLink video="app-op-beginscherm" className="mt-4" />
       </section>
 
       <section className="space-y-3">

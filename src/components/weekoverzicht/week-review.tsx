@@ -5,7 +5,8 @@
 // laatste de week erna om meteen aan te passen. Tikken rechts is verder, links
 // terug, vasthouden pauzeert. Onderdelen zonder data krijgen geen scherm.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { emphasisParts } from "@/lib/weekly-review/coach-text";
 import { isoWeekNumber } from "@/lib/weekly-review/period";
@@ -29,7 +30,10 @@ import s from "./week-review.module.css";
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-type Slide = { key: string; label: string; seconds: number; render: () => React.ReactNode };
+/** `scroll`: het scherm mag langer zijn dan de telefoon, met de knop onderin vast. */
+type Slide = { key: string; label: string; seconds: number; scroll?: boolean; render: () => React.ReactNode };
+
+const noSubscribe = () => () => {};
 
 const MONTHS = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
 
@@ -96,7 +100,13 @@ function buildSlides(
             <small>km</small>
           </h2>
           <p className={`${s.sub} ${s.txt}`}>
-            {rides.count === 1 ? "Eén rit" : `${rides.count} ritten`}, <b>{clock(rides.movingMinutes)} uur</b>
+            {rides.count === 1 ? "Eén rit" : `${rides.count} ritten`}
+            {/* Een CSV-import zonder tijden geeft 0 minuten: dan geen "0:00 uur". */}
+            {rides.movingMinutes > 0 ? (
+              <>
+                , <b>{clock(rides.movingMinutes)} uur</b>
+              </>
+            ) : null}
             {rides.elevationM > 0 ? (
               <>
                 {" "}en <b>{elevation(rides.elevationM)} hoogtemeters</b>
@@ -171,10 +181,7 @@ function buildSlides(
   }
 
   if (power) {
-    const shown = power.record ?? (() => {
-      const point = power.points.find((p) => p.seconds === 300 && p.week) ?? power.points.find((p) => p.week);
-      return point ? { label: point.label, watts: point.week as number, wattsPerKg: null, seconds: point.seconds } : null;
-    })();
+    const shown = power.record ?? power.focus;
     if (shown) {
       slides.push({
         key: "power",
@@ -192,6 +199,10 @@ function buildSlides(
             {power.record?.wattsPerKg ? (
               <p className={`${s.sub} ${s.txt}`}>
                 <b>{power.record.wattsPerKg.toLocaleString("nl-NL")} W/kg</b>.
+              </p>
+            ) : power.focus?.percentOfBest ? (
+              <p className={`${s.sub} ${s.txt}`}>
+                <b>{power.focus.percentOfBest}%</b> van je jaarbeste.
               </p>
             ) : null}
             <div className={s.art}>
@@ -320,6 +331,7 @@ function buildSlides(
     key: "next",
     label: `Week ${isoWeekNumber(review.next.weekStart)}`,
     seconds: 0,
+    scroll: true,
     render: () => (
       <>
         <h2 className={`${s.big} ${s.m} ${s.txt}`}>Week {isoWeekNumber(review.next.weekStart)}</h2>
@@ -423,8 +435,12 @@ export function WeekReviewStories({ review, onClose, preview = false }: { review
   }, [last, onClose]);
 
   const onLast = current >= last;
+  // Rechtstreeks in <body>: binnen de pagina viel de onderbalk van het
+  // tegelsontwerp eroverheen, met zondag en de opslaanknop eronder.
+  const onClient = useSyncExternalStore(noSubscribe, () => true, () => false);
+  if (!onClient) return null;
 
-  return (
+  return createPortal(
     <div
       className={`${s.backdrop} ${stencilFont.variable} ${karlaFont.variable}`}
       role="dialog"
@@ -464,7 +480,10 @@ export function WeekReviewStories({ review, onClose, preview = false }: { review
         </button>
 
         {slides.map((item, i) => (
-          <section key={item.key} className={i === current && fontReady ? `${s.slide} ${s.on}` : s.slide} aria-hidden={i !== current} aria-label={item.label}>
+          <section
+            key={item.key}
+            className={[s.slide, item.scroll ? s.scroll : "", i === current && fontReady ? s.on : ""].filter(Boolean).join(" ")}
+            aria-hidden={i !== current} aria-label={item.label}>
             {i === current || Math.abs(i - current) === 1 || i === last ? item.render() : null}
           </section>
         ))}
@@ -486,6 +505,7 @@ export function WeekReviewStories({ review, onClose, preview = false }: { review
           </>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

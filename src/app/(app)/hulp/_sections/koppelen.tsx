@@ -14,6 +14,7 @@ import {
   INTERVALS_RIDE_STEPS,
   INTERVALS_RIDE_NOTES,
 } from "../_data";
+import { HelpVideoLink } from "./help-video";
 
 export function KoppelenHelp() {
   return (
@@ -47,6 +48,7 @@ export function KoppelenHelp() {
           </li>
         </ol>
         <ConnectWithStrava reconnect className="mt-4" />
+        <HelpVideoLink video="strava-koppelen" className="mt-4 flex w-fit" />
       </section>
 
       <section
@@ -97,6 +99,7 @@ export function KoppelenHelp() {
           intervals.icu Settings
           <ExternalLink className="size-3.5" />
         </a>
+        <HelpVideoLink video="zonder-strava" className="mt-3 flex w-fit" />
       </section>
 
       <section
@@ -163,11 +166,11 @@ export function KoppelenHelp() {
               </li>
             </ol>
             <p className="mt-3 text-xs text-muted-foreground">
-              De taal van je Strava-account maakt niet uit — Nederlandse,
-              Engelse en andere kolomnamen worden herkend. Alleen fietsritten
-              (ook virtueel, gravel, MTB en e-bike) worden geïmporteerd; de
-              rest wordt automatisch overgeslagen. Opnieuw importeren kan
-              altijd, ritten worden niet dubbel geteld.
+              De taal van je Strava-account maakt niet uit: ZWB herkent
+              Nederlandse, Engelse en andere kolomnamen. Alleen fietsritten
+              (ook virtueel, gravel, MTB en e-bike) komen binnen; de rest slaat
+              ZWB over. Opnieuw importeren kan altijd, ritten tellen niet
+              dubbel.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
@@ -194,7 +197,7 @@ export function KoppelenHelp() {
             </ol>
             <p className="mt-3 text-xs text-muted-foreground">
               Gebruik de GPX van een gereden rit (met tijden), geen route-GPX.
-              Afstand, hoogtemeters en rijtijd worden uit het bestand berekend.
+              Afstand, hoogtemeters en rijtijd rekent ZWB uit het bestand.
               Met het spoor tellen cols, ZWB Segments en ZWBlokken mee, en meet
               ZWB je tijd op cols en uitgekozen segmenten. Die staat met GPS in
               de ranglijst.
@@ -269,7 +272,7 @@ export function KoppelenHelp() {
             <h2 className="font-semibold">Doorklikken naar je andere profielen</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Vul je ID&apos;s in op Profiel en er verschijnen knoppen naar
-              ZwiftPower, ZwiftRacing.app, Strava en intervals.icu — op jouw
+              ZwiftPower, ZwiftRacing.app, Strava en intervals.icu, op jouw
               profiel en op je ledenprofiel. Per ID kies je zelf of het zichtbaar
               is.
             </p>
@@ -285,9 +288,10 @@ export function KoppelenHelp() {
             <p className="mt-2 text-sm text-muted-foreground">
               Log in op my.zwift.com en open je profiel: het nummer in de
               adresbalk is je Zwift-ID. Staat ook in je ZwiftPower-adres, achter
-              z=. Dit ene nummer verzorgt zowel ZwiftPower als
-              ZwiftRacing.app.
+              z=. Met dit ene nummer werken ZwiftPower en ZwiftRacing.app
+              allebei.
             </p>
+            <HelpVideoLink video="zwift-id" className="mt-3" />
           </article>
 
           <article
@@ -296,9 +300,9 @@ export function KoppelenHelp() {
           >
             <h3 className="text-sm font-semibold">Strava</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Open je Strava-profiel in een browser. Het laatste stuk van het
-              adres — strava.com/athletes/… — is wat je invult. Zowel het nummer
-              als je gebruikersnaam werkt.
+              Open je Strava-profiel in een browser en vul het laatste stuk van
+              het adres in, na strava.com/athletes/. Het nummer en je
+              gebruikersnaam werken allebei.
             </p>
           </article>
 
