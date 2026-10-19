@@ -386,7 +386,7 @@
 /* ---------- Design "tegels" (standaard; het oude design staat achter een schakelaar) ----------
    Geldt alleen binnen [data-design="tegels"], dat de app-layout zet tenzij het
    oude design aanstaat (lib/design.ts). Het oude design blijft onaangeroerd.
-   Vijf plekken, vijf tenuekleuren; een tegel heeft de kleur van de plek waar
+   Vier plekken en vijf tenuekleuren; een tegel heeft de kleur van de soort waar
    hij heen leidt. */
 [data-design="tegels"] {
   --radius: 0.125rem;
@@ -676,7 +676,7 @@ a.tg-row:focus-visible,
 .tg-row-past { color: var(--muted-foreground); }
 .tg-row-past .tg-row-day { opacity: 0.45; }
 
-/* De vijf plekken. Onderin op de telefoon, bovenin op een breed scherm. */
+/* De vier plekken. Onderin op de telefoon, bovenin op een breed scherm. */
 .tg-tabs-bottom {
   display: none;
 }
@@ -957,7 +957,7 @@ a.tg-row:focus-visible,
 }
 
 /* ---- ZWBeter ----
-   De vier pijlers als tegels; de actieve is vol teal, de andere een rustig vlak.
+   De vier pijlers als tegels; de andere zijn vol teal, de actieve het paneel met de gouden lijn.
    Kerncijfers op de trainingspagina's zijn tegels zoals op het dashboard. */
 .tg-pillar {
   display: flex;

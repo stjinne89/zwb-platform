@@ -225,6 +225,55 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
+> **DESIGN.md beschrijft het design "tegels", 2026-10-19 — geschreven uit de code; niet in de browser naast de app gelegd; lokaal gecommit, niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/tegels-design-update-f46798`.
+>
+> **Waarom.** Met "tegels" als standaard voor iedereen (ronde hieronder)
+> beschreef `DESIGN.md` een design dat leden niet meer zien. Wie een nieuw
+> scherm bouwt, moest de regels uit `globals.css` en twintig PLAN-rondes
+> bij elkaar zoeken.
+>
+> **Wat.** Het hoofdsysteem is herschreven uit wat gebouwd is: `globals.css`
+> (blok "Design tegels"), `tegels-shell.tsx`, `tegels-tabs.tsx`,
+> `components/tegels/` en `lib/design-places.ts`. Nieuwe leidraad
+> "Tenuetegels" in plaats van "Het Clubhuis". Vastgelegd: de vijf tegelkleuren
+> per soort met hun tekstkleur (contrast nagerekend: 4,7 tot 14,4 bij licht,
+> 6,3 tot 12,2 bij donker), het paneel en de banen, de vier plekken, Barlow
+> Semi Condensed met de maten zoals ze binnen het design staan, en de
+> onderdelen (tegel, agendarij, pijler, `tg-link`, segmentknoppen, filterchips,
+> menu's en dialogen). Nieuwe benoemde regels: Kleurregel, Klikregel,
+> Schaarsteregel, Hierregel (paneel met gouden lijn), Lichte-cijferregel,
+> Kastregel, Navigatieregel en Rechtregel. De Smalle-ladderregel van het oude
+> design vervalt. De frontmatter-tokens zijn vervangen; die van het
+> weekoverzicht staan er ongewijzigd in. Het register Weekoverzicht is
+> ongewijzigd, behalve de Grensregel, die nu naar de nieuwe regelnamen
+> verwijst.
+>
+> **Ook rechtgezet.** Code-commentaar dat nog "vijf plekken" zei
+> (`tegels-shell.tsx`, `globals.css`), en het commentaar bij de ZWBeter-pijlers,
+> dat het omgekeerde zei van wat de CSS doet (de actieve is het paneel met de
+> gouden lijn, de andere zijn teal). In de ronde hieronder stond "vijf
+> plekken in de balk (… Meer)"; dat is "vier plekken": Meer verdween al op
+> 2026-10-13.
+>
+> **Gevonden bij het schrijven, niet opgelost.**
+> - De gouden lijn van "waar je bent" haalt op crème 2,9:1, net onder de 3:1
+>   voor niet-tekst. Het is nooit het enige signaal (het vlak verliest ook zijn
+>   kleur); als regel vastgelegd, niet aangepast.
+> - De weergaveknop op het profiel is nog een ronde rail uit het oude design;
+>   staat zo beschreven.
+>
+> **Bewust niet gedaan.**
+> - `.impeccable/design.json` opnieuw genereren. Dat zijbestand beschrijft nog
+>   het oude design (gegenereerd 2026-10-18); de impeccable-hulpmiddelen lezen
+>   het naast `DESIGN.md`. Een eigen stap.
+> - De beschrijving van het oude design bewaren in `DESIGN.md`: die staat in
+>   de git-geschiedenis, en het oude design gaat er na de opruimronde uit.
+>
+> **Niet geverifieerd.** Alles is uit de code afgeleid, niet naast de draaiende
+> app gelegd. Alleen typecheck gedraaid (er veranderde alleen commentaar in
+> code).
+
 > **Design "tegels" wordt de standaard voor alle leden, 2026-10-19 — gebouwd, typecheck, lint en unit-tests schoon; niet in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-19, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
 > Commit: de commit die dit blok toevoegt, op `claude/tegels-design-update-f46798`.
 >
@@ -245,7 +294,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > design een proef noemde, is bijgewerkt.
 >
 > **Wat leden merken** (besluiten uit de ronde van 2026-10-12, nu voor
-> iedereen): vijf plekken in de balk (Vandaag, Kalender, ZWBeter, Club, Meer);
+> iedereen): vier plekken in de balk (Vandaag, Kalender, ZWBeter, Club);
 > Community vervalt als menu, en WhatsApp-groepen en Media staan alleen onder
 > Beheer, dus **gewone leden bereiken die niet meer via het menu**;
 > Ritverslagen staat nergens meer in het menu; Deel je foto's staat niet meer op
@@ -256,7 +305,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   pagina, `getDesign()`-checks). Eerst een week of twee draaien met het
 >   vangnet; daarna een eigen opruimronde.
 > - `DESIGN.md` herschrijven: dat beschrijft nog het oude design (zie de ronde
->   van 2026-10-12). Hoort bij of na die opruimronde.
+>   van 2026-10-12). Hoort bij of na die opruimronde. *(Bijgewerkt
+>   2026-10-19: toch dezelfde dag gedaan, zie de ronde "DESIGN.md beschrijft
+>   het design tegels".)*
 > - Een keuze voor gewone leden om terug te gaan: twee designs naast elkaar voor
 >   iedereen betekent elke wijziging twee keer bekijken.
 >
@@ -1193,7 +1244,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > Stats → Ik, en ZWBieb. De inlogpagina en de resetstand via de voorbeeldpagina,
 > in licht en donker. Detector van impeccable: alleen adviezen dat tegelmaten
 > buiten de typeladder van DESIGN.md vallen. DESIGN.md beschrijft nog het
-> klassieke design.
+> klassieke design. *(Niet meer waar sinds 2026-10-19: DESIGN.md beschrijft nu
+> "tegels".)*
 >
 > **Niet geverifieerd.** De echte `/login`, `/wachten` en `/wachtwoord-resetten`
 > in tegels: ingelogd stuurt `/login` door, wachten vraagt een niet-goedgekeurd
@@ -3653,7 +3705,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - Het herontwerpen van de overige pagina's, en dialogen en dropdowns: die
 >   renderen buiten de schil en houden de oude tokens.
 > - `DESIGN.md` beschrijft nog het huidige design; herschrijven als "tegels"
->   de standaard wordt.
+>   de standaard wordt. *(Gedaan op 2026-10-19.)*
 >
 > **Hulpmiddel.** `/ontwerp-voorbeeld` toont het design met voorbeelddata zonder
 > login; alleen bij lokaal ontwikkelen (`notFound()` in productie, en de
