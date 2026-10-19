@@ -280,9 +280,18 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > code kan zonder risico live. Dan de bot maken, de drie Telegram-variabelen in
 > Netlify zetten en na de deploy de webhook zetten (runbook, "Telegram-bot").
 >
-> **Niet geverifieerd.** De eigenaar test eerst zonder code: een ZWB-push op een
-> Garmin Edge, een ZWB-push op de BOLT 2 (verwacht: niets) en een Telegram-bericht
-> op de BOLT 2. Of een ZWB-push op Android via Garmin Connect doorkomt, hangt af
+> **Bot en eerste test (2026-10-19).** De bot heet `@ZWBCyclingBot` (naam "ZWB",
+> groepen uit, beschrijving, over-tekst en profielfoto via BotFather). Token en
+> gebruikersnaam staan in Netlify (eigenaar). Een bericht via de bot-API kwam op
+> de BOLT 2 van de eigenaar aan, als Telegram-melding van de telefoon. Twee
+> lessen: zolang Telegram Web of de Telegram-app open en actief is, dempt
+> Telegram de melding op de telefoon en dus ook op de ELEMNT; en het eerste
+> bericht kwam pas door nadat de telefoon- en Wahoo-instellingen waren nagelopen
+> (de ELEMNT toont alleen wat als melding op de telefoon verschijnt). De webhook
+> is nog niet gezet: de code staat nog niet live.
+>
+> **Niet geverifieerd.** Een ZWB-push op een Garmin Edge, de koppeling via de
+> webhook en een bericht uit de app zelf. Of een ZWB-push op Android via Garmin Connect doorkomt, hangt af
 > van welke app de melding toont (browser of geïnstalleerde ZWB-app). Migratie
 > op PGlite getest en op productie toegepast; het gedrag van de app met de
 > migratie is niet getest. De schermen niet in de browser
