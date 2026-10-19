@@ -30,7 +30,7 @@ export function SchemaHelp() {
             <h3 className="text-sm font-semibold">Doeltype en de laatste weken</h3>
             <p className="mt-2 text-sm text-muted-foreground">
               Het doeltype bepaalt hoe je schema eindigt, dus kies het type dat
-              bij je plan hoort — niet alleen de naam die het dichtst in de buurt
+              bij je plan hoort, niet alleen de naam die het dichtst in de buurt
               komt.
             </p>
             <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
@@ -418,7 +418,7 @@ export function SchemaHelp() {
             <p className="mt-2 text-sm text-muted-foreground">
               Dit is het plafond waarbinnen de AI je week vult, samen met de
               dagen die je beschikbaar hebt gemaakt. Zet je 6 uur, dan blijft de
-              totale geplande tijd daaronder — ook in een zware blokweek. Het is
+              totale geplande tijd daaronder, ook in een zware blokweek. Het is
               geen streefwaarde: minder plannen mag altijd.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -426,7 +426,7 @@ export function SchemaHelp() {
               terwijl je plafond op 6 staat, dan wordt de week erna{" "}
               <strong className="text-foreground">niet</strong> afgeremd om dat te
               compenseren. Het schema gaat pas voorzichtiger plannen bij echte
-              signalen: een sterk negatieve form, een te snelle opbouw, slechte
+              signalen: een sterk negatieve vorm, een te snelle opbouw, slechte
               herstelwaarden, of trainingen die je zwaar reed én zwaar vond.
             </p>
           </article>
@@ -479,7 +479,7 @@ export function SchemaHelp() {
               ligt daarna vast: er wordt omheen gepland en de dag ervoor blijft
               licht. Na afloop vul je op je schemapagina onder{" "}
               <strong className="text-foreground">FTP-test</strong> je resultaat
-              in — het hoogste minuutvermogen bij een ramptest, het gemiddelde bij
+              in: het hoogste minuutvermogen bij een ramptest, het gemiddelde bij
               een 20-minutentest. Met een intervals.icu-koppeling staat daar al
               het vermogen dat intervals die dag heeft gemeten; klopt het niet,
               typ dan je eigen waarde. ZWB rekent daar je FTP uit (75%
@@ -546,7 +546,7 @@ export function SchemaHelp() {
               Bij je schema staan de clubevents die binnen de looptijd vallen. Ze
               komen er pas in als je <strong className="text-foreground">Ik doe mee</strong>{" "}
               kiest: dan wordt het event een vast blok, met een duur uit de
-              eindtijd of de afstand, en werkt het schema de week eromheen bij —
+              eindtijd of de afstand, en werkt het schema de week eromheen bij:
               geen zware sessie vlak ervoor of erna. Kies je{" "}
               <strong className="text-foreground">Nee</strong>, dan verdwijnt het
               uit de lijst en blijft je schema ongemoeid. &apos;Misschien&apos;
@@ -559,7 +559,7 @@ export function SchemaHelp() {
               Ga je zelf een rondje rijden of wil je een eigen training doen? Zet
               hem met <strong className="text-foreground">Rit inplannen</strong>{" "}
               in je schema als eigen rit of eigen training, met datum, duur en
-              zwaarte. Die rit ligt daarna vast — de planner verplaatst of
+              zwaarte. Die rit ligt daarna vast: de planner verplaatst of
               vervangt hem niet, maar zet de rest van de week eromheen en telt de
               belasting mee. Bij een eigen training kun je ook een workout uit de
               bibliotheek kiezen; die komt met zijn blokken in je schema en gaat
@@ -574,7 +574,7 @@ export function SchemaHelp() {
               Met <strong className="text-foreground">Aanpassen</strong> op de
               trainingspagina geef je door hoeveel tijd je vandaag hebt en hoe je
               je voelt; de AI herschrijft de sessie van vandaag. Die gaat direct
-              naar intervals.icu — de oude training van die dag verdwijnt daar —
+              naar intervals.icu, waar de oude training van die dag verdwijnt,
               en je kunt meteen doorklikken. Je trainer krijgt bericht en kijkt
               achteraf of de rest van de week nog past. Heb je helemaal geen
               tijd, kies dan <strong className="text-foreground">Rustdag</strong>:
@@ -682,7 +682,7 @@ export function SchemaHelp() {
             <h3 className="text-sm font-semibold">Readiness en je apparaat</h3>
             <p className="mt-2 text-sm text-muted-foreground">
               Whoop, Oura en Polar sturen een eigen readiness of herstelscore naar
-              intervals.icu; die nemen we één op één over. Garmin doet dat niet —
+              intervals.icu; die nemen we één op één over. Garmin doet dat niet:
               Body Battery en Training Readiness blijven in Garmin Connect en
               komen niet mee. Voor die horloges rekent ZWB zelf een readiness uit
               je HRV en je rust-hartslag, afgezet tegen je eigen gemiddelde van de

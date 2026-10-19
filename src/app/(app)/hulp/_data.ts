@@ -58,7 +58,7 @@ export const GUIDES = [
     bullets: [
       "Live tracking is per rit opt-in en verdwijnt bij inactiviteit.",
       "Je profielvelden hebben eigen zichtbaarheidsschakelaars.",
-      "Trainer-data wordt alleen gedeeld na expliciete toestemming.",
+      "Een trainer ziet je trainingsdata alleen als jij daar toestemming voor geeft.",
     ],
   },
   {
@@ -102,14 +102,14 @@ export const GUIDES = [
       "Onder Voorlopig klassement staat je eigen FRR-klasse zoals ZWB hem zelf uitrekent, omdat FRR een etappe pas later verwerkt. De finishtijden komen per tijdslot uit Zwift en worden om de paar uur opgehaald. Per etappe en tijdslot zet de winnaar van je klasse de tijd, als hij elke etappe tot dan toe reed; iedereen daarachter verliest eGAP op hem, en het klassement telt dat over de etappes op. Reed de winnaar niet alles, dan krijgt de eerste renner die dat wel deed 1 seconde en rekent de rest vanaf hem. Een tijdrit gaat op individuele tijd: daar geldt hetzelfde over alle tijdsloten heen. Wie een etappe twee keer rijdt, telt met zijn eerste rit. Heeft FRR een etappe van een renner al verwerkt, dan neemt ZWB dat verlies over, met promoties en tijdstraffen erin. De eGAP is de achterstand op de leider van je klasse. Rechts staat het verschil met jou. Een straf die FRR al gaf, telt mee en staat erbij. Het is niet officieel: FRR kan tijden corrigeren, nieuwe straffen geven en renners naar een andere klasse zetten. Wie een etappe nog niet reed, staat apart onder Mist een etappe. Volgen er van een etappe nog tijdsloten, dan staat wie hem nog kan rijden onder Nog te rijden. Staat er een startgroep bij een renner, dan reed hij in een andere startgroep dan de rest van je klasse. Met het poppetje haal je een renner uit je klassement, bijvoorbeeld wie gepromoveerd is of in de verkeerde startgroep reed; hij zet dan ook geen tijd meer in zijn slot. Dat geldt alleen voor jou, en onder Verwijderd zet je hem terug.",
       "De Sunday Race Club (SRC) van MyWhoosh staat per zondag als één regel in de kalender, met daaronder de herenrace en de damesrace. De laatste zondag van de maand is de finale. Inschrijven doe je zelf op MyWhoosh, van maandag 09:00 tot donderdag 05:00 (Nederlandse zomertijd; in de winter een uur eerder): de knop staat op je race, samen met de starttijd per categorie en het weigh-in-venster. MyWhoosh deelt je categorie zelf in; die hoor je een dag voor de race.",
       "Voor een SRC-teamuitslag rijden 3 tot 5 renners uit dezelfde categorie onder dezelfde teamnaam; de beste drie tijden tellen. Je team ligt de hele maand vast, en voor de teamuitslag in de finale heb je in die maand twee afgeronde races nodig. Op een SRC-zondag in de kalender, of op Sunday Race Club (menu Club), klik je per zondag of je kunt. Deed je die maand nog niet mee, dan schrijft die klik je meteen in: heren of dames volgens je profiel, met je laatst gereden categorie. Race en categorie pas je aan op Sunday Race Club; daar kies je ook je team als er meer dan één is. Staat de race van die zondag al in de kalender, dan wordt dat meteen je antwoord op die race; anders gebeurt dat zodra MyWhoosh de race publiceert. Onder elk team zie je per zondag hoeveel renners er per categorie kunnen, en per renner hoeveel kwalificaties hij deze maand uitreed (finale ✓ vanaf twee). Van team wisselen kan tot de eerste race van de maand. Met herinneringen aan krijg je een pushbericht op de avond voordat de inschrijving sluit (tenzij je zei dat je niet kunt), en tien minuten voor het weigh-in-venster als je in een categorie met weigh-in rijdt.",
-      "ZRL en Ladder-resultaten worden via bronnen gesynct waar mogelijk.",
-      "Ontbrekende brondata kan handmatig worden aangevuld door beheerders.",
+      "ZRL- en Ladder-uitslagen komen waar het kan vanzelf binnen.",
+      "Ontbreekt er iets, dan kan een beheerder het met de hand aanvullen.",
     ],
   },
   {
     id: "zwb-ds",
     icon: Smartphone,
-    title: "ZWB DS — live raceoverzicht",
+    title: "ZWB DS: live raceoverzicht",
     bullets: [
       "ZWB DS is het raceoverzicht voor een tweede scherm tijdens een Zwift-race, bijvoorbeeld je telefoon naast Zwift op je tablet. Je hebt er geen Sauce of computer voor nodig.",
       "De knop ZWB DS staat bij Raceinfo op de race en bij Jouw races op je dashboard, van een kwartier voor tot twee uur na de start. Hij verschijnt bij elke race in de kalender met een Zwift-event. Bij een ZRL-race staat hij ook op de live stand, en op ZWB DS staat een knop terug naar de stand.",
@@ -132,7 +132,7 @@ export const GUIDES = [
       "Geen plek voor Strava? Laat je ritten binnenkomen via intervals.icu (zie Ritten via intervals.icu), of importeer op het dashboard je historie (activities.csv) of ritten met spoor (GPX of FIT).",
       "Het aantal Strava-koppelingen is beperkt. Ben je 90 dagen niet in de app geweest, dan vervalt je koppeling; twee weken vooraf krijg je een melding.",
       "Ontkoppel je Strava op je profiel, dan kies je zelf: Ritten bewaren laat je opgehaalde ritten, segmenttijden en fietsen in ZWB staan, Ritten wissen haalt ze weg. Er komt daarna niets nieuws meer binnen. Badges en ZWBlokken blijven altijd.",
-      "Milestone badges blijven permanent op je profiel staan.",
+      "Milestonebadges blijven altijd op je profiel staan.",
       "Klik op een badge om te zien welke drempel erbij hoort.",
     ],
   },
@@ -152,7 +152,7 @@ export const GUIDES = [
     title: "Mijn garage",
     bullets: [
       "Houd slijtbare onderdelen (ketting, cassette, banden, remblokken …) bij op basis van je Strava-kilometers.",
-      "Kies per onderdeel een slijtage-range — enige, normale of hoge slijtage — of vul een eigen kilometerdrempel in.",
+      "Kies per onderdeel een slijtage-range (enige, normale of hoge slijtage) of vul een eigen kilometerdrempel in.",
       "Je krijgt een melding zodra een onderdeel toe is aan vervanging; op het dashboard zie je wat bijna of over de drempel is.",
     ],
   },
@@ -161,8 +161,8 @@ export const GUIDES = [
     icon: Users,
     title: "Community, polls, media en ritverslagen",
     bullets: [
-      "Polls verzamelen snelle keuzes vanuit de community.",
-      "Media bundelt nieuws, mededelingen, video's en podcasts.",
+      "Met een poll vraag je de club snel om een keuze.",
+      "Onder Media staan nieuws, mededelingen, video's en podcasts.",
       "Schrijf na een gereden event een ritverslag met vaste kopjes: voorbereiding, verloop, uitslag en leerpunten. Je hoeft niet alles in te vullen; je eigen uitslag staat er al bij als die bekend is.",
       "Anderen kunnen op je verslag reageren; met Deel stuur je het via WhatsApp door.",
     ],
@@ -202,7 +202,7 @@ export const GUIDES = [
   {
     id: "zwbgame",
     icon: Bike,
-    title: "ZWBgame — Zwift-koers, jouw tactiek",
+    title: "ZWBgame: Zwift-koers, jouw tactiek",
     bullets: [
       "Speel via Club → ZWBgame een Zwift-race tegen clubgenoten, op echte Zwift-routes van 15 tot 25 km: Flat Route, Hilly Route, Cobbled Climbs, Greater London Loop, Tempus Fugit, Innsbruckring en Glasgow Crit Circuit, met hun eigen ronden, sprints en KOM's. Een route staat er pas als het hoogteprofiel in de routebibliotheek zit. Een race van 30 tot 40 minuten speelt in ongeveer zes minuten: de tijd loopt versneld. Waar de koers beslist wordt, loopt hij langzamer, zodat je kunt kiezen: bij de start, een aanval in de buurt, een gat dat valt, de voet en de top van een klim, een sprint of KOM, en de laatste kilometer. Een gouden label naast de klok zegt welk moment het is.",
       "Club Ladder: jouw ploeg van vijf tegen een andere clubploeg van vijf, zoals op ladder.cycleracing.club. De finishplekken 1 tot en met 10 krijgen 10, 9, 8 … 1 punt; de ploeg met de meeste punten wint. Jij bent altijd de uitdager, dus een gelijke stand is verlies. Je daagt een ploeg uit tot zeven plekken boven je. Win je, dan neem je hun plek in en schuift iedereen daartussen één plek omlaag. Rij je in een ZWB-ladderteam, dan rijden je herkenbare teamgenoten mee; open plekken gaan naar clubgenoten van jouw niveau. De tegenstanders zijn negen clubploegen rond jouw niveau, de zwakste onderaan. De ladder bewaart je browser.",
@@ -228,12 +228,29 @@ export const GUIDES = [
       "Beheerders kunnen ongeclaimde rosterleden uitsluiten of weer toevoegen via /zwbgame/beheer. Er is nog geen multiplayer of gedeeld klassement.",
     ],
   },
+  {
+    id: "voorzpwelbokaal",
+    icon: Trophy,
+    title: "voorZpWelBokaal: wedden op het veldrijden",
+    bullets: [
+      "Via Club → voorZpWelBokaal zet je ZWBallen in op de elitewedstrijden van dames en heren in het veldrijden. Tik op Meedoen; je begint het seizoen met 10 ZWBallen.",
+      "Op het bord staan per renner drie quoteringen: wint, podium (top 3) en top 10. Daaronder staan twee duels: wie van de twee eindigt hoger. Tik een quotering aan, kies met + en − hoeveel ballen erop gaan en tik Op de lei zetten. Een raak briefje betaalt inzet × quotering terug op je saldo; die winst kun je weer inzetten.",
+      "Per wedstrijd zet je hoogstens 5 ballen in, dames en heren apart, ook als je saldo groter is. Met 10 ballen speel je dus beide wedstrijden voluit; staat je saldo lager, dan kies je.",
+      "Je kunt inzetten en intrekken tot de start van die wedstrijd. Je quotering ligt vast op het moment dat je inzet, ook als het bord daarna nog verandert.",
+      "De quotering komt uit de veldritrating van CyclingFlash. Elke renner krijgt een kracht e^(rating ÷ 35); de kans om te winnen is zijn kracht gedeeld door de som van alle krachten op de startlijst. Podium en top 10 komen uit 20.000 gesimuleerde koersen met dezelfde krachten, een duel is kracht A ÷ (kracht A + kracht B). De quotering is 1 ÷ kans, naar beneden afgerond op de ladder van een gokkantoor (1,05 · 1,10 · … · 33 · 50). Onder 1,05 staat er een streepje, boven 50 wordt het 50. Renners zonder rating rekenen met 600.",
+      "Per wedstrijd is er een bonusvraag met vaste antwoorden. Antwoorden kost niets; een goed antwoord levert 1 ZWBal op. Het platform kijkt hem na uit de uitslag.",
+      "Niet gestart: je inzet komt terug. Opgegeven telt als niet gefinisht. In een duel waarin geen van beiden finisht, krijg je je inzet terug. Gaat een wedstrijd niet door, dan krijgt iedereen zijn inzet terug.",
+      "Briefjes toont al je inzetten van dit seizoen met wat ze opleverden. Op de lei staat iedereen die meedoet, met saldo. Na de laatste wedstrijd van het seizoen wint het hoogste saldo. Sta je op nul, dan kom je terug via de bonusvragen.",
+      "Met Stoppen onder je briefjes wis je je deelname van dit seizoen, met al je inzetten en antwoorden.",
+      "Beheerders zetten wedstrijden op het bord via /voorzpwelbokaal/beheer: ratings ophalen, met Seizoenskalender alle komende wedstrijden van Wereldbeker, Superprestige, HG Cross en de kampioenschappen (BK, NK, EK, WK) in de lijst zetten of een losse eventlink van CyclingFlash toevoegen, de startlijst ophalen (dat zet ook de echte starttijd) en na de koers de uitslag ophalen en afrekenen. Weigert CyclingFlash de server, plak dan de paginabron.",
+    ],
+  },
 ];
 
 // Volledige wegwijzer: wat doet elke pagina/sectie van de app.
 export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/dashboard", name: "Dashboard", text: "Je startscherm: deze week, recente clubritten, ritverslagen en nieuws. Hier koppel en synchroniseer je ook je ritten, of importeer je ze (CSV/GPX)." },
-  { href: "/kalender", name: "Kalender", text: "Alle events — groepsritten, ZRL, Ladder en socials. RSVP met Ja of Misschien, en filter met Voor mij op wat bij je past, of per label op soort event of programma." },
+  { href: "/kalender", name: "Kalender", text: "Alle events: groepsritten, ZRL, Ladder en socials. RSVP met Ja of Misschien, en filter met Voor mij op wat bij je past, of per label op soort event of programma." },
   { href: "/samen-fietsen", name: "Samen fietsen", text: "Live kaart van wie er nu rijdt, met livechat. Tracking stel je in via je Garmin of Wahoo, of via OwnTracks." },
   { href: "/teams", name: "Teams", text: "Teams, rosters en ZRL-/Ladder-standen, inclusief de TTT-planner." },
   { href: "/src", name: "Sunday Race Club", text: "Je SRC-team per maand en per zondag wie er kan, per categorie." },
@@ -251,6 +268,7 @@ export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/media", name: "Media", text: "Nieuws, nieuwsbrieven, podcasts, video's en Instagram." },
   { href: "/stats", name: "Stats", text: "Club: de cijfers en ranglijst van alle leden. Ik: je eigen ritten, vermogen en records." },
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
+  { href: "/voorzpwelbokaal", name: "voorZpWelBokaal", text: "Wedden met ZWBallen op het veldrijden: het bord, je briefjes en de lei." },
   { href: "/profiel?weergave=bewerken", name: "Profiel", text: "Je gegevens, zichtbaarheid, je fietsen, koppelingen (Strava/intervals) en account." },
 ];
 
@@ -281,11 +299,11 @@ export const LIVETRACK_NOTES = [
 export const OWNTRACKS_STEPS = [
   {
     title: "Installeer OwnTracks",
-    text: "Download de gratis OwnTracks-app (iOS App Store of Google Play). Andere apps werken niet — wij gebruiken OwnTracks.",
+    text: "Download de gratis OwnTracks-app (iOS App Store of Google Play). Andere apps werken niet.",
   },
   {
     title: "Maak je koppellink",
-    text: "Ga naar Samen fietsen → OwnTracks koppelen. Je krijgt eenmalig een persoonlijke URL te zien — kopieer die meteen (hij wordt maar één keer getoond).",
+    text: "Ga naar Samen fietsen → OwnTracks koppelen. Je ziet één keer een persoonlijke URL. Kopieer die meteen.",
   },
   {
     title: "Zet OwnTracks op HTTP-modus",
@@ -297,7 +315,7 @@ export const OWNTRACKS_STEPS = [
   },
   {
     title: "Kies de actieve modus tijdens je rit",
-    text: "De modusbalk staat bovenin het Kaart-scherm. iPhone: kies 'Actie' — hoge frequentie en nauwkeurigheid (wel meer accuverbruik) voor een strak spoor. 'Significant' (Android: 'Grootte wijzigingen') werkt ook en is aanbevolen voor lager batterijgebruik, maar geeft een minder nauwkeurig spoor. 'Handmatig' en 'Rustig'/'Stop' publiceren geen locaties en geven gaten op de kaart.",
+    text: "De modusbalk staat bovenin het Kaart-scherm. iPhone: kies 'Actie' voor een strak spoor. Die meet vaak en nauwkeurig, maar kost meer accu. 'Significant' (Android: 'Grootte wijzigingen') werkt ook en is aanbevolen voor lager batterijgebruik, maar geeft een minder nauwkeurig spoor. 'Handmatig' en 'Rustig'/'Stop' publiceren geen locaties en geven gaten op de kaart.",
   },
   {
     title: "Rijden en verschijnen",
@@ -310,11 +328,11 @@ export const OWNTRACKS_STEPS = [
 ];
 
 export const OWNTRACKS_QUALITY_TIPS = [
-  "Zet batterijbesparing/-optimalisatie UIT voor OwnTracks — die schorst de app en veroorzaakt gaten in je spoor.",
+  "Zet batterijbesparing of -optimalisatie uit voor OwnTracks. Die schorst de app, en dan krijg je gaten in je spoor.",
   "Sluit OwnTracks niet af (niet 'wegvegen'); laat 'm op de achtergrond draaien tijdens de rit.",
   "iPhone: zet Achtergrond-appvernieuwing aan en 'Precieze locatie' aan voor OwnTracks.",
   "Android: sta 'onbeperkt' accugebruik toe voor OwnTracks en zet 'verwijder app bij niet-gebruik' uit.",
-  "Goede mobiele dekking helpt; in tunnels/dekkinggaten kan het bolletje even stilstaan — de kaart herstelt zichzelf zodra er weer data binnenkomt.",
+  "Goede mobiele dekking helpt. In een tunnel of dekkinggat kan het bolletje even stilstaan; de kaart herstelt zich zodra er weer data binnenkomt.",
   "Eén nieuwe koppellink maken vervangt de oude meteen; gebruik dat als je tracker gestolen/kwijt is.",
 ];
 
@@ -366,27 +384,27 @@ export const ZWIFT_NOTES = [
 
 export const ZWIFT_MATCH_FACTORS = [
   {
-    title: "Duur —",
+    title: "Duur:",
     text: "hoe dicht het event bij de geplande tijd zit. Weegt het zwaarst.",
   },
   {
-    title: "Intensiteit —",
+    title: "Intensiteit:",
     text: "de W/kg van de pacegroep omgerekend naar een percentage van jóúw FTP. Dezelfde groepsrit is voor een lichtere of sterkere renner een andere training.",
   },
   {
-    title: "Belasting —",
+    title: "Belasting:",
     text: "de geschatte TSS van het event naast die van je geplande training.",
   },
   {
-    title: "Terrein —",
+    title: "Terrein:",
     text: "klimwerk bij tempo, drempel en VO2max; vlak bij duur en herstel.",
   },
   {
-    title: "Starttijd —",
+    title: "Starttijd:",
     text: "hoe ver de start afligt van het moment waarop je training staat.",
   },
   {
-    title: "Populariteit —",
+    title: "Populariteit:",
     text: "weegt het lichtst, en telt hoe druk een event is vergeleken met andere events op hetzelfde uur van de dag. Rijden er ZWB'ers mee, dan zie je dat erbij.",
   },
 ];
@@ -394,7 +412,7 @@ export const ZWIFT_MATCH_FACTORS = [
 export const ZWIFT_MATCH_NOTES = [
   "Voorstellen gaan over ongeveer de komende elf uur: verder vooruit geeft Zwift zijn kalender niet vrij. Voor de training van vandaag of vanavond staat er dus iets, voor die van overmorgen niet.",
   "Vul je FTP en gewicht in op je profiel. Zonder die twee kunnen we de W/kg van een pacegroep niet naar jouw intensiteit omrekenen en blijft er weinig te vergelijken over.",
-  "Bij een groepsrit wijzen we de pacegroep aan die het tempo van je training rijdt — niet de snelste groep waar je in mag.",
+  "Bij een groepsrit wijzen we de pacegroep aan die het tempo van je training rijdt, niet de snelste groep waar je in mag.",
   "Bij een race telt de categorie wél als toelatingseis: valt je W/kg buiten elke categorie, dan stellen we de race niet voor.",
   "Races en tijdritten verschijnen alleen bij een geplande race of een harde sessie, nooit bij een duur- of hersteltraining.",
   "Een event kiezen is een notitie bij je training: je duur, je blokken en wat er naar intervals.icu ging blijven ongewijzigd. Wil je de training even lang maken als het event, pas dan zelf de duur aan.",
@@ -404,8 +422,8 @@ export const ZWIFT_MATCH_NOTES = [
 
 export const OUTDOOR_ROUTE_NOTES = [
   "Zet eerst een vertrekpunt op je profiel: je prikt een punt op de kaart, je vult geen adres in. ZWB bewaart die plek afgerond op ongeveer honderd meter en geen ander lid kan erbij.",
-  "De afstand volgt uit de geplande duur en intensiteit, met je FTP en gewicht erbij. Staan die niet op je profiel, dan doet ZWB geen voorstel — elke afstand zou dan een gok zijn.",
-  "Bij wind legt het eerste rondje het láátste stuk met de wind mee — het stuk waar je moe bent. Over een heel rondje kun je de wind niet ontlopen: je komt terug waar je begon, dus je krijgt altijd een deel tegen. Bij windstilte zijn het gewoon drie kanten op.",
+  "De afstand volgt uit de geplande duur en intensiteit, met je FTP en gewicht erbij. Staan die niet op je profiel, dan doet ZWB geen voorstel, want elke afstand zou dan een gok zijn.",
+  "Bij wind legt het eerste rondje het láátste stuk met de wind mee: het stuk waar je moe bent. Over een heel rondje kun je de wind niet ontlopen: je komt terug waar je begon, dus je krijgt altijd een deel tegen. Bij windstilte zijn het gewoon drie kanten op.",
   "Een drempel- of tempotraining krijgt een rondje met meer hoogtemeters, een duur- of hersteltraining een vlakker rondje.",
   "De rondjes komen van een routeplanner op OpenStreetMap-data, niet van ZWB: ze houden rekening met fietspad, ondergrond en drukte, maar ze zijn niet door een mens gereden. Kijk hem na voordat je vertrekt.",
   "De drie rondjes staan samen op één kaart, elk in een eigen kleur. Klik een lijn aan (of de regel eronder) om de gegevens te zien en dat rondje te kiezen.",
@@ -487,7 +505,7 @@ export const ADMIN_GUIDES = [
       "Gebruik als publicatiedatum de oorspronkelijke datum van het bericht, document of de aflevering.",
       "Beschrijvingen ondersteunen markdown.",
       "Bij podcasts kun je per platform een link toevoegen; RSS is bedoeld voor overige podcast-apps.",
-      "Automatische imports kunnen opnieuw worden uitgevoerd: bestaande items worden bijgewerkt.",
+      "Een automatische import kun je opnieuw draaien; wat er al stond, wordt bijgewerkt.",
       "YouTube- en Instagram-imports werken nadat technisch beheer de bronkoppelingen heeft ingesteld.",
       "De laatste drie Instagram-posts en de stories van de afgelopen 24 uur staan als foto's op het dashboard. Instagram wordt elk uur vanzelf opgehaald; Instagram ophalen doet het meteen.",
       "Openbare posts waarin @zwb_cycling op de foto is getagd, staan er tussen, met de accountnaam erbij. Ongewenste post? Verwijder hem op Media; hij komt dan niet terug.",
@@ -513,7 +531,7 @@ export const ADMIN_GUIDES = [
       "De keuzelijst toont eerst de badges die alleen met de hand kunnen, daarna de automatische.",
       "Weekbadges blijven via de weekfinalisatie lopen.",
       "Intrekken verwijdert alleen de handmatige toekenning bij het gekozen lid.",
-      "Gekoppelde Strava-profielen kunnen automatisch worden bijgewerkt via de beveiligde Strava-synchronisatietaak.",
+      "De beveiligde Strava-synctaak werkt gekoppelde Strava-profielen automatisch bij.",
       "Plan die taak iedere 15 tot 30 minuten. Houd segmentdetails uit de frequente run om binnen de Strava-limieten te blijven.",
       "Laat de planner een POST-verzoek sturen naar /api/strava/sync met STRAVA_SYNC_SECRET als Bearer-token.",
     ],
@@ -556,7 +574,7 @@ export const ADMIN_GUIDES = [
       "Zet de WhatsApp- en Discord-link van een team onder Beheer op de teampagina; het logo verschijnt daarna bovenaan bij de teamnaam.",
       "De WhatsApp-link van een team staat ook in de lijst op Community, want het is dezelfde groep.",
       "Een discord.gg-invite laat iedereen erbij; een discord.com/channels-link opent direct het kanaal maar werkt alleen voor wie al in de server zit.",
-      "Vermogensdata en wedstrijdresultaten kunnen opnieuw worden opgehaald via de beheeracties bovenaan.",
+      "Vermogensdata en uitslagen haal je opnieuw op met de beheeracties bovenaan.",
     ],
   },
 ];
@@ -567,7 +585,7 @@ export const TROUBLESHOOTING = [
   "Verschijn je niet live met je Garmin? Check of Samen fietsen een laatste mail toont. Staat daar niets, kijk dan in Garmin Connect bij LiveTrack → Sessiedetails of je adres als ontvanger staat, en of Automatisch starten aan staat.",
   "Verschijn je niet live met je Wahoo? Open je Wahoo-link zelf: staat je rit daar niet, dan heeft de ELEMNT-app geen verbinding. Anders verschijn je binnen een paar minuten nadat iemand Samen fietsen opent.",
   "Verschijn je niet live? Check: OwnTracks op Private HTTP, juiste koppellink, locatie 'Altijd', en de modus actief (iPhone 'Actie', Android 'Beweging').",
-  "Bolletje staat stil of viel weg? Meestal een dekkinggat of de app werd geschorst — de kaart pakt het automatisch weer op; controleer batterijoptimalisatie.",
+  "Bolletje staat stil of viel weg? Meestal een dekkinggat, of de app werd geschorst. De kaart pakt het vanzelf weer op; kijk ook of batterijoptimalisatie uit staat.",
   "Geen trainingen in beeld? Controleer je intervals.icu API-key.",
   "Geen fietsen onder Mijn fietsen of Mijn garage? Koppel je fiets in Strava aan je ritten en draai daarna een Strava-sync.",
   "Mis je rechten? Vraag bestuur of communitybeheer om je rol te controleren.",

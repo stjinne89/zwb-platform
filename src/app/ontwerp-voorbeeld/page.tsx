@@ -16,13 +16,16 @@ import { DS_VOORBEELD } from "./ds-voorbeeld";
 import { WEEK_VOORBEELD } from "./weekoverzicht-voorbeeld";
 import { WeekReviewPage } from "@/components/weekoverzicht/review-page";
 import { WeekReviewDashboardLink } from "@/components/weekoverzicht/dashboard-link";
+import { BokaalShell } from "@/components/bokaal/shell";
+import { BokaalBoard } from "@/components/bokaal/board";
+import { BOKAAL_ANSWERS, BOKAAL_NOW, BOKAAL_PLACED, BOKAAL_RACES } from "./bokaal-voorbeeld";
 
 // Het design "tegels" met voorbeelddata, zonder login. Alleen bij lokaal
 // ontwikkelen: in productie bestaat deze pagina niet. Bedoeld om het uiterlijk
 // te controleren zonder de productiedatabase; met echte data kijk je via de
 // schakelaar in de app zelf.
 
-const SCREENS = ["vandaag", "kalender", "club", "jaarplan", "ds", "weekoverzicht", "inloggen"] as const;
+const SCREENS = ["vandaag", "kalender", "club", "jaarplan", "ds", "weekoverzicht", "bokaal", "inloggen"] as const;
 
 // Een jaar met alles erin: een lopend blok dat bijna afloopt, een vakantie waar
 // nog trainingen in staan, een kamp, lege maanden en een A-doel ver weg.
@@ -92,7 +95,11 @@ export default async function OntwerpVoorbeeldPage({
   return (
     <TegelsShell actions={<ThemeToggle />}>
       <div className="space-y-6">
-        {scherm === "kalender" ? (
+        {scherm === "bokaal" ? (
+          <BokaalShell active="/voorzpwelbokaal">
+            <BokaalBoard races={BOKAAL_RACES} placed={BOKAAL_PLACED} answers={BOKAAL_ANSWERS} joined balance={8} now={BOKAAL_NOW} />
+          </BokaalShell>
+        ) : scherm === "kalender" ? (
           <div className="tg-repeats-nav space-y-4">
             <h1 className="tg-display">Kalender</h1>
             <TegelsAgenda past={PAST} upcoming={UPCOMING} todayKey="2026-10-12" empty="Geen aankomende events of trainingen." />

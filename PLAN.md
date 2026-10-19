@@ -62,6 +62,19 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **voorZpWelBokaal:** `0252_voorzpwelbokaal.sql` is op 2026-10-19 via de
+     Supabase-connector toegepast, op verzoek van de eigenaar; de code is
+     daarna dezelfde dag naar `main` gepusht (ronde 2026-10-19,
+     "voorZpWelBokaal"). Vooraf
+     bestond geen enkele `bokaal`-tabel of -functie. Achteraf: vijf tabellen
+     met RLS aan, zes policies, `authenticated` alleen SELECT (plus INSERT en
+     DELETE op `bokaal_players`), `anon` op geen enkele tabel of functie,
+     `bokaal_ratings` zonder policy (alleen de server). De privacytekst is
+     goedgekeurd. Nog doen: in beheer één echte koers doorlopen:
+     ratings ophalen, event toevoegen, op het bord zetten, inzetten vanaf een
+     tweede account, na de koers afrekenen. Op Netlify kijken of CyclingFlash
+     de server toelaat (lokaal wel, met `node:https`); zo niet, de paginabron
+     plakken.
    - **Weekoverzicht:** `0251_weekly_reviews.sql` is op 2026-10-18 via de
      Supabase-connector toegepast, op verzoek van de eigenaar. Vooraf bestond de
      tabel niet; achteraf: 0 rijen, RLS aan, één leespolicy, `authenticated`
@@ -301,10 +314,86 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   staan met `moving_time_seconds = 0` én `elapsed_time_seconds = 0` in
 >   `strava_activities` (770 van 1555, alle ritten sinds 2026-08-22, allemaal
 >   `import_source: strava_csv`; ook de hoogtemeters zijn 0). Zijn CSV-export heeft
->   kennelijk tijdkolommen die `src/lib/strava/import.ts` niet herkent. Dat is
->   **niet** opgelost: daarvoor is de kopregel van zijn CSV nodig. Het overzicht
->   laat de uren nu weg als ze 0 zijn. Ook bij Moniek Groothuis (74) en Martijn
->   Duijm (24) staan ritten zonder tijd, maar hun recente ritten hebben wel tijd.
+>   kennelijk tijdkolommen die `src/lib/strava/import.ts` niet herkent. Het
+>   overzicht laat de uren nu weg als ze 0 zijn. Ook bij Moniek Groothuis (74) en
+>   Martijn Duijm (24) staan ritten zonder tijd, maar hun recente ritten hebben
+>   wel tijd.
+>
+>   *Opgeruimd op 2026-10-19 (alleen data, geen code of migratie).* De ritten
+>   zonder tijd kwamen niet uit een Strava-export maar uit een CSV van
+>   intervals.icu (804 rijen van 14 oktober, `source_activity_id` als
+>   `i131814845`, negatief id). Die heeft geen tijdkolommen die de import kent, en
+>   de starttijden staan als lokale tijd, dus 1 à 2 uur verschoven. Daardoor zag
+>   `isSameRide` (2 minuten) ze niet als dezelfde rit, en telden ze dubbel naast
+>   zijn intervals-ritten en de echte Strava-export die hij vanochtend uploadde
+>   (694 ritten, november 2022 t/m 13 oktober 2026, alle met tijd). De 804 rijen
+>   zijn met de hand uit `strava_activities` verwijderd; niets verwees ernaar
+>   (blokken, cols, segmenten, samenvattingen, workoutrapporten). 58 virtuele
+>   ritten uit 2023–2024 stonden alleen in die CSV en zijn daarmee ook weg; ze
+>   hadden geen tijd. Vier Zwift-ritten van 15–18 oktober (upload van 18
+>   oktober) vallen buiten de export en stonden nog op 0:00, hoewel zijn GPX of
+>   FIT er al een spoor aan had gehangen; zie de importronde hieronder.
+>   **Niet gebouwd in deze ronde:** de CSV van intervals.icu bij de import
+>   herkennen of weigeren. Dit is het eerste geval, en de eigenaar heeft er nog
+>   niet over beslist.
+>
+>   *Import vult tijd en hoogtemeters aan (2026-10-19, wens eigenaar).* Een GPX
+>   of FIT bij een rit uit activities.csv hing tot nu toe alleen het spoor aan
+>   die rit, en alleen als die nog geen spoor had. De tijd en de hoogtemeters uit
+>   het bestand vielen weg, dus een CSV-rit zonder tijd bleef op 0:00, ook na de
+>   upload van het bestand. Nu neemt `planRideImport` (`import-merge.ts`) bij een
+>   CSV-rit met tijd 0 de beweeg- en totaaltijd uit het bestand over, en bij 0
+>   hoogtemeters de hoogtemeters. Dat gebeurt ook als de rit het spoor al had;
+>   dat spoor blijft dan staan, en ZWBlokken rekenen de rit niet opnieuw door.
+>   Een bekende tijd of een rit van Strava of intervals.icu wordt nooit
+>   overschreven. Het importscherm meldt nu "ritten aangevuld" in plaats van
+>   "sporen aangevuld". Unit-tests in `strava-import.test.ts`; de schrijfactie
+>   in `_actions.ts` is niet lokaal tegen de database getest. Jeroen moet de vier
+>   bestanden opnieuw uploaden. Een weekoverzicht dat al bestaat, past zich daar
+>   niet op aan: `weekly_reviews.summary` wordt alleen opnieuw opgebouwd bij een
+>   andere `SUMMARY_VERSION` (`service.ts`). *Gecontroleerd na het pushen:* Jeroen
+>   uploadde de bestanden opnieuw; de vier ritten hebben nu tijd en hoogtemeters.
+>
+>   *Vermogen bij ritten uit activities.csv (2026-10-19, wens eigenaar).* Na de
+>   import zag Jeroen bij al zijn ritten "-" voor vermogen, NP, IF en TSS.
+>   Er was niets weg: activities.csv heeft geen vermogen, en de import nam het
+>   ook nooit over. Vermogen kwam alleen via intervals.icu, en ritten die via
+>   Strava in intervals.icu komen, geeft de API niet door (154 lege regels met
+>   "STRAVA activities are not available via the API", vanaf maart 2026).
+>   Sinds 18 oktober heeft Jeroen Zwift rechtstreeks aan intervals.icu
+>   gekoppeld; die 14 Zwift-ritten (1–18 oktober) hebben vermogen, maar
+>   `dedupeRides` sloeg ze over omdat de CSV-rit er al stond. Twee wijzigingen:
+>   - *Intervals-rit met vermogen vervangt een eigen upload zonder vermogen.*
+>     `importRidesToReplace` (`intervals/rides.ts`) wijst per binnenkomende rit
+>     met vermogen de CSV-, GPX- of FIT-rit zonder vermogen aan die dezelfde rit
+>     is. De sync slaat de intervals-rit op en verwijdert daarna de upload;
+>     `carryOverFromImport` neemt het spoor (als de intervals-rit er geen heeft)
+>     en `gps_segment_times`/`gps_col_times` mee. De verwijderde id's gaan als
+>     `removedActivityIds` naar het nawerk, zodat een gekoppelde training
+>     vrijkomt en aan de vervanger wordt gehangen. Een upload die al vermogen
+>     heeft, blijft staan. Dit verandert de oude test "laat een importrit staan":
+>     een GPX zonder vermogen maakt nu plaats.
+>   - *Vermogen uit FIT-bestanden.* De FIT-lezer (`fit.ts`) leest nu vermogen,
+>     hartslag en cadans uit de records (velden 7, 3, 4) en uit de sessie
+>     (gemiddeld en max vermogen, NP, arbeid, hartslag, cadans). Wat de sessie
+>     niet zegt, wordt uit de records gerekend; NP met `normalizedPower` (30 s
+>     voortschrijdend, korte gaten tot 10 s opgevuld, pauzes overgeslagen).
+>     `effortRawFields` zet het in `raw` met de Strava-namen (`average_watts`,
+>     `weighted_average_watts`, `device_watts` …), zodat `rideMetricsFromStrava`
+>     er IF en TSS uit rekent. Een FIT bij een CSV-rit zonder vermogen vult dat
+>     vermogen aan (`planRideImport`), ook als spoor en tijd er al zijn.
+>
+>   Unit-tests in `intervals-rides`, `intervals-ride-sync`, `strava-fit-import`
+>   en `strava-import`. Niet getest tegen een echt FIT-bestand van Zwift of
+>   Garmin en niet tegen de database: de veldnummers volgen het FIT-profiel.
+>   Voor Jeroen: de 14 Zwift-ritten van oktober wisselt de uurlijkse
+>   intervals-sync na de deploy vanzelf om. De 136 ritten van maart t/m
+>   september hebben allemaal een `.fit.gz` in zijn export; die vult hij aan door
+>   de map `activities` uit dezelfde export te uploaden.
+>   **Niet gebouwd:** vermogen uit GPX-extensies (zijn export bevat alleen FIT
+>   voor die ritten), en een FIT zonder GPS-spoor bij een CSV-rit (wordt nog
+>   steeds overgeslagen; bij Jeroen zijn alle ritten vanaf maart Zwift-ritten met
+>   spoor).
 > - *Altijd de 5 minuten op het vermogensscherm.* Zonder jaarrecord koos het
 >   scherm vast de 5 minuten, een willekeurige keuze. Nu kiest `buildPower` de
 >   duur die het dichtst bij het jaarbeste kwam (`focus`, met het percentage);
@@ -3655,7 +3744,10 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   `suggestions`). Het huidige design toont ze nog in het schema. Ze horen bij
 >   de eerstvolgende training, ook als die niet vandaag is.
 > - *Club.* voorZpWelBokaal is de brede tegel geworden in plaats van ZWBlokken;
->   de naam paste op de telefoon niet op een smalle tegel.
+>   de naam paste op de telefoon niet op een smalle tegel. *Bijgewerkt
+>   2026-10-19:* de tegel linkt niet meer naar voorzpwelbokaal.netlify.app maar
+>   naar de eigen pagina `/voorzpwelbokaal`, en is donker petrol (spel) in
+>   plaats van petrol (competitie); breed blijft hij.
 > - *Tabbalk op de iPhone (nog niet op main).* De eigenaar meldde dat de balk
 >   op de iPhone midden in de pagina bleef hangen en met de inhoud meeschoof.
 >   De balk was `position: fixed`; hij is nu `sticky` met `bottom: 0` als
@@ -10480,7 +10572,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. Spelversie
 7: lopende races vervallen; uitslagen, ladder, tour en gehaalde oefeningen blijven.
-Niet gepusht.
+**Gepusht naar `main` op 2026-10-19.**
 
 **Waarom.** De eigenaar vroeg na spelversie 6 om "de verdere punten" te bouwen:
 modules D tot en met I uit het [tactiekvoorstel](docs/zwbgame-tactiek.md) en de
@@ -10534,7 +10626,7 @@ powerups, ploegorders, bots en de ploegentijdrit bijgewerkt.
 ### Gebouwd — ZWBgame spelversie 6: tactiek telt
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. Spelversie
-6: lopende races vervallen, uitslagen, ladder en tourstand blijven. Niet gepusht.
+6: lopende races vervallen, uitslagen, ladder en tourstand blijven. **Gepusht naar `main` op 2026-10-19.**
 
 **Waarom.** Uit het tactiekonderzoek hieronder: in spelversie 5 was passief
 meerijden de beste strategie, omdat Meerijden elke aanval volgde en het blok
@@ -10591,7 +10683,7 @@ en door het blok schuift. Dat geldt sinds spelversie 6 niet meer.
 ### Onderzocht — ZWBgame als tactiekspel: Zwift-racetactiek en bouwvoorstel
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
-code. Niet gepusht.
+code. **Gepusht naar `main` op 2026-10-19.**
 
 **Aanleiding.** De eigenaar wil van ZWBgame meer een tactisch spel maken dat
 Zwift-tactiek leert, en vroeg om een grondig onderzoek naar Zwift-racetactiek en
@@ -10624,6 +10716,238 @@ spreiding tussen tactieken opleveren, blijkt pas uit een nieuwe balanssimulatie.
 
 **Rechtgezet.** In [ZWBgame](docs/zwbgame.md) stond dat de tijdcompressie tussen
 2 en 10 ligt; sinds de ZRL-ronde van 2026-09-28 is dat 2 tot 14.
+
+### Gebouwd — voorZpWelBokaal: de seizoenskalender in één klik
+
+**2026-10-19.** Commit `d4ced4db`. Geen migratie. **Gepusht naar `main` op
+2026-10-19.**
+
+**Waarom.** De eigenaar vroeg of de wedstrijden uit het voorstel (Wereldbeker,
+Superprestige, HG Cross en de kampioenschappen) vanzelf in de lijst kunnen
+komen, in plaats van elk event met de hand toe te voegen.
+
+**Wat er veranderde.**
+- Beheer heeft onder "Seizoenskalender" een knop per reeks en "Alles". Elke
+  knop zet alle komende elitewedstrijden van dames en heren van dat seizoen als
+  concept in de lijst; wat er al staat, blijft staan (de race-slug is uniek).
+- Reeksen komen van de reekspagina's van CyclingFlash
+  (`/serie/<reeks>-<seizoen>-men-elite` en `-women-elite`): twee verzoeken per
+  reeks. Die pagina's geven datum en race-slug, geen starttijd. Dames horen bij
+  het event van de heren met dezelfde naam en datum; op CyclingFlash is de
+  eventslug gelijk aan de race-slug van de heren (nagekeken voor Wereldbeker,
+  Superprestige, HG Cross en de kampioenschappen).
+- Kampioenschappen komen uit de maandkalenders november, januari en februari:
+  BK, NK, EK en WK, niet de andere landen of de Pan-Amerikaanse. Per gevonden
+  event wordt de eventpagina gelezen, zonder startlijst.
+- "Alles" stuurt elk deel als apart verzoek, zodat geen enkel verzoek lang
+  duurt.
+- **Starttijd:** een reekswedstrijd krijgt eerst de standaardtijd (dames 13.45,
+  heren 15.00). "Startlijst ophalen" leest nu ook de eventpagina en zet de echte
+  starttijd; de melding zegt het als de tijd veranderde. Een koers kan pas op het
+  bord met een startlijst, dus de tijd is dan bijgewerkt, tenzij de eventpagina
+  nog geen tijd geeft. **Controleer de tijd voordat je een koers op het bord
+  zet:** een te late tijd houdt het bord open terwijl de koers al rijdt.
+- Een handmatig ingevoerde starttijd wordt bij "Startlijst ophalen"
+  overschreven door die van CyclingFlash, als die er een geeft.
+- Gemeten op 2026-10-19 (alleen lezen): Wereldbeker 24, Superprestige 16 en
+  HG Cross 10 komende wedstrijden, alle dames gekoppeld; kampioenschappen EK
+  2026, BK en NK 2027 en WK Oostende 2027 (dames 30 januari, heren 31 januari,
+  nog zonder tijd).
+
+**Bewust niet.**
+- Exact Cross en de X2O Trofee: niet gevraagd. Een reeks toevoegen is één regel
+  in `SERIES` (`src/lib/bokaal/calendar.ts`). De slug van Exact Cross gaf op
+  2026-10-19 een 404.
+- Geen automatische run (cron): de kalender verandert een paar keer per seizoen,
+  en een geplande job kost Netlify-credits. Ook startlijsten ophalen en
+  afrekenen blijven knoppen.
+- Geen plakveld voor de reekspagina's. Weigert CyclingFlash de server, dan kan
+  een event nog steeds los worden toegevoegd met de paginabron.
+
+**Let op.** De slugs bevatten sponsornamen (`telenet-superprestige`,
+`hg-cross`); bij een nieuwe sponsor vindt de knop niets en meldt hij dat.
+
+**Getest.** `tsc` en ESLint schoon; `bokaal.test.ts` 25 tests (nieuw: een
+reekspagina lezen, dames aan het herenevent koppelen en het verleden weglaten,
+alleen BK/NK/EK/WK uit de maandkalender). De lezers één keer tegen de echte
+pagina's gedraaid, zonder iets op te slaan. **Niet getest:** de knoppen in
+beheer op productie en het bijwerken van de starttijd bij "Startlijst
+ophalen" met een echte database.
+
+### Gebouwd — voorZpWelBokaal: wedkantoor voor het veldrijden
+
+**2026-10-19.** Commits `10f6fd29` en volgende, op branch
+`claude/voorzpwelbokaal-rebuild-fe8ea6`. Migratie `0252_voorzpwelbokaal.sql`,
+**op 2026-10-19 toegepast op productie** (Supabase-connector, op verzoek van de
+eigenaar). **Gepusht naar `main` op 2026-10-19**, na de migratie. De oude link
+naar voorzpwelbokaal.netlify.app staat nergens meer in de app; die site zelf
+staat nog online.
+
+**Waarom.** voorZpWelBokaal was een losse Vite-app (voorzpwelbokaal.netlify.app,
+broncode in de OneDrive-map `zwb-poule`): leden typten een top 3 en een
+bonusvraag, beheer plakte ratings en kreeg punten via een Monte-Carlo met een
+aparte knop voor Van der Poel en Brand. De eigenaar wilde het opnieuw opbouwen
+als Vlaams gokkantoor in het platform: quoteringen op een krijtbord, een
+café-sfeer, ZWBallen om in te zetten. Voorstel met speelbaar voorbeeldbord:
+[artifact](https://claude.ai/artifact/XM5e78KUt7vAEfs9WBRCtL) (privé).
+
+**Spelregels (besluiten eigenaar, 2026-10-19).**
+- Saldo per seizoen (augustus tot juli): je begint met **10 ZWBallen**, winst
+  gaat terug op je saldo en kun je opnieuw inzetten. Wat je niet inzet, blijft
+  staan.
+- **Hoogstens 5 ballen per wedstrijd**, dames en heren apart, ook met een groot
+  saldo. Zo speel je met 10 ballen beide wedstrijden voluit en kies je als je
+  saldo lager is. De limiet houdt ook de groei van een groot saldo in toom.
+- Een **bonusvraag** per wedstrijd levert bij een goed antwoord 1 bal op,
+  zonder inzet. Dat is de weg terug voor wie op nul staat.
+- Markten: winnaar, podium, top 10 en twee duels per wedstrijd.
+- Adviezen uit het voorstel die zijn overgenomen: bonus 1 bal; geen vangnet
+  voor wie op nul staat; alleen dames- en heren-elite; welke koersen op het
+  bord komen, kiest beheer (standaard de grote reeksen en kampioenschappen).
+  Nog open uit het advies: een mailtje aan CyclingFlash dat een clubspel hun
+  ratings gebruikt. Dat is aan de eigenaar.
+
+**De quotering** (`src/lib/bokaal/odds.ts`). Kracht = e^(rating / 35) uit de
+CyclingFlash-veldritrating (de rating zelf, niet de plek in de ranking: het gat
+tussen 1 en 2 kan 50 punten zijn of 2). Winst exact (kracht / som van de
+startlijst, Plackett–Luce), podium en top 10 uit 20.000 simulaties met
+Gumbel-ruis (zelfde model), een duel exact. Quotering = 1 / kans, naar beneden
+op de gokkantoorladder; onder 1,05 een streepje, boven 50 wordt het 50. Geen
+huismarge; door het afronden levert blind op favorieten spelen niets op. Zonder
+rating: 600. Vaste seed per koers, dus hetzelfde veld geeft hetzelfde bord.
+**T = 35 is voorlopig**: nog niet geijkt op vorig seizoen. Met T = 35 krijgt
+Brand (1044 tegen 996) in Meulebeke 1,60; ze werd daar derde.
+
+**Wat er gebouwd is.**
+- `0252`: `bokaal_players` (meedoen per seizoen, met eigen toestemming
+  `2026-10-19`, zoals ZWBieb), `bokaal_ratings` (alleen server), `bokaal_races`
+  (bord, bonusvraag en uitslag als jsonb), `bokaal_bets`,
+  `bokaal_bonus_answers`. Inzetten, intrekken en antwoorden alleen via
+  `security definer`-functies: die lezen de quotering van het bord zelf,
+  vergrendelen de spelersrij en bewaken de 5 ballen en het saldo
+  (`bokaal_balance`). Andermans briefjes en antwoorden zijn pas zichtbaar vanaf
+  de start. Stoppen wist de spelersrij en daarmee alles (cascade).
+  `bokaal_standings` geeft de lei.
+- CyclingFlash lezen (`src/lib/bokaal/cyclingflash.ts`): ranking, eventpagina
+  (elitewedstrijden met datum en starttijd), startlijst en uitslag (plek,
+  achterstand, leeftijd, nationaliteit van de renner, ploeg). **Met `node:https`
+  en niet met `fetch`:** Cloudflare gaf Nodes `fetch` een uitdaging (403,
+  `cf-mitigated: challenge`), een gewoon https-verzoek met dezelfde
+  user-agent niet. Weigert CyclingFlash toch, dan plakt beheer de paginabron.
+  Bescheiden: hoogstens 30 ophaalacties per beheerder per uur.
+- Afrekenen (`settle.ts`): niet gestart (niet op de startlijst én niet in de
+  uitslag) is inzet terug; opgegeven telt als niet gefinisht; een duel zonder
+  finishers is inzet terug. De uitslag in Meulebeke had 45 renners, de
+  startlijst 39; daarom telt de uitslag mee als "gestart". Opnieuw afrekenen
+  mag en rekent alles opnieuw vanaf de uitslag; zo corrigeert beheer.
+- Bonusvragen die het platform zelf nakijkt: voorsprong van de winnaar,
+  renners jonger dan 25 in de top 10, Belgen op het podium, meer Belgen of
+  Nederlanders in de top 10.
+- Pagina's: `/voorzpwelbokaal` (het bord en het wedbriefje),
+  `/voorzpwelbokaal/briefjes` (je seizoen, met stempels, en Stoppen),
+  `/voorzpwelbokaal/lei` (de stand), `/voorzpwelbokaal/beheer` (ratings,
+  event toevoegen, startlijst, op/van het bord, starttijd, bonusvraag,
+  afrekenen, annuleren). Beheer valt onder het recht `zwbgame.manage`: allebei
+  clubspel, en een eigen recht vraagt een nieuwe check-constraint (0206).
+- Uiterlijk: een eigen wereld zoals het weekoverzicht. Leisteen in een
+  eikenhouten lijst, krijt (Cabin Sketch en Kalam), een emaille bord in
+  petrol met gouden rand (Alfa Slab One), geel doorslagpapier (Courier Prime),
+  ZWBallen in de tenuekleuren. Licht: okergele cafémuur; donker: donker hout;
+  de lei blijft leisteen. Aantikken zet een krijtcirkel om de quotering.
+  Valkuil: een `text-shadow` in `currentColor` naast een oklch-schaduw laat
+  lightningcss in Turbopack crashen; de krijtschaduw heeft een vaste kleur.
+- Club-tegel en menu linken naar `/voorzpwelbokaal`; hulp (`/hulp/wedstrijden`
+  `#voorzpwelbokaal`) en privacy (`/privacy#voorzpwelbokaal`) uitgebreid.
+- `/ontwerp-voorbeeld?scherm=bokaal`: het bord met de Meulebeke-startlijsten,
+  alleen lokaal.
+
+**Privacy: goedgekeurd zonder nieuwe privacyversie** (eigenaar, 2026-10-19:
+"Meedoen is de toestemming."). Meedoen is een eigen keuze met een eigen
+toestemming in `bokaal_players` (`2026-10-19`), zoals ZWBieb. Het is een nieuwe
+categorie (inzetten en saldo, zichtbaar voor de club op de lei), maar alleen
+van wie zelf op Meedoen tikt; daarom geen hertekening door alle leden. Bewust
+afwijkend van de regel in `src/lib/privacy.ts`. De tekst staat op
+`/privacy#voorzpwelbokaal`; het wedbriefje linkt ernaar naast Meedoen.
+
+**Bewust niet.**
+- Een eigen duel kiezen in beheer (stond in het voorstel). Het bord kiest twee
+  duels: buren in rating binnen de top 10 met het kleinste gat. Later, als het
+  gemist wordt.
+- Combi en exact podium: quoteringen lopen ver boven 50; dan beslist geluk het
+  seizoen (voorstel, "Op de plank").
+- Live wedden, cash-out, huismarge, een eigen rating en namen intypen (zoals de
+  oude poule); open bonusvragen die met de hand moeten worden nagekeken.
+- Geplande ophaaljobs op Netlify: eerst knoppen in beheer, om credits te sparen.
+  (Sinds de ronde "de seizoenskalender in één klik" vult één knop de hele
+  kalender van de gekozen reeksen; ook die draait niet vanzelf.)
+- Junioren en beloften: startlijsten en ratings zijn daar het minst volledig.
+- De oude app op Netlify en zijn tabellen (`races`, `predictions`,
+  `global_odds`, `competitions`) zijn niet aangeraakt. Die staan in een eigen,
+  gepauzeerd Supabase-project ("VoorZpWelBokaal"), niet in de platformdatabase.
+  Het oude klassement is niet overgezet.
+- `revoke … from anon` op de functies staat er bewust bij: Supabase geeft nieuwe
+  functies standaard ook aan `anon`, en `revoke … from public` haalt dat niet
+  weg. Veel oudere `security definer`-functies zijn nog wel door `anon`
+  aanroepbaar (Supabase-advies `0028`, 31 functies op 2026-10-19); dat is buiten
+  deze ronde gelaten.
+
+**Getest.** `tsc` en ESLint schoon. Unit-tests: `bokaal.test.ts` (22: ladder,
+seizoen, kansen tellen op tot 1/3/10, de winnaarskans exact, nooit boven de
+eerlijke quotering, afrekenen, bonusvragen, de parsers op zelfgemaakte HTML in
+de structuur van CyclingFlash, Belgische tijd over de wintertijd) en
+`voorzpwelbokaal-migration.test.ts` (14, PGlite: meedoen, quotering van het
+bord, 5 per wedstrijd, saldo, opnieuw inzetten na winst, meekijken pas na de
+start, stoppen wist alles). De parsers één keer tegen de echte pagina's van
+Meulebeke gedraaid: event, startlijst (39), uitslag (45, met een DNF) en
+ranking lazen goed. Het bord op `/ontwerp-voorbeeld` bekeken op 390 en 1280
+breed, licht en donker, met aantikken, + en − en de limiet van 5. In de volle
+suite: twee time-outs onder belasting die los slagen, en `omnium-live` mist
+`.env.local` in de worktree.
+**Niet getest:** de migratie op een echte Supabase (alleen PGlite), de pagina's
+ingelogd met echte data, de server-actions en het beheerscherm in de browser,
+en of CyclingFlash de Netlify-server toelaat.
+
+### Opgeleverd — /hulp, ZWBieb en de kennisbanken menselijker geschreven
+
+**2026-10-19.** Commit `2b083852`. Geen migratie. Alleen tekst, geen gedrag.
+**Gepusht naar `main` op 2026-10-19.**
+
+**Waarom.** De eigenaar vroeg om de hele kennisbank (ZWBieb en de leeszaal) en
+`/hulp` door te lopen met de Claude-skill avoid-ai-writing: menselijker, zonder
+de kern eruit te halen. Kleine, gerichte wijzigingen; geen herschrijving van
+structuur, opsommingen of vette kopjes.
+
+**Wat er veranderde.**
+- `/hulp` (`_data.ts` en de secties `beginnen`, `club`, `kennis`, `koppelen`,
+  `schema`, `training`, `workouts`): alle gedachtestreepjes in lopende tekst en
+  titels zijn een komma, dubbele punt, puntkomma of nieuwe zin geworden
+  ("ZWB DS: live raceoverzicht", "Duur:" bij de Zwift-match). Stijve lijdende
+  vormen werden actief ("kunnen worden aangevuld door beheerders" → "kan een
+  beheerder het met de hand aanvullen"). Verder: "Uit privacy-overweging" → "Om
+  je privacy", "UIT" in hoofdletters → "uit", een herhaling van de kop bij de
+  welkomstrondleiding weg, dubbel "eenmalig … maar één keer" bij OwnTracks weg,
+  en "een sterk negatieve form" → "vorm".
+- Kennisbanken: drie zinnen. Trainen, FTP-test: "het overwegen waard" →
+  "Overweeg dan …". Voeding: "de focus op een laag gewicht" → "de nadruk op",
+  en "verdienen extra aandacht" → "Let als vrouwelijke renner extra op ijzer en
+  op genoeg eten".
+
+**Bewust niet.**
+- De kennisbankartikelen (trainen, voeding, kracht, materiaal) en de ZWBieb-
+  schermen waren al kort, concreet en met bron geschreven; de audit vond daar
+  verder niets dat aanpassen rechtvaardigde. Over-redigeren maakt tekst juist
+  gelijkvormiger.
+- De vette kopjes met een punt in `/hulp` ("Kies je eigen tegels.") en de
+  opsommingen blijven: dat is de opmaak van de hulp, geen tekstfout.
+- Bronvermeldingen, getallen, voorbehouden en de grappige teksten bij de
+  ZWBeterWorden-niveaus zijn niet aangeraakt. "Sleutelsessie" blijft: het is
+  een vaste term in de app, ook al staat "sleutel-" in de coachregels.
+- De protocollen vielen buiten deze ronde.
+
+**Getest.** `tsc`, ESLint op de gewijzigde bestanden en alle unit-tests: twee
+time-outs onder volle belasting (`admin-areas`, `intervals-ride-sync`) slagen
+los gedraaid; `omnium-live` mist `.env.local` in de worktree. De teksten zelf
+zijn niet in de browser bekeken.
 
 ### Gebouwd — ZRL-races krijgen dezelfde eventinformatie als een Zwift-event
 

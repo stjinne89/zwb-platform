@@ -66,9 +66,9 @@ export const HELP_CATEGORIES = [
   {
     id: "wedstrijden",
     label: "Events en wedstrijden",
-    text: "Kalender, teams, ZRL, FRR, SRC, ZWB DS en ZWBgame.",
+    text: "Kalender, teams, ZRL, FRR, SRC, ZWB DS, ZWBgame en voorZpWelBokaal.",
     tone: "kalender",
-    anchors: ["events", "teams", "zwb-ds", "zwbgame"],
+    anchors: ["events", "teams", "zwb-ds", "zwbgame", "voorzpwelbokaal"],
   },
   {
     id: "live-volgen",

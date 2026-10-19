@@ -416,12 +416,74 @@ function richness(ride: RideFingerprint): number {
   return (hasPower ? 2 : 0) + (hasTrack ? 1 : 0);
 }
 
+/** Ritten die het lid zelf uploadde (activities.csv, GPX, FIT). */
+const FILE_IMPORT_SOURCES = new Set(["strava_csv", "strava_gpx", "strava_fit"]);
+
+/**
+ * Welke eigen upload zonder vermogen een binnenkomende rit met vermogen vervangt,
+ * per id van die binnenkomende rit.
+ *
+ * Een lid zonder Strava-koppeling haalt zijn historie uit activities.csv, maar
+ * daar staat geen vermogen in. Komt dezelfde rit later met vermogen via
+ * intervals.icu (Zwift rechtstreeks gekoppeld), dan wint die; anders bleef de
+ * CSV-rit staan en ontbraken vermogen, NP, IF en TSS (Jeroen Janssen,
+ * oktober 2026). Een upload die al vermogen heeft, blijft staan.
+ */
+export function importRidesToReplace<T extends RideFingerprint>(
+  incoming: RideFingerprint[],
+  existing: T[],
+): Map<string, T> {
+  const replace = new Map<string, T>();
+  const taken = new Set<string>();
+  for (const ride of incoming) {
+    if (richness(ride) < 2) continue;
+    const old = existing.find((row) => {
+      const raw = (row.raw && typeof row.raw === "object" ? row.raw : {}) as Record<string, unknown>;
+      return (
+        String(row.id) !== String(ride.id) &&
+        !taken.has(String(row.id)) &&
+        FILE_IMPORT_SOURCES.has(String(raw.import_source ?? "")) &&
+        richness(row) < 2 &&
+        isSameRide(row, ride)
+      );
+    });
+    if (!old) continue;
+    taken.add(String(old.id));
+    replace.set(String(ride.id), old);
+  }
+  return replace;
+}
+
+/**
+ * Wat een vervangen upload meegeeft aan de rit die hem vervangt: het spoor (als
+ * de nieuwe er geen heeft) en de eigen segment- en coltijden. Met spoor hoeft
+ * het spoor niet meer bij intervals.icu opgevraagd.
+ */
+export function carryOverFromImport(
+  row: IntervalsRideRow,
+  old: { raw?: unknown },
+  now: Date,
+): void {
+  const raw = (old.raw && typeof old.raw === "object" ? old.raw : {}) as Record<string, unknown>;
+  const oldMap = (raw.map && typeof raw.map === "object" ? raw.map : {}) as Record<string, unknown>;
+  const newMap = (row.raw.map && typeof row.raw.map === "object" ? row.raw.map : {}) as Record<string, unknown>;
+  const oldTrack = typeof oldMap.summary_polyline === "string" ? oldMap.summary_polyline : "";
+  if (oldTrack && !newMap.summary_polyline) {
+    row.raw.map = { summary_polyline: oldTrack };
+    row.raw.track_checked_at ??= now.toISOString();
+  }
+  for (const key of ["gps_segment_times", "gps_col_times"]) {
+    if (raw[key] !== undefined && row.raw[key] === undefined) row.raw[key] = raw[key];
+  }
+}
+
 /**
  * Welke binnenkomende ritten opgeslagen mogen worden.
  *
  * - Een rit met hetzelfde id als een bestaande rij blijft: dat is een update.
  * - Een rit die al onder een ander id bestaat (een CSV- of GPX-import, of
- *   dezelfde trainerrit van een tweede toestel) wordt overgeslagen.
+ *   dezelfde trainerrit van een tweede toestel) wordt overgeslagen, tenzij
+ *   importRidesToReplace hem eerst uit `existing` haalde.
  * - Twee binnenkomende ritten die dezelfde zijn: de rijkste blijft.
  */
 export function dedupeRides<T extends RideFingerprint>(

@@ -142,7 +142,7 @@ describe("syncIntervalsRidesForProfile", () => {
     expect(db.tables.strava_activities).toHaveLength(3);
   });
 
-  it("laat een importrit staan en voegt dezelfde rit niet nog eens toe", async () => {
+  it("laat een importrit met vermogen staan en voegt dezelfde rit niet nog eens toe", async () => {
     const { db, conn } = setup();
     db.tables.strava_activities.push({
       id: -12345,
@@ -150,11 +150,47 @@ describe("syncIntervalsRidesForProfile", () => {
       name: "Rondje Veluwe",
       start_date: "2026-09-27T06:30:30.000Z",
       distance_m: 67400,
-      raw: { import_source: "strava_gpx" },
+      raw: { import_source: "strava_fit", device_watts: true, average_watts: 197 },
     });
     const result = await syncIntervalsRidesForProfile(db, conn, { now: NOW });
     expect(result.duplicates).toBe(2);
     expect(db.tables.strava_activities.find((ride) => ride.id === -12345)).toBeTruthy();
+    expect(db.tables.strava_activities).toHaveLength(3);
+  });
+
+  // Jeroen Janssen, oktober 2026: zijn Zwift-ritten stonden er al uit
+  // activities.csv, zonder vermogen. De rit met vermogen werd als dubbel
+  // overgeslagen, dus NP, IF en TSS bleven leeg.
+  it("vervangt een importrit zonder vermogen door de rit met vermogen", async () => {
+    const { db, conn } = setup();
+    const gpsTimes = [{ segment_id: 9, seconds: 58, started_at: "2026-09-27T07:00:00Z" }];
+    db.tables.strava_activities.push({
+      id: 20131400295,
+      profile_id: A,
+      name: "Rondje Veluwe",
+      start_date: "2026-09-27T06:30:30.000Z",
+      distance_m: 67400,
+      raw: {
+        import_source: "strava_csv",
+        map: { summary_polyline: "_p~iF~ps|U_ulLnnqC" },
+        gps_segment_times: gpsTimes,
+      },
+    });
+    const result = await syncIntervalsRidesForProfile(db, conn, { now: NOW });
+
+    expect(result.error).toBeUndefined();
+    expect(db.tables.strava_activities.some((ride) => ride.id === 20131400295)).toBe(false);
+    const veluwe = db.tables.strava_activities.find(
+      (ride) => (ride.raw as Record<string, unknown>).intervals_id === "i81234567",
+    )!;
+    const raw = veluwe.raw as Record<string, unknown>;
+    expect(raw.average_watts).toBe(198);
+    expect(raw.map).toEqual({ summary_polyline: "_p~iF~ps|U_ulLnnqC" });
+    expect(raw.gps_segment_times).toEqual(gpsTimes);
+    // Het spoor kwam mee, dus niet nog eens opgevraagd.
+    expect(mocks.trackCalls).not.toContain("i81234567");
+    // De training van de oude rit komt vrij voor de nieuwe.
+    expect(mocks.postSync.mock.calls[0][3]).toMatchObject({ removedActivityIds: [20131400295] });
     expect(db.tables.strava_activities).toHaveLength(3);
   });
 
