@@ -60,7 +60,9 @@ speeltijd en hoeveel daarvan vertraagd liep.
   (alleen in "3D · hoog"), een contactschaduw onder elke fiets, een luchtkoepel met
   verloop en Neutral tone mapping. De renners en fietsen staan in `rider-model.ts`:
   benen die de pedalen volgen, een ineengedoken houding in de afdaling, op de pedalen
-  bij een aanval, en een frame in de helmkleur van de ploeg.
+  bij een aanval, en een frame in de helmkleur van de ploeg. Het landschap staat in
+  `scenery.ts`: glooiende grond met kleurvlakken, bomen en struiken in groepen
+  (geseed op de route-id) en heuvelruggen aan de horizon.
 
 ## Spelregels en model
 

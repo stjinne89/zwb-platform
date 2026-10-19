@@ -10568,6 +10568,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBgame 3D-scène, stap 3: het landschap
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe
+spelversie. Niet gepusht.
+
+**Waarom.** Stap 3 van de vier. Het land was één vlak groen lint van 520 m breed met
+vijfkantige piramides als bomen, op willekeurige plekken, ook vlak naast de camera
+waar ze half het beeld vulden. De weg had geen berm en geen doorgetrokken kantlijn.
+
+**Wat er is** (nieuw: `src/app/(app)/zwbgame/scenery.ts`).
+- *Grond:* een raster dat de weg volgt, vlak tot 12 m van de weg en daarbuiten
+  glooiend, verder weg steeds heuvelachtiger. Kleurvlakken van gras, weide, donkerder
+  groen en hier en daar een akker; een lichtere berm langs de weg.
+- *Weg:* zandkleurige berm, doorgetrokken witte kantlijnen en een onderbroken
+  middenstreep (om de 24 m, zodat het bij versneld afspelen rustig blijft).
+- *Bomen:* sparren (stam en drie kegels) en loofbomen (stam en drie bollen) in
+  groepen: bosrijke stukken en open stukken, per streek meer sparren of meer loof,
+  met kleurvariatie per boom en struiken langs de berm. Aan de camerakant (rechts)
+  blijven bomen minstens 17 m van de weg, links 10 m. Alles is geseed op de route-id:
+  een route ziet er elke keer hetzelfde uit.
+- *Horizon:* twee heuvelruggen die met de camera meereizen, een groene voor en een
+  blauwige erachter, met voeten die oplossen in de nevel.
+- Bomen zijn gegroepeerd per 400 m weg, zodat wat buiten beeld valt niet getekend
+  wordt; een lange route kost daardoor niet meer per beeld dan een korte.
+- Test `tests/unit/zwbgame-scenery.test.ts`: de grond wijst omhoog (een omgedraaide
+  driehoeksvolgorde maakte de grond tijdens de bouw onzichtbaar), is vlak naast de
+  weg, en bomen blijven van de weg en groeien elke keer gelijk.
+
+**Bewust niet gedaan.** Geen toeschouwers, hekken of gebouwen: die horen bij de
+sprint- en KOM-bogen en zijn een eigen stap als de eigenaar dat wil. Geen echte
+kaart of Zwift-wereld nabouwen: het landschap is generiek, de route bepaalt alleen
+bochten, hoogte en de seed.
+
+**Niet lokaal te controleren.** Getest in de lokale demo en de browsertests
+(software-WebGL). Prestaties op een echte telefoon zijn niet gemeten.
+
 ### Gebouwd — ZWBgame 3D-scène, stap 2: de renners
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe

@@ -7,6 +7,7 @@ import { teamTint } from "@/lib/zwbgame/colors";
 import { elevationAt } from "@/lib/zwbgame/routes";
 import type { RaceState } from "@/lib/zwbgame/types";
 import { createPeloton, skinTone } from "./rider-model";
+import { createForest, createRidges, groundGeometry } from "./scenery";
 
 /**
  * raised: controls cover the lower part of the screen, so the picture shifts up.
@@ -81,20 +82,26 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
     }));
     materials.push(sky.material); sky.renderOrder = -1; sky.frustumCulled = false; scene.add(sky);
     const worldY = (distance: number) => elevationAt(route, Math.max(0, distance));
-    const roadVertices: number[] = [], groundVertices: number[] = [], indices: number[] = [];
-    for (let i = 0; i <= Math.ceil((route.length + 400) / 10); i++) {
-      const d = i * 10 - 100, x = bend(d), y = worldY(d);
-      roadVertices.push(x - 5, y, -d, x + 5, y, -d);
-      groundVertices.push(x - 260, y - 0.18, -d, x + 260, y - 0.18, -d);
-      if (i) { const n = i * 2; indices.push(n - 2, n - 1, n, n - 1, n + 1, n); }
-    }
-    const strip = (vertices: number[], color: string) => {
+    const track = { bend, height: worldY, length: route.length, seed: route.id };
+    const ground = new THREE.Mesh(geometry(groundGeometry(track, lowQuality)), (() => { const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, flatShading: true }); materials.push(m); return m; })());
+    ground.receiveShadow = true; scene.add(ground);
+    // Road-following strips between two offsets from the centre line: tarmac, verges, edge lines.
+    const ribbon = (from: number, to: number, lift: number, color: string) => {
+      const vertices: number[] = [], own: number[] = [];
+      for (let i = 0; i <= Math.ceil((route.length + 400) / 10); i++) {
+        const d = i * 10 - 100, x = bend(d), y = worldY(d) + lift;
+        vertices.push(x + from, y, -d, x + to, y, -d);
+        if (i) { const n = i * 2; own.push(n - 2, n - 1, n, n - 1, n + 1, n); }
+      }
       const g = geometry(new THREE.BufferGeometry());
-      g.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3)); g.setIndex(indices); g.computeVertexNormals();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3)); g.setIndex(own); g.computeVertexNormals();
       const mesh = new THREE.Mesh(g, material(color)); mesh.receiveShadow = true; scene.add(mesh);
     };
-    strip(groundVertices, "#92b27b");
-    strip(roadVertices, "#525e60");
+    ribbon(-5, 5, 0, "#525e60");
+    for (const side of [-1, 1]) {
+      ribbon(side * 5, side * 6.3, -0.06, "#a39a80");
+      ribbon(side * 4.5, side * 4.35, 0.012, "#e7e5d6");
+    }
     // Off the tarmac the road changes colour: dirt, gravel, cobbles.
     const surfaceColors: Partial<Record<string, string>> = { dirt: "#8a6a46", gravel: "#9a8a70", cobbles: "#6f6a62", brick: "#7a4b3a", wood: "#7b5a3c", snow: "#e8eef0", grass: "#5d8a45" };
     for (const section of route.rough ?? []) {
@@ -110,23 +117,17 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
       const mesh = new THREE.Mesh(g, material(color)); mesh.receiveShadow = true; scene.add(mesh);
     }
     const dummy = new THREE.Object3D();
-    const markerGeo = geometry(new THREE.BoxGeometry(0.11, 0.025, 4));
-    // Time runs compressed, so the verge markers are spaced out to keep the picture calm.
-    const markerCount = Math.ceil(route.length / 24);
-    const markers = new THREE.InstancedMesh(markerGeo, material("#e7e5bd"), markerCount * 2);
-    for (let i = 0; i < markerCount; i++) for (let side = 0; side < 2; side++) {
+    // Centre line. Time runs compressed, so the dashes are spaced out to keep the picture calm.
+    const dashCount = Math.ceil(route.length / 24);
+    const dashes = new THREE.InstancedMesh(geometry(new THREE.BoxGeometry(0.12, 0.02, 4)), material("#e7e5d6"), dashCount);
+    for (let i = 0; i < dashCount; i++) {
       const d = i * 24;
-      dummy.position.set(bend(d) + (side ? 4.5 : -4.5), worldY(d) + 0.025, -d);
-      dummy.rotation.set(0, -Math.atan((bend(d + 1) - bend(d - 1)) / 2), 0); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); markers.setMatrixAt(i * 2 + side, dummy.matrix);
+      dummy.position.set(bend(d), worldY(d) + 0.012, -d);
+      dummy.rotation.set(0, -Math.atan((bend(d + 1) - bend(d - 1)) / 2), 0); dummy.updateMatrix(); dashes.setMatrixAt(i, dummy.matrix);
     }
-    scene.add(markers);
-    const trees = new THREE.InstancedMesh(geometry(new THREE.ConeGeometry(2.4, 8, 5)), material("#3f7058"), Math.min(lowQuality ? 400 : 900, Math.ceil(route.length / 22)));
-    for (let i = 0; i < trees.count; i++) {
-      const d = i / trees.count * route.length;
-      dummy.position.set(bend(d) + (i % 2 ? -1 : 1) * (10 + (i * 17 % 50)), worldY(d) + 3, -d);
-      dummy.rotation.set(0, i, 0); dummy.scale.setScalar(0.7 + (i % 4) * 0.3); dummy.updateMatrix(); trees.setMatrixAt(i, dummy.matrix);
-    }
-    trees.castShadow = true; scene.add(trees);
+    dashes.receiveShadow = true; scene.add(dashes);
+    const forest = createForest(scene, track, lowQuality);
+    const ridges = createRidges(scene, route.id, HORIZON);
     const finish = new THREE.Group();
     finish.position.set(bend(route.length), worldY(route.length), -route.length);
     for (const x of [-5, 5]) { const pole = new THREE.Mesh(geometry(new THREE.BoxGeometry(0.3, 5, 0.3)), material("#c9974a")); pole.position.set(x, 2.5, 0); finish.add(pole); }
@@ -230,6 +231,7 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
       camera.position.set(focusX + cameraOffset.x, focusY + cameraOffset.y, -focus + cameraOffset.z);
       look.set(bend(focus + 16), worldY(focus + 16) + 1, -focus - 16); camera.lookAt(look);
       sky.position.copy(camera.position);
+      ridges.group.position.set(camera.position.x, focusY - 12, camera.position.z);
       // The shadow box sits a little ahead of the player, where the camera looks.
       sunTarget.set(bend(focus + 12), worldY(focus + 12), -focus - 12);
       const a = Math.round(sunTarget.dot(sunRight) / texel) * texel, b = Math.round(sunTarget.dot(sunUp) / texel) * texel;
@@ -271,7 +273,7 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
     return () => {
       disposed = true; cancelAnimationFrame(frame); observer.disconnect();
       renderer.domElement.removeEventListener("webglcontextlost", lost);
-      peloton.dispose(); markers.dispose(); trees.dispose(); helperMarkers.dispose(); blobs.dispose(); blobTexture.dispose();
+      peloton.dispose(); dashes.dispose(); forest.dispose(); ridges.dispose(); helperMarkers.dispose(); blobs.dispose(); blobTexture.dispose();
       geometries.forEach((g) => g.dispose()); materials.forEach((m) => m.dispose());
       renderer.dispose(); renderer.domElement.remove();
     };
