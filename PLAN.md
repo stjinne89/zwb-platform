@@ -281,6 +281,20 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > voorbeeldscherm (tik op een kwart gaf 1:30, slepen naar driekwart 4:30); niet
 > op een telefoon getest.
 >
+> **Opslaanknop en zondag onder de onderbalk (2026-10-19, gemeld door de
+> eigenaar met een schermafbeelding van een Android-telefoon), verholpen.** Ook na
+> de fix hierboven kwam er vanochtend geen schrijfactie binnen; de laatste rij is
+> van 2026-10-18 21:05 UTC. Oorzaak: het overzicht werd binnen de pagina getekend,
+> en daar ligt de onderbalk van het tegelsontwerp (`.tg-tabs-bottom`, sticky)
+> erboven, ondanks `z-index: 80` — een voorouder vormt een eigen stapelcontext.
+> De laatste pagina kon bovendien niet scrollen. Zondag en de opslaanknop vielen
+> daardoor weg en je kon niet opslaan. Nu gaat het overzicht via `createPortal`
+> rechtstreeks in `<body>` (pop-up én `/weekoverzicht`), de laatste pagina scrollt
+> onder de strepen door, en de statusregel met de knoppen staat vast onderin.
+> Bekeken op 412 × 780 met voorbeelddata (scrollen naar zondag, tikken op de balk,
+> opslaan in voorbeeldmodus); de overlap met de onderbalk zelf zit alleen in de
+> ingelogde schil en is niet lokaal nagespeeld, en niet op een telefoon getest.
+>
 > **Vaste plek op het dashboard (2026-10-18, wens eigenaar).** Zonder ingang
 > vond een lid het overzicht na het wegklikken niet terug. De eigenaar koos het
 > dashboard boven de ZWBeter-navigatie, en wilde dat het er de hele week staat.

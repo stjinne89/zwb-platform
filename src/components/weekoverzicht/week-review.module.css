@@ -169,6 +169,29 @@
   visibility: visible;
 }
 
+/* De week erna is langer dan een telefoonscherm: scrollen onder de strepen
+   en het kruisje door, met de knoppen altijd onderin. */
+.slide.scroll {
+  top: calc(60px + env(safe-area-inset-top));
+  padding-top: 4px;
+  padding-bottom: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.foot {
+  margin-top: auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  background: var(--paper);
+}
+
+.foot .act {
+  padding-top: 6px;
+}
+
 .big {
   margin: 0;
   font-family: var(--stencil);
