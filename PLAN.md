@@ -301,10 +301,29 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   staan met `moving_time_seconds = 0` én `elapsed_time_seconds = 0` in
 >   `strava_activities` (770 van 1555, alle ritten sinds 2026-08-22, allemaal
 >   `import_source: strava_csv`; ook de hoogtemeters zijn 0). Zijn CSV-export heeft
->   kennelijk tijdkolommen die `src/lib/strava/import.ts` niet herkent. Dat is
->   **niet** opgelost: daarvoor is de kopregel van zijn CSV nodig. Het overzicht
->   laat de uren nu weg als ze 0 zijn. Ook bij Moniek Groothuis (74) en Martijn
->   Duijm (24) staan ritten zonder tijd, maar hun recente ritten hebben wel tijd.
+>   kennelijk tijdkolommen die `src/lib/strava/import.ts` niet herkent. Het
+>   overzicht laat de uren nu weg als ze 0 zijn. Ook bij Moniek Groothuis (74) en
+>   Martijn Duijm (24) staan ritten zonder tijd, maar hun recente ritten hebben
+>   wel tijd.
+>
+>   *Opgeruimd op 2026-10-19 (alleen data, geen code of migratie).* De ritten
+>   zonder tijd kwamen niet uit een Strava-export maar uit een CSV van
+>   intervals.icu (804 rijen van 14 oktober, `source_activity_id` als
+>   `i131814845`, negatief id). Die heeft geen tijdkolommen die de import kent, en
+>   de starttijden staan als lokale tijd, dus 1 à 2 uur verschoven. Daardoor zag
+>   `isSameRide` (2 minuten) ze niet als dezelfde rit, en telden ze dubbel naast
+>   zijn intervals-ritten en de echte Strava-export die hij vanochtend uploadde
+>   (694 ritten, november 2022 t/m 13 oktober 2026, alle met tijd). De 804 rijen
+>   zijn met de hand uit `strava_activities` verwijderd; niets verwees ernaar
+>   (blokken, cols, segmenten, samenvattingen, workoutrapporten). 58 virtuele
+>   ritten uit 2023–2024 stonden alleen in die CSV en zijn daarmee ook weg; ze
+>   hadden geen tijd. Nog open: vier Zwift-ritten van 15–18 oktober (upload van
+>   18 oktober) staan nog op 0:00; die vallen buiten de export. Een latere
+>   Strava-export overschrijft ze, want het id is gelijk. Een losse FIT of GPX
+>   doet dat niet: `planRideImport` hangt dan alleen het spoor aan de CSV-rit.
+>   **Niet gebouwd in deze ronde:** de CSV van intervals.icu bij de import
+>   herkennen of weigeren. Dit is het eerste geval, en de eigenaar heeft er nog
+>   niet over beslist.
 > - *Altijd de 5 minuten op het vermogensscherm.* Zonder jaarrecord koos het
 >   scherm vast de 5 minuten, een willekeurige keuze. Nu kiest `buildPower` de
 >   duur die het dichtst bij het jaarbeste kwam (`focus`, met het percentage);
