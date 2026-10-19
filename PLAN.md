@@ -10476,7 +10476,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Opgeleverd — /hulp, ZWBieb en de kennisbanken menselijker geschreven
 
-**2026-10-19.** Geen migratie. Alleen tekst, geen gedrag.
+**2026-10-19.** Commit `2b083852`. Geen migratie. Alleen tekst, geen gedrag.
+**Gepusht naar `main` op 2026-10-19.**
 
 **Waarom.** De eigenaar vroeg om de hele kennisbank (ZWBieb en de leeszaal) en
 `/hulp` door te lopen met de Claude-skill avoid-ai-writing: menselijker, zonder
