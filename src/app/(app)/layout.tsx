@@ -152,7 +152,7 @@ export default async function AppLayout({
         }
       >
         {children}
-        <DesignSwitch design={design} />
+        {canPreviewDesign && <DesignSwitch design={design} />}
       </TegelsShell>
     );
   }

@@ -1,8 +1,8 @@
 import { setDesign } from "../_actions/design";
 import type { Design } from "@/lib/design";
 
-/** Zet het design "tegels" aan of uit voor deze browser. Alleen zichtbaar voor
- * wie het mag bekijken; de layout bepaalt dat. */
+/** Zet het oude design aan of uit voor deze browser. Alleen zichtbaar voor
+ * wie het mag; de layout bepaalt dat. */
 export function DesignSwitch({ design }: { design: Design }) {
   const next = design === "tegels" ? "klassiek" : "tegels";
   return (
@@ -12,7 +12,7 @@ export function DesignSwitch({ design }: { design: Design }) {
         type="submit"
         className="min-h-11 rounded-md border bg-card px-4 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
       >
-        {design === "tegels" ? "Terug naar het huidige design" : "Nieuw design bekijken"}
+        {design === "tegels" ? "Oude design bekijken" : "Terug naar het nieuwe design"}
       </button>
     </form>
   );

@@ -383,9 +383,9 @@
   }
 }
 
-/* ---------- Design "tegels" (proefversie achter een schakelaar) ----------
-   Geldt alleen binnen [data-design="tegels"], dat de app-layout zet als het
-   cookie aanstaat (lib/design.ts). Het huidige design blijft onaangeroerd.
+/* ---------- Design "tegels" (standaard; het oude design staat achter een schakelaar) ----------
+   Geldt alleen binnen [data-design="tegels"], dat de app-layout zet tenzij het
+   oude design aanstaat (lib/design.ts). Het oude design blijft onaangeroerd.
    Vijf plekken, vijf tenuekleuren; een tegel heeft de kleur van de plek waar
    hij heen leidt. */
 [data-design="tegels"] {
@@ -452,7 +452,7 @@
 
 /* Buiten een layer: deze regels moeten de Tailwind-utilities van de bestaande
    schermen overschrijven, en utilities winnen het van elke layer. */
-/* De tenuebanen, sterker dan in het huidige design. */
+/* De tenuebanen, sterker dan in het oude design. */
 html:not(.dark) .app-shell[data-design="tegels"]::before {
   height: 30rem;
   background:
@@ -991,7 +991,7 @@ a.tg-row:focus-visible,
 /* Een link in een lijst (races, opgeslagen plannen): kleur is klikbaar, dus in
    het design "tegels" een gevuld vlak in de kleur van de soort (tg-kalender,
    tg-zwbeter, ...). Waar je al bent: het paneel met de gouden lijn, net als bij
-   de ZWBeter-pijlers. In het huidige design doet de klasse niets. De regels voor
+   de ZWBeter-pijlers. In het oude design doet de klasse niets. De regels voor
    panelen hierboven (bg-card, bg-background, divide-y) zijn specifieker dan een
    klasse; daarom hier !important. */
 [data-design="tegels"] .tg-link {
