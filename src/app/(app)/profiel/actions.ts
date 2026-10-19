@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { followSrcProfileSex } from "@/lib/src/availability";
 import { amsterdamDateKey, parseDateKey } from "@/lib/birthdays";
 import { intervalsId, stravaHandle, zwiftId } from "@/lib/profile/ids";
 import { WELLNESS_DEVICES } from "@/lib/training/wellness";
@@ -151,6 +153,12 @@ export async function updateProfile(formData: FormData) {
     ]),
   );
 
+  const { data: before } = await supabase
+    .from("profiles")
+    .select("sex")
+    .eq("id", user.id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -196,6 +204,19 @@ export async function updateProfile(formData: FormData) {
   // Zonder ingevulde lengte mag een ontbrekende tabel (0168 nog niet toegepast)
   // het opslaan van de rest van het profiel niet blokkeren.
   if (heightError && height !== null) return { ok: false as const, error: heightError.message };
+
+  // Ander geslacht: de SRC-inschrijving van deze en komende maanden gaat mee
+  // naar de heren- of damesrace. Mislukt dat, dan blijft het profiel opgeslagen.
+  if ((before?.sex ?? null) !== sex) {
+    const moved = await followSrcProfileSex(createAdminClient(), user.id, sex, todayKey).catch(
+      () => 0,
+    );
+    if (moved > 0) {
+      revalidatePath("/src");
+      revalidatePath("/events/[id]", "page");
+      revalidatePath("/zwbeter-worden", "layout");
+    }
+  }
 
   revalidatePath("/profiel");
   revalidatePath("/zwbeter-worden/voeding", "layout");
