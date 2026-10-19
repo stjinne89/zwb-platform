@@ -227,7 +227,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Berichten op de fietscomputer: push voor Garmin, Telegram voor Wahoo, 2026-10-19 — gebouwd; unit-tests (nieuw: `telegram-bot`, `ride-message-recipients`, `ride-messages-migration` op PGlite), typecheck en lint schoon; niet in de browser bekeken; geen echte Telegram-bot of fietscomputer gebruikt; lokaal gecommit (`1e6501c9`), niet gepusht (eigenaar, 2026-10-19). Migratie `0253_ride_messages.sql` op 2026-10-19 via de Supabase-connector op productie toegepast, op verzoek van de eigenaar; daarna nagekeken (kolommen, RLS en de twee policies aanwezig, security-advisor zonder nieuwe melding).**
+> **Berichten op de fietscomputer: push voor Garmin, Telegram voor Wahoo, 2026-10-19 — gebouwd; unit-tests (nieuw: `telegram-bot`, `ride-message-recipients`, `ride-messages-migration` op PGlite), typecheck en lint schoon; niet in de browser bekeken; geen echte Telegram-bot of fietscomputer gebruikt; gepusht naar `main` (eigenaar, 2026-10-19, mergecommit `ea2ab2c9`); webhook gezet op `https://zwb-platform.netlify.app/api/telegram/webhook` (geheim eerst tegen de live site geproefd, `getWebhookInfo` zonder fout). Migratie `0253_ride_messages.sql` op 2026-10-19 via de Supabase-connector op productie toegepast, op verzoek van de eigenaar; daarna nagekeken (kolommen, RLS en de twee policies aanwezig, security-advisor zonder nieuwe melding).**
 > Commit: de commit die dit blok toevoegt, op `claude/wahoo-garmin-direct-messages-598387`.
 >
 > **Getest.** Volledige suite: 2.999 van 3.001 tests geslaagd. De rest waren
@@ -295,10 +295,12 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > Telegram de melding op de telefoon en dus ook op de ELEMNT; en het eerste
 > bericht kwam pas door nadat de telefoon- en Wahoo-instellingen waren nagelopen
 > (de ELEMNT toont alleen wat als melding op de telefoon verschijnt). De webhook
-> is nog niet gezet: de code staat nog niet live.
+> is gezet na de deploy van 2026-10-19, op het Netlify-adres: `www.zwbcycling.nl`
+> is een andere site (Apache), niet de app, en Telegram volgt geen
+> doorverwijzingen.
 >
-> **Niet geverifieerd.** Een ZWB-push op een Garmin Edge, de koppeling via de
-> webhook en een bericht uit de app zelf. Of een ZWB-push op Android via Garmin Connect doorkomt, hangt af
+> **Niet geverifieerd.** Een ZWB-push op een Garmin Edge, koppelen via Samen
+> fietsen (de webhook zelf antwoordt wel) en een bericht uit de app zelf. Of een ZWB-push op Android via Garmin Connect doorkomt, hangt af
 > van welke app de melding toont (browser of geïnstalleerde ZWB-app). Migratie
 > op PGlite getest en op productie toegepast; het gedrag van de app met de
 > migratie is niet getest. De schermen niet in de browser

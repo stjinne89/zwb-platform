@@ -252,12 +252,15 @@ werken de berichten alleen als pushmelding (Garmin en telefoon).
 
    ```bash
    curl -s "https://api.telegram.org/bot<TOKEN>/setWebhook" \
-     -d url=https://<site>/api/telegram/webhook \
+     -d url=https://zwb-platform.netlify.app/api/telegram/webhook \
      -d secret_token=<GEHEIM> \
      -d allowed_updates='["message"]'
    ```
 
    Controleren met `getWebhookInfo`: `last_error_message` moet leeg zijn.
+   Gebruik het Netlify-adres: `www.zwbcycling.nl` is een andere site, en
+   Telegram volgt geen doorverwijzingen. Gezet op 2026-10-19 voor
+   `@ZWBCyclingBot`.
 
 Pas als `TELEGRAM_BOT_TOKEN` en `TELEGRAM_BOT_USERNAME` er staan, verschijnt
 het koppelpaneel op Samen fietsen. Een lid dat de bot blokkeert, wordt bij het
