@@ -10566,6 +10566,63 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — voorZpWelBokaal: de seizoenskalender in één klik
+
+**2026-10-19.** Deze commit, op branch `claude/voorzpwelbokaal-rebuild-fe8ea6`.
+Geen migratie. **Niet gepusht.**
+
+**Waarom.** De eigenaar vroeg of de wedstrijden uit het voorstel (Wereldbeker,
+Superprestige, HG Cross en de kampioenschappen) vanzelf in de lijst kunnen
+komen, in plaats van elk event met de hand toe te voegen.
+
+**Wat er veranderde.**
+- Beheer heeft onder "Seizoenskalender" een knop per reeks en "Alles". Elke
+  knop zet alle komende elitewedstrijden van dames en heren van dat seizoen als
+  concept in de lijst; wat er al staat, blijft staan (de race-slug is uniek).
+- Reeksen komen van de reekspagina's van CyclingFlash
+  (`/serie/<reeks>-<seizoen>-men-elite` en `-women-elite`): twee verzoeken per
+  reeks. Die pagina's geven datum en race-slug, geen starttijd. Dames horen bij
+  het event van de heren met dezelfde naam en datum; op CyclingFlash is de
+  eventslug gelijk aan de race-slug van de heren (nagekeken voor Wereldbeker,
+  Superprestige, HG Cross en de kampioenschappen).
+- Kampioenschappen komen uit de maandkalenders november, januari en februari:
+  BK, NK, EK en WK, niet de andere landen of de Pan-Amerikaanse. Per gevonden
+  event wordt de eventpagina gelezen, zonder startlijst.
+- "Alles" stuurt elk deel als apart verzoek, zodat geen enkel verzoek lang
+  duurt.
+- **Starttijd:** een reekswedstrijd krijgt eerst de standaardtijd (dames 13.45,
+  heren 15.00). "Startlijst ophalen" leest nu ook de eventpagina en zet de echte
+  starttijd; de melding zegt het als de tijd veranderde. Een koers kan pas op het
+  bord met een startlijst, dus de tijd is dan bijgewerkt, tenzij de eventpagina
+  nog geen tijd geeft. **Controleer de tijd voordat je een koers op het bord
+  zet:** een te late tijd houdt het bord open terwijl de koers al rijdt.
+- Een handmatig ingevoerde starttijd wordt bij "Startlijst ophalen"
+  overschreven door die van CyclingFlash, als die er een geeft.
+- Gemeten op 2026-10-19 (alleen lezen): Wereldbeker 24, Superprestige 16 en
+  HG Cross 10 komende wedstrijden, alle dames gekoppeld; kampioenschappen EK
+  2026, BK en NK 2027 en WK Oostende 2027 (dames 30 januari, heren 31 januari,
+  nog zonder tijd).
+
+**Bewust niet.**
+- Exact Cross en de X2O Trofee: niet gevraagd. Een reeks toevoegen is één regel
+  in `SERIES` (`src/lib/bokaal/calendar.ts`). De slug van Exact Cross gaf op
+  2026-10-19 een 404.
+- Geen automatische run (cron): de kalender verandert een paar keer per seizoen,
+  en een geplande job kost Netlify-credits. Ook startlijsten ophalen en
+  afrekenen blijven knoppen.
+- Geen plakveld voor de reekspagina's. Weigert CyclingFlash de server, dan kan
+  een event nog steeds los worden toegevoegd met de paginabron.
+
+**Let op.** De slugs bevatten sponsornamen (`telenet-superprestige`,
+`hg-cross`); bij een nieuwe sponsor vindt de knop niets en meldt hij dat.
+
+**Getest.** `tsc` en ESLint schoon; `bokaal.test.ts` 25 tests (nieuw: een
+reekspagina lezen, dames aan het herenevent koppelen en het verleden weglaten,
+alleen BK/NK/EK/WK uit de maandkalender). De lezers één keer tegen de echte
+pagina's gedraaid, zonder iets op te slaan. **Niet getest:** de knoppen in
+beheer op productie en het bijwerken van de starttijd bij "Startlijst
+ophalen" met een echte database.
+
 ### Gebouwd — voorZpWelBokaal: wedkantoor voor het veldrijden
 
 **2026-10-19.** Commits `10f6fd29` en volgende, op branch
@@ -10670,6 +10727,8 @@ afwijkend van de regel in `src/lib/privacy.ts`. De tekst staat op
 - Live wedden, cash-out, huismarge, een eigen rating en namen intypen (zoals de
   oude poule); open bonusvragen die met de hand moeten worden nagekeken.
 - Geplande ophaaljobs op Netlify: eerst knoppen in beheer, om credits te sparen.
+  (Sinds de ronde "de seizoenskalender in één klik" vult één knop de hele
+  kalender van de gekozen reeksen; ook die draait niet vanzelf.)
 - Junioren en beloften: startlijsten en ratings zijn daar het minst volledig.
 - De oude app op Netlify en zijn tabellen (`races`, `predictions`,
   `global_odds`, `competitions`) zijn niet aangeraakt. Die staan in een eigen,

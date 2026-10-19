@@ -9,6 +9,7 @@ import https from "node:https";
 import * as cheerio from "cheerio";
 import type { Category } from "./rules";
 import type { ResultRow } from "./settle";
+import { parseChampionships, parseSeries } from "./calendar";
 
 export const CYCLINGFLASH = "https://cyclingflash.com";
 
@@ -194,3 +195,7 @@ export async function fetchRanking(category: Category, pages = 4): Promise<Rated
 export const fetchEvent = async (slug: string) => parseEvent(await page(`/event/${slug}`), slug);
 export const fetchStartlist = async (raceSlug: string) => parseStartlist(await page(`/race/${raceSlug}/startlist`));
 export const fetchResult = async (raceSlug: string) => parseResult(await page(`/race/${raceSlug}/result`));
+export const fetchSeries = async (seriesSlug: string, category: Category) =>
+  parseSeries(await page(`/serie/${seriesSlug}-${category === "w" ? "women" : "men"}-elite`));
+export const fetchChampionships = async (season: string, month: number) =>
+  parseChampionships(await page(`/calendar/cyclocross/${season}/men-elite/${month}`));

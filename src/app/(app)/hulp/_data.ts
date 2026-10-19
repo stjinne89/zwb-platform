@@ -237,7 +237,7 @@ export const GUIDES = [
       "Niet gestart: je inzet komt terug. Opgegeven telt als niet gefinisht. In een duel waarin geen van beiden finisht, krijg je je inzet terug. Gaat een wedstrijd niet door, dan krijgt iedereen zijn inzet terug.",
       "Briefjes toont al je inzetten van dit seizoen met wat ze opleverden. Op de lei staat iedereen die meedoet, met saldo. Na de laatste wedstrijd van het seizoen wint het hoogste saldo. Sta je op nul, dan kom je terug via de bonusvragen.",
       "Met Stoppen onder je briefjes wis je je deelname van dit seizoen, met al je inzetten en antwoorden.",
-      "Beheerders zetten wedstrijden op het bord via /voorzpwelbokaal/beheer: ratings ophalen, een eventlink van CyclingFlash toevoegen, de startlijst ophalen en na de koers de uitslag ophalen en afrekenen. Weigert CyclingFlash de server, plak dan de paginabron.",
+      "Beheerders zetten wedstrijden op het bord via /voorzpwelbokaal/beheer: ratings ophalen, met Seizoenskalender alle komende wedstrijden van Wereldbeker, Superprestige, HG Cross en de kampioenschappen (BK, NK, EK, WK) in de lijst zetten of een losse eventlink van CyclingFlash toevoegen, de startlijst ophalen (dat zet ook de echte starttijd) en na de koers de uitslag ophalen en afrekenen. Weigert CyclingFlash de server, plak dan de paginabron.",
     ],
   },
 ];

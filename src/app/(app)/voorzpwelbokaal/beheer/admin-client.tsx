@@ -5,9 +5,16 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CATEGORY_LABEL, type Category } from "@/lib/bokaal/rules";
 import {
-  adminCancelRace, adminImportEvent, adminRefreshBoard, adminRefreshRatings, adminSettleRace, adminUpdateRace,
-  type AdminReply,
+  adminCancelRace, adminImportCalendar, adminImportEvent, adminRefreshBoard, adminRefreshRatings, adminSettleRace,
+  adminUpdateRace, type AdminReply,
 } from "./actions";
+
+const CALENDAR_PARTS = [
+  { part: "wereldbeker", label: "Wereldbeker" },
+  { part: "superprestige", label: "Superprestige" },
+  { part: "hg-cross", label: "HG Cross" },
+  { part: "kampioenschappen", label: "Kampioenschappen" },
+] as const;
 
 export type AdminRace = {
   id: string;
@@ -86,6 +93,16 @@ export function BokaalAdmin({
   const [event, setEvent] = useState("");
   const [paste, setPaste] = useState<Record<string, string>>({});
   const html = (key: string) => paste[key] || undefined;
+  // Elk deel apart naar de server, zodat geen enkel verzoek te lang duurt.
+  async function importAll(): Promise<AdminReply> {
+    const lines: string[] = [];
+    for (const { part } of CALENDAR_PARTS) {
+      const reply = await adminImportCalendar({ part });
+      if (!reply.ok) return { ok: false, error: [...lines, reply.error].join(" ") };
+      lines.push(reply.message);
+    }
+    return { ok: true, message: lines.join(" ") };
+  }
   const clear = (key: string) => () => setPaste((p) => ({ ...p, [key]: "" }));
 
   return (
@@ -107,6 +124,21 @@ export function BokaalAdmin({
             {note(`ratings-${c}`)}
           </div>
         ))}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Seizoenskalender</h2>
+        <div className="flex flex-wrap gap-2">
+          {CALENDAR_PARTS.map(({ part, label }) => (
+            <Button key={part} size="sm" variant="outline" disabled={busy} onClick={() => run("calendar", () => adminImportCalendar({ part }))}>
+              {label}
+            </Button>
+          ))}
+          <Button size="sm" disabled={busy} onClick={() => run("calendar", () => importAll())}>
+            Alles
+          </Button>
+        </div>
+        {note("calendar")}
       </section>
 
       <section className="space-y-3">

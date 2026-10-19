@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildBoard, duelChance, pickDuels, probabilities, seedFor, type FieldRider } from "@/lib/bokaal/odds";
 import { boardName, formatBalls, formatOdd, seasonOf, toLadder } from "@/lib/bokaal/rules";
 import { bonusAnswer, bonusQuestion, settleBet, type OpenBet, type ResultRow } from "@/lib/bokaal/settle";
+import { parseChampionships, parseSeries, planSeries } from "@/lib/bokaal/calendar";
 import {
   brusselsToIso, eventSlugFrom, parseEvent, parseEventDate, parseGap, parseRanking, parseResult, parseStartlist,
 } from "@/lib/bokaal/cyclingflash";
@@ -222,5 +223,45 @@ describe("CyclingFlash lezen", () => {
   it("rekent Belgische tijd om, ook over de wintertijd heen", () => {
     expect(brusselsToIso("2026-10-17", "13:45")).toBe("2026-10-17T11:45:00.000Z");
     expect(brusselsToIso("2026-12-20", "15:00")).toBe("2026-12-20T14:00:00.000Z");
+  });
+});
+
+describe("seizoenskalender", () => {
+  const row = (slug: string, name: string, date: string) =>
+    `<tr><td>1</td><td><a href="/race/${slug}"><span><img src="/svg/flags/BE.svg" alt="BE flag"></span><span>${name}</span></a><span>${date}</span></td><td><span>–</span></td></tr>`;
+
+  it("leest een reekspagina met datums", () => {
+    const html = `<table><tbody>${row("hg-cross-meulebeke-we-2026", "HG Cross - Meulebeke", "17-10-2026")}${row("hg-cross-heerde-we-2026", "HG Cross - Heerde", "24-10-2026")}</tbody></table>`;
+    expect(parseSeries(html)).toEqual([
+      { slug: "hg-cross-meulebeke-we-2026", name: "HG Cross - Meulebeke", date: "2026-10-17" },
+      { slug: "hg-cross-heerde-we-2026", name: "HG Cross - Heerde", date: "2026-10-24" },
+    ]);
+  });
+
+  it("koppelt dames aan het event van de heren en laat het verleden weg", () => {
+    const men = [
+      { slug: "hg-cross-meulebeke-2026", name: "HG Cross - Meulebeke", date: "2026-10-17" },
+      { slug: "telenet-superprestige-middelkerke-2026-2", name: "Telenet Superprestige - Middelkerke", date: "2026-11-05" },
+    ];
+    const women = [
+      { slug: "hg-cross-meulebeke-we-2026", name: "HG Cross - Meulebeke", date: "2026-10-17" },
+      { slug: "telenet-superprestige-middelkerke-we-2026-2", name: "Telenet Superprestige - Middelkerke", date: "2026-11-05" },
+      { slug: "x-cross-we-2026", name: "X Cross", date: "2026-11-08" },
+    ];
+    expect(planSeries(men, women, "2026-10-19").map((r) => [r.slug, r.category, r.eventSlug])).toEqual([
+      ["telenet-superprestige-middelkerke-2026-2", "m", "telenet-superprestige-middelkerke-2026-2"],
+      ["telenet-superprestige-middelkerke-we-2026-2", "w", "telenet-superprestige-middelkerke-2026-2"],
+      ["x-cross-we-2026", "w", "x-cross-2026"],
+    ]);
+  });
+
+  it("kiest alleen BK, NK, EK en WK uit de maandkalender", () => {
+    const html = ["belgian-national-championships-cx-2027", "dutch-national-championships-cx-2027", "french-national-championships-cx-2027",
+      "uec-cyclo-cross-european-championships-2026", "uci-cyclo-cross-world-championships-oostende-2027", "pan-american-cyclo-cross-championships-2026"]
+      .map((s) => `<a href="/event/${s}">x</a>`).join("") + `<a href="/race/belgian-national-championships-cx-2027/startlist">Startlist</a>`;
+    expect(parseChampionships(html)).toEqual([
+      "belgian-national-championships-cx-2027", "dutch-national-championships-cx-2027",
+      "uec-cyclo-cross-european-championships-2026", "uci-cyclo-cross-world-championships-oostende-2027",
+    ]);
   });
 });
