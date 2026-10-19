@@ -258,7 +258,7 @@ export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/stats/achievements", name: "Achievements", text: "Al je badges, de weekstanden van deze en vorige week en het herberekenen van badges." },
   { href: "/zwbeter-worden", name: "ZWBeter Worden", text: "Schema's, AI-coach, je ZWBeterWorden-advies, belasting en de koppelingen." },
   { href: "/zwbeter-worden/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
-  { href: "/zwbeter-worden/racen", name: "ZWBeter racen", text: "Je gereden Zwift-races (ZRL, FRR of via een geplakte link): tips, de ploeg of je eigen race, en je rit uit intervals.icu." },
+  { href: "/zwbeter-worden/racen", name: "ZWBeter racen", text: "Je gereden Zwift-races (ZRL, FRR of via een geplakte link): tips, de ploeg of je eigen race, en je rit uit intervals.icu. Onder Kennisbank: tactiek in een Zwift-race, met bronnen." },
   { href: "/zwbeter-worden/materiaal", name: "ZWBeter materiaal", text: "Kennisbank over materiaal en kleine winsten, met een rekenaar wat een verandering je oplevert." },
   { href: "/mijn-garage", name: "Mijn garage", text: "Je fietsen en de slijtage van hun onderdelen, met een melding zodra er iets toe is aan vervanging." },
   { href: "/profiel/cols", name: "Cols & segmenten", text: "Welke cols en segmenten je deed, met je PR en de ZWB-ranglijst." },

@@ -18,17 +18,20 @@ export type SectionLink = {
 
 export function SectionNav({
   items,
-  /** Tab die alleen bij een exacte match actief is; standaard de eerste (de index). */
+  /**
+   * Tab die alleen bij een exacte match actief is; standaard de eerste (de index).
+   * null: geen; dan wint overal de meest specifieke tab.
+   */
   exactHref,
   /** Design "tegels": de kleur van de tabs; standaard die van de plek waar je bent. */
   tone,
 }: {
   items: SectionLink[];
-  exactHref?: string;
+  exactHref?: string | null;
   tone?: PlaceTone;
 }) {
   const pathname = usePathname();
-  const indexHref = exactHref ?? items[0]?.href;
+  const indexHref = exactHref === null ? null : exactHref ?? items[0]?.href;
   // De index telt alleen exact; verder wint de meest specifieke tab.
   const activeHref =
     pathname === indexHref

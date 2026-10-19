@@ -4,7 +4,10 @@ Opgesteld op 19 oktober 2026, op vraag van de eigenaar: ZWBgame moet meer een
 tactisch spel worden dat Zwift-tactiek leert. **Status: alle modules A tot en met I
 zijn dezelfde dag gebouwd: A, B en C in spelversie 6, D tot en met I en de extra
 powerups in spelversie 7 (zie [ZWBgame](zwbgame.md#spelversie-7-nabespreking-oefenen-en-slimmere-tegenstanders-19-oktober-2026)).
-Waar de bouw afwijkt van het voorstel, staat het bij "Voorstel voor de volgorde".** De diagnose hieronder gaat over spelversie 5,
+Waar de bouw afwijkt van het voorstel, staat het bij "Voorstel voor de volgorde".**
+Wat hieronder over Zwift-tactiek staat, is voor leden uitgewerkt in de kennisbank
+racen (`/zwbeter-worden/racen/kennis`, 2026-10-19), met gepubliceerde bronnen en
+een bewijsniveau per artikel. De diagnose hieronder gaat over spelversie 5,
 zoals die toen op `main` stond. Bronnen staan onderaan. Het zijn bijna allemaal
 praktijkverslagen en tests van Zwift Insider en Zwift zelf. Zwift publiceert zijn
 draftmodel niet, dus elk getal over de slipstream is gemeten door derden.

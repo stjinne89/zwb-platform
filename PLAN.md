@@ -10568,6 +10568,62 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — kennisbank racen: tactiek in een Zwift-race
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet
+gepusht.
+
+**Waarom.** De eigenaar vroeg de informatie over Zwift-racen en tactiek uit het
+[ZWBgame-onderzoek](docs/zwbgame-tactiek.md) in te bouwen als kennisbank bij
+ZWBeter racen en in de ZWBieb.
+
+**Wat er is.**
+- `src/lib/racen/library.ts`: negen artikelen in vijf groepen (het wiel en de
+  groep, het verloop van een race, aanvallen en wegrijden, als ploeg, het spel
+  Zwift), met 24 gepubliceerde bronnen. De citaten zijn bij Crossref
+  nagekeken; de teksten volgen de samenvattingen (abstracts), niet de volle tekst.
+- Racen kreeg een tabbalk: Jouw races en Kennisbank
+  (`/zwbeter-worden/racen/kennis`). Een race valt onder Jouw races, een artikel
+  onder Kennisbank. Daarvoor kan `SectionNav` nu zonder tab die alleen exact telt
+  (`exactHref={null}`).
+- ZWBieb: een nieuwe plank Racetactiek, gekoppeld aan het onderwerp Zwift-racen.
+- De coach kent de artikelen, en links ernaar in een coachantwoord worden
+  klikbaar.
+- `/hulp` (Racen en pacing) legt uit waar het bewijs vandaan komt; het vraagteken
+  op de kennisbank wijst daarheen.
+
+**Bewijsniveau.** Volgens het beleid van 2026-10-18, met de regels in
+[beoordelingsbeleid-bewijsniveau](docs/beoordelingsbeleid-bewijsniveau.md#racen-9).
+Over tactiek in Zwift zelf is weinig gepubliceerd: drie studies naar Zwift-races
+(Bjärehed, Westmattelmann, Varesco). Het meeste bewijs komt uit de echte koers
+(slipstreammetingen, analyses van ontsnappingen en sprints). Voor Zwift is zo'n
+advies afgeleid, dus Eerste aanwijzingen, zoals het ijkpunt *Indoor fietsen en
+Zwift*. Uitkomst: 1 Stevig onderbouwd (*In het wiel*, de slipstream zelf, vier
+onafhankelijke groepen), 2 Onderbouwd (*Wat een Zwift-race vraagt*,
+*Ploegentijdrit*), 6 Eerste aanwijzingen. De spelregels van Zwift en de tests van
+Zwift Insider tellen niet als bron; ze staan in de tekst en bij de beperkingen,
+met die beperking erbij. Een opvallende uitkomst staat in het artikel *Wat een
+Zwift-race vraagt*: in de virtuele Tour van 2020 verklaarde het vermogen per kilo
+77 tot 99 % van de uitslag.
+
+**Eigen keuzes, voor de eigenaar om te beoordelen.** De niveaus zijn niet door de
+eigenaar goedgekeurd, anders dan de 73 artikelen van 2026-10-18; het document zegt
+dat er ook. Het artikel *De spelregels van Zwift* gaat over spelregels, niet over
+onderzoek; het staat op Eerste aanwijzingen omdat de natuurkunde erachter gemeten
+is. Weglaten of zonder badge tonen kan ook, maar het beleid kent geen artikel
+zonder niveau.
+
+**Bewust niet.** Geen protocollen voor racen, geen eigen literatuurscan-onderwerp
+(de maandelijkse scan leest de kennisbanken via de coach en neemt racen dus
+vanzelf mee), en geen volle tekst van de bronnen gelezen.
+
+**Getest.** Nieuwe test `racen-kennis.test.ts` (bronnen met DOI, beperkingen,
+spelregels gemarkeerd, plank, tabbalk), plus de bestaande tests voor bewijsniveau
+(tegen de tabel), ZWBieb-planken, coach en hulp: 38 groen. `tsc` en lint schoon;
+de build compileert en stopt zoals eerder bij het prerenderen van `/omnium`
+zonder Supabase-sleutels. **Niet bekeken:** de pagina's zelf in de browser; ze
+vragen een login. Ze gebruiken dezelfde onderdelen als de kennisbank materiaal.
+
 ### Gebouwd — ZWBgame spelversie 7: nabespreking, oefenen en slimmere tegenstanders
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. Spelversie
