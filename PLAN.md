@@ -64,12 +64,13 @@ gaat stabiliteit voor nieuwe features.
    apart nagekeken.
    - **voorZpWelBokaal:** `0252_voorzpwelbokaal.sql` is op 2026-10-19 via de
      Supabase-connector toegepast, op verzoek van de eigenaar; de code is
-     **nog niet gepusht** (ronde 2026-10-19, "voorZpWelBokaal"). Vooraf
+     daarna dezelfde dag naar `main` gepusht (ronde 2026-10-19,
+     "voorZpWelBokaal"). Vooraf
      bestond geen enkele `bokaal`-tabel of -functie. Achteraf: vijf tabellen
      met RLS aan, zes policies, `authenticated` alleen SELECT (plus INSERT en
      DELETE op `bokaal_players`), `anon` op geen enkele tabel of functie,
      `bokaal_ratings` zonder policy (alleen de server). De privacytekst is
-     goedgekeurd. Nog doen: pushen en in beheer één echte koers doorlopen:
+     goedgekeurd. Nog doen: in beheer één echte koers doorlopen:
      ratings ophalen, event toevoegen, op het bord zetten, inzetten vanaf een
      tweede account, na de koers afrekenen. Op Netlify kijken of CyclingFlash
      de server toelaat (lokaal wel, met `node:https`); zo niet, de paginabron
@@ -10570,7 +10571,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 **2026-10-19.** Commits `10f6fd29` en volgende, op branch
 `claude/voorzpwelbokaal-rebuild-fe8ea6`. Migratie `0252_voorzpwelbokaal.sql`,
 **op 2026-10-19 toegepast op productie** (Supabase-connector, op verzoek van de
-eigenaar). **Code niet gepusht** (eigenaar: "lokaal, niet pushen").
+eigenaar). **Gepusht naar `main` op 2026-10-19**, na de migratie. De oude link
+naar voorzpwelbokaal.netlify.app staat nergens meer in de app; die site zelf
+staat nog online.
 
 **Waarom.** voorZpWelBokaal was een losse Vite-app (voorzpwelbokaal.netlify.app,
 broncode in de OneDrive-map `zwb-poule`): leden typten een top 3 en een
