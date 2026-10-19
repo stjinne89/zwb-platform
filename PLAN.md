@@ -10570,8 +10570,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — kennisbank racen: tactiek in een Zwift-race
 
-**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet
-gepusht.
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. **Gepusht naar `main` op
+2026-10-19.**
 
 **Waarom.** De eigenaar vroeg de informatie over Zwift-racen en tactiek uit het
 [ZWBgame-onderzoek](docs/zwbgame-tactiek.md) in te bouwen als kennisbank bij
