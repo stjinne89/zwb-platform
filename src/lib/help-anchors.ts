@@ -47,6 +47,7 @@ export const HELP_ANCHORS: ReadonlyArray<readonly [pattern: string, anchor: stri
   ["/zwbeter-worden/vermogen", "vermogen"],
   ["/zwbeter-worden/logboek", "logboek"],
   ["/zwbeter-worden/racen", "racen"],
+  ["/zwbeter-worden/racen/kennis", "racen-kennis"],
   ["/zwbeter-worden/trainer/racen", "racen-trainer"],
   ["/zwbeter-worden/core", "core-mobiliteit"],
   ["/zwbeter-worden/protocollen", "protocollen"],

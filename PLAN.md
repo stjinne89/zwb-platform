@@ -6757,7 +6757,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > + core · onderhoud · **Clubraces** · Teams en scorebord · Aankomende events · Nieuws
 > · Ritverslagen · foto-nudge · badges · KOM's/QOM's · Training en clubactiviteit
 > (Strava-sync, `#strava-sync` werkt nog) · clubstats · polls en ledenvoordeel ·
-> sponsors. *(Sinds 2026-09-30 staat Instagram tussen trainingsstatus/core en
+> sponsors. *(Sinds 2026-10-19 staan de sponsors niet meer in het dashboard zelf
+> maar onder elke pagina, via de layout.)* *(Sinds 2026-09-30 staat Instagram tussen trainingsstatus/core en
 > onderhoud; zie "ZRL-uitslagen in Teams en scorebord".)*
 >
 > - **Jouw races** (`_components/my-races.tsx`, achter een Suspense): maximaal 3
@@ -6918,7 +6919,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > lang hard rijden kost drempel) en rustigere bots. Nu is meerijden en je sprint
 > kiezen de beste strategie, maar het verschil is klein (een à twee plekken van 24).
 > Wie actief rijdt, zit vaker in de goede groep. Wie de hele race spaart, mist de
-> splitsing (±23e).
+> splitsing (±23e). *Niet meer waar sinds spelversie 6 (2026-10-19): Meerijden
+> trapt geen minimum meer in het wiel, volgt geen aanval, en passief meerijden eindigt
+> nu in de achterste helft.*
 >
 > **Bewust niet gebouwd.** ZRL (FAL/FTS/FIN met `scoreRace`, scratch, TTT, Race of
 > Truth) en FRR-tours (etappes, eGAP, 25‥6 punten, segmenten × moeilijkheid,
@@ -10665,6 +10668,465 @@ unit-tests op drie na, en die drie falen los van deze ronde (twee time-outs die
 los wel slagen, en `omnium-live.test.ts` mist `.env.local` in de worktree). Niet
 op een echte telefoon of op Netlify bekeken.
 
+### Gebouwd — ZWBgame liggend: hoogteprofiel, groep bekijken, conditiebalk en "Om beurten aanvallen"
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe
+spelversie. **Gepusht naar `main` op 2026-10-19.**
+
+**Waarom.** De eigenaar speelde liggend op de telefoon en zag drie dingen: een donkere
+balk die over de hele breedte liep, geen hoogteprofiel tijdens de race, en de wens om
+op een groep te tikken en die groep in beeld te krijgen.
+
+**Wat er is.**
+- *Conditiebalk:* op telefoons tot 760 px breed gaf de staande regel `.conditions`
+  een rechterrand mee, waardoor de balk liggend tot de andere kant van het scherm
+  doorliep. Liggend is hij nu zo breed als de inhoud, met hoogstens ruim de helft van
+  het scherm.
+- *Hoogteprofiel:* het profiel met sprints, KOM's, ronden, onverhard en jouw plek
+  staat liggend rechtsboven, onder de knoppen voor camera en kwaliteit.
+- *Groep bekijken:* de groepen bovenin zijn knoppen. Een tik op een andere groep
+  laat de camera langs de weg naar die groep glijden (een sprong van meer dan 500 m
+  gaat direct); de knop krijgt een blauwe rand. Een tik op je eigen groep, of als die
+  groep in de jouwe opgaat of finisht, en de camera volgt jou weer. De gouden ring
+  blijft op jou. Werkt ook staand en op desktop.
+- *Ploegorder hernoemd:* "Een-twee" heet nu "Om beurten aanvallen", met toets O in
+  plaats van E. De eigenaar vond de oude naam onduidelijk. De werking is gelijk
+  (`onetwo` in de code en in opgeslagen races blijft, dus geen nieuwe spelversie).
+- Uitleg op `/hulp` (ZWBgame, liggend spelen, ploegorders) en zoektermen bijgewerkt.
+- De browsertest voor een liggende telefoon controleert nu ook het profiel, de
+  breedte van de conditiebalk en dat je eigen groep de getoonde is.
+
+**Bewust niet gedaan.** "Maak het hard" houdt zijn naam: voorgesteld was "Tempo op
+kop", maar de eigenaar koos ervoor het zo te laten. De andere ordernamen zijn ook
+ongewijzigd. De ploegorders nemen liggend veel ruimte in; daar is niets aan gedaan.
+
+**Niet lokaal te controleren.** Getest op 760 × 351 en 844 × 390 in de lokale demo,
+niet op de telefoon van de eigenaar zelf.
+### Gebouwd — "Met dank aan onze sponsors" onder elke pagina
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. **Gepusht
+naar `main` op 2026-10-19.**
+
+**Waarom.** De eigenaar wil de sponsorstrip onder elke pagina, niet alleen onder
+het dashboard.
+
+**Wat er is.**
+- De logo-strip (`SponsorCarousel`) is verhuisd van `dashboard/_components` naar
+  `(app)/_components`. Een nieuwe servercomponent `SponsorFooter` haalt de
+  sponsors op en staat in `(app)/layout.tsx` onder de pagina-inhoud, in beide
+  designs (klassiek en tegels). Het dashboard toont hem dus niet meer zelf en
+  doet de sponsorquery niet meer.
+- De lijst wordt een uur gedeeld tussen alle leden (`unstable_cache`, service-rol;
+  sponsors zijn publiek leesbaar). Zonder cache zou elke paginaweergave een extra
+  databasevraag kosten. Elke sponsoractie op `/sponsors` leegt de cache meteen
+  (`updateTag`).
+
+**Bewust niet.** Niet op de pagina's buiten de ingelogde app (login, brochure,
+verhaal, privacy, `/live`, `/omnium`): die hebben een eigen layout, en de
+brochure heeft al een eigen sponsorblok. Op `/sponsors` zelf staat de strip ook,
+dubbel met de pagina; de layout kent het pad niet zonder extra clientcode.
+
+**Getest.** `tsc` en lint schoon. **Niet bekeken** in de browser: de pagina's
+vragen een login.
+
+### Gebouwd — ZWBgame 3D-scène, stap 4: de camera
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe
+spelversie. **Gepusht naar `main` op 2026-10-19.** Hiermee zijn de vier stappen van de 3D-scène af.
+
+**Waarom.** De camera hing op een vaste afstand in wereldrichting boven de speler:
+in bochten draaide hij niet mee, klimmen en dalen veranderden niets aan het beeld,
+en na de finish bleef hij gewoon achter je hangen.
+
+**Wat er is** (in `race-scene.tsx`).
+- *Langs de weg:* de volgcamera draait mee met de richting van de weg, gemiddeld over
+  20 m zodat bochten rustig binnenkomen. Langs de weg volgt hij de speler nog steeds
+  exact; zijwaarts volgt hij de helft van je baanwissel, gedempt.
+- *Terrein:* op een klim komt de camera tot 3 m hoger zodat de weg omhoog in beeld
+  blijft, in een afdaling tot 2,2 m lager voor meer snelheidsgevoel.
+- *Snelheid:* het blikveld gaat van 46° naar 52° tussen ongeveer 29 en 61 km/u, en
+  4° extra als je op de pedalen gaat.
+- *Finish:* na jouw finish zwaait de camera in een paar seconden voor je langs en
+  kijkt terug op de finishboog en wie er nog binnenkomt.
+- *Stilstand:* op het startscherm en bij pauze drijft de camera langzaam heen en
+  weer, zodat het beeld niet bevriest.
+- Het overzicht (hoog boven het veld) draait nu ook mee met de weg.
+- Bomen aan de camerakant staan nu minstens 22 m van de weg (was 17 m in stap 3):
+  vlak naast de camera vulde één boom anders het halve beeld.
+
+**Bewust niet gedaan.** Geen cameraschudden of meedeinen: dat leidt af van het lezen
+van de koers en maakt sommige mensen misselijk. Geen vrije camera met slepen of
+zoomen: het spel wordt met één hand op de telefoon bediend.
+
+**Niet lokaal te controleren.** Klim en afdaling zijn in de demo niet op beeld
+gezien (de eerste kilometers van de demoroute zijn vlak); de finish wel.
+
+### Gebouwd — ZWBgame 3D-scène, stap 3: het landschap
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe
+spelversie. **Gepusht naar `main` op 2026-10-19.**
+
+**Waarom.** Stap 3 van de vier. Het land was één vlak groen lint van 520 m breed met
+vijfkantige piramides als bomen, op willekeurige plekken, ook vlak naast de camera
+waar ze half het beeld vulden. De weg had geen berm en geen doorgetrokken kantlijn.
+
+**Wat er is** (nieuw: `src/app/(app)/zwbgame/scenery.ts`).
+- *Grond:* een raster dat de weg volgt, vlak tot 12 m van de weg en daarbuiten
+  glooiend, verder weg steeds heuvelachtiger. Kleurvlakken van gras, weide, donkerder
+  groen en hier en daar een akker; een lichtere berm langs de weg.
+- *Weg:* zandkleurige berm, doorgetrokken witte kantlijnen en een onderbroken
+  middenstreep (om de 24 m, zodat het bij versneld afspelen rustig blijft).
+- *Bomen:* sparren (stam en drie kegels) en loofbomen (stam en drie bollen) in
+  groepen: bosrijke stukken en open stukken, per streek meer sparren of meer loof,
+  met kleurvariatie per boom en struiken langs de berm. Aan de camerakant (rechts)
+  blijven bomen minstens 17 m van de weg (sinds stap 4: 22 m), links 10 m. Alles is geseed op de route-id:
+  een route ziet er elke keer hetzelfde uit.
+- *Horizon:* twee heuvelruggen die met de camera meereizen, een groene voor en een
+  blauwige erachter, met voeten die oplossen in de nevel.
+- Bomen zijn gegroepeerd per 400 m weg, zodat wat buiten beeld valt niet getekend
+  wordt; een lange route kost daardoor niet meer per beeld dan een korte.
+- Test `tests/unit/zwbgame-scenery.test.ts`: de grond wijst omhoog (een omgedraaide
+  driehoeksvolgorde maakte de grond tijdens de bouw onzichtbaar), is vlak naast de
+  weg, en bomen blijven van de weg en groeien elke keer gelijk.
+
+**Bewust niet gedaan.** Geen toeschouwers, hekken of gebouwen: die horen bij de
+sprint- en KOM-bogen en zijn een eigen stap als de eigenaar dat wil. Geen echte
+kaart of Zwift-wereld nabouwen: het landschap is generiek, de route bepaalt alleen
+bochten, hoogte en de seed.
+
+**Niet lokaal te controleren.** Getest in de lokale demo en de browsertests
+(software-WebGL). Prestaties op een echte telefoon zijn niet gemeten.
+
+### Gebouwd — ZWBgame 3D-scène, stap 2: de renners
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe
+spelversie. **Gepusht naar `main` op 2026-10-19.**
+
+**Waarom.** Stap 2 van de vier (zie stap 1 hieronder). De oude renner bestond uit een
+blok als romp, een bol als helm en één staafje per been dat heen en weer zwaaide,
+zonder hoofd, onderbenen of schoenen. Daardoor oogde het peloton als speelgoed.
+
+**Wat er is** (nieuw: `src/app/(app)/zwbgame/rider-model.ts`).
+- *Lichaam:* romp als capsule met het clubshirt, nek, hoofd met helm, mouwen en
+  onderarmen naar de remgrepen, bibshort, onderbenen en witte schoenen. Vijf
+  huidtinten, vast per renner.
+- *Trappen:* elk been is een dijbeen en een onderbeen dat de pedaalas volgt, met de
+  knie die rekenkundig meebuigt. De cadans loopt op echte tijd (ongeveer 80–100 rpm
+  volgens de inspanning), dus versneld afspelen laat de benen niet als een tekenfilm
+  draaien. Wie bijna niets trapt, de finish voorbij is of in de afdaling ineengedoken
+  zit, freewheelt.
+- *Houding:* `tucked` (afdaling) brengt de renner plat op de onderkant van het stuur.
+  Zichtbaar aanvallen of sprinten (`surge` en meer dan 120% inspanning) zet hem op de
+  pedalen, met de fiets die heen en weer wiegt. De overgangen lopen vloeiend.
+- *Fiets:* frame met boven-, onder-, zit- en balhoofdbuis, achtervork, voorvork,
+  stuur met beugels, zadel, kettingblad, draaiende cranks en diepe carbonvelgen. Het
+  frame krijgt de helmkleur van de ploeg (eigen ploeg petrol), zodat ploegen ook van
+  ver uit elkaar te houden zijn. De fiets is één samengevoegde geometrie: het peloton
+  kost 17 draw calls, ongeacht het aantal renners.
+- Test `tests/unit/zwbgame-rider-model.test.ts`: in alle drie de houdingen blijven
+  beide voeten de hele omwenteling op de pedalen en houden de ledematen hun lengte.
+
+**Bewust niet gedaan.** Geen ingeladen 3D-model met skelet (glTF): dat vraagt een
+licentie of eigen modelwerk, een groter bestand en een loader, terwijl een
+gestileerde renner uit primitieven bij de rest van de scène past. Geen draaiende
+spaken: op 40 km/u geeft dat bij 60 beelden per seconde een wagenwieleffect, daarom
+dichte velgen.
+
+**Niet lokaal gecontroleerd.** De ineengedoken en staande houding zijn in de test
+doorgerekend, maar niet in een lopende koers op beeld gezien: de demo komt in de
+eerste minuten niet in een afdaling of sprint.
+
+### Gebouwd — ZWBgame 3D-scène, stap 1: licht, schaduw en lucht
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe
+spelversie (opgeslagen races blijven geldig). **Gepusht naar `main` op 2026-10-19.**
+
+**Waarom.** De eigenaar vond de 3D-scène er "houtje touwtje" uitzien en koos voor een
+gestileerde richting zonder ingekochte 3D-modellen, in vier stappen: licht en lucht,
+renners, landschap, camera. Dit is stap 1. De grootste oorzaak van het goedkope
+gevoel was dat niets een schaduw had: renners en bomen leken boven de weg te zweven.
+
+**Wat er is** (alles in `race-scene.tsx`).
+- *Zon met schaduwen:* een zon van rechtsvoor werpt echte schaduwen van renners,
+  bomen en bogen op weg en gras. De schaduwbox (84 × 84 m) reist mee met de speler en
+  springt per schaduwpixel, zodat randen niet kruipen.
+- *Contactschaduw:* een zachte donkere vlek onder elke fiets, ook in "3D · zuinig".
+- *Lucht:* een koepel met verloop van horizon naar blauw en een gloed bij de zon. De
+  mist eindigt in dezelfde horizonkleur, dus het land loopt naadloos over in de lucht.
+- *Tone mapping:* Neutral, zodat de clubkleuren kloppen en de zonkant niet uitbijt.
+- "3D · zuinig" zet de schaduwkaart uit; alleen de contactschaduw blijft.
+
+**Bewust niet gedaan.** Geen postprocessing (bloom, ambient occlusion): extra
+renderpasses kosten op telefoons te veel voor wat het oplevert. Renners, bomen,
+heuvels aan de horizon en de camera zijn stap 2 tot en met 4.
+
+**Niet lokaal te controleren.** Getest in de lokale demo en met de browsertests
+(desktop en Pixel 7-emulatie, software-WebGL). Of de schaduwkaart op een echte
+middenklasse-telefoon soepel blijft draaien, is niet gemeten; "3D · zuinig" is de
+uitweg.
+
+### Gebouwd — kennisbank racen: tactiek in een Zwift-race
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. **Gepusht naar `main` op
+2026-10-19.**
+
+**Waarom.** De eigenaar vroeg de informatie over Zwift-racen en tactiek uit het
+[ZWBgame-onderzoek](docs/zwbgame-tactiek.md) in te bouwen als kennisbank bij
+ZWBeter racen en in de ZWBieb.
+
+**Wat er is.**
+- `src/lib/racen/library.ts`: negen artikelen in vijf groepen (het wiel en de
+  groep, het verloop van een race, aanvallen en wegrijden, als ploeg, het spel
+  Zwift), met 24 gepubliceerde bronnen. De citaten zijn bij Crossref
+  nagekeken; de teksten volgen de samenvattingen (abstracts), niet de volle tekst.
+- Racen kreeg een tabbalk: Jouw races en Kennisbank
+  (`/zwbeter-worden/racen/kennis`). Een race valt onder Jouw races, een artikel
+  onder Kennisbank. Daarvoor kan `SectionNav` nu zonder tab die alleen exact telt
+  (`exactHref={null}`).
+- ZWBieb: een nieuwe plank Racetactiek, gekoppeld aan het onderwerp Zwift-racen.
+- De coach kent de artikelen, en links ernaar in een coachantwoord worden
+  klikbaar.
+- `/hulp` (Racen en pacing) legt uit waar het bewijs vandaan komt; het vraagteken
+  op de kennisbank wijst daarheen.
+
+**Bewijsniveau.** Volgens het beleid van 2026-10-18, met de regels in
+[beoordelingsbeleid-bewijsniveau](docs/beoordelingsbeleid-bewijsniveau.md#racen-9).
+Over tactiek in Zwift zelf is weinig gepubliceerd: drie studies naar Zwift-races
+(Bjärehed, Westmattelmann, Varesco). Het meeste bewijs komt uit de echte koers
+(slipstreammetingen, analyses van ontsnappingen en sprints). Voor Zwift is zo'n
+advies afgeleid, dus Eerste aanwijzingen, zoals het ijkpunt *Indoor fietsen en
+Zwift*. Uitkomst: 1 Stevig onderbouwd (*In het wiel*, de slipstream zelf, vier
+onafhankelijke groepen), 2 Onderbouwd (*Wat een Zwift-race vraagt*,
+*Ploegentijdrit*), 6 Eerste aanwijzingen. De spelregels van Zwift en de tests van
+Zwift Insider tellen niet als bron; ze staan in de tekst en bij de beperkingen,
+met die beperking erbij. Een opvallende uitkomst staat in het artikel *Wat een
+Zwift-race vraagt*: in de virtuele Tour van 2020 verklaarde het vermogen per kilo
+77 tot 99 % van de uitslag.
+
+**Eigen keuzes, voor de eigenaar om te beoordelen.** De niveaus zijn niet door de
+eigenaar goedgekeurd, anders dan de 73 artikelen van 2026-10-18; het document zegt
+dat er ook. Het artikel *De spelregels van Zwift* gaat over spelregels, niet over
+onderzoek; het staat op Eerste aanwijzingen omdat de natuurkunde erachter gemeten
+is. Weglaten of zonder badge tonen kan ook, maar het beleid kent geen artikel
+zonder niveau.
+
+**Bewust niet.** Geen protocollen voor racen, geen eigen literatuurscan-onderwerp
+(de maandelijkse scan leest de kennisbanken via de coach en neemt racen dus
+vanzelf mee), en geen volle tekst van de bronnen gelezen.
+
+**Getest.** Nieuwe test `racen-kennis.test.ts` (bronnen met DOI, beperkingen,
+spelregels gemarkeerd, plank, tabbalk), plus de bestaande tests voor bewijsniveau
+(tegen de tabel), ZWBieb-planken, coach en hulp: 38 groen. `tsc` en lint schoon;
+de build compileert en stopt zoals eerder bij het prerenderen van `/omnium`
+zonder Supabase-sleutels. **Niet bekeken:** de pagina's zelf in de browser; ze
+vragen een login. Ze gebruiken dezelfde onderdelen als de kennisbank materiaal.
+
+### Gebouwd — ZWBgame spelversie 7: nabespreking, oefenen en slimmere tegenstanders
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. Spelversie
+7: lopende races vervallen; uitslagen, ladder, tour en gehaalde oefeningen blijven.
+**Gepusht naar `main` op 2026-10-19.**
+
+**Waarom.** De eigenaar vroeg na spelversie 6 om "de verdere punten" te bouwen:
+modules D tot en met I uit het [tactiekvoorstel](docs/zwbgame-tactiek.md) en de
+extra powerups.
+
+**Wat er is.**
+- *Nabespreking:* per kilometer je groep, W′ en tijd in de wind, plus je aanvallen,
+  powerups, lege W′ en wanneer je gelost werd, als drie stroken na de finish.
+- *Koers lezen:* een vlam bij wie zichtbaar aanvalt, een icoon per rennerstype.
+- *Bots:* vallen aan over de top, onderaan een afdaling, op onverhard, vlak na een
+  teruggehaalde aanval en vaker laat in de koers.
+- *Ploegorders:* Maak het hard, Niet meewerken, Ga mee, Een-twee, en een tweede
+  lead-outrenner als springplank. Andere ploegen rijden per race een vast plan. In de
+  ploegentijdrit: korte of lange beurten, of wachten op de vierde.
+- *Tijdrit en Race of Truth:* eigen tempo in stappen van 3% (91–103%).
+- *Onverhard:* uit de wegdekmodule van het pacingplan via de routevorm; trager, in
+  beeld, in de HUD en als beslismoment.
+- *Powerups:* burrito, spook, aambeeld en stoomwals erbij.
+- *Oefenen:* zeven korte koersen met elk één doel, als nieuwe tab.
+- De balanssimulatie meet nu ook de oefeningen (`DRILLS=1`).
+
+Cijfers en details: [ZWBgame, spelversie 7](docs/zwbgame.md#spelversie-7-nabespreking-oefenen-en-slimmere-tegenstanders-19-oktober-2026).
+Kort: de tacticus wordt met slimmere bots 7,4/6,0/2,8e (was 8,3/4,1/2,3), passief
+18,6/16,5/17,4e; passief meerijden haalt geen enkele weg-oefening.
+
+**Eigen keuzes.** De nabespreking toont alleen feiten; de uitleg staat op `/hulp`. De
+vraag uit het voorstel of dat past bij de huisregel over korte schermen ligt nog bij
+de eigenaar. Burrito en spook zitten in elke spelvorm in de pool (in Zwift alleen in
+sommige events). De ploegentijdrit-oefening rijdt tegen vijf referentierenners net
+boven het niveau van je ploeg, omdat de gewone clubploegen of te sterk of te zwak
+waren om iets te leren.
+
+**Bewust niet gebouwd.** Een aparte "laatste beurt"-knop in de ploegentijdrit (dat
+is Aanvallen), een fietswissel voor onverhard, en alles wat het voorstel onder "Niet
+bouwen" zet.
+
+**Getest.** 46 ZWBgame-unit-tests (+6), 22 Playwright-tests (+2: een oefening, de
+ploegentijdrit-orders), `tsc` en lint schoon. Volledige unitsuite groen op de bekende
+uitzonderingen na: `omnium-live` mist `.env.local`, en `admin-areas`,
+`intervals-ride-sync` en `zwift-subgroup-results` liepen onder volle belasting uit de
+tijd (los alle 24 groen). Screenshots op telefoon bekeken (oefenlijst, tempo, acht
+ploegorders, nabespreking); de nabespreking had eerst onleesbare labels, opgelost.
+**Niet geverifieerd:** of de routes op productie een vorm hebben en dus onverhard
+tonen, met de hand spelen op een telefoon, en het speelgevoel.
+
+**Niet meer waar.** In de ronde hieronder (spelversie 6) staat "D tot en met I ...
+bewust niet gebouwd" en dat er in de koerslijst geen inspanning staat: beide gelden
+sinds spelversie 7 niet meer. In [ZWBgame](docs/zwbgame.md) zijn de alinea's over
+powerups, ploegorders, bots en de ploegentijdrit bijgewerkt.
+
+### Gebouwd — ZWBgame spelversie 6: tactiek telt
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. Spelversie
+6: lopende races vervallen, uitslagen, ladder en tourstand blijven. **Gepusht naar `main` op 2026-10-19.**
+
+**Waarom.** Uit het tactiekonderzoek hieronder: in spelversie 5 was passief
+meerijden de beste strategie, omdat Meerijden elke aanval volgde en het blok
+vanzelf doorschoof. De eigenaar koos modules A, B en C, voor iedereen (geen aparte
+beginnersstand), met een balanssimulatie ervoor en erna.
+
+**Wat er veranderde.**
+- *C, slipstream als Pack Dynamics 4.1:* besparing per plek in de rij (27/36/43%
+  CdA, naar Zwift Insiders 24/32/39% vermogen), een schaduw die tot 10 m achter
+  één renner en 18 m achter een groep afloopt, naast de kop zit je in de wind, en
+  supertuck alleen buiten het wiel.
+- *B, Meerijden volgt het tempo:* in het wiel tot 105%, gat dichten tot 125%, over
+  de top van een klim tot 100%, alleen binnen 20 m. Een aanval volgen is een keuze:
+  een renner aanklikken of Volg (160%). Aanvallen is nu 160%. Aanvallen zijn
+  zichtbaar (`surge`) zodra je hard en buiten het wiel rijdt; bots reageren met
+  vertraging en een kans per karakter.
+- *A, vertraagde tijd:* op beslismomenten (`momentAt`) loopt de tijd 3× in plaats
+  van 3–16×, met een label naast de klok. De gewone tijd loopt iets sneller.
+- *Nodig gebleken:* bots die om de beurt op kop gaan, groepen die achtervolgen tot
+  600 m, en een zwaardere beurt op kop in een grote groep (tot 115%). Zonder dat reed
+  een groep op het tempo van één renner op 82%.
+- De opslagsleutels van ladder en tour staan vast op `v5`, zodat een nieuwe
+  spelversie alleen de lopende race wist.
+- De balanssimulatie staat nu in de repo (`npm run zwbgame:balance`); de vorige stond
+  in een tijdelijke map en was weg.
+
+**Uitkomst.** Gemiddelde plek van 24, voor → na, bij FTP 240/270/300: passief
+10,1/7,6/6,5 → 18,9/16,0/17,1; tacticus 12,3/9,4/8,4 → 8,3/4,1/2,3. De tacticus
+wint nu 11 tot 15 plekken op passief, waar hij eerst één à twee plekken verloor.
+De kopgroep bij de finish bleef even groot. Speeltijd 6,1–6,6 minuut (was 4,9–5,3),
+hooguit 7,4. Volledige tabel en kanttekeningen:
+[ZWBgame, spelversie 6](docs/zwbgame.md#spelversie-6-tactiek-19-oktober-2026).
+
+**Bewust niet gebouwd.** D tot en met I uit het voorstel (nabespreking,
+oefenkoersen, onverhard, koers lezen, slimmere bots en ploegorders, tempo in de
+tijdrit). *Dezelfde dag alsnog gebouwd in spelversie 7, zie hierboven.* De inspanning van andere renners staat niet in de koerslijst: alleen het
+label "Aanval" en de knop Volg. Dat is module G.
+
+**Getest.** 40 ZWBgame-unit-tests (+6), alle 20 Playwright-tests, `tsc` en lint
+schoon. Volledige unitsuite: 2.909 groen; `omnium-live` mist `.env.local` en
+`intervals-ride-sync` liep onder volle belasting uit de tijd (los groen). `npm run
+build` compileert en typecheckt, maar stopt bij het prerenderen van `/omnium`
+zonder Supabase-sleutels in deze worktree. Een race headless gespeeld: de labels en
+de knop Volg verschijnen; op een telefoon brak het label eerst tegen de rand
+(opgelost). **Niet geverifieerd:** met de hand spelen, op een telefoon, op de echte
+routebibliotheek. Of het speelgevoel klopt, moet de eigenaar beoordelen. De
+tacticus in de simulatie ziet meer dan een speler; echte spelers halen het verschil
+dus niet helemaal.
+
+**Niet meer waar.** In de ZWBgame-ronde van 2026-09-28 staat dat meerijden en je
+sprint kiezen de beste strategie is en dat Meerijden versnellingen tot 160% volgt
+en door het blok schuift. Dat geldt sinds spelversie 6 niet meer.
+
+### Onderzocht — ZWBgame als tactiekspel: Zwift-racetactiek en bouwvoorstel
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
+code. **Gepusht naar `main` op 2026-10-19.**
+
+**Aanleiding.** De eigenaar wil van ZWBgame meer een tactisch spel maken dat
+Zwift-tactiek leert, en vroeg om een grondig onderzoek naar Zwift-racetactiek en
+hoe die in de game past.
+
+**Uitkomst.** Zie [zwbgame-tactiek.md](docs/zwbgame-tactiek.md): een catalogus
+van ruim vijftig tactieken (start, wiel, terrein, aanvallen, achtervolgen,
+powerups, finale, ploeg, formats, koers lezen), per stuk afgezet tegen de engine.
+De belangrijkste bevinding: de game rijdt zoals Zwift vóór Pack Dynamics 4 (een
+blok dat vanzelf doorschuift), en Meerijden volgt elke aanval tot 160% van de
+drempel. Daardoor beslist de speler niet over doortrappen over de top, een aanval
+volgen of gelost raken, en werken slingshot en verrassingsaanval niet. Dat
+verklaart voor een deel het kleine verschil tussen tactieken (een à twee plekken)
+in de balanssimulatie van 2026-09-28. Voorstel in negen modules, te beginnen met
+vertraagde tijd op beslismomenten, Meerijden dat het tempo volgt maar geen
+aanvallen, en slipstream volgens PD4.1, daarna een nabespreking.
+
+**Bewust niet gebouwd.** In deze ronde nog niets; de eigenaar koos daarna A, B en C,
+dezelfde dag gebouwd (zie de ronde hierboven). In het voorstel afgeraden:
+zelf sturen, wind en waaiers, startvak en opwarmen, fietswissel, categorieën en
+sandbaggers, een losse DS-rol.
+
+**Open voor de eigenaar.** Hoeveel automatische piloot Meerijden houdt (of een
+aparte stand), of een nabespreking met feiten past bij de huisregel over korte
+schermen, en of het voorstel ook in het plannenboek moet.
+
+**Niet geverifieerd.** De slipstreamgetallen zijn tests van Zwift Insider met vier
+renners op een rij; Zwift publiceert zijn model niet. Hoeveel de modules aan
+spreiding tussen tactieken opleveren, blijkt pas uit een nieuwe balanssimulatie.
+
+**Rechtgezet.** In [ZWBgame](docs/zwbgame.md) stond dat de tijdcompressie tussen
+2 en 10 ligt; sinds de ZRL-ronde van 2026-09-28 is dat 2 tot 14.
+
+### Gebouwd — voorZpWelBokaal: de seizoenskalender in één klik
+
+**2026-10-19.** Commit `d4ced4db`. Geen migratie. **Gepusht naar `main` op
+2026-10-19.**
+
+**Waarom.** De eigenaar vroeg of de wedstrijden uit het voorstel (Wereldbeker,
+Superprestige, HG Cross en de kampioenschappen) vanzelf in de lijst kunnen
+komen, in plaats van elk event met de hand toe te voegen.
+
+**Wat er veranderde.**
+- Beheer heeft onder "Seizoenskalender" een knop per reeks en "Alles". Elke
+  knop zet alle komende elitewedstrijden van dames en heren van dat seizoen als
+  concept in de lijst; wat er al staat, blijft staan (de race-slug is uniek).
+- Reeksen komen van de reekspagina's van CyclingFlash
+  (`/serie/<reeks>-<seizoen>-men-elite` en `-women-elite`): twee verzoeken per
+  reeks. Die pagina's geven datum en race-slug, geen starttijd. Dames horen bij
+  het event van de heren met dezelfde naam en datum; op CyclingFlash is de
+  eventslug gelijk aan de race-slug van de heren (nagekeken voor Wereldbeker,
+  Superprestige, HG Cross en de kampioenschappen).
+- Kampioenschappen komen uit de maandkalenders november, januari en februari:
+  BK, NK, EK en WK, niet de andere landen of de Pan-Amerikaanse. Per gevonden
+  event wordt de eventpagina gelezen, zonder startlijst.
+- "Alles" stuurt elk deel als apart verzoek, zodat geen enkel verzoek lang
+  duurt.
+- **Starttijd:** een reekswedstrijd krijgt eerst de standaardtijd (dames 13.45,
+  heren 15.00). "Startlijst ophalen" leest nu ook de eventpagina en zet de echte
+  starttijd; de melding zegt het als de tijd veranderde. Een koers kan pas op het
+  bord met een startlijst, dus de tijd is dan bijgewerkt, tenzij de eventpagina
+  nog geen tijd geeft. **Controleer de tijd voordat je een koers op het bord
+  zet:** een te late tijd houdt het bord open terwijl de koers al rijdt.
+- Een handmatig ingevoerde starttijd wordt bij "Startlijst ophalen"
+  overschreven door die van CyclingFlash, als die er een geeft.
+- Gemeten op 2026-10-19 (alleen lezen): Wereldbeker 24, Superprestige 16 en
+  HG Cross 10 komende wedstrijden, alle dames gekoppeld; kampioenschappen EK
+  2026, BK en NK 2027 en WK Oostende 2027 (dames 30 januari, heren 31 januari,
+  nog zonder tijd).
+
+**Bewust niet.**
+- Exact Cross en de X2O Trofee: niet gevraagd. Een reeks toevoegen is één regel
+  in `SERIES` (`src/lib/bokaal/calendar.ts`). De slug van Exact Cross gaf op
+  2026-10-19 een 404.
+- Geen automatische run (cron): de kalender verandert een paar keer per seizoen,
+  en een geplande job kost Netlify-credits. Ook startlijsten ophalen en
+  afrekenen blijven knoppen.
+- Geen plakveld voor de reekspagina's. Weigert CyclingFlash de server, dan kan
+  een event nog steeds los worden toegevoegd met de paginabron.
+
+**Let op.** De slugs bevatten sponsornamen (`telenet-superprestige`,
+`hg-cross`); bij een nieuwe sponsor vindt de knop niets en meldt hij dat.
+
+**Getest.** `tsc` en ESLint schoon; `bokaal.test.ts` 25 tests (nieuw: een
+reekspagina lezen, dames aan het herenevent koppelen en het verleden weglaten,
+alleen BK/NK/EK/WK uit de maandkalender). De lezers één keer tegen de echte
+pagina's gedraaid, zonder iets op te slaan. **Niet getest:** de knoppen in
+beheer op productie en het bijwerken van de starttijd bij "Startlijst
+ophalen" met een echte database.
+
 ### Gebouwd — voorZpWelBokaal: wedkantoor voor het veldrijden
 
 **2026-10-19.** Commits `10f6fd29` en volgende, op branch
@@ -10769,6 +11231,8 @@ afwijkend van de regel in `src/lib/privacy.ts`. De tekst staat op
 - Live wedden, cash-out, huismarge, een eigen rating en namen intypen (zoals de
   oude poule); open bonusvragen die met de hand moeten worden nagekeken.
 - Geplande ophaaljobs op Netlify: eerst knoppen in beheer, om credits te sparen.
+  (Sinds de ronde "de seizoenskalender in één klik" vult één knop de hele
+  kalender van de gekozen reeksen; ook die draait niet vanzelf.)
 - Junioren en beloften: startlijsten en ratings zijn daar het minst volledig.
 - De oude app op Netlify en zijn tabellen (`races`, `predictions`,
   `global_odds`, `competitions`) zijn niet aangeraakt. Die staan in een eigen,
@@ -21274,7 +21738,9 @@ waar ZWB de meeste waarde uithaalt. Geen verplichting, geen volgorde.
   Open Graph opgehaald, dubbele/ongeldige overgeslagen.
 - ✅ **Sponsor-bannercarousel** — afgerond 2026-05-29. Subtiele continu
   scrollende logo-strip onderaan `/dashboard` (CSS-marquee, hover-pauze,
-  reduced-motion-safe), logo's linken naar de sponsor-site.
+  reduced-motion-safe), logo's linken naar de sponsor-site. *(Sinds 2026-10-19
+  onder elke pagina in de app, via de layout; zie "Met dank aan onze sponsors"
+  onder elke pagina.)*
 - Challenges, AI-agenten, E2E-chat en Mollie: zie "Geparkeerd — hoort in het
   plannenboek" onderaan.
 - ✅ **Core & mobiliteit als eigen trainingsspoor** — gebouwd (migraties

@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { adminAreaPermission } from "@/lib/admin-areas";
 import { requireBokaalMember } from "@/lib/bokaal/server";
-import { cancelRace, importEvent, refreshBoard, refreshRatings, settleRace, updateRace } from "@/lib/bokaal/admin";
+import {
+  cancelRace, importChampionships, importEvent, importSeries, refreshBoard, refreshRatings, settleRace, updateRace,
+} from "@/lib/bokaal/admin";
+import { currentSeason } from "@/lib/bokaal/server";
 import { brusselsToIso, eventSlugFrom } from "@/lib/bokaal/cyclingflash";
 import { BONUS_KEYS } from "@/lib/bokaal/settle";
 import { rateLimitHit } from "@/lib/rate-limit";
@@ -62,13 +65,31 @@ export async function adminImportEvent(input: unknown) {
   });
 }
 
+const CLOCK = new Intl.DateTimeFormat("nl-BE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Brussels" });
+
 export async function adminRefreshBoard(input: unknown) {
   return run(async () => {
     const data = z.object({ raceId, html }).parse(input);
     const member = await requireManager();
     await politely(member.id, data.html);
-    const count = await refreshBoard(data.raceId, data.html);
-    return `Bord bijgewerkt: ${count} renners.`;
+    const { riders, startsAt, timeChanged } = await refreshBoard(data.raceId, data.html);
+    return `Bord bijgewerkt: ${riders} renners${timeChanged ? `, start nu ${CLOCK.format(new Date(startsAt))}` : ""}.`;
+  });
+}
+
+/** De seizoenskalender per reeks, of de kampioenschappen; elk deel is een eigen verzoek. */
+export async function adminImportCalendar(input: unknown) {
+  return run(async () => {
+    const { part } = z.object({ part: z.enum(["wereldbeker", "superprestige", "hg-cross", "kampioenschappen"]) }).parse(input);
+    const member = await requireManager();
+    await politely(member.id, undefined);
+    const season = currentSeason();
+    if (part === "kampioenschappen") {
+      const { found, created } = await importChampionships(season);
+      return `Kampioenschappen: ${found} gevonden, ${created} wedstrijden nieuw.`;
+    }
+    const { label, found, created } = await importSeries(part, season);
+    return `${label}: ${found} komende wedstrijden, ${created} nieuw.`;
   });
 }
 

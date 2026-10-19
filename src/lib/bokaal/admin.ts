@@ -2,9 +2,10 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildBoard, seedFor, type FieldRider } from "./odds";
 import {
-  brusselsToIso, fetchEvent, fetchRanking, fetchResult, fetchStartlist, parseEvent, parseRanking, parseResult,
-  parseStartlist, type StartlistRider,
+  brusselsToIso, fetchChampionships, fetchEvent, fetchRanking, fetchResult, fetchSeries, fetchStartlist, parseEvent,
+  parseRanking, parseResult, parseStartlist, type StartlistRider,
 } from "./cyclingflash";
+import { CHAMPIONSHIP_MONTHS, planSeries, SERIES, type SeriesKey } from "./calendar";
 import { BONUS_KEYS, bonusAnswer, bonusQuestion, settleBet, type OpenBet, type ResultRow } from "./settle";
 import { RACE_COLUMNS, type RaceRow } from "./server";
 import { seasonOf, type Category } from "./rules";
@@ -50,43 +51,121 @@ async function boardFor(category: Category, raceSlug: string, startlist: Startli
   return buildBoard(await ratedField(category, startlist), { seed: seedFor(raceSlug) });
 }
 
-/** Een event van CyclingFlash: de elitewedstrijden van dames en heren als concept, met bord als de startlijst er is. */
-export async function importEvent(slug: string, html?: string): Promise<number> {
+const EMPTY_BOARD = { riders: [], duels: [] } as Awaited<ReturnType<typeof boardFor>>;
+const todayInBrussels = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Brussels", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+
+type NewRace = {
+  category: Category;
+  eventSlug: string;
+  eventName: string;
+  raceSlug: string;
+  location: string | null;
+  startsAt: string;
+  board?: Awaited<ReturnType<typeof boardFor>>;
+  oddsAt?: string | null;
+};
+
+/** Zet koersen die er nog niet staan als concept klaar; geeft het aantal nieuwe terug. */
+async function insertNewRaces(races: NewRace[]): Promise<number> {
+  if (races.length === 0) return 0;
+  const admin = createAdminClient();
+  const { data, error } = await admin.from("bokaal_races").select("race_slug").in("race_slug", races.map((r) => r.raceSlug));
+  if (error) throw new Error("Koersen lezen mislukt.");
+  const known = new Set((data ?? []).map((r) => r.race_slug as string));
+  const fresh = races.filter((r) => !known.has(r.raceSlug));
+  if (fresh.length === 0) return 0;
+  const { error: insertError } = await admin.from("bokaal_races").upsert(
+    fresh.map((r) => ({
+      season: seasonOf(new Date(r.startsAt)),
+      category: r.category,
+      event_slug: r.eventSlug,
+      event_name: r.eventName,
+      race_slug: r.raceSlug,
+      location: r.location,
+      starts_at: r.startsAt,
+      board: r.board ?? EMPTY_BOARD,
+      bonus: bonusQuestion(BONUS_KEYS[seedFor(r.raceSlug) % BONUS_KEYS.length], r.category),
+      odds_at: r.oddsAt ?? null,
+    })),
+    { onConflict: "race_slug", ignoreDuplicates: true },
+  );
+  if (insertError) throw new Error("Koersen opslaan mislukt.");
+  return fresh.length;
+}
+
+/**
+ * Een event van CyclingFlash: de elitewedstrijden van dames en heren als
+ * concept. Met `startlists` ook meteen het bord als de startlijst er al is.
+ * Met `upcomingOnly` blijven wedstrijden van vóór vandaag weg.
+ */
+export async function importEvent(
+  slug: string,
+  html?: string,
+  options: { startlists?: boolean; upcomingOnly?: boolean } = {},
+): Promise<number> {
+  const { startlists = true, upcomingOnly = false } = options;
   const event = html ? parseEvent(html, slug) : await fetchEvent(slug);
   if (event.races.length === 0) throw new Error("Geen elitewedstrijden gevonden in dit event.");
-  const admin = createAdminClient();
-  let created = 0;
+  const today = todayInBrussels();
+  const races: NewRace[] = [];
   for (const race of event.races) {
-    const date = race.date;
-    if (!date) throw new Error("Geen datum gevonden in dit event.");
-    const startsAt = brusselsToIso(date, race.time ?? DEFAULT_TIME[race.category]);
-    let board = { riders: [], duels: [] } as Awaited<ReturnType<typeof boardFor>>;
+    if (!race.date) throw new Error("Geen datum gevonden in dit event.");
+    if (upcomingOnly && race.date < today) continue;
+    let board: NewRace["board"];
     let oddsAt: string | null = null;
-    try {
-      board = await boardFor(race.category, race.slug, await fetchStartlist(race.slug));
-      oddsAt = new Date().toISOString();
-    } catch {
-      // Startlijst nog niet bekend of geweigerd: het concept wacht erop.
+    if (startlists) {
+      try {
+        board = await boardFor(race.category, race.slug, await fetchStartlist(race.slug));
+        oddsAt = new Date().toISOString();
+      } catch {
+        // Startlijst nog niet bekend of geweigerd: het concept wacht erop.
+      }
     }
-    const { error } = await admin.from("bokaal_races").upsert(
-      {
-        season: seasonOf(new Date(startsAt)),
-        category: race.category,
-        event_slug: event.slug,
-        event_name: event.name,
-        race_slug: race.slug,
-        location: event.location,
-        starts_at: startsAt,
-        board,
-        bonus: bonusQuestion(BONUS_KEYS[seedFor(race.slug) % BONUS_KEYS.length], race.category),
-        odds_at: oddsAt,
-      },
-      { onConflict: "race_slug", ignoreDuplicates: true },
-    );
-    if (error) throw new Error("Koers opslaan mislukt.");
-    created++;
+    races.push({
+      category: race.category,
+      eventSlug: event.slug,
+      eventName: event.name,
+      raceSlug: race.slug,
+      location: event.location,
+      startsAt: brusselsToIso(race.date, race.time ?? DEFAULT_TIME[race.category]),
+      board,
+      oddsAt,
+    });
   }
-  return created;
+  return insertNewRaces(races);
+}
+
+/** Alle komende wedstrijden van een reeks (dames en heren) als concept, met een standaardtijd. */
+export async function importSeries(key: SeriesKey, season: string) {
+  const series = SERIES.find((s) => s.key === key);
+  if (!series) throw new Error("Onbekende reeks.");
+  const slug = series.slug(season);
+  const [men, women] = await Promise.all([fetchSeries(slug, "m"), fetchSeries(slug, "w")]);
+  if (men.length + women.length === 0) throw new Error(`Geen wedstrijden gevonden voor ${series.label} ${season}.`);
+  const planned = planSeries(men, women, todayInBrussels());
+  const created = await insertNewRaces(
+    planned.map((r) => ({
+      category: r.category,
+      eventSlug: r.eventSlug,
+      eventName: r.name,
+      raceSlug: r.slug,
+      location: null,
+      startsAt: brusselsToIso(r.date, DEFAULT_TIME[r.category]),
+    })),
+  );
+  return { label: series.label, found: planned.length, created };
+}
+
+/** BK, NK, EK en WK van het seizoen, uit de maandkalenders van CyclingFlash. */
+export async function importChampionships(season: string) {
+  const slugs = new Set<string>();
+  for (const month of CHAMPIONSHIP_MONTHS) {
+    for (const slug of await fetchChampionships(season, month)) slugs.add(slug);
+  }
+  let created = 0;
+  for (const slug of slugs) created += await importEvent(slug, undefined, { startlists: false, upcomingOnly: true });
+  return { found: slugs.size, created };
 }
 
 async function getRace(id: string): Promise<RaceRow> {
@@ -102,12 +181,23 @@ export async function refreshBoard(raceId: string, html?: string) {
   if (Date.parse(race.starts_at) <= Date.now()) throw new Error("De koers is al gestart.");
   const startlist = html ? parseStartlist(html) : await fetchStartlist(race.race_slug);
   const board = await boardFor(race.category, race.race_slug, startlist);
+  // Een koers uit de reekskalender heeft nog een standaardtijd; de eventpagina
+  // geeft de echte. Lukt dat niet, dan blijft de tijd zoals hij was.
+  let startsAt = race.starts_at;
+  if (!html) {
+    try {
+      const found = (await fetchEvent(race.event_slug)).races.find((r) => r.slug === race.race_slug);
+      if (found?.date && found.time) startsAt = brusselsToIso(found.date, found.time);
+    } catch {
+      // Eventpagina niet bereikbaar: tijd ongewijzigd.
+    }
+  }
   const { error } = await createAdminClient()
     .from("bokaal_races")
-    .update({ board, odds_at: new Date().toISOString() })
+    .update({ board, odds_at: new Date().toISOString(), starts_at: startsAt })
     .eq("id", raceId);
   if (error) throw new Error("Bord opslaan mislukt.");
-  return board.riders.length;
+  return { riders: board.riders.length, startsAt, timeChanged: Date.parse(startsAt) !== Date.parse(race.starts_at) };
 }
 
 export async function updateRace(raceId: string, patch: { startsAt?: string; status?: "concept" | "open"; bonusKey?: string }) {

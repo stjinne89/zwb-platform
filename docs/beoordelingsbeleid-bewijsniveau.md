@@ -246,7 +246,9 @@ maandelijkse scan, en pas na akkoord een wijziging in deze tabel en de code.
 
 ## Per artikel
 
-Alle 73 artikelen langs de regels hierboven, goedgekeurd op 2026-10-18. "Niveau"
+Alle 73 artikelen langs de regels hierboven, goedgekeurd op 2026-10-18; de negen
+artikelen van de kennisbank racen kwamen er op 2026-10-19 bij en zijn nog niet
+door de eigenaar beoordeeld. "Niveau"
 is wat de app toont; de test leest die kolom. "Was" is het niveau van daarvoor,
 in de oude woorden. In de kolom "Wijziging": **↑** of **↓** is een ander niveau,
 **vorm** is de conclusie "geen effect" of "nadelig", **label** is "Nieuwe
@@ -349,6 +351,29 @@ veranderen niet. Wel krijgen drie artikelen de vorm "geen effect".
 | Compressiekleding | **Stevig onderbouwd: geen effect** | Sterk | **vorm** | Route 2: meerdere meta-analyses zijn het eens dat je er niet sneller van wordt. |
 | Inlegzolen | **Onderbouwd: geen effect** | Matig | **vorm** | Een systematische review en losse proeven, ook met een nepzool, vinden geen winst in vermogen; klein en wisselend van kwaliteit. |
 
+### Racen (9)
+
+Toegevoegd op 2026-10-19 volgens de werkwijze hierboven; **nog niet door de
+eigenaar beoordeeld**. Over tactiek in Zwift-races is weinig gepubliceerd. Het
+meeste bewijs komt uit de echte koers en geldt voor Zwift alleen voor zover het
+spel de natuurkunde nabootst. Zo'n advies is afgeleid en dus hooguit Eerste
+aanwijzingen, zoals het ijkpunt *Indoor fietsen en Zwift*, tenzij het kernadvies
+over de natuurkunde zelf gaat. De spelregels van Zwift en de tests van Zwift
+Insider tellen niet als bron (geen vakgenoten); ze staan als achtergrond in de
+artikelen, met die beperking erbij. "Was" is leeg: de artikelen zijn nieuw.
+
+| Artikel | Niveau | Was | Wijziging | Waarom |
+|---|---|---|---|---|
+| In het wiel: wat de slipstream scheelt | Sterk | **Stevig onderbouwd** | | Route 3: metingen met renners van vier onafhankelijke groepen (Edwards, Barry, Fitton, Spoelstra) zijn het eens. Het kernadvies gaat over de slipstream zelf; wat Zwift ervan maakt, staat bij de beperkingen. |
+| Je plek in de groep | Beperkt | **Eerste aanwijzingen** | | Alleen verbanden uit wedstrijden (twee topsprinters, één criterium), terwijl het advies over oorzaak en gevolg gaat. |
+| Wat een Zwift-race vraagt | Matig | **Onderbouwd** | | Drie studies naar Zwift-races in dezelfde richting (Bjärehed, Westmattelmann, Varesco), elk klein en beschrijvend. |
+| Klimmen in de groep en over de top | Beperkt | **Eerste aanwijzingen** | | De slipstream bergop komt van één groep, berekend en in de windtunnel getoetst (begrenzing 3); dat een gat over de top groeit, is alleen het mechanisme. |
+| Aanvallen en volgen: kies je moment | Beperkt | **Eerste aanwijzingen** | | Het W′-model en één analyse van de Tour; de adviezen voor Zwift zijn afgeleid. |
+| Wanneer een ontsnapping het haalt | Beperkt | **Eerste aanwijzingen** | | Rekenmodellen en analyses van profkoersen: verbanden en het mechanisme; voor Zwift afgeleid. |
+| De sprint: positie, wiel en timing | Beperkt | **Eerste aanwijzingen** | | Verbanden bij één of twee topsprinters en een model van baansprints; voor Zwift afgeleid. |
+| Ploegentijdrit: volgorde en beurten | Matig | **Onderbouwd** | | De slipstream in een lijn is met renners gemeten door drie groepen (Barry, Fitton, Heimans), maar op de baan, niet in de situatie van het advies; de verdeling van beurten komt alleen uit een rekenmodel. |
+| De spelregels van Zwift die je race bepalen | Beperkt | **Eerste aanwijzingen** | | Spelregels, geen onderzoek. Alleen de natuurkunde erachter (slipstream, gewicht, rolweerstand) is gemeten; dat Zwift die zo nabootst, is niet onafhankelijk getoetst. |
+
 ## Telling
 
 | | Stevig onderbouwd | Onderbouwd | Eerste aanwijzingen | Waarvan met conclusie |
@@ -358,6 +383,8 @@ veranderen niet. Wel krijgen drie artikelen de vorm "geen effect".
 | Core & mobiliteit (12) | – | 10 *(was 8)* | 2 *(was 4)* | – |
 | Materiaal (16) | 8 | 7 | 1 | 3 |
 | **Totaal (73)** | **23** *(was 18)* | **36** *(was 37)* | **14** *(was 15)* | **6** |
+| Racen (9), sinds 2026-10-19 | 1 | 2 | 6 | – |
+| **Totaal met racen (82)** | **24** | **38** | **20** | **6** |
 
 **De zeven verschuivingen:**
 

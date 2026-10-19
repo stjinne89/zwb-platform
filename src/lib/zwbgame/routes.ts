@@ -1,5 +1,6 @@
 import type { PacingRoute } from "@/lib/pacing/route-profile";
-import type { GameAccent, GameRoute } from "./types";
+import { crrFor } from "@/lib/zwift/surfaces/crr";
+import type { GameAccent, GameRoute, RoughSection } from "./types";
 
 /**
  * Club Ladder courses: 15–25 km over one or more laps, the race book's guidance
@@ -27,7 +28,12 @@ export function gameRouteFrom(route: PacingRoute, meta: { slug: string; name: st
     .map((a) => ({ name: a.name, kind: a.kind, start: Math.round(a.startKm * 1000), end: Math.round(a.endKm * 1000), banner: !a.id.startsWith("klim-") }))
     .filter((a) => a.end > a.start && a.end <= length);
   const lapLines = Array.from({ length: Math.max(0, meta.laps - 1) }, (_, i) => Math.round((meta.leadInKm + (i + 1) * meta.lapKm) * 1000)).filter((d) => d > 0 && d < length);
-  return { id: meta.slug, name: meta.name, world: meta.world, laps: meta.laps, length, grades, accents, lapLines };
+  // Only surfaces that roll slower than tarmac on a road bike; sand rolls the same.
+  const rough: RoughSection[] = (route.surfaceSections ?? [])
+    .filter((s) => s.surface !== "tarmac" && crrFor(s.surface, "road") > 0.0045)
+    .map((s) => ({ start: Math.round(s.startKm * 1000), end: Math.min(length, Math.round(s.endKm * 1000)), surface: s.surface }))
+    .filter((s) => s.end - s.start >= 50);
+  return { id: meta.slug, name: meta.name, world: meta.world, laps: meta.laps, length, grades, accents, lapLines, ...(rough.length ? { rough } : {}) };
 }
 
 export function gradeAt(route: GameRoute, distance: number) {

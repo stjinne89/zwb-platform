@@ -46,7 +46,6 @@ import { Greeting } from "./_components/greeting";
 import { MyRaces } from "./_components/my-races";
 import { PhotoNudge } from "./_components/photo-nudge";
 import { InstagramStrip, type InstagramPost } from "./_components/instagram-strip";
-import { SponsorCarousel } from "./_components/sponsor-carousel";
 import { SrcResults } from "./_components/src-results";
 import {
   TrainingStatus,
@@ -531,7 +530,6 @@ export default async function DashboardPage({
     { data: standingRows },
     { data: clubActivities },
     { data: awardRows },
-    { data: sponsorRows },
     { data: recentPastEventRows },
     { data: trainingConn },
     { data: nextWorkoutRows },
@@ -614,13 +612,6 @@ export default async function DashboardPage({
       .order("awarded_at", { ascending: false })
       .order("period_start", { ascending: false })
       .limit(8),
-    supabase
-      .from("sponsors")
-      .select("name, logo_url, website_url")
-      .eq("active", true)
-      .not("logo_url", "is", null)
-      .order("tier")
-      .order("display_order"),
     supabase
       .from("events")
       .select("id, title, start_at, location, cover_image_path, created_by")
@@ -776,19 +767,6 @@ export default async function DashboardPage({
   ]);
   const activities = (clubActivities ?? []) as unknown as ClubActivityRow[];
   const awards = (awardRows ?? []) as unknown as AwardRow[];
-  const carouselSponsors = (
-    (sponsorRows ?? []) as {
-      name: string;
-      logo_url: string | null;
-      website_url: string | null;
-    }[]
-  )
-    .filter((s) => s.logo_url)
-    .map((s) => ({
-      name: s.name,
-      logoUrl: s.logo_url as string,
-      websiteUrl: s.website_url,
-    }));
   const reportPreviews = recentPastEvents.map((ev) => {
     const rep = reportByEvent.get(ev.id);
     // Header-beeld: stabiel gekozen uit cover + foto's, zodat renders puur blijven.
@@ -1572,10 +1550,6 @@ export default async function DashboardPage({
             </section>
           )}
         </div>
-      )}
-
-      {carouselSponsors.length > 0 && (
-        <SponsorCarousel sponsors={carouselSponsors} />
       )}
     </div>
   );
