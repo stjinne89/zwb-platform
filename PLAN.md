@@ -220,7 +220,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Berichten op de fietscomputer: push voor Garmin, Telegram voor Wahoo, 2026-10-19 — gebouwd; unit-tests (nieuw: `telegram-bot`, `ride-message-recipients`, `ride-messages-migration` op PGlite), typecheck en lint schoon; niet in de browser bekeken; geen echte Telegram-bot of fietscomputer gebruikt; lokaal gecommit, niet gepusht (eigenaar, 2026-10-19). Migratie `0253_ride_messages.sql` niet toegepast.**
+> **Berichten op de fietscomputer: push voor Garmin, Telegram voor Wahoo, 2026-10-19 — gebouwd; unit-tests (nieuw: `telegram-bot`, `ride-message-recipients`, `ride-messages-migration` op PGlite), typecheck en lint schoon; niet in de browser bekeken; geen echte Telegram-bot of fietscomputer gebruikt; lokaal gecommit (`1e6501c9`), niet gepusht (eigenaar, 2026-10-19). Migratie `0253_ride_messages.sql` op 2026-10-19 via de Supabase-connector op productie toegepast, op verzoek van de eigenaar; daarna nagekeken (kolommen, RLS en de twee policies aanwezig, security-advisor zonder nieuwe melding).**
 > Commit: de commit die dit blok toevoegt, op `claude/wahoo-garmin-direct-messages-598387`.
 >
 > **Getest.** Volledige suite: 2.999 van 3.001 tests geslaagd. De rest waren
@@ -276,16 +276,16 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   groep of organisator; per renner volstaat.
 > - Berichten vanaf Samen fietsen bewaren: niet nodig voor de functie.
 >
-> **Volgorde bij uitrol.** Eerst `0253` toepassen. Zonder die migratie mislukt
-> het opslaan van de meldingsvoorkeuren op `/profiel` (kolom `on_ride_message`
-> ontbreekt); de eventchat en Samen fietsen vangen de ontbrekende kolom en tabel
-> wel op. Daarna de bot maken en de webhook zetten (runbook, "Telegram-bot").
+> **Volgorde bij uitrol.** `0253` staat al op productie (2026-10-19), dus de
+> code kan zonder risico live. Dan de bot maken, de drie Telegram-variabelen in
+> Netlify zetten en na de deploy de webhook zetten (runbook, "Telegram-bot").
 >
 > **Niet geverifieerd.** De eigenaar test eerst zonder code: een ZWB-push op een
 > Garmin Edge, een ZWB-push op de BOLT 2 (verwacht: niets) en een Telegram-bericht
 > op de BOLT 2. Of een ZWB-push op Android via Garmin Connect doorkomt, hangt af
 > van welke app de melding toont (browser of geïnstalleerde ZWB-app). Migratie
-> alleen op PGlite getest, niet op Supabase. De schermen niet in de browser
+> op PGlite getest en op productie toegepast; het gedrag van de app met de
+> migratie is niet getest. De schermen niet in de browser
 > bekeken. Onderzoek en bronnen: dit blok (Wahoo-support:
 > "Text, call, and email notifications for ELEMNT ACE, BOLT 3 and ROAM 3" en
 > "Call, text, and email notifications with ELEMNT, BOLT v1/v2, and ROAM v2").
