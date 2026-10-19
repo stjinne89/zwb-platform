@@ -317,13 +317,28 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   zijn met de hand uit `strava_activities` verwijderd; niets verwees ernaar
 >   (blokken, cols, segmenten, samenvattingen, workoutrapporten). 58 virtuele
 >   ritten uit 2023–2024 stonden alleen in die CSV en zijn daarmee ook weg; ze
->   hadden geen tijd. Nog open: vier Zwift-ritten van 15–18 oktober (upload van
->   18 oktober) staan nog op 0:00; die vallen buiten de export. Een latere
->   Strava-export overschrijft ze, want het id is gelijk. Een losse FIT of GPX
->   doet dat niet: `planRideImport` hangt dan alleen het spoor aan de CSV-rit.
+>   hadden geen tijd. Vier Zwift-ritten van 15–18 oktober (upload van 18
+>   oktober) vallen buiten de export en stonden nog op 0:00, hoewel zijn GPX of
+>   FIT er al een spoor aan had gehangen; zie de importronde hieronder.
 >   **Niet gebouwd in deze ronde:** de CSV van intervals.icu bij de import
 >   herkennen of weigeren. Dit is het eerste geval, en de eigenaar heeft er nog
 >   niet over beslist.
+>
+>   *Import vult tijd en hoogtemeters aan (2026-10-19, wens eigenaar).* Een GPX
+>   of FIT bij een rit uit activities.csv hing tot nu toe alleen het spoor aan
+>   die rit, en alleen als die nog geen spoor had. De tijd en de hoogtemeters uit
+>   het bestand vielen weg, dus een CSV-rit zonder tijd bleef op 0:00, ook na de
+>   upload van het bestand. Nu neemt `planRideImport` (`import-merge.ts`) bij een
+>   CSV-rit met tijd 0 de beweeg- en totaaltijd uit het bestand over, en bij 0
+>   hoogtemeters de hoogtemeters. Dat gebeurt ook als de rit het spoor al had;
+>   dat spoor blijft dan staan, en ZWBlokken rekenen de rit niet opnieuw door.
+>   Een bekende tijd of een rit van Strava of intervals.icu wordt nooit
+>   overschreven. Het importscherm meldt nu "ritten aangevuld" in plaats van
+>   "sporen aangevuld". Unit-tests in `strava-import.test.ts`; de schrijfactie
+>   in `_actions.ts` is niet lokaal tegen de database getest. Jeroen moet de vier
+>   bestanden opnieuw uploaden. Een weekoverzicht dat al bestaat, past zich daar
+>   niet op aan: `weekly_reviews.summary` wordt alleen opnieuw opgebouwd bij een
+>   andere `SUMMARY_VERSION` (`service.ts`).
 > - *Altijd de 5 minuten op het vermogensscherm.* Zonder jaarrecord koos het
 >   scherm vast de 5 minuten, een willekeurige keuze. Nu kiest `buildPower` de
 >   duur die het dichtst bij het jaarbeste kwam (`focus`, met het percentage);

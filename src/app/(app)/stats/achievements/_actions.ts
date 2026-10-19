@@ -239,6 +239,8 @@ type ExistingRideRow = {
   distance_m: number | string | null;
   import_source: string | null;
   track?: string | null;
+  moving_time_seconds?: number | null;
+  total_elevation_gain_m?: number | string | null;
 };
 
 const EXISTING_PAGE = 1000;
@@ -384,7 +386,7 @@ async function importOneFile(
       const from = new Date(Math.min(...times) - 86400_000).toISOString();
       const to = new Date(Math.max(...times) + 86400_000).toISOString();
       const columns = withTracks
-        ? "id, start_date, distance_m, import_source:raw->>import_source, track:raw->map->>summary_polyline"
+        ? "id, start_date, distance_m, moving_time_seconds, total_elevation_gain_m, import_source:raw->>import_source, track:raw->map->>summary_polyline"
         : "id, start_date, distance_m, import_source:raw->>import_source";
       for (let offset = 0; ; offset += EXISTING_PAGE) {
         const { data, error } = await supabase
@@ -404,6 +406,8 @@ async function importOneFile(
             distance_m: ride.distance_m,
             import_source: ride.import_source,
             has_track: Boolean(ride.track),
+            moving_time_seconds: ride.moving_time_seconds,
+            total_elevation_gain_m: ride.total_elevation_gain_m,
           })),
         );
         if (page.length < EXISTING_PAGE) break;
@@ -422,6 +426,7 @@ async function importOneFile(
 
     // Een GPX of FIT bij een rit uit activities.csv: het spoor erbij, en die rit
     // opnieuw door ZWBlokken (die werken incrementeel op blocks_processed_at).
+    // Had de CSV geen tijd of hoogtemeters, dan komen die uit het bestand.
     for (const attachment of plan.attach) {
       const { data: current, error: readError } = await supabase
         .from("strava_activities")
@@ -437,13 +442,25 @@ async function importOneFile(
         .update({
           raw: {
             ...raw,
-            map: { summary_polyline: attachment.summaryPolyline },
+            ...(attachment.summaryPolyline
+              ? { map: { summary_polyline: attachment.summaryPolyline } }
+              : {}),
             ...(attachment.deviceName && !raw.device_name
               ? { device_name: attachment.deviceName }
               : {}),
           },
-          blocks_processed_at: null,
-          zwift_blocks_processed_at: null,
+          ...(attachment.summaryPolyline
+            ? { blocks_processed_at: null, zwift_blocks_processed_at: null }
+            : {}),
+          ...(attachment.movingTime !== undefined
+            ? {
+                moving_time_seconds: attachment.movingTime,
+                elapsed_time_seconds: attachment.elapsedTime ?? attachment.movingTime,
+              }
+            : {}),
+          ...(attachment.elevationGainM !== undefined
+            ? { total_elevation_gain_m: Math.round(attachment.elevationGainM) }
+            : {}),
         })
         .eq("id", attachment.id)
         .eq("profile_id", profileId);
