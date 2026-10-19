@@ -225,7 +225,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **DESIGN.md beschrijft het design "tegels", 2026-10-19 — geschreven uit de code; niet in de browser naast de app gelegd; lokaal gecommit, niet gepusht. Geen migratie.**
+> **DESIGN.md beschrijft het design "tegels", 2026-10-19 — geschreven uit de code; niet in de browser naast de app gelegd; gepusht naar `main` (eigenaar, 2026-10-19, commit `edfcbb76`). Geen migratie.**
 > Commit: de commit die dit blok toevoegt, op `claude/tegels-design-update-f46798`.
 >
 > **Waarom.** Met "tegels" als standaard voor iedereen (ronde hieronder)
