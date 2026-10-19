@@ -227,7 +227,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **OwnTracks verwijderd, 2026-10-19 — gebouwd; typecheck en lint schoon; unit-tests groen op `omnium-live` na (mist `.env.local` in de worktree); `next build` compileert, maar het prerenderen stopt op `/omnium` om dezelfde reden; niet in de browser bekeken; lokaal gecommit, niet gepusht. Geen migratie.**
+> **OwnTracks verwijderd, 2026-10-19 — gebouwd; typecheck en lint schoon; unit-tests groen op `omnium-live` na (mist `.env.local` in de worktree); `next build` compileert, maar het prerenderen stopt op `/omnium` om dezelfde reden; niet in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-19, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
 > Commit: de commit die dit blok toevoegt, op `claude/remove-owntracks-a8331c`.
 >
 > **Waarom.** Op verzoek van de eigenaar. Garmin (LiveTrack-mail) en Wahoo
@@ -265,7 +265,43 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > **Niet geverifieerd.** `/live`, `/welkom` en `/hulp/live-volgen` niet in de
 > browser bekeken.
 
-> **Berichten op de fietscomputer: push voor Garmin, Telegram voor Wahoo, 2026-10-19 — gebouwd; unit-tests (nieuw: `telegram-bot`, `ride-message-recipients`, `ride-messages-migration` op PGlite), typecheck en lint schoon; niet in de browser bekeken; geen echte Telegram-bot of fietscomputer gebruikt; lokaal gecommit (`1e6501c9`), niet gepusht (eigenaar, 2026-10-19). Migratie `0253_ride_messages.sql` op 2026-10-19 via de Supabase-connector op productie toegepast, op verzoek van de eigenaar; daarna nagekeken (kolommen, RLS en de twee policies aanwezig, security-advisor zonder nieuwe melding).**
+> **Testbericht naar de eigen fietscomputer, 2026-10-19 — gebouwd; unit-test (nieuw: `ride-message-test-action`), typecheck en lint schoon; niet in de browser bekeken; geen echt bericht verstuurd; gepusht naar `main` (eigenaar, 2026-10-19, samengevoegd in de mergecommit na dit blok, samen met de testronde van de ritberichten). Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/vigorous-babbage-ef23db`.
+>
+> **Waarom.** Een bericht aan jezelf kan bewust niet (ronde hieronder), dus een
+> lid kon de eigen telefoon-, Garmin- en Wahoo-instellingen niet testen. De
+> eigenaar kon dat alleen door de verzendcode met de hand tegen productie te
+> draaien.
+>
+> **Wat.** Op Samen fietsen staat voor ieder lid een klein paneel "Bericht op
+> je fietscomputer" met de knop "Testbericht"
+> (`src/app/(app)/live/_components/test-message-panel.tsx`), los van het
+> Telegram-paneel, zodat ook een Garmin-gebruiker zonder Telegram de push op
+> de Edge of het horloge kan testen. De server-actie
+> `sendTestRideMessage` (`src/app/(app)/live/_actions.ts`) roept
+> `deliverRideMessage` aan met alleen het eigen profiel als ontvanger, afzender
+> "ZWB" en de vaste tekst `TEST_RIDE_MESSAGE` (`src/lib/ride-messages/deliver.ts`;
+> een `"use server"`-bestand mag alleen async functies exporteren). Het gaat dus
+> via dezelfde twee kanalen als een echt bericht: push en Telegram, en het
+> vinkje `on_ride_message` geldt ook hier. Rem: 3 per 10 minuten per lid
+> (bucket `ride_message_test`). Daarna toont het paneel "Testbericht verstuurd."
+> (`reached > 0`) of "Niet aangekomen." (push en Telegram allebei nog niet
+> ingesteld). In `/hulp/live-volgen#ritberichten` een laatste Garmin-stap en
+> een regel bij de opmerkingen.
+>
+> Eerst stond de knop alleen in het Telegram-paneel, voor wie gekoppeld was;
+> nog dezelfde dag verplaatst, omdat Garmin-gebruikers zonder Telegram hem dan
+> niet zagen. Het tussenresultaat staat in een eerdere commit op deze branch.
+>
+> **Bewust niet gebouwd.** Een aparte uitslag per kanaal (push of Telegram):
+> `deliverRideMessage` telt bereikte leden, niet kanalen, en voor een test is
+> "kwam aan of niet" genoeg.
+>
+> **Niet geverifieerd.** De knop niet in de browser bekeken en geen echt
+> testbericht verstuurd. "Verstuurd" betekent dat de push of de Telegram-API
+> het aannam, niet dat de fietscomputer het toonde.
+
+> **Berichten op de fietscomputer: push voor Garmin, Telegram voor Wahoo, 2026-10-19 — gebouwd; unit-tests (nieuw: `telegram-bot`, `ride-message-recipients`, `ride-messages-migration` op PGlite), typecheck en lint schoon; niet in de browser bekeken; geen echte Telegram-bot of fietscomputer gebruikt; gepusht naar `main` (eigenaar, 2026-10-19, mergecommit `ea2ab2c9`); webhook gezet op `https://zwb-platform.netlify.app/api/telegram/webhook` (geheim eerst tegen de live site geproefd, `getWebhookInfo` zonder fout). Migratie `0253_ride_messages.sql` op 2026-10-19 via de Supabase-connector op productie toegepast, op verzoek van de eigenaar; daarna nagekeken (kolommen, RLS en de twee policies aanwezig, security-advisor zonder nieuwe melding).**
 > Commit: de commit die dit blok toevoegt, op `claude/wahoo-garmin-direct-messages-598387`.
 >
 > **Getest.** Volledige suite: 2.999 van 3.001 tests geslaagd. De rest waren
@@ -333,10 +369,20 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > Telegram de melding op de telefoon en dus ook op de ELEMNT; en het eerste
 > bericht kwam pas door nadat de telefoon- en Wahoo-instellingen waren nagelopen
 > (de ELEMNT toont alleen wat als melding op de telefoon verschijnt). De webhook
-> is nog niet gezet: de code staat nog niet live.
+> is gezet na de deploy van 2026-10-19, op het Netlify-adres: `www.zwbcycling.nl`
+> is een andere site (Apache), niet de app, en Telegram volgt geen
+> doorverwijzingen.
 >
-> **Niet geverifieerd.** Een ZWB-push op een Garmin Edge, de koppeling via de
-> webhook en een bericht uit de app zelf. Of een ZWB-push op Android via Garmin Connect doorkomt, hangt af
+> **Van begin tot eind getest (2026-10-19, na de deploy).** De eigenaar koppelde
+> via Samen fietsen; `telegram_links` toonde daarna een chat-id (14:32 UTC), dus
+> de webhook werkt. Daarna draaide de echte `deliverRideMessage` één keer tegen
+> productie met alleen de eigenaar als ontvanger: "Bereikt: 1 lid", en het
+> bericht stond op de BOLT 2. De push werd daarbij overgeslagen (VAPID-sleutels
+> staan alleen in Netlify).
+>
+> **Niet geverifieerd.** Een ZWB-push op een Garmin Edge, en de knoppen in de app
+> zelf (vinkje in de eventchat, berichtknop op Samen fietsen): daarvoor is een
+> tweede lid nodig, want een bericht aan jezelf kan bewust niet. Of een ZWB-push op Android via Garmin Connect doorkomt, hangt af
 > van welke app de melding toont (browser of geïnstalleerde ZWB-app). Migratie
 > op PGlite getest en op productie toegepast; het gedrag van de app met de
 > migratie is niet getest. De schermen niet in de browser
