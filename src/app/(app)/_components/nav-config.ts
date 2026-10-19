@@ -154,6 +154,8 @@ export const AVATAR_NAV: NavLeaf[] = [
   { type: "link", href: "/profiel", label: "Profiel" },
   { type: "link", href: "/mijn-garage", label: "Mijn garage" },
   { type: "link", href: "/hulp", label: "Hulp" },
+  // Vragen over de app (0254): hoort bij de hulp, niet bij een plek.
+  { type: "link", href: "/qa", label: "Q&A" },
 ];
 
 // Admin-items met bijbehorende permission, uit het register van de

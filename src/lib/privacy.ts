@@ -42,6 +42,12 @@
  * de club. Meedoen is de toestemming (`BOKAAL_CONSENT_VERSION` in
  * `src/lib/bokaal/rules.ts`, tabel `bokaal_players`), besluit eigenaar.
  * `/privacy#voorzpwelbokaal` beschrijft het.
+ *
+ * **Vijfde uitzondering, voorgesteld: Q&A (2026-10-19).** Een vraag over de
+ * app levert alleen aan wie hem zelf stelt, en die kiest per vraag wie hem
+ * leest (de club of alleen het bestuur); het stellen is de toestemming (tabel
+ * `member_questions`, 0254). `/privacy#qa` beschrijft het. Of dit zonder
+ * nieuwe versie mag, is aan de eigenaar (zie PLAN.md, ronde "Q&A").
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring

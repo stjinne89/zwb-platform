@@ -248,6 +248,21 @@ export default function PrivacyPage() {
             gesprekken kun je zelf verwijderen, en alles verdwijnt als je je
             account opheft. Het staat in je data-export.
           </li>
+          <li id="qa" className="scroll-mt-20">
+            <strong>Q&amp;A, vragen over de app:</strong> stel je een vraag,
+            dan bewaren we de tekst, wanneer je hem stelde en voor wie hij is.
+            Een vraag voor de club zien goedgekeurde clubleden, met je naam
+            erbij, samen met het antwoord. Zet je &ldquo;Alleen voor het
+            bestuur&rdquo; aan, dan zien alleen jij en wie vragen mag
+            beantwoorden hem. Wie antwoordt, kan een clubvraag ook zo
+            afschermen. Bij een antwoord bewaren we wie het schreef en wanneer.
+            Wie antwoordt, krijgt een pushmelding dat jij een vraag stelde; jij
+            krijgt er een als hij beantwoord is, als je die aan hebt staan. Een
+            melding noemt nooit wat er in de vraag of het antwoord staat. Er
+            gaat niets naar OpenAI. Je vraag kun je altijd zelf verwijderen;
+            alles verdwijnt als je je account opheft. Het staat in je
+            data-export.
+          </li>
           <li>
             <strong>Gezondheids­gerelateerde data (alleen met opt-in):</strong>{" "}
             herstel-/wellnessgegevens uit intervals.icu zoals rusthartslag, HRV,

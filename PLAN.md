@@ -62,6 +62,15 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **Q&A (vragen over de app):** `0254_member_questions.sql` toepassen
+     **vóór** de code naar `main` gaat: het profiel vraagt de nieuwe
+     pushkolommen op, en zonder die kolommen kan niemand zijn meldingen
+     opslaan. Het dashboardblok en `/qa` vallen zonder de tabel wel netjes weg.
+     Daarna: de controlequery's onderaan de migratie, een vraag stellen vanaf
+     een gewoon account (één voor de club, één alleen voor het bestuur),
+     beantwoorden als bestuur, en kijken of beide pushmeldingen aankomen. Nog
+     goed te keuren: de privacy- en voorwaardentekst, en of Q&A zonder nieuwe
+     privacyversie kan (ronde 2026-10-19, "Q&A").
    - **Design "tegels" voor iedereen:** op 2026-10-19 naar `main` gepusht
      (eigenaar). Nog doen: als gewoon lid (privévenster) en als bestuurslid
      nalopen (ronde 2026-10-19, "Design tegels wordt de standaard").
@@ -208,8 +217,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0254`
-(`0252_voorzpwelbokaal` is van het voorZpWelBokaal, 2026-10-19;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0255`
+(`0254_member_questions` is van Q&A, 2026-10-19;
+`0252_voorzpwelbokaal` is van het voorZpWelBokaal, 2026-10-19;
 `0253_ride_messages` is van de berichten op de fietscomputer, 2026-10-19;
 `0249_zwb_ds` en `0250_zwb_ds_more_rider_data` zijn van ZWB DS;
 `0251_weekly_reviews` is van het weekoverzicht, 2026-10-18;
@@ -226,6 +236,106 @@ drie 2026-10-16; `0246_workout_method_labels` en
 2026-10-17, hernummerd van `0239` bij het samenvoegen met main).
 
 ---
+
+> **Q&A: vragen over de app, 2026-10-19 — gebouwd; typecheck en lint schoon; unit-tests groen op `omnium-live` na (mist `.env.local`); `next build` compileert, het prerenderen stopt op `/omnium` om dezelfde reden; niet in de browser bekeken; niet op productie. Migratie `0254_member_questions.sql`, niet toegepast.**
+> Commit: de commit die dit blok toevoegt, op `ccr-5defbd84-e1uj6w`.
+>
+> **Waarom.** Wens van de eigenaar: een plek op het dashboard waar leden hun
+> vraag over de app kwijt kunnen, zodat het bestuur die kan uitwerken en
+> beantwoorden. Eerst begrepen als clubvragen; de eigenaar verduidelijkte dat
+> het om de app zelf gaat. Daarom staat Q&A naast Hulp in het persoonlijke
+> menu, niet onder Club of Community, en antwoordt standaard alleen het
+> bestuur.
+>
+> **Wat.**
+> - **Dashboard** (beide designs, onder het nieuws): een vraagveld met
+>   "Alleen voor het bestuur", de drie vragen met de nieuwste activiteit (met
+>   het begin van het antwoord of "Wacht op antwoord"), en voor wie mag
+>   antwoorden een oranje regel met het aantal open vragen. Eigen
+>   Suspense-component (`dashboard/_components/qa.tsx`), dus de rest van het
+>   dashboard wacht er niet op. Zonder tabel valt het blok weg.
+> - **`/qa`**: het vraagveld, dan Open (oudste eerst, zodat die het eerst een
+>   antwoord krijgt) en Beantwoord (nieuwste antwoord eerst). Antwoorden zijn
+>   Markdown, dus een antwoord kan naar een hulpblok linken. Wie antwoordt, kan
+>   antwoorden, het antwoord aanpassen, een vraag afschermen ("Alleen
+>   bestuur") of weer voor iedereen zetten, en verwijderen. De vrager kan zijn
+>   vraag verwijderen. Een link naar een vraag: `/qa#vraag-<id>`.
+> - **Tabel `member_questions`**: één vraag en één antwoord per rij; geen
+>   gesprek. `visibility` is `club` (elk goedgekeurd lid, met naam) of `bestuur`
+>   (alleen de vrager en wie `qa.answer` heeft). RLS plus twee triggers: de
+>   vraag zelf verandert niet meer, wie antwoordde en wanneer zet de database,
+>   en hooguit vijf vragen per lid per dag. `activity_at` (gegenereerd) sorteert
+>   een vers antwoord weer bovenaan. Nieuwste grants-conventie: `anon` niets.
+> - **Recht `qa.answer`** ("Vragen over de app beantwoorden", categorie
+>   Community), standaard alleen het bestuur; aan te passen op
+>   `/beheer/rechten`. De check-constraint van `community_role_permissions`
+>   staat opnieuw in 0254 (de test in `admin-areas.test.ts` leest de laatste).
+> - **Push**: `on_qa_question` naar wie antwoordt bij een nieuwe vraag,
+>   `on_qa_answer` naar de vrager bij het eerste antwoord (een verbetering
+>   stuurt niets). De melding noemt nooit de tekst. Op `/profiel` staat
+>   "Antwoord op mijn vraag in Q&A" voor iedereen en "Nieuwe vraag in Q&A"
+>   alleen voor wie mag antwoorden (zelfde patroon als `on_member_pending`).
+> - **Teksten**: `/hulp/problemen#qa` (plus zoekterm en wegwijzer; het
+>   vraagteken op `/qa` wijst erheen), `/privacy#qa`, `/voorwaarden` §5. Geen
+>   uitleg in de schermen zelf.
+> - **Data-export**: de eigen vragen (`member_questions` via `profile_id`) en
+>   de antwoorden die iemand op vragen van anderen schreef.
+>
+> **Samen uitwerken.** De vragen staan in een gewone tabel. In een sessie zijn
+> ze op te halen via de Supabase-connector, bijvoorbeeld de open vragen:
+> `select id, body, visibility, created_at from member_questions where answered_at is null order by created_at;`
+> Een antwoord schrijf je daarna in de app, zodat de melding uitgaat (een
+> update via de connector stuurt geen push).
+>
+> **Bewust niet gebouwd.**
+> - **Een gesprek of reacties onder een vraag.** Eén vraag, één antwoord; een
+>   vervolgvraag is een nieuwe vraag. Een open forum leverde eerder in vier
+>   maanden één post op (zie de ronde "Wie weet wat").
+> - **Leden die elkaars vraag beantwoorden of "ik ook" stemmen.** Vragen aan
+>   leden horen in ZWBieb; stemmen kan later als blijkt dat dezelfde vragen
+>   vaak terugkomen.
+> - **Soorten (vraag, probleem, idee) en een status "wordt aan gewerkt".** Eerst
+>   zien hoeveel vragen er komen; het antwoord kan zeggen dat iets op de lijst
+>   staat.
+> - **De vraag aanpassen**, door de vrager of door wie antwoordt. Verwijderen
+>   kan altijd; afschermen is de manier voor het bestuur.
+> - **Anoniem vragen.** "Alleen voor het bestuur" dekt de gevoelige gevallen.
+> - **Een AI die antwoordt.** Dit is de mensenvariant; zie het geparkeerde
+>   "AI-agenten en kennisvragen".
+>
+> **Te beslissen door de eigenaar.**
+> - De privacytekst (`/privacy#qa`) en de zin in `/voorwaarden` §5.
+> - Geen nieuwe `PRIVACY_VERSIONS`: voorgesteld als vijfde uitzondering, omdat
+>   alleen wie zelf een vraag stelt gegevens aanlevert en per vraag kiest wie
+>   hem leest. Zo staat het, als voorstel, in `src/lib/privacy.ts`.
+> - Of "voor de club" de juiste standaard is. Nu staat het vinkje "Alleen voor
+>   het bestuur" uit, zodat leden met dezelfde vraag het antwoord ook zien.
+>
+> **Getest.**
+> - Nieuw: `member-questions-migration.test.ts` (16 tests, 0254 tegen PGlite):
+>   wie welke vraag ziet (ook een wachtend account niet), vragen namens een
+>   ander, de daglimiet, lengte en zichtbaarheid, alleen `qa.answer`
+>   antwoordt, `answered_by` niet te vervalsen, eerste antwoordtijd blijft bij
+>   een aanpassing, weghalen van het antwoord heropent, de vraag verandert niet,
+>   verwijderen, het recht alleen bij het bestuur, de pushkolommen en `anon`.
+>   Die test vond een echte fout: de update-trigger zette `answered_by` terug
+>   als `on delete set null` hem leegmaakte, waardoor het opheffen van een
+>   account dat ooit antwoordde zou mislukken. Verholpen vóór deze commit.
+> - Nieuw: `qa.test.ts` (indeling, namen, platte tekst van een antwoord).
+> - `admin-areas.test.ts` (de rechtenlijst in 0254 is precies die in de code),
+>   de hulp- en menutests, `tsc`, ESLint op alle geraakte mappen.
+> - Volledige run: 3.026 van 3.026 tests groen; alleen de suite
+>   `omnium-live` laadt niet zonder `.env.local`.
+>
+> **Niet geverifieerd.**
+> - 0254 op de echte database (geen Docker of Supabase-config hier), dus ook
+>   de RLS met de echte `current_user_has_permission` niet, en niet de namen
+>   van de twee foreign keys waarop `QA_SELECT` de profielnamen ophaalt
+>   (`member_questions_profile_id_fkey`, `member_questions_answered_by_fkey`,
+>   de standaardnamen van PostgreSQL).
+> - De pagina's in de browser: er is geen `.env.local`, dus de dev-server is
+>   niet gestart. Ook niet hoe het blok er in het design "tegels" uitziet.
+> - Of de pushmeldingen aankomen.
 
 > **OwnTracks verwijderd, 2026-10-19 — gebouwd; typecheck en lint schoon; unit-tests groen op `omnium-live` na (mist `.env.local` in de worktree); `next build` compileert, maar het prerenderen stopt op `/omnium` om dezelfde reden; niet in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-19, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
 > Commit: de commit die dit blok toevoegt, op `claude/remove-owntracks-a8331c`.
@@ -22165,7 +22275,9 @@ testerfeedback die direct communitywaarde kan leveren.
 strak zijn.
 
 *2026-10-15:* "wie moet ik hebben" is zonder AI opgelost met Wie weet wat
-(`0239`). Een AI die de tips van leden met naam gebruikt, staat daar als voorstel
+(`0239`). *2026-10-19:* platformhulp heeft een mensenvariant: Q&A (`0254`),
+waar het bestuur vragen over de app beantwoordt; die antwoorden zijn later
+een mogelijke databron. Een AI die de tips van leden met naam gebruikt, staat daar als voorstel
 F in [kennis van leden](docs/kennis-van-leden.md).
 
 1. Bepaal scope: platformhulp, beleid, functies vinden, "wie moet ik hebben".

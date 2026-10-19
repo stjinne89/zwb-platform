@@ -286,6 +286,7 @@ export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/ritverslagen", name: "Ritverslagen", text: "Schrijf een verslag bij een gereden event; anderen reageren." },
   { href: "/community", name: "Community", text: "Mededelingen en clubnieuws." },
   { href: "/polls", name: "Polls", text: "Snelle stemmingen vanuit de club." },
+  { href: "/qa", name: "Q&A", text: "Je vraag over de app, met het antwoord van het bestuur." },
   { href: "/media", name: "Media", text: "Nieuws, nieuwsbrieven, podcasts, video's en Instagram." },
   { href: "/stats", name: "Stats", text: "Club: de cijfers en ranglijst van alle leden. Ik: je eigen ritten, vermogen en records." },
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
@@ -578,6 +579,15 @@ export const ADMIN_GUIDES = [
       "Vermogensdata en uitslagen haal je opnieuw op met de beheeracties bovenaan.",
     ],
   },
+];
+
+// Q&A (migr. 0254): vragen over de app zelf.
+export const QA_HELP = [
+  "Loop je vast, mis je iets of snap je een scherm niet? Stel je vraag in Q&A: op het dashboard of via Q&A in je persoonlijke menu. Het bestuur werkt hem uit en antwoordt.",
+  "Je vraag staat met je naam in de lijst, zodat leden met dezelfde vraag het antwoord ook zien. Zet Alleen voor het bestuur aan als alleen het bestuur hem mag lezen, bijvoorbeeld als het over jouw account of je ritten gaat.",
+  "Je krijgt een melding als je vraag is beantwoord, als je die onder Profiel aan hebt staan. Een vervolgvraag stel je als nieuwe vraag. Je eigen vraag kun je altijd verwijderen; aanpassen kan niet.",
+  "Je kunt vijf vragen per dag stellen. Vragen aan andere leden, bijvoorbeeld over materiaal of een route, horen in ZWBieb.",
+  "Wie vragen mag beantwoorden (het recht Vragen over de app beantwoorden), ziet ook de vragen voor het bestuur, krijgt een melding bij een nieuwe vraag en kan een vraag afschermen of verwijderen. Op het dashboard staat dan hoeveel vragen er wachten.",
 ];
 
 export const TROUBLESHOOTING = [

@@ -1,10 +1,13 @@
 import Link from "next/link";
 import {
   Bell,
+  CheckCircle2,
   CircleHelp,
+  MessageCircleQuestionMark,
   Sparkles,
 } from "lucide-react";
 import {
+  QA_HELP,
   TROUBLESHOOTING,
 } from "../_data";
 import { HelpVideoLink } from "./help-video";
@@ -48,6 +51,24 @@ export function ProblemenHelp() {
             ))}
           </ul>
         </article>
+      </section>
+
+      <section id="qa" className="scroll-mt-20 rounded-lg border bg-card/90 p-4">
+        <h2 className="flex items-center gap-2 font-semibold">
+          <MessageCircleQuestionMark className="size-5 text-primary" />
+          Q&amp;A: je vraag over de app
+        </h2>
+        <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+          {QA_HELP.map((item) => (
+            <li key={item} className="flex gap-2">
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+        <Link href="/qa" className="mt-3 inline-flex text-sm font-medium text-primary hover:underline">
+          Naar Q&amp;A
+        </Link>
       </section>
     </>
   );

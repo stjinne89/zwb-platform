@@ -167,7 +167,7 @@ export default async function ProfielPage({
     supabase
       .from("notification_preferences")
       .select(
-        "on_new_event, on_live_started, on_ride_message, on_new_badge, on_training_plan, on_training_chat, on_knowledge_message, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_intervals_visit_reminder",
+        "on_new_event, on_live_started, on_ride_message, on_new_badge, on_training_plan, on_training_chat, on_knowledge_message, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_intervals_visit_reminder, on_qa_question, on_qa_answer",
       )
       .eq("profile_id", user.id)
       .maybeSingle(),
@@ -361,8 +361,11 @@ export default async function ProfielPage({
             on_strava_link_expiring: pushPrefs?.on_strava_link_expiring ?? true,
             on_intervals_visit_reminder: pushPrefs?.on_intervals_visit_reminder ?? true,
             on_member_pending: pushPrefs?.on_member_pending ?? true,
+            on_qa_question: pushPrefs?.on_qa_question ?? true,
+            on_qa_answer: pushPrefs?.on_qa_answer ?? true,
           }}
           canApproveMembers={access.has("members.approve")}
+          canAnswerQuestions={access.has("qa.answer")}
           hasSubscriptionInDb={(pushSubs?.length ?? 0) > 0}
         />
       </div>

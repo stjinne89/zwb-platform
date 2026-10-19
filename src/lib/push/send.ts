@@ -44,7 +44,10 @@ export type NotificationTrigger =
   // Naleving (voeding); het eigenlijke aan of uit staat in nutrition_log_settings.
   | "on_nutrition_reminder"
   // Bericht naar de fietscomputer tijdens een rit (0253).
-  | "on_ride_message";
+  | "on_ride_message"
+  // Q&A (0254): een nieuwe vraag voor wie antwoordt, een antwoord voor de vrager.
+  | "on_qa_question"
+  | "on_qa_answer";
 
 let vapidConfigured = false;
 function ensureVapid(): boolean {
