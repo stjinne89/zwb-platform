@@ -10474,6 +10474,47 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Opgeleverd — /hulp, ZWBieb en de kennisbanken menselijker geschreven
+
+**2026-10-19.** Geen migratie. Alleen tekst, geen gedrag.
+
+**Waarom.** De eigenaar vroeg om de hele kennisbank (ZWBieb en de leeszaal) en
+`/hulp` door te lopen met de Claude-skill avoid-ai-writing: menselijker, zonder
+de kern eruit te halen. Kleine, gerichte wijzigingen; geen herschrijving van
+structuur, opsommingen of vette kopjes.
+
+**Wat er veranderde.**
+- `/hulp` (`_data.ts` en de secties `beginnen`, `club`, `kennis`, `koppelen`,
+  `schema`, `training`, `workouts`): alle gedachtestreepjes in lopende tekst en
+  titels zijn een komma, dubbele punt, puntkomma of nieuwe zin geworden
+  ("ZWB DS: live raceoverzicht", "Duur:" bij de Zwift-match). Stijve lijdende
+  vormen werden actief ("kunnen worden aangevuld door beheerders" → "kan een
+  beheerder het met de hand aanvullen"). Verder: "Uit privacy-overweging" → "Om
+  je privacy", "UIT" in hoofdletters → "uit", een herhaling van de kop bij de
+  welkomstrondleiding weg, dubbel "eenmalig … maar één keer" bij OwnTracks weg,
+  en "een sterk negatieve form" → "vorm".
+- Kennisbanken: drie zinnen. Trainen, FTP-test: "het overwegen waard" →
+  "Overweeg dan …". Voeding: "de focus op een laag gewicht" → "de nadruk op",
+  en "verdienen extra aandacht" → "Let als vrouwelijke renner extra op ijzer en
+  op genoeg eten".
+
+**Bewust niet.**
+- De kennisbankartikelen (trainen, voeding, kracht, materiaal) en de ZWBieb-
+  schermen waren al kort, concreet en met bron geschreven; de audit vond daar
+  verder niets dat aanpassen rechtvaardigde. Over-redigeren maakt tekst juist
+  gelijkvormiger.
+- De vette kopjes met een punt in `/hulp` ("Kies je eigen tegels.") en de
+  opsommingen blijven: dat is de opmaak van de hulp, geen tekstfout.
+- Bronvermeldingen, getallen, voorbehouden en de grappige teksten bij de
+  ZWBeterWorden-niveaus zijn niet aangeraakt. "Sleutelsessie" blijft: het is
+  een vaste term in de app, ook al staat "sleutel-" in de coachregels.
+- De protocollen vielen buiten deze ronde.
+
+**Getest.** `tsc`, ESLint op de gewijzigde bestanden en alle unit-tests: twee
+time-outs onder volle belasting (`admin-areas`, `intervals-ride-sync`) slagen
+los gedraaid; `omnium-live` mist `.env.local` in de worktree. De teksten zelf
+zijn niet in de browser bekeken.
+
 ### Gebouwd — ZRL-races krijgen dezelfde eventinformatie als een Zwift-event
 
 **2026-10-18.** Commit `06be89e8`. Geen migratie. **Gepusht naar `main` op

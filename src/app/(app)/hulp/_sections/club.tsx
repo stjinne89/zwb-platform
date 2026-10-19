@@ -34,8 +34,8 @@ export function ClubHelp() {
           <li className="flex gap-2">
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <span>
-              Aanmelden doe je onder <strong className="text-foreground">Rijd
-              je mee?</strong> — tik op het vak{" "}
+              Onder <strong className="text-foreground">Rijd je
+              mee?</strong> tik je op het vak{" "}
               <strong className="text-foreground">Rijdt mee</strong>,{" "}
               <strong className="text-foreground">Misschien</strong> of{" "}
               <strong className="text-foreground">Niet</strong>. Je keuze is
@@ -47,7 +47,7 @@ export function ClubHelp() {
             <span>
               Op de dag van het rondje verschijnen de aangemelde renners
               (Rijdt mee of Misschien) live op de kaart en het hoogteprofiel,
-              net als bij events — mits ze outdoor delen op Samen fietsen.
+              net als bij events, mits ze outdoor delen op Samen fietsen.
             </span>
           </li>
           <li className="flex gap-2">
@@ -70,7 +70,7 @@ export function ClubHelp() {
             <h2 className="font-semibold">ZWBlokken</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               De kaart is verdeeld in blokken van ongeveer anderhalve kilometer.
-              Rijd je door een blok, dan kleurt het in — voor jou én voor de
+              Rijd je door een blok, dan kleurt het in, voor jou én voor de
               club. Zo zie je in één oogopslag welke hoeken je nog nooit gehad
               hebt.
             </p>
@@ -103,7 +103,7 @@ export function ClubHelp() {
           <li className="flex gap-2">
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <span>
-              Uit privacy-overweging telt het blok waar een rit begint of
+              Om je privacy telt het blok waar een rit begint of
               eindigt nooit mee, en laten we ook de eerste en laatste kilometer
               van elke rit buiten beschouwing. Je woonadres komt dus niet als
               opgelicht blok op de kaart.
@@ -366,8 +366,8 @@ export function ClubHelp() {
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
                   Geen fietsen na een sync? Klik op je profiel bij Strava op{" "}
-                  <strong className="text-foreground">Opnieuw koppelen</strong> —
-                  voor je uitrusting hebben we eenmalig extra toestemming nodig.
+                  <strong className="text-foreground">Opnieuw koppelen</strong>.
+                  Voor je uitrusting hebben we eenmalig extra toestemming nodig.
                 </span>
               </li>
               <li className="flex gap-2">
@@ -434,8 +434,8 @@ export function ClubHelp() {
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
-                  Vervangen? Klik op <strong className="text-foreground">Vervangen</strong>{" "}
-                  — de teller begint opnieuw vanaf de huidige stand.
+                  Vervangen? Klik op <strong className="text-foreground">Vervangen</strong>;
+                  de teller begint dan opnieuw vanaf de huidige stand.
                 </span>
               </li>
             </ul>

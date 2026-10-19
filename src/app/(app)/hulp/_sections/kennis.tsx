@@ -704,7 +704,7 @@ export function KennisHelp() {
           <p className="mt-2 text-sm text-muted-foreground">
             Deze series zijn algemeen onderhoudswerk, geen behandeling. Stop bij
             pijn. Heb je aanhoudende rug-, knie- of heupklachten, of een
-            blessure, ga dan naar een fysiotherapeut of huisarts — ZWB geeft
+            blessure, ga dan naar een fysiotherapeut of huisarts. ZWB geeft
             daar bewust geen advies over, en de AI-trainer ook niet.
           </p>
           <Link
@@ -736,7 +736,7 @@ export function KennisHelp() {
         <h2 className="text-lg font-semibold">Logboek: hoe je je voelt</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           Onder ZWBeter Worden staat een logboek waarin je per dag bijhoudt
-          hoeveel last je hebt en waarvan — buikpijn, slecht geslapen, stemming,
+          hoeveel last je hebt en waarvan: buikpijn, slecht geslapen, stemming,
           darmen. Je kunt er ook de eerste dag van je menstruatie markeren; de
           cycluslengte volgt dan vanzelf. De vragen zijn daarop geschreven, dus
           het logboek staat alleen bij leden met{" "}
@@ -752,8 +752,8 @@ export function KennisHelp() {
         <p className="mt-2 text-sm text-muted-foreground">
           Waarom klachten en geen cyclusfase? Onderzoek naar trainen per
           cyclusfase levert wisselende en zwakke uitkomsten op, terwijl klachten
-          wél samenhangen met wat je die week aankunt. Bovendien heeft niet
-          iedereen een natuurlijke cyclus. Zo werkt het ook zonder.
+          wél samenhangen met wat je die week aankunt. En niet iedereen heeft
+          een natuurlijke cyclus; zo werkt het ook zonder.
         </p>
       </section>
     </>
