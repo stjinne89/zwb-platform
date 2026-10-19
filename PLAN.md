@@ -63,9 +63,9 @@ gaat stabiliteit voor nieuwe features.
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
    - **voorZpWelBokaal:** `0252_voorzpwelbokaal.sql` is **niet toegepast** en
-     de code is **niet gepusht** (ronde 2026-10-19, "voorZpWelBokaal"). Eerst
-     de privacytekst (`/privacy#voorzpwelbokaal`) laten goedkeuren, dan de
-     migratie toepassen, pushen en in beheer één echte koers doorlopen:
+     de code is **niet gepusht** (ronde 2026-10-19, "voorZpWelBokaal"). De
+     privacytekst is goedgekeurd. Nog doen: de migratie toepassen, pushen en
+     in beheer één echte koers doorlopen:
      ratings ophalen, event toevoegen, op het bord zetten, inzetten vanaf een
      tweede account, na de koers afrekenen. Op Netlify kijken of CyclingFlash
      de server toelaat (lokaal wel, met `node:https`); zo niet, de paginabron
@@ -10645,11 +10645,13 @@ Brand (1044 tegen 996) in Meulebeke 1,60; ze werd daar derde.
 - `/ontwerp-voorbeeld?scherm=bokaal`: het bord met de Meulebeke-startlijsten,
   alleen lokaal.
 
-**Privacy: voorgelegd, niet besloten.** Meedoen is een eigen keuze met een
-eigen toestemming in `bokaal_players`, zoals ZWBieb; er is **geen nieuwe
-privacyversie**. Dit is een nieuwe categorie (inzetten en saldo, zichtbaar voor
-de club op de lei), dus valt het niet vanzelf onder "alleen tekst". De tekst in
-`/privacy` staat er; de eigenaar beslist of dat zo mag.
+**Privacy: goedgekeurd zonder nieuwe privacyversie** (eigenaar, 2026-10-19:
+"Meedoen is de toestemming."). Meedoen is een eigen keuze met een eigen
+toestemming in `bokaal_players` (`2026-10-19`), zoals ZWBieb. Het is een nieuwe
+categorie (inzetten en saldo, zichtbaar voor de club op de lei), maar alleen
+van wie zelf op Meedoen tikt; daarom geen hertekening door alle leden. Bewust
+afwijkend van de regel in `src/lib/privacy.ts`. De tekst staat op
+`/privacy#voorzpwelbokaal`; het wedbriefje linkt ernaar naast Meedoen.
 
 **Bewust niet.**
 - Een eigen duel kiezen in beheer (stond in het voorstel). Het bord kiest twee

@@ -36,6 +36,12 @@
  * leden levert alleen aan wie meedoet of een vraag stelt; die tekent daarvoor (`MEMBER_KNOWLEDGE_CONSENT_VERSION` in
  * `src/lib/zwbieb/consent.ts`, tabel `member_knowledge`).
  * `/privacy#zwbieb` beschrijft het.
+ *
+ * **Vierde uitzondering: voorZpWelBokaal (2026-10-19).** Inzetten, saldo en
+ * bonusantwoorden van wie zelf op Meedoen tikt; het saldo staat op de lei voor
+ * de club. Meedoen is de toestemming (`BOKAAL_CONSENT_VERSION` in
+ * `src/lib/bokaal/rules.ts`, tabel `bokaal_players`), besluit eigenaar.
+ * `/privacy#voorzpwelbokaal` beschrijft het.
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring
