@@ -7,6 +7,7 @@ import {
 import {
   TROUBLESHOOTING,
 } from "../_data";
+import { HelpVideoLink } from "./help-video";
 
 export function ProblemenHelp() {
   return (
@@ -27,6 +28,7 @@ export function ProblemenHelp() {
           >
             Meldingen instellen
           </Link>
+          <HelpVideoLink video="meldingen" className="mt-2 flex w-fit" />
         </article>
 
         <article

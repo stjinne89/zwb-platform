@@ -4,7 +4,7 @@ import { getDesign } from "@/lib/design";
 import { beheerCategoriesFor } from "../_components/nav-config";
 
 // Het beheer van het design "tegels". De categorieën als tegels toont de layout
-// (BeheerFrame); deze pagina heeft verder geen inhoud. In het huidige design
+// (BeheerFrame); deze pagina heeft verder geen inhoud. In het oude design
 // staan de beheerschermen in het persoonlijke menu en linkt er niets hierheen.
 
 export default async function BeheerPage() {

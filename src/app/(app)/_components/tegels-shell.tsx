@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { tegelsFont } from "@/components/tegels/font";
 import { TegelsTabs } from "./tegels-tabs";
 
-/** De schil van het design "tegels": het originele logo bovenin, de vijf
+/** De schil van het design "tegels": het originele logo bovenin, de vier
  * plekken onderin (telefoon) of bovenin (breed scherm). */
 export function TegelsShell({
   before,

@@ -23,7 +23,7 @@ export const HELP_CATEGORIES = [
     label: "Beginnen",
     text: "Eerste stappen, de app op je telefoon en wat je waar vindt.",
     tone: "club",
-    anchors: ["webapp-installeren"],
+    anchors: ["webapp-installeren", "videos"],
     legacy: ["beginnen"],
   },
   {

@@ -62,6 +62,9 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **Design "tegels" voor iedereen:** op 2026-10-19 naar `main` gepusht
+     (eigenaar). Nog doen: als gewoon lid (privévenster) en als bestuurslid
+     nalopen (ronde 2026-10-19, "Design tegels wordt de standaard").
    - **voorZpWelBokaal:** `0252_voorzpwelbokaal.sql` is op 2026-10-19 via de
      Supabase-connector toegepast, op verzoek van de eigenaar; de code is
      daarna dezelfde dag naar `main` gepusht (ronde 2026-10-19,
@@ -190,6 +193,10 @@ gaat stabiliteit voor nieuwe features.
      overbelasting vóór de taper en variabel vermogen in de tijdrit.
    Samenvatting per fase bovenaan
    [`docs/wetenschappelijke-toets.md`](docs/wetenschappelijke-toets.md).
+8. **Instructievideo en hulpvideo's** (ronde van 2026-10-19 hieronder). De
+   video's tonen het design "tegels"; zolang dat niet voor iedereen aanstaat,
+   wijken een paar schermen af van wat leden in het klassieke design zien.
+   Bijwerken na een appwijziging: `opname.mjs` en `bouw.mjs --publiceer`.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -298,6 +305,102 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > bekeken. Onderzoek en bronnen: dit blok (Wahoo-support:
 > "Text, call, and email notifications for ELEMNT ACE, BOLT 3 and ROAM 3" en
 > "Call, text, and email notifications with ELEMNT, BOLT v1/v2, and ROAM v2").
+
+> **DESIGN.md beschrijft het design "tegels", 2026-10-19 — geschreven uit de code; niet in de browser naast de app gelegd; gepusht naar `main` (eigenaar, 2026-10-19, commit `edfcbb76`). Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/tegels-design-update-f46798`.
+>
+> **Waarom.** Met "tegels" als standaard voor iedereen (ronde hieronder)
+> beschreef `DESIGN.md` een design dat leden niet meer zien. Wie een nieuw
+> scherm bouwt, moest de regels uit `globals.css` en twintig PLAN-rondes
+> bij elkaar zoeken.
+>
+> **Wat.** Het hoofdsysteem is herschreven uit wat gebouwd is: `globals.css`
+> (blok "Design tegels"), `tegels-shell.tsx`, `tegels-tabs.tsx`,
+> `components/tegels/` en `lib/design-places.ts`. Nieuwe leidraad
+> "Tenuetegels" in plaats van "Het Clubhuis". Vastgelegd: de vijf tegelkleuren
+> per soort met hun tekstkleur (contrast nagerekend: 4,7 tot 14,4 bij licht,
+> 6,3 tot 12,2 bij donker), het paneel en de banen, de vier plekken, Barlow
+> Semi Condensed met de maten zoals ze binnen het design staan, en de
+> onderdelen (tegel, agendarij, pijler, `tg-link`, segmentknoppen, filterchips,
+> menu's en dialogen). Nieuwe benoemde regels: Kleurregel, Klikregel,
+> Schaarsteregel, Hierregel (paneel met gouden lijn), Lichte-cijferregel,
+> Kastregel, Navigatieregel en Rechtregel. De Smalle-ladderregel van het oude
+> design vervalt. De frontmatter-tokens zijn vervangen; die van het
+> weekoverzicht staan er ongewijzigd in. Het register Weekoverzicht is
+> ongewijzigd, behalve de Grensregel, die nu naar de nieuwe regelnamen
+> verwijst.
+>
+> **Ook rechtgezet.** Code-commentaar dat nog "vijf plekken" zei
+> (`tegels-shell.tsx`, `globals.css`), en het commentaar bij de ZWBeter-pijlers,
+> dat het omgekeerde zei van wat de CSS doet (de actieve is het paneel met de
+> gouden lijn, de andere zijn teal). In de ronde hieronder stond "vijf
+> plekken in de balk (… Meer)"; dat is "vier plekken": Meer verdween al op
+> 2026-10-13.
+>
+> **Gevonden bij het schrijven, niet opgelost.**
+> - De gouden lijn van "waar je bent" haalt op crème 2,9:1, net onder de 3:1
+>   voor niet-tekst. Het is nooit het enige signaal (het vlak verliest ook zijn
+>   kleur); als regel vastgelegd, niet aangepast.
+> - De weergaveknop op het profiel is nog een ronde rail uit het oude design;
+>   staat zo beschreven.
+>
+> **Bewust niet gedaan.**
+> - `.impeccable/design.json` opnieuw genereren. Dat zijbestand beschrijft nog
+>   het oude design (gegenereerd 2026-10-18); de impeccable-hulpmiddelen lezen
+>   het naast `DESIGN.md`. Een eigen stap.
+> - De beschrijving van het oude design bewaren in `DESIGN.md`: die staat in
+>   de git-geschiedenis, en het oude design gaat er na de opruimronde uit.
+>
+> **Niet geverifieerd.** Alles is uit de code afgeleid, niet naast de draaiende
+> app gelegd. Alleen typecheck gedraaid (er veranderde alleen commentaar in
+> code).
+
+> **Design "tegels" wordt de standaard voor alle leden, 2026-10-19 — gebouwd, typecheck, lint en unit-tests schoon; niet in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-19, samengevoegd met main in de mergecommit na dit blok). Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/tegels-design-update-f46798`.
+>
+> **Waarom.** De eigenaar wil deze week van het oude naar het nieuwe design.
+> Sinds 2026-10-12 stond "tegels" achter een schakelaar voor wie
+> `roles.manage_permissions` heeft; alle rondes sindsdien zijn binnen dat
+> design gebouwd en bekeken.
+>
+> **Wat.** De schakelaar is omgedraaid (`lib/design.ts`). Zonder cookie krijgt
+> iedereen "tegels", ook op de schermen vóór het inloggen. Het oude design is
+> het vangnet: cookie `zwb-design=klassiek`, en alleen wie
+> `roles.manage_permissions` heeft krijgt het dan ook echt. De knop onderaan de
+> pagina heet nu "Oude design bekijken" / "Terug naar het nieuwe design" en
+> staat, net als voorheen, alleen bij wie het recht heeft. In de tegels-schil
+> stond hij zonder die controle (alleen bevoegden kwamen er toen in); dat is
+> rechtgezet in `layout.tsx`. Een bestuurslid met het oude cookie
+> `zwb-design=tegels` blijft gewoon op "tegels". Commentaar dat het nieuwe
+> design een proef noemde, is bijgewerkt.
+>
+> **Wat leden merken** (besluiten uit de ronde van 2026-10-12, nu voor
+> iedereen): vier plekken in de balk (Vandaag, Kalender, ZWBeter, Club);
+> Community vervalt als menu, en WhatsApp-groepen en Media staan alleen onder
+> Beheer, dus **gewone leden bereiken die niet meer via het menu**;
+> Ritverslagen staat nergens meer in het menu; Deel je foto's staat niet meer op
+> het dashboard; Instagram toont alleen posts van de laatste zeven dagen.
+>
+> **Bewust niet gedaan.**
+> - Het oude design uit de code halen (`MobileMenu`, de klassieke takken per
+>   pagina, `getDesign()`-checks). Eerst een week of twee draaien met het
+>   vangnet; daarna een eigen opruimronde.
+> - `DESIGN.md` herschrijven: dat beschrijft nog het oude design (zie de ronde
+>   van 2026-10-12). Hoort bij of na die opruimronde. *(Bijgewerkt
+>   2026-10-19: toch dezelfde dag gedaan, zie de ronde "DESIGN.md beschrijft
+>   het design tegels".)*
+> - Een keuze voor gewone leden om terug te gaan: twee designs naast elkaar voor
+>   iedereen betekent elke wijziging twee keer bekijken.
+>
+> **Niet geverifieerd.** Niet in de browser bekeken (deze worktree heeft geen
+> `.env.local`). `tests/unit/omnium-live.test.ts` faalt hier om diezelfde
+> reden; `admin-areas.test.ts` liep in de volle run één keer in een time-out en
+> slaagt los. `npm run build` niet gedraaid.
+>
+> **Na het pushen.** Als gewoon lid (zonder `roles.manage_permissions`, in een
+> privévenster) inloggen: inlogscherm en app in "tegels", geen designknop
+> onderaan. Als bestuurslid de knop naar het oude design en terug proberen.
+> Bij grote problemen is terugdraaien één revert van deze commit.
 
 > **Weekoverzicht: een pop-up op zondagavond, terug en vooruit, 2026-10-18 — gebouwd; unit-tests, typecheck en lint schoon; met voorbeelddata in de browser bekeken op 390 px en 1440 px, licht en donker (`/ontwerp-voorbeeld?scherm=weekoverzicht`); niet ingelogd met echte data bekeken; gepusht naar `main` (eigenaar, 2026-10-18, commit `28c77088`). Migratie `0251_weekly_reviews.sql` op 2026-10-18 via de Supabase-connector toegepast, op verzoek van de eigenaar.**
 > Commit: de commit die dit blok toevoegt, op `claude/weekly-member-overview-3ed783`.
@@ -1125,7 +1228,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Bewust niet gedaan.**
 > - Paginatitels omzetten naar `PageHeader`. Dat zou ook het klassieke design
->   veranderen, en dat staat live voor alle leden.
+>   veranderen, en dat staat live voor alle leden. *(Bijgewerkt 2026-10-19:
+>   met de omzetting naar "tegels" als standaard (gepusht op 2026-10-19)
+>   geldt dat niet meer.)*
 > - De gekleurde markeringen van trainingen in de maandkalender van het schema:
 >   dat zijn gegevens in een dagvak, geen knoppen.
 > - De rollabels op profiel en Leden (onder meer Systeemadmin in rood), de vaste
@@ -1220,7 +1325,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > Stats → Ik, en ZWBieb. De inlogpagina en de resetstand via de voorbeeldpagina,
 > in licht en donker. Detector van impeccable: alleen adviezen dat tegelmaten
 > buiten de typeladder van DESIGN.md vallen. DESIGN.md beschrijft nog het
-> klassieke design.
+> klassieke design. *(Niet meer waar sinds 2026-10-19: DESIGN.md beschrijft nu
+> "tegels".)*
 >
 > **Niet geverifieerd.** De echte `/login`, `/wachten` en `/wachtwoord-resetten`
 > in tegels: ingelogd stuurt `/login` door, wachten vraagt een niet-goedgekeurd
@@ -3622,7 +3728,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > **Naar main gepusht op 2026-10-12, op verzoek van de eigenaar,** zodat het
 > bestuur het met eigen gegevens kan bekijken. Het huidige design blijft voor
 > alle leden staan; het nieuwe gaat alleen aan via de knop onderaan de pagina,
-> en die ziet alleen wie `roles.manage_permissions` heeft. Vooraf gedraaid, na
+> en die ziet alleen wie `roles.manage_permissions` heeft. *(Bijgewerkt
+> 2026-10-19: omgedraaid, "tegels" is de standaard en het oude design zit
+> achter de knop; zie de ronde van die dag, gepusht dezelfde dag.)* Vooraf gedraaid, na
 > het samenvoegen van main: `tsc --noEmit`, `npm run lint` (0 fouten), `npm run
 > test` (2092 geslaagd) en `npm run build`. In de productiebuild leidt
 > `/ontwerp-voorbeeld` zonder login naar `/login`. **Wat voor alle leden wél
@@ -3678,7 +3786,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - Het herontwerpen van de overige pagina's, en dialogen en dropdowns: die
 >   renderen buiten de schil en houden de oude tokens.
 > - `DESIGN.md` beschrijft nog het huidige design; herschrijven als "tegels"
->   de standaard wordt.
+>   de standaard wordt. *(Gedaan op 2026-10-19.)*
 >
 > **Hulpmiddel.** `/ontwerp-voorbeeld` toont het design met voorbeelddata zonder
 > login; alleen bij lokaal ontwikkelen (`notFound()` in productie, en de
@@ -10649,6 +10757,101 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Opgeleverd — Instructievideo "Aan de slag met ZWBasis" en korte video's in /hulp
+
+**2026-10-16 tot 2026-10-19.** Commit: de commit die dit blok toevoegt. Geen
+migratie. Opgenomen op `main` van `9bb318a`.
+
+**Aanleiding.** Naast de starthelper op `/welkom` wilde de eigenaar een video
+die nieuwe leden stap voor stap wegwijs maakt, en daarna per onderdeel een
+korte video om vanuit `/hulp` naar te linken.
+
+**Wat er veranderde in de app.**
+- `public/hulp-video/`: tien clips (720×1280, zonder geluid, 12 tot 45 s, samen
+  4,9 MB): account aanmaken, de starthelper, de app op je beginscherm, wegwijs
+  in de app, je Zwift-ID, je profiel, Strava koppelen, ritten zonder Strava,
+  meldingen aanzetten en aanmelden voor een event.
+- `/hulp/beginnen` heeft een blok "Korte video's" (anker `videos`, ook in
+  `lib/help-categories.ts`) met alle tien. Daarnaast staat "Bekijk de video"
+  bij de app op je telefoon, Strava opnieuw koppelen, ritten via intervals.icu,
+  het Zwift-ID en meldingen. Lijst en duur in `HELP_VIDEOS` in
+  `hulp/_data.ts`, de links in `hulp/_sections/help-video.tsx`. Een gewone link
+  naar het mp4-bestand: op de telefoon opent de eigen videospeler.
+- `src/middleware.ts`: `mp4` staat bij de uitzonderingen van de matcher, net als
+  de afbeeldingen. Een videospeler haalt een bestand in stukken op, en anders
+  vroeg elk stuk de sessie en het profiel op. Gevolg: de clips zijn ook zonder
+  inloggen te openen; ze tonen alleen demodata.
+
+**Hoe de video's gemaakt worden.** Alles in `scripts/instructievideo/`:
+- `scenes.mjs`: vijftien scènes met per scène de tekst (de ondertitel) en wat
+  er in beeld gebeurt, plus `CLIPS`: welke scènes samen een hulpclip vormen.
+  Welkom en de afsluiting staan alleen in de hele video.
+- `mock-supabase.mjs` + `fixtures.mjs`: een nep-Supabase (PostgREST en Auth) met
+  verzonnen leden en events, alleen op `127.0.0.1`. `serve.mjs` start die plus
+  een Next-devserver op poort 3456 die ermee praat in plaats van met productie.
+- `opname.mjs` neemt elke scène op in telefoonformaat (390×590, 2x).
+  `bouw.mjs` maakt de hele video (1080×1920, 4 min 16 s, met "Stap 3 van 15")
+  en de tien hulpclips, met ondertitels in een balk; `--publiceer` kopieert de
+  clips naar `public/hulp-video/`. Uitvoer in `out/` (niet in git).
+- Bijwerken na een wijziging in de app: `serve.mjs` starten, dan
+  `opname.mjs` en `bouw.mjs --publiceer`. Verandert een duur, dan
+  `HELP_VIDEOS` bijwerken (de duur staat in `out/hulp/clips.json`).
+
+**Waarom zo.**
+- **Een nep-Supabase in plaats van productie.** De lokale app praat met de
+  productiedatabase: een opname zou echte leden tonen (kalender, deelnemers,
+  ledenlijst) en elke klik zou echt iets wegschrijven. Een demo-account in
+  productie zou ook in de ledenlijst verschijnen. Nu staat er alleen "Sanne de
+  Vries" en acht verzonnen clubgenoten in beeld.
+- **Schermafdrukken in plaats van de video-opname van Playwright.** Bij een
+  pixeldichtheid van 2 zetten zowel de opname van Playwright als de screencast
+  van Chromium het beeld op 1x of in een hoek; een schermafdruk met `scale: 2`
+  is wel scherp en haalt rond 20 beelden per seconde (lager zolang de devserver
+  nog compileert, dus eerst opwarmen). De volledige Chromium
+  (`channel: "chromium"`) is nodig: in de afgeslankte headless-versie stond
+  "Choose Files" bij het importveld en meldden de notificaties "Geblokkeerd".
+- **In het design "tegels"** (`VIDEO.design` in `scenes.mjs`), op verzoek van
+  de eigenaar. Dat design staat nog achter het recht
+  `roles.manage_permissions`. In de nep-database krijgt de rol
+  `community_member` (wat een lid zonder rol telt) dat ene recht, zodat het
+  demolid verder een gewoon lid blijft. Wat dat recht extra toont, de designknop
+  en het beheerblok in het persoonlijke menu, verbergt de opname met CSS (niet
+  weghalen: React loopt vast als zijn elementen verdwijnen). Registratie,
+  wachtpagina en `/welkom` zien er in beide designs hetzelfde uit.
+- **In `public/` van de app** (besluit eigenaar, 2026-10-19). Afgevallen:
+  YouTube niet-openbaar (elke update met de hand uploaden) en Supabase Storage
+  (de egress zit al dicht bij de limiet, zie de Actieve volgorde).
+- **Klikken op woorden uit de tekst** (`s.at("woord")`): de tijd schaalt met de
+  plaats van het woord in de ondertitel.
+
+**Bewust niet gedaan.**
+- **Geen stem.** Een computerstem (Edge-stem Colette) is beluisterd en
+  afgewezen; daarna besloot de eigenaar ook zelf niet in te spreken: alleen
+  ondertitels (2026-10-19). De ondersteuning voor een opname per scène in
+  `audio/` is blijven staan, maar wordt niet gebruikt.
+- Geen speler in de hulppagina zelf, alleen een link: er hoeft dan niets te
+  laden tot iemand kijkt.
+- Geen clips voor trainen, live GPS en Mijn garage; die stonden als vervolg in
+  het eerste voorstel.
+- De nep-Supabase speelt alleen na wat deze scènes nodig hebben: geen realtime,
+  geen opslag, ingebedde tabellen alleen eenvoudig. Een nieuwe scène kan dus
+  extra fixtures nodig hebben; onbekende tabellen worden in de console gemeld.
+
+**Let op.** De video's tonen het design "tegels". Zolang dat niet voor iedereen
+aanstaat, zien leden in het klassieke design op een aantal schermen iets anders
+dan in de video (tabs onderin in plaats van het menu rechtsboven, Vandaag in
+plaats van het dashboard). Een paar ondertitels beginnen met "Daarna", omdat ze
+uit de doorlopende video komen.
+
+**Niet geverifieerd.** Lokaal: alle scènes opnieuw opgenomen op `9bb318a`, de
+video's beeld voor beeld nagekeken, en in de demo-app gecontroleerd dat
+`/hulp#videos` naar `/hulp/beginnen#videos` gaat, dat er elf videolinks op
+Beginnen staan en dat een clip met de juiste duur laadt (206 op een
+range-verzoek, zonder omweg via de proxy). Lint, typecheck en build schoon; de
+unit-tests op drie na, en die drie falen los van deze ronde (twee time-outs die
+los wel slagen, en `omnium-live.test.ts` mist `.env.local` in de worktree). Niet
+op een echte telefoon of op Netlify bekeken.
 
 ### Gebouwd — ZWBgame liggend: hoogteprofiel, groep bekijken, conditiebalk en "Om beurten aanvallen"
 
