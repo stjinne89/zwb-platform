@@ -323,6 +323,28 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > voor `focus` en `keepRiddenTeams` (met Jeroens echte vermogenscijfers); het
 > opnieuw opbouwen in productie is niet lokaal getest.
 >
+> **Coachtekst die minder als AI klinkt (2026-10-19, wens eigenaar).** De
+> Claude-plugin avoid-ai-writing werkt hier niet, want de tekst komt van OpenAI.
+> Dus hetzelfde idee in eigen code, in `src/lib/ai-writing.ts`:
+> - `HUMAN_WRITING_RULES` gaat mee in de opdracht. De regels zijn afgeleid van
+>   de eerste drie echte teksten: stoplappen ("mooi meegenomen", "sleuteldag",
+>   "als topper", "trainingsvensters"), jargon ("TSB -47,5", "ZRL R1 W5 om
+>   20:08"), "; dus" en steeds hetzelfde sjabloon.
+> - `cleanAiText` haalt na afloop de vaste tekens weg: gedachtestreepjes,
+>   puntkomma's, uitroeptekens en emoji. Het herschrijft geen zinnen.
+>
+> In `coach-text.ts` zegt de opdracht nu dat het lid de cijfers al zag:
+> uitleggen wat ze betekenen in plaats van ze opnieuw op te sommen. De
+> invoer krijgt de vorm in woorden (`formWords`: fitter, moe, erg moe) in plaats
+> van CTL/ATL/TSB, en events zoals een renner ze noemt (`spokenEvent`: "ZRL-race").
+> `finishCoachText` laat ook maar één stuk vet staan. De tekst uit regels gebruikt
+> ook `spokenEvent` en heeft zijn puntkomma kwijt. Bestaande teksten blijven
+> staan; alleen nieuwe overzichten krijgen de nieuwe opdracht. Unit-tests voor de
+> nabewerking en de invoer. **Niet getest tegen OpenAI**: lokaal staat geen
+> sleutel (alleen in Netlify), dus hoe het model op de nieuwe regels reageert,
+> blijkt pas bij de eerste overzichten na een deploy. Nog niet toegepast op de
+> coachchat (`COACH_SYSTEM_PROMPT`); dat kan met dezelfde module.
+>
 > **Vaste plek op het dashboard (2026-10-18, wens eigenaar).** Zonder ingang
 > vond een lid het overzicht na het wegklikken niet terug. De eigenaar koos het
 > dashboard boven de ZWBeter-navigatie, en wilde dat het er de hele week staat.

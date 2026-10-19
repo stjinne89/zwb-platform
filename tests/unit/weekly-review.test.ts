@@ -14,7 +14,8 @@ import {
   type NextEvent,
   type WeekSummary,
 } from "@/lib/weekly-review/summary";
-import { coachInput, emphasisParts, fallbackCoachText } from "@/lib/weekly-review/coach-text";
+import { coachInput, emphasisParts, fallbackCoachText, finishCoachText, spokenEvent } from "@/lib/weekly-review/coach-text";
+import { cleanAiText } from "@/lib/ai-writing";
 import type { PersonalRide } from "@/lib/stats/personal";
 
 const ride = (day: string, km: number, minutes: number, name = "Rit"): PersonalRide => ({
@@ -231,6 +232,33 @@ describe("coachtekst", () => {
     expect(text).toContain("**1 rit, 38 km.**");
     expect(text).toContain("Je deed 1 van de 2 trainingen uit je schema. Eén bleef liggen.");
     expect(emphasisParts(text).filter((part) => part.strong)).toHaveLength(1);
+  });
+
+  it("geeft de vorm in woorden en events zoals een renner ze zegt", () => {
+    const input = coachInput(
+      {
+        ...summary,
+        form: { source: "intervals", ctlStart: 60, ctlEnd: 64, atlEnd: 111.6, tsbEnd: -47.5, weeks: [] },
+        teams: { results: [{ team: "Bdev", event: "ZRL 2026/27 · R1 · W4 · Bdev", day: "2026-10-13", rank: 1, teams: 8, riderPosition: null, riderCategory: null }], src: [] },
+      },
+      null,
+    );
+    expect(input).not.toMatch(/tsb|atl|ctl|-47/i);
+    expect(input).toContain("erg moe");
+    expect(input).toContain("fitter geworden");
+    expect(input).toContain('"event": "ZRL-race"');
+    expect(spokenEvent("ZRL 2026/27 · R1 · W5")).toBe("ZRL-race");
+    expect(spokenEvent("Clubrit Amerongen · B")).toBe("Clubrit Amerongen");
+  });
+
+  it("haalt de vaste AI-tekens uit de coachtekst", () => {
+    // Een echte tekst van 2026-10-19, met er een streep en een tweede vet bij.
+    const raw =
+      "De belasting schoot omhoog; dus de frisheid was niet top. **Bdev pakt winst** — mooi! Rijd **rustig** in 3–4 dagen 💪";
+    expect(finishCoachText(raw)).toBe(
+      "De belasting schoot omhoog. Dus de frisheid was niet top. **Bdev pakt winst**, mooi. Rijd rustig in 3-4 dagen",
+    );
+    expect(cleanAiText("Klaar!!")).toBe("Klaar.");
   });
 
   it("vindt inhoud zodra er één onderdeel is", () => {
