@@ -125,7 +125,7 @@ export function createForest(scene: THREE.Scene, track: Track, lowQuality: boole
       const pines = noise2(d / 600 + 40, side) > 0.5;
       for (let attempt = 0; attempt < 2; attempt++) {
         if (random() > density) continue;
-        const x = side * ((side > 0 ? 17 : 10) + Math.pow(random(), 1.6) * 110), z = d + (random() - 0.5) * step;
+        const x = side * ((side > 0 ? 22 : 10) + Math.pow(random(), 1.6) * 110), z = d + (random() - 0.5) * step;
         const kind = random() < (pines ? 0.8 : 0.2) ? 0 : 1;
         placed.push({ kind, x: track.bend(z) + x, y: track.height(Math.max(0, z)) - 0.18 + terrainLift(z, x), z: -z, scale: 0.75 + random() * 0.65, turn: random() * Math.PI * 2, tint: pick(kind ? LEAF : PINE) });
       }

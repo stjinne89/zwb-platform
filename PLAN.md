@@ -10568,10 +10568,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBgame 3D-scène, stap 4: de camera
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe
+spelversie. **Gepusht naar `main` op 2026-10-19.** Hiermee zijn de vier stappen van de 3D-scène af.
+
+**Waarom.** De camera hing op een vaste afstand in wereldrichting boven de speler:
+in bochten draaide hij niet mee, klimmen en dalen veranderden niets aan het beeld,
+en na de finish bleef hij gewoon achter je hangen.
+
+**Wat er is** (in `race-scene.tsx`).
+- *Langs de weg:* de volgcamera draait mee met de richting van de weg, gemiddeld over
+  20 m zodat bochten rustig binnenkomen. Langs de weg volgt hij de speler nog steeds
+  exact; zijwaarts volgt hij de helft van je baanwissel, gedempt.
+- *Terrein:* op een klim komt de camera tot 3 m hoger zodat de weg omhoog in beeld
+  blijft, in een afdaling tot 2,2 m lager voor meer snelheidsgevoel.
+- *Snelheid:* het blikveld gaat van 46° naar 52° tussen ongeveer 29 en 61 km/u, en
+  4° extra als je op de pedalen gaat.
+- *Finish:* na jouw finish zwaait de camera in een paar seconden voor je langs en
+  kijkt terug op de finishboog en wie er nog binnenkomt.
+- *Stilstand:* op het startscherm en bij pauze drijft de camera langzaam heen en
+  weer, zodat het beeld niet bevriest.
+- Het overzicht (hoog boven het veld) draait nu ook mee met de weg.
+- Bomen aan de camerakant staan nu minstens 22 m van de weg (was 17 m in stap 3):
+  vlak naast de camera vulde één boom anders het halve beeld.
+
+**Bewust niet gedaan.** Geen cameraschudden of meedeinen: dat leidt af van het lezen
+van de koers en maakt sommige mensen misselijk. Geen vrije camera met slepen of
+zoomen: het spel wordt met één hand op de telefoon bediend.
+
+**Niet lokaal te controleren.** Klim en afdaling zijn in de demo niet op beeld
+gezien (de eerste kilometers van de demoroute zijn vlak); de finish wel.
+
 ### Gebouwd — ZWBgame 3D-scène, stap 3: het landschap
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe
-spelversie. Niet gepusht.
+spelversie. **Gepusht naar `main` op 2026-10-19.**
 
 **Waarom.** Stap 3 van de vier. Het land was één vlak groen lint van 520 m breed met
 vijfkantige piramides als bomen, op willekeurige plekken, ook vlak naast de camera
@@ -10586,7 +10618,7 @@ waar ze half het beeld vulden. De weg had geen berm en geen doorgetrokken kantli
 - *Bomen:* sparren (stam en drie kegels) en loofbomen (stam en drie bollen) in
   groepen: bosrijke stukken en open stukken, per streek meer sparren of meer loof,
   met kleurvariatie per boom en struiken langs de berm. Aan de camerakant (rechts)
-  blijven bomen minstens 17 m van de weg, links 10 m. Alles is geseed op de route-id:
+  blijven bomen minstens 17 m van de weg (sinds stap 4: 22 m), links 10 m. Alles is geseed op de route-id:
   een route ziet er elke keer hetzelfde uit.
 - *Horizon:* twee heuvelruggen die met de camera meereizen, een groene voor en een
   blauwige erachter, met voeten die oplossen in de nevel.
@@ -10607,7 +10639,7 @@ bochten, hoogte en de seed.
 ### Gebouwd — ZWBgame 3D-scène, stap 2: de renners
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe
-spelversie. Niet gepusht.
+spelversie. **Gepusht naar `main` op 2026-10-19.**
 
 **Waarom.** Stap 2 van de vier (zie stap 1 hieronder). De oude renner bestond uit een
 blok als romp, een bol als helm en één staafje per been dat heen en weer zwaaide,
@@ -10646,7 +10678,7 @@ eerste minuten niet in een afdaling of sprint.
 ### Gebouwd — ZWBgame 3D-scène, stap 1: licht, schaduw en lucht
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe
-spelversie (opgeslagen races blijven geldig). Niet gepusht.
+spelversie (opgeslagen races blijven geldig). **Gepusht naar `main` op 2026-10-19.**
 
 **Waarom.** De eigenaar vond de 3D-scène er "houtje touwtje" uitzien en koos voor een
 gestileerde richting zonder ingekochte 3D-modellen, in vier stappen: licht en lucht,

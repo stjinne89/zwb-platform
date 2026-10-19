@@ -7,7 +7,7 @@ import { teamTint } from "@/lib/zwbgame/colors";
 import { elevationAt } from "@/lib/zwbgame/routes";
 import type { RaceState } from "@/lib/zwbgame/types";
 import { createPeloton, skinTone } from "./rider-model";
-import { createForest, createRidges, groundGeometry } from "./scenery";
+import { createForest, createRidges, groundGeometry, smoothstep } from "./scenery";
 
 /**
  * raised: controls cover the lower part of the screen, so the picture shifts up.
@@ -176,7 +176,9 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
     const parent = new THREE.Object3D(), matrix = new THREE.Matrix4();
     // Per rider: crank angle and how far into a tuck or out of the saddle, eased between steps.
     const motion = new Map<string, { crank: number; tuck: number; stand: number }>();
-    const desiredCamera = new THREE.Vector3(), look = new THREE.Vector3();
+    const look = new THREE.Vector3(), atRider = new THREE.Vector3(), roadAhead = new THREE.Vector3(), roadRight = new THREE.Vector3();
+    // The camera rig works in the road's own frame: metres right of, above and behind the player.
+    const rig = { right: 8, up: 8.5, back: 17, lift: 0, lane: 0, fov: 48, finish: 0, idle: 0 };
     let appliedRaise: boolean | null = null;
     const frameView = () => {
       const { width, height } = element.getBoundingClientRect();
@@ -193,7 +195,6 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
     type Shown = { from: number; to: number; fromLane: number; toLane: number };
     const displayed = new Map<string, Shown & { distance: number; lane: number }>();
     let lastTick = -1, lastRace = "", tickAt = 0, lastFrame = 0, fromTick = latest.current.state.tick, displayedTick = fromTick;
-    const cameraOffset = new THREE.Vector3(7, 7, 14);
     const render = (now: number) => {
       if (disposed) return;
       const current = latest.current;
@@ -225,11 +226,32 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
       const me = current.state.riders.find((r) => r.rider.id === current.state.config.playerId)!;
       const focus = Math.min(displayed.get(me.rider.id)!.distance, route.length + 10);
       const focusY = worldY(focus), focusX = bend(focus);
-      // Only the camera's offset eases (switching views); following the rider is exact.
-      desiredCamera.set(current.overview ? 20 : 8, current.overview ? 45 : 8.5, current.overview ? 40 : 17);
-      cameraOffset.lerp(desiredCamera, initialized ? 1 - Math.exp(-dt * 4) : 1); initialized = true;
-      camera.position.set(focusX + cameraOffset.x, focusY + cameraOffset.y, -focus + cameraOffset.z);
-      look.set(bend(focus + 16), worldY(focus + 16) + 1, -focus - 16); camera.lookAt(look);
+      // Following the rider along the road is exact; everything else about the camera eases.
+      const ease = (rate: number) => initialized ? 1 - Math.exp(-dt * rate) : 1;
+      const view = current.overview ? [20, 45, 40] : [8, 8.5, 17];
+      rig.right += (view[0] - rig.right) * ease(4); rig.up += (view[1] - rig.up) * ease(4); rig.back += (view[2] - rig.back) * ease(4);
+      // Climbs lift the camera so the road ahead stays in view; descents bring it down for speed.
+      rig.lift += ((current.overview ? 0 : Math.max(-2.2, Math.min(3, terrainGrade(focus) * 28))) - rig.lift) * ease(1.5);
+      // Lane changes are followed halfway and softly, so swerving does not shake the picture.
+      rig.lane += (displayed.get(me.rider.id)!.lane * 0.5 - rig.lane) * ease(2);
+      // After your finish the camera swings round to the front and looks back at you.
+      rig.finish += ((me.finishTime !== null && !current.overview ? 1 : 0) - rig.finish) * ease(0.6);
+      // Standing still (start screen, pause): a slow drift keeps the picture alive.
+      rig.idle += ((now - tickAt > 1200 ? 1 : 0) - rig.idle) * ease(0.8);
+      // A wider view at speed and when you go out of the saddle.
+      const fov = current.overview ? 48 : 46 + smoothstep(8, 17, me.speed) * 6 + (motion.get(me.rider.id)?.stand ?? 0) * 4;
+      rig.fov += (fov - rig.fov) * ease(2);
+      if (Math.abs(camera.fov - rig.fov) > 0.01) { camera.fov = rig.fov; camera.updateProjectionMatrix(); }
+      initialized = true;
+      // The road's heading around the player, averaged so bends turn the camera gently.
+      const slope = (bend(focus + 10) - bend(focus - 10)) / 20, norm = Math.hypot(slope, 1);
+      roadAhead.set(slope / norm, 0, -1 / norm); roadRight.set(1 / norm, 0, slope / norm);
+      const finish = smoothstep(0, 1, rig.finish), turn = finish * 2.4 + rig.idle * Math.sin(now / 4200) * 0.35, near = 1 - finish * 0.25;
+      const right = (rig.right * Math.cos(turn) + rig.back * Math.sin(turn)) * near, back = (rig.back * Math.cos(turn) - rig.right * Math.sin(turn)) * near;
+      const centreX = focusX + rig.lane;
+      camera.position.set(centreX, focusY + (rig.up + rig.lift) * (1 - finish * 0.35), -focus).addScaledVector(roadRight, right).addScaledVector(roadAhead, -back);
+      look.set(bend(focus + 16) + rig.lane, worldY(focus + 16) + 1, -focus - 16).lerp(atRider.set(centreX, focusY + 1, -focus), finish);
+      camera.lookAt(look);
       sky.position.copy(camera.position);
       ridges.group.position.set(camera.position.x, focusY - 12, camera.position.z);
       // The shadow box sits a little ahead of the player, where the camera looks.

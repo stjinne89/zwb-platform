@@ -63,6 +63,8 @@ speeltijd en hoeveel daarvan vertraagd liep.
   bij een aanval, en een frame in de helmkleur van de ploeg. Het landschap staat in
   `scenery.ts`: glooiende grond met kleurvlakken, bomen en struiken in groepen
   (geseed op de route-id) en heuvelruggen aan de horizon.
+  De volgcamera draait mee met de weg, komt hoger op een klim, kijkt wijder bij snelheid
+  en zwaait na je finish voor je langs.
 
 ## Spelregels en model
 
