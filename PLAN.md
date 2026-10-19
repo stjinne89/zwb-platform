@@ -62,10 +62,14 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
-   - **voorZpWelBokaal:** `0252_voorzpwelbokaal.sql` is **niet toegepast** en
-     de code is **niet gepusht** (ronde 2026-10-19, "voorZpWelBokaal"). De
-     privacytekst is goedgekeurd. Nog doen: de migratie toepassen, pushen en
-     in beheer één echte koers doorlopen:
+   - **voorZpWelBokaal:** `0252_voorzpwelbokaal.sql` is op 2026-10-19 via de
+     Supabase-connector toegepast, op verzoek van de eigenaar; de code is
+     **nog niet gepusht** (ronde 2026-10-19, "voorZpWelBokaal"). Vooraf
+     bestond geen enkele `bokaal`-tabel of -functie. Achteraf: vijf tabellen
+     met RLS aan, zes policies, `authenticated` alleen SELECT (plus INSERT en
+     DELETE op `bokaal_players`), `anon` op geen enkele tabel of functie,
+     `bokaal_ratings` zonder policy (alleen de server). De privacytekst is
+     goedgekeurd. Nog doen: pushen en in beheer één echte koers doorlopen:
      ratings ophalen, event toevoegen, op het bord zetten, inzetten vanaf een
      tweede account, na de koers afrekenen. Op Netlify kijken of CyclingFlash
      de server toelaat (lokaal wel, met `node:https`); zo niet, de paginabron
@@ -10563,9 +10567,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — voorZpWelBokaal: wedkantoor voor het veldrijden
 
-**2026-10-19.** Deze commit, op branch `claude/voorzpwelbokaal-rebuild-fe8ea6`.
-Migratie `0252_voorzpwelbokaal.sql`. **Niet gepusht, migratie niet toegepast**
-(eigenaar: "lokaal, niet pushen").
+**2026-10-19.** Commits `10f6fd29` en volgende, op branch
+`claude/voorzpwelbokaal-rebuild-fe8ea6`. Migratie `0252_voorzpwelbokaal.sql`,
+**op 2026-10-19 toegepast op productie** (Supabase-connector, op verzoek van de
+eigenaar). **Code niet gepusht** (eigenaar: "lokaal, niet pushen").
 
 **Waarom.** voorZpWelBokaal was een losse Vite-app (voorzpwelbokaal.netlify.app,
 broncode in de OneDrive-map `zwb-poule`): leden typten een top 3 en een
@@ -10663,9 +10668,15 @@ afwijkend van de regel in `src/lib/privacy.ts`. De tekst staat op
   oude poule); open bonusvragen die met de hand moeten worden nagekeken.
 - Geplande ophaaljobs op Netlify: eerst knoppen in beheer, om credits te sparen.
 - Junioren en beloften: startlijsten en ratings zijn daar het minst volledig.
-- De oude app op Netlify en zijn Supabase-tabellen (`races`, `predictions`,
-  `global_odds`, `competitions`) zijn niet aangeraakt; het oude klassement is
-  niet overgezet.
+- De oude app op Netlify en zijn tabellen (`races`, `predictions`,
+  `global_odds`, `competitions`) zijn niet aangeraakt. Die staan in een eigen,
+  gepauzeerd Supabase-project ("VoorZpWelBokaal"), niet in de platformdatabase.
+  Het oude klassement is niet overgezet.
+- `revoke … from anon` op de functies staat er bewust bij: Supabase geeft nieuwe
+  functies standaard ook aan `anon`, en `revoke … from public` haalt dat niet
+  weg. Veel oudere `security definer`-functies zijn nog wel door `anon`
+  aanroepbaar (Supabase-advies `0028`, 31 functies op 2026-10-19); dat is buiten
+  deze ronde gelaten.
 
 **Getest.** `tsc` en ESLint schoon. Unit-tests: `bokaal.test.ts` (22: ladder,
 seizoen, kansen tellen op tot 1/3/10, de winnaarskans exact, nooit boven de

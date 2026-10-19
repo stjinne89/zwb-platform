@@ -268,7 +268,7 @@ $$;
 
 revoke all on function public.bokaal_member(), public.bokaal_balance(uuid, text),
   public.bokaal_place_bet(uuid, text, text, text, integer), public.bokaal_cancel_bet(uuid),
-  public.bokaal_answer_bonus(uuid, integer), public.bokaal_standings(text) from public;
+  public.bokaal_answer_bonus(uuid, integer), public.bokaal_standings(text) from public, anon;
 -- Saldi staan op de lei voor iedereen, dus bokaal_balance mag elk lid opvragen.
 grant execute on function public.bokaal_member(), public.bokaal_balance(uuid, text),
   public.bokaal_place_bet(uuid, text, text, text, integer),
