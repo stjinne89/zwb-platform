@@ -223,6 +223,23 @@ export const GUIDES = [
       "Beheerders kunnen ongeclaimde rosterleden uitsluiten of weer toevoegen via /zwbgame/beheer. Er is nog geen multiplayer of gedeeld klassement.",
     ],
   },
+  {
+    id: "voorzpwelbokaal",
+    icon: Trophy,
+    title: "voorZpWelBokaal: wedden op het veldrijden",
+    bullets: [
+      "Via Club → voorZpWelBokaal zet je ZWBallen in op de elitewedstrijden van dames en heren in het veldrijden. Tik op Meedoen; je begint het seizoen met 10 ZWBallen.",
+      "Op het bord staan per renner drie quoteringen: wint, podium (top 3) en top 10. Daaronder staan twee duels: wie van de twee eindigt hoger. Tik een quotering aan, kies met + en − hoeveel ballen erop gaan en tik Op de lei zetten. Een raak briefje betaalt inzet × quotering terug op je saldo; die winst kun je weer inzetten.",
+      "Per wedstrijd zet je hoogstens 5 ballen in, dames en heren apart, ook als je saldo groter is. Met 10 ballen speel je dus beide wedstrijden voluit; staat je saldo lager, dan kies je.",
+      "Je kunt inzetten en intrekken tot de start van die wedstrijd. Je quotering ligt vast op het moment dat je inzet, ook als het bord daarna nog verandert.",
+      "De quotering komt uit de veldritrating van CyclingFlash. Elke renner krijgt een kracht e^(rating ÷ 35); de kans om te winnen is zijn kracht gedeeld door de som van alle krachten op de startlijst. Podium en top 10 komen uit 20.000 gesimuleerde koersen met dezelfde krachten, een duel is kracht A ÷ (kracht A + kracht B). De quotering is 1 ÷ kans, naar beneden afgerond op de ladder van een gokkantoor (1,05 · 1,10 · … · 33 · 50). Onder 1,05 staat er een streepje, boven 50 wordt het 50. Renners zonder rating rekenen met 600.",
+      "Per wedstrijd is er een bonusvraag met vaste antwoorden. Antwoorden kost niets; een goed antwoord levert 1 ZWBal op. Het platform kijkt hem na uit de uitslag.",
+      "Niet gestart: je inzet komt terug. Opgegeven telt als niet gefinisht. In een duel waarin geen van beiden finisht, krijg je je inzet terug. Gaat een wedstrijd niet door, dan krijgt iedereen zijn inzet terug.",
+      "Briefjes toont al je inzetten van dit seizoen met wat ze opleverden. Op de lei staat iedereen die meedoet, met saldo. Na de laatste wedstrijd van het seizoen wint het hoogste saldo. Sta je op nul, dan kom je terug via de bonusvragen.",
+      "Met Stoppen onder je briefjes wis je je deelname van dit seizoen, met al je inzetten en antwoorden.",
+      "Beheerders zetten wedstrijden op het bord via /voorzpwelbokaal/beheer: ratings ophalen, een eventlink van CyclingFlash toevoegen, de startlijst ophalen en na de koers de uitslag ophalen en afrekenen. Weigert CyclingFlash de server, plak dan de paginabron.",
+    ],
+  },
 ];
 
 // Volledige wegwijzer: wat doet elke pagina/sectie van de app.
@@ -246,6 +263,7 @@ export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/media", name: "Media", text: "Nieuws, nieuwsbrieven, podcasts, video's en Instagram." },
   { href: "/stats", name: "Stats", text: "Club: de cijfers en ranglijst van alle leden. Ik: je eigen ritten, vermogen en records." },
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
+  { href: "/voorzpwelbokaal", name: "voorZpWelBokaal", text: "Wedden met ZWBallen op het veldrijden: het bord, je briefjes en de lei." },
   { href: "/profiel?weergave=bewerken", name: "Profiel", text: "Je gegevens, zichtbaarheid, je fietsen, koppelingen (Strava/intervals) en account." },
 ];
 

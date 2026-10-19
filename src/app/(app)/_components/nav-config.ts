@@ -126,12 +126,7 @@ export const NAV_GROUPS: NavNode[] = [
         label: "ZWB Omnium",
       },
       { type: "link", href: "/src", label: "Sunday Race Club" },
-      {
-        type: "link",
-        href: "https://voorzpwelbokaal.netlify.app/",
-        label: "voorZpWelBokaal",
-        external: true,
-      },
+      { type: "link", href: "/voorzpwelbokaal", label: "voorZpWelBokaal" },
     ],
   },
   {
@@ -204,6 +199,7 @@ export const BEHEER_CATEGORIES: BeheerCategory[] = [
       adminLink("citaten"),
       adminLink("achievements"),
       adminLink("zwbgame"),
+      adminLink("bokaal"),
     ],
   },
   {

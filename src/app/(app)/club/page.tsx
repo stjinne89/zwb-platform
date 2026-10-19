@@ -29,6 +29,8 @@ const TILE_STYLE: Record<string, Pick<PlaceLink, "tone" | "size">> = {
   "/zwblokken": { tone: "meer" },
   "/profiel/segments/collecties": { tone: "meer" },
   "/zwbgame": { tone: "meer" },
+  // Breed: de naam past niet op een smalle tegel op de telefoon.
+  "/voorzpwelbokaal": { tone: "meer", size: "wide" },
 };
 
 export default async function ClubPage() {
@@ -55,9 +57,6 @@ export default async function ClubPage() {
         href: item.href,
         label: item.label,
         external: item.external,
-        // De link naar buiten (voorZpWelBokaal) is een competitie, dus petrol, en
-        // breed: de naam past niet op een smalle tegel op de telefoon.
-        ...(item.external ? { tone: "kalender", size: "wide" } : {}),
         ...TILE_STYLE[item.href],
       }),
     ),

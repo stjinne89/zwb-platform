@@ -62,6 +62,14 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **voorZpWelBokaal:** `0252_voorzpwelbokaal.sql` is **niet toegepast** en
+     de code is **niet gepusht** (ronde 2026-10-19, "voorZpWelBokaal"). Eerst
+     de privacytekst (`/privacy#voorzpwelbokaal`) laten goedkeuren, dan de
+     migratie toepassen, pushen en in beheer één echte koers doorlopen:
+     ratings ophalen, event toevoegen, op het bord zetten, inzetten vanaf een
+     tweede account, na de koers afrekenen. Op Netlify kijken of CyclingFlash
+     de server toelaat (lokaal wel, met `node:https`); zo niet, de paginabron
+     plakken.
    - **Weekoverzicht:** `0251_weekly_reviews.sql` is op 2026-10-18 via de
      Supabase-connector toegepast, op verzoek van de eigenaar. Vooraf bestond de
      tabel niet; achteraf: 0 rijen, RLS aan, één leespolicy, `authenticated`
@@ -3731,7 +3739,10 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   `suggestions`). Het huidige design toont ze nog in het schema. Ze horen bij
 >   de eerstvolgende training, ook als die niet vandaag is.
 > - *Club.* voorZpWelBokaal is de brede tegel geworden in plaats van ZWBlokken;
->   de naam paste op de telefoon niet op een smalle tegel.
+>   de naam paste op de telefoon niet op een smalle tegel. *Bijgewerkt
+>   2026-10-19:* de tegel linkt niet meer naar voorzpwelbokaal.netlify.app maar
+>   naar de eigen pagina `/voorzpwelbokaal`, en is donker petrol (spel) in
+>   plaats van petrol (competitie); breed blijft hij.
 > - *Tabbalk op de iPhone (nog niet op main).* De eigenaar meldde dat de balk
 >   op de iPhone midden in de pagina bleef hangen en met de inhoud meeschoof.
 >   De balk was `position: fixed`; hij is nu `sticky` met `bottom: 0` als
@@ -10549,6 +10560,126 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — voorZpWelBokaal: wedkantoor voor het veldrijden
+
+**2026-10-19.** Deze commit, op branch `claude/voorzpwelbokaal-rebuild-fe8ea6`.
+Migratie `0252_voorzpwelbokaal.sql`. **Niet gepusht, migratie niet toegepast**
+(eigenaar: "lokaal, niet pushen").
+
+**Waarom.** voorZpWelBokaal was een losse Vite-app (voorzpwelbokaal.netlify.app,
+broncode in de OneDrive-map `zwb-poule`): leden typten een top 3 en een
+bonusvraag, beheer plakte ratings en kreeg punten via een Monte-Carlo met een
+aparte knop voor Van der Poel en Brand. De eigenaar wilde het opnieuw opbouwen
+als Vlaams gokkantoor in het platform: quoteringen op een krijtbord, een
+café-sfeer, ZWBallen om in te zetten. Voorstel met speelbaar voorbeeldbord:
+[artifact](https://claude.ai/artifact/XM5e78KUt7vAEfs9WBRCtL) (privé).
+
+**Spelregels (besluiten eigenaar, 2026-10-19).**
+- Saldo per seizoen (augustus tot juli): je begint met **10 ZWBallen**, winst
+  gaat terug op je saldo en kun je opnieuw inzetten. Wat je niet inzet, blijft
+  staan.
+- **Hoogstens 5 ballen per wedstrijd**, dames en heren apart, ook met een groot
+  saldo. Zo speel je met 10 ballen beide wedstrijden voluit en kies je als je
+  saldo lager is. De limiet houdt ook de groei van een groot saldo in toom.
+- Een **bonusvraag** per wedstrijd levert bij een goed antwoord 1 bal op,
+  zonder inzet. Dat is de weg terug voor wie op nul staat.
+- Markten: winnaar, podium, top 10 en twee duels per wedstrijd.
+- Adviezen uit het voorstel die zijn overgenomen: bonus 1 bal; geen vangnet
+  voor wie op nul staat; alleen dames- en heren-elite; welke koersen op het
+  bord komen, kiest beheer (standaard de grote reeksen en kampioenschappen).
+  Nog open uit het advies: een mailtje aan CyclingFlash dat een clubspel hun
+  ratings gebruikt. Dat is aan de eigenaar.
+
+**De quotering** (`src/lib/bokaal/odds.ts`). Kracht = e^(rating / 35) uit de
+CyclingFlash-veldritrating (de rating zelf, niet de plek in de ranking: het gat
+tussen 1 en 2 kan 50 punten zijn of 2). Winst exact (kracht / som van de
+startlijst, Plackett–Luce), podium en top 10 uit 20.000 simulaties met
+Gumbel-ruis (zelfde model), een duel exact. Quotering = 1 / kans, naar beneden
+op de gokkantoorladder; onder 1,05 een streepje, boven 50 wordt het 50. Geen
+huismarge; door het afronden levert blind op favorieten spelen niets op. Zonder
+rating: 600. Vaste seed per koers, dus hetzelfde veld geeft hetzelfde bord.
+**T = 35 is voorlopig**: nog niet geijkt op vorig seizoen. Met T = 35 krijgt
+Brand (1044 tegen 996) in Meulebeke 1,60; ze werd daar derde.
+
+**Wat er gebouwd is.**
+- `0252`: `bokaal_players` (meedoen per seizoen, met eigen toestemming
+  `2026-10-19`, zoals ZWBieb), `bokaal_ratings` (alleen server), `bokaal_races`
+  (bord, bonusvraag en uitslag als jsonb), `bokaal_bets`,
+  `bokaal_bonus_answers`. Inzetten, intrekken en antwoorden alleen via
+  `security definer`-functies: die lezen de quotering van het bord zelf,
+  vergrendelen de spelersrij en bewaken de 5 ballen en het saldo
+  (`bokaal_balance`). Andermans briefjes en antwoorden zijn pas zichtbaar vanaf
+  de start. Stoppen wist de spelersrij en daarmee alles (cascade).
+  `bokaal_standings` geeft de lei.
+- CyclingFlash lezen (`src/lib/bokaal/cyclingflash.ts`): ranking, eventpagina
+  (elitewedstrijden met datum en starttijd), startlijst en uitslag (plek,
+  achterstand, leeftijd, nationaliteit van de renner, ploeg). **Met `node:https`
+  en niet met `fetch`:** Cloudflare gaf Nodes `fetch` een uitdaging (403,
+  `cf-mitigated: challenge`), een gewoon https-verzoek met dezelfde
+  user-agent niet. Weigert CyclingFlash toch, dan plakt beheer de paginabron.
+  Bescheiden: hoogstens 30 ophaalacties per beheerder per uur.
+- Afrekenen (`settle.ts`): niet gestart (niet op de startlijst én niet in de
+  uitslag) is inzet terug; opgegeven telt als niet gefinisht; een duel zonder
+  finishers is inzet terug. De uitslag in Meulebeke had 45 renners, de
+  startlijst 39; daarom telt de uitslag mee als "gestart". Opnieuw afrekenen
+  mag en rekent alles opnieuw vanaf de uitslag; zo corrigeert beheer.
+- Bonusvragen die het platform zelf nakijkt: voorsprong van de winnaar,
+  renners jonger dan 25 in de top 10, Belgen op het podium, meer Belgen of
+  Nederlanders in de top 10.
+- Pagina's: `/voorzpwelbokaal` (het bord en het wedbriefje),
+  `/voorzpwelbokaal/briefjes` (je seizoen, met stempels, en Stoppen),
+  `/voorzpwelbokaal/lei` (de stand), `/voorzpwelbokaal/beheer` (ratings,
+  event toevoegen, startlijst, op/van het bord, starttijd, bonusvraag,
+  afrekenen, annuleren). Beheer valt onder het recht `zwbgame.manage`: allebei
+  clubspel, en een eigen recht vraagt een nieuwe check-constraint (0206).
+- Uiterlijk: een eigen wereld zoals het weekoverzicht. Leisteen in een
+  eikenhouten lijst, krijt (Cabin Sketch en Kalam), een emaille bord in
+  petrol met gouden rand (Alfa Slab One), geel doorslagpapier (Courier Prime),
+  ZWBallen in de tenuekleuren. Licht: okergele cafémuur; donker: donker hout;
+  de lei blijft leisteen. Aantikken zet een krijtcirkel om de quotering.
+  Valkuil: een `text-shadow` in `currentColor` naast een oklch-schaduw laat
+  lightningcss in Turbopack crashen; de krijtschaduw heeft een vaste kleur.
+- Club-tegel en menu linken naar `/voorzpwelbokaal`; hulp (`/hulp/wedstrijden`
+  `#voorzpwelbokaal`) en privacy (`/privacy#voorzpwelbokaal`) uitgebreid.
+- `/ontwerp-voorbeeld?scherm=bokaal`: het bord met de Meulebeke-startlijsten,
+  alleen lokaal.
+
+**Privacy: voorgelegd, niet besloten.** Meedoen is een eigen keuze met een
+eigen toestemming in `bokaal_players`, zoals ZWBieb; er is **geen nieuwe
+privacyversie**. Dit is een nieuwe categorie (inzetten en saldo, zichtbaar voor
+de club op de lei), dus valt het niet vanzelf onder "alleen tekst". De tekst in
+`/privacy` staat er; de eigenaar beslist of dat zo mag.
+
+**Bewust niet.**
+- Een eigen duel kiezen in beheer (stond in het voorstel). Het bord kiest twee
+  duels: buren in rating binnen de top 10 met het kleinste gat. Later, als het
+  gemist wordt.
+- Combi en exact podium: quoteringen lopen ver boven 50; dan beslist geluk het
+  seizoen (voorstel, "Op de plank").
+- Live wedden, cash-out, huismarge, een eigen rating en namen intypen (zoals de
+  oude poule); open bonusvragen die met de hand moeten worden nagekeken.
+- Geplande ophaaljobs op Netlify: eerst knoppen in beheer, om credits te sparen.
+- Junioren en beloften: startlijsten en ratings zijn daar het minst volledig.
+- De oude app op Netlify en zijn Supabase-tabellen (`races`, `predictions`,
+  `global_odds`, `competitions`) zijn niet aangeraakt; het oude klassement is
+  niet overgezet.
+
+**Getest.** `tsc` en ESLint schoon. Unit-tests: `bokaal.test.ts` (22: ladder,
+seizoen, kansen tellen op tot 1/3/10, de winnaarskans exact, nooit boven de
+eerlijke quotering, afrekenen, bonusvragen, de parsers op zelfgemaakte HTML in
+de structuur van CyclingFlash, Belgische tijd over de wintertijd) en
+`voorzpwelbokaal-migration.test.ts` (14, PGlite: meedoen, quotering van het
+bord, 5 per wedstrijd, saldo, opnieuw inzetten na winst, meekijken pas na de
+start, stoppen wist alles). De parsers één keer tegen de echte pagina's van
+Meulebeke gedraaid: event, startlijst (39), uitslag (45, met een DNF) en
+ranking lazen goed. Het bord op `/ontwerp-voorbeeld` bekeken op 390 en 1280
+breed, licht en donker, met aantikken, + en − en de limiet van 5. In de volle
+suite: twee time-outs onder belasting die los slagen, en `omnium-live` mist
+`.env.local` in de worktree.
+**Niet getest:** de migratie op een echte Supabase (alleen PGlite), de pagina's
+ingelogd met echte data, de server-actions en het beheerscherm in de browser,
+en of CyclingFlash de Netlify-server toelaat.
 
 ### Opgeleverd — /hulp, ZWBieb en de kennisbanken menselijker geschreven
 

@@ -33,6 +33,9 @@ export const ADMIN_AREAS = {
   },
   omnium: { href: "/beheer/omnium", label: "Omnium", permission: "omnium.manage" },
   zwbgame: { href: "/zwbgame/beheer", label: "ZWBgame", permission: "zwbgame.manage" },
+  // Zelfde recht als ZWBgame: allebei clubspel; een eigen recht zou de
+  // check-constraint van community_role_permissions (0206) vragen.
+  bokaal: { href: "/voorzpwelbokaal/beheer", label: "voorZpWelBokaal", permission: "zwbgame.manage" },
   strava: { href: "/beheer/strava", label: "Strava-sync", permission: "integrations.manage" },
   notificaties: {
     href: "/beheer/notificaties",
