@@ -10568,6 +10568,34 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBgame 3D-scène, stap 1: licht, schaduw en lucht
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe
+spelversie (opgeslagen races blijven geldig). Niet gepusht.
+
+**Waarom.** De eigenaar vond de 3D-scène er "houtje touwtje" uitzien en koos voor een
+gestileerde richting zonder ingekochte 3D-modellen, in vier stappen: licht en lucht,
+renners, landschap, camera. Dit is stap 1. De grootste oorzaak van het goedkope
+gevoel was dat niets een schaduw had: renners en bomen leken boven de weg te zweven.
+
+**Wat er is** (alles in `race-scene.tsx`).
+- *Zon met schaduwen:* een zon van rechtsvoor werpt echte schaduwen van renners,
+  bomen en bogen op weg en gras. De schaduwbox (84 × 84 m) reist mee met de speler en
+  springt per schaduwpixel, zodat randen niet kruipen.
+- *Contactschaduw:* een zachte donkere vlek onder elke fiets, ook in "3D · zuinig".
+- *Lucht:* een koepel met verloop van horizon naar blauw en een gloed bij de zon. De
+  mist eindigt in dezelfde horizonkleur, dus het land loopt naadloos over in de lucht.
+- *Tone mapping:* Neutral, zodat de clubkleuren kloppen en de zonkant niet uitbijt.
+- "3D · zuinig" zet de schaduwkaart uit; alleen de contactschaduw blijft.
+
+**Bewust niet gedaan.** Geen postprocessing (bloom, ambient occlusion): extra
+renderpasses kosten op telefoons te veel voor wat het oplevert. Renners, bomen,
+heuvels aan de horizon en de camera zijn stap 2 tot en met 4.
+
+**Niet lokaal te controleren.** Getest in de lokale demo en met de browsertests
+(desktop en Pixel 7-emulatie, software-WebGL). Of de schaduwkaart op een echte
+middenklasse-telefoon soepel blijft draaien, is niet gemeten; "3D · zuinig" is de
+uitweg.
 ### Gebouwd — kennisbank racen: tactiek in een Zwift-race
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. **Gepusht naar `main` op

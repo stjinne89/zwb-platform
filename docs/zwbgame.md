@@ -56,7 +56,9 @@ speeltijd en hoeveel daarvan vertraagd liep.
   een team op het kerkhof). Geen migratie.
 - `src/app/(app)/zwbgame`: client (lobby met Ladder/Vrije race en routekeuze, HUD en
   bediening) en de Three.js-scène met sprint- en KOM-bogen, rondestreep en een warme
-  tint voor de tegenstanders.
+  tint voor de tegenstanders. Sinds 19 oktober 2026 met een zon die schaduwen werpt
+  (alleen in "3D · hoog"), een contactschaduw onder elke fiets, een luchtkoepel met
+  verloop en Neutral tone mapping.
 
 ## Spelregels en model
 
