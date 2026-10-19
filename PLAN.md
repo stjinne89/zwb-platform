@@ -6822,7 +6822,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > lang hard rijden kost drempel) en rustigere bots. Nu is meerijden en je sprint
 > kiezen de beste strategie, maar het verschil is klein (een à twee plekken van 24).
 > Wie actief rijdt, zit vaker in de goede groep. Wie de hele race spaart, mist de
-> splitsing (±23e).
+> splitsing (±23e). *Niet meer waar sinds spelversie 6 (2026-10-19): Meerijden
+> trapt geen minimum meer in het wiel, volgt geen aanval, en passief meerijden eindigt
+> nu in de achterste helft.*
 >
 > **Bewust niet gebouwd.** ZRL (FAL/FTS/FIN met `scoreRace`, scratch, TTT, Race of
 > Truth) en FRR-tours (etappes, eGAP, 25‥6 punten, segmenten × moeilijkheid,
@@ -10474,6 +10476,63 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBgame spelversie 6: tactiek telt
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie. Spelversie
+6: lopende races vervallen, uitslagen, ladder en tourstand blijven. Niet gepusht.
+
+**Waarom.** Uit het tactiekonderzoek hieronder: in spelversie 5 was passief
+meerijden de beste strategie, omdat Meerijden elke aanval volgde en het blok
+vanzelf doorschoof. De eigenaar koos modules A, B en C, voor iedereen (geen aparte
+beginnersstand), met een balanssimulatie ervoor en erna.
+
+**Wat er veranderde.**
+- *C, slipstream als Pack Dynamics 4.1:* besparing per plek in de rij (27/36/43%
+  CdA, naar Zwift Insiders 24/32/39% vermogen), een schaduw die tot 10 m achter
+  één renner en 18 m achter een groep afloopt, naast de kop zit je in de wind, en
+  supertuck alleen buiten het wiel.
+- *B, Meerijden volgt het tempo:* in het wiel tot 105%, gat dichten tot 125%, over
+  de top van een klim tot 100%, alleen binnen 20 m. Een aanval volgen is een keuze:
+  een renner aanklikken of Volg (160%). Aanvallen is nu 160%. Aanvallen zijn
+  zichtbaar (`surge`) zodra je hard en buiten het wiel rijdt; bots reageren met
+  vertraging en een kans per karakter.
+- *A, vertraagde tijd:* op beslismomenten (`momentAt`) loopt de tijd 3× in plaats
+  van 3–16×, met een label naast de klok. De gewone tijd loopt iets sneller.
+- *Nodig gebleken:* bots die om de beurt op kop gaan, groepen die achtervolgen tot
+  600 m, en een zwaardere beurt op kop in een grote groep (tot 115%). Zonder dat reed
+  een groep op het tempo van één renner op 82%.
+- De opslagsleutels van ladder en tour staan vast op `v5`, zodat een nieuwe
+  spelversie alleen de lopende race wist.
+- De balanssimulatie staat nu in de repo (`npm run zwbgame:balance`); de vorige stond
+  in een tijdelijke map en was weg.
+
+**Uitkomst.** Gemiddelde plek van 24, voor → na, bij FTP 240/270/300: passief
+10,1/7,6/6,5 → 18,9/16,0/17,1; tacticus 12,3/9,4/8,4 → 8,3/4,1/2,3. De tacticus
+wint nu 11 tot 15 plekken op passief, waar hij eerst één à twee plekken verloor.
+De kopgroep bij de finish bleef even groot. Speeltijd 6,1–6,6 minuut (was 4,9–5,3),
+hooguit 7,4. Volledige tabel en kanttekeningen:
+[ZWBgame, spelversie 6](docs/zwbgame.md#spelversie-6-tactiek-19-oktober-2026).
+
+**Bewust niet gebouwd.** D tot en met I uit het voorstel (nabespreking,
+oefenkoersen, onverhard, koers lezen, slimmere bots en ploegorders, tempo in de
+tijdrit). De inspanning van andere renners staat niet in de koerslijst: alleen het
+label "Aanval" en de knop Volg. Dat is module G.
+
+**Getest.** 40 ZWBgame-unit-tests (+6), alle 20 Playwright-tests, `tsc` en lint
+schoon. Volledige unitsuite: 2.909 groen; `omnium-live` mist `.env.local` en
+`intervals-ride-sync` liep onder volle belasting uit de tijd (los groen). `npm run
+build` compileert en typecheckt, maar stopt bij het prerenderen van `/omnium`
+zonder Supabase-sleutels in deze worktree. Een race headless gespeeld: de labels en
+de knop Volg verschijnen; op een telefoon brak het label eerst tegen de rand
+(opgelost). **Niet geverifieerd:** met de hand spelen, op een telefoon, op de echte
+routebibliotheek. Of het speelgevoel klopt, moet de eigenaar beoordelen. De
+tacticus in de simulatie ziet meer dan een speler; echte spelers halen het verschil
+dus niet helemaal.
+
+**Niet meer waar.** In de ZWBgame-ronde van 2026-09-28 staat dat meerijden en je
+sprint kiezen de beste strategie is en dat Meerijden versnellingen tot 160% volgt
+en door het blok schuift. Dat geldt sinds spelversie 6 niet meer.
+
 ### Onderzocht — ZWBgame als tactiekspel: Zwift-racetactiek en bouwvoorstel
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen
@@ -10495,7 +10554,8 @@ in de balanssimulatie van 2026-09-28. Voorstel in negen modules, te beginnen met
 vertraagde tijd op beslismomenten, Meerijden dat het tempo volgt maar geen
 aanvallen, en slipstream volgens PD4.1, daarna een nabespreking.
 
-**Bewust niet gebouwd.** Nog niets; de eigenaar kiest. In het voorstel afgeraden:
+**Bewust niet gebouwd.** In deze ronde nog niets; de eigenaar koos daarna A, B en C,
+dezelfde dag gebouwd (zie de ronde hierboven). In het voorstel afgeraden:
 zelf sturen, wind en waaiers, startvak en opwarmen, fietswissel, categorieën en
 sandbaggers, een losse DS-rol.
 

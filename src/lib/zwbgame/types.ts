@@ -1,4 +1,4 @@
-export const GAME_VERSION = 5;
+export const GAME_VERSION = 6;
 export const CONSENT_VERSION = "2026-09-17";
 export type RiderKind = "sprinter" | "puncher" | "tter" | "climber" | "allrounder";
 export type GameRider = {
@@ -54,7 +54,7 @@ export type RaceConfig = {
 export type SegmentPass = { r: number; a: number; s: number; e: number | null };
 /** wheel: follow what is ahead; front: ride in the wind; attack: go clear or sprint. */
 export type Tactic = "wheel" | "front" | "attack";
-/** save and ride both follow the wheel; save never goes above threshold, ride follows any surge. */
+/** save and ride both follow the wheel; save never goes above threshold, ride follows the tempo but not an attack. */
 export type Mode = "save" | "ride" | "front" | "attack";
 export type PowerupId = "feather" | "aero" | "draft";
 /** Team orders from the player to the teammates. */
@@ -86,6 +86,8 @@ export type RiderState = {
   finishTime: number | null;
   attacks: number;
   shelteredSeconds: number;
+  /** Seconds this rider has been riding hard out of the draft: an attack others can see. */
+  surge: number;
   /** Seeded day form, multiplies ability. */
   form: number;
   /** Set on a teammate working for someone: bring back, lead out, or hunt segment points. */

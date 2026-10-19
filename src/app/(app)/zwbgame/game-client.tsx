@@ -3,9 +3,9 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowUpRight, Bike, Check, ChevronRight, ChevronsUp, CircleHelp, Feather, Flag, Leaf, Maximize2, Medal, Minimize2, Mountain, Pause, Play, Settings2, Shield, Swords, Trophy, Users, Wind, Zap } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Bike, Check, ChevronRight, ChevronsUp, CircleHelp, Feather, Flag, Leaf, Maximize2, Medal, Minimize2, Mountain, Pause, Play, Settings2, Shield, Swords, Timer, Trophy, Users, Wind, Zap } from "lucide-react";
 import { teamTint } from "@/lib/zwbgame/colors";
-import { createRace, fatigueOf, groupsOf, huntsPoints, MAX_FATIGUE, SPRINT_METERS, standings, stepRace, STEP_SECONDS, timeScale } from "@/lib/zwbgame/engine";
+import { createRace, fatigueOf, groupsOf, huntsPoints, KEY_SCALE, MAX_FATIGUE, momentAt, SPRINT_METERS, standings, stepRace, STEP_SECONDS, timeScale, type MomentKind } from "@/lib/zwbgame/engine";
 import { applyChallenge, buildLadderTeams, challengeable, challengeWon, normalizeLadder, teamScore, type LadderStanding, type LadderTeam } from "@/lib/zwbgame/ladder";
 import { accentAhead, elevationAt, gradeAt } from "@/lib/zwbgame/routes";
 import { ladderKey, readLadder, readResults, readTour, restoreRace, resultsKey, saveKey, serializeRace, tourKey } from "@/lib/zwbgame/storage";
@@ -24,6 +24,7 @@ const modes: { id: Mode; label: string; key: string; icon: React.ReactNode }[] =
   { id: "front", label: "Naar voren", key: "3", icon: <ChevronsUp size={20} /> },
   { id: "attack", label: "Aanvallen", key: "4", icon: <Zap size={20} /> },
 ];
+const moments: Record<MomentKind, string> = { start: "Start", attack: "Aanval", gap: "Gat", crest: "Top", climb: "Klim", sprint: "Sprint", kom: "KOM", final: "Finale" };
 const orders: { id: TeamOrder; label: string; key: string }[] = [
   { id: "free", label: "Vrij rijden", key: "5" },
   { id: "bring", label: "Breng me terug", key: "6" },
@@ -131,7 +132,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
   const ticks = race ? timeScale(race.route) : 1;
   useEffect(() => {
     if (!race || paused || race.finished) return;
-    let frame = 0, previous = 0, accumulator = 0;
+    let frame = 0, previous = 0, accumulator = 0, slow = 0, shownSteps = 0, nextSave = 25;
     const animate = (timestamp: number) => {
       const current = engine.current;
       if (!current) return;
@@ -139,10 +140,14 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       if (previous) accumulator += Math.min((timestamp - previous) / 1000, 0.5);
       previous = timestamp;
       let stepped = false;
-      // Time runs compressed: each shown step covers several simulation steps.
+      // Time runs compressed: each shown step covers several simulation steps. Where
+      // the race is decided it runs slower, and stays slow a second after.
       while (accumulator >= STEP_SECONDS && !current.finished) {
-        for (let i = 0; i < ticks && !current.finished; i++) stepRace(current, queue.current.splice(0));
-        accumulator -= STEP_SECONDS; stepped = true;
+        if (momentAt(current)) slow = 1;
+        const steps = slow > 0 ? KEY_SCALE : ticks;
+        slow -= STEP_SECONDS;
+        for (let i = 0; i < steps && !current.finished; i++) stepRace(current, queue.current.splice(0));
+        accumulator -= STEP_SECONDS; stepped = true; shownSteps++;
         const own = current.riders.find((r) => r.rider.id === current.config.playerId);
         // An emptied W′ drops you back into the wheel, except in the sprint itself.
         if (own && own.finishTime === null && own.mode === "attack" && own.wbal < 1 && current.route.length - own.distance > SPRINT_METERS) queue.current.push({ type: "mode", value: "ride" });
@@ -151,7 +156,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       }
       if (stepped) {
         setRace({ ...current, riders: current.riders.map((r) => ({ ...r })) });
-        if (current.tick % (25 * ticks) < ticks) save();
+        if (shownSteps >= nextSave) { save(); nextSave = shownSteps + 25; }
       }
       if (!current.finished) frame = requestAnimationFrame(animate);
     };
@@ -214,7 +219,9 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       if (target.matches("input, select, textarea") || (target.matches("button, a") && event.key === "Enter") || event.ctrlKey || event.metaKey || event.altKey) return;
       const own = engine.current?.riders.find((r) => r.rider.id === data.playerId);
       const picked = modes.find((m) => m.key === event.key);
-      if (picked) command({ type: "mode", value: picked.id });
+      // During an attack, riding along means going with it.
+      const moment = engine.current ? momentAt(engine.current) : null;
+      if (picked) command({ type: "mode", value: picked.id, targetId: picked.id === "ride" && moment?.kind === "attack" ? moment.targetId : undefined });
       const order = engine.current ? ordersFor(engine.current).find((o) => o.key === event.key) : undefined;
       if (order) command({ type: "order", value: order.id });
       if (own && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
@@ -335,6 +342,8 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
   const remaining = Math.max(0, shown.length - me.distance);
   const next = accentAhead(shown, me.distance);
   const sprinting = remaining < SPRINT_METERS;
+  const moment = race && !race.finished ? momentAt(race) : null;
+  const follow = moment?.kind === "attack" ? moment.targetId : undefined;
   const activeMode = active.config.mode;
   const score = activeMode === "ladder" ? teamScore(active) : null;
   const rivalName = activeMode === "ladder" && active.config.squads?.[1] ? teamName(active.config.squads[1].id, "ladder") : "";
@@ -394,7 +403,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
           <button className={styles.glassButton} disabled={busy || race.finished} onClick={() => { if (paused) void start(true); else { setPaused(true); save(); } }} aria-label={paused ? "Hervatten" : "Pauzeren"}>{paused ? <Play size={19} /> : <Pause size={19} />}</button>
         </div>
         <div className={styles.raceNumbers}><div><strong>{place}<small>/{active.riders.length}</small></strong><span>POSITIE</span></div><div><strong>{(me.speed * 3.6).toFixed(0)}<small> km/u</small></strong><span>SNELHEID</span></div><div><strong>{km(remaining)}<small> km</small></strong><span>TE GAAN</span></div>{score && <div data-testid="team-score"><strong>{score[0]}<small> – {score[1]}</small></strong><span>PLOEGEN</span></div>}{zrlOwn && !ttt && <div data-testid="team-score"><strong>{zrlOwn.points}<small> #{zrlOwn.rank}</small></strong><span>PLOEGPUNTEN</span></div>}{ttt && <div data-testid="team-score"><strong>{together}<small>/5</small></strong><span>BIJ ELKAAR</span></div>}{stageInfo && <div data-testid="team-score"><strong>{stageInfo.index + 1}<small>/{stages}</small></strong><span>ETAPPE</span></div>}</div>
-        <div className={styles.conditions}><span><Mountain size={14} />{(gradeAt(shown, me.distance) * 100).toFixed(1)}%</span><span><Zap size={14} />{Math.round(me.effort * 100)}% drempel</span><span className={me.sheltered || me.tucked ? styles.sheltered : undefined}>{road}</span>{next && <span>{/sprint|kom/i.test(next.name) ? next.name : `${next.kind === "sprint" ? "Sprint" : "KOM"} ${next.name}`}{next.start > me.distance ? ` · ${km(next.start - me.distance)} km` : ""}</span>}<span>{clock(active.tick * STEP_SECONDS)}</span>{me.active && <span className={styles.boost}>{powerups[me.active.id].icon}{powerups[me.active.id].label} {Math.ceil(me.active.left)}s</span>}</div>
+        <div className={styles.conditions}><span><Mountain size={14} />{(gradeAt(shown, me.distance) * 100).toFixed(1)}%</span><span><Zap size={14} />{Math.round(me.effort * 100)}% drempel</span><span className={me.sheltered || me.tucked ? styles.sheltered : undefined}>{road}</span>{next && <span>{/sprint|kom/i.test(next.name) ? next.name : `${next.kind === "sprint" ? "Sprint" : "KOM"} ${next.name}`}{next.start > me.distance ? ` · ${km(next.start - me.distance)} km` : ""}</span>}<span>{clock(active.tick * STEP_SECONDS)}</span>{moment && <span className={styles.moment} data-testid="moment"><Timer size={14} />{moments[moment.kind]}</span>}{me.active && <span className={styles.boost}>{powerups[me.active.id].icon}{powerups[me.active.id].label} {Math.ceil(me.active.left)}s</span>}</div>
         <ol className={styles.groups} aria-label="Groepen">
           {finishedCount > 0 && <li><Flag size={12} />{finishedCount}</li>}
           {groups.map((group, i) => {
@@ -434,7 +443,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
       <div className={styles.dashboard}>
         <section className={styles.controls} aria-label="Rennerbediening">
           <div className={styles.resources}><Meter label="W′" value={me.wbal} max={me.wprime} icon={<Zap size={15} />} /><Meter label="Frisheid" value={freshness} max={100} icon={<Leaf size={15} />} /></div>
-          <div className={styles.modes} role="group" aria-label="Rijstand">{modes.map((m) => <button key={m.id} data-mode={m.id} disabled={!canDrive} aria-pressed={me.mode === m.id} onClick={() => command({ type: "mode", value: m.id })}><kbd>{m.key}</kbd>{m.icon}{m.id === "attack" && sprinting ? "Sprinten" : m.label}</button>)}</div>
+          <div className={styles.modes} role="group" aria-label="Rijstand">{modes.map((m) => <button key={m.id} data-mode={m.id} disabled={!canDrive} aria-pressed={me.mode === m.id} onClick={() => command({ type: "mode", value: m.id, targetId: m.id === "ride" ? follow : undefined })}><kbd>{m.key}</kbd>{m.icon}{m.id === "attack" && sprinting ? "Sprinten" : m.id === "ride" && follow ? "Volg" : m.label}</button>)}</div>
           <div className={styles.feedButtons}>
             <button className={styles.powerup} disabled={!canDrive || !me.powerup || Boolean(me.active)} onClick={() => command({ type: "powerup" })} aria-label={me.powerup ? `Powerup ${powerups[me.powerup].label}` : "Geen powerup"}><kbd>Spatie</kbd>{me.active ? <>{powerups[me.active.id].icon}{powerups[me.active.id].label} {Math.ceil(me.active.left)}s</> : me.powerup ? <>{powerups[me.powerup].icon}{powerups[me.powerup].label}</> : "Geen powerup"}</button>
           </div>

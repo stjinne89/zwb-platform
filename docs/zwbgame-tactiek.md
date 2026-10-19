@@ -1,9 +1,10 @@
 # ZWBgame als tactiekspel — onderzoek naar Zwift-racetactiek en bouwvoorstel
 
 Opgesteld op 19 oktober 2026, op vraag van de eigenaar: ZWBgame moet meer een
-tactisch spel worden dat Zwift-tactiek leert. **Status: alleen onderzoek, er is niets
-gebouwd.** De engine is gelezen zoals hij op `main` staat (spelversie 5, zie
-[ZWBgame](zwbgame.md)). Bronnen staan onderaan. Het zijn bijna allemaal
+tactisch spel worden dat Zwift-tactiek leert. **Status: A, B en C zijn dezelfde dag
+gebouwd (spelversie 6, zie [ZWBgame](zwbgame.md#spelversie-6-tactiek-19-oktober-2026));
+D tot en met I zijn nog niet gebouwd.** De diagnose hieronder gaat over spelversie 5,
+zoals die toen op `main` stond. Bronnen staan onderaan. Het zijn bijna allemaal
 praktijkverslagen en tests van Zwift Insider en Zwift zelf. Zwift publiceert zijn
 draftmodel niet, dus elk getal over de slipstream is gemeten door derden.
 
@@ -391,9 +392,16 @@ events toegestaan; in de game per spelvorm aan of uit.
 
 ## Voorstel voor de volgorde
 
-1. **A + B + C** in één ronde, met een nieuwe balanssimulatie vóór en na. Pas als de
-   spreiding tussen tactieken groter is, verder. Spelversie 6: lopende races
-   vervallen, uitslagen blijven.
+1. **A + B + C** in één ronde, met een nieuwe balanssimulatie vóór en na. *Gebouwd
+   op 19 oktober 2026 (spelversie 6). De tacticus wint nu 11 tot 15 plekken op
+   passief meerijden, waar hij eerst één à twee plekken verloor. Afwijkingen van het
+   voorstel hierboven: Meerijden gaat in het wiel tot 105% (in de wind 125%), niet
+   115–120%, omdat 120% in het wiel nog steeds een aanval van 145% bijhoudt;
+   Aanvallen ging van 145 naar 160%; vertraagde tijd is 3× in plaats van 2×, en de
+   gewone tijd loopt sneller (racetijd / 330 s in plaats van / 390 s). Daarbij nodig
+   gebleken: bots die om de beurt op kop gaan en als groep achtervolgen, en een
+   zwaardere beurt op kop in een grote groep. Zonder die twee reed een groep op het
+   tempo van één renner op 82% en hield elke ontsnapping stand.*
 2. **D**, na de keuze over de huisregel.
 3. **G** en de bots uit **H**: zonder bots die tactiek gebruiken, valt er weinig te
    lezen.
@@ -402,10 +410,8 @@ events toegestaan; in de game per spelvorm aan of uit.
 
 ## Vragen voor de eigenaar
 
-1. **Hoeveel automatische piloot?** B maakt de game moeilijker: wie niets doet,
-   lost op de eerste klim. Dat is het punt, maar het verandert het spel voor
-   iedereen die nu gewoon meerijdt. Zo veranderen, of als een stand
-   ("Beginner"/"Racer")?
+1. **Hoeveel automatische piloot?** *Beantwoord op 19 oktober 2026: voor iedereen
+   alleen het tempo volgen, geen aparte stand.*
 2. **Mag de nabespreking (D)** op het scherm staan als feiten zonder uitleg, met de
    betekenis op `/hulp`?
 3. **Plannenboek.** Volgens AGENTS.md horen toekomstplannen in het plannenboek in je

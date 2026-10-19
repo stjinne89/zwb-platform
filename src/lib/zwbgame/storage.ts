@@ -14,7 +14,7 @@ const riderSchema = z.object({
   mode: z.enum(["save", "ride", "front", "attack"]), targetId: id.nullable(), effort: finite.min(0).max(10),
   wbal: finite.min(0).max(60000), wprime: finite.min(1000).max(60000), spent: finite.min(0).max(1000000), sheltered: z.boolean(), tucked: z.boolean(),
   powerup: powerup.nullable(), active: z.object({ id: powerup, left: finite.min(0).max(60) }).nullable(),
-  finishTime: finite.min(0).max(20000).nullable(), attacks: finite.min(0), shelteredSeconds: finite.min(0).max(20000),
+  finishTime: finite.min(0).max(20000).nullable(), attacks: finite.min(0), shelteredSeconds: finite.min(0).max(20000), surge: finite.min(0).max(20000),
   form: finite.min(0.9).max(1.1), job: z.object({ for: id, kind: z.enum(["bring", "leadout", "points"]) }).nullable(),
 });
 const savedSchema = z.object({
@@ -64,7 +64,8 @@ export function restoreRace(json: string, roster: GameRider[], routes: GameRoute
 export const saveKey = (playerId: string) => `zwbgame:v${GAME_VERSION}:${playerId}:race`;
 // Results kept their key across game versions; older entries still show.
 export const resultsKey = (playerId: string) => `zwbgame:v1:${playerId}:results`;
-export const ladderKey = (playerId: string) => `zwbgame:v${GAME_VERSION}:${playerId}:ladder`;
+// The ladder and the tour outlive a game version; only a race in progress does not.
+export const ladderKey = (playerId: string) => `zwbgame:v5:${playerId}:ladder`;
 const LEGACY_COURSES = { polder: "Polderkoers", ardennen: "Ardennenjacht", heuvelrug: "Heuvelrug", alpen: "Alpenfinale" } as const;
 const resultSchema = z.union([
   z.object({
@@ -89,7 +90,7 @@ export function readLadder(json: string | null): LadderStanding | null {
     return parsed.order.includes(OWN_TEAM) ? parsed : null;
   } catch { return null; }
 }
-export const tourKey = (playerId: string) => `zwbgame:v${GAME_VERSION}:${playerId}:tour`;
+export const tourKey = (playerId: string) => `zwbgame:v5:${playerId}:tour`;
 const points = z.array(finite.min(0).max(100000)).max(24);
 const tourSchema = z.object({
   version: z.literal(1), seed: z.number().int(), field: z.array(id).min(1).max(24),

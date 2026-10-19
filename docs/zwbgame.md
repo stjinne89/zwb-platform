@@ -1,6 +1,9 @@
 # ZWBgame — Zwift-racegame, implementatie en verificatie
 
-Sinds 28 september 2026 (spelversie 4) is ZWBgame een Zwift-racegame op `/zwbgame`:
+Sinds 28 september 2026 (spelversie 4) is ZWBgame een Zwift-racegame op `/zwbgame`.
+Spelversie 6 (19 oktober 2026) maakt hem tactischer: slipstream volgens Pack Dynamics
+4.1, Meerijden dat geen aanvallen meer volgt, en vertraagde tijd waar de koers beslist
+wordt (zie "Spelversie 6" hieronder). ZWBgame
 het leert het tactische deel van Zwift-racen in de spelvormen die ZWB rijdt. Deze
 ronde bouwt de Zwift-engine, echte Zwift-routes en de Club Ladder; ZRL en FRR-tours
 volgen op dezelfde engine (bouwplan: [ZRL en FRR](zwbgame-zrl-frr.md)). ZRL is
@@ -23,6 +26,18 @@ vervangende serveracties en drie fixture-routes (`tests/fixtures/zwbgame/routes.
 Flat Route, Hilly Route en Cobbled Climbs, met lengtes, lead-ins en segmenten uit
 `zwift-data`, maar **met de hand benaderde hoogteprofielen**). Hij luistert alleen
 op localhost en is geen productieroute of authenticatie-bypass.
+
+Balanssimulatie (sinds 19 oktober 2026 in de repo, `scripts/zwbgame-balance/sim.ts`):
+
+```sh
+SEEDS=12 LEVELS=3 npm run zwbgame:balance
+# ONLY=passief,tacticus  TRACE=1 (groepen per km en finishgaten)
+```
+
+Zes spelersstrategieën (passief, sparen, roekeloos, vol gas, bot, tacticus) rijden
+dezelfde races op de drie fixture-routes, in een veld van 41 fictieve renners rond FTP
+240, 270 en 300. Uitvoer: gemiddelde plek per strategie, grootte van de kopgroep,
+speeltijd en hoeveel daarvan vertraagd liep.
 
 ## Architectuur
 
@@ -47,10 +62,15 @@ op localhost en is geen productieroute of authenticatie-bypass.
 **Physics.** Snelheid volgt uit de vermogensbalans van het pacingplan: luchtweerstand
 met `ZWIFT_BASE_CDA`, rolweerstand 0,004, zwaartekracht en een massa van 75 kg plus
 `ZWIFT_BASE_BIKE_KG`, met traagheid (versnellen kost tijd). In het wiel geldt
-`DRAFT_CDA_FACTOR` 0,7 (**aanname** uit de pacing-spike: Zwift publiceert zijn
-draftmodel niet). Beschut ben je met een renner 0,3–8 m voor je en minder dan 1,8 m
-opzij (de "blob"). Omdat het via luchtweerstand loopt, helpt het wiel op een klim
-vanzelf nauwelijks.
+een besparing op de CdA die afhangt van je plek in de rij: 27% als tweede, 36% als
+derde, 43% vanaf vierde (Zwift Insider mat met Pack Dynamics 4.1.1 24, 32 en 39%
+minder vermogen; dat is de **aanname**, want Zwift publiceert zijn draftmodel niet).
+Volle beschutting tot 5 m achter een wiel, daarna aflopend tot 10 m achter één
+renner en 18 m achter een groep. Minder dan 1,8 m opzij. Wie minder dan 1 m achter
+een renner zit die zelf in de wind rijdt, zit ook in de wind (PD 4.1: voorbijgaan
+kost echt vermogen), behalve in de ploegentijdrit. Omdat het via luchtweerstand
+loopt, helpt het wiel op een klim vanzelf nauwelijks. Het pacingplan rekent nog met
+`DRAFT_CDA_FACTOR` 0,7; de game niet meer.
 
 **Privacy van de physics.** Elke renner is hetzelfde referentielichaam. Zijn vermogen
 is 250 W × coëfficiënt^2,5 (vlak mengt naar klim tussen 0 en 8% helling) × dagvorm ×
@@ -58,15 +78,25 @@ is 250 W × coëfficiënt^2,5 (vlak mengt naar klim tussen 0 en 8% helling) × d
 coëfficiënten. De exponent 2,5 rekt de samengedrukte coëfficiënten terug: 180 W tegen
 330 W wordt ×1,5 in vermogen (echt ×1,83) in plaats van ×1,18.
 
-**Standen.** Meerijden trapt minstens 82% van de drempel (op een klim oplopend tot
-97%), volgt versnellingen tot 160% en springt over een renner die een gat laat vallen
-naar het wiel ervoor. In het wiel is 82% sneller dan het wiel zelf, dus renners
-schuiven door het blok en een groep rijdt sneller dan een solist: het blob-effect.
-Sparen trapt alleen wat nodig is om het wiel te houden, tot 110%, en zakt naar
-achteren. Naar voren rijdt 100% in de wind (130% in de eerste 90 s: de Zwift-start).
-Aanvallen is 145%, in de laatste 400 m een sprint op 650 W × sprintcoëfficiënt^1,5.
-Een lege W′ laat maximaal 97% toe. Supertuck: Sparen bij ≤ −3% en > 60 km/u geeft
-0 W en CdA ×0,7 (**aanname**; sneller dan meerijden op −6%).
+**Standen (spelversie 6).** Meerijden houdt een wiel binnen 20 m: in het wiel tot
+105% van de drempel (genoeg voor elke tempowissel, niet voor een aanval), een gat in
+de wind dichten tot 125%. Net over de top van een klim (de 100 m ervoor ≥ 3%, nu en
+straks < 1,5%) maximaal 100%, zodat er een gat valt als je niets doet. Zonder wiel
+binnen 20 m rijdt Meerijden 82% (op een klim tot 97%). Een gekozen wiel (een renner
+aangeklikt, Volg tijdens een aanval, of een ploeggenoot die je terugbrengt of
+afzet) volgt tot 60 m en 160%. In het wiel trapt Meerijden geen minimum meer: het
+blok schuift niet vanzelf door. Sparen houdt het wiel tot 100%. Naar voren rijdt
+100% in de wind, met een groep achter je tot 115% (een beurt op kop: +2,5% per renner
+in je groep, tot zes), en 130% in de eerste 90 s (de Zwift-start). Aanvallen is 160%,
+in de laatste 400 m een sprint op 650 W × sprintcoëfficiënt^1,5. Een lege W′ laat
+maximaal 97% toe. Supertuck: Sparen bij ≤ −3% en > 60 km/u, alleen buiten het wiel,
+geeft 0 W en CdA ×0,7 (**aanname**; sneller dan meerijden op −6%).
+
+**Zichtbare aanval.** Wie ≥ 130% rijdt en niet in het wiel zit, telt als aanvaller
+(`surge`, seconden). Een aanval vanuit het wiel is dus pas zichtbaar als je eruit
+komt: de slingshot. Bots zien hem na 1 s + 0,08 s per meter afstand + 0–2 s
+(per renner); daarna gaat een bot mee met een kans uit zijn karakter, zijn reserve
+en hoe sterk de aanvaller is. Een ploeggenoot wordt niet gevolgd.
 
 **W′ en frisheid.** W′ = 20 kJ × sprintcoëfficiënt², met herstel volgens Skiba via
 `recoveryTau` uit het pacingplan. Frisheid: elke volle W′ die je gebruikt kost 4%
@@ -81,17 +111,25 @@ effecten uit `POWERUP_EFFECTS`: veer −10% gewicht 30 s, aerohelm −25% CdA 15
 gearmashers.com).
 Zelf gedetecteerde klimmen (`klim-…`) krijgen geen boog. De spatiebalk gebruikt hem.
 
-**Tijd.** De client draait per 0,2 s beeldtijd `timeScale` simulatiestappen
-(verwachte racetijd / 390 s, naar boven afgerond, tussen 2 en 14), zodat een race van
-ruim 30 minuten in 5 tot 6,5 minuut speelt. Na je finish rekent de client de rest van
+**Tijd (spelversie 6).** De client draait per 0,2 s beeldtijd `timeScale`
+simulatiestappen (verwachte racetijd / 330 s, naar boven afgerond, tussen 3 en 16).
+Op een beslismoment (`momentAt`: de start, een zichtbare aanval binnen 60 m in de
+eerste 8 s, een gat van 6–40 m terwijl je meerijdt of spaart, de top of voet van een
+klim, de aanloop van een sprint of de laatste 250 m van een KOM, de laatste
+kilometer) zijn dat er `KEY_SCALE` = 3, en dat blijft een seconde zo na het moment.
+In de tijdrit en ploegentijdrit vertraagt alleen de laatste kilometer. Een race
+speelt in ongeveer 6 tot 6,5 minuut, waarvan bijna drie vertraagd. Na je finish rekent de client de rest van
 de race in één keer uit, zodat uitslag en ploegscore compleet zijn. Een race stopt na
 1,8× de verwachte duur; wie dan niet binnen is, scoort niets.
 
-**Bots.** Harde start (een deel op kop), daarna meerijden met af en toe een beurt op
-kop; klimmers en punchers vallen soms aan op een klim; zelden een aanval op het vlak;
-een groep op meer dan 60 m halen ze met Naar voren; de finale hangt af van rennerstype
-en seed (sprinter ±230 m, diesel ±1300 m). Veer op de klim, aerohelm in de sprint,
-draft boost bij een gat.
+**Bots.** Harde start (een deel op kop), daarna meerijden met beurten op kop: wie
+bij de eerste drie van een groep van minstens drie zit, gaat naar voren als de kop
+onder 95% rijdt. Een groep jaagt een groep tot 600 m voor zich op; een solist een
+renner tot 250 m. Ze volgen een zichtbare aanval of niet (zie hierboven), schuiven
+voor een klim naar voren, en klimmers of aanvallende renners trappen door over de
+top. Klimmers en punchers vallen soms aan op een klim; zelden een aanval op het vlak;
+de finale hangt af van rennerstype en seed (sprinter ±230 m, diesel ±1300 m). Veer op
+de klim, aerohelm in de sprint, draft boost bij een gat.
 
 **Club Ladder** (race book gelezen op 28 september 2026, clubladder.notion.site):
 5 tegen 5, punten 10‥1 op finishplek, hoogste totaal wint, gelijkspel is verlies voor
@@ -224,6 +262,51 @@ beperken het tonen van afgeleide gegevens aan anderen en noemen virtuele races
 dit daarom uit; de eigenaar koos op 17 september 2026 voor automatische kwaliteiten
 voor iedereen. Niet uitgezocht of Intervals Strava-activiteiten in de curve via zijn
 API meeneemt.
+
+## Spelversie 6: tactiek (19 oktober 2026)
+
+Waarom en het onderzoek: [Tactiek](zwbgame-tactiek.md), modules A, B en C. Lopende
+races van versie 5 vervallen; uitslagen, de ladder en de tourstand blijven (hun
+opslagsleutels staan nu vast op `v5`).
+
+**Balans, voor en na** (`npm run zwbgame:balance`, 12 seeds × 3 routes per cel,
+gemiddelde plek van 24; hetzelfde simulatiescript op beide engines):
+
+| Strategie | FTP 240 voor → na | FTP 270 voor → na | FTP 300 voor → na |
+| --- | --- | --- | --- |
+| Passief (meerijden, sprint op 300 m) | 10,1 → 18,9 | 7,6 → 16,0 | 6,5 → 17,1 |
+| Sparen | 23,5 → 21,8 | 23,6 → 20,0 | 23,3 → 19,7 |
+| Roekeloos (aanvallen bij W′ > 60%) | 11,5 → 12,0 | 9,8 → 9,7 | 9,8 → 8,7 |
+| Vol gas (steeds Naar voren) | 20,2 → 14,5 | 17,8 → 13,3 | 17,0 → 13,4 |
+| Bot (de botstrategie) | 14,4 → 15,1 | 11,4 → 13,1 | 9,3 → 9,5 |
+| Tacticus | 12,3 → 8,3 | 9,4 → 4,1 | 8,4 → 2,3 |
+
+De tacticus rijdt wat het onderzoek als goed Zwift-racen beschrijft: hard starten,
+een groep binnen 200 m meteen achterna, een aanval in de groep volgen, voor een klim
+naar voren, over de top doortrappen, anders sparen in het wiel en laat sprinten met
+de aerohelm. Voorheen was passief meerijden de beste strategie en verloor de tacticus
+daar één à twee plekken op; nu wint hij 11 tot 15 plekken op passief. De kopgroep bij
+de finish (finishers minder dan 1,5 s uit elkaar) bleef even groot: gemiddeld 4,3
+tegen 4,1 renners bij FTP 270. Speeltijd gemiddeld 6,1–6,6 minuut, hooguit 7,4
+(was 4,9–5,3).
+
+**Kanttekeningen.** De tacticus ziet in de simulatie de inspanning van andere renners
+direct; een speler ziet alleen het label "Aanval" en de knop Volg. Echte spelers
+halen dit verschil dus niet helemaal. Dat de tacticus bij FTP 300 gemiddeld 2,3e
+wordt, zegt ook dat de bots nog weinig tactiek rijden (module H). Passief meerijden
+is nu een strategie voor de achterste helft: dat is de bedoeling, maar wie de game
+zonder uitleg speelt, merkt het meteen.
+
+**Verificatie.** Unit-tests (+6): meer beschutting dieper in de rij en geen op 12 m
+achter één renner, naast de kop in de wind, Meerijden volgt tempo maar geen aanval
+(wel met een gekozen wiel), geen supertuck in het wiel, beslismomenten met de
+aanvaller om te volgen, opslagsleutels van ladder en tour blijven. De speeltijdtest
+rekent nu met de vertraagde momenten. Playwright: alle 20 groen. Met een headless
+browser een vrije race gespeeld: de labels "Start", "Sprint", "Aanval" met de knop
+"Volg", en "Finale" verschenen; op een telefoon stond het label eerst tegen de rand
+en staat het nu op een eigen regel. **Niet gedaan:** met de hand spelen, op een
+telefoon of op de echte routebibliotheek. Of het speelgevoel klopt, moet de eigenaar
+beoordelen.
 
 ## Verificatie FRR (28 september 2026)
 

@@ -15,6 +15,7 @@
     "test:e2e:headed": "node scripts/run-e2e.mjs --headed",
     "test:e2e:ui": "node scripts/run-e2e.mjs --ui",
     "zwbgame:preview": "node scripts/zwbgame-preview.mjs",
+    "zwbgame:balance": "node scripts/zwbgame-balance.mjs",
     "test:zwbgame:browser": "playwright test -c playwright.zwbgame.config.ts"
   },
   "dependencies": {
