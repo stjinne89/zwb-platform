@@ -16,7 +16,7 @@ import {
   newMailCode,
 } from "@/lib/live/inbound-mail";
 import { rateLimitHit } from "@/lib/rate-limit";
-import { deliverRideMessage } from "@/lib/ride-messages/deliver";
+import { deliverRideMessage, TEST_RIDE_MESSAGE } from "@/lib/ride-messages/deliver";
 import {
   hashLinkToken,
   LINK_TOKEN_TTL_MS,
@@ -286,6 +286,28 @@ export async function removeTelegramLink() {
   revalidatePath("/live");
   revalidatePath("/samen-fietsen");
   return { ok: true as const };
+}
+
+/** Testbericht naar de eigen fietscomputer, om de eigen instellingen na te lopen. */
+export async function sendTestRideMessage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Niet ingelogd." };
+
+  if (!(await rateLimitHit("ride_message_test", user.id, 3, 600)).allowed) {
+    return { ok: false as const, error: "Te veel testberichten. Wacht even." };
+  }
+
+  const { reached } = await deliverRideMessage(createAdminClient(), {
+    recipientIds: [user.id],
+    senderName: "ZWB",
+    body: TEST_RIDE_MESSAGE,
+    url: "/samen-fietsen",
+    tag: `ride-test-${user.id}`,
+  });
+  return { ok: true as const, reached };
 }
 
 const LIVE_STALE_MS = 15 * 60 * 1000;

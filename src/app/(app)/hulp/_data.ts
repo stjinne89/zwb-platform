@@ -320,6 +320,7 @@ export const LIVETRACK_NOTES = [
 export const RIDE_MESSAGE_GARMIN_STEPS = [
   "Zet op je profiel de ZWB-meldingen aan op je telefoon en vink Bericht op mijn fietscomputer aan. Op een iPhone werkt dat alleen als ZWB als app op je beginscherm staat.",
   "Zet in Garmin Connect de meldingen van je telefoon aan voor je Edge of horloge. Op Android kies je daar per app; vink ZWB of je browser aan.",
+  "Test het met Testbericht op Samen fietsen.",
 ];
 
 export const RIDE_MESSAGE_WAHOO_STEPS = [
@@ -332,6 +333,7 @@ export const RIDE_MESSAGE_NOTES = [
   "De maker van een event stuurt een bericht vanuit de livechat; elk lid kan op Samen fietsen een bericht sturen aan iemand die live rijdt.",
   "Berichten zijn één regel van hoogstens 160 tekens.",
   "Hangt er ook een smartwatch aan je telefoon, dan krijgt de ELEMNT de melding soms niet.",
+  "Met Testbericht op Samen fietsen stuur je jezelf een bericht, om te zien of het op je fietscomputer verschijnt.",
   "Stoppen kan met Ontkoppelen op Samen fietsen, of met /stop in Telegram. Het vinkje op je profiel zet beide kanalen uit.",
 ];
 

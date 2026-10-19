@@ -12,6 +12,7 @@ import {
 import { LiveTrackPanel } from "./_components/livetrack-panel";
 import { StopLiveButton } from "./_components/stop-button";
 import { TelegramPanel } from "./_components/telegram-panel";
+import { TestMessagePanel } from "./_components/test-message-panel";
 import type { ActiveSession, RiderStats } from "./types";
 
 export const dynamic = "force-dynamic";
@@ -208,6 +209,7 @@ export default async function LivePage() {
             </section>
           )}
           {mailPanel}
+          <TestMessagePanel />
           {telegramConfig() && <TelegramPanel linked={Boolean(telegramLink?.chat_id)} />}
           <OwnTracksPanel tokenStatus={trackerStatus} />
         </div>
