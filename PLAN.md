@@ -10568,8 +10568,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — voorZpWelBokaal: de seizoenskalender in één klik
 
-**2026-10-19.** Deze commit, op branch `claude/voorzpwelbokaal-rebuild-fe8ea6`.
-Geen migratie. **Niet gepusht.**
+**2026-10-19.** Commit `d4ced4db`. Geen migratie. **Gepusht naar `main` op
+2026-10-19.**
 
 **Waarom.** De eigenaar vroeg of de wedstrijden uit het voorstel (Wereldbeker,
 Superprestige, HG Cross en de kampioenschappen) vanzelf in de lijst kunnen
