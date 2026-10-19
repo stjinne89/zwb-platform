@@ -10568,6 +10568,45 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBgame 3D-scène, stap 2: de renners
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe
+spelversie. Niet gepusht.
+
+**Waarom.** Stap 2 van de vier (zie stap 1 hieronder). De oude renner bestond uit een
+blok als romp, een bol als helm en één staafje per been dat heen en weer zwaaide,
+zonder hoofd, onderbenen of schoenen. Daardoor oogde het peloton als speelgoed.
+
+**Wat er is** (nieuw: `src/app/(app)/zwbgame/rider-model.ts`).
+- *Lichaam:* romp als capsule met het clubshirt, nek, hoofd met helm, mouwen en
+  onderarmen naar de remgrepen, bibshort, onderbenen en witte schoenen. Vijf
+  huidtinten, vast per renner.
+- *Trappen:* elk been is een dijbeen en een onderbeen dat de pedaalas volgt, met de
+  knie die rekenkundig meebuigt. De cadans loopt op echte tijd (ongeveer 80–100 rpm
+  volgens de inspanning), dus versneld afspelen laat de benen niet als een tekenfilm
+  draaien. Wie bijna niets trapt, de finish voorbij is of in de afdaling ineengedoken
+  zit, freewheelt.
+- *Houding:* `tucked` (afdaling) brengt de renner plat op de onderkant van het stuur.
+  Zichtbaar aanvallen of sprinten (`surge` en meer dan 120% inspanning) zet hem op de
+  pedalen, met de fiets die heen en weer wiegt. De overgangen lopen vloeiend.
+- *Fiets:* frame met boven-, onder-, zit- en balhoofdbuis, achtervork, voorvork,
+  stuur met beugels, zadel, kettingblad, draaiende cranks en diepe carbonvelgen. Het
+  frame krijgt de helmkleur van de ploeg (eigen ploeg petrol), zodat ploegen ook van
+  ver uit elkaar te houden zijn. De fiets is één samengevoegde geometrie: het peloton
+  kost 17 draw calls, ongeacht het aantal renners.
+- Test `tests/unit/zwbgame-rider-model.test.ts`: in alle drie de houdingen blijven
+  beide voeten de hele omwenteling op de pedalen en houden de ledematen hun lengte.
+
+**Bewust niet gedaan.** Geen ingeladen 3D-model met skelet (glTF): dat vraagt een
+licentie of eigen modelwerk, een groter bestand en een loader, terwijl een
+gestileerde renner uit primitieven bij de rest van de scène past. Geen draaiende
+spaken: op 40 km/u geeft dat bij 60 beelden per seconde een wagenwieleffect, daarom
+dichte velgen.
+
+**Niet lokaal gecontroleerd.** De ineengedoken en staande houding zijn in de test
+doorgerekend, maar niet in een lopende koers op beeld gezien: de demo komt in de
+eerste minuten niet in een afdaling of sprint.
+
 ### Gebouwd — ZWBgame 3D-scène, stap 1: licht, schaduw en lucht
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie, geen nieuwe

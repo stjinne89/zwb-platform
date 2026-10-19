@@ -6,6 +6,7 @@ import { STEP_SECONDS } from "@/lib/zwbgame/engine";
 import { teamTint } from "@/lib/zwbgame/colors";
 import { elevationAt } from "@/lib/zwbgame/routes";
 import type { RaceState } from "@/lib/zwbgame/types";
+import { createPeloton, skinTone } from "./rider-model";
 
 /**
  * raised: controls cover the lower part of the screen, so the picture shifts up.
@@ -142,60 +143,11 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
       const top = new THREE.Mesh(geometry(new THREE.BoxGeometry(10.3, 0.9, 0.3)), material(arch.color)); top.position.y = 5; group.add(top);
       group.traverse((part) => { part.castShadow = true; }); scene.add(group);
     }
-    // Each anatomical/bicycle part is instanced across the peloton: ~14 draws, not 24 × 14.
-    const wheelGeo = geometry(new THREE.TorusGeometry(0.34, 0.045, 5, 14));
-    const bodyGeo = geometry(new THREE.BoxGeometry(0.42, 0.34, 0.65));
-    const helmetGeo = geometry(new THREE.SphereGeometry(0.2, 8, 6));
-    const tubeGeo = geometry(new THREE.CylinderGeometry(0.055, 0.055, 1, 5));
-    // Club jersey: white shoulders, petrol body with slate chevrons, gold collar and cuffs.
-    const jerseyCanvas = document.createElement("canvas");
-    jerseyCanvas.width = 64; jerseyCanvas.height = 128;
-    const paint = jerseyCanvas.getContext("2d");
-    if (paint) {
-      const band = (y: number, color: string) => { paint.fillStyle = color; paint.beginPath(); paint.moveTo(0, y); paint.lineTo(32, y + 18); paint.lineTo(64, y); paint.lineTo(64, 128); paint.lineTo(0, 128); paint.fill(); };
-      paint.fillStyle = "#ffffff"; paint.fillRect(0, 0, 64, 128);
-      band(56, "#6f8f96"); band(68, "#4d767f"); band(80, "#2f6470"); band(92, "#185663"); band(104, "#0b4654");
-      paint.fillStyle = "#c9974a"; paint.fillRect(10, 40, 44, 5);
-      paint.fillStyle = "#0b3a45"; paint.fillRect(0, 64, 5, 64); paint.fillRect(59, 64, 5, 64);
-      paint.fillStyle = "#15191b"; paint.fillRect(0, 120, 64, 8);
-    }
-    const jerseyTexture = new THREE.CanvasTexture(jerseyCanvas);
-    jerseyTexture.colorSpace = THREE.SRGBColorSpace;
-    const kit = new THREE.MeshStandardMaterial({ map: jerseyTexture, roughness: 0.85 }); materials.push(kit);
-    const skin = material("#d7a887"), shorts = material("#15191b"), bikeFrame = material("#e6e9e6"), tyre = material("#1b1f22"), gold = material("#c9974a"), white = material("#f4f5f1"), helmet = material("#ffffff");
-    type Part = { mesh: THREE.InstancedMesh; x: number; y: number; z: number; sx: number; sy: number; sz: number; rx: number; rz: number; pedal?: number };
-    const parts: Part[] = [];
-    const addPart = (g: THREE.BufferGeometry, m: THREE.Material, x: number, y: number, z: number, sx = 1, sy = 1, sz = 1, rx = 0, rz = 0, pedal?: number) => {
-      const mesh = new THREE.InstancedMesh(g, m, riderCount); mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); mesh.frustumCulled = false; mesh.castShadow = true; scene.add(mesh);
-      parts.push({ mesh, x, y, z, sx, sy, sz, rx, rz, pedal });
-    };
-    addPart(wheelGeo, tyre, 0, 0.36, -0.58);
-    addPart(wheelGeo, tyre, 0, 0.36, 0.58);
-    // Torus default normal is Z; rotate the geometry once into bicycle wheel planes.
-    wheelGeo.rotateY(Math.PI / 2);
-    addPart(tubeGeo, bikeFrame, 0, 0.55, 0, 1, 1.2, 1, Math.PI / 2);
-    addPart(tubeGeo, bikeFrame, 0, 0.65, -0.48, 1, 0.65, 1, -0.3);
-    addPart(tubeGeo, bikeFrame, 0, 0.69, 0.18, 1, 0.7, 1, 0.5);
-    addPart(bodyGeo, kit, 0, 1.15, 0.04, 1, 1, 1, 0.3);
-    const kitPart = parts[parts.length - 1];
-    addPart(bodyGeo, gold, 0, 1.3, -0.3, 0.45, 0.14, 0.1, 0.3);
-    addPart(helmetGeo, helmet, 0, 1.43, -0.4, 1, 0.8, 1.2);
-    const helmetPart = parts[parts.length - 1];
-    // Opponents wear their team colour over the club kit.
-    const tint = new THREE.Color();
-    latest.current.state.riders.forEach((r, i) => {
-      kitPart.mesh.setColorAt(i, tint.set(teamTint(r.team).kit));
-      helmetPart.mesh.setColorAt(i, tint.set(teamTint(r.team).helmet));
-    });
-    // Arms run from the shoulder (top) down to the bars; the sleeve covers the top part.
-    const arm = -0.6, along = (t: number) => [Math.cos(arm) * t, Math.sin(arm) * t] as const;
-    for (const side of [-1, 1]) {
-      addPart(tubeGeo, skin, side * 0.2, 1.0, -0.43, 1, 0.42, 1, arm);
-      const [sy, sz] = along(0.13), [cy, cz] = along(0.05);
-      addPart(tubeGeo, white, side * 0.2, 1.0 + sy, -0.43 + sz, 1.6, 0.17, 1.6, arm);
-      addPart(tubeGeo, gold, side * 0.2, 1.0 + cy, -0.43 + cz, 1.65, 0.035, 1.65, arm);
-      addPart(tubeGeo, shorts, side * 0.13, 0.72, 0.14, 1.6, 0.55, 1.6, 0.5, 0, side);
-    }
+    // Riders and bikes: one instanced mesh per part across the whole field.
+    const peloton = createPeloton(scene, riderCount);
+    // Opponents wear their team colour over the club kit; the bike takes the helmet colour.
+    latest.current.state.riders.forEach((r, i) => peloton.dress(i, { ...teamTint(r.team), skin: skinTone(r.rider.id) }));
+    peloton.finishDressing();
     const playerMarker = new THREE.Mesh(geometry(new THREE.RingGeometry(0.8, 0.97, 24)), new THREE.MeshBasicMaterial({ color: "#d2a95f", side: THREE.DoubleSide }));
     materials.push(playerMarker.material); playerMarker.rotation.x = -Math.PI / 2; scene.add(playerMarker);
     const helperMarkers = new THREE.InstancedMesh(geometry(new THREE.RingGeometry(0.6, 0.72, 20)), material("#8fc4cc"), riderCount);
@@ -220,7 +172,9 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
     const sunUp = new THREE.Vector3().crossVectors(SUN, sunRight).normalize();
     const texel = (SHADOW_REACH * 2) / sunlight.shadow.mapSize.x;
     const sunTarget = new THREE.Vector3(), snapped = new THREE.Vector3();
-    const parent = new THREE.Object3D(), local = new THREE.Object3D(), matrix = new THREE.Matrix4();
+    const parent = new THREE.Object3D(), matrix = new THREE.Matrix4();
+    // Per rider: crank angle and how far into a tuck or out of the saddle, eased between steps.
+    const motion = new Map<string, { crank: number; tuck: number; stand: number }>();
     const desiredCamera = new THREE.Vector3(), look = new THREE.Vector3();
     let appliedRaise: boolean | null = null;
     const frameView = () => {
@@ -285,19 +239,26 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
         const position = displayed.get(r.rider.id)!;
         const d = Math.min(position.distance, route.length + 6 + i * 0.1);
         parent.position.set(bend(d) + position.lane, worldY(d), -d);
-        parent.rotation.set(-Math.atan(terrainGrade(d)), -Math.atan((bend(d + 1) - bend(d - 1)) / 2), 0);
+        let m = motion.get(r.rider.id);
+        if (!m) { m = { crank: i * 1.7, tuck: r.tucked ? 1 : 0, stand: 0 }; motion.set(r.rider.id, m); }
+        const ease = 1 - Math.exp(-dt * 5);
+        m.tuck += ((r.tucked ? 1 : 0) - m.tuck) * ease;
+        // Out of the saddle while visibly attacking or sprinting.
+        m.stand += ((r.surge > 0 && r.effort > 1.2 && !r.tucked ? 1 : 0) - m.stand) * ease;
+        // Real-time cadence, so time compression does not make the legs spin like a cartoon.
+        const coasting = r.finishTime !== null || r.effort < 0.25 || m.tuck > 0.6;
+        const rpm = coasting ? 0 : (82 + 14 * Math.min(1.4, r.effort) - 12 * m.stand) * (0.94 + (i % 5) * 0.03);
+        m.crank += dt * rpm * Math.PI / 30;
+        // A standing rider rocks the bike from side to side.
+        parent.rotation.set(-Math.atan(terrainGrade(d)), -Math.atan((bend(d + 1) - bend(d - 1)) / 2), Math.sin(m.crank) * 0.09 * m.stand);
         parent.scale.setScalar(r.rider.id === current.state.config.playerId ? 1.15 : 1);
         parent.updateMatrix();
         const helping = r.team === "own" && r.rider.id !== current.state.config.playerId;
         dummy.position.set(bend(d) + position.lane, worldY(d) + 0.035, -d); dummy.rotation.set(-Math.PI / 2, 0, 0); dummy.scale.setScalar(helping ? 1 : 0); dummy.updateMatrix(); helperMarkers.setMatrixAt(i, dummy.matrix);
         blobs.setMatrixAt(i, matrix.multiplyMatrices(parent.matrix, blobLocal));
-        for (const part of parts) {
-          local.position.set(part.x, part.y, part.z);
-          local.rotation.set(part.rx + (part.pedal ? Math.sin(displayedTick * 0.5 + i) * 0.55 * part.pedal : 0), 0, part.rz);
-          local.scale.set(part.sx, part.sy, part.sz); local.updateMatrix(); matrix.multiplyMatrices(parent.matrix, local.matrix); part.mesh.setMatrixAt(i, matrix);
-        }
+        peloton.place(i, parent.matrix, m.tuck, m.stand, m.crank);
       });
-      for (const part of parts) part.mesh.instanceMatrix.needsUpdate = true;
+      peloton.commit();
       helperMarkers.instanceMatrix.needsUpdate = true; blobs.instanceMatrix.needsUpdate = true;
       playerMarker.position.set(focusX + displayed.get(me.rider.id)!.lane, focusY + 0.04, -focus);
       if (!document.hidden) renderer.render(scene, camera);
@@ -310,7 +271,7 @@ export default function RaceScene({ state, overview, lowQuality, raised = false,
     return () => {
       disposed = true; cancelAnimationFrame(frame); observer.disconnect();
       renderer.domElement.removeEventListener("webglcontextlost", lost);
-      parts.forEach((part) => part.mesh.dispose()); markers.dispose(); trees.dispose(); helperMarkers.dispose(); blobs.dispose(); jerseyTexture.dispose(); blobTexture.dispose();
+      peloton.dispose(); markers.dispose(); trees.dispose(); helperMarkers.dispose(); blobs.dispose(); blobTexture.dispose();
       geometries.forEach((g) => g.dispose()); materials.forEach((m) => m.dispose());
       renderer.dispose(); renderer.domElement.remove();
     };

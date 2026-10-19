@@ -58,7 +58,9 @@ speeltijd en hoeveel daarvan vertraagd liep.
   bediening) en de Three.js-scène met sprint- en KOM-bogen, rondestreep en een warme
   tint voor de tegenstanders. Sinds 19 oktober 2026 met een zon die schaduwen werpt
   (alleen in "3D · hoog"), een contactschaduw onder elke fiets, een luchtkoepel met
-  verloop en Neutral tone mapping.
+  verloop en Neutral tone mapping. De renners en fietsen staan in `rider-model.ts`:
+  benen die de pedalen volgen, een ineengedoken houding in de afdaling, op de pedalen
+  bij een aanval, en een frame in de helmkleur van de ploeg.
 
 ## Spelregels en model
 
