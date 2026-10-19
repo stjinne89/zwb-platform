@@ -332,6 +332,7 @@ export const RIDE_MESSAGE_NOTES = [
   "De maker van een event stuurt een bericht vanuit de livechat; elk lid kan op Samen fietsen een bericht sturen aan iemand die live rijdt.",
   "Berichten zijn één regel van hoogstens 160 tekens.",
   "Hangt er ook een smartwatch aan je telefoon, dan krijgt de ELEMNT de melding soms niet.",
+  "Met Testbericht op Samen fietsen stuur je jezelf een bericht, om te zien of het op je fietscomputer verschijnt.",
   "Stoppen kan met Ontkoppelen op Samen fietsen, of met /stop in Telegram. Het vinkje op je profiel zet beide kanalen uit.",
 ];
 

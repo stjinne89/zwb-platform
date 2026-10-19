@@ -227,6 +227,37 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
+> **Testbericht naar de eigen fietscomputer, 2026-10-19 — gebouwd; unit-test (nieuw: `ride-message-test-action`), typecheck en lint schoon; niet in de browser bekeken; geen echt bericht verstuurd; lokaal gecommit, niet gepusht. Geen migratie.**
+> Commit: de commit die dit blok toevoegt, op `claude/vigorous-babbage-ef23db`.
+>
+> **Waarom.** Een bericht aan jezelf kan bewust niet (ronde hieronder), dus een
+> lid kon de eigen telefoon-, Garmin- en Wahoo-instellingen niet testen. De
+> eigenaar kon dat alleen door de verzendcode met de hand tegen productie te
+> draaien.
+>
+> **Wat.** In het paneel "Berichten via Telegram" op Samen fietsen staat, alleen
+> voor wie gekoppeld is, de knop "Testbericht". De server-actie
+> `sendTestRideMessage` (`src/app/(app)/live/_actions.ts`) roept
+> `deliverRideMessage` aan met alleen het eigen profiel als ontvanger, afzender
+> "ZWB" en de vaste tekst `TEST_RIDE_MESSAGE` (`src/lib/ride-messages/deliver.ts`;
+> een `"use server"`-bestand mag alleen async functies exporteren). Het gaat dus
+> via dezelfde twee kanalen als een echt bericht: push en Telegram, en het
+> vinkje `on_ride_message` geldt ook hier. Rem: 3 per 10 minuten per lid
+> (bucket `ride_message_test`). Daarna toont het paneel "Testbericht verstuurd."
+> (`reached > 0`) of "Niet aangekomen.". Eén regel in
+> `/hulp/live-volgen#ritberichten`.
+>
+> **Bewust niet gebouwd.** Een aparte uitslag per kanaal (push of Telegram):
+> `deliverRideMessage` telt bereikte leden, niet kanalen, en voor een test is
+> "kwam aan of niet" genoeg. De knop staat niet bij wie niet gekoppeld is,
+> hoewel een Garmin-gebruiker ook zonder Telegram de push zou krijgen: het
+> paneel gaat over Telegram, en de knop daar los van zetten vraagt een tweede
+> plek in het scherm.
+>
+> **Niet geverifieerd.** De knop niet in de browser bekeken en geen echt
+> testbericht verstuurd. "Verstuurd" betekent dat de push of de Telegram-API
+> het aannam, niet dat de fietscomputer het toonde.
+
 > **Berichten op de fietscomputer: push voor Garmin, Telegram voor Wahoo, 2026-10-19 — gebouwd; unit-tests (nieuw: `telegram-bot`, `ride-message-recipients`, `ride-messages-migration` op PGlite), typecheck en lint schoon; niet in de browser bekeken; geen echte Telegram-bot of fietscomputer gebruikt; lokaal gecommit (`1e6501c9`), niet gepusht (eigenaar, 2026-10-19). Migratie `0253_ride_messages.sql` op 2026-10-19 via de Supabase-connector op productie toegepast, op verzoek van de eigenaar; daarna nagekeken (kolommen, RLS en de twee policies aanwezig, security-advisor zonder nieuwe melding).**
 > Commit: de commit die dit blok toevoegt, op `claude/wahoo-garmin-direct-messages-598387`.
 >

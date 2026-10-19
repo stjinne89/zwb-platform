@@ -1,15 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowUpRight, Send, ShieldOff } from "lucide-react";
+import { ArrowUpRight, BellRing, Send, ShieldOff } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 
-import { createTelegramLink, removeTelegramLink } from "../_actions";
+import { createTelegramLink, removeTelegramLink, sendTestRideMessage } from "../_actions";
 
 export function TelegramPanel({ linked }: { linked: boolean }) {
   const [pending, startTransition] = useTransition();
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<string | null>(null);
 
   function link() {
     setError(null);
@@ -23,8 +24,22 @@ export function TelegramPanel({ linked }: { linked: boolean }) {
     });
   }
 
+  function sendTest() {
+    setError(null);
+    setTestResult(null);
+    startTransition(async () => {
+      const res = await sendTestRideMessage();
+      if (!res.ok) {
+        setError(res.error ?? "Versturen mislukt.");
+        return;
+      }
+      setTestResult(res.reached > 0 ? "Testbericht verstuurd." : "Niet aangekomen.");
+    });
+  }
+
   function unlink() {
     setError(null);
+    setTestResult(null);
     startTransition(async () => {
       const res = await removeTelegramLink();
       if (!res.ok) setError(res.error ?? "Ontkoppelen mislukt.");
@@ -53,12 +68,19 @@ export function TelegramPanel({ linked }: { linked: boolean }) {
           </Button>
         )}
         {linked && (
+          <Button type="button" variant="outline" onClick={sendTest} disabled={pending}>
+            <BellRing className="size-4" />
+            Testbericht
+          </Button>
+        )}
+        {linked && (
           <Button type="button" variant="outline" onClick={unlink} disabled={pending}>
             <ShieldOff className="size-4" />
             Ontkoppelen
           </Button>
         )}
       </div>
+      {testResult && <p className="text-sm">{testResult}</p>}
       {error && <p className="text-sm text-destructive">{error}</p>}
     </section>
   );
