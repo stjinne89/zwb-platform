@@ -4995,6 +4995,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - Niets koppelen bij twijfel: geen divisie, geen of meer dan één passend event,
 >   of de eigen subgroep ontbreekt. De race blijft dan leeg en `zrlLinks.notes`
 >   noemt een team zonder divisie.
+>   *(Sinds 2026-10-20 beslist bij meer dan één passend event de startlijst; zie
+>   de ronde "ZRL-koppeling bij een dubbel WTRL-event" in het chronologische
+>   werkplan.)*
 > - De categorie komt uit de divisie, niet uit de teamnaam zoals bij "Ophalen":
 >   de divisie is wat WTRL zelf opgeeft.
 > - Geen knop of melding in beheer; de uitkomst staat alleen in het antwoord van
@@ -11259,6 +11262,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — ZRL-koppeling bij een dubbel WTRL-event
+
+**2026-10-20.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Waarom.** Op de racedag van 20 oktober had Zwiftladies B geen route, live stand
+of briefing; de andere teams wel. WTRL had elke Mint-divisie twee keer op Zwift
+gezet, Women's Mint Division 1 als `5747077` en `5747086`. De automatische
+koppeling eist precies één passend event en liet de race leeg. Met het
+serviceaccount nagekeken: in `5747077` groep B 54 inschrijvers, waarvan 5 van
+ons; in `5747086` niemand, in geen enkele groep. Achteraf koppelen ging ook niet
+meer vanzelf: de koppeling kijkt alleen naar races die nog moeten beginnen.
+
+**Hersteld op productie.** De teamrace van vanavond met de hand aan `5747077`
+gekoppeld (via de Supabase-connector, op verzoek van de eigenaar, rond 19:35 tijdens
+de race): Zwift-ID, start van groep B (19:16), route, ronde, afstand en
+hoogtemeters, regels, tags, locatie en cover zoals bij Zwiftladies C.
+
+**Wat.** `zrlEventMatches` geeft alle passende events. Zijn dat er meer dan één,
+dan leest `linkZrlEvents` met het serviceaccount de startlijst van de eigen
+subgroep in elk event, en koppelt alleen het ene event met eigen renners
+(WTRL-renners en teamleden). Twee events met eigen renners, of geen: niets, met
+een notitie in `zrlLinks.notes`. Een startlijst die niet laadt telt als nul, dus
+hooguit geen koppeling, nooit een verkeerde.
+
+**Bewust niet.** Een vuistregel op de vorm van het lege event (daar start groep E
+eerst en mist die tags): niets zegt dat WTRL dat volgende keer zo doet. En geen
+koppeling van races die al begonnen zijn: dan is plakken door de beheerder
+veiliger dan stil achteraf invullen.
+
+**Gecontroleerd.** `tests/unit/zrl-event-link.test.ts` (nu 8 cases, met een
+nagemaakt leeg dubbel event), `tsc` (alleen de bekende ontbrekende
+`modern-screenshot` in deze worktree), ESLint. **Niet geverifieerd:** de keus in
+de uurlijkse cron op productie; die zie je bij het volgende dubbele event aan
+`zrlLinks.linked`. Inschrijven gebeurt vaak pas op de racedag, dus zo'n race
+koppelt mogelijk pas uren voor de start.
 
 ### Gebouwd — Racebriefje aanpassen per race
 
