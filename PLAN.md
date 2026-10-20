@@ -72,6 +72,12 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **Boodschappenlijst met gezin:** `0259_nutrition_household.sql` is
+     **niet toegepast**. Tot dan werkt Boodschappen voor de renner alleen en
+     geeft opslaan van een ingevuld gezin op het profiel een foutmelding; een
+     leeg gezin blokkeert niets. Nog goed te keuren: de privacytekst "Gezin" en
+     of dit zonder nieuwe privacyversie kan (ronde 2026-10-20,
+     "Boodschappenlijst").
    - **Q&A (vragen over de app):** `0254_member_questions.sql` is op
      2026-10-20 door de eigenaar zelf in de SQL-editor gedraaid (twee pogingen
      via de Supabase-connector liepen vast op een time-out en `cancelled`, zonder
@@ -11385,6 +11391,97 @@ naast het oude.
 `intervals-ride-sync` faalden alleen onder volle belasting en slagen los.
 *Niet geverifieerd:* het formulier in de browser en een echte wijziging of
 verwijdering op productie (vraagt een ingelogde sessie).
+
+### Gebouwd — Boodschappenlijst: menu voor meerdere dagen, met gezin
+
+**2026-10-20.** Commit: de commit die dit blok toevoegt. Migratie
+`0259_nutrition_household.sql`, **niet toegepast**. Lokaal gecommit, niet
+gepusht.
+
+**Aanleiding.** Een lid dat vooruit boodschappen doet (druk werk, gezin) vroeg
+of de voedingstips ook voor meerdere dagen te zien zijn, voor een aantal
+personen, en te exporteren naar een lijstje of een supermarkt. Eerst
+onderzocht, daarna gebouwd naar de keuzes van de eigenaar: alleen delen,
+kopiëren en afdrukken; het gezin stelt het lid zelf in (wie eet mee, bij welke
+maaltijden, kinderen met een hele of halve portie) en het staat op het profiel.
+
+**Onderzoek supermarkten (2026-10-20).** Albert Heijn en Jumbo hebben geen
+publieke API. Er is een officiële route voor receptensites via Food Influencers
+United (een commercieel partnerprogramma, voorwaarden niet openbaar). Bij AH
+bestaat een pagina `ah.nl/mijnlijst/add-multiple?p=<id>:<aantal>`, nergens
+gedocumenteerd, die AH-productnummers vraagt. Picnic heeft alleen onofficiële
+API's waarvoor het lid zijn Picnic-login aan ons zou moeten geven. Bring! heeft
+een importknop die schema.org-recepten van een openbare pagina leest; onze
+pagina's zitten achter een login. Daarom: tekst delen en kopiëren (één regel
+per product, werkt met Bring, Google Keep, Herinneringen en WhatsApp) en
+afdrukken.
+
+**Nu.**
+- **Tab Boodschappen** onder Voeding (`/zwbeter-worden/voeding/boodschappen`):
+  vanaf vandaag of morgen, 1 tot 7 dagen, met het dieetfilter. Per dag het menu
+  met "Ander recept"; daarnaast het lijstje, per afdeling in winkelvolgorde.
+  Dagen, start, keuzes en dieet staan alleen in de URL.
+- **Elke dag is het Dagmenu van die dag:** `dayMenu` met die dag als `today`
+  en het schema van die dag (`loadNutritionDayInputs`). Wat je koopt, staat die
+  dag dus ook op je menu, zolang het schema niet verandert en je hier geen
+  ander recept kiest.
+- **Gezin** (`src/lib/nutrition/shopping.ts`): de renner eet zijn portie op maat
+  van de training van die dag; volwassenen en kinderen met een hele portie eten
+  de gewone portie van hetzelfde recept (`basePortion`), een kind met een halve
+  portie de helft. Alleen bij de aangevinkte maaltijden (ontbijt, lunch,
+  tussendoor, diner; standaard diner). Rond de rit en voor het slapen eet
+  alleen de renner.
+- **Profiel, blok Gezin** (`#gezin`): drie aantallen (0–10) en de maaltijden,
+  opgeslagen in `nutrition_profiles` naast de lengte (alleen het lid zelf, RLS
+  uit 0168).
+- **Winkelnamen** (`src/lib/nutrition/shopping-names.ts`): per NEVO-code een
+  naam, afdeling en waar handig een stuksgewicht (eieren, bananen, sneetjes
+  brood, wraps, teentjes knoflook). Alle ingrediënten die op productie in
+  recepten zitten, staan erin (nagekeken via de connector, alleen lezen); een
+  onbekend ingrediënt valt terug op de opgeschoonde NEVO-naam ("Kool bloem-
+  rauw" → "Bloemkool") en de NEVO-groep. Mihoen staat gekookt in NEVO en wordt
+  droog gerekend (een derde).
+- **Afronden naar boven**, op winkelgetallen (5 g, 10 g, 0,1 kg; ml en liter
+  voor melk, sap en olie), en een tiende stuk telt niet als extra stuk.
+- **Voorraad standaard uit:** zout, peper, olie, kruiden, bloem, suiker,
+  honing, boter. Alles is aan of uit te vinken; Delen, Kopiëren en Afdrukken
+  nemen alleen mee wat aan staat. Afdrukken gaat via een onzichtbaar frame,
+  zodat alleen het lijstje op papier komt. De vinkjes worden niet bewaard.
+- **Privacy:** `/privacy` heeft een punt "Gezin"; `src/lib/privacy.ts` noemt
+  het als zesde, voorgestelde uitzondering zonder nieuwe versie (vrijwillig,
+  alleen voor het lid zelf, alleen aantallen). **De eigenaar keurt die tekst en
+  dat besluit nog goed.** De accountexport neemt `nutrition_profiles` al
+  helemaal mee.
+- **Hulp:** `/hulp/kennis#voeding` heeft een blok "Boodschappen voor meerdere
+  dagen".
+
+**Bewust niet.**
+- **Geen koppeling met een supermarkt of Bring** (zie het onderzoek hierboven).
+  Een openbare deellink voor Bring kan later, als er vraag naar is.
+- **Een keuze met "Ander recept" hier wordt niet bewaard**, en het Dagmenu op
+  die dag weet er dus niet van. Bewaren vraagt een tabel met gekozen recepten
+  per dag; eerst kijken of leden dat missen.
+- **Geen aanvulling vanuit Naleving** (`topUpMenu`): dat rekent met wat er
+  vandaag al gegeten is en hoort bij het Dagmenu van vandaag.
+- **Geen tijdelijk ander aantal mee-eters** (logés): pas het gezin op het
+  profiel aan.
+- **Geen leeftijden of namen van gezinsleden**; hele of halve portie is genoeg
+  voor het lijstje.
+
+**Getest.** `tests/unit/nutrition-shopping.test.ts`: gezin uit een rij en
+grenzen, optellen over dagen, gezin alleen bij aangevinkte maaltijden, stuks en
+ml, voorraad, terugvalnaam, winkelvolgorde, één regel per product, hetzelfde
+menu als het Dagmenu per dag, afronden, keuzes in de URL, en dat elk
+ingrediënt uit de seed (0214) een winkelnaam heeft. 0259 draait in
+`tests/unit/nutrition-migration.test.ts` tegen PGlite: standaardwaarden, RLS
+(een ander lid ziet niets) en de checks op aantallen en maaltijden. `tsc`,
+ESLint op de gewijzigde mappen en de unit-suite; daarin faalden
+`omnium-live.test.ts` (mist `.env.local` in de worktree) en vier PGlite-tests
+op een time-out, die los allemaal slaagden.
+
+**Niet lokaal te verifiëren.** 0259 op productie (niet toegepast). De pagina en
+het profielblok zijn niet ingelogd in de browser bekeken; delen op een telefoon
+en afdrukken ook niet.
 
 ### Gebouwd — ZWB Monday Ride vanzelf op de kalender
 

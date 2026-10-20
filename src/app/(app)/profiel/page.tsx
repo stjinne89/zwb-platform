@@ -21,6 +21,7 @@ import type { StravaBikeRow } from "@/lib/strava/bikes";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { ProfileViewToggle } from "./_components/profile-view-toggle";
+import { householdFromRow } from "@/lib/nutrition/shopping";
 import { MemberProfile } from "../leden/[id]/_components/member-profile";
 import { PublicProfile } from "@/app/profielen/[id]/_components/public-profile";
 
@@ -188,9 +189,10 @@ export default async function ProfielPage({
       .eq("profile_id", user.id)
       .order("created_at", { ascending: false }),
     // Lengte staat bewust niet op profiles: die tabel is voor alle leden leesbaar.
+    // Alle kolommen: ook het gezin (0259), en zonder fout zolang die er niet is.
     supabase
       .from("nutrition_profiles")
-      .select("height_cm")
+      .select("*")
       .eq("profile_id", user.id)
       .maybeSingle(),
     supabase
@@ -280,6 +282,7 @@ export default async function ProfielPage({
           ftp_watts: profileRow?.ftp_watts?.toString() ?? "",
           weight_kg: profileRow?.weight_kg?.toString() ?? "",
           height_cm: heightRow?.height_cm?.toString() ?? "",
+          household: householdFromRow(heightRow),
           auto_sync_physique:
             (profileRow as { auto_sync_physique?: boolean | null })?.auto_sync_physique ?? false,
           bio: profileRow?.bio ?? "",

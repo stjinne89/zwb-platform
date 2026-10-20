@@ -6,7 +6,7 @@ import { portionFit, rankRecipes } from "@/lib/nutrition/menu";
 import type { Recipe } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS } from "@/lib/nutrition/targets";
 
-// 0168, 0169, 0213 en 0214 tegen een geïsoleerde PostgreSQL. Zegt niets over de
+// 0168, 0169, 0213, 0214 en 0259 tegen een geïsoleerde PostgreSQL. Zegt niets over de
 // productiedatabase zelf; daar worden migraties met de hand toegepast.
 
 let db: PGlite;
@@ -35,6 +35,7 @@ beforeAll(async () => {
   await db.exec(await migration("0169_nutrition_seed.sql"));
   await db.exec(await migration("0213_nutrition_expansion.sql"));
   await db.exec(await migration("0214_nutrition_seed_v2.sql"));
+  await db.exec(await migration("0259_nutrition_household.sql"));
   await db.exec(
     "grant usage on schema public to authenticated; grant all on all tables in schema public to authenticated;",
   );
@@ -126,6 +127,25 @@ describe("voeding (0168, 0169, 0213, 0214)", () => {
     expect(await as(APPROVED, () => count("select count(*) from nutrition_recipes where slug = 'eigen-1'"))).toBe(1);
     expect(await as(OTHER, () => count("select count(*) from nutrition_recipes where slug = 'eigen-1'"))).toBe(0);
     expect(await as(OTHER, () => count("select count(*) from nutrition_profiles"))).toBe(0);
+  });
+
+  it("bewaart het gezin bij de lengte, met grenzen en alleen bekende maaltijden (0259)", async () => {
+    const { rows } = await db.query<{ household_adults: number; household_moments: string[] }>(
+      `select household_adults, household_moments from nutrition_profiles where profile_id = '${APPROVED}'`,
+    );
+    expect(rows[0]).toEqual({ household_adults: 0, household_moments: ["diner"] });
+    await as(APPROVED, () =>
+      db.query(
+        `update nutrition_profiles set household_adults = 1, household_children_half = 2, household_moments = array['ontbijt','diner'] where profile_id = '${APPROVED}'`,
+      ),
+    );
+    expect(await as(OTHER, () => count("select count(*) from nutrition_profiles where household_adults > 0"))).toBe(0);
+    await expect(
+      db.query(`update nutrition_profiles set household_children_full = 11 where profile_id = '${APPROVED}'`),
+    ).rejects.toThrow(/household_children_full_check/);
+    await expect(
+      db.query(`update nutrition_profiles set household_moments = array['voor_rit'] where profile_id = '${APPROVED}'`),
+    ).rejects.toThrow(/household_moments_check/);
   });
 
   it("laat een gewoon lid geen clubrecept aanmaken of wijzigen", async () => {

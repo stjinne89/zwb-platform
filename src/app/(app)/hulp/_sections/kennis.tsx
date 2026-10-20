@@ -318,6 +318,49 @@ export function KennisHelp() {
           </article>
 
           <article className="rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Boodschappen voor meerdere dagen</h3>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Onder Boodschappen zie je het menu voor één tot zeven dagen
+                  vooruit, vanaf vandaag of morgen. Elke dag is hetzelfde menu
+                  dat het Dagmenu die dag toont, op basis van je schema zoals
+                  het nu staat. Verandert je schema, dan verandert het menu mee.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Een recept dat je hier wisselt, geldt alleen voor dit lijstje.
+                  Op de dag zelf wissel je in het Dagmenu opnieuw.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Bij Gezin op je profiel vul je in wie er mee-eet en bij welke
+                  maaltijden. Volwassenen en kinderen met een hele portie eten
+                  de gewone portie van het recept, een kind met een halve
+                  portie de helft. Jouw eigen portie blijft op maat van je
+                  training. Rond de rit en voor het slapen eet alleen jij.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Hoeveelheden zijn naar boven afgerond, waar het kan in stuks
+                  of sneetjes. Zout, olie, kruiden en ander voorraad staan
+                  standaard uit; vink aan wat je mist. Delen en Kopiëren geven
+                  één regel per product, zodat een lijstjes-app er losse items
+                  van maakt. Een directe koppeling met een supermarkt is er
+                  niet.
+                </span>
+              </li>
+            </ul>
+          </article>
+
+          <article className="rounded-md border bg-background p-4">
             <h3 className="text-sm font-semibold">Labels en delen</h3>
             <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
               <li className="flex gap-2">

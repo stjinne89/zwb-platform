@@ -8,6 +8,7 @@ import { amsterdamDateKey, parseDateKey } from "@/lib/birthdays";
 import { intervalsId, stravaHandle, zwiftId } from "@/lib/profile/ids";
 import { WELLNESS_DEVICES } from "@/lib/training/wellness";
 import { EVENT_INTEREST_OPTIONS } from "@/lib/event-types";
+import { HOUSEHOLD_MAX, HOUSEHOLD_MOMENTS } from "@/lib/nutrition/shopping";
 
 const ZRL_CATS = ["A", "B", "C", "D", "E"] as const;
 const ZRL_DIVISIONS = ["open", "women"] as const;
@@ -205,6 +206,17 @@ export async function updateProfile(formData: FormData) {
   // het opslaan van de rest van het profiel niet blokkeren.
   if (heightError && height !== null) return { ok: false as const, error: heightError.message };
 
+  // Het gezin voor het boodschappenlijstje (0259), in dezelfde tabel.
+  const household = householdFromForm(formData);
+  const { error: householdError } = await supabase
+    .from("nutrition_profiles")
+    .update(household)
+    .eq("profile_id", user.id);
+  // Zolang 0259 er niet is, blokkeert alleen een ingevuld gezin het opslaan.
+  const emptyHousehold =
+    household.household_adults + household.household_children_full + household.household_children_half === 0;
+  if (householdError && !emptyHousehold) return { ok: false as const, error: householdError.message };
+
   // Ander geslacht: de SRC-inschrijving van deze en komende maanden gaat mee
   // naar de heren- of damesrace. Mislukt dat, dan blijft het profiel opgeslagen.
   if ((before?.sex ?? null) !== sex) {
@@ -226,4 +238,19 @@ export async function updateProfile(formData: FormData) {
   revalidatePath(`/leden/${user.id}`);
   revalidatePath(`/profielen/${user.id}`);
   return { ok: true as const };
+}
+
+function householdCount(value: FormDataEntryValue | null): number {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? Math.min(HOUSEHOLD_MAX, Math.max(0, Math.round(parsed))) : 0;
+}
+
+function householdFromForm(formData: FormData) {
+  const moments = HOUSEHOLD_MOMENTS.filter((moment) => formData.get(`household_${moment}`) === "on");
+  return {
+    household_adults: householdCount(formData.get("household_adults")),
+    household_children_full: householdCount(formData.get("household_children_full")),
+    household_children_half: householdCount(formData.get("household_children_half")),
+    household_moments: moments,
+  };
 }

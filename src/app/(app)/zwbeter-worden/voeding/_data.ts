@@ -13,6 +13,7 @@ import type { LoggedMeal } from "@/lib/nutrition/log";
 import { productLabel, type NutritionProduct } from "@/lib/nutrition/products";
 import { RECIPE_PREFS, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
 import { ageFromBirthDate, portionEnergyFactor } from "@/lib/nutrition/targets";
+import { householdFromRow, type Household } from "@/lib/nutrition/shopping";
 
 export { requireViewer, todayKeyAmsterdam } from "../_data";
 export type { Viewer } from "../_data";
@@ -70,6 +71,16 @@ export function energyFactorFor(profile: NutritionProfile): number {
     ageYears: profile.ageYears,
     sex: profile.sex,
   });
+}
+
+/** Wie er meeëet, voor het boodschappenlijstje. Alle kolommen: zo werkt dit ook zolang 0259 er niet is. */
+export async function loadHousehold(viewer: Viewer): Promise<Household> {
+  const { data } = await viewer.supabase
+    .from("nutrition_profiles")
+    .select("*")
+    .eq("profile_id", viewer.user.id)
+    .maybeSingle();
+  return householdFromRow(data);
 }
 
 function normalizeRecipe(row: Recipe): Recipe {

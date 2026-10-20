@@ -194,6 +194,16 @@ export default function PrivacyPage() {
             in het receptenboek wordt niet bewaard.
           </li>
           <li>
+            <strong>Gezin:</strong> vul je op je profiel in wie er mee-eet
+            (aantal volwassenen en kinderen, met een hele of halve portie) en
+            bij welke maaltijden, dan bewaren we die aantallen om je
+            boodschappenlijstje voor meerdere dagen uit te rekenen. Namen,
+            leeftijden of andere gegevens van gezinsleden vragen we niet. Alleen
+            jij ziet dit; het staat niet op je profiel voor andere leden en gaat
+            niet naar je trainer. Het lijstje zelf wordt niet bewaard: delen,
+            kopiëren en afdrukken gebeurt op je eigen apparaat.
+          </li>
+          <li>
             <strong>Eetdagboek (alleen met opt-in):</strong> wat je eet, leggen
             we alleen vast als je Naleving zelf aanzet en daarvoor tekent. We
             bewaren dan per maaltijd de datum, het moment, de producten en de

@@ -48,6 +48,13 @@
  * leest (de club of alleen het bestuur); het stellen is de toestemming (tabel
  * `member_questions`, 0254). `/privacy#qa` beschrijft het. Of dit zonder
  * nieuwe versie mag, is aan de eigenaar (zie PLAN.md, ronde "Q&A").
+ *
+ * **Zesde uitzondering, voorgesteld: het gezin (2026-10-20).** Aantallen
+ * mee-eters (volwassenen, kinderen met een hele of halve portie) en bij welke
+ * maaltijden, voor het boodschappenlijstje (0259, `nutrition_profiles`).
+ * Vrijwillig, alleen zichtbaar voor het lid zelf, geen namen of leeftijden.
+ * `/privacy` beschrijft het onder "Gezin". Of dit zonder nieuwe versie mag, is
+ * aan de eigenaar (zie PLAN.md, ronde "Boodschappenlijst").
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring
