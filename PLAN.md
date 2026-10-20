@@ -10974,8 +10974,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 **2026-10-20.** Commit: de commit die dit blok toevoegt, op de branch
 `claude/training-plan-target-time-8b0cb1` (niet gepusht). Migratie
-`0255_training_goal_target_time.sql` (**nog niet toegepast**; niet lokaal te
-testen, geen Docker/Supabase-config). Voorstel en onderbouwing:
+`0257_training_goal_target_time.sql`, **op 2026-10-20 op productie toegepast**
+via de Supabase-connector en nagekeken (drie kolommen op `training_goals`,
+`training_goal_forecasts` met RLS en alleen een select-policy, index, 0 rijen).
+Eerst als 0255 geschreven; 0255 en 0256 waren al door andere branches
+gebruikt. Voorstel en onderbouwing:
 [doeltijd-trainingsdoel.md](docs/doeltijd-trainingsdoel.md).
 
 **Aanleiding.** Een lid vroeg of het platform een trainingsplan kan bouwen vanuit
@@ -11039,8 +11042,10 @@ nadruk in het schema en een prognose die met de tijd meeloopt.
 - **De GPX zelf niet bewaren**: geen bucket, geen opslagbeleid, geen locatiedata.
 
 **Privacy.** Nieuw opgeslagen: de doeltijd, het hoogteprofiel van een eigen GPX
-en de prognoses. De privacyverklaring is niet aangepast; een zin daarover is aan
-de eigenaar voorgelegd.
+en de prognoses. De privacyverklaring kreeg daarover een punt "Doeltijd bij een
+trainingsdoel" (tekst door de eigenaar goedgekeurd, 2026-10-20). Geen nieuwe
+privacyversie: het gaat om trainingsdata die het lid zelf opgeeft voor het
+schema, en de GPX zelf wordt niet bewaard.
 
 **Getest.** `tests/unit/goal-target-time.test.ts` (19 tests: groei-vuistregel,
 groep sneller dan alleen en geen verschil zonder groep, haalbaar zonder benodigde
@@ -11053,8 +11058,7 @@ groep. Daar scheelt een kilo 71 s en een procent CP 101 s; één prognose kost
 zo'n 50 ms. In de unit-suite faalde `omnium-live.test.ts` (mist `.env.local` in
 deze worktree); `admin-areas`, `intervals-ride-sync` en
 `zwift-subgroup-results` faalden alleen onder volle belasting en slagen los
-gedraaid. *Niet geverifieerd:* de migratie, het formulier en de kaart in de
-browser, een echte GPX-upload en een echte schemageneratie met de nieuwe regel
+gedraaid. *Niet geverifieerd:* het formulier en de kaart in de browser, een echte GPX-upload en een echte schemageneratie met de nieuwe regel
 (kost geld en vraagt een ingelogde sessie).
 
 ### Hersteld — SRC: geslacht in het profiel verplaatst de inschrijving

@@ -297,7 +297,7 @@ export async function createTrainingGoal(formData: FormData) {
     // Een doeltijd hoort bij één rit op één dag en vraagt een parcours: een
     // clubevent met GPX of een eigen GPX, waarvan alleen het hoogteprofiel
     // bewaard blijft. Zonder doeltijd blijven de kolommen uit de insert, zodat
-    // een doel ook zonder migratie 0255 op te slaan is.
+    // een doel ook zonder migratie 0257 op te slaan is.
     const target = TARGET_TIME_GOAL_TYPES.includes(goalType)
       ? await targetTimeFromForm(admin, formData)
       : null;
