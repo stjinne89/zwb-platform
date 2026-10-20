@@ -279,6 +279,59 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
+> **Trainingen dubbel in de kalender na de ritruil, 2026-10-20 — gebouwd; unit-tests (`intervals-ride-sync`, `training-completion`, `reassign-ride`), typecheck en lint schoon; niet gepusht. Geen migratie. Het dataherstel voor Jeroen Janssen staat klaar maar is nog niet uitgevoerd (zie onder).**
+> Commit: de commit die dit blok toevoegt (lokaal, branch `claude/duplicate-trainings-investigation-e18e98`).
+>
+> **Aanleiding.** Een foto van de maandkalender van Jeroen Janssen (oktober):
+> op bijna elke dag van 1 tot 8 oktober stond de geplande training vaag als
+> gemist, met de gereden rit er gestippeld los naast. Op 4 en 6 oktober stond de
+> race bovendien twee keer.
+>
+> **Oorzaak 1: de ritruil liet bevestigde trainingen los.** Op 19 oktober om
+> 11:00 verving de intervals-sync Jeroens CSV-ritten zonder vermogen door de
+> Zwift-ritten met vermogen (ronde "Vermogen bij ritten uit activities.csv").
+> De vervangen ids gingen als verwijderde ritten naar het nawerk;
+> `releaseDeletedRides` maakte de koppeling leeg (rit, cijfers en bevestiging
+> weg, RPE en gevoel bleven staan), en `detectCompletedWorkouts` zou de training
+> aan de vervanger hangen. Die kijkt maar `COMPLETION_WINDOW_DAYS` (7) terug.
+> Alles van vóór 12 oktober bleef dus los: vijf bevestigde en door de trainer
+> goedgekeurde trainingen (1, 3, 4, 6 en 8 oktober). Die van 13 en 15 oktober
+> koppelde Jeroen dezelfde avond zelf opnieuw. Etappe 3 en 4 (5 en 7 oktober)
+> waren nooit gekoppeld geweest.
+>
+> **Fix.** `moveReplacedRidePairings` (`training/completion.ts`) verhuist de
+> koppeling van de oude naar de nieuwe rit, vóór de oude rit wordt verwijderd.
+> Bevestiging, RPE, gevoel en het oordeel van de trainer blijven; de cijfers
+> worden opnieuw uitgerekend (nu mét vermogen), met CTL, gereedscore, gewicht en
+> zonetijden uit de oude momentopname. Dat opbouwen zat al in `relinkRide`; het
+> staat nu in `rebuildSnapshot` en beide gebruiken het. De vervangen ids gaan nog
+> wel als `removedActivityIds` naar het nawerk, voor de coltijden en als vangnet:
+> mislukt het verhuizen, dan laat het nawerk de training los zoals voorheen.
+>
+> **Oorzaak 2: twee toezeggingen onder hetzelfde event.** Op 4 oktober zei
+> Jeroen ja op het tijdslot van 11:30 (3 okt) én later op dat van 19:30 (4 okt);
+> hij reed om 19:30. Op 6 oktober stond zijn eigen ja op Bdev W3 (van 1
+> september) naast de opstelling bij ZRL C die de eigenaar die middag maakte; de
+> rit begon om 18:03, de starttijd van ZRL C. Twee teams in één raceweek is
+> sinds migratie 0184 bewust toegestaan (subteams starten op andere tijden), dus
+> **niet gebouwd:** een regel die een tweede ja onder hetzelfde event weigert of
+> de eerste vervangt. Of een tweede tijdslot bij FRR het eerste moet vervangen,
+> is een keuze van de eigenaar.
+>
+> **Dataherstel (klaar, niet uitgevoerd).** Een eenmalig script koppelt de zeven
+> ritten van 1–8 oktober aan de juiste training, met dezelfde
+> `buildMetricsSnapshot` als de app: de race van 3 oktober in plaats van de
+> duurrit die er stond toen de race nog niet in het schema stond, het tijdslot
+> van 19:30 op 4 oktober, en ZRL C op 6 oktober. RPE, gevoel en
+> trainersoordeel gaan mee; de gereedscore van die dagen is niet terug te halen
+> en blijft leeg. De proefrun (alleen lezen) gaf de verwachte koppelingen; het
+> schrijven naar productie werd door de rechtencontrole tegengehouden en wacht
+> op de eigenaar. Daarna blijven de duurrit van 3 oktober en de ongebruikte
+> tijdslots (Etappe 2 om 11:30, Bdev W3) als gemist staan, tot de eigenaar
+> besluit of die weg mogen.
+
+---
+
 > **Egress-golf door zichtbaarheids-events, 2026-10-20 — gebouwd; unit-tests, typecheck en lint schoon op de gewijzigde bestanden; niet gepusht. Migraties `0255_col_scan_cache.sql` en `0256_rls_initplan_feed_telegram.sql`, op verzoek van de eigenaar toegepast via de Supabase-connector (2026-10-20) en nagekeken; niet lokaal te testen.**
 > Commit: de commit die dit blok toevoegt, op `main` (lokaal).
 >
@@ -959,8 +1012,11 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >     is. De sync slaat de intervals-rit op en verwijdert daarna de upload;
 >     `carryOverFromImport` neemt het spoor (als de intervals-rit er geen heeft)
 >     en `gps_segment_times`/`gps_col_times` mee. De verwijderde id's gaan als
->     `removedActivityIds` naar het nawerk, zodat een gekoppelde training
->     vrijkomt en aan de vervanger wordt gehangen. Een upload die al vermogen
+>     `removedActivityIds` naar het nawerk, voor de coltijden. *(Gecorrigeerd
+>     2026-10-20: hier stond dat een gekoppelde training vrijkomt en aan de
+>     vervanger wordt gehangen. Dat terughangen deed de detectie maar een week
+>     terug; sindsdien verhuist de koppeling direct, zie de ronde "Trainingen
+>     dubbel in de kalender na de ritruil".)* Een upload die al vermogen
 >     heeft, blijft staan. Dit verandert de oude test "laat een importrit staan":
 >     een GPX zonder vermogen maakt nu plaats.
 >   - *Vermogen uit FIT-bestanden.* De FIT-lezer (`fit.ts`) leest nu vermogen,

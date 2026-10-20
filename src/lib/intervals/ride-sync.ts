@@ -252,6 +252,20 @@ export async function syncIntervalsRidesForProfile(
 
     // Na de upsert: de vervanger staat er, dus de rit telt nooit even niet mee.
     if (replacedIds.length > 0) {
+      // Eerst de gekoppelde trainingen naar de vervanger; anders laat het nawerk
+      // ze los en hangt de detectie alleen die van de laatste week terug.
+      const moves = new Map(
+        keep.flatMap((row) => {
+          const old = replace.get(String(row.id));
+          return old ? [[String(old.id), String(row.id)] as const] : [];
+        }),
+      );
+      try {
+        const { moveReplacedRidePairings } = await import("@/lib/training/completion");
+        await moveReplacedRidePairings(admin, profileId, moves);
+      } catch {
+        // Niet kritiek: dan laat het nawerk de training los, zoals voorheen.
+      }
       const { error } = await admin
         .from("strava_activities")
         .delete()
@@ -295,8 +309,8 @@ export async function syncIntervalsRidesForProfile(
       }
     }
     result.removed = removedIds.length + replacedIds.length;
-    // Een vervangen upload laat zijn training los, net als een verwijderde rit;
-    // de detectie hangt de training daarna aan de vervanger.
+    // Ook de vervangen uploads: hun coltijden moeten naar de vervanger, en een
+    // training die niet verhuisde, komt zo alsnog vrij.
     removedIds.push(...replacedIds);
 
     if (result.stored > 0 || result.removed > 0) {

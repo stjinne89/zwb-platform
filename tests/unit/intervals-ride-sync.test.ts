@@ -194,6 +194,59 @@ describe("syncIntervalsRidesForProfile", () => {
     expect(db.tables.strava_activities).toHaveLength(3);
   });
 
+  // Jeroen Janssen, 19 oktober 2026: de ruil liet zijn bevestigde trainingen
+  // los, en de detectie hing alleen die van de laatste week terug.
+  it("verhuist een bevestigde training mee naar de vervangende rit", async () => {
+    const { db, conn } = setup();
+    db.tables.strava_activities.push({
+      id: 20131400295,
+      profile_id: A,
+      name: "Rondje Veluwe",
+      start_date: "2026-09-27T06:30:30.000Z",
+      distance_m: 67400,
+      moving_time_seconds: 7200,
+      raw: { import_source: "strava_csv" },
+    });
+    db.tables.training_workouts = [
+      {
+        id: "w1",
+        profile_id: A,
+        trainer_id: null,
+        scheduled_at: "2026-09-27T08:00:00Z",
+        title: "Duur 120 min",
+        duration_minutes: 120,
+        intensity: "endurance",
+        target_type: "power",
+        structure_json: [],
+        intervals_event_id: null,
+        status: "completed",
+      },
+    ];
+    db.tables.training_workout_reports = [
+      {
+        workout_id: "w1",
+        profile_id: A,
+        paired_activity_id: "20131400295",
+        athlete_rpe: 4,
+        athlete_feel: "goed",
+        athlete_confirmed_at: "2026-09-27T12:00:00Z",
+        trainer_status: "approved",
+        metrics_json: { plannedTitle: "Duur 120 min", ctlBefore: 61, averageWatts: null },
+      },
+    ];
+
+    await syncIntervalsRidesForProfile(db, conn, { now: NOW });
+
+    const report = db.tables.training_workout_reports[0];
+    expect(report.paired_activity_id).toBe(String(-1_000_081_234_567));
+    expect(report.athlete_confirmed_at).toBe("2026-09-27T12:00:00Z");
+    expect(report.athlete_rpe).toBe(4);
+    expect(report.trainer_status).toBe("approved");
+    const metrics = report.metrics_json as Record<string, unknown>;
+    expect(metrics.averageWatts).toBe(198);
+    expect(metrics.ctlBefore).toBe(61);
+  });
+
   it("slaat een rit uit de rand van het venster over als hij al via Strava staat", async () => {
     // Productie, 2026-10-18: intervals.icu geeft 30 kalenderdagen, de
     // ontdubbeling keek maar 29 dagen terug. De rit van 31 augustus kwam er
