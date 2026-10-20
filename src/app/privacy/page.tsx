@@ -370,6 +370,12 @@ export default function PrivacyPage() {
             ze bij de recente ritten en op je profiel.
           </li>
           <li>
+            <strong>Doeltijd bij een trainingsdoel:</strong> geef je bij een
+            trainingsdoel een doeltijd met een eigen GPX op, dan bewaren we alleen
+            het hoogteprofiel (afstand en helling), geen kaart of coördinaten,
+            plus de prognoses die we daaruit berekenen.
+          </li>
+          <li>
             <strong>Coachchat:</strong> in de trainingsruimte kun je vragen stellen
             over je schema en over je trainingsdata. Je vraag, het antwoord van de
             AI-coach en de reacties van je trainer worden bewaard als één doorlopend

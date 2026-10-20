@@ -2,8 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { QA_SELECT, QA_SELECT_0254, toQaItem, type QaItem, type QuestionRow } from "./data";
 
 /**
- * De vragen die de kijker mag zien (RLS, 0254), met de FAQ en "Ik ook" (0255).
- * Staat 0255 nog niet op de database, dan valt het terug op de kolommen van
+ * De vragen die de kijker mag zien (RLS, 0254), met de FAQ en "Ik ook" (0258).
+ * Staat 0258 nog niet op de database, dan valt het terug op de kolommen van
  * 0254: Q&A werkt dan gewoon, zonder FAQ en zonder teller.
  */
 export async function loadQuestions(

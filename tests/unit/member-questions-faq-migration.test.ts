@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
 
-// 0255 (Q&A: "Ik ook" en de FAQ) bovenop 0254, tegen een geïsoleerde
+// 0258 (Q&A: "Ik ook" en de FAQ) bovenop 0254, tegen een geïsoleerde
 // PostgreSQL. Zegt niets over de productiedatabase, wel over wie wat mag en of
 // de teller klopt.
 
@@ -33,7 +33,7 @@ beforeAll(async () => {
   await db.exec(`insert into public.community_role_permissions values ('board', '{events.create}');`);
 
   await db.exec(await readFile("supabase/migrations/0254_member_questions.sql", "utf8"));
-  await db.exec(await readFile("supabase/migrations/0255_member_questions_faq.sql", "utf8"));
+  await db.exec(await readFile("supabase/migrations/0258_member_questions_faq.sql", "utf8"));
 
   await db.exec(`
     grant usage on schema auth, public to anon, authenticated, service_role;

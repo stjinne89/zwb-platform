@@ -1,5 +1,5 @@
 // Q&A: vragen van leden over de app, met het antwoord (migr. 0254), "Ik ook"
-// en de FAQ (migr. 0255). Los van React, zodat de indeling te testen is.
+// en de FAQ (migr. 0258). Los van React, zodat de indeling te testen is.
 
 export type QaVisibility = "club" | "bestuur";
 
@@ -10,7 +10,7 @@ const QA_COLUMNS_0254 =
 
 /** Beide verwijzingen naar profiles bij naam, want de tabel heeft er twee. */
 export const QA_SELECT = `${QA_COLUMNS_0254}, faq_at, asked_count`;
-/** Zolang 0255 niet is toegepast: zonder FAQ en teller. */
+/** Zolang 0258 niet is toegepast: zonder FAQ en teller. */
 export const QA_SELECT_0254 = QA_COLUMNS_0254;
 
 export type QuestionRow = {
@@ -22,7 +22,7 @@ export type QuestionRow = {
   answered_by: string | null;
   answered_at: string | null;
   created_at: string;
-  /** Ontbreekt zolang 0255 niet is toegepast. */
+  /** Ontbreekt zolang 0258 niet is toegepast. */
   faq_at?: string | null;
   asked_count?: number | null;
   asker: NameRef;

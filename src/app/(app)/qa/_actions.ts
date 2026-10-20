@@ -14,7 +14,7 @@ import {
 } from "@/lib/qa/limits";
 
 // Acties van Q&A. Alles loopt met de sessie van het lid zelf, dus RLS (0254,
-// 0255) is de eerste grendel; de rechtencheck hieronder is de tweede. De pushmelding
+// 0258) is de eerste grendel; de rechtencheck hieronder is de tweede. De pushmelding
 // noemt nooit de tekst van de vraag of het antwoord.
 
 type Result<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
@@ -30,7 +30,7 @@ async function member() {
   return { supabase, access, user: access.user };
 }
 
-/** Wie "Ik ook" tikte bij een vraag; leeg zolang 0255 er niet is. */
+/** Wie "Ik ook" tikte bij een vraag; leeg zolang 0258 er niet is. */
 async function alsoAskers(
   supabase: Awaited<ReturnType<typeof createClient>>,
   questionId: string,
@@ -178,7 +178,7 @@ export async function setAlsoAsked(id: string, alsoAsked: boolean): Promise<Resu
   return { ok: true };
 }
 
-/** In of uit de FAQ; alleen een beantwoorde clubvraag kan erin (0255). */
+/** In of uit de FAQ; alleen een beantwoorde clubvraag kan erin (0258). */
 export async function setAppQuestionFaq(id: string, inFaq: boolean): Promise<Result> {
   const guard = await answerer();
   if (!guard.ok) return guard;

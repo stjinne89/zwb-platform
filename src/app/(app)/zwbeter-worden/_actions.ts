@@ -55,6 +55,17 @@ import {
 } from "@/lib/training/ftp-test";
 import { insertFtpTestWorkout } from "@/lib/training/draft";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+import {
+  computeGoalForecast,
+  goalRouteFromGpx,
+  type GoalTargetRow,
+  type StoredGoalRoute,
+} from "@/lib/training/goal-forecast";
+import {
+  parseGoalTargetTime,
+  TARGET_TIME_GOAL_TYPES,
+  type GoalRiding,
+} from "@/lib/training/goal-target-time";
 import { TRAINING_FORM_SLUGS } from "@/lib/training/training-forms";
 import {
   isUpcomingRace,
@@ -281,7 +292,16 @@ export async function createTrainingGoal(formData: FormData) {
     }
 
     const title = mustString(formData.get("title"), "Titel");
-    const targetDate = optionalString(formData.get("target_date"));
+    let targetDate = optionalString(formData.get("target_date"));
+
+    // Een doeltijd hoort bij één rit op één dag en vraagt een parcours: een
+    // clubevent met GPX of een eigen GPX, waarvan alleen het hoogteprofiel
+    // bewaard blijft. Zonder doeltijd blijven de kolommen uit de insert, zodat
+    // een doel ook zonder migratie 0257 op te slaan is.
+    const target = TARGET_TIME_GOAL_TYPES.includes(goalType)
+      ? await targetTimeFromForm(admin, formData)
+      : null;
+    if (target?.eventDate && !targetDate) targetDate = target.eventDate;
 
     // Een tweede klik op "Doel opslaan" leverde tot 2026-08-20 een tweede doel op
     // — vijf van de twintig doelen waren zo'n herhaling, telkens twee seconden na
@@ -312,10 +332,39 @@ export async function createTrainingGoal(formData: FormData) {
       desired_intensity: desiredIntensity,
       risk_notes: optionalString(formData.get("risk_notes")),
       created_by: user.id,
+      ...(target
+        ? {
+            target_time_seconds: target.seconds,
+            target_riding: target.riding,
+            target_event_id: target.eventId,
+            target_route: target.route,
+          }
+        : {}),
     })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+
+    // Eerste prognose meteen, zodat het lid het oordeel ziet zodra het doel er
+    // staat. Mislukt die, dan blijft het doel staan; de pagina probeert het later.
+    if (target && created) {
+      const forForecast: GoalTargetRow = {
+        id: created.id as string,
+        profile_id: user.id,
+        status: "active",
+        target_date: targetDate,
+        target_event_id: target.eventId,
+        target_time_seconds: target.seconds,
+        target_riding: target.riding,
+        target_route: target.route,
+      };
+      await computeGoalForecast(admin, forForecast).catch((err) => {
+        console.error("[doeltijd] eerste prognose mislukt", {
+          goalId: created.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+    }
 
     // Komt dit doel uit een mikpunt op de jaarplanning, leg de koppeling dan
     // vast. Zonder die verwijzing blijft de tijdlijn zeggen dat het A-doel nog
@@ -375,6 +424,107 @@ export async function createTrainingGoal(formData: FormData) {
     return { ok: true as const };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Doel opslaan faalde." };
+  }
+}
+
+/** Een GPX van een gran fondo van 200 km is een paar megabyte. */
+const MAX_GOAL_GPX_BYTES = 8 * 1024 * 1024;
+
+const GOAL_TARGET_COLUMNS =
+  "id, profile_id, status, target_date, target_event_id, target_time_seconds, target_riding, target_route";
+
+function ridingFromForm(formData: FormData): GoalRiding {
+  return formData.get("target_riding") === "group" ? "group" : "alone";
+}
+
+/**
+ * De doeltijd uit het doelformulier, met het parcours erbij. Null als er geen
+ * doeltijd is ingevuld; een fout als die er wel is maar niet klopt.
+ */
+async function targetTimeFromForm(
+  admin: ReturnType<typeof createAdminClient>,
+  formData: FormData,
+): Promise<{
+  seconds: number;
+  riding: GoalRiding;
+  eventId: string | null;
+  route: StoredGoalRoute | null;
+  eventDate: string | null;
+} | null> {
+  const raw = optionalString(formData.get("target_time"));
+  if (!raw) return null;
+  const seconds = parseGoalTargetTime(raw);
+  if (!seconds) throw new Error("Vul de doeltijd in als u:mm, tussen 0:10 en 24:00.");
+  const riding = ridingFromForm(formData);
+
+  const eventId = optionalString(formData.get("target_event_id"));
+  if (eventId) {
+    const { data: event } = await admin
+      .from("events")
+      .select("id, start_at, gpx_path, zwift_route_id")
+      .eq("id", eventId)
+      .maybeSingle();
+    if (!event?.gpx_path || event.zwift_route_id) throw new Error("Dit event heeft geen GPX.");
+    return {
+      seconds,
+      riding,
+      eventId,
+      route: null,
+      eventDate: amsterdamDayKey(new Date(event.start_at as string)),
+    };
+  }
+
+  const file = formData.get("target_gpx");
+  if (!(file instanceof File) || file.size === 0) {
+    throw new Error("Kies een event of een GPX voor de doeltijd.");
+  }
+  if (file.size > MAX_GOAL_GPX_BYTES) throw new Error("De GPX is groter dan 8 MB.");
+  const name = file.name.replace(/\.gpx$/i, "").trim().slice(0, 120) || null;
+  const parsed = await goalRouteFromGpx(admin, await file.text(), name);
+  if (!parsed.ok) throw new Error(parsed.error);
+  return { seconds, riding, eventId: null, route: parsed.stored, eventDate: null };
+}
+
+/** Doeltijd of groep aanpassen; het parcours blijft. Leeg = doeltijd eraf. */
+export async function updateGoalTargetTime(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const goalId = mustString(formData.get("goal_id"), "Doel");
+    const { data: goal } = await admin
+      .from("training_goals")
+      .select("id")
+      .eq("id", goalId)
+      .eq("profile_id", user.id)
+      .maybeSingle();
+    if (!goal) throw new Error("Doel niet gevonden.");
+
+    const raw = optionalString(formData.get("target_time"));
+    const seconds = raw ? parseGoalTargetTime(raw) : null;
+    if (raw && !seconds) throw new Error("Vul de doeltijd in als u:mm, tussen 0:10 en 24:00.");
+
+    const { data: updated, error } = await admin
+      .from("training_goals")
+      .update({
+        target_time_seconds: seconds,
+        target_riding: ridingFromForm(formData),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", goalId)
+      .select(GOAL_TARGET_COLUMNS)
+      .single();
+    if (error) throw new Error(error.message);
+    if (seconds && updated) {
+      await computeGoalForecast(admin, updated as GoalTargetRow);
+    }
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Doeltijd opslaan faalde.",
+    };
   }
 }
 

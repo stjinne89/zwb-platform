@@ -9,7 +9,7 @@ import { FaqEntry } from "./_components/faq-entry";
 import { QuestionCard } from "./_components/question-card";
 
 // Q&A: vragen van leden over de app (migr. 0254), met "Ik ook" en de FAQ
-// (migr. 0255). RLS bepaalt wat er in de lijst staat: clubvragen voor
+// (migr. 0258). RLS bepaalt wat er in de lijst staat: clubvragen voor
 // iedereen, bestuursvragen alleen voor de vrager en wie qa.answer heeft.
 
 const sectionTitle = "text-sm font-semibold uppercase tracking-wide text-muted-foreground";

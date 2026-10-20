@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess } from "@/lib/auth/request";
 
 /**
- * Ingang naar Q&A op het dashboard (migr. 0254, 0255): een tegel in het design
+ * Ingang naar Q&A op het dashboard (migr. 0254, 0258): een tegel in het design
  * "tegels", een regel in het klassieke. Vragen stellen en lezen gebeurt op
  * /qa (wens eigenaar, 2026-10-20). Wie antwoordt, ziet hoeveel vragen wachten;
  * dat is dan goud, want het vraagt om actie. Bestaat de tabel nog niet, dan
@@ -20,7 +20,7 @@ export async function QaDashboard({ tegels = false }: { tegels?: boolean }) {
       .from("member_questions")
       .select("id", { count: "exact", head: true })
       .is("answered_at", null),
-    // Zonder 0255 faalt dit en telt het als nul.
+    // Zonder 0258 faalt dit en telt het als nul.
     supabase
       .from("member_questions")
       .select("id", { count: "exact", head: true })

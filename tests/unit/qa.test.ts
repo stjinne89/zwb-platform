@@ -67,7 +67,7 @@ describe("splitQuestions", () => {
 });
 
 describe("Ik ook", () => {
-  it("telt minstens de vrager, ook zonder 0255, en weet wat de kijker tikte", () => {
+  it("telt minstens de vrager, ook zonder 0258, en weet wat de kijker tikte", () => {
     expect(toQaItem(row({}), null)).toMatchObject({ askedCount: 1, faq: false, alsoAsked: false });
     expect(toQaItem(row({ asked_count: 3 }), "ander", new Set(["q1"]))).toMatchObject({
       askedCount: 3,

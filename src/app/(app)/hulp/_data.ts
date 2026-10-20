@@ -581,7 +581,7 @@ export const ADMIN_GUIDES = [
   },
 ];
 
-// Q&A (migr. 0254, 0255): vragen over de app zelf, met "Ik ook" en de FAQ.
+// Q&A (migr. 0254, 0258): vragen over de app zelf, met "Ik ook" en de FAQ.
 export const QA_HELP = [
   "Loop je vast, mis je iets of snap je een scherm niet? Kijk eerst bij de veelgestelde vragen bovenaan Q&A; staat hij er niet bij, stel hem dan daar. Je komt er via de tegel Q&A op het dashboard of via Q&A in je persoonlijke menu. Het bestuur werkt hem uit en antwoordt.",
   "Staat jouw vraag er al? Tik dan Ik ook. Je krijgt dan ook een melding bij het antwoord, en het bestuur ziet welke vragen vaak terugkomen. Die komen in de FAQ. Anderen zien alleen hoe vaak een vraag gesteld is, niet door wie.",

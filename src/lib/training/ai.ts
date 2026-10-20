@@ -3,6 +3,7 @@ import { defaultTrainingPrompt } from "@/lib/training/workouts";
 import type { ComplianceContext } from "@/lib/training/compliance";
 import type { PreferenceForAi } from "@/lib/training/preferences";
 import { PLAN_BLOCK_DAYS } from "@/lib/training/season";
+import type { GoalTargetForAi } from "@/lib/training/goal-forecast";
 
 export type GeneratedWorkout = {
   date: string;
@@ -57,6 +58,13 @@ export type TrainingAiInput = {
     experienceLevel: string;
     desiredIntensity: string;
     riskNotes: string | null;
+    /**
+     * Doeltijd voor een gran fondo of outdoor event, met de laatste prognose van
+     * het pacingmodel: oordeel, benodigde CP en de nadruk voor het schema. Een
+     * toetssteen, geen opdracht om meer te plannen; zie
+     * docs/doeltijd-trainingsdoel.md.
+     */
+    targetTime?: GoalTargetForAi | null;
   };
   profile: {
     ftpWatts: number | null;

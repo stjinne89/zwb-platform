@@ -84,18 +84,19 @@ gaat stabiliteit voor nieuwe features.
      pushmeldingen aankomen. Nog goed te keuren: de privacy- en
      voorwaardentekst, en of Q&A zonder nieuwe privacyversie kan (ronde
      2026-10-19, "Q&A").
-   - **Q&A als tegel, met "Ik ook" en FAQ:** `0255_member_questions_faq.sql`
+   - **Q&A als tegel, met "Ik ook" en FAQ:** `0258_member_questions_faq.sql`
      is op 2026-10-20 via de Supabase-connector toegepast, op verzoek van de
-     eigenaar; de code is nog niet gepusht (de oude code leest alleen de
-     kolommen van 0254 en blijft dus werken). Vooraf: 0254 aanwezig met de
-     triggerfix, geen kolommen of tabel van 0255, 0 vragen. Achteraf:
+     eigenaar, vóór de push (de oude code las alleen de kolommen van 0254). De
+     migratie heet in de database `0255_member_questions_faq`; het bestand is
+     daarna hernummerd naar `0258` omdat `0255` al bezet was. Vooraf: 0254 aanwezig met de
+     triggerfix, geen kolommen of tabel van deze migratie, 0 vragen. Achteraf:
      `faq_at` en `asked_count`, `member_questions_faq_check`, tabel
      `member_question_askers` met RLS aan, drie policies, twee triggers,
      `authenticated` alleen SELECT/INSERT/DELETE, `anon` niets, de
      triggerfuncties niet uitvoerbaar voor `authenticated`, en beide triggers
      van 0254 vervangen. De advisors melden niets nieuws voor beveiliging;
      voor prestaties alleen de drie nieuwe indexen als ongebruikt (lege
-     tabel). Nog doen na het pushen: "Ik ook" vanaf een tweede account, een
+     tabel). Nog doen: "Ik ook" vanaf een tweede account, een
      vraag met Dubbel samenvoegen, er een in de FAQ zetten, en kijken of de
      melding bij het antwoord ook bij wie "Ik ook" tikte aankomt (ronde
      2026-10-20, "Q&A als tegel").
@@ -245,10 +246,13 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0257`
-(`0255_col_scan_cache` en `0256_rls_initplan_feed_telegram` zijn van de
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0259`
+(`0258_member_questions_faq` is van "Ik ook" en de FAQ in Q&A, 2026-10-20,
+hernummerd van `0255` bij het samenvoegen met main;
+`0257_training_goal_target_time` is van de doeltijd bij een trainingsdoel,
+2026-10-20;
+`0255_col_scan_cache` en `0256_rls_initplan_feed_telegram` zijn van de
 egress-golf, 2026-10-20;
-`0255_member_questions_faq` is van "Ik ook" en de FAQ in Q&A, 2026-10-20;
 `0254_member_questions` is van Q&A, 2026-10-19;
 `0252_voorzpwelbokaal` is van het voorZpWelBokaal, 2026-10-19;
 `0253_ride_messages` is van de berichten op de fietscomputer, 2026-10-19;
@@ -351,8 +355,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Q&A als tegel en eigen pagina, met "Ik ook" en een FAQ, 2026-10-20 — gebouwd; typecheck en lint schoon; unit-tests groen op `omnium-live` na (mist `.env.local`); niet in de browser bekeken; niet gepusht. Migratie `0255_member_questions_faq.sql`, toegepast via de connector (2026-10-20) en nagekeken.**
-> Commit: de commit die dit blok toevoegt, op `claude/qa-block-tile-page-7a2235`.
+> **Q&A als tegel en eigen pagina, met "Ik ook" en een FAQ, 2026-10-20 — gebouwd; typecheck en lint schoon; unit-tests groen op `omnium-live` na (mist `.env.local`); niet in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-20). Migratie `0258_member_questions_faq.sql` (geschreven als `0255`, hernummerd bij het samenvoegen met main: `0255` tot en met `0257` waren al door andere rondes van dezelfde dag gebruikt), toegepast via de connector (2026-10-20) en nagekeken.**
+> Commit: de commit die dit blok toevoegt, op `claude/qa-block-tile-page-7a2235`, daarna op `main` gezet.
 >
 > **Waarom.** Wens van de eigenaar: Q&A niet meer als vraagveld op het
 > dashboard, maar als tegel die naar een eigen pagina leidt, zodat daar ook
@@ -381,16 +385,16 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   de dubbele vraag wordt verwijderd en de vrager krijgt een melding (met het
 >   antwoord als dat er al is). Bewust verwijderen in plaats van koppelen: één
 >   mechanisme (de teller) in plaats van een tweede soort vraag.
-> - **Migratie 0255:** `faq_at` en `asked_count` op `member_questions`, een
+> - **Migratie 0258:** `faq_at` en `asked_count` op `member_questions`, een
 >   check dat alleen een beantwoorde clubvraag in de FAQ kan, en de tabel
 >   `member_question_askers` met RLS: een lid ziet alleen zijn eigen "Ik ook",
 >   wie antwoordt alle; een lid tikt alleen voor zichzelf bij een clubvraag die
 >   het mag zien, nooit bij zijn eigen vraag; wie antwoordt mag namens een ander
 >   (voor Dubbel). De teller zet een trigger; een update van buiten laat hem
 >   staan. Zonder antwoord of afgeschermd valt een vraag vanzelf uit de FAQ.
->   De twee triggers van 0254 staan opnieuw in 0255. `anon` niets.
-> - **Terugval:** `src/lib/qa/load.ts` probeert de kolommen van 0255 en valt
->   terug op die van 0254, zodat Q&A blijft werken tot 0255 is toegepast.
+>   De twee triggers van 0254 staan opnieuw in 0258. `anon` niets.
+> - **Terugval:** `src/lib/qa/load.ts` probeert de kolommen van 0258 en valt
+>   terug op die van 0254, zodat Q&A blijft werken zonder 0258.
 > - **Teksten:** `/hulp/problemen#qa` (FAQ, Ik ook, Dubbel, In FAQ, de tegel),
 >   zoektermen, `/privacy#qa` (Ik ook, samenvoegen, FAQ zonder naam). Het
 >   "Ik ook" staat in de data-export (`member_question_askers`).
@@ -401,8 +405,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   verandert niet (0254); wie antwoordt kiest een goed gestelde vraag voor de
 >   FAQ. Komt er behoefte aan, dan een kolom erbij.
 > - Een FAQ op `/hulp`: die blijft de handleiding, Q&A de vragen van leden.
-> - "Ik ook" verbergen zolang 0255 er niet is: de knop geeft dan een fout.
->   Kort, want de migratie gaat mee met het pushen.
+> - "Ik ook" verbergen zolang 0258 er niet is: de knop geeft dan een fout.
+>   Niet nodig, want de migratie stond er vóór de push.
 >
 > **Privacy.** De aanvulling op `/privacy#qa` ("Ik ook" zichtbaar als aantal,
 > met naam alleen voor wie antwoordt; samenvoegen; FAQ zonder naam) is door
@@ -410,7 +414,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > wie zelf tikt of vraagt levert iets aan.
 >
 > **Getest.**
-> - Nieuw: `member-questions-faq-migration.test.ts` (13 tests, 0254 + 0255
+> - Nieuw: `member-questions-faq-migration.test.ts` (13 tests, 0254 + 0258
 >   tegen PGlite): tellen en terugtellen, één keer per lid, niet bij je eigen
 >   vraag, niet namens een ander, niet bij een bestuursvraag of als wachtend
 >   account, wie antwoordt mag namens een ander, wie welke "Ik ook" ziet, de
@@ -11232,6 +11236,97 @@ gedraaid), los van deze wijziging.
 cover-upload, RSVP's) is niet gedraaid. Na de deploy: het antwoord van de
 volgende uurlijkse run (`clubEvents.published: 1`) of de kalender van maandag
 26 oktober bekijken.
+
+### Gebouwd — doeltijd bij een trainingsdoel: oordeel, nadruk en prognose
+
+**2026-10-20.** Commit: de commit die dit blok toevoegt, op de branch
+`claude/training-plan-target-time-8b0cb1` (niet gepusht). Migratie
+`0257_training_goal_target_time.sql`, **op 2026-10-20 op productie toegepast**
+via de Supabase-connector en nagekeken (drie kolommen op `training_goals`,
+`training_goal_forecasts` met RLS en alleen een select-policy, index, 0 rijen).
+Eerst als 0255 geschreven; 0255 en 0256 waren al door andere branches
+gebruikt. Voorstel en onderbouwing:
+[doeltijd-trainingsdoel.md](docs/doeltijd-trainingsdoel.md).
+
+**Aanleiding.** Een lid vroeg of het platform een trainingsplan kan bouwen vanuit
+de eindtijd die hij in een gran fondo wil rijden. Het benodigde vermogen voor een
+tijd is te onderbouwen, een schema dat een tijd belooft niet: hoeveel iemand in
+een paar maanden vooruitgaat, verschilt te sterk per persoon. De eigenaar koos
+daarom voor de doeltijd als toetssteen: een oordeel met de benodigde groei, een
+nadruk in het schema en een prognose die met de tijd meeloopt.
+
+**Wat er is gekomen.**
+- **Doel.** Bij gran fondo en outdoor event kan het lid een doeltijd (rijtijd),
+  alleen of in een groep, en een parcours opgeven: een clubevent met een eigen
+  GPX (geen Zwift-route) of een eigen GPX. Van een eigen GPX blijft alleen het
+  hoogteprofiel over (`training_goals.target_route`: afstand en helling per
+  100 m, plus de klimmen); de coördinaten vallen weg na het parsen. Kiest het
+  lid een event en geen datum, dan wordt de eventdatum de doeldatum. Doeltijd en
+  groep zijn achteraf aan te passen (`updateGoalTargetTime`); voor een ander
+  parcours maak je een nieuw doel.
+- **Rekenwerk** in `src/lib/training/goal-target-time.ts`, op het pacingmodel:
+  - prognose = het snelste haalbare plan (basisvoorstel, dan `fitPlanToTime`),
+    zodat pacingplan en doel dezelfde tijd noemen;
+  - benodigde CP: plan en heel vermogensprofiel (CP, W′, curve) samen schalen
+    tot de doeltijd, zonder nieuwe zoektocht en dus zonder de ruis van een
+    bisectie per stap; boven 1,5× CP heet het buiten bereik;
+  - oordeel tegen een vuistregel voor groei: 0,75 % per week de eerste twaalf
+    weken, daarna 0,25 %, hoogstens 12 % (bronnen in het voorstel; een eigen
+    keuze, geen grens uit onderzoek);
+  - gevoeligheid: wat 1 % CP en wat 1 kg scheelt op dit parcours;
+  - nadruk: klimmen of drempel (35 % klimtijd als grens), lange duurritten
+    (langste rit van 8 weken < 75 % van de doeltijd) en duurvermogen (verval
+    ≥ 8 % of geen vermoeidheidsdata, bij doelen vanaf 3 uur).
+- **Groep.** `EvaluateOptions.cdaFactor` (ook door `buildBaselinePlan` en
+  `fitPlanToTime`): buiten in een groep 0,75× CdA over de hele rit (AANNAME,
+  onderbouwing in het voorstel). Zonder die optie rekent het pacingplan precies
+  als voorheen.
+- **Prognose bewaard** in `training_goal_forecasts`: bij het opslaan van het doel
+  en daarna via `after()` op de doelenpagina's van lid en trainer, als de
+  laatste een week oud is, CP of gewicht veranderd is of de doeltijd is
+  aangepast (`forecastIsStale`). Op de kaart staan oordeel, benodigde CP,
+  gevoeligheid, nadruk en het verloop (laatste zes prognoses). De trainer ziet
+  dezelfde kaart zonder bewerken.
+- **Schema-AI.** `buildTrainingInput` geeft `goal.targetTime` mee (laatste
+  prognose, of een verse als die verouderd is), met een promptregel: nadruk
+  voor de sleutelsessies, geen extra volume of intensiteit, geen finishtijd
+  noemen of beloven, en bij een ambitieus of onrealistisch oordeel één zin in
+  cautions. Geldt via `defaultTrainingPrompt` ook voor herzieningen.
+- AVG-export neemt `training_goal_forecasts` mee; `/hulp#doeltijd` legt het uit.
+
+**Bewust niet gebouwd.**
+- **Geen streefgewicht.** Keuze van de eigenaar: gewicht alleen als
+  gevoeligheid ("1 kg scheelt …"), zodat "geen afvalfunctie" uit de
+  voedingsrondes (IOC REDs) blijft staan.
+- **Geen eigen periodisering vanuit de doeltijd.** Opbouw, taper, uren en
+  herstel blijven de bestaande regels.
+- **Geen Zwift-route als doelparcours**: vraagt Zwift-fysica en eventregels; een
+  doeltijd in Zwift kan al via het pacingplan van het event.
+- **Geen wind, geen stops**, net als het pacingplan. De doeltijd is rijtijd.
+- **Niet in de coachchat en het weekoverzicht.** De prognose staat bij het doel en
+  in het schema; de coachchat leest de doelkolommen los (`chat-context.ts`) en
+  krijgt de doeltijd nog niet mee.
+- **De GPX zelf niet bewaren**: geen bucket, geen opslagbeleid, geen locatiedata.
+
+**Privacy.** Nieuw opgeslagen: de doeltijd, het hoogteprofiel van een eigen GPX
+en de prognoses. De privacyverklaring kreeg daarover een punt "Doeltijd bij een
+trainingsdoel" (tekst door de eigenaar goedgekeurd, 2026-10-20). Geen nieuwe
+privacyversie: het gaat om trainingsdata die het lid zelf opgeeft voor het
+schema, en de GPX zelf wordt niet bewaard.
+
+**Getest.** `tests/unit/goal-target-time.test.ts` (19 tests: groei-vuistregel,
+groep sneller dan alleen en geen verschil zonder groep, haalbaar zonder benodigde
+CP, benodigde CP haalt de doeltijd tot op 1 %, oordeel naar weken en zonder
+datum, buiten bereik, een kilo telt zwaarder in de bergen, nadrukregels,
+verouderdregels, promptregel, invoer en labels), `tsc`, ESLint op de gewijzigde
+bestanden, `npm run build` en de unit-suite. Een voorbeeld ter controle: 150 km
+met 1.920 hm, CP 260 W, 75 kg en 10 % verval geeft 5:11 alleen en 4:52 in een
+groep. Daar scheelt een kilo 71 s en een procent CP 101 s; één prognose kost
+zo'n 50 ms. In de unit-suite faalde `omnium-live.test.ts` (mist `.env.local` in
+deze worktree); `admin-areas`, `intervals-ride-sync` en
+`zwift-subgroup-results` faalden alleen onder volle belasting en slagen los
+gedraaid. *Niet geverifieerd:* het formulier en de kaart in de browser, een echte GPX-upload en een echte schemageneratie met de nieuwe regel
+(kost geld en vraagt een ingelogde sessie).
 
 ### Hersteld — SRC: geslacht in het profiel verplaatst de inschrijving
 
