@@ -11263,6 +11263,47 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — ritstatistieken op het profiel lezen de hele historie
+
+**2026-10-20.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Waarom.** Bij Rolf Buunk begon "Op de fiets sinds" (en "Persoonlijke records
+(sinds …)") in de zomer van 2022, terwijl zijn ritten in de database teruggaan
+tot 18 juli 2016. De data was er wel. Het blok `RiderStats` (`/leden/[id]` en
+`/profiel`) haalde alle fietsritten in één select op, nieuwste eerst en zonder
+`.range()`, en Supabase geeft per select hooguit 1000 rijen. Bij Rolf
+(1.423 ritten, alles uit de CSV-import en intervals.icu, geen Strava-koppeling)
+viel de grens op 2 augustus 2022. In productie (alleen gelezen) hebben elf leden
+meer dan 1000 fietsritten. Bij hen klopten de begindatum, de records en de
+totalen over de hele historie niet; het ergst bij Karen van de Rakt (4.450 ritten,
+profiel begon in maart 2025 in plaats van mei 2017). Met de Strava-koppeling, de
+import of de historie-inhaalslag had het niets te maken; RLS filtert ook niets
+weg (`strava_activities_select_authenticated: true`).
+
+**Wat.** `rider-stats.tsx` leest in pagina's van 1000, net als
+`loadPersonalRideRows` in `/stats/ik` (dat al pagineerde). Een tweede sortering
+op `id` houdt de pagina's stabiel bij gelijke starttijden. De andere lezers van
+`strava_activities` zonder `.range()` of `.limit()` zijn nagelopen: die vragen een
+venster (28 dagen, de periode van een schema) of een vaste lijst id's, en halen
+geen hele historie op.
+
+**Egress.** Meer rijen is meer egress, en het project zit boven het quotum (zie
+"Actieve volgorde"). Gemeten op de geselecteerde kolommen: ~300 bytes per rit,
+dus per bezoek aan een profiel hooguit ~1 MB extra (Karen), ~4 MB als alle elf
+profielen één keer worden bekeken. Gering naast de 7 GB in 9 dagen.
+
+**Bewust niet.** Geen SQL-functie die de totalen en records in de database
+uitrekent. Dat scheelt egress, maar vraagt een migratie en zet de regels van
+`uniqueRides` (dubbele ritten één keer tellen) dubbel neer, in SQL en in
+TypeScript. Te overwegen als de profielen een merkbaar deel van de egress worden.
+
+**Gecontroleerd.** `tsc --noEmit` zonder fouten, ESLint op het bestand schoon,
+Vitest 3.148/3.148 geslaagd. `omnium-live.test.ts` laadt niet zonder `.env.local`;
+dat staat los van deze ronde. **Niet geverifieerd:** de pagina zelf, in een browser
+of tegen productie; er is hier geen `.env.local`. Geen `npm run build`.
+`npm ci` weigerde: `package-lock.json` mist `@emnapi/runtime` en `@emnapi/core`
+1.11.3 (op `main` al zo; niet in deze ronde rechtgezet).
+
 ### Hersteld — ZRL-koppeling bij een dubbel WTRL-event
 
 **2026-10-20.** Commit: de commit die dit blok toevoegt. Geen migratie.
