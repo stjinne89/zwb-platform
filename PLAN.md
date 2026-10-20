@@ -13,8 +13,8 @@ gaat stabiliteit voor nieuwe features.
    billing cycle" met beperking vanaf 2 november als de organisatie boven het
    quotum blijft. Deze cyclus komt niet meer onder 5 GB; **de eigenaar beslist
    vóór 2 november over Pro of de beperking.** Oorzaak en fix: zie de ronde
-   "Egress-golf door zichtbaarheids-events" hieronder (migraties `0255`, `0256`,
-   nog niet toegepast).
+   "Egress-golf door zichtbaarheids-events" hieronder (migraties `0255` en `0256`
+   toegepast op 2026-10-20; de code staat lokaal en gaat mee met de volgende push).
    **Database slank en snel: afgerond op 2026-10-01.** `0212_remove_segment_explorer.sql`
    is toegepast; de database ging van 1.260 naar **200 MB** (Free-limiet 512 MB).
    Nog te doen, klein: `vacuum full public.zwb_segment_maps;` (niet vast te stellen
@@ -252,7 +252,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Egress-golf door zichtbaarheids-events, 2026-10-20 — gebouwd; unit-tests, typecheck en lint schoon op de gewijzigde bestanden; niet gepusht. Migraties `0255_col_scan_cache.sql` en `0256_rls_initplan_feed_telegram.sql`, niet toegepast en niet lokaal te testen.**
+> **Egress-golf door zichtbaarheids-events, 2026-10-20 — gebouwd; unit-tests, typecheck en lint schoon op de gewijzigde bestanden; niet gepusht. Migraties `0255_col_scan_cache.sql` en `0256_rls_initplan_feed_telegram.sql`, op verzoek van de eigenaar toegepast via de Supabase-connector (2026-10-20) en nagekeken; niet lokaal te testen.**
 > Commit: de commit die dit blok toevoegt, op `main` (lokaal).
 >
 > **Waarom.** De wekelijkse databasecheck van 2026-10-20 vond 7,23 GB egress na
@@ -310,9 +310,18 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   scant de hele historie één keer en schrijft ~29.000 rijen bij; dat geeft wel
 >   wat WAL, verspreid over de runs.
 >
-> **Te beslissen door de eigenaar.** Pro of de beperking vanaf 2 november; het
-> toepassen van `0255` en `0256`; `vacuum full public.zwb_segment_maps;` (open
-> sinds 2026-10-01).
+> **Te beslissen door de eigenaar.** Pro of de beperking vanaf 2 november;
+> `vacuum full public.zwb_segment_maps;` (open sinds 2026-10-01).
+>
+> **Op productie (2026-10-20).** `0255` en `0256` toegepast via de
+> Supabase-connector, vóór de push: de oude code gebruikt de nieuwe kolommen en
+> de RPC niet, dus er verandert niets tot de code live staat. Nagekeken, alleen
+> lezen: `col_slugs text[]` en `col_scan_key text` bestaan, de index
+> `strava_activities_profile_start_idx` staat (1,2 MB), `set_activity_col_scans`
+> is alleen uitvoerbaar door `service_role` (en `postgres`), en `pg_policies`
+> heeft geen kale `auth.uid()` meer. In `supabase_migrations.schema_migrations`
+> ontbreekt `0254_member_questions`, terwijl de tabel bestaat; vermoedelijk via
+> de SQL-editor toegepast.
 >
 > **Getest.** `tests/unit/col-scan-cache.test.ts` (telling met dubbele opname,
 > catalogussleutel, eerste run scant alles, tweede niets, een gewijzigde rit
@@ -320,8 +329,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > de bestaande coltelling in `unique-rides.test.ts`. Volledige suite: 5 tests in
 > 4 andere bestanden liepen bij de volle run op een timeout en slagen los.
 >
-> **Niet geverifieerd.** De migraties (geen Docker of Supabase-config lokaal);
-> het effect op egress en databasetijd, dat moet uit de usagepagina en de
+> **Niet geverifieerd.** De migraties lokaal (geen Docker of Supabase-config);
+> de eerste scan per lid na de push; het effect op egress en databasetijd, dat moet uit de usagepagina en de
 > volgende wekelijkse check blijken.
 
 ---
