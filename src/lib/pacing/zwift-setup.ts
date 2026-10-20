@@ -68,6 +68,11 @@ export type BikePart = {
   /** Verschil met de referentiefiets bij 183 cm en 75 kg. */
   cdaDelta: number;
   kgDelta: number;
+  /**
+   * Frame dat met eigen, vaste wielen getest is (de halo-fietsen): de wielen
+   * zitten al in de verschillen en er valt niets bij te kiezen. Migratie 0262.
+   */
+  fixedWheels?: boolean;
 };
 
 /** Wat het event vastlegt, uit `rulesSet` en `tags` van de Zwift-API. */
@@ -328,7 +333,8 @@ export function resolveRidePhysics(input: {
   // Een tijdritfiets waar het event die verbiedt: dan rijd je de referentiefiets.
   const frame = chosen?.kind === "tt" && !constraints.ttBikesAllowed ? null : chosen;
   const kind: BikeKind = frame?.kind ?? "road";
-  const wheels = constraints.forcedWheels ? null : findWheels(parts, setup.wheels, kind);
+  const wheels =
+    constraints.forcedWheels || frame?.fixedWheels ? null : findWheels(parts, setup.wheels, kind);
 
   const refArea = frontalArea(ZWIFT_REF_HEIGHT_CM, ZWIFT_REF_WEIGHT_KG);
   const area = frontalArea(input.heightCm ?? ZWIFT_DEFAULT_HEIGHT_CM, input.weightKg);

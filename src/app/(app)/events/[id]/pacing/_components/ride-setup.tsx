@@ -15,7 +15,7 @@ import {
 } from "@/lib/pacing/zwift-setup";
 import { savePacingSetup } from "../_actions";
 
-export type FrameOption = { name: string; kind: BikeKind; stages: number[] };
+export type FrameOption = { name: string; kind: BikeKind; stages: number[]; fixedWheels: boolean };
 
 const KIND_LABELS: Record<BikeKind, string> = {
   road: "Racefiets",
@@ -62,7 +62,7 @@ export function RideSetupForm({
   );
   const current = allowedFrames.find((item) => item.name === frame);
   const kind: BikeKind = current?.kind ?? "road";
-  const wheelOptions = forcedWheels ? [] : (wheels[kind] ?? []);
+  const wheelOptions = forcedWheels || current?.fixedWheels ? [] : (wheels[kind] ?? []);
   const stages = current?.stages ?? [0];
 
   const dirty =

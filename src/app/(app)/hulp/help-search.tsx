@@ -227,9 +227,9 @@ const HELP_INDEX: HelpResult[] = [
   },
   {
     title: "Pacingplan voor een Zwift-wedstrijd",
-    text: "Format, fiets, slipstream, wegdek, start, sprint en powerups.",
+    text: "Format, fiets, snelste fiets, slipstream, wegdek, start, sprint en powerups.",
     href: "/hulp/racen#pacing-zwift",
-    terms: "zwift wedstrijd race tijdrit ploegentijdrit ttt drafting slipstream groep alleen fiets frame wielen upgrade stage gravel onverhard wegdek powerup veer aerohelm draft boost stoomwals aambeeld sprint start zwiftinsider",
+    terms: "zwift wedstrijd race tijdrit ploegentijdrit ttt drafting slipstream groep alleen fiets frame wielen upgrade stage gravel onverhard wegdek powerup veer aerohelm draft boost stoomwals aambeeld sprint start zwiftinsider snelste fiets fietsadvies zwiftbikes zwifterbikes",
   },
   {
     title: "Krachtreeksen",

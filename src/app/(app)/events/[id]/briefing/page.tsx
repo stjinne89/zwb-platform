@@ -13,6 +13,7 @@ import { climbSeconds } from "@/lib/race-briefing/route";
 import { climbLabel, durationLabel, km } from "@/lib/race-briefing/tips";
 import { cn } from "@/lib/utils";
 import { ZwiftRouteSection } from "../_components/zwift-route-section";
+import { BikeAdviceList } from "../_components/bike-advice-list";
 import { saveRaceBriefing } from "./_actions";
 import { RaceSheet } from "./_components/race-sheet";
 
@@ -117,6 +118,23 @@ function RouteKeyPointsTable({ view }: { view: BriefingView }) {
     },
   ];
   return <ResponsiveTable columns={columns} rows={rows} rowKey={(r) => String(r.climb.startKm)} />;
+}
+
+function Bikes({ view }: { view: BriefingView }) {
+  if (!view.bikes) return null;
+  const { advice, wkg: riderWkg } = view.bikes;
+  const reference = advice.best.some((row) => row.frame === advice.current.frame && row.wheels === advice.current.wheels);
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium">
+        Snelste fiets{" "}
+        <span className="font-normal text-muted-foreground">
+          · stage {advice.stage} · {nl1.format(riderWkg)} W/kg
+        </span>
+      </p>
+      <BikeAdviceList rows={reference ? advice.best : [...advice.best, advice.current]} baseSeconds={advice.best[0].seconds} />
+    </div>
+  );
 }
 
 function OwnTable({ view }: { view: BriefingView }) {
@@ -260,6 +278,7 @@ export default async function RaceBriefingPage({ params }: PageProps) {
             shape={null}
           />
           <RouteKeyPointsTable view={view} />
+          <Bikes view={view} />
         </section>
       )}
 

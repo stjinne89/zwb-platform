@@ -103,15 +103,17 @@ type PartRow = {
   stage: number;
   cda_delta: number | string;
   kg_delta: number | string;
+  fixed_wheels?: boolean | null;
 };
 
 /** De fietslijst; leeg als die nog niet is opgehaald of de tabel nog ontbreekt. */
 export async function loadBikeParts(admin: Client): Promise<BikePart[]> {
-  const { data, error } = await admin
-    .from("zwift_bike_parts")
-    .select("part, name, kind, test_frame, stage, cda_delta, kg_delta")
-    .order("name", { ascending: true })
-    .limit(2000);
+  const read = (columns: string) =>
+    admin.from("zwift_bike_parts").select(columns).order("name", { ascending: true }).limit(2000);
+  const base = "part, name, kind, test_frame, stage, cda_delta, kg_delta";
+  let { data, error } = await read(`${base}, fixed_wheels`);
+  // Zonder migratie 0262: de lijst zonder vaste wielen.
+  if (error) ({ data, error } = await read(base));
   if (error || !data) return [];
   return (data as PartRow[]).map((row) => ({
     part: row.part,
@@ -121,6 +123,7 @@ export async function loadBikeParts(admin: Client): Promise<BikePart[]> {
     stage: Number(row.stage),
     cdaDelta: Number(row.cda_delta),
     kgDelta: Number(row.kg_delta),
+    fixedWheels: row.fixed_wheels === true,
   }));
 }
 

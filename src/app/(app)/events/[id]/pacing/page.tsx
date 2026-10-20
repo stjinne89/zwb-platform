@@ -11,6 +11,7 @@ import {
 } from "@/lib/pacing/zwift-setup";
 import { RideSetupForm, type FrameOption } from "./_components/ride-setup";
 import { PacingEditor } from "./_components/pacing-editor";
+import { PacingBikeAdvice } from "./_components/bike-advice";
 import { RouteShape } from "../_components/route-shape";
 import { GenerateButton } from "./_components/generate-button";
 import {
@@ -62,7 +63,7 @@ export default async function PacingPage({
     );
   }
 
-  const { event, loaded, rider, plan, staleness, sharedPlans, similarRides, zwift, ride } =
+  const { event, loaded, rider, plan, staleness, sharedPlans, similarRides, zwift, ride, bikeAdvice } =
     result.data;
   const summary = plan.summary;
   // Hoe ver het lid van de doeltijd af zit, en of er al een trainingsdoel met
@@ -126,6 +127,7 @@ export default async function PacingPage({
             </p>
           </div>
           <RideSetupForm
+            key={JSON.stringify(ride.setup)}
             eventId={id}
             setup={ride.setup}
             frames={bikes.frames}
@@ -134,6 +136,9 @@ export default async function PacingPage({
             forcedWheels={zwift.constraints.forcedWheels}
             upgradesDisabled={zwift.constraints.upgradesDisabled}
           />
+          {bikeAdvice && bikeAdvice.best.length > 0 && (
+            <PacingBikeAdvice eventId={id} setup={ride.setup} advice={bikeAdvice} />
+          )}
         </section>
       )}
 
@@ -310,7 +315,12 @@ function bikeOptions(parts: BikePart[]): {
   const frames = new Map<string, FrameOption>();
   for (const part of parts) {
     if (part.part !== "frame") continue;
-    const entry = frames.get(part.name) ?? { name: part.name, kind: part.kind, stages: [] };
+    const entry = frames.get(part.name) ?? {
+      name: part.name,
+      kind: part.kind,
+      stages: [],
+      fixedWheels: part.fixedWheels === true,
+    };
     entry.stages.push(part.stage);
     frames.set(part.name, entry);
   }

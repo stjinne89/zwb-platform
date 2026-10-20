@@ -256,6 +256,10 @@ gaat stabiliteit voor nieuwe features.
    en de privacytekst staat erin. Open: een API-sleutel van ZwiftRacing.app
    (eigenaar vraagt hem aan; conceptbericht in de sessie van 2026-10-20) en dan
    de koppeling tegen de echte API controleren.
+10. **Snelste fiets in pacingplan en briefing** (ronde van 2026-10-20 hieronder):
+   gebouwd, lokaal getest en op 2026-10-20 gepusht naar `main`. Migratie
+   `0262_zwift_bike_fixed_wheels.sql` is toegepast. Open: beide schermen in
+   de browser bekijken.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -267,8 +271,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0262`
-(`0261_nutrition_menu_choices` is van eigen recepten in het menu, 2026-10-20,
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0263`
+(`0262_zwift_bike_fixed_wheels` is van de snelste fiets, 2026-10-20,
+toegepast op 2026-10-20; `0261_nutrition_menu_choices` is van eigen recepten in het menu, 2026-10-20,
 hernummerd van `0260`, toegepast op 2026-10-20;
 `0260_race_briefing` is van de racebriefing, 2026-10-20;
 `0259_nutrition_household` is van de boodschappenlijst met gezin, 2026-10-20;
@@ -11298,6 +11303,93 @@ bezoeken vulde de pagina de ZRS van de groep in `zwift_rider_metrics`
 `#000` in het masker van de gescheurde rand (alfa, bedoeld). `tsc`, ESLint,
 Vitest (`race-briefing.test.ts` 18 tests, de TTT-tests).
 **Niet geverifieerd:** de briefingpagina zelf met login.
+
+### Gebouwd — Snelste fiets in het pacingplan en de racebriefing
+
+**2026-10-20.** Commit `7b4d2159`, gepusht naar `main` op 2026-10-20.
+Migratie `0262_zwift_bike_fixed_wheels.sql`, op 2026-10-20 via de
+Supabase-connector op productie toegepast en nagekeken: de vier halo-frames
+staan op `fixed_wheels`, elk met 6 rijen (stage 0 t/m 5). Lokaal niet te
+testen (geen Docker of Supabase-config).
+
+**Waarom.** De eigenaar vroeg of de MCP-server van ZwiftBikes
+([zwiftbikes.com](https://zwiftbikes.com), kjellrg/zwift-bikes, MIT) in de app
+kon. Dat kan niet: `POST /api/mcp` gaf `401 Missing or invalid access token`.
+Hij zit achter Cloudflare Access, en elke gebruiker logt zelf in vanuit een
+AI-client. Hun open JSON-API (`/api/recommend/{route}` gaf `200`) heeft geen
+voorwaarden voor hergebruik en rekent met een ander model dan ons pacingplan,
+zodat er twee tijden naast elkaar zouden staan die niet kloppen met elkaar.
+Keuze van de eigenaar: hun vraag (welke fiets is het snelst op deze route)
+met ons eigen model beantwoorden, in het pacingplan én in de briefing.
+
+**Wat er is gekomen.**
+- `src/lib/pacing/bike-advice.ts` (puur): `adviseBikes` rangschikt alle
+  frames met hun beste wielen. Frame en wielen tellen in ons model op
+  (verschil in CdA en massa), dus het kan in drie stappen in plaats van alle
+  146 × 74 combinaties door te rekenen. Eerst de wielen per fietstype op hun
+  testframe, dan elk frame met de beste daarvan, en voor de koplopers nog de
+  nummers twee en drie. Met de echte lijst kost dat 8–33 ms per route. Het
+  houdt rekening met de eventregels: geen verboden tijdritfiets, geen advies
+  bij een opgelegd frame, geen wielen bij opgelegde wielen, en stage 0 als
+  upgrades uit staan.
+- **Pacingplan:** onder Opzet staat Snelste fiets met de top 3 en "Nu". Het
+  verschil is ten opzichte van de huidige opzet, gerekend met het eigen plan
+  van het lid (`evaluatePlan`, met duurzaamheid, slipstream per stuk en
+  powerups). Alle frames worden vergeleken op het gekozen upgradeniveau, of
+  het hoogste dat daaronder gemeten is. Met Kies wordt de fiets opgeslagen via
+  `savePacingSetup`. Het formulier heeft nu een `key` op de opzet, zodat het
+  na Kies de nieuwe keuze toont.
+- **Racebriefing:** onder de route staat Snelste fiets met de top 3 en de Zwift
+  Carbon ter vergelijking. Gerekend voor de referentierenner van ZwiftInsider
+  (75 kg, 183 cm) op een vast vermogen: de mediane zFTP van onze renners in
+  de groep (anders van de hele ploeg, zonder zFTP 3,5 W/kg). Altijd op
+  stage 0, het niveau dat iedereen met dat frame heeft. Slipstream volgt het
+  format: punten en scratch in de groep, Race of Truth alleen, de
+  ploegentijdrit met 4 renners.
+- `/hulp/racen#pacing-zwift`, de briefingregel in `/hulp` en de zoekterm.
+
+**Gevonden en hersteld: halo-fietsen hebben vaste wielen.** In de eerste
+doorrekening met echte data stonden de Pinarello Espada, de Specialized
+PROJECT 74 en de Cannondale R4000 Roller Blade bovenaan, mét Swiss
+Side-wielen. ZwiftInsider test deze fietsen, samen met de Zwift Concept Z1,
+op hun eigen wielen. Die wielen zitten dus al in het verschil van het frame.
+Dat gold ook voor de bestaande wielkeuze in het pacingplan sinds 2026-09-21:
+daar kon je wielen op een halo-fiets zetten, en die telden dan dubbel.
+`bike-sheet.ts` zet nu `fixedWheels` bij elk frame dat niet op de wielen van
+het testframe van zijn type staat. `zwift_bike_parts.fixed_wheels` (migratie
+`0262`) bewaart dat, en de migratie vult het voor de vier bestaande frames.
+`resolveRidePhysics`, het advies en de keuzelijst slaan dan de wielen over.
+Zonder de migratie leest `loadBikeParts` de lijst zoals voorheen. Een plan op
+een halo-fiets met gekozen wielen wordt na de migratie één keer verouderd
+(`StaleReason` "opzet"), omdat de fysica verandert. "Fietsen ophalen" op
+`/beheer/zwift-routes` schrijft de kolom mee, en zonder de migratie de rijen
+zonder kolom.
+
+**Aannames, niet gemeten.** Het vaste vermogen in de briefing (geen
+pacing, ook niet op klimmen) en 3,5 W/kg zonder zFTP zijn keuzes bij de bouw.
+De rangorde is redelijk ongevoelig voor het vermogen, de verschillen in
+seconden zijn dat niet. Met de echte lijst kwam het advies uit op wat ook uit
+de Zwift-wereld bekend is: de Tarmac SL8 met Princeton-wielen op de Alpe, en
+een tijdritfiets met de DT Swiss 85-wielen op een vlakke tijdrit.
+
+**Bewust niet gebouwd.** Geen koppeling met de MCP-server of de API van
+ZwiftBikes (zie boven). Geen garage: ZWB weet niet welke fietsen een lid in
+Zwift heeft, dus het advies kan een fiets noemen die je niet hebt. Geen advies
+per renner in de briefing: we hebben daar alleen W/kg, geen gewicht of
+lengte. Het eigen pacingplan is de plek voor persoonlijk advies. Geen advies
+in de AI-prompt van het pacingplan.
+
+**Verificatie.** `tsc --noEmit` schoon, eslint schoon, `npm run build` compileert
+(prerenderen strandt zoals eerder op `/omnium` zonder Supabase-sleutels), Vitest 3133 van 3135
+geslaagd. Nieuw: `bike-advice.test.ts` met 11 tests, plus een halo-test in
+`zwift-bike-sheet.test.ts`, waarvoor de Espada-rijen uit de sheet van
+2026-10-20 aan de fixture zijn toegevoegd. Mislukt in de volle suite:
+`admin-areas` en `intervals-ride-sync`. Los gedraaid slagen beide (22/22): ze
+haperen onder parallelle belasting. `omnium-live` faalt zoals eerder op de
+ontbrekende `.env.local`. Een losse doorrekening met de echte fietslijst uit
+productie (alleen gelezen) is gedaan op Green to Screen, een vlakke route en
+de Alpe. **Niet geverifieerd:** de pacingpagina en de briefing in de browser, en de
+knop Kies tegen de database.
 
 ### Gebouwd — Racebriefing per ZRL-race, voor alle teams
 
