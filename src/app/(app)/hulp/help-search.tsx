@@ -180,6 +180,13 @@ const HELP_INDEX: HelpResult[] = [
       "jaarplan jaarplanning seizoen mikpunt mikpunten a-doel b-doel c-doel prioriteit piek rustperiode rust rustig vakantie winterstop drukke periode tijdlijn weg asfalt hek paaltje stippellijn grind finish clubevent kalender misschien event koppelen vlaggetje prioriteit wijzigen dubbel lijst mikpunt verwijderen bewerken verschuiven verplaatsen datum wijzigen trainingskamp kamp stage volume melding waarschuwing",
   },
   {
+    title: "Een doel aanpassen of verwijderen",
+    text: "Een opgeslagen trainingsdoel bewerken of weghalen, en wat er met je schema gebeurt.",
+    href: "/hulp/schema#doel-aanpassen",
+    terms:
+      "doel trainingsdoel aanpassen wijzigen bewerken veranderen verwijderen weghalen wissen fout typfout titel datum targetdatum doeltype uren schema blijft",
+  },
+  {
     title: "Waarom een schema hooguit twaalf weken loopt",
     text: "Blokken van twaalf weken, het volgende blok klaarzetten, en de bronnen.",
     href: "/hulp/schema#blokken",

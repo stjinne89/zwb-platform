@@ -109,6 +109,32 @@ export function SchemaHelp() {
             </ul>
           </article>
           <article
+            id="doel-aanpassen"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Een doel aanpassen of verwijderen</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Onder Training → Doelen staat bij elk doel Bewerken en
+              Verwijderen. Je tijd per dag pas je aan op de schemapagina.
+            </p>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li>
+                <strong className="text-foreground">Bewerken:</strong> een
+                schema dat al loopt, wordt niet opnieuw gemaakt. Aanpassingen en
+                een volgend blok gaan wel uit van je bijgewerkte doel. Kies je
+                een doeltype zonder één piekdag, dan gaan de doeltijd en de
+                prognoses eraf.
+              </li>
+              <li>
+                <strong className="text-foreground">Verwijderen:</strong> het
+                doel en de prognoses gaan weg. Hangt er nog een schema aan, dan
+                kan het niet: zonder doel kan dat schema niet meer worden
+                bijgewerkt. Je trainer haalt dan eerst het schema weg. Een
+                mikpunt op je jaarplan staat daarna weer zonder doel.
+              </li>
+            </ul>
+          </article>
+          <article
             id="blokken"
             className="scroll-mt-20 rounded-md border bg-background p-4"
           >

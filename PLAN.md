@@ -11165,6 +11165,55 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — trainingsdoel bewerken en verwijderen
+
+**2026-10-20.** Commit: de commit die dit blok toevoegt, op de branch
+`claude/edit-delete-goals-9a4bd8` (niet gepusht). Geen migratie.
+
+**Aanleiding.** Vraag van de eigenaar: een opgeslagen doel moet nog te bewerken
+of te verwijderen zijn. Tot nu toe kon alleen de doeltijd achteraf veranderen;
+een typfout in de titel of een verschoven doeldatum betekende een nieuw doel,
+naast het oude.
+
+**Wat er is gekomen.**
+- **Bewerken** (`updateTrainingGoal`): bij elk doel onder Training → Doelen
+  klapt "Bewerken" een formulier uit met titel, doeltype, targetdatum, max. uren,
+  voorkeur, ervaring, belasting en aandachtspunten. Alleen het eigen doel. Wordt
+  het type er een zonder één piekdag, dan gaan doeltijd, groep, parcours en de
+  prognoses eraf (die horen bij één rit op één dag). De keuzelijsten staan nu in
+  `doelen/_components/goal-options.ts`, gedeeld met het formulier voor een nieuw
+  doel.
+- **Verwijderen** (`deleteTrainingGoal`), met een bevestiging. Prognoses gaan
+  mee (cascade); een mikpunt op de jaarplanning en AI-generaties houden hun rij,
+  zonder doel (`on delete set null`). **Geweigerd zolang er een schema aan hangt
+  dat niet is gearchiveerd**: zonder doel weigert `preparePlanUpdate` elke
+  herziening en elk volgend blok ("Dit schema hangt niet aan een doel"). Het lid
+  krijgt dan de melding de trainer eerst het schema te laten verwijderen; dat
+  blijft trainerwerk (`deleteTrainingPlan`). Zelfde lijn als `0135`: een doel met
+  een plan eraan blijft staan.
+- `/hulp/schema#doel-aanpassen` legt uit wat bewerken met een lopend schema doet
+  (niets direct; aanpassingen en een volgend blok lezen het bijgewerkte doel) en
+  waarom verwijderen soms niet kan. Zoekterm en anker toegevoegd.
+
+**Bewust niet gebouwd.**
+- **Geen beschikbaarheid in het bewerkformulier.** Die staat sinds `0115` in
+  `training_availability` en is op de schemapagina te wijzigen; een tweede plek
+  zou twee waarheden geven.
+- **Geen parcours wijzigen of doeltijd toevoegen achteraf.** Dat vraagt de
+  GPX-upload opnieuw; doeltijd en groep blijven via `updateGoalTargetTime`, voor
+  een ander parcours blijft het een nieuw doel.
+- **Geen automatische schemaherziening of trainermelding na een wijziging.** Een
+  herziening kost een AI-generatie; het lid of de trainer start die zelf.
+- **Geen bewerken door de trainer** op `/zwbeter-worden/trainer/doelen`; de vraag
+  ging over het lid dat zijn doelen opstelt.
+
+**Getest.** `tsc`, ESLint op de gewijzigde mappen, `help-categories` en
+`help-anchors`, en de unit-suite: alleen `omnium-live.test.ts` faalt (mist
+`.env.local` in deze worktree); `rls-initplan-migration`, `admin-areas` en
+`intervals-ride-sync` faalden alleen onder volle belasting en slagen los.
+*Niet geverifieerd:* het formulier in de browser en een echte wijziging of
+verwijdering op productie (vraagt een ingelogde sessie).
+
 ### Gebouwd — ZWB Monday Ride vanzelf op de kalender
 
 **2026-10-20.** Commit: de commit die dit blok toevoegt. Geen migratie. Lokaal
@@ -11262,8 +11311,9 @@ nadruk in het schema en een prognose die met de tijd meeloopt.
   hoogteprofiel over (`training_goals.target_route`: afstand en helling per
   100 m, plus de klimmen); de coördinaten vallen weg na het parsen. Kiest het
   lid een event en geen datum, dan wordt de eventdatum de doeldatum. Doeltijd en
-  groep zijn achteraf aan te passen (`updateGoalTargetTime`); voor een ander
-  parcours maak je een nieuw doel.
+  groep zijn achteraf aan te passen (`updateGoalTargetTime`), de rest van het
+  doel sinds de ronde "trainingsdoel bewerken en verwijderen"
+  (`updateTrainingGoal`); voor een ander parcours maak je een nieuw doel.
 - **Rekenwerk** in `src/lib/training/goal-target-time.ts`, op het pacingmodel:
   - prognose = het snelste haalbare plan (basisvoorstel, dan `fitPlanToTime`),
     zodat pacingplan en doel dezelfde tijd noemen;

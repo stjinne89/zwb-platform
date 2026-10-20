@@ -94,6 +94,7 @@ export const HELP_CATEGORIES = [
       "trainingsschema",
       "doeltype",
       "doeltijd",
+      "doel-aanpassen",
       "blokken",
       "uitgangspunten",
       "vergelijken",

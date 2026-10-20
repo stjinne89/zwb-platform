@@ -26,6 +26,8 @@ import {
 } from "@/lib/training/goal-forecast";
 import { GoalForecastCard } from "./_components/goal-forecast-card";
 import { GoalTypeFields } from "./_components/goal-type-fields";
+import { GoalEdit } from "./_components/goal-edit";
+import { INTENSITY_OPTIONS, LEVEL_OPTIONS, MODE_OPTIONS } from "./_components/goal-options";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -190,9 +192,11 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
                 name="preferred_mode"
                 className="mt-1 w-full rounded-md border bg-background px-3 py-2"
               >
-                <option value="mixed">Mix</option>
-                <option value="indoor">Indoor</option>
-                <option value="outdoor">Outdoor</option>
+                {MODE_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="text-sm">
@@ -201,9 +205,11 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
                 name="experience_level"
                 className="mt-1 w-full rounded-md border bg-background px-3 py-2"
               >
-                <option value="intermediate">Gemiddeld</option>
-                <option value="beginner">Beginner</option>
-                <option value="advanced">Gevorderd</option>
+                {LEVEL_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="text-sm">
@@ -212,9 +218,11 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
                 name="desired_intensity"
                 className="mt-1 w-full rounded-md border bg-background px-3 py-2"
               >
-                <option value="balanced">Gebalanceerd</option>
-                <option value="easy">Voorzichtig</option>
-                <option value="hard">Ambitieus</option>
+                {INTENSITY_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </label>
             <GoalAvailability initial={availability} />
@@ -253,6 +261,7 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
                     editable={goal.status === "active"}
                   />
                 ) : null}
+                <GoalEdit goal={goal} />
               </li>
             ))}
           </ul>

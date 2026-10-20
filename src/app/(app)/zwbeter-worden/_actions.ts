@@ -427,6 +427,116 @@ export async function createTrainingGoal(formData: FormData) {
   }
 }
 
+/**
+ * Een opgeslagen doel bijwerken. De beschikbaarheid hoort hier niet bij: die
+ * staat sinds 0115 in training_availability en is op de schemapagina te
+ * wijzigen. De doeltijd heeft een eigen formulier (updateGoalTargetTime); wordt
+ * het doeltype er een zonder eindtijd, dan gaan doeltijd, parcours en prognoses
+ * eraf, want die horen bij één rit op één dag.
+ */
+export async function updateTrainingGoal(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const goalId = mustString(formData.get("goal_id"), "Doel");
+    const { data: goal } = await admin
+      .from("training_goals")
+      .select("id, target_time_seconds")
+      .eq("id", goalId)
+      .eq("profile_id", user.id)
+      .maybeSingle();
+    if (!goal) throw new Error("Doel niet gevonden.");
+
+    const goalType = mustString(formData.get("goal_type"), "Doeltype");
+    const preferredMode = optionalString(formData.get("preferred_mode")) ?? "mixed";
+    const experienceLevel = optionalString(formData.get("experience_level")) ?? "intermediate";
+    const desiredIntensity = optionalString(formData.get("desired_intensity")) ?? "balanced";
+    if (!GOAL_TYPES.includes(goalType)) throw new Error("Ongeldig doeltype.");
+    if (!MODES.includes(preferredMode)) throw new Error("Ongeldige trainingsvoorkeur.");
+    if (!LEVELS.includes(experienceLevel)) throw new Error("Ongeldig ervaringsniveau.");
+    if (!INTENSITIES.includes(desiredIntensity)) throw new Error("Ongeldige intensiteit.");
+
+    const dropTarget = Boolean(goal.target_time_seconds) && !TARGET_TIME_GOAL_TYPES.includes(goalType);
+    const { error } = await admin
+      .from("training_goals")
+      .update({
+        title: mustString(formData.get("title"), "Titel"),
+        goal_type: goalType,
+        target_date: optionalString(formData.get("target_date")),
+        max_hours_per_week: optionalNumber(formData.get("max_hours_per_week")),
+        preferred_mode: preferredMode,
+        experience_level: experienceLevel,
+        desired_intensity: desiredIntensity,
+        risk_notes: optionalString(formData.get("risk_notes")),
+        updated_at: new Date().toISOString(),
+        ...(dropTarget
+          ? {
+              target_time_seconds: null,
+              target_riding: null,
+              target_event_id: null,
+              target_route: null,
+            }
+          : {}),
+      })
+      .eq("id", goalId);
+    if (error) throw new Error(error.message);
+    if (dropTarget) {
+      await admin.from("training_goal_forecasts").delete().eq("goal_id", goalId);
+    }
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : "Doel opslaan faalde." };
+  }
+}
+
+/**
+ * Een eigen doel verwijderen. Prognoses gaan mee (cascade); een AI-generatie of
+ * een mikpunt op de jaarplanning dat ernaar verwees blijft staan, zonder doel
+ * (on delete set null).
+ *
+ * Niet zolang er een schema aan hangt dat niet is gearchiveerd: zonder doel kan
+ * dat schema niet meer worden bijgewerkt en komt er geen volgend blok
+ * (preparePlanUpdate weigert dan). Een schema verwijderen blijft aan de trainer
+ * (deleteTrainingPlan).
+ */
+export async function deleteTrainingGoal(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const goalId = mustString(formData.get("goal_id"), "Doel");
+    const { data: plans, error: planError } = await admin
+      .from("training_plans")
+      .select("id")
+      .eq("goal_id", goalId)
+      .eq("profile_id", user.id)
+      .neq("status", "archived")
+      .limit(1);
+    if (planError) throw new Error(planError.message);
+    if ((plans ?? []).length > 0) {
+      throw new Error("Aan dit doel hangt een schema. Vraag je trainer dat eerst te verwijderen.");
+    }
+
+    const { data: deleted, error } = await admin
+      .from("training_goals")
+      .delete()
+      .eq("id", goalId)
+      .eq("profile_id", user.id)
+      .select("id");
+    if (error) throw new Error(error.message);
+    if ((deleted ?? []).length === 0) throw new Error("Doel niet gevonden.");
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Doel verwijderen faalde.",
+    };
+  }
+}
+
 /** Een GPX van een gran fondo van 200 km is een paar megabyte. */
 const MAX_GOAL_GPX_BYTES = 8 * 1024 * 1024;
 
