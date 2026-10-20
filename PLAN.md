@@ -62,15 +62,18 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
-   - **Q&A (vragen over de app):** `0254_member_questions.sql` toepassen
-     **vóór** de code naar `main` gaat: het profiel vraagt de nieuwe
-     pushkolommen op, en zonder die kolommen kan niemand zijn meldingen
-     opslaan. Het dashboardblok en `/qa` vallen zonder de tabel wel netjes weg.
-     Daarna: de controlequery's onderaan de migratie, een vraag stellen vanaf
-     een gewoon account (één voor de club, één alleen voor het bestuur),
-     beantwoorden als bestuur, en kijken of beide pushmeldingen aankomen. Nog
-     goed te keuren: de privacy- en voorwaardentekst, en of Q&A zonder nieuwe
-     privacyversie kan (ronde 2026-10-19, "Q&A").
+   - **Q&A (vragen over de app):** `0254_member_questions.sql` is op
+     2026-10-20 door de eigenaar zelf in de SQL-editor gedraaid (twee pogingen
+     via de Supabase-connector liepen vast op een time-out en `cancelled`, zonder
+     iets te veranderen); daarna naar `main` gepusht. Achteraf nagekeken via de
+     connector: RLS aan, vier policies, twee triggers (met de fix voor
+     `on delete set null`), beide foreign keys met de namen uit `QA_SELECT`,
+     `qa.answer` alleen bij het bestuur, twee pushkolommen, `anon` geen grants.
+     Nog doen: een vraag stellen vanaf een gewoon account (één voor de club,
+     één alleen voor het bestuur), beantwoorden als bestuur, en kijken of beide
+     pushmeldingen aankomen. Nog goed te keuren: de privacy- en
+     voorwaardentekst, en of Q&A zonder nieuwe privacyversie kan (ronde
+     2026-10-19, "Q&A").
    - **Design "tegels" voor iedereen:** op 2026-10-19 naar `main` gepusht
      (eigenaar). Nog doen: als gewoon lid (privévenster) en als bestuurslid
      nalopen (ronde 2026-10-19, "Design tegels wordt de standaard").
@@ -237,7 +240,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Q&A: vragen over de app, 2026-10-19 — gebouwd; typecheck en lint schoon; unit-tests groen op `omnium-live` na (mist `.env.local`); `next build` compileert, het prerenderen stopt op `/omnium` om dezelfde reden; niet in de browser bekeken; niet op productie. Migratie `0254_member_questions.sql`, niet toegepast.**
+> **Q&A: vragen over de app, 2026-10-19 — gebouwd; typecheck en lint schoon; unit-tests groen op `omnium-live` na (mist `.env.local`); `next build` compileert, het prerenderen stopt op `/omnium` om dezelfde reden; niet in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-20). Migratie `0254_member_questions.sql`, toegepast door de eigenaar (2026-10-20) en nagekeken.**
 > Commit: de commit die dit blok toevoegt, op `ccr-5defbd84-e1uj6w`.
 >
 > **Waarom.** Wens van de eigenaar: een plek op het dashboard waar leden hun
@@ -327,12 +330,19 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - Volledige run: 3.026 van 3.026 tests groen; alleen de suite
 >   `omnium-live` laadt niet zonder `.env.local`.
 >
+> **Op productie (2026-10-20).** Vooraf, alleen lezen: geen tabel, geen
+> pushkolommen, de check-constraint precies de lijst van 0206, en geen rol met
+> een recht buiten de nieuwe lijst. Achteraf: zie "Handwerk op productie"
+> bovenaan. De security-advisors melden voor Q&A alleen soorten die er al
+> waren: `search_path` niet vast bij `current_user_answers_questions` en
+> `member_questions_before_update` (zoals `member_tips_guard`), en
+> `member_questions_before_insert` als security-definer-functie uitvoerbaar via
+> RPC (een triggerfunctie kan niet los worden aangeroepen). Bewust niet
+> rechtgezet: dat hoort bij een aparte ronde voor alle functies samen.
+>
 > **Niet geverifieerd.**
-> - 0254 op de echte database (geen Docker of Supabase-config hier), dus ook
->   de RLS met de echte `current_user_has_permission` niet, en niet de namen
->   van de twee foreign keys waarop `QA_SELECT` de profielnamen ophaalt
->   (`member_questions_profile_id_fkey`, `member_questions_answered_by_fkey`,
->   de standaardnamen van PostgreSQL).
+> - De RLS met echte accounts (alleen in PGlite en via de structuur
+>   nagekeken).
 > - De pagina's in de browser: er is geen `.env.local`, dus de dev-server is
 >   niet gestart. Ook niet hoe het blok er in het design "tegels" uitziet.
 > - Of de pushmeldingen aankomen.
