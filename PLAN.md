@@ -11262,7 +11262,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Snelste fiets in het pacingplan en de racebriefing
 
-**2026-10-20.** Commit: zie de PLAN-commit die erop volgt. Niet gepusht.
+**2026-10-20.** Commit `7b4d2159`. Niet gepusht.
 Migratie `0262_zwift_bike_fixed_wheels.sql`: **nog niet op productie
 toegepast** en niet lokaal te testen (geen Docker of Supabase-config).
 
