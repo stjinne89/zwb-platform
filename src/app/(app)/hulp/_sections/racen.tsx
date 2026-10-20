@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   CheckCircle2,
   Mountain,
@@ -213,6 +214,17 @@ export function RacenHelp() {
               die kiest waar je harder en zachter rijdt, en het platform zet die
               verdeling daarna weer op je tijd. Wind zit niet in de berekening;
               slipstream alleen bij een Zwift-event (zie Zwift-wedstrijden).
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Zolang het event nog moet komen, zie je ook hoe ver je van je doel
+              af zit: het oordeel, hoeveel CP je nodig hebt, welke groei tot het
+              event redelijk is, en wat 1% CP of 1 kg scheelt. Dat werkt zoals
+              bij een{" "}
+              <Link href="/hulp/schema#doeltijd" className="underline underline-offset-2">
+                doeltijd voor je gran fondo
+              </Link>
+              , maar op je eigen plan. Heb je een trainingsdoel met een doeltijd
+              voor dit event, dan staat dat eronder.
             </p>
           </article>
 

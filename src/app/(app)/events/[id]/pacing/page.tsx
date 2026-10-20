@@ -20,6 +20,12 @@ import {
   TargetTimeForm,
 } from "./_components/plan-controls";
 import { getRequestAccess } from "@/lib/auth/request";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { assessPacingTarget } from "@/lib/pacing/target-assessment";
+import { goalTargetForEvent } from "@/lib/training/goal-forecast";
+import { VERDICT_LABELS } from "@/lib/training/goal-target-time";
+import { TargetAssessmentRows, VerdictBadge } from "@/components/target-assessment";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +65,14 @@ export default async function PacingPage({
   const { event, loaded, rider, plan, staleness, sharedPlans, similarRides, zwift, ride } =
     result.data;
   const summary = plan.summary;
+  // Hoe ver het lid van de doeltijd af zit, en of er al een trainingsdoel met
+  // doeltijd aan dit event hangt.
+  const assessment = assessPacingTarget(result.data);
+  const goalTarget = await goalTargetForEvent(
+    await createClient(),
+    result.data.userId,
+    id,
+  ).catch(() => null);
   const bikes = zwift ? bikeOptions(zwift.parts) : null;
 
   return (
@@ -184,11 +198,40 @@ export default async function PacingPage({
           manual={plan.source === "manual"}
         />
         {summary?.targetTime ? (
+          <div className="space-y-1 text-sm text-muted-foreground">
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span>
+                Doel {hhmm(summary.targetTime.seconds)}, plan {hhmm(summary.totalSeconds)}
+                {summary.targetTime.reachable
+                  ? ""
+                  : ` · snelste haalbare ${hhmm(summary.targetTime.fastestSeconds)}`}
+              </span>
+              {assessment ? <VerdictBadge verdict={assessment.verdict} /> : null}
+            </p>
+            {assessment ? (
+              <dl className="grid gap-1">
+                <TargetAssessmentRows
+                  cpWatts={assessment.cpWatts}
+                  requiredCpWatts={assessment.requiredCpWatts}
+                  requiredGainPct={assessment.requiredGainPct}
+                  realisticGainPct={assessment.realisticGainPct}
+                  secondsPerCpPct={assessment.secondsPerCpPct}
+                  secondsPerKg={assessment.secondsPerKg}
+                  untilLabel="tot het event"
+                />
+              </dl>
+            ) : null}
+          </div>
+        ) : null}
+        {goalTarget ? (
           <p className="text-sm text-muted-foreground">
-            Doel {hhmm(summary.targetTime.seconds)}, plan {hhmm(summary.totalSeconds)}
-            {summary.targetTime.reachable
-              ? ""
-              : ` · snelste haalbare ${hhmm(summary.targetTime.fastestSeconds)}`}
+            <Link href="/zwbeter-worden/doelen" className="text-foreground underline-offset-2 hover:underline">
+              Trainingsdoel
+            </Link>
+            {`: doeltijd ${hhmm(goalTarget.targetSeconds)}`}
+            {goalTarget.latest
+              ? ` · prognose ${hhmm(goalTarget.latest.predicted_seconds)} · ${VERDICT_LABELS[goalTarget.latest.verdict].toLowerCase()}`
+              : ""}
           </p>
         ) : null}
         <ShareToggle eventId={id} shared={plan.shared} />

@@ -15,6 +15,7 @@ import type { CpModel, CpSource, CurvePoint } from "@/lib/pacing/cp";
 import type { DurabilityModel } from "@/lib/pacing/durability";
 import {
   evaluatePlan,
+  imposeFixedPieces,
   isFixedPiece,
   type PlanEvaluation,
   type PlanSegment,
@@ -22,6 +23,7 @@ import {
 import type { PacingRoute } from "@/lib/pacing/route-profile";
 import { fitPlanToTime, parseTargetTime, TARGET_TOLERANCE_S } from "@/lib/pacing/target-time";
 import type { RiderType } from "@/lib/teams/power-profile";
+import type { RidePhysics } from "@/lib/pacing/zwift-setup";
 
 export type GoalRiding = "alone" | "group";
 
@@ -187,25 +189,42 @@ function scalePlan(plan: PlanSegment[], factor: number): PlanSegment[] {
 }
 
 /**
- * Het snelste plan dat deze renner de finish laat halen: het basisvoorstel,
- * dan zo hoog als de reserve toelaat. Dezelfde weg als "Plan voor deze tijd"
- * in het pacingplan, zodat beide dezelfde tijd noemen.
+ * De fysica waarmee gerekend wordt: buiten in een groep een lagere CdA, of in
+ * Zwift de opzet van het event. Zonder beide: buiten, alleen.
+ */
+export type TargetPhysics = { cdaFactor?: number; ride?: RidePhysics | null };
+
+function evaluateOptions(rider: ForecastRider, physics: TargetPhysics) {
+  return {
+    durability: rider.durability,
+    cdaFactor: physics.cdaFactor,
+    ride: physics.ride ?? null,
+  };
+}
+
+/**
+ * Het snelste plan dat deze renner de finish laat halen: het basisvoorstel, of
+ * het eigen plan van het lid, dan zo hoog als de reserve toelaat. Dezelfde weg
+ * als "Plan voor deze tijd" in het pacingplan, zodat beide dezelfde tijd noemen.
  */
 export function fastestPlan(
   route: PacingRoute,
   rider: ForecastRider,
-  cdaFactor: number,
+  physics: TargetPhysics = {},
+  startPlan?: PlanSegment[],
 ): { plan: PlanSegment[]; evaluation: PlanEvaluation } {
-  const options = { curve: rider.curve, durability: rider.durability, cdaFactor };
-  const baseline = buildBaselinePlan({
-    route,
-    model: rider.model,
-    riderType: rider.riderType,
-    ...options,
-  });
+  const options = {
+    curve: rider.curve,
+    durability: rider.durability,
+    cdaFactor: physics.cdaFactor,
+    ride: physics.ride ?? null,
+  };
+  const plan = startPlan
+    ? imposeFixedPieces(startPlan, route, rider.model, options.ride)
+    : buildBaselinePlan({ route, model: rider.model, riderType: rider.riderType, ...options }).plan;
   // Een doel van één seconde haalt niemand: fitPlanToTime geeft dan het
   // snelste haalbare plan terug.
-  const fit = fitPlanToTime(baseline.plan, route, rider.model, 1, options);
+  const fit = fitPlanToTime(plan, route, rider.model, 1, options);
   return { plan: fit.plan, evaluation: fit.evaluation };
 }
 
@@ -220,14 +239,16 @@ function requiredFactor(
   route: PacingRoute,
   rider: ForecastRider,
   targetSeconds: number,
-  cdaFactor: number,
+  physics: TargetPhysics,
 ): number | null {
   const timeAt = (factor: number) => {
     const scaled = scaleRider(rider, factor);
-    return evaluatePlan(scalePlan(plan, factor), route, scaled.model, {
-      durability: scaled.durability,
-      cdaFactor,
-    }).totalSeconds;
+    return evaluatePlan(
+      scalePlan(plan, factor),
+      route,
+      scaled.model,
+      evaluateOptions(scaled, physics),
+    ).totalSeconds;
   };
   if (timeAt(MAX_CP_FACTOR) > targetSeconds + TARGET_TOLERANCE_S) return null;
   let lo = 1;
@@ -329,12 +350,38 @@ export function emphasisFor(input: {
   return out;
 }
 
-export function forecastGoal(input: ForecastInput): GoalForecast {
-  const { route, rider, targetSeconds, riding } = input;
-  const cdaFactor = riding === "group" ? GROUP_CDA_FACTOR : 1;
+export type TargetAssessment = {
+  targetSeconds: number;
+  predictedSeconds: number;
+  verdict: GoalVerdict;
+  cpWatts: number;
+  requiredCpWatts: number | null;
+  requiredGainPct: number | null;
+  realisticGainPct: number | null;
+  weeksToGoal: number | null;
+  secondsPerCpPct: number;
+  secondsPerKg: number;
+};
+
+/**
+ * Hoe ver een renner van een doeltijd af zit: prognose, oordeel, benodigde CP
+ * en wat 1 % CP of 1 kg scheelt. Gedeeld door het trainingsdoel en de
+ * pacingcalculator van een event.
+ */
+export function assessTargetTime(input: {
+  route: PacingRoute;
+  rider: ForecastRider;
+  targetSeconds: number;
+  weeksToGoal: number | null;
+  physics?: TargetPhysics;
+  /** Het eigen plan van het lid; zonder: het basisvoorstel. */
+  startPlan?: PlanSegment[];
+}): TargetAssessment & { fastest: { plan: PlanSegment[]; evaluation: PlanEvaluation } } {
+  const { route, rider, targetSeconds } = input;
+  const physics = input.physics ?? {};
   const { model } = rider;
 
-  const fastest = fastestPlan(route, rider, cdaFactor);
+  const fastest = fastestPlan(route, rider, physics, input.startPlan);
   const predictedSeconds = Math.round(fastest.evaluation.totalSeconds);
 
   // Gevoeligheid op het snelste plan zelf: zelfde verdeling, iets meer CP of
@@ -343,17 +390,19 @@ export function forecastGoal(input: ForecastInput): GoalForecast {
   const secondsPerCpPct = Math.max(
     0,
     predictedSeconds -
-      evaluatePlan(scalePlan(fastest.plan, 1.01), route, plusOne.model, {
-        durability: rider.durability,
-        cdaFactor,
-      }).totalSeconds,
+      evaluatePlan(
+        scalePlan(fastest.plan, 1.01),
+        route,
+        plusOne.model,
+        evaluateOptions(rider, physics),
+      ).totalSeconds,
   );
   const lighterKg = model.weightKg - 1;
   const lighter = evaluatePlan(
     scalePlan(fastest.plan, model.weightKg / lighterKg),
     route,
     { ...model, weightKg: lighterKg },
-    { durability: rider.durability, cdaFactor },
+    evaluateOptions(rider, physics),
   );
   const secondsPerKg = Math.max(0, predictedSeconds - lighter.totalSeconds);
 
@@ -366,7 +415,7 @@ export function forecastGoal(input: ForecastInput): GoalForecast {
   if (predictedSeconds <= targetSeconds + TARGET_TOLERANCE_S) {
     verdict = "haalbaar";
   } else {
-    const factor = requiredFactor(fastest.plan, route, rider, targetSeconds, cdaFactor);
+    const factor = requiredFactor(fastest.plan, route, rider, targetSeconds, physics);
     if (factor === null) {
       verdict = "buiten_bereik";
     } else {
@@ -376,22 +425,38 @@ export function forecastGoal(input: ForecastInput): GoalForecast {
     }
   }
 
-  const climbs = climbStats(route, fastest.evaluation);
-  const durabilityFadePct = rider.durability ? round1(rider.durability.maxFadePct) : null;
-
   return {
     targetSeconds: Math.round(targetSeconds),
     predictedSeconds,
     verdict,
     cpWatts: Math.round(model.cpWatts),
-    cpSource: model.source,
-    weightKg: round1(model.weightKg),
     requiredCpWatts,
     requiredGainPct,
     realisticGainPct,
     weeksToGoal: weeksToGoal === null ? null : round1(weeksToGoal),
     secondsPerCpPct: Math.round(secondsPerCpPct),
     secondsPerKg: Math.round(secondsPerKg),
+    fastest,
+  };
+}
+
+export function forecastGoal(input: ForecastInput): GoalForecast {
+  const { route, rider, targetSeconds, riding } = input;
+  const { fastest, ...assessment } = assessTargetTime({
+    route,
+    rider,
+    targetSeconds,
+    weeksToGoal: input.weeksToGoal,
+    physics: { cdaFactor: riding === "group" ? GROUP_CDA_FACTOR : 1 },
+  });
+
+  const climbs = climbStats(route, fastest.evaluation);
+  const durabilityFadePct = rider.durability ? round1(rider.durability.maxFadePct) : null;
+
+  return {
+    ...assessment,
+    cpSource: rider.model.source,
+    weightKg: round1(rider.model.weightKg),
     climbShare: Math.round(climbs.share * 1000) / 1000,
     durabilityFadePct,
     riding,

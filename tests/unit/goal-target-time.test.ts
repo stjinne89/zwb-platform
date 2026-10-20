@@ -21,6 +21,9 @@ import {
   weeksUntil,
 } from "@/lib/training/goal-forecast";
 import { defaultTrainingPrompt } from "@/lib/training/workouts";
+import { fitPlanToTime } from "@/lib/pacing/target-time";
+import { assessPacingTarget, weeksUntilStart } from "@/lib/pacing/target-assessment";
+import type { RidePhysics } from "@/lib/pacing/zwift-setup";
 import { parseGoalTargetTime } from "@/lib/training/goal-target-time";
 
 const MODEL: CpModel = { cpWatts: 260, wPrimeJoules: 20_000, source: "intervals", weightKg: 75 };
@@ -99,7 +102,7 @@ describe("prognose voor een doeltijd", () => {
   const hilly = route(80, 4);
 
   it("noemt een doeltijd die al binnen bereik is haalbaar, zonder benodigde CP", () => {
-    const fastest = fastestPlan(hilly, RIDER, 1).evaluation.totalSeconds;
+    const fastest = fastestPlan(hilly, RIDER).evaluation.totalSeconds;
     const result = forecastGoal({
       route: hilly,
       rider: RIDER,
@@ -114,7 +117,7 @@ describe("prognose voor een doeltijd", () => {
   });
 
   it("rekent de benodigde CP uit en toetst die aan de weken tot de datum", () => {
-    const fastest = fastestPlan(hilly, RIDER, 1).evaluation.totalSeconds;
+    const fastest = fastestPlan(hilly, RIDER).evaluation.totalSeconds;
     const target = fastest * 0.95;
     const base = {
       route: hilly,
@@ -140,12 +143,12 @@ describe("prognose voor een doeltijd", () => {
       ...RIDER,
       model: { ...MODEL, cpWatts: soon.requiredCpWatts!, wPrimeJoules: MODEL.wPrimeJoules * (soon.requiredCpWatts! / MODEL.cpWatts) },
     };
-    const reached = fastestPlan(hilly, stronger, 1).evaluation.totalSeconds;
+    const reached = fastestPlan(hilly, stronger).evaluation.totalSeconds;
     expect(Math.abs(reached - target) / target).toBeLessThan(0.01);
   });
 
   it("noemt een doel dat ook met anderhalf keer de CP niet lukt buiten bereik", () => {
-    const fastest = fastestPlan(hilly, RIDER, 1).evaluation.totalSeconds;
+    const fastest = fastestPlan(hilly, RIDER).evaluation.totalSeconds;
     const result = forecastGoal({
       route: hilly,
       rider: RIDER,
@@ -304,5 +307,54 @@ describe("invoer en weergave", () => {
     expect(goalRouteLabel({ target_route: stored }, new Map())).toBe("Limburgs Mooiste · 150 km · 1920 hm");
     expect(goalRouteLabel({ target_event_id: "e1" }, new Map([["e1", "Clubfondo"]]))).toBe("Clubfondo");
     expect(goalRouteLabel({}, new Map())).toBeNull();
+  });
+});
+
+describe("doeltijd in de pacingcalculator", () => {
+  const hilly = route(80, 4);
+  const plan = buildBaselinePlan({ route: hilly, model: MODEL }).plan;
+  const now = new Date("2026-10-20T12:00:00Z");
+  const data = (targetSeconds: number, startAt = "2026-12-15T09:00:00Z", ride: RidePhysics | null = null) =>
+    ({
+      event: { start_at: startAt },
+      loaded: { route: hilly },
+      rider: { ...RIDER, riderType: "allrounder", ftpWatts: 260 },
+      plan: { segments: plan, summary: { targetTime: { seconds: targetSeconds, reachable: false, fastestSeconds: 0 } } },
+      ride: ride ? { physics: ride } : null,
+    }) as unknown as Parameters<typeof assessPacingTarget>[0];
+
+  it("rekent op het eigen plan, met dezelfde snelste tijd als Plan voor deze tijd", () => {
+    const fastest = fitPlanToTime(plan, hilly, MODEL, 1).fastestSeconds;
+    const result = assessPacingTarget(data(fastest * 0.95), now)!;
+    expect(Math.abs(result.predictedSeconds - fastest)).toBeLessThanOrEqual(1);
+    expect(result.requiredCpWatts).toBeGreaterThan(MODEL.cpWatts);
+    expect(result.weeksToGoal).toBeCloseTo(8, 0);
+    expect(result.realisticGainPct).toBe(realisticCpGainPct(result.weeksToGoal!));
+  });
+
+  it("zegt niets meer na de start, of zonder doeltijd", () => {
+    expect(assessPacingTarget(data(20_000, "2026-10-19T09:00:00Z"), now)).toBeNull();
+    const none = { ...data(20_000), plan: { segments: plan, summary: null } } as unknown as Parameters<
+      typeof assessPacingTarget
+    >[0];
+    expect(assessPacingTarget(none, now)).toBeNull();
+    expect(weeksUntilStart("2026-11-03T12:00:00Z", now)).toBeCloseTo(2, 5);
+  });
+
+  it("rekent met de Zwift-opzet van het event als die er is", () => {
+    const zwift: RidePhysics = {
+      format: "race",
+      cda: 0.3,
+      kind: "road",
+      rolling: "road",
+      bikeKg: 8,
+      draftFactor: 0.7,
+      pullShare: null,
+      powerups: [],
+    };
+    const target = fitPlanToTime(plan, hilly, MODEL, 1).fastestSeconds;
+    const outdoor = assessPacingTarget(data(target), now)!;
+    const inZwift = assessPacingTarget(data(target, undefined, zwift), now)!;
+    expect(inZwift.predictedSeconds).not.toBe(outdoor.predictedSeconds);
   });
 });

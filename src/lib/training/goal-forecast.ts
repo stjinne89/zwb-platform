@@ -447,3 +447,28 @@ export async function goalTargetForAi(
   if (fresh) return forecastForAi(fresh);
   return latest ? forecastForAi(latest) : null;
 }
+
+/**
+ * Het actieve trainingsdoel met doeltijd dat aan dit event hangt, met de laatste
+ * prognose. Voor de pacingcalculator: daar hoort het lid te zien dat er al een
+ * doeltijd voor deze rit loopt.
+ */
+export async function goalTargetForEvent(
+  reader: Reader,
+  profileId: string,
+  eventId: string,
+): Promise<{ goalId: string; targetSeconds: number; latest: GoalForecastRow | null } | null> {
+  const { data } = await reader
+    .from("training_goals")
+    .select("id, target_time_seconds")
+    .eq("profile_id", profileId)
+    .eq("target_event_id", eventId)
+    .eq("status", "active")
+    .not("target_time_seconds", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const goal = (data ?? [])[0] as { id: string; target_time_seconds: number } | undefined;
+  if (!goal) return null;
+  const latest = (await loadGoalForecasts(reader, [goal.id])).get(goal.id)?.[0] ?? null;
+  return { goalId: goal.id, targetSeconds: goal.target_time_seconds, latest };
+}

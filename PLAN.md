@@ -11458,6 +11458,49 @@ cover-upload, RSVP's) is niet gedraaid. Na de deploy: het antwoord van de
 volgende uurlijkse run (`clubEvents.published: 1`) of de kalender van maandag
 26 oktober bekijken.
 
+### Gebouwd — haalbaarheid van de doeltijd in de pacingcalculator
+
+**2026-10-20.** Commit: de commit die dit blok toevoegt, op dezelfde branch
+(niet gepusht). Geen migratie.
+
+**Aanleiding.** Vraag van de eigenaar: het oordeel van de doeltijd bij een
+trainingsdoel ook op de eventpagina's, bij de pacingcalculator. "Plan voor deze
+tijd" zei al of een doeltijd haalbaar is en wat het snelste haalbare is, maar
+niet hoe ver het lid ervan af zit.
+
+**Wat er is gekomen.**
+- De rekenkern uit `forecastGoal` is `assessTargetTime` geworden: prognose,
+  oordeel, benodigde CP, groei-vuistregel en gevoeligheden. Die werkt met de
+  fysica van het event (`TargetPhysics`: buiten met `cdaFactor`, of de
+  Zwift-`ride`) en op een eigen startplan. Het trainingsdoel gebruikt hem
+  ongewijzigd (basisvoorstel, buiten).
+- Op `/events/[id]/pacing` staat onder "Doel …, plan …" nu het oordeel met
+  benodigde CP, haalbare groei tot het event en wat 1 % CP of 1 kg scheelt
+  (`assessPacingTarget` in `src/lib/pacing/target-assessment.ts`). Er wordt
+  gerekend op het eigen plan van het lid, zodat de snelste tijd gelijk is aan
+  wat "Plan voor deze tijd" noemt. Live gerekend bij het laden (geen opslag): zo
+  volgt het vanzelf een nieuwe CP of een nieuw gewicht.
+- Hangt er een actief trainingsdoel met doeltijd aan dit event, dan staat dat
+  eronder, met de laatste prognose en een link naar de doelen
+  (`goalTargetForEvent`).
+- De weergave staat in `src/components/target-assessment.tsx` en wordt gedeeld
+  door de doelkaart en de pacingpagina. `/hulp#pacing-eindtijd` noemt het.
+
+**Bewust niet.**
+- **Geen oordeel na de start** van het event: dan valt er niets meer te groeien.
+- **Geen nadruk voor het schema** op de pacingpagina: die hoort bij een
+  trainingsdoel, want alleen daar loopt een schema naartoe.
+- **Niet op de eventpagina zelf**: die linkt al naar de pacingcalculator, en een
+  extra doorrekening zou de toch al zware eventpagina langzamer maken.
+- **Een Zwift-gewicht verandert de CdA niet** in de gevoeligheid: de Zwift-CdA
+  wordt eenmalig uit lengte en gewicht bepaald. Het verschil is klein.
+
+**Getest.** Drie nieuwe tests in `tests/unit/goal-target-time.test.ts`: dezelfde
+snelste tijd als `fitPlanToTime` op het eigen plan, benodigde CP en weken tot
+het event; niets na de start of zonder doeltijd; de Zwift-opzet telt mee. Verder
+`tsc`, ESLint op de gewijzigde bestanden en `npm run build`. *Niet
+geverifieerd:* de pacingpagina in de browser.
+
 ### Gebouwd — doeltijd bij een trainingsdoel: oordeel, nadruk en prognose
 
 **2026-10-20.** Commit: de commit die dit blok toevoegt, op de branch
