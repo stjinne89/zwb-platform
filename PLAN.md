@@ -72,12 +72,17 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
-   - **Boodschappenlijst met gezin:** `0259_nutrition_household.sql` is
-     **niet toegepast**. Tot dan werkt Boodschappen voor de renner alleen en
-     geeft opslaan van een ingevuld gezin op het profiel een foutmelding; een
-     leeg gezin blokkeert niets. Nog goed te keuren: de privacytekst "Gezin" en
-     of dit zonder nieuwe privacyversie kan (ronde 2026-10-20,
-     "Boodschappenlijst").
+   - **Boodschappenlijst met gezin:** `0259_nutrition_household.sql` is op
+     2026-10-20 via de Supabase-connector toegepast, op verzoek van de
+     eigenaar, vóór een push (de code is lokaal gecommit, niet gepusht). Vooraf:
+     `nutrition_profiles` had alleen `profile_id`, `height_cm` en `updated_at`,
+     14 rijen. Achteraf: de vier kolommen met hun standaardwaarden en checks,
+     alle 14 rijen op "niemand eet mee, diner", RLS aan met alleen
+     `nutrition_profiles_own`. De beveiligingsadviezen noemen de tabel niet.
+     Nog doen: na de push een gezin invullen op het profiel en Boodschappen
+     bekijken, ook delen op een telefoon en afdrukken. Nog goed te keuren: de
+     privacytekst "Gezin" en of dit zonder nieuwe privacyversie kan (ronde
+     2026-10-20, "Boodschappenlijst").
    - **Q&A (vragen over de app):** `0254_member_questions.sql` is op
      2026-10-20 door de eigenaar zelf in de SQL-editor gedraaid (twee pogingen
      via de Supabase-connector liepen vast op een time-out en `cancelled`, zonder
@@ -11394,9 +11399,9 @@ verwijdering op productie (vraagt een ingelogde sessie).
 
 ### Gebouwd — Boodschappenlijst: menu voor meerdere dagen, met gezin
 
-**2026-10-20.** Commit: de commit die dit blok toevoegt. Migratie
-`0259_nutrition_household.sql`, **niet toegepast**. Lokaal gecommit, niet
-gepusht.
+**2026-10-20.** Commit `d856162e`. Migratie `0259_nutrition_household.sql`,
+op 2026-10-20 via de connector toegepast (zie "Handwerk op productie").
+Lokaal gecommit, niet gepusht.
 
 **Aanleiding.** Een lid dat vooruit boodschappen doet (druk werk, gezin) vroeg
 of de voedingstips ook voor meerdere dagen te zien zijn, voor een aantal
@@ -11479,9 +11484,10 @@ ESLint op de gewijzigde mappen en de unit-suite; daarin faalden
 `omnium-live.test.ts` (mist `.env.local` in de worktree) en vier PGlite-tests
 op een time-out, die los allemaal slaagden.
 
-**Niet lokaal te verifiëren.** 0259 op productie (niet toegepast). De pagina en
-het profielblok zijn niet ingelogd in de browser bekeken; delen op een telefoon
-en afdrukken ook niet.
+**Niet lokaal te verifiëren.** 0259 is op productie toegepast en de structuur
+is nagekeken, maar het opslaan vanuit het profiel is daar nog niet gedraaid. De
+pagina en het profielblok zijn niet ingelogd in de browser bekeken; delen op
+een telefoon en afdrukken ook niet.
 
 ### Gebouwd — ZWB Monday Ride vanzelf op de kalender
 
