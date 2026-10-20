@@ -11261,8 +11261,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — powerups bij een Zwift-event
 
-**2026-10-20.** Branch `claude/zwift-events-powerups-3987ad`, lokaal en niet
-gepusht. Geen migratie: `zwift_rules` en `zwift_tags` bestaan sinds `0176`.
+**2026-10-20.** Commits `68c6ee85` en `4a2ef84c`, gepusht naar `main` op
+2026-10-20. Geen migratie: `zwift_rules` en `zwift_tags` bestaan sinds `0176`.
 
 **Waarom.** De eigenaar vroeg om bij Zwift-events te zien welke powerups er
 zijn. Die stonden al in de eventgegevens, maar werden alleen gebruikt door het
