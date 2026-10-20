@@ -4,7 +4,8 @@
 // Draait dezelfde scan als de "Scan bronnen"-knop op /beheer/event-scan:
 // volgt eerst leden met een Zwift-ID, scant publieke ZWB-relevante events en
 // de Zwift-member-feed, en bewaart events met ZWB-deelname als concept.
-// Publiceren naar de kalender blijft een handmatige beheeractie.
+// Publiceren naar de kalender blijft een handmatige beheeractie, behalve voor
+// events van de ZWB-club zelf: die zet de uurlijkse Zwift-sync erop.
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runEventScan } from "@/lib/events/scan-runner";

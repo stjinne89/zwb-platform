@@ -93,6 +93,8 @@ export const HELP_CATEGORIES = [
     anchors: [
       "trainingsschema",
       "doeltype",
+      "doeltijd",
+      "doel-aanpassen",
       "blokken",
       "uitgangspunten",
       "vergelijken",

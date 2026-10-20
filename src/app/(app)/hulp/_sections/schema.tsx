@@ -59,6 +59,82 @@ export function SchemaHelp() {
             </ul>
           </article>
           <article
+            id="doeltijd"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Een doeltijd voor je gran fondo</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Bij een gran fondo of outdoor event kun je een doeltijd opgeven.
+              Vul je rijtijd in, zonder stops. Kies het parcours: een clubevent
+              met een GPX, of je eigen GPX. Van je eigen GPX bewaart het platform
+              alleen het hoogteprofiel, geen kaart of coördinaten.
+            </p>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li>
+                <strong className="text-foreground">Prognose:</strong> de snelste
+                tijd die je met je huidige CP, reserve en duurvermogen op dit
+                parcours haalt, gerekend zoals het pacingplan. Wind en stops
+                tellen niet mee. Kies je In een groep, dan rekent het met een
+                kwart minder luchtweerstand over de hele rit; dat is een schatting.
+                Zonder vermoeidheidsdata rekent het zonder verval, en dan is de
+                prognose aan de snelle kant.
+              </li>
+              <li>
+                <strong className="text-foreground">Oordeel:</strong> is je
+                doeltijd sneller, dan zie je hoeveel CP je nodig hebt. Dat wordt
+                afgezet tegen wat redelijk is tot je doeldatum: ongeveer 0,75%
+                per week de eerste twaalf weken, daarna minder, hoogstens 12%.
+                Dat is een vuistregel. Hoeveel jij vooruitgaat, verschilt sterk
+                per persoon en is niet te voorspellen.
+              </li>
+              <li>
+                <strong className="text-foreground">Per stap:</strong> hoeveel
+                tijd 1% meer CP of 1 kg minder op dit parcours scheelt. Zo zie je
+                waar het parcours om vraagt. Het is geen advies om af te vallen.
+              </li>
+              <li>
+                <strong className="text-foreground">Nadruk in je schema:</strong>{" "}
+                klimmen of drempel, lange duurritten en duurvermogen laat in de
+                rit, afhankelijk van het parcours en je eigen data. Je schema
+                gebruikt dat voor de sleutelsessies. Opbouw, uren, herstel en
+                taper blijven zoals bij elk doel, en het schema belooft geen
+                eindtijd.
+              </li>
+              <li>
+                <strong className="text-foreground">Verloop:</strong> elke week,
+                en als je CP of gewicht verandert, komt er een nieuwe prognose
+                bij. Doeltijd of groep pas je aan bij het doel; voor een ander
+                parcours maak je een nieuw doel.
+              </li>
+            </ul>
+          </article>
+          <article
+            id="doel-aanpassen"
+            className="scroll-mt-20 rounded-md border bg-background p-4"
+          >
+            <h3 className="text-sm font-semibold">Een doel aanpassen of verwijderen</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Onder Training → Doelen staat bij elk doel Bewerken en
+              Verwijderen. Je tijd per dag pas je aan op de schemapagina.
+            </p>
+            <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+              <li>
+                <strong className="text-foreground">Bewerken:</strong> een
+                schema dat al loopt, wordt niet opnieuw gemaakt. Aanpassingen en
+                een volgend blok gaan wel uit van je bijgewerkte doel. Kies je
+                een doeltype zonder één piekdag, dan gaan de doeltijd en de
+                prognoses eraf.
+              </li>
+              <li>
+                <strong className="text-foreground">Verwijderen:</strong> het
+                doel en de prognoses gaan weg. Hangt er nog een schema aan, dan
+                kan het niet: zonder doel kan dat schema niet meer worden
+                bijgewerkt. Je trainer haalt dan eerst het schema weg. Een
+                mikpunt op je jaarplan staat daarna weer zonder doel.
+              </li>
+            </ul>
+          </article>
+          <article
             id="blokken"
             className="scroll-mt-20 rounded-md border bg-background p-4"
           >

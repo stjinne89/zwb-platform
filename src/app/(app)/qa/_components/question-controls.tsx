@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import type { QaVisibility } from "@/lib/qa/data";
 import { QA_ANSWER_MAX } from "@/lib/qa/limits";
-import { answerAppQuestion, deleteAppQuestion, setAppQuestionVisibility } from "../_actions";
+import {
+  answerAppQuestion,
+  deleteAppQuestion,
+  mergeAppQuestion,
+  setAlsoAsked,
+  setAppQuestionFaq,
+  setAppQuestionVisibility,
+} from "../_actions";
 
 /** Voor wie qa.answer heeft: antwoord schrijven of aanpassen. */
 export function AnswerForm({ id, answer }: { id: string; answer: string | null }) {
@@ -119,5 +126,117 @@ export function DeleteQuestionButton({ id }: { id: string }) {
       </Button>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </>
+  );
+}
+
+/** "Ik ook" bij een clubvraag van een ander. */
+export function AlsoAskedButton({ id, alsoAsked }: { id: string; alsoAsked: boolean }) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  return (
+    <>
+      <Button
+        variant={alsoAsked ? "secondary" : "ghost"}
+        size="sm"
+        aria-pressed={alsoAsked}
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            const res = await setAlsoAsked(id, !alsoAsked);
+            if (!res.ok) setError(res.error);
+            else router.refresh();
+          })
+        }
+      >
+        Ik ook
+      </Button>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </>
+  );
+}
+
+/** Voor wie qa.answer heeft: een beantwoorde clubvraag in of uit de FAQ. */
+export function FaqButton({ id, faq }: { id: string; faq: boolean }) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            const res = await setAppQuestionFaq(id, !faq);
+            if (!res.ok) setError(res.error);
+            else router.refresh();
+          })
+        }
+      >
+        {faq ? "Uit FAQ" : "In FAQ"}
+      </Button>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </>
+  );
+}
+
+/** Voor wie qa.answer heeft: een open vraag die er al staat samenvoegen. */
+export function MergeControl({
+  id,
+  options,
+}: {
+  id: string;
+  options: { id: string; label: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [target, setTarget] = useState("");
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  if (options.length === 0) return null;
+  if (!open) {
+    return (
+      <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
+        Dubbel
+      </Button>
+    );
+  }
+
+  return (
+    <div className="flex w-full flex-wrap items-center gap-2">
+      <select
+        value={target}
+        onChange={(e) => setTarget(e.target.value)}
+        aria-label="Zelfde vraag als"
+        className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
+      >
+        <option value="">Zelfde vraag als…</option>
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <Button
+        size="sm"
+        disabled={pending || !target}
+        onClick={() =>
+          startTransition(async () => {
+            const res = await mergeAppQuestion(id, target);
+            if (!res.ok) setError(res.error);
+            else router.refresh();
+          })
+        }
+      >
+        {pending ? "Samenvoegen…" : "Samenvoegen"}
+      </Button>
+      <Button variant="ghost" size="sm" disabled={pending} onClick={() => setOpen(false)}>
+        Annuleren
+      </Button>
+      {error && <p className="w-full text-sm text-destructive">{error}</p>}
+    </div>
   );
 }

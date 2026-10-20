@@ -68,6 +68,7 @@ import {
   zrlPlanSpecificityCautions,
 } from "@/lib/training/specificity";
 import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
+import { TARGET_TIME_GOAL_TYPES } from "@/lib/training/goal-target-types";
 import { amsterdamDayKey, endOfWeekKey } from "@/lib/training/zwbeterworden";
 
 type TrainingDraftStatus = "queued" | "in_progress" | "completed" | "failed" | "cancelled";
@@ -327,6 +328,13 @@ async function buildTrainingInput(
   ]);
   if (!profile || !goal) throw new Error("Profiel of doel niet gevonden.");
 
+  // De doeltijd met de laatste prognose; een verse als die verouderd is. Dynamisch
+  // geladen: goal-forecast leunt via het pacingmodel weer op dit bestand.
+  const { goalTargetForAi } = await import("@/lib/training/goal-forecast");
+  const targetTime = TARGET_TIME_GOAL_TYPES.includes(goal.goal_type)
+    ? await goalTargetForAi(admin, goal).catch(() => null)
+    : null;
+
   const { wellnessForAi, wellnessInputForAi } = await import("@/lib/training/wellness");
   const wellness = await wellnessForAi(admin, athleteId).catch(() => null);
   const intervalsLoad = await buildIntervalsLoad(admin, athleteId);
@@ -386,6 +394,7 @@ async function buildTrainingInput(
       experienceLevel: goal.experience_level,
       desiredIntensity: goal.desired_intensity,
       riskNotes: goal.risk_notes,
+      targetTime,
     },
     profile: profileForAi(profile, ftpTests[0]?.testedOn ?? null),
     symptoms: await loadSymptomLoadForAi(admin, athleteId),

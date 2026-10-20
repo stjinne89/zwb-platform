@@ -261,6 +261,8 @@ export type BaselineInput = {
   durability?: DurabilityModel | null;
   /** Zwift: format, fiets en slipstream; zie zwift-setup.ts. */
   ride?: RidePhysics | null;
+  /** Buiten in een groep; zie EvaluateOptions.cdaFactor. */
+  cdaFactor?: number;
 };
 
 /**
@@ -320,7 +322,11 @@ export function buildBaselinePlan(input: BaselineInput): RebalanceResult {
     });
 
   // Eerste schatting op CP-tempo om de duur te leren kennen.
-  const options = { durability: input.durability ?? null, ride: input.ride ?? null };
+  const options = {
+    durability: input.durability ?? null,
+    ride: input.ride ?? null,
+    cdaFactor: input.cdaFactor,
+  };
   const probe = evaluatePlan(draft(1), route, model, options);
   const fraction = durationIntensityFraction(probe.totalSeconds);
 

@@ -271,7 +271,14 @@ export default function PrivacyPage() {
             Wie antwoordt, krijgt een pushmelding dat jij een vraag stelde; jij
             krijgt er een als hij beantwoord is, als je die aan hebt staan. Een
             melding noemt nooit wat er in de vraag of het antwoord staat. Er
-            gaat niets naar OpenAI. Je vraag kun je altijd zelf verwijderen;
+            gaat niets naar OpenAI. Tik je &ldquo;Ik ook&rdquo; bij een
+            clubvraag, dan bewaren we dat: anderen zien alleen hoe vaak een
+            vraag gesteld is, wie antwoordt ziet ook door wie. Stel je een
+            vraag die er al staat, dan kan wie antwoordt hem samenvoegen: jouw
+            vraag verdwijnt en telt als &ldquo;Ik ook&rdquo; bij de vraag die er
+            al stond. Vaak gestelde vragen kunnen met het antwoord in de FAQ
+            komen; daar staat geen naam bij. Je vraag en je &ldquo;Ik
+            ook&rdquo; kun je altijd zelf verwijderen;
             alles verdwijnt als je je account opheft. Het staat in je
             data-export.
           </li>
@@ -373,6 +380,12 @@ export default function PrivacyPage() {
             Strava-ritten tellen ze mee voor badges, weekstanden,
             clubstatistieken, cols, ZWB Segments en ZWBlokken, en zien clubleden
             ze bij de recente ritten en op je profiel.
+          </li>
+          <li>
+            <strong>Doeltijd bij een trainingsdoel:</strong> geef je bij een
+            trainingsdoel een doeltijd met een eigen GPX op, dan bewaren we alleen
+            het hoogteprofiel (afstand en helling), geen kaart of coördinaten,
+            plus de prognoses die we daaruit berekenen.
           </li>
           <li>
             <strong>Coachchat:</strong> in de trainingsruimte kun je vragen stellen

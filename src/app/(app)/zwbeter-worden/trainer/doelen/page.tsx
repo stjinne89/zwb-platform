@@ -8,6 +8,16 @@ import { formatDayMonth, GOAL_LABELS } from "../../_components/format";
 import type { AiGenerationRow, GoalRow, SearchParamsProp } from "../../_components/types";
 import { AiDraftForm } from "../_components/ai-draft-form";
 import { trainerContext } from "../_data";
+import { after } from "next/server";
+import {
+  goalEventTitles,
+  goalRouteLabel,
+  loadGoalForecasts,
+  refreshGoalForecasts,
+  type GoalForecastRow,
+  type GoalTargetRow,
+} from "@/lib/training/goal-forecast";
+import { GoalForecastCard } from "../../doelen/_components/goal-forecast-card";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -46,6 +56,26 @@ export default async function TrainerGoalsPage({ searchParams }: SearchParamsPro
     return <EmptyState>Geen actieve intake.</EmptyState>;
   }
 
+  // Doeltijden: dezelfde prognose als het lid ziet, en na het antwoord
+  // bijwerken wat verouderd is.
+  const targetGoals = goals.filter((goal) => goal.target_time_seconds);
+  const [forecasts, eventTitles] = await Promise.all([
+    loadGoalForecasts(viewer.supabase, targetGoals.map((goal) => goal.id)).catch(
+      () => new Map<string, GoalForecastRow[]>(),
+    ),
+    goalEventTitles(viewer.admin, targetGoals),
+  ]);
+  if (targetGoals.length > 0) {
+    after(async () => {
+      await refreshGoalForecasts(
+        viewer.admin,
+        athleteId,
+        targetGoals as GoalTargetRow[],
+        forecasts,
+      ).catch(() => 0);
+    });
+  }
+
   // Per doel de lopende generatie, zodat het formulier meteen weer meepolt.
   const pendingByGoal = new Map<string, AiGenerationRow>();
   for (const generation of (generationRows ?? []) as AiGenerationRow[]) {
@@ -82,6 +112,16 @@ export default async function TrainerGoalsPage({ searchParams }: SearchParamsPro
                 {goal.target_date ? ` - ${formatDayMonth(goal.target_date, false)}` : ""}
                 {goal.max_hours_per_week ? ` - max ${goal.max_hours_per_week}u/week` : ""}
               </p>
+              {goal.target_time_seconds ? (
+                <GoalForecastCard
+                  goalId={goal.id}
+                  targetSeconds={goal.target_time_seconds}
+                  riding={goal.target_riding ?? null}
+                  routeLabel={goalRouteLabel(goal, eventTitles)}
+                  forecasts={forecasts.get(goal.id) ?? []}
+                  editable={false}
+                />
+              ) : null}
               <AiDraftForm
                 athleteId={athleteId}
                 goalId={goal.id}

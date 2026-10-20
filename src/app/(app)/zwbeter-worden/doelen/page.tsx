@@ -14,6 +14,20 @@ import { loadConnection, requireViewer } from "../_data";
 import { GoalAvailability } from "./_components/goal-availability";
 import { GoalForm } from "./_components/goal-form";
 import { loadAvailability } from "@/lib/training/availability";
+import { after } from "next/server";
+import {
+  goalEventOptions,
+  goalEventTitles,
+  goalRouteLabel,
+  loadGoalForecasts,
+  refreshGoalForecasts,
+  type GoalForecastRow,
+  type GoalTargetRow,
+} from "@/lib/training/goal-forecast";
+import { GoalForecastCard } from "./_components/goal-forecast-card";
+import { GoalTypeFields } from "./_components/goal-type-fields";
+import { GoalEdit } from "./_components/goal-edit";
+import { INTENSITY_OPTIONS, LEVEL_OPTIONS, MODE_OPTIONS } from "./_components/goal-options";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -61,6 +75,28 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
   const availability = (bestaand?.minutesByDay ?? {}) as Record<string, number>;
 
   const goals = (goalRows ?? []) as GoalRow[];
+
+  // Doeltijden: het verloop lezen, en na het antwoord bijwerken wat verouderd
+  // is (een week oud, of CP of gewicht veranderd). De pagina wacht daar niet op.
+  const targetGoals = goals.filter((goal) => goal.target_time_seconds);
+  const [forecasts, eventOptions, eventTitles] = await Promise.all([
+    loadGoalForecasts(viewer.supabase, targetGoals.map((goal) => goal.id)).catch(
+      () => new Map<string, GoalForecastRow[]>(),
+    ),
+    goalEventOptions(viewer.admin).catch(() => []),
+    goalEventTitles(viewer.admin, targetGoals),
+  ]);
+  if (targetGoals.length > 0) {
+    after(async () => {
+      await refreshGoalForecasts(
+        viewer.admin,
+        viewer.user.id,
+        targetGoals as GoalTargetRow[],
+        forecasts,
+      ).catch(() => 0);
+    });
+  }
+
   const assignments = (assignmentRows ?? []) as AssignmentRow[];
   const trainers = (trainerRows ?? []) as ProfileRow[];
   const trainerMap = new Map(trainers.map((trainer) => [trainer.id, trainer]));
@@ -127,19 +163,7 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
                 className="mt-1 w-full rounded-md border bg-background px-3 py-2"
               />
             </label>
-            <label className="text-sm">
-              Doeltype
-              <select
-                name="goal_type"
-                className="mt-1 w-full rounded-md border bg-background px-3 py-2"
-              >
-                {Object.entries(GOAL_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <GoalTypeFields events={eventOptions} />
             <label className="text-sm">
               Targetdatum
               <input
@@ -168,9 +192,11 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
                 name="preferred_mode"
                 className="mt-1 w-full rounded-md border bg-background px-3 py-2"
               >
-                <option value="mixed">Mix</option>
-                <option value="indoor">Indoor</option>
-                <option value="outdoor">Outdoor</option>
+                {MODE_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="text-sm">
@@ -179,9 +205,11 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
                 name="experience_level"
                 className="mt-1 w-full rounded-md border bg-background px-3 py-2"
               >
-                <option value="intermediate">Gemiddeld</option>
-                <option value="beginner">Beginner</option>
-                <option value="advanced">Gevorderd</option>
+                {LEVEL_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="text-sm">
@@ -190,9 +218,11 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
                 name="desired_intensity"
                 className="mt-1 w-full rounded-md border bg-background px-3 py-2"
               >
-                <option value="balanced">Gebalanceerd</option>
-                <option value="easy">Voorzichtig</option>
-                <option value="hard">Ambitieus</option>
+                {INTENSITY_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </label>
             <GoalAvailability initial={availability} />
@@ -221,6 +251,17 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
                   {goal.target_date ? ` - ${formatDayMonth(goal.target_date, false)}` : ""}
                   {goal.max_hours_per_week ? ` - max ${goal.max_hours_per_week}u/week` : ""}
                 </p>
+                {goal.target_time_seconds ? (
+                  <GoalForecastCard
+                    goalId={goal.id}
+                    targetSeconds={goal.target_time_seconds}
+                    riding={goal.target_riding ?? null}
+                    routeLabel={goalRouteLabel(goal, eventTitles)}
+                    forecasts={forecasts.get(goal.id) ?? []}
+                    editable={goal.status === "active"}
+                  />
+                ) : null}
+                <GoalEdit goal={goal} />
               </li>
             ))}
           </ul>

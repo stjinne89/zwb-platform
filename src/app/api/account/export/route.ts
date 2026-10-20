@@ -13,6 +13,7 @@ const PROFILE_TABLES: string[] = [
   "event_reports",
   "event_report_comments",
   "training_goals",
+  "training_goal_forecasts",
   "training_plans",
   "training_workouts",
   "training_workout_reports",
@@ -42,8 +43,9 @@ const PROFILE_TABLES: string[] = [
   "member_knowledge_topics",
   "member_tips",
   "weekly_reviews",
-  // Q&A: de eigen vragen (profile_id is de vrager).
+  // Q&A: de eigen vragen (profile_id is de vrager) en waar het lid "Ik ook" tikte.
   "member_questions",
+  "member_question_askers",
 ];
 
 export async function GET() {

@@ -487,7 +487,7 @@ export const ADMIN_GUIDES = [
       "De uitslagenlink wordt gebruikt om klasseringen en tijden van ZWB-leden op te halen.",
       "Een GPX-bestand levert route, afstand, hoogtemeters en startpunt. Een nieuwe upload vervangt de bestaande route.",
       "Beheer → Programma's: maak een programma aan en hang er events aan. Met Events koppelen kies je een periode en eventueel een categorie of type; Zoek events toont de events die er nog niet in zitten, en je vinkt aan welke je koppelt. Met Alles zet je een heel ZRL-, FRR-, SRC- of Ladderseizoen in één keer in een programma. Van een raceweek of tour wordt alleen het hoofdevent gekoppeld; de teamevents, etappes en tijdsloten eronder tellen vanzelf mee. Een los event hang je aan een programma in het eventformulier, en een event kan in meerdere programma's zitten. Een gearchiveerd programma is niet meer te kiezen, maar zijn pagina blijft bestaan. Bij hernoemen blijft de link van het programma gelijk.",
-      "Clubevents op kalender (Eventscan) zet alle aankomende events van de ZWB-club op Zwift in één keer op de kalender, met ingeschreven leden als deelnemer. Wat al op de kalender staat, blijft staan.",
+      "Events van de ZWB-club op Zwift, zoals de Monday Ride, komen elk uur vanzelf op de kalender zodra Zwift ze aanmaakt: met omschrijving, wereld, route, cover en de ingeschreven leden als deelnemer, net als een event dat je met een Zwift-link aanmaakt. Clubevents op kalender (Eventscan) doet hetzelfde meteen. Wat al op de kalender staat, blijft staan. Een clubevent dat je van de kalender verwijdert, komt niet vanzelf terug; Clubevents op kalender zet het wel terug.",
       "Beheer → FRR-kalender zet een hele FRR-tour in de kalender vanuit de Zwift-tag van de tour (bijvoorbeeld frrignite): een event voor de tour, daaronder een event per etappe en daaronder een event per tijdslot. Opnieuw opslaan of Nu verversen vult alleen aan. Uitslagen ophalen haalt de finishtijden van alle gereden tijdsloten bij Zwift op, voor het voorlopige klassement; Zwift begrenst dat, dus bij een lange tour klik je een paar keer tot er geen slots meer volgen. De GC-code is de code van de tour in de klassementstabel van FRR (zoals FTQ.5). Die is pas na de eerste etappe bekend; staat hij er niet, dan noemt de melding bij Klassement welke codes FRR toont.",
       "Beheer → SRC-kalender haalt de Sunday Race Club van MyWhoosh op en zet alle zondagen van deze en volgende maand klaar; de races komen erbij zodra MyWhoosh ze publiceert (een week vooraf). Daarna houdt een cron dat elk uur bij. Hier maak je ook de SRC-teams aan, met de teamnaam zoals de renners die bij MyWhoosh invullen. Dit vraagt het recht Sunday Race Club beheren (standaard bestuur, community-beheerders en event-organisers; aan te passen op Beheer → Rechten). Wie dat recht heeft, teambeheerders en captains van een SRC-team kunnen op Sunday Race Club leden aan een maand toevoegen of eruit halen, ook na de eerste race.",
     ],
@@ -582,13 +582,14 @@ export const ADMIN_GUIDES = [
   },
 ];
 
-// Q&A (migr. 0254): vragen over de app zelf.
+// Q&A (migr. 0254, 0258): vragen over de app zelf, met "Ik ook" en de FAQ.
 export const QA_HELP = [
-  "Loop je vast, mis je iets of snap je een scherm niet? Stel je vraag in Q&A: op het dashboard of via Q&A in je persoonlijke menu. Het bestuur werkt hem uit en antwoordt.",
+  "Loop je vast, mis je iets of snap je een scherm niet? Kijk eerst bij de veelgestelde vragen bovenaan Q&A; staat hij er niet bij, stel hem dan daar. Je komt er via de tegel Q&A op het dashboard of via Q&A in je persoonlijke menu. Het bestuur werkt hem uit en antwoordt.",
+  "Staat jouw vraag er al? Tik dan Ik ook. Je krijgt dan ook een melding bij het antwoord, en het bestuur ziet welke vragen vaak terugkomen. Die komen in de FAQ. Anderen zien alleen hoe vaak een vraag gesteld is, niet door wie.",
   "Je vraag staat met je naam in de lijst, zodat leden met dezelfde vraag het antwoord ook zien. Zet Alleen voor het bestuur aan als alleen het bestuur hem mag lezen, bijvoorbeeld als het over jouw account of je ritten gaat.",
   "Je krijgt een melding als je vraag is beantwoord, als je die onder Profiel aan hebt staan. Een vervolgvraag stel je als nieuwe vraag. Je eigen vraag kun je altijd verwijderen; aanpassen kan niet.",
   "Je kunt vijf vragen per dag stellen. Vragen aan andere leden, bijvoorbeeld over materiaal of een route, horen in ZWBieb.",
-  "Wie vragen mag beantwoorden (het recht Vragen over de app beantwoorden), ziet ook de vragen voor het bestuur, krijgt een melding bij een nieuwe vraag en kan een vraag afschermen of verwijderen. Op het dashboard staat dan hoeveel vragen er wachten.",
+  "Wie vragen mag beantwoorden (het recht Vragen over de app beantwoorden), ziet ook de vragen voor het bestuur, krijgt een melding bij een nieuwe vraag en kan een vraag afschermen of verwijderen. Een vraag die er al staat, voeg je met Dubbel samen met het origineel: de vrager telt dan als Ik ook. Een beantwoorde vraag voor iedereen zet je met In FAQ bij de veelgestelde vragen. De tegel Q&A op het dashboard laat zien hoeveel vragen er wachten.",
 ];
 
 export const TROUBLESHOOTING = [
