@@ -11168,7 +11168,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — trainingsdoel bewerken en verwijderen
 
 **2026-10-20.** Commit: de commit die dit blok toevoegt, op de branch
-`claude/edit-delete-goals-9a4bd8` (niet gepusht). Geen migratie.
+`claude/edit-delete-goals-9a4bd8` (`8f421f5d`), gepusht naar `main`
+(eigenaar, 2026-10-20). Geen migratie.
 
 **Aanleiding.** Vraag van de eigenaar: een opgeslagen doel moet nog te bewerken
 of te verwijderen zijn. Tot nu toe kon alleen de doeltijd achteraf veranderen;
