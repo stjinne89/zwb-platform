@@ -675,6 +675,24 @@ export async function probeRiderPower(zwiftId: string): Promise<string> {
   return lines.join("\n");
 }
 
+export type RacingScore = { racingScore: number | null; category: string | null };
+
+/**
+ * Zwift Racing Score en categorie van één renner, voor de racebriefing. Zwift geeft
+ * die van anderen via `profiles/{id}` (gemeten 2026-09-22 en 2026-10-20). Het
+ * profiel bevat ook gewicht en FTP; die geven we bewust niet door.
+ */
+export async function fetchRacingScore(zwiftId: string): Promise<RacingScore> {
+  if (!/^\d+$/.test(zwiftId)) throw new Error("Ongeldig Zwift-ID.");
+  const profile = (await authedJson(`${apiBase()}/profiles/${zwiftId}`)) as { competitionMetrics?: unknown } | null;
+  const metrics = (profile?.competitionMetrics ?? null) as { racingScore?: unknown; category?: unknown } | null;
+  const score = Number(metrics?.racingScore);
+  return {
+    racingScore: Number.isFinite(score) && score > 0 ? Math.round(score) : null,
+    category: typeof metrics?.category === "string" ? metrics.category : null,
+  };
+}
+
 const POWER_FIELD = /ftp|map|categor|racing|competition|power|vo2|score|cp/i;
 
 export function describePowerFields(payload: unknown, prefix = "", depth = 0): string[] {

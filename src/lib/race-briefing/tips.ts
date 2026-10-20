@@ -1,0 +1,146 @@
+// Tips voor de racebriefing, uit de route, het format en het veld. Vaste regels,
+// onderbouwd met de kennisbank racen (src/lib/racen/library.ts); de captain vult
+// ze aan met een eigen plan. Puur: geen I/O.
+
+import type { BriefingFormat, LimitCheck, Powerup } from "./rules";
+import { cleanRiderName, type OwnRole, type Projection, type WatchReason } from "./field";
+import { climbSeconds, type BriefingClimb, type RouteKeyPoints } from "./route";
+
+export type BriefingTip = {
+  /** Waar het over gaat, met het getal uit de data. */
+  finding: string;
+  /** Wat je doet. */
+  tip: string;
+  /** Artikel in de kennisbank racen. */
+  slug?: string;
+};
+
+const nl = new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 1 });
+export const km = (value: number) => `${nl.format(value)} km`;
+const pct = (gradient: number) => `${nl.format(Math.round(gradient * 1000) / 10)} %`;
+
+export function climbLabel(climb: BriefingClimb): string {
+  return climb.name ?? `de klim op ${km(climb.startKm)}`;
+}
+
+export function durationLabel(seconds: number): string {
+  if (seconds < 90) return `±${Math.round(seconds / 10) * 10} s`;
+  return `±${nl.format(Math.round(seconds / 30) / 2)} min`;
+}
+
+export type OwnRiderForTips = {
+  zwiftId: number;
+  name: string;
+  role: OwnRole;
+  limits: LimitCheck;
+};
+
+export function briefingTips(input: {
+  format: BriefingFormat;
+  category: string | null;
+  route: RouteKeyPoints | null;
+  powerups: Array<{ powerup: Powerup; percent: number }>;
+  projection: Projection;
+  watch: Array<{ rider: { name: string }; place: number; reason: WatchReason }>;
+  own: OwnRiderForTips[];
+}): BriefingTip[] {
+  const { format, category, route, own } = input;
+  const tips: BriefingTip[] = [];
+  const firstName = (name: string) => cleanRiderName(name).split(/\s+/)[0] ?? name;
+  const names = (list: OwnRiderForTips[]) => list.map((r) => firstName(r.name)).join(" en ");
+
+  if (format === "scratch") {
+    const ownStarters = own.length;
+    tips.push({
+      finding: "Alleen de finish telt, en elke plek is één punt voor elke renner.",
+      tip: `Houd ${ownStarters >= 4 ? `alle ${ownStarters}` : "al onze"} renners in de eerste groep: een renner van de 20e naar de 12e plek levert meer op dan de winnaar van 3 naar 1.`,
+    });
+  }
+  if (format === "ttt") {
+    tips.push({
+      finding: "De tijd van de vierde renner telt.",
+      tip: "Maak het plan in de TTT Planner. Een renner die niet meer kan, trekt nog één keer voluit en laat dan los.",
+      slug: "ploegentijdrit",
+    });
+  }
+  if (format === "rot") {
+    tips.push({
+      finding: "Race of Truth: geen slipstream.",
+      tip: "Rijd je eigen tempo, ongeveer 5 % onder je gemiddelde beginnen en opbouwen. Een harde start kost je meer dan hij oplevert.",
+    });
+  }
+
+  if (route && format !== "ttt" && format !== "rot") {
+    if (route.earlyClimb) {
+      tips.push({
+        finding: `${climbLabel(route.earlyClimb)} ligt op ${km(route.earlyClimb.startKm)}, kort na de start.`,
+        tip: "Zit vóór die klim in het voorste derde. De eerste selectie valt vaak in de eerste minuten.",
+        slug: "positie-in-de-groep",
+      });
+    }
+    const vulnerable = own.filter((r) => r.role === "positie");
+    for (const { descent, climb } of route.descentsIntoClimbs) {
+      tips.push({
+        finding: `Op ${km(descent.startKm)} daalt de weg ${descent.dropM} m en direct daarna klimt hij ${climb.gainM} m (${pct(climb.avgGradient)}, steilste stuk ${pct(climb.maxGradient)}): ${climbLabel(climb)}, ${durationLabel(climbSeconds(climb, category))} voor de kop.`,
+        tip: `In de afdaling gaat het veld op een lint en op de klim breekt het. Zit vóór ${km(descent.startKm)} op plek 3 tot 8${vulnerable.length ? `, vooral ${names(vulnerable)}` : ""}, dan valt het gat achter je.`,
+        slug: "klimmen-in-de-groep",
+      });
+    }
+    const hardest = route.hardestClimb;
+    if (hardest && !route.descentsIntoClimbs.some((d) => d.climb === hardest) && !(route.finale.kind === "climb" && route.finale.climb === hardest)) {
+      tips.push({
+        finding: `De zwaarste klim is ${climbLabel(hardest)}: ${hardest.gainM} m op ${km(hardest.startKm)} (${pct(hardest.avgGradient)}), ${durationLabel(climbSeconds(hardest, category))} voor de kop.`,
+        tip: "Schuif ervoor naar voren en rijd door over de top: in de afdaling groeit een klein gat.",
+        slug: "klimmen-in-de-groep",
+      });
+    }
+    if (route.finale.kind === "climb") {
+      const { climb, runInKm } = route.finale;
+      tips.push({
+        finding: `Finale: ${climb.gainM} m klimmen op ${km(climb.startKm)} (${pct(climb.avgGradient)}, ${durationLabel(climbSeconds(climb, category))}), daarna ${km(runInKm)} tot de streep.`,
+        tip: runInKm >= 0.5
+          ? "Voluit tot over de top: een gat van een paar seconden is daarna nog dicht te rijden, tien seconden niet. Daarna een sprint uit het wiel."
+          : "De top is bijna de streep: begin vooraan aan de klim en rijd hem voluit.",
+        slug: "klimmen-in-de-groep",
+      });
+    } else {
+      tips.push({
+        finding: `Vlakke finale: de laatste ${km(route.finale.flatKm)} zonder klim.`,
+        tip: "Zit in de laatste halve minuut vooraan in een wiel en ga niet als eerste aan.",
+        slug: "de-sprint",
+      });
+    }
+    if (route.lastArchKm !== null) {
+      const has = (p: Powerup) => input.powerups.some((x) => x.powerup === p);
+      const uses = [
+        has("veer") && route.finale.kind === "climb" ? "veer voor de slotklim" : null,
+        has("aerohelm") ? "aerohelm op ±200 m van de streep" : null,
+        has("draft boost") ? "draft boost in het wiel op weg naar de finale" : null,
+      ].filter(Boolean);
+      tips.push({
+        finding: `De laatste boog met een powerup ligt op ${km(route.lastArchKm)}.`,
+        tip: `Gebruik je powerup vóór die boog, dan krijg je er een voor de finale${uses.length ? `: ${uses.join(", ")}` : ""}.`,
+        slug: "zwift-spelregels",
+      });
+    }
+  }
+
+  if (input.watch.length > 0 && format !== "ttt") {
+    const list = input.watch.slice(0, 4).map((w) => `${firstName(w.rider.name)}${w.reason === "won" ? " (won eerder deze ronde)" : ""}`);
+    tips.push({
+      finding: `Gevaarlijk: ${list.join(", ")}.`,
+      tip: "Volg hun aanvallen met de renners die tempo rijden; de kopmannen sparen zich voor de finale.",
+      slug: "aanvallen-en-volgen",
+    });
+  }
+
+  const near = own.filter((r) => r.limits.status !== "ok");
+  if (near.length > 0) {
+    tips.push({
+      finding: `${names(near)} ${near.length === 1 ? "zit" : "zitten"} dicht bij de grens van de divisie (zFTP of zMAP volgens WTRL).`,
+      tip: "Geen lange stukken voluit boven de drempel: wie er in de race overheen gaat, krijgt strafpunten en mag niet meer in deze divisie rijden.",
+    });
+  }
+
+  return tips;
+}

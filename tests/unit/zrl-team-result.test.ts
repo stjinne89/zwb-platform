@@ -50,6 +50,9 @@ function view({
   return {
     event: { id: "e1", title: "ZRL · R1 · W1 · B1", teamName: "ZWB Cycling B1", zwiftEventId: "5711304" },
     subgroupLabel: "B",
+    eventName: "Zwift Racing League 26/27: Fast & Fresh : Open Aqua League Division 1 - Race 1",
+    routeId: null,
+    laps: 1,
     startAt: 0,
     fetchedAt: 1,
     ownTeam,

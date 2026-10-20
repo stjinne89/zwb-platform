@@ -94,6 +94,7 @@ export function RaceLinkChips({
  */
 export function RaceInfoCard({
   pacingHref,
+  briefingHref,
   liveHref,
   dsHref,
   racepasses,
@@ -102,6 +103,8 @@ export function RaceInfoCard({
   links,
 }: {
   pacingHref: string | null;
+  /** ZRL: de racebriefing van het team. */
+  briefingHref?: string | null;
   /** ZRL: de live puntenstand. */
   liveHref: string | null;
   /** ZWB DS: het raceoverzicht, rond de start van een race met Zwift-event. */
@@ -112,7 +115,7 @@ export function RaceInfoCard({
   zwiftLinks: RaceLink[];
   links: RaceLink[];
 }) {
-  const hasActions = Boolean(pacingHref || liveHref || dsHref || signupUrl || racepasses.length > 0);
+  const hasActions = Boolean(pacingHref || briefingHref || liveHref || dsHref || signupUrl || racepasses.length > 0);
   if (!hasActions && zwiftLinks.length === 0 && links.length === 0) {
     return null;
   }
@@ -145,6 +148,12 @@ export function RaceInfoCard({
             >
               <Gauge className="size-3.5" />
               Pacingplan
+            </Link>
+          )}
+          {briefingHref && (
+            <Link href={briefingHref} className={cn(buttonVariants({ size: "sm", variant: "outline" }))}>
+              <ClipboardList className="size-3.5" />
+              Racebriefing
             </Link>
           )}
           {liveHref && (

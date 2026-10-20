@@ -219,6 +219,11 @@ gaat stabiliteit voor nieuwe features.
    video's tonen het design "tegels"; zolang dat niet voor iedereen aanstaat,
    wijken een paar schermen af van wat leden in het klassieke design zien.
    Bijwerken na een appwijziging: `opname.mjs` en `bouw.mjs --publiceer`.
+9. **Racebriefing per ZRL-race** (ronde van 2026-10-20 hieronder): gebouwd en
+   lokaal getest, niet gepusht. Open: migratie `0257_race_briefing.sql`
+   toepassen; de tekst voor de privacyverklaring (voorgelegd, nog niet
+   aangepast); een API-sleutel van ZwiftRacing.app aanvragen (eigenaar) en dan
+   de koppeling tegen de echte API controleren.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -4563,6 +4568,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > **Bewust niet gebouwd.**
 > - In-game FTP en racing score uit Zwift ophalen per Zwift-ID: voegt naast WTRL
 >   weinig toe, kost een sync en een nieuwe gegevensbron in de privacytekst.
+>   *Voor de planner nog steeds niet; de racing score wordt sinds 2026-10-20 wel
+>   opgehaald voor de racebriefing (zie die ronde).*
 > - Een kolom `roster_entry_id` op `ttt_plan_riders`: een planregel zonder
 >   profiel wordt herkend aan Zwift-ID, anders aan naam. Claimt de renner later
 >   zijn naam, dan blijft de regel in een bestaand plan zonder profiel staan.
@@ -11064,6 +11071,99 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Racebriefing per ZRL-race, voor alle teams
+
+**2026-10-20.** Commit: de commit die dit blok toevoegt. Migratie
+`0257_race_briefing.sql` (niet toegepast; niet lokaal te testen, er is geen
+Docker of Supabase-config).
+
+**Waarom.** Voor de scratch van Bdev op 20 oktober (Green to Screen) is met de
+hand een briefing gemaakt uit de kennisbank racen, vELO en W/kg van ZwiftRacing,
+de ZRS van Zwift en de WTRL-regels (rapport lokaal in `.tmp/zrl-analyse/`,
+niet in git: het bevat vermogen en gewicht van renners). De eigenaar wilde dat
+in de app voor alle teams. Keuzes van de eigenaar: zichtbaar voor alle leden;
+tegenstanders per renner zonder gewicht of FTP; tactiek uit vaste regels plus
+een plan van de captain (geen AI-tekst).
+
+**Nu.**
+- `/events/[id]/briefing`, met de knop Racebriefing bij Raceinfo van elke
+  ZRL-teamrace. Bovenaan waarschuwingen, het plan van de captain (formulier voor
+  captain/co-captain van het team en wie `teams.manage_roster` of
+  `teams.manage_results` heeft), tactiek, het routeprofiel met de klimmen, de
+  WTRL-regels van het format, onze ploeg en het veld.
+- **Route** (`lib/race-briefing/route.ts`): klimmen, afdalingen die direct in
+  een klim overgaan (daar gaat het veld op een lint en breekt het), de finale en
+  de laatste boog met een powerup, uit het profiel van het pacingplan. Tunnels
+  (de subways van New York) staan in het Strava-profiel als sprong van een tot
+  drie stappen tussen vlakke stukken; die tellen niet. Een klim krijgt de naam
+  van een Zwift-segment; de klimmen die het pacingplan zelf toevoegt ("Klim km
+  26.6") tellen niet als boog. Getoetst op het echte profiel van Green to
+  Screen: The Hill, Manhattan Bridge, Brooklyn Bridge (afdaling 20 m, direct 51 m
+  klimmen) en Flatbush (27 m, nog 1,1 km), laatste boog 23,1 km.
+- **Regels** (`rules.ts`): format uit de Zwift-tags (ook de Race of Truth, die
+  de live stand als puntenrace telt), de divisie uit de eventnaam, en de
+  zFTP/zMAP-bovengrenzen van Standard en Development (wtrl.racing/zrl/resources,
+  gelezen 2026-10-20). Onze renners met zFTP/zMAP uit `wtrl_team_riders` vanaf
+  97 % van de grens krijgen een waarschuwing. Powerups uit de tag
+  `powerup_percent` (nummering uit de community, niet van Zwift).
+- **Veld** (`field.ts`): verwachte volgorde op vELO als die er voor 70 % van
+  het veld is, anders op ZRS, anders geen. Verwachte punten per ploeg met FIN en
+  podium (bij een puntenrace alleen de finish), ploegen gesorteerd zoals WTRL.
+  Wie te volgen: winnaars van eerder deze ronde en de sterksten. Rolvoorstel:
+  kopman (twee hoogste), tempo (beste 5 min, zMAP of ZwiftRacing), positie (3 %
+  of meer onder de mediaan van de ploeg). Namen zonder teamtags en rangnummers.
+- **Eerdere races** van de ronde uit `zrl_race_snapshots`, zonder de
+  ploegentijdrit, gecachet (6 uur) om egress te sparen.
+- **Opstelling**: meer dan 5 ZWB'ers in de groep, minder dan 4, in de
+  opstelling maar niet in de groep (en andersom), en in de opstelling van een
+  ander ZWB-team op dezelfde dag.
+- **ZRS**: `fetchRacingScore` in `zwift-club.ts` leest alleen
+  `competitionMetrics` uit `profiles/{id}`; gewicht en FTP gaan niet door. Na
+  het antwoord (`after`) ververst de pagina wat ontbreekt of ouder is dan een
+  dag, één profiel per 700 ms binnen 20 s. Cache `zwift_rider_metrics`; ouder dan
+  90 dagen wordt gewist.
+- **ZwiftRacing** (`lib/zwiftracing/client.ts`): alleen met
+  `ZWIFTRACING_API_KEY`; zonder sleutel doet het niets en geldt ZRS.
+- Vanaf 15 minuten na de start laadt de briefing de groep niet meer (dan is er
+  de live stand; anders zou hij de hele bevroren race-data ophalen).
+- `ZrlLiveView` heeft er `eventName`, `routeId` en `laps` bij; `captainTeamIds`
+  in `zrl-analysis/load.ts` is geëxporteerd.
+- Uitleg op `/hulp` (Teams en wedstrijden).
+
+**Bewust niet gebouwd.**
+- **De website van ZwiftRacing uitlezen.** Keuze van de eigenaar was eerst de
+  eventpagina uitlezen; zwiftracing.app zit achter de beveiligingscontrole van
+  Vercel (een serververzoek krijgt alleen "Vercel Security Checkpoint", gemeten
+  2026-10-20) en die omzeilen we niet. Daarna gekozen: sleutel aanvragen, nu
+  zonder bouwen. `api.zwiftracing.app` geeft zonder sleutel 401.
+- **Het scenariomodel van de handmatige briefing** (wie houdt het tempo op de
+  brug, op 2- en 5-minutenwaarden): heeft W/kg van het hele veld nodig, dus
+  ZwiftRacing. Komt pas met de sleutel, en is dan een eigen ronde.
+- **De routeweging van ZwiftRacing** (uithoudingsvermogen, sprint, punch …):
+  staat alleen op de eventpagina, niet in de API.
+- **Tegenstanders' gewicht of FTP**, al geeft Zwift die in de startlijst.
+
+**Niet meer waar.** In de ronde "TTT-planner: renners zonder account, met
+vermogen uit WTRL" (2026-10-12) stond onder Bewust niet gebouwd "racing score
+uit Zwift ophalen per Zwift-ID"; die wordt nu wel opgehaald, voor de briefing
+(niet voor de planner). Daar bijgewerkt.
+
+**Niet lokaal te verifiëren.**
+- Migratie `0257` en het wegschrijven van ZRS (de tabel bestaat nog niet op
+  productie; de pagina werkt zonder, maar dan zonder ZRS en verwachting).
+- De pagina ingelogd in de browser: het laden is getoetst met een script tegen
+  productie (alleen lezen, `after` uitgezet) voor Bdev op 20 oktober; de pagina
+  zelf compileert, maar is niet ingelogd bekeken.
+- De ZwiftRacing-API: zonder sleutel niet aan te roepen; de vorm van een renner
+  is overgenomen van de eventpagina.
+- De privacyverklaring noemt de briefing nog niet: tekst voorgelegd aan de
+  eigenaar.
+
+**Getest.** `tsc`, ESLint op de gewijzigde bestanden, Vitest
+(`race-briefing.test.ts`, 16 tests, met het echte profiel van Green to Screen
+als fixture; de hele suite: twee bestaande tests haalden in de volle run hun
+time-out van 5 s niet en slagen los).
 
 ### Hersteld — SRC: geslacht in het profiel verplaatst de inschrijving
 
