@@ -13,8 +13,8 @@ import {
   QA_QUESTIONS_PER_DAY,
 } from "@/lib/qa/limits";
 
-// Acties van Q&A. Alles loopt met de sessie van het lid zelf, dus RLS (0254)
-// is de eerste grendel; de rechtencheck hieronder is de tweede. De pushmelding
+// Acties van Q&A. Alles loopt met de sessie van het lid zelf, dus RLS (0254,
+// 0255) is de eerste grendel; de rechtencheck hieronder is de tweede. De pushmelding
 // noemt nooit de tekst van de vraag of het antwoord.
 
 type Result<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
@@ -28,6 +28,18 @@ async function member() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   return { supabase, access, user: access.user };
+}
+
+/** Wie "Ik ook" tikte bij een vraag; leeg zolang 0255 er niet is. */
+async function alsoAskers(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  questionId: string,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("member_question_askers")
+    .select("profile_id")
+    .eq("question_id", questionId);
+  return error ? [] : (data ?? []).map((row) => row.profile_id as string);
 }
 
 async function answerer() {
@@ -108,17 +120,23 @@ export async function answerAppQuestion(id: string, answer: string): Promise<Res
   if (error) return { ok: false, error: error.message };
 
   // Alleen bij het eerste antwoord; een verbetering hoeft geen nieuwe melding.
-  if (!before.answered_at && before.profile_id !== guard.user.id) {
-    await sendNotificationToMembers(
-      "on_qa_answer",
-      {
-        title: "Je vraag is beantwoord",
-        body: "Bekijk het antwoord in Q&A.",
-        url: `/qa#${questionAnchor(id)}`,
-        tag: `qa-${id}`,
-      },
-      { profileIds: [before.profile_id as string] },
-    ).catch((err) => console.error("[qa] melding over antwoord faalde:", err));
+  // Wie "Ik ook" tikte, wacht op hetzelfde antwoord.
+  if (!before.answered_at) {
+    const recipients = [before.profile_id as string, ...(await alsoAskers(guard.supabase, id))].filter(
+      (profileId) => profileId !== guard.user.id,
+    );
+    if (recipients.length > 0) {
+      await sendNotificationToMembers(
+        "on_qa_answer",
+        {
+          title: "Je vraag is beantwoord",
+          body: "Bekijk het antwoord in Q&A.",
+          url: `/qa#${questionAnchor(id)}`,
+          tag: `qa-${id}`,
+        },
+        { profileIds: recipients },
+      ).catch((err) => console.error("[qa] melding over antwoord faalde:", err));
+    }
   }
 
   refreshQa();
@@ -142,6 +160,101 @@ export async function deleteAppQuestion(id: string): Promise<Result> {
   const { data, error } = await supabase.from("member_questions").delete().eq("id", id).select("id");
   if (error) return { ok: false, error: error.message };
   if (!data || data.length === 0) return { ok: false, error: "Deze vraag kun je niet verwijderen." };
+  refreshQa();
+  return { ok: true };
+}
+
+/** "Ik ook" bij een clubvraag van een ander, of weer weghalen. */
+export async function setAlsoAsked(id: string, alsoAsked: boolean): Promise<Result> {
+  const { supabase, user } = await member();
+  if (!user) return { ok: false, error: "Niet ingelogd." };
+  const { error } = alsoAsked
+    ? await supabase
+        .from("member_question_askers")
+        .upsert({ question_id: id, profile_id: user.id }, { onConflict: "question_id,profile_id", ignoreDuplicates: true })
+    : await supabase.from("member_question_askers").delete().eq("question_id", id).eq("profile_id", user.id);
+  if (error) return { ok: false, error: "Dat lukte niet." };
+  refreshQa();
+  return { ok: true };
+}
+
+/** In of uit de FAQ; alleen een beantwoorde clubvraag kan erin (0255). */
+export async function setAppQuestionFaq(id: string, inFaq: boolean): Promise<Result> {
+  const guard = await answerer();
+  if (!guard.ok) return guard;
+  const { data, error } = await guard.supabase
+    .from("member_questions")
+    .update({ faq_at: inFaq ? new Date().toISOString() : null })
+    .eq("id", id)
+    .select("faq_at")
+    .maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "Vraag niet gevonden." };
+  if (inFaq && !data.faq_at) {
+    return { ok: false, error: "Alleen een beantwoorde vraag voor iedereen kan in de FAQ." };
+  }
+  refreshQa();
+  return { ok: true };
+}
+
+/**
+ * Een vraag die er al staat: de vrager (en wie bij de dubbele vraag "Ik ook"
+ * tikte) telt mee bij het origineel, en de dubbele vraag verdwijnt.
+ */
+export async function mergeAppQuestion(duplicateId: string, originalId: string): Promise<Result> {
+  const guard = await answerer();
+  if (!guard.ok) return guard;
+  if (duplicateId === originalId) return { ok: false, error: "Kies een andere vraag." };
+
+  const { data: rows } = await guard.supabase
+    .from("member_questions")
+    .select("id, profile_id, visibility, answered_at")
+    .in("id", [duplicateId, originalId]);
+  const duplicate = rows?.find((row) => row.id === duplicateId);
+  const original = rows?.find((row) => row.id === originalId);
+  if (!duplicate || !original) return { ok: false, error: "Vraag niet gevonden." };
+  if (original.visibility !== "club") {
+    return { ok: false, error: "Voeg alleen samen met een vraag voor iedereen." };
+  }
+
+  const askers = [
+    ...new Set([duplicate.profile_id as string, ...(await alsoAskers(guard.supabase, duplicateId))]),
+  ].filter((profileId) => profileId !== original.profile_id);
+  if (askers.length > 0) {
+    const { error } = await guard.supabase.from("member_question_askers").upsert(
+      askers.map((profileId) => ({ question_id: originalId, profile_id: profileId })),
+      { onConflict: "question_id,profile_id", ignoreDuplicates: true },
+    );
+    if (error) return { ok: false, error: "Samenvoegen lukte niet." };
+  }
+
+  const { error: deleteError } = await guard.supabase
+    .from("member_questions")
+    .delete()
+    .eq("id", duplicateId);
+  if (deleteError) return { ok: false, error: deleteError.message };
+
+  const recipients = askers.filter((profileId) => profileId !== guard.user.id);
+  if (recipients.length > 0) {
+    await sendNotificationToMembers(
+      "on_qa_answer",
+      original.answered_at
+        ? {
+            title: "Je vraag is beantwoord",
+            body: "Hij stond al in Q&A. Bekijk het antwoord.",
+            url: `/qa#${questionAnchor(originalId)}`,
+            tag: `qa-${originalId}`,
+          }
+        : {
+            title: "Je vraag stond al in Q&A",
+            body: "Je krijgt een melding als hij beantwoord is.",
+            url: `/qa#${questionAnchor(originalId)}`,
+            tag: `qa-${originalId}`,
+          },
+      { profileIds: recipients },
+    ).catch((err) => console.error("[qa] melding over samenvoegen faalde:", err));
+  }
+
   refreshQa();
   return { ok: true };
 }

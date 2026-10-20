@@ -1059,7 +1059,7 @@ export default async function DashboardPage({
       )}
 
       {tegels ? (
-        // Eén tegelrij: jouw races, met de Instagram-posts van deze week ernaast.
+        // Eén tegelrij: jouw races, Q&A, en de Instagram-posts van deze week.
         <div className="grid grid-cols-2 gap-2 empty:hidden md:grid-cols-4">
           {user && <WeekReviewDashboardLink tegels />}
           {user && (
@@ -1067,6 +1067,9 @@ export default async function DashboardPage({
               <MyRaces userId={user.id} tegels />
             </Suspense>
           )}
+          <Suspense fallback={null}>
+            <QaDashboard tegels />
+          </Suspense>
           <InstagramStrip
             tegels
             posts={instagramPosts.filter((post) => instagramRecentIds.has(post.id))}
@@ -1244,10 +1247,13 @@ export default async function DashboardPage({
         </section>
       )}
 
-      {/* Vragen over de app, in beide designs (wens eigenaar, 2026-10-19). */}
-      <Suspense fallback={null}>
-        <QaDashboard />
-      </Suspense>
+      {/* Q&A als ingang naar /qa; in tegels staat hij in de tegelrij bovenaan
+          (wens eigenaar, 2026-10-20). */}
+      {!tegels && (
+        <Suspense fallback={null}>
+          <QaDashboard />
+        </Suspense>
+      )}
 
       {!tegels && shownReports.length > 0 && (
         <section>

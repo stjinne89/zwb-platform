@@ -84,6 +84,13 @@ gaat stabiliteit voor nieuwe features.
      pushmeldingen aankomen. Nog goed te keuren: de privacy- en
      voorwaardentekst, en of Q&A zonder nieuwe privacyversie kan (ronde
      2026-10-19, "Q&A").
+   - **Q&A als tegel, met "Ik ook" en FAQ:** `0255_member_questions_faq.sql`
+     is **niet toegepast**. Tot dan werkt Q&A met de kolommen van 0254 (geen
+     FAQ, geen teller); "Ik ook", "In FAQ" en "Dubbel" geven dan een fout.
+     Na toepassen: "Ik ook" vanaf een tweede account, een vraag met Dubbel
+     samenvoegen, er een in de FAQ zetten, en kijken of de melding bij het
+     antwoord ook bij wie "Ik ook" tikte aankomt (ronde 2026-10-20, "Q&A als
+     tegel").
    - **Design "tegels" voor iedereen:** op 2026-10-19 naar `main` gepusht
      (eigenaar). Nog doen: als gewoon lid (privévenster) en als bestuurslid
      nalopen (ronde 2026-10-19, "Design tegels wordt de standaard").
@@ -233,6 +240,7 @@ productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0257`
 (`0255_col_scan_cache` en `0256_rls_initplan_feed_telegram` zijn van de
 egress-golf, 2026-10-20;
+`0255_member_questions_faq` is van "Ik ook" en de FAQ in Q&A, 2026-10-20;
 `0254_member_questions` is van Q&A, 2026-10-19;
 `0252_voorzpwelbokaal` is van het voorZpWelBokaal, 2026-10-19;
 `0253_ride_messages` is van de berichten op de fietscomputer, 2026-10-19;
@@ -335,6 +343,84 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
+> **Q&A als tegel en eigen pagina, met "Ik ook" en een FAQ, 2026-10-20 — gebouwd; typecheck en lint schoon; unit-tests groen op `omnium-live` na (mist `.env.local`); niet in de browser bekeken; niet gepusht. Migratie `0255_member_questions_faq.sql`, niet toegepast.**
+> Commit: de commit die dit blok toevoegt, op `claude/qa-block-tile-page-7a2235`.
+>
+> **Waarom.** Wens van de eigenaar: Q&A niet meer als vraagveld op het
+> dashboard, maar als tegel die naar een eigen pagina leidt, zodat daar ook
+> een FAQ kan staan die zich vult met vragen die vaker gesteld worden. Hoe de
+> FAQ zich vult, koos de eigenaar uit drie opties: leden tikken "Ik ook" en
+> wie antwoordt kiest wat erin komt. Afgewezen: een automatische drempel, en
+> een AI die vragen groepeert (bij 35 leden weinig winst, wel tokenkosten).
+>
+> **Wat.**
+> - **Dashboard.** In "tegels" is Q&A een tegel in de tegelrij bovenaan
+>   (na jouw races, voor Instagram): sage ("Vraag over de app?") en met het
+>   aantal FAQ-vragen in de kleine regel; voor wie antwoordt goud met "N vragen
+>   wachten" zodra er open vragen zijn, en dan naar `/qa#open`. In "klassiek"
+>   een regel zoals die van het weekoverzicht, op de plek van het oude blok.
+>   Het vraagveld en de drie nieuwste vragen staan niet meer op het dashboard.
+> - **`/qa`**: bovenaan de veelgestelde vragen (`#faq`, uitklapbaar, zonder
+>   naam, het vaakst gestelde eerst), dan het vraagveld, Open en Beantwoord.
+>   Een vraag in de FAQ staat niet nog eens bij Beantwoord.
+> - **"Ik ook"** bij elke clubvraag van een ander, open of beantwoord. Het telt
+>   mee in "N× gevraagd" op de kaart en zet het lid op de lijst voor de
+>   melding bij het eerste antwoord (`on_qa_answer`).
+> - **Voor wie `qa.answer` heeft:** "In FAQ"/"Uit FAQ" bij een beantwoorde
+>   clubvraag (ook in de FAQ zelf, met het antwoord aan te passen), en "Dubbel"
+>   bij een open vraag: kies de clubvraag die er al staat. De vrager en wie bij
+>   de dubbele vraag "Ik ook" tikte, tellen dan als "Ik ook" bij het origineel;
+>   de dubbele vraag wordt verwijderd en de vrager krijgt een melding (met het
+>   antwoord als dat er al is). Bewust verwijderen in plaats van koppelen: één
+>   mechanisme (de teller) in plaats van een tweede soort vraag.
+> - **Migratie 0255:** `faq_at` en `asked_count` op `member_questions`, een
+>   check dat alleen een beantwoorde clubvraag in de FAQ kan, en de tabel
+>   `member_question_askers` met RLS: een lid ziet alleen zijn eigen "Ik ook",
+>   wie antwoordt alle; een lid tikt alleen voor zichzelf bij een clubvraag die
+>   het mag zien, nooit bij zijn eigen vraag; wie antwoordt mag namens een ander
+>   (voor Dubbel). De teller zet een trigger; een update van buiten laat hem
+>   staan. Zonder antwoord of afgeschermd valt een vraag vanzelf uit de FAQ.
+>   De twee triggers van 0254 staan opnieuw in 0255. `anon` niets.
+> - **Terugval:** `src/lib/qa/load.ts` probeert de kolommen van 0255 en valt
+>   terug op die van 0254, zodat Q&A blijft werken tot 0255 is toegepast.
+> - **Teksten:** `/hulp/problemen#qa` (FAQ, Ik ook, Dubbel, In FAQ, de tegel),
+>   zoektermen, `/privacy#qa` (Ik ook, samenvoegen, FAQ zonder naam). Het
+>   "Ik ook" staat in de data-export (`member_question_askers`).
+>
+> **Bewust niet gebouwd.**
+> - Een automatische drempel of AI-groepering voor de FAQ (keuze eigenaar).
+> - Een eigen FAQ-formulering naast de oorspronkelijke vraag. De vraag
+>   verandert niet (0254); wie antwoordt kiest een goed gestelde vraag voor de
+>   FAQ. Komt er behoefte aan, dan een kolom erbij.
+> - Een FAQ op `/hulp`: die blijft de handleiding, Q&A de vragen van leden.
+> - "Ik ook" verbergen zolang 0255 er niet is: de knop geeft dan een fout.
+>   Kort, want de migratie gaat mee met het pushen.
+>
+> **Te beslissen door de eigenaar.** De aanvulling op `/privacy#qa`: is "Ik
+> ook" (zichtbaar als aantal, met naam alleen voor wie antwoordt) en het
+> samenvoegen zonder nieuwe privacyversie goed? Dezelfde redenering als bij
+> 0254: alleen wie zelf tikt of vraagt levert iets aan.
+>
+> **Getest.**
+> - Nieuw: `member-questions-faq-migration.test.ts` (13 tests, 0254 + 0255
+>   tegen PGlite): tellen en terugtellen, één keer per lid, niet bij je eigen
+>   vraag, niet namens een ander, niet bij een bestuursvraag of als wachtend
+>   account, wie antwoordt mag namens een ander, wie welke "Ik ook" ziet, de
+>   teller niet van buiten te zetten, opruimen met vraag en account, FAQ alleen
+>   bij een beantwoorde clubvraag, eruit bij weghalen van het antwoord of
+>   afschermen, een lid verandert de FAQ niet, een nieuwe vraag begint buiten
+>   de FAQ met teller 1, `anon`.
+> - `qa.test.ts` uitgebreid (FAQ-indeling, teller en "Ik ook" van de kijker).
+> - Volledige run: 3.037 groen; onder volle belasting liepen een paar
+>   PGlite-suites in een time-out (elke run andere), los nagedraaid met twee
+>   workers: alle 10 groen. `omnium-live` laadt niet zonder `.env.local`.
+>
+> **Niet geverifieerd.** De migratie op productie, de RLS met echte accounts,
+> de pushmeldingen, en de tegel en de pagina in de browser (geen
+> `.env.local` in deze worktree, en inloggen doet de eigenaar zelf).
+
+---
+
 > **Q&A: vragen over de app, 2026-10-19 — gebouwd; typecheck en lint schoon; unit-tests groen op `omnium-live` na (mist `.env.local`); `next build` compileert, het prerenderen stopt op `/omnium` om dezelfde reden; niet in de browser bekeken; gepusht naar `main` (eigenaar, 2026-10-20). Migratie `0254_member_questions.sql`, toegepast door de eigenaar (2026-10-20) en nagekeken.**
 > Commit: de commit die dit blok toevoegt, op `ccr-5defbd84-e1uj6w`.
 >
@@ -346,7 +432,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > bestuur.
 >
 > **Wat.**
-> - **Dashboard** (beide designs, onder het nieuws): een vraagveld met
+> - **Dashboard** (beide designs, onder het nieuws; *sinds 2026-10-20 een
+>   tegel en alleen een ingang naar `/qa`, zie de ronde "Q&A als tegel"*): een vraagveld met
 >   "Alleen voor het bestuur", de drie vragen met de nieuwste activiteit (met
 >   het begin van het antwoord of "Wacht op antwoord"), en voor wie mag
 >   antwoorden een oranje regel met het aantal open vragen. Eigen
@@ -389,9 +476,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - **Een gesprek of reacties onder een vraag.** Eén vraag, één antwoord; een
 >   vervolgvraag is een nieuwe vraag. Een open forum leverde eerder in vier
 >   maanden één post op (zie de ronde "Wie weet wat").
-> - **Leden die elkaars vraag beantwoorden of "ik ook" stemmen.** Vragen aan
->   leden horen in ZWBieb; stemmen kan later als blijkt dat dezelfde vragen
->   vaak terugkomen.
+> - **Leden die elkaars vraag beantwoorden.** Vragen aan leden horen in
+>   ZWBieb. ("Ik ook" stond hier ook; dat is op 2026-10-20 wel gebouwd, zie de
+>   ronde "Q&A als tegel".)
 > - **Soorten (vraag, probleem, idee) en een status "wordt aan gewerkt".** Eerst
 >   zien hoeveel vragen er komen; het antwoord kan zeggen dat iets op de lijst
 >   staat.

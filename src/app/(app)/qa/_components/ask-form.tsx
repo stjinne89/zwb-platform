@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { QA_QUESTION_MAX, QA_QUESTION_MIN } from "@/lib/qa/limits";
 import { askAppQuestion } from "../_actions";
 
-/** Op het dashboard en bovenaan /qa; `compact` maakt het tekstvak lager. */
-export function AskQuestionForm({ compact = false }: { compact?: boolean }) {
+/** Bovenaan /qa. */
+export function AskQuestionForm() {
   const [body, setBody] = useState("");
   const [bestuurOnly, setBestuurOnly] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +34,7 @@ export function AskQuestionForm({ compact = false }: { compact?: boolean }) {
   return (
     <div className="space-y-2">
       <textarea
-        rows={compact ? 2 : 4}
+        rows={4}
         maxLength={QA_QUESTION_MAX}
         value={body}
         onChange={(e) => {

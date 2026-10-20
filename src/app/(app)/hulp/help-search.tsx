@@ -116,7 +116,7 @@ const HELP_INDEX: HelpResult[] = [
     title: "Q&A",
     text: "Je vraag over de app stellen; het bestuur werkt hem uit en antwoordt.",
     href: "/hulp/problemen#qa",
-    terms: "q&a qa vraag vragen stellen app werkt niet snap niet hoe kan ik bug fout probleem wens idee feedback bestuur antwoord beantwoord alleen voor het bestuur melding",
+    terms: "q&a qa vraag vragen stellen app werkt niet snap niet hoe kan ik bug fout probleem wens idee feedback bestuur antwoord beantwoord alleen voor het bestuur melding faq veelgestelde vragen ik ook dubbel",
   },
   {
     title: "Live volgen met Garmin of Wahoo",

@@ -52,6 +52,28 @@ describe("splitQuestions", () => {
     expect(open.map((item) => item.id)).toEqual(["open-oud", "open-nieuw"]);
     expect(answered.map((item) => item.id)).toEqual(["antwoord-nieuw", "antwoord-oud"]);
   });
+
+  it("zet de FAQ apart, het vaakst gestelde eerst, en niet nog eens bij beantwoord", () => {
+    const answeredAt = "2026-10-19T12:00:00Z";
+    const items = [
+      row({ id: "faq-1x", answer: "a", answered_at: answeredAt, faq_at: answeredAt, asked_count: 1 }),
+      row({ id: "faq-4x", answer: "b", answered_at: answeredAt, faq_at: answeredAt, asked_count: 4 }),
+      row({ id: "gewoon", answer: "c", answered_at: answeredAt }),
+    ].map((r) => toQaItem(r, null));
+    const { faq, answered } = splitQuestions(items);
+    expect(faq.map((item) => item.id)).toEqual(["faq-4x", "faq-1x"]);
+    expect(answered.map((item) => item.id)).toEqual(["gewoon"]);
+  });
+});
+
+describe("Ik ook", () => {
+  it("telt minstens de vrager, ook zonder 0255, en weet wat de kijker tikte", () => {
+    expect(toQaItem(row({}), null)).toMatchObject({ askedCount: 1, faq: false, alsoAsked: false });
+    expect(toQaItem(row({ asked_count: 3 }), "ander", new Set(["q1"]))).toMatchObject({
+      askedCount: 3,
+      alsoAsked: true,
+    });
+  });
 });
 
 describe("answerSnippet", () => {
