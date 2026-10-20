@@ -39,6 +39,8 @@ type ActivityRow = {
   device_name?: string | null;
 };
 
+const PAGE = 1000;
+
 const INDOOR_SPORTS = new Set(["VirtualRide"]);
 const OUTDOOR_SPORTS = new Set([
   "Ride",
@@ -151,17 +153,27 @@ export async function RiderStats({
   href?: string;
 }) {
   const supabase = await createClient();
-  const { data: rows } = await supabase
-    .from("strava_activities")
-    .select(
-      "id, sport_type, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, trainer, name, import_source:raw->>import_source, device_name:raw->>device_name",
-    )
-    .eq("profile_id", profileId)
-    .in("sport_type", CYCLING_SPORTS)
-    .order("start_date", { ascending: false });
+  // In pagina's: Supabase geeft per vraag hooguit 1000 rijen, en dan vielen bij
+  // leden met meer ritten de oudste jaren uit "Op de fiets sinds" en de records.
+  const rows: ActivityRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("strava_activities")
+      .select(
+        "id, sport_type, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, trainer, name, import_source:raw->>import_source, device_name:raw->>device_name",
+      )
+      .eq("profile_id", profileId)
+      .in("sport_type", CYCLING_SPORTS)
+      .order("start_date", { ascending: false })
+      .order("id")
+      .range(from, from + PAGE - 1);
+    if (error || !data) break;
+    rows.push(...(data as ActivityRow[]));
+    if (data.length < PAGE) break;
+  }
 
   // Een rit die het lid twee keer opnam, telt één keer (lib/rides/unique-rides.ts).
-  const activities = uniqueRides((rows ?? []) as ActivityRow[]);
+  const activities = uniqueRides(rows);
   if (activities.length === 0) return null;
 
   // ── Jaar-totalen: huidige jaar vs vorige jaar tot zelfde dag-van-jaar
