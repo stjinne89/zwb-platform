@@ -279,7 +279,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Trainingen dubbel in de kalender na de ritruil, 2026-10-20 — gebouwd; unit-tests (`intervals-ride-sync`, `training-completion`, `reassign-ride`), typecheck en lint schoon; niet gepusht. Geen migratie. Het dataherstel voor Jeroen Janssen staat klaar maar is nog niet uitgevoerd (zie onder).**
+> **Trainingen dubbel in de kalender na de ritruil, 2026-10-20 — gebouwd; unit-tests (`intervals-ride-sync`, `training-completion`, `reassign-ride`), typecheck en lint schoon; niet gepusht. Geen migratie. Dataherstel voor Jeroen Janssen op 2026-10-20 door de eigenaar gedraaid en in de database nagekeken (zie onder).**
 > Commit: de commit die dit blok toevoegt (lokaal, branch `claude/duplicate-trainings-investigation-e18e98`).
 >
 > **Aanleiding.** Een foto van de maandkalender van Jeroen Janssen (oktober):
@@ -318,17 +318,21 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > de eerste vervangt. Of een tweede tijdslot bij FRR het eerste moet vervangen,
 > is een keuze van de eigenaar.
 >
-> **Dataherstel (klaar, niet uitgevoerd).** Een eenmalig script koppelt de zeven
+> **Dataherstel (uitgevoerd 2026-10-20).** Een eenmalig script koppelt de zeven
 > ritten van 1–8 oktober aan de juiste training, met dezelfde
 > `buildMetricsSnapshot` als de app: de race van 3 oktober in plaats van de
 > duurrit die er stond toen de race nog niet in het schema stond, het tijdslot
 > van 19:30 op 4 oktober, en ZRL C op 6 oktober. RPE, gevoel en
 > trainersoordeel gaan mee; de gereedscore van die dagen is niet terug te halen
-> en blijft leeg. De proefrun (alleen lezen) gaf de verwachte koppelingen; het
-> schrijven naar productie werd door de rechtencontrole tegengehouden en wacht
-> op de eigenaar. Daarna blijven de duurrit van 3 oktober en de ongebruikte
-> tijdslots (Etappe 2 om 11:30, Bdev W3) als gemist staan, tot de eigenaar
-> besluit of die weg mogen.
+> en blijft leeg. De bevestiging staat weer, met de tijd van het herstel (de
+> oorspronkelijke tijd was gewist). Op verzoek van de eigenaar zijn de ongebruikte
+> tijdslots (Etappe 2 om 11:30, Bdev W3) weggehaald via `syncEventWorkout(…, "no")`,
+> dus ook uit zijn intervals.icu-agenda, en zijn "ja" daarop is gewist. De
+> rechtencontrole hield het script in de sessie tegen; de eigenaar draaide het
+> zelf. Nagekeken: elke training van 1–8 oktober hangt aan zijn rit. Als gemist
+> blijft alleen de duurrit van 3 oktober (hij reed die dag de race). Los in de
+> kalender staan nog de korte warming-ups (8 en 13 okt) en de groepsritten (17 en
+> 18 okt), want daar stond geen training voor.
 
 ---
 
