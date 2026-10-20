@@ -11259,6 +11259,41 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — powerups bij een Zwift-event
+
+**2026-10-20.** Branch `claude/zwift-events-powerups-3987ad`, lokaal en niet
+gepusht. Geen migratie: `zwift_rules` en `zwift_tags` bestaan sinds `0176`.
+
+**Waarom.** De eigenaar vroeg om bij Zwift-events te zien welke powerups er
+zijn. Die stonden al in de eventgegevens, maar werden alleen gebruikt door het
+pacingplan (alleen powerups die je tijd veranderen) en de racebriefing (in een
+tip), elk met een eigen kopie van Zwifts nummering.
+
+**Nu.**
+- Bij Raceinfo op `/events/[id]` staat een regel Powerups: per powerup de kans
+  uit `powerup_percent`, Standaard als de organisator niets instelt, Geen bij
+  `NO_POWERUPS` of de tag `disable powerups`. Zonder slipstream valt de draft
+  boost weg, net als in het pacingplan.
+- Niets bij een tijdrit of ploegentijdrit zonder eigen regel, en niets als de
+  regels nog niet zijn opgehaald (`zwift_rules` leeg). Gemeten op productie op
+  2026-10-20: alle 16 tijdritten hebben `NO_POWERUPS`, maar de 7
+  ploegentijdritten hebben regel noch tag. Of Zwift daar powerups uitdeelt, is
+  niet vastgesteld; we tonen dan liever niets dan een gok.
+- `lib/zwift/powerups.ts` is nu de enige plek voor de nummering (0 veer,
+  1 draft boost, 4 burrito, 5 aerohelm, 6 spook, 7 stoomwals, 8 aambeeld). Het
+  pacingplan (`constraintsFromZwiftEvent`) en de briefing (`powerupsFromTags`)
+  lezen hem daar; hun uitkomst is ongewijzigd, op één ding na: een dubbel
+  nummer in de tag levert in de briefing nog maar één regel op.
+- Uitleg op `/hulp` bij Raceinfo.
+
+**Niet gebouwd.** Powerups in de Zwift-eventsuggesties bij een training: daar
+staan bewust vier regels, en welke powerup je krijgt, verandert niet of een
+event bij je training past. Ook geen eigen opvatting van wat Zwifts
+standaardmix is: Zwift maakt die niet bekend, dus er staat alleen Standaard.
+
+**Niet lokaal te verifiëren.** De weergave op de eventpagina is niet in de
+browser bekeken; unit-tests (`tests/unit/zwift-powerups.test.ts`), typecheck en
+lint zijn groen.
 ### Gebouwd — Snelste fiets in het pacingplan en de racebriefing
 
 **2026-10-20.** Commit `7b4d2159`, gepusht naar `main` op 2026-10-20.

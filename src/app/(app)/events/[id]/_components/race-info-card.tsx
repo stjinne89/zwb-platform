@@ -9,11 +9,13 @@ import {
   Gauge,
   Trophy,
   Users,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { linkLogo, type RaceLink, type RaceLinkIcon } from "@/lib/events/race-links";
+import { ZWIFT_POWERUP_LABELS, type EventPowerups } from "@/lib/zwift/powerups";
 
 const GLYPHS: Record<Extract<RaceLinkIcon, { glyph: string }>["glyph"], LucideIcon> = {
   stage: Flag,
@@ -88,6 +90,29 @@ export function RaceLinkChips({
   );
 }
 
+function PowerupLine({ powerups }: { powerups: EventPowerups }) {
+  return (
+    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+      <span className="inline-flex items-center gap-1.5 font-medium">
+        <Zap className="size-3.5 text-muted-foreground" />
+        Powerups
+      </span>
+      {powerups.kind === "none" ? (
+        <span className="text-muted-foreground">Geen</span>
+      ) : powerups.kind === "standard" ? (
+        <span className="text-muted-foreground">Standaard</span>
+      ) : (
+        powerups.chances.map((item) => (
+          <span key={item.powerup} className="rounded-full bg-muted px-2 py-0.5 text-xs">
+            {ZWIFT_POWERUP_LABELS[item.powerup]}
+            <span className="ml-1 tabular-nums text-muted-foreground">{item.percent} %</span>
+          </span>
+        ))
+      )}
+    </p>
+  );
+}
+
 /**
  * Alles wat je vlak voor en tijdens de race nodig hebt: het pacingplan, de
  * Zwift-links en de links die de beheerder bij de race zette.
@@ -100,6 +125,7 @@ export function RaceInfoCard({
   racepasses,
   signupUrl,
   zwiftLinks,
+  powerups = null,
   links,
 }: {
   pacingHref: string | null;
@@ -113,10 +139,12 @@ export function RaceInfoCard({
   racepasses: RaceLink[];
   signupUrl: string | null;
   zwiftLinks: RaceLink[];
+  /** Zwift: welke powerups het event uitdeelt; null = onbekend. */
+  powerups?: EventPowerups | null;
   links: RaceLink[];
 }) {
   const hasActions = Boolean(pacingHref || briefingHref || liveHref || dsHref || signupUrl || racepasses.length > 0);
-  if (!hasActions && zwiftLinks.length === 0 && links.length === 0) {
+  if (!hasActions && !powerups && zwiftLinks.length === 0 && links.length === 0) {
     return null;
   }
   return (
@@ -183,6 +211,7 @@ export function RaceInfoCard({
           )}
         </div>
       )}
+      {powerups && <PowerupLine powerups={powerups} />}
       <RaceLinkChips links={zwiftLinks} />
       <RaceLinkChips links={links} />
     </section>

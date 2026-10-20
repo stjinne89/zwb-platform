@@ -6,6 +6,7 @@
 // Puur: geen I/O.
 
 import { FTS_POINTS, PODIUM_POINTS, FULL_TEAM_STARTERS } from "@/lib/zrl-live/scoring";
+import { powerupChances, type ZwiftPowerup } from "@/lib/zwift/powerups";
 
 /** Zoals de briefing het format noemt; de Race of Truth is een puntenrace zonder slipstream. */
 export type BriefingFormat = "points" | "rot" | "scratch" | "ttt";
@@ -143,26 +144,16 @@ export function checkLimits(limits: DivisionLimits | null, zftpWkg: number | nul
 /** Powerups uit de event-tag `powerup_percent="0,34,1,33,5,33"` (type, kans, type, kans …). */
 export type Powerup = "veer" | "draft boost" | "aerohelm" | "spook" | "burrito" | "steamroller" | "anvil";
 
-// Nummering zoals de community die gebruikt (zwift-offline); Zwift publiceert hem niet.
-const POWERUP_IDS: Record<number, Powerup> = {
-  0: "veer",
-  1: "draft boost",
-  4: "burrito",
-  5: "aerohelm",
-  6: "spook",
-  7: "steamroller",
-  8: "anvil",
+const BRIEFING_NAMES: Record<ZwiftPowerup, Powerup> = {
+  feather: "veer",
+  draft: "draft boost",
+  burrito: "burrito",
+  aero: "aerohelm",
+  ghost: "spook",
+  steamroller: "steamroller",
+  anvil: "anvil",
 };
 
 export function powerupsFromTags(tags: unknown): Array<{ powerup: Powerup; percent: number }> {
-  if (!Array.isArray(tags)) return [];
-  const tag = tags.map(String).find((t) => t.startsWith("powerup_percent="));
-  if (!tag) return [];
-  const numbers = tag.slice("powerup_percent=".length).replace(/"/g, "").split(",").map((n) => Number(n.trim()));
-  const out: Array<{ powerup: Powerup; percent: number }> = [];
-  for (let i = 0; i + 1 < numbers.length; i += 2) {
-    const powerup = POWERUP_IDS[numbers[i]];
-    if (powerup && numbers[i + 1] > 0) out.push({ powerup, percent: numbers[i + 1] });
-  }
-  return out;
+  return (powerupChances(tags) ?? []).map((item) => ({ powerup: BRIEFING_NAMES[item.powerup], percent: item.percent }));
 }
