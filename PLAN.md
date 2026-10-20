@@ -11161,6 +11161,78 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWB Monday Ride vanzelf op de kalender
+
+**2026-10-20.** Commit: de commit die dit blok toevoegt. Geen migratie. Lokaal
+gecommit, niet gepusht.
+
+**Aanleiding.** De eigenaar zette de ZWB Monday Ride elke week met de hand op
+de kalender (de laatste op 21 september, via de Zwift-link in het formulier) en
+wil dat niet meer. Gemeten met het serviceaccount: de rit is een terugkerend
+event van de ZWB-club (`recurring: true`), en de rit van 26 oktober stond al in
+de clubfeed. De knop "Clubevents op kalender" (2026-09-28) kon hem dus al
+oppakken, maar publiceerde alleen met de hand, en dan met minder gegevens dan
+het formulier: geen omschrijving, wereld, route, ronden, spelregels of cover.
+
+**Nu.**
+- **Elk uur.** `/api/zwift/events/sync` roept na de ZRL-stappen
+  `publishClubEvents` aan (`clubEvents` in het antwoord). Die cron draait
+  aantoonbaar: `zwift_events.last_seen_at` was op 2026-10-20 van die ochtend.
+  De dagelijkse eventscan (`/api/events/scan`) is bewust niet gekozen: daar is
+  sinds 2026-09-26 geen enkel concept meer bijgekomen (`last_seen_at`), ook niet
+  de Monday Ride van 19 oktober, die de feedsync van die scan als clubevent had
+  moeten bewaren. Of die cron nog loopt, is hier niet na te gaan (cron-job.org).
+- **Maker.** De cron heeft geen ingelogde beheerder; hij publiceert namens wie
+  het laatst een concept publiceerde (`published_by`), zoals de SRC-sync de
+  maker van de agenda neemt. Op productie is dat dezelfde persoon die de Monday
+  Ride van 21 september aanmaakte. Is er nooit iets gepubliceerd, dan publiceert
+  hij niets en meldt hij dat.
+- **Goedkoop per uur.** Al gepubliceerde en genegeerde clubevents slaat hij over
+  voordat de startlijst wordt opgehaald.
+- **Verwijderd blijft verwijderd.** Een gepubliceerd event verwijderen zet
+  `published_event_id` op null (`on delete set null`, migratie 0081). De cron
+  laat een concept met `published_at` maar zonder event liggen (`removed`); de
+  knop zet het wel terug.
+- **Alle velden van een Zwift-link.** `publishCandidateToCalendar` haalt voor een
+  Zwift-concept het publieke event op en neemt over wat het formulier na
+  "Ophalen" invult (`zwiftEventFields` in `src/lib/events/zwift-event-fields.ts`):
+  omschrijving, "Zwift · <wereld>", eindtijd uit de duur, categorie en type,
+  route (geregistreerd in `zwift_routes` voor de foreign key), ronden, afstand
+  en hoogtemeters van de route, en de spelregels, tags en het opgelegde frame
+  (die zet het formulier via `storeZwiftEventRules`). De banner gaat via
+  `zwiftCoverStore` naar `covers/zwift/<hash>`: één bestand per banner, ook al
+  komt de rit elke week. Niet-gekoppelde ZWB-deelnemers blijven als regel onder
+  de omschrijving staan. Geeft Zwift het event niet, dan publiceert hij met de
+  gegevens van het concept, zoals voorheen. Dit geldt ook voor de losse
+  "Publiceer"-knop op de eventscan.
+
+**Bewust niet.**
+- **Geen pushmelding "Nieuw event".** Het formulier stuurt die, publiceren vanaf
+  de eventscan deed dat nooit. Elke week een melding voor dezelfde rit is
+  eerder ruis; aan te zetten als de eigenaar dat wil.
+- **Geen bijwerken van een al gepubliceerde rit** (nieuwe inschrijvers als RSVP,
+  gewijzigde tijd). Dat bleef al zo bij de knop; de inschrijvers van het moment
+  van publiceren komen mee.
+- **Geen eigen subgroep.** Een clubrit hoort bij geen ZRL-team, dus start en
+  route komen van het event zelf, net als in het formulier zonder team.
+
+**Getest.** `tests/unit/zwift-event-fields.test.ts` (de Monday Ride zoals de API
+hem gaf: wereld New York, eindtijd na 60 minuten, één ronde, tags zonder
+tijdstempel; en zonder bekende route), `tests/unit/club-calendar.test.ts`
+(overslaan zonder startlijst, verwijderd alleen met de knop terug, maker van de
+knop of de laatste publicist, niets zonder publicist, begonnen events niet).
+`zwiftEventFields` is lokaal tegen de echte publieke API gedraaid voor event
+5750529 (26 oktober): titel, New York, route 1178708985, 28,7 km, 212 hm,
+GROUP_RIDE, spelregels en tags kwamen goed door. `tsc`, ESLint op de gewijzigde
+bestanden en de unit-suite; daarin faalden `omnium-live.test.ts` (mist
+`.env.local` in deze worktree) en `admin-areas.test.ts` (time-out, ook los
+gedraaid), los van deze wijziging.
+
+**Niet lokaal te verifiëren.** Het echte publiceren naar productie (insert,
+cover-upload, RSVP's) is niet gedraaid. Na de deploy: het antwoord van de
+volgende uurlijkse run (`clubEvents.published: 1`) of de kalender van maandag
+26 oktober bekijken.
+
 ### Hersteld — SRC: geslacht in het profiel verplaatst de inschrijving
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -17786,10 +17858,10 @@ in plaats van elk concept apart te publiceren.
   publiceert, is nog niet gezien: opnieuw drukken zodra er een clubevent staat.
 
 **Bewust niet gebouwd.**
-- **Geen automatische publicatie in de cron.** Increment 5 uit de
-  kalenderspike (auto-publicatiebeleid) is nog een open besluit; de knop is
-  een beheeractie. Aanzetten in `/api/events/scan` is één aanroep van
-  `publishClubEvents` zodra dat besluit er is.
+- **Geen automatische publicatie in de cron.** *(Achterhaald op 2026-10-20:
+  clubevents publiceert nu de uurlijkse Zwift-sync, zie de ronde "ZWB Monday
+  Ride vanzelf op de kalender". Voor andere events dan die van de club blijft
+  publiceren een beheeractie.)*
 - **Geen bijwerken van al gepubliceerde clubevents** (tijd, titel, nieuwe
   inschrijvers als RSVP). Het event op de kalender is na publicatie van ZWB.
 

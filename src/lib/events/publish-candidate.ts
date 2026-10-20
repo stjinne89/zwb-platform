@@ -1,6 +1,11 @@
 // Publiceert een extern concept (Zwift/MyWhoosh) als event op de kalender.
-// Gedeeld door de losse "Publiceer"-knop en "Clubevents op kalender" op
-// /beheer/event-scan. Werkt met de service-role admin-client.
+// Gedeeld door de losse "Publiceer"-knop, "Clubevents op kalender" op
+// /beheer/event-scan en de uurlijkse Zwift-sync. Werkt met de service-role
+// admin-client.
+//
+// Een Zwift-concept krijgt dezelfde velden als een event dat met de Zwift-link
+// in het formulier is aangemaakt (zwift-event-fields.ts). Geeft Zwift het event
+// niet, dan komt het er met de gegevens van het concept, zoals voorheen.
 
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { allowedExternalUrl } from "@/lib/events/scan-runner";
@@ -8,6 +13,10 @@ import {
   eventTypeForSource,
   resultsUrlForSource,
 } from "@/lib/events/external-publish";
+import { fetchZwiftPublicEvent } from "@/lib/events/zwift-route";
+import { zwiftEventFields, type ZwiftEventFields } from "@/lib/events/zwift-event-fields";
+import { registerZwiftRoute } from "@/lib/events/zrl-route-sync";
+import { zwiftCoverStore } from "@/lib/events/zrl-event-details";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -43,6 +52,25 @@ async function linkParticipantsAsRsvps(
     })),
     { onConflict: "event_id,profile_id", ignoreDuplicates: true },
   );
+}
+
+type ZwiftDetails = { fields: ZwiftEventFields; coverPath: string | null };
+
+/**
+ * Het Zwift-event achter een concept, met de route geregistreerd (voor de
+ * foreign key van events.zwift_route_id) en de banner opgeslagen. Null als
+ * Zwift het event niet geeft.
+ */
+async function loadZwiftDetails(
+  admin: AdminClient,
+  externalId: string,
+): Promise<ZwiftDetails | null> {
+  if (!/^\d+$/.test(externalId)) return null;
+  const result = await fetchZwiftPublicEvent(Number(externalId));
+  if (!result.ok) return null;
+  if (result.event.route) await registerZwiftRoute(admin, result.event.route);
+  const coverPath = await zwiftCoverStore(admin)(result.event);
+  return { fields: zwiftEventFields(result.event), coverPath };
 }
 
 /**
@@ -102,25 +130,38 @@ export async function publishCandidateToCalendar(
   if (existing) {
     eventId = existing.id;
   } else {
+    const zwift =
+      candidate.source === "zwift"
+        ? await loadZwiftDetails(admin, String(candidate.external_id ?? ""))
+        : null;
+    const fields = zwift?.fields;
     const { data: event, error } = await admin
       .from("events")
       .insert({
-        title: candidate.title,
-        type,
-        start_at: new Date(candidate.start_at).toISOString(),
-        end_at: null,
-        location,
-        description,
+        title: fields?.title || candidate.title,
+        type: fields?.type ?? type,
+        kind: fields?.kind ?? null,
+        start_at: fields?.start_at ?? new Date(candidate.start_at).toISOString(),
+        end_at: fields?.end_at ?? null,
+        location: fields?.location ?? location,
+        description: [fields?.description, description].filter(Boolean).join("\n\n") || null,
         external_url: candidate.external_url,
         live_timing_url: null,
         results_url: resultsUrl,
         team_id: null,
         gpx_path: null,
-        distance_km: candidate.distance_km,
-        elevation_m: candidate.elevation_m,
+        distance_km: fields ? fields.distance_km : candidate.distance_km,
+        elevation_m: fields ? fields.elevation_m : candidate.elevation_m,
         start_lat: null,
         start_lon: null,
-        cover_image_path: null,
+        cover_image_path: zwift?.coverPath ?? null,
+        zwift_event_id: fields?.zwift_event_id ?? null,
+        zwift_route_id: fields?.zwift_route_id ?? null,
+        laps: fields?.laps ?? null,
+        zwift_event_type: fields?.zwift_event_type ?? null,
+        zwift_rules: fields?.zwift_rules ?? null,
+        zwift_tags: fields?.zwift_tags ?? null,
+        zwift_bike_hash: fields?.zwift_bike_hash ?? null,
         created_by: userId,
       })
       .select("id")
