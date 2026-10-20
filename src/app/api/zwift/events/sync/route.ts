@@ -8,6 +8,7 @@ import {
 } from "@/lib/zwift/event-cache";
 import { syncZrlSubgroupRoutes } from "@/lib/events/zrl-route-sync";
 import { linkZrlEvents } from "@/lib/events/zrl-event-link";
+import { publishClubEvents } from "@/lib/events/club-calendar";
 
 /** Eén publiek event-verzoek per Zwift-event van de komende raceweek. */
 const ZRL_ROUTE_BUDGET_MS = 8000;
@@ -19,6 +20,9 @@ const ZRL_ROUTE_BUDGET_MS = 8000;
 // binnen één functie-timeout halen we er een beperkt aantal op. Elke run doet
 // wat er in het budget past; de volgende run doet de rest. Idempotent, dus
 // opnieuw aanroepen is altijd veilig.
+//
+// Daarna de aankomende events van de ZWB-club op de kalender (club-calendar.ts),
+// zodat een terugkerende clubrit niet elke week met de hand hoeft.
 //
 // Bearer-token via ZWIFT_EVENT_SYNC_SECRET. Draait op cron-job.org, niet als
 // Netlify scheduled function (zie docs/runbook.md sectie 8).
@@ -52,7 +56,11 @@ export async function POST(request: NextRequest) {
     const zrlRoutes = await syncZrlSubgroupRoutes(admin, {
       deadline: Date.now() + ZRL_ROUTE_BUDGET_MS,
     }).catch((err) => ({ error: err instanceof Error ? err.message : "mislukt" }));
-    return NextResponse.json({ ok: true, ...result, zrlLinks, zrlRoutes });
+    // Clubevents van Zwift op de kalender; mag de spiegel evenmin breken.
+    const clubEvents = await publishClubEvents(admin).catch((err) => ({
+      error: err instanceof Error ? err.message : "mislukt",
+    }));
+    return NextResponse.json({ ok: true, ...result, zrlLinks, zrlRoutes, clubEvents });
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : "Zwift-eventsync mislukt." },
