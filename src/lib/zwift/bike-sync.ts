@@ -39,6 +39,12 @@ export type BikeSyncResult = {
   catalog: DerivedCatalog;
 };
 
+function withoutFixedWheels<T extends { fixed_wheels: boolean }>(row: T): Omit<T, "fixed_wheels"> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { fixed_wheels, ...rest } = row;
+  return rest;
+}
+
 export async function syncBikeParts(admin: Client): Promise<BikeSyncResult> {
   const [frames, wheels, baseline] = await Promise.all([
     fetchTab(BIKE_SHEET_TABS.frames),
@@ -69,16 +75,24 @@ export async function syncBikeParts(admin: Client): Promise<BikeSyncResult> {
     stage: part.stage,
     cda_delta: part.cdaDelta,
     kg_delta: part.kgDelta,
+    fixed_wheels: part.fixedWheels ?? false,
     source,
     synced_at: syncedAt,
   }));
 
   // Eerst de nieuwe rijen, dan wat er niet meer in de sheet staat weg. Zo is de
   // lijst nooit leeg voor een lid dat halverwege het pacingplan opent.
+  // Zonder migratie 0262 bestaat fixed_wheels nog niet; dan de rijen zonder.
+  let withFixed = true;
   for (let i = 0; i < rows.length; i += 500) {
-    const { error } = await admin
-      .from("zwift_bike_parts")
-      .upsert(rows.slice(i, i + 500), { onConflict: "part,name,test_frame,stage" });
+    const upsert = (batch: Array<Record<string, unknown>>) =>
+      admin.from("zwift_bike_parts").upsert(batch, { onConflict: "part,name,test_frame,stage" });
+    const batch = rows.slice(i, i + 500);
+    let { error } = await upsert(withFixed ? batch : batch.map(withoutFixedWheels));
+    if (error && withFixed && /fixed_wheels/.test(error.message)) {
+      withFixed = false;
+      ({ error } = await upsert(batch.map(withoutFixedWheels)));
+    }
     if (error) throw new Error(error.message);
   }
   const { error: cleanupError } = await admin

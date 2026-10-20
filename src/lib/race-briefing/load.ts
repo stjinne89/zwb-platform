@@ -17,6 +17,14 @@ import { fetchZwiftEvent } from "@/lib/events/zwift-club";
 import { loadZrlLive, type ZrlLiveView } from "@/lib/zrl-live/snapshot";
 import { captainTeamIds } from "@/lib/zrl-analysis/load";
 import { loadPacingRoute, type LoadedRoute } from "@/lib/pacing/route-loader";
+import { loadZwiftEventContext } from "@/lib/pacing/ride-context";
+import { adviseBikes, steadySeconds, type BikeAdvice } from "@/lib/pacing/bike-advice";
+import {
+  DEFAULT_TEAM_SIZE,
+  ZWIFT_REF_HEIGHT_CM,
+  ZWIFT_REF_WEIGHT_KG,
+  type RaceFormat,
+} from "@/lib/pacing/zwift-setup";
 import { MAX_PER_RACE } from "@/lib/teams/zrl-season";
 import { FULL_TEAM_STARTERS } from "@/lib/zrl-live/scoring";
 import { zwiftRacingConfigured } from "@/lib/zwiftracing/client";
@@ -60,6 +68,37 @@ const REFRESH_UNTIL_AFTER_START_MS = 60 * 60 * 1000;
 const FIELD_UNTIL_AFTER_START_MS = 15 * 60 * 1000;
 /** Zoveel tijd krijgt het verversen van ZRS na het antwoord. */
 const REFRESH_BUDGET_MS = 20_000;
+/** Fietsadvies zonder zFTP van eigen renners. Keuze bij de bouw, 2026-10-20. */
+const BIKE_ADVICE_FALLBACK_WKG = 3.5;
+
+const RIDE_FORMATS: Record<BriefingFormat, RaceFormat> = { points: "race", scratch: "race", rot: "tt", ttt: "ttt" };
+
+/**
+ * De snelste fietsen op deze route, voor de referentierenner van ZwiftInsider
+ * (75 kg, 183 cm) op de mediane zFTP van onze renners, op stage 0: dat stage
+ * heeft iedereen die het frame heeft.
+ */
+async function bikeAdviceFor(
+  eventId: string,
+  route: LoadedRoute["route"],
+  format: BriefingFormat,
+  zftpWkgs: number[],
+): Promise<{ advice: BikeAdvice; wkg: number } | null> {
+  const zwift = await loadZwiftEventContext(createAdminClient(), eventId, route).catch(() => null);
+  if (!zwift) return null;
+  const sorted = [...zftpWkgs].sort((a, b) => a - b);
+  const wkg = sorted.length > 0 ? sorted[Math.floor((sorted.length - 1) / 2)] : BIKE_ADVICE_FALLBACK_WKG;
+  const rideFormat = RIDE_FORMATS[format];
+  const advice = adviseBikes({
+    parts: zwift.parts,
+    constraints: zwift.constraints,
+    setup: { format: rideFormat, frame: null, wheels: null, stage: 0, teamSize: rideFormat === "ttt" ? DEFAULT_TEAM_SIZE : null },
+    weightKg: ZWIFT_REF_WEIGHT_KG,
+    heightCm: ZWIFT_REF_HEIGHT_CM,
+    seconds: (physics) => steadySeconds(route, physics, wkg * ZWIFT_REF_WEIGHT_KG, ZWIFT_REF_WEIGHT_KG),
+  });
+  return advice && advice.best.length > 0 ? { advice, wkg } : null;
+}
 
 export type BriefingRider = FieldRider & {
   teamLabel: string | null;
@@ -93,6 +132,8 @@ export type BriefingView = {
   division: Division | null;
   subgroupLabel: string | null;
   route: { loaded: LoadedRoute; keyPoints: RouteKeyPoints } | null;
+  /** Snelste fietsen op de route; null zonder Zwift-route, fietslijst of bij een opgelegd frame. */
+  bikes: { advice: BikeAdvice; wkg: number } | null;
   powerups: Array<{ powerup: Powerup; percent: number }>;
   /** Labels van eerdere races van deze ronde, in volgorde ("W1", "W2" …). */
   historyLabels: string[];
@@ -404,6 +445,10 @@ export async function loadRaceBriefing(
     warnings.push({ kind: "limits", text: `${r.name}: ${r.limits.status === "over" ? "boven" : "dicht bij"} de grens van ${division?.label ?? "de divisie"} (${parts.join(", ")} W/kg).` });
   }
 
+  const ownZftp = (inPen.length > 0 ? inPen : own).map((r) => r.zftpWkg).filter((v): v is number => v !== null && v > 0);
+  const bikes =
+    loadedRoute?.route.source === "zwift" ? await bikeAdviceFor(event.id, loadedRoute.route, format, ownZftp) : null;
+
   const watch = projection ? watchList(projection) : [];
   const powerups = powerupsFromTags(zwiftEvent?.tags);
   const tips = briefingTips({
@@ -433,6 +478,7 @@ export async function loadRaceBriefing(
       division,
       subgroupLabel: view?.subgroupLabel ?? null,
       route: loadedRoute && keyPoints ? { loaded: loadedRoute, keyPoints } : null,
+      bikes,
       powerups,
       historyLabels: history.labels,
       field: briefingField,

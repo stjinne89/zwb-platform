@@ -45,6 +45,8 @@ import {
   type ZwiftEventContext,
 } from "@/lib/pacing/ride-context";
 import { sharedPlanView, type SharedPlanView } from "@/lib/pacing/share";
+import { adviseBikes, type BikeAdvice } from "@/lib/pacing/bike-advice";
+import { evaluatePlan } from "@/lib/pacing/plan";
 
 const EVENT_COLUMNS =
   "id, title, type, start_at, gpx_path, distance_km, elevation_m, zwift_event_id, zwift_route_id, laps, parent_event_id";
@@ -135,6 +137,8 @@ export type PacingPageData = {
   /** Zwift: regels, fietslijst en de opzet waarmee dit plan rekent. */
   zwift: ZwiftEventContext | null;
   ride: RideContext | null;
+  /** Zwift: de snelste fietsen voor dit plan; null bij een .gpx-route of opgelegd frame. */
+  bikeAdvice: BikeAdvice | null;
   sharedPlans: SharedPlanView[];
   similarRides: ScoredRide[];
   userId: string;
@@ -207,6 +211,21 @@ export async function loadPacingPage(
       staleness,
       zwift: ctx.zwift,
       ride,
+      bikeAdvice:
+        ctx.zwift && ride
+          ? adviseBikes({
+              parts: ctx.zwift.parts,
+              constraints: ctx.zwift.constraints,
+              setup: ride.setup,
+              weightKg: ctx.rider.model.weightKg,
+              heightCm: ctx.heightCm,
+              seconds: (physics) =>
+                evaluatePlan(plan.segments, ctx.loaded.route, ctx.rider.model, {
+                  durability: ctx.rider.durability,
+                  ride: physics,
+                }).totalSeconds,
+            })
+          : null,
       sharedPlans,
       similarRides,
       userId: ctx.userId,

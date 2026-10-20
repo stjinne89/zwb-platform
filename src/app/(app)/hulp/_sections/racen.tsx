@@ -286,6 +286,18 @@ export function RacenHelp() {
                 luchtweerstand; zonder lengte rekent het plan met 175 cm, zoals Zwift.
               </p>
               <p>
+                Onder Opzet staat ook Snelste fiets: de drie frames die jouw plan op
+                deze route het snelst rijden, elk met de wielen die daar het best bij
+                passen, en je huidige fiets eronder. Het verschil is de tijd die je
+                wint of verliest ten opzichte van wat je nu hebt gekozen. Alle frames
+                worden vergeleken op het upgradeniveau dat je bij je frame hebt
+                gekozen; een frame dat op dat niveau niet getest is, rijdt op het
+                hoogste niveau daaronder. Met Kies zet je die fiets in je opzet en
+                wordt het plan opnieuw doorgerekend. Of je het frame en de wielen in
+                Zwift al hebt, weet ZWB niet. Legt het event een frame op, dan is er
+                niets te kiezen en staat de lijst er niet.
+              </p>
+              <p>
                 In een wedstrijd kies je per stuk In de groep of Alleen. In de groep
                 kost hetzelfde tempo ongeveer een derde minder luchtweerstand; op een
                 steile klim scheelt dat weinig. Een wedstrijd krijgt een vaste start
