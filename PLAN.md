@@ -11284,6 +11284,12 @@ tip), elk met een eigen kopie van Zwifts nummering.
   pacingplan (`constraintsFromZwiftEvent`) en de briefing (`powerupsFromTags`)
   lezen hem daar; hun uitkomst is ongewijzigd, op één ding na: een dubbel
   nummer in de tag levert in de briefing nog maar één regel op.
+- Elke powerup staat met Zwifts eigen icoon (`public/zwift-powerups/`, op
+  verzoek van de eigenaar op 2026-10-20 gehaald van
+  support.zwift.com/powerups-in-zwift-r12N3I_EB; 41–63 px, getoond op 20 px).
+  Het zijn Zwifts afbeeldingen, niet de onze: geen licentie gevonden, de
+  eigenaar koos er bewust voor boven een eigen set zoals in ZWBgame. Het spook
+  is een JPEG met witte hoeken; `rounded-full` knipt die weg.
 - Uitleg op `/hulp` bij Raceinfo.
 
 **Niet gebouwd.** Powerups in de Zwift-eventsuggesties bij een training: daar
@@ -11292,7 +11298,8 @@ event bij je training past. Ook geen eigen opvatting van wat Zwifts
 standaardmix is: Zwift maakt die niet bekend, dus er staat alleen Standaard.
 
 **Niet lokaal te verifiëren.** De weergave op de eventpagina is niet in de
-browser bekeken; unit-tests (`tests/unit/zwift-powerups.test.ts`), typecheck en
+browser bekeken (deze worktree heeft geen `.env.local` en de pagina vraagt een
+login); de iconen zelf wel; unit-tests (`tests/unit/zwift-powerups.test.ts`), typecheck en
 lint zijn groen.
 ### Gebouwd — Snelste fiets in het pacingplan en de racebriefing
 

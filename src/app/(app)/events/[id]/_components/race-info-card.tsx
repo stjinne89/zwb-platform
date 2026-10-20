@@ -15,7 +15,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { linkLogo, type RaceLink, type RaceLinkIcon } from "@/lib/events/race-links";
-import { ZWIFT_POWERUP_LABELS, type EventPowerups } from "@/lib/zwift/powerups";
+import { ZWIFT_POWERUP_ICONS, ZWIFT_POWERUP_LABELS, type EventPowerups } from "@/lib/zwift/powerups";
 
 const GLYPHS: Record<Extract<RaceLinkIcon, { glyph: string }>["glyph"], LucideIcon> = {
   stage: Flag,
@@ -103,7 +103,18 @@ function PowerupLine({ powerups }: { powerups: EventPowerups }) {
         <span className="text-muted-foreground">Standaard</span>
       ) : (
         powerups.chances.map((item) => (
-          <span key={item.powerup} className="rounded-full bg-muted px-2 py-0.5 text-xs">
+          <span
+            key={item.powerup}
+            className="inline-flex items-center gap-1.5 rounded-full bg-muted py-0.5 pl-0.5 pr-2 text-xs"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={ZWIFT_POWERUP_ICONS[item.powerup]}
+              alt=""
+              width={20}
+              height={20}
+              className="size-5 shrink-0 rounded-full object-cover"
+            />
             {ZWIFT_POWERUP_LABELS[item.powerup]}
             <span className="ml-1 tabular-nums text-muted-foreground">{item.percent} %</span>
           </span>

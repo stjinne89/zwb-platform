@@ -27,6 +27,17 @@ export const ZWIFT_POWERUP_LABELS: Record<ZwiftPowerup, string> = {
   anvil: "Aambeeld",
 };
 
+/** Zwifts eigen iconen, van support.zwift.com/powerups-in-zwift-r12N3I_EB (2026-10-20). */
+export const ZWIFT_POWERUP_ICONS: Record<ZwiftPowerup, string> = {
+  feather: "/zwift-powerups/feather.png",
+  draft: "/zwift-powerups/draft.png",
+  burrito: "/zwift-powerups/burrito.png",
+  aero: "/zwift-powerups/aero.png",
+  ghost: "/zwift-powerups/ghost.jpg",
+  steamroller: "/zwift-powerups/steamroller.png",
+  anvil: "/zwift-powerups/anvil.png",
+};
+
 export type PowerupChance = { powerup: ZwiftPowerup; percent: number };
 
 /**
