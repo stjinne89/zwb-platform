@@ -10862,6 +10862,10 @@ ze het geslacht invulde, is niet vast te stellen (`profiles` heeft geen
 `updated_at`), maar een andere verklaring past niet bij de code. Haar
 novemberinschrijving is op 2026-10-19 met de hand op dames gezet; de eigenaar
 had haar oktoberinschrijving en het herenantwoord op 25 oktober al verwijderd.
+Op 2026-10-20 kreeg ze met de hand een oktoberinschrijving bij de dames
+(zelfde team, categorie leeg) en ja op de damesrace van 25 oktober. Dat ging met
+SQL, dus `syncEventWorkout` draaide niet: de race staat pas in haar
+trainingsschema als zij of de sync het antwoord opnieuw zet.
 
 **Nu.** `updateProfile` (`src/app/(app)/profiel/actions.ts`) leest het oude
 geslacht en roept bij een wijziging `followSrcProfileSex`
