@@ -11261,7 +11261,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Racebriefing als spiekbriefje
 
-**2026-10-20.** Commit: de commit die dit blok toevoegt. Geen migratie.
+**2026-10-20.** Commit `b91a667b`, samengevoegd met "Snelste fiets" (de lijst
+staat onder het parcours) en gepusht naar `main` op 2026-10-20. Geen migratie.
 
 **Waarom.** Vraag van de eigenaar: het raceplan "meer de richting van het
 spiekbriefje van de TTT".
