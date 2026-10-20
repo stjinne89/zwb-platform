@@ -1,7 +1,7 @@
 "use server";
 
 // Zelf een recept in het dag- of weekmenu zetten, en het weer aan het menu
-// overlaten. De keuze staat in nutrition_menu_choices (0260); het menu zelf
+// overlaten. De keuze staat in nutrition_menu_choices (0261); het menu zelf
 // rekent src/lib/nutrition/plan.ts uit.
 
 import { revalidatePath } from "next/cache";

@@ -1,5 +1,5 @@
 // Het menu van een dag zoals Dagmenu en Boodschappen het tonen: de regels uit
-// menu.ts, plus wat het lid zelf gekozen heeft (nutrition_menu_choices, 0260).
+// menu.ts, plus wat het lid zelf gekozen heeft (nutrition_menu_choices, 0261).
 //
 // Een zelf gekozen recept staat vast. De dagen eromheen passen zich aan: een
 // recept dat het lid binnen twee dagen zelf koos, kiest het menu niet nog eens

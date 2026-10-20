@@ -85,7 +85,7 @@ export async function loadHousehold(viewer: Viewer): Promise<Household> {
   return householdFromRow(data);
 }
 
-/** Zelf gekozen recepten in het menu, van `from` tot en met `to`. Leeg zolang 0260 er niet is. */
+/** Zelf gekozen recepten in het menu, van `from` tot en met `to`. Leeg zolang 0261 er niet is. */
 export async function loadMenuChoices(viewer: Viewer, from: string, to: string): Promise<MenuChoice[]> {
   const { data } = await viewer.supabase
     .from("nutrition_menu_choices")

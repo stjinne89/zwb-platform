@@ -55,7 +55,7 @@
  * Vrijwillig, alleen zichtbaar voor het lid zelf, geen namen of leeftijden.
  * `/privacy` beschrijft het onder "Gezin". Of dit zonder nieuwe versie mag, is
  * aan de eigenaar (zie PLAN.md, ronde "Boodschappenlijst"). Daaronder valt ook
- * welk recept een lid zelf op welke dag in zijn menu zet (0260,
+ * welk recept een lid zelf op welke dag in zijn menu zet (0261,
  * `nutrition_menu_choices`), net als favorieten alleen voor het lid zelf;
  * `/privacy` noemt het bij "Lengte en eigen recepten".
  */

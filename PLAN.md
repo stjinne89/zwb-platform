@@ -72,11 +72,11 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
-   - **Eigen recepten in het menu:** `0260_nutrition_menu_choices.sql` is
+   - **Eigen recepten in het menu:** `0261_nutrition_menu_choices.sql` is
      **niet toegepast**. Tot dan laden Dagmenu en Boodschappen gewoon (zonder
      keuzes), maar geven "Ander recept", "Kies" en "In menu" een foutmelding.
      Dat is strenger dan voorheen: "Ander recept" werkte zonder database. Dus
-     0260 toepassen vóór de push (ronde 2026-10-20, "Eigen recepten in het dag-
+     0261 toepassen vóór de push (ronde 2026-10-20, "Eigen recepten in het dag-
      en weekmenu").
    - **Boodschappenlijst met gezin:** `0259_nutrition_household.sql` is op
      2026-10-20 via de Supabase-connector toegepast, op verzoek van de
@@ -268,9 +268,11 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0261`
-(`0259_nutrition_household` staat op productie maar nog niet op `main`;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0262`
+(`0261_nutrition_menu_choices` is van eigen recepten in het menu, 2026-10-20,
+hernummerd van `0260`, nog niet toegepast;
 `0260_race_briefing` is van de racebriefing, 2026-10-20;
+`0259_nutrition_household` is van de boodschappenlijst met gezin, 2026-10-20;
 `0258_member_questions_faq` is van "Ik ook" en de FAQ in Q&A, 2026-10-20,
 hernummerd van `0255` bij het samenvoegen met main;
 `0257_training_goal_target_time` is van de doeltijd bij een trainingsdoel,
@@ -11408,7 +11410,7 @@ verwijdering op productie (vraagt een ingelogde sessie).
 ### Gebouwd — Eigen recepten in het dag- en weekmenu, de rest past zich aan
 
 **2026-10-20.** Commit: de commit die dit blok toevoegt. Migratie
-`0260_nutrition_menu_choices.sql`, **niet toegepast**. Lokaal gecommit, niet
+`0261_nutrition_menu_choices.sql` (op de branch `0260`; bij het samenvoegen met de racebriefing hernummerd, omdat `0260_race_briefing` al op productie stond), **niet toegepast**. Lokaal gecommit, niet
 gepusht.
 
 **Aanleiding.** De eigenaar wil dat leden zelf gerechten in het dag- en
@@ -11425,7 +11427,7 @@ het minimum). Op matige, zware en lange dagen ging het goed. Daarom de keuze
 om altijd aan te vullen; die verandert dus ook menu's zonder eigen keuze.
 
 **Nu.**
-- **Bewaarde keuze per dag en moment** (`nutrition_menu_choices`, 0260): één
+- **Bewaarde keuze per dag en moment** (`nutrition_menu_choices`, 0261): één
   recept per lid, dag en moment, alleen voor het lid zelf; een recept dat het
   lid niet mag zien kan er niet in (policy met `exists` op `nutrition_recipes`).
   Een verwijderd recept haalt de keuze mee weg. In de accountexport.
@@ -11466,14 +11468,14 @@ herhalen, andere basis ernaast, aanvullen zonder Naleving, nooit kleiner, en
 hetzelfde menu voor één dag of een week), `tests/unit/nutrition-menu.test.ts`
 (gekozen recept ook buiten filter, volgende recept voor "Ander recept", diner op
 de lunch geschaald naar de lunch, onbekende keuze genegeerd, moment erbij,
-vermijden met terugval). 0260 in `tests/unit/nutrition-migration.test.ts` tegen
+vermijden met terugval). 0261 in `tests/unit/nutrition-migration.test.ts` tegen
 PGlite: vervangen per dag en moment, een ander lid ziet niets, geen eigen recept
 van een ander en niet namens een ander, onbekend moment geweigerd. `tsc`,
 ESLint, `next build` (slaagt; de kiespagina staat erin) en de unit-suite;
 daarin faalden 13 bestanden op time-outs en timers terwijl de dev-server
 meedraaide, die daarna los en na elkaar allemaal slaagden.
 
-**Niet lokaal te verifiëren.** 0260 op productie (niet toegepast). Niets is
+**Niet lokaal te verifiëren.** 0261 op productie (niet toegepast). Niets is
 ingelogd in de browser bekeken: de lokale pagina's sturen door naar het
 inloggen.
 
@@ -11545,7 +11547,7 @@ afdrukken.
 - **Geen koppeling met een supermarkt of Bring** (zie het onderzoek hierboven).
   Een openbare deellink voor Bring kan later, als er vraag naar is.
 - ~~Een keuze met "Ander recept" hier wordt niet bewaard.~~ Achterhaald door de
-  volgende ronde: keuzes staan nu in `nutrition_menu_choices` (0260).
+  volgende ronde: keuzes staan nu in `nutrition_menu_choices` (0261).
 - ~~Geen aanvulling vanuit Naleving.~~ Achterhaald door de volgende ronde: elke
   dag vult zich aan tot het minimum. Wat er vandaag al gegeten is, telt alleen
   in het Dagmenu mee, niet in Boodschappen.

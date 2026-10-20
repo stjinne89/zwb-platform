@@ -6,7 +6,7 @@ import { portionFit, rankRecipes } from "@/lib/nutrition/menu";
 import type { Recipe } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS } from "@/lib/nutrition/targets";
 
-// 0168, 0169, 0213, 0214, 0259 en 0260 tegen een geïsoleerde PostgreSQL. Zegt niets over de
+// 0168, 0169, 0213, 0214, 0259 en 0261 tegen een geïsoleerde PostgreSQL. Zegt niets over de
 // productiedatabase zelf; daar worden migraties met de hand toegepast.
 
 let db: PGlite;
@@ -36,7 +36,7 @@ beforeAll(async () => {
   await db.exec(await migration("0213_nutrition_expansion.sql"));
   await db.exec(await migration("0214_nutrition_seed_v2.sql"));
   await db.exec(await migration("0259_nutrition_household.sql"));
-  await db.exec(await migration("0260_nutrition_menu_choices.sql"));
+  await db.exec(await migration("0261_nutrition_menu_choices.sql"));
   await db.exec(
     "grant usage on schema public to authenticated; grant all on all tables in schema public to authenticated;",
   );
@@ -149,7 +149,7 @@ describe("voeding (0168, 0169, 0213, 0214)", () => {
     ).rejects.toThrow(/household_moments_check/);
   });
 
-  it("bewaart zelf gekozen menurecepten alleen voor het lid zelf (0260)", async () => {
+  it("bewaart zelf gekozen menurecepten alleen voor het lid zelf (0261)", async () => {
     const recipeId = (await db.query<{ id: string }>("select id from nutrition_recipes where slug = 'havermout-banaan-kwark'")).rows[0].id;
     const own = (await db.query<{ id: string }>("select id from nutrition_recipes where slug = 'eigen-1'")).rows[0].id;
     await as(APPROVED, async () => {
