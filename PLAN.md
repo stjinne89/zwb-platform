@@ -85,12 +85,20 @@ gaat stabiliteit voor nieuwe features.
      voorwaardentekst, en of Q&A zonder nieuwe privacyversie kan (ronde
      2026-10-19, "Q&A").
    - **Q&A als tegel, met "Ik ook" en FAQ:** `0255_member_questions_faq.sql`
-     is **niet toegepast**. Tot dan werkt Q&A met de kolommen van 0254 (geen
-     FAQ, geen teller); "Ik ook", "In FAQ" en "Dubbel" geven dan een fout.
-     Na toepassen: "Ik ook" vanaf een tweede account, een vraag met Dubbel
-     samenvoegen, er een in de FAQ zetten, en kijken of de melding bij het
-     antwoord ook bij wie "Ik ook" tikte aankomt (ronde 2026-10-20, "Q&A als
-     tegel").
+     is op 2026-10-20 via de Supabase-connector toegepast, op verzoek van de
+     eigenaar; de code is nog niet gepusht (de oude code leest alleen de
+     kolommen van 0254 en blijft dus werken). Vooraf: 0254 aanwezig met de
+     triggerfix, geen kolommen of tabel van 0255, 0 vragen. Achteraf:
+     `faq_at` en `asked_count`, `member_questions_faq_check`, tabel
+     `member_question_askers` met RLS aan, drie policies, twee triggers,
+     `authenticated` alleen SELECT/INSERT/DELETE, `anon` niets, de
+     triggerfuncties niet uitvoerbaar voor `authenticated`, en beide triggers
+     van 0254 vervangen. De advisors melden niets nieuws voor beveiliging;
+     voor prestaties alleen de drie nieuwe indexen als ongebruikt (lege
+     tabel). Nog doen na het pushen: "Ik ook" vanaf een tweede account, een
+     vraag met Dubbel samenvoegen, er een in de FAQ zetten, en kijken of de
+     melding bij het antwoord ook bij wie "Ik ook" tikte aankomt (ronde
+     2026-10-20, "Q&A als tegel").
    - **Design "tegels" voor iedereen:** op 2026-10-19 naar `main` gepusht
      (eigenaar). Nog doen: als gewoon lid (privévenster) en als bestuurslid
      nalopen (ronde 2026-10-19, "Design tegels wordt de standaard").
@@ -343,7 +351,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Q&A als tegel en eigen pagina, met "Ik ook" en een FAQ, 2026-10-20 — gebouwd; typecheck en lint schoon; unit-tests groen op `omnium-live` na (mist `.env.local`); niet in de browser bekeken; niet gepusht. Migratie `0255_member_questions_faq.sql`, niet toegepast.**
+> **Q&A als tegel en eigen pagina, met "Ik ook" en een FAQ, 2026-10-20 — gebouwd; typecheck en lint schoon; unit-tests groen op `omnium-live` na (mist `.env.local`); niet in de browser bekeken; niet gepusht. Migratie `0255_member_questions_faq.sql`, toegepast via de connector (2026-10-20) en nagekeken.**
 > Commit: de commit die dit blok toevoegt, op `claude/qa-block-tile-page-7a2235`.
 >
 > **Waarom.** Wens van de eigenaar: Q&A niet meer als vraagveld op het
@@ -396,10 +404,10 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - "Ik ook" verbergen zolang 0255 er niet is: de knop geeft dan een fout.
 >   Kort, want de migratie gaat mee met het pushen.
 >
-> **Te beslissen door de eigenaar.** De aanvulling op `/privacy#qa`: is "Ik
-> ook" (zichtbaar als aantal, met naam alleen voor wie antwoordt) en het
-> samenvoegen zonder nieuwe privacyversie goed? Dezelfde redenering als bij
-> 0254: alleen wie zelf tikt of vraagt levert iets aan.
+> **Privacy.** De aanvulling op `/privacy#qa` ("Ik ook" zichtbaar als aantal,
+> met naam alleen voor wie antwoordt; samenvoegen; FAQ zonder naam) is door
+> de eigenaar goedgekeurd (2026-10-20), zonder nieuwe privacyversie: alleen
+> wie zelf tikt of vraagt levert iets aan.
 >
 > **Getest.**
 > - Nieuw: `member-questions-faq-migration.test.ts` (13 tests, 0254 + 0255
@@ -415,7 +423,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   PGlite-suites in een time-out (elke run andere), los nagedraaid met twee
 >   workers: alle 10 groen. `omnium-live` laadt niet zonder `.env.local`.
 >
-> **Niet geverifieerd.** De migratie op productie, de RLS met echte accounts,
+> **Niet geverifieerd.** De RLS met echte accounts (de migratie zelf is op
+> productie nagekeken, zie "Handwerk op productie"),
 > de pushmeldingen, en de tegel en de pagina in de browser (geen
 > `.env.local` in deze worktree, en inloggen doet de eigenaar zelf).
 
