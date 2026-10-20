@@ -82,6 +82,7 @@ import { BackLink } from "@/components/app-ui";
 import { MemberLink } from "@/components/member-link";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { zwiftDsConfigured } from "@/lib/events/zwift-club";
+import { eventPowerups } from "@/lib/zwift/powerups";
 import { inDsWindow } from "@/lib/ds/schedule";
 import { tipsForEvent } from "@/lib/zwbieb/data";
 import { TIP_COLUMNS, loadMembers, loadTopicCatalog, type TipRow } from "@/lib/zwbieb/queries";
@@ -235,7 +236,7 @@ export default async function EventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, type, kind, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, zwift_event_id, zwift_route_id, laps, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by, team_id, parent_event_id, zwift_event_type, zwift_tags",
+      "id, type, kind, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, zwift_event_id, zwift_route_id, laps, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by, team_id, parent_event_id, zwift_event_type, zwift_rules, zwift_tags",
     )
     .eq("id", id)
     .single();
@@ -1337,6 +1338,15 @@ export default async function EventDetailPage({
           ...derivedZwiftLinks(event.zwift_event_id),
           ...zwifterBikesLinks(routeEvent.zwift_route_id),
         ]}
+        powerups={
+          event.zwift_event_id
+            ? eventPowerups({
+                eventType: event.zwift_event_type,
+                rules: event.zwift_rules,
+                tags: event.zwift_tags,
+              })
+            : null
+        }
         links={raceLinks}
       />
 

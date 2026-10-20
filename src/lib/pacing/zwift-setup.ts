@@ -21,6 +21,7 @@
 // apart en met die vermelding.
 
 import { crrFor, type RollingClass } from "@/lib/zwift/surfaces/crr";
+import { powerupChances, powerupsDisabled } from "@/lib/zwift/powerups";
 
 export type RaceFormat = "race" | "tt" | "ttt";
 export type BikeKind = "road" | "tt" | "gravel" | "mtb";
@@ -176,15 +177,6 @@ export const POWERUP_EFFECTS: Record<PowerupId, PowerupEffect> = {
   anvil: { durationS: 15, riderMassFraction: 0.1, maxGradient: -0.015 },
 };
 
-/** Zwifts nummering in `powerup_percent`; burrito, spook en XP werken niet op je tijd. */
-const ZWIFT_POWERUP_IDS: Record<number, PowerupId> = {
-  0: "feather",
-  1: "draft",
-  5: "aero",
-  7: "steamroller",
-  8: "anvil",
-};
-
 /** Wat een gewoon event zonder eigen verdeling uitdeelt. */
 const STANDARD_POWERUPS: PowerupId[] = ["feather", "draft", "aero"];
 
@@ -212,22 +204,13 @@ export function constraintsFromZwiftEvent(input: ZwiftEventRules | null): EventC
   const suggestedFormat: RaceFormat =
     type === "TEAM_TIME_TRIAL" ? "ttt" : type === "TIME_TRIAL" || !drafting ? "tt" : "race";
 
-  let powerups: PowerupId[] = STANDARD_POWERUPS;
-  const percent = tag("powerup_percent");
-  if (rules.has("NO_POWERUPS") || tag("disable powerups")) {
-    powerups = [];
-  } else if (percent) {
-    const numbers = (percent.split("=")[1] ?? "")
-      .replace(/["']/g, "")
-      .split(",")
-      .map((value) => Number(value.trim()));
-    const ids: PowerupId[] = [];
-    for (let i = 0; i + 1 < numbers.length; i += 2) {
-      const id = ZWIFT_POWERUP_IDS[numbers[i]];
-      if (id && numbers[i + 1] > 0 && !ids.includes(id)) ids.push(id);
-    }
-    powerups = ids;
-  }
+  // Burrito en spook werken niet op je eigen tijd en vallen hier weg.
+  const chances = powerupChances(tags);
+  let powerups: PowerupId[] = powerupsDisabled(input?.rules, tags)
+    ? []
+    : chances
+      ? chances.map((item) => item.powerup).filter((id): id is PowerupId => POWERUP_IDS.includes(id as PowerupId))
+      : STANDARD_POWERUPS;
   if (!drafting) powerups = powerups.filter((id) => id !== "draft");
 
   return {
