@@ -1,13 +1,21 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-10-13)
+## Actieve volgorde (bijgewerkt 2026-10-20)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-1. **Database slank en snel: afgerond op 2026-10-01.** `0212_remove_segment_explorer.sql`
+1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
+   Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
+   (limiet 5 GB), en de banner "Organization exceeded its quota in the previous
+   billing cycle" met beperking vanaf 2 november als de organisatie boven het
+   quotum blijft. Deze cyclus komt niet meer onder 5 GB; **de eigenaar beslist
+   vóór 2 november over Pro of de beperking.** Oorzaak en fix: zie de ronde
+   "Egress-golf door zichtbaarheids-events" hieronder (migraties `0255`, `0256`,
+   nog niet toegepast).
+   **Database slank en snel: afgerond op 2026-10-01.** `0212_remove_segment_explorer.sql`
    is toegepast; de database ging van 1.260 naar **200 MB** (Free-limiet 512 MB).
    Nog te doen, klein: `vacuum full public.zwb_segment_maps;` (niet vast te stellen
    of het al is gedraaid). `?segmentBackfill=0` is uit de URL van de job "ZWB Strava
@@ -34,8 +42,10 @@ gaat stabiliteit voor nieuwe features.
    oorzaak is gevonden en dezelfde als de zwaarste query: het nawerk na een
    Strava-webhook haalt twee keer de hele rithistorie met `raw` op (mijlpalen en
    cols). De fix staat op `main` als `f80b1c3` en is op 2026-10-13 gepusht (zie de
-   ronde "Supabase-egress" hieronder); het effect op productie is nog niet
-   gemeten, dat moet uit de usagepagina en de volgende wekelijkse check blijken.
+   ronde "Supabase-egress" hieronder). Gemeten op 2026-10-20: de egress zakte op
+   14 oktober naar ~0,1 GB per dag (was ~0,3), maar de databasetijd per pagina
+   van de col-detector bleef ~550 ms, en vanaf 15 oktober liep de egress op
+   naar 1,3 GB per dag door de golf van zichtbaarheids-events.
    `live_positions` ging van 0 naar 9.327 rijen en dat klopt: de tabel is op
    2026-10-01 met de hand geleegd en de bewaartermijn is 30 dagen, dus tot
    ongeveer 2026-10-31 wordt er niets gewist. Wel negeert `/api/live/cleanup` een
@@ -220,8 +230,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0255`
-(`0254_member_questions` is van Q&A, 2026-10-19;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0257`
+(`0255_col_scan_cache` en `0256_rls_initplan_feed_telegram` zijn van de
+egress-golf, 2026-10-20;
+`0254_member_questions` is van Q&A, 2026-10-19;
 `0252_voorzpwelbokaal` is van het voorZpWelBokaal, 2026-10-19;
 `0253_ride_messages` is van de berichten op de fietscomputer, 2026-10-19;
 `0249_zwb_ds` en `0250_zwb_ds_more_rider_data` zijn van ZWB DS;
@@ -237,6 +249,80 @@ drie 2026-10-16; `0246_workout_method_labels` en
 `0247_training_engine_comparisons` staan op `main`;
 `0248_member_protocol_core_analysis` is van de analyse per hittesessie,
 2026-10-17, hernummerd van `0239` bij het samenvoegen met main).
+
+---
+
+> **Egress-golf door zichtbaarheids-events, 2026-10-20 — gebouwd; unit-tests, typecheck en lint schoon op de gewijzigde bestanden; niet gepusht. Migraties `0255_col_scan_cache.sql` en `0256_rls_initplan_feed_telegram.sql`, niet toegepast en niet lokaal te testen.**
+> Commit: de commit die dit blok toevoegt, op `main` (lokaal).
+>
+> **Waarom.** De wekelijkse databasecheck van 2026-10-20 vond 7,23 GB egress na
+> 9 dagen (limiet 5 GB) en een banner van Supabase: beperking vanaf 2026-11-02.
+> Egress per dag (afgelezen uit de grafiek): 0,33 / 0,30 / 0,19 GB op 11–13 okt,
+> 0,10 GB op 14 okt (de fix van `f80b1c3` werkte), daarna 0,61 / 0,93 / 1,12 /
+> 1,29 / 1,36 GB op 15–19 okt. Oorzaak: één lid (4.447 ritten) zet sinds 15
+> oktober zijn historie op `only_me`. Strava-webhooks gingen van 20–40 naar
+> 560–970 per dag; 3.746 events van dit lid, alle met alleen `private` en
+> `visibility` in `updates`. Elk event haalde de rit opnieuw bij Strava op,
+> schreef hem met `raw` weg en draaide het volledige nawerk, waarin de
+> col-detector en de mijlpalen de hele historie lezen. De col-detector nam
+> daardoor 52% van de databasetijd (achtergrond 7.203 s tegen leden 642 s in
+> 7,1 dagen, ruim 5× zoveel per dag als de week ervoor), met ~550 ms per pagina:
+> `raw->map->>polyline` laat Postgres per rij de hele `raw` uitpakken, dus
+> `f80b1c3` verlaagde de egress maar niet de databasetijd.
+>
+> **Wat.**
+> - `isVisibilityOnlyUpdate` (`src/lib/strava/webhook-events.ts`): een
+>   update-event met alleen `private`/`visibility` wordt in
+>   `webhook-processor.ts` afgevinkt zonder Strava-call, zonder wegschrijven en
+>   zonder nawerk. ZWB leest die velden nergens. Een update met ook `title` of
+>   `type` gaat de gewone route.
+> - Col-detector met scancache (`src/lib/cols/detector.ts`, migratie `0255`):
+>   per rit `col_slugs` en `col_scan_key` (= sleutel van de cols-catalogus plus
+>   `synced_at` van de rit). Een run leest alleen `id, start_date, distance_m,
+>   synced_at, col_slugs, col_scan_key` en scant alleen ritten met een
+>   verouderde sleutel, in batches van 200 via `.in("id")`; het resultaat gaat
+>   in één statement terug via de RPC `set_activity_col_scans`. Een nieuwe col
+>   of verschoven top verandert de catalogussleutel en laat alles één keer
+>   opnieuw scannen; elke sync die `synced_at` zet, laat die rit opnieuw
+>   scannen. Een GPX aan een CSV-rit (`stats/achievements/_actions.ts`) zet
+>   `synced_at` niet, dus daar wist `forgetColScans` de sleutel. Zonder `0255`
+>   valt de detector terug op de oude volledige scan.
+> - Dedupe in de telling: `aggregateColPassages` houdt van twee opnames die met
+>   cols (was: die met spoor, dan vermogen). Voor `times_climbed` is dat
+>   hetzelfde; bij twee kopieën die beide de col hebben kan `first_`/
+>   `last_activity_id` naar de andere kopie wijzen.
+> - Index `strava_activities_profile_start_idx (profile_id, start_date)` in
+>   `0255`: voor de gepagineerde lezers per lid en `markExcludedRides`
+>   (`training/compliance.ts`, 584 ms gemiddeld; er was alleen
+>   `(profile_id, achievement_week)`).
+> - `0256`: de 4 policies op `calendar_feed_tokens` (`0236`) en 2 op
+>   `telegram_links` (`0253`) met `(select auth.uid())`; de advisor
+>   `auth_rls_initplan` ging van 0 naar 6.
+>
+> **Bewust niet gebouwd.**
+> - Mijlpalen incrementeel: 116 ms per pagina, en de zichtbaarheidsfilter haalt
+>   het volume weg.
+> - Ritten op `only_me` verbergen of niet opslaan: een privacyvraag voor de
+>   eigenaar en het bestuur, geen databasefix.
+> - Een throttle op het nawerk per profiel: de oorzaak is weg.
+> - `0255` voegt kolommen zonder default toe: geen herschrijving van de tabel
+>   en geen WAL-piek (zie 2026-10-01). De eerste run per lid na het toepassen
+>   scant de hele historie één keer en schrijft ~29.000 rijen bij; dat geeft wel
+>   wat WAL, verspreid over de runs.
+>
+> **Te beslissen door de eigenaar.** Pro of de beperking vanaf 2 november; het
+> toepassen van `0255` en `0256`; `vacuum full public.zwb_segment_maps;` (open
+> sinds 2026-10-01).
+>
+> **Getest.** `tests/unit/col-scan-cache.test.ts` (telling met dubbele opname,
+> catalogussleutel, eerste run scant alles, tweede niets, een gewijzigde rit
+> alleen die), `tests/unit/strava-webhook.test.ts` (zichtbaarheids-events) en
+> de bestaande coltelling in `unique-rides.test.ts`. Volledige suite: 5 tests in
+> 4 andere bestanden liepen bij de volle run op een timeout en slagen los.
+>
+> **Niet geverifieerd.** De migraties (geen Docker of Supabase-config lokaal);
+> het effect op egress en databasetijd, dat moet uit de usagepagina en de
+> volgende wekelijkse check blijken.
 
 ---
 
@@ -3865,7 +3951,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Supabase-egress: nawerk haalt de raw-kolom niet meer op, 2026-10-13 — gebouwd, lokaal getest; effect op productie niet gemeten.**
+> **Supabase-egress: nawerk haalt de raw-kolom niet meer op, 2026-10-13 — gebouwd, lokaal getest; gemeten op 2026-10-20: egress omlaag (~0,1 GB per dag op 14 okt), databasetijd per pagina niet (zie de ronde "Egress-golf door zichtbaarheids-events").**
 > Commit: `f80b1c3` (op de onderzoeksbranch `bff6209`). Geen migratie. Gepusht naar
 > `main` op 2026-10-13, samen met de zoekfix `8e53553`.
 >

@@ -12,7 +12,11 @@
 
 import { accessTokenFor, type StravaConnection } from "@/lib/strava/client";
 import { ingestStravaActivity, removeStravaActivity } from "@/lib/strava/ingest-activity";
-import { isDeauthorizationEvent, type StravaWebhookEvent } from "@/lib/strava/webhook-events";
+import {
+  isDeauthorizationEvent,
+  isVisibilityOnlyUpdate,
+  type StravaWebhookEvent,
+} from "@/lib/strava/webhook-events";
 import {
   revocationPatch,
   StravaConnectionRevokedError,
@@ -167,6 +171,15 @@ export async function processStravaWebhookEvents(
         }
         await touchConnection(admin, connection.profile_id, event.eventTime);
         await markProcessed(admin, row.id, null);
+        result.processed += 1;
+        continue;
+      }
+
+      // Alleen privé of zichtbaarheid gewijzigd: geen Strava-call en geen nawerk.
+      if (isVisibilityOnlyUpdate(event)) {
+        await touchConnection(admin, connection.profile_id, event.eventTime);
+        await markProcessed(admin, row.id, null);
+        result.skipped += 1;
         result.processed += 1;
         continue;
       }

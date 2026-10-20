@@ -213,10 +213,207 @@ type DetectorRow = {
   summary_polyline: string | null;
 };
 
+// Migratie 0255: per rit welke cols erin zitten, en tegen welke catalogus en
+// welke versie van de rit dat is vastgesteld. Een run leest alleen deze kolommen
+// en scant alleen ritten waarvan de sleutel niet meer klopt. De historie
+// opnieuw doorlopen kostte 52% van de databasetijd (databasecheck 2026-10-20):
+// raw->map laat Postgres per rij de hele raw uitpakken.
+const SCAN_COLUMNS = "id, start_date, distance_m, synced_at, col_slugs, col_scan_key";
+const SCAN_BATCH = 200;
+
+type ScanRow = {
+  id: number;
+  start_date: string;
+  distance_m: number | string | null;
+  synced_at: string | null;
+  col_slugs: string[] | null;
+  col_scan_key: string | null;
+};
+
+export type ScannedRide = {
+  id: number;
+  start_date: string;
+  distance_m?: number | string | null;
+  col_slugs: string[];
+};
+
+export type ColAggregate = {
+  firstActivityId: number;
+  firstClimbedAt: string;
+  lastActivityId: number;
+  lastClimbedAt: string;
+  count: number;
+};
+
+/** FNV-1a; kort en zonder imports, alleen om een wijziging te zien. */
+function fnv1a(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+/** Verandert zodra een col bijkomt, verdwijnt of een andere top of straal krijgt. */
+export function colCatalogKey(cols: ColRecord[]): string {
+  const parts = cols
+    .map((c) =>
+      [c.slug, c.summit_lat, c.summit_lon, c.detection_radius_m, c.ascent_m ?? ""].join(":"),
+    )
+    .sort();
+  return fnv1a(parts.join("|"));
+}
+
+/** De sleutel van één rit: catalogus plus de laatste keer dat de rit is weggeschreven. */
+export function rideScanKey(catalogKey: string, syncedAt: string | null): string {
+  return `${catalogKey}@${syncedAt ?? ""}`;
+}
+
+/**
+ * Per col de eerste en laatste rit en het aantal keer, over de unieke ritten.
+ * Een rit met cols heeft per definitie een spoor, dus die wint van een kopie
+ * zonder; tussen twee kopieën met spoor maakt het voor de telling niet uit.
+ * Puur, zodat de telling in een unit-test vastligt.
+ */
+export function aggregateColPassages(rides: ScannedRide[]): {
+  passages: Map<string, ColAggregate>;
+  uniqueRides: number;
+} {
+  const unique = uniqueRides(rides, (ride) => (ride.col_slugs.length > 0 ? 2 : 0));
+  const sorted = [...unique].sort((a, b) => a.start_date.localeCompare(b.start_date));
+  const agg = new Map<string, ColAggregate>();
+  for (const ride of sorted) {
+    for (const slug of ride.col_slugs) {
+      const cur = agg.get(slug);
+      if (!cur) {
+        agg.set(slug, {
+          firstActivityId: ride.id,
+          firstClimbedAt: ride.start_date,
+          lastActivityId: ride.id,
+          lastClimbedAt: ride.start_date,
+          count: 1,
+        });
+      } else {
+        cur.count += 1;
+        cur.lastActivityId = ride.id;
+        cur.lastClimbedAt = ride.start_date;
+      }
+    }
+  }
+  return { passages: agg, uniqueRides: unique.length };
+}
+
+/**
+ * Lichte kolommen van alle ritten; ritten met een verouderde sleutel worden
+ * eerst gescand en weggeschreven. Null als migratie 0255 nog ontbreekt: de
+ * aanroeper valt dan terug op de volledige scan.
+ */
+async function fetchScannedRides(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  profileId: string,
+  cols: ColRecord[],
+): Promise<ScannedRide[] | null> {
+  const catalogKey = colCatalogKey(cols);
+  const PAGE = 1000;
+  const rows: ScanRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("strava_activities")
+      .select(SCAN_COLUMNS)
+      .eq("profile_id", profileId)
+      .order("start_date", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) return null;
+    if (!data || data.length === 0) break;
+    rows.push(...(data as ScanRow[]));
+    if (data.length < PAGE) break;
+  }
+  return scanAndCollect();
+
+  async function scanAndCollect(): Promise<ScannedRide[] | null> {
+    const stale = rows.filter((row) => row.col_scan_key !== rideScanKey(catalogKey, row.synced_at));
+    for (let i = 0; i < stale.length; i += SCAN_BATCH) {
+      const batch = stale.slice(i, i + SCAN_BATCH);
+      const { data, error } = await supabase
+        .from("strava_activities")
+        .select(DETECTOR_COLUMNS)
+        .in(
+          "id",
+          batch.map((row) => row.id),
+        );
+      if (error) return null;
+      const byId = new Map(batch.map((row) => [Number(row.id), row]));
+      const updates: Array<{ id: number; col_slugs: string[]; col_scan_key: string }> = [];
+      for (const detail of (data ?? []) as DetectorRow[]) {
+        const row = byId.get(Number(detail.id));
+        if (!row) continue;
+        const slugs = detectColsInActivity(storedFromDetector(detail), cols);
+        row.col_slugs = slugs;
+        row.col_scan_key = rideScanKey(catalogKey, row.synced_at);
+        updates.push({ id: row.id, col_slugs: slugs, col_scan_key: row.col_scan_key });
+      }
+      // Niet bewaard is niet fout: de telling hieronder klopt, de volgende run
+      // scant deze ritten opnieuw.
+      if (updates.length > 0) {
+        try {
+          await supabase.rpc("set_activity_col_scans", { p_rows: updates });
+        } catch {
+          // zie hierboven
+        }
+      }
+    }
+    return rows.map((row) => ({
+      id: row.id,
+      start_date: row.start_date,
+      distance_m: row.distance_m,
+      col_slugs: row.col_slugs ?? [],
+    }));
+  }
+}
+
+function storedFromDetector(row: DetectorRow): StoredActivity {
+  return {
+    id: row.id,
+    start_date: row.start_date,
+    distance_m: row.distance_m,
+    total_elevation_gain_m: row.total_elevation_gain_m,
+    raw: {
+      total_elevation_gain: row.raw_elevation_gain,
+      map: { polyline: row.polyline, summary_polyline: row.summary_polyline },
+    },
+  };
+}
+
+/**
+ * Een rit kreeg buiten de sync om een ander spoor of andere hoogtemeters (een
+ * GPX aan een CSV-rit gehangen). Dan scant de detector hem de volgende keer
+ * opnieuw. Best-effort: zonder migratie 0255 bestaat de kolom niet.
+ */
+export async function forgetColScans(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  profileId: string,
+  activityIds: number[],
+): Promise<void> {
+  if (activityIds.length === 0) return;
+  await supabase
+    .from("strava_activities")
+    .update({ col_scan_key: null })
+    .eq("profile_id", profileId)
+    .in("id", activityIds)
+    .then(
+      () => undefined,
+      () => undefined,
+    );
+}
+
 /**
  * Haal ALLE strava_activities van een profiel op, gepagineerd via .range().
  * Supabase capt selects standaard op 1000 rijen — zonder paginatie missen we
- * recente ritten bij riders met >1000 activities.
+ * recente ritten bij riders met >1000 activities. Alleen nog de terugval voor
+ * zolang migratie 0255 niet is toegepast.
  */
 async function fetchAllActivities(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -233,18 +430,7 @@ async function fetchAllActivities(
       .order("start_date", { ascending: true })
       .range(from, from + PAGE - 1);
     if (error || !data || data.length === 0) break;
-    for (const row of data as DetectorRow[]) {
-      all.push({
-        id: row.id,
-        start_date: row.start_date,
-        distance_m: row.distance_m,
-        total_elevation_gain_m: row.total_elevation_gain_m,
-        raw: {
-          total_elevation_gain: row.raw_elevation_gain,
-          map: { polyline: row.polyline, summary_polyline: row.summary_polyline },
-        },
-      });
-    }
+    for (const row of data as DetectorRow[]) all.push(storedFromDetector(row));
     if (data.length < PAGE) break;
   }
   // Een rit die het lid twee keer opnam, telt één keer voor times_climbed. Van
@@ -278,50 +464,20 @@ export async function syncClimbedColsForUser(
   }));
   if (cols.length === 0) return { scanned: 0, newCols: 0 };
 
-  // Voor de detector willen we ALLE activities van het profiel scannen,
-  // niet alleen een subset — anders kunnen we times_climbed niet correct
-  // berekenen (oudere ritten zouden uit de telling vallen). De
-  // activityIds-parameter wordt nu genegeerd; behouden in API voor
-  // toekomstige incrementele variant.
+  // times_climbed telt over de hele historie, dus alle ritten doen mee; alleen
+  // ritten met een verouderde scan worden opnieuw gelezen. activityIds blijft
+  // in de API maar is niet nodig: de scansleutel ziet zelf welke ritten nieuw zijn.
   void activityIds;
 
-  // Gepagineerd ophalen — Supabase capt standaard op 1000 rijen.
-  const acts = await fetchAllActivities(supabase, profileId);
-
-  // Bouw per-col aggregaat: first/last activity + total count over hele
-  // historie. Sorteer oudest eerst zodat first/last natuurlijk volgen.
-  const sorted = [...acts].sort((a, b) =>
-    a.start_date.localeCompare(b.start_date),
-  );
-
-  type Aggregate = {
-    firstActivityId: number;
-    firstClimbedAt: string;
-    lastActivityId: number;
-    lastClimbedAt: string;
-    count: number;
-  };
-  const agg = new Map<string, Aggregate>();
-
-  for (const act of sorted) {
-    const slugs = detectColsInActivity(act, cols);
-    for (const slug of slugs) {
-      const cur = agg.get(slug);
-      if (!cur) {
-        agg.set(slug, {
-          firstActivityId: act.id,
-          firstClimbedAt: act.start_date,
-          lastActivityId: act.id,
-          lastClimbedAt: act.start_date,
-          count: 1,
-        });
-      } else {
-        cur.count += 1;
-        cur.lastActivityId = act.id;
-        cur.lastClimbedAt = act.start_date;
-      }
-    }
-  }
+  const rides =
+    (await fetchScannedRides(supabase, profileId, cols)) ??
+    (await fetchAllActivities(supabase, profileId)).map((act) => ({
+      id: act.id,
+      start_date: act.start_date,
+      distance_m: act.distance_m,
+      col_slugs: detectColsInActivity(act, cols),
+    }));
+  const { passages: agg, uniqueRides: scanned } = aggregateColPassages(rides);
 
   // Diff-counter: hoeveel cols zijn er nieuw bijgekomen?
   const { data: existingRows } = await supabase
@@ -343,7 +499,7 @@ export async function syncClimbedColsForUser(
   }
 
   if (agg.size === 0) {
-    return { scanned: acts.length, newCols: 0 };
+    return { scanned, newCols: 0 };
   }
 
   const now = new Date().toISOString();
@@ -367,12 +523,12 @@ export async function syncClimbedColsForUser(
     .from("profile_climbed_cols")
     .upsert(rowsToUpsert, { onConflict: "profile_id,col_slug" });
   if (error) {
-    return { scanned: acts.length, newCols: 0 };
+    return { scanned, newCols: 0 };
   }
 
   const newCount = Array.from(agg.keys()).filter(
     (slug) => !existing.has(slug),
   ).length;
 
-  return { scanned: acts.length, newCols: newCount };
+  return { scanned, newCols: newCount };
 }

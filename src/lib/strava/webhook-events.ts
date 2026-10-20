@@ -84,6 +84,21 @@ export function isDeauthorizationEvent(event: StravaWebhookEvent): boolean {
   return authorized === "false" || authorized === false;
 }
 
+/** Velden waar ZWB niets mee doet; een update met alleen deze verandert niets. */
+const VISIBILITY_KEYS = new Set(["private", "visibility"]);
+
+/**
+ * Een rit die alleen op privé of een andere zichtbaarheid is gezet. ZWB leest
+ * die velden nergens, dus ophalen en het nawerk kunnen achterwege blijven. Een
+ * lid dat zijn hele historie op privé zette, gaf in oktober 2026 duizenden van
+ * deze events, elk met het volledige nawerk.
+ */
+export function isVisibilityOnlyUpdate(event: StravaWebhookEvent): boolean {
+  if (event.objectType !== "activity" || event.aspectType !== "update") return false;
+  const keys = Object.keys(event.updates);
+  return keys.length > 0 && keys.every((key) => VISIBILITY_KEYS.has(key));
+}
+
 export type ChallengeResult =
   | { ok: true; challenge: string }
   | { ok: false; status: number; error: string };

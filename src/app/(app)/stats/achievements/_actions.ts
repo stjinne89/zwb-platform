@@ -472,6 +472,14 @@ async function importOneFile(
         .eq("profile_id", profileId);
       if (error) throw new Error(error.message);
     }
+    if (plan.attach.length > 0) {
+      const { forgetColScans } = await import("@/lib/cols/detector");
+      await forgetColScans(
+        supabase,
+        profileId,
+        plan.attach.map((attachment) => Number(attachment.id)),
+      );
+    }
 
     // Eigen segment- en coltijden uit het volledige spoor, op de rit waar het
     // bestand in terechtkwam (nieuw, of de CSV-rit die het spoor kreeg). Alleen
