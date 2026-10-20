@@ -45,6 +45,7 @@ import { FrrStandings } from "./_components/frr-standings";
 import { Greeting } from "./_components/greeting";
 import { MyRaces } from "./_components/my-races";
 import { PhotoNudge } from "./_components/photo-nudge";
+import { QaDashboard } from "./_components/qa";
 import { InstagramStrip, type InstagramPost } from "./_components/instagram-strip";
 import { SrcResults } from "./_components/src-results";
 import {
@@ -1242,6 +1243,11 @@ export default async function DashboardPage({
           </ul>
         </section>
       )}
+
+      {/* Vragen over de app, in beide designs (wens eigenaar, 2026-10-19). */}
+      <Suspense fallback={null}>
+        <QaDashboard />
+      </Suspense>
 
       {!tegels && shownReports.length > 0 && (
         <section>

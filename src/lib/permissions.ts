@@ -130,6 +130,13 @@ export const COMMUNITY_PERMISSIONS = [
     category: "Community",
   },
   {
+    id: "qa.answer",
+    label: "Vragen over de app beantwoorden",
+    description:
+      "Ziet alle vragen in Q&A, ook die alleen voor het bestuur, en kan ze beantwoorden, afschermen en verwijderen.",
+    category: "Community",
+  },
+  {
     id: "training.view_assigned",
     label: "Toegewezen trainingsdata bekijken",
     description: "Kan trainingsdata zien van leden die trainer-toegang gaven.",

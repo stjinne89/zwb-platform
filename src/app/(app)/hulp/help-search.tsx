@@ -113,6 +113,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "wie weet wat kennis kenner ervaring onderwerp vraag vragen gesprek bericht berichten tip tips van leden advies hulp gravel bikefit sleutelen banden tubeless zwift racen zwbieb bieb wie heeft wat lenen uitlenen spullen fietskoffer momentsleutel fietsendrager seasucker dakdrager camper werkstandaard leeszaal kennisbank artikel artikelen lezen boeken plank",
   },
   {
+    title: "Q&A",
+    text: "Je vraag over de app stellen; het bestuur werkt hem uit en antwoordt.",
+    href: "/hulp/problemen#qa",
+    terms: "q&a qa vraag vragen stellen app werkt niet snap niet hoe kan ik bug fout probleem wens idee feedback bestuur antwoord beantwoord alleen voor het bestuur melding",
+  },
+  {
     title: "Live volgen met Garmin of Wahoo",
     text: "Garmin: je LiveTrack-mail naar je clubadres. Wahoo: je vaste link koppelen.",
     href: "/hulp/live-volgen#livetrack",

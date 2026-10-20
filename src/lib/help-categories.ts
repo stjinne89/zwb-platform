@@ -140,9 +140,9 @@ export const HELP_CATEGORIES = [
   {
     id: "problemen",
     label: "Problemen",
-    text: "Meldingen en snelle checks als iets niet werkt.",
+    text: "Meldingen, snelle checks als iets niet werkt, en Q&A.",
     tone: "meer",
-    anchors: ["problemen"],
+    anchors: ["problemen", "qa"],
     legacy: ["meldingen-problemen"],
   },
   {

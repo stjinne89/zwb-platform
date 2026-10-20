@@ -77,6 +77,7 @@ export async function updateNotificationPreferences(formData: FormData) {
     on_training_plan: formData.get("on_training_plan") === "on",
     on_training_chat: formData.get("on_training_chat") === "on",
     on_knowledge_message: formData.get("on_knowledge_message") === "on",
+    on_qa_answer: formData.get("on_qa_answer") === "on",
     on_event_reminder: formData.get("on_event_reminder") === "on",
     on_admin_broadcast: formData.get("on_admin_broadcast") === "on",
     on_maintenance_due: formData.get("on_maintenance_due") === "on",
@@ -87,6 +88,10 @@ export async function updateNotificationPreferences(formData: FormData) {
     // hem stilletjes op false te zetten.
     ...(formData.has("__has_member_pending")
       ? { on_member_pending: formData.get("on_member_pending") === "on" }
+      : {}),
+    // Zelfde regel voor wie vragen in Q&A beantwoordt.
+    ...(formData.has("__has_qa_question")
+      ? { on_qa_question: formData.get("on_qa_question") === "on" }
       : {}),
     updated_at: new Date().toISOString(),
   };

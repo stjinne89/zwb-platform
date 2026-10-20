@@ -24,6 +24,7 @@ export const HELP_ANCHORS: ReadonlyArray<readonly [pattern: string, anchor: stri
   ["/samen-fietsen", "livetrack"],
   ["/live", "livetrack"],
   ["/zwbieb", "zwbieb"],
+  ["/qa", "qa"],
   ["/teams", "teams"],
   ["/teams/nieuw", "teambeheer"],
   ["/teams/*", "teambeheer"],

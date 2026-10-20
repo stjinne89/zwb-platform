@@ -43,6 +43,8 @@ const PROFILE_TABLES: string[] = [
   "member_knowledge_topics",
   "member_tips",
   "weekly_reviews",
+  // Q&A: de eigen vragen (profile_id is de vrager).
+  "member_questions",
 ];
 
 export async function GET() {
@@ -140,6 +142,16 @@ export async function GET() {
       .select("*")
       .eq("author_id", user.id);
     if (!messageError) data.knowledge_messages = messages ?? [];
+  }
+
+  // Q&A: antwoorden die het lid zelf schreef, op vragen van anderen.
+  {
+    const { data: answers, error } = await admin
+      .from("member_questions")
+      .select("id, answer, answered_at")
+      .eq("answered_by", user.id)
+      .neq("profile_id", user.id);
+    if (!error) data.member_question_answers = answers ?? [];
   }
 
   const body = JSON.stringify(data, null, 2);
