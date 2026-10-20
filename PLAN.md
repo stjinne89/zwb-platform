@@ -72,15 +72,14 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
-   - **Eigen recepten in het menu:** `0261_nutrition_menu_choices.sql` is
-     **niet toegepast**. Tot dan laden Dagmenu en Boodschappen gewoon (zonder
-     keuzes), maar geven "Ander recept", "Kies" en "In menu" een foutmelding.
-     Dat is strenger dan voorheen: "Ander recept" werkte zonder database. Dus
-     0261 toepassen vóór de push (ronde 2026-10-20, "Eigen recepten in het dag-
-     en weekmenu").
+   - **Eigen recepten in het menu:** `0261_nutrition_menu_choices.sql` is op
+     2026-10-20 via de Supabase-connector toegepast, op verzoek van de
+     eigenaar, vóór de push. Nagekeken: RLS aan, één policy (alleen het lid
+     zelf), geen rechten voor anon, beide foreign keys (ronde 2026-10-20, "Eigen
+     recepten in het dag- en weekmenu").
    - **Boodschappenlijst met gezin:** `0259_nutrition_household.sql` is op
      2026-10-20 via de Supabase-connector toegepast, op verzoek van de
-     eigenaar, vóór een push (de code is lokaal gecommit, niet gepusht). Vooraf:
+     eigenaar, vóór de push (gepusht naar `main` op 2026-10-20, samen met de racebriefing). Vooraf:
      `nutrition_profiles` had alleen `profile_id`, `height_cm` en `updated_at`,
      14 rijen. Achteraf: de vier kolommen met hun standaardwaarden en checks,
      alle 14 rijen op "niemand eet mee, diner", RLS aan met alleen
@@ -252,8 +251,8 @@ gaat stabiliteit voor nieuwe features.
    video's tonen het design "tegels"; zolang dat niet voor iedereen aanstaat,
    wijken een paar schermen af van wat leden in het klassieke design zien.
    Bijwerken na een appwijziging: `opname.mjs` en `bouw.mjs --publiceer`.
-9. **Racebriefing per ZRL-race** (ronde van 2026-10-20 hieronder): gebouwd en
-   lokaal getest, niet gepusht. Migratie `0260_race_briefing.sql` is toegepast
+9. **Racebriefing per ZRL-race** (ronde van 2026-10-20 hieronder): gebouwd,
+   lokaal getest en op 2026-10-20 gepusht naar `main`. Migratie `0260_race_briefing.sql` is toegepast
    en de privacytekst staat erin. Open: een API-sleutel van ZwiftRacing.app
    (eigenaar vraagt hem aan; conceptbericht in de sessie van 2026-10-20) en dan
    de koppeling tegen de echte API controleren.
@@ -270,7 +269,7 @@ Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0262`
 (`0261_nutrition_menu_choices` is van eigen recepten in het menu, 2026-10-20,
-hernummerd van `0260`, nog niet toegepast;
+hernummerd van `0260`, toegepast op 2026-10-20;
 `0260_race_briefing` is van de racebriefing, 2026-10-20;
 `0259_nutrition_household` is van de boodschappenlijst met gezin, 2026-10-20;
 `0258_member_questions_faq` is van "Ik ook" en de FAQ in Q&A, 2026-10-20,
@@ -298,7 +297,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Trainingen dubbel in de kalender na de ritruil, 2026-10-20 — gebouwd; unit-tests (`intervals-ride-sync`, `training-completion`, `reassign-ride`), typecheck en lint schoon; niet gepusht. Geen migratie. Dataherstel voor Jeroen Janssen op 2026-10-20 door de eigenaar gedraaid en in de database nagekeken (zie onder).**
+> **Trainingen dubbel in de kalender na de ritruil, 2026-10-20 — gebouwd; unit-tests (`intervals-ride-sync`, `training-completion`, `reassign-ride`), typecheck en lint schoon; gepusht naar `main` op 2026-10-20 (samen met de racebriefing). Geen migratie. Dataherstel voor Jeroen Janssen op 2026-10-20 door de eigenaar gedraaid en in de database nagekeken (zie onder).**
 > Commit: de commit die dit blok toevoegt (lokaal, branch `claude/duplicate-trainings-investigation-e18e98`).
 >
 > **Aanleiding.** Een foto van de maandkalender van Jeroen Janssen (oktober):
@@ -11257,7 +11256,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Racebriefing per ZRL-race, voor alle teams
 
-**2026-10-20.** Commits `c3ff7a7b` en de commit die dit blok bijwerkt.
+**2026-10-20.** Commits `c3ff7a7b` en `cbfc5b07`, gepusht naar `main` op
+2026-10-20.
 Migratie `0260_race_briefing.sql`, op 2026-10-20 via de Supabase-connector op
 productie toegepast (eerst `0257` genoemd; dat nummer bleek al bezet door
 `0257_training_goal_target_time`). Nagekeken: beide tabellen bestaan, RLS aan,
@@ -11410,8 +11410,8 @@ verwijdering op productie (vraagt een ingelogde sessie).
 ### Gebouwd — Eigen recepten in het dag- en weekmenu, de rest past zich aan
 
 **2026-10-20.** Commit: de commit die dit blok toevoegt. Migratie
-`0261_nutrition_menu_choices.sql` (op de branch `0260`; bij het samenvoegen met de racebriefing hernummerd, omdat `0260_race_briefing` al op productie stond), **niet toegepast**. Lokaal gecommit, niet
-gepusht.
+`0261_nutrition_menu_choices.sql` (op de branch `0260`; bij het samenvoegen met de racebriefing hernummerd, omdat `0260_race_briefing` al op productie stond), op 2026-10-20
+via de connector toegepast en nagekeken (gepusht naar `main` op 2026-10-20, samen met de racebriefing).
 
 **Aanleiding.** De eigenaar wil dat leden zelf gerechten in het dag- en
 weekmenu zetten en dat de rest van de week zich dan aanpast. Gekozen (eigenaar):
@@ -11475,7 +11475,7 @@ ESLint, `next build` (slaagt; de kiespagina staat erin) en de unit-suite;
 daarin faalden 13 bestanden op time-outs en timers terwijl de dev-server
 meedraaide, die daarna los en na elkaar allemaal slaagden.
 
-**Niet lokaal te verifiëren.** 0261 op productie (niet toegepast). Niets is
+**Niet lokaal te verifiëren.** Niets is
 ingelogd in de browser bekeken: de lokale pagina's sturen door naar het
 inloggen.
 
@@ -11483,7 +11483,7 @@ inloggen.
 
 **2026-10-20.** Commit `d856162e`. Migratie `0259_nutrition_household.sql`,
 op 2026-10-20 via de connector toegepast (zie "Handwerk op productie").
-Lokaal gecommit, niet gepusht.
+Gepusht naar `main` op 2026-10-20, samen met de racebriefing.
 
 **Aanleiding.** Een lid dat vooruit boodschappen doet (druk werk, gezin) vroeg
 of de voedingstips ook voor meerdere dagen te zien zijn, voor een aantal
@@ -11646,8 +11646,8 @@ volgende uurlijkse run (`clubEvents.published: 1`) of de kalender van maandag
 
 ### Gebouwd — haalbaarheid van de doeltijd in de pacingcalculator
 
-**2026-10-20.** Commit: de commit die dit blok toevoegt, op dezelfde branch
-(niet gepusht). Geen migratie.
+**2026-10-20.** Commit: de commit die dit blok toevoegt, op dezelfde branch;
+gepusht naar `main` op 2026-10-20, samen met de racebriefing. Geen migratie.
 
 **Aanleiding.** Vraag van de eigenaar: het oordeel van de doeltijd bij een
 trainingsdoel ook op de eventpagina's, bij de pacingcalculator. "Plan voor deze
