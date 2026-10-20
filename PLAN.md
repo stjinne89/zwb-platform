@@ -11259,6 +11259,36 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Racebriefje delen als plaatje
+
+**2026-10-20.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Waarom.** Vraag van de eigenaar: het racebriefje als plaatje kunnen delen met
+het team.
+
+**Wat.** Onder het briefje de knop **Deel als plaatje**
+(`events/[id]/briefing/_components/share-sheet.tsx`). De browser tekent het
+briefje zoals het op het scherm staat naar een PNG (schaal 2, rondom 18 bij 22 px
+tegelinkt `#0a2b34`, zodat het papier in een chat loskomt). Op de telefoon gaat
+het via het deelmenu (`navigator.share` met het bestand), anders als download
+(`racebriefje-<team>-<datum>.png`). Nieuwe afhankelijkheid: `modern-screenshot`
+4.7.0, alleen geladen bij de klik. Uitleg op `/hulp`.
+
+**Bewust niet.** Eerst `html-to-image` 1.11.13 geprobeerd: bij een
+pixeldichtheid van 2 (telefoon nagebootst) stond de inhoud twee keer te groot in
+het plaatje en viel de rechterhelft weg; vervangen door `modern-screenshot`. Geen
+plaatje dat de server tekent (`next/og`): dat had het briefje opnieuw moeten
+opbouwen zonder masker voor de gescheurde rand en zonder de assen van het
+handschrift. In het donkere thema houdt het plaatje het iets gedimde papier van
+het scherm.
+
+**Gecontroleerd.** Met de echte data van Bdev via een tijdelijke voorbeeldpagina
+(niet gecommit) op 375 px met pixeldichtheid 2: plaatje van 758 bij 3340 px in
+2,7 s, compleet en op schaal. Op desktopbreedte bleef de opname in de ingebouwde
+browser hangen zonder fout; waarschijnlijk omdat het venster op de achtergrond
+stond (ook screenshots liepen daar vast). **Niet geverifieerd:** het deelmenu op
+een echte telefoon (iOS en Android) en de download op een desktop.
+
 ### Gebouwd — Racebriefing als spiekbriefje
 
 **2026-10-20.** Commit `b91a667b`, samengevoegd met "Snelste fiets" (de lijst

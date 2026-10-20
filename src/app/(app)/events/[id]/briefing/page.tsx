@@ -16,6 +16,7 @@ import { ZwiftRouteSection } from "../_components/zwift-route-section";
 import { BikeAdviceList } from "../_components/bike-advice-list";
 import { saveRaceBriefing } from "./_actions";
 import { RaceSheet } from "./_components/race-sheet";
+import { ShareableSheet } from "./_components/share-sheet";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -221,6 +222,13 @@ const FIELD_MISSING: Record<NonNullable<BriefingView["fieldMissing"]>, string> =
   started: "De race is begonnen; het veld staat op de live stand.",
 };
 
+/** "racebriefje-bdev-2026-10-20.png" */
+function sheetFileName(view: BriefingView): string {
+  const team = (view.event.teamName ?? "team").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const day = new Date(view.event.startAt).toLocaleDateString("sv-SE", { timeZone: "Europe/Amsterdam" });
+  return `racebriefje-${team}-${day}.png`;
+}
+
 export default async function RaceBriefingPage({ params }: PageProps) {
   const { id } = await params;
   const user = await getRequestUser();
@@ -256,7 +264,9 @@ export default async function RaceBriefingPage({ params }: PageProps) {
         </div>
       </div>
 
-      <RaceSheet view={view} />
+      <ShareableSheet fileName={sheetFileName(view)} title={`Racebriefje ${view.event.teamName ?? ""}`.trim()}>
+        <RaceSheet view={view} />
+      </ShareableSheet>
 
       {view.format === "ttt" && (
         <Link href={`/teams/ttt-planner?event=${view.event.id}&team=${view.event.teamId}`} className="text-sm underline">
