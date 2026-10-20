@@ -10850,6 +10850,93 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — doeltijd bij een trainingsdoel: oordeel, nadruk en prognose
+
+**2026-10-20.** Commit: de commit die dit blok toevoegt, op de branch
+`claude/training-plan-target-time-8b0cb1` (niet gepusht). Migratie
+`0255_training_goal_target_time.sql` (**nog niet toegepast**; niet lokaal te
+testen, geen Docker/Supabase-config). Voorstel en onderbouwing:
+[doeltijd-trainingsdoel.md](docs/doeltijd-trainingsdoel.md).
+
+**Aanleiding.** Een lid vroeg of het platform een trainingsplan kan bouwen vanuit
+de eindtijd die hij in een gran fondo wil rijden. Het benodigde vermogen voor een
+tijd is te onderbouwen, een schema dat een tijd belooft niet: hoeveel iemand in
+een paar maanden vooruitgaat, verschilt te sterk per persoon. De eigenaar koos
+daarom voor de doeltijd als toetssteen: een oordeel met de benodigde groei, een
+nadruk in het schema en een prognose die met de tijd meeloopt.
+
+**Wat er is gekomen.**
+- **Doel.** Bij gran fondo en outdoor event kan het lid een doeltijd (rijtijd),
+  alleen of in een groep, en een parcours opgeven: een clubevent met een eigen
+  GPX (geen Zwift-route) of een eigen GPX. Van een eigen GPX blijft alleen het
+  hoogteprofiel over (`training_goals.target_route`: afstand en helling per
+  100 m, plus de klimmen); de coördinaten vallen weg na het parsen. Kiest het
+  lid een event en geen datum, dan wordt de eventdatum de doeldatum. Doeltijd en
+  groep zijn achteraf aan te passen (`updateGoalTargetTime`); voor een ander
+  parcours maak je een nieuw doel.
+- **Rekenwerk** in `src/lib/training/goal-target-time.ts`, op het pacingmodel:
+  - prognose = het snelste haalbare plan (basisvoorstel, dan `fitPlanToTime`),
+    zodat pacingplan en doel dezelfde tijd noemen;
+  - benodigde CP: plan en heel vermogensprofiel (CP, W′, curve) samen schalen
+    tot de doeltijd, zonder nieuwe zoektocht en dus zonder de ruis van een
+    bisectie per stap; boven 1,5× CP heet het buiten bereik;
+  - oordeel tegen een vuistregel voor groei: 0,75 % per week de eerste twaalf
+    weken, daarna 0,25 %, hoogstens 12 % (bronnen in het voorstel; een eigen
+    keuze, geen grens uit onderzoek);
+  - gevoeligheid: wat 1 % CP en wat 1 kg scheelt op dit parcours;
+  - nadruk: klimmen of drempel (35 % klimtijd als grens), lange duurritten
+    (langste rit van 8 weken < 75 % van de doeltijd) en duurvermogen (verval
+    ≥ 8 % of geen vermoeidheidsdata, bij doelen vanaf 3 uur).
+- **Groep.** `EvaluateOptions.cdaFactor` (ook door `buildBaselinePlan` en
+  `fitPlanToTime`): buiten in een groep 0,75× CdA over de hele rit (AANNAME,
+  onderbouwing in het voorstel). Zonder die optie rekent het pacingplan precies
+  als voorheen.
+- **Prognose bewaard** in `training_goal_forecasts`: bij het opslaan van het doel
+  en daarna via `after()` op de doelenpagina's van lid en trainer, als de
+  laatste een week oud is, CP of gewicht veranderd is of de doeltijd is
+  aangepast (`forecastIsStale`). Op de kaart staan oordeel, benodigde CP,
+  gevoeligheid, nadruk en het verloop (laatste zes prognoses). De trainer ziet
+  dezelfde kaart zonder bewerken.
+- **Schema-AI.** `buildTrainingInput` geeft `goal.targetTime` mee (laatste
+  prognose, of een verse als die verouderd is), met een promptregel: nadruk
+  voor de sleutelsessies, geen extra volume of intensiteit, geen finishtijd
+  noemen of beloven, en bij een ambitieus of onrealistisch oordeel één zin in
+  cautions. Geldt via `defaultTrainingPrompt` ook voor herzieningen.
+- AVG-export neemt `training_goal_forecasts` mee; `/hulp#doeltijd` legt het uit.
+
+**Bewust niet gebouwd.**
+- **Geen streefgewicht.** Keuze van de eigenaar: gewicht alleen als
+  gevoeligheid ("1 kg scheelt …"), zodat "geen afvalfunctie" uit de
+  voedingsrondes (IOC REDs) blijft staan.
+- **Geen eigen periodisering vanuit de doeltijd.** Opbouw, taper, uren en
+  herstel blijven de bestaande regels.
+- **Geen Zwift-route als doelparcours**: vraagt Zwift-fysica en eventregels; een
+  doeltijd in Zwift kan al via het pacingplan van het event.
+- **Geen wind, geen stops**, net als het pacingplan. De doeltijd is rijtijd.
+- **Niet in de coachchat en het weekoverzicht.** De prognose staat bij het doel en
+  in het schema; de coachchat leest de doelkolommen los (`chat-context.ts`) en
+  krijgt de doeltijd nog niet mee.
+- **De GPX zelf niet bewaren**: geen bucket, geen opslagbeleid, geen locatiedata.
+
+**Privacy.** Nieuw opgeslagen: de doeltijd, het hoogteprofiel van een eigen GPX
+en de prognoses. De privacyverklaring is niet aangepast; een zin daarover is aan
+de eigenaar voorgelegd.
+
+**Getest.** `tests/unit/goal-target-time.test.ts` (19 tests: groei-vuistregel,
+groep sneller dan alleen en geen verschil zonder groep, haalbaar zonder benodigde
+CP, benodigde CP haalt de doeltijd tot op 1 %, oordeel naar weken en zonder
+datum, buiten bereik, een kilo telt zwaarder in de bergen, nadrukregels,
+verouderdregels, promptregel, invoer en labels), `tsc`, ESLint op de gewijzigde
+bestanden, `npm run build` en de unit-suite. Een voorbeeld ter controle: 150 km
+met 1.920 hm, CP 260 W, 75 kg en 10 % verval geeft 5:11 alleen en 4:52 in een
+groep. Daar scheelt een kilo 71 s en een procent CP 101 s; één prognose kost
+zo'n 50 ms. In de unit-suite faalde `omnium-live.test.ts` (mist `.env.local` in
+deze worktree); `admin-areas`, `intervals-ride-sync` en
+`zwift-subgroup-results` faalden alleen onder volle belasting en slagen los
+gedraaid. *Niet geverifieerd:* de migratie, het formulier en de kaart in de
+browser, een echte GPX-upload en een echte schemageneratie met de nieuwe regel
+(kost geld en vraagt een ingelogde sessie).
+
 ### Hersteld — SRC: geslacht in het profiel verplaatst de inschrijving
 
 **2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie.

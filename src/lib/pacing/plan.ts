@@ -13,6 +13,7 @@
 
 import {
   arrivalSecondsAtKm,
+  DEFAULT_CDA,
   DEFAULT_EQUIPMENT_KG,
   estimateRide,
   wattsForSpeed,
@@ -212,6 +213,11 @@ export type EvaluateOptions = {
    * plan met de buitenfysica van ride-estimate.ts, zoals een .gpx-route.
    */
   ride?: RidePhysics | null;
+  /**
+   * Buiten in een groep: CdA-vermenigvuldiger over de hele rit. Alleen zonder
+   * `ride`; een Zwift-event regelt de slipstream zelf. Zie goal-target-time.ts.
+   */
+  cdaFactor?: number;
 };
 
 /**
@@ -237,6 +243,10 @@ export function evaluatePlan(
   const equipmentKg = ride ? ride.bikeKg : (options.equipmentKg ?? DEFAULT_EQUIPMENT_KG);
   const endKms = segmentEndKms(route.segments);
   const physics = ride ? segmentPhysics(plan, route, model, ride, endKms) : null;
+  const outdoorCda =
+    !ride && options.cdaFactor && options.cdaFactor !== 1
+      ? DEFAULT_CDA * options.cdaFactor
+      : undefined;
   // In een neutralisatie beslist de wagen, niet het plan: ook een plan van vóór
   // de zones rekent daar met het neutrale tempo.
   const neutral = neutralSegmentMask(route);
@@ -249,7 +259,11 @@ export function evaluatePlan(
         gradient,
         model,
         equipmentKg,
-        physics ? { cda: physics[index].cda, crr: physics[index].crr } : {},
+        physics
+          ? { cda: physics[index].cda, crr: physics[index].crr }
+          : outdoorCda
+            ? { cda: outdoorCda }
+            : {},
       );
     }
     // Uitrollen alleen waar het echt daalt; een vlak stukje in de afdaling trap je.
@@ -268,6 +282,7 @@ export function evaluatePlan(
   let estimate = estimateRide({
     segments: modelSegments,
     totalMassKg: model.weightKg + equipmentKg,
+    ...(outdoorCda ? { cda: outdoorCda } : {}),
   });
   // Een powerup werkt een vast aantal seconden. Hoeveel meter dat is volgt pas
   // uit een eerste doorrekening; één tweede ronde volstaat, het verschil in

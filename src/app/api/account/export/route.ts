@@ -13,6 +13,7 @@ const PROFILE_TABLES: string[] = [
   "event_reports",
   "event_report_comments",
   "training_goals",
+  "training_goal_forecasts",
   "training_plans",
   "training_workouts",
   "training_workout_reports",

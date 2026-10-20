@@ -51,6 +51,11 @@ export type GoalRow = {
   desired_intensity: string;
   risk_notes: string | null;
   status: string;
+  /** Sinds 0255; ontbreken zolang die migratie er niet is. */
+  target_event_id?: string | null;
+  target_time_seconds?: number | null;
+  target_riding?: string | null;
+  target_route?: unknown;
 };
 
 export type PlanRow = {
