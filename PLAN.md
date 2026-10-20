@@ -257,10 +257,9 @@ gaat stabiliteit voor nieuwe features.
    (eigenaar vraagt hem aan; conceptbericht in de sessie van 2026-10-20) en dan
    de koppeling tegen de echte API controleren.
 10. **Snelste fiets in pacingplan en briefing** (ronde van 2026-10-20 hieronder):
-   gebouwd, lokaal getest, niet gepusht. Open: migratie
-   `0262_zwift_bike_fixed_wheels.sql` toepassen (vaste wielen bij
-   halo-fietsen; tot dan krijgen die nog wielen erbij), en daarna beide
-   schermen in de browser bekijken.
+   gebouwd, lokaal getest en op 2026-10-20 gepusht naar `main`. Migratie
+   `0262_zwift_bike_fixed_wheels.sql` is toegepast. Open: beide schermen in
+   de browser bekijken.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -273,8 +272,8 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0263`
-(`0262_zwift_bike_fixed_wheels` is van de snelste fiets, 2026-10-20, nog niet
-toegepast; `0261_nutrition_menu_choices` is van eigen recepten in het menu, 2026-10-20,
+(`0262_zwift_bike_fixed_wheels` is van de snelste fiets, 2026-10-20,
+toegepast op 2026-10-20; `0261_nutrition_menu_choices` is van eigen recepten in het menu, 2026-10-20,
 hernummerd van `0260`, toegepast op 2026-10-20;
 `0260_race_briefing` is van de racebriefing, 2026-10-20;
 `0259_nutrition_household` is van de boodschappenlijst met gezin, 2026-10-20;
@@ -11262,9 +11261,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Snelste fiets in het pacingplan en de racebriefing
 
-**2026-10-20.** Commit `7b4d2159`. Niet gepusht.
-Migratie `0262_zwift_bike_fixed_wheels.sql`: **nog niet op productie
-toegepast** en niet lokaal te testen (geen Docker of Supabase-config).
+**2026-10-20.** Commit `7b4d2159`, gepusht naar `main` op 2026-10-20.
+Migratie `0262_zwift_bike_fixed_wheels.sql`, op 2026-10-20 via de
+Supabase-connector op productie toegepast en nagekeken: de vier halo-frames
+staan op `fixed_wheels`, elk met 6 rijen (stage 0 t/m 5). Lokaal niet te
+testen (geen Docker of Supabase-config).
 
 **Waarom.** De eigenaar vroeg of de MCP-server van ZwiftBikes
 ([zwiftbikes.com](https://zwiftbikes.com), kjellrg/zwift-bikes, MIT) in de app
@@ -11342,8 +11343,8 @@ geslaagd. Nieuw: `bike-advice.test.ts` met 11 tests, plus een halo-test in
 haperen onder parallelle belasting. `omnium-live` faalt zoals eerder op de
 ontbrekende `.env.local`. Een losse doorrekening met de echte fietslijst uit
 productie (alleen gelezen) is gedaan op Green to Screen, een vlakke route en
-de Alpe. **Niet geverifieerd:** migratie `0262`, de pacingpagina en de
-briefing in de browser, en de knop Kies tegen de database.
+de Alpe. **Niet geverifieerd:** de pacingpagina en de briefing in de browser, en de
+knop Kies tegen de database.
 
 ### Gebouwd — Racebriefing per ZRL-race, voor alle teams
 
