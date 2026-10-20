@@ -271,8 +271,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0263`
-(`0262_zwift_bike_fixed_wheels` is van de snelste fiets, 2026-10-20,
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0264`
+(`0263_race_briefing_sheet` is van het aanpasbare racebriefje, 2026-10-20;
+`0262_zwift_bike_fixed_wheels` is van de snelste fiets, 2026-10-20,
 toegepast op 2026-10-20; `0261_nutrition_menu_choices` is van eigen recepten in het menu, 2026-10-20,
 hernummerd van `0260`, toegepast op 2026-10-20;
 `0260_race_briefing` is van de racebriefing, 2026-10-20;
@@ -11261,10 +11262,12 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Racebriefje aanpassen per race
 
-**2026-10-20.** Commit: de commit die dit blok toevoegt. Migratie
-`0263_race_briefing_sheet.sql` (kolom `sheet` op `race_briefings`), **niet
-toegepast**: tot dan toont de briefing het voorstel van de app en geeft opslaan
-"Opslaan lukte niet"; het lezen is los van de rest, dus de pagina blijft werken.
+**2026-10-20.** Commit `dad53561`, gepusht naar `main` op 2026-10-20. Migratie
+`0263_race_briefing_sheet.sql` (kolom `sheet` op `race_briefings`), op
+2026-10-20 via de Supabase-connector op productie toegepast, op verzoek van de
+eigenaar. Nagekeken: kolom `jsonb`, niet leeg, standaard `{}`, met de
+groottecontrole; de ene bestaande rij kreeg `{}`. Het lezen staat los van de rest,
+dus de pagina werkte ook zonder de kolom.
 
 **Waarom.** De eigenaar ontdekte dat de korte steile stukjes uit de subways in
 New York escalators zijn met een duw van ±1200 W; dat verandert de tactiek, en
@@ -11299,7 +11302,7 @@ pacingplan.
 escalator op Flatbush), `tsc`, ESLint, de Impeccable-detector (niets). De editor
 met echte data op 375 px via een tijdelijke voorbeeldpagina (niet gecommit):
 openen, een moment wijzigen, Voorstel terugzetten verschijnt. **Niet
-geverifieerd:** opslaan (geen ingelogde sessie, en de kolom bestaat nog niet).
+geverifieerd:** opslaan met een ingelogde captain.
 
 ### Gebouwd — Racebriefje delen als plaatje
 
