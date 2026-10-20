@@ -7,6 +7,11 @@ import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import { nutritionDay } from "@/lib/nutrition/tips";
 import { MICRONUTRIENT_LABELS, portionTraits } from "@/lib/nutrition/traits";
 import { logRecipe } from "../../_log-actions";
+import { chooseMenuRecipe } from "../../_menu-actions";
+import { MenuChoiceForm } from "../../_components/menu-choice-form";
+import { choiceMoments } from "@/lib/nutrition/menu";
+import { CHOICE_DAYS_AHEAD } from "@/lib/nutrition/plan";
+import { shiftDayKey } from "@/lib/training/mobility";
 import { LogActionButton } from "../../_components/log-controls";
 import {
   energyFactorFor,
@@ -25,6 +30,17 @@ import { BackLink } from "@/components/app-ui";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+function menuDayLabel(day: string, index: number) {
+  if (index === 0) return "Vandaag";
+  if (index === 1) return "Morgen";
+  return new Date(`${day}T12:00:00Z`).toLocaleDateString("nl-NL", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
 
 function amount(grams: number, unit: "g" | "ml") {
   return `${String(grams).replace(".", ",")} ${unit}`;
@@ -169,6 +185,19 @@ export default async function RecipePage({
         )}
         <RecipePrefButtons recipeId={recipe.id} pref={prefs.get(recipe.id) ?? null} action={setRecipePref} />
       </div>
+
+      <MenuChoiceForm
+        recipeId={recipe.id}
+        days={Array.from({ length: CHOICE_DAYS_AHEAD + 1 }, (_, index) => {
+          const value = shiftDayKey(today, index);
+          return { value, label: menuDayLabel(value, index) };
+        })}
+        moments={choiceMoments(recipe.meal_moment).map((moment) => ({
+          value: moment,
+          label: MEAL_MOMENT_LABELS[moment],
+        }))}
+        action={chooseMenuRecipe}
+      />
 
       {own && (
         <div className="flex flex-wrap items-center gap-3">

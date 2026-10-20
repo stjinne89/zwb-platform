@@ -1,24 +1,16 @@
 import Link from "next/link";
-import { RefreshCw, Users } from "lucide-react";
+import { BookOpen, RefreshCw, Undo2, Users } from "lucide-react";
 import { shiftDayKey } from "@/lib/training/mobility";
 import { FUEL_DAY_LABELS } from "@/lib/nutrition/day-type";
 import { DIET_TAGS, DIET_TAG_LABELS, type DietTag } from "@/lib/nutrition/recipes";
-import { dayMenu, menuMoments, type MenuSlot } from "@/lib/nutrition/menu";
-import {
-  PLAN_DAYS_MAX,
-  householdSize,
-  parseDaySwaps,
-  serializeDaySwaps,
-  shoppingList,
-  withDaySwap,
-  type DaySwaps,
-  type Household,
-} from "@/lib/nutrition/shopping";
-import { nutritionDay } from "@/lib/nutrition/tips";
+import type { MenuSlot } from "@/lib/nutrition/menu";
+import { choiceWindow, planDayMenu } from "@/lib/nutrition/plan";
+import { PLAN_DAYS_MAX, householdSize, shoppingList, type Household } from "@/lib/nutrition/shopping";
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import {
   energyFactorFor,
   loadHousehold,
+  loadMenuChoices,
   loadNutritionDayInputs,
   loadNutritionProfile,
   loadRecipePrefs,
@@ -27,6 +19,8 @@ import {
   todayKeyAmsterdam,
 } from "../_data";
 import { ShoppingList } from "../_components/shopping-list";
+import { LogActionButton } from "../_components/log-controls";
+import { chooseMenuRecipe, clearMenuChoice } from "../_menu-actions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -34,7 +28,6 @@ export const revalidate = 0;
 type Search = {
   dagen?: string | string[];
   vanaf?: string | string[];
-  wissel?: string | string[];
   dieet?: string | string[];
 };
 
@@ -81,7 +74,6 @@ export default async function BoodschappenPage({ searchParams }: { searchParams:
       ? requestedDays
       : DEFAULT_DAYS;
   const start: Start = one(params.vanaf) === "morgen" ? "morgen" : "vandaag";
-  const swaps = parseDaySwaps(one(params.wissel));
   const dietParam = one(params.dieet);
   const diet = (DIET_TAGS as readonly string[]).includes(dietParam ?? "") ? (dietParam as DietTag) : null;
 
@@ -90,62 +82,54 @@ export default async function BoodschappenPage({ searchParams }: { searchParams:
   const first = shiftDayKey(today, start === "morgen" ? 1 : 0);
   const days = Array.from({ length: dayCount }, (_, index) => shiftDayKey(first, index));
 
-  const [profile, recipes, prefs, household] = await Promise.all([
+  const nearby = choiceWindow(days[0], days[days.length - 1]);
+  const [profile, recipes, prefs, household, choices] = await Promise.all([
     loadNutritionProfile(viewer, today),
     loadRecipes(viewer),
     loadRecipePrefs(viewer),
     loadHousehold(viewer),
+    loadMenuChoices(viewer, nearby.from, nearby.to),
   ]);
   const inputs = await loadNutritionDayInputs(viewer, days, profile.weightKg);
   const energyFactor = energyFactorFor(profile);
 
-  // Per dag precies het menu dat het Dagmenu die dag toont, plus de eigen keuzes hier.
-  const plan = days.map((day, index) => {
-    const input = inputs.get(day)!;
-    const nutrition = nutritionDay(input);
-    const slots = dayMenu(
+  // Per dag precies het menu dat het Dagmenu die dag toont: dezelfde keuzes,
+  // dezelfde aanvulling tot het minimum (zonder wat er vandaag al gegeten is).
+  const plan = days.map((day) => {
+    const { nutrition, slots } = planDayMenu({
       recipes,
-      menuMoments(input, nutrition),
-      {
-        rider: {
-          weightKg: profile.weightKg,
-          energyFactor,
-          dayType: nutrition.dayType,
-          rideMinutes: nutrition.rideMinutes,
-        },
-        dayType: nutrition.dayType,
-        tomorrowType: nutrition.tomorrowType,
-        today: day,
-        prefs,
-        diet,
-      },
-      swaps.get(index) ?? {},
-    );
-    return { day, index, dayType: nutrition.dayType, slots };
+      input: inputs.get(day)!,
+      energyFactor,
+      prefs,
+      diet,
+      choices,
+    });
+    return { day, dayType: nutrition.dayType, slots };
   });
   const items = shoppingList(
     plan.flatMap((entry) => entry.slots),
     household,
   );
 
-  const href = (next: { dagen?: number; vanaf?: Start; swaps?: DaySwaps; dieet?: DietTag | null }) => {
+  const href = (next: { dagen?: number; vanaf?: Start; dieet?: DietTag | null }) => {
     const query = new URLSearchParams();
     const dagen = next.dagen ?? dayCount;
     const vanaf = next.vanaf ?? start;
-    const wissel = serializeDaySwaps(next.swaps ?? swaps);
     const dieet = next.dieet === undefined ? diet : next.dieet;
     if (dagen !== DEFAULT_DAYS) query.set("dagen", String(dagen));
     if (vanaf !== "vandaag") query.set("vanaf", vanaf);
-    if (wissel) query.set("wissel", wissel);
     if (dieet) query.set("dieet", dieet);
     const text = query.toString();
     return `/zwbeter-worden/voeding/boodschappen${text ? `?${text}` : ""}`;
   };
 
-  const slotRow = (index: number, slot: MenuSlot) => (
-    <li key={slot.moment} className="flex items-start justify-between gap-3 py-1.5">
+  const slotRow = (day: string, slot: MenuSlot) => (
+    <li key={slot.moment} className="flex items-start justify-between gap-2 py-1.5">
       <div className="min-w-0">
-        <p className="text-xs text-muted-foreground">{MEAL_MOMENT_LABELS[slot.moment]}</p>
+        <p className="text-xs text-muted-foreground">
+          {MEAL_MOMENT_LABELS[slot.moment]}
+          {slot.chosen && <span className="ml-1.5 text-primary">Gekozen</span>}
+        </p>
         <Link
           href={`/zwbeter-worden/voeding/recepten/${slot.recipe.slug}`}
           className="text-sm font-medium hover:text-primary hover:underline"
@@ -153,16 +137,37 @@ export default async function BoodschappenPage({ searchParams }: { searchParams:
           {slot.recipe.title}
         </Link>
       </div>
-      {slot.choices > 1 && (
+      <div className="flex shrink-0 items-center">
+        {slot.chosen && (
+          <LogActionButton
+            action={clearMenuChoice}
+            fields={{ day, moment: slot.moment }}
+            variant="ghost"
+            size="sm"
+            ariaLabel={`${MEAL_MOMENT_LABELS[slot.moment]}: terug naar voorstel`}
+          >
+            <Undo2 className="size-4" />
+          </LogActionButton>
+        )}
+        {slot.nextRecipeId && (
+          <LogActionButton
+            action={chooseMenuRecipe}
+            fields={{ day, moment: slot.moment, recipe_id: slot.nextRecipeId }}
+            variant="ghost"
+            size="sm"
+            ariaLabel={`Ander recept voor ${MEAL_MOMENT_LABELS[slot.moment].toLowerCase()}`}
+          >
+            <RefreshCw className="size-4" />
+          </LogActionButton>
+        )}
         <Link
-          href={href({ swaps: withDaySwap(swaps, index, slot.moment, slot.index + 1) })}
-          scroll={false}
-          aria-label={`Ander recept voor ${MEAL_MOMENT_LABELS[slot.moment].toLowerCase()}`}
-          className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-primary"
+          href={`/zwbeter-worden/voeding/kiezen?dag=${day}&moment=${slot.moment}&terug=${encodeURIComponent(href({}))}`}
+          aria-label={`${MEAL_MOMENT_LABELS[slot.moment]}: recept kiezen`}
+          className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:text-primary"
         >
-          <RefreshCw className="size-4" />
+          <BookOpen className="size-4" />
         </Link>
-      )}
+      </div>
     </li>
   );
 
@@ -173,7 +178,7 @@ export default async function BoodschappenPage({ searchParams }: { searchParams:
           {START_CHOICES.map((choice) => (
             <Link
               key={choice.value}
-              href={href({ vanaf: choice.value, swaps: new Map() })}
+              href={href({ vanaf: choice.value })}
               scroll={false}
               className={chipClass(start === choice.value)}
             >
@@ -206,7 +211,7 @@ export default async function BoodschappenPage({ searchParams }: { searchParams:
             {DIET_TAGS.map((value) => (
               <Link
                 key={value}
-                href={href({ dieet: diet === value ? null : value, swaps: new Map() })}
+                href={href({ dieet: diet === value ? null : value })}
                 scroll={false}
                 className={chipClass(diet === value)}
               >
@@ -228,7 +233,7 @@ export default async function BoodschappenPage({ searchParams }: { searchParams:
               {entry.slots.length === 0 ? (
                 <p className="mt-2 text-sm text-muted-foreground">Geen recepten met dit filter.</p>
               ) : (
-                <ul className="mt-2 divide-y">{entry.slots.map((slot) => slotRow(entry.index, slot))}</ul>
+                <ul className="mt-2 divide-y">{entry.slots.map((slot) => slotRow(entry.day, slot))}</ul>
               )}
             </article>
           ))}

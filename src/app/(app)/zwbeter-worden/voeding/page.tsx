@@ -1,20 +1,11 @@
 import Link from "next/link";
-import { Beef, Bike, CalendarDays, Check, RefreshCw, Wheat } from "lucide-react";
+import { Beef, Bike, BookOpen, CalendarDays, Check, RefreshCw, Undo2, Wheat } from "lucide-react";
 import { FUEL_DAY_LABELS } from "@/lib/nutrition/day-type";
 import { dayTotals, floorStatus } from "@/lib/nutrition/log";
 import { DIET_TAGS, DIET_TAG_LABELS, type DietTag } from "@/lib/nutrition/recipes";
-import {
-  DAY_MOMENTS,
-  RIDE_MOMENTS,
-  dayMenu,
-  menuMoments,
-  topUpMenu,
-  parseSwaps,
-  serializeSwaps,
-  type MenuSlot,
-  type MenuSwaps,
-} from "@/lib/nutrition/menu";
-import { nutritionDay, nutritionTipForToday } from "@/lib/nutrition/tips";
+import { DAY_MOMENTS, RIDE_MOMENTS, type MenuSlot } from "@/lib/nutrition/menu";
+import { choiceWindow, planDayMenu } from "@/lib/nutrition/plan";
+import { nutritionTipForToday } from "@/lib/nutrition/tips";
 import { MEAL_MOMENT_LABELS, type MealMoment, type Range } from "@/lib/nutrition/targets";
 import { MetricCard } from "../_components/ui";
 import {
@@ -22,6 +13,7 @@ import {
   loadNutritionDayInput,
   loadLogSettings,
   loadLoggedMeals,
+  loadMenuChoices,
   loadNutritionProfile,
   loadRecipePrefs,
   loadRecipes,
@@ -29,6 +21,7 @@ import {
   todayKeyAmsterdam,
 } from "./_data";
 import { logRecipe } from "./_log-actions";
+import { chooseMenuRecipe, clearMenuChoice } from "./_menu-actions";
 import { LogActionButton } from "./_components/log-controls";
 import { NutritionTip } from "./_components/nutrition-tip";
 import { RecipeCard } from "./_components/recipe-card";
@@ -41,7 +34,7 @@ function range(value: Range | null, unit: string, fallback: string) {
   return `${value.min}–${value.max} ${unit}`;
 }
 
-type Search = { wissel?: string | string[]; dieet?: string | string[] };
+type Search = { dieet?: string | string[] };
 
 function one(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -55,7 +48,6 @@ function chipClass(active: boolean) {
 
 export default async function VoedingPage({ searchParams }: { searchParams: Promise<Search> }) {
   const params = await searchParams;
-  const swaps = parseSwaps(one(params.wissel));
   // Het dieetfilter staat alleen in de URL en wordt nergens bewaard, zie recepten/page.tsx.
   const dietParam = one(params.dieet);
   const diet = (DIET_TAGS as readonly string[]).includes(dietParam ?? "") ? (dietParam as DietTag) : null;
@@ -63,11 +55,13 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
   const viewer = await requireViewer();
   const today = todayKeyAmsterdam();
 
-  const [profile, recipes, prefs, logSettings] = await Promise.all([
+  const nearby = choiceWindow(today, today);
+  const [profile, recipes, prefs, logSettings, choices] = await Promise.all([
     loadNutritionProfile(viewer, today),
     loadRecipes(viewer),
     loadRecipePrefs(viewer),
     loadLogSettings(viewer),
+    loadMenuChoices(viewer, nearby.from, nearby.to),
   ]);
   // Alleen wie Naleving aan heeft staan, kan een recept als gegeten afvinken.
   const logging = logSettings != null && !logSettings.paused;
@@ -76,45 +70,25 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
   const eatenTotals = dayTotals(todayMeals);
   const input = await loadNutritionDayInput(viewer, today, profile.weightKg);
 
-  const day = nutritionDay(input);
   const tip = nutritionTipForToday(input);
-  const baseMenu = dayMenu(
+  // Zelf gekozen recepten staan vast; de rest vult aan tot het minimum van
+  // vandaag, met Naleving aan rekenend met wat al gegeten is. Nooit kleiner.
+  const { nutrition: day, slots: menu } = planDayMenu({
     recipes,
-    menuMoments(input, day),
-    {
-      rider: {
-        weightKg: profile.weightKg,
-        energyFactor: energyFactorFor(profile),
-        dayType: day.dayType,
-        rideMinutes: day.rideMinutes,
-      },
-      dayType: day.dayType,
-      tomorrowType: day.tomorrowType,
-      today,
-      prefs,
-      diet,
-    },
-    swaps,
-  );
-  // Met Naleving aan rekent het menu mee: wat nog komt, groeit als er vandaag
-  // anders te weinig in zit. Nooit kleiner.
-  const menu =
-    todayMeals.length > 0
-      ? topUpMenu(baseMenu, {
-          eaten: eatenTotals,
-          eatenMoments,
-          floor: { carbsG: day.carbs?.min ?? null, proteinG: day.protein?.min ?? null },
-          energyFactor: energyFactorFor(profile),
-        })
-      : baseMenu;
+    input,
+    energyFactor: energyFactorFor(profile),
+    prefs,
+    diet,
+    choices,
+    eaten: eatenTotals,
+    eatenMoments,
+  });
   const carbsLeft = floorStatus(eatenTotals.carbsG, day.carbs);
   const proteinLeft = floorStatus(eatenTotals.proteinG, day.protein);
 
-  const href = (next: { swaps?: MenuSwaps; dieet?: DietTag | null }) => {
+  const href = (next: { dieet?: DietTag | null }) => {
     const query = new URLSearchParams();
-    const wissel = serializeSwaps(next.swaps ?? swaps);
     const d = next.dieet === undefined ? diet : next.dieet;
-    if (wissel) query.set("wissel", wissel);
     if (d) query.set("dieet", d);
     const text = query.toString();
     return `/zwbeter-worden/voeding${text ? `?${text}` : ""}`;
@@ -125,18 +99,40 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {MEAL_MOMENT_LABELS[slot.moment]}
+          {slot.chosen && <span className="ml-2 normal-case tracking-normal text-primary">Gekozen</span>}
           {slot.toppedUp && <span className="ml-2 normal-case tracking-normal text-primary">Grotere portie</span>}
         </h3>
-        {slot.choices > 1 && (
+        <div className="flex items-center">
+          {slot.chosen && (
+            <LogActionButton
+              action={clearMenuChoice}
+              fields={{ day: today, moment: slot.moment }}
+              variant="ghost"
+              size="sm"
+              ariaLabel={`${MEAL_MOMENT_LABELS[slot.moment]}: terug naar voorstel`}
+            >
+              <Undo2 className="size-3.5" />
+            </LogActionButton>
+          )}
+          {slot.nextRecipeId && (
+            <LogActionButton
+              action={chooseMenuRecipe}
+              fields={{ day: today, moment: slot.moment, recipe_id: slot.nextRecipeId }}
+              variant="ghost"
+              size="sm"
+            >
+              <RefreshCw className="size-3.5" />
+              Ander recept
+            </LogActionButton>
+          )}
           <Link
-            href={href({ swaps: { ...swaps, [slot.moment]: slot.index + 1 } })}
-            scroll={false}
-            className="inline-flex min-h-[36px] items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+            href={`/zwbeter-worden/voeding/kiezen?dag=${today}&moment=${slot.moment}&terug=${encodeURIComponent(href({}))}`}
+            aria-label={`${MEAL_MOMENT_LABELS[slot.moment]}: recept kiezen`}
+            className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:text-primary"
           >
-            <RefreshCw className="size-3.5" />
-            Ander recept
+            <BookOpen className="size-3.5" />
           </Link>
-        )}
+        </div>
       </div>
       <RecipeCard
         recipe={slot.recipe}
@@ -229,7 +225,7 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
             {DIET_TAGS.map((value) => (
               <Link
                 key={value}
-                href={href({ dieet: diet === value ? null : value, swaps: {} })}
+                href={href({ dieet: diet === value ? null : value })}
                 scroll={false}
                 className={chipClass(diet === value)}
               >

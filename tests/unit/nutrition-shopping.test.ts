@@ -11,11 +11,8 @@ import {
   householdFromRow,
   householdPortions,
   householdSize,
-  parseDaySwaps,
-  serializeDaySwaps,
   shoppingList,
   shoppingText,
-  withDaySwap,
   type Household,
   type ShoppingSlot,
 } from "@/lib/nutrition/shopping";
@@ -244,15 +241,5 @@ describe("namen", () => {
     expect(departmentFor(128, "Kruiden en specerijen")).toBe("groente_fruit");
     expect(departmentFor(2293, "Groente")).toBe("houdbaar");
     expect(departmentFor(1, null)).toBe("overig");
-  });
-});
-
-describe("keuzes per dag in de URL", () => {
-  it("leest en schrijft dag, moment en keuze", () => {
-    const swaps = parseDaySwaps("0.diner:2,3.lunch:1,9.diner:1,1.vlieg:2,2.ontbijt:0,x");
-    expect(swaps.get(0)).toEqual({ diner: 2 });
-    expect(swaps.get(3)).toEqual({ lunch: 1 });
-    expect(swaps.size).toBe(2);
-    expect(serializeDaySwaps(withDaySwap(swaps, 0, "ontbijt", 1))).toBe("0.ontbijt:1,0.diner:2,3.lunch:1");
   });
 });

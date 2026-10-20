@@ -303,7 +303,29 @@ export function KennisHelp() {
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
                   Recepten die even goed passen, wisselen per dag. Met
-                  &quot;Ander recept&quot; blader je zelf door.
+                  &quot;Ander recept&quot; blader je door; met het boekje kies je
+                  zelf een recept, ook een eigen recept. Vanaf een recept zet je
+                  het met &quot;In menu&quot; op een dag tot een week vooruit.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Wat je kiest, blijft staan, in het Dagmenu en in Boodschappen.
+                  De rest van de week past zich aan: dat recept komt de twee
+                  dagen ervoor en erna niet vanzelf terug, en de dag ernaast
+                  krijgt waar het kan een andere basis, zoals rijst na pasta.
+                  Met de pijl terug laat je het moment weer aan het menu over.
+                  Lunch en diner zijn uitwisselbaar.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Haalt het menu je minimum aan koolhydraten of eiwit niet, dan
+                  worden de koolhydraat- en eiwitbronnen van de maaltijden en
+                  het tussendoortje groter (&quot;Grotere portie&quot;), tot
+                  hooguit het dubbele. Kleiner worden ze nooit.
                 </span>
               </li>
               <li className="flex gap-2">
@@ -332,8 +354,7 @@ export function KennisHelp() {
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
-                  Een recept dat je hier wisselt, geldt alleen voor dit lijstje.
-                  Op de dag zelf wissel je in het Dagmenu opnieuw.
+                  Wat je hier kiest of wisselt, staat die dag ook in je Dagmenu.
                 </span>
               </li>
               <li className="flex gap-2">
@@ -455,10 +476,10 @@ export function KennisHelp() {
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
-                  Heb je vandaag al iets ingevuld, dan rekent je dagmenu mee:
-                  haal je met de rest van het menu je minimum niet, dan worden
-                  de maaltijden die nog komen groter (&quot;Grotere portie&quot;).
-                  Kleiner worden ze nooit. Onder &quot;Deze week&quot; zie je per
+                  Heb je vandaag al iets ingevuld, dan rekent je dagmenu mee met
+                  wat je al at: haal je met de rest van het menu je minimum
+                  niet, dan worden de maaltijden die nog komen groter
+                  (&quot;Grotere portie&quot;). Kleiner worden ze nooit. Onder &quot;Deze week&quot; zie je per
                   dag of je de onderkant voor koolhydraten (links) en eiwit
                   (rechts) haalde; een dag zonder invoer telt niet mee.
                 </span>

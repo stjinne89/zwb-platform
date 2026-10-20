@@ -72,6 +72,12 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **Eigen recepten in het menu:** `0260_nutrition_menu_choices.sql` is
+     **niet toegepast**. Tot dan laden Dagmenu en Boodschappen gewoon (zonder
+     keuzes), maar geven "Ander recept", "Kies" en "In menu" een foutmelding.
+     Dat is strenger dan voorheen: "Ander recept" werkte zonder database. Dus
+     0260 toepassen vóór de push (ronde 2026-10-20, "Eigen recepten in het dag-
+     en weekmenu").
    - **Boodschappenlijst met gezin:** `0259_nutrition_household.sql` is op
      2026-10-20 via de Supabase-connector toegepast, op verzoek van de
      eigenaar, vóór een push (de code is lokaal gecommit, niet gepusht). Vooraf:
@@ -3679,7 +3685,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Wat.**
 > - **Dagmenu rekent mee** (`topUpMenu` in `src/lib/nutrition/menu.ts`). Met
->   Naleving aan en iets ingevuld: haalt wat er gegeten is plus de rest van het
+>   Naleving aan en iets ingevuld (sinds 2026-10-20 altijd, ook zonder Naleving;
+>   zie de ronde "Eigen recepten in het dag- en weekmenu"): haalt wat er gegeten is plus de rest van het
 >   menu de onderkant van de dag niet, dan groeien de hoofdmaaltijden en het
 >   tussendoortje die nog komen, naar rato, met het label "Grotere portie".
 >   Alleen de koolhydraatbron groeit voor koolhydraten en de eiwitbron voor
@@ -6138,7 +6145,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Wat.**
 > - **Dagmenu** (`src/lib/nutrition/menu.ts`, `voeding/page.tsx`). Per moment één
->   recept, met "Ander recept" en het dieetfilter in de URL. De keuze weegt of de
+>   recept, met "Ander recept" en het dieetfilter in de URL (sinds 2026-10-20
+>   wordt "Ander recept" bewaard in `nutrition_menu_choices`). De keuze weegt of de
 >   geschaalde portie het doel haalt, het profiel bij het dagtype, licht
 >   verteerbaar of vezelrijk, en de voorkeur van het lid. Gelijkwaardige recepten
 >   schuiven per dag door. `pickRecipes` is weg; de kaart op Vandaag gebruikt
@@ -11397,6 +11405,78 @@ naast het oude.
 *Niet geverifieerd:* het formulier in de browser en een echte wijziging of
 verwijdering op productie (vraagt een ingelogde sessie).
 
+### Gebouwd — Eigen recepten in het dag- en weekmenu, de rest past zich aan
+
+**2026-10-20.** Commit: de commit die dit blok toevoegt. Migratie
+`0260_nutrition_menu_choices.sql`, **niet toegepast**. Lokaal gecommit, niet
+gepusht.
+
+**Aanleiding.** De eigenaar wil dat leden zelf gerechten in het dag- en
+weekmenu zetten en dat de rest van de week zich dan aanpast. Gekozen (eigenaar):
+alleen recepten uit het receptenboek (eigen of van de club), geen vrij gerecht
+zonder ingrediënten; aanpassen op variatie én voeding; en aanvullen tot het
+minimum op elke dag, niet alleen op dagen met een eigen keuze.
+
+**Meting vooraf (2026-10-20).** Met de 120 clubrecepten uit de seed (PGlite),
+14 dagen per geval, bij 60, 75 en 90 kg: het automatische menu haalde op
+**elke** rust- en lichte dag het eiwitminimum (1,6 g/kg) niet, en op rustdagen
+ongeveer de helft van de dagen ook het koolhydraatminimum niet (91–108 % van
+het minimum). Op matige, zware en lange dagen ging het goed. Daarom de keuze
+om altijd aan te vullen; die verandert dus ook menu's zonder eigen keuze.
+
+**Nu.**
+- **Bewaarde keuze per dag en moment** (`nutrition_menu_choices`, 0260): één
+  recept per lid, dag en moment, alleen voor het lid zelf; een recept dat het
+  lid niet mag zien kan er niet in (policy met `exists` op `nutrition_recipes`).
+  Een verwijderd recept haalt de keuze mee weg. In de accountexport.
+- **Kiezen:** in het Dagmenu en in Boodschappen bewaart "Ander recept" nu de
+  keuze (eerst alleen in de URL), het boekje opent `/zwbeter-worden/voeding/kiezen`
+  met eerst "Jouw recepten" en dan de clubrecepten, best passend eerst, en een
+  pijl terug laat het moment weer aan het menu over. Op een receptpagina zet
+  "In menu" het recept op een dag (vandaag tot een week vooruit) en moment.
+  Lunch en diner zijn uitwisselbaar; de portie volgt het doel van het moment
+  waar het recept staat.
+- **Gekozen wint:** ook buiten het dieetfilter of na "niet voor mij", en een
+  gekozen moment komt er ook bij als het menu het die dag niet had.
+- **De rest van de week past zich aan** (`src/lib/nutrition/plan.ts`): een
+  recept dat het lid binnen twee dagen zelf koos, kiest het menu niet nog eens
+  automatisch, en de koolhydraatbasis van een gekozen hoofdmaaltijd komt de dag
+  ervoor en erna niet terug als het anders kan. Dit hangt alleen af van de
+  bewaarde keuzes, dus Dagmenu en Boodschappen tonen voor een dag hetzelfde.
+- **Voeding:** elke dag vult zich aan tot het minimum aan koolhydraten en eiwit
+  (`topUpMenu`, nu altijd; met Naleving rekenend met wat er al gegeten is). Bij
+  een licht gekozen recept groeien dus de andere maaltijden van die dag. Nooit
+  kleiner, nooit meer dan twee keer de gewone portie.
+- **Opgeruimd:** `parseSwaps`, `serializeSwaps` en de dagwissels in de URL van
+  Boodschappen zijn weg.
+- `/hulp/kennis#voeding` en `/privacy` ("Lengte en eigen recepten") aangevuld;
+  `src/lib/privacy.ts` rekent het tot de voorgestelde zesde uitzondering.
+
+**Bewust niet.**
+- **Geen vrij gerecht** ("Pizza", "Uit eten") zonder ingrediënten (eigenaar).
+- **Geen doorschuiven tussen dagen:** wat de ene dag tekortkomt, wordt niet de
+  volgende dag ingehaald; de doelen gelden per dag.
+- **De automatische keuzes van de omliggende dagen ontwijken elkaar niet**, alleen
+  de bewaarde keuzes. Anders hangt het menu van een dag af van welke dagen een
+  scherm toevallig uitrekent, en lopen Dagmenu en Boodschappen uiteen.
+- **Geen keuzes in het verleden** en niet verder dan een week vooruit.
+
+**Getest.** `tests/unit/nutrition-plan.test.ts` (vastzetten, twee dagen niet
+herhalen, andere basis ernaast, aanvullen zonder Naleving, nooit kleiner, en
+hetzelfde menu voor één dag of een week), `tests/unit/nutrition-menu.test.ts`
+(gekozen recept ook buiten filter, volgende recept voor "Ander recept", diner op
+de lunch geschaald naar de lunch, onbekende keuze genegeerd, moment erbij,
+vermijden met terugval). 0260 in `tests/unit/nutrition-migration.test.ts` tegen
+PGlite: vervangen per dag en moment, een ander lid ziet niets, geen eigen recept
+van een ander en niet namens een ander, onbekend moment geweigerd. `tsc`,
+ESLint, `next build` (slaagt; de kiespagina staat erin) en de unit-suite;
+daarin faalden 13 bestanden op time-outs en timers terwijl de dev-server
+meedraaide, die daarna los en na elkaar allemaal slaagden.
+
+**Niet lokaal te verifiëren.** 0260 op productie (niet toegepast). Niets is
+ingelogd in de browser bekeken: de lokale pagina's sturen door naar het
+inloggen.
+
 ### Gebouwd — Boodschappenlijst: menu voor meerdere dagen, met gezin
 
 **2026-10-20.** Commit `d856162e`. Migratie `0259_nutrition_household.sql`,
@@ -11425,11 +11505,12 @@ afdrukken.
 - **Tab Boodschappen** onder Voeding (`/zwbeter-worden/voeding/boodschappen`):
   vanaf vandaag of morgen, 1 tot 7 dagen, met het dieetfilter. Per dag het menu
   met "Ander recept"; daarnaast het lijstje, per afdeling in winkelvolgorde.
-  Dagen, start, keuzes en dieet staan alleen in de URL.
-- **Elke dag is het Dagmenu van die dag:** `dayMenu` met die dag als `today`
-  en het schema van die dag (`loadNutritionDayInputs`). Wat je koopt, staat die
-  dag dus ook op je menu, zolang het schema niet verandert en je hier geen
-  ander recept kiest.
+  Dagen, start en dieet staan in de URL. (Keuzes stonden eerst ook in de URL;
+  sinds de volgende ronde worden ze bewaard.)
+- **Elke dag is het Dagmenu van die dag:** hetzelfde menu met die dag als
+  `today` en het schema van die dag (`loadNutritionDayInputs`); sinds de
+  volgende ronde via `planDayMenu`, met dezelfde bewaarde keuzes. Wat je koopt,
+  staat die dag dus ook op je menu, zolang het schema niet verandert.
 - **Gezin** (`src/lib/nutrition/shopping.ts`): de renner eet zijn portie op maat
   van de training van die dag; volwassenen en kinderen met een hele portie eten
   de gewone portie van hetzelfde recept (`basePortion`), een kind met een halve
@@ -11463,11 +11544,11 @@ afdrukken.
 **Bewust niet.**
 - **Geen koppeling met een supermarkt of Bring** (zie het onderzoek hierboven).
   Een openbare deellink voor Bring kan later, als er vraag naar is.
-- **Een keuze met "Ander recept" hier wordt niet bewaard**, en het Dagmenu op
-  die dag weet er dus niet van. Bewaren vraagt een tabel met gekozen recepten
-  per dag; eerst kijken of leden dat missen.
-- **Geen aanvulling vanuit Naleving** (`topUpMenu`): dat rekent met wat er
-  vandaag al gegeten is en hoort bij het Dagmenu van vandaag.
+- ~~Een keuze met "Ander recept" hier wordt niet bewaard.~~ Achterhaald door de
+  volgende ronde: keuzes staan nu in `nutrition_menu_choices` (0260).
+- ~~Geen aanvulling vanuit Naleving.~~ Achterhaald door de volgende ronde: elke
+  dag vult zich aan tot het minimum. Wat er vandaag al gegeten is, telt alleen
+  in het Dagmenu mee, niet in Boodschappen.
 - **Geen tijdelijk ander aantal mee-eters** (logés): pas het gezin op het
   profiel aan.
 - **Geen leeftijden of namen van gezinsleden**; hele of halve portie is genoeg

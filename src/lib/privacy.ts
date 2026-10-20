@@ -54,7 +54,10 @@
  * maaltijden, voor het boodschappenlijstje (0259, `nutrition_profiles`).
  * Vrijwillig, alleen zichtbaar voor het lid zelf, geen namen of leeftijden.
  * `/privacy` beschrijft het onder "Gezin". Of dit zonder nieuwe versie mag, is
- * aan de eigenaar (zie PLAN.md, ronde "Boodschappenlijst").
+ * aan de eigenaar (zie PLAN.md, ronde "Boodschappenlijst"). Daaronder valt ook
+ * welk recept een lid zelf op welke dag in zijn menu zet (0260,
+ * `nutrition_menu_choices`), net als favorieten alleen voor het lid zelf;
+ * `/privacy` noemt het bij "Lengte en eigen recepten".
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring

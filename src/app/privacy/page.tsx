@@ -191,7 +191,9 @@ export default function PrivacyPage() {
             voor mij&quot;, dan bewaren we dat; alleen jij ziet het. Stel je een
             eigen recept voor aan de club, dan ziet een beoordelaar het. Na
             goedkeuring ziet elk lid het, met jouw naam erbij. Een dieetfilter
-            in het receptenboek wordt niet bewaard.
+            in het receptenboek wordt niet bewaard. Kies je zelf een recept voor
+            een dag in je menu, dan bewaren we welk recept, op welke dag en bij
+            welk moment; alleen jij ziet dat.
           </li>
           <li>
             <strong>Gezin:</strong> vul je op je profiel in wie er mee-eet

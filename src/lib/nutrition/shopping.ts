@@ -1,12 +1,13 @@
 // Het menu voor meerdere dagen en het boodschappenlijstje dat erbij hoort.
 //
 // Puur, zonder database. Elke dag krijgt hetzelfde menu als het Dagmenu op die
-// dag zou tonen (dayMenu met die dag als `today`), zodat wat je koopt die dag
-// ook op je menu staat. De renner eet zijn portie op maat; het gezin eet de
-// gewone portie van hetzelfde recept mee, en alleen bij de maaltijden die het
-// lid op zijn profiel heeft aangezet. Een kind met een halve portie telt half.
+// dag toont (planDayMenu in plan.ts, met dezelfde bewaarde keuzes), zodat wat
+// je koopt die dag ook op je menu staat. De renner eet zijn portie op maat;
+// het gezin eet de gewone portie van hetzelfde recept mee, en alleen bij de
+// maaltijden die het lid op zijn profiel heeft aangezet. Een kind met een
+// halve portie telt half.
 
-import { MEAL_MOMENTS, type MealMoment } from "./targets";
+import type { MealMoment } from "./targets";
 import { basePortion, type NutritionFood, type ScaledRecipe } from "./scale";
 import type { Recipe } from "./recipes";
 import {
@@ -17,7 +18,6 @@ import {
   type Department,
   type PieceUnit,
 } from "./shopping-names";
-import type { MenuSwaps } from "./menu";
 
 export { DEPARTMENT_LABELS, type Department } from "./shopping-names";
 
@@ -172,39 +172,3 @@ export function shoppingText(items: Pick<ShoppingItem, "name" | "amount">[]): st
 }
 
 export const PLAN_DAYS_MAX = 7;
-
-/** Per dag (0 = de eerste dag van de reeks) de keuzes met "Ander recept". */
-export type DaySwaps = Map<number, MenuSwaps>;
-
-/** "1.diner:2,3.lunch:1" uit de URL. Onbekende dagen, momenten en rare getallen vallen weg. */
-export function parseDaySwaps(value: string | null | undefined): DaySwaps {
-  const swaps: DaySwaps = new Map();
-  for (const part of (value ?? "").split(",")) {
-    const match = /^(\d)\.([a-z_]+):(\d{1,3})$/.exec(part);
-    if (!match) continue;
-    const day = Number(match[1]);
-    const moment = match[2] as MealMoment;
-    const index = Number(match[3]);
-    if (day >= PLAN_DAYS_MAX || !MEAL_MOMENTS.includes(moment) || index < 1) continue;
-    swaps.set(day, { ...swaps.get(day), [moment]: index });
-  }
-  return swaps;
-}
-
-export function serializeDaySwaps(swaps: DaySwaps): string {
-  return [...swaps.keys()]
-    .sort((a, b) => a - b)
-    .flatMap((day) =>
-      MEAL_MOMENTS.filter((moment) => (swaps.get(day)?.[moment] ?? 0) > 0).map(
-        (moment) => `${day}.${moment}:${swaps.get(day)![moment]}`,
-      ),
-    )
-    .join(",");
-}
-
-/** Dezelfde reeks met één keuze erbij. */
-export function withDaySwap(swaps: DaySwaps, day: number, moment: MealMoment, index: number): DaySwaps {
-  const next: DaySwaps = new Map(swaps);
-  next.set(day, { ...swaps.get(day), [moment]: index });
-  return next;
-}

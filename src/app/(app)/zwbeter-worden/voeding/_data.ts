@@ -14,6 +14,8 @@ import { productLabel, type NutritionProduct } from "@/lib/nutrition/products";
 import { RECIPE_PREFS, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
 import { ageFromBirthDate, portionEnergyFactor } from "@/lib/nutrition/targets";
 import { householdFromRow, type Household } from "@/lib/nutrition/shopping";
+import type { MenuChoice } from "@/lib/nutrition/plan";
+import { MEAL_MOMENTS, type MealMoment } from "@/lib/nutrition/targets";
 
 export { requireViewer, todayKeyAmsterdam } from "../_data";
 export type { Viewer } from "../_data";
@@ -81,6 +83,19 @@ export async function loadHousehold(viewer: Viewer): Promise<Household> {
     .eq("profile_id", viewer.user.id)
     .maybeSingle();
   return householdFromRow(data);
+}
+
+/** Zelf gekozen recepten in het menu, van `from` tot en met `to`. Leeg zolang 0260 er niet is. */
+export async function loadMenuChoices(viewer: Viewer, from: string, to: string): Promise<MenuChoice[]> {
+  const { data } = await viewer.supabase
+    .from("nutrition_menu_choices")
+    .select("day, meal_moment, recipe_id")
+    .eq("profile_id", viewer.user.id)
+    .gte("day", from)
+    .lte("day", to);
+  return ((data ?? []) as { day: string; meal_moment: string; recipe_id: string }[])
+    .filter((row) => (MEAL_MOMENTS as readonly string[]).includes(row.meal_moment))
+    .map((row) => ({ day: row.day, moment: row.meal_moment as MealMoment, recipeId: row.recipe_id }));
 }
 
 function normalizeRecipe(row: Recipe): Recipe {

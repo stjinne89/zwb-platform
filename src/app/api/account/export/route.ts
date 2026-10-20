@@ -35,6 +35,7 @@ const PROFILE_TABLES: string[] = [
   "post_likes",
   "nutrition_profiles",
   "nutrition_recipe_prefs",
+  "nutrition_menu_choices",
   "nutrition_log_settings",
   "nutrition_log_meals",
   "nutrition_log_ai_usage",

@@ -54,7 +54,7 @@ function slot(moment: MealMoment): MenuSlot {
     item.ingredients.map((row) => ({ food: row.food, grams: row.grams, role: row.role })),
     1,
   );
-  return { recipe: item, portion, traits: { kcal: 0, sodiumMg: 0, lightDigest: false, fiberRich: false, richIn: [] }, score: 1, moment, choices: 1, index: 0 };
+  return { recipe: item, portion, traits: { kcal: 0, sodiumMg: 0, lightDigest: false, fiberRich: false, richIn: [] }, score: 1, moment, choices: 1, chosen: false, nextRecipeId: null };
 }
 
 // Elke slot levert 60 g koolhydraten en 40 g eiwit.

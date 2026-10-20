@@ -6,7 +6,7 @@ import { portionFit, rankRecipes } from "@/lib/nutrition/menu";
 import type { Recipe } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS } from "@/lib/nutrition/targets";
 
-// 0168, 0169, 0213, 0214 en 0259 tegen een geïsoleerde PostgreSQL. Zegt niets over de
+// 0168, 0169, 0213, 0214, 0259 en 0260 tegen een geïsoleerde PostgreSQL. Zegt niets over de
 // productiedatabase zelf; daar worden migraties met de hand toegepast.
 
 let db: PGlite;
@@ -36,6 +36,7 @@ beforeAll(async () => {
   await db.exec(await migration("0213_nutrition_expansion.sql"));
   await db.exec(await migration("0214_nutrition_seed_v2.sql"));
   await db.exec(await migration("0259_nutrition_household.sql"));
+  await db.exec(await migration("0260_nutrition_menu_choices.sql"));
   await db.exec(
     "grant usage on schema public to authenticated; grant all on all tables in schema public to authenticated;",
   );
@@ -146,6 +147,37 @@ describe("voeding (0168, 0169, 0213, 0214)", () => {
     await expect(
       db.query(`update nutrition_profiles set household_moments = array['voor_rit'] where profile_id = '${APPROVED}'`),
     ).rejects.toThrow(/household_moments_check/);
+  });
+
+  it("bewaart zelf gekozen menurecepten alleen voor het lid zelf (0260)", async () => {
+    const recipeId = (await db.query<{ id: string }>("select id from nutrition_recipes where slug = 'havermout-banaan-kwark'")).rows[0].id;
+    const own = (await db.query<{ id: string }>("select id from nutrition_recipes where slug = 'eigen-1'")).rows[0].id;
+    await as(APPROVED, async () => {
+      await db.query(
+        `insert into nutrition_menu_choices(profile_id, day, meal_moment, recipe_id) values('${APPROVED}', '2026-10-21', 'ontbijt', '${recipeId}')`,
+      );
+      // Eén recept per dag en moment: opnieuw kiezen vervangt.
+      await db.query(
+        `insert into nutrition_menu_choices(profile_id, day, meal_moment, recipe_id) values('${APPROVED}', '2026-10-21', 'ontbijt', '${own}')
+         on conflict (profile_id, day, meal_moment) do update set recipe_id = excluded.recipe_id`,
+      );
+    });
+    expect(await as(APPROVED, () => count("select count(*) from nutrition_menu_choices"))).toBe(1);
+    expect(await as(OTHER, () => count("select count(*) from nutrition_menu_choices"))).toBe(0);
+    // Een ander lid kan het eigen recept van iemand anders niet in zijn menu zetten, en niet voor een ander kiezen.
+    await expect(
+      as(OTHER, () =>
+        db.query(`insert into nutrition_menu_choices(profile_id, day, meal_moment, recipe_id) values('${OTHER}', '2026-10-21', 'lunch', '${own}')`),
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await expect(
+      as(OTHER, () =>
+        db.query(`insert into nutrition_menu_choices(profile_id, day, meal_moment, recipe_id) values('${APPROVED}', '2026-10-21', 'lunch', '${recipeId}')`),
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await expect(
+      db.query(`insert into nutrition_menu_choices(profile_id, day, meal_moment, recipe_id) values('${APPROVED}', '2026-10-22', 'brunch', '${recipeId}')`),
+    ).rejects.toThrow(/nutrition_menu_choices_meal_moment_check/);
   });
 
   it("laat een gewoon lid geen clubrecept aanmaken of wijzigen", async () => {
