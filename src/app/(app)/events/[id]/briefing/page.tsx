@@ -17,6 +17,7 @@ import { BikeAdviceList } from "../_components/bike-advice-list";
 import { saveRaceBriefing } from "./_actions";
 import { RaceSheet } from "./_components/race-sheet";
 import { ShareableSheet } from "./_components/share-sheet";
+import { SheetEditor } from "./_components/sheet-editor";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -267,6 +268,8 @@ export default async function RaceBriefingPage({ params }: PageProps) {
       <ShareableSheet fileName={sheetFileName(view)} title={`Racebriefje ${view.event.teamName ?? ""}`.trim()}>
         <RaceSheet view={view} />
       </ShareableSheet>
+
+      {view.canEdit && <SheetEditor eventId={view.event.id} defaults={view.sheetDefaults} current={view.sheet} />}
 
       {view.format === "ttt" && (
         <Link href={`/teams/ttt-planner?event=${view.event.id}&team=${view.event.teamId}`} className="text-sm underline">

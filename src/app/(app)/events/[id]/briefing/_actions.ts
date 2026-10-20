@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { captainTeamIds } from "@/lib/zrl-analysis/load";
+import { sanitizeOverride } from "@/lib/race-briefing/sheet";
 
 const PLAN_MAX = 4000;
 const ROLE_MAX = 60;
@@ -38,4 +39,29 @@ export async function saveRaceBriefing(formData: FormData) {
     updated_at: new Date().toISOString(),
   });
   revalidatePath(`/events/${event.id}/briefing`);
+}
+
+/**
+ * Het racebriefje zoals de captain het aanpaste: alleen de blokken die afwijken
+ * van het voorstel (dat verschil maakt de editor). Dezelfde rechten als het plan.
+ */
+export async function saveRaceSheet(eventId: string, override: unknown): Promise<{ ok: boolean }> {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false };
+  const admin = createAdminClient();
+  const { data: event } = await admin.from("events").select("id, type, team_id").eq("id", String(eventId)).maybeSingle();
+  if (!event || event.type !== "zrl" || !event.team_id) return { ok: false };
+  const board = access.has("teams.manage_roster") || access.has("teams.manage_results");
+  if (!board && !(await captainTeamIds(access.user.id)).has(event.team_id as string)) return { ok: false };
+
+  const { error } = await admin.from("race_briefings").upsert({
+    event_id: event.id,
+    sheet: sanitizeOverride(override),
+    updated_by: access.user.id,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) return { ok: false };
+  revalidatePath(`/events/${event.id}/briefing`);
+  return { ok: true };
 }

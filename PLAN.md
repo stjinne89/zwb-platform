@@ -11259,6 +11259,48 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Racebriefje aanpassen per race
+
+**2026-10-20.** Commit: de commit die dit blok toevoegt. Migratie
+`0263_race_briefing_sheet.sql` (kolom `sheet` op `race_briefings`), **niet
+toegepast**: tot dan toont de briefing het voorstel van de app en geeft opslaan
+"Opslaan lukte niet"; het lezen is los van de rest, dus de pagina blijft werken.
+
+**Waarom.** De eigenaar ontdekte dat de korte steile stukjes uit de subways in
+New York escalators zijn met een duw van ±1200 W; dat verandert de tactiek, en
+de app weet het niet. Keuzes van de eigenaar: alles op het briefje aanpasbaar,
+en de escalators per race met de hand (niet per route vastgelegd).
+
+**Wat.**
+- `lib/race-briefing/sheet.ts`: de inhoud van het briefje als vijf blokken
+  (profielaantekeningen, momenten, Onthouden, Volgen, Let op), het voorstel van de
+  app (`defaultSheet`, wat er eerst al stond), opschonen (`sanitizeOverride`:
+  kilometers met komma, lege regels weg, hooguit 20 regels van 120 tekens),
+  `diffOverride` (alleen blokken die afwijken van het voorstel) en
+  `effectiveSheet` (per blok de aanpassing, anders het voorstel). Een blok dat
+  de captain niet aanraakt, groeit dus mee met de data, bv. de rollen en Volgen
+  zodra de ZRS binnen is.
+- Het getekende profiel tekent nu uit aantekeningen met een stijl
+  (markeerstift, omcirkeld, label, boog) en een van- en tot-kilometer; de
+  teal markeerstift op de afdaling is daarbij opgegaan in één gouden band van de
+  afdaling tot de top.
+- `sheet-editor.tsx`: **Briefje bewerken** onder het briefje, voor captain en
+  teambeheer (zelfde rechten als het plan), met per blok regels wijzigen,
+  weghalen, toevoegen, markeren of omcirkelen en **Voorstel terugzetten**.
+  Serveractie `saveRaceSheet`. Op de telefoon staan per regel de korte velden,
+  het vinkje en het kruisje bovenaan, de tekstvelden eronder; alles 44 px.
+- `/hulp` noemt het, met de escalator als voorbeeld.
+
+**Bewust niet.** Escalators per route vastleggen (keuze eigenaar: per race met
+de hand). De route-herkenning ziet de escalators dus nog als klim, ook in het
+pacingplan.
+
+**Gecontroleerd.** Vitest (`race-briefing.test.ts`, 21 tests, met een
+escalator op Flatbush), `tsc`, ESLint, de Impeccable-detector (niets). De editor
+met echte data op 375 px via een tijdelijke voorbeeldpagina (niet gecommit):
+openen, een moment wijzigen, Voorstel terugzetten verschijnt. **Niet
+geverifieerd:** opslaan (geen ingelogde sessie, en de kolom bestaat nog niet).
+
 ### Gebouwd — Racebriefje delen als plaatje
 
 **2026-10-20.** Commit: de commit die dit blok toevoegt. Geen migratie.

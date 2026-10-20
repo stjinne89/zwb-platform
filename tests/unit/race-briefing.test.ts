@@ -5,6 +5,7 @@ import { climbSeconds, routeKeyPoints, withoutTunnelSteps } from "@/lib/race-bri
 import { briefingFormatOf, checkLimits, cheatRules, divisionLimits, divisionOf, powerupsFromTags } from "@/lib/race-briefing/rules";
 import { cleanRiderName, projectField, suggestRoles, watchList, type FieldRider } from "@/lib/race-briefing/field";
 import { briefingMoments, briefingTips } from "@/lib/race-briefing/tips";
+import { defaultSheet, diffOverride, effectiveSheet, sanitizeOverride } from "@/lib/race-briefing/sheet";
 
 const altitude = fixture.altitudeM;
 const segments: PacingSegment[] = altitude.slice(1).map((m, i) => ({ distanceM: 100, gradient: (m - altitude[i]) / 100, accentIndex: null }));
@@ -223,5 +224,56 @@ describe("racebriefje", () => {
     expect(moments.find((m) => m.what === "laatste boog")?.km).toBe(23.14);
     expect(moments.find((m) => m.what.startsWith("slotklim"))?.todo).toBe("voluit tot de top, veer aan");
     expect(moments.at(-1)?.todo).toBe("sprint uit het wiel, helm op ±200 m");
+  });
+});
+
+describe("racebriefje aanpassen", () => {
+  const route = routeKeyPoints({ segments, accents, totalKm: 28.5, laps: 1 });
+  const defaults = defaultSheet({
+    format: "scratch",
+    category: "B",
+    route,
+    powerups: powerupsFromTags(['powerup_percent="0,34,1,33,5,33"']),
+    own: [{ zwiftId: 1, name: "Stijn Martens(ZWB)", role: "positie", limits: { zftpShare: 0.88, zmapShare: 0.83, status: "ok" } }],
+    watch: [{ name: "Bastie RCC", teamLabel: "Rapha_RCC", reason: "won", wonAt: "W2" }],
+    warnings: ["Koen Jansen staat ook in de opstelling van B2."],
+  });
+
+  it("stelt het profiel voor met lint, slotklim, boog en de andere klimmen", () => {
+    expect(defaults.sketch.map((m) => [m.style, m.text])).toEqual([
+      ["label", "The Hill"],
+      ["markeer", "lint → Brooklyn Bridge"],
+      ["boog", "laatste boog"],
+      ["cirkel", "voluit!"],
+    ]);
+    expect(defaults.watch).toEqual([{ name: "Bastie RCC", note: "Rapha_RCC · won W2" }]);
+    expect(defaults.notes).toEqual(["Koen Jansen staat ook in de opstelling van B2."]);
+  });
+
+  it("bewaart alleen wat afwijkt van het voorstel", () => {
+    const unchanged = sanitizeOverride(defaults);
+    expect(diffOverride(unchanged, defaults)).toEqual({});
+    const escalator = {
+      ...defaults,
+      moments: defaults.moments.map((m) => (m.what.startsWith("slotklim") ? { km: m.km, what: "escalator Flatbush", todo: "duw ±1200 W: positie houden, niet aanvallen", key: true } : m)),
+    };
+    const diff = diffOverride(sanitizeOverride(escalator), defaults);
+    expect(Object.keys(diff)).toEqual(["moments"]);
+    const sheet = effectiveSheet(defaults, diff);
+    expect(sheet.edited).toEqual(["moments"]);
+    expect(sheet.moments.find((m) => m.what === "escalator Flatbush")?.todo).toContain("1200 W");
+    expect(sheet.rules).toBe(defaults.rules);
+  });
+
+  it("schoont op: kilometers met komma, lege regels weg, grenzen aan lengte", () => {
+    const clean = sanitizeOverride({
+      moments: [{ km: "27,4", what: "escalator", todo: "", key: 1 }, { km: "", what: "zonder km", todo: "x" }, { km: "3", what: "", todo: "" }],
+      sketch: [{ fromKm: "27,5", toKm: "26,9", text: "escalator", style: "onbekend" }],
+      notes: ["  ", "x".repeat(300)],
+    });
+    expect(clean.moments).toEqual([{ km: 27.4, what: "escalator", todo: "", key: true }]);
+    expect(clean.sketch).toEqual([{ fromKm: 26.9, toKm: 27.5, text: "escalator", style: "label" }]);
+    expect(clean.notes).toEqual(["x".repeat(120)]);
+    expect(clean.rules).toBeUndefined();
   });
 });

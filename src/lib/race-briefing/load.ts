@@ -54,6 +54,7 @@ import {
   type WatchReason,
 } from "./field";
 import { briefingTips, type BriefingTip } from "./tips";
+import { defaultSheet, effectiveSheet, sanitizeOverride, type SheetContent, type SheetSection } from "./sheet";
 
 type Access = Pick<CurrentUserAccess, "has">;
 
@@ -127,6 +128,10 @@ export type BriefingWarning = { kind: "lineup" | "limits" | "starters"; text: st
 
 export type BriefingView = {
   event: { id: string; title: string; startAt: string; teamId: string; teamName: string | null; zwiftEventId: string | null };
+  /** Wat er op het racebriefje staat: per blok de aanpassing van de captain, anders het voorstel. */
+  sheet: SheetContent & { edited: SheetSection[] };
+  /** Het voorstel van de app, voor "Voorstel terugzetten" in de editor. */
+  sheetDefaults: SheetContent;
   format: BriefingFormat;
   formatRules: string[];
   division: Division | null;
@@ -346,6 +351,8 @@ export async function loadRaceBriefing(
   ]);
 
   const view: ZrlLiveView | null = live?.status === "ok" ? live.view : null;
+  // Apart gelezen: zonder migratie 0263 bestaat de kolom niet, en dan moet de rest blijven werken.
+  const { data: sheetRow } = await admin.from("race_briefings").select("sheet").eq("event_id", event.id).maybeSingle();
   const history = { labels: historyRows.labels, places: new Map(historyRows.places) };
   const format = briefingFormatOf(zwiftEvent);
   const division = view ? divisionOf(view.eventName, view.subgroupLabel) : null;
@@ -469,10 +476,28 @@ export async function loadRaceBriefing(
     expectedPlace: expectedPlace(r.zwiftId),
   }));
 
+  const watchView = watch.map((w) => ({ zwiftId: w.rider.zwiftId, name: w.rider.name, teamLabel: w.rider.team ? teamLabels[w.rider.team] ?? w.rider.team : null, place: w.place, reason: w.reason }));
+  const sheetDefaults = defaultSheet({
+    format,
+    category: division?.category ?? null,
+    route: keyPoints,
+    powerups,
+    own: inPen.map((r) => ({ zwiftId: r.zwiftId, name: r.name, role: r.role, limits: r.limits })),
+    watch: watchView.map((w) => {
+      const index = history.places.get(w.zwiftId)?.indexOf(1) ?? -1;
+      return { name: w.name, teamLabel: w.teamLabel, reason: w.reason, wonAt: index >= 0 ? history.labels[index] ?? null : null };
+    }),
+    // Grenzen staan bij de rollen, niet onder Let op.
+    warnings: warnings.filter((w) => w.kind !== "limits").map((w) => w.text),
+  });
+  const sheet = effectiveSheet(sheetDefaults, sheetRow ? sanitizeOverride((sheetRow as { sheet?: unknown }).sheet) : null);
+
   return {
     status: "ok",
     view: {
       event: { id: event.id, title: event.title, startAt: event.start_at, teamId: event.team_id, teamName, zwiftEventId },
+      sheet,
+      sheetDefaults,
       format,
       formatRules: formatRules(format),
       division,
@@ -484,7 +509,7 @@ export async function loadRaceBriefing(
       field: briefingField,
       projection,
       teamLabels,
-      watch: watch.map((w) => ({ zwiftId: w.rider.zwiftId, name: w.rider.name, teamLabel: w.rider.team ? teamLabels[w.rider.team] ?? w.rider.team : null, place: w.place, reason: w.reason })),
+      watch: watchView,
       own,
       warnings,
       tips,
