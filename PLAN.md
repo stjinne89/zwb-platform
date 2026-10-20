@@ -220,9 +220,9 @@ gaat stabiliteit voor nieuwe features.
    wijken een paar schermen af van wat leden in het klassieke design zien.
    Bijwerken na een appwijziging: `opname.mjs` en `bouw.mjs --publiceer`.
 9. **Racebriefing per ZRL-race** (ronde van 2026-10-20 hieronder): gebouwd en
-   lokaal getest, niet gepusht. Open: migratie `0257_race_briefing.sql`
-   toepassen; de tekst voor de privacyverklaring (voorgelegd, nog niet
-   aangepast); een API-sleutel van ZwiftRacing.app aanvragen (eigenaar) en dan
+   lokaal getest, niet gepusht. Migratie `0260_race_briefing.sql` is toegepast
+   en de privacytekst staat erin. Open: een API-sleutel van ZwiftRacing.app
+   (eigenaar vraagt hem aan; conceptbericht in de sessie van 2026-10-20) en dan
    de koppeling tegen de echte API controleren.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
@@ -235,8 +235,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0257`
-(`0255_col_scan_cache` en `0256_rls_initplan_feed_telegram` zijn van de
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0261`
+(`0259_nutrition_household` staat op productie maar nog niet op `main`;
+`0260_race_briefing` is van de racebriefing, 2026-10-20;
+`0255_col_scan_cache` en `0256_rls_initplan_feed_telegram` zijn van de
 egress-golf, 2026-10-20;
 `0254_member_questions` is van Q&A, 2026-10-19;
 `0252_voorzpwelbokaal` is van het voorZpWelBokaal, 2026-10-19;
@@ -11074,9 +11076,12 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Racebriefing per ZRL-race, voor alle teams
 
-**2026-10-20.** Commit: de commit die dit blok toevoegt. Migratie
-`0257_race_briefing.sql` (niet toegepast; niet lokaal te testen, er is geen
-Docker of Supabase-config).
+**2026-10-20.** Commits `c3ff7a7b` en de commit die dit blok bijwerkt.
+Migratie `0260_race_briefing.sql`, op 2026-10-20 via de Supabase-connector op
+productie toegepast (eerst `0257` genoemd; dat nummer bleek al bezet door
+`0257_training_goal_target_time`). Nagekeken: beide tabellen bestaan, RLS aan,
+één leespolicy op `race_briefings`, geen op `zwift_rider_metrics` (alleen de
+server).
 
 **Waarom.** Voor de scratch van Bdev op 20 oktober (Green to Screen) is met de
 hand een briefing gemaakt uit de kennisbank racen, vELO en W/kg van ZwiftRacing,
@@ -11149,9 +11154,15 @@ vermogen uit WTRL" (2026-10-12) stond onder Bewust niet gebouwd "racing score
 uit Zwift ophalen per Zwift-ID"; die wordt nu wel opgehaald, voor de briefing
 (niet voor de planner). Daar bijgewerkt.
 
+**Privacy.** `/privacy#racebriefing` beschrijft het (akkoord eigenaar,
+2026-10-20). Bewust **geen nieuwe versie** in `src/lib/privacy.ts`, dus geen
+hertekening: het gaat om wat Zwift en ZwiftRacing openbaar tonen, net als bij
+ZWB DS en ZWBeter racen, die ook geen versie kregen. Een versie erbij zetten
+kan alsnog als de eigenaar dat anders ziet.
+
 **Niet lokaal te verifiëren.**
-- Migratie `0257` en het wegschrijven van ZRS (de tabel bestaat nog niet op
-  productie; de pagina werkt zonder, maar dan zonder ZRS en verwachting).
+- Het wegschrijven van ZRS in `zwift_rider_metrics`: pas na de deploy, bij het
+  eerste bezoek aan een briefing.
 - De pagina ingelogd in de browser: het laden is getoetst met een script tegen
   productie (alleen lezen, `after` uitgezet) voor Bdev op 20 oktober; de pagina
   zelf compileert, maar is niet ingelogd bekeken.

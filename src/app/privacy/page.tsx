@@ -156,6 +156,18 @@ export default function PrivacyPage() {
             laatste stand per renner bewaren we hooguit zes uur; daarna wissen we
             hem.
           </li>
+          <li id="racebriefing" className="scroll-mt-20">
+            <strong>Racebriefing (ZRL):</strong> voor een ZRL-race van een
+            ZWB-team vragen we bij Zwift van iedereen in de startgroep de Zwift
+            Racing Score en categorie op, ook van renners zonder ZWB-account en
+            van andere clubs; dat is wat Zwift in de game toont. Zodra we
+            gekoppeld zijn met ZwiftRacing.app, halen we daar ook de vELO-rating
+            en het beste vermogen in W/kg over 15 seconden tot 20 minuten op,
+            zoals ZwiftRacing dat openbaar toont; daarvoor sturen we de
+            Zwift-ID&apos;s van de startgroep naar ZwiftRacing. Gewicht en FTP
+            nemen we niet over. We bewaren deze gegevens hooguit 90 dagen.
+            Ingelogde leden zien ze in de briefing.
+          </li>
           <li>
             <strong>Sunday Race Club (MyWhoosh):</strong> doe je mee aan de SRC,
             dan leggen we per maand vast onder welk ZWB-team je rijdt, in welke race

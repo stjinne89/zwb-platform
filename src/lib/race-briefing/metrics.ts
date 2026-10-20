@@ -2,7 +2,7 @@ import "server-only";
 
 // ZRS en (met sleutel) ZwiftRacing per renner, voor de racebriefing.
 //
-// Een cache in zwift_rider_metrics (migr. 0257). De pagina leest wat er is en
+// Een cache in zwift_rider_metrics (migr. 0260). De pagina leest wat er is en
 // ververst na het antwoord (after) wat ontbreekt of ouder is dan een dag. Zwift:
 // één profiel tegelijk met een pauze ertussen, binnen een tijdsbudget; de rest
 // volgt bij het volgende bezoek. ZwiftRacing: één batch per verversing.
