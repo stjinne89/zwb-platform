@@ -10970,6 +10970,54 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — SRC: geslacht in het profiel verplaatst de inschrijving
+
+**2026-10-19.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Femke stond in de Sunday Race Club bij de heren, terwijl haar
+profiel "vrouw" zegt. `ensureSrcMonthEntry` kiest heren of dames één keer: bij
+de eerste klik op beschikbaarheid. Haar inschrijving voor november ontstond op
+2026-10-08, en een later ingevuld geslacht bereikte de inschrijving nooit. Wanneer
+ze het geslacht invulde, is niet vast te stellen (`profiles` heeft geen
+`updated_at`), maar een andere verklaring past niet bij de code. Haar
+novemberinschrijving is op 2026-10-19 met de hand op dames gezet; de eigenaar
+had haar oktoberinschrijving en het herenantwoord op 25 oktober al verwijderd.
+Op 2026-10-20 kreeg ze met de hand een oktoberinschrijving bij de dames
+(zelfde team, categorie leeg) en ja op de damesrace van 25 oktober. Dat ging met
+SQL, dus `syncEventWorkout` draaide niet: de race staat pas in haar
+trainingsschema als zij of de sync het antwoord opnieuw zet.
+
+**Nu.** `updateProfile` (`src/app/(app)/profiel/actions.ts`) leest het oude
+geslacht en roept bij een wijziging `followSrcProfileSex`
+(`src/lib/src/availability.ts`) aan. Die zet de inschrijving van deze en komende
+maanden op de race die bij het nieuwe geslacht hoort, en verhuist het antwoord
+op komende zondagen: de oude race krijgt nee (alleen als het lid daar al ja of
+misschien had), de nieuwe race krijgt het antwoord dat het lid op de zondag gaf.
+Daarna volgt een herplanning van het schema. De koppeling vrouw → dames staat
+nu op één plek, `srcRaceForSex` in `src/lib/src/auto-join.ts`. Mislukt het
+verplaatsen, dan blijft het profiel gewoon opgeslagen.
+
+**Bewust niet.**
+- Alleen "man" en "vrouw" verplaatsen. Wie naar "zeg ik liever niet" of leeg
+  gaat, blijft staan waar hij stond; anders zou een vrouw die haar geslacht
+  verbergt stil naar de heren schuiven.
+- Gereden zondagen en voorbije maanden blijven zoals ze waren.
+- Een race die een beheerder met de hand op `/src` zette, valt niet te
+  onderscheiden van een automatische: er is geen kolom voor. Past het lid daarna
+  zelf haar geslacht aan, dan wint het profiel. Dat is de nieuwste keuze van het
+  lid zelf, dus een kolom erbij is het niet waard.
+- Geen herstelscript voor andere leden: op 2026-10-19 stond in november alleen
+  Femke als vrouw bij de heren.
+
+**Getest.** `tests/unit/src-follow-sex.test.ts` (twee maanden verplaatst, een
+voorbije maand en een ander lid niet, antwoorden op komende zondagen mee, een
+gereden zondag niet; "zeg ik liever niet", leeg en een race die al klopt laten
+alles staan), `tests/unit/src-auto-join.test.ts`, `tsc`, ESLint op de gewijzigde
+bestanden en de unit-suite. Twee bestanden faalden, los van deze wijziging:
+`omnium-live.test.ts` mist `.env.local` in deze worktree, en `admin-areas.test.ts`
+liep één keer tegen de time-out aan en slaagt los gedraaid. Niet in de browser of
+tegen de echte database doorgeklikt.
+
 ### Opgeleverd — Instructievideo "Aan de slag met ZWBasis" en korte video's in /hulp
 
 **2026-10-16 tot 2026-10-19.** Commit: de commit die dit blok toevoegt. Geen
@@ -16629,7 +16677,9 @@ Zijn er meer SRC-teams, dan blijft de keuze op `/src` nodig. Op de zondag staat
 dan "Kies je team".
 
 **Bewust niet.** Geen vraag naar heren of dames bij de klik: een vrouw zonder
-ingevuld geslacht komt bij de heren terecht en zet dat zelf om op `/src`. Het
+ingevuld geslacht komt bij de heren terecht en zet dat zelf om op `/src`, of
+vult haar geslacht in op het profiel (sinds 2026-10-19 schuift de inschrijving
+dan mee, zie de ronde "SRC: geslacht in het profiel"). Het
 standaardteam ontstaat door de eerste klik van een willekeurig lid; dat is een
 bewuste eenmalige uitzondering op "teams maakt een beheerder".
 

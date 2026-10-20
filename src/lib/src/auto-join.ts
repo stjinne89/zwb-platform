@@ -6,7 +6,9 @@
 //     teamnaam vult een beheerder later in op /beheer/src);
 //   - zijn er meer, dan moet het lid zelf kiezen op /src.
 // Heren of dames volgt het profiel (vrouw → dames, anders heren), de categorie
-// de laatst gereden race. Beide zijn op /src aan te passen.
+// de laatst gereden race. Beide zijn op /src aan te passen. Past het lid later
+// het geslacht in zijn profiel aan, dan schuiven de lopende en komende maanden
+// mee (followSrcProfileSex in lib/src/availability.ts).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SrcGender } from "@/lib/src/feed";
@@ -14,6 +16,11 @@ import type { SrcGender } from "@/lib/src/feed";
 export const SRC_DEFAULT_TEAM_NAME = "ZWB SRC";
 
 export type SrcMonthEntry = { team_id: string; race: SrcGender };
+
+/** Vrouw → dames, anders heren. */
+export function srcRaceForSex(sex: string | null | undefined): SrcGender {
+  return sex === "vrouw" ? "women" : "men";
+}
 
 export async function ensureSrcMonthEntry(
   admin: SupabaseClient,
@@ -52,7 +59,7 @@ export async function ensureSrcMonthEntry(
     admin.from("profiles").select("sex").eq("id", profileId).maybeSingle(),
     admin.from("src_results").select("race_event_id, category").eq("profile_id", profileId),
   ]);
-  const race: SrcGender = profile?.sex === "vrouw" ? "women" : "men";
+  const race = srcRaceForSex(profile?.sex as string | null | undefined);
 
   // Laatst gereden categorie: de race met de laatste zondag.
   let category: number | null = null;
