@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import fixture from "../fixtures/zwift/green-to-screen-100m.json";
 import type { PacingAccent, PacingSegment } from "@/lib/pacing/route-profile";
 import { climbSeconds, routeKeyPoints, withoutTunnelSteps } from "@/lib/race-briefing/route";
-import { briefingFormatOf, checkLimits, divisionLimits, divisionOf, powerupsFromTags } from "@/lib/race-briefing/rules";
+import { briefingFormatOf, checkLimits, cheatRules, divisionLimits, divisionOf, powerupsFromTags } from "@/lib/race-briefing/rules";
 import { cleanRiderName, projectField, suggestRoles, watchList, type FieldRider } from "@/lib/race-briefing/field";
-import { briefingTips } from "@/lib/race-briefing/tips";
+import { briefingMoments, briefingTips } from "@/lib/race-briefing/tips";
 
 const altitude = fixture.altitudeM;
 const segments: PacingSegment[] = altitude.slice(1).map((m, i) => ({ distanceM: 100, gradient: (m - altitude[i]) / 100, accentIndex: null }));
@@ -196,5 +196,32 @@ describe("cleanRiderName", () => {
     expect(cleanRiderName("Daniel [#_lonecyclist] Bojdo")).toBe("Daniel Bojdo");
     expect(cleanRiderName("Barney Whiting - WSJCC RT")).toBe("Barney Whiting");
     expect(cleanRiderName("[ZWB]")).toBe("[ZWB]");
+  });
+});
+
+describe("racebriefje", () => {
+  it("omcirkelt per format de hoofdregel", () => {
+    expect(cheatRules("scratch", 5)[0]).toEqual({ value: "alle 5 voorin", text: "elke plek is 1 punt, voor elke renner", key: true });
+    expect(cheatRules("scratch", 3)[0].value).toBe("iedereen voorin");
+    expect(cheatRules("ttt", 5)[0]).toMatchObject({ value: "4e renner", key: true });
+    expect(cheatRules("points", 5).filter((r) => r.key)).toHaveLength(1);
+  });
+
+  it("zet de route om in momenten per kilometer", () => {
+    const route = routeKeyPoints({ segments, accents, totalKm: 28.5, laps: 1 });
+    const moments = briefingMoments({
+      format: "scratch",
+      category: "B",
+      route,
+      powerups: powerupsFromTags(['powerup_percent="0,34,1,33,5,33"']),
+      own: [{ zwiftId: 1, name: "Stijn Martens(ZWB)", role: "positie", limits: { zftpShare: 0.88, zmapShare: 0.83, status: "ok" } }],
+    });
+    expect(moments.map((m) => m.km)).toEqual([...moments.map((m) => m.km)].sort((a, b) => a - b));
+    expect(moments.find((m) => m.km === 21)).toMatchObject({ what: "afdaling 20 m", key: true });
+    expect(moments.find((m) => m.km === 21)?.todo).toContain("(Stijn)");
+    expect(moments.find((m) => m.what.startsWith("Brooklyn Bridge 51 m"))?.todo).toBe("het lint breekt: lossen doe je niet");
+    expect(moments.find((m) => m.what === "laatste boog")?.km).toBe(23.14);
+    expect(moments.find((m) => m.what.startsWith("slotklim"))?.todo).toBe("voluit tot de top, veer aan");
+    expect(moments.at(-1)?.todo).toBe("sprint uit het wiel, helm op ±200 m");
   });
 });

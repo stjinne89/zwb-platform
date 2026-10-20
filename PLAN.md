@@ -11254,6 +11254,51 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Racebriefing als spiekbriefje
+
+**2026-10-20.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Waarom.** Vraag van de eigenaar: het raceplan "meer de richting van het
+spiekbriefje van de TTT".
+
+**Wat.**
+- Het papier van het TTT-spiekbriefje (gelinieerd crème, gouden kantlijn, teal
+  plakband, gescheurde randen, Shantell Sans) staat nu in
+  `src/components/spiekbriefje/paper.tsx` (`SpiekPaper`, inktkleuren,
+  `PaperTitle`). De TTT Planner gebruikt het; daar verandert niets aan de
+  uitkomst.
+- Bovenaan de briefing staat het **racebriefje**
+  (`events/[id]/briefing/_components/race-sheet.tsx`): de route getekend over
+  de volle breedte (met de hand getrokken lijn, markeerstift op de afdaling naar
+  een klim en de klim zelf, de slotklim rood omcirkeld, de laatste boog
+  gestippeld, een finishvlag), daaronder de momenten per kilometer
+  (`briefingMoments` in `tips.ts`), "Onthouden" met de hoofdregel van het format
+  omcirkeld (`cheatRules` in `rules.ts`), het plan van de captain, de rollen
+  (met de grens van de divisie in markeerstift), wie te volgen (met "won W2") en
+  "Let op" voor de opstelling. De schets gebruikt hetzelfde profiel zonder
+  tunnelsprongen als de route-herkenning (`profilePoints` is geëxporteerd).
+- Het blok Tactiek, het blok Regels, de gele waarschuwingen en de regel Volgen
+  bij het veld zijn opgegaan in het briefje. Onder het briefje: het formulier
+  Plan en rollen (alleen voor wie mag bewerken), het parcours, onze ploeg en het
+  veld. Bij een ploegentijdrit staat onder het briefje de link naar de TTT
+  Planner; papier heeft geen links (zoals bij de TTT).
+- `/hulp` beschrijft de nieuwe opbouw.
+
+**Bewust niet gedaan.** De links naar de kennisbank bij elke tip zijn weg
+(papier heeft geen links); `briefingTips` met de langere zinnen bestaat nog,
+maar de pagina toont hem niet meer. Het spiekbriefje als register staat niet in
+`DESIGN.md`, net als bij de TTT-ronde.
+
+**Gecontroleerd.** Met de echte data van Bdev voor 20 oktober via een tijdelijke
+voorbeeldpagina onder `/ontwerp-voorbeeld` (niet gecommit: echte namen), op
+desktop in donker en licht en op 375 px. Twee rondes: profiel naar de volle
+breedte, tunnelsprongen eruit, labels groter en niet over elkaar. Bij die
+bezoeken vulde de pagina de ZRS van de groep in `zwift_rider_metrics`
+(productie): de rollen kregen daarna kopmannen. Impeccable-detector: alleen
+`#000` in het masker van de gescheurde rand (alfa, bedoeld). `tsc`, ESLint,
+Vitest (`race-briefing.test.ts` 18 tests, de TTT-tests).
+**Niet geverifieerd:** de briefingpagina zelf met login.
+
 ### Gebouwd — Racebriefing per ZRL-race, voor alle teams
 
 **2026-10-20.** Commits `c3ff7a7b` en `cbfc5b07`, gepusht naar `main` op
@@ -11278,6 +11323,8 @@ een plan van de captain (geen AI-tekst).
   captain/co-captain van het team en wie `teams.manage_roster` of
   `teams.manage_results` heeft), tactiek, het routeprofiel met de klimmen, de
   WTRL-regels van het format, onze ploeg en het veld.
+  *Niet meer zo sinds de ronde "Racebriefing als spiekbriefje" (2026-10-20):
+  waarschuwingen, plan, tactiek en regels staan nu op het racebriefje bovenaan.*
 - **Route** (`lib/race-briefing/route.ts`): klimmen, afdalingen die direct in
   een klim overgaan (daar gaat het veld op een lint en breekt het), de finale en
   de laatste boog met een powerup, uit het profiel van het pacingplan. Tunnels

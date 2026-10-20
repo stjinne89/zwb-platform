@@ -144,3 +144,54 @@ export function briefingTips(input: {
 
   return tips;
 }
+
+/** Een moment op de route voor het racebriefje: waar, wat, en wat je doet. */
+export type BriefingMoment = { km: number; what: string; todo: string; key?: boolean };
+
+/** De route als lijst momenten in spiekbrieftaal, op volgorde van de kilometer. */
+export function briefingMoments(input: {
+  format: BriefingFormat;
+  category: string | null;
+  route: RouteKeyPoints | null;
+  powerups: Array<{ powerup: Powerup; percent: number }>;
+  own: OwnRiderForTips[];
+}): BriefingMoment[] {
+  const { format, category, route } = input;
+  if (!route) return [];
+  const short = (climb: BriefingClimb) => (climb.name ?? "klim").replace(/\s+(KOM|QOM)$/i, "");
+  const time = (climb: BriefingClimb) => durationLabel(climbSeconds(climb, category));
+  const out: BriefingMoment[] = [];
+  const has = (p: Powerup) => input.powerups.some((x) => x.powerup === p);
+
+  if (format === "ttt" || format === "rot") {
+    for (const climb of route.climbs) {
+      out.push({
+        km: climb.startKm,
+        what: `${short(climb)} ${climb.gainM} m · ${time(climb)}`,
+        todo: format === "ttt" ? "W/kg-doel, bij elkaar blijven" : "niet harder dan je drempel",
+      });
+    }
+    return out;
+  }
+
+  const positie = input.own.filter((r) => r.role === "positie").map((r) => cleanRiderName(r.name).split(/\s+/)[0]);
+  if (route.earlyClimb) out.push({ km: route.earlyClimb.startKm, what: `${short(route.earlyClimb)} ${route.earlyClimb.gainM} m`, todo: "voorste derde, eerste selectie" });
+  for (const { descent, climb } of route.descentsIntoClimbs) {
+    out.push({ km: descent.startKm, what: `afdaling ${descent.dropM} m`, todo: `naar voren, plek 3–8${positie.length ? ` (${positie.join(", ")})` : ""}`, key: true });
+    out.push({ km: climb.startKm, what: `${short(climb)} ${climb.gainM} m · ${time(climb)}`, todo: "het lint breekt: lossen doe je niet", key: true });
+  }
+  const hardest = route.hardestClimb;
+  const finaleClimb = route.finale.kind === "climb" ? route.finale.climb : null;
+  if (hardest && hardest !== finaleClimb && hardest !== route.earlyClimb && !route.descentsIntoClimbs.some((d) => d.climb === hardest)) {
+    out.push({ km: hardest.startKm, what: `${short(hardest)} ${hardest.gainM} m · ${time(hardest)}`, todo: "doortrappen over de top" });
+  }
+  if (route.lastArchKm !== null) out.push({ km: route.lastArchKm, what: "laatste boog", todo: "powerup vóór de boog op" });
+  if (route.finale.kind === "climb") {
+    const { climb, runInKm } = route.finale;
+    out.push({ km: climb.startKm, what: `${climb.name ? short(climb) : "slotklim"} ${climb.gainM} m · ${time(climb)}`, todo: `voluit tot de top${has("veer") ? ", veer aan" : ""}`, key: true });
+    if (runInKm >= 0.5) out.push({ km: climb.endKm, what: `nog ${km(runInKm)}`, todo: `sprint uit het wiel${has("aerohelm") ? ", helm op ±200 m" : ""}` });
+  } else {
+    out.push({ km: Math.max(0, route.totalKm - 0.5), what: "vlakke finish", todo: `wiel, niet als eerste aan${has("aerohelm") ? ", helm op ±200 m" : ""}` });
+  }
+  return out.sort((a, b) => a.km - b.km);
+}

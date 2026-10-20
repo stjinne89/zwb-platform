@@ -166,3 +166,43 @@ export function powerupsFromTags(tags: unknown): Array<{ powerup: Powerup; perce
   }
   return out;
 }
+
+/** Een regel op het racebriefje: kort getal of woord, en wat het betekent. `key` wordt omcirkeld. */
+export type CheatRule = { value: string; text: string; key?: boolean };
+
+/** "Onthouden" op het racebriefje, in spiekbrieftaal. */
+export function cheatRules(format: BriefingFormat, ownStarters: number): CheatRule[] {
+  const podium = PODIUM_POINTS.join(" · ");
+  const starters = { value: `≥ ${FULL_TEAM_STARTERS} starten`, text: `anders achter elke ploeg met ${FULL_TEAM_STARTERS}` };
+  switch (format) {
+    case "scratch":
+      return [
+        { value: ownStarters >= FULL_TEAM_STARTERS ? `alle ${ownStarters} voorin` : "iedereen voorin", text: "elke plek is 1 punt, voor elke renner", key: true },
+        { value: "alleen de streep", text: "geen punten onderweg" },
+        { value: "podium", text: `${podium} extra` },
+        starters,
+      ];
+    case "ttt":
+      return [
+        { value: "4e renner", text: "zijn tijd telt", key: true },
+        { value: "laatste beurt", text: "voluit, dan los: niet de 4e laten lossen" },
+        { value: "wie lost", text: "rijdt alleen verder, nooit in een ander wiel" },
+      ];
+    case "rot":
+      return [
+        { value: "geen wiel", text: "eigen tempo, 5 % onder gemiddeld beginnen", key: true },
+        { value: "FAL", text: "eerste over elke boog: meeste punten" },
+        { value: "FTS", text: "10 snelste tijden per segment" },
+        { value: "finish", text: `plus podium ${podium}` },
+        starters,
+      ];
+    case "points":
+      return [
+        { value: "1 soort segment", text: "per renner sprint óf klim, de rest in het wiel", key: true },
+        { value: "FAL", text: "eerste over elke boog: meeste punten" },
+        { value: "FTS", text: "10 snelste tijden per segment" },
+        { value: "finish", text: `plus podium ${podium}` },
+        starters,
+      ];
+  }
+}

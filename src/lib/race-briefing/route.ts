@@ -71,7 +71,7 @@ export type RouteKeyPoints = {
   lastArchKm: number | null;
 };
 
-type Point = { km: number; m: number };
+export type Point = { km: number; m: number };
 
 /** Gradiënten zonder tunnelsprongen (zie TUNNEL_STEP_GRADIENT). */
 export function withoutTunnelSteps(gradients: number[]): number[] {
@@ -100,7 +100,8 @@ export function withoutTunnelSteps(gradients: number[]): number[] {
   return out;
 }
 
-function profilePoints(segments: PacingSegment[]): Point[] {
+/** Het profiel als punten (km, m) zonder tunnelsprongen; ook voor de getekende schets. */
+export function profilePoints(segments: PacingSegment[]): Point[] {
   const gradients = withoutTunnelSteps(segments.map((s) => s.gradient));
   const points: Point[] = [{ km: 0, m: 0 }];
   let km = 0;

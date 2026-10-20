@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
 import { BackLink, EmptyState, SectionHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { ResponsiveTable, type ResponsiveColumn } from "@/components/ui/responsive-table";
@@ -9,12 +8,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { loadRaceBriefing, type BriefingRider, type BriefingView, type OwnBriefingRider } from "@/lib/race-briefing/load";
 import { FORMAT_LABELS } from "@/lib/race-briefing/rules";
-import { ROLE_LABELS, type ProjectedTeam } from "@/lib/race-briefing/field";
+import { cleanRiderName, ROLE_LABELS, type ProjectedTeam } from "@/lib/race-briefing/field";
 import { climbSeconds } from "@/lib/race-briefing/route";
 import { climbLabel, durationLabel, km } from "@/lib/race-briefing/tips";
 import { cn } from "@/lib/utils";
 import { ZwiftRouteSection } from "../_components/zwift-route-section";
 import { saveRaceBriefing } from "./_actions";
+import { RaceSheet } from "./_components/race-sheet";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -55,75 +55,40 @@ function History({ labels, places }: { labels: string[]; places: Array<number | 
   );
 }
 
-function Warnings({ view }: { view: BriefingView }) {
-  if (view.warnings.length === 0) return null;
-  return (
-    <ul className="space-y-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-      {view.warnings.map((w) => (
-        <li key={w.text} className="flex gap-2">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
-          <span>{w.text}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function Tips({ view }: { view: BriefingView }) {
-  if (view.tips.length === 0) return null;
-  return (
-    <ul className="space-y-2">
-      {view.tips.map((t) => (
-        <li key={t.finding} className="rounded-lg border bg-card p-3">
-          <p className="text-sm text-muted-foreground">{t.finding}</p>
-          <p className="mt-1 font-medium">{t.tip}</p>
-          {t.slug && (
-            <Link href={`/zwbeter-worden/racen/kennis/${t.slug}`} className="mt-1 inline-block text-xs text-muted-foreground underline">
-              Kennisbank
-            </Link>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function Plan({ view }: { view: BriefingView }) {
+/** Plan en rollen voor het racebriefje; alleen voor wie het team beheert. */
+function PlanForm({ view }: { view: BriefingView }) {
+  if (!view.canEdit) return null;
   const inPen = view.own.filter((r) => r.inPen);
   return (
     <section className="space-y-3">
-      <SectionHeader title="Plan van de ploeg" />
-      {view.plan?.text ? (
-        <div className="whitespace-pre-line rounded-lg border bg-card p-3 text-sm">{view.plan.text}</div>
-      ) : (
-        !view.canEdit && <EmptyState>De captain heeft nog geen plan geschreven.</EmptyState>
-      )}
-      {view.canEdit && (
-        <form action={saveRaceBriefing} className="space-y-3 rounded-lg border bg-card p-3">
-          <input type="hidden" name="event_id" value={view.event.id} />
-          <textarea id="briefing-plan" name="plan" rows={5} maxLength={4000} defaultValue={view.plan?.text ?? ""} placeholder="Plan" className={FIELD} />
-          {inPen.length > 0 && (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {inPen.map((r) => (
-                <label key={r.zwiftId} className="text-sm">
-                  <span className="mb-1 block font-medium">{r.name}</span>
-                  <input
-                    id={`briefing-role-${r.zwiftId}`}
-                    name={`role_${r.zwiftId}`}
-                    maxLength={60}
-                    defaultValue={r.captainRole ?? ""}
-                    placeholder={ROLE_LABELS[r.role]}
-                    className={FIELD}
-                  />
-                </label>
-              ))}
-            </div>
-          )}
-          <Button type="submit" size="sm">
-            Opslaan
-          </Button>
-        </form>
-      )}
+      <SectionHeader title="Plan en rollen" />
+      <form action={saveRaceBriefing} className="space-y-3 rounded-lg border bg-card p-3">
+        <input type="hidden" name="event_id" value={view.event.id} />
+        <label htmlFor="briefing-plan" className="sr-only">
+          Plan
+        </label>
+        <textarea id="briefing-plan" name="plan" rows={5} maxLength={4000} defaultValue={view.plan?.text ?? ""} placeholder="Plan" className={FIELD} />
+        {inPen.length > 0 && (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {inPen.map((r) => (
+              <label key={r.zwiftId} className="text-sm">
+                <span className="mb-1 block font-medium">{cleanRiderName(r.name)}</span>
+                <input
+                  id={`briefing-role-${r.zwiftId}`}
+                  name={`role_${r.zwiftId}`}
+                  maxLength={60}
+                  defaultValue={r.captainRole ?? ""}
+                  placeholder={ROLE_LABELS[r.role]}
+                  className={FIELD}
+                />
+              </label>
+            ))}
+          </div>
+        )}
+        <Button type="submit" size="sm">
+          Opslaan
+        </Button>
+      </form>
     </section>
   );
 }
@@ -273,16 +238,15 @@ export default async function RaceBriefingPage({ params }: PageProps) {
         </div>
       </div>
 
-      <Warnings view={view} />
+      <RaceSheet view={view} />
 
-      <Plan view={view} />
-
-      {view.tips.length > 0 && (
-        <section className="space-y-3">
-          <SectionHeader title="Tactiek" />
-          <Tips view={view} />
-        </section>
+      {view.format === "ttt" && (
+        <Link href={`/teams/ttt-planner?event=${view.event.id}&team=${view.event.teamId}`} className="text-sm underline">
+          TTT Planner
+        </Link>
       )}
+
+      <PlanForm view={view} />
 
       {loaded && (
         <section className="space-y-3">
@@ -300,20 +264,6 @@ export default async function RaceBriefingPage({ params }: PageProps) {
       )}
 
       <section className="space-y-3">
-        <SectionHeader title="Regels" />
-        <ul className="list-disc space-y-1 pl-5 text-sm">
-          {view.formatRules.map((rule) => (
-            <li key={rule}>{rule}</li>
-          ))}
-        </ul>
-        {view.format === "ttt" && (
-          <Link href={`/teams/ttt-planner?event=${view.event.id}&team=${view.event.teamId}`} className="text-sm underline">
-            TTT Planner
-          </Link>
-        )}
-      </section>
-
-      <section className="space-y-3">
         <SectionHeader title="Onze ploeg" />
         {view.own.length > 0 ? <OwnTable view={view} /> : <EmptyState>Nog geen renners van ons in de groep of de opstelling.</EmptyState>}
       </section>
@@ -324,12 +274,6 @@ export default async function RaceBriefingPage({ params }: PageProps) {
           <EmptyState>{FIELD_MISSING[view.fieldMissing]}</EmptyState>
         ) : (
           <>
-            {view.watch.length > 0 && (
-              <p className="text-sm">
-                <span className="text-muted-foreground">Volgen: </span>
-                {view.watch.map((w) => `${w.name}${w.teamLabel ? ` (${w.teamLabel})` : ""}`).join(" · ")}
-              </p>
-            )}
             <TeamsTable view={view} />
             <FieldTable view={view} />
           </>
