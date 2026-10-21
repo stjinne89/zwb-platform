@@ -11281,6 +11281,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: durability op de minuut, fitheid naar de spreiding
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+**Waarom.** De eigenaar is sterk in herhaald hoge wattages en zakt in races minder terug
+dan anderen van zijn niveau, maar durability gaf hem 207. Nagerekend: de vermoeide curve
+is het beste dat je na zoveel werk wérkelijk reed, en een volle 20 minuten rijd je na
+2000 kJ bijna nooit; het "verval" zei dus vooral dat je niet voluit reed. Hij wil kleinere
+inspanningen: de minuut na 1000 en 2000 kJ. En fitheid volgde gelijke stappen naar de
+profs, waardoor CTL 100 (voor een amateur zeer hoog) maar Saffier was.
+
+**Nu.**
+- **Durability op de beste minuut** (`fatigueInputs`), vers tegen na elke drempel, nog
+  steeds als verval per 10 kJ/kg. Eigenaar: 481 naar 399 W na 2000 en 3000 kJ, 5,9% per
+  10 kJ/kg, van 207 naar ongeveer 355. De ijkwaarden bleven (uit het verval van het hele
+  profiel, voor de minuut een inschatting).
+- **Fitheid naar de spreiding onder amateurs** (`CTL_ANCHORS`): 30, 40, 50, 60, 70, 80,
+  90, 120, 150. Aanname: amateurs rond CTL 50 met een spreiding van 20; Brons tot Smaragd
+  een halve standaarddeviatie uit elkaar, Robijn de top van de amateurs, Diamant de
+  WorldTour. CTL 100 is nu Smaragd (733), 150 Diamant. Eigenaar: CTL ongeveer 76, van 353
+  naar ongeveer 556.
+- Samen met de consistentie (blok hieronder) gaat de score van de eigenaar van 239 naar
+  ongeveer 293 (schatting uit de snapshot; de echte waarde volgt bij de volgende run).
+
+**Nog niet (API-grens, keuze eigenaar).** De minuut na **1000** kJ: intervals.icu geeft
+vermoeide curves alleen voor de twee drempels die het lid zelf instelt (bij de eigenaar
+2000 en 3000 kJ), niet per verzoek. Twee wegen: de drempels in intervals.icu op 1000 en
+2000 kJ zetten (per lid, intervals rekent alles opnieuw uit), of zelf rekenen uit de
+vermogensstreams van elke rit (nieuwe opslag en een migratie). Ook nog niet: durability
+bij hoge intensiteit (werk boven CP) en herhaalbaarheid; daarvoor een eigen onderzoek.
+
+**Getest.** `briljant-snapshot` (de minuut, met de waarden van de eigenaar),
+`briljant-score` (CTL 50 is Goud, 100 is Smaragd, 150 Diamant, 180 voorbij), alle 50
+ZWBriljant-tests groen. **Niet getest:** met de echte pagina; de clubverdeling van CTL
+(die is een aanname tot er snapshots zijn).
+
 ### Gebouwd — ZWBriljant: consistentie tegen je schema, niet je beschikbaarheid
 
 **2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.

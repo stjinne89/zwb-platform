@@ -17,20 +17,22 @@ describe("snapshot", () => {
     expect(mondayKey("2026-10-25")).toBe("2026-10-19");
   });
 
-  it("neemt de beste 20 minuten, anders 5, vers en na het werk", () => {
+  it("neemt de beste minuut, vers en na elke drempel", () => {
+    // De beste minuut van de eigenaar (83 kg): 481 W vers, 399 W na 2000 en na 3000 kJ.
     const fresh = [
-      { seconds: 300, watts: 330 },
-      { seconds: 1200, watts: 290 },
+      { seconds: 60, watts: 481 },
+      { seconds: 1200, watts: 282 },
     ];
     expect(
       fatigueInputs(fresh, [
-        { afterKj: 1500, points: [{ seconds: 1200, watts: 270 }] },
-        { afterKj: 2500, points: [{ seconds: 300, watts: 300 }] },
-        { afterKj: 3000, points: [{ seconds: 60, watts: 400 }] },
+        { afterKj: 2000, points: [{ seconds: 60, watts: 399 }, { seconds: 1200, watts: 212 }] },
+        { afterKj: 3000, points: [{ seconds: 60, watts: 399 }, { seconds: 1200, watts: 197 }] },
+        // Zonder minuut na deze drempel: geen meting, ook al is er een 20 minuten.
+        { afterKj: 4000, points: [{ seconds: 1200, watts: 150 }] },
       ]),
     ).toEqual([
-      { afterKj: 1500, freshWatts: 290, fatiguedWatts: 270 },
-      { afterKj: 2500, freshWatts: 330, fatiguedWatts: 300 },
+      { afterKj: 2000, freshWatts: 481, fatiguedWatts: 399 },
+      { afterKj: 3000, freshWatts: 481, fatiguedWatts: 399 },
     ]);
   });
 
@@ -56,10 +58,11 @@ describe("snapshot", () => {
       profile_id: "p1",
       week: "2026-10-19",
       // Twaalf weken op de norm, maar een reeks van 12 weken: V = 1 − e^(−1) = 0,63,
-      // consistentie 0,82, factor 0,964.
-      score: 3.86,
+      // consistentie 0,82, factor 0,964. CTL 65 is 4,5 (tussen 60 en 70); profiel
+      // (0,6 × 4 + 0,1 × 4,5) ÷ 0,7 = 4,07, maal 0,964 is 3,92.
+      score: 3.92,
       consistency: 0.82,
-      facets: { sprint: 4, anaeroob: 4, vo2max: 4, drempel: 4, durability: null, fitheid: 4, racen: null },
+      facets: { sprint: 4, anaeroob: 4, vo2max: 4, drempel: 4, durability: null, fitheid: 4.5, racen: null },
       source: "week",
       provenance: { power: true, fatigue: false, ctl: true, zrs: false, rides: true },
     });

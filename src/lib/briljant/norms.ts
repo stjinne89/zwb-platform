@@ -114,23 +114,31 @@ export const ZRS_ANCHORS: Anchors = {
 };
 
 /**
- * Fitheid als CTL (trainingsbelasting over 42 dagen, TSS per dag). WorldTour-profs
- * zitten rond 140 tot 150 en na een grote ronde rond 170; 180 is het hoogste dat
- * genoemd wordt. De lagere niveaus zijn een inschatting van ZWB.
+ * Fitheid als CTL (trainingsbelasting over 42 dagen, TSS per dag), verdeeld naar de
+ * spreiding onder amateurs in plaats van in gelijke stappen naar de profs
+ * (eigenaar, 2026-10-21: "100 is voor een amateur zeer hoog"). Aanname van ZWB,
+ * nog zonder clubgegevens: amateurs die gestructureerd trainen zitten rond CTL 50
+ * met een spreiding van ongeveer 20. Brons tot Smaragd liggen een halve
+ * standaarddeviatie (10) uit elkaar, van gemiddeld min één (30) tot plus twee (90);
+ * Robijn (120) is de top van de amateurs en de lagere profs, Diamant (150) de
+ * WorldTour in het seizoen. Na een grote ronde (170 tot 180) kom je voorbij 900.
+ * Eerst: 15, 30, 45, 65, 85, 105, 125, 150, 180.
  */
 export const CTL_ANCHORS: Anchors = {
   zero: 0,
-  levels: [15, 30, 45, 65, 85, 105, 125, 150, 180],
+  levels: [30, 40, 50, 60, 70, 80, 90, 120, 150],
   estimate: true,
 };
 
 /**
  * Durability als verval in procenten per 10 kJ/kg voorafgaand werk, op de beste
- * 20 (of 5) minuten. Afgeleid uit: WorldTour ongeveer 1,5 en ProTeam 2,2
- * (Mateo-March 2022, na 45 kJ/kg), succesvolle amateurs ongeveer 5 en minder
- * succesvolle ongeveer 9,6 (Barsumyan 2025, na 1000 kJ). Minder verval is beter.
- * Diamant (0,7) is een inschatting voor renners die na 50 kJ/kg nog hun beste
- * klimtijden rijden.
+ * minuut (sinds 2026-10-21; eerst de beste 20 of 5 minuten). De ijkwaarden zijn
+ * afgeleid uit het verval van het hele vermogensprofiel: WorldTour ongeveer 1,5 en
+ * ProTeam 2,2 (Mateo-March 2022, na 45 kJ/kg, voor alle duren van 10 s tot 2 uur),
+ * succesvolle amateurs ongeveer 5 en minder succesvolle ongeveer 9,6 (Barsumyan
+ * 2025, op 20 minuten na 1000 kJ). Voor de minuut zijn ze dus een inschatting.
+ * Minder verval is beter. Diamant (0,7) is een inschatting voor renners die na
+ * 50 kJ/kg nog hun beste inspanningen rijden.
  */
 export const DURABILITY_ANCHORS: Anchors = {
   zero: 18,

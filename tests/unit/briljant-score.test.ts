@@ -64,7 +64,11 @@ describe("schaal", () => {
     expect(levelAt(ZRS_ANCHORS, 1000)).toBeCloseTo(9, 9);
     expect(levelAt(ZRS_ANCHORS, 640)).toBeCloseTo(5.76, 4);
     expect(levelAt(ZRS_ANCHORS, 333)).toBeCloseTo(3, 2);
-    expect(levelAt(CTL_ANCHORS, 180)).toBeCloseTo(9, 9);
+    // Fitheid naar de spreiding onder amateurs: 50 is Goud, 100 al Smaragd, 150 Diamant.
+    expect(levelAt(CTL_ANCHORS, 50)).toBeCloseTo(3, 9);
+    expect(levelAt(CTL_ANCHORS, 100)).toBeCloseTo(7 + 1 / 3, 9);
+    expect(levelAt(CTL_ANCHORS, 150)).toBeCloseTo(9, 9);
+    expect(levelAt(CTL_ANCHORS, 180)).toBeCloseTo(10, 9);
   });
 
   it("heeft de tien vELO-klassen, Koper onderaan en Diamant bovenaan", () => {
@@ -132,7 +136,7 @@ describe("facetten en score", () => {
     expect(levels.vo2max).toBeCloseTo(4.4286, 4);
     expect(levels.drempel).toBeCloseTo(4.5, 6);
     expect(levels.durability).toBeCloseTo(4.5714, 4);
-    expect(levels.fitheid).toBeCloseTo(4.65, 6);
+    expect(levels.fitheid).toBeCloseTo(5.8, 6);
     expect(levels.racen).toBeCloseTo(5.76, 4);
   });
 
@@ -140,8 +144,8 @@ describe("facetten en score", () => {
     expect(Object.values(FACET_WEIGHTS).reduce((sum, weight) => sum + weight, 0)).toBeCloseTo(1, 9);
     expect(FACET_WEIGHTS.sprint + FACET_WEIGHTS.anaeroob + FACET_WEIGHTS.vo2max + FACET_WEIGHTS.drempel).toBeCloseTo(0.6, 9);
     // 4,8 × 7,5% + 4,25 × 12,5% + 4,4286 × 22,5% + 4,5 × 17,5% + 4,5714 × 15%
-    // + 4,65 × 10% + 5,76 × 15% = 4,6899.
-    expect(scoreFor(facetLevels(rider))).toBe(4.69);
+    // + 5,8 × 10% + 5,76 × 15% = 4,8049.
+    expect(scoreFor(facetLevels(rider))).toBe(4.8);
   });
 
   it("laat consistentie tot 20% meetellen als factor", () => {
@@ -150,9 +154,9 @@ describe("facetten en score", () => {
     expect(consistencyFactor(0.55)).toBeCloseTo(0.91, 9);
     // Geen ritgegevens: ontbrekende gegevens kosten niets.
     expect(consistencyFactor(null)).toBe(1);
-    // 4,6899 × 0,91 = 4,27: op het scherm 427 punten.
-    expect(scoreFor(facetLevels(rider), 0.55)).toBe(4.27);
-    expect(scoreFor(facetLevels(rider), 1)).toBe(4.69);
+    // 4,8049 × 0,91 = 4,37: op het scherm 437 punten.
+    expect(scoreFor(facetLevels(rider), 0.55)).toBe(4.37);
+    expect(scoreFor(facetLevels(rider), 1)).toBe(4.8);
   });
 
   it("normaliseert de gewichten opnieuw als een facet ontbreekt", () => {

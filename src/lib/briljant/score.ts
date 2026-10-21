@@ -44,7 +44,7 @@ export const FACET_MEASURES: Record<Facet, { what: string; unit: string }> = {
   anaeroob: { what: "beste minuut", unit: "W/kg" },
   vo2max: { what: "beste 5 minuten", unit: "W/kg" },
   drempel: { what: "beste 20 minuten", unit: "W/kg" },
-  durability: { what: "verval op 20 minuten", unit: "% per 10 kJ/kg" },
+  durability: { what: "verval op je beste minuut", unit: "% per 10 kJ/kg" },
   fitheid: { what: "CTL", unit: "TSS/dag" },
   racen: { what: "Zwift Racing Score", unit: "ZRS" },
 };

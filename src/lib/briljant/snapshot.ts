@@ -53,13 +53,17 @@ export function shiftDay(day: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-/** De beste 20 minuten, anders de beste 5: vers en na elke vermoeide drempel. */
+/**
+ * De beste minuut, vers en na elke vermoeide drempel (eigenaar, 2026-10-21): korte
+ * inspanningen rijd je na veel werk vaak, een volle 20 minuten bijna nooit, dus die
+ * zeiden vooral dat je niet voluit reed, niet dat je inzakte.
+ */
 export function fatigueInputs(
   fresh: CurvePoint[],
   curves: Array<{ afterKj: number; points: CurvePoint[] }>,
 ): FatigueInput[] {
   return curves.flatMap((curve) => {
-    for (const seconds of [1200, 300]) {
+    for (const seconds of [60]) {
       const freshWatts = wattsAtDuration(fresh, seconds);
       const fatiguedWatts = wattsAtDuration(curve.points, seconds);
       if (freshWatts && fatiguedWatts) return [{ afterKj: curve.afterKj, freshWatts, fatiguedWatts }];

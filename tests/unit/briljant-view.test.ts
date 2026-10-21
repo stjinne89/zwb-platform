@@ -17,12 +17,12 @@ const week = (index: number, hours: number): ConsistencyWeek => ({ monday: `w${i
 describe("briljantView", () => {
   it("geeft score, klasse en de volgende klasse in punten", () => {
     const view = briljantView({ seed: "lid", input: rider, consistency: null });
-    expect(view.score).toBe(4.69);
-    expect(view.points).toBe(469);
-    expect(view.profilePoints).toBe(469);
+    expect(view.score).toBe(4.8);
+    expect(view.points).toBe(480);
+    expect(view.profilePoints).toBe(480);
     expect(view.level.name).toBe("Platina");
     expect(view.next?.name).toBe("Amethist");
-    expect(view.toNext).toBe(31);
+    expect(view.toNext).toBe(20);
     expect(view.facets.map((facet) => facet.key)).toEqual([
       "sprint", "anaeroob", "vo2max", "drempel", "durability", "fitheid", "racen",
     ]);
@@ -74,7 +74,7 @@ describe("briljantView", () => {
   it("rekent het verschil met vier weken geleden in punten", () => {
     const history = Array.from({ length: 12 }, (_, i) => ({ week: `w${i}`, score: i === 8 ? 4.5 : null }));
     const view = briljantView({ seed: "lid", input: rider, consistency: null, history });
-    expect(view.delta4w).toBe(19);
+    expect(view.delta4w).toBe(30);
   });
 
   it("schrijft metingen in de eenheid van het onderdeel", () => {

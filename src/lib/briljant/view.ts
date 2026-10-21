@@ -28,7 +28,7 @@ export const FACET_SOURCES: Record<Facet, string> = {
   anaeroob: "laatste 90 dagen · intervals.icu",
   vo2max: "laatste 90 dagen · intervals.icu",
   drempel: "laatste 90 dagen · intervals.icu",
-  durability: "laatste 90 dagen, na minstens 10 kJ/kg · intervals.icu",
+  durability: "laatste 90 dagen, na je kJ-drempels · intervals.icu",
   fitheid: "vandaag · intervals.icu",
   racen: "huidige score · Zwift",
 };

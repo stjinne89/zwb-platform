@@ -85,7 +85,7 @@ fitheid en racen, en terug naar sprint:
 | Anaeroob | beste minuut, W/kg | 12,5% | Punchers en aanvallen; beslissend in Zwift-races en bij de top 5 van profvrouwen. | Varesco 2025; van Erp & Lamberts 2022 |
 | VO2max | beste 5 min, W/kg | 22,5% | De sterkste enkele voorspeller van uitslagen en niveau. | Leo 2022; Mateo-March 2025; Mougin 2026 |
 | Drempel | beste 20 min, W/kg | 17,5% | Aerobe basis, tijdrijden en lange klimmen. | Valenzuela 2023; Mateo-March 2025; Quod 2010 |
-| Durability | verval op 20 min, % per 10 kJ/kg | 15% | Onderscheidt niveaus beter dan vers vermogen, ook bij amateurs, en staat los van FTP en VO2max. | van Erp 2021; Mateo-March 2022, 2025; Barsumyan 2025 (twee studies); Spragg 2024 |
+| Durability | verval op de beste minuut, % per 10 kJ/kg | 15% | Onderscheidt niveaus beter dan vers vermogen, ook bij amateurs, en staat los van FTP en VO2max. | van Erp 2021; Mateo-March 2022, 2025; Barsumyan 2025 (twee studies); Spragg 2024 |
 | Fitheid | CTL, TSS/dag | 10% | Goede trend, zwakke voorspeller, en zit al in het vermogen. | Marchal 2025; Sanders 2017; Vermeire 2019; Gallo 2022 |
 | Racen | Zwift Racing Score | 15% | Wat vermogen niet verklaart: tactiek, positie, wedstrijddynamiek. | Westmattelmann 2022; Phillips 2020 |
 
@@ -128,8 +128,9 @@ met de steen vervallen.)
 
 **Rekenvoorbeeld (man):** sprint 13,2 W/kg → 480 punten; anaeroob 7,6 → 425;
 VO2max 5,1 → 442; drempel 4,3 → 450; durability 4,2%/10 kJ/kg → 457; CTL 78 →
-465; ZRS 640 → 575. Profielscore 469 (met de oude gewichten 472). Met
-consistentie 55% (factor 0,91): **427 punten**: Platina, nog 73 tot Amethist.
+580 (op de oude fitheidsschaal 465); ZRS 640 → 575. Profielscore 480 (met de oude
+fitheidsschaal 469, met de oude gewichten 472). Met consistentie 55% (factor 0,91):
+**437 punten**: Platina, nog 63 tot Amethist.
 Staat als test in `tests/unit/briljant-score.test.ts` en `briljant-view.test.ts`.
 
 ## Consistentie, altijd ten opzichte van jezelf
@@ -228,7 +229,16 @@ vrouwelijke profs (Mateo-March 2022: 1 min 8,4 en 60 min 4,2 W/kg) tegenover die
 van mannelijke profs (Valenzuela 2022). Zonder opgegeven geslacht rekent ZWBriljant
 met de waarden voor mannen.
 
-**Durability (verval in % per 10 kJ/kg, op de beste 20 of 5 minuten)**
+**Durability (verval in % per 10 kJ/kg, op de beste minuut)**
+
+Sinds 2026-10-21 op de beste minuut in plaats van de beste 20 (of 5) minuten
+(eigenaar): een volle 20 minuten rijd je na veel werk bijna nooit, dus die
+vermoeide curve zei vooral dat je aan het eind niet voluit reed, niet dat je
+inzakte. Een minuut rijd je na veel werk wel vaak, in races en op klimmetjes. Bij
+de eigenaar (83 kg) ging het van 9,3% (20 minuten: 282 naar 212 W na 2000 kJ) naar
+5,9% per 10 kJ/kg (de minuut: 481 naar 399 W), van 207 naar ongeveer 355 punten. De
+ijkwaarden hieronder bleven; ze komen uit het verval van het hele vermogensprofiel
+en zijn voor de minuut dus een inschatting.
 
 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 (Diamant) |
 |---|---|---|---|---|---|---|---|---|---|
@@ -240,13 +250,26 @@ amateurs verliezen 6,5% en minder succesvolle 12,5% op 20 minuten na 1000 kJ
 (Barsumyan 2025), bij 75 kg ongeveer 5 en 9,6% per 10 kJ/kg. Pas vanaf 10 kJ/kg
 voorafgaand werk telt een curve mee (daaronder is het verval klein, Mateo-March
 2025). De drempels voor de curves stelt elk lid zelf in intervals.icu in.
-Beperking: alleen de hoeveelheid werk telt, niet hoe zwaar het was, terwijl werk
-boven CP meer kost (Spragg 2024; Mateo-March 2024).
+Beperkingen: alleen de hoeveelheid werk telt, niet hoe zwaar het was, terwijl werk
+boven CP meer kost (Spragg 2024; Mateo-March 2024). En intervals.icu geeft vermoeide
+curves alleen voor de twee drempels die het lid zelf instelt (bij de eigenaar 2000 en
+3000 kJ); een curve na 1000 kJ, zoals de eigenaar wil, kan niet per verzoek
+([forum](https://forum.intervals.icu/t/calulate-power-best-after-2000kj/2045)).
 
-**Fitheid (CTL, TSS/dag)**: 0, 15, 30, 45, 65, 85, 105, 125, 150, 180 (Diamant).
-WorldTour-profs zitten rond 140 tot 150 en na een grote ronde rond 170; 180 is het
-hoogste dat genoemd wordt ([Fast Talk Labs](https://fasttalklabs.com/training/chronic-training-load-ctl-isnt-everything)).
-De lagere niveaus zijn een inschatting van ZWB.
+**Fitheid (CTL, TSS/dag)**: 0, 30, 40, 50, 60, 70, 80, 90, 120, 150 (Diamant).
+Verdeeld naar de spreiding onder amateurs (eigenaar, 2026-10-21: "100 is voor een
+amateur zeer hoog en 150/160 voor niet prof onhaalbaar, maar mag wel een betere
+waardering krijgen"). Aanname van ZWB, nog zonder clubgegevens: amateurs die
+gestructureerd trainen zitten rond CTL 50 met een spreiding van ongeveer 20. Brons
+tot Smaragd liggen een halve standaarddeviatie (10) uit elkaar, van gemiddeld min
+één (30) tot plus twee (90); Robijn (120) is de top van de amateurs en de lagere
+profs, Diamant (150) de WorldTour in het seizoen. Na een grote ronde (170 tot 180;
+[Fast Talk Labs](https://fasttalklabs.com/training/chronic-training-load-ctl-isnt-everything))
+kom je voorbij 900. Eerst: 15, 30, 45, 65, 85, 105, 125, 150, 180 in bijna gelijke
+stappen naar de profs; daardoor was 100 maar Saffier (580) en scoorde een
+amateur met veel volume te laag. Let op: CTL meet hoeveel je traint ten opzichte van
+je eigen FTP, niet hoe sterk je bent. Zodra er genoeg snapshots zijn, de verdeling
+nalopen tegen de club.
 
 **Racen (Zwift Racing Score, 0–1000)**: een rechte lijn, 0 ZRS is 0 punten en 1000
 ZRS is Diamant (900 punten), dus elke ZRS-punt is 0,9 punt. Bewust niet gekoppeld
