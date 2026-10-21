@@ -11283,7 +11283,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: durability op de minuut, fitheid naar de spreiding
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-21.** Commit `d0c9fec1`. Geen migratie. Gepusht naar `main` op 2026-10-21.
 
 **Waarom.** De eigenaar is sterk in herhaald hoge wattages en zakt in races minder terug
 dan anderen van zijn niveau, maar durability gaf hem 207. Nagerekend: de vermoeide curve
@@ -11319,7 +11319,7 @@ ZWBriljant-tests groen. **Niet getest:** met de echte pagina; de clubverdeling v
 
 ### Gebouwd — ZWBriljant: consistentie tegen je schema, niet je beschikbaarheid
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-21.** Commit `4d38c6cb`. Geen migratie. Gepusht naar `main` op 2026-10-21.
 
 **Waarom.** De eigenaar volgt sinds 31 augustus zijn schema, maar de steen gaf hem
 consistentie 0,20. Nagerekend op productie: de norm was de beschikbaarheid van de lopende
@@ -11345,7 +11345,7 @@ deze code (de snapshot op productie heeft nog 0,20 tot de volgende run na een pu
 
 ### Gebouwd — ZWBriljant: eerste bijsturing na livegang
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie.
+**2026-10-21.** Commit `34daee32`. Geen migratie. Gepusht naar `main` op 2026-10-21.
 
 **Waarom.** De eigenaar bekeek de live pagina: op mobiel moest de steen het hele scherm
 vullen met een terugknop, het uitlegpaneel sprong raar bij het openen en moest
