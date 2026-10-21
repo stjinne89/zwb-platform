@@ -37,7 +37,7 @@ describe("schaal", () => {
       expect(level).toBeGreaterThanOrEqual(previous);
       previous = level;
     }
-    expect(levelAt(anchors, 9)).toBeGreaterThan(8);
+    expect(levelAt(anchors, 9)).toBeGreaterThan(9);
     const a = levelAt(anchors, 8);
     const b = levelAt(anchors, 8.5);
     const c = levelAt(anchors, 9);
@@ -49,20 +49,28 @@ describe("schaal", () => {
     expect(step).toMatchObject({ kind: "between", lower: { level: 4, value: 4 }, upper: { level: 5, value: 4.6 } });
     // 4 + (4,3 − 4,0) ÷ (4,6 − 4,0) = 4,5
     expect(step.level).toBeCloseTo(4.5, 9);
-    expect(scaleStep(powerAnchors("m20", "man"), 7)).toMatchObject({ kind: "beyond", lower: { level: 7 }, upper: { level: 8 } });
+    expect(scaleStep(powerAnchors("m20", "man"), 7.5)).toMatchObject({ kind: "beyond", lower: { level: 8 }, upper: { level: 9 } });
     expect(scaleStep(powerAnchors("m20", "man"), 0.8)).toMatchObject({ kind: "floor", level: 0 });
   });
 
   it("draait om bij durability: minder verval is beter", () => {
     expect(levelAt(DURABILITY_ANCHORS, 1.2)).toBeCloseTo(8, 9);
+    expect(levelAt(DURABILITY_ANCHORS, 0.7)).toBeCloseTo(9, 9);
     expect(levelAt(DURABILITY_ANCHORS, 5)).toBeCloseTo(4, 9);
     expect(levelAt(DURABILITY_ANCHORS, 20)).toBe(0);
-    expect(levelAt(DURABILITY_ANCHORS, 0.5)).toBeGreaterThan(8);
+    expect(levelAt(DURABILITY_ANCHORS, 0.5)).toBeGreaterThan(9);
   });
 
-  it("zet de top van ZRS op niveau 8 en CTL 125 op niveau 7", () => {
-    expect(levelAt(ZRS_ANCHORS, 1000)).toBeCloseTo(8, 9);
-    expect(levelAt(CTL_ANCHORS, 125)).toBeCloseTo(7, 9);
+  it("zet de nooit gehaalde ZRS 1000 op Aliens, en CTL 180 ook", () => {
+    expect(levelAt(ZRS_ANCHORS, 1000)).toBeCloseTo(9, 9);
+    expect(levelAt(ZRS_ANCHORS, 920)).toBeCloseTo(8, 9);
+    expect(levelAt(CTL_ANCHORS, 180)).toBeCloseTo(9, 9);
+  });
+
+  it("heeft negen niveaus, met Aliens bovenaan", () => {
+    expect(LEVELS).toHaveLength(9);
+    expect(LEVELS[8]).toEqual({ n: 9, name: "Aliens" });
+    expect(powerAnchors("m20", "man").levels[8]).toBe(7.1);
   });
 
   it("geeft vrouwen voor hetzelfde vermogen een hoger niveau", () => {
@@ -78,8 +86,9 @@ describe("niveaus", () => {
     expect(positionFor(5)).toMatchObject({ reached: { name: "Sterke amateur" } });
   });
 
-  it("telt voorbij de Wereldtop gewoon door", () => {
-    expect(positionFor(9.3)).toEqual({ reached: LEVELS[7], next: null, toNext: 0 });
+  it("telt voorbij Aliens gewoon door", () => {
+    expect(positionFor(8.3)).toEqual({ reached: LEVELS[7], next: LEVELS[8], toNext: 70 });
+    expect(positionFor(9.3)).toEqual({ reached: LEVELS[8], next: null, toNext: 0 });
     expect(formatScore(10.2)).toBe("1.020");
   });
 

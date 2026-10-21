@@ -63,7 +63,7 @@ export type ScalePoint = { level: number; value: number };
  * Waar een waarde op de schaal valt, met de twee ijkpunten waartussen gerekend
  * wordt. Voor alle drie de soorten geldt dezelfde formule:
  * niveau = lager.niveau + (waarde − lager.waarde) ÷ (hoger.waarde − lager.waarde) × (hoger.niveau − lager.niveau).
- * Bij `beyond` (voorbij niveau 8) zijn dat de laatste twee ijkpunten,
+ * Bij `beyond` (voorbij niveau 9) zijn dat de laatste twee ijkpunten,
  * doorgetrokken; bij `floor` (onder de nulwaarde) is het 0.
  */
 export type ScaleStep = {
@@ -101,7 +101,7 @@ export function scaleStep(anchors: Anchors, value: number): ScaleStep {
 }
 
 /**
- * Het niveau bij een waarde: lineair tussen de ijkwaarden, en voorbij niveau 8
+ * Het niveau bij een waarde: lineair tussen de ijkwaarden, en voorbij niveau 9
  * lineair door met de helling van het laatste stuk. Daardoor heeft de schaal
  * geen plafond. Onder de nulwaarde is het 0.
  */
@@ -125,9 +125,9 @@ export function points(level: number): number {
 export type LevelPosition = {
   /** Het niveau dat je haalt; null onder niveau 1 (minder dan 100 punten). */
   reached: Level | null;
-  /** Het niveau erna; null voorbij de Wereldtop (dan telt de score gewoon door). */
+  /** Het niveau erna; null voorbij Aliens (dan telt de score gewoon door). */
   next: Level | null;
-  /** Punten tot het volgende niveau; 0 voorbij de Wereldtop. */
+  /** Punten tot het volgende niveau; 0 voorbij Aliens. */
   toNext: number;
 };
 

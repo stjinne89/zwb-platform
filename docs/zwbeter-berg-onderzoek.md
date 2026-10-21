@@ -28,9 +28,13 @@ het niveau als getal (4,55; `points()` maakt er 455 van); zo staat het ook in
 | 500 | Sterke amateur | 4,6 W/kg | 3,9 W/kg |
 | 600 | Elite-amateur | 5,3 W/kg | 4,5 W/kg |
 | 700 | Profpeloton | 5,8 W/kg | 4,9 W/kg |
-| 800 | Wereldtop | 6,5 W/kg | 5,5 W/kg |
+| 800 | Wereldtop | 6,4 W/kg | 5,4 W/kg |
+| 900 | Aliens | 7,1 W/kg | 6,0 W/kg |
 
-Voorbij 800 telt de score gewoon door (900, 1.000, …). Punten worden afgekapt,
+Voorbij 900 telt de score gewoon door (1.000, …). **Aliens** (eigenaar,
+2026-10-21) zijn de recordwaarden: wat er van de allerbeste renners gepubliceerd
+is. Daarvoor is de Wereldtop iets omlaag geschoven naar het niveau van
+WorldTour-winnaars. Punten worden afgekapt,
 niet afgerond: 499,9 is nog 499, en 500 verschijnt pas bij het volgende niveau.
 
 **De berg.** Eén berg: in het midden de hoofdtop op je score, met zeven graten
@@ -127,12 +131,28 @@ bronnen wel geven, staat per rij.
 
 **Vermogen, mannen (W/kg)**
 
-| Duur | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
-|---|---|---|---|---|---|---|---|---|---|
-| 15 s | 4 | 7,5 | 9 | 10,5 | 12 | 13,5 | 15 | 16,5 | 19 |
-| 1 min | 3 | 5 | 5,8 | 6,6 | 7,4 | 8,2 | 9 | 9,8 | 11 |
-| 5 min | 1,2 | 2,4 | 3,2 | 4 | 4,8 | 5,5 | 6,2 | 6,7 | 7,5 |
-| 20 min | 1 | 1,9 | 2,6 | 3,3 | 4 | 4,6 | 5,3 | 5,8 | 6,5 |
+| Duur | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 (Aliens) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 15 s | 4 | 7,5 | 9 | 10,5 | 12 | 13,5 | 15 | 16,5 | 17,5 | 19,5 |
+| 1 min | 3 | 5 | 5,8 | 6,6 | 7,4 | 8,2 | 9 | 9,8 | 10,2 | 11,2 |
+| 5 min | 1,2 | 2,4 | 3,2 | 4 | 4,8 | 5,5 | 6,2 | 6,7 | 7,1 | 7,6 |
+| 20 min | 1 | 1,9 | 2,6 | 3,3 | 4 | 4,6 | 5,3 | 5,8 | 6,4 | 7,1 |
+
+**Recordwaarden achter Aliens** (gepubliceerde schattingen; profs publiceren hun
+gegevens zelden, dus officiële records bestaan niet):
+- Drempel: ongeveer 6,85 tot 7,0 W/kg over ongeveer 40 minuten (Pogačar, Plateau de
+  Beille, Tour 2024; Berg in *Journal of Science and Cycling*, via
+  [BikeRadar](https://www.bikeradar.com/news/tadej-pogacar-v02-max-study) en
+  [Lanterne Rouge](https://lanternerouge.com/2024/07/14/greatest-climbing-performances-of-all-time-on-plateau-de-beille-tour-de-france-2024-stage-15/)).
+  Over 20 minuten ligt dat iets hoger: 7,1.
+- VO2max: 7,2 W/kg over 5 minuten binnen een rit van vier uur (Pogačar, Tour 2020;
+  [Stages](https://stagescycling.com/us/news/stages-power-and-stages-dash-in-the-2020-tour-de-france/)).
+  Fris ligt hoger; 7,6.
+- Sprint: 17 tot 19 W/kg om een Tourspurt te winnen; piekvermogen in profsprints
+  17,4 ± 1,7 W/kg ([Murdoch University](https://researchportal.murdoch.edu.au/esploro/outputs/journalArticle/Sprinting-for-the-win-Distribution-of/991005543935407891)). 19,5.
+- Anaeroob: 10,1 W/kg over een minuut (Campenaerts, Ronde van Vlaanderen 2022;
+  [Velo](https://velo.outsideonline.com/2022/04/big-numbers-mathieu-van-der-poels-strava-file-with-power/?scope=anon)).
+  De beste punchers zitten hoger; 11,2.
 
 Houvast: U23-elite in grote rittenkoersen rijden gemiddeld 5,5 W/kg over 20 minuten
 (Mateo-March 2026); critical power van profs ligt rond 5,3 tot 5,6 W/kg (Spragg
@@ -148,9 +168,9 @@ met de waarden voor mannen.
 
 **Durability (verval in % per 10 kJ/kg, op de beste 20 of 5 minuten)**
 
-| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
-|---|---|---|---|---|---|---|---|---|
-| 18 | 12,5 | 9,5 | 7 | 5 | 3,6 | 2,6 | 1,8 | 1,2 |
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 (Aliens) |
+|---|---|---|---|---|---|---|---|---|---|
+| 18 | 12,5 | 9,5 | 7 | 5 | 3,6 | 2,6 | 1,8 | 1,2 | 0,7 |
 
 Houvast: na 45 kJ/kg verliezen WorldTour-renners 4,7 tot 8,8% en ProTeam-renners
 7,6 tot 11,6% (Mateo-March 2022), ongeveer 1,5 en 2,2% per 10 kJ/kg. Succesvolle
@@ -161,13 +181,17 @@ voorafgaand werk telt een curve mee (daaronder is het verval klein, Mateo-March
 Beperking: alleen de hoeveelheid werk telt, niet hoe zwaar het was, terwijl werk
 boven CP meer kost (Spragg 2024; Mateo-March 2024).
 
-**Fitheid (CTL, TSS/dag)**: 0, 15, 30, 45, 65, 85, 105, 125, 150. Profs zitten rond
-120 tot 160; de lagere niveaus zijn een inschatting van ZWB.
+**Fitheid (CTL, TSS/dag)**: 0, 15, 30, 45, 65, 85, 105, 125, 150, 180 (Aliens).
+WorldTour-profs zitten rond 140 tot 150 en na een grote ronde rond 170; 180 is het
+hoogste dat genoemd wordt ([Fast Talk Labs](https://fasttalklabs.com/training/chronic-training-load-ctl-isnt-everything)).
+De lagere niveaus zijn een inschatting van ZWB.
 
-**Racen (Zwift Racing Score, 0–1000)**: 0, 100, 250, 400, 550, 700, 800, 900, 1000.
-Zwift deelt in in E 0–200, D 200–400, C 400–600, B 600–800 en A 800–1000; de top van
-de schaal is niveau 8. Omdat ZRS bij 1000 ophoudt, komt deze graat nooit boven
-niveau 8.
+**Racen (Zwift Racing Score, 0–1000)**: 0, 100, 250, 400, 550, 700, 800, 870, 920,
+1000 (Aliens). Zwift deelt in in E 0–200, D 200–400, C 400–600, B 600–800 en A
+800–1000. Scores boven 900 komen voor; 1000 is nog door niemand gehaald
+([Zwift-forum](https://forums.zwift.com/t/zwift-racing-score-october-2024/636179?page=51))
+en is daarom Aliens. Omdat ZRS bij 1000 ophoudt, komt deze graat nooit boven
+niveau 9.
 
 ## Bronnen
 

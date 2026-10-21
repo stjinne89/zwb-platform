@@ -11297,11 +11297,16 @@ duidelijker is").
 **Nu.**
 - **De score is het niveau zelf**, op het scherm in punten: 100 per niveau, dus 455 is
   niveau 4 (Gevorderde), nog 45 tot Sterke amateur (`points`, afgekapt). Acht niveaus,
-  Starter tot Wereldtop, zonder plafond. Eerst stond er één decimaal (4,5); de eigenaar
+  Starter tot Wereldtop, en daarboven Aliens (900, de recordwaarden; de Wereldtop
+  schoof daarvoor iets omlaag), zonder plafond. Eerst stond er één decimaal (4,5); de eigenaar
   koos daarna voor punten, omdat een groter getal dat in kleine stappen groeit meer
   motiveert. Op de berg zijn de niveaus virtuele ijkbergen.
 - **De berg** (schets, nog niet in de app): één berg met de hoofdtop op de score en zeven
-  spitse pieken op de graten, elk precies tot de punten van die graat.
+  spitse pieken op de graten, elk precies tot de punten van die graat en via die graat
+  vanaf de hoofdtop bereikbaar (met een zadel). Per lid anders met een vaste seed: de
+  volgorde van de graten ligt vast, richting, lengte en kromming variëren, en een lagere
+  piek staat verder weg op een langere graat. De lengteregel `ridgeReach` uit het eerdere
+  model vervalt daarmee bij de bouw van de pagina.
 - **Zeven graten**: Sprint (15 s), Anaeroob (1 min), VO2max (5 min), Drempel (20 min),
   Durability, Fitheid (CTL) en Racen (ZRS). Explosief en Duurvermogen vervallen.
 - **Formule per graat**: `scaleStep` geeft het stuk van de schaal waarin een meting valt,
