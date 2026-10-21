@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  availabilityHours,
   complianceFrom,
   consistencyWeeks,
   curveRange,
@@ -49,8 +48,7 @@ describe("snapshot", () => {
         zrs: null,
       },
       consistency: {
-        weeks: Array.from({ length: 12 }, (_, i) => ({ monday: `w${i}`, hours: 6, plannedRecovery: false })),
-        normHours: 6,
+        weeks: Array.from({ length: 12 }, (_, i) => ({ monday: `w${i}`, hours: 6, plannedHours: 6, plannedRecovery: false })),
         compliance: null,
       },
     });
@@ -96,10 +94,10 @@ describe("snapshot", () => {
       3,
     );
     expect(weeks).toEqual([
-      { monday: "2026-09-28", hours: 0, plannedRecovery: false },
-      { monday: "2026-10-05", hours: 2.5, plannedRecovery: false },
+      { monday: "2026-09-28", hours: 0, plannedHours: null, plannedRecovery: false },
+      { monday: "2026-10-05", hours: 2.5, plannedHours: 6.67, plannedRecovery: false },
       // 240 van de 400 geplande minuten: onder 75%, dus een herstelweek.
-      { monday: "2026-10-12", hours: 2, plannedRecovery: true },
+      { monday: "2026-10-12", hours: 2, plannedHours: 4, plannedRecovery: true },
     ]);
   });
 
@@ -112,12 +110,6 @@ describe("snapshot", () => {
     ];
     expect(complianceFrom(planned, "2026-10-01", "2026-10-21")).toBeCloseTo(60 / 240, 9);
     expect(complianceFrom([], "2026-10-01", "2026-10-21")).toBeNull();
-  });
-
-  it("telt de beschikbaarheid op tot uren per week", () => {
-    expect(availabilityHours({ ma: 60, wo: 90, za: 150 })).toBe(5);
-    expect(availabilityHours({})).toBeNull();
-    expect(availabilityHours(null)).toBeNull();
   });
 
   it("haalt W/kg uit een curve, met het gewicht als de punten die niet hebben", () => {

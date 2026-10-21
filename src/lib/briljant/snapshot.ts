@@ -112,7 +112,8 @@ export const RECOVERY_WEEK_SHARE = 0.75;
 
 /**
  * De afgesloten weken vóór de week van `day` (precies `count`), oud naar nieuw:
- * gereden uren en of het schema er een herstelweek van maakte.
+ * gereden uren, de geplande trainingstijd (de norm van die week) en of het schema
+ * er een herstelweek van maakte.
  */
 export function consistencyWeeks(
   rides: RideDay[],
@@ -138,6 +139,7 @@ export function consistencyWeeks(
     return {
       monday,
       hours: Math.round((hours.get(monday) ?? 0) * 100) / 100,
+      plannedHours: plan > 0 ? Math.round((plan / 60) * 100) / 100 : null,
       plannedRecovery: plan > 0 && before > 0 && plan < RECOVERY_WEEK_SHARE * before,
     };
   });
@@ -154,16 +156,6 @@ export function complianceFrom(planned: PlannedWorkout[], from: string, day: str
   if (total === 0) return null;
   const done = due.filter((workout) => workout.status === "completed").reduce((sum, workout) => sum + workout.minutes, 0);
   return done / total;
-}
-
-/** Beschikbaarheid in uren per week uit `training_availability.minutes_by_day`. */
-export function availabilityHours(minutesByDay: unknown): number | null {
-  if (!minutesByDay || typeof minutesByDay !== "object") return null;
-  const total = Object.values(minutesByDay as Record<string, unknown>).reduce<number>((sum, value) => {
-    const minutes = Number(value);
-    return Number.isFinite(minutes) && minutes > 0 ? sum + minutes : sum;
-  }, 0);
-  return total > 0 ? total / 60 : null;
 }
 
 /** W/kg per duur uit een curve, met het gewicht als de punten zelf geen W/kg hebben. */

@@ -138,10 +138,15 @@ Geen absolute uren: die zitten al in Fitheid, en dan zou veel rijden dubbel
 tellen. Het past bij de regel dat beschikbaarheid geen belastbaarheid is.
 
 - **Regelmaat R**: het aandeel van de laatste twaalf afgesloten weken waarin je
-  minstens 60% van je eigen norm reed. Norm: de beschikbaarheid uit het schema
-  (uren per week), zonder schema je eigen mediaan van de weekuren over het
-  afgelopen jaar. Meer dan de norm telt als gehaald, nooit als straf. Een week
-  die er nog niet was (nieuw lid) telt als niet gereden.
+  minstens 60% van je eigen norm reed. Norm, **per week**: de trainingstijd die het
+  schema die week plande; een week zonder schema krijgt je eigen mediaan van de
+  weekuren over het afgelopen jaar. Meer dan de norm telt als gehaald, nooit als
+  straf. Een week die er nog niet was (nieuw lid) telt als niet gereden.
+  *Eerst was de norm de beschikbaarheid van de huidige week, voor alle weken. Dat
+  is een plafond voor het plannen, geen doel: de eigenaar volgde sinds 31 augustus
+  zijn schema (4,3 tot 7,7 uur per week) maar haalde tegen 11 uur beschikbaarheid
+  (60% = 6,6 uur) maar 4 van 12 weken en geen reeks. Tegen zijn schema zijn het 10
+  van 12 weken en een reeks van 7 (2026-10-21).*
 - **Volhouden V** = 1 − e^(−weken/12), met weken de huidige ononderbroken reeks.
 - **Naleving N**: het deel van de geplande trainingsminuten dat gedaan is, over
   twaalf weken; alleen met een schema, anders valt N weg.

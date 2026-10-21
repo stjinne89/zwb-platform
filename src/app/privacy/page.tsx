@@ -437,8 +437,8 @@ export default function PrivacyPage() {
             <strong>ZWBriljant:</strong> in ZWBeter zie je je niveau als
             edelsteen, met een score in punten. Daarvoor gebruiken we wat je al
             met ons deelt: je vermogenscurve, vermoeide curve en CTL uit
-            intervals.icu, je Zwift Racing Score via je Zwift-ID, je ritten,
-            schema en beschikbaarheid voor de consistentie, en je opgegeven
+            intervals.icu, je Zwift Racing Score via je Zwift-ID, je ritten
+            en je schema voor de consistentie, en je opgegeven
             geslacht (de normen voor vrouwen zijn anders). Zodra je ZWBriljant
             opent, bewaren we per week je score, je punten per onderdeel, je
             consistentie (een getal van 0 tot 1) en per bron alleen óf die er

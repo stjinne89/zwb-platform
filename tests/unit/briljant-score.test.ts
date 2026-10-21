@@ -180,16 +180,17 @@ describe("facetten en score", () => {
 });
 
 describe("consistentie", () => {
-  const week = (index: number, hours: number, plannedRecovery = false): ConsistencyWeek => ({
+  const week = (index: number, hours: number, plannedHours: number | null = null, plannedRecovery = false): ConsistencyWeek => ({
     monday: `w${index}`,
     hours,
+    plannedHours,
     plannedRecovery,
   });
 
   it("rekent R × (0,5 + 0,5 · V) × N", () => {
     // Twee gemiste weken vooraan in het venster, daarna tien op rij gehaald.
-    const weeks = [week(0, 8), week(1, 1), week(2, 1), ...Array.from({ length: 10 }, (_, i) => week(3 + i, 8))];
-    const result = consistencyFrom({ weeks, normHours: 8, compliance: 0.85 })!;
+    const weeks = [week(0, 8, 8), week(1, 1, 8), week(2, 1, 8), ...Array.from({ length: 10 }, (_, i) => week(3 + i, 8, 8))];
+    const result = consistencyFrom({ weeks, compliance: 0.85 })!;
     expect(result).toMatchObject({ streak: 10, compliance: 0.85, normSource: "schema" });
     expect(result.regularity).toBeCloseTo(10 / 12, 2);
     const expected = (10 / 12) * (0.5 + 0.5 * (1 - Math.exp(-10 / 12))) * 0.85;
@@ -202,22 +203,45 @@ describe("consistentie", () => {
   });
 
   it("telt meer dan de norm als gehaald, nooit als straf, en een herstelweek breekt de reeks niet", () => {
-    const weeks = Array.from({ length: 12 }, (_, i) => week(i, i === 6 ? 1 : 20, i === 6));
-    expect(consistencyFrom({ weeks, normHours: 6, compliance: null })).toMatchObject({ regularity: 1, streak: 12, compliance: null });
+    const weeks = Array.from({ length: 12 }, (_, i) => week(i, i === 6 ? 1 : 20, 6, i === 6));
+    expect(consistencyFrom({ weeks, compliance: null })).toMatchObject({ regularity: 1, streak: 12, compliance: null });
   });
 
   it("valt zonder schema terug op de eigen mediaan, en een week ziek breekt de reeks", () => {
     const weeks = [...Array.from({ length: 11 }, (_, i) => week(i, 5)), week(11, 0)];
-    const result = consistencyFrom({ weeks, normHours: null, compliance: null })!;
+    const result = consistencyFrom({ weeks, compliance: null })!;
     expect(result).toMatchObject({ normSource: "mediaan", normHours: 5, streak: 0 });
     expect(result.regularity).toBeCloseTo(11 / 12, 2);
     expect(result.value).toBeCloseTo((11 / 12) * 0.5, 2);
   });
 
   it("telt ontbrekende weken van een nieuw lid als niet gereden en geeft null zonder norm", () => {
-    expect(consistencyFrom({ weeks: [week(0, 4), week(1, 4)], normHours: 4, compliance: null })!.regularity).toBeCloseTo(2 / 12, 2);
-    expect(consistencyFrom({ weeks: [week(0, 0)], normHours: null, compliance: null })).toBeNull();
-    expect(consistencyFrom({ weeks: [], normHours: 5, compliance: null })).toBeNull();
+    expect(consistencyFrom({ weeks: [week(0, 4, 4), week(1, 4, 4)], compliance: null })!.regularity).toBeCloseTo(2 / 12, 2);
+    expect(consistencyFrom({ weeks: [week(0, 0)], compliance: null })).toBeNull();
+    expect(consistencyFrom({ weeks: [], compliance: null })).toBeNull();
+  });
+
+  it("meet elke week aan wat het schema die week plande, niet aan de beschikbaarheid", () => {
+    // De weken van de eigenaar, 27 juli tot en met 12 oktober 2026: gereden en gepland.
+    const ridden = [6.9, 5.3, 5.4, 6.1, 0, 6.2, 11.8, 7.6, 5.9, 6.5, 9.2, 6.0];
+    const planned = [4.8, 4.8, 6.3, 11.4, 6.8, 5.0, 4.3, 4.5, 7.0, 5.3, 6.1, 6.7];
+    const weeks = ridden.map((hours, i) => week(i, hours, planned[i]));
+    const result = consistencyFrom({ weeks, compliance: 0.79 })!;
+    // Alleen de week van 17 augustus (6,1 van 11,4) en die van 24 augustus (niets)
+    // missen; sinds 31 augustus zeven weken op rij.
+    expect(result).toMatchObject({ streak: 7, normSource: "schema", normHours: 5.7 });
+    expect(result.regularity).toBeCloseTo(10 / 12, 2);
+    // Tegen 11 uur beschikbaarheid (60% = 6,6 uur) waren het er maar vier, zonder reeks.
+    const againstAvailability = consistencyFrom({ weeks: ridden.map((hours, i) => week(i, hours, 11)), compliance: 0.79 })!;
+    expect(againstAvailability.regularity).toBeCloseTo(4 / 12, 2);
+    expect(againstAvailability.streak).toBe(0);
+    expect(result.value).toBeGreaterThan(againstAvailability.value * 2);
+  });
+
+  it("gebruikt de eigen mediaan alleen voor weken zonder schema", () => {
+    const weeks = [week(0, 3, 3), week(1, 3, 3), week(2, 6), week(3, 6), week(4, 2)];
+    // Mediaan van de gereden weken is 3: de week met 2 uur zonder schema telt (2 ≥ 1,8).
+    expect(consistencyFrom({ weeks, compliance: null })).toMatchObject({ streak: 5 });
   });
 
 });

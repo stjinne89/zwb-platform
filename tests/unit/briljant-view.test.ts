@@ -12,7 +12,7 @@ const rider: BriljantInput = {
   zrs: 640,
 };
 
-const week = (index: number, hours: number): ConsistencyWeek => ({ monday: `w${index}`, hours, plannedRecovery: false });
+const week = (index: number, hours: number): ConsistencyWeek => ({ monday: `w${index}`, hours, plannedHours: 8, plannedRecovery: false });
 
 describe("briljantView", () => {
   it("geeft score, klasse en de volgende klasse in punten", () => {
@@ -32,7 +32,7 @@ describe("briljantView", () => {
   it("maakt de steen kleiner met de consistentiefactor", () => {
     // Tien van twaalf weken gehaald, tien op rij, zonder schema.
     const weeks = [week(0, 8), week(1, 1), week(2, 1), ...Array.from({ length: 10 }, (_, i) => week(3 + i, 8))];
-    const view = briljantView({ seed: "lid", input: rider, consistency: { weeks, normHours: 8, compliance: 0.85 } });
+    const view = briljantView({ seed: "lid", input: rider, consistency: { weeks, compliance: 0.85 } });
     expect(view.consistency).toMatchObject({ hitWeeks: 10, weeks: 12, streak: 10, compliance: 0.85, normSource: "schema" });
     expect(view.consistency!.factor).toBeCloseTo(0.8 + 0.2 * view.consistency!.value, 9);
     expect(view.points).toBeLessThan(view.profilePoints);

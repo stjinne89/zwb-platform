@@ -11281,6 +11281,32 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: consistentie tegen je schema, niet je beschikbaarheid
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+**Waarom.** De eigenaar volgt sinds 31 augustus zijn schema, maar de steen gaf hem
+consistentie 0,20. Nagerekend op productie: de norm was de beschikbaarheid van de lopende
+week (11 uur, dus 6,6 uur nodig) voor alle twaalf weken, terwijl het schema 4,3 tot 7,7 uur
+per week plande. Beschikbaarheid is een plafond voor het plannen, geen doel; wie zijn
+schema volgde, haalde de norm daardoor zelden. Uitkomst: 4 van 12 weken, reeks 0.
+
+**Nu.** De norm geldt per week: de trainingstijd die het schema die week plande
+(`ConsistencyWeek.plannedHours`); een week zonder schema krijgt je eigen mediaan van de
+weekuren. De beschikbaarheid wordt niet meer gelezen (`loadNormHours` en
+`availabilityHours` weg). Voor de eigenaar: 10 van 12 weken, reeks 7 (sinds 31 augustus),
+consistentie ongeveer 0,48 in plaats van 0,20. Het paneel zegt nu "minstens 60% van je
+geplande trainingstijd gereden (meestal x uur)". `/hulp`, het onderzoek en de
+privacytekst (die noemde de beschikbaarheid) zijn mee aangepast.
+
+**Bewust niet.** De drempel van 60% blijft; met het schema als norm is die ruim, maar dat
+is een keuze voor de eigenaar.
+
+**Getest.** `briljant-score` met de echte weken van de eigenaar (10 van 12 en reeks 7
+tegen het schema, 4 van 12 en reeks 0 tegen de beschikbaarheid) en de mediaan alleen voor
+weken zonder schema; alle 50 ZWBriljant-tests groen. **Niet getest:** de pagina zelf met
+deze code (de snapshot op productie heeft nog 0,20 tot de volgende run na een push).
+
 ### Gebouwd — ZWBriljant: eerste bijsturing na livegang
 
 **2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie.
@@ -11461,11 +11487,13 @@ duidelijker is").
   gewichten zijn later naar de literatuur bijgesteld; zie het blok hierboven. Eerst telde
   elke duur 12,5%, durability 20% en fitheid en racen elk 15%.
 - **Vorm**: lengte van een graat = (niveau van de graat ÷ score)^1,8 (`ridgeReach`).
-- **Consistentie** = R × (0,5 + 0,5 · V) × N, altijd tegen je eigen norm (beschikbaarheid
-  uit het schema, anders je eigen mediaan): regelmaat over twaalf weken, volhouden als
-  reeks, naleving van het schema. Geen absolute uren meer (die zitten in Fitheid). Voet =
-  0,6 + 0,4 × consistentie; daarnaast de factor in de score (zie hierboven). De server haalt ritten, geplande trainingen (zonder vervangen
-  workouts en niet-toegepaste dagvoorstellen) en `training_availability` op.
+- **Consistentie** = R × (0,5 + 0,5 · V) × N, altijd tegen je eigen norm: regelmaat over
+  twaalf weken, volhouden als reeks, naleving van het schema. Geen absolute uren meer (die
+  zitten in Fitheid). Voet = 0,6 + 0,4 × consistentie; daarnaast de factor in de score (zie
+  hierboven). De server haalt ritten en geplande trainingen op (zonder vervangen workouts en
+  niet-toegepaste dagvoorstellen). *Eerst was de norm de beschikbaarheid
+  (`training_availability`); sinds de ronde "consistentie tegen je schema" (hierboven) is
+  het per week de geplande trainingstijd.*
 - Onderzoek, niveautabel, gewichten en het rekenvoorbeeld:
   [zwbriljant-onderzoek.md](docs/zwbriljant-onderzoek.md).
 

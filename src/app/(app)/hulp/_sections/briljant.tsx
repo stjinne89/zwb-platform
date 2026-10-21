@@ -106,8 +106,9 @@ export function BriljantHelp() {
             <dt className="font-medium">Consistentie</dt>
             <dd className="text-muted-foreground">
               <code className="rounded bg-muted px-1">R × (0,5 + 0,5 × V) × N</code>, altijd tegen je eigen norm: R is
-              het deel van de laatste twaalf weken waarin je minstens 60% van je norm reed (je beschikbaarheid uit het
-              schema, anders je eigen mediaan), V = 1 − e<sup>−reeks/12</sup> voor het aantal weken op rij, N het deel
+              het deel van de laatste twaalf weken waarin je minstens 60% van je norm reed (per week de trainingstijd
+              die je schema plande, zonder schema je eigen mediaan; niet je beschikbaarheid, want dat is een plafond),
+              V = 1 − e<sup>−reeks/12</sup> voor het aantal weken op rij, N het deel
               van je geplande trainingstijd dat je deed. Meer dan je norm telt als gehaald, een geplande herstelweek
               breekt de reeks niet.
             </dd>

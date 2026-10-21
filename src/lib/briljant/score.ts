@@ -286,6 +286,8 @@ export type ConsistencyWeek = {
   monday: string;
   /** Gereden uren in die week. */
   hours: number;
+  /** Geplande trainingstijd in het schema voor die week; null of 0 zonder schema. */
+  plannedHours: number | null;
   /** Een geplande herstelweek uit het schema: breekt de reeks niet. */
   plannedRecovery: boolean;
 };
@@ -293,8 +295,6 @@ export type ConsistencyWeek = {
 export type ConsistencyInput = {
   /** De afgesloten weken tot en met vorige week, oud naar nieuw; zo veel als er zijn (tot een jaar). */
   weeks: ConsistencyWeek[];
-  /** Beschikbaarheid uit het schema in uren per week; null zonder schema. */
-  normHours: number | null;
   /** Aandeel van de geplande trainingen gedaan, gewogen naar duur, over twaalf weken; null zonder schema. */
   compliance: number | null;
 };
@@ -308,7 +308,10 @@ export type Consistency = {
   streak: number;
   /** N: naleving van het schema; null zonder schema (telt dan niet mee). */
   compliance: number | null;
-  /** Je norm in uren per week en waar die vandaan komt. */
+  /**
+   * Je norm in uren per week (de mediaan over de laatste twaalf weken) en waar die
+   * vandaan komt: "schema" als de meeste weken een schema hadden.
+   */
   normHours: number;
   normSource: "schema" | "mediaan";
   /** R × (0,5 + 0,5 · V) × N, van 0 tot 1. */
@@ -323,19 +326,24 @@ function median(values: number[]): number {
 
 /**
  * Consistentie, altijd ten opzichte van jezelf: geen absolute uren (die zitten al
- * in Fitheid). Norm is de beschikbaarheid uit het schema, anders je eigen mediaan
- * van de weekuren over de weken die er zijn. Meer dan de norm telt als 100%,
- * nooit als straf. Een geplande herstelweek telt als gehaald. Null als er geen
- * norm te bepalen is.
+ * in Fitheid). De norm geldt per week: de trainingstijd die het schema die week
+ * plande, en zonder schema je eigen mediaan van de weekuren. Niet je
+ * beschikbaarheid: dat is een plafond voor het plannen, geen doel (eigenaar,
+ * 2026-10-21; wie zijn schema volgde, haalde eerst de norm niet). Meer dan de
+ * norm telt als gehaald, nooit als straf. Een geplande herstelweek telt als
+ * gehaald. Null als er geen norm te bepalen is.
  */
 export function consistencyFrom(input: ConsistencyInput): Consistency | null {
   const weeks = input.weeks;
   if (weeks.length === 0) return null;
-  const schemaNorm = positive(input.normHours);
-  const normHours = schemaNorm ?? median(weeks.map((week) => Math.max(0, week.hours)));
-  if (!(normHours > 0)) return null;
+  const usual = median(weeks.map((week) => Math.max(0, week.hours)));
+  const normOf = (week: ConsistencyWeek) => positive(week.plannedHours) ?? usual;
+  if (!weeks.some((week) => normOf(week) > 0)) return null;
 
-  const counts = (week: ConsistencyWeek) => week.plannedRecovery || week.hours >= NORM_SHARE * normHours;
+  const counts = (week: ConsistencyWeek) => {
+    const norm = normOf(week);
+    return week.plannedRecovery || (norm > 0 ? week.hours >= NORM_SHARE * norm : week.hours > 0);
+  };
   const recent = weeks.slice(-CONSISTENCY_WEEKS);
   // Ontbrekende weken aan het begin (nieuw lid) tellen als niet gereden.
   const regularity = recent.filter(counts).length / CONSISTENCY_WEEKS;
@@ -352,8 +360,8 @@ export function consistencyFrom(input: ConsistencyInput): Consistency | null {
     persistence: round2(persistence),
     streak,
     compliance: compliance == null ? null : round2(compliance),
-    normHours: Math.round(normHours * 10) / 10,
-    normSource: schemaNorm ? "schema" : "mediaan",
+    normHours: Math.round(median(recent.map(normOf)) * 10) / 10,
+    normSource: recent.filter((week) => positive(week.plannedHours)).length * 2 >= recent.length ? "schema" : "mediaan",
     value: round2(value),
   };
 }

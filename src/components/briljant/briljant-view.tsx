@@ -114,9 +114,10 @@ function PanelBody({ panel, view }: { panel: NonNullable<Panel>; view: View }) {
         <dl>
           <dt>Regelmaat</dt>
           <dd>
-            {c.hitWeeks} van de {c.weeks} weken je norm gehaald (
-            {nl(c.normHours, 1)} uur per week, uit je{" "}
-            {c.normSource === "schema" ? "schema" : "eigen weken"})
+            {c.hitWeeks} van de {c.weeks} weken minstens 60% van{" "}
+            {c.normSource === "schema"
+              ? `je geplande trainingstijd gereden (meestal ${nl(c.normHours, 1)} uur)`
+              : `je gebruikelijke weekuren gereden (${nl(c.normHours, 1)} uur)`}
           </dd>
           <dt>Volhouden</dt>
           <dd>{c.streak} weken op rij</dd>

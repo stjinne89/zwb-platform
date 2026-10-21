@@ -20,7 +20,6 @@ import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/po
 import { CONSISTENCY_WEEKS, type BriljantInput, type ConsistencyInput, type HistoryPoint } from "./score";
 import type { Sex } from "./norms";
 import {
-  availabilityHours,
   complianceFrom,
   consistencyWeeks,
   curveRange,
@@ -134,29 +133,17 @@ async function loadPlanned(admin: Admin, profileId: string, from: string, to: st
     }));
 }
 
-/** Beschikbaarheid voor de week van `day`, anders de standaardweek; null zonder schema. */
-async function loadNormHours(admin: Admin, profileId: string, day: string): Promise<number | null> {
-  const { data } = await admin
-    .from("training_availability")
-    .select("week_start, minutes_by_day")
-    .eq("profile_id", profileId)
-    .or(`week_start.is.null,week_start.eq.${mondayKey(day)}`);
-  const rows = (data ?? []) as Array<{ week_start: string | null; minutes_by_day: unknown }>;
-  const week = rows.find((row) => row.week_start) ?? rows.find((row) => !row.week_start);
-  return week ? availabilityHours(week.minutes_by_day) : null;
-}
-
 /** De invoer voor de consistentie tot de week van `day`. */
 async function loadConsistency(admin: Admin, profileId: string, day: string, rides?: RideDay[]): Promise<ConsistencyInput> {
   const from = shiftDay(mondayKey(day), -HISTORY_WEEKS * 7 - 7);
-  const [allRides, planned, normHours] = await Promise.all([
+  // De norm per week is wat het schema plande (zie consistencyFrom), niet de
+  // beschikbaarheid: die is een plafond voor het plannen.
+  const [allRides, planned] = await Promise.all([
     rides ? Promise.resolve(rides) : loadRides(admin, profileId, from),
     loadPlanned(admin, profileId, from, mondayKey(day)),
-    loadNormHours(admin, profileId, day),
   ]);
   return {
     weeks: consistencyWeeks(allRides, planned, day, HISTORY_WEEKS),
-    normHours,
     compliance: complianceFrom(planned, shiftDay(mondayKey(day), -CONSISTENCY_WEEKS * 7), day),
   };
 }
