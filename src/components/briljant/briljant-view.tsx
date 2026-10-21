@@ -8,7 +8,8 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, X } from "lucide-react";
 import { LEVELS, type Level } from "@/lib/briljant/norms";
 import type { BriljantView as View, FacetView } from "@/lib/briljant/view";
 import { briljantSans, briljantSerif } from "./fonts";
@@ -189,6 +190,8 @@ export function BriljantView({ view }: { view: View }) {
   const [panel, setPanel] = useState<Panel>(null);
   const opener = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLElement>(null);
+  const [aiming, setAiming] = useState(false);
+  const router = useRouter();
   const score = view.points;
   const profile = view.profilePoints;
 
@@ -206,18 +209,35 @@ export function BriljantView({ view }: { view: View }) {
   };
   const close = useCallback(() => {
     setPanel(null);
-    opener.current?.focus();
+    // Zonder scrollen: anders springt de pagina mee naar het label.
+    opener.current?.focus({ preventScroll: true });
   }, []);
 
   useEffect(() => {
     if (!panel) return;
-    panelRef.current?.querySelector<HTMLElement>("h2")?.focus();
+    panelRef.current?.querySelector<HTMLElement>("h2")?.focus({ preventScroll: true });
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") close();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [panel, close]);
+
+  // Op de telefoon vult de steen het hele scherm; de pagina eronder scrolt dan niet mee.
+  useEffect(() => {
+    if (!window.matchMedia("(max-width: 640px)").matches) return;
+    const root = document.documentElement;
+    const before = root.style.overflow;
+    root.style.overflow = "hidden";
+    return () => {
+      root.style.overflow = before;
+    };
+  }, []);
+
+  const back = () => {
+    if (window.history.length > 1) router.back();
+    else router.push("/zwbeter-worden");
+  };
 
   const tierStyle = { "--tier": view.level.color } as CSSProperties;
   const share = view.next ? (score - view.level.n * 100) / 100 : 1;
@@ -240,6 +260,7 @@ export function BriljantView({ view }: { view: View }) {
             }))}
             labels={labels}
             onFailed={() => setFailed(true)}
+            rotate={!panel && !aiming}
           />
         )}
 
@@ -248,6 +269,11 @@ export function BriljantView({ view }: { view: View }) {
             <Lozenge level={view.level} className={styles.fallbackStone} />
           </div>
         )}
+
+        <button type="button" className={styles.back} onClick={back}>
+          <ArrowLeft className="size-4" aria-hidden />
+          Terug
+        </button>
 
         <header className={styles.crest}>
           <button
@@ -295,7 +321,12 @@ export function BriljantView({ view }: { view: View }) {
         )}
 
         {!failed ? (
-          <div className={styles.labels}>
+          <div
+            className={styles.labels}
+            // Stil zetten terwijl je een label aanwijst, zodat je raakt wat je bedoelt.
+            onPointerOver={() => setAiming(true)}
+            onPointerOut={() => setAiming(false)}
+          >
             <div ref={setLabel("summit")} className={styles.anchor}>
               <button
                 type="button"

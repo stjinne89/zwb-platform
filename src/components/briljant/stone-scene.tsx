@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { LEVELS, type Level } from "@/lib/briljant/norms";
-import { stoneGeometry, stoneMaterial, stoneShape, studioEnvironment } from "./stone";
+import { seeded, stoneGeometry, stoneMaterial, stoneShape, studioEnvironment } from "./stone";
 
 type Props = {
   seed: string;
@@ -16,6 +16,8 @@ type Props = {
   /** De HTML-labels per sleutel ("summit", "ghost", "foot", "facet:sprint", "ref:5"); de scène zet hun positie. */
   labels: RefObject<Map<string, HTMLElement>>;
   onFailed: () => void;
+  /** Rustig ronddraaien; uit terwijl het lid een label aanwijst of een paneel open heeft. */
+  rotate: boolean;
 };
 
 const NIGHT = 0x0a0c0f;
@@ -41,8 +43,12 @@ function glow(color: THREE.ColorRepresentation, radius: number, opacity: number)
   return disc;
 }
 
-export default function StoneScene({ seed, score, profile, level, facets, labels, onFailed }: Props) {
+export default function StoneScene({ seed, score, profile, level, facets, labels, onFailed, rotate }: Props) {
   const host = useRef<HTMLDivElement>(null);
+  const rotating = useRef(rotate);
+  useEffect(() => {
+    rotating.current = rotate;
+  }, [rotate]);
   const [failed, setFailed] = useState(false);
   const facetKey = facets.map((facet) => `${facet.key}:${facet.points}`).join(",");
 
@@ -151,7 +157,9 @@ export default function StoneScene({ seed, score, profile, level, facets, labels
     rim.position.set(-7, 5, -6);
     scene.add(rim, new THREE.HemisphereLight(0xcfd8e3, NIGHT, 0.22));
 
-    // De tien klassen als slanke ijkstenen in een boog erachter, elk op zijn grens.
+    // De tien klassen als ijkstenen in een boog erachter: echte stenen in hun eigen
+    // verhoudingen (een metaal als lage klomp, een edelsteen als kristal), geen
+    // pilaren op hoogte. Een hogere klasse is iets groter.
     const facing = CAMERA.clone().setY(0).normalize();
     const behind = Math.atan2(-facing.z, -facing.x);
     const anchors = new Map<string, { position: THREE.Vector3; front?: boolean }>();
@@ -159,20 +167,28 @@ export default function StoneScene({ seed, score, profile, level, facets, labels
       const angle = behind + (index / (LEVELS.length - 1) - 0.5) * 1.6;
       const x = Math.cos(angle) * 19 * fit;
       const z = Math.sin(angle) * 19 * fit;
-      const refPoints = Math.max(50, ref.n * 100);
-      const refShape = stoneShape({ seed: ref.name, score: refPoints, level: ref, facets: [1, 1, 1, 1, 1, 1, 1] });
+      // Ongelijke kanten, zodat elke steen er natuurlijk uitziet.
+      const lumpy = seeded(`ref-${ref.name}`);
+      const facets = Array.from({ length: 7 }, () => 0.8 + lumpy() * 0.4);
+      const refShape = stoneShape({ seed: ref.name, score: 300, level: ref, facets });
+      const size = (0.55 + ref.n * 0.05) * fit;
+      const metal = ref.kind === "metaal";
+      const wide = size * (metal ? 1.15 : 1);
+      const tall = size * (metal ? 0.62 : 0.95);
       const baseHeight = 0.12 * fit;
-      const base = plinth(Math.max(0.26, refShape.radius * 0.38 * 1.7), baseHeight);
+      const base = plinth(refShape.radius * wide * 1.5, baseHeight);
       base.position.set(x, 0, z);
       scene.add(base);
-      const refPool = track(glow(0xfff1d8, Math.max(0.9, refShape.radius * 1.4), 0.09));
+      const refPool = track(glow(0xfff1d8, refShape.radius * wide * 2.6, 0.09));
       refPool.position.set(x, 0.006, z);
       scene.add(refPool);
       const refStone = track(new THREE.Mesh(stoneGeometry(refShape), stoneMaterial(ref)));
-      refStone.scale.set(0.38, 1, 0.38);
+      refStone.scale.set(wide, tall, wide);
+      refStone.rotation.y = lumpy() * Math.PI * 2;
       refStone.position.set(x, baseHeight, z);
+      refStone.castShadow = true;
       scene.add(refStone);
-      anchors.set(`ref:${ref.n}`, { position: new THREE.Vector3(x, baseHeight + refShape.height + 0.25, z) });
+      anchors.set(`ref:${ref.n}`, { position: new THREE.Vector3(x, baseHeight + refShape.height * tall + 0.25, z) });
     });
 
     const toward = Math.atan2(facing.z, facing.x);
@@ -203,9 +219,13 @@ export default function StoneScene({ seed, score, profile, level, facets, labels
     controls.minDistance = 4;
     controls.maxDistance = 22 * fit;
     // Rustig ronddraaien, behalve bij verminderde beweging; met de vinger draaien kan altijd.
-    controls.autoRotate = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     controls.autoRotateSpeed = 0.6;
-    const stopRotating = () => (controls.autoRotate = false);
+    // Wie zelf draait, neemt het over: daarna draait de steen niet meer vanzelf.
+    let turnedByHand = false;
+    const stopRotating = () => {
+      turnedByHand = true;
+    };
     controls.addEventListener("start", stopRotating);
 
     const resize = () => {
@@ -243,6 +263,7 @@ export default function StoneScene({ seed, score, profile, level, facets, labels
     let disposed = false;
     const render = () => {
       if (disposed) return;
+      controls.autoRotate = !reducedMotion && !turnedByHand && rotating.current;
       controls.update();
       if (!document.hidden) {
         renderer.render(scene, camera);

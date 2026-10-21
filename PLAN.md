@@ -11281,6 +11281,33 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: eerste bijsturing na livegang
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Waarom.** De eigenaar bekeek de live pagina: op mobiel moest de steen het hele scherm
+vullen met een terugknop, het uitlegpaneel sprong raar bij het openen en moest
+"enkel rechtsonder zo groot als nodig" openen, en de ijkstenen achterin leken pilaren.
+
+**Nu.**
+- **Paneel** als kaart rechtsonder, zo hoog als de inhoud (op mobiel een kaart onderin,
+  hooguit 62% van het scherm), met een korte fade in plaats van een volle zijbalk.
+- **Geen sprong meer:** de focus op de kop van het paneel (en terug op het label) gaat
+  met `preventScroll`; eerst scrolde de hele pagina mee. Het draaien stopt terwijl je een
+  label aanwijst of een paneel open hebt, zodat je raakt wat je bedoelt (eerst opende
+  een klik op Drempel soms Durability, omdat het label onder de muis wegdraaide).
+- **Mobiel schermvullend** (`position: fixed`, `100dvh`, boven de app-balk), met
+  "Terug" linksboven (`router.back()`, zonder historie naar `/zwbeter-worden`); de pagina
+  eronder scrolt dan niet mee.
+- **IJkstenen** in natuurlijke verhoudingen in plaats van uitgerekt op hun grens: een
+  metaal als lage klomp, een edelsteen als kristal, met ongelijke kanten; een hogere
+  klasse is iets groter. Ze tonen de hoogte van hun grens dus niet meer; het label wel.
+
+**Getest.** Lokaal met voorbeelddata (tijdelijke pagina, niet gecommit): desktop (paneel
+rechtsonder, scrollpositie blijft 0, het juiste paneel opent) en 375 px (schermvullend,
+terugknop, paneel onderin). ESLint en `tsc` schoon. **Niet getest:** op een echte
+telefoon en met een ingelogd lid.
+
 ### Gebouwd — ZWBriljant: de steen, de pagina en de tegel (was de ZWBeter-berg)
 
 **2026-10-21.** Commits `d0874e29` (bouw) en `00d4d836` (privacy). Migratie
