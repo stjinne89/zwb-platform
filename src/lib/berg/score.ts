@@ -123,7 +123,7 @@ export function points(level: number): number {
 }
 
 export type LevelPosition = {
-  /** Het niveau dat je haalt; null onder niveau 1 (minder dan 100 punten). */
+  /** Het niveau dat je haalt; null onder niveau 1 (minder dan 100 punten). Alleen Aliens heeft een naam. */
   reached: Level | null;
   /** Het niveau erna; null voorbij Aliens (dan telt de score gewoon door). */
   next: Level | null;
@@ -230,16 +230,39 @@ export const MIN_RIDGES_FOR_SCORE = 2;
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
 /**
- * De score: het gewogen gemiddelde van de graten die er zijn (RIDGE_WEIGHTS), met
- * de gewichten van de aanwezige graten opnieuw op 100% gezet. Twee decimalen;
- * het scherm toont er één. Null bij te weinig graten.
+ * De profielscore: het gewogen gemiddelde van de graten die er zijn
+ * (RIDGE_WEIGHTS), met de gewichten van de aanwezige graten opnieuw op 100% gezet.
+ * Null bij te weinig graten. Nog zonder consistentie; zie `scoreFor`.
  */
-export function scoreFor(ridges: Record<Ridge, number | null>): number | null {
+export function profileScore(ridges: Record<Ridge, number | null>): number | null {
   const present = RIDGES.filter((ridge) => ridges[ridge] != null);
   if (present.length < MIN_RIDGES_FOR_SCORE) return null;
   const weight = present.reduce((sum, ridge) => sum + RIDGE_WEIGHTS[ridge], 0);
   const total = present.reduce((sum, ridge) => sum + RIDGE_WEIGHTS[ridge] * ridges[ridge]!, 0);
-  return round2(total / weight);
+  return total / weight;
+}
+
+/**
+ * Hoe zwaar consistentie meetelt: tot 20% van de score (eigenaar, 2026-10-21).
+ * Een factor en geen eigen graat, omdat consistentie tegen je eigen norm wordt
+ * gemeten en niet tegen de wereld: als graat zou trouw trainen op een laag niveau
+ * wereldtop-punten opleveren.
+ */
+export const CONSISTENCY_WEIGHT = 0.2;
+
+/** 0,8 + 0,2 × consistentie; zonder consistentie (geen ritgegevens) 1, zodat ontbrekende gegevens niets kosten. */
+export function consistencyFactor(consistency: number | null): number {
+  if (consistency == null || !Number.isFinite(consistency)) return 1;
+  return 1 - CONSISTENCY_WEIGHT + CONSISTENCY_WEIGHT * Math.min(1, Math.max(0, consistency));
+}
+
+/**
+ * De score: de profielscore maal de consistentiefactor, op twee decimalen (het
+ * scherm toont punten). Null bij te weinig graten.
+ */
+export function scoreFor(ridges: Record<Ridge, number | null>, consistency: number | null = null): number | null {
+  const profile = profileScore(ridges);
+  return profile == null ? null : round2(profile * consistencyFactor(consistency));
 }
 
 /** Het gewicht van elke aanwezige graat na het opnieuw normaliseren, voor de uitleg op het scherm. */
@@ -344,7 +367,7 @@ export function consistencyFrom(input: ConsistencyInput): Consistency | null {
   };
 }
 
-/** De breedte van de voet: 0,6 + 0,4 × consistentie; zonder consistentie de smalle voet. */
+/** De breedte van de voet: 0,6 + 0,4 × consistentie; zonder consistentie de smalle voet. Telt daarnaast als factor in de score (`consistencyFactor`). */
 export function footWidth(consistency: number | null): number {
   return 0.6 + 0.4 * Math.min(1, Math.max(0, consistency ?? 0));
 }

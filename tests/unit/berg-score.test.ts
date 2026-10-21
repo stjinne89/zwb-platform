@@ -7,6 +7,7 @@ import {
   durabilityDecline,
   effectiveWeights,
   footWidth,
+  consistencyFactor,
   formatScore,
   levelAt,
   points,
@@ -61,15 +62,17 @@ describe("schaal", () => {
     expect(levelAt(DURABILITY_ANCHORS, 0.5)).toBeGreaterThan(9);
   });
 
-  it("zet de nooit gehaalde ZRS 1000 op Aliens, en CTL 180 ook", () => {
+  it("laat ZRS als rechte lijn lopen, los van Zwift's categorieën: 1000 is Aliens", () => {
     expect(levelAt(ZRS_ANCHORS, 1000)).toBeCloseTo(9, 9);
-    expect(levelAt(ZRS_ANCHORS, 920)).toBeCloseTo(8, 9);
+    expect(levelAt(ZRS_ANCHORS, 640)).toBeCloseTo(5.76, 4);
+    expect(levelAt(ZRS_ANCHORS, 333)).toBeCloseTo(3, 2);
     expect(levelAt(CTL_ANCHORS, 180)).toBeCloseTo(9, 9);
   });
 
-  it("heeft negen niveaus, met Aliens bovenaan", () => {
+  it("heeft negen niveaus, zonder groepsnamen behalve Aliens bovenaan", () => {
     expect(LEVELS).toHaveLength(9);
     expect(LEVELS[8]).toEqual({ n: 9, name: "Aliens" });
+    expect(LEVELS.slice(0, 8).every((level) => level.name === null)).toBe(true);
     expect(powerAnchors("m20", "man").levels[8]).toBe(7.1);
   });
 
@@ -83,7 +86,7 @@ describe("niveaus", () => {
   it("noemt het gehaalde niveau en hoeveel punten er nog moeten", () => {
     expect(positionFor(4.55)).toEqual({ reached: LEVELS[3], next: LEVELS[4], toNext: 45 });
     expect(positionFor(0.6)).toEqual({ reached: null, next: LEVELS[0], toNext: 40 });
-    expect(positionFor(5)).toMatchObject({ reached: { name: "Sterke amateur" } });
+    expect(positionFor(5)).toMatchObject({ reached: { n: 5, name: null } });
   });
 
   it("telt voorbij Aliens gewoon door", () => {
@@ -121,12 +124,24 @@ describe("graten en score", () => {
     expect(levels.drempel).toBeCloseTo(4.5, 6);
     expect(levels.durability).toBeCloseTo(4.5714, 4);
     expect(levels.fitheid).toBeCloseTo(4.65, 6);
-    expect(levels.racen).toBeCloseTo(4.6, 6);
+    expect(levels.racen).toBeCloseTo(5.76, 4);
   });
 
   it("weegt de graten: vermogen 50%, durability 20%, fitheid en racen 15%", () => {
     expect(Object.values(RIDGE_WEIGHTS).reduce((sum, weight) => sum + weight, 0)).toBeCloseTo(1, 9);
-    expect(scoreFor(ridgeLevels(rider))).toBe(4.55);
+    // Vermogen 4,4946 × 50% + durability 4,5714 × 20% + fitheid 4,65 × 15% + racen 5,76 × 15%.
+    expect(scoreFor(ridgeLevels(rider))).toBe(4.72);
+  });
+
+  it("laat consistentie tot 20% meetellen als factor", () => {
+    expect(consistencyFactor(1)).toBe(1);
+    expect(consistencyFactor(0)).toBeCloseTo(0.8, 9);
+    expect(consistencyFactor(0.55)).toBeCloseTo(0.91, 9);
+    // Geen ritgegevens: ontbrekende gegevens kosten niets.
+    expect(consistencyFactor(null)).toBe(1);
+    // 4,7231 × 0,91 = 4,30: op het scherm 430 punten.
+    expect(scoreFor(ridgeLevels(rider), 0.55)).toBe(4.3);
+    expect(scoreFor(ridgeLevels(rider), 1)).toBe(4.72);
   });
 
   it("normaliseert de gewichten opnieuw als een graat ontbreekt", () => {

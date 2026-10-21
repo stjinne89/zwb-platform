@@ -78,6 +78,7 @@ export function snapshotFrom(args: {
   consistency: ConsistencyInput | null;
 }): SnapshotRow {
   const ridges = ridgeLevels(args.input);
+  const consistency = args.consistency ? (consistencyFrom(args.consistency)?.value ?? null) : null;
   const sources: BergSources = {
     power: ridges.sprint != null || ridges.anaeroob != null || ridges.vo2max != null || ridges.drempel != null,
     fatigue: ridges.durability != null,
@@ -88,9 +89,9 @@ export function snapshotFrom(args: {
   return {
     profile_id: args.profileId,
     week: mondayKey(args.day),
-    score: scoreFor(ridges),
+    score: scoreFor(ridges, consistency),
     ridges: Object.fromEntries(Object.entries(ridges).map(([ridge, level]) => [ridge, round2(level)])),
-    consistency: args.consistency ? (consistencyFrom(args.consistency)?.value ?? null) : null,
+    consistency,
     source: args.source,
     provenance: sources,
   };

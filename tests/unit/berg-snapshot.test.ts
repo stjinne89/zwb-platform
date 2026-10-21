@@ -57,12 +57,14 @@ describe("snapshot", () => {
     expect(row).toMatchObject({
       profile_id: "p1",
       week: "2026-10-19",
-      score: 4,
+      // Twaalf weken op de norm, maar een reeks van 12 weken: V = 1 − e^(−1) = 0,63,
+      // consistentie 0,82, factor 0,964.
+      score: 3.86,
+      consistency: 0.82,
       ridges: { sprint: 4, anaeroob: 4, vo2max: 4, drempel: 4, durability: null, fitheid: 4, racen: null },
       source: "week",
       provenance: { power: true, fatigue: false, ctl: true, zrs: false, rides: true },
     });
-    expect(row.consistency).toBeGreaterThan(0);
     expect(JSON.stringify(row)).not.toMatch(/watts|wkg|weight|ctl"\s*:\s*\d|zrs"\s*:\s*\d|hours/);
   });
 

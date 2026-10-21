@@ -11295,10 +11295,16 @@ niveaus in plaats van echte bergketens, en weg met de meters ("maak hier iets va
 duidelijker is").
 
 **Nu.**
-- **De score is het niveau zelf**, op het scherm in punten: 100 per niveau, dus 455 is
-  niveau 4 (Gevorderde), nog 45 tot Sterke amateur (`points`, afgekapt). Acht niveaus,
-  Starter tot Wereldtop, en daarboven Aliens (900, de recordwaarden; de Wereldtop
-  schoof daarvoor iets omlaag), zonder plafond. Eerst stond er één decimaal (4,5); de eigenaar
+- **De score is het niveau zelf**, op het scherm in punten: 100 per niveau (`points`,
+  afgekapt), zonder plafond. Negen niveaus; alleen het hoogste heeft een naam, Aliens
+  (900, de recordwaarden; 800 schoof daarvoor iets omlaag). De andere niveaus zijn
+  bewust alleen punten: een lid wordt niet in een groep gezet (eigenaar). Eerst
+  hadden ze namen (Starter tot Wereldtop).
+- **Consistentie telt mee als factor**: score = profielscore × (0,8 + 0,2 ×
+  consistentie), zonder ritgegevens factor 1 (`consistencyFactor`). Eerst telde
+  consistentie niet mee; de eigenaar koos voor tot 20%.
+- **Racen is een rechte lijn**: 0 ZRS is 0 en 1000 ZRS (nooit gehaald) is Aliens, dus
+  0,9 punt per ZRS-punt, los van Zwift's categorieën. Eerst stond er één decimaal (4,5); de eigenaar
   koos daarna voor punten, omdat een groter getal dat in kleine stappen groeit meer
   motiveert. Op de berg zijn de niveaus virtuele ijkbergen.
 - **De berg** (schets, nog niet in de app): één berg met de hoofdtop op de score en zeven
@@ -11318,7 +11324,7 @@ duidelijker is").
 - **Consistentie** = R × (0,5 + 0,5 · V) × N, altijd tegen je eigen norm (beschikbaarheid
   uit het schema, anders je eigen mediaan): regelmaat over twaalf weken, volhouden als
   reeks, naleving van het schema. Geen absolute uren meer (die zitten in Fitheid). Voet =
-  0,6 + 0,4 × consistentie. De server haalt ritten, geplande trainingen (zonder vervangen
+  0,6 + 0,4 × consistentie; daarnaast de factor in de score (zie hierboven). De server haalt ritten, geplande trainingen (zonder vervangen
   workouts en niet-toegepaste dagvoorstellen) en `training_availability` op.
 - Onderzoek, niveautabel, gewichten en het rekenvoorbeeld:
   [zwbeter-berg-onderzoek.md](docs/zwbeter-berg-onderzoek.md).

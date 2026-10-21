@@ -13,19 +13,24 @@
 export type Level = {
   /** 1 tot en met 9. */
   n: number;
-  name: string;
+  /**
+   * Alleen het hoogste niveau heeft een naam. De andere niveaus zijn bewust
+   * alleen punten (100, 200, …): een lid wordt niet in een groep of klasse gezet
+   * (eigenaar, 2026-10-21).
+   */
+  name: string | null;
 };
 
 /** Van laag naar hoog. Wie de norm van een niveau haalt, staat op dat niveau. */
 export const LEVELS: readonly Level[] = [
-  { n: 1, name: "Starter" },
-  { n: 2, name: "Recreant" },
-  { n: 3, name: "Toerrijder" },
-  { n: 4, name: "Gevorderde" },
-  { n: 5, name: "Sterke amateur" },
-  { n: 6, name: "Elite-amateur" },
-  { n: 7, name: "Profpeloton" },
-  { n: 8, name: "Wereldtop" },
+  { n: 1, name: null },
+  { n: 2, name: null },
+  { n: 3, name: null },
+  { n: 4, name: null },
+  { n: 5, name: null },
+  { n: 6, name: null },
+  { n: 7, name: null },
+  { n: 8, name: null },
   // De recordwaarden: wat er van de allerbeste renners bekend is (zie het onderzoek).
   { n: 9, name: "Aliens" },
 ];
@@ -51,7 +56,7 @@ export type PowerDuration = "s15" | "m1" | "m5" | "m20";
  * Vermogen in W/kg per duur, voor mannen. Ingeschat aan de hand van de
  * gebruikelijke indeling per duur (ongetraind tot wereldklasse) en de normen van
  * profrenners (Valenzuela 2022; Mateo-March 2022, 2026; Spragg 2022, 2024).
- * Niveau 8 (Wereldtop) is het niveau van WorldTour-winnaars; niveau 9 (Aliens)
+ * Niveau 8 is het niveau van WorldTour-winnaars; niveau 9 (Aliens)
  * de hoogste gepubliceerde waarden: ongeveer 7 W/kg over 40 minuten (Pogacar,
  * Plateau de Beille 2024), 7,2 W/kg over 5 minuten in een rit (Pogacar, Tour
  * 2020), 17 tot 19 W/kg om een Tourspurt te winnen, 10,1 W/kg over een minuut
@@ -86,15 +91,15 @@ export function powerAnchors(duration: PowerDuration, sex: Sex | null): Anchors 
 }
 
 /**
- * Zwift Racing Score (0–1000). Zwift deelt in in E 0–200, D 200–400,
- * C 400–600, B 600–800 en A 800–1000. Scores boven 900 komen voor; 1000 is nog
- * door niemand gehaald en is daarom Aliens. De koppeling aan de niveaus is van
- * ZWB. Omdat de score bij 1000 ophoudt, komt deze graat nooit boven niveau 9.
+ * Zwift Racing Score (0–1000) als doorlopende lijn: 0 is 0 en 1000 is Aliens,
+ * dus elke ZRS-punt is 0,9 punt. Bewust niet gekoppeld aan Zwift's categorieën:
+ * een score is geen groep (eigenaar, 2026-10-21). Scores boven 900 komen voor; 1000
+ * is nog door niemand gehaald. Omdat ZRS bij 1000 ophoudt, komt deze graat nooit
+ * boven niveau 9.
  */
 export const ZRS_ANCHORS: Anchors = {
   zero: 0,
-  levels: [100, 250, 400, 550, 700, 800, 870, 920, 1000],
-  estimate: true,
+  levels: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => Math.round((1000 * n) / 9 * 100) / 100) as unknown as Anchors["levels"],
 };
 
 /**

@@ -13,32 +13,43 @@ niveau, zonder plafond.**
 
 ## De score
 
-**Punten, 100 per niveau, zonder plafond**: 455 punten is niveau 4 (Gevorderde),
-nog 45 punten tot Sterke amateur. Een hoger getal dat in kleine stappen groeit
-motiveert meer dan decimalen (eigenaar, 2026-10-21). Intern rekent de code met
-het niveau als getal (4,55; `points()` maakt er 455 van); zo staat het ook in
+**Punten, 100 per niveau, zonder plafond.** Een hoger getal dat in kleine stappen
+groeit motiveert meer dan decimalen (eigenaar, 2026-10-21). Intern rekent de code
+met het niveau als getal (4,30; `points()` maakt er 430 van); zo staat het ook in
 `zwbeter_berg_snapshots.score`.
 
-| Punten | Niveau | Drempel (man) | Drempel (vrouw) |
-|---|---|---|---|
-| 100 | Starter | 1,9 W/kg | 1,6 W/kg |
-| 200 | Recreant | 2,6 W/kg | 2,2 W/kg |
-| 300 | Toerrijder | 3,3 W/kg | 2,8 W/kg |
-| 400 | Gevorderde | 4,0 W/kg | 3,4 W/kg |
-| 500 | Sterke amateur | 4,6 W/kg | 3,9 W/kg |
-| 600 | Elite-amateur | 5,3 W/kg | 4,5 W/kg |
-| 700 | Profpeloton | 5,8 W/kg | 4,9 W/kg |
-| 800 | Wereldtop | 6,4 W/kg | 5,4 W/kg |
-| 900 | Aliens | 7,1 W/kg | 6,0 W/kg |
+**Score = profielscore × (0,8 + 0,2 × consistentie).** De profielscore is het
+gewogen gemiddelde van de zeven graten; consistentie telt als factor tot 20%
+(eigenaar, 2026-10-21). Volledig consistent houdt de volle profielscore, bij 55%
+blijft 91% over. Zonder ritgegevens is de factor 1: ontbrekende gegevens kosten
+niets. Een factor en geen achtste graat, omdat consistentie tegen je eigen norm
+wordt gemeten: als graat zou trouw trainen op een laag niveau wereldtop-punten
+opleveren.
 
-Voorbij 900 telt de score gewoon door (1.000, …). **Aliens** (eigenaar,
-2026-10-21) zijn de recordwaarden: wat er van de allerbeste renners gepubliceerd
-is. Daarvoor is de Wereldtop iets omlaag geschoven naar het niveau van
-WorldTour-winnaars. Punten worden afgekapt,
-niet afgerond: 499,9 is nog 499, en 500 verschijnt pas bij het volgende niveau.
+**Geen groepsnamen.** De niveaus zijn alleen punten; een lid wordt niet in een
+groep of klasse gezet (eigenaar, 2026-10-21). Alleen het hoogste niveau heeft een
+naam: Aliens.
 
-**De berg.** Eén berg: in het midden de hoofdtop op je score, met zeven graten
-die naar buiten lopen. Op elke graat staat een echte, spitse piek die precies tot
+| Punten | Drempel (man) | Drempel (vrouw) |
+|---|---|---|
+| 100 | 1,9 W/kg | 1,6 W/kg |
+| 200 | 2,6 W/kg | 2,2 W/kg |
+| 300 | 3,3 W/kg | 2,8 W/kg |
+| 400 | 4,0 W/kg | 3,4 W/kg |
+| 500 | 4,6 W/kg | 3,9 W/kg |
+| 600 | 5,3 W/kg | 4,5 W/kg |
+| 700 | 5,8 W/kg | 4,9 W/kg |
+| 800 | 6,4 W/kg | 5,4 W/kg |
+| 900 · Aliens | 7,1 W/kg | 6,0 W/kg |
+
+Voorbij 900 telt de score gewoon door (1.000, …). **Aliens** zijn de
+recordwaarden: wat er van de allerbeste renners gepubliceerd is. Daarvoor is 800
+iets omlaag geschoven naar het niveau van WorldTour-winnaars. Punten worden
+afgekapt, niet afgerond: 499,9 is nog 499, en 500 verschijnt pas bij het volgende
+niveau.
+
+**De berg.** Eén berg: in het midden de hoofdtop op je score (na de
+consistentiefactor), met zeven graten die naar buiten lopen. Op elke graat staat een echte, spitse piek die precies tot
 de punten van die graat komt; een sterke kant steekt boven de hoofdtop uit, een
 zwakke blijft eronder. Achter de berg staan de niveaus als virtuele,
 niet-bestaande ijkbergen; hun hoogte is alleen beeld.
@@ -61,7 +72,7 @@ fitheid en racen, en terug naar sprint:
 | Drempel | beste 20 min, W/kg | 12,5% | Tijdrijden en lange klimmen; reproduceerbaar uit veldgegevens. | Leo 2021; Quod 2010 |
 | Durability | verval op 20 min, % per 10 kJ/kg | 20% | Onderscheidt niveaus beter dan vers vermogen, ook bij amateurs, en staat los van FTP en VO2max. | van Erp 2021; Mateo-March 2022, 2025; Barsumyan 2025 (twee studies); Spragg 2024 |
 | Fitheid | CTL, TSS/dag | 15% | Goede trend, zwakke voorspeller. | Marchal 2025; Busso 2023; Borresen 2009 |
-| Racen | Zwift Racing Score | 15% | Het resultaat in de praktijk, wereldwijd vergelijkbaar. | Zwift: categorieën per Racing Score |
+| Racen | Zwift Racing Score | 15% | Het resultaat in de praktijk, wereldwijd vergelijkbaar. | Zwift Racing Score |
 
 **Gewichten** zijn een keuze van ZWB (eigenaar, 2026-10-21): het vermogensprofiel
 samen 50% als sterkste voorspeller (Leo 2021; Valenzuela 2023), durability 20%,
@@ -73,10 +84,10 @@ hoofdtop uitsteekt, een diesel hoge pieken bij drempel, durability en fitheid.
 (De eerste regel, lengte van een graat = (niveau ÷ score)^1,8, vervalt met de
 berg van zeven pieken; `ridgeReach` blijft tot de bouw van de pagina staan.)
 
-**Rekenvoorbeeld (man):** sprint 13,2 W/kg → 4,80; anaeroob 7,6 → 4,25; VO2max
-5,1 → 4,43; drempel 4,3 → 4,50; durability 4,2%/10 kJ/kg → 4,57; CTL 78 → 4,65;
-ZRS 640 → 4,60. Score 4,55, op het scherm **455 punten**: niveau 4 (Gevorderde),
-nog 45 punten tot Sterke amateur. Staat als test in `tests/unit/berg-score.test.ts`.
+**Rekenvoorbeeld (man):** sprint 13,2 W/kg → 480 punten; anaeroob 7,6 → 425;
+VO2max 5,1 → 442; drempel 4,3 → 450; durability 4,2%/10 kJ/kg → 457; CTL 78 →
+465; ZRS 640 → 576. Profielscore 472. Met consistentie 55% (factor 0,91):
+**430 punten**, nog 70 tot 500. Staat als test in `tests/unit/berg-score.test.ts`.
 
 ## Consistentie, altijd ten opzichte van jezelf
 
@@ -103,9 +114,11 @@ tellen. Het past bij de regel dat beschikbaarheid geen belastbaarheid is.
 - Onderbouwing: Raysmith & Drew 2016 (wie meer dan 80% van de geplande
   trainingsweken afmaakte, haalde ongeveer zeven keer zo vaak zijn doel);
   Foster 1998.
-- Telt niet mee in de score. Op de berg is het de breedte en stevigheid van de
-  voet: voet = 0,6 + 0,4 × consistentie, met afbrokkelende flanken bij een lage
-  waarde (niet spitser, want een smalle voet maakt een berg juist indrukwekkend).
+- **Telt mee als factor**: score = profielscore × (0,8 + 0,2 × consistentie).
+  Op de berg is het daarnaast de breedte en stevigheid van de voet: voet = 0,6 +
+  0,4 × consistentie, met afbrokkelende flanken bij een lage waarde (niet spitser,
+  want een smalle voet maakt een berg juist indrukwekkend). Op het scherm staat
+  consistentie als percentage.
 
 ## Bewust niet als graat
 
@@ -186,12 +199,12 @@ WorldTour-profs zitten rond 140 tot 150 en na een grote ronde rond 170; 180 is h
 hoogste dat genoemd wordt ([Fast Talk Labs](https://fasttalklabs.com/training/chronic-training-load-ctl-isnt-everything)).
 De lagere niveaus zijn een inschatting van ZWB.
 
-**Racen (Zwift Racing Score, 0–1000)**: 0, 100, 250, 400, 550, 700, 800, 870, 920,
-1000 (Aliens). Zwift deelt in in E 0–200, D 200–400, C 400–600, B 600–800 en A
-800–1000. Scores boven 900 komen voor; 1000 is nog door niemand gehaald
-([Zwift-forum](https://forums.zwift.com/t/zwift-racing-score-october-2024/636179?page=51))
-en is daarom Aliens. Omdat ZRS bij 1000 ophoudt, komt deze graat nooit boven
-niveau 9.
+**Racen (Zwift Racing Score, 0–1000)**: een rechte lijn, 0 ZRS is 0 punten en 1000
+ZRS is Aliens (900 punten), dus elke ZRS-punt is 0,9 punt. Bewust niet gekoppeld
+aan Zwift's categorieën: een score is geen groep (eigenaar, 2026-10-21). Scores
+boven 900 komen voor; 1000 is nog door niemand gehaald
+([Zwift-forum](https://forums.zwift.com/t/zwift-racing-score-october-2024/636179?page=51)).
+Omdat ZRS bij 1000 ophoudt, komt deze graat nooit boven 900 punten.
 
 ## Bronnen
 
@@ -221,4 +234,4 @@ niveau 9.
 - Valenzuela PL et al. (2022). The record power profile of male professional cyclists: normative values. *Int J Sports Physiol Perform*. [doi:10.1123/ijspp.2021-0263](https://doi.org/10.1123/ijspp.2021-0263)
 - Valenzuela PL et al. (2023). Laboratory-based determinants of simulated time trial performance in cyclists. *Biol Sport*. [doi:10.5114/biolsport.2023.122484](https://doi.org/10.5114/biolsport.2023.122484)
 - van Erp T et al. (2021). Maintaining power output with accumulating levels of work done is a key determinant for success in professional cycling. *Med Sci Sports Exerc*. [doi:10.1249/mss.0000000000002656](https://doi.org/10.1249/mss.0000000000002656)
-- Zwift: categorieën per Racing Score (E 0–200 tot A 800–1000), zoals op Zwift's eigen eventpagina's en in de Racing Score FAQ ([support.zwift.com](https://support.zwift.com/en_us/racing-score-faq-BkG9_Rqrh)).
+- Zwift: Racing Score van 0 tot 1000, Racing Score FAQ ([support.zwift.com](https://support.zwift.com/en_us/racing-score-faq-BkG9_Rqrh)).
