@@ -65,6 +65,14 @@
  * het lid dat aanzet (0264, `nutrition_recipes.visibility` en `show_owner`).
  * `/privacy` noemt het bij "Lengte en eigen recepten". Of dit zonder nieuwe
  * versie mag, is aan de eigenaar (zie PLAN.md, ronde "Recept van een link").
+ *
+ * **Achtste uitzondering, besluit eigenaar: ZWBriljant (2026-10-21).** De steen
+ * rekent met gegevens die leden al gaven (intervals.icu, Zwift-ID, ritten,
+ * schema, geslacht) en bewaart per week alleen afgeleide scores, voor het lid
+ * zelf (0265, `zwbriljant_snapshots`); geen nieuwe categorie of ontvanger, dus
+ * alleen de tekst (`/privacy#zwbriljant`). Delen met andere leden krijgt een
+ * eigen toestemming (`zwbriljant_preferences.consent_version`) en een eigen
+ * tekst zodra dat gebouwd is.
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring

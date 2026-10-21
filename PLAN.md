@@ -11327,9 +11327,16 @@ onderzoek [zwbriljant-onderzoek.md](docs/zwbriljant-onderzoek.md).
 
 **Bewust niet (nog).** Fase 4: het scherm om te delen (toestemming en verbergen), de
 stenen van andere leden op hun profiel, een clubvergelijking en de privacytekst. Ook het
-weer (vorm, TSB) niet op de pagina. De privacyverklaring noemt ZWBriljant nog niet;
-**voorleggen aan de eigenaar** vóór livegang, want de pagina bewaart nu bij het openen
-een wekelijkse snapshot (alleen afgeleide scores, voor jezelf).
+weer (vorm, TSB) niet op de pagina. Geen knop om je gegevens te wissen (besluit
+eigenaar bij de privacytekst; de database laat het lid zijn eigen rijen wel wissen).
+
+**Privacy** (zelfde dag, voorgelegd en goedgekeurd): `/privacy#zwbriljant` beschrijft
+welke gegevens de steen gebruikt, dat per week alleen afgeleide scores worden bewaard
+(geen watts, W/kg, gewicht, CTL of ZRS), de terugblik en het wekelijks verversen, dat
+alleen het lid zelf de steen ziet en dat er niets naar OpenAI gaat. **Geen nieuwe
+privacyversie** (besluit eigenaar): geen nieuwe categorie of ontvanger; vastgelegd als
+achtste uitzondering in `src/lib/privacy.ts`. Delen met andere leden krijgt later een
+eigen toestemming en tekst.
 
 **Getest.** `briljant-score` (klassen, `levelOf`, positie), `briljant-view` (8: punten,
 klasse, factor, balken, durability "minder", racen over de schaal, hernormaliseren, geen

@@ -433,6 +433,22 @@ export default function PrivacyPage() {
             events van de week erna. Het staat in je data-export en verdwijnt
             als je je account opheft.
           </li>
+          <li id="zwbriljant" className="scroll-mt-20">
+            <strong>ZWBriljant:</strong> in ZWBeter zie je je niveau als
+            edelsteen, met een score in punten. Daarvoor gebruiken we wat je al
+            met ons deelt: je vermogenscurve, vermoeide curve en CTL uit
+            intervals.icu, je Zwift Racing Score via je Zwift-ID, je ritten,
+            schema en beschikbaarheid voor de consistentie, en je opgegeven
+            geslacht (de normen voor vrouwen zijn anders). Zodra je ZWBriljant
+            opent, bewaren we per week je score, je punten per onderdeel, je
+            consistentie (een getal van 0 tot 1) en per bron alleen óf die er
+            was. Geen watts, W/kg, gewicht, CTL of ZRS. De eerste keer maken we
+            een terugblik over twaalf maanden uit je intervals.icu-gegevens;
+            daarna verversen we één keer per week je vermogensprofiel en je
+            Racing Score. Alleen jij kunt je steen zien. Er gaat niets naar
+            OpenAI of een andere partij. Het staat in je data-export en
+            verdwijnt als je je account opheft.
+          </li>
           <li>
             <strong>Persoonlijke voorkeuren:</strong> op het tabblad
             Uitgangspunten, of met het vinkje &ldquo;Onthoud als voorkeur&rdquo; in
