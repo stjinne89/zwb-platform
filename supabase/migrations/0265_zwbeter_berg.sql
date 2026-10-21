@@ -1,15 +1,16 @@
--- ZWBeter-berg: per week je hoogte en de meters per richting, en of je je berg
--- met andere deelnemers deelt. De rekenregels staan in src/lib/berg.
+-- ZWBeter-berg: per week je score en het niveau per graat, en of je je berg met
+-- andere deelnemers deelt. De score is een niveau met decimalen (4,5 = niveau 4,
+-- halverwege naar 5), zonder plafond. De rekenregels staan in src/lib/berg.
 --
 -- Wat hier bewust niet staat:
 --
--- * Geen ruwe waarden. Geen watt, W/kg, gewicht, CTL, ZRS of HRV: alleen meters
---   per richting, de hoogte en de consistentie (0–1). Wat er aan bronnen was,
+-- * Geen ruwe waarden. Geen watt, W/kg, gewicht, CTL, ZRS of HRV: alleen het
+--   niveau per graat, de score en de consistentie (0–1). Wat er aan bronnen was,
 --   staat als ja/nee in `provenance`, zonder getal.
 -- * Geen vorm of vermoeidheid. Die is het weer op je eigen berg en wordt bij het
 --   openen live berekend, nooit bewaard.
 -- * Geen schrijfrechten voor leden. Snapshots komen alleen van de server
---   (service_role): zo kan niemand zijn eigen berg ophogen.
+--   (service_role): zo kan niemand zijn eigen score ophogen.
 --
 -- Delen gebeurt bij het lezen (zwbeter_berg_shares): wie de toestemming intrekt
 -- of zijn berg verbergt, is meteen voor niemand meer zichtbaar. De eigen historie
@@ -30,12 +31,13 @@ create table if not exists public.zwbeter_berg_snapshots (
   -- Maandag van de week (Amsterdam). Een terugblik gebruikt de maandag van de
   -- week waarin de periode eindigt.
   week date not null check (extract(isodow from week) = 1),
-  -- Null: te weinig richtingen voor een hoogte.
-  height integer check (height is null or height between 0 and 100000),
-  -- {"explosief": 3404, "duurvermogen": null, ...}; alleen bekende richtingen.
+  -- Null: te weinig graten voor een score. Geen plafond, wel een grens tegen
+  -- onzin.
+  score numeric(5, 2) check (score is null or score between 0 and 100),
+  -- {"sprint": 4.8, "durability": null, ...}; alleen de zeven graten.
   ridges jsonb not null check (
     jsonb_typeof(ridges) = 'object'
-    and ridges - array['explosief', 'duurvermogen', 'durability', 'fitheid', 'racen'] = '{}'::jsonb
+    and ridges - array['sprint', 'anaeroob', 'vo2max', 'drempel', 'durability', 'fitheid', 'racen'] = '{}'::jsonb
   ),
   consistency numeric check (consistency is null or consistency between 0 and 1),
   source text not null check (source in ('week', 'terugblik')),

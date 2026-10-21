@@ -11281,6 +11281,57 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBeter-berg, het model bijgestuurd: zeven graten, score als niveau
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Migratie
+`0265_zwbeter_berg.sql` aangepast (nog niet toegepast, dus het bestand mocht nog
+veranderen). Niet gepusht.
+
+**Waarom.** De eigenaar stuurde het model twee keer bij. In een fork van deze sessie, na
+twee visuele schetsen (en uitdrukkelijk goedgekeurd): achter elk getal een echte meting met
+formule ("wat is explosief 3900 nu?"), zeven graten, een gewogen score, de vorm van de berg
+als profiel en consistentie ten opzichte van jezelf. Daarna hier, na 3D-schetsen: virtuele
+niveaus in plaats van echte bergketens, en weg met de meters ("maak hier iets van wat
+duidelijker is").
+
+**Nu.**
+- **De score is het niveau zelf** met één decimaal: 4,5 is niveau 4 (Gevorderde),
+  halverwege naar 5. Acht niveaus, Starter tot Wereldtop, zonder plafond. Op de berg zijn
+  het virtuele ijkbergen; hun hoogte is alleen beeld. Het scherm kapt af op één decimaal.
+- **Zeven graten**: Sprint (15 s), Anaeroob (1 min), VO2max (5 min), Drempel (20 min),
+  Durability, Fitheid (CTL) en Racen (ZRS). Explosief en Duurvermogen vervallen.
+- **Formule per graat**: `scaleStep` geeft het stuk van de schaal waarin een meting valt,
+  zodat het scherm "4 + (4,3 − 4,0) ÷ (4,6 − 4,0) = 4,5" kan voorrekenen.
+- **Gewogen**: vermogensprofiel 50% (elke duur 12,5%), durability 20%, fitheid en racen
+  elk 15%; ontbrekende graten worden opnieuw genormaliseerd (`RIDGE_WEIGHTS`, keuze van de
+  eigenaar).
+- **Vorm**: lengte van een graat = (niveau van de graat ÷ score)^1,8 (`ridgeReach`).
+- **Consistentie** = R × (0,5 + 0,5 · V) × N, altijd tegen je eigen norm (beschikbaarheid
+  uit het schema, anders je eigen mediaan): regelmaat over twaalf weken, volhouden als
+  reeks, naleving van het schema. Geen absolute uren meer (die zitten in Fitheid). Voet =
+  0,6 + 0,4 × consistentie. De server haalt ritten, geplande trainingen (zonder vervangen
+  workouts en niet-toegepaste dagvoorstellen) en `training_availability` op.
+- Onderzoek, niveautabel, gewichten en het rekenvoorbeeld:
+  [zwbeter-berg-onderzoek.md](docs/zwbeter-berg-onderzoek.md).
+
+**Afwijking van de afspraak.** Een geplande herstelweek telt als gehaald (ook in R), niet
+alleen als "breekt de reeks niet". Het rekenvoorbeeld uit de fork (R 0,83 met een reeks van
+twintig weken) kan daardoor niet tegelijk voorkomen; gekozen omdat wie het schema volgt er
+anders voor gestraft wordt. Herstelweek = het schema plant minder dan 75% van de week
+ervoor.
+
+**Bewust niet.** Echte bergketens en meters (vervangen, zie hierboven). Verder
+ongewijzigd: HRV, vorm en herhaalbaarheid zijn geen graat, vELO telt nog niet mee.
+
+**Getest.** `berg-score.test.ts` (23, met het rekenvoorbeeld van de eigenaar: score 4,55),
+`berg-snapshot.test.ts` (10: weken, herstelweek, naleving, beschikbaarheid) en
+`berg-migration.test.ts` (8, nu met `score` en de zeven graten). ESLint schoon. **Niet
+getest:** de server-kant tegen echte gegevens.
+
+**Ontwerp, nog open.** De eigenaar bekeek 3D-schetsen (sleep en zoom) en vindt het
+geschilderde panorama en het prestatiedashboard het mooist; de ZWB-keten (alle deelnemers
+als aantikbare bergen, "Leg naast de mijne") is voorgesteld. De keuze van de stijl volgt.
+
 ### Gebouwd — ZWBeter-berg, fase 2: gegevens, wekelijkse job en terugblik
 
 **2026-10-21.** Commit: de commit die dit blok toevoegt. Migratie
@@ -11293,7 +11344,9 @@ intervals.icu). Voor "jij in de tijd" en de club zijn wekelijkse momentopnames n
 **Nu.**
 - **0265:** `zwbeter_berg_preferences` (delen ja/nee met `consent_version` 2026-10-21, en
   `visible`) en `zwbeter_berg_snapshots` (per lid en week: hoogte, meters per richting,
-  consistentie, bron `week` of `terugblik`, en welke bronnen er waren als ja/nee). Geen ruwe
+  consistentie, bron `week` of `terugblik`, en welke bronnen er waren als ja/nee).
+  *Sindsdien: `score` (numeric 5,2) in plaats van `height`, en de zeven graten in de
+  check op `ridges`.* Geen ruwe
   waarden: geen watt, W/kg, gewicht, CTL, ZRS of HRV; een check houdt onbekende sleutels
   in `ridges` tegen. Leden kunnen niet schrijven (alleen de server); wel hun eigen berg
   wissen. Lezen: je eigen berg altijd, die van een ander alleen als jullie allebei delen
@@ -11339,7 +11392,9 @@ Vandaag. Het goedgekeurde plan heeft vier fasen; dit is de eerste.
 ijkpunt; ijkwaarden per richting en geslacht) en `src/lib/berg/score.ts` (meterschaal
 zonder plafond, keten en "nog x m", richtingen Explosief, Duurvermogen, Durability,
 Fitheid en Racen, je hoogte als gemiddelde, consistentie als breedte van de voet,
-clubpercentiel en jij tegen jezelf). Onderzoek en de bron van elke ijkwaarde:
+clubpercentiel en jij tegen jezelf). *Niet meer waar sinds dezelfde dag: geen ketens en
+geen meters, zeven graten, een gewogen score als niveau en een nieuwe consistentie; zie de
+ronde "ZWBeter-berg, het model bijgestuurd".* Onderzoek en de bron van elke ijkwaarde:
 [zwbeter-berg-onderzoek.md](docs/zwbeter-berg-onderzoek.md).
 
 **Bewust niet.** HRV/readiness, vorm (TSB) en herhaalbaarheid zijn geen richting

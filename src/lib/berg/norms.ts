@@ -1,79 +1,70 @@
-// De ijkwaarden van de ZWBeter-berg: bergketens als niveaus, en per richting de
-// waarde die bij de top van elke keten hoort.
+// De ijkwaarden van de ZWBeter-berg: acht niveaus, en per graat de waarde die
+// bij elk niveau hoort.
+//
+// De score is het niveau zelf met een decimaal: 4,5 is niveau 4, halverwege naar
+// 5. Er is geen plafond: voorbij de Wereldtop (8) loopt de schaal door. Op de
+// berg zijn de niveaus virtuele ijkbergen; hun hoogte is alleen beeld.
 //
 // Puur en zonder database. De bron van elke rij staat in
-// docs/zwbeter-berg-onderzoek.md. Waar geen bron een getal geeft, is het een
-// inschatting van ZWB; dat staat er dan bij ("ZWB-inschatting") en op /hulp.
+// docs/zwbeter-berg-onderzoek.md. Geen studie koppelt vermogen aan niveaus van
+// 1 tot 8; de ijkwaarden zijn inschattingen van ZWB op basis van de literatuur
+// ("estimate") en staan zo ook op /hulp.
 
-export type RangeId =
-  | "heuvelland"
-  | "ardennen"
-  | "vogezen"
-  | "pyreneeen"
-  | "alpen"
-  | "kaukasus"
-  | "andes"
-  | "himalaya";
-
-export type MountainRange = {
-  id: RangeId;
-  /** De keten, zoals hij op het scherm staat. */
+export type Level = {
+  /** 1 tot en met 8. */
+  n: number;
   name: string;
-  /** De hoogste top van de keten: het ijkpunt. */
-  peak: string;
-  /** Hoogte van die top in meters. */
-  meters: number;
 };
 
-/** Van laag naar hoog. Wie de top van een keten passeert, staat in de volgende. */
-export const RANGES: readonly MountainRange[] = [
-  { id: "heuvelland", name: "Heuvelland", peak: "Vaalserberg", meters: 322 },
-  { id: "ardennen", name: "Ardennen", peak: "Signal de Botrange", meters: 694 },
-  { id: "vogezen", name: "Vogezen", peak: "Grand Ballon", meters: 1424 },
-  { id: "pyreneeen", name: "Pyreneeën", peak: "Aneto", meters: 3404 },
-  { id: "alpen", name: "Alpen", peak: "Mont Blanc", meters: 4806 },
-  { id: "kaukasus", name: "Kaukasus", peak: "Elbrus", meters: 5642 },
-  { id: "andes", name: "Andes", peak: "Aconcagua", meters: 6961 },
-  { id: "himalaya", name: "Himalaya", peak: "Mount Everest", meters: 8849 },
+/** Van laag naar hoog. Wie de norm van een niveau haalt, staat op dat niveau. */
+export const LEVELS: readonly Level[] = [
+  { n: 1, name: "Starter" },
+  { n: 2, name: "Recreant" },
+  { n: 3, name: "Toerrijder" },
+  { n: 4, name: "Gevorderde" },
+  { n: 5, name: "Sterke amateur" },
+  { n: 6, name: "Elite-amateur" },
+  { n: 7, name: "Profpeloton" },
+  { n: 8, name: "Wereldtop" },
 ];
 
 export type Sex = "man" | "vrouw";
 
 /**
- * Een meterschaal: de waarde die 0 m oplevert, en per keten (in de volgorde van
- * RANGES) de waarde die bij zijn top hoort. `lowerIsBetter` draait de richting
- * om (durability: minder verval is hoger).
+ * Een schaal: de waarde die 0 oplevert, en per niveau (1 tot en met 8) de
+ * waarde die erbij hoort. `lowerIsBetter` draait de richting om (durability:
+ * minder verval is beter).
  */
 export type Anchors = {
   zero: number;
-  peaks: readonly [number, number, number, number, number, number, number, number];
+  levels: readonly [number, number, number, number, number, number, number, number];
   lowerIsBetter?: boolean;
   /** Een inschatting van ZWB, niet rechtstreeks uit een bron. */
   estimate?: boolean;
 };
 
+export type PowerDuration = "s15" | "m1" | "m5" | "m20";
+
 /**
  * Vermogen in W/kg per duur, voor mannen. Ingeschat aan de hand van de
  * gebruikelijke indeling per duur (ongetraind tot wereldklasse) en de normen van
  * profrenners (Valenzuela 2022; Mateo-March 2022, 2026; Spragg 2022, 2024).
- * Himalaya is het niveau van de beste renners ter wereld op die duur.
+ * Niveau 8 is het niveau van de beste renners ter wereld op die duur.
  */
 const POWER_MAN = {
-  s15: { zero: 4, peaks: [7.5, 9, 10.5, 12, 13.5, 15, 16.5, 19], estimate: true },
-  m1: { zero: 3, peaks: [5, 5.8, 6.6, 7.4, 8.2, 9, 9.8, 11], estimate: true },
-  m5: { zero: 1.2, peaks: [2.4, 3.2, 4, 4.8, 5.5, 6.2, 6.7, 7.5], estimate: true },
-  m20: { zero: 1, peaks: [1.9, 2.6, 3.3, 4, 4.6, 5.3, 5.8, 6.5], estimate: true },
+  s15: { zero: 4, levels: [7.5, 9, 10.5, 12, 13.5, 15, 16.5, 19], estimate: true },
+  m1: { zero: 3, levels: [5, 5.8, 6.6, 7.4, 8.2, 9, 9.8, 11], estimate: true },
+  m5: { zero: 1.2, levels: [2.4, 3.2, 4, 4.8, 5.5, 6.2, 6.7, 7.5], estimate: true },
+  m20: { zero: 1, levels: [1.9, 2.6, 3.3, 4, 4.6, 5.3, 5.8, 6.5], estimate: true },
 } as const satisfies Record<PowerDuration, Anchors>;
 
 /**
- * Vrouwen: dezelfde ketens bij een vast aandeel van de waarden voor mannen. Het
+ * Vrouwen: dezelfde niveaus bij een vast aandeel van de waarden voor mannen. Het
  * aandeel volgt de verhouding tussen de normen van vrouwelijke en mannelijke
  * profs (Mateo-March 2022 tegenover Valenzuela 2022) en is kleiner bij korte
  * duren. Een inschatting van ZWB.
  */
 const FEMALE_SHARE: Record<PowerDuration, number> = { s15: 0.8, m1: 0.82, m5: 0.84, m20: 0.85 };
-
-export type PowerDuration = "s15" | "m1" | "m5" | "m20";
 
 export function powerAnchors(duration: PowerDuration, sex: Sex | null): Anchors {
   const base = POWER_MAN[duration];
@@ -82,30 +73,30 @@ export function powerAnchors(duration: PowerDuration, sex: Sex | null): Anchors 
   const round = (value: number) => Math.round(value * share * 100) / 100;
   return {
     zero: round(base.zero),
-    peaks: base.peaks.map(round) as unknown as Anchors["peaks"],
+    levels: base.levels.map(round) as unknown as Anchors["levels"],
     estimate: true,
   };
 }
 
 /**
  * Zwift Racing Score (0–1000). Zwift deelt in in E 0–200, D 200–400,
- * C 400–600, B 600–800 en A 800–1000; de top van de schaal staat op
- * Himalaya-hoogte. De koppeling van categorie aan keten is van ZWB. Omdat de
- * score bij 1000 ophoudt, komt deze richting nooit boven de Everest.
+ * C 400–600, B 600–800 en A 800–1000; de top van de schaal is niveau 8. De
+ * koppeling aan de niveaus is van ZWB. Omdat de score bij 1000 ophoudt, komt
+ * deze graat nooit boven niveau 8.
  */
 export const ZRS_ANCHORS: Anchors = {
   zero: 0,
-  peaks: [100, 250, 400, 550, 700, 800, 900, 1000],
+  levels: [100, 250, 400, 550, 700, 800, 900, 1000],
   estimate: true,
 };
 
 /**
- * Fitheid als CTL (trainingsbelasting over 42 dagen). Profs zitten rond 120 tot
- * 160; de lagere ketens zijn een inschatting van ZWB.
+ * Fitheid als CTL (trainingsbelasting over 42 dagen, TSS per dag). Profs zitten
+ * rond 120 tot 160; de lagere niveaus zijn een inschatting van ZWB.
  */
 export const CTL_ANCHORS: Anchors = {
   zero: 0,
-  peaks: [15, 30, 45, 65, 85, 105, 125, 150],
+  levels: [15, 30, 45, 65, 85, 105, 125, 150],
   estimate: true,
 };
 
@@ -117,10 +108,28 @@ export const CTL_ANCHORS: Anchors = {
  */
 export const DURABILITY_ANCHORS: Anchors = {
   zero: 18,
-  peaks: [12.5, 9.5, 7, 5, 3.6, 2.6, 1.8, 1.2],
+  levels: [12.5, 9.5, 7, 5, 3.6, 2.6, 1.8, 1.2],
   lowerIsBetter: true,
   estimate: true,
 };
 
 /** Durability telt pas vanaf zoveel voorafgaand werk; daaronder zegt het verval weinig. */
 export const DURABILITY_MIN_KJ_PER_KG = 10;
+
+/**
+ * Het gewicht van elke graat in de score. Een keuze van ZWB (eigenaar,
+ * 2026-10-21), gegrond op de literatuur: het vermogensprofiel samen 50% als
+ * sterkste voorspeller (Leo 2021; Valenzuela 2023), durability 20% als factor
+ * naast FTP en VO2max (Barsumyan 2025; van Erp 2021), fitheid 15% (goede trend,
+ * zwakke voorspeller; Marchal 2025) en racen 15% (het resultaat in de praktijk).
+ * Ontbreekt een graat, dan gaan de gewichten van de rest samen weer naar 100%.
+ */
+export const RIDGE_WEIGHTS = {
+  sprint: 0.125,
+  anaeroob: 0.125,
+  vo2max: 0.125,
+  drempel: 0.125,
+  durability: 0.2,
+  fitheid: 0.15,
+  racen: 0.15,
+} as const;

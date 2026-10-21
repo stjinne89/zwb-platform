@@ -17,31 +17,38 @@ import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metri
 import { isCyclingSportType } from "@/lib/strava/sports";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
-import type { BergInput, RideDay } from "./score";
+import { CONSISTENCY_WEEKS, type BergInput, type ConsistencyInput } from "./score";
 import type { Sex } from "./norms";
 import {
+  availabilityHours,
+  complianceFrom,
+  consistencyWeeks,
   curveRange,
   fatigueInputs,
+  mondayKey,
   monthEnds,
   powerFromCurve,
   shiftDay,
   snapshotFrom,
   type CurvePoint,
+  type PlannedWorkout,
+  type RideDay,
   type SnapshotRow,
 } from "./snapshot";
-import { CONSISTENCY_WEEKS } from "./score";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
 /** Ouder dan dit wordt het powerprofiel in de wekelijkse job ververst. */
 const POWER_STALE_MS = 6 * 24 * 60 * 60 * 1000;
 const TERUGBLIK_MONTHS = 12;
+/** Zoveel weken terug voor de norm (mediaan) en de reeks. */
+const HISTORY_WEEKS = 52;
 
 export type Weather = { tsb: number; atl: number } | null;
 
 export type Collected = {
   input: BergInput;
-  rides: RideDay[];
+  consistency: ConsistencyInput;
   weather: Weather;
 };
 
@@ -54,7 +61,6 @@ type PowerRow = {
   weight_kg: number | string | null;
   curve_points: CurvePoint[] | null;
   curve_points_fatigue: Array<{ afterKj: number; points: CurvePoint[] }> | null;
-  synced_at: string | null;
 };
 
 const num = (value: unknown) => {
@@ -86,10 +92,73 @@ async function loadRides(admin: Admin, profileId: string, from: string): Promise
     .eq("profile_id", profileId)
     .gte("start_date", `${from}T00:00:00Z`)
     .order("start_date", { ascending: true })
-    .limit(2000);
+    .limit(3000);
   return ((data ?? []) as Array<{ start_date: string; moving_time_seconds: number | null; sport_type: string | null }>)
     .filter((row) => isCyclingSportType(row.sport_type))
     .map((row) => ({ day: amsterdamDayKey(new Date(row.start_date)), minutes: Math.round((row.moving_time_seconds ?? 0) / 60) }));
+}
+
+/**
+ * Geplande trainingen vanaf `from`: zonder vervangen workouts en zonder
+ * niet-toegepaste dagvoorstellen, net als in de voedingsmodule.
+ */
+async function loadPlanned(admin: Admin, profileId: string, from: string, to: string): Promise<PlannedWorkout[]> {
+  const [{ data: workouts }, { data: drafts }] = await Promise.all([
+    admin
+      .from("training_workouts")
+      .select("scheduled_at, duration_minutes, intensity, status, plan_id")
+      .eq("profile_id", profileId)
+      .is("superseded_at", null)
+      .gte("scheduled_at", `${from}T00:00:00Z`)
+      .lt("scheduled_at", `${to}T00:00:00Z`),
+    admin
+      .from("training_plans")
+      .select("id")
+      .eq("profile_id", profileId)
+      .eq("status", "draft")
+      .eq("adaptation_kind", "daily"),
+  ]);
+  const skip = new Set((drafts ?? []).map((plan) => plan.id as string));
+  return ((workouts ?? []) as Array<{
+    scheduled_at: string;
+    duration_minutes: number | null;
+    intensity: string | null;
+    status: string | null;
+    plan_id: string | null;
+  }>)
+    .filter((row) => !skip.has(row.plan_id ?? "") && row.intensity !== "rest")
+    .map((row) => ({
+      day: amsterdamDayKey(new Date(row.scheduled_at)),
+      minutes: row.duration_minutes ?? 0,
+      status: row.status === "completed" ? "completed" : row.status === "skipped" ? "skipped" : "planned",
+    }));
+}
+
+/** Beschikbaarheid voor de week van `day`, anders de standaardweek; null zonder schema. */
+async function loadNormHours(admin: Admin, profileId: string, day: string): Promise<number | null> {
+  const { data } = await admin
+    .from("training_availability")
+    .select("week_start, minutes_by_day")
+    .eq("profile_id", profileId)
+    .or(`week_start.is.null,week_start.eq.${mondayKey(day)}`);
+  const rows = (data ?? []) as Array<{ week_start: string | null; minutes_by_day: unknown }>;
+  const week = rows.find((row) => row.week_start) ?? rows.find((row) => !row.week_start);
+  return week ? availabilityHours(week.minutes_by_day) : null;
+}
+
+/** De invoer voor de consistentie tot de week van `day`. */
+async function loadConsistency(admin: Admin, profileId: string, day: string, rides?: RideDay[]): Promise<ConsistencyInput> {
+  const from = shiftDay(mondayKey(day), -HISTORY_WEEKS * 7 - 7);
+  const [allRides, planned, normHours] = await Promise.all([
+    rides ? Promise.resolve(rides) : loadRides(admin, profileId, from),
+    loadPlanned(admin, profileId, from, mondayKey(day)),
+    loadNormHours(admin, profileId, day),
+  ]);
+  return {
+    weeks: consistencyWeeks(allRides, planned, day, HISTORY_WEEKS),
+    normHours,
+    compliance: complianceFrom(planned, shiftDay(mondayKey(day), -CONSISTENCY_WEEKS * 7), day),
+  };
 }
 
 function latestWellness(rows: IntervalsWellness[]): IntervalsWellness | null {
@@ -99,15 +168,15 @@ function latestWellness(rows: IntervalsWellness[]): IntervalsWellness | null {
 
 /** Alles wat de berg van dit lid nu nodig heeft. Ontbrekende bronnen blijven leeg. */
 export async function collectBerg(admin: Admin, profileId: string, today = amsterdamDayKey()): Promise<Collected> {
-  const [{ data: profile }, { data: power }, connection, rides] = await Promise.all([
+  const [{ data: profile }, { data: power }, connection, consistency] = await Promise.all([
     admin.from("profiles").select("sex, weight_kg, zwift_id").eq("id", profileId).maybeSingle(),
     admin
       .from("rider_power_profiles")
-      .select("wkg_15s, wkg_1m, wkg_5m, wkg_20m, weight_kg, curve_points, curve_points_fatigue, synced_at")
+      .select("wkg_15s, wkg_1m, wkg_5m, wkg_20m, weight_kg, curve_points, curve_points_fatigue")
       .eq("profile_id", profileId)
       .maybeSingle(),
     loadConnection(admin, profileId),
-    loadRides(admin, profileId, shiftDay(today, -CONSISTENCY_WEEKS * 7)),
+    loadConsistency(admin, profileId, today),
   ]);
   const p = profile as ProfileRow | null;
   const pw = power as PowerRow | null;
@@ -132,14 +201,12 @@ export async function collectBerg(admin: Admin, profileId: string, today = amste
     input: {
       sex: sexOf(p?.sex ?? null),
       weightKg,
-      power: pw
-        ? { s15: num(pw.wkg_15s), m1: num(pw.wkg_1m), m5: num(pw.wkg_5m), m20: num(pw.wkg_20m) }
-        : null,
+      power: pw ? { s15: num(pw.wkg_15s), m1: num(pw.wkg_1m), m5: num(pw.wkg_5m), m20: num(pw.wkg_20m) } : null,
       fatigue: fatigueInputs(pw?.curve_points ?? [], pw?.curve_points_fatigue ?? []),
       ctl,
       zrs,
     },
-    rides,
+    consistency,
     weather,
   };
 }
@@ -168,7 +235,13 @@ export async function refreshSources(admin: Admin, profileId: string, budgetMs: 
 /** De snapshot van deze week vastleggen (overschrijft die van deze week). */
 export async function storeWeek(admin: Admin, profileId: string, today = amsterdamDayKey()): Promise<SnapshotRow> {
   const collected = await collectBerg(admin, profileId, today);
-  const row = snapshotFrom({ profileId, day: today, source: "week", input: collected.input, rides: collected.rides });
+  const row = snapshotFrom({
+    profileId,
+    day: today,
+    source: "week",
+    input: collected.input,
+    consistency: collected.consistency,
+  });
   const { error } = await admin.from("zwbeter_berg_snapshots").upsert(row, { onConflict: "profile_id,week" });
   if (error) throw new Error(error.message);
   return row;
@@ -177,15 +250,15 @@ export async function storeWeek(admin: Admin, profileId: string, today = amsterd
 /**
  * Eenmalig bij het eerste gebruik: per maand van het afgelopen jaar een snapshot
  * uit intervals.icu (de beste 90 dagen tot het eind van die maand en de CTL van
- * die dag) en de ritten. Durability en ZRS hebben geen historie en blijven leeg.
- * Bestaande weken worden niet overschreven.
+ * die dag) en de consistentie tot die maand. Durability en ZRS hebben geen
+ * historie en blijven leeg. Bestaande weken worden niet overschreven.
  */
 export async function storeTerugblik(admin: Admin, profileId: string, today = amsterdamDayKey()): Promise<number> {
   const connection = await loadConnection(admin, profileId);
   const ends = monthEnds(today, TERUGBLIK_MONTHS);
   const [{ data: profile }, rides] = await Promise.all([
     admin.from("profiles").select("sex, weight_kg").eq("id", profileId).maybeSingle(),
-    loadRides(admin, profileId, shiftDay(ends[0], -CONSISTENCY_WEEKS * 7)),
+    loadRides(admin, profileId, shiftDay(ends[0], -HISTORY_WEEKS * 7 - 7)),
   ]);
   const p = profile as Pick<ProfileRow, "sex" | "weight_kg"> | null;
 
@@ -201,7 +274,8 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
   }
   const byDay = new Map(wellness.map((row) => [row.id, row]));
 
-  const rows = ends.map((end) => {
+  const rows: SnapshotRow[] = [];
+  for (const end of ends) {
     const day = byDay.get(end);
     const weightKg = num(day?.weight) ?? num(p?.weight_kg);
     const ctl = day && Number.isFinite(Number(day.ctl)) ? Number(day.ctl) : null;
@@ -213,12 +287,12 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
       ctl,
       zrs: null,
     };
-    const windowStart = shiftDay(end, -CONSISTENCY_WEEKS * 7);
-    const window = rides.filter((ride) => ride.day > windowStart && ride.day <= end);
-    return snapshotFrom({ profileId, day: end, source: "terugblik", input, rides: window });
-  });
+    // De week na het maandeinde: de consistentie telt dan tot en met die maand.
+    const consistency = await loadConsistency(admin, profileId, shiftDay(end, 1), rides);
+    rows.push(snapshotFrom({ profileId, day: end, source: "terugblik", input, consistency }));
+  }
 
-  const useful = rows.filter((row) => row.height != null || row.consistency != null);
+  const useful = rows.filter((row) => row.score != null || row.consistency != null);
   if (useful.length === 0) return 0;
   const { error } = await admin
     .from("zwbeter_berg_snapshots")

@@ -32,7 +32,7 @@ beforeAll(async () => {
   // Snapshots komen van de server; hier als eigenaar van de tabel.
   for (const id of [ANNA, BART, CEES, DIRK]) {
     await db.query(
-      "insert into zwbeter_berg_snapshots(profile_id, week, height, ridges, consistency, source) values ($1, '2026-10-19', 3400, '{\"explosief\": 3404, \"racen\": null}', 0.8, 'week')",
+      "insert into zwbeter_berg_snapshots(profile_id, week, score, ridges, consistency, source) values ($1, '2026-10-19', 4.55, '{\"sprint\": 4.8, \"racen\": null}', 0.8, 'week')",
       [id],
     );
   }
@@ -108,12 +108,12 @@ describe("ZWBeter-berg (0265)", () => {
     await expect(
       as(ANNA, () =>
         db.query(
-          `insert into zwbeter_berg_snapshots(profile_id, week, height, ridges, source) values ('${ANNA}', '2026-10-26', 9999, '{}', 'week')`,
+          `insert into zwbeter_berg_snapshots(profile_id, week, score, ridges, source) values ('${ANNA}', '2026-10-26', 9.9, '{}', 'week')`,
         ),
       ),
     ).rejects.toThrow(/permission denied/);
     await expect(
-      as(ANNA, () => db.query(`update zwbeter_berg_snapshots set height = 9999 where profile_id = '${ANNA}'`)),
+      as(ANNA, () => db.query(`update zwbeter_berg_snapshots set score = 9.9 where profile_id = '${ANNA}'`)),
     ).rejects.toThrow(/permission denied/);
     await as(ANNA, () => db.query(`delete from zwbeter_berg_snapshots where profile_id = '${CEES}'`));
     expect((await db.query(`select 1 from zwbeter_berg_snapshots where profile_id = '${CEES}'`)).rows).toHaveLength(1);
@@ -121,7 +121,17 @@ describe("ZWBeter-berg (0265)", () => {
     expect((await db.query(`select 1 from zwbeter_berg_snapshots where profile_id = '${CEES}'`)).rows).toHaveLength(0);
   });
 
-  it("weigert onbekende richtingen, een andere dag dan maandag en ruwe velden", async () => {
+  it("weigert onbekende graten, een andere dag dan maandag, een onzinscore en ruwe velden", async () => {
+    await expect(
+      db.query(
+        `insert into zwbeter_berg_snapshots(profile_id, week, ridges, source) values ('${ANNA}', '2026-10-26', '{"explosief": 4}', 'week')`,
+      ),
+    ).rejects.toThrow(/zwbeter_berg_snapshots_ridges_check/);
+    await expect(
+      db.query(
+        `insert into zwbeter_berg_snapshots(profile_id, week, score, ridges, source) values ('${ANNA}', '2026-10-26', 250, '{}', 'week')`,
+      ),
+    ).rejects.toThrow(/zwbeter_berg_snapshots_score_check/);
     await expect(
       db.query(
         `insert into zwbeter_berg_snapshots(profile_id, week, ridges, source) values ('${ANNA}', '2026-10-26', '{"watt": 300}', 'week')`,
@@ -136,7 +146,7 @@ describe("ZWBeter-berg (0265)", () => {
       "select column_name from information_schema.columns where table_name = 'zwbeter_berg_snapshots'",
     );
     expect(columns.rows.map((row) => row.column_name).sort()).toEqual(
-      ["consistency", "created_at", "height", "profile_id", "provenance", "ridges", "source", "week"].sort(),
+      ["consistency", "created_at", "profile_id", "provenance", "ridges", "score", "source", "week"].sort(),
     );
   });
 

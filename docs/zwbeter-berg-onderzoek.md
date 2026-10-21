@@ -1,59 +1,124 @@
-# ZWBeter-berg: onderzoek en ijkwaarden
+# ZWBeter-berg: onderzoek, model en ijkwaarden
 
 Onderzoek voor de ZWBeter-berg (2026-10-21): welke factoren in één score horen,
-en waar de ijkwaarden van de meterschaal vandaan komen. Gezocht in PubMed en
-Consensus. De code staat in `src/lib/berg/` (`norms.ts` voor de ijkwaarden,
-`score.ts` voor de berekening).
+hoe ze worden gewogen en waar de ijkwaarden vandaan komen. Gezocht in PubMed en
+Consensus. De code staat in `src/lib/berg/` (`norms.ts` voor de ijkwaarden en
+gewichten, `score.ts` voor de berekening).
 
-## Wat erin zit, en waarom
+Het model is op 2026-10-21 twee keer bijgestuurd door de eigenaar: eerst zeven
+graten, een gewogen score en consistentie ten opzichte van jezelf (uit een fork
+van de bouwsessie), daarna virtuele niveaus in plaats van echte bergketens en
+geen meters meer: **de score is het niveau zelf, met één decimaal.**
 
-| Richting | Waarom | Belangrijkste bronnen |
-|---|---|---|
-| Explosief (15 s, 1 min) | Het korte deel van het vermogensprofiel tekent sprinters en punchers. | Pinot & Grappe 2011; Valenzuela 2022 |
-| Duurvermogen (5, 20 min) | Het lange deel bepaalt klimmen en tijdrijden; reproduceerbaar uit veldgegevens. | Muriel 2023; Leo 2021; Quod 2010 |
-| Durability | Vermogen na voorafgaand werk onderscheidt niveaus beter dan vers vermogen, ook bij amateurs, en staat los van FTP en VO2max. | van Erp 2021; Mateo-March 2022, 2025; Barsumyan 2025 (twee studies); Spragg 2024 |
-| Fitheid (CTL) | Trainingsbelasting als trend. Als voorspeller van prestaties zwak, dus wel een richting maar geen weer. | Marchal 2025; Busso 2023; Borresen 2009 |
-| Racen (ZRS) | Gemeten in echte races, wereldwijd vergelijkbaar. | Zwift: categorieën per Racing Score |
-| Consistentie | Weken uitval door blessure of ziekte voorspellen of een seizoen lukt; eentonige, zware belasting hangt samen met ziekte. Geeft geen hoogte maar de breedte van de voet. | Raysmith 2016; Foster 1998; Drew 2016 |
+## De score
 
-**Bewust niet als richting:**
+Een niveau met een decimaal: **4,5 is niveau 4, halverwege naar 5.** Acht
+niveaus, zonder plafond: voorbij de Wereldtop (8) telt de score gewoon door.
+
+| Niveau | Naam | Drempel (man) | Drempel (vrouw) |
+|---|---|---|---|
+| 1 | Starter | 1,9 W/kg | 1,6 W/kg |
+| 2 | Recreant | 2,6 W/kg | 2,2 W/kg |
+| 3 | Toerrijder | 3,3 W/kg | 2,8 W/kg |
+| 4 | Gevorderde | 4,0 W/kg | 3,4 W/kg |
+| 5 | Sterke amateur | 4,6 W/kg | 3,9 W/kg |
+| 6 | Elite-amateur | 5,3 W/kg | 4,5 W/kg |
+| 7 | Profpeloton | 5,8 W/kg | 4,9 W/kg |
+| 8 | Wereldtop | 6,5 W/kg | 5,5 W/kg |
+
+Op de berg zijn de niveaus virtuele, niet-bestaande ijkbergen achter je eigen
+berg; hun hoogte is alleen beeld. Het scherm toont 4,5 (afgekapt, niet
+afgerond: 4,99 is nog 4,9).
+
+**Achter elk getal de meting en de formule.** Elke graat toont de meting met
+eenheid en de omrekening, bijvoorbeeld: "Drempel 4,3 W/kg ligt tussen niveau 4
+(4,0) en 5 (4,6): 4 + (4,3 − 4,0) ÷ (4,6 − 4,0) = 4,5". Voorbij niveau 8 loopt de
+lijn van niveau 7 naar 8 door; onder de nulwaarde is het 0.
+
+## Zeven graten
+
+Rond de berg, als doorlopende lijn van kort naar lang vermogen, dan vermoeid,
+fitheid en racen, en terug naar sprint:
+
+| Graat | Meting | Gewicht | Waarom | Bronnen |
+|---|---|---|---|---|
+| Sprint | beste 15 s, W/kg | 12,5% | Het korte deel van het vermogensprofiel tekent sprinters. | Pinot & Grappe 2011; Valenzuela 2022 |
+| Anaeroob | beste minuut, W/kg | 12,5% | Punchers en aanvallen. | idem |
+| VO2max | beste 5 min, W/kg | 12,5% | Klimmen en gaten dichtrijden. | Leo 2021; Muriel 2023 |
+| Drempel | beste 20 min, W/kg | 12,5% | Tijdrijden en lange klimmen; reproduceerbaar uit veldgegevens. | Leo 2021; Quod 2010 |
+| Durability | verval op 20 min, % per 10 kJ/kg | 20% | Onderscheidt niveaus beter dan vers vermogen, ook bij amateurs, en staat los van FTP en VO2max. | van Erp 2021; Mateo-March 2022, 2025; Barsumyan 2025 (twee studies); Spragg 2024 |
+| Fitheid | CTL, TSS/dag | 15% | Goede trend, zwakke voorspeller. | Marchal 2025; Busso 2023; Borresen 2009 |
+| Racen | Zwift Racing Score | 15% | Het resultaat in de praktijk, wereldwijd vergelijkbaar. | Zwift: categorieën per Racing Score |
+
+**Gewichten** zijn een keuze van ZWB (eigenaar, 2026-10-21): het vermogensprofiel
+samen 50% als sterkste voorspeller (Leo 2021; Valenzuela 2023), durability 20%,
+fitheid en racen elk 15%. Ontbreekt een graat, dan gaan de gewichten van de
+aanwezige graten samen weer naar 100%. Met minder dan twee graten is er geen score.
+
+**Vorm is profiel, hoogte is niveau.** De top van de berg is de score; de lengte
+van elke graat is (niveau van de graat ÷ score)^1,8. Een sprinter krijgt een
+lange uitloper aan de sprintkant, een diesel lange graten bij drempel,
+durability en fitheid.
+
+**Rekenvoorbeeld (man):** sprint 13,2 W/kg → 4,80; anaeroob 7,6 → 4,25; VO2max
+5,1 → 4,43; drempel 4,3 → 4,50; durability 4,2%/10 kJ/kg → 4,57; CTL 78 → 4,65;
+ZRS 640 → 4,60. Score 4,55, op het scherm 4,5: niveau 4 (Gevorderde), nog 0,45
+tot Sterke amateur. Staat als test in `tests/unit/berg-score.test.ts`.
+
+## Consistentie, altijd ten opzichte van jezelf
+
+Geen absolute uren: die zitten al in Fitheid, en dan zou veel rijden dubbel
+tellen. Het past bij de regel dat beschikbaarheid geen belastbaarheid is.
+
+- **Regelmaat R**: het aandeel van de laatste twaalf afgesloten weken waarin je
+  minstens 60% van je eigen norm reed. Norm: de beschikbaarheid uit het schema
+  (uren per week), zonder schema je eigen mediaan van de weekuren over het
+  afgelopen jaar. Meer dan de norm telt als gehaald, nooit als straf. Een week
+  die er nog niet was (nieuw lid) telt als niet gereden.
+- **Volhouden V** = 1 − e^(−weken/12), met weken de huidige ononderbroken reeks.
+- **Naleving N**: het deel van de geplande trainingsminuten dat gedaan is, over
+  twaalf weken; alleen met een schema, anders valt N weg.
+- **Consistentie** = R × (0,5 + 0,5 · V) × N, van 0 tot 1. Voorbeeld van de
+  eigenaar: R 0,83, V 0,81, N 0,85 → 0,64.
+- **Geplande herstelweek**: een week waarin het schema minder dan 75% van de week
+  ervoor plant (de bovengrens van "grofweg 60–70%" uit `schema-check.ts`). Die
+  telt als gehaald en breekt de reeks niet. Een week ziek of niets breekt hem wel.
+  *Kanttekening:* het voorbeeld van de eigenaar (R 0,83 met een reeks van twintig
+  weken) kan zo niet tegelijk voorkomen, want twee gemiste weken in het venster
+  breken de reeks. Gekozen is om een herstelweek nooit als gemist te tellen; wie
+  het schema volgt, verliest daar niets aan.
+- Onderbouwing: Raysmith & Drew 2016 (wie meer dan 80% van de geplande
+  trainingsweken afmaakte, haalde ongeveer zeven keer zo vaak zijn doel);
+  Foster 1998.
+- Telt niet mee in de score. Op de berg is het de breedte en stevigheid van de
+  voet: voet = 0,6 + 0,4 × consistentie, met afbrokkelende flanken bij een lage
+  waarde (niet spitser, want een smalle voet maakt een berg juist indrukwekkend).
+
+## Bewust niet als graat
+
 - **HRV en readiness**: HRV-gestuurd trainen geeft hooguit een klein voordeel op
   prestaties (Düking 2021; Manresa-Rocamora 2021; Granero-Gallegos 2020). Het
   hoort bij het weer van de dag, alleen voor het lid zelf.
 - **Vorm (TSB) en vermoeidheid (ATL)**: schommelen per dag en voorspellen slecht;
-  het weer op de berg, niet de hoogte.
+  het weer op de berg, niet de score.
 - **Herhaalbaarheid** (herhaalde inspanningen boven 95% van het maximum):
   onderscheidde WorldTour en ProTeam niet (Mateo-March 2021).
 - **vELO**: de koppeling met ZwiftRacing.app is nog nooit tegen de echte API
   getest, en de officiële categoriegrenzen waren niet te vinden (de site gaf een
   429). Racen draagt voorlopig alleen ZRS.
-
-## De ketens
-
-Elke keten heeft zijn hoogste top als ijkpunt. Wie de top van een keten passeert,
-staat in de volgende. Boven de Everest gaat de schaal lineair door: de score heeft
-geen plafond.
-
-| Keten | Top | Meters |
-|---|---|---|
-| Heuvelland | Vaalserberg | 322 |
-| Ardennen | Signal de Botrange | 694 |
-| Vogezen | Grand Ballon | 1.424 |
-| Pyreneeën | Aneto | 3.404 |
-| Alpen | Mont Blanc | 4.806 |
-| Kaukasus | Elbrus | 5.642 |
-| Andes | Aconcagua | 6.961 |
-| Himalaya | Mount Everest | 8.849 |
+- **Echte bergketens en meters** (de eerste versie, Heuvelland tot Himalaya):
+  vervangen door virtuele niveaus, omdat een norm per niveau duidelijker zegt waar
+  een renner staat dan de hoogte van een echte berg.
 
 ## De ijkwaarden
 
 Alle ijkwaarden zijn **inschattingen van ZWB**, gegrond op de bronnen hieronder.
-Geen enkele studie koppelt vermogen aan bergketens; de koppeling is van ons. Wat
-de bronnen wel geven, staat per rij.
+Geen studie koppelt vermogen aan niveaus 1 tot 8; de koppeling is van ons. Wat de
+bronnen wel geven, staat per rij.
 
 **Vermogen, mannen (W/kg)**
 
-| Duur | 0 m | Heuvelland | Ardennen | Vogezen | Pyreneeën | Alpen | Kaukasus | Andes | Himalaya |
+| Duur | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 |---|---|---|---|---|---|---|---|---|---|
 | 15 s | 4 | 7,5 | 9 | 10,5 | 12 | 13,5 | 15 | 16,5 | 19 |
 | 1 min | 3 | 5 | 5,8 | 6,6 | 7,4 | 8,2 | 9 | 9,8 | 11 |
@@ -63,10 +128,10 @@ de bronnen wel geven, staat per rij.
 Houvast: U23-elite in grote rittenkoersen rijden gemiddeld 5,5 W/kg over 20 minuten
 (Mateo-March 2026); critical power van profs ligt rond 5,3 tot 5,6 W/kg (Spragg
 2022, 2024); de beste renners ter wereld zitten daar duidelijk boven. De lagere
-ketens volgen de gebruikelijke indeling per duur, van ongetraind tot
+niveaus volgen de gebruikelijke indeling per duur, van ongetraind tot
 wereldklasse.
 
-**Vermogen, vrouwen**: dezelfde ketens bij 80% (15 s), 82% (1 min), 84% (5 min) en
+**Vermogen, vrouwen**: dezelfde niveaus bij 80% (15 s), 82% (1 min), 84% (5 min) en
 85% (20 min) van de waarden voor mannen. Het aandeel volgt de normen van
 vrouwelijke profs (Mateo-March 2022: 1 min 8,4 en 60 min 4,2 W/kg) tegenover die
 van mannelijke profs (Valenzuela 2022). Zonder opgegeven geslacht rekent de berg
@@ -74,7 +139,7 @@ met de waarden voor mannen.
 
 **Durability (verval in % per 10 kJ/kg, op de beste 20 of 5 minuten)**
 
-| 0 m | Heuvelland | Ardennen | Vogezen | Pyreneeën | Alpen | Kaukasus | Andes | Himalaya |
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 |---|---|---|---|---|---|---|---|---|
 | 18 | 12,5 | 9,5 | 7 | 5 | 3,6 | 2,6 | 1,8 | 1,2 |
 
@@ -87,18 +152,13 @@ voorafgaand werk telt een curve mee (daaronder is het verval klein, Mateo-March
 Beperking: alleen de hoeveelheid werk telt, niet hoe zwaar het was, terwijl werk
 boven CP meer kost (Spragg 2024; Mateo-March 2024).
 
-**Fitheid (CTL)**: 0, 15, 30, 45, 65, 85, 105, 125, 150. Profs zitten rond 120 tot 160;
-de lagere ketens zijn een inschatting van ZWB.
+**Fitheid (CTL, TSS/dag)**: 0, 15, 30, 45, 65, 85, 105, 125, 150. Profs zitten rond
+120 tot 160; de lagere niveaus zijn een inschatting van ZWB.
 
 **Racen (Zwift Racing Score, 0–1000)**: 0, 100, 250, 400, 550, 700, 800, 900, 1000.
 Zwift deelt in in E 0–200, D 200–400, C 400–600, B 600–800 en A 800–1000; de top van
-de schaal staat op de Everest. Omdat ZRS bij 1000 ophoudt, komt deze richting nooit
-boven de Everest.
-
-## Je hoogte
-
-Het gemiddelde van de richtingen met gegevens, met minstens twee. Een richting
-zonder gegevens telt niet mee en wordt op de berg gestippeld getekend.
+de schaal is niveau 8. Omdat ZRS bij 1000 ophoudt, komt deze graat nooit boven
+niveau 8.
 
 ## Bronnen
 
@@ -126,5 +186,6 @@ zonder gegevens telt niet mee en wordt op de berg gestippeld getekend.
 - Spragg J et al. (2022). The relationship between physiological characteristics and durability in male professional cyclists. *Med Sci Sports Exerc*. [doi:10.1249/mss.0000000000003024](https://doi.org/10.1249/mss.0000000000003024)
 - Spragg J et al. (2024). The intensity rather than the quantity of prior work determines the subsequent downward shift in the power duration relationship. *Eur J Sport Sci*. [doi:10.1002/ejsc.12077](https://doi.org/10.1002/ejsc.12077)
 - Valenzuela PL et al. (2022). The record power profile of male professional cyclists: normative values. *Int J Sports Physiol Perform*. [doi:10.1123/ijspp.2021-0263](https://doi.org/10.1123/ijspp.2021-0263)
+- Valenzuela PL et al. (2023). Laboratory-based determinants of simulated time trial performance in cyclists. *Biol Sport*. [doi:10.5114/biolsport.2023.122484](https://doi.org/10.5114/biolsport.2023.122484)
 - van Erp T et al. (2021). Maintaining power output with accumulating levels of work done is a key determinant for success in professional cycling. *Med Sci Sports Exerc*. [doi:10.1249/mss.0000000000002656](https://doi.org/10.1249/mss.0000000000002656)
 - Zwift: categorieën per Racing Score (E 0–200 tot A 800–1000), zoals op Zwift's eigen eventpagina's en in de Racing Score FAQ ([support.zwift.com](https://support.zwift.com/en_us/racing-score-faq-BkG9_Rqrh)).

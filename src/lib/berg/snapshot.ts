@@ -1,11 +1,21 @@
-// Van verzamelde waarden naar de rij in zwbeter_berg_snapshots (0265), en de
-// terugblik uit intervals.icu. Puur: de server levert de waarden aan.
+// Van verzamelde waarden naar de rij in zwbeter_berg_snapshots (0265), plus de
+// weken voor de consistentie en de terugblik uit intervals.icu. Puur: de server
+// levert de waarden aan.
 //
-// In de rij komen alleen meters, de hoogte en de consistentie; welke bronnen er
+// In de rij komen alleen niveaus, de score en de consistentie; welke bronnen er
 // waren staat als ja/nee in `provenance`. Nooit watt, W/kg, gewicht, CTL of ZRS.
 
 import { wattsAtDuration } from "@/lib/teams/power-profile";
-import { consistency, heightFor, ridgeMeters, type BergInput, type FatigueInput, type Ridge, type RideDay } from "./score";
+import {
+  consistencyFrom,
+  ridgeLevels,
+  scoreFor,
+  type BergInput,
+  type ConsistencyInput,
+  type ConsistencyWeek,
+  type FatigueInput,
+  type Ridge,
+} from "./score";
 
 export type BergSources = {
   power: boolean;
@@ -18,7 +28,7 @@ export type BergSources = {
 export type SnapshotRow = {
   profile_id: string;
   week: string;
-  height: number | null;
+  score: number | null;
   ridges: Partial<Record<Ridge, number | null>>;
   consistency: number | null;
   source: "week" | "terugblik";
@@ -26,6 +36,9 @@ export type SnapshotRow = {
 };
 
 export type CurvePoint = { seconds: number; watts: number };
+
+/** Een rit: de dag ("YYYY-MM-DD", Amsterdam) en de minuten. */
+export type RideDay = { day: string; minutes: number };
 
 /** Maandag van de week van `day` ("YYYY-MM-DD"). */
 export function mondayKey(day: string): string {
@@ -55,32 +68,101 @@ export function fatigueInputs(
   });
 }
 
-const round = (value: number | null) => (value == null ? null : Math.round(value));
+const round2 = (value: number | null) => (value == null ? null : Math.round(value * 100) / 100);
 
 export function snapshotFrom(args: {
   profileId: string;
   day: string;
   source: SnapshotRow["source"];
   input: BergInput;
-  rides: RideDay[] | null;
+  consistency: ConsistencyInput | null;
 }): SnapshotRow {
-  const ridges = ridgeMeters(args.input);
+  const ridges = ridgeLevels(args.input);
   const sources: BergSources = {
-    power: ridges.explosief != null || ridges.duurvermogen != null,
+    power: ridges.sprint != null || ridges.anaeroob != null || ridges.vo2max != null || ridges.drempel != null,
     fatigue: ridges.durability != null,
     ctl: ridges.fitheid != null,
     zrs: ridges.racen != null,
-    rides: args.rides != null && args.rides.length > 0,
+    rides: (args.consistency?.weeks ?? []).some((week) => week.hours > 0),
   };
   return {
     profile_id: args.profileId,
     week: mondayKey(args.day),
-    height: heightFor(ridges),
-    ridges: Object.fromEntries(Object.entries(ridges).map(([ridge, meters]) => [ridge, round(meters)])),
-    consistency: args.rides == null ? null : consistency(args.rides, args.day),
+    score: scoreFor(ridges),
+    ridges: Object.fromEntries(Object.entries(ridges).map(([ridge, level]) => [ridge, round2(level)])),
+    consistency: args.consistency ? (consistencyFrom(args.consistency)?.value ?? null) : null,
     source: args.source,
     provenance: sources,
   };
+}
+
+/** Een geplande training uit het schema. */
+export type PlannedWorkout = {
+  day: string;
+  minutes: number;
+  status: "planned" | "completed" | "skipped";
+};
+
+/**
+ * Een geplande week is een herstelweek als hij onder dit deel van de geplande
+ * week ervoor zakt; de bovengrens van "grofweg 60-70%" uit schema-check.ts.
+ */
+export const RECOVERY_WEEK_SHARE = 0.75;
+
+/**
+ * De afgesloten weken vóór de week van `day` (precies `count`), oud naar nieuw:
+ * gereden uren en of het schema er een herstelweek van maakte.
+ */
+export function consistencyWeeks(
+  rides: RideDay[],
+  planned: PlannedWorkout[],
+  day: string,
+  count: number,
+): ConsistencyWeek[] {
+  const current = mondayKey(day);
+  const mondays = Array.from({ length: count }, (_, index) => shiftDay(current, -7 * (count - index)));
+  const hours = new Map<string, number>();
+  for (const ride of rides) {
+    const monday = mondayKey(ride.day);
+    hours.set(monday, (hours.get(monday) ?? 0) + Math.max(0, ride.minutes) / 60);
+  }
+  const plannedMinutes = new Map<string, number>();
+  for (const workout of planned) {
+    const monday = mondayKey(workout.day);
+    plannedMinutes.set(monday, (plannedMinutes.get(monday) ?? 0) + Math.max(0, workout.minutes));
+  }
+  return mondays.map((monday) => {
+    const plan = plannedMinutes.get(monday) ?? 0;
+    const before = plannedMinutes.get(shiftDay(monday, -7)) ?? 0;
+    return {
+      monday,
+      hours: Math.round((hours.get(monday) ?? 0) * 100) / 100,
+      plannedRecovery: plan > 0 && before > 0 && plan < RECOVERY_WEEK_SHARE * before,
+    };
+  });
+}
+
+/**
+ * Naleving: het deel van de geplande minuten dat gedaan is, over de afgesloten
+ * weken vanaf `from` tot de week van `day`. Null zonder geplande trainingen.
+ */
+export function complianceFrom(planned: PlannedWorkout[], from: string, day: string): number | null {
+  const end = mondayKey(day);
+  const due = planned.filter((workout) => workout.day >= from && workout.day < end && workout.minutes > 0);
+  const total = due.reduce((sum, workout) => sum + workout.minutes, 0);
+  if (total === 0) return null;
+  const done = due.filter((workout) => workout.status === "completed").reduce((sum, workout) => sum + workout.minutes, 0);
+  return done / total;
+}
+
+/** Beschikbaarheid in uren per week uit `training_availability.minutes_by_day`. */
+export function availabilityHours(minutesByDay: unknown): number | null {
+  if (!minutesByDay || typeof minutesByDay !== "object") return null;
+  const total = Object.values(minutesByDay as Record<string, unknown>).reduce<number>((sum, value) => {
+    const minutes = Number(value);
+    return Number.isFinite(minutes) && minutes > 0 ? sum + minutes : sum;
+  }, 0);
+  return total > 0 ? total / 60 : null;
 }
 
 /** W/kg per duur uit een curve, met het gewicht als de punten zelf geen W/kg hebben. */

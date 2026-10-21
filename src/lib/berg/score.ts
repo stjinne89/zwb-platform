@@ -1,94 +1,138 @@
-// De ZWBeter-berg: van ruwe waarden naar meters per richting, je hoogte, je keten
-// en de drie kaders (wereld, club, jij).
+// De ZWBeter-berg: van echte metingen naar een niveau per graat, de score, de
+// consistentie en de drie kaders (wereld, club, jij).
 //
-// Puur en zonder database: de pagina en de wekelijkse job leveren de waarden aan.
-// Een richting zonder gegevens is null en telt nergens mee; er wordt nooit een
-// waarde verzonnen.
+// De score is een niveau met een decimaal (4,5 = niveau 4, halverwege naar 5),
+// zonder plafond. Puur en zonder database: de pagina en de wekelijkse job leveren
+// de waarden aan. Een graat zonder gegevens is null en telt nergens mee; er wordt
+// nooit een waarde verzonnen. Achter elk getal staat de meting met eenheid en het
+// stuk van de schaal waarin hij valt, zodat het scherm de omrekening voorrekent.
 
 import {
   CTL_ANCHORS,
   DURABILITY_ANCHORS,
   DURABILITY_MIN_KJ_PER_KG,
-  RANGES,
+  LEVELS,
+  RIDGE_WEIGHTS,
   ZRS_ANCHORS,
   powerAnchors,
   type Anchors,
-  type MountainRange,
+  type Level,
+  type PowerDuration,
   type Sex,
 } from "./norms";
 
-export const RIDGES = ["explosief", "duurvermogen", "durability", "fitheid", "racen"] as const;
+/** Rond de berg: van kort naar lang vermogen, dan vermoeid, fitheid en racen, en terug naar sprint. */
+export const RIDGES = ["sprint", "anaeroob", "vo2max", "drempel", "durability", "fitheid", "racen"] as const;
 export type Ridge = (typeof RIDGES)[number];
 
 export const RIDGE_LABELS: Record<Ridge, string> = {
-  explosief: "Explosief",
-  duurvermogen: "Duurvermogen",
+  sprint: "Sprint",
+  anaeroob: "Anaeroob",
+  vo2max: "VO2max",
+  drempel: "Drempel",
   durability: "Durability",
   fitheid: "Fitheid",
   racen: "Racen",
 };
 
-// ── Meterschaal ─────────────────────────────────────────────────────────────
-
-/**
- * Meters bij een waarde: lineair tussen de ijkwaarden, en boven de top van de
- * Himalaya lineair door met de helling van het laatste stuk. Daardoor heeft de
- * schaal geen plafond. Onder de nulwaarde is het 0 m.
- */
-export function metersFor(anchors: Anchors, value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  const sign = anchors.lowerIsBetter ? -1 : 1;
-  const points: Array<[number, number]> = [
-    [sign * anchors.zero, 0],
-    ...anchors.peaks.map((peak, index): [number, number] => [sign * peak, RANGES[index].meters]),
-  ];
-  const x = sign * value;
-  if (x <= points[0][0]) return 0;
-  for (let index = 1; index < points.length; index++) {
-    const [x1, y1] = points[index];
-    if (x <= x1) {
-      const [x0, y0] = points[index - 1];
-      return y0 + ((x - x0) / (x1 - x0)) * (y1 - y0);
-    }
-  }
-  const [xa, ya] = points[points.length - 2];
-  const [xb, yb] = points[points.length - 1];
-  return yb + (x - xb) * ((yb - ya) / (xb - xa));
-}
-
-// ── Ketens ──────────────────────────────────────────────────────────────────
-
-export type RangePosition = {
-  /** De keten waarin je staat. */
-  range: MountainRange;
-  /** De keten erna; null boven de Everest. */
-  next: MountainRange | null;
-  /** Meters tot de top van je keten, waarna je in de volgende staat; boven de Everest: 0. */
-  toNext: number;
-  /** Meters boven de Everest; 0 als je eronder zit. */
-  aboveEverest: number;
+/** Wat er gemeten wordt, zoals het naast het getal staat. */
+export const RIDGE_MEASURES: Record<Ridge, { what: string; unit: string }> = {
+  sprint: { what: "beste 15 seconden", unit: "W/kg" },
+  anaeroob: { what: "beste minuut", unit: "W/kg" },
+  vo2max: { what: "beste 5 minuten", unit: "W/kg" },
+  drempel: { what: "beste 20 minuten", unit: "W/kg" },
+  durability: { what: "verval op 20 minuten", unit: "% per 10 kJ/kg" },
+  fitheid: { what: "CTL", unit: "TSS/dag" },
+  racen: { what: "Zwift Racing Score", unit: "ZRS" },
 };
 
+const POWER_RIDGES: Record<"sprint" | "anaeroob" | "vo2max" | "drempel", PowerDuration> = {
+  sprint: "s15",
+  anaeroob: "m1",
+  vo2max: "m5",
+  drempel: "m20",
+};
+
+// ── Schaal ──────────────────────────────────────────────────────────────────
+
+/** Een ijkpunt: "niveau 4 (4,0 W/kg)". Niveau 0 is de nulwaarde. */
+export type ScalePoint = { level: number; value: number };
+
 /**
- * Wie onder de top van een keten zit, staat in die keten; wie hem passeert, in
- * de volgende. Boven de Everest blijft het de Himalaya.
+ * Waar een waarde op de schaal valt, met de twee ijkpunten waartussen gerekend
+ * wordt. Voor alle drie de soorten geldt dezelfde formule:
+ * niveau = lager.niveau + (waarde − lager.waarde) ÷ (hoger.waarde − lager.waarde) × (hoger.niveau − lager.niveau).
+ * Bij `beyond` (voorbij niveau 8) zijn dat de laatste twee ijkpunten,
+ * doorgetrokken; bij `floor` (onder de nulwaarde) is het 0.
  */
-export function rangeFor(meters: number): RangePosition {
-  const height = Math.max(0, meters);
-  const index = RANGES.findIndex((range) => height < range.meters);
-  if (index === -1) {
-    const top = RANGES[RANGES.length - 1];
-    return { range: top, next: null, toNext: 0, aboveEverest: height - top.meters };
-  }
-  return {
-    range: RANGES[index],
-    next: RANGES[index + 1] ?? null,
-    toNext: RANGES[index].meters - height,
-    aboveEverest: 0,
-  };
+export type ScaleStep = {
+  kind: "floor" | "between" | "beyond";
+  value: number;
+  level: number;
+  lower: ScalePoint;
+  upper: ScalePoint;
+};
+
+function scalePoints(anchors: Anchors): ScalePoint[] {
+  return [{ level: 0, value: anchors.zero }, ...anchors.levels.map((value, index) => ({ level: index + 1, value }))];
 }
 
-// ── Richtingen ──────────────────────────────────────────────────────────────
+const interpolate = (value: number, lower: ScalePoint, upper: ScalePoint) =>
+  lower.level + ((value - lower.value) / (upper.value - lower.value)) * (upper.level - lower.level);
+
+/** Waar `value` op de schaal valt, en welk niveau dat is. */
+export function scaleStep(anchors: Anchors, value: number): ScaleStep {
+  const points = scalePoints(anchors);
+  const better = (a: number, b: number) => (anchors.lowerIsBetter ? a < b : a > b);
+  if (!Number.isFinite(value) || !better(value, points[0].value)) {
+    return { kind: "floor", value, level: 0, lower: points[0], upper: points[1] };
+  }
+  for (let index = 1; index < points.length; index++) {
+    if (!better(value, points[index].value)) {
+      const lower = points[index - 1];
+      const upper = points[index];
+      return { kind: "between", value, level: interpolate(value, lower, upper), lower, upper };
+    }
+  }
+  const lower = points[points.length - 2];
+  const upper = points[points.length - 1];
+  return { kind: "beyond", value, level: interpolate(value, lower, upper), lower, upper };
+}
+
+/**
+ * Het niveau bij een waarde: lineair tussen de ijkwaarden, en voorbij niveau 8
+ * lineair door met de helling van het laatste stuk. Daardoor heeft de schaal
+ * geen plafond. Onder de nulwaarde is het 0.
+ */
+export function levelAt(anchors: Anchors, value: number): number {
+  return scaleStep(anchors, value).level;
+}
+
+// ── Niveaus ─────────────────────────────────────────────────────────────────
+
+export type LevelPosition = {
+  /** Het niveau dat je haalt; null onder niveau 1. */
+  reached: Level | null;
+  /** Het niveau erna; null voorbij de Wereldtop (dan telt de score gewoon door). */
+  next: Level | null;
+  /** Hoeveel er nog moet tot het volgende niveau (0 tot 1); 0 voorbij de Wereldtop. */
+  toNext: number;
+};
+
+export function positionFor(score: number): LevelPosition {
+  const value = Math.max(0, score);
+  const whole = Math.floor(value);
+  const reached = whole >= 1 ? LEVELS[Math.min(whole, LEVELS.length) - 1] : null;
+  const next = whole < LEVELS.length ? LEVELS[whole] : null;
+  return { reached, next, toNext: next ? Math.round((next.n - value) * 100) / 100 : 0 };
+}
+
+/** Een score met één decimaal en een komma, zoals op het scherm: "4,5". */
+export function formatScore(score: number): string {
+  return (Math.floor(score * 10) / 10).toLocaleString("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
+// ── Graten ──────────────────────────────────────────────────────────────────
 
 /** W/kg per duur, uit `rider_power_profiles`. */
 export type PowerInput = { s15: number | null; m1: number | null; m5: number | null; m20: number | null };
@@ -110,24 +154,11 @@ export type BergInput = {
   zrs: number | null;
 };
 
+/** De meting achter een graat en de omrekening naar een niveau. */
+export type RidgeReading = ScaleStep;
+
 function positive(value: number | null | undefined): number | null {
   return value != null && Number.isFinite(value) && value > 0 ? value : null;
-}
-
-function mean(values: number[]): number | null {
-  return values.length === 0 ? null : values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-/** Het gemiddelde van de meters van de duren die er zijn. */
-function powerMeters(power: PowerInput | null, durations: Array<keyof PowerInput>, sex: Sex | null) {
-  if (!power) return null;
-  const meters = durations
-    .map((duration) => {
-      const value = positive(power[duration]);
-      return value == null ? null : metersFor(powerAnchors(duration, sex), value);
-    })
-    .filter((value): value is number => value != null);
-  return mean(meters);
 }
 
 /**
@@ -148,74 +179,162 @@ export function durabilityDecline(fatigue: FatigueInput[], weightKg: number | nu
       return lossPct / (kjPerKg / 10);
     })
     .filter((value): value is number => value != null);
-  return mean(declines);
+  return declines.length === 0 ? null : declines.reduce((sum, value) => sum + value, 0) / declines.length;
 }
 
-/** Meters per richting tegen de wereld; null waar de gegevens ontbreken. */
-export function ridgeMeters(input: BergInput): Record<Ridge, number | null> {
+/** Per graat de meting en het niveau tegen de wereld; null waar de gegevens ontbreken. */
+export function ridgeReadings(input: BergInput): Record<Ridge, RidgeReading | null> {
+  const power = (ridge: keyof typeof POWER_RIDGES) => {
+    const duration = POWER_RIDGES[ridge];
+    const value = positive(input.power?.[duration]);
+    return value == null ? null : scaleStep(powerAnchors(duration, input.sex), value);
+  };
   const decline = durabilityDecline(input.fatigue, input.weightKg);
   const ctl = input.ctl != null && Number.isFinite(input.ctl) && input.ctl >= 0 ? input.ctl : null;
   const zrs = positive(input.zrs);
   return {
-    explosief: powerMeters(input.power, ["s15", "m1"], input.sex),
-    duurvermogen: powerMeters(input.power, ["m5", "m20"], input.sex),
-    durability: decline == null ? null : metersFor(DURABILITY_ANCHORS, decline),
-    fitheid: ctl == null ? null : metersFor(CTL_ANCHORS, ctl),
-    racen: zrs == null ? null : metersFor(ZRS_ANCHORS, zrs),
+    sprint: power("sprint"),
+    anaeroob: power("anaeroob"),
+    vo2max: power("vo2max"),
+    drempel: power("drempel"),
+    durability: decline == null ? null : scaleStep(DURABILITY_ANCHORS, decline),
+    fitheid: ctl == null ? null : scaleStep(CTL_ANCHORS, ctl),
+    racen: zrs == null ? null : scaleStep(ZRS_ANCHORS, zrs),
   };
 }
 
-/** Zo weinig richtingen zijn te weinig om een hoogte op te baseren. */
-export const MIN_RIDGES_FOR_HEIGHT = 2;
+/** Alleen het niveau per graat. */
+export function ridgeLevels(input: BergInput): Record<Ridge, number | null> {
+  const readings = ridgeReadings(input);
+  return Object.fromEntries(RIDGES.map((ridge) => [ridge, readings[ridge]?.level ?? null])) as Record<
+    Ridge,
+    number | null
+  >;
+}
 
-/** Je hoogte: het gemiddelde van de richtingen die er zijn, of null bij te weinig. */
-export function heightFor(ridges: Record<Ridge, number | null>): number | null {
-  const present = RIDGES.map((ridge) => ridges[ridge]).filter((value): value is number => value != null);
-  if (present.length < MIN_RIDGES_FOR_HEIGHT) return null;
-  return Math.round(mean(present)!);
+/** Zo weinig graten zijn te weinig om een score op te baseren. */
+export const MIN_RIDGES_FOR_SCORE = 2;
+
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+/**
+ * De score: het gewogen gemiddelde van de graten die er zijn (RIDGE_WEIGHTS), met
+ * de gewichten van de aanwezige graten opnieuw op 100% gezet. Twee decimalen;
+ * het scherm toont er één. Null bij te weinig graten.
+ */
+export function scoreFor(ridges: Record<Ridge, number | null>): number | null {
+  const present = RIDGES.filter((ridge) => ridges[ridge] != null);
+  if (present.length < MIN_RIDGES_FOR_SCORE) return null;
+  const weight = present.reduce((sum, ridge) => sum + RIDGE_WEIGHTS[ridge], 0);
+  const total = present.reduce((sum, ridge) => sum + RIDGE_WEIGHTS[ridge] * ridges[ridge]!, 0);
+  return round2(total / weight);
+}
+
+/** Het gewicht van elke aanwezige graat na het opnieuw normaliseren, voor de uitleg op het scherm. */
+export function effectiveWeights(ridges: Record<Ridge, number | null>): Partial<Record<Ridge, number>> {
+  const present = RIDGES.filter((ridge) => ridges[ridge] != null);
+  const weight = present.reduce((sum, ridge) => sum + RIDGE_WEIGHTS[ridge], 0);
+  return Object.fromEntries(present.map((ridge) => [ridge, RIDGE_WEIGHTS[ridge] / weight]));
+}
+
+/**
+ * De vorm van de berg: hoe ver een graat uitloopt, los van het niveau.
+ * (niveau van de graat ÷ score)^1,8; een graat zonder gegevens heeft geen lengte.
+ */
+export const REACH_EXPONENT = 1.8;
+export function ridgeReach(level: number | null, score: number | null): number | null {
+  if (level == null || !score || score <= 0) return null;
+  return Math.pow(Math.max(0, level) / score, REACH_EXPONENT);
 }
 
 // ── Consistentie ────────────────────────────────────────────────────────────
 
-/** Een week telt als actief vanaf twee ritten of anderhalf uur. */
-export const ACTIVE_WEEK = { rides: 2, minutes: 90 } as const;
+/** Een week telt als je minstens dit deel van je eigen norm reed. */
+export const NORM_SHARE = 0.6;
 export const CONSISTENCY_WEEKS = 12;
-/** Langer dan dit zonder rit is uitval. */
-export const GAP_DAYS = 14;
+/** Schaal van het volhouden: V = 1 − e^(−weken/12). */
+export const STREAK_SCALE_WEEKS = 12;
 
-export type RideDay = { day: string; minutes: number };
+/** Een afgesloten week, oud naar nieuw. */
+export type ConsistencyWeek = {
+  monday: string;
+  /** Gereden uren in die week. */
+  hours: number;
+  /** Een geplande herstelweek uit het schema: breekt de reeks niet. */
+  plannedRecovery: boolean;
+};
 
-function dayNumber(dayKey: string) {
-  return Math.floor(Date.parse(`${dayKey}T12:00:00Z`) / 86_400_000);
+export type ConsistencyInput = {
+  /** De afgesloten weken tot en met vorige week, oud naar nieuw; zo veel als er zijn (tot een jaar). */
+  weeks: ConsistencyWeek[];
+  /** Beschikbaarheid uit het schema in uren per week; null zonder schema. */
+  normHours: number | null;
+  /** Aandeel van de geplande trainingen gedaan, gewogen naar duur, over twaalf weken; null zonder schema. */
+  compliance: number | null;
+};
+
+export type Consistency = {
+  /** R: aandeel van de laatste twaalf weken op minstens 60% van je norm. */
+  regularity: number;
+  /** V: 1 − e^(−reeks/12). */
+  persistence: number;
+  /** De huidige ononderbroken reeks in weken. */
+  streak: number;
+  /** N: naleving van het schema; null zonder schema (telt dan niet mee). */
+  compliance: number | null;
+  /** Je norm in uren per week en waar die vandaan komt. */
+  normHours: number;
+  normSource: "schema" | "mediaan";
+  /** R × (0,5 + 0,5 · V) × N, van 0 tot 1. */
+  value: number;
+};
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
 /**
- * Consistentie over de laatste twaalf weken tot en met `today`: het aandeel
- * actieve weken, met een aftrek van een vijfde bij uitval van meer dan twee
- * weken. 0 tot 1; geeft geen hoogte maar de breedte van de voet van de berg.
+ * Consistentie, altijd ten opzichte van jezelf: geen absolute uren (die zitten al
+ * in Fitheid). Norm is de beschikbaarheid uit het schema, anders je eigen mediaan
+ * van de weekuren over de weken die er zijn. Meer dan de norm telt als 100%,
+ * nooit als straf. Een geplande herstelweek telt als gehaald. Null als er geen
+ * norm te bepalen is.
  */
-export function consistency(rides: RideDay[], today: string): number {
-  const end = dayNumber(today);
-  const start = end - CONSISTENCY_WEEKS * 7 + 1;
-  const weeks = Array.from({ length: CONSISTENCY_WEEKS }, () => ({ rides: 0, minutes: 0 }));
-  const days = new Set<number>();
-  for (const ride of rides) {
-    const day = dayNumber(ride.day);
-    if (day < start || day > end) continue;
-    const week = weeks[Math.floor((day - start) / 7)];
-    week.rides += 1;
-    week.minutes += Math.max(0, ride.minutes);
-    days.add(day);
-  }
-  const active = weeks.filter((week) => week.rides >= ACTIVE_WEEK.rides || week.minutes >= ACTIVE_WEEK.minutes).length;
+export function consistencyFrom(input: ConsistencyInput): Consistency | null {
+  const weeks = input.weeks;
+  if (weeks.length === 0) return null;
+  const schemaNorm = positive(input.normHours);
+  const normHours = schemaNorm ?? median(weeks.map((week) => Math.max(0, week.hours)));
+  if (!(normHours > 0)) return null;
 
-  const sorted = [...days].sort((a, b) => a - b);
-  let longestGap = sorted.length === 0 ? CONSISTENCY_WEEKS * 7 : sorted[0] - start;
-  for (let index = 1; index < sorted.length; index++) longestGap = Math.max(longestGap, sorted[index] - sorted[index - 1] - 1);
-  if (sorted.length > 0) longestGap = Math.max(longestGap, end - sorted[sorted.length - 1]);
+  const counts = (week: ConsistencyWeek) => week.plannedRecovery || week.hours >= NORM_SHARE * normHours;
+  const recent = weeks.slice(-CONSISTENCY_WEEKS);
+  // Ontbrekende weken aan het begin (nieuw lid) tellen als niet gereden.
+  const regularity = recent.filter(counts).length / CONSISTENCY_WEEKS;
 
-  const share = active / CONSISTENCY_WEEKS;
-  return Math.round((longestGap > GAP_DAYS ? share * 0.8 : share) * 100) / 100;
+  let streak = 0;
+  for (let index = weeks.length - 1; index >= 0 && counts(weeks[index]); index--) streak += 1;
+  const persistence = 1 - Math.exp(-streak / STREAK_SCALE_WEEKS);
+
+  const compliance =
+    input.compliance != null && Number.isFinite(input.compliance) ? Math.min(1, Math.max(0, input.compliance)) : null;
+  const value = regularity * (0.5 + 0.5 * persistence) * (compliance ?? 1);
+  return {
+    regularity: round2(regularity),
+    persistence: round2(persistence),
+    streak,
+    compliance: compliance == null ? null : round2(compliance),
+    normHours: Math.round(normHours * 10) / 10,
+    normSource: schemaNorm ? "schema" : "mediaan",
+    value: round2(value),
+  };
+}
+
+/** De breedte van de voet: 0,6 + 0,4 × consistentie; zonder consistentie de smalle voet. */
+export function footWidth(consistency: number | null): number {
+  return 0.6 + 0.4 * Math.min(1, Math.max(0, consistency ?? 0));
 }
 
 // ── Kaders ──────────────────────────────────────────────────────────────────
@@ -233,7 +352,7 @@ export function clubPercentile(value: number | null, others: Array<number | null
   return Math.round(((below + equal / 2) / field.length) * 100);
 }
 
-export type HistoryPoint = { week: string; meters: number | null };
+export type HistoryPoint = { week: string; score: number | null };
 
 /**
  * Jij tegen jezelf: verschil met vier weken geleden en met het beste van het
@@ -241,15 +360,14 @@ export type HistoryPoint = { week: string; meters: number | null };
  * laatste.
  */
 export function selfFrame(history: HistoryPoint[]): { delta4w: number | null; best: number | null; ofBest: number | null } {
-  const known = history.filter((point): point is { week: string; meters: number } => point.meters != null);
+  const known = history.filter((point): point is { week: string; score: number } => point.score != null);
   const now = known.at(-1);
   if (!now) return { delta4w: null, best: null, ofBest: null };
-  const lastYear = known.slice(-52);
-  const best = Math.max(...lastYear.map((point) => point.meters));
-  const before = history.length >= 5 ? history[history.length - 5].meters : null;
+  const best = Math.max(...known.slice(-52).map((point) => point.score));
+  const before = history.length >= 5 ? history[history.length - 5].score : null;
   return {
-    delta4w: before == null ? null : Math.round(now.meters - before),
-    best: Math.round(best),
-    ofBest: best > 0 ? Math.round((now.meters / best) * 100) : null,
+    delta4w: before == null ? null : round2(now.score - before),
+    best: round2(best),
+    ofBest: best > 0 ? Math.round((now.score / best) * 100) : null,
   };
 }
