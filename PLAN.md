@@ -11287,7 +11287,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: terugblik over je hele intervals.icu-historie
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Gepusht naar
+**2026-10-21.** Commit `dff9489e`. Geen migratie. Gepusht naar
 `main` op 2026-10-21 (na akkoord van de eigenaar op de privacyzin).
 
 **Waarom.** De datumkiezer ging maar twaalf maanden terug; de eigenaar wil zijn hele
@@ -11320,8 +11320,12 @@ wel. Geen weekresolutie in de terugblik: per maand houdt het aantal intervals-vr
 
 **Getest.** `briljant-snapshot` (`monthsSince`, `terugblikRows`), alle ZWBriljant- en
 intervals-tests, de hele suite op `omnium-live` na (die heeft een lokaal `.env.local`
-nodig). **Niet getest:** een echte terugblik over jaren op productie; volgt bij het
-volgende bezoek van de eigenaar.
+nodig). Op productie nagekeken na een bezoek van de eigenaar: 45 maandsnapshots van
+januari 2023 tot september 2026, alle met vermogen en CTL, de oude terugblik van twaalf
+maanden vervangen. Consistentie is leeg tot juni 2023 (nog geen ritten in ZWB). De top
+ligt in april 2024 op 680 punten (drempel ongeveer 5,3 W/kg); nog door de eigenaar na te
+lopen of dat klopt met zijn gewicht toen. **Niet getest:** de job voor een lid dat de
+pagina niet opent.
 
 ### Hersteld — ZWBriljant: de terugblik komt terug na de nieuwe schaal
 
