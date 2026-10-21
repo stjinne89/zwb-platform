@@ -3632,6 +3632,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Getest.** TypeScript en eslint schoon. Met een script buiten de repo
 > nagegaan dat ZXing met dezelfde instellingen een getekende EAN-13 leest.
+> *Niet meer waar dat dit genoeg was: alleen een horizontale barcode werd
+> gelezen; een gedraaide faalde door een fout in `@zxing/browser`. Hersteld op
+> 2026-10-21, zie "barcodescanner leest ook een gedraaide barcode".*
 > **Niet getest:** een echte foto op een iPhone; hoe goed het een scheve of
 > wazige foto leest, moet in de praktijk blijken. De worktree heeft nu een eigen
 > `node_modules` (`npm ci`) in plaats van een koppeling naar de hoofdmap.
@@ -11284,8 +11287,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Engelse recepten: ingrediënten naar NEVO
 
 **2026-10-21.** Commit: zie de commit "Recept van een link: Engelse
-ingrediënten naar NEVO" op `claude/ah-scraping-solution-8978ee`. Geen migratie.
-Niet gepusht.
+ingrediënten naar NEVO" (`2fefd639` op de werkbranch). Geen migratie.
+Gepusht naar `main` op 2026-10-21, samen met Allerhande.
 
 **Waarom.** De eigenaar meldde dat het overnemen van ingrediënten bij Jamie
 Oliver misgaat. Nagelopen met chicken tikka masala (jamieoliver.com; de
@@ -11338,7 +11341,8 @@ zelf, en andere Engelse sites dan Jamie Oliver.
 ### Gebouwd — Allerhande-recepten via de AH-API
 
 **2026-10-21.** Commit: zie de commit "Recept van een link: Allerhande via de
-AH-API" op `claude/ah-scraping-solution-8978ee`. Geen migratie. Niet gepusht.
+AH-API" (`1fecfa1f` op de werkbranch). Geen migratie. Gepusht naar `main` op
+2026-10-21.
 
 **Waarom.** De eigenaar wil dat een Allerhande-link werkt bij Eigen recept; het
 lid kreeg "Deze site laat het recept niet ophalen." Onderzocht: de webpagina
@@ -11381,6 +11385,41 @@ vega tonijnsalade, 9 ingrediënten, 8 stappen) en R-R1189405 (Zeeuwse mosselen,
 bekende ontbrekende `modern-screenshot`, ESLint schoon. **Niet getest:** vanaf
 Netlify (een ander IP; AH kan datacenter-adressen anders behandelen) en het
 formulier in de app zelf.
+### Hersteld — barcodescanner leest ook een gedraaide barcode
+
+**2026-10-21.** Commit `7a419770`. Geen migratie. Gepusht naar `main` op 2026-10-21.
+
+**Waarom.** De eigenaar meldde dat de knop Scan in het eetdagboek niet leek te werken.
+Twee oorzaken, nagebootst op een testpagina met een getekende EAN-13 op een foto van
+3024×4032:
+- **ZXing las alleen een barcode die ongeveer horizontaal stond** (tot zo'n 30°). Bij
+  45°, 90° en 270° faalde hij. Zijn eigen draaipoging met `TRY_HARDER` crasht in
+  `@zxing/browser` 0.2.1: `HTMLCanvasElementLuminanceSource.getTempCanvasElement`
+  vergelijkt een nooit gezet veld met `null`, krijgt `undefined` en gooit "Could not
+  create a Canvas element.". Wij vingen die fout af als "geen barcode". Een staande
+  barcode op een verpakking, of een liggende in een portretfoto, las dus nooit.
+- **Tijdens het lezen gebeurde er niets zichtbaars.** Laden van ZXing en zoeken op de
+  foto duurt op een telefoon even, en het formulier toonde pas iets bij het opzoeken.
+
+**Nu.**
+- `_components/read-barcode.ts` draait de foto zelf en probeert 0°, 90°, 45° en −45°
+  (ondersteboven vangt ZXing zelf af). Op de testpagina las hij de barcode op alle twaalf
+  geprobeerde hoeken tussen 0° en 315°, in 70 tot 660 ms op de pc; een foto zonder barcode gaf
+  netjes niets.
+- `_components/meal-form.tsx`: de knop Scan toont "Bezig…" en is uitgeschakeld zolang
+  de foto wordt gelezen en opgezocht.
+
+**Niet gedaan.** Live scannen met de camera: de `Permissions-Policy` zet nog steeds
+`camera=()`, de foto blijft de route. Een kleinere barcode op een grote foto zoeken
+door ook op volle resolutie of een uitsnede te proberen: niet nodig gebleken op de
+testpagina, eerst zien of het in de praktijk nog misgaat. ZXing bijwerken: 0.2.1 is de
+nieuwste `@zxing/browser`.
+
+**Getest.** `tsc --noEmit` (alleen de bestaande fout over `modern-screenshot` in
+`share-sheet.tsx`, ontbrekend in de gedeelde `node_modules`) en ESLint schoon op de
+gewijzigde bestanden. De leesroutine op een testpagina buiten de repo, met dezelfde
+ZXing-versies. **Niet getest:** een echte foto op een iPhone, en het formulier zelf in
+de browser.
 
 ### Gebouwd — ZWBriljant: durability op de minuut, fitheid naar de spreiding
 

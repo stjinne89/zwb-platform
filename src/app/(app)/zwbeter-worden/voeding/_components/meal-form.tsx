@@ -197,18 +197,21 @@ export function MealForm({
   }
 
   async function scan(file: File | undefined) {
-    if (!file) return;
+    if (!file || barcodeBusy) return;
+    setBarcodeBusy(true);
     setBarcodeError(null);
+    let value: string | null = null;
     try {
-      const value = await readBarcode(file);
-      if (!value) {
-        setBarcodeError("Geen barcode gevonden op de foto.");
-        return;
-      }
-      await addBarcode(value);
+      value = await readBarcode(file);
     } catch {
-      setBarcodeError("Geen barcode gevonden op de foto.");
+      // Een foto die de browser niet kan openen telt als geen barcode.
     }
+    setBarcodeBusy(false);
+    if (!value) {
+      setBarcodeError("Geen barcode gevonden op de foto.");
+      return;
+    }
+    await addBarcode(value);
   }
 
   const payload = JSON.stringify(
@@ -407,13 +410,17 @@ export function MealForm({
           <Search className="size-4" />
           {barcodeBusy ? "Bezig…" : "Zoek"}
         </Button>
-        <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium hover:border-primary">
+        <label
+          aria-disabled={barcodeBusy}
+          className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium hover:border-primary aria-disabled:cursor-wait aria-disabled:opacity-50"
+        >
           <ScanBarcode className="size-4" />
-          Scan
+          {barcodeBusy ? "Bezig…" : "Scan"}
           <input
             type="file"
             accept="image/*"
             capture="environment"
+            disabled={barcodeBusy}
             className="sr-only"
             onChange={(event) => {
               void scan(event.target.files?.[0]);
