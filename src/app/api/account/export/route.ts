@@ -47,6 +47,9 @@ const PROFILE_TABLES: string[] = [
   // Q&A: de eigen vragen (profile_id is de vrager) en waar het lid "Ik ook" tikte.
   "member_questions",
   "member_question_askers",
+  // ZWBeter-berg (0265): of je deelt, en je hoogte per week.
+  "zwbeter_berg_preferences",
+  "zwbeter_berg_snapshots",
 ];
 
 export async function GET() {

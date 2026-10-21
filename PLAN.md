@@ -283,8 +283,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0265`
-(`0264_nutrition_recipe_sharing` is van recepten van een link en delen met
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0266`
+(`0265_zwbeter_berg` is van de ZWBeter-berg, 2026-10-21, **nog niet toegepast**;
+`0264_nutrition_recipe_sharing` is van recepten van een link en delen met
 alle leden, 2026-10-21, toegepast op 2026-10-21;
 `0263_race_briefing_sheet` is van het aanpasbare racebriefje, 2026-10-20;
 `0262_zwift_bike_fixed_wheels` is van de snelste fiets, 2026-10-20,
@@ -11279,6 +11280,48 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZWBeter-berg, fase 2: gegevens, wekelijkse job en terugblik
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Migratie
+`0265_zwbeter_berg.sql`, **niet toegepast**. Niet gepusht.
+
+**Waarom.** Van CTL, de powercurve en ZRS wordt nu niets als historie bewaard
+(`rider_power_profiles` en `zwift_rider_metrics` worden overschreven, CTL komt live uit
+intervals.icu). Voor "jij in de tijd" en de club zijn wekelijkse momentopnames nodig.
+
+**Nu.**
+- **0265:** `zwbeter_berg_preferences` (delen ja/nee met `consent_version` 2026-10-21, en
+  `visible`) en `zwbeter_berg_snapshots` (per lid en week: hoogte, meters per richting,
+  consistentie, bron `week` of `terugblik`, en welke bronnen er waren als ja/nee). Geen ruwe
+  waarden: geen watt, W/kg, gewicht, CTL, ZRS of HRV; een check houdt onbekende sleutels
+  in `ridges` tegen. Leden kunnen niet schrijven (alleen de server); wel hun eigen berg
+  wissen. Lezen: je eigen berg altijd, die van een ander alleen als jullie allebei delen
+  (`zwbeter_berg_shares`, security definer, niet voor anon). Intrekken of verbergen werkt
+  meteen; de eigen historie blijft.
+- **Afwijking van het plan:** het plan noemde een trigger die bij intrekken alles wist. Het
+  delen wordt nu bij het lezen gecontroleerd, dus intrekken is meteen voor iedereen zichtbaar
+  zonder je eigen historie kwijt te raken; wissen is een aparte keuze van het lid.
+- **`src/lib/berg/server.ts`:** `collectBerg` (powerprofiel, vermoeide curves, CTL en weer uit
+  intervals, ZRS, ritten), `refreshSources` (powerprofiel ouder dan zes dagen en ZRS
+  verversen), `storeWeek` en `storeTerugblik` (twaalf maanden uit intervals: de beste 90 dagen
+  tot elk maandeinde, de CTL van die dag en de ritten; durability en ZRS hebben geen historie).
+  Pure delen in `src/lib/berg/snapshot.ts`.
+- **`POST /api/berg/weekly`** (`BERG_WEEKLY_SECRET`): elk uur op cron-job.org, per run hooguit
+  drie leden zonder snapshot van deze week; staat in `docs/runbook.md`.
+- **Verplaatst:** `syncOnePowerProfile` en zijn hulpfuncties van `teams/_actions.ts` naar
+  `src/lib/teams/power-sync.ts`, zodat de job hem kan gebruiken. Gedrag ongewijzigd.
+- De accountexport neemt beide tabellen mee.
+
+**Nog te doen door de eigenaar.** 0265 toepassen (op verzoek via de connector),
+`BERG_WEEKLY_SECRET` in Netlify zetten en de job op cron-job.org aanmaken.
+
+**Getest.** `tests/unit/berg-migration.test.ts` (8, PGlite: alleen je eigen berg zonder delen,
+wederzijds delen, niet goedgekeurd kan niet meedoen, verbergen en intrekken, voorkeuren
+privé, leden kunnen niet schrijven en alleen hun eigen berg wissen, onbekende richting,
+geen maandag, geen ruwe kolommen, anon kan de functie niet aanroepen) en
+`tests/unit/berg-snapshot.test.ts` (6). ESLint schoon. **Niet getest:** de job en de terugblik
+tegen intervals.icu en Zwift; de migratie op productie.
 
 ### Gebouwd — ZWBeter-berg, fase 1: de rekenkern
 
