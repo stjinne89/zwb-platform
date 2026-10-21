@@ -11370,6 +11370,44 @@ rechtsonder, scrollpositie blijft 0, het juiste paneel opent) en 375 px (schermv
 terugknop, paneel onderin). ESLint en `tsc` schoon. **Niet getest:** op een echte
 telefoon en met een ingelogd lid.
 
+### Hersteld — eventscan-cron terug, in vier stappen
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Op Eventscan kwam sinds 2026-09-26 geen concept meer bij. Op
+cron-job.org bestond geen job voor `/api/events/scan` (13 jobs, geen mappen);
+wanneer en waarom hij verdween, is daar niet te zien. Het runbook beweerde dat
+hij dagelijks draaide. Zonder die job volgde het serviceaccount geen nieuwe
+leden, kwamen events waar ZWB'ers op inschrijven niet als concept binnen, en
+werden de startlijsten van komende omnium-edities niet bijgewerkt.
+
+**Wat er gebeurde.**
+- De eigenaar verving `EVENT_SCAN_SECRET` in Netlify (de oude waarde was als
+  secret niet meer in te zien) en zette de nieuwe in een nieuwe job "ZWB
+  Event-scan" (dagelijks 04:20, POST). De rest van de job is via Chrome
+  ingevuld; de sleutel niet.
+- Test run om 18:04: na ~20 s stonden er twee nieuwe concepten met een ZWB'er
+  als deelnemer, maar cron-job.org gaf na 30 s "Failed (timeout)". Hoger dan
+  30 s gaat de time-out daar niet. Of de omniumstap aan het eind nog liep, is
+  niet te zien.
+
+**Nu.** `/api/events/scan` neemt `?step=follow|scan|feed|omnium`; zonder `step`
+loopt alles, zoals de knop "Scan bronnen". `runEventScan` kreeg `steps`, het
+scangedeelte staat in `saveScannedCandidates`. De feedsync loopt de events op
+starttijd af en stopt na 20 s (`feedDeadline`); de melding noemt hoeveel events
+hij oversloeg. `maxDuration = 30` op de route. Op cron-job.org vier jobs met
+dezelfde sleutel, vijf minuten na elkaar vanaf 04:20 (docs/runbook.md).
+
+**Bewust niet.** Geen Netlify background function: die vraagt een andere
+opzet dan de rest van de crons, en vier korte jobs passen in wat er al is.
+
+**Getest.** `tests/unit/event-scan-route.test.ts` (sleutel, onbekende stap,
+alles zonder stap, één stap alleen), ESLint en de bestaande tests van de scan.
+`tsc` gaf alleen een fout in `briefing/_components/share-sheet.tsx`
+(`modern-screenshot` staat in `package.json` maar niet in de lokale
+`node_modules`), los van deze wijziging. Hoe lang elke stap op productie duurt,
+blijkt pas na de deploy uit de test runs op cron-job.org.
+
 ### Gebouwd — ZWBriljant: de steen, de pagina en de tegel (was de ZWBeter-berg)
 
 **2026-10-21.** Commits `d0874e29` (bouw) en `00d4d836` (privacy). Migratie
@@ -12393,8 +12431,8 @@ een telefoon en afdrukken ook niet.
 
 ### Gebouwd — ZWB Monday Ride vanzelf op de kalender
 
-**2026-10-20.** Commit: de commit die dit blok toevoegt. Geen migratie. Lokaal
-gecommit, niet gepusht.
+**2026-10-20.** Commit `4b71b03c`, gepusht naar `main` (eigenaar, 2026-10-20).
+Geen migratie. Op productie nagekeken op 2026-10-21.
 
 **Aanleiding.** De eigenaar zette de ZWB Monday Ride elke week met de hand op
 de kalender (de laatste op 21 september, via de Zwift-link in het formulier) en
@@ -12458,10 +12496,14 @@ bestanden en de unit-suite; daarin faalden `omnium-live.test.ts` (mist
 `.env.local` in deze worktree) en `admin-areas.test.ts` (time-out, ook los
 gedraaid), los van deze wijziging.
 
-**Niet lokaal te verifiëren.** Het echte publiceren naar productie (insert,
-cover-upload, RSVP's) is niet gedraaid. Na de deploy: het antwoord van de
-volgende uurlijkse run (`clubEvents.published: 1`) of de kalender van maandag
-26 oktober bekijken.
+**Op productie (nagekeken 2026-10-21).** De uurlijkse run van 2026-10-20 13:00
+(Nederlandse tijd) zette de rit van 26 oktober op de kalender: "ZWB Cycling -
+Monday Ride", 19:35–20:35, "Zwift · New York", route 1178708985, 1 ronde,
+28,66 km, 212 hm, omschrijving, spelregels en cover
+(`covers/zwift/315aaea2…png`), met als maker dezelfde persoon als de rit van
+21 september. Nog niet gezien: deelnemers. Op het moment van publiceren stond
+geen ZWB'er ingeschreven (0 deelnemers, 0 RSVP's), en wie zich later op Zwift
+inschrijft, komt er niet bij (zie "Bewust niet").
 
 ### Gebouwd — haalbaarheid van de doeltijd in de pacingcalculator
 
