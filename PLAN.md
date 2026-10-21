@@ -73,13 +73,17 @@ gaat stabiliteit voor nieuwe features.
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
    - **Recept van een link, delen met alle leden:** `0264_nutrition_recipe_sharing.sql`
-     is **nog niet toegepast** (branch `claude/recipe-scraper-sharing-a07840`,
-     niet gepusht). Vóór de push toepassen: zonder 0264 bewaart het formulier
-     een recept wel, maar privé en zonder foto, en ziet niemand gedeelde
-     recepten. Daarna: een recept van Leukerecepten ophalen, delen met naam,
-     en als tweede lid bekijken, in het menu zetten en als favoriet markeren.
-     Nog goed te keuren: de privacytekst en of dit zonder nieuwe
-     privacyversie kan (ronde 2026-10-21, "Recept van een link").
+     is op 2026-10-21 via de Supabase-connector toegepast, op verzoek van de
+     eigenaar, vóór de push naar `main` (zelfde dag). Vooraf: geen van de drie
+     kolommen, 121 recepten, geen eigen recepten. Achteraf: `visibility`,
+     `show_owner` en `image_url` met hun standaardwaarden, alle 121 recepten
+     `prive`, de drie checks, de nieuwe leespolicy, de functie met
+     `visibility`, RLS aan, `anon` mag de functie niet uitvoeren. De
+     beveiligingsadviezen melden niets nieuws. Nog doen: een recept van
+     Leukerecepten ophalen, delen met naam, en als tweede lid bekijken, in het
+     menu zetten en als favoriet markeren. De eigenaar gaf "akkoord" op het
+     geheel; of de privacytekst zonder nieuwe privacyversie kan, is daarmee
+     niet apart besproken (ronde 2026-10-21, "Recept van een link").
    - **Eigen recepten in het menu:** `0261_nutrition_menu_choices.sql` is op
      2026-10-20 via de Supabase-connector toegepast, op verzoek van de
      eigenaar, vóór de push. Nagekeken: RLS aan, één policy (alleen het lid
@@ -281,7 +285,7 @@ Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0265`
 (`0264_nutrition_recipe_sharing` is van recepten van een link en delen met
-alle leden, 2026-10-21, **nog niet toegepast**;
+alle leden, 2026-10-21, toegepast op 2026-10-21;
 `0263_race_briefing_sheet` is van het aanpasbare racebriefje, 2026-10-20;
 `0262_zwift_bike_fixed_wheels` is van de snelste fiets, 2026-10-20,
 toegepast op 2026-10-20; `0261_nutrition_menu_choices` is van eigen recepten in het menu, 2026-10-20,
@@ -11278,9 +11282,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Recept van een link, en eigen recepten delen met alle leden
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt, op de branch
-`claude/recipe-scraper-sharing-a07840`, niet gepusht. Migratie
-`0264_nutrition_recipe_sharing.sql`, **niet toegepast**.
+**2026-10-21.** Commits `a63229bd` (code) en de commit die deze regel
+bijwerkt, gepusht naar `main` op 2026-10-21. Migratie
+`0264_nutrition_recipe_sharing.sql`, op 2026-10-21 via de connector toegepast
+en nagekeken, vóór de push (zie "Handwerk op productie").
 
 **Aanleiding.** De eigenaar wil dat leden een recept via een link in de app
 zetten, met hun avatar erbij als ze dat willen, en zelf kiezen of ze het met de
@@ -11375,10 +11380,11 @@ uitvallers `omnium-live` (geen `.env.local`) en een time-out in
 sites hierboven; met een leesquery op productie nagekeken welke NEVO-producten
 voorbeeldingrediënten krijgen (daarna `pickFood` en de synoniemen).
 
-**Niet lokaal te verifiëren.** De migratie op productie (geen Docker of
-Supabase-config hier). De schermen in de browser: er is hier geen `.env.local`
-en inloggen kan alleen met een account. Geen `npm run build` (zelfde
-`modern-screenshot`).
+**Niet lokaal te verifiëren.** De migratie zelf (geen Docker of
+Supabase-config hier); op productie alleen achteraf nagekeken. De schermen in
+de browser: er is hier geen `.env.local` en inloggen kan alleen met een
+account. Geen `npm run build` (zelfde `modern-screenshot`); de Netlify-build
+na de push is de eerste build.
 
 ### Hersteld — ritstatistieken op het profiel lezen de hele historie
 
