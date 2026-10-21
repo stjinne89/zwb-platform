@@ -284,7 +284,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0268`
-(`0267_zwbriljant_share_by_default` is van ZWBriljant standaard gedeeld, 2026-10-21, nog niet toegepast;
+(`0267_zwbriljant_share_by_default` is van ZWBriljant standaard gedeeld, 2026-10-21, toegepast op 2026-10-21;
 `0266_zwbriljant_share_all_members` is van ZWBriljant delen met alle leden, 2026-10-21, toegepast op 2026-10-21;
 `0265_zwbriljant` is van ZWBriljant (eerst `0265_zwbeter_berg`), 2026-10-21, toegepast op 2026-10-21;
 `0264_nutrition_recipe_sharing` is van recepten van een link en delen met
@@ -11288,8 +11288,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: Diamant haalbaar, en standaard gedeeld
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Migratie
-`0267_zwbriljant_share_by_default.sql` (**nog niet toegepast**). Niet gepusht.
+**2026-10-21.** Commit `cf909c3a`. Migratie `0267_zwbriljant_share_by_default.sql`,
+toegepast op productie op 2026-10-21 (functie zonder `consent_version` nagekeken; vier
+deelnemers met een voorkeur, alle vier zichtbaar). Gepusht naar `main` op 2026-10-21.
 
 **Diamant haalbaar.** De eigenaar zag dat Diamant met de records als ijkwaarde alleen voor
 de perfecte renner bereikbaar was. Nu volgen Robijn en Diamant dezelfde stappen als de rest:
@@ -11307,19 +11308,19 @@ oude schaal).
 zichtbaar voor alle goedgekeurde leden; met "Deel mijn steen met leden" uit verberg je hem.
 `zwbriljant_shares` kijkt alleen nog naar `visible`, niet meer naar `consent_version`. Bij
 het toepassen worden de huidige deelnemers met een voorkeur meteen zichtbaar (drie leden,
-niemand had gedeeld). De privacytekst is aangepast en **moet eerst door de eigenaar worden
-goedgekeurd**; `0267` en de code horen samen live te gaan.
+niemand had gedeeld; bij het toepassen waren het er vier). De privacytekst is aangepast en
+goedgekeurd door de eigenaar, zonder nieuwe privacyversie.
 
 **Getest.** Score-, view-, compare- en recordtests op de nieuwe schaal,
 `briljant-migration.test.ts` tegen PGlite met `0267` (standaard zichtbaar na openen,
 verbergen werkt meteen, oude toestemming beslist niet meer, niet voor wie niet is
-goedgekeurd), tsc, ESLint, de hele suite op `omnium-live` na. **Niet getest:** `0267` op
-productie (niet toegepast).
+goedgekeurd), tsc, ESLint, de hele suite op `omnium-live` na. **Niet getest:** de nieuwe
+schaal in de browser.
 
 ### Gebouwd — ZWBriljant bij Stats, de zaal en de recordsteen
 
-**2026-10-21.** Commits `910bbd98` en de commit die deze regel toevoegt. Geen migratie.
-Niet gepusht.
+**2026-10-21.** Commits `910bbd98` en `2f78d57c`. Geen migratie. Gepusht naar `main` op
+2026-10-21.
 
 **Waarom.** ZWBriljant gaat over je niveau en vergelijken met anderen; dat past bij Stats
 (Club, Ik, Achievements) beter dan bij het trainen in ZWBeter. De eigenaar wilde daar ook
