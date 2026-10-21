@@ -11287,7 +11287,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — ZWBriljant: de terugblik komt terug na de nieuwe schaal
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Gepusht naar
+**2026-10-21.** Commit `1c53fd04`. Geen migratie. Gepusht naar
 `main` op 2026-10-21.
 
 **Wat de eigenaar zag.** De datumkiezer kon niet terug in de tijd en vergelijken bood
@@ -11311,8 +11311,10 @@ de terugblik.
 ZWBriljant deelt niemand, en het ZWB-gemiddelde vraagt vijf leden met een steen op de
 huidige schaal (nu twee). De grens van vijf blijft (herleidbaarheid).
 
-**Getest.** tsc, ESLint, alle ZWBriljant-tests groen. **Niet getest:** de terugblik op
-productie; die volgt bij het eerstvolgende bezoek van de eigenaar.
+**Getest.** tsc, ESLint, alle ZWBriljant-tests groen. Op productie nagekeken na een bezoek
+van de eigenaar: twaalf maandsnapshots (oktober 2025 tot september 2026, scores 262 tot
+338) plus deze week (355), alle op de nieuwe schaal. **Niet getest:** de job met een lid
+dat de pagina niet opent.
 
 ### Gebouwd — ZWBriljant: terugkijken, vergelijken en waar je het meest wint
 
