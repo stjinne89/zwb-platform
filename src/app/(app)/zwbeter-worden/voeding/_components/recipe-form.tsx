@@ -2,13 +2,18 @@
 
 // Eigen recept samenstellen. Ingrediënten komen uit NEVO, zodat de voedingswaarden
 // altijd een bron hebben; een los getypt ingrediënt zonder waarden kan niet.
+// Bij een recept van een link staan de gekoppelde ingrediënten er al, met de
+// regel van de site eronder; wat niet te koppelen was, staat als losse regel
+// klaar om te zoeken.
 
 import { useActionState, useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DIET_TAGS, DIET_TAG_LABELS, FUEL_PROFILE_LABELS } from "@/lib/nutrition/labels";
-import { INGREDIENT_ROLES, INGREDIENT_ROLE_LABELS, type IngredientRole } from "@/lib/nutrition/scale";
+import { INGREDIENT_ROLES, INGREDIENT_ROLE_LABELS, guessRole, type IngredientRole } from "@/lib/nutrition/scale";
 import { MEAL_MOMENTS, MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
+import type { RecipeVisibility } from "@/lib/nutrition/recipes";
+import type { IngredientLine } from "@/lib/nutrition/recipe-import";
 import type { FoodOption } from "../_actions";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -17,10 +22,13 @@ type Row = {
   food: Pick<FoodOption, "id" | "name_nl" | "quantity_unit">;
   grams: string;
   role: IngredientRole;
+  /** De regel van de receptsite waar dit ingrediënt uit komt. */
+  source?: string;
 };
 
 export type RecipeFormInitial = {
-  recipe_id: string;
+  /** Leeg bij een nieuw recept, ook als het van een link komt. */
+  recipe_id?: string;
   title: string;
   meal_moment: string;
   fuel_profile: string;
@@ -28,21 +36,38 @@ export type RecipeFormInitial = {
   servings: number;
   prep_minutes: number | null;
   steps_md: string;
+  source_name: string | null;
+  source_url: string | null;
+  image_url: string | null;
+  visibility: RecipeVisibility;
+  show_owner: boolean;
   rows: Row[];
 };
+
+function validAmount(grams: string) {
+  const value = Number(grams.replace(",", "."));
+  return Number.isFinite(value) && value > 0 && value <= 5000;
+}
 
 const inputClass = "min-h-[44px] w-full rounded-md border bg-background px-3";
 
 export function RecipeForm({
   initial,
+  pending: initialPending = [],
   saveAction,
   searchAction,
 }: {
   initial?: RecipeFormInitial;
+  /** Regels van een link die niet aan NEVO te koppelen waren. */
+  pending?: IngredientLine[];
   saveAction: (formData: FormData) => Promise<ActionResult>;
   searchAction: (query: string) => Promise<FoodOption[]>;
 }) {
   const [rows, setRows] = useState<Row[]>(initial?.rows ?? []);
+  const [pendingLines, setPendingLines] = useState<IngredientLine[]>(initialPending);
+  // De losse regel waarvoor nu gezocht wordt; die krijgt de gekozen NEVO-naam.
+  const [activeLine, setActiveLine] = useState<IngredientLine | null>(null);
+  const [visibility, setVisibility] = useState<RecipeVisibility>(initial?.visibility ?? "prive");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<FoodOption[]>([]);
   // De zoekterm waarvoor NEVO niets gaf, zodat het lid ziet dat er gezocht is.
@@ -87,6 +112,8 @@ export function RecipeForm({
     setRows(next);
   }
 
+  const amountsMissing = rows.some((row) => !validAmount(row.grams));
+
   const payload = JSON.stringify(
     rows.map((row) => ({
       food_id: row.food.id,
@@ -97,8 +124,11 @@ export function RecipeForm({
 
   return (
     <form action={submit} className="space-y-5 rounded-lg border bg-card p-4">
-      {initial && <input type="hidden" name="recipe_id" value={initial.recipe_id} />}
+      {initial?.recipe_id && <input type="hidden" name="recipe_id" value={initial.recipe_id} />}
       <input type="hidden" name="ingredients" value={payload} />
+      <input type="hidden" name="source_name" value={initial?.source_name ?? ""} />
+      <input type="hidden" name="source_url" value={initial?.source_url ?? ""} />
+      <input type="hidden" name="image_url" value={initial?.image_url ?? ""} />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm sm:col-span-2">
@@ -165,14 +195,18 @@ export function RecipeForm({
           <ol className="divide-y rounded-md border">
             {rows.map((row, index) => (
               <li key={`${row.food.id}-${index}`} className="grid gap-2 p-2 sm:grid-cols-[1fr_110px_170px_auto] sm:items-center">
-                <span className="min-w-0 text-sm">{row.food.name_nl}</span>
+                <span className="min-w-0 text-sm">
+                  {row.food.name_nl}
+                  {row.source && <span className="block text-xs text-muted-foreground">{row.source}</span>}
+                </span>
                 <label className="flex items-center gap-1 text-sm">
                   <input
                     inputMode="decimal"
                     aria-label={`Hoeveelheid ${row.food.name_nl}`}
                     value={row.grams}
                     onChange={(event) => update(index, { grams: event.target.value })}
-                    className="min-h-[44px] w-20 rounded-md border bg-background px-2 text-right"
+                    aria-invalid={!validAmount(row.grams)}
+                    className="min-h-[44px] w-20 rounded-md border bg-background px-2 text-right aria-[invalid=true]:border-destructive"
                   />
                   {row.food.quantity_unit}
                 </label>
@@ -209,6 +243,41 @@ export function RecipeForm({
             ))}
           </ol>
         )}
+        {pendingLines.length > 0 && (
+          <ul className="flex flex-wrap gap-2">
+            {pendingLines.map((line, index) => (
+              <li
+                key={`${line.line}-${index}`}
+                className={`inline-flex min-h-[36px] items-center rounded-full border border-dashed text-sm ${
+                  activeLine === line ? "border-primary text-primary" : ""
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveLine(line);
+                    setQuery(line.name);
+                  }}
+                  className="inline-flex min-h-[36px] items-center gap-1 pl-3 pr-1 text-left"
+                >
+                  <Search className="size-3.5 shrink-0" />
+                  {line.line}
+                </button>
+                <button
+                  type="button"
+                  aria-label={`${line.line} weglaten`}
+                  onClick={() => {
+                    setPendingLines(pendingLines.filter((item) => item !== line));
+                    if (activeLine === line) setActiveLine(null);
+                  }}
+                  className="inline-flex min-h-[36px] items-center px-2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         <input
           type="search"
           value={query}
@@ -230,11 +299,18 @@ export function RecipeForm({
                 key={food.id}
                 type="button"
                 onClick={() => {
-                  const carbs = Number(food.carbs_g ?? 0);
-                  const protein = Number(food.protein_g ?? 0);
-                  const role: IngredientRole =
-                    carbs >= 15 && carbs >= protein ? "kh_bron" : protein >= 8 ? "eiwit_bron" : "vast";
-                  setRows([...rows, { food, grams: "100", role }]);
+                  const line = activeLine;
+                  setRows([
+                    ...rows,
+                    {
+                      food,
+                      grams: line ? (line.grams == null ? "" : String(line.grams)) : "100",
+                      role: guessRole(food),
+                      source: line?.line,
+                    },
+                  ]);
+                  if (line) setPendingLines(pendingLines.filter((item) => item !== line));
+                  setActiveLine(null);
                   setQuery("");
                   setResults([]);
                 }}
@@ -258,12 +334,51 @@ export function RecipeForm({
         />
       </label>
 
+      <fieldset className="space-y-2 text-sm">
+        <legend className="mb-1 font-medium">Delen</legend>
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          <label className="inline-flex min-h-[44px] items-center gap-2">
+            <input
+              type="radio"
+              name="visibility"
+              value="prive"
+              checked={visibility === "prive"}
+              onChange={() => setVisibility("prive")}
+            />
+            Alleen voor mij
+          </label>
+          <label className="inline-flex min-h-[44px] items-center gap-2">
+            <input
+              type="radio"
+              name="visibility"
+              value="leden"
+              checked={visibility === "leden"}
+              onChange={() => setVisibility("leden")}
+            />
+            Alle leden
+          </label>
+        </div>
+        {visibility === "leden" && (
+          <label className="inline-flex min-h-[44px] items-center gap-2">
+            <input
+              type="checkbox"
+              name="show_owner"
+              defaultChecked={initial?.visibility === "leden" ? initial.show_owner : true}
+            />
+            Toon mijn naam en avatar
+          </label>
+        )}
+      </fieldset>
+
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" className="min-h-[44px]" disabled={pending || rows.length === 0}>
+        <Button type="submit" className="min-h-[44px]" disabled={pending || rows.length === 0 || amountsMissing}>
           {pending ? "Bezig…" : "Recept bewaren"}
         </Button>
         {rows.length === 0 && (
           <span className="text-sm text-muted-foreground">Kies eerst een ingrediënt.</span>
+        )}
+        {rows.length > 0 && amountsMissing && (
+          <span className="text-sm text-muted-foreground">Vul bij elk ingrediënt een hoeveelheid in.</span>
         )}
         {state && !state.ok && <span className="text-sm text-destructive">{state.error}</span>}
       </div>

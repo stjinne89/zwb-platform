@@ -272,9 +272,34 @@ export function KennisHelp() {
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
-                  Staat er &quot;Naar:&quot; onder een recept, dan komt het
+                  Staat er &quot;Naar:&quot; onder een clubrecept, dan komt het
                   gerecht van die bron. De bereiding is opnieuw beschreven en
                   de waarden zijn met NEVO berekend.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Bij Eigen recept plak je een link naar een recept en tik je
+                  Ophalen. Naam, porties, tijd, foto en bereiding komen van de
+                  site; elk ingrediënt wordt aan een NEVO-product gekoppeld,
+                  met de regel van de site eronder. Controleer product en
+                  hoeveelheid: een ui of een scheutje is een schatting. Wat niet
+                  te koppelen was, staat als losse regel klaar; tik erop om te
+                  zoeken. Werkt een site niet (Allerhande weigert het
+                  ophalen), vul het recept dan zelf in.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
+                  Onder Delen kies je &quot;Alleen voor mij&quot; of &quot;Alle
+                  leden&quot;, en of je naam en avatar erbij staan. Gedeelde
+                  recepten van anderen vind je onder &quot;Van leden&quot; en kun
+                  je zelf in je menu zetten. Vanzelf in het dagmenu komen ze
+                  alleen als je ze als favoriet markeert, omdat ze niet
+                  nagekeken zijn zoals de clubrecepten. &quot;Voorstellen als
+                  clubrecept&quot; legt een recept voor aan de beoordelaars.
                 </span>
               </li>
             </ul>

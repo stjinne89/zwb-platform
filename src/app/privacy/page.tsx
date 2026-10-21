@@ -186,9 +186,15 @@ export default function PrivacyPage() {
             <strong>Lengte en eigen recepten:</strong> vul je je lengte in, dan
             gebruiken we die om de porties in het receptenboek op jou af te
             stemmen en om in je pacingplan voor een Zwift-event je luchtweerstand
-            te berekenen. Je lengte en de recepten die je zelf maakt, zijn alleen voor
-            jou zichtbaar. Markeer je een recept als favoriet of als &quot;niet
-            voor mij&quot;, dan bewaren we dat; alleen jij ziet het. Stel je een
+            te berekenen. Je lengte is alleen voor jou zichtbaar, en een recept
+            dat je zelf maakt ook, tenzij je het deelt met alle leden. Dan zien
+            leden het recept, en je naam en profielfoto als je die aanzet; staan
+            die uit, dan toont de app geen naam bij het recept. Haal je een
+            recept op van een link, dan haalt onze server die pagina op; de
+            receptsite ziet daarbij niet wie je bent. De foto bij zo&apos;n recept
+            laadt je browser rechtstreeks van die site. Markeer je een recept
+            als favoriet of als &quot;niet voor mij&quot;, dan bewaren we dat;
+            alleen jij ziet het. Stel je een
             eigen recept voor aan de club, dan ziet een beoordelaar het. Na
             goedkeuring ziet elk lid het, met jouw naam erbij. Een dieetfilter
             in het receptenboek wordt niet bewaard. Kies je zelf een recept voor

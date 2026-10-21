@@ -29,11 +29,31 @@ const BASE_RECIPE_COLUMNS =
 
 const FOOD_COLUMNS = `${BASE_FOOD_COLUMNS}, food_group, calcium_mg, iron_mg, magnesium_mg, zinc_mg, vitamin_d_ug, vitamin_c_mg, epa_g, dha_g`;
 
-function recipeColumns(expanded: boolean) {
-  const recipe = expanded
-    ? `${BASE_RECIPE_COLUMNS}, source_name, source_url, share_status, contributor:profiles!contributed_by(display_name)`
-    : BASE_RECIPE_COLUMNS;
-  return `${recipe}, ingredients:nutrition_recipe_ingredients(id, sort_order, grams, role, food:nutrition_foods(${expanded ? FOOD_COLUMNS : BASE_FOOD_COLUMNS}))`;
+/**
+ * 2: met delen onder leden (0264), 1: met bron en voorstellen (0213), 0: de
+ * kolommen van 0168. Zo werkt de pagina ook zolang een migratie ontbreekt.
+ */
+type ColumnLevel = 0 | 1 | 2;
+
+function recipeColumns(level: ColumnLevel) {
+  const sharing =
+    level >= 2 ? ", visibility, show_owner, image_url, sharer:profiles!owner_id(display_name, avatar_url)" : "";
+  const recipe =
+    level >= 1
+      ? `${BASE_RECIPE_COLUMNS}, source_name, source_url, share_status, contributor:profiles!contributed_by(display_name)${sharing}`
+      : BASE_RECIPE_COLUMNS;
+  return `${recipe}, ingredients:nutrition_recipe_ingredients(id, sort_order, grams, role, food:nutrition_foods(${level >= 1 ? FOOD_COLUMNS : BASE_FOOD_COLUMNS}))`;
+}
+
+/** Dezelfde query met minder kolommen zolang de select faalt. */
+async function withColumnFallback<T>(
+  run: (columns: string) => PromiseLike<{ data: T | null; error: unknown }>,
+): Promise<T | null> {
+  for (const level of [2, 1, 0] as const) {
+    const { data, error } = await run(recipeColumns(level));
+    if (!error) return data;
+  }
+  return null;
 }
 
 export type NutritionProfile = {
@@ -98,13 +118,22 @@ export async function loadMenuChoices(viewer: Viewer, from: string, to: string):
     .map((row) => ({ day: row.day, moment: row.meal_moment as MealMoment, recipeId: row.recipe_id }));
 }
 
-function normalizeRecipe(row: Recipe): Recipe {
+function normalizeRecipe(row: Recipe, viewerId: string): Recipe {
+  const visibility = row.visibility ?? "prive";
+  const showOwner = Boolean(row.show_owner) && visibility === "leden";
+  const own = !row.is_standard && row.owner_id === viewerId;
   return {
     ...row,
     source_name: row.source_name ?? null,
     source_url: row.source_url ?? null,
     share_status: row.share_status ?? null,
     contributor: row.contributor ?? null,
+    visibility,
+    show_owner: showOwner,
+    image_url: row.image_url ?? null,
+    // De join levert de maker altijd; zonder toestemming gaat hij hier al weg.
+    sharer: showOwner || own ? (row.sharer ?? null) : null,
+    from_member: !row.is_standard && row.owner_id !== viewerId,
     diet_tags: row.diet_tags ?? [],
     ingredients: [...(row.ingredients ?? [])]
       .map((item) => ({ ...item, grams: Number(item.grams) }))
@@ -112,12 +141,15 @@ function normalizeRecipe(row: Recipe): Recipe {
   };
 }
 
-/** Clubrecepten plus de eigen recepten; RLS filtert al op wat dit lid mag zien. */
+/**
+ * Clubrecepten, de eigen recepten en wat andere leden delen; RLS filtert al op
+ * wat dit lid mag zien. Een voorstel dat een beoordelaar ziet, telt niet mee.
+ */
 export async function loadRecipes(viewer: Viewer): Promise<Recipe[]> {
-  let { data, error } = await viewer.supabase.from("nutrition_recipes").select(recipeColumns(true));
-  if (error) ({ data, error } = await viewer.supabase.from("nutrition_recipes").select(recipeColumns(false)));
+  const data = await withColumnFallback((columns) => viewer.supabase.from("nutrition_recipes").select(columns));
   return ((data ?? []) as unknown as Recipe[])
-    .map(normalizeRecipe)
+    .map((row) => normalizeRecipe(row, viewer.user.id))
+    .filter((recipe) => !recipe.from_member || recipe.visibility === "leden")
     .sort(
       (a, b) =>
         Number(b.is_standard) - Number(a.is_standard) || a.title.localeCompare(b.title, "nl"),
@@ -125,11 +157,10 @@ export async function loadRecipes(viewer: Viewer): Promise<Recipe[]> {
 }
 
 export async function loadRecipeBySlug(viewer: Viewer, slug: string): Promise<Recipe | null> {
-  const query = (expanded: boolean) =>
-    viewer.supabase.from("nutrition_recipes").select(recipeColumns(expanded)).eq("slug", slug).maybeSingle();
-  let { data, error } = await query(true);
-  if (error) ({ data, error } = await query(false));
-  return data ? normalizeRecipe(data as unknown as Recipe) : null;
+  const data = await withColumnFallback((columns) =>
+    viewer.supabase.from("nutrition_recipes").select(columns).eq("slug", slug).maybeSingle(),
+  );
+  return data ? normalizeRecipe(data as unknown as Recipe, viewer.user.id) : null;
 }
 
 /** Favorieten en verborgen recepten van dit lid. Leeg zolang 0213 er niet is. */
@@ -150,11 +181,11 @@ export async function loadRecipePrefs(viewer: Viewer): Promise<RecipePrefs> {
 export async function loadProposedRecipes(viewer: Viewer): Promise<(Recipe & { owner_name: string | null })[]> {
   const { data } = await viewer.supabase
     .from("nutrition_recipes")
-    .select(`${recipeColumns(true)}, owner:profiles!owner_id(display_name)`)
+    .select(`${recipeColumns(1)}, owner:profiles!owner_id(display_name)`)
     .eq("share_status", "voorgesteld")
     .order("updated_at", { ascending: true });
   return ((data ?? []) as unknown as (Recipe & { owner: { display_name: string | null } | null })[]).map((row) => ({
-    ...normalizeRecipe(row),
+    ...normalizeRecipe(row, viewer.user.id),
     owner_name: row.owner?.display_name ?? null,
   }));
 }

@@ -79,7 +79,7 @@ export function ShareRecipeButton({
       <input type="hidden" name="share" value={proposed ? "0" : "1"} />
       <Button type="submit" variant="outline" className="min-h-[44px]" disabled={pending}>
         <Share2 className="size-4" />
-        {proposed ? "Voorstel intrekken" : "Deel met de club"}
+        {proposed ? "Voorstel intrekken" : "Voorstellen als clubrecept"}
       </Button>
       {proposed && <span className="text-sm text-muted-foreground">Voorgesteld</span>}
       {status === "afgewezen" && <span className="text-sm text-muted-foreground">Niet overgenomen</span>}

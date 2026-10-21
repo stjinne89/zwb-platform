@@ -81,12 +81,14 @@ export default async function KiezenPage({ searchParams }: { searchParams: Promi
     today: day,
     prefs,
     diet: null,
+    includeShared: true,
   };
   // Best passend eerst; bij lunch en diner daarna de recepten van het andere moment.
   const ranked = choiceMoments(moment).flatMap((item) => rankRecipes(recipes, item, context));
   const current = choices.find((choice) => choice.moment === moment)?.recipeId ?? null;
   const own = ranked.filter((item) => item.recipe.owner_id === viewer.user.id);
-  const club = ranked.filter((item) => item.recipe.owner_id !== viewer.user.id);
+  const shared = ranked.filter((item) => item.recipe.from_member);
+  const club = ranked.filter((item) => item.recipe.is_standard);
 
   const row = (item: RankedRecipe) => (
     <li key={item.recipe.id} className="flex items-center justify-between gap-3 py-2">
@@ -144,6 +146,13 @@ export default async function KiezenPage({ searchParams }: { searchParams: Promi
         <section className="rounded-lg border bg-card p-4">
           <h3 className="font-semibold">Jouw recepten</h3>
           <ul className="mt-1 divide-y">{own.map(row)}</ul>
+        </section>
+      )}
+
+      {shared.length > 0 && (
+        <section className="rounded-lg border bg-card p-4">
+          <h3 className="font-semibold">Van leden</h3>
+          <ul className="mt-1 divide-y">{shared.map(row)}</ul>
         </section>
       )}
 

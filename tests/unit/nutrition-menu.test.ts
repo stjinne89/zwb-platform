@@ -218,6 +218,26 @@ describe("rankRecipes", () => {
     expect(rankRecipes(pool, "diner", context(heavy))[0].recipe.slug).toBe(seen[0]);
   });
 
+  it("neemt een recept van een ander lid alleen als favoriet of bij zelf kiezen mee", () => {
+    const shared: Recipe = {
+      ...pasta,
+      id: "gedeeld",
+      slug: "gedeeld",
+      is_standard: false,
+      owner_id: "ander-lid",
+      visibility: "leden",
+      from_member: true,
+    };
+    const slugs = (extra: Partial<MenuContext>) =>
+      rankRecipes([beans, shared], "diner", context(heavy, extra)).map((item) => item.recipe.slug);
+    expect(slugs({})).toEqual(["bonenschotel"]);
+    expect(slugs({ prefs: new Map([["gedeeld", "favoriet"]]) })).toContain("gedeeld");
+    expect(slugs({ includeShared: true })).toContain("gedeeld");
+    // Een eigen recept doet gewoon mee, ook als het gedeeld is.
+    const own = { ...shared, id: "eigen", slug: "eigen", from_member: false };
+    expect(rankRecipes([beans, own], "diner", context(heavy)).map((item) => item.recipe.slug)).toContain("eigen");
+  });
+
   it("werkt zonder gewicht op profiel en soort eten", () => {
     const ranked = rankRecipes([beans, salad, pasta], "diner", context({ ...base, weightKg: null }, { rider: null }));
     expect(ranked).toHaveLength(3);

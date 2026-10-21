@@ -102,7 +102,7 @@ export function cleanDescription(input: string | null | undefined): string | nul
   return `${(lastBreak > MAX_DESCRIPTION / 2 ? cut.slice(0, lastBreak + 1) : cut).trim()}…`;
 }
 
-function cleanText(input: unknown): string | null {
+export function cleanText(input: unknown): string | null {
   if (typeof input !== "string") return null;
   const text = decodeEntities(input).replace(/\s+/g, " ").trim();
   return text || null;
@@ -368,7 +368,7 @@ const USER_AGENT = "Mozilla/5.0 (compatible; ZWB-Platform/1.0; +https://zwbcycli
  * GET met SSRF-controle op elke hop: safeFetch toetst alleen de eerste URL, en
  * een redirect naar een intern adres moet hier net zo goed geweigerd worden.
  */
-async function fetchWithCheckedRedirects(raw: string, accept: string): Promise<Response> {
+export async function fetchWithCheckedRedirects(raw: string, accept: string): Promise<Response> {
   let url = raw;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     await assertSafeUrl(url);
@@ -388,7 +388,7 @@ async function fetchWithCheckedRedirects(raw: string, accept: string): Promise<R
   throw new Error("Te veel doorverwijzingen.");
 }
 
-async function readCapped(response: Response, maxBytes: number): Promise<Uint8Array> {
+export async function readCapped(response: Response, maxBytes: number): Promise<Uint8Array> {
   const reader = response.body?.getReader();
   if (!reader) return new Uint8Array();
   const chunks: Uint8Array[] = [];
@@ -416,7 +416,7 @@ async function readCapped(response: Response, maxBytes: number): Promise<Uint8Ar
  * Onze eigen meldingen (SSRF-weigering, te groot) zijn Nederlands en mogen
  * door; "fetch failed" en een time-out zeggen een beheerder niets.
  */
-function fetchError(err: unknown, fallback: string): string {
+export function fetchError(err: unknown, fallback: string): string {
   if (err instanceof Error && !/fetch failed|abort|timeout|network/i.test(err.message)) {
     return err.message;
   }

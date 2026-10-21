@@ -17,6 +17,13 @@ export const INGREDIENT_ROLE_LABELS: Record<IngredientRole, string> = {
   vast: "Vast",
 };
 
+/** De rol die een nieuw ingrediënt krijgt, uit de NEVO-waarden per 100 g. Het lid kan hem wijzigen. */
+export function guessRole(food: { carbs_g: number | null; protein_g: number | null }): IngredientRole {
+  const carbs = Number(food.carbs_g ?? 0);
+  const protein = Number(food.protein_g ?? 0);
+  return carbs >= 15 && carbs >= protein ? "kh_bron" : protein >= 8 ? "eiwit_bron" : "vast";
+}
+
 /** Voedingswaarden per 100 g, ongewijzigd uit NEVO. Null = niet bekend in NEVO. */
 export type NutritionFood = {
   id: string;

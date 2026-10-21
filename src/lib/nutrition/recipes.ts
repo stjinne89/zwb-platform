@@ -49,11 +49,24 @@ export type Recipe = {
   share_status: ShareStatus | null;
   /** Wie een clubrecept aandroeg, als dat een lid was. */
   contributor: { display_name: string | null } | null;
+  /** Een eigen recept dat met alle leden gedeeld is (0264). Zonder 0264: privé. */
+  visibility?: RecipeVisibility;
+  /** De maker wil naam en profielfoto bij het gedeelde recept. */
+  show_owner?: boolean;
+  /** Foto van de bron, bij een recept van een link. */
+  image_url?: string | null;
+  /** Naam en foto van de maker; alleen gevuld als die getoond mogen worden. */
+  sharer?: { display_name: string | null; avatar_url: string | null } | null;
+  /** Gedeeld door een ander lid: niet nagekeken, dus niet vanzelf in het menu (menu.ts). */
+  from_member?: boolean;
   ingredients: RecipeIngredientRow[];
 };
 
 export const SHARE_STATUSES = ["voorgesteld", "afgewezen"] as const;
 export type ShareStatus = (typeof SHARE_STATUSES)[number];
+
+export const RECIPE_VISIBILITIES = ["prive", "leden"] as const;
+export type RecipeVisibility = (typeof RECIPE_VISIBILITIES)[number];
 
 export type Rider = {
   weightKg: number | null;

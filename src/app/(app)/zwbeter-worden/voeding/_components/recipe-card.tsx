@@ -3,6 +3,7 @@ import { ChevronRight, Heart } from "lucide-react";
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import type { Macros } from "@/lib/nutrition/scale";
 import type { Recipe } from "@/lib/nutrition/recipes";
+import { RecipeSharer } from "./recipe-sharer";
 
 function grams(value: number) {
   return Math.round(value);
@@ -26,10 +27,17 @@ export function RecipeCard({
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-semibold">{recipe.title}</h3>
           {favorite && <Heart className="size-4 shrink-0 fill-primary text-primary" aria-label="Favoriet" />}
-          {!recipe.is_standard && (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">Eigen</span>
+          {!recipe.is_standard && !recipe.from_member && (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              {recipe.visibility === "leden" ? "Eigen · gedeeld" : "Eigen"}
+            </span>
           )}
         </div>
+        {recipe.from_member && (
+          <div className="mt-1">
+            <RecipeSharer recipe={recipe} />
+          </div>
+        )}
         <p className="mt-1 text-xs text-muted-foreground">
           {MEAL_MOMENT_LABELS[recipe.meal_moment]}
           {recipe.prep_minutes ? ` · ${recipe.prep_minutes} min` : ""} · {grams(portion.carbsG)} g koolhydraten ·{" "}

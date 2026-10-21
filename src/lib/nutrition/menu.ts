@@ -9,6 +9,7 @@
 //   3. het soort eten: licht verteerbaar rond de rit en op zware dagen,
 //      vezelrijk op rustige dagen (UCI-positiestandpunt, thema 7);
 //   4. wat het lid zelf als favoriet of "niet voor mij" heeft gemarkeerd.
+// Een recept dat een ander lid deelt, kiest het menu alleen als favoriet.
 // Wat daarna gelijkwaardig is, wisselt per dag door, zodat een recept pas
 // terugkomt als de andere geweest zijn.
 
@@ -68,6 +69,11 @@ export type MenuContext = {
   today: string;
   prefs: RecipePrefs;
   diet: DietTag | null;
+  /**
+   * Ook recepten die andere leden delen. Zonder dit tellen die alleen als het
+   * lid ze als favoriet heeft: ze zijn niet nagekeken zoals de clubrecepten.
+   */
+  includeShared?: boolean;
 };
 
 export type RankedRecipe = {
@@ -126,6 +132,7 @@ export function rankRecipes(recipes: Recipe[], moment: MealMoment, context: Menu
       (recipe) =>
         recipe.meal_moment === moment &&
         context.prefs.get(recipe.id) !== "verborgen" &&
+        (!recipe.from_member || context.includeShared || context.prefs.get(recipe.id) === "favoriet") &&
         matchesDiet(recipe, context.diet),
     )
     .map((recipe) => {

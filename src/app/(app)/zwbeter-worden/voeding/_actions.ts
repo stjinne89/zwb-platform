@@ -13,22 +13,28 @@ import { INGREDIENT_ROLES, type IngredientRole } from "@/lib/nutrition/scale";
 import { DIET_TAGS, FUEL_PROFILES } from "@/lib/nutrition/labels";
 import { MEAL_MOMENTS } from "@/lib/nutrition/targets";
 import { RECIPE_PREFS } from "@/lib/nutrition/menu";
-import { collectPages, compoundSplits, foodSearchTokens, rankFoods } from "@/lib/nutrition/food-search";
+import { foodSearchTokens } from "@/lib/nutrition/food-search";
+import { queryFoods, type FoodOption } from "@/lib/nutrition/food-query";
+import { RECIPE_VISIBILITIES, type RecipeVisibility } from "@/lib/nutrition/recipes";
+
+export type { FoodOption } from "@/lib/nutrition/food-query";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 const MAX_INGREDIENTS = 30;
 
-export type FoodOption = {
-  id: string;
-  name_nl: string;
-  quantity_unit: "g" | "ml";
-  carbs_g: number | null;
-  protein_g: number | null;
-};
-
 function text(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
+}
+
+/** Alleen een geldige https-link; de kolommen staan niets anders toe (0213, 0264). */
+function httpsUrl(value: string): string | null {
+  if (!value || value.length > 1000) return null;
+  try {
+    return new URL(value).protocol === "https:" ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 async function currentUser() {
@@ -45,47 +51,9 @@ function refresh() {
 
 /** Zoeken in NEVO voor het receptformulier. */
 export async function searchFoods(query: string): Promise<FoodOption[]> {
-  const tokens = foodSearchTokens(query);
-  if (tokens.length === 0) return [];
+  if (foodSearchTokens(query).length === 0) return [];
   const { supabase } = await currentUser();
-  // % en _ zijn jokers in ilike; letterlijk zoeken.
-  const pattern = (part: string) => `%${part.replace(/[\\%_]/g, (match) => `\\${match}`)}%`;
-  const columns = "id, name_nl, quantity_unit, carbs_g, protein_g";
-
-  // Elk woord moet in de naam staan, in welke volgorde ook. Alle treffers
-  // ophalen, per pagina: rankFoods kiest de beste twintig, en een afgekapte
-  // voorraad op alfabet laat bij "rauw" alles na de P weg.
-  let rows = await collectPages<FoodOption>(async (from, to) => {
-    let search = supabase.from("nutrition_foods").select(columns);
-    for (const token of tokens) search = search.ilike("name_nl", pattern(token));
-    const { data } = await search
-      .order("name_nl", { ascending: true })
-      .order("id", { ascending: true })
-      .range(from, to);
-    return (data ?? []) as FoodOption[];
-  });
-
-  // Niets bij één woord: een samenstelling als "chocolademelk" staat in NEVO als
-  // "Melk chocolade-". Probeer elke knip in twee stukken, in één query.
-  if (rows.length === 0 && tokens.length === 1) {
-    const splits = compoundSplits(tokens[0]);
-    if (splits.length > 0) {
-      const filter = splits
-        .map(([head, tail]) => `and(name_nl.ilike.%${head}%,name_nl.ilike.%${tail}%)`)
-        .join(",");
-      rows = await collectPages<FoodOption>(async (from, to) => {
-        const { data: split } = await supabase
-          .from("nutrition_foods")
-          .select(columns)
-          .or(filter)
-          .order("name_nl", { ascending: true })
-          .order("id", { ascending: true })
-          .range(from, to);
-        return (split ?? []) as FoodOption[];
-      });
-    }
-  }
-  return rankFoods(rows, tokens);
+  return queryFoods(supabase, query);
 }
 
 type IngredientInput = { food_id: string; grams: number; role: IngredientRole };
@@ -164,6 +132,13 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
     return { ok: false, error: "Een van de ingrediënten bestaat niet meer." };
   }
 
+  const sourceUrl = httpsUrl(text(formData.get("source_url")));
+  const sourceName = text(formData.get("source_name")).slice(0, 120) || (sourceUrl ? new URL(sourceUrl).hostname : "");
+  const visibilityRaw = text(formData.get("visibility"));
+  const visibility: RecipeVisibility = (RECIPE_VISIBILITIES as readonly string[]).includes(visibilityRaw)
+    ? (visibilityRaw as RecipeVisibility)
+    : "prive";
+
   const fields = {
     title,
     meal_moment: mealMoment,
@@ -172,21 +147,33 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
     servings,
     prep_minutes: prepMinutes,
     steps_md: text(formData.get("steps_md")).slice(0, 5000),
+    source_name: sourceName || null,
+    source_url: sourceUrl,
   };
+  // Pas na 0264; zonder die migratie bewaart het formulier het recept privé.
+  const sharing = {
+    visibility,
+    show_owner: visibility === "leden" && formData.get("show_owner") === "on",
+    image_url: httpsUrl(text(formData.get("image_url"))),
+  };
+  const missingSharing = (error: { code?: string } | null) => error?.code === "PGRST204";
 
   const recipeId = text(formData.get("recipe_id"));
   let id: string;
   let slug: string;
 
   if (recipeId) {
-    const { data: updated, error } = await supabase
-      .from("nutrition_recipes")
-      .update(fields)
-      .eq("id", recipeId)
-      .eq("owner_id", user.id)
-      .eq("is_standard", false)
-      .select("id, slug")
-      .maybeSingle();
+    const update = (values: Record<string, unknown>) =>
+      supabase
+        .from("nutrition_recipes")
+        .update(values)
+        .eq("id", recipeId)
+        .eq("owner_id", user.id)
+        .eq("is_standard", false)
+        .select("id, slug")
+        .maybeSingle();
+    let { data: updated, error } = await update({ ...fields, ...sharing });
+    if (missingSharing(error)) ({ data: updated, error } = await update(fields));
     if (error) return { ok: false, error: error.message };
     if (!updated) return { ok: false, error: "Dit recept kun je niet wijzigen." };
     id = updated.id as string;
@@ -198,16 +185,16 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
       .eq("recipe_id", id);
     if (deleteError) return { ok: false, error: deleteError.message };
   } else {
-    const { data: created, error } = await supabase
-      .from("nutrition_recipes")
-      .insert({
-        ...fields,
-        slug: `eigen-${user.id.slice(0, 8)}-${Date.now().toString(36)}`,
-        is_standard: false,
-        owner_id: user.id,
-      })
-      .select("id, slug")
-      .single();
+    const base = {
+      ...fields,
+      slug: `eigen-${user.id.slice(0, 8)}-${Date.now().toString(36)}`,
+      is_standard: false,
+      owner_id: user.id,
+    };
+    const insert = (values: Record<string, unknown>) =>
+      supabase.from("nutrition_recipes").insert(values).select("id, slug").single();
+    let { data: created, error } = await insert({ ...base, ...sharing });
+    if (missingSharing(error)) ({ data: created, error } = await insert(base));
     if (error || !created) return { ok: false, error: error?.message ?? "Recept opslaan mislukt." };
     id = created.id as string;
     slug = created.slug as string;

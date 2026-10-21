@@ -26,6 +26,7 @@ import {
 import { deleteOwnRecipe, setRecipePref, shareOwnRecipe } from "../../_actions";
 import { DeleteRecipeButton } from "../../_components/delete-recipe-button";
 import { RecipePrefButtons, ShareRecipeButton } from "../../_components/recipe-actions";
+import { RecipeSharer } from "../../_components/recipe-sharer";
 import { BackLink } from "@/components/app-ui";
 
 export const dynamic = "force-dynamic";
@@ -96,7 +97,23 @@ export default async function RecipePage({
     <div className="space-y-6">
       <div>
         <BackLink href="/zwbeter-worden/voeding/recepten" label="Receptenboek" />
+        {recipe.image_url && (
+          // Van de site van het recept, niet bij ons opgeslagen (0264).
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={recipe.image_url}
+            alt=""
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            className="mt-2 aspect-[16/9] w-full max-w-2xl rounded-lg border object-cover"
+          />
+        )}
         <h2 className="mt-1 text-xl font-semibold">{recipe.title}</h2>
+        {recipe.from_member && (
+          <div className="mt-1">
+            <RecipeSharer recipe={recipe} size={24} />
+          </div>
+        )}
         <p className="mt-1 text-xs text-muted-foreground">
           {[
             MEAL_MOMENT_LABELS[recipe.meal_moment],
@@ -201,6 +218,11 @@ export default async function RecipePage({
 
       {own && (
         <div className="flex flex-wrap items-center gap-3">
+          {recipe.visibility === "leden" && (
+            <span className="text-sm text-muted-foreground">
+              {recipe.show_owner ? "Gedeeld met alle leden" : "Gedeeld met alle leden, zonder naam"}
+            </span>
+          )}
           <ShareRecipeButton recipeId={recipe.id} status={recipe.share_status} action={shareOwnRecipe} />
           <Link
             href={`/zwbeter-worden/voeding/recepten/${recipe.slug}/bewerken`}
@@ -217,7 +239,7 @@ export default async function RecipePage({
         {recipe.contributor?.display_name ? `Van ${recipe.contributor.display_name}. ` : ""}
         {recipe.source_name ? (
           <>
-            Naar:{" "}
+            {recipe.is_standard ? "Naar" : "Bron"}:{" "}
             {recipe.source_url ? (
               <a href={recipe.source_url} target="_blank" rel="noreferrer" className="underline hover:text-primary">
                 {recipe.source_name}

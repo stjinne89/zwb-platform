@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-10-20)
+## Actieve volgorde (bijgewerkt 2026-10-21)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -72,6 +72,14 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **Recept van een link, delen met alle leden:** `0264_nutrition_recipe_sharing.sql`
+     is **nog niet toegepast** (branch `claude/recipe-scraper-sharing-a07840`,
+     niet gepusht). Vóór de push toepassen: zonder 0264 bewaart het formulier
+     een recept wel, maar privé en zonder foto, en ziet niemand gedeelde
+     recepten. Daarna: een recept van Leukerecepten ophalen, delen met naam,
+     en als tweede lid bekijken, in het menu zetten en als favoriet markeren.
+     Nog goed te keuren: de privacytekst en of dit zonder nieuwe
+     privacyversie kan (ronde 2026-10-21, "Recept van een link").
    - **Eigen recepten in het menu:** `0261_nutrition_menu_choices.sql` is op
      2026-10-20 via de Supabase-connector toegepast, op verzoek van de
      eigenaar, vóór de push. Nagekeken: RLS aan, één policy (alleen het lid
@@ -271,8 +279,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0264`
-(`0263_race_briefing_sheet` is van het aanpasbare racebriefje, 2026-10-20;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0265`
+(`0264_nutrition_recipe_sharing` is van recepten van een link en delen met
+alle leden, 2026-10-21, **nog niet toegepast**;
+`0263_race_briefing_sheet` is van het aanpasbare racebriefje, 2026-10-20;
 `0262_zwift_bike_fixed_wheels` is van de snelste fiets, 2026-10-20,
 toegepast op 2026-10-20; `0261_nutrition_menu_choices` is van eigen recepten in het menu, 2026-10-20,
 hernummerd van `0260`, toegepast op 2026-10-20;
@@ -6192,7 +6202,10 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > **Niet gebouwd, en waarom.**
 > - Teksten of foto's van externe bronnen overnemen: het Voedingscentrum vraagt
 >   daar schriftelijke toestemming voor. Allerhande, kookboeken en blogs vallen
->   buiten "betrouwbaar en onderbouwd".
+>   buiten "betrouwbaar en onderbouwd". *Geldt nog voor de clubrecepten. Voor
+>   eigen recepten van een link neemt de app sinds 2026-10-21 de bereiding wel
+>   over en toont hij de foto van de site (besluit eigenaar), zie de ronde
+>   "Recept van een link".*
 > - Kilojoules of vermogen als maat voor de dag: de bronnen geven g/kg naar uren
 >   en zwaarte; een kJ-drempel blijft een eigen verzinsel.
 > - Een dagtotaal micronutriënten: zonder eetdagboek niet te berekenen.
@@ -11262,6 +11275,110 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Recept van een link, en eigen recepten delen met alle leden
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt, op de branch
+`claude/recipe-scraper-sharing-a07840`, niet gepusht. Migratie
+`0264_nutrition_recipe_sharing.sql`, **niet toegepast**.
+
+**Aanleiding.** De eigenaar wil dat leden een recept via een link in de app
+zetten, met hun avatar erbij als ze dat willen, en zelf kiezen of ze het met de
+andere leden delen. Gekozen (eigenaar, 2026-10-21): de link vult het bestaande
+formulier "Eigen recept" (dus NEVO-ingrediënten en een plek in het menu), niet
+een losse linkenlijst; ook de bereiding wordt overgenomen; delen is direct
+zichtbaar voor alle leden, zonder beoordeling; naam en avatar zijn per recept
+aan of uit te zetten.
+
+**Nu.**
+- **Ophalen** (`src/lib/nutrition/recipe-import.ts`). Leest alleen
+  schema.org-`Recipe` uit JSON-LD (in `@graph` of als `mainEntity`): naam,
+  porties, tijd, ingrediëntregels, bereiding (met een kopje per onderdeel als er
+  meer zijn), foto, sitenaam. Zelfde SSRF-controle per redirect, time-out en
+  groottegrens als de eventlinks: `fetchWithCheckedRedirects`, `readCapped` en
+  `fetchError` zijn daarvoor uit `link-prefill.ts` geëxporteerd. Bronlink zonder
+  volgparameters (`utm_*`, `fbclid`); geen https, dan geen bronlink en geen foto
+  (de checks van 0213 en 0264).
+- **Ingrediënten koppelen** (`voeding/_import.ts`). Per regel hoeveelheid en
+  naam (`parseIngredientLine`: g, kg, ml, dl, el, tl, kopje, "(400 g)" bij een
+  blik of pak, en een klein lijstje stukgewichten zoals een ui of een ei), dan
+  tot vier zoektermen in NEVO (hele naam, synoniem zoals spaghetti → pasta,
+  hoofdwoord, enkelvoud). `pickFood` kiest het rauwe basisproduct ("Pasta witte
+  rauw" boven "Pasta speculoos-") en laat een bereid gerecht liggen. Wat niet te
+  koppelen is, staat in het formulier als losse regel; tikken zoekt die naam en
+  neemt de hoeveelheid mee. De NEVO-query zelf staat nu in
+  `src/lib/nutrition/food-query.ts`, zodat de import één client gebruikt in
+  plaats van per query opnieuw in te loggen.
+- **Formulier.** Linkveld met "Ophalen" boven "Eigen recept"
+  (`/recepten/nieuw?link=…`; de pagina haalt op, dus herladen werkt). Onder elk
+  gekoppeld ingrediënt de regel van de site; bewaren kan pas als elke
+  hoeveelheid is ingevuld. Nieuw blok **Delen**: "Alleen voor mij" (standaard) of
+  "Alle leden", en dan "Toon mijn naam en avatar" (standaard aan).
+- **Database (0264).** Op `nutrition_recipes`: `visibility` (`prive`/`leden`),
+  `show_owner`, `image_url` (alleen https). Leespolicy van recepten en
+  ingrediënten: ook `visibility = 'leden'` voor goedgekeurde leden. Wijzigen en
+  verwijderen blijft alleen voor de maker (de policies van 0168). Goedkeuren als
+  clubrecept zet zichtbaarheid en naam terug (`review_shared_nutrition_recipe`
+  opnieuw aangemaakt).
+- **Tonen.** Kaart en receptpagina tonen bij een recept van een ander de avatar
+  en naam, of alleen "Lid"; de foto bovenaan de receptpagina; "Bron:" in plaats
+  van "Naar:" bij eigen recepten. Receptenboek: filter "Van leden". Kiezen voor
+  het menu: groep "Van leden".
+- **Menu.** Een recept van een ander lid kiest het dagmenu alleen vanzelf als
+  het lid het als favoriet heeft (`rankRecipes`, `includeShared` alleen op de
+  kiespagina): die recepten zijn niet nagekeken zoals de clubrecepten.
+- **Hernoemd:** de knop "Deel met de club" heet nu "Voorstellen als clubrecept",
+  omdat "delen" nu iets anders betekent.
+- `/hulp/kennis#voeding`, `/privacy` ("Lengte en eigen recepten") en
+  `src/lib/privacy.ts` (voorgestelde zevende uitzondering) aangevuld.
+
+**Ook veranderd, en niet meer waar.** `loadRecipes` gaf een beoordelaar ook de
+voorgestelde recepten van anderen (RLS laat die zien), dus die stonden in zijn
+receptenboek en dagmenu. Nu niet meer: alleen clubrecepten, eigen recepten en
+wat met alle leden gedeeld is. De voorstellenpagina leest ze apart.
+
+**Bewust niet.**
+- **Allerhande werkt niet:** die site geeft onze server een 403. We doen ons
+  niet voor als browser om dat te omzeilen; het lid krijgt "Deze site laat het
+  recept niet ophalen." Getest werken Leukerecepten, 24Kitchen en BBC Good Food.
+- **"Zonder naam" is geen anonimiteit tegenover de API.** `owner_id` blijft
+  leesbaar (leden lezen `profiles` al, en de app filtert overal op `owner_id`);
+  de app toont dan alleen geen naam of foto. Afschermen kan met een view of
+  RPC, maar raakt het receptenboek, het menu, Naleving en het beoordelen.
+- **De foto wordt niet opgeslagen** maar van de site geladen
+  (`referrerPolicy="no-referrer"`): opslaan in Supabase Storage kost egress, en
+  die zit boven het quotum. Nadeel: een lid kan via een eigen recept een
+  afbeeldingslink naar een eigen server zetten en zo zien wie het recept
+  opent (zoals nu al met een profielfoto-URL kan).
+- **Geen beoordeling vooraf** bij delen met leden (eigenaar). Wel kan alleen de
+  maker het wijzigen of terugzetten.
+- **Geen verwerking van Engelse ingrediënten** naar NEVO-namen; die blijven
+  meestal losse regels.
+
+**Egress.** Elke zoekterm haalt alle passende NEVO-rijen op (~100 bytes per
+rij) om de beste te kiezen; een recept van 10–15 regels kost zo grofweg
+0,1–1 MB. Te verwaarlozen zolang het om een paar recepten per week gaat.
+
+**Getest.** `tests/unit/nutrition-recipe-import.test.ts` (30: JSON-LD in
+`@graph` en als `mainEntity`, kapotte JSON-LD, http zonder bronlink en foto,
+duur, porties, onderdelen en afkappen, 14 ingrediëntregels, enkelvoud,
+zoektermen, `pickFood`). `nutrition-menu.test.ts`: recept van een ander alleen
+als favoriet of bij zelf kiezen. 0264 in `nutrition-migration.test.ts` tegen
+PGlite (standaard privé, zichtbaar voor goedgekeurde leden met ingrediënten,
+niet voor wie wacht, niet te wijzigen of verwijderen door een ander, terug naar
+privé, in het menu en als favoriet door een ander, de checks, goedkeuren zet
+terug); de idempotentietest draait nu ook 0264, omdat 0213 opnieuw draaien de
+policy en de functie terugzet. Hele unit-suite: 3.183 van 3.184, met de bekende
+uitvallers `omnium-live` (geen `.env.local`) en een time-out in
+`admin-areas`, die los slaagde. `tsc` alleen met de bekende ontbrekende
+`modern-screenshot`, ESLint schoon. Live opgehaald (alleen lezen): de drie
+sites hierboven; met een leesquery op productie nagekeken welke NEVO-producten
+voorbeeldingrediënten krijgen (daarna `pickFood` en de synoniemen).
+
+**Niet lokaal te verifiëren.** De migratie op productie (geen Docker of
+Supabase-config hier). De schermen in de browser: er is hier geen `.env.local`
+en inloggen kan alleen met een account. Geen `npm run build` (zelfde
+`modern-screenshot`).
 
 ### Hersteld — ritstatistieken op het profiel lezen de hele historie
 

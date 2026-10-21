@@ -58,6 +58,13 @@
  * welk recept een lid zelf op welke dag in zijn menu zet (0261,
  * `nutrition_menu_choices`), net als favorieten alleen voor het lid zelf;
  * `/privacy` noemt het bij "Lengte en eigen recepten".
+ *
+ * **Zevende uitzondering, voorgesteld: recepten delen met alle leden
+ * (2026-10-21).** Een eigen recept is alleen zichtbaar voor andere leden als
+ * het lid dat per recept kiest, en naam en profielfoto staan er alleen bij als
+ * het lid dat aanzet (0264, `nutrition_recipes.visibility` en `show_owner`).
+ * `/privacy` noemt het bij "Lengte en eigen recepten". Of dit zonder nieuwe
+ * versie mag, is aan de eigenaar (zie PLAN.md, ronde "Recept van een link").
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring
