@@ -95,7 +95,7 @@ export default function HallScene({ stones, startId, labels, onFailed, rotate }:
 
     const meshes: THREE.Mesh[] = [];
     const xs: number[] = [];
-    const anchors = new Map<string, THREE.Vector3>();
+    const anchors = new Map<string, { position: THREE.Vector3; radius: number }>();
     stones.forEach((stone, index) => {
       const x = index * spacing;
       xs.push(x);
@@ -123,7 +123,7 @@ export default function HallScene({ stones, startId, labels, onFailed, rotate }:
       scene.add(mesh);
       meshes.push(mesh);
       // Het plaatje op de voorkant van de sokkel, iets onder het midden.
-      anchors.set(`hall:${stone.id}`, new THREE.Vector3(x, plinthHeight * 0.55, radius * 1.03));
+      anchors.set(`hall:${stone.id}`, { position: new THREE.Vector3(x, plinthHeight * 0.55, radius * 1.03), radius });
     });
 
     // Een rij spots boven de sokkels, zoals in een museum.
@@ -204,15 +204,23 @@ export default function HallScene({ stones, startId, labels, onFailed, rotate }:
     resize();
 
     const projected = new THREE.Vector3();
+    const edge = new THREE.Vector3();
     const placeLabels = () => {
       const map = labels.current;
       if (!map) return;
       const { width, height } = element.getBoundingClientRect();
-      for (const [name, position] of anchors) {
+      for (const [name, { position, radius }] of anchors) {
         const label = map.get(name);
         if (!label) continue;
         projected.copy(position).project(camera);
-        label.style.transform = `translate(${((projected.x + 1) / 2) * width}px, ${((1 - projected.y) / 2) * height}px)`;
+        // Het bordje past op de sokkel: hooguit 80% van zijn breedte op het scherm.
+        edge.set(position.x + radius, position.y, position.z).project(camera);
+        // Het scherm loopt van -1 tot 1: de helft van de breedte per eenheid.
+        const plinthPx = (Math.abs(edge.x - projected.x) * width) / 2;
+        const plaque = label.firstElementChild as HTMLElement | null;
+        const scale = plaque && plaque.offsetWidth > 0 ? Math.min(1, Math.max(0.4, (plinthPx * 2 * 0.8) / plaque.offsetWidth)) : 1;
+        label.style.transformOrigin = "0 0";
+        label.style.transform = `translate(${((projected.x + 1) / 2) * width}px, ${((1 - projected.y) / 2) * height}px) scale(${scale.toFixed(3)})`;
         // Plaatjes ver opzij vervagen, buiten beeld verdwijnen ze.
         const off = Math.abs(projected.x);
         label.style.opacity = projected.z < 1 && off < 1.1 ? String(Math.max(0.25, 1 - Math.max(0, off - 0.6))) : "0";

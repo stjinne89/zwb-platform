@@ -11303,7 +11303,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   bepaalde het silhouet.
 - **Museumbordje** op de sokkel in de zaal: gebroken wit kaartje met renner, woonplaats of
   regio (alleen als het lid die op zijn profiel laat zien), score en klasse, en de datum
-  (de week van de steen).
+  (de week van de steen). Het bordje schaalt mee met de sokkel op het scherm (hooguit 80% van de
+  breedte), zodat het bij een kleine steen niet over de rand steekt.
 
 **Getest.** TSS-consistentie in `briljant-score` en `briljant-snapshot`, tsc, ESLint.
 **Niet getest:** de TSS uit intervals.icu op productie.
