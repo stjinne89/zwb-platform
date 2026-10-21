@@ -6,8 +6,10 @@ import {
   fatigueInputs,
   monthEnds,
   monthsSince,
+  monthEndOfWeek,
   mondayKey,
   powerFromCurve,
+  raceCandidates,
   snapshotFrom,
   terugblikRows,
 } from "@/lib/briljant/snapshot";
@@ -163,5 +165,28 @@ describe("snapshot", () => {
       row(3.4, null),
     ]);
     expect(terugblikRows([row(null, 0.5)])).toEqual([]);
+  });
+
+  it("vindt het maandeinde bij een terugblikweek", () => {
+    expect(monthEndOfWeek("2026-09-28")).toBe("2026-09-30");
+    expect(monthEndOfWeek("2025-11-24")).toBe("2025-11-30");
+    expect(monthEndOfWeek("2024-02-26")).toBe("2024-02-29");
+    expect(monthEndOfWeek(mondayKey("2026-08-31"))).toBe("2026-08-31");
+  });
+
+  it("probeert om en om de race voor en na het maandeinde", () => {
+    const races = ["2026-10-20", "2026-10-05", "2026-09-29", "2026-09-10", "2026-08-18"].map((day) => ({ day }));
+    expect(raceCandidates(races, "2026-09-30", 4)).toEqual([
+      { race: { day: "2026-09-29" }, use: "after" },
+      { race: { day: "2026-10-05" }, use: "before" },
+      { race: { day: "2026-09-10" }, use: "after" },
+      { race: { day: "2026-10-20" }, use: "before" },
+    ]);
+    // Vóór de eerste race: alleen de scores vóór de races erna.
+    expect(raceCandidates(races, "2026-07-31", 2)).toEqual([
+      { race: { day: "2026-08-18" }, use: "before" },
+      { race: { day: "2026-09-10" }, use: "before" },
+    ]);
+    expect(raceCandidates([], "2026-07-31", 4)).toEqual([]);
   });
 });

@@ -146,8 +146,9 @@ export function BriljantHelp() {
             <dt className="font-medium">Datum</dt>
             <dd className="text-muted-foreground">
               Kies een datum en je ziet je steen van die maand of week, terug tot de eerste maand met CTL in
-              intervals.icu. We bewaren alleen punten; de W/kg, CTL en ZRS rekenen we daaruit terug. Racen heeft geen
-              historie: vroegere stenen krijgen je huidige ZRS. Durability rekent ook in het verleden met je huidige
+              intervals.icu. We bewaren alleen punten; de W/kg, CTL en ZRS rekenen we daaruit terug. Je ZRS van toen zoekt
+              de wekelijkse job op in je eerdere race-uitslagen bij Zwift; tot dat klaar is, en voor maanden zonder
+              score, staat er je huidige ZRS. Durability rekent ook in het verleden met je huidige
               kJ-drempels uit intervals.icu. Met Waarden en Punten wissel je wat de labels tonen.
             </dd>
             <dt className="font-medium">Vergelijk</dt>

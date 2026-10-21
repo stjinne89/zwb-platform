@@ -28,6 +28,12 @@ export type BriljantSources = {
   rides: boolean;
   /** Bij een terugblik: over welke periode die is gemaakt ("alles" = de hele historie). */
   terugblik?: string;
+  /**
+   * Bij een terugblik, racen: "historie" is de ZRS van toen (uit de laatste race tot
+   * het maandeinde), "geen" is gezocht maar niet gevonden (dan blijft de ZRS van nu).
+   * Ontbreekt het, dan zoekt de wekelijkse job nog.
+   */
+  racen?: "historie" | "geen";
 };
 
 export type SnapshotRow = {
@@ -200,6 +206,36 @@ export function terugblikRows<T extends Pick<SnapshotRow, "score" | "consistency
   const first = rows.findIndex((row) => row.score != null);
   if (first < 0) return [];
   return rows.slice(first).filter((row) => row.score != null || row.consistency != null);
+}
+
+/**
+ * Het maandeinde bij een terugblikweek: de maandag van de week waarin de maand
+ * eindigt ligt in diezelfde maand (hooguit zes dagen ervoor), dus de laatste dag
+ * van de maand van die maandag.
+ */
+export function monthEndOfWeek(week: string): string {
+  const [year, month] = week.split("-").map(Number);
+  return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+}
+
+/**
+ * Welke races de ZRS op een maandeinde geven, in volgorde van proberen: om en om de
+ * laatste race tot het maandeinde (de score erna) en de eerste erna (de score
+ * ervoor), dan de race daarvoor en die daarna. `races` staat nieuw naar oud.
+ */
+export function raceCandidates<T extends { day: string }>(
+  races: T[],
+  monthEnd: string,
+  tries: number,
+): Array<{ race: T; use: "before" | "after" }> {
+  const before = races.filter((race) => race.day <= monthEnd);
+  const after = races.filter((race) => race.day > monthEnd).reverse();
+  const out: Array<{ race: T; use: "before" | "after" }> = [];
+  for (let index = 0; out.length < tries && (index < before.length || index < after.length); index++) {
+    if (before[index]) out.push({ race: before[index], use: "after" });
+    if (after[index] && out.length < tries) out.push({ race: after[index], use: "before" });
+  }
+  return out;
 }
 
 /** De laatste dag van elk van de `months` maanden vóór `today`, oud naar nieuw. */

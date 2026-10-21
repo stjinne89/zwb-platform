@@ -11285,6 +11285,45 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: ZRS van vroeger uit Zwift-uitslagen
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht;
+de privacyzin wacht op akkoord van de eigenaar.
+
+**Uitgezocht** (leescontrole met het serviceaccount op de Zwift-ID van de eigenaar):
+- `profiles/{id}/activities?start=&limit=20` geeft de activiteiten van een gevolgde renner
+  terug tot de eerste (bij de eigenaar januari 2023, minder dan 700). Meer dan 20 per
+  vraag geeft status 400.
+- `activities/{id}` geeft bij een race `eventInfo.eventSubGroupId`.
+- De uitslag van die startgroep (`race-results/entries`) geeft per renner `scoreHistory`
+  met `previousScore` en `newScore`, ook voor races uit 2023 (1 november 2023: 601 naar
+  658). Niet elke race heeft het: een ZRL-race van oktober 2024 en races van augustus en
+  maart 2026 gaven niets.
+- `activity-feed` geeft maar 50 activiteiten en een leeg `eventId`; niet gebruikt.
+
+**Nu.** Een stap achteraan in `/api/briljant/weekly` (`fillZrsHistory` in
+`src/lib/briljant/zrs-history.ts`), met de tijd die over is tot 24 s. Per lid, per
+terugblikmaand (nieuwste eerst), proberen we tot vier races om en om
+(`raceCandidates`): de score na de laatste race tot het maandeinde, of de score vóór de
+eerste race erna. Gevonden: `facets.racen` wordt het niveau van die ZRS, de score wordt
+herrekend, `provenance.racen = "historie"`. Niet gevonden: `"geen"`, de huidige ZRS blijft.
+Geen Zwift-ID of Zwift weigert (401/403/404): alles `"geen"`. Andere fouten (429, 5xx):
+stoppen en de volgende run verder. De voortgang staat zo in de terugblik zelf, zonder
+nieuwe tabel. Elke run leest de activiteitenlijst opnieuw vanaf het begin; bij de eigenaar
+is dat later in het proces een paar seconden per run, en met elke uur een run is een lid
+binnen een dag klaar. Uitslagen gaan door de bestaande wachtrij (2 per seconde voor het
+hele account). Bouwt de pagina of job de terugblik opnieuw, dan blijft de gevonden ZRS
+staan (`storeTerugblik` leest `provenance.racen = "historie"`).
+
+**Niet gebouwd.** Een eigen tabel met races en scores (dan zou elke run de lijst niet
+opnieuw hoeven lezen); met drie deelnemers nog niet nodig. De ZRS zelf bewaren we niet,
+alleen het niveau.
+
+**Getest.** `raceCandidates` en `monthEndOfWeek` in `briljant-snapshot`, tsc, ESLint, de
+ZWBriljant- en Zwift-tests. De Zwift-functies alleen-lezend op de ID van de eigenaar:
+eind september 2026 309 (nu 427). **Niet getest:** `fillZrsHistory` tegen productie (die
+schrijft); de eerste runs van de job na de push.
+
 ### Gebouwd — ZWBriljant: wat je moet instellen, op /hulp
 
 **2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
@@ -11346,7 +11385,9 @@ Drie verzoeken van de eigenaar na de terugblik over de hele historie.
   het niveau na, een paar honderdsten W/kg). **Alleen voor je eigen stenen** (een datum
   of je mooiste steen): van andere leden en het ZWB-gemiddelde blijven het punten, want
   de privacytekst belooft dat leden elkaars metingen niet zien.
-- **Racen in de terugblik** krijgt de huidige ZRS (ZRS heeft geen historie). Daardoor
+- **Racen in de terugblik** krijgt de huidige ZRS (ZRS heeft geen historie). *(Sinds
+  later die dag zoekt de wekelijkse job de ZRS van toen op; zie "ZRS van vroeger uit
+  Zwift-uitslagen". De huidige ZRS is nu alleen de terugval.)* Daardoor
   tellen vroegere stenen nu met zeven onderdelen behalve durability, en verschuiven de
   oude scores. `TERUGBLIK_SPAN` werd `"alles-zrs"`, zodat elke bestaande terugblik bij het
   volgende bezoek of door de job opnieuw wordt gemaakt.

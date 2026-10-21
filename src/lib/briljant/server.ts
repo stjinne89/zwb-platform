@@ -18,8 +18,8 @@ import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metri
 import { isCyclingSportType } from "@/lib/strava/sports";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
-import { CONSISTENCY_WEEKS, type BriljantInput, type ConsistencyInput, type HistoryPoint } from "./score";
-import { SCALE_VERSION, type Sex } from "./norms";
+import { CONSISTENCY_WEEKS, valueAt, type BriljantInput, type ConsistencyInput, type HistoryPoint } from "./score";
+import { SCALE_VERSION, ZRS_ANCHORS, type Sex } from "./norms";
 import { clubAverage, type StoredSnapshot } from "./compare";
 import {
   complianceFrom,
@@ -355,9 +355,8 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
       : Promise.resolve(new Map<string, CurvePoint[]>()),
     admin
       .from("zwbriljant_snapshots")
-      .select("week")
+      .select("week, source, facets, provenance")
       .eq("profile_id", profileId)
-      .eq("source", "week")
       .eq("provenance->>scale", SCALE_VERSION),
   ]);
   const p = profile as ProfileRow | null;
@@ -365,7 +364,15 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
   // Racen heeft geen historie: elke maand krijgt de ZRS van nu.
   const zwiftId = zwiftIdOf(p?.zwift_id ?? null);
   const zrs = zwiftId ? ((await loadRiderMetrics([zwiftId]).catch(() => new Map())).get(zwiftId)?.racingScore ?? null) : null;
-  const taken = new Set(((weeks ?? []) as Array<{ week: string }>).map((row) => row.week));
+  type Existing = { week: string; source: string; facets: { racen?: number | null } | null; provenance: { racen?: string } | null };
+  const existing = (weeks ?? []) as Existing[];
+  const taken = new Set(existing.filter((row) => row.source === "week").map((row) => row.week));
+  // De ZRS van vroeger die de job al opzocht, blijft bij een nieuwe terugblik staan.
+  const zrsBefore = new Map(
+    existing
+      .filter((row) => row.source === "terugblik" && row.provenance?.racen === "historie" && row.facets?.racen != null)
+      .map((row) => [row.week, valueAt(ZRS_ANCHORS, Number(row.facets!.racen))]),
+  );
 
   const rows = ends.map((end) => {
     const day = byDay.get(end);
@@ -385,8 +392,13 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
     };
     // De week na het maandeinde: de consistentie telt dan tot en met die maand.
     const consistency = consistencyAt(rides, planned, shiftDay(end, 1));
+    const earlier = zrsBefore.get(mondayKey(end));
+    if (earlier != null) input.zrs = earlier;
     const row = snapshotFrom({ profileId, day: end, source: "terugblik", input, consistency });
-    return { ...row, provenance: { ...row.provenance, terugblik: TERUGBLIK_SPAN } };
+    return {
+      ...row,
+      provenance: { ...row.provenance, terugblik: TERUGBLIK_SPAN, ...(earlier != null ? { racen: "historie" as const } : {}) },
+    };
   });
   const useful = terugblikRows(rows).filter((row) => !taken.has(row.week));
 

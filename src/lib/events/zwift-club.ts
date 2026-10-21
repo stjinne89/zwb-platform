@@ -565,6 +565,84 @@ export async function fetchSubgroupResults(subgroupId: string): Promise<Subgroup
   return results.sort((a, b) => a.rank - b.rank);
 }
 
+/** Een race uit de activiteiten van een renner: wanneer (ISO) en de activiteit. */
+export type RiderRaceActivity = { activityId: string; startedAt: string };
+
+/** Zoveel activiteiten geeft Zwift per vraag; meer geeft status 400. */
+export const ACTIVITIES_PER_PAGE = 20;
+
+/**
+ * Eén pagina activiteiten van een renner, nieuw naar oud, met alleen de races
+ * ("Zwift - Race: …"). Werkt via het serviceaccount voor renners die het volgt
+ * (gemeten 2026-10-21, terug tot de eerste activiteit). `count` is het aantal
+ * activiteiten op de pagina, ook die geen race zijn: minder dan een volle pagina
+ * betekent het einde van de lijst.
+ */
+export async function fetchRiderRacePage(
+  zwiftId: string,
+  start: number,
+): Promise<{ count: number; races: RiderRaceActivity[] }> {
+  if (!/^\d+$/.test(zwiftId)) throw new Error("Ongeldig Zwift-ID.");
+  const payload = await authedJson(
+    `${apiBase()}/profiles/${zwiftId}/activities?start=${start}&limit=${ACTIVITIES_PER_PAGE}`,
+  );
+  const rows = (Array.isArray(payload) ? payload : []) as Array<Record<string, unknown>>;
+  const races = rows
+    .filter((row) => /^Zwift - Race\b/i.test(String(row.name ?? "")))
+    .map((row) => ({
+      activityId: String(row.id_str ?? row.id ?? ""),
+      // Zwift schrijft "+0000"; met dubbele punt leest elke Date het.
+      startedAt: String(row.startDate ?? "").replace(/([+-]\d\d)(\d\d)$/, "$1:$2"),
+    }))
+    .filter((race) => /^\d+$/.test(race.activityId) && !Number.isNaN(Date.parse(race.startedAt)));
+  return { count: rows.length, races };
+}
+
+/** De startgroep (subgroep) van een race-activiteit; null als Zwift geen event kent. */
+export async function fetchActivitySubgroup(activityId: string): Promise<string | null> {
+  if (!/^\d+$/.test(activityId)) throw new Error("Ongeldig activiteit-ID.");
+  const detail = (await authedJson(`${apiBase()}/activities/${activityId}`)) as {
+    eventInfo?: { eventSubGroupId?: unknown } | null;
+  } | null;
+  const subgroup = Number(detail?.eventInfo?.eventSubGroupId);
+  return Number.isInteger(subgroup) && subgroup > 0 ? String(subgroup) : null;
+}
+
+/** De Zwift Racing Score van een renner vóór en na een race; null waar Zwift er geen geeft. */
+export type RaceScoreChange = { before: number | null; after: number | null };
+
+/**
+ * De ZRS van een renner rond een race: `scoreHistory.previousScore` en `newScore`
+ * in de uitslag van de startgroep (gemeten 2026-10-21, ook voor races uit 2023;
+ * niet elke race heeft ze). Null als de renner er niet in staat binnen `maxEntries`.
+ */
+export async function fetchRiderScoreChange(
+  subgroupId: string,
+  zwiftId: string,
+  maxEntries = 500,
+): Promise<RaceScoreChange | null> {
+  if (!/^\d+$/.test(subgroupId) || !/^\d+$/.test(zwiftId)) throw new Error("Ongeldig ID.");
+  for (let start = 0; start < maxEntries; start += 50) {
+    const payload = await queuedResultsPage(
+      `${apiBase()}/race-results/entries?event_subgroup_id=${subgroupId}&start=${start}&limit=50`,
+    );
+    const rows = (Array.isArray(payload)
+      ? payload
+      : ((payload as { entries?: unknown[] })?.entries ?? [])) as Array<Record<string, unknown>>;
+    const mine = rows.find((row) => String(row.profileId) === zwiftId);
+    if (mine) {
+      const history = mine.scoreHistory as { previousScore?: unknown; newScore?: unknown } | null | undefined;
+      const score = (value: unknown) => {
+        const n = Number(value);
+        return value != null && Number.isFinite(n) && n > 0 ? n : null;
+      };
+      return { before: score(history?.previousScore), after: score(history?.newScore) };
+    }
+    if (rows.length < 50) break;
+  }
+  return null;
+}
+
 /** "2026-09-22T12:00:00Z": ISO zonder milliseconden, zoals Sauce het stuurt. */
 function zwiftDate(ms: number): string {
   return new Date(ms).toISOString().slice(0, -5) + "Z";

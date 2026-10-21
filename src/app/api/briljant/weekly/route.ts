@@ -3,6 +3,7 @@ import { checkCronSecret } from "@/lib/cron/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TERUGBLIK_SPAN, refreshSources, storeTerugblik, storeWeek } from "@/lib/briljant/server";
 import { SCALE_VERSION } from "@/lib/briljant/norms";
+import { fillZrsHistory, membersWithPendingZrs } from "@/lib/briljant/zrs-history";
 import { mondayKey } from "@/lib/briljant/snapshot";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
@@ -23,6 +24,8 @@ const MAX_LIMIT = 10;
 const BUDGET_MS = 15_000;
 /** Zoveel tijd per lid voor het verversen van de ZRS bij Zwift. */
 const ZRS_BUDGET_MS = 3_000;
+/** Tot zover in de run zoekt de job daarna de ZRS van vroeger op (zrs-history.ts). */
+const HISTORY_UNTIL_MS = 24_000;
 
 export async function POST(request: NextRequest) {
   const auth = checkCronSecret(request, "BRILJANT_WEEKLY_SECRET");
@@ -91,6 +94,18 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Met de tijd die over is: de ZRS van vroeger in de terugblik, lid voor lid.
+  let zrsMonths = 0;
+  try {
+    for (const profileId of await membersWithPendingZrs(admin, TERUGBLIK_SPAN)) {
+      const budgetMs = HISTORY_UNTIL_MS - (Date.now() - started);
+      if (budgetMs < 4_000) break;
+      zrsMonths += await fillZrsHistory(admin, profileId, TERUGBLIK_SPAN, { budgetMs });
+    }
+  } catch {
+    errors += 1;
+  }
+
   // Geen profiel-id's in het antwoord: dat staat in de job-historie van de
   // cron-dienst.
   return NextResponse.json({
@@ -99,6 +114,7 @@ export async function POST(request: NextRequest) {
     members: members?.length ?? 0,
     due: due.length,
     processed,
+    zrsMonths,
     errors,
   });
 }
