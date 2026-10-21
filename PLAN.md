@@ -12300,8 +12300,8 @@ een telefoon en afdrukken ook niet.
 
 ### Gebouwd — ZWB Monday Ride vanzelf op de kalender
 
-**2026-10-20.** Commit: de commit die dit blok toevoegt. Geen migratie. Lokaal
-gecommit, niet gepusht.
+**2026-10-20.** Commit `4b71b03c`, gepusht naar `main` (eigenaar, 2026-10-20).
+Geen migratie. Op productie nagekeken op 2026-10-21.
 
 **Aanleiding.** De eigenaar zette de ZWB Monday Ride elke week met de hand op
 de kalender (de laatste op 21 september, via de Zwift-link in het formulier) en
@@ -12365,10 +12365,14 @@ bestanden en de unit-suite; daarin faalden `omnium-live.test.ts` (mist
 `.env.local` in deze worktree) en `admin-areas.test.ts` (time-out, ook los
 gedraaid), los van deze wijziging.
 
-**Niet lokaal te verifiëren.** Het echte publiceren naar productie (insert,
-cover-upload, RSVP's) is niet gedraaid. Na de deploy: het antwoord van de
-volgende uurlijkse run (`clubEvents.published: 1`) of de kalender van maandag
-26 oktober bekijken.
+**Op productie (nagekeken 2026-10-21).** De uurlijkse run van 2026-10-20 13:00
+(Nederlandse tijd) zette de rit van 26 oktober op de kalender: "ZWB Cycling -
+Monday Ride", 19:35–20:35, "Zwift · New York", route 1178708985, 1 ronde,
+28,66 km, 212 hm, omschrijving, spelregels en cover
+(`covers/zwift/315aaea2…png`), met als maker dezelfde persoon als de rit van
+21 september. Nog niet gezien: deelnemers. Op het moment van publiceren stond
+geen ZWB'er ingeschreven (0 deelnemers, 0 RSVP's), en wie zich later op Zwift
+inschrijft, komt er niet bij (zie "Bewust niet").
 
 ### Gebouwd — haalbaarheid van de doeltijd in de pacingcalculator
 
