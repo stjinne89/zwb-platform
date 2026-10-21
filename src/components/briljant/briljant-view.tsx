@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState, useTransition, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, X } from "lucide-react";
 import { setBriljantSharing } from "@/app/(app)/zwbeter-worden/briljant/actions";
@@ -89,14 +89,11 @@ function PanelBody({
   view,
   compare,
   wins,
-  share,
 }: {
   panel: NonNullable<Panel>;
   view: View;
   compare: BriljantCompare | null;
   wins: Win[];
-  /** Het vinkje om je steen te delen, onder de tabel van je score. */
-  share: ReactNode;
 }) {
   if (panel.kind === "facet") {
     const facet = view.facets.find((candidate) => candidate.key === panel.key)!;
@@ -271,7 +268,6 @@ function PanelBody({
           </ol>
         </div>
       )}
-      {share}
     </>
   );
 }
@@ -434,6 +430,15 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
                 ))}
               </select>
             </label>
+            <label className={styles.toggle}>
+              <input
+                type="checkbox"
+                checked={sharing}
+                disabled={pending}
+                onChange={(event) => toggleSharing(event.target.checked)}
+              />
+              <span>Deel mijn steen met leden</span>
+            </label>
           </div>
         </header>
 
@@ -552,17 +557,6 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
               view={view}
               compare={compare}
               wins={wins}
-              share={
-                <label className={styles.toggle}>
-                  <input
-                    type="checkbox"
-                    checked={sharing}
-                    disabled={pending}
-                    onChange={(event) => toggleSharing(event.target.checked)}
-                  />
-                  <span>Deel mijn steen met leden</span>
-                </label>
-              }
             />
           )}
         </aside>

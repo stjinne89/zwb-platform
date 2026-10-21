@@ -11307,6 +11307,12 @@ de terugblik.
   overschrijft hij dan niet.
 - `storeTerugblik` rekent de twaalf maanden tegelijk in plaats van na elkaar.
 
+**Delen zichtbaar.** De eigenaar vond het vinkje "Deel mijn steen met leden" niet: het
+stond onderaan het scorepaneel. Het staat nu weer onder de vergelijkkeuze, op de telefoon
+ook (na de kleinere kop past het zonder botsing met de labels). Daarbij hersteld: de zin
+over delen op `/hulp` was door een `sed`-vervanging verminkt (`&` in `&ldquo;`), en stond
+zo live sinds `12ec8372`.
+
 **Vergelijken** werkt zoals bedoeld maar heeft nog niemand: van de drie leden met
 ZWBriljant deelt niemand, en het ZWB-gemiddelde vraagt vijf leden met een steen op de
 huidige schaal (nu twee). De grens van vijf blijft (herleidbaarheid).

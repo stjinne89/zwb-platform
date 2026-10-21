@@ -105,7 +105,7 @@ export function BriljantHelp() {
             </dd>
             <dt className="font-medium">Delen</dt>
             <dd className="text-muted-foreground">
-              Met               Met &ldquo;Deel mijn steen met leden&rdquo; zien alle leden je laatste steen: punten per onderdeel en jeldquo;Deel mijn steen met leden              Met &ldquo;Deel mijn steen met leden&rdquo; zien alle leden je laatste steen: punten per onderdeel en jerdquo; (klik op je score) zien alle leden je laatste steen: punten per onderdeel en je
+              Met &ldquo;Deel mijn steen met leden&rdquo; zien alle leden je laatste steen: punten per onderdeel en je
               consistentie, geen metingen. Je hoeft niet zelf te delen om anderen te zien. Uitzetten werkt meteen.
             </dd>
             <dt className="font-medium">ZWB-gemiddelde</dt>

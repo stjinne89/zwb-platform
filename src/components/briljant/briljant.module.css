@@ -726,8 +726,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 36px;
-  margin-top: 16px;
+  min-height: 28px;
+  flex-basis: 100%;
   font-size: 12px;
   letter-spacing: 0.04em;
   color: var(--muted);
