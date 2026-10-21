@@ -26,25 +26,25 @@ niets. Een factor en geen achtste graat, omdat consistentie tegen je eigen norm
 wordt gemeten: als graat zou trouw trainen op een laag niveau wereldtop-punten
 opleveren.
 
-**Geen groepsnamen.** De niveaus zijn alleen punten; een lid wordt niet in een
-groep of klasse gezet (eigenaar, 2026-10-21). Alleen het hoogste niveau heeft een
-naam: Aliens.
+**Namen bij de algemene score, niet bij racen.** De algemene score hangt aan een
+niveau met een naam. Racen (ZRS) hangt bewust niet aan een groep: zie de rechte
+lijn hieronder (eigenaar, 2026-10-21).
 
-| Punten | Drempel (man) | Drempel (vrouw) |
-|---|---|---|
-| 100 | 1,9 W/kg | 1,6 W/kg |
-| 200 | 2,6 W/kg | 2,2 W/kg |
-| 300 | 3,3 W/kg | 2,8 W/kg |
-| 400 | 4,0 W/kg | 3,4 W/kg |
-| 500 | 4,6 W/kg | 3,9 W/kg |
-| 600 | 5,3 W/kg | 4,5 W/kg |
-| 700 | 5,8 W/kg | 4,9 W/kg |
-| 800 | 6,4 W/kg | 5,4 W/kg |
-| 900 · Aliens | 7,1 W/kg | 6,0 W/kg |
+| Punten | Niveau | Drempel (man) | Drempel (vrouw) |
+|---|---|---|---|
+| 100 | Starter | 1,9 W/kg | 1,6 W/kg |
+| 200 | Recreant | 2,6 W/kg | 2,2 W/kg |
+| 300 | Toerrijder | 3,3 W/kg | 2,8 W/kg |
+| 400 | Gevorderde | 4,0 W/kg | 3,4 W/kg |
+| 500 | Sterke amateur | 4,6 W/kg | 3,9 W/kg |
+| 600 | Elite-amateur | 5,3 W/kg | 4,5 W/kg |
+| 700 | Profpeloton | 5,8 W/kg | 4,9 W/kg |
+| 800 | Wereldtop | 6,4 W/kg | 5,4 W/kg |
+| 900 | Aliens | 7,1 W/kg | 6,0 W/kg |
 
 Voorbij 900 telt de score gewoon door (1.000, …). **Aliens** zijn de
-recordwaarden: wat er van de allerbeste renners gepubliceerd is. Daarvoor is 800
-iets omlaag geschoven naar het niveau van WorldTour-winnaars. Punten worden
+recordwaarden: wat er van de allerbeste renners gepubliceerd is. Daarvoor is de
+Wereldtop iets omlaag geschoven naar het niveau van WorldTour-winnaars. Punten worden
 afgekapt, niet afgerond: 499,9 is nog 499, en 500 verschijnt pas bij het volgende
 niveau.
 
@@ -87,7 +87,7 @@ berg van zeven pieken; `ridgeReach` blijft tot de bouw van de pagina staan.)
 **Rekenvoorbeeld (man):** sprint 13,2 W/kg → 480 punten; anaeroob 7,6 → 425;
 VO2max 5,1 → 442; drempel 4,3 → 450; durability 4,2%/10 kJ/kg → 457; CTL 78 →
 465; ZRS 640 → 576. Profielscore 472. Met consistentie 55% (factor 0,91):
-**430 punten**, nog 70 tot 500. Staat als test in `tests/unit/berg-score.test.ts`.
+**430 punten**: Gevorderde, nog 70 tot Sterke amateur. Staat als test in `tests/unit/berg-score.test.ts`.
 
 ## Consistentie, altijd ten opzichte van jezelf
 

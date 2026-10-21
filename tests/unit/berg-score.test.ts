@@ -69,10 +69,10 @@ describe("schaal", () => {
     expect(levelAt(CTL_ANCHORS, 180)).toBeCloseTo(9, 9);
   });
 
-  it("heeft negen niveaus, zonder groepsnamen behalve Aliens bovenaan", () => {
+  it("heeft negen niveaus met een naam, Aliens bovenaan", () => {
     expect(LEVELS).toHaveLength(9);
+    expect(LEVELS[7]).toEqual({ n: 8, name: "Wereldtop" });
     expect(LEVELS[8]).toEqual({ n: 9, name: "Aliens" });
-    expect(LEVELS.slice(0, 8).every((level) => level.name === null)).toBe(true);
     expect(powerAnchors("m20", "man").levels[8]).toBe(7.1);
   });
 
@@ -86,7 +86,7 @@ describe("niveaus", () => {
   it("noemt het gehaalde niveau en hoeveel punten er nog moeten", () => {
     expect(positionFor(4.55)).toEqual({ reached: LEVELS[3], next: LEVELS[4], toNext: 45 });
     expect(positionFor(0.6)).toEqual({ reached: null, next: LEVELS[0], toNext: 40 });
-    expect(positionFor(5)).toMatchObject({ reached: { n: 5, name: null } });
+    expect(positionFor(5)).toMatchObject({ reached: { name: "Sterke amateur" } });
   });
 
   it("telt voorbij Aliens gewoon door", () => {

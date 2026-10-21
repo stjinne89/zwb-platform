@@ -11296,10 +11296,10 @@ duidelijker is").
 
 **Nu.**
 - **De score is het niveau zelf**, op het scherm in punten: 100 per niveau (`points`,
-  afgekapt), zonder plafond. Negen niveaus; alleen het hoogste heeft een naam, Aliens
-  (900, de recordwaarden; 800 schoof daarvoor iets omlaag). De andere niveaus zijn
-  bewust alleen punten: een lid wordt niet in een groep gezet (eigenaar). Eerst
-  hadden ze namen (Starter tot Wereldtop).
+  afgekapt), zonder plafond. Negen niveaus met een naam bij de algemene score:
+  Starter tot Wereldtop en daarboven Aliens (900, de recordwaarden; de Wereldtop schoof
+  daarvoor iets omlaag). Even waren de namen weg; de eigenaar bedoelde alleen dat
+  racen (ZRS) niet aan een groep hangt.
 - **Consistentie telt mee als factor**: score = profielscore × (0,8 + 0,2 ×
   consistentie), zonder ritgegevens factor 1 (`consistencyFactor`). Eerst telde
   consistentie niet mee; de eigenaar koos voor tot 20%.

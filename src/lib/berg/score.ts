@@ -123,7 +123,7 @@ export function points(level: number): number {
 }
 
 export type LevelPosition = {
-  /** Het niveau dat je haalt; null onder niveau 1 (minder dan 100 punten). Alleen Aliens heeft een naam. */
+  /** Het niveau dat je haalt; null onder niveau 1 (minder dan 100 punten). */
   reached: Level | null;
   /** Het niveau erna; null voorbij Aliens (dan telt de score gewoon door). */
   next: Level | null;
