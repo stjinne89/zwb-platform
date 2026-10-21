@@ -284,7 +284,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0267`
-(`0266_zwbriljant_share_all_members` is van ZWBriljant delen met alle leden, 2026-10-21, nog niet toegepast;
+(`0266_zwbriljant_share_all_members` is van ZWBriljant delen met alle leden, 2026-10-21, toegepast op 2026-10-21;
 `0265_zwbriljant` is van ZWBriljant (eerst `0265_zwbeter_berg`), 2026-10-21, toegepast op 2026-10-21;
 `0264_nutrition_recipe_sharing` is van recepten van een link en delen met
 alle leden, 2026-10-21, toegepast op 2026-10-21;
@@ -11284,8 +11284,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: terugkijken, vergelijken en waar je het meest wint
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Migratie
-`0266_zwbriljant_share_all_members.sql` (**nog niet toegepast**). Niet gepusht.
+**2026-10-21.** Commit `12ec8372`. Migratie `0266_zwbriljant_share_all_members.sql`,
+toegepast op productie op 2026-10-21 (policy nagekeken in `pg_policies`). Gepusht naar
+`main` op 2026-10-21.
 
 **Waarom.** De eigenaar wilde zijn steen in de tijd zien, naast andere leden en naast het
 ZWB-gemiddelde, en zien waar hij het best aan kan werken. Daarnaast vroeg hij of sprint,
@@ -11318,7 +11319,6 @@ problemen op de telefoon, plus de steen van Pim Meulemeester met maar twee onder
   (`setBriljantSharing`) zet de toestemming `2026-10-21`. Migratie `0266` maakt delen
   eenzijdig: een gedeelde steen is zichtbaar voor elk goedgekeurd lid, ook als die zelf
   niet deelt. De lijst met leden komt met de sessie van het lid, dus de RLS beslist.
-  **Zonder `0266` op productie werkt het nog wederzijds** (0265).
 - **Hier win je het meest** (`bestWins`): onder de score per onderdeel wat 5% beter
   oplevert (durability 5% minder verval, ZRS tot 1000), met gewicht en consistentie, de
   beste drie. Bij de eigenaar: VO2max +11, drempel +9 punten. Bewust 5% voor elk onderdeel
@@ -11334,9 +11334,8 @@ problemen op de telefoon, plus de steen van Pim Meulemeester met maar twee onder
   nodig; zijn geslacht staat niet in zijn profiel, dus hij krijgt de normen voor mannen.
 - `/hulp` (terugkijken, vergelijken, delen, gemiddelde, winst; de spreiding bij de
   klassen). **Privacytekst** (`/privacy#zwbriljant`, delen met alle leden en het anonieme
-  gemiddelde) is een concept en **moet eerst door de eigenaar worden goedgekeurd** vóór
-  een push; geen nieuwe privacyversie (besluit uit de vorige ronde, delen heeft een eigen
-  toestemming).
+  gemiddelde): goedgekeurd door de eigenaar op 2026-10-21, zonder nieuwe privacyversie
+  (delen heeft een eigen toestemming).
 
 **Niet gebouwd.** Een eigen ledenlijst of zoekveld bij vergelijken (de keuzelijst toont
 alleen wie deelt); vergelijken met een lid op een datum uit het verleden (je ziet altijd
@@ -11345,9 +11344,9 @@ diens laatste steen); een gemiddelde per categorie of geslacht (te weinig leden)
 **Getest.** `briljant-compare.test.ts` (nieuw: datum, steen uit een snapshot, gemiddelde
 pas vanaf vijf, winst), `briljant-migration.test.ts` tegen PGlite met `0266` (eenzijdig
 delen, niet voor wie niet is goedgekeurd, intrekken werkt meteen), de score-, view- en
-snapshottests op de nieuwe schaal; alle ZWBriljant-tests groen. **Niet getest:** `0266` op
-productie (niet toegepast, lokaal geen Docker); de pagina met echte gegevens van andere
-leden.
+snapshottests op de nieuwe schaal; alle ZWBriljant-tests groen. **Niet getest:** `0266`
+alleen tegen PGlite, op productie alleen de policytekst nagekeken; de pagina met echte
+gegevens van andere leden.
 
 ### Gebouwd — ZWBriljant: racen zegt hoeveel ZRS tot de volgende klasse
 
