@@ -11288,8 +11288,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: een steen voor elk lid met intervals.icu
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht;
-de privacyzin wacht op akkoord van de eigenaar.
+**2026-10-21.** Commit `05283e14`. Geen migratie. Gepusht naar `main` op 2026-10-21;
+de privacyzin is goedgekeurd door de eigenaar ("push dan maar"), zonder nieuwe versie.
 
 **Waarom.** Na 0267 (standaard gedeeld) stonden er maar vier stenen in de zaal: een steen
 ontstond alleen als een lid ZWBriljant zelf opende, en de wekelijkse job ververste alleen
