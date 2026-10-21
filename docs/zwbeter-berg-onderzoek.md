@@ -15,7 +15,7 @@ niveau, zonder plafond.**
 
 **Punten, 100 per niveau, zonder plafond.** Een hoger getal dat in kleine stappen
 groeit motiveert meer dan decimalen (eigenaar, 2026-10-21). Intern rekent de code
-met het niveau als getal (4,30; `points()` maakt er 430 van); zo staat het ook in
+met het niveau als getal (4,27; `points()` maakt er 427 van); zo staat het ook in
 `zwbeter_berg_snapshots.score`.
 
 **Score = profielscore × (0,8 + 0,2 × consistentie).** De profielscore is het
@@ -66,16 +66,43 @@ fitheid en racen, en terug naar sprint:
 
 | Graat | Meting | Gewicht | Waarom | Bronnen |
 |---|---|---|---|---|
-| Sprint | beste 15 s, W/kg | 12,5% | Het korte deel van het vermogensprofiel tekent sprinters. | Pinot & Grappe 2011; Valenzuela 2022 |
-| Anaeroob | beste minuut, W/kg | 12,5% | Punchers en aanvallen. | idem |
-| VO2max | beste 5 min, W/kg | 12,5% | Klimmen en gaten dichtrijden. | Leo 2021; Muriel 2023 |
-| Drempel | beste 20 min, W/kg | 12,5% | Tijdrijden en lange klimmen; reproduceerbaar uit veldgegevens. | Leo 2021; Quod 2010 |
-| Durability | verval op 20 min, % per 10 kJ/kg | 20% | Onderscheidt niveaus beter dan vers vermogen, ook bij amateurs, en staat los van FTP en VO2max. | van Erp 2021; Mateo-March 2022, 2025; Barsumyan 2025 (twee studies); Spragg 2024 |
-| Fitheid | CTL, TSS/dag | 15% | Goede trend, zwakke voorspeller. | Marchal 2025; Busso 2023; Borresen 2009 |
-| Racen | Zwift Racing Score | 15% | Het resultaat in de praktijk, wereldwijd vergelijkbaar. | Zwift Racing Score |
+| Sprint | beste 15 s, W/kg | 7,5% | Beslist alleen sprintfinishes; daalt na twee uur nauwelijks nog. | van Erp 2021 (top 5); Klaris 2024; Pinot & Grappe 2011 |
+| Anaeroob | beste minuut, W/kg | 12,5% | Punchers en aanvallen; beslissend in Zwift-races en bij de top 5 van profvrouwen. | Varesco 2025; van Erp & Lamberts 2022 |
+| VO2max | beste 5 min, W/kg | 22,5% | De sterkste enkele voorspeller van uitslagen en niveau. | Leo 2022; Mateo-March 2025; Mougin 2026 |
+| Drempel | beste 20 min, W/kg | 17,5% | Aerobe basis, tijdrijden en lange klimmen. | Valenzuela 2023; Mateo-March 2025; Quod 2010 |
+| Durability | verval op 20 min, % per 10 kJ/kg | 15% | Onderscheidt niveaus beter dan vers vermogen, ook bij amateurs, en staat los van FTP en VO2max. | van Erp 2021; Mateo-March 2022, 2025; Barsumyan 2025 (twee studies); Spragg 2024 |
+| Fitheid | CTL, TSS/dag | 10% | Goede trend, zwakke voorspeller, en zit al in het vermogen. | Marchal 2025; Sanders 2017; Vermeire 2019; Gallo 2022 |
+| Racen | Zwift Racing Score | 15% | Wat vermogen niet verklaart: tactiek, positie, wedstrijddynamiek. | Westmattelmann 2022; Phillips 2020 |
 
-**Gewichten** zijn een keuze van ZWB (eigenaar, 2026-10-21): het vermogensprofiel
-samen 50% als sterkste voorspeller (Leo 2021; Valenzuela 2023), durability 20%,
+**Gewichten naar de literatuur** (eigenaar, 2026-10-21, na een ronde PubMed en
+Consensus). Geen studie geeft kant-en-klare gewichten; dit is de vertaling van hoe
+sterk elk onderdeel uitslagen en niveau voorspelt:
+
+- **Vermogen samen 60%**, niet gelijk verdeeld. Het vermogensprofiel voorspelde
+  klassement en UCI-punten met R² 0,90–0,99 (Leo 2021, Tour of the Alps), en in
+  virtuele races verklaart relatief vermogen 77–99% van de uitslag
+  (Westmattelmann 2022). Binnen het profiel weegt 5 minuten het zwaarst: bij U23
+  voorspelde 5-min-vermogen het podium het best (Leo 2022; ook de basis van de
+  Compound Score waarmee vELO nieuwe renners indeelt), de top 5 van de Monumenten
+  verschilt op 5, 10 en 20 minuten en niet op korte duren (Mateo-March 2025), en
+  VO2max verklaart 65–76% van het prestatieniveau van recreant tot wereldklasse
+  (Mougin 2026). Drempel en omslagpunten verklaren samen 92% van een tijdrit
+  (Valenzuela 2023). Korte duren hangen af van het type race: onder de minuut
+  beslist sprintfinishes (van Erp 2021, top 5 WorldTour), vermogen tot een minuut
+  besliste wie doorging op het Zwift-WK (Varesco 2025, +15%) en de top 5 bij
+  profvrouwen (van Erp & Lamberts 2022). Daarom de minuut boven de sprint.
+- **Durability 15%** (was 20%). Het bewijs is sterk, maar Zwift-races duren meestal
+  30–60 minuten, waar voorafgaand werk minder vaak beslist dan in lange buitenritten.
+- **Racen 15%.** Vermogen verklaart niet alles: het restant ("performance-result
+  gap", Westmattelmann 2022) zit in tactiek, positie en wedstrijddynamiek
+  (Phillips 2020). Over de ZRS zelf bestaat geen literatuur.
+- **Fitheid 10%** (was 15%). Trainingsbelasting hangt samen met verandering in
+  fitheid (Sanders 2017, r = 0,54–0,81), maar bij recreanten is er geen lineair
+  verband met vooruitgang (Vermeire 2019) en bij profs alleen een klein verband
+  (Gallo 2022). CTL is een input die al in de vermogenswaarden zit; trouw trainen
+  wordt verder beloond via de consistentiefactor.
+
+Eerst (tot deze ronde) telde elke duur 12,5% (vermogen 50%), durability 20% en
 fitheid en racen elk 15%. Ontbreekt een graat, dan gaan de gewichten van de
 aanwezige graten samen weer naar 100%. Met minder dan twee graten is er geen score.
 
@@ -86,8 +113,9 @@ berg van zeven pieken; `ridgeReach` blijft tot de bouw van de pagina staan.)
 
 **Rekenvoorbeeld (man):** sprint 13,2 W/kg → 480 punten; anaeroob 7,6 → 425;
 VO2max 5,1 → 442; drempel 4,3 → 450; durability 4,2%/10 kJ/kg → 457; CTL 78 →
-465; ZRS 640 → 576. Profielscore 472. Met consistentie 55% (factor 0,91):
-**430 punten**: Gevorderde, nog 70 tot Sterke amateur. Staat als test in `tests/unit/berg-score.test.ts`.
+465; ZRS 640 → 576. Profielscore 469 (met de oude gewichten 472). Met
+consistentie 55% (factor 0,91): **427 punten**: Gevorderde, nog 73 tot Sterke
+amateur. Staat als test in `tests/unit/berg-score.test.ts`.
 
 ## Consistentie, altijd ten opzichte van jezelf
 
@@ -214,8 +242,13 @@ Omdat ZRS bij 1000 ophoudt, komt deze graat nooit boven 900 punten.
 - Busso T et al. (2023). Validity and accuracy of impulse-response models for modeling and predicting training effects on performance of swimmers. *Med Sci Sports Exerc*. [doi:10.1249/mss.0000000000003139](https://doi.org/10.1249/mss.0000000000003139)
 - Drew MK, Finch CF (2016). The relationship between training load and injury, illness and soreness. *Sports Med*. [doi:10.1007/s40279-015-0459-8](https://doi.org/10.1007/s40279-015-0459-8)
 - Düking P et al. (2021). Monitoring and adapting endurance training on the basis of heart rate variability monitored by wearable technologies. *J Sci Med Sport* (via PubMed). [doi:10.1016/j.jsams.2021.04.012](https://doi.org/10.1016/j.jsams.2021.04.012)
+- Ferguson HA et al. (2023). Power-duration relationship comparison in competition sprint cyclists from 1-s to 20-min. *PLOS ONE*. [doi:10.1371/journal.pone.0280658](https://doi.org/10.1371/journal.pone.0280658)
 - Foster C (1998). Monitoring training in athletes with reference to overtraining syndrome. *Med Sci Sports Exerc*. [doi:10.1097/00005768-199807000-00023](https://doi.org/10.1097/00005768-199807000-00023)
+- Gallo G et al. (2022). Relationships between training dose and record power outputs in professional road cyclists. *Biol Sport*. [doi:10.5114/biolsport.2023.114284](https://doi.org/10.5114/biolsport.2023.114284)
 - Granero-Gallegos A et al. (2020). HRV-based training for improving VO2max in endurance athletes. *Int J Environ Res Public Health* (via PubMed). [doi:10.3390/ijerph17217999](https://doi.org/10.3390/ijerph17217999)
+- Klaris MB et al. (2024). Performance and fatigue patterns in elite cyclists during 6 h of simulated road racing. *Scand J Med Sci Sports* (via PubMed). [doi:10.1111/sms.14699](https://doi.org/10.1111/sms.14699)
+- Leo P et al. (2021). Power profiling, workload characteristics, and race performance of U23 and professional cyclists during the multistage race Tour of the Alps. *Int J Sports Physiol Perform* (via PubMed). [doi:10.1123/ijspp.2020-0381](https://doi.org/10.1123/ijspp.2020-0381)
+- Leo P et al. (2022). Predictors of cycling performance success: traditional approaches and a novel method to assess performance capacity in U23 road cyclists. *J Sci Med Sport* (via PubMed). [doi:10.1016/j.jsams.2022.11.005](https://doi.org/10.1016/j.jsams.2022.11.005)
 - Leo P et al. (2021). Power profiling and the power-duration relationship in cycling: a narrative review. *Eur J Appl Physiol*. [doi:10.1007/s00421-021-04833-y](https://doi.org/10.1007/s00421-021-04833-y)
 - Manresa-Rocamora A et al. (2021). Heart rate variability-guided training for enhancing cardiac-vagal modulation, aerobic fitness, and endurance performance. *Int J Environ Res Public Health* (via PubMed). [doi:10.3390/ijerph181910299](https://doi.org/10.3390/ijerph181910299)
 - Marchal A et al. (2025). Statistical flaws of the fitness-fatigue sports performance prediction model. *Sci Rep*. [doi:10.1038/s41598-025-88153-7](https://doi.org/10.1038/s41598-025-88153-7)
@@ -225,13 +258,22 @@ Omdat ZRS bij 1000 ophoudt, komt deze graat nooit boven 900 punten.
 - Mateo-March M et al. (2024). Is all work the same? Performance after accumulated work of differing intensities. *J Sci Med Sport*. [doi:10.1016/j.jsams.2024.03.005](https://doi.org/10.1016/j.jsams.2024.03.005)
 - Mateo-March M et al. (2025). Reliability of the durability concept in professional cyclists. *Int J Sports Med*. [doi:10.1055/a-2555-8961](https://doi.org/10.1055/a-2555-8961)
 - Mateo-March M et al. (2026). The record power profile of male under-23 cyclists: normative values and fatigue effects. *Scand J Med Sci Sports*. [doi:10.1111/sms.70278](https://doi.org/10.1111/sms.70278)
+- Mateo-March M et al. (2025). Decoding victory in cycling's grand monuments: a performance analysis of top-5 versus top-6–30 finishers. *Scand J Med Sci Sports*. [doi:10.1111/sms.70057](https://doi.org/10.1111/sms.70057)
+- Mougin L et al. (2026). 35 years of Joyner's endurance performance model: assessing the contribution of physiological determinants in 888 individuals. *Sports Med*. [doi:10.1007/s40279-026-02439-y](https://doi.org/10.1007/s40279-026-02439-y)
 - Muriel X et al. (2023). Is the record power profile repeatable? *J Strength Cond Res*. [doi:10.1519/jsc.0000000000004419](https://doi.org/10.1519/jsc.0000000000004419)
+- Phillips KE et al. (2020). Determinants of cycling performance: a review of the dimensions and features regulating performance in elite cycling competitions. *Sports Med Open*. [doi:10.1186/s40798-020-00252-z](https://doi.org/10.1186/s40798-020-00252-z)
 - Pinot J, Grappe F (2011). The record power profile to assess performance in elite cyclists. *Int J Sports Med*. [doi:10.1055/s-0031-1279773](https://doi.org/10.1055/s-0031-1279773)
 - Quod MJ et al. (2010). The power profile predicts road cycling MMP. *Int J Sports Med*. [doi:10.1055/s-0030-1247528](https://doi.org/10.1055/s-0030-1247528)
 - Raysmith BP, Drew MK (2016). Performance success or failure is influenced by weeks lost to injury and illness in elite Australian track and field athletes. *J Sci Med Sport*.
+- Sanders D et al. (2017). Methods of monitoring training load and their relationships to changes in fitness and performance in competitive road cyclists. *Int J Sports Physiol Perform*. [doi:10.1123/ijspp.2016-0454](https://doi.org/10.1123/ijspp.2016-0454)
 - Spragg J et al. (2022). The relationship between physiological characteristics and durability in male professional cyclists. *Med Sci Sports Exerc*. [doi:10.1249/mss.0000000000003024](https://doi.org/10.1249/mss.0000000000003024)
 - Spragg J et al. (2024). The intensity rather than the quantity of prior work determines the subsequent downward shift in the power duration relationship. *Eur J Sport Sci*. [doi:10.1002/ejsc.12077](https://doi.org/10.1002/ejsc.12077)
 - Valenzuela PL et al. (2022). The record power profile of male professional cyclists: normative values. *Int J Sports Physiol Perform*. [doi:10.1123/ijspp.2021-0263](https://doi.org/10.1123/ijspp.2021-0263)
 - Valenzuela PL et al. (2023). Laboratory-based determinants of simulated time trial performance in cyclists. *Biol Sport*. [doi:10.5114/biolsport.2023.122484](https://doi.org/10.5114/biolsport.2023.122484)
+- van Erp T, Lamberts RP (2022). Performance characteristics of TOP5 versus NOT-TOP5 races in female professional cycling. *Int J Sports Physiol Perform* (via PubMed). [doi:10.1123/ijspp.2021-0488](https://doi.org/10.1123/ijspp.2021-0488)
+- van Erp T et al. (2021). Power profile of top 5 results in World Tour cycling races. *Int J Sports Physiol Perform* (via PubMed). [doi:10.1123/ijspp.2021-0081](https://doi.org/10.1123/ijspp.2021-0081)
 - van Erp T et al. (2021). Maintaining power output with accumulating levels of work done is a key determinant for success in professional cycling. *Med Sci Sports Exerc*. [doi:10.1249/mss.0000000000002656](https://doi.org/10.1249/mss.0000000000002656)
+- Varesco G et al. (2025). Performance analysis in high-level virtual cycling: data from the 2023 Zwift UCI Cycling E-Sports World Championships. *J Sci Cycling*. [doi:10.28985/1425.jsc.10](https://doi.org/10.28985/1425.jsc.10)
+- Vermeire KM et al. (2019). Training progression in recreational cyclists: no linear dose-response relationship with training load. *J Strength Cond Res*. [doi:10.1519/jsc.0000000000003340](https://doi.org/10.1519/jsc.0000000000003340)
+- Westmattelmann D et al. (2022). The performance-result gap in mixed-reality cycling: evidence from the Virtual Tour de France 2020 on Zwift. *Front Physiol*. [doi:10.3389/fphys.2022.868902](https://doi.org/10.3389/fphys.2022.868902)
 - Zwift: Racing Score van 0 tot 1000, Racing Score FAQ ([support.zwift.com](https://support.zwift.com/en_us/racing-score-faq-BkG9_Rqrh)).

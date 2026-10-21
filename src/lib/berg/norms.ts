@@ -128,19 +128,22 @@ export const DURABILITY_ANCHORS: Anchors = {
 export const DURABILITY_MIN_KJ_PER_KG = 10;
 
 /**
- * Het gewicht van elke graat in de score. Een keuze van ZWB (eigenaar,
- * 2026-10-21), gegrond op de literatuur: het vermogensprofiel samen 50% als
- * sterkste voorspeller (Leo 2021; Valenzuela 2023), durability 20% als factor
- * naast FTP en VO2max (Barsumyan 2025; van Erp 2021), fitheid 15% (goede trend,
- * zwakke voorspeller; Marchal 2025) en racen 15% (het resultaat in de praktijk).
+ * Het gewicht van elke graat in de score, naar de literatuur (eigenaar,
+ * 2026-10-21; onderbouwing in docs/zwbeter-berg-onderzoek.md). Vermogen samen
+ * 60%, maar niet gelijk verdeeld: 5 minuten voorspelt het best (Leo 2022;
+ * Mateo-March 2025), daarna 20 minuten, de minuut beslist Zwift-races (Varesco
+ * 2025) en de sprint alleen sprintfinishes (van Erp 2021). Durability 15%: sterk,
+ * maar in korte Zwift-races minder vaak beslissend. Racen 15% voor wat vermogen
+ * niet verklaart (Westmattelmann 2022). Fitheid 10%: zwakke voorspeller die al in
+ * het vermogen zit (Marchal 2025; Vermeire 2019).
  * Ontbreekt een graat, dan gaan de gewichten van de rest samen weer naar 100%.
  */
 export const RIDGE_WEIGHTS = {
-  sprint: 0.125,
+  sprint: 0.075,
   anaeroob: 0.125,
-  vo2max: 0.125,
-  drempel: 0.125,
-  durability: 0.2,
-  fitheid: 0.15,
+  vo2max: 0.225,
+  drempel: 0.175,
+  durability: 0.15,
+  fitheid: 0.1,
   racen: 0.15,
 } as const;

@@ -127,10 +127,12 @@ describe("graten en score", () => {
     expect(levels.racen).toBeCloseTo(5.76, 4);
   });
 
-  it("weegt de graten: vermogen 50%, durability 20%, fitheid en racen 15%", () => {
+  it("weegt de graten naar de literatuur: 5 minuten het zwaarst, fitheid het lichtst", () => {
     expect(Object.values(RIDGE_WEIGHTS).reduce((sum, weight) => sum + weight, 0)).toBeCloseTo(1, 9);
-    // Vermogen 4,4946 × 50% + durability 4,5714 × 20% + fitheid 4,65 × 15% + racen 5,76 × 15%.
-    expect(scoreFor(ridgeLevels(rider))).toBe(4.72);
+    expect(RIDGE_WEIGHTS.sprint + RIDGE_WEIGHTS.anaeroob + RIDGE_WEIGHTS.vo2max + RIDGE_WEIGHTS.drempel).toBeCloseTo(0.6, 9);
+    // 4,8 × 7,5% + 4,25 × 12,5% + 4,4286 × 22,5% + 4,5 × 17,5% + 4,5714 × 15%
+    // + 4,65 × 10% + 5,76 × 15% = 4,6899.
+    expect(scoreFor(ridgeLevels(rider))).toBe(4.69);
   });
 
   it("laat consistentie tot 20% meetellen als factor", () => {
@@ -139,16 +141,16 @@ describe("graten en score", () => {
     expect(consistencyFactor(0.55)).toBeCloseTo(0.91, 9);
     // Geen ritgegevens: ontbrekende gegevens kosten niets.
     expect(consistencyFactor(null)).toBe(1);
-    // 4,7231 × 0,91 = 4,30: op het scherm 430 punten.
-    expect(scoreFor(ridgeLevels(rider), 0.55)).toBe(4.3);
-    expect(scoreFor(ridgeLevels(rider), 1)).toBe(4.72);
+    // 4,6899 × 0,91 = 4,27: op het scherm 427 punten.
+    expect(scoreFor(ridgeLevels(rider), 0.55)).toBe(4.27);
+    expect(scoreFor(ridgeLevels(rider), 1)).toBe(4.69);
   });
 
   it("normaliseert de gewichten opnieuw als een graat ontbreekt", () => {
     const levels = ridgeLevels({ ...rider, zrs: null });
     const weights = effectiveWeights(levels);
     expect(weights.racen).toBeUndefined();
-    expect(weights.durability).toBeCloseTo(0.2 / 0.85, 9);
+    expect(weights.durability).toBeCloseTo(0.15 / 0.85, 9);
     expect(Object.values(weights).reduce((sum, weight) => sum + weight!, 0)).toBeCloseTo(1, 9);
   });
 

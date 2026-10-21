@@ -11281,6 +11281,30 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBeter-berg: gewichten naar de literatuur
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+**Waarom.** De eigenaar wilde de gewichten doorlopen ("het ene element is nou eenmaal
+belangrijker dan het andere") en liet daarvoor PubMed en Consensus raadplegen. Geen
+studie geeft kant-en-klare gewichten; de nieuwe verdeling vertaalt hoe sterk elk
+onderdeel uitslagen en niveau voorspelt. Akkoord van de eigenaar op het voorstel.
+
+**Nu** (`RIDGE_WEIGHTS`): VO2max (5 min) 22,5%, Drempel (20 min) 17,5%, Anaeroob (1 min)
+12,5%, Sprint (15 s) 7,5% — vermogen samen 60% — plus Durability 15%, Racen 15% en
+Fitheid 10%. Kern van de onderbouwing: 5 minuten voorspelt podium en niveau het best,
+de minuut beslist Zwift-races, de sprint alleen sprintfinishes; durability is sterk
+maar in korte Zwift-races minder vaak beslissend; CTL is een zwakke voorspeller die al
+in het vermogen zit; racen vangt wat vermogen niet verklaart. Bronnen en redenering:
+[zwbeter-berg-onderzoek.md](docs/zwbeter-berg-onderzoek.md#zeven-graten). Het
+rekenvoorbeeld gaat van 430 naar 427 punten (profielscore 472 → 469).
+
+**Bewust niet.** Gewichten per rennertype of per soort race: de score meet niveau, niet
+specialisatie; het type zie je aan de vorm.
+
+**Getest.** `berg-score.test.ts` met de nieuwe gewichten (som 100%, vermogen 60%,
+rekenvoorbeeld 4,69 en 4,27, hernormaliseren zonder ZRS); alle 42 berg-tests groen.
+
 ### Gebouwd — ZWBeter-berg, het model bijgestuurd: zeven graten, score als niveau
 
 **2026-10-21.** Commit: de commit die dit blok toevoegt. Migratie
@@ -11315,11 +11339,12 @@ duidelijker is").
   model vervalt daarmee bij de bouw van de pagina.
 - **Zeven graten**: Sprint (15 s), Anaeroob (1 min), VO2max (5 min), Drempel (20 min),
   Durability, Fitheid (CTL) en Racen (ZRS). Explosief en Duurvermogen vervallen.
-- **Formule per graat**: `scaleStep` geeft het stuk van de schaal waarin een meting valt,
-  zodat het scherm "4 + (4,3 − 4,0) ÷ (4,6 − 4,0) = 4,5" kan voorrekenen.
-- **Gewogen**: vermogensprofiel 50% (elke duur 12,5%), durability 20%, fitheid en racen
-  elk 15%; ontbrekende graten worden opnieuw genormaliseerd (`RIDGE_WEIGHTS`, keuze van de
-  eigenaar).
+- **Per graat**: `scaleStep` geeft het stuk van de schaal waarin een meting valt. Op het
+  scherm wordt dat een balk van de grens van je niveau tot de volgende (racen: over de
+  hele schaal van 0 tot 1000 ZRS); de formules zelf staan alleen op `/hulp` (eigenaar).
+- **Gewogen**: ontbrekende graten worden opnieuw genormaliseerd (`RIDGE_WEIGHTS`). De
+  gewichten zijn later naar de literatuur bijgesteld; zie het blok hierboven. Eerst telde
+  elke duur 12,5%, durability 20% en fitheid en racen elk 15%.
 - **Vorm**: lengte van een graat = (niveau van de graat ÷ score)^1,8 (`ridgeReach`).
 - **Consistentie** = R × (0,5 + 0,5 · V) × N, altijd tegen je eigen norm (beschikbaarheid
   uit het schema, anders je eigen mediaan): regelmaat over twaalf weken, volhouden als
@@ -11338,14 +11363,16 @@ ervoor.
 **Bewust niet.** Echte bergketens en meters (vervangen, zie hierboven). Verder
 ongewijzigd: HRV, vorm en herhaalbaarheid zijn geen graat, vELO telt nog niet mee.
 
-**Getest.** `berg-score.test.ts` (23, met het rekenvoorbeeld van de eigenaar: score 4,55),
+**Getest.** `berg-score.test.ts` (23, met het rekenvoorbeeld van de eigenaar; nu 4,69 en met consistentie 4,27),
 `berg-snapshot.test.ts` (10: weken, herstelweek, naleving, beschikbaarheid) en
 `berg-migration.test.ts` (8, nu met `score` en de zeven graten). ESLint schoon. **Niet
 getest:** de server-kant tegen echte gegevens.
 
-**Ontwerp, nog open.** De eigenaar bekeek 3D-schetsen (sleep en zoom) en vindt het
-geschilderde panorama en het prestatiedashboard het mooist; de ZWB-keten (alle deelnemers
-als aantikbare bergen, "Leg naast de mijne") is voorgesteld. De keuze van de stijl volgt.
+**Ontwerp, nog open.** De eigenaar bekeek 3D-schetsen (sleep en zoom) van het panorama, het
+prestatiedashboard en de ZWB-keten, en verkent nu een andere vorm: één ruwe edelsteen in
+plaats van een berg, met de tien vELO-klassen (Koper tot Diamant, 100 punten per klasse,
+Diamant = Aliens) als niveaunamen en steenkleur, grootte = score en het meetpaneel als balk.
+Nog alleen een schets; de keuze volgt.
 
 ### Gebouwd — ZWBeter-berg, fase 2: gegevens, wekelijkse job en terugblik
 
