@@ -11353,9 +11353,11 @@ tegel op het dashboard, de job tegen productie; de migratie op productie (geen D
 Volledige suite: `omnium-live` faalt in deze worktree zonder `.env.local`;
 `admin-areas` en `rls-initplan-migration` falen alleen onder volle last en slagen los.
 
-**Nog te doen door de eigenaar.** `BRILJANT_WEEKLY_SECRET` in Netlify zetten en de job op
-cron-job.org aanmaken (zie `docs/runbook.md`); de waarde van het geheim vult de eigenaar
-zelf in.
+**Ingericht (2026-10-21).** `BRILJANT_WEEKLY_SECRET` staat in Netlify (geheim, scopes
+Builds/Functions/Runtime; de waarde vulde de eigenaar zelf in) en de job "ZWBriljant
+weekly" staat op cron-job.org: elk uur op het hele uur, Europe/Amsterdam, POST naar
+`/api/briljant/weekly?limit=3` met `Authorization: Bearer`. De eerste run om 18:00 viel
+vóór de deploy en gaf dus nog geen resultaat.
 
 ### Gebouwd — ZWBeter-berg: gewichten naar de literatuur
 
