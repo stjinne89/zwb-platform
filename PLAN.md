@@ -284,7 +284,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0266`
-(`0265_zwbriljant` is van ZWBriljant (eerst `0265_zwbeter_berg`), 2026-10-21, **nog niet toegepast**;
+(`0265_zwbriljant` is van ZWBriljant (eerst `0265_zwbeter_berg`), 2026-10-21, toegepast op 2026-10-21;
 `0264_nutrition_recipe_sharing` is van recepten van een link en delen met
 alle leden, 2026-10-21, toegepast op 2026-10-21;
 `0263_race_briefing_sheet` is van het aanpasbare racebriefje, 2026-10-20;
@@ -11283,8 +11283,12 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: de steen, de pagina en de tegel (was de ZWBeter-berg)
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Migratie `0265_zwbriljant.sql`
-(hernoemd en aangepast, **nog steeds niet toegepast**; dat mocht dus nog). Niet gepusht.
+**2026-10-21.** Commits `d0874e29` (bouw) en `00d4d836` (privacy). Migratie
+`0265_zwbriljant.sql` (hernoemd en aangepast vóór het toepassen), **toegepast op
+2026-10-21** via de Supabase-connector op verzoek van de eigenaar; daarna gecontroleerd:
+RLS aan op beide tabellen, anon kan `zwbriljant_shares` niet aanroepen. De advisor meldt
+dat ingelogde leden de functie wel kunnen aanroepen; bewust, net als bij ZWBgame (hij
+zegt alleen óf iemand deelt). Gepusht naar `main` op 2026-10-21.
 
 **Waarom.** De eigenaar koos na schetsen voor één ruwe edelsteen in plaats van een berg,
 met de klassen van vELO ("alle referenties naar bergen ombuigen naar edelstenen"), en gaf
@@ -11349,8 +11353,9 @@ tegel op het dashboard, de job tegen productie; de migratie op productie (geen D
 Volledige suite: `omnium-live` faalt in deze worktree zonder `.env.local`;
 `admin-areas` en `rls-initplan-migration` falen alleen onder volle last en slagen los.
 
-**Nog te doen door de eigenaar.** 0265 toepassen (op verzoek via de connector),
-`BRILJANT_WEEKLY_SECRET` in Netlify zetten en de job op cron-job.org aanmaken.
+**Nog te doen door de eigenaar.** `BRILJANT_WEEKLY_SECRET` in Netlify zetten en de job op
+cron-job.org aanmaken (zie `docs/runbook.md`); de waarde van het geheim vult de eigenaar
+zelf in.
 
 ### Gebouwd — ZWBeter-berg: gewichten naar de literatuur
 

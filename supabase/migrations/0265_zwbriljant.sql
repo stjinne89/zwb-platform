@@ -14,7 +14,8 @@
 --
 -- Delen gebeurt bij het lezen (zwbriljant_shares): wie de toestemming intrekt
 -- of zijn steen verbergt, is meteen voor niemand meer zichtbaar. De eigen historie
--- blijft van het lid; "Mijn steen wissen" haalt alles weg.
+-- blijft van het lid. Het lid mag zijn eigen snapshots wissen (RLS hieronder);
+-- een knop daarvoor is er bewust nog niet (eigenaar, 2026-10-21).
 
 create table if not exists public.zwbriljant_preferences (
   profile_id uuid primary key references public.profiles(id) on delete cascade,
