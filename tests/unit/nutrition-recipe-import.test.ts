@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  allerhandeRecipeId,
   cleanSourceUrl,
   guessRole,
   instructionBlocks,
@@ -7,6 +8,7 @@ import {
   parseIngredientLine,
   parseServings,
   pickFood,
+  recipeFromAllerhande,
   recipeFromHtml,
   searchCandidates,
   singular,
@@ -193,5 +195,50 @@ describe("zoektermen voor NEVO", () => {
   it("haalt volgparameters uit de bronlink", () => {
     expect(cleanSourceUrl("https://site.nl/r?id=3&utm_medium=x&fbclid=y")).toBe("https://site.nl/r?id=3");
     expect(cleanSourceUrl("http://site.nl/r")).toBeNull();
+  });
+});
+
+describe("Allerhande", () => {
+  it("haalt het receptnummer alleen uit een Allerhande-link", () => {
+    expect(allerhandeRecipeId("https://www.ah.nl/allerhande/recept/R-R1196853/broodje-vega")).toBe(1196853);
+    expect(allerhandeRecipeId(" https://ah.be/allerhande/recept/R-R42?utm_source=app ")).toBe(42);
+    expect(allerhandeRecipeId("https://www.ah.nl/allerhande/recepten-zoeken")).toBeNull();
+    expect(allerhandeRecipeId("https://ah.nl.evil.com/allerhande/recept/R-R1")).toBeNull();
+    expect(allerhandeRecipeId("geen link")).toBeNull();
+  });
+
+  it("zet het API-antwoord om naar een recept", () => {
+    const recipe = recipeFromAllerhande(
+      {
+        title: "Broodje vega 'tonijnsalade'",
+        servings: { number: 4 },
+        cookTime: 20,
+        ovenTime: 15,
+        ingredients: [{ text: "1 rode ui" }, { text: "340 g mais in blik" }, { text: " " }],
+        preparation: { steps: ["Snipper de ui.", "Meng alles. "] },
+        images: [
+          { url: "https://static.ah.nl/r_1920.jpg", width: 1920 },
+          { url: "https://static.ah.nl/r_220.jpg", width: 220 },
+          { url: "https://static.ah.nl/r_890.jpg", width: 890 },
+        ],
+      },
+      "https://www.ah.nl/allerhande/recept/R-R1196853/broodje?utm_source=x",
+    );
+    expect(recipe).toEqual({
+      title: "Broodje vega 'tonijnsalade'",
+      servings: 4,
+      minutes: 35,
+      ingredients: ["1 rode ui", "340 g mais in blik"],
+      steps_md: "1. Snipper de ui.\n2. Meng alles.",
+      image_url: "https://static.ah.nl/r_890.jpg",
+      source_name: "Allerhande",
+      source_url: "https://www.ah.nl/allerhande/recept/R-R1196853/broodje",
+    });
+  });
+
+  it("geeft null zonder titel en laat ontbrekende velden leeg", () => {
+    expect(recipeFromAllerhande({ title: " " }, "https://www.ah.nl/x")).toBeNull();
+    const recipe = recipeFromAllerhande({ title: "Soep", cookTime: null }, "https://www.ah.nl/x");
+    expect(recipe).toMatchObject({ servings: null, minutes: null, ingredients: [], steps_md: "", image_url: null });
   });
 });

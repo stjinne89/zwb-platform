@@ -286,8 +286,8 @@ export function KennisHelp() {
                   met de regel van de site eronder. Controleer product en
                   hoeveelheid: een ui of een scheutje is een schatting. Wat niet
                   te koppelen was, staat als losse regel klaar; tik erop om te
-                  zoeken. Werkt een site niet (Allerhande weigert het
-                  ophalen), vul het recept dan zelf in.
+                  zoeken. Allerhande-recepten werken ook. Weigert een site het
+                  ophalen, vul het recept dan zelf in.
                 </span>
               </li>
               <li className="flex gap-2">

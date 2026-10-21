@@ -11281,6 +11281,53 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Allerhande-recepten via de AH-API
+
+**2026-10-21.** Commit: zie de commit "Recept van een link: Allerhande via de
+AH-API" op `claude/ah-scraping-solution-8978ee`. Geen migratie. Niet gepusht.
+
+**Waarom.** De eigenaar wil dat een Allerhande-link werkt bij Eigen recept; het
+lid kreeg "Deze site laat het recept niet ophalen." Onderzocht: de webpagina
+geeft onze server een 403, ook met een gewone browser als user-agent (de
+botbescherming kijkt dus verder dan die header; nabootsen van een browser lost
+het niet op). De AH-app haalt recepten uit `api.ah.nl`: een anoniem token
+(`POST /mobile-auth/v1/auth/token/anonymous`, `clientId: "appie"`, geen login,
+een week geldig) en daarmee GraphQL `recipe(id)`. Dat werkt met onze eigen
+user-agent.
+
+**Nu.** `fetchRecipe` herkent `ah.nl`/`ah.be` `/allerhande/recept/R-R<nummer>`
+(`allerhandeRecipeId`) en haalt dat recept via de API (`fetchAllerhande`); elke
+andere link gaat zoals eerst via JSON-LD. `recipeFromAllerhande` zet het
+antwoord om: titel, porties, tijd (bereiden plus oven, niet wachttijd zoals
+marineren), de ingrediëntregels zoals AH ze schrijft (dus dezelfde
+`parseIngredientLine` en NEVO-koppeling), stappen, en de kleinste foto van
+minstens 800 breed van `static.ah.nl`. Bronnaam "Allerhande", bronlink de
+geplakte link zonder volgparameters. Het token wordt per serverinstantie
+bewaard tot een uur voor het verloopt; een 401 gooit het weg. `/hulp/kennis`
+zegt nu dat Allerhande werkt.
+
+**Bewust niet.**
+- **Geen gebruik van de hoeveelheden en eenheden die de API los geeft**
+  (`quantity`, `quantityUnit`): de tekstregel bevat ze ook, en zo loopt
+  Allerhande door dezelfde parser als elke andere site.
+- **Geen browser nabootsen** (headless browser of TLS-fingerprint) voor sites
+  die een 403 geven: zwaar op Netlify en een wapenwedloop.
+
+**Risico.** De API is niet gedocumenteerd en niet voor ons bedoeld; AH kan hem
+zonder aankondiging wijzigen of afschermen. Dan krijgt het lid weer "Deze site
+laat het recept niet ophalen." (token of GraphQL faalt) of "Op deze pagina staat
+geen recept dat we kunnen lezen." (ander antwoord). Of het gebruik binnen de
+voorwaarden van AH valt, is niet uitgezocht.
+
+**Getest.** `nutrition-recipe-import.test.ts` (33, waarvan 3 nieuw: het nummer
+uit de link, ook niet uit `ah.nl.evil.com`; het antwoord omzetten; ontbrekende
+velden). Live via de echte `fetchRecipe` (alleen lezen): R-R1196853 (broodje
+vega tonijnsalade, 9 ingrediënten, 8 stappen) en R-R1189405 (Zeeuwse mosselen,
+50 min); een onbekend nummer geeft de nette melding. `tsc` alleen met de
+bekende ontbrekende `modern-screenshot`, ESLint schoon. **Niet getest:** vanaf
+Netlify (een ander IP; AH kan datacenter-adressen anders behandelen) en het
+formulier in de app zelf.
+
 ### Gebouwd — ZWBriljant: durability op de minuut, fitheid naar de spreiding
 
 **2026-10-21.** Commit `d0c9fec1`. Geen migratie. Gepusht naar `main` op 2026-10-21.
@@ -11740,9 +11787,10 @@ receptenboek en dagmenu. Nu niet meer: alleen clubrecepten, eigen recepten en
 wat met alle leden gedeeld is. De voorstellenpagina leest ze apart.
 
 **Bewust niet.**
-- **Allerhande werkt niet:** die site geeft onze server een 403. We doen ons
-  niet voor als browser om dat te omzeilen; het lid krijgt "Deze site laat het
-  recept niet ophalen." Getest werken Leukerecepten, 24Kitchen en BBC Good Food.
+- ~~**Allerhande werkt niet.**~~ Niet meer waar sinds 2026-10-21: Allerhande
+  gaat via de AH-API (ronde "Allerhande-recepten via de AH-API"). Andere sites
+  die een 403 geven, omzeilen we nog steeds niet. Getest werken Leukerecepten,
+  24Kitchen en BBC Good Food.
 - **"Zonder naam" is geen anonimiteit tegenover de API.** `owner_id` blijft
   leesbaar (leden lezen `profiles` al, en de app filtert overal op `owner_id`);
   de app toont dan alleen geen naam of foto. Afschermen kan met een view of
