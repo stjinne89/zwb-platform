@@ -11300,10 +11300,12 @@ profs, waardoor CTL 100 (voor een amateur zeer hoog) maar Saffier was.
 - **Fitheid naar de spreiding onder amateurs** (`CTL_ANCHORS`): 30, 40, 50, 60, 70, 80,
   90, 120, 150. Aanname: amateurs rond CTL 50 met een spreiding van 20; Brons tot Smaragd
   een halve standaarddeviatie uit elkaar, Robijn de top van de amateurs, Diamant de
-  WorldTour. CTL 100 is nu Smaragd (733), 150 Diamant. Eigenaar: CTL ongeveer 76, van 353
-  naar ongeveer 556.
-- Samen met de consistentie (blok hieronder) gaat de score van de eigenaar van 239 naar
-  ongeveer 293 (schatting uit de snapshot; de echte waarde volgt bij de volgende run).
+  WorldTour. CTL 100 is nu Smaragd (733), 150 Diamant. Eigenaar: CTL ongeveer 56, van 353
+  naar 355; rond CTL 55 liggen de oude en de nieuwe schaal bijna gelijk (eerst stond hier
+  per abuis CTL 76 en 556).
+- Samen met de consistentie (blok hieronder) ging de score van de eigenaar van 239 naar
+  **279** (live nagekeken na de deploy van `0d63963`): durability 355, fitheid 355,
+  consistentie factor 0,91, 307 bij volle consistentie.
 
 **Nog niet (API-grens, keuze eigenaar).** De minuut na **1000** kJ: intervals.icu geeft
 vermoeide curves alleen voor de twee drempels die het lid zelf instelt (bij de eigenaar
