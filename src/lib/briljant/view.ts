@@ -27,8 +27,10 @@ import {
   points,
   positionFor,
   profileScore,
+  scaleStep,
   scoreFor,
   selfFrame,
+  valueAt,
   type BriljantInput,
   type ConsistencyInput,
   type Facet,
@@ -122,7 +124,7 @@ export function formatMeasure(facet: Facet, value: number): string {
   return `${value.toLocaleString("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} ${unit}`;
 }
 
-function meterFor(facet: Facet, reading: NonNullable<ReturnType<typeof facetReadings>[Facet]>): FacetMeter {
+export function meterFor(facet: Facet, reading: NonNullable<ReturnType<typeof facetReadings>[Facet]>): FacetMeter {
   if (facet === "racen") {
     // De balk over de hele schaal, de zin naar de volgende klasse (eigenaar,
     // 2026-10-21): de grens is de ZRS waarbij die klasse begint.
@@ -245,7 +247,7 @@ const IMPROVEMENT = 0.05;
 
 const POWER_DURATION: Partial<Record<Facet, PowerDuration>> = { sprint: "s15", anaeroob: "m1", vo2max: "m5", drempel: "m20" };
 
-function anchorsFor(facet: Facet, sex: Sex | null): Anchors {
+export function anchorsFor(facet: Facet, sex: Sex | null): Anchors {
   const duration = POWER_DURATION[facet];
   if (duration) return powerAnchors(duration, sex);
   if (facet === "durability") return DURABILITY_ANCHORS;
@@ -279,4 +281,10 @@ export function bestWins(input: BriljantInput, consistency: number | null): Win[
     const plain = (value: number) => formatMeasure(facet, value).replace(` ${unit}`, "");
     return [{ key: facet, label: FACET_LABELS[facet], step: `${plain(reading.value)} → ${plain(better)} ${unit}`, gain }];
   }).sort((a, b) => b.gain - a.gain);
+}
+
+/** De meting bij een bewaard niveau, als lezing zoals `facetReadings` die geeft. */
+export function readingFromLevel(facet: Facet, level: number, sex: Sex | null) {
+  const anchors = anchorsFor(facet, sex);
+  return scaleStep(anchors, valueAt(anchors, level));
 }

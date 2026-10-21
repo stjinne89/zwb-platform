@@ -49,8 +49,12 @@ const POWER_STALE_MS = 6 * 24 * 60 * 60 * 1000;
 const TERUGBLIK_MAX_MONTHS = 120;
 /** Zonder wellness (geen CTL te vinden) blijft het bij een jaar. */
 const TERUGBLIK_FALLBACK_MONTHS = 12;
-/** Gezet in `provenance.terugblik`; een terugblik zonder deze waarde is van vóór de hele historie. */
-export const TERUGBLIK_SPAN = "alles";
+/**
+ * Gezet in `provenance.terugblik`: de hele historie, met de huidige ZRS voor racen
+ * (eigenaar, 2026-10-21; ZRS heeft geen historie). Een terugblik met een andere
+ * waarde wordt bij het volgende bezoek opnieuw gemaakt.
+ */
+export const TERUGBLIK_SPAN = "alles-zrs";
 /** PostgREST geeft hooguit zoveel rijen per vraag. */
 const PAGE = 1000;
 /** Zoveel weken terug voor de norm (mediaan) en de reeks. */
@@ -307,7 +311,7 @@ export async function loadHistory(admin: Admin, profileId: string, today = amste
 /**
  * Eenmalig: per maand van je hele intervals.icu-historie een snapshot (de beste 90
  * dagen tot het eind van die maand en de CTL van die dag) en de consistentie tot die
- * maand. Durability en ZRS hebben geen historie en blijven leeg. Weeksnapshots worden
+ * maand. Durability heeft geen historie en blijft leeg; racen krijgt de ZRS van nu. Weeksnapshots worden
  * niet overschreven; een eerdere terugblik wel, en pas na het schrijven van de nieuwe
  * gaat de oude weg, zodat een afgebroken run niets kwijtmaakt.
  */
@@ -327,7 +331,7 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
   const from = shiftDay(ends[0], -HISTORY_WEEKS * 7 - 7);
 
   const [{ data: profile }, rides, planned, curves, { data: weeks }] = await Promise.all([
-    admin.from("profiles").select("sex, weight_kg").eq("id", profileId).maybeSingle(),
+    admin.from("profiles").select("sex, weight_kg, zwift_id").eq("id", profileId).maybeSingle(),
     loadRides(admin, profileId, from),
     loadPlanned(admin, profileId, from, mondayKey(today)),
     connection?.athlete_id
@@ -342,8 +346,11 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
       .eq("source", "week")
       .eq("provenance->>scale", SCALE_VERSION),
   ]);
-  const p = profile as Pick<ProfileRow, "sex" | "weight_kg"> | null;
+  const p = profile as ProfileRow | null;
   const byDay = new Map(wellness.map((row) => [row.id, row]));
+  // Racen heeft geen historie: elke maand krijgt de ZRS van nu.
+  const zwiftId = zwiftIdOf(p?.zwift_id ?? null);
+  const zrs = zwiftId ? ((await loadRiderMetrics([zwiftId]).catch(() => new Map())).get(zwiftId)?.racingScore ?? null) : null;
   const taken = new Set(((weeks ?? []) as Array<{ week: string }>).map((row) => row.week));
 
   const rows = ends.map((end) => {
@@ -356,7 +363,7 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
       power: powerFromCurve(curves.get(curveRange(end)) ?? [], weightKg),
       fatigue: [],
       ctl,
-      zrs: null,
+      zrs,
     };
     // De week na het maandeinde: de consistentie telt dan tot en met die maand.
     const consistency = consistencyAt(rides, planned, shiftDay(end, 1));

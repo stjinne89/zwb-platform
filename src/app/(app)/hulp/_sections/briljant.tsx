@@ -95,13 +95,14 @@ export function BriljantHelp() {
           <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-[11rem_1fr]">
             <dt className="font-medium">Datum</dt>
             <dd className="text-muted-foreground">
-              Kies een datum en je ziet je steen van die week. Van vroegere weken bewaren we alleen punten, geen
-              metingen; daarom staan daar punten in plaats van watts of ZRS.
+              Kies een datum en je ziet je steen van die maand of week, terug tot de eerste maand met CTL in
+              intervals.icu. We bewaren alleen punten; de W/kg, CTL en ZRS rekenen we daaruit terug. Racen heeft geen
+              historie: vroegere stenen krijgen je huidige ZRS. Met Waarden en Punten wissel je wat de labels tonen.
             </dd>
             <dt className="font-medium">Vergelijk</dt>
             <dd className="text-muted-foreground">
-              Zet het ZWB-gemiddelde of een lid naast je steen. Klik op de tweede steen voor de punten per onderdeel
-              naast elkaar.
+              Zet je mooiste steen (de week met je hoogste score), het ZWB-gemiddelde of een lid naast je steen. Klik
+              op de tweede steen voor de onderdelen naast elkaar. Van anderen zie je alleen punten.
             </dd>
             <dt className="font-medium">Delen</dt>
             <dd className="text-muted-foreground">

@@ -11285,6 +11285,39 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: mooiste steen, waarden of punten, ZRS in de terugblik
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+Drie verzoeken van de eigenaar na de terugblik over de hele historie.
+
+- **Mijn mooiste steen** (`?met=mooiste`): een keuze bij vergelijken, de week met je
+  hoogste score uit alles wat bewaard is (terugblik en weken), op een eigen sokkel naast
+  je huidige steen. `BriljantCompare` kreeg `label` (boven de steen) en `short` (boven de
+  kolom).
+- **Waarden of punten**: een schakelaar onder de vergelijkkeuze; standaard de waarden
+  (W/kg, CTL, verval, ZRS), per apparaat onthouden (`localStorage`, werkt zonder opslag
+  ook, dan zonder onthouden). Snapshots bewaren alleen niveaus; `valueAt` in `score.ts`
+  rekent ze terug (de schaal is recht tussen de ijkwaarden, dus exact op de afronding van
+  het niveau na, een paar honderdsten W/kg). **Alleen voor je eigen stenen** (een datum
+  of je mooiste steen): van andere leden en het ZWB-gemiddelde blijven het punten, want
+  de privacytekst belooft dat leden elkaars metingen niet zien.
+- **Racen in de terugblik** krijgt de huidige ZRS (ZRS heeft geen historie). Daardoor
+  tellen vroegere stenen nu met zeven onderdelen behalve durability, en verschuiven de
+  oude scores. `TERUGBLIK_SPAN` werd `"alles-zrs"`, zodat elke bestaande terugblik bij het
+  volgende bezoek of door de job opnieuw wordt gemaakt.
+
+**Niet gebouwd.** Durability heeft ook geen historie en blijft in de terugblik leeg;
+de huidige waarde invullen is niet gevraagd. Metingen van anderen terugrekenen kan
+technisch, maar mag niet (zie hierboven). Geen nieuwe privacytekst nodig: er wordt niets
+nieuws bewaard of gedeeld.
+
+**Getest.** `valueAt` als omgekeerde van `levelAt` (vermogen man en vrouw, CTL,
+durability, ZRS, voorbij Diamant), een eigen steen uit een snapshot met metingen en
+balk, die van een ander zonder; de hele suite op `omnium-live` na (lokaal `.env.local`
+nodig). In de browser (375 px) de schakelaar en de mooiste steen naast de jouwe. **Niet
+getest:** de nieuwe terugblik met ZRS op productie.
+
 ### Gebouwd — ZWBriljant: terugblik over je hele intervals.icu-historie
 
 **2026-10-21.** Commit `dff9489e`. Geen migratie. Gepusht naar

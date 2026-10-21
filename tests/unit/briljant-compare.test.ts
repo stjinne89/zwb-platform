@@ -99,3 +99,26 @@ describe("bestWins", () => {
     expect(bestWins({ sex: "man", weightKg: 75, power: { s15: null, m1: null, m5: null, m20: null }, fatigue: [], ctl: null, zrs: null }, null)).toEqual([]);
   });
 });
+
+describe("eigen steen uit een snapshot", () => {
+  it("rekent de meting terug uit het niveau, met de balk tussen de klassen", () => {
+    const view = viewFromSnapshot({
+      seed: "lid",
+      snapshot: snap("2024-04-29", 6.8, { drempel: 7.35, fitheid: 7.09, racen: 5.76 }),
+      source: "week van 29 april 2024",
+      own: { sex: "man" },
+    });
+    const byKey = Object.fromEntries(view.facets.map((facet) => [facet.key, facet]));
+    // Drempel 7,35: Smaragd 4,75 + 0,35 × (6,4 − 4,75).
+    expect(byKey.drempel.value).toBe("5,33 W/kg");
+    expect(byKey.drempel.meter).toMatchObject({ from: "4,75 W/kg", to: "6,4 W/kg" });
+    expect(byKey.fitheid.value).toBe("93 TSS/dag");
+    expect(byKey.racen.value).toBe("640 ZRS");
+  });
+
+  it("toont van een ander geen metingen", () => {
+    const view = viewFromSnapshot({ seed: "lid", snapshot: snap("2024-04-29", 6.8, { drempel: 7.35, vo2max: 7 }), source: "x" });
+    expect(view.facets.every((facet) => facet.value === "")).toBe(true);
+  });
+});
+

@@ -1,11 +1,14 @@
 // ZWBriljant in de tijd en naast anderen: een steen uit een opgeslagen snapshot,
 // de week bij een gekozen datum en het ZWB-gemiddelde. Puur; de server levert de
 // snapshots. Een snapshot bewaart alleen niveaus, geen metingen: een steen uit het
-// verleden of van een ander toont dus punten en klassen, geen watts of ZRS.
+// verleden of van een ander toont dus punten en klassen. Voor je eigen stenen
+// rekenen we de meting terug uit het niveau (de schaal is recht tussen de
+// ijkwaarden); van anderen bewust niet, want leden zien elkaars metingen niet.
 
 import { CONSISTENCY_WEEKS, FACETS, FACET_LABELS, FACET_MEASURES, consistencyFactor, points, positionFor, profileScore, type Facet } from "./score";
 import { FACET_WEIGHTS, LEVELS, levelOf } from "./norms";
-import type { BriljantView, FacetMeter, FacetView } from "./view";
+import type { Sex } from "./norms";
+import { formatMeasure, meterFor, readingFromLevel, type BriljantView, type FacetMeter, type FacetView } from "./view";
 
 export type StoredSnapshot = {
   week: string;
@@ -48,8 +51,17 @@ function pointsMeter(level: number): FacetMeter {
   };
 }
 
-/** Een steen uit een snapshot, voor een week uit het verleden of een ander lid. */
-export function viewFromSnapshot(args: { seed: string; snapshot: StoredSnapshot; source: string }): BriljantView {
+/**
+ * Een steen uit een snapshot, voor een week uit het verleden of een ander lid. Met
+ * `sex` (alleen voor je eigen steen) komen de metingen terug, met de balk tussen de
+ * grenzen van de klassen; zonder alleen punten.
+ */
+export function viewFromSnapshot(args: {
+  seed: string;
+  snapshot: StoredSnapshot;
+  source: string;
+  own?: { sex: Sex | null };
+}): BriljantView {
   const levels = Object.fromEntries(FACETS.map((facet) => [facet, args.snapshot.facets[facet] ?? null])) as Record<Facet, number | null>;
   const present = FACETS.filter((facet) => levels[facet] != null);
   const totalWeight = present.reduce((sum, facet) => sum + FACET_WEIGHTS[facet], 0);
@@ -60,10 +72,11 @@ export function viewFromSnapshot(args: { seed: string; snapshot: StoredSnapshot;
   const facets: FacetView[] = present.map((facet) => {
     const level = levels[facet]!;
     const weight = FACET_WEIGHTS[facet] / totalWeight;
+    const reading = args.own ? readingFromLevel(facet, level, args.own.sex) : null;
     return {
       key: facet,
       label: FACET_LABELS[facet],
-      value: "",
+      value: reading ? formatMeasure(facet, reading.value) : "",
       what: FACET_MEASURES[facet].what,
       source: args.source,
       points: points(level),
@@ -71,7 +84,7 @@ export function viewFromSnapshot(args: { seed: string; snapshot: StoredSnapshot;
       weight,
       contribution: Math.round(weight * level * 100),
       lowerIsBetter: facet === "durability",
-      meter: pointsMeter(level),
+      meter: reading ? meterFor(facet, reading) : pointsMeter(level),
     };
   });
   const consistency = args.snapshot.consistency;

@@ -111,6 +111,21 @@ export function levelAt(anchors: Anchors, value: number): number {
   return scaleStep(anchors, value).level;
 }
 
+/**
+ * De waarde bij een niveau: het omgekeerde van `levelAt`, recht tussen de
+ * ijkwaarden en voorbij niveau 9 met de helling van het laatste stuk. Niveau 0 of
+ * lager geeft de nulwaarde. Zo is een bewaard niveau terug te rekenen naar W/kg,
+ * CTL, verval of ZRS, op de afronding van het niveau na.
+ */
+export function valueAt(anchors: Anchors, level: number): number {
+  const points = scalePoints(anchors);
+  if (!Number.isFinite(level) || level <= 0) return points[0].value;
+  const index = Math.min(points.length - 1, Math.max(1, Math.ceil(level)));
+  const lower = points[index - 1];
+  const upper = points[index];
+  return lower.value + (level - lower.level) * (upper.value - lower.value);
+}
+
 // ── Niveaus ─────────────────────────────────────────────────────────────────
 
 /** Punten per niveau: niveau 4 is 400 tot 499 punten. */

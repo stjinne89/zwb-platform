@@ -87,21 +87,43 @@ export default async function BriljantPage({
 
   // Een gekozen datum toont de week op of vóór die datum, uit de snapshots.
   const past = datum && datum < today ? snapshotAt(snapshots, datum) : null;
-  const view = past ? viewFromSnapshot({ seed: user.id, snapshot: past, source: `week van ${weekLabel(past.week)}` }) : live;
+  // Je eigen stenen tonen ook de meting, teruggerekend uit de punten.
+  const own = { sex: collected.input.sex };
+  const view = past
+    ? viewFromSnapshot({ seed: user.id, snapshot: past, source: `week van ${weekLabel(past.week)}`, own })
+    : live;
+
+  // Je mooiste steen: de week met de hoogste score, uit alles wat er bewaard is.
+  const best = snapshots.reduce<(typeof snapshots)[number] | null>(
+    (top, snapshot) => (snapshot.score != null && (top?.score == null || snapshot.score > top.score) ? snapshot : top),
+    null,
+  );
 
   let compare: BriljantCompare | null = null;
-  if (met === "zwb" && average) {
+  if (met === "mooiste" && best) {
+    compare = {
+      id: "mooiste",
+      name: `Mijn mooiste steen · ${weekLabel(best.week)}`,
+      label: "Mijn mooiste steen",
+      short: "Mooiste",
+      view: viewFromSnapshot({ seed: user.id, snapshot: best, source: `week van ${weekLabel(best.week)}`, own }),
+    };
+  } else if (met === "zwb" && average) {
     compare = {
       id: "zwb",
       name: `ZWB-gemiddelde (${average.members} leden)`,
+      label: "ZWB-gemiddelde",
+      short: "ZWB",
       view: viewFromSnapshot({ seed: "zwb-gemiddelde", snapshot: average, source: "gemiddelde van de laatste weken" }),
     };
-  } else if (met && met !== "zwb" && members.some((member) => member.id === met)) {
+  } else if (met && members.some((member) => member.id === met)) {
     const other = await loadMemberSnapshot(supabase, met);
     if (other) {
       compare = {
         id: met,
         name: other.name,
+        label: other.name,
+        short: "Lid",
         view: viewFromSnapshot({ seed: met, snapshot: other.snapshot, source: `week van ${weekLabel(other.snapshot.week)}` }),
       };
     }
@@ -114,7 +136,7 @@ export default async function BriljantPage({
       asOfLabel={past ? weekLabel(past.week) : null}
       dates={{ first: snapshots.find((snapshot) => snapshot.score != null)?.week ?? null, today, chosen: datum }}
       compare={compare}
-      options={{ average: average ? { members: average.members } : null, members, sharing }}
+      options={{ average: average ? { members: average.members } : null, members, sharing, best: best != null }}
       wins={past ? [] : bestWins(collected.input, live.consistency?.value ?? null).slice(0, 3)}
     />
   );

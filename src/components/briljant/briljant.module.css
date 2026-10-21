@@ -653,7 +653,9 @@
   /* Bij vergelijken wel: dan zegt het label welke steen van wie is. */
   .summit.pair {
     display: block;
+    max-width: 9.5em;
     padding-bottom: 18px;
+    white-space: normal;
   }
   .summit.pair::after {
     height: 14px;
@@ -746,6 +748,37 @@
 .toggle input:focus-visible {
   outline: 1px solid var(--gold);
   outline-offset: 2px;
+}
+
+/* Waarden of punten: twee knoppen, de gekozen in de kleur van de klasse. */
+.units {
+  display: inline-flex;
+  border: 1px solid rgb(244 239 228 / 0.22);
+  border-radius: 2px;
+}
+
+.units button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.units button[aria-pressed="true"] {
+  background: rgb(244 239 228 / 0.1);
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--tier);
+}
+
+.units button:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: -1px;
 }
 
 /* Waar je het meest wint, onder de tabel van de score. */

@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState, useTransition, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, useTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, X } from "lucide-react";
 import { setBriljantSharing } from "@/app/(app)/zwbeter-worden/briljant/actions";
@@ -16,8 +16,11 @@ const StoneScene = dynamic(() => import("./stone-scene"), {
   loading: () => <div className={styles.loading}>Steen slijpen…</div>,
 });
 
-/** Een tweede steen naast de jouwe: een lid dat deelt, of het ZWB-gemiddelde. */
-export type BriljantCompare = { id: string; name: string; view: View };
+/**
+ * Een tweede steen naast de jouwe: een lid dat deelt, het ZWB-gemiddelde of je
+ * mooiste steen. `label` staat boven de steen, `short` boven de kolom in het paneel.
+ */
+export type BriljantCompare = { id: string; name: string; label: string; short: string; view: View };
 
 type Props = {
   view: View;
@@ -26,7 +29,13 @@ type Props = {
   asOfLabel: string | null;
   dates: { first: string | null; today: string; chosen: string | null };
   compare: BriljantCompare | null;
-  options: { average: { members: number } | null; members: Array<{ id: string; name: string }>; sharing: boolean };
+  options: {
+    average: { members: number } | null;
+    members: Array<{ id: string; name: string }>;
+    sharing: boolean;
+    /** Je mooiste steen tot nu toe, als keuze bij vergelijken. */
+    best: boolean;
+  };
   /** Waar je het meest wint met 5% beter; leeg bij een steen uit het verleden. */
   wins: Win[];
 };
@@ -37,6 +46,42 @@ type Panel =
   | { kind: "compare" }
   | { kind: "facet"; key: FacetView["key"] }
   | null;
+
+/** Wat de labels en tabellen tonen: de meting (W/kg, CTL, ZRS) of de punten. */
+type Unit = "waarden" | "punten";
+const UNIT_KEY = "zwbriljant-weergave";
+const UNIT_EVENT = "zwbriljant-weergave";
+
+// De gekozen weergave onthouden we per apparaat; zonder opslag gewoon de waarden.
+// Zonder opslag (privévenster) werkt de knop toch, alleen zonder onthouden.
+let unitInMemory: Unit = "waarden";
+function readUnit(): Unit {
+  try {
+    const stored = window.localStorage.getItem(UNIT_KEY);
+    return stored === "punten" || stored === "waarden" ? stored : unitInMemory;
+  } catch {
+    return unitInMemory;
+  }
+}
+function subscribeUnit(onChange: () => void) {
+  window.addEventListener(UNIT_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(UNIT_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+function chooseUnit(next: Unit) {
+  unitInMemory = next;
+  try {
+    window.localStorage.setItem(UNIT_KEY, next);
+  } catch {}
+  window.dispatchEvent(new Event(UNIT_EVENT));
+}
+
+/** De meting als die er is en gevraagd wordt; anders de punten. */
+const shown = (facet: FacetView | undefined, unit: Unit) =>
+  !facet ? "–" : unit === "waarden" && facet.value ? facet.value : String(facet.points);
 
 const nl = (value: number, digits = 0) =>
   value.toLocaleString("nl-NL", { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -89,11 +134,13 @@ function PanelBody({
   view,
   compare,
   wins,
+  unit,
 }: {
   panel: NonNullable<Panel>;
   view: View;
   compare: BriljantCompare | null;
   wins: Win[];
+  unit: Unit;
 }) {
   if (panel.kind === "facet") {
     const facet = view.facets.find((candidate) => candidate.key === panel.key)!;
@@ -121,8 +168,8 @@ function PanelBody({
           </dd>
           {compare && (
             <>
-              <dt>{compare.id === "zwb" ? "ZWB" : compare.name}</dt>
-              <dd>{theirs ? `${theirs.points} · ${theirs.level.name}` : "geen gegevens"}</dd>
+              <dt>{compare.label}</dt>
+              <dd>{theirs ? `${shown(theirs, unit)} · ${theirs.level.name}` : "geen gegevens"}</dd>
             </>
           )}
         </dl>
@@ -146,7 +193,7 @@ function PanelBody({
             <tr>
               <th>Onderdeel</th>
               <th>Jij</th>
-              <th>{compare.id === "zwb" ? "ZWB" : "Lid"}</th>
+              <th>{compare.short}</th>
             </tr>
           </thead>
           <tbody>
@@ -155,8 +202,8 @@ function PanelBody({
               return (
                 <tr key={key}>
                   <td>{facet.label}</td>
-                  <td>{mine.get(key)?.points ?? "–"}</td>
-                  <td>{theirs.get(key)?.points ?? "–"}</td>
+                  <td>{shown(mine.get(key), unit)}</td>
+                  <td>{shown(theirs.get(key), unit)}</td>
                 </tr>
               );
             })}
@@ -280,6 +327,7 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
   const panelRef = useRef<HTMLElement>(null);
   const [aiming, setAiming] = useState(false);
   const [sharing, setSharing] = useState(options.sharing);
+  const unit = useSyncExternalStore(subscribeUnit, readUnit, () => "waarden" as Unit);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const score = view.points;
@@ -422,6 +470,7 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
               <span className="sr-only">Vergelijk met</span>
               <select value={compare?.id ?? ""} onChange={(event) => go({ met: event.target.value || null })}>
                 <option value="">Vergelijk met…</option>
+                {options.best && <option value="mooiste">Mijn mooiste steen</option>}
                 {options.average && <option value="zwb">ZWB-gemiddelde</option>}
                 {options.members.map((member) => (
                   <option key={member.id} value={member.id}>
@@ -430,6 +479,13 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
                 ))}
               </select>
             </label>
+            <div className={styles.units} role="group" aria-label="Weergave">
+              {(["waarden", "punten"] as const).map((option) => (
+                <button key={option} type="button" aria-pressed={unit === option} onClick={() => chooseUnit(option)}>
+                  {option === "waarden" ? "Waarden" : "Punten"}
+                </button>
+              ))}
+            </div>
             <label className={styles.toggle}>
               <input
                 type="checkbox"
@@ -481,7 +537,7 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
               <div ref={setLabel("compare")} className={styles.anchor}>
                 <button type="button" className={`${styles.summit} ${styles.pair}`} onClick={(event) => open({ kind: "compare" }, event.currentTarget)}>
                   <b>{nl(compare.view.points)}</b>
-                  {compare.id === "zwb" ? "ZWB-gemiddelde" : compare.name}
+                  {compare.label}
                 </button>
               </div>
             )}
@@ -499,11 +555,11 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
                 <button type="button" className={styles.facet} onClick={(event) => open({ kind: "facet", key: facet.key }, event.currentTarget)}>
                   <b>
                     <Lozenge level={facet.level} className={styles.facetMark} />
-                    {facet.label} {facet.points}
+                    {facet.label} {shown(facet, unit)}
                   </b>
                   <span>
                     {facet.level.name}
-                    {facet.value ? ` · ${facet.value}` : ""}
+                    {unit === "waarden" && facet.value ? ` · ${facet.points} punten` : facet.value ? ` · ${facet.value}` : ""}
                   </span>
                 </button>
               </div>
@@ -526,7 +582,7 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
               <li key={facet.key}>
                 <button type="button" onClick={(event) => open({ kind: "facet", key: facet.key }, event.currentTarget)}>
                   <Lozenge level={facet.level} className={styles.facetMark} />
-                  {facet.label} <b>{facet.points}</b>
+                  {facet.label} <b>{shown(facet, unit)}</b>
                   <span>{facet.level.name}</span>
                 </button>
               </li>
@@ -557,6 +613,7 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
               view={view}
               compare={compare}
               wins={wins}
+              unit={unit}
             />
           )}
         </aside>

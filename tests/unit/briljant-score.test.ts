@@ -16,6 +16,7 @@ import {
   scaleStep,
   scoreFor,
   selfFrame,
+  valueAt,
   type BriljantInput,
   type ConsistencyWeek,
 } from "@/lib/briljant/score";
@@ -264,3 +265,15 @@ describe("kaders", () => {
     expect(selfFrame([{ week: "w0", score: null }])).toEqual({ delta4w: null, best: null, ofBest: null });
   });
 });
+
+describe("valueAt", () => {
+  it("is het omgekeerde van levelAt, ook voorbij Diamant en bij minder-is-beter", () => {
+    for (const anchors of [powerAnchors("m20", "man"), powerAnchors("s15", "vrouw"), CTL_ANCHORS, DURABILITY_ANCHORS, ZRS_ANCHORS]) {
+      for (const level of [0.4, 1, 3.37, 6.5, 8.99, 9.6]) {
+        expect(levelAt(anchors, valueAt(anchors, level))).toBeCloseTo(level, 9);
+      }
+    }
+    expect(valueAt(CTL_ANCHORS, 0)).toBe(CTL_ANCHORS.zero);
+  });
+});
+
