@@ -11285,6 +11285,32 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: durability ook in de terugblik
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+**Vraag.** Durability stond alleen in de steen van deze week; de eigenaar wilde weten of
+intervals.icu vermoeide curves per maand geeft. **Uitgezocht** met een eenmalige
+leescontrole op zijn koppeling: ja. Een datumbereik met `-kj0`/`-kj1` erachter
+(`r.2024-02-01.2024-04-30-kj0`) geeft de curve na de eerste en tweede kJ-drempel, en
+meerdere bereiken met en zonder achtervoegsel gaan in één vraag, elk onder zijn eigen id.
+De drempel zelf (`after_kj`) staat er per bereik niet bij; die komt uit de gewone vraag
+met vermoeide curves (`90d`). Voorbeeld eigenaar, beste minuut vers en na 2000 en 3000 kJ:
+feb–apr 2024 538 → 466 → 399 W, jan–mrt 2025 616 → 469 → 412 W, laatste 90 dagen
+481 → 399 → 399 W.
+
+**Nu.** `storeTerugblik` vraagt per maand de 90 dagen vers én na elke drempel op en rekent
+durability net als nu (`fatigueInputs`, de beste minuut). `TERUGBLIK_SPAN` werd
+`"alles-zrs-durability"`, zodat bestaande terugblikken opnieuw worden gemaakt.
+
+**Kanttekening.** De drempels zijn de huidige instellingen van het lid in intervals.icu,
+ook voor maanden van voordat ze zo stonden; intervals rekent ze met terugwerkende kracht.
+Een lid zonder drempels krijgt geen durability in de terugblik (zoals nu ook niet).
+
+**Getest.** tsc, ESLint, ZWBriljant-tests. De vorm van het antwoord alleen met de
+leescontrole hierboven, niet als test (dat zou een live intervals-sleutel vragen).
+**Niet getest:** de nieuwe terugblik op productie.
+
 ### Gebouwd — ZWBriljant: mooiste steen, waarden of punten, ZRS in de terugblik
 
 **2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
@@ -11307,8 +11333,7 @@ Drie verzoeken van de eigenaar na de terugblik over de hele historie.
   oude scores. `TERUGBLIK_SPAN` werd `"alles-zrs"`, zodat elke bestaande terugblik bij het
   volgende bezoek of door de job opnieuw wordt gemaakt.
 
-**Niet gebouwd.** Durability heeft ook geen historie en blijft in de terugblik leeg;
-de huidige waarde invullen is niet gevraagd. Metingen van anderen terugrekenen kan
+*(Durability in de terugblik: zie het blok hierboven, dezelfde dag.)* Metingen van anderen terugrekenen kan
 technisch, maar mag niet (zie hierboven). Geen nieuwe privacytekst nodig: er wordt niets
 nieuws bewaard of gedeeld.
 

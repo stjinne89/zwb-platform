@@ -9,6 +9,7 @@ import "server-only";
 
 import type { createAdminClient } from "@/lib/supabase/admin";
 import {
+  fetchIntervalsPowerCurve,
   fetchIntervalsPowerCurveRanges,
   fetchIntervalsWellness,
   type IntervalsWellness,
@@ -51,10 +52,10 @@ const TERUGBLIK_MAX_MONTHS = 120;
 const TERUGBLIK_FALLBACK_MONTHS = 12;
 /**
  * Gezet in `provenance.terugblik`: de hele historie, met de huidige ZRS voor racen
- * (eigenaar, 2026-10-21; ZRS heeft geen historie). Een terugblik met een andere
- * waarde wordt bij het volgende bezoek opnieuw gemaakt.
+ * (ZRS heeft geen historie) en durability per maand (eigenaar, 2026-10-21). Een
+ * terugblik met een andere waarde wordt bij het volgende bezoek opnieuw gemaakt.
  */
-export const TERUGBLIK_SPAN = "alles-zrs";
+export const TERUGBLIK_SPAN = "alles-zrs-durability";
 /** PostgREST geeft hooguit zoveel rijen per vraag. */
 const PAGE = 1000;
 /** Zoveel weken terug voor de norm (mediaan) en de reeks. */
@@ -311,17 +312,26 @@ export async function loadHistory(admin: Admin, profileId: string, today = amste
 /**
  * Eenmalig: per maand van je hele intervals.icu-historie een snapshot (de beste 90
  * dagen tot het eind van die maand en de CTL van die dag) en de consistentie tot die
- * maand. Durability heeft geen historie en blijft leeg; racen krijgt de ZRS van nu. Weeksnapshots worden
+ * maand. Durability uit de vermoeide curves per bereik (met de huidige kJ-drempels);
+ * racen krijgt de ZRS van nu. Weeksnapshots worden
  * niet overschreven; een eerdere terugblik wel, en pas na het schrijven van de nieuwe
  * gaat de oude weg, zodat een afgebroken run niets kwijtmaakt.
  */
 export async function storeTerugblik(admin: Admin, profileId: string, today = amsterdamDayKey()): Promise<number> {
   const connection = await loadConnection(admin, profileId);
   let wellness: IntervalsWellness[] = [];
+  // De kJ-drempels van de vermoeide curves (after_kj0/after_kj1 in intervals.icu):
+  // per bereik geeft intervals die curves met `-kj0`/`-kj1`, maar zonder de drempel
+  // zelf. Die staat in de gewone vraag met vermoeide curves; het zijn de huidige
+  // instellingen, ook voor maanden van voordat ze zo stonden.
+  let thresholds: number[] = [];
   if (connection?.athlete_id) {
-    wellness = await fetchIntervalsWellness(connection.api_key, connection.athlete_id, TERUGBLIK_MAX_MONTHS * 31 + 7).catch(
-      () => [],
-    );
+    [wellness, thresholds] = await Promise.all([
+      fetchIntervalsWellness(connection.api_key, connection.athlete_id, TERUGBLIK_MAX_MONTHS * 31 + 7).catch(() => []),
+      fetchIntervalsPowerCurve(connection.api_key, connection.athlete_id, "90d", { includeFatigue: true })
+        .then((curve) => curve.fatigueCurves.map((fatigued) => fatigued.afterKj).slice(0, 2))
+        .catch(() => []),
+    ]);
   }
   const firstDay = wellness
     .filter((row) => Number(row.ctl) > 0)
@@ -335,7 +345,11 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
     loadRides(admin, profileId, from),
     loadPlanned(admin, profileId, from, mondayKey(today)),
     connection?.athlete_id
-      ? fetchIntervalsPowerCurveRanges(connection.api_key, connection.athlete_id, ends.map(curveRange)).catch(
+      ? fetchIntervalsPowerCurveRanges(
+          connection.api_key,
+          connection.athlete_id,
+          ends.flatMap((end) => [curveRange(end), ...thresholds.map((_, index) => `${curveRange(end)}-kj${index}`)]),
+        ).catch(
           () => new Map<string, CurvePoint[]>(),
         )
       : Promise.resolve(new Map<string, CurvePoint[]>()),
@@ -361,7 +375,11 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
       sex: sexOf(p?.sex ?? null),
       weightKg,
       power: powerFromCurve(curves.get(curveRange(end)) ?? [], weightKg),
-      fatigue: [],
+      // Durability net als nu: de beste minuut vers tegen die na elke drempel.
+      fatigue: fatigueInputs(
+        curves.get(curveRange(end)) ?? [],
+        thresholds.map((afterKj, index) => ({ afterKj, points: curves.get(`${curveRange(end)}-kj${index}`) ?? [] })),
+      ),
       ctl,
       zrs,
     };
