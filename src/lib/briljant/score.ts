@@ -241,7 +241,7 @@ export function facetLevels(input: BriljantInput): Record<Facet, number | null> 
 }
 
 /** Zo weinig facetten zijn te weinig om een score op te baseren. */
-export const MIN_FACETS_FOR_SCORE = 2;
+export const MIN_FACETS_FOR_SCORE = 4;
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
 

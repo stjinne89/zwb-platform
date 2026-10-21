@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { EmptyState } from "@/components/app-ui";
 
 // Het startscherm van het design "tegels": wat jij vandaag en deze week doet,
@@ -88,7 +89,17 @@ export type VandaagBriljant = {
   points: number;
   level: string;
   color: string;
+  /** De volgende klasse en hoeveel punten nog; null in Diamant. */
+  next: { name: string; toGo: number } | null;
 };
+
+/** Donkere of lichte tekst op de kleur van de klasse, naar de helderheid ervan. */
+function inkOn(hex: string): string {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const channel = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const luminance = 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+  return luminance > 0.3 ? "var(--tg-ink)" : "var(--tg-paper)";
+}
 
 export function TegelsVandaag({
   weekday,
@@ -177,15 +188,19 @@ export function TegelsVandaag({
           ))}
 
           {briljant && (
-            // ZWBeter-kleur, met het ruitje in de kleur van de klasse.
-            <Link href="/stats/zwbriljant" className="tg-tile tg-zwbeter">
+            // Helemaal in de kleur van je klasse (eigenaar, 2026-10-21), zodat hij opvalt.
+            <Link
+              href="/stats/zwbriljant"
+              className="tg-tile"
+              style={{ "--tg-bg": briljant.color, "--tg-fg": inkOn(briljant.color) } as CSSProperties}
+            >
               <span className="tg-tile-small">ZWBriljant</span>
-              <span className="tg-tile-title mt-0.5 flex items-center gap-2">
-                <svg viewBox="0 0 11 16" aria-hidden className="h-4 w-[11px] shrink-0" style={{ fill: briljant.color }}>
-                  <polygon points="5.5,0 11,6 5.5,16 0,6" />
-                </svg>
-                {briljant.level}
-              </span>
+              <span className="tg-tile-title mt-0.5">{briljant.level}</span>
+              {briljant.next && (
+                <span className="tg-tile-small mt-1">
+                  nog {briljant.next.toGo} tot {briljant.next.name}
+                </span>
+              )}
               <span className="tg-tile-num">
                 {briljant.points.toLocaleString("nl-NL")}
                 <span className="ml-1.5 text-base font-normal tracking-normal opacity-85">punten</span>

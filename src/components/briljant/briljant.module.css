@@ -866,3 +866,49 @@
   letter-spacing: 0.02em;
 }
 
+/* In de zaal: een messing plaatje op de sokkel, met naam, punten en klasse. */
+.plaque {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  min-width: 7.5em;
+  max-width: 11em;
+  padding: 6px 12px 7px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgb(201 164 90 / 0.65);
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgb(201 164 90 / 0.22), rgb(201 164 90 / 0.08));
+  color: var(--gold);
+  font: inherit;
+  text-align: center;
+  white-space: normal;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.plaque span {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.plaque b {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.05;
+  color: var(--ink);
+}
+
+.plaque small {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.plaque:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 3px;
+}
+

@@ -968,8 +968,13 @@ export default async function DashboardPage({
       .maybeSingle();
     const score = snapshot?.score == null ? null : Number(snapshot.score);
     if (score != null && Number.isFinite(score)) {
-      const { reached } = briljantPosition(score);
-      tileBriljant = { points: briljantPoints(score), level: reached.name, color: reached.color };
+      const { reached, next, toNext } = briljantPosition(score);
+      tileBriljant = {
+        points: briljantPoints(score),
+        level: reached.name,
+        color: reached.color,
+        next: next ? { name: next.name, toGo: toNext } : null,
+      };
     }
   }
 

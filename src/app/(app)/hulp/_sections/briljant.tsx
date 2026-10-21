@@ -159,8 +159,9 @@ export function BriljantHelp() {
             </dd>
             <dt className="font-medium">De zaal</dt>
             <dd className="text-muted-foreground">
-              Kies &ldquo;De zaal&rdquo; bij vergelijken: alle stenen die je mag zien op een rij, met het
-              ZWB-gemiddelde en de recordsteen. Klik op een steen om hem naast de jouwe te zetten.
+              Kies &ldquo;De zaal&rdquo; bij vergelijken: een museum met alle stenen die je mag zien op een rij
+              sokkels, van laag naar hoog met de recordsteen achteraan. Scroll of sleep erlangs; klik op het
+              plaatje op een sokkel om die steen naast de jouwe te zetten.
             </dd>
             <dt className="font-medium">Records</dt>
             <dd className="text-muted-foreground">

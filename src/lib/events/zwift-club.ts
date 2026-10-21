@@ -771,6 +771,20 @@ export async function fetchRacingScore(zwiftId: string): Promise<RacingScore> {
   };
 }
 
+/**
+ * Het gewicht dat een renner in Zwift opgaf, in kg (Zwift geeft grammen), alleen
+ * om in ZWBriljant watts naar W/kg om te rekenen als ZWB en intervals.icu geen
+ * gewicht hebben (eigenaar, 2026-10-21). Niet bewaard en niet doorgegeven.
+ */
+export async function fetchZwiftWeightKg(zwiftId: string): Promise<number | null> {
+  if (!/^\d+$/.test(zwiftId)) throw new Error("Ongeldig Zwift-ID.");
+  const profile = (await authedJson(`${apiBase()}/profiles/${zwiftId}`)) as { weight?: unknown } | null;
+  const grams = Number(profile?.weight);
+  if (!Number.isFinite(grams) || grams <= 0) return null;
+  const kg = grams > 1000 ? grams / 1000 : grams;
+  return kg >= 30 && kg <= 200 ? Math.round(kg * 10) / 10 : null;
+}
+
 const POWER_FIELD = /ftp|map|categor|racing|competition|power|vo2|score|cp/i;
 
 export function describePowerFields(payload: unknown, prefix = "", depth = 0): string[] {

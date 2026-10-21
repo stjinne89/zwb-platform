@@ -172,6 +172,13 @@ describe("facetten en score", () => {
     expect(Object.values(weights).reduce((sum, weight) => sum + weight!, 0)).toBeCloseTo(1, 9);
   });
 
+  it("geeft pas een score vanaf vier onderdelen", () => {
+    // Fitheid en racen alleen (zonder gewicht geen W/kg): geen steen.
+    expect(scoreFor(facetLevels({ ...rider, power: null, fatigue: [] }))).toBeNull();
+    // Met twee vermogensonderdelen erbij wel.
+    expect(scoreFor(facetLevels({ ...rider, power: { s15: null, m1: null, m5: 5.1, m20: 4.3 }, fatigue: [] }))).not.toBeNull();
+  });
+
   it("laat ontbrekende gegevens weg in plaats van ze te verzinnen", () => {
     const empty = facetLevels({ sex: null, weightKg: null, power: null, fatigue: [], ctl: null, zrs: null });
     expect(FACETS.every((facet) => empty[facet] == null)).toBe(true);

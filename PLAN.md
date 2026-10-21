@@ -11286,6 +11286,36 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: gewicht, vier onderdelen, gekleurde tegel en het museum
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+**Waarom.** Casper C stond op 720 met alleen fitheid en racen: zijn vermogenscurve stond
+er wel, maar er was nergens een gewicht, dus geen W/kg; met twee onderdelen telde racen
+(ZRS 957) voor 60%. Vijf leden hadden wel watts maar geen W/kg.
+
+**Nu.**
+- **Gewicht:** zonder gewicht in ZWB het laatste gewicht uit intervals.icu (wellness, 90
+  dagen), anders het Zwift-gewicht via het serviceaccount (`fetchZwiftWeightKg`, niet
+  bewaard). Ontbrekende W/kg in het powerprofiel worden uit de curve berekend. De terugblik
+  gebruikt per maand het gewicht van die dag, anders dezelfde terugval.
+- **Basisregel:** een steen pas vanaf vier onderdelen (`MIN_FACETS_FOR_SCORE`, was twee).
+- **Tegel op Vandaag:** helemaal in de kleur van de klasse, met donkere of lichte tekst naar
+  de helderheid, en "nog N tot <klasse>".
+- **De zaal als museum:** één rij hoge sokkels, van laag naar hoog met de recordsteen
+  achteraan; scrollen of slepen loopt erlangs (na slepen naar de dichtstbijzijnde sokkel),
+  de wandeling begint bij je eigen steen. Naam, punten en klasse op een messing plaatje op
+  de sokkel in plaats van labels in de lucht; een rij spots, de stenen draaien langzaam.
+
+**Nog op productie.** Weekopnames van deze week met minder dan vier onderdelen houden hun
+oude score tot ze opnieuw worden gemaakt (de job slaat wie deze week al een opname heeft
+over).
+
+**Getest.** De vier-onderdelenregel in `briljant-score`, de ZWBriljant-tests, tsc, ESLint.
+In de browser met voorbeeldwaarden: het museum op desktop (scrollen tot de recordsteen) en
+375 px, de tegel in Saffier en Platina. **Niet getest:** het Zwift-gewicht en de
+intervals-terugval op productie.
+
 ### Gebouwd — ZWBriljant: een steen voor elk lid met intervals.icu
 
 **2026-10-21.** Commit `05283e14`. Geen migratie. Gepusht naar `main` op 2026-10-21;

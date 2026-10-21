@@ -8,10 +8,12 @@ import "server-only";
 // van anderen zichtbaar zijn.
 
 import type { createAdminClient } from "@/lib/supabase/admin";
+import { fetchZwiftWeightKg } from "@/lib/events/zwift-club";
 import {
   fetchIntervalsPowerCurve,
   fetchIntervalsPowerCurveRanges,
   fetchIntervalsWellness,
+  latestWellnessValue,
   type IntervalsWellness,
 } from "@/lib/intervals/client";
 import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metrics";
@@ -193,12 +195,13 @@ export async function collectBriljant(admin: Admin, profileId: string, today = a
   ]);
   const p = profile as ProfileRow | null;
   const pw = power as PowerRow | null;
-  const weightKg = num(pw?.weight_kg) ?? num(p?.weight_kg);
 
   let ctl: number | null = null;
   let weather: Weather = null;
+  let wellness: IntervalsWellness[] = [];
   if (connection?.athlete_id) {
-    const wellness = await fetchIntervalsWellness(connection.api_key, connection.athlete_id, 14).catch(() => []);
+    // 90 dagen: CTL van de laatste dag, en het laatste gewicht dat er staat.
+    wellness = await fetchIntervalsWellness(connection.api_key, connection.athlete_id, 90).catch(() => []);
     const latest = latestWellness(wellness);
     if (latest) {
       ctl = Number(latest.ctl);
@@ -209,12 +212,28 @@ export async function collectBriljant(admin: Admin, profileId: string, today = a
 
   const zwiftId = zwiftIdOf(p?.zwift_id ?? null);
   const zrs = zwiftId ? ((await loadRiderMetrics([zwiftId])).get(zwiftId)?.racingScore ?? null) : null;
+  // Zonder gewicht geen W/kg: dan uit intervals.icu, en anders het Zwift-gewicht
+  // (eigenaar, 2026-10-21). Bij vijf leden stond er nergens een gewicht.
+  const weightKg =
+    num(pw?.weight_kg) ??
+    num(p?.weight_kg) ??
+    latestWellnessValue(wellness, "weight") ??
+    (zwiftId ? await fetchZwiftWeightKg(String(zwiftId)).catch(() => null) : null);
+  const fromCurve = powerFromCurve(pw?.curve_points ?? [], weightKg);
 
   return {
     input: {
       sex: sexOf(p?.sex ?? null),
       weightKg,
-      power: pw ? { s15: num(pw.wkg_15s), m1: num(pw.wkg_1m), m5: num(pw.wkg_5m), m20: num(pw.wkg_20m) } : null,
+      // De W/kg uit het profiel, en waar die ontbreekt uit de curve met het gewicht hierboven.
+      power: pw
+        ? {
+            s15: num(pw.wkg_15s) ?? fromCurve?.s15 ?? null,
+            m1: num(pw.wkg_1m) ?? fromCurve?.m1 ?? null,
+            m5: num(pw.wkg_5m) ?? fromCurve?.m5 ?? null,
+            m20: num(pw.wkg_20m) ?? fromCurve?.m20 ?? null,
+          }
+        : null,
       fatigue: fatigueInputs(pw?.curve_points ?? [], pw?.curve_points_fatigue ?? []),
       ctl,
       zrs,
@@ -363,6 +382,11 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
   const byDay = new Map(wellness.map((row) => [row.id, row]));
   // Racen heeft geen historie: elke maand krijgt de ZRS van nu.
   const zwiftId = zwiftIdOf(p?.zwift_id ?? null);
+  // Een maand zonder gewicht: het profiel, het laatste gewicht in intervals.icu, of Zwift.
+  const fallbackWeight =
+    num(p?.weight_kg) ??
+    latestWellnessValue(wellness, "weight") ??
+    (zwiftId ? await fetchZwiftWeightKg(String(zwiftId)).catch(() => null) : null);
   const zrs = zwiftId ? ((await loadRiderMetrics([zwiftId]).catch(() => new Map())).get(zwiftId)?.racingScore ?? null) : null;
   type Existing = { week: string; source: string; facets: { racen?: number | null } | null; provenance: { racen?: string } | null };
   const existing = (weeks ?? []) as Existing[];
@@ -376,7 +400,7 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
 
   const rows = ends.map((end) => {
     const day = byDay.get(end);
-    const weightKg = num(day?.weight) ?? num(p?.weight_kg);
+    const weightKg = num(day?.weight) ?? fallbackWeight;
     const ctl = day && Number.isFinite(Number(day.ctl)) ? Number(day.ctl) : null;
     const input: BriljantInput = {
       sex: sexOf(p?.sex ?? null),

@@ -430,6 +430,7 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
         {!failed && hall && (
           <HallScene
             stones={hall.map((stone) => ({ ...sceneStone(stone.view), id: stone.id }))}
+            startId="ik"
             labels={labels}
             onFailed={() => setFailed(true)}
             rotate={!panel && !aiming}
@@ -548,16 +549,13 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
 
         {!failed && hall ? (
           <div className={styles.labels} onPointerOver={() => setAiming(true)} onPointerOut={() => setAiming(false)}>
-            {/* In de zaal alleen naam en punten; kiezen zet die steen naast de jouwe. */}
+            {/* Het plaatje op de sokkel: naam, punten en klasse; kiezen zet die steen naast de jouwe. */}
             {hall.map((stone) => (
               <div key={stone.id} ref={setLabel(`hall:${stone.id}`)} className={styles.anchor}>
-                <button
-                  type="button"
-                  className={`${styles.summit} ${styles.pair}`}
-                  onClick={() => go({ met: stone.id === "ik" ? null : stone.id })}
-                >
+                <button type="button" className={styles.plaque} onClick={() => go({ met: stone.id === "ik" ? null : stone.id })}>
+                  <span>{stone.name}</span>
                   <b>{nl(stone.view.points)}</b>
-                  {stone.name}
+                  <small>{stone.view.level.name}</small>
                 </button>
               </div>
             ))}
