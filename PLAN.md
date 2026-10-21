@@ -283,8 +283,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0267`
-(`0266_zwbriljant_share_all_members` is van ZWBriljant delen met alle leden, 2026-10-21, toegepast op 2026-10-21;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0268`
+(`0267_zwbriljant_share_by_default` is van ZWBriljant standaard gedeeld, 2026-10-21, nog niet toegepast;
+`0266_zwbriljant_share_all_members` is van ZWBriljant delen met alle leden, 2026-10-21, toegepast op 2026-10-21;
 `0265_zwbriljant` is van ZWBriljant (eerst `0265_zwbeter_berg`), 2026-10-21, toegepast op 2026-10-21;
 `0264_nutrition_recipe_sharing` is van recepten van een link en delen met
 alle leden, 2026-10-21, toegepast op 2026-10-21;
@@ -11284,6 +11285,36 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZWBriljant: Diamant haalbaar, en standaard gedeeld
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Migratie
+`0267_zwbriljant_share_by_default.sql` (**nog niet toegepast**). Niet gepusht.
+
+**Diamant haalbaar.** De eigenaar zag dat Diamant met de records als ijkwaarde alleen voor
+de perfecte renner bereikbaar was. Nu volgen Robijn en Diamant dezelfde stappen als de rest:
+Robijn 2,5 en Diamant 3 standaarddeviaties boven het gemiddelde (drempel man 5,2 en 5,6
+W/kg; was 6,4 en 7,1). Daarboven loopt de schaal met dezelfde stap door, zonder plafond.
+Fitheid: Robijn 100, Diamant 110 (was 120 en 150). Durability: Robijn ProTeam 2,2,
+Diamant WorldTour 1,5 (was 1,2 en 0,7). Racen: elke ZRS een punt, Diamant vanaf 900 ZRS
+(was 1000 ZRS precies Diamant). De records staan los in `records.ts`; de recordsteen komt
+op 1136 (mannen) en 1131 (vrouwen). Rekenvoorbeeld van 593 naar 606.
+`SCALE_VERSION` werd `2026-10-21-sd3`: de terugblik en weekopnames worden opnieuw gemaakt,
+en de wekelijkse job zoekt de ZRS van vroeger opnieuw op (de oude markeringen horen bij de
+oude schaal).
+
+**Standaard gedeeld (0267).** Op verzoek van de eigenaar is je steen voortaan standaard
+zichtbaar voor alle goedgekeurde leden; met "Deel mijn steen met leden" uit verberg je hem.
+`zwbriljant_shares` kijkt alleen nog naar `visible`, niet meer naar `consent_version`. Bij
+het toepassen worden de huidige deelnemers met een voorkeur meteen zichtbaar (drie leden,
+niemand had gedeeld). De privacytekst is aangepast en **moet eerst door de eigenaar worden
+goedgekeurd**; `0267` en de code horen samen live te gaan.
+
+**Getest.** Score-, view-, compare- en recordtests op de nieuwe schaal,
+`briljant-migration.test.ts` tegen PGlite met `0267` (standaard zichtbaar na openen,
+verbergen werkt meteen, oude toestemming beslist niet meer, niet voor wie niet is
+goedgekeurd), tsc, ESLint, de hele suite op `omnium-live` na. **Niet getest:** `0267` op
+productie (niet toegepast).
 
 ### Gebouwd — ZWBriljant bij Stats, de zaal en de recordsteen
 

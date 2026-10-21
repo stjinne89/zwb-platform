@@ -70,10 +70,11 @@
  * rekent met gegevens die leden al gaven (intervals.icu, Zwift-ID, ritten,
  * schema, geslacht; sinds dezelfde dag niet meer de beschikbaarheid) en bewaart per week alleen afgeleide scores, voor het lid
  * zelf (0265, `zwbriljant_snapshots`); geen nieuwe categorie of ontvanger, dus
- * alleen de tekst (`/privacy#zwbriljant`). Delen met alle goedgekeurde leden
- * (0266, eenzijdig) loopt via een eigen toestemming
- * (`zwbriljant_preferences.consent_version`); het anonieme ZWB-gemiddelde
- * (vanaf vijf leden) telt ook wie niet deelt. Beide alleen in de tekst.
+ * alleen de tekst (`/privacy#zwbriljant`). Sinds 0267 (2026-10-21) is je steen
+ * standaard zichtbaar voor alle goedgekeurde leden en kun je hem verbergen
+ * (`zwbriljant_preferences.visible`); daarvoor (0266) moest je zelf kiezen om te
+ * delen. Het anonieme ZWB-gemiddelde (vanaf vijf leden) telt iedereen mee. Alles
+ * alleen in de tekst, geen nieuwe versie (eigenaar keurt de tekst goed).
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring

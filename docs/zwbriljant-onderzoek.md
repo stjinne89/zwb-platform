@@ -48,12 +48,15 @@ aan een groep, al toont het facet wel de kleur van zijn klasse.
 | 500 | Amethist | #9966cc | 3,9 W/kg | 3,4 W/kg |
 | 600 | Saffier | #0f52ba | 4,35 W/kg | 3,8 W/kg |
 | 700 | Smaragd | #009473 | 4,75 W/kg | 4,15 W/kg |
-| 800 | Robijn | #9b111e | 6,4 W/kg | 5,45 W/kg |
-| 900 | Diamant | #82d5f7 | 7,1 W/kg | 6,05 W/kg |
+| 800 | Robijn | #9b111e | 5,2 W/kg | 4,55 W/kg |
+| 900 | Diamant | #82d5f7 | 5,6 W/kg | 4,95 W/kg |
 
-Voorbij 900 telt de score gewoon door (1.000, …). **Diamant** zijn de
-recordwaarden: wat er van de allerbeste renners gepubliceerd is. Daarvoor is
-Robijn iets omlaag geschoven naar het niveau van WorldTour-winnaars. Punten worden
+Voorbij 900 telt de score met dezelfde stap door (1.000, …). **Diamant** is sinds
+2026-10-21 zwaar maar haalbaar: 3 standaarddeviaties boven het gemiddelde, ongeveer de
+beste 1 op 1000 (eigenaar: "Diamant zou haalbaar moeten zijn, maar dit blijft dan
+oneindig doorlopen"). De records liggen daar ver boven, de recordsteen op 1136 punten
+(mannen) en 1131 (vrouwen). Eerst waren Robijn de WorldTour-winnaars en Diamant de
+records (drempel 6,4 en 7,1 W/kg), zodat alleen een perfecte renner Diamant haalde. Punten worden
 afgekapt, niet afgerond: 499,9 is nog 499, en 500 verschijnt pas bij de volgende
 klasse. Eerder heetten de niveaus Starter tot Wereldtop en Aliens.
 
@@ -126,12 +129,11 @@ een diesel een steen die breed is aan de kant van drempel, durability en fitheid
 (De lengteregel van de berg, `ridgeReach`, en de voetbreedte `footWidth` zijn
 met de steen vervallen.)
 
-**Rekenvoorbeeld (man), sinds de vermogensschalen naar de spreiding (2026-10-21):**
-sprint 13,2 W/kg → 703 punten; anaeroob 7,6 → 693; VO2max 5,1 → 610; drempel 4,3
-→ 588; durability 4,2%/10 kJ/kg → 457; CTL 78 → 580; ZRS 640 → 575. Profielscore
-**593 punten**: Amethist, nog 7 tot Saffier. (Op de oude, gelijk verdeelde
-vermogensschaal was dit 480; met consistentie 55% toen 437.) Het meest win je hier
-met VO2max (5% beter: +11 punten) en drempel (+9).
+**Rekenvoorbeeld (man), op de schaal met een haalbare Diamant (2026-10-21):**
+sprint 13,2 W/kg → 710 punten; anaeroob 7,6 → 693; VO2max 5,1 → 610; drempel 4,3
+→ 588; durability 4,2%/10 kJ/kg → 480; CTL 78 → 580; ZRS 640 → 640. Profielscore
+**606 punten**: Saffier, nog 94 tot Smaragd; met consistentie 55% 552. (Met Robijn en
+Diamant als prowaarden was dit 593; op de oude, gelijk verdeelde vermogensschaal 480.)
 Staat als test in `tests/unit/briljant-score.test.ts` en `briljant-view.test.ts`.
 
 ## Consistentie, altijd ten opzichte van jezelf
@@ -206,8 +208,9 @@ Brons tot Smaragd de spreiding onder Zwift-renners, net als fitheid:
 - **Spreiding:** de afstand van het gemiddelde tot de grens van 10% gedeeld door 1,28
   (normale verdeling) is één standaarddeviatie (SD).
 - **Klassen:** Goud is het gemiddelde, Brons 1 SD eronder, daartussen en daarboven
-  stappen van een halve SD tot Smaragd (2 SD erboven, ongeveer de beste 2%). Robijn
-  en Diamant blijven prowaarden. Koper (0) is een ondergrens voor wie net begint.
+  stappen van een halve SD tot Diamant (3 SD erboven, ongeveer de beste 1 op 1000);
+  Smaragd is 2 SD (ongeveer de beste 2%), Robijn 2,5. Daarboven loopt de schaal met
+  dezelfde stap door. Koper (0) is een ondergrens voor wie net begint.
 - **15 seconden** staat niet in de bron: 5 seconden × 0,83.
 - De clubgegevens (12 vermogensprofielen, 60 zFTP-waarden uit de ZRL: gemiddeld 3,56
   W/kg, SD 0,59) waren te dun om de schaal zelf op te bouwen, maar liggen in lijn.
@@ -216,26 +219,27 @@ Brons tot Smaragd de spreiding onder Zwift-renners, net als fitheid:
 
 | Duur | 0 | 1 Brons | 2 | 3 Goud | 4 | 5 | 6 | 7 Smaragd | 8 Robijn | 9 Diamant |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 15 s | 1,1 | 4,05 | 5,55 | 7,05 | 8,55 | 10,05 | 11,55 | 13,05 | 17,5 | 19,5 |
-| 1 min | 1,7 | 3,2 | 3,9 | 4,65 | 5,4 | 6,15 | 6,9 | 7,65 | 10,2 | 11,2 |
-| 5 min | 1,5 | 2,5 | 3 | 3,5 | 4 | 4,55 | 5,05 | 5,55 | 7,1 | 7,6 |
-| 20 min | 1,3 | 2,15 | 2,6 | 3,05 | 3,45 | 3,9 | 4,35 | 4,75 | 6,4 | 7,1 |
+| 15 s | 1,1 | 4,05 | 5,55 | 7,05 | 8,55 | 10,05 | 11,55 | 13,05 | 14,55 | 16,05 |
+| 1 min | 1,7 | 3,2 | 3,9 | 4,65 | 5,4 | 6,15 | 6,9 | 7,65 | 8,4 | 9,15 |
+| 5 min | 1,5 | 2,5 | 3 | 3,5 | 4 | 4,55 | 5,05 | 5,55 | 6,05 | 6,55 |
+| 20 min | 1,3 | 2,15 | 2,6 | 3,05 | 3,45 | 3,9 | 4,35 | 4,75 | 5,2 | 5,6 |
 
 **Vermogen, vrouwen (W/kg)**: uit dezelfde bron voor vrouwen, niet meer als vast
 percentage van de mannen.
 
 | Duur | 0 | 1 Brons | 2 | 3 Goud | 4 | 5 | 6 | 7 Smaragd | 8 Robijn | 9 Diamant |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 15 s | 0,95 | 3,1 | 4,15 | 5,25 | 6,3 | 7,35 | 8,45 | 9,5 | 14 | 15,6 |
-| 1 min | 1,45 | 2,6 | 3,2 | 3,8 | 4,35 | 4,95 | 5,55 | 6,1 | 8,35 | 9,2 |
-| 5 min | 1,2 | 2,1 | 2,55 | 3 | 3,45 | 3,9 | 4,3 | 4,75 | 5,95 | 6,4 |
-| 20 min | 1,05 | 1,85 | 2,25 | 2,6 | 3 | 3,4 | 3,8 | 4,15 | 5,45 | 6,05 |
+| 15 s | 0,95 | 3,1 | 4,15 | 5,25 | 6,3 | 7,35 | 8,45 | 9,5 | 10,55 | 11,6 |
+| 1 min | 1,45 | 2,6 | 3,2 | 3,8 | 4,35 | 4,95 | 5,55 | 6,1 | 6,7 | 7,25 |
+| 5 min | 1,2 | 2,1 | 2,55 | 3 | 3,45 | 3,9 | 4,3 | 4,75 | 5,2 | 5,65 |
+| 20 min | 1,05 | 1,85 | 2,25 | 2,6 | 3 | 3,4 | 3,8 | 4,15 | 4,55 | 4,95 |
 
 Zonder opgegeven geslacht rekent ZWBriljant met de waarden voor mannen.
 
-**Recordwaarden achter Diamant** (gepubliceerde schattingen; profs publiceren hun
-gegevens zelden, dus officiële records bestaan niet). Sinds 2026-10-21 is dit ook de
-recordsteen in de zaal; de houder staat erbij waar die bekend is (drempel en VO2max:
+**De records** (gepubliceerde schattingen; profs publiceren hun gegevens zelden, dus
+officiële records bestaan niet). Eerst waren dit de ijkwaarden van Diamant; sinds
+2026-10-21 liggen ze ver boven Diamant en vormen ze de recordsteen in de zaal (mannen
+1136, vrouwen 1131 punten; vrouwen: 15,6, 9,2, 6,4 en 6,05 W/kg); de houder staat erbij waar die bekend is (drempel en VO2max:
 Pogačar). Bij sprint en anaeroob is de waarde een afronding naar boven zonder één houder
 (de hoogst gepubliceerde minuut is Campenaerts' 10,1 W/kg), en durability, fitheid en
 racen hebben geen houder.
@@ -274,9 +278,13 @@ de eigenaar (83 kg) ging het van 9,3% (20 minuten: 282 naar 212 W na 2000 kJ) na
 ijkwaarden hieronder bleven; ze komen uit het verval van het hele vermogensprofiel
 en zijn voor de minuut dus een inschatting.
 
-| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 (Diamant) |
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 (ProTeam) | 9 (Diamant, WorldTour) |
 |---|---|---|---|---|---|---|---|---|---|
-| 18 | 12,5 | 9,5 | 7 | 5 | 3,6 | 2,6 | 1,8 | 1,2 | 0,7 |
+| 18 | 12,5 | 9,5 | 7 | 5 | 4 | 3,2 | 2,6 | 2,2 | 1,5 |
+
+Sinds 2026-10-21 is Diamant het verval van de WorldTour en Robijn dat van ProTeam,
+zodat Diamant haalbaar is; daarboven loopt de schaal door tot geen verval (ongeveer
+1100). Eerst: 12,5, 9,5, 7, 5, 3,6, 2,6, 1,8, 1,2 en 0,7.
 
 Houvast: na 45 kJ/kg verliezen WorldTour-renners 4,7 tot 8,8% en ProTeam-renners
 7,6 tot 11,6% (Mateo-March 2022), ongeveer 1,5 en 2,2% per 10 kJ/kg. Succesvolle
@@ -290,7 +298,9 @@ curves alleen voor de twee drempels die het lid zelf instelt (bij de eigenaar 20
 3000 kJ); een curve na 1000 kJ, zoals de eigenaar wil, kan niet per verzoek
 ([forum](https://forum.intervals.icu/t/calulate-power-best-after-2000kj/2045)).
 
-**Fitheid (CTL, TSS/dag)**: 0, 30, 40, 50, 60, 70, 80, 90, 120, 150 (Diamant).
+**Fitheid (CTL, TSS/dag)**: 0, 30, 40, 50, 60, 70, 80, 90, 100, 110 (Diamant), en
+daarboven elke 10 CTL 100 punten (de WorldTour, 150, is 1300). Tot 2026-10-21 waren
+Robijn 120 en Diamant 150; zie hieronder.
 Verdeeld naar de spreiding onder amateurs (eigenaar, 2026-10-21: "100 is voor een
 amateur zeer hoog en 150/160 voor niet prof onhaalbaar, maar mag wel een betere
 waardering krijgen"). Aanname van ZWB, nog zonder clubgegevens: amateurs die
@@ -305,19 +315,20 @@ amateur met veel volume te laag. Let op: CTL meet hoeveel je traint ten opzichte
 je eigen FTP, niet hoe sterk je bent. Zodra er genoeg snapshots zijn, de verdeling
 nalopen tegen de club.
 
-**Racen (Zwift Racing Score, 0–1000)**: een rechte lijn, 0 ZRS is 0 punten en 1000
-ZRS is Diamant (900 punten), dus elke ZRS-punt is 0,9 punt. Bewust niet gekoppeld
+**Racen (Zwift Racing Score, 0–1000)**: een rechte lijn, elke ZRS is een punt:
+Diamant vanaf 900 ZRS, 1000 ZRS is 1000 punten (sinds 2026-10-21; eerst was 1000 ZRS
+precies Diamant). Bewust niet gekoppeld
 aan Zwift's categorieën: een score is geen groep (eigenaar, 2026-10-21). Scores
 boven 900 komen voor; 1000 is nog door niemand gehaald
 ([Zwift-forum](https://forums.zwift.com/t/zwift-racing-score-october-2024/636179?page=51)).
-Omdat ZRS bij 1000 ophoudt, komt dit facet nooit boven 900 punten.
+Omdat ZRS bij 1000 ophoudt, komt dit facet nooit boven 1000 punten.
 
 ## Aliens (2026-10-21, niet gebouwd)
 
 *Uitkomst: de eigenaar liet de Aliens daarna toch weg en koos voor de recordsteen: één
-steen met elk onderdeel op de recordwaarde (Diamant, 900), met de naam van de houder waar
-die bekend is (`src/lib/briljant/records.ts`; houders: Pogačar bij drempel en VO2max, zie
-"Recordwaarden achter Diamant"). Het onderzoek hieronder blijft staan, zodat het niet
+steen met elk onderdeel op de recordwaarde, met de naam van de houder waar die bekend is
+(`src/lib/briljant/records.ts`; houders: Pogačar bij drempel en VO2max, zie "De
+records"). Sinds Diamant haalbaar is, ligt die steen ver boven 900. Het onderzoek hieronder blijft staan, zodat het niet
 opnieuw hoeft.*
 
 Profs met een steen in de zaal, op verzoek van de eigenaar uit Pogačar, Seixas, Del Toro,
@@ -342,10 +353,9 @@ gepubliceerde waarden en blijven leeg.
 | Seixas | 20 min: 23 min op 375 W, 6,1 W/kg (Lombardia 2026, Velo) | 1 (andere inspanningen te kort of te lang). Doet niet mee. |
 | Evenepoel | Drempel 425 W (lactaattest, eigen video), 38 min op 392 W (Algarve 2022) | 0 binnen de regel. Doet niet mee. |
 
-**Diamant.** Met deze waarden komen de Aliens niet in Diamant: de gemeten of geschatte
-inspanningen zijn niet hun beste ooit (Van der Poels 20 minuten komen uit een koers van
-2019), en Pogačars sprintschatting ligt onder de Smaragd-grens. De Diamant-grens verlagen
-kan niet zonder de schaal te breken.
+**Diamant.** Op de schaal van toen (Diamant waren de records) kwamen de Aliens niet in
+Diamant: hun bekende inspanningen zijn niet hun beste ooit (Van der Poels 20 minuten komen
+uit een koers van 2019), en Pogačars sprintschatting lag onder de Smaragd-grens van toen.
 
 ## Bronnen
 

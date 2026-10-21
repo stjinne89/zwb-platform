@@ -2,7 +2,8 @@
 // elk niveau hoort.
 //
 // De score is het niveau zelf (op het scherm in punten, 100 per niveau). Er is
-// geen plafond: voorbij Diamant (9, de recordwaarden) loopt de schaal door.
+// geen plafond: voorbij Diamant (9) loopt de schaal met dezelfde stap door, en de
+// records liggen daar ver boven (records.ts).
 //
 // Puur en zonder database. De bron van elke rij staat in
 // docs/zwbriljant-onderzoek.md. Geen studie koppelt vermogen aan niveaus van
@@ -24,7 +25,7 @@ export type Level = {
  * De tien klassen: namen, volgorde en kleuren van vELO (ZwiftRacing.app,
  * reference/categories, gelezen 2026-10-21), de grenzen van ZWB: 100 punten per
  * klasse, op de ijkwaarden hieronder (eigenaar, 2026-10-21). Koper is alles onder
- * de eerste norm; Diamant zijn de recordwaarden. Wie de norm van een klasse
+ * de eerste norm; Diamant is zwaar maar haalbaar. Wie de norm van een klasse
  * haalt, staat in die klasse.
  */
 export const LEVELS: readonly Level[] = [
@@ -75,24 +76,25 @@ export type PowerDuration = "s15" | "m1" | "m5" | "m20";
  * een inschatting). Zo zijn de duren onderling eerlijk; eerst was Brons op de
  * minuut pas het bovenste derde, op 20 minuten al het onderste achtste.
  *
- * Robijn en Diamant bleven de profs: Robijn het niveau van WorldTour-winnaars,
- * Diamant de hoogste gepubliceerde waarden (ongeveer 7 W/kg over 40 minuten,
- * 7,2 W/kg over 5 minuten, 17 tot 19 W/kg in een Tourspurt, 10,1 W/kg over een
- * minuut; Valenzuela 2022; Mateo-March 2022). Voor vrouwen naar het aandeel van de
- * vrouwelijke tegenover de mannelijke profs.
+ * Robijn en Diamant volgen sinds 2026-10-21 dezelfde stappen (eigenaar: Diamant
+ * moet haalbaar zijn, zwaar maar wel te halen): Robijn plus 2,5, Diamant plus 3
+ * standaarddeviaties, ongeveer de beste 1 op 1000. Daarboven loopt de schaal met
+ * dezelfde stap door, zonder plafond; de records (ongeveer 7 W/kg over 20 minuten)
+ * liggen daar ver boven, rond 1100 tot 1250 punten (records.ts). Eerst waren
+ * Robijn de WorldTour-winnaars en Diamant de records, en was Diamant onhaalbaar.
  */
 const POWER = {
   man: {
-    s15: { zero: 1.1, levels: [4.05, 5.55, 7.05, 8.55, 10.05, 11.55, 13.05, 17.5, 19.5], estimate: true },
-    m1: { zero: 1.7, levels: [3.2, 3.9, 4.65, 5.4, 6.15, 6.9, 7.65, 10.2, 11.2], estimate: true },
-    m5: { zero: 1.5, levels: [2.5, 3, 3.5, 4, 4.55, 5.05, 5.55, 7.1, 7.6], estimate: true },
-    m20: { zero: 1.3, levels: [2.15, 2.6, 3.05, 3.45, 3.9, 4.35, 4.75, 6.4, 7.1], estimate: true },
+    s15: { zero: 1.1, levels: [4.05, 5.55, 7.05, 8.55, 10.05, 11.55, 13.05, 14.55, 16.05], estimate: true },
+    m1: { zero: 1.7, levels: [3.2, 3.9, 4.65, 5.4, 6.15, 6.9, 7.65, 8.4, 9.15], estimate: true },
+    m5: { zero: 1.5, levels: [2.5, 3, 3.5, 4, 4.55, 5.05, 5.55, 6.05, 6.55], estimate: true },
+    m20: { zero: 1.3, levels: [2.15, 2.6, 3.05, 3.45, 3.9, 4.35, 4.75, 5.2, 5.6], estimate: true },
   },
   vrouw: {
-    s15: { zero: 0.95, levels: [3.1, 4.15, 5.25, 6.3, 7.35, 8.45, 9.5, 14, 15.6], estimate: true },
-    m1: { zero: 1.45, levels: [2.6, 3.2, 3.8, 4.35, 4.95, 5.55, 6.1, 8.35, 9.2], estimate: true },
-    m5: { zero: 1.2, levels: [2.1, 2.55, 3, 3.45, 3.9, 4.3, 4.75, 5.95, 6.4], estimate: true },
-    m20: { zero: 1.05, levels: [1.85, 2.25, 2.6, 3, 3.4, 3.8, 4.15, 5.45, 6.05], estimate: true },
+    s15: { zero: 0.95, levels: [3.1, 4.15, 5.25, 6.3, 7.35, 8.45, 9.5, 10.55, 11.6], estimate: true },
+    m1: { zero: 1.45, levels: [2.6, 3.2, 3.8, 4.35, 4.95, 5.55, 6.1, 6.7, 7.25], estimate: true },
+    m5: { zero: 1.2, levels: [2.1, 2.55, 3, 3.45, 3.9, 4.3, 4.75, 5.2, 5.65], estimate: true },
+    m20: { zero: 1.05, levels: [1.85, 2.25, 2.6, 3, 3.4, 3.8, 4.15, 4.55, 4.95], estimate: true },
   },
 } as const satisfies Record<Sex, Record<PowerDuration, Anchors>>;
 
@@ -107,18 +109,18 @@ export function powerAnchors(duration: PowerDuration, sex: Sex | null): Anchors 
  * wordt opnieuw gemaakt, want er staan alleen niveaus in, geen metingen om opnieuw
  * mee te rekenen.
  */
-export const SCALE_VERSION = "2026-10-21-sd";
+export const SCALE_VERSION = "2026-10-21-sd3";
 
 /**
- * Zwift Racing Score (0–1000) als doorlopende lijn: 0 is 0 en 1000 is Diamant,
- * dus elke ZRS-punt is 0,9 punt. Bewust niet gekoppeld aan Zwift's categorieën:
- * een score is geen groep (eigenaar, 2026-10-21). Scores boven 900 komen voor; 1000
- * is nog door niemand gehaald. Omdat ZRS bij 1000 ophoudt, komt deze facet nooit
- * boven niveau 9.
+ * Zwift Racing Score (0–1000) als doorlopende lijn: elke ZRS-punt is een punt, dus
+ * Diamant vanaf 900 ZRS en 1000 ZRS is 1000 punten (sinds 2026-10-21; eerst was 1000
+ * ZRS precies Diamant en dus onhaalbaar). Bewust niet gekoppeld aan Zwift's
+ * categorieën: een score is geen groep. Omdat ZRS bij 1000 ophoudt, komt deze facet
+ * nooit boven 1000 punten.
  */
 export const ZRS_ANCHORS: Anchors = {
   zero: 0,
-  levels: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => Math.round((1000 * n) / 9 * 100) / 100) as unknown as Anchors["levels"],
+  levels: [100, 200, 300, 400, 500, 600, 700, 800, 900],
 };
 
 /**
@@ -127,14 +129,14 @@ export const ZRS_ANCHORS: Anchors = {
  * (eigenaar, 2026-10-21: "100 is voor een amateur zeer hoog"). Aanname van ZWB,
  * nog zonder clubgegevens: amateurs die gestructureerd trainen zitten rond CTL 50
  * met een spreiding van ongeveer 20. Brons tot Smaragd liggen een halve
- * standaarddeviatie (10) uit elkaar, van gemiddeld min één (30) tot plus twee (90);
- * Robijn (120) is de top van de amateurs en de lagere profs, Diamant (150) de
- * WorldTour in het seizoen. Na een grote ronde (170 tot 180) kom je voorbij 900.
- * Eerst: 15, 30, 45, 65, 85, 105, 125, 150, 180.
+ * standaarddeviatie (10) uit elkaar, van gemiddeld min één (30) tot plus drie (110,
+ * Diamant); daarboven telt elke 10 CTL 100 punten door, dus de WorldTour in het
+ * seizoen (150) is 1300. Eerst: 15, 30, 45, 65, 85, 105, 125, 150, 180, en later
+ * Robijn 120 en Diamant 150.
  */
 export const CTL_ANCHORS: Anchors = {
   zero: 0,
-  levels: [30, 40, 50, 60, 70, 80, 90, 120, 150],
+  levels: [30, 40, 50, 60, 70, 80, 90, 100, 110],
   estimate: true,
 };
 
@@ -145,12 +147,13 @@ export const CTL_ANCHORS: Anchors = {
  * ProTeam 2,2 (Mateo-March 2022, na 45 kJ/kg, voor alle duren van 10 s tot 2 uur),
  * succesvolle amateurs ongeveer 5 en minder succesvolle ongeveer 9,6 (Barsumyan
  * 2025, op 20 minuten na 1000 kJ). Voor de minuut zijn ze dus een inschatting.
- * Minder verval is beter. Diamant (0,7) is een inschatting voor renners die na
- * 50 kJ/kg nog hun beste inspanningen rijden.
+ * Minder verval is beter. Sinds 2026-10-21 is Diamant het niveau van de WorldTour
+ * (1,5) en Robijn dat van ProTeam (2,2), zodat Diamant haalbaar is; daarboven loopt
+ * de schaal door tot geen verval (rond 1100 punten). Eerst was Diamant 0,7.
  */
 export const DURABILITY_ANCHORS: Anchors = {
   zero: 18,
-  levels: [12.5, 9.5, 7, 5, 3.6, 2.6, 1.8, 1.2, 0.7],
+  levels: [12.5, 9.5, 7, 5, 4, 3.2, 2.6, 2.2, 1.5],
   lowerIsBetter: true,
   estimate: true,
 };

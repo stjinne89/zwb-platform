@@ -1,14 +1,25 @@
 // ZWBriljant: de recordsteen, de grootste steen in de zaal (eigenaar, 2026-10-21).
-// Elk onderdeel op de recordwaarde, dus de ijkwaarde van Diamant: precies 900
-// punten. Bij een record met een bekende houder staat diens naam erbij. Profs
-// publiceren zelden, dus de recordwaarden zijn onderbouwde berekeningen; de
-// bronnen staan in docs/zwbriljant-onderzoek.md ("Recordwaarden achter Diamant").
+// Elk onderdeel op de hoogste gepubliceerde waarde. Diamant (900) is haalbaar, de
+// records liggen ver daarboven: de schaal loopt na Diamant met dezelfde stap door.
+// Bij een record met een bekende houder staat diens naam erbij. Profs publiceren
+// zelden, dus de records zijn onderbouwde berekeningen; de bronnen staan in
+// docs/zwbriljant-onderzoek.md ("De records").
 
-import { CTL_ANCHORS, DURABILITY_ANCHORS, ZRS_ANCHORS, powerAnchors, type Sex } from "./norms";
+import type { PowerDuration, Sex } from "./norms";
 import type { BriljantInput, Facet } from "./score";
 import { briljantView, type BriljantView } from "./view";
 
-/** De houder bij een record, alleen waar die bekend is; de normen voor mannen. */
+/** De records in W/kg; voor vrouwen naar het aandeel van de vrouwelijke profs. */
+const POWER_RECORDS: Record<"man" | "vrouw", Record<PowerDuration, number>> = {
+  man: { s15: 19.5, m1: 11.2, m5: 7.6, m20: 7.1 },
+  vrouw: { s15: 15.6, m1: 9.2, m5: 6.4, m20: 6.05 },
+};
+/** CTL van de WorldTour in het seizoen, het maximum van ZRS, verval van de beste profs. */
+const CTL_RECORD = 150;
+const ZRS_RECORD = 1000;
+const DURABILITY_RECORD = 0.7;
+
+/** De houder bij een record, alleen waar die bekend is; de records voor mannen. */
 export const RECORD_HOLDERS: Partial<Record<Facet, string>> = {
   // Plateau de Beille, Tour 2024: 6,85 tot 7,0 W/kg over 38 minuten (Berg 2025).
   drempel: "Tadej Pogačar",
@@ -16,25 +27,18 @@ export const RECORD_HOLDERS: Partial<Record<Facet, string>> = {
   vo2max: "Tadej Pogačar",
 };
 
-const top = (levels: readonly number[]) => levels[levels.length - 1];
-
 /** De recordsteen voor het geslacht van de kijker; houders alleen bij de mannen. */
 export function recordView(sex: Sex | null): { view: BriljantView; holders: Partial<Record<Facet, string>> } {
-  const decline = top(DURABILITY_ANCHORS.levels);
+  const power = POWER_RECORDS[sex === "vrouw" ? "vrouw" : "man"];
   const input: BriljantInput = {
     sex,
     // Durability is verval per 10 kJ/kg: met 1 kg na 10 kJ is het verlies in
     // procenten precies die waarde.
     weightKg: 1,
-    power: {
-      s15: top(powerAnchors("s15", sex).levels),
-      m1: top(powerAnchors("m1", sex).levels),
-      m5: top(powerAnchors("m5", sex).levels),
-      m20: top(powerAnchors("m20", sex).levels),
-    },
-    fatigue: [{ afterKj: 10, freshWatts: 100, fatiguedWatts: 100 - decline }],
-    ctl: top(CTL_ANCHORS.levels),
-    zrs: top(ZRS_ANCHORS.levels),
+    power: { ...power },
+    fatigue: [{ afterKj: 10, freshWatts: 100, fatiguedWatts: 100 - DURABILITY_RECORD }],
+    ctl: CTL_RECORD,
+    zrs: ZRS_RECORD,
   };
   return {
     view: briljantView({ seed: "records", input, consistency: null }),

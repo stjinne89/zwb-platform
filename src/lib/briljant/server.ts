@@ -463,13 +463,9 @@ export async function loadClubAverage(admin: Admin, today = amsterdamDayKey()) {
 
 /** Deelt dit lid zijn steen met andere leden? */
 export async function loadSharing(admin: Admin, profileId: string): Promise<boolean> {
-  const { data } = await admin
-    .from("zwbriljant_preferences")
-    .select("consent_version, visible")
-    .eq("profile_id", profileId)
-    .maybeSingle();
-  const row = data as { consent_version: string | null; visible: boolean } | null;
-  return Boolean(row?.consent_version && row.visible);
+  const { data } = await admin.from("zwbriljant_preferences").select("visible").eq("profile_id", profileId).maybeSingle();
+  // Standaard gedeeld (0267); alleen verbergen zet het uit.
+  return (data as { visible: boolean } | null)?.visible ?? true;
 }
 
 type UserClient = Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>;

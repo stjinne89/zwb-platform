@@ -82,7 +82,8 @@ export function BriljantHelp() {
           <p className="mt-2 text-sm text-muted-foreground">
             Namen en kleuren van de vELO-klassen van ZwiftRacing.app, met 100 punten per klasse. Elk onderdeel heeft
             per klasse een eigen ijkwaarde; hieronder die van het drempelvermogen (beste 20 minuten). Koper is alles
-            onder de eerste grens, Diamant zijn de recordwaarden. Daarboven telt de score gewoon door.
+            onder de eerste grens. Diamant is zwaar maar haalbaar; daarboven telt de score gewoon door, en de records
+            liggen ver boven Diamant.
           </p>
           <table className="mt-3 w-full text-sm tabular-nums">
             <thead className="text-left text-xs text-muted-foreground">
@@ -109,8 +110,8 @@ export function BriljantHelp() {
           </table>
           <p className="mt-2 text-xs text-muted-foreground">
             Vermogen en fitheid volgen de spreiding onder renners: Goud is het gemiddelde, elke klasse een halve
-            standaarddeviatie verder. Robijn en Diamant zijn prowaarden. Inschattingen van ZWB; geen studie koppelt
-            vermogen aan klassen.
+            standaarddeviatie verder, tot Diamant op drie boven het gemiddelde (ongeveer de beste 1 op 1000).
+            Inschattingen van ZWB; geen studie koppelt vermogen aan klassen.
           </p>
         </article>
 
@@ -168,8 +169,8 @@ export function BriljantHelp() {
             </dd>
             <dt className="font-medium">Delen</dt>
             <dd className="text-muted-foreground">
-              Met &ldquo;Deel mijn steen met leden&rdquo; zien alle leden je laatste steen: punten per onderdeel en je
-              consistentie, geen metingen. Je hoeft niet zelf te delen om anderen te zien. Uitzetten werkt meteen.
+              Alle leden zien standaard je laatste steen: punten per onderdeel en je consistentie, geen metingen. Zet
+              &ldquo;Deel mijn steen met leden&rdquo; uit om hem te verbergen; dat werkt meteen.
             </dd>
             <dt className="font-medium">ZWB-gemiddelde</dt>
             <dd className="text-muted-foreground">
@@ -195,7 +196,7 @@ export function BriljantHelp() {
                 lage grens + (meting − meting lage grens) ÷ (meting hoge grens − meting lage grens) × 100
               </code>
               . Voorbij Diamant loopt de laatste lijn door. Bij durability is minder verval beter. Racen is één rechte
-              lijn: 1000 ZRS is 900 punten.
+              lijn: elke ZRS is een punt.
             </dd>
             <dt className="font-medium">Profielscore</dt>
             <dd className="text-muted-foreground">Het gewogen gemiddelde van de onderdelen, met de gewichten hierboven.</dd>

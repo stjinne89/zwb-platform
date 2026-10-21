@@ -17,12 +17,12 @@ const week = (index: number, hours: number): ConsistencyWeek => ({ monday: `w${i
 describe("briljantView", () => {
   it("geeft score, klasse en de volgende klasse in punten", () => {
     const view = briljantView({ seed: "lid", input: rider, consistency: null });
-    expect(view.score).toBe(5.93);
-    expect(view.points).toBe(593);
-    expect(view.profilePoints).toBe(593);
-    expect(view.level.name).toBe("Amethist");
-    expect(view.next?.name).toBe("Saffier");
-    expect(view.toNext).toBe(7);
+    expect(view.score).toBe(6.06);
+    expect(view.points).toBe(606);
+    expect(view.profilePoints).toBe(606);
+    expect(view.level.name).toBe("Saffier");
+    expect(view.next?.name).toBe("Smaragd");
+    expect(view.toNext).toBe(94);
     expect(view.facets.map((facet) => facet.key)).toEqual([
       "sprint", "anaeroob", "vo2max", "drempel", "durability", "fitheid", "racen",
     ]);
@@ -40,10 +40,10 @@ describe("briljantView", () => {
 
   it("toont de meting als balk tussen de grenzen van de klassen", () => {
     const sprint = briljantView({ seed: "lid", input: rider, consistency: null }).facets[0];
-    expect(sprint).toMatchObject({ value: "13,2 W/kg", points: 703, level: { name: "Smaragd" } });
-    expect(sprint.meter).toMatchObject({ from: "13,05 W/kg", to: "17,5 W/kg", fromLevel: { name: "Smaragd" }, toLevel: { name: "Robijn" } });
-    expect(sprint.meter.share).toBeCloseTo(0.15 / 4.45, 6);
-    expect(sprint.meter.note).toBe("nog 4,3 W/kg meer tot Robijn");
+    expect(sprint).toMatchObject({ value: "13,2 W/kg", points: 710, level: { name: "Smaragd" } });
+    expect(sprint.meter).toMatchObject({ from: "13,05 W/kg", to: "14,55 W/kg", fromLevel: { name: "Smaragd" }, toLevel: { name: "Robijn" } });
+    expect(sprint.meter.share).toBeCloseTo(0.15 / 1.5, 6);
+    expect(sprint.meter.note).toBe("nog 1,35 W/kg meer tot Robijn");
   });
 
   it("zegt bij durability 'minder' en meet racen over de hele schaal", () => {
@@ -52,11 +52,13 @@ describe("briljantView", () => {
     expect(durability.lowerIsBetter).toBe(true);
     expect(durability.meter.note).toMatch(/minder tot Amethist$/);
     const racen = view.facets.find((facet) => facet.key === "racen")!;
-    // De balk over 0 tot 1000; Saffier begint bij 666,7 ZRS, dus nog 27.
-    expect(racen.meter).toMatchObject({ from: "0 ZRS", to: "1.000 ZRS", fromLevel: null, toLevel: null, note: "nog 27 ZRS tot Saffier" });
+    // De balk over 0 tot 1000; Smaragd begint bij 700 ZRS, dus nog 60.
+    expect(racen.meter).toMatchObject({ from: "0 ZRS", to: "1.000 ZRS", fromLevel: null, toLevel: null, note: "nog 60 ZRS tot Smaragd" });
     expect(racen.meter.share).toBeCloseTo(0.64, 9);
     const top = briljantView({ seed: "lid", input: { ...rider, zrs: 1000 }, consistency: null }).facets.find((facet) => facet.key === "racen")!;
-    expect(top.meter.note).toBe("Diamant: het maximum");
+    expect(top.meter.note).toBe("het maximum van ZRS");
+    const diamant = briljantView({ seed: "lid", input: { ...rider, zrs: 950 }, consistency: null }).facets.find((facet) => facet.key === "racen")!;
+    expect(diamant.meter.note).toBe("nog 50 ZRS tot het maximum");
   });
 
   it("verdeelt de gewichten opnieuw als een onderdeel ontbreekt", () => {
@@ -78,7 +80,7 @@ describe("briljantView", () => {
   it("rekent het verschil met vier weken geleden in punten", () => {
     const history = Array.from({ length: 12 }, (_, i) => ({ week: `w${i}`, score: i === 8 ? 4.5 : null }));
     const view = briljantView({ seed: "lid", input: rider, consistency: null, history });
-    expect(view.delta4w).toBe(143);
+    expect(view.delta4w).toBe(156);
   });
 
   it("schrijft metingen in de eenheid van het onderdeel", () => {

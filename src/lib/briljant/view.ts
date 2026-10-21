@@ -130,14 +130,15 @@ export function meterFor(facet: Facet, reading: NonNullable<ReturnType<typeof fa
     // 2026-10-21): de grens is de ZRS waarbij die klasse begint.
     const share = Math.min(1, Math.max(0, reading.value / 1000));
     const next = LEVELS[Math.floor(reading.level + 1e-9) + 1];
-    const togo = next ? Math.ceil(reading.upper.value - reading.value) : 0;
+    const togo = next ? Math.ceil(reading.upper.value - reading.value) : Math.ceil(1000 - reading.value);
     return {
       share,
       from: formatMeasure(facet, 0),
       to: formatMeasure(facet, 1000),
       fromLevel: null,
       toLevel: null,
-      note: next && togo > 0 ? `nog ${togo} ZRS tot ${next.name}` : `${LEVELS[LEVELS.length - 1].name}: het maximum`,
+      // Voorbij Diamant (900 ZRS) loopt racen door tot het maximum van ZRS.
+      note: next && togo > 0 ? `nog ${togo} ZRS tot ${next.name}` : togo > 0 ? `nog ${togo} ZRS tot het maximum` : "het maximum van ZRS",
     };
   }
   const top = LEVELS[LEVELS.length - 1];

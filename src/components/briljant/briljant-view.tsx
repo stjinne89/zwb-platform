@@ -473,7 +473,7 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
               ? `week van ${asOfLabel}`
               : view.next
                 ? `nog ${view.toNext} punten tot ${view.next.name}`
-                : "Diamant: de recordwaarden"}
+                : "Diamant: de score telt door"}
           </p>
           {!asOf && view.delta4w != null && view.delta4w !== 0 && (
             <p className={styles.next}>

@@ -39,7 +39,7 @@ function pointsMeter(level: number): FacetMeter {
   const next = LEVELS[reached.n + 1] ?? null;
   const value = points(level);
   if (!next) {
-    return { share: 1, from: `${reached.n * 100} punten`, to: "", fromLevel: reached, toLevel: null, note: `${reached.name}: het maximum` };
+    return { share: 1, from: `${reached.n * 100} punten`, to: "", fromLevel: reached, toLevel: null, note: `${reached.name}: de score telt door` };
   }
   return {
     share: Math.min(1, Math.max(0, (value - reached.n * 100) / 100)),

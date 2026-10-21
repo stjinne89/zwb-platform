@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
 
-// 0265 en 0266 tegen een geïsoleerde PostgreSQL. Zegt niets over de productiedatabase
+// 0265, 0266 en 0267 tegen een geïsoleerde PostgreSQL. Zegt niets over de productiedatabase
 // zelf; daar worden migraties met de hand toegepast.
 
 let db: PGlite;
@@ -30,6 +30,7 @@ beforeAll(async () => {
   );
   await db.exec(await readFile("supabase/migrations/0265_zwbriljant.sql", "utf8"));
   await db.exec(await readFile("supabase/migrations/0266_zwbriljant_share_all_members.sql", "utf8"));
+  await db.exec(await readFile("supabase/migrations/0267_zwbriljant_share_by_default.sql", "utf8"));
   // Snapshots komen van de server; hier als eigenaar van de tabel.
   for (const id of [ANNA, BART, CEES, DIRK]) {
     await db.query(
@@ -66,8 +67,12 @@ const share = (id: string, visible = true) =>
     ),
   );
 
-describe("ZWBriljant (0265, 0266)", () => {
-  it("toont zonder delen alleen je eigen steen", async () => {
+// Zoals de server doet als een lid ZWBriljant opent: een voorkeur met de standaard.
+const opened = (id: string) =>
+  db.query("insert into zwbriljant_preferences(profile_id) values ($1) on conflict (profile_id) do nothing", [id]);
+
+describe("ZWBriljant (0265, 0266, 0267)", () => {
+  it("toont zonder voorkeur (nog nooit geopend) alleen je eigen steen", async () => {
     expect(await visibleTo(ANNA)).toEqual([ANNA]);
     expect(await visibleTo(BART)).toEqual([BART]);
   });
@@ -92,19 +97,28 @@ describe("ZWBriljant (0265, 0266)", () => {
     expect(await visibleTo(DIRK)).toEqual([DIRK]);
   });
 
-  it("verbergt meteen bij verbergen of intrekken, maar houdt je eigen historie", async () => {
+  it("verbergt meteen bij verbergen, maar houdt je eigen historie", async () => {
     await share(BART, false);
     expect(await visibleTo(CEES)).toEqual([ANNA, CEES]);
+    expect(await visibleTo(BART)).toEqual([ANNA, BART]);
     await share(BART, true);
     expect(await visibleTo(CEES)).toEqual([ANNA, BART, CEES]);
+  });
+
+  it("deelt standaard zodra je ZWBriljant opent, ook zonder toestemming (0267)", async () => {
+    await opened(CEES);
+    expect(await visibleTo(ANNA)).toEqual([ANNA, BART, CEES]);
+    // De oude toestemming beslist niet meer: alleen verbergen telt.
     await as(BART, () => db.query(`update zwbriljant_preferences set consent_version = null where profile_id = '${BART}'`));
-    expect(await visibleTo(CEES)).toEqual([ANNA, CEES]);
-    expect(await visibleTo(BART)).toEqual([ANNA, BART]);
+    expect(await visibleTo(ANNA)).toEqual([ANNA, BART, CEES]);
+    await as(CEES, () => db.query(`update zwbriljant_preferences set visible = false where profile_id = '${CEES}'`));
+    expect(await visibleTo(ANNA)).toEqual([ANNA, BART]);
   });
 
   it("houdt voorkeuren privé", async () => {
-    const seen = await as(CEES, () => db.query("select profile_id from zwbriljant_preferences"));
-    expect(seen.rows).toEqual([]);
+    // Alleen je eigen voorkeur, nooit die van een ander.
+    const seen = await as(CEES, () => db.query<{ profile_id: string }>("select profile_id from zwbriljant_preferences"));
+    expect(seen.rows.map((row) => row.profile_id)).toEqual([CEES]);
     await expect(
       as(CEES, () => db.query(`insert into zwbriljant_preferences(profile_id, consent_version) values ('${ANNA}', '2026-10-21')`)),
     ).rejects.toThrow(/row-level security/);

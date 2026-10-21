@@ -447,11 +447,11 @@ export default function PrivacyPage() {
             zoeken we via je Zwift-ID in je eerdere race-uitslagen bij Zwift je
             Racing Score van toen op;
             daarna verversen we één keer per week je vermogensprofiel en je
-            Racing Score. Je steen is alleen voor jou, tenzij je hem deelt: met
-            &ldquo;Deel mijn steen met leden&rdquo; zien alle goedgekeurde leden je
-            laatste score, je punten per onderdeel en je consistentie (geen
-            metingen) en kunnen ze die naast hun eigen steen zetten. Uitzetten
-            werkt meteen. Voor het ZWB-gemiddelde tellen we de laatste score van
+            Racing Score. Alle goedgekeurde leden zien standaard je laatste score,
+            je punten per onderdeel en je consistentie (geen metingen) en kunnen
+            die naast hun eigen steen zetten. Wil je dat niet, zet dan
+            &ldquo;Deel mijn steen met leden&rdquo; uit: dan is je steen meteen
+            voor niemand anders meer te zien. Voor het ZWB-gemiddelde tellen we de laatste score van
             iedereen met ZWBriljant mee, ook als je niet deelt; dat gemiddelde is
             anoniem en verschijnt pas vanaf vijf leden. Er gaat niets naar
             OpenAI of een andere partij. Het staat in je data-export en

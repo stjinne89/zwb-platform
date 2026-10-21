@@ -109,11 +109,11 @@ describe("eigen steen uit een snapshot", () => {
       own: { sex: "man" },
     });
     const byKey = Object.fromEntries(view.facets.map((facet) => [facet.key, facet]));
-    // Drempel 7,35: Smaragd 4,75 + 0,35 × (6,4 − 4,75).
-    expect(byKey.drempel.value).toBe("5,33 W/kg");
-    expect(byKey.drempel.meter).toMatchObject({ from: "4,75 W/kg", to: "6,4 W/kg" });
-    expect(byKey.fitheid.value).toBe("93 TSS/dag");
-    expect(byKey.racen.value).toBe("640 ZRS");
+    // Drempel 7,35: Smaragd 4,75 + 0,35 × (5,2 − 4,75).
+    expect(byKey.drempel.value).toBe("4,91 W/kg");
+    expect(byKey.drempel.meter).toMatchObject({ from: "4,75 W/kg", to: "5,2 W/kg" });
+    expect(byKey.fitheid.value).toBe("91 TSS/dag");
+    expect(byKey.racen.value).toBe("576 ZRS");
   });
 
   it("toont van een ander geen metingen", () => {

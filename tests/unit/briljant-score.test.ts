@@ -54,22 +54,24 @@ describe("schaal", () => {
   });
 
   it("draait om bij durability: minder verval is beter", () => {
-    expect(levelAt(DURABILITY_ANCHORS, 1.2)).toBeCloseTo(8, 9);
-    expect(levelAt(DURABILITY_ANCHORS, 0.7)).toBeCloseTo(9, 9);
+    // Robijn is ProTeam (2,2), Diamant de WorldTour (1,5); daarboven loopt het door.
+    expect(levelAt(DURABILITY_ANCHORS, 2.2)).toBeCloseTo(8, 9);
+    expect(levelAt(DURABILITY_ANCHORS, 1.5)).toBeCloseTo(9, 9);
     expect(levelAt(DURABILITY_ANCHORS, 5)).toBeCloseTo(4, 9);
     expect(levelAt(DURABILITY_ANCHORS, 20)).toBe(0);
     expect(levelAt(DURABILITY_ANCHORS, 0.5)).toBeGreaterThan(9);
   });
 
-  it("laat ZRS als rechte lijn lopen, los van Zwift's categorieën: 1000 is Diamant", () => {
-    expect(levelAt(ZRS_ANCHORS, 1000)).toBeCloseTo(9, 9);
-    expect(levelAt(ZRS_ANCHORS, 640)).toBeCloseTo(5.76, 4);
-    expect(levelAt(ZRS_ANCHORS, 333)).toBeCloseTo(3, 2);
-    // Fitheid naar de spreiding onder amateurs: 50 is Goud, 100 al Smaragd, 150 Diamant.
+  it("laat ZRS als rechte lijn lopen, los van Zwift's categorieën: elke ZRS een punt", () => {
+    expect(levelAt(ZRS_ANCHORS, 900)).toBeCloseTo(9, 9);
+    expect(levelAt(ZRS_ANCHORS, 1000)).toBeCloseTo(10, 9);
+    expect(levelAt(ZRS_ANCHORS, 640)).toBeCloseTo(6.4, 9);
+    // Fitheid naar de spreiding onder amateurs: 50 is Goud, 110 Diamant, en elke 10
+    // CTL daarboven 100 punten (de WorldTour, 150, is 1300).
     expect(levelAt(CTL_ANCHORS, 50)).toBeCloseTo(3, 9);
-    expect(levelAt(CTL_ANCHORS, 100)).toBeCloseTo(7 + 1 / 3, 9);
-    expect(levelAt(CTL_ANCHORS, 150)).toBeCloseTo(9, 9);
-    expect(levelAt(CTL_ANCHORS, 180)).toBeCloseTo(10, 9);
+    expect(levelAt(CTL_ANCHORS, 100)).toBeCloseTo(8, 9);
+    expect(levelAt(CTL_ANCHORS, 110)).toBeCloseTo(9, 9);
+    expect(levelAt(CTL_ANCHORS, 150)).toBeCloseTo(13, 9);
   });
 
   it("heeft de tien vELO-klassen, Koper onderaan en Diamant bovenaan", () => {
@@ -79,7 +81,8 @@ describe("schaal", () => {
     expect(LEVELS.every((level, index) => level.n === index)).toBe(true);
     expect(LEVELS[9]).toMatchObject({ color: "#82d5f7", kind: "edelsteen" });
     expect(LEVELS[4]).toMatchObject({ name: "Platina", kind: "metaal" });
-    expect(powerAnchors("m20", "man").levels[8]).toBe(7.1);
+    // Diamant drie standaarddeviaties boven het gemiddelde, niet de records.
+    expect(powerAnchors("m20", "man").levels[8]).toBe(5.6);
   });
 
   it("vindt de klasse bij een niveau, ook onder 1 en voorbij 9", () => {
@@ -133,21 +136,21 @@ describe("facetten en score", () => {
   it("rekent elke facet om naar een niveau", () => {
     const levels = facetLevels(rider);
     // Op de spreidingsschaal is dit een sterke amateur: alles boven Amethist.
-    expect(levels.sprint).toBeCloseTo(7 + 0.15 / 4.45, 6);
+    expect(levels.sprint).toBeCloseTo(7 + 0.15 / 1.5, 6);
     expect(levels.anaeroob).toBeCloseTo(6 + 0.7 / 0.75, 6);
     expect(levels.vo2max).toBeCloseTo(6.1, 6);
     expect(levels.drempel).toBeCloseTo(5 + 0.4 / 0.45, 6);
-    expect(levels.durability).toBeCloseTo(4.5714, 4);
+    expect(levels.durability).toBeCloseTo(4.8, 6);
     expect(levels.fitheid).toBeCloseTo(5.8, 6);
-    expect(levels.racen).toBeCloseTo(5.76, 4);
+    expect(levels.racen).toBeCloseTo(6.4, 6);
   });
 
   it("weegt de facetten naar de literatuur: 5 minuten het zwaarst, fitheid het lichtst", () => {
     expect(Object.values(FACET_WEIGHTS).reduce((sum, weight) => sum + weight, 0)).toBeCloseTo(1, 9);
     expect(FACET_WEIGHTS.sprint + FACET_WEIGHTS.anaeroob + FACET_WEIGHTS.vo2max + FACET_WEIGHTS.drempel).toBeCloseTo(0.6, 9);
-    // 7,034 × 7,5% + 6,933 × 12,5% + 6,1 × 22,5% + 5,889 × 17,5% + 4,571 × 15%
-    // + 5,8 × 10% + 5,76 × 15% = 5,927.
-    expect(scoreFor(facetLevels(rider))).toBe(5.93);
+    // 7,1 × 7,5% + 6,933 × 12,5% + 6,1 × 22,5% + 5,889 × 17,5% + 4,8 × 15%
+    // + 5,8 × 10% + 6,4 × 15% = 6,06.
+    expect(scoreFor(facetLevels(rider))).toBe(6.06);
   });
 
   it("laat consistentie tot 20% meetellen als factor", () => {
@@ -156,9 +159,9 @@ describe("facetten en score", () => {
     expect(consistencyFactor(0.55)).toBeCloseTo(0.91, 9);
     // Geen ritgegevens: ontbrekende gegevens kosten niets.
     expect(consistencyFactor(null)).toBe(1);
-    // 5,927 × 0,91 = 5,39: op het scherm 539 punten.
-    expect(scoreFor(facetLevels(rider), 0.55)).toBe(5.39);
-    expect(scoreFor(facetLevels(rider), 1)).toBe(5.93);
+    // 6,064 × 0,91 = 5,52: op het scherm 552 punten.
+    expect(scoreFor(facetLevels(rider), 0.55)).toBe(5.52);
+    expect(scoreFor(facetLevels(rider), 1)).toBe(6.06);
   });
 
   it("normaliseert de gewichten opnieuw als een facet ontbreekt", () => {
