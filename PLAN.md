@@ -11280,6 +11280,39 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBeter-berg, fase 1: de rekenkern
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+**Aanleiding.** De eigenaar wil één ZWBeter-score die vermogen, fitheid/vermoeidheid/vorm,
+ZRS, vELO en durability samenvat, tegen de wereld, de club en het lid zelf in de tijd,
+getoond als een 3D-berg die per richting groeit. Daarna erbij gevraagd: één score zonder
+plafond, met bergketens als niveaus (wereldklasse is de Himalaya). Gekozen (eigenaar,
+2026-10-21): leden zien elkaars berg met opt-in; de wereld is ZRS/vELO plus vermogensnormen;
+de berg krijgt een eigen register zoals het weekoverzicht; een pagina plus een tegel op
+Vandaag. Het goedgekeurde plan heeft vier fasen; dit is de eerste.
+
+**Nu.** `src/lib/berg/norms.ts` (ketens Heuvelland tot Himalaya, met de hoogste top als
+ijkpunt; ijkwaarden per richting en geslacht) en `src/lib/berg/score.ts` (meterschaal
+zonder plafond, keten en "nog x m", richtingen Explosief, Duurvermogen, Durability,
+Fitheid en Racen, je hoogte als gemiddelde, consistentie als breedte van de voet,
+clubpercentiel en jij tegen jezelf). Onderzoek en de bron van elke ijkwaarde:
+[zwbeter-berg-onderzoek.md](docs/zwbeter-berg-onderzoek.md).
+
+**Bewust niet.** HRV/readiness, vorm (TSB) en herhaalbaarheid zijn geen richting
+(kleine of geen samenhang met prestaties; zie het onderzoek). vELO telt nog niet mee: de
+client is nooit tegen de echte API getest en de officiële categoriegrenzen waren niet te
+vinden. Durability rekent alleen met de hoeveelheid werk, niet met de intensiteit.
+
+**Let op.** Alle ijkwaarden zijn inschattingen van ZWB op basis van de literatuur; geen
+studie koppelt vermogen aan bergketens. Zonder opgegeven geslacht rekent de berg met de
+waarden voor mannen.
+
+**Getest.** `tests/unit/berg-score.test.ts` (15): ijkpunten exact, monotoon, boven de
+Everest lineair door, durability omgekeerd, ZRS-top op de Everest, vrouwen hoger bij gelijk
+vermogen, ketens en "nog x m", ontbrekende gegevens, consistentie met uitval, percentiel
+en jij-kader. ESLint schoon. Nog niets in de app: fasen 2 tot 4 volgen.
+
 ### Gebouwd — Recept van een link, en eigen recepten delen met alle leden
 
 **2026-10-21.** Commits `a63229bd` (code) en de commit die deze regel
