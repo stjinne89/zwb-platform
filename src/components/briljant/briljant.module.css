@@ -857,3 +857,12 @@
   max-width: 11em;
   white-space: normal;
 }
+
+/* De houder van een record, klein onder de waarde. */
+.holder {
+  display: block;
+  font-size: 11px;
+  color: var(--gold);
+  letter-spacing: 0.02em;
+}
+

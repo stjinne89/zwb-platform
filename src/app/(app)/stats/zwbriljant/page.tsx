@@ -4,8 +4,8 @@ import { EmptyState } from "@/components/app-ui";
 import { BriljantView, type BriljantCompare } from "@/components/briljant/briljant-view";
 import { StatsTabs } from "../_components/stats-tabs";
 import { getRequestUser } from "@/lib/auth/request";
-import { SHOWN_ALIENS, alienView } from "@/lib/briljant/aliens";
 import { snapshotAt, viewFromSnapshot } from "@/lib/briljant/compare";
+import { recordView } from "@/lib/briljant/records";
 import { FACET_LABELS } from "@/lib/briljant/score";
 import {
   collectBriljant,
@@ -104,11 +104,12 @@ export default async function BriljantPage({
     null,
   );
 
-  const alien = SHOWN_ALIENS.find((candidate) => candidate.id === met) ?? null;
+  // De recordsteen: elk onderdeel op de recordwaarde (Diamant), met de houders.
+  const records = recordView(collected.input.sex);
 
   let compare: BriljantCompare | null = null;
-  if (alien) {
-    compare = { id: alien.id, name: alien.name, label: alien.name, short: alien.short, view: alienView(alien) };
+  if (met === "records") {
+    compare = { id: "records", name: "Records", label: "Records", short: "Record", view: records.view, holders: records.holders };
   } else if (met === "mooiste" && best) {
     compare = {
       id: "mooiste",
@@ -138,7 +139,7 @@ export default async function BriljantPage({
     }
   }
 
-  // De zaal: je steen van nu, het ZWB-gemiddelde, iedereen die deelt en de Aliens.
+  // De zaal: je steen van nu, het ZWB-gemiddelde, iedereen die deelt en de records.
   const hall =
     met === "zaal"
       ? [
@@ -151,7 +152,7 @@ export default async function BriljantPage({
             name: stone.name,
             view: viewFromSnapshot({ seed: stone.id, snapshot: stone.snapshot, source: `week van ${weekLabel(stone.snapshot.week)}` }),
           })),
-          ...SHOWN_ALIENS.map((candidate) => ({ id: candidate.id, name: candidate.name, view: alienView(candidate) })),
+          { id: "records", name: "Records", view: records.view },
         ]
       : null;
 
@@ -169,8 +170,7 @@ export default async function BriljantPage({
           members,
           sharing,
           best: best != null,
-          aliens: SHOWN_ALIENS.map(({ id, name }) => ({ id, name })),
-          hall: members.length > 0 || average != null || SHOWN_ALIENS.length > 0,
+          hall: true,
         }}
         wins={past ? [] : bestWins(collected.input, live.consistency?.value ?? null).slice(0, 3)}
         hall={hall}

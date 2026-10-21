@@ -234,7 +234,11 @@ percentage van de mannen.
 Zonder opgegeven geslacht rekent ZWBriljant met de waarden voor mannen.
 
 **Recordwaarden achter Diamant** (gepubliceerde schattingen; profs publiceren hun
-gegevens zelden, dus officiële records bestaan niet):
+gegevens zelden, dus officiële records bestaan niet). Sinds 2026-10-21 is dit ook de
+recordsteen in de zaal; de houder staat erbij waar die bekend is (drempel en VO2max:
+Pogačar). Bij sprint en anaeroob is de waarde een afronding naar boven zonder één houder
+(de hoogst gepubliceerde minuut is Campenaerts' 10,1 W/kg), en durability, fitheid en
+racen hebben geen houder.
 - Drempel: ongeveer 6,85 tot 7,0 W/kg over ongeveer 40 minuten (Pogačar, Plateau de
   Beille, Tour 2024; Berg in *Journal of Science and Cycling*, via
   [BikeRadar](https://www.bikeradar.com/news/tadej-pogacar-v02-max-study) en
@@ -308,7 +312,13 @@ boven 900 komen voor; 1000 is nog door niemand gehaald
 ([Zwift-forum](https://forums.zwift.com/t/zwift-racing-score-october-2024/636179?page=51)).
 Omdat ZRS bij 1000 ophoudt, komt dit facet nooit boven 900 punten.
 
-## Aliens (2026-10-21)
+## Aliens (2026-10-21, niet gebouwd)
+
+*Uitkomst: de eigenaar liet de Aliens daarna toch weg en koos voor de recordsteen: één
+steen met elk onderdeel op de recordwaarde (Diamant, 900), met de naam van de houder waar
+die bekend is (`src/lib/briljant/records.ts`; houders: Pogačar bij drempel en VO2max, zie
+"Recordwaarden achter Diamant"). Het onderzoek hieronder blijft staan, zodat het niet
+opnieuw hoeft.*
 
 Profs met een steen in de zaal, op verzoek van de eigenaar uit Pogačar, Seixas, Del Toro,
 Vingegaard, Evenepoel, Van Aert en Van der Poel. Eerst alleen gemeten data (hun eigen

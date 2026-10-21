@@ -159,14 +159,12 @@ export function BriljantHelp() {
             <dt className="font-medium">De zaal</dt>
             <dd className="text-muted-foreground">
               Kies &ldquo;De zaal&rdquo; bij vergelijken: alle stenen die je mag zien op een rij, met het
-              ZWB-gemiddelde en de Aliens. Klik op een steen om hem naast de jouwe te zetten.
+              ZWB-gemiddelde en de recordsteen. Klik op een steen om hem naast de jouwe te zetten.
             </dd>
-            <dt className="font-medium">Aliens</dt>
+            <dt className="font-medium">Records</dt>
             <dd className="text-muted-foreground">
-              Profs met een steen uit gepubliceerde vermogensdata: hun eigen Strava-bestanden en breed geaccepteerde
-              schattingen (power-analyses van Velo en Cyclingnews, peer-reviewed onderzoek). Ter inspiratie. Een
-              onderdeel telt alleen met een inspanning die hooguit 15% korter of twee keer zo lang is; met minder dan
-              vier onderdelen doet een renner niet mee.
+              De grootste steen: elk onderdeel op de recordwaarde, dus precies Diamant. Profs publiceren hun data
+              zelden, dus de records zijn onderbouwde berekeningen; waar de houder bekend is, staat de naam erbij.
             </dd>
             <dt className="font-medium">Delen</dt>
             <dd className="text-muted-foreground">

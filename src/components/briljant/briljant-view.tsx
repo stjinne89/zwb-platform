@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, X } from "lucide-react";
 import { setBriljantSharing } from "@/app/(app)/stats/zwbriljant/actions";
 import { LEVELS, type Level } from "@/lib/briljant/norms";
+import { FACETS } from "@/lib/briljant/score";
 import type { BriljantView as View, FacetView, Win } from "@/lib/briljant/view";
 import type { SceneStone } from "./stone-scene";
 import { briljantSans, briljantSerif } from "./fonts";
@@ -25,7 +26,15 @@ const StoneScene = dynamic(() => import("./stone-scene"), {
  * Een tweede steen naast de jouwe: een lid dat deelt, het ZWB-gemiddelde of je
  * mooiste steen. `label` staat boven de steen, `short` boven de kolom in het paneel.
  */
-export type BriljantCompare = { id: string; name: string; label: string; short: string; view: View };
+export type BriljantCompare = {
+  id: string;
+  name: string;
+  label: string;
+  short: string;
+  view: View;
+  /** Bij de recordsteen: de houder per onderdeel, waar die bekend is. */
+  holders?: Partial<Record<FacetView["key"], string>>;
+};
 
 type Props = {
   view: View;
@@ -42,8 +51,6 @@ type Props = {
     best: boolean;
     /** Er is iets om in de zaal te zetten naast je eigen steen. */
     hall: boolean;
-    /** Profs met een steen uit hun eigen gemeten data (aliens.ts). */
-    aliens: Array<{ id: string; name: string }>;
   };
   /** Waar je het meest wint met 5% beter; leeg bij een steen uit het verleden. */
   wins: Win[];
@@ -180,7 +187,10 @@ function PanelBody({
           {compare && (
             <>
               <dt>{compare.label}</dt>
-              <dd>{theirs ? `${shown(theirs, unit)} · ${theirs.level.name}` : "geen gegevens"}</dd>
+              <dd>
+                {theirs ? `${shown(theirs, unit)} · ${theirs.level.name}` : "geen gegevens"}
+                {compare.holders?.[panel.key] && <span className={styles.holder}>{compare.holders[panel.key]}</span>}
+              </dd>
             </>
           )}
         </dl>
@@ -190,7 +200,8 @@ function PanelBody({
   if (panel.kind === "compare" && compare) {
     const mine = new Map(view.facets.map((facet) => [facet.key, facet]));
     const theirs = new Map(compare.view.facets.map((facet) => [facet.key, facet]));
-    const keys = [...new Set([...mine.keys(), ...theirs.keys()])];
+    // In de vaste volgorde rond de steen, ook als een van beide een onderdeel mist.
+    const keys = FACETS.filter((key) => mine.has(key) || theirs.has(key));
     return (
       <>
         <h2 tabIndex={-1}>
@@ -214,7 +225,10 @@ function PanelBody({
                 <tr key={key}>
                   <td>{facet.label}</td>
                   <td>{shown(mine.get(key), unit)}</td>
-                  <td>{shown(theirs.get(key), unit)}</td>
+                  <td>
+                    {shown(theirs.get(key), unit)}
+                    {compare.holders?.[key] && <span className={styles.holder}>{compare.holders[key]}</span>}
+                  </td>
                 </tr>
               );
             })}
@@ -491,21 +505,13 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
                 <option value="">Vergelijk met…</option>
                 {options.hall && <option value="zaal">De zaal: alle stenen</option>}
                 {options.best && <option value="mooiste">Mijn mooiste steen</option>}
+                <option value="records">Records</option>
                 {options.average && <option value="zwb">ZWB-gemiddelde</option>}
                 {options.members.map((member) => (
                   <option key={member.id} value={member.id}>
                     {member.name}
                   </option>
                 ))}
-                {options.aliens.length > 0 && (
-                  <optgroup label="Aliens">
-                    {options.aliens.map((alien) => (
-                      <option key={alien.id} value={alien.id}>
-                        {alien.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
               </select>
             </label>
             <div className={styles.units} role="group" aria-label="Weergave">

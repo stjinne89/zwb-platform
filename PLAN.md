@@ -11285,13 +11285,15 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
-### Gebouwd — ZWBriljant bij Stats, de zaal en de Aliens
+### Gebouwd — ZWBriljant bij Stats, de zaal en de recordsteen
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-21.** Commits `910bbd98` en de commit die deze regel toevoegt. Geen migratie.
+Niet gepusht.
 
 **Waarom.** ZWBriljant gaat over je niveau en vergelijken met anderen; dat past bij Stats
 (Club, Ik, Achievements) beter dan bij het trainen in ZWBeter. De eigenaar wilde daar ook
-een zaal met ieders steen, en Aliens: profs met echte data.
+een zaal met ieders steen, en Aliens: profs met echte data. Die Aliens kwamen er eerst
+(`910bbd98`), maar de eigenaar liet ze daarna weg voor één recordsteen.
 
 **Nu.**
 - **Verhuisd naar `/stats/zwbriljant`**, een vierde tab in `StatsTabs` (tegels: twee
@@ -11305,27 +11307,27 @@ een zaal met ieders steen, en Aliens: profs met echte data.
   achterste rijen versprongen), labels met naam en punten; klikken zet die steen naast de
   jouwe. Erin: jij, het ZWB-gemiddelde, iedereen die deelt (`loadHallStones`, met de sessie
   van het lid zodat RLS beslist; vervangt `loadVisibleMembers` en `loadMemberSnapshot`) en
-  de Aliens. `glow` verhuisde naar `stone.ts` voor beide scènes.
-- **Aliens** (`src/lib/briljant/aliens.ts`): eerst alleen gemeten data, daarna op verzoek
-  ook breed geaccepteerde berekeningen (Velo, Cyclingnews, peer-reviewed), ter inspiratie.
-  Regel: een inspanning hooguit 15% korter of twee keer zo lang als de duur; minstens vier
-  onderdelen. Van de zeven gevraagde renners halen Van der Poel (4 gemeten, 758) en Pogačar
-  (4 schattingen, 829) het; Van Aert en Del Toro blijven op 3, Vingegaard, Seixas en
-  Evenepoel lager. Per renner en bron: [onderzoek](docs/zwbriljant-onderzoek.md#aliens-2026-10-21).
-  Ook als keuze bij vergelijken (groep "Aliens").
+  de recordsteen. `glow` verhuisde naar `stone.ts` voor beide scènes.
+- **De recordsteen** (`src/lib/briljant/records.ts`, keuze "Records" bij vergelijken en de
+  grootste steen in de zaal): elk onderdeel op de recordwaarde, de ijkwaarde van Diamant,
+  dus precies 900. Voor vrouwen hun eigen recordwaarden. Bij een record met een bekende
+  houder staat de naam in goud onder de waarde: Pogačar bij drempel en VO2max (onderbouwde
+  berekeningen, zie het onderzoek). Sprint, anaeroob, durability, fitheid en racen hebben
+  geen houder.
 - **Telefoon:** de tabellen in het paneel passen (vaste kolommen, een waarde mag over twee
   regels); labels boven een tweede steen of in de zaal breken af.
 
-**Open, keuze eigenaar.** De eigenaar wil Aliens "sowieso Diamant"; met deze data komen ze
-op 829 en 758. Nog niet gebouwd tot hij kiest hoe.
+**Niet gebouwd: Aliens.** Profs met een eigen steen uit gemeten en breed geaccepteerde
+data. Van de zeven gevraagde renners haalden alleen Van der Poel (758) en Pogačar (829)
+vier onderdelen, en geen van beiden kwam in Diamant: hun bekende inspanningen zijn niet
+hun beste ooit. De eigenaar wilde ze "sowieso Diamant" en koos daarna voor de recordsteen.
+Het onderzoek per renner blijft in [het onderzoek](docs/zwbriljant-onderzoek.md#aliens-2026-10-21-niet-gebouwd).
 
-**Niet gebouwd.** Watts2Win en Cyclists Hub als bron (modelwaarden, niet breed
-geaccepteerd); durability, fitheid en racen voor Aliens (geen gepubliceerde waarden).
-
-**Getest.** `briljant-aliens.test.ts` (minstens vier onderdelen met bron, steen met alleen
-vermogen), tsc, ESLint, de hele suite op `omnium-live` na (lokaal `.env.local` nodig). In
-de browser met voorbeeldwaarden: de zaal op desktop, een Alien naast je steen en de tabel op
-375 px. **Niet getest:** de zaal met echte gedeelde stenen op productie.
+**Getest.** `briljant-records.test.ts` (alles 900 en Diamant, vrouwen eigen waarden zonder
+houders), tsc, ESLint, de hele suite op `omnium-live` na (lokaal `.env.local` nodig). In de
+browser met voorbeeldwaarden: de zaal met de recordsteen in het midden en de records naast
+je steen op 375 px (tabel past, houders onder de waarde). **Niet getest:** de zaal met echte
+gedeelde stenen op productie.
 
 ### Gebouwd — ZWBriljant: ZRS van vroeger uit Zwift-uitslagen
 
