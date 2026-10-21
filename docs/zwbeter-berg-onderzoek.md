@@ -8,32 +8,41 @@ gewichten, `score.ts` voor de berekening).
 Het model is op 2026-10-21 twee keer bijgestuurd door de eigenaar: eerst zeven
 graten, een gewogen score en consistentie ten opzichte van jezelf (uit een fork
 van de bouwsessie), daarna virtuele niveaus in plaats van echte bergketens en
-geen meters meer: **de score is het niveau zelf, met één decimaal.**
+geen meters meer, en tot slot punten in plaats van decimalen: **100 punten per
+niveau, zonder plafond.**
 
 ## De score
 
-Een niveau met een decimaal: **4,5 is niveau 4, halverwege naar 5.** Acht
-niveaus, zonder plafond: voorbij de Wereldtop (8) telt de score gewoon door.
+**Punten, 100 per niveau, zonder plafond**: 455 punten is niveau 4 (Gevorderde),
+nog 45 punten tot Sterke amateur. Een hoger getal dat in kleine stappen groeit
+motiveert meer dan decimalen (eigenaar, 2026-10-21). Intern rekent de code met
+het niveau als getal (4,55; `points()` maakt er 455 van); zo staat het ook in
+`zwbeter_berg_snapshots.score`.
 
-| Niveau | Naam | Drempel (man) | Drempel (vrouw) |
+| Punten | Niveau | Drempel (man) | Drempel (vrouw) |
 |---|---|---|---|
-| 1 | Starter | 1,9 W/kg | 1,6 W/kg |
-| 2 | Recreant | 2,6 W/kg | 2,2 W/kg |
-| 3 | Toerrijder | 3,3 W/kg | 2,8 W/kg |
-| 4 | Gevorderde | 4,0 W/kg | 3,4 W/kg |
-| 5 | Sterke amateur | 4,6 W/kg | 3,9 W/kg |
-| 6 | Elite-amateur | 5,3 W/kg | 4,5 W/kg |
-| 7 | Profpeloton | 5,8 W/kg | 4,9 W/kg |
-| 8 | Wereldtop | 6,5 W/kg | 5,5 W/kg |
+| 100 | Starter | 1,9 W/kg | 1,6 W/kg |
+| 200 | Recreant | 2,6 W/kg | 2,2 W/kg |
+| 300 | Toerrijder | 3,3 W/kg | 2,8 W/kg |
+| 400 | Gevorderde | 4,0 W/kg | 3,4 W/kg |
+| 500 | Sterke amateur | 4,6 W/kg | 3,9 W/kg |
+| 600 | Elite-amateur | 5,3 W/kg | 4,5 W/kg |
+| 700 | Profpeloton | 5,8 W/kg | 4,9 W/kg |
+| 800 | Wereldtop | 6,5 W/kg | 5,5 W/kg |
 
-Op de berg zijn de niveaus virtuele, niet-bestaande ijkbergen achter je eigen
-berg; hun hoogte is alleen beeld. Het scherm toont 4,5 (afgekapt, niet
-afgerond: 4,99 is nog 4,9).
+Voorbij 800 telt de score gewoon door (900, 1.000, …). Punten worden afgekapt,
+niet afgerond: 499,9 is nog 499, en 500 verschijnt pas bij het volgende niveau.
+
+**De berg.** Eén berg: in het midden de hoofdtop op je score, met zeven graten
+die naar buiten lopen. Op elke graat staat een echte, spitse piek die precies tot
+de punten van die graat komt; een sterke kant steekt boven de hoofdtop uit, een
+zwakke blijft eronder. Achter de berg staan de niveaus als virtuele,
+niet-bestaande ijkbergen; hun hoogte is alleen beeld.
 
 **Achter elk getal de meting en de formule.** Elke graat toont de meting met
-eenheid en de omrekening, bijvoorbeeld: "Drempel 4,3 W/kg ligt tussen niveau 4
-(4,0) en 5 (4,6): 4 + (4,3 − 4,0) ÷ (4,6 − 4,0) = 4,5". Voorbij niveau 8 loopt de
-lijn van niveau 7 naar 8 door; onder de nulwaarde is het 0.
+eenheid en de omrekening, bijvoorbeeld: "Drempel 4,3 W/kg ligt tussen 400 (4,0)
+en 500 (4,6): 400 + (4,3 − 4,0) ÷ (4,6 − 4,0) × 100 = 450". Voorbij 800 loopt de
+lijn van 700 naar 800 door; onder de nulwaarde is het 0.
 
 ## Zeven graten
 
@@ -55,15 +64,15 @@ samen 50% als sterkste voorspeller (Leo 2021; Valenzuela 2023), durability 20%,
 fitheid en racen elk 15%. Ontbreekt een graat, dan gaan de gewichten van de
 aanwezige graten samen weer naar 100%. Met minder dan twee graten is er geen score.
 
-**Vorm is profiel, hoogte is niveau.** De top van de berg is de score; de lengte
-van elke graat is (niveau van de graat ÷ score)^1,8. Een sprinter krijgt een
-lange uitloper aan de sprintkant, een diesel lange graten bij drempel,
-durability en fitheid.
+**Vorm is profiel.** Een sprinter heeft een piek aan de sprintkant die ver boven de
+hoofdtop uitsteekt, een diesel hoge pieken bij drempel, durability en fitheid.
+(De eerste regel, lengte van een graat = (niveau ÷ score)^1,8, vervalt met de
+berg van zeven pieken; `ridgeReach` blijft tot de bouw van de pagina staan.)
 
 **Rekenvoorbeeld (man):** sprint 13,2 W/kg → 4,80; anaeroob 7,6 → 4,25; VO2max
 5,1 → 4,43; drempel 4,3 → 4,50; durability 4,2%/10 kJ/kg → 4,57; CTL 78 → 4,65;
-ZRS 640 → 4,60. Score 4,55, op het scherm 4,5: niveau 4 (Gevorderde), nog 0,45
-tot Sterke amateur. Staat als test in `tests/unit/berg-score.test.ts`.
+ZRS 640 → 4,60. Score 4,55, op het scherm **455 punten**: niveau 4 (Gevorderde),
+nog 45 punten tot Sterke amateur. Staat als test in `tests/unit/berg-score.test.ts`.
 
 ## Consistentie, altijd ten opzichte van jezelf
 

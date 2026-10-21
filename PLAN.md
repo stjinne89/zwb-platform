@@ -11295,9 +11295,13 @@ niveaus in plaats van echte bergketens, en weg met de meters ("maak hier iets va
 duidelijker is").
 
 **Nu.**
-- **De score is het niveau zelf** met één decimaal: 4,5 is niveau 4 (Gevorderde),
-  halverwege naar 5. Acht niveaus, Starter tot Wereldtop, zonder plafond. Op de berg zijn
-  het virtuele ijkbergen; hun hoogte is alleen beeld. Het scherm kapt af op één decimaal.
+- **De score is het niveau zelf**, op het scherm in punten: 100 per niveau, dus 455 is
+  niveau 4 (Gevorderde), nog 45 tot Sterke amateur (`points`, afgekapt). Acht niveaus,
+  Starter tot Wereldtop, zonder plafond. Eerst stond er één decimaal (4,5); de eigenaar
+  koos daarna voor punten, omdat een groter getal dat in kleine stappen groeit meer
+  motiveert. Op de berg zijn de niveaus virtuele ijkbergen.
+- **De berg** (schets, nog niet in de app): één berg met de hoofdtop op de score en zeven
+  spitse pieken op de graten, elk precies tot de punten van die graat.
 - **Zeven graten**: Sprint (15 s), Anaeroob (1 min), VO2max (5 min), Drempel (20 min),
   Durability, Fitheid (CTL) en Racen (ZRS). Explosief en Duurvermogen vervallen.
 - **Formule per graat**: `scaleStep` geeft het stuk van de schaal waarin een meting valt,

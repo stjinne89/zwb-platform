@@ -1,8 +1,9 @@
 // De ZWBeter-berg: van echte metingen naar een niveau per graat, de score, de
 // consistentie en de drie kaders (wereld, club, jij).
 //
-// De score is een niveau met een decimaal (4,5 = niveau 4, halverwege naar 5),
-// zonder plafond. Puur en zonder database: de pagina en de wekelijkse job leveren
+// Intern is de score een niveau met decimalen (4,55 = niveau 4, iets over de
+// helft naar 5); op het scherm staat hij in punten, 100 per niveau (455), zonder
+// plafond. Puur en zonder database: de pagina en de wekelijkse job leveren
 // de waarden aan. Een graat zonder gegevens is null en telt nergens mee; er wordt
 // nooit een waarde verzonnen. Achter elk getal staat de meting met eenheid en het
 // stuk van de schaal waarin hij valt, zodat het scherm de omrekening voorrekent.
@@ -110,26 +111,37 @@ export function levelAt(anchors: Anchors, value: number): number {
 
 // ── Niveaus ─────────────────────────────────────────────────────────────────
 
+/** Punten per niveau: niveau 4 is 400 tot 499 punten. */
+export const POINTS_PER_LEVEL = 100;
+
+/**
+ * Een niveau als punten, zoals op het scherm: 4,55 wordt 455. Afgekapt, niet
+ * afgerond, zodat 4,999 nog 499 is en 500 pas bij het volgende niveau verschijnt.
+ */
+export function points(level: number): number {
+  return Math.floor(Math.max(0, level) * POINTS_PER_LEVEL + 1e-9);
+}
+
 export type LevelPosition = {
-  /** Het niveau dat je haalt; null onder niveau 1. */
+  /** Het niveau dat je haalt; null onder niveau 1 (minder dan 100 punten). */
   reached: Level | null;
   /** Het niveau erna; null voorbij de Wereldtop (dan telt de score gewoon door). */
   next: Level | null;
-  /** Hoeveel er nog moet tot het volgende niveau (0 tot 1); 0 voorbij de Wereldtop. */
+  /** Punten tot het volgende niveau; 0 voorbij de Wereldtop. */
   toNext: number;
 };
 
 export function positionFor(score: number): LevelPosition {
-  const value = Math.max(0, score);
-  const whole = Math.floor(value);
+  const value = points(score);
+  const whole = Math.floor(value / POINTS_PER_LEVEL);
   const reached = whole >= 1 ? LEVELS[Math.min(whole, LEVELS.length) - 1] : null;
   const next = whole < LEVELS.length ? LEVELS[whole] : null;
-  return { reached, next, toNext: next ? Math.round((next.n - value) * 100) / 100 : 0 };
+  return { reached, next, toNext: next ? next.n * POINTS_PER_LEVEL - value : 0 };
 }
 
-/** Een score met één decimaal en een komma, zoals op het scherm: "4,5". */
+/** De score in punten met een punt als duizendtal, zoals op het scherm: "455", "1.020". */
 export function formatScore(score: number): string {
-  return (Math.floor(score * 10) / 10).toLocaleString("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return points(score).toLocaleString("nl-NL");
 }
 
 // ── Graten ──────────────────────────────────────────────────────────────────

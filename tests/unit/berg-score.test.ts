@@ -9,6 +9,7 @@ import {
   footWidth,
   formatScore,
   levelAt,
+  points,
   positionFor,
   ridgeLevels,
   ridgeReach,
@@ -71,20 +72,23 @@ describe("schaal", () => {
 });
 
 describe("niveaus", () => {
-  it("noemt het gehaalde niveau en hoeveel er nog moet", () => {
-    expect(positionFor(4.55)).toEqual({ reached: LEVELS[3], next: LEVELS[4], toNext: 0.45 });
-    expect(positionFor(0.6)).toEqual({ reached: null, next: LEVELS[0], toNext: 0.4 });
+  it("noemt het gehaalde niveau en hoeveel punten er nog moeten", () => {
+    expect(positionFor(4.55)).toEqual({ reached: LEVELS[3], next: LEVELS[4], toNext: 45 });
+    expect(positionFor(0.6)).toEqual({ reached: null, next: LEVELS[0], toNext: 40 });
     expect(positionFor(5)).toMatchObject({ reached: { name: "Sterke amateur" } });
   });
 
   it("telt voorbij de Wereldtop gewoon door", () => {
     expect(positionFor(9.3)).toEqual({ reached: LEVELS[7], next: null, toNext: 0 });
+    expect(formatScore(10.2)).toBe("1.020");
   });
 
-  it("toont één decimaal zonder naar boven af te ronden", () => {
-    expect(formatScore(4.55)).toBe("4,5");
-    expect(formatScore(4.99)).toBe("4,9");
-    expect(formatScore(9.3)).toBe("9,3");
+  it("toont punten, 100 per niveau, zonder naar boven af te ronden", () => {
+    expect(points(4.55)).toBe(455);
+    expect(points(4.999)).toBe(499);
+    expect(points(5)).toBe(500);
+    expect(points(-1)).toBe(0);
+    expect(formatScore(4.55)).toBe("455");
   });
 });
 
