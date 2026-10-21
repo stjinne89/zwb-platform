@@ -156,6 +156,18 @@ export function BriljantHelp() {
               Zet je mooiste steen (de week met je hoogste score), het ZWB-gemiddelde of een lid naast je steen. Klik
               op de tweede steen voor de onderdelen naast elkaar. Van anderen zie je alleen punten.
             </dd>
+            <dt className="font-medium">De zaal</dt>
+            <dd className="text-muted-foreground">
+              Kies &ldquo;De zaal&rdquo; bij vergelijken: alle stenen die je mag zien op een rij, met het
+              ZWB-gemiddelde en de Aliens. Klik op een steen om hem naast de jouwe te zetten.
+            </dd>
+            <dt className="font-medium">Aliens</dt>
+            <dd className="text-muted-foreground">
+              Profs met een steen uit gepubliceerde vermogensdata: hun eigen Strava-bestanden en breed geaccepteerde
+              schattingen (power-analyses van Velo en Cyclingnews, peer-reviewed onderzoek). Ter inspiratie. Een
+              onderdeel telt alleen met een inspanning die hooguit 15% korter of twee keer zo lang is; met minder dan
+              vier onderdelen doet een renner niet mee.
+            </dd>
             <dt className="font-medium">Delen</dt>
             <dd className="text-muted-foreground">
               Met &ldquo;Deel mijn steen met leden&rdquo; zien alle leden je laatste steen: punten per onderdeel en je
@@ -206,7 +218,7 @@ export function BriljantHelp() {
             </dd>
           </dl>
           <Link
-            href="/zwbeter-worden/briljant"
+            href="/stats/zwbriljant"
             className="mt-4 inline-flex text-sm font-medium text-primary hover:underline"
           >
             Open ZWBriljant

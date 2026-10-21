@@ -308,6 +308,35 @@ boven 900 komen voor; 1000 is nog door niemand gehaald
 ([Zwift-forum](https://forums.zwift.com/t/zwift-racing-score-october-2024/636179?page=51)).
 Omdat ZRS bij 1000 ophoudt, komt dit facet nooit boven 900 punten.
 
+## Aliens (2026-10-21)
+
+Profs met een steen in de zaal, op verzoek van de eigenaar uit Pogačar, Seixas, Del Toro,
+Vingegaard, Evenepoel, Van Aert en Van der Poel. Eerst alleen gemeten data (hun eigen
+Strava- of TrainingPeaks-bestand); daarna mochten ook breed geaccepteerde berekeningen
+mee, ter inspiratie: de power-analyses van Velo en Cyclingnews en peer-reviewed onderzoek.
+Niet gebruikt: profielsites met modelwaarden (Watts2Win, Cyclists Hub) en coachingsites.
+
+**Regel.** Een onderdeel (15 s, 1, 5, 20 min) telt alleen met een inspanning die hooguit
+15% korter is dan die duur, of hooguit twee keer zo lang: een langere inspanning is een
+ondergrens voor de kortere, maar een veel langere zegt te weinig. Minder dan vier
+onderdelen: de renner doet niet mee. Durability, fitheid en racen hebben voor profs geen
+gepubliceerde waarden en blijven leeg.
+
+| Renner | Onderdelen | Uitkomst |
+|---|---|---|
+| Van der Poel | 15 s 1137 W, 1 min 727 W, 5 min 502 W (Ronde van Vlaanderen 2022, zijn Strava-bestand, 75 kg; [road.cc](https://road.cc/content/news/mathieu-van-der-poel-uploads-tour-flanders-win-strava-291643)); 20 min 378 W, 5,17 W/kg (Amstel Gold Race 2019, zijn Strava-bestand; [Cycling Weekly](https://www.cyclingweekly.com/news/racing/mathieu-van-der-poel-shares-incredible-data-amstel-gold-race-strava-421180)) | 4 gemeten: doet mee, 758 (Smaragd) |
+| Pogačar | 15 s: sprint Jebel Jais, ~800 W, 12,3 W/kg over 20 s (UAE Tour 2025); 5 min: 5:31 op 490 W, 7,5 W/kg (Jebel Hafeet, UAE Tour 2025; beide [Velo](https://velo.outsideonline.com/road/power-analysis-pogacar-dominates-uae-tour/)); 1 min: 1:13 op ~640 W, 9,8 W/kg (Oude Kwaremont, Vlaanderen 2026; [Velo](https://velo.outsideonline.com/road/road-racing/tour-of-flanders-power-analysis-2026)); 20 min: 38:38 op 453 W, 6,9 W/kg (Plateau de Beille 2024; Berg 2025, *Journal of Science and Cycling*, via [Velo](https://velo.outsideonline.com/road/road-racing/pogacar-data-tour-de-france/)) | 4 schattingen: doet mee, 829 (Robijn). Zijn eigen bestanden zijn sinds 2019 privé; de Strava-rit van februari 2026 was een duurrit. |
+| Van Aert | 1 min 852 W en 5 min 551 W (Giro 2025, zijn TrainingPeaks); 15 s: 13 s op 1215 W (Tirreno 2021, Velon) | 3: geen 20 minuten binnen de regel (zijn beste uur, 428 W, is te lang). Doet niet mee. |
+| Del Toro | 1 min: 69 s, 9,6 W/kg; 20 min: 22:31, 6,6 W/kg (Jebel Hafeet); 5 min: meer dan 7,5 W/kg (Finestre, Giro 2025; alle Velo) | 3: geen sprint. Doet niet mee. |
+| Vingegaard | 20 min: 22:56, ongeveer 6,9 W/kg (Marie Blanque 2023, Velo); 5 min: 7:30 op 420 W (Pila, Giro 2026, Velon) | 2. Doet niet mee. |
+| Seixas | 20 min: 23 min op 375 W, 6,1 W/kg (Lombardia 2026, Velo) | 1 (andere inspanningen te kort of te lang). Doet niet mee. |
+| Evenepoel | Drempel 425 W (lactaattest, eigen video), 38 min op 392 W (Algarve 2022) | 0 binnen de regel. Doet niet mee. |
+
+**Diamant.** Met deze waarden komen de Aliens niet in Diamant: de gemeten of geschatte
+inspanningen zijn niet hun beste ooit (Van der Poels 20 minuten komen uit een koers van
+2019), en Pogačars sprintschatting ligt onder de Smaragd-grens. De Diamant-grens verlagen
+kan niet zonder de schaal te breken.
+
 ## Bronnen
 
 - Barsumyan A et al. (2025). Durability as an independent parameter of endurance performance in cycling. *BMC Sports Sci Med Rehabil*. [doi:10.1186/s13102-025-01238-8](https://doi.org/10.1186/s13102-025-01238-8)

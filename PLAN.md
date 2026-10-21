@@ -11285,6 +11285,48 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant bij Stats, de zaal en de Aliens
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+**Waarom.** ZWBriljant gaat over je niveau en vergelijken met anderen; dat past bij Stats
+(Club, Ik, Achievements) beter dan bij het trainen in ZWBeter. De eigenaar wilde daar ook
+een zaal met ieders steen, en Aliens: profs met echte data.
+
+**Nu.**
+- **Verhuisd naar `/stats/zwbriljant`**, een vierde tab in `StatsTabs` (tegels: twee
+  kolommen op de telefoon, vier vanaf `sm`). `/zwbeter-worden/briljant` stuurt door, met
+  datum en vergelijking. Weg uit `ZWBETER_WORDEN_SECTIONS` en de pijler trainen; tegel op
+  Vandaag, hulplink, `revalidatePath` en `helpHrefFor` mee. *Daarmee kloppen de paden
+  `/zwbeter-worden/briljant` in eerdere blokken hieronder niet meer; het oude adres werkt
+  via de doorverwijzing.*
+- **De zaal** (`?met=zaal`, keuze "De zaal: alle stenen"): `hall-scene.tsx`, een lichte
+  scène met een sokkel per steen (hoogste score in het midden, tot zeven op een rij,
+  achterste rijen versprongen), labels met naam en punten; klikken zet die steen naast de
+  jouwe. Erin: jij, het ZWB-gemiddelde, iedereen die deelt (`loadHallStones`, met de sessie
+  van het lid zodat RLS beslist; vervangt `loadVisibleMembers` en `loadMemberSnapshot`) en
+  de Aliens. `glow` verhuisde naar `stone.ts` voor beide scènes.
+- **Aliens** (`src/lib/briljant/aliens.ts`): eerst alleen gemeten data, daarna op verzoek
+  ook breed geaccepteerde berekeningen (Velo, Cyclingnews, peer-reviewed), ter inspiratie.
+  Regel: een inspanning hooguit 15% korter of twee keer zo lang als de duur; minstens vier
+  onderdelen. Van de zeven gevraagde renners halen Van der Poel (4 gemeten, 758) en Pogačar
+  (4 schattingen, 829) het; Van Aert en Del Toro blijven op 3, Vingegaard, Seixas en
+  Evenepoel lager. Per renner en bron: [onderzoek](docs/zwbriljant-onderzoek.md#aliens-2026-10-21).
+  Ook als keuze bij vergelijken (groep "Aliens").
+- **Telefoon:** de tabellen in het paneel passen (vaste kolommen, een waarde mag over twee
+  regels); labels boven een tweede steen of in de zaal breken af.
+
+**Open, keuze eigenaar.** De eigenaar wil Aliens "sowieso Diamant"; met deze data komen ze
+op 829 en 758. Nog niet gebouwd tot hij kiest hoe.
+
+**Niet gebouwd.** Watts2Win en Cyclists Hub als bron (modelwaarden, niet breed
+geaccepteerd); durability, fitheid en racen voor Aliens (geen gepubliceerde waarden).
+
+**Getest.** `briljant-aliens.test.ts` (minstens vier onderdelen met bron, steen met alleen
+vermogen), tsc, ESLint, de hele suite op `omnium-live` na (lokaal `.env.local` nodig). In
+de browser met voorbeeldwaarden: de zaal op desktop, een Alien naast je steen en de tabel op
+375 px. **Niet getest:** de zaal met echte gedeelde stenen op productie.
+
 ### Gebouwd — ZWBriljant: ZRS van vroeger uit Zwift-uitslagen
 
 **2026-10-21.** Commit `13ddf7c7`. Geen migratie. Gepusht naar `main` op 2026-10-21.

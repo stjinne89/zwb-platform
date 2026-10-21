@@ -826,3 +826,34 @@
     max-width: calc(100vw - 150px);
   }
 }
+
+/* Op de telefoon passen de tabellen in het paneel: vaste kolommen, een waarde mag
+   over twee regels ("10,58" boven "W/kg"). */
+@media (max-width: 640px) {
+  .panel table {
+    table-layout: fixed;
+    font-size: 13px;
+  }
+  .panel th,
+  .panel td {
+    padding: 5px 2px;
+    overflow-wrap: break-word;
+  }
+  .panel th {
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+  .panel th:first-child,
+  .panel td:first-child {
+    width: 36%;
+  }
+  .panel h2 {
+    font-size: 28px;
+  }
+}
+
+/* Labels boven een tweede steen of in de zaal: lange namen op twee regels. */
+.summit.pair {
+  max-width: 11em;
+  white-space: normal;
+}

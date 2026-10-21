@@ -23,6 +23,6 @@ export async function setBriljantSharing(share: boolean): Promise<{ ok: boolean 
       { onConflict: "profile_id" },
     );
   if (error) return { ok: false };
-  revalidatePath("/zwbeter-worden/briljant");
+  revalidatePath("/stats/zwbriljant");
   return { ok: true };
 }

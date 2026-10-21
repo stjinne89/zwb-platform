@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { LEVELS, type Level } from "@/lib/briljant/norms";
-import { seeded, stoneGeometry, stoneMaterial, stoneShape, studioEnvironment } from "./stone";
+import { glow, seeded, stoneGeometry, stoneMaterial, stoneShape, studioEnvironment } from "./stone";
 
 /** Een steen om te tekenen: score en profielscore in punten, facetten in punten. */
 export type SceneStone = {
@@ -31,26 +31,6 @@ type Props = SceneStone & {
 
 const NIGHT = 0x0a0c0f;
 const CAMERA = new THREE.Vector3(10.5, 6.2, 12.5);
-
-/** Een zachte lichtvlek op de grond (additief), voor de spot en de kleur door de steen. */
-function glow(color: THREE.ColorRepresentation, radius: number, opacity: number) {
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = 128;
-  const context = canvas.getContext("2d")!;
-  const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
-  gradient.addColorStop(0, "rgba(255,255,255,1)");
-  gradient.addColorStop(0.35, "rgba(255,255,255,.45)");
-  gradient.addColorStop(1, "rgba(255,255,255,0)");
-  context.fillStyle = gradient;
-  context.fillRect(0, 0, 128, 128);
-  const texture = new THREE.CanvasTexture(canvas);
-  const disc = new THREE.Mesh(
-    new THREE.CircleGeometry(radius, 48),
-    new THREE.MeshBasicMaterial({ map: texture, color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false }),
-  );
-  disc.rotation.x = -Math.PI / 2;
-  return disc;
-}
 
 const stoneKey = (stone: SceneStone | null | undefined) =>
   stone ? `${stone.seed}|${stone.score}|${stone.profile}|${stone.level.n}|${stone.facets.map((f) => `${f.key}:${f.points}`).join(",")}` : "";

@@ -4,12 +4,17 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, useTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, X } from "lucide-react";
-import { setBriljantSharing } from "@/app/(app)/zwbeter-worden/briljant/actions";
+import { setBriljantSharing } from "@/app/(app)/stats/zwbriljant/actions";
 import { LEVELS, type Level } from "@/lib/briljant/norms";
 import type { BriljantView as View, FacetView, Win } from "@/lib/briljant/view";
 import type { SceneStone } from "./stone-scene";
 import { briljantSans, briljantSerif } from "./fonts";
 import styles from "./briljant.module.css";
+
+const HallScene = dynamic(() => import("./hall-scene"), {
+  ssr: false,
+  loading: () => <div className={styles.loading}>Zaal inrichten…</div>,
+});
 
 const StoneScene = dynamic(() => import("./stone-scene"), {
   ssr: false,
@@ -35,9 +40,15 @@ type Props = {
     sharing: boolean;
     /** Je mooiste steen tot nu toe, als keuze bij vergelijken. */
     best: boolean;
+    /** Er is iets om in de zaal te zetten naast je eigen steen. */
+    hall: boolean;
+    /** Profs met een steen uit hun eigen gemeten data (aliens.ts). */
+    aliens: Array<{ id: string; name: string }>;
   };
   /** Waar je het meest wint met 5% beter; leeg bij een steen uit het verleden. */
   wins: Win[];
+  /** De zaal: alle stenen die je mag zien, met de jouwe ("ik"); null buiten de zaal. */
+  hall: Array<{ id: string; name: string; view: View }> | null;
 };
 
 type Panel =
@@ -319,7 +330,7 @@ function PanelBody({
   );
 }
 
-export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, wins }: Props) {
+export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, wins, hall }: Props) {
   const labels = useRef(new Map<string, HTMLElement>());
   const [failed, setFailed] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
@@ -374,7 +385,7 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
 
   const back = () => {
     if (window.history.length > 1) router.back();
-    else router.push("/zwbeter-worden");
+    else router.push("/stats");
   };
 
   /** Datum en vergelijking staan in de adresbalk, zodat terug en delen gewoon werken. */
@@ -402,7 +413,15 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
   return (
     <div className={`${styles.root} ${briljantSerif.variable} ${briljantSans.variable}`} style={tierStyle}>
       <div className={styles.stage}>
-        {!failed && (
+        {!failed && hall && (
+          <HallScene
+            stones={hall.map((stone) => ({ ...sceneStone(stone.view), id: stone.id }))}
+            labels={labels}
+            onFailed={() => setFailed(true)}
+            rotate={!panel && !aiming}
+          />
+        )}
+        {!failed && !hall && (
           <StoneScene
             {...sceneStone(view)}
             compare={compare ? sceneStone(compare.view) : null}
@@ -468,8 +487,9 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
             )}
             <label className={styles.control}>
               <span className="sr-only">Vergelijk met</span>
-              <select value={compare?.id ?? ""} onChange={(event) => go({ met: event.target.value || null })}>
+              <select value={hall ? "zaal" : (compare?.id ?? "")} onChange={(event) => go({ met: event.target.value || null })}>
                 <option value="">Vergelijk met…</option>
+                {options.hall && <option value="zaal">De zaal: alle stenen</option>}
                 {options.best && <option value="mooiste">Mijn mooiste steen</option>}
                 {options.average && <option value="zwb">ZWB-gemiddelde</option>}
                 {options.members.map((member) => (
@@ -477,6 +497,15 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
                     {member.name}
                   </option>
                 ))}
+                {options.aliens.length > 0 && (
+                  <optgroup label="Aliens">
+                    {options.aliens.map((alien) => (
+                      <option key={alien.id} value={alien.id}>
+                        {alien.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </label>
             <div className={styles.units} role="group" aria-label="Weergave">
@@ -511,7 +540,23 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
           </ol>
         )}
 
-        {!failed ? (
+        {!failed && hall ? (
+          <div className={styles.labels} onPointerOver={() => setAiming(true)} onPointerOut={() => setAiming(false)}>
+            {/* In de zaal alleen naam en punten; kiezen zet die steen naast de jouwe. */}
+            {hall.map((stone) => (
+              <div key={stone.id} ref={setLabel(`hall:${stone.id}`)} className={styles.anchor}>
+                <button
+                  type="button"
+                  className={`${styles.summit} ${styles.pair}`}
+                  onClick={() => go({ met: stone.id === "ik" ? null : stone.id })}
+                >
+                  <b>{nl(stone.view.points)}</b>
+                  {stone.name}
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : !failed ? (
           <div
             className={styles.labels}
             // Stil zetten terwijl je een label aanwijst, zodat je raakt wat je bedoelt.

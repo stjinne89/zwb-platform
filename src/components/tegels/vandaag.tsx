@@ -178,7 +178,7 @@ export function TegelsVandaag({
 
           {briljant && (
             // ZWBeter-kleur, met het ruitje in de kleur van de klasse.
-            <Link href="/zwbeter-worden/briljant" className="tg-tile tg-zwbeter">
+            <Link href="/stats/zwbriljant" className="tg-tile tg-zwbeter">
               <span className="tg-tile-small">ZWBriljant</span>
               <span className="tg-tile-title mt-0.5 flex items-center gap-2">
                 <svg viewBox="0 0 11 16" aria-hidden className="h-4 w-[11px] shrink-0" style={{ fill: briljant.color }}>

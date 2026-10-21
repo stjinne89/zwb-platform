@@ -475,39 +475,29 @@ export async function loadSharing(admin: Admin, profileId: string): Promise<bool
 type UserClient = Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>;
 
 /**
- * De leden van wie je de steen mag zien, met hun naam. Bewust met de sessie van
- * het lid: RLS bepaalt wie zichtbaar is, niet deze code.
+ * Voor de zaal: van elk lid van wie je de steen mag zien de laatste steen, met naam.
+ * Met de sessie van het lid, zodat RLS beslist.
  */
-export async function loadVisibleMembers(supabase: UserClient, viewerId: string): Promise<Array<{ id: string; name: string }>> {
+export async function loadHallStones(
+  supabase: UserClient,
+  viewerId: string,
+): Promise<Array<{ id: string; name: string; snapshot: StoredSnapshot }>> {
   const { data, error } = await supabase
     .from("zwbriljant_snapshots")
-    .select("profile_id")
+    .select("profile_id, week, score, facets, consistency")
     .neq("profile_id", viewerId)
-    .eq("provenance->>scale", SCALE_VERSION);
+    .eq("provenance->>scale", SCALE_VERSION)
+    .not("score", "is", null)
+    .order("week", { ascending: false })
+    .limit(5000);
   if (error) return [];
-  const ids = [...new Set(((data ?? []) as Array<{ profile_id: string }>).map((row) => row.profile_id))];
-  if (ids.length === 0) return [];
-  const { data: profiles } = await supabase.from("profiles").select("id, display_name").in("id", ids);
-  return ((profiles ?? []) as Array<{ id: string; display_name: string | null }>)
-    .map((row) => ({ id: row.id, name: row.display_name?.trim() || "Lid" }))
+  const latest = new Map<string, SnapshotRecord>();
+  for (const row of (data ?? []) as SnapshotRecord[]) if (!latest.has(row.profile_id)) latest.set(row.profile_id, row);
+  if (latest.size === 0) return [];
+  const { data: profiles } = await supabase.from("profiles").select("id, display_name").in("id", [...latest.keys()]);
+  const names = new Map(((profiles ?? []) as Array<{ id: string; display_name: string | null }>).map((row) => [row.id, row.display_name?.trim() || "Lid"]));
+  return [...latest.entries()]
+    .map(([id, row]) => ({ id, name: names.get(id) ?? "Lid", snapshot: toStored(row) }))
     .sort((a, b) => a.name.localeCompare(b.name, "nl"));
 }
 
-/** De laatste steen van een ander lid, als RLS hem laat zien; anders null. */
-export async function loadMemberSnapshot(supabase: UserClient, profileId: string) {
-  const [{ data }, { data: profile }] = await Promise.all([
-    supabase
-      .from("zwbriljant_snapshots")
-      .select("profile_id, week, score, facets, consistency")
-      .eq("profile_id", profileId)
-      .eq("provenance->>scale", SCALE_VERSION)
-      .not("score", "is", null)
-      .order("week", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    supabase.from("profiles").select("display_name").eq("id", profileId).maybeSingle(),
-  ]);
-  if (!data) return null;
-  const name = (profile as { display_name: string | null } | null)?.display_name?.trim() || "Lid";
-  return { name, snapshot: toStored(data as SnapshotRecord) };
-}

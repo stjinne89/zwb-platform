@@ -191,3 +191,24 @@ export function studioEnvironment(renderer: THREE.WebGLRenderer): THREE.Texture 
   });
   return texture;
 }
+
+/** Een zachte lichtvlek op de grond (additief), voor de spot en de kleur door de steen. */
+export function glow(color: THREE.ColorRepresentation, radius: number, opacity: number) {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 128;
+  const context = canvas.getContext("2d")!;
+  const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gradient.addColorStop(0, "rgba(255,255,255,1)");
+  gradient.addColorStop(0.35, "rgba(255,255,255,.45)");
+  gradient.addColorStop(1, "rgba(255,255,255,0)");
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, 128, 128);
+  const texture = new THREE.CanvasTexture(canvas);
+  const disc = new THREE.Mesh(
+    new THREE.CircleGeometry(radius, 48),
+    new THREE.MeshBasicMaterial({ map: texture, color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false }),
+  );
+  disc.rotation.x = -Math.PI / 2;
+  return disc;
+}
+
