@@ -11286,6 +11286,19 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: terugblikken opnieuw met gewicht en TSS
+
+**2026-10-22.** Commit: de commit die dit blok toevoegt. Geen migratie. Gepusht naar `main`
+op 2026-10-22.
+
+Na de regel van vier onderdelen hadden 209 terugblikmaanden van 15 leden geen score meer:
+geen vermogen omdat er die dag geen gewicht was. `TERUGBLIK_SPAN` werd `"alles-gewicht-tss"`,
+zodat elke terugblik opnieuw wordt gemaakt (bij een bezoek of door de wekelijkse job), nu met
+het gewicht uit intervals.icu of Zwift en consistentie in TSS. De gevonden ZRS van vroeger
+blijft staan (`storeTerugblik` leest `provenance.racen = "historie"` op dezelfde schaal).
+Maanden zonder vermogensdata blijven zonder steen. **Niet nagekeken:** hoeveel maanden
+terugkomen; dat volgt na de runs van de job.
+
 ### Gebouwd — ZWBriljant: consistentie in TSS, vorm uit het profiel, museumbordjes
 
 **2026-10-21.** Commits `89913bd4` en `4a084d3d`. Geen migratie. Gepusht naar `main` op
