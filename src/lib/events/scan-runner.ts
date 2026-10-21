@@ -191,7 +191,7 @@ export async function saveConfirmedZwiftCandidate(
 // Geautoriseerde Zwift-feed-sync: ZWB-club-events plus elk ander event waar
 // minstens één ZWB'er zich op inschreef worden als bevestigd concept bewaard,
 // met de ingeschreven ZWB'ers als deelnemer (match op Zwift-ID).
-async function syncZwiftFeed(admin: AdminClient) {
+async function syncZwiftFeed(admin: AdminClient, deadline: number | null) {
   if (!zwiftClubConfigured()) return { events: 0, members: 0, note: null as string | null };
 
   const feed = await fetchFeedEvents();
@@ -200,8 +200,15 @@ async function syncZwiftFeed(admin: AdminClient) {
   const members = await loadMemberIndex(admin);
   let savedEvents = 0;
   let totalMembers = 0;
+  let skipped = 0;
 
-  for (const event of feed) {
+  // Vroegste eerst: wat niet binnen het budget past, pakt de volgende run op.
+  const ordered = [...feed].sort((a, b) => a.candidate.startAt.localeCompare(b.candidate.startAt));
+  for (const [index, event] of ordered.entries()) {
+    if (deadline !== null && Date.now() > deadline) {
+      skipped = ordered.length - index;
+      break;
+    }
     // Haal entrants op voor elk feed-event (de member-feed is al klein en
     // persoonlijk) en bewaar alleen events met een ZWB'er. Zo werkt het ook als
     // het serviceaccount zélf is ingeschreven — er is dan geen followee-signaal.
@@ -217,7 +224,9 @@ async function syncZwiftFeed(admin: AdminClient) {
   return {
     events: savedEvents,
     members: totalMembers,
-    note: `Zwift-feedsync: ${savedEvents} events met ZWB-deelname, ${totalMembers} koppelingen.`,
+    note:
+      `Zwift-feedsync: ${savedEvents} events met ZWB-deelname, ${totalMembers} koppelingen.` +
+      (skipped > 0 ? ` ${skipped} events niet bekeken (tijdsbudget).` : ""),
   };
 }
 
@@ -231,26 +240,12 @@ export type ScanSummary = {
   error: string | null;
 };
 
-/**
- * Draait een volledige scan: optioneel leden volgen, daarna de publieke
- * ZWB-relevante scan en de Zwift-feedsync. Schrijft via de admin-client.
- */
-export async function runEventScan(
+/** Publieke ZWB-relevante events scannen en als concept bewaren. */
+async function saveScannedCandidates(
   admin: AdminClient,
-  opts: { follow?: boolean } = {},
-): Promise<ScanSummary> {
-  const notes: string[] = [];
+  notes: string[],
+): Promise<{ found: number; auto: number; error: string | null }> {
   let error: string | null = null;
-
-  if (opts.follow) {
-    try {
-      const note = await followMembers(admin);
-      if (note) notes.push(note);
-    } catch (err) {
-      notes.push(err instanceof Error ? `Volgen mislukt: ${err.message}` : "Volgen mislukt.");
-    }
-  }
-
   const scan = await scanExternalEvents();
   notes.push(...scan.notes);
 
@@ -309,23 +304,62 @@ export async function runEventScan(
       }
     }
   }
+  return { found: rows.length, auto, error };
+}
+
+/** De onderdelen van een scan; de cron draait ze los (zie /api/events/scan). */
+export const SCAN_STEPS = ["follow", "scan", "feed"] as const;
+export type ScanStep = (typeof SCAN_STEPS)[number];
+
+/**
+ * Draait een scan: optioneel leden volgen, daarna de publieke ZWB-relevante
+ * scan en de Zwift-feedsync. Met `steps` alleen die onderdelen. Schrijft via de
+ * admin-client.
+ */
+export async function runEventScan(
+  admin: AdminClient,
+  opts: { follow?: boolean; steps?: readonly ScanStep[]; feedDeadline?: number } = {},
+): Promise<ScanSummary> {
+  const notes: string[] = [];
+  let error: string | null = null;
+  const steps = new Set<ScanStep>(opts.steps ?? (opts.follow ? SCAN_STEPS : ["scan", "feed"]));
+
+  if (steps.has("follow")) {
+    try {
+      const note = await followMembers(admin);
+      if (note) notes.push(note);
+    } catch (err) {
+      notes.push(err instanceof Error ? `Volgen mislukt: ${err.message}` : "Volgen mislukt.");
+    }
+  }
+
+  let found = 0;
+  let auto = 0;
+  if (steps.has("scan")) {
+    const saved = await saveScannedCandidates(admin, notes);
+    found = saved.found;
+    auto = saved.auto;
+    error = saved.error;
+  }
 
   let feedEvents = 0;
   let feedMembers = 0;
-  try {
-    const feedSync = await syncZwiftFeed(admin);
-    feedEvents = feedSync.events;
-    feedMembers = feedSync.members;
-    if (feedSync.note) notes.push(feedSync.note);
-  } catch (err) {
-    notes.push(
-      err instanceof Error ? `Zwift-feedsync mislukt: ${err.message}` : "Zwift-feedsync mislukt.",
-    );
+  if (steps.has("feed")) {
+    try {
+      const feedSync = await syncZwiftFeed(admin, opts.feedDeadline ?? null);
+      feedEvents = feedSync.events;
+      feedMembers = feedSync.members;
+      if (feedSync.note) notes.push(feedSync.note);
+    } catch (err) {
+      notes.push(
+        err instanceof Error ? `Zwift-feedsync mislukt: ${err.message}` : "Zwift-feedsync mislukt.",
+      );
+    }
   }
 
   return {
-    found: rows.length,
-    saved: error ? 0 : rows.length,
+    found,
+    saved: error ? 0 : found,
     auto,
     feedEvents,
     feedMembers,

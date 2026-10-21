@@ -11281,6 +11281,44 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — eventscan-cron terug, in vier stappen
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie.
+
+**Aanleiding.** Op Eventscan kwam sinds 2026-09-26 geen concept meer bij. Op
+cron-job.org bestond geen job voor `/api/events/scan` (13 jobs, geen mappen);
+wanneer en waarom hij verdween, is daar niet te zien. Het runbook beweerde dat
+hij dagelijks draaide. Zonder die job volgde het serviceaccount geen nieuwe
+leden, kwamen events waar ZWB'ers op inschrijven niet als concept binnen, en
+werden de startlijsten van komende omnium-edities niet bijgewerkt.
+
+**Wat er gebeurde.**
+- De eigenaar verving `EVENT_SCAN_SECRET` in Netlify (de oude waarde was als
+  secret niet meer in te zien) en zette de nieuwe in een nieuwe job "ZWB
+  Event-scan" (dagelijks 04:20, POST). De rest van de job is via Chrome
+  ingevuld; de sleutel niet.
+- Test run om 18:04: na ~20 s stonden er twee nieuwe concepten met een ZWB'er
+  als deelnemer, maar cron-job.org gaf na 30 s "Failed (timeout)". Hoger dan
+  30 s gaat de time-out daar niet. Of de omniumstap aan het eind nog liep, is
+  niet te zien.
+
+**Nu.** `/api/events/scan` neemt `?step=follow|scan|feed|omnium`; zonder `step`
+loopt alles, zoals de knop "Scan bronnen". `runEventScan` kreeg `steps`, het
+scangedeelte staat in `saveScannedCandidates`. De feedsync loopt de events op
+starttijd af en stopt na 20 s (`feedDeadline`); de melding noemt hoeveel events
+hij oversloeg. `maxDuration = 30` op de route. Op cron-job.org vier jobs met
+dezelfde sleutel, vijf minuten na elkaar vanaf 04:20 (docs/runbook.md).
+
+**Bewust niet.** Geen Netlify background function: die vraagt een andere
+opzet dan de rest van de crons, en vier korte jobs passen in wat er al is.
+
+**Getest.** `tests/unit/event-scan-route.test.ts` (sleutel, onbekende stap,
+alles zonder stap, één stap alleen), ESLint en de bestaande tests van de scan.
+`tsc` gaf alleen een fout in `briefing/_components/share-sheet.tsx`
+(`modern-screenshot` staat in `package.json` maar niet in de lokale
+`node_modules`), los van deze wijziging. Hoe lang elke stap op productie duurt,
+blijkt pas na de deploy uit de test runs op cron-job.org.
+
 ### Gebouwd — ZWBriljant: de steen, de pagina en de tegel (was de ZWBeter-berg)
 
 **2026-10-21.** Commits `d0874e29` (bouw) en `00d4d836` (privacy). Migratie
