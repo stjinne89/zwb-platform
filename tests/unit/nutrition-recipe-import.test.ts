@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  allerhandeRecipeId,
   cleanSourceUrl,
   guessRole,
   instructionBlocks,
@@ -7,17 +8,32 @@ import {
   parseIngredientLine,
   parseServings,
   pickFood,
+  recipeFromAllerhande,
   recipeFromHtml,
   searchCandidates,
   singular,
   stepsMarkdown,
 } from "@/lib/nutrition/recipe-import";
+import { translateIngredient } from "@/lib/nutrition/english-ingredients";
 
 function page(jsonLd: unknown, head = "") {
   return `<html><head>${head}<script type="application/ld+json">${JSON.stringify(jsonLd)}</script></head><body></body></html>`;
 }
 
 describe("recipeFromHtml", () => {
+  it("slaat kopjes tussen de ingrediënten over", () => {
+    const recipe = recipeFromHtml(
+      page({
+        "@type": "Recipe",
+        name: "Curry",
+        recipeIngredient: ["1 lemon", "TIKKA MASALA PASTE", "Voor de saus:", "2 cloves of garlic"],
+      }),
+      "https://www.jamieoliver.com/recipes/curry/",
+    );
+    expect(recipe?.ingredients).toEqual(["1 lemon", "2 cloves of garlic"]);
+  });
+
+
   it("leest een Recipe uit @graph, met sitenaam, foto en stappen", () => {
     const html = page(
       {
@@ -140,6 +156,17 @@ describe("parseIngredientLine", () => {
     ["1 blik tomatenblokjes (400 g)", "tomatenblokjes", 400],
     ["1 pak (500 g) penne", "penne", 500],
     ["snufje zout", "zout", 1],
+    // Engels (Jamie Oliver): de naam wordt een NEVO-zoekterm.
+    ["1 x 400g tin of plum tomatoes", "tomaat blik", 400],
+    ["½ x 400g tin of light coconut milk", "kokosmelk", 200],
+    ["5cm piece of ginger", "gemberwortel", 25],
+    ["2 cloves of garlic", "knoflook", 10],
+    ["2 onions", "ui", 200],
+    ["1 lemon", "citroen", 100],
+    ["4 large free-range eggs", "ei kippen rauw", 220],
+    ["2 tablespoons groundnut oil", "olie arachide", 30],
+    ["1 teaspoon cumin seeds", "komijnzaad", 5],
+    ["400g tin of chickpeas", "erwten kikker", 400],
   ])("%s", (line, name, grams) => {
     expect(parseIngredientLine(line)).toEqual({ line, name, grams });
   });
@@ -152,6 +179,21 @@ describe("parseIngredientLine", () => {
     });
     expect(parseIngredientLine("1 bos peterselie").grams).toBeNull();
     expect(parseIngredientLine("2 kipfilets").grams).toBeNull();
+    expect(parseIngredientLine("½ a bunch of fresh coriander")).toMatchObject({ name: "koriander", grams: null });
+    expect(parseIngredientLine("1 small handful of flaked almonds")).toMatchObject({
+      name: "noten amandelen ongezouten",
+      grams: null,
+    });
+  });
+
+  it("vertaalt alleen Engelse ingrediënten, met het hoofdwoord achteraan", () => {
+    expect(translateIngredient("skinless free range chicken breasts")).toBe("kipfilet");
+    expect(translateIngredient("groundnut or vegetable oil")).toBe("olie plantaardig");
+    expect(translateIngredient("fresh red chillies")).toBe("peper spaanse");
+    expect(translateIngredient("bay leaves")).toBe("laurier");
+    expect(translateIngredient("rode paprika")).toBe("rode paprika");
+    expect(translateIngredient("garam masala")).toBe("garam masala");
+    expect(translateIngredient("constructor")).toBe("constructor");
   });
 });
 
@@ -193,5 +235,50 @@ describe("zoektermen voor NEVO", () => {
   it("haalt volgparameters uit de bronlink", () => {
     expect(cleanSourceUrl("https://site.nl/r?id=3&utm_medium=x&fbclid=y")).toBe("https://site.nl/r?id=3");
     expect(cleanSourceUrl("http://site.nl/r")).toBeNull();
+  });
+});
+
+describe("Allerhande", () => {
+  it("haalt het receptnummer alleen uit een Allerhande-link", () => {
+    expect(allerhandeRecipeId("https://www.ah.nl/allerhande/recept/R-R1196853/broodje-vega")).toBe(1196853);
+    expect(allerhandeRecipeId(" https://ah.be/allerhande/recept/R-R42?utm_source=app ")).toBe(42);
+    expect(allerhandeRecipeId("https://www.ah.nl/allerhande/recepten-zoeken")).toBeNull();
+    expect(allerhandeRecipeId("https://ah.nl.evil.com/allerhande/recept/R-R1")).toBeNull();
+    expect(allerhandeRecipeId("geen link")).toBeNull();
+  });
+
+  it("zet het API-antwoord om naar een recept", () => {
+    const recipe = recipeFromAllerhande(
+      {
+        title: "Broodje vega 'tonijnsalade'",
+        servings: { number: 4 },
+        cookTime: 20,
+        ovenTime: 15,
+        ingredients: [{ text: "1 rode ui" }, { text: "340 g mais in blik" }, { text: " " }],
+        preparation: { steps: ["Snipper de ui.", "Meng alles. "] },
+        images: [
+          { url: "https://static.ah.nl/r_1920.jpg", width: 1920 },
+          { url: "https://static.ah.nl/r_220.jpg", width: 220 },
+          { url: "https://static.ah.nl/r_890.jpg", width: 890 },
+        ],
+      },
+      "https://www.ah.nl/allerhande/recept/R-R1196853/broodje?utm_source=x",
+    );
+    expect(recipe).toEqual({
+      title: "Broodje vega 'tonijnsalade'",
+      servings: 4,
+      minutes: 35,
+      ingredients: ["1 rode ui", "340 g mais in blik"],
+      steps_md: "1. Snipper de ui.\n2. Meng alles.",
+      image_url: "https://static.ah.nl/r_890.jpg",
+      source_name: "Allerhande",
+      source_url: "https://www.ah.nl/allerhande/recept/R-R1196853/broodje",
+    });
+  });
+
+  it("geeft null zonder titel en laat ontbrekende velden leeg", () => {
+    expect(recipeFromAllerhande({ title: " " }, "https://www.ah.nl/x")).toBeNull();
+    const recipe = recipeFromAllerhande({ title: "Soep", cookTime: null }, "https://www.ah.nl/x");
+    expect(recipe).toMatchObject({ servings: null, minutes: null, ingredients: [], steps_md: "", image_url: null });
   });
 });

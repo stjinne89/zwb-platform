@@ -1,9 +1,10 @@
 // Van een geplakte receptlink naar een voorstel voor het formulier "Eigen recept".
 //
-// Bijna elke receptsite (Allerhande, Leukerecepten, 24Kitchen, foodblogs met
+// Bijna elke receptsite (Leukerecepten, 24Kitchen, foodblogs met
 // WordPress-receptplugins) zet het recept als schema.org-Recipe in JSON-LD op
 // de pagina, omdat Google daarmee receptkaarten toont. Alleen dat lezen we; een
 // site zonder Recipe-data geeft een melding in plaats van een gok uit de HTML.
+// Allerhande weigert de pagina en gaat via de AH-API (zie fetchAllerhande).
 //
 // Ingrediënten komen als tekstregels ("200 g volkoren pasta"). Hier worden ze
 // gesplitst in een hoeveelheid in gram of ml en een naam om in NEVO te zoeken;
@@ -20,6 +21,7 @@ import {
   fetchWithCheckedRedirects,
   readCapped,
 } from "@/lib/events/link-prefill";
+import { translateIngredient } from "./english-ingredients";
 export { guessRole } from "./scale";
 
 export type ImportedRecipe = {
@@ -222,6 +224,14 @@ function clip(text: string, max: number): string {
   return text.length <= max ? text : `${text.slice(0, max - 1).trimEnd()}…`;
 }
 
+/**
+ * Een kopje tussen de ingrediënten ("TIKKA MASALA PASTE", "Voor de saus:").
+ * Sommige sites zetten dat als gewone regel in recipeIngredient.
+ */
+function isIngredientHeading(line: string): boolean {
+  return line.endsWith(":") || !/[\p{Ll}\d]/u.test(line);
+}
+
 /** Het recept uit de HTML van een receptpagina, of null als er geen Recipe-data in staat. */
 export function recipeFromHtml(html: string, pageUrl: string): ImportedRecipe | null {
   const $ = cheerio.load(html);
@@ -251,7 +261,7 @@ export function recipeFromHtml(html: string, pageUrl: string): ImportedRecipe | 
   const ingredients = ([] as unknown[])
     .concat(ld.recipeIngredient ?? ld.ingredients ?? [])
     .map((line) => (typeof line === "string" ? cleanText(line.replace(/<[^>]+>/g, " ")) : null))
-    .filter((line): line is string => Boolean(line))
+    .filter((line): line is string => Boolean(line) && !isIngredientHeading(line!))
     .slice(0, MAX_LINES);
 
   let host = "";
@@ -318,13 +328,15 @@ const UNIT_GRAMS: Array<[RegExp, number]> = [
   [/^(?:cups?)$/, 240],
   [/^(?:oz|ounces?)$/, 28],
   [/^(?:lbs?|pounds?)$/, 454],
-  [/^(?:teentjes?|tenen|teen)$/, 5],
+  [/^(?:teentjes?|tenen|teen|cloves?)$/, 5],
+  // Een stuk gember of kurkuma: "5cm piece of ginger".
+  [/^cm$/, 5],
   [/^(?:snufjes?|snuf|mespuntj?e?s?|pinch)$/, 1],
 ];
 
 /** Eenheden zonder vast gewicht: weg uit de naam, gewicht alleen uit "(400 g)". */
 const COUNT_UNITS =
-  /^(?:blikj?e?s?|blikken|pakj?e?s?|pakken|zakj?e?s?|zakken|bosj?e?s?|bossen|stuks?|plakj?e?s?|plakken|takj?e?s?|handj?e?s?|handvol|scheutj?e?s?|scheut|potj?e?s?|potten|bakj?e?s?|flesj?e?s?|cans?|slices?|cloves?)$/;
+  /^(?:blikj?e?s?|blikken|pakj?e?s?|pakken|zakj?e?s?|zakken|bosj?e?s?|bossen|stuks?|plakj?e?s?|plakken|takj?e?s?|handj?e?s?|handvol|scheutj?e?s?|scheut|potj?e?s?|potten|bakj?e?s?|flesj?e?s?|cans?|tins?|jars?|slices?|bunch(?:es)?|handfuls?|sprigs?|knobs?|pieces?|sticks?|bags?|packs?|packets?)$/;
 
 /**
  * Gewicht van één stuk bij een regel zonder eenheid ("2 uien"). Ruwe
@@ -374,7 +386,7 @@ export function parseIngredientLine(line: string): IngredientLine {
 
   // "(400 g)" bij een blik of pak: gewicht per stuk.
   const packed = /\((\d+(?:[.,]\d+)?)\s*(g|gr|gram|kg|ml|cl|dl|l)\)/i.exec(rest);
-  const perPack = packed ? numberValue(packed[1]) * unitGrams(packed[2].toLowerCase())! : null;
+  let perPack = packed ? numberValue(packed[1]) * unitGrams(packed[2].toLowerCase())! : null;
 
   let quantity: number | null = null;
   const match = QUANTITY.exec(rest);
@@ -385,6 +397,13 @@ export function parseIngredientLine(line: string): IngredientLine {
     if (!Number.isFinite(quantity) || quantity <= 0) quantity = null;
     rest = rest.slice(match[0].length);
   }
+  // Engels: "1 x 400g tin of", "½ a bunch of", "1 small handful of".
+  const times = /^[x×]\s*(\d+(?:[.,]\d+)?)\s*(g|kg|ml|cl|l)\b\s*/i.exec(rest);
+  if (times) {
+    perPack = numberValue(times[1]) * unitGrams(times[2].toLowerCase())!;
+    rest = rest.slice(times[0].length);
+  }
+  rest = rest.replace(/^(?:an?\s+)?(?:(?:small|large|medium|big|heaped|level|good|generous)\s+)?(?=\S+\s)/i, "");
 
   let grams: number | null = null;
   const unitMatch = /^([\p{L}']+)\.?(?:\s+|$)/u.exec(rest);
@@ -400,7 +419,7 @@ export function parseIngredientLine(line: string): IngredientLine {
     grams = perPack != null ? quantity * perPack : null;
   }
 
-  const name = cleanIngredientName(rest);
+  const name = translateIngredient(cleanIngredientName(rest));
   if (grams == null && quantity != null && perPack == null) {
     const piece = PIECE_GRAMS[name.split(" ")[0]] ?? PIECE_GRAMS[name.split(" ").at(-1) ?? ""];
     if (piece != null) grams = quantity * piece;
@@ -541,10 +560,127 @@ export function pickFood<T extends { name_nl: string }>(foods: T[]): T | null {
 
 export type RecipeImportResult = { ok: true; recipe: ImportedRecipe } | { ok: false; error: string };
 
+// Allerhande weigert onze server de webpagina (403, ook met een browser als
+// user-agent: de botbescherming kijkt verder dan die header). De AH-app haalt
+// recepten op uit api.ah.nl met een anoniem token, zonder login; die route
+// gebruiken we, met onze eigen user-agent. Niet gedocumenteerd, dus het kan
+// zonder aankondiging stoppen: dan krijgt het lid de gewone melding.
+
+const AH_API = "https://api.ah.nl";
+const AH_RECIPE_PATH = /^\/allerhande\/recept\/R-R(\d{1,10})(?:[/?#]|$)/i;
+const AH_TIMEOUT_MS = 8000;
+const AH_USER_AGENT = "Mozilla/5.0 (compatible; ZWB-Platform/1.0; +https://zwbcycling.nl)";
+
+/** Het receptnummer uit een Allerhande-link, of null voor elke andere link. */
+export function allerhandeRecipeId(link: string): number | null {
+  try {
+    const url = new URL(link.trim());
+    if (!/^(?:www\.)?ah\.(?:nl|be)$/i.test(url.hostname)) return null;
+    const match = AH_RECIPE_PATH.exec(url.pathname);
+    return match ? Number(match[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+export type AllerhandeRecipe = {
+  title?: unknown;
+  servings?: { number?: unknown } | null;
+  cookTime?: unknown;
+  ovenTime?: unknown;
+  ingredients?: Array<{ text?: unknown }> | null;
+  preparation?: { steps?: unknown } | null;
+  images?: Array<{ url?: unknown; width?: unknown }> | null;
+};
+
+/** Het antwoord van de AH-API als voorstel voor het formulier. */
+export function recipeFromAllerhande(data: AllerhandeRecipe, pageUrl: string): ImportedRecipe | null {
+  const title = cleanText(data.title);
+  if (!title) return null;
+  const ingredients = (data.ingredients ?? [])
+    .map((item) => cleanText(item?.text))
+    .filter((line): line is string => Boolean(line))
+    .slice(0, MAX_LINES);
+  // Bereidings- en oventijd; wachten (marineren, een nacht laten staan) niet.
+  const times = [data.cookTime, data.ovenTime].filter(
+    (value): value is number => typeof value === "number" && Number.isFinite(value) && value > 0,
+  );
+  const minutes = times.length > 0 ? Math.min(Math.round(times.reduce((sum, value) => sum + value, 0)), 600) : null;
+  // De kleinste foto van minstens 800 breed; anders de grootste die er is.
+  const images = (data.images ?? [])
+    .filter((image) => typeof image?.url === "string" && typeof image.width === "number")
+    .sort((a, b) => (a.width as number) - (b.width as number));
+  const image = images.find((item) => (item.width as number) >= 800) ?? images[images.length - 1];
+  return {
+    title: clip(title, MAX_TITLE),
+    servings: parseServings(data.servings?.number),
+    minutes,
+    ingredients,
+    steps_md: stepsMarkdown(instructionBlocks(data.preparation?.steps)),
+    image_url: httpsOnly(typeof image?.url === "string" ? image.url : null),
+    source_name: "Allerhande",
+    source_url: cleanSourceUrl(pageUrl),
+  };
+}
+
+const AH_RECIPE_QUERY = `query($id: Int!) { recipe(id: $id) {
+  title servings { number } cookTime ovenTime
+  ingredients { text } preparation { steps } images { url width }
+} }`;
+
+let ahToken: { value: string; expiresAt: number } | null = null;
+
+async function allerhandeToken(): Promise<string> {
+  if (ahToken && ahToken.expiresAt > Date.now()) return ahToken.value;
+  const response = await fetch(`${AH_API}/mobile-auth/v1/auth/token/anonymous`, {
+    method: "POST",
+    cache: "no-store",
+    headers: { "content-type": "application/json", "user-agent": AH_USER_AGENT },
+    body: JSON.stringify({ clientId: "appie" }),
+    signal: AbortSignal.timeout(AH_TIMEOUT_MS),
+  });
+  const body = (await response.json().catch(() => null)) as { access_token?: unknown; expires_in?: unknown } | null;
+  if (!response.ok || typeof body?.access_token !== "string") throw new Error("Deze site laat het recept niet ophalen.");
+  // Een week geldig; een uur eerder opnieuw, zodat een lopend verzoek niet verloopt.
+  const seconds = typeof body.expires_in === "number" ? body.expires_in : 3600;
+  ahToken = { value: body.access_token, expiresAt: Date.now() + Math.max(seconds - 3600, 60) * 1000 };
+  return ahToken.value;
+}
+
+async function fetchAllerhande(id: number, link: string): Promise<RecipeImportResult> {
+  try {
+    const response = await fetch(`${AH_API}/graphql`, {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        authorization: `Bearer ${await allerhandeToken()}`,
+        "content-type": "application/json",
+        "user-agent": AH_USER_AGENT,
+      },
+      body: JSON.stringify({ query: AH_RECIPE_QUERY, variables: { id } }),
+      signal: AbortSignal.timeout(AH_TIMEOUT_MS),
+    });
+    if (response.status === 401) ahToken = null;
+    if (!response.ok) return { ok: false, error: "Deze site laat het recept niet ophalen." };
+    const body = JSON.parse(new TextDecoder().decode(await readCapped(response, MAX_HTML_BYTES))) as {
+      data?: { recipe?: AllerhandeRecipe | null };
+    };
+    const recipe = body.data?.recipe ? recipeFromAllerhande(body.data.recipe, link.trim()) : null;
+    if (!recipe || recipe.ingredients.length === 0) {
+      return { ok: false, error: "Op deze pagina staat geen recept dat we kunnen lezen." };
+    }
+    return { ok: true, recipe };
+  } catch (err) {
+    return { ok: false, error: fetchError(err, "Kon de pagina niet bereiken.") };
+  }
+}
+
 export async function fetchRecipe(link: string): Promise<RecipeImportResult> {
+  const allerhandeId = allerhandeRecipeId(link);
+  if (allerhandeId != null) return fetchAllerhande(allerhandeId, link);
   try {
     const response = await fetchWithCheckedRedirects(link.trim(), "text/html,application/xhtml+xml");
-    // Allerhande en andere grote sites weigeren verzoeken van servers; dat omzeilen we niet.
+    // Grote sites weigeren soms verzoeken van servers; dat omzeilen we niet.
     if (response.status === 401 || response.status === 403) {
       return { ok: false, error: "Deze site laat het recept niet ophalen." };
     }

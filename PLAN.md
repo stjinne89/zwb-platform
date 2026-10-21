@@ -3633,6 +3633,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Getest.** TypeScript en eslint schoon. Met een script buiten de repo
 > nagegaan dat ZXing met dezelfde instellingen een getekende EAN-13 leest.
+> *Niet meer waar dat dit genoeg was: alleen een horizontale barcode werd
+> gelezen; een gedraaide faalde door een fout in `@zxing/browser`. Hersteld op
+> 2026-10-21, zie "barcodescanner leest ook een gedraaide barcode".*
 > **Niet getest:** een echte foto op een iPhone; hoe goed het een scheve of
 > wazige foto leest, moet in de praktijk blijken. De worktree heeft nu een eigen
 > `node_modules` (`npm ci`) in plaats van een koppeling naar de hoofdmap.
@@ -11350,12 +11353,148 @@ gegevens van andere leden.
 
 ### Gebouwd — ZWBriljant: racen zegt hoeveel ZRS tot de volgende klasse
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-21.** Commit `2cc7080e`. Geen migratie. Gepusht naar `main` op 2026-10-21.
 
 Op verzoek van de eigenaar: onder de balk van racen staat nu "nog 27 ZRS tot Saffier" in
 plaats van "64% van de schaal". De balk loopt nog steeds over de hele schaal (0 tot 1000);
 de grens is de ZRS waarbij de volgende klasse begint (`ZRS_ANCHORS`, 1000 × n ÷ 9). Bij
 1000 ZRS: "Diamant: het maximum". Getest in `briljant-view.test.ts`.
+### Gebouwd — Engelse recepten: ingrediënten naar NEVO
+
+**2026-10-21.** Commit: zie de commit "Recept van een link: Engelse
+ingrediënten naar NEVO" (`2fefd639` op de werkbranch). Geen migratie.
+Gepusht naar `main` op 2026-10-21, samen met Allerhande.
+
+**Waarom.** De eigenaar meldde dat het overnemen van ingrediënten bij Jamie
+Oliver misgaat. Nagelopen met chicken tikka masala (jamieoliver.com; de
+Nederlandse jamiemagazine.nl is een lege pagina): NEVO kent alleen Nederlandse
+namen, dus bijna niets koppelde, en wat wél koppelde was onzin. "coconut milk"
+viel terug op "milk" en vond een milkshake, "tin" vond gelatine en pastinaak,
+"tikka masala paste" vond "Pastei lever-", "chilli" ketchup. Verder werd het
+kopje "TIKKA MASALA PASTE" een ingrediënt en gaf "1 x 400g tin" geen gewicht.
+
+**Nu.**
+- **Woordenlijst** (`src/lib/nutrition/english-ingredients.ts`, ~150
+  ingrediënten): Engelse naam naar een zoekterm in de NEVO-volgorde ("olive oil"
+  → "olie olijf", "chickpeas" → "erwten kikker"). Meervouden worden herkend;
+  het laatste ingrediënt in de regel telt ("groundnut or vegetable oil" →
+  plantaardige olie). Alleen woorden die geen Nederlands zijn: een Nederlandse
+  regel verandert niet. Elke doelterm is op productie nagekeken (alleen lezen)
+  met dezelfde volgorde en keuze als `rankFoods` en `pickFood`.
+- **Parser** (`parseIngredientLine`): "1 x 400g tin of" (gewicht per stuk),
+  "½ a bunch of", "1 small handful of", garlic cloves (5 g), "5cm piece of
+  ginger" (5 g per cm), en tin, jar, bunch, handful, sprig, knob, piece en stick
+  als eenheid zonder gewicht. De naam die gezocht wordt is de vertaalde; het lid
+  ziet onder het ingrediënt nog de Engelse regel.
+- **Kopjes overslaan** (`recipeFromHtml`): een regel zonder kleine letters en
+  cijfers, of die op ":" eindigt, is een kopje en geen ingrediënt.
+
+**Resultaat** (chicken tikka masala, 24 regels na het kopje): ui 200 g,
+gemberwortel 25 g, tomaat in blik 400 g, kokosmelk 200 g, knoflook 10 g,
+komijnzaad, peper cayenne, paprikapoeder, arachideolie, tomatenpuree, geraspte
+kokos, amandelmeel en -noten, citroen, Spaanse peper, kipfilet en yoghurt
+koppelen. Koriander en garam masala staan niet in NEVO en blijven losse
+regels; ook hun knippen in tweeën vindt niets (net als kurkuma, tijm en dille).
+
+**Bewust niet.**
+- **Geen vertaling met een taalmodel.** Een woordenlijst is gratis, snel en
+  voorspelbaar; een model kost per recept en zou het lid om toestemming moeten
+  vragen zoals bij Herkennen.
+- **Geen sites die per land andere eenheden gebruiken** (cups in de VS) apart
+  behandeld: cups stonden er al (240 g).
+- **Bijvoeglijke naamwoorden als "fat-free" of "skinless"** sturen de keuze
+  niet: "fat-free natural yoghurt" wordt volle yoghurt. Het lid kiest dan zelf.
+
+**Getest.** `nutrition-recipe-import.test.ts` (45: tien Engelse regels met
+naam en gewicht, bunch en handful, de vertaling met hoofdwoord, meervoud, een
+Nederlandse regel die gelijk blijft en "constructor", kopjes overslaan). Alle
+nutrition-tests 197 groen, ESLint schoon, `tsc` alleen met de bekende
+ontbrekende `modern-screenshot`. Vijf Jamie Oliver-recepten opgehaald en hun
+zoektermen op productie nagerekend. **Niet getest:** het formulier in de app
+zelf, en andere Engelse sites dan Jamie Oliver.
+
+### Gebouwd — Allerhande-recepten via de AH-API
+
+**2026-10-21.** Commit: zie de commit "Recept van een link: Allerhande via de
+AH-API" (`1fecfa1f` op de werkbranch). Geen migratie. Gepusht naar `main` op
+2026-10-21.
+
+**Waarom.** De eigenaar wil dat een Allerhande-link werkt bij Eigen recept; het
+lid kreeg "Deze site laat het recept niet ophalen." Onderzocht: de webpagina
+geeft onze server een 403, ook met een gewone browser als user-agent (de
+botbescherming kijkt dus verder dan die header; nabootsen van een browser lost
+het niet op). De AH-app haalt recepten uit `api.ah.nl`: een anoniem token
+(`POST /mobile-auth/v1/auth/token/anonymous`, `clientId: "appie"`, geen login,
+een week geldig) en daarmee GraphQL `recipe(id)`. Dat werkt met onze eigen
+user-agent.
+
+**Nu.** `fetchRecipe` herkent `ah.nl`/`ah.be` `/allerhande/recept/R-R<nummer>`
+(`allerhandeRecipeId`) en haalt dat recept via de API (`fetchAllerhande`); elke
+andere link gaat zoals eerst via JSON-LD. `recipeFromAllerhande` zet het
+antwoord om: titel, porties, tijd (bereiden plus oven, niet wachttijd zoals
+marineren), de ingrediëntregels zoals AH ze schrijft (dus dezelfde
+`parseIngredientLine` en NEVO-koppeling), stappen, en de kleinste foto van
+minstens 800 breed van `static.ah.nl`. Bronnaam "Allerhande", bronlink de
+geplakte link zonder volgparameters. Het token wordt per serverinstantie
+bewaard tot een uur voor het verloopt; een 401 gooit het weg. `/hulp/kennis`
+zegt nu dat Allerhande werkt.
+
+**Bewust niet.**
+- **Geen gebruik van de hoeveelheden en eenheden die de API los geeft**
+  (`quantity`, `quantityUnit`): de tekstregel bevat ze ook, en zo loopt
+  Allerhande door dezelfde parser als elke andere site.
+- **Geen browser nabootsen** (headless browser of TLS-fingerprint) voor sites
+  die een 403 geven: zwaar op Netlify en een wapenwedloop.
+
+**Risico.** De API is niet gedocumenteerd en niet voor ons bedoeld; AH kan hem
+zonder aankondiging wijzigen of afschermen. Dan krijgt het lid weer "Deze site
+laat het recept niet ophalen." (token of GraphQL faalt) of "Op deze pagina staat
+geen recept dat we kunnen lezen." (ander antwoord). Of het gebruik binnen de
+voorwaarden van AH valt, is niet uitgezocht.
+
+**Getest.** `nutrition-recipe-import.test.ts` (33, waarvan 3 nieuw: het nummer
+uit de link, ook niet uit `ah.nl.evil.com`; het antwoord omzetten; ontbrekende
+velden). Live via de echte `fetchRecipe` (alleen lezen): R-R1196853 (broodje
+vega tonijnsalade, 9 ingrediënten, 8 stappen) en R-R1189405 (Zeeuwse mosselen,
+50 min); een onbekend nummer geeft de nette melding. `tsc` alleen met de
+bekende ontbrekende `modern-screenshot`, ESLint schoon. **Niet getest:** vanaf
+Netlify (een ander IP; AH kan datacenter-adressen anders behandelen) en het
+formulier in de app zelf.
+### Hersteld — barcodescanner leest ook een gedraaide barcode
+
+**2026-10-21.** Commit `7a419770`. Geen migratie. Gepusht naar `main` op 2026-10-21.
+
+**Waarom.** De eigenaar meldde dat de knop Scan in het eetdagboek niet leek te werken.
+Twee oorzaken, nagebootst op een testpagina met een getekende EAN-13 op een foto van
+3024×4032:
+- **ZXing las alleen een barcode die ongeveer horizontaal stond** (tot zo'n 30°). Bij
+  45°, 90° en 270° faalde hij. Zijn eigen draaipoging met `TRY_HARDER` crasht in
+  `@zxing/browser` 0.2.1: `HTMLCanvasElementLuminanceSource.getTempCanvasElement`
+  vergelijkt een nooit gezet veld met `null`, krijgt `undefined` en gooit "Could not
+  create a Canvas element.". Wij vingen die fout af als "geen barcode". Een staande
+  barcode op een verpakking, of een liggende in een portretfoto, las dus nooit.
+- **Tijdens het lezen gebeurde er niets zichtbaars.** Laden van ZXing en zoeken op de
+  foto duurt op een telefoon even, en het formulier toonde pas iets bij het opzoeken.
+
+**Nu.**
+- `_components/read-barcode.ts` draait de foto zelf en probeert 0°, 90°, 45° en −45°
+  (ondersteboven vangt ZXing zelf af). Op de testpagina las hij de barcode op alle twaalf
+  geprobeerde hoeken tussen 0° en 315°, in 70 tot 660 ms op de pc; een foto zonder barcode gaf
+  netjes niets.
+- `_components/meal-form.tsx`: de knop Scan toont "Bezig…" en is uitgeschakeld zolang
+  de foto wordt gelezen en opgezocht.
+
+**Niet gedaan.** Live scannen met de camera: de `Permissions-Policy` zet nog steeds
+`camera=()`, de foto blijft de route. Een kleinere barcode op een grote foto zoeken
+door ook op volle resolutie of een uitsnede te proberen: niet nodig gebleken op de
+testpagina, eerst zien of het in de praktijk nog misgaat. ZXing bijwerken: 0.2.1 is de
+nieuwste `@zxing/browser`.
+
+**Getest.** `tsc --noEmit` (alleen de bestaande fout over `modern-screenshot` in
+`share-sheet.tsx`, ontbrekend in de gedeelde `node_modules`) en ESLint schoon op de
+gewijzigde bestanden. De leesroutine op een testpagina buiten de repo, met dezelfde
+ZXing-versies. **Niet getest:** een echte foto op een iPhone, en het formulier zelf in
+de browser.
 
 ### Gebouwd — ZWBriljant: durability op de minuut, fitheid naar de spreiding
 
@@ -11820,9 +11959,10 @@ receptenboek en dagmenu. Nu niet meer: alleen clubrecepten, eigen recepten en
 wat met alle leden gedeeld is. De voorstellenpagina leest ze apart.
 
 **Bewust niet.**
-- **Allerhande werkt niet:** die site geeft onze server een 403. We doen ons
-  niet voor als browser om dat te omzeilen; het lid krijgt "Deze site laat het
-  recept niet ophalen." Getest werken Leukerecepten, 24Kitchen en BBC Good Food.
+- ~~**Allerhande werkt niet.**~~ Niet meer waar sinds 2026-10-21: Allerhande
+  gaat via de AH-API (ronde "Allerhande-recepten via de AH-API"). Andere sites
+  die een 403 geven, omzeilen we nog steeds niet. Getest werken Leukerecepten,
+  24Kitchen en BBC Good Food.
 - **"Zonder naam" is geen anonimiteit tegenover de API.** `owner_id` blijft
   leesbaar (leden lezen `profiles` al, en de app filtert overal op `owner_id`);
   de app toont dan alleen geen naam of foto. Afschermen kan met een view of
@@ -11834,8 +11974,9 @@ wat met alle leden gedeeld is. De voorstellenpagina leest ze apart.
   opent (zoals nu al met een profielfoto-URL kan).
 - **Geen beoordeling vooraf** bij delen met leden (eigenaar). Wel kan alleen de
   maker het wijzigen of terugzetten.
-- **Geen verwerking van Engelse ingrediënten** naar NEVO-namen; die blijven
-  meestal losse regels.
+- ~~**Geen verwerking van Engelse ingrediënten.**~~ Niet meer waar sinds
+  2026-10-21: een woordenlijst vertaalt gangbare Engelse ingrediënten naar een
+  NEVO-zoekterm (ronde "Engelse recepten: ingrediënten naar NEVO").
 
 **Egress.** Elke zoekterm haalt alle passende NEVO-rijen op (~100 bytes per
 rij) om de beste te kiezen; een recept van 10–15 regels kost zo grofweg
