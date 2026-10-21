@@ -559,6 +559,8 @@ export function parsePowerCurveList(payload: unknown): Array<{ id: string | null
 
 /** Zoveel periodes per aanroep; een jaar per maand is één vraag. */
 const CURVE_RANGES_PER_CALL = 12;
+/** Zoveel van die aanroepen tegelijk. */
+const CURVE_CALLS_AT_ONCE = 3;
 
 /**
  * Powercurves voor een reeks datumbereiken ("r.<van>.<tot>", zie
@@ -573,8 +575,11 @@ export async function fetchIntervalsPowerCurveRanges(
 ): Promise<Map<string, IntervalsPowerCurvePoint[]>> {
   const out = new Map<string, IntervalsPowerCurvePoint[]>();
   const now = new Date().toISOString().slice(0, 10);
+  const batches: string[][] = [];
   for (let start = 0; start < ranges.length; start += CURVE_RANGES_PER_CALL) {
-    const batch = ranges.slice(start, start + CURVE_RANGES_PER_CALL);
+    batches.push(ranges.slice(start, start + CURVE_RANGES_PER_CALL));
+  }
+  const fetchBatch = async (batch: string[]) => {
     const query = new URLSearchParams({ curves: batch.join(","), type: "Ride", includeRanks: "false", now });
     try {
       const payload = await intervalsFetchFirst<unknown>(apiKey, [
@@ -590,7 +595,13 @@ export async function fetchIntervalsPowerCurveRanges(
     } catch {
       // Deze periodes blijven leeg; de grafiek toont een gat.
     }
-  }
+  };
+  // Een paar vragen tegelijk: jaren historie duren anders tientallen seconden.
+  let next = 0;
+  const worker = async () => {
+    while (next < batches.length) await fetchBatch(batches[next++]);
+  };
+  await Promise.all(Array.from({ length: Math.min(CURVE_CALLS_AT_ONCE, batches.length) }, worker));
   return out;
 }
 

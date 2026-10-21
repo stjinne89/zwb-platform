@@ -11285,6 +11285,44 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: terugblik over je hele intervals.icu-historie
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Gepusht naar
+`main` op 2026-10-21 (na akkoord van de eigenaar op de privacyzin).
+
+**Waarom.** De datumkiezer ging maar twaalf maanden terug; de eigenaar wil zijn hele
+historie. Dat was een vaste instelling (`TERUGBLIK_MONTHS = 12`), geen grens van
+intervals.icu.
+
+**Nu.**
+- `storeTerugblik` begint bij de eerste dag met een CTL in intervals.icu (`monthsSince`),
+  met tien jaar als vangnet; zonder wellness blijft het een jaar. Maanden vóór de eerste
+  score vallen weg (`terugblikRows`).
+- Rijen krijgen `provenance.terugblik = "alles"`; `hasTerugblik` en de wekelijkse job
+  zoeken daarop, dus wie al een terugblik van twaalf maanden had, krijgt de hele
+  historie bij het volgende bezoek.
+- Veilig herschrijven: eerst de nieuwe rijen (overschrijven een eerdere terugblik, nooit
+  een weeksnapshot), pas daarna de oude terugblik buiten de nieuwe weken en oudere
+  schalen weg. Een afgebroken run (de pagina wacht hooguit 6 s) maakt zo niets kwijt.
+- Ritten en planning één keer laden voor de hele periode in plaats van per maand;
+  ritten in pagina's van 1000 (PostgREST geeft er niet meer per vraag, de oude
+  `limit(3000)` gaf bij lange historie alleen de oudste ritten).
+- `fetchIntervalsPowerCurveRanges` doet drie vragen van twaalf maanden tegelijk in plaats
+  van na elkaar; dat geldt ook voor `/stats/ik` en het weekoverzicht.
+- Privacytekst: "per maand een terugblik over je hele historie in intervals.icu" in plaats
+  van "over twaalf maanden" (akkoord eigenaar, geen nieuwe privacyversie).
+- Het deelvinkje staat weer onder de vergelijkkeuze en de zin over delen op `/hulp` is
+  hersteld (lokaal al gecommit als `c9e17e74`, gaat met deze push mee).
+
+**Niet gebouwd.** Consistentie in de terugblik telt alleen ritten die in ZWB staan
+(Strava); van vóór de Strava-koppeling is die laag of leeg, ook al staat het vermogen er
+wel. Geen weekresolutie in de terugblik: per maand houdt het aantal intervals-vragen klein.
+
+**Getest.** `briljant-snapshot` (`monthsSince`, `terugblikRows`), alle ZWBriljant- en
+intervals-tests, de hele suite op `omnium-live` na (die heeft een lokaal `.env.local`
+nodig). **Niet getest:** een echte terugblik over jaren op productie; volgt bij het
+volgende bezoek van de eigenaar.
+
 ### Hersteld — ZWBriljant: de terugblik komt terug na de nieuwe schaal
 
 **2026-10-21.** Commit `1c53fd04`. Geen migratie. Gepusht naar

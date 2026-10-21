@@ -5,9 +5,11 @@ import {
   curveRange,
   fatigueInputs,
   monthEnds,
+  monthsSince,
   mondayKey,
   powerFromCurve,
   snapshotFrom,
+  terugblikRows,
 } from "@/lib/briljant/snapshot";
 
 describe("snapshot", () => {
@@ -138,5 +140,28 @@ describe("snapshot", () => {
     expect(ends[11]).toBe("2026-09-30");
     expect(ends).toContain("2026-02-28");
     expect(curveRange("2026-09-30")).toBe("r.2026-07-03.2026-09-30");
+  });
+
+  it("telt de maanden van de historie vanaf de eerste dag, met een grens", () => {
+    expect(monthsSince("2026-10-21", "2025-10-03", 120)).toBe(12);
+    expect(monthsSince("2026-10-21", "2019-03-15", 120)).toBe(91);
+    expect(monthsSince("2026-10-21", "2010-01-01", 120)).toBe(120);
+    expect(monthsSince("2026-10-21", "2026-10-02", 120)).toBe(0);
+    expect(monthsSince("2026-10-21", null, 120)).toBe(0);
+    expect(monthEnds("2026-10-21", monthsSince("2026-10-21", "2026-07-09", 120))).toEqual([
+      "2026-07-31",
+      "2026-08-31",
+      "2026-09-30",
+    ]);
+  });
+
+  it("laat een terugblik beginnen bij de eerste maand met een score", () => {
+    const row = (score: number | null, consistency: number | null) => ({ score, consistency });
+    expect(terugblikRows([row(null, 0), row(null, 0.2), row(3.1, 0.2), row(null, null), row(null, 0.4), row(3.4, null)])).toEqual([
+      row(3.1, 0.2),
+      row(null, 0.4),
+      row(3.4, null),
+    ]);
+    expect(terugblikRows([row(null, 0.5)])).toEqual([]);
   });
 });

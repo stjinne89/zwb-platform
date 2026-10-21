@@ -27,9 +27,11 @@ import {
   fatigueInputs,
   mondayKey,
   monthEnds,
+  monthsSince,
   powerFromCurve,
   shiftDay,
   snapshotFrom,
+  terugblikRows,
   type CurvePoint,
   type PlannedWorkout,
   type RideDay,
@@ -40,7 +42,17 @@ type Admin = ReturnType<typeof createAdminClient>;
 
 /** Ouder dan dit wordt het powerprofiel in de wekelijkse job ververst. */
 const POWER_STALE_MS = 6 * 24 * 60 * 60 * 1000;
-const TERUGBLIK_MONTHS = 12;
+/**
+ * De terugblik gaat over de hele historie in intervals.icu (eigenaar, 2026-10-21),
+ * vanaf de eerste dag met een CTL; tien jaar is een vangnet, geen keuze.
+ */
+const TERUGBLIK_MAX_MONTHS = 120;
+/** Zonder wellness (geen CTL te vinden) blijft het bij een jaar. */
+const TERUGBLIK_FALLBACK_MONTHS = 12;
+/** Gezet in `provenance.terugblik`; een terugblik zonder deze waarde is van vóór de hele historie. */
+export const TERUGBLIK_SPAN = "alles";
+/** PostgREST geeft hooguit zoveel rijen per vraag. */
+const PAGE = 1000;
 /** Zoveel weken terug voor de norm (mediaan) en de reeks. */
 const HISTORY_WEEKS = 52;
 
@@ -86,14 +98,20 @@ async function loadConnection(admin: Admin, profileId: string): Promise<Interval
 
 /** Ritten op de fiets vanaf `from`, per dag in Amsterdamse tijd. */
 async function loadRides(admin: Admin, profileId: string, from: string): Promise<RideDay[]> {
-  const { data } = await admin
-    .from("strava_activities")
-    .select("start_date, moving_time_seconds, sport_type")
-    .eq("profile_id", profileId)
-    .gte("start_date", `${from}T00:00:00Z`)
-    .order("start_date", { ascending: true })
-    .limit(3000);
-  return ((data ?? []) as Array<{ start_date: string; moving_time_seconds: number | null; sport_type: string | null }>)
+  // In pagina's: over jaren historie zijn het er meer dan PostgREST in één keer geeft.
+  const rows: Array<{ start_date: string; moving_time_seconds: number | null; sport_type: string | null }> = [];
+  for (let offset = 0; ; offset += PAGE) {
+    const { data } = await admin
+      .from("strava_activities")
+      .select("start_date, moving_time_seconds, sport_type")
+      .eq("profile_id", profileId)
+      .gte("start_date", `${from}T00:00:00Z`)
+      .order("start_date", { ascending: true })
+      .range(offset, offset + PAGE - 1);
+    rows.push(...((data ?? []) as typeof rows));
+    if (!data || data.length < PAGE) break;
+  }
+  return rows
     .filter((row) => isCyclingSportType(row.sport_type))
     .map((row) => ({ day: amsterdamDayKey(new Date(row.start_date)), minutes: Math.round((row.moving_time_seconds ?? 0) / 60) }));
 }
@@ -135,14 +153,16 @@ async function loadPlanned(admin: Admin, profileId: string, from: string, to: st
 }
 
 /** De invoer voor de consistentie tot de week van `day`. */
-async function loadConsistency(admin: Admin, profileId: string, day: string, rides?: RideDay[]): Promise<ConsistencyInput> {
+async function loadConsistency(admin: Admin, profileId: string, day: string): Promise<ConsistencyInput> {
   const from = shiftDay(mondayKey(day), -HISTORY_WEEKS * 7 - 7);
   // De norm per week is wat het schema plande (zie consistencyFrom), niet de
   // beschikbaarheid: die is een plafond voor het plannen.
-  const [allRides, planned] = await Promise.all([
-    rides ? Promise.resolve(rides) : loadRides(admin, profileId, from),
-    loadPlanned(admin, profileId, from, mondayKey(day)),
-  ]);
+  const [allRides, planned] = await Promise.all([loadRides(admin, profileId, from), loadPlanned(admin, profileId, from, mondayKey(day))]);
+  return consistencyAt(allRides, planned, day);
+}
+
+/** De consistentie tot `day` uit ritten en planning die al geladen zijn (mag ruimer). */
+function consistencyAt(allRides: RideDay[], planned: PlannedWorkout[], day: string): ConsistencyInput {
   return {
     weeks: consistencyWeeks(allRides, planned, day, HISTORY_WEEKS),
     compliance: complianceFrom(planned, shiftDay(mondayKey(day), -CONSISTENCY_WEEKS * 7), day),
@@ -249,7 +269,7 @@ export async function rememberVisit(admin: Admin, profileId: string, collected: 
   ]).catch(() => null);
 }
 
-/** Heeft dit lid een terugblik op de huidige schaal? */
+/** Heeft dit lid een terugblik over de hele historie op de huidige schaal? */
 export async function hasTerugblik(admin: Admin, profileId: string): Promise<boolean> {
   const { data, error } = await admin
     .from("zwbriljant_snapshots")
@@ -257,6 +277,7 @@ export async function hasTerugblik(admin: Admin, profileId: string): Promise<boo
     .eq("profile_id", profileId)
     .eq("source", "terugblik")
     .eq("provenance->>scale", SCALE_VERSION)
+    .eq("provenance->>terugblik", TERUGBLIK_SPAN)
     .limit(1);
   // Bij een fout niet opnieuw beginnen: dat zou bij elk bezoek gebeuren.
   return error ? true : (data ?? []).length > 0;
@@ -284,34 +305,48 @@ export async function loadHistory(admin: Admin, profileId: string, today = amste
 }
 
 /**
- * Eenmalig bij het eerste gebruik: per maand van het afgelopen jaar een snapshot
- * uit intervals.icu (de beste 90 dagen tot het eind van die maand en de CTL van
- * die dag) en de consistentie tot die maand. Durability en ZRS hebben geen
- * historie en blijven leeg. Bestaande weken worden niet overschreven.
+ * Eenmalig: per maand van je hele intervals.icu-historie een snapshot (de beste 90
+ * dagen tot het eind van die maand en de CTL van die dag) en de consistentie tot die
+ * maand. Durability en ZRS hebben geen historie en blijven leeg. Weeksnapshots worden
+ * niet overschreven; een eerdere terugblik wel, en pas na het schrijven van de nieuwe
+ * gaat de oude weg, zodat een afgebroken run niets kwijtmaakt.
  */
 export async function storeTerugblik(admin: Admin, profileId: string, today = amsterdamDayKey()): Promise<number> {
   const connection = await loadConnection(admin, profileId);
-  const ends = monthEnds(today, TERUGBLIK_MONTHS);
-  const [{ data: profile }, rides] = await Promise.all([
-    admin.from("profiles").select("sex, weight_kg").eq("id", profileId).maybeSingle(),
-    loadRides(admin, profileId, shiftDay(ends[0], -HISTORY_WEEKS * 7 - 7)),
-  ]);
-  const p = profile as Pick<ProfileRow, "sex" | "weight_kg"> | null;
-
-  let curves = new Map<string, CurvePoint[]>();
   let wellness: IntervalsWellness[] = [];
   if (connection?.athlete_id) {
-    [curves, wellness] = await Promise.all([
-      fetchIntervalsPowerCurveRanges(connection.api_key, connection.athlete_id, ends.map(curveRange)).catch(
-        () => new Map<string, CurvePoint[]>(),
-      ),
-      fetchIntervalsWellness(connection.api_key, connection.athlete_id, TERUGBLIK_MONTHS * 31 + 7).catch(() => []),
-    ]);
+    wellness = await fetchIntervalsWellness(connection.api_key, connection.athlete_id, TERUGBLIK_MAX_MONTHS * 31 + 7).catch(
+      () => [],
+    );
   }
-  const byDay = new Map(wellness.map((row) => [row.id, row]));
+  const firstDay = wellness
+    .filter((row) => Number(row.ctl) > 0)
+    .reduce<string | null>((first, row) => (!first || row.id < first ? row.id : first), null);
+  const months = firstDay ? monthsSince(today, firstDay, TERUGBLIK_MAX_MONTHS) : TERUGBLIK_FALLBACK_MONTHS;
+  const ends = monthEnds(today, Math.max(1, months));
+  const from = shiftDay(ends[0], -HISTORY_WEEKS * 7 - 7);
 
-  // Per maand los, maar tegelijk: de pagina wacht hier bij het eerste bezoek op.
-  const rows: SnapshotRow[] = await Promise.all(ends.map(async (end) => {
+  const [{ data: profile }, rides, planned, curves, { data: weeks }] = await Promise.all([
+    admin.from("profiles").select("sex, weight_kg").eq("id", profileId).maybeSingle(),
+    loadRides(admin, profileId, from),
+    loadPlanned(admin, profileId, from, mondayKey(today)),
+    connection?.athlete_id
+      ? fetchIntervalsPowerCurveRanges(connection.api_key, connection.athlete_id, ends.map(curveRange)).catch(
+          () => new Map<string, CurvePoint[]>(),
+        )
+      : Promise.resolve(new Map<string, CurvePoint[]>()),
+    admin
+      .from("zwbriljant_snapshots")
+      .select("week")
+      .eq("profile_id", profileId)
+      .eq("source", "week")
+      .eq("provenance->>scale", SCALE_VERSION),
+  ]);
+  const p = profile as Pick<ProfileRow, "sex" | "weight_kg"> | null;
+  const byDay = new Map(wellness.map((row) => [row.id, row]));
+  const taken = new Set(((weeks ?? []) as Array<{ week: string }>).map((row) => row.week));
+
+  const rows = ends.map((end) => {
     const day = byDay.get(end);
     const weightKg = num(day?.weight) ?? num(p?.weight_kg);
     const ctl = day && Number.isFinite(Number(day.ctl)) ? Number(day.ctl) : null;
@@ -324,23 +359,27 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
       zrs: null,
     };
     // De week na het maandeinde: de consistentie telt dan tot en met die maand.
-    const consistency = await loadConsistency(admin, profileId, shiftDay(end, 1), rides);
-    return snapshotFrom({ profileId, day: end, source: "terugblik", input, consistency });
-  }));
+    const consistency = consistencyAt(rides, planned, shiftDay(end, 1));
+    const row = snapshotFrom({ profileId, day: end, source: "terugblik", input, consistency });
+    return { ...row, provenance: { ...row.provenance, terugblik: TERUGBLIK_SPAN } };
+  });
+  const useful = terugblikRows(rows).filter((row) => !taken.has(row.week));
 
-  const useful = rows.filter((row) => row.score != null || row.consistency != null);
-  // Snapshots van oudere schalen gaan weg: er staan alleen niveaus in, geen
-  // metingen om opnieuw mee te rekenen. De week van nu volgt direct hierna.
+  if (useful.length > 0) {
+    const { error } = await admin.from("zwbriljant_snapshots").upsert(useful, { onConflict: "profile_id,week" });
+    if (error) throw new Error(error.message);
+  }
+  // Pas nu opruimen: een eerdere terugblik buiten de nieuwe weken, en snapshots van
+  // oudere schalen (daarin staan alleen niveaus, geen metingen om mee te herrekenen).
+  const kept = useful.map((row) => row.week);
+  let stale = admin.from("zwbriljant_snapshots").delete().eq("profile_id", profileId).eq("source", "terugblik");
+  if (kept.length > 0) stale = stale.not("week", "in", `(${kept.join(",")})`);
+  await stale;
   await admin
     .from("zwbriljant_snapshots")
     .delete()
     .eq("profile_id", profileId)
     .or(`provenance->>scale.is.null,provenance->>scale.neq.${SCALE_VERSION}`);
-  if (useful.length === 0) return 0;
-  const { error } = await admin
-    .from("zwbriljant_snapshots")
-    .upsert(useful, { onConflict: "profile_id,week", ignoreDuplicates: true });
-  if (error) throw new Error(error.message);
   return useful.length;
 }
 

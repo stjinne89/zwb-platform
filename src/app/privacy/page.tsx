@@ -443,7 +443,7 @@ export default function PrivacyPage() {
             opent, bewaren we per week je score, je punten per onderdeel, je
             consistentie (een getal van 0 tot 1) en per bron alleen óf die er
             was. Geen watts, W/kg, gewicht, CTL of ZRS. De eerste keer maken we
-            een terugblik over twaalf maanden uit je intervals.icu-gegevens;
+            per maand een terugblik over je hele historie in intervals.icu;
             daarna verversen we één keer per week je vermogensprofiel en je
             Racing Score. Je steen is alleen voor jou, tenzij je hem deelt: met
             &ldquo;Deel mijn steen met leden&rdquo; zien alle goedgekeurde leden je

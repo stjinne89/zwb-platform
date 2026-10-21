@@ -26,6 +26,8 @@ export type BriljantSources = {
   ctl: boolean;
   zrs: boolean;
   rides: boolean;
+  /** Bij een terugblik: over welke periode die is gemaakt ("alles" = de hele historie). */
+  terugblik?: string;
 };
 
 export type SnapshotRow = {
@@ -180,6 +182,24 @@ export function powerFromCurve(
     return weightKg && weightKg > 0 ? watts / weightKg : null;
   };
   return { s15: at(15), m1: at(60), m5: at(300), m20: at(1200) };
+}
+
+/**
+ * Hoeveel hele maanden vóór de maand van `today` de historie teruggaat, vanaf de
+ * maand van `firstDay`; hooguit `max`. Nul zonder eerste dag.
+ */
+export function monthsSince(today: string, firstDay: string | null, max: number): number {
+  if (!firstDay) return 0;
+  const [todayYear, todayMonth] = today.split("-").map(Number);
+  const [firstYear, firstMonth] = firstDay.split("-").map(Number);
+  return Math.min(max, Math.max(0, (todayYear - firstYear) * 12 + (todayMonth - firstMonth)));
+}
+
+/** Van een terugblik de maanden vanaf de eerste met een score; daarna alles met score of consistentie. */
+export function terugblikRows<T extends Pick<SnapshotRow, "score" | "consistency">>(rows: T[]): T[] {
+  const first = rows.findIndex((row) => row.score != null);
+  if (first < 0) return [];
+  return rows.slice(first).filter((row) => row.score != null || row.consistency != null);
 }
 
 /** De laatste dag van elk van de `months` maanden vóór `today`, oud naar nieuw. */

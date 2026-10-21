@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { checkCronSecret } from "@/lib/cron/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { refreshSources, storeTerugblik, storeWeek } from "@/lib/briljant/server";
+import { TERUGBLIK_SPAN, refreshSources, storeTerugblik, storeWeek } from "@/lib/briljant/server";
 import { SCALE_VERSION } from "@/lib/briljant/norms";
 import { mondayKey } from "@/lib/briljant/snapshot";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
@@ -54,7 +54,12 @@ export async function POST(request: NextRequest) {
       .eq("week", week)
       .eq("source", "week")
       .eq("provenance->>scale", SCALE_VERSION),
-    admin.from("zwbriljant_snapshots").select("profile_id").eq("source", "terugblik").eq("provenance->>scale", SCALE_VERSION),
+    admin
+      .from("zwbriljant_snapshots")
+      .select("profile_id")
+      .eq("source", "terugblik")
+      .eq("provenance->>scale", SCALE_VERSION)
+      .eq("provenance->>terugblik", TERUGBLIK_SPAN),
   ]);
   if (error) {
     const noMigration = /zwbriljant/.test(error.message);
