@@ -226,7 +226,7 @@ describe("consistentie", () => {
   it("valt zonder schema terug op de eigen mediaan, en een week ziek breekt de reeks", () => {
     const weeks = [...Array.from({ length: 11 }, (_, i) => week(i, 5)), week(11, 0)];
     const result = consistencyFrom({ weeks, compliance: null })!;
-    expect(result).toMatchObject({ normSource: "mediaan", normHours: 5, streak: 0 });
+    expect(result).toMatchObject({ measure: "uren", normSource: "mediaan", norm: 5, streak: 0 });
     expect(result.regularity).toBeCloseTo(11 / 12, 2);
     expect(result.value).toBeCloseTo((11 / 12) * 0.5, 2);
   });
@@ -237,6 +237,17 @@ describe("consistentie", () => {
     expect(consistencyFrom({ weeks: [], compliance: null })).toBeNull();
   });
 
+  it("meet in TSS als intervals.icu de belasting geeft, en anders in uren", () => {
+    // Evenveel uren, maar de laatste week veel lichter: in TSS haal je die niet.
+    const weeks = Array.from({ length: 12 }, (_, i) => ({ ...week(i, 8), load: i === 11 ? 150 : 500, plannedLoad: null }));
+    const result = consistencyFrom({ weeks, compliance: null })!;
+    expect(result).toMatchObject({ measure: "tss", norm: 500, normSource: "mediaan", streak: 0 });
+    expect(consistencyFrom({ weeks: weeks.map(({ load, ...rest }) => rest), compliance: null })).toMatchObject({ measure: "uren", streak: 12 });
+    // Met een schema telt de geplande TSS als norm.
+    const planned = weeks.map((item) => ({ ...item, plannedLoad: 400 }));
+    expect(consistencyFrom({ weeks: planned, compliance: null })).toMatchObject({ measure: "tss", norm: 400, normSource: "schema" });
+  });
+
   it("meet elke week aan wat het schema die week plande, niet aan de beschikbaarheid", () => {
     // De weken van de eigenaar, 27 juli tot en met 12 oktober 2026: gereden en gepland.
     const ridden = [6.9, 5.3, 5.4, 6.1, 0, 6.2, 11.8, 7.6, 5.9, 6.5, 9.2, 6.0];
@@ -245,7 +256,7 @@ describe("consistentie", () => {
     const result = consistencyFrom({ weeks, compliance: 0.79 })!;
     // Alleen de week van 17 augustus (6,1 van 11,4) en die van 24 augustus (niets)
     // missen; sinds 31 augustus zeven weken op rij.
-    expect(result).toMatchObject({ streak: 7, normSource: "schema", normHours: 5.7 });
+    expect(result).toMatchObject({ streak: 7, normSource: "schema", norm: 5.7 });
     expect(result.regularity).toBeCloseTo(10 / 12, 2);
     // Tegen 11 uur beschikbaarheid (60% = 6,6 uur) waren het er maar vier, zonder reeks.
     const againstAvailability = consistencyFrom({ weeks: ridden.map((hours, i) => week(i, hours, 11)), compliance: 0.79 })!;

@@ -142,9 +142,13 @@ Geen absolute uren: die zitten al in Fitheid, en dan zou veel rijden dubbel
 tellen. Het past bij de regel dat beschikbaarheid geen belastbaarheid is.
 
 - **Regelmaat R**: het aandeel van de laatste twaalf afgesloten weken waarin je
-  minstens 60% van je eigen norm reed. Norm, **per week**: de trainingstijd die het
-  schema die week plande; een week zonder schema krijgt je eigen mediaan van de
-  weekuren over het afgelopen jaar. Meer dan de norm telt als gehaald, nooit als
+  minstens 60% van je eigen norm haalde. **Sinds 2026-10-21 in TSS** als intervals.icu
+  de trainingsbelasting geeft (de dagbelasting uit de wellness, `ctl_load`), anders
+  in uren (eigenaar: belasting zegt meer dan alleen duur). Norm, **per week**: wat het
+  schema die week plande (in TSS geschat als uren × IF² × 100, met een IF per soort
+  training: herstel 0,55, duur 0,68, tempo 0,78, drempel 0,85, VO2max 0,82, anaeroob
+  0,78, wedstrijd 0,9; het schema kent zelf geen TSS); een week zonder schema krijgt
+  je eigen mediaan over het afgelopen jaar. Meer dan de norm telt als gehaald, nooit als
   straf. Een week die er nog niet was (nieuw lid) telt als niet gereden.
   *Eerst was de norm de beschikbaarheid van de huidige week, voor alle weken. Dat
   is een plafond voor het plannen, geen doel: de eigenaar volgde sinds 31 augustus

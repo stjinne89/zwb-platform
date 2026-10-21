@@ -102,11 +102,16 @@ describe("snapshot", () => {
       3,
     );
     expect(weeks).toEqual([
-      { monday: "2026-09-28", hours: 0, plannedHours: null, plannedRecovery: false },
-      { monday: "2026-10-05", hours: 2.5, plannedHours: 6.67, plannedRecovery: false },
+      { monday: "2026-09-28", hours: 0, plannedHours: null, plannedRecovery: false, load: null, plannedLoad: null },
+      // Geplande TSS: 400 minuten duur (IF 0,68) is 6,67 × 0,4624 × 100.
+      { monday: "2026-10-05", hours: 2.5, plannedHours: 6.67, plannedRecovery: false, load: null, plannedLoad: 308 },
       // 240 van de 400 geplande minuten: onder 75%, dus een herstelweek.
-      { monday: "2026-10-12", hours: 2, plannedHours: 4, plannedRecovery: true },
+      { monday: "2026-10-12", hours: 2, plannedHours: 4, plannedRecovery: true, load: null, plannedLoad: 185 },
     ]);
+    // Met TSS per dag uit intervals.icu: vanaf de eerste dag met belasting.
+    const loads = new Map([["2026-10-06", 80], ["2026-10-08", 60], ["2026-10-14", 120]]);
+    const withLoad = consistencyWeeks([], [], "2026-10-21", 3, loads);
+    expect(withLoad.map((item) => item.load)).toEqual([null, 140, 120]);
   });
 
   it("rekent de naleving gewogen naar duur, alleen over afgesloten weken", () => {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { LEVELS, type Level } from "@/lib/briljant/norms";
+import { FACETS } from "@/lib/briljant/score";
 import { glow, seeded, stoneGeometry, stoneMaterial, stoneShape, studioEnvironment } from "./stone";
 
 /** Een steen om te tekenen: score en profielscore in punten, facetten in punten. */
@@ -31,6 +32,12 @@ type Props = SceneStone & {
 
 const NIGHT = 0x0a0c0f;
 const CAMERA = new THREE.Vector3(10.5, 6.2, 12.5);
+
+/** De punten per facet in de vaste volgorde rond de steen, null waar een facet ontbreekt. */
+export function facetPoints(stone: SceneStone): Array<number | null> {
+  const byKey = new Map(stone.facets.map((facet) => [facet.key, facet.points]));
+  return FACETS.map((key) => byKey.get(key) ?? null);
+}
 
 const stoneKey = (stone: SceneStone | null | undefined) =>
   stone ? `${stone.seed}|${stone.score}|${stone.profile}|${stone.level.n}|${stone.facets.map((f) => `${f.key}:${f.points}`).join(",")}` : "";
@@ -79,7 +86,7 @@ export default function StoneScene({ labels, onFailed, rotate, compare, ...main 
     scene.environmentIntensity = 1.15;
 
     const shapeOf = (stone: SceneStone, scale = 1) =>
-      stoneShape({ seed: stone.seed, score: stone.score, level: stone.level, facets: stone.facets.map((f) => f.points), scale });
+      stoneShape({ seed: stone.seed, score: stone.score, level: stone.level, facets: facetPoints(stone), scale });
     const shape = shapeOf(main);
     const ghost = shapeOf(main, main.profile / Math.max(1, main.score));
     const other = compare ? shapeOf(compare) : null;
@@ -221,9 +228,9 @@ export default function StoneScene({ labels, onFailed, rotate, compare, ...main 
       position: new THREE.Vector3(Math.cos(toward) * mainRadius, plinthHeight * 0.5, Math.sin(toward) * mainRadius).add(mainCenter),
       front: true,
     });
-    main.facets.forEach((facet, index) => {
+    main.facets.forEach((facet) => {
       anchors.set(`facet:${facet.key}`, {
-        position: onMain(shape.shoulders[index].clone().multiply(new THREE.Vector3(1.18, 1, 1.18))),
+        position: onMain(shape.shoulders[FACETS.indexOf(facet.key as (typeof FACETS)[number])].clone().multiply(new THREE.Vector3(1.18, 1, 1.18))),
         center: mainTop,
       });
     });

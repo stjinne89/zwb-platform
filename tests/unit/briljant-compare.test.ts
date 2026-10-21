@@ -47,7 +47,7 @@ describe("viewFromSnapshot", () => {
     expect(sprint).toMatchObject({ value: "", points: 525, source: "week van 14 september" });
     expect(sprint.meter).toMatchObject({ from: "500 punten", to: "600 punten", toLevel: LEVELS[6], note: `nog 75 punten tot ${LEVELS[6].name}` });
     expect(sprint.meter.share).toBeCloseTo(0.25, 9);
-    expect(view.consistency).toMatchObject({ value: 0.8, hitWeeks: null, streak: null, normHours: null });
+    expect(view.consistency).toMatchObject({ value: 0.8, hitWeeks: null, streak: null, norm: null });
     expect(view.delta4w).toBeNull();
   });
 });

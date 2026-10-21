@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
 import { glow, stoneGeometry, stoneMaterial, stoneShape, studioEnvironment } from "./stone";
-import type { SceneStone } from "./stone-scene";
+import { facetPoints, type SceneStone } from "./stone-scene";
 
 /** Een steen in de zaal; `id` is ook de sleutel van zijn plaatje ("hall:<id>"). */
 export type HallStone = SceneStone & { id: string };
@@ -75,7 +75,7 @@ export default function HallScene({ stones, startId, labels, onFailed, rotate }:
     };
 
     const shapes = stones.map((stone) =>
-      stoneShape({ seed: stone.seed, score: stone.score, level: stone.level, facets: stone.facets.map((f) => f.points) }),
+      stoneShape({ seed: stone.seed, score: stone.score, level: stone.level, facets: facetPoints(stone) }),
     );
     const tallest = Math.max(1, ...shapes.map((shape) => shape.height));
     const widest = Math.max(0.5, ...shapes.map((shape) => shape.radius));

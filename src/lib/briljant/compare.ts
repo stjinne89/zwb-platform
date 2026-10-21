@@ -110,7 +110,8 @@ export function viewFromSnapshot(args: {
             weeks: CONSISTENCY_WEEKS,
             streak: null,
             compliance: null,
-            normHours: null,
+            norm: null,
+            measure: null,
             normSource: null,
           },
   };

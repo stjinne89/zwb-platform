@@ -1,6 +1,8 @@
 // De steen van ZWBriljant in three.js: één ruwe edelsteen uit één stuk. De
-// facetten duwen de steen samen in hun eigen richting naar buiten (een sterk
-// facet verder dan een zwak), het omhulsel eromheen is de steen. Hoogte en
+// facetten duwen de steen samen in hun eigen, vaste richting naar buiten (een
+// sterk facet verder en hoger dan een zwak, een ontbrekend facet is een inham),
+// het omhulsel eromheen is de steen. Zo bepaalt het profiel de vorm (eigenaar,
+// 2026-10-21: eerst leek elke steen van een klasse op elkaar). Hoogte en
 // grootte zijn de score, dus consistentie maakt hem via de factor kleiner.
 // Kleur, materiaal en de kop volgen de klasse. Ontwerp: de schets die de
 // eigenaar op 2026-10-21 goedkeurde.
@@ -62,20 +64,36 @@ export type StoneShape = {
  * De punten van de steen; het omhulsel ervan is de steen. `scale` tekent
  * dezelfde vorm op een andere maat (de steen bij volledige consistentie).
  */
-export function stoneShape(args: { seed: string; score: number; level: Level; facets: number[]; scale?: number }): StoneShape {
+export function stoneShape(args: {
+  seed: string;
+  score: number;
+  level: Level;
+  /** Punten per facet in de vaste volgorde rond de steen; null als het facet ontbreekt. */
+  facets: Array<number | null>;
+  scale?: number;
+}): StoneShape {
   const rnd = seeded(args.seed);
   const habit = HABITS[args.level.n];
   const height = args.score * POINT * (args.scale ?? 1);
-  const radius = 0.38 * height;
-  const mean = args.facets.reduce((sum, value) => sum + value, 0) / Math.max(1, args.facets.length);
+  const present = args.facets.filter((value): value is number => value != null && value > 0);
+  const mean = present.reduce((sum, value) => sum + value, 0) / Math.max(1, present.length);
+  const ratio = (value: number | null) => (value != null && value > 0 ? value / Math.max(1e-6, mean) : null);
+  // Explosief (sprint en anaeroob boven je gemiddelde) is breder, een duurprofiel slanker.
+  const explosive = [args.facets[0], args.facets[1]].map(ratio).filter((value): value is number => value != null);
+  const burst = explosive.length > 0 ? explosive.reduce((sum, value) => sum + value, 0) / explosive.length - 1 : 0;
+  const radius = 0.38 * height * Math.min(1.3, Math.max(0.78, 1 + burst * 0.9));
   const n = args.facets.length;
   const gap = (2 * Math.PI) / Math.max(1, n);
-  const turn = rnd() * 2 * Math.PI;
+  // Een vaste richting per facet, met een kleine draai per lid voor wat eigenheid.
+  const turn = (rnd() - 0.5) * gap * 0.3;
   const points: THREE.Vector3[] = [];
   const shoulders = args.facets.map((value, i) => {
-    const angle = turn + i * gap + (rnd() - 0.5) * gap * 0.45;
-    const reach = radius * Math.min(1.55, Math.max(0.5, Math.pow(value / Math.max(1e-6, mean), 1.8)));
-    const y = height * (0.3 + rnd() * 0.14);
+    const angle = turn + i * gap + (rnd() - 0.5) * gap * 0.2;
+    const r = ratio(value);
+    // Sterk overdreven, zodat het profiel te zien is; een ontbrekend facet is een inham.
+    const reach = radius * (r == null ? 0.5 : Math.min(1.8, Math.max(0.42, Math.pow(r, 2.6))));
+    const lift = r == null ? 0 : Math.min(1, Math.max(0, (r - 0.7) / 0.6));
+    const y = height * (0.22 + lift * 0.26 + rnd() * 0.06);
     // Een paar punten per facet: zo krijgt elke kant meerdere ruwe vlakken.
     for (let k = 0; k < 5; k++) {
       const a = angle + (rnd() - 0.5) * 0.32;

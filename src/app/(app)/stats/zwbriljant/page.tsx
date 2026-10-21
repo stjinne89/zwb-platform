@@ -23,6 +23,7 @@ import { bestWins, briljantView } from "@/lib/briljant/view";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+import { mondayKey } from "@/lib/briljant/snapshot";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "ZWBriljant" };
@@ -139,20 +140,33 @@ export default async function BriljantPage({
     }
   }
 
-  // De zaal: je steen van nu, het ZWB-gemiddelde, iedereen die deelt en de records.
+  // De zaal: je steen van nu, het ZWB-gemiddelde, iedereen die deelt en de records,
+  // elk met een bordje: renner, woonplaats of regio (als bekend), score en datum.
+  const { data: ownProfile } = await supabase.from("profiles").select("region").eq("id", user.id).maybeSingle();
+  const ownRegion = (ownProfile as { region: string | null } | null)?.region?.trim() || null;
   const hall =
     met === "zaal"
       ? [
-          { id: "ik", name: "Jij", view: live },
+          { id: "ik", name: "Jij", region: ownRegion, date: weekLabel(mondayKey(today)), view: live },
           ...(average
-            ? [{ id: "zwb", name: "ZWB-gemiddelde", view: viewFromSnapshot({ seed: "zwb-gemiddelde", snapshot: average, source: "gemiddelde" }) }]
+            ? [
+                {
+                  id: "zwb",
+                  name: "ZWB-gemiddelde",
+                  region: `${average.members} leden`,
+                  date: weekLabel(average.week),
+                  view: viewFromSnapshot({ seed: "zwb-gemiddelde", snapshot: average, source: "gemiddelde" }),
+                },
+              ]
             : []),
           ...hallStones.map((stone) => ({
             id: stone.id,
             name: stone.name,
+            region: stone.region,
+            date: weekLabel(stone.snapshot.week),
             view: viewFromSnapshot({ seed: stone.id, snapshot: stone.snapshot, source: `week van ${weekLabel(stone.snapshot.week)}` }),
           })),
-          { id: "records", name: "Records", view: records.view },
+          { id: "records", name: "Records", region: null, date: null, view: records.view },
         ]
       : null;
 

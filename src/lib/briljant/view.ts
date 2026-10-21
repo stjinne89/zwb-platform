@@ -88,7 +88,9 @@ export type ConsistencyView = {
   weeks: number;
   streak: number | null;
   compliance: number | null;
-  normHours: number | null;
+  /** De norm per week in TSS of uren (`measure`). */
+  norm: number | null;
+  measure: "tss" | "uren" | null;
   normSource: "schema" | "mediaan" | null;
 };
 
@@ -226,7 +228,8 @@ export function briljantView(args: {
           weeks: CONSISTENCY_WEEKS,
           streak: consistency.streak,
           compliance: consistency.compliance,
-          normHours: consistency.normHours,
+          norm: consistency.norm,
+          measure: consistency.measure,
           normSource: consistency.normSource,
         }
       : null,

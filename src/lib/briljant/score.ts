@@ -305,6 +305,10 @@ export type ConsistencyWeek = {
   plannedHours: number | null;
   /** Een geplande herstelweek uit het schema: breekt de reeks niet. */
   plannedRecovery: boolean;
+  /** Gereden TSS (trainingsbelasting uit intervals.icu); null zonder intervals.icu. */
+  load?: number | null;
+  /** Geplande TSS, geschat uit duur en intensiteit van het schema; null zonder schema. */
+  plannedLoad?: number | null;
 };
 
 export type ConsistencyInput = {
@@ -324,10 +328,15 @@ export type Consistency = {
   /** N: naleving van het schema; null zonder schema (telt dan niet mee). */
   compliance: number | null;
   /**
-   * Je norm in uren per week (de mediaan over de laatste twaalf weken) en waar die
-   * vandaan komt: "schema" als de meeste weken een schema hadden.
+   * Waarin gemeten: TSS als intervals.icu de trainingsbelasting geeft (eigenaar,
+   * 2026-10-21: belasting zegt meer dan alleen duur), anders uren.
    */
-  normHours: number;
+  measure: "tss" | "uren";
+  /**
+   * Je norm per week in die maat (de mediaan over de laatste twaalf weken) en waar
+   * die vandaan komt: "schema" als de meeste weken een schema hadden.
+   */
+  norm: number;
   normSource: "schema" | "mediaan";
   /** R × (0,5 + 0,5 · V) × N, van 0 tot 1. */
   value: number;
@@ -351,15 +360,20 @@ function median(values: number[]): number {
 export function consistencyFrom(input: ConsistencyInput): Consistency | null {
   const weeks = input.weeks;
   if (weeks.length === 0) return null;
-  const usual = median(weeks.map((week) => Math.max(0, week.hours)));
-  const normOf = (week: ConsistencyWeek) => positive(week.plannedHours) ?? usual;
+  const recent = weeks.slice(-CONSISTENCY_WEEKS);
+  // TSS als die er voor de meeste recente weken is, anders uren.
+  const withLoad = recent.filter((week) => week.load != null).length;
+  const measure: Consistency["measure"] = withLoad * 2 >= recent.length && weeks.some((week) => (week.load ?? 0) > 0) ? "tss" : "uren";
+  const done = (week: ConsistencyWeek) => Math.max(0, measure === "tss" ? (week.load ?? 0) : week.hours);
+  const planned = (week: ConsistencyWeek) => positive(measure === "tss" ? week.plannedLoad : week.plannedHours);
+  const usual = median(weeks.map(done));
+  const normOf = (week: ConsistencyWeek) => planned(week) ?? usual;
   if (!weeks.some((week) => normOf(week) > 0)) return null;
 
   const counts = (week: ConsistencyWeek) => {
     const norm = normOf(week);
-    return week.plannedRecovery || (norm > 0 ? week.hours >= NORM_SHARE * norm : week.hours > 0);
+    return week.plannedRecovery || (norm > 0 ? done(week) >= NORM_SHARE * norm : done(week) > 0);
   };
-  const recent = weeks.slice(-CONSISTENCY_WEEKS);
   // Ontbrekende weken aan het begin (nieuw lid) tellen als niet gereden.
   const regularity = recent.filter(counts).length / CONSISTENCY_WEEKS;
 
@@ -375,8 +389,9 @@ export function consistencyFrom(input: ConsistencyInput): Consistency | null {
     persistence: round2(persistence),
     streak,
     compliance: compliance == null ? null : round2(compliance),
-    normHours: Math.round(median(recent.map(normOf)) * 10) / 10,
-    normSource: recent.filter((week) => positive(week.plannedHours)).length * 2 >= recent.length ? "schema" : "mediaan",
+    measure,
+    norm: measure === "tss" ? Math.round(median(recent.map(normOf))) : Math.round(median(recent.map(normOf)) * 10) / 10,
+    normSource: recent.filter((week) => planned(week)).length * 2 >= recent.length ? "schema" : "mediaan",
     value: round2(value),
   };
 }

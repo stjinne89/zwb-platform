@@ -156,22 +156,33 @@ async function loadPlanned(admin: Admin, profileId: string, from: string, to: st
       day: amsterdamDayKey(new Date(row.scheduled_at)),
       minutes: row.duration_minutes ?? 0,
       status: row.status === "completed" ? "completed" : row.status === "skipped" ? "skipped" : "planned",
+      intensity: row.intensity,
     }));
 }
 
 /** De invoer voor de consistentie tot de week van `day`. */
-async function loadConsistency(admin: Admin, profileId: string, day: string): Promise<ConsistencyInput> {
+async function loadConsistency(admin: Admin, profileId: string, day: string, loads?: Map<string, number>): Promise<ConsistencyInput> {
   const from = shiftDay(mondayKey(day), -HISTORY_WEEKS * 7 - 7);
   // De norm per week is wat het schema plande (zie consistencyFrom), niet de
   // beschikbaarheid: die is een plafond voor het plannen.
   const [allRides, planned] = await Promise.all([loadRides(admin, profileId, from), loadPlanned(admin, profileId, from, mondayKey(day))]);
-  return consistencyAt(allRides, planned, day);
+  return consistencyAt(allRides, planned, day, loads);
+}
+
+/** De TSS per dag uit de wellness van intervals.icu (de belasting voor de CTL). */
+function loadsFrom(wellness: IntervalsWellness[]): Map<string, number> {
+  const loads = new Map<string, number>();
+  for (const row of wellness) {
+    const load = Number(row.ctl_load ?? row.ctlLoad);
+    if (Number.isFinite(load)) loads.set(row.id, load);
+  }
+  return loads;
 }
 
 /** De consistentie tot `day` uit ritten en planning die al geladen zijn (mag ruimer). */
-function consistencyAt(allRides: RideDay[], planned: PlannedWorkout[], day: string): ConsistencyInput {
+function consistencyAt(allRides: RideDay[], planned: PlannedWorkout[], day: string, loads?: Map<string, number>): ConsistencyInput {
   return {
-    weeks: consistencyWeeks(allRides, planned, day, HISTORY_WEEKS),
+    weeks: consistencyWeeks(allRides, planned, day, HISTORY_WEEKS, loads),
     compliance: complianceFrom(planned, shiftDay(mondayKey(day), -CONSISTENCY_WEEKS * 7), day),
   };
 }
@@ -183,7 +194,7 @@ function latestWellness(rows: IntervalsWellness[]): IntervalsWellness | null {
 
 /** Alles wat de steen van dit lid nu nodig heeft. Ontbrekende bronnen blijven leeg. */
 export async function collectBriljant(admin: Admin, profileId: string, today = amsterdamDayKey()): Promise<Collected> {
-  const [{ data: profile }, { data: power }, connection, consistency] = await Promise.all([
+  const [{ data: profile }, { data: power }, connection] = await Promise.all([
     admin.from("profiles").select("sex, weight_kg, zwift_id").eq("id", profileId).maybeSingle(),
     admin
       .from("rider_power_profiles")
@@ -191,7 +202,6 @@ export async function collectBriljant(admin: Admin, profileId: string, today = a
       .eq("profile_id", profileId)
       .maybeSingle(),
     loadConnection(admin, profileId),
-    loadConsistency(admin, profileId, today),
   ]);
   const p = profile as ProfileRow | null;
   const pw = power as PowerRow | null;
@@ -200,8 +210,9 @@ export async function collectBriljant(admin: Admin, profileId: string, today = a
   let weather: Weather = null;
   let wellness: IntervalsWellness[] = [];
   if (connection?.athlete_id) {
-    // 90 dagen: CTL van de laatste dag, en het laatste gewicht dat er staat.
-    wellness = await fetchIntervalsWellness(connection.api_key, connection.athlete_id, 90).catch(() => []);
+    // Ruim een jaar: CTL van de laatste dag, het laatste gewicht dat er staat, en de
+    // TSS per dag voor de consistentie (die kijkt tot een jaar terug).
+    wellness = await fetchIntervalsWellness(connection.api_key, connection.athlete_id, HISTORY_WEEKS * 7 + 21).catch(() => []);
     const latest = latestWellness(wellness);
     if (latest) {
       ctl = Number(latest.ctl);
@@ -220,6 +231,7 @@ export async function collectBriljant(admin: Admin, profileId: string, today = a
     latestWellnessValue(wellness, "weight") ??
     (zwiftId ? await fetchZwiftWeightKg(String(zwiftId)).catch(() => null) : null);
   const fromCurve = powerFromCurve(pw?.curve_points ?? [], weightKg);
+  const consistency = await loadConsistency(admin, profileId, today, loadsFrom(wellness));
 
   return {
     input: {
@@ -380,6 +392,7 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
   ]);
   const p = profile as ProfileRow | null;
   const byDay = new Map(wellness.map((row) => [row.id, row]));
+  const loads = loadsFrom(wellness);
   // Racen heeft geen historie: elke maand krijgt de ZRS van nu.
   const zwiftId = zwiftIdOf(p?.zwift_id ?? null);
   // Een maand zonder gewicht: het profiel, het laatste gewicht in intervals.icu, of Zwift.
@@ -415,7 +428,7 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
       zrs,
     };
     // De week na het maandeinde: de consistentie telt dan tot en met die maand.
-    const consistency = consistencyAt(rides, planned, shiftDay(end, 1));
+    const consistency = consistencyAt(rides, planned, shiftDay(end, 1), loads);
     const earlier = zrsBefore.get(mondayKey(end));
     if (earlier != null) input.zrs = earlier;
     const row = snapshotFrom({ profileId, day: end, source: "terugblik", input, consistency });
@@ -501,7 +514,7 @@ type UserClient = Awaited<ReturnType<typeof import("@/lib/supabase/server").crea
 export async function loadHallStones(
   supabase: UserClient,
   viewerId: string,
-): Promise<Array<{ id: string; name: string; snapshot: StoredSnapshot }>> {
+): Promise<Array<{ id: string; name: string; region: string | null; snapshot: StoredSnapshot }>> {
   const { data, error } = await supabase
     .from("zwbriljant_snapshots")
     .select("profile_id, week, score, facets, consistency")
@@ -514,10 +527,19 @@ export async function loadHallStones(
   const latest = new Map<string, SnapshotRecord>();
   for (const row of (data ?? []) as SnapshotRecord[]) if (!latest.has(row.profile_id)) latest.set(row.profile_id, row);
   if (latest.size === 0) return [];
-  const { data: profiles } = await supabase.from("profiles").select("id, display_name").in("id", [...latest.keys()]);
-  const names = new Map(((profiles ?? []) as Array<{ id: string; display_name: string | null }>).map((row) => [row.id, row.display_name?.trim() || "Lid"]));
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, display_name, region, profile_visibility")
+    .in("id", [...latest.keys()]);
+  type Row = { id: string; display_name: string | null; region: string | null; profile_visibility: Record<string, boolean> | null };
+  const byId = new Map(((profiles ?? []) as Row[]).map((row) => [row.id, row]));
   return [...latest.entries()]
-    .map(([id, row]) => ({ id, name: names.get(id) ?? "Lid", snapshot: toStored(row) }))
+    .map(([id, row]) => {
+      const profile = byId.get(id);
+      // De regio alleen als het lid die op zijn profiel laat zien (zoals op /leden).
+      const region = profile?.profile_visibility?.region === false ? null : profile?.region?.trim() || null;
+      return { id, name: profile?.display_name?.trim() || "Lid", region, snapshot: toStored(row) };
+    })
     .sort((a, b) => a.name.localeCompare(b.name, "nl"));
 }
 

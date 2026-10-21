@@ -118,7 +118,29 @@ export type PlannedWorkout = {
   day: string;
   minutes: number;
   status: "planned" | "completed" | "skipped";
+  intensity?: string | null;
 };
+
+/**
+ * Geschatte intensity factor van een geplande training naar zijn soort, voor de
+ * geplande TSS (uren × IF² × 100). Een gemiddelde over de hele training, met
+ * warming-up en herstel; een inschatting van ZWB, het schema kent geen TSS.
+ */
+const PLANNED_IF: Record<string, number> = {
+  recovery: 0.55,
+  endurance: 0.68,
+  tempo: 0.78,
+  threshold: 0.85,
+  vo2max: 0.82,
+  anaerobic: 0.78,
+  race: 0.9,
+};
+
+/** De geschatte TSS van een geplande training. */
+export function plannedTss(workout: Pick<PlannedWorkout, "minutes" | "intensity">): number {
+  const factor = PLANNED_IF[workout.intensity ?? ""] ?? PLANNED_IF.endurance;
+  return (Math.max(0, workout.minutes) / 60) * factor * factor * 100;
+}
 
 /**
  * Een geplande week is een herstelweek als hij onder dit deel van de geplande
@@ -136,6 +158,8 @@ export function consistencyWeeks(
   planned: PlannedWorkout[],
   day: string,
   count: number,
+  /** TSS per dag uit intervals.icu; leeg of weggelaten zonder intervals.icu. */
+  loads?: Map<string, number>,
 ): ConsistencyWeek[] {
   const current = mondayKey(day);
   const mondays = Array.from({ length: count }, (_, index) => shiftDay(current, -7 * (count - index)));
@@ -145,9 +169,17 @@ export function consistencyWeeks(
     hours.set(monday, (hours.get(monday) ?? 0) + Math.max(0, ride.minutes) / 60);
   }
   const plannedMinutes = new Map<string, number>();
+  const plannedLoad = new Map<string, number>();
   for (const workout of planned) {
     const monday = mondayKey(workout.day);
     plannedMinutes.set(monday, (plannedMinutes.get(monday) ?? 0) + Math.max(0, workout.minutes));
+    plannedLoad.set(monday, (plannedLoad.get(monday) ?? 0) + plannedTss(workout));
+  }
+  const weekLoad = new Map<string, number>();
+  const firstLoadDay = loads && loads.size > 0 ? [...loads.keys()].sort()[0] : null;
+  for (const [loadDay, load] of loads ?? []) {
+    const monday = mondayKey(loadDay);
+    weekLoad.set(monday, (weekLoad.get(monday) ?? 0) + Math.max(0, load));
   }
   return mondays.map((monday) => {
     const plan = plannedMinutes.get(monday) ?? 0;
@@ -157,6 +189,9 @@ export function consistencyWeeks(
       hours: Math.round((hours.get(monday) ?? 0) * 100) / 100,
       plannedHours: plan > 0 ? Math.round((plan / 60) * 100) / 100 : null,
       plannedRecovery: plan > 0 && before > 0 && plan < RECOVERY_WEEK_SHARE * before,
+      // Vanaf de eerste dag met belasting in intervals.icu; een week zonder is 0 TSS.
+      load: firstLoadDay && shiftDay(monday, 6) >= firstLoadDay ? Math.round(weekLoad.get(monday) ?? 0) : null,
+      plannedLoad: plan > 0 ? Math.round(plannedLoad.get(monday) ?? 0) : null,
     };
   });
 }

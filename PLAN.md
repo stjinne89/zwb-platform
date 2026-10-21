@@ -11286,6 +11286,28 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: consistentie in TSS, vorm uit het profiel, museumbordjes
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+- **Consistentie in TSS** (eigenaar: belasting zegt meer dan duur). Per week de TSS uit de
+  dagbelasting in intervals.icu (`ctl_load`), tegen de geplande TSS (geschat uit duur en
+  soort training, `plannedTss`) of je eigen mediaan; zonder intervals.icu blijft het uren.
+  `Consistency.normHours` werd `norm` met `measure` ("tss" of "uren"); het paneel zegt nu
+  "je geplande TSS gereden (meestal N TSS)".
+- **De vorm volgt het profiel.** Elk facet heeft een vaste richting rond de steen (in de
+  volgorde van `FACETS`), een sterk facet steekt verder en hoger uit (exponent 2,6, was
+  1,8), een ontbrekend facet is een inham, en een explosief profiel (sprint en anaeroob
+  boven je gemiddelde) maakt de steen breder, een duurprofiel slanker. Eerst leek elke
+  steen van een klasse op elkaar: de richtingen waren willekeurig en de kop per klasse
+  bepaalde het silhouet.
+- **Museumbordje** op de sokkel in de zaal: gebroken wit kaartje met renner, woonplaats of
+  regio (alleen als het lid die op zijn profiel laat zien), score en klasse, en de datum
+  (de week van de steen).
+
+**Getest.** TSS-consistentie in `briljant-score` en `briljant-snapshot`, tsc, ESLint.
+**Niet getest:** de TSS uit intervals.icu op productie.
+
 ### Gebouwd — ZWBriljant: gewicht, vier onderdelen, gekleurde tegel en het museum
 
 **2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.

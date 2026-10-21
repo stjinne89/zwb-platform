@@ -55,7 +55,7 @@ type Props = {
   /** Waar je het meest wint met 5% beter; leeg bij een steen uit het verleden. */
   wins: Win[];
   /** De zaal: alle stenen die je mag zien, met de jouwe ("ik"); null buiten de zaal. */
-  hall: Array<{ id: string; name: string; view: View }> | null;
+  hall: Array<{ id: string; name: string; view: View; region?: string | null; date?: string | null }> | null;
 };
 
 type Panel =
@@ -250,14 +250,18 @@ function PanelBody({
           Consistentie<span className={styles.pts}>{Math.round(c.value * 100)}%</span>
         </h2>
         <dl>
-          {c.hitWeeks != null && c.normHours != null && (
+          {c.hitWeeks != null && c.norm != null && (
             <>
               <dt>Regelmaat</dt>
               <dd>
                 {c.hitWeeks} van de {c.weeks} weken minstens 60% van{" "}
-                {c.normSource === "schema"
-                  ? `je geplande trainingstijd gereden (meestal ${nl(c.normHours, 1)} uur)`
-                  : `je gebruikelijke weekuren gereden (${nl(c.normHours, 1)} uur)`}
+                {c.measure === "tss"
+                  ? c.normSource === "schema"
+                    ? `je geplande TSS gereden (meestal ${nl(c.norm)} TSS)`
+                    : `je gebruikelijke week-TSS gereden (${nl(c.norm)} TSS)`
+                  : c.normSource === "schema"
+                    ? `je geplande trainingstijd gereden (meestal ${nl(c.norm, 1)} uur)`
+                    : `je gebruikelijke weekuren gereden (${nl(c.norm, 1)} uur)`}
               </dd>
             </>
           )}
@@ -549,13 +553,16 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
 
         {!failed && hall ? (
           <div className={styles.labels} onPointerOver={() => setAiming(true)} onPointerOut={() => setAiming(false)}>
-            {/* Het plaatje op de sokkel: naam, punten en klasse; kiezen zet die steen naast de jouwe. */}
+            {/* Het bordje op de sokkel, zoals in een museum; kiezen zet die steen naast de jouwe. */}
             {hall.map((stone) => (
               <div key={stone.id} ref={setLabel(`hall:${stone.id}`)} className={styles.anchor}>
                 <button type="button" className={styles.plaque} onClick={() => go({ met: stone.id === "ik" ? null : stone.id })}>
-                  <span>{stone.name}</span>
-                  <b>{nl(stone.view.points)}</b>
-                  <small>{stone.view.level.name}</small>
+                  <b>{stone.name}</b>
+                  {stone.region && <i>{stone.region}</i>}
+                  <span>
+                    {nl(stone.view.points)} punten · {stone.view.level.name}
+                  </span>
+                  {stone.date && <small>{stone.date}</small>}
                 </button>
               </div>
             ))}
