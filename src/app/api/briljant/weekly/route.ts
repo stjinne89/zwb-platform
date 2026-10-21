@@ -1,16 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { checkCronSecret } from "@/lib/cron/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { refreshSources, storeTerugblik, storeWeek } from "@/lib/berg/server";
-import { mondayKey } from "@/lib/berg/snapshot";
+import { refreshSources, storeTerugblik, storeWeek } from "@/lib/briljant/server";
+import { mondayKey } from "@/lib/briljant/snapshot";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
-// De ZWBeter-berg (migratie 0265): per lid dat de berg gebruikt de snapshot van
+// ZWBriljant (migratie 0265): per lid dat ZWBriljant gebruikt de snapshot van
 // deze week, na het verversen van powerprofiel en ZRS. Wie deze week al een
 // snapshot heeft, slaat de run over; per run hooguit `limit` leden binnen het
 // budget. Een lid zonder terugblik krijgt die eerst.
 //
-// Bearer-token via BERG_WEEKLY_SECRET. Draait elk uur op cron-job.org (zie
+// Bearer-token via BRILJANT_WEEKLY_SECRET. Draait elk uur op cron-job.org (zie
 // docs/runbook.md): zo komen alle deelnemers in de loop van maandag aan de beurt.
 
 export const maxDuration = 30;
@@ -23,7 +23,7 @@ const BUDGET_MS = 15_000;
 const ZRS_BUDGET_MS = 3_000;
 
 export async function POST(request: NextRequest) {
-  const auth = checkCronSecret(request, "BERG_WEEKLY_SECRET");
+  const auth = checkCronSecret(request, "BRILJANT_WEEKLY_SECRET");
   if (!auth.ok) return new NextResponse(auth.message, { status: 403 });
 
   const limitParam = Number(request.nextUrl.searchParams.get("limit"));
@@ -43,12 +43,12 @@ export async function POST(request: NextRequest) {
   const today = amsterdamDayKey();
   const week = mondayKey(today);
   const [{ data: members, error }, { data: done }, { data: looked }] = await Promise.all([
-    admin.from("zwbeter_berg_preferences").select("profile_id").order("created_at", { ascending: true }),
-    admin.from("zwbeter_berg_snapshots").select("profile_id").eq("week", week).eq("source", "week"),
-    admin.from("zwbeter_berg_snapshots").select("profile_id").eq("source", "terugblik"),
+    admin.from("zwbriljant_preferences").select("profile_id").order("created_at", { ascending: true }),
+    admin.from("zwbriljant_snapshots").select("profile_id").eq("week", week).eq("source", "week"),
+    admin.from("zwbriljant_snapshots").select("profile_id").eq("source", "terugblik"),
   ]);
   if (error) {
-    const noMigration = /zwbeter_berg/.test(error.message);
+    const noMigration = /zwbriljant/.test(error.message);
     return NextResponse.json(
       { ok: false, error: noMigration ? "migratie 0265 ontbreekt" : error.message },
       { status: 500 },

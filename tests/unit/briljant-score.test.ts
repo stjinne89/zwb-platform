@@ -1,26 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { CTL_ANCHORS, DURABILITY_ANCHORS, LEVELS, RIDGE_WEIGHTS, ZRS_ANCHORS, powerAnchors } from "@/lib/berg/norms";
+import { CTL_ANCHORS, DURABILITY_ANCHORS, LEVELS, FACET_WEIGHTS, ZRS_ANCHORS, levelOf, powerAnchors } from "@/lib/briljant/norms";
 import {
-  RIDGES,
+  FACETS,
   clubPercentile,
   consistencyFrom,
   durabilityDecline,
   effectiveWeights,
-  footWidth,
   consistencyFactor,
   formatScore,
   levelAt,
   points,
   positionFor,
-  ridgeLevels,
-  ridgeReach,
-  ridgeReadings,
+  facetLevels,
+  facetReadings,
   scaleStep,
   scoreFor,
   selfFrame,
-  type BergInput,
+  type BriljantInput,
   type ConsistencyWeek,
-} from "@/lib/berg/score";
+} from "@/lib/briljant/score";
 
 describe("schaal", () => {
   it("geeft bij elke ijkwaarde precies dat niveau", () => {
@@ -62,18 +60,29 @@ describe("schaal", () => {
     expect(levelAt(DURABILITY_ANCHORS, 0.5)).toBeGreaterThan(9);
   });
 
-  it("laat ZRS als rechte lijn lopen, los van Zwift's categorieën: 1000 is Aliens", () => {
+  it("laat ZRS als rechte lijn lopen, los van Zwift's categorieën: 1000 is Diamant", () => {
     expect(levelAt(ZRS_ANCHORS, 1000)).toBeCloseTo(9, 9);
     expect(levelAt(ZRS_ANCHORS, 640)).toBeCloseTo(5.76, 4);
     expect(levelAt(ZRS_ANCHORS, 333)).toBeCloseTo(3, 2);
     expect(levelAt(CTL_ANCHORS, 180)).toBeCloseTo(9, 9);
   });
 
-  it("heeft negen niveaus met een naam, Aliens bovenaan", () => {
-    expect(LEVELS).toHaveLength(9);
-    expect(LEVELS[7]).toEqual({ n: 8, name: "Wereldtop" });
-    expect(LEVELS[8]).toEqual({ n: 9, name: "Aliens" });
+  it("heeft de tien vELO-klassen, Koper onderaan en Diamant bovenaan", () => {
+    expect(LEVELS.map((level) => level.name)).toEqual([
+      "Koper", "Brons", "Zilver", "Goud", "Platina", "Amethist", "Saffier", "Smaragd", "Robijn", "Diamant",
+    ]);
+    expect(LEVELS.every((level, index) => level.n === index)).toBe(true);
+    expect(LEVELS[9]).toMatchObject({ color: "#82d5f7", kind: "edelsteen" });
+    expect(LEVELS[4]).toMatchObject({ name: "Platina", kind: "metaal" });
     expect(powerAnchors("m20", "man").levels[8]).toBe(7.1);
+  });
+
+  it("vindt de klasse bij een niveau, ook onder 1 en voorbij 9", () => {
+    expect(levelOf(0.4).name).toBe("Koper");
+    expect(levelOf(4.27).name).toBe("Platina");
+    expect(levelOf(5).name).toBe("Amethist");
+    expect(levelOf(10.2).name).toBe("Diamant");
+    expect(levelOf(-1).name).toBe("Koper");
   });
 
   it("geeft vrouwen voor hetzelfde vermogen een hoger niveau", () => {
@@ -84,14 +93,14 @@ describe("schaal", () => {
 
 describe("niveaus", () => {
   it("noemt het gehaalde niveau en hoeveel punten er nog moeten", () => {
-    expect(positionFor(4.55)).toEqual({ reached: LEVELS[3], next: LEVELS[4], toNext: 45 });
-    expect(positionFor(0.6)).toEqual({ reached: null, next: LEVELS[0], toNext: 40 });
-    expect(positionFor(5)).toMatchObject({ reached: { name: "Sterke amateur" } });
+    expect(positionFor(4.55)).toEqual({ reached: LEVELS[4], next: LEVELS[5], toNext: 45 });
+    expect(positionFor(0.6)).toEqual({ reached: LEVELS[0], next: LEVELS[1], toNext: 40 });
+    expect(positionFor(5)).toMatchObject({ reached: { name: "Amethist" } });
   });
 
-  it("telt voorbij Aliens gewoon door", () => {
-    expect(positionFor(8.3)).toEqual({ reached: LEVELS[7], next: LEVELS[8], toNext: 70 });
-    expect(positionFor(9.3)).toEqual({ reached: LEVELS[8], next: null, toNext: 0 });
+  it("telt voorbij Diamant gewoon door", () => {
+    expect(positionFor(8.3)).toEqual({ reached: LEVELS[8], next: LEVELS[9], toNext: 70 });
+    expect(positionFor(9.3)).toEqual({ reached: LEVELS[9], next: null, toNext: 0 });
     expect(formatScore(10.2)).toBe("1.020");
   });
 
@@ -104,9 +113,9 @@ describe("niveaus", () => {
   });
 });
 
-describe("graten en score", () => {
+describe("facetten en score", () => {
   // Het voorbeeld van de eigenaar (man), uit de fork van 2026-10-21.
-  const rider: BergInput = {
+  const rider: BriljantInput = {
     sex: "man",
     weightKg: 75,
     power: { s15: 13.2, m1: 7.6, m5: 5.1, m20: 4.3 },
@@ -116,8 +125,8 @@ describe("graten en score", () => {
     zrs: 640,
   };
 
-  it("rekent elke graat om naar een niveau", () => {
-    const levels = ridgeLevels(rider);
+  it("rekent elke facet om naar een niveau", () => {
+    const levels = facetLevels(rider);
     expect(levels.sprint).toBeCloseTo(4.8, 6);
     expect(levels.anaeroob).toBeCloseTo(4.25, 6);
     expect(levels.vo2max).toBeCloseTo(4.4286, 4);
@@ -127,12 +136,12 @@ describe("graten en score", () => {
     expect(levels.racen).toBeCloseTo(5.76, 4);
   });
 
-  it("weegt de graten naar de literatuur: 5 minuten het zwaarst, fitheid het lichtst", () => {
-    expect(Object.values(RIDGE_WEIGHTS).reduce((sum, weight) => sum + weight, 0)).toBeCloseTo(1, 9);
-    expect(RIDGE_WEIGHTS.sprint + RIDGE_WEIGHTS.anaeroob + RIDGE_WEIGHTS.vo2max + RIDGE_WEIGHTS.drempel).toBeCloseTo(0.6, 9);
+  it("weegt de facetten naar de literatuur: 5 minuten het zwaarst, fitheid het lichtst", () => {
+    expect(Object.values(FACET_WEIGHTS).reduce((sum, weight) => sum + weight, 0)).toBeCloseTo(1, 9);
+    expect(FACET_WEIGHTS.sprint + FACET_WEIGHTS.anaeroob + FACET_WEIGHTS.vo2max + FACET_WEIGHTS.drempel).toBeCloseTo(0.6, 9);
     // 4,8 × 7,5% + 4,25 × 12,5% + 4,4286 × 22,5% + 4,5 × 17,5% + 4,5714 × 15%
     // + 4,65 × 10% + 5,76 × 15% = 4,6899.
-    expect(scoreFor(ridgeLevels(rider))).toBe(4.69);
+    expect(scoreFor(facetLevels(rider))).toBe(4.69);
   });
 
   it("laat consistentie tot 20% meetellen als factor", () => {
@@ -142,12 +151,12 @@ describe("graten en score", () => {
     // Geen ritgegevens: ontbrekende gegevens kosten niets.
     expect(consistencyFactor(null)).toBe(1);
     // 4,6899 × 0,91 = 4,27: op het scherm 427 punten.
-    expect(scoreFor(ridgeLevels(rider), 0.55)).toBe(4.27);
-    expect(scoreFor(ridgeLevels(rider), 1)).toBe(4.69);
+    expect(scoreFor(facetLevels(rider), 0.55)).toBe(4.27);
+    expect(scoreFor(facetLevels(rider), 1)).toBe(4.69);
   });
 
-  it("normaliseert de gewichten opnieuw als een graat ontbreekt", () => {
-    const levels = ridgeLevels({ ...rider, zrs: null });
+  it("normaliseert de gewichten opnieuw als een facet ontbreekt", () => {
+    const levels = facetLevels({ ...rider, zrs: null });
     const weights = effectiveWeights(levels);
     expect(weights.racen).toBeUndefined();
     expect(weights.durability).toBeCloseTo(0.15 / 0.85, 9);
@@ -155,11 +164,11 @@ describe("graten en score", () => {
   });
 
   it("laat ontbrekende gegevens weg in plaats van ze te verzinnen", () => {
-    const empty = ridgeLevels({ sex: null, weightKg: null, power: null, fatigue: [], ctl: null, zrs: null });
-    expect(RIDGES.every((ridge) => empty[ridge] == null)).toBe(true);
+    const empty = facetLevels({ sex: null, weightKg: null, power: null, fatigue: [], ctl: null, zrs: null });
+    expect(FACETS.every((facet) => empty[facet] == null)).toBe(true);
     expect(scoreFor(empty)).toBeNull();
-    expect(scoreFor(ridgeLevels({ ...rider, power: null, fatigue: [], zrs: null }))).toBeNull();
-    expect(ridgeReadings({ ...rider, power: { s15: null, m1: 7.6, m5: null, m20: null } }).sprint).toBeNull();
+    expect(scoreFor(facetLevels({ ...rider, power: null, fatigue: [], zrs: null }))).toBeNull();
+    expect(facetReadings({ ...rider, power: { s15: null, m1: 7.6, m5: null, m20: null } }).sprint).toBeNull();
   });
 
   it("telt durability pas na genoeg werk, en meer vermogen na het werk als geen verval", () => {
@@ -168,11 +177,6 @@ describe("graten en score", () => {
     expect(durabilityDecline([{ afterKj: 1500, freshWatts: 300, fatiguedWatts: 285 }], null)).toBeNull();
   });
 
-  it("geeft de vorm los van het niveau: lengte van een graat = (niveau ÷ score)^1,8", () => {
-    expect(ridgeReach(4.55, 4.55)).toBeCloseTo(1, 9);
-    expect(ridgeReach(6, 4)).toBeCloseTo(Math.pow(1.5, 1.8), 9);
-    expect(ridgeReach(null, 4)).toBeNull();
-  });
 });
 
 describe("consistentie", () => {
@@ -216,11 +220,6 @@ describe("consistentie", () => {
     expect(consistencyFrom({ weeks: [], normHours: 5, compliance: null })).toBeNull();
   });
 
-  it("maakt de voet breder bij meer consistentie", () => {
-    expect(footWidth(1)).toBe(1);
-    expect(footWidth(0.64)).toBeCloseTo(0.856, 9);
-    expect(footWidth(null)).toBeCloseTo(0.6, 9);
-  });
 });
 
 describe("kaders", () => {

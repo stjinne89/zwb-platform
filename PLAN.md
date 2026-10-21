@@ -284,7 +284,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0266`
-(`0265_zwbeter_berg` is van de ZWBeter-berg, 2026-10-21, **nog niet toegepast**;
+(`0265_zwbriljant` is van ZWBriljant (eerst `0265_zwbeter_berg`), 2026-10-21, **nog niet toegepast**;
 `0264_nutrition_recipe_sharing` is van recepten van een link en delen met
 alle leden, 2026-10-21, toegepast op 2026-10-21;
 `0263_race_briefing_sheet` is van het aanpasbare racebriefje, 2026-10-20;
@@ -11281,7 +11281,76 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: de steen, de pagina en de tegel (was de ZWBeter-berg)
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Migratie `0265_zwbriljant.sql`
+(hernoemd en aangepast, **nog steeds niet toegepast**; dat mocht dus nog). Niet gepusht.
+
+**Waarom.** De eigenaar koos na schetsen voor één ruwe edelsteen in plaats van een berg,
+met de klassen van vELO ("alle referenties naar bergen ombuigen naar edelstenen"), en gaf
+de naam: ZWBriljant. Daarna mocht de pagina gebouwd worden.
+
+**Hernoemd.** `src/lib/berg/` → `src/lib/briljant/`; graten → facetten (`FACETS`,
+`Facet`, `FACET_WEIGHTS`, `facetLevels`, …; `BergInput` → `BriljantInput`); tabellen
+`zwbeter_berg_preferences`/`_snapshots` → `zwbriljant_preferences`/`_snapshots`, kolom
+`ridges` → `facets`, functie `zwbriljant_shares`; `POST /api/berg/weekly` →
+`/api/briljant/weekly` met `BRILJANT_WEEKLY_SECRET`; tests `briljant-*.test.ts`;
+onderzoek [zwbriljant-onderzoek.md](docs/zwbriljant-onderzoek.md).
+
+**Nu.**
+- **Klassen** (`LEVELS`, `levelOf`): Koper (0–99), Brons, Zilver, Goud, Platina,
+  Amethist, Saffier, Smaragd, Robijn en Diamant (900+, de recordwaarden), met de kleuren
+  van vELO en een soort (metaal of edelsteen). De grenzen blijven die van ZWB, 100 punten
+  per klasse. `positionFor` geeft altijd een klasse (onder 100 punten Koper).
+- **De pagina** `/zwbeter-worden/briljant` (in de tabbalk en de pijler trainen): de
+  server verzamelt live (`collectBriljant`), `briljantView` (`view.ts`, puur) maakt er
+  score, klasse, per facet de balk en de consistentie van. De steen in three.js
+  (`src/components/briljant/`): één convex omhulsel waarin elk facet de steen naar buiten
+  duwt, grootte = score, gouden draadmodel = de steen bij volledige consistentie, kleur
+  en kop naar de klasse, op een sokkel in een donkere studio met de tien klassen als
+  ijkstenen. Labels draaien mee en zijn knoppen; een paneel toont per facet de meting als
+  balk (racen over 0–1000 ZRS), de score als tabel en de consistentie, zonder formules.
+  Eigen register: Cormorant Garamond en Jost (`fonts.ts`, zonder preload). Zonder WebGL
+  een vlakke steen en de facetten als lijst; verminderde beweging zet het draaien uit;
+  op een staand scherm staat de camera verder weg.
+- **Bij het openen** (`rememberVisit`): een voorkeursrij zonder toestemming om te delen,
+  zodat de wekelijkse job het lid meeneemt, en de snapshot van deze week uit wat de pagina
+  toch al ophaalde. `loadHistory` geeft de twaalf weken ervoor voor "+x punten in 4 weken".
+  Zonder migratie werkt de pagina, zonder historie.
+- **Tegel op Vandaag** (design tegels): klasse en punten uit de laatste snapshot, met het
+  ruitje in de kleur van de klasse; zonder snapshot geen tegel.
+- **/hulp** (`/hulp/training#zwbriljant`): klassen met de drempelnormen, facetten en
+  gewichten, en de formules (schaal, profielscore, consistentie, score).
+- **Gerepareerd:** de cronroute stond niet in `PUBLIC_PATHS`, dus cron-job.org was naar
+  /login gestuurd; dat gold al voor `/api/berg/weekly`.
+- Vervallen: `ridgeReach` en `footWidth` (de berg).
+
+**Bewust niet (nog).** Fase 4: het scherm om te delen (toestemming en verbergen), de
+stenen van andere leden op hun profiel, een clubvergelijking en de privacytekst. Ook het
+weer (vorm, TSB) niet op de pagina. De privacyverklaring noemt ZWBriljant nog niet;
+**voorleggen aan de eigenaar** vóór livegang, want de pagina bewaart nu bij het openen
+een wekelijkse snapshot (alleen afgeleide scores, voor jezelf).
+
+**Getest.** `briljant-score` (klassen, `levelOf`, positie), `briljant-view` (8: punten,
+klasse, factor, balken, durability "minder", racen over de schaal, hernormaliseren, geen
+score, verschil in vier weken), `briljant-snapshot`, `briljant-migration` (PGlite, nieuwe
+namen), `help-categories` en `zwbeter-pillars`; `tsc` schoon op de bekende
+`modern-screenshot` na; ESLint schoon. In de browser met voorbeelddata op een tijdelijke
+lokale pagina (niet gecommit): desktop, telefoon (375 px) en zonder WebGL (context
+verloren). **Niet getest:** de echte route met een ingelogd lid en echte gegevens, de
+tegel op het dashboard, de job tegen productie; de migratie op productie (geen Docker).
+Volledige suite: `omnium-live` faalt in deze worktree zonder `.env.local`;
+`admin-areas` en `rls-initplan-migration` falen alleen onder volle last en slagen los.
+
+**Nog te doen door de eigenaar.** 0265 toepassen (op verzoek via de connector),
+`BRILJANT_WEEKLY_SECRET` in Netlify zetten en de job op cron-job.org aanmaken.
+
 ### Gebouwd — ZWBeter-berg: gewichten naar de literatuur
+
+*Sinds de hernoeming naar ZWBriljant (blok hierboven): code in `src/lib/briljant/`,
+tabellen `zwbriljant_*` met kolom `facets`, route `/api/briljant/weekly`, geheim
+`BRILJANT_WEEKLY_SECRET`, migratie `0265_zwbriljant.sql`. De namen hieronder zijn die van toen.*
+
 
 **2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
 
@@ -11296,7 +11365,7 @@ Fitheid 10%. Kern van de onderbouwing: 5 minuten voorspelt podium en niveau het 
 de minuut beslist Zwift-races, de sprint alleen sprintfinishes; durability is sterk
 maar in korte Zwift-races minder vaak beslissend; CTL is een zwakke voorspeller die al
 in het vermogen zit; racen vangt wat vermogen niet verklaart. Bronnen en redenering:
-[zwbeter-berg-onderzoek.md](docs/zwbeter-berg-onderzoek.md#zeven-graten). Het
+[zwbriljant-onderzoek.md](docs/zwbriljant-onderzoek.md#zeven-facetten). Het
 rekenvoorbeeld gaat van 430 naar 427 punten (profielscore 472 → 469).
 
 **Bewust niet.** Gewichten per rennertype of per soort race: de score meet niveau, niet
@@ -11306,6 +11375,11 @@ specialisatie; het type zie je aan de vorm.
 rekenvoorbeeld 4,69 en 4,27, hernormaliseren zonder ZRS); alle 42 berg-tests groen.
 
 ### Gebouwd — ZWBeter-berg, het model bijgestuurd: zeven graten, score als niveau
+
+*Sinds de hernoeming naar ZWBriljant (blok hierboven): code in `src/lib/briljant/`,
+tabellen `zwbriljant_*` met kolom `facets`, route `/api/briljant/weekly`, geheim
+`BRILJANT_WEEKLY_SECRET`, migratie `0265_zwbriljant.sql`. De namen hieronder zijn die van toen.*
+
 
 **2026-10-21.** Commit: de commit die dit blok toevoegt. Migratie
 `0265_zwbeter_berg.sql` aangepast (nog niet toegepast, dus het bestand mocht nog
@@ -11352,7 +11426,7 @@ duidelijker is").
   0,6 + 0,4 × consistentie; daarnaast de factor in de score (zie hierboven). De server haalt ritten, geplande trainingen (zonder vervangen
   workouts en niet-toegepaste dagvoorstellen) en `training_availability` op.
 - Onderzoek, niveautabel, gewichten en het rekenvoorbeeld:
-  [zwbeter-berg-onderzoek.md](docs/zwbeter-berg-onderzoek.md).
+  [zwbriljant-onderzoek.md](docs/zwbriljant-onderzoek.md).
 
 **Afwijking van de afspraak.** Een geplande herstelweek telt als gehaald (ook in R), niet
 alleen als "breekt de reeks niet". Het rekenvoorbeeld uit de fork (R 0,83 met een reeks van
@@ -11368,13 +11442,16 @@ ongewijzigd: HRV, vorm en herhaalbaarheid zijn geen graat, vELO telt nog niet me
 `berg-migration.test.ts` (8, nu met `score` en de zeven graten). ESLint schoon. **Niet
 getest:** de server-kant tegen echte gegevens.
 
-**Ontwerp, nog open.** De eigenaar bekeek 3D-schetsen (sleep en zoom) van het panorama, het
-prestatiedashboard en de ZWB-keten, en verkent nu een andere vorm: één ruwe edelsteen in
-plaats van een berg, met de tien vELO-klassen (Koper tot Diamant, 100 punten per klasse,
-Diamant = Aliens) als niveaunamen en steenkleur, grootte = score en het meetpaneel als balk.
-Nog alleen een schets; de keuze volgt.
+**Ontwerp.** De eigenaar bekeek 3D-schetsen (sleep en zoom) van het panorama, het
+prestatiedashboard en de ZWB-keten, en koos daarna voor één ruwe edelsteen: gebouwd als
+ZWBriljant, zie het blok hierboven.
 
 ### Gebouwd — ZWBeter-berg, fase 2: gegevens, wekelijkse job en terugblik
+
+*Sinds de hernoeming naar ZWBriljant (blok hierboven): code in `src/lib/briljant/`,
+tabellen `zwbriljant_*` met kolom `facets`, route `/api/briljant/weekly`, geheim
+`BRILJANT_WEEKLY_SECRET`, migratie `0265_zwbriljant.sql`. De namen hieronder zijn die van toen.*
+
 
 **2026-10-21.** Commit: de commit die dit blok toevoegt. Migratie
 `0265_zwbeter_berg.sql`, **niet toegepast**. Niet gepusht.
@@ -11408,8 +11485,7 @@ intervals.icu). Voor "jij in de tijd" en de club zijn wekelijkse momentopnames n
   `src/lib/teams/power-sync.ts`, zodat de job hem kan gebruiken. Gedrag ongewijzigd.
 - De accountexport neemt beide tabellen mee.
 
-**Nog te doen door de eigenaar.** 0265 toepassen (op verzoek via de connector),
-`BERG_WEEKLY_SECRET` in Netlify zetten en de job op cron-job.org aanmaken.
+**Nog te doen door de eigenaar.** Zie het blok ZWBriljant hierboven (nieuwe namen).
 
 **Getest.** `tests/unit/berg-migration.test.ts` (8, PGlite: alleen je eigen berg zonder delen,
 wederzijds delen, niet goedgekeurd kan niet meedoen, verbergen en intrekken, voorkeuren
@@ -11419,6 +11495,11 @@ geen maandag, geen ruwe kolommen, anon kan de functie niet aanroepen) en
 tegen intervals.icu en Zwift; de migratie op productie.
 
 ### Gebouwd — ZWBeter-berg, fase 1: de rekenkern
+
+*Sinds de hernoeming naar ZWBriljant (blok hierboven): code in `src/lib/briljant/`,
+tabellen `zwbriljant_*` met kolom `facets`, route `/api/briljant/weekly`, geheim
+`BRILJANT_WEEKLY_SECRET`, migratie `0265_zwbriljant.sql`. De namen hieronder zijn die van toen.*
+
 
 **2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
 
@@ -11437,7 +11518,7 @@ Fitheid en Racen, je hoogte als gemiddelde, consistentie als breedte van de voet
 clubpercentiel en jij tegen jezelf). *Niet meer waar sinds dezelfde dag: geen ketens en
 geen meters, zeven graten, een gewogen score als niveau en een nieuwe consistentie; zie de
 ronde "ZWBeter-berg, het model bijgestuurd".* Onderzoek en de bron van elke ijkwaarde:
-[zwbeter-berg-onderzoek.md](docs/zwbeter-berg-onderzoek.md).
+[zwbriljant-onderzoek.md](docs/zwbriljant-onderzoek.md).
 
 **Bewust niet.** HRV/readiness, vorm (TSB) en herhaalbaarheid zijn geen richting
 (kleine of geen samenhang met prestaties; zie het onderzoek). vELO telt nog niet mee: de

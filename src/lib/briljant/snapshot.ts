@@ -1,4 +1,4 @@
-// Van verzamelde waarden naar de rij in zwbeter_berg_snapshots (0265), plus de
+// Van verzamelde waarden naar de rij in zwbriljant_snapshots (0265), plus de
 // weken voor de consistentie en de terugblik uit intervals.icu. Puur: de server
 // levert de waarden aan.
 //
@@ -8,16 +8,16 @@
 import { wattsAtDuration } from "@/lib/teams/power-profile";
 import {
   consistencyFrom,
-  ridgeLevels,
+  facetLevels,
   scoreFor,
-  type BergInput,
+  type BriljantInput,
   type ConsistencyInput,
   type ConsistencyWeek,
   type FatigueInput,
-  type Ridge,
+  type Facet,
 } from "./score";
 
-export type BergSources = {
+export type BriljantSources = {
   power: boolean;
   fatigue: boolean;
   ctl: boolean;
@@ -29,10 +29,10 @@ export type SnapshotRow = {
   profile_id: string;
   week: string;
   score: number | null;
-  ridges: Partial<Record<Ridge, number | null>>;
+  facets: Partial<Record<Facet, number | null>>;
   consistency: number | null;
   source: "week" | "terugblik";
-  provenance: BergSources;
+  provenance: BriljantSources;
 };
 
 export type CurvePoint = { seconds: number; watts: number };
@@ -74,23 +74,23 @@ export function snapshotFrom(args: {
   profileId: string;
   day: string;
   source: SnapshotRow["source"];
-  input: BergInput;
+  input: BriljantInput;
   consistency: ConsistencyInput | null;
 }): SnapshotRow {
-  const ridges = ridgeLevels(args.input);
+  const facets = facetLevels(args.input);
   const consistency = args.consistency ? (consistencyFrom(args.consistency)?.value ?? null) : null;
-  const sources: BergSources = {
-    power: ridges.sprint != null || ridges.anaeroob != null || ridges.vo2max != null || ridges.drempel != null,
-    fatigue: ridges.durability != null,
-    ctl: ridges.fitheid != null,
-    zrs: ridges.racen != null,
+  const sources: BriljantSources = {
+    power: facets.sprint != null || facets.anaeroob != null || facets.vo2max != null || facets.drempel != null,
+    fatigue: facets.durability != null,
+    ctl: facets.fitheid != null,
+    zrs: facets.racen != null,
     rides: (args.consistency?.weeks ?? []).some((week) => week.hours > 0),
   };
   return {
     profile_id: args.profileId,
     week: mondayKey(args.day),
-    score: scoreFor(ridges, consistency),
-    ridges: Object.fromEntries(Object.entries(ridges).map(([ridge, level]) => [ridge, round2(level)])),
+    score: scoreFor(facets, consistency),
+    facets: Object.fromEntries(Object.entries(facets).map(([facet, level]) => [facet, round2(level)])),
     consistency,
     source: args.source,
     provenance: sources,
@@ -170,7 +170,7 @@ export function availabilityHours(minutesByDay: unknown): number | null {
 export function powerFromCurve(
   points: Array<{ seconds: number; watts: number; wattsPerKg?: number | null }>,
   weightKg: number | null,
-): BergInput["power"] {
+): BriljantInput["power"] {
   if (points.length === 0) return null;
   const at = (seconds: number) => {
     const watts = wattsAtDuration(points, seconds);

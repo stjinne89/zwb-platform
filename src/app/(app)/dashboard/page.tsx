@@ -76,8 +76,10 @@ import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { amsterdamDateKey, amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { getDesign } from "@/lib/design";
+import { points as briljantPoints, positionFor as briljantPosition } from "@/lib/briljant/score";
 import {
   TegelsVandaag,
+  type VandaagBriljant,
   type VandaagEvent,
   type VandaagLive,
   type VandaagLiveEvent,
@@ -949,6 +951,26 @@ export default async function DashboardPage({
         )[0] ?? null;
   }
 
+  // ZWBriljant: de score van de laatste snapshot (die van deze week komt bij het
+  // openen van de pagina of uit de wekelijkse job). Zonder snapshot of zonder
+  // migratie 0265 geen tegel.
+  let tileBriljant: VandaagBriljant | null = null;
+  if (tegels && user) {
+    const { data: snapshot } = await supabase
+      .from("zwbriljant_snapshots")
+      .select("score")
+      .eq("profile_id", user.id)
+      .not("score", "is", null)
+      .order("week", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const score = snapshot?.score == null ? null : Number(snapshot.score);
+    if (score != null && Number.isFinite(score)) {
+      const { reached } = briljantPosition(score);
+      tileBriljant = { points: briljantPoints(score), level: reached.name, color: reached.color };
+    }
+  }
+
   function eventList(events: UpcomingEvent[]) {
     return (
       <ul className="divide-y rounded-lg border bg-card">
@@ -1023,6 +1045,7 @@ export default async function DashboardPage({
           events={tileEvents}
           live={liveNow?.together ?? null}
           liveEvents={liveNow?.events ?? []}
+          briljant={tileBriljant}
           standing={
             tileStanding && tileStanding.position
               ? {

@@ -9,7 +9,7 @@ import {
   mondayKey,
   powerFromCurve,
   snapshotFrom,
-} from "@/lib/berg/snapshot";
+} from "@/lib/briljant/snapshot";
 
 describe("snapshot", () => {
   it("rekent de maandag van de week", () => {
@@ -61,7 +61,7 @@ describe("snapshot", () => {
       // consistentie 0,82, factor 0,964.
       score: 3.86,
       consistency: 0.82,
-      ridges: { sprint: 4, anaeroob: 4, vo2max: 4, drempel: 4, durability: null, fitheid: 4, racen: null },
+      facets: { sprint: 4, anaeroob: 4, vo2max: 4, drempel: 4, durability: null, fitheid: 4, racen: null },
       source: "week",
       provenance: { power: true, fatigue: false, ctl: true, zrs: false, rides: true },
     });

@@ -1,0 +1,131 @@
+import Link from "next/link";
+import { Gem } from "lucide-react";
+import { FACET_WEIGHTS, LEVELS, powerAnchors } from "@/lib/briljant/norms";
+import { FACETS, FACET_LABELS, FACET_MEASURES } from "@/lib/briljant/score";
+
+const pct = (value: number) => `${(value * 100).toLocaleString("nl-NL", { maximumFractionDigits: 1 })}%`;
+const wkg = (value: number) => value.toLocaleString("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+/**
+ * ZWBriljant op /hulp (het anker zwbriljant staat in training.tsx): wat de steen laat zien, waar de punten vandaan komen en
+ * de formules. Op de pagina zelf staan alleen de waarden (eigenaar, 2026-10-21).
+ */
+export function BriljantHelp() {
+  const man = powerAnchors("m20", "man");
+  const vrouw = powerAnchors("m20", "vrouw");
+  return (
+    <section className="rounded-lg border bg-card/90 p-5">
+      <header className="flex items-start gap-2">
+        <Gem className="mt-0.5 size-5 shrink-0 text-primary" />
+        <div>
+          <h2 className="font-semibold">ZWBriljant: je niveau als edelsteen</h2>
+          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+            Eén score in punten uit zeven onderdelen: vier duren vermogen, durability, fitheid en racen. De vorm van
+            je steen is je profiel, de grootte je score, de kleur je klasse.
+          </p>
+        </div>
+      </header>
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        <article className="rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">De klassen</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Namen en kleuren van de vELO-klassen van ZwiftRacing.app, met 100 punten per klasse. Elk onderdeel heeft
+            per klasse een eigen ijkwaarde; hieronder die van het drempelvermogen (beste 20 minuten). Koper is alles
+            onder de eerste grens, Diamant zijn de recordwaarden. Daarboven telt de score gewoon door.
+          </p>
+          <table className="mt-3 w-full text-sm tabular-nums">
+            <thead className="text-left text-xs text-muted-foreground">
+              <tr>
+                <th className="py-1 font-medium">Klasse</th>
+                <th className="py-1 font-medium">Vanaf</th>
+                <th className="py-1 text-right font-medium">Man</th>
+                <th className="py-1 text-right font-medium">Vrouw</th>
+              </tr>
+            </thead>
+            <tbody>
+              {LEVELS.map((level) => (
+                <tr key={level.n} className="border-t">
+                  <td className="py-1">
+                    <span className="mr-2 inline-block size-2.5 rotate-45" style={{ background: level.color }} />
+                    {level.name}
+                  </td>
+                  <td className="py-1">{level.n * 100}</td>
+                  <td className="py-1 text-right">{level.n === 0 ? "—" : `${wkg(man.levels[level.n - 1])} W/kg`}</td>
+                  <td className="py-1 text-right">{level.n === 0 ? "—" : `${wkg(vrouw.levels[level.n - 1])} W/kg`}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-2 text-xs text-muted-foreground">
+            De ijkwaarden zijn inschattingen van ZWB op basis van de literatuur; geen studie koppelt vermogen aan
+            klassen.
+          </p>
+        </article>
+
+        <article className="rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Onderdelen en gewichten</h3>
+          <table className="mt-3 w-full text-sm">
+            <tbody>
+              {FACETS.map((facet) => (
+                <tr key={facet} className="border-t first:border-t-0">
+                  <td className="py-1">{FACET_LABELS[facet]}</td>
+                  <td className="py-1 text-muted-foreground">
+                    {FACET_MEASURES[facet].what} ({FACET_MEASURES[facet].unit})
+                  </td>
+                  <td className="py-1 text-right tabular-nums">{pct(FACET_WEIGHTS[facet])}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-3 text-sm text-muted-foreground">
+            De gewichten volgen hoe sterk elk onderdeel uitslagen en niveau voorspelt: 5 minuten het sterkst, fitheid
+            het zwakst. Ontbreekt een onderdeel, dan tellen de andere samen weer voor 100%; met minder dan twee
+            onderdelen is er nog geen steen.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Nodig: intervals.icu voor vermogen, durability en fitheid, je Zwift-ID voor racen en je ritten voor de
+            consistentie.
+          </p>
+        </article>
+
+        <article className="rounded-md border bg-background p-4 lg:col-span-2">
+          <h3 className="text-sm font-semibold">De formules</h3>
+          <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-[11rem_1fr]">
+            <dt className="font-medium">Punten per onderdeel</dt>
+            <dd className="text-muted-foreground">
+              Tussen twee grenzen loopt de schaal recht:{" "}
+              <code className="rounded bg-muted px-1">
+                lage grens + (meting − meting lage grens) ÷ (meting hoge grens − meting lage grens) × 100
+              </code>
+              . Voorbij Diamant loopt de laatste lijn door. Bij durability is minder verval beter. Racen is één rechte
+              lijn: 1000 ZRS is 900 punten.
+            </dd>
+            <dt className="font-medium">Profielscore</dt>
+            <dd className="text-muted-foreground">Het gewogen gemiddelde van de onderdelen, met de gewichten hierboven.</dd>
+            <dt className="font-medium">Consistentie</dt>
+            <dd className="text-muted-foreground">
+              <code className="rounded bg-muted px-1">R × (0,5 + 0,5 × V) × N</code>, altijd tegen je eigen norm: R is
+              het deel van de laatste twaalf weken waarin je minstens 60% van je norm reed (je beschikbaarheid uit het
+              schema, anders je eigen mediaan), V = 1 − e<sup>−reeks/12</sup> voor het aantal weken op rij, N het deel
+              van je geplande trainingstijd dat je deed. Meer dan je norm telt als gehaald, een geplande herstelweek
+              breekt de reeks niet.
+            </dd>
+            <dt className="font-medium">Score</dt>
+            <dd className="text-muted-foreground">
+              <code className="rounded bg-muted px-1">profielscore × (0,8 + 0,2 × consistentie)</code>. Helemaal
+              consistent houdt je je volle profielscore; zonder ritgegevens telt consistentie niet. Het gouden
+              draadmodel om de steen is je steen bij volledige consistentie.
+            </dd>
+          </dl>
+          <Link
+            href="/zwbeter-worden/briljant"
+            className="mt-4 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Open ZWBriljant
+          </Link>
+        </article>
+      </div>
+    </section>
+  );
+}

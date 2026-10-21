@@ -1,10 +1,10 @@
 import "server-only";
 
-// De ZWBeter-berg op de server: per lid de waarden verzamelen, de snapshot van
+// ZWBriljant op de server: per lid de waarden verzamelen, de snapshot van
 // deze week vastleggen en bij het eerste gebruik een terugblik maken.
 //
 // Altijd met de admin-client: snapshots schrijft alleen de server (0265). Lezen
-// voor de pagina gaat met de sessie van het lid, zodat RLS bepaalt welke bergen
+// voor de pagina gaat met de sessie van het lid, zodat RLS bepaalt welke stenen
 // van anderen zichtbaar zijn.
 
 import type { createAdminClient } from "@/lib/supabase/admin";
@@ -17,7 +17,7 @@ import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metri
 import { isCyclingSportType } from "@/lib/strava/sports";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
-import { CONSISTENCY_WEEKS, type BergInput, type ConsistencyInput } from "./score";
+import { CONSISTENCY_WEEKS, type BriljantInput, type ConsistencyInput, type HistoryPoint } from "./score";
 import type { Sex } from "./norms";
 import {
   availabilityHours,
@@ -47,7 +47,7 @@ const HISTORY_WEEKS = 52;
 export type Weather = { tsb: number; atl: number } | null;
 
 export type Collected = {
-  input: BergInput;
+  input: BriljantInput;
   consistency: ConsistencyInput;
   weather: Weather;
 };
@@ -166,8 +166,8 @@ function latestWellness(rows: IntervalsWellness[]): IntervalsWellness | null {
   return filled.reduce<IntervalsWellness | null>((best, row) => (!best || row.id > best.id ? row : best), null);
 }
 
-/** Alles wat de berg van dit lid nu nodig heeft. Ontbrekende bronnen blijven leeg. */
-export async function collectBerg(admin: Admin, profileId: string, today = amsterdamDayKey()): Promise<Collected> {
+/** Alles wat de steen van dit lid nu nodig heeft. Ontbrekende bronnen blijven leeg. */
+export async function collectBriljant(admin: Admin, profileId: string, today = amsterdamDayKey()): Promise<Collected> {
   const [{ data: profile }, { data: power }, connection, consistency] = await Promise.all([
     admin.from("profiles").select("sex, weight_kg, zwift_id").eq("id", profileId).maybeSingle(),
     admin
@@ -234,7 +234,7 @@ export async function refreshSources(admin: Admin, profileId: string, budgetMs: 
 
 /** De snapshot van deze week vastleggen (overschrijft die van deze week). */
 export async function storeWeek(admin: Admin, profileId: string, today = amsterdamDayKey()): Promise<SnapshotRow> {
-  const collected = await collectBerg(admin, profileId, today);
+  const collected = await collectBriljant(admin, profileId, today);
   const row = snapshotFrom({
     profileId,
     day: today,
@@ -242,9 +242,43 @@ export async function storeWeek(admin: Admin, profileId: string, today = amsterd
     input: collected.input,
     consistency: collected.consistency,
   });
-  const { error } = await admin.from("zwbeter_berg_snapshots").upsert(row, { onConflict: "profile_id,week" });
+  const { error } = await admin.from("zwbriljant_snapshots").upsert(row, { onConflict: "profile_id,week" });
   if (error) throw new Error(error.message);
   return row;
+}
+
+/**
+ * Bij het openen van de pagina: het lid gebruikt ZWBriljant (een voorkeur zonder
+ * toestemming om te delen, zodat de wekelijkse job het meeneemt) en de snapshot
+ * van deze week uit wat de pagina toch al verzamelde. Fouten zijn stil: zonder
+ * migratie 0265 werkt de pagina gewoon, alleen zonder historie.
+ */
+export async function rememberVisit(admin: Admin, profileId: string, collected: Collected, today = amsterdamDayKey()) {
+  const row = snapshotFrom({ profileId, day: today, source: "week", input: collected.input, consistency: collected.consistency });
+  await Promise.all([
+    admin.from("zwbriljant_preferences").upsert({ profile_id: profileId }, { onConflict: "profile_id", ignoreDuplicates: true }),
+    admin.from("zwbriljant_snapshots").upsert(row, { onConflict: "profile_id,week" }),
+  ]).catch(() => null);
+}
+
+/** De eigen scores van de afgelopen weken, oud naar nieuw, zonder de huidige week; leeg zonder migratie. */
+export async function loadHistory(admin: Admin, profileId: string, today = amsterdamDayKey()): Promise<HistoryPoint[]> {
+  const current = mondayKey(today);
+  const { data, error } = await admin
+    .from("zwbriljant_snapshots")
+    .select("week, score")
+    .eq("profile_id", profileId)
+    .lt("week", current)
+    .gte("week", shiftDay(current, -7 * 12))
+    .order("week", { ascending: true });
+  if (error) return [];
+  const byWeek = new Map(((data ?? []) as Array<{ week: string; score: number | string | null }>).map((row) => [row.week, row.score]));
+  // Elke week een plek, ook zonder snapshot, zodat "vier weken geleden" klopt.
+  return Array.from({ length: 12 }, (_, index) => {
+    const week = shiftDay(current, -7 * (12 - index));
+    const score = byWeek.get(week);
+    return { week, score: score == null ? null : Number(score) };
+  });
 }
 
 /**
@@ -279,7 +313,7 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
     const day = byDay.get(end);
     const weightKg = num(day?.weight) ?? num(p?.weight_kg);
     const ctl = day && Number.isFinite(Number(day.ctl)) ? Number(day.ctl) : null;
-    const input: BergInput = {
+    const input: BriljantInput = {
       sex: sexOf(p?.sex ?? null),
       weightKg,
       power: powerFromCurve(curves.get(curveRange(end)) ?? [], weightKg),
@@ -295,7 +329,7 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
   const useful = rows.filter((row) => row.score != null || row.consistency != null);
   if (useful.length === 0) return 0;
   const { error } = await admin
-    .from("zwbeter_berg_snapshots")
+    .from("zwbriljant_snapshots")
     .upsert(useful, { onConflict: "profile_id,week", ignoreDuplicates: true });
   if (error) throw new Error(error.message);
   return useful.length;

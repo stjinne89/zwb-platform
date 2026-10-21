@@ -41,6 +41,7 @@ export const ZWBETER_WORDEN_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/belasting", label: "Belasting" },
   { type: "link", href: "/zwbeter-worden/logboek", label: "Logboek", onlyForSex: "vrouw" },
   { type: "link", href: "/zwbeter-worden/vermogen", label: "Vermogen" },
+  { type: "link", href: "/zwbeter-worden/briljant", label: "ZWBriljant" },
   { type: "link", href: "/zwbeter-worden/racen", label: "Racen" },
   { type: "link", href: "/zwbeter-worden/core", label: "Core & mobiliteit" },
   { type: "link", href: "/zwbeter-worden/voeding", label: "Voeding" },

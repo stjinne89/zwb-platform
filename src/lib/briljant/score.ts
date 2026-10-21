@@ -1,20 +1,22 @@
-// De ZWBeter-berg: van echte metingen naar een niveau per graat, de score, de
+// ZWBriljant: van echte metingen naar een niveau per facet, de score, de
 // consistentie en de drie kaders (wereld, club, jij).
 //
 // Intern is de score een niveau met decimalen (4,55 = niveau 4, iets over de
 // helft naar 5); op het scherm staat hij in punten, 100 per niveau (455), zonder
 // plafond. Puur en zonder database: de pagina en de wekelijkse job leveren
-// de waarden aan. Een graat zonder gegevens is null en telt nergens mee; er wordt
+// de waarden aan. Een facet zonder gegevens is null en telt nergens mee; er wordt
 // nooit een waarde verzonnen. Achter elk getal staat de meting met eenheid en het
-// stuk van de schaal waarin hij valt, zodat het scherm de omrekening voorrekent.
+// stuk van de schaal waarin hij valt; het scherm toont dat als balk, de formules
+// staan op /hulp.
 
 import {
   CTL_ANCHORS,
   DURABILITY_ANCHORS,
   DURABILITY_MIN_KJ_PER_KG,
   LEVELS,
-  RIDGE_WEIGHTS,
+  FACET_WEIGHTS,
   ZRS_ANCHORS,
+  levelOf,
   powerAnchors,
   type Anchors,
   type Level,
@@ -22,11 +24,11 @@ import {
   type Sex,
 } from "./norms";
 
-/** Rond de berg: van kort naar lang vermogen, dan vermoeid, fitheid en racen, en terug naar sprint. */
-export const RIDGES = ["sprint", "anaeroob", "vo2max", "drempel", "durability", "fitheid", "racen"] as const;
-export type Ridge = (typeof RIDGES)[number];
+/** Rond de steen: van kort naar lang vermogen, dan vermoeid, fitheid en racen, en terug naar sprint. */
+export const FACETS = ["sprint", "anaeroob", "vo2max", "drempel", "durability", "fitheid", "racen"] as const;
+export type Facet = (typeof FACETS)[number];
 
-export const RIDGE_LABELS: Record<Ridge, string> = {
+export const FACET_LABELS: Record<Facet, string> = {
   sprint: "Sprint",
   anaeroob: "Anaeroob",
   vo2max: "VO2max",
@@ -37,7 +39,7 @@ export const RIDGE_LABELS: Record<Ridge, string> = {
 };
 
 /** Wat er gemeten wordt, zoals het naast het getal staat. */
-export const RIDGE_MEASURES: Record<Ridge, { what: string; unit: string }> = {
+export const FACET_MEASURES: Record<Facet, { what: string; unit: string }> = {
   sprint: { what: "beste 15 seconden", unit: "W/kg" },
   anaeroob: { what: "beste minuut", unit: "W/kg" },
   vo2max: { what: "beste 5 minuten", unit: "W/kg" },
@@ -47,7 +49,7 @@ export const RIDGE_MEASURES: Record<Ridge, { what: string; unit: string }> = {
   racen: { what: "Zwift Racing Score", unit: "ZRS" },
 };
 
-const POWER_RIDGES: Record<"sprint" | "anaeroob" | "vo2max" | "drempel", PowerDuration> = {
+const POWER_FACETS: Record<"sprint" | "anaeroob" | "vo2max" | "drempel", PowerDuration> = {
   sprint: "s15",
   anaeroob: "m1",
   vo2max: "m5",
@@ -123,19 +125,18 @@ export function points(level: number): number {
 }
 
 export type LevelPosition = {
-  /** Het niveau dat je haalt; null onder niveau 1 (minder dan 100 punten). */
-  reached: Level | null;
-  /** Het niveau erna; null voorbij Aliens (dan telt de score gewoon door). */
+  /** De klasse waarin je zit; onder de 100 punten is dat Koper. */
+  reached: Level;
+  /** De klasse erna; null in Diamant (dan telt de score gewoon door). */
   next: Level | null;
-  /** Punten tot het volgende niveau; 0 voorbij Aliens. */
+  /** Punten tot de volgende klasse; 0 in Diamant. */
   toNext: number;
 };
 
 export function positionFor(score: number): LevelPosition {
   const value = points(score);
-  const whole = Math.floor(value / POINTS_PER_LEVEL);
-  const reached = whole >= 1 ? LEVELS[Math.min(whole, LEVELS.length) - 1] : null;
-  const next = whole < LEVELS.length ? LEVELS[whole] : null;
+  const reached = levelOf(value / POINTS_PER_LEVEL);
+  const next = LEVELS[reached.n + 1] ?? null;
   return { reached, next, toNext: next ? next.n * POINTS_PER_LEVEL - value : 0 };
 }
 
@@ -144,7 +145,7 @@ export function formatScore(score: number): string {
   return points(score).toLocaleString("nl-NL");
 }
 
-// ── Graten ──────────────────────────────────────────────────────────────────
+// ── Facetten ──────────────────────────────────────────────────────────────────
 
 /** W/kg per duur, uit `rider_power_profiles`. */
 export type PowerInput = { s15: number | null; m1: number | null; m5: number | null; m20: number | null };
@@ -157,7 +158,7 @@ export type FatigueInput = {
   fatiguedWatts: number;
 };
 
-export type BergInput = {
+export type BriljantInput = {
   sex: Sex | null;
   weightKg: number | null;
   power: PowerInput | null;
@@ -166,8 +167,8 @@ export type BergInput = {
   zrs: number | null;
 };
 
-/** De meting achter een graat en de omrekening naar een niveau. */
-export type RidgeReading = ScaleStep;
+/** De meting achter een facet en de omrekening naar een niveau. */
+export type FacetReading = ScaleStep;
 
 function positive(value: number | null | undefined): number | null {
   return value != null && Number.isFinite(value) && value > 0 ? value : null;
@@ -194,10 +195,10 @@ export function durabilityDecline(fatigue: FatigueInput[], weightKg: number | nu
   return declines.length === 0 ? null : declines.reduce((sum, value) => sum + value, 0) / declines.length;
 }
 
-/** Per graat de meting en het niveau tegen de wereld; null waar de gegevens ontbreken. */
-export function ridgeReadings(input: BergInput): Record<Ridge, RidgeReading | null> {
-  const power = (ridge: keyof typeof POWER_RIDGES) => {
-    const duration = POWER_RIDGES[ridge];
+/** Per facet de meting en het niveau tegen de wereld; null waar de gegevens ontbreken. */
+export function facetReadings(input: BriljantInput): Record<Facet, FacetReading | null> {
+  const power = (facet: keyof typeof POWER_FACETS) => {
+    const duration = POWER_FACETS[facet];
     const value = positive(input.power?.[duration]);
     return value == null ? null : scaleStep(powerAnchors(duration, input.sex), value);
   };
@@ -215,37 +216,37 @@ export function ridgeReadings(input: BergInput): Record<Ridge, RidgeReading | nu
   };
 }
 
-/** Alleen het niveau per graat. */
-export function ridgeLevels(input: BergInput): Record<Ridge, number | null> {
-  const readings = ridgeReadings(input);
-  return Object.fromEntries(RIDGES.map((ridge) => [ridge, readings[ridge]?.level ?? null])) as Record<
-    Ridge,
+/** Alleen het niveau per facet. */
+export function facetLevels(input: BriljantInput): Record<Facet, number | null> {
+  const readings = facetReadings(input);
+  return Object.fromEntries(FACETS.map((facet) => [facet, readings[facet]?.level ?? null])) as Record<
+    Facet,
     number | null
   >;
 }
 
-/** Zo weinig graten zijn te weinig om een score op te baseren. */
-export const MIN_RIDGES_FOR_SCORE = 2;
+/** Zo weinig facetten zijn te weinig om een score op te baseren. */
+export const MIN_FACETS_FOR_SCORE = 2;
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
 /**
- * De profielscore: het gewogen gemiddelde van de graten die er zijn
- * (RIDGE_WEIGHTS), met de gewichten van de aanwezige graten opnieuw op 100% gezet.
- * Null bij te weinig graten. Nog zonder consistentie; zie `scoreFor`.
+ * De profielscore: het gewogen gemiddelde van de facetten die er zijn
+ * (FACET_WEIGHTS), met de gewichten van de aanwezige facetten opnieuw op 100% gezet.
+ * Null bij te weinig facetten. Nog zonder consistentie; zie `scoreFor`.
  */
-export function profileScore(ridges: Record<Ridge, number | null>): number | null {
-  const present = RIDGES.filter((ridge) => ridges[ridge] != null);
-  if (present.length < MIN_RIDGES_FOR_SCORE) return null;
-  const weight = present.reduce((sum, ridge) => sum + RIDGE_WEIGHTS[ridge], 0);
-  const total = present.reduce((sum, ridge) => sum + RIDGE_WEIGHTS[ridge] * ridges[ridge]!, 0);
+export function profileScore(facets: Record<Facet, number | null>): number | null {
+  const present = FACETS.filter((facet) => facets[facet] != null);
+  if (present.length < MIN_FACETS_FOR_SCORE) return null;
+  const weight = present.reduce((sum, facet) => sum + FACET_WEIGHTS[facet], 0);
+  const total = present.reduce((sum, facet) => sum + FACET_WEIGHTS[facet] * facets[facet]!, 0);
   return total / weight;
 }
 
 /**
  * Hoe zwaar consistentie meetelt: tot 20% van de score (eigenaar, 2026-10-21).
- * Een factor en geen eigen graat, omdat consistentie tegen je eigen norm wordt
- * gemeten en niet tegen de wereld: als graat zou trouw trainen op een laag niveau
+ * Een factor en geen eigen facet, omdat consistentie tegen je eigen norm wordt
+ * gemeten en niet tegen de wereld: als facet zou trouw trainen op een laag niveau
  * wereldtop-punten opleveren.
  */
 export const CONSISTENCY_WEIGHT = 0.2;
@@ -258,28 +259,18 @@ export function consistencyFactor(consistency: number | null): number {
 
 /**
  * De score: de profielscore maal de consistentiefactor, op twee decimalen (het
- * scherm toont punten). Null bij te weinig graten.
+ * scherm toont punten). Null bij te weinig facetten.
  */
-export function scoreFor(ridges: Record<Ridge, number | null>, consistency: number | null = null): number | null {
-  const profile = profileScore(ridges);
+export function scoreFor(facets: Record<Facet, number | null>, consistency: number | null = null): number | null {
+  const profile = profileScore(facets);
   return profile == null ? null : round2(profile * consistencyFactor(consistency));
 }
 
-/** Het gewicht van elke aanwezige graat na het opnieuw normaliseren, voor de uitleg op het scherm. */
-export function effectiveWeights(ridges: Record<Ridge, number | null>): Partial<Record<Ridge, number>> {
-  const present = RIDGES.filter((ridge) => ridges[ridge] != null);
-  const weight = present.reduce((sum, ridge) => sum + RIDGE_WEIGHTS[ridge], 0);
-  return Object.fromEntries(present.map((ridge) => [ridge, RIDGE_WEIGHTS[ridge] / weight]));
-}
-
-/**
- * De vorm van de berg: hoe ver een graat uitloopt, los van het niveau.
- * (niveau van de graat ÷ score)^1,8; een graat zonder gegevens heeft geen lengte.
- */
-export const REACH_EXPONENT = 1.8;
-export function ridgeReach(level: number | null, score: number | null): number | null {
-  if (level == null || !score || score <= 0) return null;
-  return Math.pow(Math.max(0, level) / score, REACH_EXPONENT);
+/** Het gewicht van elke aanwezige facet na het opnieuw normaliseren, voor de uitleg op het scherm. */
+export function effectiveWeights(facets: Record<Facet, number | null>): Partial<Record<Facet, number>> {
+  const present = FACETS.filter((facet) => facets[facet] != null);
+  const weight = present.reduce((sum, facet) => sum + FACET_WEIGHTS[facet], 0);
+  return Object.fromEntries(present.map((facet) => [facet, FACET_WEIGHTS[facet] / weight]));
 }
 
 // ── Consistentie ────────────────────────────────────────────────────────────
@@ -365,11 +356,6 @@ export function consistencyFrom(input: ConsistencyInput): Consistency | null {
     normSource: schemaNorm ? "schema" : "mediaan",
     value: round2(value),
   };
-}
-
-/** De breedte van de voet: 0,6 + 0,4 × consistentie; zonder consistentie de smalle voet. Telt daarnaast als factor in de score (`consistencyFactor`). */
-export function footWidth(consistency: number | null): number {
-  return 0.6 + 0.4 * Math.min(1, Math.max(0, consistency ?? 0));
 }
 
 // ── Kaders ──────────────────────────────────────────────────────────────────

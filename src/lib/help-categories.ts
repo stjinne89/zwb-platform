@@ -80,9 +80,9 @@ export const HELP_CATEGORIES = [
   {
     id: "training",
     label: "Training",
-    text: "Form, herstel, trainer-toegang, vermogen en je Strava-samenvatting.",
+    text: "Form, herstel, trainer-toegang, vermogen, ZWBriljant en je Strava-samenvatting.",
     tone: "zwbeter",
-    anchors: ["training", "trainingsruimte", "vermogen", "watt-wkg", "strava-samenvatting"],
+    anchors: ["training", "trainingsruimte", "vermogen", "watt-wkg", "zwbriljant", "strava-samenvatting"],
     legacy: ["trainen"],
   },
   {

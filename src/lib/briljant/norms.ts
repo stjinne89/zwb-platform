@@ -1,35 +1,50 @@
-// De ijkwaarden van de ZWBeter-berg: negen niveaus, en per graat de waarde die
-// bij elk niveau hoort.
+// De ijkwaarden van ZWBriljant: tien klassen, en per facet de waarde die bij
+// elk niveau hoort.
 //
 // De score is het niveau zelf (op het scherm in punten, 100 per niveau). Er is
-// geen plafond: voorbij Aliens (9, de recordwaarden) loopt de schaal door. Op de
-// berg zijn de niveaus virtuele ijkbergen; hun hoogte is alleen beeld.
+// geen plafond: voorbij Diamant (9, de recordwaarden) loopt de schaal door.
 //
 // Puur en zonder database. De bron van elke rij staat in
-// docs/zwbeter-berg-onderzoek.md. Geen studie koppelt vermogen aan niveaus van
+// docs/zwbriljant-onderzoek.md. Geen studie koppelt vermogen aan niveaus van
 // 1 tot 9; de ijkwaarden zijn inschattingen van ZWB op basis van de literatuur
 // ("estimate") en staan zo ook op /hulp.
 
 export type Level = {
-  /** 1 tot en met 9. */
+  /** 0 tot en met 9; klasse n begint bij n × 100 punten. */
   n: number;
   /** De naam bij de algemene score. Racen hangt bewust niet aan zo'n groep (zie ZRS_ANCHORS). */
   name: string;
+  /** Kleur van de steen: die van de vELO-klasse. */
+  color: string;
+  /** Metaal (Koper tot Platina) of edelsteen (Amethist tot Diamant). */
+  kind: "metaal" | "edelsteen";
 };
 
-/** Van laag naar hoog. Wie de norm van een niveau haalt, staat op dat niveau. */
+/**
+ * De tien klassen: namen, volgorde en kleuren van vELO (ZwiftRacing.app,
+ * reference/categories, gelezen 2026-10-21), de grenzen van ZWB: 100 punten per
+ * klasse, op de ijkwaarden hieronder (eigenaar, 2026-10-21). Koper is alles onder
+ * de eerste norm; Diamant zijn de recordwaarden. Wie de norm van een klasse
+ * haalt, staat in die klasse.
+ */
 export const LEVELS: readonly Level[] = [
-  { n: 1, name: "Starter" },
-  { n: 2, name: "Recreant" },
-  { n: 3, name: "Toerrijder" },
-  { n: 4, name: "Gevorderde" },
-  { n: 5, name: "Sterke amateur" },
-  { n: 6, name: "Elite-amateur" },
-  { n: 7, name: "Profpeloton" },
-  { n: 8, name: "Wereldtop" },
+  { n: 0, name: "Koper", color: "#f19269", kind: "metaal" },
+  { n: 1, name: "Brons", color: "#754514", kind: "metaal" },
+  { n: 2, name: "Zilver", color: "#8e8e8e", kind: "metaal" },
+  { n: 3, name: "Goud", color: "#d9b24e", kind: "metaal" },
+  { n: 4, name: "Platina", color: "#d8dfdf", kind: "metaal" },
+  { n: 5, name: "Amethist", color: "#9966cc", kind: "edelsteen" },
+  { n: 6, name: "Saffier", color: "#0f52ba", kind: "edelsteen" },
+  { n: 7, name: "Smaragd", color: "#009473", kind: "edelsteen" },
+  { n: 8, name: "Robijn", color: "#9b111e", kind: "edelsteen" },
   // De recordwaarden: wat er van de allerbeste renners bekend is (zie het onderzoek).
-  { n: 9, name: "Aliens" },
+  { n: 9, name: "Diamant", color: "#82d5f7", kind: "edelsteen" },
 ];
+
+/** De klasse bij een niveau (de score of een facet); voorbij Diamant blijft het Diamant. */
+export function levelOf(level: number): Level {
+  return LEVELS[Math.max(0, Math.min(LEVELS.length - 1, Math.floor(level + 1e-9)))];
+}
 
 export type Sex = "man" | "vrouw";
 
@@ -52,7 +67,7 @@ export type PowerDuration = "s15" | "m1" | "m5" | "m20";
  * Vermogen in W/kg per duur, voor mannen. Ingeschat aan de hand van de
  * gebruikelijke indeling per duur (ongetraind tot wereldklasse) en de normen van
  * profrenners (Valenzuela 2022; Mateo-March 2022, 2026; Spragg 2022, 2024).
- * Niveau 8 (Wereldtop) is het niveau van WorldTour-winnaars; niveau 9 (Aliens)
+ * Niveau 8 (Robijn) is het niveau van WorldTour-winnaars; niveau 9 (Diamant)
  * de hoogste gepubliceerde waarden: ongeveer 7 W/kg over 40 minuten (Pogacar,
  * Plateau de Beille 2024), 7,2 W/kg over 5 minuten in een rit (Pogacar, Tour
  * 2020), 17 tot 19 W/kg om een Tourspurt te winnen, 10,1 W/kg over een minuut
@@ -87,10 +102,10 @@ export function powerAnchors(duration: PowerDuration, sex: Sex | null): Anchors 
 }
 
 /**
- * Zwift Racing Score (0–1000) als doorlopende lijn: 0 is 0 en 1000 is Aliens,
+ * Zwift Racing Score (0–1000) als doorlopende lijn: 0 is 0 en 1000 is Diamant,
  * dus elke ZRS-punt is 0,9 punt. Bewust niet gekoppeld aan Zwift's categorieën:
  * een score is geen groep (eigenaar, 2026-10-21). Scores boven 900 komen voor; 1000
- * is nog door niemand gehaald. Omdat ZRS bij 1000 ophoudt, komt deze graat nooit
+ * is nog door niemand gehaald. Omdat ZRS bij 1000 ophoudt, komt deze facet nooit
  * boven niveau 9.
  */
 export const ZRS_ANCHORS: Anchors = {
@@ -114,7 +129,7 @@ export const CTL_ANCHORS: Anchors = {
  * 20 (of 5) minuten. Afgeleid uit: WorldTour ongeveer 1,5 en ProTeam 2,2
  * (Mateo-March 2022, na 45 kJ/kg), succesvolle amateurs ongeveer 5 en minder
  * succesvolle ongeveer 9,6 (Barsumyan 2025, na 1000 kJ). Minder verval is beter.
- * Aliens (0,7) is een inschatting voor renners die na 50 kJ/kg nog hun beste
+ * Diamant (0,7) is een inschatting voor renners die na 50 kJ/kg nog hun beste
  * klimtijden rijden.
  */
 export const DURABILITY_ANCHORS: Anchors = {
@@ -128,17 +143,17 @@ export const DURABILITY_ANCHORS: Anchors = {
 export const DURABILITY_MIN_KJ_PER_KG = 10;
 
 /**
- * Het gewicht van elke graat in de score, naar de literatuur (eigenaar,
- * 2026-10-21; onderbouwing in docs/zwbeter-berg-onderzoek.md). Vermogen samen
+ * Het gewicht van elke facet in de score, naar de literatuur (eigenaar,
+ * 2026-10-21; onderbouwing in docs/zwbriljant-onderzoek.md). Vermogen samen
  * 60%, maar niet gelijk verdeeld: 5 minuten voorspelt het best (Leo 2022;
  * Mateo-March 2025), daarna 20 minuten, de minuut beslist Zwift-races (Varesco
  * 2025) en de sprint alleen sprintfinishes (van Erp 2021). Durability 15%: sterk,
  * maar in korte Zwift-races minder vaak beslissend. Racen 15% voor wat vermogen
  * niet verklaart (Westmattelmann 2022). Fitheid 10%: zwakke voorspeller die al in
  * het vermogen zit (Marchal 2025; Vermeire 2019).
- * Ontbreekt een graat, dan gaan de gewichten van de rest samen weer naar 100%.
+ * Ontbreekt een facet, dan gaan de gewichten van de rest samen weer naar 100%.
  */
-export const RIDGE_WEIGHTS = {
+export const FACET_WEIGHTS = {
   sprint: 0.075,
   anaeroob: 0.125,
   vo2max: 0.225,

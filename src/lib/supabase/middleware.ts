@@ -42,6 +42,7 @@ const PUBLIC_PATHS = [
   "/api/src/sync",
   "/api/intervals/rides/sync",
   "/api/instagram/sync",
+  "/api/briljant/weekly",
   // Geen cron: de Discord-bot haalt hier een plan op met het deeltoken in het pad.
   "/api/ttt/plan",
   // Geen cron: agenda-apps halen het abonnement op met het token in het pad.

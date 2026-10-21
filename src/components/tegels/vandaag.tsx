@@ -83,6 +83,13 @@ export type VandaagStanding = {
   totalTeams: number | null;
 };
 
+/** De laatste score van ZWBriljant, als de steen er al is. */
+export type VandaagBriljant = {
+  points: number;
+  level: string;
+  color: string;
+};
+
 export function TegelsVandaag({
   weekday,
   date,
@@ -91,6 +98,7 @@ export function TegelsVandaag({
   standing,
   live,
   liveEvents,
+  briljant = null,
 }: {
   weekday: string;
   date: string;
@@ -99,9 +107,10 @@ export function TegelsVandaag({
   standing: VandaagStanding | null;
   live: VandaagLive | null;
   liveEvents: VandaagLiveEvent[];
+  briljant?: VandaagBriljant | null;
 }) {
   const empty =
-    !workout && events.length === 0 && !standing && !live && liveEvents.length === 0;
+    !workout && events.length === 0 && !standing && !live && liveEvents.length === 0 && !briljant;
   return (
     <section className="space-y-4">
       <header className="tg-repeats-nav">
@@ -166,6 +175,23 @@ export function TegelsVandaag({
               <span className="tg-tile-num">{event.time}</span>
             </Link>
           ))}
+
+          {briljant && (
+            // ZWBeter-kleur, met het ruitje in de kleur van de klasse.
+            <Link href="/zwbeter-worden/briljant" className="tg-tile tg-zwbeter">
+              <span className="tg-tile-small">ZWBriljant</span>
+              <span className="tg-tile-title mt-0.5 flex items-center gap-2">
+                <svg viewBox="0 0 11 16" aria-hidden className="h-4 w-[11px] shrink-0" style={{ fill: briljant.color }}>
+                  <polygon points="5.5,0 11,6 5.5,16 0,6" />
+                </svg>
+                {briljant.level}
+              </span>
+              <span className="tg-tile-num">
+                {briljant.points.toLocaleString("nl-NL")}
+                <span className="ml-1.5 text-base font-normal tracking-normal opacity-85">punten</span>
+              </span>
+            </Link>
+          )}
 
           {standing && (
             <Link href={standing.href} className="tg-tile tg-kalender">

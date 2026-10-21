@@ -1,0 +1,580 @@
+/* ZWBriljant: een eigen register, los van de app-thema's. Een donkere studio
+   met de steen op een sokkel; het getal als gravure in Cormorant Garamond, de
+   rest in spatiekapitalen (Jost). Ontwerp goedgekeurd door de eigenaar op
+   2026-10-21. */
+
+.root {
+  --ink: #f4efe4;
+  --muted: #a8a296;
+  --gold: #e7c56b;
+  --night: #0a0c0f;
+  --serif: var(--font-briljant-serif), "Cormorant Garamond", Georgia, serif;
+  --sans: var(--font-briljant-sans), "Jost", system-ui, sans-serif;
+  color: var(--ink);
+  font-family: var(--sans);
+}
+
+.root ::selection {
+  background: var(--tier);
+  color: var(--night);
+}
+
+.stage {
+  position: relative;
+  overflow: hidden;
+  height: min(82vh, 860px);
+  min-height: 520px;
+  border-radius: 6px;
+  background: var(--night);
+  isolation: isolate;
+}
+
+.loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* De kop */
+.crest {
+  position: absolute;
+  top: 28px;
+  left: 32px;
+  z-index: 2;
+}
+
+.score {
+  display: flex;
+  align-items: baseline;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 6rem;
+  line-height: 0.8;
+  letter-spacing: -0.02em;
+  font-variant-numeric: lining-nums proportional-nums;
+}
+
+.score small {
+  margin-left: 14px;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rule {
+  width: 230px;
+  height: 1px;
+  margin: 18px 0 14px;
+  background: rgb(244 239 228 / 0.16);
+}
+
+.rule i {
+  display: block;
+  height: 100%;
+  background: var(--tier);
+}
+
+.tier {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 32px;
+  line-height: 1;
+}
+
+.lozenge {
+  width: 11px;
+  height: 16px;
+  flex: none;
+}
+
+.next {
+  margin: 9px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* De ladder van klassen */
+.ladder {
+  position: absolute;
+  left: 32px;
+  bottom: 28px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.ladder li {
+  display: grid;
+  grid-template-columns: 9px 78px 34px;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.ladder li svg {
+  width: 9px;
+  height: 13px;
+}
+
+.ladder li span:last-child {
+  text-align: right;
+  font-family: var(--serif);
+  font-size: 16px;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.ladder li.on {
+  opacity: 1;
+  color: var(--ink);
+}
+
+/* Labels die met de steen meedraaien */
+.labels {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.anchor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  transition: opacity 0.3s;
+  will-change: transform;
+}
+
+.anchor button {
+  pointer-events: auto;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+.anchor button:focus-visible,
+.score:focus-visible,
+.facetList button:focus-visible,
+.close:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 4px;
+}
+
+.summit {
+  position: relative;
+  transform: translate(-50%, -100%);
+  padding: 0 0 30px;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.summit::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 1px;
+  height: 26px;
+  background: currentColor;
+}
+
+.summit b {
+  display: block;
+  margin-bottom: 2px;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.ghost {
+  display: block;
+  transform: translate(0, -50%);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.anchor .foot {
+  transform: translate(-50%, 8px);
+  padding: 7px 14px;
+  border: 1px solid rgb(231 197 107 / 0.35);
+  background: rgb(10 12 15 / 0.82);
+  color: var(--gold);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+.foot b {
+  font-weight: 600;
+}
+
+.foot span {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+.facet {
+  position: relative;
+  transform: translate(-50%, -100%);
+  padding: 0 0 24px;
+  text-align: center;
+}
+
+.facet::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 1px;
+  height: 22px;
+  background: currentColor;
+  opacity: 0.8;
+}
+
+.facet b {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 8px;
+  border: 1px solid rgb(244 239 228 / 0.22);
+  background: rgb(10 12 15 / 0.72);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.facet span {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.facet:hover b {
+  border-color: var(--tier);
+}
+
+.facetMark {
+  width: 7px;
+  height: 10px;
+  flex: none;
+}
+
+.ref {
+  display: block;
+  transform: translate(-50%, -100%);
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8d887e;
+}
+
+.ref b {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 19px;
+  letter-spacing: 0;
+  color: #c9c2b4;
+}
+
+/* Zonder WebGL: een vlakke steen en de facetten als lijst */
+.fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.fallbackStone {
+  width: min(28vw, 180px);
+  height: auto;
+  filter: drop-shadow(0 18px 30px rgb(0 0 0 / 0.6));
+}
+
+.facetList {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  left: 24px;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.facetList button {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid rgb(244 239 228 / 0.22);
+  background: rgb(10 12 15 / 0.72);
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.facetList button span {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+/* Het uitlegpaneel */
+.panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  width: min(400px, 100%);
+  overflow: auto;
+  padding: 22px 24px 30px;
+  border-left: 1px solid rgb(244 239 228 / 0.12);
+  background: rgb(12 14 18 / 0.97);
+  font-size: 15px;
+  line-height: 1.45;
+  transform: translateX(105%);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.panelOpen {
+  transform: none;
+}
+
+.panel h2 {
+  margin: 2px 40px 18px 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 40px;
+  line-height: 1.05;
+  font-variant-numeric: lining-nums;
+  outline: none;
+}
+
+.pts {
+  margin-left: 10px;
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.panel dl {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 8px 12px;
+  margin: 0;
+}
+
+.panel dt {
+  font-weight: 500;
+}
+
+.panel dd {
+  margin: 0;
+  color: rgb(244 239 228 / 0.86);
+}
+
+.panel table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.panel th,
+.panel td {
+  padding: 5px 4px;
+  border-bottom: 1px solid rgb(244 239 228 / 0.12);
+  text-align: left;
+}
+
+.panel th:nth-child(n + 2),
+.panel td:nth-child(n + 2) {
+  text-align: right;
+}
+
+.panel th {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.panel tr.sum td {
+  border-bottom: 0;
+  font-weight: 600;
+}
+
+.close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* De meting als balk */
+.meter {
+  position: relative;
+  margin: 6px 0 24px;
+  padding-top: 32px;
+}
+
+.meterValue {
+  position: absolute;
+  top: -6px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 500;
+  font-variant-numeric: lining-nums;
+}
+
+.meterValue::after {
+  content: "";
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  width: 1px;
+  height: 9px;
+  background: currentColor;
+}
+
+.meterTrack {
+  height: 4px;
+  background: rgb(244 239 228 / 0.12);
+}
+
+.meterTrack i {
+  display: block;
+  height: 100%;
+  background: var(--fill);
+}
+
+.meterEnds {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 7px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.meterEnds span:last-child {
+  text-align: right;
+}
+
+.meterEnds b {
+  display: block;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 17px;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+.meterNote {
+  margin: 8px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .stage {
+    height: 78vh;
+    min-height: 480px;
+  }
+  .crest {
+    top: 18px;
+    left: 18px;
+  }
+  .score {
+    font-size: 4.5rem;
+  }
+  .ladder {
+    display: none;
+  }
+  /* De kop toont de score al; de uitleg bij de voet blijft. */
+  .facet span,
+  .ref,
+  .summit,
+  .ghost {
+    display: none;
+  }
+  .anchor .foot {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .anchor {
+    transition: none;
+  }
+}

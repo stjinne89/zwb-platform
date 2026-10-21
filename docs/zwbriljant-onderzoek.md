@@ -1,70 +1,85 @@
-# ZWBeter-berg: onderzoek, model en ijkwaarden
+# ZWBriljant: onderzoek, model en ijkwaarden
 
-Onderzoek voor de ZWBeter-berg (2026-10-21): welke factoren in één score horen,
-hoe ze worden gewogen en waar de ijkwaarden vandaan komen. Gezocht in PubMed en
-Consensus. De code staat in `src/lib/berg/` (`norms.ts` voor de ijkwaarden en
-gewichten, `score.ts` voor de berekening).
+Onderzoek voor ZWBriljant (2026-10-21): welke factoren in één score horen, hoe ze
+worden gewogen en waar de ijkwaarden vandaan komen. Gezocht in PubMed en
+Consensus. De code staat in `src/lib/briljant/` (`norms.ts` voor de klassen,
+ijkwaarden en gewichten, `score.ts` voor de berekening, `view.ts` voor wat de
+pagina toont); de steen zelf in `src/components/briljant/`.
 
-Het model is op 2026-10-21 twee keer bijgestuurd door de eigenaar: eerst zeven
-graten, een gewogen score en consistentie ten opzichte van jezelf (uit een fork
-van de bouwsessie), daarna virtuele niveaus in plaats van echte bergketens en
-geen meters meer, en tot slot punten in plaats van decimalen: **100 punten per
-niveau, zonder plafond.**
+Het model is op 2026-10-21 een paar keer bijgestuurd door de eigenaar: zeven
+facetten (eerst "graten"), een gewogen score en consistentie ten opzichte van
+jezelf; virtuele niveaus in plaats van echte bergketens, zonder meters; punten in
+plaats van decimalen (**100 punten per niveau, zonder plafond**); de gewichten
+naar de literatuur; en tot slot geen berg maar één ruwe edelsteen met de
+klassen van vELO. Tot die laatste stap heette het onderdeel de ZWBeter-berg.
 
 ## De score
 
 **Punten, 100 per niveau, zonder plafond.** Een hoger getal dat in kleine stappen
 groeit motiveert meer dan decimalen (eigenaar, 2026-10-21). Intern rekent de code
 met het niveau als getal (4,27; `points()` maakt er 427 van); zo staat het ook in
-`zwbeter_berg_snapshots.score`.
+`zwbriljant_snapshots.score`.
 
 **Score = profielscore × (0,8 + 0,2 × consistentie).** De profielscore is het
-gewogen gemiddelde van de zeven graten; consistentie telt als factor tot 20%
+gewogen gemiddelde van de zeven facetten; consistentie telt als factor tot 20%
 (eigenaar, 2026-10-21). Volledig consistent houdt de volle profielscore, bij 55%
 blijft 91% over. Zonder ritgegevens is de factor 1: ontbrekende gegevens kosten
-niets. Een factor en geen achtste graat, omdat consistentie tegen je eigen norm
-wordt gemeten: als graat zou trouw trainen op een laag niveau wereldtop-punten
+niets. Een factor en geen achtste facet, omdat consistentie tegen je eigen norm
+wordt gemeten: als facet zou trouw trainen op een laag niveau Robijn-punten
 opleveren.
 
-**Namen bij de algemene score, niet bij racen.** De algemene score hangt aan een
-niveau met een naam. Racen (ZRS) hangt bewust niet aan een groep: zie de rechte
-lijn hieronder (eigenaar, 2026-10-21).
+**De klassen van vELO.** Namen, volgorde en kleuren zijn die van de tien
+vELO-klassen van ZwiftRacing.app (reference/categories, met de login van de
+eigenaar gelezen op 2026-10-21); de grenzen zijn van ZWB: 100 punten per klasse,
+op de ijkwaarden hieronder (eigenaar, 2026-10-21). vELO zelf deelt in naar
+rating (Copper 0–650 tot Diamond 2200+, met een eigen ladder voor vrouwen); die
+grenzen nemen we niet over, want vELO verdeelt renners over even grote groepen en
+onze klassen hangen aan wattages en records. Wel overgenomen: dezelfde namen voor
+vrouwen bij andere waarden. Racen (ZRS) is een rechte lijn en hangt bewust niet
+aan een groep, al toont het facet wel de kleur van zijn klasse.
 
-| Punten | Niveau | Drempel (man) | Drempel (vrouw) |
-|---|---|---|---|
-| 100 | Starter | 1,9 W/kg | 1,6 W/kg |
-| 200 | Recreant | 2,6 W/kg | 2,2 W/kg |
-| 300 | Toerrijder | 3,3 W/kg | 2,8 W/kg |
-| 400 | Gevorderde | 4,0 W/kg | 3,4 W/kg |
-| 500 | Sterke amateur | 4,6 W/kg | 3,9 W/kg |
-| 600 | Elite-amateur | 5,3 W/kg | 4,5 W/kg |
-| 700 | Profpeloton | 5,8 W/kg | 4,9 W/kg |
-| 800 | Wereldtop | 6,4 W/kg | 5,4 W/kg |
-| 900 | Aliens | 7,1 W/kg | 6,0 W/kg |
+| Punten | Klasse | Kleur | Drempel (man) | Drempel (vrouw) |
+|---|---|---|---|---|
+| 0–99 | Koper | #f19269 | onder 1,9 W/kg | onder 1,6 W/kg |
+| 100 | Brons | #754514 | 1,9 W/kg | 1,6 W/kg |
+| 200 | Zilver | #8e8e8e | 2,6 W/kg | 2,2 W/kg |
+| 300 | Goud | #d9b24e | 3,3 W/kg | 2,8 W/kg |
+| 400 | Platina | #d8dfdf | 4,0 W/kg | 3,4 W/kg |
+| 500 | Amethist | #9966cc | 4,6 W/kg | 3,9 W/kg |
+| 600 | Saffier | #0f52ba | 5,3 W/kg | 4,5 W/kg |
+| 700 | Smaragd | #009473 | 5,8 W/kg | 4,9 W/kg |
+| 800 | Robijn | #9b111e | 6,4 W/kg | 5,4 W/kg |
+| 900 | Diamant | #82d5f7 | 7,1 W/kg | 6,0 W/kg |
 
-Voorbij 900 telt de score gewoon door (1.000, …). **Aliens** zijn de
-recordwaarden: wat er van de allerbeste renners gepubliceerd is. Daarvoor is de
-Wereldtop iets omlaag geschoven naar het niveau van WorldTour-winnaars. Punten worden
-afgekapt, niet afgerond: 499,9 is nog 499, en 500 verschijnt pas bij het volgende
-niveau.
+Voorbij 900 telt de score gewoon door (1.000, …). **Diamant** zijn de
+recordwaarden: wat er van de allerbeste renners gepubliceerd is. Daarvoor is
+Robijn iets omlaag geschoven naar het niveau van WorldTour-winnaars. Punten worden
+afgekapt, niet afgerond: 499,9 is nog 499, en 500 verschijnt pas bij de volgende
+klasse. Eerder heetten de niveaus Starter tot Wereldtop en Aliens.
 
-**De berg.** Eén berg: in het midden de hoofdtop op je score (na de
-consistentiefactor), met zeven graten die naar buiten lopen. Op elke graat staat een echte, spitse piek die precies tot
-de punten van die graat komt; een sterke kant steekt boven de hoofdtop uit, een
-zwakke blijft eronder. Achter de berg staan de niveaus als virtuele,
-niet-bestaande ijkbergen; hun hoogte is alleen beeld.
+**De steen.** Eén ruwe edelsteen uit één stuk (eigenaar: "1 grote edelsteen en
+niet allerlei pieken"). De zeven facetten duwen de steen samen in hun eigen
+richting naar buiten, een sterk facet verder dan een zwak; het omhulsel eromheen
+is de steen. Hoogte en grootte zijn de score, dus consistentie maakt hem via de
+factor kleiner; een gouden draadmodel toont de steen bij volledige consistentie.
+Kleur en materiaal volgen de klasse (metaal dof en ondoorzichtig, edelsteen
+doorschijnend, diamant fonkelend), de kop de echte kristalvorm van die steen. Hij
+staat op een zwarte sokkel in een donkere studio, met de tien klassen als
+ijkstenen erachter. Zonder WebGL: een vlakke steen en de facetten als lijst.
 
-**Achter elk getal de meting en de formule.** Elke graat toont de meting met
-eenheid en de omrekening, bijvoorbeeld: "Drempel 4,3 W/kg ligt tussen 400 (4,0)
-en 500 (4,6): 400 + (4,3 − 4,0) ÷ (4,6 − 4,0) × 100 = 450". Voorbij 800 loopt de
-lijn van 700 naar 800 door; onder de nulwaarde is het 0.
+**Op het scherm de waarden, de formules op /hulp** (eigenaar). Elk facet toont de
+meting als balk van de grens van zijn klasse tot de volgende (racen over de hele
+schaal, 0 tot 1000 ZRS), met wat er gemeten is, de periode en hoeveel het
+meetelt. De omrekening ("400 + (4,3 − 4,0) ÷ (4,6 − 4,0) × 100 = 450") staat
+alleen op `/hulp/training#zwbriljant`. Voorbij Diamant loopt de laatste lijn
+door; onder de nulwaarde is het 0.
 
-## Zeven graten
+## Zeven facetten
 
-Rond de berg, als doorlopende lijn van kort naar lang vermogen, dan vermoeid,
+Rond de steen, als doorlopende lijn van kort naar lang vermogen, dan vermoeid,
 fitheid en racen, en terug naar sprint:
 
-| Graat | Meting | Gewicht | Waarom | Bronnen |
+| Facet | Meting | Gewicht | Waarom | Bronnen |
 |---|---|---|---|---|
 | Sprint | beste 15 s, W/kg | 7,5% | Beslist alleen sprintfinishes; daalt na twee uur nauwelijks nog. | van Erp 2021 (top 5); Klaris 2024; Pinot & Grappe 2011 |
 | Anaeroob | beste minuut, W/kg | 12,5% | Punchers en aanvallen; beslissend in Zwift-races en bij de top 5 van profvrouwen. | Varesco 2025; van Erp & Lamberts 2022 |
@@ -103,19 +118,19 @@ sterk elk onderdeel uitslagen en niveau voorspelt:
   wordt verder beloond via de consistentiefactor.
 
 Eerst (tot deze ronde) telde elke duur 12,5% (vermogen 50%), durability 20% en
-fitheid en racen elk 15%. Ontbreekt een graat, dan gaan de gewichten van de
-aanwezige graten samen weer naar 100%. Met minder dan twee graten is er geen score.
+fitheid en racen elk 15%. Ontbreekt een facet, dan gaan de gewichten van de
+aanwezige facetten samen weer naar 100%. Met minder dan twee facetten is er geen score.
 
-**Vorm is profiel.** Een sprinter heeft een piek aan de sprintkant die ver boven de
-hoofdtop uitsteekt, een diesel hoge pieken bij drempel, durability en fitheid.
-(De eerste regel, lengte van een graat = (niveau ÷ score)^1,8, vervalt met de
-berg van zeven pieken; `ridgeReach` blijft tot de bouw van de pagina staan.)
+**Vorm is profiel.** Een sprinter krijgt een steen die aan de sprintkant uitpuilt,
+een diesel een steen die breed is aan de kant van drempel, durability en fitheid.
+(De lengteregel van de berg, `ridgeReach`, en de voetbreedte `footWidth` zijn
+met de steen vervallen.)
 
 **Rekenvoorbeeld (man):** sprint 13,2 W/kg → 480 punten; anaeroob 7,6 → 425;
 VO2max 5,1 → 442; drempel 4,3 → 450; durability 4,2%/10 kJ/kg → 457; CTL 78 →
-465; ZRS 640 → 576. Profielscore 469 (met de oude gewichten 472). Met
-consistentie 55% (factor 0,91): **427 punten**: Gevorderde, nog 73 tot Sterke
-amateur. Staat als test in `tests/unit/berg-score.test.ts`.
+465; ZRS 640 → 575. Profielscore 469 (met de oude gewichten 472). Met
+consistentie 55% (factor 0,91): **427 punten**: Platina, nog 73 tot Amethist.
+Staat als test in `tests/unit/briljant-score.test.ts` en `briljant-view.test.ts`.
 
 ## Consistentie, altijd ten opzichte van jezelf
 
@@ -142,44 +157,45 @@ tellen. Het past bij de regel dat beschikbaarheid geen belastbaarheid is.
 - Onderbouwing: Raysmith & Drew 2016 (wie meer dan 80% van de geplande
   trainingsweken afmaakte, haalde ongeveer zeven keer zo vaak zijn doel);
   Foster 1998.
-- **Telt mee als factor**: score = profielscore × (0,8 + 0,2 × consistentie).
-  Op de berg is het daarnaast de breedte en stevigheid van de voet: voet = 0,6 +
-  0,4 × consistentie, met afbrokkelende flanken bij een lage waarde (niet spitser,
-  want een smalle voet maakt een berg juist indrukwekkend). Op het scherm staat
-  consistentie als percentage.
+- **Telt mee als factor**: score = profielscore × (0,8 + 0,2 × consistentie),
+  en daarmee de grootte van de steen. Op het scherm staat consistentie als
+  percentage bij de sokkel. (Op de berg was het de breedte van de voet.)
 
-## Bewust niet als graat
+## Bewust niet als facet
 
 - **HRV en readiness**: HRV-gestuurd trainen geeft hooguit een klein voordeel op
   prestaties (Düking 2021; Manresa-Rocamora 2021; Granero-Gallegos 2020). Het
   hoort bij het weer van de dag, alleen voor het lid zelf.
 - **Vorm (TSB) en vermoeidheid (ATL)**: schommelen per dag en voorspellen slecht;
-  het weer op de berg, niet de score.
+  het weer van de dag, niet de score (nog niet op de pagina).
 - **Herhaalbaarheid** (herhaalde inspanningen boven 95% van het maximum):
   onderscheidde WorldTour en ProTeam niet (Mateo-March 2021).
-- **vELO**: de koppeling met ZwiftRacing.app is nog nooit tegen de echte API
-  getest, en de officiële categoriegrenzen waren niet te vinden (de site gaf een
-  429). Racen draagt voorlopig alleen ZRS.
+- **vELO als meting**: de koppeling met ZwiftRacing.app is nog nooit tegen de
+  echte API getest. Racen draagt voorlopig alleen ZRS; van vELO gebruiken we alleen
+  de namen en kleuren van de klassen.
 - **Echte bergketens en meters** (de eerste versie, Heuvelland tot Himalaya):
   vervangen door virtuele niveaus, omdat een norm per niveau duidelijker zegt waar
   een renner staat dan de hoogte van een echte berg.
+- **De berg zelf**: vervangen door de edelsteen (eigenaar, 2026-10-21). Ook een
+  kristalgroep met een kristal per facet is geprobeerd en afgewezen: het moest één
+  steen zijn.
 
 ## De ijkwaarden
 
 Alle ijkwaarden zijn **inschattingen van ZWB**, gegrond op de bronnen hieronder.
-Geen studie koppelt vermogen aan niveaus 1 tot 8; de koppeling is van ons. Wat de
+Geen studie koppelt vermogen aan klassen; de koppeling is van ons. Wat de
 bronnen wel geven, staat per rij.
 
 **Vermogen, mannen (W/kg)**
 
-| Duur | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 (Aliens) |
+| Duur | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 (Diamant) |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 15 s | 4 | 7,5 | 9 | 10,5 | 12 | 13,5 | 15 | 16,5 | 17,5 | 19,5 |
 | 1 min | 3 | 5 | 5,8 | 6,6 | 7,4 | 8,2 | 9 | 9,8 | 10,2 | 11,2 |
 | 5 min | 1,2 | 2,4 | 3,2 | 4 | 4,8 | 5,5 | 6,2 | 6,7 | 7,1 | 7,6 |
 | 20 min | 1 | 1,9 | 2,6 | 3,3 | 4 | 4,6 | 5,3 | 5,8 | 6,4 | 7,1 |
 
-**Recordwaarden achter Aliens** (gepubliceerde schattingen; profs publiceren hun
+**Recordwaarden achter Diamant** (gepubliceerde schattingen; profs publiceren hun
 gegevens zelden, dus officiële records bestaan niet):
 - Drempel: ongeveer 6,85 tot 7,0 W/kg over ongeveer 40 minuten (Pogačar, Plateau de
   Beille, Tour 2024; Berg in *Journal of Science and Cycling*, via
@@ -204,12 +220,12 @@ wereldklasse.
 **Vermogen, vrouwen**: dezelfde niveaus bij 80% (15 s), 82% (1 min), 84% (5 min) en
 85% (20 min) van de waarden voor mannen. Het aandeel volgt de normen van
 vrouwelijke profs (Mateo-March 2022: 1 min 8,4 en 60 min 4,2 W/kg) tegenover die
-van mannelijke profs (Valenzuela 2022). Zonder opgegeven geslacht rekent de berg
+van mannelijke profs (Valenzuela 2022). Zonder opgegeven geslacht rekent ZWBriljant
 met de waarden voor mannen.
 
 **Durability (verval in % per 10 kJ/kg, op de beste 20 of 5 minuten)**
 
-| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 (Aliens) |
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 (Diamant) |
 |---|---|---|---|---|---|---|---|---|---|
 | 18 | 12,5 | 9,5 | 7 | 5 | 3,6 | 2,6 | 1,8 | 1,2 | 0,7 |
 
@@ -222,17 +238,17 @@ voorafgaand werk telt een curve mee (daaronder is het verval klein, Mateo-March
 Beperking: alleen de hoeveelheid werk telt, niet hoe zwaar het was, terwijl werk
 boven CP meer kost (Spragg 2024; Mateo-March 2024).
 
-**Fitheid (CTL, TSS/dag)**: 0, 15, 30, 45, 65, 85, 105, 125, 150, 180 (Aliens).
+**Fitheid (CTL, TSS/dag)**: 0, 15, 30, 45, 65, 85, 105, 125, 150, 180 (Diamant).
 WorldTour-profs zitten rond 140 tot 150 en na een grote ronde rond 170; 180 is het
 hoogste dat genoemd wordt ([Fast Talk Labs](https://fasttalklabs.com/training/chronic-training-load-ctl-isnt-everything)).
 De lagere niveaus zijn een inschatting van ZWB.
 
 **Racen (Zwift Racing Score, 0–1000)**: een rechte lijn, 0 ZRS is 0 punten en 1000
-ZRS is Aliens (900 punten), dus elke ZRS-punt is 0,9 punt. Bewust niet gekoppeld
+ZRS is Diamant (900 punten), dus elke ZRS-punt is 0,9 punt. Bewust niet gekoppeld
 aan Zwift's categorieën: een score is geen groep (eigenaar, 2026-10-21). Scores
 boven 900 komen voor; 1000 is nog door niemand gehaald
 ([Zwift-forum](https://forums.zwift.com/t/zwift-racing-score-october-2024/636179?page=51)).
-Omdat ZRS bij 1000 ophoudt, komt deze graat nooit boven 900 punten.
+Omdat ZRS bij 1000 ophoudt, komt dit facet nooit boven 900 punten.
 
 ## Bronnen
 

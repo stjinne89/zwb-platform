@@ -28,11 +28,11 @@ beforeAll(async () => {
       "grant select on profiles to authenticated;",
     ].join("\n"),
   );
-  await db.exec(await readFile("supabase/migrations/0265_zwbeter_berg.sql", "utf8"));
+  await db.exec(await readFile("supabase/migrations/0265_zwbriljant.sql", "utf8"));
   // Snapshots komen van de server; hier als eigenaar van de tabel.
   for (const id of [ANNA, BART, CEES, DIRK]) {
     await db.query(
-      "insert into zwbeter_berg_snapshots(profile_id, week, score, ridges, consistency, source) values ($1, '2026-10-19', 4.55, '{\"sprint\": 4.8, \"racen\": null}', 0.8, 'week')",
+      "insert into zwbriljant_snapshots(profile_id, week, score, facets, consistency, source) values ($1, '2026-10-19', 4.55, '{\"sprint\": 4.8, \"racen\": null}', 0.8, 'week')",
       [id],
     );
   }
@@ -54,24 +54,24 @@ async function as<T>(userId: string, run: () => Promise<T>): Promise<T> {
 
 const visibleTo = async (viewer: string) =>
   (
-    await as(viewer, () => db.query<{ profile_id: string }>("select profile_id from zwbeter_berg_snapshots order by profile_id"))
+    await as(viewer, () => db.query<{ profile_id: string }>("select profile_id from zwbriljant_snapshots order by profile_id"))
   ).rows.map((row) => row.profile_id);
 
 const share = (id: string, visible = true) =>
   as(id, () =>
     db.query(
-      "insert into zwbeter_berg_preferences(profile_id, consent_version, visible) values ($1, '2026-10-21', $2) on conflict (profile_id) do update set consent_version = excluded.consent_version, visible = excluded.visible",
+      "insert into zwbriljant_preferences(profile_id, consent_version, visible) values ($1, '2026-10-21', $2) on conflict (profile_id) do update set consent_version = excluded.consent_version, visible = excluded.visible",
       [id, visible],
     ),
   );
 
-describe("ZWBeter-berg (0265)", () => {
-  it("toont zonder delen alleen je eigen berg", async () => {
+describe("ZWBriljant (0265)", () => {
+  it("toont zonder delen alleen je eigen steen", async () => {
     expect(await visibleTo(ANNA)).toEqual([ANNA]);
     expect(await visibleTo(BART)).toEqual([BART]);
   });
 
-  it("toont de berg van een ander alleen als jullie allebei delen", async () => {
+  it("toont de steen van een ander alleen als jullie allebei delen", async () => {
     await share(ANNA);
     expect(await visibleTo(ANNA)).toEqual([ANNA]);
     expect(await visibleTo(BART)).toEqual([BART]);
@@ -91,68 +91,68 @@ describe("ZWBeter-berg (0265)", () => {
     expect(await visibleTo(ANNA)).toEqual([ANNA]);
     await share(BART, true);
     expect(await visibleTo(ANNA)).toEqual([ANNA, BART]);
-    await as(BART, () => db.query(`update zwbeter_berg_preferences set consent_version = null where profile_id = '${BART}'`));
+    await as(BART, () => db.query(`update zwbriljant_preferences set consent_version = null where profile_id = '${BART}'`));
     expect(await visibleTo(ANNA)).toEqual([ANNA]);
     expect(await visibleTo(BART)).toEqual([BART]);
   });
 
   it("houdt voorkeuren privé", async () => {
-    const seen = await as(CEES, () => db.query("select profile_id from zwbeter_berg_preferences"));
+    const seen = await as(CEES, () => db.query("select profile_id from zwbriljant_preferences"));
     expect(seen.rows).toEqual([]);
     await expect(
-      as(CEES, () => db.query(`insert into zwbeter_berg_preferences(profile_id, consent_version) values ('${ANNA}', '2026-10-21')`)),
+      as(CEES, () => db.query(`insert into zwbriljant_preferences(profile_id, consent_version) values ('${ANNA}', '2026-10-21')`)),
     ).rejects.toThrow(/row-level security/);
   });
 
-  it("laat leden geen snapshot schrijven en alleen hun eigen berg wissen", async () => {
+  it("laat leden geen snapshot schrijven en alleen hun eigen steen wissen", async () => {
     await expect(
       as(ANNA, () =>
         db.query(
-          `insert into zwbeter_berg_snapshots(profile_id, week, score, ridges, source) values ('${ANNA}', '2026-10-26', 9.9, '{}', 'week')`,
+          `insert into zwbriljant_snapshots(profile_id, week, score, facets, source) values ('${ANNA}', '2026-10-26', 9.9, '{}', 'week')`,
         ),
       ),
     ).rejects.toThrow(/permission denied/);
     await expect(
-      as(ANNA, () => db.query(`update zwbeter_berg_snapshots set score = 9.9 where profile_id = '${ANNA}'`)),
+      as(ANNA, () => db.query(`update zwbriljant_snapshots set score = 9.9 where profile_id = '${ANNA}'`)),
     ).rejects.toThrow(/permission denied/);
-    await as(ANNA, () => db.query(`delete from zwbeter_berg_snapshots where profile_id = '${CEES}'`));
-    expect((await db.query(`select 1 from zwbeter_berg_snapshots where profile_id = '${CEES}'`)).rows).toHaveLength(1);
-    await as(CEES, () => db.query(`delete from zwbeter_berg_snapshots where profile_id = '${CEES}'`));
-    expect((await db.query(`select 1 from zwbeter_berg_snapshots where profile_id = '${CEES}'`)).rows).toHaveLength(0);
+    await as(ANNA, () => db.query(`delete from zwbriljant_snapshots where profile_id = '${CEES}'`));
+    expect((await db.query(`select 1 from zwbriljant_snapshots where profile_id = '${CEES}'`)).rows).toHaveLength(1);
+    await as(CEES, () => db.query(`delete from zwbriljant_snapshots where profile_id = '${CEES}'`));
+    expect((await db.query(`select 1 from zwbriljant_snapshots where profile_id = '${CEES}'`)).rows).toHaveLength(0);
   });
 
-  it("weigert onbekende graten, een andere dag dan maandag, een onzinscore en ruwe velden", async () => {
+  it("weigert onbekende facetten, een andere dag dan maandag, een onzinscore en ruwe velden", async () => {
     await expect(
       db.query(
-        `insert into zwbeter_berg_snapshots(profile_id, week, ridges, source) values ('${ANNA}', '2026-10-26', '{"explosief": 4}', 'week')`,
+        `insert into zwbriljant_snapshots(profile_id, week, facets, source) values ('${ANNA}', '2026-10-26', '{"explosief": 4}', 'week')`,
       ),
-    ).rejects.toThrow(/zwbeter_berg_snapshots_ridges_check/);
+    ).rejects.toThrow(/zwbriljant_snapshots_facets_check/);
     await expect(
       db.query(
-        `insert into zwbeter_berg_snapshots(profile_id, week, score, ridges, source) values ('${ANNA}', '2026-10-26', 250, '{}', 'week')`,
+        `insert into zwbriljant_snapshots(profile_id, week, score, facets, source) values ('${ANNA}', '2026-10-26', 250, '{}', 'week')`,
       ),
-    ).rejects.toThrow(/zwbeter_berg_snapshots_score_check/);
+    ).rejects.toThrow(/zwbriljant_snapshots_score_check/);
     await expect(
       db.query(
-        `insert into zwbeter_berg_snapshots(profile_id, week, ridges, source) values ('${ANNA}', '2026-10-26', '{"watt": 300}', 'week')`,
+        `insert into zwbriljant_snapshots(profile_id, week, facets, source) values ('${ANNA}', '2026-10-26', '{"watt": 300}', 'week')`,
       ),
-    ).rejects.toThrow(/zwbeter_berg_snapshots_ridges_check/);
+    ).rejects.toThrow(/zwbriljant_snapshots_facets_check/);
     await expect(
       db.query(
-        `insert into zwbeter_berg_snapshots(profile_id, week, ridges, source) values ('${ANNA}', '2026-10-27', '{}', 'week')`,
+        `insert into zwbriljant_snapshots(profile_id, week, facets, source) values ('${ANNA}', '2026-10-27', '{}', 'week')`,
       ),
-    ).rejects.toThrow(/zwbeter_berg_snapshots_week_check/);
+    ).rejects.toThrow(/zwbriljant_snapshots_week_check/);
     const columns = await db.query<{ column_name: string }>(
-      "select column_name from information_schema.columns where table_name = 'zwbeter_berg_snapshots'",
+      "select column_name from information_schema.columns where table_name = 'zwbriljant_snapshots'",
     );
     expect(columns.rows.map((row) => row.column_name).sort()).toEqual(
-      ["consistency", "created_at", "profile_id", "provenance", "ridges", "score", "source", "week"].sort(),
+      ["consistency", "created_at", "profile_id", "provenance", "facets", "score", "source", "week"].sort(),
     );
   });
 
   it("laat anon de deelfunctie niet uitvoeren", async () => {
     const { rows } = await db.query<{ allowed: boolean }>(
-      "select has_function_privilege('anon', 'public.zwbeter_berg_shares(uuid)', 'execute') as allowed",
+      "select has_function_privilege('anon', 'public.zwbriljant_shares(uuid)', 'execute') as allowed",
     );
     expect(rows[0].allowed).toBe(false);
   });

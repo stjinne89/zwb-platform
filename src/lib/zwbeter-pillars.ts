@@ -22,6 +22,7 @@ export const ZWBETER_PILLARS: Pillar[] = [
       "/zwbeter-worden/jaarplan",
       "/zwbeter-worden/belasting",
       "/zwbeter-worden/vermogen",
+      "/zwbeter-worden/briljant",
       "/zwbeter-worden/doelen",
       "/zwbeter-worden/uitgangspunten",
       "/zwbeter-worden/logboek",

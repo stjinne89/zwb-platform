@@ -11,6 +11,7 @@ import {
   DATA_FRESHNESS_HELP,
   INTERVALS_CONNECT_STEPS,
 } from "../_data";
+import { BriljantHelp } from "./briljant";
 import { GuideCards } from "./guide-cards";
 
 export function TrainingHelp() {
@@ -388,6 +389,10 @@ export function TrainingHelp() {
           </Link>
         </div>
       </section>
+
+      <div id="zwbriljant" className="scroll-mt-20">
+        <BriljantHelp />
+      </div>
 
       <section
         id="strava-samenvatting"
