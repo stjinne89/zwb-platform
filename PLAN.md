@@ -11286,7 +11286,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — barcodescanner leest ook een gedraaide barcode
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-21.** Commit `7a419770`. Geen migratie. Gepusht naar `main` op 2026-10-21.
 
 **Waarom.** De eigenaar meldde dat de knop Scan in het eetdagboek niet leek te werken.
 Twee oorzaken, nagebootst op een testpagina met een getekende EAN-13 op een foto van
