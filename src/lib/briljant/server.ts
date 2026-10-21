@@ -18,7 +18,8 @@ import { isCyclingSportType } from "@/lib/strava/sports";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
 import { CONSISTENCY_WEEKS, type BriljantInput, type ConsistencyInput, type HistoryPoint } from "./score";
-import type { Sex } from "./norms";
+import { SCALE_VERSION, type Sex } from "./norms";
+import { clubAverage, type StoredSnapshot } from "./compare";
 import {
   complianceFrom,
   consistencyWeeks,
@@ -255,6 +256,7 @@ export async function loadHistory(admin: Admin, profileId: string, today = amste
     .from("zwbriljant_snapshots")
     .select("week, score")
     .eq("profile_id", profileId)
+    .eq("provenance->>scale", SCALE_VERSION)
     .lt("week", current)
     .gte("week", shiftDay(current, -7 * 12))
     .order("week", { ascending: true });
@@ -314,10 +316,109 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
   }
 
   const useful = rows.filter((row) => row.score != null || row.consistency != null);
+  // Snapshots van oudere schalen gaan weg: er staan alleen niveaus in, geen
+  // metingen om opnieuw mee te rekenen. De week van nu volgt direct hierna.
+  await admin
+    .from("zwbriljant_snapshots")
+    .delete()
+    .eq("profile_id", profileId)
+    .or(`provenance->>scale.is.null,provenance->>scale.neq.${SCALE_VERSION}`);
   if (useful.length === 0) return 0;
   const { error } = await admin
     .from("zwbriljant_snapshots")
     .upsert(useful, { onConflict: "profile_id,week", ignoreDuplicates: true });
   if (error) throw new Error(error.message);
   return useful.length;
+}
+
+type SnapshotRecord = { profile_id: string; week: string; score: number | string | null; facets: unknown; consistency: number | string | null };
+
+const toStored = (row: SnapshotRecord): StoredSnapshot => ({
+  week: row.week,
+  score: row.score == null ? null : Number(row.score),
+  facets: (row.facets ?? {}) as StoredSnapshot["facets"],
+  consistency: row.consistency == null ? null : Number(row.consistency),
+});
+
+/** Alle eigen snapshots van de huidige schalen, oud naar nieuw; leeg zonder migratie. */
+export async function loadOwnSnapshots(admin: Admin, profileId: string): Promise<StoredSnapshot[]> {
+  const { data, error } = await admin
+    .from("zwbriljant_snapshots")
+    .select("profile_id, week, score, facets, consistency")
+    .eq("profile_id", profileId)
+    .eq("provenance->>scale", SCALE_VERSION)
+    .order("week", { ascending: true });
+  return error ? [] : ((data ?? []) as SnapshotRecord[]).map(toStored);
+}
+
+/** Zoveel weken terug telt een snapshot nog mee voor het ZWB-gemiddelde. */
+const AVERAGE_WEEKS = 8;
+
+/**
+ * Het ZWB-gemiddelde over de laatste snapshot van iedereen die ZWBriljant
+ * gebruikt (anoniem, pas vanaf vijf leden; zie clubAverage). Met de admin-client:
+ * het gemiddelde verlaat de server alleen als getal, nooit per lid.
+ */
+export async function loadClubAverage(admin: Admin, today = amsterdamDayKey()) {
+  const { data, error } = await admin
+    .from("zwbriljant_snapshots")
+    .select("profile_id, week, score, facets, consistency")
+    .eq("provenance->>scale", SCALE_VERSION)
+    .gte("week", shiftDay(mondayKey(today), -7 * AVERAGE_WEEKS))
+    .order("week", { ascending: false });
+  if (error) return null;
+  const latest = new Map<string, StoredSnapshot>();
+  for (const row of (data ?? []) as SnapshotRecord[]) if (!latest.has(row.profile_id)) latest.set(row.profile_id, toStored(row));
+  return clubAverage([...latest.values()]);
+}
+
+/** Deelt dit lid zijn steen met andere leden? */
+export async function loadSharing(admin: Admin, profileId: string): Promise<boolean> {
+  const { data } = await admin
+    .from("zwbriljant_preferences")
+    .select("consent_version, visible")
+    .eq("profile_id", profileId)
+    .maybeSingle();
+  const row = data as { consent_version: string | null; visible: boolean } | null;
+  return Boolean(row?.consent_version && row.visible);
+}
+
+type UserClient = Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>;
+
+/**
+ * De leden van wie je de steen mag zien, met hun naam. Bewust met de sessie van
+ * het lid: RLS bepaalt wie zichtbaar is, niet deze code.
+ */
+export async function loadVisibleMembers(supabase: UserClient, viewerId: string): Promise<Array<{ id: string; name: string }>> {
+  const { data, error } = await supabase
+    .from("zwbriljant_snapshots")
+    .select("profile_id")
+    .neq("profile_id", viewerId)
+    .eq("provenance->>scale", SCALE_VERSION);
+  if (error) return [];
+  const ids = [...new Set(((data ?? []) as Array<{ profile_id: string }>).map((row) => row.profile_id))];
+  if (ids.length === 0) return [];
+  const { data: profiles } = await supabase.from("profiles").select("id, display_name").in("id", ids);
+  return ((profiles ?? []) as Array<{ id: string; display_name: string | null }>)
+    .map((row) => ({ id: row.id, name: row.display_name?.trim() || "Lid" }))
+    .sort((a, b) => a.name.localeCompare(b.name, "nl"));
+}
+
+/** De laatste steen van een ander lid, als RLS hem laat zien; anders null. */
+export async function loadMemberSnapshot(supabase: UserClient, profileId: string) {
+  const [{ data }, { data: profile }] = await Promise.all([
+    supabase
+      .from("zwbriljant_snapshots")
+      .select("profile_id, week, score, facets, consistency")
+      .eq("profile_id", profileId)
+      .eq("provenance->>scale", SCALE_VERSION)
+      .not("score", "is", null)
+      .order("week", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("profiles").select("display_name").eq("id", profileId).maybeSingle(),
+  ]);
+  if (!data) return null;
+  const name = (profile as { display_name: string | null } | null)?.display_name?.trim() || "Lid";
+  return { name, snapshot: toStored(data as SnapshotRecord) };
 }

@@ -6,6 +6,7 @@
 // waren staat als ja/nee in `provenance`. Nooit watt, W/kg, gewicht, CTL of ZRS.
 
 import { wattsAtDuration } from "@/lib/teams/power-profile";
+import { SCALE_VERSION } from "./norms";
 import {
   consistencyFrom,
   facetLevels,
@@ -18,6 +19,8 @@ import {
 } from "./score";
 
 export type BriljantSources = {
+  /** Met welke schalen dit is gerekend (`SCALE_VERSION`). */
+  scale: string;
   power: boolean;
   fatigue: boolean;
   ctl: boolean;
@@ -84,6 +87,7 @@ export function snapshotFrom(args: {
   const facets = facetLevels(args.input);
   const consistency = args.consistency ? (consistencyFrom(args.consistency)?.value ?? null) : null;
   const sources: BriljantSources = {
+    scale: SCALE_VERSION,
     power: facets.sprint != null || facets.anaeroob != null || facets.vo2max != null || facets.drempel != null,
     fatigue: facets.durability != null,
     ctl: facets.fitheid != null,

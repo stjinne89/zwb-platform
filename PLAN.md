@@ -283,8 +283,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0266`
-(`0265_zwbriljant` is van ZWBriljant (eerst `0265_zwbeter_berg`), 2026-10-21, toegepast op 2026-10-21;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0267`
+(`0266_zwbriljant_share_all_members` is van ZWBriljant delen met alle leden, 2026-10-21, nog niet toegepast;
+`0265_zwbriljant` is van ZWBriljant (eerst `0265_zwbeter_berg`), 2026-10-21, toegepast op 2026-10-21;
 `0264_nutrition_recipe_sharing` is van recepten van een link en delen met
 alle leden, 2026-10-21, toegepast op 2026-10-21;
 `0263_race_briefing_sheet` is van het aanpasbare racebriefje, 2026-10-20;
@@ -11281,6 +11282,73 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: terugkijken, vergelijken en waar je het meest wint
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Migratie
+`0266_zwbriljant_share_all_members.sql` (**nog niet toegepast**). Niet gepusht.
+
+**Waarom.** De eigenaar wilde zijn steen in de tijd zien, naast andere leden en naast het
+ZWB-gemiddelde, en zien waar hij het best aan kan werken. Daarnaast vroeg hij of sprint,
+anaeroob, VO2max en drempel net als fitheid beter op de spreiding passen. En drie
+problemen op de telefoon, plus de steen van Pim Meulemeester met maar twee onderdelen.
+
+**Nu.**
+- **Vermogen naar de spreiding** (`norms.ts`, `POWER` per geslacht): Goud is het
+  gemiddelde van Zwift-renners van 30 tot 49 jaar (+5%), elke klasse een halve SD, Smaragd
+  2 SD erboven, Robijn en Diamant prowaarden. Vrouwen uit dezelfde bron in plaats van een
+  vast percentage van de mannen (`FEMALE_SHARE` vervalt). Bron en tabellen:
+  [onderzoek](docs/zwbriljant-onderzoek.md#de-ijkwaarden). Het rekenvoorbeeld van de
+  eigenaar ging van 480 naar 593 punten (Amethist); drempel 4,3 W/kg is nu 588 in plaats
+  van 450. *Daarmee is de klassentabel met drempel 1,9 tot 7,1 W/kg in eerdere blokken
+  hieronder achterhaald.*
+- **Schaalversie** (`SCALE_VERSION = "2026-10-21-sd"` in `provenance.scale`). Historie,
+  tegel, gemiddelde en de wekelijkse job lezen alleen de huidige versie; de job maakt de
+  terugblik opnieuw (`storeTerugblik` wist eerst snapshots van een oudere schaal). Zo staan
+  oude en nieuwe punten nooit door elkaar.
+- **Datum kiezen** (`?datum=`): de steen van de week op of vóór die datum, uit de
+  snapshots (`snapshotAt`, `viewFromSnapshot` in `src/lib/briljant/compare.ts`). Snapshots
+  bewaren geen metingen, dus een week uit het verleden toont punten in plaats van watts.
+  Tot de job de nieuwe terugblik heeft gemaakt, is er alleen deze week.
+- **Vergelijken** (`?met=zwb` of een lid): de tweede steen op een eigen sokkel naast de
+  jouwe (`stone-scene.tsx`), met een paneel met de punten per onderdeel naast elkaar.
+- **ZWB-gemiddelde** (`clubAverage`): per onderdeel het gemiddelde van de laatste
+  snapshot per lid uit de afgelopen acht weken, ook van wie niet deelt; anoniem en pas
+  vanaf vijf leden (`MIN_FOR_AVERAGE`). Via service_role, de RLS speelt er geen rol.
+- **Delen met alle leden** (keuze eigenaar): het vinkje "Deel mijn steen met leden"
+  (`setBriljantSharing`) zet de toestemming `2026-10-21`. Migratie `0266` maakt delen
+  eenzijdig: een gedeelde steen is zichtbaar voor elk goedgekeurd lid, ook als die zelf
+  niet deelt. De lijst met leden komt met de sessie van het lid, dus de RLS beslist.
+  **Zonder `0266` op productie werkt het nog wederzijds** (0265).
+- **Hier win je het meest** (`bestWins`): onder de score per onderdeel wat 5% beter
+  oplevert (durability 5% minder verval, ZRS tot 1000), met gewicht en consistentie, de
+  beste drie. Bij de eigenaar: VO2max +11, drempel +9 punten. Bewust 5% voor elk onderdeel
+  en geen inschatting van hoe moeilijk die 5% is; dat verschilt per renner.
+- **Telefoon:** de tekst onderin schuift boven de tabbalk (`--nav-space`), de klassen staan
+  compact rechtsboven, en knijpen zoomt de steen in plaats van de pagina
+  (`touch-action: none` op het podium, `pan-y` op het paneel).
+- **Pim (twee onderdelen):** zijn intervals.icu was gekoppeld, maar zijn vermogensprofiel
+  was nooit opgehaald, en de wekelijkse job sloeg hem over omdat zijn bezoek al een
+  snapshot van die week had gemaakt. De pagina haalt nu zelf het vermogensprofiel op als
+  het ontbreekt of ouder is dan zes dagen (`refreshSources` met een tijdslimiet van 1,5 s).
+  Durability heeft daarnaast de twee kJ-drempels voor de vermoeide curve in intervals.icu
+  nodig; zijn geslacht staat niet in zijn profiel, dus hij krijgt de normen voor mannen.
+- `/hulp` (terugkijken, vergelijken, delen, gemiddelde, winst; de spreiding bij de
+  klassen). **Privacytekst** (`/privacy#zwbriljant`, delen met alle leden en het anonieme
+  gemiddelde) is een concept en **moet eerst door de eigenaar worden goedgekeurd** vóór
+  een push; geen nieuwe privacyversie (besluit uit de vorige ronde, delen heeft een eigen
+  toestemming).
+
+**Niet gebouwd.** Een eigen ledenlijst of zoekveld bij vergelijken (de keuzelijst toont
+alleen wie deelt); vergelijken met een lid op een datum uit het verleden (je ziet altijd
+diens laatste steen); een gemiddelde per categorie of geslacht (te weinig leden).
+
+**Getest.** `briljant-compare.test.ts` (nieuw: datum, steen uit een snapshot, gemiddelde
+pas vanaf vijf, winst), `briljant-migration.test.ts` tegen PGlite met `0266` (eenzijdig
+delen, niet voor wie niet is goedgekeurd, intrekken werkt meteen), de score-, view- en
+snapshottests op de nieuwe schaal; alle ZWBriljant-tests groen. **Niet getest:** `0266` op
+productie (niet toegepast, lokaal geen Docker); de pagina met echte gegevens van andere
+leden.
+
 ### Gebouwd — ZWBriljant: racen zegt hoeveel ZRS tot de volgende klasse
 
 **2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
@@ -11623,7 +11691,9 @@ intervals.icu). Voor "jij in de tijd" en de club zijn wekelijkse momentopnames n
   waarden: geen watt, W/kg, gewicht, CTL, ZRS of HRV; een check houdt onbekende sleutels
   in `ridges` tegen. Leden kunnen niet schrijven (alleen de server); wel hun eigen berg
   wissen. Lezen: je eigen berg altijd, die van een ander alleen als jullie allebei delen
-  (`zwbeter_berg_shares`, security definer, niet voor anon). Intrekken of verbergen werkt
+  (`zwbeter_berg_shares`, security definer, niet voor anon). *(Sinds `0266` eenzijdig:
+  wie deelt, is zichtbaar voor alle goedgekeurde leden; zie "ZWBriljant: terugkijken,
+  vergelijken en waar je het meest wint".)* Intrekken of verbergen werkt
   meteen; de eigen historie blijft.
 - **Afwijking van het plan:** het plan noemde een trigger die bij intrekken alles wist. Het
   delen wordt nu bij het lezen gecontroleerd, dus intrekken is meteen voor iedereen zichtbaar

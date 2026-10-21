@@ -6,14 +6,23 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { LEVELS, type Level } from "@/lib/briljant/norms";
 import { seeded, stoneGeometry, stoneMaterial, stoneShape, studioEnvironment } from "./stone";
 
-type Props = {
+/** Een steen om te tekenen: score en profielscore in punten, facetten in punten. */
+export type SceneStone = {
   seed: string;
-  /** Score en profielscore in punten; de profielscore is de steen bij volledige consistentie. */
   score: number;
+  /** De score bij volledige consistentie; dat is het gouden draadmodel. */
   profile: number;
   level: Level;
   facets: Array<{ key: string; points: number }>;
-  /** De HTML-labels per sleutel ("summit", "ghost", "foot", "facet:sprint", "ref:5"); de scène zet hun positie. */
+};
+
+type Props = SceneStone & {
+  /** Een tweede steen naast de jouwe: een ander lid of het ZWB-gemiddelde. */
+  compare?: SceneStone | null;
+  /**
+   * De HTML-labels per sleutel ("summit", "ghost", "foot", "facet:sprint", "ref:5",
+   * "compare"); de scène zet hun positie.
+   */
   labels: RefObject<Map<string, HTMLElement>>;
   onFailed: () => void;
   /** Rustig ronddraaien; uit terwijl het lid een label aanwijst of een paneel open heeft. */
@@ -43,18 +52,27 @@ function glow(color: THREE.ColorRepresentation, radius: number, opacity: number)
   return disc;
 }
 
-export default function StoneScene({ seed, score, profile, level, facets, labels, onFailed, rotate }: Props) {
+const stoneKey = (stone: SceneStone | null | undefined) =>
+  stone ? `${stone.seed}|${stone.score}|${stone.profile}|${stone.level.n}|${stone.facets.map((f) => `${f.key}:${f.points}`).join(",")}` : "";
+
+export default function StoneScene({ labels, onFailed, rotate, compare, ...main }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const rotating = useRef(rotate);
   useEffect(() => {
     rotating.current = rotate;
   }, [rotate]);
   const [failed, setFailed] = useState(false);
-  const facetKey = facets.map((facet) => `${facet.key}:${facet.points}`).join(",");
+  const mainKey = stoneKey(main);
+  const compareKey = stoneKey(compare);
+  const stones = useRef({ main, compare });
+  useEffect(() => {
+    stones.current = { main, compare };
+  });
 
   useEffect(() => {
     const element = host.current;
     if (!element) return;
+    const { main, compare } = stones.current;
     const lowQuality = window.matchMedia("(max-width: 640px)").matches;
     let renderer: THREE.WebGLRenderer;
     try {
@@ -80,11 +98,15 @@ export default function StoneScene({ seed, score, profile, level, facets, labels
     scene.environment = environment;
     scene.environmentIntensity = 1.15;
 
-    const values = facets.map((facet) => facet.points);
-    const shape = stoneShape({ seed, score, level, facets: values });
-    const ghost = stoneShape({ seed, score, level, facets: values, scale: profile / Math.max(1, score) });
-    const fit = Math.max(1, ghost.height / 4.4);
-    scene.fog = new THREE.Fog(NIGHT, 15 * fit, 46 * fit);
+    const shapeOf = (stone: SceneStone, scale = 1) =>
+      stoneShape({ seed: stone.seed, score: stone.score, level: stone.level, facets: stone.facets.map((f) => f.points), scale });
+    const shape = shapeOf(main);
+    const ghost = shapeOf(main, main.profile / Math.max(1, main.score));
+    const other = compare ? shapeOf(compare) : null;
+    const tallest = Math.max(ghost.height, other?.height ?? 0);
+    const fit = Math.max(1, tallest / 4.4);
+    const fog = new THREE.Fog(NIGHT, 15 * fit, 46 * fit);
+    scene.fog = fog;
 
     const geometries: THREE.BufferGeometry[] = [];
     const materials: THREE.Material[] = [];
@@ -100,9 +122,6 @@ export default function StoneScene({ seed, score, profile, level, facets, labels
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
-    const pool = track(glow(0xfff1d8, ghost.radius * 5, 0.1));
-    pool.position.y = 0.005;
-    scene.add(pool);
 
     // De sokkel: gepolijst zwart met een messing rand.
     const black = new THREE.MeshPhysicalMaterial({ color: 0x050607, roughness: 0.35, clearcoat: 1, clearcoatRoughness: 0.18, envMapIntensity: 0.3 });
@@ -123,31 +142,52 @@ export default function StoneScene({ seed, score, profile, level, facets, labels
       return group;
     };
     const plinthHeight = 0.26 * fit;
-    const plinthRadius = ghost.radius * 1.7;
-    scene.add(plinth(plinthRadius, plinthHeight));
-    // Het licht dat door de steen valt kleurt de sokkel in de kleur van de klasse.
-    const tint = track(glow(level.color, plinthRadius * 0.8, level.kind === "edelsteen" ? 0.3 : 0.1));
-    tint.position.y = plinthHeight + 0.004;
-    scene.add(tint);
 
-    const stone = track(new THREE.Mesh(stoneGeometry(shape), stoneMaterial(level)));
-    stone.position.y = plinthHeight;
-    stone.castShadow = true;
-    scene.add(stone);
+    // Met een tweede steen staan ze naast elkaar, dwars op de beginblik van de camera.
+    const facing = CAMERA.clone().setY(0).normalize();
+    const toward = Math.atan2(facing.z, facing.x);
+    const right = toward - Math.PI / 2;
+    const sideways = new THREE.Vector3(Math.cos(right), 0, Math.sin(right));
+    const mainRadius = ghost.radius * 1.7;
+    const otherRadius = other ? other.radius * 1.7 : 0;
+    const gap = other ? (mainRadius + otherRadius) / 2 + 0.8 * fit : 0;
+    const mainCenter = sideways.clone().multiplyScalar(-gap);
+    const otherCenter = sideways.clone().multiplyScalar(gap);
+
+    /** Sokkel, kleurgloed en steen op `center`; geeft de bovenkant van de sokkel. */
+    const placeStone = (stone: SceneStone, stoneShapeData: ReturnType<typeof shapeOf>, radius: number, center: THREE.Vector3) => {
+      const base = plinth(radius, plinthHeight);
+      base.position.copy(center);
+      scene.add(base);
+      const pool = track(glow(0xfff1d8, radius * 3, 0.1));
+      pool.position.set(center.x, 0.005, center.z);
+      scene.add(pool);
+      // Het licht dat door de steen valt kleurt de sokkel in de kleur van de klasse.
+      const tint = track(glow(stone.level.color, radius * 0.8, stone.level.kind === "edelsteen" ? 0.3 : 0.1));
+      tint.position.set(center.x, plinthHeight + 0.004, center.z);
+      scene.add(tint);
+      const mesh = track(new THREE.Mesh(stoneGeometry(stoneShapeData), stoneMaterial(stone.level)));
+      mesh.position.set(center.x, plinthHeight, center.z);
+      mesh.castShadow = true;
+      scene.add(mesh);
+      return new THREE.Vector3(center.x, plinthHeight, center.z);
+    };
+    const mainTop = placeStone(main, shape, mainRadius, mainCenter);
     // Dezelfde steen bij volledige consistentie, als gouden draadmodel.
     const ghostGeometry = stoneGeometry(ghost);
     geometries.push(ghostGeometry);
     const ghostLines = track(
       new THREE.LineSegments(new THREE.EdgesGeometry(ghostGeometry, 1), new THREE.LineBasicMaterial({ color: 0xe7c56b, transparent: true, opacity: 0.5 })),
     );
-    ghostLines.position.y = plinthHeight;
-    if (profile > score + 0.5) scene.add(ghostLines);
-    const lift = (vector: THREE.Vector3) => vector.clone().add(new THREE.Vector3(0, plinthHeight, 0));
+    ghostLines.position.copy(mainTop);
+    if (main.profile > main.score + 0.5) scene.add(ghostLines);
+    const otherTop = compare && other ? placeStone(compare, other, otherRadius, otherCenter) : null;
+    const onMain = (vector: THREE.Vector3) => vector.clone().add(mainTop);
 
     // Eén warme spot met zachte schaduw, een koel strijklicht van achteren, weinig vullicht.
-    const spot = new THREE.SpotLight(0xfff3e2, 9, 0, 0.32, 0.85, 0);
+    const spot = new THREE.SpotLight(0xfff3e2, 9, 0, other ? 0.42 : 0.32, 0.85, 0);
     spot.position.set(2.5 * fit, 13 * fit, 3.5 * fit);
-    spot.target.position.set(0, plinthHeight + ghost.height * 0.4, 0);
+    spot.target.position.set(0, plinthHeight + tallest * 0.4, 0);
     spot.castShadow = true;
     spot.shadow.mapSize.set(lowQuality ? 1024 : 2048, lowQuality ? 1024 : 2048);
     spot.shadow.bias = -0.0004;
@@ -160,9 +200,9 @@ export default function StoneScene({ seed, score, profile, level, facets, labels
     // De tien klassen als ijkstenen in een boog erachter: echte stenen in hun eigen
     // verhoudingen (een metaal als lage klomp, een edelsteen als kristal), geen
     // pilaren op hoogte. Een hogere klasse is iets groter.
-    const facing = CAMERA.clone().setY(0).normalize();
     const behind = Math.atan2(-facing.z, -facing.x);
-    const anchors = new Map<string, { position: THREE.Vector3; front?: boolean }>();
+    type Anchor = { position: THREE.Vector3; front?: boolean; center?: THREE.Vector3 };
+    const anchors = new Map<string, Anchor>();
     LEVELS.forEach((ref, index) => {
       const angle = behind + (index / (LEVELS.length - 1) - 0.5) * 1.6;
       const x = Math.cos(angle) * 19 * fit;
@@ -191,33 +231,49 @@ export default function StoneScene({ seed, score, profile, level, facets, labels
       anchors.set(`ref:${ref.n}`, { position: new THREE.Vector3(x, baseHeight + refShape.height * tall + 0.25, z) });
     });
 
-    const toward = Math.atan2(facing.z, facing.x);
-    const right = toward - Math.PI / 2;
-    // De top ligt in het midden: nooit "achter" de steen.
-    anchors.set("summit", { position: lift(shape.apex), front: true });
+    // De top ligt in het midden van de steen: nooit "achter" de steen.
+    anchors.set("summit", { position: onMain(shape.apex), front: true });
     anchors.set("ghost", {
-      position: new THREE.Vector3(Math.cos(right) * ghost.radius * 0.55, plinthHeight + ghost.height * 0.82, Math.sin(right) * ghost.radius * 0.55),
+      position: onMain(sideways.clone().multiplyScalar(ghost.radius * 0.55).setY(ghost.height * 0.82)),
       front: true,
     });
     anchors.set("foot", {
-      position: new THREE.Vector3(Math.cos(toward) * plinthRadius, plinthHeight * 0.5, Math.sin(toward) * plinthRadius),
+      position: new THREE.Vector3(Math.cos(toward) * mainRadius, plinthHeight * 0.5, Math.sin(toward) * mainRadius).add(mainCenter),
       front: true,
     });
-    facets.forEach((facet, index) => {
-      anchors.set(`facet:${facet.key}`, { position: lift(shape.shoulders[index].clone().multiply(new THREE.Vector3(1.18, 1, 1.18))) });
+    main.facets.forEach((facet, index) => {
+      anchors.set(`facet:${facet.key}`, {
+        position: onMain(shape.shoulders[index].clone().multiply(new THREE.Vector3(1.18, 1, 1.18))),
+        center: mainTop,
+      });
     });
+    if (other && otherTop) anchors.set("compare", { position: other.apex.clone().add(otherTop), front: true });
 
     const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 400);
-    // Op een staand scherm verder weg, zodat de steen in de breedte past.
+    // Op een staand scherm verder weg, zodat de steen in de breedte past; met twee
+    // stenen ver genoeg dat beide sokkels passen.
     const bounds = element.getBoundingClientRect();
     const aspect = bounds.width / Math.max(1, bounds.height);
-    camera.position.copy(CAMERA).multiplyScalar(fit * (aspect < 1 ? 1 + (1 - aspect) * 0.9 : 1));
+    let distance = fit * (aspect < 1 ? 1 + (1 - aspect) * 0.9 : 1);
+    if (other) {
+      // Beide sokkels in de breedte, met wat lucht: op een telefoon dus flink verder weg.
+      const halfWidth = gap + Math.max(mainRadius, otherRadius) + 0.4 * fit;
+      const halfAngle = Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * aspect);
+      distance = Math.max(distance * 1.35, halfWidth / Math.tan(halfAngle) / CAMERA.length());
+    }
+    camera.position.copy(CAMERA).multiplyScalar(distance);
+    // De mist begint achter de stenen, ook als de camera verder weg staat.
+    const reach = CAMERA.length() * distance;
+    fog.near = Math.max(15 * fit, reach + 2 * fit);
+    fog.far = Math.max(46 * fit, reach + 31 * fit);
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, plinthHeight + Math.max(1.4, ghost.height * 0.45), 0);
+    // Op een staand scherm staat de kop bovenin: de stenen iets lager in beeld.
+    const lower = aspect < 1 ? 0.09 * reach * Math.min(1, (1 - aspect) * 2) : 0;
+    controls.target.set(0, plinthHeight + Math.max(1.4, tallest * 0.45) + lower, 0);
     controls.enableDamping = true;
     controls.maxPolarAngle = Math.PI * 0.49;
     controls.minDistance = 4;
-    controls.maxDistance = 22 * fit;
+    controls.maxDistance = Math.max(26 * fit, CAMERA.length() * distance * 1.3);
     // Rustig ronddraaien, behalve bij verminderde beweging; met de vinger draaien kan altijd.
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     controls.autoRotateSpeed = 0.6;
@@ -254,7 +310,7 @@ export default function StoneScene({ seed, score, profile, level, facets, labels
         label.style.transform = `translate(${((projected.x + 1) / 2) * width}px, ${((1 - projected.y) / 2) * height}px)`;
         // Labels aan de achterkant van de steen vervagen.
         toCamera.copy(camera.position).sub(anchor.position).normalize();
-        outward.set(anchor.position.x, 0, anchor.position.z).normalize();
+        outward.copy(anchor.position).sub(anchor.center ?? new THREE.Vector3()).setY(0).normalize();
         label.style.opacity = anchor.front || toCamera.dot(outward) > -0.15 ? "1" : "0.28";
       }
     };
@@ -286,9 +342,9 @@ export default function StoneScene({ seed, score, profile, level, facets, labels
       controls.removeEventListener("start", stopRotating);
       controls.dispose();
       renderer.domElement.removeEventListener("webglcontextlost", lost);
-      for (const mesh of [pool, tint, ...scene.children]) {
-        if (mesh instanceof THREE.Mesh) (mesh.material as THREE.MeshBasicMaterial).map?.dispose();
-      }
+      scene.traverse((object) => {
+        if (object instanceof THREE.Mesh) (object.material as THREE.MeshBasicMaterial).map?.dispose();
+      });
       geometries.forEach((geometry) => geometry.dispose());
       materials.forEach((material) => material.dispose());
       environment.dispose();
@@ -296,9 +352,9 @@ export default function StoneScene({ seed, score, profile, level, facets, labels
       renderer.dispose();
       renderer.domElement.remove();
     };
-    // De scène wordt opnieuw opgebouwd als de steen verandert, niet bij elke render.
+    // De scène wordt opnieuw opgebouwd als een steen verandert, niet bij elke render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seed, score, profile, level.n, facetKey]);
+  }, [mainKey, compareKey]);
 
   // Het beeld zelf is versiering; de getallen staan in de labels en knoppen erboven.
   return <div ref={host} className="absolute inset-0" aria-hidden data-failed={failed || undefined} />;

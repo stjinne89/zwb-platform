@@ -58,8 +58,9 @@ export function BriljantHelp() {
             </tbody>
           </table>
           <p className="mt-2 text-xs text-muted-foreground">
-            De ijkwaarden zijn inschattingen van ZWB op basis van de literatuur; geen studie koppelt vermogen aan
-            klassen.
+            Vermogen en fitheid volgen de spreiding onder renners: Goud is het gemiddelde, elke klasse een halve
+            standaarddeviatie verder. Robijn en Diamant zijn prowaarden. Inschattingen van ZWB; geen studie koppelt
+            vermogen aan klassen.
           </p>
         </article>
 
@@ -87,6 +88,38 @@ export function BriljantHelp() {
             Nodig: intervals.icu voor vermogen, durability en fitheid, je Zwift-ID voor racen en je ritten voor de
             consistentie.
           </p>
+        </article>
+
+        <article className="rounded-md border bg-background p-4 lg:col-span-2">
+          <h3 className="text-sm font-semibold">Terugkijken en vergelijken</h3>
+          <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-[11rem_1fr]">
+            <dt className="font-medium">Datum</dt>
+            <dd className="text-muted-foreground">
+              Kies een datum en je ziet je steen van die week. Van vroegere weken bewaren we alleen punten, geen
+              metingen; daarom staan daar punten in plaats van watts of ZRS.
+            </dd>
+            <dt className="font-medium">Vergelijk</dt>
+            <dd className="text-muted-foreground">
+              Zet het ZWB-gemiddelde of een lid naast je steen. Klik op de tweede steen voor de punten per onderdeel
+              naast elkaar.
+            </dd>
+            <dt className="font-medium">Delen</dt>
+            <dd className="text-muted-foreground">
+              Met               Met &ldquo;Deel mijn steen met leden&rdquo; zien alle leden je laatste steen: punten per onderdeel en jeldquo;Deel mijn steen met leden              Met &ldquo;Deel mijn steen met leden&rdquo; zien alle leden je laatste steen: punten per onderdeel en jerdquo; (klik op je score) zien alle leden je laatste steen: punten per onderdeel en je
+              consistentie, geen metingen. Je hoeft niet zelf te delen om anderen te zien. Uitzetten werkt meteen.
+            </dd>
+            <dt className="font-medium">ZWB-gemiddelde</dt>
+            <dd className="text-muted-foreground">
+              Per onderdeel het gemiddelde van de laatste steen van iedereen met ZWBriljant uit de afgelopen acht
+              weken, anoniem en pas vanaf vijf leden.
+            </dd>
+            <dt className="font-medium">Hier win je het meest</dt>
+            <dd className="text-muted-foreground">
+              Klik op je score: per onderdeel rekenen we uit wat 5% beter je oplevert (5% minder verval bij
+              durability), met de gewichten en je consistentie. Een zwaar onderdeel of een onderdeel net onder een
+              grens wint het meest.
+            </dd>
+          </dl>
         </article>
 
         <article className="rounded-md border bg-background p-4 lg:col-span-2">

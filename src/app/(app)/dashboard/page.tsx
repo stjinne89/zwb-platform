@@ -77,6 +77,7 @@ import { amsterdamDateKey, amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { getDesign } from "@/lib/design";
 import { points as briljantPoints, positionFor as briljantPosition } from "@/lib/briljant/score";
+import { SCALE_VERSION as BRILJANT_SCALE } from "@/lib/briljant/norms";
 import {
   TegelsVandaag,
   type VandaagBriljant,
@@ -960,6 +961,7 @@ export default async function DashboardPage({
       .from("zwbriljant_snapshots")
       .select("score")
       .eq("profile_id", user.id)
+      .eq("provenance->>scale", BRILJANT_SCALE)
       .not("score", "is", null)
       .order("week", { ascending: false })
       .limit(1)

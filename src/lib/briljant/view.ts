@@ -2,7 +2,19 @@
 // de klasse, per facet de meting als balk en de consistentie. Puur, zodat het
 // te testen is; de server levert de waarden, het scherm tekent ze.
 
-import { FACET_WEIGHTS, LEVELS, levelOf, type Level } from "./norms";
+import {
+  CTL_ANCHORS,
+  DURABILITY_ANCHORS,
+  FACET_WEIGHTS,
+  LEVELS,
+  ZRS_ANCHORS,
+  levelOf,
+  powerAnchors,
+  type Anchors,
+  type Level,
+  type PowerDuration,
+  type Sex,
+} from "./norms";
 import {
   CONSISTENCY_WEEKS,
   FACETS,
@@ -11,6 +23,7 @@ import {
   consistencyFactor,
   consistencyFrom,
   facetReadings,
+  levelAt,
   points,
   positionFor,
   profileScore,
@@ -64,16 +77,17 @@ export type FacetView = {
   meter: FacetMeter;
 };
 
+/** De details zijn null bij een steen uit een snapshot: daar is alleen de waarde bewaard. */
 export type ConsistencyView = {
   /** 0 tot 1. */
   value: number;
   factor: number;
-  hitWeeks: number;
+  hitWeeks: number | null;
   weeks: number;
-  streak: number;
+  streak: number | null;
   compliance: number | null;
-  normHours: number;
-  normSource: "schema" | "mediaan";
+  normHours: number | null;
+  normSource: "schema" | "mediaan" | null;
 };
 
 export type BriljantView = {
@@ -103,8 +117,9 @@ const nl = (value: number, digits: number) =>
 /** Een waarde in de eenheid van het facet: W/kg en procenten met één decimaal, CTL en ZRS heel. */
 export function formatMeasure(facet: Facet, value: number): string {
   const { unit } = FACET_MEASURES[facet];
-  const digits = facet === "fitheid" || facet === "racen" ? 0 : 1;
-  return `${nl(value, digits)} ${unit}`;
+  if (facet === "fitheid" || facet === "racen") return `${nl(value, 0)} ${unit}`;
+  // Eén decimaal, twee waar een grens die heeft (4,35 W/kg).
+  return `${value.toLocaleString("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} ${unit}`;
 }
 
 function meterFor(facet: Facet, reading: NonNullable<ReturnType<typeof facetReadings>[Facet]>): FacetMeter {
@@ -213,4 +228,55 @@ export function briljantView(args: {
         }
       : null,
   };
+}
+
+/** Waar je het meest wint: een realistische stap op één onderdeel en wat die je score oplevert. */
+export type Win = {
+  key: Facet;
+  label: string;
+  /** "5,1 → 5,36 W/kg" */
+  step: string;
+  /** Extra punten op je score, met gewicht en consistentiefactor. */
+  gain: number;
+};
+
+/** Hoeveel 5% beter is: meer vermogen, CTL en ZRS, minder verval. */
+const IMPROVEMENT = 0.05;
+
+const POWER_DURATION: Partial<Record<Facet, PowerDuration>> = { sprint: "s15", anaeroob: "m1", vo2max: "m5", drempel: "m20" };
+
+function anchorsFor(facet: Facet, sex: Sex | null): Anchors {
+  const duration = POWER_DURATION[facet];
+  if (duration) return powerAnchors(duration, sex);
+  if (facet === "durability") return DURABILITY_ANCHORS;
+  if (facet === "fitheid") return CTL_ANCHORS;
+  return ZRS_ANCHORS;
+}
+
+/**
+ * Per onderdeel: wat levert 5% beter op je score op? Zo zie je waar je het best
+ * aan kunt werken; een onderdeel dat zwaar weegt of net onder een grens zit, wint
+ * het meest. Gesorteerd van meeste naar minste winst, alleen onderdelen met winst.
+ */
+export function bestWins(input: BriljantInput, consistency: number | null): Win[] {
+  const readings = facetReadings(input);
+  const levels = Object.fromEntries(FACETS.map((facet) => [facet, readings[facet]?.level ?? null])) as Record<Facet, number | null>;
+  const base = scoreFor(levels, consistency);
+  if (base == null) return [];
+  return FACETS.flatMap((facet) => {
+    const reading = readings[facet];
+    if (!reading) return [];
+    const better =
+      facet === "durability"
+        ? reading.value * (1 - IMPROVEMENT)
+        : facet === "racen"
+          ? Math.min(1000, reading.value * (1 + IMPROVEMENT))
+          : reading.value * (1 + IMPROVEMENT);
+    const improved = scoreFor({ ...levels, [facet]: levelAt(anchorsFor(facet, input.sex), better) }, consistency);
+    const gain = improved == null ? 0 : points(improved) - points(base);
+    if (gain <= 0) return [];
+    const unit = FACET_MEASURES[facet].unit;
+    const plain = (value: number) => formatMeasure(facet, value).replace(` ${unit}`, "");
+    return [{ key: facet, label: FACET_LABELS[facet], step: `${plain(reading.value)} → ${plain(better)} ${unit}`, gain }];
+  }).sort((a, b) => b.gain - a.gain);
 }

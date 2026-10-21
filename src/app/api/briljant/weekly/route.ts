@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { checkCronSecret } from "@/lib/cron/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { refreshSources, storeTerugblik, storeWeek } from "@/lib/briljant/server";
+import { SCALE_VERSION } from "@/lib/briljant/norms";
 import { mondayKey } from "@/lib/briljant/snapshot";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
@@ -44,8 +45,15 @@ export async function POST(request: NextRequest) {
   const week = mondayKey(today);
   const [{ data: members, error }, { data: done }, { data: looked }] = await Promise.all([
     admin.from("zwbriljant_preferences").select("profile_id").order("created_at", { ascending: true }),
-    admin.from("zwbriljant_snapshots").select("profile_id").eq("week", week).eq("source", "week"),
-    admin.from("zwbriljant_snapshots").select("profile_id").eq("source", "terugblik"),
+    // Alleen snapshots van de huidige schalen tellen; bij nieuwe schalen komt er
+    // een nieuwe terugblik en weekopname.
+    admin
+      .from("zwbriljant_snapshots")
+      .select("profile_id")
+      .eq("week", week)
+      .eq("source", "week")
+      .eq("provenance->>scale", SCALE_VERSION),
+    admin.from("zwbriljant_snapshots").select("profile_id").eq("source", "terugblik").eq("provenance->>scale", SCALE_VERSION),
   ]);
   if (error) {
     const noMigration = /zwbriljant/.test(error.message);

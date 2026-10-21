@@ -45,9 +45,9 @@ describe("schaal", () => {
 
   it("geeft het stuk van de schaal voor de formule op het scherm", () => {
     const step = scaleStep(powerAnchors("m20", "man"), 4.3);
-    expect(step).toMatchObject({ kind: "between", lower: { level: 4, value: 4 }, upper: { level: 5, value: 4.6 } });
-    // 4 + (4,3 − 4,0) ÷ (4,6 − 4,0) = 4,5
-    expect(step.level).toBeCloseTo(4.5, 9);
+    expect(step).toMatchObject({ kind: "between", lower: { level: 5, value: 3.9 }, upper: { level: 6, value: 4.35 } });
+    // 5 + (4,3 − 3,9) ÷ (4,35 − 3,9) = 5,89
+    expect(step.level).toBeCloseTo(5 + 0.4 / 0.45, 9);
     expect(scaleStep(powerAnchors("m20", "man"), 7.5)).toMatchObject({ kind: "beyond", lower: { level: 8 }, upper: { level: 9 } });
     expect(scaleStep(powerAnchors("m20", "man"), 0.8)).toMatchObject({ kind: "floor", level: 0 });
   });
@@ -131,10 +131,11 @@ describe("facetten en score", () => {
 
   it("rekent elke facet om naar een niveau", () => {
     const levels = facetLevels(rider);
-    expect(levels.sprint).toBeCloseTo(4.8, 6);
-    expect(levels.anaeroob).toBeCloseTo(4.25, 6);
-    expect(levels.vo2max).toBeCloseTo(4.4286, 4);
-    expect(levels.drempel).toBeCloseTo(4.5, 6);
+    // Op de spreidingsschaal is dit een sterke amateur: alles boven Amethist.
+    expect(levels.sprint).toBeCloseTo(7 + 0.15 / 4.45, 6);
+    expect(levels.anaeroob).toBeCloseTo(6 + 0.7 / 0.75, 6);
+    expect(levels.vo2max).toBeCloseTo(6.1, 6);
+    expect(levels.drempel).toBeCloseTo(5 + 0.4 / 0.45, 6);
     expect(levels.durability).toBeCloseTo(4.5714, 4);
     expect(levels.fitheid).toBeCloseTo(5.8, 6);
     expect(levels.racen).toBeCloseTo(5.76, 4);
@@ -143,9 +144,9 @@ describe("facetten en score", () => {
   it("weegt de facetten naar de literatuur: 5 minuten het zwaarst, fitheid het lichtst", () => {
     expect(Object.values(FACET_WEIGHTS).reduce((sum, weight) => sum + weight, 0)).toBeCloseTo(1, 9);
     expect(FACET_WEIGHTS.sprint + FACET_WEIGHTS.anaeroob + FACET_WEIGHTS.vo2max + FACET_WEIGHTS.drempel).toBeCloseTo(0.6, 9);
-    // 4,8 × 7,5% + 4,25 × 12,5% + 4,4286 × 22,5% + 4,5 × 17,5% + 4,5714 × 15%
-    // + 5,8 × 10% + 5,76 × 15% = 4,8049.
-    expect(scoreFor(facetLevels(rider))).toBe(4.8);
+    // 7,034 × 7,5% + 6,933 × 12,5% + 6,1 × 22,5% + 5,889 × 17,5% + 4,571 × 15%
+    // + 5,8 × 10% + 5,76 × 15% = 5,927.
+    expect(scoreFor(facetLevels(rider))).toBe(5.93);
   });
 
   it("laat consistentie tot 20% meetellen als factor", () => {
@@ -154,9 +155,9 @@ describe("facetten en score", () => {
     expect(consistencyFactor(0.55)).toBeCloseTo(0.91, 9);
     // Geen ritgegevens: ontbrekende gegevens kosten niets.
     expect(consistencyFactor(null)).toBe(1);
-    // 4,8049 × 0,91 = 4,37: op het scherm 437 punten.
-    expect(scoreFor(facetLevels(rider), 0.55)).toBe(4.37);
-    expect(scoreFor(facetLevels(rider), 1)).toBe(4.8);
+    // 5,927 × 0,91 = 5,39: op het scherm 539 punten.
+    expect(scoreFor(facetLevels(rider), 0.55)).toBe(5.39);
+    expect(scoreFor(facetLevels(rider), 1)).toBe(5.93);
   });
 
   it("normaliseert de gewichten opnieuw als een facet ontbreekt", () => {

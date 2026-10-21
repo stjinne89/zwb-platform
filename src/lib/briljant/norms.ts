@@ -64,42 +64,50 @@ export type Anchors = {
 export type PowerDuration = "s15" | "m1" | "m5" | "m20";
 
 /**
- * Vermogen in W/kg per duur, voor mannen. Ingeschat aan de hand van de
- * gebruikelijke indeling per duur (ongetraind tot wereldklasse) en de normen van
- * profrenners (Valenzuela 2022; Mateo-March 2022, 2026; Spragg 2022, 2024).
- * Niveau 8 (Robijn) is het niveau van WorldTour-winnaars; niveau 9 (Diamant)
- * de hoogste gepubliceerde waarden: ongeveer 7 W/kg over 40 minuten (Pogacar,
- * Plateau de Beille 2024), 7,2 W/kg over 5 minuten in een rit (Pogacar, Tour
- * 2020), 17 tot 19 W/kg om een Tourspurt te winnen, 10,1 W/kg over een minuut
- * (Ronde 2022). Officiele records bestaan niet; profs publiceren hun gegevens
- * zelden, dus dit zijn gepubliceerde schattingen.
+ * Vermogen in W/kg per duur, verdeeld naar de spreiding (eigenaar, 2026-10-21),
+ * net als fitheid. Bron: de Zwift-populatie per leeftijd en geslacht (onderste
+ * 10%, gemiddeld, bovenste 10%; Zwift Insider), leeftijd 30 tot 49, met 5% erbij
+ * omdat niet elke rit een maximale inspanning is. De spreiding volgt uit de
+ * afstand tot de 10%-grenzen (1,28 standaarddeviatie). Brons tot en met Smaragd
+ * liggen per duur een halve standaarddeviatie uit elkaar: Brons gemiddeld min één,
+ * Goud het gemiddelde, Smaragd plus twee; nul is gemiddeld min twee. De 15
+ * seconden staan niet in de Zwift-cijfers: afgeleid uit de 5 seconden (× 0,83,
+ * een inschatting). Zo zijn de duren onderling eerlijk; eerst was Brons op de
+ * minuut pas het bovenste derde, op 20 minuten al het onderste achtste.
+ *
+ * Robijn en Diamant bleven de profs: Robijn het niveau van WorldTour-winnaars,
+ * Diamant de hoogste gepubliceerde waarden (ongeveer 7 W/kg over 40 minuten,
+ * 7,2 W/kg over 5 minuten, 17 tot 19 W/kg in een Tourspurt, 10,1 W/kg over een
+ * minuut; Valenzuela 2022; Mateo-March 2022). Voor vrouwen naar het aandeel van de
+ * vrouwelijke tegenover de mannelijke profs.
  */
-const POWER_MAN = {
-  s15: { zero: 4, levels: [7.5, 9, 10.5, 12, 13.5, 15, 16.5, 17.5, 19.5], estimate: true },
-  m1: { zero: 3, levels: [5, 5.8, 6.6, 7.4, 8.2, 9, 9.8, 10.2, 11.2], estimate: true },
-  m5: { zero: 1.2, levels: [2.4, 3.2, 4, 4.8, 5.5, 6.2, 6.7, 7.1, 7.6], estimate: true },
-  m20: { zero: 1, levels: [1.9, 2.6, 3.3, 4, 4.6, 5.3, 5.8, 6.4, 7.1], estimate: true },
-} as const satisfies Record<PowerDuration, Anchors>;
+const POWER = {
+  man: {
+    s15: { zero: 1.1, levels: [4.05, 5.55, 7.05, 8.55, 10.05, 11.55, 13.05, 17.5, 19.5], estimate: true },
+    m1: { zero: 1.7, levels: [3.2, 3.9, 4.65, 5.4, 6.15, 6.9, 7.65, 10.2, 11.2], estimate: true },
+    m5: { zero: 1.5, levels: [2.5, 3, 3.5, 4, 4.55, 5.05, 5.55, 7.1, 7.6], estimate: true },
+    m20: { zero: 1.3, levels: [2.15, 2.6, 3.05, 3.45, 3.9, 4.35, 4.75, 6.4, 7.1], estimate: true },
+  },
+  vrouw: {
+    s15: { zero: 0.95, levels: [3.1, 4.15, 5.25, 6.3, 7.35, 8.45, 9.5, 14, 15.6], estimate: true },
+    m1: { zero: 1.45, levels: [2.6, 3.2, 3.8, 4.35, 4.95, 5.55, 6.1, 8.35, 9.2], estimate: true },
+    m5: { zero: 1.2, levels: [2.1, 2.55, 3, 3.45, 3.9, 4.3, 4.75, 5.95, 6.4], estimate: true },
+    m20: { zero: 1.05, levels: [1.85, 2.25, 2.6, 3, 3.4, 3.8, 4.15, 5.45, 6.05], estimate: true },
+  },
+} as const satisfies Record<Sex, Record<PowerDuration, Anchors>>;
+
+/** Zonder opgegeven geslacht de waarden voor mannen. */
+export function powerAnchors(duration: PowerDuration, sex: Sex | null): Anchors {
+  return POWER[sex === "vrouw" ? "vrouw" : "man"][duration];
+}
 
 /**
- * Vrouwen: dezelfde niveaus bij een vast aandeel van de waarden voor mannen. Het
- * aandeel volgt de verhouding tussen de normen van vrouwelijke en mannelijke
- * profs (Mateo-March 2022 tegenover Valenzuela 2022) en is kleiner bij korte
- * duren. Een inschatting van ZWB.
+ * De versie van de schalen. Een snapshot onthoudt met welke versie hij gerekend
+ * is (`provenance.scale`); oudere tellen niet mee in de tijdlijn en de terugblik
+ * wordt opnieuw gemaakt, want er staan alleen niveaus in, geen metingen om opnieuw
+ * mee te rekenen.
  */
-const FEMALE_SHARE: Record<PowerDuration, number> = { s15: 0.8, m1: 0.82, m5: 0.84, m20: 0.85 };
-
-export function powerAnchors(duration: PowerDuration, sex: Sex | null): Anchors {
-  const base = POWER_MAN[duration];
-  if (sex !== "vrouw") return base;
-  const share = FEMALE_SHARE[duration];
-  const round = (value: number) => Math.round(value * share * 100) / 100;
-  return {
-    zero: round(base.zero),
-    levels: base.levels.map(round) as unknown as Anchors["levels"],
-    estimate: true,
-  };
-}
+export const SCALE_VERSION = "2026-10-21-sd";
 
 /**
  * Zwift Racing Score (0–1000) als doorlopende lijn: 0 is 0 en 1000 is Diamant,

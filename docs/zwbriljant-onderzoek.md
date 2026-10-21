@@ -40,16 +40,16 @@ aan een groep, al toont het facet wel de kleur van zijn klasse.
 
 | Punten | Klasse | Kleur | Drempel (man) | Drempel (vrouw) |
 |---|---|---|---|---|
-| 0–99 | Koper | #f19269 | onder 1,9 W/kg | onder 1,6 W/kg |
-| 100 | Brons | #754514 | 1,9 W/kg | 1,6 W/kg |
-| 200 | Zilver | #8e8e8e | 2,6 W/kg | 2,2 W/kg |
-| 300 | Goud | #d9b24e | 3,3 W/kg | 2,8 W/kg |
-| 400 | Platina | #d8dfdf | 4,0 W/kg | 3,4 W/kg |
-| 500 | Amethist | #9966cc | 4,6 W/kg | 3,9 W/kg |
-| 600 | Saffier | #0f52ba | 5,3 W/kg | 4,5 W/kg |
-| 700 | Smaragd | #009473 | 5,8 W/kg | 4,9 W/kg |
-| 800 | Robijn | #9b111e | 6,4 W/kg | 5,4 W/kg |
-| 900 | Diamant | #82d5f7 | 7,1 W/kg | 6,0 W/kg |
+| 0–99 | Koper | #f19269 | onder 2,15 W/kg | onder 1,85 W/kg |
+| 100 | Brons | #754514 | 2,15 W/kg | 1,85 W/kg |
+| 200 | Zilver | #8e8e8e | 2,6 W/kg | 2,25 W/kg |
+| 300 | Goud | #d9b24e | 3,05 W/kg | 2,6 W/kg |
+| 400 | Platina | #d8dfdf | 3,45 W/kg | 3,0 W/kg |
+| 500 | Amethist | #9966cc | 3,9 W/kg | 3,4 W/kg |
+| 600 | Saffier | #0f52ba | 4,35 W/kg | 3,8 W/kg |
+| 700 | Smaragd | #009473 | 4,75 W/kg | 4,15 W/kg |
+| 800 | Robijn | #9b111e | 6,4 W/kg | 5,45 W/kg |
+| 900 | Diamant | #82d5f7 | 7,1 W/kg | 6,05 W/kg |
 
 Voorbij 900 telt de score gewoon door (1.000, …). **Diamant** zijn de
 recordwaarden: wat er van de allerbeste renners gepubliceerd is. Daarvoor is
@@ -126,11 +126,12 @@ een diesel een steen die breed is aan de kant van drempel, durability en fitheid
 (De lengteregel van de berg, `ridgeReach`, en de voetbreedte `footWidth` zijn
 met de steen vervallen.)
 
-**Rekenvoorbeeld (man):** sprint 13,2 W/kg → 480 punten; anaeroob 7,6 → 425;
-VO2max 5,1 → 442; drempel 4,3 → 450; durability 4,2%/10 kJ/kg → 457; CTL 78 →
-580 (op de oude fitheidsschaal 465); ZRS 640 → 575. Profielscore 480 (met de oude
-fitheidsschaal 469, met de oude gewichten 472). Met consistentie 55% (factor 0,91):
-**437 punten**: Platina, nog 63 tot Amethist.
+**Rekenvoorbeeld (man), sinds de vermogensschalen naar de spreiding (2026-10-21):**
+sprint 13,2 W/kg → 703 punten; anaeroob 7,6 → 693; VO2max 5,1 → 610; drempel 4,3
+→ 588; durability 4,2%/10 kJ/kg → 457; CTL 78 → 580; ZRS 640 → 575. Profielscore
+**593 punten**: Amethist, nog 7 tot Saffier. (Op de oude, gelijk verdeelde
+vermogensschaal was dit 480; met consistentie 55% toen 437.) Het meest win je hier
+met VO2max (5% beter: +11 punten) en drempel (+9).
 Staat als test in `tests/unit/briljant-score.test.ts` en `briljant-view.test.ts`.
 
 ## Consistentie, altijd ten opzichte van jezelf
@@ -192,14 +193,45 @@ Alle ijkwaarden zijn **inschattingen van ZWB**, gegrond op de bronnen hieronder.
 Geen studie koppelt vermogen aan klassen; de koppeling is van ons. Wat de
 bronnen wel geven, staat per rij.
 
+**Vermogen naar de spreiding (sinds 2026-10-21, eigenaar).** Eerst liepen de
+klassen in gelijke stappen van ongetraind naar wereldklasse; dan lag het
+clubgemiddelde laag op de schaal en stonden sterke amateurs al bij de profs. Nu volgen
+Brons tot Smaragd de spreiding onder Zwift-renners, net als fitheid:
+
+- **Bron:** de vermogensverdeling van Zwift-renners per duur, geslacht en leeftijd
+  (onderste 10%, gemiddelde, bovenste 10%; [Zwift Insider](https://zwiftinsider.com/?p=136905)).
+  We nemen de leeftijd 30 tot 49 jaar (de kern van ZWB) en tellen er 5% bij: Zwift
+  meet de beste waarde uit Zwift-ritten, wie ook buiten rijdt haalt zijn beste
+  curve daar niet altijd.
+- **Spreiding:** de afstand van het gemiddelde tot de grens van 10% gedeeld door 1,28
+  (normale verdeling) is één standaarddeviatie (SD).
+- **Klassen:** Goud is het gemiddelde, Brons 1 SD eronder, daartussen en daarboven
+  stappen van een halve SD tot Smaragd (2 SD erboven, ongeveer de beste 2%). Robijn
+  en Diamant blijven prowaarden. Koper (0) is een ondergrens voor wie net begint.
+- **15 seconden** staat niet in de bron: 5 seconden × 0,83.
+- De clubgegevens (12 vermogensprofielen, 60 zFTP-waarden uit de ZRL: gemiddeld 3,56
+  W/kg, SD 0,59) waren te dun om de schaal zelf op te bouwen, maar liggen in lijn.
+
 **Vermogen, mannen (W/kg)**
 
-| Duur | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 (Diamant) |
+| Duur | 0 | 1 Brons | 2 | 3 Goud | 4 | 5 | 6 | 7 Smaragd | 8 Robijn | 9 Diamant |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 15 s | 4 | 7,5 | 9 | 10,5 | 12 | 13,5 | 15 | 16,5 | 17,5 | 19,5 |
-| 1 min | 3 | 5 | 5,8 | 6,6 | 7,4 | 8,2 | 9 | 9,8 | 10,2 | 11,2 |
-| 5 min | 1,2 | 2,4 | 3,2 | 4 | 4,8 | 5,5 | 6,2 | 6,7 | 7,1 | 7,6 |
-| 20 min | 1 | 1,9 | 2,6 | 3,3 | 4 | 4,6 | 5,3 | 5,8 | 6,4 | 7,1 |
+| 15 s | 1,1 | 4,05 | 5,55 | 7,05 | 8,55 | 10,05 | 11,55 | 13,05 | 17,5 | 19,5 |
+| 1 min | 1,7 | 3,2 | 3,9 | 4,65 | 5,4 | 6,15 | 6,9 | 7,65 | 10,2 | 11,2 |
+| 5 min | 1,5 | 2,5 | 3 | 3,5 | 4 | 4,55 | 5,05 | 5,55 | 7,1 | 7,6 |
+| 20 min | 1,3 | 2,15 | 2,6 | 3,05 | 3,45 | 3,9 | 4,35 | 4,75 | 6,4 | 7,1 |
+
+**Vermogen, vrouwen (W/kg)**: uit dezelfde bron voor vrouwen, niet meer als vast
+percentage van de mannen.
+
+| Duur | 0 | 1 Brons | 2 | 3 Goud | 4 | 5 | 6 | 7 Smaragd | 8 Robijn | 9 Diamant |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 15 s | 0,95 | 3,1 | 4,15 | 5,25 | 6,3 | 7,35 | 8,45 | 9,5 | 14 | 15,6 |
+| 1 min | 1,45 | 2,6 | 3,2 | 3,8 | 4,35 | 4,95 | 5,55 | 6,1 | 8,35 | 9,2 |
+| 5 min | 1,2 | 2,1 | 2,55 | 3 | 3,45 | 3,9 | 4,3 | 4,75 | 5,95 | 6,4 |
+| 20 min | 1,05 | 1,85 | 2,25 | 2,6 | 3 | 3,4 | 3,8 | 4,15 | 5,45 | 6,05 |
+
+Zonder opgegeven geslacht rekent ZWBriljant met de waarden voor mannen.
 
 **Recordwaarden achter Diamant** (gepubliceerde schattingen; profs publiceren hun
 gegevens zelden, dus officiële records bestaan niet):
@@ -217,17 +249,15 @@ gegevens zelden, dus officiële records bestaan niet):
   [Velo](https://velo.outsideonline.com/2022/04/big-numbers-mathieu-van-der-poels-strava-file-with-power/?scope=anon)).
   De beste punchers zitten hoger; 11,2.
 
-Houvast: U23-elite in grote rittenkoersen rijden gemiddeld 5,5 W/kg over 20 minuten
-(Mateo-March 2026); critical power van profs ligt rond 5,3 tot 5,6 W/kg (Spragg
-2022, 2024); de beste renners ter wereld zitten daar duidelijk boven. De lagere
-niveaus volgen de gebruikelijke indeling per duur, van ongetraind tot
-wereldklasse.
+Houvast voor Robijn: U23-elite in grote rittenkoersen rijden gemiddeld 5,5 W/kg over
+20 minuten (Mateo-March 2026); critical power van profs ligt rond 5,3 tot 5,6 W/kg
+(Spragg 2022, 2024). Vrouwen: de normen van vrouwelijke profs (Mateo-March 2022: 1 min
+8,4 en 60 min 4,2 W/kg).
 
-**Vermogen, vrouwen**: dezelfde niveaus bij 80% (15 s), 82% (1 min), 84% (5 min) en
-85% (20 min) van de waarden voor mannen. Het aandeel volgt de normen van
-vrouwelijke profs (Mateo-March 2022: 1 min 8,4 en 60 min 4,2 W/kg) tegenover die
-van mannelijke profs (Valenzuela 2022). Zonder opgegeven geslacht rekent ZWBriljant
-met de waarden voor mannen.
+**Schaalversie.** Snapshots dragen de versie van de schaal (`provenance.scale`, nu
+`2026-10-21-sd`). Historie, het ZWB-gemiddelde, de tegel en de wekelijkse job lezen
+alleen snapshots van de huidige versie; bij een nieuwe versie maakt de job de
+terugblik opnieuw, zodat oude en nieuwe punten nooit door elkaar staan.
 
 **Durability (verval in % per 10 kJ/kg, op de beste minuut)**
 

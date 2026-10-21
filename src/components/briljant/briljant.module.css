@@ -592,6 +592,9 @@
     height: 100dvh;
     min-height: 0;
     border-radius: 0;
+    /* Knijpen en slepen zijn voor de steen, niet voor de pagina. */
+    touch-action: none;
+    --nav-space: calc(84px + env(safe-area-inset-bottom));
   }
   .back {
     display: inline-flex;
@@ -601,18 +604,40 @@
     top: calc(max(8px, env(safe-area-inset-top)) + 52px);
     left: 20px;
   }
+  /* Boven de tabbalk van de app, die over de steen heen ligt. */
   .panel {
     right: 12px;
     left: 12px;
-    bottom: max(12px, env(safe-area-inset-bottom));
+    bottom: var(--nav-space);
     width: auto;
-    max-height: 62dvh;
+    max-height: calc(100dvh - var(--nav-space) - 120px);
+    touch-action: pan-y;
   }
   .score {
     font-size: 4.5rem;
   }
+  .facetList {
+    bottom: var(--nav-space);
+  }
+  /* De klassen klein rechtsboven, naast de kop. */
   .ladder {
-    display: none;
+    top: calc(max(8px, env(safe-area-inset-top)) + 60px);
+    right: 14px;
+    bottom: auto;
+    left: auto;
+    gap: 3px;
+    font-size: 9px;
+  }
+  .ladder li {
+    grid-template-columns: 7px 54px 22px;
+    gap: 6px;
+  }
+  .ladder li svg {
+    width: 7px;
+    height: 10px;
+  }
+  .ladder li span:last-child {
+    font-size: 12px;
   }
   /* De kop toont de score al; de uitleg bij de voet blijft. */
   .facet span,
@@ -625,11 +650,146 @@
     font-size: 11px;
     padding: 6px 10px;
   }
+  /* Bij vergelijken wel: dan zegt het label welke steen van wie is. */
+  .summit.pair {
+    display: block;
+    padding-bottom: 18px;
+  }
+  .summit.pair::after {
+    height: 14px;
+  }
+  .summit.pair b {
+    font-size: 22px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .panel,
   .anchor {
     transition: none;
+  }
+}
+
+/* Datum, vergelijken en delen, onder de kop. */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+  margin-top: 18px;
+  max-width: 330px;
+}
+
+.control {
+  display: grid;
+  gap: 4px;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.control input,
+.control select {
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 1px solid rgb(244 239 228 / 0.22);
+  border-radius: 2px;
+  background: rgb(10 12 15 / 0.72);
+  color: var(--ink);
+  color-scheme: dark;
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.control select {
+  max-width: 170px;
+}
+
+.now {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid rgb(231 197 107 / 0.45);
+  border-radius: 2px;
+  background: none;
+  color: var(--gold);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  margin-top: 16px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--tier);
+}
+
+.control input:focus-visible,
+.control select:focus-visible,
+.now:focus-visible,
+.toggle input:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Waar je het meest wint, onder de tabel van de score. */
+.wins {
+  margin-top: 18px;
+}
+
+.wins h3 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.wins ol {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wins li b {
+  font-weight: 500;
+}
+
+.wins li span {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .controls {
+    margin-top: 12px;
+    max-width: calc(100vw - 150px);
+    gap: 8px;
+  }
+  .control input {
+    width: 124px;
+  }
+  .control select {
+    max-width: calc(100vw - 150px);
   }
 }

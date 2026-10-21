@@ -445,7 +445,13 @@ export default function PrivacyPage() {
             was. Geen watts, W/kg, gewicht, CTL of ZRS. De eerste keer maken we
             een terugblik over twaalf maanden uit je intervals.icu-gegevens;
             daarna verversen we één keer per week je vermogensprofiel en je
-            Racing Score. Alleen jij kunt je steen zien. Er gaat niets naar
+            Racing Score. Je steen is alleen voor jou, tenzij je hem deelt: met
+            &ldquo;Deel mijn steen met leden&rdquo; zien alle goedgekeurde leden je
+            laatste score, je punten per onderdeel en je consistentie (geen
+            metingen) en kunnen ze die naast hun eigen steen zetten. Uitzetten
+            werkt meteen. Voor het ZWB-gemiddelde tellen we de laatste score van
+            iedereen met ZWBriljant mee, ook als je niet deelt; dat gemiddelde is
+            anoniem en verschijnt pas vanaf vijf leden. Er gaat niets naar
             OpenAI of een andere partij. Het staat in je data-export en
             verdwijnt als je je account opheft.
           </li>

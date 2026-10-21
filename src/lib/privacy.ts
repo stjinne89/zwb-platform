@@ -70,9 +70,10 @@
  * rekent met gegevens die leden al gaven (intervals.icu, Zwift-ID, ritten,
  * schema, geslacht; sinds dezelfde dag niet meer de beschikbaarheid) en bewaart per week alleen afgeleide scores, voor het lid
  * zelf (0265, `zwbriljant_snapshots`); geen nieuwe categorie of ontvanger, dus
- * alleen de tekst (`/privacy#zwbriljant`). Delen met andere leden krijgt een
- * eigen toestemming (`zwbriljant_preferences.consent_version`) en een eigen
- * tekst zodra dat gebouwd is.
+ * alleen de tekst (`/privacy#zwbriljant`). Delen met alle goedgekeurde leden
+ * (0266, eenzijdig) loopt via een eigen toestemming
+ * (`zwbriljant_preferences.consent_version`); het anonieme ZWB-gemiddelde
+ * (vanaf vijf leden) telt ook wie niet deelt. Beide alleen in de tekst.
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring
