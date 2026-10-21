@@ -11285,9 +11285,27 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
-### Gebouwd — ZWBriljant: durability ook in de terugblik
+### Gebouwd — ZWBriljant: wat je moet instellen, op /hulp
 
 **2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+Op verzoek van de eigenaar staat bovenaan de ZWBriljant-hulp (`/hulp/training#zwbriljant`,
+eigen anker `zwbriljant-instellen`) een genummerde lijst van wat leden moeten koppelen
+en invullen: intervals.icu (vermogen, fitheid, historie), de kJ-standen op 1000 en 2000
+(durability; dezelfde clubstandaard als bij Mijn vermogen), gewicht bijhouden in
+intervals.icu, Zwift-ID (racen), geslacht (ijkwaarden), Strava (consistentie) en een
+schema (consistentie tegen geplande uren). Plus een zoekregel "ZWBriljant goed
+instellen" in de hulpzoeker. Volgens de productregel staat dit op `/hulp`, niet op de
+pagina zelf; de lege staat van de pagina linkt er al naartoe.
+
+**Niet gebouwd.** Een controlelijst op de pagina die per lid laat zien wat ontbreekt
+(productregel: geen uitleg in schermen).
+
+**Getest.** ESLint, tsc, de hulptests. **Niet getest:** de pagina in de browser.
+
+### Gebouwd — ZWBriljant: durability ook in de terugblik
+
+**2026-10-21.** Commit `5b693d3d`. Geen migratie. Gepusht naar `main` op 2026-10-21.
 
 **Vraag.** Durability stond alleen in de steen van deze week; de eigenaar wilde weten of
 intervals.icu vermoeide curves per maand geeft. **Uitgezocht** met een eenmalige
@@ -11313,7 +11331,7 @@ leescontrole hierboven, niet als test (dat zou een live intervals-sleutel vragen
 
 ### Gebouwd — ZWBriljant: mooiste steen, waarden of punten, ZRS in de terugblik
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-21.** Commit `2312c415`. Geen migratie. Gepusht naar `main` op 2026-10-21.
 
 Drie verzoeken van de eigenaar na de terugblik over de hele historie.
 

@@ -83,6 +83,13 @@ const HELP_INDEX: HelpResult[] = [
       "agenda kalender abonnement abonneren ics ical webcal google agenda calendar outlook apple icloud iphone mac thunderbird synchroniseren sync link trainingen aanmeldingen",
   },
   {
+    title: "ZWBriljant goed instellen",
+    text: "Wat je koppelt en invult zodat alle onderdelen van je steen meetellen.",
+    href: "/hulp/training#zwbriljant",
+    terms:
+      "zwbriljant briljant steen edelsteen onderdelen ontbreken leeg durability kj 1000 2000 gewicht geslacht zwift-id zrs racen strava consistentie schema intervals instellen",
+  },
+  {
     title: "Badges en achievements",
     text: "Weekbadges, milestone badges en badges herberekenen.",
     href: "/hulp/club#badges",

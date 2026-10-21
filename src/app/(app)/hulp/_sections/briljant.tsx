@@ -27,6 +27,56 @@ export function BriljantHelp() {
       </header>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        <article id="zwbriljant-instellen" className="scroll-mt-20 rounded-md border bg-background p-4 lg:col-span-2">
+          <h3 className="text-sm font-semibold">Zo haal je het meeste uit je steen</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Elk onderdeel dat ontbreekt, telt niet mee. Met dit staat alles erin:
+          </p>
+          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
+            <li>
+              <strong className="text-foreground">intervals.icu koppelen</strong> in ZWBeter. Daaruit komen sprint,
+              anaeroob, VO2max, drempel, fitheid en je hele historie voor de datumkiezer.
+            </li>
+            <li>
+              <strong className="text-foreground">De twee kJ-standen in intervals.icu op 1000 en 2000 kJ</strong>,
+              voor durability. Hoe dat moet staat bij{" "}
+              <Link href="/hulp/training#vermogen" className="underline underline-offset-2">
+                Mijn vermogen
+              </Link>
+              . Zonder die standen blijft durability leeg.
+            </li>
+            <li>
+              <strong className="text-foreground">Je gewicht bijhouden in intervals.icu.</strong> Alle vermogens
+              tellen in W/kg; per maand gebruiken we het gewicht dat daar toen stond.
+            </li>
+            <li>
+              <strong className="text-foreground">Je Zwift-ID op je profiel</strong>, voor racen (je Zwift Racing
+              Score).{" "}
+              <Link href="/hulp/koppelen#zwift-id" className="underline underline-offset-2">
+                Waar vind ik die?
+              </Link>
+            </li>
+            <li>
+              <strong className="text-foreground">Je geslacht op je profiel.</strong> Vrouwen hebben eigen
+              ijkwaarden; zonder geslacht rekenen we met die voor mannen.
+            </li>
+            <li>
+              <strong className="text-foreground">Strava koppelen</strong>, zodat je ritten binnenkomen. Daaruit komt
+              je consistentie.
+            </li>
+            <li>
+              <strong className="text-foreground">Een schema in ZWBeter.</strong> Dan meet consistentie tegen je
+              geplande uren; zonder schema tegen je eigen gebruikelijke weekuren.
+            </li>
+          </ol>
+          <Link
+            href="/profiel?weergave=bewerken"
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Naar je profiel
+          </Link>
+        </article>
+
         <article className="rounded-md border bg-background p-4">
           <h3 className="text-sm font-semibold">De klassen</h3>
           <p className="mt-2 text-sm text-muted-foreground">
