@@ -8,8 +8,9 @@ import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
 // ZWBriljant (migratie 0265): per lid dat ZWBriljant gebruikt de snapshot van
 // deze week, na het verversen van powerprofiel en ZRS. Wie deze week al een
-// snapshot heeft, slaat de run over; per run hooguit `limit` leden binnen het
-// budget. Een lid zonder terugblik krijgt die eerst.
+// snapshot én een terugblik op de huidige schaal heeft, slaat de run over; per run
+// hooguit `limit` leden binnen het budget. Een lid zonder terugblik krijgt die eerst,
+// ook als de pagina deze week al een snapshot maakte.
 //
 // Bearer-token via BRILJANT_WEEKLY_SECRET. Draait elk uur op cron-job.org (zie
 // docs/runbook.md): zo komen alle deelnemers in de loop van maandag aan de beurt.
@@ -65,7 +66,10 @@ export async function POST(request: NextRequest) {
 
   const doneIds = new Set((done ?? []).map((row) => row.profile_id as string));
   const withTerugblik = new Set((looked ?? []).map((row) => row.profile_id as string));
-  const due = (members ?? []).map((row) => row.profile_id as string).filter((id) => !doneIds.has(id));
+  // Ook wie deze week al keek, maar nog geen terugblik op de huidige schaal heeft.
+  const due = (members ?? [])
+    .map((row) => row.profile_id as string)
+    .filter((id) => !doneIds.has(id) || !withTerugblik.has(id));
 
   const started = Date.now();
   let processed = 0;
@@ -75,7 +79,7 @@ export async function POST(request: NextRequest) {
     try {
       await refreshSources(admin, profileId, ZRS_BUDGET_MS);
       if (!withTerugblik.has(profileId)) await storeTerugblik(admin, profileId, today);
-      await storeWeek(admin, profileId, today);
+      if (!doneIds.has(profileId)) await storeWeek(admin, profileId, today);
       processed += 1;
     } catch {
       errors += 1;

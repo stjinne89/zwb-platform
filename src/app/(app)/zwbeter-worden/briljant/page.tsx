@@ -13,8 +13,10 @@ import {
   loadOwnSnapshots,
   loadSharing,
   loadVisibleMembers,
+  hasTerugblik,
   refreshSources,
   rememberVisit,
+  storeTerugblik,
 } from "@/lib/briljant/server";
 import { bestWins, briljantView } from "@/lib/briljant/view";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -25,6 +27,8 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "ZWBriljant" };
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
+/** Zo lang wacht de pagina hooguit op een ontbrekende terugblik. */
+const TERUGBLIK_WAIT_MS = 6_000;
 const weekLabel = (monday: string) =>
   new Date(`${monday}T12:00:00Z`).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
 
@@ -46,6 +50,15 @@ export default async function BriljantPage({
   // anders blijven vermogen en durability leeg tot de wekelijkse job (die een lid
   // met een snapshot van deze week overslaat).
   await refreshSources(admin, user.id, 1_500).catch(() => null);
+  // Zonder terugblik op de huidige schaal heeft de datumkiezer niets om naar terug
+  // te gaan. De wekelijkse job slaat wie deze week al keek over, dus hier eenmalig
+  // zelf; hooguit een paar seconden wachten, daarna gaat de pagina gewoon door.
+  if (!(await hasTerugblik(admin, user.id))) {
+    await Promise.race([
+      storeTerugblik(admin, user.id, today).catch(() => 0),
+      new Promise((resolve) => setTimeout(resolve, TERUGBLIK_WAIT_MS)),
+    ]);
+  }
   const [collected, history, sharing, members, average] = await Promise.all([
     collectBriljant(admin, user.id),
     loadHistory(admin, user.id),

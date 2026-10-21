@@ -249,6 +249,19 @@ export async function rememberVisit(admin: Admin, profileId: string, collected: 
   ]).catch(() => null);
 }
 
+/** Heeft dit lid een terugblik op de huidige schaal? */
+export async function hasTerugblik(admin: Admin, profileId: string): Promise<boolean> {
+  const { data, error } = await admin
+    .from("zwbriljant_snapshots")
+    .select("week")
+    .eq("profile_id", profileId)
+    .eq("source", "terugblik")
+    .eq("provenance->>scale", SCALE_VERSION)
+    .limit(1);
+  // Bij een fout niet opnieuw beginnen: dat zou bij elk bezoek gebeuren.
+  return error ? true : (data ?? []).length > 0;
+}
+
 /** De eigen scores van de afgelopen weken, oud naar nieuw, zonder de huidige week; leeg zonder migratie. */
 export async function loadHistory(admin: Admin, profileId: string, today = amsterdamDayKey()): Promise<HistoryPoint[]> {
   const current = mondayKey(today);
@@ -297,8 +310,8 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
   }
   const byDay = new Map(wellness.map((row) => [row.id, row]));
 
-  const rows: SnapshotRow[] = [];
-  for (const end of ends) {
+  // Per maand los, maar tegelijk: de pagina wacht hier bij het eerste bezoek op.
+  const rows: SnapshotRow[] = await Promise.all(ends.map(async (end) => {
     const day = byDay.get(end);
     const weightKg = num(day?.weight) ?? num(p?.weight_kg);
     const ctl = day && Number.isFinite(Number(day.ctl)) ? Number(day.ctl) : null;
@@ -312,8 +325,8 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
     };
     // De week na het maandeinde: de consistentie telt dan tot en met die maand.
     const consistency = await loadConsistency(admin, profileId, shiftDay(end, 1), rides);
-    rows.push(snapshotFrom({ profileId, day: end, source: "terugblik", input, consistency }));
-  }
+    return snapshotFrom({ profileId, day: end, source: "terugblik", input, consistency });
+  }));
 
   const useful = rows.filter((row) => row.score != null || row.consistency != null);
   // Snapshots van oudere schalen gaan weg: er staan alleen niveaus in, geen

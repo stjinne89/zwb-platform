@@ -11285,6 +11285,35 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — ZWBriljant: de terugblik komt terug na de nieuwe schaal
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Gepusht naar
+`main` op 2026-10-21.
+
+**Wat de eigenaar zag.** De datumkiezer kon niet terug in de tijd en vergelijken bood
+niemand aan. Nagekeken op productie: op de nieuwe schaal (`2026-10-21-sd`) stonden alleen
+twee weeksnapshots van deze week, geen terugblik, en van de eigenaar geen rijen op de oude
+schaal meer. Waarom die oude rijen al weg waren vóór er een nieuwe terugblik stond, is niet
+vastgesteld.
+
+**Oorzaak.** Dezelfde val als bij Pim: wie de pagina opent, krijgt meteen een snapshot van
+deze week, en de wekelijkse job sloeg iedereen met een snapshot van deze week over, dus ook
+de terugblik.
+
+**Nu.**
+- De pagina maakt een ontbrekende terugblik op de huidige schaal zelf (`hasTerugblik`,
+  dan `storeTerugblik`), en wacht daar hooguit 6 seconden op.
+- De job neemt ook wie deze week al keek maar geen terugblik heeft; de weeksnapshot
+  overschrijft hij dan niet.
+- `storeTerugblik` rekent de twaalf maanden tegelijk in plaats van na elkaar.
+
+**Vergelijken** werkt zoals bedoeld maar heeft nog niemand: van de drie leden met
+ZWBriljant deelt niemand, en het ZWB-gemiddelde vraagt vijf leden met een steen op de
+huidige schaal (nu twee). De grens van vijf blijft (herleidbaarheid).
+
+**Getest.** tsc, ESLint, alle ZWBriljant-tests groen. **Niet getest:** de terugblik op
+productie; die volgt bij het eerstvolgende bezoek van de eigenaar.
+
 ### Gebouwd — ZWBriljant: terugkijken, vergelijken en waar je het meest wint
 
 **2026-10-21.** Commit `12ec8372`. Migratie `0266_zwbriljant_share_all_members.sql`,
