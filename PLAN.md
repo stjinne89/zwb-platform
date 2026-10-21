@@ -11286,6 +11286,29 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: een steen voor elk lid met intervals.icu
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht;
+de privacyzin wacht op akkoord van de eigenaar.
+
+**Waarom.** Na 0267 (standaard gedeeld) stonden er maar vier stenen in de zaal: een steen
+ontstond alleen als een lid ZWBriljant zelf opende, en de wekelijkse job ververste alleen
+wie een voorkeur had. Van de 43 goedgekeurde leden hebben er 22 intervals.icu gekoppeld;
+16 hebben alleen een Zwift-ID (alleen racen, te weinig voor een steen) en 5 geen van beide.
+
+**Nu.** De wekelijkse job geeft elk goedgekeurd lid met intervals.icu een voorkeur
+(standaard zichtbaar; een bestaande voorkeur blijft staan, dus wie verbergt blijft
+verborgen) en daarmee een terugblik, weekopname en daarna de ZRS-historie. Met een paar
+leden per uur is iedereen binnen ongeveer een dag binnen. Privacytekst: "Heb je
+intervals.icu gekoppeld, dan maken we elke week je steen, ook als je ZWBriljant zelf nooit
+opent", en "in ZWBeter" werd "bij Stats".
+
+**Niet gebouwd.** Een steen voor leden met alleen een Zwift-ID (één onderdeel; een steen
+vraagt er twee).
+
+**Getest.** tsc, ESLint, de ZWBriljant- en privacytests. **Niet getest:** de job zelf op
+productie; die draait na de push elk uur.
+
 ### Gebouwd — ZWBriljant: Diamant haalbaar, en standaard gedeeld
 
 **2026-10-21.** Commit `cf909c3a`. Migratie `0267_zwbriljant_share_by_default.sql`,

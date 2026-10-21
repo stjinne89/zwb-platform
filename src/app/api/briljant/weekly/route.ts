@@ -7,8 +7,10 @@ import { fillZrsHistory, membersWithPendingZrs } from "@/lib/briljant/zrs-histor
 import { mondayKey } from "@/lib/briljant/snapshot";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
-// ZWBriljant (migratie 0265): per lid dat ZWBriljant gebruikt de snapshot van
-// deze week, na het verversen van powerprofiel en ZRS. Wie deze week al een
+// ZWBriljant (migratie 0265): per lid de snapshot van deze week, na het verversen
+// van powerprofiel en ZRS. Sinds 2026-10-21 elk goedgekeurd lid met intervals.icu,
+// ook wie ZWBriljant nooit opende (eigenaar); zonder intervals.icu is er te weinig
+// voor een steen (alleen racen). Wie deze week al een
 // snapshot én een terugblik op de huidige schaal heeft, slaat de run over; per run
 // hooguit `limit` leden binnen het budget. Een lid zonder terugblik krijgt die eerst,
 // ook als de pagina deze week al een snapshot maakte.
@@ -47,6 +49,19 @@ export async function POST(request: NextRequest) {
 
   const today = amsterdamDayKey();
   const week = mondayKey(today);
+
+  // Iedereen met intervals.icu krijgt een voorkeur (standaard zichtbaar, 0267) en
+  // dus een steen. Een bestaande voorkeur blijft staan: wie verbergt, blijft verborgen.
+  const { data: linked } = await admin
+    .from("intervals_connections")
+    .select("profile_id, profiles!inner(is_approved)")
+    .not("athlete_id", "is", null)
+    .eq("profiles.is_approved", true);
+  const enroll = ((linked ?? []) as Array<{ profile_id: string }>).map((row) => ({ profile_id: row.profile_id }));
+  if (enroll.length > 0) {
+    await admin.from("zwbriljant_preferences").upsert(enroll, { onConflict: "profile_id", ignoreDuplicates: true });
+  }
+
   const [{ data: members, error }, { data: done }, { data: looked }] = await Promise.all([
     admin.from("zwbriljant_preferences").select("profile_id").order("created_at", { ascending: true }),
     // Alleen snapshots van de huidige schalen tellen; bij nieuwe schalen komt er

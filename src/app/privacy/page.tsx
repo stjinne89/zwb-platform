@@ -434,13 +434,14 @@ export default function PrivacyPage() {
             als je je account opheft.
           </li>
           <li id="zwbriljant" className="scroll-mt-20">
-            <strong>ZWBriljant:</strong> in ZWBeter zie je je niveau als
+            <strong>ZWBriljant:</strong> bij Stats zie je je niveau als
             edelsteen, met een score in punten. Daarvoor gebruiken we wat je al
             met ons deelt: je vermogenscurve, vermoeide curve en CTL uit
             intervals.icu, je Zwift Racing Score via je Zwift-ID, je ritten
             en je schema voor de consistentie, en je opgegeven
-            geslacht (de normen voor vrouwen zijn anders). Zodra je ZWBriljant
-            opent, bewaren we per week je score, je punten per onderdeel, je
+            geslacht (de normen voor vrouwen zijn anders). Heb je intervals.icu
+            gekoppeld, dan maken we elke week je steen, ook als je ZWBriljant zelf
+            nooit opent: we bewaren per week je score, je punten per onderdeel, je
             consistentie (een getal van 0 tot 1) en per bron alleen óf die er
             was. Geen watts, W/kg, gewicht, CTL of ZRS. De eerste keer maken we
             per maand een terugblik over je hele historie in intervals.icu, en

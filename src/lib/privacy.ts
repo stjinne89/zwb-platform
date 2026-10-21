@@ -73,7 +73,8 @@
  * alleen de tekst (`/privacy#zwbriljant`). Sinds 0267 (2026-10-21) is je steen
  * standaard zichtbaar voor alle goedgekeurde leden en kun je hem verbergen
  * (`zwbriljant_preferences.visible`); daarvoor (0266) moest je zelf kiezen om te
- * delen. Het anonieme ZWB-gemiddelde (vanaf vijf leden) telt iedereen mee. Alles
+ * delen. Sinds dezelfde dag krijgt elk lid met intervals.icu een steen, ook zonder
+ * ZWBriljant te openen. Het anonieme ZWB-gemiddelde (vanaf vijf leden) telt iedereen mee. Alles
  * alleen in de tekst, geen nieuwe versie (eigenaar keurt de tekst goed).
  */
 export const PRIVACY_VERSIONS = [
