@@ -11287,8 +11287,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: ZRS van vroeger uit Zwift-uitslagen
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht;
-de privacyzin wacht op akkoord van de eigenaar.
+**2026-10-21.** Commit `13ddf7c7`. Geen migratie. Gepusht naar `main` op 2026-10-21.
+Privacyzin ("zoeken we via je Zwift-ID in je eerdere race-uitslagen bij Zwift je Racing
+Score van toen op") goedgekeurd door de eigenaar, zonder nieuwe privacyversie.
 
 **Uitgezocht** (leescontrole met het serviceaccount op de Zwift-ID van de eigenaar):
 - `profiles/{id}/activities?start=&limit=20` geeft de activiteiten van een gevolgde renner
@@ -11326,7 +11327,7 @@ schrijft); de eerste runs van de job na de push.
 
 ### Gebouwd — ZWBriljant: wat je moet instellen, op /hulp
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-21.** Commit `941e6569`. Geen migratie. Gepusht naar `main` op 2026-10-21.
 
 Op verzoek van de eigenaar staat bovenaan de ZWBriljant-hulp (`/hulp/training#zwbriljant`,
 eigen anker `zwbriljant-instellen`) een genummerde lijst van wat leden moeten koppelen
