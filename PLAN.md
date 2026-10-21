@@ -11288,7 +11288,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: consistentie in TSS, vorm uit het profiel, museumbordjes
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-21.** Commits `89913bd4` en `4a084d3d`. Geen migratie. Gepusht naar `main` op
+2026-10-22.
 
 - **Consistentie in TSS** (eigenaar: belasting zegt meer dan duur). Per week de TSS uit de
   dagbelasting in intervals.icu (`ctl_load`), tegen de geplande TSS (geschat uit duur en
@@ -11311,7 +11312,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: gewicht, vier onderdelen, gekleurde tegel en het museum
 
-**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-21.** Commit `8a8a200f`. Geen migratie. Gepusht naar `main` op 2026-10-22. Na de
+deploy de weekopnames van de week van 19 oktober verwijderd, zodat de job ze met de nieuwe
+regels opnieuw maakt, en de score gewist van snapshots met minder dan vier onderdelen.
 
 **Waarom.** Casper C stond op 720 met alleen fitheid en racen: zijn vermogenscurve stond
 er wel, maar er was nergens een gewicht, dus geen W/kg; met twee onderdelen telde racen
