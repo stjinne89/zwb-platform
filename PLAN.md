@@ -11281,6 +11281,60 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Engelse recepten: ingrediënten naar NEVO
+
+**2026-10-21.** Commit: zie de commit "Recept van een link: Engelse
+ingrediënten naar NEVO" op `claude/ah-scraping-solution-8978ee`. Geen migratie.
+Niet gepusht.
+
+**Waarom.** De eigenaar meldde dat het overnemen van ingrediënten bij Jamie
+Oliver misgaat. Nagelopen met chicken tikka masala (jamieoliver.com; de
+Nederlandse jamiemagazine.nl is een lege pagina): NEVO kent alleen Nederlandse
+namen, dus bijna niets koppelde, en wat wél koppelde was onzin. "coconut milk"
+viel terug op "milk" en vond een milkshake, "tin" vond gelatine en pastinaak,
+"tikka masala paste" vond "Pastei lever-", "chilli" ketchup. Verder werd het
+kopje "TIKKA MASALA PASTE" een ingrediënt en gaf "1 x 400g tin" geen gewicht.
+
+**Nu.**
+- **Woordenlijst** (`src/lib/nutrition/english-ingredients.ts`, ~150
+  ingrediënten): Engelse naam naar een zoekterm in de NEVO-volgorde ("olive oil"
+  → "olie olijf", "chickpeas" → "erwten kikker"). Meervouden worden herkend;
+  het laatste ingrediënt in de regel telt ("groundnut or vegetable oil" →
+  plantaardige olie). Alleen woorden die geen Nederlands zijn: een Nederlandse
+  regel verandert niet. Elke doelterm is op productie nagekeken (alleen lezen)
+  met dezelfde volgorde en keuze als `rankFoods` en `pickFood`.
+- **Parser** (`parseIngredientLine`): "1 x 400g tin of" (gewicht per stuk),
+  "½ a bunch of", "1 small handful of", garlic cloves (5 g), "5cm piece of
+  ginger" (5 g per cm), en tin, jar, bunch, handful, sprig, knob, piece en stick
+  als eenheid zonder gewicht. De naam die gezocht wordt is de vertaalde; het lid
+  ziet onder het ingrediënt nog de Engelse regel.
+- **Kopjes overslaan** (`recipeFromHtml`): een regel zonder kleine letters en
+  cijfers, of die op ":" eindigt, is een kopje en geen ingrediënt.
+
+**Resultaat** (chicken tikka masala, 24 regels na het kopje): ui 200 g,
+gemberwortel 25 g, tomaat in blik 400 g, kokosmelk 200 g, knoflook 10 g,
+komijnzaad, peper cayenne, paprikapoeder, arachideolie, tomatenpuree, geraspte
+kokos, amandelmeel en -noten, citroen, Spaanse peper, kipfilet en yoghurt
+koppelen. Koriander en garam masala staan niet in NEVO en blijven losse
+regels; ook hun knippen in tweeën vindt niets (net als kurkuma, tijm en dille).
+
+**Bewust niet.**
+- **Geen vertaling met een taalmodel.** Een woordenlijst is gratis, snel en
+  voorspelbaar; een model kost per recept en zou het lid om toestemming moeten
+  vragen zoals bij Herkennen.
+- **Geen sites die per land andere eenheden gebruiken** (cups in de VS) apart
+  behandeld: cups stonden er al (240 g).
+- **Bijvoeglijke naamwoorden als "fat-free" of "skinless"** sturen de keuze
+  niet: "fat-free natural yoghurt" wordt volle yoghurt. Het lid kiest dan zelf.
+
+**Getest.** `nutrition-recipe-import.test.ts` (45: tien Engelse regels met
+naam en gewicht, bunch en handful, de vertaling met hoofdwoord, meervoud, een
+Nederlandse regel die gelijk blijft en "constructor", kopjes overslaan). Alle
+nutrition-tests 197 groen, ESLint schoon, `tsc` alleen met de bekende
+ontbrekende `modern-screenshot`. Vijf Jamie Oliver-recepten opgehaald en hun
+zoektermen op productie nagerekend. **Niet getest:** het formulier in de app
+zelf, en andere Engelse sites dan Jamie Oliver.
+
 ### Gebouwd — Allerhande-recepten via de AH-API
 
 **2026-10-21.** Commit: zie de commit "Recept van een link: Allerhande via de
@@ -11802,8 +11856,9 @@ wat met alle leden gedeeld is. De voorstellenpagina leest ze apart.
   opent (zoals nu al met een profielfoto-URL kan).
 - **Geen beoordeling vooraf** bij delen met leden (eigenaar). Wel kan alleen de
   maker het wijzigen of terugzetten.
-- **Geen verwerking van Engelse ingrediënten** naar NEVO-namen; die blijven
-  meestal losse regels.
+- ~~**Geen verwerking van Engelse ingrediënten.**~~ Niet meer waar sinds
+  2026-10-21: een woordenlijst vertaalt gangbare Engelse ingrediënten naar een
+  NEVO-zoekterm (ronde "Engelse recepten: ingrediënten naar NEVO").
 
 **Egress.** Elke zoekterm haalt alle passende NEVO-rijen op (~100 bytes per
 rij) om de beste te kiezen; een recept van 10–15 regels kost zo grofweg

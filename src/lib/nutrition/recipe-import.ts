@@ -21,6 +21,7 @@ import {
   fetchWithCheckedRedirects,
   readCapped,
 } from "@/lib/events/link-prefill";
+import { translateIngredient } from "./english-ingredients";
 export { guessRole } from "./scale";
 
 export type ImportedRecipe = {
@@ -223,6 +224,14 @@ function clip(text: string, max: number): string {
   return text.length <= max ? text : `${text.slice(0, max - 1).trimEnd()}…`;
 }
 
+/**
+ * Een kopje tussen de ingrediënten ("TIKKA MASALA PASTE", "Voor de saus:").
+ * Sommige sites zetten dat als gewone regel in recipeIngredient.
+ */
+function isIngredientHeading(line: string): boolean {
+  return line.endsWith(":") || !/[\p{Ll}\d]/u.test(line);
+}
+
 /** Het recept uit de HTML van een receptpagina, of null als er geen Recipe-data in staat. */
 export function recipeFromHtml(html: string, pageUrl: string): ImportedRecipe | null {
   const $ = cheerio.load(html);
@@ -252,7 +261,7 @@ export function recipeFromHtml(html: string, pageUrl: string): ImportedRecipe | 
   const ingredients = ([] as unknown[])
     .concat(ld.recipeIngredient ?? ld.ingredients ?? [])
     .map((line) => (typeof line === "string" ? cleanText(line.replace(/<[^>]+>/g, " ")) : null))
-    .filter((line): line is string => Boolean(line))
+    .filter((line): line is string => Boolean(line) && !isIngredientHeading(line!))
     .slice(0, MAX_LINES);
 
   let host = "";
@@ -319,13 +328,15 @@ const UNIT_GRAMS: Array<[RegExp, number]> = [
   [/^(?:cups?)$/, 240],
   [/^(?:oz|ounces?)$/, 28],
   [/^(?:lbs?|pounds?)$/, 454],
-  [/^(?:teentjes?|tenen|teen)$/, 5],
+  [/^(?:teentjes?|tenen|teen|cloves?)$/, 5],
+  // Een stuk gember of kurkuma: "5cm piece of ginger".
+  [/^cm$/, 5],
   [/^(?:snufjes?|snuf|mespuntj?e?s?|pinch)$/, 1],
 ];
 
 /** Eenheden zonder vast gewicht: weg uit de naam, gewicht alleen uit "(400 g)". */
 const COUNT_UNITS =
-  /^(?:blikj?e?s?|blikken|pakj?e?s?|pakken|zakj?e?s?|zakken|bosj?e?s?|bossen|stuks?|plakj?e?s?|plakken|takj?e?s?|handj?e?s?|handvol|scheutj?e?s?|scheut|potj?e?s?|potten|bakj?e?s?|flesj?e?s?|cans?|slices?|cloves?)$/;
+  /^(?:blikj?e?s?|blikken|pakj?e?s?|pakken|zakj?e?s?|zakken|bosj?e?s?|bossen|stuks?|plakj?e?s?|plakken|takj?e?s?|handj?e?s?|handvol|scheutj?e?s?|scheut|potj?e?s?|potten|bakj?e?s?|flesj?e?s?|cans?|tins?|jars?|slices?|bunch(?:es)?|handfuls?|sprigs?|knobs?|pieces?|sticks?|bags?|packs?|packets?)$/;
 
 /**
  * Gewicht van één stuk bij een regel zonder eenheid ("2 uien"). Ruwe
@@ -375,7 +386,7 @@ export function parseIngredientLine(line: string): IngredientLine {
 
   // "(400 g)" bij een blik of pak: gewicht per stuk.
   const packed = /\((\d+(?:[.,]\d+)?)\s*(g|gr|gram|kg|ml|cl|dl|l)\)/i.exec(rest);
-  const perPack = packed ? numberValue(packed[1]) * unitGrams(packed[2].toLowerCase())! : null;
+  let perPack = packed ? numberValue(packed[1]) * unitGrams(packed[2].toLowerCase())! : null;
 
   let quantity: number | null = null;
   const match = QUANTITY.exec(rest);
@@ -386,6 +397,13 @@ export function parseIngredientLine(line: string): IngredientLine {
     if (!Number.isFinite(quantity) || quantity <= 0) quantity = null;
     rest = rest.slice(match[0].length);
   }
+  // Engels: "1 x 400g tin of", "½ a bunch of", "1 small handful of".
+  const times = /^[x×]\s*(\d+(?:[.,]\d+)?)\s*(g|kg|ml|cl|l)\b\s*/i.exec(rest);
+  if (times) {
+    perPack = numberValue(times[1]) * unitGrams(times[2].toLowerCase())!;
+    rest = rest.slice(times[0].length);
+  }
+  rest = rest.replace(/^(?:an?\s+)?(?:(?:small|large|medium|big|heaped|level|good|generous)\s+)?(?=\S+\s)/i, "");
 
   let grams: number | null = null;
   const unitMatch = /^([\p{L}']+)\.?(?:\s+|$)/u.exec(rest);
@@ -401,7 +419,7 @@ export function parseIngredientLine(line: string): IngredientLine {
     grams = perPack != null ? quantity * perPack : null;
   }
 
-  const name = cleanIngredientName(rest);
+  const name = translateIngredient(cleanIngredientName(rest));
   if (grams == null && quantity != null && perPack == null) {
     const piece = PIECE_GRAMS[name.split(" ")[0]] ?? PIECE_GRAMS[name.split(" ").at(-1) ?? ""];
     if (piece != null) grams = quantity * piece;

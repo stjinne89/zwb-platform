@@ -14,12 +14,26 @@ import {
   singular,
   stepsMarkdown,
 } from "@/lib/nutrition/recipe-import";
+import { translateIngredient } from "@/lib/nutrition/english-ingredients";
 
 function page(jsonLd: unknown, head = "") {
   return `<html><head>${head}<script type="application/ld+json">${JSON.stringify(jsonLd)}</script></head><body></body></html>`;
 }
 
 describe("recipeFromHtml", () => {
+  it("slaat kopjes tussen de ingrediënten over", () => {
+    const recipe = recipeFromHtml(
+      page({
+        "@type": "Recipe",
+        name: "Curry",
+        recipeIngredient: ["1 lemon", "TIKKA MASALA PASTE", "Voor de saus:", "2 cloves of garlic"],
+      }),
+      "https://www.jamieoliver.com/recipes/curry/",
+    );
+    expect(recipe?.ingredients).toEqual(["1 lemon", "2 cloves of garlic"]);
+  });
+
+
   it("leest een Recipe uit @graph, met sitenaam, foto en stappen", () => {
     const html = page(
       {
@@ -142,6 +156,17 @@ describe("parseIngredientLine", () => {
     ["1 blik tomatenblokjes (400 g)", "tomatenblokjes", 400],
     ["1 pak (500 g) penne", "penne", 500],
     ["snufje zout", "zout", 1],
+    // Engels (Jamie Oliver): de naam wordt een NEVO-zoekterm.
+    ["1 x 400g tin of plum tomatoes", "tomaat blik", 400],
+    ["½ x 400g tin of light coconut milk", "kokosmelk", 200],
+    ["5cm piece of ginger", "gemberwortel", 25],
+    ["2 cloves of garlic", "knoflook", 10],
+    ["2 onions", "ui", 200],
+    ["1 lemon", "citroen", 100],
+    ["4 large free-range eggs", "ei kippen rauw", 220],
+    ["2 tablespoons groundnut oil", "olie arachide", 30],
+    ["1 teaspoon cumin seeds", "komijnzaad", 5],
+    ["400g tin of chickpeas", "erwten kikker", 400],
   ])("%s", (line, name, grams) => {
     expect(parseIngredientLine(line)).toEqual({ line, name, grams });
   });
@@ -154,6 +179,21 @@ describe("parseIngredientLine", () => {
     });
     expect(parseIngredientLine("1 bos peterselie").grams).toBeNull();
     expect(parseIngredientLine("2 kipfilets").grams).toBeNull();
+    expect(parseIngredientLine("½ a bunch of fresh coriander")).toMatchObject({ name: "koriander", grams: null });
+    expect(parseIngredientLine("1 small handful of flaked almonds")).toMatchObject({
+      name: "noten amandelen ongezouten",
+      grams: null,
+    });
+  });
+
+  it("vertaalt alleen Engelse ingrediënten, met het hoofdwoord achteraan", () => {
+    expect(translateIngredient("skinless free range chicken breasts")).toBe("kipfilet");
+    expect(translateIngredient("groundnut or vegetable oil")).toBe("olie plantaardig");
+    expect(translateIngredient("fresh red chillies")).toBe("peper spaanse");
+    expect(translateIngredient("bay leaves")).toBe("laurier");
+    expect(translateIngredient("rode paprika")).toBe("rode paprika");
+    expect(translateIngredient("garam masala")).toBe("garam masala");
+    expect(translateIngredient("constructor")).toBe("constructor");
   });
 });
 
