@@ -109,14 +109,18 @@ export function formatMeasure(facet: Facet, value: number): string {
 
 function meterFor(facet: Facet, reading: NonNullable<ReturnType<typeof facetReadings>[Facet]>): FacetMeter {
   if (facet === "racen") {
+    // De balk over de hele schaal, de zin naar de volgende klasse (eigenaar,
+    // 2026-10-21): de grens is de ZRS waarbij die klasse begint.
     const share = Math.min(1, Math.max(0, reading.value / 1000));
+    const next = LEVELS[Math.floor(reading.level + 1e-9) + 1];
+    const togo = next ? Math.ceil(reading.upper.value - reading.value) : 0;
     return {
       share,
       from: formatMeasure(facet, 0),
       to: formatMeasure(facet, 1000),
       fromLevel: null,
       toLevel: null,
-      note: `${Math.round(share * 100)}% van de schaal`,
+      note: next && togo > 0 ? `nog ${togo} ZRS tot ${next.name}` : `${LEVELS[LEVELS.length - 1].name}: het maximum`,
     };
   }
   const top = LEVELS[LEVELS.length - 1];

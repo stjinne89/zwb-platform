@@ -52,7 +52,11 @@ describe("briljantView", () => {
     expect(durability.lowerIsBetter).toBe(true);
     expect(durability.meter.note).toMatch(/minder tot Amethist$/);
     const racen = view.facets.find((facet) => facet.key === "racen")!;
-    expect(racen.meter).toMatchObject({ from: "0 ZRS", to: "1.000 ZRS", fromLevel: null, toLevel: null, note: "64% van de schaal" });
+    // De balk over 0 tot 1000; Saffier begint bij 666,7 ZRS, dus nog 27.
+    expect(racen.meter).toMatchObject({ from: "0 ZRS", to: "1.000 ZRS", fromLevel: null, toLevel: null, note: "nog 27 ZRS tot Saffier" });
+    expect(racen.meter.share).toBeCloseTo(0.64, 9);
+    const top = briljantView({ seed: "lid", input: { ...rider, zrs: 1000 }, consistency: null }).facets.find((facet) => facet.key === "racen")!;
+    expect(top.meter.note).toBe("Diamant: het maximum");
   });
 
   it("verdeelt de gewichten opnieuw als een onderdeel ontbreekt", () => {

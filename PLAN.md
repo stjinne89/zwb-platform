@@ -11281,6 +11281,15 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: racen zegt hoeveel ZRS tot de volgende klasse
+
+**2026-10-21.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+Op verzoek van de eigenaar: onder de balk van racen staat nu "nog 27 ZRS tot Saffier" in
+plaats van "64% van de schaal". De balk loopt nog steeds over de hele schaal (0 tot 1000);
+de grens is de ZRS waarbij de volgende klasse begint (`ZRS_ANCHORS`, 1000 × n ÷ 9). Bij
+1000 ZRS: "Diamant: het maximum". Getest in `briljant-view.test.ts`.
+
 ### Gebouwd — ZWBriljant: durability op de minuut, fitheid naar de spreiding
 
 **2026-10-21.** Commit `d0c9fec1`. Geen migratie. Gepusht naar `main` op 2026-10-21.

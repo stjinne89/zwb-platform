@@ -69,8 +69,8 @@ ijkstenen erachter. Zonder WebGL: een vlakke steen en de facetten als lijst.
 
 **Op het scherm de waarden, de formules op /hulp** (eigenaar). Elk facet toont de
 meting als balk van de grens van zijn klasse tot de volgende (racen over de hele
-schaal, 0 tot 1000 ZRS), met wat er gemeten is, de periode en hoeveel het
-meetelt. De omrekening ("400 + (4,3 − 4,0) ÷ (4,6 − 4,0) × 100 = 450") staat
+schaal, 0 tot 1000 ZRS, met eronder hoeveel ZRS tot de volgende klasse), met wat er
+gemeten is, de periode en hoeveel het meetelt. De omrekening ("400 + (4,3 − 4,0) ÷ (4,6 − 4,0) × 100 = 450") staat
 alleen op `/hulp/training#zwbriljant`. Voorbij Diamant loopt de laatste lijn
 door; onder de nulwaarde is het 0.
 
