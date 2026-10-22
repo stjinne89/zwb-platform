@@ -11291,7 +11291,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — FTP uit intervals.icu: de ingestelde FTP, niet de modelschatting
 
-**2026-10-22.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-22.** Commits `e59eb4cf` en `2f514e4b` (PLAN), op 2026-10-22 gepusht naar
+`main` (eigenaar). Geen migratie.
 
 **Waarom.** `athletePhysique()` gaf als "FTP" eerst `mmp_model.ftp` terug: de eFTP uit
 het vermogensmodel van intervals.icu, niet de FTP die het lid instelde. Daardoor schreef
@@ -11326,8 +11327,8 @@ de pagina in de browser en een echte sync tegen intervals.icu.
 
 ### Gebouwd — ZWBriljant: fitheid 20%, racen 12,5%
 
-**2026-10-22.** Commit: de commit die dit blok toevoegt. Migratie
-`0270_zwbriljant_weights_fitheid20.sql`, **nog niet toegepast**. Niet gepusht.
+**2026-10-22.** Commit `7dcfeeec`, op 2026-10-22 gepusht naar `main` (eigenaar). Migratie
+`0270_zwbriljant_weights_fitheid20.sql`, **nog niet toegepast** (gecontroleerd bij de push).
 
 De eigenaar zette na de vorige stap fitheid op 20% (was 15%) en racen op 12,5% (was
 17,5%). Vermogen blijft samen 50%, durability 17,5%. Alleen de gewichten veranderen, niet
