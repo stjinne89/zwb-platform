@@ -110,8 +110,12 @@ export async function POST(request: NextRequest) {
     if (Date.now() - started > BUDGET_MS) break;
     try {
       await refreshSources(admin, profileId, ZRS_BUDGET_MS);
-      if (!withTerugblik.has(profileId)) await storeTerugblik(admin, profileId, today);
-      if (!doneIds.has(profileId)) await storeWeek(admin, profileId, today);
+      const redo = !withTerugblik.has(profileId);
+      if (redo) await storeTerugblik(admin, profileId, today);
+      // Een nieuwe terugblik betekent meestal een nieuwe rekenregel: dan ook de steen
+      // van deze week opnieuw, als er nog tijd is (anders bij het volgende bezoek of
+      // volgende week).
+      if (!doneIds.has(profileId) || (redo && Date.now() - started < BUDGET_MS)) await storeWeek(admin, profileId, today);
       processed += 1;
     } catch {
       errors += 1;

@@ -190,24 +190,23 @@ function positive(value: number | null | undefined): number | null {
 }
 
 /**
- * Verval in procenten per 10 kJ/kg, gemiddeld over de curves na genoeg werk.
- * Meer vermogen na het werk dan vers (een vers record later in de rit) telt als
- * geen verval.
+ * Verval in procenten per 10 kJ/kg, uit de laagste kJ-stand met genoeg werk
+ * (eigenaar, 2026-10-22; bij 1000 en 2000 kJ dus 1000). Eerst het gemiddelde over
+ * alle standen: een vermoeide curve is een ondergrens, en na 2000 kJ rijdt bijna
+ * niemand nog een volle minuut voluit, dus die stand trok durability omlaag (bij de
+ * eigenaar van 400 naar 269 punten). Meer vermogen na het werk dan vers (een vers
+ * record later in de rit) telt als geen verval.
  */
 export function durabilityDecline(fatigue: FatigueInput[], weightKg: number | null): number | null {
   const weight = positive(weightKg);
   if (!weight) return null;
-  const declines = fatigue
-    .map((curve) => {
-      const kjPerKg = curve.afterKj / weight;
-      const fresh = positive(curve.freshWatts);
-      const fatigued = positive(curve.fatiguedWatts);
-      if (!fresh || !fatigued || kjPerKg < DURABILITY_MIN_KJ_PER_KG) return null;
-      const lossPct = Math.max(0, (1 - fatigued / fresh) * 100);
-      return lossPct / (kjPerKg / 10);
-    })
-    .filter((value): value is number => value != null);
-  return declines.length === 0 ? null : declines.reduce((sum, value) => sum + value, 0) / declines.length;
+  const lowest = fatigue
+    .filter((curve) => positive(curve.freshWatts) && positive(curve.fatiguedWatts) && curve.afterKj / weight >= DURABILITY_MIN_KJ_PER_KG)
+    .sort((a, b) => a.afterKj - b.afterKj)[0];
+  if (!lowest) return null;
+  const kjPerKg = lowest.afterKj / weight;
+  const lossPct = Math.max(0, (1 - lowest.fatiguedWatts / lowest.freshWatts) * 100);
+  return lossPct / (kjPerKg / 10);
 }
 
 /** Per facet de meting en het niveau tegen de wereld; null waar de gegevens ontbreken. */

@@ -193,6 +193,19 @@ describe("facetten en score", () => {
     expect(durabilityDecline([{ afterKj: 1500, freshWatts: 300, fatiguedWatts: 285 }], null)).toBeNull();
   });
 
+  it("neemt de laagste kJ-stand met genoeg werk, niet het gemiddelde", () => {
+    // De eigenaar, 83 kg: 481 W vers, 452 W na 1000 kJ en 359 W na 2000 kJ.
+    const curves = [
+      { afterKj: 2000, freshWatts: 481, fatiguedWatts: 359 },
+      { afterKj: 1000, freshWatts: 481, fatiguedWatts: 452 },
+    ];
+    // 6,0% verlies na 12,05 kJ/kg: 5,0 per 10 kJ/kg, Platina (de 2000 kJ gaf 10,5).
+    expect(durabilityDecline(curves, 83)).toBeCloseTo(5.0, 1);
+    expect(levelAt(DURABILITY_ANCHORS, durabilityDecline(curves, 83)!)).toBeCloseTo(4.0, 1);
+    // Te weinig werk voor de laagste stand: dan de volgende.
+    expect(durabilityDecline([{ afterKj: 500, freshWatts: 300, fatiguedWatts: 290 }, { afterKj: 1500, freshWatts: 300, fatiguedWatts: 270 }], 75)).toBeCloseTo(5, 6);
+  });
+
 });
 
 describe("consistentie", () => {

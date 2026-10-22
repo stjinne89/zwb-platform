@@ -41,8 +41,9 @@ export function BriljantHelp() {
               <strong className="text-foreground">De twee kJ-standen in intervals.icu op 1000 en 2000 kJ</strong>,
               voor durability: open intervals.icu, ga naar Power, klik boven de powercurve op de knoppen met
               &quot;? kJ&quot; en vul 1000 en 2000 in. Klik daarna op Mijn vermogen op &quot;Mijn waarden
-              ophalen&quot;. Zonder die standen blijft durability leeg en mis je {pct(FACET_WEIGHTS.durability)} van
-              je score. Meer bij{" "}
+              ophalen&quot;. Durability is je beste minuut na de laagste stand (1000 kJ) tegen je verse beste
+              minuut. Zonder die standen blijft durability leeg en mis je {pct(FACET_WEIGHTS.durability)} van je
+              score. Meer bij{" "}
               <Link href="/hulp/training#vermogen" className="underline underline-offset-2">
                 Mijn vermogen
               </Link>

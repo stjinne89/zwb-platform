@@ -304,7 +304,11 @@ Houvast: na 45 kJ/kg verliezen WorldTour-renners 4,7 tot 8,8% en ProTeam-renners
 amateurs verliezen 6,5% en minder succesvolle 12,5% op 20 minuten na 1000 kJ
 (Barsumyan 2025), bij 75 kg ongeveer 5 en 9,6% per 10 kJ/kg. Pas vanaf 10 kJ/kg
 voorafgaand werk telt een curve mee (daaronder is het verval klein, Mateo-March
-2025). De drempels voor de curves stelt elk lid zelf in intervals.icu in.
+2025). De drempels voor de curves stelt elk lid zelf in intervals.icu in. Sinds
+2026-10-22 telt alleen de laagste stand met minstens 10 kJ/kg (bij 1000 en 2000 kJ dus
+1000; eigenaar). Eerst het gemiddelde over de standen: na 2000 kJ rijdt bijna niemand nog
+een volle minuut voluit, dus die stand gaf vooral een ondergrens en trok durability omlaag
+(bij de eigenaar 5,0 na 1000 kJ tegen 10,5 na 2000 kJ: gemiddeld 269 punten, nu 400).
 Beperkingen: alleen de hoeveelheid werk telt, niet hoe zwaar het was, terwijl werk
 boven CP meer kost (Spragg 2024; Mateo-March 2024). En intervals.icu geeft vermoeide
 curves alleen voor de twee drempels die het lid zelf instelt (bij de eigenaar 2000 en

@@ -55,11 +55,12 @@ const TERUGBLIK_FALLBACK_MONTHS = 12;
 /**
  * Gezet in `provenance.terugblik`: de hele historie, met de huidige ZRS voor racen
  * (ZRS heeft geen historie), durability per maand, en sinds 2026-10-22 het gewicht
- * uit intervals.icu of Zwift en consistentie in TSS (eigenaar). Een terugblik met
+ * uit intervals.icu of Zwift, consistentie in TSS en durability uit de laagste
+ * kJ-stand in plaats van het gemiddelde (eigenaar). Een terugblik met
  * een andere waarde wordt bij het volgende bezoek of door de job opnieuw gemaakt;
  * de ZRS van vroeger die de job al vond, blijft staan.
  */
-export const TERUGBLIK_SPAN = "alles-gewicht-tss";
+export const TERUGBLIK_SPAN = "alles-gewicht-tss-kj";
 /** PostgREST geeft hooguit zoveel rijen per vraag. */
 const PAGE = 1000;
 /** Zoveel weken terug voor de norm (mediaan) en de reeks. */
@@ -457,7 +458,7 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
       sex: sexOf(p?.sex ?? null),
       weightKg,
       power: powerFromCurve(curves.get(curveRange(end)) ?? [], weightKg),
-      // Durability net als nu: de beste minuut vers tegen die na elke drempel.
+      // Durability net als nu: de beste minuut vers tegen die na de laagste drempel.
       fatigue: fatigueInputs(
         curves.get(curveRange(end)) ?? [],
         thresholds.map((afterKj, index) => ({ afterKj, points: curves.get(`${curveRange(end)}-kj${index}`) ?? [] })),

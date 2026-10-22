@@ -11289,6 +11289,35 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: durability uit de laagste kJ-stand
+
+**2026-10-22.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+**Waarom.** De eigenaar vroeg waarom zijn durability zo laag was met 481 W vers en 452 W
+na 1000 kJ. `durabilityDecline` nam het gemiddelde over de kJ-standen, en na 2000 kJ was
+zijn beste minuut 359 W: 5,0 per 10 kJ/kg na 1000 kJ (Platina, 400) tegen 10,5 na 2000
+kJ, gemiddeld 7,8 (Zilver, 269). Een vermoeide curve is een ondergrens; na ruim drie uur
+rijdt bijna niemand nog een volle minuut voluit.
+
+- **Alleen de laagste stand met minstens 10 kJ/kg** telt (bij 1000 en 2000 kJ dus 1000).
+  Leden met andere standen tellen nog mee; een stand onder 10 kJ/kg wordt overgeslagen.
+- **`TERUGBLIK_SPAN`** werd `"alles-gewicht-tss-kj"`: elke terugblik wordt opnieuw gemaakt,
+  bij een bezoek of door de wekelijkse job (drie leden per uur). De gevonden ZRS van
+  vroeger blijft staan.
+- **De wekelijkse job** maakt na een nieuwe terugblik ook de steen van deze week opnieuw,
+  als er in de run nog tijd over is; anders gebeurt dat bij het volgende bezoek of de
+  week erna.
+- Niet gedaan: de stand met het minste verval per lid nemen (minder goed tussen leden te
+  vergelijken), of zelf uit de ritten rekenen (eerder besloten: leden stellen 1000 en 2000
+  kJ in).
+
+Eerst `main` in deze branch gemerged (gemiddelde ZWB-man en -vrouw, hersteldata); één
+conflict in een commentaar van `stats/zwbriljant/page.tsx`, opgelost als "de galerij ...
+de gemiddelden".
+
+**Getest.** `briljant-score` met de getallen van de eigenaar (5,0 en niveau 4,0), alle
+ZWBriljant-tests, tsc, ESLint. **Niet getest:** de terugblik en de job op productie.
+
 ### Gebouwd — ZWBriljant: een gemiddelde ZWB-man en een gemiddelde ZWB-vrouw
 
 **2026-10-22.** Commit `5a72b06c`, op 2026-10-22 gepusht naar `main` (eigenaar). Geen migratie.

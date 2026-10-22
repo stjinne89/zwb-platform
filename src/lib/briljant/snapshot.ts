@@ -71,7 +71,8 @@ export function shiftDay(day: string, days: number): string {
 }
 
 /**
- * De beste minuut, vers en na elke vermoeide drempel (eigenaar, 2026-10-21): korte
+ * De beste minuut, vers en na elke vermoeide drempel; durabilityDecline kiest daar
+ * de laagste stand uit (eigenaar, 2026-10-22). De minuut (eigenaar, 2026-10-21): korte
  * inspanningen rijd je na veel werk vaak, een volle 20 minuten bijna nooit, dus die
  * zeiden vooral dat je niet voluit reed, niet dat je inzakte.
  */
