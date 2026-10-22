@@ -284,7 +284,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0270`
-(`0269_zwbriljant_ctl40` is van ZWBriljant CTL-Goud op 40 en vermogen 50%, 2026-10-22, nog niet toegepast;
+(`0269_zwbriljant_ctl40` is van ZWBriljant CTL-Goud op 40 en vermogen 50%, 2026-10-22, toegepast op 2026-10-22;
 `0268_zwbriljant_share_to_see` is van ZWBriljant alleen zien als je deelt, 2026-10-22, toegepast op 2026-10-22;
 `0267_zwbriljant_share_by_default` is van ZWBriljant standaard gedeeld, 2026-10-21, toegepast op 2026-10-21;
 `0266_zwbriljant_share_all_members` is van ZWBriljant delen met alle leden, 2026-10-21, toegepast op 2026-10-21;
@@ -11290,11 +11290,18 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: fitheid zwaarder, vermogen 50%
 
-**2026-10-22.** Commit: de commit die dit blok toevoegt. Migratie `0269_zwbriljant_ctl40.sql`,
-**nog niet toegepast**. Niet gepusht. **Volgorde:** `0269` toepassen vóór de deploy. Draait
-de nieuwe code eerst, dan ruimt de terugblik de stenen van de vorige schaal op
-(`storeTerugblik` wist alles met een andere `provenance.scale`) en valt er niets meer om
-te zetten.
+**2026-10-22.** Commits `638bfab4`, `b271ed52` (hulp) en `d150812b`, op 2026-10-22 gepusht
+naar `main`. Migratie `0269_zwbriljant_ctl40.sql` toegepast op 2026-10-22, nadat de nieuwe
+build live stond: alle 994 stenen (972 terugblik, 22 week) staan op `"2026-10-22-ctl40"`,
+geen verloren, en de scores kloppen met de doorrekening vooraf (bijvoorbeeld 714 → 723,
+600 → 536).
+
+**Volgorde.** Oude code wist bij een terugblik alles met een andere `provenance.scale`,
+nieuwe code deed dat eerst ook; in elke volgorde kon een bezoek of de job tussen push en
+migratie de stenen wissen. Daarom laat de terugblik sinds `d150812b` ook
+`PREVIOUS_SCALE_VERSION` staan; eerst gepusht, op de nieuwe build gewacht (build-ID op
+`/privacy`), toen `0269`. Bij een volgende schaalwijziging met een omzetmigratie:
+`PREVIOUS_SCALE_VERSION` naar de oude versie zetten en dezelfde volgorde.
 
 **Waarom.** De eigenaar: voor een steen die laat zien hoe sterk en fit je bent en wat je
 training oplevert, telde CTL te weinig. Op productie stond de club op fitheid twee à drie
@@ -11328,7 +11335,8 @@ na de optelling niet meer waar en zegt nu dat het voor 0 telt.
 
 **Getest.** Alle ZWBriljant-tests met de nieuwe waarden, `0269` in PGlite tegen
 `storedScore` en `levelAt` (score hooguit 0,01 anders door afronding), tsc, ESLint.
-**Niet getest:** `0269` op productie, de pagina in de browser.
+`0269` op productie nagekeken met tellingen per schaal. **Niet getest:** de pagina in de
+browser.
 
 ### Gebouwd — ZWBriljant: score als optelling, drie tabbladen, vergelijken in woorden
 
