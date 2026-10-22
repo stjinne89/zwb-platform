@@ -11318,7 +11318,13 @@ ontbrekend onderdeel nu zwaarder telt.
 **Open: durability.** Die ontbreekt bij 17 van de 22 leden: intervals.icu geeft vermoeide
 curves alleen voor de twee kJ-drempels die een lid zelf instelt, en 15 leden hebben er
 geen. De eigenaar wil de beste minuut na 1000 kJ; dat kan de API niet per verzoek (zie
-docs/zwbriljant-onderzoek.md). Keuze ligt bij de eigenaar; niet gebouwd.
+docs/zwbriljant-onderzoek.md). **Besluit (eigenaar, zelfde dag):** leden zetten zelf 1000
+en 2000 kJ in intervals.icu; geen eigen berekening uit de ritten. Die zou wel voor
+iedereen werken, maar kost een tabel per rit en een zware eerste run, en ritten die via
+Strava in intervals.icu kwamen hebben geen vermogensdata. De stappen staan nu direct bij
+"Zo haal je het meeste uit je steen" op `/hulp/training#zwbriljant-instellen`, met wat een
+ontbrekende durability kost; de zin "een onderdeel dat ontbreekt, telt niet mee" daar was
+na de optelling niet meer waar en zegt nu dat het voor 0 telt.
 
 **Getest.** Alle ZWBriljant-tests met de nieuwe waarden, `0269` in PGlite tegen
 `storedScore` en `levelAt` (score hooguit 0,01 anders door afronding), tsc, ESLint.

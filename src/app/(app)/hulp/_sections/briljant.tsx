@@ -30,7 +30,7 @@ export function BriljantHelp() {
         <article id="zwbriljant-instellen" className="scroll-mt-20 rounded-md border bg-background p-4 lg:col-span-2">
           <h3 className="text-sm font-semibold">Zo haal je het meeste uit je steen</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Elk onderdeel dat ontbreekt, telt niet mee. Met dit staat alles erin:
+            Een onderdeel dat ontbreekt, telt voor 0 en kost je punten. Met dit staat alles erin:
           </p>
           <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
             <li>
@@ -39,11 +39,14 @@ export function BriljantHelp() {
             </li>
             <li>
               <strong className="text-foreground">De twee kJ-standen in intervals.icu op 1000 en 2000 kJ</strong>,
-              voor durability. Hoe dat moet staat bij{" "}
+              voor durability: open intervals.icu, ga naar Power, klik boven de powercurve op de knoppen met
+              &quot;? kJ&quot; en vul 1000 en 2000 in. Klik daarna op Mijn vermogen op &quot;Mijn waarden
+              ophalen&quot;. Zonder die standen blijft durability leeg en mis je {pct(FACET_WEIGHTS.durability)} van
+              je score. Meer bij{" "}
               <Link href="/hulp/training#vermogen" className="underline underline-offset-2">
                 Mijn vermogen
               </Link>
-              . Zonder die standen blijft durability leeg.
+              .
             </li>
             <li>
               <strong className="text-foreground">Je gewicht bijhouden in intervals.icu.</strong> Alle vermogens
