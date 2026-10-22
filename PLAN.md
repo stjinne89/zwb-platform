@@ -11289,6 +11289,41 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — FTP uit intervals.icu: de ingestelde FTP, niet de modelschatting
+
+**2026-10-22.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+**Waarom.** `athletePhysique()` gaf als "FTP" eerst `mmp_model.ftp` terug: de eFTP uit
+het vermogensmodel van intervals.icu, niet de FTP die het lid instelde. Daardoor schreef
+de profielsync (`auto_sync_physique`) de eFTP in `profiles.ftp_watts`, en elk scherm had
+een eigen volgorde. De ingestelde FTP is het getal waarmee intervals.icu zones en TSS
+rekent en waarmee de FIT-export %FTP omzet naar watt.
+
+**Besluit eigenaar:** overal test → ingestelde FTP (`sportSettings[Ride].ftp`) → eFTP →
+profiel.
+
+- `athletePhysique()` (`src/lib/intervals/client.ts`) geeft nu `ftpWatts` (ingesteld:
+  `ftp`, dan `indoor_ftp`, dan de athlete-`ftp`) en apart `eftpWatts` (`mmp_model.ftp`).
+- `/zwbeter-worden/vermogen`: de tegel "FTP / eFTP" volgt de nieuwe volgorde; de eFTP
+  is de curve, dan de wellness, dan het model.
+- Powerprofiel-sync (`src/lib/teams/power-sync.ts`, knop op Teams en de wekelijkse
+  ZWBriljant-job): `rider_power_profiles.ftp_watts` volgt dezelfde volgorde. Een
+  testuitslag gaat nu ook daar voor; eerder stond de curve-/model-eFTP bovenaan.
+- Profielsync: zonder testuitslag schrijft die alleen de ingestelde FTP weg, nooit
+  meer de eFTP. Met een testuitslag blijft de FTP met rust, zoals sinds 2026-09-11.
+
+**Bewust niet veranderd.** Het schema-engine (`engine/daily.ts`, `engine/compose.ts`)
+rekent nog met `profiles.ftp_watts` en neemt de eFTP alleen als dat leeg is (besluit van
+2026-09-21). Het profiel bevat daar al de test of, met de sync aan, de ingestelde FTP. De
+eFTP-tegel op `/zwbeter-worden` blijft een eFTP-trend; de terugval daarop heet nu terecht
+"FTP uit intervals.icu", want `intervalsFtp` is echt de ingestelde FTP.
+
+**Getest.** `intervals-athlete-physique.test.ts` (nieuw, 2 tests), de volledige suite
+(3.284 tests; `omnium-live.test.ts` laadt niet zonder `.env.local` in de worktree),
+ESLint op de gewijzigde bestanden, `tsc`. Die laatste meldt alleen `modern-screenshot`,
+dat in de gedeelde `node_modules` ontbreekt (staat los van deze ronde). **Niet getest:**
+de pagina in de browser en een echte sync tegen intervals.icu.
+
 ### Gebouwd — ZWBriljant: fitheid 20%, racen 12,5%
 
 **2026-10-22.** Commit: de commit die dit blok toevoegt. Migratie
@@ -24404,8 +24439,11 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
      terwijl de code elders de test laat winnen. *Later op 2026-09-21:* de eFTP
      kwam in werkelijkheid nooit binnen (verkeerde veldnaam), en na het meten is
      besloten dat de profiel-FTP leidt; zie de ronde bovenaan. Dit punt is daarmee
-     dicht. De achtergrondsync blijft ontbreken, maar de meting laat geen
-     structureel te lage profiel-FTP zien.
+     dicht. De meting laat geen structureel te lage profiel-FTP zien. *Correctie
+     2026-10-22:* er is inmiddels wel een achtergrondsync. De wekelijkse
+     ZWBriljant-job draait de powerprofiel-sync bij een verouderd profiel, en
+     daarmee ook de profielsync. Die schrijft sindsdien de ingestelde FTP weg en
+     niet meer de eFTP; zie de ronde "FTP uit intervals.icu".
   2. ~~**Echte zones gaan niet mee.**~~ **Gesloten 2026-09-21:** gemeten; 10 van
      de 11 leden hebben de standaardzones, dus meegeven verandert niets. De lage
      wattages zaten in de duurblokken; zie de ronde bovenaan. Oorspronkelijk: `profile_sport_settings.power_zones` (+ CP,

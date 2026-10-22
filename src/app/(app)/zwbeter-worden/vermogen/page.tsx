@@ -159,8 +159,8 @@ export default async function PowerPage({
     } else {
       curve = curveResult;
     }
-    intervalsEftp = latestWellnessValue(wellness, "eftp");
     const athleteDefaults = athletePhysique(athlete);
+    intervalsEftp = latestWellnessValue(wellness, "eftp") ?? athleteDefaults.eftpWatts;
     intervalsFtp = athleteDefaults.ftpWatts;
     intervalsWeightKg = latestWellnessValue(wellness, "weight") ?? athleteDefaults.weightKg;
     const rideSettings = rideSportSettings(athlete);
@@ -176,18 +176,19 @@ export default async function PowerPage({
   });
   const comparisonRiders = comparisonRidersFromRows(comparisonRows);
   const ownWeightKg = numberOrNull(profile?.weight_kg) ?? intervalsWeightKg;
-  // Voorrang: de laatste FTP-test, dan intervals.icu (eFTP, dan de ingestelde
-  // FTP), dan het profiel. Dezelfde volgorde als de profielsync in teams/_actions.ts.
+  // Voorrang: de laatste FTP-test, dan de ingestelde FTP in intervals.icu, dan de
+  // eFTP, dan het profiel. Dezelfde volgorde als de powerprofiel-sync in
+  // lib/teams/power-sync.ts.
   const testFtp = ftpTests[0] ? numberOrNull(ftpTests[0].ftp_watts) : null;
   const eftpWatts = numberOrNull(curve?.ftpWatts) ?? intervalsEftp;
-  const ftpWatts = testFtp ?? eftpWatts ?? intervalsFtp ?? numberOrNull(profile?.ftp_watts);
+  const ftpWatts = testFtp ?? intervalsFtp ?? eftpWatts ?? numberOrNull(profile?.ftp_watts);
   const ftpSource = testFtp
     ? // De datum is het antwoord op "hoe oud is dit getal" — de vraag die de tegel oproept.
       `FTP-test van ${new Date(`${ftpTests[0].tested_on}T12:00:00Z`).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}`
-    : eftpWatts
-      ? "eFTP uit intervals.icu"
-      : intervalsFtp
-        ? "FTP uit intervals.icu"
+    : intervalsFtp
+      ? "FTP uit intervals.icu"
+      : eftpWatts
+        ? "eFTP uit intervals.icu"
         : numberOrNull(profile?.ftp_watts)
           ? "FTP uit je profiel"
           : undefined;
