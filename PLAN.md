@@ -11291,7 +11291,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: een gemiddelde ZWB-man en een gemiddelde ZWB-vrouw
 
-**2026-10-22.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-22.** Commit `5a72b06c`, op 2026-10-22 gepusht naar `main` (eigenaar). Geen migratie.
 
 **Waarom.** De eigenaar wilde naast het ZWB-gemiddelde ook een gemiddelde steen voor
 mannen en een voor vrouwen. De niveaus zijn al per geslacht genormeerd, dus de stenen zijn
@@ -11334,7 +11334,8 @@ volledige suite (3.287; vijf tests in `admin-areas`, `zwift-club-calendar` en
 
 ### Hersteld — Hersteldata: lege week heet niet langer "normaal", sync 40 dagen
 
-**2026-10-22.** Lokaal gecommit, niet gepusht. Geen migratie.
+**2026-10-22.** Commit `966e5e7a` (eerst `782d935b` op de herstel-branch), op 2026-10-22 gepusht
+naar `main` (eigenaar). Geen migratie.
 
 **Aanleiding.** Een lid met een Garmin klaagde dat haar herstel-data niet binnenkwam.
 Uitgezocht in productie: ZWB haalde goed op (sync die ochtend zonder fout), maar
