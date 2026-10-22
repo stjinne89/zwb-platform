@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { EVENT_KIND_VALUES, EVENT_TYPE_VALUES } from "@/lib/event-types";
 import { syncEventPrograms } from "@/lib/events/programs";
+import { followEventDate } from "@/lib/training/event-date";
 import { refreshEventWorkouts } from "@/lib/training/events";
 import {
   eventForSubgroup,
@@ -212,7 +213,7 @@ export async function updateEvent(id: string, input: EventInput) {
   // Permissie-check: alleen creator of iemand met beheerrecht mag bewerken.
   const { data: event } = await supabase
     .from("events")
-    .select("created_by")
+    .select("created_by, start_at")
     .eq("id", id)
     .single();
   if (!event) return { ok: false as const, error: "Event bestaat niet." };
@@ -265,6 +266,11 @@ export async function updateEvent(id: string, input: EventInput) {
   }
 
   await storeRulesQuietly(id, input.zwift_event_id);
+
+  // Schuift het event van dag, dan schuiven mikpunten en doelen erop mee.
+  await followEventDate(createAdminClient(), id, event.start_at as string, input.start_at).catch(
+    () => null,
+  );
 
   // Met een route of Zwift-link erbij kan de duur van het blok in het schema
   // veranderen. Wat niet binnen deze paar seconden doorkomt naar intervals.icu,

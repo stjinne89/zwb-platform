@@ -17,6 +17,7 @@ import {
   type OmniumSeasonPlanSpec,
 } from "@/lib/omnium/season-plan";
 import type { Discipline } from "@/lib/omnium/scoring";
+import { followEventDate } from "@/lib/training/event-date";
 import { routeFromZwiftInsiderUrl } from "@/lib/zwift/zwiftinsider-route";
 
 type Fail = { ok: false; error: string };
@@ -500,11 +501,21 @@ export async function publishOmniumEdition(editionId: string) {
 
   let eventId = edition.event_id as string | null;
   if (eventId) {
+    const { data: before } = await guard.admin
+      .from("events")
+      .select("start_at")
+      .eq("id", eventId)
+      .maybeSingle();
     const { error } = await guard.admin
       .from("events")
       .update({ title: eventRow.title, start_at: eventRow.start_at, end_at: eventRow.end_at })
       .eq("id", eventId);
     if (error) return { ok: false as const, error: error.message };
+    if (before?.start_at) {
+      await followEventDate(guard.admin, eventId, before.start_at as string, eventRow.start_at).catch(
+        () => null,
+      );
+    }
   } else {
     const { data: inserted, error } = await guard.admin
       .from("events")

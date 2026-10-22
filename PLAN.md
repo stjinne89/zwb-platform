@@ -5420,7 +5420,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   soort, notitie; `updateSeasonPeriod` bestond al maar had geen scherm.
 > - Een mikpunt op een clubevent houdt titel en datum van het event; daar is
 >   alleen de notitie te bewerken. `updateSeasonTarget` negeert die velden dan
->   ook aan de serverkant.
+>   ook aan de serverkant. *(Tot 2026-10-22 alleen de datum van het moment van
+>   toevoegen: verschoof het event daarna, dan bleef het mikpunt staan. Zie
+>   "Hersteld — jaarplan volgt een verschoven event".)*
 > - Verschuift een mikpunt waar een doel aan hangt (`goal_id`) en stond dat doel
 >   op dezelfde datum, dan schuift `training_goals.target_date` mee. Anders kreeg
 >   de planner twee piekdagen: de oude in `goal.targetDate`, de nieuwe in
@@ -11288,6 +11290,32 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — jaarplan volgt een verschoven event
+
+**2026-10-22.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+De GF Belgium UCI Qualifier stond in de kalender op zondag 28 maart 2027 en in het
+jaarplan op zaterdag 27 maart (eigenaar). Een mikpunt op een clubevent kreeg bij
+het toevoegen de dag van het event (`createSeasonTarget`). Daarna werkte niets die
+datum nog bij. Volgens de API-logs is het mikpunt om 13:54 UTC aangemaakt en het
+event om 13:57 van de 27e naar de 28e gezet. Het jaarplan rekende de kampwaarschuwing
+en de taper dus vanaf de verkeerde dag.
+
+Nieuw: `followEventDate` in `src/lib/training/event-date.ts`. Verschuift een event
+van dag, dan gaan alle mikpunten op dat event mee. Die datum is in de jaarplanning
+toch niet los te wijzigen. Een doel schuift alleen mee als het op de oude dag stond,
+via `goal_id` van het mikpunt of via `target_event_id`; een doel dat het lid zelf op
+een andere dag zette, blijft staan (zelfde regel als `updateSeasonTarget`). Per geraakt
+lid volgt een herziening. Aangeroepen in `updateEvent` (kalender) en bij het opnieuw
+publiceren van een omnium-editie, de twee plekken die `start_at` van een bestaand
+event wijzigen.
+
+**Niet gebouwd:** de titel volgt niet mee. Een hernoemd event zet de planner niet op de
+verkeerde dag. Ook geen databasetrigger: die zou ook wijzigingen buiten de app
+vangen, maar kan geen herziening aanvragen en is lokaal niet te testen.
+**Niet getest:** in de browser, en het verschuiven zelf niet tegen de database. Typecheck
+en lint zijn schoon.
 
 ### Gebouwd — ZWBriljant: vergelijkzinnen op een vlak
 
