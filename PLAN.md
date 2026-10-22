@@ -11291,6 +11291,33 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Materiaalrekenaar: GP 5000 30 mm met binnenband en ACG V4-sokken
+
+**2026-10-22.** Lokaal gecommit, nog niet gepusht. Geen migratie.
+
+Een lid (Bart) vroeg om vijf producten in de rekenaar. Twee staan in de tests die de
+rekenaar al gebruikt en zijn toegevoegd in `producttests.ts`:
+
+- Continental GP 5000, 30 mm, binnenband: 12,6 W in de kolom "RR High" van
+  BicycleRollingResistance (butyl, getest 2024). Nu negentien banden.
+- Aero Cycling Gear V4: 103,14 W bij 30 km/h in de sokkentest van Cyclingnews Labs.
+  Nu vijftien paar.
+
+**Niet toegevoegd, want niet gemeten in dezelfde test:**
+
+- GP 5000 met binnenband in 28 en 32 mm: BicycleRollingResistance heeft van de
+  clincher alleen 25 mm (onze basis) en 30 mm getest.
+- Abus Gamechanger (eerste versie): de helmtest van Cyclingnews (juli 2025) heeft
+  alleen de Gamechanger 2.0.
+- Canyon Aeroad CF SLX: de fietstest (augustus 2024) heeft alleen de Aeroad CFR.
+  Het frame heeft volgens Canyon dezelfde vorm, maar een gemeten waarde is er niet.
+
+Een waarde uit een andere test of een benadering (tussen 25 en 30 mm rekenen, de 2.0
+of de CFR als plaatsvervanger) breekt de regel dat elk product een verschil is met
+de basis uit dezelfde test. Ligt bij de eigenaar.
+
+**Niet getest:** in de browser. De materiaaltest (17) is groen.
+
 ### Hersteld — jaarplan volgt een verschoven event
 
 **2026-10-22.** Commit `611f096c`, op 2026-10-22 gepusht naar `main`. Geen migratie.
@@ -14716,11 +14743,11 @@ winter- en het zomertenue en wilde tussen die twee kunnen wisselen.
   - wielen: Cyclingnews Labs, juli 2026, fiets zonder renner, 40 km/h, banden
     28 mm, marge ±0,27 W. Veertien wielsets tegen een ondiepe set;
   - banden: BicycleRollingResistance, testrol 28,8 km/h, 42,5 kg per band,
-    de gratis kolom "RR High". Achttien banden tegen de Continental GP 5000 met
+    de gratis kolom "RR High". Negentien banden tegen de Continental GP 5000 met
     binnenband. Het verschil in Crr komt bovenop de rolweerstand uit Lim 2011,
     zodat het niveau van de weg blijft;
   - sokken: Cyclingnews Labs, oktober 2026, pop met stilstaande benen,
-    30 km/h, marge ±0,2 W. Veertien paar tegen de Veto 1.0, een gewone fietssok.
+    30 km/h, marge ±0,2 W. Vijftien paar tegen de Veto 1.0, een gewone fietssok.
     De clubkledingmaker Kalas zit erbij.
   Watt bij een testsnelheid is omgerekend met P = ½·ρ·CdA·v³ en ρ = 1,2, zoals
   de bron zelf doet.
