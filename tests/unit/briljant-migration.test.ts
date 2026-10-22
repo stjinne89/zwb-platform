@@ -5,7 +5,7 @@ import { CTL_ANCHORS } from "@/lib/briljant/norms";
 import { storedScore } from "@/lib/briljant/compare";
 import { levelAt } from "@/lib/briljant/score";
 
-// 0265 tot en met 0269 tegen een geïsoleerde PostgreSQL. Zegt niets over de productiedatabase
+// 0265 tot en met 0270 tegen een geïsoleerde PostgreSQL. Zegt niets over de productiedatabase
 // zelf; daar worden migraties met de hand toegepast.
 
 let db: PGlite;
@@ -75,7 +75,7 @@ const share = (id: string, visible = true) =>
 const opened = (id: string) =>
   db.query("insert into zwbriljant_preferences(profile_id) values ($1) on conflict (profile_id) do nothing", [id]);
 
-describe("ZWBriljant (0265 tot en met 0269)", () => {
+describe("ZWBriljant (0265 tot en met 0270)", () => {
   it("toont zonder voorkeur (nog nooit geopend) alleen je eigen steen", async () => {
     expect(await visibleTo(ANNA)).toEqual([ANNA]);
     expect(await visibleTo(BART)).toEqual([BART]);
@@ -182,7 +182,7 @@ describe("ZWBriljant (0265 tot en met 0269)", () => {
     expect(rows[0].allowed).toBe(false);
   });
 
-  it("zet de bewaarde stenen om naar CTL-Goud op 40 en de nieuwe gewichten (0269)", async () => {
+  it("zet de bewaarde stenen om naar CTL-Goud op 40 (0269) en de gewichten van nu (0270)", async () => {
     // Fitheid op de oude schaal: 0,5 (CTL 15), 0,8 (CTL 24), 3,79 (CTL 57,9), 9,6 (CTL 116).
     const rows = [
       { week: "2026-09-07", fitheid: 0.5, consistency: null },
@@ -199,6 +199,8 @@ describe("ZWBriljant (0265 tot en met 0269)", () => {
       );
     }
     await db.exec(await readFile("supabase/migrations/0269_zwbriljant_ctl40.sql", "utf8"));
+    // 0270 rekent de score daarna opnieuw met de gewichten van nu.
+    await db.exec(await readFile("supabase/migrations/0270_zwbriljant_weights_fitheid20.sql", "utf8"));
     const { rows: after } = await db.query<{ week: string; score: string | null; facets: Record<string, number | null>; provenance: Record<string, string> }>(
       "select week::text, score, facets, provenance from zwbriljant_snapshots where profile_id = $1 and week < '2026-10-19' order by week",
       [CEES],

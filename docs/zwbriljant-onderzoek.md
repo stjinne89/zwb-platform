@@ -89,12 +89,13 @@ fitheid en racen, en terug naar sprint:
 | VO2max | beste 5 min, W/kg | 20% | De sterkste enkele voorspeller van uitslagen en niveau. | Leo 2022; Mateo-March 2025; Mougin 2026 |
 | Drempel | beste 20 min, W/kg | 15% | Aerobe basis, tijdrijden en lange klimmen. | Valenzuela 2023; Mateo-March 2025; Quod 2010 |
 | Durability | verval op de beste minuut, % per 10 kJ/kg | 17,5% | Onderscheidt niveaus beter dan vers vermogen, ook bij amateurs, en staat los van FTP en VO2max. | van Erp 2021; Mateo-March 2022, 2025; Barsumyan 2025 (twee studies); Spragg 2024 |
-| Fitheid | CTL, TSS/dag | 15% | Zwakke voorspeller, maar de steen zegt ook hoe fit je bent en wat je training oplevert. | Marchal 2025; Sanders 2017; Vermeire 2019; Gallo 2022 |
-| Racen | Zwift Racing Score | 17,5% | Wat vermogen niet verklaart: tactiek, positie, wedstrijddynamiek. | Westmattelmann 2022; Phillips 2020 |
+| Fitheid | CTL, TSS/dag | 20% | Zwakke voorspeller, maar de steen zegt ook hoe fit je bent en wat je training oplevert. | Marchal 2025; Sanders 2017; Vermeire 2019; Gallo 2022 |
+| Racen | Zwift Racing Score | 12,5% | Wat vermogen niet verklaart: tactiek, positie, wedstrijddynamiek. | Westmattelmann 2022; Phillips 2020 |
 
 **Gewichten sinds 2026-10-22** (eigenaar): vermogen samen 50% voor een betere
-balans, fitheid 15% omdat de steen ook moet zeggen hoe fit je bent en wat je
-training oplevert, en de andere vrijgekomen 5% gelijk naar durability en racen.
+balans, fitheid 20% omdat de steen ook moet zeggen hoe fit je bent en wat je
+training oplevert, durability 17,5% en racen 12,5%. In een eerste stap die dag was
+fitheid 15% en racen 17,5%.
 Binnen vermogen bleef de volgorde uit de literatuur (5 minuten het zwaarst).
 Hieronder de onderbouwing van de ronde ervoor, met de gewichten van toen.
 

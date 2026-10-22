@@ -125,11 +125,11 @@ describe("eigen steen uit een snapshot", () => {
 
 describe("storedScore", () => {
   it("rekent een bewaarde score opnieuw als optelling van de gewogen onderdelen", () => {
-    // Zonder fitheid en durability: 0,175 × 7,74 + 0,05 × 9,38 + 0,2 × 7,48 + 0,15 × 7,49 + 0,1 × 9,21.
+    // Zonder fitheid en durability: 0,125 × 7,74 + 0,05 × 9,38 + 0,2 × 7,48 + 0,15 × 7,49 + 0,1 × 9,21.
     const facets = { racen: 7.74, sprint: 9.38, vo2max: 7.48, drempel: 7.49, anaeroob: 9.21, fitheid: null, durability: null };
-    expect(storedScore(facets, null)).toBe(5.36);
+    expect(storedScore(facets, null)).toBe(4.98);
     // Met consistentie 0,5: × 0,9.
-    expect(storedScore(facets, 0.5)).toBe(4.83);
+    expect(storedScore(facets, 0.5)).toBe(4.48);
     expect(storedScore({ sprint: 5, drempel: 4 }, null)).toBeNull();
   });
 });

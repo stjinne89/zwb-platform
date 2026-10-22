@@ -283,8 +283,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0270`
-(`0269_zwbriljant_ctl40` is van ZWBriljant CTL-Goud op 40 en vermogen 50%, 2026-10-22, toegepast op 2026-10-22;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0271`
+(`0270_zwbriljant_weights_fitheid20` is van ZWBriljant fitheid 20% en racen 12,5%, 2026-10-22, nog niet toegepast;
+`0269_zwbriljant_ctl40` is van ZWBriljant CTL-Goud op 40 en vermogen 50%, 2026-10-22, toegepast op 2026-10-22;
 `0268_zwbriljant_share_to_see` is van ZWBriljant alleen zien als je deelt, 2026-10-22, toegepast op 2026-10-22;
 `0267_zwbriljant_share_by_default` is van ZWBriljant standaard gedeeld, 2026-10-21, toegepast op 2026-10-21;
 `0266_zwbriljant_share_all_members` is van ZWBriljant delen met alle leden, 2026-10-21, toegepast op 2026-10-21;
@@ -11288,6 +11289,25 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: fitheid 20%, racen 12,5%
+
+**2026-10-22.** Commit: de commit die dit blok toevoegt. Migratie
+`0270_zwbriljant_weights_fitheid20.sql`, **nog niet toegepast**. Niet gepusht.
+
+De eigenaar zette na de vorige stap fitheid op 20% (was 15%) en racen op 12,5% (was
+17,5%). Vermogen blijft samen 50%, durability 17,5%. Alleen de gewichten veranderen, niet
+de niveaus, dus geen nieuwe `SCALE_VERSION`: de app rekent elke bewaarde score bij het
+lezen opnieuw (`storedScore`). `0270` zet alleen de kolom `score` gelijk en mag in elke
+volgorde met de deploy.
+
+**Doorgerekend op de 22 weekstenen:** wie veel traint stijgt (CTL 111: 474 → 504), wie
+hoog op racen staat en weinig CTL heeft zakt (bijvoorbeeld 398 → 368); zonder fitheid
+zakt het het meest (536 → 497, 340 → 309).
+
+**Getest.** Alle ZWBriljant-tests met de nieuwe waarden, `0269` gevolgd door `0270` in
+PGlite tegen `storedScore`, tsc, ESLint. **Niet getest:** `0270` op productie, de pagina in
+de browser.
+
 ### Gebouwd — ZWBriljant: fitheid zwaarder, vermogen 50%
 
 **2026-10-22.** Commits `638bfab4`, `b271ed52` (hulp) en `d150812b`, op 2026-10-22 gepusht
@@ -11311,7 +11331,8 @@ Zwift-renners.
 
 - **CTL-schaal:** Goud op 40, alle grenzen 10 lager (20 tot 100, Diamant 100).
 - **Gewichten:** vermogen samen 50% (sprint 5, anaeroob 10, VO2max 20, drempel 15; eerst
-  60%), fitheid 15% (was 10%), durability en racen elk 17,5% (waren 15%). De eigenaar
+  60%), fitheid 15% (was 10%), durability en racen elk 17,5% (waren 15%). *Later die dag:
+  fitheid 20% en racen 12,5%; zie het blok erboven.* De eigenaar
   koos vermogen op 50%; de verdeling van de andere 5% over durability en racen is van mij.
 - **`SCALE_VERSION`** werd `"2026-10-22-ctl40"`. `0269` zet de bewaarde stenen om in
   plaats van ze opnieuw te laten maken: het fitheidsniveau is exact terug te rekenen naar

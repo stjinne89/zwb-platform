@@ -148,8 +148,8 @@ describe("facetten en score", () => {
     expect(Object.values(FACET_WEIGHTS).reduce((sum, weight) => sum + weight, 0)).toBeCloseTo(1, 9);
     expect(FACET_WEIGHTS.sprint + FACET_WEIGHTS.anaeroob + FACET_WEIGHTS.vo2max + FACET_WEIGHTS.drempel).toBeCloseTo(0.5, 9);
     // 7,1 × 5% + 6,933 × 10% + 6,1 × 20% + 5,889 × 15% + 4,8 × 17,5%
-    // + 6,8 × 15% + 6,4 × 17,5% = 6,13.
-    expect(scoreFor(facetLevels(rider))).toBe(6.13);
+    // + 6,8 × 20% + 6,4 × 12,5% = 6,15.
+    expect(scoreFor(facetLevels(rider))).toBe(6.15);
   });
 
   it("laat consistentie tot 20% meetellen als factor", () => {
@@ -158,16 +158,16 @@ describe("facetten en score", () => {
     expect(consistencyFactor(0.55)).toBeCloseTo(0.91, 9);
     // Geen ritgegevens: ontbrekende gegevens kosten niets.
     expect(consistencyFactor(null)).toBe(1);
-    // 6,132 × 0,91 = 5,58: op het scherm 558 punten.
-    expect(scoreFor(facetLevels(rider), 0.55)).toBe(5.58);
-    expect(scoreFor(facetLevels(rider), 1)).toBe(6.13);
+    // 6,152 × 0,91 = 5,60: op het scherm 560 punten.
+    expect(scoreFor(facetLevels(rider), 0.55)).toBe(5.6);
+    expect(scoreFor(facetLevels(rider), 1)).toBe(6.15);
   });
 
   it("telt de gewogen onderdelen op: een ontbrekend onderdeel draagt niets bij", () => {
     const levels = facetLevels({ ...rider, zrs: null });
-    // Zonder racen (17,5% × 6,4 = 1,12) zakt de score met precies die bijdrage,
+    // Zonder racen (12,5% × 6,4 = 0,8) zakt de score met precies die bijdrage,
     // in plaats van de rest weer op 100% te zetten.
-    expect(scoreFor(levels)).toBe(5.01);
+    expect(scoreFor(levels)).toBe(5.35);
     const sum = FACETS.reduce((total, facet) => total + FACET_WEIGHTS[facet] * (levels[facet] ?? 0), 0);
     expect(scoreFor(levels)).toBe(Math.round(sum * 100) / 100);
   });

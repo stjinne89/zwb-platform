@@ -173,10 +173,11 @@ export const DURABILITY_MIN_KJ_PER_KG = 10;
  * docs/zwbriljant-onderzoek.md). Vermogen samen 50% (eigenaar, 2026-10-22: een
  * betere balans; eerst 60%), niet gelijk verdeeld: 5 minuten voorspelt het best
  * (Leo 2022; Mateo-March 2025), daarna 20 minuten, de minuut beslist Zwift-races
- * (Varesco 2025) en de sprint alleen sprintfinishes (van Erp 2021). Fitheid 15%
- * (eerst 10%): in de literatuur een zwakke voorspeller (Marchal 2025; Vermeire
- * 2019), maar de steen moet ook zeggen hoe fit je bent en wat je training oplevert
- * (eigenaar). De andere vrijgekomen 5% gelijk naar durability en racen, elk 17,5%.
+ * (Varesco 2025) en de sprint alleen sprintfinishes (van Erp 2021). Fitheid 20%
+ * (eerst 10%, toen 15%): in de literatuur een zwakke voorspeller (Marchal 2025;
+ * Vermeire 2019), maar de steen moet ook zeggen hoe fit je bent en wat je training
+ * oplevert (eigenaar). Durability 17,5%, racen 12,5% (eigenaar, 2026-10-22; eerst
+ * 15%, toen 17,5%): de ZRS hangt al grotendeels aan je vermogen.
  * De score telt de gewogen facetten op; een facet zonder gegevens draagt niets
  * bij (sinds 2026-10-22; eerst gingen de gewichten van de rest weer naar 100%).
  */
@@ -186,6 +187,6 @@ export const FACET_WEIGHTS = {
   vo2max: 0.2,
   drempel: 0.15,
   durability: 0.175,
-  fitheid: 0.15,
-  racen: 0.175,
+  fitheid: 0.2,
+  racen: 0.125,
 } as const;
