@@ -112,6 +112,12 @@ export function powerAnchors(duration: PowerDuration, sex: Sex | null): Anchors 
 export const SCALE_VERSION = "2026-10-22-ctl40";
 
 /**
+ * De vorige versie. Migratie 0269 zet die stenen om naar SCALE_VERSION; tot dan
+ * mag de terugblik ze niet opruimen, anders valt er niets meer om te zetten.
+ */
+export const PREVIOUS_SCALE_VERSION = "2026-10-21-sd3";
+
+/**
  * Zwift Racing Score (0–1000) als doorlopende lijn: elke ZRS-punt is een punt, dus
  * Diamant vanaf 900 ZRS en 1000 ZRS is 1000 punten (sinds 2026-10-21; eerst was 1000
  * ZRS precies Diamant en dus onhaalbaar). Bewust niet gekoppeld aan Zwift's

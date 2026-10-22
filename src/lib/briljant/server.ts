@@ -21,7 +21,7 @@ import { isCyclingSportType } from "@/lib/strava/sports";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
 import { CONSISTENCY_WEEKS, valueAt, type BriljantInput, type ConsistencyInput, type HistoryPoint } from "./score";
-import { SCALE_VERSION, ZRS_ANCHORS, type Sex } from "./norms";
+import { PREVIOUS_SCALE_VERSION, SCALE_VERSION, ZRS_ANCHORS, type Sex } from "./norms";
 import { clubAverage, storedScore, type StoredSnapshot } from "./compare";
 import {
   complianceFrom,
@@ -483,6 +483,7 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
   }
   // Pas nu opruimen: een eerdere terugblik buiten de nieuwe weken, en snapshots van
   // oudere schalen (daarin staan alleen niveaus, geen metingen om mee te herrekenen).
+  // De vorige schaal blijft staan: die zet een migratie om (0269).
   const kept = useful.map((row) => row.week);
   let stale = admin.from("zwbriljant_snapshots").delete().eq("profile_id", profileId).eq("source", "terugblik");
   if (kept.length > 0) stale = stale.not("week", "in", `(${kept.join(",")})`);
@@ -491,7 +492,9 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
     .from("zwbriljant_snapshots")
     .delete()
     .eq("profile_id", profileId)
-    .or(`provenance->>scale.is.null,provenance->>scale.neq.${SCALE_VERSION}`);
+    .or(
+      `provenance->>scale.is.null,and(provenance->>scale.neq.${SCALE_VERSION},provenance->>scale.neq.${PREVIOUS_SCALE_VERSION})`,
+    );
   return useful.length;
 }
 
