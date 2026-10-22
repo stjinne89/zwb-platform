@@ -11332,6 +11332,39 @@ volledige suite (3.287; vijf tests in `admin-areas`, `zwift-club-calendar` en
 `omnium-live.test.ts` mist `.env.local`), ESLint, `tsc` (alleen de bekende melding over
 `modern-screenshot`). **Niet getest:** de pagina in de browser.
 
+### Hersteld — Hersteldata: lege week heet niet langer "normaal", sync 40 dagen
+
+**2026-10-22.** Lokaal gecommit, niet gepusht. Geen migratie.
+
+**Aanleiding.** Een lid met een Garmin klaagde dat haar herstel-data niet binnenkwam.
+Uitgezocht in productie: ZWB haalde goed op (sync die ochtend zonder fout), maar
+intervals.icu leverde niets na 4 oktober. Haar ritten via `GARMIN_CONNECT` stoppen op
+2 oktober, daarna komen ze alleen via Strava binnen: de koppeling Garmin Connect →
+intervals.icu ligt stil. HRV, rust-HR en slaap komen alleen langs die weg, dus het
+herstel moet zij in intervals.icu opnieuw koppelen. Dat ligt buiten ZWB.
+
+**Wat ZWB fout deed.**
+- `summarizeWellness` gaf bij een lege laatste week maar gevulde baseline (data 8–37
+  dagen oud) de notitie "Herstelwaarden binnen de normale range." De herstelkaart op
+  `/zwbeter-worden` ving dat al op met een eigen rode melding, maar de AI, de coachchat
+  en de andere schermen kregen 18 dagen lang "normaal" te lezen. Nu: status `unknown`
+  en "Geen hersteldata van de laatste 7 dagen; laatste meting …".
+- `syncWellnessForUser` haalde 30 dagen op, de samenvatting kijkt 40 dagen terug
+  (`WELLNESS_SUMMARY_DAYS`). Na opt-in uit/aan (wist alles) of een eerste koppeling
+  ontbrak daardoor een week baseline. De sync volgt nu `WELLNESS_SUMMARY_DAYS`, ook in
+  `refreshWellnessIfStale` en de eerste sync na opt-in.
+
+**Bewust niet gedaan.** Geen melding aan het lid dat haar Garmin-koppeling in
+intervals.icu stilligt: ZWB ziet alleen dat er geen wellness meer komt, niet waarom.
+De bestaande rode melding met de laatste meetdatum is het signaal. De pagina's die de
+wellness zelf al ophalen (`_data.ts`, `training-data.ts`) houden hun eigen vensters.
+
+**Getest.** `wellness.test.ts` (1 nieuwe test met dit geval), de volledige suite
+(3.285 tests; de enige rode zijn timeouts onder last die los slagen, plus
+`omnium-live.test.ts` zonder `.env.local` in de worktree), ESLint op de gewijzigde
+bestanden, `tsc` (alleen de bekende `modern-screenshot`-melding). **Niet getest:** een
+echte sync tegen intervals.icu en de pagina in de browser.
+
 ### Gebouwd — FTP uit intervals.icu: de ingestelde FTP, niet de modelschatting
 
 **2026-10-22.** Commits `e59eb4cf` en `2f514e4b` (PLAN), op 2026-10-22 gepusht naar
@@ -17089,7 +17122,8 @@ ook stijgt bij overbelasting. Daar ging de verzachtingsregel tegenin.
   overbelasting kan zijn.
 - **Eén venster**: `WELLNESS_SUMMARY_DAYS = 40` voor `getWellnessSummary()`
   (AI en coachchat kregen 21 dagen), `/leden` en het trainersoverzicht (30
-  dagen).
+  dagen). De sync naar `profile_wellness` haalde nog 30 dagen op; sinds
+  2026-10-22 ook 40.
 - **Geen SDNN meer** als terugval voor rMSSD, bij het opslaan en in
   `computeZwbStatus`. Rijen in `profile_wellness` van vóór vandaag kunnen nog
   SDNN bevatten; die schuiven binnen 37 dagen uit het venster.

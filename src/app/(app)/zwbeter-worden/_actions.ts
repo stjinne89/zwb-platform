@@ -251,7 +251,6 @@ export async function setWellnessOptIn(optIn: boolean) {
       conn.api_key as string,
       conn.athlete_id as string,
       user.id,
-      30,
     ).catch((err) => {
       console.error("[wellness] eerste sync na opt-in mislukt", {
         profileId: user.id,
