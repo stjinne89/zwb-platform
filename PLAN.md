@@ -11291,7 +11291,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: vergelijkzinnen op een vlak
 
-**2026-10-22.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-22.** Commit `c956dfd1`, op 2026-10-22 gepusht naar `main`. Geen migratie.
 
 De zinnen bij Vergelijken stonden los over de scène en waren soms slecht te lezen
 (eigenaar). Ze staan nu op een vlak zoals het uitlegpaneel (bijna ondoorzichtig donker,
