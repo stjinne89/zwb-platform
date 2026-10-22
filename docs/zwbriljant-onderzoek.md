@@ -84,19 +84,25 @@ fitheid en racen, en terug naar sprint:
 
 | Facet | Meting | Gewicht | Waarom | Bronnen |
 |---|---|---|---|---|
-| Sprint | beste 15 s, W/kg | 7,5% | Beslist alleen sprintfinishes; daalt na twee uur nauwelijks nog. | van Erp 2021 (top 5); Klaris 2024; Pinot & Grappe 2011 |
-| Anaeroob | beste minuut, W/kg | 12,5% | Punchers en aanvallen; beslissend in Zwift-races en bij de top 5 van profvrouwen. | Varesco 2025; van Erp & Lamberts 2022 |
-| VO2max | beste 5 min, W/kg | 22,5% | De sterkste enkele voorspeller van uitslagen en niveau. | Leo 2022; Mateo-March 2025; Mougin 2026 |
-| Drempel | beste 20 min, W/kg | 17,5% | Aerobe basis, tijdrijden en lange klimmen. | Valenzuela 2023; Mateo-March 2025; Quod 2010 |
-| Durability | verval op de beste minuut, % per 10 kJ/kg | 15% | Onderscheidt niveaus beter dan vers vermogen, ook bij amateurs, en staat los van FTP en VO2max. | van Erp 2021; Mateo-March 2022, 2025; Barsumyan 2025 (twee studies); Spragg 2024 |
-| Fitheid | CTL, TSS/dag | 10% | Goede trend, zwakke voorspeller, en zit al in het vermogen. | Marchal 2025; Sanders 2017; Vermeire 2019; Gallo 2022 |
-| Racen | Zwift Racing Score | 15% | Wat vermogen niet verklaart: tactiek, positie, wedstrijddynamiek. | Westmattelmann 2022; Phillips 2020 |
+| Sprint | beste 15 s, W/kg | 5% | Beslist alleen sprintfinishes; daalt na twee uur nauwelijks nog. | van Erp 2021 (top 5); Klaris 2024; Pinot & Grappe 2011 |
+| Anaeroob | beste minuut, W/kg | 10% | Punchers en aanvallen; beslissend in Zwift-races en bij de top 5 van profvrouwen. | Varesco 2025; van Erp & Lamberts 2022 |
+| VO2max | beste 5 min, W/kg | 20% | De sterkste enkele voorspeller van uitslagen en niveau. | Leo 2022; Mateo-March 2025; Mougin 2026 |
+| Drempel | beste 20 min, W/kg | 15% | Aerobe basis, tijdrijden en lange klimmen. | Valenzuela 2023; Mateo-March 2025; Quod 2010 |
+| Durability | verval op de beste minuut, % per 10 kJ/kg | 17,5% | Onderscheidt niveaus beter dan vers vermogen, ook bij amateurs, en staat los van FTP en VO2max. | van Erp 2021; Mateo-March 2022, 2025; Barsumyan 2025 (twee studies); Spragg 2024 |
+| Fitheid | CTL, TSS/dag | 15% | Zwakke voorspeller, maar de steen zegt ook hoe fit je bent en wat je training oplevert. | Marchal 2025; Sanders 2017; Vermeire 2019; Gallo 2022 |
+| Racen | Zwift Racing Score | 17,5% | Wat vermogen niet verklaart: tactiek, positie, wedstrijddynamiek. | Westmattelmann 2022; Phillips 2020 |
+
+**Gewichten sinds 2026-10-22** (eigenaar): vermogen samen 50% voor een betere
+balans, fitheid 15% omdat de steen ook moet zeggen hoe fit je bent en wat je
+training oplevert, en de andere vrijgekomen 5% gelijk naar durability en racen.
+Binnen vermogen bleef de volgorde uit de literatuur (5 minuten het zwaarst).
+Hieronder de onderbouwing van de ronde ervoor, met de gewichten van toen.
 
 **Gewichten naar de literatuur** (eigenaar, 2026-10-21, na een ronde PubMed en
 Consensus). Geen studie geeft kant-en-klare gewichten; dit is de vertaling van hoe
 sterk elk onderdeel uitslagen en niveau voorspelt:
 
-- **Vermogen samen 60%**, niet gelijk verdeeld. Het vermogensprofiel voorspelde
+- **Vermogen samen 60%** (sinds 2026-10-22 50%), niet gelijk verdeeld. Het vermogensprofiel voorspelde
   klassement en UCI-punten met R² 0,90–0,99 (Leo 2021, Tour of the Alps), en in
   virtuele races verklaart relatief vermogen 77–99% van de uitslag
   (Westmattelmann 2022). Binnen het profiel weegt 5 minuten het zwaarst: bij U23
@@ -304,9 +310,13 @@ curves alleen voor de twee drempels die het lid zelf instelt (bij de eigenaar 20
 3000 kJ); een curve na 1000 kJ, zoals de eigenaar wil, kan niet per verzoek
 ([forum](https://forum.intervals.icu/t/calulate-power-best-after-2000kj/2045)).
 
-**Fitheid (CTL, TSS/dag)**: 0, 30, 40, 50, 60, 70, 80, 90, 100, 110 (Diamant), en
-daarboven elke 10 CTL 100 punten (de WorldTour, 150, is 1300). Tot 2026-10-21 waren
-Robijn 120 en Diamant 150; zie hieronder.
+**Fitheid (CTL, TSS/dag)**: 0, 20, 30, 40, 50, 60, 70, 80, 90, 100 (Diamant), en
+daarboven elke 10 CTL 100 punten (de WorldTour, 150, is 1400). Sinds 2026-10-22 ligt
+Goud op 40, op dezelfde basis als vermogen: het gemiddelde van alle renners
+(eigenaar). Met Goud op 50 (de aanname hieronder) stond de club op fitheid twee à
+drie klassen lager dan op vermogen: mediaan CTL 43 (Zilver) tegen vermogen rond
+Amethist, bij 22 leden op productie. Tot 2026-10-21 waren Robijn 120 en Diamant
+150; zie hieronder.
 Verdeeld naar de spreiding onder amateurs (eigenaar, 2026-10-21: "100 is voor een
 amateur zeer hoog en 150/160 voor niet prof onhaalbaar, maar mag wel een betere
 waardering krijgen"). Aanname van ZWB, nog zonder clubgegevens: amateurs die

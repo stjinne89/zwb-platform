@@ -65,12 +65,12 @@ describe("schaal", () => {
     expect(levelAt(ZRS_ANCHORS, 900)).toBeCloseTo(9, 9);
     expect(levelAt(ZRS_ANCHORS, 1000)).toBeCloseTo(10, 9);
     expect(levelAt(ZRS_ANCHORS, 640)).toBeCloseTo(6.4, 9);
-    // Fitheid naar de spreiding onder amateurs: 50 is Goud, 110 Diamant, en elke 10
-    // CTL daarboven 100 punten (de WorldTour, 150, is 1300).
-    expect(levelAt(CTL_ANCHORS, 50)).toBeCloseTo(3, 9);
-    expect(levelAt(CTL_ANCHORS, 100)).toBeCloseTo(8, 9);
-    expect(levelAt(CTL_ANCHORS, 110)).toBeCloseTo(9, 9);
-    expect(levelAt(CTL_ANCHORS, 150)).toBeCloseTo(13, 9);
+    // Fitheid naar de spreiding onder renners: 40 is Goud, 100 Diamant, en elke 10
+    // CTL daarboven 100 punten (de WorldTour, 150, is 1400).
+    expect(levelAt(CTL_ANCHORS, 40)).toBeCloseTo(3, 9);
+    expect(levelAt(CTL_ANCHORS, 90)).toBeCloseTo(8, 9);
+    expect(levelAt(CTL_ANCHORS, 100)).toBeCloseTo(9, 9);
+    expect(levelAt(CTL_ANCHORS, 150)).toBeCloseTo(14, 9);
   });
 
   it("heeft de tien vELO-klassen, Koper onderaan en Diamant bovenaan", () => {
@@ -140,16 +140,16 @@ describe("facetten en score", () => {
     expect(levels.vo2max).toBeCloseTo(6.1, 6);
     expect(levels.drempel).toBeCloseTo(5 + 0.4 / 0.45, 6);
     expect(levels.durability).toBeCloseTo(4.8, 6);
-    expect(levels.fitheid).toBeCloseTo(5.8, 6);
+    expect(levels.fitheid).toBeCloseTo(6.8, 6);
     expect(levels.racen).toBeCloseTo(6.4, 6);
   });
 
-  it("weegt de facetten naar de literatuur: 5 minuten het zwaarst, fitheid het lichtst", () => {
+  it("weegt vermogen samen 50%, met 5 minuten het zwaarst", () => {
     expect(Object.values(FACET_WEIGHTS).reduce((sum, weight) => sum + weight, 0)).toBeCloseTo(1, 9);
-    expect(FACET_WEIGHTS.sprint + FACET_WEIGHTS.anaeroob + FACET_WEIGHTS.vo2max + FACET_WEIGHTS.drempel).toBeCloseTo(0.6, 9);
-    // 7,1 × 7,5% + 6,933 × 12,5% + 6,1 × 22,5% + 5,889 × 17,5% + 4,8 × 15%
-    // + 5,8 × 10% + 6,4 × 15% = 6,06.
-    expect(scoreFor(facetLevels(rider))).toBe(6.06);
+    expect(FACET_WEIGHTS.sprint + FACET_WEIGHTS.anaeroob + FACET_WEIGHTS.vo2max + FACET_WEIGHTS.drempel).toBeCloseTo(0.5, 9);
+    // 7,1 × 5% + 6,933 × 10% + 6,1 × 20% + 5,889 × 15% + 4,8 × 17,5%
+    // + 6,8 × 15% + 6,4 × 17,5% = 6,13.
+    expect(scoreFor(facetLevels(rider))).toBe(6.13);
   });
 
   it("laat consistentie tot 20% meetellen als factor", () => {
@@ -158,16 +158,16 @@ describe("facetten en score", () => {
     expect(consistencyFactor(0.55)).toBeCloseTo(0.91, 9);
     // Geen ritgegevens: ontbrekende gegevens kosten niets.
     expect(consistencyFactor(null)).toBe(1);
-    // 6,064 × 0,91 = 5,52: op het scherm 552 punten.
-    expect(scoreFor(facetLevels(rider), 0.55)).toBe(5.52);
-    expect(scoreFor(facetLevels(rider), 1)).toBe(6.06);
+    // 6,132 × 0,91 = 5,58: op het scherm 558 punten.
+    expect(scoreFor(facetLevels(rider), 0.55)).toBe(5.58);
+    expect(scoreFor(facetLevels(rider), 1)).toBe(6.13);
   });
 
   it("telt de gewogen onderdelen op: een ontbrekend onderdeel draagt niets bij", () => {
     const levels = facetLevels({ ...rider, zrs: null });
-    // Zonder racen (15% × 6,4 = 0,96) zakt de score met precies die bijdrage,
+    // Zonder racen (17,5% × 6,4 = 1,12) zakt de score met precies die bijdrage,
     // in plaats van de rest weer op 100% te zetten.
-    expect(scoreFor(levels)).toBe(5.1);
+    expect(scoreFor(levels)).toBe(5.01);
     const sum = FACETS.reduce((total, facet) => total + FACET_WEIGHTS[facet] * (levels[facet] ?? 0), 0);
     expect(scoreFor(levels)).toBe(Math.round(sum * 100) / 100);
   });

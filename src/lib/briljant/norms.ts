@@ -109,7 +109,7 @@ export function powerAnchors(duration: PowerDuration, sex: Sex | null): Anchors 
  * wordt opnieuw gemaakt, want er staan alleen niveaus in, geen metingen om opnieuw
  * mee te rekenen.
  */
-export const SCALE_VERSION = "2026-10-21-sd3";
+export const SCALE_VERSION = "2026-10-22-ctl40";
 
 /**
  * Zwift Racing Score (0–1000) als doorlopende lijn: elke ZRS-punt is een punt, dus
@@ -126,17 +126,18 @@ export const ZRS_ANCHORS: Anchors = {
 /**
  * Fitheid als CTL (trainingsbelasting over 42 dagen, TSS per dag), verdeeld naar de
  * spreiding onder amateurs in plaats van in gelijke stappen naar de profs
- * (eigenaar, 2026-10-21: "100 is voor een amateur zeer hoog"). Aanname van ZWB,
- * nog zonder clubgegevens: amateurs die gestructureerd trainen zitten rond CTL 50
- * met een spreiding van ongeveer 20. Brons tot Smaragd liggen een halve
- * standaarddeviatie (10) uit elkaar, van gemiddeld min één (30) tot plus drie (110,
- * Diamant); daarboven telt elke 10 CTL 100 punten door, dus de WorldTour in het
- * seizoen (150) is 1300. Eerst: 15, 30, 45, 65, 85, 105, 125, 150, 180, en later
- * Robijn 120 en Diamant 150.
+ * (eigenaar, 2026-10-21: "100 is voor een amateur zeer hoog"). Goud ligt sinds
+ * 2026-10-22 op CTL 40, op dezelfde basis als vermogen: het gemiddelde van alle
+ * renners, niet van wie gestructureerd traint (eigenaar). Met Goud op 50 stond de
+ * club op fitheid twee à drie klassen lager dan op vermogen (mediaan CTL 43, Zilver).
+ * Een spreiding van ongeveer 20, Brons tot Smaragd een halve standaarddeviatie (10)
+ * uit elkaar, van 20 tot 100 (Diamant); daarboven telt elke 10 CTL 100 punten door,
+ * dus de WorldTour in het seizoen (150) is 1400. Eerst 30 tot 110, daarvoor 15, 30,
+ * 45, 65, 85, 105, 125, 150, 180.
  */
 export const CTL_ANCHORS: Anchors = {
   zero: 0,
-  levels: [30, 40, 50, 60, 70, 80, 90, 100, 110],
+  levels: [20, 30, 40, 50, 60, 70, 80, 90, 100],
   estimate: true,
 };
 
@@ -162,23 +163,23 @@ export const DURABILITY_ANCHORS: Anchors = {
 export const DURABILITY_MIN_KJ_PER_KG = 10;
 
 /**
- * Het gewicht van elke facet in de score, naar de literatuur (eigenaar,
- * 2026-10-21; onderbouwing in docs/zwbriljant-onderzoek.md). Vermogen samen
- * 60%, maar niet gelijk verdeeld: 5 minuten voorspelt het best (Leo 2022;
- * Mateo-March 2025), daarna 20 minuten, de minuut beslist Zwift-races (Varesco
- * 2025) en de sprint alleen sprintfinishes (van Erp 2021). Durability 15%: sterk,
- * maar in korte Zwift-races minder vaak beslissend. Racen 15% voor wat vermogen
- * niet verklaart (Westmattelmann 2022). Fitheid 10%: zwakke voorspeller die al in
- * het vermogen zit (Marchal 2025; Vermeire 2019).
+ * Het gewicht van elke facet in de score (onderbouwing in
+ * docs/zwbriljant-onderzoek.md). Vermogen samen 50% (eigenaar, 2026-10-22: een
+ * betere balans; eerst 60%), niet gelijk verdeeld: 5 minuten voorspelt het best
+ * (Leo 2022; Mateo-March 2025), daarna 20 minuten, de minuut beslist Zwift-races
+ * (Varesco 2025) en de sprint alleen sprintfinishes (van Erp 2021). Fitheid 15%
+ * (eerst 10%): in de literatuur een zwakke voorspeller (Marchal 2025; Vermeire
+ * 2019), maar de steen moet ook zeggen hoe fit je bent en wat je training oplevert
+ * (eigenaar). De andere vrijgekomen 5% gelijk naar durability en racen, elk 17,5%.
  * De score telt de gewogen facetten op; een facet zonder gegevens draagt niets
  * bij (sinds 2026-10-22; eerst gingen de gewichten van de rest weer naar 100%).
  */
 export const FACET_WEIGHTS = {
-  sprint: 0.075,
-  anaeroob: 0.125,
-  vo2max: 0.225,
-  drempel: 0.175,
-  durability: 0.15,
-  fitheid: 0.1,
-  racen: 0.15,
+  sprint: 0.05,
+  anaeroob: 0.1,
+  vo2max: 0.2,
+  drempel: 0.15,
+  durability: 0.175,
+  fitheid: 0.15,
+  racen: 0.175,
 } as const;

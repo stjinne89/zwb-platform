@@ -17,12 +17,12 @@ const week = (index: number, hours: number): ConsistencyWeek => ({ monday: `w${i
 describe("briljantView", () => {
   it("geeft score, klasse en de volgende klasse in punten", () => {
     const view = briljantView({ seed: "lid", input: rider, consistency: null });
-    expect(view.score).toBe(6.06);
-    expect(view.points).toBe(606);
-    expect(view.profilePoints).toBe(606);
+    expect(view.score).toBe(6.13);
+    expect(view.points).toBe(613);
+    expect(view.profilePoints).toBe(613);
     expect(view.level.name).toBe("Saffier");
     expect(view.next?.name).toBe("Smaragd");
-    expect(view.toNext).toBe(94);
+    expect(view.toNext).toBe(87);
     expect(view.facets.map((facet) => facet.key)).toEqual([
       "sprint", "anaeroob", "vo2max", "drempel", "durability", "fitheid", "racen",
     ]);
@@ -64,7 +64,7 @@ describe("briljantView", () => {
   it("houdt de vaste gewichten als een onderdeel ontbreekt: de bijdragen tellen op tot de score", () => {
     const view = briljantView({ seed: "lid", input: { ...rider, zrs: null }, consistency: null });
     expect(view.missing).toEqual(["racen"]);
-    expect(view.facets.reduce((sum, facet) => sum + facet.weight, 0)).toBeCloseTo(0.85, 9);
+    expect(view.facets.reduce((sum, facet) => sum + facet.weight, 0)).toBeCloseTo(0.825, 9);
     const contributions = view.facets.reduce((sum, facet) => sum + facet.contribution, 0);
     expect(Math.abs(contributions - view.profilePoints)).toBeLessThanOrEqual(1);
   });
@@ -82,7 +82,7 @@ describe("briljantView", () => {
   it("rekent het verschil met vier weken geleden in punten", () => {
     const history = Array.from({ length: 12 }, (_, i) => ({ week: `w${i}`, score: i === 8 ? 4.5 : null }));
     const view = briljantView({ seed: "lid", input: rider, consistency: null, history });
-    expect(view.delta4w).toBe(156);
+    expect(view.delta4w).toBe(163);
   });
 
   it("schrijft metingen in de eenheid van het onderdeel", () => {

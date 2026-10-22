@@ -1,8 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
+import { CTL_ANCHORS } from "@/lib/briljant/norms";
+import { storedScore } from "@/lib/briljant/compare";
+import { levelAt } from "@/lib/briljant/score";
 
-// 0265 tot en met 0268 tegen een geïsoleerde PostgreSQL. Zegt niets over de productiedatabase
+// 0265 tot en met 0269 tegen een geïsoleerde PostgreSQL. Zegt niets over de productiedatabase
 // zelf; daar worden migraties met de hand toegepast.
 
 let db: PGlite;
@@ -72,7 +75,7 @@ const share = (id: string, visible = true) =>
 const opened = (id: string) =>
   db.query("insert into zwbriljant_preferences(profile_id) values ($1) on conflict (profile_id) do nothing", [id]);
 
-describe("ZWBriljant (0265 tot en met 0268)", () => {
+describe("ZWBriljant (0265 tot en met 0269)", () => {
   it("toont zonder voorkeur (nog nooit geopend) alleen je eigen steen", async () => {
     expect(await visibleTo(ANNA)).toEqual([ANNA]);
     expect(await visibleTo(BART)).toEqual([BART]);
@@ -177,5 +180,37 @@ describe("ZWBriljant (0265 tot en met 0268)", () => {
       "select has_function_privilege('anon', 'public.zwbriljant_shares(uuid)', 'execute') as allowed",
     );
     expect(rows[0].allowed).toBe(false);
+  });
+
+  it("zet de bewaarde stenen om naar CTL-Goud op 40 en de nieuwe gewichten (0269)", async () => {
+    // Fitheid op de oude schaal: 0,5 (CTL 15), 0,8 (CTL 24), 3,79 (CTL 57,9), 9,6 (CTL 116).
+    const rows = [
+      { week: "2026-09-07", fitheid: 0.5, consistency: null },
+      { week: "2026-09-14", fitheid: 0.8, consistency: 0.5 },
+      { week: "2026-09-21", fitheid: 3.79, consistency: 0.46 },
+      { week: "2026-09-28", fitheid: 9.6, consistency: null },
+      { week: "2026-10-05", fitheid: null, consistency: 0.8 },
+    ];
+    for (const row of rows) {
+      const facets = { sprint: 6.2, anaeroob: 5.4, vo2max: 5.9, drempel: 5.1, durability: null, fitheid: row.fitheid, racen: 7.3 };
+      await db.query(
+        "insert into zwbriljant_snapshots(profile_id, week, score, facets, consistency, source, provenance) values ($1, $2, 4, $3, $4, 'terugblik', $5)",
+        [CEES, row.week, JSON.stringify(facets), row.consistency, JSON.stringify({ scale: "2026-10-21-sd3", terugblik: "x" })],
+      );
+    }
+    await db.exec(await readFile("supabase/migrations/0269_zwbriljant_ctl40.sql", "utf8"));
+    const { rows: after } = await db.query<{ week: string; score: string | null; facets: Record<string, number | null>; provenance: Record<string, string> }>(
+      "select week::text, score, facets, provenance from zwbriljant_snapshots where profile_id = $1 and week < '2026-10-19' order by week",
+      [CEES],
+    );
+    const oldCtl = (level: number) => (level < 1 ? level * 30 : 20 + level * 10);
+    after.forEach((row, index) => {
+      const before = rows[index];
+      expect(row.provenance).toEqual({ scale: "2026-10-22-ctl40", terugblik: "x" });
+      if (before.fitheid == null) expect(row.facets.fitheid).toBeNull();
+      else expect(row.facets.fitheid).toBeCloseTo(levelAt(CTL_ANCHORS, oldCtl(before.fitheid)), 2);
+      // SQL rondt exact af, JavaScript in drijvende komma: hooguit 0,01 verschil.
+      expect(Math.abs(Number(row.score) - storedScore(row.facets, before.consistency)!)).toBeLessThanOrEqual(0.011);
+    });
   });
 });

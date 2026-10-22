@@ -283,8 +283,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0269`
-(`0268_zwbriljant_share_to_see` is van ZWBriljant alleen zien als je deelt, 2026-10-22, toegepast op 2026-10-22;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0270`
+(`0269_zwbriljant_ctl40` is van ZWBriljant CTL-Goud op 40 en vermogen 50%, 2026-10-22, nog niet toegepast;
+`0268_zwbriljant_share_to_see` is van ZWBriljant alleen zien als je deelt, 2026-10-22, toegepast op 2026-10-22;
 `0267_zwbriljant_share_by_default` is van ZWBriljant standaard gedeeld, 2026-10-21, toegepast op 2026-10-21;
 `0266_zwbriljant_share_all_members` is van ZWBriljant delen met alle leden, 2026-10-21, toegepast op 2026-10-21;
 `0265_zwbriljant` is van ZWBriljant (eerst `0265_zwbeter_berg`), 2026-10-21, toegepast op 2026-10-21;
@@ -11286,6 +11287,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZWBriljant: fitheid zwaarder, vermogen 50%
+
+**2026-10-22.** Commit: de commit die dit blok toevoegt. Migratie `0269_zwbriljant_ctl40.sql`,
+**nog niet toegepast**. Niet gepusht. **Volgorde:** `0269` toepassen vóór de deploy. Draait
+de nieuwe code eerst, dan ruimt de terugblik de stenen van de vorige schaal op
+(`storeTerugblik` wist alles met een andere `provenance.scale`) en valt er niets meer om
+te zetten.
+
+**Waarom.** De eigenaar: voor een steen die laat zien hoe sterk en fit je bent en wat je
+training oplevert, telde CTL te weinig. Op productie stond de club op fitheid twee à drie
+klassen lager dan op vermogen (mediaan CTL 43, Zilver; vermogen rond Amethist): de
+CTL-schaal ging uit van gestructureerd trainende amateurs (Goud 50), vermogen van alle
+Zwift-renners.
+
+- **CTL-schaal:** Goud op 40, alle grenzen 10 lager (20 tot 100, Diamant 100).
+- **Gewichten:** vermogen samen 50% (sprint 5, anaeroob 10, VO2max 20, drempel 15; eerst
+  60%), fitheid 15% (was 10%), durability en racen elk 17,5% (waren 15%). De eigenaar
+  koos vermogen op 50%; de verdeling van de andere 5% over durability en racen is van mij.
+- **`SCALE_VERSION`** werd `"2026-10-22-ctl40"`. `0269` zet de bewaarde stenen om in
+  plaats van ze opnieuw te laten maken: het fitheidsniveau is exact terug te rekenen naar
+  CTL en weer naar het nieuwe niveau, de score volgt uit de niveaus. Zo blijven de zaal en
+  de historie staan.
+
+**Doorgerekend op de 22 stenen** (vóór de bouw): wie veel traint en durability heeft,
+stijgt (tot +22); wie geen fitheid of durability heeft, zakt (tot −64), omdat een
+ontbrekend onderdeel nu zwaarder telt.
+
+**Open: durability.** Die ontbreekt bij 17 van de 22 leden: intervals.icu geeft vermoeide
+curves alleen voor de twee kJ-drempels die een lid zelf instelt, en 15 leden hebben er
+geen. De eigenaar wil de beste minuut na 1000 kJ; dat kan de API niet per verzoek (zie
+docs/zwbriljant-onderzoek.md). Keuze ligt bij de eigenaar; niet gebouwd.
+
+**Getest.** Alle ZWBriljant-tests met de nieuwe waarden, `0269` in PGlite tegen
+`storedScore` en `levelAt` (score hooguit 0,01 anders door afronding), tsc, ESLint.
+**Niet getest:** `0269` op productie, de pagina in de browser.
 
 ### Gebouwd — ZWBriljant: score als optelling, drie tabbladen, vergelijken in woorden
 

@@ -112,7 +112,7 @@ describe("eigen steen uit een snapshot", () => {
     // Drempel 7,35: Smaragd 4,75 + 0,35 × (5,2 − 4,75).
     expect(byKey.drempel.value).toBe("4,91 W/kg");
     expect(byKey.drempel.meter).toMatchObject({ from: "4,75 W/kg", to: "5,2 W/kg" });
-    expect(byKey.fitheid.value).toBe("91 TSS/dag");
+    expect(byKey.fitheid.value).toBe("81 TSS/dag");
     expect(byKey.racen.value).toBe("576 ZRS");
   });
 
@@ -125,11 +125,11 @@ describe("eigen steen uit een snapshot", () => {
 
 describe("storedScore", () => {
   it("rekent een bewaarde score opnieuw als optelling van de gewogen onderdelen", () => {
-    // Zonder fitheid en durability: 0,15 × 7,74 + 0,075 × 9,38 + 0,225 × 7,48 + 0,175 × 7,49 + 0,125 × 9,21.
+    // Zonder fitheid en durability: 0,175 × 7,74 + 0,05 × 9,38 + 0,2 × 7,48 + 0,15 × 7,49 + 0,1 × 9,21.
     const facets = { racen: 7.74, sprint: 9.38, vo2max: 7.48, drempel: 7.49, anaeroob: 9.21, fitheid: null, durability: null };
-    expect(storedScore(facets, null)).toBe(6.01);
+    expect(storedScore(facets, null)).toBe(5.36);
     // Met consistentie 0,5: × 0,9.
-    expect(storedScore(facets, 0.5)).toBe(5.41);
+    expect(storedScore(facets, 0.5)).toBe(4.83);
     expect(storedScore({ sprint: 5, drempel: 4 }, null)).toBeNull();
   });
 });

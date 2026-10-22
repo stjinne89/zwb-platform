@@ -131,8 +131,8 @@ export function BriljantHelp() {
             </tbody>
           </table>
           <p className="mt-3 text-sm text-muted-foreground">
-            De gewichten volgen hoe sterk elk onderdeel uitslagen en niveau voorspelt: 5 minuten het sterkst, fitheid
-            het zwakst. De score telt ze op: een onderdeel zonder gegevens telt voor 0. Met minder dan vier
+            Vermogen telt samen voor de helft, met 5 minuten het zwaarst: dat voorspelt uitslagen het best. Fitheid
+            telt voor 15%, zodat de steen ook laat zien hoe fit je bent. De score telt ze op: een onderdeel zonder gegevens telt voor 0. Met minder dan vier
             onderdelen is er nog geen steen.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">

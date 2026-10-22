@@ -63,12 +63,12 @@ describe("snapshot", () => {
       week: "2026-10-19",
       // Twaalf weken op de norm, maar een reeks van 12 weken: V = 1 − e^(−1) = 0,63,
       // consistentie 0,82, factor 0,964. Op de spreidingsschaal: sprint 6,3,
-      // anaeroob 6,67, VO2max 5,5, drempel 5,22, CTL 65 is 4,5. Opgeteld met de
-      // gewichten (durability en racen ontbreken en tellen voor 0): profiel 3,91,
-      // maal 0,964 is 3,77.
-      score: 3.77,
+      // anaeroob 6,67, VO2max 5,5, drempel 5,22, CTL 65 is 5,5. Opgeteld met de
+      // gewichten (durability en racen ontbreken en tellen voor 0): profiel 3,69,
+      // maal 0,964 is 3,56.
+      score: 3.56,
       consistency: 0.82,
-      facets: { sprint: 6.3, anaeroob: 6.67, vo2max: 5.5, drempel: 5.22, durability: null, fitheid: 4.5, racen: null },
+      facets: { sprint: 6.3, anaeroob: 6.67, vo2max: 5.5, drempel: 5.22, durability: null, fitheid: 5.5, racen: null },
       source: "week",
       provenance: { power: true, fatigue: false, ctl: true, zrs: false, rides: true },
     });
