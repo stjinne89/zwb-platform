@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MIN_FOR_AVERAGE, clubAverage, compareLines, snapshotAt, storedScore, viewFromSnapshot, type StoredSnapshot } from "@/lib/briljant/compare";
+import { MIN_FOR_AVERAGE, clubAverage, clubAverages, compareLines, snapshotAt, storedScore, viewFromSnapshot, type StoredSnapshot } from "@/lib/briljant/compare";
 import type { BriljantInput } from "@/lib/briljant/score";
 import { LEVELS } from "@/lib/briljant/norms";
 import { bestWins } from "@/lib/briljant/view";
@@ -62,19 +62,53 @@ describe("clubAverage", () => {
   it("middelt per facet over wie dat facet heeft", () => {
     const members = [
       snap("2026-10-12", 4, { sprint: 4, drempel: 3 }),
-      snap("2026-10-19", 5, { sprint: 6, drempel: null }),
-      snap("2026-10-19", 6, { sprint: 5 }),
+      snap("2026-10-19", 5, { sprint: 6, drempel: 4 }),
+      snap("2026-10-19", 6, { sprint: 5, drempel: 4 }),
       snap("2026-10-19", 3, { sprint: 3, drempel: 5 }),
-      snap("2026-10-19", 2, { sprint: 2 }),
+      snap("2026-10-19", 2, { sprint: 2, drempel: 4 }),
+      snap("2026-10-19", 4, { sprint: 4, drempel: null }),
     ];
     const average = clubAverage(members)!;
-    expect(average.members).toBe(5);
+    expect(average.members).toBe(6);
     expect(average.score).toBe(4);
     expect(average.facets.sprint).toBe(4);
     expect(average.facets.drempel).toBe(4);
     expect(average.facets.racen).toBeNull();
     expect(average.consistency).toBe(0.8);
     expect(average.week).toBe("2026-10-19");
+  });
+
+  it("laat een facet leeg dat minder dan vijf leden hebben", () => {
+    const members = Array.from({ length: MIN_FOR_AVERAGE }, (_, i) =>
+      snap("2026-10-19", 4, i === 0 ? { sprint: 4, durability: 7 } : { sprint: 4 }),
+    );
+    const average = clubAverage(members)!;
+    expect(average.facets.sprint).toBe(4);
+    expect(average.facets.durability).toBeNull();
+  });
+});
+
+describe("clubAverages", () => {
+  const member = (sex: "man" | "vrouw" | null, score: number) => ({ ...snap("2026-10-19", score, { sprint: score }), sex });
+
+  it("geeft het ZWB-gemiddelde en per geslacht, elk pas vanaf vijf leden", () => {
+    const men = Array.from({ length: 5 }, () => member("man", 5));
+    const women = Array.from({ length: 4 }, () => member("vrouw", 3));
+    const averages = clubAverages([...men, ...women, member(null, 4)]);
+    expect(averages.zwb).toMatchObject({ members: 10 });
+    expect(averages.zwb!.score).toBeCloseTo(4.1, 9);
+    expect(averages.man).toMatchObject({ members: 5, score: 5 });
+    expect(averages.man!.facets.sprint).toBe(5);
+    expect(averages.vrouw).toBeNull();
+    expect(clubAverages([...women, member("vrouw", 3)]).vrouw).toMatchObject({ members: 5, score: 3 });
+  });
+
+  it("telt wie geen geslacht opgaf alleen mee voor het ZWB-gemiddelde", () => {
+    const averages = clubAverages(Array.from({ length: 6 }, () => member(null, 4)));
+    expect(averages.zwb).toMatchObject({ members: 6 });
+    expect(averages.man).toBeNull();
+    expect(averages.vrouw).toBeNull();
+    expect(averages.zwb).not.toHaveProperty("sex");
   });
 });
 

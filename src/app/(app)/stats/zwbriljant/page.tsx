@@ -9,12 +9,12 @@ import {
 } from "@/components/briljant/briljant-view";
 import { StatsTabs } from "../_components/stats-tabs";
 import { getRequestUser } from "@/lib/auth/request";
-import { compareLines, snapshotAt, viewFromSnapshot } from "@/lib/briljant/compare";
+import { compareLines, snapshotAt, viewFromSnapshot, type AverageGroup } from "@/lib/briljant/compare";
 import { recordView } from "@/lib/briljant/records";
 import { FACET_LABELS } from "@/lib/briljant/score";
 import {
   collectBriljant,
-  loadClubAverage,
+  loadClubAverages,
   loadHallStones,
   loadHistory,
   loadOwnSnapshots,
@@ -38,6 +38,13 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const TERUGBLIK_WAIT_MS = 6_000;
 const weekLabel = (monday: string) =>
   new Date(`${monday}T12:00:00Z`).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
+
+/** De gemiddelde stenen: van iedereen, en van mannen en vrouwen (eigenaar, 2026-10-22). */
+const AVERAGE_STONES: Array<{ id: string; group: AverageGroup; label: string; short: string; subject: string }> = [
+  { id: "zwb", group: "zwb", label: "ZWB-gemiddelde", short: "ZWB", subject: "het gemiddelde ZWB-lid" },
+  { id: "zwb-man", group: "man", label: "Gemiddelde ZWB-man", short: "Man", subject: "de gemiddelde ZWB-man" },
+  { id: "zwb-vrouw", group: "vrouw", label: "Gemiddelde ZWB-vrouw", short: "Vrouw", subject: "de gemiddelde ZWB-vrouw" },
+];
 
 export default async function BriljantPage({
   searchParams,
@@ -66,13 +73,15 @@ export default async function BriljantPage({
       new Promise((resolve) => setTimeout(resolve, TERUGBLIK_WAIT_MS)),
     ]);
   }
-  const [collected, history, sharing, shared, average] = await Promise.all([
+  const [collected, history, sharing, shared, averages] = await Promise.all([
     collectBriljant(admin, user.id),
     loadHistory(admin, user.id),
     loadSharing(admin, user.id),
     loadHallStones(supabase, user.id),
-    loadClubAverage(admin),
+    loadClubAverages(admin),
   ]);
+  // Alleen de gemiddelden met genoeg leden.
+  const averageStones = AVERAGE_STONES.filter((stone) => averages[stone.group] != null);
   // Wie zijn steen verbergt, ziet ook die van anderen niet (eigenaar, 2026-10-22;
   // in RLS sinds 0268). Het anonieme ZWB-gemiddelde en de records blijven.
   const hallStones = sharing ? shared : [];
@@ -132,16 +141,23 @@ export default async function BriljantPage({
         view: viewFromSnapshot({ seed: user.id, snapshot: best, source: `week van ${weekLabel(best.week)}`, own }),
       };
     }
-    if (id === "zwb" && average) {
+    const averageStone = averageStones.find((stone) => stone.id === id);
+    const average = averageStone ? averages[averageStone.group] : null;
+    if (averageStone && average) {
       return {
         id,
-        name: `ZWB-gemiddelde (${average.members} leden)`,
-        label: "ZWB-gemiddelde",
-        short: "ZWB",
-        subject: "het gemiddelde ZWB-lid",
+        name: `${averageStone.label} (${average.members} leden)`,
+        label: averageStone.label,
+        short: averageStone.short,
+        subject: averageStone.subject,
         region: `${average.members} leden`,
         date: weekLabel(average.week),
-        view: viewFromSnapshot({ seed: "zwb-gemiddelde", snapshot: average, source: "gemiddelde van de laatste weken" }),
+        view: viewFromSnapshot({
+          // De vorm van de steen hangt aan de seed; die van het ZWB-gemiddelde blijft.
+          seed: id === "zwb" ? "zwb-gemiddelde" : id,
+          snapshot: average,
+          source: "gemiddelde van de laatste weken",
+        }),
       };
     }
     const other = hallStones.find((stone) => stone.id === id);
@@ -167,7 +183,7 @@ export default async function BriljantPage({
   // leden tegen elkaar (eigenaar, 2026-10-22).
   const vanId = tab === "vergelijken" && typeof params.van === "string" ? params.van : "ik";
   const left = tab === "vergelijken" ? (stoneFor(vanId) ?? stoneFor("ik")!) : null;
-  const fallback = left?.id === "ik" ? (average ? "zwb" : (members[0]?.id ?? "records")) : "ik";
+  const fallback = left?.id === "ik" ? (averages.zwb ? "zwb" : (members[0]?.id ?? "records")) : "ik";
   const right = tab === "vergelijken" ? (met && met !== left?.id ? stoneFor(met) : null) ?? stoneFor(fallback) : null;
   // Een steen los in de zaal, of links bij vergelijken als dat niet jij bent.
   const subject = lid ? stoneFor(lid) : left && left.id !== "ik" ? left : null;
@@ -179,13 +195,13 @@ export default async function BriljantPage({
       ? compareLines(left.view, right.view, nameOf(left) as string | null, nameOf(right) as string | null)
       : [];
 
-  // De zaal: je steen van nu, het ZWB-gemiddelde, iedereen die deelt en de records,
+  // De zaal: je steen van nu, de gemiddelden, iedereen die deelt en de records,
   // elk met een bordje: renner, woonplaats of regio (als bekend), score en datum.
   let hall: BriljantHallStone[] | null = null;
   if (tab === "zwb" && !subject) {
     const { data: ownProfile } = await supabase.from("profiles").select("region").eq("id", user.id).maybeSingle();
     const ownRegion = (ownProfile as { region: string | null } | null)?.region?.trim() || null;
-    const others = [...(average ? ["zwb"] : []), ...hallStones.map((stone) => stone.id)]
+    const others = [...averageStones.map((stone) => stone.id), ...hallStones.map((stone) => stone.id)]
       .map(stoneFor)
       .filter((stone): stone is BriljantCompare => stone != null);
     hall = [
@@ -207,7 +223,7 @@ export default async function BriljantPage({
         dates={{ first: snapshots.find((snapshot) => snapshot.score != null)?.week ?? null, today, chosen: datum }}
         compare={compare}
         lines={lines}
-        options={{ average: average != null, members, best: best != null }}
+        options={{ averages: averageStones.map(({ id, label }) => ({ id, label })), members, best: best != null }}
         wins={tab === "ik" && !past ? bestWins(collected.input, live.consistency?.value ?? null).slice(0, 3) : []}
         hall={hall}
         hidden={!sharing}

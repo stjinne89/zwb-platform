@@ -454,8 +454,9 @@ export default function PrivacyPage() {
             &ldquo;Mijn ZWBriljant-steen delen met leden&rdquo; in je profiel uit:
             dan is je steen meteen voor niemand anders meer te zien, en zie je
             zelf ook de stenen van andere leden niet. Voor het ZWB-gemiddelde tellen we de laatste score van
-            iedereen met ZWBriljant mee, ook als je niet deelt; dat gemiddelde is
-            anoniem en verschijnt pas vanaf vijf leden. Er gaat niets naar
+            iedereen met ZWBriljant mee, ook als je niet deelt. Heb je in je profiel een
+            geslacht opgegeven, dan tel je ook mee in het gemiddelde voor mannen of voor
+            vrouwen. Elk gemiddelde is anoniem en verschijnt pas vanaf vijf leden. Er gaat niets naar
             OpenAI of een andere partij. Het staat in je data-export en
             verdwijnt als je je account opheft.
           </li>

@@ -22,7 +22,7 @@ import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
 import { CONSISTENCY_WEEKS, valueAt, type BriljantInput, type ConsistencyInput, type HistoryPoint } from "./score";
 import { PREVIOUS_SCALE_VERSION, SCALE_VERSION, ZRS_ANCHORS, type Sex } from "./norms";
-import { clubAverage, storedScore, type StoredSnapshot } from "./compare";
+import { clubAverages, storedScore, type StoredSnapshot } from "./compare";
 import {
   complianceFrom,
   consistencyWeeks,
@@ -522,20 +522,25 @@ const AVERAGE_WEEKS = 8;
 
 /**
  * Het ZWB-gemiddelde over de laatste snapshot van iedereen die ZWBriljant
- * gebruikt (anoniem, pas vanaf vijf leden; zie clubAverage). Met de admin-client:
- * het gemiddelde verlaat de server alleen als getal, nooit per lid.
+ * gebruikt, en apart van mannen en van vrouwen naar het geslacht in het profiel
+ * (anoniem, pas vanaf vijf leden; zie clubAverage). Met de admin-client: de
+ * gemiddelden verlaten de server alleen als getal, nooit per lid.
  */
-export async function loadClubAverage(admin: Admin, today = amsterdamDayKey()) {
+export async function loadClubAverages(admin: Admin, today = amsterdamDayKey()) {
   const { data, error } = await admin
     .from("zwbriljant_snapshots")
     .select("profile_id, week, score, facets, consistency")
     .eq("provenance->>scale", SCALE_VERSION)
     .gte("week", shiftDay(mondayKey(today), -7 * AVERAGE_WEEKS))
     .order("week", { ascending: false });
-  if (error) return null;
+  if (error) return clubAverages([]);
   const latest = new Map<string, StoredSnapshot>();
   for (const row of (data ?? []) as SnapshotRecord[]) if (!latest.has(row.profile_id)) latest.set(row.profile_id, toStored(row));
-  return clubAverage([...latest.values()]);
+  const { data: profiles } = latest.size
+    ? await admin.from("profiles").select("id, sex").in("id", [...latest.keys()])
+    : { data: [] };
+  const sexById = new Map(((profiles ?? []) as Array<{ id: string; sex: string | null }>).map((row) => [row.id, sexOf(row.sex)]));
+  return clubAverages([...latest].map(([id, snapshot]) => ({ ...snapshot, sex: sexById.get(id) ?? null })));
 }
 
 /** Deelt dit lid zijn steen met andere leden? */

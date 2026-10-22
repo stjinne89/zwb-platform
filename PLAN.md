@@ -11289,6 +11289,49 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: een gemiddelde ZWB-man en een gemiddelde ZWB-vrouw
+
+**2026-10-22.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+**Waarom.** De eigenaar wilde naast het ZWB-gemiddelde ook een gemiddelde steen voor
+mannen en een voor vrouwen. De niveaus zijn al per geslacht genormeerd, dus de stenen zijn
+naast elkaar te zetten.
+
+- `clubAverages()` (`src/lib/briljant/compare.ts`) geeft `zwb`, `man` en `vrouw`, elk via
+  `clubAverage()` met dezelfde grens van vijf leden. Het geslacht komt uit
+  `profiles.sex`; wie het leeg laat of "zeg ik liever niet" koos, telt alleen mee in `zwb`.
+  `loadClubAverages()` in `server.ts` vervangt `loadClubAverage()`.
+- Op `/stats/zwbriljant` staan "Gemiddelde ZWB-man" (`zwb-man`) en "Gemiddelde
+  ZWB-vrouw" (`zwb-vrouw`) in de zaal en als keuze bij Vergelijken, alleen als het
+  gemiddelde er is. In de zinnen heten ze "de gemiddelde ZWB-man/-vrouw". Het
+  ZWB-gemiddelde houdt zijn seed (`zwb-gemiddelde`) en dus zijn vorm.
+- **Ook nieuw, voor alle gemiddelden:** een onderdeel dat minder dan vijf leden hebben,
+  blijft leeg. Eerder middelde `clubAverage()` per onderdeel over wie het had, hoe weinig
+  ook; bij vijf mannen van wie één durability heeft, toonde de steen dan precies zijn
+  niveau. Dat raakt nu ook het ZWB-gemiddelde: een onderdeel van minder dan vijf leden valt
+  daar weg.
+- Privacyverklaring (`#zwbriljant`): de zin over het ZWB-gemiddelde noemt nu ook de
+  gemiddelden per geslacht, met de tekst die de eigenaar goedkeurde. Geen nieuwe versie
+  of hertekening: het geslacht was al opgegeven en werd al voor ZWBriljant gebruikt.
+  `/hulp` (ZWBriljant) legt de twee stenen en de grens per onderdeel uit.
+
+**Stand op productie (vóór de bouw gemeten):** 22 leden met een steen in de laatste acht
+weken: 5 mannen, 3 vrouwen, 14 zonder geslacht. De mannensteen verschijnt dus meteen, de
+vrouwensteen pas bij vijf vrouwen. Met de grens per onderdeel mist de mannensteen nu
+durability (2 mannen) en racen (4); het ZWB-gemiddelde verandert niet (durability 6 leden,
+de rest 19 of meer).
+
+**Bewust niet gedaan.** Een lagere grens voor de vrouwensteen (de eigenaar koos 5): met
+drie vrouwen leidt elke vrouw uit het gemiddelde en haar eigen score het totaal van de
+andere twee af. Wie geen geslacht opgaf, telt niet als man.
+
+**Getest.** `briljant-compare.test.ts`: de facettest aangepast aan de grens per onderdeel,
+plus een test voor die grens en twee voor `clubAverages()`. Alle ZWBriljant-tests (81), de
+volledige suite (3.287; vijf tests in `admin-areas`, `zwift-club-calendar` en
+`zwift-subgroup-results` liepen in de volle run uit de tijd en slagen los;
+`omnium-live.test.ts` mist `.env.local`), ESLint, `tsc` (alleen de bekende melding over
+`modern-screenshot`). **Niet getest:** de pagina in de browser.
+
 ### Gebouwd — FTP uit intervals.icu: de ingestelde FTP, niet de modelschatting
 
 **2026-10-22.** Commits `e59eb4cf` en `2f514e4b` (PLAN), op 2026-10-22 gepusht naar
@@ -11847,6 +11890,8 @@ problemen op de telefoon, plus de steen van Pim Meulemeester met maar twee onder
 - **ZWB-gemiddelde** (`clubAverage`): per onderdeel het gemiddelde van de laatste
   snapshot per lid uit de afgelopen acht weken, ook van wie niet deelt; anoniem en pas
   vanaf vijf leden (`MIN_FOR_AVERAGE`). Via service_role, de RLS speelt er geen rol.
+  *Sinds 2026-10-22* ook per onderdeel pas vanaf vijf leden, en naast een gemiddelde
+  ZWB-man en ZWB-vrouw (zie de ronde bovenaan).
 - **Delen met alle leden** (keuze eigenaar): het vinkje "Deel mijn steen met leden"
   (`setBriljantSharing`) zet de toestemming `2026-10-21`. Migratie `0266` maakt delen
   eenzijdig: een gedeelde steen is zichtbaar voor elk goedgekeurd lid, ook als die zelf
