@@ -11314,7 +11314,7 @@ profiel.
 
 **Bewust niet veranderd.** Het schema-engine (`engine/daily.ts`, `engine/compose.ts`)
 rekent nog met `profiles.ftp_watts` en neemt de eFTP alleen als dat leeg is (besluit van
-2026-09-21). Het profiel bevat daar al de test of, met de sync aan, de ingestelde FTP. De
+2026-09-21; de eigenaar bevestigde op 2026-10-22 dat het schema zo blijft). Het profiel bevat daar al de test of, met de sync aan, de ingestelde FTP. De
 eFTP-tegel op `/zwbeter-worden` blijft een eFTP-trend; de terugval daarop heet nu terecht
 "FTP uit intervals.icu", want `intervalsFtp` is echt de ingestelde FTP.
 
