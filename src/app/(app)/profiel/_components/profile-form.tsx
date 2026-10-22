@@ -31,6 +31,7 @@ type Initial = {
   birth_date: string;
   share_birthday: boolean;
   public_profile_enabled: boolean;
+  share_briljant: boolean;
   profile_visibility: Record<string, boolean>;
 };
 
@@ -422,6 +423,16 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
               Publieke profielpagina inschakelen
             </span>
           </span>
+        </label>
+
+        <label className="flex items-start gap-3 rounded-lg border bg-background p-3">
+          <input
+            type="checkbox"
+            name="share_briljant"
+            defaultChecked={initial.share_briljant}
+            className="mt-1 size-4 accent-primary"
+          />
+          <span className="block text-sm font-medium">Mijn ZWBriljant-steen delen met leden</span>
         </label>
 
         <div className="grid gap-2 sm:grid-cols-2">

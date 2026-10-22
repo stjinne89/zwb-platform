@@ -22,7 +22,7 @@ import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
 import { CONSISTENCY_WEEKS, valueAt, type BriljantInput, type ConsistencyInput, type HistoryPoint } from "./score";
 import { SCALE_VERSION, ZRS_ANCHORS, type Sex } from "./norms";
-import { clubAverage, type StoredSnapshot } from "./compare";
+import { clubAverage, storedScore, type StoredSnapshot } from "./compare";
 import {
   complianceFrom,
   consistencyWeeks,
@@ -71,7 +71,27 @@ export type Collected = {
   input: BriljantInput;
   consistency: ConsistencyInput;
   weather: Weather;
+  /**
+   * Of de wellness uit intervals.icu (CTL, gewicht, TSS) binnenkwam; true zonder
+   * intervals.icu (er was niets op te halen). Bij false ontbreken fitheid en de TSS.
+   */
+  wellness: boolean;
 };
+
+/**
+ * De wellness ophalen, met één nieuwe poging na een korte pauze. In de wekelijkse
+ * job mislukte die soms na de zware vraag van de terugblik, en dan viel fitheid
+ * stil weg (2026-10-22, vier leden). Null als het ook de tweede keer mislukt.
+ */
+async function wellnessWithRetry(apiKey: string, athleteId: string, days: number): Promise<IntervalsWellness[] | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 1_500));
+    try {
+      return await fetchIntervalsWellness(apiKey, athleteId, days);
+    } catch {}
+  }
+  return null;
+}
 
 type ProfileRow = { sex: string | null; weight_kg: number | string | null; zwift_id: string | null };
 type PowerRow = {
@@ -211,10 +231,13 @@ export async function collectBriljant(admin: Admin, profileId: string, today = a
   let ctl: number | null = null;
   let weather: Weather = null;
   let wellness: IntervalsWellness[] = [];
+  let wellnessOk = true;
   if (connection?.athlete_id) {
     // Ruim een jaar: CTL van de laatste dag, het laatste gewicht dat er staat, en de
     // TSS per dag voor de consistentie (die kijkt tot een jaar terug).
-    wellness = await fetchIntervalsWellness(connection.api_key, connection.athlete_id, HISTORY_WEEKS * 7 + 21).catch(() => []);
+    const fetched = await wellnessWithRetry(connection.api_key, connection.athlete_id, HISTORY_WEEKS * 7 + 21);
+    wellnessOk = fetched != null;
+    wellness = fetched ?? [];
     const latest = latestWellness(wellness);
     if (latest) {
       ctl = Number(latest.ctl);
@@ -254,6 +277,7 @@ export async function collectBriljant(admin: Admin, profileId: string, today = a
     },
     consistency,
     weather,
+    wellness: wellnessOk,
   };
 }
 
@@ -278,16 +302,20 @@ export async function refreshSources(admin: Admin, profileId: string, budgetMs: 
   }
 }
 
-/** De snapshot van deze week vastleggen (overschrijft die van deze week). */
+/** De weeksnapshot, met in `provenance.wellness` of intervals.icu antwoordde. */
+function weekRow(profileId: string, today: string, collected: Collected): SnapshotRow {
+  const row = snapshotFrom({ profileId, day: today, source: "week", input: collected.input, consistency: collected.consistency });
+  return { ...row, provenance: { ...row.provenance, wellness: collected.wellness } };
+}
+
+/**
+ * De snapshot van deze week vastleggen (overschrijft die van deze week). Mislukte
+ * de wellness, dan staat dat in `provenance.wellness` en probeert de job het later
+ * opnieuw.
+ */
 export async function storeWeek(admin: Admin, profileId: string, today = amsterdamDayKey()): Promise<SnapshotRow> {
   const collected = await collectBriljant(admin, profileId, today);
-  const row = snapshotFrom({
-    profileId,
-    day: today,
-    source: "week",
-    input: collected.input,
-    consistency: collected.consistency,
-  });
+  const row = weekRow(profileId, today, collected);
   const { error } = await admin.from("zwbriljant_snapshots").upsert(row, { onConflict: "profile_id,week" });
   if (error) throw new Error(error.message);
   return row;
@@ -300,10 +328,13 @@ export async function storeWeek(admin: Admin, profileId: string, today = amsterd
  * migratie 0265 werkt de pagina gewoon, alleen zonder historie.
  */
 export async function rememberVisit(admin: Admin, profileId: string, collected: Collected, today = amsterdamDayKey()) {
-  const row = snapshotFrom({ profileId, day: today, source: "week", input: collected.input, consistency: collected.consistency });
+  const row = weekRow(profileId, today, collected);
   await Promise.all([
     admin.from("zwbriljant_preferences").upsert({ profile_id: profileId }, { onConflict: "profile_id", ignoreDuplicates: true }),
-    admin.from("zwbriljant_snapshots").upsert(row, { onConflict: "profile_id,week" }),
+    // Zonder wellness geen goede snapshot overschrijven: alleen schrijven als er nog geen is.
+    admin
+      .from("zwbriljant_snapshots")
+      .upsert(row, { onConflict: "profile_id,week", ignoreDuplicates: !collected.wellness }),
   ]).catch(() => null);
 }
 
@@ -326,19 +357,24 @@ export async function loadHistory(admin: Admin, profileId: string, today = amste
   const current = mondayKey(today);
   const { data, error } = await admin
     .from("zwbriljant_snapshots")
-    .select("week, score")
+    .select("week, facets, consistency")
     .eq("profile_id", profileId)
     .eq("provenance->>scale", SCALE_VERSION)
     .lt("week", current)
     .gte("week", shiftDay(current, -7 * 12))
     .order("week", { ascending: true });
   if (error) return [];
-  const byWeek = new Map(((data ?? []) as Array<{ week: string; score: number | string | null }>).map((row) => [row.week, row.score]));
+  type Row = { week: string; facets: StoredSnapshot["facets"] | null; consistency: number | string | null };
+  const byWeek = new Map(
+    ((data ?? []) as Row[]).map((row) => [
+      row.week,
+      storedScore(row.facets ?? {}, row.consistency == null ? null : Number(row.consistency)),
+    ]),
+  );
   // Elke week een plek, ook zonder snapshot, zodat "vier weken geleden" klopt.
   return Array.from({ length: 12 }, (_, index) => {
     const week = shiftDay(current, -7 * (12 - index));
-    const score = byWeek.get(week);
-    return { week, score: score == null ? null : Number(score) };
+    return { week, score: byWeek.get(week) ?? null };
   });
 }
 
@@ -461,12 +497,11 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
 
 type SnapshotRecord = { profile_id: string; week: string; score: number | string | null; facets: unknown; consistency: number | string | null };
 
-const toStored = (row: SnapshotRecord): StoredSnapshot => ({
-  week: row.week,
-  score: row.score == null ? null : Number(row.score),
-  facets: (row.facets ?? {}) as StoredSnapshot["facets"],
-  consistency: row.consistency == null ? null : Number(row.consistency),
-});
+const toStored = (row: SnapshotRecord): StoredSnapshot => {
+  const facets = (row.facets ?? {}) as StoredSnapshot["facets"];
+  const consistency = row.consistency == null ? null : Number(row.consistency);
+  return { week: row.week, score: storedScore(facets, consistency), facets, consistency };
+};
 
 /** Alle eigen snapshots van de huidige schalen, oud naar nieuw; leeg zonder migratie. */
 export async function loadOwnSnapshots(admin: Admin, profileId: string): Promise<StoredSnapshot[]> {

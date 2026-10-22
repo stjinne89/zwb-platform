@@ -20,8 +20,8 @@ groeit motiveert meer dan decimalen (eigenaar, 2026-10-21). Intern rekent de cod
 met het niveau als getal (4,27; `points()` maakt er 427 van); zo staat het ook in
 `zwbriljant_snapshots.score`.
 
-**Score = profielscore × (0,8 + 0,2 × consistentie).** De profielscore is het
-gewogen gemiddelde van de zeven facetten; consistentie telt als factor tot 20%
+**Score = profielscore × (0,8 + 0,2 × consistentie).** De profielscore is de
+optelling van de gewogen facetten (gewicht × niveau, de gewichten samen 100%); consistentie telt als factor tot 20%
 (eigenaar, 2026-10-21). Volledig consistent houdt de volle profielscore, bij 55%
 blijft 91% over. Zonder ritgegevens is de factor 1: ontbrekende gegevens kosten
 niets. Een factor en geen achtste facet, omdat consistentie tegen je eigen norm
@@ -121,8 +121,10 @@ sterk elk onderdeel uitslagen en niveau voorspelt:
   wordt verder beloond via de consistentiefactor.
 
 Eerst (tot deze ronde) telde elke duur 12,5% (vermogen 50%), durability 20% en
-fitheid en racen elk 15%. Ontbreekt een facet, dan gaan de gewichten van de
-aanwezige facetten samen weer naar 100%. Met minder dan twee facetten is er geen score.
+fitheid en racen elk 15%. Ontbreekt een facet, dan draagt het niets bij (sinds
+2026-10-22; eerst gingen de gewichten van de aanwezige facetten samen weer naar 100%,
+waardoor een lid zonder fitheid of durability het gemiddelde van zijn sterkste
+onderdelen kreeg). Met minder dan vier facetten is er geen score.
 
 **Vorm is profiel.** Een sprinter krijgt een steen die aan de sprintkant uitpuilt,
 een diesel een steen die breed is aan de kant van drempel, durability en fitheid.

@@ -127,6 +127,7 @@ export default async function ProfielPage({
     { data: myQuotes },
     { data: heightRow },
     { data: calendarFeed },
+    { data: briljantPref },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -200,6 +201,7 @@ export default async function ProfielPage({
       .select("token, last_fetched_at")
       .eq("profile_id", user.id)
       .maybeSingle<CalendarFeedStatus>(),
+    supabase.from("zwbriljant_preferences").select("visible").eq("profile_id", user.id).maybeSingle(),
   ]);
 
   // Zolang migratie 0097 niet is toegepast, bestaat auto_sync_physique nog niet.
@@ -292,6 +294,8 @@ export default async function ProfielPage({
           birth_date: profileRow?.birth_date ?? "",
           share_birthday: profileRow?.share_birthday ?? false,
           public_profile_enabled: profileRow?.public_profile_enabled ?? false,
+          // Standaard gedeeld (0267); alleen verbergen zet het uit.
+          share_briljant: (briljantPref as { visible: boolean } | null)?.visible ?? true,
           profile_visibility: {
             ...DEFAULT_VISIBILITY,
             ...((profileRow?.profile_visibility as Record<string, boolean> | null) ??

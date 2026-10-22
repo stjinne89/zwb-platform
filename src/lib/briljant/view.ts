@@ -71,7 +71,7 @@ export type FacetView = {
   source: string;
   points: number;
   level: Level;
-  /** Gewicht na het opnieuw verdelen over de aanwezige facetten, 0 tot 1. */
+  /** Het vaste gewicht van het facet in de score, 0 tot 1. */
   weight: number;
   /** Bijdrage aan de profielscore in punten. */
   contribution: number;
@@ -184,11 +184,10 @@ export function briljantView(args: {
   // Op twee decimalen, net als de score, zodat profiel × factor op het scherm klopt.
   const profile = rawProfile == null ? null : Math.round(rawProfile * 100) / 100;
   const present = FACETS.filter((facet) => readings[facet] != null);
-  const totalWeight = present.reduce((sum, facet) => sum + FACET_WEIGHTS[facet], 0);
 
   const facets: FacetView[] = present.map((facet) => {
     const reading = readings[facet]!;
-    const weight = FACET_WEIGHTS[facet] / totalWeight;
+    const weight = FACET_WEIGHTS[facet];
     return {
       key: facet,
       label: FACET_LABELS[facet],

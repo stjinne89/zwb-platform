@@ -170,7 +170,8 @@ export const DURABILITY_MIN_KJ_PER_KG = 10;
  * maar in korte Zwift-races minder vaak beslissend. Racen 15% voor wat vermogen
  * niet verklaart (Westmattelmann 2022). Fitheid 10%: zwakke voorspeller die al in
  * het vermogen zit (Marchal 2025; Vermeire 2019).
- * Ontbreekt een facet, dan gaan de gewichten van de rest samen weer naar 100%.
+ * De score telt de gewogen facetten op; een facet zonder gegevens draagt niets
+ * bij (sinds 2026-10-22; eerst gingen de gewichten van de rest weer naar 100%).
  */
 export const FACET_WEIGHTS = {
   sprint: 0.075,

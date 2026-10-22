@@ -64,14 +64,18 @@
   font-variant-numeric: lining-nums proportional-nums;
 }
 
+/* De klasse naast het getal, op de plek waar eerst "punten" stond. */
 .score small {
-  margin-left: 14px;
-  font-family: var(--sans);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 16px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1;
 }
 
 .rule {
@@ -87,15 +91,96 @@
   background: var(--tier);
 }
 
-.tier {
+/* Wiens steen dit is, als je in de zaal een andere steen opent. */
+.who {
   display: flex;
-  align-items: center;
-  gap: 11px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.who i {
+  font-style: normal;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+}
+
+/* Ik, ZWB en Vergelijken: bovenaan, het gekozen tabblad in de kleur van de klasse. */
+.tabs {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  border: 1px solid rgb(244 239 228 / 0.22);
+  border-radius: 2px;
+  background: rgb(10 12 15 / 0.72);
+  transform: translateX(-50%);
+}
+
+.tabs button {
+  min-height: 36px;
+  padding: 0 16px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.tabs button[aria-current="page"] {
+  background: rgb(244 239 228 / 0.1);
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--tier);
+}
+
+.tabs button:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: -1px;
+}
+
+/* Het verschil in woorden, rechtsonder bij Vergelijken (links staan de klassen). */
+.verdict {
+  position: absolute;
+  right: 32px;
+  bottom: 28px;
+  text-align: right;
+  z-index: 2;
+  display: grid;
+  gap: 6px;
+  max-width: min(420px, calc(100% - 64px));
   margin: 0;
+  padding: 0;
+  list-style: none;
   font-family: var(--serif);
   font-style: italic;
-  font-size: 32px;
-  line-height: 1;
+  font-size: 19px;
+  line-height: 1.25;
+}
+
+.lines {
+  display: grid;
+  gap: 6px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+/* Een onderdeel zonder gegevens: telt mee voor 0. */
+.panel tr.missing td {
+  color: var(--muted);
 }
 
 .lozenge {
@@ -604,6 +689,30 @@
     top: calc(max(8px, env(safe-area-inset-top)) + 52px);
     left: 20px;
   }
+  .tabs {
+    top: max(8px, env(safe-area-inset-top));
+    right: 12px;
+    left: auto;
+    transform: none;
+  }
+  .tabs button {
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+  }
+  .verdict {
+    right: auto;
+    left: 20px;
+    text-align: left;
+    bottom: calc(var(--nav-space) + 12px);
+    max-width: calc(100% - 40px);
+    font-size: 16px;
+  }
+  .score small {
+    font-size: 24px;
+    margin-left: 12px;
+  }
   /* Boven de tabbalk van de app, die over de steen heen ligt. */
   .panel {
     right: 12px;
@@ -711,7 +820,10 @@
 }
 
 .now {
+  display: inline-flex;
+  align-items: center;
   min-height: 36px;
+  text-decoration: none;
   padding: 0 10px;
   border: 1px solid rgb(231 197 107 / 0.45);
   border-radius: 2px;

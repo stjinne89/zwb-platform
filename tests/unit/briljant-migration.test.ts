@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
 
-// 0265, 0266 en 0267 tegen een geïsoleerde PostgreSQL. Zegt niets over de productiedatabase
+// 0265 tot en met 0268 tegen een geïsoleerde PostgreSQL. Zegt niets over de productiedatabase
 // zelf; daar worden migraties met de hand toegepast.
 
 let db: PGlite;
@@ -31,6 +31,7 @@ beforeAll(async () => {
   await db.exec(await readFile("supabase/migrations/0265_zwbriljant.sql", "utf8"));
   await db.exec(await readFile("supabase/migrations/0266_zwbriljant_share_all_members.sql", "utf8"));
   await db.exec(await readFile("supabase/migrations/0267_zwbriljant_share_by_default.sql", "utf8"));
+  await db.exec(await readFile("supabase/migrations/0268_zwbriljant_share_to_see.sql", "utf8"));
   // Snapshots komen van de server; hier als eigenaar van de tabel.
   for (const id of [ANNA, BART, CEES, DIRK]) {
     await db.query(
@@ -71,7 +72,7 @@ const share = (id: string, visible = true) =>
 const opened = (id: string) =>
   db.query("insert into zwbriljant_preferences(profile_id) values ($1) on conflict (profile_id) do nothing", [id]);
 
-describe("ZWBriljant (0265, 0266, 0267)", () => {
+describe("ZWBriljant (0265 tot en met 0268)", () => {
   it("toont zonder voorkeur (nog nooit geopend) alleen je eigen steen", async () => {
     expect(await visibleTo(ANNA)).toEqual([ANNA]);
     expect(await visibleTo(BART)).toEqual([BART]);
@@ -100,7 +101,8 @@ describe("ZWBriljant (0265, 0266, 0267)", () => {
   it("verbergt meteen bij verbergen, maar houdt je eigen historie", async () => {
     await share(BART, false);
     expect(await visibleTo(CEES)).toEqual([ANNA, CEES]);
-    expect(await visibleTo(BART)).toEqual([ANNA, BART]);
+    // Wie verbergt, ziet ook de anderen niet meer (0268); zijn eigen steen wel.
+    expect(await visibleTo(BART)).toEqual([BART]);
     await share(BART, true);
     expect(await visibleTo(CEES)).toEqual([ANNA, BART, CEES]);
   });

@@ -283,8 +283,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0268`
-(`0267_zwbriljant_share_by_default` is van ZWBriljant standaard gedeeld, 2026-10-21, toegepast op 2026-10-21;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0269`
+(`0268_zwbriljant_share_to_see` is van ZWBriljant alleen zien als je deelt, 2026-10-22, nog niet toegepast;
+`0267_zwbriljant_share_by_default` is van ZWBriljant standaard gedeeld, 2026-10-21, toegepast op 2026-10-21;
 `0266_zwbriljant_share_all_members` is van ZWBriljant delen met alle leden, 2026-10-21, toegepast op 2026-10-21;
 `0265_zwbriljant` is van ZWBriljant (eerst `0265_zwbeter_berg`), 2026-10-21, toegepast op 2026-10-21;
 `0264_nutrition_recipe_sharing` is van recepten van een link en delen met
@@ -11286,6 +11287,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: score als optelling, drie tabbladen, vergelijken in woorden
+
+**2026-10-22.** Commit: de commit die dit blok toevoegt. Migratie
+`0268_zwbriljant_share_to_see.sql`, **nog niet toegepast**. Niet gepusht.
+
+- **De score is een optelling** (eigenaar). `profileScore` telt gewicht × niveau op met de
+  vaste gewichten; een onderdeel zonder gegevens telt voor 0. Eerst gingen de gewichten
+  van de aanwezige onderdelen weer naar 100%, waardoor een lid zonder fitheid of
+  durability het gemiddelde van zijn sterkste onderdelen kreeg (op productie: 801 punten
+  met vijf onderdelen, als optelling 601). Durability ontbreekt bij de meeste leden en
+  kost hen nu tot 15% van de score; dat hoort bij de keuze. Bewaarde scores worden niet
+  herschreven: `storedScore` rekent ze bij het lezen opnieuw uit de niveaus en de
+  consistentie (zaal, historie, ZWB-gemiddelde, dashboardtegel). `effectiveWeights` is
+  weg; het scorepaneel toont ontbrekende onderdelen met 0 punten.
+- **Fitheid viel weg** bij vier leden met intervals.icu: hun weeksnapshot had geen CTL,
+  hun terugblik wel. De wellness-vraag mislukte stil (`.catch(() => [])`), vermoedelijk
+  na de zware vraag van de terugblik in dezelfde run. Nu één nieuwe poging na 1,5 s; lukt
+  ook dat niet, dan staat `provenance.wellness = false`, overschrijft een bezoek geen
+  bestaande snapshot, en neemt de wekelijkse job zo'n week (en oude weken zonder CTL bij
+  een lid met intervals.icu) opnieuw, na de leden zonder snapshot. **Niet bewezen:** de
+  oorzaak; Netlify-logs heb ik niet gezien.
+- **Drie tabbladen** (eigenaar: navigeren was niet intuïtief). Ik (`?`, je steen met
+  datum), ZWB (`?tab=zwb`, de zaal; een bordje opent die steen los met `&lid=`, zonder de
+  jouwe ernaast) en Vergelijken (`?tab=vergelijken&met=`, standaard het ZWB-gemiddelde).
+  Oude links met `?met=` werken nog. Bij een losse steen: "Naar de zaal" en "Vergelijk met mij".
+- **Vergelijken in woorden** (`compareLines`): de drie grootste verschillen per onderdeel
+  vanaf 30 punten, als zin over wat het in een rit betekent ("een bordjessprint winnen
+  wordt lastig", "als jullie samen de Alpe op rijden…"), met "iets", "een stuk" of "veel"
+  bij 30, 100 en 200 punten. Alleen bij leden en het ZWB-gemiddelde; niet bij de records
+  of je mooiste steen, waar zulke zinnen niet passen.
+- **De klasse op de plek van "punten"** in de kop: "455 *Platina*"; de aparte regel met de
+  klasse is weg. Ook op de museumbordjes staat geen "punten" meer.
+- **Delen staat in het profiel**, bij Zichtbaarheid, niet meer in de steen. Delen werkt
+  alleen een bestaande voorkeur bij: een nieuwe rij zou de wekelijkse job een steen laten
+  maken voor wie ZWBriljant niet gebruikt. `stats/zwbriljant/actions.ts` is weg.
+- **Wie verbergt, ziet de anderen niet** (eigenaar). De pagina laat de stenen van leden weg
+  als je niet deelt; `0268` doet hetzelfde in de RLS van `zwbriljant_snapshots`. Het
+  ZWB-gemiddelde (anoniem, server) en de records blijven. Privacytekst en /hulp aangepast.
+
+**Getest.** `briljant-score`, `-view`, `-compare` (`storedScore`, `compareLines`),
+`-snapshot` en `-migration` (0268 in PGlite), tsc, ESLint. **Niet getest:** de pagina in de
+browser (geen `.env.local` in deze worktree en inloggen kan ik niet), `0268` op productie,
+en of de nieuwe poging de wellness echt binnenhaalt.
+
 ### Gebouwd — ZWBriljant: terugblikken opnieuw met gewicht en TSS
 
 **2026-10-22.** Commit: de commit die dit blok toevoegt. Geen migratie. Gepusht naar `main`
@@ -11426,7 +11471,8 @@ een zaal met ieders steen, en Aliens: profs met echte data. Die Aliens kwamen er
   Vandaag, hulplink, `revalidatePath` en `helpHrefFor` mee. *Daarmee kloppen de paden
   `/zwbeter-worden/briljant` in eerdere blokken hieronder niet meer; het oude adres werkt
   via de doorverwijzing.*
-- **De zaal** (`?met=zaal`, keuze "De zaal: alle stenen"): `hall-scene.tsx`, een lichte
+- **De zaal** (eerst `?met=zaal`; sinds 2026-10-22 het tabblad ZWB, `?tab=zwb`, en een klik
+  op een bordje toont die steen los in plaats van naast de jouwe): `hall-scene.tsx`, een lichte
   scène met een sokkel per steen (hoogste score in het midden, tot zeven op een rij,
   achterste rijen versprongen), labels met naam en punten; klikken zet die steen naast de
   jouwe. Erin: jij, het ZWB-gemiddelde, iedereen die deelt (`loadHallStones`, met de sessie

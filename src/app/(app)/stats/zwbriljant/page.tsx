@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/app-ui";
-import { BriljantView, type BriljantCompare } from "@/components/briljant/briljant-view";
+import {
+  BriljantView,
+  type BriljantCompare,
+  type BriljantHallStone,
+  type BriljantTab,
+} from "@/components/briljant/briljant-view";
 import { StatsTabs } from "../_components/stats-tabs";
 import { getRequestUser } from "@/lib/auth/request";
-import { snapshotAt, viewFromSnapshot } from "@/lib/briljant/compare";
+import { compareLines, snapshotAt, viewFromSnapshot } from "@/lib/briljant/compare";
 import { recordView } from "@/lib/briljant/records";
 import { FACET_LABELS } from "@/lib/briljant/score";
 import {
@@ -37,7 +42,7 @@ const weekLabel = (monday: string) =>
 export default async function BriljantPage({
   searchParams,
 }: {
-  searchParams: Promise<{ datum?: string | string[]; met?: string | string[] }>;
+  searchParams: Promise<{ datum?: string | string[]; met?: string | string[]; tab?: string | string[]; lid?: string | string[] }>;
 }) {
   const user = await getRequestUser();
   if (!user) redirect("/login");
@@ -61,13 +66,16 @@ export default async function BriljantPage({
       new Promise((resolve) => setTimeout(resolve, TERUGBLIK_WAIT_MS)),
     ]);
   }
-  const [collected, history, sharing, hallStones, average] = await Promise.all([
+  const [collected, history, sharing, shared, average] = await Promise.all([
     collectBriljant(admin, user.id),
     loadHistory(admin, user.id),
     loadSharing(admin, user.id),
     loadHallStones(supabase, user.id),
     loadClubAverage(admin),
   ]);
+  // Wie zijn steen verbergt, ziet ook die van anderen niet (eigenaar, 2026-10-22;
+  // in RLS sinds 0268). Het anonieme ZWB-gemiddelde en de records blijven.
+  const hallStones = sharing ? shared : [];
   const members = hallStones.map(({ id, name }) => ({ id, name }));
   const live = briljantView({ seed: user.id, input: collected.input, consistency: collected.consistency, history });
 
@@ -108,86 +116,89 @@ export default async function BriljantPage({
   // De recordsteen: elk onderdeel op de recordwaarde (Diamant), met de houders.
   const records = recordView(collected.input.sex);
 
-  let compare: BriljantCompare | null = null;
-  if (met === "records") {
-    compare = { id: "records", name: "Records", label: "Records", short: "Record", view: records.view, holders: records.holders };
-  } else if (met === "mooiste" && best) {
-    compare = {
-      id: "mooiste",
-      name: `Mijn mooiste steen · ${weekLabel(best.week)}`,
-      label: "Mijn mooiste steen",
-      short: "Mooiste",
-      view: viewFromSnapshot({ seed: user.id, snapshot: best, source: `week van ${weekLabel(best.week)}`, own }),
-    };
-  } else if (met === "zwb" && average) {
-    compare = {
-      id: "zwb",
-      name: `ZWB-gemiddelde (${average.members} leden)`,
-      label: "ZWB-gemiddelde",
-      short: "ZWB",
-      view: viewFromSnapshot({ seed: "zwb-gemiddelde", snapshot: average, source: "gemiddelde van de laatste weken" }),
-    };
-  } else if (met && met !== "zaal" && members.some((member) => member.id === met)) {
-    const other = hallStones.find((stone) => stone.id === met);
-    if (other) {
-      compare = {
-        id: met,
-        name: other.name,
-        label: other.name,
-        short: "Lid",
-        view: viewFromSnapshot({ seed: met, snapshot: other.snapshot, source: `week van ${weekLabel(other.snapshot.week)}` }),
+  // De stenen die je naast de jouwe kunt zetten of in de zaal los kunt bekijken. Van
+  // andere leden zie je alleen punten: een steen uit een snapshot zonder `own`.
+  const stoneFor = (id: string): BriljantCompare | null => {
+    if (id === "records") {
+      return { id, name: "Records", label: "Records", short: "Record", view: records.view, holders: records.holders };
+    }
+    if (id === "mooiste" && best) {
+      return {
+        id,
+        name: `Mijn mooiste steen · ${weekLabel(best.week)}`,
+        label: "Mijn mooiste steen",
+        short: "Mooiste",
+        view: viewFromSnapshot({ seed: user.id, snapshot: best, source: `week van ${weekLabel(best.week)}`, own }),
       };
     }
-  }
+    if (id === "zwb" && average) {
+      return {
+        id,
+        name: `ZWB-gemiddelde (${average.members} leden)`,
+        label: "ZWB-gemiddelde",
+        short: "ZWB",
+        subject: "het gemiddelde ZWB-lid",
+        region: `${average.members} leden`,
+        date: weekLabel(average.week),
+        view: viewFromSnapshot({ seed: "zwb-gemiddelde", snapshot: average, source: "gemiddelde van de laatste weken" }),
+      };
+    }
+    const other = hallStones.find((stone) => stone.id === id);
+    if (!other) return null;
+    return {
+      id,
+      name: other.name,
+      label: other.name,
+      short: "Lid",
+      subject: other.name,
+      region: other.region,
+      date: weekLabel(other.snapshot.week),
+      view: viewFromSnapshot({ seed: id, snapshot: other.snapshot, source: `week van ${weekLabel(other.snapshot.week)}` }),
+    };
+  };
+
+  // Drie tabbladen: Ik (je eigen steen, met datum), ZWB (de zaal, en een lid los)
+  // en Vergelijken (een tweede steen naast de jouwe). Oude links met ?met= blijven werken.
+  const tab: BriljantTab =
+    params.tab === "zwb" || met === "zaal" ? "zwb" : params.tab === "vergelijken" || (met && params.tab !== "ik") ? "vergelijken" : "ik";
+  const lid = tab === "zwb" && typeof params.lid === "string" ? params.lid : null;
+  const subject = lid ? stoneFor(lid) : null;
+  const compare =
+    tab === "vergelijken" ? (stoneFor(met ?? "") ?? stoneFor(average ? "zwb" : (members[0]?.id ?? "records"))) : null;
+  const lines = compare?.subject ? compareLines(live, compare.view, compare.subject) : [];
 
   // De zaal: je steen van nu, het ZWB-gemiddelde, iedereen die deelt en de records,
   // elk met een bordje: renner, woonplaats of regio (als bekend), score en datum.
-  const { data: ownProfile } = await supabase.from("profiles").select("region").eq("id", user.id).maybeSingle();
-  const ownRegion = (ownProfile as { region: string | null } | null)?.region?.trim() || null;
-  const hall =
-    met === "zaal"
-      ? [
-          { id: "ik", name: "Jij", region: ownRegion, date: weekLabel(mondayKey(today)), view: live },
-          ...(average
-            ? [
-                {
-                  id: "zwb",
-                  name: "ZWB-gemiddelde",
-                  region: `${average.members} leden`,
-                  date: weekLabel(average.week),
-                  view: viewFromSnapshot({ seed: "zwb-gemiddelde", snapshot: average, source: "gemiddelde" }),
-                },
-              ]
-            : []),
-          ...hallStones.map((stone) => ({
-            id: stone.id,
-            name: stone.name,
-            region: stone.region,
-            date: weekLabel(stone.snapshot.week),
-            view: viewFromSnapshot({ seed: stone.id, snapshot: stone.snapshot, source: `week van ${weekLabel(stone.snapshot.week)}` }),
-          })),
-          { id: "records", name: "Records", region: null, date: null, view: records.view },
-        ]
-      : null;
+  let hall: BriljantHallStone[] | null = null;
+  if (tab === "zwb" && !subject) {
+    const { data: ownProfile } = await supabase.from("profiles").select("region").eq("id", user.id).maybeSingle();
+    const ownRegion = (ownProfile as { region: string | null } | null)?.region?.trim() || null;
+    const others = [...(average ? ["zwb"] : []), ...hallStones.map((stone) => stone.id)]
+      .map(stoneFor)
+      .filter((stone): stone is BriljantCompare => stone != null);
+    hall = [
+      { id: "ik", name: "Jij", region: ownRegion, date: weekLabel(mondayKey(today)), view: live },
+      ...others.map((stone) => ({ id: stone.id, name: stone.label, region: stone.region ?? null, date: stone.date ?? null, view: stone.view })),
+      { id: "records", name: "Records", region: null, date: null, view: records.view },
+    ];
+  }
 
   return (
     <>
       <StatsTabs active="/stats/zwbriljant" title="ZWBriljant" />
       <BriljantView
-        view={view}
-        asOf={past ? past.week : null}
-        asOfLabel={past ? weekLabel(past.week) : null}
+        tab={tab}
+        view={subject ? subject.view : tab === "ik" ? view : live}
+        subject={subject}
+        asOf={tab === "ik" && past ? past.week : null}
+        asOfLabel={tab === "ik" && past ? weekLabel(past.week) : null}
         dates={{ first: snapshots.find((snapshot) => snapshot.score != null)?.week ?? null, today, chosen: datum }}
         compare={compare}
-        options={{
-          average: average ? { members: average.members } : null,
-          members,
-          sharing,
-          best: best != null,
-          hall: true,
-        }}
-        wins={past ? [] : bestWins(collected.input, live.consistency?.value ?? null).slice(0, 3)}
+        lines={lines}
+        options={{ average: average != null, members, best: best != null }}
+        wins={tab === "ik" && !past ? bestWins(collected.input, live.consistency?.value ?? null).slice(0, 3) : []}
         hall={hall}
+        hidden={!sharing}
       />
     </>
   );

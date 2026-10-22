@@ -217,6 +217,18 @@ export async function updateProfile(formData: FormData) {
     household.household_adults + household.household_children_full + household.household_children_half === 0;
   if (householdError && !emptyHousehold) return { ok: false as const, error: householdError.message };
 
+  // ZWBriljant: je steen delen met alle leden (standaard, 0267) of verbergen.
+  // Werkt meteen; je eigen historie blijft. Delen werkt alleen een bestaande rij
+  // bij: een nieuwe rij zou de wekelijkse job een steen laten maken voor wie
+  // ZWBriljant niet gebruikt.
+  const shareBriljant = formData.get("share_briljant") === "on";
+  const { error: briljantError } = shareBriljant
+    ? await supabase.from("zwbriljant_preferences").update({ visible: true }).eq("profile_id", user.id)
+    : await supabase
+        .from("zwbriljant_preferences")
+        .upsert({ profile_id: user.id, visible: false }, { onConflict: "profile_id" });
+  if (briljantError) return { ok: false as const, error: briljantError.message };
+
   // Ander geslacht: de SRC-inschrijving van deze en komende maanden gaat mee
   // naar de heren- of damesrace. Mislukt dat, dan blijft het profiel opgeslagen.
   if ((before?.sex ?? null) !== sex) {
@@ -231,6 +243,7 @@ export async function updateProfile(formData: FormData) {
   }
 
   revalidatePath("/profiel");
+  revalidatePath("/stats/zwbriljant");
   revalidatePath("/zwbeter-worden/voeding", "layout");
   revalidatePath("/leden");
   revalidatePath("/kalender");

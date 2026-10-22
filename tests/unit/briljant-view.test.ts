@@ -61,10 +61,12 @@ describe("briljantView", () => {
     expect(diamant.meter.note).toBe("nog 50 ZRS tot het maximum");
   });
 
-  it("verdeelt de gewichten opnieuw als een onderdeel ontbreekt", () => {
+  it("houdt de vaste gewichten als een onderdeel ontbreekt: de bijdragen tellen op tot de score", () => {
     const view = briljantView({ seed: "lid", input: { ...rider, zrs: null }, consistency: null });
     expect(view.missing).toEqual(["racen"]);
-    expect(view.facets.reduce((sum, facet) => sum + facet.weight, 0)).toBeCloseTo(1, 9);
+    expect(view.facets.reduce((sum, facet) => sum + facet.weight, 0)).toBeCloseTo(0.85, 9);
+    const contributions = view.facets.reduce((sum, facet) => sum + facet.contribution, 0);
+    expect(Math.abs(contributions - view.profilePoints)).toBeLessThanOrEqual(1);
   });
 
   it("geeft geen score bij te weinig gegevens", () => {

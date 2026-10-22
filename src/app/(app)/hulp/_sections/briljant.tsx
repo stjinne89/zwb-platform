@@ -132,7 +132,7 @@ export function BriljantHelp() {
           </table>
           <p className="mt-3 text-sm text-muted-foreground">
             De gewichten volgen hoe sterk elk onderdeel uitslagen en niveau voorspelt: 5 minuten het sterkst, fitheid
-            het zwakst. Ontbreekt een onderdeel, dan tellen de andere samen weer voor 100%; met minder dan twee
+            het zwakst. De score telt ze op: een onderdeel zonder gegevens telt voor 0. Met minder dan vier
             onderdelen is er nog geen steen.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -152,16 +152,14 @@ export function BriljantHelp() {
               score, staat er je huidige ZRS. Durability rekent ook in het verleden met je huidige
               kJ-drempels uit intervals.icu. Met Waarden en Punten wissel je wat de labels tonen.
             </dd>
-            <dt className="font-medium">Vergelijk</dt>
+            <dt className="font-medium">Ik, ZWB en Vergelijken</dt>
             <dd className="text-muted-foreground">
-              Zet je mooiste steen (de week met je hoogste score), het ZWB-gemiddelde of een lid naast je steen. Klik
-              op de tweede steen voor de onderdelen naast elkaar. Van anderen zie je alleen punten.
-            </dd>
-            <dt className="font-medium">De zaal</dt>
-            <dd className="text-muted-foreground">
-              Kies &ldquo;De zaal&rdquo; bij vergelijken: een museum met alle stenen die je mag zien op een rij
-              sokkels, van laag naar hoog met de recordsteen achteraan. Scroll of sleep erlangs; klik op het
-              plaatje op een sokkel om die steen naast de jouwe te zetten.
+              Bovenaan kies je tussen drie tabbladen. Ik is je eigen steen, met de datum. ZWB is de zaal: een museum
+              met alle stenen die je mag zien op een rij sokkels, van laag naar hoog met de recordsteen achteraan.
+              Scroll of sleep erlangs; klik op het bordje op een sokkel om die steen los te bekijken. Vergelijken
+              zet een tweede steen naast de jouwe: het ZWB-gemiddelde, je mooiste steen (de week met je hoogste
+              score), de records of een lid. Onderin staat in een paar zinnen waar het verschil zit; klik op de
+              tweede steen voor de onderdelen naast elkaar. Van anderen zie je alleen punten.
             </dd>
             <dt className="font-medium">Records</dt>
             <dd className="text-muted-foreground">
@@ -171,7 +169,9 @@ export function BriljantHelp() {
             <dt className="font-medium">Delen</dt>
             <dd className="text-muted-foreground">
               Alle leden zien standaard je laatste steen: punten per onderdeel en je consistentie, geen metingen. Zet
-              &ldquo;Deel mijn steen met leden&rdquo; uit om hem te verbergen; dat werkt meteen.
+              &ldquo;Mijn ZWBriljant-steen delen met leden&rdquo; bij Zichtbaarheid in je profiel uit om hem te
+              verbergen; dat werkt meteen. Wie zijn steen verbergt, ziet ook die van andere leden niet; het
+              ZWB-gemiddelde en de records blijven.
             </dd>
             <dt className="font-medium">ZWB-gemiddelde</dt>
             <dd className="text-muted-foreground">
@@ -200,7 +200,10 @@ export function BriljantHelp() {
               lijn: elke ZRS is een punt.
             </dd>
             <dt className="font-medium">Profielscore</dt>
-            <dd className="text-muted-foreground">Het gewogen gemiddelde van de onderdelen, met de gewichten hierboven.</dd>
+            <dd className="text-muted-foreground">
+              De optelling van gewicht × punten per onderdeel, met de gewichten hierboven. Een onderdeel zonder
+              gegevens telt voor 0.
+            </dd>
             <dt className="font-medium">Consistentie</dt>
             <dd className="text-muted-foreground">
               <code className="rounded bg-muted px-1">R × (0,5 + 0,5 × V) × N</code>, altijd tegen je eigen norm: R is

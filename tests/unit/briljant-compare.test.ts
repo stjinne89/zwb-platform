@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MIN_FOR_AVERAGE, clubAverage, snapshotAt, viewFromSnapshot, type StoredSnapshot } from "@/lib/briljant/compare";
+import { MIN_FOR_AVERAGE, clubAverage, compareLines, snapshotAt, storedScore, viewFromSnapshot, type StoredSnapshot } from "@/lib/briljant/compare";
 import type { BriljantInput } from "@/lib/briljant/score";
 import { LEVELS } from "@/lib/briljant/norms";
 import { bestWins } from "@/lib/briljant/view";
@@ -122,3 +122,40 @@ describe("eigen steen uit een snapshot", () => {
   });
 });
 
+
+describe("storedScore", () => {
+  it("rekent een bewaarde score opnieuw als optelling van de gewogen onderdelen", () => {
+    // Zonder fitheid en durability: 0,15 × 7,74 + 0,075 × 9,38 + 0,225 × 7,48 + 0,175 × 7,49 + 0,125 × 9,21.
+    const facets = { racen: 7.74, sprint: 9.38, vo2max: 7.48, drempel: 7.49, anaeroob: 9.21, fitheid: null, durability: null };
+    expect(storedScore(facets, null)).toBe(6.01);
+    // Met consistentie 0,5: × 0,9.
+    expect(storedScore(facets, 0.5)).toBe(5.41);
+    expect(storedScore({ sprint: 5, drempel: 4 }, null)).toBeNull();
+  });
+});
+
+describe("compareLines", () => {
+  const stone = (facets: StoredSnapshot["facets"]) =>
+    viewFromSnapshot({ seed: "x", snapshot: { week: "2026-10-19", score: 5, facets, consistency: null }, source: "x" });
+  const me = stone({ sprint: 5, anaeroob: 5, vo2max: 5, drempel: 5, racen: 5 });
+
+  it("noemt de grootste verschillen in woorden, hooguit drie", () => {
+    const other = stone({ sprint: 7.5, anaeroob: 5.1, vo2max: 5.5, drempel: 3.8, racen: 6.3 });
+    const lines = compareLines(me, other, "Piet");
+    expect(lines).toEqual([
+      "Piet is een veel betere sprinter dan jij: een bordjessprint winnen wordt lastig.",
+      "In een race eindigt Piet meestal voor je.",
+      "Als jullie samen de Alpe op rijden, kan Piet jou niet bijhouden.",
+    ]);
+  });
+
+  it("begint met een hoofdletter en zegt het als jullie aan elkaar gewaagd zijn", () => {
+    const average = stone({ sprint: 5.1, anaeroob: 4.9, vo2max: 5, drempel: 5.2, racen: 5 });
+    expect(compareLines(me, average, "het gemiddelde ZWB-lid")).toEqual(["Het gemiddelde ZWB-lid en jij zijn aan elkaar gewaagd."]);
+  });
+
+  it("slaat onderdelen over die een van beiden niet heeft", () => {
+    const other = stone({ sprint: 5, anaeroob: 5, vo2max: 5, drempel: 5, fitheid: 9 });
+    expect(compareLines(me, other, "Piet")).toEqual(["Piet en jij zijn aan elkaar gewaagd."]);
+  });
+});

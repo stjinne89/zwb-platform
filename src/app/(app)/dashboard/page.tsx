@@ -78,6 +78,7 @@ import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { getDesign } from "@/lib/design";
 import { points as briljantPoints, positionFor as briljantPosition } from "@/lib/briljant/score";
 import { SCALE_VERSION as BRILJANT_SCALE } from "@/lib/briljant/norms";
+import { storedScore as briljantStoredScore } from "@/lib/briljant/compare";
 import {
   TegelsVandaag,
   type VandaagBriljant,
@@ -959,14 +960,20 @@ export default async function DashboardPage({
   if (tegels && user) {
     const { data: snapshot } = await supabase
       .from("zwbriljant_snapshots")
-      .select("score")
+      .select("facets, consistency")
       .eq("profile_id", user.id)
       .eq("provenance->>scale", BRILJANT_SCALE)
       .not("score", "is", null)
       .order("week", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const score = snapshot?.score == null ? null : Number(snapshot.score);
+    // Opnieuw uit de onderdelen: een rij van vóór de optelling telt zo ook mee.
+    const score = snapshot
+      ? briljantStoredScore(
+          (snapshot.facets ?? {}) as Parameters<typeof briljantStoredScore>[0],
+          snapshot.consistency == null ? null : Number(snapshot.consistency),
+        )
+      : null;
     if (score != null && Number.isFinite(score)) {
       const { reached, next, toNext } = briljantPosition(score);
       tileBriljant = {

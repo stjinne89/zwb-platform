@@ -34,6 +34,12 @@ export type BriljantSources = {
    * Ontbreekt het, dan zoekt de wekelijkse job nog.
    */
   racen?: "historie" | "geen";
+  /**
+   * Bij een weeksnapshot: of de wellness uit intervals.icu binnenkwam. False laat de
+   * wekelijkse job het opnieuw proberen; ontbreekt het (van vóór 2026-10-22) en is
+   * fitheid leeg bij een lid met intervals.icu, dan ook.
+   */
+  wellness?: boolean;
 };
 
 export type SnapshotRow = {

@@ -5,7 +5,6 @@ import {
   clubPercentile,
   consistencyFrom,
   durabilityDecline,
-  effectiveWeights,
   consistencyFactor,
   formatScore,
   levelAt,
@@ -164,12 +163,13 @@ describe("facetten en score", () => {
     expect(scoreFor(facetLevels(rider), 1)).toBe(6.06);
   });
 
-  it("normaliseert de gewichten opnieuw als een facet ontbreekt", () => {
+  it("telt de gewogen onderdelen op: een ontbrekend onderdeel draagt niets bij", () => {
     const levels = facetLevels({ ...rider, zrs: null });
-    const weights = effectiveWeights(levels);
-    expect(weights.racen).toBeUndefined();
-    expect(weights.durability).toBeCloseTo(0.15 / 0.85, 9);
-    expect(Object.values(weights).reduce((sum, weight) => sum + weight!, 0)).toBeCloseTo(1, 9);
+    // Zonder racen (15% × 6,4 = 0,96) zakt de score met precies die bijdrage,
+    // in plaats van de rest weer op 100% te zetten.
+    expect(scoreFor(levels)).toBe(5.1);
+    const sum = FACETS.reduce((total, facet) => total + FACET_WEIGHTS[facet] * (levels[facet] ?? 0), 0);
+    expect(scoreFor(levels)).toBe(Math.round(sum * 100) / 100);
   });
 
   it("geeft pas een score vanaf vier onderdelen", () => {

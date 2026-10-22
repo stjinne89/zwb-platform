@@ -246,16 +246,16 @@ export const MIN_FACETS_FOR_SCORE = 4;
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
 /**
- * De profielscore: het gewogen gemiddelde van de facetten die er zijn
- * (FACET_WEIGHTS), met de gewichten van de aanwezige facetten opnieuw op 100% gezet.
- * Null bij te weinig facetten. Nog zonder consistentie; zie `scoreFor`.
+ * De profielscore: de optelling van de gewogen facetten (FACET_WEIGHTS, samen
+ * 100%). Een facet zonder gegevens draagt niets bij (eigenaar, 2026-10-22): eerst
+ * gingen de gewichten van de rest weer naar 100%, waardoor een lid zonder fitheid
+ * of durability een gemiddelde van zijn sterkste onderdelen kreeg. Null bij te
+ * weinig facetten. Nog zonder consistentie; zie `scoreFor`.
  */
 export function profileScore(facets: Record<Facet, number | null>): number | null {
   const present = FACETS.filter((facet) => facets[facet] != null);
   if (present.length < MIN_FACETS_FOR_SCORE) return null;
-  const weight = present.reduce((sum, facet) => sum + FACET_WEIGHTS[facet], 0);
-  const total = present.reduce((sum, facet) => sum + FACET_WEIGHTS[facet] * facets[facet]!, 0);
-  return total / weight;
+  return present.reduce((sum, facet) => sum + FACET_WEIGHTS[facet] * facets[facet]!, 0);
 }
 
 /**
@@ -279,13 +279,6 @@ export function consistencyFactor(consistency: number | null): number {
 export function scoreFor(facets: Record<Facet, number | null>, consistency: number | null = null): number | null {
   const profile = profileScore(facets);
   return profile == null ? null : round2(profile * consistencyFactor(consistency));
-}
-
-/** Het gewicht van elke aanwezige facet na het opnieuw normaliseren, voor de uitleg op het scherm. */
-export function effectiveWeights(facets: Record<Facet, number | null>): Partial<Record<Facet, number>> {
-  const present = FACETS.filter((facet) => facets[facet] != null);
-  const weight = present.reduce((sum, facet) => sum + FACET_WEIGHTS[facet], 0);
-  return Object.fromEntries(present.map((facet) => [facet, FACET_WEIGHTS[facet] / weight]));
 }
 
 // ── Consistentie ────────────────────────────────────────────────────────────

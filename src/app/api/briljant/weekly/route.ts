@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     // een nieuwe terugblik en weekopname.
     admin
       .from("zwbriljant_snapshots")
-      .select("profile_id")
+      .select("profile_id, provenance")
       .eq("week", week)
       .eq("source", "week")
       .eq("provenance->>scale", SCALE_VERSION),
@@ -87,12 +87,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const doneIds = new Set((done ?? []).map((row) => row.profile_id as string));
+  // Een weeksnapshot waarin de wellness van intervals.icu mislukte (geen CTL, dus
+  // geen fitheid) telt niet als klaar; die komt na de leden zonder snapshot nog eens.
+  const connected = new Set(((linked ?? []) as Array<{ profile_id: string }>).map((row) => row.profile_id));
+  type Done = { profile_id: string; provenance: { ctl?: boolean; wellness?: boolean } | null };
+  const retry = (row: Done) =>
+    connected.has(row.profile_id) && row.provenance?.wellness !== true && row.provenance?.ctl !== true;
+  const doneRows = (done ?? []) as Done[];
+  const doneIds = new Set(doneRows.filter((row) => !retry(row)).map((row) => row.profile_id));
+  const retryIds = new Set(doneRows.filter(retry).map((row) => row.profile_id));
   const withTerugblik = new Set((looked ?? []).map((row) => row.profile_id as string));
   // Ook wie deze week al keek, maar nog geen terugblik op de huidige schaal heeft.
   const due = (members ?? [])
     .map((row) => row.profile_id as string)
-    .filter((id) => !doneIds.has(id) || !withTerugblik.has(id));
+    .filter((id) => !doneIds.has(id) || !withTerugblik.has(id))
+    .sort((a, b) => Number(retryIds.has(a)) - Number(retryIds.has(b)));
 
   const started = Date.now();
   let processed = 0;

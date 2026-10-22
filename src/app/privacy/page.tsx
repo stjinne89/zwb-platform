@@ -451,8 +451,9 @@ export default function PrivacyPage() {
             Racing Score. Alle goedgekeurde leden zien standaard je laatste score,
             je punten per onderdeel en je consistentie (geen metingen) en kunnen
             die naast hun eigen steen zetten. Wil je dat niet, zet dan
-            &ldquo;Deel mijn steen met leden&rdquo; uit: dan is je steen meteen
-            voor niemand anders meer te zien. Voor het ZWB-gemiddelde tellen we de laatste score van
+            &ldquo;Mijn ZWBriljant-steen delen met leden&rdquo; in je profiel uit:
+            dan is je steen meteen voor niemand anders meer te zien, en zie je
+            zelf ook de stenen van andere leden niet. Voor het ZWB-gemiddelde tellen we de laatste score van
             iedereen met ZWBriljant mee, ook als je niet deelt; dat gemiddelde is
             anoniem en verschijnt pas vanaf vijf leden. Er gaat niets naar
             OpenAI of een andere partij. Het staat in je data-export en

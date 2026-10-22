@@ -1,12 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore, useTransition, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, X } from "lucide-react";
-import { setBriljantSharing } from "@/app/(app)/stats/zwbriljant/actions";
-import { LEVELS, type Level } from "@/lib/briljant/norms";
-import { FACETS } from "@/lib/briljant/score";
+import { FACET_WEIGHTS, LEVELS, type Level } from "@/lib/briljant/norms";
+import { FACETS, FACET_LABELS } from "@/lib/briljant/score";
 import type { BriljantView as View, FacetView, Win } from "@/lib/briljant/view";
 import type { SceneStone } from "./stone-scene";
 import { briljantSans, briljantSerif } from "./fonts";
@@ -23,7 +23,19 @@ const StoneScene = dynamic(() => import("./stone-scene"), {
 });
 
 /**
- * Een tweede steen naast de jouwe: een lid dat deelt, het ZWB-gemiddelde of je
+ * Drie tabbladen (eigenaar, 2026-10-22): Ik is je eigen steen, ZWB de zaal (en een
+ * steen daaruit los, zonder de jouwe), Vergelijken een tweede steen naast de jouwe.
+ */
+export type BriljantTab = "ik" | "zwb" | "vergelijken";
+
+const TABS: Array<{ key: BriljantTab; label: string }> = [
+  { key: "ik", label: "Ik" },
+  { key: "zwb", label: "ZWB" },
+  { key: "vergelijken", label: "Vergelijken" },
+];
+
+/**
+ * Een andere steen: een lid dat deelt, het ZWB-gemiddelde, de records of je
  * mooiste steen. `label` staat boven de steen, `short` boven de kolom in het paneel.
  */
 export type BriljantCompare = {
@@ -34,28 +46,40 @@ export type BriljantCompare = {
   view: View;
   /** Bij de recordsteen: de houder per onderdeel, waar die bekend is. */
   holders?: Partial<Record<FacetView["key"], string>>;
+  /** Zoals in een zin ("Piet", "het gemiddelde ZWB-lid"); alleen waar vergelijkzinnen passen. */
+  subject?: string;
+  region?: string | null;
+  date?: string | null;
 };
 
+export type BriljantHallStone = { id: string; name: string; view: View; region?: string | null; date?: string | null };
+
 type Props = {
+  tab: BriljantTab;
+  /** De steen in beeld: de jouwe, of bij ZWB die van `subject`. */
   view: View;
+  /** Bij ZWB: de steen die je los bekijkt; null is de zaal. */
+  subject: BriljantCompare | null;
   /** De maandag van de getoonde week bij een steen uit het verleden; null is nu. */
   asOf: string | null;
   asOfLabel: string | null;
   dates: { first: string | null; today: string; chosen: string | null };
+  /** Bij Vergelijken: de tweede steen. */
   compare: BriljantCompare | null;
+  /** Bij Vergelijken: de verschillen in woorden. */
+  lines: string[];
   options: {
-    average: { members: number } | null;
+    average: boolean;
     members: Array<{ id: string; name: string }>;
-    sharing: boolean;
     /** Je mooiste steen tot nu toe, als keuze bij vergelijken. */
     best: boolean;
-    /** Er is iets om in de zaal te zetten naast je eigen steen. */
-    hall: boolean;
   };
-  /** Waar je het meest wint met 5% beter; leeg bij een steen uit het verleden. */
+  /** Waar je het meest wint met 5% beter; alleen bij je eigen steen van nu. */
   wins: Win[];
   /** De zaal: alle stenen die je mag zien, met de jouwe ("ik"); null buiten de zaal. */
-  hall: Array<{ id: string; name: string; view: View; region?: string | null; date?: string | null }> | null;
+  hall: BriljantHallStone[] | null;
+  /** Je verbergt je steen, en ziet dus ook die van andere leden niet. */
+  hidden: boolean;
 };
 
 type Panel =
@@ -151,12 +175,14 @@ function PanelBody({
   panel,
   view,
   compare,
+  lines,
   wins,
   unit,
 }: {
   panel: NonNullable<Panel>;
   view: View;
   compare: BriljantCompare | null;
+  lines: string[];
   wins: Win[];
   unit: Unit;
 }) {
@@ -239,6 +265,13 @@ function PanelBody({
             </tr>
           </tbody>
         </table>
+        {lines.length > 0 && (
+          <ul className={styles.lines}>
+            {lines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        )}
       </>
     );
   }
@@ -307,6 +340,15 @@ function PanelBody({
               <td>{facet.contribution}</td>
             </tr>
           ))}
+          {/* Een onderdeel zonder gegevens telt mee voor 0: de score is een optelling. */}
+          {view.missing.map((key) => (
+            <tr key={key} className={styles.missing}>
+              <td>{FACET_LABELS[key]}</td>
+              <td>–</td>
+              <td>{nl(FACET_WEIGHTS[key] * 100, 1)}%</td>
+              <td>0</td>
+            </tr>
+          ))}
           <tr className={styles.sum}>
             <td>Profielscore</td>
             <td />
@@ -348,16 +390,14 @@ function PanelBody({
   );
 }
 
-export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, wins, hall }: Props) {
+export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compare, lines, options, wins, hall, hidden }: Props) {
   const labels = useRef(new Map<string, HTMLElement>());
   const [failed, setFailed] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
   const opener = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLElement>(null);
   const [aiming, setAiming] = useState(false);
-  const [sharing, setSharing] = useState(options.sharing);
   const unit = useSyncExternalStore(subscribeUnit, readUnit, () => "waarden" as Unit);
-  const [pending, startTransition] = useTransition();
   const router = useRouter();
   const score = view.points;
   const profile = view.profilePoints;
@@ -406,24 +446,25 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
     else router.push("/stats");
   };
 
-  /** Datum en vergelijking staan in de adresbalk, zodat terug en delen gewoon werken. */
-  const go = (next: { datum?: string | null; met?: string | null }) => {
+  /**
+   * Tabblad, datum, het lid in de zaal en de vergelijking staan in de adresbalk,
+   * zodat terug en delen gewoon werken. Een ander tabblad begint schoon.
+   */
+  const go = (next: { tab?: BriljantTab; datum?: string | null; lid?: string | null; met?: string | null }) => {
+    const target = next.tab ?? tab;
     const params = new URLSearchParams();
-    const datum = next.datum === undefined ? dates.chosen : next.datum;
-    const met = next.met === undefined ? (compare?.id ?? null) : next.met;
-    if (datum) params.set("datum", datum);
-    if (met) params.set("met", met);
+    if (target !== "ik") params.set("tab", target);
+    const datum = next.datum !== undefined ? next.datum : target === tab ? dates.chosen : null;
+    if (target === "ik" && datum) params.set("datum", datum);
+    if (target === "zwb" && next.lid) params.set("lid", next.lid);
+    const met = next.met !== undefined ? next.met : target === tab ? (compare?.id ?? null) : null;
+    if (target === "vergelijken" && met) params.set("met", met);
     setPanel(null);
     router.push(params.size ? `?${params.toString()}` : "?", { scroll: false });
   };
 
-  const toggleSharing = (share: boolean) => {
-    setSharing(share);
-    startTransition(async () => {
-      const result = await setBriljantSharing(share);
-      if (!result.ok) setSharing(!share);
-    });
-  };
+  // Alleen je eigen stenen en de records hebben metingen; van leden zie je punten.
+  const hasValues = view.facets.some((facet) => facet.value) || Boolean(compare?.view.facets.some((facet) => facet.value));
 
   const tierStyle = { "--tier": view.level.color } as CSSProperties;
   const share = view.next ? (score - view.level.n * 100) / 100 : 1;
@@ -461,26 +502,47 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
           Terug
         </button>
 
+        <nav className={styles.tabs} aria-label="ZWBriljant">
+          {TABS.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              aria-current={tab === option.key ? "page" : undefined}
+              onClick={() => go({ tab: option.key })}
+            >
+              {option.label}
+            </button>
+          ))}
+        </nav>
+
         <header className={styles.crest}>
+          {subject && (
+            <p className={styles.who}>
+              {subject.label}
+              {subject.region && <i>{subject.region}</i>}
+            </p>
+          )}
+          {/* De klasse staat op de plek van "punten": dat scheelt een regel. */}
           <button type="button" className={styles.score} onClick={(event) => open({ kind: "score" }, event.currentTarget)}>
             {nl(score)}
-            <small>punten</small>
+            <small>
+              <Lozenge level={view.level} />
+              {view.level.name}
+            </small>
           </button>
           <div className={styles.rule}>
             <i style={{ width: `${Math.round(share * 100)}%` }} />
           </div>
-          <p className={styles.tier}>
-            <Lozenge level={view.level} />
-            {view.level.name}
-          </p>
           <p className={styles.next}>
             {asOfLabel
               ? `week van ${asOfLabel}`
-              : view.next
+              : subject?.date
+                ? `week van ${subject.date}`
+                : view.next
                 ? `nog ${view.toNext} punten tot ${view.next.name}`
                 : "Diamant: de score telt door"}
           </p>
-          {!asOf && view.delta4w != null && view.delta4w !== 0 && (
+          {!asOf && !subject && view.delta4w != null && view.delta4w !== 0 && (
             <p className={styles.next}>
               {view.delta4w > 0 ? "+" : "−"}
               {Math.abs(view.delta4w)} punten in 4 weken
@@ -488,53 +550,67 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
           )}
 
           <div className={styles.controls}>
-            <label className={styles.control}>
-              <span className="sr-only">Datum</span>
-              <input
-                type="date"
-                min={dates.first ?? undefined}
-                max={dates.today}
-                value={asOf ? (dates.chosen ?? asOf) : dates.today}
-                disabled={!dates.first}
-                onChange={(event) => go({ datum: event.target.value && event.target.value < dates.today ? event.target.value : null })}
-              />
-            </label>
-            {asOf && (
-              <button type="button" className={styles.now} onClick={() => go({ datum: null })}>
-                Naar nu
-              </button>
+            {tab === "ik" && (
+              <>
+                <label className={styles.control}>
+                  <span className="sr-only">Datum</span>
+                  <input
+                    type="date"
+                    min={dates.first ?? undefined}
+                    max={dates.today}
+                    value={asOf ? (dates.chosen ?? asOf) : dates.today}
+                    disabled={!dates.first}
+                    onChange={(event) => go({ datum: event.target.value && event.target.value < dates.today ? event.target.value : null })}
+                  />
+                </label>
+                {asOf && (
+                  <button type="button" className={styles.now} onClick={() => go({ datum: null })}>
+                    Naar nu
+                  </button>
+                )}
+              </>
             )}
-            <label className={styles.control}>
-              <span className="sr-only">Vergelijk met</span>
-              <select value={hall ? "zaal" : (compare?.id ?? "")} onChange={(event) => go({ met: event.target.value || null })}>
-                <option value="">Vergelijk met…</option>
-                {options.hall && <option value="zaal">De zaal: alle stenen</option>}
-                {options.best && <option value="mooiste">Mijn mooiste steen</option>}
-                <option value="records">Records</option>
-                {options.average && <option value="zwb">ZWB-gemiddelde</option>}
-                {options.members.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className={styles.units} role="group" aria-label="Weergave">
-              {(["waarden", "punten"] as const).map((option) => (
-                <button key={option} type="button" aria-pressed={unit === option} onClick={() => chooseUnit(option)}>
-                  {option === "waarden" ? "Waarden" : "Punten"}
+            {subject && (
+              <>
+                <button type="button" className={styles.now} onClick={() => go({ lid: null })}>
+                  Naar de zaal
                 </button>
-              ))}
-            </div>
-            <label className={styles.toggle}>
-              <input
-                type="checkbox"
-                checked={sharing}
-                disabled={pending}
-                onChange={(event) => toggleSharing(event.target.checked)}
-              />
-              <span>Deel mijn steen met leden</span>
-            </label>
+                {subject.id !== "records" && (
+                  <button type="button" className={styles.now} onClick={() => go({ tab: "vergelijken", met: subject.id })}>
+                    Vergelijk met mij
+                  </button>
+                )}
+              </>
+            )}
+            {tab === "vergelijken" && (
+              <label className={styles.control}>
+                <span className="sr-only">Vergelijk met</span>
+                <select value={compare?.id ?? ""} onChange={(event) => go({ met: event.target.value || null })}>
+                  {options.average && <option value="zwb">ZWB-gemiddelde</option>}
+                  {options.best && <option value="mooiste">Mijn mooiste steen</option>}
+                  <option value="records">Records</option>
+                  {options.members.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {hidden && tab !== "ik" && (
+              <Link href="/profiel#zichtbaarheid" className={styles.now}>
+                Steen verborgen · delen
+              </Link>
+            )}
+            {!hall && hasValues && (
+              <div className={styles.units} role="group" aria-label="Weergave">
+                {(["waarden", "punten"] as const).map((option) => (
+                  <button key={option} type="button" aria-pressed={unit === option} onClick={() => chooseUnit(option)}>
+                    {option === "waarden" ? "Waarden" : "Punten"}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </header>
 
@@ -553,14 +629,18 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
 
         {!failed && hall ? (
           <div className={styles.labels} onPointerOver={() => setAiming(true)} onPointerOut={() => setAiming(false)}>
-            {/* Het bordje op de sokkel, zoals in een museum; kiezen zet die steen naast de jouwe. */}
+            {/* Het bordje op de sokkel, zoals in een museum; kiezen toont die steen los. */}
             {hall.map((stone) => (
               <div key={stone.id} ref={setLabel(`hall:${stone.id}`)} className={styles.anchor}>
-                <button type="button" className={styles.plaque} onClick={() => go({ met: stone.id === "ik" ? null : stone.id })}>
+                <button
+                  type="button"
+                  className={styles.plaque}
+                  onClick={() => go(stone.id === "ik" ? { tab: "ik" } : { lid: stone.id })}
+                >
                   <b>{stone.name}</b>
                   {stone.region && <i>{stone.region}</i>}
                   <span>
-                    {nl(stone.view.points)} punten · {stone.view.level.name}
+                    {nl(stone.view.points)} · {stone.view.level.name}
                   </span>
                   {stone.date && <small>{stone.date}</small>}
                 </button>
@@ -581,7 +661,7 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
                 onClick={(event) => open({ kind: "score" }, event.currentTarget)}
               >
                 <b>{nl(score)}</b>
-                {asOf ? "toen" : "jouw score"}
+                {asOf ? "toen" : subject ? subject.label : "jouw score"}
               </button>
             </div>
             {profile > score && !compare && (
@@ -653,6 +733,14 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
           </ul>
         )}
 
+        {lines.length > 0 && (
+          <ul className={styles.verdict} aria-label="Het verschil">
+            {lines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        )}
+
         <aside
           ref={panelRef}
           className={`${styles.panel} ${panel ? styles.panelOpen : ""}`}
@@ -668,6 +756,7 @@ export function BriljantView({ view, asOf, asOfLabel, dates, compare, options, w
               panel={panel}
               view={view}
               compare={compare}
+              lines={lines}
               wins={wins}
               unit={unit}
             />
