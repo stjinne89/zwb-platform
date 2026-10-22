@@ -284,7 +284,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0271`
-(`0270_zwbriljant_weights_fitheid20` is van ZWBriljant fitheid 20% en racen 12,5%, 2026-10-22, nog niet toegepast;
+(`0270_zwbriljant_weights_fitheid20` is van ZWBriljant fitheid 20% en racen 12,5%, 2026-10-22, toegepast op 2026-10-22;
 `0269_zwbriljant_ctl40` is van ZWBriljant CTL-Goud op 40 en vermogen 50%, 2026-10-22, toegepast op 2026-10-22;
 `0268_zwbriljant_share_to_see` is van ZWBriljant alleen zien als je deelt, 2026-10-22, toegepast op 2026-10-22;
 `0267_zwbriljant_share_by_default` is van ZWBriljant standaard gedeeld, 2026-10-21, toegepast op 2026-10-21;
@@ -11328,7 +11328,7 @@ de pagina in de browser en een echte sync tegen intervals.icu.
 ### Gebouwd — ZWBriljant: fitheid 20%, racen 12,5%
 
 **2026-10-22.** Commit `7dcfeeec`, op 2026-10-22 gepusht naar `main` (eigenaar). Migratie
-`0270_zwbriljant_weights_fitheid20.sql`, **nog niet toegepast** (gecontroleerd bij de push).
+`0270_zwbriljant_weights_fitheid20.sql` toegepast op 2026-10-22, na de push.
 
 De eigenaar zette na de vorige stap fitheid op 20% (was 15%) en racen op 12,5% (was
 17,5%). Vermogen blijft samen 50%, durability 17,5%. Alleen de gewichten veranderen, niet
@@ -11341,8 +11341,9 @@ hoog op racen staat en weinig CTL heeft zakt (bijvoorbeeld 398 → 368); zonder 
 zakt het het meest (536 → 497, 340 → 309).
 
 **Getest.** Alle ZWBriljant-tests met de nieuwe waarden, `0269` gevolgd door `0270` in
-PGlite tegen `storedScore`, tsc, ESLint. **Niet getest:** `0270` op productie, de pagina in
-de browser.
+PGlite tegen `storedScore`, tsc, ESLint. Op productie: vóór en na `0270` 994 stenen op de
+schaal `2026-10-22-ctl40` (alle rijen), 962 met een score; gemiddelde score 4,29 → 4,20,
+bereik 0,61–7,92 → 0,48–7,99. **Niet getest:** de pagina in de browser.
 
 ### Gebouwd — ZWBriljant: fitheid zwaarder, vermogen 50%
 
