@@ -548,7 +548,7 @@ export async function loadSharing(admin: Admin, profileId: string): Promise<bool
 type UserClient = Awaited<ReturnType<typeof import("@/lib/supabase/server").createClient>>;
 
 /**
- * Voor de zaal: van elk lid van wie je de steen mag zien de laatste steen, met naam.
+ * Voor de galerij: van elk lid van wie je de steen mag zien de laatste steen, met naam.
  * Met de sessie van het lid, zodat RLS beslist.
  */
 export async function loadHallStones(

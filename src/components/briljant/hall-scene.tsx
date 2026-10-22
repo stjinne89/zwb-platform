@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { glow, stoneGeometry, stoneMaterial, stoneShape, studioEnvironment } from "./stone";
 import { facetPoints, type SceneStone } from "./stone-scene";
 
-/** Een steen in de zaal; `id` is ook de sleutel van zijn plaatje ("hall:<id>"). */
+/** Een steen in de galerij; `id` is ook de sleutel van zijn plaatje ("hall:<id>"). */
 export type HallStone = SceneStone & { id: string };
 
 type Props = {
@@ -20,7 +20,7 @@ type Props = {
 const NIGHT = 0x0a0c0f;
 
 /**
- * De zaal als museum (eigenaar, 2026-10-21): alle stenen op één rij hoge sokkels,
+ * De galerij als museum (eigenaar, 2026-10-21): alle stenen op één rij hoge sokkels,
  * van laag naar hoog, met de recordsteen achteraan. Je loopt erlangs door te
  * scrollen of te slepen; naam en score staan als plaatje op de sokkel, zodat er
  * weinig in de lucht zweeft. Kiezen opent de vergelijking.

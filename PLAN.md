@@ -11308,6 +11308,15 @@ zakt het het meest (536 → 497, 340 → 309).
 PGlite tegen `storedScore`, tsc, ESLint. **Niet getest:** `0270` op productie, de pagina in
 de browser.
 
+### Gebouwd — ZWBriljant: de zaal heet de galerij
+
+**2026-10-22.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+Op verzoek van de eigenaar heet de zaal (tabblad ZWB) nu de galerij: "Naar de galerij",
+"Galerij inrichten…", /hulp en de commentaren in de ZWBriljant-code. De code-namen
+(`hall`, `HallScene`, `loadHallStones`) en het oude adres `?met=zaal` bleven; "zaal" in
+eerdere blokken hieronder is dezelfde galerij. Zoeken op /hulp vindt hem ook op "galerij".
+
 ### Gebouwd — ZWBriljant: fitheid zwaarder, vermogen 50%
 
 **2026-10-22.** Commits `638bfab4`, `b271ed52` (hulp) en `d150812b`, op 2026-10-22 gepusht

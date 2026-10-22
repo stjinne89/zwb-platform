@@ -14,7 +14,7 @@ import styles from "./briljant.module.css";
 
 const HallScene = dynamic(() => import("./hall-scene"), {
   ssr: false,
-  loading: () => <div className={styles.loading}>Zaal inrichten…</div>,
+  loading: () => <div className={styles.loading}>Galerij inrichten…</div>,
 });
 
 const StoneScene = dynamic(() => import("./stone-scene"), {
@@ -23,7 +23,7 @@ const StoneScene = dynamic(() => import("./stone-scene"), {
 });
 
 /**
- * Drie tabbladen (eigenaar, 2026-10-22): Ik is je eigen steen, ZWB de zaal (en een
+ * Drie tabbladen (eigenaar, 2026-10-22): Ik is je eigen steen, ZWB de galerij (en een
  * steen daaruit los, zonder de jouwe), Vergelijken een tweede steen naast de jouwe.
  */
 export type BriljantTab = "ik" | "zwb" | "vergelijken";
@@ -60,7 +60,7 @@ type Props = {
   view: View;
   /**
    * De steen in beeld als die niet van jou is: bij ZWB de steen die je los bekijkt
-   * (null is de zaal), bij Vergelijken de linker (null is jij).
+   * (null is de galerij), bij Vergelijken de linker (null is jij).
    */
   subject: BriljantCompare | null;
   /** De maandag van de getoonde week bij een steen uit het verleden; null is nu. */
@@ -79,7 +79,7 @@ type Props = {
   };
   /** Waar je het meest wint met 5% beter; alleen bij je eigen steen van nu. */
   wins: Win[];
-  /** De zaal: alle stenen die je mag zien, met de jouwe ("ik"); null buiten de zaal. */
+  /** De galerij: alle stenen die je mag zien, met de jouwe ("ik"); null buiten de galerij. */
   hall: BriljantHallStone[] | null;
   /** Je verbergt je steen, en ziet dus ook die van andere leden niet. */
   hidden: boolean;
@@ -452,7 +452,7 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
   };
 
   /**
-   * Tabblad, datum, het lid in de zaal en de vergelijking staan in de adresbalk,
+   * Tabblad, datum, het lid in de galerij en de vergelijking staan in de adresbalk,
    * zodat terug en delen gewoon werken. Een ander tabblad begint schoon.
    */
   const go = (next: { tab?: BriljantTab; datum?: string | null; lid?: string | null; van?: string | null; met?: string | null }) => {
@@ -580,7 +580,7 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
             {tab === "zwb" && subject && (
               <>
                 <button type="button" className={styles.now} onClick={() => go({ lid: null })}>
-                  Naar de zaal
+                  Naar de galerij
                 </button>
                 {subject.id !== "records" && (
                   <button type="button" className={styles.now} onClick={() => go({ tab: "vergelijken", met: subject.id })}>

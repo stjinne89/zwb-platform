@@ -91,7 +91,7 @@
   background: var(--tier);
 }
 
-/* Wiens steen dit is, als je in de zaal een andere steen opent. */
+/* Wiens steen dit is, als je in de galerij een andere steen opent. */
 .who {
   display: flex;
   flex-wrap: wrap;
@@ -965,7 +965,7 @@
   }
 }
 
-/* Labels boven een tweede steen of in de zaal: lange namen op twee regels. */
+/* Labels boven een tweede steen of in de galerij: lange namen op twee regels. */
 .summit.pair {
   max-width: 11em;
   white-space: normal;
@@ -979,7 +979,7 @@
   letter-spacing: 0.02em;
 }
 
-/* In de zaal: een museumbordje op de sokkel, gebroken wit met donkere letters:
+/* In de galerij: een museumbordje op de sokkel, gebroken wit met donkere letters:
    renner, woonplaats of regio, score en klasse, datum. */
 .anchor .plaque {
   display: grid;

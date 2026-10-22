@@ -1,4 +1,4 @@
-// ZWBriljant: de recordsteen, de grootste steen in de zaal (eigenaar, 2026-10-21).
+// ZWBriljant: de recordsteen, de grootste steen in de galerij (eigenaar, 2026-10-21).
 // Elk onderdeel op de hoogste gepubliceerde waarde. Diamant (900) is haalbaar, de
 // records liggen ver daarboven: de schaal loopt na Diamant met dezelfde stap door.
 // Bij een record met een bekende houder staat diens naam erbij. Profs publiceren

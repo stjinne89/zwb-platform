@@ -157,7 +157,7 @@ export function BriljantHelp() {
             </dd>
             <dt className="font-medium">Ik, ZWB en Vergelijken</dt>
             <dd className="text-muted-foreground">
-              Bovenaan kies je tussen drie tabbladen. Ik is je eigen steen, met de datum. ZWB is de zaal: een museum
+              Bovenaan kies je tussen drie tabbladen. Ik is je eigen steen, met de datum. ZWB is de galerij: een museum
               met alle stenen die je mag zien op een rij sokkels, van laag naar hoog met de recordsteen achteraan.
               Scroll of sleep erlangs; klik op het bordje op een sokkel om die steen los te bekijken. Vergelijken
               zet twee stenen naast elkaar: standaard de jouwe tegen het ZWB-gemiddelde, maar links en rechts kies

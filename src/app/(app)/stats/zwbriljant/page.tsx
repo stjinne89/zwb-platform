@@ -116,7 +116,7 @@ export default async function BriljantPage({
   // De recordsteen: elk onderdeel op de recordwaarde (Diamant), met de houders.
   const records = recordView(collected.input.sex);
 
-  // De stenen die je naast de jouwe kunt zetten of in de zaal los kunt bekijken. Van
+  // De stenen die je naast de jouwe kunt zetten of in de galerij los kunt bekijken. Van
   // andere leden zie je alleen punten: een steen uit een snapshot zonder `own`.
   const stoneFor = (id: string): BriljantCompare | null => {
     if (id === "ik") return { id, name: "Jij", label: "Jij", short: "Jij", view: live };
@@ -158,7 +158,7 @@ export default async function BriljantPage({
     };
   };
 
-  // Drie tabbladen: Ik (je eigen steen, met datum), ZWB (de zaal, en een lid los)
+  // Drie tabbladen: Ik (je eigen steen, met datum), ZWB (de galerij, en een lid los)
   // en Vergelijken (een tweede steen naast de jouwe). Oude links met ?met= blijven werken.
   const tab: BriljantTab =
     params.tab === "zwb" || met === "zaal" ? "zwb" : params.tab === "vergelijken" || (met && params.tab !== "ik") ? "vergelijken" : "ik";
@@ -169,7 +169,7 @@ export default async function BriljantPage({
   const left = tab === "vergelijken" ? (stoneFor(vanId) ?? stoneFor("ik")!) : null;
   const fallback = left?.id === "ik" ? (average ? "zwb" : (members[0]?.id ?? "records")) : "ik";
   const right = tab === "vergelijken" ? (met && met !== left?.id ? stoneFor(met) : null) ?? stoneFor(fallback) : null;
-  // Een steen los in de zaal, of links bij vergelijken als dat niet jij bent.
+  // Een steen los in de galerij, of links bij vergelijken als dat niet jij bent.
   const subject = lid ? stoneFor(lid) : left && left.id !== "ik" ? left : null;
   const compare = right;
   // Zinnen alleen tussen jou, leden en het ZWB-gemiddelde: null is jij.
@@ -179,7 +179,7 @@ export default async function BriljantPage({
       ? compareLines(left.view, right.view, nameOf(left) as string | null, nameOf(right) as string | null)
       : [];
 
-  // De zaal: je steen van nu, het ZWB-gemiddelde, iedereen die deelt en de records,
+  // De galerij: je steen van nu, het ZWB-gemiddelde, iedereen die deelt en de records,
   // elk met een bordje: renner, woonplaats of regio (als bekend), score en datum.
   let hall: BriljantHallStone[] | null = null;
   if (tab === "zwb" && !subject) {

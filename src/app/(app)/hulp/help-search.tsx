@@ -87,7 +87,7 @@ const HELP_INDEX: HelpResult[] = [
     text: "Wat je koppelt en invult zodat alle onderdelen van je steen meetellen.",
     href: "/hulp/training#zwbriljant",
     terms:
-      "zwbriljant briljant steen edelsteen onderdelen ontbreken leeg durability kj 1000 2000 gewicht geslacht zwift-id zrs racen strava consistentie schema intervals instellen",
+      "zwbriljant briljant steen edelsteen onderdelen ontbreken leeg durability kj 1000 2000 gewicht geslacht zwift-id zrs racen strava consistentie schema intervals instellen galerij vergelijken",
   },
   {
     title: "Badges en achievements",
