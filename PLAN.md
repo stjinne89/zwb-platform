@@ -11311,6 +11311,12 @@ lid volgt een herziening. Aangeroepen in `updateEvent` (kalender) en bij het opn
 publiceren van een omnium-editie, de twee plekken die `start_at` van een bestaand
 event wijzigen.
 
+**Productie rechtgezet (2026-10-22, op verzoek van de eigenaar):** het ene afwijkende
+mikpunt (GF Belgium) met de hand op 2027-03-28 gezet. Het openstaande verzoek in
+`training_replan_requests` voor dat lid heeft een nieuw tijdstip gekregen, zodat de
+volgende herziening de nieuwe dag meeneemt. Daarna week geen enkel mikpunt meer af
+van de dag van zijn event.
+
 **Niet gebouwd:** de titel volgt niet mee. Een hernoemd event zet de planner niet op de
 verkeerde dag. Ook geen databasetrigger: die zou ook wijzigingen buiten de app
 vangen, maar kan geen herziening aanvragen en is lokaal niet te testen.
