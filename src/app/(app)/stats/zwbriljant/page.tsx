@@ -42,7 +42,7 @@ const weekLabel = (monday: string) =>
 export default async function BriljantPage({
   searchParams,
 }: {
-  searchParams: Promise<{ datum?: string | string[]; met?: string | string[]; tab?: string | string[]; lid?: string | string[] }>;
+  searchParams: Promise<{ datum?: string | string[]; met?: string | string[]; tab?: string | string[]; lid?: string | string[]; van?: string | string[] }>;
 }) {
   const user = await getRequestUser();
   if (!user) redirect("/login");
@@ -119,6 +119,7 @@ export default async function BriljantPage({
   // De stenen die je naast de jouwe kunt zetten of in de zaal los kunt bekijken. Van
   // andere leden zie je alleen punten: een steen uit een snapshot zonder `own`.
   const stoneFor = (id: string): BriljantCompare | null => {
+    if (id === "ik") return { id, name: "Jij", label: "Jij", short: "Jij", view: live };
     if (id === "records") {
       return { id, name: "Records", label: "Records", short: "Record", view: records.view, holders: records.holders };
     }
@@ -162,10 +163,21 @@ export default async function BriljantPage({
   const tab: BriljantTab =
     params.tab === "zwb" || met === "zaal" ? "zwb" : params.tab === "vergelijken" || (met && params.tab !== "ik") ? "vergelijken" : "ik";
   const lid = tab === "zwb" && typeof params.lid === "string" ? params.lid : null;
-  const subject = lid ? stoneFor(lid) : null;
-  const compare =
-    tab === "vergelijken" ? (stoneFor(met ?? "") ?? stoneFor(average ? "zwb" : (members[0]?.id ?? "records"))) : null;
-  const lines = compare?.subject ? compareLines(live, compare.view, compare.subject) : [];
+  // Vergelijken: links (`van`, standaard jij) tegen rechts (`met`). Ook twee andere
+  // leden tegen elkaar (eigenaar, 2026-10-22).
+  const vanId = tab === "vergelijken" && typeof params.van === "string" ? params.van : "ik";
+  const left = tab === "vergelijken" ? (stoneFor(vanId) ?? stoneFor("ik")!) : null;
+  const fallback = left?.id === "ik" ? (average ? "zwb" : (members[0]?.id ?? "records")) : "ik";
+  const right = tab === "vergelijken" ? (met && met !== left?.id ? stoneFor(met) : null) ?? stoneFor(fallback) : null;
+  // Een steen los in de zaal, of links bij vergelijken als dat niet jij bent.
+  const subject = lid ? stoneFor(lid) : left && left.id !== "ik" ? left : null;
+  const compare = right;
+  // Zinnen alleen tussen jou, leden en het ZWB-gemiddelde: null is jij.
+  const nameOf = (stone: BriljantCompare) => (stone.id === "ik" ? null : stone.subject);
+  const lines =
+    left && right && nameOf(left) !== undefined && nameOf(right) !== undefined
+      ? compareLines(left.view, right.view, nameOf(left) as string | null, nameOf(right) as string | null)
+      : [];
 
   // De zaal: je steen van nu, het ZWB-gemiddelde, iedereen die deelt en de records,
   // elk met een bordje: renner, woonplaats of regio (als bekend), score en datum.

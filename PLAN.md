@@ -11289,8 +11289,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: score als optelling, drie tabbladen, vergelijken in woorden
 
-**2026-10-22.** Commit: de commit die dit blok toevoegt. Migratie
-`0268_zwbriljant_share_to_see.sql`, **nog niet toegepast**. Niet gepusht.
+**2026-10-22.** Commits `26a5f6cb` en de commit die "ook twee anderen vergelijken" toevoegt.
+Migratie `0268_zwbriljant_share_to_see.sql`, **nog niet toegepast**. Niet gepusht.
 
 - **De score is een optelling** (eigenaar). `profileScore` telt gewicht × niveau op met de
   vaste gewichten; een onderdeel zonder gegevens telt voor 0. Eerst gingen de gewichten
@@ -11312,10 +11312,17 @@ link naar `/live/[eventId]`, zie de update hierboven).
   datum), ZWB (`?tab=zwb`, de zaal; een bordje opent die steen los met `&lid=`, zonder de
   jouwe ernaast) en Vergelijken (`?tab=vergelijken&met=`, standaard het ZWB-gemiddelde).
   Oude links met `?met=` werken nog. Bij een losse steen: "Naar de zaal" en "Vergelijk met mij".
+  (Vergelijken kreeg later in dezelfde ronde ook een keuze links; zie hieronder.)
+- **Ook twee anderen vergelijken** (eigenaar, zelfde dag): Vergelijken heeft links (`van`,
+  standaard jij) en rechts (`met`) een keuze uit jij, het ZWB-gemiddelde, je mooiste steen,
+  de records en de leden. Kies je links hetzelfde als rechts, dan valt rechts terug op jij
+  (of, als links jij is, op het ZWB-gemiddelde).
 - **Vergelijken in woorden** (`compareLines`): de drie grootste verschillen per onderdeel
   vanaf 30 punten, als zin over wat het in een rit betekent ("een bordjessprint winnen
   wordt lastig", "als jullie samen de Alpe op rijden…"), met "iets", "een stuk" of "veel"
-  bij 30, 100 en 200 punten. Alleen bij leden en het ZWB-gemiddelde; niet bij de records
+  bij 30, 100 en 200 punten. De zinnen werken voor jij tegen een ander en voor twee anderen
+  ("Als ze samen de Alpe op rijden, kan Piet Jan niet bijhouden"). Alleen tussen jou, leden
+  en het ZWB-gemiddelde; niet bij de records
   of je mooiste steen, waar zulke zinnen niet passen.
 - **De klasse op de plek van "punten"** in de kop: "455 *Platina*"; de aparte regel met de
   klasse is weg. Ook op de museumbordjes staat geen "punten" meer.

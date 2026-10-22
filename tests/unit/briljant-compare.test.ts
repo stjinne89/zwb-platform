@@ -138,24 +138,38 @@ describe("compareLines", () => {
   const stone = (facets: StoredSnapshot["facets"]) =>
     viewFromSnapshot({ seed: "x", snapshot: { week: "2026-10-19", score: 5, facets, consistency: null }, source: "x" });
   const me = stone({ sprint: 5, anaeroob: 5, vo2max: 5, drempel: 5, racen: 5 });
+  const piet = stone({ sprint: 7.5, anaeroob: 5.1, vo2max: 5.5, drempel: 3.8, racen: 6.3 });
 
-  it("noemt de grootste verschillen in woorden, hooguit drie", () => {
-    const other = stone({ sprint: 7.5, anaeroob: 5.1, vo2max: 5.5, drempel: 3.8, racen: 6.3 });
-    const lines = compareLines(me, other, "Piet");
-    expect(lines).toEqual([
+  it("noemt de grootste verschillen tussen jou en een ander in woorden, hooguit drie", () => {
+    expect(compareLines(me, piet, null, "Piet")).toEqual([
       "Piet is een veel betere sprinter dan jij: een bordjessprint winnen wordt lastig.",
-      "In een race eindigt Piet meestal voor je.",
+      "In een race eindigt Piet meestal voor jou.",
       "Als jullie samen de Alpe op rijden, kan Piet jou niet bijhouden.",
     ]);
   });
 
-  it("begint met een hoofdletter en zegt het als jullie aan elkaar gewaagd zijn", () => {
+  it("draait de zinnen om als jij rechts staat", () => {
+    expect(compareLines(piet, me, "Piet", null)[0]).toBe(
+      "Piet is een veel betere sprinter dan jij: een bordjessprint winnen wordt lastig.",
+    );
+  });
+
+  it("vergelijkt ook twee anderen met elkaar", () => {
+    expect(compareLines(piet, me, "Piet", "Jan")).toEqual([
+      "Piet is een veel betere sprinter dan Jan: de bordjessprint is voor Piet.",
+      "In een race eindigt Piet meestal voor Jan.",
+      "Als ze samen de Alpe op rijden, kan Piet Jan niet bijhouden.",
+    ]);
+  });
+
+  it("begint met een hoofdletter en zegt het als ze aan elkaar gewaagd zijn", () => {
     const average = stone({ sprint: 5.1, anaeroob: 4.9, vo2max: 5, drempel: 5.2, racen: 5 });
-    expect(compareLines(me, average, "het gemiddelde ZWB-lid")).toEqual(["Het gemiddelde ZWB-lid en jij zijn aan elkaar gewaagd."]);
+    expect(compareLines(me, average, null, "het gemiddelde ZWB-lid")).toEqual(["Het gemiddelde ZWB-lid en jij zijn aan elkaar gewaagd."]);
+    expect(compareLines(average, me, "het gemiddelde ZWB-lid", "Piet")).toEqual(["Het gemiddelde ZWB-lid en Piet zijn aan elkaar gewaagd."]);
   });
 
   it("slaat onderdelen over die een van beiden niet heeft", () => {
     const other = stone({ sprint: 5, anaeroob: 5, vo2max: 5, drempel: 5, fitheid: 9 });
-    expect(compareLines(me, other, "Piet")).toEqual(["Piet en jij zijn aan elkaar gewaagd."]);
+    expect(compareLines(me, other, null, "Piet")).toEqual(["Piet en jij zijn aan elkaar gewaagd."]);
   });
 });

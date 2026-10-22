@@ -164,65 +164,67 @@ const mateOf = (difference: number): Mate => (difference >= 200 ? "veel" : diffe
 const BETTER: Record<Mate, string> = { iets: "net iets", "een stuk": "flink", veel: "veel" };
 
 /**
- * Per onderdeel een zin als de ander (`n`) beter is en een als jij beter bent. Wat
- * het onderdeel in een rit betekent, niet het getal: dat staat al op de steen.
+ * Wie er in een zin staat: een naam ("Piet", "het gemiddelde ZWB-lid") of jij.
+ * Zo werken de zinnen voor jij tegen een ander en voor twee anderen tegen elkaar.
  */
-const LINES: Record<Facet, { theirs: (n: string, mate: Mate) => string; mine: (n: string, mate: Mate) => string }> = {
-  sprint: {
-    theirs: (n, mate) => `${n} is een ${BETTER[mate]} betere sprinter dan jij: een bordjessprint winnen wordt lastig.`,
-    mine: (n, mate) => `Jij bent een ${BETTER[mate]} betere sprinter dan ${n}: de bordjessprint is voor jou.`,
-  },
-  anaeroob: {
-    theirs: (n, mate) => (mate === "iets" ? `Als ${n} aanvalt, moet je even diep.` : `Als ${n} aanvalt, kom je moeilijk mee.`),
-    mine: (n, mate) => (mate === "iets" ? `Met een aanval zet jij ${n} onder druk.` : `Met een aanval rijd jij ${n} los.`),
-  },
-  vo2max: {
-    theirs: (n, mate) => (mate === "iets" ? `Op een korte klim komt ${n} net voor je boven.` : `Op een korte klim rijdt ${n} bij je weg.`),
-    mine: (n, mate) => (mate === "iets" ? `Op een korte klim kom jij net voor ${n} boven.` : `Op een korte klim rijd jij ${n} uit het wiel.`),
-  },
-  drempel: {
-    theirs: (n, mate) =>
-      mate === "iets" ? `Samen de Alpe op? Dan komt ${n} net iets eerder boven.` : `Als jullie samen de Alpe op rijden, kun jij ${n} niet bijhouden.`,
-    mine: (n, mate) =>
-      mate === "iets" ? `Samen de Alpe op? Dan kom jij net iets eerder boven.` : `Als jullie samen de Alpe op rijden, kan ${n} jou niet bijhouden.`,
-  },
-  durability: {
-    theirs: (n, mate) => `${n} houdt na een lange rit ${mate} meer over: in de finale ben jij eerder leeg.`,
-    mine: (n, mate) => `Jij houdt na een lange rit ${mate} meer over dan ${n}: in de finale heb jij nog wat.`,
-  },
-  fitheid: {
-    theirs: (n, mate) => `${n} traint op dit moment ${mate} meer dan jij.`,
-    mine: (n, mate) => `Jij traint op dit moment ${mate} meer dan ${n}.`,
-  },
-  racen: {
-    theirs: (n, mate) => (mate === "iets" ? `In een race eindigt ${n} vaak net voor je.` : `In een race eindigt ${n} meestal voor je.`),
-    mine: (n, mate) => (mate === "iets" ? `In een race eindig jij vaak net voor ${n}.` : `In een race eindig jij meestal voor ${n}.`),
-  },
+type Person = { name: string; you: boolean };
+const who = (person: Person) => (person.you ? "jij" : person.name);
+const whom = (person: Person) => (person.you ? "jou" : person.name);
+/** Een werkwoord na het onderwerp of erachter: "Piet komt", "kom jij", "Jij bent". */
+const is = (person: Person) => (person.you ? "bent" : "is");
+const after = (person: Person, third: string, you: string) => (person.you ? `${you} jij` : `${third} ${person.name}`);
+
+/**
+ * Per onderdeel de zin bij `w` (beter) tegen `l`: wat het onderdeel in een rit
+ * betekent, niet het getal, want dat staat al op de steen.
+ */
+const LINES: Record<Facet, (w: Person, l: Person, mate: Mate) => string> = {
+  sprint: (w, l, mate) =>
+    `${who(w)} ${is(w)} een ${BETTER[mate]} betere sprinter dan ${who(l)}: ` +
+    (l.you ? "een bordjessprint winnen wordt lastig." : `de bordjessprint is voor ${whom(w)}.`),
+  anaeroob: (w, l, mate) =>
+    mate === "iets"
+      ? `Als ${who(w)} aanvalt, moet ${who(l)} even diep.`
+      : `Als ${who(w)} aanvalt, ${after(l, "komt", "kom")} moeilijk mee.`,
+  vo2max: (w, l, mate) =>
+    mate === "iets"
+      ? `Op een korte klim ${after(w, "komt", "kom")} net voor ${whom(l)} boven.`
+      : `Op een korte klim ${after(w, "rijdt", "rijd")} bij ${l.you ? "je" : l.name} weg.`,
+  drempel: (w, l, mate) =>
+    mate === "iets"
+      ? `Samen de Alpe op? Dan ${after(w, "komt", "kom")} net iets eerder boven.`
+      : `Als ${w.you || l.you ? "jullie" : "ze"} samen de Alpe op rijden, ${after(l, "kan", "kun")} ${whom(w)} niet bijhouden.`,
+  durability: (w, l, mate) =>
+    `${who(w)} houdt na een lange rit ${mate} meer over dan ${who(l)}: in de finale ${after(l, "is", "ben")} eerder leeg.`,
+  fitheid: (w, l, mate) => `${who(w)} traint op dit moment ${mate} meer dan ${who(l)}.`,
+  racen: (w, l, mate) => `In een race ${after(w, "eindigt", "eindig")} ${mate === "iets" ? "vaak net" : "meestal"} voor ${whom(l)}.`,
 };
 
 const capitalize = (line: string) => line.charAt(0).toUpperCase() + line.slice(1);
 
 /**
- * Korte zinnen bij het vergelijken met een ander (`name`, zoals in een zin: "Piet",
- * "het gemiddelde ZWB-lid"): de grootste verschillen per onderdeel, vanaf
- * EVEN_POINTS punten. Alleen onderdelen die jullie allebei hebben. Zonder groot
- * verschil één zin dat jullie aan elkaar gewaagd zijn.
+ * Korte zinnen bij het vergelijken van twee stenen: de grootste verschillen per
+ * onderdeel, vanaf EVEN_POINTS punten. Een naam is zoals in een zin ("Piet", "het
+ * gemiddelde ZWB-lid"); null is jij. Alleen onderdelen die ze allebei hebben.
+ * Zonder groot verschil één zin dat ze aan elkaar gewaagd zijn.
  */
-export function compareLines(mine: BriljantView, theirs: BriljantView, name: string): string[] {
-  const own = new Map(mine.facets.map((facet) => [facet.key, facet.points]));
-  const differences = theirs.facets
-    .filter((facet) => own.has(facet.key))
+export function compareLines(a: BriljantView, b: BriljantView, aName: string | null, bName: string | null): string[] {
+  const first: Person = { name: aName ?? "", you: aName == null };
+  const second: Person = { name: bName ?? "", you: bName == null };
+  const own = new Map(a.facets.map((facet) => [facet.key, facet.points]));
+  const shared = b.facets.filter((facet) => own.has(facet.key));
+  const differences = shared
     .map((facet) => ({ key: facet.key, difference: facet.points - own.get(facet.key)! }))
     .filter((entry) => Math.abs(entry.difference) >= EVEN_POINTS)
-    .sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference))
+    .sort((x, y) => Math.abs(y.difference) - Math.abs(x.difference))
     .slice(0, MAX_LINES);
   if (differences.length === 0) {
-    return own.size > 0 && theirs.facets.some((facet) => own.has(facet.key))
-      ? [capitalize(`${name} en jij zijn aan elkaar gewaagd.`)]
-      : [];
+    // "Piet en jij": jij achteraan.
+    const pair = first.you ? [second, first] : [first, second];
+    return shared.length > 0 ? [capitalize(`${who(pair[0])} en ${who(pair[1])} zijn aan elkaar gewaagd.`)] : [];
   }
   return differences.map(({ key, difference }) => {
     const mate = mateOf(Math.abs(difference));
-    return capitalize(difference > 0 ? LINES[key].theirs(name, mate) : LINES[key].mine(name, mate));
+    return capitalize(difference > 0 ? LINES[key](second, first, mate) : LINES[key](first, second, mate));
   });
 }

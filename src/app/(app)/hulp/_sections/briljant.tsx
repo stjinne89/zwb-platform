@@ -157,8 +157,9 @@ export function BriljantHelp() {
               Bovenaan kies je tussen drie tabbladen. Ik is je eigen steen, met de datum. ZWB is de zaal: een museum
               met alle stenen die je mag zien op een rij sokkels, van laag naar hoog met de recordsteen achteraan.
               Scroll of sleep erlangs; klik op het bordje op een sokkel om die steen los te bekijken. Vergelijken
-              zet een tweede steen naast de jouwe: het ZWB-gemiddelde, je mooiste steen (de week met je hoogste
-              score), de records of een lid. Onderin staat in een paar zinnen waar het verschil zit; klik op de
+              zet twee stenen naast elkaar: standaard de jouwe tegen het ZWB-gemiddelde, maar links en rechts kies
+              je zelf uit jij, het ZWB-gemiddelde, je mooiste steen (de week met je hoogste score), de records en
+              de leden, dus ook twee leden tegen elkaar. Onderin staat in een paar zinnen waar het verschil zit; klik op de
               tweede steen voor de onderdelen naast elkaar. Van anderen zie je alleen punten.
             </dd>
             <dt className="font-medium">Records</dt>

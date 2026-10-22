@@ -58,7 +58,10 @@ type Props = {
   tab: BriljantTab;
   /** De steen in beeld: de jouwe, of bij ZWB die van `subject`. */
   view: View;
-  /** Bij ZWB: de steen die je los bekijkt; null is de zaal. */
+  /**
+   * De steen in beeld als die niet van jou is: bij ZWB de steen die je los bekijkt
+   * (null is de zaal), bij Vergelijken de linker (null is jij).
+   */
   subject: BriljantCompare | null;
   /** De maandag van de getoonde week bij een steen uit het verleden; null is nu. */
   asOf: string | null;
@@ -174,6 +177,7 @@ function Meter({ facet }: { facet: FacetView }) {
 function PanelBody({
   panel,
   view,
+  subject,
   compare,
   lines,
   wins,
@@ -181,6 +185,7 @@ function PanelBody({
 }: {
   panel: NonNullable<Panel>;
   view: View;
+  subject: BriljantCompare | null;
   compare: BriljantCompare | null;
   lines: string[];
   wins: Win[];
@@ -240,8 +245,8 @@ function PanelBody({
           <thead>
             <tr>
               <th>Onderdeel</th>
-              <th>Jij</th>
-              <th>{compare.short}</th>
+              <th>{subject?.label ?? "Jij"}</th>
+              <th>{compare.label}</th>
             </tr>
           </thead>
           <tbody>
@@ -450,13 +455,15 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
    * Tabblad, datum, het lid in de zaal en de vergelijking staan in de adresbalk,
    * zodat terug en delen gewoon werken. Een ander tabblad begint schoon.
    */
-  const go = (next: { tab?: BriljantTab; datum?: string | null; lid?: string | null; met?: string | null }) => {
+  const go = (next: { tab?: BriljantTab; datum?: string | null; lid?: string | null; van?: string | null; met?: string | null }) => {
     const target = next.tab ?? tab;
     const params = new URLSearchParams();
     if (target !== "ik") params.set("tab", target);
     const datum = next.datum !== undefined ? next.datum : target === tab ? dates.chosen : null;
     if (target === "ik" && datum) params.set("datum", datum);
     if (target === "zwb" && next.lid) params.set("lid", next.lid);
+    const van = next.van !== undefined ? next.van : target === tab && tab === "vergelijken" ? (subject?.id ?? null) : null;
+    if (target === "vergelijken" && van && van !== "ik") params.set("van", van);
     const met = next.met !== undefined ? next.met : target === tab ? (compare?.id ?? null) : null;
     if (target === "vergelijken" && met) params.set("met", met);
     setPanel(null);
@@ -570,7 +577,7 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
                 )}
               </>
             )}
-            {subject && (
+            {tab === "zwb" && subject && (
               <>
                 <button type="button" className={styles.now} onClick={() => go({ lid: null })}>
                   Naar de zaal
@@ -583,19 +590,28 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
               </>
             )}
             {tab === "vergelijken" && (
-              <label className={styles.control}>
-                <span className="sr-only">Vergelijk met</span>
-                <select value={compare?.id ?? ""} onChange={(event) => go({ met: event.target.value || null })}>
-                  {options.average && <option value="zwb">ZWB-gemiddelde</option>}
-                  {options.best && <option value="mooiste">Mijn mooiste steen</option>}
-                  <option value="records">Records</option>
-                  {options.members.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <>
+                {/* Links en rechts: jij, het ZWB-gemiddelde, je mooiste steen, de records of een lid. */}
+                {(["van", "met"] as const).map((side) => (
+                  <label key={side} className={styles.control}>
+                    <span className="sr-only">{side === "van" ? "Vergelijk" : "met"}</span>
+                    <select
+                      value={side === "van" ? (subject?.id ?? "ik") : (compare?.id ?? "")}
+                      onChange={(event) => go({ [side]: event.target.value || null })}
+                    >
+                      <option value="ik">Jij</option>
+                      {options.average && <option value="zwb">ZWB-gemiddelde</option>}
+                      {options.best && <option value="mooiste">Mijn mooiste steen</option>}
+                      <option value="records">Records</option>
+                      {options.members.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </>
             )}
             {hidden && tab !== "ik" && (
               <Link href="/profiel#zichtbaarheid" className={styles.now}>
@@ -755,6 +771,7 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
             <PanelBody
               panel={panel}
               view={view}
+              subject={subject}
               compare={compare}
               lines={lines}
               wins={wins}

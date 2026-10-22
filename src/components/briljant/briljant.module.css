@@ -815,8 +815,9 @@
   text-transform: none;
 }
 
+/* Twee keuzes naast elkaar bij Vergelijken. */
 .control select {
-  max-width: 170px;
+  max-width: 150px;
 }
 
 .now {
