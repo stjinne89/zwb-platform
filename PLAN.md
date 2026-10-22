@@ -11293,7 +11293,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — jaarplan volgt een verschoven event
 
-**2026-10-22.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-22.** Commit `611f096c`, op 2026-10-22 gepusht naar `main`. Geen migratie.
 
 De GF Belgium UCI Qualifier stond in de kalender op zondag 28 maart 2027 en in het
 jaarplan op zaterdag 27 maart (eigenaar). Een mikpunt op een clubevent kreeg bij
