@@ -53,9 +53,8 @@ export function RecoveryCard({
                 value={summary.sleepHours != null ? `${summary.sleepHours}u` : "—"}
               />
             </div>
-            {/* Zonder verse waarden zegt de notitie "binnen de normale range"
-                terwijl er niets gemeten is; dan liever de laatste dag waarop er
-                wél iets binnenkwam. */}
+            {/* Zonder verse waarden de laatste dag waarop er wél iets
+                binnenkwam, in rood: dan stokt meestal de koppeling. */}
             {summary.hrv != null || summary.restingHr != null || summary.sleepHours != null ? (
               <p className="text-xs text-muted-foreground">{summary.note}</p>
             ) : (

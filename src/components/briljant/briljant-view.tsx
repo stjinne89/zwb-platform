@@ -72,7 +72,8 @@ type Props = {
   /** Bij Vergelijken: de verschillen in woorden. */
   lines: string[];
   options: {
-    average: boolean;
+    /** De gemiddelde stenen met genoeg leden: van iedereen, mannen en vrouwen. */
+    averages: Array<{ id: string; label: string }>;
     members: Array<{ id: string; name: string }>;
     /** Je mooiste steen tot nu toe, als keuze bij vergelijken. */
     best: boolean;
@@ -591,7 +592,7 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
             )}
             {tab === "vergelijken" && (
               <>
-                {/* Links en rechts: jij, het ZWB-gemiddelde, je mooiste steen, de records of een lid. */}
+                {/* Links en rechts: jij, een gemiddelde, je mooiste steen, de records of een lid. */}
                 {(["van", "met"] as const).map((side) => (
                   <label key={side} className={styles.control}>
                     <span className="sr-only">{side === "van" ? "Vergelijk" : "met"}</span>
@@ -600,7 +601,11 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
                       onChange={(event) => go({ [side]: event.target.value || null })}
                     >
                       <option value="ik">Jij</option>
-                      {options.average && <option value="zwb">ZWB-gemiddelde</option>}
+                      {options.averages.map((average) => (
+                        <option key={average.id} value={average.id}>
+                          {average.label}
+                        </option>
+                      ))}
                       {options.best && <option value="mooiste">Mijn mooiste steen</option>}
                       <option value="records">Records</option>
                       {options.members.map((member) => (

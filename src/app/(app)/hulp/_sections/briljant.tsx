@@ -161,7 +161,7 @@ export function BriljantHelp() {
               met alle stenen die je mag zien op een rij sokkels, van laag naar hoog met de recordsteen achteraan.
               Scroll of sleep erlangs; klik op het bordje op een sokkel om die steen los te bekijken. Vergelijken
               zet twee stenen naast elkaar: standaard de jouwe tegen het ZWB-gemiddelde, maar links en rechts kies
-              je zelf uit jij, het ZWB-gemiddelde, je mooiste steen (de week met je hoogste score), de records en
+              je zelf uit jij, de gemiddelden, je mooiste steen (de week met je hoogste score), de records en
               de leden, dus ook twee leden tegen elkaar. Onderin staat in een paar zinnen waar het verschil zit; klik op de
               tweede steen voor de onderdelen naast elkaar. Van anderen zie je alleen punten.
             </dd>
@@ -180,7 +180,10 @@ export function BriljantHelp() {
             <dt className="font-medium">ZWB-gemiddelde</dt>
             <dd className="text-muted-foreground">
               Per onderdeel het gemiddelde van de laatste steen van iedereen met ZWBriljant uit de afgelopen acht
-              weken, anoniem en pas vanaf vijf leden.
+              weken, anoniem en pas vanaf vijf leden. Daarnaast is er een gemiddelde ZWB-man en een gemiddelde
+              ZWB-vrouw, naar het geslacht in het profiel; wie dat leeg laat, telt alleen mee in het
+              ZWB-gemiddelde. Ook die verschijnen pas vanaf vijf leden, en een onderdeel dat minder dan vijf leden
+              hebben, blijft op een gemiddelde steen leeg.
             </dd>
             <dt className="font-medium">Hier win je het meest</dt>
             <dd className="text-muted-foreground">

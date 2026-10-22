@@ -90,12 +90,19 @@ export async function syncOnePowerProfile(
   }
 
   try {
-    const [curve, athlete, wellness] = await Promise.all([
+    const [curve, athlete, wellness, latestTest] = await Promise.all([
       fetchIntervalsPowerCurve(connection.api_key, athleteId, "90d", {
         includeFatigue: true,
       }),
       fetchIntervalsAthlete(connection.api_key).catch(() => null),
       fetchIntervalsWellness(connection.api_key, athleteId, 30).catch(() => []),
+      supabase
+        .from("training_ftp_tests")
+        .select("ftp_watts")
+        .eq("profile_id", connection.profile_id)
+        .order("tested_on", { ascending: false })
+        .limit(1)
+        .then(({ data }: { data: { ftp_watts: number | null }[] | null }) => data?.[0] ?? null),
     ]);
     const watts15s = wattsAtDuration(curve.points, 15);
     const watts30s = wattsAtDuration(curve.points, 30);
@@ -106,12 +113,19 @@ export async function syncOnePowerProfile(
     const watts20m = wattsAtDuration(curve.points, 1200);
     const profile = connectionProfile(connection);
     const athleteDefaults = athletePhysique(athlete);
+    const testFtp = numberOrNull(latestTest?.ftp_watts);
+    const eftpWatts =
+      numberOrNull(curve.ftpWatts) ??
+      latestWellnessValue(wellness, "eftp") ??
+      athleteDefaults.eftpWatts;
+    // Voorrang: de laatste FTP-test, dan de ingestelde FTP in intervals.icu, dan
+    // de eFTP, dan het profiel. Dezelfde volgorde als /zwbeter-worden/vermogen.
     const payload = powerProfilePayload({
       ftpWatts:
-        curve.ftpWatts ??
+        testFtp ??
         athleteDefaults.ftpWatts ??
-        latestWellnessValue(wellness, "eftp") ??
-        profile?.ftp_watts ??
+        eftpWatts ??
+        numberOrNull(profile?.ftp_watts) ??
         watts20m ??
         null,
       weightKg:
@@ -149,18 +163,10 @@ export async function syncOnePowerProfile(
     // Opt-in: het lid laat FTP en gewicht in het profiel meelopen met intervals.
     if (profile?.auto_sync_physique) {
       const physique: Record<string, number> = {};
-      // Voorrang voor de FTP: een test, dan intervals.icu, dan wat het lid zelf
-      // invulde. Heeft het lid een testuitslag, dan houdt het profiel die vast
-      // tot de volgende test; de eFTP schuift er niet meer overheen.
-      const { data: tested } = await supabase
-        .from("training_ftp_tests")
-        .select("id")
-        .eq("profile_id", connection.profile_id)
-        .limit(1);
-      const syncedFtp =
-        (tested ?? []).length > 0
-          ? null
-          : athleteDefaults.ftpWatts ?? latestWellnessValue(wellness, "eftp");
+      // Heeft het lid een testuitslag, dan houdt het profiel die vast tot de
+      // volgende test. Anders neemt het profiel de ingestelde FTP over; de eFTP
+      // is een schatting en wordt nooit weggeschreven (sinds 2026-10-22).
+      const syncedFtp = latestTest ? null : athleteDefaults.ftpWatts;
       const syncedWeight = latestWellnessValue(wellness, "weight") ?? athleteDefaults.weightKg;
       if (syncedFtp) physique.ftp_watts = Math.round(syncedFtp);
       if (syncedWeight) physique.weight_kg = Math.round(syncedWeight * 10) / 10;

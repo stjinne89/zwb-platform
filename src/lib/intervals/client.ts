@@ -605,7 +605,12 @@ export async function fetchIntervalsPowerCurveRanges(
   return out;
 }
 
-/** FTP en gewicht uit de athlete-instellingen; het mmp-model gaat voor. */
+/**
+ * FTP en gewicht uit de athlete-instellingen. `ftpWatts` is de FTP die het lid
+ * zelf instelde; daarmee rekent intervals.icu zones en TSS. De schatting uit het
+ * vermogensmodel staat apart in `eftpWatts`, zodat ze niet als ingestelde FTP
+ * doorgaat (tot 2026-10-22 ging het model voor).
+ */
 export function athletePhysique(athlete: IntervalsAthlete | null) {
   const rideSettings = rideSportSettings(athlete);
   const positive = (value: unknown) => {
@@ -614,10 +619,10 @@ export function athletePhysique(athlete: IntervalsAthlete | null) {
   };
   return {
     ftpWatts:
-      positive(rideSettings?.mmp_model?.ftp) ??
       positive(rideSettings?.ftp) ??
       positive(rideSettings?.indoor_ftp) ??
       positive(athlete?.ftp),
+    eftpWatts: positive(rideSettings?.mmp_model?.ftp),
     weightKg: positive(rideSettings?.weight) ?? positive(athlete?.weight),
   };
 }

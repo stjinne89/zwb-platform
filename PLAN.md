@@ -284,7 +284,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0271`
-(`0270_zwbriljant_weights_fitheid20` is van ZWBriljant fitheid 20% en racen 12,5%, 2026-10-22, nog niet toegepast;
+(`0270_zwbriljant_weights_fitheid20` is van ZWBriljant fitheid 20% en racen 12,5%, 2026-10-22, toegepast op 2026-10-22;
 `0269_zwbriljant_ctl40` is van ZWBriljant CTL-Goud op 40 en vermogen 50%, 2026-10-22, toegepast op 2026-10-22;
 `0268_zwbriljant_share_to_see` is van ZWBriljant alleen zien als je deelt, 2026-10-22, toegepast op 2026-10-22;
 `0267_zwbriljant_share_by_default` is van ZWBriljant standaard gedeeld, 2026-10-21, toegepast op 2026-10-21;
@@ -11289,10 +11289,123 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: een gemiddelde ZWB-man en een gemiddelde ZWB-vrouw
+
+**2026-10-22.** Commit `5a72b06c`, op 2026-10-22 gepusht naar `main` (eigenaar). Geen migratie.
+
+**Waarom.** De eigenaar wilde naast het ZWB-gemiddelde ook een gemiddelde steen voor
+mannen en een voor vrouwen. De niveaus zijn al per geslacht genormeerd, dus de stenen zijn
+naast elkaar te zetten.
+
+- `clubAverages()` (`src/lib/briljant/compare.ts`) geeft `zwb`, `man` en `vrouw`, elk via
+  `clubAverage()` met dezelfde grens van vijf leden. Het geslacht komt uit
+  `profiles.sex`; wie het leeg laat of "zeg ik liever niet" koos, telt alleen mee in `zwb`.
+  `loadClubAverages()` in `server.ts` vervangt `loadClubAverage()`.
+- Op `/stats/zwbriljant` staan "Gemiddelde ZWB-man" (`zwb-man`) en "Gemiddelde
+  ZWB-vrouw" (`zwb-vrouw`) in de zaal en als keuze bij Vergelijken, alleen als het
+  gemiddelde er is. In de zinnen heten ze "de gemiddelde ZWB-man/-vrouw". Het
+  ZWB-gemiddelde houdt zijn seed (`zwb-gemiddelde`) en dus zijn vorm.
+- **Ook nieuw, voor alle gemiddelden:** een onderdeel dat minder dan vijf leden hebben,
+  blijft leeg. Eerder middelde `clubAverage()` per onderdeel over wie het had, hoe weinig
+  ook; bij vijf mannen van wie één durability heeft, toonde de steen dan precies zijn
+  niveau. Dat raakt nu ook het ZWB-gemiddelde: een onderdeel van minder dan vijf leden valt
+  daar weg.
+- Privacyverklaring (`#zwbriljant`): de zin over het ZWB-gemiddelde noemt nu ook de
+  gemiddelden per geslacht, met de tekst die de eigenaar goedkeurde. Geen nieuwe versie
+  of hertekening: het geslacht was al opgegeven en werd al voor ZWBriljant gebruikt.
+  `/hulp` (ZWBriljant) legt de twee stenen en de grens per onderdeel uit.
+
+**Stand op productie (vóór de bouw gemeten):** 22 leden met een steen in de laatste acht
+weken: 5 mannen, 3 vrouwen, 14 zonder geslacht. De mannensteen verschijnt dus meteen, de
+vrouwensteen pas bij vijf vrouwen. Met de grens per onderdeel mist de mannensteen nu
+durability (2 mannen) en racen (4); het ZWB-gemiddelde verandert niet (durability 6 leden,
+de rest 19 of meer).
+
+**Bewust niet gedaan.** Een lagere grens voor de vrouwensteen (de eigenaar koos 5): met
+drie vrouwen leidt elke vrouw uit het gemiddelde en haar eigen score het totaal van de
+andere twee af. Wie geen geslacht opgaf, telt niet als man.
+
+**Getest.** `briljant-compare.test.ts`: de facettest aangepast aan de grens per onderdeel,
+plus een test voor die grens en twee voor `clubAverages()`. Alle ZWBriljant-tests (81), de
+volledige suite (3.287; vijf tests in `admin-areas`, `zwift-club-calendar` en
+`zwift-subgroup-results` liepen in de volle run uit de tijd en slagen los;
+`omnium-live.test.ts` mist `.env.local`), ESLint, `tsc` (alleen de bekende melding over
+`modern-screenshot`). **Niet getest:** de pagina in de browser.
+
+### Hersteld — Hersteldata: lege week heet niet langer "normaal", sync 40 dagen
+
+**2026-10-22.** Commit `966e5e7a` (eerst `782d935b` op de herstel-branch), op 2026-10-22 gepusht
+naar `main` (eigenaar). Geen migratie.
+
+**Aanleiding.** Een lid met een Garmin klaagde dat haar herstel-data niet binnenkwam.
+Uitgezocht in productie: ZWB haalde goed op (sync die ochtend zonder fout), maar
+intervals.icu leverde niets na 4 oktober. Haar ritten via `GARMIN_CONNECT` stoppen op
+2 oktober, daarna komen ze alleen via Strava binnen: de koppeling Garmin Connect →
+intervals.icu ligt stil. HRV, rust-HR en slaap komen alleen langs die weg, dus het
+herstel moet zij in intervals.icu opnieuw koppelen. Dat ligt buiten ZWB.
+
+**Wat ZWB fout deed.**
+- `summarizeWellness` gaf bij een lege laatste week maar gevulde baseline (data 8–37
+  dagen oud) de notitie "Herstelwaarden binnen de normale range." De herstelkaart op
+  `/zwbeter-worden` ving dat al op met een eigen rode melding, maar de AI, de coachchat
+  en de andere schermen kregen 18 dagen lang "normaal" te lezen. Nu: status `unknown`
+  en "Geen hersteldata van de laatste 7 dagen; laatste meting …".
+- `syncWellnessForUser` haalde 30 dagen op, de samenvatting kijkt 40 dagen terug
+  (`WELLNESS_SUMMARY_DAYS`). Na opt-in uit/aan (wist alles) of een eerste koppeling
+  ontbrak daardoor een week baseline. De sync volgt nu `WELLNESS_SUMMARY_DAYS`, ook in
+  `refreshWellnessIfStale` en de eerste sync na opt-in.
+
+**Bewust niet gedaan.** Geen melding aan het lid dat haar Garmin-koppeling in
+intervals.icu stilligt: ZWB ziet alleen dat er geen wellness meer komt, niet waarom.
+De bestaande rode melding met de laatste meetdatum is het signaal. De pagina's die de
+wellness zelf al ophalen (`_data.ts`, `training-data.ts`) houden hun eigen vensters.
+
+**Getest.** `wellness.test.ts` (1 nieuwe test met dit geval), de volledige suite
+(3.285 tests; de enige rode zijn timeouts onder last die los slagen, plus
+`omnium-live.test.ts` zonder `.env.local` in de worktree), ESLint op de gewijzigde
+bestanden, `tsc` (alleen de bekende `modern-screenshot`-melding). **Niet getest:** een
+echte sync tegen intervals.icu en de pagina in de browser.
+
+### Gebouwd — FTP uit intervals.icu: de ingestelde FTP, niet de modelschatting
+
+**2026-10-22.** Commits `e59eb4cf` en `2f514e4b` (PLAN), op 2026-10-22 gepusht naar
+`main` (eigenaar). Geen migratie.
+
+**Waarom.** `athletePhysique()` gaf als "FTP" eerst `mmp_model.ftp` terug: de eFTP uit
+het vermogensmodel van intervals.icu, niet de FTP die het lid instelde. Daardoor schreef
+de profielsync (`auto_sync_physique`) de eFTP in `profiles.ftp_watts`, en elk scherm had
+een eigen volgorde. De ingestelde FTP is het getal waarmee intervals.icu zones en TSS
+rekent en waarmee de FIT-export %FTP omzet naar watt.
+
+**Besluit eigenaar:** overal test → ingestelde FTP (`sportSettings[Ride].ftp`) → eFTP →
+profiel.
+
+- `athletePhysique()` (`src/lib/intervals/client.ts`) geeft nu `ftpWatts` (ingesteld:
+  `ftp`, dan `indoor_ftp`, dan de athlete-`ftp`) en apart `eftpWatts` (`mmp_model.ftp`).
+- `/zwbeter-worden/vermogen`: de tegel "FTP / eFTP" volgt de nieuwe volgorde; de eFTP
+  is de curve, dan de wellness, dan het model.
+- Powerprofiel-sync (`src/lib/teams/power-sync.ts`, knop op Teams en de wekelijkse
+  ZWBriljant-job): `rider_power_profiles.ftp_watts` volgt dezelfde volgorde. Een
+  testuitslag gaat nu ook daar voor; eerder stond de curve-/model-eFTP bovenaan.
+- Profielsync: zonder testuitslag schrijft die alleen de ingestelde FTP weg, nooit
+  meer de eFTP. Met een testuitslag blijft de FTP met rust, zoals sinds 2026-09-11.
+
+**Bewust niet veranderd.** Het schema-engine (`engine/daily.ts`, `engine/compose.ts`)
+rekent nog met `profiles.ftp_watts` en neemt de eFTP alleen als dat leeg is (besluit van
+2026-09-21; de eigenaar bevestigde op 2026-10-22 dat het schema zo blijft). Het profiel bevat daar al de test of, met de sync aan, de ingestelde FTP. De
+eFTP-tegel op `/zwbeter-worden` blijft een eFTP-trend; de terugval daarop heet nu terecht
+"FTP uit intervals.icu", want `intervalsFtp` is echt de ingestelde FTP.
+
+**Getest.** `intervals-athlete-physique.test.ts` (nieuw, 2 tests), de volledige suite
+(3.284 tests; `omnium-live.test.ts` laadt niet zonder `.env.local` in de worktree),
+ESLint op de gewijzigde bestanden, `tsc`. Die laatste meldt alleen `modern-screenshot`,
+dat in de gedeelde `node_modules` ontbreekt (staat los van deze ronde). **Niet getest:**
+de pagina in de browser en een echte sync tegen intervals.icu.
+
 ### Gebouwd — ZWBriljant: fitheid 20%, racen 12,5%
 
-**2026-10-22.** Commit: de commit die dit blok toevoegt. Migratie
-`0270_zwbriljant_weights_fitheid20.sql`, **nog niet toegepast**. Niet gepusht.
+**2026-10-22.** Commit `7dcfeeec`, op 2026-10-22 gepusht naar `main` (eigenaar). Migratie
+`0270_zwbriljant_weights_fitheid20.sql` toegepast op 2026-10-22, na de push.
 
 De eigenaar zette na de vorige stap fitheid op 20% (was 15%) en racen op 12,5% (was
 17,5%). Vermogen blijft samen 50%, durability 17,5%. Alleen de gewichten veranderen, niet
@@ -11305,8 +11418,9 @@ hoog op racen staat en weinig CTL heeft zakt (bijvoorbeeld 398 → 368); zonder 
 zakt het het meest (536 → 497, 340 → 309).
 
 **Getest.** Alle ZWBriljant-tests met de nieuwe waarden, `0269` gevolgd door `0270` in
-PGlite tegen `storedScore`, tsc, ESLint. **Niet getest:** `0270` op productie, de pagina in
-de browser.
+PGlite tegen `storedScore`, tsc, ESLint. Op productie: vóór en na `0270` 994 stenen op de
+schaal `2026-10-22-ctl40` (alle rijen), 962 met een score; gemiddelde score 4,29 → 4,20,
+bereik 0,61–7,92 → 0,48–7,99. **Niet getest:** de pagina in de browser.
 
 ### Gebouwd — ZWBriljant: de zaal heet de galerij
 
@@ -11819,6 +11933,8 @@ problemen op de telefoon, plus de steen van Pim Meulemeester met maar twee onder
 - **ZWB-gemiddelde** (`clubAverage`): per onderdeel het gemiddelde van de laatste
   snapshot per lid uit de afgelopen acht weken, ook van wie niet deelt; anoniem en pas
   vanaf vijf leden (`MIN_FOR_AVERAGE`). Via service_role, de RLS speelt er geen rol.
+  *Sinds 2026-10-22* ook per onderdeel pas vanaf vijf leden, en naast een gemiddelde
+  ZWB-man en ZWB-vrouw (zie de ronde bovenaan).
 - **Delen met alle leden** (keuze eigenaar): het vinkje "Deel mijn steen met leden"
   (`setBriljantSharing`) zet de toestemming `2026-10-21`. Migratie `0266` maakt delen
   eenzijdig: een gedeelde steen is zichtbaar voor elk goedgekeurd lid, ook als die zelf
@@ -17016,7 +17132,8 @@ ook stijgt bij overbelasting. Daar ging de verzachtingsregel tegenin.
   overbelasting kan zijn.
 - **Eén venster**: `WELLNESS_SUMMARY_DAYS = 40` voor `getWellnessSummary()`
   (AI en coachchat kregen 21 dagen), `/leden` en het trainersoverzicht (30
-  dagen).
+  dagen). De sync naar `profile_wellness` haalde nog 30 dagen op; sinds
+  2026-10-22 ook 40.
 - **Geen SDNN meer** als terugval voor rMSSD, bij het opslaan en in
   `computeZwbStatus`. Rijen in `profile_wellness` van vóór vandaag kunnen nog
   SDNN bevatten; die schuiven binnen 37 dagen uit het venster.
@@ -24413,8 +24530,11 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
      terwijl de code elders de test laat winnen. *Later op 2026-09-21:* de eFTP
      kwam in werkelijkheid nooit binnen (verkeerde veldnaam), en na het meten is
      besloten dat de profiel-FTP leidt; zie de ronde bovenaan. Dit punt is daarmee
-     dicht. De achtergrondsync blijft ontbreken, maar de meting laat geen
-     structureel te lage profiel-FTP zien.
+     dicht. De meting laat geen structureel te lage profiel-FTP zien. *Correctie
+     2026-10-22:* er is inmiddels wel een achtergrondsync. De wekelijkse
+     ZWBriljant-job draait de powerprofiel-sync bij een verouderd profiel, en
+     daarmee ook de profielsync. Die schrijft sindsdien de ingestelde FTP weg en
+     niet meer de eFTP; zie de ronde "FTP uit intervals.icu".
   2. ~~**Echte zones gaan niet mee.**~~ **Gesloten 2026-09-21:** gemeten; 10 van
      de 11 leden hebben de standaardzones, dus meegeven verandert niets. De lage
      wattages zaten in de duurblokken; zie de ronde bovenaan. Oorspronkelijk: `profile_sport_settings.power_zones` (+ CP,

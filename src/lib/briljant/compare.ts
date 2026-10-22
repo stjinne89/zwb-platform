@@ -129,17 +129,19 @@ export function viewFromSnapshot(args: {
 /**
  * Het ZWB-gemiddelde: per facet het gemiddelde niveau van wie dat facet heeft, de
  * gemiddelde score en consistentie, over de laatste snapshot per lid. Anoniem en
- * pas vanaf MIN_FOR_AVERAGE leden met een score; anders null.
+ * pas vanaf MIN_FOR_AVERAGE leden met een score; anders null. Een facet dat minder
+ * dan MIN_FOR_AVERAGE leden hebben, blijft leeg: anders toont het gemiddelde van
+ * één lid diens niveau (sinds 2026-10-22).
  */
 export function clubAverage(latest: StoredSnapshot[]): (StoredSnapshot & { members: number }) | null {
   const scored = latest.filter((snapshot) => snapshot.score != null);
   if (scored.length < MIN_FOR_AVERAGE) return null;
   const mean = (values: number[]) => (values.length === 0 ? null : round2(values.reduce((sum, value) => sum + value, 0) / values.length));
   const facets = Object.fromEntries(
-    FACETS.map((facet) => [
-      facet,
-      mean(scored.map((snapshot) => snapshot.facets[facet]).filter((value): value is number => value != null)),
-    ]),
+    FACETS.map((facet) => {
+      const values = scored.map((snapshot) => snapshot.facets[facet]).filter((value): value is number => value != null);
+      return [facet, values.length < MIN_FOR_AVERAGE ? null : mean(values)];
+    }),
   ) as Record<Facet, number | null>;
   const consistencies = scored.map((snapshot) => snapshot.consistency).filter((value): value is number => value != null);
   return {
@@ -148,6 +150,25 @@ export function clubAverage(latest: StoredSnapshot[]): (StoredSnapshot & { membe
     facets,
     consistency: mean(consistencies),
     members: scored.length,
+  };
+}
+
+/** Het gemiddelde van iedereen, en apart van mannen en van vrouwen. */
+export type AverageGroup = "zwb" | "man" | "vrouw";
+
+/**
+ * Het ZWB-gemiddelde en het gemiddelde per opgegeven geslacht, elk met dezelfde
+ * grens als clubAverage. Wie geen geslacht opgaf, telt alleen mee voor "zwb".
+ */
+export function clubAverages(
+  latest: Array<StoredSnapshot & { sex: Sex | null }>,
+): Record<AverageGroup, (StoredSnapshot & { members: number }) | null> {
+  const strip = (rows: typeof latest): StoredSnapshot[] =>
+    rows.map(({ week, score, facets, consistency }) => ({ week, score, facets, consistency }));
+  return {
+    zwb: clubAverage(strip(latest)),
+    man: clubAverage(strip(latest.filter((row) => row.sex === "man"))),
+    vrouw: clubAverage(strip(latest.filter((row) => row.sex === "vrouw"))),
   };
 }
 
