@@ -11289,6 +11289,15 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: vergelijkzinnen op een vlak
+
+**2026-10-22.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+De zinnen bij Vergelijken stonden los over de scène en waren soms slecht te lezen
+(eigenaar). Ze staan nu op een vlak zoals het uitlegpaneel (bijna ondoorzichtig donker,
+dunne rand), links uitgelijnd; op de telefoon over de hele breedte boven de app-balk.
+**Niet getest:** in de browser.
+
 ### Gebouwd — ZWBriljant: durability uit de laagste kJ-stand
 
 **2026-10-22.** Commit `518bdc91`, op 2026-10-22 gepusht naar `main`. Geen migratie.
