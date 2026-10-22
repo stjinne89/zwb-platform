@@ -284,7 +284,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0269`
-(`0268_zwbriljant_share_to_see` is van ZWBriljant alleen zien als je deelt, 2026-10-22, nog niet toegepast;
+(`0268_zwbriljant_share_to_see` is van ZWBriljant alleen zien als je deelt, 2026-10-22, toegepast op 2026-10-22;
 `0267_zwbriljant_share_by_default` is van ZWBriljant standaard gedeeld, 2026-10-21, toegepast op 2026-10-21;
 `0266_zwbriljant_share_all_members` is van ZWBriljant delen met alle leden, 2026-10-21, toegepast op 2026-10-21;
 `0265_zwbriljant` is van ZWBriljant (eerst `0265_zwbeter_berg`), 2026-10-21, toegepast op 2026-10-21;
@@ -11289,8 +11289,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: score als optelling, drie tabbladen, vergelijken in woorden
 
-**2026-10-22.** Commits `26a5f6cb` en de commit die "ook twee anderen vergelijken" toevoegt.
-Migratie `0268_zwbriljant_share_to_see.sql`, **nog niet toegepast**. Niet gepusht.
+**2026-10-22.** Commits `26a5f6cb` en `9b9c22d4`, op 2026-10-22 gepusht naar `main`.
+Migratie `0268_zwbriljant_share_to_see.sql` toegepast op 2026-10-22; de policy op productie
+nagekeken (`pg_policies`, met `not pref.visible`).
 
 - **De score is een optelling** (eigenaar). `profileScore` telt gewicht × niveau op met de
   vaste gewichten; een onderdeel zonder gegevens telt voor 0. Eerst gingen de gewichten
@@ -11335,8 +11336,9 @@ Migratie `0268_zwbriljant_share_to_see.sql`, **nog niet toegepast**. Niet gepush
 
 **Getest.** `briljant-score`, `-view`, `-compare` (`storedScore`, `compareLines`),
 `-snapshot` en `-migration` (0268 in PGlite), tsc, ESLint. **Niet getest:** de pagina in de
-browser (geen `.env.local` in deze worktree en inloggen kan ik niet), `0268` op productie,
-en of de nieuwe poging de wellness echt binnenhaalt.
+browser (geen `.env.local` in deze worktree en inloggen kan ik niet), het gedrag van `0268`
+met echte leden (alleen de policytekst nagekeken), en of de nieuwe poging de wellness echt
+binnenhaalt.
 
 ### Gebouwd — ZWBriljant: terugblikken opnieuw met gewicht en TSS
 
