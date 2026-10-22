@@ -11310,6 +11310,12 @@ rijdt bijna niemand nog een volle minuut voluit.
 - Niet gedaan: de stand met het minste verval per lid nemen (minder goed tussen leden te
   vergelijken), of zelf uit de ritten rekenen (eerder besloten: leden stellen 1000 en 2000
   kJ in).
+- **Bewust geen plafond bij Diamant** (eigenaar, zelfde dag). Twee leden staan boven 1000
+  op durability, één met 541 W vers en 537 W na 2000 kJ (94 kg: 0,35% per 10 kJ/kg, 1065
+  punten, boven de recordwaarde van de profs). Voorgesteld: minder verval dan de WorldTour
+  telt als Diamant, omdat de verse minuut dan waarschijnlijk niet maximaal was. De
+  eigenaar wees dat af: wie na 2000 kJ zo'n minuut rijdt, verdient die punten, en het zegt
+  ook iets over zijn verse potentie. Niet opnieuw voorstellen zonder nieuwe reden.
 
 Eerst `main` in deze branch gemerged (gemiddelde ZWB-man en -vrouw, hersteldata); één
 conflict in een commentaar van `stats/zwbriljant/page.tsx`, opgelost als "de galerij ...
