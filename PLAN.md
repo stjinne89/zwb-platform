@@ -11291,7 +11291,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: durability uit de laagste kJ-stand
 
-**2026-10-22.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-22.** Commit `518bdc91`, op 2026-10-22 gepusht naar `main`. Geen migratie.
 
 **Waarom.** De eigenaar vroeg waarom zijn durability zo laag was met 481 W vers en 452 W
 na 1000 kJ. `durabilityDecline` nam het gemiddelde over de kJ-standen, en na 2000 kJ was
