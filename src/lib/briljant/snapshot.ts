@@ -5,6 +5,7 @@
 // In de rij komen alleen niveaus, de score en de consistentie; welke bronnen er
 // waren staat als ja/nee in `provenance`. Nooit watt, W/kg, gewicht, CTL of ZRS.
 
+import { isCyclingSportType } from "@/lib/strava/sports";
 import { wattsAtDuration } from "@/lib/teams/power-profile";
 import { SCALE_VERSION } from "./norms";
 import {
@@ -230,6 +231,33 @@ export function powerFromCurve(
     return weightKg && weightKg > 0 ? watts / weightKg : null;
   };
   return { s15: at(15), m1: at(60), m5: at(300), m20: at(1200) };
+}
+
+/** Ouder dan dit wordt het powerprofiel altijd opnieuw opgehaald. */
+export const POWER_STALE_MS = 6 * 24 * 60 * 60 * 1000;
+/**
+ * Zo lang na het eind van een rit kan die in intervals.icu nog ontbreken: tot dan
+ * telt ophalen niet als bijgewerkt voor die rit.
+ */
+export const POWER_RIDE_LAG_MS = 30 * 60 * 1000;
+
+/** Een rit uit strava_activities. */
+export type SyncRide = { startDate: string; movingSeconds: number | null; sportType: string | null };
+
+/**
+ * Moet het powerprofiel opnieuw opgehaald worden? Zonder profiel, na zes dagen, en
+ * sinds 2026-10-22 ook na een fietsrit die pas (vlak) na het ophalen eindigde: daarin
+ * kan een nieuwe beste waarde zitten. Eerst bleef zo'n rit tot zes dagen buiten de
+ * steen (eigenaar: "of hij is nog niet geüpdatet?").
+ */
+export function powerProfileStale(syncedAt: string | null | undefined, rides: SyncRide[], now = Date.now()): boolean {
+  const synced = syncedAt ? Date.parse(syncedAt) : NaN;
+  if (!Number.isFinite(synced) || now - synced > POWER_STALE_MS) return true;
+  return rides.some(
+    (ride) =>
+      isCyclingSportType(ride.sportType) &&
+      Date.parse(ride.startDate) + (ride.movingSeconds ?? 0) * 1000 + POWER_RIDE_LAG_MS > synced,
+  );
 }
 
 /**

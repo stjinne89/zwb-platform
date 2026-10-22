@@ -11291,6 +11291,36 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — ZWBriljant: powerprofiel ververst na een nieuwe rit
+
+**2026-10-22.** Commit HASH, niet gepusht. Geen migratie.
+
+**Waarom.** De eigenaar vond anaeroob niet kloppen ("ik kom uit op 6,59, of is hij nog
+niet geüpdatet?"). De rekensom zelf klopt: de steen neemt de beste minuut van de
+laatste 90 dagen uit intervals.icu, 481 W bij 83 kg = 5,80 W/kg, tussen Platina (5,4)
+en Amethist (6,15), dus niveau 4,53 = 453 punten. Maar dat profiel was om 10:28
+opgehaald en de rit van 16:41 zat er niet in: een bezoek aan `/stats/zwbriljant` haalde
+het profiel pas opnieuw op als het ouder was dan zes dagen. Een nieuwe beste waarde
+kon dus tot zes dagen buiten de steen blijven.
+
+- **`powerProfileStale`** (`src/lib/briljant/snapshot.ts`): opnieuw ophalen zonder
+  profiel, na zes dagen, en nu ook na een fietsrit die eindigde na het ophalen of
+  minder dan 30 minuten ervoor (intervals.icu kan een rit net na afloop nog missen).
+  `refreshSources` gebruikt dit, dus zowel een bezoek als de wekelijkse job.
+- Kosten: één ophaalactie bij intervals.icu bij het eerste bezoek na een rit, en
+  bezoeken binnen een halfuur na een rit halen opnieuw op.
+- **Niet gedaan:** ophalen direct bij binnenkomst van een rit (Strava-webhook). Dat kost
+  een intervals-vraag per rit van elk lid, ook van wie de steen niet bekijkt.
+- **Niet vastgesteld:** waar de 6,59 van de eigenaar vandaan komt. Uit deze container is
+  intervals.icu niet bereikbaar; als het de beste minuut in W/kg is, hoort daar
+  ongeveer 547 W bij 83 kg bij, en dan is dat niveau 5,59 (559 punten), niet 6,59.
+- Bijgevangen, niet aangepast: de W/kg in de curve van intervals.icu rekent met 82 kg
+  (5,866 W/kg), het profiel met 83 kg (5,80). Het verschil is 9 punten anaeroob.
+
+**Getest.** `briljant-snapshot` (nieuwe test met de rit van de eigenaar), alle
+ZWBriljant-tests (83), tsc, ESLint. **Niet getest:** het ophalen zelf tegen intervals.icu
+en de pagina in de browser.
+
 ### Gebouwd — Materiaalrekenaar: GP 5000 30 mm met binnenband en ACG V4-sokken
 
 **2026-10-22.** Commit `8304aeb1`, op 2026-10-22 gepusht naar `main`. Geen migratie.

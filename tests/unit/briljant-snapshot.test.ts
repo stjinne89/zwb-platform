@@ -9,6 +9,7 @@ import {
   monthEndOfWeek,
   mondayKey,
   powerFromCurve,
+  powerProfileStale,
   raceCandidates,
   snapshotFrom,
   terugblikRows,
@@ -194,5 +195,22 @@ describe("snapshot", () => {
       { race: { day: "2026-09-10" }, use: "before" },
     ]);
     expect(raceCandidates([], "2026-07-31", 4)).toEqual([]);
+  });
+
+  it("haalt het powerprofiel opnieuw op na een rit die na het ophalen eindigde", () => {
+    // De eigenaar: opgehaald om 08:28, daarna een rit om 14:41.
+    const syncedAt = "2026-10-22T08:28:23Z";
+    const now = Date.parse("2026-10-22T20:00:00Z");
+    const ride = { startDate: "2026-10-22T14:41:21Z", movingSeconds: 4822, sportType: "VirtualRide" };
+    expect(powerProfileStale(syncedAt, [ride], now)).toBe(true);
+    // Een rit die ruim voor het ophalen eindigde, of geen fietsrit, telt niet.
+    expect(powerProfileStale(syncedAt, [{ ...ride, startDate: "2026-10-21T18:00:24Z" }], now)).toBe(false);
+    expect(powerProfileStale(syncedAt, [{ ...ride, sportType: "Run" }], now)).toBe(false);
+    // Opgehaald vlak na het eind: intervals.icu kan de rit nog missen.
+    expect(powerProfileStale("2026-10-22T16:10:00Z", [ride], now)).toBe(true);
+    expect(powerProfileStale("2026-10-22T16:40:00Z", [ride], now)).toBe(false);
+    // Zonder profiel of na zes dagen altijd.
+    expect(powerProfileStale(null, [], now)).toBe(true);
+    expect(powerProfileStale("2026-10-15T08:00:00Z", [], now)).toBe(true);
   });
 });

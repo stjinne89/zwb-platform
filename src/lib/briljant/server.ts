@@ -32,6 +32,7 @@ import {
   monthEnds,
   monthsSince,
   powerFromCurve,
+  powerProfileStale,
   shiftDay,
   snapshotFrom,
   terugblikRows,
@@ -39,12 +40,11 @@ import {
   type PlannedWorkout,
   type RideDay,
   type SnapshotRow,
+  type SyncRide,
 } from "./snapshot";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-/** Ouder dan dit wordt het powerprofiel in de wekelijkse job ververst. */
-const POWER_STALE_MS = 6 * 24 * 60 * 60 * 1000;
 /**
  * De terugblik gaat over de hele historie in intervals.icu (eigenaar, 2026-10-21),
  * vanaf de eerste dag met een CTL; tien jaar is een vangnet, geen keuze.
@@ -282,9 +282,23 @@ export async function collectBriljant(admin: Admin, profileId: string, today = a
   };
 }
 
+/** De ritten die rond of na `syncedAt` eindigden (een dag ruimte voor lange ritten). */
+async function loadRidesAround(admin: Admin, profileId: string, syncedAt: string): Promise<SyncRide[]> {
+  const from = new Date(Date.parse(syncedAt) - 24 * 60 * 60 * 1000).toISOString();
+  const { data } = await admin
+    .from("strava_activities")
+    .select("start_date, moving_time_seconds, sport_type")
+    .eq("profile_id", profileId)
+    .gte("start_date", from)
+    .limit(50);
+  return ((data ?? []) as Array<{ start_date: string; moving_time_seconds: number | null; sport_type: string | null }>).map(
+    (row) => ({ startDate: row.start_date, movingSeconds: row.moving_time_seconds, sportType: row.sport_type }),
+  );
+}
+
 /**
- * Voor de wekelijkse job: het powerprofiel en de ZRS verversen als ze oud zijn.
- * Nu gebeurt dat alleen via een knop op Teams of een racebriefing.
+ * Bij een bezoek en in de wekelijkse job: het powerprofiel verversen als het oud is
+ * of er sindsdien gereden is (powerProfileStale), en de ZRS als die oud is.
  */
 export async function refreshSources(admin: Admin, profileId: string, budgetMs: number): Promise<void> {
   const [{ data: power }, { data: profile }, connection] = await Promise.all([
@@ -293,7 +307,7 @@ export async function refreshSources(admin: Admin, profileId: string, budgetMs: 
     loadConnection(admin, profileId),
   ]);
   const syncedAt = (power as { synced_at: string | null } | null)?.synced_at;
-  if (connection && (!syncedAt || Date.now() - Date.parse(syncedAt) > POWER_STALE_MS)) {
+  if (connection && powerProfileStale(syncedAt, syncedAt ? await loadRidesAround(admin, profileId, syncedAt) : [])) {
     await syncOnePowerProfile(admin, connection).catch(() => null);
   }
   const zwiftId = zwiftIdOf((profile as { zwift_id: string | null } | null)?.zwift_id ?? null);

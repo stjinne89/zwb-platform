@@ -60,9 +60,9 @@ export default async function BriljantPage({
   const admin = createAdminClient();
   const supabase = await createClient();
   const today = amsterdamDayKey();
-  // Ontbreekt het vermogensprofiel of is het ouder dan zes dagen, dan nu ophalen:
-  // anders blijven vermogen en durability leeg tot de wekelijkse job (die een lid
-  // met een snapshot van deze week overslaat).
+  // Ontbreekt het vermogensprofiel, is het ouder dan zes dagen of is er sindsdien
+  // gereden, dan nu ophalen: anders wacht een nieuwe beste waarde op de wekelijkse
+  // job (die een lid met een snapshot van deze week overslaat).
   await refreshSources(admin, user.id, 1_500).catch(() => null);
   // Zonder terugblik op de huidige schaal heeft de datumkiezer niets om naar terug
   // te gaan. De wekelijkse job slaat wie deze week al keek over, dus hier eenmalig
