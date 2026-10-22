@@ -11293,7 +11293,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Materiaalrekenaar: GP 5000 30 mm met binnenband en ACG V4-sokken
 
-**2026-10-22.** Lokaal gecommit, nog niet gepusht. Geen migratie.
+**2026-10-22.** Commit `8304aeb1`, op 2026-10-22 gepusht naar `main`. Geen migratie.
 
 Een lid (Bart) vroeg om vijf producten in de rekenaar. Twee staan in de tests die de
 rekenaar al gebruikt en zijn toegevoegd in `producttests.ts`:
@@ -11314,7 +11314,7 @@ rekenaar al gebruikt en zijn toegevoegd in `producttests.ts`:
 
 Een waarde uit een andere test of een benadering (tussen 25 en 30 mm rekenen, de 2.0
 of de CFR als plaatsvervanger) breekt de regel dat elk product een verschil is met
-de basis uit dezelfde test. Ligt bij de eigenaar.
+de basis uit dezelfde test. De eigenaar heeft gekozen ze weg te laten.
 
 **Niet getest:** in de browser. De materiaaltest (17) is groen.
 
