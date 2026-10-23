@@ -12,7 +12,10 @@
 import {
   CTL_ANCHORS,
   DURABILITY_ANCHORS,
+  DURABILITY_MIN_DURATIONS,
   DURABILITY_MIN_KJ_PER_KG,
+  DURABILITY_QUANTILE,
+  DURABILITY_RIDES_CAP,
   LEVELS,
   FACET_WEIGHTS,
   ZRS_ANCHORS,
@@ -44,7 +47,7 @@ export const FACET_MEASURES: Record<Facet, { what: string; unit: string }> = {
   anaeroob: { what: "beste minuut", unit: "W/kg" },
   vo2max: { what: "beste 5 minuten", unit: "W/kg" },
   drempel: { what: "beste 20 minuten", unit: "W/kg" },
-  durability: { what: "verval op je beste minuut", unit: "% per 10 kJ/kg" },
+  durability: { what: "verval op 1 tot 20 minuten", unit: "% per 10 kJ/kg" },
   fitheid: { what: "CTL", unit: "TSS/dag" },
   racen: { what: "Zwift Racing Score", unit: "ZRS" },
 };
@@ -165,10 +168,21 @@ export function formatScore(score: number): string {
 /** W/kg per duur, uit `rider_power_profiles`. */
 export type PowerInput = { s15: number | null; m1: number | null; m5: number | null; m20: number | null };
 
-/** Een vermoeide curve: de beste watts na zoveel voorafgaand werk. */
+/** Een punt van een vermoeide curve: de beste watts op één duur na zoveel voorafgaand werk. */
 export type FatigueInput = {
   afterKj: number;
-  /** Beste vermogen vers en na het werk, op dezelfde duur (20 of 5 minuten). */
+  /** De duur in seconden (DURABILITY_DURATIONS). */
+  seconds?: number;
+  /** Beste vermogen vers en na het werk, op die duur. */
+  freshWatts: number;
+  fatiguedWatts: number;
+};
+
+/** De uitslag van een durability-test: 20 minuten na het werk tegen je beste 20 minuten. */
+export type DurabilityTestInput = {
+  /** De testdag ("YYYY-MM-DD"); leeg bij de recordsteen. */
+  day: string;
+  afterKj: number;
   freshWatts: number;
   fatiguedWatts: number;
 };
@@ -178,35 +192,100 @@ export type BriljantInput = {
   weightKg: number | null;
   power: PowerInput | null;
   fatigue: FatigueInput[];
+  /** Een durability-test van de laatste 90 dagen; gaat voor op `fatigue`. */
+  durabilityTest?: DurabilityTestInput | null;
   ctl: number | null;
   zrs: number | null;
 };
 
-/** De meting achter een facet en de omrekening naar een niveau. */
-export type FacetReading = ScaleStep;
+/**
+ * De meting achter een facet en de omrekening naar een niveau. Bij durability ook
+ * waar het verval vandaan komt, en of het plafond van de ritten het niveau afkapte.
+ */
+export type FacetReading = ScaleStep & {
+  source?: "test" | "ritten";
+  testDay?: string;
+  capped?: boolean;
+};
 
 function positive(value: number | null | undefined): number | null {
   return value != null && Number.isFinite(value) && value > 0 ? value : null;
 }
 
+/** Het kwantiel `q` (0 tot 1) van een reeks, lineair tussen de waarden. */
+export function quantile(values: number[], q: number): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = (sorted.length - 1) * q;
+  const below = Math.floor(index);
+  const above = Math.min(below + 1, sorted.length - 1);
+  return sorted[below] + (sorted[above] - sorted[below]) * (index - below);
+}
+
+/** Verlies in procenten; meer vermogen na het werk dan vers telt als geen verval. */
+const lossPct = (freshWatts: number, fatiguedWatts: number) => Math.max(0, (1 - fatiguedWatts / freshWatts) * 100);
+
 /**
- * Verval in procenten per 10 kJ/kg, uit de laagste kJ-stand met genoeg werk
- * (eigenaar, 2026-10-22; bij 1000 en 2000 kJ dus 1000). Eerst het gemiddelde over
- * alle standen: een vermoeide curve is een ondergrens, en na 2000 kJ rijdt bijna
- * niemand nog een volle minuut voluit, dus die stand trok durability omlaag (bij de
- * eigenaar van 400 naar 269 punten). Meer vermogen na het werk dan vers (een vers
- * record later in de rit) telt als geen verval.
+ * Verval uit je ritten, in procenten per 10 kJ/kg: het eerste kwart (P25) van het
+ * verval op 1 tot 20 minuten, na de laagste kJ-stand met genoeg werk en genoeg duren
+ * (eigenaar, 2026-10-23). Eerst alleen de minuut, en daarvoor het gemiddelde over de
+ * standen; na 2000 kJ rijdt bijna niemand nog voluit, dus die stand trok durability
+ * omlaag (eigenaar, 2026-10-22). Zie DURABILITY_QUANTILE.
  */
 export function durabilityDecline(fatigue: FatigueInput[], weightKg: number | null): number | null {
   const weight = positive(weightKg);
   if (!weight) return null;
-  const lowest = fatigue
-    .filter((curve) => positive(curve.freshWatts) && positive(curve.fatiguedWatts) && curve.afterKj / weight >= DURABILITY_MIN_KJ_PER_KG)
-    .sort((a, b) => a.afterKj - b.afterKj)[0];
+  const stands = new Map<number, number[]>();
+  for (const point of fatigue) {
+    if (!positive(point.freshWatts) || !positive(point.fatiguedWatts) || point.afterKj / weight < DURABILITY_MIN_KJ_PER_KG) {
+      continue;
+    }
+    stands.set(point.afterKj, [...(stands.get(point.afterKj) ?? []), lossPct(point.freshWatts, point.fatiguedWatts)]);
+  }
+  const lowest = [...stands]
+    .filter(([, losses]) => losses.length >= DURABILITY_MIN_DURATIONS)
+    .sort((a, b) => a[0] - b[0])[0];
   if (!lowest) return null;
-  const kjPerKg = lowest.afterKj / weight;
-  const lossPct = Math.max(0, (1 - lowest.fatiguedWatts / lowest.freshWatts) * 100);
-  return lossPct / (kjPerKg / 10);
+  const [afterKj, losses] = lowest;
+  return quantile(losses, DURABILITY_QUANTILE) / (afterKj / weight / 10);
+}
+
+/** Verval uit een durability-test, in procenten per 10 kJ/kg; null bij te weinig werk. */
+export function durabilityTestDecline(test: DurabilityTestInput | null | undefined, weightKg: number | null): number | null {
+  const weight = positive(weightKg);
+  if (!test || !weight || !positive(test.freshWatts) || !positive(test.fatiguedWatts)) return null;
+  const kjPerKg = test.afterKj / weight;
+  if (!(kjPerKg >= DURABILITY_MIN_KJ_PER_KG)) return null;
+  return lossPct(test.freshWatts, test.fatiguedWatts) / (kjPerKg / 10);
+}
+
+/**
+ * Durability als lezing: uit de test als die er is, zonder plafond; anders uit je
+ * ritten, tot Diamant (DURABILITY_RIDES_CAP). Bij het plafond blijft het gemeten
+ * verval staan en wordt alleen het niveau afgekapt.
+ */
+export function durabilityReading(input: BriljantInput): FacetReading | null {
+  const tested = durabilityTestDecline(input.durabilityTest, input.weightKg);
+  if (tested != null) return { ...scaleStep(DURABILITY_ANCHORS, tested), source: "test", testDay: input.durabilityTest!.day };
+  const decline = durabilityDecline(input.fatigue, input.weightKg);
+  if (decline == null) return null;
+  const step = scaleStep(DURABILITY_ANCHORS, decline);
+  if (step.level <= DURABILITY_RIDES_CAP) return { ...step, source: "ritten" };
+  const points = scalePoints(DURABILITY_ANCHORS);
+  return {
+    kind: "between",
+    value: decline,
+    level: DURABILITY_RIDES_CAP,
+    lower: points[DURABILITY_RIDES_CAP - 1],
+    upper: points[DURABILITY_RIDES_CAP],
+    source: "ritten",
+    capped: true,
+  };
+}
+
+/** Het niveau bij een verval, met het plafond voor een schatting uit ritten. */
+export function durabilityLevel(decline: number, source: FacetReading["source"]): number {
+  const level = levelAt(DURABILITY_ANCHORS, decline);
+  return source === "test" ? level : Math.min(DURABILITY_RIDES_CAP, level);
 }
 
 /** Per facet de meting en het niveau tegen de wereld; null waar de gegevens ontbreken. */
@@ -216,7 +295,6 @@ export function facetReadings(input: BriljantInput): Record<Facet, FacetReading 
     const value = positive(input.power?.[duration]);
     return value == null ? null : scaleStep(powerAnchors(duration, input.sex), value);
   };
-  const decline = durabilityDecline(input.fatigue, input.weightKg);
   const ctl = input.ctl != null && Number.isFinite(input.ctl) && input.ctl >= 0 ? input.ctl : null;
   const zrs = positive(input.zrs);
   return {
@@ -224,7 +302,7 @@ export function facetReadings(input: BriljantInput): Record<Facet, FacetReading 
     anaeroob: power("anaeroob"),
     vo2max: power("vo2max"),
     drempel: power("drempel"),
-    durability: decline == null ? null : scaleStep(DURABILITY_ANCHORS, decline),
+    durability: durabilityReading(input),
     fitheid: ctl == null ? null : scaleStep(CTL_ANCHORS, ctl),
     racen: zrs == null ? null : scaleStep(ZRS_ANCHORS, zrs),
   };

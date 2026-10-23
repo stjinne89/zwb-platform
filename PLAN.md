@@ -11291,6 +11291,58 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: durability uit ritten met P25 en een plafond, en de durability-test
+
+**2026-10-23.** Commit HASH, niet gepusht. Geen migratie.
+
+**Waarom.** Met de nieuwe minuut van de eigenaar (547 W, eerst 481; na 1000 kJ bleef het
+452 W) zakte durability van 400 naar 65 punten, terwijl hij na het werk niet slechter
+reed. Eén verse inspanning bepaalde de hele score. Onderzoek en doorrekening op zeven leden
+in [het onderzoek](docs/zwbriljant-onderzoek.md#durability-uit-ritten-en-de-test-2026-10-23).
+Kern: een vermoeide beste waarde uit gewone ritten is een ondergrens, en de minuut is de
+minst betrouwbare duur (Pallarés 2022; Mateo-March 2025). Keuzes van de eigenaar: P25,
+plafond op 900, en een test die erboven mag.
+
+- **Uit ritten** (`durabilityDecline`, `score.ts`): het verval op tien duren van 1 tot 20
+  minuten (`DURABILITY_DURATIONS`) na de laagste kJ-stand met minstens 10 kJ/kg en
+  minstens vijf duren, daarvan P25 (`DURABILITY_QUANTILE`), per 10 kJ/kg zoals eerst.
+  Niveau hooguit 9 (`DURABILITY_RIDES_CAP`); het gemeten verval blijft zichtbaar, de balk
+  zegt "hoger alleen met de durability-test". Eigenaar: 237 punten (met de oude minuut 312).
+- **De durability-test**: nieuw protocol `durability-test` (Testen) naar Barsumyan 2025:
+  1000 kJ op 80% FTP (inrijden meegeteld), 5 minuten rustig, 20 minuten voluit. Uitslag:
+  de beste 20 minuten van die dag na de laagste kJ-stand met genoeg werk, tegen de beste 20
+  minuten van de 90 dagen tot en met de testdag. Geen plafond, geldt 90 dagen, gaat voor
+  op de ritten, ook als hij lager uitvalt. Herkend aan een training "Durability-test" in het
+  schema of de afgevinkte taak (`member_protocol_checks`); per testdag één vraag aan
+  intervals.icu (`fetchIntervalsDurabilityTestCurves`, `r.<dag>.<dag>-kj0/-kj1`).
+- **`provenance.durability`**: "test" of "ritten". De recordsteen rekent als test (anders
+  stopte hij op 900). `TERUGBLIK_SPAN` werd `"alles-gewicht-tss-p25"`: elke terugblik wordt
+  opnieuw gemaakt, alleen uit ritten.
+- `/hulp` (instellen, formules, terugblik; "precies Diamant" bij records rechtgezet: de
+  records liggen er ver boven), zoekregel, en `/privacy#zwbriljant`: de testdag uit schema
+  of protocol, of durability uit de test kwam, en het verversen na een nieuwe rit (de zin
+  "één keer per week" was sinds 2026-10-22 niet meer waar). Geen nieuwe privacyversie,
+  zoals bij de rest van ZWBriljant (achtste uitzondering in `src/lib/privacy.ts`); de
+  eigenaar keurt de tekst goed.
+
+**Niet gebouwd, en waarom.**
+- Ontkoppeling van hartslag en vermogen als score: geen gevalideerde schaal (de Duurtest
+  toont hem al als reeks).
+- De CP-daling of het gemiddelde of de mediaan over duren: doorgerekend, zelfde
+  kwetsbaarheid of stelselmatig te laag voor amateurs.
+- Het werk naar intensiteit wegen: vraagt gegevens per seconde; de test legt het vast.
+- De test in de terugblik, en de 5 minuten uit de studie (onderscheidde niet).
+
+**Getest.** Nieuwe tests in `briljant-score` (P25 met de getallen van de eigenaar, plafond,
+test gaat voor), `briljant-snapshot` (duren per stand, testuitslag), `briljant-view`
+(balk op het plafond, bron van de test) en `intervals-power-curves`
+(`parsePowerCurveEntries`); alle ZWBriljant- en protocoltests, tsc, ESLint. De volle suite
+groen op `omnium-live` (vraagt `.env.local`) en een time-out in `admin-areas` (los groen)
+na. **Niet getest:** de vraag aan intervals.icu met een bereik van één dag plus `-kj0`
+(intervals.icu is vanuit de werkomgeving niet bereikbaar; dezelfde vorm werkt voor 90
+dagen in de terugblik), het afvinken van de taak op een andere dag dan de rit (dan geen
+uitslag), de AI die de training goed plant, en de pagina in de browser.
+
 ### Hersteld — ZWBriljant: powerprofiel ververst na een nieuwe rit
 
 **2026-10-22.** Commit `636962ce`, op 2026-10-23 gepusht naar `main`. Geen migratie.
@@ -11311,9 +11363,10 @@ kon dus tot zes dagen buiten de steen blijven.
   bezoeken binnen een halfuur na een rit halen opnieuw op.
 - **Niet gedaan:** ophalen direct bij binnenkomst van een rit (Strava-webhook). Dat kost
   een intervals-vraag per rit van elk lid, ook van wie de steen niet bekijkt.
-- **Niet vastgesteld:** waar de 6,59 van de eigenaar vandaan komt. Uit deze container is
-  intervals.icu niet bereikbaar; als het de beste minuut in W/kg is, hoort daar
-  ongeveer 547 W bij 83 kg bij, en dan is dat niveau 5,59 (559 punten), niet 6,59.
+- **Vastgesteld (2026-10-23):** de 6,59 van de eigenaar was zijn beste minuut in W/kg,
+  547 W bij 83 kg op 2026-10-22, na de volgende sync in het profiel: anaeroob 559 punten.
+  Die minuut duwde durability van 400 naar 65; zie "durability uit ritten met P25 en een
+  plafond, en de durability-test".
 - Bijgevangen, niet aangepast: de W/kg in de curve van intervals.icu rekent met 82 kg
   (5,866 W/kg), het profiel met 83 kg (5,80). Het verschil is 9 punten anaeroob.
 
@@ -11416,6 +11469,8 @@ rijdt bijna niemand nog een volle minuut voluit.
   telt als Diamant, omdat de verse minuut dan waarschijnlijk niet maximaal was. De
   eigenaar wees dat af: wie na 2000 kJ zo'n minuut rijdt, verdient die punten, en het zegt
   ook iets over zijn verse potentie. Niet opnieuw voorstellen zonder nieuwe reden.
+  **Achterhaald sinds 2026-10-23:** uit ritten wel een plafond op Diamant, met een nieuwe
+  reden (geen verval is een meetgrens) en de durability-test om erboven te komen.
 
 Eerst `main` in deze branch gemerged (gemiddelde ZWB-man en -vrouw, hersteldata); één
 conflict in een commentaar van `stats/zwbriljant/page.tsx`, opgelost als "de galerij ...
@@ -12261,7 +12316,8 @@ profs, waardoor CTL 100 (voor een amateur zeer hoog) maar Saffier was.
 
 **Nu.**
 - **Durability op de beste minuut** (`fatigueInputs`), vers tegen na elke drempel, nog
-  steeds als verval per 10 kJ/kg. Eigenaar: 481 naar 399 W na 2000 en 3000 kJ, 5,9% per
+  steeds als verval per 10 kJ/kg. (Achterhaald sinds 2026-10-23: P25 over 1 tot 20
+  minuten.) Eigenaar: 481 naar 399 W na 2000 en 3000 kJ, 5,9% per
   10 kJ/kg, van 207 naar ongeveer 355. De ijkwaarden bleven (uit het verval van het hele
   profiel, voor de minuut een inschatting).
 - **Fitheid naar de spreiding onder amateurs** (`CTL_ANCHORS`): 30, 40, 50, 60, 70, 80,

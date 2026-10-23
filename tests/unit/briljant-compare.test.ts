@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MIN_FOR_AVERAGE, clubAverage, clubAverages, compareLines, snapshotAt, storedScore, viewFromSnapshot, type StoredSnapshot } from "@/lib/briljant/compare";
 import type { BriljantInput } from "@/lib/briljant/score";
-import { LEVELS } from "@/lib/briljant/norms";
+import { DURABILITY_DURATIONS, LEVELS } from "@/lib/briljant/norms";
 import { bestWins } from "@/lib/briljant/view";
 
 const snap = (week: string, score: number | null, facets: StoredSnapshot["facets"] = { sprint: 5, drempel: 4 }): StoredSnapshot => ({
@@ -16,7 +16,7 @@ const rider: BriljantInput = {
   sex: "man",
   weightKg: 75,
   power: { s15: 13.2, m1: 7.6, m5: 5.1, m20: 4.3 },
-  fatigue: [{ afterKj: 1500, freshWatts: 300, fatiguedWatts: 274.8 }],
+  fatigue: DURABILITY_DURATIONS.map((seconds) => ({ afterKj: 1500, seconds, freshWatts: 300, fatiguedWatts: 274.8 })),
   ctl: 78,
   zrs: 640,
 };

@@ -22,6 +22,7 @@ import {
   FACET_MEASURES,
   consistencyFactor,
   consistencyFrom,
+  durabilityLevel,
   facetReadings,
   levelAt,
   points,
@@ -34,6 +35,7 @@ import {
   type BriljantInput,
   type ConsistencyInput,
   type Facet,
+  type FacetReading,
   type HistoryPoint,
 } from "./score";
 
@@ -47,6 +49,15 @@ export const FACET_SOURCES: Record<Facet, string> = {
   fitheid: "vandaag · intervals.icu",
   racen: "huidige score · Zwift",
 };
+
+/** Wat er gemeten is en waar het vandaan komt; bij een durability-test de test. */
+function measureText(facet: Facet, reading: FacetReading): { what: string; source: string } {
+  if (facet === "durability" && reading.source === "test" && reading.testDay) {
+    const day = new Date(`${reading.testDay}T12:00:00Z`).toLocaleDateString("nl-NL", { day: "numeric", month: "long" });
+    return { what: "verval op 20 minuten", source: `durability-test van ${day} · intervals.icu` };
+  }
+  return { what: FACET_MEASURES[facet].what, source: FACET_SOURCES[facet] };
+}
 
 /** De balk onder een meting: van de grens van je klasse naar de volgende, bij racen over de hele schaal. */
 export type FacetMeter = {
@@ -126,7 +137,7 @@ export function formatMeasure(facet: Facet, value: number): string {
   return `${value.toLocaleString("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} ${unit}`;
 }
 
-export function meterFor(facet: Facet, reading: NonNullable<ReturnType<typeof facetReadings>[Facet]>): FacetMeter {
+export function meterFor(facet: Facet, reading: FacetReading): FacetMeter {
   if (facet === "racen") {
     // De balk over de hele schaal, de zin naar de volgende klasse (eigenaar,
     // 2026-10-21): de grens is de ZRS waarbij die klasse begint.
@@ -144,6 +155,17 @@ export function meterFor(facet: Facet, reading: NonNullable<ReturnType<typeof fa
     };
   }
   const top = LEVELS[LEVELS.length - 1];
+  if (reading.capped) {
+    // Durability uit ritten op het plafond: de balk vol tot Diamant, hoger alleen met de test.
+    return {
+      share: 1,
+      from: formatMeasure(facet, reading.lower.value),
+      to: formatMeasure(facet, reading.upper.value),
+      fromLevel: LEVELS[reading.lower.level],
+      toLevel: top,
+      note: "hoger alleen met de durability-test",
+    };
+  }
   if (reading.kind === "beyond") {
     return {
       share: 1,
@@ -192,8 +214,7 @@ export function briljantView(args: {
       key: facet,
       label: FACET_LABELS[facet],
       value: formatMeasure(facet, reading.value),
-      what: FACET_MEASURES[facet].what,
-      source: FACET_SOURCES[facet],
+      ...measureText(facet, reading),
       points: points(reading.level),
       level: levelOf(reading.level),
       weight,
@@ -277,7 +298,8 @@ export function bestWins(input: BriljantInput, consistency: number | null): Win[
         : facet === "racen"
           ? Math.min(1000, reading.value * (1 + IMPROVEMENT))
           : reading.value * (1 + IMPROVEMENT);
-    const improved = scoreFor({ ...levels, [facet]: levelAt(anchorsFor(facet, input.sex), better) }, consistency);
+    const level = facet === "durability" ? durabilityLevel(better, reading.source) : levelAt(anchorsFor(facet, input.sex), better);
+    const improved = scoreFor({ ...levels, [facet]: level }, consistency);
     const gain = improved == null ? 0 : points(improved) - points(base);
     if (gain <= 0) return [];
     const unit = FACET_MEASURES[facet].unit;

@@ -10,6 +10,7 @@ import "server-only";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { fetchZwiftWeightKg } from "@/lib/events/zwift-club";
 import {
+  fetchIntervalsDurabilityTestCurves,
   fetchIntervalsPowerCurve,
   fetchIntervalsPowerCurveRanges,
   fetchIntervalsWellness,
@@ -20,13 +21,22 @@ import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metri
 import { isCyclingSportType } from "@/lib/strava/sports";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
-import { CONSISTENCY_WEEKS, valueAt, type BriljantInput, type ConsistencyInput, type HistoryPoint } from "./score";
-import { PREVIOUS_SCALE_VERSION, SCALE_VERSION, ZRS_ANCHORS, type Sex } from "./norms";
+import {
+  CONSISTENCY_WEEKS,
+  valueAt,
+  type BriljantInput,
+  type ConsistencyInput,
+  type DurabilityTestInput,
+  type HistoryPoint,
+} from "./score";
+import { DURABILITY_TEST_VALID_DAYS, PREVIOUS_SCALE_VERSION, SCALE_VERSION, ZRS_ANCHORS, type Sex } from "./norms";
+import { DURABILITY_TEST_SLUG, DURABILITY_TEST_TASK, DURABILITY_TEST_TITLE } from "@/lib/protocols/training";
 import { clubAverages, storedScore, type StoredSnapshot } from "./compare";
 import {
   complianceFrom,
   consistencyWeeks,
   curveRange,
+  durabilityTestFrom,
   fatigueInputs,
   mondayKey,
   monthEnds,
@@ -56,11 +66,12 @@ const TERUGBLIK_FALLBACK_MONTHS = 12;
  * Gezet in `provenance.terugblik`: de hele historie, met de huidige ZRS voor racen
  * (ZRS heeft geen historie), durability per maand, en sinds 2026-10-22 het gewicht
  * uit intervals.icu of Zwift, consistentie in TSS en durability uit de laagste
- * kJ-stand in plaats van het gemiddelde (eigenaar). Een terugblik met
+ * kJ-stand in plaats van het gemiddelde, en sinds 2026-10-23 durability als P25 over
+ * 1 tot 20 minuten met een plafond op Diamant (eigenaar). Een terugblik met
  * een andere waarde wordt bij het volgende bezoek of door de job opnieuw gemaakt;
  * de ZRS van vroeger die de job al vond, blijft staan.
  */
-export const TERUGBLIK_SPAN = "alles-gewicht-tss-kj";
+export const TERUGBLIK_SPAN = "alles-gewicht-tss-p25";
 /** PostgREST geeft hooguit zoveel rijen per vraag. */
 const PAGE = 1000;
 /** Zoveel weken terug voor de norm (mediaan) en de reeks. */
@@ -215,6 +226,71 @@ function latestWellness(rows: IntervalsWellness[]): IntervalsWellness | null {
   return filled.reduce<IntervalsWellness | null>((best, row) => (!best || row.id > best.id ? row : best), null);
 }
 
+/** Zoveel testdagen proberen we hooguit, nieuwste eerst. */
+const DURABILITY_TEST_TRIES = 3;
+
+/**
+ * De dagen van de laatste 90 dagen waarop dit lid de durability-test reed: een
+ * training in het schema met die titel, of de afgevinkte taak van het protocol.
+ * Nieuwste eerst.
+ */
+async function durabilityTestDays(admin: Admin, profileId: string, today: string): Promise<string[]> {
+  const from = shiftDay(today, -(DURABILITY_TEST_VALID_DAYS - 1));
+  const [{ data: workouts }, { data: runs }] = await Promise.all([
+    admin
+      .from("training_workouts")
+      .select("scheduled_at")
+      .eq("profile_id", profileId)
+      .is("superseded_at", null)
+      .ilike("title", `%${DURABILITY_TEST_TITLE}%`)
+      .gte("scheduled_at", `${shiftDay(from, -1)}T00:00:00Z`)
+      .lt("scheduled_at", `${shiftDay(today, 1)}T23:59:59Z`),
+    admin.from("member_protocols").select("id").eq("profile_id", profileId).eq("protocol_slug", DURABILITY_TEST_SLUG),
+  ]);
+  const runIds = ((runs ?? []) as Array<{ id: string }>).map((run) => run.id);
+  const { data: checks } = runIds.length
+    ? await admin
+        .from("member_protocol_checks")
+        .select("day")
+        .in("protocol_id", runIds)
+        .eq("task_key", DURABILITY_TEST_TASK)
+        .gte("day", from)
+        .lte("day", today)
+    : { data: [] };
+  const days = [
+    ...((workouts ?? []) as Array<{ scheduled_at: string }>).map((row) => amsterdamDayKey(new Date(row.scheduled_at))),
+    ...((checks ?? []) as Array<{ day: string }>).map((row) => row.day),
+  ].filter((day) => day >= from && day <= today);
+  return [...new Set(days)].sort().reverse();
+}
+
+/**
+ * De nieuwste durability-test met een uitslag; null zonder test of zonder 20 minuten
+ * na het werk. Alleen met intervals.icu, en per testdag één vraag.
+ */
+async function loadDurabilityTest(
+  admin: Admin,
+  profileId: string,
+  connection: IntervalsConnectionRow,
+  weightKg: number | null,
+  thresholds: number[],
+  today: string,
+): Promise<DurabilityTestInput | null> {
+  if (!connection.athlete_id || !weightKg) return null;
+  for (const day of (await durabilityTestDays(admin, profileId, today)).slice(0, DURABILITY_TEST_TRIES)) {
+    const curves = await fetchIntervalsDurabilityTestCurves(
+      connection.api_key,
+      connection.athlete_id,
+      day,
+      shiftDay(day, -89),
+      thresholds,
+    ).catch(() => null);
+    const test = curves ? durabilityTestFrom(day, curves.fresh, curves.fatigued, weightKg) : null;
+    if (test) return test;
+  }
+  return null;
+}
+
 /** Alles wat de steen van dit lid nu nodig heeft. Ontbrekende bronnen blijven leeg. */
 export async function collectBriljant(admin: Admin, profileId: string, today = amsterdamDayKey()): Promise<Collected> {
   const [{ data: profile }, { data: power }, connection] = await Promise.all([
@@ -257,7 +333,11 @@ export async function collectBriljant(admin: Admin, profileId: string, today = a
     latestWellnessValue(wellness, "weight") ??
     (zwiftId ? await fetchZwiftWeightKg(String(zwiftId)).catch(() => null) : null);
   const fromCurve = powerFromCurve(pw?.curve_points ?? [], weightKg);
-  const consistency = await loadConsistency(admin, profileId, today, loadsFrom(wellness));
+  const thresholds = (pw?.curve_points_fatigue ?? []).map((curve) => curve.afterKj).sort((a, b) => a - b);
+  const [consistency, durabilityTest] = await Promise.all([
+    loadConsistency(admin, profileId, today, loadsFrom(wellness)),
+    connection ? loadDurabilityTest(admin, profileId, connection, weightKg, thresholds, today) : Promise.resolve(null),
+  ]);
 
   return {
     input: {
@@ -273,6 +353,7 @@ export async function collectBriljant(admin: Admin, profileId: string, today = a
           }
         : null,
       fatigue: fatigueInputs(pw?.curve_points ?? [], pw?.curve_points_fatigue ?? []),
+      durabilityTest,
       ctl,
       zrs,
     },
@@ -472,7 +553,8 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
       sex: sexOf(p?.sex ?? null),
       weightKg,
       power: powerFromCurve(curves.get(curveRange(end)) ?? [], weightKg),
-      // Durability net als nu: de beste minuut vers tegen die na de laagste drempel.
+      // Durability uit ritten, net als nu: P25 over 1 tot 20 minuten na de laagste
+      // drempel. De durability-test telt in de terugblik niet mee.
       fatigue: fatigueInputs(
         curves.get(curveRange(end)) ?? [],
         thresholds.map((afterKj, index) => ({ afterKj, points: curves.get(`${curveRange(end)}-kj${index}`) ?? [] })),

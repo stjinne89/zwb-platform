@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parsePowerCurveSet } from "@/lib/intervals/client";
+import { parsePowerCurveEntries, parsePowerCurveSet } from "@/lib/intervals/client";
 
 /** Antwoordvorm van /power-curves?curves=90d,90d-kj0,90d-kj1. */
 const payload = {
@@ -52,5 +52,28 @@ describe("parsePowerCurveSet", () => {
     const result = parsePowerCurveSet({ secs: [60, 300], values: [600, 400] });
     expect(result.points.map((point) => point.seconds)).toEqual([60, 300]);
     expect(result.fatigueCurves).toEqual([]);
+  });
+});
+
+describe("parsePowerCurveEntries", () => {
+  it("geeft elke curve met id en drempel, ook zonder after_kj via het achtervoegsel", () => {
+    const entries = parsePowerCurveEntries(
+      {
+        list: [
+          { id: "r.2026-07-28.2026-10-25", after_kj: 0, secs: [60, 1200], values: [480, 282] },
+          { id: "r.2026-10-25.2026-10-25-kj0", secs: [60, 1200], values: [450, 262] },
+          { id: "r.2026-10-25.2026-10-25-kj1", after_kj: 2000, secs: [60, 1200], values: [400, 230] },
+          // Zonder after_kj en zonder bekende drempel: weg.
+          { id: "r.2026-10-25.2026-10-25-kj5", secs: [60, 1200], values: [1, 1] },
+        ],
+      },
+      [1000, 2000],
+    );
+    expect(entries.map((entry) => [entry.id, entry.afterKj])).toEqual([
+      ["r.2026-07-28.2026-10-25", 0],
+      ["r.2026-10-25.2026-10-25-kj0", 1000],
+      ["r.2026-10-25.2026-10-25-kj1", 2000],
+    ]);
+    expect(entries[1].points.map((point) => point.watts)).toEqual([450, 262]);
   });
 });

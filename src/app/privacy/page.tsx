@@ -439,16 +439,18 @@ export default function PrivacyPage() {
             met ons deelt: je vermogenscurve, vermoeide curve en CTL uit
             intervals.icu, je Zwift Racing Score via je Zwift-ID, je ritten
             en je schema voor de consistentie, en je opgegeven
-            geslacht (de normen voor vrouwen zijn anders). Heb je intervals.icu
+            geslacht (de normen voor vrouwen zijn anders). Reed je de
+            durability-test, dan zoeken we de dag daarvan op in je schema of in het
+            protocol en halen we de vermogenscurve van die dag op bij intervals.icu. Heb je intervals.icu
             gekoppeld, dan maken we elke week je steen, ook als je ZWBriljant zelf
             nooit opent: we bewaren per week je score, je punten per onderdeel, je
-            consistentie (een getal van 0 tot 1) en per bron alleen óf die er
-            was. Geen watts, W/kg, gewicht, CTL of ZRS. De eerste keer maken we
+            consistentie (een getal van 0 tot 1), per bron alleen óf die er
+            was, en of durability uit de test of uit je ritten kwam. Geen watts, W/kg, gewicht, CTL of ZRS. De eerste keer maken we
             per maand een terugblik over je hele historie in intervals.icu, en
             zoeken we via je Zwift-ID in je eerdere race-uitslagen bij Zwift je
             Racing Score van toen op;
-            daarna verversen we één keer per week je vermogensprofiel en je
-            Racing Score. Alle goedgekeurde leden zien standaard je laatste score,
+            daarna verversen we je vermogensprofiel na een nieuwe rit en
+            minstens één keer per week, en je Racing Score één keer per week. Alle goedgekeurde leden zien standaard je laatste score,
             je punten per onderdeel en je consistentie (geen metingen) en kunnen
             die naast hun eigen steen zetten. Wil je dat niet, zet dan
             &ldquo;Mijn ZWBriljant-steen delen met leden&rdquo; in je profiel uit:

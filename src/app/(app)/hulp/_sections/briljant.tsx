@@ -41,13 +41,21 @@ export function BriljantHelp() {
               <strong className="text-foreground">De twee kJ-standen in intervals.icu op 1000 en 2000 kJ</strong>,
               voor durability: open intervals.icu, ga naar Power, klik boven de powercurve op de knoppen met
               &quot;? kJ&quot; en vul 1000 en 2000 in. Klik daarna op Mijn vermogen op &quot;Mijn waarden
-              ophalen&quot;. Durability is je beste minuut na de laagste stand (1000 kJ) tegen je verse beste
-              minuut. Zonder die standen blijft durability leeg en mis je {pct(FACET_WEIGHTS.durability)} van je
+              ophalen&quot;. Zonder die standen blijft durability leeg en mis je {pct(FACET_WEIGHTS.durability)} van je
               score. Meer bij{" "}
               <Link href="/hulp/training#vermogen" className="underline underline-offset-2">
                 Mijn vermogen
               </Link>
               .
+            </li>
+            <li>
+              <strong className="text-foreground">De durability-test</strong>, voor wie boven Diamant wil op
+              durability. Uit je ritten schatten we durability, tot Diamant; de test meet het. Start hem bij{" "}
+              <Link href="/zwbeter-worden/protocollen/durability-test" className="underline underline-offset-2">
+                Protocollen
+              </Link>
+              : 1000 kJ op duurtempo en daarna 20 minuten voluit. Met een schema plant ZWBeter hem in; zonder schema
+              vink je hem af op de dag dat je hem reed. De uitslag geldt 90 dagen.
             </li>
             <li>
               <strong className="text-foreground">Je gewicht bijhouden in intervals.icu.</strong> Alle vermogens
@@ -154,7 +162,7 @@ export function BriljantHelp() {
               intervals.icu. We bewaren alleen punten; de W/kg, CTL en ZRS rekenen we daaruit terug. Je ZRS van toen zoekt
               de wekelijkse job op in je eerdere race-uitslagen bij Zwift; tot dat klaar is, en voor maanden zonder
               score, staat er je huidige ZRS. Durability rekent ook in het verleden met je huidige
-              kJ-drempels uit intervals.icu. Met Waarden en Punten wissel je wat de labels tonen.
+              kJ-drempels uit intervals.icu, en alleen uit je ritten, zonder de test. Met Waarden en Punten wissel je wat de labels tonen.
             </dd>
             <dt className="font-medium">Ik, ZWB en Vergelijken</dt>
             <dd className="text-muted-foreground">
@@ -168,7 +176,7 @@ export function BriljantHelp() {
             </dd>
             <dt className="font-medium">Records</dt>
             <dd className="text-muted-foreground">
-              De grootste steen: elk onderdeel op de recordwaarde, dus precies Diamant. Profs publiceren hun data
+              De grootste steen: elk onderdeel op de recordwaarde, ver boven Diamant. Profs publiceren hun data
               zelden, dus de records zijn onderbouwde berekeningen; waar de houder bekend is, staat de naam erbij.
             </dd>
             <dt className="font-medium">Delen</dt>
@@ -206,6 +214,18 @@ export function BriljantHelp() {
               </code>
               . Voorbij Diamant loopt de laatste lijn door. Bij durability is minder verval beter. Racen is één rechte
               lijn: elke ZRS is een punt.
+            </dd>
+            <dt className="font-medium">Durability</dt>
+            <dd className="text-muted-foreground">
+              Per duur het verlies:{" "}
+              <code className="rounded bg-muted px-1">(1 − vermogen na het werk ÷ vers vermogen) × 100</code>, gedeeld
+              door het werk in tientallen kJ per kg (1000 kJ bij 80 kg is 1,25). Uit je ritten: op tien duren van 1 tot
+              20 minuten, na je laagste kJ-stand met minstens 10 kJ per kg, tegen je beste waarden van de laatste 90
+              dagen. Daarvan telt het eerste kwart (P25): een vermoeide beste waarde is een ondergrens, want lang niet
+              elke duur rijd je na het werk voluit. Zo telt wat je wel voluit reed, zonder dat één inspanning de
+              score bepaalt. Uit je ritten kom je niet boven Diamant: geen verval is daar een grens, geen meting. Met
+              de durability-test telt alleen de 20 minuten na het werk, tegen je beste 20 minuten van de 90 dagen tot
+              en met de testdag, zonder plafond. De test gaat 90 dagen voor op je ritten.
             </dd>
             <dt className="font-medium">Profielscore</dt>
             <dd className="text-muted-foreground">

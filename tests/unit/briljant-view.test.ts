@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { BriljantInput, ConsistencyWeek } from "@/lib/briljant/score";
 import { briljantView, formatMeasure } from "@/lib/briljant/view";
+import { DURABILITY_DURATIONS } from "@/lib/briljant/norms";
 
 // Het voorbeeld van de eigenaar (man), zoals in briljant-score.test.ts.
 const rider: BriljantInput = {
   sex: "man",
   weightKg: 75,
   power: { s15: 13.2, m1: 7.6, m5: 5.1, m20: 4.3 },
-  fatigue: [{ afterKj: 1500, freshWatts: 300, fatiguedWatts: 274.8 }],
+  fatigue: DURABILITY_DURATIONS.map((seconds) => ({ afterKj: 1500, seconds, freshWatts: 300, fatiguedWatts: 274.8 })),
   ctl: 78,
   zrs: 640,
 };
@@ -88,5 +89,23 @@ describe("briljantView", () => {
   it("schrijft metingen in de eenheid van het onderdeel", () => {
     expect(formatMeasure("fitheid", 78.4)).toBe("78 TSS/dag");
     expect(formatMeasure("durability", 4.2)).toBe("4,2 % per 10 kJ/kg");
+  });
+
+  it("toont durability uit ritten op het plafond, en een test met zijn dag", () => {
+    const none = { ...rider, fatigue: DURABILITY_DURATIONS.map((seconds) => ({ afterKj: 1500, seconds, freshWatts: 300, fatiguedWatts: 300 })) };
+    const capped = briljantView({ seed: "lid", input: none, consistency: null }).facets.find((facet) => facet.key === "durability")!;
+    expect(capped.points).toBe(900);
+    expect(capped.meter.share).toBe(1);
+    expect(capped.meter.toLevel?.name).toBe("Diamant");
+    expect(capped.meter.note).toBe("hoger alleen met de durability-test");
+    expect(capped.what).toBe("verval op 1 tot 20 minuten");
+
+    const test = { day: "2026-10-20", afterKj: 1500, freshWatts: 300, fatiguedWatts: 300 };
+    const tested = briljantView({ seed: "lid", input: { ...none, durabilityTest: test }, consistency: null }).facets.find(
+      (facet) => facet.key === "durability",
+    )!;
+    expect(tested.points).toBeGreaterThan(900);
+    expect(tested.what).toBe("verval op 20 minuten");
+    expect(tested.source).toBe("durability-test van 20 oktober · intervals.icu");
   });
 });

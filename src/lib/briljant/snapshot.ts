@@ -7,14 +7,15 @@
 
 import { isCyclingSportType } from "@/lib/strava/sports";
 import { wattsAtDuration } from "@/lib/teams/power-profile";
-import { SCALE_VERSION } from "./norms";
+import { DURABILITY_DURATIONS, DURABILITY_MIN_KJ_PER_KG, DURABILITY_TEST_SECONDS, SCALE_VERSION } from "./norms";
 import {
   consistencyFrom,
-  facetLevels,
+  facetReadings,
   scoreFor,
   type BriljantInput,
   type ConsistencyInput,
   type ConsistencyWeek,
+  type DurabilityTestInput,
   type FatigueInput,
   type Facet,
 } from "./score";
@@ -41,6 +42,8 @@ export type BriljantSources = {
    * fitheid leeg bij een lid met intervals.icu, dan ook.
    */
   wellness?: boolean;
+  /** Waar durability vandaan komt: de durability-test of je ritten (sinds 2026-10-23). */
+  durability?: "test" | "ritten";
 };
 
 export type SnapshotRow = {
@@ -72,23 +75,43 @@ export function shiftDay(day: string, days: number): string {
 }
 
 /**
- * De beste minuut, vers en na elke vermoeide drempel; durabilityDecline kiest daar
- * de laagste stand uit (eigenaar, 2026-10-22). De minuut (eigenaar, 2026-10-21): korte
- * inspanningen rijd je na veel werk vaak, een volle 20 minuten bijna nooit, dus die
- * zeiden vooral dat je niet voluit reed, niet dat je inzakte.
+ * Per vermoeide drempel het beste vermogen op elke duur van 1 tot 20 minuten
+ * (DURABILITY_DURATIONS), vers en na het werk; durabilityDecline kiest de laagste
+ * stand en neemt daarover P25 (eigenaar, 2026-10-23). Een duur die in een van beide
+ * curves ontbreekt, valt weg.
  */
 export function fatigueInputs(
   fresh: CurvePoint[],
   curves: Array<{ afterKj: number; points: CurvePoint[] }>,
 ): FatigueInput[] {
-  return curves.flatMap((curve) => {
-    for (const seconds of [60]) {
+  return curves.flatMap((curve) =>
+    DURABILITY_DURATIONS.flatMap((seconds) => {
       const freshWatts = wattsAtDuration(fresh, seconds);
       const fatiguedWatts = wattsAtDuration(curve.points, seconds);
-      if (freshWatts && fatiguedWatts) return [{ afterKj: curve.afterKj, freshWatts, fatiguedWatts }];
-    }
-    return [];
-  });
+      return freshWatts && fatiguedWatts ? [{ afterKj: curve.afterKj, seconds, freshWatts, fatiguedWatts }] : [];
+    }),
+  );
+}
+
+/**
+ * De uitslag van een durability-test op `day`: de beste 20 minuten na de laagste
+ * kJ-stand met genoeg werk, tegen de beste 20 minuten van de 90 dagen tot en met die
+ * dag (`fresh`). Null als er na het werk geen 20 minuten gereden is.
+ */
+export function durabilityTestFrom(
+  day: string,
+  fresh: CurvePoint[],
+  curves: Array<{ afterKj: number; points: CurvePoint[] }>,
+  weightKg: number | null,
+): DurabilityTestInput | null {
+  const freshWatts = wattsAtDuration(fresh, DURABILITY_TEST_SECONDS);
+  if (!freshWatts || !weightKg || weightKg <= 0) return null;
+  for (const curve of [...curves].sort((a, b) => a.afterKj - b.afterKj)) {
+    if (curve.afterKj / weightKg < DURABILITY_MIN_KJ_PER_KG) continue;
+    const fatiguedWatts = wattsAtDuration(curve.points, DURABILITY_TEST_SECONDS);
+    if (fatiguedWatts) return { day, afterKj: curve.afterKj, freshWatts, fatiguedWatts };
+  }
+  return null;
 }
 
 const round2 = (value: number | null) => (value == null ? null : Math.round(value * 100) / 100);
@@ -100,7 +123,11 @@ export function snapshotFrom(args: {
   input: BriljantInput;
   consistency: ConsistencyInput | null;
 }): SnapshotRow {
-  const facets = facetLevels(args.input);
+  const readings = facetReadings(args.input);
+  const facets = Object.fromEntries(Object.entries(readings).map(([facet, reading]) => [facet, reading?.level ?? null])) as Record<
+    Facet,
+    number | null
+  >;
   const consistency = args.consistency ? (consistencyFrom(args.consistency)?.value ?? null) : null;
   const sources: BriljantSources = {
     scale: SCALE_VERSION,
@@ -109,6 +136,7 @@ export function snapshotFrom(args: {
     ctl: facets.fitheid != null,
     zrs: facets.racen != null,
     rides: (args.consistency?.weeks ?? []).some((week) => week.hours > 0),
+    ...(readings.durability?.source ? { durability: readings.durability.source } : {}),
   };
   return {
     profile_id: args.profileId,

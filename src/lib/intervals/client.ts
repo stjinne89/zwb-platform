@@ -708,6 +708,68 @@ export async function fetchIntervalsDayPowerCurve(
   return parsePowerCurveSet(payload).points;
 }
 
+/**
+ * Elke curve uit `list` met zijn `id` en `after_kj` (0 bij een verse curve). Een
+ * vermoeide curve zonder `after_kj` krijgt de drempel uit `thresholds` via het
+ * achtervoegsel `-kj<n>` van zijn id; zonder beide valt hij weg.
+ */
+export function parsePowerCurveEntries(
+  payload: unknown,
+  thresholds: number[] = [],
+): Array<{ id: string | null; afterKj: number; points: IntervalsPowerCurvePoint[] }> {
+  const activities = collectPowerCurveActivities(payload);
+  const list =
+    payload && typeof payload === "object" && !Array.isArray(payload)
+      ? (payload as Record<string, unknown>).list
+      : null;
+  if (!Array.isArray(list)) return [];
+  return list.flatMap((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const row = entry as Record<string, unknown>;
+    const id = stringField(row.id);
+    const suffix = id?.match(/-kj(\d+)$/);
+    const given = Number(row.after_kj);
+    const afterKj = Number.isFinite(given) && given > 0 ? Math.round(given) : suffix ? (thresholds[Number(suffix[1])] ?? -1) : 0;
+    if (afterKj < 0) return [];
+    return [{ id, afterKj, points: curveEntryPoints(entry, activities) }];
+  });
+}
+
+/**
+ * Voor de durability-test op `day`: de verse curve over de 90 dagen tot en met die
+ * dag, en de vermoeide curves van die ene dag na elke kJ-drempel die het lid in
+ * intervals.icu instelde. `thresholds` (de drempels uit het powerprofiel) is een
+ * vangnet als intervals `after_kj` niet meegeeft. In één vraag.
+ */
+export async function fetchIntervalsDurabilityTestCurves(
+  apiKey: string,
+  athleteId: string,
+  day: string,
+  freshFrom: string,
+  thresholds: number[] = [],
+): Promise<{ fresh: IntervalsPowerCurvePoint[]; fatigued: Array<{ afterKj: number; points: IntervalsPowerCurvePoint[] }> }> {
+  const freshRange = `r.${freshFrom}.${day}`;
+  const dayRange = `r.${day}.${day}`;
+  const query = new URLSearchParams({
+    curves: [freshRange, `${dayRange}-kj0`, `${dayRange}-kj1`].join(","),
+    type: "Ride",
+    includeRanks: "false",
+    now: day,
+  });
+  const payload = await intervalsFetchFirst<unknown>(apiKey, [
+    `/api/v1/athlete/0/power-curves?${query.toString()}`,
+    `/api/v1/athlete/${athleteId}/power-curves?${query.toString()}`,
+  ]);
+  const entries = parsePowerCurveEntries(payload, thresholds);
+  const fresh = entries.find((entry) => entry.id === freshRange) ?? entries.find((entry) => entry.afterKj === 0);
+  return {
+    fresh: fresh?.points ?? [],
+    fatigued: entries
+      .filter((entry) => entry !== fresh && entry.afterKj > 0 && entry.points.length > 1)
+      .map(({ afterKj, points }) => ({ afterKj, points })),
+  };
+}
+
 /** Haalt een gepland event weg uit de intervals.icu-kalender. */
 export async function deleteIntervalsWorkoutEvent(
   apiKey: string,

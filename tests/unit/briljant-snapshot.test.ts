@@ -3,6 +3,7 @@ import {
   complianceFrom,
   consistencyWeeks,
   curveRange,
+  durabilityTestFrom,
   fatigueInputs,
   monthEnds,
   monthsSince,
@@ -22,8 +23,8 @@ describe("snapshot", () => {
     expect(mondayKey("2026-10-25")).toBe("2026-10-19");
   });
 
-  it("neemt de beste minuut, vers en na elke drempel", () => {
-    // De beste minuut van de eigenaar (83 kg): 481 W vers, 399 W na 2000 en na 3000 kJ.
+  it("neemt per drempel de duren van 1 tot 20 minuten die vers en vermoeid bestaan", () => {
+    // De eigenaar (83 kg): 481 W en 282 W vers.
     const fresh = [
       { seconds: 60, watts: 481 },
       { seconds: 1200, watts: 282 },
@@ -31,14 +32,34 @@ describe("snapshot", () => {
     expect(
       fatigueInputs(fresh, [
         { afterKj: 2000, points: [{ seconds: 60, watts: 399 }, { seconds: 1200, watts: 212 }] },
-        { afterKj: 3000, points: [{ seconds: 60, watts: 399 }, { seconds: 1200, watts: 197 }] },
-        // Zonder minuut na deze drempel: geen meting, ook al is er een 20 minuten.
-        { afterKj: 4000, points: [{ seconds: 1200, watts: 150 }] },
+        // Alleen een minuut na deze drempel: alleen die duur.
+        { afterKj: 3000, points: [{ seconds: 60, watts: 399 }] },
+        { afterKj: 4000, points: [{ seconds: 30, watts: 500 }] },
       ]),
     ).toEqual([
-      { afterKj: 2000, freshWatts: 481, fatiguedWatts: 399 },
-      { afterKj: 3000, freshWatts: 481, fatiguedWatts: 399 },
+      { afterKj: 2000, seconds: 60, freshWatts: 481, fatiguedWatts: 399 },
+      { afterKj: 2000, seconds: 1200, freshWatts: 282, fatiguedWatts: 212 },
+      { afterKj: 3000, seconds: 60, freshWatts: 481, fatiguedWatts: 399 },
     ]);
+  });
+
+  it("leest de durability-test af: 20 minuten na de laagste stand met genoeg werk", () => {
+    const fresh = [{ seconds: 1200, watts: 282 }];
+    const curves = [
+      { afterKj: 2000, points: [{ seconds: 1200, watts: 240 }] },
+      { afterKj: 500, points: [{ seconds: 1200, watts: 280 }] },
+      { afterKj: 1000, points: [{ seconds: 1200, watts: 262 }] },
+    ];
+    // 500 kJ is bij 83 kg te weinig (6 kJ/kg): de stand van 1000 kJ.
+    expect(durabilityTestFrom("2026-10-25", fresh, curves, 83)).toEqual({
+      day: "2026-10-25",
+      afterKj: 1000,
+      freshWatts: 282,
+      fatiguedWatts: 262,
+    });
+    // Geen 20 minuten na het werk: geen uitslag.
+    expect(durabilityTestFrom("2026-10-25", fresh, [{ afterKj: 1000, points: [{ seconds: 300, watts: 300 }] }], 83)).toBeNull();
+    expect(durabilityTestFrom("2026-10-25", fresh, curves, null)).toBeNull();
   });
 
   it("legt alleen niveaus, de score, de consistentie en ja/nee per bron vast", () => {

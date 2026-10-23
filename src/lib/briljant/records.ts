@@ -33,10 +33,12 @@ export function recordView(sex: Sex | null): { view: BriljantView; holders: Part
   const input: BriljantInput = {
     sex,
     // Durability is verval per 10 kJ/kg: met 1 kg na 10 kJ is het verlies in
-    // procenten precies die waarde.
+    // procenten precies die waarde. Als test, want uit ritten stopt de schaal bij
+    // Diamant (sinds 2026-10-23).
     weightKg: 1,
     power: { ...power },
-    fatigue: [{ afterKj: 10, freshWatts: 100, fatiguedWatts: 100 - DURABILITY_RECORD }],
+    fatigue: [],
+    durabilityTest: { day: "", afterKj: 10, freshWatts: 100, fatiguedWatts: 100 - DURABILITY_RECORD },
     ctl: CTL_RECORD,
     zrs: ZRS_RECORD,
   };

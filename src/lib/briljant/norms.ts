@@ -169,6 +169,43 @@ export const DURABILITY_ANCHORS: Anchors = {
 export const DURABILITY_MIN_KJ_PER_KG = 10;
 
 /**
+ * Uit je ritten: het verval op tien duren van 1 tot 20 minuten, ongeveer even ver
+ * uit elkaar op een logaritmische schaal (sinds 2026-10-23; eerst alleen de minuut).
+ * Korter telt niet mee: korte inspanningen zijn het minst herhaalbaar (Mateo-March
+ * 2025). Met één duur kon één verse minuut durability van 400 naar 65 punten
+ * duwen (eigenaar, 2026-10-23: een minuut van 547 W).
+ */
+export const DURABILITY_DURATIONS = [60, 90, 120, 180, 240, 300, 420, 600, 840, 1200] as const;
+
+/** Zo veel duren moet een kJ-stand minstens hebben om mee te tellen. */
+export const DURABILITY_MIN_DURATIONS = 5;
+
+/**
+ * Van die duren telt het eerste kwart (P25), niet het gemiddelde of de mediaan
+ * (eigenaar, 2026-10-23). Een vermoeide beste waarde is een ondergrens: op een duur
+ * die je na het werk niet voluit reed, lijkt het verval groter dan het is. P25 laat
+ * de duren waarop je wel voluit ging zwaarder tellen, zonder op één waarde te
+ * leunen. Onderbouwing in docs/zwbriljant-onderzoek.md.
+ */
+export const DURABILITY_QUANTILE = 0.25;
+
+/**
+ * Uit je ritten kom je op durability niet boven Diamant (eigenaar, 2026-10-23).
+ * Geen verval is daar een grens en geen meting: het gebeurt als je beste verse
+ * waarde zelf na het werk viel. Hoger kan alleen met de durability-test.
+ */
+export const DURABILITY_RIDES_CAP = 9;
+
+/**
+ * De durability-test (Barsumyan 2025): na 1000 kJ 20 minuten voluit, tegen je
+ * beste 20 minuten van de 90 dagen tot en met de testdag. Alleen het verval op 20
+ * minuten: dat onderscheidde de betere amateurs, 5 minuten niet. Geldt 90 dagen
+ * en gaat dan voor op de schatting uit ritten, zonder plafond.
+ */
+export const DURABILITY_TEST_SECONDS = 1200;
+export const DURABILITY_TEST_VALID_DAYS = 90;
+
+/**
  * Het gewicht van elke facet in de score (onderbouwing in
  * docs/zwbriljant-onderzoek.md). Vermogen samen 50% (eigenaar, 2026-10-22: een
  * betere balans; eerst 60%), niet gelijk verdeeld: 5 minuten voorspelt het best
