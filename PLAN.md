@@ -11293,7 +11293,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — ZWBriljant: powerprofiel ververst na een nieuwe rit
 
-**2026-10-22.** Commit `636962ce`, niet gepusht. Geen migratie.
+**2026-10-22.** Commit `636962ce`, op 2026-10-23 gepusht naar branch `ccr-2ec7772f-roksor` (niet naar `main`). Geen migratie.
 
 **Waarom.** De eigenaar vond anaeroob niet kloppen ("ik kom uit op 6,59, of is hij nog
 niet geüpdatet?"). De rekensom zelf klopt: de steen neemt de beste minuut van de
