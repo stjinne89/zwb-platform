@@ -284,6 +284,15 @@ gaat stabiliteit voor nieuwe features.
    (`b54df58b`). Geen migratie. `refreshEventWorkouts` zet komende
    groepsritblokken vanzelf recht. Open: een groepsritblok in het schema en in
    intervals.icu bekijken zodra een lid voor een groepsrit "Ik doe mee" kiest.
+13. **ZWBriljant als galerij in ZWB-kleuren** (vier rondes van 2026-10-23
+   hieronder): gebouwd, met de eigenaar in de browser bekeken en op 2026-10-23
+   gepusht naar `main`. Geen migratie. Open: Vergelijken (twee stenen naast
+   elkaar) is na de grotere sokkel niet bekeken. Femke (CTL 3 in intervals.icu
+   tegenover ongeveer 35 uit haar Strava-ritten) haalt haar oude ritten op in
+   intervals.icu; daarna nakijken of haar CTL en vermogensprofiel bijtrekken, en
+   daarmee of de vermogenscurve ritten meetelt die via Strava binnenkwamen. Een
+   Strava-terugval voor CTL is bewust niet gebouwd: bij de 23 leden met een steen
+   had alleen Femke dit.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11305,7 +11314,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: kleine stenen in de galerij naar verhouding groter
 
-**2026-10-23.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-23.** Commit `e690c776`, op 2026-10-23 gepusht naar `main` (op verzoek van de eigenaar). Geen migratie.
 
 Na het meezoomen hieronder vond de eigenaar de kleinste stenen naast de recordsteen
 nog heel klein. In de galerij volgt de maat van een steen nu score^0,7 in plaats van
@@ -11319,7 +11328,7 @@ eigenaar, de kleinste steen (237) en het gemiddelde van de mannen op desktop.
 
 ### Gebouwd — ZWBriljant: de galerij zoomt mee, bordjes leesbaar bij kleine stenen
 
-**2026-10-23.** Commit `92c24178`. Geen migratie. Niet gepusht.
+**2026-10-23.** Commit `92c24178`, op 2026-10-23 gepusht naar `main`. Geen migratie.
 
 De eigenaar: de bordjes bij de kleinste stenen bleven slecht leesbaar; inzoomen mocht,
 ook als er vloer wegvalt. Oorzaak: de camera stond voor de hele galerij op de hoogte
@@ -11346,7 +11355,7 @@ op telefoonformaat; alle bordjes op volle grootte.
 
 ### Gebouwd — ZWBriljant: grotere sokkels, logo's, spreuken en sponsors aan de wand
 
-**2026-10-23.** Commit `4f3d2335`. Geen migratie. Niet gepusht.
+**2026-10-23.** Commit `4f3d2335`, op 2026-10-23 gepusht naar `main`. Geen migratie.
 
 De eigenaar keek mee na de ronde hieronder: de sokkels waren wat klein, het logo mocht
 vaker hangen dan alleen bij de ingang, en de spreuken van de website en de sponsors
@@ -11385,7 +11394,7 @@ route; niet elk sponsorlogo is gezien. De route draait achter de login (niet in
 
 ### Gebouwd — ZWBriljant: de galerij in ZWB-kleuren
 
-**2026-10-23.** Commit `ab0e9a4e`. Geen migratie. Niet gepusht.
+**2026-10-23.** Commit `ab0e9a4e`, op 2026-10-23 gepusht naar `main`. Geen migratie.
 
 De eigenaar vond de omgeving van de steen "een zwart gat" en wilde een echte galerij
 in ZWB-kleuren. Beide scènes staan nu in een galerij (`src/components/briljant/gallery.ts`,
