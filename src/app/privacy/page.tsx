@@ -448,7 +448,8 @@ export default function PrivacyPage() {
             was, en of durability uit de test of uit je ritten kwam. Geen watts, W/kg, gewicht, CTL of ZRS. De eerste keer maken we
             per maand een terugblik over je hele historie in intervals.icu, en
             zoeken we via je Zwift-ID in je eerdere race-uitslagen bij Zwift je
-            Racing Score van toen op;
+            Racing Score van toen op. Die bewaren we per race (de score vóór en na
+            de race), zodat we hem niet opnieuw hoeven op te zoeken;
             daarna verversen we je vermogensprofiel na een nieuwe rit en
             minstens één keer per week, en je Racing Score één keer per week. Alle goedgekeurde leden zien standaard je laatste score,
             je punten per onderdeel en je consistentie (geen metingen) en kunnen

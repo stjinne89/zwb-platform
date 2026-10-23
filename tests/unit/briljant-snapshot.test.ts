@@ -11,9 +11,10 @@ import {
   mondayKey,
   powerFromCurve,
   powerProfileStale,
-  raceCandidates,
   snapshotFrom,
   terugblikRows,
+  zrsAtMonthEnd,
+  type KnownRace,
 } from "@/lib/briljant/snapshot";
 
 describe("snapshot", () => {
@@ -202,20 +203,61 @@ describe("snapshot", () => {
     expect(monthEndOfWeek(mondayKey("2026-08-31"))).toBe("2026-08-31");
   });
 
-  it("probeert om en om de race voor en na het maandeinde", () => {
-    const races = ["2026-10-20", "2026-10-05", "2026-09-29", "2026-09-10", "2026-08-18"].map((day) => ({ day }));
-    expect(raceCandidates(races, "2026-09-30", 4)).toEqual([
-      { race: { day: "2026-09-29" }, use: "after" },
-      { race: { day: "2026-10-05" }, use: "before" },
-      { race: { day: "2026-09-10" }, use: "after" },
-      { race: { day: "2026-10-20" }, use: "before" },
-    ]);
-    // Vóór de eerste race: alleen de scores vóór de races erna.
-    expect(raceCandidates(races, "2026-07-31", 2)).toEqual([
-      { race: { day: "2026-08-18" }, use: "before" },
-      { race: { day: "2026-09-10" }, use: "before" },
-    ]);
-    expect(raceCandidates([], "2026-07-31", 4)).toEqual([]);
+  describe("zrsAtMonthEnd", () => {
+    // Nieuw naar oud, zoals Zwift's lijst.
+    const race = (day: string, before: number | null, after: number | null, lookedUp = true): KnownRace => ({
+      activityId: day.replaceAll("-", ""),
+      day,
+      lookedUp,
+      before,
+      after,
+    });
+    const races = [
+      race("2026-10-20", 410, 427),
+      race("2026-10-05", 380, 410),
+      race("2026-09-29", 300, 309),
+      race("2026-09-10", 378, 300),
+      race("2026-08-18", 378, 215),
+    ];
+
+    it("neemt de score na de laatste race tot het maandeinde", () => {
+      expect(zrsAtMonthEnd(races, "2026-09-30", true, 4)).toEqual({ kind: "found", zrs: 309 });
+    });
+
+    it("probeert om en om de race voor en na het maandeinde als een score ontbreekt", () => {
+      const gaps = [races[0], race("2026-10-05", 380, 410), race("2026-09-29", null, null), ...races.slice(3)];
+      // 29-09 zonder score: dan de score vóór de eerste race erna (05-10).
+      expect(zrsAtMonthEnd(gaps, "2026-09-30", true, 4)).toEqual({ kind: "found", zrs: 380 });
+      const fewer = [races[0], race("2026-10-05", null, null), race("2026-09-29", null, null), ...races.slice(3)];
+      // Daarna de race daarvoor (10-09, de score erna).
+      expect(zrsAtMonthEnd(fewer, "2026-09-30", true, 4)).toEqual({ kind: "found", zrs: 300 });
+      // Met twee pogingen blijft het bij de actuele ZRS.
+      expect(zrsAtMonthEnd(fewer, "2026-09-30", true, 2)).toEqual({ kind: "none" });
+    });
+
+    it("gebruikt vóór de eerste race de score vóór de races erna", () => {
+      expect(zrsAtMonthEnd(races, "2026-07-31", true, 4)).toEqual({ kind: "found", zrs: 378 });
+    });
+
+    it("leest eerst verder als de race vóór het maandeinde nog niet in de lijst staat", () => {
+      // Alleen de races van oktober gelezen: voor september eerst verder lezen,
+      // ook al is er een race erna, zodat de volgorde dezelfde blijft.
+      expect(zrsAtMonthEnd(races.slice(0, 2), "2026-09-30", false, 4)).toEqual({ kind: "list" });
+      // Is de lijst af, dan geldt de race erna.
+      expect(zrsAtMonthEnd(races.slice(0, 2), "2026-09-30", true, 4)).toEqual({ kind: "found", zrs: 380 });
+      // De eerste race vóór het maandeinde gaf een score: niet verder lezen.
+      expect(zrsAtMonthEnd(races.slice(0, 3), "2026-09-30", false, 4)).toEqual({ kind: "found", zrs: 309 });
+    });
+
+    it("vraagt een race op die nog niet is opgezocht", () => {
+      const unknown = [races[0], races[1], race("2026-09-29", null, null, false), ...races.slice(3)];
+      expect(zrsAtMonthEnd(unknown, "2026-09-30", false, 4)).toEqual({ kind: "lookup", race: unknown[2] });
+    });
+
+    it("geeft geen ZRS zonder races, en zonder volledige lijst eerst lezen", () => {
+      expect(zrsAtMonthEnd([], "2026-07-31", true, 4)).toEqual({ kind: "none" });
+      expect(zrsAtMonthEnd([], "2026-07-31", false, 4)).toEqual({ kind: "list" });
+    });
   });
 
   it("haalt het powerprofiel opnieuw op na een rit die na het ophalen eindigde", () => {

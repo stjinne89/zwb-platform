@@ -3,7 +3,7 @@ import { checkCronSecret } from "@/lib/cron/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TERUGBLIK_SPAN, refreshSources, storeTerugblik, storeWeek } from "@/lib/briljant/server";
 import { SCALE_VERSION } from "@/lib/briljant/norms";
-import { fillZrsHistory, membersWithPendingZrs } from "@/lib/briljant/zrs-history";
+import { runZrsHistory } from "@/lib/briljant/zrs-history";
 import { mondayKey } from "@/lib/briljant/snapshot";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
@@ -122,14 +122,11 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Met de tijd die over is: de ZRS van vroeger in de terugblik, lid voor lid.
+  // Met de tijd die over is: de ZRS van vroeger in de terugblik, lid voor lid. De
+  // eigen job /api/briljant/zrs-history doet hetzelfde met een heel budget.
   let zrsMonths = 0;
   try {
-    for (const profileId of await membersWithPendingZrs(admin, TERUGBLIK_SPAN)) {
-      const budgetMs = HISTORY_UNTIL_MS - (Date.now() - started);
-      if (budgetMs < 4_000) break;
-      zrsMonths += await fillZrsHistory(admin, profileId, TERUGBLIK_SPAN, { budgetMs });
-    }
+    zrsMonths = (await runZrsHistory(admin, TERUGBLIK_SPAN, started + HISTORY_UNTIL_MS)).months;
   } catch {
     errors += 1;
   }

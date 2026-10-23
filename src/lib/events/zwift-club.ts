@@ -581,21 +581,26 @@ export const ACTIVITIES_PER_PAGE = 20;
 export async function fetchRiderRacePage(
   zwiftId: string,
   start: number,
-): Promise<{ count: number; races: RiderRaceActivity[] }> {
+): Promise<{ count: number; races: RiderRaceActivity[]; startedAts: string[] }> {
   if (!/^\d+$/.test(zwiftId)) throw new Error("Ongeldig Zwift-ID.");
   const payload = await authedJson(
     `${apiBase()}/profiles/${zwiftId}/activities?start=${start}&limit=${ACTIVITIES_PER_PAGE}`,
   );
   const rows = (Array.isArray(payload) ? payload : []) as Array<Record<string, unknown>>;
+  // Zwift schrijft "+0000"; met dubbele punt leest elke Date het.
+  const startedAtOf = (row: Record<string, unknown>) =>
+    String(row.startDate ?? "").replace(/([+-]\d\d)(\d\d)$/, "$1:$2");
   const races = rows
     .filter((row) => /^Zwift - Race\b/i.test(String(row.name ?? "")))
     .map((row) => ({
       activityId: String(row.id_str ?? row.id ?? ""),
-      // Zwift schrijft "+0000"; met dubbele punt leest elke Date het.
-      startedAt: String(row.startDate ?? "").replace(/([+-]\d\d)(\d\d)$/, "$1:$2"),
+      startedAt: startedAtOf(row),
     }))
     .filter((race) => /^\d+$/.test(race.activityId) && !Number.isNaN(Date.parse(race.startedAt)));
-  return { count: rows.length, races };
+  // De start van élke activiteit op de pagina, ook geen race: daarmee telt de
+  // historie-job hoeveel er sinds de vorige run bovenaan bij kwamen.
+  const startedAts = rows.map(startedAtOf).filter((value) => !Number.isNaN(Date.parse(value)));
+  return { count: rows.length, races, startedAts };
 }
 
 /** De startgroep (subgroep) van een race-activiteit; null als Zwift geen event kent. */

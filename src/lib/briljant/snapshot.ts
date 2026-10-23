@@ -316,24 +316,56 @@ export function monthEndOfWeek(week: string): string {
   return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
 }
 
+/** Een race uit `zwift_race_scores` (0271): de dag in Amsterdam en, na het opzoeken, de ZRS eromheen. */
+export type KnownRace = {
+  activityId: string;
+  day: string;
+  lookedUp: boolean;
+  before: number | null;
+  after: number | null;
+};
+
+/** Wat er voor de ZRS op een maandeinde nog moet gebeuren, of wat eruit kwam. */
+export type MonthZrs =
+  | { kind: "found"; zrs: number }
+  | { kind: "none" }
+  | { kind: "lookup"; race: KnownRace }
+  | { kind: "list" };
+
 /**
- * Welke races de ZRS op een maandeinde geven, in volgorde van proberen: om en om de
- * laatste race tot het maandeinde (de score erna) en de eerste erna (de score
- * ervoor), dan de race daarvoor en die daarna. `races` staat nieuw naar oud.
+ * De ZRS op een maandeinde uit de races die we kennen. Volgorde van proberen, om en
+ * om: de laatste race tot het maandeinde (de score erna) en de eerste erna (de
+ * score ervoor), dan de race daarvoor en die daarna, tot `tries` races.
+ *
+ * `races` staat nieuw naar oud en is een begin van Zwift's lijst: de races ná het
+ * maandeinde kennen we dus allemaal, die ervóór alleen tot waar gelezen is. Is de
+ * volgende race vóór het maandeinde nog niet gelezen, dan eerst verder lezen
+ * (`list`), zodat de volgorde altijd dezelfde is als met de hele lijst. Een
+ * niet-opgezochte race geeft `lookup`. Geen score in de races die we proberen:
+ * `none`, en dan blijft de actuele ZRS staan.
  */
-export function raceCandidates<T extends { day: string }>(
-  races: T[],
-  monthEnd: string,
-  tries: number,
-): Array<{ race: T; use: "before" | "after" }> {
+export function zrsAtMonthEnd(races: KnownRace[], monthEnd: string, listComplete: boolean, tries: number): MonthZrs {
   const before = races.filter((race) => race.day <= monthEnd);
   const after = races.filter((race) => race.day > monthEnd).reverse();
-  const out: Array<{ race: T; use: "before" | "after" }> = [];
-  for (let index = 0; out.length < tries && (index < before.length || index < after.length); index++) {
-    if (before[index]) out.push({ race: before[index], use: "after" });
-    if (after[index] && out.length < tries) out.push({ race: after[index], use: "before" });
+  let tried = 0;
+  for (let index = 0; tried < tries; index++) {
+    const earlier = before[index];
+    const later = after[index];
+    if (!earlier && !listComplete) return { kind: "list" };
+    if (!earlier && !later) break;
+    const options: Array<[KnownRace | undefined, "before" | "after"]> = [
+      [earlier, "after"],
+      [later, "before"],
+    ];
+    for (const [race, use] of options) {
+      if (!race || tried >= tries) continue;
+      tried += 1;
+      if (!race.lookedUp) return { kind: "lookup", race };
+      const zrs = race[use];
+      if (zrs != null) return { kind: "found", zrs };
+    }
   }
-  return out;
+  return { kind: "none" };
 }
 
 /** De laatste dag van elk van de `months` maanden vóór `today`, oud naar nieuw. */

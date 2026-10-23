@@ -32,6 +32,7 @@ import {
 import { DURABILITY_TEST_VALID_DAYS, PREVIOUS_SCALE_VERSION, SCALE_VERSION, ZRS_ANCHORS, type Sex } from "./norms";
 import { DURABILITY_TEST_SLUG, DURABILITY_TEST_TASK, DURABILITY_TEST_TITLE } from "@/lib/protocols/training";
 import { clubAverages, storedScore, type StoredSnapshot } from "./compare";
+import { decidedZrs, loadRaceScores } from "./zrs-history";
 import {
   complianceFrom,
   consistencyWeeks,
@@ -63,8 +64,8 @@ const TERUGBLIK_MAX_MONTHS = 120;
 /** Zonder wellness (geen CTL te vinden) blijft het bij een jaar. */
 const TERUGBLIK_FALLBACK_MONTHS = 12;
 /**
- * Gezet in `provenance.terugblik`: de hele historie, met de huidige ZRS voor racen
- * (ZRS heeft geen historie), durability per maand, en sinds 2026-10-22 het gewicht
+ * Gezet in `provenance.terugblik`: de hele historie, met voor racen de ZRS van toen
+ * waar die bekend is en anders de huidige, durability per maand, en sinds 2026-10-22 het gewicht
  * uit intervals.icu of Zwift, consistentie in TSS en durability uit de laagste
  * kJ-stand in plaats van het gemiddelde, en sinds 2026-10-23 durability als P25 over
  * 1 tot 20 minuten met een plafond op Diamant (eigenaar). Een terugblik met
@@ -478,7 +479,8 @@ export async function loadHistory(admin: Admin, profileId: string, today = amste
  * Eenmalig: per maand van je hele intervals.icu-historie een snapshot (de beste 90
  * dagen tot het eind van die maand en de CTL van die dag) en de consistentie tot die
  * maand. Durability uit de vermoeide curves per bereik (met de huidige kJ-drempels);
- * racen krijgt de ZRS van nu. Weeksnapshots worden
+ * racen krijgt de ZRS van toen uit `zwift_race_scores` (0271) of een eerdere vondst,
+ * en anders die van nu. Weeksnapshots worden
  * niet overschreven; een eerdere terugblik wel, en pas na het schrijven van de nieuwe
  * gaat de oude weg, zodat een afgebroken run niets kwijtmaakt.
  */
@@ -527,7 +529,7 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
   const p = profile as ProfileRow | null;
   const byDay = new Map(wellness.map((row) => [row.id, row]));
   const loads = loadsFrom(wellness);
-  // Racen heeft geen historie: elke maand krijgt de ZRS van nu.
+  // Racen: de ZRS van toen als die bekend is (zie hieronder), anders die van nu.
   const zwiftId = zwiftIdOf(p?.zwift_id ?? null);
   // Een maand zonder gewicht: het profiel, het laatste gewicht in intervals.icu, of Zwift.
   const fallbackWeight =
@@ -535,10 +537,13 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
     latestWellnessValue(wellness, "weight") ??
     (zwiftId ? await fetchZwiftWeightKg(String(zwiftId)).catch(() => null) : null);
   const zrs = zwiftId ? ((await loadRiderMetrics([zwiftId]).catch(() => new Map())).get(zwiftId)?.racingScore ?? null) : null;
+  // De ZRS van toen per race (0271); null zonder tabel, dan alleen wat hieronder blijft staan.
+  const raceScores = zwiftId ? await loadRaceScores(admin, String(zwiftId)) : null;
   type Existing = { week: string; source: string; facets: { racen?: number | null } | null; provenance: { racen?: string } | null };
   const existing = (weeks ?? []) as Existing[];
   const taken = new Set(existing.filter((row) => row.source === "week").map((row) => row.week));
-  // De ZRS van vroeger die de job al opzocht, blijft bij een nieuwe terugblik staan.
+  // De ZRS van vroeger die de job vóór 0271 opzocht (alleen het niveau, op deze
+  // schaal), blijft bij een nieuwe terugblik staan als de tabel de maand nog niet kent.
   const zrsBefore = new Map(
     existing
       .filter((row) => row.source === "terugblik" && row.provenance?.racen === "historie" && row.facets?.racen != null)
@@ -564,12 +569,16 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
     };
     // De week na het maandeinde: de consistentie telt dan tot en met die maand.
     const consistency = consistencyAt(rides, planned, shiftDay(end, 1), loads);
-    const earlier = zrsBefore.get(mondayKey(end));
+    // Uit de tabel als die de maand beslist, anders een eerdere vondst, anders de
+    // actuele ZRS (de terugval). "geen": de tabel weet zeker dat er niets is.
+    const decided = decidedZrs(raceScores, end);
+    const earlier = decided?.kind === "found" ? decided.zrs : zrsBefore.get(mondayKey(end));
     if (earlier != null) input.zrs = earlier;
+    const racen = earlier != null ? ("historie" as const) : decided?.kind === "none" ? ("geen" as const) : null;
     const row = snapshotFrom({ profileId, day: end, source: "terugblik", input, consistency });
     return {
       ...row,
-      provenance: { ...row.provenance, terugblik: TERUGBLIK_SPAN, ...(earlier != null ? { racen: "historie" as const } : {}) },
+      provenance: { ...row.provenance, terugblik: TERUGBLIK_SPAN, ...(racen ? { racen } : {}) },
     };
   });
   const useful = terugblikRows(rows).filter((row) => !taken.has(row.week));

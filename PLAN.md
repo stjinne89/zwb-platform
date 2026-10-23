@@ -272,6 +272,13 @@ gaat stabiliteit voor nieuwe features.
    gebouwd, lokaal getest en op 2026-10-20 gepusht naar `main`. Migratie
    `0262_zwift_bike_fixed_wheels.sql` is toegepast. Open: beide schermen in
    de browser bekijken.
+11. **ZRS van vroeger per race bewaard** (ronde van 2026-10-23 hieronder):
+   gebouwd en lokaal getest, **niet gepusht**. Open, in deze volgorde: migratie
+   `0271_zwift_race_scores.sql` toepassen, pushen, en op cron-job.org een job
+   `POST /api/briljant/zrs-history` elk uur op het halve uur zetten (geheim
+   `BRILJANT_WEEKLY_SECRET`). Daarna de eerste runs volgen (`riders`, `months`,
+   `stopped`) en de ZRS van augustus 2026 bij de eigenaar nakijken (215, tussen
+   378 en 309).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11291,6 +11298,86 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: ZRS van vroeger per race bewaard, hervatbaar opzoeken
+
+**2026-10-23.** Commit: de commit die dit blok toevoegt. Migratie
+`0271_zwift_race_scores.sql`, **niet toegepast**. Niet gepusht (AGENTS.md: alleen op
+verzoek).
+
+**Waarom.** De eigenaar zag bij zichzelf geen ZRS-historie. Stand op 2026-10-23: van de
+22 leden met een terugblik hadden er 9 een deel van de maanden met de ZRS van toen, 13
+nog niets, en nergens stond een maand op "geen". Bij de eigenaar januari t/m september
+2026 wel (335, 378, 215, 309), 2023 t/m 2025 (36 maanden) niet. Drie oorzaken:
+1. `fillZrsHistory` las de activiteitenlijst elke run opnieuw vanaf het begin. Een
+   maand waarvoor de job ver terug moest (bij de eigenaar december 2025: weinig races
+   in 2025), paste niet in het budget en werd dus nooit afgerond.
+2. De historie kreeg alleen wat er tot 24 s over was na het verversen en de
+   terugblikken. Na een nieuwe `TERUGBLIK_SPAN` of `SCALE_VERSION` is dat uren lang
+   bijna niets, en leden op de oude span tellen dan niet mee.
+3. Alleen het niveau stond in de terugblik, op één schaal. `storeTerugblik` nam
+   "historie" alleen over van dezelfde `SCALE_VERSION`, dus elke nieuwe schaal gooide
+   de gevonden ZRS weg, terwijl de ZRS zelf niet van de schaal afhangt.
+Daarnaast had `membersWithPendingZrs` geen volgorde: één vastgelopen lid kon elke run
+het hele budget opeten.
+
+**Nu.**
+- **0271:** `zwift_race_scores` (per Zwift-ID en activiteit de ZRS vóór en na de race;
+  `looked_up_at` gezet = opgezocht, ook zonder score; activiteit-ID als tekst, want die
+  past niet in een JavaScript-getal) en `zwift_race_score_sync` (cursor `next_start`,
+  `list_complete`, `refused`, `newest_at`, `settled_at`, `attempted_at`). RLS aan
+  zonder policies, alleen de admin-client.
+- **Afleiden** (`zrsAtMonthEnd` in `snapshot.ts`, vervangt `raceCandidates`): dezelfde
+  volgorde als eerst (om en om de laatste race tot het maandeinde en de eerste erna,
+  vier pogingen), maar als de volgende race vóór het maandeinde nog niet gelezen is,
+  eerst verder lezen, zodat de uitkomst niet afhangt van hoe ver de lijst toevallig
+  was. Uitkomst `found`, `none`, `lookup` of `list`.
+- **Job** (`zrs-history.ts`): per lid eerst bovenaan kijken of er nieuwe activiteiten
+  zijn (de cursor schuift mee met precies dat aantal; te weinig schuiven geeft overlap,
+  nooit een gat), dan per maand lezen of opzoeken tot de maand beslist is. Elke
+  pagina en elke opgezochte race wordt meteen bewaard, dus geen run is verloren. Eerst
+  maanden zonder beslissing, daarna maanden met een vondst van vóór 0271, zodat ook
+  die in de tabel komen (een afwijkende waarde wordt dan rechtgezet; een vondst gaat
+  nooit terug naar "geen"). Volgorde van leden: eerst wie een open maand heeft, dan
+  wie nog niet helemaal beslist is (`settled_at`), binnen beide wie het langst niet
+  aan de beurt was. Een 429/5xx stopt de run; de volgende gaat verder.
+- **Terugval: altijd de actuele ZRS** (eigenaar, 2026-10-23). Volgorde in
+  `storeTerugblik`: de tabel als die de maand beslist, anders een vondst van vóór
+  0271 op deze schaal, anders de ZRS van nu. Zonder tabel (0271 niet toegepast) of bij
+  een fout werkt alles als eerst. "geen" zet alleen de tabel, en dan blijft de actuele
+  ZRS staan.
+- **Een nieuwe schaal** haalt niets meer opnieuw op: `storeTerugblik` leidt de maanden
+  uit de tabel af.
+- **Eigen job** `POST /api/briljant/zrs-history` (budget 22 s, `BRILJANT_WEEKLY_SECRET`,
+  in `PUBLIC_PATHS` van de middleware), naast de staart van `/api/briljant/weekly`
+  (die nu `runZrsHistory` gebruikt). Runbook bijgewerkt.
+- `fetchRiderRacePage` geeft ook de start van elke activiteit op de pagina
+  (`startedAts`), nodig om nieuwe activiteiten bovenaan te tellen.
+- **Privacytekst** (`/privacy#zwbriljant`): "Die bewaren we per race (de score vóór en
+  na de race), zodat we hem niet opnieuw hoeven op te zoeken". **Nog niet goedgekeurd
+  door de eigenaar**; geen nieuwe privacyversie.
+
+**Niet gebouwd.**
+- Een lijst van alle races per lid in één keer opzoeken: alleen de races die een
+  maand nodig heeft (hooguit vier per maand), om de uitslagenwachtrij (2 per seconde
+  voor het hele account) te sparen.
+- `TERUGBLIK_SPAN` ophogen: niet nodig, de job zet de beslissingen in de bestaande
+  terugblikken. Een span- of schaalwissel neemt ze voortaan vanzelf mee.
+- Een scherm of melding met de voortgang (productregel: geen uitleg in schermen); de
+  voortgang staat in `zwift_race_score_sync` en het antwoord van de job.
+
+**Kosten.** `membersWithZrsWork` leest per run `profile_id` en `provenance->>racen` van
+alle terugblikrijen (nu ~1.000, in pagina's van 1.000): enkele tientallen kB per run.
+De races per lid zijn een paar honderd rijen zonder `raw`.
+
+**Getest.** Nieuwe tests: `zrsAtMonthEnd` in `briljant-snapshot.test.ts`, en
+`briljant-zrs-history.test.ts` met een nep-Supabase en een nep-Zwift met pagina's van
+twee: alles in één run, hervatten na een 429 zonder opnieuw te lezen, de cursor die
+meeschuift met drie nieuwe activiteiten (met een mutatiecheck: zonder meeschuiven faalt
+de test), "geen" zonder scores met behoud van een eerdere vondst, en de volgorde van
+leden. tsc en ESLint schoon; de hele unit-suite groen op `omnium-live.test.ts` na (die
+wil `.env.local`, staat los hiervan). **Niet getest:** de migratie (geen Supabase
+lokaal), de job tegen de echte Zwift-API en de nieuwe cron-job.
+
 ### Gebouwd — ZWBriljant: durability uit ritten met P25 en een plafond, en de durability-test
 
 **2026-10-23.** Commit `32a3b555`, op 2026-10-23 gepusht naar `main`. Geen migratie.
@@ -11833,7 +11920,8 @@ Diamant WorldTour 1,5 (was 1,2 en 0,7). Racen: elke ZRS een punt, Diamant vanaf 
 op 1136 (mannen) en 1131 (vrouwen). Rekenvoorbeeld van 593 naar 606.
 `SCALE_VERSION` werd `2026-10-21-sd3`: de terugblik en weekopnames worden opnieuw gemaakt,
 en de wekelijkse job zoekt de ZRS van vroeger opnieuw op (de oude markeringen horen bij de
-oude schaal).
+oude schaal). *(Sinds 0271, 2026-10-23, niet meer: een nieuwe schaal leidt de ZRS van toen
+af uit `zwift_race_scores`.)*
 
 **Standaard gedeeld (0267).** Op verzoek van de eigenaar is je steen voortaan standaard
 zichtbaar voor alle goedgekeurde leden; met "Deel mijn steen met leden" uit verberg je hem.
@@ -11926,7 +12014,9 @@ staan (`storeTerugblik` leest `provenance.racen = "historie"`).
 
 **Niet gebouwd.** Een eigen tabel met races en scores (dan zou elke run de lijst niet
 opnieuw hoeven lezen); met drie deelnemers nog niet nodig. De ZRS zelf bewaren we niet,
-alleen het niveau.
+alleen het niveau. *(Sinds 2026-10-23 wel: migratie 0271 bewaart de ZRS per race en een
+leescursor; elke run gaat verder waar de vorige stopte. Zie "ZRS van vroeger per race
+bewaard".)*
 
 **Getest.** `raceCandidates` en `monthEndOfWeek` in `briljant-snapshot`, tsc, ESLint, de
 ZWBriljant- en Zwift-tests. De Zwift-functies alleen-lezend op de ID van de eigenaar:
