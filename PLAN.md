@@ -11303,9 +11303,48 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
-### Gebouwd — ZWBriljant: de galerij in ZWB-kleuren
+### Gebouwd — ZWBriljant: grotere sokkels, logo's, spreuken en sponsors aan de wand
 
 **2026-10-23.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+De eigenaar keek mee na de ronde hieronder: de sokkels waren wat klein, het logo mocht
+vaker hangen dan alleen bij de ingang, en de spreuken van de website en de sponsors
+mochten er ook een plek krijgen.
+
+- **Sokkels groter.** In de galerij 1,5× de straal van de steen (was 1,3×), met wat
+  meer ruimte ertussen; op een breed scherm nu ruim twee stenen tegelijk (was drie),
+  zodat de stenen niet kleiner lijken. Bij de losse steen 2,1× (was 1,7×) en twee keer
+  zo hoog.
+- **Aan de wand van de galerij** hangt bij de ingang en het einde het ZWB-logo, en
+  tussen elke twee stenen om de beurt een spreuk, een sponsor en weer het logo
+  (zonder sponsors spreuk en logo). Boven de sokkels, rond de bovenkant van de
+  stenen; op een staand scherm lager, naast de steen, want daarboven staan de score
+  en de klassenladder. De wand staat nu vlak achter de sokkels: verder weg schoof
+  alles door het perspectief achter de stenen.
+- **Spreuken**: de vijf die zwbcycling.nl op de voorpagina uittypt (Merckx twee keer,
+  Hinault, Armstrong, Voigt), als `QUOTES` in `gallery.ts`, als crème wandtekst in
+  de schreefletter met de naam in goud.
+- **Sponsors**: de actieve sponsors met een logo uit de tabel `sponsors`, in
+  `display_order`. De logo's staan grotendeels op zwbcycling.nl, dat geen CORS-kop
+  meestuurt, en WebGL mag dan geen textuur van dat domein maken. Daarom
+  `GET /api/briljant/sponsor-logo/[id]`: haalt het adres uit de tabel (nooit uit het
+  verzoek), alleen https, alleen png, jpeg, webp en gif (geen SVG: die kan script
+  bevatten en zou vanaf ons domein draaien), hooguit 3 MB, een dag in de cache. Lukt
+  het laden niet, dan verdwijnt dat bordje.
+
+**Bewust niet.** Geen bordjes in de ronde zaal van de losse steen (zie hieronder). Geen
+eigen beheer van de spreuken: het zijn de vijf van de website, en die veranderen zelden.
+Geen sponsorlogo's als HTML over de scène: die zouden niet achter de stenen vallen.
+
+**Getest.** `tsc`, ESLint, de ZWBriljant-tests en `middleware-public-paths` (113). In de
+browser bekeken met de echte gegevens van de eigenaar (lokaal, tegen productie):
+galerij op desktop en telefoon, losse steen op desktop. JeKa en Kalas laadden via de
+route; niet elk sponsorlogo is gezien. De route draait achter de login (niet in
+`PUBLIC_PATHS`), net als de pagina.
+
+### Gebouwd — ZWBriljant: de galerij in ZWB-kleuren
+
+**2026-10-23.** Commit `ab0e9a4e`. Geen migratie. Niet gepusht.
 
 De eigenaar vond de omgeving van de steen "een zwart gat" en wilde een echte galerij
 in ZWB-kleuren. Beide scènes staan nu in een galerij (`src/components/briljant/gallery.ts`,
@@ -11318,7 +11357,8 @@ gedeeld door `hall-scene.tsx` en `stone-scene.tsx`):
 - **Witte sokkels** met een gouden rand in plaats van gepolijst zwart; de museumbordjes
   zijn daarom petrol met lichte letters geworden (crème op wit viel weg).
 - **Het echte ZWB-logo** (`public/zwb-logo.png`) op een crème bordje aan de wand bij de
-  ingang van de galerij, links van de laagste steen.
+  ingang van de galerij, links van de laagste steen (sinds de ronde hierboven ook
+  tussen de stenen, met spreuken en sponsors).
 - **Vloer** mat donker grijsgroen (`MeshLambertMaterial`). Een standaardmateriaal werd
   grijs welke kleur je ook koos: three.js gebruikt bij `scene.environment` de
   `environmentIntensity` van de scène en niet de `envMapIntensity` van het materiaal,

@@ -128,15 +128,15 @@ export default function StoneScene({ labels, onFailed, rotate, compare, ...main 
       group.add(edge);
       return group;
     };
-    const plinthHeight = 0.26 * fit;
+    const plinthHeight = 0.5 * fit;
 
     // Met een tweede steen staan ze naast elkaar, dwars op de beginblik van de camera.
     const facing = CAMERA.clone().setY(0).normalize();
     const toward = Math.atan2(facing.z, facing.x);
     const right = toward - Math.PI / 2;
     const sideways = new THREE.Vector3(Math.cos(right), 0, Math.sin(right));
-    const mainRadius = ghost.radius * 1.7;
-    const otherRadius = other ? other.radius * 1.7 : 0;
+    const mainRadius = ghost.radius * 2.1;
+    const otherRadius = other ? other.radius * 2.1 : 0;
     const gap = other ? (mainRadius + otherRadius) / 2 + 0.8 * fit : 0;
     const mainCenter = sideways.clone().multiplyScalar(-gap);
     const otherCenter = sideways.clone().multiplyScalar(gap);

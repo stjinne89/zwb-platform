@@ -198,7 +198,16 @@ export default async function BriljantPage({
   // De galerij: je steen van nu, de gemiddelden, iedereen die deelt en de records,
   // elk met een bordje: renner, woonplaats of regio (als bekend), score en datum.
   let hall: BriljantHallStone[] | null = null;
+  // De sponsors met een logo hangen aan de wand van de galerij (eigenaar, 2026-10-23).
+  let sponsors: Array<{ id: string; name: string }> = [];
   if (tab === "zwb" && !subject) {
+    const { data: sponsorRows } = await supabase
+      .from("sponsors")
+      .select("id, name")
+      .eq("active", true)
+      .not("logo_url", "is", null)
+      .order("display_order");
+    sponsors = (sponsorRows ?? []) as Array<{ id: string; name: string }>;
     const { data: ownProfile } = await supabase.from("profiles").select("region").eq("id", user.id).maybeSingle();
     const ownRegion = (ownProfile as { region: string | null } | null)?.region?.trim() || null;
     const others = [...averageStones.map((stone) => stone.id), ...hallStones.map((stone) => stone.id)]
@@ -226,6 +235,7 @@ export default async function BriljantPage({
         options={{ averages: averageStones.map(({ id, label }) => ({ id, label })), members, best: best != null }}
         wins={tab === "ik" && !past ? bestWins(collected.input, live.consistency?.value ?? null).slice(0, 3) : []}
         hall={hall}
+        sponsors={sponsors}
         hidden={!sharing}
       />
     </>

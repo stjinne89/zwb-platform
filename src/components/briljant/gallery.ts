@@ -1,8 +1,8 @@
 // De ruimte om de stenen heen: een galerij in ZWB-kleuren (eigenaar, 2026-10-23:
 // "nu een zwart gat"). Petrol wanden met een gouden plint, een grijsgroene stenen
-// vloer, witte sokkels met een gouden rand, lichtvlekken van de spots op de wand
-// en het ZWB-logo op een bordje aan de muur. De wanden blijven donker genoeg dat
-// de lichte labels erboven leesbaar blijven.
+// vloer, witte sokkels met een gouden rand, lichtvlekken van de spots op de wand,
+// en in de galerij ZWB-logo's, spreuken van de website en sponsors aan de wand.
+// De wanden blijven donker genoeg dat de lichte labels erboven leesbaar blijven.
 
 import * as THREE from "three";
 
@@ -64,34 +64,132 @@ export function wash(width: number, height: number, opacity: number) {
 }
 
 /**
- * Het echte ZWB-logo (public/zwb-logo.png, met "Cycling Community") op een crème
- * bordje, `width` breed. Het bordje staat rechtop en kijkt naar +z; het logo
- * verschijnt zodra het plaatje geladen is.
+ * De spreuken van zwbcycling.nl, waar ze om de beurt worden uitgetypt (eigenaar,
+ * 2026-10-23: "op de website staan altijd spreuken"). In de galerij staan ze als
+ * wandtekst tussen de stenen.
  */
-export function emblem(width: number, track: Track) {
+export const QUOTES: ReadonlyArray<{ text: string; by: string }> = [
+  { text: "The race is won by the rider who can suffer the most", by: "Eddy Merckx" },
+  { text: "As long as I breathe, I attack", by: "Bernard Hinault" },
+  {
+    text: "Pain is temporary, eventually it will subside and something else will take its place. If I quit, however, it lasts forever",
+    by: "Lance Armstrong",
+  },
+  { text: "When it’s hurting you, that’s when you can make a difference", by: "Eddy Merckx" },
+  {
+    text: "If you go (with a break), you can either win or not win. If you don’t go for it, you definitely won’t win",
+    by: "Jens Voigt",
+  },
+];
+
+/** Laadt een plaatje als textuur; elk adres één keer per scène. */
+export function textureCache() {
+  const loader = new THREE.TextureLoader();
+  const cache = new Map<string, Promise<THREE.Texture>>();
+  return (src: string) => {
+    let texture = cache.get(src);
+    if (!texture) {
+      texture = loader.loadAsync(src).then((loaded) => {
+        loaded.colorSpace = THREE.SRGBColorSpace;
+        loaded.anisotropy = 4;
+        return loaded;
+      });
+      cache.set(src, texture);
+    }
+    return texture;
+  };
+}
+
+/**
+ * Een bordje aan de wand, `width` bij `height`, met een plaatje erop dat binnen
+ * de rand past (een logo). Het bordje staat rechtop en kijkt naar +z; het plaatje
+ * verschijnt zodra het geladen is. Lukt dat niet, dan verdwijnt het hele bordje.
+ */
+export function board(src: string, width: number, height: number, load: (src: string) => Promise<THREE.Texture>, track: Track) {
   const group = new THREE.Group();
-  // Het plaatje is 300 bij 104; een rand van crème eromheen.
-  const logoWidth = width * 0.86;
-  const logoHeight = logoWidth * (104 / 300);
-  const panel = track(
-    new THREE.Mesh(
-      new THREE.PlaneGeometry(width, logoHeight + width * 0.14),
-      new THREE.MeshStandardMaterial({ color: ZWB.cream, roughness: 0.85 }),
-    ),
+  group.add(track(new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshStandardMaterial({ color: ZWB.cream, roughness: 0.85 }))));
+  const material = new THREE.MeshStandardMaterial({ transparent: true, roughness: 0.8 });
+  const image = track(new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material));
+  image.position.z = 0.01;
+  image.visible = false;
+  group.add(image);
+  load(src).then(
+    (texture) => {
+      const { width: w, height: h } = texture.image as { width: number; height: number };
+      // Zo groot als past binnen de rand.
+      const fit = Math.min((width * 0.84) / w, (height * 0.74) / h);
+      image.scale.set(w * fit, h * fit, 1);
+      material.map = texture;
+      material.needsUpdate = true;
+      image.visible = true;
+    },
+    () => {
+      group.visible = false;
+    },
   );
-  group.add(panel);
-  const texture = new THREE.TextureLoader().load("/zwb-logo.png");
+  return group;
+}
+
+/** Het echte ZWB-logo (public/zwb-logo.png, 300 bij 104, met "Cycling Community") op een crème bordje. */
+export function emblem(width: number, load: (src: string) => Promise<THREE.Texture>, track: Track) {
+  return board("/zwb-logo.png", width, width * 0.48, load, track);
+}
+
+/**
+ * Een spreuk als wandtekst: crème letters in de schreefletter, de naam eronder
+ * in goud. `width` breed, half zo hoog; het vlak kijkt naar +z.
+ */
+export function wallText(quote: { text: string; by: string }, width: number, fonts: { serif: string; sans: string }, track: Track) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1024;
+  canvas.height = 512;
+  const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;
-  const logo = track(
+  const draw = () => {
+    const context = canvas.getContext("2d")!;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    // Een lange spreuk krijgt kleinere letters, zodat hij in vijf regels past.
+    let size = 64;
+    let lines: string[] = [];
+    for (; size >= 34; size -= 4) {
+      context.font = `italic 400 ${size}px ${fonts.serif}`;
+      lines = [];
+      let line = "";
+      for (const word of `“${quote.text}”`.split(" ")) {
+        const next = line ? `${line} ${word}` : word;
+        if (line && context.measureText(next).width > canvas.width * 0.92) {
+          lines.push(line);
+          line = word;
+        } else line = next;
+      }
+      lines.push(line);
+      if (lines.length * size * 1.18 <= canvas.height * 0.72) break;
+    }
+    const by = 30;
+    const total = lines.length * size * 1.18 + by * 1.9;
+    let y = (canvas.height - total) / 2 + size;
+    context.textAlign = "center";
+    context.fillStyle = "#f5f6f0";
+    for (const line of lines) {
+      context.fillText(line, canvas.width / 2, y);
+      y += size * 1.18;
+    }
+    context.font = `500 ${by}px ${fonts.sans}`;
+    context.letterSpacing = "6px";
+    context.fillStyle = "#d9b25e";
+    context.fillText(`— ${quote.by.toUpperCase()}`, canvas.width / 2, y + by * 0.6);
+    texture.needsUpdate = true;
+  };
+  draw();
+  // Opnieuw zodra de letters van ZWBriljant geladen zijn.
+  document.fonts?.load(`italic 400 64px ${fonts.serif}`).then(draw, () => undefined);
+  return track(
     new THREE.Mesh(
-      new THREE.PlaneGeometry(logoWidth, logoHeight),
-      new THREE.MeshStandardMaterial({ map: texture, transparent: true, roughness: 0.8 }),
+      new THREE.PlaneGeometry(width, width / 2),
+      new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: 0.92, depthWrite: false }),
     ),
   );
-  logo.position.z = 0.01;
-  group.add(logo);
-  return group;
 }
 
 /** Een gouden plint langs de wand: een dunne lat, `length` lang langs x. */

@@ -82,6 +82,8 @@ type Props = {
   wins: Win[];
   /** De galerij: alle stenen die je mag zien, met de jouwe ("ik"); null buiten de galerij. */
   hall: BriljantHallStone[] | null;
+  /** De sponsors met een logo, voor de bordjes aan de wand van de galerij. */
+  sponsors?: Array<{ id: string; name: string }>;
   /** Je verbergt je steen, en ziet dus ook die van andere leden niet. */
   hidden: boolean;
 };
@@ -396,7 +398,7 @@ function PanelBody({
   );
 }
 
-export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compare, lines, options, wins, hall, hidden }: Props) {
+export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compare, lines, options, wins, hall, sponsors, hidden }: Props) {
   const labels = useRef(new Map<string, HTMLElement>());
   const [failed, setFailed] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
@@ -484,6 +486,7 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
           <HallScene
             stones={hall.map((stone) => ({ ...sceneStone(stone.view), id: stone.id }))}
             startId="ik"
+            sponsors={sponsors}
             labels={labels}
             onFailed={() => setFailed(true)}
             rotate={!panel && !aiming}
