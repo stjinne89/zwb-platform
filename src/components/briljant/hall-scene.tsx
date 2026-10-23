@@ -99,11 +99,14 @@ export default function HallScene({ stones, startId, sponsors = [], labels, onFa
 
     const meshes: THREE.Mesh[] = [];
     const xs: number[] = [];
+    const radii: number[] = [];
     const anchors = new Map<string, { position: THREE.Vector3; radius: number }>();
     stones.forEach((stone, index) => {
       const x = index * spacing;
       xs.push(x);
-      const radius = Math.max(0.9, shapes[index].radius * 1.5);
+      // Een kleine steen krijgt toch een flinke sokkel, zodat zijn bordje leesbaar is.
+      const radius = Math.max(0.9, widest * 0.8, shapes[index].radius * 1.5);
+      radii.push(radius);
       const bodyGeometry = new THREE.CylinderGeometry(radius, radius * 1.06, plinthHeight, lowQuality ? 48 : 96);
       const edgeGeometry = new THREE.TorusGeometry(radius, Math.max(0.008, radius * 0.008), 8, 96);
       geometries.push(bodyGeometry, edgeGeometry);
@@ -145,17 +148,50 @@ export default function HallScene({ stones, startId, sponsors = [], labels, onFa
     scene.add(rim);
 
     const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 600);
-    // Van de vloer tot de top van de hoogste steen in beeld, het midden daartussen.
     const fullHeight = plinthHeight + tallest;
-    const lookHeight = fullHeight * 0.5;
-    const reachFor = (aspect: number) => {
-      // Op een breed scherm ruim twee stenen tegelijk, op een telefoon ruim één.
-      const across = aspect >= 1 ? spacing * 2.5 : spacing * 1.2;
-      const vertical = THREE.MathUtils.degToRad(camera.fov / 2);
-      const halfAngle = Math.atan(Math.tan(vertical) * aspect);
-      return Math.max(across / 2 / Math.tan(halfAngle), (fullHeight * 0.62) / Math.tan(vertical));
+    const vertical = THREE.MathUtils.degToRad(camera.fov / 2);
+    // De camera zoomt mee met de stenen waar je staat (eigenaar, 2026-10-23: de
+    // bordjes bij de kleinste stenen waren slecht leesbaar). Per sokkel de hoogte
+    // om in beeld te houden: de steen zelf, en een buur die veel hoger is half.
+    const heights = shapes.map((shape, index) =>
+      Math.max(shape.height, 0.6 * (shapes[index - 1]?.height ?? 0), 0.6 * (shapes[index + 1]?.height ?? 0)),
+    );
+    /** Een waarde per sokkel, glad tussen twee sokkels in. */
+    const between = (values: number[], x: number) => {
+      const position = Math.min(values.length - 1, Math.max(0, (x - (xs[0] ?? 0)) / spacing));
+      const index = Math.floor(position);
+      const next = values[Math.min(values.length - 1, index + 1)] ?? 0;
+      return (values[index] ?? 0) + (next - (values[index] ?? 0)) * (position - index);
     };
-    let reach = reachFor(element.clientWidth / Math.max(1, element.clientHeight));
+    const heightAt = (x: number) => between(heights, x);
+    // Onderin valt de vloer en de voet van de sokkel weg; de onderkant van het bordje
+    // blijft in beeld.
+    const plaqueBottom = plinthHeight * 0.3;
+    // Op een breed scherm een steen met de buren half, op een telefoon ruim één.
+    let across = spacing * 1.7;
+    let aspect = element.clientWidth / Math.max(1, element.clientHeight);
+    /** Afstand en kijkhoogte voor de camera bij `x`. */
+    const view = (x: number) => {
+      // Boven de steen een kwart extra: daar staan de score en de tabbladen. Steen
+      // en bordje in het midden; ruimte over gaat gelijk naar vloer en wand.
+      const stone = plinthHeight + heightAt(x) * 1.08;
+      // Het bordje zit op de voorkant van de sokkel, dichter bij de camera, en valt
+      // daardoor lager in beeld: hoe breder de sokkel, hoe meer.
+      const front = between(radii, x) * 1.03;
+      const halfAngle = Math.atan(Math.tan(vertical) * aspect);
+      const wide = across / 2 / Math.tan(halfAngle);
+      let bottom = plaqueBottom;
+      let reach = wide;
+      let look = 0;
+      for (let step = 0; step < 4; step++) {
+        const top = stone + (stone - bottom) * 0.25;
+        reach = Math.max(wide, (top - bottom) / 2 / Math.tan(vertical));
+        look = (top + bottom) / 2;
+        bottom = look + ((plaqueBottom - look) * reach) / Math.max(1, reach - front);
+      }
+      return { reach, look };
+    };
+    let reach = view(0).reach;
 
     const minX = xs[0] ?? 0;
     const maxX = xs[xs.length - 1] ?? 0;
@@ -188,12 +224,12 @@ export default function HallScene({ stones, startId, sponsors = [], labels, onFa
     const sponsorList = currentSponsors.current;
     const kinds = sponsorList.length > 0 ? (["spreuk", "sponsor", "logo"] as const) : (["spreuk", "logo"] as const);
     const counts = { spreuk: 0, sponsor: 0 };
-    // Boven de sokkels, rond de bovenkant van de stenen; op een staand scherm lager,
-    // naast de steen, want daarboven staan de score en de klassenladder.
+    // Boven de sokkels, rond de bovenkant van de stenen ernaast; op een staand
+    // scherm lager, naast de steen, want daarboven staan de score en de klassenladder.
     const portrait = element.clientWidth < element.clientHeight;
-    const signHeight = plinthHeight + tallest * (portrait ? 0.4 : 0.85);
     const hang = (object: THREE.Object3D, x: number, lit: boolean) => {
-      object.position.set(x, signHeight, wallZ + 0.02);
+      const near = Math.max(heightAt(x - spacing / 2), heightAt(x + spacing / 2));
+      object.position.set(x, plinthHeight + near * (portrait ? 0.4 : 0.85), wallZ + 0.02);
       scene.add(object);
       if (!lit) return;
       const light = track(wash(spacing * 1.1, fullHeight * 1.5, 0.2));
@@ -215,8 +251,10 @@ export default function HallScene({ stones, startId, sponsors = [], labels, onFa
         hang(emblem(boardWidth, load, track), between, false);
       }
     });
-    // De mist laat de wand ver opzij donkerder worden, niet de stenen voor je.
-    scene.fog = new THREE.Fog(AIR, reach - wallZ, reach - wallZ + spacing * 6);
+    // De mist laat de wand ver opzij donkerder worden, niet de stenen voor je; hij
+    // schuift mee met de afstand van de camera.
+    const fog = new THREE.Fog(AIR, reach - wallZ, reach - wallZ + spacing * 6);
+    scene.fog = fog;
 
     // Lopen langs de rij: scrollen of slepen verschuift het doel, de camera volgt zacht.
     const start = Math.max(0, stones.findIndex((stone) => stone.id === startId));
@@ -236,7 +274,7 @@ export default function HallScene({ stones, startId, sponsors = [], labels, onFa
     };
     const onMove = (event: PointerEvent) => {
       if (dragFrom == null) return;
-      const perPixel = (spacing * 2.8) / Math.max(1, element.clientWidth);
+      const perPixel = across / Math.max(1, element.clientWidth);
       targetX = clamp(dragX - (event.clientX - dragFrom) * perPixel);
     };
     const onUp = () => {
@@ -259,7 +297,8 @@ export default function HallScene({ stones, startId, sponsors = [], labels, onFa
       canvas.style.height = "100%";
       camera.aspect = width / Math.max(1, height);
       camera.updateProjectionMatrix();
-      reach = reachFor(camera.aspect);
+      aspect = camera.aspect;
+      across = aspect >= 1 ? spacing * 1.7 : spacing * 1.05;
     };
     const observer = new ResizeObserver(resize);
     observer.observe(element);
@@ -298,8 +337,12 @@ export default function HallScene({ stones, startId, sponsors = [], labels, onFa
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       cameraX += (targetX - cameraX) * Math.min(1, dt * (reducedMotion ? 30 : 6));
-      camera.position.set(cameraX, lookHeight + reach * 0.08, reach);
-      camera.lookAt(cameraX, lookHeight, 0);
+      const { reach: distance, look } = view(cameraX);
+      reach = distance;
+      fog.near = reach - wallZ;
+      fog.far = fog.near + spacing * 6;
+      camera.position.set(cameraX, look + reach * 0.08, reach);
+      camera.lookAt(cameraX, look, 0);
       // De stenen draaien langzaam op hun sokkel.
       if (!reducedMotion && rotating.current) for (const mesh of meshes) mesh.rotation.y += dt * 0.25;
       if (!document.hidden) {

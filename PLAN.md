@@ -11303,9 +11303,36 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
-### Gebouwd — ZWBriljant: grotere sokkels, logo's, spreuken en sponsors aan de wand
+### Gebouwd — ZWBriljant: de galerij zoomt mee, bordjes leesbaar bij kleine stenen
 
 **2026-10-23.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+De eigenaar: de bordjes bij de kleinste stenen bleven slecht leesbaar; inzoomen mocht,
+ook als er vloer wegvalt. Oorzaak: de camera stond voor de hele galerij op de hoogte
+van de hoogste steen (de recordsteen), en een bordje schaalt met de breedte van zijn
+sokkel op het scherm (hooguit 80% ervan, minimaal 0,4×).
+
+- **De camera zoomt mee** (`hall-scene.tsx`, `view()`): per sokkel een hoogte om in
+  beeld te houden (de steen, en een veel hogere buur half), glad tussen twee sokkels
+  in. In beeld van net onder het bordje tot boven de steen, met een kwart extra
+  bovenin voor score en tabbladen; de vloer en de voet van de sokkel vallen weg. Het
+  bordje op de voorkant van een brede sokkel staat dichter bij de camera en valt
+  lager in beeld; dat rekent de camera mee (anders viel het bij de recordsteen weg).
+  De mist schuift mee met de afstand.
+- **Dichterbij**: op een breed scherm 1,7 sokkelafstand in beeld (was 2,5), op een
+  telefoon 1,05 (was 1,2).
+- **Een kleine steen krijgt een flinke sokkel**: minstens 0,8× de breedste steen,
+  zodat zijn bordje niet krimpt.
+- De bordjes aan de wand hangen op de hoogte van de stenen ernaast, niet meer van de
+  hoogste steen.
+
+**Getest.** `tsc`, ESLint, ZWBriljant-tests. In de browser met de gegevens van de
+eigenaar: de kleinste steen (237), je eigen steen en de recordsteen op desktop, en
+op telefoonformaat; alle bordjes op volle grootte.
+
+### Gebouwd — ZWBriljant: grotere sokkels, logo's, spreuken en sponsors aan de wand
+
+**2026-10-23.** Commit `4f3d2335`. Geen migratie. Niet gepusht.
 
 De eigenaar keek mee na de ronde hieronder: de sokkels waren wat klein, het logo mocht
 vaker hangen dan alleen bij de ingang, en de spreuken van de website en de sponsors
@@ -11313,7 +11340,7 @@ mochten er ook een plek krijgen.
 
 - **Sokkels groter.** In de galerij 1,5× de straal van de steen (was 1,3×), met wat
   meer ruimte ertussen; op een breed scherm nu ruim twee stenen tegelijk (was drie),
-  zodat de stenen niet kleiner lijken. Bij de losse steen 2,1× (was 1,7×) en twee keer
+  zodat de stenen niet kleiner lijken (sinds de ronde hierboven zoomt de camera mee). Bij de losse steen 2,1× (was 1,7×) en twee keer
   zo hoog.
 - **Aan de wand van de galerij** hangt bij de ingang en het einde het ZWB-logo, en
   tussen elke twee stenen om de beurt een spreuk, een sponsor en weer het logo
