@@ -67,8 +67,9 @@ is de steen. Hoogte en grootte zijn de score, dus consistentie maakt hem via de
 factor kleiner; een gouden draadmodel toont de steen bij volledige consistentie.
 Kleur en materiaal volgen de klasse (metaal dof en ondoorzichtig, edelsteen
 doorschijnend, diamant fonkelend), de kop de echte kristalvorm van die steen. Hij
-staat op een zwarte sokkel in een donkere studio, met de tien klassen als
-ijkstenen erachter. Zonder WebGL: een vlakke steen en de facetten als lijst.
+staat op een witte sokkel in een ronde galerij in ZWB-kleuren (petrol wanden,
+sinds 2026-10-23; eerst een zwarte sokkel in een donkere studio), met de tien
+klassen als ijkstenen erachter. Zonder WebGL: een vlakke steen en de facetten als lijst.
 
 **Op het scherm de waarden, de formules op /hulp** (eigenaar). Elk facet toont de
 meting als balk van de grens van zijn klasse tot de volgende (racen over de hele

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
+import { AIR, emblem, floorMaterial, plinthMaterials, rail, wallMaterial, wash } from "./gallery";
 import { glow, stoneGeometry, stoneMaterial, stoneShape, studioEnvironment } from "./stone";
 import { facetPoints, type SceneStone } from "./stone-scene";
 
@@ -17,13 +18,12 @@ type Props = {
   rotate: boolean;
 };
 
-const NIGHT = 0x0a0c0f;
-
 /**
  * De galerij als museum (eigenaar, 2026-10-21): alle stenen op één rij hoge sokkels,
  * van laag naar hoog, met de recordsteen achteraan. Je loopt erlangs door te
  * scrollen of te slepen; naam en score staan als plaatje op de sokkel, zodat er
- * weinig in de lucht zweeft. Kiezen opent de vergelijking.
+ * weinig in de lucht zweeft. Kiezen opent de vergelijking. Sinds 2026-10-23 een
+ * galerij in ZWB-kleuren: een petrol wand achter de rij, met het logo bij de ingang.
  */
 export default function HallScene({ stones, startId, labels, onFailed, rotate }: Props) {
   const host = useRef<HTMLDivElement>(null);
@@ -60,7 +60,7 @@ export default function HallScene({ stones, startId, labels, onFailed, rotate }:
     element.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(NIGHT);
+    scene.background = new THREE.Color(AIR);
     const environment = studioEnvironment(renderer);
     scene.environment = environment;
     scene.environmentIntensity = 1.15;
@@ -85,13 +85,12 @@ export default function HallScene({ stones, startId, labels, onFailed, rotate }:
     // Hoge sokkels, zodat het plaatje op ooghoogte staat en de steen erboven.
     const plinthHeight = Math.max(1.6, tallest * 0.55);
 
-    const floor = track(new THREE.Mesh(new THREE.PlaneGeometry(2000, 200), new THREE.MeshStandardMaterial({ color: 0x07080a, roughness: 0.9, envMapIntensity: 0.15 })));
+    const floor = track(new THREE.Mesh(new THREE.PlaneGeometry(2000, 200), floorMaterial()));
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
-    const black = new THREE.MeshPhysicalMaterial({ color: 0x050607, roughness: 0.35, clearcoat: 1, clearcoatRoughness: 0.18, envMapIntensity: 0.3 });
-    const brass = new THREE.MeshStandardMaterial({ color: 0xc9a45a, metalness: 1, roughness: 0.32 });
-    materials.push(black, brass);
+    const { body: white, rim: brass } = plinthMaterials();
+    materials.push(white, brass);
 
     const meshes: THREE.Mesh[] = [];
     const xs: number[] = [];
@@ -103,7 +102,7 @@ export default function HallScene({ stones, startId, labels, onFailed, rotate }:
       const bodyGeometry = new THREE.CylinderGeometry(radius, radius * 1.06, plinthHeight, lowQuality ? 48 : 96);
       const edgeGeometry = new THREE.TorusGeometry(radius, Math.max(0.008, radius * 0.008), 8, 96);
       geometries.push(bodyGeometry, edgeGeometry);
-      const body = new THREE.Mesh(bodyGeometry, black);
+      const body = new THREE.Mesh(bodyGeometry, white);
       body.position.set(x, plinthHeight / 2, 0);
       scene.add(body);
       for (const y of [plinthHeight, 0.02]) {
@@ -135,7 +134,7 @@ export default function HallScene({ stones, startId, labels, onFailed, rotate }:
       scene.add(spot, spot.target);
       lights.push(spot);
     });
-    scene.add(new THREE.HemisphereLight(0xcfd8e3, NIGHT, 0.35));
+    scene.add(new THREE.HemisphereLight(0xf2ead8, 0x55605c, 0.55));
     const rim = new THREE.DirectionalLight(0xbcd6ff, 1.1);
     rim.position.set(-4, 6, -8);
     scene.add(rim);
@@ -152,12 +151,37 @@ export default function HallScene({ stones, startId, labels, onFailed, rotate }:
       return Math.max(across / 2 / Math.tan(halfAngle), (fullHeight * 0.62) / Math.tan(vertical));
     };
     let reach = reachFor(element.clientWidth / Math.max(1, element.clientHeight));
-    scene.fog = new THREE.Fog(NIGHT, reach + 4, reach + spacing * 4);
+
+    const minX = xs[0] ?? 0;
+    const maxX = xs[xs.length - 1] ?? 0;
+    // De wand achter de rij, met een gouden plint en per sokkel de lichtvlek van zijn spot.
+    const wallZ = -(plinthRadius + spacing * 0.9);
+    const wallHeight = fullHeight * 3 + 20;
+    const wallLength = maxX - minX + spacing * 12;
+    const wallCenter = (minX + maxX) / 2;
+    const wall = track(new THREE.Mesh(new THREE.PlaneGeometry(wallLength, wallHeight), wallMaterial()));
+    wall.position.set(wallCenter, wallHeight / 2, wallZ);
+    scene.add(wall);
+    const plint = rail(wallLength, Math.max(0.08, fullHeight * 0.02), track);
+    plint.position.set(wallCenter, 0.02, wallZ + 0.04);
+    scene.add(plint);
+    xs.forEach((x) => {
+      const spill = track(wash(spacing * 0.9, fullHeight * 1.5, 0.16));
+      spill.position.set(x, fullHeight * 0.75, wallZ + 0.02);
+      scene.add(spill);
+    });
+    // Bij de ingang, voor de laagste steen: het logo op een bordje.
+    const sign = emblem(spacing * 0.9, track);
+    sign.position.set(minX - spacing * 0.95, lookHeight + fullHeight * 0.12, wallZ + 0.02);
+    scene.add(sign);
+    const signLight = track(wash(spacing * 1.1, fullHeight * 1.5, 0.22));
+    signLight.position.set(minX - spacing * 0.95, fullHeight * 0.75, wallZ + 0.015);
+    scene.add(signLight);
+    // De mist laat de wand ver opzij donkerder worden, niet de stenen voor je.
+    scene.fog = new THREE.Fog(AIR, reach - wallZ, reach - wallZ + spacing * 6);
 
     // Lopen langs de rij: scrollen of slepen verschuift het doel, de camera volgt zacht.
     const start = Math.max(0, stones.findIndex((stone) => stone.id === startId));
-    const minX = xs[0] ?? 0;
-    const maxX = xs[xs.length - 1] ?? 0;
     let targetX = xs[start] ?? 0;
     let cameraX = targetX;
     const clamp = (x: number) => Math.min(maxX, Math.max(minX, x));

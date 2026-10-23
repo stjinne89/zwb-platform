@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { LEVELS, type Level } from "@/lib/briljant/norms";
 import { FACETS } from "@/lib/briljant/score";
+import { AIR, floorMaterial, plinthMaterials, wallMaterial, wash } from "./gallery";
 import { glow, seeded, stoneGeometry, stoneMaterial, stoneShape, studioEnvironment } from "./stone";
 
 /** Een steen om te tekenen: score en profielscore in punten, facetten in punten. */
@@ -30,7 +31,6 @@ type Props = SceneStone & {
   rotate: boolean;
 };
 
-const NIGHT = 0x0a0c0f;
 const CAMERA = new THREE.Vector3(10.5, 6.2, 12.5);
 
 /** De punten per facet in de vaste volgorde rond de steen, null waar een facet ontbreekt. */
@@ -80,7 +80,7 @@ export default function StoneScene({ labels, onFailed, rotate, compare, ...main 
     element.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(NIGHT);
+    scene.background = new THREE.Color(AIR);
     const environment = studioEnvironment(renderer);
     scene.environment = environment;
     scene.environmentIntensity = 1.15;
@@ -92,7 +92,7 @@ export default function StoneScene({ labels, onFailed, rotate, compare, ...main 
     const other = compare ? shapeOf(compare) : null;
     const tallest = Math.max(ghost.height, other?.height ?? 0);
     const fit = Math.max(1, tallest / 4.4);
-    const fog = new THREE.Fog(NIGHT, 15 * fit, 46 * fit);
+    const fog = new THREE.Fog(AIR, 15 * fit, 46 * fit);
     scene.fog = fog;
 
     const geometries: THREE.BufferGeometry[] = [];
@@ -104,19 +104,19 @@ export default function StoneScene({ labels, onFailed, rotate, compare, ...main 
       return object;
     };
 
-    // Een donkere, naadloze studio: de vloer loopt via de mist over in de achtergrond.
-    const floor = track(new THREE.Mesh(new THREE.CircleGeometry(220, 64), new THREE.MeshStandardMaterial({ color: 0x07080a, roughness: 0.9, envMapIntensity: 0.15 })));
+    // Een ronde galerij in ZWB-kleuren (eigenaar, 2026-10-23): een stenen vloer,
+    // petrol wanden eromheen; de wand komt verderop, als de afstand van de camera vastligt.
+    const floor = track(new THREE.Mesh(new THREE.CircleGeometry(220, 64), floorMaterial()));
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // De sokkel: gepolijst zwart met een messing rand.
-    const black = new THREE.MeshPhysicalMaterial({ color: 0x050607, roughness: 0.35, clearcoat: 1, clearcoatRoughness: 0.18, envMapIntensity: 0.3 });
-    const brass = new THREE.MeshStandardMaterial({ color: 0xc9a45a, metalness: 1, roughness: 0.32 });
-    materials.push(black, brass);
+    // De sokkel: wit met een gouden rand.
+    const { body: white, rim: brass } = plinthMaterials();
+    materials.push(white, brass);
     const plinth = (radius: number, height: number) => {
       const group = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 1.04, height, lowQuality ? 64 : 128), black);
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 1.04, height, lowQuality ? 64 : 128), white);
       geometries.push(body.geometry);
       body.position.y = height / 2;
       body.castShadow = body.receiveShadow = true;
@@ -182,7 +182,7 @@ export default function StoneScene({ labels, onFailed, rotate, compare, ...main 
     scene.add(spot, spot.target);
     const rim = new THREE.DirectionalLight(0xbcd6ff, 1.3);
     rim.position.set(-7, 5, -6);
-    scene.add(rim, new THREE.HemisphereLight(0xcfd8e3, NIGHT, 0.22));
+    scene.add(rim, new THREE.HemisphereLight(0xf2ead8, 0x55605c, 0.4));
 
     // De tien klassen als ijkstenen in een boog erachter: echte stenen in hun eigen
     // verhoudingen (een metaal als lage klomp, een edelsteen als kristal), geen
@@ -249,10 +249,37 @@ export default function StoneScene({ labels, onFailed, rotate, compare, ...main 
       distance = Math.max(distance * 1.35, halfWidth / Math.tan(halfAngle) / CAMERA.length());
     }
     camera.position.copy(CAMERA).multiplyScalar(distance);
-    // De mist begint achter de stenen, ook als de camera verder weg staat.
     const reach = CAMERA.length() * distance;
+    const maxDistance = Math.max(26 * fit, reach * 1.3);
+
+    // De ronde wand, ver genoeg dat de camera er nooit doorheen gaat, met een
+    // gouden plint en de lichtvlekken van spots. Geen logo: dat draait mee en
+    // schuift dan onder de score door; het hangt bij de ingang van de galerij.
+    const wallRadius = Math.max(32 * fit, maxDistance + 4 * fit);
+    const wallHeight = 18 * fit;
+    const wall = track(
+      new THREE.Mesh(new THREE.CylinderGeometry(wallRadius, wallRadius, wallHeight, 96, 1, true), wallMaterial(THREE.BackSide)),
+    );
+    wall.position.y = wallHeight / 2;
+    scene.add(wall);
+    const plint = track(new THREE.Mesh(new THREE.TorusGeometry(wallRadius - 0.1 * fit, 0.1 * fit, 6, 192), brass));
+    plint.rotation.x = Math.PI / 2;
+    plint.position.y = 0.03 * fit;
+    scene.add(plint);
+    const onWall = (object: THREE.Object3D, angle: number, y: number, inset: number) => {
+      object.position.set(Math.cos(angle) * (wallRadius - inset), y, Math.sin(angle) * (wallRadius - inset));
+      object.lookAt(0, y, 0);
+      scene.add(object);
+    };
+    const spills = 16;
+    for (let i = 0; i < spills; i++) {
+      onWall(track(wash(7 * fit, 11 * fit, 0.13)), behind + (i / spills) * Math.PI * 2, 5.5 * fit, 0.4 * fit);
+    }
+
+    // De mist begint achter de stenen, ook als de camera verder weg staat, en
+    // laat de wand aan de overkant wat wegzakken.
     fog.near = Math.max(15 * fit, reach + 2 * fit);
-    fog.far = Math.max(46 * fit, reach + 31 * fit);
+    fog.far = Math.max(wallRadius * 2.4, reach + 31 * fit);
     const controls = new OrbitControls(camera, renderer.domElement);
     // Op een staand scherm staat de kop bovenin: de stenen iets lager in beeld.
     const lower = aspect < 1 ? 0.09 * reach * Math.min(1, (1 - aspect) * 2) : 0;
@@ -260,7 +287,7 @@ export default function StoneScene({ labels, onFailed, rotate, compare, ...main 
     controls.enableDamping = true;
     controls.maxPolarAngle = Math.PI * 0.49;
     controls.minDistance = 4;
-    controls.maxDistance = Math.max(26 * fit, CAMERA.length() * distance * 1.3);
+    controls.maxDistance = maxDistance;
     // Rustig ronddraaien, behalve bij verminderde beweging; met de vinger draaien kan altijd.
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     controls.autoRotateSpeed = 0.6;

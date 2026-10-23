@@ -170,12 +170,12 @@ export function stoneMaterial(level: Level): THREE.Material {
   });
 }
 
-/** Licht om in te weerspiegelen: een donkere studio met lichtbakken. */
+/** Licht om in te weerspiegelen: de galerij, petrol onderin en licht bovenin, met lichtbakken. */
 export function studioEnvironment(renderer: THREE.WebGLRenderer): THREE.Texture {
   const scene = new THREE.Scene();
   const dome = new THREE.SphereGeometry(10, 32, 16);
-  const bottom = new THREE.Color("#3a4652");
-  const top = new THREE.Color("#c3cfdb");
+  const bottom = new THREE.Color("#2c4b51");
+  const top = new THREE.Color("#d3d6cc");
   const colors: number[] = [];
   const position = dome.attributes.position;
   for (let i = 0; i < position.count; i++) {

@@ -1,13 +1,14 @@
-/* ZWBriljant: een eigen register, los van de app-thema's. Een donkere studio
-   met de steen op een sokkel; het getal als gravure in Cormorant Garamond, de
-   rest in spatiekapitalen (Jost). Ontwerp goedgekeurd door de eigenaar op
-   2026-10-21. */
+/* ZWBriljant: een eigen register, los van de app-thema's. Een galerij in
+   ZWB-kleuren (sinds 2026-10-23, eerst een zwarte studio): petrol wanden, de
+   steen op een witte sokkel, panelen en knoppen in petrol-donker. Het getal als
+   gravure in Cormorant Garamond, de rest in spatiekapitalen (Jost). Ontwerp
+   goedgekeurd door de eigenaar op 2026-10-21. */
 
 .root {
   --ink: #f4efe4;
   --muted: #a8a296;
   --gold: #e7c56b;
-  --night: #0a0c0f;
+  --night: #0a2b34;
   --serif: var(--font-briljant-serif), "Cormorant Garamond", Georgia, serif;
   --sans: var(--font-briljant-sans), "Jost", system-ui, sans-serif;
   color: var(--ink);
@@ -119,7 +120,7 @@
   display: flex;
   border: 1px solid rgb(244 239 228 / 0.22);
   border-radius: 2px;
-  background: rgb(10 12 15 / 0.72);
+  background: rgb(10 43 52 / 0.72);
   transform: translateX(-50%);
 }
 
@@ -161,7 +162,7 @@
   padding: 12px 16px;
   border: 1px solid rgb(244 239 228 / 0.14);
   border-radius: 4px;
-  background: rgb(12 14 18 / 0.94);
+  background: rgb(8 36 44 / 0.94);
   box-shadow: 0 18px 40px -14px rgb(0 0 0 / 0.75);
   list-style: none;
   font-family: var(--serif);
@@ -350,7 +351,7 @@
   transform: translate(-50%, 8px);
   padding: 7px 14px;
   border: 1px solid rgb(231 197 107 / 0.35);
-  background: rgb(10 12 15 / 0.82);
+  background: rgb(10 43 52 / 0.82);
   color: var(--gold);
   font-size: 12px;
   letter-spacing: 0.06em;
@@ -391,7 +392,7 @@
   gap: 7px;
   padding: 2px 8px;
   border: 1px solid rgb(244 239 228 / 0.22);
-  background: rgb(10 12 15 / 0.72);
+  background: rgb(10 43 52 / 0.72);
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.06em;
@@ -473,7 +474,7 @@
   gap: 8px;
   padding: 8px 12px;
   border: 1px solid rgb(244 239 228 / 0.22);
-  background: rgb(10 12 15 / 0.72);
+  background: rgb(10 43 52 / 0.72);
   color: inherit;
   font: inherit;
   font-size: 12px;
@@ -498,7 +499,7 @@
   padding: 18px 20px 20px;
   border: 1px solid rgb(244 239 228 / 0.14);
   border-radius: 4px;
-  background: rgb(12 14 18 / 0.96);
+  background: rgb(8 36 44 / 0.96);
   box-shadow: 0 18px 40px -14px rgb(0 0 0 / 0.75);
   font-size: 14px;
   line-height: 1.45;
@@ -810,7 +811,7 @@
   padding: 4px 8px;
   border: 1px solid rgb(244 239 228 / 0.22);
   border-radius: 2px;
-  background: rgb(10 12 15 / 0.72);
+  background: rgb(10 43 52 / 0.72);
   color: var(--ink);
   color-scheme: dark;
   font: inherit;
@@ -983,7 +984,7 @@
   letter-spacing: 0.02em;
 }
 
-/* In de galerij: een museumbordje op de sokkel, gebroken wit met donkere letters:
+/* In de galerij: een museumbordje op de witte sokkel, petrol met lichte letters:
    renner, woonplaats of regio, score en klasse, datum. */
 .anchor .plaque {
   display: grid;
@@ -994,9 +995,9 @@
   transform: translate(-50%, -50%);
   border: 0;
   border-radius: 1px;
-  background: #efe9dc;
-  box-shadow: 0 6px 14px -6px rgb(0 0 0 / 0.7);
-  color: #1d1b17;
+  background: #004653;
+  box-shadow: 0 6px 14px -6px rgb(10 43 52 / 0.8);
+  color: #f5f6f0;
   font: inherit;
   text-align: left;
   white-space: normal;
@@ -1014,7 +1015,7 @@
 .anchor .plaque i {
   font-size: 11px;
   font-style: italic;
-  color: #4a463e;
+  color: #c4d2cd;
 }
 
 .anchor .plaque span {
@@ -1027,7 +1028,7 @@
 .anchor .plaque small {
   font-size: 10px;
   letter-spacing: 0.04em;
-  color: #6b665b;
+  color: #a9bbb6;
 }
 
 .anchor .plaque:focus-visible {

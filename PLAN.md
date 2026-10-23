@@ -11303,6 +11303,43 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: de galerij in ZWB-kleuren
+
+**2026-10-23.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+De eigenaar vond de omgeving van de steen "een zwart gat" en wilde een echte galerij
+in ZWB-kleuren. Beide scènes staan nu in een galerij (`src/components/briljant/gallery.ts`,
+gedeeld door `hall-scene.tsx` en `stone-scene.tsx`):
+
+- **Wanden in petrol** met een gouden plint en lichtvlekken van de spots (additieve
+  vlakken, geen extra lampen). De galerij (tabblad ZWB) heeft een wand achter de rij,
+  de losse steen een ronde wand die ver genoeg staat dat de camera er nooit doorheen
+  draait. Lucht en mist zijn petrol-donker (`#0a2b34`) in plaats van zwart.
+- **Witte sokkels** met een gouden rand in plaats van gepolijst zwart; de museumbordjes
+  zijn daarom petrol met lichte letters geworden (crème op wit viel weg).
+- **Het echte ZWB-logo** (`public/zwb-logo.png`) op een crème bordje aan de wand bij de
+  ingang van de galerij, links van de laagste steen.
+- **Vloer** mat donker grijsgroen (`MeshLambertMaterial`). Een standaardmateriaal werd
+  grijs welke kleur je ook koos: three.js gebruikt bij `scene.environment` de
+  `environmentIntensity` van de scène en niet de `envMapIntensity` van het materiaal,
+  dus de vloer weerkaatste onder een scherpe hoek de lichte omgeving.
+- De **weerspiegelde omgeving** (`studioEnvironment`) is petrol onderin en lichtcrème
+  bovenin, zodat metaal en edelsteen de ruimte weerkaatsen. De **panelen, knoppen en
+  labels** in `briljant.module.css` zijn petrol-donker in plaats van bijna zwart.
+
+**Bewust niet.** Geen lichte wanden: de score, tabbladen en de klassenladder staan als
+lichte letters op de scène en moeten leesbaar blijven. Geen gouden lijst hoog op de
+wand: die liep precies onder de score door en leek een lijn van de interface. Geen
+logo in de ronde zaal van de losse steen: daar draait het mee en schuift het onder de
+score door. Geen echte spots op de wand: per steen al een spot, meer lampen kosten op
+een telefoon te veel.
+
+**Getest.** `tsc`, ESLint op `src/components/briljant` en alle ZWBriljant-unit-tests
+(97). In de browser bekeken met een tijdelijke voorbeeldpagina met voorbeeldstenen
+(niet gecommit), op desktop en telefoonformaat, galerij en losse steen. Niet bekeken:
+vergelijken (twee stenen naast elkaar) en een galerij met veel leden of met de
+recordsteen; de wand en mist schalen mee met de afstand, maar dat is niet gezien.
+
 ### Gebouwd — Zwift-groepsrit en -groepstraining krijgen een eigen intensiteit
 
 **2026-10-23.** Commit `b54df58b`. Geen migratie. Op verzoek van de eigenaar op
@@ -11899,7 +11936,8 @@ terugkomen; dat volgt na de runs van de job.
   boven je gemiddelde) maakt de steen breder, een duurprofiel slanker. Eerst leek elke
   steen van een klasse op elkaar: de richtingen waren willekeurig en de kop per klasse
   bepaalde het silhouet.
-- **Museumbordje** op de sokkel in de zaal: gebroken wit kaartje met renner, woonplaats of
+- **Museumbordje** op de sokkel in de zaal: gebroken wit kaartje (sinds 2026-10-23 petrol
+  met lichte letters, op een witte sokkel) met renner, woonplaats of
   regio (alleen als het lid die op zijn profiel laat zien), score en klasse, en de datum
   (de week van de steen). Het bordje schaalt mee met de sokkel op het scherm (hooguit 80% van de
   breedte), zodat het bij een kleine steen niet over de rand steekt.
@@ -12611,8 +12649,8 @@ onderzoek [zwbriljant-onderzoek.md](docs/zwbriljant-onderzoek.md).
   score, klasse, per facet de balk en de consistentie van. De steen in three.js
   (`src/components/briljant/`): één convex omhulsel waarin elk facet de steen naar buiten
   duwt, grootte = score, gouden draadmodel = de steen bij volledige consistentie, kleur
-  en kop naar de klasse, op een sokkel in een donkere studio met de tien klassen als
-  ijkstenen. Labels draaien mee en zijn knoppen; een paneel toont per facet de meting als
+  en kop naar de klasse, op een sokkel met de tien klassen als ijkstenen (eerst een
+  donkere studio, sinds 2026-10-23 een galerij in ZWB-kleuren). Labels draaien mee en zijn knoppen; een paneel toont per facet de meting als
   balk (racen over 0–1000 ZRS), de score als tabel en de consistentie, zonder formules.
   Eigen register: Cormorant Garamond en Jost (`fonts.ts`, zonder preload). Zonder WebGL
   een vlakke steen en de facetten als lijst; verminderde beweging zet het draaien uit;
