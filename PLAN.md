@@ -273,10 +273,10 @@ gaat stabiliteit voor nieuwe features.
    `0262_zwift_bike_fixed_wheels.sql` is toegepast. Open: beide schermen in
    de browser bekijken.
 11. **ZRS van vroeger per race bewaard** (ronde van 2026-10-23 hieronder):
-   gebouwd en lokaal getest, **niet gepusht**. Open, in deze volgorde: migratie
-   `0271_zwift_race_scores.sql` toepassen, pushen, en op cron-job.org een job
+   gebouwd, lokaal getest en op 2026-10-23 gepusht naar `main`. Migratie
+   `0271_zwift_race_scores.sql` is toegepast. Open: op cron-job.org een job
    `POST /api/briljant/zrs-history` elk uur op het halve uur zetten (geheim
-   `BRILJANT_WEEKLY_SECRET`). Daarna de eerste runs volgen (`riders`, `months`,
+   `BRILJANT_WEEKLY_SECRET`) en de privacyzin laten goedkeuren. Daarna de eerste runs volgen (`riders`, `months`,
    `stopped`) en de ZRS van augustus 2026 bij de eigenaar nakijken (215, tussen
    378 en 309).
 
@@ -11300,9 +11300,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: ZRS van vroeger per race bewaard, hervatbaar opzoeken
 
-**2026-10-23.** Commit: de commit die dit blok toevoegt. Migratie
-`0271_zwift_race_scores.sql`, **niet toegepast**. Niet gepusht (AGENTS.md: alleen op
-verzoek).
+**2026-10-23.** Commit `0f60574d`, op 2026-10-23 gepusht naar `main` (op verzoek van de
+eigenaar). Migratie `0271_zwift_race_scores.sql`, toegepast op productie op 2026-10-23
+(nagekeken: RLS aan, geen policies, geen leesrecht voor `anon` en `authenticated`).
 
 **Waarom.** De eigenaar zag bij zichzelf geen ZRS-historie. Stand op 2026-10-23: van de
 22 leden met een terugblik hadden er 9 een deel van de maanden met de ZRS van toen, 13
@@ -11375,8 +11375,9 @@ twee: alles in één run, hervatten na een 429 zonder opnieuw te lezen, de curso
 meeschuift met drie nieuwe activiteiten (met een mutatiecheck: zonder meeschuiven faalt
 de test), "geen" zonder scores met behoud van een eerdere vondst, en de volgorde van
 leden. tsc en ESLint schoon; de hele unit-suite groen op `omnium-live.test.ts` na (die
-wil `.env.local`, staat los hiervan). **Niet getest:** de migratie (geen Supabase
-lokaal), de job tegen de echte Zwift-API en de nieuwe cron-job.
+wil `.env.local`, staat los hiervan). **Niet getest:** de job tegen de echte Zwift-API
+en de nieuwe cron-job. Tot die job er is, loopt de historie alleen in de staart van
+`/api/briljant/weekly`.
 
 ### Gebouwd — ZWBriljant: durability uit ritten met P25 en een plafond, en de durability-test
 
