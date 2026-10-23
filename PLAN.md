@@ -280,9 +280,10 @@ gaat stabiliteit voor nieuwe features.
    `stopped`) en de ZRS van augustus 2026 bij de eigenaar nakijken (215, tussen
    378 en 309).
 12. **Zwift-groepsrit en -groepstraining in het schema** (ronde van 2026-10-23
-   hieronder): gebouwd en lokaal getest, **niet gepusht**. Geen migratie. Open:
-   pushen; daarna zet `refreshEventWorkouts` komende groepsritblokken vanzelf
-   recht.
+   hieronder): gebouwd, lokaal getest en op 2026-10-23 gepusht naar `main`
+   (`b54df58b`). Geen migratie. `refreshEventWorkouts` zet komende
+   groepsritblokken vanzelf recht. Open: een groepsritblok in het schema en in
+   intervals.icu bekijken zodra een lid voor een groepsrit "Ik doe mee" kiest.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11304,8 +11305,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Zwift-groepsrit en -groepstraining krijgen een eigen intensiteit
 
-**2026-10-23.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht
-(AGENTS.md: alleen op verzoek).
+**2026-10-23.** Commit `b54df58b`. Geen migratie. Op verzoek van de eigenaar op
+2026-10-23 gepusht naar `main`.
 
 **Waarom.** Vraag van de eigenaar hoe de intensiteit van een Zwift-event in het schema
 tot stand komt. Een event van type `zwift` dat Zwift géén race noemt, viel op de
