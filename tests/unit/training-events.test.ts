@@ -4,6 +4,7 @@ import {
   eventWorkoutBlocks,
   eventWorkoutDefaults,
   loadScheduleEvents,
+  zwiftGroupKind,
   zwiftRaceIntensityFactor,
   zwiftRaceKind,
   type ClubEventRow,
@@ -162,6 +163,65 @@ describe("Zwift-races", () => {
     expect(zwiftRaceIntensityFactor(10)).toBe(1);
     expect(zwiftRaceIntensityFactor(55)).toBeCloseTo(0.9455, 4);
     expect(zwiftRaceIntensityFactor(200)).toBe(0.8);
+  });
+});
+
+describe("Zwift-groepsritten", () => {
+  // De rit van 18 oktober 2026: stond op 260 minuten op 100% FTP, 433 TSS.
+  const zwiftRitje = event({
+    title: "Zwift ritje",
+    type: "zwift",
+    distance_km: 121.98,
+    elevation_m: 990,
+    zwift_event_type: "GROUP_RIDE",
+  });
+
+  it("herkent een groepsrit en een groepstraining aan het Zwift-type", () => {
+    expect(zwiftGroupKind(zwiftRitje)).toBe("ride");
+    expect(zwiftGroupKind(event({ type: "zwift", zwift_event_type: "GROUP_WORKOUT" }))).toBe("workout");
+    expect(zwiftGroupKind(event({ type: "zwift", zwift_event_type: "RACE" }))).toBeNull();
+    expect(zwiftGroupKind(event({ type: "zwift" }))).toBeNull();
+  });
+
+  it("geeft een groepsrit duur met een doel van 70-80% FTP", () => {
+    const result = eventWorkoutDefaults(zwiftRitje);
+    expect(result.intensity).toBe("endurance");
+    expect(result.target).toBe("70-80%");
+  });
+
+  it("rekent een groepsrit met het eigen Zwift-tempo", () => {
+    // 121,98 km bij 41,6 km/u plus 990 hm x 0,026 min: 202 minuten.
+    expect(eventWorkoutDefaults(zwiftRitje).durationMinutes).toBe(202);
+  });
+
+  it("laat een eindtijd voorgaan bij een groepsrit, op 75% FTP", () => {
+    const mondayRide = event({
+      type: "zwift",
+      start_at: "2026-10-26T18:35:00+01:00",
+      end_at: "2026-10-26T19:35:00+01:00",
+      distance_km: 28.66,
+      elevation_m: 212,
+      zwift_event_type: "GROUP_RIDE",
+    });
+    expect(eventWorkoutDefaults(mondayRide).durationMinutes).toBe(60);
+    // Een uur op IF 0,75: 56 TSS, waar het als race 100 was.
+    expect(estimateTrainingLoad(eventWorkoutBlocks(mondayRide))).toBeCloseTo(56, 0);
+  });
+
+  it("geeft een groepstraining tempo met een doel van 80-90% FTP", () => {
+    const result = eventWorkoutDefaults(
+      event({ type: "zwift", distance_km: 30, zwift_event_type: "GROUP_WORKOUT" }),
+    );
+    expect(result.intensity).toBe("tempo");
+    expect(result.target).toBe("80-90%");
+    // De afstand van een workout zegt niets over de duur: standaard van het type.
+    expect(result.durationMinutes).toBe(60);
+  });
+
+  it("laat een Zwift-event zonder bekend type een race", () => {
+    const result = eventWorkoutDefaults(event({ type: "zwift" }));
+    expect(result.intensity).toBe("race");
+    expect(result.target).toBe("");
   });
 });
 

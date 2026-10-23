@@ -279,6 +279,10 @@ gaat stabiliteit voor nieuwe features.
    `BRILJANT_WEEKLY_SECRET`) en de privacyzin laten goedkeuren. Daarna de eerste runs volgen (`riders`, `months`,
    `stopped`) en de ZRS van augustus 2026 bij de eigenaar nakijken (215, tussen
    378 en 309).
+12. **Zwift-groepsrit en -groepstraining in het schema** (ronde van 2026-10-23
+   hieronder): gebouwd en lokaal getest, **niet gepusht**. Geen migratie. Open:
+   pushen; daarna zet `refreshEventWorkouts` komende groepsritblokken vanzelf
+   recht.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11297,6 +11301,58 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Zwift-groepsrit en -groepstraining krijgen een eigen intensiteit
+
+**2026-10-23.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht
+(AGENTS.md: alleen op verzoek).
+
+**Waarom.** Vraag van de eigenaar hoe de intensiteit van een Zwift-event in het schema
+tot stand komt. Een event van type `zwift` dat Zwift géén race noemt, viel op de
+standaard van dat type: race, zonder vermogensdoel, dus het midden van de raceband
+(100% FTP), met de duur uit het buitenritmodel (34 km/h). Een groepsrit van een uur
+telde zo als 100 TSS. "Zwift ritje" van 18 oktober (122 km, 990 hm, drie ronden)
+stond op 260 minuten en 433 TSS; het lid reed 169 minuten op IF 0,67, 138 TSS.
+
+**Gemeten.** Read-only op productie (`strava_activities` met naam "Zwift - Group
+Ride…", vermogensmeter, minstens 30 minuten; FTP van dat moment uit
+`profile_ftp_history`): 628 groepsritten. Mediaan IF 0,75 (helft tussen 0,68 en 0,83),
+en anders dan bij races vrijwel los van de duur: tussen een half uur en vijf uur per
+duurklasse 0,71 tot 0,78. Kleinste-kwadraten-fit van de duur: 41,6 km/h + 0,026 min/hm,
+mediaan 7% afwijking; het buitenritmodel zat er mediaan 28% naast. Groepstrainingen
+("Zwift - Group Workout…"): mediaan IF 0,88 en 60 minuten, maar uit maar 44 ritten van
+8 renners.
+
+**Nu** (`lib/training/events.ts`, `zwiftGroupKind`). Alleen als Zwift het eventtype
+noemt (`zwift_event_type`, gevuld bij het plakken van de Zwift-link):
+1. **`GROUP_RIDE`:** intensiteit duur met vermogensdoel `70-80%` (belasting rekent met
+   75%). Duur: eindtijd, anders afstand en hoogtemeters (of route plus ronden) met het
+   eigen groepsrittempo, anders de standaard van 60 minuten.
+2. **`GROUP_WORKOUT`:** tempo met doel `80-90%`. Duur: eindtijd, anders 60 minuten; de
+   afstand van een workout zegt niets over de duur.
+3. **Geen bekend Zwift-type:** blijft race, zoals voorheen. De twee `zwift`-events
+   zonder type op productie zijn Level Up Racing-etappes, dus echte races.
+
+Voorbeelden: "Zwift ritje" nu 202 minuten / ~189 TSS (de geplande drie ronden; het lid
+stopte eerder). De Monday Ride van een uur nu 56 TSS in plaats van 100.
+`refreshEventWorkouts` vergelijkt duur, intensiteit en doel, dus komende eventblokken
+worden na de deploy vanzelf bijgewerkt en naar intervals.icu gezet. Op 2026-10-23 had
+de enige komende groepsrit (Monday Ride, 26 oktober) nog geen blokken.
+
+In `/hulp` (Schema → Clubevents in je schema) staat in één zin hoe de zwaarte per soort
+event bepaald wordt.
+
+**Bewust niet.** Geen persoonlijk doel uit de W/kg-band van de pacegroep: dat vraagt de
+gekozen subgroep en het gewicht, en de gereden IF ligt ook zonder dat rond 0,75. Geen
+intensiteit uit de omschrijving van het event: organisatoren zetten er wervende tekst
+in, geen betrouwbaar tempo. Geen eigen IF-model per duur zoals bij races: de data laat
+geen verband met de duur zien.
+
+**Getest.** `tsc` (op de al bestaande ontbrekende module `modern-screenshot` in deze
+worktree na), ESLint en unit-tests (`tests/unit/training-events.test.ts`, zes nieuwe
+gevallen; `event-workout-refresh`, `calendar-feed`). De volledige suite: alles groen
+behalve `omnium-live` (vraagt `.env.local`, ontbreekt in de worktree) en een time-out
+in `admin-areas`, die los wel slaagt. Niet in de browser bekeken.
 
 ### Gebouwd — ZWBriljant: ZRS van vroeger per race bewaard, hervatbaar opzoeken
 

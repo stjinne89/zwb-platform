@@ -623,7 +623,10 @@ export function SchemaHelp() {
               komen er pas in als je <strong className="text-foreground">Ik doe mee</strong>{" "}
               kiest: dan wordt het event een vast blok, met een duur uit de
               eindtijd of de afstand, en werkt het schema de week eromheen bij:
-              geen zware sessie vlak ervoor of erna. Kies je{" "}
+              geen zware sessie vlak ervoor of erna. De zwaarte hangt af van het
+              soort event: een race rekent met wat je bij die duur gemiddeld
+              rijdt, een groepsrit in Zwift met 70-80% van je FTP en een
+              groepstraining met 80-90%. Kies je{" "}
               <strong className="text-foreground">Nee</strong>, dan verdwijnt het
               uit de lijst en blijft je schema ongemoeid. &apos;Misschien&apos;
               telt als nog niet beslist, dus dat blijft gewoon staan.

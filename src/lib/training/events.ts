@@ -152,7 +152,8 @@ export type ZwiftRaceKind = "race" | "ttt";
  * Is dit een Zwift-race, en zo ja een TTT of een gewone race? Een TTT is bij
  * Zwift een event van het type TEAM_TIME_TRIAL, en WTRL zet er de tag `ttt` op
  * (zie zrlFormatOf). Een los Zwift-event telt alleen als race als Zwift dat zegt;
- * een groepsrit met de standaard race-intensiteit rekent verder zoals altijd.
+ * een groepsrit of groepstraining krijgt een eigen doel (zwiftGroupKind), en
+ * zonder bekend Zwift-type blijft het de standaard race-intensiteit.
  */
 export function zwiftRaceKind(event: ClubEventRow): ZwiftRaceKind | null {
   const zwiftType = (event.zwift_event_type ?? "").trim().toUpperCase();
@@ -162,6 +163,53 @@ export function zwiftRaceKind(event: ClubEventRow): ZwiftRaceKind | null {
   if (!isRace) return null;
   const tags = (event.zwift_tags ?? []).map((tag) => tag.toLowerCase());
   return zwiftType === "TEAM_TIME_TRIAL" || tags.includes("ttt") ? "ttt" : "race";
+}
+
+/**
+ * Een groepsrit of groepstraining in Zwift. Tot 2026-10-23 viel die op de
+ * standaard van het type `zwift`: race, en zonder vermogensdoel dus 100% FTP,
+ * met de duur uit het buitenritmodel. Een groepsrit van een uur telde zo als
+ * 100 TSS; een rit van 122 km en 990 hm stond op 260 minuten en 433 TSS, waar
+ * het lid 169 minuten op IF 0,67 reed (138 TSS).
+ *
+ * Gefit op 628 groepsritten van ZWB'ers van minstens een half uur met
+ * vermogensmeter (strava_activities, 23 oktober 2026), tegen de FTP van dat
+ * moment: mediaan IF 0,75 (helft tussen 0,68 en 0,83), en anders dan bij races
+ * vrijwel los van de duur — tussen een half uur en vijf uur 0,71 tot 0,78. Het
+ * tempo is een kleinste-kwadraten-fit op afstand en hoogtemeters: mediaan 7%
+ * afwijking in duur, waar het buitenritmodel 28% gaf.
+ *
+ * Een groepstraining is een workout in de groep: mediaan IF 0,88, maar uit maar
+ * 44 ritten van 8 renners. De afstand zegt daar niets over de duur; zonder
+ * eindtijd geldt de standaard van het type (mediaan gereden: 60 minuten).
+ */
+export type ZwiftGroupKind = "ride" | "workout";
+
+const ZWIFT_GROUP_EVENT_TYPES: Record<string, ZwiftGroupKind> = {
+  GROUP_RIDE: "ride",
+  GROUP_WORKOUT: "workout",
+};
+
+const ZWIFT_GROUP_RIDE_PACE = { kmh: 41.6, minPerHm: 0.026 };
+
+const ZWIFT_GROUP_BLOCK: Record<ZwiftGroupKind, { intensity: WorkoutIntensity; target: string }> = {
+  ride: { intensity: "endurance", target: "70-80%" },
+  workout: { intensity: "tempo", target: "80-90%" },
+};
+
+/** Is dit een Zwift-groepsrit of -groepstraining? Alleen als Zwift dat zegt. */
+export function zwiftGroupKind(event: ClubEventRow): ZwiftGroupKind | null {
+  if (zwiftRaceKind(event)) return null;
+  const zwiftType = (event.zwift_event_type ?? "").trim().toUpperCase();
+  return ZWIFT_GROUP_EVENT_TYPES[zwiftType] ?? null;
+}
+
+/** Geschatte duur van een groepsrit in minuten, of null zonder afstand of route. */
+export function estimateZwiftGroupRideMinutes(event: ClubEventRow): number | null {
+  const totals = zwiftRaceTotals(event);
+  if (!totals) return null;
+  const pace = ZWIFT_GROUP_RIDE_PACE;
+  return Math.round((totals.distanceKm / pace.kmh) * 60 + totals.elevationM * pace.minPerHm);
 }
 
 function positive(value: number | string | null | undefined): number | null {
@@ -223,6 +271,7 @@ export function eventWorkoutDefaults(event: ClubEventRow): {
 } {
   const fallback = EVENT_DEFAULTS[event.type] ?? EVENT_DEFAULTS.outdoor;
   const raceKind = zwiftRaceKind(event);
+  const groupKind = zwiftGroupKind(event);
 
   const start = new Date(event.start_at).getTime();
   const end = event.end_at ? new Date(event.end_at).getTime() : null;
@@ -233,9 +282,14 @@ export function eventWorkoutDefaults(event: ClubEventRow): {
 
   const fromRoute = raceKind
     ? estimateZwiftRaceMinutes(event, raceKind)
-    : estimateEventMinutes(event.distance_km, event.elevation_m);
+    : groupKind === "workout"
+      ? null
+      : groupKind === "ride"
+        ? estimateZwiftGroupRideMinutes(event)
+        : estimateEventMinutes(event.distance_km, event.elevation_m);
   const minutes = fromEnd ?? fromRoute ?? fallback.minutes;
   const durationMinutes = Math.min(MAX_EVENT_MINUTES, Math.max(20, minutes));
+  if (groupKind) return { durationMinutes, ...ZWIFT_GROUP_BLOCK[groupKind] };
   return {
     durationMinutes,
     intensity: fallback.intensity,
