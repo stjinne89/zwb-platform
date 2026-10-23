@@ -11293,7 +11293,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: durability uit ritten met P25 en een plafond, en de durability-test
 
-**2026-10-23.** Commit HASH, niet gepusht. Geen migratie.
+**2026-10-23.** Commit `32a3b555`, niet gepusht. Geen migratie.
 
 **Waarom.** Met de nieuwe minuut van de eigenaar (547 W, eerst 481; na 1000 kJ bleef het
 452 W) zakte durability van 400 naar 65 punten, terwijl hij na het werk niet slechter
