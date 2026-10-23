@@ -11303,9 +11303,23 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
-### Gebouwd — ZWBriljant: de galerij zoomt mee, bordjes leesbaar bij kleine stenen
+### Gebouwd — ZWBriljant: kleine stenen in de galerij naar verhouding groter
 
 **2026-10-23.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+Na het meezoomen hieronder vond de eigenaar de kleinste stenen naast de recordsteen
+nog heel klein. In de galerij volgt de maat van een steen nu score^0,7 in plaats van
+de score zelf (`scale` van `stoneShape`, ten opzichte van de hoogste steen in de
+galerij): een steen van 20% van de hoogste staat op 32%, de volgorde blijft gelijk.
+Alleen in de galerij; bij je eigen steen en bij vergelijken blijft de maat de score,
+want daar staat de steen naast zijn eigen draadmodel en naast één andere steen.
+
+**Getest.** `tsc`, ESLint, ZWBriljant-tests; in de browser met de gegevens van de
+eigenaar, de kleinste steen (237) en het gemiddelde van de mannen op desktop.
+
+### Gebouwd — ZWBriljant: de galerij zoomt mee, bordjes leesbaar bij kleine stenen
+
+**2026-10-23.** Commit `92c24178`. Geen migratie. Niet gepusht.
 
 De eigenaar: de bordjes bij de kleinste stenen bleven slecht leesbaar; inzoomen mocht,
 ook als er vloer wegvalt. Oorzaak: de camera stond voor de hele galerij op de hoogte

@@ -78,8 +78,18 @@ export default function HallScene({ stones, startId, sponsors = [], labels, onFa
       return object;
     };
 
+    // In de galerij loopt de grootte minder steil op dan de score (eigenaar,
+    // 2026-10-23: de kleinste stenen leken naast de recordsteen heel klein): de
+    // maat volgt score^0,7, zodat een steen van 20% van de hoogste op 32% staat.
+    const highest = Math.max(1, ...stones.map((stone) => stone.score));
     const shapes = stones.map((stone) =>
-      stoneShape({ seed: stone.seed, score: stone.score, level: stone.level, facets: facetPoints(stone) }),
+      stoneShape({
+        seed: stone.seed,
+        score: stone.score,
+        level: stone.level,
+        facets: facetPoints(stone),
+        scale: Math.pow(Math.max(0.02, stone.score / highest), -0.3),
+      }),
     );
     const tallest = Math.max(1, ...shapes.map((shape) => shape.height));
     const widest = Math.max(0.5, ...shapes.map((shape) => shape.radius));
