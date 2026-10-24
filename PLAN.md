@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **OpenAI traint op ledendata (gevonden 2026-10-24).** In de OpenAI-organisatie
+   staat het delen van in- en uitvoer aan voor gratis tokens; de
+   privacyverklaring zegt dat niet. De eigenaar beslist: delen uitzetten (dan
+   betaalt de app de volle prijs) of overstappen naar Claude. Zie de ronde
+   "Claude als vervanger van OpenAI".
+
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
    (limiet 5 GB), en de banner "Organization exceeded its quota in the previous
@@ -11311,6 +11317,59 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gemeten — Claude als vervanger van OpenAI: naspelen op eigen generaties
+
+**2026-10-24.** Lokaal, niet gepusht. Geen migratie. Commit: zie git log
+("Claude naspelen").
+
+**Waarom.** Het Max-abonnement van de eigenaar geeft $100 API-tegoed per maand bij
+Anthropic. Vraag: kan de AI van de app naar Claude, en is die even goed? Eerst
+gedacht aan oktober OpenAI, november Claude en dan vergelijken; dat vervalt. De
+eigenaar wil zo snel mogelijk Claude-uitvoer om te toetsen, en opgeslagen
+OpenAI-generaties naspelen op exact dezelfde invoer is eerlijker dan twee maanden
+met andere leden en ritten naast elkaar leggen.
+
+**Wat er is.** `scripts/claude-replay.mjs` haalt de generaties van één profiel op
+(`--profile` is verplicht), stuurt dezelfde systeemprompt, invoer en hetzelfde
+JSON-schema naar Claude, legt beide antwoorden langs `checkTrainingPlan` en
+schrijft `.tmp/claude-replay/compare.html`: per generatie A en B blind naast
+elkaar, met een stem en een notitie, en pas op verzoek wie wie is. `planSchema` in
+`ai.ts` is daarvoor geëxporteerd; `@anthropic-ai/sdk` staat in de dependencies.
+Claude kent geen `minItems` boven 1 en geen `maxItems` in structured outputs; het
+script haalt die weg en telt achteraf zelf.
+
+**Uitkomst** (details en tabellen in [claude-naspelen](docs/claude-naspelen.md)),
+19 generaties van de eigenaar:
+- Bijwerkingen: Claude Opus 5.5 breekt veel minder regels dan GPT-5.5 (2 tegen 21
+  fouten op vijf), ook op effort `low`. Maar ~4 tot 6 minuten en $0,83–1,06 per
+  stuk; Sonnet 5.5 $0,50 met 12 fouten.
+- Dagelijkse aanpassing: Claude liet het schema vijf keer ongemoeid, GPT-5.5 paste
+  drie keer iets aan. Wie gelijk heeft moet uit de blinde vergelijking komen.
+- Op het huidige volume kost alles op Opus ~$135 per maand, boven het tegoed;
+  bijwerkingen met Sonnet ~$71.
+
+**Gevonden: OpenAI krijgt de ledendata ook om te trainen.** In de OpenAI-organisatie
+staat *Share inputs and outputs with OpenAI* op *Enabled for all projects*, in ruil
+voor gratis dagelijkse tokens. Daarom toont het dashboard maar $23,20 over 30
+dagen. De privacyverklaring noemt OpenAI alleen als verwerker voor het genereren;
+dat de gegevens ook voor het trainen van hun modellen gebruikt worden, staat er
+niet. **De eigenaar beslist** over de instelling en de tekst; niets aangepast.
+
+**Bewust niet.**
+- Geen omschakeling van de app naar Claude in deze ronde: eerst de blinde
+  vergelijking en de keuze van model en effort. Een omschakeling vraagt een
+  Netlify-achtergrondfunctie in plaats van OpenAI's background-modus (Netlify
+  kapt server-werk rond 30 s af; een bijwerking duurt bij Claude minuten) en een
+  andere verwerker in de privacyverklaring.
+- Geen eigen logtabel voor tokens en kosten: die staan in het OpenAI-dashboard en
+  de Anthropic Console.
+- Geen naspelen van andere leden: Anthropic staat nog niet in de
+  privacyverklaring.
+
+**Niet gemeten.** Coachchat, weekoverzicht, pacing en voeding (hun context staat
+niet volledig opgeslagen); de rekentijd van GPT-5.5; wat OpenAI zonder gratis
+tokens zou kosten (geschat $60–80 per maand).
 
 ### Gebouwd — ZWBriljant: kleine stenen in de galerij naar verhouding groter
 

@@ -281,8 +281,9 @@ export type TrainingAiInput = {
  * meerdere weken, maar een dag-aanpassing gaat vaak over één training. Stond dat
  * minimum op 3, dan dwong het strict schema de AI om er twee bij te verzinnen —
  * en die overschreven bij publicatie de echte workouts van die dagen.
+ * Geëxporteerd voor scripts/claude-replay.mjs, dat hetzelfde schema aan Claude geeft.
  */
-const planSchema = (minWorkouts: number) => ({
+export const planSchema = (minWorkouts: number) => ({
   type: "object",
   additionalProperties: false,
   required: ["title", "summary", "startDate", "endDate", "workouts", "cautions"],
