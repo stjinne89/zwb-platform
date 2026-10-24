@@ -11356,7 +11356,10 @@ organisatie van de eigenaar krijgen via een link alleen leesrechten, en
 schrijven in de artifact-database kan pas vanaf Contributor; een per e-mail
 uitgenodigde Editor verliest zijn schrijfrecht zolang de pagina ook via een link
 gedeeld is. Zulke bezoekers kopiëren hun oordelen met een knop en sturen die
-op. De eigenaar kiest hoe verder. Niet getest met een tweede account.
+op. **Besluit eigenaar 2026-10-25:** zo blijft het; beoordelaars sturen hun
+gekopieerde oordelen naar hem, hij geeft ze door. Geen Google-formulier.
+Sleutel en uitkomst staan ook in `.tmp/claude-replay/` van de hoofdmap, zodat
+ze een opgeruimde worktree overleven. Niet getest met een tweede account.
 
 **Uitkomst** (details en tabellen in [claude-naspelen](docs/claude-naspelen.md)),
 19 generaties van de eigenaar:
