@@ -11314,8 +11314,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter Worden: de titel schuift mee met de duur
 
-**2026-10-24.** In dezelfde commit als deze tekst, lokaal op branch
-`claude/title-update-duration-change-53afb1`, niet gepusht. Geen migratie.
+**2026-10-24.** Commit `edeee2ab`, op 2026-10-24 gepusht naar `main` (op verzoek
+van de eigenaar). Geen migratie.
 
 De eigenaar zette een training via **Duur aanpassen** op 150 minuten, maar de titel
 bleef "Rustige duur 120 min". De catalogus zet de totaalduur in de titel, en geen van
