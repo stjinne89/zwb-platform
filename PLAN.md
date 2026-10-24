@@ -11314,7 +11314,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter Worden: naleving per onderdeel (duur, TSS, IF, zones, RPE)
 
-**2026-10-24.** Commit `HASH`, lokaal op de branch
+**2026-10-24.** Commit `27212aac`, lokaal op de branch
 `claude/training-compliance-zones-fd2d1a`, niet gepusht. Geen migratie.
 
 De eigenaar vroeg de naleving van een gereden training verder uit te splitsen dan
