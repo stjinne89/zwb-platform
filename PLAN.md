@@ -11312,6 +11312,31 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBeter Worden: de titel schuift mee met de duur
+
+**2026-10-24.** In dezelfde commit als deze tekst, lokaal op branch
+`claude/title-update-duration-change-53afb1`, niet gepusht. Geen migratie.
+
+De eigenaar zette een training via **Duur aanpassen** op 150 minuten, maar de titel
+bleef "Rustige duur 120 min". De catalogus zet de totaalduur in de titel, en geen van
+de drie plekken die de duur achteraf veranderen paste de titel aan. Nu doet
+`retitleForDuration()` in `workouts.ts` dat overal waar `resizeBlocks()` draait:
+`setWorkoutDuration()`, `fitScheduleToAvailability()` (inkorten op beschikbaarheid)
+en `insertPlanWorkouts()` (AI-uitvoer boven het plafond). Alleen een duur aan het
+eind van de titel telt: "N min", "N minuten", "2u30" en "3 uur"; die laatste twee
+worden "N min". In productie had op 2026-10-24 bijna elke titel met een duur die
+vorm (320 keer "Rustige duur N min").
+
+**Bewust niet gedaan.** Bestaande titels die al niet meer kloppen zijn niet
+rechtgezet: één keer opnieuw **Duur aanpassen** doet dat. Een duur midden in een
+titel ("Lange duur met 2x20 min tempo", "Sweet spot 3x12") blijft staan: dat is een
+blok, geen totaal.
+
+**Getest.** `workout-resize.test.ts` (nieuwe gevallen voor `retitleForDuration()`),
+ESLint op de gewijzigde bestanden, `tsc` (alleen de bekende fout op
+`modern-screenshot`, dat in deze worktree niet is geïnstalleerd). Niet in de app of
+tegen de database getest.
+
 ### Gebouwd — ZWBriljant: kleine stenen in de galerij naar verhouding groter
 
 **2026-10-23.** Commit `e690c776`, op 2026-10-23 gepusht naar `main` (op verzoek van de eigenaar). Geen migratie.
@@ -22518,6 +22543,7 @@ aanwijzing, geen grens.
   in de lijst en in het detailpaneel van de maandweergave
   (`setWorkoutDuration()`). De training krijgt daarna origin `member`, zodat een
   herziening hem niet terugzet; hij toont dan het label *Eigen rit*.
+  Sinds 2026-10-24 schuift de duur in de titel mee (`retitleForDuration()`).
 - `Verwijder` staat nu ook in het detailpaneel van de maandweergave, de
   standaardweergave van het schema.
 

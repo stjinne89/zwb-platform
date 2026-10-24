@@ -564,6 +564,24 @@ export function resizeBlocks(blocks: WorkoutBlock[], targetMinutes: number): Wor
   return resized;
 }
 
+/**
+ * De duur aan het eind van een titel, zoals "Rustige duur 120 min", "2u30" of
+ * "2 uur". Alleen aan het eind: "Lange duur met 2x20 min tempo" noemt een blok,
+ * geen totaal.
+ */
+const TITLE_DURATION = /(^|[^\d×x/])\d+(?:\s*(?:min|minuten)|u\d{0,2}|(?:[.,]\d+)?\s*uur)$/i;
+
+/**
+ * De titel laten meeschuiven met resizeBlocks(): na "Duur aanpassen" of
+ * inkorten op beschikbaarheid stond er anders "Rustige duur 120 min" boven een
+ * training van 150 minuten. Een titel zonder totaalduur blijft zoals hij is.
+ */
+export function retitleForDuration(title: string, minutes: number): string {
+  return title.replace(TITLE_DURATION, (match, prefix: string) =>
+    `${prefix}${Math.round(minutes)} ${/minuten$/i.test(match) ? "minuten" : "min"}`,
+  );
+}
+
 export function normalizeWorkoutBlocks(value: unknown, fallbackIntensity: WorkoutIntensity = "endurance") {
   if (!Array.isArray(value)) return [] satisfies WorkoutBlock[];
   const blocks = value

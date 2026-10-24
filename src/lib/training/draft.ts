@@ -23,6 +23,7 @@ import {
   normalizeWorkoutBlocks,
   planUpdatePrompt,
   resizeBlocks,
+  retitleForDuration,
   WORKOUT_INTENSITIES,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
@@ -527,12 +528,13 @@ export async function insertPlanWorkouts(
         ftpWatts,
       );
       const intensity = aligned.intensity;
-      const title = conciseWorkoutTitle(workout.title);
+      let title = conciseWorkoutTitle(workout.title);
       let blocks = aligned.blocks;
       let durationMinutes = Math.min(480, Math.round(workout.durationMinutes));
       if (limit != null && durationMinutes > limit) {
         blocks = resizeBlocks(blocks, limit);
         durationMinutes = limit;
+        title = retitleForDuration(title, limit);
       }
       return [{
         plan_id: plan.id,
