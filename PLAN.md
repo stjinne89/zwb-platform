@@ -11346,10 +11346,17 @@ privé-artifact van de eigenaar. Daarin staat niet welke kant Claude is; die
 sleutel staat alleen lokaal in `.tmp/claude-replay/share/key.json`. Stemmen gaan
 naar de artifact-database onder `votes/<beoordelaar>/pairs/<geval>`: elke
 beoordelaar ziet alleen de eigen stemmen, de eigenaar ziet ze allemaal.
-Beoordelaars van buiten de organisatie van de eigenaar kunnen alleen stemmen als
-ze als Editor zijn uitgenodigd; anders kopiëren ze hun oordelen met een knop.
-De pagina bevat de trainings- en hersteldata van de eigenaar en zijn naam in de
-schema-teksten; hij deelt die bewust. Niet getest met een tweede account.
+Op verzoek van de eigenaar geanonimiseerd (versie 2): de naam van de renner valt
+uit titels weg en wordt in lopende tekst "de renner" (bezittelijk "zijn"); het
+script stopt als de naam nog ergens staat. FTP, gewicht, hersteldata, ritnamen
+en events (ZRL-team, gran fondo's) staan er nog in, dus binnen de club blijft de
+renner herkenbaar. De eigenaar deelt de pagina met "iedereen met de link".
+**Iedereen laten stemmen kan niet zoals gevraagd:** bezoekers van buiten de
+organisatie van de eigenaar krijgen via een link alleen leesrechten, en
+schrijven in de artifact-database kan pas vanaf Contributor; een per e-mail
+uitgenodigde Editor verliest zijn schrijfrecht zolang de pagina ook via een link
+gedeeld is. Zulke bezoekers kopiëren hun oordelen met een knop en sturen die
+op. De eigenaar kiest hoe verder. Niet getest met een tweede account.
 
 **Uitkomst** (details en tabellen in [claude-naspelen](docs/claude-naspelen.md)),
 19 generaties van de eigenaar:
