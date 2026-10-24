@@ -745,11 +745,29 @@ export function SchemaHelp() {
               invulde staan, zodat je er een andere rit aan kunt hangen.
             </p>
             <p
+              id="naleving"
+              className="mt-2 scroll-mt-20 text-sm text-muted-foreground"
+            >
+              Het percentage bij <strong className="text-foreground">Volgens plan</strong>,{" "}
+              <strong className="text-foreground">Te licht</strong> of{" "}
+              <strong className="text-foreground">Te zwaar</strong> is je gereden
+              TSS tegenover de geplande: tussen 80 en 115% is volgens plan. Daaronder
+              zie je per onderdeel gepland tegenover gereden: duur, TSS en IF, elk
+              met een percentage. De geplande IF volgt uit de geplande TSS en duur.
+              Bij RPE staat de verwachte naast wat je invulde; de verwachte RPE is
+              die van het zwaarste deel van de training dat minstens vijf minuten
+              duurt, op dezelfde schaal als bij de blokken. RPE telt niet mee in het
+              percentage of het oordeel.
+            </p>
+            <p
               id="tijd-per-zone"
               className="mt-2 scroll-mt-20 text-sm text-muted-foreground"
             >
               Onder de cijfers staat ook hoeveel minuten je per zone reed, in de
-              kleuren van Zwift en op je FTP, met de geplande minuten erachter. Die
+              kleuren van Zwift en op je FTP, met de geplande minuten en het
+              percentage daarvan erachter. <strong className="text-foreground">Verdeling</strong>{" "}
+              zegt hoeveel van je rit in dezelfde verhouding over de zones lag als
+              gepland, los van hoe lang je reed. Die
               tijden komen uit de vermogensmeting in intervals.icu. Dat werkt alleen
               als je rit rechtstreeks van je Garmin, Wahoo of Zwift in intervals.icu
               staat: een rit die via Strava binnenkomt heeft daar geen meting. Dan

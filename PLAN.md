@@ -11312,6 +11312,57 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBeter Worden: naleving per onderdeel (duur, TSS, IF, zones, RPE)
+
+**2026-10-24.** Commit `HASH`, lokaal op de branch
+`claude/training-compliance-zones-fd2d1a`, niet gepusht. Geen migratie.
+
+De eigenaar vroeg de naleving van een gereden training verder uit te splitsen dan
+alleen TSS: over zones, plus duur, intensiteit (IF) en verwachte tegenover
+ingevulde RPE. Keuzes van de eigenaar (2026-10-24): het percentage op de pil blijft
+**% van de geplande TSS**, het oordeel (te licht / volgens plan / te zwaar) blijft op
+TSS 80–115 %, en RPE wordt **alleen getoond**, telt nergens mee. De AI-regels en de
+replan-signalen lezen dat oordeel en veranderen dus niet.
+
+Wat er is gebouwd, in `WorkoutMetricsPanel` (bevestigscherm, kalender, afgeronde
+trainingen en de beoordelingsrij van de trainer):
+- Een tabel **Gepland · Gereden · %** voor duur, TSS en IF, en een RPE-rij met de
+  verwachte RPE naast de ingevulde. Die vervangt de losse tegels TSS/Duur/IF en de
+  regel "Gepland" onder Meer details.
+- Bij **Tijd per zone** per zone het percentage van de geplande minuten, en bovenaan
+  **Verdeling**: hoeveel van de rit in dezelfde verhouding over de zones lag als
+  gepland (som van de kleinste aandelen per zone), los van de duur.
+- Rekenwerk in `compliance-breakdown.ts`, puur en bij het tonen uitgerekend uit de
+  momentopname plus de geplande blokken. Zo werkt het ook voor oude momentopnames;
+  er is niets aan `metrics_json` toegevoegd.
+- Geplande IF = √(geplande TSS / (uren × 100)), op de duur van de blokken.
+- Verwachte RPE = de zwaarste RPE-band waarin het schema minstens 5 minuten rijdt
+  (anders de band met de meeste tijd), op de banden die de blokken al gebruiken.
+  Die banden staan nu in `rpe.ts` (verhuisd uit `engine/catalog.ts`). De 5 minuten
+  zijn een productkeuze: een opener of korte sprints maken een duurrit geen RPE 10.
+- `plannedSegments()` in `zone-times.ts`: het schema als stukken met één doel,
+  gedeeld door `plannedZoneSeconds()` en de verwachte RPE.
+- Het bevestigscherm kreeg de geplande blokken en de FTP op de ritdag erbij
+  (`loadPendingReview`); daar stonden tot nu toe geen geplande zones.
+- `/hulp/schema#naleving` legt de getallen uit; `#tijd-per-zone` noemt nu ook
+  Verdeling.
+
+**Bewust niet gedaan.**
+- Geen samengestelde nalevingsscore: de eigenaar koos voor TSS-% als hoofdgetal.
+- RPE weegt niet mee: een hogere RPE op het juiste vermogen wijst eerder op
+  vermoeidheid dan op slecht naleven.
+- De AI-context (`WorkoutCompliance` in `compliance.ts`) krijgt geen geplande IF,
+  verwachte RPE of zoneverdeling erbij; die vraag ging over de weergave.
+- Geen kleur op de percentages per onderdeel: 80–115 % geldt voor TSS, niet
+  vanzelf voor duur, IF of een zone.
+
+**Getest.** `compliance-breakdown.test.ts` (nieuw), plus `zone-times`,
+`workout-on-off`, `engine/catalog` en `compliance`. Volledige vitest-run groen op
+drie bekende uitzonderingen na (`.env.local` ontbreekt in de worktree; twee
+databasetests met een time-out die los wel slagen). ESLint op de gewijzigde
+bestanden, `tsc` (alleen de bekende fout op `modern-screenshot`). Niet in de app of
+tegen de database bekeken.
+
 ### Gebouwd — ZWBeter Worden: de titel schuift mee met de duur
 
 **2026-10-24.** Commit `edeee2ab`, op 2026-10-24 gepusht naar `main` (op verzoek

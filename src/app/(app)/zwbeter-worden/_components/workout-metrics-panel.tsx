@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { Power, PowerText } from "@/components/power-unit";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
 import { COMPLIANCE_LABELS, COMPLIANCE_PILLS } from "@/lib/training/compliance";
+import { complianceBreakdown, type ComplianceBreakdown } from "@/lib/training/compliance-breakdown";
 import {
   detectIntensityFromLoad,
   INTENSITY_COLORS,
@@ -16,7 +17,6 @@ import {
   ZWIFT_ZONES,
   type WorkoutBlock,
 } from "@/lib/training/workouts";
-import { plannedZoneSeconds } from "@/lib/training/zone-times";
 import { ZWB_LEVEL_META } from "@/lib/training/zwbeterworden";
 
 const PILL = "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium";
@@ -124,54 +124,111 @@ export function WorkoutVerdictPills({
   );
 }
 
+function pctLabel(pct: number | null) {
+  return pct == null ? "" : `${pct}%`;
+}
+
+function rpeLabel(rpe: ComplianceBreakdown["rpe"]["expected"]) {
+  if (!rpe) return "-";
+  return rpe.low === rpe.high ? `${rpe.low}` : `${rpe.low}-${rpe.high}`;
+}
+
+/** Gepland tegenover gereden per onderdeel; het TSS-percentage is dat van de pil. */
+function ComplianceTable({ breakdown }: { breakdown: ComplianceBreakdown }) {
+  const { duration, load, intensity, rpe } = breakdown;
+  const minutes = (value: number | null) => (value == null ? "-" : `${value} min`);
+  const rows: Array<{ label: string; planned: string; actual: string; pct: string }> = [
+    { label: "Duur", planned: minutes(duration.planned), actual: minutes(duration.actual), pct: pctLabel(duration.pct) },
+    { label: "TSS", planned: nl(load.planned), actual: nl(load.actual), pct: pctLabel(load.pct) },
+    { label: "IF", planned: nl(intensity.planned, 2), actual: nl(intensity.actual, 2), pct: pctLabel(intensity.pct) },
+  ];
+  if (rpe.expected || rpe.actual != null) {
+    rows.push({ label: "RPE", planned: rpeLabel(rpe.expected), actual: nl(rpe.actual), pct: "" });
+  }
+  return (
+    <table className="w-full text-sm tabular-nums" aria-label="Naleving">
+      <thead>
+        <tr className="text-xs text-muted-foreground">
+          <th className="pb-1 text-left font-normal" />
+          <th className="pb-1 text-right font-normal">Gepland</th>
+          <th className="pb-1 text-right font-normal">Gereden</th>
+          <th className="w-14 pb-1 text-right font-normal" />
+        </tr>
+      </thead>
+      <tbody className="divide-y">
+        {rows.map((row) => (
+          <tr key={row.label}>
+            <td className="py-1.5 text-xs text-muted-foreground">{row.label}</td>
+            <td className="py-1.5 text-right">{row.planned}</td>
+            <td className="py-1.5 text-right">{row.actual}</td>
+            <td className="py-1.5 text-right font-medium">{row.pct}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 /**
- * Gemeten minuten per Zwift-zone, met de geplande minuten ernaast als de opbouw
- * bekend is. De balk is relatief aan de langste zone, gemeten of gepland.
+ * Gemeten minuten per Zwift-zone, met de geplande minuten en het percentage
+ * ernaast als de opbouw bekend is. De balk is relatief aan de langste zone,
+ * gemeten of gepland.
  */
 function ZoneTimesPanel({
   metrics,
-  blocks,
-  ftpWatts,
+  zones,
 }: {
   metrics: WorkoutMetricsSnapshot;
-  blocks?: WorkoutBlock[];
-  ftpWatts?: number | null;
+  zones: ComplianceBreakdown["zones"];
 }) {
   const zoneTimes = metrics.zoneTimes;
   if (!zoneTimes) return null;
   if (zoneTimes.source === "none") {
     return <p className="text-xs text-muted-foreground">Geen zonedata</p>;
   }
-  const planned = blocks?.length
-    ? plannedZoneSeconds(blocks, ftpWatts ?? zoneTimes.ftpWatts)
-    : null;
-  const max = Math.max(1, ...zoneTimes.seconds, ...(planned ?? []));
+  // Zonder geplande opbouw alleen de gemeten kant.
+  const rows =
+    zones?.rows ??
+    ZWIFT_ZONES.flatMap((zone, index) => {
+      const riddenSeconds = zoneTimes.seconds[index] ?? 0;
+      return riddenSeconds < 30 ? [] : [{ zone: zone.zone, riddenSeconds, plannedSeconds: 0, pct: null }];
+    });
+  const max = Math.max(1, ...rows.map((row) => Math.max(row.riddenSeconds, row.plannedSeconds)));
   const minutes = (seconds: number) => Math.round(seconds / 60);
 
   return (
     <div className="space-y-1.5" aria-label="Tijd per zone">
-      {ZWIFT_ZONES.map((zone, index) => {
-        const ridden = zoneTimes.seconds[index] ?? 0;
-        const plan = planned?.[index] ?? 0;
-        if (ridden < 30 && plan < 30) return null;
+      {zones?.match != null ? (
+        <div className="flex items-baseline justify-between text-xs text-muted-foreground">
+          <span>Zones</span>
+          <span className="tabular-nums">
+            Verdeling <span className="font-medium text-foreground">{zones.match}%</span>
+          </span>
+        </div>
+      ) : null}
+      {rows.map((row) => {
+        const zone = ZWIFT_ZONES[row.zone - 1];
         return (
-          <div key={zone.zone} className="flex items-center gap-2 text-xs">
-            <span className="w-6 shrink-0 font-medium tabular-nums">Z{zone.zone}</span>
+          <div key={row.zone} className="flex items-center gap-2 text-xs">
+            <span className="w-6 shrink-0 font-medium tabular-nums">Z{row.zone}</span>
             <div className="relative h-3 flex-1 overflow-hidden rounded bg-muted">
-              {planned ? (
+              {zones ? (
                 <span
                   className="absolute inset-y-0 left-0 border-r-2 border-foreground/40"
-                  style={{ width: `${(plan / max) * 100}%` }}
+                  style={{ width: `${(row.plannedSeconds / max) * 100}%` }}
                 />
               ) : null}
               <span
                 className="absolute inset-y-0 left-0 rounded"
-                style={{ width: `${(ridden / max) * 100}%`, backgroundColor: zone.color }}
+                style={{ width: `${(row.riddenSeconds / max) * 100}%`, backgroundColor: zone.color }}
               />
             </div>
             <span className="w-20 shrink-0 text-right tabular-nums text-muted-foreground">
-              {minutes(ridden)} min{planned ? ` / ${minutes(plan)}` : ""}
+              {minutes(row.riddenSeconds)} min{zones ? ` / ${minutes(row.plannedSeconds)}` : ""}
             </span>
+            {zones ? (
+              <span className="w-10 shrink-0 text-right font-medium tabular-nums">{pctLabel(row.pct)}</span>
+            ) : null}
           </div>
         );
       })}
@@ -184,26 +241,25 @@ export function WorkoutMetricsPanel({
   description,
   blocks,
   ftpWatts,
+  rpe,
 }: {
   metrics: WorkoutMetricsSnapshot;
   description?: string | null;
-  /** De geplande opbouw, voor de geplande minuten per zone. */
+  /** De geplande opbouw, voor de geplande minuten per zone en de verwachte RPE. */
   blocks?: WorkoutBlock[];
   ftpWatts?: number | null;
+  /** De RPE die het lid invulde. */
+  rpe?: number | null;
 }) {
   const note = powerNote(metrics);
+  const breakdown = complianceBreakdown({ metrics, blocks, ftpWatts, rpe });
   return (
     <div className="space-y-3">
       <WorkoutVerdictPills metrics={metrics} />
-      <ZoneTimesPanel metrics={metrics} blocks={blocks} ftpWatts={ftpWatts} />
+      <ComplianceTable breakdown={breakdown} />
+      <ZoneTimesPanel metrics={metrics} zones={breakdown.zones} />
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <MetricStat label="TSS" value={nl(metrics.tss)} />
-        <MetricStat
-          label="Duur"
-          value={metrics.movingMinutes == null ? "-" : `${metrics.movingMinutes} min`}
-        />
-        <MetricStat label="IF" value={nl(metrics.intensityFactor, 2)} />
+      <div className="grid grid-cols-3 gap-2">
         <MetricStat
           label="Gem. HR"
           value={metrics.averageHr == null ? "-" : `${nl(metrics.averageHr)} bpm`}
@@ -231,17 +287,6 @@ export function WorkoutMetricsPanel({
               ) : (
                 "-"
               )
-            }
-          />
-          <DetailRow
-            label="Gepland"
-            value={
-              [
-                metrics.plannedMinutes ? `${metrics.plannedMinutes} min` : null,
-                metrics.plannedLoad ? `${metrics.plannedLoad} TSS` : null,
-              ]
-                .filter(Boolean)
-                .join(" · ") || "-"
             }
           />
           <DetailRow

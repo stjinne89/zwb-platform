@@ -321,7 +321,7 @@ function WorkoutDetail({
               teruggokken welke opbouw je die dag had. */}
           <WorkoutBlocks blocks={detail.blocks} ftpWatts={ftpWatts} variant="compact" />
           {detail.metrics ? (
-            <WorkoutMetricsPanel metrics={detail.metrics} blocks={detail.blocks} ftpWatts={ftpWatts} />
+            <WorkoutMetricsPanel metrics={detail.metrics} blocks={detail.blocks} ftpWatts={ftpWatts} rpe={detail.rpe} />
           ) : null}
           {item.rideLink ? (
             <RideLinkForm

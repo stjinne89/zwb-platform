@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { WorkoutMetricsSnapshot } from "@/lib/training/completion";
+import type { WorkoutBlock } from "@/lib/training/workouts";
 import { WorkoutMetricsPanel } from "./workout-metrics-panel";
 import { confirmWorkoutReview } from "../_actions";
 import { NO_WORKOUT } from "./ride-link";
@@ -21,6 +22,9 @@ export type PendingReview = {
   dateLabel: string;
   description: string | null;
   metrics: WorkoutMetricsSnapshot;
+  /** De geplande opbouw en de FTP op de trainingsdag, voor de naleving per onderdeel. */
+  blocks: WorkoutBlock[];
+  ftpWatts: number | null;
   athleteRpe: number | null;
   athleteFeel: string | null;
   athleteReport: string | null;
@@ -124,7 +128,13 @@ export function WorkoutReviewDialog({ review }: { review: PendingReview }) {
           </DialogDescription>
         </DialogHeader>
 
-        <WorkoutMetricsPanel metrics={metrics} description={review.description} />
+        <WorkoutMetricsPanel
+          metrics={metrics}
+          description={review.description}
+          blocks={review.blocks}
+          ftpWatts={review.ftpWatts}
+          rpe={review.athleteRpe}
+        />
 
         <form onSubmit={onSubmit} className="mt-4 space-y-3">
           <input type="hidden" name="workout_id" value={review.workoutId} />
