@@ -11340,6 +11340,17 @@ elkaar, met een stem en een notitie, en pas op verzoek wie wie is. `planSchema` 
 Claude kent geen `minItems` boven 1 en geen `maxItems` in structured outputs; het
 script haalt die weg en telt achteraf zelf.
 
+Om met meer mensen te beoordelen maakt `scripts/claude-replay-share.mjs` (met het
+sjabloon `claude-replay-share.html`) een deelbare versie, gepubliceerd als
+privé-artifact van de eigenaar. Daarin staat niet welke kant Claude is; die
+sleutel staat alleen lokaal in `.tmp/claude-replay/share/key.json`. Stemmen gaan
+naar de artifact-database onder `votes/<beoordelaar>/pairs/<geval>`: elke
+beoordelaar ziet alleen de eigen stemmen, de eigenaar ziet ze allemaal.
+Beoordelaars van buiten de organisatie van de eigenaar kunnen alleen stemmen als
+ze als Editor zijn uitgenodigd; anders kopiëren ze hun oordelen met een knop.
+De pagina bevat de trainings- en hersteldata van de eigenaar en zijn naam in de
+schema-teksten; hij deelt die bewust. Niet getest met een tweede account.
+
 **Uitkomst** (details en tabellen in [claude-naspelen](docs/claude-naspelen.md)),
 19 generaties van de eigenaar:
 - Bijwerkingen: Claude Opus 5.5 breekt veel minder regels dan GPT-5.5 (2 tegen 21
