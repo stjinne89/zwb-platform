@@ -34,7 +34,8 @@ const pairs = results.map((r, i) => {
   // Zelfde kant als in compare.html.
   const claudeIsA = createHash("sha256").update(r.id).digest()[0] % 2 === 0;
   key[id] = { generationId: r.id, kind: r.kind, claude: claudeIsA ? "A" : "B" };
-  const { athleteName: _name, ...input } = r.input;
+  const input = { ...r.input };
+  delete input.athleteName;
   return {
     id,
     kind: r.kind,
