@@ -9,9 +9,10 @@ gaat stabiliteit voor nieuwe features.
 
 0. **OpenAI traint op ledendata (gevonden 2026-10-24).** In de OpenAI-organisatie
    staat het delen van in- en uitvoer aan voor gratis tokens; de
-   privacyverklaring zegt dat niet. De eigenaar beslist: delen uitzetten (dan
-   betaalt de app de volle prijs) of overstappen naar Claude. Zie de ronde
-   "Claude als vervanger van OpenAI".
+   privacyverklaring zegt dat niet. **Besluit eigenaar 2026-10-24: delen blijft
+   aan** tot de app naar Claude overstapt; dat scheelt nu geld, en na de
+   overstap gaat er niets meer naar OpenAI. De privacytekst blijft tot dan
+   ongewijzigd. Zie de ronde "Claude als vervanger van OpenAI".
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11354,7 +11355,9 @@ staat *Share inputs and outputs with OpenAI* op *Enabled for all projects*, in r
 voor gratis dagelijkse tokens. Daarom toont het dashboard maar $23,20 over 30
 dagen. De privacyverklaring noemt OpenAI alleen als verwerker voor het genereren;
 dat de gegevens ook voor het trainen van hun modellen gebruikt worden, staat er
-niet. **De eigenaar beslist** over de instelling en de tekst; niets aangepast.
+niet. **Besluit eigenaar (zelfde dag): delen blijft aan** tot de overstap naar
+Claude, omdat het nu geld scheelt en na de overstap niets meer naar OpenAI gaat.
+Instelling en privacytekst zijn niet aangepast.
 
 **Bewust niet.**
 - Geen omschakeling van de app naar Claude in deze ronde: eerst de blinde
