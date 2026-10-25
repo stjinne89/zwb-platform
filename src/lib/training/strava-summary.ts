@@ -11,7 +11,7 @@ import { intensityLabel } from "@/lib/training/workouts";
 import { amsterdamDayKey, type FitnessTrend } from "@/lib/training/zwbeterworden";
 import { rideTip } from "@/lib/training/strava-summary-tips";
 import type { StoredSnapshot } from "@/lib/briljant/compare";
-import { FACETS, FACET_LABELS, points, positionFor, type Facet } from "@/lib/briljant/score";
+import { FACET_LABELS, points, positionFor, weakestFacet } from "@/lib/briljant/score";
 import { mondayKey, shiftDay } from "@/lib/briljant/snapshot";
 
 /**
@@ -104,19 +104,14 @@ export function briljantSummaryFrom(
 
   const position = positionFor(latest.score);
   const before = scored.find((snapshot) => snapshot.week === shiftDay(latest.week, -28));
-  let weakest: { facet: Facet; level: number } | null = null;
-  for (const facet of FACETS) {
-    const level = latest.facets[facet];
-    if (level == null) continue;
-    if (!weakest || level < weakest.level) weakest = { facet, level };
-  }
+  const weakest = weakestFacet(latest.facets);
   return {
     points: points(latest.score),
     level: position.reached.name,
     nextLevel: position.next?.name ?? null,
     toNext: position.toNext,
     delta4w: before?.score == null ? null : points(latest.score) - points(before.score),
-    weakestFacet: weakest ? FACET_LABELS[weakest.facet] : null,
+    weakestFacet: weakest ? FACET_LABELS[weakest] : null,
   };
 }
 

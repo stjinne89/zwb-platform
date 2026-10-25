@@ -15,6 +15,7 @@ import { durationWords, type WeekSummary } from "@/lib/weekly-review/summary";
 import { refreshWeekReview } from "@/app/(app)/weekoverzicht/_actions";
 import { karlaFont, stencilFont } from "./fonts";
 import {
+  BriljantPrint,
   ClubPrint,
   CoachPrint,
   FormPrint,
@@ -64,7 +65,7 @@ function buildSlides(
   preview: boolean,
 ): Slide[] {
   const slides: Slide[] = [];
-  const { rides, plan, form, power, teams, fuel, club } = summary;
+  const { rides, plan, form, power, teams, fuel, club, briljant } = summary;
 
   slides.push({
     key: "open",
@@ -212,6 +213,45 @@ function buildSlides(
         ),
       });
     }
+  }
+
+  if (briljant) {
+    const diff = briljant.previousPoints == null ? null : briljant.points - briljant.previousPoints;
+    const up = briljant.previousLevel != null && briljant.level > briljant.previousLevel;
+    slides.push({
+      key: "briljant",
+      label: "ZWBriljant",
+      seconds: 6,
+      render: () => (
+        <>
+          <h2 className={`${s.big} ${s.txt}`}>{briljant.points.toLocaleString("nl-NL")}</h2>
+          <p className={`${s.lead} ${s.txt}`}>
+            {up
+              ? `Omhoog naar ${briljant.levelName}.`
+              : diff == null
+                ? `ZWBriljant ${briljant.levelName}.`
+                : diff === 0
+                  ? `${briljant.levelName}, gelijk gebleven.`
+                  : `${briljant.levelName}, ${Math.abs(diff)} ${Math.abs(diff) === 1 ? "punt" : "punten"} ${diff > 0 ? "erbij" : "eraf"}.`}
+          </p>
+          <p className={`${s.sub} ${s.txt}`}>
+            {briljant.nextName ? (
+              <>
+                Nog <b>{briljant.toNext}</b> tot {briljant.nextName}.
+              </>
+            ) : null}
+            {briljant.weakestFacet ? (
+              <>
+                {briljant.nextName ? " " : ""}Laagste facet: <b>{briljant.weakestFacet}</b>.
+              </>
+            ) : null}
+          </p>
+          <div className={s.art}>
+            <BriljantPrint briljant={briljant} />
+          </div>
+        </>
+      ),
+    });
   }
 
   if (teams) {

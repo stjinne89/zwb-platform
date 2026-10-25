@@ -10,10 +10,14 @@
 
 import type { PersonalRide } from "@/lib/stats/personal";
 import type { CompactPoint } from "@/lib/stats/curves";
+import { FACET_LABELS, points as briljantPoints, positionFor, weakestFacet, type Facet } from "@/lib/briljant/score";
 import { addDays, weekDays } from "@/lib/weekly-review/period";
 
-/** 2: vermogen kreeg `focus`, teams alleen het team waarin het lid reed. */
-export const SUMMARY_VERSION = 2;
+/**
+ * 2: vermogen kreeg `focus`, teams alleen het team waarin het lid reed.
+ * 3: de ZWBriljant-steen (`briljant`).
+ */
+export const SUMMARY_VERSION = 3;
 
 export type DayKm = { day: string; km: number; minutes: number };
 
@@ -86,6 +90,22 @@ export type ClubSection = {
   badges: string[];
 };
 
+export type BriljantSection = {
+  /** Punten zoals op de steen (427). */
+  points: number;
+  /** Klasse 0 (Koper) tot en met 9 (Diamant). */
+  level: number;
+  levelName: string;
+  /** Null in Diamant. */
+  nextName: string | null;
+  /** Punten tot de volgende klasse; 0 in Diamant. */
+  toNext: number;
+  /** Punten en klasse een week eerder; null zonder snapshot van die week. */
+  previousPoints: number | null;
+  previousLevel: number | null;
+  weakestFacet: string | null;
+};
+
 export type WeekSummary = {
   version: number;
   weekStart: string;
@@ -98,6 +118,7 @@ export type WeekSummary = {
   teams: TeamsSection | null;
   fuel: FuelSection | null;
   club: ClubSection | null;
+  briljant: BriljantSection | null;
 };
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
@@ -338,7 +359,42 @@ export function buildClub(
   return { clubRides: [...clubRides].sort((a, b) => a.day.localeCompare(b.day)), newBlocks, badges };
 }
 
-/** Heeft het lid deze week iets gedaan dat een overzicht waard is? */
+// ── ZWBriljant ────────────────────────────────────────────────────────────
+
+/** Een bewaarde weeksnapshot met de score al herrekend (storedScore). */
+export type BriljantSnapshot = { week: string; score: number | null; facets: Partial<Record<Facet, number | null>> };
+
+/** Ouder dan dit is de steen niet meer die van deze week (zoals in het Strava-blok). */
+const BRILJANT_MAX_AGE_DAYS = 35;
+
+/**
+ * De steen van de week uit de bewaarde snapshots: de laatste met score tot en met
+ * deze week, naast die van de week ervoor. De job maakt de snapshot op maandag;
+ * een bezoek aan de steen ververst hem. Op zondagavond loopt de steen dus tot een
+ * week achter, maar live rekenen kost calls naar intervals.icu en Zwift.
+ */
+export function buildBriljant(snapshots: BriljantSnapshot[], weekStart: string): BriljantSection | null {
+  const scored = snapshots
+    .filter((snapshot) => snapshot.score != null && snapshot.week <= weekStart)
+    .sort((a, b) => a.week.localeCompare(b.week));
+  const latest = scored.at(-1);
+  if (!latest || latest.score == null || latest.week < addDays(weekStart, -BRILJANT_MAX_AGE_DAYS)) return null;
+  const position = positionFor(latest.score);
+  const before = scored.find((snapshot) => snapshot.week === addDays(latest.week, -7));
+  const weakest = weakestFacet(latest.facets);
+  return {
+    points: briljantPoints(latest.score),
+    level: position.reached.n,
+    levelName: position.reached.name,
+    nextName: position.next?.name ?? null,
+    toNext: position.toNext,
+    previousPoints: before?.score == null ? null : briljantPoints(before.score),
+    previousLevel: before?.score == null ? null : positionFor(before.score).reached.n,
+    weakestFacet: weakest ? FACET_LABELS[weakest] : null,
+  };
+}
+
+/** Heeft het lid deze week iets gedaan dat een overzicht waard is? De steen alleen telt niet. */
 export function hasContent(summary: WeekSummary): boolean {
   return Boolean(summary.rides || summary.plan || summary.teams || summary.fuel || summary.club);
 }

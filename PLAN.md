@@ -950,7 +950,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - `src/lib/weekly-review/`: `period.ts` (welke week, en het venster: zondag
 >   vanaf 18:00 tot en met woensdag), `summary.ts` (pure samenvatting per
 >   onderdeel: ritten, schema, belasting, vermogen, teams, voeding en core, club,
->   plus de vooruitblik), `load.ts` (de queries), `coach-text.ts` (de AI-opdracht
+>   sinds 2026-10-25 ook de ZWBriljant-steen, plus de vooruitblik), `load.ts` (de queries), `coach-text.ts` (de AI-opdracht
 >   en een tekst uit vaste regels), `service.ts` (aanmaken, coachtekst ophalen,
 >   gezien zetten). Een onderdeel dat het lid die week niet gebruikte is `null`
 >   en krijgt geen scherm.
@@ -11315,6 +11315,62 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZWBriljant in het weekoverzicht
+
+**2026-10-25.** Commit volgt hieronder. Geen migratie. Lokaal gecommit op
+`claude/zwbriljant-weekoverzicht-5440b1`, niet gepusht.
+
+Wens van de eigenaar: de ZWBriljant-steen ook in het weekoverzicht. Hij krijgt een
+eigen scherm, na Vermogen en vóór Teams:
+
+- **Groot getal** de punten (427), daaronder de klasse met het verschil met een
+  week eerder ("Platina, 15 punten erbij.", "gelijk gebleven", of "Omhoog naar
+  Amethist." bij een nieuwe klasse), en "Nog 73 tot Amethist. Laagste facet:
+  Durability." In Diamant valt het stuk over de volgende klasse weg.
+- **De print** (`BriljantPrint`): een briljant geslepen silhouet in salie dat in
+  petrol volloopt tot de voortgang binnen de klasse, met de stand van vorige week
+  als stippellijn (zoals "beste van het jaar" bij Vermogen). Het vult op
+  oppervlakte, niet op hoogte: op hoogte oogde een kwart in de smalle punt als
+  bijna niets. De clip zit op een binnenste `<g>`, omdat de rakel zelf een
+  `clip-path` op `.ink` zet.
+- **Bron** (`buildBriljant` in `summary.ts`, query in `load.ts`): de bewaarde
+  weeksnapshots op de huidige schaal, net als het Strava-blok. De laatste met
+  score tot en met de maandag van de week, hooguit 35 dagen oud, naast die van
+  precies een week eerder. `weakestFacet` staat nu in `briljant/score.ts` en wordt
+  ook door het Strava-blok gebruikt.
+- `SUMMARY_VERSION` is 3: een bestaand overzicht van deze week wordt bij de
+  volgende opening opnieuw opgebouwd en krijgt de steen (gezien en coachtekst
+  blijven staan, zoals bij versie 2).
+- De steen alleen telt niet als inhoud (`hasContent`): wie een week niets deed,
+  krijgt geen overzicht alleen voor de steen.
+- Ook wie zijn steen niet met leden deelt, ziet hem in het eigen overzicht: dat
+  leest alleen het lid zelf.
+- `/hulp` (Training) noemt de steen bij de schermen; de privacyverklaring
+  (Weekoverzicht) noemt wat er van de steen in de samenvatting staat, dat alleen
+  het lid het leest, en dat de steen niet naar OpenAI gaat. Geen nieuwe versie:
+  het zijn gegevens die al per week bewaard worden. **De tekst is nog niet aan de
+  eigenaar voorgelegd.**
+
+**Bewust niet gedaan.**
+- Geen live berekening van de steen bij het maken van het overzicht: dat kost een
+  jaar wellness bij intervals.icu, de ZRS bij Zwift en mogelijk de durability-test,
+  en het overzicht heeft voor intervals.icu maar 4 s. Gevolg: de job maakt de
+  snapshot op maandag, dus op zondagavond loopt de steen tot een week achter,
+  tenzij het lid ZWBriljant die week opende (dat ververst de snapshot).
+- De steen gaat niet mee naar de AI-coach (`coachInput` haalt hem eruit): de
+  ZWBriljant-tekst in de privacyverklaring belooft dat er niets naar OpenAI gaat.
+- Geen eigen kleur van de klasse (vELO-kleur) in de print: het weekoverzicht
+  drukt alleen in de drie tenue-inkten.
+
+**Getest.** Nieuwe tests in `weekly-review.test.ts` (`buildBriljant`: de laatste
+steen met die van de week ervoor, een latere week genegeerd, te oud of zonder
+score, Diamant; en de steen niet in `coachInput`). `weekly-review`,
+`strava-summary`, `strava-summary-tips` en `briljant-score` groen (105), `tsc`
+(alleen de bekende fout op `modern-screenshot`), ESLint op de gewijzigde
+bestanden. In de browser met voorbeelddata bekeken op 375 px, licht en donker
+(`/ontwerp-voorbeeld?scherm=weekoverzicht`). **Niet getest:** de query op
+`zwbriljant_snapshots` tegen de echte database en het overzicht met echte data.
 
 ### Gebouwd — ZWBeter-blok op Strava: eigen opbouw, de steen en een tip
 

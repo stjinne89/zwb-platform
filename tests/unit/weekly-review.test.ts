@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isoWeekNumber, reviewPeriod } from "@/lib/weekly-review/period";
 import {
+  buildBriljant,
   buildForm,
   buildFuel,
   buildNextWeek,
@@ -145,6 +146,43 @@ describe("buildPower", () => {
   });
 });
 
+describe("buildBriljant", () => {
+  const snap = (week: string, score: number | null, facets: Record<string, number> = {}) => ({ week, score, facets });
+
+  it("neemt de laatste steen van de week, naast die van de week ervoor", () => {
+    const section = buildBriljant(
+      [snap("2026-10-05", 4.12), snap("2026-10-12", 4.27, { sprint: 5.2, durability: 3.1, fitheid: 4.4 })],
+      "2026-10-12",
+    );
+    expect(section).toEqual({
+      points: 427,
+      level: 4,
+      levelName: "Platina",
+      nextName: "Amethist",
+      toNext: 73,
+      previousPoints: 412,
+      previousLevel: 4,
+      weakestFacet: "Durability",
+    });
+  });
+
+  it("negeert de snapshot van een latere week", () => {
+    const section = buildBriljant([snap("2026-10-12", 4.27), snap("2026-10-19", 5.01)], "2026-10-12");
+    expect(section?.points).toBe(427);
+    expect(section?.previousPoints).toBeNull();
+  });
+
+  it("geeft geen steen als de laatste te oud is of geen score heeft", () => {
+    expect(buildBriljant([snap("2026-08-31", 4.27)], "2026-10-12")).toBeNull();
+    expect(buildBriljant([snap("2026-10-12", null)], "2026-10-12")).toBeNull();
+  });
+
+  it("is in Diamant vol, zonder volgende klasse", () => {
+    const section = buildBriljant([snap("2026-10-12", 9.4)], "2026-10-12");
+    expect(section).toMatchObject({ levelName: "Diamant", nextName: null, toNext: 0 });
+  });
+});
+
 describe("keepRiddenTeams", () => {
   const results = [
     { teamId: "zrl-c", day: "2026-10-13" },
@@ -221,10 +259,16 @@ describe("coachtekst", () => {
     teams: null,
     fuel: null,
     club: null,
+    briljant: null,
   };
 
   it("stuurt geen naam mee naar de AI", () => {
     expect(coachInput(summary, null)).not.toContain("Sanne");
+  });
+
+  it("stuurt de steen niet mee naar de AI", () => {
+    const briljant = buildBriljant([{ week: "2026-10-12", score: 4.27, facets: { sprint: 4.1 } }], "2026-10-12");
+    expect(coachInput({ ...summary, briljant }, null)).not.toContain("Platina");
   });
 
   it("maakt een tekst uit regels met één kernzin", () => {

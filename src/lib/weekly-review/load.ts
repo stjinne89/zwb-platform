@@ -6,6 +6,8 @@
 // gaat in weekly_reviews. Alleen de vooruitblik wordt bij elke opening opnieuw
 // gelezen, omdat het lid die op de laatste pagina juist aanpast.
 
+import { storedScore, type StoredSnapshot } from "@/lib/briljant/compare";
+import { SCALE_VERSION } from "@/lib/briljant/norms";
 import { fetchIntervalsPowerCurveRanges, fetchIntervalsWellness } from "@/lib/intervals/client";
 import { compactCurve } from "@/lib/stats/curves";
 import {
@@ -23,6 +25,7 @@ import { withBudget } from "@/lib/training/training-data";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { addDays } from "@/lib/weekly-review/period";
 import {
+  buildBriljant,
   buildClub,
   buildForm,
   buildFuel,
@@ -35,6 +38,7 @@ import {
   firstNameOf,
   keepRiddenTeams,
   SUMMARY_VERSION,
+  type BriljantSnapshot,
   type NextEvent,
   type NextWeek,
   type TeamResult,
@@ -132,6 +136,7 @@ export async function buildWeekSummary(admin: Admin, profileId: string, weekStar
     awardRows,
     blockCount,
     clubRsvps,
+    briljantRows,
   ] = await Promise.all([
     admin
       .from("strava_activities")
@@ -222,6 +227,16 @@ export async function buildWeekSummary(admin: Admin, profileId: string, weekStar
       .gte("events.start_at", window.from)
       .lte("events.start_at", window.to)
       .then(({ data }) => (data ?? []) as Array<{ event_id: string; events: One<EventRef> }>),
+    // Alleen de eigen steen, op de huidige schaal. Zonder migratie 0265 geen steen.
+    admin
+      .from("zwbriljant_snapshots")
+      .select("week, facets, consistency")
+      .eq("profile_id", profileId)
+      .eq("provenance->>scale", SCALE_VERSION)
+      .lte("week", weekStart)
+      .order("week", { ascending: false })
+      .limit(6)
+      .then(({ data, error }) => (error ? [] : ((data ?? []) as Array<{ week: string; facets: unknown; consistency: number | string | null }>))),
   ]);
 
   // Ritten en fitness
@@ -300,6 +315,13 @@ export async function buildWeekSummary(admin: Admin, profileId: string, weekStar
       clubEvents.map((event) => ({ title: event.title, day: event.day, riders: riderCounts.get(event.id) ?? 1 })),
       blockCount,
       awardRows.map((row) => one(row.achievement_badges)?.title).filter((title): title is string => Boolean(title)),
+    ),
+    briljant: buildBriljant(
+      briljantRows.map((row): BriljantSnapshot => {
+        const facets = (row.facets ?? {}) as StoredSnapshot["facets"];
+        return { week: row.week, facets, score: storedScore(facets, row.consistency == null ? null : Number(row.consistency)) };
+      }),
+      weekStart,
     ),
   };
 }

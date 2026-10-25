@@ -3,6 +3,7 @@
 // passen elkaar overlappen mengt de inkt (zie week-review.module.css).
 
 import type {
+  BriljantSection,
   ClubSection,
   FormSection,
   FuelSection,
@@ -219,6 +220,67 @@ export function PowerPrint({ power }: { power: PowerSection }) {
             {marked.watts} W{power.record ? " · record" : ""}
           </Label>
         </g>
+      ) : null}
+    </svg>
+  );
+}
+
+/**
+ * De steen als briljant geslepen silhouet (salie) dat tot de voortgang in de
+ * klasse vol petrol loopt; een week eerder als stippellijn.
+ */
+export function BriljantPrint({ briljant }: { briljant: BriljantSection }) {
+  const bottom = 280;
+  // In Diamant is er geen volgende klasse: dan is de steen vol.
+  const fill = (points: number) => (briljant.nextName == null ? 1 : Math.min(1, Math.max(0, points / 100 - briljant.level)));
+  // Vullen op oppervlakte, niet op hoogte: anders oogt een kwart in de smalle
+  // punt als bijna niets. Paviljoen 270 breed en 170 hoog, kroon 70 hoog tot 120 breed.
+  const pavilion = 0.5 * 270 * 170;
+  const crown = ((270 + 120) / 2) * 70;
+  const y = (share: number) => {
+    const area = share * (pavilion + crown);
+    if (area <= pavilion) return bottom - 170 * Math.sqrt(area / pavilion);
+    const narrowing = 150 / 70 / 2;
+    const rest = Math.min(crown, area - pavilion);
+    return 110 - (270 - Math.sqrt(Math.max(0, 270 * 270 - 4 * narrowing * rest))) / (2 * narrowing);
+  };
+  const outline = "M135 40 L255 40 L330 110 L195 280 L60 110 Z";
+  const now = y(fill(briljant.points));
+  const before =
+    briljant.previousPoints != null && briljant.previousLevel === briljant.level ? y(fill(briljant.previousPoints)) : null;
+  return (
+    <svg viewBox="0 0 390 320" aria-label={`ZWBriljant ${briljant.levelName}, ${briljant.points} punten`}>
+      <defs>
+        <clipPath id="wr-stone">
+          <path d={outline} />
+        </clipPath>
+      </defs>
+      <g className={pass(1)}>
+        <path className={s.fs} d={outline} />
+      </g>
+      {/* Binnen de pas: de rakel zet zelf een clip-path op .ink. */}
+      <g className={pass(2)}>
+        <g clipPath="url(#wr-stone)">
+          <rect className={s.fc} x={0} y={now} width={390} height={bottom - now} />
+        </g>
+      </g>
+      <path
+        d="M60 110 L330 110 M135 40 L105 110 L195 280 L285 110 L255 40 M175 40 L150 110 L195 280 L240 110 L215 40"
+        fill="none"
+        stroke="var(--ink)"
+        strokeWidth={1.2}
+        strokeLinejoin="round"
+        opacity={0.35}
+      />
+      {before != null && Math.abs(before - now) > 2 ? (
+        <>
+          <line x1={40} x2={350} y1={before} y2={before} stroke="var(--ink)" strokeWidth={1.6} strokeDasharray="5 4" />
+          <Label x={350} y={before + (before > now ? 18 : -8)} soft anchor="end">vorige week</Label>
+        </>
+      ) : null}
+      <Label x={195} y={306} anchor="middle">{briljant.levelName}</Label>
+      {briljant.nextName ? (
+        <Label x={195} y={26} soft anchor="middle">{briljant.nextName}</Label>
       ) : null}
     </svg>
   );

@@ -434,9 +434,11 @@ export default function PrivacyPage() {
             <strong>Weekoverzicht:</strong> op zondagavond zie je een terugblik
             op je week. We bewaren per week een samenvatting van je ritten,
             schema, belasting, vermogen, teamuitslagen, voedings- en
-            corelogboek en clubritten, en of je het overzicht hebt gezien.
-            Alleen jij kunt het lezen. Gebruik je ZWBeter voor je training, dan
-            gaat die samenvatting zonder je naam naar OpenAI om het oordeel van
+            corelogboek en clubritten, je ZWBriljant-steen (klasse, punten en
+            je laagste onderdeel, uit je bewaarde weeksteen), en of je het
+            overzicht hebt gezien. Alleen jij kunt het lezen, ook als je je
+            steen niet met leden deelt. Gebruik je ZWBeter voor je training, dan
+            gaat die samenvatting zonder je naam en zonder je steen naar OpenAI om het oordeel van
             de coach te schrijven, samen met je beschikbaarheid, trainingen en
             events van de week erna. Het staat in je data-export en verdwijnt
             als je je account opheft.
