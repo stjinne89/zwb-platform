@@ -11318,7 +11318,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant in het weekoverzicht
 
-**2026-10-25.** Commit volgt hieronder. Geen migratie. Lokaal gecommit op
+**2026-10-25.** Commit `9fae85b6`. Geen migratie. Lokaal gecommit op
 `claude/zwbriljant-weekoverzicht-5440b1`, niet gepusht.
 
 Wens van de eigenaar: de ZWBriljant-steen ook in het weekoverzicht. Hij krijgt een
