@@ -11318,7 +11318,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — ZRL-raceweek zonder parcours: zwift-data naar 2.1.0
 
-**2026-10-25.** Commit: de commit die dit blok toevoegt, lokaal op de branch
+**2026-10-25.** Commit `4229ef2e`, lokaal op de branch
 `claude/zrl-event-parcours-missing-d72090`, niet gepusht. Geen migratie.
 
 **Waarom.** De eigenaar zag bij R1 · W6 (27 oktober) geen parcours. Geen van de
