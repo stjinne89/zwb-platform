@@ -247,7 +247,8 @@ describe("rankRecipes", () => {
 
 describe("portionFit", () => {
   it("straft te weinig koolhydraten af, maar niet te veel eiwit", () => {
-    const rider = { weightKg: 70, energyFactor: 1, dayType: "lang" as const, rideMinutes: 200 };
+    // Zonder ritduur gaat er niets van het dagdoel af: het diner mikt op 210 g.
+    const rider = { weightKg: 70, energyFactor: 1, dayType: "lang" as const, rideMinutes: null };
     const small = recipe("klein", "diner", "gemengd", [
       [RICE, 40, "kh_bron"],
       [CHICKEN, 300, "eiwit_bron"],

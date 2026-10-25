@@ -296,8 +296,10 @@ gaat stabiliteit voor nieuwe features.
 14. **Ritvoeding na de vergelijking met Musette** (ronde van 2026-10-25
    hieronder): voorstel in [ritvoeding-plan.md](docs/ritvoeding-plan.md). De
    volgorde en de besluiten van §2 daar zijn akkoord (2026-10-25): rekenfout,
-   dan het ritplan, dan de verfijningen. Stap 1 is een rekenfout in het dagmenu
-   en kan los van de featurepauze; de rest is nieuw werk.
+   dan het ritplan, dan de verfijningen. Stap 1 (de rekenfout in het dagmenu)
+   is gebouwd op 2026-10-25, niet gepusht; volgende is stap 2a, het ritplan bij
+   de training in het schema. Dat is nieuw werk, dus het hangt aan het besluit
+   over de featurepauze.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11320,6 +11322,52 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — ZWBeter voeden: ritkoolhydraten tellen mee in het dagmenu
+
+**2026-10-25.** Stap 1 van [ritvoeding-plan.md](docs/ritvoeding-plan.md). Geen
+migratie. Niet gepusht.
+
+`mealTarget` gaf ontbijt, lunch, diner en tussendoor samen 85% van het midden
+van het dagdoel, en zette voor, tijdens en na de rit daarbovenop. Bij 70 kg op
+een lange dag met 4 uur fietsen kwam het menu zo op ongeveer 14,8 g/kg, terwijl
+de band tot 12 gaat. De dagbanden zijn de totale inname, ook op de fiets.
+
+- **Maaltijdbasis** (`mealCarbsBasis` en `rideDayCarbs` in `targets.ts`): het
+  midden van het dagdoel min voor de rit (1 g/kg), tijdens de rit (midden van de
+  g/u-band × uren) en na de rit (1 g/kg vanaf 60 minuten). De maaltijden krijgen
+  hun vaste deel van wat overblijft. Nooit minder dan het midden van een rustdag
+  (besluit 2 van het plan): een ritdag geeft geen kleinere maaltijden dan een
+  dag zonder rit. Dagen zonder rit veranderen niet.
+- **`topUpMenu` telde de rit als één uur.** Een portie "Tijdens de rit" is één
+  uur; het aanvullen tot de ondergrens van de dag rekent nu met de ritduur
+  (`rideHours`), anders zou het de aftrek weer ongedaan maken.
+- `RECOVERY_RIDE_MINUTES` staat nu in `targets.ts`, zodat menu en aftrek dezelfde
+  grens gebruiken.
+- Gevolg dat leden zien: op ritdagen zijn de hoofdmaaltijden kleiner. Bij 70 kg
+  op een lange dag met 4 uur fietsen mikt het diner op 84 g koolhydraten in
+  plaats van 210, net als op een rustdag.
+- [voeding-wielrennen.md](docs/voeding-wielrennen.md) (receptschaling) beschrijft
+  de maaltijdbasis; de tabel sprak van "dagmidden".
+
+**Bewust niet gedaan.** De verdeling over de maaltijden (25/20/30/10%) is
+gebleven; op een rustdag halen de drie maaltijden zo de onderkant van de band,
+zoals voorheen. Geen aparte regel voor ritten langer dan ongeveer 5 uur, waar
+een lichte renner boven 12 g/kg uitkomt: het eten onderweg geldt per uur, en
+het UCI-positiestandpunt noemt voor extreme dagen 10–25 g/kg.
+
+**Getest.** Nieuw in `nutrition-logic`: de ritkoolhydraten, de ondergrens, en
+dat het dagtotaal van alle momenten bij 55, 70 en 90 kg en ritten van 0 tot 240
+minuten binnen de band valt. In `nutrition-log-week`: het aanvullen telt elk uur
+op de fiets. In `nutrition-menu` rekent de test van `portionFit` nu zonder
+ritduur, zodat het diner op 210 g blijft mikken. De test dat elk moment met een
+clubrecept 85% van zijn doel haalt (`nutrition-migration`, 120 recepten, PGlite)
+slaagt. `tsc` geeft alleen de bekende fout op `modern-screenshot`; ESLint schoon
+op de gewijzigde bestanden. Volledige vitest-run: 5 tests in 6 bestanden falen,
+geen ervan over voeding: de ankers in `help-categories` (bekend uit een eerdere
+ronde), twee Zwift-routetests (de worktree heeft geen eigen `node_modules`,
+dus geen zwift-data 2.1.0) en drie databasetests. **Niet nagekeken:** het menu
+in de browser, en de afwisseling over veertien dagen.
 
 ### Onderzocht — Ritvoeding: vergelijking met Musette
 

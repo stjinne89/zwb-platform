@@ -108,6 +108,7 @@ export function planDayMenu({
       eatenMoments,
       floor: { carbsG: nutrition.carbs?.min ?? null, proteinG: nutrition.protein?.min ?? null },
       energyFactor,
+      rideHours: (nutrition.rideMinutes ?? 0) / 60,
     }),
   };
 }

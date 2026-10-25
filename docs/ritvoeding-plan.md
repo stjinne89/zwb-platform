@@ -55,6 +55,9 @@ bestaande band.
 
 ### Stap 1. Dagmenu: ritkoolhydraten tellen mee in het dagdoel
 
+*Gebouwd op 2026-10-25, zonder migratie, zie `PLAN.md`. Ook `topUpMenu` telde de
+rit als één uur; dat telt nu elk uur.*
+
 **Probleem.** `mealTarget` (`src/lib/nutrition/targets.ts`) geeft ontbijt,
 lunch, diner en tussendoor samen 85% van het midden van het dagdoel. Voor de
 rit, tijdens de rit en na de rit komen daar bovenop. Rekenvoorbeeld, 70 kg,

@@ -108,11 +108,27 @@ export const MEAL_MOMENT_LABELS: Record<MealMoment, string> = {
   voor_slapen: "Voor het slapen",
 };
 
+/** Vanaf deze ritduur hoort er een herstelmoment bij (zelfde grens als de tip). */
+export const RECOVERY_RIDE_MINUTES = 60;
+
 /**
- * Welk deel van de dagelijkse koolhydraten in een hoofdmaaltijd hoort. De rest
- * (ongeveer een kwart) valt op tussendoortjes en rond de rit. Een verdeling,
- * geen richtlijn: de bronnen geven dagtotalen en momenten rond de rit, geen
- * verdeling over maaltijden.
+ * Koolhydraten rond de rit op één dag: voor, tijdens (alle uren) en na. De
+ * dagbanden zijn de totale inname, ook wat je op de fiets eet (ACSM 2016), dus
+ * dit gaat van het dagdoel af voordat de maaltijden hun deel krijgen.
+ */
+export function rideDayCarbs(weightKg: number, rideMinutes: number | null): number {
+  const minutes = rideMinutes ?? 0;
+  if (!Number.isFinite(minutes) || minutes <= 0) return 0;
+  const perHour = rideCarbsPerHour(minutes);
+  const during = perHour ? (((perHour.min + perHour.max) / 2) * minutes) / 60 : 0;
+  const after = minutes >= RECOVERY_RIDE_MINUTES ? RECOVERY_CARBS_G_PER_KG_PER_HOUR.min * weightKg : 0;
+  return PRE_RIDE_CARBS_G_PER_KG * weightKg + during + after;
+}
+
+/**
+ * Welk deel van de koolhydraten voor de maaltijden in een hoofdmaaltijd of het
+ * tussendoortje hoort. Een verdeling, geen richtlijn: de bronnen geven
+ * dagtotalen en momenten rond de rit, geen verdeling over maaltijden.
  */
 const MAIN_MEAL_CARB_SHARE: Partial<Record<MealMoment, number>> = {
   ontbijt: 0.25,
@@ -135,9 +151,22 @@ export type MealTargetInput = {
   rideMinutes: number | null;
 };
 
+/**
+ * Koolhydraten die over de maaltijden verdeeld worden: het midden van het
+ * dagdoel min wat er rond de rit bij hoort. Nooit minder dan op een rustdag,
+ * zodat een ritdag niet uitkomt op kleinere maaltijden dan een dag zonder rit
+ * (REDs; besluit 2 in docs/ritvoeding-plan.md).
+ */
+export function mealCarbsBasis(input: MealTargetInput): number {
+  const midpoint = (range: Range) => (range.min + range.max) / 2;
+  const day = midpoint(DAILY_CARBS_G_PER_KG[input.dayType]) * input.weightKg;
+  const restDay = midpoint(DAILY_CARBS_G_PER_KG.rust) * input.weightKg;
+  return Math.max(restDay, day - rideDayCarbs(input.weightKg, input.rideMinutes));
+}
+
 /** Het doel voor één portie op een bepaald moment. */
 export function mealTarget(moment: MealMoment, input: MealTargetInput): MealTarget {
-  const { weightKg, dayType } = input;
+  const { weightKg } = input;
   const midpoint = (range: Range) => (range.min + range.max) / 2;
   const mealProtein = Math.round(midpoint(MEAL_PROTEIN_G_PER_KG) * weightKg);
 
@@ -148,7 +177,7 @@ export function mealTarget(moment: MealMoment, input: MealTargetInput): MealTarg
     case "tussendoor": {
       const share = MAIN_MEAL_CARB_SHARE[moment] ?? 0;
       return {
-        carbsG: Math.round(midpoint(DAILY_CARBS_G_PER_KG[dayType]) * weightKg * share),
+        carbsG: Math.round(mealCarbsBasis(input) * share),
         proteinG: moment === "tussendoor" ? null : mealProtein,
       };
     }

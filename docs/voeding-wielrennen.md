@@ -322,8 +322,8 @@ Doelen per moment (`mealTarget`):
 
 | Moment | Koolhydraten | Eiwit |
 |---|---|---|
-| ontbijt / lunch / diner | 25% / 20% / 30% van het dagmidden | 0,35 g/kg |
-| tussendoor | 10% van het dagmidden | — |
+| ontbijt / lunch / diner | 25% / 20% / 30% van de maaltijdbasis | 0,35 g/kg |
+| tussendoor | 10% van de maaltijdbasis | — |
 | voor de rit | 1 g/kg | — |
 | tijdens de rit | midden van de g/u-band (één portie = één uur) | — |
 | na de rit | 1,0 g/kg | 0,3 g/kg |
@@ -331,6 +331,19 @@ Doelen per moment (`mealTarget`):
 
 **De verdeling over maaltijden is van ZWB, niet uit een bron.** De bronnen geven
 dagtotalen en momenten rond de rit, geen percentages per maaltijd.
+
+**Maaltijdbasis** (`mealCarbsBasis`, sinds 2026-10-25). Het midden van het
+dagdoel min de koolhydraten rond de rit: voor de rit, tijdens de rit (alle
+uren) en na de rit. De dagbanden zijn de totale inname, ook wat je op de fiets
+eet. De basis gaat nooit onder het midden van een rustdag (4 g/kg), zodat de
+maaltijden op een ritdag niet kleiner worden dan op een dag zonder rit. *Tot
+2026-10-25 kregen de maaltijden een vast deel van het dagmidden en kwamen de
+ritmomenten daarbovenop; een lange dag met 4 uur fietsen kwam zo op ongeveer
+14,8 g/kg bij 70 kg.* Nu blijft het dagtotaal bij 55, 70 en 90 kg en ritten tot
+4 uur binnen de band (test). Langer dan ongeveer 5 uur kan een lichte renner
+boven 12 g/kg uitkomen: het eten onderweg geldt per uur, niet per kg, en de
+ondergrens van de maaltijden blijft. Het UCI-positiestandpunt noemt voor
+extreme dagen 10–25 g/kg.
 
 ## Receptkeuze: het dagmenu
 
@@ -359,7 +372,9 @@ zijn gekozen, niet gemeten. Gemeten is wat ze opleveren: bij 55, 70 en 90 kg
 heeft elk moment op elk dagtype een clubrecept dat het doel voor minstens 85%
 haalt (test), en over veertien dagen toont het menu bij 70 kg per moment 7 tot
 14 verschillende recepten. Uitzondering: de lunch op zware, lange en
-wedstrijddagen, met 4 of 5.
+wedstrijddagen, met 4 of 5. *Na de maaltijdbasis van 2026-10-25 (hierboven) is
+de 85%-test opnieuw gedraaid en geslaagd; de afwisseling over veertien dagen is
+niet opnieuw geteld.*
 
 ### Labels per portie (`traits.ts`)
 
