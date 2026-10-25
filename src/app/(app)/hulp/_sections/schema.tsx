@@ -586,7 +586,8 @@ export function SchemaHelp() {
               doel. Een training in de kalender krijgt de kleur van zijn
               kernwerk: het zwaarste niveau waarop je samen minstens vijf minuten
               rijdt, zonder warming-up en cooling-down. Lichtgrijs is rust; een
-              gestippeld blokje zonder kleur is een rit zonder vermogensmeter.
+              gestippeld blokje zonder kleur is een rit zonder vermogen en
+              hartslag.
             </p>
           </article>
           <article
@@ -629,7 +630,9 @@ export function SchemaHelp() {
               groepstraining met 80-90%. Kies je{" "}
               <strong className="text-foreground">Nee</strong>, dan verdwijnt het
               uit de lijst en blijft je schema ongemoeid. &apos;Misschien&apos;
-              telt als nog niet beslist, dus dat blijft gewoon staan.
+              telt als nog niet beslist, dus dat blijft gewoon staan. Via{" "}
+              <strong className="text-foreground">Naar het event</strong> bij de
+              training in je schema ga je terug naar het event op de kalender.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
@@ -680,7 +683,7 @@ export function SchemaHelp() {
               geplande training haal je die uit je schema en uit intervals.icu.
               Een voorgestelde training komt daarna niet terug: de planner laat
               die dag vrij. Een eigen rit verdwijnt helemaal en je schema wordt
-              eromheen bijgewerkt. Een clubevent zeg je af bij de events.
+              eromheen bijgewerkt. Een clubevent zeg je af bij het event zelf.
             </p>
           </article>
           <article
@@ -752,8 +755,9 @@ export function SchemaHelp() {
               <strong className="text-foreground">Te licht</strong> of{" "}
               <strong className="text-foreground">Te zwaar</strong> is je gereden
               TSS tegenover de geplande: tussen 80 en 115% is volgens plan. Daaronder
-              zie je per onderdeel gepland tegenover gereden: duur, TSS en IF, elk
-              met een percentage. De geplande IF volgt uit de geplande TSS en duur.
+              staat per onderdeel een balk: duur, TSS en IF, elk met een percentage.
+              Teal is wat je reed tot het plan, goud wat erboven kwam, en de streep
+              is het plan. De geplande IF volgt uit de geplande TSS en duur.
               Bij RPE staat de verwachte naast wat je invulde; de verwachte RPE is
               die van het zwaarste deel van de training dat minstens vijf minuten
               duurt, op dezelfde schaal als bij de blokken. RPE telt niet mee in het
@@ -763,9 +767,9 @@ export function SchemaHelp() {
               id="tijd-per-zone"
               className="mt-2 scroll-mt-20 text-sm text-muted-foreground"
             >
-              Onder de cijfers staat ook hoeveel minuten je per zone reed, in de
-              kleuren van Zwift en op je FTP, met de geplande minuten en het
-              percentage daarvan erachter. <strong className="text-foreground">Verdeling</strong>{" "}
+              Onder de cijfers staat ook per zone een balk met hoeveel minuten je
+              reed tegenover de geplande, op je FTP en met de zones van Zwift. Alle
+              zones staan op dezelfde schaal, zodat je ziet waar de meeste tijd zat. <strong className="text-foreground">Verdeling</strong>{" "}
               zegt hoeveel van je rit in dezelfde verhouding over de zones lag als
               gepland, los van hoe lang je reed. Die
               tijden komen uit de vermogensmeting in intervals.icu. Dat werkt alleen

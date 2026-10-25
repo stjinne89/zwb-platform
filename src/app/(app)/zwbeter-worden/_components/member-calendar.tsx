@@ -7,7 +7,7 @@
 // hetzelfde verhaal stond anders twee keer op de pagina.
 
 import { useState } from "react";
-import { CircleHelp, Download, ExternalLink } from "lucide-react";
+import { CalendarDays, CircleHelp, Download, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { Power } from "@/components/power-unit";
 import { MethodLabelBadge } from "@/components/method-label-badge";
@@ -73,6 +73,8 @@ export type MemberCalendarItem = {
     blocks: WorkoutBlock[];
     intervalsUrl: string | null;
     fitUrl: string | null;
+    /** Bij een training uit een clubevent: de eventpagina op de kalender. */
+    eventUrl?: string | null;
     rpe: number | null;
     feel: string | null;
     report: string | null;
@@ -180,7 +182,7 @@ function RideDetail({ item }: { item: MemberCalendarItem & { ride: NonNullable<M
           value={<Power watts={metrics.normalizedWatts} />}
         />
       </div>
-      {metrics.hasPowerMeter || metrics.movingMinutes == null ? null : (
+      {metrics.hasPowerMeter || metrics.tss != null || metrics.movingMinutes == null ? null : (
         <p className="text-xs text-muted-foreground">
           Zonder vermogensmeter zijn TSS en IF niet te bepalen.
         </p>
@@ -224,7 +226,13 @@ function WorkoutDetail({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-2 font-medium">
-            {item.title}
+            {detail.eventUrl ? (
+              <Link href={detail.eventUrl} className="transition hover:text-primary hover:underline">
+                {item.title}
+              </Link>
+            ) : (
+              item.title
+            )}
             <MethodLabelBadge label={item.methodLabel} />
           </p>
           <p className="text-xs text-muted-foreground">
@@ -247,8 +255,17 @@ function WorkoutDetail({
               vult hij elk blok volledig; dan verdwijnt het verschil tussen een
               opener en een duurblok. */}
           <WorkoutBlocks blocks={detail.blocks} ftpWatts={ftpWatts} variant="preview" />
-          {detail.fitUrl || detail.intervalsUrl ? (
+          {detail.fitUrl || detail.intervalsUrl || detail.eventUrl ? (
             <div className="flex flex-wrap gap-2">
+              {detail.eventUrl ? (
+                <Link
+                  href={detail.eventUrl}
+                  className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+                >
+                  <CalendarDays className="size-3" />
+                  Naar het event
+                </Link>
+              ) : null}
               {detail.fitUrl ? (
                 <>
                   <a

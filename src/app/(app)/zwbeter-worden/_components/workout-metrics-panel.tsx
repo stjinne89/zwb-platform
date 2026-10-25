@@ -71,9 +71,9 @@ function ctlLabel(metrics: WorkoutMetricsSnapshot) {
   return `${nl(ctlBefore, 1)} → ${nl(ctlAfter, 1)} (${sign}${nl(delta, 1)})`;
 }
 
-/** TSS en IF leunen op genormaliseerd vermogen; zonder meter blijven ze leeg. */
+/** Zonder meter komt de TSS uit hartslag; pas zonder allebei blijven TSS en IF leeg. */
 function powerNote(metrics: WorkoutMetricsSnapshot) {
-  if (metrics.hasPowerMeter || metrics.movingMinutes == null) return null;
+  if (metrics.hasPowerMeter || metrics.tss != null || metrics.movingMinutes == null) return null;
   return "Zonder vermogensmeter zijn TSS en IF niet te bepalen.";
 }
 
@@ -125,7 +125,7 @@ export function WorkoutVerdictPills({
 }
 
 function pctLabel(pct: number | null) {
-  return pct == null ? "" : `${pct}%`;
+  return pct == null ? null : `${pct}%`;
 }
 
 function rpeLabel(rpe: ComplianceBreakdown["rpe"]["expected"]) {
@@ -133,48 +133,143 @@ function rpeLabel(rpe: ComplianceBreakdown["rpe"]["expected"]) {
   return rpe.low === rpe.high ? `${rpe.low}` : `${rpe.low}-${rpe.high}`;
 }
 
-/** Gepland tegenover gereden per onderdeel; het TSS-percentage is dat van de pil. */
-function ComplianceTable({ breakdown }: { breakdown: ComplianceBreakdown }) {
-  const { duration, load, intensity, rpe } = breakdown;
-  const minutes = (value: number | null) => (value == null ? "-" : `${value} min`);
-  const rows: Array<{ label: string; planned: string; actual: string; pct: string }> = [
-    { label: "Duur", planned: minutes(duration.planned), actual: minutes(duration.actual), pct: pctLabel(duration.pct) },
-    { label: "TSS", planned: nl(load.planned), actual: nl(load.actual), pct: pctLabel(load.pct) },
-    { label: "IF", planned: nl(intensity.planned, 2), actual: nl(intensity.actual, 2), pct: pctLabel(intensity.pct) },
-  ];
-  if (rpe.expected || rpe.actual != null) {
-    rows.push({ label: "RPE", planned: rpeLabel(rpe.expected), actual: nl(rpe.actual), pct: "" });
-  }
+/** Duur, TSS en IF delen één schaal tot 150% van gepland, zodat de planstreep overal op dezelfde plek staat. */
+const PCT_SCALE = 150;
+
+/**
+ * Eén vlakke balk: teal is gereden tot het plan, goud wat erboven kwam, de
+ * streep is het plan. Zonder plan alleen het teal.
+ */
+function PlanMeter({
+  label,
+  value,
+  pct,
+  actual,
+  planned,
+  max,
+}: {
+  label: ReactNode;
+  /** "63 / 70 min", rechts boven de balk. */
+  value: string;
+  pct?: string | null;
+  actual: number | null;
+  planned: number | null;
+  max: number;
+}) {
+  const share = (amount: number) => (Math.min(Math.max(amount, 0), max) / max) * 100;
+  const ridden = actual ?? 0;
+  const within = planned == null ? ridden : Math.min(ridden, planned);
   return (
-    <table className="w-full text-sm tabular-nums" aria-label="Naleving">
-      <thead>
-        <tr className="text-xs text-muted-foreground">
-          <th className="pb-1 text-left font-normal" />
-          <th className="pb-1 text-right font-normal">Gepland</th>
-          <th className="pb-1 text-right font-normal">Gereden</th>
-          <th className="w-14 pb-1 text-right font-normal" />
-        </tr>
-      </thead>
-      <tbody className="divide-y">
-        {rows.map((row) => (
-          <tr key={row.label}>
-            <td className="py-1.5 text-xs text-muted-foreground">{row.label}</td>
-            <td className="py-1.5 text-right">{row.planned}</td>
-            <td className="py-1.5 text-right">{row.actual}</td>
-            <td className="py-1.5 text-right font-medium">{row.pct}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="space-y-1">
+      <div className="flex items-baseline justify-between gap-3 text-xs">
+        <span className="flex items-center gap-1.5 text-muted-foreground">{label}</span>
+        <span className="tabular-nums">
+          {value}
+          {pct != null ? <span className="ml-2 inline-block w-10 text-right font-medium">{pct}</span> : null}
+        </span>
+      </div>
+      <div className="relative h-2.5 bg-foreground/10">
+        <span className="absolute inset-y-0 left-0 bg-zwb-meter" style={{ width: `${share(within)}%` }} />
+        {planned != null && ridden > planned ? (
+          <span
+            className="absolute inset-y-0 bg-zwb-meter-over"
+            style={{ left: `${share(planned)}%`, width: `${share(ridden) - share(planned)}%` }}
+          />
+        ) : null}
+        {planned != null && planned > 0 ? (
+          <span
+            aria-hidden
+            className="absolute -inset-y-1 w-0.5 -translate-x-1/2 bg-foreground"
+            style={{ left: `${share(planned)}%` }}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** Wat de kleuren en de streep betekenen; één keer, boven de balken. */
+function MeterLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden className="h-2.5 w-3 bg-zwb-meter" />
+        Gereden
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden className="h-2.5 w-3 bg-zwb-meter-over" />
+        Boven plan
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span aria-hidden className="h-3.5 w-0.5 bg-foreground" />
+        Gepland
+      </span>
+    </div>
+  );
+}
+
+type Comparison = ComplianceBreakdown["duration"];
+
+/** Op de procentschaal: het plan is 100, gereden is het percentage. */
+function onPctScale(comparison: Comparison) {
+  if (comparison.pct != null) return { actual: comparison.pct, planned: 100 };
+  return { actual: null, planned: comparison.planned != null ? 100 : null };
+}
+
+/** "63 / 70 min", of alleen het gereden deel als er niets gepland was. */
+function pair(actual: string, planned: string | null) {
+  return planned == null ? actual : `${actual} / ${planned}`;
+}
+
+/** Gepland tegenover gereden per onderdeel; het TSS-percentage is dat van de pil. */
+function ComplianceMeters({ breakdown }: { breakdown: ComplianceBreakdown }) {
+  const { duration, load, intensity, rpe } = breakdown;
+  return (
+    <div className="space-y-2.5" aria-label="Naleving">
+      <PlanMeter
+        label="Duur"
+        value={pair(
+          duration.actual == null ? "-" : `${duration.actual}`,
+          duration.planned == null ? null : `${duration.planned} min`,
+        )}
+        pct={pctLabel(duration.pct)}
+        {...onPctScale(duration)}
+        max={PCT_SCALE}
+      />
+      <PlanMeter
+        label="TSS"
+        value={pair(nl(load.actual), load.planned == null ? null : nl(load.planned))}
+        pct={pctLabel(load.pct)}
+        {...onPctScale(load)}
+        max={PCT_SCALE}
+      />
+      <PlanMeter
+        label="IF"
+        value={pair(nl(intensity.actual, 2), intensity.planned == null ? null : nl(intensity.planned, 2))}
+        pct={pctLabel(intensity.pct)}
+        {...onPctScale(intensity)}
+        max={PCT_SCALE}
+      />
+      {rpe.expected || rpe.actual != null ? (
+        <PlanMeter
+          label="RPE"
+          value={pair(rpe.actual == null ? "-" : `${rpe.actual}`, rpe.expected ? rpeLabel(rpe.expected) : null)}
+          pct=""
+          actual={rpe.actual}
+          planned={rpe.expected?.high ?? null}
+          max={10}
+        />
+      ) : null}
+    </div>
   );
 }
 
 /**
- * Gemeten minuten per Zwift-zone, met de geplande minuten en het percentage
- * ernaast als de opbouw bekend is. De balk is relatief aan de langste zone,
- * gemeten of gepland.
+ * Gereden minuten per Zwift-zone tegenover de geplande, op één schaal in
+ * minuten voor alle zones. Het vierkantje in de zonekleur koppelt de rij aan
+ * de blokken van het schema.
  */
-function ZoneTimesPanel({
+function ZoneMeters({
   metrics,
   zones,
 }: {
@@ -193,45 +288,41 @@ function ZoneTimesPanel({
       const riddenSeconds = zoneTimes.seconds[index] ?? 0;
       return riddenSeconds < 30 ? [] : [{ zone: zone.zone, riddenSeconds, plannedSeconds: 0, pct: null }];
     });
-  const max = Math.max(1, ...rows.map((row) => Math.max(row.riddenSeconds, row.plannedSeconds)));
   const minutes = (seconds: number) => Math.round(seconds / 60);
+  // Wat ruimte voorbij de langste zone, zodat de planstreep niet tegen de rand valt.
+  const longest = Math.max(1, ...rows.map((row) => minutes(Math.max(row.riddenSeconds, row.plannedSeconds))));
+  const max = Math.ceil(longest * 1.15);
 
   return (
-    <div className="space-y-1.5" aria-label="Tijd per zone">
-      {zones?.match != null ? (
-        <div className="flex items-baseline justify-between text-xs text-muted-foreground">
-          <span>Zones</span>
-          <span className="tabular-nums">
+    <div className="space-y-2.5 border-t pt-3" aria-label="Tijd per zone">
+      <div className="flex items-baseline justify-between text-xs">
+        <span className="font-medium">Zones</span>
+        {zones?.match != null ? (
+          <span className="tabular-nums text-muted-foreground">
             Verdeling <span className="font-medium text-foreground">{zones.match}%</span>
           </span>
-        </div>
-      ) : null}
-      {rows.map((row) => {
-        const zone = ZWIFT_ZONES[row.zone - 1];
-        return (
-          <div key={row.zone} className="flex items-center gap-2 text-xs">
-            <span className="w-6 shrink-0 font-medium tabular-nums">Z{row.zone}</span>
-            <div className="relative h-3 flex-1 overflow-hidden rounded bg-muted">
-              {zones ? (
-                <span
-                  className="absolute inset-y-0 left-0 border-r-2 border-foreground/40"
-                  style={{ width: `${(row.plannedSeconds / max) * 100}%` }}
-                />
-              ) : null}
-              <span
-                className="absolute inset-y-0 left-0 rounded"
-                style={{ width: `${(row.riddenSeconds / max) * 100}%`, backgroundColor: zone.color }}
-              />
-            </div>
-            <span className="w-20 shrink-0 text-right tabular-nums text-muted-foreground">
-              {minutes(row.riddenSeconds)} min{zones ? ` / ${minutes(row.plannedSeconds)}` : ""}
-            </span>
-            {zones ? (
-              <span className="w-10 shrink-0 text-right font-medium tabular-nums">{pctLabel(row.pct)}</span>
-            ) : null}
-          </div>
-        );
-      })}
+        ) : null}
+      </div>
+      {rows.map((row) => (
+        <PlanMeter
+          key={row.zone}
+          label={
+            <>
+              <span aria-hidden className="size-2.5" style={{ backgroundColor: ZWIFT_ZONES[row.zone - 1].color }} />
+              Z{row.zone}
+            </>
+          }
+          value={
+            zones
+              ? `${minutes(row.riddenSeconds)} / ${minutes(row.plannedSeconds)} min`
+              : `${minutes(row.riddenSeconds)} min`
+          }
+          pct={zones ? (pctLabel(row.pct) ?? "") : null}
+          actual={minutes(row.riddenSeconds)}
+          planned={zones ? minutes(row.plannedSeconds) : null}
+          max={max}
+        />
+      ))}
     </div>
   );
 }
@@ -256,8 +347,11 @@ export function WorkoutMetricsPanel({
   return (
     <div className="space-y-3">
       <WorkoutVerdictPills metrics={metrics} />
-      <ComplianceTable breakdown={breakdown} />
-      <ZoneTimesPanel metrics={metrics} zones={breakdown.zones} />
+      <div className="space-y-3 bg-foreground/[0.04] p-3">
+        <MeterLegend />
+        <ComplianceMeters breakdown={breakdown} />
+        <ZoneMeters metrics={metrics} zones={breakdown.zones} />
+      </div>
 
       <div className="grid grid-cols-3 gap-2">
         <MetricStat

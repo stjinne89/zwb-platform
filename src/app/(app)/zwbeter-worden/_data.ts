@@ -54,6 +54,7 @@ import {
   type WellnessDevice,
 } from "@/lib/training/wellness";
 import { loadFtpAt } from "@/lib/training/ftp-history";
+import { loadHrBasis } from "@/lib/training/hr-load";
 import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
 import { STRAVA_RIDE_COLUMNS, type StravaRideRow } from "@/lib/training/ride-metrics";
 import { unplannedRides, type UnplannedRide } from "@/lib/training/unplanned-rides";
@@ -415,7 +416,10 @@ export async function loadScheduleRides(
   const deleted = await deletedPairedRides(viewer, reports, byId);
   if (rides.length === 0) return { unplanned: [], byId, deleted };
 
-  const ftpAt = await loadFtpAt(viewer.supabase, viewer.user.id, ftpWatts);
+  const [ftpAt, hrBasis] = await Promise.all([
+    loadFtpAt(viewer.supabase, viewer.user.id, ftpWatts),
+    loadHrBasis(viewer.supabase, viewer.user.id),
+  ]);
   const unplanned = unplannedRides(
     rides,
     workouts.map((workout) => ({
@@ -432,6 +436,7 @@ export async function loadScheduleRides(
       workoutId: report.workout_id,
       activityId: report.paired_activity_id,
     })),
+    hrBasis,
   );
   return { unplanned, byId, deleted };
 }

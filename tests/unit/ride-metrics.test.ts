@@ -72,6 +72,7 @@ describe("rideMetricsFromStrava", () => {
       kilojoules: 1721.1,
       hasPowerMeter: true,
       tss: 156,
+      tssSource: "power",
       intensityFactor: 0.73,
     });
   });

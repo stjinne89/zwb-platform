@@ -11370,6 +11370,153 @@ gewijzigde bestanden. Volledige vitest-run: drie fouten die hier los van staan
 anker `naleving` in `help-categories` uit de vorige ronde). **Niet getest:** een
 echte write naar Strava en hoe Strava de vette letters en emoji toont.
 
+### Gebouwd — TSS uit hartslag voor ritten zonder vermogensmeter
+
+**2026-10-25.** Commits `aa256eb4` (vaste rust-HR) en `97628bbe` (eigen
+rust-HR en privacytekst), op 2026-10-25 gepusht naar `main` (op verzoek van de
+eigenaar). Geen migratie.
+
+De eigenaar vroeg om TSS voor ritten zonder vermogensmeter maar met hartslag,
+zoals intervals.icu dat doet. Tot nu toe bleef de TSS van zo'n rit leeg: overal
+in ZWB (belastingpagina, kalender, naleving, AI-coach, Strava-blok,
+statistieken) kwam de TSS alleen uit NP en FTP. In productie ging dat over 174
+van de 1.880 ritten van de laatste 120 dagen, van 13 leden — allemaal met
+intervals-koppeling, LTHR en max-HR.
+
+Hoe intervals het doet: **HRSS**, de TRIMP van de rit (Banister) gedeeld door de
+TRIMP van een uur op LTHR, maal 100, per seconde over de hartslagstream. Wij
+hebben van een Strava-rit alleen de gemiddelde hartslag. Daarom twee bronnen, in
+`rideMetricsFromStrava` (alleen als er geen echte meter is):
+- **Ritten via intervals.icu** krijgen intervals' eigen HRSS (`hr_load`) mee in
+  `raw` (`buildIntervalsRideRow`), en die nemen we letterlijk over. Bestaande
+  rijen hebben dat veld pas als de uursync ze om een andere reden herschrijft;
+  `hr_load` zit bewust niet in `rideSignature`, anders draait het nawerk (cols,
+  badges) één keer opnieuw voor alle intervals-ritten van 30 dagen.
+- **Andere ritten**: dezelfde TRIMP-formule op de gemiddelde hartslag
+  (`src/lib/training/hr-load.ts`), met LTHR en max-HR uit
+  `profile_sport_settings`, de eigen rust-HR (mediaan van `profile_wellness`
+  over 60 dagen, waarden buiten 30–90 genegeerd; anders vast 50), en de
+  weegfactor 1,92 (man of onbekend) of 1,67 (vrouw).
+
+Getoetst tegen 2.441 ritten waarvan intervals de HRSS gaf (gemiddeld 77): met de
+eigen rust-HR mediaan 4 % onder intervals, gemiddeld 5,0 TSS ernaast, r = 0,99;
+met de vaste 50 gemiddeld 6,4. Van de 13 betrokken leden hadden er 8 een
+rust-HR in de laatste 60 dagen. De vrouwenfactor halveerde de afwijking bij
+vrouwen (8,9 → 4,7). De eenvoudiger formule uur × (HR/LTHR)² × 100 zat er
+gemiddeld 46 % boven en is afgevallen.
+
+**Privacy (2026-10-25, keuze van de eigenaar).** De eigen rust-HR is opt-in
+hersteldata; de TSS die eruit volgt gaat naar trainer, AI-coach en het
+Strava-blok. Eerst was de rust-HR daarom vast (commit `aa256eb4`); na voorleggen
+koos de eigenaar voor de eigen rust-HR met **alleen een tekstaanpassing in
+`/privacy`, bewust zonder nieuwe versie in `src/lib/privacy.ts`** (geen
+hertekening): de rust-HR zelf wordt met niemand gedeeld, alleen een berekend
+getal, net als de gereedscore die al naar AI-coach en Strava ging. De tekst noemt
+nu (1) het gebruik van de rust-HR voor de TSS bij de opt-in-hersteldata, (2) dat
+we FTP, CP, W', zones en drempel- en maximale hartslag uit de
+intervals-instellingen bewaren — dat gebeurde al sinds migratie `0101` maar stond
+er niet — en (3) dat het Strava-blok ook de belasting uit hartslag kan bevatten.
+
+`RideMetrics` en `RideLoad` kregen `tssSource` (`"power"`, `"hr"` of null). IF en
+NP blijven leeg zonder meter. De meldingen "Zonder vermogensmeter zijn TSS en IF
+niet te bepalen" (kalender, bevestigscherm, belastingtabel) verschijnen alleen nog
+als er ook geen TSS uit hartslag is. `/hulp/training` en `/hulp/schema` zijn
+bijgewerkt; een rit zonder meter krijgt in de kalender nu de kleur van zijn zone
+via de TSS uit hartslag.
+
+Doorgegeven aan alle plekken die ritbelasting tonen of gebruiken: belasting,
+schemakalender (ongeplande ritten), naleving en momentopnames (`completion.ts`,
+`compliance.ts`), AI-coachdata, gisteren/vandaag voor dag-aanpassingen, het
+Strava-samenvattingsblok en `/stats/ik`. Lege momentopnames die het lid nog niet
+bevestigde, vullen zichzelf binnen het venster van 7 dagen opnieuw; bevestigde
+blijven zoals ze waren.
+
+**Bewust niet gedaan.**
+- Geen hartslagstreams ophalen om per seconde te rekenen zoals intervals: kost
+  per rit een Strava-verzoek binnen de rate limit, voor ~1 TSS winst.
+- Leden zonder intervals-koppeling hebben geen LTHR; voor hen blijft de TSS van
+  een rit zonder meter leeg. Geen LTHR-schatting uit de hoogste gemeten hartslag:
+  één piek van een losse borstband zet die scheef.
+- Geen "hrTSS"-label in de interface: intervals noemt het ook gewoon belasting.
+- CTL/ATL/TSB veranderen niet: met koppeling komen die al van intervals (die
+  rekent HRSS mee), zonder koppeling is er geen LTHR.
+
+**Eenmalig aangevuld in productie (2026-10-25, op verzoek van de eigenaar).**
+De 13 momentopnames (`training_workout_reports.metrics_json`) van ritten met
+hartslag maar zonder meter en zonder TSS kregen hun TSS, `loadPct` en `verdict`,
+ook de 5 die het lid al had bevestigd. Uit zichzelf vult de code alleen
+onbevestigde momentopnames binnen 7 dagen aan. Met SQL via de
+Supabase-connector, dezelfde formule als `heartRateStressScore` (drie waarden
+tegen de TypeScript-functie gecontroleerd). 12 van de 13 gingen van "volgens
+plan" naar "te licht" (18–60 % van de geplande TSS), één naar "te zwaar"
+(118 %); een rit van 3 seconden die aan een training hing kreeg TSS 0. Al
+geschreven Strava-samenvattingen zijn niet herschreven. Oude waarden zijn niet
+apart bewaard; ze waren `tss: null`, `loadPct: null`, `verdict: volgens_plan`.
+
+**Getest.** `hr-load.test.ts` (nieuw), `ride-metrics.test.ts` bijgewerkt.
+Volledige vitest-run groen op drie bekende uitzonderingen na (`.env.local`
+ontbreekt in de worktree; twee asserts in `help-categories.test.ts` die al vóór
+deze ronde faalden). ESLint op de gewijzigde bestanden, `tsc` (alleen de bekende
+fout op `modern-screenshot`). Niet in de app bekeken, ook de privacypagina niet.
+
+### Gebouwd — ZWBeter Worden: naleving als balken in de ZWB-kleuren
+
+**2026-10-25.** Commit `f5aba7a6` (cherry-pick van `c1f76716` van de branch
+`claude/training-compliance-zones-fd2d1a`), op 2026-10-25 gepusht naar `main` (op
+verzoek van de eigenaar). Geen migratie.
+
+De eigenaar vond de tabel van de vorige ronde en vooral de zoneweergave niet
+duidelijk genoeg en vroeg om horizontale balken in de ZWB-kleuren. Elk onderdeel
+(duur, TSS, IF, RPE en elke zone) is nu één vlakke balk in `WorkoutMetricsPanel`:
+**teal** is gereden tot het plan, **goud** wat erboven kwam, een **streep** is het
+plan. Eén legenda staat erboven.
+- Duur, TSS en IF delen een procentschaal tot 150 %, zodat hun planstrepen op
+  dezelfde plek staan; daarboven loopt de balk vol en noemt het getal de rest.
+- RPE op de schaal 0–10, de streep op de verwachte RPE (bij een band als 2-3 op
+  de bovenkant).
+- De zones delen één schaal in minuten (15 % ruimte voorbij de langste zone), zodat
+  je ziet waar de meeste tijd zat. Een zone die niet gepland was, is helemaal goud.
+  Het vierkantje voor Z1–Z6 houdt de Zwift-zonekleur, omdat de blokken van het
+  schema die kleuren ook dragen. Zonder geplande opbouw alleen teal, zonder streep.
+- Nieuwe tokens `--zwb-meter` en `--zwb-meter-over` (`bg-zwb-meter`,
+  `bg-zwb-meter-over`) in `globals.css`: teal en goud bij licht, de lichtere tinten
+  van de ZWBlokken-kaart bij donker, omdat teal op nachtpetrol wegvalt.
+- `/hulp/schema#naleving` en `#tijd-per-zone` beschrijven de balken.
+
+**Bewust niet gedaan.** De balken kleuren niet naar de grenzen 80–115 %: die gelden
+voor TSS en het oordeel, en dat staat al op de pil.
+
+**Getest.** Bekeken in de lokale dev-server op een tijdelijke voorbeeldpagina onder
+`/ontwerp-voorbeeld` (niet gecommit), licht en donker en op telefoonbreedte, met een
+drempeltraining met zones en RPE en een te lichte zonder zonedata. ESLint, `tsc`
+(alleen de bekende fout op `modern-screenshot`) en de unittests van de uitsplitsing.
+Niet met echte ritten in de app bekeken.
+
+### Gebouwd — ZWBeter Worden: training uit een clubevent linkt terug naar het event
+
+**2026-10-25.** Commit `8dff0327` (cherry-pick van `bc744b19` van de branch
+`claude/trainingsschema-events-clickable-a7c52a`), op 2026-10-25 gepusht naar
+`main` (op verzoek van de eigenaar). Geen migratie.
+
+De eigenaar vroeg of een event dat via de kalender in het schema komt ook weer
+terug te klikken is naar dat event. Een training uit een clubevent droeg al
+`training_workouts.event_id`; die werd alleen nergens getoond. Nu:
+- Maandweergave (`MemberWorkoutCalendar`): in het detailpaneel is de titel een link
+  naar `/events/[id]`, en bij een geplande training staat een knop
+  **Naar het event** naast Download FIT en intervals.icu.
+- Lijstweergave van `/zwbeter-worden/schema`: dezelfde knop, ook als de training
+  nog niet naar intervals.icu is gezet.
+- ZWBeter Vandaag, Eerstvolgende workout: **Naar het event** naast Vraag je coach.
+- `/hulp/schema` noemt de knop bij Clubevents in je schema; "zeg je af bij de
+  events" werd "bij het event zelf".
+
+**Bewust niet gedaan.** De titel in de lijstweergave en op ZWBeter Vandaag
+(`WorkoutTitle`) blijft naar intervals.icu linken: die link bestond al en is voor
+het rijden de belangrijkste. Zwift-events die het lid bij een training koos
+(`zwift_event_id`) staan niet op de ZWB-kalender en vallen hier buiten.
+
+Alleen met eslint en tsc gecontroleerd, niet in de app bekeken.
+
 ### Gebouwd — ZWBeter Worden: naleving per onderdeel (duur, TSS, IF, zones, RPE)
 
 **2026-10-24.** Commit `27212aac`, op 2026-10-25 gepusht naar `main` (op verzoek
@@ -11386,7 +11533,8 @@ Wat er is gebouwd, in `WorkoutMetricsPanel` (bevestigscherm, kalender, afgeronde
 trainingen en de beoordelingsrij van de trainer):
 - Een tabel **Gepland · Gereden · %** voor duur, TSS en IF, en een RPE-rij met de
   verwachte RPE naast de ingevulde. Die vervangt de losse tegels TSS/Duur/IF en de
-  regel "Gepland" onder Meer details.
+  regel "Gepland" onder Meer details. *Sinds 2026-10-25 geen tabel meer maar
+  balken; zie de ronde hierboven.*
 - Bij **Tijd per zone** per zone het percentage van de geplande minuten, en bovenaan
   **Verdeling**: hoeveel van de rit in dezelfde verhouding over de zones lag als
   gepland (som van de kleinste aandelen per zone), los van de duur.
@@ -11412,7 +11560,8 @@ trainingen en de beoordelingsrij van de trainer):
 - De AI-context (`WorkoutCompliance` in `compliance.ts`) krijgt geen geplande IF,
   verwachte RPE of zoneverdeling erbij; die vraag ging over de weergave.
 - Geen kleur op de percentages per onderdeel: 80–115 % geldt voor TSS, niet
-  vanzelf voor duur, IF of een zone.
+  vanzelf voor duur, IF of een zone. (De balken van 2026-10-25 kleuren alleen
+  boven of onder het plan, niet naar die grenzen.)
 
 **Getest.** `compliance-breakdown.test.ts` (nieuw), plus `zone-times`,
 `workout-on-off`, `engine/catalog` en `compliance`. Volledige vitest-run groen op
@@ -22085,7 +22234,9 @@ anaeroob paars), terwijl de meeste leden hun workouts in Zwift rijden.
   2026-09-28:* ze volgen nu de Zwift-zones, zie de ronde "Intensiteit,
   trainingsvormen en titels".
 - Een rit zonder vermogensmeter in de maandkalender was grijs en is nu een
-  gestippeld blokje zonder vulling.
+  gestippeld blokje zonder vulling. *Bijgewerkt 2026-10-25:* met TSS uit hartslag
+  krijgt zo'n rit nu wel de kleur van zijn zone; alleen een rit zonder vermogen
+  én hartslag blijft ongevuld.
 - Dode `_components/workout-list.tsx` verwijderd (werd nergens geïmporteerd).
 
 **Bewust niet gebouwd.** De nalevingspillen (te licht oranje, te zwaar rood) zijn

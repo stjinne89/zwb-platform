@@ -7,9 +7,11 @@
 // gekoppeld — de meesten — blijft die bron dus leeg.
 //
 // Strava heeft alles behalve TSS en IF; dat zijn intervals/TrainingPeaks-
-// begrippen. Die rekenen we hier zelf uit met de standaardformules.
+// begrippen. Die rekenen we hier zelf uit met de standaardformules. Zonder
+// vermogensmeter komt de TSS uit de hartslag (hr-load.ts), zoals intervals doet.
 
 import type { FtpAt } from "@/lib/training/ftp-history";
+import { heartRateStressScore, type HrBasis } from "@/lib/training/hr-load";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { uniqueRides } from "@/lib/rides/unique-rides";
 
@@ -61,6 +63,8 @@ export type RideMetrics = {
   /** Echte vermogensmeter? Zonder meter schat Strava het vermogen. */
   hasPowerMeter: boolean;
   tss: number | null;
+  /** Waar de TSS op leunt: NP en FTP, of hartslag (HRSS). */
+  tssSource: "power" | "hr" | null;
   intensityFactor: number | null;
 };
 
@@ -75,16 +79,10 @@ export const EMPTY_RIDE_METRICS: RideMetrics = {
   kilojoules: null,
   hasPowerMeter: false,
   tss: null,
+  tssSource: null,
   intensityFactor: null,
 };
 
-/**
- * Haalt de cijfers uit een opgeslagen Strava-activiteit.
- *
- * TSS en IF berekenen we alleen bij een echte vermogensmeter. Zonder meter geeft
- * Strava een geschat vermogen, en een TSS die daarop leunt is niet betrouwbaar
- * genoeg om een schema op bij te sturen — dan blijft het veld leeg.
- */
 /** De dag (Amsterdam) waarop een Strava-rit begon, of null. */
 export function rideDateKey(raw: unknown): string | null {
   const activity = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
@@ -93,6 +91,14 @@ export function rideDateKey(raw: unknown): string | null {
 }
 
 /**
+ * Haalt de cijfers uit een opgeslagen Strava-activiteit.
+ *
+ * TSS en IF uit vermogen alleen bij een echte vermogensmeter: zonder meter geeft
+ * Strava een geschat vermogen, en een TSS die daarop leunt is niet betrouwbaar
+ * genoeg om een schema op bij te sturen. Zonder meter komt de TSS uit de
+ * hartslag: de HRSS van intervals zelf als de rit daarvandaan kwam, anders
+ * berekend uit de gemiddelde hartslag met `hr`. IF blijft dan leeg.
+ *
  * `ftp` is een vaste FTP, of een FtpAt die de FTP van de ritdag opzoekt
  * (migratie 0175). Met een vaste waarde rekent elke rit met die ene FTP.
  */
@@ -100,24 +106,32 @@ export function rideMetricsFromStrava(
   raw: unknown,
   fallbackMovingSeconds: number | null,
   ftp: number | null | FtpAt,
+  hr: HrBasis | null = null,
 ): RideMetrics {
   const activity = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const ftpWatts = typeof ftp === "function" ? ftp(rideDateKey(raw)) : ftp;
   const movingSeconds = positive(activity.moving_time) ?? positive(fallbackMovingSeconds);
   const hasPowerMeter = activity.device_watts === true;
   const normalizedWatts = hasPowerMeter ? positive(activity.weighted_average_watts) : null;
+  const averageHr = positive(activity.average_heartrate);
+  const powerTss = trainingStressScore(movingSeconds, normalizedWatts, ftpWatts);
+  const hrTss =
+    hasPowerMeter || averageHr == null
+      ? null
+      : (positive(activity.hr_load) ?? heartRateStressScore(movingSeconds, averageHr, hr));
 
   return {
     movingMinutes: movingSeconds ? Math.round(movingSeconds / 60) : null,
     averageWatts: positive(activity.average_watts),
     normalizedWatts,
     maxWatts: positive(activity.max_watts),
-    averageHr: positive(activity.average_heartrate),
+    averageHr,
     maxHr: positive(activity.max_heartrate),
     averageCadence: positive(activity.average_cadence),
     kilojoules: positive(activity.kilojoules),
     hasPowerMeter,
-    tss: trainingStressScore(movingSeconds, normalizedWatts, ftpWatts),
+    tss: powerTss ?? hrTss,
+    tssSource: powerTss != null ? "power" : hrTss != null ? "hr" : null,
     intensityFactor: intensityFactorFrom(normalizedWatts, ftpWatts),
   };
 }
@@ -158,13 +172,18 @@ export type RideLoad = {
   kilojoules: number | null;
   distance_m: number | null;
   hasPowerMeter: boolean;
+  tssSource: RideMetrics["tssSource"];
 };
 
 /** Ritten met hun belasting, nieuwste eerst. Dezelfde rit twee keer telt één keer. */
-export function rideLoadRows(rides: StravaRideRow[], ftpWatts: number | null | FtpAt): RideLoad[] {
+export function rideLoadRows(
+  rides: StravaRideRow[],
+  ftpWatts: number | null | FtpAt,
+  hr: HrBasis | null = null,
+): RideLoad[] {
   return uniqueRides(rides)
     .map((ride) => {
-      const metrics = rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, ftpWatts);
+      const metrics = rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, ftpWatts, hr);
       return {
         id: ride.id,
         name: ride.name,
@@ -176,6 +195,7 @@ export function rideLoadRows(rides: StravaRideRow[], ftpWatts: number | null | F
         normalized_watts: metrics.normalizedWatts,
         kilojoules: metrics.kilojoules,
         hasPowerMeter: metrics.hasPowerMeter,
+        tssSource: metrics.tssSource,
       };
     })
     .sort((a, b) => b.start_date_local.localeCompare(a.start_date_local));

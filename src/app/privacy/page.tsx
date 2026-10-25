@@ -306,7 +306,13 @@ export default function PrivacyPage() {
             slaap en readiness. Deze worden alléén gesynchroniseerd als je daar
             expliciet toestemming voor geeft, en zijn alleen voor jou (en een door
             jou aangewezen trainer) zichtbaar. Zet je de opt-in uit of ontkoppel
-            je intervals.icu, dan verwijderen we deze gegevens.
+            je intervals.icu, dan verwijderen we deze gegevens. Je rusthartslag
+            gebruiken we ook om de belasting (TSS) te berekenen van een rit zonder
+            vermogensmeter, samen met je drempel- en maximale hartslag uit je
+            intervals.icu-instellingen. Die TSS zien jij en je trainer, hij gaat
+            mee naar de AI-coach en staat in de samenvatting op Strava. Je
+            rusthartslag zelf blijft afgeschermd. Zonder opt-in rekenen we met een
+            vaste rusthartslag.
           </li>
           <li>
             <strong>Locatiegegevens tijdens live tracking:</strong> als je een
@@ -366,7 +372,9 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Activiteiten- en koppelingsgegevens:</strong> Strava-ritten en
-            intervals.icu-trainingsdata, gekoppeld via jouw toestemming. Geef je
+            intervals.icu-trainingsdata, gekoppeld via jouw toestemming. Uit je
+            intervals.icu-instellingen bewaren we je FTP, CP, W&apos;, zones en je
+            drempel- en maximale hartslag. Geef je
             een trainer toegang, dan ziet die je trainingsbelasting (CTL, form),
             je eFTP en je powercurve, ook in W/kg; daarvoor bewaren we bij een
             afgeronde training je gewicht van dat moment. Van een gereden training
@@ -487,7 +495,8 @@ export default function PrivacyPage() {
             volgende klasse erin, en soms je laagste facet; deel je hem niet,
             dan staat er je CTL. Wie jouw Strava-activiteit kan zien, kan die
             samenvatting dus ook zien. Je onderliggende hersteldata (slaap, HRV,
-            hartslag) komt er nooit in — alleen de daaruit berekende score. Je
+            hartslag) komt er nooit in, alleen wat we daaruit berekenen: je
+            gereedscore en, bij een rit zonder vermogensmeter, de belasting. Je
             eigen tekst in de omschrijving laten we staan, en verwijder je de
             samenvatting, dan zetten we hem niet terug. Wil je dit helemaal niet,
             koppel Strava dan opnieuw zonder het wijzigrecht, of verbreek de

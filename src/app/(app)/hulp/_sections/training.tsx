@@ -201,8 +201,9 @@ export function TrainingHelp() {
             schema werkelijk reed, en je CTL, ATL en TSB als je intervals.icu hebt
             gekoppeld. Vragen als &ldquo;hoeveel reed ik de afgelopen maand?&rdquo;
             of &ldquo;was zaterdag zwaar genoeg?&rdquo; kunnen dus ook. Wat nog niet
-            uit Strava binnen is, ziet hij niet, en belasting (TSS) en intensiteit
-            (IF) rekenen we alleen uit bij een echte vermogensmeter. Elke rit rekent
+            uit Strava binnen is, ziet hij niet. Intensiteit (IF) rekenen we alleen
+            uit bij een echte vermogensmeter; zonder meter komt de belasting (TSS)
+            uit je hartslag, als je intervals.icu hebt gekoppeld. Elke rit rekent
             met de FTP die op die dag gold, dus een nieuwe FTP verandert de
             belasting van eerdere ritten niet.
           </p>
@@ -443,7 +444,8 @@ export function TrainingHelp() {
                   Doelen-pagina
                 </Link>
                 . Daar komen je fitheid en gereedscore vandaan. De belasting
-                rekenen we uit je Strava-rit, als je met een vermogensmeter rijdt.
+                rekenen we uit je Strava-rit: uit je vermogen, of zonder
+                vermogensmeter uit je hartslag.
               </li>
               <li>
                 3. Zet een schema klaar. Zonder geplande workout staat er
