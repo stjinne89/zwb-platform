@@ -11327,7 +11327,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter voeden: ritplan in de herinnering en in Boodschappen
 
-**2026-10-25.** Rest van stap 2c van [ritvoeding-plan.md](docs/ritvoeding-plan.md).
+**2026-10-25.** Commit `0386ef8b`, rest van stap 2c van [ritvoeding-plan.md](docs/ritvoeding-plan.md).
 Geen migratie. Niet gepusht.
 
 - **Herinnering van de avond vooraf** (`reminders.ts`). De herinnering
