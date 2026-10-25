@@ -11420,6 +11420,30 @@ drempeltraining met zones en RPE en een te lichte zonder zonedata. ESLint, `tsc`
 (alleen de bekende fout op `modern-screenshot`) en de unittests van de uitsplitsing.
 Niet met echte ritten in de app bekeken.
 
+### Gebouwd — ZWBeter Worden: training uit een clubevent linkt terug naar het event
+
+**2026-10-25.** Commit `HASH`, lokaal op de branch
+`claude/trainingsschema-events-clickable-a7c52a`, niet gepusht. Geen migratie.
+
+De eigenaar vroeg of een event dat via de kalender in het schema komt ook weer
+terug te klikken is naar dat event. Een training uit een clubevent droeg al
+`training_workouts.event_id`; die werd alleen nergens getoond. Nu:
+- Maandweergave (`MemberWorkoutCalendar`): in het detailpaneel is de titel een link
+  naar `/events/[id]`, en bij een geplande training staat een knop
+  **Naar het event** naast Download FIT en intervals.icu.
+- Lijstweergave van `/zwbeter-worden/schema`: dezelfde knop, ook als de training
+  nog niet naar intervals.icu is gezet.
+- ZWBeter Vandaag, Eerstvolgende workout: **Naar het event** naast Vraag je coach.
+- `/hulp/schema` noemt de knop bij Clubevents in je schema; "zeg je af bij de
+  events" werd "bij het event zelf".
+
+**Bewust niet gedaan.** De titel in de lijstweergave en op ZWBeter Vandaag
+(`WorkoutTitle`) blijft naar intervals.icu linken: die link bestond al en is voor
+het rijden de belangrijkste. Zwift-events die het lid bij een training koos
+(`zwift_event_id`) staan niet op de ZWB-kalender en vallen hier buiten.
+
+Alleen met eslint en tsc gecontroleerd, niet in de app bekeken.
+
 ### Gebouwd — ZWBeter Worden: naleving per onderdeel (duur, TSS, IF, zones, RPE)
 
 **2026-10-24.** Commit `27212aac`, op 2026-10-25 gepusht naar `main` (op verzoek

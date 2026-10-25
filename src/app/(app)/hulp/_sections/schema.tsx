@@ -630,7 +630,9 @@ export function SchemaHelp() {
               groepstraining met 80-90%. Kies je{" "}
               <strong className="text-foreground">Nee</strong>, dan verdwijnt het
               uit de lijst en blijft je schema ongemoeid. &apos;Misschien&apos;
-              telt als nog niet beslist, dus dat blijft gewoon staan.
+              telt als nog niet beslist, dus dat blijft gewoon staan. Via{" "}
+              <strong className="text-foreground">Naar het event</strong> bij de
+              training in je schema ga je terug naar het event op de kalender.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
@@ -681,7 +683,7 @@ export function SchemaHelp() {
               geplande training haal je die uit je schema en uit intervals.icu.
               Een voorgestelde training komt daarna niet terug: de planner laat
               die dag vrij. Een eigen rit verdwijnt helemaal en je schema wordt
-              eromheen bijgewerkt. Een clubevent zeg je af bij de events.
+              eromheen bijgewerkt. Een clubevent zeg je af bij het event zelf.
             </p>
           </article>
           <article

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRequestUser } from "@/lib/auth/request";
 import Link from "next/link";
-import { Download, ExternalLink } from "lucide-react";
+import { CalendarDays, Download, ExternalLink } from "lucide-react";
 import { EmptyState } from "@/components/app-ui";
 import { StravaAttribution } from "@/components/strava-brand";
 import { intervalsWeekUrl } from "@/lib/intervals/links";
@@ -277,6 +277,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
             ? intervalsWorkoutUrl(conn?.athlete_id, workout)
             : null,
           fitUrl: published ? `/api/training/workouts/${workout.id}/fit` : null,
+          eventUrl: workout.event_id ? `/events/${workout.event_id}` : null,
           rpe: report?.athlete_rpe ?? null,
           feel: report?.athlete_feel ?? null,
           report: report?.athlete_report ?? null,
@@ -419,6 +420,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                 />
                 {workout.publish_status === "published" && workout.intervals_event_id ? (
                   <div className="mt-3 flex flex-wrap gap-2">
+                    {workout.event_id ? <EventLink eventId={workout.event_id} /> : null}
                     <a
                       href={`/api/training/workouts/${workout.id}/fit`}
                       className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
@@ -428,7 +430,14 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                     </a>
                   </div>
                 ) : workout.origin === "member" ? null : (
-                  <p className="mt-2 text-xs text-muted-foreground">FIT nog niet beschikbaar.</p>
+                  <>
+                    {workout.event_id ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <EventLink eventId={workout.event_id} />
+                      </div>
+                    ) : null}
+                    <p className="mt-2 text-xs text-muted-foreground">FIT nog niet beschikbaar.</p>
+                  </>
                 )}
                 {workout.status === "planned" && workout.origin !== "event" ? (
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -553,5 +562,17 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
           merk op elk scherm waar die data staat. */}
       {extraRides.length > 0 ? <StravaAttribution /> : null}
     </div>
+  );
+}
+
+function EventLink({ eventId }: { eventId: string }) {
+  return (
+    <Link
+      href={`/events/${eventId}`}
+      className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+    >
+      <CalendarDays className="size-3" />
+      Naar het event
+    </Link>
   );
 }
