@@ -305,15 +305,17 @@ gaat stabiliteit voor nieuwe features.
    hieronder): voorstel in [ritvoeding-plan.md](docs/ritvoeding-plan.md). De
    volgorde en de besluiten van §2 daar zijn akkoord (2026-10-25): rekenfout,
    dan het ritplan, dan de verfijningen. Stap 1 (de rekenfout in het dagmenu)
-   en stap 2 (ritplan "Klaarzetten" bij elke rit, op de eventpagina, in de
-   briefing, de herinnering en Boodschappen) zijn gebouwd op 2026-10-25, niet
-   gepusht. Stap 2 ging op verzoek van de eigenaar door zonder te wachten op het
-   besluit over de featurepauze. Stap 3 (het doel per uur volgt de zwaarte) is
-   ook gebouwd, niet gepusht, net als stap 4 (darmtraining bepaalt het
-   plafond) en stap 5 (zweettest en vochtdoel). **Voor het pushen:
-   `0272_nutrition_ride_carbs_120.sql` en `0273_nutrition_sweat_tests.sql`
-   toepassen.** De tekst op `/privacy#zweettest` is goedgekeurd (eigenaar,
-   2026-10-25). Daarmee is het ritvoedingsplan af.
+   en stap 2 tot en met 5 (ritplan "Klaarzetten" bij elke rit en event, doel
+   naar zwaarte, darmtraining als plafond, zweettest en vochtdoel) zijn gebouwd
+   en op 2026-10-25 samen gepusht naar `main`, op verzoek van de eigenaar en
+   zonder te wachten op het besluit over de featurepauze. Migraties
+   `0272_nutrition_ride_carbs_120.sql` en `0273_nutrition_sweat_tests.sql` zijn
+   toegepast op 2026-10-25 via de Supabase-connector (op verzoek van de eigenaar) en nagekeken. De tekst op `/privacy#zweettest` is goedgekeurd
+   (eigenaar, 2026-10-25). Daarmee is het ritvoedingsplan af. Open: de
+   schakelaar "tot 120 g per uur", een lopende darmtraining, opslaan en wissen
+   van een zweettest en "Gegeten" voor het ritplan zijn nog niet in de browser
+   of op productie gebruikt; de avondherinnering met "Zet klaar" is nog niet
+   echt verstuurd.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -326,8 +328,8 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0274`
-(`0273_nutrition_sweat_tests` is van ritvoeding stap 5, 2026-10-25, **nog niet toegepast**;
-`0272_nutrition_ride_carbs_120` is van ritvoeding stap 4, 2026-10-25, **nog niet toegepast**;
+(`0273_nutrition_sweat_tests` is van ritvoeding stap 5, 2026-10-25, toegepast op 2026-10-25;
+`0272_nutrition_ride_carbs_120` is van ritvoeding stap 4, 2026-10-25, toegepast op 2026-10-25;
 `0271_zwift_race_scores` is toegepast, zie punt 11 hierboven;
 `0270_zwbriljant_weights_fitheid20` is van ZWBriljant fitheid 20% en racen 12,5%, 2026-10-22, toegepast op 2026-10-22;
 `0269_zwbriljant_ctl40` is van ZWBriljant CTL-Goud op 40 en vermogen 50%, 2026-10-22, toegepast op 2026-10-22;
@@ -11344,8 +11346,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 **2026-10-25.** Commit `89bf101e`, stap 5 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
 besluiten 5, 6 en 7 van dat plan. Migratie `0273_nutrition_sweat_tests.sql`,
-**nog niet toegepast**. Privacytekst goedgekeurd door de eigenaar (2026-10-25,
-zonder wijziging). Niet gepusht.
+toegepast op 2026-10-25 via de Supabase-connector (op verzoek van de eigenaar) en nagekeken (RLS aan, één regel voor het lid zelf; de
+beveiligingsadviezen noemen de tabel niet). Privacytekst goedgekeurd door de
+eigenaar (2026-10-25, zonder wijziging). Op 2026-10-25 gepusht naar `main`.
 
 - **Rekenwerk** (`src/lib/nutrition/sweat.ts`). Zweetverlies per uur =
   (gewicht voor − gewicht na) × 1000 + gedronken ml, gedeeld door de duur
@@ -11392,14 +11395,15 @@ te wissen; een onwaarschijnlijke of te korte test geweigerd. `tsc` alleen de
 bekende fout op `modern-screenshot`; ESLint schoon. In de browser: de
 protocolpagina toont het formulier met de toestemming onder de opzet; het
 ritplan toont de link "Zweettest". **Niet getest:** opslaan en wissen in de
-browser (de tabel staat nog niet op productie), en een ritplan met vochtdoel in
-de browser (de test dekt het).
+browser (de tabel stond toen nog niet op productie), en een ritplan met
+vochtdoel in de browser (de test dekt het).
 
 ### Gebouwd — ZWBeter voeden: darmtraining bepaalt het plafond onderweg
 
 **2026-10-25.** Commit `d1aa61cb`, stap 4 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
-besluit 4 van dat plan. Migratie `0272_nutrition_ride_carbs_120.sql`, **nog
-niet toegepast**. Niet gepusht.
+besluit 4 van dat plan. Migratie `0272_nutrition_ride_carbs_120.sql`,
+toegepast op 2026-10-25 via de Supabase-connector (op verzoek van de eigenaar) en nagekeken (standaard uit, bij niemand aan). Op 2026-10-25
+gepusht naar `main`.
 
 - **Lopende darmtraining** (`gut-training.ts`). Bij een rit van minstens 90
   minuten is het getal van die week het doel (60, 70 … 110 g/u), ook boven of
@@ -11430,7 +11434,7 @@ tabel, geen nieuwe soort gegevens.
 
 **Volgorde bij het pushen.** Zonder 0272 werkt alles behalve de schakelaar zelf:
 de app leest de keuze dan als uit, maar opslaan geeft een fout. Pas de migratie
-dus toe voordat dit live gaat.
+dus toe voordat dit live gaat. *Gedaan: 0272 stond op productie voor de push.*
 
 **Getest.** Nieuw `nutrition-gut-training` (weekgetal per week, voor de start en
 na zes weken niets, vanaf 90 minuten ook boven de band, het vervolg vanaf drie
@@ -11447,7 +11451,7 @@ browser.
 ### Gebouwd — ZWBeter voeden: het doel per uur volgt de zwaarte van de rit
 
 **2026-10-25.** Commit `d7794e53`, stap 3 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
-besluit 3 van dat plan. Geen migratie. Niet gepusht.
+besluit 3 van dat plan. Geen migratie. Op 2026-10-25 gepusht naar `main`.
 
 - **`rideTargetPerHour(duur, zwaarte)`** in `targets.ts`: binnen de bestaande
   band de onderkant voor `recovery` en `endurance`, het midden voor `tempo` en
@@ -11491,7 +11495,7 @@ water, 2 uur 60 g, VO2max 1u15 86 g.
 ### Gebouwd — ZWBeter voeden: ritplan in de herinnering en in Boodschappen
 
 **2026-10-25.** Commit `0386ef8b`, rest van stap 2c van [ritvoeding-plan.md](docs/ritvoeding-plan.md).
-Geen migratie. Niet gepusht.
+Geen migratie. Op 2026-10-25 gepusht naar `main`.
 
 - **Herinnering van de avond vooraf** (`reminders.ts`). De herinnering
   `morgen_zwaar` (voor wie Naleving en herinneringen aan heeft, de avond voor
@@ -11529,7 +11533,7 @@ af te vuren zonder echte berichten te sturen).
 ### Gebouwd — ZWBeter voeden: ritplan op de eventpagina en in de racebriefing
 
 **2026-10-25.** Commit `351b5ec2`, stap 2b van [ritvoeding-plan.md](docs/ritvoeding-plan.md). Geen
-migratie. Niet gepusht.
+migratie. Op 2026-10-25 gepusht naar `main`.
 
 - **Eventpagina** (`events/[id]`), onder Raceinfo, en **racebriefing**
   (`events/[id]/briefing`), onder het racebriefje: hetzelfde blok
@@ -11567,7 +11571,7 @@ uit een pacingplan in de browser (de test dekt hem).
 
 **2026-10-25.** Commit `c1e103f4`, stap 2a van [ritvoeding-plan.md](docs/ritvoeding-plan.md), op
 verzoek van de eigenaar zonder te wachten op het besluit over de featurepauze.
-Geen migratie. Niet gepusht.
+Geen migratie. Op 2026-10-25 gepusht naar `main`.
 
 De eigenaar miste wat Musette wel doet: zien wat je voor een rit klaarzet. Tot
 nu toe stond er bij "Tijdens de rit" één recept voor één uur, zonder dat erbij
@@ -11628,7 +11632,7 @@ vast eten in de browser (die staat niet in het schema; de test dekt hem).
 ### Hersteld — ZWBeter voeden: ritkoolhydraten tellen mee in het dagmenu
 
 **2026-10-25.** Commit `23b9ad8b`, stap 1 van [ritvoeding-plan.md](docs/ritvoeding-plan.md). Geen
-migratie. Niet gepusht.
+migratie. Op 2026-10-25 gepusht naar `main`.
 
 `mealTarget` gaf ontbijt, lunch, diner en tussendoor samen 85% van het midden
 van het dagdoel, en zette voor, tijdens en na de rit daarbovenop. Bij 70 kg op

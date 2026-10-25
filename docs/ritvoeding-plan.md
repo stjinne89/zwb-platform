@@ -174,12 +174,12 @@ geldt vanaf een rit van 90 minuten, niet 150: zo schrijft het protocol de
 oefenritten zelf voor ("een rit van minstens anderhalf uur"); bij het vervolg
 naar 150 vanaf drie uur. (2) "120 als keuze" is op besluit van de eigenaar
 (2026-10-25) een bewaarde schakelaar op de protocolpagina, en dus wel een
-migratie: `0272_nutrition_ride_carbs_120.sql`, nog niet toegepast.*
+migratie: `0272_nutrition_ride_carbs_120.sql`, toegepast op 2026-10-25.*
 
 ### Stap 5. Zweettest en vochtdoel
 
 *Gebouwd op 2026-10-25, zie `PLAN.md`. Migratie
-`0273_nutrition_sweat_tests.sql`, nog niet toegepast. De tekst op
+`0273_nutrition_sweat_tests.sql`, toegepast op 2026-10-25. De tekst op
 `/privacy#zweettest` is door de eigenaar goedgekeurd op 2026-10-25 (besluit 7).
 Afwijkingen:
 een test buiten de grenzen wordt niet opgeslagen in plaats van "telt niet mee";
