@@ -11331,7 +11331,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter voeden: darmtraining bepaalt het plafond onderweg
 
-**2026-10-25.** Stap 4 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
+**2026-10-25.** Commit `d1aa61cb`, stap 4 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
 besluit 4 van dat plan. Migratie `0272_nutrition_ride_carbs_120.sql`, **nog
 niet toegepast**. Niet gepusht.
 
