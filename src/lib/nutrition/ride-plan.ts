@@ -6,8 +6,9 @@
 // recept is een bidon als er een drank in zit (NEVO-groep "Niet-alcoholische
 // dranken"); de clubrecepten voor onderweg vallen zo vanzelf goed.
 
-import { basePortion, scaleRecipe, type RecipeIngredient } from "./scale";
+import { basePortion, macrosFor, scaleRecipe, type RecipeIngredient } from "./scale";
 import type { Recipe } from "./recipes";
+import type { ShoppingSlot } from "./shopping";
 import { SHOPPING_NAMES } from "./shopping-names";
 import { rideCarbsPerHour } from "./targets";
 
@@ -212,6 +213,37 @@ export function eventRide(input: {
   const intensity = input.workout?.intensity ?? input.estimate.intensity;
   const longRace = minutes >= LOADING_MIN_MINUTES && (intensity === "race" || input.eventType === "gran_fondo");
   return { minutes, intensity, longRace };
+}
+
+/**
+ * Het ritplan als regels voor de boodschappenlijst (shoppingList): per recept
+ * alle bidons of porties samen. Een recept dat er niet meer is, valt weg.
+ */
+export function ridePlanShoppingSlots(plan: RidePlan, recipes: Recipe[]): ShoppingSlot[] {
+  const bySlug = new Map(recipes.map((recipe) => [recipe.slug, recipe]));
+  const slots: ShoppingSlot[] = [];
+  for (const item of [plan.bidons, plan.solid]) {
+    const recipe = item?.recipe ? bySlug.get(item.recipe.slug) : undefined;
+    if (!item || !recipe) continue;
+    const foods = new Map(recipe.ingredients.map((ingredient) => [ingredient.food.id, ingredient]));
+    const ingredients = item.ingredients.flatMap((ingredient) => {
+      const source = foods.get(ingredient.foodId);
+      return source ? [{ food: source.food, grams: ingredient.amount * item.count, role: source.role }] : [];
+    });
+    slots.push({
+      moment: "tijdens_rit",
+      recipe,
+      portion: { factors: { kh_bron: 1, eiwit_bron: 1, vast: 1 }, ingredients, perPortion: macrosFor(ingredients) },
+    });
+  }
+  return slots;
+}
+
+/** Kort, voor een pushbericht: "2× bidon Zelfgemaakte sportdrank, 1× Zacht wit broodje met jam". */
+export function ridePlanSummary(plan: RidePlan): string {
+  const parts = [`${plan.bidons.count}× bidon ${plan.bidons.recipe?.title ?? "water"}`];
+  if (plan.solid?.recipe) parts.push(`${plan.solid.count}× ${plan.solid.recipe.title}`);
+  return parts.join(", ");
 }
 
 /** "0:15", "1:35". */

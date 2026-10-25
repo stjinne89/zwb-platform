@@ -323,7 +323,8 @@ export function KennisHelp() {
                   porties je meeneemt, met de hoeveelheden, en onder &quot;Per 20
                   minuten&quot; wanneer je wat neemt. Dat plan staat ook bij elke
                   training van een uur of langer in je schema, en op de
-                  eventpagina en in de racebriefing. Bij een event komt de duur
+                  eventpagina, in de racebriefing en in Boodschappen, met alle
+                  bidons en porties. Bij een event komt de duur
                   uit je pacingplan, anders uit je schema of een schatting. Bij
                   een wedstrijd van anderhalf uur of langer staat er een link
                   naar koolhydraten laden, met de dag waarop je begint. Je rekent met
@@ -535,9 +536,9 @@ export function KennisHelp() {
                   aparte toestemming). Je trainer ziet dan per dag wat je at en
                   of je je minimum haalde, maar kan niets wijzigen. Met
                   Herinneringen krijg je &apos;s avonds een pushbericht als er
-                  morgen een zware, lange of wedstrijddag staat, of als je
-                  vandaag een uur of langer reed en bij &quot;Na de rit&quot;
-                  nog niets staat.
+                  morgen een zware, lange of wedstrijddag staat, met wat je
+                  voor de rit klaarzet, of als je vandaag een uur of langer
+                  reed en bij &quot;Na de rit&quot; nog niets staat.
                 </span>
               </li>
               <li className="flex gap-2">

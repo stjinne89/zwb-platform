@@ -5,6 +5,7 @@ import { FUEL_DAY_LABELS } from "@/lib/nutrition/day-type";
 import { DIET_TAGS, DIET_TAG_LABELS, type DietTag } from "@/lib/nutrition/recipes";
 import type { MenuSlot } from "@/lib/nutrition/menu";
 import { choiceWindow, planDayMenu } from "@/lib/nutrition/plan";
+import { ridePlanShoppingSlots, ridePlanSummary, type RidePlan } from "@/lib/nutrition/ride-plan";
 import { PLAN_DAYS_MAX, householdSize, shoppingList, type Household } from "@/lib/nutrition/shopping";
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import {
@@ -96,7 +97,7 @@ export default async function BoodschappenPage({ searchParams }: { searchParams:
   // Per dag precies het menu dat het Dagmenu die dag toont: dezelfde keuzes,
   // dezelfde aanvulling tot het minimum (zonder wat er vandaag al gegeten is).
   const plan = days.map((day) => {
-    const { nutrition, slots } = planDayMenu({
+    const { nutrition, slots, ride } = planDayMenu({
       recipes,
       input: inputs.get(day)!,
       energyFactor,
@@ -104,10 +105,18 @@ export default async function BoodschappenPage({ searchParams }: { searchParams:
       diet,
       choices,
     });
-    return { day, dayType: nutrition.dayType, slots };
+    return { day, dayType: nutrition.dayType, slots, ride };
   });
+  // Onderweg telt het hele ritplan, alle bidons en porties, niet één portie.
   const items = shoppingList(
-    plan.flatMap((entry) => entry.slots),
+    plan.flatMap((entry) =>
+      entry.ride
+        ? [
+            ...entry.slots.filter((slot) => slot.moment !== "tijdens_rit"),
+            ...ridePlanShoppingSlots(entry.ride, recipes),
+          ]
+        : entry.slots,
+    ),
     household,
   );
 
@@ -123,19 +132,23 @@ export default async function BoodschappenPage({ searchParams }: { searchParams:
     return `/zwbeter-worden/voeding/boodschappen${text ? `?${text}` : ""}`;
   };
 
-  const slotRow = (day: string, slot: MenuSlot) => (
+  const slotRow = (day: string, slot: MenuSlot, ride: RidePlan | null) => (
     <li key={slot.moment} className="flex items-start justify-between gap-2 py-1.5">
       <div className="min-w-0">
         <p className="text-xs text-muted-foreground">
           {MEAL_MOMENT_LABELS[slot.moment]}
           {slot.chosen && <span className="ml-1.5 text-primary">Gekozen</span>}
         </p>
-        <Link
-          href={`/zwbeter-worden/voeding/recepten/${slot.recipe.slug}`}
-          className="text-sm font-medium hover:text-primary hover:underline"
-        >
-          {slot.recipe.title}
-        </Link>
+        {slot.moment === "tijdens_rit" && ride ? (
+          <p className="text-sm font-medium">{ridePlanSummary(ride)}</p>
+        ) : (
+          <Link
+            href={`/zwbeter-worden/voeding/recepten/${slot.recipe.slug}`}
+            className="text-sm font-medium hover:text-primary hover:underline"
+          >
+            {slot.recipe.title}
+          </Link>
+        )}
       </div>
       <div className="flex shrink-0 items-center">
         {slot.chosen && (
@@ -233,7 +246,7 @@ export default async function BoodschappenPage({ searchParams }: { searchParams:
               {entry.slots.length === 0 ? (
                 <p className="mt-2 text-sm text-muted-foreground">Geen recepten met dit filter.</p>
               ) : (
-                <ul className="mt-2 divide-y">{entry.slots.map((slot) => slotRow(entry.day, slot))}</ul>
+                <ul className="mt-2 divide-y">{entry.slots.map((slot) => slotRow(entry.day, slot, entry.ride))}</ul>
               )}
             </article>
           ))}

@@ -5,7 +5,9 @@
 // heeft staan en niet op pauze staat. Twee soorten, elk hooguit één keer per dag:
 //
 //   morgen_zwaar  morgen staat een zware, lange of wedstrijddag: vanavond
-//                 koolhydraatrijk eten (dezelfde regel als de tip).
+//                 koolhydraatrijk eten (dezelfde regel als de tip). Rijdt het
+//                 lid morgen een uur of langer, dan staat erbij wat het
+//                 klaarzet (ride-plan.ts), zoals het Dagmenu het morgen toont.
 //   herstel       vandaag een uur of langer gereden en nog niets bij "Na de rit".
 //
 // Net als de tips vraagt geen herinnering om minder te eten.
@@ -15,7 +17,10 @@ import { amsterdamDateKey, amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { sendNotificationToMembers } from "@/lib/push/send";
 import { shiftDayKey } from "@/lib/training/mobility";
 import { FUEL_DAY_LABELS, classifyFuelDay, isKeyDay, totalMinutes, type FuelDayType } from "./day-type";
-import { plannedSessions, ridesOnDay } from "./recipes";
+import { rankRecipes, type RecipePref } from "./menu";
+import { plannedSessions, ridesOnDay, type Recipe } from "./recipes";
+import { ridePlan, ridePlanSummary, type RidePlan } from "./ride-plan";
+import { ageFromBirthDate, portionEnergyFactor } from "./targets";
 
 export const NUTRITION_REMINDER_TIME = "19:00";
 /** Na dit tijdstip wordt een gemiste herinnering niet meer ingehaald. */
@@ -39,13 +44,16 @@ export function remindersFor(input: {
   tomorrowType: FuelDayType;
   rodeMinutesToday: number;
   recoveryLogged: boolean;
+  /** Het ritplan van morgen, als er een rit van een uur of langer staat. */
+  tomorrowRide?: RidePlan | null;
 }): ReminderPayload[] {
   const out: ReminderPayload[] = [];
   if (isKeyDay(input.tomorrowType)) {
+    const pack = input.tomorrowRide ? ` Zet klaar: ${ridePlanSummary(input.tomorrowRide)}.` : "";
     out.push({
       kind: "morgen_zwaar",
       title: `Morgen: ${FUEL_DAY_LABELS[input.tomorrowType].toLowerCase()}`,
-      body: "Eet vanavond koolhydraatrijk, dan begin je morgen met volle voorraden.",
+      body: `Eet vanavond koolhydraatrijk, dan begin je morgen met volle voorraden.${pack}`,
       url: "/zwbeter-worden/voeding",
     });
   }
@@ -68,6 +76,96 @@ type Workout = {
   status: string | null;
   plan_id: string | null;
 };
+
+const RIDE_RECIPE_COLUMNS =
+  "id, slug, title, meal_moment, fuel_profile, diet_tags, servings, prep_minutes, steps_md, is_standard, owner_id, visibility, " +
+  "ingredients:nutrition_recipe_ingredients(id, sort_order, grams, role, food:nutrition_foods(id, nevo_code, name_nl, quantity_unit, kcal, carbs_g, sugars_g, protein_g, fat_g, fiber_g, sodium_mg, food_group))";
+
+type RideProfile = { id: string; weight_kg: number | null; sex: string | null; birth_date: string | null };
+
+type RideContext = {
+  recipes: Recipe[];
+  prefs: { profile_id: string; recipe_id: string; pref: string }[];
+  choices: { profile_id: string; recipe_id: string }[];
+  profiles: Map<string, RideProfile>;
+  heights: Map<string, number | null>;
+};
+
+/** Wat het ritplan voor morgen nodig heeft, voor alle leden tegelijk. */
+async function loadRideContext(admin: SupabaseClient, profileIds: string[], tomorrow: string): Promise<RideContext> {
+  const [recipes, prefs, choices, profiles, heights] = await Promise.all([
+    admin.from("nutrition_recipes").select(RIDE_RECIPE_COLUMNS).eq("meal_moment", "tijdens_rit"),
+    admin.from("nutrition_recipe_prefs").select("profile_id, recipe_id, pref").in("profile_id", profileIds),
+    admin
+      .from("nutrition_menu_choices")
+      .select("profile_id, recipe_id")
+      .in("profile_id", profileIds)
+      .eq("day", tomorrow)
+      .eq("meal_moment", "tijdens_rit"),
+    admin.from("profiles").select("id, weight_kg, sex, birth_date").in("id", profileIds),
+    admin.from("nutrition_profiles").select("profile_id, height_cm").in("profile_id", profileIds),
+  ]);
+  return {
+    recipes: ((recipes.data ?? []) as unknown as Recipe[]).map((recipe) => ({
+      ...recipe,
+      diet_tags: recipe.diet_tags ?? [],
+      ingredients: [...(recipe.ingredients ?? [])]
+        .map((item) => ({ ...item, grams: Number(item.grams) }))
+        .sort((a, b) => a.sort_order - b.sort_order),
+    })),
+    prefs: (prefs.data ?? []) as RideContext["prefs"],
+    choices: (choices.data ?? []) as RideContext["choices"],
+    profiles: new Map(((profiles.data ?? []) as RideProfile[]).map((row) => [row.id, row])),
+    heights: new Map(
+      ((heights.data ?? []) as { profile_id: string; height_cm: number | null }[]).map((row) => [row.profile_id, row.height_cm]),
+    ),
+  };
+}
+
+/**
+ * Het ritplan van morgen voor één lid: de recepten die het lid zelf ziet
+ * (clubrecepten, eigen en door leden gedeelde), dezelfde rangorde en keuze als
+ * het Dagmenu, maar zonder dieetfilter (dat staat alleen in de URL).
+ */
+export function tomorrowRidePlan(
+  ctx: RideContext,
+  profileId: string,
+  minutes: number,
+  tomorrow: string,
+  today: string,
+): RidePlan | null {
+  const recipes = ctx.recipes
+    .filter((recipe) => recipe.is_standard || recipe.owner_id === profileId || recipe.visibility === "leden")
+    .map((recipe) => ({ ...recipe, from_member: !recipe.is_standard && recipe.owner_id !== profileId }));
+  const prefs = new Map(
+    ctx.prefs
+      .filter((row) => row.profile_id === profileId && (row.pref === "favoriet" || row.pref === "verborgen"))
+      .map((row) => [row.recipe_id, row.pref as RecipePref]),
+  );
+  const profile = ctx.profiles.get(profileId);
+  const weightKg = profile?.weight_kg && Number(profile.weight_kg) > 0 ? Number(profile.weight_kg) : null;
+  const height = ctx.heights.get(profileId);
+  const energyFactor = weightKg
+    ? portionEnergyFactor({
+        weightKg,
+        heightCm: height == null ? null : Number(height),
+        ageYears: ageFromBirthDate(profile?.birth_date ?? null, today),
+        sex: profile?.sex ?? null,
+      })
+    : 1;
+  const dayType = classifyFuelDay([{ minutes, intensity: null }]);
+  const ranked = rankRecipes(recipes, "tijdens_rit", {
+    rider: { weightKg, energyFactor, dayType, rideMinutes: minutes },
+    dayType,
+    tomorrowType: "rust",
+    today: tomorrow,
+    prefs,
+    diet: null,
+  }).map((item) => item.recipe);
+  const choiceId = ctx.choices.find((row) => row.profile_id === profileId)?.recipe_id;
+  const chosen = choiceId ? recipes.find((recipe) => recipe.id === choiceId) : undefined;
+  return ridePlan({ minutes, ranked, lead: chosen ?? ranked[0] ?? null, leadChosen: Boolean(chosen), energyFactor });
+}
 
 export async function processNutritionReminders(admin: SupabaseClient, now: Date) {
   if (!nutritionReminderDue(now)) return { due: false };
@@ -116,6 +214,8 @@ export async function processNutritionReminders(admin: SupabaseClient, now: Date
   ]);
 
   const draftIds = new Set((drafts.data ?? []).map((row) => row.id as string));
+  // Alleen ophalen als iemand morgen een rit van een uur of langer heeft.
+  let rideContext: Promise<RideContext> | null = null;
   const recovered = new Set((meals.data ?? []).map((row) => row.profile_id as string));
   const alreadySent = new Set((sends.data ?? []).map((row) => `${row.profile_id}:${row.kind}`));
 
@@ -127,10 +227,21 @@ export async function processNutritionReminders(admin: SupabaseClient, now: Date
     const ownRides = ((rides.data ?? []) as { profile_id: string; start_date: string; moving_time_seconds: number | null }[])
       .filter((row) => row.profile_id === profileId);
     const planned = plannedSessions(own, today);
+    const tomorrowType = classifyFuelDay(planned.plannedTomorrow);
+    const tomorrowMinutes = totalMinutes(planned.plannedTomorrow);
+    let tomorrowRide: RidePlan | null = null;
+    if (isKeyDay(tomorrowType) && tomorrowMinutes >= 60 && !alreadySent.has(`${profileId}:morgen_zwaar`)) {
+      rideContext ??= loadRideContext(admin, profileIds, tomorrow);
+      // Een fout in de voedingsdata mag de herinnering zelf niet tegenhouden.
+      tomorrowRide = await rideContext
+        .then((ctx) => tomorrowRidePlan(ctx, profileId, tomorrowMinutes, tomorrow, today))
+        .catch(() => null);
+    }
     const reminders = remindersFor({
-      tomorrowType: classifyFuelDay(planned.plannedTomorrow),
+      tomorrowType,
       rodeMinutesToday: totalMinutes(ridesOnDay(ownRides, today)),
       recoveryLogged: recovered.has(profileId),
+      tomorrowRide,
     }).filter((reminder) => !alreadySent.has(`${profileId}:${reminder.kind}`));
 
     for (const reminder of reminders) {

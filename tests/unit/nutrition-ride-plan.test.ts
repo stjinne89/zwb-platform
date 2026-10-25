@@ -8,8 +8,11 @@ import {
   isBidonRecipe,
   ridePlan,
   ridePlanMeals,
+  ridePlanShoppingSlots,
+  ridePlanSummary,
 } from "@/lib/nutrition/ride-plan";
 import type { NutritionFood } from "@/lib/nutrition/scale";
+import { NO_HOUSEHOLD, shoppingList } from "@/lib/nutrition/shopping";
 
 type Food = NutritionFood & { quantity_unit: "g" | "ml" };
 
@@ -166,5 +169,21 @@ describe("ritplan", () => {
     const social = { minutes: 180, intensity: "endurance" };
     expect(eventRide({ pacedSeconds: null, workout: null, estimate: social, eventType: "social" }).longRace).toBe(false);
     expect(eventRide({ pacedSeconds: null, workout: null, estimate: { minutes: 300, intensity: "endurance" }, eventType: "gran_fondo" }).longRace).toBe(true);
+  });
+
+  it("vat het plan kort samen voor de herinnering", () => {
+    const plan = ridePlan({ minutes: 240, ranked: [DRINK, CAKES], energyFactor: 1 })!;
+    expect(ridePlanSummary(plan)).toBe(`4× bidon sportdrank, ${plan.solid!.count}× rijsttaartjes`);
+    expect(ridePlanSummary(ridePlan({ minutes: 120, ranked: [CAKES], energyFactor: 1 })!)).toMatch(/^2× bidon water/);
+  });
+
+  it("zet alle bidons en porties op de boodschappenlijst", () => {
+    const plan = ridePlan({ minutes: 240, ranked: [DRINK, CAKES], energyFactor: 1 })!;
+    const items = shoppingList(ridePlanShoppingSlots(plan, [DRINK, CAKES]), NO_HOUSEHOLD);
+    const sugarPerBidon = plan.bidons.ingredients.find((item) => item.foodId === "suiker")!.amount;
+    expect(items.find((item) => item.id === "suiker")?.grams).toBe(sugarPerBidon * 4);
+    expect(items.some((item) => item.id === "rijst")).toBe(true);
+    // Een recept dat er niet meer is, valt weg.
+    expect(ridePlanShoppingSlots(plan, [DRINK]).map((slot) => slot.recipe.slug)).toEqual(["sportdrank"]);
   });
 });

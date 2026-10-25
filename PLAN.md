@@ -297,10 +297,11 @@ gaat stabiliteit voor nieuwe features.
    hieronder): voorstel in [ritvoeding-plan.md](docs/ritvoeding-plan.md). De
    volgorde en de besluiten van §2 daar zijn akkoord (2026-10-25): rekenfout,
    dan het ritplan, dan de verfijningen. Stap 1 (de rekenfout in het dagmenu)
-   en stap 2a en 2b (ritplan "Klaarzetten" bij elke rit, op de eventpagina en
-   in de briefing) zijn gebouwd op 2026-10-25, niet gepusht. 2a en 2b gingen op
-   verzoek van de eigenaar door zonder te wachten op het besluit over de
-   featurepauze. Volgende: de rest van 2c (herinnering, boodschappenlijst).
+   en stap 2 (ritplan "Klaarzetten" bij elke rit, op de eventpagina, in de
+   briefing, de herinnering en Boodschappen) zijn gebouwd op 2026-10-25, niet
+   gepusht. Stap 2 ging op verzoek van de eigenaar door zonder te wachten op het
+   besluit over de featurepauze. Volgende: stap 3 (het ritdoel volgt de
+   zwaarte).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11324,6 +11325,44 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBeter voeden: ritplan in de herinnering en in Boodschappen
+
+**2026-10-25.** Rest van stap 2c van [ritvoeding-plan.md](docs/ritvoeding-plan.md).
+Geen migratie. Niet gepusht.
+
+- **Herinnering van de avond vooraf** (`reminders.ts`). De herinnering
+  `morgen_zwaar` (voor wie Naleving en herinneringen aan heeft, de avond voor
+  een zware, lange of wedstrijddag) krijgt er "Zet klaar: 2× bidon …, 1× …"
+  bij als er morgen een uur of langer gereden wordt. Het plan komt uit
+  dezelfde regels als het Dagmenu (`tomorrowRidePlan`): de recepten die het lid
+  zelf ziet (clubrecepten, eigen, en door leden gedeelde), favorieten en
+  "niet voor mij", en een eigen keuze voor morgen bij "Tijdens de rit". De cron
+  draait met de serviceclient en filtert die zichtbaarheid zelf; een
+  privérecept van een ander lid komt er nooit in (test). Zonder dieetfilter: dat
+  staat alleen in de URL. De gegevens worden alleen opgehaald als iemand morgen
+  een rit van een uur of langer heeft; een fout houdt de herinnering niet tegen.
+- **Boodschappen.** "Tijdens de rit" telde één portie van één recept, ook bij
+  een rit van vier uur. Nu telt het hele ritplan (`ridePlanShoppingSlots`):
+  alle bidons en porties. In de dagkolom staat de samenvatting
+  ("2× bidon Sportdrank van appelsap") in plaats van het recept.
+- `/hulp` noemt beide.
+
+**Bewust niet gedaan.** Geen herinnering voor een ritdag die geen zware dag is
+(bijvoorbeeld 75 minuten duur): dat is een nieuwe soort in
+`nutrition_reminder_sends` (check op `kind`), dus een migratie. Geen
+herinnering voor wie Naleving niet aan heeft; die regel staat sinds stap 5 van
+het naleving-plan. Geen privacytekst aangepast: er komen geen nieuwe gegevens
+bij, alleen recepttitels in een bericht dat er al was.
+
+**Getest.** `nutrition-reminders` (6 tests; nieuw: "Zet klaar" in het bericht
+en geen tekst die om minder eten vraagt, en de zichtbaarheid van recepten) en
+`nutrition-ride-plan` (13; nieuw: de samenvatting, en dat Boodschappen alle
+bidons telt). `tsc` alleen de bekende fout op `modern-screenshot`; ESLint
+schoon. In de browser: Boodschappen over zeven dagen toont "2× bidon …" bij de
+ritdagen, met appelsap 1,1 l en kristalsuiker 230 g op de lijst. **Niet
+getest:** de herinnering zelf (gaat om 19:00 als pushbericht en is lokaal niet
+af te vuren zonder echte berichten te sturen).
+
 ### Gebouwd — ZWBeter voeden: ritplan op de eventpagina en in de racebriefing
 
 **2026-10-25.** Commit `351b5ec2`, stap 2b van [ritvoeding-plan.md](docs/ritvoeding-plan.md). Geen
@@ -11404,6 +11443,7 @@ stond dat het per uur was.
 - Nog niet uit eerder vastgelegde producten (gels, repen met barcode) kiezen;
   het plan kiest alleen uit recepten voor onderweg.
 - Herinnering en boodschappenlijst (2c) en eventpagina en briefing (2b) nog niet.
+  *Inmiddels gebouwd, zie de twee rondes hierboven.*
   Bij twee ritten op één dag rekent het Dagmenu met de totale duur, het schema
   per training.
 - Het schema houdt geen rekening met recepten die het lid de twee dagen ervoor
