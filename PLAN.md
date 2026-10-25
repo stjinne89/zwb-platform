@@ -11326,7 +11326,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter voeden: ritplan "Klaarzetten" bij elke rit
 
-**2026-10-25.** Stap 2a van [ritvoeding-plan.md](docs/ritvoeding-plan.md), op
+**2026-10-25.** Commit `c1e103f4`, stap 2a van [ritvoeding-plan.md](docs/ritvoeding-plan.md), op
 verzoek van de eigenaar zonder te wachten op het besluit over de featurepauze.
 Geen migratie. Niet gepusht.
 
