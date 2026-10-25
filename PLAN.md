@@ -11383,6 +11383,18 @@ blijven zoals ze waren.
 - CTL/ATL/TSB veranderen niet: met koppeling komen die al van intervals (die
   rekent HRSS mee), zonder koppeling is er geen LTHR.
 
+**Eenmalig aangevuld in productie (2026-10-25, op verzoek van de eigenaar).**
+De 13 momentopnames (`training_workout_reports.metrics_json`) van ritten met
+hartslag maar zonder meter en zonder TSS kregen hun TSS, `loadPct` en `verdict`,
+ook de 5 die het lid al had bevestigd. Uit zichzelf vult de code alleen
+onbevestigde momentopnames binnen 7 dagen aan. Met SQL via de
+Supabase-connector, dezelfde formule als `heartRateStressScore` (drie waarden
+tegen de TypeScript-functie gecontroleerd). 12 van de 13 gingen van "volgens
+plan" naar "te licht" (18–60 % van de geplande TSS), één naar "te zwaar"
+(118 %); een rit van 3 seconden die aan een training hing kreeg TSS 0. Al
+geschreven Strava-samenvattingen zijn niet herschreven. Oude waarden zijn niet
+apart bewaard; ze waren `tss: null`, `loadPct: null`, `verdict: volgens_plan`.
+
 **Getest.** `hr-load.test.ts` (nieuw), `ride-metrics.test.ts` bijgewerkt.
 Volledige vitest-run groen op drie bekende uitzonderingen na (`.env.local`
 ontbreekt in de worktree; twee asserts in `help-categories.test.ts` die al vóór
