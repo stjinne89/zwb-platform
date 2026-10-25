@@ -11382,12 +11382,43 @@ blijven zoals ze waren.
 - CTL/ATL/TSB veranderen niet: met koppeling komen die al van intervals (die
   rekent HRSS mee), zonder koppeling is er geen LTHR.
 
-**Getest.** `hr-load.test.ts` (nieuw), `ride-metrics.test.ts` bijgewerkt. De
-privacypagina is niet in de browser bekeken.
+**Getest.** `hr-load.test.ts` (nieuw), `ride-metrics.test.ts` bijgewerkt.
 Volledige vitest-run groen op drie bekende uitzonderingen na (`.env.local`
 ontbreekt in de worktree; twee asserts in `help-categories.test.ts` die al vóór
 deze ronde faalden). ESLint op de gewijzigde bestanden, `tsc` (alleen de bekende
-fout op `modern-screenshot`). Niet in de app bekeken.
+fout op `modern-screenshot`). Niet in de app bekeken, ook de privacypagina niet.
+
+### Gebouwd — ZWBeter Worden: naleving als balken in de ZWB-kleuren
+
+**2026-10-25.** Commit `HASH`, lokaal op de branch
+`claude/training-compliance-zones-fd2d1a`, niet gepusht. Geen migratie.
+
+De eigenaar vond de tabel van de vorige ronde en vooral de zoneweergave niet
+duidelijk genoeg en vroeg om horizontale balken in de ZWB-kleuren. Elk onderdeel
+(duur, TSS, IF, RPE en elke zone) is nu één vlakke balk in `WorkoutMetricsPanel`:
+**teal** is gereden tot het plan, **goud** wat erboven kwam, een **streep** is het
+plan. Eén legenda staat erboven.
+- Duur, TSS en IF delen een procentschaal tot 150 %, zodat hun planstrepen op
+  dezelfde plek staan; daarboven loopt de balk vol en noemt het getal de rest.
+- RPE op de schaal 0–10, de streep op de verwachte RPE (bij een band als 2-3 op
+  de bovenkant).
+- De zones delen één schaal in minuten (15 % ruimte voorbij de langste zone), zodat
+  je ziet waar de meeste tijd zat. Een zone die niet gepland was, is helemaal goud.
+  Het vierkantje voor Z1–Z6 houdt de Zwift-zonekleur, omdat de blokken van het
+  schema die kleuren ook dragen. Zonder geplande opbouw alleen teal, zonder streep.
+- Nieuwe tokens `--zwb-meter` en `--zwb-meter-over` (`bg-zwb-meter`,
+  `bg-zwb-meter-over`) in `globals.css`: teal en goud bij licht, de lichtere tinten
+  van de ZWBlokken-kaart bij donker, omdat teal op nachtpetrol wegvalt.
+- `/hulp/schema#naleving` en `#tijd-per-zone` beschrijven de balken.
+
+**Bewust niet gedaan.** De balken kleuren niet naar de grenzen 80–115 %: die gelden
+voor TSS en het oordeel, en dat staat al op de pil.
+
+**Getest.** Bekeken in de lokale dev-server op een tijdelijke voorbeeldpagina onder
+`/ontwerp-voorbeeld` (niet gecommit), licht en donker en op telefoonbreedte, met een
+drempeltraining met zones en RPE en een te lichte zonder zonedata. ESLint, `tsc`
+(alleen de bekende fout op `modern-screenshot`) en de unittests van de uitsplitsing.
+Niet met echte ritten in de app bekeken.
 
 ### Gebouwd — ZWBeter Worden: naleving per onderdeel (duur, TSS, IF, zones, RPE)
 
@@ -11405,7 +11436,8 @@ Wat er is gebouwd, in `WorkoutMetricsPanel` (bevestigscherm, kalender, afgeronde
 trainingen en de beoordelingsrij van de trainer):
 - Een tabel **Gepland · Gereden · %** voor duur, TSS en IF, en een RPE-rij met de
   verwachte RPE naast de ingevulde. Die vervangt de losse tegels TSS/Duur/IF en de
-  regel "Gepland" onder Meer details.
+  regel "Gepland" onder Meer details. *Sinds 2026-10-25 geen tabel meer maar
+  balken; zie de ronde hierboven.*
 - Bij **Tijd per zone** per zone het percentage van de geplande minuten, en bovenaan
   **Verdeling**: hoeveel van de rit in dezelfde verhouding over de zones lag als
   gepland (som van de kleinste aandelen per zone), los van de duur.
@@ -11431,7 +11463,8 @@ trainingen en de beoordelingsrij van de trainer):
 - De AI-context (`WorkoutCompliance` in `compliance.ts`) krijgt geen geplande IF,
   verwachte RPE of zoneverdeling erbij; die vraag ging over de weergave.
 - Geen kleur op de percentages per onderdeel: 80–115 % geldt voor TSS, niet
-  vanzelf voor duur, IF of een zone.
+  vanzelf voor duur, IF of een zone. (De balken van 2026-10-25 kleuren alleen
+  boven of onder het plan, niet naar die grenzen.)
 
 **Getest.** `compliance-breakdown.test.ts` (nieuw), plus `zone-times`,
 `workout-on-off`, `engine/catalog` en `compliance`. Volledige vitest-run groen op
