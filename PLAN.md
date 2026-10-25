@@ -293,6 +293,11 @@ gaat stabiliteit voor nieuwe features.
    daarmee of de vermogenscurve ritten meetelt die via Strava binnenkwamen. Een
    Strava-terugval voor CTL is bewust niet gebouwd: bij de 23 leden met een steen
    had alleen Femke dit.
+14. **Ritvoeding na de vergelijking met Musette** (ronde van 2026-10-25
+   hieronder): voorstel in [ritvoeding-plan.md](docs/ritvoeding-plan.md). De
+   volgorde en de besluiten van §2 daar zijn akkoord (2026-10-25): rekenfout,
+   dan het ritplan, dan de verfijningen. Stap 1 is een rekenfout in het dagmenu
+   en kan los van de featurepauze; de rest is nieuw werk.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11315,6 +11320,34 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Onderzocht — Ritvoeding: vergelijking met Musette
+
+**2026-10-25.** Alleen een voorstel, geen code en geen migratie. Uitwerking in
+[ritvoeding-plan.md](docs/ritvoeding-plan.md).
+
+De eigenaar vroeg ZWBeter voeden te vergelijken met musette.io, een gratis
+planner voor eten en drinken tijdens een training. Musette is op dat stuk
+concreter: bidons en paklijst uit je eigen producten, een vochtdoel uit een
+zweettest, en een doel dat met de zwaarte meeschuift. Daaruit volgen vijf
+stappen: (1) het dagmenu laat de ritkoolhydraten meetellen in het dagdoel,
+(2) een ritplan om in te pakken bij elke training in het schema, op de
+eventpagina en in de briefing, en met één tik vast te leggen, (3) het ritdoel
+volgt de intensiteit binnen de bestaande band, (4) de darmtraining bepaalt het
+plafond, (5) een zweettest met vochtdoel. Het ritplan is de kern: nu staat
+alleen op de dagkaart van vandaag iets over eten onderweg. De eigenaar besloot
+op 2026-10-25 het daarom direct na de rekenfout te bouwen; stap 3 en 4
+verfijnen daarna het doel per uur.
+
+**Gevonden bij het vergelijken.** `mealTarget` geeft de hoofdmaaltijden en
+tussendoor 85% van het dagdoel en zet voor, tijdens en na de rit daarbovenop.
+Op een lange dag met 4 uur fietsen komt het menu zo op ongeveer 14,8 g/kg
+(band 8–12). Rekenwerk op de doelen; niet in de app nagekeken.
+
+**Bewust niet**, met redenen in het voorstel (§4): voorraadbeheer,
+glucose:fructose per product, een natriumdoel in mg, plafonds boven 120 g/u als
+standaard, AI die het plan maakt, kcal uit kJ, een ochtendmail en eetmomenten in
+de FIT-workout.
 
 ### Gebouwd — ZWBeter-blok op Strava: eigen opbouw, de steen en een tip
 
