@@ -308,7 +308,31 @@ export function anchorsFor(facet: Facet, sex: Sex | null): Anchors {
  * het meest. Gesorteerd van meeste naar minste winst, alleen onderdelen met winst.
  */
 export function bestWins(input: BriljantInput, consistency: number | null): Win[] {
-  const readings = facetReadings(input);
+  return winsFromReadings(facetReadings(input), consistency, input.sex);
+}
+
+/**
+ * Hetzelfde voor een bewaarde steen: de meting terug uit het niveau (alleen voor
+ * je eigen steen; zie compare.ts). `durability` is de bron uit `provenance`.
+ */
+export function winsFromLevels(
+  facets: Partial<Record<Facet, number | null>>,
+  consistency: number | null,
+  sex: Sex | null,
+  durability: FacetReading["source"] = "ritten",
+): Win[] {
+  const readings = Object.fromEntries(
+    FACETS.map((facet) => {
+      const level = facets[facet];
+      if (level == null) return [facet, null];
+      const reading: FacetReading = readingFromLevel(facet, level, sex);
+      return [facet, facet === "durability" ? { ...reading, source: durability } : reading];
+    }),
+  ) as Record<Facet, FacetReading | null>;
+  return winsFromReadings(readings, consistency, sex);
+}
+
+function winsFromReadings(readings: Record<Facet, FacetReading | null>, consistency: number | null, sex: Sex | null): Win[] {
   const levels = Object.fromEntries(FACETS.map((facet) => [facet, readings[facet]?.level ?? null])) as Record<Facet, number | null>;
   const base = scoreFor(levels, consistency);
   if (base == null) return [];
@@ -321,7 +345,7 @@ export function bestWins(input: BriljantInput, consistency: number | null): Win[
         : facet === "racen"
           ? Math.min(1000, reading.value * (1 + IMPROVEMENT))
           : reading.value * (1 + IMPROVEMENT);
-    const level = facet === "durability" ? durabilityLevel(better, reading.source) : levelAt(anchorsFor(facet, input.sex), better);
+    const level = facet === "durability" ? durabilityLevel(better, reading.source) : levelAt(anchorsFor(facet, sex), better);
     const improved = scoreFor({ ...levels, [facet]: level }, consistency);
     const gain = improved == null ? 0 : points(improved) - points(base);
     if (gain <= 0) return [];

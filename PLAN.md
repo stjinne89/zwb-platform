@@ -957,7 +957,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - `src/lib/weekly-review/`: `period.ts` (welke week, en het venster: zondag
 >   vanaf 18:00 tot en met woensdag), `summary.ts` (pure samenvatting per
 >   onderdeel: ritten, schema, belasting, vermogen, teams, voeding en core, club,
->   plus de vooruitblik), `load.ts` (de queries), `coach-text.ts` (de AI-opdracht
+>   sinds 2026-10-25 ook de ZWBriljant-steen, plus de vooruitblik), `load.ts` (de queries), `coach-text.ts` (de AI-opdracht
 >   en een tekst uit vaste regels), `service.ts` (aanmaken, coachtekst ophalen,
 >   gezien zetten). Een onderdeel dat het lid die week niet gebruikte is `null`
 >   en krijgt geen scherm.
@@ -11452,6 +11452,125 @@ run en slaagt los. **Niet getest:**
 de dialoog in de browser (geen ledenlogin hier), en de nieuwe consistentie op
 productie, die pas na de push en de job te zien is.
 
+### Gewijzigd — Strava-tip: werk aan wat het meest oplevert
+
+**2026-10-25.** Commit `a0e8c79d`. Geen migratie. Lokaal gecommit, niet gepusht.
+
+Op verzoek van de eigenaar dezelfde wissel als in het weekoverzicht (ronde
+hieronder): de tip "bijna een klasse hoger" in het ZWBeter-blok op Strava noemt
+niet meer het laagste facet, maar het onderdeel waar 5% beter de meeste punten
+oplevert.
+
+- `BriljantSummary.weakestFacet` heet nu `growFacet` en komt uit
+  `winsFromLevels`. `loadBriljantSummary` leest daarvoor ook het geslacht uit
+  het profiel en `provenance` van de snapshot (de durability-bron).
+  `weakestFacet` in `briljant/score.ts` had geen gebruikers meer en is weg.
+- De drie varianten van "bijna-klasse" zijn nu:
+  "Nog {punten} punten tot {volgende}. Werk aan {facet}, daar groeit je steen het
+  snelst.", "{Volgende} is nog {punten} punten weg. Met {facet} kom je er het
+  snelst." en "Nog {punten} punten en je steen wordt {volgende}. {Facet} levert
+  daarvoor het meeste op." Ze zijn nieuw en nog niet goedgekeurd, en niet met de
+  avoid-ai-writing-skill nagelopen.
+- Privacyverklaring (Terugschrijven naar Strava): "soms je laagste facet" is nu
+  "soms het onderdeel waar je het meest wint". Tekst, geen nieuwe versie.
+- Al geschreven blokken blijven zoals ze zijn (`written_at`).
+
+**Getest.** `strava-summary` (de teststeen met sprint als laagste onderdeel geeft
+nu VO2max) en `strava-summary-tips` aangepast; met `weekly-review`,
+`briljant-view` en `briljant-score` groen (115). `tsc` (alleen de bekende fout op
+`modern-screenshot`), ESLint. **Niet getest:** een echte write naar Strava.
+
+### Gewijzigd — ZWBriljant in het weekoverzicht: werk aan wat het meest oplevert
+
+**2026-10-25.** Commit `385efa9b`. Geen migratie. Lokaal gecommit, niet gepusht.
+
+De eigenaar wilde in plaats van "Laagste facet: X" een aanwijzing waar je steen
+het snelst groeit. Het laagste onderdeel is daar een slechte maat voor: sprint
+weegt 5%, VO2max en fitheid 20%. Het scherm zegt nu "Werk aan **X** om je steen
+sneller te laten groeien." X is het onderdeel waar 5% beter de meeste punten
+oplevert. Dat is dezelfde rekensom als "Waar win je het meest" op de steen
+(`bestWins`).
+
+- `winsFromLevels` (`briljant/view.ts`) doet die rekensom op een bewaarde steen:
+  de meting terug uit het niveau (zoals bij je eigen oude stenen), met het
+  geslacht uit het profiel en de durability-bron uit `provenance.durability`
+  (bij ritten blijft het plafond van niveau 9 staan). `bestWins` en
+  `winsFromLevels` delen nu `winsFromReadings`.
+- `BriljantSection.weakestFacet` heet nu `growFacet`. `SUMMARY_VERSION` blijft 3:
+  deze ronde is niet gepusht, dus er staan nog geen samenvattingen van versie 3
+  met het oude veld in de database.
+- Is er nergens iets te winnen (minder dan vier onderdelen, dus geen score), dan
+  valt de zin weg.
+- Privacyverklaring (Weekoverzicht): "je laagste onderdeel" is nu "het onderdeel
+  waar je het meest wint". Ook dit nog niet aan de eigenaar voorgelegd.
+
+**Bewust niet gedaan.** Het Strava-blok eerst niet meegenomen, omdat de eigenaar
+die tipteksten had goedgekeurd. Op zijn verzoek dezelfde dag toch gedaan (ronde
+hierboven).
+
+**Getest.** `weekly-review.test.ts`: een steen met sprint als laagste onderdeel
+geeft VO2max, en zonder score geen onderdeel. `briljant-view` (9) en
+`strava-summary` groen, `tsc` (alleen de bekende fout op `modern-screenshot`),
+ESLint. In de browser met voorbeelddata op 375 px, donker. **Niet getest:** met
+echte snapshots.
+
+### Gebouwd — ZWBriljant in het weekoverzicht
+
+**2026-10-25.** Commit `9fae85b6`. Geen migratie. Lokaal gecommit op
+`claude/zwbriljant-weekoverzicht-5440b1`, niet gepusht.
+
+Wens van de eigenaar: de ZWBriljant-steen ook in het weekoverzicht. Hij krijgt een
+eigen scherm, na Vermogen en vóór Teams:
+
+- **Groot getal** de punten (427), daaronder de klasse met het verschil met een
+  week eerder ("Platina, 15 punten erbij.", "gelijk gebleven", of "Omhoog naar
+  Amethist." bij een nieuwe klasse), en "Nog 73 tot Amethist." met eerst het
+  laagste facet erachter (sinds dezelfde dag: het onderdeel waar je het meest
+  wint, zie de ronde hierboven). In Diamant valt het stuk over de volgende klasse weg.
+- **De print** (`BriljantPrint`): een briljant geslepen silhouet in salie dat in
+  petrol volloopt tot de voortgang binnen de klasse, met de stand van vorige week
+  als stippellijn (zoals "beste van het jaar" bij Vermogen). Het vult op
+  oppervlakte, niet op hoogte: op hoogte oogde een kwart in de smalle punt als
+  bijna niets. De clip zit op een binnenste `<g>`, omdat de rakel zelf een
+  `clip-path` op `.ink` zet.
+- **Bron** (`buildBriljant` in `summary.ts`, query in `load.ts`): de bewaarde
+  weeksnapshots op de huidige schaal, net als het Strava-blok. De laatste met
+  score tot en met de maandag van de week, hooguit 35 dagen oud, naast die van
+  precies een week eerder. `weakestFacet` staat nu in `briljant/score.ts` en wordt
+  ook door het Strava-blok gebruikt.
+- `SUMMARY_VERSION` is 3: een bestaand overzicht van deze week wordt bij de
+  volgende opening opnieuw opgebouwd en krijgt de steen (gezien en coachtekst
+  blijven staan, zoals bij versie 2).
+- De steen alleen telt niet als inhoud (`hasContent`): wie een week niets deed,
+  krijgt geen overzicht alleen voor de steen.
+- Ook wie zijn steen niet met leden deelt, ziet hem in het eigen overzicht: dat
+  leest alleen het lid zelf.
+- `/hulp` (Training) noemt de steen bij de schermen; de privacyverklaring
+  (Weekoverzicht) noemt wat er van de steen in de samenvatting staat, dat alleen
+  het lid het leest, en dat de steen niet naar OpenAI gaat. Geen nieuwe versie:
+  het zijn gegevens die al per week bewaard worden. **De tekst is nog niet aan de
+  eigenaar voorgelegd.**
+
+**Bewust niet gedaan.**
+- Geen live berekening van de steen bij het maken van het overzicht: dat kost een
+  jaar wellness bij intervals.icu, de ZRS bij Zwift en mogelijk de durability-test,
+  en het overzicht heeft voor intervals.icu maar 4 s. Gevolg: de job maakt de
+  snapshot op maandag, dus op zondagavond loopt de steen tot een week achter,
+  tenzij het lid ZWBriljant die week opende (dat ververst de snapshot).
+- De steen gaat niet mee naar de AI-coach (`coachInput` haalt hem eruit): de
+  ZWBriljant-tekst in de privacyverklaring belooft dat er niets naar OpenAI gaat.
+- Geen eigen kleur van de klasse (vELO-kleur) in de print: het weekoverzicht
+  drukt alleen in de drie tenue-inkten.
+
+**Getest.** Nieuwe tests in `weekly-review.test.ts` (`buildBriljant`: de laatste
+steen met die van de week ervoor, een latere week genegeerd, te oud of zonder
+score, Diamant; en de steen niet in `coachInput`). `weekly-review`,
+`strava-summary`, `strava-summary-tips` en `briljant-score` groen (105), `tsc`
+(alleen de bekende fout op `modern-screenshot`), ESLint op de gewijzigde
+bestanden. In de browser met voorbeelddata bekeken op 375 px, licht en donker
+(`/ontwerp-voorbeeld?scherm=weekoverzicht`). **Niet getest:** de query op
+`zwbriljant_snapshots` tegen de echte database en het overzicht met echte data.
+
 ### Gebouwd — ZWBeter-blok op Strava: eigen opbouw, de steen en een tip
 
 **2026-10-25.** Commit `870e8380`, op 2026-10-25 gepusht naar `main` (op verzoek
@@ -11487,7 +11606,9 @@ volgde het blok JOIN regel voor regel: twee kopjes, labels met een dubbele punt,
   "Vrije rit".
 - **De tip** (`strava-summary-tips.ts`) komt uit tien situaties op volgorde (moe en
   toch hard, zwaarder type dan gepland, ruim boven of onder plan, volgens plan,
-  bijna een klasse hoger met het laagste facet, fitheid stijgt of zakt, vrije rit,
+  bijna een klasse hoger met het laagste facet (sinds dezelfde dag het onderdeel
+  waar je het meest wint, zie "Strava-tip: werk aan wat het meest oplevert"),
+  fitheid stijgt of zakt, vrije rit,
   algemeen), elk met drie varianten. De variant hangt aan het Strava-id, zodat een
   nieuwe poging dezelfde zin geeft. De teksten zijn gecontroleerd met de
   avoid-ai-writing-skill en de regels uit `lib/ai-writing.ts`.

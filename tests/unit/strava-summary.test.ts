@@ -20,7 +20,7 @@ const STONE: BriljantSummary = {
   nextLevel: "Amethist",
   toNext: 73,
   delta4w: 12,
-  weakestFacet: "Sprint",
+  growFacet: "Sprint",
 };
 
 const FULL: ZwbSummaryInput = {
@@ -184,7 +184,7 @@ describe("fitnessTrendLabel", () => {
 describe("briljantSummaryFrom", () => {
   const facets = { sprint: 3.2, anaeroob: 4.1, vo2max: 4.5, drempel: 4.6, fitheid: 4.0 };
 
-  it("neemt de laatste snapshot met klasse, punten en laagste facet", () => {
+  it("neemt de laatste snapshot met klasse, punten en het onderdeel met de meeste winst", () => {
     const stone = briljantSummaryFrom(
       [
         { week: "2026-09-21", score: 4.05, facets, consistency: null },
@@ -198,7 +198,8 @@ describe("briljantSummaryFrom", () => {
       nextLevel: "Amethist",
       toNext: 73,
       delta4w: 22,
-      weakestFacet: "Sprint",
+      // Sprint staat het laagst, maar weegt 5%; 5% beter op VO2max levert meer op.
+      growFacet: "VO2max",
     });
   });
 
