@@ -11390,7 +11390,7 @@ fout op `modern-screenshot`). Niet in de app bekeken, ook de privacypagina niet.
 
 ### Gebouwd — ZWBeter Worden: naleving als balken in de ZWB-kleuren
 
-**2026-10-25.** Commit `HASH`, lokaal op de branch
+**2026-10-25.** Commit `c1f76716`, lokaal op de branch
 `claude/training-compliance-zones-fd2d1a`, niet gepusht. Geen migratie.
 
 De eigenaar vond de tabel van de vorige ronde en vooral de zoneweergave niet
