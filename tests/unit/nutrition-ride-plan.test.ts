@@ -195,6 +195,26 @@ describe("ritplan", () => {
     expect(hard.totalG).toBeGreaterThan(easy.totalG);
   });
 
+  it("telt de bidons uit het vochtdoel als er een zweettest is", () => {
+    // 4 uur, 1,2 l zweet per uur, 70 kg: 0,85–1,2 l per uur, dus vijf bidons.
+    const plan = ridePlan({
+      minutes: 240,
+      intensity: "tempo",
+      ranked: [DRINK, CAKES],
+      sweatMlPerHour: 1200,
+      weightKg: 70,
+      energyFactor: 1,
+    })!;
+    expect(plan.fluid).toEqual({ minMl: 850, maxMl: 1200 });
+    expect(plan.bidons.count + plan.waterBidons).toBe(5);
+    // De koolhydraten blijven gelijk; ze zijn alleen over meer bidons verdeeld.
+    expect(Math.abs(plan.totalG - 300)).toBeLessThanOrEqual(10);
+    // Zonder test: één bidon per uur en geen vochtdoel.
+    const without = ridePlan({ minutes: 240, intensity: "tempo", ranked: [DRINK, CAKES], energyFactor: 1 })!;
+    expect(without.fluid).toBeNull();
+    expect(without.bidons.count + without.waterBidons).toBe(4);
+  });
+
   it("neemt water mee als de sportdrank niet kleiner kan dan nodig", () => {
     // 1,5 uur rustig: 45 g. Een halve portie sportdrank is al 36 g, dus niet
     // twee bidons sportdrank (72 g) maar één met sportdrank en één met water.

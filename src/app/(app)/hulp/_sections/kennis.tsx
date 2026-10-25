@@ -340,7 +340,11 @@ export function KennisHelp() {
                   sportdrank bevat, dan gaat er een bidon water mee. Kies je zelf vast eten bij &quot;Tijdens de
                   rit&quot;, dan draagt de bidon de helft. &quot;Gegeten&quot;
                   legt het hele plan vast. Hoeveel je drinkt, hangt af van wat je
-                  zweet; dat rekent ZWB nog niet uit.
+                  zweet: doe de zweettest (bij Protocollen), dan staat er
+                  hoeveel liter per uur, en volgt het aantal bidons daaruit.
+                  Je drinkt dan zo dat je onder ongeveer 2% van je gewicht
+                  verliest, maar niet meer dan je zweet. ZWB rekent met je
+                  laatste test.
                 </span>
               </li>
               <li className="flex gap-2">

@@ -17,7 +17,8 @@ import {
 } from "../../_protocol-data";
 import { ProtocolDetail, ProtocolList } from "./protocol-views";
 import { GUT_PROTOCOLS, gutHighAllowed } from "@/lib/nutrition/gut-training";
-import { loadGutSource } from "../../voeding/_data";
+import { loadGutSource, loadSweatTests } from "../../voeding/_data";
+import { SweatTestPanel } from "./sweat-test-panel";
 import { setRideCarbs120 } from "../../voeding/_actions";
 import { LogActionButton } from "../../voeding/_components/log-controls";
 
@@ -63,6 +64,7 @@ export async function ProtocolDetailPage({
   // Na een afgeronde darmtraining: zelf kiezen voor 120 g per uur onderweg (stap 4).
   const gut = (GUT_PROTOCOLS as readonly string[]).includes(slug) ? await loadGutSource(viewer) : null;
   const rideCarbs = gut && gutHighAllowed(gut.runs, today) ? { on: gut.high } : null;
+  const sweatTests = protocol.measure === "zweettest" ? await loadSweatTests(viewer) : null;
   const usesCore = protocolUsesCore(protocol);
   const [checks, coreSessions, connection, durabilityTests] = await Promise.all([
     loadChecks(viewer.supabase, run ? [run.id] : []),
@@ -80,12 +82,13 @@ export async function ProtocolDetailPage({
     });
   }
 
-  return (
-    <div className="space-y-6">
+  // Eigen invoer bij dit protocol, onder de metingen op de protocolpagina.
+  const extra = (
+    <>
       {rideCarbs ? (
         <section className="flex max-w-2xl flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4">
           <div>
-            <h2 className="text-sm font-semibold">Onderweg</h2>
+            <h3 className="text-sm font-semibold">Onderweg</h3>
             <p className="text-sm text-muted-foreground">
               {rideCarbs.on ? "Tot 120 g per uur bij ritten vanaf 2,5 uur" : "Tot 90 g per uur"}
             </p>
@@ -95,18 +98,23 @@ export async function ProtocolDetailPage({
           </LogActionButton>
         </section>
       ) : null}
-      <ProtocolDetail
-        protocol={protocol}
-        basePath={basePath}
-        run={run}
-        checks={checks}
-        coreSessions={coreSessions}
-        durabilityTests={durabilityTests}
-        weightKg={profile.weightKg}
-        blocker={startBlocker(protocol, profile.ageYears)}
-        today={today}
-        races={races}
-      />
-    </div>
+      {sweatTests ? <SweatTestPanel tests={sweatTests} today={today} /> : null}
+    </>
+  );
+
+  return (
+    <ProtocolDetail
+      protocol={protocol}
+      basePath={basePath}
+      run={run}
+      checks={checks}
+      coreSessions={coreSessions}
+      durabilityTests={durabilityTests}
+      weightKg={profile.weightKg}
+      blocker={startBlocker(protocol, profile.ageYears)}
+      today={today}
+      races={races}
+      extra={extra}
+    />
   );
 }

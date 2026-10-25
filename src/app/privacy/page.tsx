@@ -254,6 +254,18 @@ export default function PrivacyPage() {
             Je kunt een protocol altijd stoppen; de gegevens verdwijnen als je
             je account opheft.
           </li>
+          <li id="zweettest" className="scroll-mt-20">
+            <strong>Zweettest (alleen met opt-in):</strong> vul je een
+            zweettest in, dan teken je daar bij de eerste test apart voor. Je
+            geeft je gewicht voor en na de rit, hoe lang je reed en hoeveel je
+            dronk; de app rekent daaruit je zweetverlies per uur. We bewaren per
+            test alleen de datum, de duur, binnen of buiten, of het warm was en
+            dat zweetverlies per uur. Je gewicht van voor en na bewaren we niet.
+            Het ritplan rekent met je laatste test hoeveel je per uur drinkt en
+            hoeveel bidons je meeneemt. Alleen jij ziet je tests; je trainer,
+            het bestuur en andere leden niet, en ze gaan niet naar OpenAI. Je
+            kunt elke test wissen, en ze staan in je data-export.
+          </li>
           <li id="zwbieb" className="scroll-mt-20">
             <strong>ZWBieb, eerst &ldquo;Wie weet wat&rdquo; (alleen met
             opt-in):</strong> doe je mee of stel je een vraag, dan teken je daar

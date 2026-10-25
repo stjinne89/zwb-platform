@@ -41,6 +41,8 @@ export type NutritionDayInput = {
   plannedTomorrow: FuelSession[];
   /** Darmtraining op deze dag (gut-training.ts); zonder: de gewone band. */
   gut?: GutTraining | null;
+  /** Zweetverlies per uur uit de laatste zweettest (sweat.ts), voor het ritplan. */
+  sweatMlPerHour?: number | null;
   readinessState?: "ready" | "caution" | "recovery" | "unknown" | null;
   wellnessState?: "fresh" | "normal" | "fatigued" | "unknown" | null;
 };

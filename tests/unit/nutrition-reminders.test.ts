@@ -45,6 +45,7 @@ describe("voedingsherinneringen, welke", () => {
       totalG: 90,
       bidons: { recipe: { slug: "sportdrank", title: "Zelfgemaakte sportdrank" }, count: 2, carbsG: 45, ingredients: [] },
       waterBidons: 0,
+      fluid: null,
       solid: null,
       feeds: [],
     };
@@ -106,6 +107,7 @@ describe("voedingsherinneringen, het ritplan van morgen", () => {
     heights: new Map(),
     gutRuns: [],
     gutHigh: new Set<string>(),
+    sweatTests: [],
   });
 
   it("kiest nooit een privérecept van een ander lid, wel het eigen recept als het lid dat koos", () => {

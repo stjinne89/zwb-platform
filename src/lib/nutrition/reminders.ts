@@ -20,6 +20,7 @@ import { FUEL_DAY_LABELS, classifyFuelDay, isKeyDay, totalMinutes, type FuelDayT
 import { rankRecipes, type RecipePref } from "./menu";
 import { plannedSessions, ridesOnDay, type Recipe } from "./recipes";
 import { GUT_PROTOCOLS, gutTrainingOn, type GutRun } from "./gut-training";
+import { currentSweatRate } from "./sweat";
 import { ridePlan, ridePlanSummary, type RidePlan } from "./ride-plan";
 import { ageFromBirthDate, portionEnergyFactor } from "./targets";
 
@@ -93,11 +94,13 @@ type RideContext = {
   /** Darmtraining per lid, en wie zelf voor 120 g per uur koos. */
   gutRuns: (GutRun & { profileId: string })[];
   gutHigh: Set<string>;
+  /** Zweettests per lid (0273), voor het vochtdoel. */
+  sweatTests: { profileId: string; testedOn: string; mlPerHour: number }[];
 };
 
 /** Wat het ritplan voor morgen nodig heeft, voor alle leden tegelijk. */
 async function loadRideContext(admin: SupabaseClient, profileIds: string[], tomorrow: string): Promise<RideContext> {
-  const [recipes, prefs, choices, profiles, heights, gutRuns, gutHigh] = await Promise.all([
+  const [recipes, prefs, choices, profiles, heights, gutRuns, gutHigh, sweatTests] = await Promise.all([
     admin.from("nutrition_recipes").select(RIDE_RECIPE_COLUMNS).eq("meal_moment", "tijdens_rit"),
     admin.from("nutrition_recipe_prefs").select("profile_id, recipe_id, pref").in("profile_id", profileIds),
     admin
@@ -116,6 +119,10 @@ async function loadRideContext(admin: SupabaseClient, profileIds: string[], tomo
       .in("status", ["actief", "afgerond"]),
     // Apart: zolang 0272 er niet is, faalt alleen deze vraag.
     admin.from("nutrition_profiles").select("profile_id").in("profile_id", profileIds).eq("ride_carbs_120", true),
+    admin
+      .from("nutrition_sweat_tests")
+      .select("profile_id, tested_on, sweat_ml_per_hour")
+      .in("profile_id", profileIds),
   ]);
   return {
     recipes: ((recipes.data ?? []) as unknown as Recipe[]).map((recipe) => ({
@@ -140,6 +147,9 @@ async function loadRideContext(admin: SupabaseClient, profileIds: string[], tomo
       }),
     ),
     gutHigh: new Set(((gutHigh.data ?? []) as { profile_id: string }[]).map((row) => row.profile_id)),
+    sweatTests: ((sweatTests.data ?? []) as { profile_id: string; tested_on: string; sweat_ml_per_hour: number }[]).map(
+      (row) => ({ profileId: row.profile_id, testedOn: String(row.tested_on).slice(0, 10), mlPerHour: Number(row.sweat_ml_per_hour) }),
+    ),
   };
 }
 
@@ -194,6 +204,8 @@ export function tomorrowRidePlan(
     minutes,
     intensity,
     gut,
+    sweatMlPerHour: currentSweatRate(ctx.sweatTests.filter((row) => row.profileId === profileId)),
+    weightKg,
     ranked,
     lead: chosen ?? ranked[0] ?? null,
     leadChosen: Boolean(chosen),

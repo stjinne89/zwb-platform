@@ -122,7 +122,8 @@ koolhydraten. Bij twee ritten op een dag telt de zwaarte van de langste. *Tot
   bidon van 750 ml (8%) en rekent met één bidon per uur; wat er per uur meer
   nodig is, komt uit vast eten. Eén bidon per uur is een vertaling van ZWB, geen
   vochtadvies: dat volgt pas uit een zweettest (stap 5 van
-  [ritvoeding-plan.md](ritvoeding-plan.md)).
+  [ritvoeding-plan.md](ritvoeding-plan.md)). *Sinds 2026-10-25 volgt het
+  aantal bidons uit het vochtdoel als het lid een zweettest heeft, zie §6.*
 - **Hitte en hoogte.** Die verlagen de oxidatie met 20–50%. De richtlijn
   verandert daardoor niet.
 - **Profpeloton.** Het ≥100 g/u daar hangt samen met een hoge dagelijkse inname.
@@ -184,6 +185,17 @@ Bronnen:
 
 ## 6. Herstel en vocht
 
+**Zweettest en vochtdoel** (`src/lib/nutrition/sweat.ts`, sinds 2026-10-25).
+Het lid weegt zich voor en na een rit van minstens 45 minuten, zonder kleren en
+na plassen vooraf, en noteert wat het dronk: zweetverlies = gewichtsverlies +
+gedronken, per uur (Baker 2017; een kilo is ongeveer een liter). Een uitkomst
+buiten 0,2–3 l per uur slaat de app niet op. Het vochtdoel per uur ligt tussen
+wat nodig is om onder 2% gewichtsverlies te blijven en het zweetverlies zelf
+("niet meer drinken dan je zweet"); het aantal bidons van 750 ml volgt uit het
+midden daarvan. ZWB rekent met de laatste test. Natrium krijgt geen getal: het
+zoutgehalte van zweet is niet uit gewicht af te leiden. De grenzen (45 minuten,
+0,2–3 l) zijn keuzes van ZWB.
+
 - **Snel herstel.** Valt de volgende zware sessie binnen ongeveer 8 uur, dan
   1,0–1,2 g/kg/u koolhydraten in de eerste uren. ZWB geeft deze tip als je al
   gereden hebt en er vandaag nog een sessie gepland staat. De receptportie "na
@@ -200,6 +212,7 @@ Bronnen:
 - Thomas et al. 2016; Kerksick et al. 2017; Morton et al. 2025 (zie boven).
 - McCubbin AJ, Allanson BA, et al. (2020). SDA Position Statement: Nutrition for Exercise in Hot Environments. *IJSNEM* 30(1):83 — https://journals.humankinetics.com/view/journals/ijsnem/30/1/article-p83.xml
 - McCubbin AJ (2023). Modelling sodium requirements of athletes across a variety of exercise scenarios. *Eur J Sport Sci* — https://onlinelibrary.wiley.com/doi/10.1080/17461391.2022.2083526
+- Baker LB (2017). Sweating Rate and Sweat Sodium Concentration in Athletes: A Review of Methodology and Intra/Interindividual Variability. *Sports Med* 47(Suppl 1):111–128 — https://pubmed.ncbi.nlm.nih.gov/28332116/
 - Cheung S, et al. (2025). UCI Sports Nutrition Project: Special Environments. *IJSNEM* — https://pubmed.ncbi.nlm.nih.gov/41468209/
 - Whitfield J, Mujika I, Burke LM (2026). UCI Sports Nutrition Project: Nutrition for Esports and Gravel. *IJSNEM* — https://pubmed.ncbi.nlm.nih.gov/41569815/
 

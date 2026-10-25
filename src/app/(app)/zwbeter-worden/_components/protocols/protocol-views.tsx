@@ -2,6 +2,7 @@
 // components; afvinken, starten en stoppen zitten in protocol-forms.tsx.
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, ChevronRight, ExternalLink, OctagonX, Thermometer } from "lucide-react";
 import { EVIDENCE_LABELS } from "@/lib/nutrition/library";
 import {
@@ -285,6 +286,7 @@ export function ProtocolDetail({
   today,
   races,
   readOnly,
+  extra,
 }: {
   protocol: Protocol;
   basePath: string;
@@ -299,6 +301,8 @@ export function ProtocolDetail({
   today: string;
   races: { date: string; title: string }[];
   readOnly?: boolean;
+  /** Eigen invoer of instelling bij dit protocol, onder de metingen (zweettest, 120 g per uur). */
+  extra?: ReactNode;
 }) {
   const running = run && today <= runEndDate(protocol, run) ? run : null;
 
@@ -378,6 +382,8 @@ export function ProtocolDetail({
       ) : null}
 
       <DurabilityTestList tests={durabilityTests} />
+
+      {extra}
 
       <section className="max-w-3xl space-y-3">
         <h3 className="font-semibold">Opzet</h3>

@@ -110,6 +110,8 @@ export function planDayMenu({
           minutes: nutrition.rideMinutes,
           intensity: nutrition.rideIntensity,
           gut: nutrition.rideGut,
+          sweatMlPerHour: input.sweatMlPerHour ?? null,
+          weightKg: input.weightKg,
           ranked: rankRecipes(recipes, "tijdens_rit", context).map((item) => item.recipe),
           lead: rideSlot.recipe,
           leadChosen: rideSlot.chosen,

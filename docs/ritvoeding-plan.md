@@ -178,6 +178,13 @@ migratie: `0272_nutrition_ride_carbs_120.sql`, nog niet toegepast.*
 
 ### Stap 5. Zweettest en vochtdoel
 
+*Gebouwd op 2026-10-25, zie `PLAN.md`. Migratie
+`0273_nutrition_sweat_tests.sql`, nog niet toegepast. De tekst op
+`/privacy#zweettest` moet de eigenaar nog goedkeuren (besluit 7). Afwijkingen:
+een test buiten de grenzen wordt niet opgeslagen in plaats van "telt niet mee";
+het protocol heeft één fase van vier weken met een binnen- en een buitentest; de
+invoer staat los van het starten van het protocol, met een eigen toestemming.*
+
 - **De test.** Een korte invoer: gewicht voor, gewicht na, gedronken ml, duur,
   binnen of buiten, warm of niet. ZWB rekent het zweetverlies per uur uit en
   bewaart alleen dat (besluit 5). Een plausibiliteitscheck, zoals Musette: een

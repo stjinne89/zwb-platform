@@ -16,6 +16,7 @@ import { classifyFuelDay } from "@/lib/nutrition/day-type";
 import { eventRide, ridePlan, type RidePlan } from "@/lib/nutrition/ride-plan";
 import { eventWorkoutDefaults, type ClubEventRow } from "@/lib/training/events";
 import { GUT_PROTOCOLS, gutTrainingOn, type GutRun, type GutSource } from "@/lib/nutrition/gut-training";
+import { currentSweatRate, type SweatSetting, type SweatTest } from "@/lib/nutrition/sweat";
 import { ageFromBirthDate, portionEnergyFactor } from "@/lib/nutrition/targets";
 import { householdFromRow, type Household } from "@/lib/nutrition/shopping";
 import type { MenuChoice } from "@/lib/nutrition/plan";
@@ -341,7 +342,7 @@ export async function loadNutritionDayInputs(
   const from = `${shiftDayKey(sorted[0], -1)}T00:00:00Z`;
   const to = `${shiftDayKey(sorted[sorted.length - 1], 3)}T00:00:00Z`;
 
-  const [workouts, proposals, rides, wellness, gut] = await Promise.all([
+  const [workouts, proposals, rides, wellness, gut, sweatTests] = await Promise.all([
     viewer.supabase
       .from("training_workouts")
       .select("scheduled_at, duration_minutes, intensity, status, plan_id")
@@ -364,7 +365,9 @@ export async function loadNutritionDayInputs(
       .lt("start_date", to),
     getWellnessSummary(viewer.supabase, profileId, 45).catch(() => null),
     loadGutSource(viewer, profileId),
+    loadSweatTests(viewer, profileId),
   ]);
+  const sweatMlPerHour = currentSweatRate(sweatTests);
 
   const proposalIds = new Set((proposals.data ?? []).map((plan) => plan.id as string));
   const rows = (workouts.data ?? []).filter((row) => !proposalIds.has(row.plan_id as string)) as {
@@ -385,6 +388,7 @@ export async function loadNutritionDayInputs(
         ridesToday: ridesOnDay(rideRows, day),
         wellnessState: wellness?.state ?? null,
         gut: gutTrainingOn(gut, day),
+        sweatMlPerHour,
       },
     ]),
   );
@@ -416,13 +420,15 @@ export async function loadRidePlans(
   const plans = new Map<string, RidePlan>();
   if (upcoming.length === 0) return plans;
   const days = upcoming.map(dayOf).sort();
-  const [recipes, prefs, profile, choices, gutSource] = await Promise.all([
+  const [recipes, prefs, profile, choices, gutSource, sweatTests] = await Promise.all([
     loadRecipes(viewer, "tijdens_rit"),
     loadRecipePrefs(viewer),
     loadNutritionProfile(viewer, today),
     loadMenuChoices(viewer, days[0], days[days.length - 1]),
     loadGutSource(viewer),
+    loadSweatTests(viewer),
   ]);
+  const sweatMlPerHour = currentSweatRate(sweatTests);
   const byId = new Map(recipes.map((recipe) => [recipe.id, recipe]));
   const energyFactor = energyFactorFor(profile);
   for (const workout of upcoming) {
@@ -444,6 +450,8 @@ export async function loadRidePlans(
       minutes,
       intensity: workout.intensity,
       gut,
+      sweatMlPerHour,
+      weightKg: profile.weightKg,
       ranked,
       lead: chosen ?? ranked[0] ?? null,
       leadChosen: Boolean(chosen),
@@ -477,6 +485,34 @@ export async function loadGutSource(viewer: Viewer, profileId = viewer.user.id):
     })),
     high: Boolean((own.data as { ride_carbs_120?: boolean } | null)?.ride_carbs_120),
   };
+}
+
+/**
+ * De eigen zweettests, nieuwste eerst (0273). Leeg zolang de migratie er niet is
+ * of voor een trainer: alleen het lid zelf leest ze.
+ */
+export async function loadSweatTests(viewer: Viewer, profileId = viewer.user.id): Promise<SweatTest[]> {
+  const { data } = await viewer.supabase
+    .from("nutrition_sweat_tests")
+    .select("id, tested_on, duration_minutes, sweat_ml_per_hour, setting, warm")
+    .eq("profile_id", profileId)
+    .order("tested_on", { ascending: false })
+    .limit(20);
+  return ((data ?? []) as {
+    id: string;
+    tested_on: string;
+    duration_minutes: number;
+    sweat_ml_per_hour: number;
+    setting: SweatSetting;
+    warm: boolean;
+  }[]).map((row) => ({
+    id: row.id,
+    testedOn: String(row.tested_on).slice(0, 10),
+    durationMinutes: Number(row.duration_minutes),
+    mlPerHour: Number(row.sweat_ml_per_hour),
+    setting: row.setting,
+    warm: Boolean(row.warm),
+  }));
 }
 
 export type EventRidePlan = {

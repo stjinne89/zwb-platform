@@ -302,8 +302,10 @@ gaat stabiliteit voor nieuwe features.
    gepusht. Stap 2 ging op verzoek van de eigenaar door zonder te wachten op het
    besluit over de featurepauze. Stap 3 (het doel per uur volgt de zwaarte) is
    ook gebouwd, niet gepusht, net als stap 4 (darmtraining bepaalt het
-   plafond). **Voor het pushen: `0272_nutrition_ride_carbs_120.sql` toepassen.**
-   Volgende: stap 5 (zweettest en vochtdoel).
+   plafond) en stap 5 (zweettest en vochtdoel). **Voor het pushen:
+   `0272_nutrition_ride_carbs_120.sql` en `0273_nutrition_sweat_tests.sql`
+   toepassen, en de eigenaar keurt de tekst op `/privacy#zweettest` goed.**
+   Daarmee is het ritvoedingsplan af.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -315,8 +317,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0273`
-(`0272_nutrition_ride_carbs_120` is van ritvoeding stap 4, 2026-10-25, **nog niet toegepast**;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0274`
+(`0273_nutrition_sweat_tests` is van ritvoeding stap 5, 2026-10-25, **nog niet toegepast**;
+`0272_nutrition_ride_carbs_120` is van ritvoeding stap 4, 2026-10-25, **nog niet toegepast**;
 `0271_zwift_race_scores` is toegepast, zie punt 11 hierboven;
 `0270_zwbriljant_weights_fitheid20` is van ZWBriljant fitheid 20% en racen 12,5%, 2026-10-22, toegepast op 2026-10-22;
 `0269_zwbriljant_ctl40` is van ZWBriljant CTL-Goud op 40 en vermogen 50%, 2026-10-22, toegepast op 2026-10-22;
@@ -11329,6 +11332,60 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBeter voeden: zweettest en vochtdoel
+
+**2026-10-25.** Stap 5 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
+besluiten 5, 6 en 7 van dat plan. Migratie `0273_nutrition_sweat_tests.sql`,
+**nog niet toegepast**. Privacytekst **nog niet goedgekeurd**. Niet gepusht.
+
+- **Rekenwerk** (`src/lib/nutrition/sweat.ts`). Zweetverlies per uur =
+  (gewicht voor − gewicht na) × 1000 + gedronken ml, gedeeld door de duur
+  (Baker 2017). Korter dan 45 minuten of een uitkomst buiten 0,2–3 l per uur:
+  niet opgeslagen, met de reden erbij. Vochtdoel per uur: van wat nodig is om
+  onder 2% van je gewicht (uit het profiel) te blijven tot het zweetverlies
+  zelf; zonder gewicht alleen "tot". Afgerond op 50 ml. ZWB rekent met de
+  laatste test.
+- **Ritplan.** Met een test staat bovenaan "Drinken: 0,6–1,0 l per uur" en
+  volgt het aantal bidons van 750 ml uit het midden van het vochtdoel; de
+  koolhydraten worden over die bidons verdeeld (hoogstens 60 g per bidon, de
+  rest water of vast eten). Zonder test een link "Zweettest" en, zoals
+  voorheen, één bidon per uur. Overal: Dagmenu, Vandaag, schema, eventpagina,
+  briefing, herinnering en Boodschappen.
+- **Protocol "Zweettest"** (`protocols/nutrition.ts`, groep Opbouw, bewijs
+  "Onderbouwd"): één fase van vier weken met een binnen- en een buitentest,
+  bronnen Baker 2017 en McCubbin 2020 (SDA, hitte). Nieuw `measure:
+  "zweettest"`: op de protocolpagina het invulformulier en de eigen tests met
+  een knop om te wissen (`SweatTestPanel`, `saveSweatTest`, `deleteSweatTest`).
+  De invoer staat los van het starten van het protocol.
+- **Wat bewaard wordt** (besluit 5): datum, duur, binnen of buiten, warm, en het
+  zweetverlies per uur. Het gewicht van voor en na gaat alleen door de
+  serveractie en wordt niet opgeslagen. Eigen toestemming bij de eerste test
+  (`SWEAT_CONSENT_VERSION` 2026-10-25, besluit 7). Alleen het lid leest,
+  schrijft en wist (RLS); in de data-export.
+- **Privacy.** `/privacy#zweettest` heeft een nieuwe alinea, en `privacy.ts`
+  noemt de negende uitzondering (eigen toestemming, geen nieuwe versie).
+  **De eigenaar keurt die tekst goed voor de push** (besluit 7).
+- **Ook verplaatst:** de schakelaar "tot 120 g per uur" uit stap 4 stond boven
+  de titel van het protocol; hij staat nu, net als de zweettest, onder de
+  metingen (`ProtocolDetail` kreeg een `extra`).
+
+**Bewust niet gedaan.** Geen natriumdoel (besluit 6). Geen keuze per rit voor
+binnen of buiten: de laatste test geldt. Geen "betrouwbaarheid" over meerdere
+tests zoals Musette die heeft. Geen bovengrens aan wat je per uur kunt drinken;
+het vochtdoel volgt alleen je zweetverlies.
+
+**Getest.** Nieuw `nutrition-sweat` (rekenregel, te korte en onwaarschijnlijke
+test, laatste test, vochtdoel met en zonder gewicht, bidons) en in
+`nutrition-ride-plan` het vochtdoel in het plan. `nutrition-migration` past nu
+0272 en 0273 toe tegen PGlite en test: 120 g standaard uit en alleen door het lid
+zelf aan te zetten; zweettests alleen voor het lid zelf te lezen, op te slaan en
+te wissen; een onwaarschijnlijke of te korte test geweigerd. `tsc` alleen de
+bekende fout op `modern-screenshot`; ESLint schoon. In de browser: de
+protocolpagina toont het formulier met de toestemming onder de opzet; het
+ritplan toont de link "Zweettest". **Niet getest:** opslaan en wissen in de
+browser (de tabel staat nog niet op productie), en een ritplan met vochtdoel in
+de browser (de test dekt het).
+
 ### Gebouwd — ZWBeter voeden: darmtraining bepaalt het plafond onderweg
 
 **2026-10-25.** Commit `d1aa61cb`, stap 4 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
@@ -11369,8 +11426,9 @@ dus toe voordat dit live gaat.
 **Getest.** Nieuw `nutrition-gut-training` (weekgetal per week, voor de start en
 na zes weken niets, vanaf 90 minuten ook boven de band, het vervolg vanaf drie
 uur, 120 alleen na afronden en alleen als gekozen, rustig en korter dan 2,5 uur
-ongewijzigd). Alle voedings- en protocoltests slagen (252), ook de migratietest
-met 0272 tegen PGlite. `tsc` alleen de bekende fout op `modern-screenshot`;
+ongewijzigd). Alle voedings- en protocoltests slagen (252). *Niet waar wat hier
+eerst stond: de migratietest paste 0272 toen niet toe. Dat doet hij sinds stap 5
+wel (zie de ronde hierboven).* `tsc` alleen de bekende fout op `modern-screenshot`;
 ESLint schoon. In de browser (de eigenaar heeft geen darmtraining): de
 protocolpagina laadt zonder schakelaar, Dagmenu, Vandaag en schema ongewijzigd.
 **Niet getest:** de schakelaar in de browser en op productie (vraagt een

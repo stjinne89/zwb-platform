@@ -5,11 +5,13 @@
 import { nutritionDay, nutritionTipForToday, type NutritionDayInput } from "@/lib/nutrition/tips";
 import { rankRecipes } from "@/lib/nutrition/menu";
 import { gutTrainingOn } from "@/lib/nutrition/gut-training";
+import { currentSweatRate } from "@/lib/nutrition/sweat";
 import { ridePlan } from "@/lib/nutrition/ride-plan";
 import { RidePlanView } from "../../_components/ride-plan-view";
 import {
   energyFactorFor,
   loadGutSource,
+  loadSweatTests,
   loadMenuChoices,
   loadNutritionProfile,
   loadRecipePrefs,
@@ -27,12 +29,13 @@ export async function NutritionTodayCard({
   today: string;
   day: Omit<NutritionDayInput, "today" | "weightKg">;
 }) {
-  const [profile, recipes, prefs, choices, gut] = await Promise.all([
+  const [profile, recipes, prefs, choices, gut, sweatTests] = await Promise.all([
     loadNutritionProfile(viewer, today),
     loadRecipes(viewer),
     loadRecipePrefs(viewer),
     loadMenuChoices(viewer, today, today),
     loadGutSource(viewer),
+    loadSweatTests(viewer),
   ]);
 
   const input = { ...day, today, weightKg: profile.weightKg, gut: gutTrainingOn(gut, today) };
@@ -66,6 +69,8 @@ export async function NutritionTodayCard({
           minutes: fuel.rideMinutes,
           intensity: fuel.rideIntensity,
           gut: fuel.rideGut,
+          sweatMlPerHour: currentSweatRate(sweatTests),
+          weightKg: profile.weightKg,
           ranked: ranked.map((item) => item.recipe),
           lead: chosen ?? first?.recipe ?? null,
           leadChosen: Boolean(chosen),

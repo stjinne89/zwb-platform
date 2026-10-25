@@ -16,6 +16,7 @@ import { RECIPE_PREFS } from "@/lib/nutrition/menu";
 import { foodSearchTokens } from "@/lib/nutrition/food-search";
 import { queryFoods, type FoodOption } from "@/lib/nutrition/food-query";
 import { RECIPE_VISIBILITIES, type RecipeVisibility } from "@/lib/nutrition/recipes";
+import { SWEAT_CONSENT_VERSION, SWEAT_SETTINGS, sweatRate } from "@/lib/nutrition/sweat";
 
 export type { FoodOption } from "@/lib/nutrition/food-query";
 
@@ -248,6 +249,65 @@ export async function setRideCarbs120(formData: FormData): Promise<ActionResult>
   const { error } = await supabase
     .from("nutrition_profiles")
     .upsert({ profile_id: user.id, ride_carbs_120: on }, { onConflict: "profile_id" });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/zwbeter-worden", "layout");
+  return { ok: true };
+}
+
+function decimal(value: FormDataEntryValue | null): number {
+  const raw = text(value).replace(",", ".");
+  return raw === "" ? Number.NaN : Number(raw);
+}
+
+/**
+ * Een zweettest opslaan (0273). Het gewicht van voor en na rekent de app hier
+ * om naar zweetverlies per uur en bewaart het niet (besluit 5). Zonder eerdere
+ * test moet het lid eerst tekenen.
+ */
+export async function saveSweatTest(formData: FormData): Promise<ActionResult> {
+  const { supabase, user } = await currentUser();
+  const { count } = await supabase
+    .from("nutrition_sweat_tests")
+    .select("id", { count: "exact", head: true })
+    .eq("profile_id", user.id);
+  if (!count && formData.get("consent") !== "ja") return { ok: false, error: "Vink de toestemming aan." };
+
+  const testedOn = text(formData.get("tested_on"));
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(testedOn) || testedOn > today) return { ok: false, error: "Kies een datum tot vandaag." };
+  const setting = text(formData.get("setting"));
+  if (!(SWEAT_SETTINGS as readonly string[]).includes(setting)) return { ok: false, error: "Kies binnen of buiten." };
+
+  const durationMinutes = decimal(formData.get("duration_minutes"));
+  const result = sweatRate({
+    durationMinutes,
+    weightBeforeKg: decimal(formData.get("weight_before")),
+    weightAfterKg: decimal(formData.get("weight_after")),
+    drankMl: decimal(formData.get("drank_ml")),
+  });
+  if (!result.ok) return { ok: false, error: result.reason };
+
+  const { error } = await supabase.from("nutrition_sweat_tests").insert({
+    profile_id: user.id,
+    tested_on: testedOn,
+    duration_minutes: Math.round(durationMinutes),
+    sweat_ml_per_hour: result.mlPerHour,
+    setting,
+    warm: formData.get("warm") === "ja",
+    consent_version: SWEAT_CONSENT_VERSION,
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/zwbeter-worden", "layout");
+  return { ok: true };
+}
+
+export async function deleteSweatTest(formData: FormData): Promise<ActionResult> {
+  const { supabase, user } = await currentUser();
+  const { error } = await supabase
+    .from("nutrition_sweat_tests")
+    .delete()
+    .eq("id", text(formData.get("id")))
+    .eq("profile_id", user.id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/zwbeter-worden", "layout");
   return { ok: true };

@@ -10,6 +10,7 @@ import { basePortion, macrosFor, scaleRecipe, type RecipeIngredient } from "./sc
 import type { Recipe } from "./recipes";
 import type { ShoppingSlot } from "./shopping";
 import { SHOPPING_NAMES } from "./shopping-names";
+import { fluidBidons, fluidPerHour, type FluidTarget } from "./sweat";
 import { rideTargetPerHour, type GutTraining } from "./targets";
 
 /**
@@ -61,6 +62,8 @@ export type RidePlan = {
   bidons: RidePlanItem;
   /** Bidons met alleen water, naast de bidons met sportdrank. */
   waterBidons: number;
+  /** Hoeveel je per uur drinkt, uit de eigen zweettest; null zonder test. */
+  fluid: FluidTarget | null;
   solid: RidePlanItem | null;
   feeds: RideFeed[];
 };
@@ -71,6 +74,10 @@ export type RidePlanInput = {
   intensity?: string | null;
   /** Darmtraining op de dag van de rit (gut-training.ts). */
   gut?: GutTraining | null;
+  /** Zweetverlies per uur uit de laatste zweettest (sweat.ts); null zonder test. */
+  sweatMlPerHour?: number | null;
+  /** Voor de 2%-grens van het vochtdoel. */
+  weightKg?: number | null;
   /** Recepten voor tijdens de rit, beste eerst (rankRecipes). */
   ranked: Recipe[];
   /** Het recept dat het dagmenu bij "Tijdens de rit" zet; het andere soort komt uit `ranked`. */
@@ -128,6 +135,8 @@ export function ridePlan({
   minutes,
   intensity = null,
   gut = null,
+  sweatMlPerHour = null,
+  weightKg = null,
   ranked,
   lead = null,
   leadChosen = false,
@@ -141,7 +150,9 @@ export function ridePlan({
   const drink = lead && leadIsBidon ? lead : (ranked.find(isBidonRecipe) ?? null);
   const food = lead && !leadIsBidon ? lead : (ranked.find((recipe) => !isBidonRecipe(recipe)) ?? null);
 
-  const bidonCount = Math.max(1, Math.round(minutes / 60));
+  // Met een zweettest volgt het aantal bidons uit het vochtdoel, anders één per uur.
+  const fluid = sweatMlPerHour ? fluidPerHour(sweatMlPerHour, weightKg, minutes) : null;
+  const bidonCount = fluid ? fluidBidons(fluid, minutes) : Math.max(1, Math.round(minutes / 60));
   // Koos het lid zelf vast eten, dan draagt de bidon maar de helft: anders
   // verdwijnt die keuze bij een rit waar de bidons alles kunnen dragen.
   const bidonShare = lead && !leadIsBidon && leadChosen ? 0.5 : 1;
@@ -210,6 +221,7 @@ export function ridePlan({
     totalG: bidonCarbs * carbBidons + (solid ? solid.carbsG * solid.count : 0),
     bidons,
     waterBidons: bidonCount - carbBidons,
+    fluid,
     solid,
     feeds,
   };

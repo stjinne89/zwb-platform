@@ -10,6 +10,10 @@ function amount(value: number, unit: "g" | "ml"): string {
   return `${value.toLocaleString("nl-NL")} ${unit}`;
 }
 
+function liters(ml: number): string {
+  return (ml / 1000).toLocaleString("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+}
+
 function hours(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
@@ -73,6 +77,19 @@ export function RidePlanView({ plan }: { plan: RidePlan }) {
           {hours(plan.minutes)} · {plan.totalG} g koolhydraten
         </p>
       </div>
+      {plan.fluid ? (
+        <p className="text-sm">
+          Drinken:{" "}
+          <span className="tabular-nums">
+            {plan.fluid.minMl == null ? "tot " : `${liters(plan.fluid.minMl)}–`}
+            {liters(plan.fluid.maxMl)} l per uur
+          </span>
+        </p>
+      ) : (
+        <Link href="/zwbeter-worden/voeding/protocollen/zweettest" className="text-sm text-primary hover:underline">
+          Zweettest
+        </Link>
+      )}
       <ul className="space-y-2">
         <ItemRow item={plan.bidons} kind="bidon" />
         {plan.waterBidons > 0 ? (

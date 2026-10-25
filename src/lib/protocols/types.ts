@@ -106,9 +106,10 @@ export type Protocol = {
   aiHint?: string;
   /**
    * Laat op de protocolpagina de eigen metingen zien. "duurtest": de
-   * ontkoppeling uit de geplande Duurtest (durability-test.ts).
+   * ontkoppeling uit de geplande Duurtest (durability-test.ts). "zweettest":
+   * de invoer en de uitkomsten van de zweettest (sweat.ts, 0273).
    */
-  measure?: "duurtest";
+  measure?: "duurtest" | "zweettest";
 };
 
 /** Een rij uit member_protocols, zoals de app hem gebruikt. */
