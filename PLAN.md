@@ -11318,7 +11318,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gewijzigd — ZWBriljant in het weekoverzicht: werk aan wat het meest oplevert
 
-**2026-10-25.** Commit volgt hieronder. Geen migratie. Lokaal gecommit, niet gepusht.
+**2026-10-25.** Commit `385efa9b`. Geen migratie. Lokaal gecommit, niet gepusht.
 
 De eigenaar wilde in plaats van "Laagste facet: X" een aanwijzing waar je steen
 het snelst groeit. Het laagste onderdeel is daar een slechte maat voor: sprint
