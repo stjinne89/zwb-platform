@@ -100,6 +100,15 @@ Bronnen:
 | 60–150 min | 30–60 g/u |
 | ≥ 150 min | 60–90 g/u |
 
+**Het doel binnen de band** (`rideTargetPerHour`, sinds 2026-10-25) volgt de
+zwaarte van de rit: `recovery` en `endurance` de onderkant, `tempo` en een rit
+zonder zwaarte het midden, `threshold`, `vo2max`, `anaerobic` en `race` de
+bovenkant. De band verandert niet. Die indeling is een vertaling van ZWB; de
+grond is dat de koolhydraatverbranding met de intensiteit stijgt en dat
+Fleitas-Paniagua et al. (2026) alleen na zware inspanning winst zagen van meer
+koolhydraten. Bij twee ritten op een dag telt de zwaarte van de langste. *Tot
+2026-10-25 rekende ZWB altijd met het midden: 45 en 75 g/u.*
+
 - **Tot 120 g/u.** Bij getrainde renners kan dat de oxidatie verder verhogen
   (Morton et al. 2026). Het vraagt wel darmtraining. Het staat daarom in de
   kennisbank, maar niet als standaard in de rekenregel.
@@ -334,7 +343,7 @@ Doelen per moment (`mealTarget`):
 | ontbijt / lunch / diner | 25% / 20% / 30% van de maaltijdbasis | 0,35 g/kg |
 | tussendoor | 10% van de maaltijdbasis | — |
 | voor de rit | 1 g/kg | — |
-| tijdens de rit | midden van de g/u-band (één portie = één uur) | — |
+| tijdens de rit | doel per uur naar de zwaarte, `rideTargetPerHour` (één portie = één uur) | — |
 | na de rit | 1,0 g/kg | 0,3 g/kg |
 | voor het slapen | — | 40 g |
 

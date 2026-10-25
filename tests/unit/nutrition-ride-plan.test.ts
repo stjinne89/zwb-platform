@@ -114,9 +114,9 @@ describe("ritplan", () => {
   it("houdt vast eten dat het lid zelf koos in het plan", () => {
     const plan = ridePlan({ minutes: 120, ranked: [DRINK, CAKES], lead: CAKES, leadChosen: true, energyFactor: 1 })!;
     expect(plan.solid?.recipe?.slug).toBe("rijsttaartjes");
-    // De bidon draagt minder dan de 45 g zonder eigen keuze (niet kleiner dan
-    // de halve portie die het schalen toelaat).
-    expect(plan.bidons.carbsG).toBeLessThan(40);
+    // De bidons dragen de helft: één bidon sportdrank, één met water.
+    expect(plan.bidons.count).toBe(1);
+    expect(plan.waterBidons).toBe(1);
     expect(Math.abs(plan.totalG - 90)).toBeLessThanOrEqual(10);
   });
 
@@ -185,5 +185,25 @@ describe("ritplan", () => {
     expect(items.some((item) => item.id === "rijst")).toBe(true);
     // Een recept dat er niet meer is, valt weg.
     expect(ridePlanShoppingSlots(plan, [DRINK]).map((slot) => slot.recipe.slug)).toEqual(["sportdrank"]);
+  });
+
+  it("rekent met het doel dat bij de zwaarte past", () => {
+    const easy = ridePlan({ minutes: 120, intensity: "endurance", ranked: [DRINK, CAKES], energyFactor: 1 })!;
+    const hard = ridePlan({ minutes: 120, intensity: "threshold", ranked: [DRINK, CAKES], energyFactor: 1 })!;
+    expect(easy.perHourG).toBe(30);
+    expect(hard.perHourG).toBe(60);
+    expect(hard.totalG).toBeGreaterThan(easy.totalG);
+  });
+
+  it("neemt water mee als de sportdrank niet kleiner kan dan nodig", () => {
+    // 1,5 uur rustig: 45 g. Een halve portie sportdrank is al 36 g, dus niet
+    // twee bidons sportdrank (72 g) maar één met sportdrank en één met water.
+    const plan = ridePlan({ minutes: 90, intensity: "endurance", ranked: [DRINK, CAKES], energyFactor: 1 })!;
+    expect(plan.bidons.count).toBe(1);
+    expect(plan.waterBidons).toBe(1);
+    expect(Math.abs(plan.totalG - 45)).toBeLessThanOrEqual(3);
+    expect(ridePlanSummary(plan)).toBe("1× bidon sportdrank, 1× bidon water");
+    // Uit de tweede bidon komen geen koolhydraten.
+    expect(plan.feeds.filter((feed) => feed.bidon === 2).every((feed) => feed.carbsG === 0)).toBe(true);
   });
 });

@@ -75,6 +75,9 @@ export function RidePlanView({ plan }: { plan: RidePlan }) {
       </div>
       <ul className="space-y-2">
         <ItemRow item={plan.bidons} kind="bidon" />
+        {plan.waterBidons > 0 ? (
+          <ItemRow item={{ recipe: null, count: plan.waterBidons, carbsG: 0, ingredients: [] }} kind="bidon" />
+        ) : null}
         {plan.solid ? <ItemRow item={plan.solid} kind="vast" /> : null}
       </ul>
       <details className="text-sm">

@@ -44,6 +44,7 @@ describe("voedingsherinneringen, welke", () => {
       perHourG: 45,
       totalG: 90,
       bidons: { recipe: { slug: "sportdrank", title: "Zelfgemaakte sportdrank" }, count: 2, carbsG: 45, ingredients: [] },
+      waterBidons: 0,
       solid: null,
       feeds: [],
     };

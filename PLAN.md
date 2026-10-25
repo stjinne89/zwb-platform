@@ -300,8 +300,9 @@ gaat stabiliteit voor nieuwe features.
    en stap 2 (ritplan "Klaarzetten" bij elke rit, op de eventpagina, in de
    briefing, de herinnering en Boodschappen) zijn gebouwd op 2026-10-25, niet
    gepusht. Stap 2 ging op verzoek van de eigenaar door zonder te wachten op het
-   besluit over de featurepauze. Volgende: stap 3 (het ritdoel volgt de
-   zwaarte).
+   besluit over de featurepauze. Stap 3 (het doel per uur volgt de zwaarte) is
+   ook gebouwd, niet gepusht. Volgende: stap 4 (darmtraining bepaalt het
+   plafond).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11325,6 +11326,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBeter voeden: het doel per uur volgt de zwaarte van de rit
+
+**2026-10-25.** Stap 3 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
+besluit 3 van dat plan. Geen migratie. Niet gepusht.
+
+- **`rideTargetPerHour(duur, zwaarte)`** in `targets.ts`: binnen de bestaande
+  band de onderkant voor `recovery` en `endurance`, het midden voor `tempo` en
+  voor een rit zonder zwaarte (gereden zonder schema), de bovenkant voor
+  `threshold`, `vo2max`, `anaerobic` en `race`. De band (`rideCarbsPerHour`)
+  blijft gelijk en staat nog op de kaart "Onderweg".
+- **Overal hetzelfde doel**: de portie "Tijdens de rit", de aftrek van het
+  dagdoel (`rideDayCarbs`, stap 1), het ritplan in Dagmenu, Vandaag, schema,
+  eventpagina, briefing, herinnering en Boodschappen, en de tip. De zwaarte
+  loopt mee als `rideIntensity` (dag: de langste geplande rit; schema en event:
+  de training zelf; herinnering: de langste rit van morgen).
+- **De tip** noemt nu het doel van de rit ("30 g koolhydraten per uur") in plaats
+  van de band, en de suikermix alleen boven 60 g per uur.
+- **Bidons met water.** Een recept schaalt niet kleiner dan een halve portie
+  (`scale.ts`); de zelfgemaakte sportdrank is dan 36 g. Bij een rustige rit van
+  1u30 (doel 45 g) gaven twee bidons zo 72 g. Nu gaan er zoveel bidons
+  sportdrank mee als nodig en de rest met water ("1× bidon water"); uit een
+  waterbidon komen in het schema per 20 minuten geen koolhydraten.
+
+**Gevolg voor leden.** Een rustige duurrit krijgt minder dan voorheen: 2 uur
+van 45 naar 30 g per uur, 4 uur van 75 naar 60. Een drempel- of VO2max-training
+en een race krijgen meer: 2 uur 60, langer dan 2,5 uur 90. De maaltijden op die
+dagen schuiven mee, binnen de ondergrens van stap 1.
+
+**Bewust niet gedaan.** Geen Intensity Factor of TSS uit intervals.icu: de
+zwaarte uit het schema volstaat en is er voor elke training. Een rit zonder
+schema krijgt het midden. Vast eten kan net als de sportdrank niet kleiner dan
+een halve portie; bij een korte harde training (VO2max 1u15, doel 75 g) komt het
+plan daardoor op 86 g.
+
+**Getest.** `nutrition-logic` (nieuw: het doel per zwaarte, de portie en de
+aftrek; het dagtotaal blijft bij duur, tempo en drempel binnen de band),
+`nutrition-tips` (rustige lange rit 60 g zonder suikermix, lange race 90 g met),
+`nutrition-ride-plan` (15; nieuw: zwaarte, en water als de sportdrank niet
+kleiner kan). Alle voedingstests slagen, ook de 85%-test met de 120
+clubrecepten (die rekent zonder zwaarte). `tsc` alleen de bekende fout op
+`modern-screenshot`. In de browser: Dagmenu vandaag (2 uur duur) "30 g
+koolhydraten per uur" en 30 g per bidon; schema 1u30 duur 46 g met 1× bidon
+water, 2 uur 60 g, VO2max 1u15 86 g.
+
 ### Gebouwd — ZWBeter voeden: ritplan in de herinnering en in Boodschappen
 
 **2026-10-25.** Commit `0386ef8b`, rest van stap 2c van [ritvoeding-plan.md](docs/ritvoeding-plan.md).
@@ -11411,7 +11456,8 @@ nu toe stond er bij "Tijdens de rit" één recept voor één uur, zonder dat erb
 stond dat het per uur was.
 
 - **Rekenwerk** (`src/lib/nutrition/ride-plan.ts`). Totaal = midden van de
-  g/u-band × ritduur. Eén bidon per uur (afgerond, minstens één), elk hoogstens
+  g/u-band × ritduur (*sinds stap 3: het doel naar de zwaarte, en bidons met
+  water als de sportdrank niet kleiner kan*). Eén bidon per uur (afgerond, minstens één), elk hoogstens
   60 g koolhydraten: 8% van 750 ml, naar de Oliveira & Burini 2014 (5–8%, met
   glucose en fructose 8–10%). Wat erboven nodig is, komt uit vast eten, in
   porties van het recept; minder dan 15 g vast eten laat het plan weg. Een

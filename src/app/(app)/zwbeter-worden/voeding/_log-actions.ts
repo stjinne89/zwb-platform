@@ -202,6 +202,7 @@ export async function logRecipe(formData: FormData): Promise<ActionResult> {
           energyFactor: energyFactorFor(profile),
           dayType: fuelDay.dayType,
           rideMinutes: fuelDay.rideMinutes,
+          rideIntensity: fuelDay.rideIntensity,
         }
       : null,
   );

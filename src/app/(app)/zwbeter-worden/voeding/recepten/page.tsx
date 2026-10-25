@@ -61,6 +61,7 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
     energyFactor: energyFactorFor(profile),
     dayType: day.dayType,
     rideMinutes: day.rideMinutes,
+    rideIntensity: day.rideIntensity,
   };
 
   const href = (next: { moment?: MealMoment | null; dieet?: DietTag | null; toon?: View | null }) => {

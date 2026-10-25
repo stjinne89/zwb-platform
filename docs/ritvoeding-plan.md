@@ -156,6 +156,12 @@ Bij meerdere sessies op één dag telt de rit waar het om gaat, niet de zwaarste
 van de dag. Geen migratie. De grenzen zijn een vertaling van ZWB en komen zo in
 [voeding-wielrennen.md](voeding-wielrennen.md) §3.
 
+*Gebouwd op 2026-10-25, zonder migratie, zie `PLAN.md`. Niet als tweede
+parameter van `rideCarbsPerHour` (de band blijft zoals hij is) maar als
+`rideTargetPerHour(duur, zwaarte)`. "De rit waar het om gaat" is de langste
+geplande rit van de dag. Erbij gekomen: bidons met water als de sportdrank
+niet kleiner kan dan wat de rit vraagt.*
+
 ### Stap 4. Darmtraining bepaalt het plafond
 
 Wie de darmtraining volgt, krijgt bij een rit van 150 minuten of langer het

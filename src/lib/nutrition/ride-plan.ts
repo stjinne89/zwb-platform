@@ -10,7 +10,7 @@ import { basePortion, macrosFor, scaleRecipe, type RecipeIngredient } from "./sc
 import type { Recipe } from "./recipes";
 import type { ShoppingSlot } from "./shopping";
 import { SHOPPING_NAMES } from "./shopping-names";
-import { rideCarbsPerHour } from "./targets";
+import { rideTargetPerHour } from "./targets";
 
 /**
  * Koolhydraten per bidon van 750 ml: 8%. De review van de Oliveira & Burini
@@ -59,12 +59,16 @@ export type RidePlan = {
   perHourG: number;
   totalG: number;
   bidons: RidePlanItem;
+  /** Bidons met alleen water, naast de bidons met sportdrank. */
+  waterBidons: number;
   solid: RidePlanItem | null;
   feeds: RideFeed[];
 };
 
 export type RidePlanInput = {
   minutes: number;
+  /** Zwaarte van de rit (WorkoutIntensity); null = het midden van de band. */
+  intensity?: string | null;
   /** Recepten voor tijdens de rit, beste eerst (rankRecipes). */
   ranked: Recipe[];
   /** Het recept dat het dagmenu bij "Tijdens de rit" zet; het andere soort komt uit `ranked`. */
@@ -116,18 +120,18 @@ export function feedMinutes(minutes: number): number[] {
 
 /**
  * Het plan voor één rit, of null onder een uur: dan hoeft er onderweg niets bij
- * (targets.ts). Het doel per uur is het midden van de band.
+ * (targets.ts). Het doel per uur volgt de zwaarte (rideTargetPerHour).
  */
 export function ridePlan({
   minutes,
+  intensity = null,
   ranked,
   lead = null,
   leadChosen = false,
   energyFactor,
 }: RidePlanInput): RidePlan | null {
-  const band = rideCarbsPerHour(minutes);
-  if (!band) return null;
-  const perHourG = Math.round((band.min + band.max) / 2);
+  const perHourG = rideTargetPerHour(minutes, intensity);
+  if (perHourG == null) return null;
   const target = Math.round((perHourG * minutes) / 60);
 
   const leadIsBidon = lead ? isBidonRecipe(lead) : false;
@@ -138,21 +142,29 @@ export function ridePlan({
   // Koos het lid zelf vast eten, dan draagt de bidon maar de helft: anders
   // verdwijnt die keuze bij een rit waar de bidons alles kunnen dragen.
   const bidonShare = lead && !leadIsBidon && leadChosen ? 0.5 : 1;
-  const bidonTarget = food
-    ? Math.min(BIDON_MAX_CARBS_G, (target * bidonShare) / bidonCount)
-    : target / bidonCount;
+  const drinkTotal = food ? Math.min(BIDON_MAX_CARBS_G * bidonCount, target * bidonShare) : target;
+  // Kleiner dan een halve portie schaalt een recept niet (scale.ts). Vraagt de
+  // rit minder dan dat per bidon, dan gaan de overige bidons met water mee.
+  const smallest = drink ? portion(drink, 0, energyFactor).perPortion.carbsG : 0;
+  const drinkBidons = drink ? Math.min(bidonCount, Math.max(1, Math.floor(drinkTotal / Math.max(smallest, 1)))) : 0;
+  const bidonTarget = drink
+    ? food
+      ? Math.min(BIDON_MAX_CARBS_G, drinkTotal / drinkBidons)
+      : drinkTotal / drinkBidons
+    : 0;
 
   const bidonPortion = drink ? portion(drink, bidonTarget, energyFactor) : null;
   const bidonCarbs = bidonPortion ? Math.round(bidonPortion.perPortion.carbsG) : 0;
+  const carbBidons = drink ? drinkBidons : bidonCount;
   const bidons: RidePlanItem = {
     recipe: drink ? { slug: drink.slug, title: drink.title } : null,
-    count: bidonCount,
+    count: carbBidons,
     carbsG: bidonCarbs,
     ingredients: bidonPortion ? ingredientsOf(bidonPortion.ingredients) : [],
   };
 
   let solid: RidePlanItem | null = null;
-  const rest = target - bidonCarbs * bidonCount;
+  const rest = target - bidonCarbs * carbBidons;
   if (food && rest >= SOLID_MIN_CARBS_G) {
     const count = Math.max(1, Math.round(rest / Math.max(baseCarbs(food), 1)));
     const solidPortion = portion(food, rest / count, energyFactor);
@@ -172,13 +184,19 @@ export function ridePlan({
     const minute = slots[Math.min(slots.length - 1, Math.floor(((i + 0.5) * slots.length) / solid!.count))];
     solidAt.set(minute, (solidAt.get(minute) ?? 0) + 1);
   }
-  const drinkPerFeed = (bidonCarbs * bidonCount) / minutesList.length;
+  // De bidons op volgorde, sportdrank eerst; elke bidon verdeeld over de
+  // momenten waarop je eruit drinkt.
+  const bidonOf = (minute: number) => Math.min(bidonCount, Math.floor((minute * bidonCount) / minutes) + 1);
+  const feedsPerBidon = new Map<number, number>();
+  for (const minute of minutesList) feedsPerBidon.set(bidonOf(minute), (feedsPerBidon.get(bidonOf(minute)) ?? 0) + 1);
   const feeds = minutesList.map((minute) => {
     const portions = solidAt.get(minute) ?? 0;
+    const bidon = bidonOf(minute);
+    const drinkCarbs = bidon <= carbBidons ? bidonCarbs / (feedsPerBidon.get(bidon) ?? 1) : 0;
     return {
       minute,
-      carbsG: Math.round(drinkPerFeed + portions * (solid?.carbsG ?? 0)),
-      bidon: Math.min(bidonCount, Math.floor((minute * bidonCount) / minutes) + 1),
+      carbsG: Math.round(drinkCarbs + portions * (solid?.carbsG ?? 0)),
+      bidon,
       solid: portions,
     };
   });
@@ -186,8 +204,9 @@ export function ridePlan({
   return {
     minutes,
     perHourG,
-    totalG: bidonCarbs * bidonCount + (solid ? solid.carbsG * solid.count : 0),
+    totalG: bidonCarbs * carbBidons + (solid ? solid.carbsG * solid.count : 0),
     bidons,
+    waterBidons: bidonCount - carbBidons,
     solid,
     feeds,
   };
@@ -242,6 +261,7 @@ export function ridePlanShoppingSlots(plan: RidePlan, recipes: Recipe[]): Shoppi
 /** Kort, voor een pushbericht: "2× bidon Zelfgemaakte sportdrank, 1× Zacht wit broodje met jam". */
 export function ridePlanSummary(plan: RidePlan): string {
   const parts = [`${plan.bidons.count}× bidon ${plan.bidons.recipe?.title ?? "water"}`];
+  if (plan.waterBidons > 0) parts.push(`${plan.waterBidons}× bidon water`);
   if (plan.solid?.recipe) parts.push(`${plan.solid.count}× ${plan.solid.recipe.title}`);
   return parts.join(", ");
 }

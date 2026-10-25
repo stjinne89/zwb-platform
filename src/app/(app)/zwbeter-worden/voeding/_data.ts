@@ -426,7 +426,7 @@ export async function loadRidePlans(
     const minutes = Number(workout.duration_minutes);
     const dayType = classifyFuelDay([{ minutes, intensity: workout.intensity }]);
     const ranked = rankRecipes(recipes, "tijdens_rit", {
-      rider: { weightKg: profile.weightKg, energyFactor, dayType, rideMinutes: minutes },
+      rider: { weightKg: profile.weightKg, energyFactor, dayType, rideMinutes: minutes, rideIntensity: workout.intensity },
       dayType,
       tomorrowType: "rust",
       today: day,
@@ -437,6 +437,7 @@ export async function loadRidePlans(
     const chosen = choice ? byId.get(choice.recipeId) : undefined;
     const plan = ridePlan({
       minutes,
+      intensity: workout.intensity,
       ranked,
       lead: chosen ?? ranked[0] ?? null,
       leadChosen: Boolean(chosen),

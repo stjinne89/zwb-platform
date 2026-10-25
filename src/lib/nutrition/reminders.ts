@@ -133,6 +133,7 @@ export function tomorrowRidePlan(
   minutes: number,
   tomorrow: string,
   today: string,
+  intensity: string | null = null,
 ): RidePlan | null {
   const recipes = ctx.recipes
     .filter((recipe) => recipe.is_standard || recipe.owner_id === profileId || recipe.visibility === "leden")
@@ -155,7 +156,7 @@ export function tomorrowRidePlan(
     : 1;
   const dayType = classifyFuelDay([{ minutes, intensity: null }]);
   const ranked = rankRecipes(recipes, "tijdens_rit", {
-    rider: { weightKg, energyFactor, dayType, rideMinutes: minutes },
+    rider: { weightKg, energyFactor, dayType, rideMinutes: minutes, rideIntensity: intensity },
     dayType,
     tomorrowType: "rust",
     today: tomorrow,
@@ -164,7 +165,14 @@ export function tomorrowRidePlan(
   }).map((item) => item.recipe);
   const choiceId = ctx.choices.find((row) => row.profile_id === profileId)?.recipe_id;
   const chosen = choiceId ? recipes.find((recipe) => recipe.id === choiceId) : undefined;
-  return ridePlan({ minutes, ranked, lead: chosen ?? ranked[0] ?? null, leadChosen: Boolean(chosen), energyFactor });
+  return ridePlan({
+    minutes,
+    intensity,
+    ranked,
+    lead: chosen ?? ranked[0] ?? null,
+    leadChosen: Boolean(chosen),
+    energyFactor,
+  });
 }
 
 export async function processNutritionReminders(admin: SupabaseClient, now: Date) {
@@ -229,12 +237,17 @@ export async function processNutritionReminders(admin: SupabaseClient, now: Date
     const planned = plannedSessions(own, today);
     const tomorrowType = classifyFuelDay(planned.plannedTomorrow);
     const tomorrowMinutes = totalMinutes(planned.plannedTomorrow);
+    // De zwaarte van de langste rit morgen, zoals het Dagmenu morgen rekent.
+    const tomorrowIntensity =
+      planned.plannedTomorrow
+        .filter((session) => session.minutes > 0 && session.intensity !== "rest")
+        .sort((a, b) => b.minutes - a.minutes)[0]?.intensity ?? null;
     let tomorrowRide: RidePlan | null = null;
     if (isKeyDay(tomorrowType) && tomorrowMinutes >= 60 && !alreadySent.has(`${profileId}:morgen_zwaar`)) {
       rideContext ??= loadRideContext(admin, profileIds, tomorrow);
       // Een fout in de voedingsdata mag de herinnering zelf niet tegenhouden.
       tomorrowRide = await rideContext
-        .then((ctx) => tomorrowRidePlan(ctx, profileId, tomorrowMinutes, tomorrow, today))
+        .then((ctx) => tomorrowRidePlan(ctx, profileId, tomorrowMinutes, tomorrow, today, tomorrowIntensity))
         .catch(() => null);
     }
     const reminders = remindersFor({

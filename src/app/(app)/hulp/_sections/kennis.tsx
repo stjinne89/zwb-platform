@@ -327,10 +327,13 @@ export function KennisHelp() {
                   bidons en porties. Bij een event komt de duur
                   uit je pacingplan, anders uit je schema of een schatting. Bij
                   een wedstrijd van anderhalf uur of langer staat er een link
-                  naar koolhydraten laden, met de dag waarop je begint. Je rekent met
-                  één bidon per uur. Een bidon bevat hoogstens 60 g
+                  naar koolhydraten laden, met de dag waarop je begint. Hoeveel
+                  per uur hangt af van de rit: een rustige rit de onderkant van
+                  de band, tempo het midden, drempel en harder de bovenkant. Je
+                  rekent met één bidon per uur. Een bidon bevat hoogstens 60 g
                   koolhydraten (8% van 750 ml); wat je per uur meer nodig hebt,
-                  komt uit vast eten. Kies je zelf vast eten bij &quot;Tijdens de
+                  komt uit vast eten. Heb je minder nodig dan een bidon
+                  sportdrank bevat, dan gaat er een bidon water mee. Kies je zelf vast eten bij &quot;Tijdens de
                   rit&quot;, dan draagt de bidon de helft. &quot;Gegeten&quot;
                   legt het hele plan vast. Hoeveel je drinkt, hangt af van wat je
                   zweet; dat rekent ZWB nog niet uit.

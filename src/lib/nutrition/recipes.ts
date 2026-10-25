@@ -73,6 +73,8 @@ export type Rider = {
   energyFactor: number;
   dayType: FuelDayType;
   rideMinutes: number | null;
+  /** Zwaarte van de rit; null = het midden van de band. */
+  rideIntensity?: string | null;
 };
 
 /** Eén portie op maat, of de basisportie zolang het gewicht onbekend is. */
@@ -90,6 +92,7 @@ export function portionForRider(recipe: Recipe, rider: Rider | null): ScaledReci
       weightKg: rider.weightKg,
       dayType: rider.dayType,
       rideMinutes: rider.rideMinutes,
+      rideIntensity: rider.rideIntensity,
     }),
     rider.energyFactor,
   );

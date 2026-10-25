@@ -43,6 +43,7 @@ export async function NutritionTodayCard({
       energyFactor,
       dayType: fuel.dayType,
       rideMinutes: fuel.rideMinutes,
+      rideIntensity: fuel.rideIntensity,
     },
     dayType: fuel.dayType,
     tomorrowType: fuel.tomorrowType,
@@ -59,6 +60,7 @@ export async function NutritionTodayCard({
     tip.kind === "tijdens_rit" && fuel.rideMinutes
       ? ridePlan({
           minutes: fuel.rideMinutes,
+          intensity: fuel.rideIntensity,
           ranked: ranked.map((item) => item.recipe),
           lead: chosen ?? first?.recipe ?? null,
           leadChosen: Boolean(chosen),
