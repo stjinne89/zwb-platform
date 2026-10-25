@@ -240,9 +240,9 @@ function buildSlides(
                 Nog <b>{briljant.toNext}</b> tot {briljant.nextName}.
               </>
             ) : null}
-            {briljant.weakestFacet ? (
+            {briljant.growFacet ? (
               <>
-                {briljant.nextName ? " " : ""}Laagste facet: <b>{briljant.weakestFacet}</b>.
+                {briljant.nextName ? " " : ""}Werk aan <b>{briljant.growFacet}</b> om je steen sneller te laten groeien.
               </>
             ) : null}
           </p>

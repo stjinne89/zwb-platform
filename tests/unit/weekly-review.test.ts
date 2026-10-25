@@ -148,12 +148,11 @@ describe("buildPower", () => {
 
 describe("buildBriljant", () => {
   const snap = (week: string, score: number | null, facets: Record<string, number> = {}) => ({ week, score, facets });
+  // Sprint is het laagste onderdeel, maar weegt maar 5%: 5% beter op VO2max levert meer op.
+  const full = { sprint: 2.1, anaeroob: 4.2, vo2max: 4.5, drempel: 4.6, durability: 4.0, fitheid: 4.4, racen: 4.3 };
 
   it("neemt de laatste steen van de week, naast die van de week ervoor", () => {
-    const section = buildBriljant(
-      [snap("2026-10-05", 4.12), snap("2026-10-12", 4.27, { sprint: 5.2, durability: 3.1, fitheid: 4.4 })],
-      "2026-10-12",
-    );
+    const section = buildBriljant([snap("2026-10-05", 4.12), { ...snap("2026-10-12", 4.27, full), consistency: 0.8 }], "2026-10-12", "man");
     expect(section).toEqual({
       points: 427,
       level: 4,
@@ -162,8 +161,12 @@ describe("buildBriljant", () => {
       toNext: 73,
       previousPoints: 412,
       previousLevel: 4,
-      weakestFacet: "Durability",
+      growFacet: "VO2max",
     });
+  });
+
+  it("noemt geen onderdeel als er te weinig onderdelen zijn voor een score", () => {
+    expect(buildBriljant([snap("2026-10-12", 4.27, { sprint: 5.2, durability: 3.1 })], "2026-10-12")?.growFacet).toBeNull();
   });
 
   it("negeert de snapshot van een latere week", () => {

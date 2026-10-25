@@ -11316,6 +11316,40 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gewijzigd — ZWBriljant in het weekoverzicht: werk aan wat het meest oplevert
+
+**2026-10-25.** Commit volgt hieronder. Geen migratie. Lokaal gecommit, niet gepusht.
+
+De eigenaar wilde in plaats van "Laagste facet: X" een aanwijzing waar je steen
+het snelst groeit. Het laagste onderdeel is daar een slechte maat voor: sprint
+weegt 5%, VO2max en fitheid 20%. Het scherm zegt nu "Werk aan **X** om je steen
+sneller te laten groeien." X is het onderdeel waar 5% beter de meeste punten
+oplevert. Dat is dezelfde rekensom als "Waar win je het meest" op de steen
+(`bestWins`).
+
+- `winsFromLevels` (`briljant/view.ts`) doet die rekensom op een bewaarde steen:
+  de meting terug uit het niveau (zoals bij je eigen oude stenen), met het
+  geslacht uit het profiel en de durability-bron uit `provenance.durability`
+  (bij ritten blijft het plafond van niveau 9 staan). `bestWins` en
+  `winsFromLevels` delen nu `winsFromReadings`.
+- `BriljantSection.weakestFacet` heet nu `growFacet`. `SUMMARY_VERSION` blijft 3:
+  deze ronde is niet gepusht, dus er staan nog geen samenvattingen van versie 3
+  met het oude veld in de database.
+- Is er nergens iets te winnen (minder dan vier onderdelen, dus geen score), dan
+  valt de zin weg.
+- Privacyverklaring (Weekoverzicht): "je laagste onderdeel" is nu "het onderdeel
+  waar je het meest wint". Ook dit nog niet aan de eigenaar voorgelegd.
+
+**Bewust niet gedaan.** Het Strava-blok noemt in de tip "bijna een klasse hoger"
+nog het laagste facet. Die teksten keurde de eigenaar goed, dus die blijven staan
+tot hij zegt dat het daar ook anders moet.
+
+**Getest.** `weekly-review.test.ts`: een steen met sprint als laagste onderdeel
+geeft VO2max, en zonder score geen onderdeel. `briljant-view` (9) en
+`strava-summary` groen, `tsc` (alleen de bekende fout op `modern-screenshot`),
+ESLint. In de browser met voorbeelddata op 375 px, donker. **Niet getest:** met
+echte snapshots.
+
 ### Gebouwd — ZWBriljant in het weekoverzicht
 
 **2026-10-25.** Commit `9fae85b6`. Geen migratie. Lokaal gecommit op
@@ -11326,8 +11360,9 @@ eigen scherm, na Vermogen en vóór Teams:
 
 - **Groot getal** de punten (427), daaronder de klasse met het verschil met een
   week eerder ("Platina, 15 punten erbij.", "gelijk gebleven", of "Omhoog naar
-  Amethist." bij een nieuwe klasse), en "Nog 73 tot Amethist. Laagste facet:
-  Durability." In Diamant valt het stuk over de volgende klasse weg.
+  Amethist." bij een nieuwe klasse), en "Nog 73 tot Amethist." met eerst het
+  laagste facet erachter (sinds dezelfde dag: het onderdeel waar je het meest
+  wint, zie de ronde hierboven). In Diamant valt het stuk over de volgende klasse weg.
 - **De print** (`BriljantPrint`): een briljant geslepen silhouet in salie dat in
   petrol volloopt tot de voortgang binnen de klasse, met de stand van vorige week
   als stippellijn (zoals "beste van het jaar" bij Vermogen). Het vult op

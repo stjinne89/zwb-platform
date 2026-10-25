@@ -82,7 +82,7 @@ export const WEEK_VOORBEELD: WeekReview = {
       toNext: 73,
       previousPoints: 412,
       previousLevel: 4,
-      weakestFacet: "Durability",
+      growFacet: "Durability",
     },
   },
   next: {

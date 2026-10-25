@@ -10,7 +10,9 @@
 
 import type { PersonalRide } from "@/lib/stats/personal";
 import type { CompactPoint } from "@/lib/stats/curves";
-import { FACET_LABELS, points as briljantPoints, positionFor, weakestFacet, type Facet } from "@/lib/briljant/score";
+import type { Sex } from "@/lib/briljant/norms";
+import { points as briljantPoints, positionFor, type Facet } from "@/lib/briljant/score";
+import { winsFromLevels } from "@/lib/briljant/view";
 import { addDays, weekDays } from "@/lib/weekly-review/period";
 
 /**
@@ -103,7 +105,11 @@ export type BriljantSection = {
   /** Punten en klasse een week eerder; null zonder snapshot van die week. */
   previousPoints: number | null;
   previousLevel: number | null;
-  weakestFacet: string | null;
+  /**
+   * Het onderdeel waar 5% beter de meeste punten oplevert (zoals "Waar win je het
+   * meest" op de steen); null als nergens iets te winnen is.
+   */
+  growFacet: string | null;
 };
 
 export type WeekSummary = {
@@ -362,7 +368,14 @@ export function buildClub(
 // ── ZWBriljant ────────────────────────────────────────────────────────────
 
 /** Een bewaarde weeksnapshot met de score al herrekend (storedScore). */
-export type BriljantSnapshot = { week: string; score: number | null; facets: Partial<Record<Facet, number | null>> };
+export type BriljantSnapshot = {
+  week: string;
+  score: number | null;
+  facets: Partial<Record<Facet, number | null>>;
+  consistency?: number | null;
+  /** Waar durability vandaan kwam (`provenance.durability`). */
+  durability?: "test" | "ritten";
+};
 
 /** Ouder dan dit is de steen niet meer die van deze week (zoals in het Strava-blok). */
 const BRILJANT_MAX_AGE_DAYS = 35;
@@ -373,7 +386,7 @@ const BRILJANT_MAX_AGE_DAYS = 35;
  * een bezoek aan de steen ververst hem. Op zondagavond loopt de steen dus tot een
  * week achter, maar live rekenen kost calls naar intervals.icu en Zwift.
  */
-export function buildBriljant(snapshots: BriljantSnapshot[], weekStart: string): BriljantSection | null {
+export function buildBriljant(snapshots: BriljantSnapshot[], weekStart: string, sex: Sex | null = null): BriljantSection | null {
   const scored = snapshots
     .filter((snapshot) => snapshot.score != null && snapshot.week <= weekStart)
     .sort((a, b) => a.week.localeCompare(b.week));
@@ -381,7 +394,7 @@ export function buildBriljant(snapshots: BriljantSnapshot[], weekStart: string):
   if (!latest || latest.score == null || latest.week < addDays(weekStart, -BRILJANT_MAX_AGE_DAYS)) return null;
   const position = positionFor(latest.score);
   const before = scored.find((snapshot) => snapshot.week === addDays(latest.week, -7));
-  const weakest = weakestFacet(latest.facets);
+  const grow = winsFromLevels(latest.facets, latest.consistency ?? null, sex, latest.durability)[0] ?? null;
   return {
     points: briljantPoints(latest.score),
     level: position.reached.n,
@@ -390,7 +403,7 @@ export function buildBriljant(snapshots: BriljantSnapshot[], weekStart: string):
     toNext: position.toNext,
     previousPoints: before?.score == null ? null : briljantPoints(before.score),
     previousLevel: before?.score == null ? null : positionFor(before.score).reached.n,
-    weakestFacet: weakest ? FACET_LABELS[weakest] : null,
+    growFacet: grow?.label ?? null,
   };
 }
 

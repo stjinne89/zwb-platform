@@ -109,7 +109,7 @@ export async function buildWeekSummary(admin: Admin, profileId: string, weekStar
   };
 
   const [{ data: profile }, { data: connection }, { data: memberships }] = await Promise.all([
-    admin.from("profiles").select("display_name, ftp_watts, weight_kg").eq("id", profileId).maybeSingle(),
+    admin.from("profiles").select("display_name, ftp_watts, weight_kg, sex").eq("id", profileId).maybeSingle(),
     admin.from("intervals_connections").select("athlete_id, api_key").eq("profile_id", profileId).maybeSingle(),
     admin.from("team_members").select("team_id, teams(name)").eq("profile_id", profileId),
   ]);
@@ -230,13 +230,13 @@ export async function buildWeekSummary(admin: Admin, profileId: string, weekStar
     // Alleen de eigen steen, op de huidige schaal. Zonder migratie 0265 geen steen.
     admin
       .from("zwbriljant_snapshots")
-      .select("week, facets, consistency")
+      .select("week, facets, consistency, provenance")
       .eq("profile_id", profileId)
       .eq("provenance->>scale", SCALE_VERSION)
       .lte("week", weekStart)
       .order("week", { ascending: false })
       .limit(6)
-      .then(({ data, error }) => (error ? [] : ((data ?? []) as Array<{ week: string; facets: unknown; consistency: number | string | null }>))),
+      .then(({ data, error }) => (error ? [] : ((data ?? []) as Array<{ week: string; facets: unknown; consistency: number | string | null; provenance: { durability?: "test" | "ritten" } | null }>))),
   ]);
 
   // Ritten en fitness
@@ -319,9 +319,11 @@ export async function buildWeekSummary(admin: Admin, profileId: string, weekStar
     briljant: buildBriljant(
       briljantRows.map((row): BriljantSnapshot => {
         const facets = (row.facets ?? {}) as StoredSnapshot["facets"];
-        return { week: row.week, facets, score: storedScore(facets, row.consistency == null ? null : Number(row.consistency)) };
+        const consistency = row.consistency == null ? null : Number(row.consistency);
+        return { week: row.week, facets, consistency, score: storedScore(facets, consistency), durability: row.provenance?.durability };
       }),
       weekStart,
+      profile?.sex === "man" || profile?.sex === "vrouw" ? profile.sex : null,
     ),
   };
 }

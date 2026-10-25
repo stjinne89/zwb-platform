@@ -435,7 +435,7 @@ export default function PrivacyPage() {
             op je week. We bewaren per week een samenvatting van je ritten,
             schema, belasting, vermogen, teamuitslagen, voedings- en
             corelogboek en clubritten, je ZWBriljant-steen (klasse, punten en
-            je laagste onderdeel, uit je bewaarde weeksteen), en of je het
+            het onderdeel waar je het meest wint, uit je bewaarde weeksteen), en of je het
             overzicht hebt gezien. Alleen jij kunt het lezen, ook als je je
             steen niet met leden deelt. Gebruik je ZWBeter voor je training, dan
             gaat die samenvatting zonder je naam en zonder je steen naar OpenAI om het oordeel van
