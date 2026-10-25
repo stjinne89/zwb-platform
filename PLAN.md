@@ -11321,7 +11321,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: consistentie hersteld, geen consistentie is de volle straf, melding voor de kJ-standen
 
-**2026-10-25.** Lokaal gecommit, niet gepusht. Geen migratie. Wel een
+**2026-10-25.** Commit `5d8673d1`, lokaal, niet gepusht. Geen migratie. Wel een
 datawijziging op productie (zie onder).
 
 Aanleiding: een melding dat ZWBriljanten niet klopten. Controle op productie
