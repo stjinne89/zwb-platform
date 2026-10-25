@@ -11315,7 +11315,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — TSS uit hartslag voor ritten zonder vermogensmeter
 
 **2026-10-25.** Commits `aa256eb4` (vaste rust-HR) en `97628bbe` (eigen
-rust-HR en privacytekst), niet gepusht. Geen migratie.
+rust-HR en privacytekst), op 2026-10-25 gepusht naar `main` (op verzoek van de
+eigenaar). Geen migratie.
 
 De eigenaar vroeg om TSS voor ritten zonder vermogensmeter maar met hartslag,
 zoals intervals.icu dat doet. Tot nu toe bleef de TSS van zo'n rit leeg: overal
@@ -11390,8 +11391,9 @@ fout op `modern-screenshot`). Niet in de app bekeken, ook de privacypagina niet.
 
 ### Gebouwd — ZWBeter Worden: naleving als balken in de ZWB-kleuren
 
-**2026-10-25.** Commit `c1f76716`, lokaal op de branch
-`claude/training-compliance-zones-fd2d1a`, niet gepusht. Geen migratie.
+**2026-10-25.** Commit `f5aba7a6` (cherry-pick van `c1f76716` van de branch
+`claude/training-compliance-zones-fd2d1a`), op 2026-10-25 gepusht naar `main` (op
+verzoek van de eigenaar). Geen migratie.
 
 De eigenaar vond de tabel van de vorige ronde en vooral de zoneweergave niet
 duidelijk genoeg en vroeg om horizontale balken in de ZWB-kleuren. Elk onderdeel
@@ -11422,8 +11424,9 @@ Niet met echte ritten in de app bekeken.
 
 ### Gebouwd — ZWBeter Worden: training uit een clubevent linkt terug naar het event
 
-**2026-10-25.** Commit `bc744b19`, lokaal op de branch
-`claude/trainingsschema-events-clickable-a7c52a`, niet gepusht. Geen migratie.
+**2026-10-25.** Commit `8dff0327` (cherry-pick van `bc744b19` van de branch
+`claude/trainingsschema-events-clickable-a7c52a`), op 2026-10-25 gepusht naar
+`main` (op verzoek van de eigenaar). Geen migratie.
 
 De eigenaar vroeg of een event dat via de kalender in het schema komt ook weer
 terug te klikken is naar dat event. Een training uit een clubevent droeg al
