@@ -11314,7 +11314,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — TSS uit hartslag voor ritten zonder vermogensmeter
 
-**2026-10-25.** Commit `aa256eb4`, niet gepusht. Geen migratie.
+**2026-10-25.** Commits `aa256eb4` (vaste rust-HR) en `HASH_VOLGT` (eigen
+rust-HR en privacytekst), niet gepusht. Geen migratie.
 
 De eigenaar vroeg om TSS voor ritten zonder vermogensmeter maar met hartslag,
 zoals intervals.icu dat doet. Tot nu toe bleef de TSS van zo'n rit leeg: overal
@@ -11334,13 +11335,28 @@ hebben van een Strava-rit alleen de gemiddelde hartslag. Daarom twee bronnen, in
   badges) één keer opnieuw voor alle intervals-ritten van 30 dagen.
 - **Andere ritten**: dezelfde TRIMP-formule op de gemiddelde hartslag
   (`src/lib/training/hr-load.ts`), met LTHR en max-HR uit
-  `profile_sport_settings`, rust-HR vast 50, en de weegfactor 1,92 (man of
-  onbekend) of 1,67 (vrouw).
+  `profile_sport_settings`, de eigen rust-HR (mediaan van `profile_wellness`
+  over 60 dagen, waarden buiten 30–90 genegeerd; anders vast 50), en de
+  weegfactor 1,92 (man of onbekend) of 1,67 (vrouw).
 
-Getoetst tegen 2.441 ritten waarvan intervals de HRSS gaf (gemiddeld 77):
-mediaan 6 % onder intervals, gemiddeld 6,4 TSS ernaast, r = 0,99. De
-vrouwenfactor halveerde de afwijking bij vrouwen (8,9 → 4,7). De eenvoudiger
-formule uur × (HR/LTHR)² × 100 zat er gemiddeld 46 % boven en is afgevallen.
+Getoetst tegen 2.441 ritten waarvan intervals de HRSS gaf (gemiddeld 77): met de
+eigen rust-HR mediaan 4 % onder intervals, gemiddeld 5,0 TSS ernaast, r = 0,99;
+met de vaste 50 gemiddeld 6,4. Van de 13 betrokken leden hadden er 8 een
+rust-HR in de laatste 60 dagen. De vrouwenfactor halveerde de afwijking bij
+vrouwen (8,9 → 4,7). De eenvoudiger formule uur × (HR/LTHR)² × 100 zat er
+gemiddeld 46 % boven en is afgevallen.
+
+**Privacy (2026-10-25, keuze van de eigenaar).** De eigen rust-HR is opt-in
+hersteldata; de TSS die eruit volgt gaat naar trainer, AI-coach en het
+Strava-blok. Eerst was de rust-HR daarom vast (commit `aa256eb4`); na voorleggen
+koos de eigenaar voor de eigen rust-HR met **alleen een tekstaanpassing in
+`/privacy`, bewust zonder nieuwe versie in `src/lib/privacy.ts`** (geen
+hertekening): de rust-HR zelf wordt met niemand gedeeld, alleen een berekend
+getal, net als de gereedscore die al naar AI-coach en Strava ging. De tekst noemt
+nu (1) het gebruik van de rust-HR voor de TSS bij de opt-in-hersteldata, (2) dat
+we FTP, CP, W', zones en drempel- en maximale hartslag uit de
+intervals-instellingen bewaren — dat gebeurde al sinds migratie `0101` maar stond
+er niet — en (3) dat het Strava-blok ook de belasting uit hartslag kan bevatten.
 
 `RideMetrics` en `RideLoad` kregen `tssSource` (`"power"`, `"hr"` of null). IF en
 NP blijven leeg zonder meter. De meldingen "Zonder vermogensmeter zijn TSS en IF
@@ -11357,10 +11373,6 @@ bevestigde, vullen zichzelf binnen het venster van 7 dagen opnieuw; bevestigde
 blijven zoals ze waren.
 
 **Bewust niet gedaan.**
-- **Eigen rust-HR niet gebruikt.** Die maakt de schatting nauwkeuriger (5,0 in
-  plaats van 6,4 TSS ernaast), maar is opt-in hersteldata die volgens de
-  privacyverklaring alleen voor het lid (en een gekozen trainer) is, terwijl de
-  TSS ook naar de AI-coach en het Strava-blok gaat. Voorgelegd aan de eigenaar.
 - Geen hartslagstreams ophalen om per seconde te rekenen zoals intervals: kost
   per rit een Strava-verzoek binnen de rate limit, voor ~1 TSS winst.
 - Leden zonder intervals-koppeling hebben geen LTHR; voor hen blijft de TSS van
@@ -11370,7 +11382,8 @@ blijven zoals ze waren.
 - CTL/ATL/TSB veranderen niet: met koppeling komen die al van intervals (die
   rekent HRSS mee), zonder koppeling is er geen LTHR.
 
-**Getest.** `hr-load.test.ts` (nieuw), `ride-metrics.test.ts` bijgewerkt.
+**Getest.** `hr-load.test.ts` (nieuw), `ride-metrics.test.ts` bijgewerkt. De
+privacypagina is niet in de browser bekeken.
 Volledige vitest-run groen op drie bekende uitzonderingen na (`.env.local`
 ontbreekt in de worktree; twee asserts in `help-categories.test.ts` die al vóór
 deze ronde faalden). ESLint op de gewijzigde bestanden, `tsc` (alleen de bekende

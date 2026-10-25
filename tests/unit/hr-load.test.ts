@@ -42,13 +42,18 @@ describe("heartRateStressScore", () => {
 });
 
 describe("hrBasisFrom", () => {
-  it("rekent met een vaste rust-HR en de mannenfactor", () => {
+  it("valt zonder eigen metingen terug op de vaste rust-HR en de mannenfactor", () => {
     expect(hrBasisFrom({ lthr: 170, maxHr: 190, sex: "man" })).toEqual({
       lthr: 170,
       maxHr: 190,
       restingHr: DEFAULT_RESTING_HR,
       sexFactor: 1.92,
     });
+  });
+
+  it("neemt de mediaan van de eigen rust-HR en negeert meetfouten", () => {
+    const result = hrBasisFrom({ lthr: 170, maxHr: 190, restingHrs: [48, 52, 50, 140, 12, null] });
+    expect(result?.restingHr).toBe(50);
   });
 
   it("gebruikt de vrouwenfactor voor vrouwen", () => {

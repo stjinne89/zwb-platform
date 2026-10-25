@@ -6,9 +6,9 @@
 // hartslagstream; wij hebben van een Strava-rit alleen de gemiddelde hartslag.
 //
 // Getoetst op 2.441 ritten in productie waarvan intervals de HRSS gaf
-// (2026-10-25, gemiddeld 77): zoals hier gerekend zit de TRIMP op gemiddelde
-// hartslag mediaan 6% onder die van intervals, gemiddeld 6,4 TSS ernaast,
-// r = 0,99. De vrouwenfactor 1,67 halveert de afwijking bij vrouwen. Een
+// (2026-10-25, gemiddeld 77): met de eigen rust-HR zit de TRIMP op gemiddelde
+// hartslag mediaan 4% onder die van intervals, gemiddeld 5,0 TSS ernaast,
+// r = 0,99; met de vaste rust-HR 6,4 TSS. De vrouwenfactor 1,67 halveert de afwijking bij vrouwen. Een
 // eenvoudiger formule, uur × (HR/LTHR)² × 100, zat er gemiddeld 46% boven en
 // is daarom niet gekozen.
 
@@ -22,7 +22,7 @@ export type HrBasis = {
   sexFactor: number;
 };
 
-/** Rust-HR in de TRIMP; 50 gaf in de toets de kleinste afwijking van een vaste waarde. */
+/** Rust-HR zonder eigen metingen; 50 gaf in de toets de kleinste afwijking van een vaste waarde. */
 export const DEFAULT_RESTING_HR = 50;
 
 const MALE_FACTOR = 1.92;
@@ -50,50 +50,76 @@ export function heartRateStressScore(
   return Math.round((ride / thresholdHour) * 100);
 }
 
+function median(values: number[]) {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
 /**
  * Stelt de basis samen. LTHR en max-HR komen uit de intervals-instellingen
- * (profile_sport_settings); zonder die twee is er geen basis.
- *
- * Rust-HR is bewust vast. De eigen rust-HR uit de wellness-data maakt de
- * schatting nauwkeuriger (gemiddeld 5,0 in plaats van 6,4 TSS ernaast), maar
- * is opt-in hersteldata die volgens de privacyverklaring alleen voor het lid
- * is, terwijl de TSS ook naar de trainer, de AI-coach en het Strava-blok gaat.
+ * (profile_sport_settings); zonder die twee is er geen basis. Rust-HR is de
+ * mediaan van de recente wellness-metingen (opt-in hersteldata), anders
+ * DEFAULT_RESTING_HR. Met de eigen rust-HR zit de schatting gemiddeld 5,0 TSS
+ * naast intervals, met de vaste 6,4.
  */
-export function hrBasisFrom(input: { lthr: unknown; maxHr: unknown; sex?: string | null }): HrBasis | null {
+export function hrBasisFrom(input: {
+  lthr: unknown;
+  maxHr: unknown;
+  restingHrs?: unknown[];
+  sex?: string | null;
+}): HrBasis | null {
   const lthr = Number(input.lthr);
   const maxHr = Number(input.maxHr);
   if (!Number.isFinite(lthr) || !Number.isFinite(maxHr) || lthr <= DEFAULT_RESTING_HR || lthr >= maxHr) {
     return null;
   }
+  // Een rust-HR buiten 30–90 is een meetfout (intervals had er een van 140).
+  const resting = median(
+    (input.restingHrs ?? []).map(Number).filter((hr) => Number.isFinite(hr) && hr >= 30 && hr <= 90),
+  );
   return {
     lthr,
     maxHr,
-    restingHr: DEFAULT_RESTING_HR,
+    restingHr: resting ?? DEFAULT_RESTING_HR,
     sexFactor: input.sex === "vrouw" ? FEMALE_FACTOR : MALE_FACTOR,
   };
 }
 
+/** Hoe ver terug de rust-HR meetelt. */
+const RESTING_HR_DAYS = 60;
+
 /**
  * Laadt de basis van een lid. Elke fout geeft null: dan blijft de TSS van een
- * rit zonder meter leeg, zoals voorheen.
+ * rit zonder meter leeg, zoals voorheen. profile_wellness heeft alleen rijen
+ * zolang het lid de hersteldata-opt-in aan heeft; uitzetten wist ze.
  */
 export async function loadHrBasis(
   client: SupabaseClient,
   profileId: string,
 ): Promise<HrBasis | null> {
   try {
-    const [settings, profile] = await Promise.all([
+    const since = new Date(Date.now() - RESTING_HR_DAYS * 86400_000).toISOString().slice(0, 10);
+    const [settings, profile, wellness] = await Promise.all([
       client
         .from("profile_sport_settings")
         .select("lthr, max_hr")
         .eq("profile_id", profileId)
         .maybeSingle(),
       client.from("profiles").select("sex").eq("id", profileId).maybeSingle(),
+      client
+        .from("profile_wellness")
+        .select("resting_hr")
+        .eq("profile_id", profileId)
+        .gte("date", since)
+        .not("resting_hr", "is", null),
     ]);
     if (settings.error || !settings.data) return null;
     return hrBasisFrom({
       lthr: settings.data.lthr,
       maxHr: settings.data.max_hr,
+      restingHrs: (wellness.data ?? []).map((row: { resting_hr: unknown }) => row.resting_hr),
       sex: (profile.data?.sex as string | null | undefined) ?? null,
     });
   } catch {
