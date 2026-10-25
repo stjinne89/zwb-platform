@@ -11422,7 +11422,7 @@ Niet met echte ritten in de app bekeken.
 
 ### Gebouwd — ZWBeter Worden: training uit een clubevent linkt terug naar het event
 
-**2026-10-25.** Commit `HASH`, lokaal op de branch
+**2026-10-25.** Commit `bc744b19`, lokaal op de branch
 `claude/trainingsschema-events-clickable-a7c52a`, niet gepusht. Geen migratie.
 
 De eigenaar vroeg of een event dat via de kalender in het schema komt ook weer
