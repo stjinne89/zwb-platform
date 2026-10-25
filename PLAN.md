@@ -11321,7 +11321,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Hulpvideo: durability en de kJ-standen in intervals.icu
 
-**2026-10-25.** Lokaal gecommit, niet gepusht. Geen migratie.
+**2026-10-25.** Commit `058b1d3a`, lokaal, niet gepusht. Geen migratie.
 
 Op verzoek van de eigenaar een clip bij de melding over de kJ-standen (ronde
 hieronder): `public/hulp-video/kj-standen.mp4` (48 s, staand, ondertitels,
