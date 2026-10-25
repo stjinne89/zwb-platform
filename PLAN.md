@@ -11318,7 +11318,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gewijzigd — Strava-tip: werk aan wat het meest oplevert
 
-**2026-10-25.** Commit volgt hieronder. Geen migratie. Lokaal gecommit, niet gepusht.
+**2026-10-25.** Commit `a0e8c79d`. Geen migratie. Lokaal gecommit, niet gepusht.
 
 Op verzoek van de eigenaar dezelfde wissel als in het weekoverzicht (ronde
 hieronder): de tip "bijna een klasse hoger" in het ZWBeter-blok op Strava noemt
