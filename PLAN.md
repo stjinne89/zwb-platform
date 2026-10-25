@@ -11314,7 +11314,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — TSS uit hartslag voor ritten zonder vermogensmeter
 
-**2026-10-25.** Commits `aa256eb4` (vaste rust-HR) en `HASH_VOLGT` (eigen
+**2026-10-25.** Commits `aa256eb4` (vaste rust-HR) en `97628bbe` (eigen
 rust-HR en privacytekst), niet gepusht. Geen migratie.
 
 De eigenaar vroeg om TSS voor ritten zonder vermogensmeter maar met hartslag,
