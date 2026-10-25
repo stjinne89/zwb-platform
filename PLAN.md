@@ -11314,8 +11314,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter-blok op Strava: eigen opbouw, de steen en een tip
 
-**2026-10-25.** Lokaal gecommit, niet gepusht. Tipteksten goedgekeurd door de
-eigenaar. Geen migratie.
+**2026-10-25.** Commit `870e8380`, lokaal, niet gepusht. Tipteksten goedgekeurd
+door de eigenaar. Geen migratie.
 
 De eigenaar vond dat het blok onderaan de Strava-beschrijving te veel op dat van
 JOIN leek, en wilde de ZWBriljant-steen erin in plaats van alleen CTL. Tot nu toe
