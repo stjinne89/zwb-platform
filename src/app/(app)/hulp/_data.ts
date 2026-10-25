@@ -31,6 +31,7 @@ export const HELP_VIDEOS = [
   { id: "zonder-strava", title: "Ritten zonder Strava", seconds: 17 },
   { id: "meldingen", title: "Meldingen aanzetten", seconds: 16 },
   { id: "aanmelden-event", title: "Aanmelden voor een event", seconds: 12 },
+  { id: "kj-standen", title: "Durability: de kJ-standen", seconds: 48 },
 ] as const;
 
 export type HelpVideoId = (typeof HELP_VIDEOS)[number]["id"];

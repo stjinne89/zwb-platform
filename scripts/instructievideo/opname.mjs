@@ -12,7 +12,7 @@ import { chromium } from "@playwright/test";
 import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
-import { SCENES, VIDEO } from "./scenes.mjs";
+import { HULP_SCENES, SCENES, VIDEO } from "./scenes.mjs";
 import { OUT, makeCues, sceneSeconds, speechSeconds, LEAD_IN, TAIL } from "./lib.mjs";
 
 const APP = process.env.DEMO_APP_URL ?? "http://localhost:3456";
@@ -219,7 +219,7 @@ async function warmUp(browser, scenes) {
   await setPreset("compleet");
   await context.addCookies(await sessionCookies());
   const page = await context.newPage();
-  for (const start of new Set([...scenes.map((scene) => scene.start), "/events/e0000000-0000-4000-8000-000000000002", "/zwbeter-worden", "/club", "/profiel", "/hulp"])) {
+  for (const start of new Set([...scenes.filter((scene) => !scene.html).map((scene) => scene.start), "/events/e0000000-0000-4000-8000-000000000002", "/zwbeter-worden", "/club", "/profiel", "/hulp"])) {
     await page.goto(APP + start, { waitUntil: "load", timeout: 120_000 }).catch(() => {});
   }
   await context.close();
@@ -278,6 +278,13 @@ async function recordScene(browser, scene) {
   const dir = path.join(FRAMES, scene.id);
   const stopCapture = startCapture(cdp, dir, created);
 
+  // Een scène met eigen beelden (schermafdrukken van een andere site) krijgt
+  // zijn pagina hier, op een adres onder de app zodat het init-script meedoet.
+  if (scene.html) {
+    await page.route(APP + scene.start, (route) =>
+      route.fulfill({ contentType: "text/html; charset=utf-8", body: scene.html() }),
+    );
+  }
   await page.goto(APP + scene.start, { waitUntil: "load" });
   await page.waitForLoadState("networkidle", { timeout: 4000 }).catch(() => {});
   const s = stage(page, scene, speech);
@@ -303,7 +310,10 @@ async function recordScene(browser, scene) {
 }
 
 const only = process.argv.slice(2);
-const scenes = only.length ? SCENES.filter((scene) => only.some((prefix) => scene.id.startsWith(prefix))) : SCENES;
+// Zonder nummers alleen de hoofdvideo; de scènes van losse hulpclips (HULP_SCENES)
+// neem je op met hun nummer.
+const all = [...SCENES, ...HULP_SCENES];
+const scenes = only.length ? all.filter((scene) => only.some((prefix) => scene.id.startsWith(prefix))) : SCENES;
 
 mkdirSync(FRAMES, { recursive: true });
 const manifest = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, "utf8")) : {};

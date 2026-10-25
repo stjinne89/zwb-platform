@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Gem } from "lucide-react";
 import { FACET_WEIGHTS, LEVELS, powerAnchors } from "@/lib/briljant/norms";
 import { FACETS, FACET_LABELS, FACET_MEASURES } from "@/lib/briljant/score";
+import { HelpVideoLink } from "./help-video";
 
 const pct = (value: number) => `${(value * 100).toLocaleString("nl-NL", { maximumFractionDigits: 1 })}%`;
 const wkg = (value: number) => value.toLocaleString("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -39,9 +40,9 @@ export function BriljantHelp() {
             </li>
             <li>
               <strong className="text-foreground">De twee kJ-standen in intervals.icu op 1000 en 2000 kJ</strong>,
-              voor durability: open intervals.icu, ga naar Power, klik boven de powercurve op de knoppen met
-              &quot;? kJ&quot; en vul 1000 en 2000 in. Klik daarna op Mijn vermogen op &quot;Mijn waarden
-              ophalen&quot;. Zonder die standen blijft durability leeg en mis je {pct(FACET_WEIGHTS.durability)} van je
+              voor durability: open intervals.icu, kies Beste prestaties en dan Vermogenscurves (op de telefoon
+              onder de knop met de drie puntjes). Tik onderaan bij &quot;Na … kJ&quot; op het potloodje, vul 1000
+              en 2000 in en vink ze allebei aan. Klik daarna op Mijn vermogen op &quot;Mijn waarden ophalen&quot;. Zonder die standen blijft durability leeg en mis je {pct(FACET_WEIGHTS.durability)} van je
               score. De laagste stand moet minstens 10 kJ per kilo zijn (800 kJ bij 80 kg); daaronder zegt het verval
               te weinig. Al ingesteld en nog steeds leeg? Dan reed je in de laatste 90 dagen geen rit waarin je die
               stand haalde. Meer bij{" "}
@@ -49,6 +50,7 @@ export function BriljantHelp() {
                 Mijn vermogen
               </Link>
               .
+              <HelpVideoLink video="kj-standen" className="mt-1 flex" />
             </li>
             <li>
               <strong className="text-foreground">De durability-test</strong>, voor wie boven Diamant wil op

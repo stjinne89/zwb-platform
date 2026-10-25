@@ -9,7 +9,9 @@ import {
 
 export type { IntervalsPowerCurvePoint } from "@/lib/intervals/power-curve";
 
-const BASE = "https://intervals.icu";
+// INTERVALS_BASE_URL alleen voor de instructievideo: daar speelt de nep-Supabase
+// ook intervals.icu na (scripts/instructievideo/serve.mjs).
+const BASE = process.env.INTERVALS_BASE_URL ?? "https://intervals.icu";
 
 function authHeader(apiKey: string): string {
   // De api_key kan versleuteld uit de DB komen; hier centraal ontsleutelen zodat

@@ -298,8 +298,8 @@ gaat stabiliteit voor nieuwe features.
    2026-10-25 hieronder): gebouwd en lokaal getest, niet gepusht. Geen migratie;
    het geslacht van 14 leden is al op productie gezet. Open: pushen, daarna de
    dialoog in de browser bekijken en na de job de consistentie van de vijf leden
-   zonder consistentie en van de drie met lage naleving nakijken. Eventueel een
-   video over de kJ-standen.
+   zonder consistentie en van de drie met lage naleving nakijken. De hulpvideo
+   `kj-standen` hoort bij deze ronde (zelfde dag, ook nog niet gepusht).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11319,6 +11319,54 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Hulpvideo: durability en de kJ-standen in intervals.icu
+
+**2026-10-25.** Lokaal gecommit, niet gepusht. Geen migratie.
+
+Op verzoek van de eigenaar een clip bij de melding over de kJ-standen (ronde
+hieronder): `public/hulp-video/kj-standen.mp4` (48 s, staand, ondertitels,
+geen stem), gelinkt onder stap 2 van "Zo haal je het meeste uit je steen" op
+`/hulp/training#zwbriljant` en in `HELP_VIDEOS`. Drie scènes:
+
+- **16-kj-melding**: de nieuwe dialoog op Vandaag, met het demolid (preset
+  `kj-melding`: intervals.icu gekoppeld, geen vermoeide curve).
+- **17-kj-intervals**: de stappen in intervals.icu. Geen app, dus een pagina met
+  schermafdrukken uit de ingebouwde browser van het account van de eigenaar
+  (telefoonformaat, op zijn verzoek; hij logde zelf in). Naam, foto en
+  vermogensgrafiek zijn vervaagd. In `3-curves-1000.jpg` staat de eerste stand
+  op 1000 kJ, gemaakt uit de echte "000 kJ" van de tweede stand: in zijn
+  account stond 830 kJ en er is niets opgeslagen (het invulveld met 1000 is
+  vastgelegd en daarna geannuleerd). De beelden staan in
+  `scripts/instructievideo/intervals/`, de tikvlakken in `INTERVALS_SPOTS`
+  (`scenes.mjs`); `opname.mjs` zet zo'n scène neer via `scene.html`.
+- **18-kj-ophalen**: Mijn vermogen met "Mijn waarden ophalen", met het demolid
+  (preset `vermogen`). Daarvoor speelt de nep-Supabase ook intervals.icu na
+  (`handleIntervals`), via de nieuwe omgevingsvariabele `INTERVALS_BASE_URL`
+  in `src/lib/intervals/client.ts`; zonder die variabele (productie) blijft het
+  `https://intervals.icu`.
+
+Deze scènes staan in `HULP_SCENES`, niet in `SCENES`: de hoofdvideo "Aan de
+slag" blijft vijftien stappen. `opname.mjs` zonder nummers neemt alleen de
+hoofdvideo op (`opname.mjs 16 17 18` voor deze clip); `bouw.mjs` bouwt de
+hoofdvideo alleen als er scènes van zijn.
+
+**Let op:** `bouw.mjs --publiceer` leegt eerst heel `public/hulp-video/`. In
+deze worktree waren de andere tien clips niet opgenomen, dus is de clip met de
+hand gekopieerd. Wie later alles opnieuw publiceert, neemt eerst alle scènes
+op.
+
+**Hulptekst gecorrigeerd.** `/hulp` zei "klik boven de powercurve op de knoppen
+met ? kJ". In intervals.icu staat het onder Beste prestaties → Vermogenscurves
+(op de telefoon onder de knop met drie puntjes), onderaan "Na … kJ" met een
+potloodje. Aangepast in `briljant.tsx` en `training.tsx`.
+
+**Getest.** `tsc`, ESLint, de hulp- en ZWBriljant-tests. Volle suite groen op drie
+bestanden na (`rls-initplan-migration`, `admin-areas`, `intervals-ride-sync`),
+die los wel slagen: traag onder de volle run. De clip beeld voor beeld
+nagekeken. `/hulp/training` met de demo-server: de link staat er en de mp4 komt
+terug als `video/mp4`. **Niet getest:** de clip op een telefoon, en de
+Engelstalige intervals.icu (de video toont de Nederlandse).
+
 ### Gebouwd — ZWBriljant: consistentie hersteld, geen consistentie is de volle straf, melding voor de kJ-standen
 
 **2026-10-25.** Commit `5d8673d1`, lokaal, niet gepusht. Geen migratie. Wel een
@@ -11376,9 +11424,8 @@ de actuele. De fouten zaten in de consistentie, en in ontbrekende data.
   faalde daardoor op `main`.
 
 **Bewust niet gebouwd.**
-- Geen video bij de melding: er is nog geen opname van de kJ-instelling in
-  intervals.icu. Een clip in `public/hulp-video` (zonder stem, met ondertitels)
-  kan later naast de uitleg op `/hulp`.
+- Geen video bij de melding. *Achterhaald dezelfde dag:* de clip
+  `kj-standen` staat nu op `/hulp`, zie de ronde erboven.
 - Geen terugval voor een ontbrekende durability of ZRS: een ontbrekend onderdeel
   telt voor 0, zoals de eigenaar op 2026-10-22 besloot. Eén lid verloor zo racen:
   laatste race 20 januari, Zwift toont geen ZRS meer.

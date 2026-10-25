@@ -76,8 +76,36 @@ function inDays(days, hour = 19, minute = 30) {
  * alleen hier in de nep-database krijgt die rol dat ene recht; het demolid
  * blijft verder een gewoon lid.
  */
+/**
+ * De ZWBriljant-clip over de kJ-standen: een compleet profiel met intervals.icu.
+ * "kj-melding" heeft nog geen vermoeide curve (dan komt de melding), "vermogen"
+ * wel, na 1000 en 2000 kJ (zie handleIntervals in mock-supabase.mjs).
+ */
+const KJ_PRESETS = ["kj-melding", "vermogen"];
+
+function intervalsTables(preset) {
+  if (!KJ_PRESETS.includes(preset)) return { intervals_connections: [], rider_power_profiles: [], intervals: {} };
+  const set = preset === "vermogen";
+  return {
+    intervals_connections: [{ profile_id: DEMO_USER_ID, athlete_id: "i000001", api_key: "demo-intervals-key" }],
+    rider_power_profiles: [
+      {
+        profile_id: DEMO_USER_ID,
+        athlete_id: "i000001",
+        weight_kg: 68,
+        sync_status: "ok",
+        curve_points_fatigue: set
+          ? [1000, 2000].map((afterKj) => ({ afterKj, points: [{ seconds: 60, watts: 300 }, { seconds: 300, watts: 220 }] }))
+          : [],
+      },
+    ],
+    intervals: { fatigue: set ? [[1000, 0.95], [2000, 0.9]] : [] },
+  };
+}
+
 export function buildState(preset, { design = "klassiek" } = {}) {
-  const profile = demoProfile(preset);
+  const profile = demoProfile(KJ_PRESETS.includes(preset) ? "compleet" : preset);
+  const { intervals, ...intervalsRows } = intervalsTables(preset);
   const user = {
     id: DEMO_USER_ID,
     aud: "authenticated",
@@ -97,7 +125,7 @@ export function buildState(preset, { design = "klassiek" } = {}) {
       community_role_permissions:
         design === "tegels" ? [{ role: "community_member", permissions: ["roles.manage_permissions"] }] : [],
       strava_connections: [],
-      intervals_connections: [],
+      ...intervalsRows,
       push_subscriptions: [],
       live_tracker_tokens: [],
       strava_bikes: [],
@@ -161,6 +189,7 @@ export function buildState(preset, { design = "klassiek" } = {}) {
         ...[4, 5].map((i) => ({ event_id: EVENT_IDS[2], profile_id: OTHER_MEMBERS[i].id, status: "yes" })),
       ],
     },
+    intervals,
     rpc: {
       rate_limit_hit: true,
     },

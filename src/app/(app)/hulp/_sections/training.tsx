@@ -343,9 +343,10 @@ export function TrainingHelp() {
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             De standen komen uit je eigen intervals.icu-instellingen. Zet ze op
-            1000 en 2000 kJ: open intervals.icu, ga naar Power, klik boven de
-            powercurve op de knoppen met &quot;? kJ&quot; en vul 1000 en 2000
-            in. Intervals rekent de curves daarna door; dat duurt een paar
+            1000 en 2000 kJ: open intervals.icu, kies Beste prestaties en dan
+            Vermogenscurves (op de telefoon onder de knop met de drie puntjes),
+            tik onderaan bij &quot;Na … kJ&quot; op het potloodje en vul 1000 en
+            2000 in. Intervals rekent de curves daarna door; dat duurt een paar
             minuten.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
