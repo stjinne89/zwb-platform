@@ -92,6 +92,7 @@ export function planDayMenu({
       dayType: nutrition.dayType,
       rideMinutes: nutrition.rideMinutes,
       rideIntensity: nutrition.rideIntensity,
+      rideGut: nutrition.rideGut,
     },
     dayType: nutrition.dayType,
     tomorrowType: nutrition.tomorrowType,
@@ -108,6 +109,7 @@ export function planDayMenu({
       ? ridePlan({
           minutes: nutrition.rideMinutes,
           intensity: nutrition.rideIntensity,
+          gut: nutrition.rideGut,
           ranked: rankRecipes(recipes, "tijdens_rit", context).map((item) => item.recipe),
           lead: rideSlot.recipe,
           leadChosen: rideSlot.chosen,

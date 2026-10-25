@@ -154,6 +154,14 @@ function trial(detail: string): ProtocolTask {
 
 const SUPPLEMENT_MIN_AGE = 18;
 
+/**
+ * Gram koolhydraten per uur per week van de darmtraining en van het vervolg
+ * naar 150. Het ritplan rekent ermee zolang een lid zo'n protocol volgt
+ * (src/lib/nutrition/gut-training.ts).
+ */
+export const GUT_TRAINING_STEPS = [60, 70, 80, 90, 100, 110] as const;
+export const GUT_TRAINING_150_STEPS = [130, 140, 150] as const;
+
 export const NUTRITION_PROTOCOLS: Protocol[] = [
   {
     slug: "cafeine",
@@ -565,7 +573,7 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     goal: "Meer koolhydraten opnemen zonder maagklachten.",
     evidence: "matig",
     anchor: "start",
-    phases: [60, 70, 80, 90, 100, 110].map((grams, week) => ({
+    phases: GUT_TRAINING_STEPS.map((grams, week) => ({
       key: `week-${week + 1}`,
       title: `Week ${week + 1}`,
       fromDay: week * 7,
@@ -605,7 +613,7 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     goal: "Wennen aan wat profs in lange etappes eten, als je 120 gram per uur al zonder klachten haalt.",
     evidence: "beperkt",
     anchor: "start",
-    phases: [130, 140, 150].map((grams, week) => ({
+    phases: GUT_TRAINING_150_STEPS.map((grams, week) => ({
       key: `week-${week + 1}`,
       title: `Week ${week + 1}`,
       fromDay: week * 7,

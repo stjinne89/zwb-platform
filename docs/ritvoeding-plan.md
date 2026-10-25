@@ -169,6 +169,13 @@ getal van de huidige week als doel ("deze week: 100 g per uur"), ook boven 90.
 Wie hem afrondde, ziet 120 als keuze, niet als standaard. Zonder protocol blijft
 90 de bovenkant. De gegevens staan al in `member_protocols`. Geen migratie.
 
+*Gebouwd op 2026-10-25, zie `PLAN.md`, met twee afwijkingen. (1) Het weekgetal
+geldt vanaf een rit van 90 minuten, niet 150: zo schrijft het protocol de
+oefenritten zelf voor ("een rit van minstens anderhalf uur"); bij het vervolg
+naar 150 vanaf drie uur. (2) "120 als keuze" is op besluit van de eigenaar
+(2026-10-25) een bewaarde schakelaar op de protocolpagina, en dus wel een
+migratie: `0272_nutrition_ride_carbs_120.sql`, nog niet toegepast.*
+
 ### Stap 5. Zweettest en vochtdoel
 
 - **De test.** Een korte invoer: gewicht voor, gewicht na, gedronken ml, duur,

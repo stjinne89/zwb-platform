@@ -21,8 +21,9 @@ import {
   PRE_SLEEP_PROTEIN_G,
   dailyCarbs,
   dailyProtein,
-  rideCarbsPerHour,
+  rideBand,
   rideTargetPerHour,
+  type GutTraining,
   recoveryCarbsPerHour,
   type MealMoment,
   type Range,
@@ -38,6 +39,8 @@ export type NutritionDayInput = {
   plannedToday: FuelSession[];
   ridesToday: FuelSession[];
   plannedTomorrow: FuelSession[];
+  /** Darmtraining op deze dag (gut-training.ts); zonder: de gewone band. */
+  gut?: GutTraining | null;
   readinessState?: "ready" | "caution" | "recovery" | "unknown" | null;
   wellnessState?: "fresh" | "normal" | "fatigued" | "unknown" | null;
 };
@@ -56,6 +59,8 @@ export type NutritionDay = {
   rideMinutes: number | null;
   /** Zwaarte van de langste geplande rit vandaag; null zonder schema. */
   rideIntensity: string | null;
+  /** Darmtraining op deze dag, voor de portie en het ritplan. */
+  rideGut: GutTraining | null;
 };
 
 export type NutritionTipKind =
@@ -104,10 +109,11 @@ export function nutritionDay(input: NutritionDayInput): NutritionDay {
     tomorrowType: classifyFuelDay(input.plannedTomorrow),
     carbs: weight ? dailyCarbs(dayType, weight) : null,
     protein: weight ? dailyProtein(weight) : null,
-    rideCarbsPerHour: stillToRide > 0 ? rideCarbsPerHour(stillToRide) : null,
-    rideTargetPerHour: stillToRide > 0 ? rideTargetPerHour(stillToRide, rideIntensity) : null,
+    rideCarbsPerHour: stillToRide > 0 ? rideBand(stillToRide, input.gut) : null,
+    rideTargetPerHour: stillToRide > 0 ? rideTargetPerHour(stillToRide, rideIntensity, input.gut) : null,
     rideMinutes,
     rideIntensity,
+    rideGut: input.gut ?? null,
   };
 }
 

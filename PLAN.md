@@ -301,8 +301,9 @@ gaat stabiliteit voor nieuwe features.
    briefing, de herinnering en Boodschappen) zijn gebouwd op 2026-10-25, niet
    gepusht. Stap 2 ging op verzoek van de eigenaar door zonder te wachten op het
    besluit over de featurepauze. Stap 3 (het doel per uur volgt de zwaarte) is
-   ook gebouwd, niet gepusht. Volgende: stap 4 (darmtraining bepaalt het
-   plafond).
+   ook gebouwd, niet gepusht, net als stap 4 (darmtraining bepaalt het
+   plafond). **Voor het pushen: `0272_nutrition_ride_carbs_120.sql` toepassen.**
+   Volgende: stap 5 (zweettest en vochtdoel).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -314,8 +315,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0271`
-(`0270_zwbriljant_weights_fitheid20` is van ZWBriljant fitheid 20% en racen 12,5%, 2026-10-22, toegepast op 2026-10-22;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0273`
+(`0272_nutrition_ride_carbs_120` is van ritvoeding stap 4, 2026-10-25, **nog niet toegepast**;
+`0271_zwift_race_scores` is toegepast, zie punt 11 hierboven;
+`0270_zwbriljant_weights_fitheid20` is van ZWBriljant fitheid 20% en racen 12,5%, 2026-10-22, toegepast op 2026-10-22;
 `0269_zwbriljant_ctl40` is van ZWBriljant CTL-Goud op 40 en vermogen 50%, 2026-10-22, toegepast op 2026-10-22;
 `0268_zwbriljant_share_to_see` is van ZWBriljant alleen zien als je deelt, 2026-10-22, toegepast op 2026-10-22;
 `0267_zwbriljant_share_by_default` is van ZWBriljant standaard gedeeld, 2026-10-21, toegepast op 2026-10-21;
@@ -11325,6 +11328,54 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZWBeter voeden: darmtraining bepaalt het plafond onderweg
+
+**2026-10-25.** Stap 4 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
+besluit 4 van dat plan. Migratie `0272_nutrition_ride_carbs_120.sql`, **nog
+niet toegepast**. Niet gepusht.
+
+- **Lopende darmtraining** (`gut-training.ts`). Bij een rit van minstens 90
+  minuten is het getal van die week het doel (60, 70 … 110 g/u), ook boven of
+  onder de gewone band: dat is de opdracht van het protocol. Het vervolg
+  "Doorbouwen naar 150" (130, 140, 150) geldt vanaf drie uur. De stappen staan
+  nu als `GUT_TRAINING_STEPS` en `GUT_TRAINING_150_STEPS` in
+  `protocols/nutrition.ts`, en de protocollen zelf gebruiken ze ook.
+- **Na de darmtraining: 120 g/u als keuze.** Op de protocolpagina van de
+  darmtraining (en het vervolg) staat na afronden een schakelaar "Onderweg: tot
+  90 / tot 120 g per uur" (`setRideCarbs120`, kolom
+  `nutrition_profiles.ride_carbs_120`, standaard uit). Aan: bij ritten vanaf
+  2,5 uur is 120 de bovenkant van de band (`rideBand`), dus een race rekent met
+  120, tempo met 90, rustig blijft 60. Afgerond is: status `afgerond`, of nog
+  actief maar voorbij de zesde week. De eigenaar koos op 2026-10-25 voor een
+  bewaarde schakelaar boven een keuze per toestel of alleen tijdens het
+  protocol, zodat ook de herinnering en Boodschappen ermee rekenen.
+- **Overal mee**: dagdoel en portie, Dagmenu, Vandaag, schema, eventpagina,
+  briefing, herinnering (de cron leest runs en keuze voor alle leden tegelijk)
+  en Boodschappen. De dag krijgt `gut` mee in `NutritionDayInput`.
+
+**Bewust niet gedaan.** Geen keuze voor 150 g/u na het vervolg: het plan noemt
+alleen 120, en boven 120 is niets getest. Het weekgetal geldt voor elke rit van
+90 minuten of langer in die week, niet alleen voor de twee oefenritten die het
+protocol vraagt. Een trainer ziet de keuze voor 120 niet (RLS op
+`nutrition_profiles`); bij de trainerweergave rekent de app dus zonder. Geen
+privacytekst aangepast: het is een instelling naast lengte en gezin in dezelfde
+tabel, geen nieuwe soort gegevens.
+
+**Volgorde bij het pushen.** Zonder 0272 werkt alles behalve de schakelaar zelf:
+de app leest de keuze dan als uit, maar opslaan geeft een fout. Pas de migratie
+dus toe voordat dit live gaat.
+
+**Getest.** Nieuw `nutrition-gut-training` (weekgetal per week, voor de start en
+na zes weken niets, vanaf 90 minuten ook boven de band, het vervolg vanaf drie
+uur, 120 alleen na afronden en alleen als gekozen, rustig en korter dan 2,5 uur
+ongewijzigd). Alle voedings- en protocoltests slagen (252), ook de migratietest
+met 0272 tegen PGlite. `tsc` alleen de bekende fout op `modern-screenshot`;
+ESLint schoon. In de browser (de eigenaar heeft geen darmtraining): de
+protocolpagina laadt zonder schakelaar, Dagmenu, Vandaag en schema ongewijzigd.
+**Niet getest:** de schakelaar in de browser en op productie (vraagt een
+afgeronde darmtraining en de migratie), en een lopende darmtraining in de
+browser.
 
 ### Gebouwd — ZWBeter voeden: het doel per uur volgt de zwaarte van de rit
 

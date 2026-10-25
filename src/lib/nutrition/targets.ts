@@ -69,6 +69,24 @@ export function rideCarbsPerHour(durationMinutes: number): Range | null {
   return { min: 60, max: 90 };
 }
 
+/**
+ * Wat de darmtraining aan het doel onderweg verandert (gut-training.ts).
+ * `weekGrams`: een lopende darmtraining; bij een rit van minstens `minMinutes`
+ * is het getal van die week het doel. `high`: afgerond en zelf aangezet; bij
+ * een rit vanaf 2,5 uur wordt 120 g de bovenkant van de band.
+ */
+export type GutTraining = { weekGrams: number | null; minMinutes: number; high: boolean };
+
+export const GUT_HIGH_G_PER_HOUR = 120;
+const GUT_HIGH_MIN_MINUTES = 150;
+
+/** De band per uur, met 120 g als bovenkant voor wie dat na de darmtraining koos. */
+export function rideBand(durationMinutes: number, gut?: GutTraining | null): Range | null {
+  const band = rideCarbsPerHour(durationMinutes);
+  if (!band) return null;
+  return gut?.high && durationMinutes >= GUT_HIGH_MIN_MINUTES ? { ...band, max: GUT_HIGH_G_PER_HOUR } : band;
+}
+
 const EASY_RIDES = new Set(["recovery", "endurance"]);
 const HARD_RIDES = new Set(["threshold", "vo2max", "anaerobic", "race"]);
 
@@ -80,9 +98,15 @@ const HARD_RIDES = new Set(["threshold", "vo2max", "anaerobic", "race"]);
  * docs/ritvoeding-plan.md). Fleitas-Paniagua et al. 2026 zagen alleen na zware
  * inspanning winst van meer koolhydraten.
  */
-export function rideTargetPerHour(durationMinutes: number, intensity?: string | null): number | null {
-  const band = rideCarbsPerHour(durationMinutes);
+export function rideTargetPerHour(
+  durationMinutes: number,
+  intensity?: string | null,
+  gut?: GutTraining | null,
+): number | null {
+  const band = rideBand(durationMinutes, gut);
   if (!band) return null;
+  // Tijdens de darmtraining is het weekgetal de opdracht, ook boven of onder de band.
+  if (gut?.weekGrams != null && durationMinutes >= gut.minMinutes) return gut.weekGrams;
   if (EASY_RIDES.has(intensity ?? "")) return band.min;
   if (HARD_RIDES.has(intensity ?? "")) return band.max;
   return Math.round((band.min + band.max) / 2);
@@ -135,10 +159,15 @@ export const RECOVERY_RIDE_MINUTES = 60;
  * dagbanden zijn de totale inname, ook wat je op de fiets eet (ACSM 2016), dus
  * dit gaat van het dagdoel af voordat de maaltijden hun deel krijgen.
  */
-export function rideDayCarbs(weightKg: number, rideMinutes: number | null, rideIntensity?: string | null): number {
+export function rideDayCarbs(
+  weightKg: number,
+  rideMinutes: number | null,
+  rideIntensity?: string | null,
+  gut?: GutTraining | null,
+): number {
   const minutes = rideMinutes ?? 0;
   if (!Number.isFinite(minutes) || minutes <= 0) return 0;
-  const perHour = rideTargetPerHour(minutes, rideIntensity);
+  const perHour = rideTargetPerHour(minutes, rideIntensity, gut);
   const during = perHour ? (perHour * minutes) / 60 : 0;
   const after = minutes >= RECOVERY_RIDE_MINUTES ? RECOVERY_CARBS_G_PER_KG_PER_HOUR.min * weightKg : 0;
   return PRE_RIDE_CARBS_G_PER_KG * weightKg + during + after;
@@ -170,6 +199,8 @@ export type MealTargetInput = {
   rideMinutes: number | null;
   /** Zwaarte van die rit (WorkoutIntensity); null = het midden van de band. */
   rideIntensity?: string | null;
+  /** Darmtraining (gut-training.ts); zonder: de gewone band. */
+  rideGut?: GutTraining | null;
 };
 
 /**
@@ -182,7 +213,7 @@ export function mealCarbsBasis(input: MealTargetInput): number {
   const midpoint = (range: Range) => (range.min + range.max) / 2;
   const day = midpoint(DAILY_CARBS_G_PER_KG[input.dayType]) * input.weightKg;
   const restDay = midpoint(DAILY_CARBS_G_PER_KG.rust) * input.weightKg;
-  return Math.max(restDay, day - rideDayCarbs(input.weightKg, input.rideMinutes, input.rideIntensity));
+  return Math.max(restDay, day - rideDayCarbs(input.weightKg, input.rideMinutes, input.rideIntensity, input.rideGut));
 }
 
 /** Het doel voor één portie op een bepaald moment. */
@@ -206,7 +237,7 @@ export function mealTarget(moment: MealMoment, input: MealTargetInput): MealTarg
       return { carbsG: Math.round(PRE_RIDE_CARBS_G_PER_KG * weightKg), proteinG: null };
     case "tijdens_rit": {
       // Eén portie is één uur op de fiets; zonder rit het midden van het onderste niveau.
-      const perHour = rideTargetPerHour(input.rideMinutes ?? 0, input.rideIntensity) ?? 45;
+      const perHour = rideTargetPerHour(input.rideMinutes ?? 0, input.rideIntensity, input.rideGut) ?? 45;
       return { carbsG: perHour, proteinG: null };
     }
     case "na_rit":

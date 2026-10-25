@@ -203,6 +203,7 @@ export async function logRecipe(formData: FormData): Promise<ActionResult> {
           dayType: fuelDay.dayType,
           rideMinutes: fuelDay.rideMinutes,
           rideIntensity: fuelDay.rideIntensity,
+          rideGut: fuelDay.rideGut,
         }
       : null,
   );

@@ -10,7 +10,7 @@ import { basePortion, macrosFor, scaleRecipe, type RecipeIngredient } from "./sc
 import type { Recipe } from "./recipes";
 import type { ShoppingSlot } from "./shopping";
 import { SHOPPING_NAMES } from "./shopping-names";
-import { rideTargetPerHour } from "./targets";
+import { rideTargetPerHour, type GutTraining } from "./targets";
 
 /**
  * Koolhydraten per bidon van 750 ml: 8%. De review van de Oliveira & Burini
@@ -69,6 +69,8 @@ export type RidePlanInput = {
   minutes: number;
   /** Zwaarte van de rit (WorkoutIntensity); null = het midden van de band. */
   intensity?: string | null;
+  /** Darmtraining op de dag van de rit (gut-training.ts). */
+  gut?: GutTraining | null;
   /** Recepten voor tijdens de rit, beste eerst (rankRecipes). */
   ranked: Recipe[];
   /** Het recept dat het dagmenu bij "Tijdens de rit" zet; het andere soort komt uit `ranked`. */
@@ -125,12 +127,13 @@ export function feedMinutes(minutes: number): number[] {
 export function ridePlan({
   minutes,
   intensity = null,
+  gut = null,
   ranked,
   lead = null,
   leadChosen = false,
   energyFactor,
 }: RidePlanInput): RidePlan | null {
-  const perHourG = rideTargetPerHour(minutes, intensity);
+  const perHourG = rideTargetPerHour(minutes, intensity, gut);
   if (perHourG == null) return null;
   const target = Math.round((perHourG * minutes) / 60);
 

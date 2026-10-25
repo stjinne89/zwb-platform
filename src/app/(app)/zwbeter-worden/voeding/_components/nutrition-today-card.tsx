@@ -4,10 +4,12 @@
 
 import { nutritionDay, nutritionTipForToday, type NutritionDayInput } from "@/lib/nutrition/tips";
 import { rankRecipes } from "@/lib/nutrition/menu";
+import { gutTrainingOn } from "@/lib/nutrition/gut-training";
 import { ridePlan } from "@/lib/nutrition/ride-plan";
 import { RidePlanView } from "../../_components/ride-plan-view";
 import {
   energyFactorFor,
+  loadGutSource,
   loadMenuChoices,
   loadNutritionProfile,
   loadRecipePrefs,
@@ -25,14 +27,15 @@ export async function NutritionTodayCard({
   today: string;
   day: Omit<NutritionDayInput, "today" | "weightKg">;
 }) {
-  const [profile, recipes, prefs, choices] = await Promise.all([
+  const [profile, recipes, prefs, choices, gut] = await Promise.all([
     loadNutritionProfile(viewer, today),
     loadRecipes(viewer),
     loadRecipePrefs(viewer),
     loadMenuChoices(viewer, today, today),
+    loadGutSource(viewer),
   ]);
 
-  const input = { ...day, today, weightKg: profile.weightKg };
+  const input = { ...day, today, weightKg: profile.weightKg, gut: gutTrainingOn(gut, today) };
   const tip = nutritionTipForToday(input);
   const fuel = nutritionDay(input);
   const energyFactor = energyFactorFor(profile);
@@ -44,6 +47,7 @@ export async function NutritionTodayCard({
       dayType: fuel.dayType,
       rideMinutes: fuel.rideMinutes,
       rideIntensity: fuel.rideIntensity,
+      rideGut: fuel.rideGut,
     },
     dayType: fuel.dayType,
     tomorrowType: fuel.tomorrowType,
@@ -61,6 +65,7 @@ export async function NutritionTodayCard({
       ? ridePlan({
           minutes: fuel.rideMinutes,
           intensity: fuel.rideIntensity,
+          gut: fuel.rideGut,
           ranked: ranked.map((item) => item.recipe),
           lead: chosen ?? first?.recipe ?? null,
           leadChosen: Boolean(chosen),

@@ -143,6 +143,13 @@ Bronnen:
 - **Low-FODMAP en probiotica.** Het bewijs is beperkt.
 - **Stapgrootte in de kennisbank.** De ophoging van 10–15 g/u per stap is een
   praktische vertaling, geen harde grens uit de bronnen.
+- **Darmtraining en het doel onderweg** (`gut-training.ts`, sinds 2026-10-25).
+  Tijdens de darmtraining is het getal van die week het doel bij een rit van
+  minstens 90 minuten (het vervolg naar 150: drie uur), ook als dat onder of
+  boven de gewone band ligt: dat is de opdracht van het protocol. Wie de
+  darmtraining afrondde, kan zelf 120 g/u als bovenkant kiezen voor ritten
+  vanaf 2,5 uur; standaard blijft het 90, omdat sneller worden boven 90 g/u
+  niet is aangetoond (zie §3 en de beperkingen in het protocol).
 
 Bronnen:
 - Jeukendrup AE (2017). Training the Gut for Athletes. *Sports Med* 47(Suppl 1):101–110 — https://pmc.ncbi.nlm.nih.gov/articles/PMC5371619/

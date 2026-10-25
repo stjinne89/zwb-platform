@@ -237,6 +237,22 @@ export async function deleteOwnRecipe(formData: FormData): Promise<ActionResult>
 }
 
 /** Favoriet, "niet voor mij", of geen van beide (leeg). Alleen voor het lid zelf. */
+/**
+ * Onderweg tot 120 g per uur, na een afgeronde darmtraining (0272, stap 4 van
+ * docs/ritvoeding-plan.md). Zonder afgeronde darmtraining rekent de app er niet
+ * mee (gut-training.ts), dus aanzetten kan geen kwaad.
+ */
+export async function setRideCarbs120(formData: FormData): Promise<ActionResult> {
+  const { supabase, user } = await currentUser();
+  const on = text(formData.get("on")) === "ja";
+  const { error } = await supabase
+    .from("nutrition_profiles")
+    .upsert({ profile_id: user.id, ride_carbs_120: on }, { onConflict: "profile_id" });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/zwbeter-worden", "layout");
+  return { ok: true };
+}
+
 export async function setRecipePref(formData: FormData): Promise<ActionResult> {
   const recipeId = text(formData.get("recipe_id"));
   const pref = text(formData.get("pref"));

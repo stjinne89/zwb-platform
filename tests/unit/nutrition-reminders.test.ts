@@ -104,6 +104,8 @@ describe("voedingsherinneringen, het ritplan van morgen", () => {
     choices: choice ? [{ profile_id: "lid", recipe_id: choice }] : [],
     profiles: new Map(),
     heights: new Map(),
+    gutRuns: [],
+    gutHigh: new Set<string>(),
   });
 
   it("kiest nooit een privérecept van een ander lid, wel het eigen recept als het lid dat koos", () => {

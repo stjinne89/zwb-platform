@@ -93,6 +93,7 @@ export function portionFit(recipe: Recipe, portion: ScaledRecipe, rider: Rider |
     dayType: rider.dayType,
     rideMinutes: rider.rideMinutes,
     rideIntensity: rider.rideIntensity,
+    rideGut: rider.rideGut,
   });
   const parts: number[] = [];
   if (target.carbsG) {

@@ -329,7 +329,11 @@ export function KennisHelp() {
                   een wedstrijd van anderhalf uur of langer staat er een link
                   naar koolhydraten laden, met de dag waarop je begint. Hoeveel
                   per uur hangt af van de rit: een rustige rit de onderkant van
-                  de band, tempo het midden, drempel en harder de bovenkant. Je
+                  de band, tempo het midden, drempel en harder de bovenkant.
+                  Volg je de darmtraining, dan rekent een rit van anderhalf uur
+                  of langer met het getal van die week. Na de darmtraining kun
+                  je op de protocolpagina kiezen voor tot 120 g per uur bij
+                  ritten vanaf 2,5 uur. Je
                   rekent met één bidon per uur. Een bidon bevat hoogstens 60 g
                   koolhydraten (8% van 750 ml); wat je per uur meer nodig hebt,
                   komt uit vast eten. Heb je minder nodig dan een bidon

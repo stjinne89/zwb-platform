@@ -15,6 +15,7 @@ import { RECIPE_PREFS, rankRecipes, type RecipePref, type RecipePrefs } from "@/
 import { classifyFuelDay } from "@/lib/nutrition/day-type";
 import { eventRide, ridePlan, type RidePlan } from "@/lib/nutrition/ride-plan";
 import { eventWorkoutDefaults, type ClubEventRow } from "@/lib/training/events";
+import { GUT_PROTOCOLS, gutTrainingOn, type GutRun, type GutSource } from "@/lib/nutrition/gut-training";
 import { ageFromBirthDate, portionEnergyFactor } from "@/lib/nutrition/targets";
 import { householdFromRow, type Household } from "@/lib/nutrition/shopping";
 import type { MenuChoice } from "@/lib/nutrition/plan";
@@ -340,7 +341,7 @@ export async function loadNutritionDayInputs(
   const from = `${shiftDayKey(sorted[0], -1)}T00:00:00Z`;
   const to = `${shiftDayKey(sorted[sorted.length - 1], 3)}T00:00:00Z`;
 
-  const [workouts, proposals, rides, wellness] = await Promise.all([
+  const [workouts, proposals, rides, wellness, gut] = await Promise.all([
     viewer.supabase
       .from("training_workouts")
       .select("scheduled_at, duration_minutes, intensity, status, plan_id")
@@ -362,6 +363,7 @@ export async function loadNutritionDayInputs(
       .gte("start_date", from)
       .lt("start_date", to),
     getWellnessSummary(viewer.supabase, profileId, 45).catch(() => null),
+    loadGutSource(viewer, profileId),
   ]);
 
   const proposalIds = new Set((proposals.data ?? []).map((plan) => plan.id as string));
@@ -382,6 +384,7 @@ export async function loadNutritionDayInputs(
         ...plannedSessions(rows, day),
         ridesToday: ridesOnDay(rideRows, day),
         wellnessState: wellness?.state ?? null,
+        gut: gutTrainingOn(gut, day),
       },
     ]),
   );
@@ -413,11 +416,12 @@ export async function loadRidePlans(
   const plans = new Map<string, RidePlan>();
   if (upcoming.length === 0) return plans;
   const days = upcoming.map(dayOf).sort();
-  const [recipes, prefs, profile, choices] = await Promise.all([
+  const [recipes, prefs, profile, choices, gutSource] = await Promise.all([
     loadRecipes(viewer, "tijdens_rit"),
     loadRecipePrefs(viewer),
     loadNutritionProfile(viewer, today),
     loadMenuChoices(viewer, days[0], days[days.length - 1]),
+    loadGutSource(viewer),
   ]);
   const byId = new Map(recipes.map((recipe) => [recipe.id, recipe]));
   const energyFactor = energyFactorFor(profile);
@@ -425,8 +429,9 @@ export async function loadRidePlans(
     const day = dayOf(workout);
     const minutes = Number(workout.duration_minutes);
     const dayType = classifyFuelDay([{ minutes, intensity: workout.intensity }]);
+    const gut = gutTrainingOn(gutSource, day);
     const ranked = rankRecipes(recipes, "tijdens_rit", {
-      rider: { weightKg: profile.weightKg, energyFactor, dayType, rideMinutes: minutes, rideIntensity: workout.intensity },
+      rider: { weightKg: profile.weightKg, energyFactor, dayType, rideMinutes: minutes, rideIntensity: workout.intensity, rideGut: gut },
       dayType,
       tomorrowType: "rust",
       today: day,
@@ -438,6 +443,7 @@ export async function loadRidePlans(
     const plan = ridePlan({
       minutes,
       intensity: workout.intensity,
+      gut,
       ranked,
       lead: chosen ?? ranked[0] ?? null,
       leadChosen: Boolean(chosen),
@@ -446,6 +452,31 @@ export async function loadRidePlans(
     if (plan) plans.set(workout.id, plan);
   }
   return plans;
+}
+
+/**
+ * De darmtraining van een lid: lopende en afgeronde runs, en of het zelf voor
+ * 120 g per uur koos. Zonder kolom ride_carbs_120 (0272 niet toegepast) of zonder
+ * leesrecht (een trainer op nutrition_profiles) telt de keuze als uit.
+ */
+export async function loadGutSource(viewer: Viewer, profileId = viewer.user.id): Promise<GutSource> {
+  const [runs, own] = await Promise.all([
+    viewer.supabase
+      .from("member_protocols")
+      .select("protocol_slug, start_date, status")
+      .eq("profile_id", profileId)
+      .in("protocol_slug", [...GUT_PROTOCOLS])
+      .in("status", ["actief", "afgerond"]),
+    viewer.supabase.from("nutrition_profiles").select("ride_carbs_120").eq("profile_id", profileId).maybeSingle(),
+  ]);
+  return {
+    runs: ((runs.data ?? []) as { protocol_slug: string; start_date: string; status: GutRun["status"] }[]).map((row) => ({
+      protocolSlug: row.protocol_slug,
+      startDate: String(row.start_date).slice(0, 10),
+      status: row.status,
+    })),
+    high: Boolean((own.data as { ride_carbs_120?: boolean } | null)?.ride_carbs_120),
+  };
 }
 
 export type EventRidePlan = {

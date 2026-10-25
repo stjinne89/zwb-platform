@@ -19,6 +19,7 @@ import { shiftDayKey } from "@/lib/training/mobility";
 import { FUEL_DAY_LABELS, classifyFuelDay, isKeyDay, totalMinutes, type FuelDayType } from "./day-type";
 import { rankRecipes, type RecipePref } from "./menu";
 import { plannedSessions, ridesOnDay, type Recipe } from "./recipes";
+import { GUT_PROTOCOLS, gutTrainingOn, type GutRun } from "./gut-training";
 import { ridePlan, ridePlanSummary, type RidePlan } from "./ride-plan";
 import { ageFromBirthDate, portionEnergyFactor } from "./targets";
 
@@ -89,11 +90,14 @@ type RideContext = {
   choices: { profile_id: string; recipe_id: string }[];
   profiles: Map<string, RideProfile>;
   heights: Map<string, number | null>;
+  /** Darmtraining per lid, en wie zelf voor 120 g per uur koos. */
+  gutRuns: (GutRun & { profileId: string })[];
+  gutHigh: Set<string>;
 };
 
 /** Wat het ritplan voor morgen nodig heeft, voor alle leden tegelijk. */
 async function loadRideContext(admin: SupabaseClient, profileIds: string[], tomorrow: string): Promise<RideContext> {
-  const [recipes, prefs, choices, profiles, heights] = await Promise.all([
+  const [recipes, prefs, choices, profiles, heights, gutRuns, gutHigh] = await Promise.all([
     admin.from("nutrition_recipes").select(RIDE_RECIPE_COLUMNS).eq("meal_moment", "tijdens_rit"),
     admin.from("nutrition_recipe_prefs").select("profile_id, recipe_id, pref").in("profile_id", profileIds),
     admin
@@ -104,6 +108,14 @@ async function loadRideContext(admin: SupabaseClient, profileIds: string[], tomo
       .eq("meal_moment", "tijdens_rit"),
     admin.from("profiles").select("id, weight_kg, sex, birth_date").in("id", profileIds),
     admin.from("nutrition_profiles").select("profile_id, height_cm").in("profile_id", profileIds),
+    admin
+      .from("member_protocols")
+      .select("profile_id, protocol_slug, start_date, status")
+      .in("profile_id", profileIds)
+      .in("protocol_slug", [...GUT_PROTOCOLS])
+      .in("status", ["actief", "afgerond"]),
+    // Apart: zolang 0272 er niet is, faalt alleen deze vraag.
+    admin.from("nutrition_profiles").select("profile_id").in("profile_id", profileIds).eq("ride_carbs_120", true),
   ]);
   return {
     recipes: ((recipes.data ?? []) as unknown as Recipe[]).map((recipe) => ({
@@ -119,6 +131,15 @@ async function loadRideContext(admin: SupabaseClient, profileIds: string[], tomo
     heights: new Map(
       ((heights.data ?? []) as { profile_id: string; height_cm: number | null }[]).map((row) => [row.profile_id, row.height_cm]),
     ),
+    gutRuns: ((gutRuns.data ?? []) as { profile_id: string; protocol_slug: string; start_date: string; status: GutRun["status"] }[]).map(
+      (row) => ({
+        profileId: row.profile_id,
+        protocolSlug: row.protocol_slug,
+        startDate: String(row.start_date).slice(0, 10),
+        status: row.status,
+      }),
+    ),
+    gutHigh: new Set(((gutHigh.data ?? []) as { profile_id: string }[]).map((row) => row.profile_id)),
   };
 }
 
@@ -155,8 +176,12 @@ export function tomorrowRidePlan(
       })
     : 1;
   const dayType = classifyFuelDay([{ minutes, intensity: null }]);
+  const gut = gutTrainingOn(
+    { runs: ctx.gutRuns.filter((run) => run.profileId === profileId), high: ctx.gutHigh.has(profileId) },
+    tomorrow,
+  );
   const ranked = rankRecipes(recipes, "tijdens_rit", {
-    rider: { weightKg, energyFactor, dayType, rideMinutes: minutes, rideIntensity: intensity },
+    rider: { weightKg, energyFactor, dayType, rideMinutes: minutes, rideIntensity: intensity, rideGut: gut },
     dayType,
     tomorrowType: "rust",
     today: tomorrow,
@@ -168,6 +193,7 @@ export function tomorrowRidePlan(
   return ridePlan({
     minutes,
     intensity,
+    gut,
     ranked,
     lead: chosen ?? ranked[0] ?? null,
     leadChosen: Boolean(chosen),

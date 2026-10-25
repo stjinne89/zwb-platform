@@ -62,6 +62,7 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
     dayType: day.dayType,
     rideMinutes: day.rideMinutes,
     rideIntensity: day.rideIntensity,
+    rideGut: day.rideGut,
   };
 
   const href = (next: { moment?: MealMoment | null; dieet?: DietTag | null; toon?: View | null }) => {
