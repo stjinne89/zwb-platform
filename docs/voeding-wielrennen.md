@@ -106,6 +106,14 @@ Bronnen:
 - **Mix van suikers.** Fructose:glucose 0,6–1,0 werkt het best. Gewone suiker
   (sucrose) is 1:1; de zelfgemaakte sportdrank in de recepten gebruikt dat.
 - **Vorm.** Drank, gel en reep geven vergelijkbare oxidatie.
+- **Hoe geconcentreerd een bidon mag.** De Oliveira & Burini (2014) noemen
+  5–8% koolhydraten het beste tijdens een wedstrijd, en 8–10% met glucose plus
+  fructose; boven 6% alleen glucose kwam er minder vocht door. Het ritplan
+  (`src/lib/nutrition/ride-plan.ts`, sinds 2026-10-25) zet hoogstens 60 g in een
+  bidon van 750 ml (8%) en rekent met één bidon per uur; wat er per uur meer
+  nodig is, komt uit vast eten. Eén bidon per uur is een vertaling van ZWB, geen
+  vochtadvies: dat volgt pas uit een zweettest (stap 5 van
+  [ritvoeding-plan.md](ritvoeding-plan.md)).
 - **Hitte en hoogte.** Die verlagen de oxidatie met 20–50%. De richtlijn
   verandert daardoor niet.
 - **Profpeloton.** Het ≥100 g/u daar hangt samen met een hoge dagelijkse inname.
@@ -117,6 +125,7 @@ Bronnen:
 - Podlogar T, Wallis GA (2022). New Horizons in Carbohydrate Research and Application for Endurance Athletes. *Sports Med* 52(Suppl 1):5–23 — https://pmc.ncbi.nlm.nih.gov/articles/PMC9734239/
 - Wilson PB (2025). A Narrative Review of the High-Carbohydrate Fueling Revolution (≥100 g/h) in the Professional Peloton. *Sports Med* 56(2):295–313 — https://link.springer.com/article/10.1007/s40279-025-02372-6
 - Jeukendrup AE, et al. (2026). UCI Sports Nutrition Project: Race Nutrition for Road Cycling. *IJSNEM* — https://pubmed.ncbi.nlm.nih.gov/41911900/
+- de Oliveira EP, Burini RC (2014). Carbohydrate-dependent, exercise-induced gastrointestinal distress. *Nutrients* 6(10):4191–4199 — https://pmc.ncbi.nlm.nih.gov/articles/PMC4210913/
 
 ## 4. Darmtraining en maagklachten
 

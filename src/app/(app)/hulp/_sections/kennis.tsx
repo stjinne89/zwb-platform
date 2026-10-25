@@ -319,6 +319,21 @@ export function KennisHelp() {
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
+                  Onderweg staat er &quot;Klaarzetten&quot;: hoeveel bidons en
+                  porties je meeneemt, met de hoeveelheden, en onder &quot;Per 20
+                  minuten&quot; wanneer je wat neemt. Dat plan staat ook bij elke
+                  training van een uur of langer in je schema. Je rekent met
+                  één bidon per uur. Een bidon bevat hoogstens 60 g
+                  koolhydraten (8% van 750 ml); wat je per uur meer nodig hebt,
+                  komt uit vast eten. Kies je zelf vast eten bij &quot;Tijdens de
+                  rit&quot;, dan draagt de bidon de helft. &quot;Gegeten&quot;
+                  legt het hele plan vast. Hoeveel je drinkt, hangt af van wat je
+                  zweet; dat rekent ZWB nog niet uit.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
                   De keuze volgt je dag. Op zware dagen koolhydraatrijk en
                   licht verteerbaar, op rustdagen meer eiwit en vezels. Een
                   recept waarvan de portie je doel niet haalt, zakt in de rij.

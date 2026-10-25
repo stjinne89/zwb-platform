@@ -120,6 +120,14 @@ Te groot voor één ronde. Voorstel: **2a** de berekening en de weergave bij de
 training in het schema, **2b** eventpagina en briefing, **2c** dagkaart,
 herinnering, boodschappenlijst en vastleggen met één tik.
 
+*2a gebouwd op 2026-10-25, zonder migratie, zie `PLAN.md`. Op verzoek van de
+eigenaar kwamen de dagkaarten (Dagmenu en de voedingstip op Vandaag) en
+"Gegeten" voor het hele plan al mee uit 2c. Nog open in 2c: de herinnering en de
+boodschappenlijst. Nog niet gebouwd: producten die het lid eerder vastlegde als
+voorraad; het plan kiest alleen uit recepten voor onderweg. Hoe het plan rekent:
+bidons eerst, hoogstens 60 g per bidon (8% van 750 ml), één bidon per uur, de
+rest uit vast eten (zie §3 van [voeding-wielrennen.md](voeding-wielrennen.md)).*
+
 ### Stap 3. Het ritdoel volgt de zwaarte
 
 `rideCarbsPerHour(duur)` wordt `rideCarbsPerHour(duur, intensiteit)`. De band

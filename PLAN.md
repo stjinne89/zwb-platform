@@ -297,9 +297,10 @@ gaat stabiliteit voor nieuwe features.
    hieronder): voorstel in [ritvoeding-plan.md](docs/ritvoeding-plan.md). De
    volgorde en de besluiten van §2 daar zijn akkoord (2026-10-25): rekenfout,
    dan het ritplan, dan de verfijningen. Stap 1 (de rekenfout in het dagmenu)
-   is gebouwd op 2026-10-25, niet gepusht; volgende is stap 2a, het ritplan bij
-   de training in het schema. Dat is nieuw werk, dus het hangt aan het besluit
-   over de featurepauze.
+   en stap 2a (ritplan "Klaarzetten" bij elke rit) zijn gebouwd op 2026-10-25,
+   niet gepusht. 2a ging op verzoek van de eigenaar door zonder te wachten op
+   het besluit over de featurepauze. Volgende: 2b (eventpagina en briefing) en
+   de rest van 2c (herinnering, boodschappenlijst).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11322,6 +11323,66 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZWBeter voeden: ritplan "Klaarzetten" bij elke rit
+
+**2026-10-25.** Stap 2a van [ritvoeding-plan.md](docs/ritvoeding-plan.md), op
+verzoek van de eigenaar zonder te wachten op het besluit over de featurepauze.
+Geen migratie. Niet gepusht.
+
+De eigenaar miste wat Musette wel doet: zien wat je voor een rit klaarzet. Tot
+nu toe stond er bij "Tijdens de rit" één recept voor één uur, zonder dat erbij
+stond dat het per uur was.
+
+- **Rekenwerk** (`src/lib/nutrition/ride-plan.ts`). Totaal = midden van de
+  g/u-band × ritduur. Eén bidon per uur (afgerond, minstens één), elk hoogstens
+  60 g koolhydraten: 8% van 750 ml, naar de Oliveira & Burini 2014 (5–8%, met
+  glucose en fructose 8–10%). Wat erboven nodig is, komt uit vast eten, in
+  porties van het recept; minder dan 15 g vast eten laat het plan weg. Een
+  recept is een bidon als er een product uit de NEVO-groep "Niet-alcoholische
+  dranken" in zit; zo vallen de twee sportdranken onder de clubrecepten goed,
+  en ook eigen recepten met sap of siroop. Zonder sportdrank: bidons met water.
+- **Schema per 20 minuten.** Eerste moment na een kwartier, daarna elke twintig
+  minuten tot tien minuten voor het einde. De bidons worden op volgorde leeg
+  gedronken; vast eten staat niet op het eerste moment en is verdeeld over de
+  rest.
+- **Welk recept.** Het recept dat het dagmenu bij "Tijdens de rit" zet; het
+  andere soort (bidon of vast eten) komt uit dezelfde rangorde (`rankRecipes`).
+  Koos het lid zelf vast eten, dan draagt de bidon de helft, anders verdwijnt
+  die keuze uit het plan.
+- **Waar.** Dagmenu (in plaats van de receptkaart bij "Tijdens de rit"), de
+  voedingstip op Vandaag als die "Eet onderweg" zegt, en elke geplande training
+  van een uur of langer in het schema, in de lijst en in de maandkalender
+  (`loadRidePlans` in `voeding/_data.ts`, die alleen de recepten voor onderweg
+  laadt). Een fout daarin breekt het schema niet.
+- **"Gegeten" legt het hele plan vast** (`logRidePlan`): per recept één
+  maaltijd bij "Tijdens de rit", met alle bidons of porties. Daarvoor legde de
+  knop één portie van het recept vast, ook bij een rit van vier uur.
+- Sap en water staan in ml (`SHOPPING_NAMES.liquid`).
+- `/hulp` (Je menu voor vandaag) legt Klaarzetten uit.
+
+**Bewust niet gedaan.**
+- Geen vochtdoel: één bidon per uur is een vertaling, geen advies over hoeveel
+  je drinkt. Dat komt met de zweettest (stap 5).
+- Nog niet uit eerder vastgelegde producten (gels, repen met barcode) kiezen;
+  het plan kiest alleen uit recepten voor onderweg.
+- Herinnering en boodschappenlijst (2c) en eventpagina en briefing (2b) nog niet.
+  Bij twee ritten op één dag rekent het Dagmenu met de totale duur, het schema
+  per training.
+- Het schema houdt geen rekening met recepten die het lid de twee dagen ervoor
+  of erna zelf koos (het dagmenu wel); op een dag zonder eigen keuze kan het
+  schema daardoor een ander recept tonen dan het Dagmenu.
+
+**Getest.** Nieuw `nutrition-ride-plan` (9 tests): bidon herkennen, geen plan
+onder een uur, bidons tot 60 g, vast eten erboven en niet op het eerste
+moment, eigen keuze voor vast eten blijft, water zonder sportdrank, Gegeten
+per recept, ml voor dranken, eetmomenten en bidonvolgorde. `tsc` alleen de
+bekende fout op `modern-screenshot`; ESLint schoon op de gewijzigde bestanden.
+In de browser (lokaal, productiedata van de eigenaar, alleen gelezen): Dagmenu,
+Vandaag, schema-lijst en maandkalender tonen het plan; vandaag 2 uur → 2 bidons
+sportdrank van appelsap van 45 g. **Niet getest:** "Gegeten" voor het plan
+(zou in het echte eetdagboek schrijven), en een rit van 2,5 uur of langer met
+vast eten in de browser (die staat niet in het schema; de test dekt hem).
 
 ### Hersteld — ZWBeter voeden: ritkoolhydraten tellen mee in het dagmenu
 

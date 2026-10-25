@@ -5,8 +5,10 @@ import { dayTotals, floorStatus } from "@/lib/nutrition/log";
 import { DIET_TAGS, DIET_TAG_LABELS, type DietTag } from "@/lib/nutrition/recipes";
 import { DAY_MOMENTS, RIDE_MOMENTS, type MenuSlot } from "@/lib/nutrition/menu";
 import { choiceWindow, planDayMenu } from "@/lib/nutrition/plan";
+import { ridePlanMeals } from "@/lib/nutrition/ride-plan";
 import { nutritionTipForToday } from "@/lib/nutrition/tips";
 import { MEAL_MOMENT_LABELS, type MealMoment, type Range } from "@/lib/nutrition/targets";
+import { RidePlanView } from "../_components/ride-plan-view";
 import { MetricCard } from "../_components/ui";
 import {
   energyFactorFor,
@@ -20,7 +22,7 @@ import {
   requireViewer,
   todayKeyAmsterdam,
 } from "./_data";
-import { logRecipe } from "./_log-actions";
+import { logRecipe, logRidePlan } from "./_log-actions";
 import { chooseMenuRecipe, clearMenuChoice } from "./_menu-actions";
 import { LogActionButton } from "./_components/log-controls";
 import { NutritionTip } from "./_components/nutrition-tip";
@@ -73,7 +75,7 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
   const tip = nutritionTipForToday(input);
   // Zelf gekozen recepten staan vast; de rest vult aan tot het minimum van
   // vandaag, met Naleving aan rekenend met wat al gegeten is. Nooit kleiner.
-  const { nutrition: day, slots: menu } = planDayMenu({
+  const { nutrition: day, slots: menu, ride } = planDayMenu({
     recipes,
     input,
     energyFactor: energyFactorFor(profile),
@@ -134,11 +136,15 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
           </Link>
         </div>
       </div>
-      <RecipeCard
-        recipe={slot.recipe}
-        portion={slot.portion.perPortion}
-        favorite={prefs.get(slot.recipe.id) === "favoriet"}
-      />
+      {slot.moment === "tijdens_rit" && ride ? (
+        <RidePlanView plan={ride} />
+      ) : (
+        <RecipeCard
+          recipe={slot.recipe}
+          portion={slot.portion.perPortion}
+          favorite={prefs.get(slot.recipe.id) === "favoriet"}
+        />
+      )}
       {logging &&
         (eatenMoments.has(slot.moment) ? (
           <p className="flex min-h-[36px] items-center gap-1 text-xs text-muted-foreground">
@@ -147,18 +153,23 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
           </p>
         ) : (
           <LogActionButton
-            action={logRecipe}
-            fields={{
-              slug: slot.recipe.slug,
-              moment: slot.moment,
-              day: today,
-              // Precies de portie die hier staat, ook als die is vergroot.
-              items: JSON.stringify(
-                slot.portion.ingredients
-                  .filter((item) => item.grams > 0)
-                  .map((item) => ({ food_id: item.food.id, grams: item.grams })),
-              ),
-            }}
+            {...(slot.moment === "tijdens_rit" && ride
+              ? // Het hele ritplan: alle bidons en porties.
+                { action: logRidePlan, fields: { day: today, parts: JSON.stringify(ridePlanMeals(ride)) } }
+              : {
+                  action: logRecipe,
+                  fields: {
+                    slug: slot.recipe.slug,
+                    moment: slot.moment,
+                    day: today,
+                    // Precies de portie die hier staat, ook als die is vergroot.
+                    items: JSON.stringify(
+                      slot.portion.ingredients
+                        .filter((item) => item.grams > 0)
+                        .map((item) => ({ food_id: item.food.id, grams: item.grams })),
+                    ),
+                  },
+                })}
             size="sm"
           >
             <Check className="size-4" />

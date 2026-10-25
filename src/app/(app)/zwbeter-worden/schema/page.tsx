@@ -74,6 +74,9 @@ import { calendarMarkers } from "@/lib/protocols";
 import { shiftDays } from "@/lib/training/season";
 import { loadOwnWorkoutOptions } from "@/lib/training/own-workouts";
 import { loadActiveRuns } from "../_protocol-data";
+import { loadRidePlans } from "../voeding/_data";
+import { RidePlanView } from "../_components/ride-plan-view";
+import type { RidePlan } from "@/lib/nutrition/ride-plan";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -140,6 +143,11 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   const eventChoicesPromise = plansPromise.then((loaded) =>
     loadScheduleEventChoices(viewer, activePlan(loaded)),
   );
+  // Wat je voor elke komende rit klaarzet (ritvoeding, stap 2a). Een fout in de
+  // voedingsdata mag het schema niet breken.
+  const ridePlansPromise = memberWorkoutsPromise
+    .then((workouts) => loadRidePlans(viewer, workouts, todayKeyAmsterdam()))
+    .catch(() => new Map<string, RidePlan>());
 
   const [
     snapshot,
@@ -157,6 +165,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     outdoor,
     { unplanned: extraRides, byId: ridesById, deleted: deletedRides },
     eventChoices,
+    ridePlans,
   ] = await Promise.all([
     snapshotPromise,
     plansPromise,
@@ -177,6 +186,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     outdoorPromise,
     scheduleRidesPromise,
     eventChoicesPromise,
+    ridePlansPromise,
   ]);
   const todayKey = todayKeyAmsterdam();
   const protocolMarkers = calendarMarkers(
@@ -300,6 +310,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
           warmup: isUpcomingRace(workout, todayKey)
             ? raceWarmupView(workout, memberWorkouts, warmupOptions)
             : null,
+          ridePlan: ridePlans.get(workout.id) ?? null,
         },
       };
     }),
@@ -456,6 +467,11 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                       raceWorkoutId={workout.id}
                       warmup={raceWarmupView(workout, memberWorkouts, warmupOptions)}
                     />
+                  </div>
+                ) : null}
+                {ridePlans.has(workout.id) ? (
+                  <div className="mt-3">
+                    <RidePlanView plan={ridePlans.get(workout.id)!} />
                   </div>
                 ) : null}
               </li>

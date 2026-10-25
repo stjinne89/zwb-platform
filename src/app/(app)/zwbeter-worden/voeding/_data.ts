@@ -11,7 +11,9 @@ import { plannedSessions, ridesOnDay, type Recipe } from "@/lib/nutrition/recipe
 import type { NutritionDayInput } from "@/lib/nutrition/tips";
 import type { LoggedMeal } from "@/lib/nutrition/log";
 import { productLabel, type NutritionProduct } from "@/lib/nutrition/products";
-import { RECIPE_PREFS, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
+import { RECIPE_PREFS, rankRecipes, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
+import { classifyFuelDay } from "@/lib/nutrition/day-type";
+import { ridePlan, type RidePlan } from "@/lib/nutrition/ride-plan";
 import { ageFromBirthDate, portionEnergyFactor } from "@/lib/nutrition/targets";
 import { householdFromRow, type Household } from "@/lib/nutrition/shopping";
 import type { MenuChoice } from "@/lib/nutrition/plan";
@@ -145,8 +147,11 @@ function normalizeRecipe(row: Recipe, viewerId: string): Recipe {
  * Clubrecepten, de eigen recepten en wat andere leden delen; RLS filtert al op
  * wat dit lid mag zien. Een voorstel dat een beoordelaar ziet, telt niet mee.
  */
-export async function loadRecipes(viewer: Viewer): Promise<Recipe[]> {
-  const data = await withColumnFallback((columns) => viewer.supabase.from("nutrition_recipes").select(columns));
+export async function loadRecipes(viewer: Viewer, moment?: MealMoment): Promise<Recipe[]> {
+  const data = await withColumnFallback((columns) => {
+    const query = viewer.supabase.from("nutrition_recipes").select(columns);
+    return moment ? query.eq("meal_moment", moment) : query;
+  });
   return ((data ?? []) as unknown as Recipe[])
     .map((row) => normalizeRecipe(row, viewer.user.id))
     .filter((recipe) => !recipe.from_member || recipe.visibility === "leden")
@@ -379,4 +384,64 @@ export async function loadNutritionDayInputs(
       },
     ]),
   );
+}
+
+type PlannedRide = {
+  id: string;
+  scheduled_at: string;
+  duration_minutes: number | null;
+  intensity: string | null;
+  status: string;
+};
+
+/**
+ * Het ritplan per geplande training van vandaag of later, op training-id. Het
+ * recept bij "Tijdens de rit" is wat het lid die dag zelf koos, anders het
+ * beste; het andere soort (bidon of vast eten) volgt uit dezelfde rangorde als
+ * het dagmenu.
+ */
+export async function loadRidePlans(
+  viewer: Viewer,
+  workouts: PlannedRide[],
+  today: string,
+): Promise<Map<string, RidePlan>> {
+  const dayOf = (workout: PlannedRide) => String(workout.scheduled_at).slice(0, 10);
+  const upcoming = workouts.filter(
+    (workout) => workout.status === "planned" && dayOf(workout) >= today && Number(workout.duration_minutes ?? 0) >= 60,
+  );
+  const plans = new Map<string, RidePlan>();
+  if (upcoming.length === 0) return plans;
+  const days = upcoming.map(dayOf).sort();
+  const [recipes, prefs, profile, choices] = await Promise.all([
+    loadRecipes(viewer, "tijdens_rit"),
+    loadRecipePrefs(viewer),
+    loadNutritionProfile(viewer, today),
+    loadMenuChoices(viewer, days[0], days[days.length - 1]),
+  ]);
+  const byId = new Map(recipes.map((recipe) => [recipe.id, recipe]));
+  const energyFactor = energyFactorFor(profile);
+  for (const workout of upcoming) {
+    const day = dayOf(workout);
+    const minutes = Number(workout.duration_minutes);
+    const dayType = classifyFuelDay([{ minutes, intensity: workout.intensity }]);
+    const ranked = rankRecipes(recipes, "tijdens_rit", {
+      rider: { weightKg: profile.weightKg, energyFactor, dayType, rideMinutes: minutes },
+      dayType,
+      tomorrowType: "rust",
+      today: day,
+      prefs,
+      diet: null,
+    }).map((item) => item.recipe);
+    const choice = choices.find((row) => row.day === day && row.moment === "tijdens_rit");
+    const chosen = choice ? byId.get(choice.recipeId) : undefined;
+    const plan = ridePlan({
+      minutes,
+      ranked,
+      lead: chosen ?? ranked[0] ?? null,
+      leadChosen: Boolean(chosen),
+      energyFactor,
+    });
+    if (plan) plans.set(workout.id, plan);
+  }
+  return plans;
 }
