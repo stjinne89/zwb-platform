@@ -446,9 +446,11 @@ export default function PrivacyPage() {
             <strong>Weekoverzicht:</strong> op zondagavond zie je een terugblik
             op je week. We bewaren per week een samenvatting van je ritten,
             schema, belasting, vermogen, teamuitslagen, voedings- en
-            corelogboek en clubritten, en of je het overzicht hebt gezien.
-            Alleen jij kunt het lezen. Gebruik je ZWBeter voor je training, dan
-            gaat die samenvatting zonder je naam naar OpenAI om het oordeel van
+            corelogboek en clubritten, je ZWBriljant-steen (klasse, punten en
+            het onderdeel waar je het meest wint, uit je bewaarde weeksteen), en of je het
+            overzicht hebt gezien. Alleen jij kunt het lezen, ook als je je
+            steen niet met leden deelt. Gebruik je ZWBeter voor je training, dan
+            gaat die samenvatting zonder je naam en zonder je steen naar OpenAI om het oordeel van
             de coach te schrijven, samen met je beschikbaarheid, trainingen en
             events van de week erna. Het staat in je data-export en verdwijnt
             als je je account opheft.
@@ -504,7 +506,7 @@ export default function PrivacyPage() {
             en het verschil met het plan, je gereedscore, je fitness-richting en
             een tip die uit die gegevens volgt. Deel je je ZWBriljant-steen met
             leden, dan staan ook je klasse, je punten en de punten tot de
-            volgende klasse erin, en soms je laagste facet; deel je hem niet,
+            volgende klasse erin, en soms het onderdeel waar je het meest wint; deel je hem niet,
             dan staat er je CTL. Wie jouw Strava-activiteit kan zien, kan die
             samenvatting dus ook zien. Je onderliggende hersteldata (slaap, HRV,
             hartslag) komt er nooit in, alleen wat we daaruit berekenen: je

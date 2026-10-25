@@ -292,8 +292,16 @@ gaat stabiliteit voor nieuwe features.
    intervals.icu; daarna nakijken of haar CTL en vermogensprofiel bijtrekken, en
    daarmee of de vermogenscurve ritten meetelt die via Strava binnenkwamen. Een
    Strava-terugval voor CTL is bewust niet gebouwd: bij de 23 leden met een steen
-   had alleen Femke dit.
-14. **Ritvoeding na de vergelijking met Musette** (ronde van 2026-10-25
+   had alleen Femke dit. *2026-10-25:* haar CTL in de steen is nu 23; de maanden
+   van haar terugblik staan nog op fitheid 0.
+14. **ZWBriljant: consistentie hersteld, melding en hulpvideo voor de kJ-standen,
+   en het groei-onderdeel in weekoverzicht en Strava-tip** (rondes van 2026-10-25
+   hieronder): gebouwd, lokaal getest en op 2026-10-25 samen gepusht naar `main`.
+   Geen migratie; het geslacht van 14 leden is op productie gezet. Open: de
+   dialoog in de browser bekijken, na de job de consistentie van de vijf leden
+   zonder consistentie en van de drie met lage naleving nakijken, en de clip op
+   een telefoon bekijken.
+15. **Ritvoeding na de vergelijking met Musette** (ronde van 2026-10-25
    hieronder): voorstel in [ritvoeding-plan.md](docs/ritvoeding-plan.md). De
    volgorde en de besluiten van §2 daar zijn akkoord (2026-10-25): rekenfout,
    dan het ritplan, dan de verfijningen. Stap 1 (de rekenfout in het dagmenu)
@@ -966,7 +974,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - `src/lib/weekly-review/`: `period.ts` (welke week, en het venster: zondag
 >   vanaf 18:00 tot en met woensdag), `summary.ts` (pure samenvatting per
 >   onderdeel: ritten, schema, belasting, vermogen, teams, voeding en core, club,
->   plus de vooruitblik), `load.ts` (de queries), `coach-text.ts` (de AI-opdracht
+>   sinds 2026-10-25 ook de ZWBriljant-steen, plus de vooruitblik), `load.ts` (de queries), `coach-text.ts` (de AI-opdracht
 >   en een tekst uit vaste regels), `service.ts` (aanmaken, coachtekst ophalen,
 >   gezien zetten). Een onderdeel dat het lid die week niet gebruikte is `null`
 >   en krijgt geen scherm.
@@ -11691,6 +11699,255 @@ glucose:fructose per product, een natriumdoel in mg, plafonds boven 120 g/u als
 standaard, AI die het plan maakt, kcal uit kJ, een ochtendmail en eetmomenten in
 de FIT-workout.
 
+### Gebouwd — Hulpvideo: durability en de kJ-standen in intervals.icu
+
+**2026-10-25.** Commit `058b1d3a`, op 2026-10-25 gepusht naar `main` (op verzoek van de eigenaar). Geen migratie.
+
+Op verzoek van de eigenaar een clip bij de melding over de kJ-standen (ronde
+hieronder): `public/hulp-video/kj-standen.mp4` (48 s, staand, ondertitels,
+geen stem), gelinkt onder stap 2 van "Zo haal je het meeste uit je steen" op
+`/hulp/training#zwbriljant` en in `HELP_VIDEOS`. Drie scènes:
+
+- **16-kj-melding**: de nieuwe dialoog op Vandaag, met het demolid (preset
+  `kj-melding`: intervals.icu gekoppeld, geen vermoeide curve).
+- **17-kj-intervals**: de stappen in intervals.icu. Geen app, dus een pagina met
+  schermafdrukken uit de ingebouwde browser van het account van de eigenaar
+  (telefoonformaat, op zijn verzoek; hij logde zelf in). Naam, foto en
+  vermogensgrafiek zijn vervaagd. In `3-curves-1000.jpg` staat de eerste stand
+  op 1000 kJ, gemaakt uit de echte "000 kJ" van de tweede stand: in zijn
+  account stond 830 kJ en er is niets opgeslagen (het invulveld met 1000 is
+  vastgelegd en daarna geannuleerd). De beelden staan in
+  `scripts/instructievideo/intervals/`, de tikvlakken in `INTERVALS_SPOTS`
+  (`scenes.mjs`); `opname.mjs` zet zo'n scène neer via `scene.html`.
+- **18-kj-ophalen**: Mijn vermogen met "Mijn waarden ophalen", met het demolid
+  (preset `vermogen`). Daarvoor speelt de nep-Supabase ook intervals.icu na
+  (`handleIntervals`), via de nieuwe omgevingsvariabele `INTERVALS_BASE_URL`
+  in `src/lib/intervals/client.ts`; zonder die variabele (productie) blijft het
+  `https://intervals.icu`.
+
+Deze scènes staan in `HULP_SCENES`, niet in `SCENES`: de hoofdvideo "Aan de
+slag" blijft vijftien stappen. `opname.mjs` zonder nummers neemt alleen de
+hoofdvideo op (`opname.mjs 16 17 18` voor deze clip); `bouw.mjs` bouwt de
+hoofdvideo alleen als er scènes van zijn.
+
+**Let op:** `bouw.mjs --publiceer` leegt eerst heel `public/hulp-video/`. In
+deze worktree waren de andere tien clips niet opgenomen, dus is de clip met de
+hand gekopieerd. Wie later alles opnieuw publiceert, neemt eerst alle scènes
+op.
+
+**Hulptekst gecorrigeerd.** `/hulp` zei "klik boven de powercurve op de knoppen
+met ? kJ". In intervals.icu staat het onder Beste prestaties → Vermogenscurves
+(op de telefoon onder de knop met drie puntjes), onderaan "Na … kJ" met een
+potloodje. Aangepast in `briljant.tsx` en `training.tsx`.
+
+**Getest.** `tsc`, ESLint, de hulp- en ZWBriljant-tests. Volle suite groen op drie
+bestanden na (`rls-initplan-migration`, `admin-areas`, `intervals-ride-sync`),
+die los wel slagen: traag onder de volle run. De clip beeld voor beeld
+nagekeken. `/hulp/training` met de demo-server: de link staat er en de mp4 komt
+terug als `video/mp4`. **Niet getest:** de clip op een telefoon, en de
+Engelstalige intervals.icu (de video toont de Nederlandse).
+
+### Gebouwd — ZWBriljant: consistentie hersteld, geen consistentie is de volle straf, melding voor de kJ-standen
+
+**2026-10-25.** Commit `5d8673d1`, op 2026-10-25 gepusht naar `main` (op verzoek van de eigenaar). Geen migratie. Wel een
+datawijziging op productie (zie onder).
+
+Aanleiding: een melding dat ZWBriljanten niet klopten. Controle op productie
+(24 stenen van week 19 oktober en 1.018 terugblikmaanden): elke bewaarde score
+volgt precies uit facetten, gewichten en consistentie, en de ZRS in elke steen is
+de actuele. De fouten zaten in de consistentie, en in ontbrekende data.
+
+- **Naleving telt ritten op de trainingsdag** (`complianceFrom` in
+  `snapshot.ts`). Eerst telde alleen de status `completed`, en die zet
+  `detectCompletedWorkouts` alleen binnen zeven dagen. Ritten die later
+  binnenkwamen, telden nooit, terwijl de naleving voor de trainer
+  (`pickRideForWorkout`) ze wel per dag koppelt. Gemeten over twaalf weken: één lid
+  12% tegen 67% met de ritten, een ander 14% tegen 60%, een derde 23% tegen 47%.
+  De consistentie van het eerste lid zakte bij de start van het schema van
+  0,56–0,83 naar 0,03–0,06. Nu: één rit per training op dezelfde dag, bij meer
+  ritten de duur die het dichtst bij de geplande ligt; een afgeronde training houdt
+  een rit bezet, een overgeslagen training telt niet, een losgekoppelde rit
+  (`training_excluded_at`) ook niet.
+- **De norm valt niet meer op 0** (`consistencyFrom`). Bij vijf leden was de
+  consistentie leeg. In TSS was de norm de mediaan over 52 weken, met weken van
+  vóór de koppeling met intervals.icu en weken waarin intervals.icu de
+  Strava-ritten miste als 0 TSS. Meer dan de helft van de weken 0 gaf norm 0, dus
+  geen consistentie. Nu telt in TSS alleen de weken die intervals.icu kent; TSS
+  alleen als intervals.icu ook de meeste recente weken met een rit kent; en is de
+  mediaan 0 (minder dan de helft van de weken gereden), dan geldt de mediaan van de
+  weken waarin je reed.
+- **Geen consistentie is de volle straf** (eigenaar): `consistencyFactor(null)` is
+  0,8 in plaats van 1. Eerst kwam wie niets liet zien beter uit dan wie
+  onregelmatig reed. `scoreFor` vraagt de consistentie nu altijd expliciet; de
+  recordsteen rekent met 1. Het scherm toont dan "Consistentie 0%" met factor 0,80
+  (`storedConsistencyView`). Dit geldt ook voor bewaarde stenen en terugblikmaanden
+  zonder consistentie, omdat de score bij het lezen opnieuw wordt gerekend.
+- **`TERUGBLIK_SPAN` is nu `alles-gewicht-tss-p25-naleving`**, zodat de wekelijkse
+  job (en een bezoek) de terugblik met de nieuwe consistentie opnieuw maakt. De
+  gevonden ZRS van vroeger blijft staan.
+- **Melding voor de kJ-standen** (`fatigue-setup.ts`, `durability-setup-dialog.tsx`
+  in de app-layout). Bij 16 van de 24 stenen ontbrak durability: 15 leden krijgen
+  uit intervals.icu geen vermoeide curve, en bij één stond de enige stand op 500 kJ
+  (6,1 kJ/kg, onder de grens van 10). Wie zo'n powerprofiel heeft, krijgt een
+  dialoog met wat er mis is en een link naar `/hulp/training#zwbriljant`. Na
+  "Later" of de link een week stil (localStorage). Nooit samen met de privacy- of
+  Zwift-ID-vraag, en hij opent niet als er al een dialoog openstaat
+  (het weekoverzicht). `/hulp` noemt nu ook de grens van 10 kJ/kg en wat het
+  betekent als de standen al goed staan.
+- **Geslacht op productie gezet** (eigenaar, 2026-10-25, direct met SQL): bij de 14
+  leden met een steen zonder geslacht één op `vrouw` en dertien op `man`. Er waren
+  geen SRC-inschrijvingen die mee moesten (`followSrcProfileSex` liep dus bewust
+  niet). Haar weeksteen rekent bij het volgende bezoek of in de job van maandag met
+  de vrouwennormen; haar terugblik pas na de push (nieuwe `TERUGBLIK_SPAN`).
+- Meegenomen: het anker `naleving` stond niet in de categorie schema van
+  `help-categories.ts` (uit de ronde "naleving als balken"); `help-categories.test`
+  faalde daardoor op `main`.
+
+**Bewust niet gebouwd.**
+- Geen video bij de melding. *Achterhaald dezelfde dag:* de clip
+  `kj-standen` staat nu op `/hulp`, zie de ronde erboven.
+- Geen terugval voor een ontbrekende durability of ZRS: een ontbrekend onderdeel
+  telt voor 0, zoals de eigenaar op 2026-10-22 besloot. Eén lid verloor zo racen:
+  laatste race 20 januari, Zwift toont geen ZRS meer.
+- De status `completed` niet met terugwerkende kracht gezet: dat maakt rapporten en
+  meldingen aan. ZWBriljant koppelt zelf.
+
+**Gevonden, niet opgelost.**
+- Een lid met durability 54 punten: na 2000 kJ in 90 dagen hooguit 6 minuten
+  gereden, dus het verval is een ondergrens.
+- In de terugblik krijgen maanden van vóór de eerste race de ZRS van de eerste
+  latere race als "historie" (tot 38 maanden terug, tot 2018).
+
+**Getest.** Nieuwe tests voor de naleving met ritten, de norm bij minder dan de
+helft van de weken, TSS alleen over bekende weken, uren als intervals.icu de
+ritweken mist, de volle straf, en `fatigueSetupIssue`/`loadFatigueSetupIssue`.
+Alle ZWBriljant-tests (104), `tsc`, ESLint, `npm run build`. Volle suite groen,
+op `omnium-live` na: zonder `.env.local` in deze worktree faalde die, met het
+bestand slaat hij zijn zes tests over. `admin-areas` faalde één keer in de volle
+run en slaagt los. **Niet getest:**
+de dialoog in de browser (geen ledenlogin hier), en de nieuwe consistentie op
+productie, die pas na de push en de job te zien is.
+
+### Gewijzigd — Strava-tip: werk aan wat het meest oplevert
+
+**2026-10-25.** Commit `a0e8c79d`. Geen migratie. Op 2026-10-25 gepusht naar `main`, samen met de rondes van de kJ-standen (op verzoek van de eigenaar).
+
+Op verzoek van de eigenaar dezelfde wissel als in het weekoverzicht (ronde
+hieronder): de tip "bijna een klasse hoger" in het ZWBeter-blok op Strava noemt
+niet meer het laagste facet, maar het onderdeel waar 5% beter de meeste punten
+oplevert.
+
+- `BriljantSummary.weakestFacet` heet nu `growFacet` en komt uit
+  `winsFromLevels`. `loadBriljantSummary` leest daarvoor ook het geslacht uit
+  het profiel en `provenance` van de snapshot (de durability-bron).
+  `weakestFacet` in `briljant/score.ts` had geen gebruikers meer en is weg.
+- De drie varianten van "bijna-klasse" zijn nu:
+  "Nog {punten} punten tot {volgende}. Werk aan {facet}, daar groeit je steen het
+  snelst.", "{Volgende} is nog {punten} punten weg. Met {facet} kom je er het
+  snelst." en "Nog {punten} punten en je steen wordt {volgende}. {Facet} levert
+  daarvoor het meeste op." Ze zijn nieuw en nog niet goedgekeurd, en niet met de
+  avoid-ai-writing-skill nagelopen.
+- Privacyverklaring (Terugschrijven naar Strava): "soms je laagste facet" is nu
+  "soms het onderdeel waar je het meest wint". Tekst, geen nieuwe versie.
+- Al geschreven blokken blijven zoals ze zijn (`written_at`).
+
+**Getest.** `strava-summary` (de teststeen met sprint als laagste onderdeel geeft
+nu VO2max) en `strava-summary-tips` aangepast; met `weekly-review`,
+`briljant-view` en `briljant-score` groen (115). `tsc` (alleen de bekende fout op
+`modern-screenshot`), ESLint. **Niet getest:** een echte write naar Strava.
+
+### Gewijzigd — ZWBriljant in het weekoverzicht: werk aan wat het meest oplevert
+
+**2026-10-25.** Commit `385efa9b`. Geen migratie. Op 2026-10-25 gepusht naar `main`.
+
+De eigenaar wilde in plaats van "Laagste facet: X" een aanwijzing waar je steen
+het snelst groeit. Het laagste onderdeel is daar een slechte maat voor: sprint
+weegt 5%, VO2max en fitheid 20%. Het scherm zegt nu "Werk aan **X** om je steen
+sneller te laten groeien." X is het onderdeel waar 5% beter de meeste punten
+oplevert. Dat is dezelfde rekensom als "Waar win je het meest" op de steen
+(`bestWins`).
+
+- `winsFromLevels` (`briljant/view.ts`) doet die rekensom op een bewaarde steen:
+  de meting terug uit het niveau (zoals bij je eigen oude stenen), met het
+  geslacht uit het profiel en de durability-bron uit `provenance.durability`
+  (bij ritten blijft het plafond van niveau 9 staan). `bestWins` en
+  `winsFromLevels` delen nu `winsFromReadings`.
+- `BriljantSection.weakestFacet` heet nu `growFacet`. `SUMMARY_VERSION` blijft 3:
+  deze ronde ging samen met de ronde die versie 3 invoerde naar `main` (op `main`
+  stond nog versie 2), dus er staan geen samenvattingen van versie 3 met het oude
+  veld in de database.
+- Is er nergens iets te winnen (minder dan vier onderdelen, dus geen score), dan
+  valt de zin weg.
+- Privacyverklaring (Weekoverzicht): "je laagste onderdeel" is nu "het onderdeel
+  waar je het meest wint". Ook dit nog niet aan de eigenaar voorgelegd.
+
+**Bewust niet gedaan.** Het Strava-blok eerst niet meegenomen, omdat de eigenaar
+die tipteksten had goedgekeurd. Op zijn verzoek dezelfde dag toch gedaan (ronde
+hierboven).
+
+**Getest.** `weekly-review.test.ts`: een steen met sprint als laagste onderdeel
+geeft VO2max, en zonder score geen onderdeel. `briljant-view` (9) en
+`strava-summary` groen, `tsc` (alleen de bekende fout op `modern-screenshot`),
+ESLint. In de browser met voorbeelddata op 375 px, donker. **Niet getest:** met
+echte snapshots.
+
+### Gebouwd — ZWBriljant in het weekoverzicht
+
+**2026-10-25.** Commit `9fae85b6`. Geen migratie. Gemaakt op
+`claude/zwbriljant-weekoverzicht-5440b1`, op 2026-10-25 gepusht naar `main`.
+
+Wens van de eigenaar: de ZWBriljant-steen ook in het weekoverzicht. Hij krijgt een
+eigen scherm, na Vermogen en vóór Teams:
+
+- **Groot getal** de punten (427), daaronder de klasse met het verschil met een
+  week eerder ("Platina, 15 punten erbij.", "gelijk gebleven", of "Omhoog naar
+  Amethist." bij een nieuwe klasse), en "Nog 73 tot Amethist." met eerst het
+  laagste facet erachter (sinds dezelfde dag: het onderdeel waar je het meest
+  wint, zie de ronde hierboven). In Diamant valt het stuk over de volgende klasse weg.
+- **De print** (`BriljantPrint`): een briljant geslepen silhouet in salie dat in
+  petrol volloopt tot de voortgang binnen de klasse, met de stand van vorige week
+  als stippellijn (zoals "beste van het jaar" bij Vermogen). Het vult op
+  oppervlakte, niet op hoogte: op hoogte oogde een kwart in de smalle punt als
+  bijna niets. De clip zit op een binnenste `<g>`, omdat de rakel zelf een
+  `clip-path` op `.ink` zet.
+- **Bron** (`buildBriljant` in `summary.ts`, query in `load.ts`): de bewaarde
+  weeksnapshots op de huidige schaal, net als het Strava-blok. De laatste met
+  score tot en met de maandag van de week, hooguit 35 dagen oud, naast die van
+  precies een week eerder. `weakestFacet` staat nu in `briljant/score.ts` en wordt
+  ook door het Strava-blok gebruikt.
+- `SUMMARY_VERSION` is 3: een bestaand overzicht van deze week wordt bij de
+  volgende opening opnieuw opgebouwd en krijgt de steen (gezien en coachtekst
+  blijven staan, zoals bij versie 2).
+- De steen alleen telt niet als inhoud (`hasContent`): wie een week niets deed,
+  krijgt geen overzicht alleen voor de steen.
+- Ook wie zijn steen niet met leden deelt, ziet hem in het eigen overzicht: dat
+  leest alleen het lid zelf.
+- `/hulp` (Training) noemt de steen bij de schermen; de privacyverklaring
+  (Weekoverzicht) noemt wat er van de steen in de samenvatting staat, dat alleen
+  het lid het leest, en dat de steen niet naar OpenAI gaat. Geen nieuwe versie:
+  het zijn gegevens die al per week bewaard worden. **De tekst is nog niet aan de
+  eigenaar voorgelegd.**
+
+**Bewust niet gedaan.**
+- Geen live berekening van de steen bij het maken van het overzicht: dat kost een
+  jaar wellness bij intervals.icu, de ZRS bij Zwift en mogelijk de durability-test,
+  en het overzicht heeft voor intervals.icu maar 4 s. Gevolg: de job maakt de
+  snapshot op maandag, dus op zondagavond loopt de steen tot een week achter,
+  tenzij het lid ZWBriljant die week opende (dat ververst de snapshot).
+- De steen gaat niet mee naar de AI-coach (`coachInput` haalt hem eruit): de
+  ZWBriljant-tekst in de privacyverklaring belooft dat er niets naar OpenAI gaat.
+- Geen eigen kleur van de klasse (vELO-kleur) in de print: het weekoverzicht
+  drukt alleen in de drie tenue-inkten.
+
+**Getest.** Nieuwe tests in `weekly-review.test.ts` (`buildBriljant`: de laatste
+steen met die van de week ervoor, een latere week genegeerd, te oud of zonder
+score, Diamant; en de steen niet in `coachInput`). `weekly-review`,
+`strava-summary`, `strava-summary-tips` en `briljant-score` groen (105), `tsc`
+(alleen de bekende fout op `modern-screenshot`), ESLint op de gewijzigde
+bestanden. In de browser met voorbeelddata bekeken op 375 px, licht en donker
+(`/ontwerp-voorbeeld?scherm=weekoverzicht`). **Niet getest:** de query op
+`zwbriljant_snapshots` tegen de echte database en het overzicht met echte data.
+
 ### Gebouwd — ZWBeter-blok op Strava: eigen opbouw, de steen en een tip
 
 **2026-10-25.** Commit `870e8380`, op 2026-10-25 gepusht naar `main` (op verzoek
@@ -11726,7 +11983,9 @@ volgde het blok JOIN regel voor regel: twee kopjes, labels met een dubbele punt,
   "Vrije rit".
 - **De tip** (`strava-summary-tips.ts`) komt uit tien situaties op volgorde (moe en
   toch hard, zwaarder type dan gepland, ruim boven of onder plan, volgens plan,
-  bijna een klasse hoger met het laagste facet, fitheid stijgt of zakt, vrije rit,
+  bijna een klasse hoger met het laagste facet (sinds dezelfde dag het onderdeel
+  waar je het meest wint, zie "Strava-tip: werk aan wat het meest oplevert"),
+  fitheid stijgt of zakt, vrije rit,
   algemeen), elk met drie varianten. De variant hangt aan het Strava-id, zodat een
   nieuwe poging dezelfde zin geeft. De teksten zijn gecontroleerd met de
   avoid-ai-writing-skill en de regels uit `lib/ai-writing.ts`.
@@ -13556,8 +13815,9 @@ duidelijker is").
   daarvoor iets omlaag). Even waren de namen weg; de eigenaar bedoelde alleen dat
   racen (ZRS) niet aan een groep hangt.
 - **Consistentie telt mee als factor**: score = profielscore × (0,8 + 0,2 ×
-  consistentie), zonder ritgegevens factor 1 (`consistencyFactor`). Eerst telde
-  consistentie niet mee; de eigenaar koos voor tot 20%.
+  consistentie). Eerst telde consistentie niet mee; de eigenaar koos voor tot 20%.
+  *Achterhaald per 2026-10-25:* zonder ritgegevens was dat factor 1, nu 0,8 (de
+  volle straf), zie de ronde van die dag.
 - **Racen is een rechte lijn**: 0 ZRS is 0 en 1000 ZRS (nooit gehaald) is Aliens, dus
   0,9 punt per ZRS-punt, los van Zwift's categorieën. Eerst stond er één decimaal (4,5); de eigenaar
   koos daarna voor punten, omdat een groter getal dat in kleine stappen groeit meer

@@ -7,6 +7,10 @@
 // hebben geen stem (besluit eigenaar, 2026-10-19); komt er ooit wel een
 // audiobestand per scène in audio/, dan rekent de opname met die duur.
 
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 export const VIDEO = {
   id: "aan-de-slag-met-zwbasis",
   titel: "Aan de slag met ZWBasis",
@@ -347,4 +351,120 @@ export const CLIPS = [
   { id: "zonder-strava", titel: "Ritten zonder Strava", scenes: ["12-zonder-strava"], hulp: "ritten-via-intervals" },
   { id: "meldingen", titel: "Meldingen aanzetten", scenes: ["13-meldingen"], hulp: "meldingen-problemen" },
   { id: "aanmelden-event", titel: "Aanmelden voor een event", scenes: ["14-kalender"], hulp: "agenda" },
+  { id: "kj-standen", titel: "Durability: de kJ-standen", scenes: ["16-kj-melding", "17-kj-intervals", "18-kj-ophalen"], hulp: "zwbriljant" },
+];
+
+// ---- Scènes die alleen in een hulpclip staan, niet in de hoofdvideo --------
+
+const INTERVALS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "intervals");
+
+/**
+ * Waar je tikt in de schermen van intervals.icu (390x590, zoals de opname). De
+ * schermen zijn echte schermafdrukken van de eigenaar (2026-10-25), met naam en
+ * vermogensgrafiek vervaagd; in "3-curves-1000" staat de eerste stand op 1000 kJ
+ * (in werkelijkheid stond die op 830 kJ en is niets opgeslagen).
+ */
+const INTERVALS_SPOTS = {
+  "1-menu": { beste: [0, 256, 198, 47] },
+  "2a-dicht": { puntjes: [318, 462, 55, 55] },
+  "2-fab": { curves: [176, 284, 197, 34] },
+  "3-curves": { standen: [14, 408, 308, 28], pen1: [192, 412, 14, 20] },
+  "4-dialog": { veld: [38, 195, 312, 30], opslaan: [280, 392, 76, 30] },
+  "3-curves-1000": { pen2: [314, 412, 14, 20], vinkjes: [104, 409, 138, 26] },
+};
+
+/** Een pagina met de schermafdrukken, en per scherm onzichtbare vlakken om op te tikken. */
+function intervalsPage() {
+  const shots = Object.keys(INTERVALS_SPOTS).map((name) => {
+    const data = readFileSync(path.join(INTERVALS_DIR, `${name}.jpg`)).toString("base64");
+    const spots = Object.entries(INTERVALS_SPOTS[name])
+      .map(([id, [x, y, w, h]]) => `<div id="${id}" class="spot" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px"></div>`)
+      .join("");
+    return `<section data-scherm="${name}" hidden><img src="data:image/jpeg;base64,${data}" alt="">${spots}</section>`;
+  });
+  return `<!doctype html><html lang="nl"><head><meta charset="utf-8"><style>
+    html, body { margin: 0; background: #121016; overflow: hidden; }
+    section { position: fixed; inset: 0; }
+    section[hidden] { display: none; }
+    img { display: block; width: 390px; height: 590px; }
+    .spot { position: absolute; }
+  </style></head><body>${shots.join("")}<script>
+    window.toon = (name) => document.querySelectorAll("section").forEach((el) => (el.hidden = el.dataset.scherm !== name));
+    toon("1-menu");
+  </script></body></html>`;
+}
+
+export const HULP_SCENES = [
+  {
+    id: "16-kj-melding",
+    titel: "Durability ontbreekt",
+    preset: "kj-melding",
+    ingelogd: true,
+    start: "/dashboard",
+    tekst:
+      "Zie je in ZWB de melding dat durability ontbreekt? Dan krijgen we uit intervals.icu geen vermoeide curve. Die zet je zo aan.",
+    async speel(s) {
+      const dialog = s.page.locator('[data-slot="dialog-content"]');
+      await dialog.waitFor({ timeout: 5000 });
+      await s.at("melding");
+      await s.highlight(dialog, 4200);
+    },
+  },
+  {
+    id: "17-kj-intervals",
+    titel: "De kJ-standen in intervals.icu",
+    ingelogd: false,
+    start: "/__demo/intervals",
+    // Geen app maar de schermafdrukken hierboven; opname.mjs zet deze pagina neer.
+    html: intervalsPage,
+    tekst:
+      "Open intervals.icu en kies in het menu Beste prestaties. Tik rechtsonder op de knop met de drie puntjes en kies Vermogenscurves. Onderaan staan twee kJ-standen. Tik bij de eerste op het potloodje, vul 1000 in en tik op Opslaan. Zet de tweede op 2000 en vink ze allebei aan.",
+    async speel(s) {
+      const p = s.page;
+      const toon = (name) => p.evaluate((n) => window.toon(n), name);
+      const spot = (id) => p.locator(`#${id}`);
+      await s.at("Beste prestaties");
+      await s.highlight(spot("beste"), 1400);
+      await s.tap(spot("beste"));
+      await toon("2a-dicht");
+      await s.at("drie puntjes");
+      await s.highlight(spot("puntjes"), 1200);
+      await s.tap(spot("puntjes"));
+      await toon("2-fab");
+      await s.at("Vermogenscurves");
+      await s.highlight(spot("curves"), 1200);
+      await s.tap(spot("curves"));
+      await toon("3-curves");
+      await s.at("Onderaan");
+      await s.highlight(spot("standen"), 2200);
+      await s.at("potloodje");
+      await s.tap(spot("pen1"));
+      await toon("4-dialog");
+      await s.at("1000");
+      await s.highlight(spot("veld"), 1500);
+      await s.at("Opslaan");
+      await s.tap(spot("opslaan"));
+      await toon("3-curves-1000");
+      await s.at("tweede");
+      await s.highlight(spot("pen2"), 1800);
+      await s.at("vink");
+      await s.highlight(spot("vinkjes"), 2400);
+    },
+  },
+  {
+    id: "18-kj-ophalen",
+    titel: "Mijn waarden ophalen",
+    preset: "vermogen",
+    ingelogd: true,
+    start: "/zwbeter-worden/vermogen",
+    tekst:
+      "intervals.icu rekent je curves daarna opnieuw uit, dat duurt een paar minuten. Ga dan in ZWB naar Mijn vermogen en tik op Mijn waarden ophalen. Je durability telt dan mee in je ZWBriljant.",
+    async speel(s) {
+      const button = s.page.getByRole("button", { name: "Mijn waarden ophalen" });
+      await s.at("Mijn vermogen");
+      await s.highlight(s.page.getByRole("link", { name: "Vermogen", exact: true }).first(), 1800);
+      await s.at("tik");
+      await s.highlight(button, 3000);
+    },
+  },
 ];

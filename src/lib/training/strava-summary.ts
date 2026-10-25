@@ -11,7 +11,9 @@ import { intensityLabel } from "@/lib/training/workouts";
 import { amsterdamDayKey, type FitnessTrend } from "@/lib/training/zwbeterworden";
 import { rideTip } from "@/lib/training/strava-summary-tips";
 import type { StoredSnapshot } from "@/lib/briljant/compare";
-import { FACETS, FACET_LABELS, points, positionFor, type Facet } from "@/lib/briljant/score";
+import type { Sex } from "@/lib/briljant/norms";
+import { points, positionFor } from "@/lib/briljant/score";
+import { winsFromLevels } from "@/lib/briljant/view";
 import { mondayKey, shiftDay } from "@/lib/briljant/snapshot";
 
 /**
@@ -56,8 +58,12 @@ export type BriljantSummary = {
   toNext: number;
   /** Verschil in punten met vier weken eerder; null zonder historie. */
   delta4w: number | null;
-  /** Label van het facet met het laagste niveau. */
-  weakestFacet: string | null;
+  /**
+   * Het onderdeel waar 5% beter de meeste punten oplevert (zoals "Waar win je het
+   * meest" op de steen). Tot 2026-10-25 stond hier het laagste facet, maar dat
+   * weegt soms maar 5%.
+   */
+  growFacet: string | null;
 };
 
 export type ZwbSummaryInput = {
@@ -92,8 +98,9 @@ const BRILJANT_MAX_AGE_DAYS = 35;
  * intervals.icu of Zwift. Null zonder recente snapshot met score.
  */
 export function briljantSummaryFrom(
-  snapshots: StoredSnapshot[],
+  snapshots: Array<StoredSnapshot & { durability?: "test" | "ritten" }>,
   today: string,
+  sex: Sex | null = null,
 ): BriljantSummary | null {
   const scored = snapshots
     .filter((snapshot) => snapshot.score != null)
@@ -104,19 +111,14 @@ export function briljantSummaryFrom(
 
   const position = positionFor(latest.score);
   const before = scored.find((snapshot) => snapshot.week === shiftDay(latest.week, -28));
-  let weakest: { facet: Facet; level: number } | null = null;
-  for (const facet of FACETS) {
-    const level = latest.facets[facet];
-    if (level == null) continue;
-    if (!weakest || level < weakest.level) weakest = { facet, level };
-  }
+  const grow = winsFromLevels(latest.facets, latest.consistency, sex, latest.durability)[0] ?? null;
   return {
     points: points(latest.score),
     level: position.reached.name,
     nextLevel: position.next?.name ?? null,
     toNext: position.toNext,
     delta4w: before?.score == null ? null : points(latest.score) - points(before.score),
-    weakestFacet: weakest ? FACET_LABELS[weakest.facet] : null,
+    growFacet: grow?.label ?? null,
   };
 }
 
@@ -214,7 +216,7 @@ export function buildZwbSummaryBlock(input: ZwbSummaryInput): string {
     fitnessTrend: input.fitnessTrend,
     nextLevel: input.briljant?.nextLevel ?? null,
     toNext: input.briljant?.toNext ?? null,
-    weakestFacet: input.briljant?.weakestFacet ?? null,
+    growFacet: input.briljant?.growFacet ?? null,
   });
   return [
     ZWB_SUMMARY_HEADER,

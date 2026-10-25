@@ -9,7 +9,7 @@ export const WEEK_VOORBEELD: WeekReview = {
   coachText:
     "Sterke week. Je trainde gericht en dat zag je donderdag: **312 W over 5 minuten is een nieuwe grens**. Woensdag overslaan na die zware dinsdag was slim. Begin volgende week rustig; de VO2-blokken van dinsdag rijd je op gevoel.",
   summary: {
-    version: 2,
+    version: 3,
     weekStart: "2026-10-12",
     weekEnd: "2026-10-18",
     firstName: "Sanne",
@@ -74,6 +74,16 @@ export const WEEK_VOORBEELD: WeekReview = {
     },
     fuel: { loggedDays: [true, true, false, true, true, true, false], mobilitySessions: 2, mobilityMinutes: 40 },
     club: { clubRides: [{ title: "Clubrit Heuvelrug", day: "2026-10-17", riders: 11 }], newBlocks: 14, badges: ["Klimgeit"] },
+    briljant: {
+      points: 427,
+      level: 4,
+      levelName: "Platina",
+      nextName: "Amethist",
+      toNext: 73,
+      previousPoints: 412,
+      previousLevel: 4,
+      growFacet: "Durability",
+    },
   },
   next: {
     weekStart: "2026-10-19",

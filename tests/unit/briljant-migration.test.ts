@@ -212,7 +212,8 @@ describe("ZWBriljant (0265 tot en met 0270)", () => {
       if (before.fitheid == null) expect(row.facets.fitheid).toBeNull();
       else expect(row.facets.fitheid).toBeCloseTo(levelAt(CTL_ANCHORS, oldCtl(before.fitheid)), 2);
       // SQL rondt exact af, JavaScript in drijvende komma: hooguit 0,01 verschil.
-      expect(Math.abs(Number(row.score) - storedScore(row.facets, before.consistency)!)).toBeLessThanOrEqual(0.011);
+      // 0270 rekende zonder consistentie nog met factor 1 (de straf kwam op 2026-10-25).
+      expect(Math.abs(Number(row.score) - storedScore(row.facets, before.consistency ?? 1)!)).toBeLessThanOrEqual(0.011);
     });
   });
 });

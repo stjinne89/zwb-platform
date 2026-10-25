@@ -58,6 +58,8 @@ export function coachInput(summary: WeekSummary, next: NextWeek | null): string 
   delete rest.firstName;
   delete rest.version;
   delete rest.form;
+  // De steen gaat niet naar OpenAI: die stond niet in wat de coach krijgt.
+  delete rest.briljant;
   const { form, teams } = summary;
   const week = {
     ...rest,

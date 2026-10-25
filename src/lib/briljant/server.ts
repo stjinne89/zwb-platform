@@ -68,11 +68,13 @@ const TERUGBLIK_FALLBACK_MONTHS = 12;
  * waar die bekend is en anders de huidige, durability per maand, en sinds 2026-10-22 het gewicht
  * uit intervals.icu of Zwift, consistentie in TSS en durability uit de laagste
  * kJ-stand in plaats van het gemiddelde, en sinds 2026-10-23 durability als P25 over
- * 1 tot 20 minuten met een plafond op Diamant (eigenaar). Een terugblik met
+ * 1 tot 20 minuten met een plafond op Diamant (eigenaar), en sinds 2026-10-25 de
+ * consistentie met ritten op de trainingsdag in de naleving en een norm die niet
+ * meer op 0 valt. Een terugblik met
  * een andere waarde wordt bij het volgende bezoek of door de job opnieuw gemaakt;
  * de ZRS van vroeger die de job al vond, blijft staan.
  */
-export const TERUGBLIK_SPAN = "alles-gewicht-tss-p25";
+export const TERUGBLIK_SPAN = "alles-gewicht-tss-p25-naleving";
 /** PostgREST geeft hooguit zoveel rijen per vraag. */
 const PAGE = 1000;
 /** Zoveel weken terug voor de norm (mediaan) en de reeks. */
@@ -141,11 +143,16 @@ async function loadConnection(admin: Admin, profileId: string): Promise<Interval
 /** Ritten op de fiets vanaf `from`, per dag in Amsterdamse tijd. */
 async function loadRides(admin: Admin, profileId: string, from: string): Promise<RideDay[]> {
   // In pagina's: over jaren historie zijn het er meer dan PostgREST in één keer geeft.
-  const rows: Array<{ start_date: string; moving_time_seconds: number | null; sport_type: string | null }> = [];
+  const rows: Array<{
+    start_date: string;
+    moving_time_seconds: number | null;
+    sport_type: string | null;
+    training_excluded_at: string | null;
+  }> = [];
   for (let offset = 0; ; offset += PAGE) {
     const { data } = await admin
       .from("strava_activities")
-      .select("start_date, moving_time_seconds, sport_type")
+      .select("start_date, moving_time_seconds, sport_type, training_excluded_at")
       .eq("profile_id", profileId)
       .gte("start_date", `${from}T00:00:00Z`)
       .order("start_date", { ascending: true })
@@ -155,7 +162,11 @@ async function loadRides(admin: Admin, profileId: string, from: string): Promise
   }
   return rows
     .filter((row) => isCyclingSportType(row.sport_type))
-    .map((row) => ({ day: amsterdamDayKey(new Date(row.start_date)), minutes: Math.round((row.moving_time_seconds ?? 0) / 60) }));
+    .map((row) => ({
+      day: amsterdamDayKey(new Date(row.start_date)),
+      minutes: Math.round((row.moving_time_seconds ?? 0) / 60),
+      excluded: row.training_excluded_at != null,
+    }));
 }
 
 /**
@@ -218,7 +229,7 @@ function loadsFrom(wellness: IntervalsWellness[]): Map<string, number> {
 function consistencyAt(allRides: RideDay[], planned: PlannedWorkout[], day: string, loads?: Map<string, number>): ConsistencyInput {
   return {
     weeks: consistencyWeeks(allRides, planned, day, HISTORY_WEEKS, loads),
-    compliance: complianceFrom(planned, shiftDay(mondayKey(day), -CONSISTENCY_WEEKS * 7), day),
+    compliance: complianceFrom(planned, shiftDay(mondayKey(day), -CONSISTENCY_WEEKS * 7), day, allRides),
   };
 }
 

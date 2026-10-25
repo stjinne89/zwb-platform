@@ -5,10 +5,10 @@
 // rekenen we de meting terug uit het niveau (de schaal is recht tussen de
 // ijkwaarden); van anderen bewust niet, want leden zien elkaars metingen niet.
 
-import { CONSISTENCY_WEEKS, FACETS, FACET_LABELS, FACET_MEASURES, consistencyFactor, points, positionFor, profileScore, scoreFor, type Facet } from "./score";
+import { FACETS, FACET_LABELS, FACET_MEASURES, points, positionFor, profileScore, scoreFor, type Facet } from "./score";
 import { FACET_WEIGHTS, LEVELS, levelOf } from "./norms";
 import type { Sex } from "./norms";
-import { formatMeasure, meterFor, readingFromLevel, type BriljantView, type FacetMeter, type FacetView } from "./view";
+import { formatMeasure, meterFor, readingFromLevel, storedConsistencyView, type BriljantView, type FacetMeter, type FacetView } from "./view";
 
 export type StoredSnapshot = {
   week: string;
@@ -109,20 +109,7 @@ export function viewFromSnapshot(args: {
     delta4w: null,
     facets,
     missing: FACETS.filter((facet) => levels[facet] == null),
-    consistency:
-      consistency == null
-        ? null
-        : {
-            value: consistency,
-            factor: consistencyFactor(consistency),
-            hitWeeks: null,
-            weeks: CONSISTENCY_WEEKS,
-            streak: null,
-            compliance: null,
-            norm: null,
-            measure: null,
-            normSource: null,
-          },
+    consistency: storedConsistencyView(consistency),
   };
 }
 
