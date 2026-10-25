@@ -11314,7 +11314,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — TSS uit hartslag voor ritten zonder vermogensmeter
 
-**2026-10-25.** Commit `HASH_VOLGT`, niet gepusht. Geen migratie.
+**2026-10-25.** Commit `aa256eb4`, niet gepusht. Geen migratie.
 
 De eigenaar vroeg om TSS voor ritten zonder vermogensmeter maar met hartslag,
 zoals intervals.icu dat doet. Tot nu toe bleef de TSS van zo'n rit leeg: overal
