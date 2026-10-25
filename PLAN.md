@@ -304,8 +304,8 @@ gaat stabiliteit voor nieuwe features.
    ook gebouwd, niet gepusht, net als stap 4 (darmtraining bepaalt het
    plafond) en stap 5 (zweettest en vochtdoel). **Voor het pushen:
    `0272_nutrition_ride_carbs_120.sql` en `0273_nutrition_sweat_tests.sql`
-   toepassen, en de eigenaar keurt de tekst op `/privacy#zweettest` goed.**
-   Daarmee is het ritvoedingsplan af.
+   toepassen.** De tekst op `/privacy#zweettest` is goedgekeurd (eigenaar,
+   2026-10-25). Daarmee is het ritvoedingsplan af.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11336,7 +11336,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 **2026-10-25.** Commit `89bf101e`, stap 5 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
 besluiten 5, 6 en 7 van dat plan. Migratie `0273_nutrition_sweat_tests.sql`,
-**nog niet toegepast**. Privacytekst **nog niet goedgekeurd**. Niet gepusht.
+**nog niet toegepast**. Privacytekst goedgekeurd door de eigenaar (2026-10-25,
+zonder wijziging). Niet gepusht.
 
 - **Rekenwerk** (`src/lib/nutrition/sweat.ts`). Zweetverlies per uur =
   (gewicht voor − gewicht na) × 1000 + gedronken ml, gedeeld door de duur
@@ -11364,7 +11365,7 @@ besluiten 5, 6 en 7 van dat plan. Migratie `0273_nutrition_sweat_tests.sql`,
   schrijft en wist (RLS); in de data-export.
 - **Privacy.** `/privacy#zweettest` heeft een nieuwe alinea, en `privacy.ts`
   noemt de negende uitzondering (eigen toestemming, geen nieuwe versie).
-  **De eigenaar keurt die tekst goed voor de push** (besluit 7).
+  De eigenaar keurde die tekst ongewijzigd goed op 2026-10-25 (besluit 7).
 - **Ook verplaatst:** de schakelaar "tot 120 g per uur" uit stap 4 stond boven
   de titel van het protocol; hij staat nu, net als de zweettest, onder de
   metingen (`ProtocolDetail` kreeg een `extra`).

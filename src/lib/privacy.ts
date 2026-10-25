@@ -82,8 +82,8 @@
  * levert het aan, en tekent bij de eerste test (`SWEAT_CONSENT_VERSION` in
  * `src/lib/nutrition/sweat.ts`, kolom `nutrition_sweat_tests.consent_version`,
  * 0273). Het gewicht van voor en na wordt niet bewaard. Besluit 7 van
- * docs/ritvoeding-plan.md; de tekst op `/privacy#zweettest` gaat vóór de push
- * naar de eigenaar.
+ * docs/ritvoeding-plan.md; de eigenaar keurde de tekst op `/privacy#zweettest`
+ * goed op 2026-10-25.
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring
