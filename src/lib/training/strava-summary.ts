@@ -1,31 +1,80 @@
-// Het ZWBeter Worden-blok dat na een rit onderaan de Strava-beschrijving komt.
+// Het ZWBeter-blok dat na een rit onderaan de Strava-beschrijving komt.
 // Alles hier is puur: geen database, geen fetch. Dat maakt het testbaar en houdt
 // de orchestrator (src/lib/strava/summary-writer.ts) klein.
+//
+// Tot 2026-10-25 volgde het blok regel voor regel de opbouw van JOIN (labels met
+// een dubbele punt, "-" voor een lege waarde, alleen CTL als voortgang). Nu korte
+// regels met een emoji ervoor, de ZWBriljant-steen als voortgang en een tip.
+// Regels zonder gegevens vallen weg.
 
 import { intensityLabel } from "@/lib/training/workouts";
 import { amsterdamDayKey, type FitnessTrend } from "@/lib/training/zwbeterworden";
+import { rideTip } from "@/lib/training/strava-summary-tips";
+import type { StoredSnapshot } from "@/lib/briljant/compare";
+import { FACETS, FACET_LABELS, points, positionFor, type Facet } from "@/lib/briljant/score";
+import { mondayKey, shiftDay } from "@/lib/briljant/snapshot";
 
-export const ZWB_SUMMARY_HEADER = "📊 ZWBeter Worden";
-export const ZWB_PROGRESS_HEADER = "📈 Progressie";
+/**
+ * Strava kent geen opmaak; vet kan alleen met de vette letters uit Unicode
+ * (Mathematical Sans-Serif Bold). Alleen A-Z, a-z en 0-9; de rest blijft staan.
+ */
+export function unicodeBold(text: string): string {
+  return Array.from(text, (char) => {
+    const code = char.codePointAt(0)!;
+    if (code >= 65 && code <= 90) return String.fromCodePoint(0x1d5d4 + code - 65);
+    if (code >= 97 && code <= 122) return String.fromCodePoint(0x1d5ee + code - 97);
+    if (code >= 48 && code <= 57) return String.fromCodePoint(0x1d7ec + code - 48);
+    return char;
+  }).join("");
+}
 
-/** Regels die tot ons blok horen. Anker voor het opruimen van een oud blok. */
+export const ZWB_SUMMARY_HEADER = unicodeBold("ZWBeter workout-samenvatting");
+
+/** De kopregel van vóór 2026-10-25. Blijft herkend, zodat oude blokken netjes wijken. */
+const LEGACY_SUMMARY_HEADER = "📊 ZWBeter Worden";
+
+/**
+ * Regels die tot ons blok horen: de voorvoegsels van nu en de labels van het
+ * oude blok. Anker voor het opruimen van een oud blok.
+ */
 const ZWB_SUMMARY_LINE = new RegExp(
-  `^(?:Gepland|Geplande duur|Gedetecteerd type|Workout score|CTL|Gereedscore|Fitness-status):|^${ZWB_PROGRESS_HEADER}$`,
+  "^(?:💎 |🎯 |⚡ |🔋 |📈 |💬 )" +
+    "|^(?:Gepland|Geplande duur|Gedetecteerd type|Workout score|CTL|Gereedscore|Fitness-status):" +
+    "|^📈 Progressie$",
+  "u",
 );
 
-/** Waarde-plaatshouder, zelfde conventie als JOIN. */
-const EMPTY = "-";
+/** De steen voor in het blok, uit de laatste ZWBriljant-snapshot. */
+export type BriljantSummary = {
+  /** Score in punten, zoals op het scherm (427). */
+  points: number;
+  /** Klasse bij die score (Platina). */
+  level: string;
+  /** Volgende klasse; null in Diamant. */
+  nextLevel: string | null;
+  /** Punten tot de volgende klasse; 0 in Diamant. */
+  toNext: number;
+  /** Verschil in punten met vier weken eerder; null zonder historie. */
+  delta4w: number | null;
+  /** Label van het facet met het laagste niveau. */
+  weakestFacet: string | null;
+};
 
 export type ZwbSummaryInput = {
+  /** Strava-id van de rit; kiest de variant van de tip. */
+  activityId: number;
   plannedTitle: string | null;
   plannedIntensity: string | null;
   plannedMinutes: number | null;
   /** Geschatte TSS van het schema, uit estimateTrainingLoad(). */
   plannedLoad: number | null;
-  /** Werkelijke TSS, uit intervals_activities.training_load. */
+  /** Werkelijke TSS, uit de Strava-rit (lib/training/ride-metrics.ts). */
   actualLoad: number | null;
   detectedIntensity: string | null;
+  /** Alleen nog als terugval wanneer er geen steen is. */
   ctl: number | null;
+  /** Null zonder steen, of als het lid zijn steen niet deelt. */
+  briljant: BriljantSummary | null;
   /** ZwbAdvice.level, 1-5; 0 of null betekent "nog geen advies". */
   readinessLevel: number | null;
   readinessTitle: string | null;
@@ -34,65 +83,149 @@ export type ZwbSummaryInput = {
   fitnessTrend: FitnessTrend;
 };
 
+/** Ouder dan zoveel dagen telt een snapshot niet meer als "je steen van nu". */
+const BRILJANT_MAX_AGE_DAYS = 35;
+
+/**
+ * De steen uit de bewaarde weeksnapshots (oud of nieuw, maakt niet uit). De
+ * wekelijkse job houdt ze bij; zo kost de steen in het blok geen extra calls naar
+ * intervals.icu of Zwift. Null zonder recente snapshot met score.
+ */
+export function briljantSummaryFrom(
+  snapshots: StoredSnapshot[],
+  today: string,
+): BriljantSummary | null {
+  const scored = snapshots
+    .filter((snapshot) => snapshot.score != null)
+    .sort((a, b) => a.week.localeCompare(b.week));
+  const latest = scored.at(-1);
+  if (!latest || latest.score == null) return null;
+  if (latest.week < shiftDay(mondayKey(today), -BRILJANT_MAX_AGE_DAYS)) return null;
+
+  const position = positionFor(latest.score);
+  const before = scored.find((snapshot) => snapshot.week === shiftDay(latest.week, -28));
+  let weakest: { facet: Facet; level: number } | null = null;
+  for (const facet of FACETS) {
+    const level = latest.facets[facet];
+    if (level == null) continue;
+    if (!weakest || level < weakest.level) weakest = { facet, level };
+  }
+  return {
+    points: points(latest.score),
+    level: position.reached.name,
+    nextLevel: position.next?.name ?? null,
+    toNext: position.toNext,
+    delta4w: before?.score == null ? null : points(latest.score) - points(before.score),
+    weakestFacet: weakest ? FACET_LABELS[weakest.facet] : null,
+  };
+}
+
 /** Nederlands decimaalteken, consistent met de rest van de app. */
 function dutchDecimal(value: number, digits = 1) {
   return value.toFixed(digits).replace(".", ",");
 }
 
 /**
- * Verschil tussen werkelijke en geplande belasting. Symmetrisch afgerond, zodat
- * -12,5% ook echt -13% wordt (Math.round rondt .5 richting +oneindig).
+ * Verschil tussen werkelijke en geplande belasting in hele procenten.
+ * Symmetrisch afgerond, zodat -12,5% ook echt -13% wordt (Math.round rondt .5
+ * richting +oneindig).
  */
-export function workoutScoreLabel(
+export function loadDeltaPct(
   actualLoad: number | null,
   plannedLoad: number | null,
-): string {
-  if (actualLoad == null || plannedLoad == null || plannedLoad <= 0) return EMPTY;
+): number | null {
+  if (actualLoad == null || plannedLoad == null || plannedLoad <= 0) return null;
   const raw = ((actualLoad - plannedLoad) / plannedLoad) * 100;
-  const pct = Math.sign(raw) * Math.round(Math.abs(raw));
-  const sign = pct > 0 ? "+" : "";
-  return `${sign}${pct}% (${Math.round(actualLoad)} vs ${Math.round(plannedLoad)} TSS)`;
+  // `|| 0` maakt van -0 een gewone 0.
+  return Math.sign(raw) * Math.round(Math.abs(raw)) || 0;
 }
 
-export function fitnessStatusLabel(trend: FitnessTrend): string {
-  if (trend === "improving") return "Verbeterend";
-  if (trend === "declining") return "Afnemend";
-  if (trend === "stable") return "Stabiel";
-  return EMPTY;
+export function fitnessTrendLabel(trend: FitnessTrend): string | null {
+  if (trend === "improving") return "fitheid stijgt";
+  if (trend === "declining") return "fitheid zakt";
+  if (trend === "stable") return "fitheid blijft gelijk";
+  return null;
 }
 
-function plannedLabel(input: ZwbSummaryInput): string {
-  if (input.plannedTitle?.trim()) return input.plannedTitle.trim();
-  const label = intensityLabel(input.plannedIntensity);
-  return label || EMPTY;
+function progressLine(input: ZwbSummaryInput): string | null {
+  const stone = input.briljant;
+  if (stone) {
+    const head = `💎 ZWBriljant ${stone.level} · ${stone.points.toLocaleString("nl-NL")} punten`;
+    if (stone.nextLevel) return `${head}, nog ${stone.toNext} tot ${stone.nextLevel}`;
+    if (stone.delta4w != null && stone.delta4w !== 0) {
+      const sign = stone.delta4w > 0 ? "+" : "-";
+      return `${head}, ${sign}${Math.abs(stone.delta4w)} in 4 weken`;
+    }
+    return head;
+  }
+  return input.ctl == null ? null : `📈 CTL ${dutchDecimal(input.ctl)}`;
 }
 
-function readinessLabel(input: ZwbSummaryInput): string {
+function planLine(input: ZwbSummaryInput): string {
+  const detected = intensityLabel(input.detectedIntensity).toLowerCase();
+  const ridden = detected ? ` → gereden als ${detected}` : "";
+  const planned =
+    input.plannedTitle?.trim() || intensityLabel(input.plannedIntensity);
+  if (!planned) return `🎯 Vrije rit${ridden}`;
+  const minutes = input.plannedMinutes ? ` (${input.plannedMinutes} min)` : "";
+  return `🎯 ${planned}${minutes}${ridden}`;
+}
+
+function loadLine(input: ZwbSummaryInput): string | null {
+  if (input.actualLoad == null) return null;
+  const tss = `⚡ ${Math.round(input.actualLoad)} TSS`;
+  const pct = loadDeltaPct(input.actualLoad, input.plannedLoad);
+  if (pct == null) return tss;
+  if (pct === 0) return `${tss}, precies volgens plan`;
+  return `${tss}, ${Math.abs(pct)}% ${pct > 0 ? "boven" : "onder"} plan`;
+}
+
+function readinessLine(input: ZwbSummaryInput): string | null {
   const { readinessLevel, readinessScore, readinessTitle } = input;
-  if (!readinessLevel || readinessScore == null) return EMPTY;
-  const suffix = readinessTitle
-    ? `niveau ${readinessLevel} – ${readinessTitle}`
-    : `niveau ${readinessLevel}`;
-  return `${readinessScore} (${suffix})`;
+  const parts: string[] = [];
+  if (readinessLevel && readinessScore != null) {
+    parts.push(
+      readinessTitle
+        ? `Gereedscore ${readinessScore}, ${readinessTitle.toLowerCase()}`
+        : `Gereedscore ${readinessScore}`,
+    );
+  }
+  const trend = fitnessTrendLabel(input.fitnessTrend);
+  if (trend) parts.push(parts.length ? trend : trend.charAt(0).toUpperCase() + trend.slice(1));
+  return parts.length ? `🔋 ${parts.join(" · ")}` : null;
 }
 
 /**
- * Bouwt het blok. De twee kopregels staan er altijd, ook als alle waarden
- * ontbreken: ze zijn het anker waarmee we een oud blok terugvinden.
+ * Bouwt het blok. De kopregel, de regel met het plan en de tip staan er altijd;
+ * de kopregel is het anker waarmee we een oud blok terugvinden. De andere regels
+ * vallen weg als de gegevens ontbreken.
  */
 export function buildZwbSummaryBlock(input: ZwbSummaryInput): string {
-  const detected = intensityLabel(input.detectedIntensity);
+  const hasPlan = Boolean(
+    input.plannedTitle?.trim() || intensityLabel(input.plannedIntensity),
+  );
+  const tip = rideTip({
+    activityId: input.activityId,
+    hasPlan,
+    plannedIntensity: input.plannedIntensity,
+    detectedIntensity: input.detectedIntensity,
+    loadPct: loadDeltaPct(input.actualLoad, input.plannedLoad),
+    readinessLevel: input.readinessLevel,
+    fitnessTrend: input.fitnessTrend,
+    nextLevel: input.briljant?.nextLevel ?? null,
+    toNext: input.briljant?.toNext ?? null,
+    weakestFacet: input.briljant?.weakestFacet ?? null,
+  });
   return [
     ZWB_SUMMARY_HEADER,
-    `Gepland: ${plannedLabel(input)}`,
-    `Geplande duur: ${input.plannedMinutes ? `${input.plannedMinutes} min` : EMPTY}`,
-    `Gedetecteerd type: ${detected || EMPTY}`,
-    `Workout score: ${workoutScoreLabel(input.actualLoad, input.plannedLoad)}`,
-    ZWB_PROGRESS_HEADER,
-    `CTL: ${input.ctl == null ? EMPTY : dutchDecimal(input.ctl)}`,
-    `Gereedscore: ${readinessLabel(input)}`,
-    `Fitness-status: ${fitnessStatusLabel(input.fitnessTrend)}`,
-  ].join("\n");
+    progressLine(input),
+    planLine(input),
+    loadLine(input),
+    readinessLine(input),
+    `💬 ${tip}`,
+  ]
+    .filter((line): line is string => line != null)
+    .join("\n");
 }
 
 /** FNV-1a als hex, om te zien of een blok is veranderd sinds de vorige write. */
@@ -110,7 +243,8 @@ export function summaryHash(block: string): string {
  *
  * Eerst letterlijk op de opgeslagen tekst — dat is het normale pad en precies.
  * Lukt dat niet (bijvoorbeeld doordat Strava witruimte heeft genormaliseerd),
- * dan valt hij terug op de laatste kopregel, maar alléén als álle regels
+ * dan valt hij terug op de laatste kopregel (de huidige of die van het oude
+ * blok), maar alléén als álle regels
  * daarna van ons zijn. Staat er vreemde tekst onder ons blok, dan raken we de
  * beschrijving niet aan: die tekst is van het lid.
  */
@@ -132,7 +266,10 @@ export function stripZwbSummary(
   }
 
   const lines = text.split("\n");
-  const headerIndex = lines.lastIndexOf(ZWB_SUMMARY_HEADER);
+  const headerIndex = Math.max(
+    lines.lastIndexOf(ZWB_SUMMARY_HEADER),
+    lines.lastIndexOf(LEGACY_SUMMARY_HEADER),
+  );
   if (headerIndex === -1) return text.trimEnd();
 
   const tail = lines.slice(headerIndex + 1);

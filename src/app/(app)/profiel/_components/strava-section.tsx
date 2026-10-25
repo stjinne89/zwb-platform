@@ -112,7 +112,7 @@ export function StravaSection({
             <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
               <p>
-                Koppel opnieuw om je ZWBeter Worden-samenvatting in je
+                Koppel opnieuw om je ZWBeter-samenvatting in je
                 Strava-beschrijving te laten zetten.
               </p>
             </div>

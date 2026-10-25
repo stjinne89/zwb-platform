@@ -1,16 +1,30 @@
 import { describe, expect, it } from "vitest";
 import {
   ZWB_SUMMARY_HEADER,
+  briljantSummaryFrom,
   buildZwbSummaryBlock,
   composeDescription,
-  fitnessStatusLabel,
+  fitnessTrendLabel,
+  loadDeltaPct,
   pickPlannedWorkout,
   stripZwbSummary,
-  workoutScoreLabel,
+  unicodeBold,
+  type BriljantSummary,
   type ZwbSummaryInput,
 } from "@/lib/training/strava-summary";
+import { TIP_VARIANTS } from "@/lib/training/strava-summary-tips";
+
+const STONE: BriljantSummary = {
+  points: 427,
+  level: "Platina",
+  nextLevel: "Amethist",
+  toNext: 73,
+  delta4w: 12,
+  weakestFacet: "Sprint",
+};
 
 const FULL: ZwbSummaryInput = {
+  activityId: 1002,
   plannedTitle: "3x10 min drempel",
   plannedIntensity: "threshold",
   plannedMinutes: 75,
@@ -18,6 +32,7 @@ const FULL: ZwbSummaryInput = {
   actualLoad: 82,
   detectedIntensity: "threshold",
   ctl: 49.94,
+  briljant: STONE,
   readinessLevel: 4,
   readinessTitle: "FRIS GENOEG",
   readinessScore: 72,
@@ -25,6 +40,7 @@ const FULL: ZwbSummaryInput = {
 };
 
 const EMPTY_INPUT: ZwbSummaryInput = {
+  activityId: 1000,
   plannedTitle: null,
   plannedIntensity: null,
   plannedMinutes: null,
@@ -32,45 +48,82 @@ const EMPTY_INPUT: ZwbSummaryInput = {
   actualLoad: null,
   detectedIntensity: null,
   ctl: null,
+  briljant: null,
   readinessLevel: null,
   readinessTitle: null,
   readinessScore: null,
   fitnessTrend: "unknown",
 };
 
+describe("unicodeBold", () => {
+  it("zet letters en cijfers om en laat de rest staan", () => {
+    expect(unicodeBold("Ab-9")).toBe("𝗔𝗯-𝟵");
+    expect(ZWB_SUMMARY_HEADER).toBe("𝗭𝗪𝗕𝗲𝘁𝗲𝗿 𝘄𝗼𝗿𝗸𝗼𝘂𝘁-𝘀𝗮𝗺𝗲𝗻𝘃𝗮𝘁𝘁𝗶𝗻𝗴");
+  });
+});
+
 describe("buildZwbSummaryBlock", () => {
   it("bouwt het volledige blok", () => {
+    // 82 tegen 76 TSS is 8% boven plan: "volgens-plan" valt erbuiten, dus de
+    // tip gaat over de stijgende fitheid (variant 1002 % 3 = 0).
     expect(buildZwbSummaryBlock(FULL)).toBe(
       [
-        "📊 ZWBeter Worden",
-        "Gepland: 3x10 min drempel",
-        "Geplande duur: 75 min",
-        "Gedetecteerd type: Drempel",
-        "Workout score: +8% (82 vs 76 TSS)",
-        "📈 Progressie",
-        "CTL: 49,9",
-        "Gereedscore: 72 (niveau 4 – FRIS GENOEG)",
-        "Fitness-status: Verbeterend",
+        ZWB_SUMMARY_HEADER,
+        "💎 ZWBriljant Platina · 427 punten, nog 73 tot Amethist",
+        "🎯 3x10 min drempel (75 min) → gereden als drempel",
+        "⚡ 82 TSS, 8% boven plan",
+        "🔋 Gereedscore 72, fris genoeg · fitheid stijgt",
+        "💬 Je fitheid stijgt al een paar weken. Gewoon zo doorgaan.",
       ].join("\n"),
     );
   });
 
-  it("zet elke ontbrekende waarde op - maar houdt beide kopregels", () => {
-    const block = buildZwbSummaryBlock(EMPTY_INPUT);
-    const lines = block.split("\n");
-    expect(lines[0]).toBe("📊 ZWBeter Worden");
-    expect(lines[5]).toBe("📈 Progressie");
-    for (const line of [...lines.slice(1, 5), ...lines.slice(6)]) {
-      expect(line.endsWith(": -")).toBe(true);
-    }
+  it("laat regels zonder gegevens weg, maar houdt kop, plan en tip", () => {
+    expect(buildZwbSummaryBlock(EMPTY_INPUT)).toBe(
+      [
+        ZWB_SUMMARY_HEADER,
+        "🎯 Vrije rit",
+        `💬 ${TIP_VARIANTS["vrije-rit"][1000 % 3]}`,
+      ].join("\n"),
+    );
+  });
+
+  it("valt zonder steen terug op CTL met een Nederlandse komma", () => {
+    expect(buildZwbSummaryBlock({ ...FULL, briljant: null })).toContain(
+      "\n📈 CTL 49,9\n",
+    );
+    expect(buildZwbSummaryBlock({ ...EMPTY_INPUT, ctl: 50 })).toContain(
+      "📈 CTL 50,0",
+    );
+  });
+
+  it("toont in Diamant de groei in vier weken", () => {
+    const diamant = { ...STONE, points: 1020, level: "Diamant", nextLevel: null, toNext: 0 };
+    expect(buildZwbSummaryBlock({ ...FULL, briljant: diamant })).toContain(
+      "💎 ZWBriljant Diamant · 1.020 punten, +12 in 4 weken",
+    );
+    expect(
+      buildZwbSummaryBlock({ ...FULL, briljant: { ...diamant, delta4w: null } }),
+    ).toContain("💎 ZWBriljant Diamant · 1.020 punten\n");
+  });
+
+  it("noemt een vrije rit met het gedetecteerde type", () => {
+    const block = buildZwbSummaryBlock({
+      ...EMPTY_INPUT,
+      actualLoad: 60,
+      detectedIntensity: "endurance",
+    });
+    expect(block).toContain("🎯 Vrije rit → gereden als duur");
+    expect(block).toContain("⚡ 60 TSS\n");
   });
 
   it("valt terug op het intensiteitslabel als er geen titel is", () => {
     const block = buildZwbSummaryBlock({
       ...EMPTY_INPUT,
-      plannedIntensity: "rest",
+      plannedIntensity: "tempo",
+      plannedMinutes: 60,
     });
-    expect(block).toContain("Gepland: Rust");
+    expect(block).toContain("🎯 Tempo (60 min)");
   });
 
   it("toont een onbekende intensiteit ruw in plaats van leeg", () => {
@@ -78,55 +131,93 @@ describe("buildZwbSummaryBlock", () => {
       ...EMPTY_INPUT,
       detectedIntensity: "sweetspot",
     });
-    expect(block).toContain("Gedetecteerd type: sweetspot");
+    expect(block).toContain("gereden als sweetspot");
   });
 
-  it("laat de gereedscore weg bij niveau 0", () => {
-    const block = buildZwbSummaryBlock({
-      ...FULL,
-      readinessLevel: 0,
-    });
-    expect(block).toContain("Gereedscore: -");
+  it("laat de gereedscore weg bij niveau 0, maar houdt de fitheid", () => {
+    const block = buildZwbSummaryBlock({ ...FULL, readinessLevel: 0 });
+    expect(block).toContain("🔋 Fitheid stijgt");
+    expect(block).not.toContain("Gereedscore");
   });
 
-  it("formatteert CTL met een Nederlandse komma", () => {
-    expect(buildZwbSummaryBlock({ ...EMPTY_INPUT, ctl: 49.94 })).toContain(
-      "CTL: 49,9",
+  it("zegt het als de rit precies op plan lag", () => {
+    expect(buildZwbSummaryBlock({ ...FULL, actualLoad: 76 })).toContain(
+      "⚡ 76 TSS, precies volgens plan",
     );
-    expect(buildZwbSummaryBlock({ ...EMPTY_INPUT, ctl: 50 })).toContain(
-      "CTL: 50,0",
+    expect(buildZwbSummaryBlock({ ...FULL, actualLoad: 70, plannedLoad: 80 })).toContain(
+      "⚡ 70 TSS, 13% onder plan",
     );
   });
 });
 
-describe("workoutScoreLabel", () => {
+describe("loadDeltaPct", () => {
   it("rekent het verschil in procenten uit", () => {
-    expect(workoutScoreLabel(82, 76)).toBe("+8% (82 vs 76 TSS)");
+    expect(loadDeltaPct(82, 76)).toBe(8);
   });
 
   it("rondt negatieve verschillen symmetrisch af", () => {
     // -12,5% moet -13% worden, niet -12 (Math.round rondt .5 omhoog).
-    expect(workoutScoreLabel(70, 80)).toBe("-13% (70 vs 80 TSS)");
+    expect(loadDeltaPct(70, 80)).toBe(-13);
   });
 
-  it("geeft 0% bij een gelijke belasting", () => {
-    expect(workoutScoreLabel(80, 80)).toBe("0% (80 vs 80 TSS)");
+  it("geeft 0 bij een gelijke belasting, ook net eronder", () => {
+    expect(loadDeltaPct(80, 80)).toBe(0);
+    expect(Object.is(loadDeltaPct(79.9, 80), 0)).toBe(true);
   });
 
-  it("geeft - bij een ontbrekende of nul geplande belasting", () => {
-    expect(workoutScoreLabel(80, 0)).toBe("-");
-    expect(workoutScoreLabel(80, null)).toBe("-");
-    expect(workoutScoreLabel(null, 80)).toBe("-");
-    expect(workoutScoreLabel(null, null)).toBe("-");
+  it("geeft null bij een ontbrekende of nul geplande belasting", () => {
+    expect(loadDeltaPct(80, 0)).toBeNull();
+    expect(loadDeltaPct(80, null)).toBeNull();
+    expect(loadDeltaPct(null, 80)).toBeNull();
   });
 });
 
-describe("fitnessStatusLabel", () => {
+describe("fitnessTrendLabel", () => {
   it("dekt alle vier de richtingen", () => {
-    expect(fitnessStatusLabel("improving")).toBe("Verbeterend");
-    expect(fitnessStatusLabel("stable")).toBe("Stabiel");
-    expect(fitnessStatusLabel("declining")).toBe("Afnemend");
-    expect(fitnessStatusLabel("unknown")).toBe("-");
+    expect(fitnessTrendLabel("improving")).toBe("fitheid stijgt");
+    expect(fitnessTrendLabel("stable")).toBe("fitheid blijft gelijk");
+    expect(fitnessTrendLabel("declining")).toBe("fitheid zakt");
+    expect(fitnessTrendLabel("unknown")).toBeNull();
+  });
+});
+
+describe("briljantSummaryFrom", () => {
+  const facets = { sprint: 3.2, anaeroob: 4.1, vo2max: 4.5, drempel: 4.6, fitheid: 4.0 };
+
+  it("neemt de laatste snapshot met klasse, punten en laagste facet", () => {
+    const stone = briljantSummaryFrom(
+      [
+        { week: "2026-09-21", score: 4.05, facets, consistency: null },
+        { week: "2026-10-19", score: 4.27, facets, consistency: null },
+      ],
+      "2026-10-25",
+    );
+    expect(stone).toEqual({
+      points: 427,
+      level: "Platina",
+      nextLevel: "Amethist",
+      toNext: 73,
+      delta4w: 22,
+      weakestFacet: "Sprint",
+    });
+  });
+
+  it("geeft null zonder score of bij een oude snapshot", () => {
+    expect(briljantSummaryFrom([], "2026-10-25")).toBeNull();
+    expect(
+      briljantSummaryFrom([{ week: "2026-10-19", score: null, facets, consistency: null }], "2026-10-25"),
+    ).toBeNull();
+    expect(
+      briljantSummaryFrom([{ week: "2026-08-03", score: 4.27, facets, consistency: null }], "2026-10-25"),
+    ).toBeNull();
+  });
+
+  it("laat de groei leeg zonder snapshot van vier weken eerder", () => {
+    const stone = briljantSummaryFrom(
+      [{ week: "2026-10-19", score: 9.5, facets, consistency: null }],
+      "2026-10-25",
+    );
+    expect(stone).toMatchObject({ level: "Diamant", nextLevel: null, toNext: 0, delta4w: null });
   });
 });
 
@@ -144,10 +235,25 @@ describe("stripZwbSummary", () => {
   });
 
   it("valt terug op de kopregel als de opgeslagen tekst niet meer matcht", () => {
-    const drifted = block.replace("CTL: 49,9", "CTL: 51,2");
+    const drifted = block.replace("427 punten", "431 punten");
     expect(stripZwbSummary(`Lekkere rit!\n\n${drifted}`, block)).toBe(
       "Lekkere rit!",
     );
+  });
+
+  it("ruimt een blok in de oude opbouw op, ook zonder opgeslagen tekst", () => {
+    const old = [
+      "📊 ZWBeter Worden",
+      "Gepland: 3x10 min drempel",
+      "Geplande duur: 75 min",
+      "Gedetecteerd type: Drempel",
+      "Workout score: +8% (82 vs 76 TSS)",
+      "📈 Progressie",
+      "CTL: 49,9",
+      "Gereedscore: 72 (niveau 4 – FRIS GENOEG)",
+      "Fitness-status: Verbeterend",
+    ].join("\n");
+    expect(stripZwbSummary(`Lekkere rit!\n\n${old}`, null)).toBe("Lekkere rit!");
   });
 
   it("knipt niet als er vreemde tekst onder het blok staat", () => {

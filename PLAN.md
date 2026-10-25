@@ -5086,7 +5086,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > event of van zijn raceweek; op de raceweek heeft elk team de chip van zijn
 > eigen route, dus A/B en C/D verschillen als hun routes verschillen. De chip
 > hangt aan `zwift_route_id` en staat er dus ook zonder gekoppeld Zwift-event.
-> ZwifterBikes noemt 36 routes anders dan `zwift-data`; die staan in een tabel
+> ZwifterBikes noemt 36 routes anders dan `zwift-data` (35 sinds `zwift-data`
+> 2.1.0, 2026-10-25); die staan in een tabel
 > in dat bestand, vergeleken op naam en wereld met `assets/routes.json` van de
 > site. 289 van de 292 fietsroutes hebben er een pagina; de twee Climb
 > Portal-routes en de Bologna-tijdrit niet, daar staat geen chip. `/hulp` noemt
@@ -5399,7 +5400,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   Zwift-eventspiegel (`POST /api/zwift/events/sync`), één publiek
 >   event-verzoek per Zwift-event, en meldt in het antwoord onder `zrlRoutes`
 >   wat er is omgezet. Raakt alleen events waarvan de route afwijkt; zonder
->   categorieletter in de teamnaam of zonder route in `zwift-data` gebeurt er niets.
+>   categorieletter in de teamnaam of zonder route in `zwift-data` gebeurt er niets
+>   (sinds 2026-10-25 meldt de sync een onbekende route wel in `notes`).
 >
 > **Nagekeken, niet gewijzigd.** De live stand koos de route al per subgroep
 > (`parseSubgroups`). De vijf sprints per route in `route-segments.json` liggen
@@ -6019,9 +6021,10 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > (staat op de routepagina van ZwiftInsider, 24,8 km) en op Routes ophalen
 > klikken.
 >
-> **Bekend en niet opgelost.** `zwift-data` geeft Urumaze een lead-in van
-> 0,085 km; ZwiftInsider noemt 2 km. Het pacingplan rekent met de lead-in uit
-> `zwift-data` en komt voor deze route dus zo'n 2 km te kort uit.
+> **Opgelost op 2026-10-25.** `zwift-data` 1.50.0 gaf Urumaze een lead-in van
+> 0,085 km waar ZwiftInsider 2 km noemt, waardoor het pacingplan zo'n 2 km te
+> kort uitkwam. 2.1.0 geeft 2,031 km en zelf segment `41887960`; sinds die
+> versie missen alleen de drie Climb Portal-routes nog een segment.
 >
 > **Bewust niet gebouwd.** (a) Het profiel uit een gereden rit van een lid:
 > werkt pas na de eerste rit en vraagt een tweede profielbron met migratie.
@@ -8119,7 +8122,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > meeleveren. Geen netwerk, geen HTML die kan veranderen, en ZwiftInsider biedt
 > geen API of licentie voor hergebruik (zie `0177`). Ontbreken nu o.a. Power
 > Punches, Flat Out Fast, Urumaze en de Climb Portals; die blijven handwerk tot
-> een nieuwere `zwift-data`. (b) Opzoeken in de browser: de routecatalogus is
+> een nieuwere `zwift-data`. (Met 2.1.0, 2026-10-25: 291 van de 293, alleen de
+> twee Climb Portals missen nog.) (b) Opzoeken in de browser: de routecatalogus is
 > 265 KB. (c) Afstand en rondes uit de Zwift-eventlink halen: kan via
 > `fetchZwiftEvent`, maar is een eigen ronde. (d) Geen wijziging op `/hulp`:
 > daar staat geen uitleg over dit formulier.
@@ -11447,6 +11451,117 @@ bestand slaat hij zijn zes tests over. `admin-areas` faalde één keer in de vol
 run en slaagt los. **Niet getest:**
 de dialoog in de browser (geen ledenlogin hier), en de nieuwe consistentie op
 productie, die pas na de push en de job te zien is.
+
+### Gebouwd — ZWBeter-blok op Strava: eigen opbouw, de steen en een tip
+
+**2026-10-25.** Commit `870e8380`, op 2026-10-25 gepusht naar `main` (op verzoek
+van de eigenaar). Tipteksten goedgekeurd door de eigenaar. Geen migratie. Bij de
+merge met `main` is `/hulp` bijgewerkt: de belasting komt zonder vermogensmeter
+nu uit de hartslag (ronde "TSS uit hartslag").
+
+De eigenaar vond dat het blok onderaan de Strava-beschrijving te veel op dat van
+JOIN leek, en wilde de ZWBriljant-steen erin in plaats van alleen CTL. Tot nu toe
+volgde het blok JOIN regel voor regel: twee kopjes, labels met een dubbele punt,
+"-" voor een lege waarde. Nu:
+
+```
+𝗭𝗪𝗕𝗲𝘁𝗲𝗿 𝘄𝗼𝗿𝗸𝗼𝘂𝘁-𝘀𝗮𝗺𝗲𝗻𝘃𝗮𝘁𝘁𝗶𝗻𝗴
+💎 ZWBriljant Platina · 427 punten, nog 73 tot Amethist
+🎯 3x10 min drempel (75 min) → gereden als drempel
+⚡ 82 TSS, 8% boven plan
+🔋 Gereedscore 72, fris genoeg · fitheid stijgt
+💬 Je fitheid stijgt al een paar weken. Gewoon zo doorgaan.
+```
+
+- **Titel** zonder emoji en vet (keus van de eigenaar). Strava kent geen opmaak,
+  dus het vet zijn de vette letters uit Unicode (`unicodeBold`). De naam volgt de
+  hernoeming van ZWBeter Worden naar ZWBeter.
+- **De steen** komt uit de laatste weeksnapshot (`zwbriljant_snapshots`, huidige
+  schaal, hooguit 35 dagen oud; `briljantSummaryFrom`). Geen extra calls naar
+  intervals.icu of Zwift. Alleen als het lid zijn steen deelt
+  (`zwbriljant_preferences.visible`, standaard aan): wie hem voor clubgenoten
+  verbergt, wil hem ook niet openbaar op Strava. Zonder steen staat er CTL. In
+  Diamant staat de groei in vier weken in plaats van de punten tot de volgende
+  klasse.
+- **Regels zonder gegevens vallen weg** in plaats van "-". Zonder schema staat er
+  "Vrije rit".
+- **De tip** (`strava-summary-tips.ts`) komt uit tien situaties op volgorde (moe en
+  toch hard, zwaarder type dan gepland, ruim boven of onder plan, volgens plan,
+  bijna een klasse hoger met het laagste facet, fitheid stijgt of zakt, vrije rit,
+  algemeen), elk met drie varianten. De variant hangt aan het Strava-id, zodat een
+  nieuwe poging dezelfde zin geeft. De teksten zijn gecontroleerd met de
+  avoid-ai-writing-skill en de regels uit `lib/ai-writing.ts`.
+- Oude blokken (kop "📊 ZWBeter Worden") worden nog herkend en vervangen.
+- Privacyverklaring (Terugschrijven naar Strava) noemt nu de steen, het laagste
+  facet en de tip; geen nieuwe versie, de gegevens waren al opgegeven. `/hulp`
+  (strava-samenvatting) heeft het nieuwe voorbeeld.
+
+**Bewust niet gedaan.**
+- Geen AI voor de tip: de tekst staat openbaar zonder dat iemand hem leest, en het
+  zou ritgegevens naar OpenAI sturen van leden die ZWBeter verder niet gebruiken.
+- Geen live berekening van de steen bij elke rit: die kost calls naar intervals.icu
+  en Zwift en het Strava-budget is krap. De steen kan daardoor tot een week achter
+  lopen.
+- Al geschreven blokken worden niet herschreven: een rit met `written_at` blijft
+  zoals hij is.
+
+**Getest.** `strava-summary.test.ts` (aangepast) en `strava-summary-tips.test.ts`
+(nieuw), `tsc` (alleen de bekende fout op `modern-screenshot`), ESLint op de
+gewijzigde bestanden. Volledige vitest-run: drie fouten die hier los van staan
+(`.env.local` ontbreekt in de worktree, een databasetest met een time-out, en het
+anker `naleving` in `help-categories` uit de vorige ronde). **Niet getest:** een
+echte write naar Strava en hoe Strava de vette letters en emoji toont.
+
+### Hersteld — ZRL-raceweek zonder parcours: zwift-data naar 2.1.0
+
+**2026-10-25.** Commit `4229ef2e`, op 2026-10-25 gepusht naar `main` (op verzoek
+van de eigenaar). Geen migratie.
+
+**Waarom.** De eigenaar zag bij R1 · W6 (27 oktober) geen parcours. Geen van de
+zeven teamraces had een `zwift_route_id`; W1 t/m W5 wel. Zwift geeft voor de
+hele raceweek route 159415549 op, Spiral Summit (Watopia, event-only, 23,9 km).
+Die stond niet in `zwift-data` 1.50.0. `zrlRouteUpdate` krijgt dan geen route
+en laat het event stil staan, en zonder `zwift_route_id` slaat de eventpagina
+de parcourssectie over. Niemand zag het, want de sync meldde niets.
+
+**Nu.**
+- `zwift-data` van 1.50.0 naar 2.1.0 (353 routes, was 335; o.a. Spiral Summit
+  en 17 hardlooproutes). 2.x is alleen ESM met één `lib` in plaats van
+  `cjs`/`esm`/`types`; de typen van `routes`, `segments`, `worlds` en
+  `bikeFrames` zijn gelijk gebleven. 85 bestaande routes kregen andere data:
+  vooral `levelLocked`, segmenten, Strava-segmenten en lead-ins. Twee routes
+  heten niet langer naar hun id: 362278484 is `twilight-crit` en 811898717 is
+  `what-yumezi-were-lost`. Geen van beide staat in `zwift_routes` of in een
+  event, dus geen opgeslagen slug die verouderd is.
+- `syncZrlSubgroupRoutes` meldt een route die `zwift-data` niet kent, met het
+  aantal teamevents, in `zrlRoutes.notes` van de uurlijkse eventsync
+  (`unknownZrlRoute`).
+- `zwifterbikes.ts`: de twee id-sleutels zijn weg; What Yumezi We're Lost
+  staat er onder zijn nieuwe slug in (ZwifterBikes zegt `whatyumeziwerelost`).
+  De tabel telt nu 35 afwijkingen. `zwift-data` levert sinds 2.x zelf een
+  `zwifterBikesUrl`, maar die wijkt bij 17 routes af van onze tabel, en een
+  paar zijn duidelijk fout (`london-8` → `greatest-london-loop`). De tabel is op
+  2026-10-10 tegen de site zelf gecontroleerd en blijft dus de bron.
+- Test `eigen segment-id` draait op Power to the Portal in plaats van Urumaze,
+  want Urumaze heeft in 2.1 zelf segment `41887960`.
+
+**Te doen na het pushen.** De volgende uurlijkse sync zet de W6-teamraces op
+Spiral Summit en registreert de route in `zwift_routes`. Het hoogteprofiel en
+de vorm komen pas na **Routes ophalen** op `/beheer/zwift-routes`; tot die klik
+blijft de parcourssectie leeg.
+
+**Bewust niet gebouwd.** Een eigen route uit de Zwift-API voor routes die
+`zwift-data` (nog) niet kent: lead-in, rondelengte en segmenten komen uit
+`zwift-data`, en zonder die gegevens klopt het pacingplan niet. De melding
+maakt het gat zichtbaar; bijwerken blijft de oplossing.
+
+**Getest.** `tsc`, eslint op de gewijzigde bestanden, de zwift-data-tests
+(125) en `next build` (met tijdelijk `.env.local`) slagen. In de volle suite
+falen `help-categories` (een hulpanker in `schema`; deze ronde raakt `/hulp`
+niet), `omnium-live` (geen `.env.local` in de worktree) en
+`admin-areas`/`rls-initplan-migration` (time-out in de volle run, los gedraaid
+groen). Of ZwifterBikes een pagina voor Spiral Summit heeft is niet gecontroleerd.
+Niet in de app bekeken.
 
 ### Gebouwd — TSS uit hartslag voor ritten zonder vermogensmeter
 

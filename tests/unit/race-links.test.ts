@@ -135,6 +135,12 @@ describe("ZwifterBikes", () => {
       "https://zwifterbikes.web.app/route/hilly-route-reverse",
     );
     expect(zwifterBikesRouteUrl("4092230492")).toBe("https://zwifterbikes.web.app/route/urumaze");
+    expect(zwifterBikesLinks(811898717)[0]?.url).toBe(
+      "https://zwifterbikes.web.app/route/whatyumeziwerelost",
+    );
+    expect(zwifterBikesLinks(362278484)[0]?.url).toBe(
+      "https://zwifterbikes.web.app/route/twilight-crit",
+    );
   });
 
   it("geeft niets zonder route of voor een route die ZwifterBikes niet heeft", () => {
