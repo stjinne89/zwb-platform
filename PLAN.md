@@ -11328,7 +11328,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter voeden: het doel per uur volgt de zwaarte van de rit
 
-**2026-10-25.** Stap 3 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
+**2026-10-25.** Commit `d7794e53`, stap 3 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
 besluit 3 van dat plan. Geen migratie. Niet gepusht.
 
 - **`rideTargetPerHour(duur, zwaarte)`** in `targets.ts`: binnen de bestaande
