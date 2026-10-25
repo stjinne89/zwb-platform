@@ -180,7 +180,7 @@ function RideDetail({ item }: { item: MemberCalendarItem & { ride: NonNullable<M
           value={<Power watts={metrics.normalizedWatts} />}
         />
       </div>
-      {metrics.hasPowerMeter || metrics.movingMinutes == null ? null : (
+      {metrics.hasPowerMeter || metrics.tss != null || metrics.movingMinutes == null ? null : (
         <p className="text-xs text-muted-foreground">
           Zonder vermogensmeter zijn TSS en IF niet te bepalen.
         </p>

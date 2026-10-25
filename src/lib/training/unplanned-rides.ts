@@ -17,6 +17,7 @@
 // zijn binnengekomen (zie ride-metrics.ts).
 
 import type { FtpAt } from "@/lib/training/ftp-history";
+import type { HrBasis } from "@/lib/training/hr-load";
 import {
   pickRideForWorkout,
   type PlannedWorkoutForCompliance,
@@ -89,6 +90,8 @@ export function unplannedRides(
   /** Vaste FTP, of de FTP op de ritdag (0175). */
   ftpWatts: number | null | FtpAt,
   pairings: Iterable<WorkoutPairing> = [],
+  /** Voor de TSS uit hartslag van ritten zonder vermogensmeter. */
+  hr: HrBasis | null = null,
 ): UnplannedRide[] {
   const used = new Set<string>();
   const alreadyPaired = new Set<string>();
@@ -125,7 +128,7 @@ export function unplannedRides(
       dateKey: amsterdamDayKey(new Date(ride.start_date)),
       name: ride.name?.trim() || "Rit",
       distanceKm: distanceKm(ride.distance_m),
-      metrics: rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, ftpWatts),
+      metrics: rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, ftpWatts, hr),
     }))
     .sort((a, b) => b.dateKey.localeCompare(a.dateKey));
 }

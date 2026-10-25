@@ -106,6 +106,8 @@ export type IntervalsActivity = {
   elapsed_time?: number;
   total_elevation_gain?: number;
   icu_training_load?: number; // TSS
+  /** HRSS: belasting uit hartslag, ook zonder vermogensmeter. */
+  hr_load?: number;
   icu_ftp?: number;
   icu_intensity?: number; // IF
   average_watts?: number;

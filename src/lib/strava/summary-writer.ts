@@ -25,6 +25,7 @@ import {
 import { fetchIntervalsWellness } from "@/lib/intervals/client";
 import { rideMetricsFromStrava } from "@/lib/training/ride-metrics";
 import { loadFtpAt } from "@/lib/training/ftp-history";
+import { loadHrBasis } from "@/lib/training/hr-load";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import {
   buildZwbSummaryBlock,
@@ -181,11 +182,10 @@ export async function writeZwbSummariesForUser(
     rateLimited: false,
     errors: [],
   };
-  const ftpAt = await loadFtpAt(
-    admin,
-    profileId,
-    profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
-  );
+  const [ftpAt, hrBasis] = await Promise.all([
+    loadFtpAt(admin, profileId, profile?.ftp_watts == null ? null : Number(profile.ftp_watts)),
+    loadHrBasis(admin, profileId),
+  ]);
 
   const wellness = await fetchIntervalsWellness(
     intervalsConn.api_key,
@@ -230,12 +230,13 @@ export async function writeZwbSummariesForUser(
     // De FTP van de ritdag, voor de rit én de training ertegenover (0175).
     const ftpWatts = ftpAt(amsterdamDayKey(activityStart));
     // Belasting uit de rit zelf: TSS en IF uit genormaliseerd vermogen en de FTP
-    // van het lid. Zonder vermogensmeter blijft de belasting leeg en toont het
-    // blok "-" bij Workout score.
+    // van het lid. Zonder vermogensmeter komt de TSS uit de hartslag; zonder
+    // allebei blijft de belasting leeg en toont het blok "-" bij Workout score.
     const metrics = rideMetricsFromStrava(
       candidate.raw,
       candidate.moving_time_seconds,
       ftpWatts,
+      hrBasis,
     );
     const activityMinutes = metrics.movingMinutes;
     const actualLoad = metrics.tss;

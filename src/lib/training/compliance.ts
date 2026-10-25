@@ -15,6 +15,7 @@ import {
 } from "@/lib/training/workouts";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { loadFtpAt, type FtpAt } from "@/lib/training/ftp-history";
+import { loadHrBasis, type HrBasis } from "@/lib/training/hr-load";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -226,6 +227,8 @@ export function complianceForWorkouts(
   reports: Map<string, ReportForCompliance> = new Map(),
   /** Koppelingen van workouts buiten `workouts`; zie pairWorkoutsWithRides. */
   otherPairings: ReadonlyMap<string, string | null | undefined> = new Map(),
+  /** Voor de TSS uit hartslag van ritten zonder vermogensmeter. */
+  hr: HrBasis | null = null,
 ): WorkoutCompliance[] {
   const sorted = workouts
     .filter((workout) => workout.intensity !== "rest")
@@ -250,7 +253,7 @@ export function complianceForWorkouts(
       const match = pairs.get(workout.id) ?? null;
 
       const metrics = match
-        ? rideMetricsFromStrava(match.raw, match.moving_time_seconds, ftpWatts)
+        ? rideMetricsFromStrava(match.raw, match.moving_time_seconds, ftpWatts, hr)
         : null;
       const loadPct = loadPercentage(metrics?.tss ?? null, plannedLoad);
       const report = reports.get(workout.id);
@@ -432,17 +435,17 @@ export async function buildComplianceContext(
     ((reportRows ?? []) as ReportForCompliance[]).map((row) => [row.workout_id, row]),
   );
 
-  const ftpAt = await loadFtpAt(
-    admin,
-    profileId,
-    profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
-  );
+  const [ftpAt, hr] = await Promise.all([
+    loadFtpAt(admin, profileId, profile?.ftp_watts == null ? null : Number(profile.ftp_watts)),
+    loadHrBasis(admin, profileId),
+  ]);
   const result = complianceForWorkouts(
     workouts,
     rides,
     ftpAt,
     reports,
     otherPairings,
+    hr,
   );
   return { workouts: result, summary: summarizeCompliance(result) };
 }

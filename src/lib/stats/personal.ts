@@ -12,6 +12,7 @@
 
 import { isSameRide, SAME_START_MS } from "@/lib/rides/same-ride";
 import type { FtpAt } from "@/lib/training/ftp-history";
+import type { HrBasis } from "@/lib/training/hr-load";
 import type { TrainingLoadPoint } from "@/lib/training/load-points";
 import { rideMetricsFromStrava } from "@/lib/training/ride-metrics";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
@@ -56,6 +57,7 @@ export type PersonalRideRow = {
   kilojoules?: unknown;
   average_heartrate?: unknown;
   max_heartrate?: unknown;
+  hr_load?: unknown;
 };
 
 export const PERSONAL_RIDE_COLUMNS = [
@@ -73,6 +75,7 @@ export const PERSONAL_RIDE_COLUMNS = [
   "kilojoules:raw->kilojoules",
   "average_heartrate:raw->average_heartrate",
   "max_heartrate:raw->max_heartrate",
+  "hr_load:raw->hr_load",
 ].join(", ");
 
 export type PersonalRide = {
@@ -134,6 +137,7 @@ export function dedupeRideRows<T extends PersonalRideRow>(rows: T[]): T[] {
 export function personalRidesFromRows(
   rows: PersonalRideRow[],
   ftp: number | null | FtpAt,
+  hr: HrBasis | null = null,
 ): PersonalRide[] {
   return rows.flatMap((row) => {
     const start = new Date(row.start_date);
@@ -149,9 +153,11 @@ export function personalRidesFromRows(
         kilojoules: row.kilojoules,
         average_heartrate: row.average_heartrate,
         max_heartrate: row.max_heartrate,
+        hr_load: row.hr_load,
       },
       movingSeconds || null,
       ftp,
+      hr,
     );
     return [
       {

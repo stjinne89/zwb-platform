@@ -71,9 +71,9 @@ function ctlLabel(metrics: WorkoutMetricsSnapshot) {
   return `${nl(ctlBefore, 1)} → ${nl(ctlAfter, 1)} (${sign}${nl(delta, 1)})`;
 }
 
-/** TSS en IF leunen op genormaliseerd vermogen; zonder meter blijven ze leeg. */
+/** Zonder meter komt de TSS uit hartslag; pas zonder allebei blijven TSS en IF leeg. */
 function powerNote(metrics: WorkoutMetricsSnapshot) {
-  if (metrics.hasPowerMeter || metrics.movingMinutes == null) return null;
+  if (metrics.hasPowerMeter || metrics.tss != null || metrics.movingMinutes == null) return null;
   return "Zonder vermogensmeter zijn TSS en IF niet te bepalen.";
 }
 

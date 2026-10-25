@@ -586,7 +586,8 @@ export function SchemaHelp() {
               doel. Een training in de kalender krijgt de kleur van zijn
               kernwerk: het zwaarste niveau waarop je samen minstens vijf minuten
               rijdt, zonder warming-up en cooling-down. Lichtgrijs is rust; een
-              gestippeld blokje zonder kleur is een rit zonder vermogensmeter.
+              gestippeld blokje zonder kleur is een rit zonder vermogen en
+              hartslag.
             </p>
           </article>
           <article
