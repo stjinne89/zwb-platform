@@ -297,10 +297,10 @@ gaat stabiliteit voor nieuwe features.
    hieronder): voorstel in [ritvoeding-plan.md](docs/ritvoeding-plan.md). De
    volgorde en de besluiten van §2 daar zijn akkoord (2026-10-25): rekenfout,
    dan het ritplan, dan de verfijningen. Stap 1 (de rekenfout in het dagmenu)
-   en stap 2a (ritplan "Klaarzetten" bij elke rit) zijn gebouwd op 2026-10-25,
-   niet gepusht. 2a ging op verzoek van de eigenaar door zonder te wachten op
-   het besluit over de featurepauze. Volgende: 2b (eventpagina en briefing) en
-   de rest van 2c (herinnering, boodschappenlijst).
+   en stap 2a en 2b (ritplan "Klaarzetten" bij elke rit, op de eventpagina en
+   in de briefing) zijn gebouwd op 2026-10-25, niet gepusht. 2a en 2b gingen op
+   verzoek van de eigenaar door zonder te wachten op het besluit over de
+   featurepauze. Volgende: de rest van 2c (herinnering, boodschappenlijst).
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11323,6 +11323,43 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZWBeter voeden: ritplan op de eventpagina en in de racebriefing
+
+**2026-10-25.** Stap 2b van [ritvoeding-plan.md](docs/ritvoeding-plan.md). Geen
+migratie. Niet gepusht.
+
+- **Eventpagina** (`events/[id]`), onder Raceinfo, en **racebriefing**
+  (`events/[id]/briefing`), onder het racebriefje: hetzelfde blok
+  "Klaarzetten" als in het schema, voor wie ingelogd is en zolang het event nog
+  moet komen. Onder een uur niets, net als bij een training.
+- **De duur** (`eventRide` in `ride-plan.ts`, `loadEventRidePlan` in
+  `voeding/_data.ts`): het eigen pacingplan (`summary.totalSeconds`), anders de
+  eigen training voor dit event in het schema, anders de schatting die het
+  schema ook gebruikt (`eventWorkoutDefaults`). De zwaarte uit de training of
+  die schatting. Fouten breken de pagina niet.
+- **Koolhydraten laden.** Bij een wedstrijd of gran fondo van 90 minuten of
+  langer een link "Koolhydraten laden vanaf <dag>", twee dagen ervoor (de
+  laadfase van het protocol). De protocolpagina zet het event dan voorgeselecteerd
+  als wedstrijd (`?event=`, `loadEventRaceOption`); zonder parameter blijft het
+  de lijst uit de jaarplanning. Een lange clubrit krijgt de link niet.
+- `/hulp` (Je menu voor vandaag) noemt de eventpagina, de briefing en de link.
+
+**Bewust niet gedaan.** Geen ritplan op het gedeelde racebriefje (de afbeelding
+voor de groep): het plan is per renner. Bij een korte race (de meeste ZRL-races)
+zegt de briefing niets over eten; een tip voor de maaltijd vooraf daar is niet
+gebouwd.
+
+**Getest.** `nutrition-ride-plan` heeft nu 11 tests; nieuw: de volgorde
+pacing, schema, schatting, en laden alleen voor een lange wedstrijd of gran
+fondo. `tsc` alleen de bekende fout op `modern-screenshot`; ESLint schoon. In de
+browser (lokaal, productiedata alleen gelezen): SRC-kwalificatie (geschat 85
+min) toont 1 bidon van 60 g zonder laadlink; Millars Gran Fondo (378 min uit het
+schema) toont 6 bidons van 60 g en 2 broodjes met jam, 474 g, met "Koolhydraten
+laden vanaf vr 12 mrt"; de protocolpagina met `?event=` toont dat event
+voorgeselecteerd; de ZRL-briefing (39 min) laadt zonder plan. **Niet gezien:** een
+briefing mét plan (geen ZRL-race van een uur of langer in het schema), en de duur
+uit een pacingplan in de browser (de test dekt hem).
 
 ### Gebouwd — ZWBeter voeden: ritplan "Klaarzetten" bij elke rit
 

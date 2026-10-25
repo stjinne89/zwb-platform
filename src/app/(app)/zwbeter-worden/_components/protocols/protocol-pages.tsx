@@ -10,6 +10,7 @@ import {
   loadActiveRuns,
   loadChecks,
   loadCoreSessions,
+  loadEventRaceOption,
   loadProtocolProfile,
   loadRaceOptions,
   loadRunsForProtocol,
@@ -32,21 +33,28 @@ export async function ProtocolDetailPage({
   pillar,
   basePath,
   slug,
+  eventId = null,
 }: {
   pillar: ProtocolPillar;
   basePath: string;
   slug: string;
+  /** Vanaf een eventpagina: dat event staat bovenaan als wedstrijd. */
+  eventId?: string | null;
 }) {
   const protocol = protocolBySlug(slug);
   if (!protocol || protocol.pillar !== pillar) notFound();
 
   const viewer = await requireViewer();
   const today = todayKeyAmsterdam();
-  const [runs, profile, races] = await Promise.all([
+  const [runs, profile, seasonRaces, fromEvent] = await Promise.all([
     loadRunsForProtocol(viewer.supabase, viewer.user.id, slug),
     loadProtocolProfile(viewer.supabase, viewer.user.id, today),
     protocol.anchor === "wedstrijd" ? loadRaceOptions(viewer, today) : Promise.resolve([]),
+    protocol.anchor === "wedstrijd" && eventId ? loadEventRaceOption(viewer, eventId, today) : Promise.resolve(null),
   ]);
+  const races = fromEvent
+    ? [fromEvent, ...seasonRaces.filter((race) => race.date !== fromEvent.date)]
+    : seasonRaces;
   const run = runs.find((item) => item.status === "actief") ?? null;
   const usesCore = protocolUsesCore(protocol);
   const [checks, coreSessions, connection, durabilityTests] = await Promise.all([

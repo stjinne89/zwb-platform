@@ -322,7 +322,11 @@ export function KennisHelp() {
                   Onderweg staat er &quot;Klaarzetten&quot;: hoeveel bidons en
                   porties je meeneemt, met de hoeveelheden, en onder &quot;Per 20
                   minuten&quot; wanneer je wat neemt. Dat plan staat ook bij elke
-                  training van een uur of langer in je schema. Je rekent met
+                  training van een uur of langer in je schema, en op de
+                  eventpagina en in de racebriefing. Bij een event komt de duur
+                  uit je pacingplan, anders uit je schema of een schatting. Bij
+                  een wedstrijd van anderhalf uur of langer staat er een link
+                  naar koolhydraten laden, met de dag waarop je begint. Je rekent met
                   één bidon per uur. Een bidon bevat hoogstens 60 g
                   koolhydraten (8% van 750 ml); wat je per uur meer nodig hebt,
                   komt uit vast eten. Kies je zelf vast eten bij &quot;Tijdens de

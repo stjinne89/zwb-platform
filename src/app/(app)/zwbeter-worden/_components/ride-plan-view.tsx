@@ -42,6 +42,25 @@ function ItemRow({ item, kind }: { item: RidePlanItem; kind: "bidon" | "vast" })
   );
 }
 
+const loadDay = new Intl.DateTimeFormat("nl-NL", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+
+/** Op de eventpagina en in de briefing: het plan, en bij een lange wedstrijd het laden ervoor. */
+export function EventRidePlan({ eventId, plan, loadFrom }: { eventId: string; plan: RidePlan; loadFrom: string | null }) {
+  return (
+    <div className="space-y-2">
+      <RidePlanView plan={plan} />
+      {loadFrom ? (
+        <Link
+          href={`/zwbeter-worden/voeding/protocollen/koolhydraten-laden?event=${eventId}`}
+          className="inline-flex min-h-[44px] items-center text-sm text-primary hover:underline"
+        >
+          Koolhydraten laden vanaf {loadDay.format(new Date(`${loadFrom}T12:00:00Z`))}
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
 export function RidePlanView({ plan }: { plan: RidePlan }) {
   return (
     <div className="space-y-3 rounded-lg border bg-card p-4">

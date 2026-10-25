@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Recipe } from "@/lib/nutrition/recipes";
 import {
   BIDON_MAX_CARBS_G,
+  eventRide,
   feedMinutes,
   formatRideMinute,
   isBidonRecipe,
@@ -144,5 +145,26 @@ describe("ritplan", () => {
     const plan = ridePlan({ minutes: 120, ranked: [DRINK], energyFactor: 1 })!;
     expect(plan.feeds.map((feed) => feed.bidon)).toEqual([1, 1, 1, 2, 2]);
     expect(formatRideMinute(95)).toBe("1:35");
+  });
+
+  it("neemt bij een event de duur uit het pacingplan, dan het schema, dan de schatting", () => {
+    const estimate = { minutes: 50, intensity: "race" };
+    expect(eventRide({ pacedSeconds: 5400, workout: { minutes: 60, intensity: "race" }, estimate, eventType: "zrl" })).toEqual({
+      minutes: 90,
+      intensity: "race",
+      longRace: true,
+    });
+    expect(eventRide({ pacedSeconds: null, workout: { minutes: 75, intensity: "race" }, estimate, eventType: "zrl" }).minutes).toBe(75);
+    expect(eventRide({ pacedSeconds: null, workout: null, estimate, eventType: "zrl" })).toEqual({
+      minutes: 50,
+      intensity: "race",
+      longRace: false,
+    });
+  });
+
+  it("laadt alleen voor een lange wedstrijd, niet voor een lange clubrit", () => {
+    const social = { minutes: 180, intensity: "endurance" };
+    expect(eventRide({ pacedSeconds: null, workout: null, estimate: social, eventType: "social" }).longRace).toBe(false);
+    expect(eventRide({ pacedSeconds: null, workout: null, estimate: { minutes: 300, intensity: "endurance" }, eventType: "gran_fondo" }).longRace).toBe(true);
   });
 });

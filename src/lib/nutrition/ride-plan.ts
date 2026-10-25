@@ -192,6 +192,28 @@ export function ridePlan({
   };
 }
 
+/** Laden loont bij een wedstrijd van meer dan ongeveer 90 minuten (protocol koolhydraten-laden). */
+export const LOADING_MIN_MINUTES = 90;
+
+/**
+ * Duur en zwaarte van de rit bij een event: het eigen pacingplan eerst, dan de
+ * eigen training voor dit event in het schema, dan de schatting van het schema.
+ * `longRace`: een wedstrijd (of gran fondo) van 90 minuten of meer, waarvoor
+ * koolhydraten laden loont.
+ */
+export function eventRide(input: {
+  pacedSeconds: number | null;
+  workout: { minutes: number | null; intensity: string | null } | null;
+  estimate: { minutes: number; intensity: string };
+  eventType: string;
+}): { minutes: number; intensity: string; longRace: boolean } {
+  const paced = input.pacedSeconds && input.pacedSeconds > 0 ? Math.round(input.pacedSeconds / 60) : null;
+  const minutes = paced ?? (input.workout?.minutes || input.estimate.minutes);
+  const intensity = input.workout?.intensity ?? input.estimate.intensity;
+  const longRace = minutes >= LOADING_MIN_MINUTES && (intensity === "race" || input.eventType === "gran_fondo");
+  return { minutes, intensity, longRace };
+}
+
 /** "0:15", "1:35". */
 export function formatRideMinute(minute: number): string {
   return `${Math.floor(minute / 60)}:${String(minute % 60).padStart(2, "0")}`;

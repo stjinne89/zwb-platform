@@ -18,6 +18,14 @@ import { saveRaceBriefing } from "./_actions";
 import { RaceSheet } from "./_components/race-sheet";
 import { ShareableSheet } from "./_components/share-sheet";
 import { SheetEditor } from "./_components/sheet-editor";
+import type { ClubEventRow } from "@/lib/training/events";
+import { EventRidePlan } from "../../../zwbeter-worden/_components/ride-plan-view";
+import {
+  loadEventRidePlan,
+  requireViewer,
+  todayKeyAmsterdam,
+  type EventRidePlan as EventRidePlanData,
+} from "../../../zwbeter-worden/voeding/_data";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -230,6 +238,25 @@ function sheetFileName(view: BriefingView): string {
   return `racebriefje-${team}-${day}.png`;
 }
 
+/** Wat je voor deze race klaarzet (ritvoeding, stap 2b); onder een uur niets. */
+async function loadBriefingRidePlan(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  eventId: string,
+): Promise<EventRidePlanData | null> {
+  try {
+    const { data } = await supabase
+      .from("events")
+      .select(
+        "id, title, type, start_at, end_at, distance_km, elevation_m, gpx_path, zwift_route_id, laps, zwift_event_type, zwift_tags, parent_event_id",
+      )
+      .eq("id", eventId)
+      .maybeSingle();
+    return data ? await loadEventRidePlan(await requireViewer(), data as ClubEventRow, todayKeyAmsterdam()) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function RaceBriefingPage({ params }: PageProps) {
   const { id } = await params;
   const user = await getRequestUser();
@@ -238,6 +265,8 @@ export default async function RaceBriefingPage({ params }: PageProps) {
   const outcome = await loadRaceBriefing(id, user, access, supabase);
   if (outcome.status === "not-found") notFound();
   const { view } = outcome;
+  // Wat je voor deze race klaarzet (ritvoeding, stap 2b); onder een uur niets.
+  const eventRidePlan = await loadBriefingRidePlan(supabase, view.event.id);
   const loaded = view.route?.loaded ?? null;
   const meta = [
     FORMAT_LABELS[view.format],
@@ -270,6 +299,10 @@ export default async function RaceBriefingPage({ params }: PageProps) {
       </ShareableSheet>
 
       {view.canEdit && <SheetEditor eventId={view.event.id} defaults={view.sheetDefaults} current={view.sheet} />}
+
+      {eventRidePlan && (
+        <EventRidePlan eventId={view.event.id} plan={eventRidePlan.plan} loadFrom={eventRidePlan.loadFrom} />
+      )}
 
       {view.format === "ttt" && (
         <Link href={`/teams/ttt-planner?event=${view.event.id}&team=${view.event.teamId}`} className="text-sm underline">

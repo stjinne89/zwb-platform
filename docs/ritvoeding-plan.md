@@ -120,6 +120,12 @@ Te groot voor één ronde. Voorstel: **2a** de berekening en de weergave bij de
 training in het schema, **2b** eventpagina en briefing, **2c** dagkaart,
 herinnering, boodschappenlijst en vastleggen met één tik.
 
+*2b gebouwd op 2026-10-25, zonder migratie, zie `PLAN.md`. De duur komt uit
+het eigen pacingplan, dan uit de eigen training voor het event, dan uit de
+schatting van het schema (`eventRide`). De link naar koolhydraten laden staat
+bij een wedstrijd of gran fondo van 90 minuten of langer en zet het event in het
+protocol voorgeselecteerd (`?event=`).*
+
 *2a gebouwd op 2026-10-25, zonder migratie, zie `PLAN.md`. Op verzoek van de
 eigenaar kwamen de dagkaarten (Dagmenu en de voedingstip op Vandaag) en
 "Gegeten" voor het hele plan al mee uit 2c. Nog open in 2c: de herinnering en de

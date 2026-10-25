@@ -13,7 +13,8 @@ import type { LoggedMeal } from "@/lib/nutrition/log";
 import { productLabel, type NutritionProduct } from "@/lib/nutrition/products";
 import { RECIPE_PREFS, rankRecipes, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
 import { classifyFuelDay } from "@/lib/nutrition/day-type";
-import { ridePlan, type RidePlan } from "@/lib/nutrition/ride-plan";
+import { eventRide, ridePlan, type RidePlan } from "@/lib/nutrition/ride-plan";
+import { eventWorkoutDefaults, type ClubEventRow } from "@/lib/training/events";
 import { ageFromBirthDate, portionEnergyFactor } from "@/lib/nutrition/targets";
 import { householdFromRow, type Household } from "@/lib/nutrition/shopping";
 import type { MenuChoice } from "@/lib/nutrition/plan";
@@ -444,4 +445,61 @@ export async function loadRidePlans(
     if (plan) plans.set(workout.id, plan);
   }
   return plans;
+}
+
+export type EventRidePlan = {
+  plan: RidePlan;
+  /** Dag waarop koolhydraten laden begint; null als dat niet past (korter dan 90 minuten, geen wedstrijd). */
+  loadFrom: string | null;
+};
+
+/** De laadfase van het protocol begint twee dagen voor de wedstrijd. */
+const LOADING_DAYS_BEFORE = 2;
+
+/**
+ * Het ritplan voor een event, voor wie het bekijkt (stap 2b van
+ * docs/ritvoeding-plan.md). De duur komt uit het eigen pacingplan, dan uit de
+ * eigen training voor dit event in het schema, en anders uit dezelfde schatting
+ * als het schema (eventWorkoutDefaults). Null voor een event dat voorbij is of
+ * korter dan een uur.
+ */
+export async function loadEventRidePlan(
+  viewer: Viewer,
+  event: ClubEventRow,
+  today: string,
+): Promise<EventRidePlan | null> {
+  const day = new Date(event.start_at).toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
+  if (day < today) return null;
+  const defaults = eventWorkoutDefaults(event);
+  const [pacing, { data: workout }] = await Promise.all([
+    import("@/lib/pacing/session")
+      .then(({ readOwnPlan }) => readOwnPlan(event.id, viewer.user.id))
+      .catch(() => null),
+    viewer.supabase
+      .from("training_workouts")
+      .select("duration_minutes, intensity")
+      .eq("profile_id", viewer.user.id)
+      .eq("event_id", event.id)
+      .is("superseded_at", null)
+      .neq("status", "skipped")
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  const { minutes, intensity, longRace } = eventRide({
+    pacedSeconds: pacing?.summary?.totalSeconds ?? null,
+    workout: workout
+      ? { minutes: workout.duration_minutes == null ? null : Number(workout.duration_minutes), intensity: workout.intensity }
+      : null,
+    estimate: { minutes: defaults.durationMinutes, intensity: defaults.intensity },
+    eventType: event.type,
+  });
+
+  const plans = await loadRidePlans(
+    viewer,
+    [{ id: event.id, scheduled_at: `${day}T12:00:00`, duration_minutes: minutes, intensity, status: "planned" }],
+    today,
+  );
+  const plan = plans.get(event.id);
+  if (!plan) return null;
+  return { plan, loadFrom: longRace ? shiftDayKey(day, -LOADING_DAYS_BEFORE) : null };
 }
