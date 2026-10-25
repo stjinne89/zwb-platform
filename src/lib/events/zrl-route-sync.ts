@@ -63,6 +63,16 @@ export function zrlRouteUpdate(
   };
 }
 
+/**
+ * Het route-id dat de groep rijdt, als zwift-data het niet kent. Dan blijft het
+ * event zonder route (2026-10-25: Spiral Summit ontbrak in 1.50 en de hele
+ * raceweek bleef stil zonder parcours), dus de sync moet het melden. Puur.
+ */
+export function unknownZrlRoute(info: ZwiftEventInfo, category: string | null): number | null {
+  const event = eventForSubgroup(info, pickOwnSubgroup(info.subgroups, category));
+  return event.routeId !== null && !event.route ? event.routeId : null;
+}
+
 /** Alleen de identificatie, zodat de foreign key van events.zwift_route_id houdt. */
 export async function registerZwiftRoute(admin: SupabaseClient, route: ZwiftRouteInfo) {
   await admin.from("zwift_routes").upsert(
@@ -138,6 +148,8 @@ export async function syncZrlSubgroupRoutes(
 
   const infoByZwiftEvent = new Map<number, ZwiftEventInfo | null>();
   const details: Parameters<typeof fillZrlEventDetails>[1] = [];
+  /** Onbekend route-id → aantal teamevents dat erop rijdt. */
+  const unknownRoutes = new Map<number, number>();
   for (const row of rows) {
     const zwiftEventId = Number(row.zwift_event_id);
     if (!infoByZwiftEvent.has(zwiftEventId)) {
@@ -154,13 +166,22 @@ export async function syncZrlSubgroupRoutes(
     result.checked += 1;
     details.push({ row, info });
 
-    const update = zrlRouteUpdate(row, info, categoryByTeam.get(row.team_id) ?? null);
+    const category = categoryByTeam.get(row.team_id) ?? null;
+    const unknown = unknownZrlRoute(info, category);
+    if (unknown !== null) unknownRoutes.set(unknown, (unknownRoutes.get(unknown) ?? 0) + 1);
+
+    const update = zrlRouteUpdate(row, info, category);
     if (!update) continue;
     const route = routeFromZwiftId(update.zwift_route_id);
     if (route) await registerZwiftRoute(admin, route);
     const { error: updateError } = await admin.from("events").update(update).eq("id", row.id);
     if (updateError) result.notes.push(`${row.title}: ${updateError.message}`);
     else result.updated.push(`${row.title} → ${route?.name ?? update.zwift_route_id}`);
+  }
+  for (const [routeId, count] of unknownRoutes) {
+    result.notes.push(
+      `Route ${routeId} staat niet in zwift-data (${count} teamevent${count === 1 ? "" : "s"} zonder parcours); werk zwift-data bij.`,
+    );
   }
   // Locatie, cover en omschrijving, zoals bij een gewoon Zwift-event.
   await fillZrlEventDetails(admin, details, result.notes);

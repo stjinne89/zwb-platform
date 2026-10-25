@@ -67,8 +67,8 @@ type StoredRow = {
 export type ManualSegments = ReadonlyMap<number, number>;
 
 /**
- * zwift-data kent niet van elke route het segment (event-only routes als
- * Urumaze); dan geldt wat in /beheer/zwift-routes is ingevuld.
+ * zwift-data kent niet van elke route het segment (sinds 2.1 nog de Climb
+ * Portal-routes); dan geldt wat in /beheer/zwift-routes is ingevuld.
  */
 export function routeSegmentId(
   route: (typeof routes)[number],

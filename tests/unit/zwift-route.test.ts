@@ -10,7 +10,7 @@ import {
   zrlCategoryFromTeamName,
   zwiftStartFor,
 } from "@/lib/events/zwift-route";
-import { zrlRouteUpdate } from "@/lib/events/zrl-route-sync";
+import { unknownZrlRoute, zrlRouteUpdate } from "@/lib/events/zrl-route-sync";
 
 /**
  * Ingekorte respons van GET /api/public/events/{id}, met de velden die het
@@ -288,5 +288,44 @@ describe("bestaande ZRL-teamevents rechtzetten", () => {
     const update = zrlRouteUpdate({ zwift_route_id: null, gpx_path: "x.gpx" }, event, "A")!;
     expect(update.zwift_route_id).toBe(890800649);
     expect(update.distance_km).toBeUndefined();
+  });
+});
+
+/**
+ * Aqua Division 1, race 5 (2026-10-27): Spiral Summit, een event-only route die
+ * pas in zwift-data 2.1 staat. Met 1.50 bleef de hele raceweek zonder parcours.
+ */
+const ZRL_SPIRAL_SUMMIT_JSON = {
+  id: 5758531,
+  name: "Zwift Racing League 26/27: Fast & Fresh : Open Aqua League Division 1 - Race 5",
+  eventStart: "2026-10-27T19:00:00.000+0000",
+  laps: 1,
+  routeId: 159415549,
+  eventSubgroups: [
+    { id: 1, subgroupLabel: "A", eventSubgroupStart: "2026-10-27T19:01:00.000+0000", laps: 1, routeId: 159415549 },
+    { id: 2, subgroupLabel: "B", eventSubgroupStart: "2026-10-27T19:02:00.000+0000", laps: 1, routeId: 159415549 },
+  ],
+};
+
+describe("onbekende ZRL-route melden", () => {
+  it("kent Spiral Summit en zet een team erop", () => {
+    const event = mapZwiftEvent(ZRL_SPIRAL_SUMMIT_JSON)!;
+    expect(event.route?.name).toBe("Spiral Summit");
+    expect(unknownZrlRoute(event, "A")).toBeNull();
+    const update = zrlRouteUpdate({ zwift_route_id: null, gpx_path: null }, event, "A")!;
+    expect(update.zwift_route_id).toBe(159415549);
+    expect(update.distance_km).toBeCloseTo(24.02, 1);
+  });
+
+  it("geeft het route-id terug als zwift-data de route niet kent", () => {
+    const event = mapZwiftEvent({
+      ...ZRL_SPIRAL_SUMMIT_JSON,
+      routeId: 999,
+      eventSubgroups: ZRL_SPIRAL_SUMMIT_JSON.eventSubgroups.map((group) => ({ ...group, routeId: 999 })),
+    })!;
+    expect(event.route).toBeNull();
+    expect(unknownZrlRoute(event, "B")).toBe(999);
+    expect(unknownZrlRoute(event, null)).toBe(999);
+    expect(zrlRouteUpdate({ zwift_route_id: null, gpx_path: null }, event, "B")).toBeNull();
   });
 });
