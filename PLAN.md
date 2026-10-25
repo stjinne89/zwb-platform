@@ -294,12 +294,13 @@ gaat stabiliteit voor nieuwe features.
    Strava-terugval voor CTL is bewust niet gebouwd: bij de 23 leden met een steen
    had alleen Femke dit. *2026-10-25:* haar CTL in de steen is nu 23; de maanden
    van haar terugblik staan nog op fitheid 0.
-14. **ZWBriljant: consistentie hersteld en melding voor de kJ-standen** (ronde van
-   2026-10-25 hieronder): gebouwd en lokaal getest, niet gepusht. Geen migratie;
-   het geslacht van 14 leden is al op productie gezet. Open: pushen, daarna de
-   dialoog in de browser bekijken en na de job de consistentie van de vijf leden
-   zonder consistentie en van de drie met lage naleving nakijken. De hulpvideo
-   `kj-standen` hoort bij deze ronde (zelfde dag, ook nog niet gepusht).
+14. **ZWBriljant: consistentie hersteld, melding en hulpvideo voor de kJ-standen,
+   en het groei-onderdeel in weekoverzicht en Strava-tip** (rondes van 2026-10-25
+   hieronder): gebouwd, lokaal getest en op 2026-10-25 samen gepusht naar `main`.
+   Geen migratie; het geslacht van 14 leden is op productie gezet. Open: de
+   dialoog in de browser bekijken, na de job de consistentie van de vijf leden
+   zonder consistentie en van de drie met lage naleving nakijken, en de clip op
+   een telefoon bekijken.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11325,7 +11326,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Hulpvideo: durability en de kJ-standen in intervals.icu
 
-**2026-10-25.** Commit `058b1d3a`, lokaal, niet gepusht. Geen migratie.
+**2026-10-25.** Commit `058b1d3a`, op 2026-10-25 gepusht naar `main` (op verzoek van de eigenaar). Geen migratie.
 
 Op verzoek van de eigenaar een clip bij de melding over de kJ-standen (ronde
 hieronder): `public/hulp-video/kj-standen.mp4` (48 s, staand, ondertitels,
@@ -11373,7 +11374,7 @@ Engelstalige intervals.icu (de video toont de Nederlandse).
 
 ### Gebouwd — ZWBriljant: consistentie hersteld, geen consistentie is de volle straf, melding voor de kJ-standen
 
-**2026-10-25.** Commit `5d8673d1`, lokaal, niet gepusht. Geen migratie. Wel een
+**2026-10-25.** Commit `5d8673d1`, op 2026-10-25 gepusht naar `main` (op verzoek van de eigenaar). Geen migratie. Wel een
 datawijziging op productie (zie onder).
 
 Aanleiding: een melding dat ZWBriljanten niet klopten. Controle op productie
@@ -11454,7 +11455,7 @@ productie, die pas na de push en de job te zien is.
 
 ### Gewijzigd — Strava-tip: werk aan wat het meest oplevert
 
-**2026-10-25.** Commit `a0e8c79d`. Geen migratie. Lokaal gecommit, niet gepusht.
+**2026-10-25.** Commit `a0e8c79d`. Geen migratie. Op 2026-10-25 gepusht naar `main`, samen met de rondes van de kJ-standen (op verzoek van de eigenaar).
 
 Op verzoek van de eigenaar dezelfde wissel als in het weekoverzicht (ronde
 hieronder): de tip "bijna een klasse hoger" in het ZWBeter-blok op Strava noemt
@@ -11482,7 +11483,7 @@ nu VO2max) en `strava-summary-tips` aangepast; met `weekly-review`,
 
 ### Gewijzigd — ZWBriljant in het weekoverzicht: werk aan wat het meest oplevert
 
-**2026-10-25.** Commit `385efa9b`. Geen migratie. Lokaal gecommit, niet gepusht.
+**2026-10-25.** Commit `385efa9b`. Geen migratie. Op 2026-10-25 gepusht naar `main`.
 
 De eigenaar wilde in plaats van "Laagste facet: X" een aanwijzing waar je steen
 het snelst groeit. Het laagste onderdeel is daar een slechte maat voor: sprint
@@ -11497,8 +11498,9 @@ oplevert. Dat is dezelfde rekensom als "Waar win je het meest" op de steen
   (bij ritten blijft het plafond van niveau 9 staan). `bestWins` en
   `winsFromLevels` delen nu `winsFromReadings`.
 - `BriljantSection.weakestFacet` heet nu `growFacet`. `SUMMARY_VERSION` blijft 3:
-  deze ronde is niet gepusht, dus er staan nog geen samenvattingen van versie 3
-  met het oude veld in de database.
+  deze ronde ging samen met de ronde die versie 3 invoerde naar `main` (op `main`
+  stond nog versie 2), dus er staan geen samenvattingen van versie 3 met het oude
+  veld in de database.
 - Is er nergens iets te winnen (minder dan vier onderdelen, dus geen score), dan
   valt de zin weg.
 - Privacyverklaring (Weekoverzicht): "je laagste onderdeel" is nu "het onderdeel
@@ -11516,8 +11518,8 @@ echte snapshots.
 
 ### Gebouwd — ZWBriljant in het weekoverzicht
 
-**2026-10-25.** Commit `9fae85b6`. Geen migratie. Lokaal gecommit op
-`claude/zwbriljant-weekoverzicht-5440b1`, niet gepusht.
+**2026-10-25.** Commit `9fae85b6`. Geen migratie. Gemaakt op
+`claude/zwbriljant-weekoverzicht-5440b1`, op 2026-10-25 gepusht naar `main`.
 
 Wens van de eigenaar: de ZWBriljant-steen ook in het weekoverzicht. Hij krijgt een
 eigen scherm, na Vermogen en vóór Teams:
