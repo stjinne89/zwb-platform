@@ -201,7 +201,9 @@ export function briljantView(args: {
     number | null
   >;
   const consistency = args.consistency ? consistencyFrom(args.consistency) : null;
-  const score = scoreFor(levels, consistency?.value ?? null);
+  // Zonder invoer (de recordsteen) telt consistentie niet mee; met invoer maar
+  // zonder uitkomst (geen ritten, geen schema) de volle straf.
+  const score = scoreFor(levels, args.consistency ? (consistency?.value ?? null) : 1);
   const rawProfile = profileScore(levels);
   // Op twee decimalen, net als de score, zodat profiel × factor op het scherm klopt.
   const profile = rawProfile == null ? null : Math.round(rawProfile * 100) / 100;
@@ -252,7 +254,28 @@ export function briljantView(args: {
           measure: consistency.measure,
           normSource: consistency.normSource,
         }
-      : null,
+      : args.consistency
+        ? storedConsistencyView(null)
+        : null,
+  };
+}
+
+/**
+ * De consistentie als alleen de waarde bekend is (een bewaarde steen). Zonder
+ * consistentie 0%, met de volle straf (consistencyFactor), zodat het scherm laat
+ * zien waarom de steen kleiner is.
+ */
+export function storedConsistencyView(consistency: number | null): ConsistencyView {
+  return {
+    value: consistency ?? 0,
+    factor: consistencyFactor(consistency),
+    hitWeeks: null,
+    weeks: CONSISTENCY_WEEKS,
+    streak: null,
+    compliance: null,
+    norm: null,
+    measure: null,
+    normSource: null,
   };
 }
 

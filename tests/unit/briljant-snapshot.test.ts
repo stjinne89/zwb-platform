@@ -149,6 +149,29 @@ describe("snapshot", () => {
     expect(complianceFrom([], "2026-10-01", "2026-10-21")).toBeNull();
   });
 
+  it("telt een training met een rit op dezelfde dag als gedaan, één rit per training", () => {
+    const planned = [
+      { day: "2026-10-06", minutes: 60, status: "completed" as const },
+      { day: "2026-10-06", minutes: 90, status: "planned" as const },
+      { day: "2026-10-08", minutes: 120, status: "skipped" as const },
+      { day: "2026-10-13", minutes: 60, status: "planned" as const },
+      { day: "2026-10-14", minutes: 45, status: "planned" as const },
+    ];
+    const rides = [
+      // Twee ritten op de 6e: de afgeronde training houdt er een bezet, de geplande krijgt de andere.
+      { day: "2026-10-06", minutes: 55 },
+      { day: "2026-10-06", minutes: 85 },
+      // Een overgeslagen training telt niet, ook niet met een rit.
+      { day: "2026-10-08", minutes: 100 },
+      // Losgekoppeld van het schema: geen training.
+      { day: "2026-10-13", minutes: 60, excluded: true },
+      { day: "2026-10-14", minutes: 40 },
+    ];
+    expect(complianceFrom(planned, "2026-10-01", "2026-10-21", rides)).toBeCloseTo((60 + 90 + 45) / 375, 9);
+    // Eén rit voor twee trainingen op een dag: de tweede telt niet.
+    expect(complianceFrom(planned.slice(0, 2), "2026-10-01", "2026-10-21", rides.slice(0, 1))).toBeCloseTo(60 / 150, 9);
+  });
+
   it("haalt W/kg uit een curve, met het gewicht als de punten die niet hebben", () => {
     const power = powerFromCurve(
       [

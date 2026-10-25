@@ -42,7 +42,9 @@ export function BriljantHelp() {
               voor durability: open intervals.icu, ga naar Power, klik boven de powercurve op de knoppen met
               &quot;? kJ&quot; en vul 1000 en 2000 in. Klik daarna op Mijn vermogen op &quot;Mijn waarden
               ophalen&quot;. Zonder die standen blijft durability leeg en mis je {pct(FACET_WEIGHTS.durability)} van je
-              score. Meer bij{" "}
+              score. De laagste stand moet minstens 10 kJ per kilo zijn (800 kJ bij 80 kg); daaronder zegt het verval
+              te weinig. Al ingesteld en nog steeds leeg? Dan reed je in de laatste 90 dagen geen rit waarin je die
+              stand haalde. Meer bij{" "}
               <Link href="/hulp/training#vermogen" className="underline underline-offset-2">
                 Mijn vermogen
               </Link>
@@ -74,7 +76,7 @@ export function BriljantHelp() {
             </li>
             <li>
               <strong className="text-foreground">Strava koppelen</strong>, zodat je ritten binnenkomen. Daaruit komt
-              je consistentie.
+              je consistentie; zonder ritgegevens kost die je 20% van je score.
             </li>
             <li>
               <strong className="text-foreground">Een schema in ZWBeter.</strong> Dan meet consistentie tegen je
@@ -239,14 +241,15 @@ export function BriljantHelp() {
               trainingsbelasting geeft, anders in uren (per week wat je schema plande, zonder schema je eigen mediaan;
               niet je beschikbaarheid, want dat is een plafond),
               V = 1 − e<sup>−reeks/12</sup> voor het aantal weken op rij, N het deel
-              van je geplande trainingstijd dat je deed. Meer dan je norm telt als gehaald, een geplande herstelweek
-              breekt de reeks niet.
+              van je geplande trainingstijd dat je deed: een afgeronde training, of een rit op de dag van de training.
+              Meer dan je norm telt als gehaald, een geplande herstelweek breekt de reeks niet. Reed je minder dan de
+              helft van de weken, dan is je norm wat je meestal rijdt in een week waarin je fietst.
             </dd>
             <dt className="font-medium">Score</dt>
             <dd className="text-muted-foreground">
               <code className="rounded bg-muted px-1">profielscore × (0,8 + 0,2 × consistentie)</code>. Helemaal
-              consistent houdt je je volle profielscore; zonder ritgegevens telt consistentie niet. Het gouden
-              draadmodel om de steen is je steen bij volledige consistentie.
+              consistent houdt je je volle profielscore. Zonder ritgegevens is je consistentie 0 en is je steen 80%
+              van zijn volle maat. Het gouden draadmodel om de steen is je steen bij volledige consistentie.
             </dd>
           </dl>
           <Link

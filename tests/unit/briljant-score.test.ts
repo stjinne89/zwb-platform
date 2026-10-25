@@ -150,15 +150,15 @@ describe("facetten en score", () => {
     expect(FACET_WEIGHTS.sprint + FACET_WEIGHTS.anaeroob + FACET_WEIGHTS.vo2max + FACET_WEIGHTS.drempel).toBeCloseTo(0.5, 9);
     // 7,1 × 5% + 6,933 × 10% + 6,1 × 20% + 5,889 × 15% + 4,8 × 17,5%
     // + 6,8 × 20% + 6,4 × 12,5% = 6,15.
-    expect(scoreFor(facetLevels(rider))).toBe(6.15);
+    expect(scoreFor(facetLevels(rider), 1)).toBe(6.15);
   });
 
   it("laat consistentie tot 20% meetellen als factor", () => {
     expect(consistencyFactor(1)).toBe(1);
     expect(consistencyFactor(0)).toBeCloseTo(0.8, 9);
     expect(consistencyFactor(0.55)).toBeCloseTo(0.91, 9);
-    // Geen ritgegevens: ontbrekende gegevens kosten niets.
-    expect(consistencyFactor(null)).toBe(1);
+    // Geen consistentie: de volle straf (eigenaar, 2026-10-25).
+    expect(consistencyFactor(null)).toBeCloseTo(0.8, 9);
     // 6,152 × 0,91 = 5,60: op het scherm 560 punten.
     expect(scoreFor(facetLevels(rider), 0.55)).toBe(5.6);
     expect(scoreFor(facetLevels(rider), 1)).toBe(6.15);
@@ -168,23 +168,23 @@ describe("facetten en score", () => {
     const levels = facetLevels({ ...rider, zrs: null });
     // Zonder racen (12,5% × 6,4 = 0,8) zakt de score met precies die bijdrage,
     // in plaats van de rest weer op 100% te zetten.
-    expect(scoreFor(levels)).toBe(5.35);
+    expect(scoreFor(levels, 1)).toBe(5.35);
     const sum = FACETS.reduce((total, facet) => total + FACET_WEIGHTS[facet] * (levels[facet] ?? 0), 0);
-    expect(scoreFor(levels)).toBe(Math.round(sum * 100) / 100);
+    expect(scoreFor(levels, 1)).toBe(Math.round(sum * 100) / 100);
   });
 
   it("geeft pas een score vanaf vier onderdelen", () => {
     // Fitheid en racen alleen (zonder gewicht geen W/kg): geen steen.
-    expect(scoreFor(facetLevels({ ...rider, power: null, fatigue: [] }))).toBeNull();
+    expect(scoreFor(facetLevels({ ...rider, power: null, fatigue: [] }), 1)).toBeNull();
     // Met twee vermogensonderdelen erbij wel.
-    expect(scoreFor(facetLevels({ ...rider, power: { s15: null, m1: null, m5: 5.1, m20: 4.3 }, fatigue: [] }))).not.toBeNull();
+    expect(scoreFor(facetLevels({ ...rider, power: { s15: null, m1: null, m5: 5.1, m20: 4.3 }, fatigue: [] }), 1)).not.toBeNull();
   });
 
   it("laat ontbrekende gegevens weg in plaats van ze te verzinnen", () => {
     const empty = facetLevels({ sex: null, weightKg: null, power: null, fatigue: [], ctl: null, zrs: null });
     expect(FACETS.every((facet) => empty[facet] == null)).toBe(true);
-    expect(scoreFor(empty)).toBeNull();
-    expect(scoreFor(facetLevels({ ...rider, power: null, fatigue: [], zrs: null }))).toBeNull();
+    expect(scoreFor(empty, 1)).toBeNull();
+    expect(scoreFor(facetLevels({ ...rider, power: null, fatigue: [], zrs: null }), 1)).toBeNull();
     expect(facetReadings({ ...rider, power: { s15: null, m1: 7.6, m5: null, m20: null } }).sprint).toBeNull();
   });
 
@@ -314,6 +314,29 @@ describe("consistentie", () => {
     expect(againstAvailability.regularity).toBeCloseTo(4 / 12, 2);
     expect(againstAvailability.streak).toBe(0);
     expect(result.value).toBeGreaterThan(againstAvailability.value * 2);
+  });
+
+  it("valt niet op norm 0 bij minder dan de helft van de weken gereden", () => {
+    // Twintig van de 52 weken gereden: de mediaan is 0, dus de mediaan van de ritweken (3 uur).
+    const weeks = Array.from({ length: 52 }, (_, i) => week(i, i % 52 < 20 ? 3 : 0));
+    const result = consistencyFrom({ weeks, compliance: null })!;
+    expect(result).toMatchObject({ measure: "uren", norm: 3, streak: 0 });
+    expect(result.value).toBe(0);
+    // De laatste twaalf weken elke week 3 uur: dan telt elke week.
+    const late = Array.from({ length: 52 }, (_, i) => week(i, i >= 32 ? 3 : 0));
+    expect(consistencyFrom({ weeks: late, compliance: null })).toMatchObject({ regularity: 1, streak: 20 });
+  });
+
+  it("telt in TSS alleen de weken die intervals.icu kent", () => {
+    // intervals.icu pas sinds twintig weken, Strava al een jaar: de weken daarvoor zijn geen 0 TSS.
+    const weeks = Array.from({ length: 52 }, (_, i) => ({ ...week(i, 5), load: i >= 32 ? 300 : null }));
+    expect(consistencyFrom({ weeks, compliance: null })).toMatchObject({ measure: "tss", norm: 300, streak: 20 });
+  });
+
+  it("meet in uren als intervals.icu de meeste ritweken mist", () => {
+    // Wel een rit in Strava, maar 0 TSS in intervals.icu in acht van de twaalf weken.
+    const weeks = Array.from({ length: 12 }, (_, i) => ({ ...week(i, 5), load: i >= 8 ? 300 : 0 }));
+    expect(consistencyFrom({ weeks, compliance: null })).toMatchObject({ measure: "uren", norm: 5, streak: 12 });
   });
 
   it("gebruikt de eigen mediaan alleen voor weken zonder schema", () => {

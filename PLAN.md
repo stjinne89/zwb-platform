@@ -292,7 +292,14 @@ gaat stabiliteit voor nieuwe features.
    intervals.icu; daarna nakijken of haar CTL en vermogensprofiel bijtrekken, en
    daarmee of de vermogenscurve ritten meetelt die via Strava binnenkwamen. Een
    Strava-terugval voor CTL is bewust niet gebouwd: bij de 23 leden met een steen
-   had alleen Femke dit.
+   had alleen Femke dit. *2026-10-25:* haar CTL in de steen is nu 23; de maanden
+   van haar terugblik staan nog op fitheid 0.
+14. **ZWBriljant: consistentie hersteld en melding voor de kJ-standen** (ronde van
+   2026-10-25 hieronder): gebouwd en lokaal getest, niet gepusht. Geen migratie;
+   het geslacht van 14 leden is al op productie gezet. Open: pushen, daarna de
+   dialoog in de browser bekijken en na de job de consistentie van de vijf leden
+   zonder consistentie en van de drie met lage naleving nakijken. Eventueel een
+   video over de kJ-standen.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11312,6 +11319,88 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBriljant: consistentie hersteld, geen consistentie is de volle straf, melding voor de kJ-standen
+
+**2026-10-25.** Lokaal gecommit, niet gepusht. Geen migratie. Wel een
+datawijziging op productie (zie onder).
+
+Aanleiding: een melding dat ZWBriljanten niet klopten. Controle op productie
+(24 stenen van week 19 oktober en 1.018 terugblikmaanden): elke bewaarde score
+volgt precies uit facetten, gewichten en consistentie, en de ZRS in elke steen is
+de actuele. De fouten zaten in de consistentie, en in ontbrekende data.
+
+- **Naleving telt ritten op de trainingsdag** (`complianceFrom` in
+  `snapshot.ts`). Eerst telde alleen de status `completed`, en die zet
+  `detectCompletedWorkouts` alleen binnen zeven dagen. Ritten die later
+  binnenkwamen, telden nooit, terwijl de naleving voor de trainer
+  (`pickRideForWorkout`) ze wel per dag koppelt. Gemeten over twaalf weken: één lid
+  12% tegen 67% met de ritten, een ander 14% tegen 60%, een derde 23% tegen 47%.
+  De consistentie van het eerste lid zakte bij de start van het schema van
+  0,56–0,83 naar 0,03–0,06. Nu: één rit per training op dezelfde dag, bij meer
+  ritten de duur die het dichtst bij de geplande ligt; een afgeronde training houdt
+  een rit bezet, een overgeslagen training telt niet, een losgekoppelde rit
+  (`training_excluded_at`) ook niet.
+- **De norm valt niet meer op 0** (`consistencyFrom`). Bij vijf leden was de
+  consistentie leeg. In TSS was de norm de mediaan over 52 weken, met weken van
+  vóór de koppeling met intervals.icu en weken waarin intervals.icu de
+  Strava-ritten miste als 0 TSS. Meer dan de helft van de weken 0 gaf norm 0, dus
+  geen consistentie. Nu telt in TSS alleen de weken die intervals.icu kent; TSS
+  alleen als intervals.icu ook de meeste recente weken met een rit kent; en is de
+  mediaan 0 (minder dan de helft van de weken gereden), dan geldt de mediaan van de
+  weken waarin je reed.
+- **Geen consistentie is de volle straf** (eigenaar): `consistencyFactor(null)` is
+  0,8 in plaats van 1. Eerst kwam wie niets liet zien beter uit dan wie
+  onregelmatig reed. `scoreFor` vraagt de consistentie nu altijd expliciet; de
+  recordsteen rekent met 1. Het scherm toont dan "Consistentie 0%" met factor 0,80
+  (`storedConsistencyView`). Dit geldt ook voor bewaarde stenen en terugblikmaanden
+  zonder consistentie, omdat de score bij het lezen opnieuw wordt gerekend.
+- **`TERUGBLIK_SPAN` is nu `alles-gewicht-tss-p25-naleving`**, zodat de wekelijkse
+  job (en een bezoek) de terugblik met de nieuwe consistentie opnieuw maakt. De
+  gevonden ZRS van vroeger blijft staan.
+- **Melding voor de kJ-standen** (`fatigue-setup.ts`, `durability-setup-dialog.tsx`
+  in de app-layout). Bij 16 van de 24 stenen ontbrak durability: 15 leden krijgen
+  uit intervals.icu geen vermoeide curve, en bij één stond de enige stand op 500 kJ
+  (6,1 kJ/kg, onder de grens van 10). Wie zo'n powerprofiel heeft, krijgt een
+  dialoog met wat er mis is en een link naar `/hulp/training#zwbriljant`. Na
+  "Later" of de link een week stil (localStorage). Nooit samen met de privacy- of
+  Zwift-ID-vraag, en hij opent niet als er al een dialoog openstaat
+  (het weekoverzicht). `/hulp` noemt nu ook de grens van 10 kJ/kg en wat het
+  betekent als de standen al goed staan.
+- **Geslacht op productie gezet** (eigenaar, 2026-10-25, direct met SQL): bij de 14
+  leden met een steen zonder geslacht één op `vrouw` en dertien op `man`. Er waren
+  geen SRC-inschrijvingen die mee moesten (`followSrcProfileSex` liep dus bewust
+  niet). Haar weeksteen rekent bij het volgende bezoek of in de job van maandag met
+  de vrouwennormen; haar terugblik pas na de push (nieuwe `TERUGBLIK_SPAN`).
+- Meegenomen: het anker `naleving` stond niet in de categorie schema van
+  `help-categories.ts` (uit de ronde "naleving als balken"); `help-categories.test`
+  faalde daardoor op `main`.
+
+**Bewust niet gebouwd.**
+- Geen video bij de melding: er is nog geen opname van de kJ-instelling in
+  intervals.icu. Een clip in `public/hulp-video` (zonder stem, met ondertitels)
+  kan later naast de uitleg op `/hulp`.
+- Geen terugval voor een ontbrekende durability of ZRS: een ontbrekend onderdeel
+  telt voor 0, zoals de eigenaar op 2026-10-22 besloot. Eén lid verloor zo racen:
+  laatste race 20 januari, Zwift toont geen ZRS meer.
+- De status `completed` niet met terugwerkende kracht gezet: dat maakt rapporten en
+  meldingen aan. ZWBriljant koppelt zelf.
+
+**Gevonden, niet opgelost.**
+- Een lid met durability 54 punten: na 2000 kJ in 90 dagen hooguit 6 minuten
+  gereden, dus het verval is een ondergrens.
+- In de terugblik krijgen maanden van vóór de eerste race de ZRS van de eerste
+  latere race als "historie" (tot 38 maanden terug, tot 2018).
+
+**Getest.** Nieuwe tests voor de naleving met ritten, de norm bij minder dan de
+helft van de weken, TSS alleen over bekende weken, uren als intervals.icu de
+ritweken mist, de volle straf, en `fatigueSetupIssue`/`loadFatigueSetupIssue`.
+Alle ZWBriljant-tests (104), `tsc`, ESLint, `npm run build`. Volle suite groen,
+op `omnium-live` na: zonder `.env.local` in deze worktree faalde die, met het
+bestand slaat hij zijn zes tests over. `admin-areas` faalde één keer in de volle
+run en slaagt los. **Niet getest:**
+de dialoog in de browser (geen ledenlogin hier), en de nieuwe consistentie op
+productie, die pas na de push en de job te zien is.
+
 ### Gebouwd — TSS uit hartslag voor ritten zonder vermogensmeter
 
 **2026-10-25.** Commits `aa256eb4` (vaste rust-HR) en `97628bbe` (eigen
@@ -13066,8 +13155,9 @@ duidelijker is").
   daarvoor iets omlaag). Even waren de namen weg; de eigenaar bedoelde alleen dat
   racen (ZRS) niet aan een groep hangt.
 - **Consistentie telt mee als factor**: score = profielscore × (0,8 + 0,2 ×
-  consistentie), zonder ritgegevens factor 1 (`consistencyFactor`). Eerst telde
-  consistentie niet mee; de eigenaar koos voor tot 20%.
+  consistentie). Eerst telde consistentie niet mee; de eigenaar koos voor tot 20%.
+  *Achterhaald per 2026-10-25:* zonder ritgegevens was dat factor 1, nu 0,8 (de
+  volle straf), zie de ronde van die dag.
 - **Racen is een rechte lijn**: 0 ZRS is 0 en 1000 ZRS (nooit gehaald) is Aliens, dus
   0,9 punt per ZRS-punt, los van Zwift's categorieën. Eerst stond er één decimaal (4,5); de eigenaar
   koos daarna voor punten, omdat een groter getal dat in kleine stappen groeit meer
