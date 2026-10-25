@@ -11334,7 +11334,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter voeden: zweettest en vochtdoel
 
-**2026-10-25.** Stap 5 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
+**2026-10-25.** Commit `89bf101e`, stap 5 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
 besluiten 5, 6 en 7 van dat plan. Migratie `0273_nutrition_sweat_tests.sql`,
 **nog niet toegepast**. Privacytekst **nog niet goedgekeurd**. Niet gepusht.
 
