@@ -480,9 +480,12 @@ export default function PrivacyPage() {
             <strong>Terugschrijven naar Strava:</strong> koppel je Strava met het
             recht om je activiteiten te wijzigen, dan zet ZWB na een rit een
             samenvatting onderaan de omschrijving van die rit. Daarin staan je
-            geplande en gedetecteerde trainingstype, de duur, het verschil tussen
-            geplande en werkelijke belasting (TSS), je CTL, je gereedscore en je
-            fitness-richting. Wie jouw Strava-activiteit kan zien, kan die
+            geplande en gedetecteerde trainingstype, de duur, de belasting (TSS)
+            en het verschil met het plan, je gereedscore, je fitness-richting en
+            een tip die uit die gegevens volgt. Deel je je ZWBriljant-steen met
+            leden, dan staan ook je klasse, je punten en de punten tot de
+            volgende klasse erin, en soms je laagste facet; deel je hem niet,
+            dan staat er je CTL. Wie jouw Strava-activiteit kan zien, kan die
             samenvatting dus ook zien. Je onderliggende hersteldata (slaap, HRV,
             hartslag) komt er nooit in — alleen de daaruit berekende score. Je
             eigen tekst in de omschrijving laten we staan, en verwijder je de

@@ -1,4 +1,4 @@
-// Zet het ZWBeter Worden-blok in de Strava-beschrijving van net gereden ritten.
+// Zet het ZWBeter-blok in de Strava-beschrijving van net gereden ritten.
 // Draait als laatste stap van de Strava-sync (src/lib/strava/client.ts), want
 // daar zijn de activiteiten per definitie vers.
 //
@@ -7,7 +7,8 @@
 // lib/training/ride-metrics.ts. Eerder kwam die uit intervals.icu, maar dat
 // geeft via de API niets terug voor activiteiten die daar via Strava
 // binnenkwamen — precies de ritten waar dit blok over gaat. CTL, gereedscore en
-// fitness-status komen wél uit intervals: die zitten in de wellness-reeks.
+// fitness-status komen wél uit intervals: die zitten in de wellness-reeks. De
+// ZWBriljant-steen komt uit de eigen weeksnapshots (zwbriljant_snapshots).
 //
 // Twee harde grenzen, bewust niet optioneel:
 //  - STRAVA_ZWB_SUMMARY_SINCE: ritten van vóór die datum raken we nooit aan.
@@ -27,12 +28,16 @@ import { rideMetricsFromStrava } from "@/lib/training/ride-metrics";
 import { loadFtpAt } from "@/lib/training/ftp-history";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import {
+  briljantSummaryFrom,
   buildZwbSummaryBlock,
   composeDescription,
   pickPlannedWorkout,
   stripZwbSummary,
   summaryHash,
+  type BriljantSummary,
 } from "@/lib/training/strava-summary";
+import { storedScore, type StoredSnapshot } from "@/lib/briljant/compare";
+import { SCALE_VERSION } from "@/lib/briljant/norms";
 import {
   ctlTrend,
   computeZwbStatus,
@@ -202,6 +207,8 @@ export async function writeZwbSummariesForUser(
     ctlTrend(wellness, 42),
   );
 
+  const briljant = await loadBriljantSummary(admin, profileId);
+
   const oldestCandidate = open[open.length - 1];
   const { data: workoutRows } = await admin
     .from("training_workouts")
@@ -256,6 +263,7 @@ export async function writeZwbSummariesForUser(
         )
       : null;
     const block = buildZwbSummaryBlock({
+      activityId: candidate.id,
       plannedTitle: matchedWorkout?.title ?? null,
       plannedIntensity: matchedWorkout?.intensity ?? null,
       plannedMinutes: matchedWorkout?.duration_minutes ?? null,
@@ -263,6 +271,7 @@ export async function writeZwbSummariesForUser(
       actualLoad,
       detectedIntensity: detectIntensityFromLoad(actualLoad, activityMinutes),
       ctl: zwbStatus.ctl,
+      briljant,
       readinessLevel: zwbStatus.advice.level,
       readinessTitle: zwbStatus.advice.title,
       readinessScore: zwbStatus.readiness.score,
@@ -326,6 +335,42 @@ export async function writeZwbSummariesForUser(
   }
 
   return result;
+}
+
+/**
+ * De ZWBriljant-steen voor het blok, uit de bewaarde weeksnapshots. Alleen als
+ * het lid zijn steen deelt (zwbriljant_preferences.visible, standaard aan): wie
+ * hem voor clubgenoten verbergt, wil hem ook niet openbaar op Strava. Fouten zijn
+ * stil; dan valt het blok terug op CTL.
+ */
+async function loadBriljantSummary(
+  admin: Admin,
+  profileId: string,
+): Promise<BriljantSummary | null> {
+  const [{ data: preference }, { data: rows, error }] = await Promise.all([
+    admin
+      .from("zwbriljant_preferences")
+      .select("visible")
+      .eq("profile_id", profileId)
+      .maybeSingle(),
+    admin
+      .from("zwbriljant_snapshots")
+      .select("week, facets, consistency")
+      .eq("profile_id", profileId)
+      .eq("provenance->>scale", SCALE_VERSION)
+      .order("week", { ascending: false })
+      .limit(8),
+  ]);
+  if ((preference as { visible: boolean } | null)?.visible === false) return null;
+  if (error || !rows) return null;
+  const snapshots = (
+    rows as Array<{ week: string; facets: unknown; consistency: number | string | null }>
+  ).map((row) => {
+    const facets = (row.facets ?? {}) as StoredSnapshot["facets"];
+    const consistency = row.consistency == null ? null : Number(row.consistency);
+    return { week: row.week, facets, consistency, score: storedScore(facets, consistency) };
+  });
+  return briljantSummaryFrom(snapshots, amsterdamDayKey());
 }
 
 /**

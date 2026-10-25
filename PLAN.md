@@ -11312,6 +11312,64 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBeter-blok op Strava: eigen opbouw, de steen en een tip
+
+**2026-10-25.** Lokaal gecommit, niet gepusht. Tipteksten goedgekeurd door de
+eigenaar. Geen migratie.
+
+De eigenaar vond dat het blok onderaan de Strava-beschrijving te veel op dat van
+JOIN leek, en wilde de ZWBriljant-steen erin in plaats van alleen CTL. Tot nu toe
+volgde het blok JOIN regel voor regel: twee kopjes, labels met een dubbele punt,
+"-" voor een lege waarde. Nu:
+
+```
+𝗭𝗪𝗕𝗲𝘁𝗲𝗿 𝘄𝗼𝗿𝗸𝗼𝘂𝘁-𝘀𝗮𝗺𝗲𝗻𝘃𝗮𝘁𝘁𝗶𝗻𝗴
+💎 ZWBriljant Platina · 427 punten, nog 73 tot Amethist
+🎯 3x10 min drempel (75 min) → gereden als drempel
+⚡ 82 TSS, 8% boven plan
+🔋 Gereedscore 72, fris genoeg · fitheid stijgt
+💬 Je fitheid stijgt al een paar weken. Gewoon zo doorgaan.
+```
+
+- **Titel** zonder emoji en vet (keus van de eigenaar). Strava kent geen opmaak,
+  dus het vet zijn de vette letters uit Unicode (`unicodeBold`). De naam volgt de
+  hernoeming van ZWBeter Worden naar ZWBeter.
+- **De steen** komt uit de laatste weeksnapshot (`zwbriljant_snapshots`, huidige
+  schaal, hooguit 35 dagen oud; `briljantSummaryFrom`). Geen extra calls naar
+  intervals.icu of Zwift. Alleen als het lid zijn steen deelt
+  (`zwbriljant_preferences.visible`, standaard aan): wie hem voor clubgenoten
+  verbergt, wil hem ook niet openbaar op Strava. Zonder steen staat er CTL. In
+  Diamant staat de groei in vier weken in plaats van de punten tot de volgende
+  klasse.
+- **Regels zonder gegevens vallen weg** in plaats van "-". Zonder schema staat er
+  "Vrije rit".
+- **De tip** (`strava-summary-tips.ts`) komt uit tien situaties op volgorde (moe en
+  toch hard, zwaarder type dan gepland, ruim boven of onder plan, volgens plan,
+  bijna een klasse hoger met het laagste facet, fitheid stijgt of zakt, vrije rit,
+  algemeen), elk met drie varianten. De variant hangt aan het Strava-id, zodat een
+  nieuwe poging dezelfde zin geeft. De teksten zijn gecontroleerd met de
+  avoid-ai-writing-skill en de regels uit `lib/ai-writing.ts`.
+- Oude blokken (kop "📊 ZWBeter Worden") worden nog herkend en vervangen.
+- Privacyverklaring (Terugschrijven naar Strava) noemt nu de steen, het laagste
+  facet en de tip; geen nieuwe versie, de gegevens waren al opgegeven. `/hulp`
+  (strava-samenvatting) heeft het nieuwe voorbeeld.
+
+**Bewust niet gedaan.**
+- Geen AI voor de tip: de tekst staat openbaar zonder dat iemand hem leest, en het
+  zou ritgegevens naar OpenAI sturen van leden die ZWBeter verder niet gebruiken.
+- Geen live berekening van de steen bij elke rit: die kost calls naar intervals.icu
+  en Zwift en het Strava-budget is krap. De steen kan daardoor tot een week achter
+  lopen.
+- Al geschreven blokken worden niet herschreven: een rit met `written_at` blijft
+  zoals hij is.
+
+**Getest.** `strava-summary.test.ts` (aangepast) en `strava-summary-tips.test.ts`
+(nieuw), `tsc` (alleen de bekende fout op `modern-screenshot`), ESLint op de
+gewijzigde bestanden. Volledige vitest-run: drie fouten die hier los van staan
+(`.env.local` ontbreekt in de worktree, een databasetest met een time-out, en het
+anker `naleving` in `help-categories` uit de vorige ronde). **Niet getest:** een
+echte write naar Strava en hoe Strava de vette letters en emoji toont.
+
 ### Gebouwd — ZWBeter Worden: naleving per onderdeel (duur, TSS, IF, zones, RPE)
 
 **2026-10-24.** Commit `27212aac`, op 2026-10-25 gepusht naar `main` (op verzoek

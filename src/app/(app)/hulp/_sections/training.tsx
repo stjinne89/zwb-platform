@@ -7,6 +7,7 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
+import { ZWB_SUMMARY_HEADER } from "@/lib/training/strava-summary";
 import {
   DATA_FRESHNESS_HELP,
   INTERVALS_CONNECT_STEPS,
@@ -402,27 +403,25 @@ export function TrainingHelp() {
           <FileText className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
             <h2 className="font-semibold">
-              ZWBeter Worden-samenvatting in je Strava-omschrijving
+              ZWBeter-samenvatting in je Strava-omschrijving
             </h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Na een rit zet ZWB automatisch een blokje onderaan de omschrijving
-              van die rit op Strava. Je ziet in één oogopslag wat er gepland
-              stond, wat je er werkelijk van maakte en hoe je ervoor staat.
+              van die rit op Strava. Je ziet in één oogopslag je ZWBriljant-steen,
+              wat er gepland stond, wat je er werkelijk van maakte en hoe je
+              ervoor staat, met als laatste regel een tip of grap bij de rit.
             </p>
           </div>
         </header>
 
         <div className="mt-5 rounded-md border bg-background p-4">
           <pre className="overflow-x-auto whitespace-pre text-xs text-muted-foreground">
-{`📊 ZWBeter Worden
-Gepland: 3x10 min drempel
-Geplande duur: 75 min
-Gedetecteerd type: Drempel
-Workout score: +8% (82 vs 76 TSS)
-📈 Progressie
-CTL: 49,9
-Gereedscore: 72 (niveau 4 – FRIS GENOEG)
-Fitness-status: Verbeterend`}
+{`${ZWB_SUMMARY_HEADER}
+💎 ZWBriljant Platina · 427 punten, nog 73 tot Amethist
+🎯 3x10 min drempel (75 min) → gereden als drempel
+⚡ 82 TSS, 8% boven plan
+🔋 Gereedscore 72, fris genoeg · fitheid stijgt
+💬 Je fitheid stijgt al een paar weken. Gewoon zo doorgaan.`}
           </pre>
         </div>
 
@@ -443,12 +442,12 @@ Fitness-status: Verbeterend`}
                 <Link href="/zwbeter-worden/doelen" className="underline">
                   Doelen-pagina
                 </Link>
-                . Daar komen de belasting, CTL en gereedscore vandaan.
+                . Daar komen je fitheid en gereedscore vandaan. De belasting
+                rekenen we uit je Strava-rit, als je met een vermogensmeter rijdt.
               </li>
               <li>
-                3. Zet een schema klaar. Zonder geplande workout blijven
-                &ldquo;Gepland&rdquo; en &ldquo;Workout score&rdquo; op
-                &ldquo;-&rdquo;.
+                3. Zet een schema klaar. Zonder geplande workout staat er
+                &ldquo;Vrije rit&rdquo; en vergelijken we niet met een plan.
               </li>
             </ol>
           </article>
@@ -465,6 +464,14 @@ Fitness-status: Verbeterend`}
               <li>
                 Het blokje verschijnt pas als intervals.icu je rit heeft
                 verwerkt, meestal binnen een uur.
+              </li>
+              <li>
+                De steen komt uit je laatste ZWBriljant-week. Deel je je steen
+                niet met leden, dan staat hij ook niet op Strava en zie je je CTL.
+              </li>
+              <li>
+                De tip komt uit vaste regels: hoe de rit zich verhoudt tot je
+                plan, je gereedscore, je fitheid en je steen.
               </li>
               <li>
                 Wie jouw Strava-rit kan zien, ziet ook deze samenvatting. Je
