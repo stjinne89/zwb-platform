@@ -11325,7 +11325,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — ZWBeter voeden: ritkoolhydraten tellen mee in het dagmenu
 
-**2026-10-25.** Stap 1 van [ritvoeding-plan.md](docs/ritvoeding-plan.md). Geen
+**2026-10-25.** Commit `23b9ad8b`, stap 1 van [ritvoeding-plan.md](docs/ritvoeding-plan.md). Geen
 migratie. Niet gepusht.
 
 `mealTarget` gaf ontbijt, lunch, diner en tussendoor samen 85% van het midden
@@ -11371,7 +11371,7 @@ in de browser, en de afwisseling over veertien dagen.
 
 ### Onderzocht — Ritvoeding: vergelijking met Musette
 
-**2026-10-25.** Alleen een voorstel, geen code en geen migratie. Uitwerking in
+**2026-10-25.** Commit `78875f4a`. Alleen een voorstel, geen code en geen migratie. Uitwerking in
 [ritvoeding-plan.md](docs/ritvoeding-plan.md).
 
 De eigenaar vroeg ZWBeter voeden te vergelijken met musette.io, een gratis
