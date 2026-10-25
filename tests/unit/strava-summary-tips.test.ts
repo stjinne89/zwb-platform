@@ -16,7 +16,7 @@ const BASE: TipInput = {
   fitnessTrend: "stable",
   nextLevel: "Amethist",
   toNext: 73,
-  weakestFacet: "Sprint",
+  growFacet: "Sprint",
 };
 
 describe("tipSituation", () => {
@@ -41,7 +41,7 @@ describe("tipSituation", () => {
   it("noemt de volgende klasse pas vlak ervoor en met een facet", () => {
     expect(tipSituation({ ...BASE, toNext: 30 })).toBe("bijna-klasse");
     expect(tipSituation({ ...BASE, toNext: 31 })).toBe("algemeen");
-    expect(tipSituation({ ...BASE, toNext: 10, weakestFacet: null })).toBe("algemeen");
+    expect(tipSituation({ ...BASE, toNext: 10, growFacet: null })).toBe("algemeen");
     expect(tipSituation({ ...BASE, toNext: 0, nextLevel: null })).toBe("algemeen");
   });
 
@@ -63,7 +63,7 @@ describe("rideTip", () => {
       "20% onder plan. Ook een halve training is een training.",
     );
     expect(rideTip({ ...BASE, activityId: 1, toNext: 18, nextLevel: "Saffier" })).toBe(
-      "Saffier is nog 18 punten weg. Sprint staat het laagst op je steen.",
+      "Saffier is nog 18 punten weg. Met Sprint kom je er het snelst.",
     );
   });
 

@@ -11316,6 +11316,34 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gewijzigd — Strava-tip: werk aan wat het meest oplevert
+
+**2026-10-25.** Commit volgt hieronder. Geen migratie. Lokaal gecommit, niet gepusht.
+
+Op verzoek van de eigenaar dezelfde wissel als in het weekoverzicht (ronde
+hieronder): de tip "bijna een klasse hoger" in het ZWBeter-blok op Strava noemt
+niet meer het laagste facet, maar het onderdeel waar 5% beter de meeste punten
+oplevert.
+
+- `BriljantSummary.weakestFacet` heet nu `growFacet` en komt uit
+  `winsFromLevels`. `loadBriljantSummary` leest daarvoor ook het geslacht uit
+  het profiel en `provenance` van de snapshot (de durability-bron).
+  `weakestFacet` in `briljant/score.ts` had geen gebruikers meer en is weg.
+- De drie varianten van "bijna-klasse" zijn nu:
+  "Nog {punten} punten tot {volgende}. Werk aan {facet}, daar groeit je steen het
+  snelst.", "{Volgende} is nog {punten} punten weg. Met {facet} kom je er het
+  snelst." en "Nog {punten} punten en je steen wordt {volgende}. {Facet} levert
+  daarvoor het meeste op." Ze zijn nieuw en nog niet goedgekeurd, en niet met de
+  avoid-ai-writing-skill nagelopen.
+- Privacyverklaring (Terugschrijven naar Strava): "soms je laagste facet" is nu
+  "soms het onderdeel waar je het meest wint". Tekst, geen nieuwe versie.
+- Al geschreven blokken blijven zoals ze zijn (`written_at`).
+
+**Getest.** `strava-summary` (de teststeen met sprint als laagste onderdeel geeft
+nu VO2max) en `strava-summary-tips` aangepast; met `weekly-review`,
+`briljant-view` en `briljant-score` groen (115). `tsc` (alleen de bekende fout op
+`modern-screenshot`), ESLint. **Niet getest:** een echte write naar Strava.
+
 ### Gewijzigd — ZWBriljant in het weekoverzicht: werk aan wat het meest oplevert
 
 **2026-10-25.** Commit `385efa9b`. Geen migratie. Lokaal gecommit, niet gepusht.
@@ -11340,9 +11368,9 @@ oplevert. Dat is dezelfde rekensom als "Waar win je het meest" op de steen
 - Privacyverklaring (Weekoverzicht): "je laagste onderdeel" is nu "het onderdeel
   waar je het meest wint". Ook dit nog niet aan de eigenaar voorgelegd.
 
-**Bewust niet gedaan.** Het Strava-blok noemt in de tip "bijna een klasse hoger"
-nog het laagste facet. Die teksten keurde de eigenaar goed, dus die blijven staan
-tot hij zegt dat het daar ook anders moet.
+**Bewust niet gedaan.** Het Strava-blok eerst niet meegenomen, omdat de eigenaar
+die tipteksten had goedgekeurd. Op zijn verzoek dezelfde dag toch gedaan (ronde
+hierboven).
 
 **Getest.** `weekly-review.test.ts`: een steen met sprint als laagste onderdeel
 geeft VO2max, en zonder score geen onderdeel. `briljant-view` (9) en
@@ -11442,7 +11470,9 @@ volgde het blok JOIN regel voor regel: twee kopjes, labels met een dubbele punt,
   "Vrije rit".
 - **De tip** (`strava-summary-tips.ts`) komt uit tien situaties op volgorde (moe en
   toch hard, zwaarder type dan gepland, ruim boven of onder plan, volgens plan,
-  bijna een klasse hoger met het laagste facet, fitheid stijgt of zakt, vrije rit,
+  bijna een klasse hoger met het laagste facet (sinds dezelfde dag het onderdeel
+  waar je het meest wint, zie "Strava-tip: werk aan wat het meest oplevert"),
+  fitheid stijgt of zakt, vrije rit,
   algemeen), elk met drie varianten. De variant hangt aan het Strava-id, zodat een
   nieuwe poging dezelfde zin geeft. De teksten zijn gecontroleerd met de
   avoid-ai-writing-skill en de regels uit `lib/ai-writing.ts`.

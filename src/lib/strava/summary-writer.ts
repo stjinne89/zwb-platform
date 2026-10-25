@@ -348,15 +348,16 @@ async function loadBriljantSummary(
   admin: Admin,
   profileId: string,
 ): Promise<BriljantSummary | null> {
-  const [{ data: preference }, { data: rows, error }] = await Promise.all([
+  const [{ data: preference }, { data: profile }, { data: rows, error }] = await Promise.all([
     admin
       .from("zwbriljant_preferences")
       .select("visible")
       .eq("profile_id", profileId)
       .maybeSingle(),
+    admin.from("profiles").select("sex").eq("id", profileId).maybeSingle(),
     admin
       .from("zwbriljant_snapshots")
-      .select("week, facets, consistency")
+      .select("week, facets, consistency, provenance")
       .eq("profile_id", profileId)
       .eq("provenance->>scale", SCALE_VERSION)
       .order("week", { ascending: false })
@@ -365,13 +366,25 @@ async function loadBriljantSummary(
   if ((preference as { visible: boolean } | null)?.visible === false) return null;
   if (error || !rows) return null;
   const snapshots = (
-    rows as Array<{ week: string; facets: unknown; consistency: number | string | null }>
+    rows as Array<{
+      week: string;
+      facets: unknown;
+      consistency: number | string | null;
+      provenance: { durability?: "test" | "ritten" } | null;
+    }>
   ).map((row) => {
     const facets = (row.facets ?? {}) as StoredSnapshot["facets"];
     const consistency = row.consistency == null ? null : Number(row.consistency);
-    return { week: row.week, facets, consistency, score: storedScore(facets, consistency) };
+    return {
+      week: row.week,
+      facets,
+      consistency,
+      score: storedScore(facets, consistency),
+      durability: row.provenance?.durability,
+    };
   });
-  return briljantSummaryFrom(snapshots, amsterdamDayKey());
+  const sex = (profile as { sex: string | null } | null)?.sex;
+  return briljantSummaryFrom(snapshots, amsterdamDayKey(), sex === "man" || sex === "vrouw" ? sex : null);
 }
 
 /**

@@ -25,7 +25,7 @@ export type TipInput = {
   /** Alleen als de steen er mag staan; zie BriljantSummary in strava-summary.ts. */
   nextLevel: string | null;
   toNext: number | null;
-  weakestFacet: string | null;
+  growFacet: string | null;
 };
 
 export type TipSituation =
@@ -43,7 +43,8 @@ export type TipSituation =
 /**
  * De varianten per situatie. Plaatshouders: {pct} (procent, zonder teken),
  * {gepland} en {gereden} (type in kleine letters), {volgende} (klasse),
- * {punten} (punten tot die klasse) en {facet} (laagste facet van de steen).
+ * {punten} (punten tot die klasse) en {facet} (het onderdeel waar 5% beter de
+ * meeste punten oplevert; tot 2026-10-25 het laagste facet).
  */
 export const TIP_VARIANTS: Record<TipSituation, readonly string[]> = {
   "moe-hard": [
@@ -72,9 +73,9 @@ export const TIP_VARIANTS: Record<TipSituation, readonly string[]> = {
     "Gepland en gereden lagen dicht bij elkaar. Daar kan geen schema iets op aanmerken.",
   ],
   "bijna-klasse": [
-    "Nog {punten} punten tot {volgende}. {Facet} is het laagste facet van je steen.",
-    "{Volgende} is nog {punten} punten weg. {Facet} staat het laagst op je steen.",
-    "Nog {punten} punten en je steen wordt {volgende}. Het laagste facet is {facet}.",
+    "Nog {punten} punten tot {volgende}. Werk aan {facet}, daar groeit je steen het snelst.",
+    "{Volgende} is nog {punten} punten weg. Met {facet} kom je er het snelst.",
+    "Nog {punten} punten en je steen wordt {volgende}. {Facet} levert daarvoor het meeste op.",
   ],
   "fitheid-stijgt": [
     "Je fitheid stijgt al een paar weken. Gewoon zo doorgaan.",
@@ -141,7 +142,7 @@ export function tipSituation(input: TipInput): TipSituation {
   if (pct != null && Math.abs(pct) <= ON_PLAN_PCT) return "volgens-plan";
   if (
     input.nextLevel &&
-    input.weakestFacet &&
+    input.growFacet &&
     input.toNext != null &&
     input.toNext > 0 &&
     input.toNext <= NEAR_NEXT_POINTS
@@ -163,7 +164,7 @@ function fill(template: string, input: TipInput): string {
     gereden: intensityLabel(input.detectedIntensity).toLowerCase(),
     volgende: input.nextLevel ?? "",
     punten: input.toNext == null ? "" : String(input.toNext),
-    facet: input.weakestFacet ?? "",
+    facet: input.growFacet ?? "",
   };
   return template.replace(/\{(\w+)\}/g, (match, key: string) => {
     const value = values[key.toLowerCase()];

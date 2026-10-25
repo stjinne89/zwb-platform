@@ -41,17 +41,6 @@ export const FACET_LABELS: Record<Facet, string> = {
   racen: "Racen",
 };
 
-/** Het facet met het laagste niveau; bij gelijke stand het eerste rond de steen. */
-export function weakestFacet(facets: Partial<Record<Facet, number | null>>): Facet | null {
-  let weakest: { facet: Facet; level: number } | null = null;
-  for (const facet of FACETS) {
-    const level = facets[facet];
-    if (level == null) continue;
-    if (!weakest || level < weakest.level) weakest = { facet, level };
-  }
-  return weakest?.facet ?? null;
-}
-
 /** Wat er gemeten wordt, zoals het naast het getal staat. */
 export const FACET_MEASURES: Record<Facet, { what: string; unit: string }> = {
   sprint: { what: "beste 15 seconden", unit: "W/kg" },
