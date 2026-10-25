@@ -11326,7 +11326,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter voeden: ritplan op de eventpagina en in de racebriefing
 
-**2026-10-25.** Stap 2b van [ritvoeding-plan.md](docs/ritvoeding-plan.md). Geen
+**2026-10-25.** Commit `351b5ec2`, stap 2b van [ritvoeding-plan.md](docs/ritvoeding-plan.md). Geen
 migratie. Niet gepusht.
 
 - **Eventpagina** (`events/[id]`), onder Raceinfo, en **racebriefing**
