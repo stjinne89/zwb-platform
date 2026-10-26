@@ -6,39 +6,62 @@ de prompt volgt; deze toets kijkt of het binnen de grenzen valt die onderzoek
 aangeeft. Code: `src/lib/training/literature-check.ts` (puur, getest in
 `tests/unit/literature-check.test.ts`); tellingen:
 `node scripts/engine-literature.mjs` na `node scripts/engine-export.mjs`.
-De tellingen onderaan zijn van 2026-10-26, op 532 geëxporteerde generaties.
+De tellingen onderaan zijn van 2026-10-26, op 532 geëxporteerde generaties, met de
+code van `main` van die middag.
 
 ## Conclusie
 
-**Op deze drie maatstaven zijn AI en motor niet uit elkaar te halen, en de
-literatuur kan het verschil ook niet maken.**
+*Bijgewerkt op 2026-10-26 's middags*, na het samenvoegen met `main`. Daar
+stonden twee regels van diezelfde dag die de uitkomst veranderen: geen rustige rit
+onder de 90 minuten (bij minder tijd een korte kwaliteitssessie of een lege dag) en
+de indoorregel in de prompt (binnen kortere sessies met meer belasting per uur).
+Daarnaast maakt de app sinds die dag schema's met Claude in plaats van GPT.
 
-- **Intensiteitsverdeling.** Beide maken vrijwel alleen piramidale schema's of
-  basisblokken (minder dan 5 % boven zone 1). Geen van beide maakt een verdeling
-  die de literatuur minder steunt, op één motorschema na: een nieuw schema van
-  2026-10-23 voor basisconditie bij een lid dat een halve rit per week reed, met
-  dertien trainingen in negen weken die allemaal tempo of sweet spot zijn (zone 2
-  57 %, zone 1 43 %, alleen warming-up en cooling-down). Bij één à twee ritten per
-  week maakt de motor elke rit een sleutelsessie; geen rustige duurrit ertussen.
-  Dat is een punt voor de motor, niet hier opgelost. Piramidaal en
-  gepolariseerd werken even goed; recreanten hebben eerder baat bij piramidaal.
-  Dat de motor iets meer tempo plant (mediaan zone 2 van 19 % tegen 10 % bij nieuwe
-  schema's) en minder basisblokken maakt, is binnen de literatuur geen beter of
-  slechter.
+**Op deze drie maatstaven kiest de literatuur niet tussen AI en motor. Waar ze
+verschillen, komt dat uit ZWB's eigen regels, niet uit een fout van de motor.**
+
+- **Wie "de AI" is.** De AI-kant zijn opgeslagen antwoorden: 235 van GPT-5.5, 2 van
+  gpt-4.1-mini, 4 van Claude (allemaal van 2026-10-26). Die zijn gemaakt vóór de
+  90-minutenregel en de indoorregel. De kolom **AI nu** past op hetzelfde antwoord
+  toe wat de app sinds 2026-10-26 doet (`dropShortEasyRides`: rustige ritten onder
+  90 minuten vallen weg). Wat de indoorregel aan het antwoord van de AI zou
+  veranderen, is op oude antwoorden niet na te spelen; dat kan pas op nieuwe
+  Claude-generaties.
+- **Intensiteitsverdeling.** De AI blijft ook na de 90-minutenregel piramidaal of
+  basis. De motor maakt in 20 % van de recente nieuwe schema's en 8 % van de
+  bijwerkingen een verdeling met evenveel tempo/drempel als rustig ("drempel",
+  minder gesteund). Bij alle recente gevallen is vrijwel elke geplande rit korter
+  dan 90 minuten: leden die indoor trainen of dagen van 60-90 minuten hebben. De
+  90-minutenregel laat daar geen rustige rit toe, dus blijven alleen
+  kwaliteitssessies over, die voor de helft uit warming-up en cooling-down bestaan.
+  Dat is precies wat de eigenaar voor indoor en korte dagen heeft gekozen. De
+  literatuur die meer rustige tijd steunt (Esteve-Lanao 2007, Seiler 2010) komt van
+  sporters met veel uren per week; voor iemand met een uur per dag is het
+  alternatief een lege dag, niet een langere rustige rit. Dit is een bewuste keuze
+  van ZWB die op gespannen voet staat met de literatuur over verdelingen — een
+  besluit van de eigenaar, geen fout om te herstellen.
+- **Wel een fout van de motor, gevonden via dezelfde gevallen.** Waar een lid wél
+  lange dagen heeft (bijvoorbeeld 180 minuten op vrijdag en zondag), maakt de motor
+  van zijn korte rustige ritten rustdagen in plaats van ze 90 minuten of langer te
+  maken. Hij plant dan ver onder zijn eigen weekdoel (voorbeeld: doel 3,2-5,2 uur
+  per week, gepland ongeveer 1,7 uur). Op de meetlat stijgt het aandeel
+  bijwerkingen met een fout bij de motor sinds het samenvoegen van 11 % naar 30 %
+  (`onder-recente-belasting` 29 %, `piekweek` 14 %). Niet opgelost in deze ronde.
 - **Taper.** Niet te toetsen: in alle generaties staat één schema met een
-  piekmoment en drie weken ervoor binnen de periode. Daarin haalde de motor de
-  41-60 % volumedaling (43 %) en de AI niet (18 %). Eén geval zegt niets.
-- **Onderbreking.** Geen van beide plant een gat van meer dan tien dagen. Wel
-  hield de AI in 6 van de 33 nieuwe schema's (alle van vóór 2026-08) en in 1 % van
-  de recente bijwerkingen meer dan tien dagen vóór het einde van de periode op met
-  plannen. Dat is geen literatuurregel maar een afgebroken antwoord; de motor deed
-  het nergens.
+  piekmoment en drie weken ervoor binnen de periode. Eén geval zegt niets.
+- **Onderbreking.** Geen van beide plant een gat van meer dan tien dagen op een
+  paar gevallen na (AI nu 3 % van de recente bijwerkingen). Wel hield de AI in 6
+  van de 33 nieuwe schema's (alle van vóór 2026-08) meer dan tien dagen vóór het
+  einde van de periode op met plannen: een afgebroken antwoord, geen
+  literatuurregel. De motor deed het nergens.
 
 **Wat dit betekent voor de beslissing.** De literatuur geeft bandbreedtes, geen
-optimum per lid, en beide schema's vallen erbinnen. Welk schema beter traint, is
-met literatuur niet vast te stellen; daarvoor blijven het blinde oordeel van
-trainers (tabblad Vergelijken) en een proef in de praktijk over. Voorstel voor die
-proef: [crossover-pilot-voorstel](crossover-pilot-voorstel.md).
+optimum per lid. Welk schema beter traint, is er niet mee vast te stellen; daarvoor
+blijven het blinde oordeel van trainers (tabblad Vergelijken) en een proef in de
+praktijk over. Voorstel voor die proef:
+[crossover-pilot-voorstel](crossover-pilot-voorstel.md). Eerlijk vergelijken kan
+pas goed als de AI-kant uit nieuwe Claude-generaties bestaat, gemaakt met dezelfde
+regels als de motor.
 
 ## Maatstaven en bronnen
 
@@ -130,162 +153,165 @@ van zijn periode ophoudt.
 
 Gegenereerd door `scripts/engine-literature.mjs` op 241 nieuwe schema's en bijwerkingen
 (van 532 geëxporteerde generaties). Alleen tellingen, geen ledendata.
+De AI-kant per model: gpt-5.5 235, claude-opus-5-5 4, gpt-4.1-mini 2.
 
 ## Vanaf 2026-09-17
 
 ### bijwerking (118)
 
-**Intensiteitsverdeling.** Aandeel schema's per soort verdeling.
+**Intensiteitsverdeling.** Aandeel schema's per soort verdeling. "AI nu": hetzelfde AI-antwoord na de 90-minutenregel die sinds 2026-10-26 in de app geldt.
 
-| Verdeling | Literatuur | AI | Motor |
-|---|---|---:|---:|
-| piramidaal | gesteund | 76% | 89% |
-| basis | fase | 24% | 10% |
-| overig | fase | 0% | 1% |
+| Verdeling | Literatuur | AI | AI nu | Motor |
+|---|---|---:|---:|---:|
+| piramidaal | gesteund | 76% | 80% | 81% |
+| drempel | minder | 0% | 0% | 8% |
+| basis | fase | 24% | 20% | 10% |
+| overig | fase | 0% | 0% | 1% |
 
-Mediaan zone 1 / 2 / 3: AI 91% / 7% / 1%, motor 87% / 10% / 1%.
+Mediaan zone 1 / 2 / 3: AI 91% / 7% / 1%, AI nu 90% / 10% / 1%, motor 85% / 12% / 1%.
 
-Per generatie naast elkaar (rij AI, kolom motor):
+Per generatie naast elkaar (rij AI nu, kolom motor):
 
-| AI \ motor | gesteund | minder | fase |
+| AI nu \ motor | gesteund | minder | fase |
 |---|---:|---:|---:|
-| gesteund | 84 | 0 | 6 |
+| gesteund | 78 | 9 | 7 |
 | minder | 0 | 0 | 0 |
-| fase | 21 | 0 | 7 |
+| fase | 18 | 0 | 6 |
 
 **Taper** (alleen schema's met een piekmoment én drie weken ervoor binnen de periode).
 
-| | AI | Motor |
-|---|---:|---:|
-| te beoordelen | 0 | 0 |
-| volume 41-60% omlaag | – | – |
-| intensiteit behouden | – | – |
-| frequentie behouden | – | – |
-| mediane volumedaling | – | – |
+| | AI | AI nu | Motor |
+|---|---:|---:|---:|
+| te beoordelen | 0 | 0 | 0 |
+| volume 41-60% omlaag | – | – | – |
+| intensiteit behouden | – | – | – |
+| frequentie behouden | – | – | – |
+| mediane volumedaling | – | – | – |
 
 **Onderbreking.** Meer dan 10 dagen zonder training (rustperiodes uit het jaarplan niet meegeteld).
 
-| | AI | Motor |
-|---|---:|---:|
-| langer dan 10 dagen | 0% | 0% |
-| mediane langste reeks | 1 d | 1 d |
-| stopt > 10 dagen vóór het einde (geen literatuurregel) | 1% | 0% |
+| | AI | AI nu | Motor |
+|---|---:|---:|---:|
+| langer dan 10 dagen | 0% | 3% | 0% |
+| mediane langste reeks | 1 d | 3 d | 4 d |
+| stopt > 10 dagen vóór het einde (geen literatuurregel) | 1% | 1% | 0% |
 
 ### nieuw schema (15)
 
-**Intensiteitsverdeling.** Aandeel schema's per soort verdeling.
+**Intensiteitsverdeling.** Aandeel schema's per soort verdeling. "AI nu": hetzelfde AI-antwoord na de 90-minutenregel die sinds 2026-10-26 in de app geldt.
 
-| Verdeling | Literatuur | AI | Motor |
-|---|---|---:|---:|
-| piramidaal | gesteund | 100% | 93% |
-| drempel | minder | 0% | 7% |
+| Verdeling | Literatuur | AI | AI nu | Motor |
+|---|---|---:|---:|---:|
+| piramidaal | gesteund | 100% | 100% | 80% |
+| drempel | minder | 0% | 0% | 20% |
 
-Mediaan zone 1 / 2 / 3: AI 89% / 10% / 1%, motor 81% / 19% / 0%.
+Mediaan zone 1 / 2 / 3: AI 89% / 10% / 1%, AI nu 83% / 16% / 2%, motor 67% / 33% / 0%.
 
-Per generatie naast elkaar (rij AI, kolom motor):
+Per generatie naast elkaar (rij AI nu, kolom motor):
 
-| AI \ motor | gesteund | minder | fase |
+| AI nu \ motor | gesteund | minder | fase |
 |---|---:|---:|---:|
-| gesteund | 14 | 1 | 0 |
+| gesteund | 12 | 3 | 0 |
 | minder | 0 | 0 | 0 |
 | fase | 0 | 0 | 0 |
 
 **Taper** (alleen schema's met een piekmoment én drie weken ervoor binnen de periode).
 
-| | AI | Motor |
-|---|---:|---:|
-| te beoordelen | 0 | 0 |
-| volume 41-60% omlaag | – | – |
-| intensiteit behouden | – | – |
-| frequentie behouden | – | – |
-| mediane volumedaling | – | – |
+| | AI | AI nu | Motor |
+|---|---:|---:|---:|
+| te beoordelen | 0 | 0 | 0 |
+| volume 41-60% omlaag | – | – | – |
+| intensiteit behouden | – | – | – |
+| frequentie behouden | – | – | – |
+| mediane volumedaling | – | – | – |
 
 **Onderbreking.** Meer dan 10 dagen zonder training (rustperiodes uit het jaarplan niet meegeteld).
 
-| | AI | Motor |
-|---|---:|---:|
-| langer dan 10 dagen | 0% | 0% |
-| mediane langste reeks | 2 d | 1 d |
-| stopt > 10 dagen vóór het einde (geen literatuurregel) | 0% | 0% |
+| | AI | AI nu | Motor |
+|---|---:|---:|---:|
+| langer dan 10 dagen | 0% | 7% | 0% |
+| mediane langste reeks | 2 d | 4 d | 6 d |
+| stopt > 10 dagen vóór het einde (geen literatuurregel) | 0% | 0% | 0% |
 
 
 ## Alle generaties
 
 ### bijwerking (208)
 
-**Intensiteitsverdeling.** Aandeel schema's per soort verdeling.
+**Intensiteitsverdeling.** Aandeel schema's per soort verdeling. "AI nu": hetzelfde AI-antwoord na de 90-minutenregel die sinds 2026-10-26 in de app geldt.
 
-| Verdeling | Literatuur | AI | Motor |
-|---|---|---:|---:|
-| gepolariseerd | gesteund | 0% | 0% |
-| piramidaal | gesteund | 82% | 93% |
-| basis | fase | 18% | 6% |
-| overig | fase | 0% | 0% |
+| Verdeling | Literatuur | AI | AI nu | Motor |
+|---|---|---:|---:|---:|
+| gepolariseerd | gesteund | 0% | 0% | 0% |
+| piramidaal | gesteund | 82% | 85% | 88% |
+| drempel | minder | 0% | 0% | 5% |
+| basis | fase | 18% | 15% | 6% |
+| overig | fase | 0% | 0% | 0% |
 
-Mediaan zone 1 / 2 / 3: AI 90% / 9% / 1%, motor 86% / 12% / 1%.
+Mediaan zone 1 / 2 / 3: AI 90% / 9% / 1%, AI nu 88% / 11% / 1%, motor 84% / 13% / 1%.
 
-Per generatie naast elkaar (rij AI, kolom motor):
+Per generatie naast elkaar (rij AI nu, kolom motor):
 
-| AI \ motor | gesteund | minder | fase |
+| AI nu \ motor | gesteund | minder | fase |
 |---|---:|---:|---:|
-| gesteund | 164 | 0 | 6 |
+| gesteund | 160 | 10 | 7 |
 | minder | 0 | 0 | 0 |
-| fase | 31 | 0 | 7 |
+| fase | 25 | 0 | 6 |
 
 **Taper** (alleen schema's met een piekmoment én drie weken ervoor binnen de periode).
 
-| | AI | Motor |
-|---|---:|---:|
-| te beoordelen | 0 | 0 |
-| volume 41-60% omlaag | – | – |
-| intensiteit behouden | – | – |
-| frequentie behouden | – | – |
-| mediane volumedaling | – | – |
+| | AI | AI nu | Motor |
+|---|---:|---:|---:|
+| te beoordelen | 0 | 0 | 0 |
+| volume 41-60% omlaag | – | – | – |
+| intensiteit behouden | – | – | – |
+| frequentie behouden | – | – | – |
+| mediane volumedaling | – | – | – |
 
 **Onderbreking.** Meer dan 10 dagen zonder training (rustperiodes uit het jaarplan niet meegeteld).
 
-| | AI | Motor |
-|---|---:|---:|
-| langer dan 10 dagen | 0% | 0% |
-| mediane langste reeks | 1 d | 1 d |
-| stopt > 10 dagen vóór het einde (geen literatuurregel) | 0% | 0% |
+| | AI | AI nu | Motor |
+|---|---:|---:|---:|
+| langer dan 10 dagen | 0% | 2% | 0% |
+| mediane langste reeks | 1 d | 3 d | 4 d |
+| stopt > 10 dagen vóór het einde (geen literatuurregel) | 0% | 0% | 0% |
 
 ### nieuw schema (33)
 
-**Intensiteitsverdeling.** Aandeel schema's per soort verdeling.
+**Intensiteitsverdeling.** Aandeel schema's per soort verdeling. "AI nu": hetzelfde AI-antwoord na de 90-minutenregel die sinds 2026-10-26 in de app geldt.
 
-| Verdeling | Literatuur | AI | Motor |
-|---|---|---:|---:|
-| piramidaal | gesteund | 100% | 97% |
-| drempel | minder | 0% | 3% |
+| Verdeling | Literatuur | AI | AI nu | Motor |
+|---|---|---:|---:|---:|
+| piramidaal | gesteund | 100% | 100% | 88% |
+| drempel | minder | 0% | 0% | 12% |
 
-Mediaan zone 1 / 2 / 3: AI 87% / 11% / 1%, motor 81% / 19% / 0%.
+Mediaan zone 1 / 2 / 3: AI 87% / 11% / 1%, AI nu 83% / 15% / 2%, motor 72% / 26% / 0%.
 
-Per generatie naast elkaar (rij AI, kolom motor):
+Per generatie naast elkaar (rij AI nu, kolom motor):
 
-| AI \ motor | gesteund | minder | fase |
+| AI nu \ motor | gesteund | minder | fase |
 |---|---:|---:|---:|
-| gesteund | 32 | 1 | 0 |
+| gesteund | 29 | 4 | 0 |
 | minder | 0 | 0 | 0 |
 | fase | 0 | 0 | 0 |
 
 **Taper** (alleen schema's met een piekmoment én drie weken ervoor binnen de periode).
 
-| | AI | Motor |
-|---|---:|---:|
-| te beoordelen | 1 | 1 |
-| volume 41-60% omlaag | 0% | 100% |
-| intensiteit behouden | 100% | 100% |
-| frequentie behouden | 100% | 100% |
-| mediane volumedaling | 18% | 43% |
+| | AI | AI nu | Motor |
+|---|---:|---:|---:|
+| te beoordelen | 1 | 1 | 1 |
+| volume 41-60% omlaag | 0% | 0% | 100% |
+| intensiteit behouden | 100% | 100% | 100% |
+| frequentie behouden | 100% | 100% | 100% |
+| mediane volumedaling | 18% | 12% | 43% |
 
 Alle drie gehaald, per generatie: beide 0, alleen AI 0, alleen motor 1, geen van beide 0.
 
 **Onderbreking.** Meer dan 10 dagen zonder training (rustperiodes uit het jaarplan niet meegeteld).
 
-| | AI | Motor |
-|---|---:|---:|
-| langer dan 10 dagen | 0% | 0% |
-| mediane langste reeks | 1 d | 2 d |
-| stopt > 10 dagen vóór het einde (geen literatuurregel) | 18% | 0% |
+| | AI | AI nu | Motor |
+|---|---:|---:|---:|
+| langer dan 10 dagen | 0% | 3% | 0% |
+| mediane langste reeks | 1 d | 3 d | 6 d |
+| stopt > 10 dagen vóór het einde (geen literatuurregel) | 18% | 18% | 0% |
 

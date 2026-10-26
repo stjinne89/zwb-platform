@@ -17783,8 +17783,8 @@ in de code gezet oordeel dat daarna weer is weggehaald. tsc groen; volledige
 testsuite groen op twee PGlite/pacing-tests na die onder volle belasting een
 time-out gaven en los slagen. Niet gepusht.
 
-**Literatuurtoets en pilotvoorstel, 2026-10-26.** Commit: de commit die deze
-alinea toevoegt. Geen migratie. Naast de meetlat (regels van de prompt) een tweede
+**Literatuurtoets en pilotvoorstel, 2026-10-26.** Commit `3504645`; bijgewerkt na
+het samenvoegen met `main` in de commit daarna. Geen migratie. Naast de meetlat (regels van de prompt) een tweede
 maat: legt AI en motor langs drie maatstaven uit onderzoek —
 intensiteitsverdeling (Treff 2019, Rosenblat 2025, Esteve-Lanao 2007, Seiler
 2010), taper (Bosquet 2007, Wang 2023) en onderbreking van meer dan tien dagen
@@ -17794,14 +17794,30 @@ intensiteitsverdeling (Treff 2019, Rosenblat 2025, Esteve-Lanao 2007, Seiler
 `scripts/engine-literature.mjs` op een verse export (532 generaties, waarvan 241
 nieuwe schema's en bijwerkingen). Rapport en conclusie:
 [docs/regelmotor-literatuurtoets.md](docs/regelmotor-literatuurtoets.md).
-**Uitkomst:** op deze maatstaven zijn AI en motor niet uit elkaar te halen —
-beide maken vrijwel alleen piramidale schema's of basisblokken, en die steunt de
-literatuur allebei; een taper was maar in één schema te toetsen. Wel twee
-bevindingen: de AI hield in 6 van de 33 nieuwe schema's (alle van vóór 2026-08)
-meer dan tien dagen vóór het einde op met plannen, de motor nergens; en de motor
-maakt bij één à twee ritten per week elke rit een tempo- of sweetspotsessie (één
-schema, zone 2 57 %), zonder rustige rit — **open punt voor de motor, niet in deze
-ronde opgelost.** *Bewust niet getoetst:* lange ritten (literatuur alleen
+**Uitkomst (bijgewerkt na het samenvoegen met `main`, 2026-10-26):** de
+literatuur kiest niet tussen AI en motor. De AI-kant zijn oude antwoorden (235
+GPT-5.5, 4 Claude), gemaakt vóór de 90-minutenregel en de indoorregel van
+2026-10-26; de kolom "AI nu" past de 90-minutenregel er alsnog op toe, de
+indoorregel is op oude antwoorden niet na te spelen. De motor maakt bij leden die
+indoor of op dagen van 60-90 minuten trainen een verdeling met evenveel
+tempo/drempel als rustig (20 % van de recente nieuwe schema's): de 90-minutenregel
+laat daar alleen kwaliteitssessies over. Dat volgt uit de keuze van de eigenaar
+en is geen motorfout; dat het op gespannen voet staat met de literatuur over
+verdelingen (die komt van sporters met veel uren), is een besluit voor de
+eigenaar. *(Niet meer waar: de eerdere zin hier dat de motor bij één à twee ritten
+per week ten onrechte elke rit een sleutelsessie maakt; dat bleek de
+90-minutenregel bij een indoorlid met dagen van 60 minuten.)* **Wel een
+motorfout, gevonden via dezelfde gevallen:** waar een lid lange dagen heeft,
+maakt de motor van zijn korte rustige ritten rustdagen in plaats van ze 90
+minuten of langer te maken, en plant hij ver onder zijn eigen weekdoel
+(voorbeeld: doel 3,2-5,2 uur, gepland ~1,7 uur). Op de meetlat stijgt het aandeel
+motorbijwerkingen met een fout met de code van `main` van 11 % naar 30 %
+(`onder-recente-belasting` 29 %); `docs/regelmotor-naspelen.md` is niet opnieuw
+gegenereerd en toont nog 11 %. **Open, niet in deze ronde opgelost.** Verder: de
+AI hield in 6 van de 33 oude nieuwe schema's meer dan tien dagen vóór het einde op
+met plannen, de motor nergens; een taper was maar in één schema te toetsen.
+`scripts/engine-export.mjs` neemt nu ook het model mee.
+*Bewust niet getoetst:* lange ritten (literatuur alleen
 beschrijvend), opbouw per week (zit al in de meetlat), aantal sleutelsessies en
 één VO2max-prikkel bij ZRL (eigen keuzes zonder bron), dagaanpassingen (geen eigen
 verdeling). *Beperkingen:* getoetst wordt het plan, niet wat er gereden is; de

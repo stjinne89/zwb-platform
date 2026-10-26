@@ -20,6 +20,7 @@ const { checkLiterature, TID_SUPPORT, MAX_GAP_DAYS } = await jiti.import(
   path.join(root, "src/lib/training/literature-check.ts"),
 );
 const { generateEnginePlan } = await jiti.import(path.join(root, "src/lib/training/engine/index.ts"));
+const { dropShortEasyRides } = await jiti.import(path.join(root, "src/lib/training/workouts.ts"));
 
 function arg(name, fallback) {
   const at = process.argv.indexOf(name);
@@ -46,7 +47,7 @@ function emptySide() {
   };
 }
 function emptyTally() {
-  return { n: 0, crashes: 0, ai: emptySide(), engine: emptySide(), paired: {}, pairedTaper: { both: 0, aiOnly: 0, engineOnly: 0, neither: 0 } };
+  return { n: 0, crashes: 0, ai: emptySide(), aiNow: emptySide(), engine: emptySide(), paired: {}, pairedTaper: { both: 0, aiOnly: 0, engineOnly: 0, neither: 0 } };
 }
 
 function score(side, result) {
@@ -73,14 +74,23 @@ const tallyFor = (scope, kind) => {
 
 const lines = readFileSync(IN, "utf8").split(/\r?\n/).filter(Boolean);
 let used = 0;
+const models = new Map();
 for (const line of lines) {
   const row = JSON.parse(line);
   const kind = KINDS[row.kind];
   if (!kind) continue;
   used += 1;
+  models.set(row.model ?? "onbekend", (models.get(row.model ?? "onbekend") ?? 0) + 1);
   const aiWorkouts = Array.isArray(row.ai.workouts) ? row.ai.workouts : [];
   const aiWindow = { from: row.ai.startDate, to: row.ai.endDate };
   const ai = checkLiterature(row.input, aiWorkouts, aiWindow);
+  // Wat het lid sinds 2026-10-26 van hetzelfde antwoord krijgt: insertPlanWorkouts()
+  // laat rustige ritten onder de 90 minuten vallen. De motor volgt die regel zelf.
+  const aiNow = checkLiterature(
+    row.input,
+    dropShortEasyRides(aiWorkouts, row.input.profile?.ftpWatts ?? null, "easy"),
+    aiWindow,
+  );
 
   let engine = null;
   try {
@@ -95,12 +105,13 @@ for (const line of lines) {
     const tally = tallyFor(scope, kind);
     tally.n += 1;
     score(tally.ai, ai);
+    score(tally.aiNow, aiNow);
     if (!engine) {
       tally.crashes += 1;
       continue;
     }
     score(tally.engine, engine);
-    const key = `${TID_SUPPORT[ai.tid]}|${TID_SUPPORT[engine.tid]}`;
+    const key = `${TID_SUPPORT[aiNow.tid]}|${TID_SUPPORT[engine.tid]}`;
     tally.paired[key] = (tally.paired[key] ?? 0) + 1;
     if (ai.taper && engine.taper) {
       const a = ai.taper.volumeOk && ai.taper.intensityKept && ai.taper.frequencyKept;
@@ -131,31 +142,34 @@ function section(title, map) {
     const ran = t.n - t.crashes;
     out.push(`### ${kind} (${t.n}${t.crashes ? `, motor faalde ${t.crashes}` : ""})`, "");
 
-    out.push("**Intensiteitsverdeling.** Aandeel schema's per soort verdeling.", "");
-    out.push("| Verdeling | Literatuur | AI | Motor |", "|---|---|---:|---:|");
+    out.push("**Intensiteitsverdeling.** Aandeel schema's per soort verdeling. \"AI nu\": hetzelfde AI-antwoord na de 90-minutenregel die sinds 2026-10-26 in de app geldt.", "");
+    out.push("| Verdeling | Literatuur | AI | AI nu | Motor |", "|---|---|---:|---:|---:|");
     for (const tid of TIDS) {
-      if (!t.ai.tid[tid] && !t.engine.tid[tid]) continue;
-      out.push(`| ${tid} | ${TID_SUPPORT[tid]} | ${pct(t.ai.tid[tid], t.n)} | ${pct(t.engine.tid[tid], ran)} |`);
+      if (!t.ai.tid[tid] && !t.aiNow.tid[tid] && !t.engine.tid[tid]) continue;
+      out.push(
+        `| ${tid} | ${TID_SUPPORT[tid]} | ${pct(t.ai.tid[tid], t.n)} | ${pct(t.aiNow.tid[tid], t.n)} | ${pct(t.engine.tid[tid], ran)} |`,
+      );
     }
     out.push("");
     const zones = (side) =>
       [0, 1, 2].map((index) => medianPct(side.shares.map((share) => share[index]))).join(" / ");
-    out.push(`Mediaan zone 1 / 2 / 3: AI ${zones(t.ai)}, motor ${zones(t.engine)}.`, "");
+    out.push(`Mediaan zone 1 / 2 / 3: AI ${zones(t.ai)}, AI nu ${zones(t.aiNow)}, motor ${zones(t.engine)}.`, "");
 
-    out.push("Per generatie naast elkaar (rij AI, kolom motor):", "");
-    out.push(`| AI \\ motor | ${SUPPORTS.join(" | ")} |`, `|---|${SUPPORTS.map(() => "---:").join("|")}|`);
+    out.push("Per generatie naast elkaar (rij AI nu, kolom motor):", "");
+    out.push(`| AI nu \\ motor | ${SUPPORTS.join(" | ")} |`, `|---|${SUPPORTS.map(() => "---:").join("|")}|`);
     for (const a of SUPPORTS) {
       out.push(`| ${a} | ${SUPPORTS.map((e) => t.paired[`${a}|${e}`] ?? 0).join(" | ")} |`);
     }
     out.push("");
 
     out.push("**Taper** (alleen schema's met een piekmoment én drie weken ervoor binnen de periode).", "");
-    out.push("| | AI | Motor |", "|---|---:|---:|");
-    out.push(`| te beoordelen | ${t.ai.taper.n} | ${t.engine.taper.n} |`);
-    out.push(`| volume 41-60% omlaag | ${pct(t.ai.taper.volume, t.ai.taper.n)} | ${pct(t.engine.taper.volume, t.engine.taper.n)} |`);
-    out.push(`| intensiteit behouden | ${pct(t.ai.taper.intensity, t.ai.taper.n)} | ${pct(t.engine.taper.intensity, t.engine.taper.n)} |`);
-    out.push(`| frequentie behouden | ${pct(t.ai.taper.frequency, t.ai.taper.n)} | ${pct(t.engine.taper.frequency, t.engine.taper.n)} |`);
-    out.push(`| mediane volumedaling | ${medianPct(t.ai.taper.reductions)} | ${medianPct(t.engine.taper.reductions)} |`);
+    const three = (label, f) => out.push(`| ${label} | ${f(t.ai, t.n)} | ${f(t.aiNow, t.n)} | ${f(t.engine, ran)} |`);
+    out.push("| | AI | AI nu | Motor |", "|---|---:|---:|---:|");
+    three("te beoordelen", (side) => side.taper.n);
+    three("volume 41-60% omlaag", (side) => pct(side.taper.volume, side.taper.n));
+    three("intensiteit behouden", (side) => pct(side.taper.intensity, side.taper.n));
+    three("frequentie behouden", (side) => pct(side.taper.frequency, side.taper.n));
+    three("mediane volumedaling", (side) => medianPct(side.taper.reductions));
     const pt = t.pairedTaper;
     if (pt.both + pt.aiOnly + pt.engineOnly + pt.neither > 0) {
       out.push("", `Alle drie gehaald, per generatie: beide ${pt.both}, alleen AI ${pt.aiOnly}, alleen motor ${pt.engineOnly}, geen van beide ${pt.neither}.`);
@@ -163,10 +177,10 @@ function section(title, map) {
     out.push("");
 
     out.push(`**Onderbreking.** Meer dan ${MAX_GAP_DAYS} dagen zonder training (rustperiodes uit het jaarplan niet meegeteld).`, "");
-    out.push("| | AI | Motor |", "|---|---:|---:|");
-    out.push(`| langer dan ${MAX_GAP_DAYS} dagen | ${pct(t.ai.gapTooLong, t.n)} | ${pct(t.engine.gapTooLong, ran)} |`);
-    out.push(`| mediane langste reeks | ${median(t.ai.gaps) ?? "–"} d | ${median(t.engine.gaps) ?? "–"} d |`);
-    out.push(`| stopt > ${MAX_GAP_DAYS} dagen vóór het einde (geen literatuurregel) | ${pct(t.ai.endsEarly, t.n)} | ${pct(t.engine.endsEarly, ran)} |`);
+    out.push("| | AI | AI nu | Motor |", "|---|---:|---:|---:|");
+    three(`langer dan ${MAX_GAP_DAYS} dagen`, (side, n) => pct(side.gapTooLong, n));
+    three("mediane langste reeks", (side) => `${median(side.gaps) ?? "–"} d`);
+    three(`stopt > ${MAX_GAP_DAYS} dagen vóór het einde (geen literatuurregel)`, (side, n) => pct(side.endsEarly, n));
     out.push("");
   }
   return out.join("\n");
@@ -185,6 +199,7 @@ const report = [
   "",
   `Gegenereerd door \`scripts/engine-literature.mjs\` op ${used} nieuwe schema's en bijwerkingen`,
   `(van ${lines.length} geëxporteerde generaties). Alleen tellingen, geen ledendata.`,
+  `De AI-kant per model: ${[...models.entries()].sort((a, b) => b[1] - a[1]).map(([model, n]) => `${model} ${n}`).join(", ")}.`,
   "",
   section(`Vanaf ${SINCE}`, tallies.recent),
   "",

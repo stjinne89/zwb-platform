@@ -84,8 +84,8 @@ volgehouden" in de arm waarin het gebeurde.
 
 Niets hiervan is gebouwd.
 
-1. **Motor als bron van een generatie.** Op de plekken waar nu een OpenAI-aanroep
-   start (`generateAiDraftFromForm`, `startPlanUpdate`, `startBackgroundAdaptation`,
+1. **Motor als bron van een generatie.** Op de plekken waar nu een AI-aanroep
+   start — sinds 2026-10-26 Claude, via `AI_PROVIDER` — (`generateAiDraftFromForm`, `startPlanUpdate`, `startBackgroundAdaptation`,
    `startTodayAdjustmentDraft` in `draft.ts`) kiest een pilotschakelaar per lid de
    motor. Die schrijft een `training_ai_generations`-rij met `model`
    `zwb-regelmotor`, status `completed` en het motorschema als `response_json`, en
@@ -125,5 +125,11 @@ eigenaar: deelnemers werven, de loting, en de FTP-tests inplannen.
 - Het open besluit uit het naspelen — piekweek ≥ 85 % tegen "nooit meer dan een
   kwart erbij" — moet vóór de proef genomen zijn, anders test de pilot een regel
   die nog kan veranderen.
-- Het motorschema met alleen tempo en sweet spot bij één rit per week (zie de
-  literatuurtoets) eerst verbeteren, of meenemen als bekend punt?
+- Eerst de volumefout van de motor herstellen (korte rustige ritten worden
+  rustdagen, ook als de dag 90 minuten of meer toelaat; zie de literatuurtoets) —
+  zonder dat herstel test de pilot een motor die structureel te weinig plant.
+- Bij indoor en korte dagen maakt de 90-minutenregel van elke rit een
+  kwaliteitssessie. Dat is bewust, maar de pilot is dé kans om te zien of leden dat
+  volhouden; die groep apart bekijken.
+- De AI-kant in de pilot is Claude, niet GPT: de eerdere vergelijkingen (meetlat,
+  naspelen, literatuurtoets) gingen over GPT-antwoorden.
