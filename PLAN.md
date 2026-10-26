@@ -11414,6 +11414,79 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Doeltijd: welke klasse van je steen de tijd vraagt
+
+**2026-10-26.** Lokaal gecommit, niet gepusht. Geen migratie: de eisen gaan in de
+bestaande jsonb-kolom `training_goal_forecasts.detail`.
+
+**Waarom.** Wens van de eigenaar: JOIN zegt met de JOINscore of je getraind genoeg
+bent voor de Amstel Gold Race of de Marmotte; kan ZWBriljant dat ook? Plan eerst in
+het plannenboek, daarna "ga dit plan maar uitwerken". "Aankunnen" is een eigen
+doeltijd (keuze eigenaar). De totaalscore van de steen is er de verkeerde maat voor:
+sprint, anaeroob, racen en consistentie tellen mee en beslissen geen toertocht.
+Daarom een eis per onderdeel. Onderzoek en ijking in
+[eisen-per-doel.md](docs/eisen-per-doel.md).
+
+**Nu.**
+- `src/lib/training/goal-requirements.ts` (nieuw, puur):
+  - **Drempel:** `wkg_20m` (dezelfde waarde als de steen) maal de factor waarmee
+    het hele vermogensprofiel de doeltijd haalt, op de schaal van de steen
+    (`powerAnchors("m20", sex)`). Bij een al haalbare doeltijd zoekt
+    `cpFactorForTime` omlaag tot 0,5, zodat de eis ook dan een klasse is.
+  - **Fitheid:** de belasting van de rit in de doeltijd (uren × IF² × 100,
+    genormaliseerd vermogen over de segmenten van het snelste plan, CP als FTP)
+    gedeeld door `EVENT_LOAD_PER_CTL = 7`, op `CTL_ANCHORS`. Jouw kant: `icu_ctl`
+    van de laatste rit in `intervals_activities`, teruggerekend naar vandaag
+    (× e^(−dagen/42)).
+- `goal-target-time.ts`: `requiredFactor` heet nu `cpFactorForTime`, is
+  geëxporteerd en zoekt tussen twee grenzen; `assessTargetTime` geeft de factor
+  mee; `forecastGoal` rekent de eisen als er steengegevens zijn.
+- `goal-forecast.ts`: `loadSteenInputs` (geslacht, `wkg_20m`, CTL); de eisen gaan
+  mee in `detail.requirements`, alleen als niveaus. `forecastIsStale` rekent een
+  prognose zonder eisen één keer opnieuw.
+- Doelkaart: twee regels "Drempel nodig" en "Fitheid nodig", klasse en punten met
+  de kleur van de klasse, en "jij" ernaast. Alleen op de eigen doelenpagina
+  (`showRequirements`); de trainer ziet ze niet.
+- `/hulp/schema#doeltijd` kreeg een punt "Je steen"; de zoekindex een ingang voor
+  de doeltijd (die ontbrak).
+
+**IJking (productie, alleen gelezen).** Fitheid: per lid de rit van drie uur of
+langer die het verst boven de CTL van die dag lag, 2,6 tot 9,5 keer bij 15 leden,
+mediaan 7. P90 over alle ritten (5,7) viel af: dan konden drie leden met CTL rond
+33 hun eigen ritten van 256 tot 335 TSS niet aan. Een schatting, zo ook op `/hulp`.
+
+**Bewust niet gebouwd.**
+- **Durability.** Bij 17 leden met vermoeidheidscurves vergeleken: zes hebben op de
+  steen hooguit 1% verval per 10 kJ/kg (Diamant), terwijl de prognose voor hen 2
+  tot 18% CP-verlies na 1000 kJ en tot 25% na 2000 kJ rekent. De steen meet P25
+  over 1 tot 20 minuten op de laagste kJ-stand, de prognose CP per kJ-stand. Een
+  eis in steenklassen zou de prognose tegenspreken. Keuze eigenaar: weglaten. Het
+  verval blijft in de prognose en als nadruk.
+- **VO2max, sprint, anaeroob, racen, consistentie.** Het pacingmodel schaalt het
+  hele profiel met één factor, dus een losse VO2max-eis zegt niets nieuws. De rest
+  beslist geen toertocht.
+- **Zonder doeltijd ("rustig uitrijden").** Zonder durability blijft alleen
+  fitheid over, op een duur die we zelf zouden moeten kiezen.
+- **Bij elk event en op de pacingpagina.** De eisen hangen aan de bewaarde,
+  wekelijks ververste prognose van een doel.
+- **Voor de trainer.** Anderen zien de steen alleen als het lid hem deelt; de
+  trainer krijgt de kaart zonder de twee regels. De niveaus staan wel in de
+  prognoserij, die de trainer via RLS al kan lezen (net als CP en gewicht).
+
+**Privacy.** Geen nieuwe gegevens of ontvangers: de eisen rekenen met wat de
+prognose en de steen al gebruiken, en zijn deel van de prognose die de verklaring
+al noemt. Tekst niet gewijzigd.
+
+**Gecontroleerd.** Nieuw: `goal-requirements.test.ts` (9 tests: NP en belasting,
+drempel maal factor met het voorbeeld 424 → boven 486, fitheid door 7, ontbrekende
+waarden, schaal voor vrouwen, eis onder en boven je huidige klasse in de prognose,
+geen eisen zonder steen). `goal-target-time.test.ts`: een prognose zonder eisen is
+verouderd. `tsc` schoon, ESLint schoon op de gewijzigde bestanden. Volle suite:
+3523 van 3525 groen; de twee rode (`admin-areas`, `intervals-ride-sync`) liepen
+onder volle belasting tegen de tijdslimiet en slagen los, en `omnium-live` mist
+`.env.local` in deze worktree. **Niet geverifieerd:** de kaart in de browser en de
+eerste herberekening op productie (inloggen en echte doelen nodig).
+
 ### Hersteld — Club Ladder-overzicht leest de echte opmaak van /summary
 
 **2026-10-26.** Commit `a7d43743`, gepusht naar `main` op 2026-10-26 (eigenaar).
@@ -16437,7 +16510,9 @@ nadruk in het schema en een prognose die met de tijd meeloopt.
   laatste een week oud is, CP of gewicht veranderd is of de doeltijd is
   aangepast (`forecastIsStale`). Op de kaart staan oordeel, benodigde CP,
   gevoeligheid, nadruk en het verloop (laatste zes prognoses). De trainer ziet
-  dezelfde kaart zonder bewerken.
+  dezelfde kaart zonder bewerken. Sinds 2026-10-26 staan op de kaart van het lid
+  ook de klassen die de doeltijd van de steen vraagt; die ziet de trainer niet
+  (ronde "Doeltijd: welke klasse van je steen de tijd vraagt").
 - **Schema-AI.** `buildTrainingInput` geeft `goal.targetTime` mee (laatste
   prognose, of een verse als die verouderd is), met een promptregel: nadruk
   voor de sleutelsessies, geen extra volume of intensiteit, geen finishtijd

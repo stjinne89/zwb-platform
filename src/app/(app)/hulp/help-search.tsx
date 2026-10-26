@@ -199,6 +199,13 @@ const HELP_INDEX: HelpResult[] = [
       "jaarplan jaarplanning seizoen mikpunt mikpunten a-doel b-doel c-doel prioriteit piek rustperiode rust rustig vakantie winterstop drukke periode tijdlijn weg asfalt hek paaltje stippellijn grind finish clubevent kalender misschien event koppelen vlaggetje prioriteit wijzigen dubbel lijst mikpunt verwijderen bewerken verschuiven verplaatsen datum wijzigen trainingskamp kamp stage volume melding waarschuwing",
   },
   {
+    title: "Een doeltijd voor je gran fondo",
+    text: "Prognose, benodigde CP, welke klasse van je steen de tijd vraagt en de nadruk in je schema.",
+    href: "/hulp/schema#doeltijd",
+    terms:
+      "doeltijd eindtijd finishtijd gran fondo toertocht outdoor event prognose haalbaar ambitieus cp groei groep alleen per kilo steen zwbriljant klasse eis eisen nodig drempel fitheid ctl belasting durability join joinscore klaar voor event aankunnen amstel marmotte",
+  },
+  {
     title: "Een doel aanpassen of verwijderen",
     text: "Een opgeslagen trainingsdoel bewerken of weghalen, en wat er met je schema gebeurt.",
     href: "/hulp/schema#doel-aanpassen",
