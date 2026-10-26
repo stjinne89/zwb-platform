@@ -11344,7 +11344,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter Worden: concepten uit beeld, wijzigingen vanzelf (ronde 2)
 
-**2026-10-26.** Commit volgt (lokaal, niet gepusht). Geen migratie. Ronde 2 uit
+**2026-10-26.** Commit `af06d90b` (lokaal, niet gepusht). Geen migratie. Ronde 2 uit
 [schema-goedkeuren-publiceren-analyse.md](docs/schema-goedkeuren-publiceren-analyse.md).
 
 - **Het lid ziet geen concept van zijn trainer meer.** Nieuwe module
