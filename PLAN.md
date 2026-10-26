@@ -302,9 +302,8 @@ gaat stabiliteit voor nieuwe features.
    de browser bekijken. Op 2026-10-26 hersteld (Espada als tijdritfiets,
    gesplitste namen in de sheet) en een Zwift-garage per lid gebouwd
    (lokaal gecommit, niet gepusht). Migratie `0277_member_zwift_bikes.sql`
-   is op 2026-10-26 toegepast. Open: pushen, na de deploy "Fietsen ophalen" op
-   `/beheer/zwift-routes`, en de garage, het pacingplan en de briefing in de
-   browser bekijken.
+   is op 2026-10-26 toegepast en de fietslijst is op productie ververst. Open:
+   pushen, en de garage, het pacingplan en de briefing na de deploy bekijken.
 11. **ZRS van vroeger per race bewaard** (ronde van 2026-10-23 hieronder):
    gebouwd, lokaal getest en op 2026-10-23 gepusht naar `main`. Migratie
    `0271_zwift_race_scores.sql` is toegepast. Open: op cron-job.org een job
@@ -11398,8 +11397,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Snelste fiets: metingen uit twee testperiodes gelijkgetrokken
 
-**2026-10-26.** Commit `2aa95e21`, lokaal, niet gepusht. Geen migratie; op
-productie pas na een deploy en "Fietsen ophalen" op `/beheer/zwift-routes`.
+**2026-10-26.** Commit `2aa95e21`, lokaal, niet gepusht. Geen migratie.
+`zwift_bike_parts` op productie is op 2026-10-26 met deze code ververst (zie
+"Fietsen ververst" onderaan deze ronde).
 
 **Waarom.** De eigenaar vroeg of we zeker weten dat de fietsberekening klopt met
 ZwiftBikes en ZwifterBikes. Nagerekend:
@@ -11445,8 +11445,25 @@ stonden alleen in de scratchmap.
 **Gecontroleerd.** Vitest: `zwift-bike-sheet.test.ts` met een test voor
 `inReferencePeriod` (SL9 nu sneller dan SL8, Espada blijft ruw, zonder
 uurverschil niets), samen met `bike-advice` en `pacing-zwift` 64 tests groen.
-`tsc` en ESLint schoon. **Niet geverifieerd:** de lijst op productie na
-"Fietsen ophalen".
+`tsc` en ESLint schoon.
+
+**Fietsen ververst op productie (2026-10-26, op verzoek van de eigenaar).** Met
+"Fietsen ophalen" op `/beheer/zwift-routes` in de lokale app (deze code, de
+productiedatabase): 882 frame-varianten en 149 wielsets, referentie ongewijzigd
+(CdA 0,3191, 2,42 kg). Nagekeken met de Supabase-connector:
+- Pinarello Espada: `kind` van `road` naar `tt`, `fixed_wheels` blijft aan.
+- Swiss Side HADRON Ultimate 650 op de Zwift Carbon: één rij (CdA −0,0126,
+  +0,02 kg) in plaats van twee met elk één meting (−0,0136/+0,20 en
+  −0,0098/−0,17). ZwiftBikes heeft −0,0131/−0,01.
+- S-Works Tarmac SL9: stage 0 CdA −0,0153 → −0,0162, nu net onder de SL8
+  (−0,0160); stage 5 −0,0241 → −0,0246.
+- De dubbele "VanRysel RCR Pro" is weg; 1031 rijen (was 1034), alle uit één
+  ophaalronde. Geen garage-rij of pacingplan verwijst naar een naam die niet
+  meer bestaat.
+- De briefing van Spiral Summit (B1, lokaal bekeken) zet nu de SL9 met CADEX
+  4-Spoke bovenaan, de SL8 1 s erachter; de Espada staat er niet meer in.
+De live site draait nog de oude code, maar leest dezelfde tabel; de Espada telt
+daar nu ook als tijdritfiets.
 
 ### Gewijzigd — Zwift-garage: niveau kiezen door op de streepjes te klikken
 
