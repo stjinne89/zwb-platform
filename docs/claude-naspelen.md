@@ -97,3 +97,38 @@ Claude (Opus 5.5) of GPT-5.5 als beter werd gekozen, of beide even goed.
 - De twee beoordelaars waren het in 12 van de 19 gevallen eens. Beiden kozen
   bij dezelfde twee aanpassingen door de renner voor GPT-5.5: het enige
   onderdeel waar Claude achterblijft.
+
+## Waarom Claude bij de aanpassing door de renner verloor: de datum
+
+Bij g08 en g09 (beide uit augustus) zette Claude als datum letterlijk "vandaag"
+en plande het op 1 januari 2026 in plaats van 2 augustus. GPT-5.5 krijgt de
+datum van vandaag van OpenAI zelf mee; Claude niet, en die oude invoer had geen
+ankerdatum (geen `currentPlan` of `planWindow`). Hetzelfde gold voor de vier
+nieuwe schema's van mei tot juli: Claude plande in de verkeerde maand. Waar de
+invoer wel een ankerdatum heeft, zoals in de huidige code (`planWindow` bij een
+nieuw schema, `currentPlan.fromDate` bij een dag-aanpassing, `planUpdate` bij een
+bijwerking), klopten Claude's datums al.
+
+Opnieuw gedraaid met één regel "Vandaag is <weekdag> <datum>." boven de vraag
+(`--with-date`):
+
+| Geval | Claude zonder datum | Claude met datum | GPT-5.5 |
+|---|---|---|---|
+| dag-aanpassing 2026-08-04 (g08) | 1 workout, datum "vandaag" | 4 workouts, 4–9 aug | 4 workouts, 4–9 aug |
+| dag-aanpassing 2026-08-02 (g09) | 3 workouts in januari | 1 workout, vandaag | 5 workouts, rest van de week |
+| nieuw schema 2026-05-27 | 11 fouten | 1 | 11 |
+| nieuw schema 2026-06-08 | 4 | 1 | 7 |
+| nieuw schema 2026-06-01 | 19 | 4 | 11 |
+| nieuw schema 2026-07-21 | 6 (8 workouts, in juni) | 12 (16 workouts, juli) | 13 |
+| nieuw schema 2026-09-11 | 28 | 22 | 36 |
+
+Met de datum erbij breekt Claude bij elk nieuw schema minder regels dan GPT-5.5.
+Bij g09 vult Claude alleen vandaag in, GPT-5.5 de hele week; die invoer had geen
+lopend schema, wat in de huidige code niet meer voorkomt.
+
+**Gevolg voor de blinde beoordeling:** g08, g09 en g15–g19 kregen beoordelaars de
+Claude-versie met de verkeerde datums te zien. Die oordelen vallen dus in het
+nadeel van Claude uit.
+
+**Gevolg voor de overstap:** elke Claude-aanroep moet de datum van vandaag
+meekrijgen. Dat is geen kwestie van prompt-formulering maar van invoer.

@@ -7,7 +7,7 @@
 // te beoordelen.
 //
 //   node scripts/claude-replay.mjs --profile <uuid> [--per-kind 5] [--model claude-opus-5-5]
-//                                  [--effort low|medium|high] [--kinds daily,plan_update,nieuw_schema,day]
+//                                  [--effort low|medium|high] [--kinds daily,plan_update,nieuw_schema,day] [--with-date]
 //                                  [--concurrency 2] [--env .env.local] [--out .tmp/claude-replay]
 //
 // --profile is verplicht: de prompts bevatten trainings- en gezondheidsgegevens,
@@ -54,6 +54,10 @@ const MODEL = arg("--model", "claude-opus-5-5");
 const CONCURRENCY = Number(arg("--concurrency", "2"));
 const EFFORT = arg("--effort", null); // overschrijft de effort per soort
 const ONLY = arg("--kinds", null)?.split(",") ?? null;
+// GPT-5.5 kent via OpenAI de datum van vandaag; Claude niet. Zonder ankerdatum in
+// de invoer (oude generaties zonder planWindow of currentPlan) gokte Claude de
+// datums. --with-date zet de datum van de generatie bovenaan de vraag.
+const WITH_DATE = process.argv.includes("--with-date");
 const OUT = arg("--out", path.join(root, ".tmp", "claude-replay"));
 const env = readEnv(arg("--env", path.join(root, ".env.local")));
 if (!PROFILE) throw new Error("--profile <uuid> ontbreekt (zie de kop van dit script).");
@@ -152,10 +156,17 @@ function summarize(plan, input) {
   };
 }
 
+function todayLine(iso) {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("sv-SE", { timeZone: "Europe/Amsterdam" });
+  const weekday = d.toLocaleDateString("nl-NL", { weekday: "long", timeZone: "Europe/Amsterdam" });
+  return `${weekday} ${date}`;
+}
+
 async function replay(row) {
   const cfg = KINDS[row.kind];
   const started = Date.now();
-  const result = { id: row.id, kind: row.kind, createdAt: row.created_at, openaiModel: row.model, claudeModel: MODEL, effort: EFFORT ?? cfg.effort };
+  const result = { id: row.id, kind: row.kind, createdAt: row.created_at, openaiModel: row.model, claudeModel: MODEL, effort: EFFORT ?? cfg.effort, withDate: WITH_DATE };
   try {
     const stream = client.messages.stream({
       model: MODEL,
@@ -168,7 +179,7 @@ async function replay(row) {
       messages: [
         {
           role: "user",
-          content: `Maak een trainingsplan-concept op basis van deze intake en recente data:\n${row.prompt_summary}`,
+          content: `${WITH_DATE ? `Vandaag is ${todayLine(row.created_at)}.\n\n` : ""}Maak een trainingsplan-concept op basis van deze intake en recente data:\n${row.prompt_summary}`,
         },
       ],
     });
