@@ -11394,7 +11394,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWB Rankings in plaats van Achievements
 
-**2026-10-26.** Commit `COMMIT_HASH`. Migratie `0277_zitvlees_week_badge.sql`
+**2026-10-26.** Commit `69256778`. Migratie `0277_zitvlees_week_badge.sql`
 (niet toegepast, niet lokaal te testen). Niet gepusht.
 
 **Waarom.** Wens van de eigenaar: van Achievements een plek met ranglijsten
