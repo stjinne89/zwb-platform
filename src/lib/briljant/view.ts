@@ -99,7 +99,6 @@ export type ConsistencyView = {
   weeks: number;
   streak: number | null;
   compliance: number | null;
-  complianceSource: "schema" | "norm" | null;
   /** De norm per week in TSS of uren (`measure`). */
   norm: number | null;
   measure: "tss" | "uren" | null;
@@ -251,7 +250,6 @@ export function briljantView(args: {
           weeks: CONSISTENCY_WEEKS,
           streak: consistency.streak,
           compliance: consistency.compliance,
-          complianceSource: consistency.complianceSource,
           norm: consistency.norm,
           measure: consistency.measure,
           normSource: consistency.normSource,
@@ -275,7 +273,6 @@ export function storedConsistencyView(consistency: number | null): ConsistencyVi
     weeks: CONSISTENCY_WEEKS,
     streak: null,
     compliance: null,
-    complianceSource: null,
     norm: null,
     measure: null,
     normSource: null,

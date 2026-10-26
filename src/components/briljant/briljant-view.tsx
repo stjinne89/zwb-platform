@@ -317,11 +317,13 @@ function PanelBody({
               <dt>Naleving</dt>
               <dd>
                 {Math.round(c.compliance * 100)}%{" "}
-                {c.complianceSource === "norm"
-                  ? c.measure === "tss"
-                    ? "van je gebruikelijke week-TSS"
-                    : "van je gebruikelijke weekuren"
-                  : "van je geplande trainingstijd"}
+                {c.measure === "tss"
+                  ? c.normSource === "schema"
+                    ? "van je geplande TSS per week"
+                    : "van je gebruikelijke week-TSS"
+                  : c.normSource === "schema"
+                    ? "van je geplande trainingstijd per week"
+                    : "van je gebruikelijke weekuren"}
               </dd>
             </>
           )}

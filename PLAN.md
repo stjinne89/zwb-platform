@@ -351,8 +351,8 @@ gaat stabiliteit voor nieuwe features.
    goedgekeurd (eigenaar, 2026-10-26). Open: een gel en een sportdrank scannen
    op een telefoon, en het ritplan met een eigen gel bekijken.
 
-17. **ZWBriljant: volhouden vol na twaalf weken, naleving voor iedereen** (ronde
-   van 2026-10-26 hieronder): gebouwd, lokaal getest en op 2026-10-26 gepusht
+17. **ZWBriljant: volhouden vol na twaalf weken, naleving per week in TSS** (twee
+   rondes van 2026-10-26 hieronder): gebouwd, lokaal getest en op 2026-10-26 gepusht
    naar `main`. Geen migratie. Open: na de deploy en de job de consistentie met
    en zonder schema op productie vergelijken (vóór deze ronde 0,38 tegen 0,65
    gemiddeld).
@@ -11390,6 +11390,52 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gewijzigd — ZWBriljant: naleving per week als gereden tegen geplande TSS
+
+**2026-10-26.** Commit `COMMIT_HASH`, gepusht naar `main` op 2026-10-26 (eigenaar).
+Geen migratie.
+
+**Waarom.** Vervolg op de ronde hieronder. De eigenaar vroeg of de naleving niet
+als TSS kon, zodat meer indoor in de winter je niet laat zakken. Met schema telde
+N de geplande minuten van trainingen die afgerond waren of een rit op dezelfde dag
+hadden. De echte ritduur telde daarin niet, dus de winter was niet het probleem,
+maar de maat was wel broos: een training die je een dag verschoof telde niet, de
+status werd alleen binnen zeven dagen gezet, en het was een andere maat dan
+zonder schema. Besluit eigenaar: N is per week de gereden TSS tegen de geplande
+TSS, hooguit 100%, gemiddeld over twaalf weken.
+
+**Nu.** `consistencyFrom` (`score.ts`) rekent N voor iedereen hetzelfde: per week
+`min(1, gereden ÷ norm)` in de maat van R (TSS via intervals.icu, anders uren),
+met als norm de geplande TSS (of uren) van het schema en zonder schema je eigen
+mediaan; een geplande herstelweek telt als 100%. `ConsistencyInput.compliance`,
+`complianceFrom` en de koppeling van ritten aan trainingen per dag (`snapshot.ts`)
+zijn weg; `complianceSource` uit de vorige ronde ook (het scherm gebruikt
+`normSource`: "van je geplande TSS per week" of "van je gebruikelijke week-TSS").
+`TERUGBLIK_SPAN` werd `alles-gewicht-tss-p25-naleving-weging-volhouden-weektss`.
+
+**Niet meer waar.** De ronde "consistentie hersteld" (2026-10-25) beschrijft de
+naleving met ritten op de trainingsdag; die telt sinds deze ronde niet meer mee
+in ZWBriljant. De naleving voor de trainer (`pickRideForWorkout`) is ongewijzigd.
+`RideDay.excluded` (een losgekoppelde rit) speelt in ZWBriljant geen rol meer; het
+veld staat er nog.
+
+**Bewust niet gedaan.**
+- Geen totaal over twaalf weken zonder plafond per week: dan maakt extra volume
+  gemiste trainingen goed, en meet N volume in plaats van naleving.
+- Geen TSS per training (gereden tegen gepland per sessie): dan telt een
+  verschoven training weer niet.
+
+**Let op.** De geplande TSS is een schatting (duur × een vaste IF per soort
+training in `PLANNED_IF`); het schema kent zelf geen TSS. Ligt die structureel te
+hoog, dan haalt niemand met een schema 100%. Niet na te gaan zonder de gereden TSS
+uit intervals.icu, die live wordt opgehaald en niet in de database staat.
+
+**Getest.** `briljant-score` (N per week met plafond in TSS, winterweek met minder
+uren maar de geplande TSS, schema en geen schema gelijk), `briljant-snapshot`,
+`briljant-view` en alle ZWBriljant-, weekoverzicht- en hulptests (144), ESLint;
+`tsc` alleen de bekende ontbrekende modules in deze worktree. **Niet getest:** de
+uitkomst op productie.
+
 ### Gewijzigd — ZWBriljant: volhouden vol na twaalf weken, naleving voor iedereen
 
 **2026-10-26.** Commit `e2a1b8e7`, op `claude/consistency-calculation-question-359fa2`;
@@ -11410,18 +11456,20 @@ Twee dingen klopten niet met wat de eigenaar bedoelt:
   0,98), de 18 met schema 0,38 (hoogste 0,88). Besluit eigenaar: naleving voor
   iedereen. Zonder schema is N nu per week wat je reed tegen je norm (je eigen
   mediaan), hooguit 100%, een geplande herstelweek telt als 100%, gemiddeld over
-  de weken in het venster. Met schema blijft N het deel van de geplande minuten.
+  de weken in het venster. Met schema bleef N het deel van de geplande minuten.
+  *Achterhaald dezelfde dag:* N is nu voor iedereen per week in TSS, zie de
+  ronde erboven.
   Wie zijn schema volledig doet en wie zonder schema elke week zijn norm rijdt,
   komen nu gelijk uit (test).
 
-**Nu.** `consistencyFrom` (`score.ts`) geeft `compliance` altijd en
-`complianceSource` (`schema` of `norm`); het scherm zegt bij naleving "van je
-geplande trainingstijd" of "van je gebruikelijke week-TSS/weekuren". `/hulp`
+**Nu.** `consistencyFrom` (`score.ts`) geeft `compliance` altijd (eerst ook
+`complianceSource`, weer weg in de ronde erboven). `/hulp`
 (De formules → Consistentie) en [zwbriljant-onderzoek.md](docs/zwbriljant-onderzoek.md)
 beschrijven de nieuwe V en N. `STREAK_SCALE_WEEKS` is weg; `CONSISTENCY_WEEKS`
 (12) is ook de reeks waarop V vol is. `TERUGBLIK_SPAN` werd
 `alles-gewicht-tss-p25-naleving-weging-volhouden`, zodat elke terugblik opnieuw
-wordt gemaakt. Voor de eigenaar wordt het 1 × 1 × 0,78 = 0,78.
+wordt gemaakt. Voor de eigenaar werd het 1 × 1 × 0,78 = 0,78; met de naleving in
+TSS (ronde erboven) is zijn uitkomst pas op productie te zien.
 
 **Niet meer waar.** `zwbriljant-onderzoek.md` noemde V = 1 − e^(−reeks/12) en
 "zonder schema valt N weg"; beide zijn daar gecorrigeerd.

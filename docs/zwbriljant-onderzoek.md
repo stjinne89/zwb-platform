@@ -169,13 +169,15 @@ tellen. Het past bij de regel dat beschikbaarheid geen belastbaarheid is.
   twaalf weken op rij is het hele venster en dus vol (eigenaar, 2026-10-26).
   *Eerst 1 − e^(−weken/12): veertien weken op rij gaf 0,69, en pas na 28 weken
   kwam (0,5 + 0,5 · V) boven 0,95.*
-- **Naleving N**: met een schema het deel van de geplande trainingsminuten dat
-  gedaan is, over twaalf weken. Zonder schema per week wat je reed tegen je norm,
-  hooguit 100%, gemiddeld over de twaalf weken (eigenaar, 2026-10-26). *Eerst viel
-  N zonder schema weg (telde als 1): op 26 oktober hadden de 8 leden zonder schema
-  gemiddeld 0,65 consistentie, de 18 met schema 0,38.*
-- **Consistentie** = R × (0,5 + 0,5 · V) × N, van 0 tot 1. Voorbeeld van de
-  eigenaar: R 1, veertien weken op rij, N 0,78 → 0,78 (was 0,66).
+- **Naleving N**: per week wat je reed tegen je norm (in TSS of uren, net als R),
+  hooguit 100%, gemiddeld over de twaalf weken. Met schema is de norm de geplande
+  TSS van die week, zonder schema je eigen mediaan (eigenaar, 2026-10-26). Het
+  plafond per week houdt het naleving: extra volume maakt een gemiste week niet
+  goed. *Eerst was N met schema het deel van de geplande minuten van trainingen
+  die afgerond waren of een rit op dezelfde dag hadden (een verschoven training
+  telde niet), en viel N zonder schema weg (telde als 1): op 26 oktober hadden de
+  8 leden zonder schema gemiddeld 0,65 consistentie, de 18 met schema 0,38.*
+- **Consistentie** = R × (0,5 + 0,5 · V) × N, van 0 tot 1.
 - **Geplande herstelweek**: een week waarin het schema minder dan 75% van de week
   ervoor plant (de bovengrens van "grofweg 60–70%" uit `schema-check.ts`). Die
   telt als gehaald en breekt de reeks niet. Een week ziek of niets breekt hem wel.

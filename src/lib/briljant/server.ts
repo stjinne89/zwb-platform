@@ -22,7 +22,6 @@ import { isCyclingSportType } from "@/lib/strava/sports";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
 import {
-  CONSISTENCY_WEEKS,
   valueAt,
   type BriljantInput,
   type ConsistencyInput,
@@ -34,7 +33,6 @@ import { DURABILITY_TEST_SLUG, DURABILITY_TEST_TASK, DURABILITY_TEST_TITLE } fro
 import { clubAverages, storedScore, type StoredSnapshot } from "./compare";
 import { decidedZrs, loadRaceScores } from "./zrs-history";
 import {
-  complianceFrom,
   consistencyWeeks,
   curveRange,
   durabilityTestFrom,
@@ -73,11 +71,11 @@ const TERUGBLIK_FALLBACK_MONTHS = 12;
  * consistentie met ritten op de trainingsdag in de naleving en een norm die niet
  * meer op 0 valt, en sinds 2026-10-26 het laatste gewicht tot het maandeinde in
  * plaats van alleen dat van de dag zelf, en ook sinds 2026-10-26 volhouden als reeks/12 en
- * een naleving ook zonder schema. Een terugblik met
+ * de naleving per week als gereden tegen geplande TSS, voor iedereen. Een terugblik met
  * een andere waarde wordt bij het volgende bezoek of door de job opnieuw gemaakt;
  * de ZRS van vroeger die de job al vond, blijft staan.
  */
-export const TERUGBLIK_SPAN = "alles-gewicht-tss-p25-naleving-weging-volhouden";
+export const TERUGBLIK_SPAN = "alles-gewicht-tss-p25-naleving-weging-volhouden-weektss";
 /** PostgREST geeft hooguit zoveel rijen per vraag. */
 const PAGE = 1000;
 /** Zoveel weken terug voor de norm (mediaan) en de reeks. */
@@ -232,7 +230,6 @@ function loadsFrom(wellness: IntervalsWellness[]): Map<string, number> {
 function consistencyAt(allRides: RideDay[], planned: PlannedWorkout[], day: string, loads?: Map<string, number>): ConsistencyInput {
   return {
     weeks: consistencyWeeks(allRides, planned, day, HISTORY_WEEKS, loads),
-    compliance: complianceFrom(planned, shiftDay(mondayKey(day), -CONSISTENCY_WEEKS * 7), day, allRides),
   };
 }
 
