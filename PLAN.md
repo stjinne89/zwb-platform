@@ -363,11 +363,10 @@ gaat stabiliteit voor nieuwe features.
    gemiddeld).
 
 18. **Segmentrecords op het racebriefje** (ronde van 2026-10-26 hieronder):
-   gebouwd en lokaal getest, nog niet gepusht. Open: migratie
-   `0277_zwift_segment_bests.sql` toepassen (vóór de push, anders blijft het blok
-   leeg en vraagt de app niets op), de privacyzin laten goedkeuren door de
-   eigenaar, en na de deploy op een briefing van een puntenrace kijken of de PR's
-   binnenkomen.
+   gebouwd, lokaal getest en op 2026-10-26 gepusht naar `main`. Migratie
+   `0279_zwift_segment_bests.sql` is toegepast en nagekeken, de privacyzin is
+   goedgekeurd (eigenaar). Open: na de deploy op een briefing van een puntenrace
+   kijken of de PR's binnenkomen, en of `/segment-results` geen 429 geeft.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -380,7 +379,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0280`
-(`0279_zwift_segment_bests` is van de segmentrecords op het racebriefje, 2026-10-26, geschreven als `0277` en hernummerd bij het samenvoegen met main, waar `0277` en `0278` al gebruikt waren;
+(`0279_zwift_segment_bests` is van de segmentrecords op het racebriefje, 2026-10-26, toegepast op 2026-10-26; geschreven als `0277` en vóór het toepassen hernummerd bij het samenvoegen met main, waar `0277` en `0278` al gebruikt waren;
 `0278_member_zwift_bikes` is van de Zwift-garage per lid, 2026-10-26, toegepast op 2026-10-26; geschreven als `0277` en zo ook op productie toegepast (`schema_migrations` noemt hem `0277_member_zwift_bikes`), hernummerd bij het samenvoegen met main, waar `0277_zitvlees_week_badge` al stond;
 `0277_zitvlees_week_badge` is van ZWB Rankings, 2026-10-26, toegepast op 2026-10-26;
 `0276_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, toegepast op 2026-10-26; geschreven als `0275` en hernummerd bij het samenvoegen met main, waar `0275_ai_jobs` al stond;
@@ -11409,9 +11408,12 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Segmentrecords op het racebriefje
 
-**2026-10-26.** Commit `a697f4de`, lokaal, niet gepusht. Migratie
-`0279_zwift_segment_bests.sql`, **nog niet toegepast** en lokaal niet te testen
-(geen Docker of Supabase-config).
+**2026-10-26.** Commit `a697f4de` (migratie hernummerd in `de03ba87`), gepusht
+naar `main` op 2026-10-26 (eigenaar). Migratie `0279_zwift_segment_bests.sql`
+(geschreven als `0277`; op main waren `0277` en `0278` al gebruikt) op 2026-10-26
+via de Supabase-connector toegepast, op verzoek van de eigenaar. Vooraf bestond
+de tabel niet; achteraf: zeven kolommen zoals in het bestand, RLS aan zonder
+policies, de primaire sleutel en de index op `fetched_at`, nog geen rijen.
 
 **Waarom.** Vraag van de eigenaar: op het briefje per segment waar je je op
 richt, met de watt en w/kg per renner en de eigen PR. Keuzes van de eigenaar:
@@ -11451,8 +11453,8 @@ stappen (een passage van februari kwam terug), maar dat koos de eigenaar niet.
 - **Privacy:** `/privacy#racebriefing` noemt de passages, het gewicht en dat het
   gewicht van teamgenoten uit watt en W/kg af te leiden is; de zin "Gewicht en
   FTP nemen we niet over" geldt nu alleen voor ZwiftRacing. Geen nieuwe versie
-  (zoals eerder bij het verruimen van al opgegeven data). **Nog niet
-  goedgekeurd door de eigenaar.**
+  (zoals eerder bij het verruimen van al opgegeven data). Goedgekeurd door de
+  eigenaar op 2026-10-26.
 - `/hulp` legt richttijd, PR en benodigde watt uit.
 
 **Bewust niet.** Geen fysicamodel voor de benodigde watt: een sprint rij je in
@@ -11466,7 +11468,7 @@ verzoeken).
 Spiral Summit, terugval op plek, richttijd en watt, houder, zonder startveld,
 gewicht), de bestaande racebriefje-tests, `tsc` (alleen de bekende ontbrekende
 pakketten in deze worktree), ESLint. Het blok los gerenderd met voorbeeldwaarden
-en bekeken. **Niet geverifieerd:** de migratie, het ophalen op productie
+en bekeken. **Niet geverifieerd:** het ophalen op productie
 (tijdsbudget van `after` op Netlify, en of de limiet van `/segment-results` ook
 2 per seconde is), en het blok met echte renners.
 
