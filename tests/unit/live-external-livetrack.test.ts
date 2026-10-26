@@ -8,7 +8,7 @@ import {
   parseWahooPage,
   wahooIsRiding,
 } from "@/lib/live/external-livetrack";
-import { gzipSync } from "node:zlib";
+import { deflateSync, gzipSync } from "node:zlib";
 import { decodeWahooFitChunk, parseFitRecords, wahooPagePoints } from "@/lib/live/fit-records";
 import { thinPoints } from "@/lib/live/external-refresh";
 import {
@@ -278,6 +278,18 @@ describe("Wahoo FIT-data", () => {
       "2026-09-28T10:00:03.000Z",
     ]);
     expect(decodeWahooFitChunk("geen-fit")).toEqual([]);
+  });
+
+  it("pakt ook een zlib-chunk zonder lengte uit (nieuwere ELEMNT's)", () => {
+    const chunk = deflateSync(fitFile()).toString("base64");
+    expect(decodeWahooFitChunk(chunk)).toHaveLength(3);
+  });
+
+  it("leest een gzip-chunk waarvan de lengte met 0x78 begint niet als zlib", () => {
+    const fit = fitFile();
+    const length = Buffer.from([0x78, 0, 0, 0]);
+    const chunk = Buffer.concat([length, gzipSync(fit)]).toString("base64");
+    expect(decodeWahooFitChunk(chunk)).toHaveLength(3);
   });
 });
 

@@ -9,7 +9,9 @@ import {
 
 export type { IntervalsPowerCurvePoint } from "@/lib/intervals/power-curve";
 
-const BASE = "https://intervals.icu";
+// INTERVALS_BASE_URL alleen voor de instructievideo: daar speelt de nep-Supabase
+// ook intervals.icu na (scripts/instructievideo/serve.mjs).
+const BASE = process.env.INTERVALS_BASE_URL ?? "https://intervals.icu";
 
 function authHeader(apiKey: string): string {
   // De api_key kan versleuteld uit de DB komen; hier centraal ontsleutelen zodat
@@ -106,6 +108,8 @@ export type IntervalsActivity = {
   elapsed_time?: number;
   total_elevation_gain?: number;
   icu_training_load?: number; // TSS
+  /** HRSS: belasting uit hartslag, ook zonder vermogensmeter. */
+  hr_load?: number;
   icu_ftp?: number;
   icu_intensity?: number; // IF
   average_watts?: number;
@@ -559,6 +563,8 @@ export function parsePowerCurveList(payload: unknown): Array<{ id: string | null
 
 /** Zoveel periodes per aanroep; een jaar per maand is één vraag. */
 const CURVE_RANGES_PER_CALL = 12;
+/** Zoveel van die aanroepen tegelijk. */
+const CURVE_CALLS_AT_ONCE = 3;
 
 /**
  * Powercurves voor een reeks datumbereiken ("r.<van>.<tot>", zie
@@ -573,8 +579,11 @@ export async function fetchIntervalsPowerCurveRanges(
 ): Promise<Map<string, IntervalsPowerCurvePoint[]>> {
   const out = new Map<string, IntervalsPowerCurvePoint[]>();
   const now = new Date().toISOString().slice(0, 10);
+  const batches: string[][] = [];
   for (let start = 0; start < ranges.length; start += CURVE_RANGES_PER_CALL) {
-    const batch = ranges.slice(start, start + CURVE_RANGES_PER_CALL);
+    batches.push(ranges.slice(start, start + CURVE_RANGES_PER_CALL));
+  }
+  const fetchBatch = async (batch: string[]) => {
     const query = new URLSearchParams({ curves: batch.join(","), type: "Ride", includeRanks: "false", now });
     try {
       const payload = await intervalsFetchFirst<unknown>(apiKey, [
@@ -590,11 +599,22 @@ export async function fetchIntervalsPowerCurveRanges(
     } catch {
       // Deze periodes blijven leeg; de grafiek toont een gat.
     }
-  }
+  };
+  // Een paar vragen tegelijk: jaren historie duren anders tientallen seconden.
+  let next = 0;
+  const worker = async () => {
+    while (next < batches.length) await fetchBatch(batches[next++]);
+  };
+  await Promise.all(Array.from({ length: Math.min(CURVE_CALLS_AT_ONCE, batches.length) }, worker));
   return out;
 }
 
-/** FTP en gewicht uit de athlete-instellingen; het mmp-model gaat voor. */
+/**
+ * FTP en gewicht uit de athlete-instellingen. `ftpWatts` is de FTP die het lid
+ * zelf instelde; daarmee rekent intervals.icu zones en TSS. De schatting uit het
+ * vermogensmodel staat apart in `eftpWatts`, zodat ze niet als ingestelde FTP
+ * doorgaat (tot 2026-10-22 ging het model voor).
+ */
 export function athletePhysique(athlete: IntervalsAthlete | null) {
   const rideSettings = rideSportSettings(athlete);
   const positive = (value: unknown) => {
@@ -603,10 +623,10 @@ export function athletePhysique(athlete: IntervalsAthlete | null) {
   };
   return {
     ftpWatts:
-      positive(rideSettings?.mmp_model?.ftp) ??
       positive(rideSettings?.ftp) ??
       positive(rideSettings?.indoor_ftp) ??
       positive(athlete?.ftp),
+    eftpWatts: positive(rideSettings?.mmp_model?.ftp),
     weightKg: positive(rideSettings?.weight) ?? positive(athlete?.weight),
   };
 }
@@ -690,6 +710,68 @@ export async function fetchIntervalsDayPowerCurve(
     `/api/v1/athlete/${athleteId}/power-curves?${query.toString()}`,
   ]);
   return parsePowerCurveSet(payload).points;
+}
+
+/**
+ * Elke curve uit `list` met zijn `id` en `after_kj` (0 bij een verse curve). Een
+ * vermoeide curve zonder `after_kj` krijgt de drempel uit `thresholds` via het
+ * achtervoegsel `-kj<n>` van zijn id; zonder beide valt hij weg.
+ */
+export function parsePowerCurveEntries(
+  payload: unknown,
+  thresholds: number[] = [],
+): Array<{ id: string | null; afterKj: number; points: IntervalsPowerCurvePoint[] }> {
+  const activities = collectPowerCurveActivities(payload);
+  const list =
+    payload && typeof payload === "object" && !Array.isArray(payload)
+      ? (payload as Record<string, unknown>).list
+      : null;
+  if (!Array.isArray(list)) return [];
+  return list.flatMap((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const row = entry as Record<string, unknown>;
+    const id = stringField(row.id);
+    const suffix = id?.match(/-kj(\d+)$/);
+    const given = Number(row.after_kj);
+    const afterKj = Number.isFinite(given) && given > 0 ? Math.round(given) : suffix ? (thresholds[Number(suffix[1])] ?? -1) : 0;
+    if (afterKj < 0) return [];
+    return [{ id, afterKj, points: curveEntryPoints(entry, activities) }];
+  });
+}
+
+/**
+ * Voor de durability-test op `day`: de verse curve over de 90 dagen tot en met die
+ * dag, en de vermoeide curves van die ene dag na elke kJ-drempel die het lid in
+ * intervals.icu instelde. `thresholds` (de drempels uit het powerprofiel) is een
+ * vangnet als intervals `after_kj` niet meegeeft. In één vraag.
+ */
+export async function fetchIntervalsDurabilityTestCurves(
+  apiKey: string,
+  athleteId: string,
+  day: string,
+  freshFrom: string,
+  thresholds: number[] = [],
+): Promise<{ fresh: IntervalsPowerCurvePoint[]; fatigued: Array<{ afterKj: number; points: IntervalsPowerCurvePoint[] }> }> {
+  const freshRange = `r.${freshFrom}.${day}`;
+  const dayRange = `r.${day}.${day}`;
+  const query = new URLSearchParams({
+    curves: [freshRange, `${dayRange}-kj0`, `${dayRange}-kj1`].join(","),
+    type: "Ride",
+    includeRanks: "false",
+    now: day,
+  });
+  const payload = await intervalsFetchFirst<unknown>(apiKey, [
+    `/api/v1/athlete/0/power-curves?${query.toString()}`,
+    `/api/v1/athlete/${athleteId}/power-curves?${query.toString()}`,
+  ]);
+  const entries = parsePowerCurveEntries(payload, thresholds);
+  const fresh = entries.find((entry) => entry.id === freshRange) ?? entries.find((entry) => entry.afterKj === 0);
+  return {
+    fresh: fresh?.points ?? [],
+    fatigued: entries
+      .filter((entry) => entry !== fresh && entry.afterKj > 0 && entry.points.length > 1)
+      .map(({ afterKj, points }) => ({ afterKj, points })),
+  };
 }
 
 /** Haalt een gepland event weg uit de intervals.icu-kalender. */

@@ -1,0 +1,145 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { checkCronSecret } from "@/lib/cron/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { TERUGBLIK_SPAN, refreshSources, storeTerugblik, storeWeek } from "@/lib/briljant/server";
+import { SCALE_VERSION } from "@/lib/briljant/norms";
+import { runZrsHistory } from "@/lib/briljant/zrs-history";
+import { mondayKey } from "@/lib/briljant/snapshot";
+import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+
+// ZWBriljant (migratie 0265): per lid de snapshot van deze week, na het verversen
+// van powerprofiel en ZRS. Sinds 2026-10-21 elk goedgekeurd lid met intervals.icu,
+// ook wie ZWBriljant nooit opende (eigenaar); zonder intervals.icu is er te weinig
+// voor een steen (alleen racen). Wie deze week al een
+// snapshot én een terugblik op de huidige schaal heeft, slaat de run over; per run
+// hooguit `limit` leden binnen het budget. Een lid zonder terugblik krijgt die eerst,
+// ook als de pagina deze week al een snapshot maakte.
+//
+// Bearer-token via BRILJANT_WEEKLY_SECRET. Draait elk uur op cron-job.org (zie
+// docs/runbook.md): zo komen alle deelnemers in de loop van maandag aan de beurt.
+
+export const maxDuration = 30;
+
+const DEFAULT_LIMIT = 3;
+const MAX_LIMIT = 10;
+/** Na deze tijd begint de run aan geen nieuw lid meer. */
+const BUDGET_MS = 15_000;
+/** Zoveel tijd per lid voor het verversen van de ZRS bij Zwift. */
+const ZRS_BUDGET_MS = 3_000;
+/** Tot zover in de run zoekt de job daarna de ZRS van vroeger op (zrs-history.ts). */
+const HISTORY_UNTIL_MS = 24_000;
+
+export async function POST(request: NextRequest) {
+  const auth = checkCronSecret(request, "BRILJANT_WEEKLY_SECRET");
+  if (!auth.ok) return new NextResponse(auth.message, { status: 403 });
+
+  const limitParam = Number(request.nextUrl.searchParams.get("limit"));
+  const limit =
+    Number.isFinite(limitParam) && limitParam > 0 ? Math.min(Math.floor(limitParam), MAX_LIMIT) : DEFAULT_LIMIT;
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (err) {
+    return NextResponse.json(
+      { ok: false, error: err instanceof Error ? err.message : "admin client onbeschikbaar" },
+      { status: 500 },
+    );
+  }
+
+  const today = amsterdamDayKey();
+  const week = mondayKey(today);
+
+  // Iedereen met intervals.icu krijgt een voorkeur (standaard zichtbaar, 0267) en
+  // dus een steen. Een bestaande voorkeur blijft staan: wie verbergt, blijft verborgen.
+  const { data: linked } = await admin
+    .from("intervals_connections")
+    .select("profile_id, profiles!inner(is_approved)")
+    .not("athlete_id", "is", null)
+    .eq("profiles.is_approved", true);
+  const enroll = ((linked ?? []) as Array<{ profile_id: string }>).map((row) => ({ profile_id: row.profile_id }));
+  if (enroll.length > 0) {
+    await admin.from("zwbriljant_preferences").upsert(enroll, { onConflict: "profile_id", ignoreDuplicates: true });
+  }
+
+  const [{ data: members, error }, { data: done }, { data: looked }] = await Promise.all([
+    admin.from("zwbriljant_preferences").select("profile_id").order("created_at", { ascending: true }),
+    // Alleen snapshots van de huidige schalen tellen; bij nieuwe schalen komt er
+    // een nieuwe terugblik en weekopname.
+    admin
+      .from("zwbriljant_snapshots")
+      .select("profile_id, provenance")
+      .eq("week", week)
+      .eq("source", "week")
+      .eq("provenance->>scale", SCALE_VERSION),
+    admin
+      .from("zwbriljant_snapshots")
+      .select("profile_id")
+      .eq("source", "terugblik")
+      .eq("provenance->>scale", SCALE_VERSION)
+      .eq("provenance->>terugblik", TERUGBLIK_SPAN),
+  ]);
+  if (error) {
+    const noMigration = /zwbriljant/.test(error.message);
+    return NextResponse.json(
+      { ok: false, error: noMigration ? "migratie 0265 ontbreekt" : error.message },
+      { status: 500 },
+    );
+  }
+
+  // Een weeksnapshot waarin de wellness van intervals.icu mislukte (geen CTL, dus
+  // geen fitheid) telt niet als klaar; die komt na de leden zonder snapshot nog eens.
+  const connected = new Set(((linked ?? []) as Array<{ profile_id: string }>).map((row) => row.profile_id));
+  type Done = { profile_id: string; provenance: { ctl?: boolean; wellness?: boolean } | null };
+  const retry = (row: Done) =>
+    connected.has(row.profile_id) && row.provenance?.wellness !== true && row.provenance?.ctl !== true;
+  const doneRows = (done ?? []) as Done[];
+  const doneIds = new Set(doneRows.filter((row) => !retry(row)).map((row) => row.profile_id));
+  const retryIds = new Set(doneRows.filter(retry).map((row) => row.profile_id));
+  const withTerugblik = new Set((looked ?? []).map((row) => row.profile_id as string));
+  // Ook wie deze week al keek, maar nog geen terugblik op de huidige schaal heeft.
+  const due = (members ?? [])
+    .map((row) => row.profile_id as string)
+    .filter((id) => !doneIds.has(id) || !withTerugblik.has(id))
+    .sort((a, b) => Number(retryIds.has(a)) - Number(retryIds.has(b)));
+
+  const started = Date.now();
+  let processed = 0;
+  let errors = 0;
+  for (const profileId of due.slice(0, limit)) {
+    if (Date.now() - started > BUDGET_MS) break;
+    try {
+      await refreshSources(admin, profileId, ZRS_BUDGET_MS);
+      const redo = !withTerugblik.has(profileId);
+      if (redo) await storeTerugblik(admin, profileId, today);
+      // Een nieuwe terugblik betekent meestal een nieuwe rekenregel: dan ook de steen
+      // van deze week opnieuw, als er nog tijd is (anders bij het volgende bezoek of
+      // volgende week).
+      if (!doneIds.has(profileId) || (redo && Date.now() - started < BUDGET_MS)) await storeWeek(admin, profileId, today);
+      processed += 1;
+    } catch {
+      errors += 1;
+    }
+  }
+
+  // Met de tijd die over is: de ZRS van vroeger in de terugblik, lid voor lid. De
+  // eigen job /api/briljant/zrs-history doet hetzelfde met een heel budget.
+  let zrsMonths = 0;
+  try {
+    zrsMonths = (await runZrsHistory(admin, TERUGBLIK_SPAN, started + HISTORY_UNTIL_MS)).months;
+  } catch {
+    errors += 1;
+  }
+
+  // Geen profiel-id's in het antwoord: dat staat in de job-historie van de
+  // cron-dienst.
+  return NextResponse.json({
+    ok: errors === 0,
+    week,
+    members: members?.length ?? 0,
+    due: due.length,
+    processed,
+    zrsMonths,
+    errors,
+  });
+}

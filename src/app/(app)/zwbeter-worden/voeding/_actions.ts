@@ -13,22 +13,30 @@ import { INGREDIENT_ROLES, type IngredientRole } from "@/lib/nutrition/scale";
 import { DIET_TAGS, FUEL_PROFILES } from "@/lib/nutrition/labels";
 import { MEAL_MOMENTS } from "@/lib/nutrition/targets";
 import { RECIPE_PREFS } from "@/lib/nutrition/menu";
-import { collectPages, compoundSplits, foodSearchTokens, rankFoods } from "@/lib/nutrition/food-search";
+import { normalizeBarcode } from "@/lib/nutrition/products";
+import { foodSearchTokens } from "@/lib/nutrition/food-search";
+import { queryFoods, type FoodOption } from "@/lib/nutrition/food-query";
+import { RECIPE_VISIBILITIES, type RecipeVisibility } from "@/lib/nutrition/recipes";
+import { SWEAT_CONSENT_VERSION, SWEAT_SETTINGS, sweatRate } from "@/lib/nutrition/sweat";
+
+export type { FoodOption } from "@/lib/nutrition/food-query";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 const MAX_INGREDIENTS = 30;
 
-export type FoodOption = {
-  id: string;
-  name_nl: string;
-  quantity_unit: "g" | "ml";
-  carbs_g: number | null;
-  protein_g: number | null;
-};
-
 function text(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
+}
+
+/** Alleen een geldige https-link; de kolommen staan niets anders toe (0213, 0264). */
+function httpsUrl(value: string): string | null {
+  if (!value || value.length > 1000) return null;
+  try {
+    return new URL(value).protocol === "https:" ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 async function currentUser() {
@@ -45,66 +53,30 @@ function refresh() {
 
 /** Zoeken in NEVO voor het receptformulier. */
 export async function searchFoods(query: string): Promise<FoodOption[]> {
-  const tokens = foodSearchTokens(query);
-  if (tokens.length === 0) return [];
+  if (foodSearchTokens(query).length === 0) return [];
   const { supabase } = await currentUser();
-  // % en _ zijn jokers in ilike; letterlijk zoeken.
-  const pattern = (part: string) => `%${part.replace(/[\\%_]/g, (match) => `\\${match}`)}%`;
-  const columns = "id, name_nl, quantity_unit, carbs_g, protein_g";
-
-  // Elk woord moet in de naam staan, in welke volgorde ook. Alle treffers
-  // ophalen, per pagina: rankFoods kiest de beste twintig, en een afgekapte
-  // voorraad op alfabet laat bij "rauw" alles na de P weg.
-  let rows = await collectPages<FoodOption>(async (from, to) => {
-    let search = supabase.from("nutrition_foods").select(columns);
-    for (const token of tokens) search = search.ilike("name_nl", pattern(token));
-    const { data } = await search
-      .order("name_nl", { ascending: true })
-      .order("id", { ascending: true })
-      .range(from, to);
-    return (data ?? []) as FoodOption[];
-  });
-
-  // Niets bij één woord: een samenstelling als "chocolademelk" staat in NEVO als
-  // "Melk chocolade-". Probeer elke knip in twee stukken, in één query.
-  if (rows.length === 0 && tokens.length === 1) {
-    const splits = compoundSplits(tokens[0]);
-    if (splits.length > 0) {
-      const filter = splits
-        .map(([head, tail]) => `and(name_nl.ilike.%${head}%,name_nl.ilike.%${tail}%)`)
-        .join(",");
-      rows = await collectPages<FoodOption>(async (from, to) => {
-        const { data: split } = await supabase
-          .from("nutrition_foods")
-          .select(columns)
-          .or(filter)
-          .order("name_nl", { ascending: true })
-          .order("id", { ascending: true })
-          .range(from, to);
-        return (split ?? []) as FoodOption[];
-      });
-    }
-  }
-  return rankFoods(rows, tokens);
+  return queryFoods(supabase, query);
 }
 
-type IngredientInput = { food_id: string; grams: number; role: IngredientRole };
+/** Een NEVO-product (`food_id`) of een barcodeproduct (`barcode`, 0276). */
+type IngredientInput = { food_id?: string; barcode?: string; grams: number; role: IngredientRole };
 
 function parseIngredients(raw: string): IngredientInput[] | null {
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return null;
-    const items = parsed.map((item) => {
+    const items = parsed.map((item): IngredientInput => {
       const row = item as Record<string, unknown>;
+      const barcode = row.barcode ? normalizeBarcode(String(row.barcode)) : null;
       return {
-        food_id: String(row.food_id ?? ""),
+        ...(barcode ? { barcode } : { food_id: String(row.food_id ?? "") }),
         grams: Number(row.grams),
         role: String(row.role ?? "") as IngredientRole,
       };
     });
     const valid = items.every(
       (item) =>
-        item.food_id &&
+        (item.food_id || item.barcode) &&
         Number.isFinite(item.grams) &&
         item.grams > 0 &&
         item.grams <= 5000 &&
@@ -154,15 +126,26 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
 
   const { supabase, user } = await currentUser();
 
-  const foodIds = [...new Set(ingredients.map((item) => item.food_id))];
-  const { data: foods, error: foodError } = await supabase
-    .from("nutrition_foods")
-    .select("id")
-    .in("id", foodIds);
-  if (foodError) return { ok: false, error: foodError.message };
-  if ((foods ?? []).length !== foodIds.length) {
+  const foodIds = [...new Set(ingredients.flatMap((item) => (item.food_id ? [item.food_id] : [])))];
+  const barcodes = [...new Set(ingredients.flatMap((item) => (item.barcode ? [item.barcode] : [])))];
+  const [foods, products] = await Promise.all([
+    foodIds.length > 0 ? supabase.from("nutrition_foods").select("id").in("id", foodIds) : { data: [], error: null },
+    barcodes.length > 0
+      ? supabase.from("nutrition_products").select("barcode").in("barcode", barcodes)
+      : { data: [], error: null },
+  ]);
+  const lookupError = foods.error ?? products.error;
+  if (lookupError) return { ok: false, error: lookupError.message };
+  if ((foods.data ?? []).length !== foodIds.length || (products.data ?? []).length !== barcodes.length) {
     return { ok: false, error: "Een van de ingrediënten bestaat niet meer." };
   }
+
+  const sourceUrl = httpsUrl(text(formData.get("source_url")));
+  const sourceName = text(formData.get("source_name")).slice(0, 120) || (sourceUrl ? new URL(sourceUrl).hostname : "");
+  const visibilityRaw = text(formData.get("visibility"));
+  const visibility: RecipeVisibility = (RECIPE_VISIBILITIES as readonly string[]).includes(visibilityRaw)
+    ? (visibilityRaw as RecipeVisibility)
+    : "prive";
 
   const fields = {
     title,
@@ -172,21 +155,33 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
     servings,
     prep_minutes: prepMinutes,
     steps_md: text(formData.get("steps_md")).slice(0, 5000),
+    source_name: sourceName || null,
+    source_url: sourceUrl,
   };
+  // Pas na 0264; zonder die migratie bewaart het formulier het recept privé.
+  const sharing = {
+    visibility,
+    show_owner: visibility === "leden" && formData.get("show_owner") === "on",
+    image_url: httpsUrl(text(formData.get("image_url"))),
+  };
+  const missingSharing = (error: { code?: string } | null) => error?.code === "PGRST204";
 
   const recipeId = text(formData.get("recipe_id"));
   let id: string;
   let slug: string;
 
   if (recipeId) {
-    const { data: updated, error } = await supabase
-      .from("nutrition_recipes")
-      .update(fields)
-      .eq("id", recipeId)
-      .eq("owner_id", user.id)
-      .eq("is_standard", false)
-      .select("id, slug")
-      .maybeSingle();
+    const update = (values: Record<string, unknown>) =>
+      supabase
+        .from("nutrition_recipes")
+        .update(values)
+        .eq("id", recipeId)
+        .eq("owner_id", user.id)
+        .eq("is_standard", false)
+        .select("id, slug")
+        .maybeSingle();
+    let { data: updated, error } = await update({ ...fields, ...sharing });
+    if (missingSharing(error)) ({ data: updated, error } = await update(fields));
     if (error) return { ok: false, error: error.message };
     if (!updated) return { ok: false, error: "Dit recept kun je niet wijzigen." };
     id = updated.id as string;
@@ -198,25 +193,27 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
       .eq("recipe_id", id);
     if (deleteError) return { ok: false, error: deleteError.message };
   } else {
-    const { data: created, error } = await supabase
-      .from("nutrition_recipes")
-      .insert({
-        ...fields,
-        slug: `eigen-${user.id.slice(0, 8)}-${Date.now().toString(36)}`,
-        is_standard: false,
-        owner_id: user.id,
-      })
-      .select("id, slug")
-      .single();
+    const base = {
+      ...fields,
+      slug: `eigen-${user.id.slice(0, 8)}-${Date.now().toString(36)}`,
+      is_standard: false,
+      owner_id: user.id,
+    };
+    const insert = (values: Record<string, unknown>) =>
+      supabase.from("nutrition_recipes").insert(values).select("id, slug").single();
+    let { data: created, error } = await insert({ ...base, ...sharing });
+    if (missingSharing(error)) ({ data: created, error } = await insert(base));
     if (error || !created) return { ok: false, error: error?.message ?? "Recept opslaan mislukt." };
     id = created.id as string;
     slug = created.slug as string;
   }
 
   const { error: itemsError } = await supabase.from("nutrition_recipe_ingredients").insert(
+    // De kolom product_barcode gaat alleen mee als er een barcodeproduct in zit:
+    // een recept met alleen NEVO-producten werkt zo ook zonder 0276.
     ingredients.map((item, index) => ({
       recipe_id: id,
-      food_id: item.food_id,
+      ...(item.barcode ? { food_id: null, product_barcode: item.barcode } : { food_id: item.food_id }),
       sort_order: index,
       grams: item.grams,
       role: item.role,
@@ -250,6 +247,81 @@ export async function deleteOwnRecipe(formData: FormData): Promise<ActionResult>
 }
 
 /** Favoriet, "niet voor mij", of geen van beide (leeg). Alleen voor het lid zelf. */
+/**
+ * Onderweg tot 120 g per uur, na een afgeronde darmtraining (0272, stap 4 van
+ * docs/ritvoeding-plan.md). Zonder afgeronde darmtraining rekent de app er niet
+ * mee (gut-training.ts), dus aanzetten kan geen kwaad.
+ */
+export async function setRideCarbs120(formData: FormData): Promise<ActionResult> {
+  const { supabase, user } = await currentUser();
+  const on = text(formData.get("on")) === "ja";
+  const { error } = await supabase
+    .from("nutrition_profiles")
+    .upsert({ profile_id: user.id, ride_carbs_120: on }, { onConflict: "profile_id" });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/zwbeter-worden", "layout");
+  return { ok: true };
+}
+
+function decimal(value: FormDataEntryValue | null): number {
+  const raw = text(value).replace(",", ".");
+  return raw === "" ? Number.NaN : Number(raw);
+}
+
+/**
+ * Een zweettest opslaan (0273). Het gewicht van voor en na rekent de app hier
+ * om naar zweetverlies per uur en bewaart het niet (besluit 5). Zonder eerdere
+ * test moet het lid eerst tekenen.
+ */
+export async function saveSweatTest(formData: FormData): Promise<ActionResult> {
+  const { supabase, user } = await currentUser();
+  const { count } = await supabase
+    .from("nutrition_sweat_tests")
+    .select("id", { count: "exact", head: true })
+    .eq("profile_id", user.id);
+  if (!count && formData.get("consent") !== "ja") return { ok: false, error: "Vink de toestemming aan." };
+
+  const testedOn = text(formData.get("tested_on"));
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(testedOn) || testedOn > today) return { ok: false, error: "Kies een datum tot vandaag." };
+  const setting = text(formData.get("setting"));
+  if (!(SWEAT_SETTINGS as readonly string[]).includes(setting)) return { ok: false, error: "Kies binnen of buiten." };
+
+  const durationMinutes = decimal(formData.get("duration_minutes"));
+  const result = sweatRate({
+    durationMinutes,
+    weightBeforeKg: decimal(formData.get("weight_before")),
+    weightAfterKg: decimal(formData.get("weight_after")),
+    drankMl: decimal(formData.get("drank_ml")),
+  });
+  if (!result.ok) return { ok: false, error: result.reason };
+
+  const { error } = await supabase.from("nutrition_sweat_tests").insert({
+    profile_id: user.id,
+    tested_on: testedOn,
+    duration_minutes: Math.round(durationMinutes),
+    sweat_ml_per_hour: result.mlPerHour,
+    setting,
+    warm: formData.get("warm") === "ja",
+    consent_version: SWEAT_CONSENT_VERSION,
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/zwbeter-worden", "layout");
+  return { ok: true };
+}
+
+export async function deleteSweatTest(formData: FormData): Promise<ActionResult> {
+  const { supabase, user } = await currentUser();
+  const { error } = await supabase
+    .from("nutrition_sweat_tests")
+    .delete()
+    .eq("id", text(formData.get("id")))
+    .eq("profile_id", user.id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/zwbeter-worden", "layout");
+  return { ok: true };
+}
+
 export async function setRecipePref(formData: FormData): Promise<ActionResult> {
   const recipeId = text(formData.get("recipe_id"));
   const pref = text(formData.get("pref"));

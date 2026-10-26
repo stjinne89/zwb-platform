@@ -12,8 +12,9 @@ import {
   type NutritionFood,
   type ScaledRecipe,
 } from "./scale";
-import { mealTarget, type MealMoment } from "./targets";
+import { mealTarget, type GutTraining, type MealMoment } from "./targets";
 import type { DietTag, FuelProfile } from "./labels";
+import { productAsFood, type ProductRow } from "./products";
 
 export {
   DIET_TAGS,
@@ -29,6 +30,33 @@ export type RecipeIngredientRow = {
   role: IngredientRole;
   food: NutritionFood & { quantity_unit: "g" | "ml" };
 };
+
+/** Een ingrediënt zoals de database het geeft: NEVO (`food`) of een barcodeproduct (`product`, 0276). */
+export type RecipeIngredientDbRow = Omit<RecipeIngredientRow, "food" | "grams"> & {
+  grams: number | string;
+  food: RecipeIngredientRow["food"] | null;
+  product?: ProductRow | null;
+};
+
+/** De ingrediënten op volgorde; een barcodeproduct krijgt de vorm van een NEVO-product. */
+export function recipeIngredients(rows: RecipeIngredientDbRow[] | null | undefined): RecipeIngredientRow[] {
+  return [...(rows ?? [])]
+    .flatMap((row): RecipeIngredientRow[] => {
+      const { product, ...rest } = row;
+      const food = row.food ?? (product ? productAsFood(product) : null);
+      return food ? [{ ...rest, food, grams: Number(row.grams) }] : [];
+    })
+    .sort((a, b) => a.sort_order - b.sort_order);
+}
+
+/**
+ * Alleen verpakte producten, zoals een gel of een reep: die schalen niet mee
+ * met het doel, want een halve gel neem je niet mee. Het ritplan telt hele
+ * stuks (ride-plan.ts).
+ */
+export function isPackagedRecipe(recipe: Pick<Recipe, "ingredients">): boolean {
+  return recipe.ingredients.length > 0 && recipe.ingredients.every((item) => item.food.barcode);
+}
 
 export type Recipe = {
   id: string;
@@ -49,17 +77,34 @@ export type Recipe = {
   share_status: ShareStatus | null;
   /** Wie een clubrecept aandroeg, als dat een lid was. */
   contributor: { display_name: string | null } | null;
+  /** Een eigen recept dat met alle leden gedeeld is (0264). Zonder 0264: privé. */
+  visibility?: RecipeVisibility;
+  /** De maker wil naam en profielfoto bij het gedeelde recept. */
+  show_owner?: boolean;
+  /** Foto van de bron, bij een recept van een link. */
+  image_url?: string | null;
+  /** Naam en foto van de maker; alleen gevuld als die getoond mogen worden. */
+  sharer?: { display_name: string | null; avatar_url: string | null } | null;
+  /** Gedeeld door een ander lid: niet nagekeken, dus niet vanzelf in het menu (menu.ts). */
+  from_member?: boolean;
   ingredients: RecipeIngredientRow[];
 };
 
 export const SHARE_STATUSES = ["voorgesteld", "afgewezen"] as const;
 export type ShareStatus = (typeof SHARE_STATUSES)[number];
 
+export const RECIPE_VISIBILITIES = ["prive", "leden"] as const;
+export type RecipeVisibility = (typeof RECIPE_VISIBILITIES)[number];
+
 export type Rider = {
   weightKg: number | null;
   energyFactor: number;
   dayType: FuelDayType;
   rideMinutes: number | null;
+  /** Zwaarte van de rit; null = het midden van de band. */
+  rideIntensity?: string | null;
+  /** Darmtraining (gut-training.ts). */
+  rideGut?: GutTraining | null;
 };
 
 /** Eén portie op maat, of de basisportie zolang het gewicht onbekend is. */
@@ -69,7 +114,7 @@ export function portionForRider(recipe: Recipe, rider: Rider | null): ScaledReci
     grams: item.grams,
     role: item.role,
   }));
-  if (!rider?.weightKg) return basePortion(ingredients, recipe.servings);
+  if (!rider?.weightKg || isPackagedRecipe(recipe)) return basePortion(ingredients, recipe.servings);
   return scaleRecipe(
     ingredients,
     recipe.servings,
@@ -77,6 +122,8 @@ export function portionForRider(recipe: Recipe, rider: Rider | null): ScaledReci
       weightKg: rider.weightKg,
       dayType: rider.dayType,
       rideMinutes: rider.rideMinutes,
+      rideIntensity: rider.rideIntensity,
+      rideGut: rider.rideGut,
     }),
     rider.energyFactor,
   );

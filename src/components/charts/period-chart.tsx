@@ -16,7 +16,7 @@
 import { useId, useState, type ReactNode } from "react";
 import { ChartTooltip } from "@/components/charts/chart-tooltip";
 import { ResponsiveChart } from "@/components/charts/responsive-chart";
-import { tickIndices, type ChartMetrics } from "@/lib/charts/responsive";
+import type { ChartMetrics } from "@/lib/charts/responsive";
 import { lineSegments } from "@/lib/charts/paths";
 import { niceStep } from "@/lib/charts/scale";
 import { cn } from "@/lib/utils";
@@ -47,11 +47,23 @@ export type PeriodReadout = {
   value?: (index: number) => number | null;
   /** Wat er onder het cijfer staat, naast de naam van de periode. */
   note?: (index: number) => ReactNode;
+  /** Opmaak van het grote cijfer als die afwijkt van de as (bv. uren bij een as in %). */
+  format?: (value: number) => string;
 };
 
 type Axis = { min: number; max: number; step: number; ticks: number[] };
 
-function axisFor(values: number[], { zero, count }: { zero: boolean; count: number }): Axis {
+type AxisOptions = {
+  zero: boolean;
+  count: number;
+  /** Kleinste bereik van de as, zodat 0,4 kg verschil niet de hele hoogte vult. */
+  minSpan?: number;
+  /** Alleen hele getallen op de as: een stap van 2,5 bij hele watt of slagen
+   * gaf labels als 63, 65, 68. */
+  integer?: boolean;
+};
+
+function axisFor(values: number[], { zero, count, minSpan = 0, integer = false }: AxisOptions): Axis {
   if (values.length === 0) return { min: 0, max: 1, step: 1, ticks: [0, 1] };
   let low = Math.min(...values);
   let high = Math.max(...values);
@@ -63,7 +75,17 @@ function axisFor(values: number[], { zero, count }: { zero: boolean; count: numb
     low -= pad;
     high += pad;
   }
-  const step = niceStep((high - low) / Math.max(1, count));
+  if (high - low < minSpan) {
+    const middle = (high + low) / 2;
+    low = middle - minSpan / 2;
+    high = middle + minSpan / 2;
+    if (Math.min(...values) >= 0 && low < 0) {
+      high -= low;
+      low = 0;
+    }
+  }
+  let step = niceStep((high - low) / Math.max(1, count));
+  if (integer && !Number.isInteger(step)) step = Math.ceil(step);
   const min = Math.floor(low / step) * step;
   const max = Math.max(min + step, Math.ceil(high / step) * step);
   const ticks: number[] = [];
@@ -74,6 +96,27 @@ function axisFor(values: number[], { zero, count }: { zero: boolean; count: numb
 /** Breedte van de langste aslabel, ruw geschat (cijfers zijn ~0,6 em breed). */
 function labelWidth(labels: string[], fontSize: number) {
   return Math.max(0, ...labels.map((label) => label.length)) * fontSize * 0.62;
+}
+
+/**
+ * Welke punten een label op de x-as krijgen: op vaste afstand van elkaar, terug
+ * vanaf het laatste punt (dat is de periode waar je naar kijkt). Een gewone
+ * afronding gaf nov, jan, feb, apr, mei: ongelijke gaten die op ontbrekende
+ * maanden lijken. Met kandidaten (bv. de eerste dag van elke maand) alleen daaruit.
+ */
+function evenTicks(count: number, wanted: number, candidates?: number[]) {
+  const pool = candidates && candidates.length > 0 ? candidates : Array.from({ length: count }, (_, index) => index);
+  const target = Math.max(2, wanted);
+  if (pool.length <= target) return pool;
+  const stride = Math.ceil((pool.length - 1) / (target - 1));
+  const picked: number[] = [];
+  for (let index = pool.length - 1; index >= 0; index -= stride) picked.unshift(pool[index]);
+  return picked;
+}
+
+/** Hele getallen in de reeksen zelf (niet het gemiddelde of vorig jaar). */
+function allIntegers(series: PeriodSeries[]) {
+  return series.every((item) => item.values.every((value) => value == null || Number.isInteger(value)));
 }
 
 function lastIndexWithValue(values: Array<number | null>) {
@@ -96,6 +139,9 @@ export function PeriodChart({
   reference,
   ghost,
   selectedIndex = null,
+  minSpan,
+  minSpanRight,
+  tickCandidates,
 }: {
   ariaLabel: string;
   /** Kort label per punt, voor de x-as. */
@@ -119,6 +165,11 @@ export function PeriodChart({
   ghost?: { label: string; values: Array<number | null> } | null;
   /** De periode die zonder aanwijzer getoond wordt; anders de laatste. */
   selectedIndex?: number | null;
+  /** Kleinste bereik van de linker- en rechteras, in de eenheid van die as. */
+  minSpan?: number;
+  minSpanRight?: number;
+  /** Punten die een x-label mogen krijgen, bv. de eerste dag van elke maand. */
+  tickCandidates?: number[];
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const hatchId = `hatch-${useId().replace(/:/g, "")}`;
@@ -148,7 +199,21 @@ export function PeriodChart({
     .filter((item) => item.axis === "right")
     .flatMap((item) => item.values.filter((value): value is number => value != null));
   const zeroLeft = zeroBased || bars.length > 0;
+  const leftSeries = series.filter((item) => item.axis !== "right");
+  const rightSeries = series.filter((item) => item.axis === "right");
+  const leftAxis = (ticks: number) =>
+    axisFor(leftValues, { zero: zeroLeft, count: ticks, minSpan, integer: allIntegers(leftSeries) });
+  const rightAxis = (ticks: number) =>
+    axisFor(rightValues, { zero: zeroBased, count: ticks, minSpan: minSpanRight, integer: allIntegers(rightSeries) });
   const fmtFor = (item: PeriodSeries) => (item.axis === "right" ? (formatRight ?? format) : format);
+  // Een vlak onder een lijn zegt "zoveel": dat klopt alleen als de as bij nul
+  // begint. Op een ingezoomde as maakt het vlak een kleine schommeling groot.
+  const fillsArea = (item: PeriodSeries) => !!item.area && (item.axis === "right" ? zeroBased : zeroLeft);
+  // Losse staven tonen hun waarde in het leescijfer; een stapel (zones) niet,
+  // dat zijn er te veel.
+  const readoutExtras = series.filter(
+    (item) => item.key !== readout?.series && (item.kind !== "bar" || bars.length === 1),
+  );
 
   const readoutValue = readoutSeries && active != null ? readoutAt(active) : null;
 
@@ -157,7 +222,9 @@ export function PeriodChart({
       {readout && readoutSeries && (
         <div className="st-readout mb-2 min-h-[4.5rem]" aria-live="polite">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="st-num">{readoutValue == null ? "–" : fmtFor(readoutSeries)(readoutValue)}</span>
+            <span className="st-num">
+              {readoutValue == null ? "–" : (readout.format ?? fmtFor(readoutSeries))(readoutValue)}
+            </span>
             {active != null && (
               <span className="text-sm text-muted-foreground">{titles?.[active] ?? labels[active]}</span>
             )}
@@ -165,17 +232,18 @@ export function PeriodChart({
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
             {active != null && readout.note?.(active)}
             {active != null &&
-              series
-                .filter((item) => item.key !== readoutSeries.key && item.kind !== "bar")
-                .map((item) => {
-                  const value = item.values[active];
-                  return (
-                    <span key={item.key} className="inline-flex items-center gap-1.5 tabular-nums">
-                      <span className="h-0.5 w-3 rounded-full" style={{ background: item.color }} />
-                      {item.label} {value == null ? "–" : fmtFor(item)(value)}
-                    </span>
-                  );
-                })}
+              readoutExtras.map((item) => {
+                const value = item.values[active];
+                return (
+                  <span key={item.key} className="inline-flex items-center gap-1.5 tabular-nums">
+                    <span
+                      className={item.kind === "bar" ? "size-2 rounded-[2px]" : "h-0.5 w-3 rounded-full"}
+                      style={{ background: item.color }}
+                    />
+                    {item.label} {value == null ? "–" : fmtFor(item)(value)}
+                  </span>
+                );
+              })}
             {active != null && ghost && ghost.values[active] != null && (
               <span className="inline-flex items-center gap-1.5 tabular-nums">
                 <span className="h-0.5 w-3 rounded-full bg-[var(--st-soft)]" />
@@ -191,10 +259,8 @@ export function PeriodChart({
         margin={(metrics: ChartMetrics) => {
           // De marges volgen de langste aslabel; "10.000" of "300 W" past anders
           // niet in de vaste marge van een smalle grafiek.
-          const leftTicks = axisFor(leftValues, { zero: zeroLeft, count: metrics.yTickCount }).ticks.map(format);
-          const rightTicks = hasRight
-            ? axisFor(rightValues, { zero: zeroBased, count: metrics.yTickCount }).ticks.map(formatRight ?? format)
-            : [];
+          const leftTicks = leftAxis(metrics.yTickCount).ticks.map(format);
+          const rightTicks = hasRight ? rightAxis(metrics.yTickCount).ticks.map(formatRight ?? format) : [];
           return {
             top: 14,
             left: Math.max(30, Math.ceil(labelWidth(leftTicks, metrics.axisFontSize)) + 10),
@@ -207,8 +273,8 @@ export function PeriodChart({
       >
         {({ width, height, metrics, plotWidth, plotHeight }) => {
           const { margin, axisFontSize } = metrics;
-          const left = axisFor(leftValues, { zero: zeroLeft, count: metrics.yTickCount });
-          const right = axisFor(rightValues, { zero: zeroBased, count: metrics.yTickCount });
+          const left = leftAxis(metrics.yTickCount);
+          const right = rightAxis(metrics.yTickCount);
           const top = margin.top;
           const bottom = margin.top + plotHeight;
           const band = count > 0 ? plotWidth / count : plotWidth;
@@ -217,7 +283,13 @@ export function PeriodChart({
           const yRight = (value: number) =>
             bottom - ((value - right.min) / (right.max - right.min)) * plotHeight;
           const barWidth = Math.max(1.5, Math.min(44, band * (band > 14 ? 0.7 : 0.82)));
-          const ticks = tickIndices(count, metrics.xTickCount + (metrics.density === "compact" ? 0 : 2));
+          const ticks = evenTicks(count, metrics.xTickCount + (metrics.density === "compact" ? 1 : 2), tickCandidates);
+          const anchorFor = (index: number) => {
+            const half = labelWidth([labels[index] ?? ""], axisFontSize) / 2;
+            if (xFor(index) - half < 0) return "start";
+            if (xFor(index) + half > width) return "end";
+            return "middle";
+          };
           const baseY = yLeft(Math.max(left.min, Math.min(0, left.max)));
 
           return (
@@ -229,7 +301,7 @@ export function PeriodChart({
                   <rect width="3" height="6" fill="var(--st-hi)" />
                 </pattern>
                 {lines
-                  .filter((item) => item.area)
+                  .filter(fillsArea)
                   .map((item) => (
                     <linearGradient key={item.key} id={`${hatchId}-${item.key}`} x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={item.color} stopOpacity="0.32" />
@@ -281,7 +353,7 @@ export function PeriodChart({
                   key={`x-${index}`}
                   x={xFor(index)}
                   y={height - Math.round(margin.bottom / 3)}
-                  textAnchor={count > 1 && index === 0 ? "start" : count > 1 && index === count - 1 ? "end" : "middle"}
+                  textAnchor={anchorFor(index)}
                   fontSize={axisFontSize}
                   fill={index === active ? "var(--foreground)" : "var(--muted-foreground)"}
                 >
@@ -388,7 +460,7 @@ export function PeriodChart({
                 const strong = !item.muted && !item.dashed;
                 return (
                   <g key={item.key}>
-                    {item.area &&
+                    {fillsArea(item) &&
                       item.kind === "line" &&
                       paths.map((d, index) => {
                         const xs = [...d.matchAll(/[ML] ([\d.]+)/g)].map((match) => Number(match[1]));

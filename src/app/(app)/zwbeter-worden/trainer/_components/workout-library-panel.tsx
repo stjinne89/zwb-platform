@@ -1,17 +1,28 @@
 // De workout-bibliotheek bij een schema: kies een trainingsvorm, pak een
-// workout op lengte en zet 'm op een datum. Daaronder een formulier om een
-// eigen workout te bewaren.
+// workout op lengte en zet 'm op een datum. Elke workout toont zijn blokken zoals
+// het lid ze in zijn schema ziet, en het bewijsniveau van het kennisartikel dat
+// hem onderbouwt (workout-support.ts). Daaronder een formulier om een eigen
+// workout te bewaren.
 
+import Link from "next/link";
 import { Library } from "lucide-react";
+import { EvidenceBadge } from "@/components/evidence-badge";
 import { MethodLabelBadge } from "@/components/method-label-badge";
-import { INTENSITY_LABELS, WORKOUT_INTENSITIES, type WorkoutIntensity } from "@/lib/training/workouts";
+import {
+  INTENSITY_LABELS,
+  normalizeWorkoutBlocks,
+  WORKOUT_INTENSITIES,
+  type WorkoutIntensity,
+} from "@/lib/training/workouts";
 import { TRAINING_FORMS, trainingFormLabel } from "@/lib/training/training-forms";
+import { workoutSupport } from "@/lib/training/workout-support";
 import {
   addWorkoutFromTemplate,
   deleteWorkoutTemplate,
   saveWorkoutTemplate,
 } from "../../_actions";
 import { formAction } from "../../_components/format";
+import { WorkoutBlocks } from "../../_components/workout-blocks";
 
 export type WorkoutTemplateRow = {
   id: string;
@@ -22,8 +33,9 @@ export type WorkoutTemplateRow = {
   intensity: string;
   is_standard: boolean;
   created_by: string | null;
-  /** Veelbelovend of experimenteel (0246). */
+  /** Nieuwe methode (0246: veelbelovend of experimenteel). */
   method_label?: string | null;
+  structure_json?: unknown;
 };
 
 export function WorkoutLibraryPanel({
@@ -31,12 +43,15 @@ export function WorkoutLibraryPanel({
   planId,
   defaultDate,
   viewerId,
+  ftpWatts,
 }: {
   templates: WorkoutTemplateRow[];
   /** Het schema waar de workout in komt; zonder actief schema geen invoegknop. */
   planId: string | null;
   defaultDate: string;
   viewerId: string;
+  /** FTP van het lid, voor watts in de blokken. */
+  ftpWatts?: number | null;
 }) {
   // Alleen de vormen die ook echt workouts hebben, oplopend in duur.
   const byForm = TRAINING_FORMS.map((form) => ({
@@ -66,51 +81,69 @@ export function WorkoutLibraryPanel({
                 {form.label}
               </h4>
               <ul className="mt-2 divide-y rounded-md border">
-                {form.items.map((template) => (
-                  <li
-                    key={template.id}
-                    className="grid gap-2 p-3 lg:grid-cols-[1fr_auto] lg:items-center"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <p className="truncate text-sm font-medium">{template.title}</p>
-                        <MethodLabelBadge label={template.method_label} />
+                {form.items.map((template) => {
+                  const support = workoutSupport(template);
+                  return (
+                    <li key={template.id} className="p-3">
+                      <div className="grid gap-2 lg:grid-cols-[1fr_auto] lg:items-center">
+                        <div className="min-w-0">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <p className="truncate text-sm font-medium">{template.title}</p>
+                            {support ? (
+                              <Link
+                                href={`/zwbeter-worden/kennis/${support.slug}`}
+                                title={support.title}
+                                className="rounded-full transition hover:opacity-80"
+                              >
+                                <EvidenceBadge evidence={support.evidence} />
+                              </Link>
+                            ) : null}
+                            <MethodLabelBadge label={template.method_label} />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {template.duration_minutes} min · {INTENSITY_LABELS[template.intensity as WorkoutIntensity] ?? template.intensity}
+                            {template.description ? ` · ${template.description}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {planId ? (
+                            <form
+                              action={formAction(addWorkoutFromTemplate)}
+                              className="flex items-center gap-2"
+                            >
+                              <input type="hidden" name="plan_id" value={planId} />
+                              <input type="hidden" name="template_id" value={template.id} />
+                              <input
+                                name="date"
+                                type="date"
+                                defaultValue={defaultDate}
+                                className="rounded-md border bg-background px-2 py-1 text-sm"
+                              />
+                              <button className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">
+                                Invoegen
+                              </button>
+                            </form>
+                          ) : null}
+                          {!template.is_standard && template.created_by === viewerId ? (
+                            <form action={formAction(deleteWorkoutTemplate)}>
+                              <input type="hidden" name="template_id" value={template.id} />
+                              <button className="rounded-md border px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground">
+                                Verwijder
+                              </button>
+                            </form>
+                          ) : null}
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {template.duration_minutes} min · {INTENSITY_LABELS[template.intensity as WorkoutIntensity] ?? template.intensity}
-                        {template.description ? ` · ${template.description}` : ""}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {planId ? (
-                        <form
-                          action={formAction(addWorkoutFromTemplate)}
-                          className="flex items-center gap-2"
-                        >
-                          <input type="hidden" name="plan_id" value={planId} />
-                          <input type="hidden" name="template_id" value={template.id} />
-                          <input
-                            name="date"
-                            type="date"
-                            defaultValue={defaultDate}
-                            className="rounded-md border bg-background px-2 py-1 text-sm"
-                          />
-                          <button className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent">
-                            Invoegen
-                          </button>
-                        </form>
-                      ) : null}
-                      {!template.is_standard && template.created_by === viewerId ? (
-                        <form action={formAction(deleteWorkoutTemplate)}>
-                          <input type="hidden" name="template_id" value={template.id} />
-                          <button className="rounded-md border px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground">
-                            Verwijder
-                          </button>
-                        </form>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
+                      <WorkoutBlocks
+                        blocks={normalizeWorkoutBlocks(
+                          template.structure_json,
+                          template.intensity as WorkoutIntensity,
+                        )}
+                        ftpWatts={ftpWatts}
+                      />
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           ))

@@ -15,7 +15,9 @@ import {
   type ClubRideRow,
 } from "@/lib/stats/club";
 
+let nextId = 1;
 const ride = (profile: string, start: string, km: number, sport = "Ride"): ClubRideRow => ({
+  id: nextId++,
   profile_id: profile,
   start_date: start,
   sport_type: sport,
@@ -35,6 +37,19 @@ describe("summarizeClubRides en mergeClubData", () => {
     expect(data.months).toEqual([expect.objectContaining({ key: "2026-01", km: 50, rides: 2 })]);
     // Beide in de week van maandag 29 december.
     expect(data.weeks).toEqual([expect.objectContaining({ key: "2025-12-29", km: 50 })]);
+  });
+
+  it("telt dezelfde rit van een lid uit twee bronnen één keer", () => {
+    const data = summarizeClubRides([
+      ride("a", "2026-09-11T13:45:33Z", 35.3),
+      // De intervals-kopie: zelfde start, zelfde afstand.
+      ride("a", "2026-09-11T13:45:33Z", 35.3),
+      // Een ander lid in dezelfde groepsrit telt wel.
+      ride("b", "2026-09-11T13:45:40Z", 35.3),
+      // Zelfde lid, tien minuten later: een tweede rit.
+      ride("a", "2026-09-11T13:55:33Z", 35.3),
+    ]);
+    expect(data.days[0]).toMatchObject({ rides: 3 });
   });
 
   it("telt een week over de jaargrens uit twee jaren op", () => {
@@ -84,6 +99,11 @@ describe("clubreeksen", () => {
     expect(clubByRegion(all, (id) => (id === "a" ? "Utrecht" : null)).map((row) => [row.id, row.km])).toEqual([
       ["Utrecht", 70],
       ["Onbekend", 60],
+    ]);
+    // Zonder regio altijd onderaan, ook als dat de grootste groep is.
+    expect(clubByRegion(all, (id) => (id === "b" ? "Utrecht" : null)).map((row) => row.id)).toEqual([
+      "Utrecht",
+      "Onbekend",
     ]);
     expect(clubByRider(cellsInScope(data, "maand", span, "2026-10")).map((row) => row.id)).toEqual(["a"]);
   });

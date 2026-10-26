@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-12T12:00:00.000Z",
+  "generatedAt": "2026-10-18T20:17:04.786Z",
   "title": "Design System: ZWB Cycling Platform",
   "extensions": {
     "colorMeta": {
@@ -133,6 +133,278 @@
         "role": "neutral",
         "displayName": "Danger",
         "canonical": "oklch(0.577 0.245 27.325)"
+      },
+      "jersey-sage-ink": {
+        "role": "tertiary",
+        "displayName": "Sage Ink",
+        "canonical": "oklch(0.28 0.058 204)"
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "oklch(0.992 0.006 103)"
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Ink Muted",
+        "canonical": "oklch(0.43 0.036 205)"
+      },
+      "mist": {
+        "role": "neutral",
+        "displayName": "Mist",
+        "canonical": "oklch(0.935 0.015 150)"
+      },
+      "night-card": {
+        "role": "neutral",
+        "displayName": "Night Card",
+        "canonical": "oklch(0.22 0.025 220)"
+      },
+      "night-raised": {
+        "role": "tertiary",
+        "displayName": "Night Raised",
+        "canonical": "oklch(0.3 0.035 220)"
+      },
+      "night-mist": {
+        "role": "neutral",
+        "displayName": "Night Mist",
+        "canonical": "oklch(0.26 0.02 220)"
+      },
+      "night-ink": {
+        "role": "neutral",
+        "displayName": "Night Ink",
+        "canonical": "oklch(0.97 0.005 80)"
+      },
+      "night-ink-muted": {
+        "role": "neutral",
+        "displayName": "Night Ink Muted",
+        "canonical": "oklch(0.7 0.015 220)"
+      },
+      "night-hairline": {
+        "role": "neutral",
+        "displayName": "Night Hairline",
+        "canonical": "oklch(1 0 0 / 12%)"
+      },
+      "night-danger": {
+        "role": "neutral",
+        "displayName": "Night Danger",
+        "canonical": "oklch(0.704 0.191 22.216)"
+      },
+      "zwb-petrol": {
+        "role": "tertiary",
+        "displayName": "ZWB Petrol (tenue)",
+        "canonical": "#004653"
+      },
+      "zwb-petrol-dark": {
+        "role": "tertiary",
+        "displayName": "ZWB Petrol Dark (tenue)",
+        "canonical": "#0a2b34"
+      },
+      "zwb-teal": {
+        "role": "tertiary",
+        "displayName": "ZWB Teal (tenue)",
+        "canonical": "#1f6068"
+      },
+      "zwb-sage": {
+        "role": "tertiary",
+        "displayName": "ZWB Sage (tenue)",
+        "canonical": "#7f9590"
+      },
+      "zwb-gold": {
+        "role": "tertiary",
+        "displayName": "ZWB Gold (tenue)",
+        "canonical": "#b8873d"
+      },
+      "weekoverzicht-paper": {
+        "role": "neutral",
+        "displayName": "Weekoverzicht: Vezelpapier",
+        "canonical": "oklch(0.945 0.016 95)",
+        "tonalRamp": [
+          "oklch(0.15 0.013 95)",
+          "oklch(0.27 0.016 95)",
+          "oklch(0.39 0.016 95)",
+          "oklch(0.51 0.016 95)",
+          "oklch(0.63 0.016 95)",
+          "oklch(0.75 0.016 95)",
+          "oklch(0.86 0.013 95)",
+          "oklch(0.95 0.008 95)"
+        ],
+        "scope": "weekoverzicht"
+      },
+      "weekoverzicht-ink": {
+        "role": "neutral",
+        "displayName": "Weekoverzicht: Drukinkt",
+        "canonical": "oklch(0.27 0.025 215)",
+        "tonalRamp": [
+          "oklch(0.15 0.02 215)",
+          "oklch(0.27 0.025 215)",
+          "oklch(0.39 0.025 215)",
+          "oklch(0.51 0.025 215)",
+          "oklch(0.63 0.025 215)",
+          "oklch(0.75 0.025 215)",
+          "oklch(0.86 0.02 215)",
+          "oklch(0.95 0.012 215)"
+        ],
+        "scope": "weekoverzicht"
+      },
+      "weekoverzicht-soft": {
+        "role": "neutral",
+        "displayName": "Weekoverzicht: Zachte inkt",
+        "canonical": "oklch(0.47 0.022 210)",
+        "tonalRamp": [
+          "oklch(0.15 0.018 210)",
+          "oklch(0.27 0.022 210)",
+          "oklch(0.39 0.022 210)",
+          "oklch(0.51 0.022 210)",
+          "oklch(0.63 0.022 210)",
+          "oklch(0.75 0.022 210)",
+          "oklch(0.86 0.017 210)",
+          "oklch(0.95 0.01 210)"
+        ],
+        "scope": "weekoverzicht"
+      },
+      "weekoverzicht-cyan": {
+        "role": "primary",
+        "displayName": "Weekoverzicht: Petrol-cyaan",
+        "canonical": "oklch(0.47 0.085 210)",
+        "tonalRamp": [
+          "oklch(0.15 0.068 210)",
+          "oklch(0.27 0.085 210)",
+          "oklch(0.39 0.085 210)",
+          "oklch(0.51 0.085 210)",
+          "oklch(0.63 0.085 210)",
+          "oklch(0.75 0.085 210)",
+          "oklch(0.86 0.067 210)",
+          "oklch(0.95 0.04 210)"
+        ],
+        "scope": "weekoverzicht"
+      },
+      "weekoverzicht-gold": {
+        "role": "secondary",
+        "displayName": "Weekoverzicht: Goud",
+        "canonical": "oklch(0.76 0.135 75)",
+        "tonalRamp": [
+          "oklch(0.15 0.108 75)",
+          "oklch(0.27 0.135 75)",
+          "oklch(0.39 0.135 75)",
+          "oklch(0.51 0.135 75)",
+          "oklch(0.63 0.135 75)",
+          "oklch(0.75 0.135 75)",
+          "oklch(0.86 0.107 75)",
+          "oklch(0.95 0.064 75)"
+        ],
+        "scope": "weekoverzicht"
+      },
+      "weekoverzicht-sage": {
+        "role": "tertiary",
+        "displayName": "Weekoverzicht: Salie",
+        "canonical": "oklch(0.7 0.04 165)",
+        "tonalRamp": [
+          "oklch(0.15 0.032 165)",
+          "oklch(0.27 0.04 165)",
+          "oklch(0.39 0.04 165)",
+          "oklch(0.51 0.04 165)",
+          "oklch(0.63 0.04 165)",
+          "oklch(0.75 0.04 165)",
+          "oklch(0.86 0.032 165)",
+          "oklch(0.95 0.019 165)"
+        ],
+        "scope": "weekoverzicht"
+      },
+      "weekoverzicht-night-paper": {
+        "role": "neutral",
+        "displayName": "Weekoverzicht: Petrolpapier (donker)",
+        "canonical": "oklch(0.24 0.03 215)",
+        "tonalRamp": [
+          "oklch(0.15 0.024 215)",
+          "oklch(0.27 0.03 215)",
+          "oklch(0.39 0.03 215)",
+          "oklch(0.51 0.03 215)",
+          "oklch(0.63 0.03 215)",
+          "oklch(0.75 0.03 215)",
+          "oklch(0.86 0.024 215)",
+          "oklch(0.95 0.014 215)"
+        ],
+        "scope": "weekoverzicht"
+      },
+      "weekoverzicht-night-ink": {
+        "role": "neutral",
+        "displayName": "Weekoverzicht: Nachtinkt (donker)",
+        "canonical": "oklch(0.94 0.014 90)",
+        "tonalRamp": [
+          "oklch(0.15 0.011 90)",
+          "oklch(0.27 0.014 90)",
+          "oklch(0.39 0.014 90)",
+          "oklch(0.51 0.014 90)",
+          "oklch(0.63 0.014 90)",
+          "oklch(0.75 0.014 90)",
+          "oklch(0.86 0.011 90)",
+          "oklch(0.95 0.007 90)"
+        ],
+        "scope": "weekoverzicht"
+      },
+      "weekoverzicht-night-soft": {
+        "role": "neutral",
+        "displayName": "Weekoverzicht: Zachte inkt (donker)",
+        "canonical": "oklch(0.77 0.018 190)",
+        "tonalRamp": [
+          "oklch(0.15 0.014 190)",
+          "oklch(0.27 0.018 190)",
+          "oklch(0.39 0.018 190)",
+          "oklch(0.51 0.018 190)",
+          "oklch(0.63 0.018 190)",
+          "oklch(0.75 0.018 190)",
+          "oklch(0.86 0.014 190)",
+          "oklch(0.95 0.009 190)"
+        ],
+        "scope": "weekoverzicht"
+      },
+      "weekoverzicht-night-cyan": {
+        "role": "primary",
+        "displayName": "Weekoverzicht: Petrol-cyaan (donker)",
+        "canonical": "oklch(0.6 0.085 205)",
+        "tonalRamp": [
+          "oklch(0.15 0.068 205)",
+          "oklch(0.27 0.085 205)",
+          "oklch(0.39 0.085 205)",
+          "oklch(0.51 0.085 205)",
+          "oklch(0.63 0.085 205)",
+          "oklch(0.75 0.085 205)",
+          "oklch(0.86 0.067 205)",
+          "oklch(0.95 0.04 205)"
+        ],
+        "scope": "weekoverzicht"
+      },
+      "weekoverzicht-night-gold": {
+        "role": "secondary",
+        "displayName": "Weekoverzicht: Goud (donker)",
+        "canonical": "oklch(0.72 0.13 72)",
+        "tonalRamp": [
+          "oklch(0.15 0.104 72)",
+          "oklch(0.27 0.13 72)",
+          "oklch(0.39 0.13 72)",
+          "oklch(0.51 0.13 72)",
+          "oklch(0.63 0.13 72)",
+          "oklch(0.75 0.13 72)",
+          "oklch(0.86 0.103 72)",
+          "oklch(0.95 0.062 72)"
+        ],
+        "scope": "weekoverzicht"
+      },
+      "weekoverzicht-night-sage": {
+        "role": "tertiary",
+        "displayName": "Weekoverzicht: Salie (donker)",
+        "canonical": "oklch(0.6 0.045 165)",
+        "tonalRamp": [
+          "oklch(0.15 0.036 165)",
+          "oklch(0.27 0.045 165)",
+          "oklch(0.39 0.045 165)",
+          "oklch(0.51 0.045 165)",
+          "oklch(0.63 0.045 165)",
+          "oklch(0.75 0.045 165)",
+          "oklch(0.86 0.036 165)",
+          "oklch(0.95 0.021 165)"
+        ],
+        "scope": "weekoverzicht"
       }
     },
     "typographyMeta": {
@@ -155,6 +427,31 @@
       "mono": {
         "displayName": "Mono",
         "purpose": "Code en ID's."
+      },
+      "weekoverzicht-display": {
+        "displayName": "Weekoverzicht: Display",
+        "purpose": "Het grote stencilcijfer of WEEK 42 van elk scherm. Alleen in het weekoverzicht.",
+        "scope": "weekoverzicht"
+      },
+      "weekoverzicht-display-m": {
+        "displayName": "Weekoverzicht: Display M",
+        "purpose": "Kop van de laatste pagina (de week erna).",
+        "scope": "weekoverzicht"
+      },
+      "weekoverzicht-lead": {
+        "displayName": "Weekoverzicht: Lead",
+        "purpose": "De ene zin onder het cijfer, maximaal 20 tekens breed.",
+        "scope": "weekoverzicht"
+      },
+      "weekoverzicht-body": {
+        "displayName": "Weekoverzicht: Body",
+        "purpose": "Toelichting in zachte inkt, vette woorden in drukinkt, maximaal 34 tekens breed.",
+        "scope": "weekoverzicht"
+      },
+      "weekoverzicht-label": {
+        "displayName": "Weekoverzicht: Label",
+        "purpose": "Grafieklabels in hoofdletters met een papierkleurige rand van 3px.",
+        "scope": "weekoverzicht"
       }
     },
     "shadows": [
@@ -167,6 +464,12 @@
         "name": "lichte-tilt",
         "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
         "purpose": "Spaarzaam, voor een element boven een kaart of afbeelding."
+      },
+      {
+        "name": "weekoverzicht-vel",
+        "value": "0 30px 80px -30px rgb(0 0 0 / 0.6)",
+        "purpose": "Alleen het losse vel van het weekoverzicht vanaf 640px.",
+        "scope": "weekoverzicht"
       }
     ],
     "motion": [
@@ -179,6 +482,47 @@
         "name": "press",
         "value": "translateY(1px)",
         "purpose": "Indrukken van een knop."
+      },
+      {
+        "name": "view-slider",
+        "value": "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Gouden knop van de weergaveknop op /profiel; uit bij prefers-reduced-motion."
+      },
+      {
+        "name": "weekoverzicht-ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "De ene curve van het weekoverzicht: exponentieel uit.",
+        "scope": "weekoverzicht"
+      },
+      {
+        "name": "weekoverzicht-rakel",
+        "value": "clip-path inset(0 100% 0 0) -> inset(0) 0.75s; transform translate(6px, -5px) -> none 0.9s; passen 2 en 3 na 0.18s en 0.36s",
+        "purpose": "Elke inktpas wordt van links naar rechts ingedrukt en schuift in register.",
+        "scope": "weekoverzicht"
+      },
+      {
+        "name": "weekoverzicht-uit-register",
+        "value": "translate(3px, -2px) <-> translate(6px, -4px) 3.4s ease-in-out 1.2s infinite alternate",
+        "purpose": "De ene pas die uit register staat; bij verminderde beweging stil op 3px/-2px.",
+        "scope": "weekoverzicht"
+      },
+      {
+        "name": "weekoverzicht-tekst",
+        "value": "opacity 0.5s, translateY(8px) -> none 0.7s, na 0.1s",
+        "purpose": "Tekst van een scherm komt in.",
+        "scope": "weekoverzicht"
+      },
+      {
+        "name": "weekoverzicht-strook",
+        "value": "width 0 -> 100% linear over de schermtijd (5s opening, 6s, coach 9s)",
+        "purpose": "Voortgangsstrook; vasthouden pauzeert; bij verminderde beweging vol en geen automatisch doorgaan.",
+        "scope": "weekoverzicht"
+      },
+      {
+        "name": "weekoverzicht-weekrij",
+        "value": "width/left 0.25s",
+        "purpose": "Vulling en schuif van de bewerkbare weekrij.",
+        "scope": "weekoverzicht"
       }
     ],
     "breakpoints": [
@@ -193,8 +537,59 @@
       {
         "name": "container",
         "value": "80rem"
+      },
+      {
+        "name": "weekoverzicht-vel",
+        "value": "640px",
+        "scope": "weekoverzicht"
+      },
+      {
+        "name": "weekoverzicht-laag",
+        "value": "max-height: 700px",
+        "scope": "weekoverzicht"
       }
-    ]
+    ],
+    "registers": {
+      "weekoverzicht": {
+        "title": "Eigen register: Weekoverzicht",
+        "scope": "Alleen de weekoverzicht-pop-up en /weekoverzicht (src/components/weekoverzicht). De Platte-vloerregel, de Smalle-ladderregel, de Motiefregel en de Wisselregel gelden hier niet; niets uit dit register lekt naar gewone schermen.",
+        "tokenPrefix": "weekoverzicht-",
+        "source": "src/components/weekoverzicht/week-review.module.css",
+        "themeOverrides": {
+          "light": {
+            "blend": "multiply",
+            "fiber": 1
+          },
+          "dark": {
+            "blend": "screen",
+            "fiber": 0.5
+          }
+        },
+        "rules": [
+          "De Grensregel",
+          "De Overdrukregel",
+          "De Stencilregel",
+          "De Korrelregel",
+          "De Registerregel"
+        ],
+        "dos": [
+          "Do gebruik in het weekoverzicht alleen de eigen tokens (`--paper`, `--ink`, `--soft`, `--rule`, `--c`, `--g`, `--s`) en stel ze voor licht en donker allebei af.",
+          "Do druk elke afbeelding als losse passen van effen inkt die met multiply of screen over elkaar vallen.",
+          "Do houd in een afbeelding met renners precies één pas op 3px/-2px uit register, boven een onderlaag in register.",
+          "Do leg de papiervezel boven de afbeeldingen.",
+          "Do geef elk terugblikscherm één groot stencilcijfer, één beeld en hooguit twee zinnen in Karla.",
+          "Do laat het overzicht bij verminderde beweging stilstaan tot het lid tikt."
+        ],
+        "donts": [
+          "Don't neem stencil, Karla, overdruk, korrel of paskruisjes mee naar gewone schermen.",
+          "Don't teken een mengkleur als eigen kleur in, en gebruik geen verlopen of dekkende lagen.",
+          "Don't maak grafieken van dunne lijntjes of losse cijferkaartjes.",
+          "Don't rond inktvlakken, stroken of chips af.",
+          "Don't zet meer dan één pas uit register.",
+          "Don't laat een scherm drukken voordat de stencilletter er is."
+        ]
+      }
+    }
   },
   "components": [
     {
@@ -259,6 +654,47 @@
       "description": "Groepskop en item uit het mobiele menu.",
       "html": "<nav class=\"ds-nav\"><p class=\"ds-nav-group\">Club</p><a class=\"ds-nav-item\" href=\"#\">Teams</a><a class=\"ds-nav-item\" href=\"#\">Leden</a></nav>",
       "css": ".ds-nav { display: flex; flex-direction: column; gap: 4px; font-family: var(--font-geist-sans, system-ui, sans-serif); } .ds-nav-group { margin: 12px 0 4px; padding: 0 12px 0 11px; border-left: 2px solid color-mix(in oklch, var(--primary) 50%, transparent); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.025em; text-transform: uppercase; color: var(--muted-foreground); } .ds-nav-item { display: flex; align-items: center; min-height: 44px; padding: 0 12px; border: 1px solid var(--border); border-radius: var(--radius-md, 0.4rem); color: var(--foreground); font-size: 0.875rem; text-decoration: none; transition: background 0.15s; } .ds-nav-item:hover { background: var(--muted); } .ds-nav-item:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }"
+    },
+    {
+      "name": "Weergaveknop (profiel)",
+      "kind": "custom",
+      "description": "Rail met drie standen en een effen gouden knop die naar de gekozen stand schuift.",
+      "html": "<div class=\"ds-vs\"><span class=\"ds-vs-knob\" aria-hidden=\"true\"></span><button class=\"ds-vs-opt\" aria-label=\"Bewerken\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z\"/></svg></button><button class=\"ds-vs-opt ds-vs-on\" aria-label=\"Wat leden zien\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"9\" cy=\"8\" r=\"4\"/><path d=\"M2 21v-1a7 7 0 0 1 14 0v1M17 4a4 4 0 0 1 0 8M22 21v-1a7 7 0 0 0-4-6.3\"/></svg></button><button class=\"ds-vs-opt\" aria-label=\"Deelbaar profiel\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20\"/></svg></button></div>",
+      "css": ".ds-vs { position: relative; display: inline-flex; padding: 3px; border: 1px solid var(--border); border-radius: 9999px; background: var(--muted); } .ds-vs-knob { position: absolute; top: 3px; bottom: 3px; left: 3px; width: 3rem; border-radius: 9999px; background: oklch(0.63 0.101 77); transform: translateX(100%); transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1); } .ds-vs-opt { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 2.375rem; border: 0; border-radius: 9999px; background: none; color: var(--muted-foreground); cursor: pointer; transition: color 0.2s ease-out; } .ds-vs-opt svg { width: 1.125rem; height: 1.125rem; } .ds-vs-opt:hover { color: var(--foreground); } .ds-vs-on, .ds-vs-on:hover { color: oklch(0.19 0.031 210); } .ds-vs-opt:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; } @media (prefers-reduced-motion: reduce) { .ds-vs-knob { transition: none; } }"
+    },
+    {
+      "name": "Weekoverzicht: knop",
+      "kind": "button",
+      "refersTo": "weekoverzicht-button",
+      "scope": "weekoverzicht",
+      "description": "Alleen in het weekoverzicht: drukinkt, stencil, 52px, met een terugknop met rand ernaast.",
+      "html": "<div class=\"ds-wo-act\"><button class=\"ds-wo-btn ds-wo-alt\" aria-label=\"Vorig scherm\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\"><path d=\"m15 18-6-6 6-6\"/></svg></button><button class=\"ds-wo-btn\">Beschikbaarheid opslaan</button></div>",
+      "css": ".ds-wo-act { --paper: oklch(0.945 0.016 95); --ink: oklch(0.27 0.025 215); --soft: oklch(0.47 0.022 210); --rule: color-mix(in oklab, var(--ink) 18%, transparent); --c: oklch(0.47 0.085 210); --g: oklch(0.76 0.135 75); --s: oklch(0.7 0.04 165); display: flex; gap: 10px; padding: 16px; background: var(--paper); } .ds-wo-btn { flex: 1; display: grid; place-items: center; min-height: 52px; border: 0; border-radius: 2px; background: var(--ink); color: var(--paper); font-family: 'Big Shoulders Stencil', 'Arial Narrow', sans-serif; font-variation-settings: \"opsz\" 40; font-weight: 900; font-size: 20px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; } .ds-wo-btn:active { transform: translateY(1px); } .ds-wo-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; } .ds-wo-alt { flex: 0 0 64px; background: transparent; color: var(--ink); outline: 1.5px solid var(--ink); outline-offset: -1.5px; }"
+    },
+    {
+      "name": "Weekoverzicht: voortgangsstroken",
+      "kind": "custom",
+      "scope": "weekoverzicht",
+      "description": "Eén gedrukte strook van 4px per scherm; de huidige vult lineair.",
+      "html": "<div class=\"ds-wo-strips\"><i class=\"ds-wo-done\"><b></b></i><i class=\"ds-wo-done\"><b></b></i><i class=\"ds-wo-now\"><b></b></i><i><b></b></i><i><b></b></i></div>",
+      "css": ".ds-wo-strips { --paper: oklch(0.945 0.016 95); --ink: oklch(0.27 0.025 215); --soft: oklch(0.47 0.022 210); --rule: color-mix(in oklab, var(--ink) 18%, transparent); --c: oklch(0.47 0.085 210); --g: oklch(0.76 0.135 75); --s: oklch(0.7 0.04 165); display: flex; gap: 4px; padding: 12px 14px; background: var(--paper); } .ds-wo-strips i { flex: 1; height: 4px; background: var(--rule); overflow: hidden; } .ds-wo-strips b { display: block; height: 100%; width: 0; background: var(--ink); } .ds-wo-done b { width: 100%; } .ds-wo-now b { animation: ds-wo-run 6s linear infinite; } @keyframes ds-wo-run { to { width: 100%; } } @media (prefers-reduced-motion: reduce) { .ds-wo-now b { animation: none; width: 100%; } }"
+    },
+    {
+      "name": "Weekoverzicht: inktgrafiek met overdruk",
+      "kind": "custom",
+      "scope": "weekoverzicht",
+      "description": "Twee passen effen inkt die met multiply mengen, gestippelde lege dag, één as en labels met papierrand.",
+      "html": "<div class=\"ds-wo-chart\"><svg viewBox=\"0 0 390 200\"><g class=\"ds-wo-ink\"><rect class=\"ds-wo-c\" x=\"26\" y=\"60\" width=\"34\" height=\"110\"/><rect class=\"ds-wo-c\" x=\"126\" y=\"100\" width=\"34\" height=\"70\"/><rect class=\"ds-wo-c\" x=\"226\" y=\"30\" width=\"34\" height=\"140\"/></g><g class=\"ds-wo-ink\"><rect class=\"ds-wo-g\" x=\"34\" y=\"80\" width=\"34\" height=\"90\"/><rect class=\"ds-wo-g\" x=\"134\" y=\"90\" width=\"34\" height=\"80\"/><rect class=\"ds-wo-g\" x=\"234\" y=\"50\" width=\"34\" height=\"120\"/></g><rect class=\"ds-wo-dash\" x=\"76\" y=\"167\" width=\"34\" height=\"3\"/><line class=\"ds-wo-axis\" x1=\"18\" x2=\"372\" y1=\"170\" y2=\"170\"/><text class=\"ds-wo-num\" x=\"43\" y=\"50\" text-anchor=\"middle\">42</text><text class=\"ds-wo-lbl\" x=\"43\" y=\"190\" text-anchor=\"middle\">Ma</text><text class=\"ds-wo-lbl\" x=\"93\" y=\"190\" text-anchor=\"middle\">Di</text><text class=\"ds-wo-lbl\" x=\"143\" y=\"190\" text-anchor=\"middle\">Wo</text><text class=\"ds-wo-lbl\" x=\"243\" y=\"190\" text-anchor=\"middle\">Vr</text></svg></div>",
+      "css": ".ds-wo-chart { --paper: oklch(0.945 0.016 95); --ink: oklch(0.27 0.025 215); --soft: oklch(0.47 0.022 210); --rule: color-mix(in oklab, var(--ink) 18%, transparent); --c: oklch(0.47 0.085 210); --g: oklch(0.76 0.135 75); --s: oklch(0.7 0.04 165); background: var(--paper); padding: 8px 0; } .ds-wo-chart svg { display: block; width: 100%; } .ds-wo-ink { mix-blend-mode: multiply; } .ds-wo-c { fill: var(--c); } .ds-wo-g { fill: var(--g); } .ds-wo-dash { fill: none; stroke: var(--s); stroke-width: 1.5; stroke-dasharray: 3 3; } .ds-wo-axis { stroke: var(--ink); stroke-width: 1.4; } .ds-wo-lbl { font: 800 11px Karla, ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; fill: var(--ink); paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round; } .ds-wo-num { font-family: 'Big Shoulders Stencil', 'Arial Narrow', sans-serif; font-weight: 900; font-size: 22px; fill: var(--ink); paint-order: stroke; stroke: var(--paper); stroke-width: 3px; }"
+    },
+    {
+      "name": "Weekoverzicht: bewerkbare weekrij met statuschips",
+      "kind": "custom",
+      "refersTo": "weekoverzicht-chip",
+      "scope": "weekoverzicht",
+      "description": "Daglabel, spoor met vulling en eventbalk in overdruk, waarde; eronder schematraining en hoekige statuschips, ook de waarschuwing.",
+      "html": "<div class=\"ds-wo-week\"><div class=\"ds-wo-row\"><span class=\"ds-wo-dn\">Di</span><div class=\"ds-wo-track\"><span class=\"ds-wo-fill\" style=\"width:50%\"></span><span class=\"ds-wo-evb\" style=\"width:25%;background:oklch(0.76 0.135 75)\"></span><span class=\"ds-wo-knob\" style=\"left:calc(50% - 2px)\"></span><input type=\"range\" min=\"0\" max=\"480\" step=\"15\" value=\"120\" aria-label=\"Beschikbaar op Di\" /></div><span class=\"ds-wo-val\">2:00</span><div class=\"ds-wo-meta\"><span>Drempelblokken</span><span class=\"ds-wo-evc\" style=\"--evc:oklch(0.76 0.135 75)\">ZRL 19:45 · <b>Opgesteld</b></span></div></div><div class=\"ds-wo-row\"><span class=\"ds-wo-dn\">Za</span><div class=\"ds-wo-track\"><span class=\"ds-wo-fill\" style=\"width:25%\"></span><span class=\"ds-wo-evb\" style=\"width:37.5%;background:oklch(0.7 0.04 165)\"></span><span class=\"ds-wo-knob\" style=\"left:calc(25% - 2px)\"></span><input type=\"range\" min=\"0\" max=\"480\" step=\"15\" value=\"60\" aria-label=\"Beschikbaar op Za\" /></div><span class=\"ds-wo-val\">1:00</span><div class=\"ds-wo-meta\"><span class=\"ds-wo-evc ds-wo-warn\" style=\"--evc:oklch(0.7 0.04 165)\">Clubrit 09:00 · <b>meer tijd nodig</b></span></div></div></div>",
+      "css": ".ds-wo-week { --paper: oklch(0.945 0.016 95); --ink: oklch(0.27 0.025 215); --soft: oklch(0.47 0.022 210); --rule: color-mix(in oklab, var(--ink) 18%, transparent); --c: oklch(0.47 0.085 210); --g: oklch(0.76 0.135 75); --s: oklch(0.7 0.04 165); padding: 0 22px 8px; background: var(--paper); color: var(--ink); font-family: Karla, ui-sans-serif, system-ui, sans-serif; } .ds-wo-row { display: grid; grid-template-columns: 40px 1fr 48px; column-gap: 10px; align-items: center; padding: 8px 0 6px; border-top: 1px solid var(--rule); min-height: 62px; } .ds-wo-dn { font-family: 'Big Shoulders Stencil', 'Arial Narrow', sans-serif; font-weight: 900; font-size: 24px; line-height: 1; text-transform: uppercase; grid-row: 1 / span 2; align-self: start; padding-top: 2px; } .ds-wo-track { position: relative; height: 22px; border: 1.2px solid var(--ink); } .ds-wo-track:focus-within { outline: 2px solid var(--ink); outline-offset: 4px; } .ds-wo-fill, .ds-wo-evb { position: absolute; left: 0; top: 0; bottom: 0; mix-blend-mode: multiply; } .ds-wo-fill { background: var(--c); transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1); } .ds-wo-evb { top: 5px; bottom: 5px; } .ds-wo-knob { position: absolute; top: -7px; width: 4px; height: 34px; background: var(--ink); pointer-events: none; } .ds-wo-track input { position: absolute; left: 0; right: 0; top: -12px; width: 100%; height: 46px; margin: 0; opacity: 0; cursor: ew-resize; } .ds-wo-val { font-family: 'Big Shoulders Stencil', 'Arial Narrow', sans-serif; font-weight: 900; font-size: 21px; text-align: right; font-variant-numeric: tabular-nums; } .ds-wo-meta { grid-column: 2 / span 2; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; min-height: 22px; margin-top: 5px; font-size: 13px; color: var(--soft); } .ds-wo-evc { position: relative; isolation: isolate; padding: 2px 7px; font: 700 12.5px Karla, ui-sans-serif, system-ui, sans-serif; color: var(--ink); } .ds-wo-evc::before { content: \"\"; position: absolute; inset: 0; background: var(--evc); opacity: 0.5; z-index: -1; } .ds-wo-evc b { font-weight: 800; } .ds-wo-warn { outline: 1.5px dashed var(--ink); outline-offset: -1.5px; } .ds-wo-warn::before { opacity: 0.15; }"
     }
   ],
   "narrative": {
@@ -311,6 +747,36 @@
         "name": "De Origineelregel",
         "body": "Het logo wordt niet nagetekend, bijgekleurd of vereenvoudigd. Past het ergens niet, dan verandert de omgeving, niet het logo.",
         "section": "components"
+      },
+      {
+        "name": "De Grensregel",
+        "body": "Binnen het register gelden de Platte-vloerregel, de Smalle-ladderregel en de Motiefregel van het hoofdsysteem niet, en ook de Wisselregel niet (de knop is hier inkt in beide thema's). Omgekeerd lekt er niets uit dit register naar de gewone schermen: geen stencilletter, geen Karla, geen overdruk, geen papierkorrel, geen paskruisjes, geen `weekoverzicht-`-token. Een scherm buiten het overzicht dat er zo uitziet, is fout. De Kolomregel, de Duimregel en de Goudregel blijven ook hier gelden.",
+        "section": "scope",
+        "scope": "weekoverzicht"
+      },
+      {
+        "name": "De Overdrukregel",
+        "body": "Inkten zijn effen, doorschijnende vlakken met `mix-blend-mode: multiply` op licht papier en `screen` op donker papier. Waar twee passen elkaar raken ontstaat de mengkleur; die wordt nooit als eigen kleur ingetekend. Geen verlopen, geen dekkende lagen over elkaar.",
+        "section": "colors",
+        "scope": "weekoverzicht"
+      },
+      {
+        "name": "De Stencilregel",
+        "body": "Stencil is voor cijfers, daglabels, koppen en knoppen; elke zin staat in Karla. Een scherm drukt pas als de stencilletter geladen is (hooguit 2,5 seconde wachten), zodat er nooit een kop in de terugvalletter verschijnt.",
+        "section": "typography",
+        "scope": "weekoverzicht"
+      },
+      {
+        "name": "De Korrelregel",
+        "body": "De papiervezel (`feTurbulence`, fractal noise, basisfrequentie 0.62, drie octaven, warm bruin op 42%) ligt bóven de schermen en onder de bediening: de inkt neemt de korrel van het papier aan. Volle dekking en multiply bij licht, halve dekking en screen bij donker.",
+        "section": "elevation",
+        "scope": "weekoverzicht"
+      },
+      {
+        "name": "De Registerregel",
+        "body": "In een afbeelding met renners ligt de eerste pas in register, in salie of goud; de tweede pas, met dezelfde vormen in petrol, rust 3px rechts en 2px omhoog daarnaast, zodat aan elke rand een reepje van de onderlaag blijft staan. Dat is de enige pas die uit register staat, ook stilstaand en bij verminderde beweging. Alle andere passen staan in register. Twee paskruisjes van 16px op halve dekking staan halverwege in de linker- en rechtermarge.",
+        "section": "elevation",
+        "scope": "weekoverzicht"
       }
     ],
     "dos": [

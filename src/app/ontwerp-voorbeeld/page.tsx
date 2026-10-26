@@ -6,15 +6,26 @@ import { TegelsLinkGrid } from "@/components/tegels/link-grid";
 import { TegelsVandaag } from "@/components/tegels/vandaag";
 import { seasonWarnings, type SeasonWarningInput } from "@/lib/training/season";
 import { TegelsShell } from "../(app)/_components/tegels-shell";
+import { TegelsAuthFrame } from "@/components/tegels/auth-frame";
+import { AuthScreen } from "../(auth)/login/auth-screen";
 import { SeasonRoad } from "../(app)/zwbeter-worden/jaarplan/_components/season-road";
 import { SeasonStand } from "../(app)/zwbeter-worden/jaarplan/_components/season-stand";
+import { DsSections } from "../(app)/ds/[eventId]/_components/ds-sections";
+import { PageHeader } from "@/components/app-ui";
+import { DS_VOORBEELD } from "./ds-voorbeeld";
+import { WEEK_VOORBEELD } from "./weekoverzicht-voorbeeld";
+import { WeekReviewPage } from "@/components/weekoverzicht/review-page";
+import { WeekReviewDashboardLink } from "@/components/weekoverzicht/dashboard-link";
+import { BokaalShell } from "@/components/bokaal/shell";
+import { BokaalBoard } from "@/components/bokaal/board";
+import { BOKAAL_ANSWERS, BOKAAL_NOW, BOKAAL_PLACED, BOKAAL_RACES } from "./bokaal-voorbeeld";
 
 // Het design "tegels" met voorbeelddata, zonder login. Alleen bij lokaal
 // ontwikkelen: in productie bestaat deze pagina niet. Bedoeld om het uiterlijk
 // te controleren zonder de productiedatabase; met echte data kijk je via de
 // schakelaar in de app zelf.
 
-const SCREENS = ["vandaag", "kalender", "club", "jaarplan"] as const;
+const SCREENS = ["vandaag", "kalender", "club", "jaarplan", "ds", "weekoverzicht", "bokaal", "inloggen"] as const;
 
 // Een jaar met alles erin: een lopend blok dat bijna afloopt, een vakantie waar
 // nog trainingen in staan, een kamp, lege maanden en een A-doel ver weg.
@@ -69,10 +80,26 @@ export default async function OntwerpVoorbeeldPage({
   if (process.env.NODE_ENV === "production") notFound();
   const { scherm } = await searchParams;
 
+  // Het weekoverzicht is een eigen register, los van de schil.
+  if (scherm === "weekoverzicht") return <WeekReviewPage review={WEEK_VOORBEELD} preview />;
+
+  // De inlogpagina zelf stuurt een ingelogde bezoeker door; hier is hij te zien.
+  if (scherm === "inloggen") {
+    return (
+      <TegelsAuthFrame>
+        <AuthScreen tegels />
+      </TegelsAuthFrame>
+    );
+  }
+
   return (
     <TegelsShell actions={<ThemeToggle />}>
       <div className="space-y-6">
-        {scherm === "kalender" ? (
+        {scherm === "bokaal" ? (
+          <BokaalShell active="/voorzpwelbokaal">
+            <BokaalBoard races={BOKAAL_RACES} placed={BOKAAL_PLACED} answers={BOKAAL_ANSWERS} joined balance={8} now={BOKAAL_NOW} />
+          </BokaalShell>
+        ) : scherm === "kalender" ? (
           <div className="tg-repeats-nav space-y-4">
             <h1 className="tg-display">Kalender</h1>
             <TegelsAgenda past={PAST} upcoming={UPCOMING} todayKey="2026-10-12" empty="Geen aankomende events of trainingen." />
@@ -86,6 +113,11 @@ export default async function OntwerpVoorbeeldPage({
                 (label) => ({ href: `#${label}`, label }),
               )}
             />
+          </div>
+        ) : scherm === "ds" ? (
+          <div className="mx-auto max-w-3xl space-y-4">
+            <PageHeader eyebrow="ZWB DS" title={DS_VOORBEELD.event.title} />
+            <DsSections view={DS_VOORBEELD} />
           </div>
         ) : scherm === "jaarplan" ? (
           <div className="max-w-2xl space-y-4">
@@ -114,7 +146,13 @@ export default async function OntwerpVoorbeeldPage({
             ]}
             standing={{ href: "#", team: "ZWB B1", competition: "ZRL", position: 3, totalTeams: 12 }}
             live={{ count: 3, riders: "Anna, Bert en Carla" }}
+            liveEvents={[{ id: "4", title: "Legacy Gravel", count: 1, riders: "Dirk" }]}
           />
+        )}
+        {(!scherm || scherm === "vandaag") && (
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            <WeekReviewDashboardLink tegels />
+          </div>
         )}
         <p className="flex flex-wrap gap-4 text-sm text-muted-foreground">
           Voorbeelddata.

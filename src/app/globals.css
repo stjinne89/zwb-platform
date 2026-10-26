@@ -45,6 +45,9 @@
   --color-zwb-teal: var(--zwb-teal);
   --color-zwb-sage: var(--zwb-sage);
   --color-zwb-gold: var(--zwb-gold);
+  /* Nalevingsbalken: gereden tot het plan, en wat erboven kwam. */
+  --color-zwb-meter: var(--zwb-meter);
+  --color-zwb-meter-over: var(--zwb-meter-over);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -63,6 +66,8 @@
   --zwb-teal: #1f6068;
   --zwb-sage: #7f9590;
   --zwb-gold: #b8873d;
+  --zwb-meter: var(--zwb-teal);
+  --zwb-meter-over: var(--zwb-gold);
 
   /* ZWBlokken-kaart. Als losse RGB-tripletten omdat een canvas geen CSS
      variabelen kent: de laag leest ze uit en bouwt er zelf rgba() mee.
@@ -121,6 +126,9 @@
   --zwblok-own: 214 172 96;
   /* Op donker haalt het kaartgoud zelf 7:1, dus geen aparte tekstkleur nodig. */
   --zwblok-own-text: 214 172 96;
+  /* Teal verdwijnt op de nachtpetrol; de balken nemen de lichtere tinten. */
+  --zwb-meter: rgb(60 130 140);
+  --zwb-meter-over: rgb(214 172 96);
 
   --background: oklch(0.16 0.025 220);              /* deep petrol */
   --foreground: oklch(0.97 0.005 80);
@@ -383,10 +391,10 @@
   }
 }
 
-/* ---------- Design "tegels" (proefversie achter een schakelaar) ----------
-   Geldt alleen binnen [data-design="tegels"], dat de app-layout zet als het
-   cookie aanstaat (lib/design.ts). Het huidige design blijft onaangeroerd.
-   Vijf plekken, vijf tenuekleuren; een tegel heeft de kleur van de plek waar
+/* ---------- Design "tegels" (standaard; het oude design staat achter een schakelaar) ----------
+   Geldt alleen binnen [data-design="tegels"], dat de app-layout zet tenzij het
+   oude design aanstaat (lib/design.ts). Het oude design blijft onaangeroerd.
+   Vier plekken en vijf tenuekleuren; een tegel heeft de kleur van de soort waar
    hij heen leidt. */
 [data-design="tegels"] {
   --radius: 0.125rem;
@@ -403,10 +411,21 @@
   font-family: var(--font-tegels), var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* Dialogen en uitklapmenu's renderen buiten de schil; via :has() krijgen ze
-   dezelfde hoeken en donkere vlakken. */
+/* Dialogen en uitklapmenu's renderen in een portal buiten de schil; via :has()
+   krijgen ze dezelfde tokens. De letter staat hier bij naam: --font-tegels
+   bestaat alleen op de schil zelf. */
 :root:has([data-design="tegels"]) {
   --radius: 0.125rem;
+  --tg-vandaag: #b8873d;
+  --tg-kalender: #004653;
+  --tg-zwbeter: #1f6068;
+  --tg-club: #7f9590;
+  --tg-meer: #0a2b34;
+  --tg-ink: #0a2b34;
+  --tg-paper: #fbfbf7;
+  --tg-band: rgb(255 255 255 / 0.1);
+  --tg-panel: rgb(0 70 83 / 0.07);
+  --tg-display: "Barlow Semi Condensed", var(--font-geist-sans), system-ui, sans-serif;
 }
 .dark:has([data-design="tegels"]) {
   --background: #061c22;
@@ -414,6 +433,13 @@
   --popover: #0d2a32;
   --muted: #12343d;
   --secondary: #17404a;
+  --tg-vandaag: #c4923f;
+  --tg-kalender: #00505f;
+  --tg-club: #8ea39e;
+  --tg-meer: #12343d;
+  --tg-panel: rgb(255 255 255 / 0.055);
+  --tg-ink: #061c22;
+  --tg-paper: #f5f6f0;
 }
 
 .dark [data-design="tegels"] {
@@ -434,7 +460,7 @@
 
 /* Buiten een layer: deze regels moeten de Tailwind-utilities van de bestaande
    schermen overschrijven, en utilities winnen het van elke layer. */
-/* De tenuebanen, sterker dan in het huidige design. */
+/* De tenuebanen, sterker dan in het oude design. */
 html:not(.dark) .app-shell[data-design="tegels"]::before {
   height: 30rem;
   background:
@@ -522,6 +548,19 @@ html.dark .app-shell[data-design="tegels"]::before {
 }
 .dark .tg-logo img {
   height: 1.75rem;
+}
+/* Inlogschermen: hetzelfde logo, groter; het staat daar alleen. */
+.tg-logo-lg img {
+  height: 3.5rem;
+}
+.dark .tg-logo-lg img {
+  height: 2.875rem;
+}
+/* Een bevestiging (mail verstuurd): een vlak paneel met de gouden lijn van
+   "waar je nu bent", geen groene doos uit het oude design. */
+.tg-note {
+  background: var(--tg-panel);
+  box-shadow: inset 0 -3px 0 var(--tg-vandaag);
 }
 
 /* Kleurbeleid (eigenaar, 2026-10-12): kleur zegt wat voor soort ding het is,
@@ -645,7 +684,7 @@ a.tg-row:focus-visible,
 .tg-row-past { color: var(--muted-foreground); }
 .tg-row-past .tg-row-day { opacity: 0.45; }
 
-/* De vijf plekken. Onderin op de telefoon, bovenin op een breed scherm. */
+/* De vier plekken. Onderin op de telefoon, bovenin op een breed scherm. */
 .tg-tabs-bottom {
   display: none;
 }
@@ -723,6 +762,10 @@ a.tg-row:focus-visible,
 }
 [data-design="tegels"] :is(ul, ol, div).divide-y {
   display: grid;
+  /* Eén kolom die niet meegroeit: zonder dit rekte een rij op tot de breedte
+     van zijn langste niet-afbrekende tekst en werkte truncate niet (recordrij
+     op Stats → Ik, 612 px op een telefoon van 375; 2026-10-17). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.375rem;
   border: 0;
   background: transparent;
@@ -735,7 +778,8 @@ a.tg-row:focus-visible,
   border-color: transparent;
   background-color: var(--tg-panel);
 }
-[data-design="tegels"] :is(span, a, p, li).rounded-full:not([class*="size-"]) {
+/* Ook knoppen: ronde pillen (schema, core-series, Vermogen) zijn hier recht. */
+[data-design="tegels"] :is(span, a, p, li, button, label).rounded-full:not([class*="size-"]) {
   border-radius: 0;
 }
 [data-design="tegels"] [data-slot="button"],
@@ -747,6 +791,8 @@ a.tg-row:focus-visible,
   border-radius: 0;
   border-color: transparent;
   background-color: var(--tg-panel);
+  /* Geen shadow-sm of focusring uit het oude veld; focus is de omlijning hieronder. */
+  box-shadow: none;
 }
 [data-design="tegels"] :is(input, select, textarea):focus-visible {
   outline: 2px solid var(--ring);
@@ -919,7 +965,7 @@ a.tg-row:focus-visible,
 }
 
 /* ---- ZWBeter ----
-   De vier pijlers als tegels; de actieve is vol teal, de andere een rustig vlak.
+   De vier pijlers als tegels; de andere zijn vol teal, de actieve het paneel met de gouden lijn.
    Kerncijfers op de trainingspagina's zijn tegels zoals op het dashboard. */
 .tg-pillar {
   display: flex;
@@ -940,7 +986,8 @@ a.tg-row:focus-visible,
   background: var(--tg-bg);
   color: var(--tg-fg);
 }
-.tg-pillar[aria-current="page"] {
+.tg-pillar[aria-current="page"],
+.tg-pillar[aria-pressed="true"] {
   background: var(--tg-panel);
   color: var(--foreground);
   box-shadow: inset 0 -4px 0 var(--tg-vandaag);
@@ -952,7 +999,7 @@ a.tg-row:focus-visible,
 /* Een link in een lijst (races, opgeslagen plannen): kleur is klikbaar, dus in
    het design "tegels" een gevuld vlak in de kleur van de soort (tg-kalender,
    tg-zwbeter, ...). Waar je al bent: het paneel met de gouden lijn, net als bij
-   de ZWBeter-pijlers. In het huidige design doet de klasse niets. De regels voor
+   de ZWBeter-pijlers. In het oude design doet de klasse niets. De regels voor
    panelen hierboven (bg-card, bg-background, divide-y) zijn specifieker dan een
    klasse; daarom hier !important. */
 [data-design="tegels"] .tg-link {
@@ -979,6 +1026,150 @@ a.tg-row:focus-visible,
 }
 @media (prefers-reduced-motion: reduce) {
   [data-design="tegels"] .tg-link { transition: none; }
+}
+/* Tweede menurij (SectionNav onder de pijlers, de trainer-tabs): geen omkaderde
+   balk met een gevulde pil meer, maar losse vlakken in de kleur van de plek.
+   Dubbele klasse: de paneelregel voor bg-card hierboven is specifieker. */
+[data-design="tegels"] .tg-subnav.tg-subnav > div:first-child {
+  gap: 0.375rem;
+  border: 0;
+  background: transparent;
+  padding-block: 0;
+}
+[data-design="tegels"] :is(.tg-subnav, nav) .tg-link {
+  font-family: var(--tg-display);
+  font-size: 1rem;
+  font-weight: 500;
+}
+/* Een losse filterchip (Alles, Voor mij, Labels op de kalender): duimhoogte. */
+[data-design="tegels"] .tg-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-inline: 1rem;
+  font-family: var(--tg-display);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* De kleur van de plek waar je bent, afgelezen aan de actieve tab van de schil.
+   Voor keuzes die bij die plek horen, zoals de segmentschakelaars hieronder.
+   Zonder plek (profiel, garage, beheer, hulp): donker petrol. */
+[data-design="tegels"] {
+  --tg-here: var(--tg-meer);
+  --tg-here-fg: var(--tg-paper);
+}
+[data-design="tegels"]:has(.tg-tab.tg-vandaag[aria-current="page"]) {
+  --tg-here: var(--tg-vandaag);
+  --tg-here-fg: var(--tg-ink);
+}
+[data-design="tegels"]:has(.tg-tab.tg-kalender[aria-current="page"]) {
+  --tg-here: var(--tg-kalender);
+  --tg-here-fg: var(--tg-paper);
+}
+[data-design="tegels"]:has(.tg-tab.tg-zwbeter[aria-current="page"]) {
+  --tg-here: var(--tg-zwbeter);
+  --tg-here-fg: var(--tg-paper);
+}
+[data-design="tegels"]:has(.tg-tab.tg-club[aria-current="page"]) {
+  --tg-here: var(--tg-club);
+  --tg-here-fg: var(--tg-ink);
+}
+
+/* Een tg-link in de kleur van de plek, voor keuzes die op meer plekken staan. */
+.tg-here { --tg-bg: var(--tg-here); --tg-fg: var(--tg-here-fg); }
+
+/* Segmentschakelaars (Watt/W/kg, Lijst/Maand, Week/Maand/Jaar, Mikpunt/Periode):
+   overal met de hand gebouwd als omlijnde houder met een gevulde actieve knop,
+   en daaraan herkend. In "tegels" zoals de tweede menurij: losse vlakken in de
+   kleur van de plek, de gekozen als paneel met de gouden lijn. */
+[data-design="tegels"] .border.p-0\.5:has(> .bg-primary) {
+  gap: 0.25rem;
+  border-color: transparent;
+  background: transparent;
+  padding: 0;
+}
+[data-design="tegels"] .border.p-0\.5:has(> .bg-primary) > :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  border-radius: 0;
+  padding-inline: 0.875rem;
+  background: var(--tg-here);
+  color: var(--tg-here-fg);
+  font-family: var(--tg-display);
+  font-size: 1rem;
+  font-weight: 500;
+  transition: filter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-design="tegels"] .border.p-0\.5:has(> .bg-primary) > :is(a, button):hover {
+  filter: brightness(1.1);
+}
+[data-design="tegels"] .border.p-0\.5:has(> .bg-primary) > .bg-primary {
+  background: var(--tg-panel);
+  color: var(--foreground);
+  box-shadow: inset 0 -3px 0 var(--tg-vandaag);
+  filter: none;
+}
+[data-design="tegels"] .border.p-0\.5:has(> .bg-primary) > :is(a, button):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-design="tegels"] .border.p-0\.5:has(> .bg-primary) > :is(a, button) { transition: none; }
+}
+
+/* Omlijnde knoppen (variant outline): geen rand, een rustig vlak. Een knop is
+   een actie, geen plek, dus geen plekkleur; de hoofdknop houdt de actiekleur. */
+[data-design="tegels"] .group\/button.border-border {
+  border-color: transparent;
+  background-color: var(--muted);
+}
+[data-design="tegels"] .group\/button.border-border:hover {
+  background-color: color-mix(in oklab, var(--muted), var(--foreground) 9%);
+}
+
+/* Eigen paginatitels (h1 zonder PageHeader: Teams-detail, beheerschermen, SRC,
+   profiel, formulieren): dezelfde lichte grote titel als de paginakop. */
+[data-design="tegels"] main h1:is(.text-2xl, .text-3xl):not(header.jersey-panel h1, .tg-event-head h1) {
+  font-size: clamp(2.5rem, 10vw, 3.25rem);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  color: var(--primary);
+}
+.dark [data-design="tegels"] main h1:is(.text-2xl, .text-3xl):not(header.jersey-panel h1, .tg-event-head h1) {
+  color: var(--foreground);
+}
+
+/* Een rij gelijke cijferkaarten (Teams-detail): één paneel met drie cijfers,
+   het cijfer boven het label, geen pictogram. !important: de paneelregel voor
+   bg-card is specifieker. */
+[data-design="tegels"] .tg-metric-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  background: var(--tg-panel);
+}
+[data-design="tegels"] .tg-metric-row > * {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 0.125rem;
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0.75rem 0.875rem;
+}
+[data-design="tegels"] .tg-metric-row > * > div > span {
+  display: none;
+}
+[data-design="tegels"] .tg-metric-row .text-2xl {
+  margin: 0;
+  font-family: var(--tg-display);
+  font-size: 2.5rem;
+  font-weight: 300;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
 }
 [data-design="tegels"] .tg-metric .text-2xl {
   font-family: var(--tg-display);
@@ -1017,10 +1208,142 @@ a.tg-row:focus-visible,
   line-height: 1.1;
 }
 
-/* Uitklapmenu's en dialogen renderen buiten de schil en erfden de oude letter. */
+/* ---- Zwevende lagen buiten de schil ----
+   Uitklapmenu's en dialogen renderen in een portal onder <body>. Zonder deze
+   regels hielden ze het oude design: kleine rijen van 28px, een ring, ronde
+   hoeken en 14px tekst naast een schil op 17px (audit 2026-10-17). Zelfde
+   vertaling als op de pagina: recht, vlak, onderkast, duimhoogte. */
 :root:has([data-design="tegels"]) :is([role="menu"], [role="dialog"], [role="listbox"]) {
-  font-family: "Barlow Semi Condensed", var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--tg-display);
   font-size: 1.0625rem;
+}
+:root:has([data-design="tegels"]) [data-slot="dropdown-menu-content"] {
+  min-width: 13rem;
+  border-radius: 0;
+  padding: 0.25rem 0;
+  background: var(--popover);
+  /* Zweeflaag: alleen schaduw, geen ring. */
+  box-shadow: 0 1.25rem 2.5rem -0.75rem rgb(6 28 34 / 0.45);
+}
+:root:has([data-design="tegels"]) :is(
+  [data-slot="dropdown-menu-item"],
+  [data-slot="dropdown-menu-checkbox-item"],
+  [data-slot="dropdown-menu-radio-item"],
+  [data-slot="dropdown-menu-sub-trigger"]
+) {
+  min-height: 2.75rem;
+  border-radius: 0;
+  padding-inline: 1rem;
+  font-size: 1.0625rem;
+  font-weight: 500;
+}
+:root:has([data-design="tegels"]) :is(
+  [data-slot="dropdown-menu-checkbox-item"],
+  [data-slot="dropdown-menu-radio-item"]
+) {
+  padding-right: 2.5rem;
+}
+:root:has([data-design="tegels"]) :is(
+  [data-slot="dropdown-menu-item"],
+  [data-slot="dropdown-menu-checkbox-item"],
+  [data-slot="dropdown-menu-radio-item"],
+  [data-slot="dropdown-menu-sub-trigger"]
+):is(:focus, [data-highlighted]) {
+  background: var(--muted);
+  color: var(--foreground);
+}
+:root:has([data-design="tegels"]) [data-slot="dropdown-menu-label"] {
+  padding: 0.5rem 1rem 0.25rem;
+  font-size: 0.875rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+:root:has([data-design="tegels"]) [data-slot="dropdown-menu-separator"] {
+  margin: 0.25rem 0;
+}
+/* Een knop in het menu (Uit) staat als gewone rij, niet als kleine knop. */
+:root:has([data-design="tegels"]) [data-slot="dropdown-menu-content"] > div:has(> [data-slot="button"]) {
+  padding: 0;
+}
+:root:has([data-design="tegels"]) [data-slot="dropdown-menu-content"] [data-slot="button"] {
+  width: 100%;
+  height: auto;
+  min-height: 2.75rem;
+  justify-content: flex-start;
+  border-radius: 0;
+  padding-inline: 1rem;
+  font-size: 1.0625rem;
+}
+
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] {
+  border: 0;
+  border-radius: 0;
+  padding: 1.5rem 1.25rem 1.25rem;
+  background: var(--card);
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-title"] {
+  font-family: var(--tg-display);
+  font-size: 1.875rem;
+  font-weight: 300;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--primary);
+}
+.dark:has([data-design="tegels"]) [data-slot="dialog-title"] {
+  color: var(--foreground);
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] > [aria-label="Sluiten"] {
+  top: 0.5rem;
+  right: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0;
+  padding: 0;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] :is(h2, h3) {
+  font-family: var(--tg-display);
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] .text-xs {
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] .text-sm {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] .uppercase {
+  text-transform: none;
+  letter-spacing: 0;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] :is(.font-bold, .font-black, .font-extrabold) {
+  font-weight: 600;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] .font-semibold {
+  font-weight: 500;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] :is(span, a, p, li, button, label).rounded-full:not([class*="size-"]) {
+  border-radius: 0;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"]), select, textarea) {
+  border-radius: 0;
+  border-color: transparent;
+  background-color: var(--tg-panel);
+  box-shadow: none;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] :is(input, select, textarea):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] [data-slot="button"] {
+  min-height: 2.75rem;
+  font-family: var(--tg-display);
+  font-size: 1rem;
+  font-weight: 500;
+}
+:root:has([data-design="tegels"]) [data-slot="dialog-content"] [data-slot="dialog-footer"] {
+  margin-top: 1.5rem;
 }
 
 /* Dashboard: de tegelrijen staan dicht op elkaar, de blokken met inhoud krijgen
@@ -1117,7 +1440,7 @@ a.tg-row:focus-visible,
 }
 /* Club en Ik als pijlers, zoals bij ZWBeter: Club in sage (de club), Ik in
    teal (je eigen cijfers); waar je bent is het paneel met de gouden lijn. */
-.tg-pillar:is(.tg-club, .tg-meer):not([aria-current="page"]) {
+.tg-pillar:is(.tg-club, .tg-meer):not([aria-current="page"], [aria-pressed="true"]) {
   background: var(--tg-bg);
   color: var(--tg-fg);
 }
@@ -1521,7 +1844,7 @@ a.tg-row:focus-visible,
   top: 3px;
   bottom: 3px;
   left: 3px;
-  width: 3rem;
+  width: var(--view-slider-w, 3rem);
   border-radius: 9999px;
   background: var(--view-slider-gold);
   box-shadow:
@@ -1537,7 +1860,7 @@ a.tg-row:focus-visible,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 3rem;
+  width: var(--view-slider-w, 3rem);
   height: 2.375rem;
   border-radius: 9999px;
   color: var(--muted-foreground);
@@ -1563,6 +1886,103 @@ a.tg-row:focus-visible,
 }
 @media (prefers-reduced-motion: reduce) {
   .view-slider-knob {
+    transition: none;
+  }
+}
+.view-slider-breed {
+  --view-slider-w: 4.5rem;
+}
+
+/* De renner van de materiaalrekenaar (renner.tsx): het ZWB-tenue van opzij. */
+.renner {
+  /* Tenuekleuren naar de foto van het winter- en zomershirt (2026-10-18). */
+  --tenue-blauw: #1c6f87;
+  --tenue-blauw-licht: #3d93ad;
+  --tenue-blauw-lichter: #7cbccf;
+  --tenue-blauw-donker: #145368;
+  --tenue-goud: #c3a06a;
+  --tenue-wit: #f6f7f6;
+  --renner-rand: oklch(0.78 0.015 210);
+  --renner-helm: #f6f7f6;
+  --renner-gat: oklch(0.25 0.02 220);
+  --renner-huid: oklch(0.78 0.055 62);
+  --renner-broek: oklch(0.2 0.025 220);
+  --renner-schoen: oklch(0.97 0.006 103);
+  --renner-sok: oklch(0.97 0.004 210);
+  --renner-frame: oklch(0.3 0.045 212);
+  --renner-band: oklch(0.2 0.012 220);
+  --renner-velg: oklch(0.62 0.02 200);
+  --renner-velg-vlak: oklch(0.3 0.03 212);
+  --renner-weg: var(--border);
+  --renner-rand-loep: var(--border);
+}
+.dark .renner {
+  --tenue-blauw: #2a7d96;
+  --renner-rand: oklch(1 0 0 / 0);
+  --renner-gat: oklch(0.3 0.02 220);
+  --renner-broek: oklch(0.1 0.012 220);
+  --renner-schoen: oklch(0.92 0.006 103);
+  --renner-sok: oklch(0.92 0.004 210);
+  --renner-frame: oklch(0.86 0.012 210);
+  --renner-band: oklch(0.09 0.01 220);
+  --renner-velg: oklch(0.55 0.02 210);
+  --renner-velg-vlak: oklch(0.42 0.03 212);
+}
+.renner-schim {
+  fill: none;
+  stroke: var(--muted-foreground);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  opacity: 0.7;
+}
+.renner-schim-lijn {
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.renner-lichaam {
+  transition: opacity 0.3s ease-out;
+}
+.renner-lichaam[data-wijk] {
+  opacity: 0.18;
+}
+.renner-wissel {
+  animation: renner-wissel 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes renner-wissel {
+  from {
+    opacity: 0;
+  }
+}
+.renner-stip {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  border: 2px solid var(--accent);
+  background: var(--card);
+  box-shadow: 0 1px 3px oklch(0.2 0.03 220 / 0.25);
+  transition:
+    transform 0.2s ease-out,
+    background-color 0.2s ease-out;
+}
+.renner-knop:hover .renner-stip {
+  transform: scale(1.15);
+}
+.renner-knop[data-actief] .renner-stip {
+  background: var(--accent);
+  border-color: var(--card);
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 1px 3px oklch(0.2 0.03 220 / 0.25);
+}
+@media (prefers-reduced-motion: reduce) {
+  .renner-wissel {
+    animation: none;
+  }
+  .renner-lichaam {
+    transition: none;
+  }
+  .renner-knop {
     transition: none;
   }
 }

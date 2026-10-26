@@ -1,6 +1,6 @@
 // Opmaak- en groepeerhelpers die de ZWBeter Worden-subpagina's delen.
 
-import type { StravaActivityRow } from "./types";
+import type { StravaActivityRow, WorkoutRow } from "./types";
 
 /** Het gevoel dat het lid bij een training invulde. */
 export const FEEL_LABELS: Record<string, string> = {
@@ -9,6 +9,57 @@ export const FEEL_LABELS: Record<string, string> = {
   zwaar: "Zwaar",
   slecht: "Slecht",
 };
+
+/**
+ * Wat een lid of trainer over de publicatie van een workout hoort te zien. Een
+ * training die in intervals.icu staat is het normale geval en krijgt geen
+ * label; tot 2026-10-26 stond hier de kale status ("pending", "published").
+ */
+export function publishStatusLabel(status: string | null | undefined): string | null {
+  if (status === "published") return null;
+  if (status === "failed") return "Niet in intervals.icu";
+  return "Nog niet in intervals.icu";
+}
+
+/**
+ * Per schema: hoeveel komende trainingen er nog niet in intervals.icu staan.
+ * Alleen dan heeft "Opnieuw versturen" zin; wijzigingen aan een lopend schema
+ * gaan sinds 2026-10-26 vanzelf.
+ */
+export function unsentByPlan(
+  workouts: Pick<WorkoutRow, "plan_id" | "status" | "scheduled_at" | "publish_status">[],
+  todayKey: string,
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const workout of workouts) {
+    if (workout.status !== "planned" || workout.publish_status === "published") continue;
+    if (String(workout.scheduled_at).slice(0, 10) < todayKey) continue;
+    counts.set(workout.plan_id, (counts.get(workout.plan_id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/**
+ * Welke knop PlanActions toont. Hier en niet in plan-actions.tsx, zodat een
+ * serverpagina vooraf kan zien of er iets te tonen is.
+ */
+export function planActionKind({
+  status,
+  mayApprove,
+  mayPublish,
+  unsent,
+}: {
+  status: string;
+  mayApprove: boolean;
+  mayPublish: boolean;
+  unsent: number;
+}): "publish" | "resend" | "approve" | null {
+  // Een afgelopen schema met één klik terughalen archiveert het lopende.
+  if (status === "archived") return null;
+  const running = status === "approved" || status === "published";
+  if (mayPublish) return running ? (unsent > 0 ? "resend" : null) : "publish";
+  return mayApprove && !running ? "approve" : null;
+}
 
 export const GOAL_LABELS: Record<string, string> = {
   zrl: "ZRL",

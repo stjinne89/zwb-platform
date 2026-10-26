@@ -15,6 +15,7 @@ import {
   Wheat,
 } from "lucide-react";
 import { shiftDayKey } from "@/lib/training/mobility";
+import { aiProcessorName } from "@/lib/ai/settings";
 import { FUEL_DAY_LABELS } from "@/lib/nutrition/day-type";
 import {
   dayTotals,
@@ -160,7 +161,7 @@ export default async function LogPage({
         <h2 className="text-xl font-semibold">Naleving</h2>
         <LogConsentForm action={enableLog} />
         <Link
-          href="/hulp#voeding"
+          href="/hulp/kennis#voeding"
           className="inline-flex min-h-[44px] items-center text-sm text-muted-foreground hover:underline"
         >
           Hoe dit werkt
@@ -312,7 +313,7 @@ export default async function LogPage({
             {!settings.recognition && (
               <ConsentForm
                 action={setRecognitionConsent}
-                text="Mijn omschrijving van een maaltijd gaat naar OpenAI, dat herkent wat erin zit en de hoeveelheden schat. Ik controleer elke hoeveelheid voor het bewaren."
+                text={`Mijn omschrijving van een maaltijd gaat naar ${aiProcessorName()}, dat herkent wat erin zit en de hoeveelheden schat. Ik controleer elke hoeveelheid voor het bewaren.`}
               >
                 <Sparkles className="size-4" />
                 Tekst herkennen aanzetten
@@ -388,7 +389,7 @@ export default async function LogPage({
         )}
         <DeleteLogButton action={deleteLog} />
         <Link
-          href="/hulp#voeding"
+          href="/hulp/kennis#voeding"
           className="inline-flex min-h-[44px] items-center text-sm text-muted-foreground hover:underline"
         >
           Hoe dit werkt

@@ -1,0 +1,134 @@
+# Claude naspelen
+
+Is Claude een goede vervanger voor OpenAI in de trainings-AI? Gemeten op
+2026-10-24 met `scripts/claude-replay.mjs`: opgeslagen GPT-5.5-generaties opnieuw
+door Claude, met dezelfde systeemprompt (`prompt_text`), invoer
+(`prompt_summary`) en hetzelfde JSON-schema (`planSchema`). Beide antwoorden gaan
+langs de meetlat (`checkTrainingPlan`, zie [schema-meetlat](schema-meetlat.md)).
+
+Alleen generaties van het profiel van de eigenaar: Anthropic staat nog niet als
+verwerker in de privacyverklaring. De uitvoer met ledendata staat in `.tmp/`;
+hier alleen tellingen.
+
+## Alle soorten, Claude Opus 5.5 met dezelfde effort als de app
+
+Effort per soort zoals de app hem aan OpenAI geeft: dagelijkse aanpassing en
+dag-aanpassing `low`, bijwerking en nieuw schema `medium`.
+
+| Soort | Aantal | Met fout: OpenAI | Met fout: Claude | Fouten totaal O / C | Gem. sec Claude | Kosten Claude per stuk |
+|---|---:|---:|---:|---:|---:|---:|
+| dagelijkse aanpassing | 5 | 0% | 0% | 0 / 0 | 9 | $0,11 |
+| bijwerking | 5 | 60% | 20% | 21 / 2 | 341 | $1,06 |
+| nieuw schema | 5 | 100% | 100% | 78 / 68 | 92 | $0,25 |
+| dag-aanpassing (lid) | 4 | 75% | 75% | 9 / 5 | 17 | $0,07 |
+
+- **Dagelijkse aanpassing:** Claude liet het schema alle vijf keer ongemoeid (lege
+  lijst); GPT-5.5 paste drie van de vijf keer iets aan. Welke van de twee gelijk
+  had, zegt de meetlat niet; dat moet uit de blinde vergelijking komen.
+- **Nieuw schema:** de vijf generaties zijn van mei tot juli, van vóór de huidige
+  prompt en meetlat. Beide breken veel regels; weinig zeggend.
+- Bij de dag-aanpassing kwam Claude eerst met een lege lijst terug, omdat
+  `minItems` uit het schema was gehaald. Met `minItems: 1` (dat Claude wel
+  ondersteunt) niet meer; alleen die run telt hierboven.
+
+## Bijwerking: drie Claude-varianten op dezelfde vijf
+
+| Variant | Met fout | Fouten totaal | Gem. sec | Kosten per stuk | Uitvoertokens |
+|---|---:|---:|---:|---:|---:|
+| GPT-5.5 (opgeslagen) | 3/5 | 21 | – | – | – |
+| Opus 5.5, medium | 1/5 | 2 | 341 | $1,06 | ~47.000 |
+| Opus 5.5, low | 1/5 | 2 | 252 | $0,83 | ~37.000 |
+| Sonnet 5.5, medium | 2/5 | 12 | 234 | $0,50 | ~45.000 |
+
+Opus op `low` breekt even weinig regels als op `medium`, is een kwart goedkoper en
+anderhalve minuut sneller. Het grootste deel van de uitvoer is het schema zelf
+(~60.000 tekens JSON voor ruim 50 workouts), dus lager dan dit gaan de kosten per
+bijwerking niet zonder een kleiner antwoord.
+
+## Wat dat per maand kost
+
+Op het volume van 25 september – 24 oktober (alle leden: 114 bijwerkingen, 97
+dagelijkse aanpassingen, 14 nieuwe schema's; coachchat, weekoverzicht en voeding
+zijn klein):
+
+| Opzet | Per maand, geschat |
+|---|---:|
+| Alles Opus 5.5 zoals de app nu | ~$135 |
+| Opus 5.5, bijwerking op `low` | ~$110 |
+| Opus 5.5, bijwerking met Sonnet 5.5 | ~$71 |
+
+Het Max-abonnement geeft $100 API-tegoed per maand.
+
+**OpenAI kost nu weinig door gratis tokens.** Het dashboard toont $23,20 over
+dezelfde 30 dagen, maar de organisatie staat ingeschreven voor "complimentary
+daily tokens": in ruil daarvoor staat *Share inputs and outputs with OpenAI* op
+*Enabled for all projects*. Alleen wat boven het dagtegoed uitkomt wordt betaald
+(vandaar de pieken op drukke dagen als 30 september, met tien bijwerkingen). Wat
+het zonder delen zou kosten is niet gemeten; uit de tokens per bijwerking geschat
+grofweg $60–80 per maand.
+
+## Niet gemeten
+
+- Hoe lang GPT-5.5 over een generatie doet: `completed_at` is het moment van
+  ophalen, niet van klaar zijn.
+- Coachchat, weekoverzicht, pacing en voedingsherkenning: hun context staat niet
+  volledig opgeslagen, dus naspelen kan niet exact.
+- De inhoudelijke kwaliteit: daarvoor is `compare.html` (blind, A/B).
+
+## Blinde beoordeling
+
+Via de deelbare pagina (zie PLAN.md). Per beoordelaar het aantal gevallen waarin
+Claude (Opus 5.5) of GPT-5.5 als beter werd gekozen, of beide even goed.
+
+| Beoordelaar | Dagelijkse aanpassing | Aanpassing door renner | Bijwerking | Nieuw schema | Totaal |
+|---|---|---|---|---|---|
+| 1 (2026-10-26) | Claude 3 · gelijk 2 | Claude 1 · OpenAI 2 · gelijk 1 | Claude 1 · gelijk 4 | Claude 2 · OpenAI 2 · gelijk 1 | Claude 7 · OpenAI 4 · gelijk 8 |
+| 2 (2026-10-26) | Claude 3 · gelijk 2 | OpenAI 3 · gelijk 1 | Claude 5 | Claude 3 · gelijk 2 | Claude 11 · OpenAI 3 · gelijk 5 |
+| **Samen** | **Claude 6 · gelijk 4** | **Claude 1 · OpenAI 5 · gelijk 2** | **Claude 6 · gelijk 4** | **Claude 5 · OpenAI 2 · gelijk 3** | **Claude 18 · OpenAI 7 · gelijk 13** |
+
+- Bij de dagelijkse aanpassing koos beoordelaar 1 drie keer het "laat staan" van
+  Claude boven een wijziging van GPT-5.5; de twee gelijke waren gevallen waarin
+  beide niets wijzigden.
+- De twee keer dat GPT-5.5 won bij de aanpassing door de renner, paste GPT-5.5
+  vier à vijf dagen aan en Claude één à drie; GPT-5.5 brak daarbij meer regels
+  van de meetlat (3 en 5 tegen 1 en 3).
+- Bij de bijwerking zag beoordelaar 1 weinig verschil (vier keer gelijk);
+  beoordelaar 2 koos alle vijf keer Claude. Nergens won GPT-5.5.
+- De twee beoordelaars waren het in 12 van de 19 gevallen eens. Beiden kozen
+  bij dezelfde twee aanpassingen door de renner voor GPT-5.5: het enige
+  onderdeel waar Claude achterblijft.
+
+## Waarom Claude bij de aanpassing door de renner verloor: de datum
+
+Bij g08 en g09 (beide uit augustus) zette Claude als datum letterlijk "vandaag"
+en plande het op 1 januari 2026 in plaats van 2 augustus. GPT-5.5 krijgt de
+datum van vandaag van OpenAI zelf mee; Claude niet, en die oude invoer had geen
+ankerdatum (geen `currentPlan` of `planWindow`). Hetzelfde gold voor de vier
+nieuwe schema's van mei tot juli: Claude plande in de verkeerde maand. Waar de
+invoer wel een ankerdatum heeft, zoals in de huidige code (`planWindow` bij een
+nieuw schema, `currentPlan.fromDate` bij een dag-aanpassing, `planUpdate` bij een
+bijwerking), klopten Claude's datums al.
+
+Opnieuw gedraaid met één regel "Vandaag is <weekdag> <datum>." boven de vraag
+(`--with-date`):
+
+| Geval | Claude zonder datum | Claude met datum | GPT-5.5 |
+|---|---|---|---|
+| dag-aanpassing 2026-08-04 (g08) | 1 workout, datum "vandaag" | 4 workouts, 4–9 aug | 4 workouts, 4–9 aug |
+| dag-aanpassing 2026-08-02 (g09) | 3 workouts in januari | 1 workout, vandaag | 5 workouts, rest van de week |
+| nieuw schema 2026-05-27 | 11 fouten | 1 | 11 |
+| nieuw schema 2026-06-08 | 4 | 1 | 7 |
+| nieuw schema 2026-06-01 | 19 | 4 | 11 |
+| nieuw schema 2026-07-21 | 6 (8 workouts, in juni) | 12 (16 workouts, juli) | 13 |
+| nieuw schema 2026-09-11 | 28 | 22 | 36 |
+
+Met de datum erbij breekt Claude bij elk nieuw schema minder regels dan GPT-5.5.
+Bij g09 vult Claude alleen vandaag in, GPT-5.5 de hele week; die invoer had geen
+lopend schema, wat in de huidige code niet meer voorkomt.
+
+**Gevolg voor de blinde beoordeling:** g08, g09 en g15–g19 kregen beoordelaars de
+Claude-versie met de verkeerde datums te zien. Die oordelen vallen dus in het
+nadeel van Claude uit.
+
+**Gevolg voor de overstap:** elke Claude-aanroep moet de datum van vandaag
+meekrijgen. Dat is geen kwestie van prompt-formulering maar van invoer.

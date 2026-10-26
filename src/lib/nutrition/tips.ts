@@ -21,7 +21,9 @@ import {
   PRE_SLEEP_PROTEIN_G,
   dailyCarbs,
   dailyProtein,
-  rideCarbsPerHour,
+  rideBand,
+  rideTargetPerHour,
+  type GutTraining,
   recoveryCarbsPerHour,
   type MealMoment,
   type Range,
@@ -37,6 +39,10 @@ export type NutritionDayInput = {
   plannedToday: FuelSession[];
   ridesToday: FuelSession[];
   plannedTomorrow: FuelSession[];
+  /** Darmtraining op deze dag (gut-training.ts); zonder: de gewone band. */
+  gut?: GutTraining | null;
+  /** Zweetverlies per uur uit de laatste zweettest (sweat.ts), voor het ritplan. */
+  sweatMlPerHour?: number | null;
   readinessState?: "ready" | "caution" | "recovery" | "unknown" | null;
   wellnessState?: "fresh" | "normal" | "fatigued" | "unknown" | null;
 };
@@ -49,8 +55,14 @@ export type NutritionDay = {
   protein: Range | null;
   /** Koolhydraten per uur voor een rit die vandaag nog komt. */
   rideCarbsPerHour: Range | null;
+  /** Het doel binnen die band, naar de zwaarte van de rit (rideTargetPerHour). */
+  rideTargetPerHour: number | null;
   /** Duur van de geplande (of anders gereden) rit vandaag, voor tijdens_rit. */
   rideMinutes: number | null;
+  /** Zwaarte van de langste geplande rit vandaag; null zonder schema. */
+  rideIntensity: string | null;
+  /** Darmtraining op deze dag, voor de portie en het ritplan. */
+  rideGut: GutTraining | null;
 };
 
 export type NutritionTipKind =
@@ -88,14 +100,22 @@ export function nutritionDay(input: NutritionDayInput): NutritionDay {
 
   const stillToRide = input.ridesToday.length === 0 ? totalMinutes(input.plannedToday) : 0;
   const rideMinutes = totalMinutes(input.plannedToday) || totalMinutes(input.ridesToday) || null;
+  // Bij twee ritten op een dag telt de langste: daar gaat het eten onderweg om.
+  const longest = input.plannedToday
+    .filter((session) => session.minutes > 0 && session.intensity !== "rest")
+    .reduce<FuelSession | null>((best, session) => (!best || session.minutes > best.minutes ? session : best), null);
+  const rideIntensity = longest?.intensity ?? null;
 
   return {
     dayType,
     tomorrowType: classifyFuelDay(input.plannedTomorrow),
     carbs: weight ? dailyCarbs(dayType, weight) : null,
     protein: weight ? dailyProtein(weight) : null,
-    rideCarbsPerHour: stillToRide > 0 ? rideCarbsPerHour(stillToRide) : null,
+    rideCarbsPerHour: stillToRide > 0 ? rideBand(stillToRide, input.gut) : null,
+    rideTargetPerHour: stillToRide > 0 ? rideTargetPerHour(stillToRide, rideIntensity, input.gut) : null,
     rideMinutes,
+    rideIntensity,
+    rideGut: input.gut ?? null,
   };
 }
 
@@ -126,9 +146,10 @@ export function nutritionTipForToday(input: NutritionDayInput): NutritionTip {
   // 1. Er komt vandaag nog een rit van een uur of langer: eten onderweg.
   if (day.rideCarbsPerHour) {
     const minutes = totalMinutes(input.plannedToday);
-    const perHour = grams(day.rideCarbsPerHour);
+    // Het doel voor deze rit, binnen de band (rideTargetPerHour).
+    const perHour = `${day.rideTargetPerHour ?? day.rideCarbsPerHour.max} g`;
     // Boven 60 g/u raakt glucose alleen verzadigd (UCI-positiestandpunt, tabel 3).
-    const mix = day.rideCarbsPerHour.max > 60 ? " Boven 60 g per uur: meng glucose en fructose." : "";
+    const mix = (day.rideTargetPerHour ?? 0) > 60 ? " Boven 60 g per uur: meng glucose en fructose." : "";
     return {
       kind: "tijdens_rit",
       title: "Eet onderweg",

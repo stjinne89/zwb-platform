@@ -11,7 +11,9 @@ export async function POST(request: Request) {
 
   try {
     const supabase = createAdminClient();
-    const result = await awardCompletedAchievementWeeks(supabase);
+    // ?weeks=all herrekent de hele historie in plaats van de laatste weken.
+    const all = new URL(request.url).searchParams.get("weeks") === "all";
+    const result = await awardCompletedAchievementWeeks(supabase, all ? { weeks: "all" } : {});
     return Response.json({ ok: true, ...result });
   } catch (err) {
     return Response.json(

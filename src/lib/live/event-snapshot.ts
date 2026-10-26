@@ -35,6 +35,7 @@ export type PublicEventInfo = {
   location: string | null;
   start_lat: number | null;
   start_lon: number | null;
+  distanceKm: number | null;
   gpxUrl: string | null;
   isToday: boolean;
 };
@@ -60,7 +61,7 @@ async function _fetchEventLiveSnapshot(
 
   const { data: event } = await admin
     .from("events")
-    .select("id, title, start_at, location, start_lat, start_lon, gpx_path")
+    .select("id, title, start_at, location, start_lat, start_lon, gpx_path, distance_km")
     .eq("id", eventId)
     .maybeSingle();
 
@@ -87,6 +88,7 @@ async function _fetchEventLiveSnapshot(
     location: event.location,
     start_lat: event.start_lat != null ? Number(event.start_lat) : null,
     start_lon: event.start_lon != null ? Number(event.start_lon) : null,
+    distanceKm: Number(event.distance_km) || null,
     gpxUrl,
     isToday,
   };
@@ -138,7 +140,8 @@ async function _fetchEventLiveSnapshot(
     const { data: positionRows } = await admin
       .from("live_positions")
       .select(
-        "session_id, profile_id, lat, lng, altitude, speed_kmh, recorded_at",
+        // Afstand voor koersen in rondjes; geen vermogen, cadans of hartslag.
+        "session_id, profile_id, lat, lng, altitude, speed_kmh, recorded_at, distance_m",
       )
       .in(
         "session_id",

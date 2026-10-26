@@ -5,6 +5,8 @@ import { ZwbLogo } from "@/components/zwb-logo";
 import { LogoutButton } from "@/app/(app)/_components/logout-button";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { TegelsAuthFrame } from "@/components/tegels/auth-frame";
+import { getAuthDesign } from "@/lib/design";
 
 export default async function WachtenPage() {
   const supabase = await createClient();
@@ -20,6 +22,33 @@ export default async function WachtenPage() {
     .single();
 
   if (profile?.is_approved) redirect("/dashboard");
+
+  if ((await getAuthDesign()) === "tegels") {
+    return (
+      <TegelsAuthFrame>
+        <div className="space-y-4">
+          <h1 className="text-[2.25rem] font-light leading-[1.05] tracking-tight text-primary dark:text-foreground">
+            Welkom bij ZWB Cycling, {profile?.display_name ?? user.email}!
+          </h1>
+          <p>
+            Je registratie is ontvangen en wacht op goedkeuring door een
+            beheerder. Zodra dat gebeurd is krijg je toegang tot het platform.
+          </p>
+          <p className="text-muted-foreground">Vragen? Neem contact op met het ZWB-bestuur.</p>
+        </div>
+        <Link
+          href="/welkom"
+          className={cn(buttonVariants(), "tg-link tg-club min-h-11 w-full text-base")}
+        >
+          Open de starthelper
+        </Link>
+        <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+          <span className="min-w-0 truncate">Ingelogd als {user.email}</span>
+          <LogoutButton />
+        </div>
+      </TegelsAuthFrame>
+    );
+  }
 
   return (
     <main className="flex flex-1 items-center justify-center p-6">

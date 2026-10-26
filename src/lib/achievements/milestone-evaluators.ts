@@ -7,6 +7,7 @@
 // + 1 batched INSERT, geen N+1.
 
 import { sendNotificationToMembers } from "@/lib/push/send";
+import { uniqueRides } from "@/lib/rides/unique-rides";
 
 type Activity = {
   id: number;
@@ -1470,7 +1471,7 @@ const EVALUATORS: Evaluator[] = [
 const EVAL_COLUMNS =
   "id, distance_m, total_elevation_gain_m, moving_time_seconds, elapsed_time_seconds, kudos_count, start_date, trainer, commute, sport_type, raw_start_date_local:raw->>start_date_local, raw_achievement_count:raw->achievement_count, raw_pr_count:raw->pr_count, raw_athlete_count:raw->athlete_count, raw_name:raw->>name, raw_sport_type:raw->>sport_type, raw_type:raw->>type";
 
-type EvalRow = Omit<Activity, "raw"> & {
+export type EvalRow = Omit<Activity, "raw"> & {
   raw_start_date_local: string | null;
   raw_achievement_count: number | null;
   raw_pr_count: number | null;
@@ -1505,13 +1506,21 @@ function evalRowToActivity(row: EvalRow): Activity {
   };
 }
 
+/**
+ * De rijen als activiteiten voor de evaluators. Een rit die het lid twee keer
+ * opnam, telt één keer; anders haalt een lid een aantal-ritten-badge te vroeg.
+ */
+export function activitiesForEval(rows: EvalRow[]): Activity[] {
+  return uniqueRides(rows.map(evalRowToActivity));
+}
+
 async function fetchAllActivitiesForEval(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   profileId: string,
 ): Promise<Activity[]> {
   const PAGE = 500;
-  const all: Activity[] = [];
+  const all: EvalRow[] = [];
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from("strava_activities")
@@ -1520,10 +1529,10 @@ async function fetchAllActivitiesForEval(
       .order("start_date", { ascending: true })
       .range(from, from + PAGE - 1);
     if (error || !data || data.length === 0) break;
-    all.push(...(data as EvalRow[]).map(evalRowToActivity));
+    all.push(...(data as EvalRow[]));
     if (data.length < PAGE) break;
   }
-  return all;
+  return activitiesForEval(all);
 }
 
 export async function evaluateMilestonesForUser(

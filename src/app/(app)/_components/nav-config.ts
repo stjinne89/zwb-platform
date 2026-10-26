@@ -44,6 +44,7 @@ export const ZWBETER_WORDEN_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/racen", label: "Racen" },
   { type: "link", href: "/zwbeter-worden/core", label: "Core & mobiliteit" },
   { type: "link", href: "/zwbeter-worden/voeding", label: "Voeding" },
+  { type: "link", href: "/zwbeter-worden/materiaal", label: "Materiaal" },
   { type: "link", href: "/zwbeter-worden/doelen", label: "Doelen" },
   { type: "link", href: "/zwbeter-worden/uitgangspunten", label: "Uitgangspunten" },
   { type: "link", href: "/zwbeter-worden/protocollen", label: "Protocollen" },
@@ -77,6 +78,7 @@ export const TRAINER_SECTIONS: NavLeaf[] = [
  * blijft het één "Voeding"-item. */
 export const VOEDING_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/voeding", label: "Dagmenu" },
+  { type: "link", href: "/zwbeter-worden/voeding/boodschappen", label: "Boodschappen" },
   { type: "link", href: "/zwbeter-worden/voeding/naleving", label: "Naleving" },
   { type: "link", href: "/zwbeter-worden/voeding/recepten", label: "Receptenboek" },
   { type: "link", href: "/zwbeter-worden/voeding/protocollen", label: "Protocollen" },
@@ -91,6 +93,20 @@ export const KRACHT_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/core/series", label: "Series" },
   { type: "link", href: "/zwbeter-worden/core/oefeningen", label: "Oefeningen" },
   { type: "link", href: "/zwbeter-worden/core/kennis", label: "Kennisbank" },
+];
+
+/** De tabs binnen Racen: je races en, sinds 2026-10-19, de kennisbank racen. Een
+ * race (/racen/<id>) valt onder Jouw races, een artikel onder Kennisbank. */
+export const RACEN_SECTIONS: NavLeaf[] = [
+  { type: "link", href: "/zwbeter-worden/racen", label: "Jouw races" },
+  { type: "link", href: "/zwbeter-worden/racen/kennis", label: "Kennisbank" },
+];
+
+/** De tabs binnen Materiaal (de pijler materiaal, 2026-10-18). De pijler zelf
+ * (/zwbeter-worden/materiaal) stuurt door naar de kennisbank. */
+export const MATERIAAL_SECTIONS: NavLeaf[] = [
+  { type: "link", href: "/zwbeter-worden/materiaal/kennis", label: "Kennisbank" },
+  { type: "link", href: "/zwbeter-worden/materiaal/rekenaar", label: "Rekenaar" },
 ];
 
 export const NAV_GROUPS: NavNode[] = [
@@ -118,12 +134,7 @@ export const NAV_GROUPS: NavNode[] = [
         label: "ZWB Omnium",
       },
       { type: "link", href: "/src", label: "Sunday Race Club" },
-      {
-        type: "link",
-        href: "https://voorzpwelbokaal.netlify.app/",
-        label: "voorZpWelBokaal",
-        external: true,
-      },
+      { type: "link", href: "/voorzpwelbokaal", label: "voorZpWelBokaal" },
     ],
   },
   {
@@ -132,7 +143,6 @@ export const NAV_GROUPS: NavNode[] = [
     items: [
       { type: "link", href: "/community", label: "WhatsApp-groepen" },
       { type: "link", href: "/polls", label: "Polls" },
-      { type: "link", href: "/materiaal", label: "Vraag en Aanbod" },
       { type: "link", href: "/media", label: "Media" },
       { type: "link", href: "/ritverslagen", label: "Ritverslagen" },
     ],
@@ -145,6 +155,8 @@ export const AVATAR_NAV: NavLeaf[] = [
   { type: "link", href: "/profiel", label: "Profiel" },
   { type: "link", href: "/mijn-garage", label: "Mijn garage" },
   { type: "link", href: "/hulp", label: "Hulp" },
+  // Vragen over de app (0254): hoort bij de hulp, niet bij een plek.
+  { type: "link", href: "/qa", label: "Q&A" },
 ];
 
 // Admin-items met bijbehorende permission, uit het register van de
@@ -197,6 +209,7 @@ export const BEHEER_CATEGORIES: BeheerCategory[] = [
       adminLink("citaten"),
       adminLink("achievements"),
       adminLink("zwbgame"),
+      adminLink("bokaal"),
     ],
   },
   {

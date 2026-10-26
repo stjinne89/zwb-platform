@@ -6,8 +6,8 @@ import {
   CORE_THRESHOLD_C,
   coreCandidates,
   coreTemperatureStream,
+  analyzeHeatSession,
   formatCoreSession,
-  meetsCoreTarget,
   protocolUsesCore,
   summarizeCoreTemperature,
   type CoreActivity,
@@ -72,13 +72,17 @@ describe("kerntemperatuur uitrekenen", () => {
   it("telt de minuten op of boven de drempel", () => {
     const streams = ride(3600, 1800);
     const summary = summarizeCoreTemperature(streams[2].data, streams[0].data);
-    expect(summary).toEqual({ maxC: 38.8, minutesAbove: 30 });
+    // 1801 metingen op 38,8 °C aan het eind: vanaf seconde 1798, dus na 29 minuten.
+    expect(summary).toEqual({ maxC: 38.8, minutesAbove: 30, minutesToThreshold: 29, coveragePct: 100 });
   });
 
   it("telt een gat in de metingen hooguit 30 seconden mee", () => {
-    expect(summarizeCoreTemperature([39, 39, 39, 39], [0, 300, 301, 302])).toEqual({
+    expect(summarizeCoreTemperature([39, 39, 39, 39], [0, 300, 301, 302])).toMatchObject({
       maxC: 39,
       minutesAbove: 0,
+      minutesToThreshold: 0,
+      // 32 van de 302 seconden gemeten.
+      coveragePct: 11,
     });
     // 30 + 1 + 1 + 60 x 1 seconde
     const values = Array.from({ length: 63 }, () => 38.6);
@@ -87,7 +91,11 @@ describe("kerntemperatuur uitrekenen", () => {
   });
 
   it("negeert nullen en onmogelijke waarden", () => {
-    expect(summarizeCoreTemperature([0, null, 55, 38.4, null], null)).toEqual({ maxC: 38.4, minutesAbove: 0 });
+    expect(summarizeCoreTemperature([0, null, 55, 38.4, null], null)).toMatchObject({
+      maxC: 38.4,
+      minutesAbove: 0,
+      minutesToThreshold: null,
+    });
     expect(summarizeCoreTemperature([0, null, 0], null)).toBeNull();
     expect(summarizeCoreTemperature([], null)).toBeNull();
   });
@@ -97,11 +105,11 @@ describe("kerntemperatuur uitrekenen", () => {
     expect(summarizeCoreTemperature(values, null)?.minutesAbove).toBe(2);
   });
 
-  it("vinkt pas af bij genoeg minuten", () => {
-    expect(meetsCoreTarget({ coreMinutes: 30 }, { maxC: 38.9, minutesAbove: 30 })).toBe(true);
-    expect(meetsCoreTarget({ coreMinutes: 30 }, { maxC: 38.9, minutesAbove: 29 })).toBe(false);
-    expect(meetsCoreTarget({}, { maxC: 39.5, minutesAbove: 60 })).toBe(false);
-    expect(meetsCoreTarget({ coreMinutes: 30 }, null)).toBe(false);
+  it("meet hoeveel van de rit de sensor gaf", () => {
+    // De sensor viel na tien minuten van een uur weg.
+    const time = Array.from({ length: 3600 }, (_, i) => i);
+    const core = time.map((i) => (i < 600 ? 38 : null));
+    expect(summarizeCoreTemperature(core, time)?.coveragePct).toBe(17);
   });
 
   it("toont de meting kort", () => {
@@ -125,6 +133,90 @@ function activity(id: string, day: string, extra: Partial<CoreActivity> = {}): C
   return { id, start_date_local: `${day}T18:00:00`, type: "VirtualRide", source: "GARMIN_CONNECT", moving_time: 3600, ...extra };
 }
 
+describe("analyse van een hittesessie", () => {
+  const sessie = { coreMinutes: 30, rideMinutes: 50 };
+  const goed = { maxC: 38.9, minutesAbove: 34, rideMinutes: 55, minutesToThreshold: 18, coveragePct: 98 };
+
+  it("keurt een sessie goed die aan alle eisen voldoet", () => {
+    expect(analyzeHeatSession(sessie, goed)).toEqual({ met: true, reasons: [], tip: null, notes: [] });
+    // Vijf minuten korter dan voorgeschreven telt nog.
+    expect(analyzeHeatSession(sessie, { ...goed, rideMinutes: 45 }).met).toBe(true);
+  });
+
+  it("legt uit dat de drempel niet werd gehaald", () => {
+    const verdict = analyzeHeatSession(sessie, {
+      ...goed,
+      maxC: 38.2,
+      minutesAbove: 0,
+      minutesToThreshold: null,
+    });
+    expect(verdict.met).toBe(false);
+    expect(verdict.reasons).toEqual(["Je kerntemperatuur kwam tot 38,2 °C; de drempel is 38,5 °C."]);
+    expect(verdict.tip).toMatch(/ventilator/);
+  });
+
+  it("legt uit dat het te kort boven de drempel was, en dat je laat warm was", () => {
+    const verdict = analyzeHeatSession(sessie, { ...goed, minutesAbove: 22, minutesToThreshold: 31 });
+    expect(verdict.met).toBe(false);
+    expect(verdict.reasons).toEqual(["Je zat 22 minuten op of boven 38,5 °C; nodig is 30."]);
+    expect(verdict.tip).toBe(
+      "Je haalde 38,5 °C pas na 31 minuten. Begin warmer: een extra laag vanaf de start, of het eerste kwartier iets harder.",
+    );
+    expect(analyzeHeatSession(sessie, { ...goed, minutesAbove: 22, minutesToThreshold: 12 }).tip).toMatch(
+      /langer doorrijden/,
+    );
+  });
+
+  it("noemt een te korte rit, ook naast een te korte tijd boven de drempel", () => {
+    // De testrit van de eigenaar: 10 minuten.
+    const verdict = analyzeHeatSession(sessie, {
+      maxC: 38.1,
+      minutesAbove: 0,
+      rideMinutes: 10,
+      minutesToThreshold: null,
+      coveragePct: 95,
+    });
+    expect(verdict.met).toBe(false);
+    expect(verdict.reasons).toEqual([
+      "Je reed 10 minuten; het protocol vraagt er 50.",
+      "Je kerntemperatuur kwam tot 38,1 °C; de drempel is 38,5 °C.",
+    ]);
+    expect(verdict.tip).toMatch(/volle tijd/);
+  });
+
+  it("twijfelt bij een sensor die weinig mat in plaats van te oordelen over de temperatuur", () => {
+    const verdict = analyzeHeatSession(sessie, { ...goed, minutesAbove: 12, coveragePct: 40 });
+    expect(verdict.met).toBe(false);
+    expect(verdict.reasons).toEqual([
+      "De sensor mat maar 40% van de rit, dus hoe lang je boven 38,5 °C zat is niet zeker.",
+    ]);
+    expect(verdict.tip).toMatch(/zelf af/);
+    // Genoeg minuten gemeten: dan maakt een gat in de meting niet uit.
+    expect(analyzeHeatSession(sessie, { ...goed, coveragePct: 40 }).met).toBe(true);
+  });
+
+  it("waarschuwt boven 39,5 °C, ook als de sessie voldoet", () => {
+    const verdict = analyzeHeatSession(sessie, { ...goed, maxC: 39.7 });
+    expect(verdict.met).toBe(true);
+    expect(verdict.notes[0]).toMatch(/^Je kwam tot 39,7 °C/);
+  });
+
+  it("slaat eisen over die een oudere meting niet kent", () => {
+    const oud = { maxC: 38.9, minutesAbove: 31, rideMinutes: null, minutesToThreshold: null, coveragePct: null };
+    expect(analyzeHeatSession(sessie, oud).met).toBe(true);
+  });
+
+  it("geeft elke hittesessie in de protocollen een rijduur en een drempel", () => {
+    for (const slug of ["hitte-kort", "hitte-lang"]) {
+      for (const phase of protocolBySlug(slug)!.phases) {
+        for (const task of phase.tasks.filter((item) => item.coreMinutes)) {
+          expect(task.rideMinutes, `${slug}/${task.key}`).toBeGreaterThan(task.coreMinutes!);
+        }
+      }
+    }
+  });
+});
+
 describe("welke ritten de app bekijkt", () => {
   const TODAY = "2026-10-14";
   const lang = run("hitte-lang", { startDate: "2026-10-12" });
@@ -147,7 +239,7 @@ describe("welke ritten de app bekijkt", () => {
         activity("strava", TODAY, { source: "STRAVA" }),
         activity("stub", TODAY, { _note: "STRAVA activities are not available via the API" }),
         activity("loop", TODAY, { type: "Run" }),
-        activity("kort", TODAY, { moving_time: 29 * 60 }),
+        activity("kort", TODAY, { moving_time: 4 * 60 }),
         activity("gezien", TODAY),
         activity("ervoor", "2026-10-11"),
         activity("goed", TODAY),
@@ -156,6 +248,35 @@ describe("welke ritten de app bekijkt", () => {
       TODAY,
     );
     expect(candidates.map((item) => item.intervalsId)).toEqual(["goed"]);
+  });
+
+  it("meet ook een korte rit, zoals de testrit van de eigenaar", () => {
+    // i198325696: 644 seconden op een BOLT 2, via de Wahoo-koppeling.
+    const test = activity("i198325696", TODAY, {
+      moving_time: 644,
+      source: "WAHOO",
+      stream_types: ["time", "watts", "cadence", "heartrate", "distance", "latlng", "velocity_smooth", "core_temperature", "torque"],
+    });
+    expect(coreCandidates([lang], [test], new Set(), TODAY)).toEqual([
+      expect.objectContaining({ intervalsId: "i198325696", streamTypes: ["time", "core_temperature"] }),
+    ]);
+  });
+
+  it("slaat een rit zonder CORE-stream over zonder hem op te halen", () => {
+    const candidates = coreCandidates(
+      [lang],
+      [
+        activity("zonder", TODAY, { stream_types: ["time", "watts", "heartrate"] }),
+        activity("wahoo-oud", TODAY, { stream_types: ["time", "watts", "smo2", "thb", "thb_2"] }),
+        activity("onbekend", TODAY),
+      ],
+      new Set(),
+      TODAY,
+    );
+    expect(candidates.map((item) => [item.intervalsId, item.streamTypes])).toEqual([
+      ["wahoo-oud", ["time", "thb", "thb_2"]],
+      ["onbekend", []],
+    ]);
   });
 
   it("kijkt niet verder terug dan twee weken en niet voorbij het einde", () => {
@@ -235,9 +356,32 @@ describe("fillCoreSessions", () => {
         day: TODAY,
         max_core_c: 38.8,
         minutes_above: 40,
+        ride_minutes: 60,
+        minutes_to_threshold: 19,
+        coverage_pct: 100,
         auto_checked: true,
       },
     ]);
+  });
+
+  it("vinkt niet af als de rit te kort was, ook met genoeg minuten boven de drempel", async () => {
+    mocks.activities.mockResolvedValue([activity("r1", TODAY, { moving_time: 40 * 60 })]);
+    mocks.streams.mockResolvedValue(ride(40 * 60, 35 * 60));
+    const fake = db();
+    expect(await fill(fake)).toEqual({ measured: 1, empty: 0, checked: 0 });
+    expect(fake.tables.member_protocol_checks).toEqual([]);
+    expect(fake.tables.member_protocol_core_sessions[0]).toMatchObject({ ride_minutes: 40, auto_checked: false });
+  });
+
+  it("vraagt alleen tijd en kerntemperatuur op als de lijst de streams noemt", async () => {
+    mocks.activities.mockResolvedValue([
+      activity("r1", TODAY, { moving_time: 644, stream_types: ["time", "watts", "core_temperature"] }),
+    ]);
+    mocks.streams.mockResolvedValue(ride(644, 0).filter((stream) => stream.type !== "watts"));
+    const fake = db();
+    expect(await fill(fake)).toEqual({ measured: 1, empty: 0, checked: 0 });
+    expect(mocks.streams).toHaveBeenCalledWith("k", "r1", ["time", "core_temperature"]);
+    expect(fake.tables.member_protocol_core_sessions[0]).toMatchObject({ minutes_above: 0, auto_checked: false });
   });
 
   it("bewaart te weinig minuten wel, maar vinkt niet af", async () => {

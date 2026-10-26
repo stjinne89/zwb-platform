@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { loadRecipeBySlug, requireViewer } from "../../../_data";
 import { saveOwnRecipe, searchFoods } from "../../../_actions";
+import { lookupRecipeBarcode } from "../../../_log-actions";
 import { RecipeForm } from "../../../_components/recipe-form";
 import { BackLink } from "@/components/app-ui";
 
@@ -22,6 +23,7 @@ export default async function EditRecipePage({ params }: { params: Promise<{ slu
       <RecipeForm
         saveAction={saveOwnRecipe}
         searchAction={searchFoods}
+        barcodeAction={lookupRecipeBarcode}
         initial={{
           recipe_id: recipe.id,
           title: recipe.title,
@@ -31,8 +33,18 @@ export default async function EditRecipePage({ params }: { params: Promise<{ slu
           servings: recipe.servings,
           prep_minutes: recipe.prep_minutes,
           steps_md: recipe.steps_md,
+          source_name: recipe.source_name,
+          source_url: recipe.source_url,
+          image_url: recipe.image_url ?? null,
+          visibility: recipe.visibility ?? "prive",
+          show_owner: recipe.show_owner ?? false,
           rows: recipe.ingredients.map((item) => ({
-            food: { id: item.food.id, name_nl: item.food.name_nl, quantity_unit: item.food.quantity_unit },
+            food: {
+              id: item.food.id,
+              barcode: item.food.barcode ?? null,
+              name_nl: item.food.name_nl,
+              quantity_unit: item.food.quantity_unit,
+            },
             grams: String(item.grams).replace(".", ","),
             role: item.role,
           })),

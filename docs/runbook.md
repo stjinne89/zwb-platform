@@ -47,10 +47,12 @@ Voeg er geen nieuwe toe; zet een nieuwe job op cron-job.org.
 | Strava-koppelingen opruimen | cron-job.org | dagelijks 05:40 | `POST /api/strava/lifecycle` | `STRAVA_SYNC_SECRET` |
 | Event-reminders (24u/2u) | cron-job.org | elke 15 min | `POST /api/events/reminders` | `EVENT_REMINDER_SECRET` |
 | ↳ stuurt ook de SRC-herinneringen (migratie 0203): om 20:00 Nederlandse tijd op de avond voordat de inschrijving bij MyWhoosh sluit, aan wie deze maand meedoet en niet "niet" zei; en tien minuten voor het weigh-in-venster, aan wie ja of misschien zei en in een categorie met weigh-in rijdt. Eén keer per lid, via `event_reminder_sends`. Een fout daar staat als `src.error` in het antwoord en houdt de gewone herinneringen niet tegen | | | | |
-| Event-scan (Zwift/MyWhoosh) | cron-job.org | elke 24u | `POST /api/events/scan` | `EVENT_SCAN_SECRET` |
+| Event-scan (Zwift/MyWhoosh), vier jobs | cron-job.org | dagelijks 04:20, 04:25, 04:30, 04:35 | `POST /api/events/scan?step=follow`, `?step=scan`, `?step=feed`, `?step=omnium` | `EVENT_SCAN_SECRET` |
+| ↳ Leden volgen, publieke ZWB-events scannen, de member-feed (events waar ZWB'ers op ingeschreven staan) en de startlijsten van omnium-edities van de komende week. Los, omdat alles samen op 2026-10-21 langer duurde dan de 30 s die cron-job.org wacht; de feedstap stopt zelf na 20 s en meldt hoeveel events hij oversloeg. Zonder `step` loopt alles in één keer. De job ontbrak tussen ~2026-09-26 en 2026-10-21 op cron-job.org; de sleutel is op 2026-10-21 vervangen (de oude was in Netlify niet meer in te zien) | | | | |
 | Zwift-eventspiegel | cron-job.org | **elk uur** | `POST /api/zwift/events/sync` | `ZWIFT_EVENT_SYNC_SECRET` |
 | ↳ spiegelt de Zwift-kalender naar `zwift_events`; dat voedt de eventvoorstellen bij een geplande training. Staat los van de event-scan hierboven: die kiest ZWB-relevante events uit om te publiceren, deze bewaart álles kort en publiceert niets. Elk uur omdat de publieke endpoint per venster maximaal 200 rijen geeft en één run binnen `ZWIFT_EVENT_SYNC_BUDGET_MS` (7 s) maar een deel van de horizon haalt; wat niet past doet de volgende run. Afgelopen events worden elke run opgeruimd (een dag marge) | | | | |
 | ↳ Dezelfde run koppelt ZRL-teamraces van de komende week zonder Zwift-event aan het event van hun divisie (`zrlLinks` in het antwoord; sinds 2026-10-10, divisie uit `/beheer/zrl/teams`) | | | | |
+| ↳ Dezelfde run zet aankomende events van de ZWB-club op Zwift (zoals de terugkerende Monday Ride) op de kalender, met de velden van een Zwift-link en de ingeschreven leden (`clubEvents` in het antwoord; sinds 2026-10-20). Maker is wie het laatst een concept publiceerde. Al gepubliceerde, genegeerde en van de kalender verwijderde events slaat hij over; `removed` telt die laatste | | | | |
 | ↳ Dezelfde run zet ZRL-teamevents van de komende drie dagen op de route van hun eigen subgroep (`zrlRoutes` in het antwoord; sinds 2026-10-06, A/B rijden soms een andere route dan C/D) | | | | |
 | ↳ **Gemeten 2026-09-21:** Zwift negeert `eventStartsAfter`/`eventStartsBefore`, dus `ZWIFT_EVENT_HORIZON_DAYS` doet niets en het antwoord meldt `windowsIgnored: true`. De kale upcoming-lijst geeft 200 events over **~11 uur** (≈18 per uur) — genoeg voor de training van vandaag en vanavond, niet voor morgen. De sync merkt dit zelf op het tweede venster en stopt daar, dus het kost 2 calls per run. Hercontroleer met **Test eventvenster** als Zwift iets wijzigt | | | | |
 | ZRL-uitslag bevriezen | cron-job.org | elke 15 min | `POST /api/zrl/freeze` | `ZRL_FREEZE_SECRET` |
@@ -62,6 +64,11 @@ Voeg er geen nieuwe toe; zet een nieuwe job op cron-job.org.
 | ↳ haalt daarna de uitslagen op (migratie 0202): per race vanaf twee uur na de start, tot MyWhoosh hem officieel noemt, hooguit eens per drie uur en twee weken lang. Zoekt de race in `…/public/src-events-list` (twee per pagina, hooguit 15 pagina's) en haalt `getEventResults`. Budget 18 s per run; wat niet past, telt als `pending` en komt de volgende run. Fout per race in `src_races.results_error`; Nu verversen op `/beheer/src` haalt meteen op, ook binnen de drie uur | | | | |
 | Ritten via intervals.icu | cron-job.org | **elk uur** | `POST /api/intervals/rides/sync?limit=5` | `INTERVALS_RIDES_SYNC_SECRET` |
 | ↳ voor leden met een intervals.icu-koppeling en **zonder** actieve Strava-koppeling (migratie 0198, `lib/intervals/ride-sync.ts`). Per run hooguit `limit` leden, wie het langst niet aan de beurt was eerst; een nieuw lid begint pas als de run nog geen 8 s bezig is. De eerste run per lid haalt een jaar op, daarna 30 dagen. Alleen nieuwe of gewijzigde ritten worden geschreven en krijgen nawerk (badges, cols, ZWBlokken, naleving); per lid hooguit 5 GPS-sporen per run. Het antwoord telt `stored`, `removed`, `duplicates` en `errors`; de fout per lid staat in `intervals_connections.last_ride_sync_error`. Health-bron `intervals_rides` wordt rood na 3 uur zonder run | | | | |
+| ZWBriljant | cron-job.org | **elk uur** | `POST /api/briljant/weekly?limit=3` | `BRILJANT_WEEKLY_SECRET` |
+| ↳ per lid met een rij in `zwbriljant_preferences` (migratie 0265, `lib/briljant/server.ts`; die rij komt er bij het eerste openen van `/zwbeter-worden/briljant`): ververst powerprofiel (ouder dan 6 dagen) en ZRS, maakt bij het eerste gebruik een terugblik van twaalf maanden uit intervals.icu en legt de snapshot van deze week vast. Wie deze week al een snapshot heeft, slaat de run over; een nieuw lid begint pas als de run nog geen 15 s bezig is. Het antwoord telt `due`, `processed` en `errors` | | | | |
+| ↳ met de tijd die na het verversen over is (tot 24 s) zoekt dezelfde run de ZRS van vroeger op voor de terugblik; zie de rij hieronder. Het antwoord telt dat als `zrsMonths` | | | | |
+| ZWBriljant: ZRS van vroeger | cron-job.org | **elk uur, op het halve uur** | `POST /api/briljant/zrs-history` | `BRILJANT_WEEKLY_SECRET` |
+| ↳ sinds 2026-10-23 (migratie 0271, `lib/briljant/zrs-history.ts`): leest per lid de activiteitenlijst van Zwift (per 20, nieuw naar oud) en bewaart de races in `zwift_race_scores`, met een cursor in `zwift_race_score_sync`, zodat elke run verder gaat waar de vorige stopte. Per terugblikmaand zoekt hij tot vier races op (detail plus uitslag, `scoreHistory`) en zet het niveau van die ZRS in de terugblik; zonder score blijft de actuele ZRS staan (`provenance.racen = "geen"`). Eerst leden met een maand zonder beslissing, dan wie het langst niet aan de beurt was. Budget 22 s. Het antwoord telt `riders` en `months`; `stopped: true` betekent een 429/5xx bij Zwift of een ontbrekende tabel, de volgende run gaat verder. Op het halve uur zodat hij niet samenvalt met de run van `/api/briljant/weekly` | | | | |
 | Training-adaptaties (drafts) | cron-job.org | **elk uur** (sinds 2026-09-13) | `POST /api/training/adaptations/daily` | `TRAINING_ADAPTATION_SECRET` |
 | ↳ herziet ook het schema van leden met een openstaand verzoek in `training_replan_requests` | | | | |
 | ↳ de AI-generaties draaien **in de achtergrond**: een run zet er hooguit `TRAINING_ADAPTATION_MAX_STARTS` (3) uit en haalt in een volgende run op wat klaar is. De frequentie is de **doorloopsnelheid**, niet hoe vaak een lid aan de beurt komt — een schema krijgt hooguit één voorstel per dag (dagcheck op `training_ai_generations`), met een noodrem van `TRAINING_ADAPTATION_MAX_PER_DAY` (25) dagvoorstellen over alle leden samen | | | | |
@@ -72,6 +79,7 @@ Voeg er geen nieuwe toe; zet een nieuwe job op cron-job.org.
 | Instagram ophalen | cron-job.org | elk uur | `POST /api/instagram/sync` | `INSTAGRAM_SYNC_SECRET` |
 | ↳ haalt de laatste 12 posts en de live stories van @zwb_cycling naar `media_items` (`lib/instagram-sync.ts`). Ook openbare posts waarin de club op de foto is getagd (`source = 'instagram_tag'`, titel = `@naam`); daarvoor moet de token het recht `instagram_business_manage_comments` hebben, anders staat de weigering in `tagError`. Een getagde post die op `/media` is verwijderd, blijft als `instagram_tag_hidden` staan zodat hij niet terugkomt. Stories bestaan bij Instagram 24 uur; de run verwijdert wat ouder is of niet meer live staat, en ververst de verlopende afbeeldingslinks van de posts. Het antwoord telt `stories` en `storiesRemoved`; `storyError` is de melding van Meta als alleen de stories mislukten. Weigert tot iemand op `/media` één keer Instagram ophalen heeft gedaan (die beheerder wordt de maker van de items). Verlopen token: sectie 3 | | | | |
 | Achievements finalize | cron-job.org | naar wens | `POST /api/achievements/finalize` | `ACHIEVEMENTS_SYNC_SECRET` |
+| ↳ legt de weekbadges vast en herrekent daarbij de laatste 8 afgesloten weken; een eerdere winnaar van zo'n week die het niet meer is, verliest de badge. `?weeks=all` herrekent de hele historie (eenmalig na 2026-10-18, zie `docs/dubbele-ritten-2026-10-18.md`) | | | | |
 | ZWBlokken-backfill | Handmatig | eenmalig na uitrol | `POST /api/zwblokken/backfill` | `STRAVA_SYNC_SECRET` |
 | ↳ regio's op bestaande blokken (na migratie 0112 én na elke nieuwe `regions.json`, laatst 2026-09-15): `?regions=1` | | | | |
 | ↳ Zwift-blokken uit bestaande VirtualRide-ritten (na migratie 0165, en opnieuw na 0166 voor de wereld per rit; puur database): `?zwift=1&limit=1&maxActivities=1000`, herhalen tot `remaining` false is. Nieuwe Zwift-ritten volgen daarna vanzelf via de webhook-nasync en de historie-inhaalslag | | | | |
@@ -117,7 +125,8 @@ vangen, maar weet hier hoe je ze ververst:
 | `WTRL_COOKIE` | ZRL/WTRL-data; alleen gebruikt als `WTRL_SYNC_ENABLED=true` (staat uit sinds 2026-09-21, WTRL-voorwaarden) | Ja, sessiecookie | Inloggen bij WTRL, sessiecookie kopiëren |
 | `ZWIFT_USERNAME` / `ZWIFT_PASSWORD` | Zwift-club-serviceaccount (event-feed + entrants) | Wachtwoord/lockout | Eigen ZWB-serviceaccount; bij lockout wachtwoord resetten. Verifieer met "Test clubkoppeling" op `/beheer/event-scan` |
 | `STRAVA_CLIENT_SECRET` | Strava OAuth | Nee (tenzij geroteerd) | Strava API-dashboard |
-| `OPENAI_API_KEY` | Trainings-AI | Bij rotatie/quota | OpenAI-dashboard |
+| `OPENAI_API_KEY` | Trainings-AI zolang `AI_PROVIDER` niet op `anthropic` staat | Bij rotatie/quota | OpenAI-dashboard |
+| `ANTHROPIC_API_KEY` | Trainings-AI als `AI_PROVIDER=anthropic` (zie "Overstap naar Claude" onderaan) | Bij rotatie, of als het maandtegoed op is | Claude Console (platform.claude.com), API Keys en Usage |
 | `INSTAGRAM_ACCESS_TOKEN` | Instagram-sync (`/media` en de cron) | Ja, long-lived token (~60 dgn) | Token uit de Meta-app, "API setup with Instagram login" (begint met `IGAA`; een `EAA`-token is van Facebook en werkt niet). Verlengen: `graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=…` |
 | `YOUTUBE_API_KEY` | `/media` YouTube-sync | Quota/rotatie | Google Cloud Console |
 
@@ -163,7 +172,7 @@ waarschuwing kunnen wijzigen:
 | ZwiftPower-uitslag | zwiftpower.com | alleen link (geen scrape) | n.v.t. (link blijft werken) |
 | TTT-planner | Export van zwiftgopher.com/TTT (JSON, link of tekst), geen API-key. Een geplakte link haalt de server op bij `zwiftgopher.com/TTT/?save=…&json=true` | geplakte export | ZwiftGopher die de vorm van de export wijzigt; dan meldt de import een fout |
 | TTT-bot (Discord) | eigen proces in `bot/` op de pc met Zwift en Sauce; **draait niet op Netlify**. Haalt het plan op via `/api/ttt/plan/<token>` | Discord-bot + Sauce-websocket + Piper | pc uit, Discord-token ingetrokken, deellink ingetrokken, of Sauce die zijn API wijzigt. Het token staat alleen in `bot/.env` op die pc. Zie [ttt-discord-bot](ttt-discord-bot.md) |
-| Training-AI | OpenAI | API + key | quota/model-wijziging |
+| Training-AI | OpenAI, of Anthropic (Claude) als `AI_PROVIDER=anthropic` | API + key; bij Claude via de achtergrondfunctie `ai-job-background` en tabel `ai_jobs` | quota/model-wijziging; bij Claude ook een achtergrondfunctie die niet draait (opdrachten blijven op `queued`) |
 | Strava | officiële OAuth API | API | rate-limit / app-cap |
 | Live volgen Garmin | livetrack.garmin.com, endpoints van de eigen webpagina | onofficieel, CSRF-token uit `<meta>` + cookie | Garmin die de CSRF-aanpak wijzigt of ons blokkeert (health-check `garmin_livetrack`); renners staan dan als "live, met link" op de kaart |
 | Live volgen Wahoo | wahooligan.com live-pagina (vaste link van het lid) | onofficieel: status uit data-attributen, spoor uit `window.livetrack_fit` (FIT) | markup-wijziging; een rit wordt dan niet meer opgemerkt of heeft geen posities. Er is geen health-check: controleer met een eigen link |
@@ -233,6 +242,37 @@ Wahoo gaat niet via de mail: het lid koppelt zijn vaste Live Track-link op
 Geen extra cron nodig: `/api/live/cleanup` (elke 15 min) werkt de open
 Garmin/Wahoo-sessies bij, en elke pagina die live-renners toont doet dat ook,
 hooguit één keer per 30 s per sessie.
+
+### Telegram-bot voor berichten op de fietscomputer (eenmalig)
+
+Een Wahoo ELEMNT toont geen pushmeldingen van ZWB, wel Telegram. Zonder bot
+werken de berichten alleen als pushmelding (Garmin en telefoon).
+
+1. Migratie `0253_ride_messages.sql` toepassen vóór de deploy. Zonder die
+   migratie mislukt het opslaan van de meldingsvoorkeuren op `/profiel`
+   (de kolom `on_ride_message` ontbreekt); de eventchat blijft wel werken.
+2. Telegram → `@BotFather` → `/newbot`. Naam bv. "ZWB", gebruikersnaam
+   bv. `ZwbCyclingBot`. Het token gaat naar Netlify als `TELEGRAM_BOT_TOKEN`,
+   de gebruikersnaam (zonder @) als `TELEGRAM_BOT_USERNAME`.
+3. Een geheim kiezen (`openssl rand -hex 24`) en in Netlify zetten als
+   `TELEGRAM_WEBHOOK_SECRET`.
+4. Na de deploy de webhook zetten (één keer, vanaf je eigen pc):
+
+   ```bash
+   curl -s "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+     -d url=https://zwb-platform.netlify.app/api/telegram/webhook \
+     -d secret_token=<GEHEIM> \
+     -d allowed_updates='["message"]'
+   ```
+
+   Controleren met `getWebhookInfo`: `last_error_message` moet leeg zijn.
+   Gebruik het Netlify-adres: `www.zwbcycling.nl` is een andere site, en
+   Telegram volgt geen doorverwijzingen. Gezet op 2026-10-19 voor
+   `@ZWBCyclingBot`.
+
+Pas als `TELEGRAM_BOT_TOKEN` en `TELEGRAM_BOT_USERNAME` er staan, verschijnt
+het koppelpaneel op Samen fietsen. Een lid dat de bot blokkeert, wordt bij het
+volgende bericht vanzelf ontkoppeld.
 
 ---
 
@@ -595,3 +635,28 @@ Staat er iets stil, kijk dan in de job-historie naar de responscode: **401/403**
 = secret klopt niet of staat niet in de draaiende deploy (env-vars gelden pas
 vanaf een nieuwe deploy), **308** = dubbele slash in de URL, **timeout** = de
 route is wél begonnen; verlaag `limit` of zie de storingenlijst in sectie 6.
+
+## 9. Overstap naar Claude (AI_PROVIDER)
+
+Sinds 2026-10-26 kan de trainings-AI (schema's, dagaanpassingen, coachchat,
+weekoverzicht, pacing en voedingsherkenning) op Claude draaien in plaats van
+OpenAI. De code staat klaar; de overstap is een instelling.
+
+1. Migratie `0275_ai_jobs.sql` (tabel `ai_jobs`): toegepast op 2026-10-26.
+2. In Netlify env: `ANTHROPIC_API_KEY` en `AI_PROVIDER=anthropic`. Optioneel per
+   soort `ANTHROPIC_MODEL_<SOORT>` / `ANTHROPIC_EFFORT_<SOORT>` (zie
+   `.env.local.example`; standaard Opus 5.5, bijwerkingen op effort `low`).
+3. Deployen (env-waarden gelden pas vanaf een nieuwe deploy). De
+   achtergrondfunctie `netlify/functions/ai-job-background.mts` gaat mee.
+4. Controleren: start een coachvraag of een dagaanpassing en kijk in `ai_jobs`.
+   `queued` → `in_progress` → `completed` betekent dat de functie draait. Blijft
+   een rij op `queued`, dan bereikt de app de functie niet: kijk in de
+   Netlify-functielogs naar `ai-job-background` en of `URL` in de functie-env staat.
+
+Terug naar OpenAI: `AI_PROVIDER` leeg of `openai`, en deployen. Opdrachten die
+al bij Claude liepen, worden daarna nog uit `ai_jobs` opgehaald (het id begint
+met `aij_`); andersom geldt hetzelfde voor ids van OpenAI (`resp_`).
+
+Kosten staan in de Claude Console onder Usage. Het Max-abonnement geeft $100
+tegoed per maand; de schatting voor het huidige volume staat in
+[claude-naspelen](claude-naspelen.md).

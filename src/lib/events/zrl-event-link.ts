@@ -10,12 +10,18 @@
 //   "Open Aqua Dev League Division B3"
 // Gemeten 2026-10-10: 86 ZRL-events voor de racedagen van 13 en 14 oktober.
 //
+// Soms zet WTRL een divisie twee keer klaar (2026-10-20: elke Mint-divisie, het
+// tweede event zonder één inschrijving). Dan beslist de startlijst: het event
+// waarin eigen renners in de eigen subgroep staan.
+//
 // Een team zonder divisie, of zonder precies één passend event met zijn eigen
 // subgroep, blijft ongemoeid; de beheerder plakt de link dan zelf.
 
 import { amsterdamDateKey } from "@/lib/birthdays";
 import { safeFetch } from "@/lib/net/safe-fetch";
+import { fetchEntrants, zwiftClubConfigured } from "@/lib/events/zwift-club";
 import type { ZwiftEventApiRow } from "@/lib/events/external-scan";
+import { fillZrlEventDetails } from "@/lib/events/zrl-event-details";
 import { registerZwiftRoute } from "@/lib/events/zrl-route-sync";
 import {
   eventForSubgroup,
@@ -25,6 +31,7 @@ import {
   routeFromZwiftId,
   ZWIFT_PUBLIC_EVENT_BASE,
   type ZwiftEventInfo,
+  type ZwiftSubgroupStart,
 } from "@/lib/events/zwift-route";
 
 /** WTRL publiceert de events enkele dagen voor de race. */
@@ -33,6 +40,8 @@ const HORIZON_MS = 7 * 24 * 60 * 60 * 1000;
 type SupabaseClient = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  storage: { from: (bucket: string) => any };
 };
 
 export type ZrlDivision = {
@@ -106,26 +115,41 @@ export type ZrlEventLink = {
   elevation_m?: number;
 };
 
-/**
- * Wat er op een teamrace moet komen, of null zonder precies één event van deze
- * divisie op deze dag (yyyy-mm-dd, Amsterdam) met de subgroep van het team. Puur.
- */
-export function zrlEventLink(
-  stored: StoredEvent,
+export type ZrlEventMatch = { info: ZwiftEventInfo; own: ZwiftSubgroupStart };
+
+/** De events van deze divisie op deze dag (yyyy-mm-dd, Amsterdam) met de subgroep van het team. Puur. */
+export function zrlEventMatches(
   teamDivision: string | null | undefined,
   dateKey: string,
   candidates: ZwiftEventInfo[],
-): ZrlEventLink | null {
+): ZrlEventMatch[] {
   const wanted = parseWtrlTeamDivision(teamDivision);
-  if (!wanted) return null;
-
-  const matches = candidates.flatMap((info) => {
+  if (!wanted) return [];
+  return candidates.flatMap((info) => {
     const found = parseZwiftZrlEventName(info.title);
     if (!found || !sameDivision(found, wanted)) return [];
     const own = pickOwnSubgroup(info.subgroups, wanted.category);
     if (!own || amsterdamDateKey(new Date(own.startAt)) !== dateKey) return [];
     return [{ info, own }];
   });
+}
+
+/**
+ * Wat er op een teamrace moet komen, of null zonder precies één passend event.
+ * Passen er meer, dan telt alleen het event met eigen renners in de eigen
+ * subgroep (`ownSignups`: subgroep-ID → aantal). Puur.
+ */
+export function zrlEventLink(
+  stored: StoredEvent,
+  teamDivision: string | null | undefined,
+  dateKey: string,
+  candidates: ZwiftEventInfo[],
+  ownSignups?: Map<string, number>,
+): ZrlEventLink | null {
+  let matches = zrlEventMatches(teamDivision, dateKey, candidates);
+  if (matches.length > 1 && ownSignups) {
+    matches = matches.filter(({ own }) => (ownSignups.get(own.id) ?? 0) > 0);
+  }
   if (matches.length !== 1) return null;
 
   const [{ info, own }] = matches;
@@ -164,6 +188,39 @@ async function fetchWtrlTaggedEvents(): Promise<ZwiftEventInfo[]> {
   return (Array.isArray(rows) ? rows : []).flatMap((row) => mapZwiftEvent(row) ?? []);
 }
 
+/**
+ * Per subgroep het aantal eigen renners op de startlijst: de WTRL-renners en de
+ * leden van het team. Een haperende startlijst telt als nul: dan valt dat event
+ * af en koppelt er hoogstens niets, nooit het verkeerde.
+ */
+async function countOwnSignups(
+  admin: SupabaseClient,
+  teamId: string,
+  trcRefs: string[],
+  subgroupIds: string[],
+): Promise<Map<string, number>> {
+  const own = new Set<string>();
+  if (trcRefs.length) {
+    const { data } = await admin.from("wtrl_team_riders").select("zwift_id").in("trc_ref", trcRefs);
+    for (const rider of (data ?? []) as Array<{ zwift_id: string | number | null }>) {
+      if (rider.zwift_id) own.add(String(rider.zwift_id));
+    }
+  }
+  const { data: members } = await admin.from("team_members").select("profiles(zwift_id)").eq("team_id", teamId);
+  for (const member of (members ?? []) as Array<{ profiles: unknown }>) {
+    // Supabase typeert een to-one-join soms als lijst.
+    for (const profile of [member.profiles].flat() as Array<{ zwift_id?: string | null } | null>) {
+      if (profile?.zwift_id) own.add(String(profile.zwift_id));
+    }
+  }
+  const counts = new Map<string, number>();
+  for (const subgroupId of subgroupIds) {
+    const entrants = await fetchEntrants([subgroupId]);
+    counts.set(subgroupId, entrants.filter((entrant) => own.has(entrant.zwiftId)).length);
+  }
+  return counts;
+}
+
 export type ZrlEventLinkResult = {
   /** Teamraces zonder Zwift-event in de komende week. */
   open: number;
@@ -180,7 +237,9 @@ export async function linkZrlEvents(
 
   const { data: events, error } = await admin
     .from("events")
-    .select("id, title, team_id, start_at, external_url, gpx_path")
+    .select(
+      "id, title, team_id, start_at, external_url, gpx_path, location, cover_image_path, parent_event_id",
+    )
     .eq("type", "zrl")
     .not("team_id", "is", null)
     .is("zwift_event_id", null)
@@ -190,7 +249,15 @@ export async function linkZrlEvents(
     result.notes.push(error.message);
     return result;
   }
-  type EventRow = StoredEvent & { id: string; title: string; team_id: string; start_at: string };
+  type EventRow = StoredEvent & {
+    id: string;
+    title: string;
+    team_id: string;
+    start_at: string;
+    location: string | null;
+    cover_image_path: string | null;
+    parent_event_id: string | null;
+  };
   const rows = (events ?? []) as EventRow[];
   result.open = rows.length;
   if (rows.length === 0) return result;
@@ -198,12 +265,14 @@ export async function linkZrlEvents(
   // Per ZWB-team de laatst geplakte divisie.
   const { data: wtrlTeams } = await admin
     .from("wtrl_teams")
-    .select("team_id, division, imported_at")
+    .select("team_id, trc_ref, division, imported_at")
     .in("team_id", [...new Set(rows.map((row) => row.team_id))])
     .order("imported_at", { ascending: true });
   const divisionByTeam = new Map<string, string | null>();
-  for (const team of (wtrlTeams ?? []) as Array<{ team_id: string; division: string | null }>) {
+  const trcRefsByTeam = new Map<string, string[]>();
+  for (const team of (wtrlTeams ?? []) as Array<{ team_id: string; trc_ref: string; division: string | null }>) {
     divisionByTeam.set(team.team_id, team.division);
+    trcRefsByTeam.set(team.team_id, [...(trcRefsByTeam.get(team.team_id) ?? []), team.trc_ref]);
   }
 
   const withDivision = rows.filter((row) => parseWtrlTeamDivision(divisionByTeam.get(row.team_id)));
@@ -213,14 +282,28 @@ export async function linkZrlEvents(
   if (withDivision.length === 0) return result;
 
   const candidates = await fetchWtrlTaggedEvents();
+  const details: Parameters<typeof fillZrlEventDetails>[1] = [];
   for (const row of withDivision) {
-    const link = zrlEventLink(
-      row,
-      divisionByTeam.get(row.team_id),
-      amsterdamDateKey(new Date(row.start_at)),
-      candidates,
-    );
-    if (!link) continue;
+    const division = divisionByTeam.get(row.team_id);
+    const dateKey = amsterdamDateKey(new Date(row.start_at));
+    const matches = zrlEventMatches(division, dateKey, candidates);
+    let ownSignups: Map<string, number> | undefined;
+    if (matches.length > 1 && zwiftClubConfigured()) {
+      ownSignups = await countOwnSignups(
+        admin,
+        row.team_id,
+        trcRefsByTeam.get(row.team_id) ?? [],
+        matches.map(({ own }) => own.id),
+      ).catch((err) => {
+        result.notes.push(`${row.title}: startlijst niet gelezen (${err instanceof Error ? err.message : "mislukt"}).`);
+        return undefined;
+      });
+    }
+    const link = zrlEventLink(row, division, dateKey, candidates, ownSignups);
+    if (!link) {
+      if (matches.length > 1) result.notes.push(`${row.title}: ${matches.length} passende events, geen eenduidige keus.`);
+      continue;
+    }
     const route = link.zwift_route_id ? routeFromZwiftId(link.zwift_route_id) : null;
     if (route) await registerZwiftRoute(admin, route);
     const { error: updateError } = await admin
@@ -228,8 +311,14 @@ export async function linkZrlEvents(
       .update(link)
       .eq("id", row.id)
       .is("zwift_event_id", null);
-    if (updateError) result.notes.push(`${row.title}: ${updateError.message}`);
-    else result.linked.push(`${row.title} → ${link.zwift_event_id}`);
+    if (updateError) {
+      result.notes.push(`${row.title}: ${updateError.message}`);
+      continue;
+    }
+    result.linked.push(`${row.title} → ${link.zwift_event_id}`);
+    const info = candidates.find((candidate) => candidate.eventId === link.zwift_event_id);
+    if (info) details.push({ row, info });
   }
+  await fillZrlEventDetails(admin, details, result.notes);
   return result;
 }

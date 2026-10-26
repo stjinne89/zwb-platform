@@ -2,7 +2,7 @@
 //
 // Elke renner krijgt een persoonlijk adres live-<code>@<LIVE_INBOUND_DOMAIN>.
 // De code is het geheim: alleen de SHA-256-hash staat in live_tracker_tokens
-// (provider 'mail'), net als bij de OwnTracks-tokens.
+// (provider 'mail').
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 

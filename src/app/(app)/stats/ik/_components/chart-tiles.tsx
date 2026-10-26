@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { PeriodChart } from "@/components/charts/period-chart";
+import { MIN_COMPARE_RIDES } from "@/lib/stats/compare";
 import type { TrainingLoadPoint } from "@/lib/training/load-points";
 
 export const MAIN = "var(--st-main)";
@@ -101,7 +102,10 @@ export function VolumeChart({
   const def = VOLUME_METRICS.find((item) => item.key === metric)!;
   const values = points.map((point) => point[metric] ?? 0);
   // Het gemiddelde over afgesloten periodes; de lopende periode zou het drukken.
-  const closed = (openEnd ? values.slice(0, -1) : values).filter((value) => value > 0);
+  // Lege periodes tellen mee (een week niet gefietst is een week met nul), maar
+  // niet die vóór je eerste rit in beeld: daar was je er nog niet.
+  const firstFilled = values.findIndex((value) => value > 0);
+  const closed = firstFilled < 0 ? [] : (openEnd ? values.slice(0, -1) : values).slice(firstFilled);
   const average = closed.length > 1 ? closed.reduce((a, b) => a + b, 0) / closed.length : null;
   const digitsFor = (value: number) => (def.digits && !Number.isInteger(value) ? def.digits : 0);
   const fmt = (value: number) => (def.unit ? `${nl(value, digitsFor(value))} ${def.unit}` : nl(value, digitsFor(value)));
@@ -117,7 +121,10 @@ export function VolumeChart({
         format={(value) => nl(value, digitsFor(value))}
         readout={{
           series: metric,
-          note: (index) => <Delta now={points[index][metric] ?? null} before={points[index].previous?.[metric] ?? null} />,
+          note: (index) =>
+            (points[index].previous?.rides ?? 0) >= MIN_COMPARE_RIDES ? (
+              <Delta now={points[index][metric] ?? null} before={points[index].previous?.[metric] ?? null} />
+            ) : null,
         }}
         openEnd={openEnd}
         selectedIndex={selectedIndex}
@@ -176,6 +183,7 @@ export function EfficiencyChart({ points }: { points: EfficiencyChartPoint[] }) 
         { key: "ef", label: "W per slag", color: MAIN, kind: "line", area: true, peak: true, values: points.map((p) => p.factor) },
       ]}
       format={(value) => nl(value, 2)}
+      minSpan={0.3}
     />
   );
 }
@@ -185,6 +193,11 @@ const MONTHS_SHORT = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "s
 function dayLabel(day: string, withYear: boolean) {
   const [year, month, date] = day.split("-").map(Number);
   return `${date} ${MONTHS_SHORT[month - 1]}${withYear ? ` ${year}` : ""}`;
+}
+
+/** De punten waar een nieuwe maand begint: daar horen de labels van een daglijn. */
+function monthStarts(days: string[]) {
+  return days.flatMap((day, index) => (index > 0 && day.slice(0, 7) !== days[index - 1].slice(0, 7) ? [index] : []));
 }
 
 /** Fitheid per dag; langer dan een jaar wordt per week getekend (elke zondag). */
@@ -198,6 +211,7 @@ export function FitnessChart({ points }: { points: TrainingLoadPoint[] }) {
       labels={thinned.map((point) =>
         multiYear ? `${MONTHS_SHORT[Number(point.date.slice(5, 7)) - 1]} '${point.date.slice(2, 4)}` : dayLabel(point.date, false),
       )}
+      tickCandidates={multiYear ? monthStarts(thinned.map((point) => point.date)) : undefined}
       titles={thinned.map((point) => dayLabel(point.date, true))}
       readout={{ series: "ctl" }}
       series={[
@@ -219,10 +233,16 @@ export function YearChart({ lines }: { lines: YearLineData[] }) {
   const ordered = [...lines].reverse();
   const current = ordered[0];
   const previous = ordered[1];
+  // Week i van het jaar begint op dag 7i; het label is de maand van die dag.
+  const year = Number(current?.year ?? 2000);
+  const weekDays = Array.from({ length: weeks }, (_, index) =>
+    new Date(Date.UTC(year, 0, 1 + index * 7)).toISOString().slice(0, 10),
+  );
   return (
     <PeriodChart
       ariaLabel="Cumulatieve kilometers per jaar"
-      labels={Array.from({ length: weeks }, (_, index) => MONTHS_SHORT[Math.min(11, Math.floor((index * 7) / 30.5))])}
+      labels={weekDays.map((day) => MONTHS_SHORT[Number(day.slice(5, 7)) - 1])}
+      tickCandidates={monthStarts(weekDays)}
       titles={Array.from({ length: weeks }, (_, index) => `${current.year}, week ${index + 1}`)}
       readout={{
         series: current.year,
@@ -313,7 +333,7 @@ export function CpChart({ points }: { points: CpChartPoint[] }) {
       readout={{ series: "cp", note: () => <span>kritisch vermogen</span> }}
       series={[
         { key: "cp", label: "CP", color: MAIN, kind: "line", area: true, peak: true, values: points.map((p) => p.cpWatts) },
-        { key: "wp", label: "W′", color: SECOND, kind: "line", axis: "right", values: points.map((p) => p.wPrimeKj) },
+        { key: "wp", label: "W′", color: SECOND, kind: "line", axis: "right", muted: true, values: points.map((p) => p.wPrimeKj) },
       ]}
       format={(value) => `${nl(value)} W`}
       formatRight={(value) => `${nl(value, 1)} kJ`}
@@ -345,8 +365,9 @@ export function EftpChart({ points }: { points: EftpChartPoint[] }) {
             peak: true,
             values: points.map((p) => (unit === "wkg" ? p.wkg : p.eftp)),
           },
-          { key: "kg", label: "Gewicht", color: SECOND, kind: "line", axis: "right", values: points.map((p) => p.weightKg) },
+          { key: "kg", label: "Gewicht", color: SECOND, kind: "line", axis: "right", muted: true, values: points.map((p) => p.weightKg) },
         ]}
+        minSpanRight={4}
         format={(value) => (unit === "wkg" ? `${nl(value, 2)} W/kg` : `${nl(value)} W`)}
         formatRight={(value) => `${nl(value, 1)} kg`}
       />

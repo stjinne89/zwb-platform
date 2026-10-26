@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { activeHrefIn } from "../../_components/nav-config";
+import type { PlaceTone } from "@/components/tegels/link-grid";
 import { ScrollTabs, SCROLL_TAB_ITEM } from "@/components/ui/scroll-tabs";
 import { cn } from "@/lib/utils";
 
@@ -17,14 +18,20 @@ export type SectionLink = {
 
 export function SectionNav({
   items,
-  /** Tab die alleen bij een exacte match actief is; standaard de eerste (de index). */
+  /**
+   * Tab die alleen bij een exacte match actief is; standaard de eerste (de index).
+   * null: geen; dan wint overal de meest specifieke tab.
+   */
   exactHref,
+  /** Design "tegels": de kleur van de tabs; standaard die van de plek waar je bent. */
+  tone,
 }: {
   items: SectionLink[];
-  exactHref?: string;
+  exactHref?: string | null;
+  tone?: PlaceTone;
 }) {
   const pathname = usePathname();
-  const indexHref = exactHref ?? items[0]?.href;
+  const indexHref = exactHref === null ? null : exactHref ?? items[0]?.href;
   // De index telt alleen exact; verder wint de meest specifieke tab.
   const activeHref =
     pathname === indexHref
@@ -34,7 +41,10 @@ export function SectionNav({
           items.map((item) => item.href).filter((href) => href !== indexHref),
         );
   return (
-    <ScrollTabs variant="panel" ariaLabel="Subnavigatie">
+    // tg-subnav en tg-link doen alleen iets in het design "tegels": daar zijn de
+    // tabs vlakken in de kleur van de plek (kleur is klikbaar) en is de actieve het paneel met de
+    // gouden lijn, net als bij de pijlers erboven.
+    <ScrollTabs variant="panel" ariaLabel="Subnavigatie" className="tg-subnav">
       {items.map((item) => {
         const active = item.href === activeHref;
         return (
@@ -45,6 +55,8 @@ export function SectionNav({
             aria-current={active ? "page" : undefined}
             className={cn(
               SCROLL_TAB_ITEM,
+              "tg-link",
+              tone ? `tg-${tone}` : "tg-here",
               active
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",

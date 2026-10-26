@@ -15,6 +15,7 @@ type Props = {
   initialPreferences: {
     on_new_event: boolean;
     on_live_started: boolean;
+    on_ride_message: boolean;
     on_new_badge: boolean;
     on_training_plan: boolean;
     on_training_chat: boolean;
@@ -25,10 +26,14 @@ type Props = {
     on_member_pending: boolean;
     on_strava_link_expiring: boolean;
     on_intervals_visit_reminder: boolean;
+    on_qa_question: boolean;
+    on_qa_answer: boolean;
   };
   hasSubscriptionInDb: boolean;
   /** Alleen zichtbaar voor wie leden mag goedkeuren; anders vuurt hij nooit. */
   canApproveMembers?: boolean;
+  /** Alleen zichtbaar voor wie vragen in Q&A mag beantwoorden. */
+  canAnswerQuestions?: boolean;
 };
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -47,6 +52,7 @@ export function PushToggle({
   initialPreferences,
   hasSubscriptionInDb,
   canApproveMembers = false,
+  canAnswerQuestions = false,
 }: Props) {
   const [supported, setSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | null>(
@@ -241,6 +247,14 @@ export function PushToggle({
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
+            name="on_ride_message"
+            defaultChecked={initialPreferences.on_ride_message}
+          />
+          Bericht op mijn fietscomputer tijdens een rit
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
             name="on_new_badge"
             defaultChecked={initialPreferences.on_new_badge}
           />
@@ -269,6 +283,14 @@ export function PushToggle({
             defaultChecked={initialPreferences.on_knowledge_message}
           />
           Nieuw bericht in ZWBieb
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="on_qa_answer"
+            defaultChecked={initialPreferences.on_qa_answer}
+          />
+          Antwoord op mijn vraag in Q&amp;A
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -319,6 +341,17 @@ export function PushToggle({
               defaultChecked={initialPreferences.on_member_pending}
             />
             Nieuw lid wacht op goedkeuring
+          </label>
+        )}
+        {canAnswerQuestions && (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="hidden" name="__has_qa_question" value="1" />
+            <input
+              type="checkbox"
+              name="on_qa_question"
+              defaultChecked={initialPreferences.on_qa_question}
+            />
+            Nieuwe vraag in Q&amp;A
           </label>
         )}
         <div className="flex justify-end">

@@ -9,12 +9,14 @@ const TABS = [
   { href: "/stats", label: "Club", word: "club", place: "tg-club" },
   { href: "/stats/ik", label: "Ik", word: "ik", place: "tg-zwbeter" },
   { href: "/stats/achievements", label: "Achievements", word: "achievements", place: "tg-meer" },
+  { href: "/stats/zwbriljant", label: "ZWBriljant", word: "zwbriljant", place: "tg-zwbeter" },
 ] as const;
 
 type StatsTab = (typeof TABS)[number]["href"];
 
 /**
- * Kop en navigatie van Stats: de club, je eigen cijfers en de achievements;
+ * Kop en navigatie van Stats: de club, je eigen cijfers, de achievements en
+ * ZWBriljant (sinds 2026-10-21, daarvoor bij ZWBeter);
  * één item "Stats" in het menu. In het design "tegels" pijlers zoals bij
  * ZWBeter, in de kleur van hun soort: Club in sage (de club), Ik in teal (je
  * eigen cijfers), Achievements in donker petrol (spel); waar je bent het paneel
@@ -30,7 +32,7 @@ export async function StatsTabs({ active, title }: { active: StatsTab; title?: s
     return (
       <>
         {title && <h1 className="sr-only">{title}</h1>}
-        <nav aria-label="Statistieken" className="grid grid-cols-3 gap-2 md:max-w-2xl">
+        <nav aria-label="Statistieken" className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:max-w-3xl">
           {TABS.map((tab) => (
             <Link
               key={tab.href}

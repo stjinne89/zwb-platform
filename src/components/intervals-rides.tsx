@@ -2,7 +2,7 @@
 
 // Knoppen voor leden die hun ritten via intervals.icu krijgen: zelf ophalen en
 // de herinnering "open intervals.icu even" afvinken. Uitleg staat op
-// /hulp#ritten-via-intervals, niet hier.
+// /hulp/koppelen#ritten-via-intervals, niet hier.
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";

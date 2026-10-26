@@ -10,6 +10,15 @@ export type ActiveSession = {
   last_seen_at: string;
 };
 
+/** Laatste koppeling van een lid in live_tracker_tokens (Garmin-mail, Wahoo-link). */
+export type TrackerTokenStatus = {
+  id: string;
+  enabled: boolean;
+  last_seen_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+};
+
 /** Laatste sensorwaarden van een renner, voor het uitklappaneel op het bord. */
 export type RiderStats = {
   recordedAt: string;

@@ -140,7 +140,7 @@ export function StravaImportForm() {
       }
 
       const parts = [count(imported, "rit geïmporteerd", "ritten geïmporteerd")];
-      if (tracksAdded > 0) parts.push(count(tracksAdded, "spoor aangevuld", "sporen aangevuld"));
+      if (tracksAdded > 0) parts.push(count(tracksAdded, "rit aangevuld", "ritten aangevuld"));
       if (segmentEfforts > 0) parts.push(count(segmentEfforts, "segmenttijd gemeten", "segmenttijden gemeten"));
       if (finish?.ok && finish.milestoneAwards > 0) {
         parts.push(count(finish.milestoneAwards, "nieuwe badge", "nieuwe badges"));
@@ -205,7 +205,7 @@ export function StravaImportForm() {
       {state.kind === "error" ? (
         <p className="text-xs text-destructive">
           {state.message}{" "}
-          <Link href="/hulp#strava-import" className="font-medium underline">
+          <Link href="/hulp/koppelen#strava-import" className="font-medium underline">
             Hulp
           </Link>
         </p>

@@ -11,10 +11,12 @@ export type ProtocolPillar = "trainen" | "voeden";
 export const PROTOCOL_EVIDENCE = ["sterk", "matig", "beperkt"] as const;
 export type ProtocolEvidence = (typeof PROTOCOL_EVIDENCE)[number];
 
+// De woorden zeggen wat er bekend is, niet wat er ontbreekt (besluit eigenaar,
+// 2026-10-18; docs/beoordelingsbeleid-bewijsniveau.md). De sleutels bleven.
 export const PROTOCOL_EVIDENCE_LABELS: Record<ProtocolEvidence, string> = {
-  sterk: "Sterk bewijs",
-  matig: "Matig bewijs",
-  beperkt: "Beperkt bewijs",
+  sterk: "Stevig onderbouwd",
+  matig: "Onderbouwd",
+  beperkt: "Eerste aanwijzingen",
 };
 
 /**
@@ -48,6 +50,8 @@ export type ProtocolTask = {
    * CORE_THRESHOLD_C en de app vinkt hem af (core-temperature.ts).
    */
   coreMinutes?: number;
+  /** Zoveel minuten fietsen schrijft de hittesessie voor; de analyse toetst eraan. */
+  rideMinutes?: number;
 };
 
 export type ProtocolPhase = {
@@ -72,9 +76,8 @@ export type Protocol = {
   goal: string;
   evidence: ProtocolEvidence;
   /**
-   * Veelbelovend of experimenteel: het effect op prestatie staat nog niet vast
-   * (docs/trainingsmethodes-onderzoek-2026-10-16.md). Staat naast het
-   * bewijsniveau, dat zegt hoeveel onderzoek er is.
+   * Een nieuwe methode, geen standaardtraining (method-label.ts). Geeft geen
+   * oordeel; dat doet het bewijsniveau.
    */
   methodLabel?: MethodLabel;
   anchor: ProtocolAnchor;
@@ -103,9 +106,10 @@ export type Protocol = {
   aiHint?: string;
   /**
    * Laat op de protocolpagina de eigen metingen zien. "duurtest": de
-   * ontkoppeling uit de geplande Duurtest (durability-test.ts).
+   * ontkoppeling uit de geplande Duurtest (durability-test.ts). "zweettest":
+   * de invoer en de uitkomsten van de zweettest (sweat.ts, 0273).
    */
-  measure?: "duurtest";
+  measure?: "duurtest" | "zweettest";
 };
 
 /** Een rij uit member_protocols, zoals de app hem gebruikt. */
@@ -126,4 +130,10 @@ export type ProtocolCoreSession = {
   intervalsId: string;
   maxC: number;
   minutesAbove: number;
+  /** Uit 0239; null bij een rit die eerder werd gemeten. */
+  rideMinutes: number | null;
+  minutesToThreshold: number | null;
+  coveragePct: number | null;
+  /** De app vinkte de sessie af. */
+  autoChecked: boolean;
 };

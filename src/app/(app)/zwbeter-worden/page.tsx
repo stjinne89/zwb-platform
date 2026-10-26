@@ -50,7 +50,7 @@ import {
   loadSummary,
 } from "./_components/format";
 import { WorkoutReviewDialog, type PendingReview } from "./_components/workout-review-dialog";
-import { paramString } from "./_components/format";
+import { paramString, publishStatusLabel } from "./_components/format";
 import type { SearchParamsProp, SegmentRow, StravaActivityRow } from "./_components/types";
 import {
   externalIntervalsEvents,
@@ -307,7 +307,7 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
                   </p>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {nextWorkout.workout.publish_status}
+                  {publishStatusLabel(nextWorkout.workout.publish_status)}
                 </span>
               </div>
               <WorkoutBlocks
@@ -346,7 +346,10 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
               <PlanCautions items={planCautions} />
               {/* De "Let op"-regels vertellen wát er is besloten; de vervolgvraag
                   hoort hier te kunnen beginnen en niet doodlopen. */}
-              <div className="mt-3">
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+                {nextWorkout.workout.event_id ? (
+                  <InlineMoreLink href={`/events/${nextWorkout.workout.event_id}`}>Naar het event</InlineMoreLink>
+                ) : null}
                 <InlineMoreLink href="/zwbeter-worden/coach">Vraag je coach</InlineMoreLink>
               </div>
               {segmentSuggestions.length > 0 ? (

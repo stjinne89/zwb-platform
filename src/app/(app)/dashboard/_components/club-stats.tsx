@@ -2,6 +2,7 @@ import { TrendingUp, Mountain, Clock, Bike } from "lucide-react";
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
+import { uniqueRides } from "@/lib/rides/unique-rides";
 import {
   RiderOfTheMonthCarousel,
   type RiderMetricSlide,
@@ -20,6 +21,7 @@ import {
 const WEEKS_BACK = 13;
 
 type ActivityRow = {
+  id: number;
   profile_id: string;
   start_date: string;
   distance_m: number | string | null;
@@ -119,7 +121,7 @@ const loadClubActivities = unstable_cache(
       const { data: rows } = await admin
         .from("strava_activities")
         .select(
-          "profile_id, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, profiles(display_name)",
+          "id, profile_id, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, profiles(display_name)",
         )
         .gte("start_date", since.toISOString())
         .in("sport_type", CYCLING_SPORTS)
@@ -132,13 +134,14 @@ const loadClubActivities = unstable_cache(
     }
     return activities;
   },
-  ["club-stats-activities", "v1"],
+  ["club-stats-activities", "v2"],
   { revalidate: 600 },
 );
 
 export async function ClubStats() {
   // Faalt de cache of de service-rol, dan geen blok in plaats van een kapot dashboard.
-  const activities = await loadClubActivities().catch(() => [] as ActivityRow[]);
+  // Een rit die een lid twee keer opnam, telt één keer (lib/rides/unique-rides.ts).
+  const activities = uniqueRides(await loadClubActivities().catch(() => [] as ActivityRow[]));
 
   if (activities.length === 0) {
     return null;

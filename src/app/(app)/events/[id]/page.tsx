@@ -56,6 +56,8 @@ import {
 import { WindSummary } from "./_components/wind-summary";
 import { RouteWeather } from "./_components/route-weather";
 import { RsvpPicker } from "./_components/rsvp-buttons";
+import { EventRidePlan } from "../../zwbeter-worden/_components/ride-plan-view";
+import { loadEventRidePlan, requireViewer, todayKeyAmsterdam } from "../../zwbeter-worden/voeding/_data";
 import { TeamAvailabilityButtons } from "../../teams/[id]/_components/team-availability-buttons";
 import { ShareLiveButton } from "./_components/share-live-button";
 import { RefreshResultsButton } from "./_components/refresh-results-button";
@@ -81,6 +83,9 @@ import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { BackLink } from "@/components/app-ui";
 import { MemberLink } from "@/components/member-link";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
+import { zwiftDsConfigured } from "@/lib/events/zwift-club";
+import { eventPowerups } from "@/lib/zwift/powerups";
+import { inDsWindow } from "@/lib/ds/schedule";
 import { tipsForEvent } from "@/lib/zwbieb/data";
 import { TIP_COLUMNS, loadMembers, loadTopicCatalog, type TipRow } from "@/lib/zwbieb/queries";
 import { topicLabels } from "@/lib/zwbieb/topics";
@@ -233,12 +238,20 @@ export default async function EventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, type, kind, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, zwift_event_id, zwift_route_id, laps, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by, team_id, parent_event_id, zwift_event_type, zwift_tags",
+      "id, type, kind, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, zwift_event_id, zwift_route_id, laps, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by, team_id, parent_event_id, zwift_event_type, zwift_rules, zwift_tags",
     )
     .eq("id", id)
     .single();
 
   if (!event) notFound();
+
+  // Wat je voor deze rit klaarzet (ritvoeding, stap 2b). Begint meteen en mag
+  // de eventpagina nooit breken.
+  const ridePlanPromise = user
+    ? requireViewer()
+        .then((viewer) => loadEventRidePlan(viewer, event, todayKeyAmsterdam()))
+        .catch(() => null)
+    : Promise.resolve(null);
 
   // Hoofdevent en teamevents (migr. 0178): een teamevent toont de gedeelde
   // omschrijving van zijn hoofdevent, een hoofdevent de teams eronder.
@@ -761,6 +774,11 @@ export default async function EventDetailPage({
       : myRaceWithRoute
         ? `/events/${myRaceWithRoute.id}/pacing`
         : null;
+  // ZWB DS rond de start, hetzelfde venster als de knoppen op het dashboard.
+  const dsHref =
+    user && event.zwift_event_id && zwiftDsConfigured() && inDsWindow(new Date(event.start_at).getTime(), undefined, event.distance_km)
+      ? `/ds/${event.id}`
+      : null;
   const linksOf = (eventId: string | null | undefined) =>
     ((linkRows ?? []) as Array<EventLinkRow & { event_id: string }>).filter(
       (row) => row.event_id === eventId,
@@ -1072,7 +1090,7 @@ export default async function EventDetailPage({
     if (sessionIds.length > 0) {
       const { data: positionRows } = await supabase
         .from("live_positions")
-        .select("session_id, profile_id, lat, lng, altitude, speed_kmh, recorded_at")
+        .select("session_id, profile_id, lat, lng, altitude, speed_kmh, recorded_at, distance_m, power_w, cadence_rpm, heart_rate")
         .in("session_id", sessionIds)
         .order("recorded_at", { ascending: false })
         .limit(Math.max(500, sessionIds.length * 80));
@@ -1186,20 +1204,25 @@ export default async function EventDetailPage({
   // rit ophalen, zodat de chat als archief deel wordt van het ritverslag.
   let initialChat: ChatMessage[] = [];
   {
-    const { data: chatRows } = await supabase
-      .from("event_chat_messages")
-      .select(
-        "id, profile_id, guest_name, body, internal_only, created_at, profiles(display_name)",
-      )
-      .eq("event_id", id)
-      .order("created_at", { ascending: false })
-      .limit(eventIsToday ? 50 : 200);
-    initialChat = ((chatRows ?? []) as Array<{
+    const loadChat = (columns: string) =>
+      supabase
+        .from("event_chat_messages")
+        .select(columns)
+        .eq("event_id", id)
+        .order("created_at", { ascending: false })
+        .limit(eventIsToday ? 50 : 200);
+    const chatColumns =
+      "id, profile_id, guest_name, body, internal_only, created_at, profiles(display_name)";
+    // Zonder migratie 0253 bestaat to_riders niet; dan zonder die kolom.
+    const fullChat = await loadChat(`${chatColumns}, to_riders`);
+    const { data: chatRows } = fullChat.error ? await loadChat(chatColumns) : fullChat;
+    initialChat = ((chatRows ?? []) as unknown as Array<{
       id: string;
       profile_id: string | null;
       guest_name: string | null;
       body: string;
       internal_only: boolean | null;
+      to_riders?: boolean | null;
       created_at: string;
       profiles: unknown;
     }>)
@@ -1211,9 +1234,12 @@ export default async function EventDetailPage({
         body: r.body,
         createdAt: r.created_at,
         internal: Boolean(r.internal_only),
+        toRiders: Boolean(r.to_riders),
       }))
       .reverse();
   }
+
+  const eventRidePlan = await ridePlanPromise;
 
   return (
     <div className="space-y-6">
@@ -1256,14 +1282,14 @@ export default async function EventDetailPage({
             timeZone: "Europe/Amsterdam",
           })}
         </span>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
               {eventLabel(event.type, event.kind)}
             </span>
             <ProgramBadges programs={programs} />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <WhatsAppShareLink
               text={`${event.title} — ${new Date(event.start_at).toLocaleDateString("nl-NL", {
                 day: "numeric",
@@ -1315,15 +1341,30 @@ export default async function EventDetailPage({
 
       <RaceInfoCard
         pacingHref={pacingHref}
+        briefingHref={event.type === "zrl" && event.team_id ? `/events/${event.id}/briefing` : null}
         liveHref={event.type === "zrl" && event.team_id && event.zwift_event_id ? `/live/zrl/${event.id}` : null}
+        dsHref={dsHref}
         racepasses={ownRacepasses}
         signupUrl={event.type === "zrl" ? null : zwiftSignupUrl}
         zwiftLinks={[
           ...derivedZwiftLinks(event.zwift_event_id),
           ...zwifterBikesLinks(routeEvent.zwift_route_id),
         ]}
+        powerups={
+          event.zwift_event_id
+            ? eventPowerups({
+                eventType: event.zwift_event_type,
+                rules: event.zwift_rules,
+                tags: event.zwift_tags,
+              })
+            : null
+        }
         links={raceLinks}
       />
+
+      {eventRidePlan && (
+        <EventRidePlan eventId={event.id} plan={eventRidePlan.plan} loadFrom={eventRidePlan.loadFrom} />
+      )}
 
       {isSrc && !isParentEvent && (
         <SrcPanel supabase={supabase} eventId={event.id} signupUrl={event.external_url} />
@@ -1609,6 +1650,7 @@ export default async function EventDetailPage({
             eventStartAt={event.start_at}
             sessions={eventLiveSessions}
             initialPositions={eventLivePositions}
+            raceKm={Number(event.distance_km) || null}
             cols={cols}
             climbOverrides={climbOverrides}
             pois={eventPois}
@@ -1635,6 +1677,7 @@ export default async function EventDetailPage({
           currentUserId={user?.id ?? null}
           isMember={Boolean(user)}
           canModerate={access.has("content.moderate_posts")}
+          canMessageRiders={canManage}
           initialMessages={initialChat}
         />
       )}

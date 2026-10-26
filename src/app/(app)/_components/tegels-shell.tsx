@@ -1,18 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Barlow_Semi_Condensed } from "next/font/google";
+import { tegelsFont } from "@/components/tegels/font";
 import { TegelsTabs } from "./tegels-tabs";
 
-// Alleen het design "tegels" gebruikt dit lettertype; zonder preload laadt het
-// pas als dat design aanstaat. Door de eigenaar gekozen uit een proef van vijf.
-const tegelsFont = Barlow_Semi_Condensed({
-  variable: "--font-tegels",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-  preload: false,
-});
-
-/** De schil van het design "tegels": het originele logo bovenin, de vijf
+/** De schil van het design "tegels": het originele logo bovenin, de vier
  * plekken onderin (telefoon) of bovenin (breed scherm). */
 export function TegelsShell({
   before,

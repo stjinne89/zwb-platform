@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "../fixtures/intervals/activities.json";
 import {
   dedupeRides,
+  importRidesToReplace,
   encodeTrackPolyline,
   intervalsActivityToRideRow,
   intervalsRideId,
@@ -10,6 +11,7 @@ import {
   isSameRide,
   isUsableIntervalsRide,
   latLngFromStreams,
+  rideCompareFrom,
   rideSourceFor,
   startInstant,
   type IntervalsRideInput,
@@ -227,6 +229,52 @@ describe("dedupeRides", () => {
     const { keep, skipped } = dedupeRides([wahooRow], [imported]);
     expect(keep).toHaveLength(0);
     expect(skipped).toHaveLength(1);
+  });
+});
+
+describe("importRidesToReplace", () => {
+  const zwiftRow = intervalsActivityToRideRow(profileId, zwift, { now })!;
+  const garminRow = intervalsActivityToRideRow(profileId, garminTrainer, { now })!;
+  const csvRide = (raw: Record<string, unknown> = {}) => ({
+    id: 20131400295,
+    start_date: zwiftRow.start_date,
+    distance_m: zwiftRow.distance_m,
+    raw: { import_source: "strava_csv", ...raw },
+  });
+
+  it("vervangt een upload zonder vermogen door de rit met vermogen", () => {
+    const old = csvRide();
+    expect(importRidesToReplace([zwiftRow], [old]).get(String(zwiftRow.id))).toBe(old);
+  });
+
+  it("laat een upload met vermogen, een Strava-rit of een rit zonder vermogen staan", () => {
+    expect(importRidesToReplace([zwiftRow], [csvRide({ device_watts: true, average_watts: 225 })]).size).toBe(0);
+    expect(importRidesToReplace([zwiftRow], [{ ...csvRide(), raw: {} }]).size).toBe(0);
+    expect(importRidesToReplace([garminRow], [csvRide()]).size).toBe(0);
+  });
+
+  it("vervangt één upload hooguit één keer", () => {
+    const twin = { ...zwiftRow, id: zwiftRow.id - 1 };
+    expect(importRidesToReplace([zwiftRow, twin], [csvRide()]).size).toBe(1);
+  });
+});
+
+describe("rideCompareFrom", () => {
+  const removeFrom = new Date("2026-09-01T12:00:00Z");
+
+  it("reikt tot een dag voor de oudste opgehaalde rit", () => {
+    const edge = { ...wahoo, start_date: "2026-08-31T06:30:00Z", start_date_local: "2026-08-31T08:30:00" };
+    expect(rideCompareFrom(removeFrom, [zwift, edge]).toISOString()).toBe("2026-08-30T06:30:00.000Z");
+  });
+
+  it("blijft minstens een dag voor het verwijdervenster", () => {
+    expect(rideCompareFrom(removeFrom, [zwift]).toISOString()).toBe("2026-08-31T12:00:00.000Z");
+    expect(rideCompareFrom(removeFrom, []).toISOString()).toBe("2026-08-31T12:00:00.000Z");
+  });
+
+  it("negeert een rit zonder bruikbare starttijd", () => {
+    const broken = { ...wahoo, start_date: null, start_date_local: "onzin" };
+    expect(rideCompareFrom(removeFrom, [broken]).toISOString()).toBe("2026-08-31T12:00:00.000Z");
   });
 });
 

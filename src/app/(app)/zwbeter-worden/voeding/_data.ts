@@ -7,12 +7,27 @@
 import type { Viewer } from "../_data";
 import { shiftDayKey } from "@/lib/training/mobility";
 import { getWellnessSummary } from "@/lib/training/wellness";
-import { plannedSessions, ridesOnDay, type Recipe } from "@/lib/nutrition/recipes";
+import {
+  plannedSessions,
+  recipeIngredients,
+  ridesOnDay,
+  type Recipe,
+  type RecipeIngredientDbRow,
+} from "@/lib/nutrition/recipes";
 import type { NutritionDayInput } from "@/lib/nutrition/tips";
 import type { LoggedMeal } from "@/lib/nutrition/log";
-import { productLabel, type NutritionProduct } from "@/lib/nutrition/products";
-import { RECIPE_PREFS, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
+import { PRODUCT_COLUMNS, productLabel, type NutritionProduct } from "@/lib/nutrition/products";
+import { RECIPE_PREFS, rankRecipes, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
+import { classifyFuelDay } from "@/lib/nutrition/day-type";
+import { eventRide, ridePlan, type RidePlan } from "@/lib/nutrition/ride-plan";
+import { eventWorkoutDefaults, type ClubEventRow } from "@/lib/training/events";
+import { GUT_PROTOCOLS, gutTrainingOn, type GutRun, type GutSource } from "@/lib/nutrition/gut-training";
+import { currentSweatRate, type SweatSetting, type SweatTest } from "@/lib/nutrition/sweat";
 import { ageFromBirthDate, portionEnergyFactor } from "@/lib/nutrition/targets";
+import { householdFromRow, type Household } from "@/lib/nutrition/shopping";
+import type { MenuChoice } from "@/lib/nutrition/plan";
+import { MEAL_MOMENTS, type MealMoment } from "@/lib/nutrition/targets";
+import { memberHiddenPlanIds } from "@/lib/training/member-hidden-plans";
 
 export { requireViewer, todayKeyAmsterdam } from "../_data";
 export type { Viewer } from "../_data";
@@ -26,11 +41,34 @@ const BASE_RECIPE_COLUMNS =
 
 const FOOD_COLUMNS = `${BASE_FOOD_COLUMNS}, food_group, calcium_mg, iron_mg, magnesium_mg, zinc_mg, vitamin_d_ug, vitamin_c_mg, epa_g, dha_g`;
 
-function recipeColumns(expanded: boolean) {
-  const recipe = expanded
-    ? `${BASE_RECIPE_COLUMNS}, source_name, source_url, share_status, contributor:profiles!contributed_by(display_name)`
-    : BASE_RECIPE_COLUMNS;
-  return `${recipe}, ingredients:nutrition_recipe_ingredients(id, sort_order, grams, role, food:nutrition_foods(${expanded ? FOOD_COLUMNS : BASE_FOOD_COLUMNS}))`;
+/**
+ * 3: met barcodeproducten als ingrediënt (0276), 2: met delen onder leden
+ * (0264), 1: met bron en voorstellen (0213), 0: de kolommen van 0168. Zo werkt
+ * de pagina ook zolang een migratie ontbreekt.
+ */
+type ColumnLevel = 0 | 1 | 2 | 3;
+
+function recipeColumns(level: ColumnLevel) {
+  const sharing =
+    level >= 2 ? ", visibility, show_owner, image_url, sharer:profiles!owner_id(display_name, avatar_url)" : "";
+  const recipe =
+    level >= 1
+      ? `${BASE_RECIPE_COLUMNS}, source_name, source_url, share_status, contributor:profiles!contributed_by(display_name)${sharing}`
+      : BASE_RECIPE_COLUMNS;
+  const product = level >= 3 ? `, product:nutrition_products(${PRODUCT_COLUMNS})` : "";
+  return `${recipe}, ingredients:nutrition_recipe_ingredients(id, sort_order, grams, role, food:nutrition_foods(${level >= 1 ? FOOD_COLUMNS : BASE_FOOD_COLUMNS})${product})`;
+}
+
+/** Dezelfde query met minder kolommen zolang de select faalt. */
+async function withColumnFallback<T>(
+  run: (columns: string) => PromiseLike<{ data: T | null; error: unknown }>,
+  levels: readonly ColumnLevel[] = [3, 2, 1, 0],
+): Promise<T | null> {
+  for (const level of levels) {
+    const { data, error } = await run(recipeColumns(level));
+    if (!error) return data;
+  }
+  return null;
 }
 
 export type NutritionProfile = {
@@ -72,26 +110,64 @@ export function energyFactorFor(profile: NutritionProfile): number {
   });
 }
 
-function normalizeRecipe(row: Recipe): Recipe {
+/** Wie er meeëet, voor het boodschappenlijstje. Alle kolommen: zo werkt dit ook zolang 0259 er niet is. */
+export async function loadHousehold(viewer: Viewer): Promise<Household> {
+  const { data } = await viewer.supabase
+    .from("nutrition_profiles")
+    .select("*")
+    .eq("profile_id", viewer.user.id)
+    .maybeSingle();
+  return householdFromRow(data);
+}
+
+/** Zelf gekozen recepten in het menu, van `from` tot en met `to`. Leeg zolang 0261 er niet is. */
+export async function loadMenuChoices(viewer: Viewer, from: string, to: string): Promise<MenuChoice[]> {
+  const { data } = await viewer.supabase
+    .from("nutrition_menu_choices")
+    .select("day, meal_moment, recipe_id")
+    .eq("profile_id", viewer.user.id)
+    .gte("day", from)
+    .lte("day", to);
+  return ((data ?? []) as { day: string; meal_moment: string; recipe_id: string }[])
+    .filter((row) => (MEAL_MOMENTS as readonly string[]).includes(row.meal_moment))
+    .map((row) => ({ day: row.day, moment: row.meal_moment as MealMoment, recipeId: row.recipe_id }));
+}
+
+type RecipeRow = Omit<Recipe, "ingredients"> & { ingredients: RecipeIngredientDbRow[] | null };
+
+function normalizeRecipe(row: RecipeRow, viewerId: string): Recipe {
+  const visibility = row.visibility ?? "prive";
+  const showOwner = Boolean(row.show_owner) && visibility === "leden";
+  const own = !row.is_standard && row.owner_id === viewerId;
   return {
     ...row,
     source_name: row.source_name ?? null,
     source_url: row.source_url ?? null,
     share_status: row.share_status ?? null,
     contributor: row.contributor ?? null,
+    visibility,
+    show_owner: showOwner,
+    image_url: row.image_url ?? null,
+    // De join levert de maker altijd; zonder toestemming gaat hij hier al weg.
+    sharer: showOwner || own ? (row.sharer ?? null) : null,
+    from_member: !row.is_standard && row.owner_id !== viewerId,
     diet_tags: row.diet_tags ?? [],
-    ingredients: [...(row.ingredients ?? [])]
-      .map((item) => ({ ...item, grams: Number(item.grams) }))
-      .sort((a, b) => a.sort_order - b.sort_order),
+    ingredients: recipeIngredients(row.ingredients),
   };
 }
 
-/** Clubrecepten plus de eigen recepten; RLS filtert al op wat dit lid mag zien. */
-export async function loadRecipes(viewer: Viewer): Promise<Recipe[]> {
-  let { data, error } = await viewer.supabase.from("nutrition_recipes").select(recipeColumns(true));
-  if (error) ({ data, error } = await viewer.supabase.from("nutrition_recipes").select(recipeColumns(false)));
-  return ((data ?? []) as unknown as Recipe[])
-    .map(normalizeRecipe)
+/**
+ * Clubrecepten, de eigen recepten en wat andere leden delen; RLS filtert al op
+ * wat dit lid mag zien. Een voorstel dat een beoordelaar ziet, telt niet mee.
+ */
+export async function loadRecipes(viewer: Viewer, moment?: MealMoment): Promise<Recipe[]> {
+  const data = await withColumnFallback((columns) => {
+    const query = viewer.supabase.from("nutrition_recipes").select(columns);
+    return moment ? query.eq("meal_moment", moment) : query;
+  });
+  return ((data ?? []) as unknown as RecipeRow[])
+    .map((row) => normalizeRecipe(row, viewer.user.id))
+    .filter((recipe) => !recipe.from_member || recipe.visibility === "leden")
     .sort(
       (a, b) =>
         Number(b.is_standard) - Number(a.is_standard) || a.title.localeCompare(b.title, "nl"),
@@ -99,11 +175,10 @@ export async function loadRecipes(viewer: Viewer): Promise<Recipe[]> {
 }
 
 export async function loadRecipeBySlug(viewer: Viewer, slug: string): Promise<Recipe | null> {
-  const query = (expanded: boolean) =>
-    viewer.supabase.from("nutrition_recipes").select(recipeColumns(expanded)).eq("slug", slug).maybeSingle();
-  let { data, error } = await query(true);
-  if (error) ({ data, error } = await query(false));
-  return data ? normalizeRecipe(data as unknown as Recipe) : null;
+  const data = await withColumnFallback((columns) =>
+    viewer.supabase.from("nutrition_recipes").select(columns).eq("slug", slug).maybeSingle(),
+  );
+  return data ? normalizeRecipe(data as unknown as RecipeRow, viewer.user.id) : null;
 }
 
 /** Favorieten en verborgen recepten van dit lid. Leeg zolang 0213 er niet is. */
@@ -122,13 +197,18 @@ export async function loadRecipePrefs(viewer: Viewer): Promise<RecipePrefs> {
 
 /** Recepten die leden met de club willen delen, voor wie schema's mag maken. */
 export async function loadProposedRecipes(viewer: Viewer): Promise<(Recipe & { owner_name: string | null })[]> {
-  const { data } = await viewer.supabase
-    .from("nutrition_recipes")
-    .select(`${recipeColumns(true)}, owner:profiles!owner_id(display_name)`)
-    .eq("share_status", "voorgesteld")
-    .order("updated_at", { ascending: true });
-  return ((data ?? []) as unknown as (Recipe & { owner: { display_name: string | null } | null })[]).map((row) => ({
-    ...normalizeRecipe(row),
+  // Met de barcodeproducten (0276) als die er zijn; anders de kolommen van 0213.
+  const data = await withColumnFallback(
+    (columns) =>
+      viewer.supabase
+        .from("nutrition_recipes")
+        .select(`${columns}, owner:profiles!owner_id(display_name)`)
+        .eq("share_status", "voorgesteld")
+        .order("updated_at", { ascending: true }),
+    [3, 1],
+  );
+  return ((data ?? []) as unknown as (RecipeRow & { owner: { display_name: string | null } | null })[]).map((row) => ({
+    ...normalizeRecipe(row, viewer.user.id),
     owner_name: row.owner?.display_name ?? null,
   }));
 }
@@ -277,7 +357,7 @@ export async function loadNutritionDayInputs(
   const from = `${shiftDayKey(sorted[0], -1)}T00:00:00Z`;
   const to = `${shiftDayKey(sorted[sorted.length - 1], 3)}T00:00:00Z`;
 
-  const [workouts, proposals, rides, wellness] = await Promise.all([
+  const [workouts, proposals, rides, wellness, gut, sweatTests] = await Promise.all([
     viewer.supabase
       .from("training_workouts")
       .select("scheduled_at, duration_minutes, intensity, status, plan_id")
@@ -285,13 +365,9 @@ export async function loadNutritionDayInputs(
       .is("superseded_at", null)
       .gte("scheduled_at", from)
       .lt("scheduled_at", to),
-    // Niet-toegepaste dagvoorstellen tellen niet, net als in loadMemberWorkouts.
-    viewer.supabase
-      .from("training_plans")
-      .select("id")
-      .eq("profile_id", profileId)
-      .eq("status", "draft")
-      .eq("adaptation_kind", "daily"),
+    // Niet-toegepaste dagvoorstellen en concepten van de trainer tellen niet,
+    // net als in loadMemberWorkouts.
+    memberHiddenPlanIds(viewer.supabase, [profileId]),
     viewer.supabase
       .from("strava_activities")
       .select("start_date, moving_time_seconds")
@@ -299,10 +375,12 @@ export async function loadNutritionDayInputs(
       .gte("start_date", from)
       .lt("start_date", to),
     getWellnessSummary(viewer.supabase, profileId, 45).catch(() => null),
+    loadGutSource(viewer, profileId),
+    loadSweatTests(viewer, profileId),
   ]);
+  const sweatMlPerHour = currentSweatRate(sweatTests);
 
-  const proposalIds = new Set((proposals.data ?? []).map((plan) => plan.id as string));
-  const rows = (workouts.data ?? []).filter((row) => !proposalIds.has(row.plan_id as string)) as {
+  const rows = (workouts.data ?? []).filter((row) => !proposals.has(row.plan_id as string)) as {
     scheduled_at: string;
     duration_minutes: number | null;
     intensity: string | null;
@@ -319,7 +397,187 @@ export async function loadNutritionDayInputs(
         ...plannedSessions(rows, day),
         ridesToday: ridesOnDay(rideRows, day),
         wellnessState: wellness?.state ?? null,
+        gut: gutTrainingOn(gut, day),
+        sweatMlPerHour,
       },
     ]),
   );
+}
+
+type PlannedRide = {
+  id: string;
+  scheduled_at: string;
+  duration_minutes: number | null;
+  intensity: string | null;
+  status: string;
+};
+
+/**
+ * Het ritplan per geplande training van vandaag of later, op training-id. Het
+ * recept bij "Tijdens de rit" is wat het lid die dag zelf koos, anders het
+ * beste; het andere soort (bidon of vast eten) volgt uit dezelfde rangorde als
+ * het dagmenu.
+ */
+export async function loadRidePlans(
+  viewer: Viewer,
+  workouts: PlannedRide[],
+  today: string,
+): Promise<Map<string, RidePlan>> {
+  const dayOf = (workout: PlannedRide) => String(workout.scheduled_at).slice(0, 10);
+  const upcoming = workouts.filter(
+    (workout) => workout.status === "planned" && dayOf(workout) >= today && Number(workout.duration_minutes ?? 0) >= 60,
+  );
+  const plans = new Map<string, RidePlan>();
+  if (upcoming.length === 0) return plans;
+  const days = upcoming.map(dayOf).sort();
+  const [recipes, prefs, profile, choices, gutSource, sweatTests] = await Promise.all([
+    loadRecipes(viewer, "tijdens_rit"),
+    loadRecipePrefs(viewer),
+    loadNutritionProfile(viewer, today),
+    loadMenuChoices(viewer, days[0], days[days.length - 1]),
+    loadGutSource(viewer),
+    loadSweatTests(viewer),
+  ]);
+  const sweatMlPerHour = currentSweatRate(sweatTests);
+  const byId = new Map(recipes.map((recipe) => [recipe.id, recipe]));
+  const energyFactor = energyFactorFor(profile);
+  for (const workout of upcoming) {
+    const day = dayOf(workout);
+    const minutes = Number(workout.duration_minutes);
+    const dayType = classifyFuelDay([{ minutes, intensity: workout.intensity }]);
+    const gut = gutTrainingOn(gutSource, day);
+    const ranked = rankRecipes(recipes, "tijdens_rit", {
+      rider: { weightKg: profile.weightKg, energyFactor, dayType, rideMinutes: minutes, rideIntensity: workout.intensity, rideGut: gut },
+      dayType,
+      tomorrowType: "rust",
+      today: day,
+      prefs,
+      diet: null,
+    }).map((item) => item.recipe);
+    const choice = choices.find((row) => row.day === day && row.moment === "tijdens_rit");
+    const chosen = choice ? byId.get(choice.recipeId) : undefined;
+    const plan = ridePlan({
+      minutes,
+      intensity: workout.intensity,
+      gut,
+      sweatMlPerHour,
+      weightKg: profile.weightKg,
+      ranked,
+      lead: chosen ?? ranked[0] ?? null,
+      leadChosen: Boolean(chosen),
+      energyFactor,
+    });
+    if (plan) plans.set(workout.id, plan);
+  }
+  return plans;
+}
+
+/**
+ * De darmtraining van een lid: lopende en afgeronde runs, en of het zelf voor
+ * 120 g per uur koos. Zonder kolom ride_carbs_120 (0272 niet toegepast) of zonder
+ * leesrecht (een trainer op nutrition_profiles) telt de keuze als uit.
+ */
+export async function loadGutSource(viewer: Viewer, profileId = viewer.user.id): Promise<GutSource> {
+  const [runs, own] = await Promise.all([
+    viewer.supabase
+      .from("member_protocols")
+      .select("protocol_slug, start_date, status")
+      .eq("profile_id", profileId)
+      .in("protocol_slug", [...GUT_PROTOCOLS])
+      .in("status", ["actief", "afgerond"]),
+    viewer.supabase.from("nutrition_profiles").select("ride_carbs_120").eq("profile_id", profileId).maybeSingle(),
+  ]);
+  return {
+    runs: ((runs.data ?? []) as { protocol_slug: string; start_date: string; status: GutRun["status"] }[]).map((row) => ({
+      protocolSlug: row.protocol_slug,
+      startDate: String(row.start_date).slice(0, 10),
+      status: row.status,
+    })),
+    high: Boolean((own.data as { ride_carbs_120?: boolean } | null)?.ride_carbs_120),
+  };
+}
+
+/**
+ * De eigen zweettests, nieuwste eerst (0273). Leeg zolang de migratie er niet is
+ * of voor een trainer: alleen het lid zelf leest ze.
+ */
+export async function loadSweatTests(viewer: Viewer, profileId = viewer.user.id): Promise<SweatTest[]> {
+  const { data } = await viewer.supabase
+    .from("nutrition_sweat_tests")
+    .select("id, tested_on, duration_minutes, sweat_ml_per_hour, setting, warm")
+    .eq("profile_id", profileId)
+    .order("tested_on", { ascending: false })
+    .limit(20);
+  return ((data ?? []) as {
+    id: string;
+    tested_on: string;
+    duration_minutes: number;
+    sweat_ml_per_hour: number;
+    setting: SweatSetting;
+    warm: boolean;
+  }[]).map((row) => ({
+    id: row.id,
+    testedOn: String(row.tested_on).slice(0, 10),
+    durationMinutes: Number(row.duration_minutes),
+    mlPerHour: Number(row.sweat_ml_per_hour),
+    setting: row.setting,
+    warm: Boolean(row.warm),
+  }));
+}
+
+export type EventRidePlan = {
+  plan: RidePlan;
+  /** Dag waarop koolhydraten laden begint; null als dat niet past (korter dan 90 minuten, geen wedstrijd). */
+  loadFrom: string | null;
+};
+
+/** De laadfase van het protocol begint twee dagen voor de wedstrijd. */
+const LOADING_DAYS_BEFORE = 2;
+
+/**
+ * Het ritplan voor een event, voor wie het bekijkt (stap 2b van
+ * docs/ritvoeding-plan.md). De duur komt uit het eigen pacingplan, dan uit de
+ * eigen training voor dit event in het schema, en anders uit dezelfde schatting
+ * als het schema (eventWorkoutDefaults). Null voor een event dat voorbij is of
+ * korter dan een uur.
+ */
+export async function loadEventRidePlan(
+  viewer: Viewer,
+  event: ClubEventRow,
+  today: string,
+): Promise<EventRidePlan | null> {
+  const day = new Date(event.start_at).toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
+  if (day < today) return null;
+  const defaults = eventWorkoutDefaults(event);
+  const [pacing, { data: workout }] = await Promise.all([
+    import("@/lib/pacing/session")
+      .then(({ readOwnPlan }) => readOwnPlan(event.id, viewer.user.id))
+      .catch(() => null),
+    viewer.supabase
+      .from("training_workouts")
+      .select("duration_minutes, intensity")
+      .eq("profile_id", viewer.user.id)
+      .eq("event_id", event.id)
+      .is("superseded_at", null)
+      .neq("status", "skipped")
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  const { minutes, intensity, longRace } = eventRide({
+    pacedSeconds: pacing?.summary?.totalSeconds ?? null,
+    workout: workout
+      ? { minutes: workout.duration_minutes == null ? null : Number(workout.duration_minutes), intensity: workout.intensity }
+      : null,
+    estimate: { minutes: defaults.durationMinutes, intensity: defaults.intensity },
+    eventType: event.type,
+  });
+
+  const plans = await loadRidePlans(
+    viewer,
+    [{ id: event.id, scheduled_at: `${day}T12:00:00`, duration_minutes: minutes, intensity, status: "planned" }],
+    today,
+  );
+  const plan = plans.get(event.id);
+  if (!plan) return null;
+  return { plan, loadFrom: longRace ? shiftDayKey(day, -LOADING_DAYS_BEFORE) : null };
 }

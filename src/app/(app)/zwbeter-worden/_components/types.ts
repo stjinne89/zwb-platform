@@ -51,6 +51,11 @@ export type GoalRow = {
   desired_intensity: string;
   risk_notes: string | null;
   status: string;
+  /** Sinds 0257; ontbreken zolang die migratie er niet is. */
+  target_event_id?: string | null;
+  target_time_seconds?: number | null;
+  target_riding?: string | null;
+  target_route?: unknown;
 };
 
 export type PlanRow = {
@@ -106,7 +111,7 @@ export type WorkoutRow = {
   zwift_event_id?: number | null;
   /** Gezet wanneer het lid de Zwift-voorstellen wegklikte. */
   zwift_suggestions_dismissed_at?: string | null;
-  /** Veelbelovend of experimenteel (0246); leeg voor een gewone trainingsvorm. */
+  /** Nieuwe methode (0246: veelbelovend of experimenteel); leeg voor een gewone trainingsvorm. */
   method_label?: string | null;
 };
 

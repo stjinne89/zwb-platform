@@ -42,10 +42,17 @@ const PUBLIC_PATHS = [
   "/api/src/sync",
   "/api/intervals/rides/sync",
   "/api/instagram/sync",
+  "/api/briljant/weekly",
+  "/api/briljant/zrs-history",
+  // Geen cron: de server stoot hier een Claude-opdracht aan (ai-job-background).
+  // De matcher in src/middleware.ts slaat /.netlify/ al over; dit is de vangrail.
+  "/.netlify/functions",
   // Geen cron: de Discord-bot haalt hier een plan op met het deeltoken in het pad.
   "/api/ttt/plan",
   // Geen cron: agenda-apps halen het abonnement op met het token in het pad.
   "/api/agenda",
+  // Telegram roept de bot-webhook aan; de route controleert het geheim zelf.
+  "/api/telegram/webhook",
 ];
 
 // Paden die ook toegankelijk zijn voor ingelogde-maar-nog-niet-goedgekeurde users.

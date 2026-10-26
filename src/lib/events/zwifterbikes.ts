@@ -22,9 +22,7 @@ const ROUTE_NAME_BY_SLUG: Record<string, string> = {
   "2022-medio-fondo": "zwift-medio-fondo-2022",
   "2023-continental-qualifiers": "innsbruckconti",
   "2919739330": "mech-isle-mayhem",
-  "362278484": "twilight-crit",
   "4092230492": "urumaze",
-  "811898717": "whatyumeziwerelost",
   "bell-lap": "the-bell-lap",
   "big-loop-rev": "big-loop-reverse",
   "classique-rev": "london-classique-reverse",
@@ -51,6 +49,8 @@ const ROUTE_NAME_BY_SLUG: Record<string, string> = {
   "the-highline-rev": "the-highline-reverse",
   "three-sisters-rev": "three-sisters-reverse",
   "volcano-flat-rev": "volcano-flat-reverse",
+  // Tot zwift-data 2.1 heette deze route naar zijn id (811898717).
+  "what-yumezi-were-lost": "whatyumeziwerelost",
 };
 
 /** Routes die ZwifterBikes niet heeft. */

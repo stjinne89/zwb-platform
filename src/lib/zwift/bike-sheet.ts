@@ -18,7 +18,7 @@
 // Puur: CSV erin, onderdelen eruit. Het ophalen staat in bike-sync.ts.
 
 import { AIR_DENSITY, DRIVETRAIN_EFF, G } from "@/lib/ride-estimate";
-import type { BikeKind, BikePart } from "@/lib/pacing/zwift-setup";
+import { wheelTestFrame, type BikeKind, type BikePart } from "@/lib/pacing/zwift-setup";
 
 export const BIKE_SHEET_ID = "1S0pTN_hBMddX0GhCqSOd6fPlIJeWtw0xr6Y1M6PzNJY";
 /** Tabbladen van de sheet (gid), vastgesteld op 21 september 2026. */
@@ -254,11 +254,18 @@ export function deriveCatalog(input: {
 
   const roadRef = reference("Zwift Carbon", "road");
   const parts: BikePart[] = [];
+  // Een frame dat niet op de wielen van het testframe van zijn type staat, is met
+  // eigen wielen getest (de halo-fietsen); daar valt niets bij te kiezen.
+  const testWheels = (kind: BikeKind) => {
+    const testFrame = wheelTestFrame(kind);
+    return input.frames.find((item) => item.name === testFrame && item.stage === 0)?.wheels ?? null;
+  };
 
   if (roadRef) {
     for (const frame of input.frames) {
       const solved = solveTests(frame.tests, TARMAC_CRR[frame.kind]);
       if (!solved) continue;
+      const standard = testWheels(frame.kind);
       parts.push({
         part: "frame",
         name: frame.name,
@@ -267,6 +274,7 @@ export function deriveCatalog(input: {
         stage: frame.stage,
         cdaDelta: round(solved.cda - roadRef.cda, 4),
         kgDelta: round(solved.massKg - roadRef.massKg, 2),
+        fixedWheels: standard !== null && frame.wheels !== standard,
       });
     }
   } else {

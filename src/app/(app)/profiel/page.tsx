@@ -21,6 +21,7 @@ import type { StravaBikeRow } from "@/lib/strava/bikes";
 import { isBadgeVisibleInVault } from "@/lib/achievements/badge-policy";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { ProfileViewToggle } from "./_components/profile-view-toggle";
+import { householdFromRow } from "@/lib/nutrition/shopping";
 import { MemberProfile } from "../leden/[id]/_components/member-profile";
 import { PublicProfile } from "@/app/profielen/[id]/_components/public-profile";
 
@@ -126,6 +127,7 @@ export default async function ProfielPage({
     { data: myQuotes },
     { data: heightRow },
     { data: calendarFeed },
+    { data: briljantPref },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -167,7 +169,7 @@ export default async function ProfielPage({
     supabase
       .from("notification_preferences")
       .select(
-        "on_new_event, on_live_started, on_new_badge, on_training_plan, on_training_chat, on_knowledge_message, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_intervals_visit_reminder",
+        "on_new_event, on_live_started, on_ride_message, on_new_badge, on_training_plan, on_training_chat, on_knowledge_message, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_intervals_visit_reminder, on_qa_question, on_qa_answer",
       )
       .eq("profile_id", user.id)
       .maybeSingle(),
@@ -188,9 +190,10 @@ export default async function ProfielPage({
       .eq("profile_id", user.id)
       .order("created_at", { ascending: false }),
     // Lengte staat bewust niet op profiles: die tabel is voor alle leden leesbaar.
+    // Alle kolommen: ook het gezin (0259), en zonder fout zolang die er niet is.
     supabase
       .from("nutrition_profiles")
-      .select("height_cm")
+      .select("*")
       .eq("profile_id", user.id)
       .maybeSingle(),
     supabase
@@ -198,6 +201,7 @@ export default async function ProfielPage({
       .select("token, last_fetched_at")
       .eq("profile_id", user.id)
       .maybeSingle<CalendarFeedStatus>(),
+    supabase.from("zwbriljant_preferences").select("visible").eq("profile_id", user.id).maybeSingle(),
   ]);
 
   // Zolang migratie 0097 niet is toegepast, bestaat auto_sync_physique nog niet.
@@ -280,6 +284,7 @@ export default async function ProfielPage({
           ftp_watts: profileRow?.ftp_watts?.toString() ?? "",
           weight_kg: profileRow?.weight_kg?.toString() ?? "",
           height_cm: heightRow?.height_cm?.toString() ?? "",
+          household: householdFromRow(heightRow),
           auto_sync_physique:
             (profileRow as { auto_sync_physique?: boolean | null })?.auto_sync_physique ?? false,
           bio: profileRow?.bio ?? "",
@@ -289,6 +294,8 @@ export default async function ProfielPage({
           birth_date: profileRow?.birth_date ?? "",
           share_birthday: profileRow?.share_birthday ?? false,
           public_profile_enabled: profileRow?.public_profile_enabled ?? false,
+          // Standaard gedeeld (0267); alleen verbergen zet het uit.
+          share_briljant: (briljantPref as { visible: boolean } | null)?.visible ?? true,
           profile_visibility: {
             ...DEFAULT_VISIBILITY,
             ...((profileRow?.profile_visibility as Record<string, boolean> | null) ??
@@ -350,6 +357,7 @@ export default async function ProfielPage({
           initialPreferences={{
             on_new_event: pushPrefs?.on_new_event ?? true,
             on_live_started: pushPrefs?.on_live_started ?? true,
+            on_ride_message: pushPrefs?.on_ride_message ?? true,
             on_new_badge: pushPrefs?.on_new_badge ?? false,
             on_training_plan: pushPrefs?.on_training_plan ?? true,
             on_training_chat: pushPrefs?.on_training_chat ?? true,
@@ -360,8 +368,11 @@ export default async function ProfielPage({
             on_strava_link_expiring: pushPrefs?.on_strava_link_expiring ?? true,
             on_intervals_visit_reminder: pushPrefs?.on_intervals_visit_reminder ?? true,
             on_member_pending: pushPrefs?.on_member_pending ?? true,
+            on_qa_question: pushPrefs?.on_qa_question ?? true,
+            on_qa_answer: pushPrefs?.on_qa_answer ?? true,
           }}
           canApproveMembers={access.has("members.approve")}
+          canAnswerQuestions={access.has("qa.answer")}
           hasSubscriptionInDb={(pushSubs?.length ?? 0) > 0}
         />
       </div>

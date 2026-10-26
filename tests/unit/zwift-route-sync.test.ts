@@ -76,18 +76,19 @@ describe("syncableRoutes", () => {
 });
 
 describe("eigen segment-id", () => {
+  // Was Urumaze, tot zwift-data 2.1 er zelf een segment bij gaf.
   it("neemt een route zonder segment in zwift-data mee", () => {
-    const urumaze = routes.find((route) => route.id === 4092230492)!;
-    expect(urumaze.stravaSegmentId).toBeUndefined();
-    expect(syncableRoutes()).not.toContain(urumaze);
+    const portal = routes.find((route) => route.id === 3030004732)!;
+    expect(portal.stravaSegmentId).toBeUndefined();
+    expect(syncableRoutes()).not.toContain(portal);
 
     const manual = manualSegments([
-      { route_id: "4092230492", strava_segment_id: "41887960" },
+      { route_id: "3030004732", strava_segment_id: "41887960" },
       { route_id: 1, strava_segment_id: null },
     ]);
     expect(manual.size).toBe(1);
-    expect(syncableRoutes(manual)).toContain(urumaze);
-    expect(routeSegmentId(urumaze, manual)).toBe(41887960);
+    expect(syncableRoutes(manual)).toContain(portal);
+    expect(routeSegmentId(portal, manual)).toBe(41887960);
   });
 
   it("laat het segment uit zwift-data voorgaan", () => {

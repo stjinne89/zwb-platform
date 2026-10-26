@@ -299,6 +299,31 @@ const DURABILITY_TASK = {
   once: true,
 };
 
+/**
+ * De durability-test voor ZWBriljant (eigenaar, 2026-10-23): de durability uit je
+ * ritten is een schatting met een plafond op Diamant, de test meet het. ZWBriljant
+ * herkent de rit aan de titel in het schema of aan de afgevinkte taak.
+ */
+export const DURABILITY_TEST_SLUG = "durability-test";
+export const DURABILITY_TEST_TITLE = "Durability-test";
+export const DURABILITY_TEST_TASK = "durability-test";
+
+const BARSUMYAN_AMATEUR_2025: KnowledgeSource = {
+  citation:
+    "Barsumyan A, Soost C, Burchard R. Enhanced durability predicts success in amateur road cycling: evidence of power output declines. Front Sports Act Living 7:1530162.",
+  year: 2025,
+  url: doi("10.3389/fspor.2025.1530162"),
+  kind: "studie",
+};
+
+const BARSUMYAN_INDEPENDENT_2025: KnowledgeSource = {
+  citation:
+    "Barsumyan A et al. Durability as an independent parameter of endurance performance in cycling. BMC Sports Sci Med Rehabil.",
+  year: 2025,
+  url: doi("10.1186/s13102-025-01238-8"),
+  kind: "studie",
+};
+
 export const TRAINING_PROTOCOLS: Protocol[] = [
   {
     slug: "hitte-kort",
@@ -325,6 +350,7 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
             detail:
               "Rij 60 minuten rustig zonder ventilator en met een extra laag. Of neem binnen tien minuten na je gewone rit een heet bad van ongeveer 40 °C, tot 40 minuten. Met een CORE-sensor: minstens 30 minuten boven 38,5 °C.",
             coreMinutes: 30,
+            rideMinutes: 60,
           },
         ],
       },
@@ -341,6 +367,7 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
               "30 minuten rustig warm rijden, of een kort heet bad. Niet zwaar: je moet fris aan de start staan. Met een CORE-sensor: 10 minuten boven 38,5 °C is genoeg.",
             perWeek: 2,
             coreMinutes: 10,
+            rideMinutes: 30,
           },
         ],
       },
@@ -399,6 +426,7 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
               "50 minuten rustige of intensieve duur zonder ventilator, met extra kleding of een regenpak. Je moet het echt warm hebben: met een CORE-sensor minstens 30 minuten boven 38,5 °C.",
             perWeek: 5,
             coreMinutes: 30,
+            rideMinutes: 50,
           },
         ],
       },
@@ -414,6 +442,7 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
             detail: "Zelfde sessie, drie keer per week. Zo houd je meer van de winst vast dan als je stopt.",
             perWeek: 3,
             coreMinutes: 30,
+            rideMinutes: 50,
           },
         ],
       },
@@ -458,7 +487,7 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
     summary:
       "Acht weken de VO2max-blokken en sprints uit je schema op 50 tot 70 toeren. De AI-coach zet de cadans in de blokken.",
     goal: "Een hogere VO2max en meer maximaal aeroob vermogen dan met dezelfde blokken op je eigen cadans.",
-    evidence: "matig",
+    evidence: "beperkt",
     anchor: "start",
     phases: [
       {
@@ -571,6 +600,50 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
       "Duurtest. Plan in elk venster van 28 dagen één training met de titel 'Duurtest': 10 minuten inrijden op 55%, één blok van 60 minuten op 75% FTP, 5 minuten uitrijden op 50%. Zet hem op een rustige dag, nooit de dag na een sleutelsessie of een race, en tel hem als duurrit van de week. Verander de opzet niet.",
   },
   {
+    slug: DURABILITY_TEST_SLUG,
+    pillar: "trainen",
+    group: "Testen",
+    title: DURABILITY_TEST_TITLE,
+    shortLabel: DURABILITY_TEST_TITLE,
+    summary:
+      "Eén lange rit: 1000 kJ op duurtempo en daarna 20 minuten voluit. Het verschil met je beste 20 minuten is je durability in ZWBriljant, 90 dagen lang.",
+    goal: "Meten hoeveel vermogen je na lang werk overhoudt.",
+    evidence: "matig",
+    anchor: "start",
+    phases: [
+      {
+        key: "test",
+        title: "Binnen vier weken",
+        fromDay: 0,
+        toDay: 27,
+        tasks: [
+          {
+            key: DURABILITY_TEST_TASK,
+            label: DURABILITY_TEST_TITLE,
+            detail:
+              "15 minuten inrijden. Rij dan op 80% FTP door tot je teller op 1000 kJ staat, bij 250 W FTP ongeveer 75 minuten. 5 minuten rustig, dan 20 minuten zo hard als je kunt, niet in ERG. Rustig uitrijden. Eet en drink zoals in een wedstrijd.",
+            once: true,
+          },
+        ],
+      },
+    ],
+    cautions: [
+      "Rij hem uitgerust, niet de dag na een zware training of een race.",
+      "Zet in intervals.icu je laagste kJ-stand op 1000 kJ; anders kan ZWB de 20 minuten niet aflezen.",
+    ],
+    notFor: ["Zonder vermogensmeter of intervals.icu."],
+    limits: [
+      "Twee kleine studies bij goed getrainde amateurs (14 en 20 renners), thuis gereden. Succesvolle renners verloren op 20 minuten 6,5%, minder succesvolle 12,5%.",
+      "In de studie volgde ook een test van 5 minuten; die onderscheidde de renners niet, dus ZWB laat hem weg.",
+      "Je beste 20 minuten van de 90 dagen tot en met de testdag is je verse waarde; in de studie was dat een aparte test.",
+      "Weeg je meer dan 100 kg, dan is 1000 kJ minder dan 10 kJ per kg en telt de test niet.",
+    ],
+    sources: [BARSUMYAN_AMATEUR_2025, BARSUMYAN_INDEPENDENT_2025],
+    article: { href: "/zwbeter-worden/kennis/lange-ritten", title: "Lange ritten en duurvermogen" },
+    aiHint:
+      "Durability-test. Plan in dit venster één training met de titel 'Durability-test': 15 minuten inrijden op 55-65%, één blok op 75-80% FTP van (20800 gedeeld door de FTP in watt, min 10) minuten afgerond op 5 minuten (bij 250 W FTP 75 minuten), 5 minuten op 50-60%, 20 minuten op 95-105% met de notitie 'Zo hard als je twintig minuten kunt volhouden', 10 minuten uitrijden op 45-55%. Zet hem op een uitgeruste dag, nooit de dag na een sleutelsessie of een race, en tel hem als sleutelsessie van de week. Verander de opzet niet.",
+  },
+  {
     slug: "kracht-op-de-fiets",
     pillar: "trainen",
     group: "Kracht",
@@ -579,7 +652,7 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
     summary:
       "Tien weken twee keer per week korte, maximale trappen bergop in een groot verzet: krachttraining zonder sportschool.",
     goal: "Meer kracht en sprintvermogen in je benen, op je eigen fiets.",
-    evidence: "beperkt",
+    evidence: "matig",
     anchor: "start",
     phases: [
       {

@@ -2,10 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { followSrcProfileSex } from "@/lib/src/availability";
 import { amsterdamDateKey, parseDateKey } from "@/lib/birthdays";
 import { intervalsId, stravaHandle, zwiftId } from "@/lib/profile/ids";
 import { WELLNESS_DEVICES } from "@/lib/training/wellness";
 import { EVENT_INTEREST_OPTIONS } from "@/lib/event-types";
+import { HOUSEHOLD_MAX, HOUSEHOLD_MOMENTS } from "@/lib/nutrition/shopping";
 
 const ZRL_CATS = ["A", "B", "C", "D", "E"] as const;
 const ZRL_DIVISIONS = ["open", "women"] as const;
@@ -151,6 +154,12 @@ export async function updateProfile(formData: FormData) {
     ]),
   );
 
+  const { data: before } = await supabase
+    .from("profiles")
+    .select("sex")
+    .eq("id", user.id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -197,7 +206,44 @@ export async function updateProfile(formData: FormData) {
   // het opslaan van de rest van het profiel niet blokkeren.
   if (heightError && height !== null) return { ok: false as const, error: heightError.message };
 
+  // Het gezin voor het boodschappenlijstje (0259), in dezelfde tabel.
+  const household = householdFromForm(formData);
+  const { error: householdError } = await supabase
+    .from("nutrition_profiles")
+    .update(household)
+    .eq("profile_id", user.id);
+  // Zolang 0259 er niet is, blokkeert alleen een ingevuld gezin het opslaan.
+  const emptyHousehold =
+    household.household_adults + household.household_children_full + household.household_children_half === 0;
+  if (householdError && !emptyHousehold) return { ok: false as const, error: householdError.message };
+
+  // ZWBriljant: je steen delen met alle leden (standaard, 0267) of verbergen.
+  // Werkt meteen; je eigen historie blijft. Delen werkt alleen een bestaande rij
+  // bij: een nieuwe rij zou de wekelijkse job een steen laten maken voor wie
+  // ZWBriljant niet gebruikt.
+  const shareBriljant = formData.get("share_briljant") === "on";
+  const { error: briljantError } = shareBriljant
+    ? await supabase.from("zwbriljant_preferences").update({ visible: true }).eq("profile_id", user.id)
+    : await supabase
+        .from("zwbriljant_preferences")
+        .upsert({ profile_id: user.id, visible: false }, { onConflict: "profile_id" });
+  if (briljantError) return { ok: false as const, error: briljantError.message };
+
+  // Ander geslacht: de SRC-inschrijving van deze en komende maanden gaat mee
+  // naar de heren- of damesrace. Mislukt dat, dan blijft het profiel opgeslagen.
+  if ((before?.sex ?? null) !== sex) {
+    const moved = await followSrcProfileSex(createAdminClient(), user.id, sex, todayKey).catch(
+      () => 0,
+    );
+    if (moved > 0) {
+      revalidatePath("/src");
+      revalidatePath("/events/[id]", "page");
+      revalidatePath("/zwbeter-worden", "layout");
+    }
+  }
+
   revalidatePath("/profiel");
+  revalidatePath("/stats/zwbriljant");
   revalidatePath("/zwbeter-worden/voeding", "layout");
   revalidatePath("/leden");
   revalidatePath("/kalender");
@@ -205,4 +251,19 @@ export async function updateProfile(formData: FormData) {
   revalidatePath(`/leden/${user.id}`);
   revalidatePath(`/profielen/${user.id}`);
   return { ok: true as const };
+}
+
+function householdCount(value: FormDataEntryValue | null): number {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? Math.min(HOUSEHOLD_MAX, Math.max(0, Math.round(parsed))) : 0;
+}
+
+function householdFromForm(formData: FormData) {
+  const moments = HOUSEHOLD_MOMENTS.filter((moment) => formData.get(`household_${moment}`) === "on");
+  return {
+    household_adults: householdCount(formData.get("household_adults")),
+    household_children_full: householdCount(formData.get("household_children_full")),
+    household_children_half: householdCount(formData.get("household_children_half")),
+    household_moments: moments,
+  };
 }

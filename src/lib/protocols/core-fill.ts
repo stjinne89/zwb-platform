@@ -13,9 +13,9 @@ import { fetchIntervalsActivities, fetchIntervalsActivityStreams } from "@/lib/i
 import { PROTOCOL_CONSENT_VERSION } from "./consent";
 import {
   CORE_WINDOW_DAYS,
+  analyzeHeatSession,
   coreCandidates,
   coreTemperatureStream,
-  meetsCoreTarget,
   protocolUsesCore,
   summarizeCoreTemperature,
 } from "./core-temperature";
@@ -24,7 +24,10 @@ import type { ProtocolCheck, ProtocolRun } from "./types";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-/** Streams per keer; een rit van een uur met alle streams is een paar honderd kB. */
+/**
+ * Ritten per keer. Meestal zegt de lijst welke streams er zijn en vragen we
+ * alleen tijd en kerntemperatuur op; anders alles, een paar honderd kB per uur.
+ */
 const FETCH_LIMIT = 3;
 
 export async function fillCoreSessions(
@@ -82,7 +85,9 @@ export async function fillCoreSessions(
       if (streamsById.size >= FETCH_LIMIT) continue;
       streamsById.set(
         candidate.intervalsId,
-        await fetchIntervalsActivityStreams(conn.api_key, candidate.intervalsId, []).catch(() => null),
+        await fetchIntervalsActivityStreams(conn.api_key, candidate.intervalsId, candidate.streamTypes).catch(
+          () => null,
+        ),
       );
     }
     const streams = streamsById.get(candidate.intervalsId);
@@ -99,7 +104,10 @@ export async function fillCoreSessions(
       const task = tasksForDay(protocol, run, day, null, checks)?.tasks.find(
         (item) => item.coreMinutes && !item.done,
       );
-      if (task && meetsCoreTarget(task, summary)) {
+      // Alleen afvinken als de rit aan alle eisen van de sessie voldoet; anders
+      // legt de app bij het tonen uit waarom niet.
+      const verdict = task ? analyzeHeatSession(task, { ...summary, rideMinutes: candidate.rideMinutes }) : null;
+      if (task && verdict?.met) {
         const { error } = await admin
           .from("member_protocol_checks")
           .upsert(
@@ -121,6 +129,9 @@ export async function fillCoreSessions(
         day: candidate.day,
         max_core_c: summary?.maxC ?? null,
         minutes_above: summary?.minutesAbove ?? null,
+        ride_minutes: candidate.rideMinutes,
+        minutes_to_threshold: summary?.minutesToThreshold ?? null,
+        coverage_pct: summary?.coveragePct ?? null,
         auto_checked: autoChecked,
       },
       { onConflict: "protocol_id,intervals_id", ignoreDuplicates: true },

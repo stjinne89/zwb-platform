@@ -125,7 +125,7 @@ export default function VoorwaardenPage() {
       <Section title="5. Wat je zelf plaatst">
         <p>
           Je bent verantwoordelijk voor wat je plaatst: ritverslagen, foto&apos;s,
-          tips, berichten en reacties. Plaats geen materiaal waarvan je de rechten niet
+          tips, berichten, reacties en vragen in Q&amp;A. Plaats geen materiaal waarvan je de rechten niet
           hebt, en geen foto&apos;s van anderen die daar bezwaar tegen hebben. Het
           bestuur kan bijdragen verwijderen die kwetsend zijn, de club schaden of
           in strijd zijn met de wet.

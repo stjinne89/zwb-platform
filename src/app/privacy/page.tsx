@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BackLink } from "@/components/app-ui";
 import { formatPrivacyVersion } from "@/lib/privacy";
+import { aiProcessorName } from "@/lib/ai/settings";
 
 export const metadata = {
   title: "Privacyverklaring — ZWB Cycling",
@@ -31,6 +32,7 @@ function Section({
 }
 
 export default function PrivacyPage() {
+  const AI = aiProcessorName();
   return (
     <main className="mx-auto max-w-2xl space-y-8 px-6 py-12">
       <header className="space-y-2">
@@ -79,6 +81,18 @@ export default function PrivacyPage() {
             controleren we deelname en toestemming opnieuw. Alleen je eigen laatste
             twintig uitslagen blijven lokaal bewaard totdat je die wist. Browserdata
             op andere apparaten kunnen we niet op afstand wissen.
+          </li>
+          <li id="voorzpwelbokaal" className="scroll-mt-20">
+            <strong>voorZpWelBokaal:</strong> alleen als je zelf op Meedoen tikt.
+            Dan bewaren we per seizoen dat je meedoet, je inzetten (renner, soort
+            inzet, quotering en aantal ZWBallen) en je antwoorden op de
+            bonusvragen. Clubleden zien op de lei je naam met je saldo, hoeveel
+            ballen er nog openstaan en hoeveel inzetten raak waren. Je inzetten en
+            antwoorden zien andere leden pas vanaf de start van die wedstrijd. De
+            quoteringen komen uit de openbare veldritratings, startlijsten en
+            uitslagen van CyclingFlash; daar gaan geen gegevens van jou heen. Met
+            Stoppen op je briefjes wis je je deelname van dat seizoen, met al je
+            inzetten en antwoorden.
           </li>
           <li>
             <strong>Account- en profielgegevens:</strong> naam, e-mailadres,
@@ -131,6 +145,31 @@ export default function PrivacyPage() {
             halen we alleen op als je zelf in de uitslag staat. Andere ZWB&apos;ers
             in zo&apos;n race zien jouw plek en tijd, niet je vermogen.
           </li>
+          <li id="zwb-ds" className="scroll-mt-20">
+            <strong>ZWB DS (live raceoverzicht):</strong> tijdens een Zwift-race
+            uit de kalender vragen we bij Zwift van de renners in de startgroep de
+            actuele stand op: afstand in de race, snelheid, vermogen, cadans,
+            draft, rijtijd en verbruikte energie, met de naam en het gewicht uit
+            de startlijst; het gewicht alleen om W/kg te rekenen, het staat
+            nergens los. Dat geldt
+            ook voor renners zonder ZWB-account en van andere clubs, en het is wat
+            Zwift ook in de game laat zien. Alleen ingelogde leden zien het
+            overzicht, met W/kg per renner. Hartslag lezen en bewaren we niet. De
+            laatste stand per renner bewaren we hooguit zes uur; daarna wissen we
+            hem.
+          </li>
+          <li id="racebriefing" className="scroll-mt-20">
+            <strong>Racebriefing (ZRL):</strong> voor een ZRL-race van een
+            ZWB-team vragen we bij Zwift van iedereen in de startgroep de Zwift
+            Racing Score en categorie op, ook van renners zonder ZWB-account en
+            van andere clubs; dat is wat Zwift in de game toont. Zodra we
+            gekoppeld zijn met ZwiftRacing.app, halen we daar ook de vELO-rating
+            en het beste vermogen in W/kg over 15 seconden tot 20 minuten op,
+            zoals ZwiftRacing dat openbaar toont; daarvoor sturen we de
+            Zwift-ID&apos;s van de startgroep naar ZwiftRacing. Gewicht en FTP
+            nemen we niet over. We bewaren deze gegevens hooguit 90 dagen.
+            Ingelogde leden zien ze in de briefing.
+          </li>
           <li>
             <strong>Sunday Race Club (MyWhoosh):</strong> doe je mee aan de SRC,
             dan leggen we per maand vast onder welk ZWB-team je rijdt, in welke race
@@ -149,12 +188,32 @@ export default function PrivacyPage() {
             <strong>Lengte en eigen recepten:</strong> vul je je lengte in, dan
             gebruiken we die om de porties in het receptenboek op jou af te
             stemmen en om in je pacingplan voor een Zwift-event je luchtweerstand
-            te berekenen. Je lengte en de recepten die je zelf maakt, zijn alleen voor
-            jou zichtbaar. Markeer je een recept als favoriet of als &quot;niet
-            voor mij&quot;, dan bewaren we dat; alleen jij ziet het. Stel je een
+            te berekenen. Je lengte is alleen voor jou zichtbaar, en een recept
+            dat je zelf maakt ook, tenzij je het deelt met alle leden. Dan zien
+            leden het recept, en je naam en profielfoto als je die aanzet; staan
+            die uit, dan toont de app geen naam bij het recept. Haal je een
+            recept op van een link, dan haalt onze server die pagina op; de
+            receptsite ziet daarbij niet wie je bent. De foto bij zo&apos;n recept
+            laadt je browser rechtstreeks van die site. Scan je een barcode voor
+            een eigen recept, dan vragen we het product op bij Open Food Facts;
+            daarbij gaat alleen de barcode mee, niet wie het vraagt. Markeer je een recept
+            als favoriet of als &quot;niet voor mij&quot;, dan bewaren we dat;
+            alleen jij ziet het. Stel je een
             eigen recept voor aan de club, dan ziet een beoordelaar het. Na
             goedkeuring ziet elk lid het, met jouw naam erbij. Een dieetfilter
-            in het receptenboek wordt niet bewaard.
+            in het receptenboek wordt niet bewaard. Kies je zelf een recept voor
+            een dag in je menu, dan bewaren we welk recept, op welke dag en bij
+            welk moment; alleen jij ziet dat.
+          </li>
+          <li>
+            <strong>Gezin:</strong> vul je op je profiel in wie er mee-eet
+            (aantal volwassenen en kinderen, met een hele of halve portie) en
+            bij welke maaltijden, dan bewaren we die aantallen om je
+            boodschappenlijstje voor meerdere dagen uit te rekenen. Namen,
+            leeftijden of andere gegevens van gezinsleden vragen we niet. Alleen
+            jij ziet dit; het staat niet op je profiel voor andere leden en gaat
+            niet naar je trainer. Het lijstje zelf wordt niet bewaard: delen,
+            kopiëren en afdrukken gebeurt op je eigen apparaat.
           </li>
           <li>
             <strong>Eetdagboek (alleen met opt-in):</strong> wat je eet, leggen
@@ -170,7 +229,7 @@ export default function PrivacyPage() {
             verpakt product op met de barcode, dan vragen we het op bij Open Food
             Facts; daarbij gaat alleen de barcode mee, niet wie het vraagt. Zet
             je daarnaast &quot;Tekst herkennen&quot; aan (een aparte
-            toestemming), dan gaat je omschrijving van een maaltijd naar OpenAI,
+            toestemming), dan gaat je omschrijving van een maaltijd naar {AI},
             dat herkent wat erin zit en de hoeveelheden schat. We houden alleen
             bij wanneer je de herkenning gebruikte, voor
             de daglimiet. Je eetdagboek staat in je data-export.
@@ -185,17 +244,31 @@ export default function PrivacyPage() {
             trainer zien het; het bestuur en andere leden niet. Doses rekent de
             app bij het tonen uit het gewicht in je profiel; die worden niet
             apart opgeslagen. Loopt er een trainingsprotocol (hitte of lage
-            cadans), dan gaan de naam en de datums mee naar OpenAI bij elke
+            cadans), dan gaan de naam en de datums mee naar {AI} bij elke
             schemageneratie; voedingsprotocollen gaan niet mee.
             Volg je een hitteprotocol en heb je intervals.icu gekoppeld, dan
             kijken we bij je ritten op hittedagen of er een kerntemperatuur van
             een CORE-sensor in staat. Daarvan bewaren we per rit alleen de
-            hoogste waarde en hoeveel minuten je op of boven 38,5 °C was, niet
-            de meting zelf. Haal je de drempel, dan vinkt de app de hittesessie
-            voor je af. Jij en je eigen trainer zien die waarden; ze gaan niet
-            naar OpenAI.
+            hoogste waarde, hoeveel minuten je op of boven 38,5 °C was, na
+            hoeveel minuten je die drempel haalde, hoe lang je reed en hoeveel
+            van de rit de sensor mat; niet de meting zelf. Voldoet de rit aan de
+            hittesessie, dan vinkt de app hem voor je af; anders legt hij uit
+            waarom niet. Dat oordeel rekent de app zelf uit met vaste regels. Jij en je eigen trainer zien die waarden; ze gaan niet
+            naar {AI}.
             Je kunt een protocol altijd stoppen; de gegevens verdwijnen als je
             je account opheft.
+          </li>
+          <li id="zweettest" className="scroll-mt-20">
+            <strong>Zweettest (alleen met opt-in):</strong> vul je een
+            zweettest in, dan teken je daar bij de eerste test apart voor. Je
+            geeft je gewicht voor en na de rit, hoe lang je reed en hoeveel je
+            dronk; de app rekent daaruit je zweetverlies per uur. We bewaren per
+            test alleen de datum, de duur, binnen of buiten, of het warm was en
+            dat zweetverlies per uur. Je gewicht van voor en na bewaren we niet.
+            Het ritplan rekent met je laatste test hoeveel je per uur drinkt en
+            hoeveel bidons je meeneemt. Alleen jij ziet je tests; je trainer,
+            het bestuur en andere leden niet, en ze gaan niet naar {AI}. Je
+            kunt elke test wissen, en ze staan in je data-export.
           </li>
           <li id="zwbieb" className="scroll-mt-20">
             <strong>ZWBieb, eerst &ldquo;Wie weet wat&rdquo; (alleen met
@@ -217,9 +290,31 @@ export default function PrivacyPage() {
             als je die aan hebt staan; die zegt van wie het komt en over welk
             onderwerp, niet wat erin staat. Een tip op jouw naam kun je altijd
             zelf aanpassen of verwijderen. Er gaat
-            niets naar OpenAI. Stop je, dan verdwijnen je onderwerpen en spullen; tips en
+            niets naar {AI}. Stop je, dan verdwijnen je onderwerpen en spullen; tips en
             gesprekken kun je zelf verwijderen, en alles verdwijnt als je je
             account opheft. Het staat in je data-export.
+          </li>
+          <li id="qa" className="scroll-mt-20">
+            <strong>Q&amp;A, vragen over de app:</strong> stel je een vraag,
+            dan bewaren we de tekst, wanneer je hem stelde en voor wie hij is.
+            Een vraag voor de club zien goedgekeurde clubleden, met je naam
+            erbij, samen met het antwoord. Zet je &ldquo;Alleen voor het
+            bestuur&rdquo; aan, dan zien alleen jij en wie vragen mag
+            beantwoorden hem. Wie antwoordt, kan een clubvraag ook zo
+            afschermen. Bij een antwoord bewaren we wie het schreef en wanneer.
+            Wie antwoordt, krijgt een pushmelding dat jij een vraag stelde; jij
+            krijgt er een als hij beantwoord is, als je die aan hebt staan. Een
+            melding noemt nooit wat er in de vraag of het antwoord staat. Er
+            gaat niets naar {AI}. Tik je &ldquo;Ik ook&rdquo; bij een
+            clubvraag, dan bewaren we dat: anderen zien alleen hoe vaak een
+            vraag gesteld is, wie antwoordt ziet ook door wie. Stel je een
+            vraag die er al staat, dan kan wie antwoordt hem samenvoegen: jouw
+            vraag verdwijnt en telt als &ldquo;Ik ook&rdquo; bij de vraag die er
+            al stond. Vaak gestelde vragen kunnen met het antwoord in de FAQ
+            komen; daar staat geen naam bij. Je vraag en je &ldquo;Ik
+            ook&rdquo; kun je altijd zelf verwijderen;
+            alles verdwijnt als je je account opheft. Het staat in je
+            data-export.
           </li>
           <li>
             <strong>Gezondheids­gerelateerde data (alleen met opt-in):</strong>{" "}
@@ -227,7 +322,13 @@ export default function PrivacyPage() {
             slaap en readiness. Deze worden alléén gesynchroniseerd als je daar
             expliciet toestemming voor geeft, en zijn alleen voor jou (en een door
             jou aangewezen trainer) zichtbaar. Zet je de opt-in uit of ontkoppel
-            je intervals.icu, dan verwijderen we deze gegevens.
+            je intervals.icu, dan verwijderen we deze gegevens. Je rusthartslag
+            gebruiken we ook om de belasting (TSS) te berekenen van een rit zonder
+            vermogensmeter, samen met je drempel- en maximale hartslag uit je
+            intervals.icu-instellingen. Die TSS zien jij en je trainer, hij gaat
+            mee naar de AI-coach en staat in de samenvatting op Strava. Je
+            rusthartslag zelf blijft afgeschermd. Zonder opt-in rekenen we met een
+            vaste rusthartslag.
           </li>
           <li>
             <strong>Locatiegegevens tijdens live tracking:</strong> als je een
@@ -236,7 +337,8 @@ export default function PrivacyPage() {
             fietscomputer die meet. Je hartslag alleen als je zelf
             &ldquo;Hartslag delen met leden&rdquo; aanzet op Samen fietsen; zet
             je dat uit, dan wissen we de opgeslagen live-hartslag. De publieke
-            eventpagina toont alleen je positie. Dit is per rit opt-in en stopt
+            eventpagina toont alleen je positie en, bij een koers in rondjes, de
+            afstand van je fietscomputer. Dit is per rit opt-in en stopt
             automatisch. Koppel je je
             Garmin, dan ontvangen we bij elke rit de LiveTrack-mail die je zelf
             naar je persoonlijke clubadres laat sturen; uit die mail bewaren we
@@ -245,6 +347,17 @@ export default function PrivacyPage() {
             rijdt zodra iemand de live-kaart opent. Zolang de rit loopt halen we
             je posities op bij Garmin of Wahoo. Stoppen kan op Samen fietsen met
             &ldquo;Koppeling stoppen&rdquo; of &ldquo;Ontkoppelen&rdquo;.
+          </li>
+          <li>
+            <strong>Berichten op je fietscomputer:</strong> de maker van een
+            event of een clublid kan je tijdens een rit een kort bericht sturen.
+            Dat gaat als melding naar je telefoon en, als je Telegram koppelt,
+            via onze Telegram-bot. Bij een Telegram-koppeling bewaren we alleen
+            het nummer van je chat met de bot; de tekst van het bericht en de
+            naam van de afzender gaan via Telegram naar je toe. Een bericht van
+            de organisator staat ook in de livechat van het event; een bericht
+            vanaf Samen fietsen bewaren we niet. Uitzetten kan op je profiel,
+            ontkoppelen op Samen fietsen of met /stop in Telegram.
           </li>
           <li>
             <strong>Grofmazig bereden gebied (ZWBlokken):</strong> uit je
@@ -275,7 +388,9 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Activiteiten- en koppelingsgegevens:</strong> Strava-ritten en
-            intervals.icu-trainingsdata, gekoppeld via jouw toestemming. Geef je
+            intervals.icu-trainingsdata, gekoppeld via jouw toestemming. Uit je
+            intervals.icu-instellingen bewaren we je FTP, CP, W&apos;, zones en je
+            drempel- en maximale hartslag. Geef je
             een trainer toegang, dan ziet die je trainingsbelasting (CTL, form),
             je eFTP en je powercurve, ook in W/kg; daarvoor bewaren we bij een
             afgeronde training je gewicht van dat moment. Van een gereden training
@@ -309,11 +424,17 @@ export default function PrivacyPage() {
             ze bij de recente ritten en op je profiel.
           </li>
           <li>
+            <strong>Doeltijd bij een trainingsdoel:</strong> geef je bij een
+            trainingsdoel een doeltijd met een eigen GPX op, dan bewaren we alleen
+            het hoogteprofiel (afstand en helling), geen kaart of coördinaten,
+            plus de prognoses die we daaruit berekenen.
+          </li>
+          <li>
             <strong>Coachchat:</strong> in de trainingsruimte kun je vragen stellen
             over je schema en over je trainingsdata. Je vraag, het antwoord van de
             AI-coach en de reacties van je trainer worden bewaard als één doorlopend
             gesprek. Alleen jij en de trainers die jij hebt aangewezen kunnen het
-            lezen — het bestuur en communitybeheer niet. Je bericht gaat naar OpenAI
+            lezen — het bestuur en communitybeheer niet. Je bericht gaat naar {AI}{" "}
             om het antwoord te maken, samen met je schema, je doel, je belasting, je
             gereden ritten van de laatste drie maanden (met de titel die je er zelf
             aan gaf, duur, afstand, hoogtemeters, vermogen en hartslag), je FTP,
@@ -322,8 +443,51 @@ export default function PrivacyPage() {
             opt-in aan hebt staan. Vink je aan dat een bericht je schema raakt, dan
             gaat de tekst ook mee naar de eerstvolgende schemaherziening. Je eigen berichten kun je verwijderen; het gesprek
             staat verder in je data-export en verdwijnt als je je account opheft.
-            Zet er geen gegevens in die je niet met je trainer of met OpenAI wilt
+            Zet er geen gegevens in die je niet met je trainer of met {AI} wilt
             delen.
+          </li>
+          <li>
+            <strong>Weekoverzicht:</strong> op zondagavond zie je een terugblik
+            op je week. We bewaren per week een samenvatting van je ritten,
+            schema, belasting, vermogen, teamuitslagen, voedings- en
+            corelogboek en clubritten, je ZWBriljant-steen (klasse, punten en
+            het onderdeel waar je het meest wint, uit je bewaarde weeksteen), en of je het
+            overzicht hebt gezien. Alleen jij kunt het lezen, ook als je je
+            steen niet met leden deelt. Gebruik je ZWBeter voor je training, dan
+            gaat die samenvatting zonder je naam en zonder je steen naar {AI} om het oordeel van
+            de coach te schrijven, samen met je beschikbaarheid, trainingen en
+            events van de week erna. Het staat in je data-export en verdwijnt
+            als je je account opheft.
+          </li>
+          <li id="zwbriljant" className="scroll-mt-20">
+            <strong>ZWBriljant:</strong> bij Stats zie je je niveau als
+            edelsteen, met een score in punten. Daarvoor gebruiken we wat je al
+            met ons deelt: je vermogenscurve, vermoeide curve en CTL uit
+            intervals.icu, je Zwift Racing Score via je Zwift-ID, je ritten
+            en je schema voor de consistentie, en je opgegeven
+            geslacht (de normen voor vrouwen zijn anders). Reed je de
+            durability-test, dan zoeken we de dag daarvan op in je schema of in het
+            protocol en halen we de vermogenscurve van die dag op bij intervals.icu. Heb je intervals.icu
+            gekoppeld, dan maken we elke week je steen, ook als je ZWBriljant zelf
+            nooit opent: we bewaren per week je score, je punten per onderdeel, je
+            consistentie (een getal van 0 tot 1), per bron alleen óf die er
+            was, en of durability uit de test of uit je ritten kwam. Geen watts, W/kg, gewicht, CTL of ZRS. De eerste keer maken we
+            per maand een terugblik over je hele historie in intervals.icu, en
+            zoeken we via je Zwift-ID in je eerdere race-uitslagen bij Zwift je
+            Racing Score van toen op. Die bewaren we per race (de score vóór en na
+            de race), zodat we hem niet opnieuw hoeven op te zoeken;
+            daarna verversen we je vermogensprofiel na een nieuwe rit en
+            minstens één keer per week, en je Racing Score één keer per week. Alle goedgekeurde leden zien standaard je laatste score,
+            je punten per onderdeel en je consistentie (geen metingen) en kunnen
+            die naast hun eigen steen zetten. Wil je dat niet, zet dan
+            &ldquo;Mijn ZWBriljant-steen delen met leden&rdquo; in je profiel uit:
+            dan is je steen meteen voor niemand anders meer te zien, en zie je
+            zelf ook de stenen van andere leden niet. Voor het ZWB-gemiddelde tellen we de laatste score van
+            iedereen met ZWBriljant mee, ook als je niet deelt. Heb je in je profiel een
+            geslacht opgegeven, dan tel je ook mee in het gemiddelde voor mannen of voor
+            vrouwen. Elk gemiddelde is anoniem en verschijnt pas vanaf vijf leden. Er gaat niets naar{" "}
+            {AI} of een andere partij. Het staat in je data-export en
+            verdwijnt als je je account opheft.
           </li>
           <li>
             <strong>Persoonlijke voorkeuren:</strong> op het tabblad
@@ -332,21 +496,25 @@ export default function PrivacyPage() {
             trainers die jij hebt aangewezen kunnen dat ook voor jou doen. We
             bewaren de tekst, wie hem schreef en wanneer. Alleen jij en die
             trainers kunnen de voorkeuren lezen — het bestuur en communitybeheer
-            niet. Ze gaan mee naar OpenAI bij elke schemageneratie en bij
+            niet. Ze gaan mee naar {AI} bij elke schemageneratie en bij
             antwoorden in de coachchat. Je kunt elke voorkeur weghalen, ook
             een die je trainer schreef; ze staan in je data-export en verdwijnen
             als je je account opheft. Zet er geen gegevens in die je niet met je
-            trainer of met OpenAI wilt delen.
+            trainer of met {AI} wilt delen.
           </li>
           <li>
             <strong>Terugschrijven naar Strava:</strong> koppel je Strava met het
             recht om je activiteiten te wijzigen, dan zet ZWB na een rit een
             samenvatting onderaan de omschrijving van die rit. Daarin staan je
-            geplande en gedetecteerde trainingstype, de duur, het verschil tussen
-            geplande en werkelijke belasting (TSS), je CTL, je gereedscore en je
-            fitness-richting. Wie jouw Strava-activiteit kan zien, kan die
+            geplande en gedetecteerde trainingstype, de duur, de belasting (TSS)
+            en het verschil met het plan, je gereedscore, je fitness-richting en
+            een tip die uit die gegevens volgt. Deel je je ZWBriljant-steen met
+            leden, dan staan ook je klasse, je punten en de punten tot de
+            volgende klasse erin, en soms het onderdeel waar je het meest wint; deel je hem niet,
+            dan staat er je CTL. Wie jouw Strava-activiteit kan zien, kan die
             samenvatting dus ook zien. Je onderliggende hersteldata (slaap, HRV,
-            hartslag) komt er nooit in — alleen de daaruit berekende score. Je
+            hartslag) komt er nooit in, alleen wat we daaruit berekenen: je
+            gereedscore en, bij een rit zonder vermogensmeter, de belasting. Je
             eigen tekst in de omschrijving laten we staan, en verwijder je de
             samenvatting, dan zetten we hem niet terug. Wil je dit helemaal niet,
             koppel Strava dan opnieuw zonder het wijzigrecht, of verbreek de
@@ -479,16 +647,18 @@ export default function PrivacyPage() {
             je deze koppelt, voor je eigen activiteiten- en trainingsdata.
           </li>
           <li>
-            <strong>OpenAI</strong> — voor het genereren van concept-trainings­schema&apos;s
-            en voor de antwoorden in de coachchat, en als je dat aanzet voor het
-            herkennen van een maaltijd uit een omschrijving. Meegestuurd worden relevante
-            trainingscontext — waaronder je gereden ritten en je vermogensgegevens —
-            en, bij de chat, de tekst die je zelf typt; geen directe
+            <strong>{AI === "Anthropic" ? "Anthropic (Claude)" : "OpenAI"}</strong> — voor het genereren van
+            concept-trainings­schema&apos;s en pacingplannen, voor de antwoorden in de coachchat en het
+            oordeel in het weekoverzicht, en als je dat aanzet voor het herkennen van een maaltijd uit
+            een omschrijving. Meegestuurd worden relevante trainingscontext — waaronder je gereden
+            ritten en je vermogensgegevens — en, bij de chat, de tekst die je zelf typt; geen directe
             identificatiegegevens waar vermijdbaar.
+            {AI === "Anthropic" && " Anthropic gebruikt deze gegevens niet om zijn modellen te trainen."}
           </li>
           <li>
             <strong>Mapbox/OpenStreetMap</strong> (kaarten), <strong>Resend</strong>{" "}
-            (e-mail, ook het ontvangen van je LiveTrack-mail), <strong>Mollie</strong> (eventuele betalingen),
+            (e-mail, ook het ontvangen van je LiveTrack-mail), <strong>Telegram</strong>{" "}
+            (alleen als je die koppelt, voor berichten op je fietscomputer), <strong>Mollie</strong> (eventuele betalingen),
             web-push-diensten (notificaties), en embeds van YouTube/Spotify.
           </li>
         </ul>

@@ -109,9 +109,19 @@ Weeg mee:
 - **Omvang en opzet**: aantal deelnemers, controlegroep, duur.
 - **Herhaling**: bevestigt het wat er staat, of wijst het een andere kant op?
 
-Artikelen en protocollen met een label (in de inventaris: `Label:`) verdienen
-extra aandacht: daar kan één goede trainingsstudie bij fietsers het verschil
-maken. De betekenis van de labels staat in `src/lib/training/method-label.ts`.
+Artikelen en protocollen met het label Nieuwe methode (in de inventaris:
+`Label: veelbelovend` of `Label: experimenteel`; beide tonen in de app "Nieuwe
+methode") verdienen extra aandacht: daar kan één goede trainingsstudie bij
+fietsers het niveau verschuiven.
+
+Elk artikel en protocol heeft ook een bewijsniveau (in de inventaris:
+`Bewijs:`, met `geen-effect` of `nadelig` erachter als de conclusie is dat
+iets niet helpt). Het beleid, de criteria, de begrenzingen, de werkwijze en het
+goedgekeurde niveau per artikel staan in
+`docs/beoordelingsbeleid-bewijsniveau.md`. Volg die werkwijze, en vergelijk met
+de ijkpunten daar. Verandert het bewijs zo dat het niveau of de conclusie
+volgens dat beleid anders wordt, of krijgt een nieuw artikel een niveau, dan is
+dat een voorstel onder **Label**.
 
 Lees bij twijfel het abstract volledig (`get_article_metadata`) en bij open
 access de volle tekst (`get_full_text_article`).
@@ -124,7 +134,7 @@ Elke beoordeelde treffer krijgt één van:
 | **Toevoegen** | Een nieuwe bron bij een bestaand punt, een nieuw punt, of een nieuw artikel of protocol |
 | **Verwijderen** | Een bewering of bron is weerlegd, teruggetrokken of ingehaald door beter bewijs |
 | **Functionaliteit** | Een rekenregel of drempel in code (claimregister) moet anders |
-| **Label** | Een artikel of protocol met label veelbelovend of experimenteel (`method-label.ts`) krijgt een ander label, of het label kan eraf |
+| **Label** | Het bewijsniveau of de conclusie (geen effect, nadelig) van een artikel of protocol verandert, of een nieuw artikel krijgt een niveau (`docs/beoordelingsbeleid-bewijsniveau.md`); of het label Nieuwe methode kan eraf |
 | **Bevestigt** | Steunt wat er staat; hooguit als extra bron, geen wijziging nodig |
 | **Bewust laten** | Niet bruikbaar, met reden (te klein, verkeerde populatie, buiten scope) |
 

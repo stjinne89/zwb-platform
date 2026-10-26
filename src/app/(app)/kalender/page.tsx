@@ -29,7 +29,7 @@ import { programsByEvent, programsForGroup } from "@/lib/events/programs";
 import { EventBadge, ProgramBadges } from "./_components/event-badge";
 import { LabelFilter, type LabelGroup, type LabelOption } from "./_components/label-filter";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
-import { groupSubEvents, subEventLabel } from "@/lib/events/sub-events";
+import { groupRouteFigures, groupSubEvents, subEventLabel } from "@/lib/events/sub-events";
 import { groupByMonth } from "@/lib/events/month-groups";
 import {
   eventGroupFitsMember,
@@ -458,7 +458,7 @@ export default async function KalenderPage({
               programs: selectedPrograms,
             })}
             aria-current={onlyForMe ? undefined : "page"}
-            className={`rounded-full border px-3 py-1 text-xs ${
+            className={`tg-link tg-kalender tg-chip rounded-full border px-3 py-1 text-xs ${
               onlyForMe ? "hover:bg-secondary" : "bg-foreground text-background"
             }`}
           >
@@ -471,7 +471,7 @@ export default async function KalenderPage({
               programs: selectedPrograms,
             })}
             aria-current={onlyForMe ? "page" : undefined}
-            className={`rounded-full border px-3 py-1 text-xs ${
+            className={`tg-link tg-kalender tg-chip rounded-full border px-3 py-1 text-xs ${
               onlyForMe ? "bg-foreground text-background" : "hover:bg-secondary"
             }`}
           >
@@ -578,6 +578,7 @@ export default async function KalenderPage({
         const event = item.event;
         const riders = yesRidersByEvent.get(event.id) ?? [];
         const subEvents = childrenByParent.get(event.id) ?? [];
+        const figures = groupRouteFigures(event, subEvents);
         return {
           sortKey: item.sortKey,
           key: `event-${event.id}`,
@@ -596,7 +597,7 @@ export default async function KalenderPage({
                 }`
               : null,
             event.location,
-            event.distance_km ? `${event.distance_km} km` : null,
+            figures.distanceKm ? `${figures.distanceKm} km` : null,
           ]
             .filter(Boolean)
             .join(" · "),
@@ -757,6 +758,7 @@ export default async function KalenderPage({
               .trim();
             const yesRiders = yesRidersByEvent.get(event.id) ?? [];
             const subEvents = childrenByParent.get(event.id) ?? [];
+            const figures = groupRouteFigures(event, subEvents);
             const liveCount = liveCountsByEvent.get(event.id) ?? 0;
             const coverUrl = event.cover_image_path
               ? supabase.storage
@@ -810,8 +812,8 @@ export default async function KalenderPage({
                           timeZone: "Europe/Amsterdam",
                         })}
                     {event.location ? ` · ${event.location}` : ""}
-                    {event.distance_km ? ` · ${event.distance_km} km` : ""}
-                    {event.elevation_m ? ` · ${event.elevation_m} hm` : ""}
+                    {figures.distanceKm ? ` · ${figures.distanceKm} km` : ""}
+                    {figures.elevationM ? ` · ${figures.elevationM} hm` : ""}
                   </p>
                   {participantLine && (
                     <p className="mt-1 text-sm text-muted-foreground">

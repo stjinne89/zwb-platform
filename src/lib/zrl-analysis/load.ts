@@ -58,7 +58,7 @@ function isBoard(access: Access) {
 }
 
 /** Teams waar dit lid captain of co-captain is, met de subteams van een hoofdteam. */
-async function captainTeamIds(userId: string): Promise<Set<string>> {
+export async function captainTeamIds(userId: string): Promise<Set<string>> {
   const admin = createAdminClient();
   const [{ data: roles }, { data: led }] = await Promise.all([
     admin.from("team_members").select("team_id").eq("profile_id", userId).in("role", CAPTAIN_ROLES),

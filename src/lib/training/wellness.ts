@@ -152,7 +152,9 @@ export async function syncWellnessForUser(
   apiKey: string,
   athleteId: string,
   profileId: string,
-  days = 30,
+  // Even lang als de samenvatting terugkijkt. Tot 2026-10-22 was dit 30: na
+  // het uit- en aanzetten van de opt-in ontbrak dan een week baseline.
+  days = WELLNESS_SUMMARY_DAYS,
 ): Promise<{ upserted: number }> {
   const records = await fetchIntervalsWellness(apiKey, athleteId, days);
   return persistWellnessRecords(supabase, profileId, records);
@@ -218,7 +220,7 @@ export async function refreshWellnessIfStale(
     }
     const { upserted } = source.records
       ? await persistWellnessRecords(supabase, profileId, source.records)
-      : await syncWellnessForUser(supabase, source.apiKey, source.athleteId, profileId, 30);
+      : await syncWellnessForUser(supabase, source.apiKey, source.athleteId, profileId);
     return { refreshed: true, upserted };
   } catch (err) {
     console.error("[wellness] verversen mislukt", {
@@ -680,6 +682,15 @@ export function summarizeWellness(
       laatste
         ? `Geen hersteldata van de laatste ${span} dagen; laatste meting ${laatste}.`
         : `Geen hersteldata van de laatste ${span} dagen.`,
+    );
+  } else if (last7.length === 0) {
+    // Wel een baseline, geen week. Zonder deze tak viel dit in "binnen de
+    // normale range": een Garmin-lid van wie de koppeling met intervals.icu
+    // stillag, kreeg dat 18 dagen lang te lezen, en de AI ook (2026-10-22).
+    state = "unknown";
+    notes.length = 0;
+    notes.push(
+      `Geen hersteldata van de laatste ${RECENT_DAYS} dagen; laatste meting ${sorted[0].date}.`,
     );
   } else if (notes.length === 0) {
     notes.push(

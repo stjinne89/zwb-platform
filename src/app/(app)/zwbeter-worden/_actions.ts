@@ -37,6 +37,7 @@ import {
   blocksFromForm,
   normalizeWorkoutBlocks,
   resizeBlocks,
+  retitleForDuration,
   WORKOUT_INTENSITIES,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
@@ -55,6 +56,17 @@ import {
 } from "@/lib/training/ftp-test";
 import { insertFtpTestWorkout } from "@/lib/training/draft";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+import {
+  computeGoalForecast,
+  goalRouteFromGpx,
+  type GoalTargetRow,
+  type StoredGoalRoute,
+} from "@/lib/training/goal-forecast";
+import {
+  parseGoalTargetTime,
+  TARGET_TIME_GOAL_TYPES,
+  type GoalRiding,
+} from "@/lib/training/goal-target-time";
 import { TRAINING_FORM_SLUGS } from "@/lib/training/training-forms";
 import {
   isUpcomingRace,
@@ -66,6 +78,7 @@ import {
 import { encryptSecret } from "@/lib/crypto/secrets";
 import { canCoach } from "@/lib/training/coach-access";
 import { methodLabelOf } from "@/lib/training/method-label";
+import { ownWorkoutTemplates } from "@/lib/training/own-workouts";
 import { replanResultMessage } from "@/lib/training/coach-chat";
 import {
   addPreference,
@@ -123,6 +136,16 @@ function assertWorkoutIntensity(value: string): asserts value is WorkoutIntensit
   if (!(WORKOUT_INTENSITIES as readonly string[]).includes(value)) {
     throw new Error("Ongeldige intensiteit.");
   }
+}
+
+/** Loopt dit schema (goedgekeurd of gepubliceerd)? Dan gaan wijzigingen meteen naar intervals.icu. */
+async function planIsRunning(
+  admin: ReturnType<typeof createAdminClient>,
+  planId: string | null,
+): Promise<boolean> {
+  if (!planId) return false;
+  const { data } = await admin.from("training_plans").select("status").eq("id", planId).maybeSingle();
+  return data?.status === "approved" || data?.status === "published";
 }
 
 async function currentUser() {
@@ -239,7 +262,6 @@ export async function setWellnessOptIn(optIn: boolean) {
       conn.api_key as string,
       conn.athlete_id as string,
       user.id,
-      30,
     ).catch((err) => {
       console.error("[wellness] eerste sync na opt-in mislukt", {
         profileId: user.id,
@@ -280,7 +302,16 @@ export async function createTrainingGoal(formData: FormData) {
     }
 
     const title = mustString(formData.get("title"), "Titel");
-    const targetDate = optionalString(formData.get("target_date"));
+    let targetDate = optionalString(formData.get("target_date"));
+
+    // Een doeltijd hoort bij één rit op één dag en vraagt een parcours: een
+    // clubevent met GPX of een eigen GPX, waarvan alleen het hoogteprofiel
+    // bewaard blijft. Zonder doeltijd blijven de kolommen uit de insert, zodat
+    // een doel ook zonder migratie 0257 op te slaan is.
+    const target = TARGET_TIME_GOAL_TYPES.includes(goalType)
+      ? await targetTimeFromForm(admin, formData)
+      : null;
+    if (target?.eventDate && !targetDate) targetDate = target.eventDate;
 
     // Een tweede klik op "Doel opslaan" leverde tot 2026-08-20 een tweede doel op
     // — vijf van de twintig doelen waren zo'n herhaling, telkens twee seconden na
@@ -311,10 +342,39 @@ export async function createTrainingGoal(formData: FormData) {
       desired_intensity: desiredIntensity,
       risk_notes: optionalString(formData.get("risk_notes")),
       created_by: user.id,
+      ...(target
+        ? {
+            target_time_seconds: target.seconds,
+            target_riding: target.riding,
+            target_event_id: target.eventId,
+            target_route: target.route,
+          }
+        : {}),
     })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+
+    // Eerste prognose meteen, zodat het lid het oordeel ziet zodra het doel er
+    // staat. Mislukt die, dan blijft het doel staan; de pagina probeert het later.
+    if (target && created) {
+      const forForecast: GoalTargetRow = {
+        id: created.id as string,
+        profile_id: user.id,
+        status: "active",
+        target_date: targetDate,
+        target_event_id: target.eventId,
+        target_time_seconds: target.seconds,
+        target_riding: target.riding,
+        target_route: target.route,
+      };
+      await computeGoalForecast(admin, forForecast).catch((err) => {
+        console.error("[doeltijd] eerste prognose mislukt", {
+          goalId: created.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+    }
 
     // Komt dit doel uit een mikpunt op de jaarplanning, leg de koppeling dan
     // vast. Zonder die verwijzing blijft de tijdlijn zeggen dat het A-doel nog
@@ -374,6 +434,217 @@ export async function createTrainingGoal(formData: FormData) {
     return { ok: true as const };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : "Doel opslaan faalde." };
+  }
+}
+
+/**
+ * Een opgeslagen doel bijwerken. De beschikbaarheid hoort hier niet bij: die
+ * staat sinds 0115 in training_availability en is op de schemapagina te
+ * wijzigen. De doeltijd heeft een eigen formulier (updateGoalTargetTime); wordt
+ * het doeltype er een zonder eindtijd, dan gaan doeltijd, parcours en prognoses
+ * eraf, want die horen bij één rit op één dag.
+ */
+export async function updateTrainingGoal(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const goalId = mustString(formData.get("goal_id"), "Doel");
+    const { data: goal } = await admin
+      .from("training_goals")
+      .select("id, target_time_seconds")
+      .eq("id", goalId)
+      .eq("profile_id", user.id)
+      .maybeSingle();
+    if (!goal) throw new Error("Doel niet gevonden.");
+
+    const goalType = mustString(formData.get("goal_type"), "Doeltype");
+    const preferredMode = optionalString(formData.get("preferred_mode")) ?? "mixed";
+    const experienceLevel = optionalString(formData.get("experience_level")) ?? "intermediate";
+    const desiredIntensity = optionalString(formData.get("desired_intensity")) ?? "balanced";
+    if (!GOAL_TYPES.includes(goalType)) throw new Error("Ongeldig doeltype.");
+    if (!MODES.includes(preferredMode)) throw new Error("Ongeldige trainingsvoorkeur.");
+    if (!LEVELS.includes(experienceLevel)) throw new Error("Ongeldig ervaringsniveau.");
+    if (!INTENSITIES.includes(desiredIntensity)) throw new Error("Ongeldige intensiteit.");
+
+    const dropTarget = Boolean(goal.target_time_seconds) && !TARGET_TIME_GOAL_TYPES.includes(goalType);
+    const { error } = await admin
+      .from("training_goals")
+      .update({
+        title: mustString(formData.get("title"), "Titel"),
+        goal_type: goalType,
+        target_date: optionalString(formData.get("target_date")),
+        max_hours_per_week: optionalNumber(formData.get("max_hours_per_week")),
+        preferred_mode: preferredMode,
+        experience_level: experienceLevel,
+        desired_intensity: desiredIntensity,
+        risk_notes: optionalString(formData.get("risk_notes")),
+        updated_at: new Date().toISOString(),
+        ...(dropTarget
+          ? {
+              target_time_seconds: null,
+              target_riding: null,
+              target_event_id: null,
+              target_route: null,
+            }
+          : {}),
+      })
+      .eq("id", goalId);
+    if (error) throw new Error(error.message);
+    if (dropTarget) {
+      await admin.from("training_goal_forecasts").delete().eq("goal_id", goalId);
+    }
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : "Doel opslaan faalde." };
+  }
+}
+
+/**
+ * Een eigen doel verwijderen. Prognoses gaan mee (cascade); een AI-generatie of
+ * een mikpunt op de jaarplanning dat ernaar verwees blijft staan, zonder doel
+ * (on delete set null).
+ *
+ * Niet zolang er een schema aan hangt dat niet is gearchiveerd: zonder doel kan
+ * dat schema niet meer worden bijgewerkt en komt er geen volgend blok
+ * (preparePlanUpdate weigert dan). Een schema verwijderen blijft aan de trainer
+ * (deleteTrainingPlan).
+ */
+export async function deleteTrainingGoal(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const goalId = mustString(formData.get("goal_id"), "Doel");
+    const { data: plans, error: planError } = await admin
+      .from("training_plans")
+      .select("id")
+      .eq("goal_id", goalId)
+      .eq("profile_id", user.id)
+      .neq("status", "archived")
+      .limit(1);
+    if (planError) throw new Error(planError.message);
+    if ((plans ?? []).length > 0) {
+      throw new Error("Aan dit doel hangt een schema. Vraag je trainer dat eerst te verwijderen.");
+    }
+
+    const { data: deleted, error } = await admin
+      .from("training_goals")
+      .delete()
+      .eq("id", goalId)
+      .eq("profile_id", user.id)
+      .select("id");
+    if (error) throw new Error(error.message);
+    if ((deleted ?? []).length === 0) throw new Error("Doel niet gevonden.");
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Doel verwijderen faalde.",
+    };
+  }
+}
+
+/** Een GPX van een gran fondo van 200 km is een paar megabyte. */
+const MAX_GOAL_GPX_BYTES = 8 * 1024 * 1024;
+
+const GOAL_TARGET_COLUMNS =
+  "id, profile_id, status, target_date, target_event_id, target_time_seconds, target_riding, target_route";
+
+function ridingFromForm(formData: FormData): GoalRiding {
+  return formData.get("target_riding") === "group" ? "group" : "alone";
+}
+
+/**
+ * De doeltijd uit het doelformulier, met het parcours erbij. Null als er geen
+ * doeltijd is ingevuld; een fout als die er wel is maar niet klopt.
+ */
+async function targetTimeFromForm(
+  admin: ReturnType<typeof createAdminClient>,
+  formData: FormData,
+): Promise<{
+  seconds: number;
+  riding: GoalRiding;
+  eventId: string | null;
+  route: StoredGoalRoute | null;
+  eventDate: string | null;
+} | null> {
+  const raw = optionalString(formData.get("target_time"));
+  if (!raw) return null;
+  const seconds = parseGoalTargetTime(raw);
+  if (!seconds) throw new Error("Vul de doeltijd in als u:mm, tussen 0:10 en 24:00.");
+  const riding = ridingFromForm(formData);
+
+  const eventId = optionalString(formData.get("target_event_id"));
+  if (eventId) {
+    const { data: event } = await admin
+      .from("events")
+      .select("id, start_at, gpx_path, zwift_route_id")
+      .eq("id", eventId)
+      .maybeSingle();
+    if (!event?.gpx_path || event.zwift_route_id) throw new Error("Dit event heeft geen GPX.");
+    return {
+      seconds,
+      riding,
+      eventId,
+      route: null,
+      eventDate: amsterdamDayKey(new Date(event.start_at as string)),
+    };
+  }
+
+  const file = formData.get("target_gpx");
+  if (!(file instanceof File) || file.size === 0) {
+    throw new Error("Kies een event of een GPX voor de doeltijd.");
+  }
+  if (file.size > MAX_GOAL_GPX_BYTES) throw new Error("De GPX is groter dan 8 MB.");
+  const name = file.name.replace(/\.gpx$/i, "").trim().slice(0, 120) || null;
+  const parsed = await goalRouteFromGpx(admin, await file.text(), name);
+  if (!parsed.ok) throw new Error(parsed.error);
+  return { seconds, riding, eventId: null, route: parsed.stored, eventDate: null };
+}
+
+/** Doeltijd of groep aanpassen; het parcours blijft. Leeg = doeltijd eraf. */
+export async function updateGoalTargetTime(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const admin = createAdminClient();
+    const goalId = mustString(formData.get("goal_id"), "Doel");
+    const { data: goal } = await admin
+      .from("training_goals")
+      .select("id")
+      .eq("id", goalId)
+      .eq("profile_id", user.id)
+      .maybeSingle();
+    if (!goal) throw new Error("Doel niet gevonden.");
+
+    const raw = optionalString(formData.get("target_time"));
+    const seconds = raw ? parseGoalTargetTime(raw) : null;
+    if (raw && !seconds) throw new Error("Vul de doeltijd in als u:mm, tussen 0:10 en 24:00.");
+
+    const { data: updated, error } = await admin
+      .from("training_goals")
+      .update({
+        target_time_seconds: seconds,
+        target_riding: ridingFromForm(formData),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", goalId)
+      .select(GOAL_TARGET_COLUMNS)
+      .single();
+    if (error) throw new Error(error.message);
+    if (seconds && updated) {
+      await computeGoalForecast(admin, updated as GoalTargetRow);
+    }
+
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Doeltijd opslaan faalde.",
+    };
   }
 }
 
@@ -511,6 +782,9 @@ export async function updateTrainingPlan(formData: FormData) {
       throw new Error("Geen trainer-toegang voor dit lid.");
     }
 
+    // De status blijft staan: titel, data of samenvatting wijzigen veranderen
+    // niets aan wat er in intervals.icu staat. Tot 2026-10-26 ging een lopend
+    // schema hier terug naar Concept en moest het opnieuw door goedkeuren.
     const { error } = await admin
       .from("training_plans")
       .update({
@@ -518,7 +792,6 @@ export async function updateTrainingPlan(formData: FormData) {
         summary: optionalString(formData.get("summary")),
         start_date: mustString(formData.get("start_date"), "Startdatum"),
         end_date: mustString(formData.get("end_date"), "Einddatum"),
-        status: "draft",
       })
       .eq("id", planId);
     if (error) throw new Error(error.message);
@@ -568,7 +841,7 @@ export async function updateWorkout(formData: FormData) {
     const admin = createAdminClient();
     const { data: workout } = await admin
       .from("training_workouts")
-      .select("profile_id, intervals_event_id")
+      .select("profile_id, plan_id, intervals_event_id")
       .eq("id", workoutId)
       .single();
     if (!workout) throw new Error("Workout niet gevonden.");
@@ -601,8 +874,9 @@ export async function updateWorkout(formData: FormData) {
     if (error) throw new Error(error.message);
 
     // Staat de workout al in intervals.icu, dan moet de wijziging daar meteen
-    // heen: het lid rijdt hem morgen van zijn fietscomputer.
-    if (workout.intervals_event_id) {
+    // heen: het lid rijdt hem morgen van zijn fietscomputer. Loopt het schema,
+    // dan ook als hij er nog niet stond (eerder mislukt of net toegevoegd).
+    if (workout.intervals_event_id || (await planIsRunning(admin, workout.plan_id))) {
       await pushWorkoutToIntervals(admin, workoutId).catch(() => null);
     }
 
@@ -779,7 +1053,8 @@ export async function setPlanStatus(formData: FormData) {
   try {
     const { user, access } = await currentUser();
     const status = mustString(formData.get("status"), "Status");
-    if (!["review", "approved", "archived"].includes(status)) throw new Error("Ongeldige status.");
+    // Geen 'review' meer: die status werd nergens gelezen (analyse 2026-10-26).
+    if (!["approved", "archived"].includes(status)) throw new Error("Ongeldige status.");
     const planId = mustString(formData.get("plan_id"), "Schema");
     const admin = createAdminClient();
     const { data: plan } = await admin
@@ -827,7 +1102,7 @@ export async function publishTrainingPlan(formData: FormData) {
     const admin = createAdminClient();
     const { data: plan } = await admin
       .from("training_plans")
-      .select("profile_id, status, parent_plan_id")
+      .select("profile_id, status, parent_plan_id, approved_at")
       .eq("id", planId)
       .single();
     if (!plan) throw new Error("Schema niet gevonden.");
@@ -836,9 +1111,10 @@ export async function publishTrainingPlan(formData: FormData) {
     if (!access.has("training.publish_plans") && !ownAdaptation) {
       throw new Error("Geen rechten om schema's te publiceren.");
     }
-    if (!["approved", "published"].includes(plan.status)) {
-      throw new Error("Keur het schema eerst goed voordat je publiceert.");
-    }
+    // Publiceren is ook goedkeuren: een concept hoeft niet eerst apart te worden
+    // goedgekeurd. Twee knoppen voor één besluit leverden vragen op, en
+    // goedkeuren alleen archiveerde het lopende schema terwijl de nieuwe
+    // trainingen nog niet in intervals.icu stonden (analyse 2026-10-26).
     if (
       !ownAdaptation &&
       !access.has("training.manage_assignments") &&
@@ -847,7 +1123,7 @@ export async function publishTrainingPlan(formData: FormData) {
       throw new Error("Geen trainer-toegang voor dit lid.");
     }
 
-    const { connected, failed } = await pushPlanWorkoutsToIntervals(
+    const { connected, failed, pushed } = await pushPlanWorkoutsToIntervals(
       admin,
       planId,
       plan.profile_id,
@@ -856,18 +1132,28 @@ export async function publishTrainingPlan(formData: FormData) {
       throw new Error("Dit lid heeft intervals.icu nog niet gekoppeld.");
     }
 
-    if (failed === 0) {
+    // Kwam een deel niet aan, dan staat de rest wel in intervals.icu: goedgekeurd,
+    // zodat het als lopend schema telt en "Opnieuw publiceren" de rest nastuurt.
+    // Kwam er niets aan bij een concept, dan blijft het een concept.
+    const wasRunning = ["approved", "published"].includes(plan.status);
+    if (failed === 0 || pushed > 0 || wasRunning) {
+      const now = new Date().toISOString();
+      const approval = plan.approved_at ? {} : { approved_by: user.id, approved_at: now };
       await admin
         .from("training_plans")
-        .update({
-          status: "published",
-          published_by: user.id,
-          published_at: new Date().toISOString(),
-        })
+        .update(
+          failed === 0
+            ? { ...approval, status: "published", published_by: user.id, published_at: now }
+            : { ...approval, status: plan.status === "published" ? "published" : "approved" },
+        )
         .eq("id", planId);
       if (!plan.parent_plan_id) {
         await archiveOtherBasePlans(admin, planId, plan.profile_id);
-      } else {
+      }
+    }
+
+    if (failed === 0) {
+      if (plan.parent_plan_id) {
         await extendRootPlanEnd(admin, planId);
       }
       await sendNotificationToMembers(
@@ -906,7 +1192,7 @@ export async function addWorkoutFromTemplate(formData: FormData) {
     const [{ data: plan }, { data: template }] = await Promise.all([
       admin
         .from("training_plans")
-        .select("id, profile_id, trainer_id")
+        .select("id, profile_id, trainer_id, status")
         .eq("id", planId)
         .maybeSingle(),
       admin
@@ -957,6 +1243,13 @@ export async function addWorkoutFromTemplate(formData: FormData) {
         dayKey: date,
         keepWorkoutId: created.id as string,
       }).catch(() => 0);
+    }
+
+    // Loopt het schema al, dan hoort de nieuwe training meteen in intervals.icu,
+    // net als een aangepaste. Tot 2026-10-26 bleef hij staan tot iemand
+    // "Opnieuw publiceren" klikte. Een concept gaat pas mee bij publiceren.
+    if (plan.status === "approved" || plan.status === "published") {
+      await pushWorkoutToIntervals(admin, created.id as string).catch(() => null);
     }
 
     revalidatePath("/zwbeter-worden", "layout");
@@ -1021,7 +1314,7 @@ export async function replaceWorkoutFromTemplate(formData: FormData) {
       .eq("id", workoutId);
     if (error) throw new Error(error.message);
 
-    if (workout.intervals_event_id) {
+    if (workout.intervals_event_id || (await planIsRunning(admin, workout.plan_id))) {
       await pushWorkoutToIntervals(admin, workoutId).catch(() => null);
     }
 
@@ -1255,7 +1548,7 @@ export async function setWorkoutDuration(formData: FormData) {
     const { data: workout } = await admin
       .from("training_workouts")
       .select(
-        "id, profile_id, origin, status, superseded_at, test_type, intensity, structure_json, intervals_event_id",
+        "id, profile_id, title, origin, status, superseded_at, test_type, intensity, structure_json, intervals_event_id",
       )
       .eq("id", workoutId)
       .maybeSingle();
@@ -1274,6 +1567,7 @@ export async function setWorkoutDuration(formData: FormData) {
     const { error } = await admin
       .from("training_workouts")
       .update({
+        title: retitleForDuration(String(workout.title ?? ""), minutes),
         duration_minutes: minutes,
         structure_json: blocks,
         origin: "member",
@@ -1296,11 +1590,12 @@ export async function setWorkoutDuration(formData: FormData) {
   }
 }
 
-/** Soorten rit die een lid zelf kan inplannen, met hun standaardintensiteit. */
+/**
+ * Soorten rit die een lid zelf kan inplannen, met hun standaardintensiteit.
+ * Clubritten en wedstrijden lopen via de kalender (EventChoice), niet hier.
+ */
 const RIDE_KINDS: Record<string, { title: string; intensity: WorkoutIntensity }> = {
-  buitenrit: { title: "Buitenrit", intensity: "endurance" },
-  clubrit: { title: "Clubrit", intensity: "endurance" },
-  wedstrijd: { title: "Wedstrijd", intensity: "race" },
+  rit: { title: "Eigen rit", intensity: "endurance" },
   eigen: { title: "Eigen training", intensity: "endurance" },
 };
 
@@ -1312,9 +1607,10 @@ const RIDE_EFFORTS: Record<string, WorkoutIntensity> = {
 };
 
 /**
- * Een vrije rit in het eigen schema zetten: een vast moment waar de planner
- * omheen werkt. Geen blokkenstructuur en dus geen FIT — het is een afspraak,
- * geen voorgeschreven training.
+ * Een eigen rit of eigen training in het eigen schema zetten: een vast moment
+ * waar de planner omheen werkt. Zonder bibliotheekworkout is het een vrij blok
+ * zonder structuur — een afspraak, geen voorgeschreven training. Met een
+ * template_id komt de workout uit de standaardbibliotheek, met zijn blokken.
  *
  * Gaat via de service-role omdat RLS leden geen writes op training_workouts
  * toestaat; de eigendomscheck staat daarom hier.
@@ -1327,40 +1623,75 @@ export async function planOwnRide(formData: FormData) {
     const date = mustString(formData.get("date"), "Datum");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Ongeldige datum.");
     const time = optionalString(formData.get("time")) ?? "09:00";
-    const durationMinutes = Math.round(optionalNumber(formData.get("duration_minutes")) ?? 0);
-    if (durationMinutes < 15 || durationMinutes > 480) {
-      throw new Error("Kies een duur tussen 15 en 480 minuten.");
-    }
 
-    const kind = RIDE_KINDS[optionalString(formData.get("kind")) ?? "buitenrit"];
+    const kind = RIDE_KINDS[optionalString(formData.get("kind")) ?? "rit"];
     if (!kind) throw new Error("Ongeldig soort rit.");
-    const effort = RIDE_EFFORTS[optionalString(formData.get("effort")) ?? ""] ?? kind.intensity;
     const note = optionalString(formData.get("note"));
-    const title = optionalString(formData.get("title")) ?? kind.title;
+    const templateId = optionalString(formData.get("template_id"));
 
     const plan = await activeBasePlan(admin, user.id);
     if (!plan) {
       throw new Error("Je hebt nog geen lopend schema om een rit in te plannen.");
     }
 
-    const blocks = normalizeWorkoutBlocks(
-      [{ label: title, durationMinutes, target: "", notes: note ?? "", intensity: effort }],
-      effort,
-    );
-    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48);
-    const { data: created, error } = await admin
-      .from("training_workouts")
-      .insert({
-        plan_id: plan.id,
-        profile_id: user.id,
-        trainer_id: plan.trainer_id,
-        scheduled_at: `${date}T${time}:00+01:00`,
+    let workout: {
+      title: string;
+      description: string | null;
+      duration_minutes: number;
+      intensity: string;
+      target_type: string;
+      structure_json: unknown;
+      method_label: string | null;
+    };
+    if (templateId && kind === RIDE_KINDS.eigen) {
+      const { data } = await ownWorkoutTemplates(
+        admin,
+        "title, description, duration_minutes, intensity, target_type, structure_json, method_label",
+      )
+        .eq("id", templateId)
+        .maybeSingle();
+      const template = data as unknown as Record<string, unknown> | null;
+      if (!template) throw new Error("Workout niet gevonden in de bibliotheek.");
+      workout = {
+        title: String(template.title),
+        description: note ?? (template.description as string | null),
+        duration_minutes: Number(template.duration_minutes),
+        intensity: String(template.intensity),
+        target_type: String(template.target_type),
+        structure_json: template.structure_json,
+        method_label: methodLabelOf(template.method_label as string | null),
+      };
+    } else {
+      const durationMinutes = Math.round(optionalNumber(formData.get("duration_minutes")) ?? 0);
+      if (durationMinutes < 15 || durationMinutes > 480) {
+        throw new Error("Kies een duur tussen 15 en 480 minuten.");
+      }
+      const effort = RIDE_EFFORTS[optionalString(formData.get("effort")) ?? ""] ?? kind.intensity;
+      const title = optionalString(formData.get("title")) ?? kind.title;
+      workout = {
         title,
         description: note,
         duration_minutes: durationMinutes,
         intensity: effort,
         target_type: "free",
-        structure_json: blocks,
+        structure_json: normalizeWorkoutBlocks(
+          [{ label: title, durationMinutes, target: "", notes: note ?? "", intensity: effort }],
+          effort,
+        ),
+        method_label: null,
+      };
+    }
+
+    const title = workout.title;
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48);
+    const { data: created, error } = await admin
+      .from("training_workouts")
+      .insert({
+        ...workout,
+        plan_id: plan.id,
+        profile_id: user.id,
+        trainer_id: plan.trainer_id,
+        scheduled_at: `${date}T${time}:00+01:00`,
         origin: "member",
         publish_status: "pending",
         intervals_external_id: `zwb-${plan.id}-${date}-${slug}`,

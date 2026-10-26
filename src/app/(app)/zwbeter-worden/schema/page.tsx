@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRequestUser } from "@/lib/auth/request";
 import Link from "next/link";
-import { Download, ExternalLink } from "lucide-react";
+import { CalendarDays, Download, ExternalLink } from "lucide-react";
 import { EmptyState } from "@/components/app-ui";
 import { StravaAttribution } from "@/components/strava-brand";
 import { intervalsWeekUrl } from "@/lib/intervals/links";
@@ -17,6 +17,7 @@ import {
 import { currentPlanOf, groupByRoot } from "@/lib/training/plan-tree";
 import { zrlUpcomingSpecificityWarning } from "@/lib/training/specificity";
 import { settleOwnReplans } from "@/lib/training/replan";
+import { hiddenFromMember } from "@/lib/training/member-hidden-plans";
 import { AdaptationProposal } from "../_components/adaptation-proposal";
 import { AvailabilityForm } from "../_components/availability-form";
 import { workoutOutcome } from "../_components/completed-workouts";
@@ -44,7 +45,14 @@ import {
   MemberWorkoutCalendar,
   type MemberCalendarItem,
 } from "../_components/member-calendar";
-import { byWorkout, formatDayMonth, paramString } from "../_components/format";
+import {
+  byWorkout,
+  formatDayMonth,
+  paramString,
+  planActionKind,
+  publishStatusLabel,
+  unsentByPlan,
+} from "../_components/format";
 import { PlanUpdateForm } from "../_components/plan-update-form";
 import { ZrlContextNotice } from "../_components/zrl-context-notice";
 import type { GoalRow, SearchParamsProp, WorkoutReportRow } from "../_components/types";
@@ -72,7 +80,11 @@ import {
 } from "../_data";
 import { calendarMarkers } from "@/lib/protocols";
 import { shiftDays } from "@/lib/training/season";
+import { loadOwnWorkoutOptions } from "@/lib/training/own-workouts";
 import { loadActiveRuns } from "../_protocol-data";
+import { loadRidePlans } from "../voeding/_data";
+import { RidePlanView } from "../_components/ride-plan-view";
+import type { RidePlan } from "@/lib/nutrition/ride-plan";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -139,6 +151,11 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   const eventChoicesPromise = plansPromise.then((loaded) =>
     loadScheduleEventChoices(viewer, activePlan(loaded)),
   );
+  // Wat je voor elke komende rit klaarzet (ritvoeding, stap 2a). Een fout in de
+  // voedingsdata mag het schema niet breken.
+  const ridePlansPromise = memberWorkoutsPromise
+    .then((workouts) => loadRidePlans(viewer, workouts, todayKeyAmsterdam()))
+    .catch(() => new Map<string, RidePlan>());
 
   const [
     snapshot,
@@ -150,11 +167,13 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     ignoredStreak,
     zrlTeamMember,
     warmupOptions,
+    ownWorkoutOptions,
     memberWorkouts,
     zwift,
     outdoor,
     { unplanned: extraRides, byId: ridesById, deleted: deletedRides },
     eventChoices,
+    ridePlans,
   ] = await Promise.all([
     snapshotPromise,
     plansPromise,
@@ -169,11 +188,13 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     loadIgnoredStreak(viewer),
     loadZrlTeamMembership(viewer),
     loadWarmupOptions(createAdminClient()).catch(() => []),
+    loadOwnWorkoutOptions(createAdminClient()).catch(() => []),
     memberWorkoutsPromise,
     zwiftPromise,
     outdoorPromise,
     scheduleRidesPromise,
     eventChoicesPromise,
+    ridePlansPromise,
   ]);
   const todayKey = todayKeyAmsterdam();
   const protocolMarkers = calendarMarkers(
@@ -196,6 +217,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     .filter((workout) => String(workout.scheduled_at).slice(0, 10) >= todayKey)
     .slice(0, 8);
 
+  const unsent = unsentByPlan(memberWorkouts, todayKey);
   const canSelfManagePlans = viewer.access.has("training.create_plans");
   const canSelfPublishPlans = viewer.access.has("training.publish_plans");
   const runningPlan = activePlan(plans);
@@ -274,6 +296,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
             ? intervalsWorkoutUrl(conn?.athlete_id, workout)
             : null,
           fitUrl: published ? `/api/training/workouts/${workout.id}/fit` : null,
+          eventUrl: workout.event_id ? `/events/${workout.event_id}` : null,
           rpe: report?.athlete_rpe ?? null,
           feel: report?.athlete_feel ?? null,
           report: report?.athlete_report ?? null,
@@ -296,6 +319,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
           warmup: isUpcomingRace(workout, todayKey)
             ? raceWarmupView(workout, memberWorkouts, warmupOptions)
             : null,
+          ridePlan: ridePlans.get(workout.id) ?? null,
         },
       };
     }),
@@ -404,7 +428,9 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                     </p>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {workout.status === "skipped" ? "Rustdag" : workout.publish_status}
+                    {workout.status === "skipped"
+                      ? "Rustdag"
+                      : publishStatusLabel(workout.publish_status)}
                   </span>
                 </div>
                 <WorkoutBlocks
@@ -416,6 +442,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                 />
                 {workout.publish_status === "published" && workout.intervals_event_id ? (
                   <div className="mt-3 flex flex-wrap gap-2">
+                    {workout.event_id ? <EventLink eventId={workout.event_id} /> : null}
                     <a
                       href={`/api/training/workouts/${workout.id}/fit`}
                       className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
@@ -425,7 +452,14 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                     </a>
                   </div>
                 ) : workout.origin === "member" ? null : (
-                  <p className="mt-2 text-xs text-muted-foreground">FIT nog niet beschikbaar.</p>
+                  <>
+                    {workout.event_id ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <EventLink eventId={workout.event_id} />
+                      </div>
+                    ) : null}
+                    <p className="mt-2 text-xs text-muted-foreground">FIT nog niet beschikbaar.</p>
+                  </>
                 )}
                 {workout.status === "planned" && workout.origin !== "event" ? (
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -444,6 +478,11 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                       raceWorkoutId={workout.id}
                       warmup={raceWarmupView(workout, memberWorkouts, warmupOptions)}
                     />
+                  </div>
+                ) : null}
+                {ridePlans.has(workout.id) ? (
+                  <div className="mt-3">
+                    <RidePlanView plan={ridePlans.get(workout.id)!} />
                   </div>
                 ) : null}
               </li>
@@ -474,7 +513,13 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
 
       <EventChoice events={eventChoices} />
 
-      {runningPlan ? <PlanRideForm todayKey={todayKey} /> : null}
+      {runningPlan ? (
+        <PlanRideForm
+          todayKey={todayKey}
+          workouts={ownWorkoutOptions}
+          ftpWatts={profile?.ftp_watts == null ? null : Number(profile.ftp_watts)}
+        />
+      ) : null}
 
       {/* Inplannen doet de trainer; hier vult het lid zijn uitslag in, ook van
           een test die buiten het schema om is gereden. */}
@@ -512,19 +557,30 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                         {formatDayMonth(root.start_date, false)} -{" "}
                         {formatDayMonth(root.end_date, false)}
                       </p>
+                      {/* De trainingen van dit concept staan nog niet in de
+                          kalender hierboven; zie member-hidden-plans.ts. */}
+                      {hiddenFromMember(root) ? (
+                        <p className="mt-1 text-sm">Je trainer maakt een nieuw schema.</p>
+                      ) : null}
                     </div>
                     <PlanBadge status={root.status} />
                   </div>
                   {proposals.map((proposal) => (
                     <AdaptationProposal key={proposal.id} proposal={proposal} />
                   ))}
-                  {canSelfManagePlans || canSelfPublishPlans ? (
+                  {planActionKind({
+                    status: root.status,
+                    mayApprove: canSelfManagePlans,
+                    mayPublish: canSelfPublishPlans,
+                    unsent: unsent.get(root.id) ?? 0,
+                  }) ? (
                     <div className="border-y p-3">
                       <PlanActions
                         planId={root.id}
                         status={root.status}
                         mayApprove={canSelfManagePlans}
                         mayPublish={canSelfPublishPlans}
+                        unsent={unsent.get(root.id) ?? 0}
                       />
                     </div>
                   ) : null}
@@ -544,5 +600,17 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
           merk op elk scherm waar die data staat. */}
       {extraRides.length > 0 ? <StravaAttribution /> : null}
     </div>
+  );
+}
+
+function EventLink({ eventId }: { eventId: string }) {
+  return (
+    <Link
+      href={`/events/${eventId}`}
+      className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+    >
+      <CalendarDays className="size-3" />
+      Naar het event
+    </Link>
   );
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { EmptyState } from "@/components/app-ui";
 
 // Het startscherm van het design "tegels": wat jij vandaag en deze week doet,
@@ -69,6 +70,12 @@ export type VandaagLive = {
   riders: string;
 };
 
+/** Een lopend event waarin nu ZWB'ers live rijden. Eén tegel per event. */
+export type VandaagLiveEvent = VandaagLive & {
+  id: string;
+  title: string;
+};
+
 export type VandaagStanding = {
   href: string;
   team: string;
@@ -77,6 +84,23 @@ export type VandaagStanding = {
   totalTeams: number | null;
 };
 
+/** De laatste score van ZWBriljant, als de steen er al is. */
+export type VandaagBriljant = {
+  points: number;
+  level: string;
+  color: string;
+  /** De volgende klasse en hoeveel punten nog; null in Diamant. */
+  next: { name: string; toGo: number } | null;
+};
+
+/** Donkere of lichte tekst op de kleur van de klasse, naar de helderheid ervan. */
+function inkOn(hex: string): string {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const channel = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const luminance = 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+  return luminance > 0.3 ? "var(--tg-ink)" : "var(--tg-paper)";
+}
+
 export function TegelsVandaag({
   weekday,
   date,
@@ -84,6 +108,8 @@ export function TegelsVandaag({
   events,
   standing,
   live,
+  liveEvents,
+  briljant = null,
 }: {
   weekday: string;
   date: string;
@@ -91,8 +117,11 @@ export function TegelsVandaag({
   events: VandaagEvent[];
   standing: VandaagStanding | null;
   live: VandaagLive | null;
+  liveEvents: VandaagLiveEvent[];
+  briljant?: VandaagBriljant | null;
 }) {
-  const empty = !workout && events.length === 0 && !standing && !live;
+  const empty =
+    !workout && events.length === 0 && !standing && !live && liveEvents.length === 0 && !briljant;
   return (
     <section className="space-y-4">
       <header className="tg-repeats-nav">
@@ -137,6 +166,19 @@ export function TegelsVandaag({
             </Link>
           )}
 
+          {liveEvents.map((event) => (
+            // Petrol, net als de andere events.
+            <Link key={event.id} href={`/events/${event.id}`} className="tg-tile tg-kalender">
+              <span className="tg-tile-small line-clamp-1">Event · nu</span>
+              <span className="tg-tile-title mt-0.5 line-clamp-2">{event.title}</span>
+              <span className="mt-1 line-clamp-1 text-[0.9375rem]">{event.riders}</span>
+              <span className="tg-tile-num">
+                {event.count}
+                <span className="ml-1.5 text-base font-normal tracking-normal opacity-85">live</span>
+              </span>
+            </Link>
+          ))}
+
           {events.map((event) => (
             <Link key={event.id} href={`/events/${event.id}`} className={`tg-tile tg-${event.place}`}>
               <span className="tg-tile-small">{event.when}</span>
@@ -144,6 +186,27 @@ export function TegelsVandaag({
               <span className="tg-tile-num">{event.time}</span>
             </Link>
           ))}
+
+          {briljant && (
+            // Helemaal in de kleur van je klasse (eigenaar, 2026-10-21), zodat hij opvalt.
+            <Link
+              href="/stats/zwbriljant"
+              className="tg-tile"
+              style={{ "--tg-bg": briljant.color, "--tg-fg": inkOn(briljant.color) } as CSSProperties}
+            >
+              <span className="tg-tile-small">ZWBriljant</span>
+              <span className="tg-tile-title mt-0.5">{briljant.level}</span>
+              {briljant.next && (
+                <span className="tg-tile-small mt-1">
+                  nog {briljant.next.toGo} tot {briljant.next.name}
+                </span>
+              )}
+              <span className="tg-tile-num">
+                {briljant.points.toLocaleString("nl-NL")}
+                <span className="ml-1.5 text-base font-normal tracking-normal opacity-85">punten</span>
+              </span>
+            </Link>
+          )}
 
           {standing && (
             <Link href={standing.href} className="tg-tile tg-kalender">

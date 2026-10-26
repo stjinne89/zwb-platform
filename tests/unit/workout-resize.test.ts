@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resizeBlocks, type WorkoutBlock } from "@/lib/training/workouts";
+import { resizeBlocks, retitleForDuration, type WorkoutBlock } from "@/lib/training/workouts";
 
 function block(label: string, durationMinutes: number, intensity: WorkoutBlock["intensity"]): WorkoutBlock {
   return { label, durationMinutes, target: "", notes: "", intensity };
@@ -42,5 +42,21 @@ describe("resizeBlocks", () => {
 
   it("laat een training op de juiste duur ongemoeid", () => {
     expect(resizeBlocks(vo2, 90)).toBe(vo2);
+  });
+});
+
+describe("retitleForDuration", () => {
+  it("zet de totaalduur in de titel op de nieuwe duur", () => {
+    expect(retitleForDuration("Rustige duur 120 min", 150)).toBe("Rustige duur 150 min");
+    expect(retitleForDuration("Rustige duur 90 minuten", 60)).toBe("Rustige duur 60 minuten");
+    expect(retitleForDuration("Rustige duur 2u30", 120)).toBe("Rustige duur 120 min");
+    expect(retitleForDuration("Lange duur 3 uur", 150)).toBe("Lange duur 150 min");
+  });
+
+  it("laat titels zonder totaalduur staan", () => {
+    expect(retitleForDuration("Sweet spot 3x12", 90)).toBe("Sweet spot 3x12");
+    expect(retitleForDuration("Lange duur met 2x20 min tempo", 150)).toBe("Lange duur met 2x20 min tempo");
+    expect(retitleForDuration("Klimduur – 3x10 min", 90)).toBe("Klimduur – 3x10 min");
+    expect(retitleForDuration("Marmotte Granfondo Alpes 2026", 300)).toBe("Marmotte Granfondo Alpes 2026");
   });
 });

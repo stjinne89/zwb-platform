@@ -1,6 +1,6 @@
 "use server";
 
-// De schakelaar voor het design "tegels"; zie lib/design.ts.
+// De schakelaar terug naar het oude design; zie lib/design.ts.
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -12,8 +12,8 @@ export async function setDesign(formData: FormData) {
   if (!access.has(DESIGN_PREVIEW_PERMISSION)) return;
 
   const store = await cookies();
-  if (formData.get("design") === "tegels") {
-    store.set(DESIGN_COOKIE, "tegels", {
+  if (formData.get("design") === "klassiek") {
+    store.set(DESIGN_COOKIE, "klassiek", {
       path: "/",
       maxAge: 60 * 60 * 24 * 180,
       sameSite: "lax",

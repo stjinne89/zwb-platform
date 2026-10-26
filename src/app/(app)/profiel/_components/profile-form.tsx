@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { updateProfile } from "../actions";
 import { Button } from "@/components/ui/button";
 import { EVENT_INTEREST_OPTIONS } from "@/lib/event-types";
+import { HOUSEHOLD_MAX, HOUSEHOLD_MOMENTS, type Household } from "@/lib/nutrition/shopping";
+import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 
 type Initial = {
   id: string;
@@ -20,6 +22,7 @@ type Initial = {
   ftp_watts: string;
   weight_kg: string;
   height_cm: string;
+  household: Household;
   auto_sync_physique: boolean;
   bio: string;
   event_type_interests: string[];
@@ -28,6 +31,7 @@ type Initial = {
   birth_date: string;
   share_birthday: boolean;
   public_profile_enabled: boolean;
+  share_briljant: boolean;
   profile_visibility: Record<string, boolean>;
 };
 
@@ -43,6 +47,12 @@ const WELLNESS_DEVICE_OPTIONS = [
   { value: "whoop", label: "Whoop" },
   { value: "coros", label: "Coros" },
   { value: "suunto", label: "Suunto" },
+] as const;
+
+const HOUSEHOLD_FIELDS = [
+  { name: "household_adults", key: "adults", label: "Volwassenen" },
+  { name: "household_children_full", key: "childrenFull", label: "Kinderen, hele portie" },
+  { name: "household_children_half", key: "childrenHalf", label: "Kinderen, halve portie" },
 ] as const;
 
 const VISIBILITY_FIELDS = [
@@ -351,6 +361,49 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
         </div>
       </section>
 
+      <section id="gezin" className="scroll-mt-20 space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Gezin
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {HOUSEHOLD_FIELDS.map((field) => (
+            <div key={field.name}>
+              <label htmlFor={field.name} className={LABEL}>
+                {field.label}
+              </label>
+              <input
+                id={field.name}
+                type="number"
+                name={field.name}
+                min={0}
+                max={HOUSEHOLD_MAX}
+                defaultValue={initial.household[field.key]}
+                className={FIELD}
+              />
+            </div>
+          ))}
+        </div>
+        <fieldset>
+          <legend className={LABEL}>Eet mee bij</legend>
+          <div className="flex flex-wrap gap-2">
+            {HOUSEHOLD_MOMENTS.map((moment) => (
+              <label
+                key={moment}
+                className="flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  name={`household_${moment}`}
+                  defaultChecked={initial.household.moments.includes(moment)}
+                  className="size-4 accent-primary"
+                />
+                <span>{MEAL_MOMENT_LABELS[moment]}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </section>
+
       <section id="zichtbaarheid" className="scroll-mt-20 space-y-4">
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -370,6 +423,16 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
               Publieke profielpagina inschakelen
             </span>
           </span>
+        </label>
+
+        <label className="flex items-start gap-3 rounded-lg border bg-background p-3">
+          <input
+            type="checkbox"
+            name="share_briljant"
+            defaultChecked={initial.share_briljant}
+            className="mt-1 size-4 accent-primary"
+          />
+          <span className="block text-sm font-medium">Mijn ZWBriljant-steen delen met leden</span>
         </label>
 
         <div className="grid gap-2 sm:grid-cols-2">

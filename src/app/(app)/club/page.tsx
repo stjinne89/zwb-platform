@@ -4,9 +4,9 @@ import { TegelsLinkGrid, type PlaceLink } from "@/components/tegels/link-grid";
 import { NAV_GROUPS, filterNavForPermissions, type NavLeaf } from "../_components/nav-config";
 
 // De plek "Club" van het design "tegels": alles van de club als tegels. In het
-// huidige design staat dit in het menu en linkt er niets naar deze pagina.
+// oude design staat dit in het menu en linkt er niets naar deze pagina.
 
-// In het huidige design is Samen fietsen een eigen menu-item; hier staat het
+// In het oude design is Samen fietsen een eigen menu-item; hier staat het
 // naast Leden, want het gaat om met clubgenoten rijden (besluit eigenaar,
 // 2026-10-16).
 const SAMEN_FIETSEN: NavLeaf = { type: "link", href: "/samen-fietsen", label: "Samen fietsen" };
@@ -29,6 +29,8 @@ const TILE_STYLE: Record<string, Pick<PlaceLink, "tone" | "size">> = {
   "/zwblokken": { tone: "meer" },
   "/profiel/segments/collecties": { tone: "meer" },
   "/zwbgame": { tone: "meer" },
+  // Breed: de naam past niet op een smalle tegel op de telefoon.
+  "/voorzpwelbokaal": { tone: "meer", size: "wide" },
 };
 
 export default async function ClubPage() {
@@ -55,9 +57,6 @@ export default async function ClubPage() {
         href: item.href,
         label: item.label,
         external: item.external,
-        // De link naar buiten (voorZpWelBokaal) is een competitie, dus petrol, en
-        // breed: de naam past niet op een smalle tegel op de telefoon.
-        ...(item.external ? { tone: "kalender", size: "wide" } : {}),
         ...TILE_STYLE[item.href],
       }),
     ),

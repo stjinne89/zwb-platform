@@ -7,8 +7,13 @@
 // op je profiel, LiveTrack, een dialoog) blijven: die wijzen naar uitleg over
 // precies dat onderdeel.
 //
+// Het anker zegt welk onderwerp; lib/help-categories.ts zegt op welke
+// hulppagina (/hulp/<categorie>) dat staat.
+//
 // Een patroon is een pad waarin "*" één segment vervangt. Het langste patroon
 // dat past wint, dus /zwbeter-worden/jaarplan gaat voor /zwbeter-worden.
+
+import { helpHrefForAnchor } from "@/lib/help-categories";
 
 export const HELP_ANCHORS: ReadonlyArray<readonly [pattern: string, anchor: string]> = [
   ["/kalender", "events"],
@@ -19,17 +24,20 @@ export const HELP_ANCHORS: ReadonlyArray<readonly [pattern: string, anchor: stri
   ["/samen-fietsen", "livetrack"],
   ["/live", "livetrack"],
   ["/zwbieb", "zwbieb"],
+  ["/qa", "qa"],
   ["/teams", "teams"],
   ["/teams/nieuw", "teambeheer"],
   ["/teams/*", "teambeheer"],
   ["/teams/ttt-planner", "ttt-beheer"],
   ["/stats", "mijn-statistieken"],
   ["/stats/achievements", "badges"],
+  ["/stats/zwbriljant", "zwbriljant"],
   ["/profiel", "profiel"],
   ["/profiel/cols", "cols"],
   ["/mijn-garage", "mijn-garage"],
   ["/zwblokken", "zwblokken"],
   ["/zwbgame", "zwbgame"],
+  ["/voorzpwelbokaal", "voorzpwelbokaal"],
   ["/verjaardagen", "verjaardagsrondje"],
   ["/community", "community"],
   ["/media/*/bewerk", "mediabeheer"],
@@ -41,10 +49,12 @@ export const HELP_ANCHORS: ReadonlyArray<readonly [pattern: string, anchor: stri
   ["/zwbeter-worden/vermogen", "vermogen"],
   ["/zwbeter-worden/logboek", "logboek"],
   ["/zwbeter-worden/racen", "racen"],
+  ["/zwbeter-worden/racen/kennis", "racen-kennis"],
   ["/zwbeter-worden/trainer/racen", "racen-trainer"],
   ["/zwbeter-worden/core", "core-mobiliteit"],
   ["/zwbeter-worden/protocollen", "protocollen"],
   ["/zwbeter-worden/voeding", "voeding"],
+  ["/zwbeter-worden/materiaal", "materiaal"],
   ["/beheer", "beheer"],
   ["/beheer/achievements", "badgebeheer"],
   ["/beheer/event-scan", "eventbeheer"],
@@ -64,7 +74,7 @@ function matches(pattern: string[], path: string[]) {
   return pattern.every((part, index) => part === "*" || part === path[index]);
 }
 
-/** "/hulp#<anker>" voor dit pad, of "/hulp" als er geen eigen uitleg is. */
+/** "/hulp/<categorie>#<anker>" voor dit pad, of "/hulp" als er geen eigen uitleg is. */
 export function helpHrefFor(pathname: string): string {
   const path = segments(pathname);
   let best: { anchor: string; length: number; exact: number } | null = null;
@@ -77,5 +87,5 @@ export function helpHrefFor(pathname: string): string {
       best = { anchor, length: parts.length, exact };
     }
   }
-  return best ? `/hulp#${best.anchor}` : "/hulp";
+  return (best && helpHrefForAnchor(best.anchor)) ?? "/hulp";
 }

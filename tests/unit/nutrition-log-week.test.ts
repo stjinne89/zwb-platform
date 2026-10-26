@@ -54,7 +54,7 @@ function slot(moment: MealMoment): MenuSlot {
     item.ingredients.map((row) => ({ food: row.food, grams: row.grams, role: row.role })),
     1,
   );
-  return { recipe: item, portion, traits: { kcal: 0, sodiumMg: 0, lightDigest: false, fiberRich: false, richIn: [] }, score: 1, moment, choices: 1, index: 0 };
+  return { recipe: item, portion, traits: { kcal: 0, sodiumMg: 0, lightDigest: false, fiberRich: false, richIn: [] }, score: 1, moment, choices: 1, chosen: false, nextRecipeId: null };
 }
 
 // Elke slot levert 60 g koolhydraten en 40 g eiwit.
@@ -111,6 +111,19 @@ describe("dagmenu dat meerekent", () => {
         energyFactor: 1,
       }),
     ).toBe(menu);
+  });
+
+  it("telt elk uur op de fiets mee, niet één portie", () => {
+    const withRide = [...menu, slot("tijdens_rit")];
+    const input = {
+      eaten: { carbsG: 0, proteinG: 0 },
+      eatenMoments: new Set<MealMoment>(),
+      // Menu: 3 × 60 + 60 per uur. Bij één uur 240, bij drie uur 360.
+      floor: { carbsG: 300, proteinG: 70 },
+      energyFactor: 1,
+    };
+    expect(topUpMenu(withRide, input)).not.toBe(withRide);
+    expect(topUpMenu(withRide, { ...input, rideHours: 3 })).toBe(withRide);
   });
 
   it("wordt niet groter dan twee keer de gewone portie", () => {

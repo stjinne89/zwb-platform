@@ -433,6 +433,10 @@ const MAX_CACHE_AGE_MS = 60 * 1000;
 export type ZrlLiveView = {
   event: { id: string; title: string; teamName: string | null; zwiftEventId: string };
   subgroupLabel: string;
+  /** Zwift-eventnaam met league en divisie; de racebriefing leest er de divisie uit. */
+  eventName: string;
+  routeId: string | null;
+  laps: number;
   startAt: number;
   fetchedAt: number;
   /** Onze team-sleutel in `score.teams`. */
@@ -497,7 +501,7 @@ async function ownZwiftIds(teamId: string | null, eventIds: string[]): Promise<S
 }
 
 /** "Linda Kuiper [ZWB]", "Femke Vaessen [ZWB-Synergy]". */
-function hasZwbTag(name: string): boolean {
+export function hasZwbTag(name: string): boolean {
   return teamKey(extractTeamTag(name) ?? "").split(" ").includes("zwb");
 }
 
@@ -627,6 +631,9 @@ export async function loadZrlLive(
   const view: ZrlLiveView = {
     event: { id: event.id as string, title: event.title as string, teamName, zwiftEventId: String(event.zwift_event_id) },
     subgroupLabel: subgroup.label,
+    eventName: data.eventName,
+    routeId: subgroup.routeId,
+    laps: subgroup.laps,
     startAt: subgroup.startAt,
     fetchedAt: data.fetchedAt,
     ownTeam,

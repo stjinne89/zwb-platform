@@ -15,6 +15,9 @@ import { BackButton } from "./_components/back-button";
 import { NavProgress } from "./_components/nav-progress";
 import { PrivacyConsentDialog } from "./_components/privacy-consent-dialog";
 import { ZwiftIdDialog, type RosterClaim } from "./_components/zwift-id-dialog";
+import { DurabilitySetupDialog } from "./_components/durability-setup-dialog";
+import { TrainingNoticeDialog } from "./_components/training-notice-dialog";
+import { loadFatigueSetupIssue } from "@/lib/briljant/fatigue-setup";
 import {
   ADMIN_NAV,
   NAV_GROUPS,
@@ -22,9 +25,12 @@ import {
   filterNavForPermissions,
 } from "./_components/nav-config";
 import { TegelsShell } from "./_components/tegels-shell";
+import { SponsorFooter } from "./_components/sponsor-footer";
 import { DesignSwitch } from "./_components/design-switch";
 import { DESIGN_PREVIEW_PERMISSION, getDesign } from "@/lib/design";
 import { countUnreadThreads } from "@/lib/zwbieb/queries";
+import { WeekReviewLauncher } from "@/components/weekoverzicht/launcher";
+import { reviewPeriod } from "@/lib/weekly-review/period";
 
 /**
  * Ongeclaimde ledenlijst-regels die op de naam van dit lid lijken en een
@@ -96,6 +102,25 @@ export default async function AppLayout({
   // komt de dialoog bij de volgende pagina gewoon terug. Alleen ophalen als de
   // vraag ook echt gesteld wordt — deze layout draait op elke pagina.
   const claims = needsZwiftId ? await claimableRosterEntries(supabase, displayName) : [];
+
+  // ZWBriljant: geen bruikbare kJ-standen in intervals.icu, dus geen durability.
+  // Ook nooit boven op de twee vragen hierboven; het weekoverzicht ontwijkt de
+  // dialoog zelf (hij opent niet als er al een openstaat).
+  const fatigueIssue =
+    profile && !needsPrivacyConsent && !needsZwiftId ? await loadFatigueSetupIssue(supabase, user.id) : null;
+  const durabilityDialog = fatigueIssue ? <DurabilitySetupDialog issue={fatigueIssue} /> : null;
+  // "Nieuw in ZWBeter trainen": zelf eenmalig per apparaat, nooit boven op de
+  // twee vragen hierboven. Of het lid ZWBeter gebruikt, vraagt hij zelf na.
+  const trainingNotice = profile && !needsPrivacyConsent && !needsZwiftId ? <TrainingNoticeDialog /> : null;
+
+  // Het weekoverzicht: zondagavond tot en met woensdag, en nooit boven op een
+  // van de twee vragen hierboven. Of er echt iets klaarstaat vraagt de launcher
+  // zelf na, zodat deze layout er geen query voor doet.
+  const period = reviewPeriod();
+  const weekReview =
+    period.inPopupWindow && !needsPrivacyConsent && !needsZwiftId ? (
+      <WeekReviewLauncher weekStart={period.weekStart} />
+    ) : null;
   const adminItems = ADMIN_NAV.filter((item) => access.has(item.permission));
   const navNodes = filterNavForPermissions(
     NAV_GROUPS,
@@ -110,7 +135,7 @@ export default async function AppLayout({
     return (
       <TegelsShell
         before={<NavProgress />}
-        back={<BackButton />}
+        back={<BackButton className="size-11 hover:bg-transparent" />}
         actions={
           <>
             <UnreadMessagesLink
@@ -129,18 +154,22 @@ export default async function AppLayout({
               avatarUrl={(profile?.avatar_url as string | null) ?? null}
               showOnMobile
             />
-            <ThemeToggle />
+            <ThemeToggle className="size-11 px-0 text-muted-foreground hover:bg-transparent hover:text-primary [&_svg]:size-5!" />
           </>
         }
         after={
           <>
             {needsPrivacyConsent && <PrivacyConsentDialog updated={signedBefore} />}
             {needsZwiftId && <ZwiftIdDialog claims={claims} />}
+            {weekReview}
+            {durabilityDialog}
+            {trainingNotice}
           </>
         }
       >
         {children}
-        <DesignSwitch design={design} />
+        <SponsorFooter />
+        {canPreviewDesign && <DesignSwitch design={design} />}
       </TegelsShell>
     );
   }
@@ -184,10 +213,14 @@ export default async function AppLayout({
       </header>
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
         {children}
+        <SponsorFooter />
         {canPreviewDesign && <DesignSwitch design={design} />}
       </main>
       {needsPrivacyConsent && <PrivacyConsentDialog updated={signedBefore} />}
       {needsZwiftId && <ZwiftIdDialog claims={claims} />}
+      {weekReview}
+      {durabilityDialog}
+      {trainingNotice}
     </div>
   );
 }

@@ -54,6 +54,8 @@ import {
   type WellnessDevice,
 } from "@/lib/training/wellness";
 import { loadFtpAt } from "@/lib/training/ftp-history";
+import { loadHrBasis } from "@/lib/training/hr-load";
+import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
 import { STRAVA_RIDE_COLUMNS, type StravaRideRow } from "@/lib/training/ride-metrics";
 import { unplannedRides, type UnplannedRide } from "@/lib/training/unplanned-rides";
 import type {
@@ -87,6 +89,7 @@ import type { RideLink } from "./_components/ride-link";
 import type { PlanUpdateDefaults } from "./_components/plan-update-form";
 import type { AvailabilityOptions } from "./_components/availability-form";
 import type { ScheduleEventItem } from "./_components/event-choice";
+import { memberHiddenPlanIds } from "@/lib/training/member-hidden-plans";
 
 export type IntervalsConnection = {
   athlete_id: string;
@@ -299,13 +302,14 @@ export function zwbStatusFor(
  * Ook eruit: de workouts van een nog niet toegepast voorstel uit de dagelijkse
  * bijstelling. Die staan al wel in de database, maar zouden anders naast de
  * bestaande training van diezelfde dag verschijnen — precies de dubbeling die we
- * met het voorstel-strookje wilden voorkomen.
+ * met het voorstel-strookje wilden voorkomen. En die van een concept van de
+ * trainer: dat staat nog niet in intervals.icu. Zie member-hidden-plans.ts.
  */
 export async function loadMemberWorkouts(
   viewer: Viewer,
   events: IntervalsEvent[],
 ): Promise<WorkoutRow[]> {
-  const [{ data }, { data: proposalPlans }] = await Promise.all([
+  const [{ data }, hiddenIds] = await Promise.all([
     viewer.supabase
       .from("training_workouts")
       .select("*")
@@ -313,16 +317,10 @@ export async function loadMemberWorkouts(
       .eq("profile_id", viewer.user.id)
       .order("scheduled_at", { ascending: true })
       .limit(200),
-    viewer.supabase
-      .from("training_plans")
-      .select("id")
-      .eq("profile_id", viewer.user.id)
-      .eq("status", "draft")
-      .eq("adaptation_kind", "daily"),
+    memberHiddenPlanIds(viewer.supabase, [viewer.user.id]),
   ]);
 
-  const proposalIds = new Set((proposalPlans ?? []).map((plan) => plan.id as string));
-  const rows = ((data ?? []) as WorkoutRow[]).filter((row) => !proposalIds.has(row.plan_id));
+  const rows = ((data ?? []) as WorkoutRow[]).filter((row) => !hiddenIds.has(row.plan_id));
   const movedDates = events.length
     ? await syncWorkoutDatesFromIntervals(viewer.admin, rows, events).catch(
         () => new Map<string, string>(),
@@ -414,7 +412,10 @@ export async function loadScheduleRides(
   const deleted = await deletedPairedRides(viewer, reports, byId);
   if (rides.length === 0) return { unplanned: [], byId, deleted };
 
-  const ftpAt = await loadFtpAt(viewer.supabase, viewer.user.id, ftpWatts);
+  const [ftpAt, hrBasis] = await Promise.all([
+    loadFtpAt(viewer.supabase, viewer.user.id, ftpWatts),
+    loadHrBasis(viewer.supabase, viewer.user.id),
+  ]);
   const unplanned = unplannedRides(
     rides,
     workouts.map((workout) => ({
@@ -431,6 +432,7 @@ export async function loadScheduleRides(
       workoutId: report.workout_id,
       activityId: report.paired_activity_id,
     })),
+    hrBasis,
   );
   return { unplanned, byId, deleted };
 }
@@ -515,13 +517,23 @@ export async function loadPendingReview(
 
   const { data: workoutRows } = await viewer.supabase
     .from("training_workouts")
-    .select("id, title, description, scheduled_at, status, superseded_at")
+    .select("id, title, description, scheduled_at, status, superseded_at, intensity, structure_json")
     .in(
       "id",
       reports.map((report) => report.workout_id),
     );
   const workouts = new Map(
-    ((workoutRows ?? []) as Array<PendingReviewWorkout & { id: string; title: string; description: string | null }>).map(
+    (
+      (workoutRows ?? []) as Array<
+        PendingReviewWorkout & {
+          id: string;
+          title: string;
+          description: string | null;
+          intensity: string;
+          structure_json: unknown;
+        }
+      >
+    ).map(
       (row) => [row.id, row],
     ),
   );
@@ -542,6 +554,18 @@ export async function loadPendingReview(
     .eq("profile_id", viewer.user.id)
     .eq("id", picked.paired_activity_id)
     .maybeSingle();
+
+  // De FTP op de trainingsdag, zoals de momentopname ook rekende.
+  const { data: profile } = await viewer.supabase
+    .from("profiles")
+    .select("ftp_watts")
+    .eq("id", viewer.user.id)
+    .maybeSingle();
+  const ftpAt = await loadFtpAt(
+    viewer.supabase,
+    viewer.user.id,
+    profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+  );
 
   let candidates: PendingReview["candidates"] = [];
   if (rideRow && !picked.athlete_confirmed_at) {
@@ -585,6 +609,8 @@ export async function loadPendingReview(
     dateLabel: dayLabel(workout.scheduled_at),
     description: workout.description,
     metrics: picked.metrics_json as WorkoutMetricsSnapshot,
+    blocks: normalizeWorkoutBlocks(workout.structure_json, workout.intensity as WorkoutIntensity),
+    ftpWatts: ftpAt(amsterdamDayKey(new Date(rideRow?.start_date ?? workout.scheduled_at))),
     athleteRpe: picked.athlete_rpe,
     athleteFeel: picked.athlete_feel,
     athleteReport: picked.athlete_report,

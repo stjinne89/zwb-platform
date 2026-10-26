@@ -80,6 +80,29 @@ describe("het Zwift-event van een teamrace", () => {
     expect(zrlEventLink(empty, "Open Aqua League Division B1", RACE_DAY, twice)).toBeNull();
   });
 
+  it("kiest bij een dubbel event dat met eigen renners in de eigen subgroep", () => {
+    // Zo zette WTRL op 2026-10-20 elke Mint-divisie twee keer klaar, één leeg.
+    const real = candidates.find((info) => info.eventId === 5737430)!;
+    const spare: ZwiftEventInfo = {
+      ...real,
+      eventId: 5737999,
+      subgroups: real.subgroups.map((group) => ({ ...group, id: `spare-${group.id}` })),
+    };
+    const division = "Womens Mint League Division B1";
+    const both = [...candidates, spare];
+    const signups = (counts: Record<string, number>) => new Map(Object.entries(counts));
+    expect(zrlEventLink(empty, division, RACE_DAY, both)).toBeNull();
+    expect(
+      zrlEventLink(empty, division, RACE_DAY, both, signups({ "7397329": 5, "spare-7397329": 0 }))?.zwift_event_id,
+    ).toBe(5737430);
+    expect(
+      zrlEventLink(empty, division, RACE_DAY, both, signups({ "7397329": 0, "spare-7397329": 3 }))?.zwift_event_id,
+    ).toBe(5737999);
+    // Eigen renners in een andere subgroep tellen niet; in allebei is geen keus.
+    expect(zrlEventLink(empty, division, RACE_DAY, both, signups({ "7397330": 5 }))).toBeNull();
+    expect(zrlEventLink(empty, division, RACE_DAY, both, signups({ "7397329": 2, "spare-7397329": 2 }))).toBeNull();
+  });
+
   it("laat een eigen link en de afstand van een GPX staan", () => {
     const link = zrlEventLink(
       { external_url: "https://www.wtrl.racing/zrl/", gpx_path: "x.gpx" },

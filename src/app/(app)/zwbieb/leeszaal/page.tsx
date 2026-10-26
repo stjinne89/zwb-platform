@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess } from "@/lib/auth/request";
 import { PageHeader } from "@/components/app-ui";
+import { EvidenceLegend } from "@/components/evidence-badge";
 import { countUnread } from "@/lib/zwbieb/data";
 import { loadMyThreads, loadTopicCatalog } from "@/lib/zwbieb/queries";
 import { COLLECTION_LABELS, shelves } from "@/lib/zwbieb/shelves";
@@ -9,8 +10,8 @@ import { ZwbiebActions, ZwbiebTabs } from "../_components/zwbieb-nav";
 import { ShelfBrowser } from "./shelf-browser";
 
 /**
- * ZWBieb, tab Leeszaal: de artikelen uit de kennisbanken trainen, voeding en
- * kracht, per onderwerp (src/lib/zwbieb/shelves.ts), met de kenners erbij.
+ * ZWBieb, tab Leeszaal: de artikelen uit de kennisbanken trainen, voeding,
+ * kracht en materiaal, per onderwerp (src/lib/zwbieb/shelves.ts), met de kenners erbij.
  */
 export default async function ZwbiebLeeszaalPage() {
   const supabase = await createClient();
@@ -46,6 +47,11 @@ export default async function ZwbiebLeeszaalPage() {
         }
       />
       <ZwbiebTabs current="leeszaal" />
+      <EvidenceLegend
+        levels={all.flatMap((shelf) => shelf.books.map((book) => book.evidence))}
+        conclusions={all.flatMap((shelf) => shelf.books.map((book) => book.conclusion))}
+        methodLabels
+      />
       <ShelfBrowser
         shelves={all.map((shelf) => ({
           slug: shelf.slug,
@@ -59,6 +65,8 @@ export default async function ZwbiebLeeszaalPage() {
             title: book.title,
             summary: book.summary,
             collection: COLLECTION_LABELS[book.collection],
+            evidence: book.evidence,
+            conclusion: book.conclusion,
             methodLabel: book.methodLabel,
           })),
         }))}

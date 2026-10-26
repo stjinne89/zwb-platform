@@ -1,0 +1,280 @@
+<title>Blind schemaoordeel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: één kolom met per geval de situatie bovenaan en twee schema's naast elkaar (op een telefoon onder elkaar). */
+:root {
+  --paper: #fbfbf7;
+  --card: #ffffff;
+  --ink: #0a2b34;
+  --muted: #4f605d;
+  --line: #dfe3dc;
+  --petrol: #004653;
+  --teal: #1f6068;
+  --gold: #b8873d;
+  --gold-soft: #f3e8d4;
+  --bad: #a3312a;
+  --font: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d1f24; --card: #132a30; --ink: #e9efeb; --muted: #9fb2ad; --line: #24413f;
+    --petrol: #7fc3cc; --teal: #7fb3b5; --gold: #d9ad66; --gold-soft: #3a3020; --bad: #f08a80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d1f24; --card: #132a30; --ink: #e9efeb; --muted: #9fb2ad; --line: #24413f;
+  --petrol: #7fc3cc; --teal: #7fb3b5; --gold: #d9ad66; --gold-soft: #3a3020; --bad: #f08a80;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.5 var(--font); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 0 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper); border-bottom: 1px solid var(--line); }
+header.bar .wrap { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding-block: 12px; }
+h1 { font-size: 19px; font-weight: 700; margin: 0 auto 0 0; letter-spacing: -0.01em; text-wrap: balance; }
+.progress { font: 500 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress b { color: var(--petrol); }
+.status { font-size: 13px; color: var(--muted); }
+.status.err { color: var(--bad); }
+button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 6px; padding: 7px 14px; }
+button:hover { border-color: var(--teal); }
+button:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.intro { max-width: 68ch; color: var(--muted); margin: 20px 0 8px; }
+.intro p { margin: 0 0 8px; }
+.kind-head { margin: 36px 0 4px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal); }
+.kind-note { margin: 0 0 12px; color: var(--muted); max-width: 68ch; }
+article.case { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 20px; display: grid; gap: 14px; }
+article.case.done { border-color: color-mix(in srgb, var(--teal) 45%, var(--line)); }
+.case-top { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+.case-num { font: 600 13px var(--mono); color: var(--petrol); }
+.case-date { font: 13px var(--mono); color: var(--muted); }
+.facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 18px; margin: 0; }
+.facts div { min-width: 0; }
+.facts dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+.facts dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+details > summary { cursor: pointer; color: var(--teal); font-size: 13px; }
+pre { font: 12px/1.45 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 420px; overflow: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 10px; margin: 8px 0 0; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+.side { min-width: 0; border-top: 3px solid var(--line); padding-top: 10px; }
+.side h3 { margin: 0 0 4px; font-size: 22px; font-weight: 700; color: var(--petrol); }
+.side .ptitle { font-weight: 600; margin: 0 0 4px; }
+.side .psum { margin: 0 0 6px; }
+.side .caut { margin: 0 0 6px; font-size: 13px; color: var(--muted); }
+.empty { padding: 10px 12px; background: var(--paper); border: 1px dashed var(--line); border-radius: 6px; color: var(--muted); }
+.tbl { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+td { border-top: 1px solid var(--line); padding: 6px 4px; vertical-align: top; }
+td.d { font: 12px var(--mono); color: var(--muted); white-space: nowrap; width: 1%; padding-right: 10px; }
+.w-title { font-weight: 600; }
+.w-meta { font: 12px var(--mono); color: var(--muted); margin-left: 4px; }
+.w-desc { margin-top: 2px; }
+.w-struct { margin-top: 3px; font: 11.5px/1.45 var(--mono); color: var(--muted); }
+.vote { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid var(--line); padding-top: 12px; }
+.vote button[aria-pressed="true"] { background: var(--gold-soft); border-color: var(--gold); font-weight: 600; }
+.vote .lbl { font-size: 13px; color: var(--muted); margin-right: 4px; }
+textarea { width: 100%; font: inherit; font-size: 14px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); resize: vertical; }
+.foot { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; color: var(--muted); font-size: 13px; }
+@media (prefers-reduced-motion: no-preference) { article.case { transition: border-color 0.2s; } }
+</style>
+
+<header class="bar"><div class="wrap">
+  <h1>Blind schemaoordeel</h1>
+  <span class="progress" id="progress"></span>
+  <span class="status" id="status" role="status"></span>
+</div></header>
+
+<main class="wrap">
+  <section class="intro">
+    <p>Twee AI-systemen kregen precies dezelfde vraag: maak of pas een trainingsschema aan voor dezelfde renner, op dezelfde dag. Per geval zie je A en B. Welke is als coach het betere antwoord?</p>
+    <p>Je weet niet welke AI A of B is, en dat wisselt per geval. Kies per geval, en zet er gerust kort bij waarom. Je oordeel wordt meteen bewaard; alleen de eigenaar van deze pagina ziet de oordelen.</p>
+  </section>
+  <div id="list"></div>
+  <div class="foot">
+    <button id="copy" type="button">Kopieer mijn oordelen</button>
+    <span id="copy-note">Lukt bewaren niet, stuur dan de gekopieerde tekst naar wie je deze pagina stuurde.</span>
+  </div>
+</main>
+
+<script>
+const PAIRS = __DATA__;
+const KIND_NOTES = {
+  daily: "Elke ochtend kijkt de AI naar de ritten van gisteren en vandaag en past het schema van de komende dagen aan, of laat het staan.",
+  day: "De renner geeft aan hoeveel tijd hij vandaag heeft en hoe hij zich voelt. De AI past de training van vandaag aan.",
+  plan_update: "Het lopende schema wordt vanaf een datum opnieuw opgebouwd, bijvoorbeeld na een gemiste week of een nieuw doel.",
+  nieuw_schema: "Een heel nieuw schema vanaf nul. Deze gevallen zijn van mei tot juli, van vóór de huidige instructies.",
+};
+const KIND_LABELS = { daily: "Dagelijkse aanpassing", day: "Aanpassing door de renner", plan_update: "Schema bijwerken", nieuw_schema: "Nieuw schema" };
+const INTENSITY = { recovery: "herstel", endurance: "duur", tempo: "tempo", threshold: "drempel", vo2max: "VO2max", anaerobic: "anaeroob", race: "wedstrijd", rest: "rust" };
+
+let votes = {};       // pairId -> { choice, note }
+let db = null, uid = null, writable = true;
+
+const $ = (sel) => document.querySelector(sel);
+function el(tag, attrs, ...children) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else n.setAttribute(k, v);
+  }
+  for (const c of children) if (c != null) n.append(c);
+  return n;
+}
+const fmt = (v, unit) => (v == null || v === "" ? "–" : unit ? `${v} ${unit}` : String(v));
+
+function facts(p) {
+  const i = p.input, g = i.goal || {}, pr = i.profile || {}, rl = i.recentLoad || {}, w = i.wellness || {}, il = i.intervalsLoad || {};
+  const rows = [
+    ["Doel", [g.title, g.type, g.targetDate].filter(Boolean).join(" · ")],
+    ["Beschikbaar", `${fmt(g.maxHoursPerWeek, "u/week")}${g.availableDays ? " · " + g.availableDays.join(", ") : ""}`],
+    ["FTP / gewicht", `${fmt(pr.ftpWatts, "W")} · ${fmt(pr.weightKg, "kg")}`],
+    ["Recent gereden", `${fmt(rl.hoursPerWeek, "u/week")} · ${fmt(rl.ridesPerWeek, "ritten/week")}`],
+    ["CTL / ATL / TSB", [il.ctl, il.atl, il.tsb].map((x) => (x == null ? "–" : Math.round(x))).join(" / ")],
+    ["Herstel", [w.state, w.hrv != null ? `HRV ${w.hrv}` : null, w.restingHr != null ? `rust-HR ${w.restingHr}` : null, w.sleepHours != null ? `slaap ${w.sleepHours} u` : null].filter(Boolean).join(" · ") || "–"],
+  ];
+  if (i.yesterday) {
+    const y = i.yesterday;
+    rows.push(["Gisteren", `gepland ${fmt(y.plannedTitle)} (${fmt(y.plannedMinutes, "min")}) · gereden ${fmt(y.actualName)} (${fmt(y.actualMinutes, "min")})${y.athleteFeel ? " · gevoel " + y.athleteFeel : ""}`]);
+  }
+  if (i.today) rows.push(["Vandaag", `${fmt(i.today.availableMinutes, "min")} beschikbaar · gevoel ${fmt(i.today.feeling)}${i.today.note ? " · “" + i.today.note + "”" : ""}`]);
+  if (Array.isArray(i.todayRides) && i.todayRides.length) rows.push(["Vandaag gereden", i.todayRides.map((r) => `${r.name ?? "rit"} (${fmt(r.minutes ?? r.durationMinutes, "min")})`).join(", ")]);
+  if (i.planUpdate) rows.push(["Reden bijwerken", `${fmt(i.planUpdate.reason)} · vanaf ${fmt(i.planUpdate.fromDate)}`]);
+  const dl = el("dl", { class: "facts" });
+  for (const [k, v] of rows) dl.append(el("div", {}, el("dt", { text: k }), el("dd", { text: v })));
+  return dl;
+}
+
+function workoutTable(workouts) {
+  const t = el("table");
+  for (const w of workouts) {
+    const struct = (w.structure || []).map((b) => `${b.label} ${b.durationMinutes}′ ${b.target}`.trim()).join(" · ");
+    t.append(el("tr", {},
+      el("td", { class: "d", text: w.date }),
+      el("td", {},
+        el("span", { class: "w-title", text: w.title }),
+        el("span", { class: "w-meta", text: `${INTENSITY[w.intensity] ?? w.intensity ?? ""} · ${w.durationMinutes ?? "?"} min` }),
+        w.description ? el("div", { class: "w-desc", text: w.description }) : null,
+        struct ? el("div", { class: "w-struct", text: struct }) : null)));
+  }
+  return el("div", { class: "tbl" }, t);
+}
+
+function side(label, plan) {
+  const ws = Array.isArray(plan.workouts) ? plan.workouts : [];
+  const box = el("div", { class: "side" }, el("h3", { text: label }));
+  if (plan.title) box.append(el("p", { class: "ptitle", text: plan.title }));
+  if (plan.summary) box.append(el("p", { class: "psum", text: plan.summary }));
+  if (plan.cautions && plan.cautions.length) box.append(el("p", { class: "caut", text: "Let op: " + plan.cautions.join(" · ") }));
+  box.append(ws.length ? workoutTable(ws) : el("div", { class: "empty", text: "Geen wijziging: het huidige schema blijft staan." }));
+  return box;
+}
+
+function caseEl(p, n) {
+  const v = votes[p.id] || {};
+  const art = el("article", { class: "case" + (v.choice ? " done" : ""), id: p.id });
+  art.append(el("div", { class: "case-top" }, el("span", { class: "case-num", text: `Geval ${n}` }), el("span", { class: "case-date", text: p.date })));
+  art.append(facts(p));
+  const cur = p.input.currentPlan?.workouts;
+  if (Array.isArray(cur) && cur.length) {
+    const d = el("details", {}, el("summary", { text: `Huidig schema (${cur.length} trainingen)` }));
+    d.append(workoutTable(cur));
+    art.append(d);
+  }
+  const raw = el("details", {}, el("summary", { text: "Alle invoer die de AI kreeg" }));
+  raw.append(el("pre", { text: JSON.stringify(p.input, null, 2) }));
+  art.append(raw);
+  art.append(el("div", { class: "cols" }, side("A", p.a), side("B", p.b)));
+  const vote = el("div", { class: "vote" }, el("span", { class: "lbl", text: "Beter:" }));
+  for (const [val, txt] of [["A", "A"], ["=", "Even goed"], ["B", "B"]]) {
+    const b = el("button", { type: "button", "aria-pressed": String(v.choice === val), text: txt });
+    b.disabled = !writable && !!db;
+    b.addEventListener("click", () => choose(p.id, val));
+    vote.append(b);
+  }
+  art.append(vote);
+  const ta = el("textarea", { id: "note-" + p.id, rows: "2", placeholder: "Waarom? (mag leeg)" });
+  ta.value = v.note || "";
+  ta.addEventListener("input", () => noteChanged(p.id, ta.value));
+  art.append(ta);
+  return art;
+}
+
+function render() {
+  const list = $("#list");
+  list.replaceChildren();
+  let n = 0;
+  for (const kind of ["daily", "day", "plan_update", "nieuw_schema"]) {
+    const ps = PAIRS.filter((p) => p.kind === kind);
+    if (!ps.length) continue;
+    list.append(el("h2", { class: "kind-head", text: `${KIND_LABELS[kind]} · ${ps.length}` }), el("p", { class: "kind-note", text: KIND_NOTES[kind] }));
+    for (const p of ps) list.append(caseEl(p, ++n));
+  }
+  progress();
+}
+
+function progress() {
+  const done = PAIRS.filter((p) => votes[p.id]?.choice).length;
+  $("#progress").innerHTML = "";
+  $("#progress").append(el("b", { text: String(done) }), ` / ${PAIRS.length} beoordeeld`);
+}
+function status(text, err) { const s = $("#status"); s.textContent = text; s.className = "status" + (err ? " err" : ""); }
+
+async function save(id) {
+  if (!db || !uid || !writable) return;
+  const v = votes[id] || {};
+  try {
+    await db.doc(`votes/${uid}/pairs/${id}`).set({ choice: v.choice ?? null, note: v.note ?? "", at: new Date().toISOString() });
+    await db.doc(`votes/${uid}`).set({ updatedAt: new Date().toISOString() });
+    status("Bewaard");
+  } catch (e) {
+    writable = false;
+    status("Bewaren lukt niet met jouw toegang. Gebruik ‘Kopieer mijn oordelen’.", true);
+  }
+}
+
+function choose(id, val) {
+  votes[id] = { ...(votes[id] || {}), choice: val };
+  const art = document.getElementById(id);
+  art.classList.add("done");
+  art.querySelectorAll(".vote button").forEach((b) => b.setAttribute("aria-pressed", String(b.textContent === (val === "=" ? "Even goed" : val))));
+  progress();
+  save(id);
+}
+
+const noteTimers = {};
+function noteChanged(id, text) {
+  votes[id] = { ...(votes[id] || {}), note: text };
+  clearTimeout(noteTimers[id]);
+  noteTimers[id] = setTimeout(() => save(id), 800);
+}
+
+$("#copy").addEventListener("click", async () => {
+  const lines = PAIRS.map((p, i) => ({ p, i })).filter(({ p }) => votes[p.id]?.choice)
+    .map(({ p }) => `${p.id}: ${votes[p.id].choice}${votes[p.id].note ? " — " + votes[p.id].note.replace(/\s+/g, " ") : ""}`);
+  const text = lines.length ? "Blind schemaoordeel\n" + lines.join("\n") : "Nog niets beoordeeld.";
+  try { await navigator.clipboard.writeText(text); $("#copy-note").textContent = "Gekopieerd."; }
+  catch { const pre = el("pre", { text }); $("#copy-note").replaceChildren(pre); }
+});
+
+render();
+
+(async () => {
+  try {
+    db = await window.claude?.use?.("db");
+    const user = await window.claude?.use?.("user");
+    uid = user ? await user.id() : null;
+    if (!db || !uid) { db = null; status("Je oordeel wordt niet bewaard: open de pagina ingelogd, of gebruik ‘Kopieer mijn oordelen’."); return; }
+    const snap = await db.collection(`votes/${uid}/pairs`).get();
+    for (const d of snap.docs) { const x = d.data(); if (x) votes[d.id] = { choice: x.choice ?? undefined, note: x.note ?? "" }; }
+    render();
+    if ((await user.can("data.write")) === false) { writable = false; status("Je kunt kijken, maar niet stemmen met deze toegang. Gebruik ‘Kopieer mijn oordelen’.", true); render(); }
+  } catch {
+    db = null;
+    status("Je oordeel wordt niet bewaard. Gebruik ‘Kopieer mijn oordelen’.");
+  }
+})();
+</script>

@@ -49,7 +49,7 @@ export function TrainerNav({ riders }: { riders: TrainerRider[] }) {
             type="button"
             aria-expanded={open}
             onClick={() => setOpen((value) => !value)}
-            className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-semibold transition hover:bg-accent"
+            className="tg-link tg-zwbeter flex min-h-11 items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-semibold transition hover:bg-accent"
           >
             {selected.name}
             <ChevronDown

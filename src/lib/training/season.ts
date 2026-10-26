@@ -34,7 +34,7 @@ export const A_TARGET_MIN_GAP_DAYS = 21;
 /**
  * Een schema is een blok van hooguit twaalf weken. Verder vooruit is het jaar
  * een route met mikpunten, geen uitgewerkt schema: wat een amateur over vier
- * maanden kan en wil rijden, is nu niet te plannen. Zie /hulp#blokken.
+ * maanden kan en wil rijden, is nu niet te plannen. Zie /hulp/schema#blokken.
  */
 export const PLAN_BLOCK_WEEKS = 12;
 export const PLAN_BLOCK_DAYS = PLAN_BLOCK_WEEKS * 7;
@@ -47,7 +47,7 @@ export const REBUILD_AFTER_REST_DAYS = 10;
  * piek liggen. Een kamp dat een tot twee weken vóór de piek eindigt is juist de
  * gangbare opzet: de dagen erna zijn de taper. Stond tot oktober 2026 op tien,
  * waardoor een kamp acht dagen vóór een A-doel een waarschuwing kreeg. Zie
- * /hulp#jaarplan voor de bronnen.
+ * /hulp/schema#jaarplan voor de bronnen.
  */
 export const CAMP_BEFORE_A_TARGET_DAYS = 7;
 /** Hoeveel losse events we hooguit als aparte waarschuwing tonen. */

@@ -1,5 +1,6 @@
-import { currentAchievementWeek } from "@/lib/strava/client";
+import { currentAchievementWeek, previousAchievementWeek, weekStartDate } from "@/lib/strava/client";
 import { sendNotificationToMembers } from "@/lib/push/send";
+import { uniqueRides } from "@/lib/rides/unique-rides";
 
 export type BadgeDefinition = {
   id: string;
@@ -12,13 +13,38 @@ export type BadgeDefinition = {
 };
 
 type ActivityRow = {
+  id: number;
   profile_id: string;
-  achievement_week: string;
-  distance_m: number | string;
-  total_elevation_gain_m: number | string;
-  kudos_count: number;
-  moving_time_seconds: number;
+  start_date: string;
+  distance_m: number | string | null;
+  total_elevation_gain_m: number | string | null;
+  kudos_count: number | null;
+  moving_time_seconds: number | null;
 };
+
+/**
+ * Hoeveel afgesloten weken een gewone run herrekent. Een late sync of een
+ * import van recente ritten valt daarbinnen; de hele historie herrekenen kan
+ * met `weeks: "all"`.
+ */
+export const AWARD_WEEKS = 8;
+
+const ACTIVITY_COLUMNS =
+  "id, profile_id, start_date, distance_m, total_elevation_gain_m, kudos_count, moving_time_seconds";
+const PAGE = 1000;
+
+/** Maandag van de week van een rit, uit de starttijd (zoals de ingest hem zet). */
+function weekOf(startDate: string): string | null {
+  const start = new Date(startDate);
+  if (!Number.isFinite(start.getTime())) return null;
+  return weekStartDate(start).toISOString().slice(0, 10);
+}
+
+function addWeeks(week: string, weeks: number): string {
+  const date = new Date(`${week}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + weeks * 7);
+  return date.toISOString().slice(0, 10);
+}
 
 type Score = {
   profileId: string;
@@ -80,16 +106,23 @@ function weekEnd(week: string) {
   return date.toISOString().slice(0, 10);
 }
 
-function aggregate(rows: ActivityRow[]) {
+/**
+ * Totalen per lid per week. Een rit die het lid twee keer opnam, telt één keer.
+ * De week komt uit de starttijd, niet uit de kolom achievement_week: daar staat
+ * bij 2.405 ritten uit juni–augustus 2026 een zondag (PLAN.md, 2026-10-18).
+ */
+export function weeklyScores(rows: ActivityRow[]) {
   const scores = new Map<string, Score>();
 
-  for (const row of rows) {
-    const key = `${row.achievement_week}:${row.profile_id}`;
+  for (const row of uniqueRides(rows)) {
+    const week = weekOf(row.start_date);
+    if (!week) continue;
+    const key = `${week}:${row.profile_id}`;
     const score =
       scores.get(key) ??
       {
         profileId: row.profile_id,
-        week: row.achievement_week,
+        week,
         activities: 0,
         distanceM: 0,
         elevationM: 0,
@@ -150,51 +183,97 @@ export function formatBadgeValue(value: number | string, unit?: string | null) {
   return n.toLocaleString("nl-NL");
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Db = any;
+
+/** Alle ritten tussen twee weken, gepagineerd: PostgREST geeft per keer hooguit 1000 rijen. */
+async function loadRides(supabase: Db, fromWeek: string | null, toWeek: string) {
+  const rows: ActivityRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    let query = supabase
+      .from("strava_activities")
+      .select(ACTIVITY_COLUMNS)
+      .lt("start_date", `${toWeek}T00:00:00.000Z`);
+    if (fromWeek) query = query.gte("start_date", `${fromWeek}T00:00:00.000Z`);
+    const { data, error } = await query
+      .order("start_date")
+      .order("id")
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []) as ActivityRow[];
+    rows.push(...page);
+    if (page.length < PAGE) return rows;
+  }
+}
+
+type AwardRow = { id: string; badge_id: string; profile_id: string; period_start: string };
+
+async function loadAwards(supabase: Db, fromWeek: string | null, toWeek: string) {
+  const rows: AwardRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    let query = supabase
+      .from("achievement_awards")
+      .select("id, badge_id, profile_id, period_start")
+      .in("badge_id", BADGES.map((badge) => badge.id))
+      .lt("period_start", toWeek);
+    if (fromWeek) query = query.gte("period_start", fromWeek);
+    const { data, error } = await query.order("id").range(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
+    const page = (data ?? []) as AwardRow[];
+    rows.push(...page);
+    if (page.length < PAGE) return rows;
+  }
+}
+
+/**
+ * Legt de weekbadges vast voor de afgesloten weken: per badge en week één
+ * winnaar. Herrekent de laatste AWARD_WEEKS weken, of alles met `weeks: "all"`.
+ * Een eerdere winnaar van een herrekende week die het niet meer is, verliest de
+ * badge; zo blijft er per week één over.
+ *
+ * Tot 2026-10-18 las dit alle ritten in één select. PostgREST gaf daarvan 1000
+ * willekeurige rijen terug, zodat elke run andere winnaars koos en de eerdere
+ * bleven staan.
+ */
 export async function awardCompletedAchievementWeeks(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: Db,
+  options: { weeks?: number | "all" } = {},
 ) {
   const currentWeek = currentAchievementWeek();
-  const { data, error } = await supabase
-    .from("strava_activities")
-    .select(
-      "profile_id, achievement_week, distance_m, total_elevation_gain_m, kudos_count, moving_time_seconds",
-    )
-    .lt("achievement_week", currentWeek);
+  const weeks = options.weeks ?? AWARD_WEEKS;
+  const fromWeek = weeks === "all" ? null : addWeeks(currentWeek, -Math.max(1, weeks));
 
-  if (error) throw new Error(error.message);
+  const scores = weeklyScores(await loadRides(supabase, fromWeek, currentWeek));
+  const scoredWeeks = Array.from(new Set(scores.map((score) => score.week))).sort();
+  const awards = scoredWeeks.flatMap((week) => winnersForWeek(scores, week));
 
-  const rows = (data ?? []) as ActivityRow[];
-  const scores = aggregate(rows);
-  const weeks = Array.from(new Set(scores.map((score) => score.week))).sort();
-  const awards = weeks.flatMap((week) => winnersForWeek(scores, week));
+  const existing = await loadAwards(supabase, fromWeek, currentWeek);
+  const key = (award: { badge_id: string; profile_id: string; period_start: string }) =>
+    `${award.badge_id}:${award.profile_id}:${award.period_start}`;
+  const winners = new Set(awards.map(key));
+  const existingKeys = new Set(existing.map(key));
+  const stale = existing.filter((award) => !winners.has(key(award)));
+  const newAwards = awards.filter((award) => !existingKeys.has(key(award)));
 
-  if (awards.length === 0) return { awarded: 0 };
+  if (awards.length > 0) {
+    const { error } = await supabase
+      .from("achievement_awards")
+      .upsert(awards, { onConflict: "badge_id,profile_id,period_start" });
+    if (error) throw new Error(error.message);
+  }
 
-  const { data: existingRows } = await supabase
-    .from("achievement_awards")
-    .select("badge_id, profile_id, period_start")
-    .in("badge_id", BADGES.map((badge) => badge.id));
-  const existing = new Set(
-    ((existingRows ?? []) as Array<{
-      badge_id: string;
-      profile_id: string;
-      period_start: string;
-    }>).map((award) => `${award.badge_id}:${award.profile_id}:${award.period_start}`),
-  );
-  const newAwards = awards.filter(
-    (award) =>
-      !existing.has(`${award.badge_id}:${award.profile_id}:${award.period_start}`),
-  );
+  for (let index = 0; index < stale.length; index += 200) {
+    const ids = stale.slice(index, index + 200).map((award) => award.id);
+    const { error } = await supabase.from("achievement_awards").delete().in("id", ids);
+    if (error) throw new Error(error.message);
+  }
 
-  const { error: upsertError } = await supabase
-    .from("achievement_awards")
-    .upsert(awards, { onConflict: "badge_id,profile_id,period_start" });
-
-  if (upsertError) throw new Error(upsertError.message);
-
+  // Alleen een bericht voor de week die net af is; een herrekening van oudere
+  // weken stuurt niemand een melding.
+  const lastWeek = previousAchievementWeek();
   const newAwardsByProfile = new Map<string, typeof newAwards>();
   for (const award of newAwards) {
+    if (award.period_start !== lastWeek) continue;
     const list = newAwardsByProfile.get(award.profile_id) ?? [];
     list.push(award);
     newAwardsByProfile.set(award.profile_id, list);
@@ -221,5 +300,5 @@ export async function awardCompletedAchievementWeeks(
       ).catch(() => null);
     }),
   );
-  return { awarded: awards.length };
+  return { awarded: awards.length, removed: stale.length };
 }

@@ -12,12 +12,15 @@ import { awardCompletedAchievementWeeks } from "@/lib/achievements/awards";
 import { syncIntervalsActivities } from "@/lib/intervals/activities";
 import { fetchIntervalsActivityTrack } from "@/lib/intervals/client";
 import {
+  carryOverFromImport,
   dedupeRides,
+  importRidesToReplace,
   encodeTrackPolyline,
   INTERVALS_IMPORT_SOURCE,
   intervalsActivityToRideRow,
   intervalsRideId,
   latLngFromStreams,
+  rideCompareFrom,
   rideRowChanged,
   timedTrackFromStreams,
   rideSourceFor,
@@ -164,13 +167,14 @@ export async function syncIntervalsRidesForProfile(
     result.fetched = list.length;
 
     // intervals.icu filtert op datum; een dag marge houdt de randen buiten de
-    // verwijderregel hieronder.
-    const windowStart = new Date(now.getTime() - (days - 1) * 86400_000).toISOString();
+    // verwijderregel hieronder. Ontdubbelen gebeurt wel over de hele lijst
+    // (rideCompareFrom), anders komt de rand er als tweede rij bij.
+    const removeFrom = new Date(now.getTime() - (days - 1) * 86400_000);
     const { data: existingData, error: existingError } = await admin
       .from("strava_activities")
       .select(EXISTING_COLUMNS)
       .eq("profile_id", profileId)
-      .gte("start_date", windowStart);
+      .gte("start_date", rideCompareFrom(removeFrom, list).toISOString());
     if (existingError) throw new Error(existingError.message);
     const existing = (existingData ?? []) as ExistingRow[];
     const existingById = new Map(existing.map((row) => [Number(row.id), row]));
@@ -190,8 +194,24 @@ export async function syncIntervalsRidesForProfile(
       return [row];
     });
 
-    const { keep, skipped } = dedupeRides<IntervalsRideRow>(candidates, existing);
+    // Een eigen upload zonder vermogen maakt plaats voor dezelfde rit met
+    // vermogen; spoor en eigen segmenttijden gaan mee.
+    const replace = importRidesToReplace(candidates, existing);
+    for (const row of candidates) {
+      const old = replace.get(String(row.id));
+      if (old) carryOverFromImport(row, old, now);
+    }
+    const replaceable = new Set([...replace.values()].map((row) => String(row.id)));
+    const { keep, skipped } = dedupeRides<IntervalsRideRow>(
+      candidates,
+      existing.filter((row) => !replaceable.has(String(row.id))),
+    );
     result.duplicates = skipped.length;
+    // Alleen weg als de vervanger echt wordt opgeslagen.
+    const replacedIds = keep.flatMap((row) => {
+      const old = replace.get(String(row.id));
+      return old ? [Number(old.id)] : [];
+    });
 
     // Spoor ophalen voor ritten die er nog geen hebben. Een trainerrit zonder
     // GPS heeft er nooit een; track_checked_at voorkomt dat we elke run opnieuw
@@ -230,6 +250,30 @@ export async function syncIntervalsRidesForProfile(
     }
     result.stored = changed.length;
 
+    // Na de upsert: de vervanger staat er, dus de rit telt nooit even niet mee.
+    if (replacedIds.length > 0) {
+      // Eerst de gekoppelde trainingen naar de vervanger; anders laat het nawerk
+      // ze los en hangt de detectie alleen die van de laatste week terug.
+      const moves = new Map(
+        keep.flatMap((row) => {
+          const old = replace.get(String(row.id));
+          return old ? [[String(old.id), String(row.id)] as const] : [];
+        }),
+      );
+      try {
+        const { moveReplacedRidePairings } = await import("@/lib/training/completion");
+        await moveReplacedRidePairings(admin, profileId, moves);
+      } catch {
+        // Niet kritiek: dan laat het nawerk de training los, zoals voorheen.
+      }
+      const { error } = await admin
+        .from("strava_activities")
+        .delete()
+        .eq("profile_id", profileId)
+        .in("id", replacedIds);
+      if (error) throw new Error(error.message);
+    }
+
     // Eigen segment- en coltijden uit het spoor met tijden. Na de upsert, want
     // een poging verwijst naar de rit.
     for (const track of timedTracks) {
@@ -256,6 +300,7 @@ export async function syncIntervalsRidesForProfile(
       const current = new Set(candidates.map((row) => row.id));
       for (const row of existing) {
         if (row.raw?.import_source !== INTERVALS_IMPORT_SOURCE) continue;
+        if (Date.parse(row.start_date) < removeFrom.getTime()) continue;
         if (!current.has(Number(row.id))) removedIds.push(Number(row.id));
       }
       if (removedIds.length > 0) {
@@ -263,7 +308,10 @@ export async function syncIntervalsRidesForProfile(
         if (error) throw new Error(error.message);
       }
     }
-    result.removed = removedIds.length;
+    result.removed = removedIds.length + replacedIds.length;
+    // Ook de vervangen uploads: hun coltijden moeten naar de vervanger, en een
+    // training die niet verhuisde, komt zo alsnog vrij.
+    removedIds.push(...replacedIds);
 
     if (result.stored > 0 || result.removed > 0) {
       await runPostSyncForProfile(admin, profileId, null, {

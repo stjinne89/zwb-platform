@@ -11,7 +11,7 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, Clock, Gauge, MapPin, Maximize2, Route, X } from "lucide-react";
+import { ArrowUpRight, Clock, Gauge, Heart, MapPin, Maximize2, RotateCw, Route, X, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { MemberLink } from "@/components/member-link";
 import { parseGpx, type GpxPoint } from "@/lib/gpx";
@@ -36,6 +36,7 @@ import {
 import { GpxDownloadLink } from "./gpx-download-link";
 import { POI_TYPES, type EventPoi, type PoiType, type ProfilePoi } from "./poi";
 import { ZONE_COLOR, ZONE_LABEL, type EventZone } from "./zone";
+import { haversineKm, pickRoutePoint, raceTotalKm } from "@/lib/live/route-progress";
 import type { DivIcon } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -84,7 +85,6 @@ export type EventLiveSession = {
 };
 
 function sourceLabel(source: EventLiveSource) {
-  if (source === "owntracks") return "OwnTracks live";
   if (source === "garmin") return "Garmin live";
   if (source === "wahoo") return "Wahoo live";
   return "ZWB live";
@@ -98,6 +98,12 @@ export type EventLivePosition = {
   altitude: number | string | null;
   speed_kmh: number | string | null;
   recorded_at: string;
+  /** Afstand volgens de fietscomputer (Garmin/Wahoo), ook publiek bij rondjes. */
+  distance_m?: number | string | null;
+  /** Vermogen, cadans en hartslag; alleen op de eventpagina voor leden (0193). */
+  power_w?: number | string | null;
+  cadence_rpm?: number | string | null;
+  heart_rate?: number | string | null;
 };
 
 type Marker = {
@@ -111,6 +117,10 @@ type Marker = {
   speedKmh: number | null;
   recordedAt: string;
   startedAt: string;
+  rideKm: number | null;
+  powerW: number | null;
+  cadenceRpm: number | null;
+  heartRate: number | null;
 };
 
 type RouteStats = {
@@ -123,7 +133,10 @@ type RouteStats = {
 };
 
 type RiderProgress = Marker & {
+  /** Gereden afstand; bij een rondjeskoers die van de fietscomputer. */
   distanceKm: number | null;
+  /** Plek op de GPX (één ronde), voor het hoogteprofiel. */
+  routeKm: number | null;
   remainingKm: number | null;
   progressPct: number | null;
   elapsedMs: number;
@@ -143,18 +156,11 @@ function toNumber(value: number | string | null | undefined) {
   return Number.isFinite(n) ? n : null;
 }
 
-function haversineKm(a: { lat: number; lon: number }, b: { lat: number; lon: number }) {
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const R = 6371;
-  const dLat = toRad(b.lat - a.lat);
-  const dLon = toRad(b.lon - a.lon);
-  const lat1 = toRad(a.lat);
-  const lat2 = toRad(b.lat);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
+function rideKmOf(distanceM: number | string | null | undefined) {
+  const m = toNumber(distanceM);
+  return m !== null && m > 0 ? m / 1000 : null;
 }
+
 
 function buildRouteStats(points: GpxPoint[]): RouteStats | null {
   if (points.length < 2) return null;
@@ -190,23 +196,25 @@ function buildRouteStats(points: GpxPoint[]): RouteStats | null {
   return { points, cumulativeKm, totalKm, minEle, maxEle, gain };
 }
 
-function projectOnRoute(marker: Marker, stats: RouteStats, now: number): RiderProgress {
-  let bestIndex = 0;
-  let bestDistanceKm = Infinity;
-  const rider = { lat: marker.lat, lon: marker.lng };
-
-  for (let i = 0; i < stats.points.length; i++) {
-    const distance = haversineKm(rider, stats.points[i]);
-    if (distance < bestDistanceKm) {
-      bestDistanceKm = distance;
-      bestIndex = i;
-    }
-  }
-
-  const offRouteM = bestDistanceKm * 1000;
+function projectOnRoute(
+  marker: Marker,
+  stats: RouteStats,
+  now: number,
+  race: { totalKm: number; lapRace: boolean },
+): RiderProgress {
+  const { index: bestIndex, offKm } = pickRoutePoint(
+    { lat: marker.lat, lon: marker.lng },
+    stats.points,
+    stats.cumulativeKm,
+    marker.rideKm,
+    OFF_ROUTE_M / 1000,
+  );
+  const offRouteM = offKm * 1000;
   const onRoute = offRouteM <= OFF_ROUTE_M;
-  const distanceKm = onRoute ? stats.cumulativeKm[bestIndex] : null;
-  const remainingKm = distanceKm === null ? null : Math.max(0, stats.totalKm - distanceKm);
+  const routeKm = onRoute ? stats.cumulativeKm[bestIndex] : null;
+  // Rondjes: de plek op de GPX zegt niet hoeveel rondes er al zijn gereden.
+  const distanceKm = race.lapRace ? (marker.rideKm ?? routeKm) : routeKm;
+  const remainingKm = distanceKm === null ? null : Math.max(0, race.totalKm - distanceKm);
   const elapsedMs = Math.max(0, now - new Date(marker.startedAt).getTime());
   const elapsedHours = elapsedMs / 3_600_000;
   const avgKmh =
@@ -225,8 +233,9 @@ function projectOnRoute(marker: Marker, stats: RouteStats, now: number): RiderPr
   return {
     ...marker,
     distanceKm,
+    routeKm,
     remainingKm,
-    progressPct: distanceKm === null ? null : Math.min(100, (distanceKm / stats.totalKm) * 100),
+    progressPct: distanceKm === null ? null : Math.min(100, (distanceKm / race.totalKm) * 100),
     elapsedMs,
     avgKmh,
     eta,
@@ -292,6 +301,10 @@ function latestMarkers(
       altitude: toNumber(p.altitude),
       speedKmh: toNumber(p.speed_kmh),
       recordedAt: p.recorded_at,
+      rideKm: rideKmOf(p.distance_m),
+      powerW: toNumber(p.power_w),
+      cadenceRpm: toNumber(p.cadence_rpm),
+      heartRate: toNumber(p.heart_rate),
       // "Bezig" = tijd sinds de werkelijke start (event-starttijd, of de
       // sessiestart als die later is). Bewust níét afgeleid uit de eerste
       // opgehaalde positie: die lijst is afgekapt (limit), waardoor de start
@@ -320,6 +333,7 @@ export function EventLiveTicker({
   climbOverrides = [],
   pois = [],
   zones = [],
+  raceKm = null,
   pollUrl,
   heading = DEFAULT_HEADING,
   description = DEFAULT_DESCRIPTION,
@@ -339,6 +353,8 @@ export function EventLiveTicker({
   pois?: EventPoi[];
   /** Geneutraliseerde zones — read-only band op kaart + profiel. */
   zones?: EventZone[];
+  /** Afstand van het event; langer dan de GPX = rondjeskoers. */
+  raceKm?: number | null;
   /**
    * Als gezet wordt deze URL elke 10s gepolled voor een verse
    * {sessions, positions}-snapshot i.p.v. een Supabase Realtime-
@@ -539,6 +555,10 @@ export function EventLiveTicker({
               altitude: toNumber(row.altitude),
               speedKmh: toNumber(row.speed_kmh),
               recordedAt: row.recorded_at,
+              rideKm: rideKmOf(row.distance_m),
+              powerW: toNumber(row.power_w),
+              cadenceRpm: toNumber(row.cadence_rpm),
+              heartRate: toNumber(row.heart_rate),
               startedAt: previous?.startedAt ?? isoFromTime(baseStart),
             });
             return next;
@@ -595,12 +615,12 @@ export function EventLiveTicker({
     if (!activeIds.has(m.sessionId)) return false;
     return now - new Date(m.recordedAt).getTime() <= STALE_AFTER_MS;
   });
-  const riders = visibleMarkers.map((marker) => projectOnRoute(marker, routeStats, now));
-  // Garmin/Wahoo-renners zonder posities: alleen de link naar hun eigen kaart.
+  const race = raceTotalKm(routeStats.totalKm, raceKm);
+  const riders = visibleMarkers.map((marker) => projectOnRoute(marker, routeStats, now, race));
+  // Live zonder (recente) positie, bv. de vaste Wahoo-link zonder GPS in de
+  // FIT-data: wel in de lijst, met de link naar hun eigen kaart als die er is.
   const riderIds = new Set(riders.map((r) => r.sessionId));
-  const linkOnly = sessions.filter(
-    (s) => s.externalTrackUrl && !riderIds.has(s.id),
-  );
+  const unplaced = sessions.filter((s) => !riderIds.has(s.id));
   const positions = routeStats.points.map((p) => [p.lat, p.lon] as [number, number]);
   // Zones → route-stukken (LatLng) voor de kaart-band.
   const zoneSegments = zones.map((z) => {
@@ -719,7 +739,7 @@ export function EventLiveTicker({
             <strong>{rider.name}</strong>
           </Tooltip>
           <Popup>
-            <RiderPopup rider={rider} totalKm={routeStats.totalKm} />
+            <RiderPopup rider={rider} totalKm={race.totalKm} />
           </Popup>
         </CircleMarker>
       ))}
@@ -737,7 +757,7 @@ export function EventLiveTicker({
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
         <div className="rounded-md border bg-background px-3 py-2 text-sm tabular-nums">
-          <strong>{riders.length + linkOnly.length}</strong>{" "}
+          <strong>{riders.length + unplaced.length}</strong>{" "}
               <span className="text-muted-foreground">live</span>
         </div>
       </div>
@@ -768,14 +788,14 @@ export function EventLiveTicker({
             zones={zones}
           />
           {/* Met pollUrl kijkt een gast mee (/live/[id]): die kan /leden niet in. */}
-          <RiderList riders={riders} totalKm={routeStats.totalKm} linkMembers={!pollUrl} />
-          <LinkOnlyList sessions={linkOnly} linkMembers={!pollUrl} />
+          <RiderList riders={riders} totalKm={race.totalKm} linkMembers={!pollUrl} />
+          <UnplacedList sessions={unplaced} linkMembers={!pollUrl} />
         </div>
       </div>
 
       {gpxDownloadUrl && <GpxDownloadLink href={gpxDownloadUrl} />}
 
-      {riders.length === 0 && linkOnly.length === 0 && (
+      {riders.length === 0 && unplaced.length === 0 && (
         <div className="rounded-md border border-dashed bg-background p-4 text-sm text-muted-foreground">
           {emptyText}
         </div>
@@ -859,6 +879,24 @@ function RiderPopup({
         <dd>{formatDuration(rider.elapsedMs)}</dd>
         <dt className="text-muted-foreground">Gemiddeld</dt>
         <dd>{formatKmh(rider.avgKmh)}</dd>
+        {rider.powerW !== null && (
+          <>
+            <dt className="text-muted-foreground">Vermogen</dt>
+            <dd>{rider.powerW} W</dd>
+          </>
+        )}
+        {rider.cadenceRpm !== null && (
+          <>
+            <dt className="text-muted-foreground">Cadans</dt>
+            <dd>{rider.cadenceRpm} rpm</dd>
+          </>
+        )}
+        {rider.heartRate !== null && (
+          <>
+            <dt className="text-muted-foreground">Hartslag</dt>
+            <dd>{rider.heartRate} bpm</dd>
+          </>
+        )}
         <dt className="text-muted-foreground">ETA</dt>
         <dd>
           {rider.eta
@@ -876,7 +914,7 @@ function RiderPopup({
   );
 }
 
-function LinkOnlyList({
+function UnplacedList({
   sessions,
   linkMembers,
 }: {
@@ -899,15 +937,19 @@ function LinkOnlyList({
               {sourceLabel(session.source)}
             </p>
           </div>
-          <a
-            href={session.externalTrackUrl!}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-1 rounded-md border bg-card px-2.5 py-1 text-xs font-medium hover:bg-secondary"
-          >
-            Kaart
-            <ArrowUpRight className="size-3" />
-          </a>
+          {session.externalTrackUrl ? (
+            <a
+              href={session.externalTrackUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border bg-card px-2.5 py-1 text-xs font-medium hover:bg-secondary"
+            >
+              Kaart
+              <ArrowUpRight className="size-3" />
+            </a>
+          ) : (
+            <span className="shrink-0 text-xs text-muted-foreground">Geen positie</span>
+          )}
         </li>
       ))}
     </ul>
@@ -967,6 +1009,15 @@ function RiderList({
                     : "-"
                 }
               />
+              {rider.powerW !== null && (
+                <MiniStat icon={Zap} label="Vermogen" value={`${rider.powerW} W`} />
+              )}
+              {rider.cadenceRpm !== null && (
+                <MiniStat icon={RotateCw} label="Cadans" value={`${rider.cadenceRpm} rpm`} />
+              )}
+              {rider.heartRate !== null && (
+                <MiniStat icon={Heart} label="Hartslag" value={`${rider.heartRate} bpm`} />
+              )}
             </div>
           </li>
         ))}
@@ -1185,11 +1236,11 @@ function LiveProfileChart({
           vectorEffect="non-scaling-stroke"
         />
         {riders
-          .filter((rider) => rider.distanceKm !== null && rider.ele !== null)
+          .filter((rider) => rider.routeKm !== null && rider.ele !== null)
           .map((rider) => (
             <g key={rider.sessionId}>
               <circle
-                cx={xFor(rider.distanceKm ?? 0)}
+                cx={xFor(rider.routeKm ?? 0)}
                 cy={yFor(rider.ele ?? stats.minEle)}
                 r="7"
                 fill="#d4a84e"

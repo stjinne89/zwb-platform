@@ -41,6 +41,7 @@ import {
 } from "@/lib/training/workouts";
 import { amsterdamDayKey, computeZwbStatus } from "@/lib/training/zwbeterworden";
 import { loadFtpAt, type FtpAt } from "@/lib/training/ftp-history";
+import { loadHrBasis, type HrBasis } from "@/lib/training/hr-load";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -61,7 +62,7 @@ export type WorkoutMetricsSnapshot = {
   maxHr: number | null;
   averageCadence: number | null;
   movingMinutes: number | null;
-  /** Zonder vermogensmeter blijven TSS en IF leeg; dit legt uit waarom. */
+  /** Zonder vermogensmeter blijft IF leeg en komt de TSS uit hartslag. */
   hasPowerMeter: boolean;
   plannedMinutes: number | null;
   plannedLoad: number | null;
@@ -147,6 +148,7 @@ export function buildMetricsSnapshot({
   workout,
   ride,
   ftpWatts,
+  hr = null,
   weightKg = null,
   ctl,
   readiness,
@@ -154,6 +156,8 @@ export function buildMetricsSnapshot({
   workout: PlannedWorkoutRow;
   ride: StravaRideRow | null;
   ftpWatts: number | null;
+  /** Voor de TSS uit hartslag van een rit zonder vermogensmeter. */
+  hr?: HrBasis | null;
   weightKg?: number | null;
   ctl: { before: number | null; after: number | null };
   readiness: { score: number | null; level: number | null; title: string | null };
@@ -164,7 +168,7 @@ export function buildMetricsSnapshot({
   );
   const plannedLoad = blocks.length > 0 ? estimateTrainingLoad(blocks, ftpWatts) : null;
   const metrics: RideMetrics = ride
-    ? rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, ftpWatts)
+    ? rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, ftpWatts, hr)
     : EMPTY_RIDE_METRICS;
   const loadPct = loadPercentage(metrics.tss, plannedLoad);
 
@@ -351,6 +355,7 @@ export async function releaseDeletedRides(
 type SnapshotContext = {
   /** FTP op de dag van de training (0175): gepland en gereden met dezelfde FTP. */
   ftpAt: FtpAt;
+  hr: HrBasis | null;
   weightKg: number | null;
   wellness: IntervalsWellness[];
   readiness: { score: number | null; level: number | null; title: string | null };
@@ -381,8 +386,13 @@ async function loadSnapshotContext(admin: Admin, profileId: string): Promise<Sna
     wellnessDevice: (profile?.wellness_device ?? null) as WellnessDevice | null,
   });
   const currentFtp = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);
+  const [ftpAt, hr] = await Promise.all([
+    loadFtpAt(admin, profileId, currentFtp),
+    loadHrBasis(admin, profileId),
+  ]);
   return {
-    ftpAt: await loadFtpAt(admin, profileId, currentFtp),
+    ftpAt,
+    hr,
     weightKg: profile?.weight_kg == null ? null : Number(profile.weight_kg),
     wellness,
     readiness: {
@@ -465,7 +475,7 @@ export async function detectCompletedWorkouts(
   }
   if (rides.length === 0) return empty;
 
-  const { ftpAt, weightKg, wellness, readiness } = await loadSnapshotContext(admin, profileId);
+  const { ftpAt, hr, weightKg, wellness, readiness } = await loadSnapshotContext(admin, profileId);
 
   // Ook koppelingen van workouts buiten het venster: een rit die het lid aan de
   // training van een eerdere dag heeft gehangen, mag de training van de ritdag
@@ -506,6 +516,7 @@ export async function detectCompletedWorkouts(
       workout,
       ride: match,
       ftpWatts: ftpAt(dayKey),
+      hr,
       weightKg,
       ctl: ctlAround(wellness, dayKey),
       readiness,
@@ -753,6 +764,141 @@ async function releaseReport(admin: Admin, profileId: string, report: LinkedRepo
 }
 
 /**
+ * Een nieuwe momentopname voor een training met deze rit. CTL, gereedscore en
+ * gewicht komen uit de bestaande momentopname: die horen bij de dag van de rit,
+ * en die verandert niet. Alleen zonder momentopname komen er nieuwe waarden.
+ */
+async function rebuildSnapshot(
+  admin: Admin,
+  profileId: string,
+  workout: PlannedWorkoutRow,
+  ride: StravaRideRow,
+  previous: Partial<WorkoutMetricsSnapshot>,
+): Promise<WorkoutMetricsSnapshot> {
+  const rideDayKey = amsterdamDayKey(new Date(ride.start_date));
+  let context: SnapshotContext;
+  if (previous.plannedTitle) {
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("ftp_watts, weight_kg")
+      .eq("id", profileId)
+      .maybeSingle();
+    context = {
+      ftpAt: await loadFtpAt(
+        admin,
+        profileId,
+        profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+      ),
+      hr: await loadHrBasis(admin, profileId),
+      // Het gewicht van de oorspronkelijke momentopname gaat voor: het is dezelfde rit.
+      weightKg:
+        previous.weightKg ?? (profile?.weight_kg == null ? null : Number(profile.weight_kg)),
+      wellness: [],
+      readiness: {
+        score: previous.readinessScore ?? null,
+        level: previous.readinessLevel ?? null,
+        title: previous.readinessTitle ?? null,
+      },
+    };
+  } else {
+    context = await loadSnapshotContext(admin, profileId);
+  }
+
+  return {
+    ...buildMetricsSnapshot({
+      workout,
+      ride,
+      ftpWatts: context.ftpAt(rideDayKey),
+      hr: context.hr,
+      weightKg: context.weightKg,
+      ctl: previous.plannedTitle
+        ? { before: previous.ctlBefore ?? null, after: previous.ctlAfter ?? null }
+        : ctlAround(context.wellness, rideDayKey),
+      readiness: context.readiness,
+    }),
+    // Zonetijden horen bij de rit, niet bij de training.
+    ...(previous.zoneTimes ? { zoneTimes: previous.zoneTimes } : {}),
+  };
+}
+
+/**
+ * Dezelfde rit kreeg een ander id: een eigen upload zonder vermogen is vervangen
+ * door de intervals-rit met vermogen (zie importRidesToReplace). De koppeling
+ * verhuist mee, met wat het lid invulde, de bevestiging en het oordeel van de
+ * trainer; alleen de cijfers worden opnieuw uitgerekend.
+ *
+ * Tot 2026-10-20 liet de sync de training los, net als bij een verwijderde rit,
+ * en hing de detectie hem aan de vervanger. Die kijkt maar een week terug: bij
+ * Jeroen Janssen bleven zo zeven bevestigde trainingen van 1 tot 8 oktober als
+ * gemist staan, met de rit er los naast in de kalender.
+ *
+ * `moves` gaat van oud naar nieuw id. Geeft het aantal verhuisde koppelingen.
+ */
+export async function moveReplacedRidePairings(
+  admin: Admin,
+  profileId: string,
+  moves: ReadonlyMap<string, string>,
+): Promise<number> {
+  if (moves.size === 0) return 0;
+  const { data: reportRows, error } = await admin
+    .from("training_workout_reports")
+    .select("workout_id, paired_activity_id, metrics_json")
+    .eq("profile_id", profileId)
+    .in("paired_activity_id", [...moves.keys()]);
+  if (error) return 0;
+  const reports = (reportRows ?? []) as Array<{
+    workout_id: string;
+    paired_activity_id: string;
+    metrics_json: Partial<WorkoutMetricsSnapshot> | null;
+  }>;
+  if (reports.length === 0) return 0;
+
+  const [{ data: workoutRows }, { data: rideRows }] = await Promise.all([
+    admin
+      .from("training_workouts")
+      .select(
+        "id, profile_id, trainer_id, scheduled_at, title, duration_minutes, intensity, target_type, structure_json, intervals_event_id",
+      )
+      .eq("profile_id", profileId)
+      .in(
+        "id",
+        reports.map((report) => report.workout_id),
+      ),
+    admin
+      .from("strava_activities")
+      .select(STRAVA_RIDE_COLUMNS)
+      .eq("profile_id", profileId)
+      .in("id", [...new Set(moves.values())].map(Number)),
+  ]);
+  const workouts = new Map(
+    ((workoutRows ?? []) as PlannedWorkoutRow[]).map((row) => [row.id, row]),
+  );
+  const rides = new Map(
+    ((rideRows ?? []) as unknown as StravaRideRow[]).map((row) => [String(row.id), row]),
+  );
+
+  let moved = 0;
+  for (const report of reports) {
+    const toId = moves.get(String(report.paired_activity_id))!;
+    const workout = workouts.get(report.workout_id);
+    const ride = rides.get(toId);
+    // Zonder de nieuwe rit niet verhuizen: dan laat het nawerk de training los.
+    if (!ride) continue;
+    const metrics = workout
+      ? await rebuildSnapshot(admin, profileId, workout, ride, report.metrics_json ?? {})
+      : report.metrics_json;
+    const { error: writeError } = await admin
+      .from("training_workout_reports")
+      .update({ paired_activity_id: toId, metrics_json: metrics ?? {}, updated_by: profileId })
+      .eq("profile_id", profileId)
+      .eq("workout_id", report.workout_id)
+      .eq("paired_activity_id", report.paired_activity_id);
+    if (!writeError) moved++;
+  }
+  return moved;
+}
+
+/**
  * Het lid herstelt de koppeling tussen een rit en een training. Drie gevallen,
  * één pad:
  *
@@ -879,48 +1025,8 @@ export async function relinkRide(
   // verleden kan er ook een lege naast staan.
   const source = linked.find((report) => report.metrics_json?.plannedTitle) ?? linked[0];
   const previous = (source?.metrics_json ?? {}) as Partial<WorkoutMetricsSnapshot>;
-  let context: SnapshotContext;
-  if (previous.plannedTitle) {
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("ftp_watts, weight_kg")
-      .eq("id", profileId)
-      .maybeSingle();
-    context = {
-      ftpAt: await loadFtpAt(
-        admin,
-        profileId,
-        profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
-      ),
-      // Het gewicht van de oorspronkelijke momentopname gaat voor: het is dezelfde rit.
-      weightKg:
-        previous.weightKg ?? (profile?.weight_kg == null ? null : Number(profile.weight_kg)),
-      wellness: [],
-      readiness: {
-        score: previous.readinessScore ?? null,
-        level: previous.readinessLevel ?? null,
-        title: previous.readinessTitle ?? null,
-      },
-    };
-  } else {
-    context = await loadSnapshotContext(admin, profileId);
-  }
-
   const targetRow = target as PlannedWorkoutRow;
-  const metrics: WorkoutMetricsSnapshot = {
-    ...buildMetricsSnapshot({
-      workout: targetRow,
-      ride: rideRow,
-      ftpWatts: context.ftpAt(rideDayKey),
-      weightKg: context.weightKg,
-      ctl: previous.plannedTitle
-        ? { before: previous.ctlBefore ?? null, after: previous.ctlAfter ?? null }
-        : ctlAround(context.wellness, rideDayKey),
-      readiness: context.readiness,
-    }),
-    // Zonetijden horen bij de rit, niet bij de training.
-    ...(previous.zoneTimes ? { zoneTimes: previous.zoneTimes } : {}),
-  };
+  const metrics = await rebuildSnapshot(admin, profileId, targetRow, rideRow, previous);
 
   // Zonder bevestigscherm en zonder oude rapportage (een ongeplande rit) laten we
   // de beleving van de doeltraining staan: die kan nog van een verwijderde rit

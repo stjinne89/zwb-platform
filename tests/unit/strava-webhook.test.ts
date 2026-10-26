@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   evaluateSubscriptionChallenge,
   isDeauthorizationEvent,
+  isVisibilityOnlyUpdate,
   parseWebhookEvent,
   timingSafeEqual,
 } from "@/lib/strava/webhook-events";
@@ -103,6 +104,26 @@ describe("isDeauthorizationEvent", () => {
       updates: { authorized: "true" },
     })!;
     expect(isDeauthorizationEvent(event)).toBe(false);
+  });
+});
+
+describe("isVisibilityOnlyUpdate", () => {
+  const update = (updates: Record<string, unknown>) =>
+    parseWebhookEvent({ ...ACTIVITY_EVENT, aspect_type: "update", updates })!;
+
+  it("herkent een rit die alleen op privé is gezet", () => {
+    expect(isVisibilityOnlyUpdate(update({ private: "true", visibility: "only_me" }))).toBe(true);
+    expect(isVisibilityOnlyUpdate(update({ visibility: "followers_only" }))).toBe(true);
+  });
+
+  it("laat een titel- of typewijziging door", () => {
+    expect(isVisibilityOnlyUpdate(update({ title: "Rondje", private: "true" }))).toBe(false);
+    expect(isVisibilityOnlyUpdate(update({ type: "Run" }))).toBe(false);
+  });
+
+  it("laat een update zonder velden en een create door", () => {
+    expect(isVisibilityOnlyUpdate(update({}))).toBe(false);
+    expect(isVisibilityOnlyUpdate(parseWebhookEvent(ACTIVITY_EVENT)!)).toBe(false);
   });
 });
 

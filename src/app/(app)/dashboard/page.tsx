@@ -45,8 +45,8 @@ import { FrrStandings } from "./_components/frr-standings";
 import { Greeting } from "./_components/greeting";
 import { MyRaces } from "./_components/my-races";
 import { PhotoNudge } from "./_components/photo-nudge";
+import { QaDashboard } from "./_components/qa";
 import { InstagramStrip, type InstagramPost } from "./_components/instagram-strip";
-import { SponsorCarousel } from "./_components/sponsor-carousel";
 import { SrcResults } from "./_components/src-results";
 import {
   TrainingStatus,
@@ -56,6 +56,7 @@ import {
 } from "./_components/training-status";
 import type { WellnessDevice } from "@/lib/training/wellness";
 import { MaintenanceStatus } from "./_components/maintenance-status";
+import { WeekReviewDashboardLink } from "@/components/weekoverzicht/dashboard-link";
 import { StravaImportForm } from "@/components/strava-import-form";
 import { StravaSyncButton } from "@/components/strava-sync-button";
 import {
@@ -75,9 +76,24 @@ import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { amsterdamDateKey, amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { getDesign } from "@/lib/design";
-import { TegelsVandaag, type VandaagEvent, type VandaagLive } from "@/components/tegels/vandaag";
+import { points as briljantPoints, positionFor as briljantPosition } from "@/lib/briljant/score";
+import { SCALE_VERSION as BRILJANT_SCALE } from "@/lib/briljant/norms";
+import { storedScore as briljantStoredScore } from "@/lib/briljant/compare";
+import {
+  TegelsVandaag,
+  type VandaagBriljant,
+  type VandaagEvent,
+  type VandaagLive,
+  type VandaagLiveEvent,
+} from "@/components/tegels/vandaag";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { liveRidersLabel } from "@/lib/live/riders-label";
+import {
+  isEventRunning,
+  splitLiveRiders,
+  type LiveRider,
+  type RunningEvent,
+} from "@/lib/live/event-riders";
 
 const INSTAGRAM_NON_POST_SOURCES = [INSTAGRAM_STORY_SOURCE, INSTAGRAM_TAG_HIDDEN_SOURCE];
 
@@ -380,29 +396,79 @@ function ActivityRow({
  * Wie er nu live rijdt: dezelfde regel als Samen fietsen (open sessie, binnen
  * 15 minuten gezien). Garmin en Wahoo eerst bijwerken, zoals de kalender doet:
  * zonder nieuwe Wahoo-links te zoeken, want dat gebeurt op Samen fietsen zelf.
+ * Wie in een lopend event rijdt waar die zich voor aanmeldde, krijgt de tegel
+ * van dat event in plaats van Samen fietsen (lib/live/event-riders.ts).
  */
 async function loadLiveNow(
   supabase: Awaited<ReturnType<typeof createClient>>,
   viewerId: string,
-): Promise<VandaagLive | null> {
+): Promise<{ together: VandaagLive | null; events: VandaagLiveEvent[] }> {
   await refreshExternalLiveSessions({ detect: false });
-  const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  const now = Date.now();
+  const cutoff = new Date(now - 15 * 60 * 1000).toISOString();
   const { data } = await supabase
     .from("live_sessions")
-    .select("profile_id, profiles(display_name)")
+    .select("profile_id, started_at, profiles(display_name)")
     .is("ended_at", null)
     .gte("last_seen_at", cutoff)
     .order("started_at", { ascending: true });
   // Eén renner met twee open sessies telt één keer.
-  const byProfile = new Map<string, string>();
+  const byProfile = new Map<string, LiveRider>();
   for (const row of data ?? []) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const name = ((row.profiles as any)?.display_name as string) ?? "ZWB'er";
-    if (!byProfile.has(row.profile_id as string)) byProfile.set(row.profile_id as string, name);
+    const profileId = row.profile_id as string;
+    if (!byProfile.has(profileId)) {
+      byProfile.set(profileId, { profileId, name, sessionStartedAt: row.started_at as string });
+    }
   }
-  const riders = [...byProfile].map(([profileId, name]) => ({ profileId, name }));
-  if (riders.length === 0) return null;
-  return { count: riders.length, riders: liveRidersLabel(riders, viewerId) };
+  const riders = [...byProfile.values()];
+  if (riders.length === 0) return { together: null, events: [] };
+
+  // Events die vandaag lopen kunnen hooguit een dag geleden begonnen zijn.
+  const { data: eventRows } = await supabase
+    .from("events")
+    .select("id, title, start_at, end_at")
+    .gte("start_at", new Date(now - 24 * 60 * 60 * 1000).toISOString())
+    .lte("start_at", new Date(now + 60 * 60 * 1000).toISOString());
+  const events: RunningEvent[] = (eventRows ?? [])
+    .map((row) => ({
+      id: row.id as string,
+      title: String(row.title ?? ""),
+      startAt: row.start_at as string,
+      endAt: (row.end_at as string | null) ?? null,
+    }))
+    .filter((event) => isEventRunning(event, now));
+  const { data: rsvpRows } =
+    events.length > 0
+      ? await supabase
+          .from("event_rsvps")
+          .select("event_id, profile_id, status")
+          .in("event_id", events.map((event) => event.id))
+          .in("profile_id", riders.map((rider) => rider.profileId))
+      : { data: [] };
+  const split = splitLiveRiders(
+    riders,
+    events,
+    (rsvpRows ?? []).map((row) => ({
+      eventId: row.event_id as string,
+      profileId: row.profile_id as string,
+      status: row.status as string,
+    })),
+    now,
+  );
+  return {
+    together:
+      split.together.length > 0
+        ? { count: split.together.length, riders: liveRidersLabel(split.together, viewerId) }
+        : null,
+    events: split.byEvent.map(({ event, riders: eventRiders }) => ({
+      id: event.id,
+      title: event.title,
+      count: eventRiders.length,
+      riders: liveRidersLabel(eventRiders, viewerId),
+    })),
+  };
 }
 
 export default async function DashboardPage({
@@ -469,7 +535,6 @@ export default async function DashboardPage({
     { data: standingRows },
     { data: clubActivities },
     { data: awardRows },
-    { data: sponsorRows },
     { data: recentPastEventRows },
     { data: trainingConn },
     { data: nextWorkoutRows },
@@ -552,13 +617,6 @@ export default async function DashboardPage({
       .order("awarded_at", { ascending: false })
       .order("period_start", { ascending: false })
       .limit(8),
-    supabase
-      .from("sponsors")
-      .select("name, logo_url, website_url")
-      .eq("active", true)
-      .not("logo_url", "is", null)
-      .order("tier")
-      .order("display_order"),
     supabase
       .from("events")
       .select("id, title, start_at, location, cover_image_path, created_by")
@@ -714,19 +772,6 @@ export default async function DashboardPage({
   ]);
   const activities = (clubActivities ?? []) as unknown as ClubActivityRow[];
   const awards = (awardRows ?? []) as unknown as AwardRow[];
-  const carouselSponsors = (
-    (sponsorRows ?? []) as {
-      name: string;
-      logo_url: string | null;
-      website_url: string | null;
-    }[]
-  )
-    .filter((s) => s.logo_url)
-    .map((s) => ({
-      name: s.name,
-      logoUrl: s.logo_url as string,
-      websiteUrl: s.website_url,
-    }));
   const reportPreviews = recentPastEvents.map((ev) => {
     const rep = reportByEvent.get(ev.id);
     // Header-beeld: stabiel gekozen uit cover + foto's, zodat renders puur blijven.
@@ -875,7 +920,13 @@ export default async function DashboardPage({
           return { minutes: block.durationMinutes, pct: (low + high) / 2 };
         })
       : undefined;
-  const tileEvents = otherEvents.slice(0, 3).map((event) => toTile(event, "kalender"));
+  const liveNow = await livePromise;
+  // Een event dat al een eigen live-tegel heeft, staat er niet nog eens bij.
+  const liveEventIds = new Set((liveNow?.events ?? []).map((event) => event.id));
+  const tileEvents = otherEvents
+    .filter((event) => !liveEventIds.has(event.id))
+    .slice(0, 3)
+    .map((event) => toTile(event, "kalender"));
   // De uitslagtegel toont de nieuwste uitslag van een eigen team. Wie in een
   // paraplu zit, telt de subteams als eigen team (zelfde regel als MyRaces en de
   // kalender, migr. 0179). Geen eigen team met een uitslag: geen tegel.
@@ -902,7 +953,37 @@ export default async function DashboardPage({
         )[0] ?? null;
   }
 
-  const liveNow = await livePromise;
+  // ZWBriljant: de score van de laatste snapshot (die van deze week komt bij het
+  // openen van de pagina of uit de wekelijkse job). Zonder snapshot of zonder
+  // migratie 0265 geen tegel.
+  let tileBriljant: VandaagBriljant | null = null;
+  if (tegels && user) {
+    const { data: snapshot } = await supabase
+      .from("zwbriljant_snapshots")
+      .select("facets, consistency")
+      .eq("profile_id", user.id)
+      .eq("provenance->>scale", BRILJANT_SCALE)
+      .not("score", "is", null)
+      .order("week", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    // Opnieuw uit de onderdelen: een rij van vóór de optelling telt zo ook mee.
+    const score = snapshot
+      ? briljantStoredScore(
+          (snapshot.facets ?? {}) as Parameters<typeof briljantStoredScore>[0],
+          snapshot.consistency == null ? null : Number(snapshot.consistency),
+        )
+      : null;
+    if (score != null && Number.isFinite(score)) {
+      const { reached, next, toNext } = briljantPosition(score);
+      tileBriljant = {
+        points: briljantPoints(score),
+        level: reached.name,
+        color: reached.color,
+        next: next ? { name: next.name, toGo: toNext } : null,
+      };
+    }
+  }
 
   function eventList(events: UpcomingEvent[]) {
     return (
@@ -976,7 +1057,9 @@ export default async function DashboardPage({
               : null
           }
           events={tileEvents}
-          live={liveNow}
+          live={liveNow?.together ?? null}
+          liveEvents={liveNow?.events ?? []}
+          briljant={tileBriljant}
           standing={
             tileStanding && tileStanding.position
               ? {
@@ -996,6 +1079,10 @@ export default async function DashboardPage({
         />
       )}
 
+      {/* Vaste plek voor het weekoverzicht: de hele week, naar de laatst
+          afgesloten week. In tegels staat het in de tegelrij hieronder. */}
+      {!tegels && user && <WeekReviewDashboardLink />}
+
       {/* Blijft staan tot het ID er is: de dialoog bij inloggen mag weggeklikt
           worden, maar dan moet het ergens zichtbaar blijven. */}
       {needsZwiftId && (
@@ -1009,13 +1096,17 @@ export default async function DashboardPage({
       )}
 
       {tegels ? (
-        // Eén tegelrij: jouw races, met de Instagram-posts van deze week ernaast.
+        // Eén tegelrij: jouw races, Q&A, en de Instagram-posts van deze week.
         <div className="grid grid-cols-2 gap-2 empty:hidden md:grid-cols-4">
+          {user && <WeekReviewDashboardLink tegels />}
           {user && (
             <Suspense fallback={null}>
               <MyRaces userId={user.id} tegels />
             </Suspense>
           )}
+          <Suspense fallback={null}>
+            <QaDashboard tegels />
+          </Suspense>
           <InstagramStrip
             tegels
             posts={instagramPosts.filter((post) => instagramRecentIds.has(post.id))}
@@ -1191,6 +1282,14 @@ export default async function DashboardPage({
             })}
           </ul>
         </section>
+      )}
+
+      {/* Q&A als ingang naar /qa; in tegels staat hij in de tegelrij bovenaan
+          (wens eigenaar, 2026-10-20). */}
+      {!tegels && (
+        <Suspense fallback={null}>
+          <QaDashboard />
+        </Suspense>
       )}
 
       {!tegels && shownReports.length > 0 && (
@@ -1500,10 +1599,6 @@ export default async function DashboardPage({
             </section>
           )}
         </div>
-      )}
-
-      {carouselSponsors.length > 0 && (
-        <SponsorCarousel sponsors={carouselSponsors} />
       )}
     </div>
   );

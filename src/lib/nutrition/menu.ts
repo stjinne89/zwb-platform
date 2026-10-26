@@ -1,21 +1,24 @@
 // Het dagmenu: per moment van de dag één recept dat bij deze renner en deze dag
 // past, met de overige recepten als alternatief.
 //
-// Regelgebaseerd en zonder opslag, net als de tip (tips.ts). De keuze kijkt naar:
+// Regelgebaseerd, net als de tip (tips.ts). Alleen wat het lid zelf kiest wordt
+// bewaard (nutrition_menu_choices, zie plan.ts); de rest volgt uit de regels.
+// De automatische keuze kijkt naar:
 //   1. of de portie na schalen het doel van dat moment haalt (scale.ts);
 //   2. het brandstofprofiel dat bij het dagtype hoort;
 //   3. het soort eten: licht verteerbaar rond de rit en op zware dagen,
 //      vezelrijk op rustige dagen (UCI-positiestandpunt, thema 7);
 //   4. wat het lid zelf als favoriet of "niet voor mij" heeft gemarkeerd.
+// Een recept dat een ander lid deelt, kiest het menu alleen als favoriet.
 // Wat daarna gelijkwaardig is, wisselt per dag door, zodat een recept pas
 // terugkomt als de andere geweest zijn.
 
 import { dayIndex } from "@/lib/training/zwbeterworden";
 import { isKeyDay, totalMinutes, type FuelDayType } from "./day-type";
 import type { DietTag, FuelProfile } from "./labels";
-import { matchesDiet, portionForRider, type Recipe, type Rider } from "./recipes";
+import { isPackagedRecipe, matchesDiet, portionForRider, type Recipe, type Rider } from "./recipes";
 import { SCALE_MAX, macrosFor, roundGrams, type IngredientRole, type ScaledRecipe } from "./scale";
-import { MEAL_MOMENTS, mealTarget, type MealMoment } from "./targets";
+import { MEAL_MOMENTS, RECOVERY_RIDE_MINUTES, mealTarget, type MealMoment } from "./targets";
 import { EVENING_START_HOUR, type NutritionDay, type NutritionDayInput } from "./tips";
 import { portionTraits, type PortionTraits } from "./traits";
 
@@ -28,8 +31,6 @@ export const DAY_MOMENTS: MealMoment[] = ["ontbijt", "lunch", "tussendoor", "din
 export const RIDE_MOMENTS: MealMoment[] = ["voor_rit", "tijdens_rit", "na_rit"];
 
 const MAIN_MEALS = new Set<MealMoment>(["ontbijt", "lunch", "diner"]);
-/** Vanaf deze ritduur hoort er een herstelmoment bij (zelfde grens als de tip). */
-const RECOVERY_RIDE_MINUTES = 60;
 
 /** Welke momenten vandaag in het menu staan. */
 export function menuMoments(input: NutritionDayInput, day: NutritionDay): MealMoment[] {
@@ -66,6 +67,11 @@ export type MenuContext = {
   today: string;
   prefs: RecipePrefs;
   diet: DietTag | null;
+  /**
+   * Ook recepten die andere leden delen. Zonder dit tellen die alleen als het
+   * lid ze als favoriet heeft: ze zijn niet nagekeken zoals de clubrecepten.
+   */
+  includeShared?: boolean;
 };
 
 export type RankedRecipe = {
@@ -86,6 +92,8 @@ export function portionFit(recipe: Recipe, portion: ScaledRecipe, rider: Rider |
     weightKg: rider.weightKg,
     dayType: rider.dayType,
     rideMinutes: rider.rideMinutes,
+    rideIntensity: rider.rideIntensity,
+    rideGut: rider.rideGut,
   });
   const parts: number[] = [];
   if (target.carbsG) {
@@ -124,6 +132,7 @@ export function rankRecipes(recipes: Recipe[], moment: MealMoment, context: Menu
       (recipe) =>
         recipe.meal_moment === moment &&
         context.prefs.get(recipe.id) !== "verborgen" &&
+        (!recipe.from_member || context.includeShared || context.prefs.get(recipe.id) === "favoriet") &&
         matchesDiet(recipe, context.diet),
     )
     .map((recipe) => {
@@ -168,51 +177,96 @@ export function stapleOf(recipe: Recipe): string | null {
 
 export type MenuSlot = RankedRecipe & {
   moment: MealMoment;
-  /** Hoeveel recepten er voor dit moment zijn, voor "ander recept". */
+  /** Hoeveel recepten er voor dit moment zijn, voor "Ander recept". */
   choices: number;
-  /** De plek in de rij die nu getoond wordt. */
-  index: number;
-  /** De portie is groter gemaakt omdat er vandaag nog iets bij moet (topUpMenu). */
+  /** Het lid heeft dit recept zelf voor deze dag gekozen (nutrition_menu_choices). */
+  chosen: boolean;
+  /** Het recept dat "Ander recept" kiest; null als er maar één is. */
+  nextRecipeId: string | null;
+  /** De portie is groter gemaakt omdat de dag anders onder het minimum blijft (topUpMenu). */
   toppedUp?: boolean;
 };
 
-export type MenuSwaps = Partial<Record<MealMoment, number>>;
+/** Lunch en diner zijn uitwisselbaar; de andere momenten hebben hun eigen recepten. */
+export function choiceMoments(moment: MealMoment): MealMoment[] {
+  return moment === "lunch" || moment === "diner" ? ["lunch", "diner"] : [moment];
+}
+
+export type DayMenuOptions = {
+  /** Zelf gekozen recepten voor deze dag, per moment. */
+  chosen?: Partial<Record<MealMoment, string>>;
+  /** Recepten die vlak ervoor of erna zelf gekozen zijn: niet automatisch nog eens. */
+  avoid?: Set<string>;
+  /** Koolhydraatbasis van de zelf gekozen hoofdmaaltijden op de dag ervoor en erna. */
+  avoidStaples?: Set<string>;
+};
 
 /**
- * Het menu van vandaag. Zonder eigen keuze krijgen de hoofdmaaltijden niet
- * twee keer dezelfde koolhydraatbasis; wie zelf doorklikt, krijgt wat hij kiest.
+ * Het menu van één dag. Een zelf gekozen recept staat vast, ook buiten het
+ * dieetfilter of als "niet voor mij", en de portie past bij het moment waar
+ * het staat. De rest kiest automatisch: geen recept dat het lid vlak ervoor of
+ * erna zelf koos, en waar het kan geen koolhydraatbasis die die dag of de dag
+ * ernaast al op een hoofdmaaltijd staat.
  */
 export function dayMenu(
   recipes: Recipe[],
   moments: MealMoment[],
   context: MenuContext,
-  swaps: MenuSwaps = {},
+  options: DayMenuOptions = {},
 ): MenuSlot[] {
+  const byId = new Map(recipes.map((recipe) => [recipe.id, recipe]));
+  const chosen = new Map<MealMoment, Recipe>();
+  for (const [moment, recipeId] of Object.entries(options.chosen ?? {}) as [MealMoment, string][]) {
+    const recipe = byId.get(recipeId);
+    if (recipe && choiceMoments(recipe.meal_moment).includes(moment)) chosen.set(moment, recipe);
+  }
+  const avoid = new Set([...(options.avoid ?? []), ...[...chosen.values()].map((recipe) => recipe.id)]);
+  const avoidStaples = options.avoidStaples ?? new Set<string>();
+
   const usedStaples = new Set<string>();
+  for (const [moment, recipe] of chosen) {
+    const staple = MAIN_MEALS.has(moment) ? stapleOf(recipe) : null;
+    if (staple) usedStaples.add(staple);
+  }
+
   const slots: MenuSlot[] = [];
-
-  for (const moment of moments) {
+  const all = MEAL_MOMENTS.filter((moment) => moments.includes(moment) || chosen.has(moment));
+  for (const moment of all) {
     const ranked = rankRecipes(recipes, moment, context);
-    if (ranked.length === 0) continue;
-
-    const swap = swaps[moment];
-    let index = 0;
-    if (swap != null) {
-      index = ((swap % ranked.length) + ranked.length) % ranked.length;
-    } else if (MAIN_MEALS.has(moment)) {
-      const fresh = ranked.findIndex((item) => {
-        const staple = stapleOf(item.recipe);
-        return staple == null || !usedStaples.has(staple);
-      });
-      index = fresh >= 0 ? fresh : 0;
+    const own = chosen.get(moment);
+    let pick: RankedRecipe | undefined;
+    if (own) {
+      const placed = { ...own, meal_moment: moment };
+      const portion = portionForRider(placed, context.rider);
+      pick = { recipe: own, portion, traits: portionTraits(portion.ingredients), score: 0 };
+    } else {
+      const open = ranked.filter((item) => !avoid.has(item.recipe.id));
+      const pool = open.length > 0 ? open : ranked;
+      const fresh = (blocked: Set<string>) =>
+        pool.find((item) => {
+          const staple = stapleOf(item.recipe);
+          return staple == null || !blocked.has(staple);
+        });
+      pick = MAIN_MEALS.has(moment)
+        ? (fresh(new Set([...usedStaples, ...avoidStaples])) ?? fresh(usedStaples) ?? pool[0])
+        : pool[0];
+      if (pick && MAIN_MEALS.has(moment)) {
+        const staple = stapleOf(pick.recipe);
+        if (staple) usedStaples.add(staple);
+      }
     }
+    if (!pick) continue;
 
-    const chosen = ranked[index];
-    if (MAIN_MEALS.has(moment)) {
-      const staple = stapleOf(chosen.recipe);
-      if (staple) usedStaples.add(staple);
-    }
-    slots.push({ ...chosen, moment, choices: ranked.length, index });
+    const current = pick.recipe.id;
+    const position = ranked.findIndex((item) => item.recipe.id === current);
+    const next = ranked[(position + 1) % Math.max(ranked.length, 1)];
+    slots.push({
+      ...pick,
+      moment,
+      choices: ranked.length,
+      chosen: Boolean(own),
+      nextRecipeId: next && next.recipe.id !== current ? next.recipe.id : null,
+    });
   }
   return slots;
 }
@@ -228,10 +282,13 @@ export type TopUpInput = {
   /** De ondergrens van de dag; null zonder gewicht. */
   floor: { carbsG: number | null; proteinG: number | null };
   energyFactor: number;
+  /** Ritduur in uren: een portie "Tijdens de rit" is één uur op de fiets. */
+  rideHours?: number;
 };
 
 /**
- * Het menu dat meerekent met wat er al gegeten is. Haalt wat er gegeten is plus
+ * Het menu dat meerekent met wat er al gegeten is (Naleving; zonder Naleving is
+ * dat niets, en dan vult het menu zichzelf aan). Haalt wat er gegeten is plus
  * de rest van het menu de onderkant van de dag niet, dan groeien de porties van
  * de hoofdmaaltijden en het tussendoortje die nog komen, naar rato. Nooit
  * kleiner dan normaal: een menu dat om minder eten vraagt, past niet bij de
@@ -239,12 +296,17 @@ export type TopUpInput = {
  * gewone portie wordt het niet (scale.ts).
  */
 export function topUpMenu(slots: MenuSlot[], input: TopUpInput): MenuSlot[] {
-  const open = slots.filter((slot) => TOP_UP_MOMENTS.has(slot.moment) && !input.eatenMoments.has(slot.moment));
+  // Een gel of reep groeit niet mee: die neem je in hele stuks (isPackagedRecipe).
+  const open = slots.filter(
+    (slot) =>
+      TOP_UP_MOMENTS.has(slot.moment) && !input.eatenMoments.has(slot.moment) && !isPackagedRecipe(slot.recipe),
+  );
   if (open.length === 0) return slots;
+  const portions = (slot: MenuSlot) => (slot.moment === "tijdens_rit" ? Math.max(1, input.rideHours ?? 1) : 1);
   const planned = (key: "carbsG" | "proteinG") =>
     slots
       .filter((slot) => !input.eatenMoments.has(slot.moment))
-      .reduce((total, slot) => total + slot.portion.perPortion[key], 0);
+      .reduce((total, slot) => total + slot.portion.perPortion[key] * portions(slot), 0);
   const short = (key: "carbsG" | "proteinG") => {
     const floor = input.floor[key];
     return floor == null ? 0 : Math.max(0, floor - input.eaten[key] - planned(key));
@@ -292,23 +354,4 @@ export function topUpMenu(slots: MenuSlot[], input: TopUpInput): MenuSlot[] {
     };
     return { ...slot, portion, toppedUp: true };
   });
-}
-
-/** "lunch:2,diner:1" uit de URL. Onbekende momenten en rare getallen vallen weg. */
-export function parseSwaps(value: string | null | undefined): MenuSwaps {
-  const swaps: MenuSwaps = {};
-  for (const part of (value ?? "").split(",")) {
-    const [moment, raw] = part.split(":");
-    const count = Number(raw);
-    if ((MEAL_MOMENTS as readonly string[]).includes(moment) && Number.isInteger(count) && count > 0 && count < 1000) {
-      swaps[moment as MealMoment] = count;
-    }
-  }
-  return swaps;
-}
-
-export function serializeSwaps(swaps: MenuSwaps): string {
-  return MEAL_MOMENTS.filter((moment) => (swaps[moment] ?? 0) > 0)
-    .map((moment) => `${moment}:${swaps[moment]}`)
-    .join(",");
 }

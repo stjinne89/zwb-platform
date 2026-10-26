@@ -2,6 +2,8 @@
 
 **Gemeten op 2026-10-17**, over alle voltooide AI-generaties in productie.
 
+**Bijgesteld op 2026-10-26**: `piekweek`, `onder-recente-belasting` en `opbouwgroei` toetsen belasting (TSS) in plaats van uren; zie de tabel en [schema-belasting-2026-10-26](schema-belasting-2026-10-26.md). De cijfers hieronder zijn van de oude regels.
+
 **Bijgesteld op 2026-10-17**, bij het naspelen van de regelmotor: vier regels oordeelden te streng, voor AI en motor gelijk. De cijfers hieronder zijn van vóór die bijstelling; de actuele AI-cijfers staan naast die van de motor in [regelmotor-naspelen](regelmotor-naspelen.md). Zie "Bijgesteld" onderaan.
 
 De meetlat is `checkTrainingPlan()` in
@@ -24,15 +26,15 @@ liggen. Deze meting is de nulmeting van de AI.
 | `beschikbaarheid` | fout | Training op een dag met 0 minuten, of langer dan de minuten van die dag. Eerst de eigen week uit `availability.weeks`, dan `availability.default`, dan `goal.availableDays`. Bij een dag-aanpassing geldt voor vandaag `today.availableMinutes`. In een kamp telt alleen een apart ingevulde week; een toegezegd event (`upcomingEvents`, intensity `race`) wordt niet op beschikbaarheid beoordeeld. |
 | `vaste-afspraak` | fout | Training op een dag met een `fixedWorkout`. |
 | `weekplafond` | fout | Weekvolume (eigen workouts plus vaste afspraken) boven `goal.maxHoursPerWeek`, buiten een kampweek. Alleen in weken waarin de planner zelf iets zette. De race op de doeldatum of een A-mikpunt telt niet mee. |
-| `piekweek` | fout | Zwaarste week van een opbouwblok onder 85% van het plafond. Het plafond is `maxHoursPerWeek`, of de som van de beschikbaarheid als die krapper is. Vervalt bij een vermoeidheidssignaal. |
-| `opbouwgroei` | waarschuwing | Opbouwweek meer dan 25% boven de opbouwweek ervoor. Na een herstelweek vergelijken we met de opbouwweek daarvóór: terug naar het oude niveau is geen sprong. |
+| `piekweek` | fout | Sinds 2026-10-26: de zwaarste week van een opbouwblok ligt in geschatte TSS niet minstens 10% boven `currentLoad` (het hoogste van CTL × 7 en de gereden TSS per week), met 5% marge voor de blok-som. Geen oordeel zonder belastingsbron, of als de week zijn beschikbare tijd al voor 95% vult. Vervalt bij een vermoeidheidssignaal. Tot 2026-10-26: onder 85% van `maxHoursPerWeek`; dat las beschikbare tijd als doel ([schema-belasting-2026-10-26](schema-belasting-2026-10-26.md)). |
+| `opbouwgroei` | waarschuwing | Opbouwweek met meer dan 25% meer belasting (geschatte TSS; tot 2026-10-26: minuten) dan de opbouwweek ervoor. Na een herstelweek vergelijken we met de opbouwweek daarvóór: terug naar het oude niveau is geen sprong. |
 | `herstelweek` | waarschuwing | Herstelweek buiten 55-75% van de week ervoor. De prompt zegt "grofweg 60-70%"; de marge van vijf punten is een keuze van de meetlat. |
-| `onder-recente-belasting` | fout | Opbouwweek onder `recentLoad.hoursPerWeek` (of onder het plafond als dat lager ligt), zonder vermoeidheidssignaal. |
+| `onder-recente-belasting` | fout | Opbouwweek met minder geschatte TSS dan 95% van `currentLoad`, zonder vermoeidheidssignaal, tenzij de week zijn beschikbare tijd al voor 95% vult. Zonder belastingsbron (geen CTL, geen ritten met TSS) zoals voorheen: onder `recentLoad.hoursPerWeek`, of onder het plafond als dat lager ligt. |
 | `blokintensiteit` | fout | Intensity van een blok valt niet in de zone van het midden van zijn doel (`alignBlockIntensity`). Alleen blokken met een leesbaar % of wattdoel. |
 | `workoutintensiteit` | fout | Intensity van de workout is niet die van het kernwerk (`alignWorkoutIntensities`, `keyWorkPct`). |
 | `drempelblok-lang` | fout | Drempelblok van 15 minuten of langer met een bovengrens boven 95% FTP. |
 | `boven-ftp-lang` | fout | Bovengrens boven 100% FTP in een blok langer dan 8 minuten, zonder `onSeconds`. |
-| `korte-herstelrit` | fout | Hersteltraining korter dan 90 minuten. Niet als het lid vandaag zelf om een rit vroeg, en niet bij openers op de dag vóór een race of test. |
+| `korte-herstelrit` | fout | Hersteltraining of rustige duur (`isEasyRide`, sinds 2026-10-26) korter dan 90 minuten. Niet als het lid vandaag zelf om een rit vroeg, en niet bij openers op de dag vóór een race of test. Tot 2026-10-26 alleen intensity `recovery`. |
 | `rustdag-als-workout` | waarschuwing | Een rustdag als workout teruggegeven (intensity `rest` of 0 minuten). |
 | `taper-zonder-piek` | fout | Taper zonder `outdoor_event`/`gran_fondo` als doel of een A-mikpunt. Herkend aan "taper" in een titel, of aan twee weken op rij minstens 10% minder aan het eind van de periode. |
 | `sleutelsessies-aaneen` | fout | Threshold, VO2max of anaeroob op twee opeenvolgende dagen (eigen workouts, vaste afspraken en bij een dag-aanpassing de rest van `currentPlan`), buiten een kamp. |
@@ -176,5 +178,10 @@ Bij het naspelen van de regelmotor bleek de meetlat op vier plekken iets af te k
 - **Toegezegd event.** De duur van een event is volgens de prompt een gegeven. Staat het niet in `fixedWorkouts` en neemt de planner het daarom zelf op, dan oordeelt de meetlat niet meer over de beschikbaarheid van die dag.
 - **Piekmoment en weekplafond.** De race op de doeldatum (gran fondo, outdoor event) of op een A-mikpunt telt niet tegen het urenplafond van zijn week. Anders kon een taperweek naast een gran fondo van zes uur niets meer bevatten.
 - **Taperzone.** De meetlat zag elke week binnen drie weken vóór het piekmoment als taper, en sloot het opbouwblok daar af. Een taper van twee weken met de piekweek ervóór werd zo afgerekend op een te vroege "piek". Nu is een week in die zone pas taper als het volume echt zakt (onder 90 % van de week ervoor).
+
+Daarna, na het besluit van de eigenaar dat de groeigrens vóór de piekweek gaat:
+
+- **Piekweek binnen de groeigrens.** Een piek onder 85 % van het plafond is geen fout als die 85 % alleen te halen was met sprongen van meer dan een kwart per week, gerekend vanaf de week vóór het blok (of `recentLoad`), met vijf procent marge voor afronding. Sinds 2026-10-26 geldt dit in belasting: de piek hoeft niet hoger dan een kwart per week groei vanaf de belasting van de week vóór het blok (of `currentLoad`).
+- **Laatste blok van een bijwerking.** Een bijwerking eindigt op de einddatum van het oude schema, niet op een blokeinde. Loopt het laatste opbouwblok daar nog, dan oordeelt de meetlat niet over zijn piek; die kan erna liggen (spiegel van de bestaande uitzondering voor het eerste blok).
 
 De grens voor "sterk negatieve TSB" bleef -20. De motor plant zelf met -30 (`src/lib/training/engine/signals.ts`); de meetlat is als scheidsrechter bewust ruimer, zodat geen van beide planners wordt afgerekend op een grens die de prompt niet noemt.

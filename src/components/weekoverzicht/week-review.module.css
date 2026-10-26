@@ -1,0 +1,632 @@
+/* Weekoverzicht: een reeks volle schermen in zeefdruk. Eigen register binnen
+ * het merk (keuze eigenaar 2026-10-18): tenue-inkten op vezelig papier, licht
+ * en donker volwaardig. Inkten mengen door overdruk: multiply op licht papier,
+ * screen op donker papier. */
+
+.backdrop {
+  --paper: oklch(0.945 0.016 95);
+  --ink: oklch(0.27 0.025 215);
+  --soft: oklch(0.47 0.022 210);
+  --rule: color-mix(in oklab, var(--ink) 18%, transparent);
+  --c: oklch(0.47 0.085 210);
+  --g: oklch(0.76 0.135 75);
+  --s: oklch(0.7 0.04 165);
+  --blend: multiply;
+  --fiber: 1;
+  --btn: var(--ink);
+  --btn-ink: var(--paper);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --stencil: var(--font-wr-stencil), "Arial Narrow", sans-serif;
+  --text: var(--font-wr-text), ui-sans-serif, system-ui, sans-serif;
+
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklab, oklch(0.16 0.025 220) 72%, transparent);
+  font-family: var(--text);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+:global(.dark) .backdrop {
+  --paper: oklch(0.24 0.03 215);
+  --ink: oklch(0.94 0.014 90);
+  --soft: oklch(0.77 0.018 190);
+  --c: oklch(0.6 0.085 205);
+  --g: oklch(0.72 0.13 72);
+  --s: oklch(0.6 0.045 165);
+  --blend: screen;
+  --fiber: 0.5;
+  background: color-mix(in oklab, black 70%, transparent);
+}
+
+.backdrop ::selection {
+  background: var(--g);
+  color: oklch(0.27 0.025 215);
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  height: 100dvh;
+  max-height: 940px;
+  overflow: hidden;
+  background: var(--paper);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media (min-width: 640px) {
+  .stage {
+    height: min(100dvh - 48px, 900px);
+    border-radius: 6px;
+    box-shadow: 0 30px 80px -30px rgb(0 0 0 / 0.6);
+  }
+}
+
+.fiber {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: var(--fiber);
+  mix-blend-mode: var(--blend);
+  /* Boven de schermen: de inkt neemt de korrel van het papier aan. */
+  z-index: 4;
+}
+
+.reg {
+  position: absolute;
+  top: 52%;
+  width: 16px;
+  height: 16px;
+  z-index: 2;
+  color: var(--ink);
+  opacity: 0.5;
+}
+
+/* Voortgang als gedrukte stroken */
+.strips {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 14px;
+  right: 14px;
+  display: flex;
+  gap: 4px;
+  z-index: 6;
+}
+
+.strips i {
+  flex: 1;
+  height: 4px;
+  background: var(--rule);
+  overflow: hidden;
+}
+
+.strips b {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--ink);
+}
+
+.strips .done b {
+  width: 100%;
+}
+
+.strips .now b {
+  animation: run var(--dur, 7s) linear forwards;
+}
+
+.paused .strips .now b {
+  animation-play-state: paused;
+}
+
+@keyframes run {
+  to {
+    width: 100%;
+  }
+}
+
+.close {
+  position: absolute;
+  top: calc(20px + env(safe-area-inset-top));
+  right: 6px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  z-index: 7;
+  cursor: pointer;
+}
+
+.close:focus-visible,
+.btn:focus-visible,
+.tap:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Schermen */
+.slide {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  padding: calc(64px + env(safe-area-inset-top)) 22px calc(20px + env(safe-area-inset-bottom));
+  visibility: hidden;
+}
+
+.slide.on {
+  visibility: visible;
+}
+
+/* De week erna is langer dan een telefoonscherm: scrollen onder de strepen
+   en het kruisje door, met de knoppen altijd onderin. */
+.slide.scroll {
+  top: calc(60px + env(safe-area-inset-top));
+  padding-top: 4px;
+  padding-bottom: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.foot {
+  margin-top: auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  background: var(--paper);
+}
+
+.foot .act {
+  padding-top: 6px;
+}
+
+.big {
+  margin: 0;
+  font-family: var(--stencil);
+  font-variation-settings: "opsz" 72;
+  font-weight: 900;
+  font-size: clamp(84px, 28vw, 116px);
+  line-height: 0.82;
+  text-transform: uppercase;
+  letter-spacing: 0.005em;
+  font-variant-numeric: tabular-nums;
+}
+
+.big.m {
+  font-size: clamp(70px, 23vw, 94px);
+}
+
+.big small {
+  font-size: 0.42em;
+  letter-spacing: 0.02em;
+  margin-left: 0.08em;
+}
+
+.lead {
+  margin: 20px 0 0;
+  font: 800 21px/1.2 var(--text);
+  max-width: 20ch;
+  text-wrap: balance;
+}
+
+.sub {
+  margin: 10px 0 0;
+  font-size: 15.5px;
+  line-height: 1.45;
+  color: var(--soft);
+  max-width: 34ch;
+  text-wrap: pretty;
+}
+
+.sub b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.txt {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.5s var(--ease) 0.1s,
+    transform 0.7s var(--ease) 0.1s;
+}
+
+.slide.on .txt {
+  opacity: 1;
+  transform: none;
+}
+
+.art {
+  flex: 1;
+  min-height: 0;
+  margin: 18px -22px 0;
+  display: flex;
+  align-items: flex-end;
+}
+
+.art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 420px;
+  overflow: visible;
+}
+
+.lbl {
+  font: 800 11px var(--text);
+  letter-spacing: 0.08em;
+  fill: var(--ink);
+  text-transform: uppercase;
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.lbl.soft {
+  fill: var(--soft);
+  font-weight: 700;
+}
+
+.num {
+  font-family: var(--stencil);
+  font-variation-settings: "opsz" 72;
+  font-weight: 900;
+  font-size: 22px;
+  fill: var(--ink);
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 3px;
+}
+
+.axis {
+  stroke: var(--ink);
+  stroke-width: 1.4;
+}
+
+/* Inkt: elke pas wordt met de rakel ingedrukt en schuift in register */
+.ink {
+  mix-blend-mode: var(--blend);
+  clip-path: inset(0 100% 0 0);
+  transform: translate(6px, -5px);
+  transition:
+    clip-path 0.75s var(--ease),
+    transform 0.9s var(--ease);
+}
+
+.p2 {
+  transition-delay: 0.18s, 0.18s;
+}
+
+.p3 {
+  transition-delay: 0.36s, 0.36s;
+}
+
+.slide.on .ink {
+  clip-path: inset(0 0 0 0);
+  transform: none;
+}
+
+/* Eén pas staat net uit register, ook stilstaand en zonder beweging. */
+.slide.on .ghost {
+  transform: translate(3px, -2px);
+  animation: drift 3.4s ease-in-out 1.2s infinite alternate;
+}
+
+@keyframes drift {
+  from {
+    transform: translate(3px, -2px);
+  }
+  to {
+    transform: translate(6px, -4px);
+  }
+}
+
+.fc {
+  fill: var(--c);
+}
+.fg {
+  fill: var(--g);
+}
+.fs {
+  fill: var(--s);
+}
+.open {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+.dashed {
+  fill: none;
+  stroke: var(--s);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+
+/* Tikken links en rechts, zoals in elke story */
+.tap {
+  position: absolute;
+  top: 60px;
+  bottom: 0;
+  z-index: 5;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tapL {
+  left: 0;
+  width: 30%;
+}
+
+.tapR {
+  right: 0;
+  width: 70%;
+}
+
+.act {
+  margin-top: auto;
+  padding-top: 14px;
+  display: flex;
+  gap: 10px;
+  position: relative;
+  z-index: 5;
+}
+
+.btn {
+  flex: 1;
+  min-height: 52px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--btn);
+  color: var(--btn-ink);
+  font-family: var(--stencil);
+  font-variation-settings: "opsz" 40;
+  font-weight: 900;
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.btn.alt {
+  flex: 0 0 64px;
+  background: transparent;
+  color: var(--ink);
+  outline: 1.5px solid var(--ink);
+  outline-offset: -1.5px;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+/* Coach */
+.quote {
+  font-family: var(--stencil);
+  font-variation-settings: "opsz" 72;
+  font-weight: 900;
+  font-size: 140px;
+  line-height: 0.6;
+  height: 70px;
+}
+
+.coach {
+  margin: 0;
+  font: 600 20px/1.42 var(--text);
+  max-width: 30ch;
+  text-wrap: pretty;
+}
+
+.coach strong {
+  font-weight: 600;
+  box-shadow: inset 0 -0.42em 0 color-mix(in oklab, var(--g) 55%, transparent);
+}
+
+.coachWait {
+  color: var(--soft);
+}
+
+.sig {
+  margin-top: 18px;
+  font: 700 13px var(--text);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--soft);
+}
+
+/* Laatste pagina: de week, meteen aan te passen */
+.week {
+  margin-top: 14px;
+  position: relative;
+  z-index: 5;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 40px 1fr 48px;
+  column-gap: 10px;
+  align-items: center;
+  padding: 8px 0 6px;
+  border-top: 1px solid var(--rule);
+  min-height: 62px;
+}
+
+.dn {
+  font-family: var(--stencil);
+  font-variation-settings: "opsz" 40;
+  font-weight: 900;
+  font-size: 24px;
+  line-height: 1;
+  text-transform: uppercase;
+  grid-row: 1 / span 2;
+  align-self: start;
+  padding-top: 2px;
+}
+
+.track {
+  position: relative;
+  height: 22px;
+  border: 1.2px solid var(--ink);
+  cursor: ew-resize;
+  /* Horizontaal slepen is voor de balk; verticaal mag de pagina blijven. */
+  touch-action: pan-y;
+}
+
+/* Een ruimer raakvlak dan de 22px van de balk, voor de duim. */
+.track::after {
+  content: "";
+  position: absolute;
+  inset: -12px -6px;
+}
+
+.fill,
+.evb {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  mix-blend-mode: var(--blend);
+}
+
+.fill {
+  background: var(--c);
+  transition: width 0.25s var(--ease);
+}
+
+.evb {
+  top: 5px;
+  bottom: 5px;
+}
+
+.knob {
+  position: absolute;
+  top: -7px;
+  width: 4px;
+  height: 34px;
+  background: var(--ink);
+  pointer-events: none;
+  transition: left 0.25s var(--ease);
+}
+
+/* Alleen voor het toetsenbord en schermlezers; aanwijzen gaat via de balk. */
+.track input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.track:focus-within {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+
+.val {
+  font-family: var(--stencil);
+  font-variation-settings: "opsz" 40;
+  font-weight: 900;
+  font-size: 21px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.meta {
+  grid-column: 2 / span 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+  min-height: 22px;
+  margin-top: 5px;
+  font-size: 13px;
+  color: var(--soft);
+}
+
+.evc {
+  position: relative;
+  isolation: isolate;
+  padding: 2px 7px;
+  font: 700 12.5px var(--text);
+  color: var(--ink);
+}
+
+.evc::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--evc);
+  opacity: 0.5;
+  z-index: -1;
+}
+
+.evc b {
+  font-weight: 800;
+}
+
+.warn {
+  outline: 1.5px dashed var(--ink);
+  outline-offset: -1.5px;
+}
+
+.warn::before {
+  opacity: 0.15;
+}
+
+.status {
+  margin: 8px 0 0;
+  min-height: 20px;
+  font-size: 13.5px;
+  color: var(--soft);
+}
+
+@media (max-height: 700px) {
+  .row {
+    min-height: 54px;
+    padding: 5px 0 4px;
+  }
+  .big {
+    font-size: 76px;
+  }
+  .big.m {
+    font-size: 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ink,
+  .txt,
+  .fill,
+  .knob {
+    transition: none !important;
+  }
+  .slide.on .ghost {
+    animation: none;
+    transform: translate(3px, -2px);
+  }
+  .strips .now b {
+    animation: none;
+    width: 100%;
+  }
+}

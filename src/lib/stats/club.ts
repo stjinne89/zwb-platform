@@ -21,9 +21,11 @@ import {
   yearEarlier,
   type Granularity,
 } from "@/lib/stats/personal";
+import { isSameRide, SAME_START_MS } from "@/lib/rides/same-ride";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
 export type ClubRideRow = {
+  id: number | string;
   profile_id: string;
   start_date: string;
   sport_type: string | null;
@@ -61,14 +63,24 @@ function rounded<T extends Volume>(row: T): T {
   return { ...row, km: round1(row.km), hours: Math.round(row.hours * 100) / 100, elevation: Math.round(row.elevation) };
 }
 
-/** Ritten van een jaar naar de drie samenvattingen. */
+/**
+ * Ritten van een jaar naar de drie samenvattingen. Dezelfde rit van één lid uit
+ * twee bronnen telt één keer (zie dedupeRideRows in personal.ts); de rijen komen
+ * op starttijd binnen.
+ */
 export function summarizeClubRides(rows: ClubRideRow[]): ClubData {
   const months = new Map<string, ClubCell>();
   const weeks = new Map<string, ClubCell>();
   const days = new Map<string, ClubDay>();
+  const recent = new Map<string, ClubRideRow[]>();
   for (const row of rows) {
     const start = new Date(row.start_date);
     if (!Number.isFinite(start.getTime()) || !row.profile_id) continue;
+    const own = (recent.get(row.profile_id) ?? []).filter(
+      (other) => start.getTime() - Date.parse(other.start_date) <= SAME_START_MS,
+    );
+    if (own.some((other) => isSameRide(other, row))) continue;
+    recent.set(row.profile_id, [...own, row]);
     const day = amsterdamDayKey(start);
     const sport = row.sport_type ?? "Ride";
     const ride: Volume = {
@@ -187,7 +199,9 @@ export function clubPreviousYear(
       for (const day of data.days) {
         if (day.day >= start && day.day <= yearEarlier(today, per)) addVolume(totals, day);
       }
-      return totals.rides > 0 ? { ...totals, members: series[index].members } : null;
+      // Leden staan niet per dag in de samenvatting; de hele maand van vorig jaar
+      // naast een halve maand nu zou altijd een daling tonen. Dus leeg.
+      return totals.rides > 0 ? { ...totals, members: 0 } : null;
     }
     return series[index].rides > 0 ? series[index] : null;
   });
@@ -250,8 +264,13 @@ export function clubByDiscipline(cells: ClubCell[]) {
   return groupBy(cells, (cell) => cell.sport).sort((a, b) => b.hours - a.hours);
 }
 
+export const UNKNOWN_REGION = "Onbekend";
+
+/** Per regio, meeste km eerst; leden zonder regio onderaan, ook als dat de grootste groep is. */
 export function clubByRegion(cells: ClubCell[], regionOf: (profileId: string) => string | null) {
-  return groupBy(cells, (cell) => (regionOf(cell.profileId) ?? "").trim() || "Onbekend").sort((a, b) => b.km - a.km);
+  return groupBy(cells, (cell) => (regionOf(cell.profileId) ?? "").trim() || UNKNOWN_REGION).sort(
+    (a, b) => Number(a.id === UNKNOWN_REGION) - Number(b.id === UNKNOWN_REGION) || b.km - a.km,
+  );
 }
 
 export function clubByRider(cells: ClubCell[]) {

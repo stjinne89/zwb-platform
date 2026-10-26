@@ -49,6 +49,9 @@ export type RouteAccent = {
 export type ZwiftEventInfo = {
   eventId: number;
   title: string;
+  /** Omschrijving van de organisator, zoals Zwift hem levert. */
+  description: string | null;
+  imageUrl: string | null;
   startAt: string | null;
   distanceKm: number | null;
   durationMinutes: number | null;
@@ -169,6 +172,8 @@ export function mapZwiftEvent(row: ZwiftEventApiRow): ZwiftEventInfo | null {
   return {
     eventId,
     title: (row.name ?? "").trim(),
+    description: (row.description ?? "").trim() || null,
+    imageUrl: (row.imageUrl ?? "").trim() || null,
     startAt: row.eventStart ?? null,
     distanceKm: positiveKm(row.distanceInMeters),
     durationMinutes:

@@ -11,7 +11,8 @@ import {
 import { ZWIFT_BASE_BIKE_KG, ZWIFT_BASE_CDA } from "@/lib/pacing/zwift-setup";
 
 // Uitsnede van de echte sheet (21 september 2026): een handvol frames, wielen
-// en het volledige basistabblad.
+// en het volledige basistabblad. De Pinarello Espada (halo, eigen wielen) kwam
+// er op 20 oktober 2026 bij.
 const read = (name: string) =>
   readFileSync(path.join(__dirname, "..", "fixtures", "zwift", name), "utf8");
 
@@ -44,6 +45,14 @@ describe("tabbladen", () => {
 });
 
 describe("afgeleide onderdelen", () => {
+  it("een halo-fiets heeft vaste wielen, een gewone fiets niet", () => {
+    const frame = (name: string) => catalog.parts.find((item) => item.part === "frame" && item.name === name)!;
+    expect(frame("Pinarello Espada").fixedWheels).toBe(true);
+    expect(frame("Pinarello Espada").kind).toBe("road");
+    expect(frame("Specialized Tarmac SL8").fixedWheels).toBe(false);
+    expect(frame("Zwift TT").fixedWheels).toBe(false);
+  });
+
   it("de referentie komt overeen met de constanten in zwift-setup.ts", () => {
     expect(catalog.baseline?.cda).toBeCloseTo(ZWIFT_BASE_CDA, 3);
     expect(catalog.baseline?.bikeKg).toBeCloseTo(ZWIFT_BASE_BIKE_KG, 1);

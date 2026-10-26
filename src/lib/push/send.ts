@@ -42,7 +42,12 @@ export type NotificationTrigger =
   | "on_strava_link_expiring"
   | "on_intervals_visit_reminder"
   // Naleving (voeding); het eigenlijke aan of uit staat in nutrition_log_settings.
-  | "on_nutrition_reminder";
+  | "on_nutrition_reminder"
+  // Bericht naar de fietscomputer tijdens een rit (0253).
+  | "on_ride_message"
+  // Q&A (0254): een nieuwe vraag voor wie antwoordt, een antwoord voor de vrager.
+  | "on_qa_question"
+  | "on_qa_answer";
 
 let vapidConfigured = false;
 function ensureVapid(): boolean {
@@ -77,13 +82,19 @@ export async function sendNotificationToMembers(
   trigger: NotificationTrigger,
   payload: PushPayload,
   options: { excludeProfileId?: string; profileIds?: string[] } = {},
-): Promise<{ sent: number; pruned: number; skipped: boolean }> {
+): Promise<{
+  sent: number;
+  pruned: number;
+  skipped: boolean;
+  /** Leden met minstens één apparaat dat de melding aannam. */
+  reachedProfileIds: string[];
+}> {
   if (!ensureVapid()) {
     // Geen keys geconfigureerd: no-op, log enkel.
     console.warn(
       "[push] VAPID env vars ontbreken; notificatie niet verzonden.",
     );
-    return { sent: 0, pruned: 0, skipped: true };
+    return { sent: 0, pruned: 0, skipped: true, reachedProfileIds: [] };
   }
 
   const admin = createAdminClient();
@@ -104,7 +115,7 @@ export async function sendNotificationToMembers(
   }
   profileIds = Array.from(new Set(profileIds));
   if (profileIds.length === 0) {
-    return { sent: 0, pruned: 0, skipped: false };
+    return { sent: 0, pruned: 0, skipped: false, reachedProfileIds: [] };
   }
 
   const { data: subRows } = await admin
@@ -113,13 +124,14 @@ export async function sendNotificationToMembers(
     .in("profile_id", profileIds);
   const subs = (subRows ?? []) as SubscriptionRow[];
   if (subs.length === 0) {
-    return { sent: 0, pruned: 0, skipped: false };
+    return { sent: 0, pruned: 0, skipped: false, reachedProfileIds: [] };
   }
 
   const payloadStr = JSON.stringify(payload);
   let sent = 0;
   let pruned = 0;
   const toPruneIds: string[] = [];
+  const reached = new Set<string>();
 
   await Promise.all(
     subs.map(async (s) => {
@@ -132,6 +144,7 @@ export async function sendNotificationToMembers(
           payloadStr,
         );
         sent++;
+        reached.add(s.profile_id);
       } catch (err) {
         const status = (err as { statusCode?: number }).statusCode;
         if (status === 404 || status === 410) {
@@ -153,5 +166,5 @@ export async function sendNotificationToMembers(
   // last_used_at bijwerken voor wat er gelukt is is nice-to-have maar
   // niet kritiek; sla over voor performance.
 
-  return { sent, pruned, skipped: false };
+  return { sent, pruned, skipped: false, reachedProfileIds: Array.from(reached) };
 }

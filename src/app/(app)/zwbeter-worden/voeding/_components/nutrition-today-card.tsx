@@ -4,7 +4,20 @@
 
 import { nutritionDay, nutritionTipForToday, type NutritionDayInput } from "@/lib/nutrition/tips";
 import { rankRecipes } from "@/lib/nutrition/menu";
-import { energyFactorFor, loadNutritionProfile, loadRecipePrefs, loadRecipes, type Viewer } from "../_data";
+import { gutTrainingOn } from "@/lib/nutrition/gut-training";
+import { currentSweatRate } from "@/lib/nutrition/sweat";
+import { ridePlan } from "@/lib/nutrition/ride-plan";
+import { RidePlanView } from "../../_components/ride-plan-view";
+import {
+  energyFactorFor,
+  loadGutSource,
+  loadSweatTests,
+  loadMenuChoices,
+  loadNutritionProfile,
+  loadRecipePrefs,
+  loadRecipes,
+  type Viewer,
+} from "../_data";
 import { NutritionTip } from "./nutrition-tip";
 
 export async function NutritionTodayCard({
@@ -16,22 +29,28 @@ export async function NutritionTodayCard({
   today: string;
   day: Omit<NutritionDayInput, "today" | "weightKg">;
 }) {
-  const [profile, recipes, prefs] = await Promise.all([
+  const [profile, recipes, prefs, choices, gut, sweatTests] = await Promise.all([
     loadNutritionProfile(viewer, today),
     loadRecipes(viewer),
     loadRecipePrefs(viewer),
+    loadMenuChoices(viewer, today, today),
+    loadGutSource(viewer),
+    loadSweatTests(viewer),
   ]);
 
-  const input = { ...day, today, weightKg: profile.weightKg };
+  const input = { ...day, today, weightKg: profile.weightKg, gut: gutTrainingOn(gut, today) };
   const tip = nutritionTipForToday(input);
   const fuel = nutritionDay(input);
+  const energyFactor = energyFactorFor(profile);
   // Dezelfde rangorde als het dagmenu op de voedingspagina.
-  const [first] = rankRecipes(recipes, tip.mealMoment, {
+  const ranked = rankRecipes(recipes, tip.mealMoment, {
     rider: {
       weightKg: profile.weightKg,
-      energyFactor: energyFactorFor(profile),
+      energyFactor,
       dayType: fuel.dayType,
       rideMinutes: fuel.rideMinutes,
+      rideIntensity: fuel.rideIntensity,
+      rideGut: fuel.rideGut,
     },
     dayType: fuel.dayType,
     tomorrowType: fuel.tomorrowType,
@@ -39,6 +58,30 @@ export async function NutritionTodayCard({
     prefs,
     diet: null,
   });
+  const first = ranked[0];
 
-  return <NutritionTip tip={tip} recipe={first?.recipe ?? null} titleHref="/zwbeter-worden/voeding" />;
+  // Eten onderweg: wat je klaarzet, zoals het dagmenu het toont.
+  const chosenId = choices.find((choice) => choice.moment === "tijdens_rit")?.recipeId;
+  const chosen = chosenId ? recipes.find((recipe) => recipe.id === chosenId) : undefined;
+  const ride =
+    tip.kind === "tijdens_rit" && fuel.rideMinutes
+      ? ridePlan({
+          minutes: fuel.rideMinutes,
+          intensity: fuel.rideIntensity,
+          gut: fuel.rideGut,
+          sweatMlPerHour: currentSweatRate(sweatTests),
+          weightKg: profile.weightKg,
+          ranked: ranked.map((item) => item.recipe),
+          lead: chosen ?? first?.recipe ?? null,
+          leadChosen: Boolean(chosen),
+          energyFactor,
+        })
+      : null;
+
+  return (
+    <>
+      <NutritionTip tip={tip} recipe={ride ? null : (first?.recipe ?? null)} titleHref="/zwbeter-worden/voeding" />
+      {ride ? <RidePlanView plan={ride} /> : null}
+    </>
+  );
 }

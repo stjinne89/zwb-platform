@@ -7,7 +7,7 @@
 
 import { revalidatePath } from "next/cache";
 import { LOG_CONSENT_VERSION, parseLogDay, type LogSource } from "@/lib/nutrition/log";
-import { normalizeBarcode, parseOffProduct, type NutritionProduct } from "@/lib/nutrition/products";
+import { logItemFor, normalizeBarcode, parseOffProduct, type NutritionProduct } from "@/lib/nutrition/products";
 import { portionForRider } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS, type MealMoment } from "@/lib/nutrition/targets";
 import { nutritionDay } from "@/lib/nutrition/tips";
@@ -108,6 +108,11 @@ export async function deleteLog(): Promise<ActionResult> {
 /** Een NEVO-product (`food_id`) of een barcodeproduct (`barcode`). */
 type ItemInput = { food_id?: string; barcode?: string; grams: number };
 
+/** Zoals `food.id` van een receptingrediënt: de barcode bij een verpakt product (productAsFood). */
+function itemKey(item: ItemInput): string {
+  return item.barcode ?? item.food_id ?? "";
+}
+
 type MealInput = {
   day: string;
   moment: MealMoment;
@@ -180,7 +185,7 @@ export async function logRecipe(formData: FormData): Promise<ActionResult> {
   const shown = parseItems(text(formData.get("items")));
   if (shown) {
     const allowed = new Set(recipe.ingredients.map((item) => item.food.id));
-    if (shown.length > 0 && shown.every((item) => item.food_id && allowed.has(item.food_id))) {
+    if (shown.length > 0 && shown.every((item) => allowed.has(itemKey(item)))) {
       return insertMeal(viewer, {
         day,
         moment: momentFrom(text(formData.get("moment"))) ?? recipe.meal_moment,
@@ -202,6 +207,8 @@ export async function logRecipe(formData: FormData): Promise<ActionResult> {
           energyFactor: energyFactorFor(profile),
           dayType: fuelDay.dayType,
           rideMinutes: fuelDay.rideMinutes,
+          rideIntensity: fuelDay.rideIntensity,
+          rideGut: fuelDay.rideGut,
         }
       : null,
   );
@@ -214,8 +221,51 @@ export async function logRecipe(formData: FormData): Promise<ActionResult> {
     title: recipe.title,
     items: portion.ingredients
       .filter((item) => item.grams > 0)
-      .map((item) => ({ food_id: item.food.id, grams: item.grams })),
+      .map((item) => logItemFor(item.food, item.grams)),
   });
+}
+
+/**
+ * Het hele ritplan als gegeten: per recept één maaltijd bij "Tijdens de rit",
+ * met alle bidons of porties samen (ridePlanMeals). Alleen ingrediënten van
+ * dat recept tellen.
+ */
+export async function logRidePlan(formData: FormData): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  const day = parseLogDay(text(formData.get("day")), todayKeyAmsterdam());
+  let parts: { slug: string; title: string; items: ItemInput[] | null }[];
+  try {
+    const parsed = JSON.parse(text(formData.get("parts"))) as { slug?: unknown; title?: unknown; items?: unknown }[];
+    if (!Array.isArray(parsed) || parsed.length === 0 || parsed.length > 2) throw new Error();
+    parts = parsed.map((part) => ({
+      slug: String(part.slug ?? ""),
+      title: String(part.title ?? ""),
+      items: parseItems(JSON.stringify(part.items ?? null)),
+    }));
+  } catch {
+    return { ok: false, error: "Geen ritplan opgegeven." };
+  }
+
+  const recipes = await Promise.all(parts.map((part) => loadRecipeBySlug(viewer, part.slug)));
+  for (const [index, part] of parts.entries()) {
+    const recipe = recipes[index];
+    const allowed = new Set(recipe?.ingredients.map((item) => item.food.id) ?? []);
+    if (!recipe || !part.items || part.items.length === 0 || !part.items.every((item) => allowed.has(itemKey(item)))) {
+      return { ok: false, error: "Dit ritplan klopt niet meer. Laad de pagina opnieuw." };
+    }
+  }
+  for (const [index, part] of parts.entries()) {
+    const result = await insertMeal(viewer, {
+      day,
+      moment: "tijdens_rit",
+      source: "recept",
+      recipeId: recipes[index]!.id,
+      title: part.title || recipes[index]!.title,
+      items: part.items!,
+    });
+    if (!result.ok) return result;
+  }
+  return { ok: true };
 }
 
 function parseItems(raw: string): ItemInput[] | null {
@@ -333,7 +383,21 @@ export async function lookupBarcode(raw: string): Promise<BarcodeResult> {
 
   const viewer = await requireViewer();
   if (!(await loadLogSettings(viewer))) return { ok: false, error: "Zet eerst Naleving aan." };
+  return findProduct(viewer, barcode);
+}
 
+/**
+ * Hetzelfde voor een eigen recept, zoals een gel of sportdrank in het
+ * receptenboek. Daarvoor hoeft Naleving niet aan: er wordt niets over het lid
+ * bewaard, alleen het product in de gedeelde tabel.
+ */
+export async function lookupRecipeBarcode(raw: string): Promise<BarcodeResult> {
+  const barcode = normalizeBarcode(raw);
+  if (!barcode) return { ok: false, error: "Dit is geen barcode." };
+  return findProduct(await requireViewer(), barcode);
+}
+
+async function findProduct(viewer: Viewer, barcode: string): Promise<BarcodeResult> {
   const { data: known } = await viewer.supabase
     .from("nutrition_products")
     .select("barcode, name, brand, quantity_unit, carbs_g, protein_g, serving_g")

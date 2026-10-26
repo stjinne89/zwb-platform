@@ -6,6 +6,7 @@
 
 import type { Viewer } from "../_data";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+import { memberHiddenPlanIds } from "@/lib/training/member-hidden-plans";
 import {
   MOBILITY_WINDOW_DAYS,
   shiftDayKey,
@@ -80,10 +81,10 @@ export async function loadDayContext(
   const from = `${shiftDayKey(today, -1)}T00:00:00Z`;
   const to = `${shiftDayKey(today, 2)}T00:00:00Z`;
 
-  const [workouts, rides] = await Promise.all([
+  const [workouts, rides, hiddenIds] = await Promise.all([
     viewer.supabase
       .from("training_workouts")
-      .select("scheduled_at, status")
+      .select("scheduled_at, status, plan_id")
       .eq("profile_id", viewer.user.id)
       .is("superseded_at", null)
       .neq("status", "skipped")
@@ -95,14 +96,16 @@ export async function loadDayContext(
       .eq("profile_id", viewer.user.id)
       .gte("start_date", from)
       .lt("start_date", to),
+    memberHiddenPlanIds(viewer.supabase, [viewer.user.id]),
   ]);
 
   const onToday = (value: string | null) =>
     Boolean(value) && amsterdamDayKey(new Date(value as string)) === today;
 
   return {
-    hasPlannedWorkoutToday: (workouts.data ?? []).some((row) =>
-      onToday(row.scheduled_at as string | null),
+    hasPlannedWorkoutToday: (workouts.data ?? []).some(
+      (row) =>
+        !hiddenIds.has(row.plan_id as string) && onToday(row.scheduled_at as string | null),
     ),
     rodeToday: (rides.data ?? []).some((row) => onToday(row.start_date as string | null)),
   };

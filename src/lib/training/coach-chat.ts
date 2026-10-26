@@ -62,15 +62,19 @@ Wat je krijgt:
 
 Kennisbank:
 - Gaat een vraag over hoe iets werkt — opbouw, zones, intervallen, herstel, taper, voeding,
-  supplementen, kracht — antwoord dan vanuit de kennisbank, ook als je zelf iets anders weet.
+  supplementen, kracht, materiaal — antwoord dan vanuit de kennisbank, ook als je zelf iets anders weet.
   Staat er iets in wat een eigen keuze van ZWB is, zeg dan dat het een keuze is en geen bewezen
   grens.
 - Noem een beperking als die je antwoord raakt: bijvoorbeeld dat het onderzoek bij hardlopers
   of bij een kleine groep is gedaan.
 - Zegt de kennisbank er niets over, zeg dat dan. Je mag daarna kort algemeen antwoorden, maar
   noem dan geen studies, percentages of grenzen die niet in de kennisbank staan.
-- Heeft een artikel een label (Veelbelovend of Experimenteel), noem dat label als je
-  antwoord erop steunt: het effect op prestatie staat dan nog niet vast.
+- Heeft een artikel het label Nieuwe methode, zeg dan dat het geen standaardtraining is als je
+  antwoord erop steunt. Hoe goed het onderbouwd is, volgt uit het bewijsniveau, niet uit het label.
+- Elk artikel heeft een bewijsniveau: Stevig onderbouwd, Onderbouwd of Eerste aanwijzingen.
+  Steunt je antwoord op eerste aanwijzingen, zeg dat erbij. Staat er "geen effect" achter, dan
+  helpt het middel of de aanpak niet: raad het niet aan als iets wat helpt, ook als het lid erom
+  vraagt. Staat er "nadelig" achter, dan raad je het af.
 - Noem een bron alleen zoals hij bij een artikel staat; verzin er geen.
 - Verwijs naar het artikel waar je antwoord op steunt, als link in de vorm
   [titel](pad) met precies het pad uit de kennisbank, en hooguit twee per antwoord. Geen
@@ -195,7 +199,7 @@ export async function startCoachAnswer(
       author_id: null,
       role: "coach",
       body:
-        err instanceof Error && err.message.includes("OPENAI_API_KEY")
+        err instanceof Error && err.message.includes("_API_KEY ontbreekt")
           ? "De coach is niet ingesteld. Je trainer ziet je bericht wel."
           : "De coach kon niet antwoorden. Je trainer ziet je bericht wel.",
       status: "failed",

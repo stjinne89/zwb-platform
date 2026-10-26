@@ -20,9 +20,10 @@ vi.mock("@/lib/intervals/client", async (importOriginal) => {
     ...actual,
     fetchIntervalsActivities: vi.fn(async (_key: string, _athlete: string, days: number) => {
       if (mocks.fetchError) throw mocks.fetchError;
-      const oldest = NOW.getTime() - days * 86400_000;
+      // Zoals de echte API: oldest is een kalenderdag, gefilterd op de lokale start.
+      const oldest = new Date(NOW.getTime() - days * 86400_000).toISOString().slice(0, 10);
       return mocks.activities.filter(
-        (activity) => Date.parse(`${activity.start_date_local}Z`) >= oldest,
+        (activity) => String(activity.start_date_local).slice(0, 10) >= oldest,
       );
     }),
     fetchIntervalsActivityTrack: vi.fn(async (_key: string, id: string) => {
@@ -141,7 +142,7 @@ describe("syncIntervalsRidesForProfile", () => {
     expect(db.tables.strava_activities).toHaveLength(3);
   });
 
-  it("laat een importrit staan en voegt dezelfde rit niet nog eens toe", async () => {
+  it("laat een importrit met vermogen staan en voegt dezelfde rit niet nog eens toe", async () => {
     const { db, conn } = setup();
     db.tables.strava_activities.push({
       id: -12345,
@@ -149,12 +150,151 @@ describe("syncIntervalsRidesForProfile", () => {
       name: "Rondje Veluwe",
       start_date: "2026-09-27T06:30:30.000Z",
       distance_m: 67400,
-      raw: { import_source: "strava_gpx" },
+      raw: { import_source: "strava_fit", device_watts: true, average_watts: 197 },
     });
     const result = await syncIntervalsRidesForProfile(db, conn, { now: NOW });
     expect(result.duplicates).toBe(2);
     expect(db.tables.strava_activities.find((ride) => ride.id === -12345)).toBeTruthy();
     expect(db.tables.strava_activities).toHaveLength(3);
+  });
+
+  // Jeroen Janssen, oktober 2026: zijn Zwift-ritten stonden er al uit
+  // activities.csv, zonder vermogen. De rit met vermogen werd als dubbel
+  // overgeslagen, dus NP, IF en TSS bleven leeg.
+  it("vervangt een importrit zonder vermogen door de rit met vermogen", async () => {
+    const { db, conn } = setup();
+    const gpsTimes = [{ segment_id: 9, seconds: 58, started_at: "2026-09-27T07:00:00Z" }];
+    db.tables.strava_activities.push({
+      id: 20131400295,
+      profile_id: A,
+      name: "Rondje Veluwe",
+      start_date: "2026-09-27T06:30:30.000Z",
+      distance_m: 67400,
+      raw: {
+        import_source: "strava_csv",
+        map: { summary_polyline: "_p~iF~ps|U_ulLnnqC" },
+        gps_segment_times: gpsTimes,
+      },
+    });
+    const result = await syncIntervalsRidesForProfile(db, conn, { now: NOW });
+
+    expect(result.error).toBeUndefined();
+    expect(db.tables.strava_activities.some((ride) => ride.id === 20131400295)).toBe(false);
+    const veluwe = db.tables.strava_activities.find(
+      (ride) => (ride.raw as Record<string, unknown>).intervals_id === "i81234567",
+    )!;
+    const raw = veluwe.raw as Record<string, unknown>;
+    expect(raw.average_watts).toBe(198);
+    expect(raw.map).toEqual({ summary_polyline: "_p~iF~ps|U_ulLnnqC" });
+    expect(raw.gps_segment_times).toEqual(gpsTimes);
+    // Het spoor kwam mee, dus niet nog eens opgevraagd.
+    expect(mocks.trackCalls).not.toContain("i81234567");
+    // De training van de oude rit komt vrij voor de nieuwe.
+    expect(mocks.postSync.mock.calls[0][3]).toMatchObject({ removedActivityIds: [20131400295] });
+    expect(db.tables.strava_activities).toHaveLength(3);
+  });
+
+  // Jeroen Janssen, 19 oktober 2026: de ruil liet zijn bevestigde trainingen
+  // los, en de detectie hing alleen die van de laatste week terug.
+  it("verhuist een bevestigde training mee naar de vervangende rit", async () => {
+    const { db, conn } = setup();
+    db.tables.strava_activities.push({
+      id: 20131400295,
+      profile_id: A,
+      name: "Rondje Veluwe",
+      start_date: "2026-09-27T06:30:30.000Z",
+      distance_m: 67400,
+      moving_time_seconds: 7200,
+      raw: { import_source: "strava_csv" },
+    });
+    db.tables.training_workouts = [
+      {
+        id: "w1",
+        profile_id: A,
+        trainer_id: null,
+        scheduled_at: "2026-09-27T08:00:00Z",
+        title: "Duur 120 min",
+        duration_minutes: 120,
+        intensity: "endurance",
+        target_type: "power",
+        structure_json: [],
+        intervals_event_id: null,
+        status: "completed",
+      },
+    ];
+    db.tables.training_workout_reports = [
+      {
+        workout_id: "w1",
+        profile_id: A,
+        paired_activity_id: "20131400295",
+        athlete_rpe: 4,
+        athlete_feel: "goed",
+        athlete_confirmed_at: "2026-09-27T12:00:00Z",
+        trainer_status: "approved",
+        metrics_json: { plannedTitle: "Duur 120 min", ctlBefore: 61, averageWatts: null },
+      },
+    ];
+
+    await syncIntervalsRidesForProfile(db, conn, { now: NOW });
+
+    const report = db.tables.training_workout_reports[0];
+    expect(report.paired_activity_id).toBe(String(-1_000_081_234_567));
+    expect(report.athlete_confirmed_at).toBe("2026-09-27T12:00:00Z");
+    expect(report.athlete_rpe).toBe(4);
+    expect(report.trainer_status).toBe("approved");
+    const metrics = report.metrics_json as Record<string, unknown>;
+    expect(metrics.averageWatts).toBe(198);
+    expect(metrics.ctlBefore).toBe(61);
+  });
+
+  it("slaat een rit uit de rand van het venster over als hij al via Strava staat", async () => {
+    // Productie, 2026-10-18: intervals.icu geeft 30 kalenderdagen, de
+    // ontdubbeling keek maar 29 dagen terug. De rit van 31 augustus kwam er
+    // daardoor naast de Strava-rit bij.
+    const { db, conn } = setup();
+    conn.rides_backfilled_at = "2026-09-01T00:00:00Z";
+    mocks.activities.push({
+      id: "i81230000",
+      source: "WAHOO",
+      type: "Ride",
+      name: "Le dernier",
+      start_date: "2026-08-31T13:45:33Z",
+      start_date_local: "2026-08-31T15:45:33",
+      timezone: "Europe/Amsterdam",
+      distance: 35329,
+      moving_time: 5400,
+    });
+    db.tables.strava_activities.push({
+      id: 20131400295,
+      profile_id: A,
+      name: "Le dernier",
+      start_date: "2026-08-31T13:45:33.000Z",
+      distance_m: 35325,
+      raw: {},
+    });
+
+    const result = await syncIntervalsRidesForProfile(db, conn, { now: NOW });
+    expect(result.error).toBeUndefined();
+    const edge = db.tables.strava_activities.filter(
+      (ride) => String(ride.start_date).startsWith("2026-08-31"),
+    );
+    expect(edge.map((ride) => ride.id)).toEqual([20131400295]);
+  });
+
+  it("verwijdert geen eigen rit uit de rand die de lijst niet meer bevat", async () => {
+    const { db, conn } = setup();
+    conn.rides_backfilled_at = "2026-09-01T00:00:00Z";
+    db.tables.strava_activities.push({
+      id: -1_000_081_230_000,
+      profile_id: A,
+      name: "Le dernier",
+      start_date: "2026-08-31T13:45:33.000Z",
+      distance_m: 35329,
+      raw: { import_source: "intervals" },
+    });
+    const result = await syncIntervalsRidesForProfile(db, conn, { now: NOW });
+    expect(result.removed).toBe(0);
+    expect(db.tables.strava_activities.some((ride) => ride.id === -1_000_081_230_000)).toBe(true);
   });
 
   it("legt een fout vast en schuift toch op", async () => {

@@ -2,11 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Check, Pencil } from "lucide-react";
 import { Markdown } from "@/components/markdown";
-import { DIET_TAG_LABELS, FUEL_PROFILE_LABELS, portionForRider } from "@/lib/nutrition/recipes";
+import { DIET_TAG_LABELS, FUEL_PROFILE_LABELS, isPackagedRecipe, portionForRider } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import { nutritionDay } from "@/lib/nutrition/tips";
 import { MICRONUTRIENT_LABELS, portionTraits } from "@/lib/nutrition/traits";
 import { logRecipe } from "../../_log-actions";
+import { chooseMenuRecipe } from "../../_menu-actions";
+import { MenuChoiceForm } from "../../_components/menu-choice-form";
+import { choiceMoments } from "@/lib/nutrition/menu";
+import { CHOICE_DAYS_AHEAD } from "@/lib/nutrition/plan";
+import { shiftDayKey } from "@/lib/training/mobility";
 import { LogActionButton } from "../../_components/log-controls";
 import {
   energyFactorFor,
@@ -21,10 +26,22 @@ import {
 import { deleteOwnRecipe, setRecipePref, shareOwnRecipe } from "../../_actions";
 import { DeleteRecipeButton } from "../../_components/delete-recipe-button";
 import { RecipePrefButtons, ShareRecipeButton } from "../../_components/recipe-actions";
+import { RecipeSharer } from "../../_components/recipe-sharer";
 import { BackLink } from "@/components/app-ui";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+function menuDayLabel(day: string, index: number) {
+  if (index === 0) return "Vandaag";
+  if (index === 1) return "Morgen";
+  return new Date(`${day}T12:00:00Z`).toLocaleDateString("nl-NL", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
 
 function amount(grams: number, unit: "g" | "ml") {
   return `${String(grams).replace(".", ",")} ${unit}`;
@@ -54,7 +71,9 @@ export default async function RecipePage({
   if (!recipe) notFound();
 
   const wantsBase = search.portie === "basis";
-  const personal = !wantsBase && profile.weightKg != null;
+  // Een gel of reep schaalt niet (isPackagedRecipe): er is maar één portie.
+  const fixed = isPackagedRecipe(recipe);
+  const personal = !wantsBase && !fixed && profile.weightKg != null;
   const day = personal ? nutritionDay(await loadNutritionDayInput(viewer, today, profile.weightKg)) : null;
   const portion = portionForRider(
     recipe,
@@ -64,6 +83,8 @@ export default async function RecipePage({
           energyFactor: energyFactorFor(profile),
           dayType: day.dayType,
           rideMinutes: day.rideMinutes,
+          rideIntensity: day.rideIntensity,
+          rideGut: day.rideGut,
         }
       : null,
   );
@@ -80,7 +101,23 @@ export default async function RecipePage({
     <div className="space-y-6">
       <div>
         <BackLink href="/zwbeter-worden/voeding/recepten" label="Receptenboek" />
+        {recipe.image_url && (
+          // Van de site van het recept, niet bij ons opgeslagen (0264).
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={recipe.image_url}
+            alt=""
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            className="mt-2 aspect-[16/9] w-full max-w-2xl rounded-lg border object-cover"
+          />
+        )}
         <h2 className="mt-1 text-xl font-semibold">{recipe.title}</h2>
+        {recipe.from_member && (
+          <div className="mt-1">
+            <RecipeSharer recipe={recipe} size={24} />
+          </div>
+        )}
         <p className="mt-1 text-xs text-muted-foreground">
           {[
             MEAL_MOMENT_LABELS[recipe.meal_moment],
@@ -106,7 +143,7 @@ export default async function RecipePage({
         <div className="space-y-3 rounded-lg border bg-card p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="font-semibold">{personal ? "Jouw portie vandaag" : "Eén portie"}</h3>
-            {profile.weightKg != null && (
+            {profile.weightKg != null && !fixed && (
               <Link
                 href={`/zwbeter-worden/voeding/recepten/${recipe.slug}${personal ? "?portie=basis" : ""}`}
                 className="inline-flex min-h-[44px] items-center text-sm text-primary hover:underline"
@@ -170,8 +207,26 @@ export default async function RecipePage({
         <RecipePrefButtons recipeId={recipe.id} pref={prefs.get(recipe.id) ?? null} action={setRecipePref} />
       </div>
 
+      <MenuChoiceForm
+        recipeId={recipe.id}
+        days={Array.from({ length: CHOICE_DAYS_AHEAD + 1 }, (_, index) => {
+          const value = shiftDayKey(today, index);
+          return { value, label: menuDayLabel(value, index) };
+        })}
+        moments={choiceMoments(recipe.meal_moment).map((moment) => ({
+          value: moment,
+          label: MEAL_MOMENT_LABELS[moment],
+        }))}
+        action={chooseMenuRecipe}
+      />
+
       {own && (
         <div className="flex flex-wrap items-center gap-3">
+          {recipe.visibility === "leden" && (
+            <span className="text-sm text-muted-foreground">
+              {recipe.show_owner ? "Gedeeld met alle leden" : "Gedeeld met alle leden, zonder naam"}
+            </span>
+          )}
           <ShareRecipeButton recipeId={recipe.id} status={recipe.share_status} action={shareOwnRecipe} />
           <Link
             href={`/zwbeter-worden/voeding/recepten/${recipe.slug}/bewerken`}
@@ -188,7 +243,7 @@ export default async function RecipePage({
         {recipe.contributor?.display_name ? `Van ${recipe.contributor.display_name}. ` : ""}
         {recipe.source_name ? (
           <>
-            Naar:{" "}
+            {recipe.is_standard ? "Naar" : "Bron"}:{" "}
             {recipe.source_url ? (
               <a href={recipe.source_url} target="_blank" rel="noreferrer" className="underline hover:text-primary">
                 {recipe.source_name}

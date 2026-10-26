@@ -8,6 +8,17 @@
 
 export type TileSource = "strava" | "intervals";
 
+/**
+ * Wat een tegel laat zien, voor de uitleg achter de titel (hover of tik). Kort:
+ * de volledige uitleg staat op /hulp, en waar een kennisbankartikel over het
+ * onderwerp gaat, linkt de uitleg daarheen.
+ */
+export type TileInfo = {
+  text: string;
+  /** Slug van een artikel in de kennisbank trainen (/zwbeter-worden/kennis). */
+  article?: string;
+};
+
 export type TileDef = {
   id: string;
   title: string;
@@ -18,6 +29,8 @@ export type TileDef = {
   defaultVisible: boolean;
   /** Hersteldata (rust-HR, HRV, slaap): alleen met de aparte opt-in. */
   needsWellnessOptIn?: boolean;
+  /** Ingevuld door tileDef en clubTileDef, uit de uitleg hieronder. */
+  info?: TileInfo;
 };
 
 export const STATS_TILES = [
@@ -61,6 +74,105 @@ export const CLUB_STATS_TILES = [
 
 export type ClubTileId = (typeof CLUB_STATS_TILES)[number]["id"];
 
+/** De uitleg achter de titel van elke tegel op Ik. */
+export const STATS_TILE_INFO: Record<TileId, TileInfo> = {
+  totalen: {
+    text: "Je kilometers, uren, hoogtemeters, ritten, kJ en TSS in het gekozen bereik. Het pijltje vergelijkt met dezelfde dagen een jaar eerder, als je toen minstens drie ritten had.",
+  },
+  volume: {
+    text: "Per week, maand of jaar. Het streepje is dezelfde periode vorig jaar, de stippellijn je gemiddelde over de afgesloten periodes, en een gestreepte staaf loopt nog.",
+  },
+  vermogen: {
+    text: "Je hoogste en je gemiddelde NP per periode, van ritten van minstens twintig minuten met een echte vermogensmeter. De stippellijn is je FTP van toen. Een rit boven 1,2 keer je FTP is een meetfout en telt niet mee.",
+    article: "ftp-test",
+  },
+  fitheid: {
+    text: "Fitheid (CTL) is je gemiddelde belasting over zes weken, vermoeidheid (ATL) over een week. Vorm is het verschil: onder nul ben je moe van de laatste dagen.",
+    article: "opbouwen",
+  },
+  efficientie: {
+    text: "Je NP gedeeld door je gemiddelde hartslag, alleen over rustige duurritten. Stijgt de lijn, dan trap je meer watt bij dezelfde hartslag.",
+    article: "lange-ritten",
+  },
+  jaarvergelijking: {
+    text: "Je kilometers opgeteld vanaf 1 januari, met een lijn per jaar. Zo zie je of je voor of achter ligt op vorig jaar.",
+  },
+  kalender: {
+    text: "Elk vakje is een dag van het afgelopen jaar; hoe voller de kleur, hoe meer kilometers. Een reeks weken loopt door zolang je elke week minstens één keer reed.",
+  },
+  discipline: {
+    text: "Je uren per soort rit: weg, Zwift, gravel en de rest, met kilometers en ritten eronder.",
+  },
+  records: {
+    text: "Je beste rit per soort en je beste week, maand en jaar ooit, los van het gekozen bereik.",
+  },
+  badges: {
+    text: "Hoeveel mijlpalen en weekbadges je hebt, met de nieuwste erbij. De hele kast staat op je profiel.",
+  },
+  piekvermogen: {
+    text: "Je beste vermogen over 5 seconden, 1, 5 en 20 minuten per periode, uit intervals.icu. Een maand zonder harde inspanning op die duur ligt dus lager, ook als je niet minder fit was.",
+    article: "intervallen",
+  },
+  "cp-wprime": {
+    text: "CP is het vermogen dat je lang kunt volhouden, W′ je reserve daarboven. Per periode berekend uit je beste inspanningen tussen 2 en 20 minuten.",
+    article: "intervallen",
+  },
+  "eftp-gewicht": {
+    text: "eFTP is de schatting van je FTP die intervals.icu uit je ritten maakt, met je gewicht van toen ernaast.",
+    article: "ftp-test",
+  },
+  "curve-per-jaar": {
+    text: "Je beste vermogen op elke duur, per jaar over elkaar. Ligt een lijn hoger, dan was je dat jaar sterker op die duur.",
+  },
+  "zones-vermogen": {
+    text: "Hoeveel tijd je per vermogenszone reed, in je eigen zones uit intervals.icu. Alleen ritten die rechtstreeks in intervals.icu staan tellen mee.",
+    article: "zones",
+  },
+  "zones-hartslag": {
+    text: "Hoeveel tijd je per hartslagzone reed, in je eigen zones uit intervals.icu. Alleen ritten die rechtstreeks in intervals.icu staan tellen mee.",
+    article: "zones",
+  },
+  wbal: {
+    text: "De staaf is je arbeid boven FTP in de periode, de lijn hoe diep je je anaerobe reserve (W′) in één rit leegtrok.",
+  },
+  duurvermogen: {
+    text: "Decoupling is hoeveel je hartslag oploopt terwijl je vermogen gelijk blijft, over ritten van minstens anderhalf uur; lager is beter. EF is watt per hartslag.",
+    article: "lange-ritten",
+  },
+  herstel: {
+    text: "Je gemiddelde rusthartslag, HRV en slaap per periode. Vergelijk met je eigen gewone waarden: een hogere rusthartslag of lagere HRV wijst op vermoeidheid.",
+    article: "herstel-meten",
+  },
+  ritten: {
+    text: "Al je ritten in het gekozen bereik, nieuwste eerst. NP, IF en TSS staan er alleen bij een echte vermogensmeter.",
+  },
+};
+
+/** De uitleg achter de titel van elke tegel op Club. */
+export const CLUB_TILE_INFO: Record<ClubTileId, TileInfo> = {
+  totalen: {
+    text: "Opgeteld over de leden die in het bereik reden. Km per lid is het totaal gedeeld door de actieve leden: zo zie je of de club meer rijdt of vooral groeit.",
+  },
+  volume: {
+    text: "Het volume van de club per week, maand of jaar. Leden is hoeveel leden in die periode reden. Het streepje is dezelfde periode vorig jaar.",
+  },
+  jaarvergelijking: {
+    text: "De kilometers van de club opgeteld vanaf 1 januari, met een lijn per jaar.",
+  },
+  top: {
+    text: "De ranglijst op kilometers, uren of hoogtemeters, over het bereik of de gekozen periode. Je eigen plek staat in goud.",
+  },
+  discipline: {
+    text: "De uren van de club per soort rit: weg, Zwift, gravel en de rest.",
+  },
+  regio: {
+    text: "Kilometers per regio, uit het profiel van de leden. Leden zonder regio staan onderaan bij Onbekend.",
+  },
+  records: {
+    text: "De beste week, maand en jaar van de club, en de maand met de meeste rijders.",
+  },
+};
+
 export type StatsPage = "ik" | "club";
 
 export const TILES_BY_PAGE: Record<StatsPage, readonly TileDef[]> = {
@@ -78,11 +190,11 @@ export function isTileId(value: unknown): value is TileId {
 }
 
 export function tileDef(id: TileId): TileDef {
-  return STATS_TILES.find((tile) => tile.id === id)!;
+  return { ...STATS_TILES.find((tile) => tile.id === id)!, info: STATS_TILE_INFO[id] };
 }
 
 export function clubTileDef(id: ClubTileId): TileDef {
-  return CLUB_STATS_TILES.find((tile) => tile.id === id)!;
+  return { ...CLUB_STATS_TILES.find((tile) => tile.id === id)!, info: CLUB_TILE_INFO[id] };
 }
 
 export function defaultLayout<Id extends string = TileId>(tiles: readonly TileDef[] = STATS_TILES): TileLayout<Id> {

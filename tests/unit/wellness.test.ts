@@ -354,6 +354,16 @@ describe("summarizeWellness — versheidsgrens", () => {
     expect(summary.note).not.toContain("binnen de normale range");
   });
 
+  it("meldt een lege week ook als de baseline nog wel gevuld is", () => {
+    // Garmin-koppeling met intervals.icu ligt sinds 4 oktober stil.
+    const summary = summarizeWellness(series("2026-10-04", 13), "garmin", "2026-10-22")!;
+    expect(summary.state).toBe("unknown");
+    expect(summary.hrv).toBeNull();
+    expect(summary.readiness).toBeNull();
+    expect(summary.days).toBe(13);
+    expect(summary.note).toBe("Geen hersteldata van de laatste 7 dagen; laatste meting 2026-10-04.");
+  });
+
   it("telt precies 7 dagen voor het weekgemiddelde, vandaag meegerekend", () => {
     // De dag van acht dagen geleden (hrv 200) hoort er niet meer bij.
     const rows = series("2026-06-28", 30, (i) => (i === 7 ? { hrv: 200 } : {}));

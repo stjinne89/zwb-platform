@@ -2,8 +2,11 @@
 
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-export function ThemeToggle() {
+/** `className` vult aan; het design "tegels" maakt hem even groot als de
+ * andere knoppen in de balk (44px). */
+export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
@@ -16,7 +19,7 @@ export function ThemeToggle() {
       // thema-afhankelijk label geeft een hydration-mismatch.
       aria-label="Wissel tussen licht en donker thema"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="px-2"
+      className={cn("px-2", className)}
     >
       {/* Moon icon — shown in light mode. Hidden when html has .dark class. */}
       <svg

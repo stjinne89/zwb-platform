@@ -19,10 +19,11 @@ import {
   adaptiveDailyPrompt,
   alignWorkoutIntensities,
   conciseWorkoutTitle,
-  dropShortRecoveryRides,
+  dropShortEasyRides,
   normalizeWorkoutBlocks,
   planUpdatePrompt,
   resizeBlocks,
+  retitleForDuration,
   WORKOUT_INTENSITIES,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
@@ -59,7 +60,12 @@ import { rootIdOf } from "@/lib/training/plan-tree";
 import { archiveOtherBasePlans, extendRootPlanEnd } from "@/lib/training/active-plan";
 import { preferencesForAi } from "@/lib/training/preferences";
 import { loadProtocolsForAi } from "@/lib/protocols/ai-data";
-import { summarizeRecentRides } from "@/lib/training/ride-metrics";
+import { rideMetricsFromStrava, summarizeRecentRides } from "@/lib/training/ride-metrics";
+import { loadFtpAt } from "@/lib/training/ftp-history";
+import { loadHrBasis } from "@/lib/training/hr-load";
+import { currentWeeklyLoad } from "@/lib/training/load-basis";
+import { trainingKind } from "@/lib/ai/settings";
+import { uniqueRides } from "@/lib/rides/unique-rides";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { CAUTION_PREFIX } from "@/lib/training/plan-summary";
 import { methodLabelOf } from "@/lib/training/method-label";
@@ -68,6 +74,7 @@ import {
   zrlPlanSpecificityCautions,
 } from "@/lib/training/specificity";
 import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
+import { TARGET_TIME_GOAL_TYPES } from "@/lib/training/goal-target-types";
 import { amsterdamDayKey, endOfWeekKey } from "@/lib/training/zwbeterworden";
 
 type TrainingDraftStatus = "queued" | "in_progress" | "completed" | "failed" | "cancelled";
@@ -219,19 +226,62 @@ export async function buildRecentLoad(
   // Alleen fietsen. Zonder deze filter telde een hardloopblok of een wandeling
   // mee als fietsvolume, en dat is precies het getal waar de planner zijn
   // ondergrens op baseert.
-  const { data: activities } = await admin
-    .from("strava_activities")
-    .select("distance_m, total_elevation_gain_m, moving_time_seconds, sport_type")
-    .eq("profile_id", athleteId)
-    .in("sport_type", CYCLING_SPORTS)
-    .gte("start_date", new Date(Date.now() - days * 86400_000).toISOString());
+  // Uit `raw` alleen de velden voor de TSS: de hele payload van 28 dagen ritten
+  // per generatie kost egress, en die zit al boven de limiet (PLAN.md).
+  const [{ data: activities }, { data: profile }, hrBasis] = await Promise.all([
+    admin
+      .from("strava_activities")
+      .select(
+        "id, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, sport_type, trainer, " +
+          "device_watts:raw->device_watts, average_watts:raw->average_watts, " +
+          "weighted_average_watts:raw->weighted_average_watts, average_heartrate:raw->average_heartrate, " +
+          "hr_load:raw->hr_load",
+      )
+      .eq("profile_id", athleteId)
+      .in("sport_type", CYCLING_SPORTS)
+      .gte("start_date", new Date(Date.now() - days * 86400_000).toISOString()),
+    admin.from("profiles").select("ftp_watts").eq("id", athleteId).maybeSingle(),
+    loadHrBasis(admin, athleteId),
+  ]);
+  const ftpAt = await loadFtpAt(admin, athleteId, profile?.ftp_watts == null ? null : Number(profile.ftp_watts));
 
   // Voorgerekend, want dit is precies de deling die het model eerder zelf maakte
   // en toen tegen het urenplafond legde alsof het een overschrijding was. Nu is
   // het waar het voor bedoeld is: het volume dat dit lid al aankan — met erbij
   // hóé het dat rijdt, zodat er geen drie blokken van 3,5 uur uit komen voor
-  // iemand die elke dag een uurtje fietst.
-  const shape = summarizeRecentRides(activities ?? [], days);
+  // iemand die elke dag een uurtje fietst — en de belasting per uur, binnen en
+  // buiten. Een dubbel opgenomen rit telt één keer.
+  type RecentRideRow = {
+    id: number;
+    start_date: string;
+    distance_m: number | null;
+    total_elevation_gain_m: number | null;
+    moving_time_seconds: number | null;
+    sport_type: string | null;
+    trainer: boolean | null;
+    device_watts: unknown;
+    average_watts: unknown;
+    weighted_average_watts: unknown;
+    average_heartrate: unknown;
+    hr_load: unknown;
+  };
+  const rows = ((activities ?? []) as unknown as RecentRideRow[]).map((ride) => ({
+    ...ride,
+    raw: {
+      start_date: ride.start_date,
+      device_watts: ride.device_watts,
+      average_watts: ride.average_watts,
+      weighted_average_watts: ride.weighted_average_watts,
+      average_heartrate: ride.average_heartrate,
+      hr_load: ride.hr_load,
+    },
+  }));
+  const rides = uniqueRides(rows).map((ride) => ({
+    ...ride,
+    tss: rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, ftpAt, hrBasis).tss,
+    indoor: ride.sport_type === "VirtualRide" || Boolean(ride.trainer),
+  }));
+  const shape = summarizeRecentRides(rides, days);
   return { days, ...shape };
 }
 
@@ -327,6 +377,13 @@ async function buildTrainingInput(
   ]);
   if (!profile || !goal) throw new Error("Profiel of doel niet gevonden.");
 
+  // De doeltijd met de laatste prognose; een verse als die verouderd is. Dynamisch
+  // geladen: goal-forecast leunt via het pacingmodel weer op dit bestand.
+  const { goalTargetForAi } = await import("@/lib/training/goal-forecast");
+  const targetTime = TARGET_TIME_GOAL_TYPES.includes(goal.goal_type)
+    ? await goalTargetForAi(admin, goal).catch(() => null)
+    : null;
+
   const { wellnessForAi, wellnessInputForAi } = await import("@/lib/training/wellness");
   const wellness = await wellnessForAi(admin, athleteId).catch(() => null);
   const intervalsLoad = await buildIntervalsLoad(admin, athleteId);
@@ -386,10 +443,12 @@ async function buildTrainingInput(
       experienceLevel: goal.experience_level,
       desiredIntensity: goal.desired_intensity,
       riskNotes: goal.risk_notes,
+      targetTime,
     },
     profile: profileForAi(profile, ftpTests[0]?.testedOn ?? null),
     symptoms: await loadSymptomLoadForAi(admin, athleteId),
     recentLoad: recent,
+    currentLoad: currentWeeklyLoad({ recentLoad: recent, intervalsLoad }),
     wellness: wellnessInputForAi(wellness),
     intervalsLoad,
     upcomingEvents,
@@ -449,11 +508,15 @@ export async function insertPlanWorkouts(
   options: {
     fitToAvailability?: boolean;
     /**
-     * Korte hersteltrainingen als rustdag behandelen; zie dropShortRecoveryRides().
-     * Uit bij een dag-aanpassing: vraagt het lid zelf om een rustig uurtje, dan
-     * hoort het dat ook te krijgen.
+     * Korte ritten zonder intensiteit als rustdag behandelen; zie
+     * dropShortEasyRides(). "easy" (standaard) bij een nieuw schema of een
+     * bijwerking: die vervangen een heel bereik, dus een weggevallen rit is echt
+     * een rustdag. "recovery" bij het dagvoorstel: dat vervangt alleen de dagen
+     * die het teruggeeft, en een weggevallen rustige duurrit liet de sleutelsessie
+     * staan die hij moest vervangen. "keep" bij een dag-aanpassing: vraagt het
+     * lid zelf om een rustig uurtje, dan hoort het dat ook te krijgen.
      */
-    shortRecoveryAsRest?: boolean;
+    shortRidesAsRest?: "easy" | "recovery" | "keep";
   } = {},
 ) {
   // Testdagen, dagen die het lid heeft vrijgemaakt, dagen waarop al een
@@ -501,8 +564,8 @@ export async function insertPlanWorkouts(
     .maybeSingle();
   const ftpWatts = Number(profile?.ftp_watts) > 0 ? Number(profile?.ftp_watts) : null;
 
-  const planned =
-    options.shortRecoveryAsRest === false ? workouts : dropShortRecoveryRides(workouts);
+  const shortRides = options.shortRidesAsRest ?? "easy";
+  const planned = shortRides === "keep" ? workouts : dropShortEasyRides(workouts, ftpWatts, shortRides);
   const rows = dropWorkoutsOnBlockedDays(planned, blockedDays)
     // Een rustdag komt soms als 0-minuten-workout terug; die hoort niet in het schema.
     .filter((workout) => Math.round(workout.durationMinutes) >= 1)
@@ -518,12 +581,13 @@ export async function insertPlanWorkouts(
         ftpWatts,
       );
       const intensity = aligned.intensity;
-      const title = conciseWorkoutTitle(workout.title);
+      let title = conciseWorkoutTitle(workout.title);
       let blocks = aligned.blocks;
       let durationMinutes = Math.min(480, Math.round(workout.durationMinutes));
       if (limit != null && durationMinutes > limit) {
         blocks = resizeBlocks(blocks, limit);
         durationMinutes = limit;
+        title = retitleForDuration(title, limit);
       }
       return [{
         plan_id: plan.id,
@@ -730,7 +794,10 @@ async function createPlanFromAiGeneration(
     admin,
     { id: plan.id, profile_id: generation.profile_id, trainer_id: generation.trainer_id },
     draftWorkouts,
-    { fitToAvailability: !memberSetTime, shortRecoveryAsRest: !memberSetTime },
+    {
+      fitToAvailability: !memberSetTime,
+      shortRidesAsRest: memberSetTime ? "keep" : isAdaptation && !isPlanUpdate ? "recovery" : "easy",
+    },
   );
 
   // Een dagvoorstel zonder één training om neer te zetten verandert niets: de AI
@@ -872,6 +939,7 @@ export async function generateAiDraftFromForm(formData: FormData): Promise<Train
       model: process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5",
       reasoningEffort: "medium",
       timeoutMs: 15_000,
+      kind: "nieuw_schema",
     });
     const initialStatus: TrainingDraftStatus = background.status === "queued" ? "queued" : "in_progress";
 
@@ -1011,6 +1079,7 @@ export async function startTodayAdjustmentDraft(
       },
       profile: profileForAi(profile, ftpTests[0]?.testedOn ?? null),
       recentLoad,
+      currentLoad: currentWeeklyLoad({ recentLoad, intervalsLoad }),
       wellness: wellnessInputForAi(wellness),
       intervalsLoad,
       availability,
@@ -1039,6 +1108,7 @@ export async function startTodayAdjustmentDraft(
       model: process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5",
       reasoningEffort: "low",
       timeoutMs: 15_000,
+      kind: "day",
       // Een dag-aanpassing mag één workout zijn; het oude minimum van 3 dwong de
       // AI om de rest van de week te verzinnen.
       minWorkouts: 1,
@@ -1083,7 +1153,7 @@ export async function startTodayAdjustmentDraft(
 /**
  * Einddatum van een bijgewerkt schema: minstens het einde van de periode waarom
  * gevraagd is. Bij publiceren vervangt dit schema alles van adapt_from_date tot en
- * met end_date. Liet de AI het schema eerder eindigen, bijvoorbeeld op een naar
+ * met end_date, behalve wat vóór het publiceren al had moeten beginnen. Liet de AI het schema eerder eindigen, bijvoorbeeld op een naar
  * voren gehaalde doeldatum, dan bleven de oude workouts daarna gewoon staan naast
  * wat hen had moeten vervangen.
  */
@@ -1501,6 +1571,7 @@ export async function startPlanUpdate(args: PlanUpdateArgs): Promise<TrainingDra
   const options = {
     reasoningEffort: "medium" as const,
     timeoutMs: 15_000,
+    kind: "plan_update" as const,
   };
 
   // Eerst de rij, dan pas OpenAI. Andersom was de grendel in preparePlanUpdate
@@ -1604,6 +1675,7 @@ export async function startBackgroundAdaptation(args: {
     reasoningEffort: args.options?.reasoningEffort ?? ("low" as const),
     minWorkouts: args.options?.minWorkouts ?? 1,
     timeoutMs: args.options?.timeoutMs ?? 15_000,
+    kind: trainingKind(args.adaptationKind),
   };
 
   const { data: aiRow, error: aiError } = await args.admin
@@ -1688,6 +1760,7 @@ export async function runPlanUpdateNow(
     model: process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5",
     reasoningEffort: "medium",
     timeoutMs: 120_000,
+    kind: "plan_update",
   });
 
   const { data: aiRow, error: aiError } = await args.admin

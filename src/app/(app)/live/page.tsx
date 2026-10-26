@@ -2,21 +2,19 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { inboundDomain } from "@/lib/live/inbound-mail";
+import { telegramConfig } from "@/lib/telegram/bot";
 import { PageHeader } from "@/components/app-ui";
 import { LiveBoard } from "./_components/live-board";
-import {
-  OwnTracksPanel,
-  type OwnTracksTokenStatus,
-} from "./_components/owntracks-panel";
 import { LiveTrackPanel } from "./_components/livetrack-panel";
 import { StopLiveButton } from "./_components/stop-button";
-import type { ActiveSession, RiderStats } from "./types";
+import { TelegramPanel } from "./_components/telegram-panel";
+import { TestMessagePanel } from "./_components/test-message-panel";
+import type { ActiveSession, RiderStats, TrackerTokenStatus } from "./types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const SOURCE_LABELS: Partial<Record<ActiveSession["source"], string>> = {
-  owntracks: "OwnTracks",
   garmin: "Garmin",
   wahoo: "Wahoo",
 };
@@ -91,10 +89,10 @@ export default async function LivePage() {
   const [
     { data: sessionRows },
     { data: positionRows },
-    { data: trackerTokens },
     { data: mailTokens },
     { data: wahooTokens },
     { data: ownProfile },
+    { data: telegramLink },
   ] = await Promise.all([
     supabase
       .from("live_sessions")
@@ -109,13 +107,6 @@ export default async function LivePage() {
       .select("session_id, profile_id, lat, lng, recorded_at")
       .order("recorded_at", { ascending: false })
       .limit(500),
-    supabase
-      .from("live_tracker_tokens")
-      .select("id, enabled, last_seen_at, revoked_at, created_at")
-      .eq("profile_id", user.id)
-      .eq("provider", "owntracks")
-      .order("created_at", { ascending: false })
-      .limit(1),
     supabase
       .from("live_tracker_tokens")
       .select("id, enabled, last_seen_at, revoked_at, created_at")
@@ -135,6 +126,12 @@ export default async function LivePage() {
       .select("live_heart_rate_consent_at")
       .eq("id", user.id)
       .maybeSingle(),
+    // Zonder migratie 0253 bestaat de tabel niet; dan gewoon niet gekoppeld.
+    supabase
+      .from("telegram_links")
+      .select("chat_id")
+      .eq("profile_id", user.id)
+      .maybeSingle(),
   ]);
 
   const sessions: ActiveSession[] = (sessionRows ?? []).map((s) => ({
@@ -152,10 +149,8 @@ export default async function LivePage() {
 
   const mySession = sessions.find((s) => s.profileId === user.id) ?? null;
   const outdoorSessions = sessions.filter((s) => s.mode === "outdoor");
-  const trackerStatus =
-    ((trackerTokens?.[0] ?? null) as OwnTracksTokenStatus | null) ?? null;
-  const mailStatus = (mailTokens?.[0] ?? null) as OwnTracksTokenStatus | null;
-  const wahooStatus = (wahooTokens?.[0] ?? null) as OwnTracksTokenStatus | null;
+  const mailStatus = (mailTokens?.[0] ?? null) as TrackerTokenStatus | null;
+  const wahooStatus = (wahooTokens?.[0] ?? null) as TrackerTokenStatus | null;
   const mailPanel = (
     <LiveTrackPanel
       mailStatus={mailStatus}
@@ -182,6 +177,7 @@ export default async function LivePage() {
         outdoorSessions={outdoorSessions}
         initialPositions={positionRows ?? []}
         riderStats={riderStats}
+        currentUserId={user.id}
       >
         <div className="space-y-4">
           {mySession && (
@@ -198,7 +194,8 @@ export default async function LivePage() {
             </section>
           )}
           {mailPanel}
-          <OwnTracksPanel tokenStatus={trackerStatus} />
+          <TestMessagePanel />
+          {telegramConfig() && <TelegramPanel linked={Boolean(telegramLink?.chat_id)} />}
         </div>
       </LiveBoard>
     </div>

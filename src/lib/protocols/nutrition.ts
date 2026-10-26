@@ -142,6 +142,22 @@ const PODLOGAR_2022: KnowledgeSource = {
   kind: "studie",
 };
 
+const BAKER_2017: KnowledgeSource = {
+  citation:
+    "Baker LB. Sweating rate and sweat sodium concentration in athletes: a review of methodology and intra/interindividual variability. Sports Med 47(Suppl 1):111-128.",
+  year: 2017,
+  url: doi("10.1007/s40279-017-0691-5"),
+  kind: "review",
+};
+
+const MCCUBBIN_2020: KnowledgeSource = {
+  citation:
+    "McCubbin AJ, Allanson BA, Caldwell Odgers JN, et al. Sports Dietitians Australia position statement: nutrition for exercise in hot environments. Int J Sport Nutr Exerc Metab 30(1):83-98.",
+  year: 2020,
+  url: "https://journals.humankinetics.com/view/journals/ijsnem/30/1/article-p83.xml",
+  kind: "consensus",
+};
+
 const SUPPLEMENT_CAUTIONS = [
   "Kies een batch met een NZVT-keurmerk: supplementen kunnen verontreinigd zijn met verboden stoffen.",
   "Probeer het eerst op een training, nooit voor het eerst op een wedstrijd.",
@@ -153,6 +169,14 @@ function trial(detail: string): ProtocolTask {
 }
 
 const SUPPLEMENT_MIN_AGE = 18;
+
+/**
+ * Gram koolhydraten per uur per week van de darmtraining en van het vervolg
+ * naar 150. Het ritplan rekent ermee zolang een lid zo'n protocol volgt
+ * (src/lib/nutrition/gut-training.ts).
+ */
+export const GUT_TRAINING_STEPS = [60, 70, 80, 90, 100, 110] as const;
+export const GUT_TRAINING_150_STEPS = [130, 140, 150] as const;
 
 export const NUTRITION_PROTOCOLS: Protocol[] = [
   {
@@ -565,7 +589,7 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     goal: "Meer koolhydraten opnemen zonder maagklachten.",
     evidence: "matig",
     anchor: "start",
-    phases: [60, 70, 80, 90, 100, 110].map((grams, week) => ({
+    phases: GUT_TRAINING_STEPS.map((grams, week) => ({
       key: `week-${week + 1}`,
       title: `Week ${week + 1}`,
       fromDay: week * 7,
@@ -605,7 +629,7 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     goal: "Wennen aan wat profs in lange etappes eten, als je 120 gram per uur al zonder klachten haalt.",
     evidence: "beperkt",
     anchor: "start",
-    phases: [130, 140, 150].map((grams, week) => ({
+    phases: GUT_TRAINING_150_STEPS.map((grams, week) => ({
       key: `week-${week + 1}`,
       title: `Week ${week + 1}`,
       fromDay: week * 7,
@@ -638,6 +662,55 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     ],
     sources: [MORTON_2026_JNUTR, WILSON_2025, HEARRIS_2022, PODLOGAR_2022, RAVIKANTI_2025, MIALL_2018, COSTA_2017],
     article: { href: "/zwbeter-worden/voeding/kennis/darmtraining", title: "Darmtraining en maagklachten" },
+  },
+  // Stap 5 van docs/ritvoeding-plan.md: het eigen zweetverlies als basis voor
+  // het vochtdoel in het ritplan. De invoer staat op de protocolpagina (measure).
+  {
+    slug: "zweettest",
+    pillar: "voeden",
+    group: "Opbouw",
+    title: "Zweettest: je vochtverlies per uur",
+    shortLabel: "Zweettest",
+    summary: "Weeg jezelf voor en na een rit van minstens drie kwartier en noteer wat je dronk. ZWB rekent je zweetverlies per uur uit.",
+    goal: "Een eigen vochtdoel voor onderweg in plaats van een algemeen getal.",
+    evidence: "matig",
+    anchor: "start",
+    measure: "zweettest",
+    phases: [
+      {
+        key: "testen",
+        title: "Twee testen",
+        fromDay: 0,
+        toDay: 27,
+        tasks: [
+          {
+            key: "binnen",
+            label: "Test binnen",
+            detail:
+              "Een rit van minstens drie kwartier op je gewone tempo, met de ventilator zoals altijd. Plas vooraf, weeg je zonder kleren, rij, droog je af en weeg je weer zonder kleren. Noteer hoeveel je dronk.",
+            once: true,
+          },
+          {
+            key: "buiten",
+            label: "Test buiten",
+            detail: "Dezelfde test op een buitenrit. Noteer of het warm was.",
+            once: true,
+          },
+        ],
+      },
+    ],
+    cautions: [
+      "Plas je tijdens de test, dan klopt de uitkomst niet. Doe hem dan opnieuw.",
+      "Je zweet meer in de warmte en als je harder rijdt. Een test zegt het meest over ritten zoals die waarop je testte.",
+    ],
+    notFor: [],
+    limits: [
+      "Een kilo lichter is ongeveer een liter zweet; wat je ademt en wat je verbrandt, telt de test niet apart.",
+      "Hoeveel zout je verliest, meet deze test niet. Daar geeft ZWB geen getal voor.",
+      "Zweetverlies verschilt per dag. ZWB rekent met je laatste test.",
+    ],
+    sources: [BAKER_2017, MCCUBBIN_2020],
+    article: { href: "/zwbeter-worden/voeding/kennis/vocht-en-zout", title: "Vocht en zout" },
   },
   {
     slug: "herstel-na-wedstrijd",

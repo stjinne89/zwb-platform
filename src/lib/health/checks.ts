@@ -274,9 +274,12 @@ export async function runIntegrationHealthChecks(): Promise<HealthCheckResult[]>
       const { probeGarminLiveTrack } = await import("@/lib/live/external-livetrack");
       return evaluateGarminLiveTrack(await probeGarminLiveTrack());
     }),
-    guard("openai", async () =>
-      evaluateEnvPresent("openai", Boolean(process.env.OPENAI_API_KEY)),
-    ),
+    // De bron heet nog "openai" zodat de bestaande meldingen blijven kloppen; hij
+    // kijkt naar de sleutel van de aanbieder die AI_PROVIDER kiest.
+    guard("openai", async () => {
+      const { aiConfigured } = await import("@/lib/ai/settings");
+      return evaluateEnvPresent("openai", aiConfigured());
+    }),
     guard("intervals_rides", async () => {
       const { createAdminClient } = await import("@/lib/supabase/admin");
       const admin = createAdminClient();

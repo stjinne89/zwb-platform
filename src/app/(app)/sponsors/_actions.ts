@@ -1,9 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
+import { SPONSOR_FOOTER_TAG } from "../_components/sponsor-footer";
 
 const TIERS = ["hoofd", "sub", "team", "web", "vriend"] as const;
 type SponsorTier = (typeof TIERS)[number];
@@ -33,6 +34,7 @@ async function requireSponsorAdmin() {
 function revalidateSponsorPaths() {
   revalidatePath("/sponsors");
   revalidatePath("/dashboard");
+  updateTag(SPONSOR_FOOTER_TAG);
 }
 
 // ─── Sponsors ──────────────────────────────────────────────────────────

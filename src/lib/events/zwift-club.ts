@@ -22,6 +22,7 @@ import {
   parseMessage,
   type SegmentResult,
 } from "@/lib/zwift/segment-results-pb";
+import { decodePlayerState, type PlayerState } from "@/lib/zwift/player-state-pb";
 
 const TOKEN_URL =
   "https://secure.zwift.com/auth/realms/zwift/protocol/openid-connect/token";
@@ -41,6 +42,8 @@ export type ClubEntrant = {
   zwiftId: string;
   name: string;
   category: string | null;
+  /** Alleen als Zwift een gewicht meegeeft (ZWB DS rekent er W/kg mee). */
+  weightKg?: number;
 };
 
 export type ClubEventResult = {
@@ -119,12 +122,20 @@ function fetchToken(): Promise<string> {
 }
 
 async function requestToken(): Promise<string> {
+  const { accessToken, expiresAt } = await loginZwift(
+    process.env.ZWIFT_USERNAME ?? "",
+    process.env.ZWIFT_PASSWORD ?? "",
+  );
+  tokenCache = { accessToken, expiresAt };
+  return accessToken;
+}
 
+async function loginZwift(username: string, password: string): Promise<{ accessToken: string; expiresAt: number }> {
   const body = new URLSearchParams({
     client_id: ZWIFT_CLIENT_ID,
     grant_type: "password",
-    username: process.env.ZWIFT_USERNAME ?? "",
-    password: process.env.ZWIFT_PASSWORD ?? "",
+    username,
+    password,
   });
 
   const response = await fetch(TOKEN_URL, {
@@ -146,11 +157,61 @@ async function requestToken(): Promise<string> {
   if (!json.access_token) {
     throw new Error("Zwift-login leverde geen token op.");
   }
-  tokenCache = {
+  return {
     accessToken: json.access_token,
     expiresAt: Date.now() + (json.expires_in ?? 3600) * 1000,
   };
-  return json.access_token;
+}
+
+// ZWB DS heeft een eigen Zwift-account: Zwift staat ongeveer 45 spelersstatussen
+// per minuut per account toe, en DS mag die limiet niet delen met de live
+// ZRL-stand of de event-scan (docs/zwb-ds-spike.md).
+let dsTokenCache: { accessToken: string; expiresAt: number } | null = null;
+let dsTokenRequest: Promise<string> | null = null;
+
+export function zwiftDsConfigured(): boolean {
+  return Boolean(process.env.ZWIFT_DS_USERNAME && process.env.ZWIFT_DS_PASSWORD);
+}
+
+function fetchDsToken(): Promise<string> {
+  if (dsTokenCache && dsTokenCache.expiresAt > Date.now() + 30_000) {
+    return Promise.resolve(dsTokenCache.accessToken);
+  }
+  dsTokenRequest ??= loginZwift(process.env.ZWIFT_DS_USERNAME ?? "", process.env.ZWIFT_DS_PASSWORD ?? "")
+    .then((token) => {
+      dsTokenCache = token;
+      return token.accessToken;
+    })
+    .finally(() => {
+      dsTokenRequest = null;
+    });
+  return dsTokenRequest;
+}
+
+export type PlayerStateOutcome =
+  | { status: "ok"; state: PlayerState }
+  /** Niet in de wereld: Zwift geeft 404 (ook vlak voor iemand inlogt). */
+  | { status: "absent" }
+  | { status: "rate-limited" };
+
+/** De spelersstatus van één renner, met het DS-account. */
+export async function fetchPlayerState(zwiftId: string): Promise<PlayerStateOutcome> {
+  if (!/^\d+$/.test(zwiftId)) throw new Error("Ongeldig Zwift-ID.");
+  const token = await fetchDsToken();
+  const response = await safeFetch(`${new URL(apiBase()).origin}/relay/worlds/1/players/${zwiftId}`, {
+    cache: "no-store",
+    headers: {
+      ...ZWIFT_DEFAULT_HEADERS,
+      accept: "application/x-protobuf-lite",
+      authorization: `Bearer ${token}`,
+    },
+  });
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (response.status === 404) return { status: "absent" };
+  if (response.status === 429) return { status: "rate-limited" };
+  if (response.status !== 200) throw new Error(`Zwift-API gaf status ${response.status} voor een spelersstatus.`);
+  const state = decodePlayerState(bytes);
+  return state ? { status: "ok", state } : { status: "absent" };
 }
 
 async function authedJson(url: string): Promise<unknown> {
@@ -281,7 +342,19 @@ type EntrantRow = {
   lastName?: string | null;
   subgroupLabel?: string | null;
   label?: string | null;
+  weight?: number | null;
 };
+
+/**
+ * Zwift-profielen geven het gewicht in grammen (gezien in een startlijst op
+ * 2026-10-18); een kale kilogramwaarde nemen we ook aan.
+ */
+function entrantWeightKg(weight: unknown): number | null {
+  const value = Number(weight);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  const kg = value > 1000 ? value / 1000 : value;
+  return kg >= 30 && kg <= 250 ? Math.round(kg * 10) / 10 : null;
+}
 
 function entrantName(row: EntrantRow): string {
   if (row.name && row.name.trim()) return row.name.trim();
@@ -340,10 +413,16 @@ export async function fetchEntrants(subgroupIds: string[], options: { strict?: b
       if (options.strict && (!/^\d+$/.test(zwiftId) || !name)) throw new Error("Onvolledige Zwift-inschrijving.");
       if (!zwiftId || !name) continue;
       if (!byId.has(zwiftId)) {
+        // Alleen om W/kg te rekenen, zoals Zwift dat in het spel bij iedereen toont.
+        // Het gewicht zelf staat nergens. `privacy.displayWeight` staat in Zwift
+        // standaard uit (100 van 100 in een groep op 2026-10-18) en gaat over het
+        // gewicht op het profiel, niet over W/kg; daarom volgen we die niet.
+        const weightKg = entrantWeightKg(row.weight);
         byId.set(zwiftId, {
           zwiftId,
           name,
           category: row.subgroupLabel ?? row.label ?? null,
+          ...(weightKg ? { weightKg } : {}),
         });
       }
     }
@@ -486,6 +565,89 @@ export async function fetchSubgroupResults(subgroupId: string): Promise<Subgroup
   return results.sort((a, b) => a.rank - b.rank);
 }
 
+/** Een race uit de activiteiten van een renner: wanneer (ISO) en de activiteit. */
+export type RiderRaceActivity = { activityId: string; startedAt: string };
+
+/** Zoveel activiteiten geeft Zwift per vraag; meer geeft status 400. */
+export const ACTIVITIES_PER_PAGE = 20;
+
+/**
+ * Eén pagina activiteiten van een renner, nieuw naar oud, met alleen de races
+ * ("Zwift - Race: …"). Werkt via het serviceaccount voor renners die het volgt
+ * (gemeten 2026-10-21, terug tot de eerste activiteit). `count` is het aantal
+ * activiteiten op de pagina, ook die geen race zijn: minder dan een volle pagina
+ * betekent het einde van de lijst.
+ */
+export async function fetchRiderRacePage(
+  zwiftId: string,
+  start: number,
+): Promise<{ count: number; races: RiderRaceActivity[]; startedAts: string[] }> {
+  if (!/^\d+$/.test(zwiftId)) throw new Error("Ongeldig Zwift-ID.");
+  const payload = await authedJson(
+    `${apiBase()}/profiles/${zwiftId}/activities?start=${start}&limit=${ACTIVITIES_PER_PAGE}`,
+  );
+  const rows = (Array.isArray(payload) ? payload : []) as Array<Record<string, unknown>>;
+  // Zwift schrijft "+0000"; met dubbele punt leest elke Date het.
+  const startedAtOf = (row: Record<string, unknown>) =>
+    String(row.startDate ?? "").replace(/([+-]\d\d)(\d\d)$/, "$1:$2");
+  const races = rows
+    .filter((row) => /^Zwift - Race\b/i.test(String(row.name ?? "")))
+    .map((row) => ({
+      activityId: String(row.id_str ?? row.id ?? ""),
+      startedAt: startedAtOf(row),
+    }))
+    .filter((race) => /^\d+$/.test(race.activityId) && !Number.isNaN(Date.parse(race.startedAt)));
+  // De start van élke activiteit op de pagina, ook geen race: daarmee telt de
+  // historie-job hoeveel er sinds de vorige run bovenaan bij kwamen.
+  const startedAts = rows.map(startedAtOf).filter((value) => !Number.isNaN(Date.parse(value)));
+  return { count: rows.length, races, startedAts };
+}
+
+/** De startgroep (subgroep) van een race-activiteit; null als Zwift geen event kent. */
+export async function fetchActivitySubgroup(activityId: string): Promise<string | null> {
+  if (!/^\d+$/.test(activityId)) throw new Error("Ongeldig activiteit-ID.");
+  const detail = (await authedJson(`${apiBase()}/activities/${activityId}`)) as {
+    eventInfo?: { eventSubGroupId?: unknown } | null;
+  } | null;
+  const subgroup = Number(detail?.eventInfo?.eventSubGroupId);
+  return Number.isInteger(subgroup) && subgroup > 0 ? String(subgroup) : null;
+}
+
+/** De Zwift Racing Score van een renner vóór en na een race; null waar Zwift er geen geeft. */
+export type RaceScoreChange = { before: number | null; after: number | null };
+
+/**
+ * De ZRS van een renner rond een race: `scoreHistory.previousScore` en `newScore`
+ * in de uitslag van de startgroep (gemeten 2026-10-21, ook voor races uit 2023;
+ * niet elke race heeft ze). Null als de renner er niet in staat binnen `maxEntries`.
+ */
+export async function fetchRiderScoreChange(
+  subgroupId: string,
+  zwiftId: string,
+  maxEntries = 500,
+): Promise<RaceScoreChange | null> {
+  if (!/^\d+$/.test(subgroupId) || !/^\d+$/.test(zwiftId)) throw new Error("Ongeldig ID.");
+  for (let start = 0; start < maxEntries; start += 50) {
+    const payload = await queuedResultsPage(
+      `${apiBase()}/race-results/entries?event_subgroup_id=${subgroupId}&start=${start}&limit=50`,
+    );
+    const rows = (Array.isArray(payload)
+      ? payload
+      : ((payload as { entries?: unknown[] })?.entries ?? [])) as Array<Record<string, unknown>>;
+    const mine = rows.find((row) => String(row.profileId) === zwiftId);
+    if (mine) {
+      const history = mine.scoreHistory as { previousScore?: unknown; newScore?: unknown } | null | undefined;
+      const score = (value: unknown) => {
+        const n = Number(value);
+        return value != null && Number.isFinite(n) && n > 0 ? n : null;
+      };
+      return { before: score(history?.previousScore), after: score(history?.newScore) };
+    }
+    if (rows.length < 50) break;
+  }
+  return null;
+}
+
 /** "2026-09-22T12:00:00Z": ISO zonder milliseconden, zoals Sauce het stuurt. */
 function zwiftDate(ms: number): string {
   return new Date(ms).toISOString().slice(0, -5) + "Z";
@@ -594,6 +756,38 @@ export async function probeRiderPower(zwiftId: string): Promise<string> {
     }
   }
   return lines.join("\n");
+}
+
+export type RacingScore = { racingScore: number | null; category: string | null };
+
+/**
+ * Zwift Racing Score en categorie van één renner, voor de racebriefing. Zwift geeft
+ * die van anderen via `profiles/{id}` (gemeten 2026-09-22 en 2026-10-20). Het
+ * profiel bevat ook gewicht en FTP; die geven we bewust niet door.
+ */
+export async function fetchRacingScore(zwiftId: string): Promise<RacingScore> {
+  if (!/^\d+$/.test(zwiftId)) throw new Error("Ongeldig Zwift-ID.");
+  const profile = (await authedJson(`${apiBase()}/profiles/${zwiftId}`)) as { competitionMetrics?: unknown } | null;
+  const metrics = (profile?.competitionMetrics ?? null) as { racingScore?: unknown; category?: unknown } | null;
+  const score = Number(metrics?.racingScore);
+  return {
+    racingScore: Number.isFinite(score) && score > 0 ? Math.round(score) : null,
+    category: typeof metrics?.category === "string" ? metrics.category : null,
+  };
+}
+
+/**
+ * Het gewicht dat een renner in Zwift opgaf, in kg (Zwift geeft grammen), alleen
+ * om in ZWBriljant watts naar W/kg om te rekenen als ZWB en intervals.icu geen
+ * gewicht hebben (eigenaar, 2026-10-21). Niet bewaard en niet doorgegeven.
+ */
+export async function fetchZwiftWeightKg(zwiftId: string): Promise<number | null> {
+  if (!/^\d+$/.test(zwiftId)) throw new Error("Ongeldig Zwift-ID.");
+  const profile = (await authedJson(`${apiBase()}/profiles/${zwiftId}`)) as { weight?: unknown } | null;
+  const grams = Number(profile?.weight);
+  if (!Number.isFinite(grams) || grams <= 0) return null;
+  const kg = grams > 1000 ? grams / 1000 : grams;
+  return kg >= 30 && kg <= 200 ? Math.round(kg * 10) / 10 : null;
 }
 
 const POWER_FIELD = /ftp|map|categor|racing|competition|power|vo2|score|cp/i;

@@ -3,6 +3,8 @@ import { routes as zwiftRoutes } from "zwift-data";
 import { accentsForRoute } from "@/lib/events/zwift-route";
 import type { RouteProfile } from "@/lib/events/zwift-route-streams";
 import { pacingRouteFromZwift } from "@/lib/pacing/route-profile";
+import { SHAPE_STEP_M, type RouteShape } from "@/lib/events/zwift-route-streams";
+import { surfacesAlongShape } from "@/lib/zwift/surfaces";
 import { LADDER_ROUTES, gameRouteFrom } from "./routes";
 import type { GameBootstrap, GameRoute } from "./types";
 
@@ -10,7 +12,7 @@ type Client = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
 };
-type Row = { route_id?: number | string; slug: string; name: string; world: string | null; profile: RouteProfile | null };
+type Row = { route_id?: number | string; slug: string; name: string; world: string | null; profile: RouteProfile | null; shape?: RouteShape | null };
 /** Same margin as the pacing loader: a profile more than 10 % off belongs to another course. */
 const PROFILE_TOLERANCE = 0.1;
 
@@ -23,13 +25,15 @@ function routeFromRow(row: Row | undefined, laps: number, id: string): GameRoute
   const pacing = pacingRouteFromZwift({
     profile: row.profile, accents: accentsForRoute(row.slug),
     leadInKm: meta.leadInDistance ?? 0, leadInElevationM: meta.leadInElevation ?? 0, lapKm: meta.distance, laps,
+    // The road surface follows from the route's shape, as in the pacing plan.
+    lapSurfaces: surfacesAlongShape(row.world ?? meta.world, row.shape), shapeStepM: SHAPE_STEP_M,
   });
   return { ...gameRouteFrom(pacing, { slug: row.slug, name: row.name, world: row.world ?? meta.world, laps, leadInKm: meta.leadInDistance ?? 0, lapKm: meta.distance }), id };
 }
 
 /** The ladder courses whose profile is in our route library. Missing or odd profiles are left out. */
 export async function loadGameRoutes(client: Client): Promise<GameRoute[]> {
-  const { data, error } = await client.from("zwift_routes").select("slug, name, world, profile").in("slug", LADDER_ROUTES.map((r) => r.slug));
+  const { data, error } = await client.from("zwift_routes").select("slug, name, world, profile, shape").in("slug", LADDER_ROUTES.map((r) => r.slug));
   if (error) return [];
   const rows = new Map(((data ?? []) as Row[]).map((row) => [row.slug, row]));
   return LADDER_ROUTES.flatMap(({ slug, laps }) => routeFromRow(rows.get(slug), laps, slug) ?? []);
@@ -49,7 +53,7 @@ export async function loadZrlRace(client: Client, teamId: string | null, now = D
     .sort((a, b) => Number(b.team_id === teamId && teamId !== null) - Number(a.team_id === teamId && teamId !== null) || a.start_at.localeCompare(b.start_at));
   const event = rows[0];
   if (!event) return null;
-  const route = await client.from("zwift_routes").select("route_id, slug, name, world, profile").eq("route_id", Number(event.zwift_route_id)).maybeSingle();
+  const route = await client.from("zwift_routes").select("route_id, slug, name, world, profile, shape").eq("route_id", Number(event.zwift_route_id)).maybeSingle();
   if (route.error || !route.data) return null;
   const laps = Math.max(1, Math.min(20, Math.round(Number(event.laps) || 1)));
   const game = routeFromRow(route.data as Row, laps, `zrl:${(route.data as Row).slug}:${laps}`);

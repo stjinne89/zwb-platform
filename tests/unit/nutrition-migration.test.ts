@@ -6,7 +6,7 @@ import { portionFit, rankRecipes } from "@/lib/nutrition/menu";
 import type { Recipe } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS } from "@/lib/nutrition/targets";
 
-// 0168, 0169, 0213 en 0214 tegen een geïsoleerde PostgreSQL. Zegt niets over de
+// 0168, 0169, 0213, 0214, 0259, 0261, 0264, 0272 en 0273 tegen een geïsoleerde PostgreSQL. Zegt niets over de
 // productiedatabase zelf; daar worden migraties met de hand toegepast.
 
 let db: PGlite;
@@ -35,6 +35,11 @@ beforeAll(async () => {
   await db.exec(await migration("0169_nutrition_seed.sql"));
   await db.exec(await migration("0213_nutrition_expansion.sql"));
   await db.exec(await migration("0214_nutrition_seed_v2.sql"));
+  await db.exec(await migration("0259_nutrition_household.sql"));
+  await db.exec(await migration("0261_nutrition_menu_choices.sql"));
+  await db.exec(await migration("0264_nutrition_recipe_sharing.sql"));
+  await db.exec(await migration("0272_nutrition_ride_carbs_120.sql"));
+  await db.exec(await migration("0273_nutrition_sweat_tests.sql"));
   await db.exec(
     "grant usage on schema public to authenticated; grant all on all tables in schema public to authenticated;",
   );
@@ -85,6 +90,8 @@ describe("voeding (0168, 0169, 0213, 0214)", () => {
     await db.exec(await migration("0169_nutrition_seed.sql"));
     await db.exec(await migration("0213_nutrition_expansion.sql"));
     await db.exec(await migration("0214_nutrition_seed_v2.sql"));
+    // 0213 zet de leespolicy en de beoordeelfunctie terug; 0264 vervangt ze weer.
+    await db.exec(await migration("0264_nutrition_recipe_sharing.sql"));
     expect(await count("select count(*) from nutrition_foods")).toBe(2328);
     expect(await count("select count(*) from nutrition_recipes where is_standard")).toBe(120);
     expect(
@@ -126,6 +133,56 @@ describe("voeding (0168, 0169, 0213, 0214)", () => {
     expect(await as(APPROVED, () => count("select count(*) from nutrition_recipes where slug = 'eigen-1'"))).toBe(1);
     expect(await as(OTHER, () => count("select count(*) from nutrition_recipes where slug = 'eigen-1'"))).toBe(0);
     expect(await as(OTHER, () => count("select count(*) from nutrition_profiles"))).toBe(0);
+  });
+
+  it("bewaart het gezin bij de lengte, met grenzen en alleen bekende maaltijden (0259)", async () => {
+    const { rows } = await db.query<{ household_adults: number; household_moments: string[] }>(
+      `select household_adults, household_moments from nutrition_profiles where profile_id = '${APPROVED}'`,
+    );
+    expect(rows[0]).toEqual({ household_adults: 0, household_moments: ["diner"] });
+    await as(APPROVED, () =>
+      db.query(
+        `update nutrition_profiles set household_adults = 1, household_children_half = 2, household_moments = array['ontbijt','diner'] where profile_id = '${APPROVED}'`,
+      ),
+    );
+    expect(await as(OTHER, () => count("select count(*) from nutrition_profiles where household_adults > 0"))).toBe(0);
+    await expect(
+      db.query(`update nutrition_profiles set household_children_full = 11 where profile_id = '${APPROVED}'`),
+    ).rejects.toThrow(/household_children_full_check/);
+    await expect(
+      db.query(`update nutrition_profiles set household_moments = array['voor_rit'] where profile_id = '${APPROVED}'`),
+    ).rejects.toThrow(/household_moments_check/);
+  });
+
+  it("bewaart zelf gekozen menurecepten alleen voor het lid zelf (0261)", async () => {
+    const recipeId = (await db.query<{ id: string }>("select id from nutrition_recipes where slug = 'havermout-banaan-kwark'")).rows[0].id;
+    const own = (await db.query<{ id: string }>("select id from nutrition_recipes where slug = 'eigen-1'")).rows[0].id;
+    await as(APPROVED, async () => {
+      await db.query(
+        `insert into nutrition_menu_choices(profile_id, day, meal_moment, recipe_id) values('${APPROVED}', '2026-10-21', 'ontbijt', '${recipeId}')`,
+      );
+      // Eén recept per dag en moment: opnieuw kiezen vervangt.
+      await db.query(
+        `insert into nutrition_menu_choices(profile_id, day, meal_moment, recipe_id) values('${APPROVED}', '2026-10-21', 'ontbijt', '${own}')
+         on conflict (profile_id, day, meal_moment) do update set recipe_id = excluded.recipe_id`,
+      );
+    });
+    expect(await as(APPROVED, () => count("select count(*) from nutrition_menu_choices"))).toBe(1);
+    expect(await as(OTHER, () => count("select count(*) from nutrition_menu_choices"))).toBe(0);
+    // Een ander lid kan het eigen recept van iemand anders niet in zijn menu zetten, en niet voor een ander kiezen.
+    await expect(
+      as(OTHER, () =>
+        db.query(`insert into nutrition_menu_choices(profile_id, day, meal_moment, recipe_id) values('${OTHER}', '2026-10-21', 'lunch', '${own}')`),
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await expect(
+      as(OTHER, () =>
+        db.query(`insert into nutrition_menu_choices(profile_id, day, meal_moment, recipe_id) values('${APPROVED}', '2026-10-21', 'lunch', '${recipeId}')`),
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await expect(
+      db.query(`insert into nutrition_menu_choices(profile_id, day, meal_moment, recipe_id) values('${APPROVED}', '2026-10-22', 'brunch', '${recipeId}')`),
+    ).rejects.toThrow(/nutrition_menu_choices_meal_moment_check/);
   });
 
   it("laat een gewoon lid geen clubrecept aanmaken of wijzigen", async () => {
@@ -333,5 +390,168 @@ describe("voeding (0168, 0169, 0213, 0214)", () => {
       }
     }
     expect(misses).toEqual([]);
+  });
+});
+
+describe("recepten delen met alle leden (0264)", () => {
+  async function ownRecipe(slug: string, owner: string) {
+    const food = (await db.query<{ id: string }>("select id from nutrition_foods order by nevo_code limit 1")).rows[0].id;
+    await as(owner, async () => {
+      await db.query(
+        "insert into nutrition_recipes(slug,title,meal_moment,fuel_profile,owner_id,is_standard) values($1,'Van een link','diner','gemengd',$2,false)",
+        [slug, owner],
+      );
+      await db.query(
+        "insert into nutrition_recipe_ingredients(recipe_id, food_id, sort_order, grams, role) select id, $2, 0, 100, 'vast' from nutrition_recipes where slug = $1",
+        [slug, food],
+      );
+    });
+    return (await db.query<{ id: string }>("select id from nutrition_recipes where slug = $1", [slug])).rows[0].id;
+  }
+  const sees = (user: string, slug: string) =>
+    as(user, () => count("select count(*) from nutrition_recipes where slug = $1", [slug]));
+  const seesIngredients = (user: string, slug: string) =>
+    as(user, () =>
+      count(
+        "select count(*) from nutrition_recipe_ingredients i join nutrition_recipes r on r.id = i.recipe_id where r.slug = $1",
+        [slug],
+      ),
+    );
+
+  it("is standaard privé en bestaande recepten blijven privé", async () => {
+    expect(await count("select count(*) from nutrition_recipes where visibility <> 'prive' or show_owner")).toBe(0);
+    await ownRecipe("link-prive", APPROVED);
+    expect(await sees(OTHER, "link-prive")).toBe(0);
+    expect(await seesIngredients(OTHER, "link-prive")).toBe(0);
+  });
+
+  it("laat goedgekeurde leden een gedeeld recept met ingrediënten zien, en wie wacht niet", async () => {
+    await ownRecipe("link-leden", APPROVED);
+    await as(APPROVED, () =>
+      db.query(
+        "update nutrition_recipes set visibility = 'leden', show_owner = true, image_url = 'https://site.nl/foto.jpg', source_name = 'Site', source_url = 'https://site.nl/r' where slug = 'link-leden'",
+      ),
+    );
+    expect(await sees(OTHER, "link-leden")).toBe(1);
+    expect(await seesIngredients(OTHER, "link-leden")).toBe(1);
+    expect(await sees(PENDING, "link-leden")).toBe(0);
+    expect(await seesIngredients(PENDING, "link-leden")).toBe(0);
+
+    // Een ander lid kan het niet wijzigen of verwijderen.
+    await as(OTHER, async () => {
+      await db.query("update nutrition_recipes set title = 'Gekaapt', visibility = 'prive' where slug = 'link-leden'");
+      await db.query(
+        "delete from nutrition_recipe_ingredients i using nutrition_recipes r where r.id = i.recipe_id and r.slug = 'link-leden'",
+      );
+      await db.query("delete from nutrition_recipes where slug = 'link-leden'");
+    });
+    expect(
+      await count(
+        "select count(*) from nutrition_recipes where slug = 'link-leden' and title = 'Van een link' and visibility = 'leden'",
+      ),
+    ).toBe(1);
+    expect(await seesIngredients(APPROVED, "link-leden")).toBe(1);
+
+    // Terug naar privé: weg voor de anderen.
+    await as(APPROVED, () =>
+      db.query("update nutrition_recipes set visibility = 'prive', show_owner = false where slug = 'link-leden'"),
+    );
+    expect(await sees(OTHER, "link-leden")).toBe(0);
+  });
+
+  it("laat een ander lid een gedeeld recept in zijn menu zetten en als favoriet markeren", async () => {
+    const id = await ownRecipe("link-menu", APPROVED);
+    const choose =
+      "insert into nutrition_menu_choices(profile_id, day, meal_moment, recipe_id) values($1, '2026-10-23', 'diner', $2)";
+    await expect(as(OTHER, () => db.query(choose, [OTHER, id]))).rejects.toThrow(/row-level security/);
+    await as(APPROVED, () => db.query("update nutrition_recipes set visibility = 'leden' where slug = 'link-menu'"));
+    await as(OTHER, async () => {
+      await db.query(choose, [OTHER, id]);
+      await db.query("insert into nutrition_recipe_prefs(profile_id, recipe_id, pref) values($1, $2, 'favoriet')", [
+        OTHER,
+        id,
+      ]);
+    });
+    expect(await as(OTHER, () => count("select count(*) from nutrition_menu_choices where recipe_id = $1", [id]))).toBe(1);
+    // De maker ziet de keuze en voorkeur van een ander niet.
+    expect(await as(APPROVED, () => count("select count(*) from nutrition_menu_choices where recipe_id = $1", [id]))).toBe(0);
+    expect(await as(APPROVED, () => count("select count(*) from nutrition_recipe_prefs where recipe_id = $1", [id]))).toBe(0);
+  });
+
+  it("houdt onmogelijke combinaties tegen", async () => {
+    await expect(db.query("update nutrition_recipes set show_owner = true where slug = 'link-prive'")).rejects.toThrow(
+      /nutrition_recipes_show_owner_check/,
+    );
+    await expect(
+      db.query("update nutrition_recipes set image_url = 'http://site.nl/foto.jpg' where slug = 'link-prive'"),
+    ).rejects.toThrow(/nutrition_recipes_image_check/);
+    await expect(
+      db.query("update nutrition_recipes set visibility = 'iedereen' where slug = 'link-prive'"),
+    ).rejects.toThrow(/nutrition_recipes_visibility_check/);
+    await expect(
+      db.query("update nutrition_recipes set visibility = 'leden' where slug = 'havermout-banaan-kwark'"),
+    ).rejects.toThrow(/nutrition_recipes_visibility_check/);
+  });
+
+  it("maakt van een goedgekeurd, gedeeld voorstel een gewoon clubrecept", async () => {
+    const id = await ownRecipe("link-club", OTHER);
+    await as(OTHER, () =>
+      db.query(
+        "update nutrition_recipes set visibility = 'leden', show_owner = true, share_status = 'voorgesteld' where slug = 'link-club'",
+      ),
+    );
+    await as(REVIEWER, () => db.query("select review_shared_nutrition_recipe($1, true, 'link-club-recept')", [id]));
+    expect(
+      await count(
+        "select count(*) from nutrition_recipes where id = $1 and is_standard and visibility = 'prive' and not show_owner and contributed_by = $2",
+        [id, OTHER],
+      ),
+    ).toBe(1);
+    expect(await sees(APPROVED, "link-club-recept")).toBe(1);
+    await db.query("delete from nutrition_recipes where id = $1", [id]);
+  });
+});
+
+describe("onderweg tot 120 g per uur (0272)", () => {
+  it("staat standaard uit en alleen het lid zelf zet hem aan", async () => {
+    await as(APPROVED, () =>
+      db.query("insert into nutrition_profiles(profile_id) values($1) on conflict (profile_id) do nothing", [APPROVED]),
+    );
+    expect(
+      await as(APPROVED, () => count("select count(*) from nutrition_profiles where profile_id = $1 and not ride_carbs_120", [APPROVED])),
+    ).toBe(1);
+    await as(APPROVED, () => db.query("update nutrition_profiles set ride_carbs_120 = true where profile_id = $1", [APPROVED]));
+    // Een ander lid ziet de rij niet en kan hem dus ook niet terugzetten.
+    await as(OTHER, () => db.query("update nutrition_profiles set ride_carbs_120 = false where profile_id = $1", [APPROVED]));
+    expect(await count("select count(*) from nutrition_profiles where profile_id = $1 and ride_carbs_120", [APPROVED])).toBe(1);
+  });
+});
+
+describe("zweettests (0273)", () => {
+  const insert = (owner: string, mlPerHour: number, minutes = 60) =>
+    db.query(
+      "insert into nutrition_sweat_tests(profile_id, tested_on, duration_minutes, sweat_ml_per_hour, setting, consent_version) values($1, '2026-10-20', $2, $3, 'binnen', '2026-10-25')",
+      [owner, minutes, mlPerHour],
+    );
+
+  it("laat het lid eigen tests opslaan, lezen en wissen", async () => {
+    await as(APPROVED, () => insert(APPROVED, 900));
+    expect(await as(APPROVED, () => count("select count(*) from nutrition_sweat_tests"))).toBe(1);
+    await as(APPROVED, () => db.query("delete from nutrition_sweat_tests where profile_id = $1", [APPROVED]));
+    expect(await count("select count(*) from nutrition_sweat_tests")).toBe(0);
+  });
+
+  it("toont een test niet aan een ander lid en laat niemand voor een ander opslaan", async () => {
+    await as(APPROVED, () => insert(APPROVED, 900));
+    expect(await as(OTHER, () => count("select count(*) from nutrition_sweat_tests"))).toBe(0);
+    await expect(as(OTHER, () => insert(APPROVED, 900))).rejects.toThrow();
+    await as(OTHER, () => db.query("delete from nutrition_sweat_tests"));
+    expect(await count("select count(*) from nutrition_sweat_tests")).toBe(1);
+    await db.query("delete from nutrition_sweat_tests");
+  });
+
+  it("weigert een onwaarschijnlijke of te korte test", async () => {
+    await expect(as(APPROVED, () => insert(APPROVED, 100))).rejects.toThrow();
+    await expect(as(APPROVED, () => insert(APPROVED, 900, 30))).rejects.toThrow();
   });
 });

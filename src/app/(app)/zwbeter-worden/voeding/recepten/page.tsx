@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Inbox, Plus } from "lucide-react";
+import { Inbox, Plus, ScanBarcode } from "lucide-react";
 import { DIET_TAGS, DIET_TAG_LABELS, matchesDiet, portionForRider, type DietTag } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS, MEAL_MOMENT_LABELS, type MealMoment } from "@/lib/nutrition/targets";
 import { nutritionDay } from "@/lib/nutrition/tips";
@@ -20,9 +20,9 @@ export const revalidate = 0;
 
 type Search = { moment?: string | string[]; dieet?: string | string[]; toon?: string | string[] };
 
-const VIEWS = ["favorieten", "verborgen"] as const;
+const VIEWS = ["favorieten", "leden", "verborgen"] as const;
 type View = (typeof VIEWS)[number];
-const VIEW_LABELS: Record<View, string> = { favorieten: "Favorieten", verborgen: "Niet voor mij" };
+const VIEW_LABELS: Record<View, string> = { favorieten: "Favorieten", leden: "Van leden", verborgen: "Niet voor mij" };
 
 function one(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -61,6 +61,8 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
     energyFactor: energyFactorFor(profile),
     dayType: day.dayType,
     rideMinutes: day.rideMinutes,
+    rideIntensity: day.rideIntensity,
+    rideGut: day.rideGut,
   };
 
   const href = (next: { moment?: MealMoment | null; dieet?: DietTag | null; toon?: View | null }) => {
@@ -76,15 +78,16 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
   };
 
   // Wat "niet voor mij" is, staat alleen nog onder zijn eigen filter.
-  const inView = (recipeId: string) => {
-    const pref = prefs.get(recipeId);
+  const inView = (recipe: (typeof recipes)[number]) => {
+    const pref = prefs.get(recipe.id);
     if (view === "verborgen") return pref === "verborgen";
     if (view === "favorieten") return pref === "favoriet";
+    if (view === "leden") return recipe.visibility === "leden" && pref !== "verborgen";
     return pref !== "verborgen";
   };
   const shown = recipes.filter(
     (recipe) =>
-      (moment == null || recipe.meal_moment === moment) && matchesDiet(recipe, diet) && inView(recipe.id),
+      (moment == null || recipe.meal_moment === moment) && matchesDiet(recipe, diet) && inView(recipe),
   );
 
   return (
@@ -101,6 +104,13 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
               {proposed.length} {proposed.length === 1 ? "voorstel" : "voorstellen"}
             </Link>
           )}
+          <Link
+            href="/zwbeter-worden/voeding/recepten/nieuw?soort=sportvoeding"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-md border px-3 text-sm font-medium hover:border-primary"
+          >
+            <ScanBarcode className="size-4" />
+            Sportvoeding
+          </Link>
           <Link
             href="/zwbeter-worden/voeding/recepten/nieuw"
             className="inline-flex min-h-[44px] items-center gap-2 rounded-md border px-3 text-sm font-medium hover:border-primary"

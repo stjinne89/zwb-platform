@@ -7,7 +7,7 @@
 // hetzelfde verhaal stond anders twee keer op de pagina.
 
 import { useState } from "react";
-import { CircleHelp, Download, ExternalLink } from "lucide-react";
+import { CalendarDays, CircleHelp, Download, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { Power } from "@/components/power-unit";
 import { MethodLabelBadge } from "@/components/method-label-badge";
@@ -33,6 +33,8 @@ import type { RideLink } from "./ride-link";
 import { RideLinkForm } from "./ride-link-form";
 import { WorkoutDurationControl } from "./workout-duration-control";
 import { RaceWarmupControl, type RaceWarmupView } from "./race-warmup-control";
+import { RidePlanView } from "./ride-plan-view";
+import type { RidePlan } from "@/lib/nutrition/ride-plan";
 import {
   ZwiftEventSuggestions,
   type ChosenZwiftEvent,
@@ -55,7 +57,7 @@ export type MemberCalendarItem = {
   source: "zwb" | "intervals" | "rit";
   skipped: boolean;
   missed?: boolean;
-  /** Veelbelovend of experimenteel (0246). */
+  /** Nieuwe methode (0246: veelbelovend of experimenteel). */
   methodLabel?: string | null;
   /** Bij een gereden rit: bij welke training hij hoort, door het lid aan te passen. */
   rideLink?: RideLink;
@@ -73,6 +75,8 @@ export type MemberCalendarItem = {
     blocks: WorkoutBlock[];
     intervalsUrl: string | null;
     fitUrl: string | null;
+    /** Bij een training uit een clubevent: de eventpagina op de kalender. */
+    eventUrl?: string | null;
     rpe: number | null;
     feel: string | null;
     report: string | null;
@@ -89,6 +93,8 @@ export type MemberCalendarItem = {
     outdoor?: OutdoorRouteView[];
     /** Bij een geplande race: de warming-up die het lid erbij kan zetten. */
     warmup?: RaceWarmupView | null;
+    /** Wat je voor deze rit klaarzet; null onder een uur. */
+    ridePlan?: RidePlan | null;
   };
 };
 
@@ -180,7 +186,7 @@ function RideDetail({ item }: { item: MemberCalendarItem & { ride: NonNullable<M
           value={<Power watts={metrics.normalizedWatts} />}
         />
       </div>
-      {metrics.hasPowerMeter || metrics.movingMinutes == null ? null : (
+      {metrics.hasPowerMeter || metrics.tss != null || metrics.movingMinutes == null ? null : (
         <p className="text-xs text-muted-foreground">
           Zonder vermogensmeter zijn TSS en IF niet te bepalen.
         </p>
@@ -224,7 +230,13 @@ function WorkoutDetail({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-2 font-medium">
-            {item.title}
+            {detail.eventUrl ? (
+              <Link href={detail.eventUrl} className="transition hover:text-primary hover:underline">
+                {item.title}
+              </Link>
+            ) : (
+              item.title
+            )}
             <MethodLabelBadge label={item.methodLabel} />
           </p>
           <p className="text-xs text-muted-foreground">
@@ -247,8 +259,17 @@ function WorkoutDetail({
               vult hij elk blok volledig; dan verdwijnt het verschil tussen een
               opener en een duurblok. */}
           <WorkoutBlocks blocks={detail.blocks} ftpWatts={ftpWatts} variant="preview" />
-          {detail.fitUrl || detail.intervalsUrl ? (
+          {detail.fitUrl || detail.intervalsUrl || detail.eventUrl ? (
             <div className="flex flex-wrap gap-2">
+              {detail.eventUrl ? (
+                <Link
+                  href={detail.eventUrl}
+                  className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+                >
+                  <CalendarDays className="size-3" />
+                  Naar het event
+                </Link>
+              ) : null}
               {detail.fitUrl ? (
                 <>
                   <a
@@ -259,7 +280,7 @@ function WorkoutDetail({
                     Download FIT
                   </a>
                   <Link
-                    href="/hulp#fit-export"
+                    href="/hulp/workouts#fit-export"
                     title="Hulp bij workout op je fietscomputer"
                     aria-label="Hulp bij workout op je fietscomputer"
                     className="inline-flex items-center rounded-md border px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -294,6 +315,7 @@ function WorkoutDetail({
           {detail.warmup ? (
             <RaceWarmupControl key={`warmup-${item.id}`} raceWorkoutId={item.id} warmup={detail.warmup} />
           ) : null}
+          {detail.ridePlan ? <RidePlanView plan={detail.ridePlan} /> : null}
           {/* Onderaan, want dit is een suggestie naast de training en niet de
               training zelf: eerst wát je rijdt, dan pas waar je het kunt rijden. */}
           {suggestions ? (
@@ -321,7 +343,7 @@ function WorkoutDetail({
               teruggokken welke opbouw je die dag had. */}
           <WorkoutBlocks blocks={detail.blocks} ftpWatts={ftpWatts} variant="compact" />
           {detail.metrics ? (
-            <WorkoutMetricsPanel metrics={detail.metrics} blocks={detail.blocks} ftpWatts={ftpWatts} />
+            <WorkoutMetricsPanel metrics={detail.metrics} blocks={detail.blocks} ftpWatts={ftpWatts} rpe={detail.rpe} />
           ) : null}
           {item.rideLink ? (
             <RideLinkForm

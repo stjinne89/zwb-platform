@@ -1,5 +1,5 @@
-// De leeszaal van ZWBieb: alle artikelen uit de drie kennisbanken (trainen,
-// voeding, kracht) op één plek, per onderwerp in plaats van per onderdeel.
+// De leeszaal van ZWBieb: alle artikelen uit de kennisbanken (trainen, voeding,
+// kracht, sinds 2026-10-18 materiaal en sinds 2026-10-19 racen) op één plek, per onderwerp in plaats van per onderdeel.
 //
 // De artikelen blijven waar ze staan: protocollen, de coach en het schema linken
 // naar hun adres onder ZWBeter Worden. De leeszaal is een catalogus erover.
@@ -15,23 +15,30 @@
 // gezondheidsonderwerp (wie zich als kenner meldt, vertelt de club iets over
 // zichzelf); een artikel lezen vertelt niemand iets.
 
+import type { ArticleConclusion, ArticleEvidence } from "@/lib/knowledge/evidence";
+import { MATERIAAL_ARTICLES } from "@/lib/materiaal/library";
 import { NUTRITION_ARTICLES } from "@/lib/nutrition/library";
+import { RACEN_ARTICLES } from "@/lib/racen/library";
 import type { MethodLabel } from "@/lib/training/method-label";
 import { STRENGTH_ARTICLES } from "@/lib/training/strength-library";
 import { TRAINING_ARTICLES } from "@/lib/training/training-library";
 
-export type Collection = "trainen" | "voeding" | "kracht";
+export type Collection = "trainen" | "voeding" | "kracht" | "materiaal" | "racen";
 
 export const COLLECTION_LABELS: Record<Collection, string> = {
   trainen: "Trainen",
   voeding: "Voeding",
   kracht: "Core & mobiliteit",
+  materiaal: "Materiaal",
+  racen: "Racen",
 };
 
 const COLLECTION_BASE: Record<Collection, string> = {
   trainen: "/zwbeter-worden/kennis",
   voeding: "/zwbeter-worden/voeding/kennis",
   kracht: "/zwbeter-worden/core/kennis",
+  materiaal: "/zwbeter-worden/materiaal/kennis",
+  racen: "/zwbeter-worden/racen/kennis",
 };
 
 /** Een artikel als "kennisbank/slug". */
@@ -55,6 +62,7 @@ export const SHELF_DEFS: ShelfDef[] = [
       "trainen/rustige-ritten",
       "trainen/lange-ritten",
       "trainen/intensiteitsverdeling",
+      "trainen/intervallen",
       "trainen/korte-intervallen",
       "trainen/vo2max-wisselend",
       "trainen/sprints-als-onderhoud",
@@ -74,6 +82,23 @@ export const SHELF_DEFS: ShelfDef[] = [
     label: "Naar een wedstrijd",
     topics: ["zwift-racen", "toertochten"],
     books: ["voeding/voor-de-rit", "trainen/warming-up", "trainen/taper"],
+  },
+  // De kennisbank racen (2026-10-19): tactiek in een Zwift-race.
+  {
+    slug: "racetactiek",
+    label: "Racetactiek",
+    topics: ["zwift-racen"],
+    books: [
+      "racen/wat-een-zwift-race-vraagt",
+      "racen/in-het-wiel",
+      "racen/positie-in-de-groep",
+      "racen/klimmen-in-de-groep",
+      "racen/aanvallen-en-volgen",
+      "racen/ontsnappen",
+      "racen/de-sprint",
+      "racen/ploegentijdrit",
+      "racen/zwift-spelregels",
+    ],
   },
   {
     slug: "onderweg",
@@ -149,6 +174,44 @@ export const SHELF_DEFS: ShelfDef[] = [
       "trainen/brain-endurance-training",
     ],
   },
+  // De kennisbank materiaal (2026-10-18).
+  {
+    slug: "lucht-en-houding",
+    label: "Lucht en houding",
+    topics: ["bikefit"],
+    books: [
+      "materiaal/waar-je-watt-heen-gaan",
+      "materiaal/houding",
+      "materiaal/helm",
+      "materiaal/kleding",
+      "materiaal/wielen-en-frame",
+      "materiaal/sokken-en-overschoenen",
+    ],
+  },
+  {
+    slug: "banden-en-ketting",
+    label: "Banden en ketting",
+    topics: ["banden-tubeless", "sleutelen"],
+    books: ["materiaal/banden-en-bandenspanning", "materiaal/ketting-en-smering"],
+  },
+  {
+    slug: "binnen-fietsen",
+    label: "Binnen fietsen",
+    topics: ["zwift-setup", "vermogensmeters"],
+    books: ["materiaal/ventilator", "materiaal/vermogensmeter"],
+  },
+  {
+    slug: "fiets-afstellen",
+    label: "Fiets en lichaam",
+    topics: ["bikefit"],
+    books: ["materiaal/zadelhoogte-en-bikefit", "materiaal/cranklengte", "materiaal/gewicht"],
+  },
+  {
+    slug: "kleine-middelen",
+    label: "Kleine middelen",
+    topics: [],
+    books: ["materiaal/neusstrips", "materiaal/compressiekleding", "materiaal/inlegzolen"],
+  },
   {
     slug: "gezondheid",
     label: "Gezondheid",
@@ -174,7 +237,10 @@ export type Book = {
   title: string;
   summary: string;
   collection: Collection;
-  /** Veelbelovend of experimenteel (alleen bij trainen); zie method-label.ts. */
+  evidence: ArticleEvidence;
+  /** "geen effect" of "nadelig"; staat in de badge. */
+  conclusion: ArticleConclusion | null;
+  /** Nieuwe methode (alleen bij trainen); zie method-label.ts. */
   methodLabel: MethodLabel | null;
 };
 
@@ -184,7 +250,14 @@ function allArticles(): Map<BookRef, Book> {
   const books = new Map<BookRef, Book>();
   const add = (
     collection: Collection,
-    list: { slug: string; title: string; summary: string; methodLabel?: MethodLabel }[],
+    list: {
+      slug: string;
+      title: string;
+      summary: string;
+      evidence: ArticleEvidence;
+      conclusion?: ArticleConclusion;
+      methodLabel?: MethodLabel;
+    }[],
   ) => {
     for (const article of list) {
       books.set(`${collection}/${article.slug}`, {
@@ -192,6 +265,8 @@ function allArticles(): Map<BookRef, Book> {
         title: article.title,
         summary: article.summary,
         collection,
+        evidence: article.evidence,
+        conclusion: article.conclusion ?? null,
         methodLabel: article.methodLabel ?? null,
       });
     }
@@ -199,6 +274,8 @@ function allArticles(): Map<BookRef, Book> {
   add("trainen", TRAINING_ARTICLES);
   add("voeding", NUTRITION_ARTICLES);
   add("kracht", STRENGTH_ARTICLES);
+  add("materiaal", MATERIAAL_ARTICLES);
+  add("racen", RACEN_ARTICLES);
   return books;
 }
 

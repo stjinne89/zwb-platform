@@ -11,6 +11,7 @@ import {
 } from "@/lib/pacing/zwift-setup";
 import { RideSetupForm, type FrameOption } from "./_components/ride-setup";
 import { PacingEditor } from "./_components/pacing-editor";
+import { PacingBikeAdvice } from "./_components/bike-advice";
 import { RouteShape } from "../_components/route-shape";
 import { GenerateButton } from "./_components/generate-button";
 import {
@@ -20,6 +21,12 @@ import {
   TargetTimeForm,
 } from "./_components/plan-controls";
 import { getRequestAccess } from "@/lib/auth/request";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { assessPacingTarget } from "@/lib/pacing/target-assessment";
+import { goalTargetForEvent } from "@/lib/training/goal-forecast";
+import { VERDICT_LABELS } from "@/lib/training/goal-target-time";
+import { TargetAssessmentRows, VerdictBadge } from "@/components/target-assessment";
 
 export const dynamic = "force-dynamic";
 
@@ -56,9 +63,17 @@ export default async function PacingPage({
     );
   }
 
-  const { event, loaded, rider, plan, staleness, sharedPlans, similarRides, zwift, ride } =
+  const { event, loaded, rider, plan, staleness, sharedPlans, similarRides, zwift, ride, bikeAdvice } =
     result.data;
   const summary = plan.summary;
+  // Hoe ver het lid van de doeltijd af zit, en of er al een trainingsdoel met
+  // doeltijd aan dit event hangt.
+  const assessment = assessPacingTarget(result.data);
+  const goalTarget = await goalTargetForEvent(
+    await createClient(),
+    result.data.userId,
+    id,
+  ).catch(() => null);
   const bikes = zwift ? bikeOptions(zwift.parts) : null;
 
   return (
@@ -112,6 +127,7 @@ export default async function PacingPage({
             </p>
           </div>
           <RideSetupForm
+            key={JSON.stringify(ride.setup)}
             eventId={id}
             setup={ride.setup}
             frames={bikes.frames}
@@ -120,6 +136,9 @@ export default async function PacingPage({
             forcedWheels={zwift.constraints.forcedWheels}
             upgradesDisabled={zwift.constraints.upgradesDisabled}
           />
+          {bikeAdvice && bikeAdvice.best.length > 0 && (
+            <PacingBikeAdvice eventId={id} setup={ride.setup} advice={bikeAdvice} />
+          )}
         </section>
       )}
 
@@ -184,11 +203,40 @@ export default async function PacingPage({
           manual={plan.source === "manual"}
         />
         {summary?.targetTime ? (
+          <div className="space-y-1 text-sm text-muted-foreground">
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span>
+                Doel {hhmm(summary.targetTime.seconds)}, plan {hhmm(summary.totalSeconds)}
+                {summary.targetTime.reachable
+                  ? ""
+                  : ` · snelste haalbare ${hhmm(summary.targetTime.fastestSeconds)}`}
+              </span>
+              {assessment ? <VerdictBadge verdict={assessment.verdict} /> : null}
+            </p>
+            {assessment ? (
+              <dl className="grid gap-1">
+                <TargetAssessmentRows
+                  cpWatts={assessment.cpWatts}
+                  requiredCpWatts={assessment.requiredCpWatts}
+                  requiredGainPct={assessment.requiredGainPct}
+                  realisticGainPct={assessment.realisticGainPct}
+                  secondsPerCpPct={assessment.secondsPerCpPct}
+                  secondsPerKg={assessment.secondsPerKg}
+                  untilLabel="tot het event"
+                />
+              </dl>
+            ) : null}
+          </div>
+        ) : null}
+        {goalTarget ? (
           <p className="text-sm text-muted-foreground">
-            Doel {hhmm(summary.targetTime.seconds)}, plan {hhmm(summary.totalSeconds)}
-            {summary.targetTime.reachable
-              ? ""
-              : ` · snelste haalbare ${hhmm(summary.targetTime.fastestSeconds)}`}
+            <Link href="/zwbeter-worden/doelen" className="text-foreground underline-offset-2 hover:underline">
+              Trainingsdoel
+            </Link>
+            {`: doeltijd ${hhmm(goalTarget.targetSeconds)}`}
+            {goalTarget.latest
+              ? ` · prognose ${hhmm(goalTarget.latest.predicted_seconds)} · ${VERDICT_LABELS[goalTarget.latest.verdict].toLowerCase()}`
+              : ""}
           </p>
         ) : null}
         <ShareToggle eventId={id} shared={plan.shared} />
@@ -267,7 +315,12 @@ function bikeOptions(parts: BikePart[]): {
   const frames = new Map<string, FrameOption>();
   for (const part of parts) {
     if (part.part !== "frame") continue;
-    const entry = frames.get(part.name) ?? { name: part.name, kind: part.kind, stages: [] };
+    const entry = frames.get(part.name) ?? {
+      name: part.name,
+      kind: part.kind,
+      stages: [],
+      fixedWheels: part.fixedWheels === true,
+    };
     entry.stages.push(part.stage);
     frames.set(part.name, entry);
   }

@@ -13,6 +13,7 @@ const PROFILE_TABLES: string[] = [
   "event_reports",
   "event_report_comments",
   "training_goals",
+  "training_goal_forecasts",
   "training_plans",
   "training_workouts",
   "training_workout_reports",
@@ -34,13 +35,22 @@ const PROFILE_TABLES: string[] = [
   "post_likes",
   "nutrition_profiles",
   "nutrition_recipe_prefs",
+  "nutrition_menu_choices",
   "nutrition_log_settings",
   "nutrition_log_meals",
   "nutrition_log_ai_usage",
+  "nutrition_sweat_tests",
   "member_protocols",
   "member_knowledge",
   "member_knowledge_topics",
   "member_tips",
+  "weekly_reviews",
+  // Q&A: de eigen vragen (profile_id is de vrager) en waar het lid "Ik ook" tikte.
+  "member_questions",
+  "member_question_askers",
+  // ZWBriljant (0265): of je deelt, en je hoogte per week.
+  "zwbriljant_preferences",
+  "zwbriljant_snapshots",
 ];
 
 export async function GET() {
@@ -80,6 +90,13 @@ export async function GET() {
     .eq("profile_id", user.id)
     .maybeSingle();
   data.strava_connection = strava ?? null;
+
+  const { data: telegram } = await admin
+    .from("telegram_links")
+    .select("profile_id, chat_id, linked_at, created_at")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+  data.telegram_link = telegram ?? null;
 
   // Overige tabellen met profile_id (best-effort; sla missende tabellen over).
   for (const table of PROFILE_TABLES) {
@@ -131,6 +148,16 @@ export async function GET() {
       .select("*")
       .eq("author_id", user.id);
     if (!messageError) data.knowledge_messages = messages ?? [];
+  }
+
+  // Q&A: antwoorden die het lid zelf schreef, op vragen van anderen.
+  {
+    const { data: answers, error } = await admin
+      .from("member_questions")
+      .select("id, answer, answered_at")
+      .eq("answered_by", user.id)
+      .neq("profile_id", user.id);
+    if (!error) data.member_question_answers = answers ?? [];
   }
 
   const body = JSON.stringify(data, null, 2);

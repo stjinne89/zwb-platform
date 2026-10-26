@@ -19,6 +19,8 @@ import {
   type ExpertTopicRow,
   type TipRow,
 } from "@/lib/zwbieb/queries";
+import { EvidenceBadge } from "@/components/evidence-badge";
+import { MethodLabelBadge } from "@/components/method-label-badge";
 import { ExpertRow } from "./expert-row";
 import { TipItem } from "./tip-item";
 import { TopicBadge } from "./topic-badge";
@@ -221,7 +223,11 @@ export async function ZwbiebOverview({
                   href={book.href}
                   className="flex min-h-[44px] items-center justify-between gap-3 text-sm hover:text-primary"
                 >
-                  <span className="min-w-0">{book.title}</span>
+                  <span className="flex min-w-0 flex-wrap items-center gap-2">
+                    {book.title}
+                    <EvidenceBadge evidence={book.evidence} conclusion={book.conclusion} />
+                    <MethodLabelBadge label={book.methodLabel} />
+                  </span>
                   <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
                     {COLLECTION_LABELS[book.collection]}
                     <ChevronRight className="size-4" />

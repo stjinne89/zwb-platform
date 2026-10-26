@@ -5,8 +5,10 @@
 // staat — consistent met de badge-sectie. Geen migratie nodig, leest uit
 // bestaande strava_activities.
 
+import Link from "next/link";
 import {
   Bike,
+  ChevronRight,
   Mountain,
   Clock,
   Trophy,
@@ -21,6 +23,7 @@ import { createClient } from "@/lib/supabase/server";
 import { garminAttribution } from "@/lib/intervals/rides";
 import { StravaAttribution, ViewOnStrava } from "@/components/strava-brand";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
+import { uniqueRides } from "@/lib/rides/unique-rides";
 
 type ActivityRow = {
   id: number;
@@ -35,6 +38,8 @@ type ActivityRow = {
   import_source?: string | null;
   device_name?: string | null;
 };
+
+const PAGE = 1000;
 
 const INDOOR_SPORTS = new Set(["VirtualRide"]);
 const OUTDOOR_SPORTS = new Set([
@@ -141,21 +146,34 @@ function MonthHeatmap({ values }: { values: number[] }) {
 export async function RiderStats({
   profileId,
   displayName,
+  href,
 }: {
   profileId: string;
   displayName: string;
+  href?: string;
 }) {
   const supabase = await createClient();
-  const { data: rows } = await supabase
-    .from("strava_activities")
-    .select(
-      "id, sport_type, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, trainer, name, import_source:raw->>import_source, device_name:raw->>device_name",
-    )
-    .eq("profile_id", profileId)
-    .in("sport_type", CYCLING_SPORTS)
-    .order("start_date", { ascending: false });
+  // In pagina's: Supabase geeft per vraag hooguit 1000 rijen, en dan vielen bij
+  // leden met meer ritten de oudste jaren uit "Op de fiets sinds" en de records.
+  const rows: ActivityRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("strava_activities")
+      .select(
+        "id, sport_type, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, trainer, name, import_source:raw->>import_source, device_name:raw->>device_name",
+      )
+      .eq("profile_id", profileId)
+      .in("sport_type", CYCLING_SPORTS)
+      .order("start_date", { ascending: false })
+      .order("id")
+      .range(from, from + PAGE - 1);
+    if (error || !data) break;
+    rows.push(...(data as ActivityRow[]));
+    if (data.length < PAGE) break;
+  }
 
-  const activities = (rows ?? []) as ActivityRow[];
+  // Een rit die het lid twee keer opnam, telt één keer (lib/rides/unique-rides.ts).
+  const activities = uniqueRides(rows);
   if (activities.length === 0) return null;
 
   // ── Jaar-totalen: huidige jaar vs vorige jaar tot zelfde dag-van-jaar
@@ -304,9 +322,19 @@ export async function RiderStats({
 
   return (
     <section className="space-y-4 rounded-lg border bg-card p-6">
-      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        <Bike className="size-4 text-primary" />
-        {firstLastName} op de fiets
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        {href ? (
+          <Link href={href} className="group flex items-center gap-2 hover:text-foreground">
+            <Bike className="size-4 text-primary" />
+            {firstLastName} op de fiets
+            <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        ) : (
+          <span className="flex items-center gap-2">
+            <Bike className="size-4 text-primary" />
+            {firstLastName} op de fiets
+          </span>
+        )}
       </h2>
 
       {/* Jaar-totalen */}

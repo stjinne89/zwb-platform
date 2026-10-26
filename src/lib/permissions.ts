@@ -52,7 +52,7 @@ export const COMMUNITY_PERMISSIONS = [
   {
     id: "content.create_posts",
     label: "Posts plaatsen",
-    description: "Kan Vraag en Aanbod-posts, vragen en tips plaatsen.",
+    description: "Kon Vraag en Aanbod-posts plaatsen; dat onderdeel is sinds 2026-10-18 uit de app.",
     category: "Content",
   },
   {
@@ -127,6 +127,13 @@ export const COMMUNITY_PERMISSIONS = [
     id: "polls.manage",
     label: "Polls aanmaken & sluiten",
     description: "Kan polls aanmaken, sluiten en verwijderen.",
+    category: "Community",
+  },
+  {
+    id: "qa.answer",
+    label: "Vragen over de app beantwoorden",
+    description:
+      "Ziet alle vragen in Q&A, ook die alleen voor het bestuur, en kan ze beantwoorden, afschermen en verwijderen.",
     category: "Community",
   },
   {

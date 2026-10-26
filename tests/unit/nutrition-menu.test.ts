@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  choiceMoments,
   dayMenu,
   menuMoments,
-  parseSwaps,
   portionFit,
   rankRecipes,
-  serializeSwaps,
   stapleOf,
   wantedProfiles,
   type MenuContext,
@@ -219,6 +218,26 @@ describe("rankRecipes", () => {
     expect(rankRecipes(pool, "diner", context(heavy))[0].recipe.slug).toBe(seen[0]);
   });
 
+  it("neemt een recept van een ander lid alleen als favoriet of bij zelf kiezen mee", () => {
+    const shared: Recipe = {
+      ...pasta,
+      id: "gedeeld",
+      slug: "gedeeld",
+      is_standard: false,
+      owner_id: "ander-lid",
+      visibility: "leden",
+      from_member: true,
+    };
+    const slugs = (extra: Partial<MenuContext>) =>
+      rankRecipes([beans, shared], "diner", context(heavy, extra)).map((item) => item.recipe.slug);
+    expect(slugs({})).toEqual(["bonenschotel"]);
+    expect(slugs({ prefs: new Map([["gedeeld", "favoriet"]]) })).toContain("gedeeld");
+    expect(slugs({ includeShared: true })).toContain("gedeeld");
+    // Een eigen recept doet gewoon mee, ook als het gedeeld is.
+    const own = { ...shared, id: "eigen", slug: "eigen", from_member: false };
+    expect(rankRecipes([beans, own], "diner", context(heavy)).map((item) => item.recipe.slug)).toContain("eigen");
+  });
+
   it("werkt zonder gewicht op profiel en soort eten", () => {
     const ranked = rankRecipes([beans, salad, pasta], "diner", context({ ...base, weightKg: null }, { rider: null }));
     expect(ranked).toHaveLength(3);
@@ -228,7 +247,8 @@ describe("rankRecipes", () => {
 
 describe("portionFit", () => {
   it("straft te weinig koolhydraten af, maar niet te veel eiwit", () => {
-    const rider = { weightKg: 70, energyFactor: 1, dayType: "lang" as const, rideMinutes: 200 };
+    // Zonder ritduur gaat er niets van het dagdoel af: het diner mikt op 210 g.
+    const rider = { weightKg: 70, energyFactor: 1, dayType: "lang" as const, rideMinutes: null };
     const small = recipe("klein", "diner", "gemengd", [
       [RICE, 40, "kh_bron"],
       [CHICKEN, 300, "eiwit_bron"],
@@ -276,26 +296,69 @@ describe("dayMenu", () => {
   });
 
   it("volgt een eigen keuze, ook als die de basis dubbelt", () => {
-    const menu = dayMenu(recipes.slice(0, 3), ["lunch", "diner"], context(light), { diner: 1 });
+    const unchosen = dayMenu(recipes.slice(0, 3), ["lunch", "diner"], context(light));
+    expect(unchosen.find((slot) => slot.moment === "diner")?.recipe.slug).toBe("diner-rijst");
+    const menu = dayMenu(recipes.slice(0, 3), ["lunch", "diner"], context(light), {
+      chosen: { diner: "diner-pasta" },
+    });
     const diner = menu.find((slot) => slot.moment === "diner");
-    const unswapped = dayMenu(recipes.slice(0, 3), ["lunch", "diner"], context(light), {});
-    expect(diner?.index).toBe(1);
-    expect(diner?.choices).toBe(2);
-    expect(unswapped.find((slot) => slot.moment === "diner")?.recipe.slug).toBe("diner-rijst");
+    expect(diner).toMatchObject({ chosen: true, choices: 2, nextRecipeId: "diner-rijst" });
+    expect(diner?.recipe.slug).toBe("diner-pasta");
+  });
+
+  it("geeft bij elk moment het volgende recept voor \"Ander recept\"", () => {
+    const menu = dayMenu(recipes.slice(0, 3), ["lunch", "diner"], context(light));
+    expect(menu.find((slot) => slot.moment === "diner")?.nextRecipeId).toBe("diner-pasta");
+    // Maar één lunchrecept: niets om naar te wisselen.
+    expect(menu.find((slot) => slot.moment === "lunch")?.nextRecipeId).toBeNull();
+  });
+
+  it("zet een gekozen recept ook buiten het dieetfilter en na \"niet voor mij\" vast", () => {
+    const menu = dayMenu(recipes.slice(0, 3), ["diner"], context(light, {
+      diet: "vegan",
+      prefs: new Map([["diner-pasta", "verborgen"]]),
+    }), { chosen: { diner: "diner-pasta" } });
+    expect(menu.map((slot) => slot.recipe.slug)).toEqual(["diner-pasta"]);
+  });
+
+  it("schaalt een dinerrecept op de lunch naar het doel van de lunch", () => {
+    const rider = context(light).rider;
+    const placed = dayMenu(recipes, ["lunch"], context(light), { chosen: { lunch: "diner-rijst" } })[0];
+    const asLunch = portionForRider({ ...recipes[2], meal_moment: "lunch" }, rider);
+    expect(placed.recipe.slug).toBe("diner-rijst");
+    expect(placed.portion.perPortion.carbsG).toBe(asLunch.perPortion.carbsG);
+    expect(choiceMoments("lunch")).toEqual(["lunch", "diner"]);
+    expect(choiceMoments("ontbijt")).toEqual(["ontbijt"]);
+  });
+
+  it("negeert een keuze die niet bij het moment past of niet zichtbaar is", () => {
+    const menu = dayMenu(recipes, ["ontbijt"], context(light), { chosen: { ontbijt: "diner-pasta" } });
+    expect(menu[0]).toMatchObject({ chosen: false });
+    const gone = dayMenu(recipes, ["diner"], context(light), { chosen: { diner: "bestaat-niet" } });
+    expect(gone[0].chosen).toBe(false);
+  });
+
+  it("voegt een moment toe als het lid daar zelf iets koos", () => {
+    const menu = dayMenu(recipes, ["lunch"], context(light), { chosen: { diner: "diner-pasta" } });
+    expect(menu.map((slot) => slot.moment)).toEqual(["lunch", "diner"]);
+  });
+
+  it("kiest automatisch geen recept dat vlakbij al gekozen is, en ontwijkt die basis", () => {
+    const menu = dayMenu(recipes.slice(1, 3), ["diner"], context(light), { avoid: new Set(["diner-rijst"]) });
+    expect(menu[0].recipe.slug).toBe("diner-pasta");
+    const staples = dayMenu(recipes.slice(1, 3), ["diner"], context(light), {
+      avoidStaples: new Set([RICE.id]),
+    });
+    expect(staples[0].recipe.slug).toBe("diner-pasta");
+    // Is alles vermeden, dan toch een recept.
+    const all = dayMenu(recipes.slice(1, 3), ["diner"], context(light), {
+      avoid: new Set(["diner-rijst", "diner-pasta"]),
+    });
+    expect(all).toHaveLength(1);
   });
 
   it("slaat een moment zonder recepten over", () => {
     expect(dayMenu(recipes, ["voor_slapen"], context(light))).toEqual([]);
-  });
-});
-
-describe("wissels in de URL", () => {
-  it("leest en schrijft alleen geldige momenten", () => {
-    expect(parseSwaps("lunch:2,diner:1")).toEqual({ lunch: 2, diner: 1 });
-    expect(parseSwaps("lunch:0,brunch:3,diner:x,ontbijt:-1,tussendoor:1.5")).toEqual({});
-    expect(parseSwaps(undefined)).toEqual({});
-    expect(serializeSwaps({ diner: 1, lunch: 2 })).toBe("lunch:2,diner:1");
-    expect(serializeSwaps({})).toBe("");
   });
 });
 

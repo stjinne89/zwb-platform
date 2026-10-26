@@ -8,12 +8,14 @@ import { StravaAttribution } from "@/components/strava-brand";
 import { ScrollTabs } from "@/components/ui/scroll-tabs";
 import { DISCIPLINE_LABELS } from "@/lib/strava/sports";
 import { loadFtpAt } from "@/lib/training/ftp-history";
+import { loadHrBasis } from "@/lib/training/hr-load";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import {
   bucketsBetween,
   GRANULARITIES,
   parseGranularity,
   parseRange,
+  dedupeRideRows,
   personalRidesFromRows,
   RANGES,
   windowFor,
@@ -51,10 +53,13 @@ export default async function MyStatsPage({ searchParams }: { searchParams: Prom
     loadStatsConnection(supabase, user.id),
   ]);
   const currentFtp = profile.data?.ftp_watts == null ? null : Number(profile.data.ftp_watts);
-  const ftpAt = await loadFtpAt(supabase, user.id, currentFtp);
+  const [ftpAt, hrBasis] = await Promise.all([
+    loadFtpAt(supabase, user.id, currentFtp),
+    loadHrBasis(supabase, user.id),
+  ]);
 
   const today = amsterdamDayKey();
-  const allRides = personalRidesFromRows(rows, ftpAt);
+  const allRides = personalRidesFromRows(dedupeRideRows(rows), ftpAt, hrBasis);
   const sports = [...new Set(allRides.map((ride) => ride.sportType ?? "Ride"))];
   const activeSport = sport && sports.includes(sport) ? sport : null;
   const rides = activeSport ? allRides.filter((ride) => (ride.sportType ?? "Ride") === activeSport) : allRides;
