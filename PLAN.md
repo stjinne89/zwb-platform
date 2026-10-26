@@ -11370,6 +11370,12 @@ ze een opgeruimde worktree overleven. Niet getest met een tweede account.
   drie keer iets aan. Wie gelijk heeft moet uit de blinde vergelijking komen.
 - Op het huidige volume kost alles op Opus ~$135 per maand, boven het tegoed;
   bijwerkingen met Sonnet ~$71.
+- **Claude kent de datum van vandaag niet** (GPT-5.5 krijgt die van OpenAI).
+  Bij oude invoer zonder ankerdatum plande Claude in de verkeerde maand; met één
+  regel "Vandaag is …" in de vraag klopt het en breekt Claude bij elk nieuw
+  schema minder regels dan GPT-5.5. Een overstap moet de datum dus altijd
+  meesturen. De blinde beoordeling van g08, g09 en g15–g19 liep op de versies
+  zonder datum en valt daardoor in het nadeel van Claude uit (2026-10-26).
 
 **Gevonden: OpenAI krijgt de ledendata ook om te trainen.** In de OpenAI-organisatie
 staat *Share inputs and outputs with OpenAI* op *Enabled for all projects*, in ruil
