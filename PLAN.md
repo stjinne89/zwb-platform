@@ -10088,7 +10088,10 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > vervalt op 2026-10-26; nu: niet in de weekbelasting),
 > en de dag-aanpassing behandelt zo'n rit niet als extra belasting. Een rustdag telt
 > als rijdag voor de ritmeregel. Korte duurritten (bijv. 60 min Z2 bij weinig tijd)
-> en openers vóór een race of test blijven: dat is training, geen herstel. Vangnet
+> en openers vóór een race of test blijven: dat is training, geen herstel.
+> *(Niet meer waar sinds 2026-10-26: korte rustige duur valt nu ook weg; alleen
+> ritten met intensiteit en openers mogen korter. Zie de ronde "Geen rustige duur
+> onder de 90 minuten".)* Vangnet
 > in code: `dropShortRecoveryRides()` (`workouts.ts`) laat in `insertPlanWorkouts()`
 > `recovery`-workouts onder `OPTIONAL_REST_RIDE_MINUTES` (90) en `rest`-workouts
 > vallen; dat laatste dichtte ook een gat waarbij een `rest`-workout van ≥1 min als
@@ -11381,6 +11384,61 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Geen rustige duur onder de 90 minuten
+
+**2026-10-26.** Commit volgt bij de push (lokaal, niet gepusht). Geen migratie.
+
+**Waarom.** Melding van de eigenaar: in een net aangepast schema stonden weer
+rustige duurritten korter dan 90 minuten, waardoor rustdagen verdwenen. De
+afspraak: een rit zonder intensiteit onder de 90 minuten zetten we niet in het
+schema; dat is een rustdag waarop het lid naar keus rustig mag fietsen. Ritten
+met intensiteit mogen wel korter. De regel van 2026-09-18 ving alleen
+intensiteit `recovery`; de AI schrijft "Rustige duur 60 min" als `endurance`, en
+de prompt zei zelfs dat een uur duur mocht blijven. In productie stonden op
+2026-10-26 tientallen van zulke ritten (60-80 min) in schema's van die dag.
+
+**Wat er is.**
+- `isEasyRide()` (`workouts.ts`): herstel of rustige duur. Geen burst of
+  aan/uit-serie en geen "opener", "sprint", "versnelling" of "intensie" in de
+  titel; dan rustig als het kernwerk herstel is of tot en met 70% FTP ligt
+  (grens van rustige duur in `trainingFormForPct`), of als de titel "rustig"
+  of "herstel" zegt. Dat laatste omdat de AI rustige duur in watt schreef die
+  bij een lagere FTP net boven 70% uitkomt, en intensieve duur dezelfde zone deelt.
+- `dropShortRecoveryRides()` heet nu `dropShortEasyRides()` en gebruikt
+  `isEasyRide()` met de FTP van het lid. `insertPlanWorkouts()` kiest per soort
+  schema (`shortRidesAsRest`): nieuw schema en bijwerking "easy", het
+  dagvoorstel uit de cron "recovery" (de oude regel), de dag-aanpassing van het
+  lid "keep" (ongewijzigd).
+- Prompt: "Plan geen losse hersteltraining of rustige duurrit korter dan 90
+  minuten"; de zin "Een korte duurrit is geen hersteltraining … mag die blijven"
+  is vervangen door: bij minder dan 90 minuten een korte kwaliteitssessie of een
+  lege dag; openers mogen korter, met burstSeconds.
+- Meetlat (`schema-check.ts`, regel `korte-herstelrit`): telt nu ook korte
+  rustige duur; id ongewijzigd zodat oude vergelijkingen blijven kloppen.
+- Regelmotor (`compose.ts`): een `rustige_duur` onder 90 min wordt een rustdag;
+  de overgangsrit met sprints heet "Duur met sprints N min" en blijft staan.
+- `/hulp` (Rustdagen in je schema): rustige duurritten erbij genoemd.
+
+**Bewust niet.**
+- Het dagvoorstel valt niet onder de bredere regel. Dat vervangt alleen de
+  dagen die het teruggeeft; een weggevallen rustige duurrit liet daar de
+  sleutelsessie staan die hij bij vermoeidheid moest vervangen.
+- Bestaande schema's niet in de database opgeschoond: dat raakt gepubliceerde
+  workouts in intervals.icu. Een nieuw schema of een bijwerking past de regel toe.
+- Intensieve duur (71-80%) blijft korter mogen: dat is een rit met intensiteit.
+
+**Niet meer waar.** De ronde "Rustdag in plaats van korte hersteltraining"
+(2026-09-18) zei dat korte duurritten bleven; dat is daar gecorrigeerd, net als
+de opmerking in "Schema stuurt op belasting".
+
+**Getest.** Vitest: `training-prompts` (filter op watt-doelen zoals de AI ze
+schreef, intensieve duur, tempo, openers, dagvoorstel), `training-schema-check`
+(korte rustige duur wel, intensieve duur niet), `engine/compose` (geen rustige
+duur onder 90 min; het ritme telt gekozen rijdagen, een weggevallen rit is een
+rustdag), `engine/index`. `tsc` en ESLint schoon op de gewijzigde bestanden.
+**Niet geverifieerd:** of de AI de nieuwe promptregel volgt en of weken met meer
+rustdagen hun belasting nog halen; dat blijkt pas uit echte generaties.
+
 ### Gebouwd — ZWBeter voeden: sportvoeding met barcode in het receptenboek
 
 **2026-10-26.** Commit `e71088c3`, met de privacyzin en dit blok in de commit
@@ -11878,7 +11936,8 @@ sleutelsessies, zeker in de winter met meer binnen rijden.
 - *Ritten met `training_excluded_at` tellen gewoon mee.* Die horen bij geen
   training, maar zijn wel gereden.
 - *De regel "geen hersteltraining onder 90 minuten" blijft.* Hij maakt sessies
-  langer, maar korte duurritten en kwaliteit mogen al.
+  langer, maar korte duurritten en kwaliteit mogen al. *(Sinds 2026-10-26 geldt
+  hij ook voor rustige duur; korte kwaliteit mag nog wel.)*
 
 **Niet meer waar.** Eerdere rondes noemen "piekweek ≥ 85 % van het plafond" en
 "het schema bouwt naar het urenplafond toe". Dat geldt sinds deze ronde niet meer

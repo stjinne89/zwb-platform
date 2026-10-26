@@ -22,6 +22,7 @@ import {
   alignWorkoutIntensities,
   estimateTrainingLoad,
   intensityFromPct,
+  isEasyRide,
   normalizeWorkoutBlocks,
   OPTIONAL_REST_RIDE_MINUTES,
   powerRangePercentForBlock,
@@ -41,7 +42,7 @@ export const SCHEMA_RULES = {
   workoutintensiteit: { ernst: "fout", omschrijving: "Intensity van de workout is niet die van het kernwerk." },
   "drempelblok-lang": { ernst: "fout", omschrijving: "Drempelblok van 15 minuten of langer boven 95% FTP." },
   "boven-ftp-lang": { ernst: "fout", omschrijving: "Boven 100% FTP in een blok langer dan 8 minuten." },
-  "korte-herstelrit": { ernst: "fout", omschrijving: `Hersteltraining korter dan ${OPTIONAL_REST_RIDE_MINUTES} minuten.` },
+  "korte-herstelrit": { ernst: "fout", omschrijving: `Herstel of rustige duur korter dan ${OPTIONAL_REST_RIDE_MINUTES} minuten.` },
   "rustdag-als-workout": { ernst: "waarschuwing", omschrijving: "Rustdag als workout teruggegeven in plaats van weggelaten." },
   "taper-zonder-piek": { ernst: "fout", omschrijving: "Taper zonder outdoor_event, gran_fondo of A-mikpunt." },
   "sleutelsessies-aaneen": { ernst: "fout", omschrijving: "Twee sleutelsessies op opeenvolgende dagen, buiten een kamp." },
@@ -286,13 +287,13 @@ export function checkTrainingPlan(
       add("beschikbaarheid", workout.date, `${minutes} min op een dag buiten goal.availableDays.`);
     }
 
-    // Een rustige rit met openers vóór een race of test is geen hersteltraining,
-    // ook als het kernwerk door de korte versnellingen onder 60% uitkomt.
-    const isRecovery =
+    // Herstel of rustige duur (isEasyRide). Een rustige rit met openers vóór een
+    // race of test telt niet, ook als de AI de versnellingen niet als burst schreef.
+    const isEasy =
       workout.intensity === "recovery" ||
-      (aligned.intensity === "recovery" && !raceDays.has(shiftDays(workout.date, 1)));
-    if (isRecovery && minutes < OPTIONAL_REST_RIDE_MINUTES && !askedToday) {
-      add("korte-herstelrit", workout.date, `Hersteltraining van ${minutes} min.`);
+      (!raceDays.has(shiftDays(workout.date, 1)) && isEasyRide(workout, ftp));
+    if (isEasy && minutes < OPTIONAL_REST_RIDE_MINUTES && !askedToday) {
+      add("korte-herstelrit", workout.date, `Rustige rit van ${minutes} min.`);
     }
 
     if (workout.intensity !== "race") {

@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { TRAINING_FORM_SLUGS } from "@/lib/training/training-forms";
 import {
   blocksToWorkoutDoc,
-  dropShortRecoveryRides,
+  dropShortEasyRides,
   normalizeWorkoutBlocks,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
@@ -103,7 +103,7 @@ describe("warming-ups in de bibliotheek (0221)", () => {
 
   it("valt niet weg als korte herstelrit", async () => {
     const rows = await warmups();
-    expect(dropShortRecoveryRides(rows.map((row) => ({ ...row, durationMinutes: row.duration_minutes }))).length).toBe(
+    expect(dropShortEasyRides(rows.map((row) => ({ ...row, durationMinutes: row.duration_minutes }))).length).toBe(
       rows.length,
     );
   });

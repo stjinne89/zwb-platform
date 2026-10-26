@@ -19,7 +19,7 @@ import {
   adaptiveDailyPrompt,
   alignWorkoutIntensities,
   conciseWorkoutTitle,
-  dropShortRecoveryRides,
+  dropShortEasyRides,
   normalizeWorkoutBlocks,
   planUpdatePrompt,
   resizeBlocks,
@@ -508,11 +508,15 @@ export async function insertPlanWorkouts(
   options: {
     fitToAvailability?: boolean;
     /**
-     * Korte hersteltrainingen als rustdag behandelen; zie dropShortRecoveryRides().
-     * Uit bij een dag-aanpassing: vraagt het lid zelf om een rustig uurtje, dan
-     * hoort het dat ook te krijgen.
+     * Korte ritten zonder intensiteit als rustdag behandelen; zie
+     * dropShortEasyRides(). "easy" (standaard) bij een nieuw schema of een
+     * bijwerking: die vervangen een heel bereik, dus een weggevallen rit is echt
+     * een rustdag. "recovery" bij het dagvoorstel: dat vervangt alleen de dagen
+     * die het teruggeeft, en een weggevallen rustige duurrit liet de sleutelsessie
+     * staan die hij moest vervangen. "keep" bij een dag-aanpassing: vraagt het
+     * lid zelf om een rustig uurtje, dan hoort het dat ook te krijgen.
      */
-    shortRecoveryAsRest?: boolean;
+    shortRidesAsRest?: "easy" | "recovery" | "keep";
   } = {},
 ) {
   // Testdagen, dagen die het lid heeft vrijgemaakt, dagen waarop al een
@@ -560,8 +564,8 @@ export async function insertPlanWorkouts(
     .maybeSingle();
   const ftpWatts = Number(profile?.ftp_watts) > 0 ? Number(profile?.ftp_watts) : null;
 
-  const planned =
-    options.shortRecoveryAsRest === false ? workouts : dropShortRecoveryRides(workouts);
+  const shortRides = options.shortRidesAsRest ?? "easy";
+  const planned = shortRides === "keep" ? workouts : dropShortEasyRides(workouts, ftpWatts, shortRides);
   const rows = dropWorkoutsOnBlockedDays(planned, blockedDays)
     // Een rustdag komt soms als 0-minuten-workout terug; die hoort niet in het schema.
     .filter((workout) => Math.round(workout.durationMinutes) >= 1)
@@ -790,7 +794,10 @@ async function createPlanFromAiGeneration(
     admin,
     { id: plan.id, profile_id: generation.profile_id, trainer_id: generation.trainer_id },
     draftWorkouts,
-    { fitToAvailability: !memberSetTime, shortRecoveryAsRest: !memberSetTime },
+    {
+      fitToAvailability: !memberSetTime,
+      shortRidesAsRest: memberSetTime ? "keep" : isAdaptation && !isPlanUpdate ? "recovery" : "easy",
+    },
   );
 
   // Een dagvoorstel zonder één training om neer te zetten verandert niets: de AI

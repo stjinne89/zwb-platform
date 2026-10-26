@@ -140,8 +140,11 @@ describe("checkTrainingPlan: dagen", () => {
       planWindow: window(1),
       fixedWorkouts: [{ date: day(5), title: "Clubrit", durationMinutes: 120, intensity: "endurance", kind: "clubevent" }],
     });
-    // 3 x 80 min plus de clubrit is precies het plafond.
-    const findings = checkTrainingPlan(plan, week(MONDAY, [80, 80, 80]));
+    // 3 x 80 min plus de clubrit is precies het plafond. Korte rustige duur is
+    // een eigen regel; hier gaat het om de vaste afspraak.
+    const findings = checkTrainingPlan(plan, week(MONDAY, [80, 80, 80])).filter(
+      (finding) => finding.regel !== "korte-herstelrit",
+    );
     expect(findings.map((finding) => [finding.regel, finding.datum])).toEqual([["vaste-afspraak", day(5)]]);
   });
 
@@ -154,6 +157,14 @@ describe("checkTrainingPlan: dagen", () => {
       currentPlan: { title: "Schema", fromDate: day(1), toDate: day(6), workouts: [] },
     });
     expect(rules(checkTrainingPlan(asked, [recovery]))).not.toContain("korte-herstelrit");
+  });
+
+  it("ziet een korte rustige duurrit, maar niet een korte rit met intensiteit", () => {
+    const plan = input({ planWindow: window(1) });
+    expect(rules(checkTrainingPlan(plan, [endurance(day(1), 60)]))).toContain("korte-herstelrit");
+    expect(rules(checkTrainingPlan(plan, [endurance(day(1), 90)]))).not.toContain("korte-herstelrit");
+    const intensive = workout(day(1), "endurance", [block(15, "55-65%", "recovery"), block(45, "71-75%", "endurance")], "Intensieve duur 3x15");
+    expect(rules(checkTrainingPlan(plan, [intensive]))).not.toContain("korte-herstelrit");
   });
 
   it("telt openers vóór een race niet als herstelrit", () => {

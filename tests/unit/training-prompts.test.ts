@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   adaptiveDailyPrompt,
   defaultTrainingPrompt,
-  dropShortRecoveryRides,
+  dropShortEasyRides,
+  isEasyRide,
   planUpdatePrompt,
 } from "@/lib/training/workouts";
 
@@ -151,9 +152,10 @@ describe("training prompts", () => {
 
   it("plant een rustdag met een optionele rustige rit in plaats van een korte hersteltraining", () => {
     const prompt = defaultTrainingPrompt();
-    expect(prompt).toContain("Plan geen losse hersteltraining korter dan 90 minuten");
+    expect(prompt).toContain("Plan geen losse hersteltraining of rustige duurrit korter dan 90 minuten");
     expect(prompt).toContain("Reken die optionele rit niet mee in het weekvolume");
-    expect(prompt).toContain("Een korte duurrit is geen hersteltraining");
+    expect(prompt).toContain("een uur rustige duur (tot 70% FTP) plan je niet");
+    expect(prompt).not.toContain("Een korte duurrit is geen hersteltraining");
   });
 
   it("ziet de optionele rit op een rustdag niet als extra belasting", () => {
@@ -162,16 +164,54 @@ describe("training prompts", () => {
   });
 });
 
-describe("dropShortRecoveryRides", () => {
+describe("dropShortEasyRides", () => {
   const workout = (intensity: string, durationMinutes: number) => ({ intensity, durationMinutes });
-
-  it("maakt van een korte hersteltraining en een rust-workout een rustdag", () => {
-    expect(dropShortRecoveryRides([workout("recovery", 45), workout("rest", 30)])).toEqual([]);
+  const block = (target: string, durationMinutes: number, extra: Record<string, unknown> = {}) => ({
+    label: "Blok",
+    durationMinutes,
+    target,
+    notes: "",
+    intensity: "endurance",
+    ...extra,
+  });
+  // Zoals de AI het op 2026-10-26 schreef: watt, en bij deze FTP net boven 70%.
+  const rustigeDuur = (durationMinutes: number) => ({
+    title: `Rustige duur ${durationMinutes} min`,
+    intensity: "endurance",
+    durationMinutes,
+    structure: [block("RPE 3, 140-175w", 10), block("RPE 4, 177-191w", durationMinutes - 15), block("RPE 2, 135-165w", 5)],
   });
 
-  it("laat langere herstelritten en korte duur- en kwaliteitssessies staan", () => {
-    const kept = [workout("recovery", 90), workout("endurance", 45), workout("threshold", 60)];
-    expect(dropShortRecoveryRides(kept)).toEqual(kept);
+  it("maakt van een korte hersteltraining en een rust-workout een rustdag", () => {
+    expect(dropShortEasyRides([workout("recovery", 45), workout("rest", 30)])).toEqual([]);
+  });
+
+  it("maakt van een korte rustige duurrit een rustdag, ook op 'endurance'", () => {
+    expect(dropShortEasyRides([rustigeDuur(60), rustigeDuur(75)], 260)).toEqual([]);
+    expect(dropShortEasyRides([{ ...workout("endurance", 60), structure: [block("65-70%", 60)] }])).toEqual([]);
+  });
+
+  it("laat rustige duur van 90 minuten en ritten met intensiteit staan", () => {
+    const kept = [
+      workout("recovery", 90),
+      rustigeDuur(90),
+      workout("threshold", 60),
+      { title: "Intensieve duur 3x15", intensity: "endurance", durationMinutes: 60, structure: [block("71-80%", 45)] },
+      { title: "Tempo 3x10", intensity: "tempo", durationMinutes: 60, structure: [block("81-86%", 30)] },
+      { title: "Openers 45 min", intensity: "endurance", durationMinutes: 45, structure: [block("55%", 5, { burstSeconds: 15 })] },
+      { title: "Rustige duur openers", intensity: "endurance", durationMinutes: 45, structure: [block("65%", 40)] },
+    ];
+    expect(dropShortEasyRides(kept, 260)).toEqual(kept);
+  });
+
+  it("houdt bij het dagvoorstel alleen de oude regel voor 'recovery' aan", () => {
+    const rides = [workout("recovery", 45), rustigeDuur(60)];
+    expect(dropShortEasyRides(rides, 260, "recovery")).toEqual([rustigeDuur(60)]);
+  });
+
+  it("herkent een duurrit zonder titel aan zijn kernwerk", () => {
+    expect(isEasyRide({ intensity: "endurance", durationMinutes: 60, structure: [block("68%", 50)] })).toBe(true);
+    expect(isEasyRide({ intensity: "endurance", durationMinutes: 60, structure: [block("74%", 50)] })).toBe(false);
   });
 
   it("laat de dagaanpassing een vaste afspraak nooit teruggeven en staat een leeg antwoord toe", () => {

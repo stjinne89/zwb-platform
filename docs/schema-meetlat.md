@@ -34,7 +34,7 @@ liggen. Deze meting is de nulmeting van de AI.
 | `workoutintensiteit` | fout | Intensity van de workout is niet die van het kernwerk (`alignWorkoutIntensities`, `keyWorkPct`). |
 | `drempelblok-lang` | fout | Drempelblok van 15 minuten of langer met een bovengrens boven 95% FTP. |
 | `boven-ftp-lang` | fout | Bovengrens boven 100% FTP in een blok langer dan 8 minuten, zonder `onSeconds`. |
-| `korte-herstelrit` | fout | Hersteltraining korter dan 90 minuten. Niet als het lid vandaag zelf om een rit vroeg, en niet bij openers op de dag vóór een race of test. |
+| `korte-herstelrit` | fout | Hersteltraining of rustige duur (`isEasyRide`, sinds 2026-10-26) korter dan 90 minuten. Niet als het lid vandaag zelf om een rit vroeg, en niet bij openers op de dag vóór een race of test. Tot 2026-10-26 alleen intensity `recovery`. |
 | `rustdag-als-workout` | waarschuwing | Een rustdag als workout teruggegeven (intensity `rest` of 0 minuten). |
 | `taper-zonder-piek` | fout | Taper zonder `outdoor_event`/`gran_fondo` als doel of een A-mikpunt. Herkend aan "taper" in een titel, of aan twee weken op rij minstens 10% minder aan het eind van de periode. |
 | `sleutelsessies-aaneen` | fout | Threshold, VO2max of anaeroob op twee opeenvolgende dagen (eigen workouts, vaste afspraken en bij een dag-aanpassing de rest van `currentPlan`), buiten een kamp. |
