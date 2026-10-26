@@ -134,7 +134,7 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
   );
   const concepts = families
     .map((family) => family.root)
-    .filter((plan) => conceptIds.has(plan.id))
+    .filter((plan) => conceptIds.has(plan.id) && plan.end_date >= todayKey)
     .map((plan) => {
       const planWorkouts = ((workoutRows ?? []) as WorkoutRow[]).filter(
         (workout) => workout.plan_id === plan.id && workout.status === "planned",

@@ -53,11 +53,10 @@ export function PlanBadge({ status }: { status: string }) {
       ? "Gepubliceerd"
       : status === "approved"
         ? "Goedgekeurd"
-        : status === "review"
-          ? "Review"
-          : status === "archived"
-            ? "Archief"
-            : "Concept";
+        : status === "archived"
+          ? "Archief"
+          : // 'review' is sinds 2026-10-26 gewoon een concept; zie 0274.
+            "Concept";
   return (
     <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
       {label}

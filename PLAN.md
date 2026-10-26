@@ -72,6 +72,13 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **Schemastatussen opruimen:** `0274_training_plan_status_cleanup.sql` is
+     **niet toegepast** (2026-10-26, op verzoek van de eigenaar nog niet). Alleen
+     data, geen schemawijziging. Droog gedraaid op productie met een SELECT: 2
+     `review`-schema's (1 → `approved`, 1 → `draft`) en 5 `approved`-schema's
+     waarvan alles al in intervals.icu staat (→ `published`). De app werkt ook
+     zonder: `review` telt overal als concept. Zie de ronde "Mijn schema maken op
+     het doel" hieronder.
    - **Recept van een link, delen met alle leden:** `0264_nutrition_recipe_sharing.sql`
      is op 2026-10-21 via de Supabase-connector toegepast, op verzoek van de
      eigenaar, vóór de push naar `main` (zelfde dag). Vooraf: geen van de drie
@@ -11341,6 +11348,49 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZWBeter Worden: mijn schema maken op het doel, review opgeruimd (ronde 3)
+
+**2026-10-26.** Commit volgt (lokaal, niet gepusht). Migratie
+`0274_training_plan_status_cleanup.sql`, **niet toegepast**. Ronde 3 uit
+[schema-goedkeuren-publiceren-analyse.md](docs/schema-goedkeuren-publiceren-analyse.md).
+
+- **"Maak mijn schema" op het doel** (`/zwbeter-worden/doelen`, Mijn doelen) voor
+  wie zichzelf coacht: rechten `training.ai_generate` en `training.create_plans`,
+  een OpenAI-sleutel, en geen andere trainer aangewezen (een eigen schema zou
+  het zijne archiveren). De knop staat bij een doel dat op een schema wacht
+  (`goalsAwaitingPlan`) of waarvoor een generatie loopt. Hij gebruikt dezelfde
+  `/api/training/ai-draft` als de cockpit; `canCoach` laat het lid voor zichzelf
+  toe en `draft.ts` publiceert een schema met trainer = lid vanzelf. Daarvoor
+  hoef je jezelf niet meer als trainer aan te wijzen of door de cockpit en de
+  rennerkiezer. Na afloop: "Je schema staat klaar." met een link naar Schema.
+  Zonder verversen, anders verdwijnt het formulier met de melding (het doel
+  wacht dan niet meer).
+- **`AiDraftForm`** heeft `variant="self"` (alleen de knop) naast de cockpitvorm.
+  In de cockpit staat de AI-prompt nu ingeklapt achter "Prompt aanpassen"; dicht
+  verstuurt hij gewoon mee.
+- **`review` uit de app.** `setPlanStatus` accepteert alleen nog `approved` en
+  `archived`; `PlanBadge` toont `review` als "Concept". `hiddenFromMember`, de
+  conceptkaart en `publishTrainingPlan` behandelen `review` als concept tot de
+  migratie is toegepast. De conceptkaart toont alleen concepten die nog niet zijn
+  afgelopen: na de migratie wordt een `review` van 80+ dagen oud een `draft`.
+- **Migratie 0274** (alleen data): `review` → `approved` als er al een training
+  in intervals.icu staat, anders `draft`; `approved` → `published` als alle
+  trainingen (rustdagen niet meegeteld) in intervals.icu staan, met
+  `published_at`/`published_by` uit de goedkeuring. Geen archivering van andere
+  schema's: de twee lopende basisschema's die `published` worden, hebben er geen
+  naast zich. De check op `training_plans.status` blijft zoals hij was.
+
+**Bewust niet:** de trainerkeuze "Ikzelf" weghalen. Die blijft nodig voor de
+cockpit en de coachchat met jezelf. Een FTP-test aan het begin in de eenvoudige
+knop: dat is een extra keuze, en de FTP-testkaart op Schema blijft bestaan.
+
+**Niet geverifieerd:** niet in de app doorgeklikt. De migratie draaide in PGlite
+(`tests/unit/training-plan-status-cleanup-migration.test.ts`) en de verwachte
+uitkomst is met een SELECT op productie nagelopen, maar hij is niet op productie
+toegepast. `tsc` (zelfde bestaande fout in `share-sheet.tsx`), `eslint` op de
+gewijzigde bestanden en `vitest`: 3420 van 3423 groen, dezelfde drie rode als in
+ronde 1 en 2.
 
 ### Gebouwd — ZWBeter Worden: concepten uit beeld, wijzigingen vanzelf (ronde 2)
 

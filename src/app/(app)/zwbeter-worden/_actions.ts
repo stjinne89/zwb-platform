@@ -1053,7 +1053,8 @@ export async function setPlanStatus(formData: FormData) {
   try {
     const { user, access } = await currentUser();
     const status = mustString(formData.get("status"), "Status");
-    if (!["review", "approved", "archived"].includes(status)) throw new Error("Ongeldige status.");
+    // Geen 'review' meer: die status werd nergens gelezen (analyse 2026-10-26).
+    if (!["approved", "archived"].includes(status)) throw new Error("Ongeldige status.");
     const planId = mustString(formData.get("plan_id"), "Schema");
     const admin = createAdminClient();
     const { data: plan } = await admin

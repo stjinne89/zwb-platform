@@ -4,7 +4,10 @@ import { DisconnectIntervalsButton } from "../_components/disconnect-button";
 import { TrainerAccessPanel } from "../_components/trainer-access-panel";
 import { CollapsibleCard } from "../_components/ui";
 import { formatDayMonth, GOAL_LABELS, paramString } from "../_components/format";
+import { AiDraftForm } from "../trainer/_components/ai-draft-form";
+import { goalsAwaitingPlan } from "@/lib/training/goals-awaiting-plan";
 import type {
+  AiGenerationRow,
   AssignmentRow,
   GoalRow,
   ProfileRow,
@@ -98,6 +101,36 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
   }
 
   const assignments = (assignmentRows ?? []) as AssignmentRow[];
+
+  // Wie zichzelf coacht, maakt zijn schema hier, op het doel. Heeft het lid een
+  // andere trainer, dan doet die het: een eigen schema zou het zijne archiveren.
+  const selfPlanning =
+    viewer.access.has("training.ai_generate") &&
+    viewer.access.has("training.create_plans") &&
+    Boolean(process.env.OPENAI_API_KEY) &&
+    !assignments.some((assignment) => assignment.trainer_id !== viewer.user.id);
+  const [awaiting, { data: generationRows }] = selfPlanning
+    ? await Promise.all([
+        goalsAwaitingPlan(viewer.admin, [viewer.user.id]).catch(
+          () => new Map<string, string[]>(),
+        ),
+        viewer.admin
+          .from("training_ai_generations")
+          .select("id, profile_id, goal_id, status, error, created_at")
+          .eq("profile_id", viewer.user.id)
+          .in("status", ["queued", "in_progress"])
+          .order("created_at", { ascending: false })
+          .limit(20),
+      ])
+    : [new Map<string, string[]>(), { data: [] }];
+  const waitingGoals = new Set(awaiting.get(viewer.user.id) ?? []);
+  const pendingByGoal = new Map<string, AiGenerationRow>();
+  for (const generation of (generationRows ?? []) as AiGenerationRow[]) {
+    if (generation.goal_id && !pendingByGoal.has(generation.goal_id)) {
+      pendingByGoal.set(generation.goal_id, generation);
+    }
+  }
+
   const trainers = (trainerRows ?? []) as ProfileRow[];
   const trainerMap = new Map(trainers.map((trainer) => [trainer.id, trainer]));
   const trainerIds = assignments.map((assignment) => assignment.trainer_id);
@@ -259,6 +292,17 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
                     routeLabel={goalRouteLabel(goal, eventTitles)}
                     forecasts={forecasts.get(goal.id) ?? []}
                     editable={goal.status === "active"}
+                  />
+                ) : null}
+                {selfPlanning && (waitingGoals.has(goal.id) || pendingByGoal.has(goal.id)) ? (
+                  <AiDraftForm
+                    variant="self"
+                    athleteId={viewer.user.id}
+                    goalId={goal.id}
+                    canUseAi
+                    canGenerateAi
+                    initialGenerationId={pendingByGoal.get(goal.id)?.id}
+                    initialStatus={pendingByGoal.get(goal.id)?.status}
                   />
                 ) : null}
                 <GoalEdit goal={goal} />
