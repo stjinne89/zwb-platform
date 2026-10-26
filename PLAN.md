@@ -9353,7 +9353,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > op `/summary`. `fetchHeaders()` stuurt `LADDER_COOKIE` niet mee, en de pagina
 > bevat de teamnamen niet. Daarnaast wist een overgeslagen bron (`SyncSkip`)
 > `last_error`. Daardoor meldt de health-check `ladder_sync` groen terwijl er
-> niets binnenkomt.
+> niets binnenkomt. *Hersteld op 2026-10-26: zie de ronde "Club Ladder-sync:
+> cookie, positie uit de parser" bovenaan het chronologische werkplan.*
 > **In plaats daarvan: een link naar WTRL.** De eigenaar koos ervoor om
 > uitslagen niet te verwerken, ook niet met de hand. Het blok Teamresultaten op
 > de teampagina linkt naar `https://www.wtrl.racing/zrl/results/`. Die pagina
@@ -11412,6 +11413,55 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Hersteld — Club Ladder-sync: cookie, positie uit de parser, overgeslagen bron wist geen fout
+
+**2026-10-26.** Commit: de commit die dit blok toevoegt, op branch
+`claude/ladder-onderdeel-kaart-0ae3c9`, niet gepusht. Geen migratie.
+
+**Waarom.** Bij het in kaart brengen van het ladderdeel bleek op productie
+(alleen lezen): de vier ladderteams staan op het kerkhof en hebben 0 leden, en er
+staat 0 keer een Club Ladder-uitslag in `team_results`. De laatste sync was
+2026-10-02 en had `last_error` leeg. De drie oorzaken uit de ronde van
+2026-09-21 (WTRL-sync uit) zaten er nog: geen cookie, een zoektocht in platte
+tekst die de positie niet vond, en een overgeslagen bron die `last_error` wiste.
+
+**Nu** (`src/lib/team-results/sync.ts`).
+- `fetchHeaders()` stuurt voor `club_ladder` `LADDER_COOKIE` en de Referer mee.
+- De positie komt uit `parseClubLadderSummary` (dezelfde parser als
+  `/teams/club-ladder`), via `clubLadderResultFromSummary`. Het team wordt op
+  `normalizeTeamName` gezocht. `total_teams` is het aantal teams in dezelfde regio,
+  en `metadata` bevat naam, regio en stijging of daling (was: een stuk platte tekst).
+- Staat het team niet in de stand: een team op het kerkhof is een overgeslagen
+  bron; een actief team is een fout. Zo wordt `ladder_sync` rood als een actief
+  team uit de stand valt.
+- Een overgeslagen bron (`SyncSkip`) zet alleen `last_synced_at`; `last_error`
+  blijft staan. Alleen een gelukte sync wist hem. Dat geldt ook voor WTRL.
+- `stripHtml` is weg; niets anders gebruikte het.
+
+**Gemeten op 2026-10-26.** Op de publieke `/summary` las de parser 483 teams
+(EMEA 161, AMER 310, APAC 12) met de juiste positie en naam. Geen van de ZWB-teams
+staat erin, wat past bij het kerkhof. Met de huidige data levert de sync dus
+nog steeds niets op, maar nu met de juiste reden.
+
+**Gevonden, bewust niet in deze ronde.** Op `/teams/club-ladder` kloppen vorm
+en stijging niet en zijn er 0 wedstrijden: de kolommen van `/summary` zijn
+anders dan de parser verwacht (de vorm staat als blokjes met een `title`, en de
+wedstrijden als `tr.fixToday` met `homeTeam` en `awayTeam`). De positie, die de
+sync nodig heeft, klopt wel. Ook niet gedaan: `/summary` (1 MB) één keer per
+syncrun ophalen in plaats van per bron.
+
+**Let op.** Een bron die eerder een fout had en daarna op het kerkhof belandt,
+houdt die fout en blijft rood tot een gelukte sync, of tot de bron uit gaat.
+
+**Gecontroleerd.** Nieuw: `club-ladder-sync.test.ts` (8 tests: positie uit de
+parser, naamvergelijking, kerkhof is overslaan, actief team ontbreekt is een
+fout, cookie in de request, en `last_error` blijft staan, wordt gezet of wordt
+gewist). ESLint schoon. `tsc` meldt alleen de pakketten die in deze worktree
+ontbreken (`modern-screenshot`, `@anthropic-ai/sdk`). De hele unit-suite: 22
+bestanden falen, allemaal op die ontbrekende pakketten, een ontbrekende
+`.env.local` of al bestaande fouten buiten deze code. **Niet geverifieerd:**
+de sync tegen productie met de echte `LADDER_COOKIE`, en of die cookie nog geldig is.
 
 ### Gebouwd — Tabbalk op de iPhone: sprong herhalen en balk zelf omlaag
 
