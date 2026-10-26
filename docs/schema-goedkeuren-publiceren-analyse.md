@@ -157,7 +157,7 @@ en §3 A, B, C, E en deels H beschrijven daarmee de stand vóór die ronde.
 - `/hulp`: de zin "Publiceer opnieuw" aanpassen.
 
 **Ronde 3: zelf coachen en opruimen.** Gebouwd op 2026-10-26 (zie `PLAN.md`);
-de migratie heet `0274_training_plan_status_cleanup.sql` en is nog niet
+de migratie heet `0274_training_plan_status_cleanup.sql` en is op 2026-10-26
 toegepast.
 - `Maak mijn schema` op het doel voor wie zichzelf coacht (G).
 - De AI-prompt alleen nog achter "Geavanceerd" of helemaal weg.

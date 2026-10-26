@@ -72,13 +72,14 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
-   - **Schemastatussen opruimen:** `0274_training_plan_status_cleanup.sql` is
-     **niet toegepast** (2026-10-26, op verzoek van de eigenaar nog niet). Alleen
-     data, geen schemawijziging. Droog gedraaid op productie met een SELECT: 2
-     `review`-schema's (1 → `approved`, 1 → `draft`) en 5 `approved`-schema's
-     waarvan alles al in intervals.icu staat (→ `published`). De app werkt ook
-     zonder: `review` telt overal als concept. Zie de ronde "Mijn schema maken op
-     het doel" hieronder.
+   - **Schemastatussen opruimen:** `0274_training_plan_status_cleanup.sql` is op
+     2026-10-26 via de Supabase-connector toegepast, op verzoek van de eigenaar,
+     vóór de push. Alleen data, geen schemawijziging. Vooraf: 6 `approved`, 2
+     `review`, 2 `draft`, 486 `published`, 8 `archived`. Achteraf: 2 `approved`,
+     0 `review`, 3 `draft`, 491 `published`, 8 `archived`, precies zoals de
+     droge SELECT voorspelde; elk `published`-schema heeft een `published_at`, en
+     geen lid heeft twee lopende basisschema's. Zie de ronde "Mijn schema maken
+     op het doel" hieronder.
    - **Recept van een link, delen met alle leden:** `0264_nutrition_recipe_sharing.sql`
      is op 2026-10-21 via de Supabase-connector toegepast, op verzoek van de
      eigenaar, vóór de push naar `main` (zelfde dag). Vooraf: geen van de drie
@@ -11353,8 +11354,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter Worden: mijn schema maken op het doel, review opgeruimd (ronde 3)
 
-**2026-10-26.** Commit `e94d6742` (lokaal, niet gepusht). Migratie
-`0274_training_plan_status_cleanup.sql`, **niet toegepast**. Ronde 3 uit
+**2026-10-26.** Commit `e94d6742`, gepusht naar `main` op 2026-10-26. Migratie
+`0274_training_plan_status_cleanup.sql`, toegepast op 2026-10-26. Ronde 3 uit
 [schema-goedkeuren-publiceren-analyse.md](docs/schema-goedkeuren-publiceren-analyse.md).
 
 - **"Maak mijn schema" op het doel** (`/zwbeter-worden/doelen`, Mijn doelen) voor
@@ -11387,16 +11388,16 @@ link naar `/live/[eventId]`, zie de update hierboven).
 cockpit en de coachchat met jezelf. Een FTP-test aan het begin in de eenvoudige
 knop: dat is een extra keuze, en de FTP-testkaart op Schema blijft bestaan.
 
-**Niet geverifieerd:** niet in de app doorgeklikt. De migratie draaide in PGlite
-(`tests/unit/training-plan-status-cleanup-migration.test.ts`) en de verwachte
-uitkomst is met een SELECT op productie nagelopen, maar hij is niet op productie
-toegepast. `tsc` (zelfde bestaande fout in `share-sheet.tsx`), `eslint` op de
-gewijzigde bestanden en `vitest`: 3420 van 3423 groen, dezelfde drie rode als in
+**Niet geverifieerd:** niet in de app doorgeklikt. De migratie draaide eerst in
+PGlite (`tests/unit/training-plan-status-cleanup-migration.test.ts`) en is daarna
+op productie toegepast (zie "Handwerk op productie" bovenaan). `tsc` (zelfde
+bestaande fout in `share-sheet.tsx`), `eslint` op de gewijzigde bestanden en
+`vitest`: na de merge met `main` 3435 van 3438 groen, dezelfde drie rode als in
 ronde 1 en 2.
 
 ### Gebouwd — ZWBeter Worden: concepten uit beeld, wijzigingen vanzelf (ronde 2)
 
-**2026-10-26.** Commit `af06d90b` (lokaal, niet gepusht). Geen migratie. Ronde 2 uit
+**2026-10-26.** Commit `af06d90b`, gepusht naar `main` op 2026-10-26. Geen migratie. Ronde 2 uit
 [schema-goedkeuren-publiceren-analyse.md](docs/schema-goedkeuren-publiceren-analyse.md).
 
 - **Het lid ziet geen concept van zijn trainer meer.** Nieuwe module
@@ -11440,7 +11441,7 @@ als in ronde 1 (de time-out van `admin-areas` slaagt los).
 
 ### Gebouwd — ZWBeter Worden: één knop Publiceren (ronde 1)
 
-**2026-10-26.** Commit `0280eb50` (lokaal, niet gepusht). Geen migratie. Ronde 1 uit
+**2026-10-26.** Commit `0280eb50`, gepusht naar `main` op 2026-10-26. Geen migratie. Ronde 1 uit
 [schema-goedkeuren-publiceren-analyse.md](docs/schema-goedkeuren-publiceren-analyse.md).
 
 - **Publiceren keurt ook goed.** `publishTrainingPlan` accepteert nu ook een
