@@ -11394,7 +11394,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Snelste fiets: Espada is een tijdritfiets, gesplitste namen in de sheet
 
-**2026-10-26.** Commit `COMMIT_HASH`. Geen migratie: het herstel zit in het
+**2026-10-26.** Commit `cd103d3d`. Geen migratie: het herstel zit in het
 inlezen van de sheet. Op productie pas na een deploy en daarna "Fietsen ophalen"
 op `/beheer/zwift-routes`; tot dan staat de oude lijst in `zwift_bike_parts`.
 
