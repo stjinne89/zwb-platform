@@ -11398,7 +11398,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gewijzigd — Zwift-garage: niveau kiezen door op de streepjes te klikken
 
-**2026-10-26.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Geen migratie.
+**2026-10-26.** Commit `841ce129`, lokaal, niet gepusht. Geen migratie.
 
 **Waarom.** De eigenaar vond klikken op de streepjes mooier dan een
 uitklapmenu met Stage 0–5.
