@@ -11396,6 +11396,58 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Snelste fiets: metingen uit twee testperiodes gelijkgetrokken
+
+**2026-10-26.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Geen migratie; op
+productie pas na een deploy en "Fietsen ophalen" op `/beheer/zwift-routes`.
+
+**Waarom.** De eigenaar vroeg of we zeker weten dat de fietsberekening klopt met
+ZwiftBikes en ZwifterBikes. Nagerekend:
+- **Het model tegen de ZwiftInsider-metingen.** Gefit op 300 W en voorspeld op
+  150 W (een vermogen dat niet in de fit zat): het verschil met de Zwift Carbon
+  komt per fiets binnen 2 s op de Alpe en binnen 3 s per uur op het vlak uit
+  (95 racefietsen). De absolute tijd wijkt systematisch af (Alpe zo'n 26 s op 45
+  min): onze fysica is niet precies die van Zwift, maar dat is voor elke fiets
+  gelijk en valt in een vergelijking weg.
+- **Tegen ZwifterBikes.** Hun `assets/bikes.json` heeft per frame, wielset en
+  stage een luchtweerstand en gewicht, uit dezelfde ZwiftInsider-sheet. Met onze
+  fysica op Spiral Summit doorgerekend voor 3135 combinaties: eerst lag de SL8
+  bovenaan en zij de SL9, en onze keuze was hun nummer 31.
+- **De oorzaak, een echte fout.** De sheet heeft metingen uit twee periodes.
+  Sinds juni 2026 rijdt alles in Zwift iets trager (op het vlak ongeveer 2 s per
+  uur); ZwiftInsider meet nieuwe fietsen tegen een nieuwe basismeting en zet het
+  verschil daarmee in de kolom "Hour Time Gap". Wij legden de ruwe snelheid
+  tegen de oude Zwift Carbon, waardoor 29 framerijen (en wielen op de Zwift TT)
+  uit de nieuwe periode te traag uitkwamen: juist de nieuwste fietsen, zoals de
+  SL9, LAB71 Team, Aeroad CFR, Filante ID2, S5 en een reeks tijdritfietsen.
+  *De bewering "zo valt een verschil in testperiode tegen elkaar weg" in
+  `bike-sheet.ts` was dus niet waar voor frames; die zin is vervangen.*
+
+**Wat.** `inReferencePeriod` in `bike-sheet.ts` rekent elke meting via het
+uurverschil terug naar de periode van de referentiefiets: referentie × (1 +
+verschil / 3600), ten opzichte van de Zwift TT voor tijdritfietsen en wielen op
+de Zwift TT, anders de Zwift Carbon. Past een meting bij geen van beide periodes
+(meer dan 0,2 % ernaast, zoals de Espada tegen de Zwift Carbon), dan blijft de
+ruwe snelheid staan.
+
+**Daarna.** Op Spiral Summit kiest ZWB op stage 0 dezelfde nummer 1 als de
+ZwifterBikes-data (S-Works Tarmac SL9 met CADEX 4-Spoke), in de groep en solo.
+Per fiets scheelt het 90 % van de tijd minder dan 1,5 s op een race van 40
+minuten; op stage 5 komen wij 1 à 2 s sneller uit en staat onze keuze 0,7 s
+achter hun beste. ZwiftBikes geeft een score en geen tijd; hun onderdelen lagen
+al dicht bij de onze (zie de ronde "Espada is een tijdritfiets").
+
+**Bewust niet.** Geen eigen meting in Zwift (de Sauce-testcomputer kan dat, maar
+de ZwiftInsider-sheet is de bron van alle drie de rekenaars). De doorrekeningen
+waren tijdelijke scripts en zijn niet bewaard; de downloads van ZwifterBikes
+stonden alleen in de scratchmap.
+
+**Gecontroleerd.** Vitest: `zwift-bike-sheet.test.ts` met een test voor
+`inReferencePeriod` (SL9 nu sneller dan SL8, Espada blijft ruw, zonder
+uurverschil niets), samen met `bike-advice` en `pacing-zwift` 64 tests groen.
+`tsc` en ESLint schoon. **Niet geverifieerd:** de lijst op productie na
+"Fietsen ophalen".
+
 ### Gewijzigd — Zwift-garage: niveau kiezen door op de streepjes te klikken
 
 **2026-10-26.** Commit `841ce129`, lokaal, niet gepusht. Geen migratie.

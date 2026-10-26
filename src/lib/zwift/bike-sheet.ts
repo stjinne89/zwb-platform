@@ -116,8 +116,25 @@ function kindFromSheet(value: string, name: string): BikeKind | null {
   }
 }
 
-/** Eén meting: snelheden (mph) op vlak en klim bij een vermogen. */
-export type SpeedTest = { powerW: number; flatMph: number; climbMph: number };
+/**
+ * Eén meting: snelheden (mph) op vlak en klim bij een vermogen, met het
+ * uurverschil (s) dat ZwiftInsider erbij zet ten opzichte van de referentiefiets
+ * in dezelfde testperiode.
+ */
+export type SpeedTest = {
+  powerW: number;
+  flatMph: number;
+  climbMph: number;
+  flatGapS?: number | null;
+  climbGapS?: number | null;
+};
+
+/** Een uurverschil; -3600 betekent in de sheet "niet gemeten". */
+const gapSeconds = (value: string | undefined) => {
+  const text = clean(value).replace(/,/g, "");
+  const parsed = Number(text);
+  return text !== "" && Number.isFinite(parsed) && parsed > -3600 ? parsed : null;
+};
 
 export type SheetFrame = {
   name: string;
@@ -156,14 +173,20 @@ export function parseFramesTab(csv: string): SheetFrame[] {
         map,
         `${nameKey(name)}|${stage}`,
         () => ({ name, wheels: clean(row[1]), kind, stage, tests: [] }),
-        { powerW, flatMph, climbMph },
+        {
+          powerW,
+          flatMph,
+          climbMph,
+          flatGapS: gapSeconds(row[9 + 2 * stage]),
+          climbGapS: gapSeconds(row[21 + 2 * stage]),
+        },
       );
     }
   }
   return [...map.values()];
 }
 
-/** Tabblad wielen: frame, wielen, …, vermogen (6), vlak (7), klim (9). */
+/** Tabblad wielen: frame, wielen, …, vermogen (6), vlak (7) en uurverschil (8), klim (9) en uurverschil (10). */
 export function parseWheelsTab(csv: string): SheetWheel[] {
   const rows = parseCsv(csv);
   const header = rows.findIndex((row) => clean(row[0]) === "Bike");
@@ -179,6 +202,8 @@ export function parseWheelsTab(csv: string): SheetWheel[] {
       powerW,
       flatMph,
       climbMph,
+      flatGapS: gapSeconds(row[8]),
+      climbGapS: gapSeconds(row[10]),
     });
   }
   return [...map.values()];
@@ -251,10 +276,37 @@ export type DerivedCatalog = {
 };
 
 /**
+ * Zet een meting om naar de testperiode van de referentiefiets in het
+ * framestabblad. Sinds juni 2026 rijdt alles in Zwift iets trager (op het vlak
+ * zo'n 2 s per uur); ZwiftInsider meet nieuwe fietsen sindsdien tegen een
+ * nieuwe basismeting en zet het verschil daarmee in de kolom "Hour Time Gap".
+ * Wie de ruwe snelheid tegen de oude referentie legt, maakt een nieuw geteste
+ * fiets dus te traag. Uit het uurverschil volgt de snelheid in de oude periode:
+ * referentie × (1 + verschil / 3600). Klopt de meting met geen van beide
+ * periodes (meer dan 0,2 % ernaast), dan blijft de ruwe snelheid staan.
+ * Vastgesteld 2026-10-26: 29 framerijen kwamen uit de nieuwe periode.
+ */
+export function inReferencePeriod(test: SpeedTest, reference: SpeedTest[]): SpeedTest {
+  const ref = reference.find((item) => item.powerW === test.powerW);
+  if (!ref) return test;
+  const shift = (speed: number, gap: number | null | undefined, refSpeed: number) => {
+    if (gap === null || gap === undefined) return speed;
+    const implied = speed / (1 + gap / 3600);
+    return Math.abs(implied / refSpeed - 1) <= 0.002 ? refSpeed * (1 + gap / 3600) : speed;
+  };
+  return {
+    ...test,
+    flatMph: shift(test.flatMph, test.flatGapS, ref.flatMph),
+    climbMph: shift(test.climbMph, test.climbGapS, ref.climbMph),
+  };
+}
+
+/**
  * Van de drie tabbladen naar onderdelen met hun verschil ten opzichte van de
  * referentie. Een frame vergelijkt met het Zwift Carbon-frame uit hetzelfde
  * tabblad; wielen met hun eigen testframe met de wielen waarmee dat frame in het
- * framestabblad staat. Zo valt een verschil in testperiode tegen elkaar weg.
+ * framestabblad staat. Een meting uit een latere testperiode gaat eerst via het
+ * uurverschil naar de periode van die referentie (inReferencePeriod).
  */
 export function deriveCatalog(input: {
   frames: SheetFrame[];
@@ -268,6 +320,12 @@ export function deriveCatalog(input: {
   };
 
   const roadRef = reference("Zwift Carbon", "road");
+  // Het uurverschil van een tijdritfiets (en van wielen op de Zwift TT) is ten
+  // opzichte van de Zwift TT, van al het andere ten opzichte van de Zwift Carbon.
+  const gapReference = (kind: BikeKind) =>
+    input.frames.find((item) => item.name === (kind === "tt" ? "Zwift TT" : "Zwift Carbon") && item.stage === 0)?.tests ?? [];
+  const normalized = (tests: SpeedTest[], kind: BikeKind) =>
+    tests.map((test) => inReferencePeriod(test, gapReference(kind)));
   const parts: BikePart[] = [];
   // Een frame dat niet op de wielen van het testframe van zijn type staat, is met
   // eigen wielen getest (de halo-fietsen); daar valt niets bij te kiezen.
@@ -278,7 +336,7 @@ export function deriveCatalog(input: {
 
   if (roadRef) {
     for (const frame of input.frames) {
-      const solved = solveTests(frame.tests, TARMAC_CRR[frame.kind]);
+      const solved = solveTests(normalized(frame.tests, frame.kind), TARMAC_CRR[frame.kind]);
       if (!solved) continue;
       const standard = testWheels(frame.kind);
       parts.push({
@@ -303,7 +361,7 @@ export function deriveCatalog(input: {
       continue;
     }
     for (const wheel of input.wheels.filter((item) => item.frame === testFrame)) {
-      const solved = solveTests(wheel.tests, TARMAC_CRR[kind]);
+      const solved = solveTests(normalized(wheel.tests, kind), TARMAC_CRR[kind]);
       if (!solved) continue;
       parts.push({
         part: "wheel",

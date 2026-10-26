@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   deriveCatalog,
+  inReferencePeriod,
   parseBaselineTab,
   parseCsv,
   parseFramesTab,
@@ -60,6 +61,19 @@ describe("afgeleide onderdelen", () => {
     expect(frame("Pinarello Espada").kind).toBe("tt");
     expect(frame("Specialized Tarmac SL8").fixedWheels).toBe(false);
     expect(frame("Zwift TT").fixedWheels).toBe(false);
+  });
+
+  it("zet een meting uit de nieuwe testperiode via het uurverschil terug naar de oude", () => {
+    // De S-Works Tarmac SL9 is na juni 2026 getest: lagere snelheid, groter uurverschil.
+    const reference = [{ powerW: 300, flatMph: 24.5877, climbMph: 9.202 }];
+    const sl9 = inReferencePeriod({ powerW: 300, flatMph: 25.004, climbMph: 9.3485, flatGapS: 63.0, climbGapS: 57.7 }, reference);
+    expect(sl9.flatMph).toBeCloseTo(24.5877 * (1 + 63 / 3600), 4);
+    expect(sl9.flatMph).toBeGreaterThan(25.0106); // nu sneller dan de SL8 (61,9 s per uur)
+    // Een uurverschil tegen een andere referentie (de Espada tegen de Zwift TT) blijft ruw.
+    const espada = inReferencePeriod({ powerW: 300, flatMph: 26.168, climbMph: 9.0199, flatGapS: 90.9, climbGapS: -9.6 }, reference);
+    expect(espada.flatMph).toBe(26.168);
+    // Zonder uurverschil verandert er niets.
+    expect(inReferencePeriod({ powerW: 300, flatMph: 25, climbMph: 9.3 }, reference).flatMph).toBe(25);
   });
 
   it("de referentie komt overeen met de constanten in zwift-setup.ts", () => {
