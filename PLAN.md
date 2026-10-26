@@ -11398,7 +11398,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gewijzigd — Zwift-garage: fietsen buiten de garage op stage 0
 
-**2026-10-26.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Geen migratie.
+**2026-10-26.** Commit `b57683ff`, lokaal, niet gepusht. Geen migratie.
 
 **Waarom.** De eigenaar wil dat Snelste fiets met een garage alle fietsen
 meeneemt: een frame dat niet in de garage staat op stage 0, wat je krijgt als je
