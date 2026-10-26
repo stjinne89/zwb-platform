@@ -11446,9 +11446,15 @@ Na het toepassen van de migratie: het opdrachtenpad lokaal van begin tot eind
 aangemaakt, uitgevoerd en opgehaald in 7,6 s, `request` daarna leeg; de testrij
 is weer verwijderd.
 
-**Niet getest.** De achtergrondfunctie op Netlify naast de Next.js-site, en of
-`URL` in de functie-env van Next staat (anders `NEXT_PUBLIC_SITE_URL`). Dat
-blijkt pas na de deploy (runbook §9, stap 4).
+**Na de deploy (2026-10-26, 11:33).** `/privacy` noemt Anthropic, de
+achtergrondfunctie antwoordt 202 op een aanroep met een nep-id, en een
+onbekende functie geeft 404 in plaats van een 307 naar `/login` (de
+middleware slaat `/.netlify/` dus over).
+
+**Niet getest.** Een echte opdracht in productie: om 11:35 stond er nog geen rij
+in `ai_jobs`. Of `URL` in de functie-env van Next staat (anders
+`NEXT_PUBLIC_SITE_URL`) blijkt pas bij de eerste coachvraag of dagaanpassing
+(runbook §9, stap 4).
 
 ### Gemeten — Claude als vervanger van OpenAI: naspelen op eigen generaties
 
