@@ -14,9 +14,10 @@ gaat stabiliteit voor nieuwe features.
    overstap gaat er niets meer naar OpenAI. De privacytekst blijft tot dan
    ongewijzigd. Zie de ronde "Claude als vervanger van OpenAI".
    **Besluit eigenaar 2026-10-26: overstappen.** De code staat klaar (ronde
-   "Overstap naar Claude klaar"). Migratie `0275_ai_jobs` is toegepast op
-   2026-10-26. Open: env in Netlify (`ANTHROPIC_API_KEY`, `AI_PROVIDER=anthropic`)
-   en deploy.
+   "Overstap naar Claude klaar"). Migratie `0275_ai_jobs` is toegepast, de env
+   staat in Netlify en de code is gepusht naar `main` (alle drie 2026-10-26).
+   Open: na de deploy controleren dat de achtergrondfunctie draait (runbook §9,
+   stap 4). Daarna kan het delen bij OpenAI uit; dat doet de eigenaar.
    De privacytekst noemt de aanbieder die `AI_PROVIDER` kiest (akkoord eigenaar).
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
@@ -11368,7 +11369,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Overstap naar Claude klaar (AI_PROVIDER)
 
-**2026-10-26.** Lokaal, niet gepusht. Migratie `0275_ai_jobs.sql`, toegepast op
+**2026-10-26.** Gepusht naar `main` op 2026-10-26 (op verzoek van de eigenaar;
+`AI_PROVIDER=anthropic` en `ANTHROPIC_API_KEY` staan in Netlify, dus vanaf deze
+deploy draait de AI op Claude). Migratie `0275_ai_jobs.sql`, toegepast op
 productie op 2026-10-26 (eerst `0274_ai_jobs` genoemd; dat nummer had
 `0274_training_plan_status_cleanup` op main dezelfde ochtend al). Commit: zie git
 log ("Overstap naar Claude").
@@ -11440,7 +11443,7 @@ blijkt pas na de deploy (runbook §9, stap 4).
 
 ### Gemeten — Claude als vervanger van OpenAI: naspelen op eigen generaties
 
-**2026-10-24.** Lokaal, niet gepusht. Geen migratie. Commit: zie git log
+**2026-10-24.** Gepusht naar `main` op 2026-10-26, met de overstap. Geen migratie. Commit: zie git log
 ("Claude naspelen").
 
 **Waarom.** Het Max-abonnement van de eigenaar geeft $100 API-tegoed per maand bij
