@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Check, Pencil } from "lucide-react";
 import { Markdown } from "@/components/markdown";
-import { DIET_TAG_LABELS, FUEL_PROFILE_LABELS, portionForRider } from "@/lib/nutrition/recipes";
+import { DIET_TAG_LABELS, FUEL_PROFILE_LABELS, isPackagedRecipe, portionForRider } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import { nutritionDay } from "@/lib/nutrition/tips";
 import { MICRONUTRIENT_LABELS, portionTraits } from "@/lib/nutrition/traits";
@@ -71,7 +71,9 @@ export default async function RecipePage({
   if (!recipe) notFound();
 
   const wantsBase = search.portie === "basis";
-  const personal = !wantsBase && profile.weightKg != null;
+  // Een gel of reep schaalt niet (isPackagedRecipe): er is maar één portie.
+  const fixed = isPackagedRecipe(recipe);
+  const personal = !wantsBase && !fixed && profile.weightKg != null;
   const day = personal ? nutritionDay(await loadNutritionDayInput(viewer, today, profile.weightKg)) : null;
   const portion = portionForRider(
     recipe,
@@ -141,7 +143,7 @@ export default async function RecipePage({
         <div className="space-y-3 rounded-lg border bg-card p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="font-semibold">{personal ? "Jouw portie vandaag" : "Eén portie"}</h3>
-            {profile.weightKg != null && (
+            {profile.weightKg != null && !fixed && (
               <Link
                 href={`/zwbeter-worden/voeding/recepten/${recipe.slug}${personal ? "?portie=basis" : ""}`}
                 className="inline-flex min-h-[44px] items-center text-sm text-primary hover:underline"

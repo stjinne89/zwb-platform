@@ -46,6 +46,10 @@ export type NutritionFood = {
   vitamin_c_mg?: number | null;
   epa_g?: number | null;
   dha_g?: number | null;
+  /** Een verpakt product (products.ts); `id` is dan de barcode. */
+  barcode?: string | null;
+  /** Eén stuk of portie van dat product. */
+  serving_g?: number | null;
 };
 
 export type RecipeIngredient = {

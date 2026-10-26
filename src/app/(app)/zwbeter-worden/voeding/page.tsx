@@ -5,6 +5,7 @@ import { dayTotals, floorStatus } from "@/lib/nutrition/log";
 import { DIET_TAGS, DIET_TAG_LABELS, type DietTag } from "@/lib/nutrition/recipes";
 import { DAY_MOMENTS, RIDE_MOMENTS, type MenuSlot } from "@/lib/nutrition/menu";
 import { choiceWindow, planDayMenu } from "@/lib/nutrition/plan";
+import { logItemFor } from "@/lib/nutrition/products";
 import { ridePlanMeals } from "@/lib/nutrition/ride-plan";
 import { nutritionTipForToday } from "@/lib/nutrition/tips";
 import { MEAL_MOMENT_LABELS, type MealMoment, type Range } from "@/lib/nutrition/targets";
@@ -166,7 +167,7 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
                     items: JSON.stringify(
                       slot.portion.ingredients
                         .filter((item) => item.grams > 0)
-                        .map((item) => ({ food_id: item.food.id, grams: item.grams })),
+                        .map((item) => logItemFor(item.food, item.grams)),
                     ),
                   },
                 })}

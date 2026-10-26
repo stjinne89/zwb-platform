@@ -4,10 +4,13 @@
 // Regelgebaseerd, net als het dagmenu. Bidons eerst: elke bidon draagt
 // hoogstens BIDON_MAX_CARBS_G, wat erboven nodig is komt uit vast eten. Een
 // recept is een bidon als er een drank in zit (NEVO-groep "Niet-alcoholische
-// dranken"); de clubrecepten voor onderweg vallen zo vanzelf goed.
+// dranken"); de clubrecepten voor onderweg vallen zo vanzelf goed, en een
+// gescande drank in ml ook (products.ts). Een recept van alleen verpakte
+// producten, zoals een gel, gaat in hele stuks mee.
 
 import { basePortion, macrosFor, scaleRecipe, type RecipeIngredient } from "./scale";
-import type { Recipe } from "./recipes";
+import { isPackagedRecipe, type Recipe } from "./recipes";
+import { logItemFor } from "./products";
 import type { ShoppingSlot } from "./shopping";
 import { SHOPPING_NAMES } from "./shopping-names";
 import { fluidBidons, fluidPerHour, type FluidTarget } from "./sweat";
@@ -35,7 +38,14 @@ export function isBidonRecipe(recipe: Pick<Recipe, "ingredients">): boolean {
   return recipe.ingredients.some((item) => item.food.food_group === DRINK_GROUP);
 }
 
-export type RidePlanIngredient = { foodId: string; name: string; amount: number; unit: "g" | "ml" };
+export type RidePlanIngredient = {
+  foodId: string;
+  /** Bij een verpakt product; `foodId` is dan ook de barcode. */
+  barcode?: string;
+  name: string;
+  amount: number;
+  unit: "g" | "ml";
+};
 
 export type RidePlanItem = {
   /** Null bij een bidon met alleen water. */
@@ -92,6 +102,7 @@ function ingredientsOf(items: RecipeIngredient[]): RidePlanIngredient[] {
     .filter((item) => item.grams > 0)
     .map((item) => ({
       foodId: item.food.id,
+      ...(item.food.barcode ? { barcode: item.food.barcode } : {}),
       name: item.food.name_nl,
       amount: item.grams,
       // Sap en water in ml, zoals op de boodschappenlijst (1 g ≈ 1 ml).
@@ -103,6 +114,7 @@ function ingredientsOf(items: RecipeIngredient[]): RidePlanIngredient[] {
 }
 
 function portion(recipe: Recipe, carbsG: number, energyFactor: number) {
+  if (isPackagedRecipe(recipe)) return basePortion(recipe.ingredients, recipe.servings);
   return scaleRecipe(
     recipe.ingredients.map((item) => ({ food: item.food, grams: item.grams, role: item.role })),
     recipe.servings,
@@ -287,15 +299,19 @@ export function formatRideMinute(minute: number): string {
 }
 
 /** Wat "Gegeten" vastlegt: per recept alle bidons of porties samen. */
-export function ridePlanMeals(plan: RidePlan): { slug: string; title: string; items: { food_id: string; grams: number }[] }[] {
+export function ridePlanMeals(
+  plan: RidePlan,
+): { slug: string; title: string; items: ReturnType<typeof logItemFor>[] }[] {
   return [plan.bidons, plan.solid]
     .filter((item): item is RidePlanItem => item != null && item.recipe != null && item.ingredients.length > 0)
     .map((item) => ({
       slug: item.recipe!.slug,
       title: `${item.count}× ${item.recipe!.title}`,
-      items: item.ingredients.map((ingredient) => ({
-        food_id: ingredient.foodId,
-        grams: Math.round(ingredient.amount * item.count * 10) / 10,
-      })),
+      items: item.ingredients.map((ingredient) =>
+        logItemFor(
+          { id: ingredient.foodId, barcode: ingredient.barcode },
+          Math.round(ingredient.amount * item.count * 10) / 10,
+        ),
+      ),
     }));
 }

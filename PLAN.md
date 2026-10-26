@@ -325,6 +325,11 @@ gaat stabiliteit voor nieuwe features.
    of op productie gebruikt; de avondherinnering met "Zet klaar" is nog niet
    echt verstuurd.
 
+16. **Sportvoeding met barcode in het receptenboek** (ronde van 2026-10-26
+   hieronder): gebouwd en lokaal getest, niet gepusht. Open: migratie
+   `0275_nutrition_recipe_products.sql` toepassen, de privacyzin laten
+   goedkeuren, en daarna een gel en een sportdrank scannen op een telefoon.
+
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
 **Let op, dubbele migratienummers (vastgesteld 2026-09-21 bij het samenvoegen):**
@@ -335,8 +340,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0274`
-(`0273_nutrition_sweat_tests` is van ritvoeding stap 5, 2026-10-25, toegepast op 2026-10-25;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0276`
+(`0275_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, nog niet toegepast;
+`0274_training_plan_status_cleanup` is van schema publiceren ronde 3, 2026-10-26, toegepast op 2026-10-26;
+`0273_nutrition_sweat_tests` is van ritvoeding stap 5, 2026-10-25, toegepast op 2026-10-25;
 `0272_nutrition_ride_carbs_120` is van ritvoeding stap 4, 2026-10-25, toegepast op 2026-10-25;
 `0271_zwift_race_scores` is toegepast, zie punt 11 hierboven;
 `0270_zwbriljant_weights_fitheid20` is van ZWBriljant fitheid 20% en racen 12,5%, 2026-10-22, toegepast op 2026-10-22;
@@ -11351,6 +11358,71 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZWBeter voeden: sportvoeding met barcode in het receptenboek
+
+**2026-10-26.** Commit: de commit die dit blok toevoegt, op
+`claude/barcode-scanner-sports-nutrition-0d7a92`; niet gepusht. Migratie
+`0275_nutrition_recipe_products.sql`, **nog niet toegepast**.
+
+**Waarom.** De eigenaar wil zijn eigen gels, sportdrank en andere sportvoeding
+in het receptenboek, om ze te gebruiken. NEVO kent geen merken en nauwelijks
+sportvoeding; de barcode (Open Food Facts) bestond al, maar alleen in het
+eetdagboek. Het ritplan koos daardoor alleen uit recepten met NEVO-producten
+(het open punt bij stap 2a in [ritvoeding-plan.md](docs/ritvoeding-plan.md)).
+
+- **Migratie 0275:** `nutrition_recipe_ingredients.food_id` mag leeg, met een
+  nieuwe kolom `product_barcode` naar `nutrition_products`, en een check dat
+  precies één van de twee gevuld is. Dezelfde vorm als `nutrition_log_items` in
+  `0233`. RLS ongewijzigd: de policies op recepten en ingrediënten gelden ook
+  hier, en `nutrition_products` blijft alleen door de server te vullen.
+- **Receptenboek:** een knop **Sportvoeding** naast Eigen recept opent het
+  receptformulier met "Tijdens de rit" voorgekozen en zonder het linkveld. Het
+  formulier (ook Eigen recept en Bewerken) heeft onder de NEVO-zoekbalk dezelfde
+  barcodeknop als het eetdagboek: overtypen of Scan. Die knop is losgehaald als
+  `_components/barcode-input.tsx` en wordt nu door beide formulieren gebruikt.
+  De eerste scan zet de productnaam als receptnaam als die nog leeg is; de
+  hoeveelheid is de portie van de verpakking, anders 100.
+- **Opzoeken zonder Naleving:** `lookupRecipeBarcode` (in `_log-actions.ts`)
+  doet hetzelfde als `lookupBarcode`, maar vraagt niet dat het eetdagboek aanstaat:
+  over het lid wordt niets bewaard, alleen het product in de gedeelde tabel.
+- **Rekenen:** een product wordt bij het laden een ingrediënt in de vorm van een
+  NEVO-product (`productAsFood`, `recipeIngredients`), met de barcode als `id`.
+  Wat in ml komt, krijgt de drankgroep en wordt in het ritplan een bidon. Een
+  recept van alleen verpakte producten (`isPackagedRecipe`) schaalt niet mee:
+  geen halve gel. Het ritplan telt dan hele stuks, de detailpagina toont één
+  portie zonder "Jouw portie", en `topUpMenu` laat zo'n recept met rust. Een
+  poeder met water uit NEVO is wel een gewoon recept en schaalt zoals de
+  clubdranken.
+- **Gegeten, Boodschappen, herinnering:** "Gegeten" (dagmenu, receptpagina,
+  ritplan) legt een product vast met zijn barcode (`logItemFor`); de
+  avondherinnering laadt de producten ook. Op de boodschappenlijst staat een
+  product onder zijn eigen naam, in stuks als de verpakking een portie vermeldt.
+- **Hulp:** een regel bij het receptenboek op `/hulp`.
+
+**Bewust niet:** een aparte lijst of voorraad met sportvoeding. Een eigen recept
+doet al wat nodig is (moment, favoriet, delen, ritplan, Gegeten), en een voorraad
+met aantallen was in de ritvoedingsronde al geparkeerd. Vet, vezels en kcal uit
+Open Food Facts overnemen: `nutrition_products` bewaart alleen koolhydraten en
+eiwit (zie `0233`), dus een receptpagina toont vet en vezels als ondergrens.
+Een product zelf invoeren zonder barcode of zonder koolhydraten in Open Food
+Facts: dan blijft het bij NEVO. Het ritplan kiest een gel niet vanzelf boven de
+clubrecepten; daarvoor markeer je hem als favoriet of kies je hem voor die dag.
+
+**Privacy:** de zin over Open Food Facts staat op `/privacy` alleen bij het
+eetdagboek. Voorstel voor "Lengte en eigen recepten", nog niet aangepast
+(eerst voorleggen): "Scan je een barcode voor een eigen recept, dan vragen we
+het product op bij Open Food Facts; daarbij gaat alleen de barcode mee, niet wie
+het vraagt."
+
+**Niet geverifieerd:** de migratie draaide alleen in PGlite
+(`tests/unit/nutrition-log.test.ts`), niet op productie. Niet in de browser
+bekeken: deze worktree heeft geen `.env.local`. `tsc` (alleen de bestaande fout
+in `share-sheet.tsx`), `npm run lint` (0 fouten) en `vitest`: 3442 van 3445
+groen, met nieuwe tests in `tests/unit/nutrition-recipe-products.test.ts`. Rood
+en los hiervan: `omnium-live` (mist `.env.local`), `zwift-route` (Spiral
+Summit) en `race-links` (ZwifterBikes); `admin-areas` liep in de volle run uit
+de tijd en slaagt los. `npm run build` niet gedraaid.
 
 ### Gebouwd — ZWBeter Worden: mijn schema maken op het doel, review opgeruimd (ronde 3)
 

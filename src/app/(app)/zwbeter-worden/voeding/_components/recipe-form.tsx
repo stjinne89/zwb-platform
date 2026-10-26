@@ -1,25 +1,31 @@
 "use client";
 
-// Eigen recept samenstellen. Ingrediënten komen uit NEVO, zodat de voedingswaarden
-// altijd een bron hebben; een los getypt ingrediënt zonder waarden kan niet.
+// Eigen recept samenstellen. Ingrediënten komen uit NEVO of, voor sportvoeding
+// als een gel of sportdrank, via de barcode uit Open Food Facts, zodat de
+// voedingswaarden altijd een bron hebben; een los getypt ingrediënt zonder
+// waarden kan niet.
 // Bij een recept van een link staan de gekoppelde ingrediënten er al, met de
 // regel van de site eronder; wat niet te koppelen was, staat als losse regel
 // klaar om te zoeken.
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DIET_TAGS, DIET_TAG_LABELS, FUEL_PROFILE_LABELS } from "@/lib/nutrition/labels";
 import { INGREDIENT_ROLES, INGREDIENT_ROLE_LABELS, guessRole, type IngredientRole } from "@/lib/nutrition/scale";
 import { MEAL_MOMENTS, MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import type { RecipeVisibility } from "@/lib/nutrition/recipes";
+import { productLabel, type NutritionProduct } from "@/lib/nutrition/products";
 import type { IngredientLine } from "@/lib/nutrition/recipe-import";
 import type { FoodOption } from "../_actions";
+import type { BarcodeResult } from "../_log-actions";
+import { BarcodeInput } from "./barcode-input";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 type Row = {
-  food: Pick<FoodOption, "id" | "name_nl" | "quantity_unit">;
+  /** Bij een verpakt product is `id` de barcode, en staat die ook in `barcode`. */
+  food: Pick<FoodOption, "id" | "name_nl" | "quantity_unit"> & { barcode?: string | null };
   grams: string;
   role: IngredientRole;
   /** De regel van de receptsite waar dit ingrediënt uit komt. */
@@ -44,6 +50,10 @@ export type RecipeFormInitial = {
   rows: Row[];
 };
 
+function amount(value: number) {
+  return String(Math.round(value * 10) / 10).replace(".", ",");
+}
+
 function validAmount(grams: string) {
   const value = Number(grams.replace(",", "."));
   return Number.isFinite(value) && value > 0 && value <= 5000;
@@ -56,14 +66,20 @@ export function RecipeForm({
   pending: initialPending = [],
   saveAction,
   searchAction,
+  barcodeAction,
+  defaultMoment = "diner",
 }: {
   initial?: RecipeFormInitial;
   /** Regels van een link die niet aan NEVO te koppelen waren. */
   pending?: IngredientLine[];
   saveAction: (formData: FormData) => Promise<ActionResult>;
   searchAction: (query: string) => Promise<FoodOption[]>;
+  barcodeAction: (barcode: string) => Promise<BarcodeResult>;
+  /** Het moment van een nieuw recept, zoals "Tijdens de rit" voor sportvoeding. */
+  defaultMoment?: string;
 }) {
   const [rows, setRows] = useState<Row[]>(initial?.rows ?? []);
+  const titleRef = useRef<HTMLInputElement>(null);
   const [pendingLines, setPendingLines] = useState<IngredientLine[]>(initialPending);
   // De losse regel waarvoor nu gezocht wordt; die krijgt de gekozen NEVO-naam.
   const [activeLine, setActiveLine] = useState<IngredientLine | null>(null);
@@ -112,14 +128,29 @@ export function RecipeForm({
     setRows(next);
   }
 
+  function addProduct(product: NutritionProduct) {
+    const name = productLabel(product);
+    setRows((current) => [
+      ...current,
+      {
+        food: { id: product.barcode, barcode: product.barcode, name_nl: name, quantity_unit: product.quantity_unit },
+        grams: amount(product.serving_g ?? 100),
+        role: guessRole(product),
+      },
+    ]);
+    // Eén gel of sportdrank is meestal het hele recept: dan is de naam die van het product.
+    if (titleRef.current && !titleRef.current.value.trim()) titleRef.current.value = name.slice(0, 120);
+  }
+
   const amountsMissing = rows.some((row) => !validAmount(row.grams));
 
   const payload = JSON.stringify(
-    rows.map((row) => ({
-      food_id: row.food.id,
-      grams: Number(row.grams.replace(",", ".")),
-      role: row.role,
-    })),
+    rows.map((row) => {
+      const grams = Number(row.grams.replace(",", "."));
+      return row.food.barcode
+        ? { barcode: row.food.barcode, grams, role: row.role }
+        : { food_id: row.food.id, grams, role: row.role };
+    }),
   );
 
   return (
@@ -133,11 +164,18 @@ export function RecipeForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm sm:col-span-2">
           <span className="mb-1 block font-medium">Naam</span>
-          <input name="title" required maxLength={120} defaultValue={initial?.title} className={inputClass} />
+          <input
+            ref={titleRef}
+            name="title"
+            required
+            maxLength={120}
+            defaultValue={initial?.title}
+            className={inputClass}
+          />
         </label>
         <label className="text-sm">
           <span className="mb-1 block font-medium">Moment</span>
-          <select name="meal_moment" defaultValue={initial?.meal_moment ?? "diner"} className={inputClass}>
+          <select name="meal_moment" defaultValue={initial?.meal_moment ?? defaultMoment} className={inputClass}>
             {MEAL_MOMENTS.map((value) => (
               <option key={value} value={value}>
                 {MEAL_MOMENT_LABELS[value]}
@@ -321,6 +359,7 @@ export function RecipeForm({
             ))}
           </div>
         )}
+        <BarcodeInput lookupAction={barcodeAction} onProduct={addProduct} />
       </div>
 
       <label className="block text-sm">

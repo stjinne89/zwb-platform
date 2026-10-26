@@ -16,7 +16,7 @@
 import { dayIndex } from "@/lib/training/zwbeterworden";
 import { isKeyDay, totalMinutes, type FuelDayType } from "./day-type";
 import type { DietTag, FuelProfile } from "./labels";
-import { matchesDiet, portionForRider, type Recipe, type Rider } from "./recipes";
+import { isPackagedRecipe, matchesDiet, portionForRider, type Recipe, type Rider } from "./recipes";
 import { SCALE_MAX, macrosFor, roundGrams, type IngredientRole, type ScaledRecipe } from "./scale";
 import { MEAL_MOMENTS, RECOVERY_RIDE_MINUTES, mealTarget, type MealMoment } from "./targets";
 import { EVENING_START_HOUR, type NutritionDay, type NutritionDayInput } from "./tips";
@@ -296,7 +296,11 @@ export type TopUpInput = {
  * gewone portie wordt het niet (scale.ts).
  */
 export function topUpMenu(slots: MenuSlot[], input: TopUpInput): MenuSlot[] {
-  const open = slots.filter((slot) => TOP_UP_MOMENTS.has(slot.moment) && !input.eatenMoments.has(slot.moment));
+  // Een gel of reep groeit niet mee: die neem je in hele stuks (isPackagedRecipe).
+  const open = slots.filter(
+    (slot) =>
+      TOP_UP_MOMENTS.has(slot.moment) && !input.eatenMoments.has(slot.moment) && !isPackagedRecipe(slot.recipe),
+  );
   if (open.length === 0) return slots;
   const portions = (slot: MenuSlot) => (slot.moment === "tijdens_rit" ? Math.max(1, input.rideHours ?? 1) : 1);
   const planned = (key: "carbsG" | "proteinG") =>

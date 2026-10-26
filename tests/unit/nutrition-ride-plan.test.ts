@@ -132,7 +132,7 @@ describe("ritplan", () => {
     const meals = ridePlanMeals(plan);
     expect(meals.map((meal) => meal.slug)).toEqual(["sportdrank", "rijsttaartjes"]);
     const sugar = plan.bidons.ingredients.find((item) => item.foodId === "suiker")!;
-    expect(meals[0].items.find((item) => item.food_id === "suiker")?.grams).toBe(sugar.amount * 4);
+    expect(meals[0].items.find((item) => "food_id" in item && item.food_id === "suiker")?.grams).toBe(sugar.amount * 4);
     expect(meals[0].title).toBe("4× sportdrank");
   });
 

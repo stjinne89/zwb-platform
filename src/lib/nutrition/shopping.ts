@@ -114,15 +114,18 @@ export function shoppingList(slots: ShoppingSlot[], household: Household): Shopp
 
   return [...totals.values()]
     .map(({ food, grams }) => {
-      const known = SHOPPING_NAMES[food.nevo_code];
+      // Een barcodeproduct heeft geen NEVO-code: de eigen naam, en in stuks als
+      // de verpakking een portie vermeldt (een gel, een reep).
+      const known = food.barcode ? undefined : SHOPPING_NAMES[food.nevo_code];
+      const piece = known?.piece ?? (food.barcode && food.serving_g ? { grams: food.serving_g, unit: "stuks" as const } : null);
       const buyGrams = grams * (known?.dryFactor ?? 1);
       const liquid = known?.liquid ?? food.quantity_unit === "ml";
       return {
         id: food.id,
-        name: known?.name ?? cleanNevoName(food.name_nl),
+        name: known?.name ?? (food.barcode ? food.name_nl : cleanNevoName(food.name_nl)),
         department: departmentFor(food.nevo_code, food.food_group),
-        amount: known?.piece
-          ? formatPieces(buyGrams, known.piece.grams, known.piece.unit)
+        amount: piece
+          ? formatPieces(buyGrams, piece.grams, piece.unit)
           : liquid
             ? formatMillilitres(buyGrams)
             : formatGrams(buyGrams),

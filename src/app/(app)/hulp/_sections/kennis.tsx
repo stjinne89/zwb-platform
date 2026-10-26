@@ -293,6 +293,19 @@ export function KennisHelp() {
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
+                  Je eigen gels, repen en sportdrank zet je erin met
+                  Sportvoeding: scan de barcode of typ hem over. Het recept
+                  krijgt de naam van het product en staat bij &quot;Tijdens de
+                  rit&quot;, zodat je ritplan het kan kiezen. Een gel of reep
+                  telt in hele stuks; een drank in ml wordt een bidon. Een
+                  poeder scan je in een eigen recept, met water uit NEVO erbij.
+                  Van Open Food Facts komen alleen koolhydraten en eiwit, dus
+                  vet en vezels staan er als ondergrens.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
                   Onder Delen kies je &quot;Alleen voor mij&quot; of &quot;Alle
                   leden&quot;, en of je naam en avatar erbij staan. Gedeelde
                   recepten van anderen vind je onder &quot;Van leden&quot; en kun

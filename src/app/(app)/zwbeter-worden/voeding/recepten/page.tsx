@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Inbox, Plus } from "lucide-react";
+import { Inbox, Plus, ScanBarcode } from "lucide-react";
 import { DIET_TAGS, DIET_TAG_LABELS, matchesDiet, portionForRider, type DietTag } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS, MEAL_MOMENT_LABELS, type MealMoment } from "@/lib/nutrition/targets";
 import { nutritionDay } from "@/lib/nutrition/tips";
@@ -104,6 +104,13 @@ export default async function RecipesPage({ searchParams }: { searchParams: Prom
               {proposed.length} {proposed.length === 1 ? "voorstel" : "voorstellen"}
             </Link>
           )}
+          <Link
+            href="/zwbeter-worden/voeding/recepten/nieuw?soort=sportvoeding"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-md border px-3 text-sm font-medium hover:border-primary"
+          >
+            <ScanBarcode className="size-4" />
+            Sportvoeding
+          </Link>
           <Link
             href="/zwbeter-worden/voeding/recepten/nieuw"
             className="inline-flex min-h-[44px] items-center gap-2 rounded-md border px-3 text-sm font-medium hover:border-primary"

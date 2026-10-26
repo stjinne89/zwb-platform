@@ -211,6 +211,7 @@ describe("eetdagboek, migratie 0231", () => {
     await db.exec(await migration("0233_nutrition_log_products.sql"));
     await db.exec(await migration("0234_nutrition_log_recognition.sql"));
     await db.exec(await migration("0235_nutrition_log_trainer_reminders.sql"));
+    await db.exec(await migration("0275_nutrition_recipe_products.sql"));
     await db.exec(
       `insert into nutrition_products(barcode, name, carbs_g, protein_g) values ('8710400000017', 'Gel', 62.5, 0);`,
     );
@@ -326,6 +327,42 @@ describe("eetdagboek, migratie 0231", () => {
         [meal],
       ),
     ).rejects.toThrow(/one_source_check/);
+  });
+
+  it("neemt een barcodeproduct op in een eigen recept, met één bron per ingrediënt (0275)", async () => {
+    await db.query("insert into nutrition_products(barcode, name, quantity_unit, carbs_g, protein_g) values ('5000000000017', 'Sportdrank', 'ml', 6, 0)");
+    const recipe = await as(MEMBER, async () => {
+      const { rows } = await db.query<{ id: string }>(
+        `insert into nutrition_recipes(slug,title,meal_moment,fuel_profile,owner_id,is_standard) values('eigen-gel','Gel','tijdens_rit','hoog_kh','${MEMBER}',false) returning id`,
+      );
+      await db.query(
+        "insert into nutrition_recipe_ingredients(recipe_id, product_barcode, sort_order, grams, role) values($1, '5000000000017', 0, 40, 'kh_bron')",
+        [rows[0].id],
+      );
+      return rows[0].id;
+    });
+    expect(
+      await as(MEMBER, () =>
+        count("select count(*) from nutrition_recipe_ingredients where food_id is null and product_barcode is not null"),
+      ),
+    ).toBe(1);
+    await expect(
+      db.query("insert into nutrition_recipe_ingredients(recipe_id, sort_order, grams, role) values($1, 1, 40, 'vast')", [
+        recipe,
+      ]),
+    ).rejects.toThrow(/nutrition_recipe_ingredients_one_source_check/);
+    await expect(
+      db.query(
+        `insert into nutrition_recipe_ingredients(recipe_id, food_id, product_barcode, sort_order, grams, role) values($1, '${FOOD}', '5000000000017', 2, 40, 'vast')`,
+        [recipe],
+      ),
+    ).rejects.toThrow(/nutrition_recipe_ingredients_one_source_check/);
+    // Een product dat in een recept staat, verdwijnt niet onder het recept uit.
+    await expect(db.query("delete from nutrition_products where barcode = '5000000000017'")).rejects.toThrow(
+      /foreign key/,
+    );
+    await db.query("delete from nutrition_recipes where id = $1", [recipe]);
+    await db.query("delete from nutrition_products where barcode = '5000000000017'");
   });
 
   it("laat leden producten lezen maar niet zelf toevoegen", async () => {

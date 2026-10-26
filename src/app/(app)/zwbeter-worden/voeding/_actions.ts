@@ -13,6 +13,7 @@ import { INGREDIENT_ROLES, type IngredientRole } from "@/lib/nutrition/scale";
 import { DIET_TAGS, FUEL_PROFILES } from "@/lib/nutrition/labels";
 import { MEAL_MOMENTS } from "@/lib/nutrition/targets";
 import { RECIPE_PREFS } from "@/lib/nutrition/menu";
+import { normalizeBarcode } from "@/lib/nutrition/products";
 import { foodSearchTokens } from "@/lib/nutrition/food-search";
 import { queryFoods, type FoodOption } from "@/lib/nutrition/food-query";
 import { RECIPE_VISIBILITIES, type RecipeVisibility } from "@/lib/nutrition/recipes";
@@ -57,23 +58,25 @@ export async function searchFoods(query: string): Promise<FoodOption[]> {
   return queryFoods(supabase, query);
 }
 
-type IngredientInput = { food_id: string; grams: number; role: IngredientRole };
+/** Een NEVO-product (`food_id`) of een barcodeproduct (`barcode`, 0275). */
+type IngredientInput = { food_id?: string; barcode?: string; grams: number; role: IngredientRole };
 
 function parseIngredients(raw: string): IngredientInput[] | null {
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return null;
-    const items = parsed.map((item) => {
+    const items = parsed.map((item): IngredientInput => {
       const row = item as Record<string, unknown>;
+      const barcode = row.barcode ? normalizeBarcode(String(row.barcode)) : null;
       return {
-        food_id: String(row.food_id ?? ""),
+        ...(barcode ? { barcode } : { food_id: String(row.food_id ?? "") }),
         grams: Number(row.grams),
         role: String(row.role ?? "") as IngredientRole,
       };
     });
     const valid = items.every(
       (item) =>
-        item.food_id &&
+        (item.food_id || item.barcode) &&
         Number.isFinite(item.grams) &&
         item.grams > 0 &&
         item.grams <= 5000 &&
@@ -123,13 +126,17 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
 
   const { supabase, user } = await currentUser();
 
-  const foodIds = [...new Set(ingredients.map((item) => item.food_id))];
-  const { data: foods, error: foodError } = await supabase
-    .from("nutrition_foods")
-    .select("id")
-    .in("id", foodIds);
-  if (foodError) return { ok: false, error: foodError.message };
-  if ((foods ?? []).length !== foodIds.length) {
+  const foodIds = [...new Set(ingredients.flatMap((item) => (item.food_id ? [item.food_id] : [])))];
+  const barcodes = [...new Set(ingredients.flatMap((item) => (item.barcode ? [item.barcode] : [])))];
+  const [foods, products] = await Promise.all([
+    foodIds.length > 0 ? supabase.from("nutrition_foods").select("id").in("id", foodIds) : { data: [], error: null },
+    barcodes.length > 0
+      ? supabase.from("nutrition_products").select("barcode").in("barcode", barcodes)
+      : { data: [], error: null },
+  ]);
+  const lookupError = foods.error ?? products.error;
+  if (lookupError) return { ok: false, error: lookupError.message };
+  if ((foods.data ?? []).length !== foodIds.length || (products.data ?? []).length !== barcodes.length) {
     return { ok: false, error: "Een van de ingrediënten bestaat niet meer." };
   }
 
@@ -202,9 +209,11 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
   }
 
   const { error: itemsError } = await supabase.from("nutrition_recipe_ingredients").insert(
+    // De kolom product_barcode gaat alleen mee als er een barcodeproduct in zit:
+    // een recept met alleen NEVO-producten werkt zo ook zonder 0275.
     ingredients.map((item, index) => ({
       recipe_id: id,
-      food_id: item.food_id,
+      ...(item.barcode ? { food_id: null, product_barcode: item.barcode } : { food_id: item.food_id }),
       sort_order: index,
       grams: item.grams,
       role: item.role,

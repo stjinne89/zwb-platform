@@ -7,10 +7,16 @@
 import type { Viewer } from "../_data";
 import { shiftDayKey } from "@/lib/training/mobility";
 import { getWellnessSummary } from "@/lib/training/wellness";
-import { plannedSessions, ridesOnDay, type Recipe } from "@/lib/nutrition/recipes";
+import {
+  plannedSessions,
+  recipeIngredients,
+  ridesOnDay,
+  type Recipe,
+  type RecipeIngredientDbRow,
+} from "@/lib/nutrition/recipes";
 import type { NutritionDayInput } from "@/lib/nutrition/tips";
 import type { LoggedMeal } from "@/lib/nutrition/log";
-import { productLabel, type NutritionProduct } from "@/lib/nutrition/products";
+import { PRODUCT_COLUMNS, productLabel, type NutritionProduct } from "@/lib/nutrition/products";
 import { RECIPE_PREFS, rankRecipes, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
 import { classifyFuelDay } from "@/lib/nutrition/day-type";
 import { eventRide, ridePlan, type RidePlan } from "@/lib/nutrition/ride-plan";
@@ -36,10 +42,11 @@ const BASE_RECIPE_COLUMNS =
 const FOOD_COLUMNS = `${BASE_FOOD_COLUMNS}, food_group, calcium_mg, iron_mg, magnesium_mg, zinc_mg, vitamin_d_ug, vitamin_c_mg, epa_g, dha_g`;
 
 /**
- * 2: met delen onder leden (0264), 1: met bron en voorstellen (0213), 0: de
- * kolommen van 0168. Zo werkt de pagina ook zolang een migratie ontbreekt.
+ * 3: met barcodeproducten als ingrediënt (0275), 2: met delen onder leden
+ * (0264), 1: met bron en voorstellen (0213), 0: de kolommen van 0168. Zo werkt
+ * de pagina ook zolang een migratie ontbreekt.
  */
-type ColumnLevel = 0 | 1 | 2;
+type ColumnLevel = 0 | 1 | 2 | 3;
 
 function recipeColumns(level: ColumnLevel) {
   const sharing =
@@ -48,14 +55,16 @@ function recipeColumns(level: ColumnLevel) {
     level >= 1
       ? `${BASE_RECIPE_COLUMNS}, source_name, source_url, share_status, contributor:profiles!contributed_by(display_name)${sharing}`
       : BASE_RECIPE_COLUMNS;
-  return `${recipe}, ingredients:nutrition_recipe_ingredients(id, sort_order, grams, role, food:nutrition_foods(${level >= 1 ? FOOD_COLUMNS : BASE_FOOD_COLUMNS}))`;
+  const product = level >= 3 ? `, product:nutrition_products(${PRODUCT_COLUMNS})` : "";
+  return `${recipe}, ingredients:nutrition_recipe_ingredients(id, sort_order, grams, role, food:nutrition_foods(${level >= 1 ? FOOD_COLUMNS : BASE_FOOD_COLUMNS})${product})`;
 }
 
 /** Dezelfde query met minder kolommen zolang de select faalt. */
 async function withColumnFallback<T>(
   run: (columns: string) => PromiseLike<{ data: T | null; error: unknown }>,
+  levels: readonly ColumnLevel[] = [3, 2, 1, 0],
 ): Promise<T | null> {
-  for (const level of [2, 1, 0] as const) {
+  for (const level of levels) {
     const { data, error } = await run(recipeColumns(level));
     if (!error) return data;
   }
@@ -124,7 +133,9 @@ export async function loadMenuChoices(viewer: Viewer, from: string, to: string):
     .map((row) => ({ day: row.day, moment: row.meal_moment as MealMoment, recipeId: row.recipe_id }));
 }
 
-function normalizeRecipe(row: Recipe, viewerId: string): Recipe {
+type RecipeRow = Omit<Recipe, "ingredients"> & { ingredients: RecipeIngredientDbRow[] | null };
+
+function normalizeRecipe(row: RecipeRow, viewerId: string): Recipe {
   const visibility = row.visibility ?? "prive";
   const showOwner = Boolean(row.show_owner) && visibility === "leden";
   const own = !row.is_standard && row.owner_id === viewerId;
@@ -141,9 +152,7 @@ function normalizeRecipe(row: Recipe, viewerId: string): Recipe {
     sharer: showOwner || own ? (row.sharer ?? null) : null,
     from_member: !row.is_standard && row.owner_id !== viewerId,
     diet_tags: row.diet_tags ?? [],
-    ingredients: [...(row.ingredients ?? [])]
-      .map((item) => ({ ...item, grams: Number(item.grams) }))
-      .sort((a, b) => a.sort_order - b.sort_order),
+    ingredients: recipeIngredients(row.ingredients),
   };
 }
 
@@ -156,7 +165,7 @@ export async function loadRecipes(viewer: Viewer, moment?: MealMoment): Promise<
     const query = viewer.supabase.from("nutrition_recipes").select(columns);
     return moment ? query.eq("meal_moment", moment) : query;
   });
-  return ((data ?? []) as unknown as Recipe[])
+  return ((data ?? []) as unknown as RecipeRow[])
     .map((row) => normalizeRecipe(row, viewer.user.id))
     .filter((recipe) => !recipe.from_member || recipe.visibility === "leden")
     .sort(
@@ -169,7 +178,7 @@ export async function loadRecipeBySlug(viewer: Viewer, slug: string): Promise<Re
   const data = await withColumnFallback((columns) =>
     viewer.supabase.from("nutrition_recipes").select(columns).eq("slug", slug).maybeSingle(),
   );
-  return data ? normalizeRecipe(data as unknown as Recipe, viewer.user.id) : null;
+  return data ? normalizeRecipe(data as unknown as RecipeRow, viewer.user.id) : null;
 }
 
 /** Favorieten en verborgen recepten van dit lid. Leeg zolang 0213 er niet is. */
@@ -188,12 +197,17 @@ export async function loadRecipePrefs(viewer: Viewer): Promise<RecipePrefs> {
 
 /** Recepten die leden met de club willen delen, voor wie schema's mag maken. */
 export async function loadProposedRecipes(viewer: Viewer): Promise<(Recipe & { owner_name: string | null })[]> {
-  const { data } = await viewer.supabase
-    .from("nutrition_recipes")
-    .select(`${recipeColumns(1)}, owner:profiles!owner_id(display_name)`)
-    .eq("share_status", "voorgesteld")
-    .order("updated_at", { ascending: true });
-  return ((data ?? []) as unknown as (Recipe & { owner: { display_name: string | null } | null })[]).map((row) => ({
+  // Met de barcodeproducten (0275) als die er zijn; anders de kolommen van 0213.
+  const data = await withColumnFallback(
+    (columns) =>
+      viewer.supabase
+        .from("nutrition_recipes")
+        .select(`${columns}, owner:profiles!owner_id(display_name)`)
+        .eq("share_status", "voorgesteld")
+        .order("updated_at", { ascending: true }),
+    [3, 1],
+  );
+  return ((data ?? []) as unknown as (RecipeRow & { owner: { display_name: string | null } | null })[]).map((row) => ({
     ...normalizeRecipe(row, viewer.user.id),
     owner_name: row.owner?.display_name ?? null,
   }));

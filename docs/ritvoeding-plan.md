@@ -134,9 +134,10 @@ protocol voorgeselecteerd (`?event=`).*
 
 *2a gebouwd op 2026-10-25, zonder migratie, zie `PLAN.md`. Op verzoek van de
 eigenaar kwamen de dagkaarten (Dagmenu en de voedingstip op Vandaag) en
-"Gegeten" voor het hele plan al mee uit 2c; de rest van 2c staat hierboven. Nog
-niet gebouwd: producten die het lid eerder vastlegde als
-voorraad; het plan kiest alleen uit recepten voor onderweg. Hoe het plan rekent:
+"Gegeten" voor het hele plan al mee uit 2c; de rest van 2c staat hierboven. Een
+voorraad uit wat het lid eerder vastlegde is niet gebouwd; het plan kiest uit
+recepten voor onderweg. Sinds 2026-10-26 kan zo'n recept ook een gescande gel of
+sportdrank zijn (Sportvoeding in het receptenboek, `0275`, zie `PLAN.md`). Hoe het plan rekent:
 bidons eerst, hoogstens 60 g per bidon (8% van 750 ml), één bidon per uur, de
 rest uit vast eten (zie §3 van [voeding-wielrennen.md](voeding-wielrennen.md)).*
 

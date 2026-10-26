@@ -5,6 +5,8 @@
 // product zonder een van beide waarden is voor de naleving niet bruikbaar en
 // valt af; een onbekende waarde aanvullen met een schatting doen we niet.
 
+import type { NutritionFood } from "./scale";
+
 export type NutritionProduct = {
   barcode: string;
   name: string;
@@ -68,4 +70,45 @@ export function productLabel(product: Pick<NutritionProduct, "name" | "brand">):
   return product.brand && !product.name.toLowerCase().includes(product.brand.toLowerCase())
     ? `${product.name} (${product.brand})`
     : product.name;
+}
+
+/** De kolommen van nutrition_products die de app gebruikt. */
+export const PRODUCT_COLUMNS = "barcode, name, brand, quantity_unit, carbs_g, protein_g, serving_g";
+
+/** Dezelfde NEVO-groep als de dranken, zodat het ritplan er een bidon van maakt (ride-plan.ts). */
+const DRINK_GROUP = "Niet-alcoholische dranken";
+
+export type ProductRow = Omit<NutritionProduct, "carbs_g" | "protein_g"> & { carbs_g: number | null; protein_g: number | null };
+
+/**
+ * Een barcodeproduct als ingrediënt van een recept. Open Food Facts levert hier
+ * alleen koolhydraten en eiwit; vet en vezels blijven onbekend, zodat het
+ * recept die als ondergrens toont. Wat in ml komt, is een drank.
+ */
+export function productAsFood(product: ProductRow): NutritionFood & { quantity_unit: "g" | "ml" } {
+  const unit = product.quantity_unit === "ml" ? "ml" : "g";
+  return {
+    id: product.barcode,
+    barcode: product.barcode,
+    nevo_code: 0,
+    name_nl: productLabel(product),
+    quantity_unit: unit,
+    kcal: null,
+    carbs_g: product.carbs_g == null ? null : Number(product.carbs_g),
+    sugars_g: null,
+    protein_g: product.protein_g == null ? null : Number(product.protein_g),
+    fat_g: null,
+    fiber_g: null,
+    sodium_mg: null,
+    food_group: unit === "ml" ? DRINK_GROUP : null,
+    serving_g: product.serving_g == null ? null : Number(product.serving_g),
+  };
+}
+
+/** Een regel voor het eetdagboek: een NEVO-product of een barcodeproduct. */
+export function logItemFor(
+  food: Pick<NutritionFood, "id" | "barcode">,
+  grams: number,
+): { food_id: string; grams: number } | { barcode: string; grams: number } {
+  return food.barcode ? { barcode: food.barcode, grams } : { food_id: food.id, grams };
 }

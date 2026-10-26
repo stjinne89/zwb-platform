@@ -6,13 +6,13 @@
 // bevestigt elke hoeveelheid voor het bewaren.
 
 import { useActionState, useEffect, useState } from "react";
-import { Plus, ScanBarcode, Search, Sparkles, X } from "lucide-react";
+import { Plus, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { productLabel } from "@/lib/nutrition/products";
+import { productLabel, type NutritionProduct } from "@/lib/nutrition/products";
 import { MEAL_MOMENTS, MEAL_MOMENT_LABELS, type MealMoment } from "@/lib/nutrition/targets";
 import type { FoodOption } from "../_actions";
 import type { BarcodeResult } from "../_log-actions";
-import { readBarcode } from "./read-barcode";
+import { BarcodeInput } from "./barcode-input";
 import type { PollResult, StartResult } from "../_recognize-actions";
 import { RECOGNITION_TEXT_MAX } from "@/lib/nutrition/recognize";
 
@@ -73,9 +73,6 @@ export function MealForm({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<FoodOption[]>([]);
   const [emptyFor, setEmptyFor] = useState<string | null>(null);
-  const [barcode, setBarcode] = useState("");
-  const [barcodeBusy, setBarcodeBusy] = useState(false);
-  const [barcodeError, setBarcodeError] = useState<string | null>(null);
   const [source, setSource] = useState<"handmatig" | "tekst">("handmatig");
   const [description, setDescription] = useState("");
   const [recognizing, setRecognizing] = useState(false);
@@ -166,52 +163,18 @@ export function MealForm({
     setRows((current) => current.map((row, i) => (i === index ? { ...row, grams } : row)));
   }
 
-  async function addBarcode(value: string) {
-    if (!value.trim() || barcodeBusy) return;
-    setBarcodeBusy(true);
-    setBarcodeError(null);
-    try {
-      const result = await barcodeAction(value);
-      if (!result.ok) {
-        setBarcodeError(result.error);
-        return;
-      }
-      const { product } = result;
-      setRows((current) => [
-        ...current,
-        {
-          kind: "product",
-          id: product.barcode,
-          name: productLabel(product),
-          unit: product.quantity_unit,
-          grams: amount(product.serving_g ?? 100),
-          serving: product.serving_g,
-        },
-      ]);
-      setBarcode("");
-    } catch {
-      setBarcodeError("Opzoeken mislukt.");
-    } finally {
-      setBarcodeBusy(false);
-    }
-  }
-
-  async function scan(file: File | undefined) {
-    if (!file || barcodeBusy) return;
-    setBarcodeBusy(true);
-    setBarcodeError(null);
-    let value: string | null = null;
-    try {
-      value = await readBarcode(file);
-    } catch {
-      // Een foto die de browser niet kan openen telt als geen barcode.
-    }
-    setBarcodeBusy(false);
-    if (!value) {
-      setBarcodeError("Geen barcode gevonden op de foto.");
-      return;
-    }
-    await addBarcode(value);
+  function addProduct(product: NutritionProduct) {
+    setRows((current) => [
+      ...current,
+      {
+        kind: "product",
+        id: product.barcode,
+        name: productLabel(product),
+        unit: product.quantity_unit,
+        grams: amount(product.serving_g ?? 100),
+        serving: product.serving_g,
+      },
+    ]);
   }
 
   const payload = JSON.stringify(
@@ -386,50 +349,7 @@ export function MealForm({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <input
-          inputMode="numeric"
-          value={barcode}
-          onChange={(event) => setBarcode(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key !== "Enter") return;
-            event.preventDefault();
-            void addBarcode(barcode);
-          }}
-          placeholder="Barcode"
-          aria-label="Barcode"
-          className="min-h-[44px] min-w-0 flex-1 basis-40 rounded-md border bg-background px-3"
-        />
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-[44px]"
-          disabled={barcodeBusy || !barcode.trim()}
-          onClick={() => void addBarcode(barcode)}
-        >
-          <Search className="size-4" />
-          {barcodeBusy ? "Bezig…" : "Zoek"}
-        </Button>
-        <label
-          aria-disabled={barcodeBusy}
-          className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-md border px-3 text-sm font-medium hover:border-primary aria-disabled:cursor-wait aria-disabled:opacity-50"
-        >
-          <ScanBarcode className="size-4" />
-          {barcodeBusy ? "Bezig…" : "Scan"}
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            disabled={barcodeBusy}
-            className="sr-only"
-            onChange={(event) => {
-              void scan(event.target.files?.[0]);
-              event.target.value = "";
-            }}
-          />
-        </label>
-      </div>
-      {barcodeError && <p className="text-sm text-destructive">{barcodeError}</p>}
+      <BarcodeInput lookupAction={barcodeAction} onProduct={addProduct} />
 
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" className="min-h-[44px]" disabled={pending || rows.length === 0}>
