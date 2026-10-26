@@ -11398,7 +11398,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Zwift-garage per lid voor Snelste fiets
 
-**2026-10-26.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Migratie
+**2026-10-26.** Commit `892de397`, lokaal, niet gepusht. Migratie
 `0277_member_zwift_bikes.sql`, **nog niet toegepast** en lokaal niet te testen
 (geen Docker of Supabase-config). Zonder de migratie leest de app een lege
 garage en rekent alles zoals voorheen; opslaan op het nieuwe scherm geeft dan
