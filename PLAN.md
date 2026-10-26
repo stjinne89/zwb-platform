@@ -11386,7 +11386,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Geen rustige duur onder de 90 minuten
 
-**2026-10-26.** Commit volgt bij de push (lokaal, niet gepusht). Geen migratie.
+**2026-10-26.** Commit `022cbede`, lokaal, niet gepusht. Geen migratie.
 
 **Waarom.** Melding van de eigenaar: in een net aangepast schema stonden weer
 rustige duurritten korter dan 90 minuten, waardoor rustdagen verdwenen. De
