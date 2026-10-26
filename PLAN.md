@@ -301,8 +301,8 @@ gaat stabiliteit voor nieuwe features.
    `0262_zwift_bike_fixed_wheels.sql` is toegepast. Open: beide schermen in
    de browser bekijken. Op 2026-10-26 hersteld (Espada als tijdritfiets,
    gesplitste namen in de sheet) en een Zwift-garage per lid gebouwd
-   (lokaal gecommit, niet gepusht). Open: migratie
-   `0277_member_zwift_bikes.sql` toepassen, na de deploy "Fietsen ophalen" op
+   (lokaal gecommit, niet gepusht). Migratie `0277_member_zwift_bikes.sql`
+   is op 2026-10-26 toegepast. Open: pushen, na de deploy "Fietsen ophalen" op
    `/beheer/zwift-routes`, en de garage, het pacingplan en de briefing in de
    browser bekijken.
 11. **ZRS van vroeger per race bewaard** (ronde van 2026-10-23 hieronder):
@@ -373,7 +373,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0278`
-(`0277_member_zwift_bikes` is van de Zwift-garage per lid, 2026-10-26, **nog niet toegepast**;
+(`0277_member_zwift_bikes` is van de Zwift-garage per lid, 2026-10-26, toegepast op 2026-10-26;
 `0276_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, toegepast op 2026-10-26; geschreven als `0275` en hernummerd bij het samenvoegen met main, waar `0275_ai_jobs` al stond;
 `0275_ai_jobs` is van de overstap naar Claude, toegepast op 2026-10-26;
 `0274_training_plan_status_cleanup` is van schema publiceren ronde 3, 2026-10-26, toegepast op 2026-10-26;
@@ -11399,10 +11399,14 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Zwift-garage per lid voor Snelste fiets
 
 **2026-10-26.** Commit `892de397`, lokaal, niet gepusht. Migratie
-`0277_member_zwift_bikes.sql`, **nog niet toegepast** en lokaal niet te testen
-(geen Docker of Supabase-config). Zonder de migratie leest de app een lege
-garage en rekent alles zoals voorheen; opslaan op het nieuwe scherm geeft dan
-"Opslaan lukte niet.".
+`0277_member_zwift_bikes.sql`, op 2026-10-26 via de Supabase-connector op
+productie toegepast (lokaal niet te testen: geen Docker of Supabase-config).
+Nagekeken: kolommen, primaire sleutel, de checks (stage 0–5, een wiel alleen
+stage 0) en de foreign key met `on delete cascade`. RLS getest als ingelogd
+lid in een transactie die is teruggedraaid: eigen rijen schrijven en lezen
+lukt, rijen van een ander zijn onzichtbaar en een insert voor een ander geeft
+42501; een wiel met stage 2 geeft 23514. De tabel is daarna leeg. Zonder de
+migratie leest de app een lege garage en rekent alles zoals voorheen.
 
 **Waarom.** De eigenaar vroeg of je kunt instellen welke fiets je op welk niveau
 hebt, zodat Snelste fiets daarmee rekent. Na de uitleg en het herstel hieronder
@@ -11453,8 +11457,9 @@ De volle suite faalt alleen op de omgeving van deze worktree: de gedeelde
 `node_modules` mist `@anthropic-ai/sdk` en heeft `zwift-data` 1.50 in plaats van
 2.1 (`zwift-route`, `race-links`, en alles wat `ai/claude.ts` importeert).
 zwift-data 2.1 (uit de lockfile, los uitgepakt) kent de Espada ook als
-tijdritfiets. **Niet geverifieerd:** de migratie, het scherm, het pacingplan en
-de briefing in de browser.
+tijdritfiets. **Niet geverifieerd:** het scherm, het pacingplan en de briefing
+in de browser, en opslaan vanuit de app (de migratie is wel op productie
+gecontroleerd, zie boven).
 
 ### Hersteld — Snelste fiets: Espada is een tijdritfiets, gesplitste namen in de sheet
 
