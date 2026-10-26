@@ -11351,7 +11351,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter Worden: mijn schema maken op het doel, review opgeruimd (ronde 3)
 
-**2026-10-26.** Commit volgt (lokaal, niet gepusht). Migratie
+**2026-10-26.** Commit `e94d6742` (lokaal, niet gepusht). Migratie
 `0274_training_plan_status_cleanup.sql`, **niet toegepast**. Ronde 3 uit
 [schema-goedkeuren-publiceren-analyse.md](docs/schema-goedkeuren-publiceren-analyse.md).
 
