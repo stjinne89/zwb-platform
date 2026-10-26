@@ -11392,7 +11392,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gewijzigd — Racebriefje: KOM's als moment, profiel zonder overlap
 
-**2026-10-26.** Commit `COMMIT_HASH`. Geen migratie.
+**2026-10-26.** Commit `6ece137a`, lokaal, niet gepusht. Geen migratie.
 
 **Waarom.** De eigenaar zag op het briefje van Spiral Summit (Bdev, 27 oktober)
 dat de labels door elkaar stonden: "sprint Jarvis (1e)" en "(2e)" liepen door de
