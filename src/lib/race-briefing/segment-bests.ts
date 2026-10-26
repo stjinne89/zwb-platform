@@ -3,7 +3,7 @@ import "server-only";
 // De beste tijd per renner per Zwift-segment, voor de segmentrecords op het
 // racebriefje.
 //
-// Een cache in zwift_segment_bests (migr. 0277), zoals de ZRS in metrics.ts: de
+// Een cache in zwift_segment_bests (migr. 0279), zoals de ZRS in metrics.ts: de
 // pagina leest wat er is en ververst na het antwoord (after) wat ontbreekt of
 // ouder is dan een dag, binnen een tijdsbudget; de rest volgt bij het volgende
 // bezoek. Eerst onze renners, dan de rest van het startveld.
@@ -47,7 +47,7 @@ export function segmentIdsForRoute(routeId: number | null): Map<string, string> 
   return matchSegmentIds(route.accents, lap);
 }
 
-/** Null als de tabel niet te lezen is (migratie 0277 nog niet toegepast): dan ook niet verversen. */
+/** Null als de tabel niet te lezen is (migratie 0279 nog niet toegepast): dan ook niet verversen. */
 export async function loadSegmentBests(zwiftIds: number[], segmentIds: string[]): Promise<SegmentBest[] | null> {
   if (zwiftIds.length === 0 || segmentIds.length === 0) return [];
   const { data, error } = await createAdminClient()
