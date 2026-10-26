@@ -35,6 +35,8 @@ export type CalendarEditWorkout = {
   blocks: WorkoutBlock[];
   skipped: boolean;
   publishStatus: string;
+  /** Uit een schema dat nog concept is. */
+  concept?: boolean;
   /** Een FTP-test houdt zijn eigen intensiteit; zie plannedWorkoutIntensity(). */
   testType?: string | null;
   methodLabel?: MethodLabel | null;
@@ -244,6 +246,7 @@ export function TrainerWorkoutCalendar({
       intensityLabel: label,
       source: "zwb",
       skipped: workout.skipped,
+      concept: workout.concept,
       methodLabel: workout.methodLabel,
     };
   });
@@ -267,9 +270,11 @@ export function TrainerWorkoutCalendar({
               <p className="text-xs text-muted-foreground">
                 {selected.dateKey} - {selected.durationMinutes} min -{" "}
                 {planned(selected).label}
-                {!selected.skipped && publishStatusLabel(selected.publishStatus)
-                  ? ` - ${publishStatusLabel(selected.publishStatus)}`
-                  : ""}
+                {selected.concept
+                  ? " - Concept"
+                  : !selected.skipped && publishStatusLabel(selected.publishStatus)
+                    ? ` - ${publishStatusLabel(selected.publishStatus)}`
+                    : ""}
               </p>
             </div>
             <WorkoutEditor

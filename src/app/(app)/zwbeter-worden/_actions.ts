@@ -138,6 +138,16 @@ function assertWorkoutIntensity(value: string): asserts value is WorkoutIntensit
   }
 }
 
+/** Loopt dit schema (goedgekeurd of gepubliceerd)? Dan gaan wijzigingen meteen naar intervals.icu. */
+async function planIsRunning(
+  admin: ReturnType<typeof createAdminClient>,
+  planId: string | null,
+): Promise<boolean> {
+  if (!planId) return false;
+  const { data } = await admin.from("training_plans").select("status").eq("id", planId).maybeSingle();
+  return data?.status === "approved" || data?.status === "published";
+}
+
 async function currentUser() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
@@ -831,7 +841,7 @@ export async function updateWorkout(formData: FormData) {
     const admin = createAdminClient();
     const { data: workout } = await admin
       .from("training_workouts")
-      .select("profile_id, intervals_event_id")
+      .select("profile_id, plan_id, intervals_event_id")
       .eq("id", workoutId)
       .single();
     if (!workout) throw new Error("Workout niet gevonden.");
@@ -864,8 +874,9 @@ export async function updateWorkout(formData: FormData) {
     if (error) throw new Error(error.message);
 
     // Staat de workout al in intervals.icu, dan moet de wijziging daar meteen
-    // heen: het lid rijdt hem morgen van zijn fietscomputer.
-    if (workout.intervals_event_id) {
+    // heen: het lid rijdt hem morgen van zijn fietscomputer. Loopt het schema,
+    // dan ook als hij er nog niet stond (eerder mislukt of net toegevoegd).
+    if (workout.intervals_event_id || (await planIsRunning(admin, workout.plan_id))) {
       await pushWorkoutToIntervals(admin, workoutId).catch(() => null);
     }
 
@@ -1180,7 +1191,7 @@ export async function addWorkoutFromTemplate(formData: FormData) {
     const [{ data: plan }, { data: template }] = await Promise.all([
       admin
         .from("training_plans")
-        .select("id, profile_id, trainer_id")
+        .select("id, profile_id, trainer_id, status")
         .eq("id", planId)
         .maybeSingle(),
       admin
@@ -1231,6 +1242,13 @@ export async function addWorkoutFromTemplate(formData: FormData) {
         dayKey: date,
         keepWorkoutId: created.id as string,
       }).catch(() => 0);
+    }
+
+    // Loopt het schema al, dan hoort de nieuwe training meteen in intervals.icu,
+    // net als een aangepaste. Tot 2026-10-26 bleef hij staan tot iemand
+    // "Opnieuw publiceren" klikte. Een concept gaat pas mee bij publiceren.
+    if (plan.status === "approved" || plan.status === "published") {
+      await pushWorkoutToIntervals(admin, created.id as string).catch(() => null);
     }
 
     revalidatePath("/zwbeter-worden", "layout");
@@ -1295,7 +1313,7 @@ export async function replaceWorkoutFromTemplate(formData: FormData) {
       .eq("id", workoutId);
     if (error) throw new Error(error.message);
 
-    if (workout.intervals_event_id) {
+    if (workout.intervals_event_id || (await planIsRunning(admin, workout.plan_id))) {
       await pushWorkoutToIntervals(admin, workoutId).catch(() => null);
     }
 

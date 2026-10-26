@@ -17,6 +17,7 @@ import {
 import { currentPlanOf, groupByRoot } from "@/lib/training/plan-tree";
 import { zrlUpcomingSpecificityWarning } from "@/lib/training/specificity";
 import { settleOwnReplans } from "@/lib/training/replan";
+import { hiddenFromMember } from "@/lib/training/member-hidden-plans";
 import { AdaptationProposal } from "../_components/adaptation-proposal";
 import { AvailabilityForm } from "../_components/availability-form";
 import { workoutOutcome } from "../_components/completed-workouts";
@@ -48,7 +49,9 @@ import {
   byWorkout,
   formatDayMonth,
   paramString,
+  planActionKind,
   publishStatusLabel,
+  unsentByPlan,
 } from "../_components/format";
 import { PlanUpdateForm } from "../_components/plan-update-form";
 import { ZrlContextNotice } from "../_components/zrl-context-notice";
@@ -214,6 +217,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     .filter((workout) => String(workout.scheduled_at).slice(0, 10) >= todayKey)
     .slice(0, 8);
 
+  const unsent = unsentByPlan(memberWorkouts, todayKey);
   const canSelfManagePlans = viewer.access.has("training.create_plans");
   const canSelfPublishPlans = viewer.access.has("training.publish_plans");
   const runningPlan = activePlan(plans);
@@ -553,19 +557,30 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                         {formatDayMonth(root.start_date, false)} -{" "}
                         {formatDayMonth(root.end_date, false)}
                       </p>
+                      {/* De trainingen van dit concept staan nog niet in de
+                          kalender hierboven; zie member-hidden-plans.ts. */}
+                      {hiddenFromMember(root) ? (
+                        <p className="mt-1 text-sm">Je trainer maakt een nieuw schema.</p>
+                      ) : null}
                     </div>
                     <PlanBadge status={root.status} />
                   </div>
                   {proposals.map((proposal) => (
                     <AdaptationProposal key={proposal.id} proposal={proposal} />
                   ))}
-                  {canSelfManagePlans || canSelfPublishPlans ? (
+                  {planActionKind({
+                    status: root.status,
+                    mayApprove: canSelfManagePlans,
+                    mayPublish: canSelfPublishPlans,
+                    unsent: unsent.get(root.id) ?? 0,
+                  }) ? (
                     <div className="border-y p-3">
                       <PlanActions
                         planId={root.id}
                         status={root.status}
                         mayApprove={canSelfManagePlans}
                         mayPublish={canSelfPublishPlans}
+                        unsent={unsent.get(root.id) ?? 0}
                       />
                     </div>
                   ) : null}

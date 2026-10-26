@@ -23,6 +23,7 @@ import { GUT_PROTOCOLS, gutTrainingOn, type GutRun } from "./gut-training";
 import { currentSweatRate } from "./sweat";
 import { ridePlan, ridePlanSummary, type RidePlan } from "./ride-plan";
 import { ageFromBirthDate, portionEnergyFactor } from "./targets";
+import { memberHiddenPlanIds } from "@/lib/training/member-hidden-plans";
 
 export const NUTRITION_REMINDER_TIME = "19:00";
 /** Na dit tijdstip wordt een gemiste herinnering niet meer ingehaald. */
@@ -237,13 +238,9 @@ export async function processNutritionReminders(admin: SupabaseClient, now: Date
       .is("superseded_at", null)
       .gte("scheduled_at", from)
       .lt("scheduled_at", to),
-    // Niet-toegepaste dagvoorstellen tellen niet, net als op de voedingspagina.
-    admin
-      .from("training_plans")
-      .select("id")
-      .in("profile_id", profileIds)
-      .eq("status", "draft")
-      .eq("adaptation_kind", "daily"),
+    // Niet-toegepaste dagvoorstellen en concepten van de trainer tellen niet,
+    // net als op de voedingspagina.
+    memberHiddenPlanIds(admin, profileIds),
     admin
       .from("strava_activities")
       .select("profile_id, start_date, moving_time_seconds")
@@ -259,7 +256,7 @@ export async function processNutritionReminders(admin: SupabaseClient, now: Date
     admin.from("nutrition_reminder_sends").select("profile_id, kind").eq("sent_on", today).in("profile_id", profileIds),
   ]);
 
-  const draftIds = new Set((drafts.data ?? []).map((row) => row.id as string));
+  const draftIds = drafts;
   // Alleen ophalen als iemand morgen een rit van een uur of langer heeft.
   let rideContext: Promise<RideContext> | null = null;
   const recovered = new Set((meals.data ?? []).map((row) => row.profile_id as string));

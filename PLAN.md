@@ -11342,6 +11342,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBeter Worden: concepten uit beeld, wijzigingen vanzelf (ronde 2)
+
+**2026-10-26.** Commit volgt (lokaal, niet gepusht). Geen migratie. Ronde 2 uit
+[schema-goedkeuren-publiceren-analyse.md](docs/schema-goedkeuren-publiceren-analyse.md).
+
+- **Het lid ziet geen concept van zijn trainer meer.** Nieuwe module
+  `lib/training/member-hidden-plans.ts`: `hiddenFromMember` verbergt een
+  niet-toegepast dagvoorstel (zoals voorheen) en nu ook een basisschema in
+  `draft` of `review` waarvan het lid niet zelf de trainer is. Gebruikt in
+  `loadMemberWorkouts` (Vandaag, Schema), de voedingsdag, de voedingsherinneringen,
+  de jaarplanning en de core-suggestie; die filterden elk apart alleen de
+  dagvoorstellen. Op 2026-10-26 ging dat om 55 komende trainingen bij twee leden
+  die niet in intervals.icu stonden. Op de schemakaart staat bij zo'n concept
+  "Je trainer maakt een nieuw schema." Een concept dat het lid zelf maakte blijft
+  zichtbaar: dat publiceert normaal vanzelf, en lukte dat niet, dan wil het lid
+  het zien.
+- **Wijzigingen aan een lopend schema gaan vanzelf naar intervals.icu.**
+  `addWorkoutFromTemplate` pusht de nieuwe training als het schema `approved` of
+  `published` is; `updateWorkout` en `replaceWorkoutFromTemplate` pushen nu ook
+  een training die er nog niet stond (eerder mislukt), niet alleen een met
+  `intervals_event_id`.
+- **Geen "Opnieuw publiceren" meer bij een lopend schema.** Alleen als er komende
+  trainingen niet in intervals.icu staan: "N trainingen niet in intervals.icu" met
+  `Opnieuw versturen` (`unsentByPlan` en `planActionKind` in
+  `_components/format.ts`). Een afgelopen schema krijgt geen knop meer: met één
+  klik terughalen zou het lopende archiveren. `publishTrainingPlan` staat het nog
+  wel toe.
+- **Conceptkaart bovenaan de trainerstab Schema**: titel, aantal trainingen,
+  eerste dag en welk schema het vervangt, met Publiceren en Verwijderen. In de
+  trainerkalender staan concepttrainingen gestippeld, met "concept" in de
+  tooltip en "Concept" in het detail.
+- **`/hulp`**: "Pas je een schema aan? Publiceer opnieuw" is vervangen door: een
+  aangepaste training staat vanzelf in intervals.icu, een FIT download je opnieuw.
+
+**Bewust niet:** de trainer-jaarplanning (`loadSeason`) onderscheidt concepten
+niet apart; die verbergt ze nu ook, net als bij het lid. Een concept-hint op
+Vandaag: de regel op de schemakaart volstaat. "Maak mijn schema" en de migratie
+blijven ronde 3.
+
+**Niet geverifieerd:** niet in de app doorgeklikt. `tsc` (zelfde bestaande fout in
+`share-sheet.tsx`), `eslint` op de gewijzigde bestanden en `vitest` met de nieuwe
+`tests/unit/member-hidden-plans.test.ts`: 3414 van 3417 groen, dezelfde drie rode
+als in ronde 1 (de time-out van `admin-areas` slaagt los).
+
 ### Gebouwd — ZWBeter Worden: één knop Publiceren (ronde 1)
 
 **2026-10-26.** Commit `0280eb50` (lokaal, niet gepusht). Geen migratie. Ronde 1 uit
@@ -11354,7 +11398,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
   deel aan, dan wordt het `approved`, zodat "Opnieuw publiceren" de rest
   nastuurt. Een gepubliceerd schema blijft bij een deels mislukte herpublicatie
   `published` (was al zo).
-- **`PlanActions`**: alleen nog `Publiceren` / `Opnieuw publiceren`. "Naar
+- **`PlanActions`**: alleen nog `Publiceren` / `Opnieuw publiceren` (dat laatste
+  is in ronde 2 `Opnieuw versturen` geworden, en alleen nog zichtbaar als er
+  trainingen niet aankwamen). "Naar
   review" en de losse "Goedkeuren" zijn weg, net als de zin "Keur het schema
   eerst goed voordat je publiceert." Wie schema's mag maken maar niet
   publiceren (geen standaardrol, wel in te stellen) houdt "Goedkeuren".

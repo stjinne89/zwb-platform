@@ -146,7 +146,8 @@ en §3 A, B, C, E en deels H beschrijven daarmee de stand vóór die ronde.
 - Nederlandse labels of niets in plaats van `publish_status` (C).
 - Link "Concept klaar → Bekijken" in `AiDraftForm` (H).
 
-**Ronde 2: gedrag.**
+**Ronde 2: gedrag.** Gebouwd op 2026-10-26 (zie `PLAN.md`); daarmee zijn ook
+§3 D, F en de rest van H opgelost.
 - Concepttrainingen uit `loadMemberWorkouts` filteren, plus de ene regel op de
   schemakaart (D).
 - `addWorkoutFromTemplate` pusht direct als het schema loopt (F); dan kan
