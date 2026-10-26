@@ -11394,7 +11394,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gewijzigd — Rider of the month met de ranglijsten van ZWB Rankings
 
-**2026-10-26.** Commit `COMMIT_HASH`. Geen migratie. Niet gepusht.
+**2026-10-26.** Commit `b1c51d8b`. Geen migratie. Niet gepusht.
 
 **Waarom.** De eigenaar: Rider of the month op het dashboard moest de nieuwe
 statistieken krijgen en Kudo-magneet ("Kudo's") moest eruit, om dezelfde reden als
