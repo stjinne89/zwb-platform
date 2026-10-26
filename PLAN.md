@@ -11398,7 +11398,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gewijzigd — Zwift-garage: upgradeniveau als streepjes in tenuekleuren
 
-**2026-10-26.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Geen migratie.
+**2026-10-26.** Commit `5ebfd5da`, lokaal, niet gepusht. Geen migratie.
 
 **Waarom.** De eigenaar wilde het niveau van een fiets zien in een beeld dat bij
 de upgrade past: goud op het hoogste niveau, daaronder teruglopend door de
