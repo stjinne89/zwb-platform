@@ -11367,6 +11367,35 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Melding "Nieuw in ZWBeter trainen"
+
+**2026-10-26.** Lokaal, niet gepusht. Geen migratie. Commit: zie git log
+("Melding Nieuw in ZWBeter trainen").
+
+**Waarom.** De eigenaar wilde leden in één pop-up laten weten wat er in ZWBeter
+trainen veranderde. Tekst goedgekeurd door de eigenaar; drie punten: het schema
+volgt de belasting uit de CTL (ronde "Schema stuurt op belasting"), de nieuwe
+AI-coach op Claude (ronde "Overstap naar Claude"), en zelf je schema maken bij
+je doel (ZWBeter Worden ronde 3).
+
+**Wat er is.** `TrainingNoticeDialog` in de app-layout (beide designs), naast
+de durability-melding en nooit boven op de privacy- of Zwift-ID-vraag. Na twee
+seconden, alleen als er geen andere dialoog openstaat, vraagt hij met
+`usesZwbeterTraining` na of het lid een doel of schema heeft (dezelfde check
+als het weekoverzicht). Gezien onthoudt de browser (`localStorage`, sleutel
+`zwb-nieuw-zwbeter-trainen-2026-10`); vanaf 1 december 2026 verschijnt hij niet
+meer.
+
+**Bewust niet.**
+- Het punt "Alleen wat klaar is" (concepten verborgen, wijzigingen vanzelf naar
+  intervals.icu): de eigenaar liet het weg.
+- Gezien per account in de database: per apparaat volstaat en vraagt geen
+  migratie. Wie op twee apparaten kijkt, ziet hem twee keer.
+- Geen algemeen nieuwsmechanisme; dit is één melding met een einddatum.
+
+**Getest.** `tsc` en ESLint. **Niet bekeken in de browser**: lokaal kan dat niet
+zonder in te loggen, en de voorbeeldpagina heeft er geen scherm voor.
+
 ### Gebouwd — Overstap naar Claude klaar (AI_PROVIDER)
 
 **2026-10-26.** Gepusht naar `main` op 2026-10-26 (op verzoek van de eigenaar;
