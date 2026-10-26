@@ -11392,6 +11392,26 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gewijzigd — ZWB Rankings: Buitenbeentje en Binnenvetter in km of uren
+
+**2026-10-26.** Commit `COMMIT_HASH`. Geen migratie. Niet gepusht.
+
+**Waarom.** De eigenaar: Buitenbeentje stond in km en Binnenvetter in uren;
+beide moeten in allebei te bekijken zijn.
+
+**Wat.** `WeekScore` telt nu ook buitenuren en rollenbank-km (`indoorM`,
+`outdoorSeconds`). Een ranglijst kan `views` hebben (`lib/rankings/rankings.ts`);
+Buitenbeentje opent in km, Binnenvetter in uren. De kaart heeft rechtsboven een
+schakelaar km | uren, boven de knop die de hele lijst opent; de dialoog toont
+dezelfde schakelaar met dezelfde stand. `/hulp/club#rankings` noemt het.
+
+**Bewust niet.** Geen onthouden keuze per lid: de schakelaar begint elke keer
+op de standaard.
+
+**Gecontroleerd.** Vitest (`rankings.test.ts`: beide weergaven, volgorde en
+waarden), `tsc` (alleen de bekende ontbrekende pakketten), ESLint.
+**Niet geverifieerd:** de schakelaar in de browser.
+
 ### Gebouwd — ZWB Rankings in plaats van Achievements
 
 **2026-10-26.** Commit `69256778`, gepusht naar `main` op 2026-10-26 (eigenaar).
@@ -11418,7 +11438,8 @@ de meeste uren, meer ranglijsten, en lijstjes met alleen de top 3.
   dubbele ritten één keer (`uniqueRides`):
   - per week: Zitvleeskampioen, Kilometervreter, Klimmer van de week, Meest
     actief, **Lange adem** (langste rit in tijd), **Buitenbeentje**
-    (buiten-km), **Binnenvetter** (rollenbankuren);
+    (buiten-km), **Binnenvetter** (rollenbankuren); *sinds de ronde hierboven
+    allebei met een schakelaar km/uren;*
   - over de gekozen week en de drie ervoor: **Metronoom** (dagen gefietst,
     Nederlandse tijd), **Clubmens** (events met "ja" die al begonnen, plus dagen
     met een live-rit van minstens 20 minuten via Samen fietsen; een live-rit op

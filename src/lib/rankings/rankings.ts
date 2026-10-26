@@ -24,12 +24,17 @@ export type RankingEntry = {
   detail?: string;
 };
 
+export type RankingView = { label: string; entries: RankingEntry[] };
+
 export type Ranking = {
   id: string;
   title: string;
   icon: RankingIcon;
   span: "week" | "4 weken";
+  /** De eerste weergave; met `views` is dat views[0]. */
   entries: RankingEntry[];
+  /** Twee of meer weergaven met een schakelaar, zoals km en uren. */
+  views?: RankingView[];
 };
 
 /** Hoger is beter; nul telt niet. `tie` beslist alleen de volgorde, niet de plek. */
@@ -99,14 +104,33 @@ export function weekRankings(rows: ActivityRow[], week: string): Ranking[] {
     entries: rankBy(scores, value, label, { detail, tie: (score) => score.movingSeconds }),
   });
 
+  /** Dezelfde lijst in kilometers en in uren; `first` bepaalt waar hij mee opent. */
+  const both = (
+    id: string,
+    title: string,
+    icon: RankingIcon,
+    meters: (score: WeekScore) => number,
+    seconds: (score: WeekScore) => number,
+    first: "km" | "uren",
+  ): Ranking => {
+    const km = list(id, title, icon, meters, (s) => formatKm(meters(s))).entries;
+    const hours = list(id, title, icon, seconds, (s) => formatHours(seconds(s))).entries;
+    const views = [
+      { label: "km", entries: km },
+      { label: "uren", entries: hours },
+    ];
+    if (first === "uren") views.reverse();
+    return { id, title, icon, span: "week", entries: views[0].entries, views };
+  };
+
   return [
     list("zitvlees", "Zitvleeskampioen", "clock", (s) => s.movingSeconds, (s) => formatHours(s.movingSeconds)),
     list("kilometers", "Kilometervreter", "route", (s) => s.distanceM, (s) => formatKm(s.distanceM)),
     list("klimmer", "Klimmer van de week", "mountain", (s) => s.elevationM, (s) => formatMeters(s.elevationM)),
     list("actief", "Meest actief", "refresh", (s) => s.activities, rides, (s) => formatHours(s.movingSeconds)),
     list("lange-adem", "Lange adem", "timer", (s) => s.longestSeconds, (s) => formatDuration(s.longestSeconds)),
-    list("buitenbeentje", "Buitenbeentje", "sun", (s) => s.outdoorM, (s) => formatKm(s.outdoorM)),
-    list("binnenvetter", "Binnenvetter", "home", (s) => s.indoorSeconds, (s) => formatHours(s.indoorSeconds)),
+    both("buitenbeentje", "Buitenbeentje", "sun", (s) => s.outdoorM, (s) => s.outdoorSeconds, "km"),
+    both("binnenvetter", "Binnenvetter", "home", (s) => s.indoorM, (s) => s.indoorSeconds, "uren"),
   ];
 }
 

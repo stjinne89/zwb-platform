@@ -152,7 +152,7 @@ export const GUIDES = [
     title: "ZWB Rankings",
     bullets: [
       "Alle ritten tellen mee, of ze nu via Strava, intervals.icu of een import binnenkwamen. Een rit die twee keer binnenkwam telt één keer.",
-      "Per week: Zitvleeskampioen (meeste uren), Kilometervreter, Klimmer van de week (hoogtemeters), Meest actief (ritten), Lange adem (langste rit in tijd), Buitenbeentje (kilometers buiten) en Binnenvetter (uren op de rollenbank).",
+      "Per week: Zitvleeskampioen (meeste uren), Kilometervreter, Klimmer van de week (hoogtemeters), Meest actief (ritten), Lange adem (langste rit in tijd), Buitenbeentje (buiten) en Binnenvetter (op de rollenbank); die twee kun je bekijken in kilometers of in uren.",
       "Over vier weken: Metronoom (op hoeveel dagen je fietste), Clubmens (events waar je ja op zei, plus de dagen dat je live meereed via Samen fietsen) en Groeibriljant (hoeveel punten je ZWBriljant-steen erbij kreeg).",
       "Groeibriljant toont alleen leden die hun ZWBriljant-steen delen. Verberg je je steen, dan sta je er niet in en zie je de lijst niet.",
       "Je ziet de top 3 en je eigen plek. Tik op een lijst voor de hele ranglijst.",

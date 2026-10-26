@@ -56,6 +56,8 @@ export type WeekScore = {
   /** De langste rit van de week, in tijd. */
   longestSeconds: number;
   outdoorM: number;
+  outdoorSeconds: number;
+  indoorM: number;
   indoorSeconds: number;
 };
 
@@ -135,6 +137,8 @@ export function weeklyScores(rows: ActivityRow[]) {
         movingSeconds: 0,
         longestSeconds: 0,
         outdoorM: 0,
+        outdoorSeconds: 0,
+        indoorM: 0,
         indoorSeconds: 0,
       };
 
@@ -145,8 +149,13 @@ export function weeklyScores(rows: ActivityRow[]) {
     score.elevationM += toNumber(row.total_elevation_gain_m);
     score.movingSeconds += seconds;
     score.longestSeconds = Math.max(score.longestSeconds, seconds);
-    if (row.trainer) score.indoorSeconds += seconds;
-    else score.outdoorM += distance;
+    if (row.trainer) {
+      score.indoorM += distance;
+      score.indoorSeconds += seconds;
+    } else {
+      score.outdoorM += distance;
+      score.outdoorSeconds += seconds;
+    }
     scores.set(key, score);
   }
 

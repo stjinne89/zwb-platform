@@ -62,9 +62,19 @@ describe("weekRankings", () => {
     ]);
   });
 
-  it("Buitenbeentje en Binnenvetter splitsen op de rollenbank", () => {
-    expect(ranking(list, "buitenbeentje").entries.map((entry) => entry.profileId)).toEqual([B, A]);
-    expect(ranking(list, "binnenvetter").entries.map((entry) => [entry.profileId, entry.label])).toEqual([[A, "1 u"]]);
+  it("Buitenbeentje en Binnenvetter splitsen op de rollenbank, in km en in uren", () => {
+    const buiten = ranking(list, "buitenbeentje");
+    expect(buiten.views?.map((view) => view.label)).toEqual(["km", "uren"]);
+    expect(buiten.entries.map((entry) => [entry.profileId, entry.label])).toEqual([
+      [B, "120 km"],
+      [A, "30 km"],
+    ]);
+    expect(buiten.views?.[1].entries.map((entry) => entry.label)).toEqual(["4 u", "2 u"]);
+
+    const binnen = ranking(list, "binnenvetter");
+    expect(binnen.views?.map((view) => view.label)).toEqual(["uren", "km"]);
+    expect(binnen.entries.map((entry) => [entry.profileId, entry.label])).toEqual([[A, "1 u"]]);
+    expect(binnen.views?.[1].entries.map((entry) => entry.label)).toEqual(["35 km"]);
   });
 
   it("Lange adem: de langste rit, niet de som", () => {

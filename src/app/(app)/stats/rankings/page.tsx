@@ -259,9 +259,12 @@ export default async function RankingsPage({
           <RankingCard
             key={ranking.id}
             ranking={{ id: ranking.id, title: ranking.title, icon: ranking.icon, span: ranking.span }}
-            entries={ranking.entries.map((entry) => ({
-              ...entry,
-              name: names.get(entry.profileId) ?? "ZWB'er",
+            views={(ranking.views ?? [{ label: "", entries: ranking.entries }]).map((view) => ({
+              label: view.label,
+              entries: view.entries.map((entry) => ({
+                ...entry,
+                name: names.get(entry.profileId) ?? "ZWB'er",
+              })),
             }))}
             viewerId={user?.id ?? null}
           />
