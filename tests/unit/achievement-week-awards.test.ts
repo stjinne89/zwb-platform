@@ -96,6 +96,50 @@ describe("awardCompletedAchievementWeeks", () => {
     expect(notified).toEqual([B]);
   });
 
+  it("kent Zitvleeskampioen toe en Kudo-magneet niet meer", async () => {
+    const db = fakeDb({
+      strava_activities: [
+        { ...rides(A, 1, "2026-10-06", 20_000, 1)[0], moving_time_seconds: 3 * 3600, kudos_count: 40 },
+        { ...rides(B, 1, "2026-10-07", 60_000, 2)[0], moving_time_seconds: 2 * 3600 },
+      ],
+      achievement_awards: [],
+    });
+    await awardCompletedAchievementWeeks(db);
+    const badges = db.tables.achievement_awards.map((row) => `${row.badge_id}:${row.profile_id}`);
+    expect(badges).toContain(`hours_week:${A}`);
+    expect(badges).toContain(`distance_week:${B}`);
+    expect(badges.some((badge) => badge.startsWith("kudos_received_week"))).toBe(false);
+  });
+
+  it("slaat een badge over die nog niet in achievement_badges staat", async () => {
+    const db = fakeDb({
+      strava_activities: rides(B, 1, "2026-10-06", 50_000, 1),
+      achievement_awards: [],
+    });
+    // Zoals Postgres zonder migratie 0277: de foreign key weigert hours_week.
+    const missingBadge = {
+      ...db,
+      from(table: string) {
+        const query = db.from(table);
+        if (table !== "achievement_awards") return query;
+        const upsert = query.upsert.bind(query);
+        type Upsert = (rows: Array<{ badge_id: string }>, options?: { onConflict?: string }) => unknown;
+        (query as unknown as { upsert: Upsert }).upsert = (rows, options) =>
+          rows.some((row) => row.badge_id === "hours_week")
+            ? Promise.resolve({ data: null, error: { code: "23503", message: "foreign key" } })
+            : upsert(rows, options);
+        return query;
+      },
+    };
+    const result = await awardCompletedAchievementWeeks(missingBadge);
+    const badges = db.tables.achievement_awards.map((row) => row.badge_id);
+    expect(badges).toContain("distance_week");
+    expect(badges).not.toContain("hours_week");
+    expect(result.awarded).toBe(badges.length);
+    const bodies = push.mock.calls.map((call) => (call[1] as { body: string }).body);
+    expect(bodies.join(" ")).not.toContain("Zitvlees");
+  });
+
   it("telt een rit in de week van zijn starttijd, ook als achievement_week een zondag zegt", async () => {
     const db = fakeDb({
       strava_activities: [{ ...rides(A, 1, "2026-10-06", 50_000, 1)[0], achievement_week: "2026-10-04" }],

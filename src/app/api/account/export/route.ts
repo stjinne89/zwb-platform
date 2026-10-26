@@ -40,6 +40,7 @@ const PROFILE_TABLES: string[] = [
   "nutrition_log_meals",
   "nutrition_log_ai_usage",
   "nutrition_sweat_tests",
+  "member_zwift_bikes",
   "member_protocols",
   "member_knowledge",
   "member_knowledge_topics",

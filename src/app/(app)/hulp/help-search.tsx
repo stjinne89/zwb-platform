@@ -90,6 +90,12 @@ const HELP_INDEX: HelpResult[] = [
       "zwbriljant briljant steen edelsteen onderdelen ontbreken leeg durability durability-test test p25 plafond kj 1000 2000 gewicht geslacht zwift-id zrs racen strava consistentie schema intervals instellen galerij vergelijken",
   },
   {
+    title: "ZWB Rankings",
+    text: "Welke ranglijsten er zijn en wat ervoor telt.",
+    href: "/hulp/club#rankings",
+    terms: "rankings ranglijst zitvleeskampioen kilometervreter klimmer meest actief lange adem buitenbeentje binnenvetter metronoom clubmens groeibriljant top 3 achievements kudo",
+  },
+  {
     title: "Badges en achievements",
     text: "Weekbadges, milestone badges en badges herberekenen.",
     href: "/hulp/club#badges",
@@ -242,7 +248,7 @@ const HELP_INDEX: HelpResult[] = [
     title: "Pacingplan voor een Zwift-wedstrijd",
     text: "Format, fiets, snelste fiets, slipstream, wegdek, start, sprint en powerups.",
     href: "/hulp/racen#pacing-zwift",
-    terms: "zwift wedstrijd race tijdrit ploegentijdrit ttt drafting slipstream groep alleen fiets frame wielen upgrade stage gravel onverhard wegdek powerup veer aerohelm draft boost stoomwals aambeeld sprint start zwiftinsider snelste fiets fietsadvies zwiftbikes zwifterbikes",
+    terms: "zwift wedstrijd race tijdrit ploegentijdrit ttt drafting slipstream groep alleen fiets frame wielen upgrade stage gravel onverhard wegdek powerup veer aerohelm draft boost stoomwals aambeeld sprint start zwiftinsider snelste fiets fietsadvies zwiftbikes zwifterbikes garage zwift-fietsen mijn fietsen",
   },
   {
     title: "Krachtreeksen",

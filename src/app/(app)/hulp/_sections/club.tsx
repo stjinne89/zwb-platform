@@ -12,7 +12,7 @@ import { GuideCards } from "./guide-cards";
 export function ClubHelp() {
   return (
     <>
-      <GuideCards ids={["profiel", "privacy", "badges", "cols", "onderhoud", "community", "zwbieb"]} />
+      <GuideCards ids={["profiel", "privacy", "rankings", "badges", "cols", "onderhoud", "community", "zwbieb"]} />
 
       <section
         id="verjaardagsrondje"
@@ -342,7 +342,13 @@ export function ClubHelp() {
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Zodra je Strava gekoppeld en gesynchroniseerd hebt, kent ZWB je
               fietsen met hun totale kilometerstand. Daarmee toon je je fietsen
-              op je profiel en houd je de slijtage van onderdelen bij.
+              op je profiel en houd je de slijtage van onderdelen bij. Onder
+              Zwift-fietsen vul je in welke frames en wielen je in Zwift hebt;
+              zie{" "}
+              <Link href="/hulp/racen#pacing-zwift" className="underline underline-offset-2">
+                pacing in Zwift
+              </Link>
+              .
             </p>
           </div>
         </header>

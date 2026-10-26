@@ -223,6 +223,12 @@ is niet aangepast; de AI kiest nog meestal de piek.
   tot onder de 90 minuten, tenzij het lid zelf om een korte rit vraagt.
 - **Rustige duur.** Sinds 2026-10-26 wordt ook een rustige duurrit onder de 90
   minuten een rustdag; de overgangsrit met sprints heet "Duur met sprints".
+  Het weekbudget gaat daarom niet meer gelijk over alle rustige ritten: hun
+  minuten komen samen op zo min mogelijk dagen met minstens 90 minuten tijd,
+  zodat die ritten 90 minuten of langer worden; de overige worden rustdag.
+  Scheelt het maar een paar minuten, dan wordt een rit toch 90 als de week
+  daardoor minder boven haar doel komt dan ze er anders onder zou zakken. Een
+  dag met minder dan 90 minuten krijgt nooit een rustige rit (2026-10-26).
 - **Ingang.** Invoer van vóór september 2026 mist de ritmevelden van
   `recentLoad`; die worden uit de totalen afgeleid. Events zonder duur slaat
   de motor over.

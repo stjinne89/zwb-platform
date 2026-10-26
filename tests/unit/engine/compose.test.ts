@@ -215,8 +215,44 @@ describe("composePlan", () => {
     expect(workouts.some((workout) => workout.title.startsWith("Rustige duur") && workout.durationMinutes < 90)).toBe(false);
   });
 
+  it("laat een rustige rit groeien tot 90 minuten als de dag die tijd heeft", () => {
+    // Veel korte ritten gewend en lange vrije dagen: het weekbudget over zes
+    // ritten verdeeld gaf ritten van een uur, die allemaal rustdag werden.
+    const input = baseInput({
+      goal: { ...baseInput().goal, availableDays: ["ma", "di", "wo", "do", "vr", "za", "zo"] },
+      availability: { default: { ma: 60, di: 90, wo: 60, do: 60, vr: 180, za: 120, zo: 180 }, weeks: [] },
+      recentLoad: { ...baseInput().recentLoad, hoursPerWeek: 3, ridesPerWeek: 5.5, avgDurationMinutes: 37 },
+    });
+    const targets = [192, 252, 312];
+    const weeks = weeksFor(input, (_, index) => ({ targetMinutes: targets[index % 3], longRideMinutes: null }));
+    const { workouts } = compose(input, weeks);
+    for (const week of weeks) {
+      const inWeek = workouts.filter((workout) => mondayKey(workout.date) === week.weekStart);
+      const easy = inWeek.filter((workout) => workout.title === "rustige_duur");
+      expect(easy.length).toBeGreaterThan(0);
+      for (const ride of easy) {
+        expect(ride.durationMinutes).toBeGreaterThanOrEqual(90);
+        expect(ride.durationMinutes).toBeLessThanOrEqual(minutesOn(input, ride.date)!);
+      }
+      const total = inWeek.reduce((sum, workout) => sum + workout.durationMinutes, 0);
+      expect(total).toBeGreaterThanOrEqual(week.targetMinutes * 0.85);
+    }
+  });
+
+  it("plant op dagen onder de 90 minuten geen rustige rit", () => {
+    const input = baseInput({
+      goal: { ...baseInput().goal, availableDays: ["ma", "di", "wo", "do", "vr", "za", "zo"] },
+      availability: { default: { ma: 60, di: 75, wo: 60, do: 60, vr: 60, za: 75, zo: 60 }, weeks: [] },
+    });
+    const { workouts } = compose(input, weeksFor(input, () => ({ longRideMinutes: null })));
+    expect(workouts.length).toBeGreaterThan(0);
+    expect(workouts.some((workout) => workout.title === "rustige_duur")).toBe(false);
+  });
+
   it("plant geen hersteltraining onder de 90 minuten: dat wordt een rustdag", () => {
-    const input = baseInput();
+    const input = baseInput({
+      availability: { default: { ma: 60, di: 90, wo: 60, do: 90, vr: 0, za: 180, zo: 120 }, weeks: [] },
+    });
     const buildSession = stubCatalog([], (form) => (form === "rustige_duur" ? "recovery" : INTENSITY[form]));
     const weeks = weeksFor(input, () => ({ level: 0 }));
     const { workouts, reasons } = composePlan({ input, window: input.planWindow!, weeks, buildSession });

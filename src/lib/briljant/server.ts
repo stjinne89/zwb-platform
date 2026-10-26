@@ -706,3 +706,24 @@ export async function loadHallStones(
     .sort((a, b) => a.name.localeCompare(b.name, "nl"));
 }
 
+
+/**
+ * Voor Groeibriljant (ZWB Rankings en Rider of the month): de stenen van de weken
+ * `from` tot en met `to`, van iedereen die deelt. Met de sessie van het lid, zodat RLS beslist; je eigen
+ * stenen alleen als je zelf deelt (zoals anderen je zien: met een voorkeur die
+ * zichtbaar staat).
+ */
+export async function loadGrowthSnapshots(supabase: UserClient, viewerId: string, from: string, to: string) {
+  const [{ data, error }, { data: preference }] = await Promise.all([
+    supabase
+      .from("zwbriljant_snapshots")
+      .select("profile_id, week, facets, consistency")
+      .eq("provenance->>scale", SCALE_VERSION)
+      .gte("week", from)
+      .lte("week", to),
+    supabase.from("zwbriljant_preferences").select("visible").eq("profile_id", viewerId).maybeSingle(),
+  ]);
+  if (error) return [];
+  const ownShared = (preference as { visible: boolean } | null)?.visible === true;
+  return ((data ?? []) as SnapshotRecord[]).filter((row) => ownShared || row.profile_id !== viewerId);
+}

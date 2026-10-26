@@ -299,7 +299,12 @@ gaat stabiliteit voor nieuwe features.
 10. **Snelste fiets in pacingplan en briefing** (ronde van 2026-10-20 hieronder):
    gebouwd, lokaal getest en op 2026-10-20 gepusht naar `main`. Migratie
    `0262_zwift_bike_fixed_wheels.sql` is toegepast. Open: beide schermen in
-   de browser bekijken.
+   de browser bekijken. Op 2026-10-26 hersteld (Espada als tijdritfiets,
+   gesplitste namen in de sheet), testperiodes gelijkgetrokken en een
+   Zwift-garage per lid gebouwd; op 2026-10-26 gepusht naar `main`. Migratie
+   `0278_member_zwift_bikes.sql` (op productie als `0277_member_zwift_bikes`)
+   is toegepast en de fietslijst is op productie ververst. Open: de garage, het
+   pacingplan en de briefing na de deploy bekijken.
 11. **ZRS van vroeger per race bewaard** (ronde van 2026-10-23 hieronder):
    gebouwd, lokaal getest en op 2026-10-23 gepusht naar `main`. Migratie
    `0271_zwift_race_scores.sql` is toegepast. Open: op cron-job.org een job
@@ -374,8 +379,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0278`
-(`0277_zwift_segment_bests` is van de segmentrecords op het racebriefje, 2026-10-26, nog niet toegepast;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0280`
+(`0279_zwift_segment_bests` is van de segmentrecords op het racebriefje, 2026-10-26, geschreven als `0277` en hernummerd bij het samenvoegen met main, waar `0277` en `0278` al gebruikt waren;
+`0278_member_zwift_bikes` is van de Zwift-garage per lid, 2026-10-26, toegepast op 2026-10-26; geschreven als `0277` en zo ook op productie toegepast (`schema_migrations` noemt hem `0277_member_zwift_bikes`), hernummerd bij het samenvoegen met main, waar `0277_zitvlees_week_badge` al stond;
+`0277_zitvlees_week_badge` is van ZWB Rankings, 2026-10-26, toegepast op 2026-10-26;
 `0276_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, toegepast op 2026-10-26; geschreven als `0275` en hernummerd bij het samenvoegen met main, waar `0275_ai_jobs` al stond;
 `0275_ai_jobs` is van de overstap naar Claude, toegepast op 2026-10-26;
 `0274_training_plan_status_cleanup` is van schema publiceren ronde 3, 2026-10-26, toegepast op 2026-10-26;
@@ -1962,6 +1969,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   afrondknop). Zo valt hij vanzelf onder het menu-item Stats en de plek Club.
 >   `/achievements` geeft een permanente redirect (`next.config.ts`); de
 >   querystring (`?week=vorige`) gaat mee. Gecontroleerd met de dev-server: 308.
+>   *Sinds 2026-10-26 heet de pagina ZWB Rankings en staat hij op
+>   `/stats/rankings`; beide oude adressen sturen daarheen (ronde "ZWB Rankings").*
 > - `StatsTabs` heeft een derde tab; de achievementspagina toont de tabbalk en
 >   het kopje "ZWB Stats".
 > - Weg uit het Club-menu (`nav-config.ts`), uit de Club-tegels (`club/page.tsx`)
@@ -11401,7 +11410,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Segmentrecords op het racebriefje
 
 **2026-10-26.** Commit `a697f4de`, lokaal, niet gepusht. Migratie
-`0277_zwift_segment_bests.sql`, **nog niet toegepast** en lokaal niet te testen
+`0279_zwift_segment_bests.sql`, **nog niet toegepast** en lokaal niet te testen
 (geen Docker of Supabase-config).
 
 **Waarom.** Vraag van de eigenaar: op het briefje per segment waar je je op
@@ -11417,7 +11426,7 @@ stappen (een passage van februari kwam terug), maar dat koos de eigenaar niet.
 `only-best` maakt geen verschil. Oude passages hebben soms 0 W.
 
 **Wat.**
-- **Migratie 0277:** `zwift_segment_bests`, per Zwift-ID en segment-ID de
+- **Migratie 0279:** `zwift_segment_bests`, per Zwift-ID en segment-ID de
   snelste passage van de laatste 90 dagen (tijd, watt, gewicht, moment) of null
   als er geen was. Cache van 90 dagen, RLS aan zonder policies.
 - `segment-bests.ts`: lezen en verversen zoals de ZRS (`metrics.ts`): na het
@@ -11460,6 +11469,442 @@ pakketten in deze worktree), ESLint. Het blok los gerenderd met voorbeeldwaarden
 en bekeken. **Niet geverifieerd:** de migratie, het ophalen op productie
 (tijdsbudget van `after` op Netlify, en of de limiet van `/segment-results` ook
 2 per seconde is), en het blok met echte renners.
+
+### Gewijzigd — Rider of the month met de ranglijsten van ZWB Rankings
+
+**2026-10-26.** Commit `b1c51d8b`. Geen migratie. Gepusht naar `main` op 2026-10-26 (eigenaar).
+
+**Waarom.** De eigenaar: Rider of the month op het dashboard moest de nieuwe
+statistieken krijgen en Kudo-magneet ("Kudo's") moest eruit, om dezelfde reden als
+op ZWB Rankings: wie via intervals.icu of een import rijdt heeft geen kudos.
+
+**Wat.**
+- De carrousel (`dashboard/_components/club-stats.tsx`) toont nu per maand de
+  top 3 van elke ranglijst van ZWB Rankings: Zitvleeskampioen, Kilometervreter,
+  Klimmer van de maand, Meest actief, Lange adem, Buitenbeentje (km),
+  Binnenvetter (uren), Metronoom, Clubmens en Groeibriljant. Was: km, uren,
+  kudo's en hoogtemeters, en zonder ontdubbelen van gelijke stand.
+- `monthRankings` (`lib/rankings/rankings.ts`) telt de weekscores per lid op; de
+  langste rit is de langste van de maand. De ritten komen uit de bestaande
+  gedeelde cache (nu met `trainer`, sleutel `v3`); events en live-ritten uit een
+  tweede gedeelde cache van tien minuten (`loadClubMoments`, live alleen met
+  zichtbaarheid "members", zoals de RLS).
+- Groeibriljant per maand: `briljantMonthGrowth` (`lib/briljant/compare.ts`)
+  vergelijkt de laatste steen met een maandag in de maand met de laatste steen
+  daarvoor (hooguit zes weken eerder). Met de sessie van het lid, dus buiten de
+  gedeelde cache; `loadGrowthSnapshots` neemt nu een van-tot-bereik.
+- Plek bij gelijke stand komt uit de ranglijst (1, 1, 3). Tien lijsten passen
+  op een telefoon niet als stippen naast de titel; daar staat een teller (3/10).
+- Het icoon per lijst staat in `components/ranking-icon.ts`, voor de kaarten en
+  de carrousel samen.
+- Privacy: Clubmens en Groeibriljant (per maand) worden ook bij Rider of the
+  month genoemd; zelfde ontvangers, zonder nieuwe versie.
+
+**Bewust niet.** Geen km/uren-schakelaar in de carrousel: die draait vanzelf
+door; Buitenbeentje staat in km en Binnenvetter in uren.
+
+**Gecontroleerd.** Vitest (`rankings.test.ts`: maandtotalen en maandgroei),
+volledige suite op de vier bekende worktree-fouten na, `tsc`, ESLint.
+**Niet geverifieerd:** het dashboard in de browser.
+
+### Hersteld — Snelste fiets: metingen uit twee testperiodes gelijkgetrokken
+
+**2026-10-26.** Commit `2aa95e21`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
+`zwift_bike_parts` op productie is op 2026-10-26 met deze code ververst (zie
+"Fietsen ververst" onderaan deze ronde).
+
+**Waarom.** De eigenaar vroeg of we zeker weten dat de fietsberekening klopt met
+ZwiftBikes en ZwifterBikes. Nagerekend:
+- **Het model tegen de ZwiftInsider-metingen.** Gefit op 300 W en voorspeld op
+  150 W (een vermogen dat niet in de fit zat): het verschil met de Zwift Carbon
+  komt per fiets binnen 2 s op de Alpe en binnen 3 s per uur op het vlak uit
+  (95 racefietsen). De absolute tijd wijkt systematisch af (Alpe zo'n 26 s op 45
+  min): onze fysica is niet precies die van Zwift, maar dat is voor elke fiets
+  gelijk en valt in een vergelijking weg.
+- **Tegen ZwifterBikes.** Hun `assets/bikes.json` heeft per frame, wielset en
+  stage een luchtweerstand en gewicht, uit dezelfde ZwiftInsider-sheet. Met onze
+  fysica op Spiral Summit doorgerekend voor 3135 combinaties: eerst lag de SL8
+  bovenaan en zij de SL9, en onze keuze was hun nummer 31.
+- **De oorzaak, een echte fout.** De sheet heeft metingen uit twee periodes.
+  Sinds juni 2026 rijdt alles in Zwift iets trager (op het vlak ongeveer 2 s per
+  uur); ZwiftInsider meet nieuwe fietsen tegen een nieuwe basismeting en zet het
+  verschil daarmee in de kolom "Hour Time Gap". Wij legden de ruwe snelheid
+  tegen de oude Zwift Carbon, waardoor 29 framerijen (en wielen op de Zwift TT)
+  uit de nieuwe periode te traag uitkwamen: juist de nieuwste fietsen, zoals de
+  SL9, LAB71 Team, Aeroad CFR, Filante ID2, S5 en een reeks tijdritfietsen.
+  *De bewering "zo valt een verschil in testperiode tegen elkaar weg" in
+  `bike-sheet.ts` was dus niet waar voor frames; die zin is vervangen.*
+
+**Wat.** `inReferencePeriod` in `bike-sheet.ts` rekent elke meting via het
+uurverschil terug naar de periode van de referentiefiets: referentie × (1 +
+verschil / 3600), ten opzichte van de Zwift TT voor tijdritfietsen en wielen op
+de Zwift TT, anders de Zwift Carbon. Past een meting bij geen van beide periodes
+(meer dan 0,2 % ernaast, zoals de Espada tegen de Zwift Carbon), dan blijft de
+ruwe snelheid staan.
+
+**Daarna.** Op Spiral Summit kiest ZWB op stage 0 dezelfde nummer 1 als de
+ZwifterBikes-data (S-Works Tarmac SL9 met CADEX 4-Spoke), in de groep en solo.
+Per fiets scheelt het 90 % van de tijd minder dan 1,5 s op een race van 40
+minuten; op stage 5 komen wij 1 à 2 s sneller uit en staat onze keuze 0,7 s
+achter hun beste. ZwiftBikes geeft een score en geen tijd; hun onderdelen lagen
+al dicht bij de onze (zie de ronde "Espada is een tijdritfiets").
+
+**Bewust niet.** Geen eigen meting in Zwift (de Sauce-testcomputer kan dat, maar
+de ZwiftInsider-sheet is de bron van alle drie de rekenaars). De doorrekeningen
+waren tijdelijke scripts en zijn niet bewaard; de downloads van ZwifterBikes
+stonden alleen in de scratchmap.
+
+**Gecontroleerd.** Vitest: `zwift-bike-sheet.test.ts` met een test voor
+`inReferencePeriod` (SL9 nu sneller dan SL8, Espada blijft ruw, zonder
+uurverschil niets), samen met `bike-advice` en `pacing-zwift` 64 tests groen.
+`tsc` en ESLint schoon.
+
+**Fietsen ververst op productie (2026-10-26, op verzoek van de eigenaar).** Met
+"Fietsen ophalen" op `/beheer/zwift-routes` in de lokale app (deze code, de
+productiedatabase): 882 frame-varianten en 149 wielsets, referentie ongewijzigd
+(CdA 0,3191, 2,42 kg). Nagekeken met de Supabase-connector:
+- Pinarello Espada: `kind` van `road` naar `tt`, `fixed_wheels` blijft aan.
+- Swiss Side HADRON Ultimate 650 op de Zwift Carbon: één rij (CdA −0,0126,
+  +0,02 kg) in plaats van twee met elk één meting (−0,0136/+0,20 en
+  −0,0098/−0,17). ZwiftBikes heeft −0,0131/−0,01.
+- S-Works Tarmac SL9: stage 0 CdA −0,0153 → −0,0162, nu net onder de SL8
+  (−0,0160); stage 5 −0,0241 → −0,0246.
+- De dubbele "VanRysel RCR Pro" is weg; 1031 rijen (was 1034), alle uit één
+  ophaalronde. Geen garage-rij of pacingplan verwijst naar een naam die niet
+  meer bestaat.
+- De briefing van Spiral Summit (B1, lokaal bekeken) zet nu de SL9 met CADEX
+  4-Spoke bovenaan, de SL8 1 s erachter; de Espada staat er niet meer in.
+De live site draait nog de oude code, maar leest dezelfde tabel; de Espada telt
+daar nu ook als tijdritfiets.
+
+### Gewijzigd — Zwift-garage: niveau kiezen door op de streepjes te klikken
+
+**2026-10-26.** Commit `841ce129`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
+
+**Waarom.** De eigenaar vond klikken op de streepjes mooier dan een
+uitklapmenu met Stage 0–5.
+
+**Wat.**
+- `StagePicker` (`src/components/stage-picker.tsx`): dezelfde vijf streepjes
+  als `StagePips`, iets groter, elk een knop (radiogroep voor schermlezers).
+  Klik op het n-de streepje = stage n; nog eens op het hoogste gevulde = stage 0.
+  Ernaast "Stage n" in klein grijs. Vervangt het uitklapmenu op
+  `/mijn-garage/zwift`; in de opzet van het pacingplan blijft het uitklapmenu,
+  met de streepjes ernaast.
+- Op donker waren stage 1 en 2 nauwelijks te zien naast de lege streepjes;
+  `--zwb-stage-2` en `--zwb-stage-1` zijn daar nu lichtere salietinten.
+
+**Gecontroleerd.** Lokaal in de browser, donker: stage 1 t/m 5 gezet door te
+klikken en terug naar 0 (niet opgeslagen). `tsc` en ESLint schoon.
+
+### Gewijzigd — Zwift-garage: upgradeniveau als streepjes in tenuekleuren
+
+**2026-10-26.** Commit `5ebfd5da`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
+
+**Waarom.** De eigenaar wilde het niveau van een fiets zien in een beeld dat bij
+de upgrade past: goud op het hoogste niveau, daaronder teruglopend door de
+ZWB-kleuren.
+
+**Wat.**
+- `StagePips` (`src/components/stage-pips.tsx`): vijf oplopende streepjes zoals
+  in de garage van Zwift; gevuld tot het niveau, in de kleur van dat niveau.
+  Lege streepjes zijn een omlijning, anders viel salie op licht weg tegen grijs.
+- Kleuren `--zwb-stage-1` t/m `--zwb-stage-5` in `globals.css`: goud, teal,
+  petrol, salie en lichte salie. Op donker dezelfde volgorde in lichtere tinten
+  (zoals de ZWBlokken-schaal), omdat petrol en teal daar wegvallen.
+- Gebruikt op `/mijn-garage/zwift` naast de stagekeuze, bij Snelste fiets in
+  het pacingplan als de niveaus per frame verschillen (garage), naast Upgrade in
+  de opzet, en bij de regel Jij in de briefing (het label is nu "Jij"; de stage
+  staat in de streepjes).
+- Goud blijft klein (streepjes, geen tekst), conform de Goudregel in DESIGN.md.
+
+**Bewust niet.** Eerst kwam de stagekeuze bij elk frame zichtbaar, ook zonder
+vinkje; de eigenaar wilde dat niet ("is goed zo"), dus teruggedraaid.
+
+**Gecontroleerd.** Lokaal in de browser op `/mijn-garage/zwift`, licht en
+donker, met stage 5 t/m 2 in het formulier (niet opgeslagen). `tsc`, ESLint en
+`bike-advice.test.ts` groen. **Niet gezien:** de streepjes in het pacingplan en
+de briefing (daarvoor moet er een garage opgeslagen zijn op productie).
+
+### Gewijzigd — Zwift-garage: fietsen buiten de garage op stage 0
+
+**2026-10-26.** Commit `b57683ff`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
+
+**Waarom.** De eigenaar wil dat Snelste fiets met een garage alle fietsen
+meeneemt: een frame dat niet in de garage staat op stage 0, wat je krijgt als je
+het koopt. Eerst koos Snelste fiets met een garage alleen uit de eigen frames
+en wielen.
+
+**Wat.**
+- `adviseBikes` met een garage: elk frame uit de garage op zijn eigen stage,
+  elk ander frame op stage 0, en alle wielen. Nieuw `garageOnly` voor alleen de
+  garage (het oude gedrag). Elke regel krijgt `owned`: frame in de garage en
+  eigen of standaardwielen (geen wielen aangevinkt = alle wielen).
+- **Pacingplan:** standaard alle fietsen zo gerekend, met "niet in je garage"
+  onder een fiets die je niet hebt; Alleen mijn garage (`?fietsen=garage`) toont
+  wat je nu kunt rijden. De schakelaar `?fietsen=alle` van de vorige ronde is
+  weg. Een nieuw plan begint nog steeds met de snelste fiets uit de garage.
+- **Briefing:** ongewijzigd. De lijst blijft stage 0 voor iedereen, de regel Jij
+  is de snelste fiets die je hebt.
+- `/hulp/racen#pacing-zwift` bijgewerkt.
+
+**Gecontroleerd.** Vitest: volle suite 3471 van 3478 groen (6 overgeslagen;
+`admin-areas` faalt alleen onder parallelle belasting en slaagt los). `tsc` en
+ESLint schoon. De worktree heeft nu eigen `node_modules` (`npm ci`, zwift-data
+2.1) in plaats van een koppeling naar de hoofdmap; daarmee vallen de eerder
+genoemde fouten door ontbrekende pakketten weg. Lokaal gestart met
+`npm run dev`: `/mijn-garage/zwift` en de briefing van Spiral Summit renderen.
+De briefing toont nog de oude fietslijst van productie (Espada bovenaan), omdat
+"Fietsen ophalen" nog niet met de nieuwe code is gedraaid. **Niet
+geverifieerd:** opslaan in de garage en het pacingplan in de browser (dat maakt
+op productie een plan en garage-rijen aan; aan de eigenaar gelaten).
+
+### Gebouwd — Zwift-garage per lid voor Snelste fiets
+
+**2026-10-26.** Commit `892de397`, gepusht naar `main` op 2026-10-26 (eigenaar). Migratie
+`0278_member_zwift_bikes.sql` (geschreven als `0277` en zo toegepast; hernummerd
+bij het samenvoegen met main), op 2026-10-26 via de Supabase-connector op
+productie toegepast (lokaal niet te testen: geen Docker of Supabase-config).
+Nagekeken: kolommen, primaire sleutel, de checks (stage 0–5, een wiel alleen
+stage 0) en de foreign key met `on delete cascade`. RLS getest als ingelogd
+lid in een transactie die is teruggedraaid: eigen rijen schrijven en lezen
+lukt, rijen van een ander zijn onzichtbaar en een insert voor een ander geeft
+42501; een wiel met stage 2 geeft 23514. De tabel is daarna leeg. Zonder de
+migratie leest de app een lege garage en rekent alles zoals voorheen.
+
+**Waarom.** De eigenaar vroeg of je kunt instellen welke fiets je op welk niveau
+hebt, zodat Snelste fiets daarmee rekent. Na de uitleg en het herstel hieronder
+koos hij het voorstel: een garage per lid, de standaard in het pacingplan, en een
+regel "Jouw snelste" in de briefing. ZWB kan de garage niet uit Zwift lezen; het
+lid vult hem zelf in.
+
+**Wat.**
+- Tabel `member_zwift_bikes` (`profile_id`, `part` frame of wheel, `name`,
+  `stage` 0–5, alleen bij een frame). RLS: alleen het lid zelf. Namen zoals in
+  `zwift_bike_parts`, zonder foreign key: een naam die na een nieuwe sheet
+  verdwijnt, slaat de app over (`garageFromRows`). In de gegevensexport.
+  De eigenaar noemde de tabel `member_bikes`; het werd `member_zwift_bikes`
+  omdat `strava_bikes` en Mijn garage al over de echte fietsen gaan.
+- `src/lib/pacing/zwift-garage.ts`: type, laden en opschonen.
+- `adviseBikes` krijgt een optionele `garage`: alleen eigen frames, elk op zijn
+  eigen stage, en alleen eigen wielen. Geen wielen aangevinkt = alle wielen.
+  De standaardwielen van het testframe tellen altijd mee. Elke regel draagt nu
+  zijn `stage`; `advice.stage` is `null` als de niveaus per frame verschillen.
+  De huidige opzet ("Nu") blijft op het niveau uit die opzet.
+- **Scherm** `/mijn-garage/zwift` (knop Zwift-fietsen op Mijn garage): frames
+  aanvinken met een stage, wielen aanvinken, zoeken in beide lijsten. Opslaan
+  zet de garage op precies die lijst.
+- **Pacingplan:** een nieuw plan begint met de snelste fiets uit de garage
+  (gekozen op een vast vermogen, CP, omdat er dan nog geen plan is). Snelste
+  fiets kiest uit de garage, met Alle fietsen (`?fietsen=alle`) als schakelaar
+  (*sinds de ronde hierboven: standaard alle fietsen, de rest op stage 0, en
+  Alleen mijn garage als schakelaar*);
+  Kies neemt de stage van die regel mee. In de frame-keuzelijst staat de garage
+  bovenaan, en een frame uit de garage krijgt meteen zijn stage. Zonder garage:
+  een link Garage invullen. Bestaande plannen veranderen niet.
+- **Briefing:** onder Snelste fiets een regel "Jij · stage N" met de snelste
+  fiets uit de garage van wie kijkt, met dezelfde renner (75 kg, 183 cm) en
+  hetzelfde vermogen als de lijst, zodat alleen de fiets verschilt. Niet op het
+  racebriefje dat gedeeld wordt.
+- `/hulp/racen#pacing-zwift`, `/hulp/club#mijn-garage`, de briefingtekst in
+  `/hulp`, de zoektermen, en een zin "Zwift-fietsen" in de privacyverklaring
+  (zonder nieuwe versie: het lid vult het zelf in en ziet het alleen zelf).
+
+**Bewust niet.** Geen import uit Zwift (er is geen API voor de garage). Geen
+eigen gewicht of lengte in de Jij-regel van de briefing: dan zou het verschil
+met de lijst ook over de renner gaan. Bestaande pacingplannen krijgen niet
+vanzelf een andere fiets; Snelste fiets met Kies is daarvoor.
+
+**Gecontroleerd.** Vitest: `bike-advice.test.ts` met vijf nieuwe tests (alleen
+eigen frames en wielen, stage per frame, lege wielenlijst, huidige opzet houdt
+zijn niveau, `garageFromRows`), samen met `zwift-bike-sheet` en `pacing-zwift`
+62 tests groen. `tsc` en ESLint schoon op de bekende ontbrekende pakketten na.
+De volle suite faalt alleen op de omgeving van deze worktree: de gedeelde
+`node_modules` mist `@anthropic-ai/sdk` en heeft `zwift-data` 1.50 in plaats van
+2.1 (`zwift-route`, `race-links`, en alles wat `ai/claude.ts` importeert).
+zwift-data 2.1 (uit de lockfile, los uitgepakt) kent de Espada ook als
+tijdritfiets. **Niet geverifieerd:** het scherm, het pacingplan en de briefing
+in de browser, en opslaan vanuit de app (de migratie is wel op productie
+gecontroleerd, zie boven).
+
+### Hersteld — Snelste fiets: Espada is een tijdritfiets, gesplitste namen in de sheet
+
+**2026-10-26.** Commit `cd103d3d`, gepusht naar `main` op 2026-10-26
+(eigenaar). Geen migratie: het herstel zit in het inlezen van de sheet. De lijst
+in `zwift_bike_parts` is op 2026-10-26 met deze code ververst.
+
+**Waarom.** De eigenaar vond dat Snelste fiets niet klopte met andere rekenaars.
+Nagerekend op Spiral Summit (profiel uit `zwift_routes`, de sheet van vandaag,
+die gelijk is aan `zwift_bike_parts` van 25 oktober) en vergeleken met de open
+API van ZwiftBikes (`/api/recommend/spiral-summit`). Twee echte fouten:
+- **De Pinarello Espada stond als racefiets in de lijst** en won elke route met
+  25–50 s voorsprong. De sheet noemt hem "Halo", net als de andere
+  halo-fietsen, maar in Zwift is het de enige halo-tijdritfiets
+  (zwift-data `isTT`, ZwiftInsider "Halo TT"). Daardoor kreeg hij de
+  slipstream van een racefiets en ontsnapte hij aan "geen tijdritfietsen".
+  `kindFromSheet` vraagt nu bij een halo-fiets aan zwift-data of het een
+  tijdritfiets is. Alleen de Espada wijkt af; de andere 134 frames die
+  zwift-data kent kloppen met de sheet.
+- **Drie onderdelen stonden er twee keer in, elk met één meting.** De sheet
+  spelt de 150 W-rij soms anders dan de 300 W-rij: "Swiss Side" en "SwissSide
+  HADRON Ultimate 650" (wielen op de Zwift Carbon), "Van Rysel" en "VanRysel"
+  bij de RCR Pro en de RCR-F. De 300 W-helft van de HADRON kwam daardoor als
+  beste wielset uit de bus. Frames en wielen worden nu gegroepeerd op de naam
+  zonder spaties, leestekens en hoofdletters; de eerste spelling blijft.
+
+Na het herstel staat op Spiral Summit de S-Works Tarmac SL8/SL9 bovenaan, net
+als bij ZwiftBikes. De eerste acht frames liggen binnen 3 s van elkaar; tussen
+de beste wielsets zit ongeveer 1 s. Geen opgeslagen pacingplan gebruikte een van
+de namen die verdwijnen (nagekeken in `event_pacing_plans`).
+
+**Waarom Snelste fiets afwijkt van andere rekenaars (geen fout).** Uitgelegd aan
+de eigenaar: de briefing rekent op stage 0 (ZwiftBikes toont stage 5; op Spiral
+Summit scheelt dat voor de SL8 ruim 20 s), voor de ZwiftInsider-renner (75 kg,
+183 cm) op de mediane zFTP van de ploeg in plaats van 300 W, met 30 % minder
+luchtweerstand in de groep bij een puntenrace of scratch, en op een vast
+vermogen. ZwiftBikes geeft een score op aero en klimmen, geen tijd. De
+onderdelen zelf komen uit dezelfde ZwiftInsider-sheet: wielen liggen dicht bij
+die van ZwiftBikes, wegframes op stage 5 komen bij ons ongeveer 0,003 m² CdA
+gunstiger uit dan bij hen (voor alle frames ongeveer gelijk, dus de rangorde
+verandert er nauwelijks door).
+
+**Bewust niet gebouwd (nog).** Een eigen garage, dus welke frames, welke wielen
+en op welk niveau een lid heeft. Het voorstel ligt bij de eigenaar; dat is een
+nieuwe tabel en dus een migratie. *Gebouwd in de ronde hierboven, "Zwift-garage
+per lid".*
+
+**Gecontroleerd.** Vitest (`zwift-bike-sheet.test.ts`, `bike-advice.test.ts`,
+`pacing-zwift.test.ts`: 57 tests, met een nieuwe test voor de gesplitste HADRON
+en de Espada als tijdritfiets; de twee HADRON-rijen staan nu in de fixture),
+ESLint, `tsc` (alleen de bekende ontbrekende pakketten in deze worktree). De
+doorrekening op Spiral Summit is een tijdelijk script geweest en niet bewaard.
+*Sindsdien gedaan: de lijst is op productie ververst en de briefing lokaal
+bekeken (zie "Fietsen ververst" bij de testperiodes).*
+
+### Gewijzigd — ZWB Rankings: alle ranglijsten per week
+
+**2026-10-26.** Commit `ecf04cb4`. Geen migratie. Gepusht naar `main` op 2026-10-26 (eigenaar).
+
+**Waarom.** Metronoom, Clubmens en Groeibriljant gingen over vier weken; de
+eigenaar wil alles per week. Er komt elke maandag een nieuwe ZWBriljant-steen
+(weekstenen sinds 2026-10-19), dus de groei kan tegen die van vorige week, ook
+al is het verschil klein.
+
+**Wat.**
+- Metronoom (dagen gefietst) en Clubmens (events met ja en live-dagen) tellen
+  alleen de gekozen week. Bij gelijke stand blijft de plek gedeeld; de volgorde
+  binnen de stand gaat op uren (Metronoom) of events (Clubmens).
+- `briljantGrowth` vergelijkt de steen van de week met die van de week ervoor;
+  zonder steen in beide weken doe je niet mee, alleen groei telt. In punten, zoals
+  op de steen (0,1 op de score is 10 punten). `loadGrowthSnapshots` haalt alleen
+  die twee weken op.
+- Het label "4 weken" en `LONG_WEEKS` zijn weg. Hulp en privacy (`/privacy`:
+  "sinds vorige week" in plaats van "in vier weken") zeggen het mee.
+- Gevolg: "Vorige week" (week van 19 oktober) heeft voor Groeibriljant nog geen
+  vergelijking, want van 12 oktober is er geen steen; vanaf volgende week wel.
+
+**Gecontroleerd.** Vitest (`rankings.test.ts`: groei week op week, overslaan
+zonder steen in een van beide weken), `tsc` (alleen de bekende ontbrekende
+pakketten), ESLint. Productie gelezen: van de 26 leden met een steen op 19 en 26
+oktober gingen er 18 omhoog, hooguit 114 punten.
+**Niet geverifieerd:** in de browser.
+
+### Gewijzigd — ZWB Rankings: Buitenbeentje en Binnenvetter in km of uren
+
+**2026-10-26.** Commit `d5fd8740`. Geen migratie. Gepusht naar `main` op 2026-10-26 (eigenaar).
+
+**Waarom.** De eigenaar: Buitenbeentje stond in km en Binnenvetter in uren;
+beide moeten in allebei te bekijken zijn.
+
+**Wat.** `WeekScore` telt nu ook buitenuren en rollenbank-km (`indoorM`,
+`outdoorSeconds`). Een ranglijst kan `views` hebben (`lib/rankings/rankings.ts`);
+Buitenbeentje opent in km, Binnenvetter in uren. De kaart heeft rechtsboven een
+schakelaar km | uren, boven de knop die de hele lijst opent; de dialoog toont
+dezelfde schakelaar met dezelfde stand. `/hulp/club#rankings` noemt het.
+
+**Bewust niet.** Geen onthouden keuze per lid: de schakelaar begint elke keer
+op de standaard.
+
+**Gecontroleerd.** Vitest (`rankings.test.ts`: beide weergaven, volgorde en
+waarden), `tsc` (alleen de bekende ontbrekende pakketten), ESLint.
+**Niet geverifieerd:** de schakelaar in de browser.
+
+### Gebouwd — ZWB Rankings in plaats van Achievements
+
+**2026-10-26.** Commit `69256778`, gepusht naar `main` op 2026-10-26 (eigenaar).
+Migratie `0277_zitvlees_week_badge.sql`, op verzoek van de eigenaar via de
+Supabase-connector toegepast (2026-10-26) en nagekeken: `hours_week` staat er als
+weekly/auto; niet lokaal te testen.
+
+**Waarom.** Wens van de eigenaar: van Achievements een plek met ranglijsten
+maken. Kudo-magneet moest eruit, omdat leden die via intervals.icu of een import
+rijden geen kudos hebben en hem nooit konden winnen. Erbij: een ludieke naam voor
+de meeste uren, meer ranglijsten, en lijstjes met alleen de top 3.
+
+**Wat.**
+- Route `/stats/achievements` → `/stats/rankings` (map verhuisd, met
+  `_actions.ts`). Titel "ZWB Rankings", tab "Rankings". `/achievements` en
+  `/stats/achievements` sturen permanent door (`next.config.ts`).
+- Weekbadges (`lib/achievements/awards.ts`): Kudo-magneet (`kudos_received_week`)
+  wordt niet meer toegekend; **Zitvleeskampioen** (`hours_week`, meeste uren,
+  icoon klok) neemt zijn plek in. Eerder gewonnen Kudo-magneten blijven op
+  profielen; de Hall of fame toont alleen de vier huidige weekbadges. De upsert
+  gaat per badge, en een foreign-key-fout (badge nog niet in `achievement_badges`)
+  slaat alleen die badge over, zonder melding. Zo mag `0277` voor of na de deploy.
+- Ranglijsten (`lib/rankings/rankings.ts`, puur), uit ritten van elke bron en met
+  dubbele ritten één keer (`uniqueRides`):
+  - per week: Zitvleeskampioen, Kilometervreter, Klimmer van de week, Meest
+    actief, **Lange adem** (langste rit in tijd), **Buitenbeentje**
+    (buiten-km), **Binnenvetter** (rollenbankuren); *sinds de ronde hierboven
+    allebei met een schakelaar km/uren;*
+  - over de gekozen week en de drie ervoor: **Metronoom** (dagen gefietst,
+    Nederlandse tijd), **Clubmens** (events met "ja" die al begonnen, plus dagen
+    met een live-rit van minstens 20 minuten via Samen fietsen; een live-rit op
+    een eventdag telt niet apart) en **Groeibriljant** (punten erbij op de
+    ZWBriljant-steen: laatste steen van hooguit twee weken oud tegen de laatste
+    die minstens vier en hooguit negen weken eerder ligt, `briljantGrowth` in
+    `lib/briljant/compare.ts`; alleen groei). *Niet meer zo: sinds de ronde
+    "Alle ranglijsten per week" gaan ook deze drie over één week, en vergelijkt
+    Groeibriljant de steen van de week met die van de week ervoor.*
+- Groeibriljant leest met de sessie van het lid (`loadGrowthSnapshots`), dus RLS
+  beslist: alleen wie deelt staat erin, en wie zijn steen verbergt ziet niemand.
+  Je eigen stenen tellen alleen als je voorkeur zichtbaar staat, zoals anderen je zien.
+- Kaarten (`ranking-card.tsx`): top 3 met goud, zilver en brons, je eigen plek
+  onder een stippellijn als je er niet bij staat; tikken op de kaart opent de
+  hele lijst in een dialoog (met links naar de leden).
+- De weekstanden telden tot nu toe op de kolom `achievement_week` (fout bij
+  2.405 ritten, zie 2026-10-18) en zonder ontdubbeling; nu dezelfde rekenregel
+  als de badges. De kaart "Badges: 4, 1 wacht op kudo-brondata" en het blok
+  "Kudomaster" zijn weg; in de plaats een kaart met de uren.
+- `/hulp/club#rankings` legt per lijst uit wat telt; het vraagteken op de pagina
+  wijst daarheen. Dashboard, Strava-sectie en hulp noemen "ZWB Rankings".
+- Privacy (`/privacy`): bij live tracking dat het aantal dagen live (geen
+  locatie) met je event-ja's meetelt voor Clubmens; bij ZWBriljant dat leden op
+  ZWB Rankings ook je groei in vier weken zien, met je score van toen en nu.
+  **Bewust zonder nieuwe privacyversie** (zelfde ontvangers, al gedeelde
+  gegevens); goedgekeurd door de eigenaar op 2026-10-26 ("tekst is goed").
+
+**Bewust niet.**
+- Vroege vogel (ritten vóór 7:00): voorgesteld, eigenaar wilde hem niet.
+- Nachtuil, KOM-jager en Stamgast: niet voorgesteld om te bouwen; KOM's hebben al
+  eigen ranglijsten bij de segmenten.
+- Badges voor de nieuwe lijsten: alleen de vier weekbadges. Een badge is voor
+  iedereen zichtbaar, ook de groei op je ZWBriljant-steen; dat past niet bij
+  delen dat je kunt intrekken.
+- Kudo-magneten wissen: dat zijn verdiende badges.
+
+**Gecontroleerd.** Vitest: `rankings.test.ts` (nieuw: gelijke stand, ontdubbelen,
+buiten/binnen, Metronoom in Nederlandse tijd, Clubmens, groei met en zonder
+beginpunt) en `achievement-week-awards.test.ts` (Zitvleeskampioen erbij,
+Kudo-magneet niet, ontbrekende badge overgeslagen zonder melding). Volledige
+suite: alleen de bekende fouten van deze worktree (`@anthropic-ai/sdk`,
+`.env.local`, `zwift-data` 1.50). `tsc` zonder nieuwe fouten, ESLint schoon.
+Productie gelezen (alleen lezen, 2026-10-26): 31 leden met een ja op een event
+in de laatste vier weken, 5 met een live-rit, 25 van de 26 ZWBriljant-gebruikers
+met een beginpunt voor de groei.
+**Niet geverifieerd:** de pagina en de dialoog in de browser (geen `.env.local`
+in deze worktree), en de eerste toekenning van Zitvleeskampioen (na afloop van
+deze week).
 
 ### Gewijzigd — Racebriefje: KOM's als moment, profiel zonder overlap
 
@@ -15267,6 +15712,9 @@ doorrekening met echte data stonden de Pinarello Espada, de Specialized
 PROJECT 74 en de Cannondale R4000 Roller Blade bovenaan, mét Swiss
 Side-wielen. ZwiftInsider test deze fietsen, samen met de Zwift Concept Z1,
 op hun eigen wielen. Die wielen zitten dus al in het verschil van het frame.
+*Correctie 2026-10-26: de Espada is een tijdritfiets; als racefiets stond hij
+daarna ten onrechte bovenaan. Zie "Snelste fiets: Espada is een
+tijdritfiets" in het chronologisch werkplan.*
 Dat gold ook voor de bestaande wielkeuze in het pacingplan sinds 2026-09-21:
 daar kon je wielen op een halo-fiets zetten, en die telden dan dubbel.
 `bike-sheet.ts` zet nu `fixedWheels` bij elk frame dat niet op de wielen van
@@ -17836,7 +18284,8 @@ op een generatie die je al beoordeelde. *Bewust niet:* titel, samenvatting en
 aandachtspunten van de schema's tonen — die van de motor zijn sjabloonzinnen en
 verraden hem; de workouttitels, -beschrijvingen en de schrijfwijze van de
 blokdoelen ("RPE 2-3, 155-207w" tegen "173-224 W") doen dat deels ook, dat is
-niet te vermijden zonder de inhoud weg te halen. Generaties van vóór 2026-09-17 —
+niet te vermijden zonder de inhoud weg te halen. *(Grens bijgesteld op 2026-10-26, zie
+hieronder: nu alleen Claude-generaties vanaf die dag.)* Generaties van vóór 2026-09-17 —
 die prompt kende nog niet alle regels, zelfde grens als het naspelen. Een
 overzicht over trainers heen: komt pas als er oordelen zijn. Dagaanpassingen
 waarin geen van beide iets wijzigt overslaan: dat vraagt per paginalading de
@@ -17853,6 +18302,144 @@ dagaanpassing naast elkaar, het formulier, en de ontblinding met een tijdelijk
 in de code gezet oordeel dat daarna weer is weggehaald. tsc groen; volledige
 testsuite groen op twee PGlite/pacing-tests na die onder volle belasting een
 time-out gaven en los slagen. Niet gepusht.
+
+**Literatuurtoets en pilotvoorstel, 2026-10-26.** Commit `3504645`; bijgewerkt na
+het samenvoegen met `main` in de commit daarna. Geen migratie. Naast de meetlat (regels van de prompt) een tweede
+maat: legt AI en motor langs drie maatstaven uit onderzoek —
+intensiteitsverdeling (Treff 2019, Rosenblat 2025, Esteve-Lanao 2007, Seiler
+2010), taper (Bosquet 2007, Wang 2023) en onderbreking van meer dan tien dagen
+(Mujika & Padilla 2000/2001). Bronnen nagekeken in PubMed. Code:
+`src/lib/training/literature-check.ts` (puur), tests in
+`tests/unit/literature-check.test.ts`, tellingen met
+`scripts/engine-literature.mjs` op een verse export (532 generaties, waarvan 241
+nieuwe schema's en bijwerkingen). Rapport en conclusie:
+[docs/regelmotor-literatuurtoets.md](docs/regelmotor-literatuurtoets.md).
+**Uitkomst (bijgewerkt na het samenvoegen met `main`, 2026-10-26):** de
+literatuur kiest niet tussen AI en motor. De AI-kant zijn oude antwoorden (235
+GPT-5.5, 4 Claude), gemaakt vóór de 90-minutenregel en de indoorregel van
+2026-10-26; de kolom "AI nu" past de 90-minutenregel er alsnog op toe, de
+indoorregel is op oude antwoorden niet na te spelen. De motor maakt bij leden die
+indoor of op dagen van 60-90 minuten trainen een verdeling met evenveel
+tempo/drempel als rustig (13 % van de recente nieuwe schema's sinds het herstel
+hieronder, daarvoor 20 %): de 90-minutenregel
+laat daar alleen kwaliteitssessies over. Dat volgt uit de keuze van de eigenaar
+en is geen motorfout; dat het op gespannen voet staat met de literatuur over
+verdelingen (die komt van sporters met veel uren), is een besluit voor de
+eigenaar. *(Niet meer waar: de eerdere zin hier dat de motor bij één à twee ritten
+per week ten onrechte elke rit een sleutelsessie maakt; dat bleek de
+90-minutenregel bij een indoorlid met dagen van 60 minuten.)* **Wel een
+motorfout, gevonden via dezelfde gevallen:** waar een lid lange dagen had,
+maakte de motor van zijn korte rustige ritten rustdagen in plaats van ze 90
+minuten of langer te maken, en plande hij ver onder zijn eigen weekdoel
+(voorbeeld: doel 3,2-5,2 uur, gepland ~1,7 uur); het aandeel motorbijwerkingen
+met een fout steeg van 11 % naar 30 %. *(Niet meer waar: dat dit open stond en dat
+`docs/regelmotor-naspelen.md` nog 11 % toonde. Hersteld in de ronde "Rustige
+ritten op lange dagen" hieronder; het aandeel is nu 13 %.)* Verder: de
+AI hield in 6 van de 33 oude nieuwe schema's meer dan tien dagen vóór het einde op
+met plannen, de motor nergens; een taper was maar in één schema te toetsen.
+`scripts/engine-export.mjs` neemt nu ook het model mee.
+*Bewust niet getoetst:* lange ritten (literatuur alleen
+beschrijvend), opbouw per week (zit al in de meetlat), aantal sleutelsessies en
+één VO2max-prikkel bij ZRL (eigen keuzes zonder bron), dagaanpassingen (geen eigen
+verdeling). *Beperkingen:* getoetst wordt het plan, niet wat er gereden is; de
+zones zijn benaderd via %FTP-labels; binnen de bandbreedtes blijven bewijst niet
+dat een schema beter traint.
+**Pilotvoorstel**, niets gebouwd:
+[docs/crossover-pilot-voorstel.md](docs/crossover-pilot-voorstel.md). AB/BA-crossover,
+twee periodes van zes weken, naleving als primaire uitkomst en een vooraf
+vastgelegd niet-inferioriteitsbesluit; met 18 leden met een schema kan de proef
+niet aantonen dat de motor fitter maakt, alleen of hij in de praktijk niet slechter
+is. Vraagt een pilotschakelaar in `draft.ts`, twee kleine migraties (wie welke arm
+heeft; wie een workout wijzigde — dat laatste wordt nu nergens vastgelegd), een
+opt-in met aangepaste privacytekst (eerst voorleggen) en een vraag aan het lid na
+elke periode. **Wacht op besluit van de eigenaar.** tsc groen; volledige
+testsuite groen op twee PGlite-tests na die onder volle belasting faalden en los
+slagen. Niet gepusht.
+
+**Vergelijken alleen op Claude-generaties, 2026-10-26.** Commits `a4912e4` en
+`5d3c197`. Geen migratie (0247 bleek al toegepast). Het tabblad
+Vergelijken toont nu alleen generaties van Claude vanaf 2026-10-26
+(`COMPARISON_SINCE`, `COMPARISON_MODEL_PREFIX` en `isComparableGeneration()` in
+`engine-comparison.ts`), en de teller telt alleen oordelen op die generaties.
+**Waarom:** de GPT-antwoorden van daarvoor zijn gemaakt zonder de 90-minutenregel
+en de indoorregel van 2026-10-26, die de motor wel volgt; wie die paren
+beoordeelt, vergelijkt oude met nieuwe regels in plaats van AI met motor (zie de
+literatuurtoets hierboven). Besluit eigenaar: stoppen met beoordelen van de oude
+paren, later verder op de nieuwe. Op 2026-10-26 stonden er 22 oordelen in
+productie, waarvan 3 op Claude-generaties (van de 5 die er toen waren); de
+overige 19 blijven bewaard en tellen niet mee. `/hulp#vergelijken` noemt de
+nieuwe grens. **Zinvol oordelen pas** als de volumefout van de motor (korte
+rustige ritten worden rustdagen) is opgelost — gedaan in `ba23fd24`, zie de
+volgende alinea — en er genoeg Claude-generaties zijn. Lokaal in de browser bekeken (als trainer van de
+eigenaar): de lijst toont drie Claude-bijwerkingen van 2026-10-26, alle drie
+beoordeeld, teller "3 oordelen · motor 0 · AI 3 · gelijk 0"; de andere twee
+Claude-generaties horen bij leden die deze trainer niet coacht. In het getoonde
+paar plant de motor 1:20 u tegen 3:00 u bij de AI in dezelfde week: de volumefout
+hierboven. Filter en telling getest in `tests/unit/engine-comparison.test.ts`,
+aantallen met een SQL-query op productie nagekeken. Gepusht naar `main` op
+2026-10-26, samen met de volgende twee alinea's.
+
+**Rustige ritten op lange dagen, 2026-10-26.** Commit `ba23fd24`. Geen migratie. *Waarom:* sinds de 90-minutenregel (`022cbede`) verdeelde
+`allocateMinutes()` het weekbudget nog gelijk over alle ritten. Een lid dat veel
+korte ritten gewend is (vijf à zes per week van 35-40 minuten) kreeg zo ritten van
+rond een uur, die `buildDay()` stuk voor stuk tot rustdag maakte, ook op dagen met
+180 minuten tijd; over bleven twee kwaliteitssessies (~1,7 uur bij een weekdoel van
+3,2-5,2 uur). *Wat:* in `compose.ts` brengt `gatherEasyRides()` na het verdelen de
+minuten van de rustige duurritten samen op zo min mogelijk dagen met minstens 90
+minuten tijd: die ritten worden 90 minuten of langer (tot de tijd van de dag), de
+rest wordt rustdag. Scheelt het maar een paar minuten (een rit van 85 minuten
+zonder andere rustige rit om van te lenen), dan wordt de rit toch 90 als de week
+daardoor minder boven haar doel komt dan ze er anders onder zou zakken. Het
+inkorten van de langste duurrit, als een sleutelsessie langer uitvalt dan zijn
+deel, gaat bij een rustige rit niet meer onder de 90 minuten (die rit werd anders
+alsnog een rustdag terwijl hij in de uitvoer bleef staan). Dagen onder 90 minuten
+blijven zoals ze waren: daar komt geen rustige rit, alleen een kwaliteitssessie of
+een lege dag. Tests: een lid met ma 60, di 90, wo 60, do 60, vr 180, za 120, zo 180
+krijgt elke week rustige ritten van minstens 90 minuten en haalt 85 % van het
+weekdoel; een lid met alleen dagen tot 75 minuten krijgt geen rustige rit; de
+hersteltest kreeg twee dagen van 60 minuten, omdat bij de standaardinvoer geen rit
+meer wegvalt. *Naspelen* (verse export, 533 generaties; vanaf 2026-09-17):
+bijwerkingen met een fout bij de motor 30 % → 13 % (AI 83 %), nieuwe schema's
+60 % → 27 % (AI 100 %); `docs/regelmotor-naspelen.md` en de literatuurtoets zijn
+opnieuw gegenereerd. *Meetlat zelf, gecontroleerd:* `970b8b22` toetst piekweek en
+ondergrens sinds die ochtend in TSS tegen CTL × 7 in plaats van in uren. Met de
+meetlat van vóór die commit geeft dezelfde motor 17 % (bijwerkingen) en de motor
+van vóór de 90-minutenregel 8 %; met de nieuwe meetlat haalt de motor van vóór de
+90-minutenregel op de belastingregels 13 %, maar faalt hij op 91 % door
+`korte-herstelrit`. De nieuwe meetlat oordeelt dus niet strenger over de motor; het
+verschil met het oude foutaandeel komt van de 90-minutenregel zelf. Van de
+resterende fouten die met de oude samenstelling niet optraden, zijn er vijf van
+één lid met alleen dagen tot 60 minuten naast de lange rit en één van een lid
+met twee dagen van 60 minuten naast sleutelsessies: daar vallen rustige ritten
+bewust weg en haalt de week de CTL-belasting niet. *Bewust niet:* die korte dagen
+vullen met extra kwaliteitssessies (de motor plant nog twee à drie sleutelsessies
+uit de periodisering en geen "dichtheid" zoals de prompt sinds `970b8b22`; dat is
+een eigen ontwerpkeuze) en de vrijgekomen minuten naar intensieve duur of een
+langere lange rit sturen (verandert het karakter van die ritten). *Gevonden, niet
+in deze ronde:* bij de dagelijkse aanpassing heeft de motor 10 % `korte-herstelrit`
+(voorheen 0 %): de meetlat past de 90-minutenregel sinds `022cbede` ook op de
+dag-aanpassing toe, terwijl die volgens dezelfde commit de oude regel houdt.
+`npx vitest run tests/unit/engine` en `npx tsc --noEmit` groen. Gepusht naar `main`
+op 2026-10-26.
+
+**Beslisregel blind vergelijken, vastgelegd 2026-10-26 (vóór het beoordelen).**
+Besluit eigenaar: trainers beoordelen op het tabblad Vergelijken tot en met
+**2026-11-15**; daarna wordt de stand opgemaakt. Geteld worden alleen oordelen
+op Claude-generaties vanaf 2026-10-26, zonder de oordelen "gelijk":
+- **AI wint duidelijk** — bij 30 oordelen 21-9 of schever (tweezijdige tekentoets
+  p < 0,05), naar rato bij een ander aantal: geen praktijktest. Eerst de motor
+  verbeteren aan de hand van de ingevulde redenen.
+- **Dicht bij elkaar** — alles daartussen, of meer dan de helft "gelijk": de
+  crossover-pilot uit [docs/crossover-pilot-voorstel.md](docs/crossover-pilot-voorstel.md).
+- **Motor wint duidelijk** — de pilot toch, als veiligheidscheck vóór een
+  overstap: het oordeel komt grotendeels van één trainer en de blindheid lekt
+  deels via de schrijfstijl.
+Onder de 30 oordelen zonder gelijkspel zegt de stand te weinig; dan wordt de
+periode verlengd in plaats van beslist. Afspraken voor de periode: de motor blijft
+bevroren tot 2026-11-15 (alleen echte fouten herstellen, en die dan hier
+vermelden met datum), bijwerkingen en nieuwe schema's gaan voor dagaanpassingen,
+en een reden invullen waar het kan. Een tweede trainer die meebeoordeelt, maakt
+de stand sterker.
 
 ### Opgeleverd — Meetlat voor trainingsschema's, met nulmeting van de AI
 

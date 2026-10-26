@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   deriveCatalog,
+  inReferencePeriod,
   parseBaselineTab,
   parseCsv,
   parseFramesTab,
@@ -12,7 +13,8 @@ import { ZWIFT_BASE_BIKE_KG, ZWIFT_BASE_CDA } from "@/lib/pacing/zwift-setup";
 
 // Uitsnede van de echte sheet (21 september 2026): een handvol frames, wielen
 // en het volledige basistabblad. De Pinarello Espada (halo, eigen wielen) kwam
-// er op 20 oktober 2026 bij.
+// er op 20 oktober 2026 bij, de twee spellingen van de Swiss Side HADRON
+// Ultimate 650 op 26 oktober.
 const read = (name: string) =>
   readFileSync(path.join(__dirname, "..", "fixtures", "zwift", name), "utf8");
 
@@ -34,6 +36,13 @@ describe("tabbladen", () => {
     expect(sl8[0].tests.map((test) => test.powerW).sort()).toEqual([150, 300]);
   });
 
+  it("voegt een anders gespelde 150 W-rij samen met de 300 W-rij", () => {
+    const hadron = wheels.filter((wheel) => wheel.name.includes("HADRON Ultimate 650"));
+    expect(hadron).toHaveLength(1);
+    expect(hadron[0].name).toBe("Swiss Side HADRON Ultimate 650");
+    expect(hadron[0].tests.map((test) => test.powerW).sort()).toEqual([150, 300]);
+  });
+
   it("slaat fun bikes over", () => {
     expect(frames.some((frame) => frame.name === "Zwift MX Rider")).toBe(false);
   });
@@ -48,9 +57,23 @@ describe("afgeleide onderdelen", () => {
   it("een halo-fiets heeft vaste wielen, een gewone fiets niet", () => {
     const frame = (name: string) => catalog.parts.find((item) => item.part === "frame" && item.name === name)!;
     expect(frame("Pinarello Espada").fixedWheels).toBe(true);
-    expect(frame("Pinarello Espada").kind).toBe("road");
+    // De enige halo-tijdritfiets; de sheet zegt alleen "Halo".
+    expect(frame("Pinarello Espada").kind).toBe("tt");
     expect(frame("Specialized Tarmac SL8").fixedWheels).toBe(false);
     expect(frame("Zwift TT").fixedWheels).toBe(false);
+  });
+
+  it("zet een meting uit de nieuwe testperiode via het uurverschil terug naar de oude", () => {
+    // De S-Works Tarmac SL9 is na juni 2026 getest: lagere snelheid, groter uurverschil.
+    const reference = [{ powerW: 300, flatMph: 24.5877, climbMph: 9.202 }];
+    const sl9 = inReferencePeriod({ powerW: 300, flatMph: 25.004, climbMph: 9.3485, flatGapS: 63.0, climbGapS: 57.7 }, reference);
+    expect(sl9.flatMph).toBeCloseTo(24.5877 * (1 + 63 / 3600), 4);
+    expect(sl9.flatMph).toBeGreaterThan(25.0106); // nu sneller dan de SL8 (61,9 s per uur)
+    // Een uurverschil tegen een andere referentie (de Espada tegen de Zwift TT) blijft ruw.
+    const espada = inReferencePeriod({ powerW: 300, flatMph: 26.168, climbMph: 9.0199, flatGapS: 90.9, climbGapS: -9.6 }, reference);
+    expect(espada.flatMph).toBe(26.168);
+    // Zonder uurverschil verandert er niets.
+    expect(inReferencePeriod({ powerW: 300, flatMph: 25, climbMph: 9.3 }, reference).flatMph).toBe(25);
   });
 
   it("de referentie komt overeen met de constanten in zwift-setup.ts", () => {

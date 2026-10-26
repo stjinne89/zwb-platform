@@ -1,6 +1,20 @@
 import { TrendingUp, Mountain, Clock, Bike } from "lucide-react";
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/auth/request";
+import { briljantMonthGrowth, MONTH_GROWTH_LOOKBACK_DAYS } from "@/lib/briljant/compare";
+import { loadGrowthSnapshots } from "@/lib/briljant/server";
+import { mondayKey, shiftDay } from "@/lib/briljant/snapshot";
+import {
+  clubmens,
+  groeibriljant,
+  metronoom,
+  monthRankings,
+  type ClubEventRsvp,
+  type LiveRide,
+  type Ranking,
+} from "@/lib/rankings/rankings";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { uniqueRides } from "@/lib/rides/unique-rides";
 import {
@@ -11,7 +25,7 @@ import {
 // Club-stats widget op /dashboard. Aggregeert outdoor + indoor cycling-
 // activities over alle leden voor:
 //   - huidige maand totaal (km / hm / uren) + delta vs vorige maand
-//   - top 3 rider van de huidige maand (op km)
+//   - Rider of the month: de ranglijsten van ZWB Rankings over de huidige maand
 //   - sparkline van km-per-week over laatste 12 weken
 //
 // Query gaat over de laatste ~13 weken (zo zit zowel vorige maand als
@@ -27,12 +41,9 @@ type ActivityRow = {
   distance_m: number | string | null;
   total_elevation_gain_m: number | string | null;
   moving_time_seconds: number | string | null;
-  kudos_count: number | string | null;
+  trainer: boolean | null;
   profiles: { display_name: string | null } | { display_name: string | null }[] | null;
 };
-
-// Per-lid maandtotalen waarop we de "rider of the month"-top-3 baseren.
-type RiderTotals = { id: string; name: string; km: number; uren: number; hm: number; kudos: number };
 
 type Totals = { km: number; hm: number; uren: number; count: number };
 
@@ -121,7 +132,7 @@ const loadClubActivities = unstable_cache(
       const { data: rows } = await admin
         .from("strava_activities")
         .select(
-          "id, profile_id, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, kudos_count, profiles(display_name)",
+          "id, profile_id, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, trainer, profiles(display_name)",
         )
         .gte("start_date", since.toISOString())
         .in("sport_type", CYCLING_SPORTS)
@@ -134,9 +145,65 @@ const loadClubActivities = unstable_cache(
     }
     return activities;
   },
-  ["club-stats-activities", "v2"],
+  ["club-stats-activities", "v3"],
   { revalidate: 600 },
 );
+
+/**
+ * Voor Clubmens in Rider of the month: de ja's op events en de live-ritten van de
+ * maand. Net als de ritten gedeeld tussen alle leden: aanmeldingen zijn voor
+ * iedereen leesbaar, live-ritten alleen met zichtbaarheid "members" (zoals RLS).
+ */
+const loadClubMoments = unstable_cache(
+  async (monthStart: string): Promise<{ rsvps: ClubEventRsvp[]; live: LiveRide[] }> => {
+    const admin = createAdminClient();
+    const from = `${monthStart}T00:00:00.000Z`;
+    const [{ data: events }, { data: live }] = await Promise.all([
+      admin.from("events").select("id, start_at").gte("start_at", from),
+      admin
+        .from("live_sessions")
+        .select("profile_id, started_at, last_seen_at, ended_at")
+        .eq("visibility", "members")
+        .gte("started_at", from),
+    ]);
+    const startById = new Map(
+      ((events ?? []) as Array<{ id: string; start_at: string }>).map((event) => [event.id, event.start_at]),
+    );
+    const { data: rsvps } = startById.size
+      ? await admin
+          .from("event_rsvps")
+          .select("event_id, profile_id")
+          .eq("status", "yes")
+          .in("event_id", [...startById.keys()])
+      : { data: [] };
+    return {
+      rsvps: ((rsvps ?? []) as Array<{ event_id: string; profile_id: string }>).flatMap((rsvp) => {
+        const start = startById.get(rsvp.event_id);
+        return start ? [{ ...rsvp, start_at: start }] : [];
+      }),
+      live: (live ?? []) as LiveRide[],
+    };
+  },
+  ["club-stats-moments", "v1"],
+  { revalidate: 600 },
+);
+
+/**
+ * Groeibriljant over de maand, met de sessie van het lid: RLS beslist wie je ziet,
+ * dus niet in de gedeelde cache.
+ */
+async function loadMonthGrowth(monthStart: string, today: string) {
+  const user = await getRequestUser();
+  if (!user) return groeibriljant([]);
+  const supabase = await createClient();
+  const rows = await loadGrowthSnapshots(
+    supabase,
+    user.id,
+    shiftDay(monthStart, -MONTH_GROWTH_LOOKBACK_DAYS),
+    mondayKey(today),
+  );
+  return groeibriljant(briljantMonthGrowth(rows, monthStart));
+}
 
 export async function ClubStats() {
   // Faalt de cache of de service-rol, dan geen blok in plaats van een kapot dashboard.
@@ -156,7 +223,8 @@ export async function ClubStats() {
   })();
 
   const totalsByMonth = new Map<string, Totals>();
-  const ridersCurrentMonth = new Map<string, RiderTotals>();
+  const monthRows: Parameters<typeof monthRankings>[0] = [];
+  const names = new Map<string, string>();
   const kmByWeek = new Map<string, number>();
 
   for (const a of activities) {
@@ -165,7 +233,6 @@ export async function ClubStats() {
     const km = Number(a.distance_m ?? 0) / 1000;
     const hm = Number(a.total_elevation_gain_m ?? 0);
     const uren = Number(a.moving_time_seconds ?? 0) / 3600;
-    const kudos = Number(a.kudos_count ?? 0);
 
     const mKey = monthKey(date);
     const t = totalsByMonth.get(mKey) ?? emptyTotals();
@@ -176,14 +243,8 @@ export async function ClubStats() {
     totalsByMonth.set(mKey, t);
 
     if (mKey === currentMonth) {
-      const cur =
-        ridersCurrentMonth.get(a.profile_id) ??
-        ({ id: a.profile_id, name: displayName(a.profiles), km: 0, uren: 0, hm: 0, kudos: 0 } satisfies RiderTotals);
-      cur.km += km;
-      cur.uren += uren;
-      cur.hm += hm;
-      cur.kudos += kudos;
-      ridersCurrentMonth.set(a.profile_id, cur);
+      monthRows.push({ ...a, moving_time_seconds: Number(a.moving_time_seconds ?? 0) });
+      names.set(a.profile_id, displayName(a.profiles));
     }
 
     const wKey = isoWeekStart(date);
@@ -203,29 +264,42 @@ export async function ClubStats() {
   }
   const sparkValues = weekKeys.map((k) => Math.round(kmByWeek.get(k) ?? 0));
 
-  // Rider of the month: top 3 per maatstaf voor de carousel.
-  const riders = Array.from(ridersCurrentMonth.values());
-  const topBy = (
-    metric: "km" | "uren" | "hm" | "kudos",
-    format: (value: number) => string,
-  ) =>
-    [...riders]
-      .sort((a, b) => b[metric] - a[metric])
-      .slice(0, 3)
-      .map((r) => ({ id: r.id, name: r.name, value: format(r[metric]) }));
-
-  const intFmt = (v: number) => Math.round(v).toLocaleString("nl-NL");
-  const slides: RiderMetricSlide[] = [
-    { key: "km", label: "Kilometers", unit: "km", riders: topBy("km", intFmt) },
-    {
-      key: "uren",
-      label: "Uren in 't zadel",
-      unit: "u",
-      riders: topBy("uren", (v) => v.toLocaleString("nl-NL", { maximumFractionDigits: 1 })),
-    },
-    { key: "kudos", label: "Kudo's", unit: "", riders: topBy("kudos", intFmt) },
-    { key: "hm", label: "Hoogtemeters", unit: "hm", riders: topBy("hm", intFmt) },
+  // Rider of the month: de ranglijsten van ZWB Rankings over de maand, top 3 per
+  // lijst. Geen kudos: die heeft alleen wie via Strava rijdt (2026-10-26).
+  const monthStart = `${currentMonth}-01`;
+  const [moments, growth] = await Promise.all([
+    loadClubMoments(monthStart).catch(() => ({ rsvps: [], live: [] })),
+    loadMonthGrowth(monthStart, now.toISOString().slice(0, 10)).catch(() => groeibriljant([])),
+  ]);
+  const rankings: Ranking[] = [
+    ...monthRankings(monthRows),
+    metronoom(monthRows),
+    clubmens(moments.rsvps, moments.live, now),
+    growth,
   ];
+  const top = rankings.map((ranking) => ({ ranking, entries: ranking.entries.slice(0, 3) }));
+  const missing = [
+    ...new Set(top.flatMap(({ entries }) => entries.map((entry) => entry.profileId)).filter((id) => !names.has(id))),
+  ];
+  if (missing.length > 0) {
+    const { data: profiles } = await createAdminClient().from("profiles").select("id, display_name").in("id", missing);
+    for (const row of (profiles ?? []) as Array<{ id: string; display_name: string | null }>) {
+      names.set(row.id, row.display_name ?? "Onbekend");
+    }
+  }
+  const slides: RiderMetricSlide[] = top
+    .filter(({ entries }) => entries.length > 0)
+    .map(({ ranking, entries }) => ({
+      key: ranking.id,
+      label: ranking.title,
+      icon: ranking.icon,
+      riders: entries.map((entry) => ({
+        id: entry.profileId,
+        name: names.get(entry.profileId) ?? "Onbekend",
+        value: entry.label,
+        rank: entry.rank,
+      })),
+    }));
 
   const monthLabel = new Intl.DateTimeFormat("nl-NL", {
     month: "long",
@@ -266,7 +340,7 @@ export async function ClubStats() {
         />
       </div>
 
-      {riders.length > 0 && <RiderOfTheMonthCarousel slides={slides} />}
+      {slides.length > 0 && <RiderOfTheMonthCarousel slides={slides} />}
     </section>
   );
 }

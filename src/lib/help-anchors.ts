@@ -30,7 +30,7 @@ export const HELP_ANCHORS: ReadonlyArray<readonly [pattern: string, anchor: stri
   ["/teams/*", "teambeheer"],
   ["/teams/ttt-planner", "ttt-beheer"],
   ["/stats", "mijn-statistieken"],
-  ["/stats/achievements", "badges"],
+  ["/stats/rankings", "rankings"],
   ["/stats/zwbriljant", "zwbriljant"],
   ["/profiel", "profiel"],
   ["/profiel/cols", "cols"],
