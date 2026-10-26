@@ -11414,6 +11414,55 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Club Ladder-overzicht leest de echte opmaak van /summary
+
+**2026-10-26.** Commit: de commit die dit blok toevoegt, op branch
+`claude/ladder-onderdeel-kaart-0ae3c9`, niet gepusht. Geen migratie.
+
+**Waarom.** Vervolg op de sync-ronde hieronder, op verzoek van de eigenaar. Op
+`/teams/club-ladder` was de vorm leeg, klopte de stijging niet en stonden er 0
+wedstrijden. De parser zocht naar generieke tabelcellen en platte tekst, maar
+`/summary` heeft een vaste opmaak. Gemeten op de pagina van 2026-10-26 had de oude
+parser nog twee fouten: de vrouwenladder heet `WOMENS` (niet `WOMEN`), en de
+World-ladder (alle regio's samen, 242 teams) stond er ook in. Die twee rijtjes
+werden bij AMER geteld (310 in plaats van 48).
+
+**Nu** (`src/lib/club-ladder/summary.ts`, herschreven).
+- Stand: per `section.aLadder` de regio uit de `h2`, en per `tr.ladderRow`
+  positie (`data-position`), naam, vorm en stijging. De World-ladder
+  (`section.pLadder`) blijft erbuiten.
+- Vorm: de letter in elk `.formSquare`. Een verdedigde plek (`DEFEND`) is een W,
+  zoals de ladder hem toont. Lege blokjes tellen niet.
+- Stijging: de klasse van `.movebubble` (`upMove`, `downMove`, `staticMove`)
+  plus het aantal plekken, bijvoorbeeld "▲ 2". De zombie-badge telt niet mee.
+- Wedstrijden: uit de tabel in `.fixtureTab`. `tr.dayBounds` geeft de dag
+  ("Today" wordt de UTC-datum van het ophalen); daarna tijd, thuis- en uitploeg,
+  route en powerups. Nieuw: `startsAt` in UTC.
+- Weg: `avg`, `med` en `club` (die kolommen staan wel in de kop, maar niet in de
+  rijen; de pagina gebruikte ze niet) en de terugval op platte tekst. Bij een
+  onbekende opmaak is de stand nu leeg, in plaats van gegokt. Een actief team
+  geeft dan bij de sync een fout, en die maakt `ladder_sync` rood.
+- Pagina: een wedstrijd hoort bij je team als thuis- of uitploeg exact gelijk is
+  (was: de naam ergens in de regel). Tijd in Nederlandse tijd, ploegen
+  "thuis – uit", route en powerups eronder.
+
+**Gemeten.** Tegen `/summary` van 2026-10-26: 242 teams (EMEA 161, APAC 12, AMER
+48, WOMENS 21). Vorm: 239 teams met 5 uitslagen, 2 met 3 en 1 met 1. 95
+wedstrijden, allemaal met een datum.
+
+**Bewust niet.** De "Dead in N days"-teller en de zombie-markering (een team
+dat naar het kerkhof dreigt te gaan) worden niet gelezen. De uitslagen in
+`.resultsTab` ook niet. Niets daarvan was gevraagd. De volgorde van de
+vormblokjes is overgenomen zoals de ladder hem toont; of de nieuwste links of
+rechts staat, is niet nagegaan.
+
+**Gecontroleerd.** Nieuw: `club-ladder-summary.test.ts` (5 tests op een pagina
+die is nagebouwd naar de echte opmaak, in `tests/fixtures/club-ladder.ts`).
+`club-ladder-sync.test.ts` gebruikt nu dezelfde opmaak. 13 tests slagen.
+ESLint schoon. `tsc` meldt alleen de ontbrekende pakketten van deze worktree.
+**Niet geverifieerd:** de pagina in de browser (daarvoor moet je inloggen op
+productie).
+
 ### Hersteld — Club Ladder-sync: cookie, positie uit de parser, overgeslagen bron wist geen fout
 
 **2026-10-26.** Commit: de commit die dit blok toevoegt, op branch
@@ -11445,11 +11494,11 @@ staat erin, wat past bij het kerkhof. Met de huidige data levert de sync dus
 nog steeds niets op, maar nu met de juiste reden.
 
 **Gevonden, bewust niet in deze ronde.** Op `/teams/club-ladder` kloppen vorm
-en stijging niet en zijn er 0 wedstrijden: de kolommen van `/summary` zijn
-anders dan de parser verwacht (de vorm staat als blokjes met een `title`, en de
-wedstrijden als `tr.fixToday` met `homeTeam` en `awayTeam`). De positie, die de
-sync nodig heeft, klopt wel. Ook niet gedaan: `/summary` (1 MB) één keer per
-syncrun ophalen in plaats van per bron.
+en stijging niet en zijn er 0 wedstrijden. *Hersteld in de ronde "Club
+Ladder-overzicht leest de echte opmaak" hierboven, waarin de parser is
+herschreven. De 483 teams hieronder waren te veel: de World-ladder telde mee.*
+Ook niet gedaan: `/summary` (1 MB) één keer per syncrun ophalen in plaats van
+per bron.
 
 **Let op.** Een bron die eerder een fout had en daarna op het kerkhof belandt,
 houdt die fout en blijft rood tot een gelukte sync, of tot de bron uit gaat.

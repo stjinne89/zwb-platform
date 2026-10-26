@@ -9,15 +9,20 @@ import {
   SyncSkip,
   type SourceRow,
 } from "@/lib/team-results/sync";
+import { ladderRow, ladderSection, summaryPage } from "../fixtures/club-ladder";
 
-// Naar de opmaak van ladder.cycleracing.club/summary (oktober 2026).
-function row(position: number, name: string) {
-  return `<tr><td class="text-start nposCol">\n${position}\n</td><td class="highlightBold">\n${name}\n</td><td>W</td></tr>`;
-}
-const SUMMARY_HTML = `<html><body>
-<h2 class="titlespan">EMEA</h2><table>${row(1, "Cryo-Gen Handlebar Heroes")}${row(2, "ZWBeasts")}${row(3, "Devil Dogs [DBR]")}</table>
-<h2 class="titlespan">AMER</h2><table>${row(1, "Some US Team")}</table>
-</body></html>`;
+const stay = { cls: "staticMove" } as const;
+const SUMMARY_HTML = summaryPage(
+  [],
+  [
+    ladderSection("EMEA", [
+      ladderRow(1, "Cryo-Gen Handlebar Heroes", ["WIN"], stay),
+      ladderRow(2, "ZWBeasts", ["WIN"], stay),
+      ladderRow(3, "Devil Dogs [DBR]", ["LOSS"], stay),
+    ]),
+    ladderSection("AMER", [ladderRow(1, "Some US Team", ["WIN"], stay)]),
+  ],
+);
 
 function source(matchName: string, isGraveyard = false): SourceRow {
   return {
