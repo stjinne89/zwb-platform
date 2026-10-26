@@ -11465,7 +11465,9 @@ lid vult hem zelf in.
   zet de garage op precies die lijst.
 - **Pacingplan:** een nieuw plan begint met de snelste fiets uit de garage
   (gekozen op een vast vermogen, CP, omdat er dan nog geen plan is). Snelste
-  fiets kiest uit de garage, met Alle fietsen (`?fietsen=alle`) als schakelaar;
+  fiets kiest uit de garage, met Alle fietsen (`?fietsen=alle`) als schakelaar
+  (*sinds de ronde hierboven: standaard alle fietsen, de rest op stage 0, en
+  Alleen mijn garage als schakelaar*);
   Kies neemt de stage van die regel mee. In de frame-keuzelijst staat de garage
   bovenaan, en een frame uit de garage krijgt meteen zijn stage. Zonder garage:
   een link Garage invullen. Bestaande plannen veranderen niet.
