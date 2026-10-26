@@ -187,7 +187,9 @@ gaat stabiliteit voor nieuwe features.
      staat de cover na opslaan in storage (ronde 2026-10-18, "Eventlink").
    - **Tabbalk op de iPhone:** na het pushen in de beginscherm-app iets typen,
      het toetsenbord sluiten en kijken of de tabbalk onderaan blijft (ronde
-     2026-10-16, "Tabbalk blijft hangen na het toetsenbord").
+     2026-10-16, "Tabbalk blijft hangen na het toetsenbord"). *Bijgewerkt
+     2026-10-26:* leden zagen het daarna nog; zie de derde ronde "Tabbalk op de
+     iPhone: sprong herhalen en balk zelf omlaag".
    - **Fietsen op het ledenprofiel:** `0243_member_profile_bikes.sql` is op
      2026-10-16 toegepast via de Supabase-connector, op verzoek van de eigenaar,
      en daarna gepusht. Nog doen: als ander lid in de app een profiel met
@@ -367,6 +369,11 @@ gaat stabiliteit voor nieuwe features.
    `0279_zwift_segment_bests.sql` is toegepast en nagekeken, de privacyzin is
    goedgekeurd (eigenaar). Open: na de deploy op een briefing van een puntenrace
    kijken of de PR's binnenkomen, en of `/segment-results` geen 429 geeft.
+
+19. **Tabbalk op de iPhone, derde ronde** (ronde van 2026-10-26 hieronder):
+   gebouwd en lokaal getest, nog niet gepusht. Geen migratie. Open: op een
+   iPhone in de beginscherm-app iets typen, het toetsenbord sluiten en scrollen;
+   leden die de balk midden in beeld zagen vragen of het nog gebeurt.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11406,6 +11413,59 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Tabbalk op de iPhone: sprong herhalen en balk zelf omlaag
+
+**2026-10-26.** Commit: de commit die dit blok toevoegt; nog niet gepusht. Geen
+migratie.
+
+**Aanleiding.** Na de ronde van 2026-10-16 zagen leden de tabbalk nog steeds
+"af en toe" midden in beeld, nu op een eventpagina. Op de screenshot staat de
+onderrand van de balk ongeveer 384 pt boven de onderkant van het scherm
+(iPhone, 393×852 pt): een toetsenbord met de balk erboven. Het is dus dezelfde
+bug, en het herstel van de vorige ronde werkte daar niet.
+
+**Waarom het vorige herstel misliep.** Twee zwakke plekken in
+`ios-viewport-herstel.tsx`:
+- Het controleerde 150 ms na `focusout`, terwijl het toetsenbord dan nog
+  dichtklapt. Het beeld was op dat moment nog terecht klein, dus deed het een
+  sprong die niets uithaalde. De resize daarna viel binnen de grens van één
+  herstel per seconde en werd overgeslagen, zonder nieuwe poging. Daarna komt
+  er geen gebeurtenis meer, dus bleef de balk hangen tot de app dicht ging.
+- Als de sprong niet hielp, gebeurde er verder niets.
+
+**Wat er veranderde.**
+- Een sprong die te snel na de vorige komt, wordt uitgesteld in plaats van
+  overgeslagen. Na elke sprong volgt een controle; tot drie sprongen per keer
+  dat het beeld blijft hangen. De eerste controle wacht 350 ms na `focusout`.
+- Ook na het scrollen wordt gecontroleerd. In de beginscherm-app verandert de
+  hoogte niet door scrollen, dus dat geeft geen vals alarm, en wie het ziet,
+  scrolt meestal.
+- Een onzichtbare vaste laag ter grootte van het scherm in de body. Volgens de
+  bron van de vorige ronde meet WebKit het beeld pas opnieuw als zo'n laag na de
+  sprong terugkomt; de body zelf is langer dan het scherm.
+- Terugval op de iPhone: zolang het beeld hangt, schuift de tabbalk het tekort
+  zelf omlaag (`transform` via `--ios-viewport-fout` op `html`). Het tekort is de
+  grootste hoogte bij deze breedte min `innerHeight`, of anders een blijvende
+  `visualViewport.offsetTop` (de iOS 26-variant uit WebKit-bug 297779). Zodra een
+  veld de focus krijgt, of het beeld weer klopt, staat de balk weer gewoon.
+- Een veld in een iframe telt als "toetsenbord kan open zijn".
+- De rekenregels staan los in `src/lib/ios-viewport.ts`, met unit-tests.
+
+**Bewust niet gedaan.**
+- Niet schuiven op de iPad: daar kan het venster echt lager worden (Stage
+  Manager), en zou de balk uit beeld schuiven. Daar alleen de sprong.
+- Geen meting van leden naar de server sturen om de echte waarden te zien; dat
+  is gegevens verzamelen en vraagt eerst een afweging voor de privacyverklaring.
+- Geen waas over de sprong (zoals de bron voorstelt) en niet terug naar
+  `fixed`; dezelfde redenen als in de vorige ronde.
+
+**Niet geverifieerd.** Niet op een echte iPhone; de bug is lokaal niet na te
+bootsen. Lokaal: de nieuwe unit-tests slagen en lint is schoon; de typecheck
+meldt alleen pakketten die in deze worktree ontbreken (`modern-screenshot`,
+`@anthropic-ai/sdk`). Of het schuiven precies op de onderrand uitkomt, hangt af
+van wat iOS in de vastgelopen toestand teruggeeft; de berekening gaat ervan uit
+dat `innerHeight` te klein blijft, zoals beschreven in de bron.
+
 ### Gebouwd — Segmentrecords op het racebriefje
 
 **2026-10-26.** Commit `a697f4de` (migratie hernummerd in `de03ba87`), gepusht
@@ -19563,7 +19623,10 @@ geen veld meer de focus heeft. Zo ja, dan zet het de body heel even op
 `display: none` en terug, met een gedwongen herberekening ertussen, en zet het
 de scrollpositie terug. Die sprong dwingt WebKit het beeld opnieuw te meten.
 Ingezoomd (`visualViewport.scale` > 1) telt niet als hangen. Hoogstens één
-herstel per seconde.
+herstel per seconde. *Correctie 2026-10-26:* die grens liet juist de sprong
+vallen die nodig was; de sprong wordt nu uitgesteld in plaats van overgeslagen
+en zo nodig herhaald, zie de ronde "Tabbalk op de iPhone: sprong herhalen en
+balk zelf omlaag".
 
 **Bewust niet gedaan.**
 - Niet in Safari zelf: daar verandert de hoogte terecht als de adresbalk in- en
