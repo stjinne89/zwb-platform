@@ -11432,6 +11432,15 @@ Claude-aanroepen via de nieuwe code zonder database: voedingsherkenning (5 s),
 een coachantwoord (4 s) en een dag-aanpassing via
 `generateTrainingPlanDraft` (26 s, datums vanaf vandaag).
 
+**Hersteld na de push (zelfde dag).** De sessie-middleware ving
+`/.netlify/functions/ai-job-background` af en stuurde de aanroep met een 307
+naar `/login`; `fetch` volgde die en telde de inlogpagina als geslaagd, zodat
+een opdracht nooit zou draaien. Nu slaat de matcher in `src/middleware.ts`
+`/.netlify/` over (en staat het pad in `PUBLIC_PATHS` als vangrail), en
+`triggerJob` volgt geen doorverwijzing meer en eist een 202. Daarnaast keek de
+nieuwe "Maak mijn schema" op `/zwbeter-worden/doelen` (ronde 3, die tegelijk op
+main kwam) nog naar de OpenAI-sleutel; nu `aiConfigured()`.
+
 Na het toepassen van de migratie: het opdrachtenpad lokaal van begin tot eind
 (`AI_JOB_RUNNER=inline`) met een voedingsvraag zonder ledendata: opdracht
 aangemaakt, uitgevoerd en opgehaald in 7,6 s, `request` daarna leeg; de testrij

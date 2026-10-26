@@ -144,12 +144,16 @@ async function triggerJob(id: string): Promise<void> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
       signal: AbortSignal.timeout(8_000),
+      // Een doorverwijzing (bijvoorbeeld naar /login) niet volgen: dan zou de
+      // inlogpagina als geslaagde aanroep tellen en draaide de opdracht nooit.
+      redirect: "manual",
     });
   } catch {
     // Netwerkfout: de eerstvolgende keer ophalen stoot hem opnieuw aan.
     return;
   }
-  if (!res.ok) throw new Error(`De achtergrondfunctie voor Claude gaf ${res.status}.`);
+  // Een achtergrondfunctie antwoordt altijd 202.
+  if (res.status !== 202) throw new Error(`De achtergrondfunctie voor Claude gaf ${res.status}.`);
 }
 
 export async function createClaudeJob(feature: ClaudeFeature, request: ClaudeRequest): Promise<string> {
