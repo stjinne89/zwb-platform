@@ -74,9 +74,11 @@ const nextConfig: NextConfig = {
       { source: "/materiaal", destination: "/zwbeter-worden/materiaal", permanent: true },
       { source: "/materiaal/:pad*", destination: "/zwbeter-worden/materiaal", permanent: true },
       { source: "/leden/wie-weet-wat/:path*", destination: "/zwbieb/:path*", permanent: true },
-      // Achievements is sinds 2026-10-16 een tab onder Stats; oude links en
-      // pushmeldingen. De querystring (?week=vorige) gaat vanzelf mee.
-      { source: "/achievements", destination: "/stats/achievements", permanent: true },
+      // Achievements is sinds 2026-10-16 een tab onder Stats en heet sinds
+      // 2026-10-26 ZWB Rankings; oude links en pushmeldingen. De querystring
+      // (?week=vorige) gaat vanzelf mee.
+      { source: "/achievements", destination: "/stats/rankings", permanent: true },
+      { source: "/stats/achievements", destination: "/stats/rankings", permanent: true },
       // ZRL-kalender en WTRL-teams zijn samen ZRL-beheer (2026-10-13).
       { source: "/beheer/zrl-kalender", destination: "/beheer/zrl", permanent: true },
       { source: "/beheer/wtrl-teams", destination: "/beheer/zrl/teams", permanent: true },

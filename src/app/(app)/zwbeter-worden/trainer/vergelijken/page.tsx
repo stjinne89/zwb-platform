@@ -11,10 +11,12 @@ import { EmptyState } from "@/components/app-ui";
 import { PowerWeight } from "@/components/power-unit";
 import {
   assignSides,
+  COMPARISON_MODEL_PREFIX,
   COMPARISON_SINCE,
   comparisonKindLabel,
   comparisonPair,
   comparisonWeeks,
+  isComparableGeneration,
   REASON_MAX,
   tallyVerdicts,
   type ComparedWorkout,
@@ -43,6 +45,7 @@ type VerdictRow = {
   generation_id: string;
   winner: Winner;
   reason: string | null;
+  generation: { model: string | null; created_at: string } | null;
 };
 
 const FEELING: Record<string, string> = { tired: "moe", normal: "normaal", fresh: "fris" };
@@ -71,20 +74,26 @@ export default async function TrainerComparePage({ searchParams }: SearchParamsP
       .in("profile_id", athleteIds)
       .eq("status", "completed")
       .not("response_json", "is", null)
+      .like("model", `${COMPARISON_MODEL_PREFIX}%`)
       .gte("created_at", COMPARISON_SINCE)
       .order("created_at", { ascending: false })
       .limit(200),
     // Zonder 0247 geeft dit een fout; dan telt de pagina gewoon nul oordelen.
     viewer.supabase
       .from("training_engine_comparisons")
-      .select("generation_id, winner, reason")
+      .select("generation_id, winner, reason, generation:training_ai_generations(model, created_at)")
       .eq("trainer_id", viewer.user.id),
   ]);
 
   const generations = (generationRows ?? []) as GenerationRow[];
   if (generations.length === 0) return <EmptyState>Geen generaties om te vergelijken.</EmptyState>;
 
-  const verdicts = new Map(((verdictRows ?? []) as VerdictRow[]).map((row) => [row.generation_id, row]));
+  // Oordelen op oudere (GPT-)generaties blijven bewaard, maar tellen niet mee.
+  const verdicts = new Map(
+    ((verdictRows ?? []) as unknown as VerdictRow[])
+      .filter((row) => isComparableGeneration(row.generation))
+      .map((row) => [row.generation_id, row]),
+  );
   const tally = tallyVerdicts([...verdicts.values()]);
 
   const requested = paramString(params.g);

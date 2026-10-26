@@ -385,7 +385,9 @@ function composeWeek(state: State, week: WeekPlan, variant: number, range: PlanW
     .sort((a, b) => b.workout.durationMinutes - a.workout.durationMinutes);
   for (const row of flexible) {
     if (over < 5) break;
-    const minutes = Math.max(MIN_RIDE_MINUTES, Math.floor((row.workout.durationMinutes - over) / 5) * 5);
+    // Een rustige rit gaat niet onder de 90 minuten: dan was hij een rustdag.
+    const floor = isEasyPlan(row.plan) ? OPTIONAL_REST_RIDE_MINUTES : MIN_RIDE_MINUTES;
+    const minutes = Math.max(floor, Math.floor((row.workout.durationMinutes - over) / 5) * 5);
     if (minutes >= row.workout.durationMinutes) continue;
     row.plan.minutes = minutes;
     const smaller = buildDay(state, row.plan, week, variant, reason);
@@ -685,8 +687,66 @@ function allocateMinutes(
       short -= 5;
     }
   }
+  gatherEasyRides(all);
   const leftover = Math.round(pool);
   if (leftover >= 5) onLeftover(leftover);
+}
+
+const isEasyPlan = (plan: DayPlan) => plan.role === "duur" && plan.form === "rustige_duur";
+
+/**
+ * Een rustige duurrit onder de 90 minuten wordt een rustdag (buildDay). Gelijk
+ * verdeeld over veel dagen haalt geen enkele rit dat, en valt de week ver onder
+ * haar doel. Daarom gaan de minuten van de rustige ritten naar zo min mogelijk
+ * dagen met minstens 90 minuten tijd; de rest wordt een rustdag. Een dag met
+ * minder dan 90 minuten krijgt nooit een rustige rit, en zijn minuten gaan
+ * alleen naar een andere rustige rit.
+ */
+function gatherEasyRides(plans: DayPlan[]) {
+  const minimum = OPTIONAL_REST_RIDE_MINUTES;
+  const short = plans.filter((plan) => isEasyPlan(plan) && plan.minutes < minimum);
+  let pool = 0;
+  const release = (plan: DayPlan) => {
+    pool += plan.minutes;
+    plan.minutes = 0;
+  };
+  short.filter((plan) => plan.cap < minimum).forEach(release);
+  // De ritten met de meeste minuten (dan de meeste tijd) eerst aanvullen; de
+  // laatste vervalt zolang het niet voor allemaal genoeg is. Komt de week door
+  // aanvullen minder boven haar doel dan ze er door schrappen onder zou zakken,
+  // dan wordt er toch aangevuld: liever 90 minuten dan een rustdag bij 85.
+  const open = short
+    .filter((plan) => plan.cap >= minimum)
+    .sort((a, b) => b.minutes - a.minutes || b.cap - a.cap || a.date.localeCompare(b.date));
+  const roomy = plans.filter((plan) => isEasyPlan(plan) && plan.minutes >= minimum);
+  while (open.length > 0) {
+    const need = open.reduce((sum, plan) => sum + minimum - plan.minutes, 0);
+    const room = [...open.slice(0, -1).map((plan) => plan.cap - minimum), ...roomy.map((plan) => plan.cap - plan.minutes)]
+      .reduce((sum, value) => sum + value, 0);
+    const lostByDropping = Math.max(0, minimum - (need - pool) - room);
+    if (need - pool <= Math.max(0, lostByDropping)) {
+      for (const plan of open) {
+        pool -= minimum - plan.minutes;
+        plan.minutes = minimum;
+      }
+      break;
+    }
+    release(open.pop()!);
+  }
+  // Wat overblijft, in stappen van vijf naar de rustige ritten met ruimte.
+  const rides = plans
+    .filter((plan) => isEasyPlan(plan) && plan.minutes >= minimum)
+    .sort((a, b) => b.cap - b.minutes - (a.cap - a.minutes) || a.date.localeCompare(b.date));
+  for (let added = true; added && pool >= 5; ) {
+    added = false;
+    for (const plan of rides) {
+      if (pool < 5) break;
+      if (plan.cap - plan.minutes < 5) continue;
+      plan.minutes += 5;
+      pool -= 5;
+      added = true;
+    }
+  }
 }
 
 function protocolOn(input: TrainingAiInput, date: string, match: (slug: string) => boolean): boolean {

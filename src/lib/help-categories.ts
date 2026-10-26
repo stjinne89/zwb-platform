@@ -46,11 +46,12 @@ export const HELP_CATEGORIES = [
   {
     id: "club",
     label: "Club en profiel",
-    text: "Profiel, privacy, badges, cols, ZWBieb, ZWBlokken en je garage.",
+    text: "Profiel, privacy, rankings, badges, cols, ZWBieb, ZWBlokken en je garage.",
     tone: "club",
     anchors: [
       "profiel",
       "privacy",
+      "rankings",
       "badges",
       "cols",
       "onderhoud",

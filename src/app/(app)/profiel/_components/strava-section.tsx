@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
-import { disconnectStrava } from "../../stats/achievements/_actions";
+import { disconnectStrava } from "../../stats/rankings/_actions";
 import { switchStravaToIntervals } from "../../_actions/intervals-rides";
 import { refreshMyStravaProfile } from "../_actions";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -119,10 +119,10 @@ export function StravaSection({
           )}
           <div className="flex flex-wrap items-center gap-2">
             <Link
-              href="/stats/achievements"
+              href="/stats/rankings"
               className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
             >
-              Naar achievements
+              Naar ZWB Rankings
             </Link>
             <ConnectWithStrava reconnect size="compact" />
             <Button

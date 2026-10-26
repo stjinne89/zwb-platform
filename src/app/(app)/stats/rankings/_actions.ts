@@ -63,7 +63,7 @@ export async function syncMyStravaActivities(
     // volledige sync (anders draaien we dit 10x voor één UI-update).
     if (result.done) {
       await awardCompletedAchievementWeeks(supabase).catch(() => null);
-      revalidatePath("/stats/achievements");
+      revalidatePath("/stats/rankings");
       revalidatePath("/dashboard");
       revalidatePath("/leden");
       revalidatePath("/profiel");
@@ -103,7 +103,7 @@ export async function disconnectStrava(options: { keepData?: boolean } = {}) {
     options.keepData === true ? "member_keep_data" : "member",
   );
 
-  revalidatePath("/stats/achievements");
+  revalidatePath("/stats/rankings");
   revalidatePath("/profiel");
 
   if (!result.deauthorized) {
@@ -211,7 +211,7 @@ export async function recomputeMyMilestoneBadges() {
     }
 
     const result = await evaluateMilestonesForUser(admin, user.id);
-    revalidatePath("/stats/achievements");
+    revalidatePath("/stats/rankings");
     revalidatePath("/dashboard");
     revalidatePath("/leden");
     revalidatePath("/profiel");
@@ -556,7 +556,7 @@ export async function finishMyStravaImport() {
       awardCompletedAchievementWeeks(admin).catch(() => ({ awarded: 0 })),
     ]);
 
-    revalidatePath("/stats/achievements");
+    revalidatePath("/stats/rankings");
     revalidatePath("/dashboard");
     revalidatePath("/leden");
     revalidatePath("/profiel");
@@ -589,7 +589,7 @@ export async function finalizeAchievementAwards() {
 
   try {
     const result = await awardCompletedAchievementWeeks(supabase);
-    revalidatePath("/stats/achievements");
+    revalidatePath("/stats/rankings");
     revalidatePath("/leden");
     revalidatePath("/profiel");
     return { ok: true as const, awarded: result.awarded };

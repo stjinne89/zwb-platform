@@ -42,7 +42,7 @@ const rows = [];
 for (let from = 0; ; from += PAGE) {
   const { data, error } = await supabase
     .from("training_ai_generations")
-    .select("id, adaptation_kind, parent_plan_id, prompt_summary, response_json, created_at")
+    .select("id, model, adaptation_kind, parent_plan_id, prompt_summary, response_json, created_at")
     .eq("status", "completed")
     .order("created_at", { ascending: true })
     .range(from, from + PAGE - 1);
@@ -63,7 +63,7 @@ for (const row of rows) {
   }
   if (!input?.goal || !row.response_json) continue;
   const kind = row.adaptation_kind ?? (row.parent_plan_id ? "bijwerking" : "nieuw_schema");
-  stream.write(`${JSON.stringify({ id: row.id, kind, createdAt: row.created_at, input, ai: row.response_json })}\n`);
+  stream.write(`${JSON.stringify({ id: row.id, model: row.model, kind, createdAt: row.created_at, input, ai: row.response_json })}\n`);
   written += 1;
 }
 stream.end();

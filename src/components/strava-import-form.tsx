@@ -9,7 +9,7 @@ import {
   finishMyStravaImport,
   importMyStravaFiles,
   syncMyBlocks,
-} from "@/app/(app)/stats/achievements/_actions";
+} from "@/app/(app)/stats/rankings/_actions";
 
 type State =
   | { kind: "idle" }

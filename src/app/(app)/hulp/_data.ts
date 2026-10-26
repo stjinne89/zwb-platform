@@ -147,11 +147,24 @@ export const GUIDES = [
     ],
   },
   {
+    id: "rankings",
+    icon: Trophy,
+    title: "ZWB Rankings",
+    bullets: [
+      "Alle ritten tellen mee, of ze nu via Strava, intervals.icu of een import binnenkwamen. Een rit die twee keer binnenkwam telt één keer.",
+      "Per week: Zitvleeskampioen (meeste uren), Kilometervreter, Klimmer van de week (hoogtemeters), Meest actief (ritten), Lange adem (langste rit in tijd), Buitenbeentje (kilometers buiten) en Binnenvetter (uren op de rollenbank).",
+      "Over vier weken: Metronoom (op hoeveel dagen je fietste), Clubmens (events waar je ja op zei, plus de dagen dat je live meereed via Samen fietsen) en Groeibriljant (hoeveel punten je ZWBriljant-steen erbij kreeg).",
+      "Groeibriljant toont alleen leden die hun ZWBriljant-steen delen. Verberg je je steen, dan sta je er niet in en zie je de lijst niet.",
+      "Je ziet de top 3 en je eigen plek. Tik op een lijst voor de hele ranglijst.",
+      "De winnaars van Zitvleeskampioen, Kilometervreter, Klimmer van de week en Meest actief krijgen na afloop van de week een weekbadge.",
+    ],
+  },
+  {
     id: "badges",
     icon: Medal,
     title: "Badges en achievements",
     bullets: [
-      "Weekbadges komen uit gesyncte Strava-ritten.",
+      "Weekbadges en milestonebadges komen uit je ritten: via Strava, intervals.icu of een import.",
       "Krijg je een melding over activiteitenrecht? Koppel Strava opnieuw en zet het vinkje voor activiteiten aan.",
       "Geen plek voor Strava? Laat je ritten binnenkomen via intervals.icu (zie Ritten via intervals.icu), of importeer op het dashboard je historie (activities.csv) of ritten met spoor (GPX of FIT).",
       "Het aantal Strava-koppelingen is beperkt. Ben je 90 dagen niet in de app geweest, dan vervalt je koppeling; twee weken vooraf krijg je een melding.",
@@ -167,7 +180,7 @@ export const GUIDES = [
     bullets: [
       "ZWB herkent cols en segmenten automatisch uit je Strava-ritten.",
       "Je recordtijd komt rechtstreeks van Strava; per segment zie je de ZWB-ranglijst.",
-      "Nieuw record niet zichtbaar? Klik op Achievements op 'Badges herberekenen'. Recordtijden haalt de knop één keer per dag bij Strava op.",
+      "Nieuw record niet zichtbaar? Klik op ZWB Rankings op 'Badges herberekenen'. Recordtijden haalt de knop één keer per dag bij Strava op.",
     ],
   },
   {
@@ -279,7 +292,7 @@ export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/teams", name: "Teams", text: "Teams, rosters en ZRL-/Ladder-standen, inclusief de TTT-planner." },
   { href: "/src", name: "Sunday Race Club", text: "Je SRC-team per maand en per zondag wie er kan, per categorie." },
   { href: "/leden", name: "Leden", text: "Ledenlijst met categorie en badges; filter op regio of categorie." },
-  { href: "/stats/achievements", name: "Achievements", text: "Al je badges, de weekstanden van deze en vorige week en het herberekenen van badges." },
+  { href: "/stats/rankings", name: "ZWB Rankings", text: "De ranglijsten van deze en vorige week, de Hall of fame en het herberekenen van badges." },
   { href: "/zwbeter-worden", name: "ZWBeter Worden", text: "Schema's, AI-coach, je ZWBeterWorden-advies, belasting en de koppelingen." },
   { href: "/zwbeter-worden/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
   { href: "/zwbeter-worden/racen", name: "ZWBeter racen", text: "Je gereden Zwift-races (ZRL, FRR of via een geplakte link): tips, de ploeg of je eigen race, en je rit uit intervals.icu. Onder Kennisbank: tactiek in een Zwift-race, met bronnen." },
