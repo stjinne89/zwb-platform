@@ -11416,7 +11416,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Doeltijd: welke klasse van je steen de tijd vraagt
 
-**2026-10-26.** Lokaal gecommit, niet gepusht. Geen migratie: de eisen gaan in de
+**2026-10-26.** Commit `ad492698`, lokaal, niet gepusht. Geen migratie: de eisen gaan in de
 bestaande jsonb-kolom `training_goal_forecasts.detail`.
 
 **Waarom.** Wens van de eigenaar: JOIN zegt met de JOINscore of je getraind genoeg
