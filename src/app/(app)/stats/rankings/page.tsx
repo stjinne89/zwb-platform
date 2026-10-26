@@ -14,7 +14,6 @@ import {
   formatKm,
   formatMeters,
   groeibriljant,
-  LONG_WEEKS,
   metronoom,
   weekRankings,
   type ClubEventRsvp,
@@ -139,17 +138,16 @@ export default async function RankingsPage({
   const week = showPrevious ? previousAchievementWeek() : currentAchievementWeek();
   const weekLabel = showPrevious ? "vorige week" : "deze week";
   const nextWeek = addWeeks(week, 1);
-  const longFrom = addWeeks(week, 1 - LONG_WEEKS);
 
   const [user, access] = await Promise.all([getRequestUser(), getRequestAccess()]);
   const [rides, rsvps, { data: liveRows }, snapshots, { data: awardRows }] =
     await Promise.all([
-      loadRides(supabase, longFrom, nextWeek),
-      loadClubEventRsvps(supabase, longFrom, nextWeek),
+      loadRides(supabase, week, nextWeek),
+      loadClubEventRsvps(supabase, week, nextWeek),
       supabase
         .from("live_sessions")
         .select("profile_id, started_at, last_seen_at, ended_at")
-        .gte("started_at", `${longFrom}T00:00:00.000Z`)
+        .gte("started_at", `${week}T00:00:00.000Z`)
         .lt("started_at", `${nextWeek}T00:00:00.000Z`),
       user ? loadGrowthSnapshots(supabase, user.id, week) : Promise.resolve([]),
       supabase
@@ -258,10 +256,13 @@ export default async function RankingsPage({
         {rankings.map((ranking) => (
           <RankingCard
             key={ranking.id}
-            ranking={{ id: ranking.id, title: ranking.title, icon: ranking.icon, span: ranking.span }}
-            entries={ranking.entries.map((entry) => ({
-              ...entry,
-              name: names.get(entry.profileId) ?? "ZWB'er",
+            ranking={{ id: ranking.id, title: ranking.title, icon: ranking.icon }}
+            views={(ranking.views ?? [{ label: "", entries: ranking.entries }]).map((view) => ({
+              label: view.label,
+              entries: view.entries.map((entry) => ({
+                ...entry,
+                name: names.get(entry.profileId) ?? "ZWB'er",
+              })),
             }))}
             viewerId={user?.id ?? null}
           />

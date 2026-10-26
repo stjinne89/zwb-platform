@@ -13,6 +13,7 @@ import {
   Timer,
   Users,
 } from "lucide-react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { MemberLink } from "@/components/member-link";
 import type { Ranking, RankingEntry, RankingIcon } from "@/lib/rankings/rankings";
@@ -68,20 +69,53 @@ function Row({ entry, own, link }: { entry: NamedEntry; own: boolean; link?: boo
   );
 }
 
+/** Kilometers of uren: boven de knop die de lijst opent, dus een eigen laag. */
+function ViewToggle({
+  views,
+  active,
+  onChange,
+}: {
+  views: Array<{ label: string }>;
+  active: number;
+  onChange: (index: number) => void;
+}) {
+  return (
+    <div className="relative z-10 flex shrink-0 rounded-full border p-0.5 text-xs">
+      {views.map((view, index) => (
+        <button
+          key={view.label}
+          type="button"
+          aria-pressed={index === active}
+          onClick={() => onChange(index)}
+          className={cn(
+            "rounded-full px-2.5 py-0.5",
+            index === active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {view.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Eén ranglijst: de top 3 in goud, zilver en brons, en je eigen plek eronder als
- * je er niet bij staat. Tikken opent de hele lijst.
+ * je er niet bij staat. Tikken opent de hele lijst. Met meer weergaven (km en
+ * uren) een schakelaar, die in de kaart en de lijst dezelfde stand heeft.
  */
 export function RankingCard({
   ranking,
-  entries,
+  views,
   viewerId,
 }: {
-  ranking: Pick<Ranking, "id" | "title" | "icon" | "span">;
-  entries: NamedEntry[];
+  ranking: Pick<Ranking, "id" | "title" | "icon">;
+  views: Array<{ label: string; entries: NamedEntry[] }>;
   viewerId: string | null;
 }) {
+  const [active, setActive] = useState(0);
   const Icon = ICONS[ranking.icon];
+  const entries = views[active]?.entries ?? [];
   const top = entries.slice(0, 3);
   const ownIndex = entries.findIndex((entry) => entry.profileId === viewerId);
   const own = ownIndex >= 3 ? entries[ownIndex] : null;
@@ -90,18 +124,17 @@ export function RankingCard({
     <span className="flex items-center gap-2 font-semibold">
       <Icon className="size-4 text-primary" />
       {ranking.title}
-      {ranking.span !== "week" && (
-        <span className="rounded-full border px-2 py-0.5 text-[0.6875rem] font-normal text-muted-foreground">
-          {ranking.span}
-        </span>
-      )}
     </span>
   );
+  const toggle = views.length > 1 && <ViewToggle views={views} active={active} onChange={setActive} />;
 
   return (
     <Dialog>
-      <section className="relative flex flex-col rounded-md border bg-card transition has-[button:hover]:border-primary/60">
-        <h2 className="border-b px-4 py-3">{heading}</h2>
+      <section className="relative flex flex-col rounded-md border bg-card transition has-[[data-slot=dialog-trigger]:hover]:border-primary/60">
+        <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
+          <h2>{heading}</h2>
+          {toggle}
+        </div>
         {entries.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Nog niemand.</p>
         ) : (
@@ -128,8 +161,9 @@ export function RankingCard({
         )}
       </section>
       <DialogContent className="p-0">
-        <DialogHeader className="border-b px-4 py-3 pr-10">
+        <DialogHeader className="mb-0 flex-row items-center justify-between gap-2 border-b px-4 py-3 pr-12">
           <DialogTitle>{heading}</DialogTitle>
+          {toggle}
         </DialogHeader>
         <ol className="divide-y">
           {entries.map((entry) => (

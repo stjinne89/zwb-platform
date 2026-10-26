@@ -11670,6 +11670,54 @@ doorrekening op Spiral Summit is een tijdelijk script geweest en niet bewaard.
 **Niet geverifieerd:** de lijst op productie na "Fietsen ophalen", en het blok in
 de app.
 
+### Gewijzigd — ZWB Rankings: alle ranglijsten per week
+
+**2026-10-26.** Commit `ecf04cb4`. Geen migratie. Niet gepusht.
+
+**Waarom.** Metronoom, Clubmens en Groeibriljant gingen over vier weken; de
+eigenaar wil alles per week. Er komt elke maandag een nieuwe ZWBriljant-steen
+(weekstenen sinds 2026-10-19), dus de groei kan tegen die van vorige week, ook
+al is het verschil klein.
+
+**Wat.**
+- Metronoom (dagen gefietst) en Clubmens (events met ja en live-dagen) tellen
+  alleen de gekozen week. Bij gelijke stand blijft de plek gedeeld; de volgorde
+  binnen de stand gaat op uren (Metronoom) of events (Clubmens).
+- `briljantGrowth` vergelijkt de steen van de week met die van de week ervoor;
+  zonder steen in beide weken doe je niet mee, alleen groei telt. In punten, zoals
+  op de steen (0,1 op de score is 10 punten). `loadGrowthSnapshots` haalt alleen
+  die twee weken op.
+- Het label "4 weken" en `LONG_WEEKS` zijn weg. Hulp en privacy (`/privacy`:
+  "sinds vorige week" in plaats van "in vier weken") zeggen het mee.
+- Gevolg: "Vorige week" (week van 19 oktober) heeft voor Groeibriljant nog geen
+  vergelijking, want van 12 oktober is er geen steen; vanaf volgende week wel.
+
+**Gecontroleerd.** Vitest (`rankings.test.ts`: groei week op week, overslaan
+zonder steen in een van beide weken), `tsc` (alleen de bekende ontbrekende
+pakketten), ESLint. Productie gelezen: van de 26 leden met een steen op 19 en 26
+oktober gingen er 18 omhoog, hooguit 114 punten.
+**Niet geverifieerd:** in de browser.
+
+### Gewijzigd — ZWB Rankings: Buitenbeentje en Binnenvetter in km of uren
+
+**2026-10-26.** Commit `d5fd8740`. Geen migratie. Niet gepusht.
+
+**Waarom.** De eigenaar: Buitenbeentje stond in km en Binnenvetter in uren;
+beide moeten in allebei te bekijken zijn.
+
+**Wat.** `WeekScore` telt nu ook buitenuren en rollenbank-km (`indoorM`,
+`outdoorSeconds`). Een ranglijst kan `views` hebben (`lib/rankings/rankings.ts`);
+Buitenbeentje opent in km, Binnenvetter in uren. De kaart heeft rechtsboven een
+schakelaar km | uren, boven de knop die de hele lijst opent; de dialoog toont
+dezelfde schakelaar met dezelfde stand. `/hulp/club#rankings` noemt het.
+
+**Bewust niet.** Geen onthouden keuze per lid: de schakelaar begint elke keer
+op de standaard.
+
+**Gecontroleerd.** Vitest (`rankings.test.ts`: beide weergaven, volgorde en
+waarden), `tsc` (alleen de bekende ontbrekende pakketten), ESLint.
+**Niet geverifieerd:** de schakelaar in de browser.
+
 ### Gebouwd — ZWB Rankings in plaats van Achievements
 
 **2026-10-26.** Commit `69256778`, gepusht naar `main` op 2026-10-26 (eigenaar).
@@ -11696,14 +11744,17 @@ de meeste uren, meer ranglijsten, en lijstjes met alleen de top 3.
   dubbele ritten één keer (`uniqueRides`):
   - per week: Zitvleeskampioen, Kilometervreter, Klimmer van de week, Meest
     actief, **Lange adem** (langste rit in tijd), **Buitenbeentje**
-    (buiten-km), **Binnenvetter** (rollenbankuren);
+    (buiten-km), **Binnenvetter** (rollenbankuren); *sinds de ronde hierboven
+    allebei met een schakelaar km/uren;*
   - over de gekozen week en de drie ervoor: **Metronoom** (dagen gefietst,
     Nederlandse tijd), **Clubmens** (events met "ja" die al begonnen, plus dagen
     met een live-rit van minstens 20 minuten via Samen fietsen; een live-rit op
     een eventdag telt niet apart) en **Groeibriljant** (punten erbij op de
     ZWBriljant-steen: laatste steen van hooguit twee weken oud tegen de laatste
     die minstens vier en hooguit negen weken eerder ligt, `briljantGrowth` in
-    `lib/briljant/compare.ts`; alleen groei).
+    `lib/briljant/compare.ts`; alleen groei). *Niet meer zo: sinds de ronde
+    "Alle ranglijsten per week" gaan ook deze drie over één week, en vergelijkt
+    Groeibriljant de steen van de week met die van de week ervoor.*
 - Groeibriljant leest met de sessie van het lid (`loadGrowthSnapshots`), dus RLS
   beslist: alleen wie deelt staat erin, en wie zijn steen verbergt ziet niemand.
   Je eigen stenen tellen alleen als je voorkeur zichtbaar staat, zoals anderen je zien.

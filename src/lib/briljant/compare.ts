@@ -237,63 +237,46 @@ export function compareLines(a: BriljantView, b: BriljantView, aName: string | n
   });
 }
 
-/** ZWB Rankings: de groei over zoveel weken. */
-export const GROWTH_WEEKS = 4;
-/** Is de laatste steen ouder dan dit, dan doet het lid niet mee. */
-const GROWTH_FRESH_WEEKS = 2;
-/** Het beginpunt ligt hooguit zoveel weken voor de laatste steen. */
-const GROWTH_BASE_WEEKS = 9;
-
 export type BriljantGrowth = {
   profileId: string;
   from: number;
   to: number;
   /** In punten, zoals op de steen. */
   growth: number;
-  fromWeek: string;
-  toWeek: string;
-};
-
-const weeksBefore = (week: string, weeks: number) => {
-  const date = new Date(`${week}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - weeks * 7);
-  return date.toISOString().slice(0, 10);
 };
 
 /**
- * Wie zijn score het meest zag stijgen: per lid de laatste steen (niet ouder dan
- * twee weken voor `currentWeek`) tegen de laatste steen die minstens GROWTH_WEEKS
- * eerder ligt. De terugblik bewaart één steen per maand, dus het beginpunt mag
- * tot negen weken terug liggen. Alleen groei; wie daalde, staat er niet in.
+ * ZWB Rankings: wie zijn score in `week` het meest zag stijgen ten opzichte van de
+ * week ervoor. Elke maandag komt er een nieuwe steen; zonder steen in beide weken
+ * doet het lid niet mee. Alleen groei; wie daalde, staat er niet in.
  */
 export function briljantGrowth(
   rows: Array<{ profile_id: string; week: string; facets: unknown; consistency: number | string | null }>,
-  currentWeek: string,
+  week: string,
 ): BriljantGrowth[] {
-  const byProfile = new Map<string, Array<{ week: string; score: number }>>();
+  const date = new Date(`${week}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - 7);
+  const previous = date.toISOString().slice(0, 10);
+
+  const scores = new Map<string, { from?: number; to?: number }>();
   for (const row of rows) {
+    if (row.week !== week && row.week !== previous) continue;
     const score = storedScore(
       (row.facets ?? {}) as StoredSnapshot["facets"],
       row.consistency == null ? null : Number(row.consistency),
     );
     if (score == null) continue;
-    const list = byProfile.get(row.profile_id) ?? [];
-    list.push({ week: row.week, score });
-    byProfile.set(row.profile_id, list);
+    const item = scores.get(row.profile_id) ?? {};
+    if (row.week === week) item.to = score;
+    else item.from = score;
+    scores.set(row.profile_id, item);
   }
 
   const result: BriljantGrowth[] = [];
-  for (const [profileId, list] of byProfile) {
-    list.sort((a, b) => b.week.localeCompare(a.week));
-    const latest = list[0];
-    if (!latest || latest.week < weeksBefore(currentWeek, GROWTH_FRESH_WEEKS)) continue;
-    const latestBy = weeksBefore(latest.week, GROWTH_WEEKS);
-    const earliest = weeksBefore(latest.week, GROWTH_BASE_WEEKS);
-    const base = list.find((point) => point.week <= latestBy && point.week >= earliest);
-    if (!base) continue;
-    const growth = points(latest.score) - points(base.score);
-    if (growth <= 0) continue;
-    result.push({ profileId, from: base.score, to: latest.score, growth, fromWeek: base.week, toWeek: latest.week });
+  for (const [profileId, { from, to }] of scores) {
+    if (from == null || to == null) continue;
+    const growth = points(to) - points(from);
+    if (growth > 0) result.push({ profileId, from, to, growth });
   }
   return result.sort((a, b) => b.growth - a.growth);
 }

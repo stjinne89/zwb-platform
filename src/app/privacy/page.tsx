@@ -490,7 +490,7 @@ export default function PrivacyPage() {
             minstens één keer per week, en je Racing Score één keer per week. Alle goedgekeurde leden zien standaard je laatste score,
             je punten per onderdeel en je consistentie (geen metingen) en kunnen
             die naast hun eigen steen zetten. Op ZWB Rankings zien zij ook hoeveel
-            punten je score in vier weken steeg, met je score van toen en van nu
+            punten je score sinds vorige week steeg, met je score van toen en van nu
             (Groeibriljant). Wil je dat niet, zet dan
             &ldquo;Mijn ZWBriljant-steen delen met leden&rdquo; in je profiel uit:
             dan is je steen meteen voor niemand anders meer te zien, en zie je
