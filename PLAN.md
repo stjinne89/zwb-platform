@@ -11388,7 +11388,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gewijzigd — ZWBriljant: volhouden vol na twaalf weken, naleving voor iedereen
 
-**2026-10-26.** Commit `COMMIT_HASH`, op `claude/consistency-calculation-question-359fa2`;
+**2026-10-26.** Commit `e2a1b8e7`, op `claude/consistency-calculation-question-359fa2`;
 niet gepusht. Geen migratie.
 
 **Waarom.** Vraag van de eigenaar: veertien weken op rij volgens zijn schema gaf
