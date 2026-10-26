@@ -313,6 +313,19 @@ export type RecentRideShape = {
   avgDurationMinutes: number;
   /** De langste rit in het venster; wat het lid nu aan één stuk aankan. */
   longestRideMinutes: number;
+  /**
+   * Belasting (TSS) per week, over de ritten waarvan die bekend is; null als
+   * geen enkele rit een TSS heeft. Uren zeggen niet wat het lid aankan: een uur
+   * Zwift-workout is een ander uur dan een uur toeren met de club.
+   */
+  tssPerWeek: number | null;
+  /** Deel van de rijtijd met een bekende TSS, 0-1. Laag: tssPerWeek is te laag. */
+  loadCoverage: number;
+  /** Uren per week binnen (Zwift, trainer). */
+  indoorHoursPerWeek: number;
+  /** TSS per uur binnen en buiten; null zonder ritten met TSS aan die kant. */
+  indoorTssPerHour: number | null;
+  outdoorTssPerHour: number | null;
 };
 
 export function summarizeRecentRides(
@@ -320,6 +333,9 @@ export function summarizeRecentRides(
     moving_time_seconds?: unknown;
     distance_m?: unknown;
     total_elevation_gain_m?: unknown;
+    /** TSS van de rit, als die te berekenen is (zie rideMetricsFromStrava). */
+    tss?: number | null;
+    indoor?: boolean;
   }>,
   days: number,
 ): RecentRideShape {
@@ -332,6 +348,10 @@ export function summarizeRecentRides(
   // duur zou anders "tien ritten van nul minuten" heten, en daar zou de planner
   // zijn sessielengte op afstemmen.
   let timed = 0;
+  let indoorSeconds = 0;
+  let tssTotal = 0;
+  let tssRides = 0;
+  const loaded = { indoor: { seconds: 0, tss: 0 }, outdoor: { seconds: 0, tss: 0 } };
 
   for (const ride of rides) {
     const moving = Number(ride.moving_time_seconds ?? 0);
@@ -339,6 +359,15 @@ export function summarizeRecentRides(
       seconds += moving;
       timed += 1;
       if (moving > longestSeconds) longestSeconds = moving;
+      if (ride.indoor) indoorSeconds += moving;
+      const tss = Number(ride.tss);
+      if (ride.tss != null && Number.isFinite(tss) && tss >= 0) {
+        const side = ride.indoor ? loaded.indoor : loaded.outdoor;
+        side.seconds += moving;
+        side.tss += tss;
+        tssTotal += tss;
+        tssRides += 1;
+      }
     }
     distanceKm += Number(ride.distance_m ?? 0) / 1000;
     elevationM += Number(ride.total_elevation_gain_m ?? 0);
@@ -346,6 +375,9 @@ export function summarizeRecentRides(
 
   const weeks = days > 0 ? days / 7 : 1;
   const round1 = (value: number) => Math.round(value * 10) / 10;
+  const perHour = (side: { seconds: number; tss: number }) =>
+    side.seconds > 0 ? Math.round(side.tss / (side.seconds / 3600)) : null;
+  const loadedSeconds = loaded.indoor.seconds + loaded.outdoor.seconds;
 
   return {
     activities: rides.length,
@@ -356,5 +388,10 @@ export function summarizeRecentRides(
     ridesPerWeek: round1(rides.length / weeks),
     avgDurationMinutes: timed > 0 ? Math.round(seconds / 60 / timed) : 0,
     longestRideMinutes: Math.round(longestSeconds / 60),
+    tssPerWeek: tssRides > 0 ? Math.round(tssTotal / weeks) : null,
+    loadCoverage: seconds > 0 ? Math.round((loadedSeconds / seconds) * 100) / 100 : 0,
+    indoorHoursPerWeek: round1(indoorSeconds / 3600 / weeks),
+    indoorTssPerHour: perHour(loaded.indoor),
+    outdoorTssPerHour: perHour(loaded.outdoor),
   };
 }

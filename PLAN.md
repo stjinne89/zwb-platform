@@ -10054,7 +10054,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > volledige rustdag herstelt beter. **Nu:** bij opbouwen en bijwerken van een schema
 > plant de AI geen losse hersteltraining onder 90 min maar een lege dag (rustdag).
 > Daarop mag het lid naar keus tot 90 min zonder intensiteit fietsen (Z1 tot lage
-> Z2); die optionele rit telt niet mee in het weekvolume of het 85%-piekweekdoel,
+> Z2); die optionele rit telt niet mee in het weekvolume of het 85%-piekweekdoel (dat doel
+> vervalt op 2026-10-26; nu: niet in de weekbelasting),
 > en de dag-aanpassing behandelt zo'n rit niet als extra belasting. Een rustdag telt
 > als rijdag voor de ritmeregel. Korte duurritten (bijv. 60 min Z2 bij weinig tijd)
 > en openers vóór een race of test blijven: dat is training, geen herstel. Vangnet
@@ -11130,7 +11131,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   beweegt mee met het lid in plaats van één keer gegenereerd te blijven
   (`root_plan_id`, `adaptation_kind`, `origin`, `event_id`). De maand is de
   ingang; aanpassen blijft bij de trainer. Het schema bouwt naar het
-  urenplafond toe in plaats van eronder te blijven hangen, een taper komt alleen
+  urenplafond toe in plaats van eronder te blijven hangen (sinds 2026-10-26 niet
+  meer: het stuurt op belasting uit de CTL, de uren zijn alleen een grens), een taper komt alleen
   bij een doel met één piekdag, en een clubevent komt pas in het schema als het
   lid ja zegt. Beschikbaarheid per week in `training_availability` (migr. `0115`).
   **Die weekbeschikbaarheid werd tot 2026-08-20 alleen opgeslagen, niet gepland:**
@@ -11506,6 +11508,124 @@ intervals.icu-koppeling.
 
 **Niet geverifieerd:** de flow is niet in de app doorgeklikt (vraagt een ingelogd
 trainersaccount); alles volgt uit code en data.
+
+### Gewijzigd — Schema stuurt op belasting uit de CTL, beschikbaarheid is alleen tijd
+
+**2026-10-26.** Commit `970b8b22`. Geen migratie. Gepusht naar `main` op 2026-10-26. Onderzoek en
+cijfers: [docs/schema-belasting-2026-10-26.md](docs/schema-belasting-2026-10-26.md).
+
+Aanleiding: meerdere leden vonden de schema's te voorzichtig en vol duur. Gemeten
+in productie: 68 % van de geplande sessies was duur van gemiddeld 96 minuten, op
+41-47 TSS per uur, terwijl leden binnen 55-80 rijden. Bij de meeste leden lag de
+geplande weekbelasting op of onder CTL × 7. In een week met een race zakte het
+aantal sleutelsessies van de AI van 0,77 naar 0,22.
+
+**Besluit van de eigenaar (2026-10-26):** een lid geeft beschikbaarheid op, en
+die werd gelezen als `maxHoursPerWeek` waar de opbouw naartoe werkt. Dat was
+fout. Beschikbaarheid is de tijd die er is; wat het lid aankan volgt uit de CTL,
+verdeeld volgens de kennisbank (trainingsleer). Geen maximum aan het aantal
+sleutelsessies, zeker in de winter met meer binnen rijden.
+
+- **Invoer** (`buildRecentLoad` in `draft.ts`, `summarizeRecentRides` in
+  `ride-metrics.ts`). `recentLoad` krijgt `tssPerWeek`, `loadCoverage`,
+  `indoorHoursPerWeek`, `indoorTssPerHour` en `outdoorTssPerHour`. De TSS per rit
+  komt uit `rideMetricsFromStrava` met de FTP van de ritdag en de hartslagbasis,
+  zoals op de belastingpagina. Een dubbel opgenomen rit telt nu ook hier één keer
+  (`uniqueRides`). Uit `raw` komen alleen de vijf velden voor de TSS, niet de hele
+  payload, vanwege de egress. In productie had 88 % van de ritten van de laatste
+  28 dagen NP met een echte meter. Nieuw `currentLoad` (`load-basis.ts`): het hoogste van CTL × 7
+  en de gereden TSS per week, opgeschaald naar ritten zonder TSS; onder 50 %
+  dekking telt de gereden TSS niet. Gezet in het nieuwe schema, de bijwerking, de
+  dag-aanpassing en het dagvoorstel.
+- **Prompt** (`defaultTrainingPrompt`, en via die ook de bijwerking en de
+  dag-aanpassing). Weg: "werk toe naar `maxHoursPerWeek`", "piekweek ≥ 85 % van
+  het plafond", en `recentLoad.hoursPerWeek` als ondergrens (blijft alleen als
+  terugval zonder `currentLoad`). Nieuw: sturen op weekbelasting in TSS met de
+  formule per blok; nooit een opbouwweek onder `currentLoad.weeklyTss`; de CTL
+  volgen als ZWB ritten mist; past de belasting niet in de tijd, dan meer
+  dichtheid in plaats van meer uren; verdeling volgens de kennisbank
+  (intensiteitsverdeling, intervallen, rustige ritten); geen maximum aan
+  sleutelsessies, bij intermediate/advanced meestal minstens twee per
+  opbouwweek; een race vervangt de andere sleutelsessies niet; binnen korter en
+  dichter rond `indoorTssPerHour`. De ZRL-regel zegt nu "minstens één" prikkel.
+  De 10 %-groei en de grens van een kwart gaan nu over de weekbelasting.
+- **Meetlat** (`schema-check.ts`). `piekweek`, `onder-recente-belasting` en
+  `opbouwgroei` rekenen met geschatte TSS (`estimateTrainingLoad` per workout,
+  `loadForIntensity` voor vaste afspraken). De piek moet minstens 10 % boven
+  `currentLoad` liggen, de opbouwweek erboven (5 % marge voor de blok-som). Geen
+  oordeel als een week zijn beschikbare tijd al voor 95 % vult. Zonder
+  belastingsbron geen piekoordeel meer; de ondergrens valt dan terug op uren.
+  `docs/schema-meetlat.md` bijgewerkt.
+- **Hulp** (`/hulp/schema`, de vaste regels): "je uren per week zijn het volume
+  waar de zwaarste week naartoe werkt" wordt "de tijd die je hebt, geen doel";
+  de zwaarte volgt uit je CTL, en bij weinig tijd of binnen rijden worden
+  trainingen korter en intensiever. "Waar je schema op leunt" (`plan-basis.ts`)
+  zegt hetzelfde en toont de gereden TSS per week en per uur binnen en buiten.
+
+**Bewust niet gedaan.**
+- *Geen herziening voor alle lopende schema's* (besluit eigenaar, 2026-10-26).
+  De nieuwe regels komen organisch binnen: bij een nieuw schema, een bijwerking,
+  een volgend blok of een automatische herziening door de dagelijkse cron. Wat al
+  gepland staat, blijft tot dan zoals het was.
+- *De regelmotor.* Die plant nog in uren (`periodization.ts`) en haalt de nieuwe
+  `piekweek`- en `onder-recente-belasting` niet: in de testscenario's 225-317
+  TSS tegen 385 die het lid aankan. De motortest slaat die twee regels nu over
+  (`tests/unit/engine/index.test.ts`). De motor draait alleen ter vergelijking, dus
+  leden merken het niet, maar de vergelijkingspagina telt die fouten wel.
+- *Geen eigen CTL uit Strava* voor leden zonder intervals.icu (8 van de 39 nieuwe
+  schema's). Voor hen telt alleen de gereden TSS van 28 dagen.
+- *Geen vaste verdeling in procenten.* De kennisbank zegt dat gepolariseerd en
+  piramidaal even goed werken; de prompt kiest per renner.
+- *Ritten met `training_excluded_at` tellen gewoon mee.* Die horen bij geen
+  training, maar zijn wel gereden.
+- *De regel "geen hersteltraining onder 90 minuten" blijft.* Hij maakt sessies
+  langer, maar korte duurritten en kwaliteit mogen al.
+
+**Niet meer waar.** Eerdere rondes noemen "piekweek ≥ 85 % van het plafond" en
+"het schema bouwt naar het urenplafond toe". Dat geldt sinds deze ronde niet meer
+voor de AI; de regelmotor doet het nog wel.
+
+**Getest.** Nieuw `load-basis` (CTL × 7, gereden TSS opgeschaald, terugval bij
+ontbrekende ritten, te lage dekking). `ride-metrics`: TSS per week en per uur,
+binnen en buiten apart. `training-prompts`: geen 85 %, sturen op belasting, geen
+maximum aan sleutelsessies, race vervangt niets, binnen dichter. `training-schema-check`:
+piek en ondergrens op TSS, dezelfde tijd met sweet spot haalt wat duur niet haalt,
+de tijd begrenst bij een volle week, geen piekoordeel zonder bron, de groeigrens in
+belasting. Alle trainingstests slagen (262, met `training-preferences`). De volledige suite: drie fouten buiten
+deze ronde (`omnium-live` mist `.env.local` in de worktree, een timeout in
+`admin-areas`, routedata in `race-links` en `zwift-route`). `tsc` alleen de bekende
+fout op `modern-screenshot`; ESLint schoon op de gewijzigde bestanden.
+**Niet getest:** een echte generatie met de nieuwe prompt, en of het model de
+TSS-sommen per week goed maakt. Dat blijkt pas uit de volgende schema's; de
+meetlat laat het zien.
+
+### Hersteld — ZWBriljant: terugblik rekent met het gewicht van toen
+
+**2026-10-26.** Commit `66999765`. Geen migratie. Gepusht naar `main` op 2026-10-26.
+
+**Waarom.** De terugblik zocht het gewicht alleen in de wellness van precies het
+maandeinde (`byDay.get(end)`). Wie zich die dag niet woog, kreeg voor die maand het
+huidige profielgewicht, ook als er een paar dagen eerder een weging in intervals.icu
+stond. Wie sindsdien afviel, kreeg zo te hoge historische W/kg (en omgekeerd), ook
+in de kJ/kg van durability. Vraag van de eigenaar.
+
+**Nu.** `weightOnOrBefore` (`snapshot.ts`) neemt per maand de laatste weging in de
+wellness op of vóór het maandeinde. Pas als er tot dan nog niets gewogen is, geldt de
+bestaande terugval: profiel, laatste gewicht in intervals.icu, Zwift. Waar
+intervals.icu in de curve zelf W/kg meegeeft, gaat die nog steeds voor.
+`TERUGBLIK_SPAN` werd `alles-gewicht-tss-p25-naleving-weging`, zodat elke terugblik
+opnieuw wordt gemaakt; de gevonden ZRS van vroeger blijft staan.
+
+**Bewust niet gedaan.** Voor maanden vóór de eerste weging niet de eerste weging
+gebruiken (die ligt dichter bij toen): de eigenaar koos voor terugvallen op het
+huidige gewicht. De weeksteen blijft zoals hij was (profiel eerst).
+
+**Getest.** `briljant-snapshot` (laatste weging tot de dag, lege en nulwaarden,
+volgorde maakt niet uit), alle ZWBriljant-tests, ESLint; `tsc` alleen de bekende
+fout op `modern-screenshot`. **Niet nagekeken:** of intervals.icu bij de maandcurves
+W/kg meestuurt, en hoeveel maanden er nu anders uitkomen; snapshots bewaren geen
+gewicht. Na een nieuwe span krijgt de ZRS-historie in de job een tijd weinig budget
+(zie de ronde "ZRS van vroeger per race bewaard").
 
 ### Gebouwd — ZWBeter voeden: zweettest en vochtdoel
 
@@ -13192,7 +13312,8 @@ er wel, maar er was nergens een gewicht, dus geen W/kg; met twee onderdelen teld
 - **Gewicht:** zonder gewicht in ZWB het laatste gewicht uit intervals.icu (wellness, 90
   dagen), anders het Zwift-gewicht via het serviceaccount (`fetchZwiftWeightKg`, niet
   bewaard). Ontbrekende W/kg in het powerprofiel worden uit de curve berekend. De terugblik
-  gebruikt per maand het gewicht van die dag, anders dezelfde terugval.
+  gebruikt per maand het laatste gewicht tot het maandeinde (sinds 2026-10-26; eerst alleen
+  dat van die dag), anders dezelfde terugval.
 - **Basisregel:** een steen pas vanaf vier onderdelen (`MIN_FACETS_FOR_SCORE`, was twee).
 - **Tegel op Vandaag:** helemaal in de kleur van de klasse, met donkere of lichte tekst naar
   de helderheid, en "nog N tot <klasse>".
@@ -17127,7 +17248,7 @@ controle moet straks AI- en motorschema's naast elkaar beoordelen
   (availability.ts), `shiftDays`/`daysBetween`/`REBUILD_AFTER_REST_DAYS`
   (season.ts) en `normalizeWorkoutBlocks`/`alignBlockIntensity`/`alignWorkoutIntensities`/
   `powerRangePercentForBlock`/`OPTIONAL_REST_RIDE_MINUTES` (workouts.ts). Zeventien
-  regels: beschikbaarheid, vaste afspraken, weekplafond, piekweek ≥ 85%, groei ≤ 25%,
+  regels: beschikbaarheid, vaste afspraken, weekplafond, piekweek ≥ 85% (sinds 2026-10-26 in TSS tegen CTL × 7), groei ≤ 25%,
   herstelweek, niet onder recentLoad, blok- en workoutintensiteit, drempelblokken,
   boven FTP, korte herstelrit, rustdag als workout, taper zonder piek, sleutelsessies
   op rij, sleutelsessie vóór race, plus ongeldige datum. Drempels en de gekozen

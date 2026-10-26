@@ -47,6 +47,7 @@ import {
   shiftDay,
   snapshotFrom,
   terugblikRows,
+  weightOnOrBefore,
   type CurvePoint,
   type PlannedWorkout,
   type RideDay,
@@ -70,11 +71,12 @@ const TERUGBLIK_FALLBACK_MONTHS = 12;
  * kJ-stand in plaats van het gemiddelde, en sinds 2026-10-23 durability als P25 over
  * 1 tot 20 minuten met een plafond op Diamant (eigenaar), en sinds 2026-10-25 de
  * consistentie met ritten op de trainingsdag in de naleving en een norm die niet
- * meer op 0 valt. Een terugblik met
+ * meer op 0 valt, en sinds 2026-10-26 het laatste gewicht tot het maandeinde in
+ * plaats van alleen dat van de dag zelf. Een terugblik met
  * een andere waarde wordt bij het volgende bezoek of door de job opnieuw gemaakt;
  * de ZRS van vroeger die de job al vond, blijft staan.
  */
-export const TERUGBLIK_SPAN = "alles-gewicht-tss-p25-naleving";
+export const TERUGBLIK_SPAN = "alles-gewicht-tss-p25-naleving-weging";
 /** PostgREST geeft hooguit zoveel rijen per vraag. */
 const PAGE = 1000;
 /** Zoveel weken terug voor de norm (mediaan) en de reeks. */
@@ -542,7 +544,7 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
   const loads = loadsFrom(wellness);
   // Racen: de ZRS van toen als die bekend is (zie hieronder), anders die van nu.
   const zwiftId = zwiftIdOf(p?.zwift_id ?? null);
-  // Een maand zonder gewicht: het profiel, het laatste gewicht in intervals.icu, of Zwift.
+  // Vóór de eerste weging in intervals.icu: het profiel, het laatste gewicht daar, of Zwift.
   const fallbackWeight =
     num(p?.weight_kg) ??
     latestWellnessValue(wellness, "weight") ??
@@ -563,7 +565,8 @@ export async function storeTerugblik(admin: Admin, profileId: string, today = am
 
   const rows = ends.map((end) => {
     const day = byDay.get(end);
-    const weightKg = num(day?.weight) ?? fallbackWeight;
+    // Het gewicht van toen: de laatste weging tot het maandeinde (eigenaar, 2026-10-26).
+    const weightKg = weightOnOrBefore(wellness, end) ?? fallbackWeight;
     const ctl = day && Number.isFinite(Number(day.ctl)) ? Number(day.ctl) : null;
     const input: BriljantInput = {
       sex: sexOf(p?.sex ?? null),

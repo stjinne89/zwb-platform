@@ -303,8 +303,8 @@ export function SchemaHelp() {
             <ul className="mt-1 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
               <li>
                 Opbouw in golven: twee tot vier opbouwweken, dan een
-                herstelweek op ongeveer 60 tot 70% van de week ervoor. Het
-                weekvolume groeit met ongeveer 10% per opbouwweek, zonder
+                herstelweek op ongeveer 60 tot 70% van de week ervoor. De
+                weekbelasting groeit met ongeveer 10% per opbouwweek, zonder
                 sprongen van meer dan een kwart. Die 10% is een voorzichtige
                 keuze, geen bewezen grens; zie{" "}
                 <Link href="/zwbeter-worden/kennis/opbouwen" className="underline">
@@ -313,10 +313,11 @@ export function SchemaHelp() {
                 .
               </li>
               <li>
-                Je uren per week zijn het volume waar de zwaarste week van een
-                blok naartoe werkt, niet een grens die je niet mag
-                overschrijden. Een opbouwweek komt niet onder wat je nu al
-                rijdt.
+                Je uren per week zijn de tijd die je hebt, geen doel. Hoe zwaar
+                een week wordt, volgt uit je fitheid (CTL): een opbouwweek komt
+                niet onder de belasting die je nu aankan. Heb je weinig tijd of
+                rijd je vooral binnen, dan worden de trainingen korter en
+                intensiever in plaats van langer.
               </li>
               <li>
                 Lichter wordt het alleen bij een signaal van overbelasting: een
