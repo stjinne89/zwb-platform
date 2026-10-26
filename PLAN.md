@@ -11450,6 +11450,35 @@ en los hiervan: `omnium-live` (mist `.env.local`), `zwift-route` (Spiral
 Summit) en `race-links` (ZwifterBikes); `admin-areas` liep in de volle run uit
 de tijd en slaagt los. `npm run build` niet gedraaid.
 
+### Gebouwd — Melding "Nieuw in ZWBeter trainen"
+
+**2026-10-26.** Commit `969d3c5d`, gepusht naar `main` op 2026-10-26 (eigenaar),
+samen met de ronde sportvoeding hierboven. Geen migratie.
+
+**Waarom.** De eigenaar wilde leden in één pop-up laten weten wat er in ZWBeter
+trainen veranderde. Tekst goedgekeurd door de eigenaar; drie punten: het schema
+volgt de belasting uit de CTL (ronde "Schema stuurt op belasting"), de nieuwe
+AI-coach op Claude (ronde "Overstap naar Claude"), en zelf je schema maken bij
+je doel (ZWBeter Worden ronde 3).
+
+**Wat er is.** `TrainingNoticeDialog` in de app-layout (beide designs), naast
+de durability-melding en nooit boven op de privacy- of Zwift-ID-vraag. Na twee
+seconden, alleen als er geen andere dialoog openstaat, vraagt hij met
+`usesZwbeterTraining` na of het lid een doel of schema heeft (dezelfde check
+als het weekoverzicht). Gezien onthoudt de browser (`localStorage`, sleutel
+`zwb-nieuw-zwbeter-trainen-2026-10`); vanaf 1 december 2026 verschijnt hij niet
+meer.
+
+**Bewust niet.**
+- Het punt "Alleen wat klaar is" (concepten verborgen, wijzigingen vanzelf naar
+  intervals.icu): de eigenaar liet het weg.
+- Gezien per account in de database: per apparaat volstaat en vraagt geen
+  migratie. Wie op twee apparaten kijkt, ziet hem twee keer.
+- Geen algemeen nieuwsmechanisme; dit is één melding met een einddatum.
+
+**Getest.** `tsc` en ESLint. **Niet bekeken in de browser**: lokaal kan dat niet
+zonder in te loggen, en de voorbeeldpagina heeft er geen scherm voor.
+
 ### Gebouwd — Overstap naar Claude klaar (AI_PROVIDER)
 
 **2026-10-26.** Gepusht naar `main` op 2026-10-26 (op verzoek van de eigenaar;
@@ -11529,9 +11558,15 @@ Na het toepassen van de migratie: het opdrachtenpad lokaal van begin tot eind
 aangemaakt, uitgevoerd en opgehaald in 7,6 s, `request` daarna leeg; de testrij
 is weer verwijderd.
 
-**Niet getest.** De achtergrondfunctie op Netlify naast de Next.js-site, en of
-`URL` in de functie-env van Next staat (anders `NEXT_PUBLIC_SITE_URL`). Dat
-blijkt pas na de deploy (runbook §9, stap 4).
+**Na de deploy (2026-10-26, 11:33).** `/privacy` noemt Anthropic, de
+achtergrondfunctie antwoordt 202 op een aanroep met een nep-id, en een
+onbekende functie geeft 404 in plaats van een 307 naar `/login` (de
+middleware slaat `/.netlify/` dus over).
+
+**Niet getest.** Een echte opdracht in productie: om 11:35 stond er nog geen rij
+in `ai_jobs`. Of `URL` in de functie-env van Next staat (anders
+`NEXT_PUBLIC_SITE_URL`) blijkt pas bij de eerste coachvraag of dagaanpassing
+(runbook §9, stap 4).
 
 ### Gemeten — Claude als vervanger van OpenAI: naspelen op eigen generaties
 

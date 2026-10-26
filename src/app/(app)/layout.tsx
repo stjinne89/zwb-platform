@@ -16,6 +16,7 @@ import { NavProgress } from "./_components/nav-progress";
 import { PrivacyConsentDialog } from "./_components/privacy-consent-dialog";
 import { ZwiftIdDialog, type RosterClaim } from "./_components/zwift-id-dialog";
 import { DurabilitySetupDialog } from "./_components/durability-setup-dialog";
+import { TrainingNoticeDialog } from "./_components/training-notice-dialog";
 import { loadFatigueSetupIssue } from "@/lib/briljant/fatigue-setup";
 import {
   ADMIN_NAV,
@@ -108,6 +109,9 @@ export default async function AppLayout({
   const fatigueIssue =
     profile && !needsPrivacyConsent && !needsZwiftId ? await loadFatigueSetupIssue(supabase, user.id) : null;
   const durabilityDialog = fatigueIssue ? <DurabilitySetupDialog issue={fatigueIssue} /> : null;
+  // "Nieuw in ZWBeter trainen": zelf eenmalig per apparaat, nooit boven op de
+  // twee vragen hierboven. Of het lid ZWBeter gebruikt, vraagt hij zelf na.
+  const trainingNotice = profile && !needsPrivacyConsent && !needsZwiftId ? <TrainingNoticeDialog /> : null;
 
   // Het weekoverzicht: zondagavond tot en met woensdag, en nooit boven op een
   // van de twee vragen hierboven. Of er echt iets klaarstaat vraagt de launcher
@@ -159,6 +163,7 @@ export default async function AppLayout({
             {needsZwiftId && <ZwiftIdDialog claims={claims} />}
             {weekReview}
             {durabilityDialog}
+            {trainingNotice}
           </>
         }
       >
@@ -215,6 +220,7 @@ export default async function AppLayout({
       {needsZwiftId && <ZwiftIdDialog claims={claims} />}
       {weekReview}
       {durabilityDialog}
+      {trainingNotice}
     </div>
   );
 }
