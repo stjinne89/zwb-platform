@@ -11416,7 +11416,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Doeltijd: welke klasse van je steen de tijd vraagt
 
-**2026-10-26.** Commit `ad492698`, lokaal, niet gepusht. Geen migratie: de eisen gaan in de
+**2026-10-26.** Commit `ad492698`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie: de eisen gaan in de
 bestaande jsonb-kolom `training_goal_forecasts.detail`.
 
 **Waarom.** Wens van de eigenaar: JOIN zegt met de JOINscore of je getraind genoeg
@@ -11484,8 +11484,13 @@ geen eisen zonder steen). `goal-target-time.test.ts`: een prognose zonder eisen 
 verouderd. `tsc` schoon, ESLint schoon op de gewijzigde bestanden. Volle suite:
 3523 van 3525 groen; de twee rode (`admin-areas`, `intervals-ride-sync`) liepen
 onder volle belasting tegen de tijdslimiet en slagen los, en `omnium-live` mist
-`.env.local` in deze worktree. **Niet geverifieerd:** de kaart in de browser en de
-eerste herberekening op productie (inloggen en echte doelen nodig).
+`.env.local` in deze worktree. **In dev bekeken** (2026-10-26, tegen de
+productiedatabase): een testdoel van de eigenaar op de Marmotte 2027 met doeltijd
+8:30, rechtstreeks ingevoegd zodat er geen melding naar de trainers ging. De pagina
+rekende de prognose zelf (ambitieus, 329 W nodig, belasting 439 TSS) en toonde
+drempel Amethist 548 tegen Goud 387 en fitheid Amethist 527 tegen Platina 490.
+Daarna is het testdoel met zijn prognose verwijderd. **Niet geverifieerd:** de
+kaart op de live site na de deploy.
 
 ### Hersteld — Club Ladder-overzicht leest de echte opmaak van /summary
 
