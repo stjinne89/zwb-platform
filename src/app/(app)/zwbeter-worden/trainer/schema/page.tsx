@@ -19,6 +19,7 @@ import {
   dateValue,
   formAction,
   formatDayMonth,
+  paramString,
   timeValue,
 } from "../../_components/format";
 import type {
@@ -110,10 +111,14 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
   const reportsByWorkout = byWorkout((reportRows ?? []) as WorkoutReportRow[]);
 
   // Het schema dat "bijwerken" aanpast (loopt nu), en het schema dat standaard
-  // openklapt (het eerste niet-gearchiveerde).
+  // openklapt: het gevraagde (vanaf een net gemaakt concept), anders het eerste
+  // niet-gearchiveerde.
   const runningPlan = activePlan(plans);
   const updateDefaults = planUpdateDefaults(runningPlan, goals);
-  const openPlan = families.find((family) => family.root.status !== "archived")?.root;
+  const requestedPlan = paramString(((await searchParams) ?? {}).plan);
+  const openPlan =
+    families.find((family) => family.root.id === requestedPlan)?.root ??
+    families.find((family) => family.root.status !== "archived")?.root;
   const canPublish = viewer.access.has("training.publish_plans");
 
   const ftpTestState = await loadFtpTestState(viewer, athleteId);
@@ -222,6 +227,7 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
             families.map(({ root: plan, derived }) => (
               <CollapsibleCard
                 key={plan.id}
+                id={`schema-${plan.id}`}
                 title={plan.title}
                 subtitle={`${formatDayMonth(plan.start_date, false)} - ${formatDayMonth(plan.end_date, false)}`}
                 defaultOpen={plan.id === openPlan?.id}

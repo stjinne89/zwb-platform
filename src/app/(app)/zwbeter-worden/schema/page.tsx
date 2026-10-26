@@ -44,7 +44,12 @@ import {
   MemberWorkoutCalendar,
   type MemberCalendarItem,
 } from "../_components/member-calendar";
-import { byWorkout, formatDayMonth, paramString } from "../_components/format";
+import {
+  byWorkout,
+  formatDayMonth,
+  paramString,
+  publishStatusLabel,
+} from "../_components/format";
 import { PlanUpdateForm } from "../_components/plan-update-form";
 import { ZrlContextNotice } from "../_components/zrl-context-notice";
 import type { GoalRow, SearchParamsProp, WorkoutReportRow } from "../_components/types";
@@ -419,7 +424,9 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
                     </p>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {workout.status === "skipped" ? "Rustdag" : workout.publish_status}
+                    {workout.status === "skipped"
+                      ? "Rustdag"
+                      : publishStatusLabel(workout.publish_status)}
                   </span>
                 </div>
                 <WorkoutBlocks

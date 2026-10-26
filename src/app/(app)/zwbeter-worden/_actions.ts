@@ -772,6 +772,9 @@ export async function updateTrainingPlan(formData: FormData) {
       throw new Error("Geen trainer-toegang voor dit lid.");
     }
 
+    // De status blijft staan: titel, data of samenvatting wijzigen veranderen
+    // niets aan wat er in intervals.icu staat. Tot 2026-10-26 ging een lopend
+    // schema hier terug naar Concept en moest het opnieuw door goedkeuren.
     const { error } = await admin
       .from("training_plans")
       .update({
@@ -779,7 +782,6 @@ export async function updateTrainingPlan(formData: FormData) {
         summary: optionalString(formData.get("summary")),
         start_date: mustString(formData.get("start_date"), "Startdatum"),
         end_date: mustString(formData.get("end_date"), "Einddatum"),
-        status: "draft",
       })
       .eq("id", planId);
     if (error) throw new Error(error.message);
@@ -1088,7 +1090,7 @@ export async function publishTrainingPlan(formData: FormData) {
     const admin = createAdminClient();
     const { data: plan } = await admin
       .from("training_plans")
-      .select("profile_id, status, parent_plan_id")
+      .select("profile_id, status, parent_plan_id, approved_at")
       .eq("id", planId)
       .single();
     if (!plan) throw new Error("Schema niet gevonden.");
@@ -1097,9 +1099,10 @@ export async function publishTrainingPlan(formData: FormData) {
     if (!access.has("training.publish_plans") && !ownAdaptation) {
       throw new Error("Geen rechten om schema's te publiceren.");
     }
-    if (!["approved", "published"].includes(plan.status)) {
-      throw new Error("Keur het schema eerst goed voordat je publiceert.");
-    }
+    // Publiceren is ook goedkeuren: een concept hoeft niet eerst apart te worden
+    // goedgekeurd. Twee knoppen voor één besluit leverden vragen op, en
+    // goedkeuren alleen archiveerde het lopende schema terwijl de nieuwe
+    // trainingen nog niet in intervals.icu stonden (analyse 2026-10-26).
     if (
       !ownAdaptation &&
       !access.has("training.manage_assignments") &&
@@ -1108,7 +1111,7 @@ export async function publishTrainingPlan(formData: FormData) {
       throw new Error("Geen trainer-toegang voor dit lid.");
     }
 
-    const { connected, failed } = await pushPlanWorkoutsToIntervals(
+    const { connected, failed, pushed } = await pushPlanWorkoutsToIntervals(
       admin,
       planId,
       plan.profile_id,
@@ -1117,18 +1120,28 @@ export async function publishTrainingPlan(formData: FormData) {
       throw new Error("Dit lid heeft intervals.icu nog niet gekoppeld.");
     }
 
-    if (failed === 0) {
+    // Kwam een deel niet aan, dan staat de rest wel in intervals.icu: goedgekeurd,
+    // zodat het als lopend schema telt en "Opnieuw publiceren" de rest nastuurt.
+    // Kwam er niets aan bij een concept, dan blijft het een concept.
+    const wasRunning = ["approved", "published"].includes(plan.status);
+    if (failed === 0 || pushed > 0 || wasRunning) {
+      const now = new Date().toISOString();
+      const approval = plan.approved_at ? {} : { approved_by: user.id, approved_at: now };
       await admin
         .from("training_plans")
-        .update({
-          status: "published",
-          published_by: user.id,
-          published_at: new Date().toISOString(),
-        })
+        .update(
+          failed === 0
+            ? { ...approval, status: "published", published_by: user.id, published_at: now }
+            : { ...approval, status: plan.status === "published" ? "published" : "approved" },
+        )
         .eq("id", planId);
       if (!plan.parent_plan_id) {
         await archiveOtherBasePlans(admin, planId, plan.profile_id);
-      } else {
+      }
+    }
+
+    if (failed === 0) {
+      if (plan.parent_plan_id) {
         await extendRootPlanEnd(admin, planId);
       }
       await sendNotificationToMembers(

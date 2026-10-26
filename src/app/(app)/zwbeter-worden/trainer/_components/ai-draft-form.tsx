@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bot } from "lucide-react";
 import {
@@ -257,8 +258,18 @@ export function AiDraftForm({
           {state.error}
         </p>
       ) : state?.message ? (
-        <p className="rounded-md border border-primary/20 bg-primary/10 p-3 text-sm text-primary">
+        <p className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/20 bg-primary/10 p-3 text-sm text-primary">
           {state.message}
+          {/* Het concept staat op de tab Schema; zonder deze link moest de
+              trainer het daar onderaan zelf zoeken. */}
+          {state.status === "completed" && state.planId ? (
+            <Link
+              href={`/zwbeter-worden/trainer/schema?athlete=${athleteId}&plan=${state.planId}#schema-${state.planId}`}
+              className="font-medium underline underline-offset-2"
+            >
+              Bekijken
+            </Link>
+          ) : null}
         </p>
       ) : null}
     </form>

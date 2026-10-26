@@ -16,7 +16,7 @@ import {
 } from "@/lib/training/workouts";
 import { replaceWorkoutFromTemplate, saveTrainerFeedback, updateWorkout } from "../../_actions";
 import { BlockEditor } from "../../_components/block-editor";
-import { FEEL_LABELS, formAction } from "../../_components/format";
+import { FEEL_LABELS, formAction, publishStatusLabel } from "../../_components/format";
 import {
   WorkoutCalendar,
   type CalendarWorkout,
@@ -266,7 +266,10 @@ export function TrainerWorkoutCalendar({
               </p>
               <p className="text-xs text-muted-foreground">
                 {selected.dateKey} - {selected.durationMinutes} min -{" "}
-                {planned(selected).label} - {selected.publishStatus}
+                {planned(selected).label}
+                {!selected.skipped && publishStatusLabel(selected.publishStatus)
+                  ? ` - ${publishStatusLabel(selected.publishStatus)}`
+                  : ""}
               </p>
             </div>
             <WorkoutEditor

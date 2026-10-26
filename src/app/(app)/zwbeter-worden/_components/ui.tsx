@@ -71,6 +71,7 @@ export function CollapsibleCard({
   title,
   subtitle,
   defaultOpen = false,
+  id,
   children,
 }: {
   /** Optioneel merkje voor de kop, zoals de andere kaarten op deze pagina. */
@@ -78,10 +79,12 @@ export function CollapsibleCard({
   title: string;
   subtitle?: string;
   defaultOpen?: boolean;
+  /** Anker om vanaf een andere pagina naar deze kaart te springen. */
+  id?: string;
   children: React.ReactNode;
 }) {
   return (
-    <details className="group rounded-lg border bg-card" open={defaultOpen}>
+    <details id={id} className="group scroll-mt-20 rounded-lg border bg-card" open={defaultOpen}>
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 [&::-webkit-details-marker]:hidden">
         <div className="min-w-0">
           <h2 className="flex items-center gap-2 font-semibold">

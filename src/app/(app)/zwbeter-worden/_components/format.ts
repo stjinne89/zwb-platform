@@ -10,6 +10,17 @@ export const FEEL_LABELS: Record<string, string> = {
   slecht: "Slecht",
 };
 
+/**
+ * Wat een lid of trainer over de publicatie van een workout hoort te zien. Een
+ * training die in intervals.icu staat is het normale geval en krijgt geen
+ * label; tot 2026-10-26 stond hier de kale status ("pending", "published").
+ */
+export function publishStatusLabel(status: string | null | undefined): string | null {
+  if (status === "published") return null;
+  if (status === "failed") return "Niet in intervals.icu";
+  return "Nog niet in intervals.icu";
+}
+
 export const GOAL_LABELS: Record<string, string> = {
   zrl: "ZRL",
   ladder: "Ladder",

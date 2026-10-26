@@ -11342,6 +11342,75 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBeter Worden: één knop Publiceren (ronde 1)
+
+**2026-10-26.** Commit volgt (lokaal, niet gepusht). Geen migratie. Ronde 1 uit
+[schema-goedkeuren-publiceren-analyse.md](docs/schema-goedkeuren-publiceren-analyse.md).
+
+- **Publiceren keurt ook goed.** `publishTrainingPlan` accepteert nu ook een
+  concept: het zet `approved_by`/`approved_at` als die nog leeg zijn en
+  archiveert het vorige basisschema pas nádat er trainingen in intervals.icu
+  staan. Kwam er bij een concept niets aan, dan blijft het een concept; kwam een
+  deel aan, dan wordt het `approved`, zodat "Opnieuw publiceren" de rest
+  nastuurt. Een gepubliceerd schema blijft bij een deels mislukte herpublicatie
+  `published` (was al zo).
+- **`PlanActions`**: alleen nog `Publiceren` / `Opnieuw publiceren`. "Naar
+  review" en de losse "Goedkeuren" zijn weg, net als de zin "Keur het schema
+  eerst goed voordat je publiceert." Wie schema's mag maken maar niet
+  publiceren (geen standaardrol, wel in te stellen) houdt "Goedkeuren".
+- **"Schema opslaan"** (`updateTrainingPlan`) zet de status niet meer terug naar
+  `draft`. Een lopend schema bleef daardoor tot nu toe als Concept achter terwijl
+  alle trainingen in intervals.icu stonden.
+- **Geen kale `publish_status` meer** op Vandaag, in de lijst op Schema en in de
+  trainerkalender: niets als de training in intervals.icu staat, anders "Nog niet
+  in intervals.icu" of "Niet in intervals.icu" (`publishStatusLabel` in
+  `_components/format.ts`).
+- **Concept klaar → Bekijken**: `AiDraftForm` linkt na een geslaagde generatie
+  naar de tab Schema met `?plan=`, die dat schema openklapt en ernaartoe springt
+  (`CollapsibleCard` kreeg een `id`).
+
+**Bewust niet in deze ronde:** concepten verbergen voor het lid, toegevoegde
+workouts direct versturen, de conceptkaart bovenaan en de `/hulp`-zin "Publiceer
+opnieuw" (ronde 2); "Maak mijn schema" en de migratie `review` → `draft`
+(ronde 3). `setPlanStatus` blijft bestaan, ook voor `review`: de oude rijen met
+die status kunnen zo nog verder.
+
+**Niet geverifieerd:** niet in de app doorgeklikt (vraagt een ingelogd
+trainersaccount en publiceert echt naar intervals.icu). Wel: `tsc` (op één
+bestaande fout na in `share-sheet.tsx`, `modern-screenshot` ontbreekt in deze
+worktree), `eslint` op de gewijzigde bestanden en `vitest`: 3405 van 3408
+groen; de drie rode (`omnium-live` mist `.env.local`, `zwift-route`,
+`race-links`) raken training niet.
+
+### Onderzocht — ZWBeter Worden: schema goedkeuren en publiceren eenvoudiger
+
+**2026-10-26.** Zelfde commit als ronde 1 hierboven. Alleen een voorstel, geen code en geen migratie. Uitwerking in
+[schema-goedkeuren-publiceren-analyse.md](docs/schema-goedkeuren-publiceren-analyse.md).
+
+De eigenaar merkte dat goedkeuren en publiceren vragen oproept nu ZWBeter meer
+gebruikt wordt. Uit code en productiedata (alleen gelezen): goedkeuren en
+publiceren gebeuren in de praktijk direct na elkaar (gemiddeld 0,5 uur), de
+status `review` wordt door niets gelezen (twee schema's staan er 80+ dagen in),
+en goedkeuren alleen archiveert het lopende schema terwijl de nieuwe trainingen
+nog niet in intervals.icu staan. Het lid ziet de trainingen van een concept van
+de trainer gewoon in zijn kalender (op 2026-10-26: 55 trainingen bij twee
+leden), met de kale `publish_status` ("pending") erbij. "Schema opslaan" zet een
+lopend schema terug op Concept, en een workout uit de bibliotheek toevoegen gaat
+niet vanzelf naar intervals.icu, een aangepaste workout wel.
+
+Voorstel: een schema is óf een concept óf het loopt. Eén knop Publiceren (keurt
+goed en verstuurt), "Naar review" weg, concepten onzichtbaar voor het lid,
+wijzigingen aan een lopend schema altijd direct naar intervals.icu, en voor wie
+zichzelf coacht een knop "Maak mijn schema" op het doel. In drie rondes; ronde 3
+heeft een migratie (`review` → `draft`) die niet lokaal te testen is.
+
+**Bewust niet**, met redenen in het voorstel (§6): een vier-ogenprincipe, het lid
+laten goedkeuren, de statuswaarden in de database hernoemen, publiceren zonder
+intervals.icu-koppeling.
+
+**Niet geverifieerd:** de flow is niet in de app doorgeklikt (vraagt een ingelogd
+trainersaccount); alles volgt uit code en data.
+
 ### Gebouwd — ZWBeter voeden: zweettest en vochtdoel
 
 **2026-10-25.** Commit `89bf101e`, stap 5 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
