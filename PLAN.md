@@ -11398,7 +11398,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Snelste fiets: metingen uit twee testperiodes gelijkgetrokken
 
-**2026-10-26.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Geen migratie; op
+**2026-10-26.** Commit `2aa95e21`, lokaal, niet gepusht. Geen migratie; op
 productie pas na een deploy en "Fietsen ophalen" op `/beheer/zwift-routes`.
 
 **Waarom.** De eigenaar vroeg of we zeker weten dat de fietsberekening klopt met
