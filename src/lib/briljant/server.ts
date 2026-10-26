@@ -72,11 +72,12 @@ const TERUGBLIK_FALLBACK_MONTHS = 12;
  * 1 tot 20 minuten met een plafond op Diamant (eigenaar), en sinds 2026-10-25 de
  * consistentie met ritten op de trainingsdag in de naleving en een norm die niet
  * meer op 0 valt, en sinds 2026-10-26 het laatste gewicht tot het maandeinde in
- * plaats van alleen dat van de dag zelf. Een terugblik met
+ * plaats van alleen dat van de dag zelf, en ook sinds 2026-10-26 volhouden als reeks/12 en
+ * een naleving ook zonder schema. Een terugblik met
  * een andere waarde wordt bij het volgende bezoek of door de job opnieuw gemaakt;
  * de ZRS van vroeger die de job al vond, blijft staan.
  */
-export const TERUGBLIK_SPAN = "alles-gewicht-tss-p25-naleving-weging";
+export const TERUGBLIK_SPAN = "alles-gewicht-tss-p25-naleving-weging-volhouden";
 /** PostgREST geeft hooguit zoveel rijen per vraag. */
 const PAGE = 1000;
 /** Zoveel weken terug voor de norm (mediaan) en de reeks. */

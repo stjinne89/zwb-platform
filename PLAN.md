@@ -351,6 +351,11 @@ gaat stabiliteit voor nieuwe features.
    goedgekeurd (eigenaar, 2026-10-26). Open: een gel en een sportdrank scannen
    op een telefoon, en het ritplan met een eigen gel bekijken.
 
+17. **ZWBriljant: volhouden vol na twaalf weken, naleving voor iedereen** (ronde
+   van 2026-10-26 hieronder): gebouwd en lokaal getest, niet gepusht. Geen
+   migratie. Open: pushen, en daarna de consistentie met en zonder schema op
+   productie vergelijken (vóór deze ronde 0,38 tegen 0,65 gemiddeld).
+
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
 **Let op, dubbele migratienummers (vastgesteld 2026-09-21 bij het samenvoegen):**
@@ -11380,6 +11385,59 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gewijzigd — ZWBriljant: volhouden vol na twaalf weken, naleving voor iedereen
+
+**2026-10-26.** Commit `COMMIT_HASH`, op `claude/consistency-calculation-question-359fa2`;
+niet gepusht. Geen migratie.
+
+**Waarom.** Vraag van de eigenaar: veertien weken op rij volgens zijn schema gaf
+maar 66% consistentie, en leden zonder schema in ZWBeter stonden hoger. Nagerekend
+op productie (week van 26 oktober): R 1 (12 van 12 weken), V 1 − e^(−14/12) = 0,69,
+dus (0,5 + 0,5 · V) = 0,84, en N 0,78 (3622 van 4657 geplande minuten; het gat
+zit vooral in 16 augustus – 1 september, tien trainingen zonder rit op die dag).
+Twee dingen klopten niet met wat de eigenaar bedoelt:
+- **Volhouden kwam traag op gang.** Met de e-macht is twaalf weken op rij 0,63 en
+  kwam (0,5 + 0,5 · V) pas na 28 weken boven 0,95. Besluit eigenaar: het venster is
+  twaalf weken, dus twaalf weken op rij is 100% en elke week minder neemt
+  lineair af. Nu `V = min(1, reeks/12)`.
+- **Een schema werd gestraft.** Zonder schema was N null en telde als 1. Op
+  productie hadden de 8 leden zonder schema gemiddeld 0,65 consistentie (hoogste
+  0,98), de 18 met schema 0,38 (hoogste 0,88). Besluit eigenaar: naleving voor
+  iedereen. Zonder schema is N nu per week wat je reed tegen je norm (je eigen
+  mediaan), hooguit 100%, een geplande herstelweek telt als 100%, gemiddeld over
+  de weken in het venster. Met schema blijft N het deel van de geplande minuten.
+  Wie zijn schema volledig doet en wie zonder schema elke week zijn norm rijdt,
+  komen nu gelijk uit (test).
+
+**Nu.** `consistencyFrom` (`score.ts`) geeft `compliance` altijd en
+`complianceSource` (`schema` of `norm`); het scherm zegt bij naleving "van je
+geplande trainingstijd" of "van je gebruikelijke week-TSS/weekuren". `/hulp`
+(De formules → Consistentie) en [zwbriljant-onderzoek.md](docs/zwbriljant-onderzoek.md)
+beschrijven de nieuwe V en N. `STREAK_SCALE_WEEKS` is weg; `CONSISTENCY_WEEKS`
+(12) is ook de reeks waarop V vol is. `TERUGBLIK_SPAN` werd
+`alles-gewicht-tss-p25-naleving-weging-volhouden`, zodat elke terugblik opnieuw
+wordt gemaakt. Voor de eigenaar wordt het 1 × 1 × 0,78 = 0,78.
+
+**Niet meer waar.** `zwbriljant-onderzoek.md` noemde V = 1 − e^(−reeks/12) en
+"zonder schema valt N weg"; beide zijn daar gecorrigeerd.
+
+**Bewust niet gedaan.**
+- De basis 0,5 in (0,5 + 0,5 · V) blijft: zonder die basis zakt de consistentie
+  naar 0 na één gemiste week.
+- N zonder schema deelt door de weken die er zijn, niet door twaalf: een nieuw lid
+  wordt al via R gestraft voor de ontbrekende weken.
+- Bewaarde weekstenen van eerdere weken niet herrekend: een snapshot bewaart
+  alleen de consistentiewaarde, niet de weken. De steen van de huidige week rekent
+  opnieuw bij een bezoek of in de job van maandag.
+
+**Getest.** `briljant-score` (V lineair en vol vanaf twaalf weken, het
+rekenvoorbeeld 14 weken met N 0,78 → 0,78, N zonder schema uit de weken, schema
+en geen schema gelijk bij even trouw rijden), `briljant-snapshot` en alle
+ZWBriljant-, weekoverzicht- en hulptests (145), ESLint. `tsc` alleen de bekende
+ontbrekende modules in deze worktree (`modern-screenshot`, `@anthropic-ai/sdk`).
+**Niet getest:** de nieuwe consistentie op productie en in de browser; die is pas
+na de push en een bezoek of de job te zien.
 
 ### Gebouwd — ZWBeter voeden: sportvoeding met barcode in het receptenboek
 

@@ -242,8 +242,9 @@ export function BriljantHelp() {
               het deel van de laatste twaalf weken waarin je minstens 60% van je norm haalde: in TSS als intervals.icu je
               trainingsbelasting geeft, anders in uren (per week wat je schema plande, zonder schema je eigen mediaan;
               niet je beschikbaarheid, want dat is een plafond),
-              V = 1 − e<sup>−reeks/12</sup> voor het aantal weken op rij, N het deel
+              V = reeks ÷ 12 voor het aantal weken op rij, vol vanaf twaalf weken, N het deel
               van je geplande trainingstijd dat je deed: een afgeronde training, of een rit op de dag van de training.
+              Zonder schema is N per week wat je reed tegen je norm, hooguit 100%, gemiddeld over de twaalf weken.
               Meer dan je norm telt als gehaald, een geplande herstelweek breekt de reeks niet. Reed je minder dan de
               helft van de weken, dan is je norm wat je meestal rijdt in een week waarin je fietst.
             </dd>

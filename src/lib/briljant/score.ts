@@ -367,9 +367,12 @@ export function scoreFor(facets: Record<Facet, number | null>, consistency: numb
 
 /** Een week telt als je minstens dit deel van je eigen norm reed. */
 export const NORM_SHARE = 0.6;
+/**
+ * Het venster van regelmaat en naleving, en de reeks waarop volhouden vol is:
+ * V = reeks/12, hooguit 1 (eigenaar, 2026-10-26; eerst 1 − e^(−reeks/12), dat
+ * pas na een half jaar boven 0,9 kwam).
+ */
 export const CONSISTENCY_WEEKS = 12;
-/** Schaal van het volhouden: V = 1 − e^(−weken/12). */
-export const STREAK_SCALE_WEEKS = 12;
 
 /** Een afgesloten week, oud naar nieuw. */
 export type ConsistencyWeek = {
@@ -396,12 +399,16 @@ export type ConsistencyInput = {
 export type Consistency = {
   /** R: aandeel van de laatste twaalf weken op minstens 60% van je norm. */
   regularity: number;
-  /** V: 1 − e^(−reeks/12). */
+  /** V: reeks/12, hooguit 1. */
   persistence: number;
   /** De huidige ononderbroken reeks in weken. */
   streak: number;
-  /** N: naleving van het schema; null zonder schema (telt dan niet mee). */
-  compliance: number | null;
+  /**
+   * N: met een schema het deel van de geplande trainingstijd dat je deed; zonder
+   * schema per week wat je reed tegen je norm, hooguit 100%, gemiddeld.
+   */
+  compliance: number;
+  complianceSource: "schema" | "norm";
   /**
    * Waarin gemeten: TSS als intervals.icu de trainingsbelasting geeft (eigenaar,
    * 2026-10-21: belasting zegt meer dan alleen duur), anders uren.
@@ -469,16 +476,26 @@ export function consistencyFrom(input: ConsistencyInput): Consistency | null {
 
   let streak = 0;
   for (let index = weeks.length - 1; index >= 0 && counts(weeks[index]); index--) streak += 1;
-  const persistence = 1 - Math.exp(-streak / STREAK_SCALE_WEEKS);
+  const persistence = Math.min(1, streak / CONSISTENCY_WEEKS);
 
-  const compliance =
+  // Zonder schema telde de naleving eerst als 1, waardoor wie een schema volgde
+  // lager uitkwam dan wie gewoon reed (eigenaar, 2026-10-26). Nu per week wat je
+  // reed tegen je norm, zodat N voor iedereen meetelt.
+  const fromSchema =
     input.compliance != null && Number.isFinite(input.compliance) ? Math.min(1, Math.max(0, input.compliance)) : null;
-  const value = regularity * (0.5 + 0.5 * persistence) * (compliance ?? 1);
+  const share = (week: ConsistencyWeek) => {
+    const norm = normOf(week);
+    if (week.plannedRecovery) return 1;
+    return norm > 0 ? Math.min(1, done(week) / norm) : done(week) > 0 ? 1 : 0;
+  };
+  const compliance = fromSchema ?? recent.reduce((sum, week) => sum + share(week), 0) / recent.length;
+  const value = regularity * (0.5 + 0.5 * persistence) * compliance;
   return {
     regularity: round2(regularity),
     persistence: round2(persistence),
     streak,
-    compliance: compliance == null ? null : round2(compliance),
+    compliance: round2(compliance),
+    complianceSource: fromSchema == null ? "norm" : "schema",
     measure,
     norm: measure === "tss" ? Math.round(median(recent.map(normOf))) : Math.round(median(recent.map(normOf)) * 10) / 10,
     normSource: recent.filter((week) => planned(week)).length * 2 >= recent.length ? "schema" : "mediaan",

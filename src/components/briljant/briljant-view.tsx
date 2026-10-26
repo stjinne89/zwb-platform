@@ -315,7 +315,14 @@ function PanelBody({
           {c.compliance != null && (
             <>
               <dt>Naleving</dt>
-              <dd>{Math.round(c.compliance * 100)}% van je geplande trainingstijd</dd>
+              <dd>
+                {Math.round(c.compliance * 100)}%{" "}
+                {c.complianceSource === "norm"
+                  ? c.measure === "tss"
+                    ? "van je gebruikelijke week-TSS"
+                    : "van je gebruikelijke weekuren"
+                  : "van je geplande trainingstijd"}
+              </dd>
             </>
           )}
           <dt>Telt mee</dt>
