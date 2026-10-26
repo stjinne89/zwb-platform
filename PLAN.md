@@ -11408,7 +11408,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Racebriefje en live stand van A kozen groep B (A en B1 in één Zwift-event)
 
-**2026-10-26.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Geen migratie.
+**2026-10-26.** Commit `8f38c1a8`, lokaal, niet gepusht. Geen migratie.
 
 **Waarom.** De eigenaar zag op het racebriefje van A (W6, Spiral Summit,
 2026-10-27) renners van B. A en B1 rijden in hetzelfde Zwift-event (5758531), in
