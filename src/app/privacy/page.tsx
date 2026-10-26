@@ -192,7 +192,9 @@ export default function PrivacyPage() {
             die uit, dan toont de app geen naam bij het recept. Haal je een
             recept op van een link, dan haalt onze server die pagina op; de
             receptsite ziet daarbij niet wie je bent. De foto bij zo&apos;n recept
-            laadt je browser rechtstreeks van die site. Markeer je een recept
+            laadt je browser rechtstreeks van die site. Scan je een barcode voor
+            een eigen recept, dan vragen we het product op bij Open Food Facts;
+            daarbij gaat alleen de barcode mee, niet wie het vraagt. Markeer je een recept
             als favoriet of als &quot;niet voor mij&quot;, dan bewaren we dat;
             alleen jij ziet het. Stel je een
             eigen recept voor aan de club, dan ziet een beoordelaar het. Na

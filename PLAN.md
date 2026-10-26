@@ -72,6 +72,13 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
+   - **Sportvoeding in recepten:** `0275_nutrition_recipe_products.sql` is op
+     2026-10-26 via de Supabase-connector toegepast, op verzoek van de eigenaar,
+     vóór de push. Vooraf: 724 ingrediënten, `food_id` verplicht, geen kolom
+     `product_barcode`. Achteraf: 724 ingrediënten, geen zonder bron, nog geen
+     met een product; `food_id` mag leeg, de check
+     `nutrition_recipe_ingredients_one_source_check` en de koppeling naar
+     `nutrition_products` bestaan.
    - **Schemastatussen opruimen:** `0274_training_plan_status_cleanup.sql` is op
      2026-10-26 via de Supabase-connector toegepast, op verzoek van de eigenaar,
      vóór de push. Alleen data, geen schemawijziging. Vooraf: 6 `approved`, 2
@@ -326,9 +333,10 @@ gaat stabiliteit voor nieuwe features.
    echt verstuurd.
 
 16. **Sportvoeding met barcode in het receptenboek** (ronde van 2026-10-26
-   hieronder): gebouwd en lokaal getest, niet gepusht. Open: migratie
-   `0275_nutrition_recipe_products.sql` toepassen, de privacyzin laten
-   goedkeuren, en daarna een gel en een sportdrank scannen op een telefoon.
+   hieronder): gebouwd, lokaal getest en op 2026-10-26 gepusht naar `main`.
+   Migratie `0275_nutrition_recipe_products.sql` is toegepast; de privacyzin is
+   goedgekeurd (eigenaar, 2026-10-26). Open: een gel en een sportdrank scannen
+   op een telefoon, en het ritplan met een eigen gel bekijken.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -341,7 +349,7 @@ genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
 een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0276`
-(`0275_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, nog niet toegepast;
+(`0275_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, toegepast op 2026-10-26;
 `0274_training_plan_status_cleanup` is van schema publiceren ronde 3, 2026-10-26, toegepast op 2026-10-26;
 `0273_nutrition_sweat_tests` is van ritvoeding stap 5, 2026-10-25, toegepast op 2026-10-25;
 `0272_nutrition_ride_carbs_120` is van ritvoeding stap 4, 2026-10-25, toegepast op 2026-10-25;
@@ -11361,9 +11369,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter voeden: sportvoeding met barcode in het receptenboek
 
-**2026-10-26.** Commit: de commit die dit blok toevoegt, op
-`claude/barcode-scanner-sports-nutrition-0d7a92`; niet gepusht. Migratie
-`0275_nutrition_recipe_products.sql`, **nog niet toegepast**.
+**2026-10-26.** Commit `e71088c3`, met de privacyzin en dit blok in de commit
+erna, op `claude/barcode-scanner-sports-nutrition-0d7a92`; gepusht naar `main`
+op 2026-10-26 (eigenaar). Migratie `0275_nutrition_recipe_products.sql`,
+toegepast op 2026-10-26 (zie "Handwerk op productie").
 
 **Waarom.** De eigenaar wil zijn eigen gels, sportdrank en andere sportvoeding
 in het receptenboek, om ze te gebruiken. NEVO kent geen merken en nauwelijks
@@ -11409,14 +11418,14 @@ Een product zelf invoeren zonder barcode of zonder koolhydraten in Open Food
 Facts: dan blijft het bij NEVO. Het ritplan kiest een gel niet vanzelf boven de
 clubrecepten; daarvoor markeer je hem als favoriet of kies je hem voor die dag.
 
-**Privacy:** de zin over Open Food Facts staat op `/privacy` alleen bij het
-eetdagboek. Voorstel voor "Lengte en eigen recepten", nog niet aangepast
-(eerst voorleggen): "Scan je een barcode voor een eigen recept, dan vragen we
-het product op bij Open Food Facts; daarbij gaat alleen de barcode mee, niet wie
-het vraagt."
+**Privacy:** de zin over Open Food Facts stond op `/privacy` alleen bij het
+eetdagboek. Bij "Lengte en eigen recepten" staat nu, goedgekeurd door de
+eigenaar op 2026-10-26 en zonder nieuwe versie: "Scan je een barcode voor een
+eigen recept, dan vragen we het product op bij Open Food Facts; daarbij gaat
+alleen de barcode mee, niet wie het vraagt."
 
-**Niet geverifieerd:** de migratie draaide alleen in PGlite
-(`tests/unit/nutrition-log.test.ts`), niet op productie. Niet in de browser
+**Niet geverifieerd:** de migratie draaide eerst in PGlite
+(`tests/unit/nutrition-log.test.ts`) en is daarna op productie toegepast. Niet in de browser
 bekeken: deze worktree heeft geen `.env.local`. `tsc` (alleen de bestaande fout
 in `share-sheet.tsx`), `npm run lint` (0 fouten) en `vitest`: 3442 van 3445
 groen, met nieuwe tests in `tests/unit/nutrition-recipe-products.test.ts`. Rood
