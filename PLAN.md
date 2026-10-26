@@ -11346,7 +11346,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gewijzigd — Schema stuurt op belasting uit de CTL, beschikbaarheid is alleen tijd
 
-**2026-10-26.** Lokaal gecommit (branch
+**2026-10-26.** Commit `970b8b22`, lokaal, niet gepusht (branch
 `claude/training-schedule-caution-duration-02dd40`). Geen migratie. Onderzoek en
 cijfers: [docs/schema-belasting-2026-10-26.md](docs/schema-belasting-2026-10-26.md).
 
