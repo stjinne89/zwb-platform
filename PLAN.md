@@ -11390,6 +11390,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Racebriefje: sprintsegmenten van het parcours
+
+**2026-10-26.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Geen migratie.
+
+**Waarom.** De eigenaar zag dat het racebriefje de sprintsegmenten van het
+parcours niet noemt, terwijl ze in een puntenrace FAL- en FTS-punten opleveren.
+De route had ze wel (`PacingAccent` met `kind: "sprint"`, uit
+`segmentsOnRoute`), maar `routeKeyPoints` gebruikte alleen de klimmen en de
+einden van segmenten voor de laatste boog.
+
+**Wat.**
+- `routeKeyPoints` (`lib/race-briefing/route.ts`) geeft nu `sprints`: elk
+  Zwift-sprintsegment op de route, per passage, met `pass`/`passes`.
+  `sprintLabel` maakt er "sprint Manhattan" van, met "(2e)" als een sprint vaker
+  op de route ligt.
+- Het profiel op het briefje krijgt een vijfde stijl, **sprint**: een groene
+  streep over het stuk, het label onder de lijn (boven de lijn staan de klimmen),
+  zo laag als de lijn over de breedte van het label komt. De captain kan de stijl
+  ook zelf kiezen in Briefje bewerken.
+- Momenten: bij een **puntenrace** per sprint "sprinters erop, de rest in het
+  wiel" (past bij de regel "1 soort segment" in Onthouden); bij een **Race of
+  Truth** "telt voor FAL en FTS". Bij een **scratch** (alleen de finish telt) en
+  een **ploegentijdrit** staan de sprints er niet op.
+- `/hulp` noemt de sprints in groen en de stijl sprint.
+
+**Bewust niet.** Geen sprint-tip in `briefingTips`: die tips worden sinds het
+spiekbriefje nergens meer getoond. De KOM's krijgen geen eigen regel: een klim
+staat op het briefje als hij beslissend is (vroeg, na een afdaling, de zwaarste,
+de finale) of als label in het profiel, ook als hij in een puntenrace punten
+oplevert. Welke segmenten WTRL in een race echt laat tellen, leest het briefje
+niet; het neemt alle sprintsegmenten van de route uit zwift-data.
+Een captain die het profiel of de momenten al had aangepast, krijgt de sprints
+niet vanzelf: de aangepaste versie van dat blok gaat voor (Voorstel terugzetten haalt ze
+erbij).
+
+**Gecontroleerd.** Vitest (`race-briefing.test.ts`, 24 tests, drie nieuw:
+sprints op Green to Screen, een sprint die twee keer op de route ligt, puntenrace
+tegen scratch), `tsc` (alleen de bekende ontbrekende `modern-screenshot` en
+`@anthropic-ai/sdk` in deze worktree), ESLint. De schets van Green to Screen als
+puntenrace tijdelijk los gerenderd en bekeken (labels vrij van de lijn en van
+The Hill). **Niet geverifieerd:** het briefje in de app met een echte
+puntenrace, en het briefje met meerdere ronden.
+
+
 ### Gewijzigd — ZWBriljant: naleving per week als gereden tegen geplande TSS
 
 **2026-10-26.** Commit `01950476`, gepusht naar `main` op 2026-10-26 (eigenaar).
@@ -14919,7 +14963,7 @@ en de escalators per race met de hand (niet per route vastgelegd).
   de captain niet aanraakt, groeit dus mee met de data, bv. de rollen en Volgen
   zodra de ZRS binnen is.
 - Het getekende profiel tekent nu uit aantekeningen met een stijl
-  (markeerstift, omcirkeld, label, boog) en een van- en tot-kilometer; de
+  (markeerstift, omcirkeld, label, boog; sinds 2026-10-26 ook sprint) en een van- en tot-kilometer; de
   teal markeerstift op de afdaling is daarbij opgegaan in één gouden band van de
   afdaling tot de top.
 - `sheet-editor.tsx`: **Briefje bewerken** onder het briefje, voor captain en

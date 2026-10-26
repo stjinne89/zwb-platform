@@ -70,6 +70,12 @@ function RouteSketch({ segments, marks }: { segments: PacingSegment[]; marks: Sk
         .map((m) => (
           <path key={`m-${m.fromKm}-${m.text}`} d={stretch(m.fromKm, m.toKm)} stroke="rgba(232,190,90,0.55)" strokeWidth={11} fill="none" strokeLinecap="round" strokeLinejoin="round" />
         ))}
+      {/* Sprints: groen over het stuk, smaller dan de markeerstift. */}
+      {marks
+        .filter((m) => m.style === "sprint")
+        .map((m) => (
+          <path key={`s-${m.fromKm}-${m.text}`} d={stretch(m.fromKm, Math.max(m.toKm, m.fromKm + 0.1))} stroke={GREEN} strokeOpacity={0.6} strokeWidth={6} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        ))}
       <path d={line} stroke={INK} strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       <path d={`M${PAD_X} ${BASE + 9} C ${W * 0.3} ${BASE + 8}, ${W * 0.62} ${BASE + 10.5}, ${W - PAD_X} ${BASE + 8.5}`} stroke={PENCIL} strokeWidth={1} fill="none" strokeLinecap="round" />
 
@@ -102,6 +108,17 @@ function RouteSketch({ segments, marks }: { segments: PacingSegment[]; marks: Sk
                 {m.text}
               </text>
             </g>
+          );
+        }
+        if (m.style === "sprint") {
+          // Onder de lijn, daarboven staan de klimmen; zo laag als de lijn over de breedte van het label komt.
+          const cx = x((m.fromKm + m.toKm) / 2);
+          const half = m.text.length * 3.6;
+          const bottom = Math.max(yAt(m.fromKm), yAt(m.toKm), ...pts.filter((p) => Math.abs(x(p.km) - cx) <= half).map((p) => y(p.m)));
+          return (
+            <text key={key} x={cx} y={Math.min(BASE + 2, bottom + 16)} fontSize={14} fill={GREEN} textAnchor="middle">
+              {m.text}
+            </text>
           );
         }
         if (m.style === "boog") {

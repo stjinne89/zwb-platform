@@ -10,15 +10,15 @@
 import { cheatRules, type BriefingFormat, type CheatRule, type LimitCheck, type Powerup } from "./rules";
 import { briefingMoments, type BriefingMoment } from "./tips";
 import { cleanRiderName, type OwnRole } from "./field";
-import type { BriefingClimb, RouteKeyPoints } from "./route";
+import { sprintLabel, type BriefingClimb, type RouteKeyPoints } from "./route";
 
 /** Een aantekening in het getekende profiel. */
 export type SketchMark = {
   fromKm: number;
   toKm: number;
   text: string;
-  /** markeer: markeerstift over het stuk, label in teal; cirkel: rood omcirkeld; label: potlood erboven; boog: stippellijn met label eronder. */
-  style: "markeer" | "cirkel" | "label" | "boog";
+  /** markeer: markeerstift over het stuk, label in teal; cirkel: rood omcirkeld; label: potlood erboven; boog: stippellijn met label eronder; sprint: groen over het stuk, label eronder. */
+  style: "markeer" | "cirkel" | "label" | "boog" | "sprint";
 };
 
 export type WatchLine = { name: string; note: string };
@@ -40,7 +40,7 @@ export type SheetOverride = Partial<SheetContent>;
 const MAX_ROWS = 20;
 const MAX_TEXT = 120;
 const MAX_KM = 500;
-const SKETCH_STYLES: SketchMark["style"][] = ["markeer", "cirkel", "label", "boog"];
+const SKETCH_STYLES: SketchMark["style"][] = ["markeer", "cirkel", "label", "boog", "sprint"];
 
 const text = (value: unknown, max = MAX_TEXT) => (typeof value === "string" ? value.trim().slice(0, max) : "");
 const kmValue = (value: unknown) => {
@@ -150,6 +150,10 @@ export function defaultSheet(input: {
     }
     for (const climb of route.climbs) {
       if (!marked.has(climb) && climb.name) sketch.push({ fromKm: climb.startKm, toKm: climb.endKm, text: shortClimb(climb), style: "label" });
+    }
+    // Alleen waar een sprint punten oplevert; in een scratch telt alleen de finish.
+    if (input.format === "points" || input.format === "rot") {
+      for (const sprint of route.sprints) sketch.push({ fromKm: sprint.startKm, toKm: sprint.endKm, text: sprintLabel(sprint), style: "sprint" });
     }
     if (route.lastArchKm !== null) sketch.push({ fromKm: route.lastArchKm, toKm: route.lastArchKm, text: "laatste boog", style: "boog" });
     sketch.sort((a, b) => a.fromKm - b.fromKm);

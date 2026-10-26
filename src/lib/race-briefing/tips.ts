@@ -4,7 +4,7 @@
 
 import type { BriefingFormat, LimitCheck, Powerup } from "./rules";
 import { cleanRiderName, type OwnRole, type Projection, type WatchReason } from "./field";
-import { climbSeconds, type BriefingClimb, type RouteKeyPoints } from "./route";
+import { climbSeconds, sprintLabel, type BriefingClimb, type RouteKeyPoints } from "./route";
 
 export type BriefingTip = {
   /** Waar het over gaat, met het getal uit de data. */
@@ -171,7 +171,10 @@ export function briefingMoments(input: {
         todo: format === "ttt" ? "W/kg-doel, bij elkaar blijven" : "niet harder dan je drempel",
       });
     }
-    return out;
+    if (format === "rot") {
+      for (const sprint of route.sprints) out.push({ km: sprint.startKm, what: sprintLabel(sprint), todo: "telt voor FAL en FTS" });
+    }
+    return out.sort((a, b) => a.km - b.km);
   }
 
   const positie = input.own.filter((r) => r.role === "positie").map((r) => cleanRiderName(r.name).split(/\s+/)[0]);
@@ -184,6 +187,9 @@ export function briefingMoments(input: {
   const finaleClimb = route.finale.kind === "climb" ? route.finale.climb : null;
   if (hardest && hardest !== finaleClimb && hardest !== route.earlyClimb && !route.descentsIntoClimbs.some((d) => d.climb === hardest)) {
     out.push({ km: hardest.startKm, what: `${short(hardest)} ${hardest.gainM} m · ${time(hardest)}`, todo: "doortrappen over de top" });
+  }
+  if (format === "points") {
+    for (const sprint of route.sprints) out.push({ km: sprint.startKm, what: sprintLabel(sprint), todo: "sprinters erop, de rest in het wiel" });
   }
   if (route.lastArchKm !== null) out.push({ km: route.lastArchKm, what: "laatste boog", todo: "powerup vóór de boog op" });
   if (route.finale.kind === "climb") {

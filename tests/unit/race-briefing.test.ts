@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fixture from "../fixtures/zwift/green-to-screen-100m.json";
 import type { PacingAccent, PacingSegment } from "@/lib/pacing/route-profile";
-import { climbSeconds, routeKeyPoints, withoutTunnelSteps } from "@/lib/race-briefing/route";
+import { climbSeconds, routeKeyPoints, sprintLabel, withoutTunnelSteps } from "@/lib/race-briefing/route";
 import { briefingFormatOf, checkLimits, cheatRules, divisionLimits, divisionOf, powerupsFromTags } from "@/lib/race-briefing/rules";
 import { cleanRiderName, projectField, suggestRoles, watchList, type FieldRider } from "@/lib/race-briefing/field";
 import { briefingMoments, briefingTips } from "@/lib/race-briefing/tips";
@@ -275,5 +275,42 @@ describe("racebriefje aanpassen", () => {
     expect(clean.sketch).toEqual([{ fromKm: 26.9, toKm: 27.5, text: "escalator", style: "label" }]);
     expect(clean.notes).toEqual(["x".repeat(120)]);
     expect(clean.rules).toBeUndefined();
+  });
+});
+
+describe("sprintsegmenten", () => {
+  const route = routeKeyPoints({ segments, accents, totalKm: 28.5, laps: 1 });
+  const own = [{ zwiftId: 1, name: "Stijn Martens(ZWB)", role: "positie" as const, limits: { zftpShare: 0.88, zmapShare: 0.83, status: "ok" as const } }];
+  const powerups = powerupsFromTags(['powerup_percent="0,34,1,33,5,33"']);
+
+  it("haalt de sprints uit de Zwift-segmenten van de route", () => {
+    expect(route.sprints.map((s) => [s.startKm, sprintLabel(s)])).toEqual([
+      [2.28, "sprint Peristyle"],
+      [9.92, "sprint Manhattan"],
+    ]);
+  });
+
+  it("nummert een sprint die vaker op de route ligt", () => {
+    const laps = routeKeyPoints({
+      segments,
+      accents: [accent("Manhattan Sprint", "sprint", 9.92, 10.17), accent("Manhattan Sprint", "sprint", 19.92, 20.17)],
+      totalKm: 28.5,
+      laps: 1,
+    });
+    expect(laps.sprints.map(sprintLabel)).toEqual(["sprint Manhattan (1e)", "sprint Manhattan (2e)"]);
+  });
+
+  it("zet de sprints op het briefje van een puntenrace, niet op dat van een scratch", () => {
+    const points = defaultSheet({ format: "points", category: "B", route, powerups, own, watch: [], warnings: [] });
+    expect(points.sketch.filter((m) => m.style === "sprint").map((m) => [m.fromKm, m.text])).toEqual([
+      [2.28, "sprint Peristyle"],
+      [9.92, "sprint Manhattan"],
+    ]);
+    expect(points.moments.find((m) => m.what === "sprint Manhattan")).toEqual({ km: 9.92, what: "sprint Manhattan", todo: "sprinters erop, de rest in het wiel" });
+    expect(points.moments.map((m) => m.km)).toEqual([...points.moments.map((m) => m.km)].sort((a, b) => a - b));
+
+    const scratch = defaultSheet({ format: "scratch", category: "B", route, powerups, own, watch: [], warnings: [] });
+    expect(scratch.sketch.some((m) => m.style === "sprint")).toBe(false);
+    expect(scratch.moments.some((m) => m.what.startsWith("sprint"))).toBe(false);
   });
 });
