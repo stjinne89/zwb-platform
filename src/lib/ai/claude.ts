@@ -3,7 +3,7 @@
 // De bestaande AI-code werkt met OpenAI's background-modus: start, bewaar het
 // response-id, haal later op. Claude kent die modus niet en doet minuten over een
 // schema, terwijl een gewone Netlify-functie na zo'n 30 seconden stopt. Daarom:
-// - createClaudeJob zet de vraag in ai_jobs (migratie 0274) en stoot de
+// - createClaudeJob zet de vraag in ai_jobs (migratie 0275_ai_jobs) en stoot de
 //   Netlify-achtergrondfunctie aan (netlify/functions/ai-job-background.mts),
 //   die tot 15 minuten mag draaien. Lokaal (next dev) draait de opdracht in
 //   hetzelfde proces.

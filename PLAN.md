@@ -14,7 +14,9 @@ gaat stabiliteit voor nieuwe features.
    overstap gaat er niets meer naar OpenAI. De privacytekst blijft tot dan
    ongewijzigd. Zie de ronde "Claude als vervanger van OpenAI".
    **Besluit eigenaar 2026-10-26: overstappen.** De code staat klaar (ronde
-   "Overstap naar Claude klaar"). Open: migratie `0274`, env in Netlify, deploy.
+   "Overstap naar Claude klaar"). Migratie `0275_ai_jobs` is toegepast op
+   2026-10-26. Open: env in Netlify (`ANTHROPIC_API_KEY`, `AI_PROVIDER=anthropic`)
+   en deploy.
    De privacytekst noemt de aanbieder die `AI_PROVIDER` kiest (akkoord eigenaar).
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
@@ -337,8 +339,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0274`
-(`0273_nutrition_sweat_tests` is van ritvoeding stap 5, 2026-10-25, toegepast op 2026-10-25;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0276`
+(`0275_ai_jobs` is van de overstap naar Claude, toegepast op 2026-10-26;
+`0274_training_plan_status_cleanup` staat op main, toegepast op 2026-10-26;
+`0273_nutrition_sweat_tests` is van ritvoeding stap 5, 2026-10-25, toegepast op 2026-10-25;
 `0272_nutrition_ride_carbs_120` is van ritvoeding stap 4, 2026-10-25, toegepast op 2026-10-25;
 `0271_zwift_race_scores` is toegepast, zie punt 11 hierboven;
 `0270_zwbriljant_weights_fitheid20` is van ZWBriljant fitheid 20% en racen 12,5%, 2026-10-22, toegepast op 2026-10-22;
@@ -11356,8 +11360,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Overstap naar Claude klaar (AI_PROVIDER)
 
-**2026-10-26.** Lokaal, niet gepusht. Migratie `0274_ai_jobs.sql` (niet toegepast,
-niet lokaal te testen). Commit: zie git log ("Overstap naar Claude").
+**2026-10-26.** Lokaal, niet gepusht. Migratie `0275_ai_jobs.sql`, toegepast op
+productie op 2026-10-26 (eerst `0274_ai_jobs` genoemd; dat nummer had
+`0274_training_plan_status_cleanup` op main dezelfde ochtend al). Commit: zie git
+log ("Overstap naar Claude").
 
 **Waarom.** Na het naspelen en de blinde beoordeling (ronde hieronder) besloot de
 eigenaar over te stappen: Claude doet het minstens even goed, het
@@ -11415,10 +11421,14 @@ Claude-aanroepen via de nieuwe code zonder database: voedingsherkenning (5 s),
 een coachantwoord (4 s) en een dag-aanpassing via
 `generateTrainingPlanDraft` (26 s, datums vanaf vandaag).
 
-**Niet getest.** De opdrachtentabel (migratie niet toegepast), de
-achtergrondfunctie op Netlify naast de Next.js-site, en of `URL` in de
-functie-env van Next staat (anders `NEXT_PUBLIC_SITE_URL`). Dat blijkt pas na
-migratie en deploy.
+Na het toepassen van de migratie: het opdrachtenpad lokaal van begin tot eind
+(`AI_JOB_RUNNER=inline`) met een voedingsvraag zonder ledendata: opdracht
+aangemaakt, uitgevoerd en opgehaald in 7,6 s, `request` daarna leeg; de testrij
+is weer verwijderd.
+
+**Niet getest.** De achtergrondfunctie op Netlify naast de Next.js-site, en of
+`URL` in de functie-env van Next staat (anders `NEXT_PUBLIC_SITE_URL`). Dat
+blijkt pas na de deploy (runbook §9, stap 4).
 
 ### Gemeten — Claude als vervanger van OpenAI: naspelen op eigen generaties
 

@@ -642,7 +642,7 @@ Sinds 2026-10-26 kan de trainings-AI (schema's, dagaanpassingen, coachchat,
 weekoverzicht, pacing en voedingsherkenning) op Claude draaien in plaats van
 OpenAI. De code staat klaar; de overstap is een instelling.
 
-1. Migratie `0274_ai_jobs.sql` toepassen (tabel `ai_jobs`).
+1. Migratie `0275_ai_jobs.sql` (tabel `ai_jobs`): toegepast op 2026-10-26.
 2. In Netlify env: `ANTHROPIC_API_KEY` en `AI_PROVIDER=anthropic`. Optioneel per
    soort `ANTHROPIC_MODEL_<SOORT>` / `ANTHROPIC_EFFORT_<SOORT>` (zie
    `.env.local.example`; standaard Opus 5.5, bijwerkingen op effort `low`).
