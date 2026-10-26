@@ -17850,10 +17850,13 @@ productie, waarvan 3 op Claude-generaties (van de 5 die er toen waren); de
 overige 19 blijven bewaard en tellen niet mee. `/hulp#vergelijken` noemt de
 nieuwe grens. **Zinvol oordelen pas** als de volumefout van de motor (korte
 rustige ritten worden rustdagen; aparte sessie) is opgelost en er genoeg
-Claude-generaties zijn. *Niet geverifieerd:* de pagina in de browser — de lokale
-sessie was uitgelogd; filter en telling zijn getest in
-`tests/unit/engine-comparison.test.ts` en de aantallen met een SQL-query op
-productie nagekeken. Niet gepusht.
+Claude-generaties zijn. Lokaal in de browser bekeken (als trainer van de
+eigenaar): de lijst toont drie Claude-bijwerkingen van 2026-10-26, alle drie
+beoordeeld, teller "3 oordelen · motor 0 · AI 3 · gelijk 0"; de andere twee
+Claude-generaties horen bij leden die deze trainer niet coacht. In het getoonde
+paar plant de motor 1:20 u tegen 3:00 u bij de AI in dezelfde week: de volumefout
+hierboven. Filter en telling getest in `tests/unit/engine-comparison.test.ts`,
+aantallen met een SQL-query op productie nagekeken. Niet gepusht.
 
 ### Opgeleverd — Meetlat voor trainingsschema's, met nulmeting van de AI
 
