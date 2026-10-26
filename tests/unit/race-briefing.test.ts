@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import fixture from "../fixtures/zwift/green-to-screen-100m.json";
 import type { PacingAccent, PacingSegment } from "@/lib/pacing/route-profile";
-import { climbSeconds, routeKeyPoints, sprintLabel, withoutTunnelSteps } from "@/lib/race-briefing/route";
+import { climbSeconds, routeKeyPoints, segmentLabel, withoutTunnelSteps } from "@/lib/race-briefing/route";
+import { pacingRouteFromZwift } from "@/lib/pacing/route-profile";
+import spiral from "../fixtures/zwift/spiral-summit-100m.json";
 import { briefingFormatOf, checkLimits, cheatRules, divisionLimits, divisionOf, powerupsFromTags } from "@/lib/race-briefing/rules";
 import { cleanRiderName, projectField, suggestRoles, watchList, type FieldRider } from "@/lib/race-briefing/field";
 import { briefingMoments, briefingTips } from "@/lib/race-briefing/tips";
@@ -278,15 +280,17 @@ describe("racebriefje aanpassen", () => {
   });
 });
 
-describe("sprintsegmenten", () => {
+describe("sprints en KOM's", () => {
   const route = routeKeyPoints({ segments, accents, totalKm: 28.5, laps: 1 });
   const own = [{ zwiftId: 1, name: "Stijn Martens(ZWB)", role: "positie" as const, limits: { zftpShare: 0.88, zmapShare: 0.83, status: "ok" as const } }];
   const powerups = powerupsFromTags(['powerup_percent="0,34,1,33,5,33"']);
 
-  it("haalt de sprints uit de Zwift-segmenten van de route", () => {
-    expect(route.sprints.map((s) => [s.startKm, sprintLabel(s)])).toEqual([
+  it("haalt de sprints en KOM's uit de Zwift-segmenten van de route", () => {
+    expect(route.segments.map((s) => [s.startKm, segmentLabel(s)])).toEqual([
       [2.28, "sprint Peristyle"],
+      [4.19, "KOM Hill"],
       [9.92, "sprint Manhattan"],
+      [21.14, "KOM Brooklyn Bridge"],
     ]);
   });
 
@@ -297,7 +301,8 @@ describe("sprintsegmenten", () => {
       totalKm: 28.5,
       laps: 1,
     });
-    expect(laps.sprints.map(sprintLabel)).toEqual(["sprint Manhattan (1e)", "sprint Manhattan (2e)"]);
+    expect(laps.segments.map((s) => segmentLabel(s))).toEqual(["sprint Manhattan (1e)", "sprint Manhattan (2e)"]);
+    expect(segmentLabel(laps.segments[1], false)).toBe("sprint Manhattan");
   });
 
   it("zet de sprints op het briefje van een puntenrace, niet op dat van een scratch", () => {
@@ -312,5 +317,41 @@ describe("sprintsegmenten", () => {
     const scratch = defaultSheet({ format: "scratch", category: "B", route, powerups, own, watch: [], warnings: [] });
     expect(scratch.sketch.some((m) => m.style === "sprint")).toBe(false);
     expect(scratch.moments.some((m) => m.what.startsWith("sprint"))).toBe(false);
+  });
+
+  it("zet op Spiral Summit de KOM's van Jarvis erbij, maar niet Volcano: die eindigt op de streep", () => {
+    // zwift-data 2.1, Spiral Summit: segmentsOnRoute, lead-in 0,15 km.
+    const zwiftAccent = (name: string, kind: "climb" | "sprint", startKm: number, endKm: number) => ({ slug: name, name, kind, startKm, endKm, avgInclinePct: null });
+    const pacing = pacingRouteFromZwift({
+      profile: { distanceM: spiral.altitudeM.map((_, i) => i * 100), altitudeM: spiral.altitudeM },
+      accents: [
+        zwiftAccent("Jarvis KOM", "climb", 10.838, 12.644),
+        zwiftAccent("Jarvis Sprint", "sprint", 13.984, 14.181),
+        zwiftAccent("Jarvis KOM", "climb", 15.685, 17.479),
+        zwiftAccent("Jarvis Sprint", "sprint", 18.817, 19.019),
+        zwiftAccent("Volcano KOM", "climb", 20.228, 23.956),
+      ],
+      leadInKm: 0.15,
+      leadInElevationM: 0,
+      lapKm: 23.869,
+      laps: 1,
+    });
+    const spiralRoute = routeKeyPoints({ segments: pacing.segments, accents: pacing.accents, totalKm: pacing.totalKm, laps: 1 });
+    const sheet = defaultSheet({ format: "points", category: "B", route: spiralRoute, powerups: [], own, watch: [], warnings: [] });
+    expect(sheet.moments.map((m) => [m.what.replace(/ ·.*/, ""), m.todo])).toEqual([
+      ["KOM Jarvis (1e) 36 m", "klimmers erop, de rest in het wiel"],
+      ["sprint Jarvis (1e)", "sprinters erop, de rest in het wiel"],
+      ["KOM Jarvis (2e) 36 m", "klimmers erop, de rest in het wiel"],
+      ["sprint Jarvis (2e)", "sprinters erop, de rest in het wiel"],
+      ["laatste boog", "powerup vóór de boog op"],
+      ["Volcano 126 m", "voluit tot de top"],
+    ]);
+    expect(sheet.sketch.filter((m) => m.style === "sprint").map((m) => m.text)).toEqual(["sprint Jarvis", "sprint Jarvis"]);
+  });
+
+  it("noemt een KOM niet apart als de klim al een moment heeft", () => {
+    const points = defaultSheet({ format: "points", category: "B", route, powerups, own, watch: [], warnings: [] });
+    expect(points.moments.some((m) => m.what.startsWith("KOM"))).toBe(false);
+    expect(points.moments.find((m) => m.what.startsWith("The Hill"))?.todo).toBe("voorste derde, eerste selectie");
   });
 });

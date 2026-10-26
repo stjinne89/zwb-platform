@@ -4,7 +4,7 @@
 
 import type { BriefingFormat, LimitCheck, Powerup } from "./rules";
 import { cleanRiderName, type OwnRole, type Projection, type WatchReason } from "./field";
-import { climbSeconds, sprintLabel, type BriefingClimb, type RouteKeyPoints } from "./route";
+import { climbSeconds, overlaps, segmentLabel, type BriefingClimb, type BriefingSegment, type RouteKeyPoints } from "./route";
 
 export type BriefingTip = {
   /** Waar het over gaat, met het getal uit de data. */
@@ -162,6 +162,17 @@ export function briefingMoments(input: {
   const time = (climb: BriefingClimb) => durationLabel(climbSeconds(climb, category));
   const out: BriefingMoment[] = [];
   const has = (p: Powerup) => input.powerups.some((x) => x.powerup === p);
+  /**
+   * De sprints en KOM's met punten, behalve een KOM over een klim die al een
+   * moment heeft en een segment dat op de streep eindigt (dan telt de finish).
+   */
+  const scoring = (covered: Array<BriefingClimb | null>, todo: (segment: BriefingSegment) => string): BriefingMoment[] =>
+    route.segments
+      .filter((s) => s.endKm < route.totalKm - 0.3 && !(s.kind === "kom" && covered.some((c) => c && overlaps(s, c))))
+      .map((s) => {
+        const climb = s.kind === "kom" ? route.climbs.find((c) => overlaps(s, c)) : undefined;
+        return { km: s.startKm, what: climb ? `${segmentLabel(s)} ${climb.gainM} m · ${time(climb)}` : segmentLabel(s), todo: todo(s) };
+      });
 
   if (format === "ttt" || format === "rot") {
     for (const climb of route.climbs) {
@@ -171,9 +182,7 @@ export function briefingMoments(input: {
         todo: format === "ttt" ? "W/kg-doel, bij elkaar blijven" : "niet harder dan je drempel",
       });
     }
-    if (format === "rot") {
-      for (const sprint of route.sprints) out.push({ km: sprint.startKm, what: sprintLabel(sprint), todo: "telt voor FAL en FTS" });
-    }
+    if (format === "rot") out.push(...scoring(route.climbs, () => "telt voor FAL en FTS"));
     return out.sort((a, b) => a.km - b.km);
   }
 
@@ -185,11 +194,13 @@ export function briefingMoments(input: {
   }
   const hardest = route.hardestClimb;
   const finaleClimb = route.finale.kind === "climb" ? route.finale.climb : null;
-  if (hardest && hardest !== finaleClimb && hardest !== route.earlyClimb && !route.descentsIntoClimbs.some((d) => d.climb === hardest)) {
+  const hardestOwn = hardest && hardest !== finaleClimb && hardest !== route.earlyClimb && !route.descentsIntoClimbs.some((d) => d.climb === hardest);
+  if (hardest && hardestOwn) {
     out.push({ km: hardest.startKm, what: `${short(hardest)} ${hardest.gainM} m · ${time(hardest)}`, todo: "doortrappen over de top" });
   }
   if (format === "points") {
-    for (const sprint of route.sprints) out.push({ km: sprint.startKm, what: sprintLabel(sprint), todo: "sprinters erop, de rest in het wiel" });
+    const covered = [route.earlyClimb, finaleClimb, hardestOwn ? hardest : null, ...route.descentsIntoClimbs.map((d) => d.climb)];
+    out.push(...scoring(covered, (s) => (s.kind === "sprint" ? "sprinters erop, de rest in het wiel" : "klimmers erop, de rest in het wiel")));
   }
   if (route.lastArchKm !== null) out.push({ km: route.lastArchKm, what: "laatste boog", todo: "powerup vóór de boog op" });
   if (route.finale.kind === "climb") {

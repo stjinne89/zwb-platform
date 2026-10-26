@@ -10,14 +10,14 @@
 import { cheatRules, type BriefingFormat, type CheatRule, type LimitCheck, type Powerup } from "./rules";
 import { briefingMoments, type BriefingMoment } from "./tips";
 import { cleanRiderName, type OwnRole } from "./field";
-import { sprintLabel, type BriefingClimb, type RouteKeyPoints } from "./route";
+import { segmentLabel, type BriefingClimb, type RouteKeyPoints } from "./route";
 
 /** Een aantekening in het getekende profiel. */
 export type SketchMark = {
   fromKm: number;
   toKm: number;
   text: string;
-  /** markeer: markeerstift over het stuk, label in teal; cirkel: rood omcirkeld; label: potlood erboven; boog: stippellijn met label eronder; sprint: groen over het stuk, label eronder. */
+  /** markeer: markeerstift over het stuk, label in teal; cirkel: rood omcirkeld; label: potlood erboven; boog: stippellijn met label eronder; sprint: groen over het stuk. Alle teksten schuiven op tot ze vrij staan (RouteSketch). */
   style: "markeer" | "cirkel" | "label" | "boog" | "sprint";
 };
 
@@ -153,7 +153,10 @@ export function defaultSheet(input: {
     }
     // Alleen waar een sprint punten oplevert; in een scratch telt alleen de finish.
     if (input.format === "points" || input.format === "rot") {
-      for (const sprint of route.sprints) sketch.push({ fromKm: sprint.startKm, toKm: sprint.endKm, text: sprintLabel(sprint), style: "sprint" });
+      for (const s of route.segments) {
+        // De KOM's staan er al als klim; een passage ziet de lezer aan de plek.
+        if (s.kind === "sprint") sketch.push({ fromKm: s.startKm, toKm: s.endKm, text: segmentLabel(s, false), style: "sprint" });
+      }
     }
     if (route.lastArchKm !== null) sketch.push({ fromKm: route.lastArchKm, toKm: route.lastArchKm, text: "laatste boog", style: "boog" });
     sketch.sort((a, b) => a.fromKm - b.fromKm);

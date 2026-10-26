@@ -26,6 +26,30 @@ const PAD_X = 10;
 const TOP = 40;
 const BASE = 128;
 
+type Box = { x0: number; x1: number; y0: number; y1: number };
+
+type Anchor = "start" | "middle" | "end";
+
+/** Breedte per teken als deel van de lettergrootte; ruim voor Shantell Sans, vet nog ruimer. */
+const charWidth = (bold: boolean) => (bold ? 0.62 : 0.55);
+
+/** Het vak van een tekst rond de basislijn, geschat uit het aantal tekens. */
+function textBox(px: number, baseline: number, text: string, size: number, anchor: Anchor, bold = false): Box {
+  const width = text.length * size * charWidth(bold);
+  const x0 = anchor === "middle" ? px - width / 2 : anchor === "end" ? px - width : px;
+  return { x0, x1: x0 + width, y0: baseline - size * 0.8, y1: baseline + size * 0.25 };
+}
+
+const overlap = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+
+const TEXT_LOOK: Record<SketchMark["style"], { fontSize: number; fontWeight?: number; fill: string; textAnchor: Anchor }> = {
+  markeer: { fontSize: 17, fontWeight: 700, fill: TEAL, textAnchor: "end" },
+  cirkel: { fontSize: 17, fontWeight: 700, fill: RED, textAnchor: "end" },
+  boog: { fontSize: 15, fill: PENCIL, textAnchor: "end" },
+  sprint: { fontSize: 14, fill: GREEN, textAnchor: "middle" },
+  label: { fontSize: 15, fill: PENCIL, textAnchor: "middle" },
+};
+
 /** Hooguit ±140 punten: genoeg voor de vorm, en een pen trekt geen 300 lijntjes. */
 function sketchPoints(segments: PacingSegment[]): Point[] {
   const pts = profilePoints(segments);
@@ -61,6 +85,86 @@ function RouteSketch({ segments, marks }: { segments: PacingSegment[]; marks: Sk
       .map(({ p, i }, n) => `${n ? "L" : "M"}${x(p.km).toFixed(1)} ${y(p.m, i).toFixed(1)}`)
       .join(" ");
 
+  const ellipseOf = (m: SketchMark) => {
+    const cx = x((m.fromKm + m.toKm) / 2);
+    const cy = (yAt(m.fromKm) + yAt(m.toKm)) / 2;
+    return { cx, cy, rx: Math.max(16, (x(m.toKm) - x(m.fromKm)) / 2 + 9), ry: (Math.abs(yAt(m.fromKm) - yAt(m.toKm)) / 2 || 6) + 9 };
+  };
+  const lineYs = (box: Box) => {
+    const ys: number[] = [];
+    for (let px = Math.max(PAD_X, box.x0 - 3); px <= Math.min(W - PAD_X, box.x1 + 3); px += 1.5) ys.push(yAt(((px - PAD_X) / (W - 2 * PAD_X)) * totalKm));
+    return ys;
+  };
+
+  // Elke tekst krijgt een plek waar hij vrij staat van de lijn, van de andere
+  // teksten, van de rode cirkel, de stippellijn van de boog en de vlag: eerst de
+  // eigen plek, dan een rij hoger (of lager) en wat opzij. Past een tekst nergens
+  // en staat dezelfde tekst er al (een volgende ronde), dan valt hij weg.
+  const taken: Box[] = [
+    { x0: W - PAD_X - 2, x1: W - PAD_X + 16, y0: yAt(totalKm) - 26, y1: yAt(totalKm) },
+    textBox(PAD_X, BASE + 32, "0", 15, "start"),
+    textBox(W - PAD_X, BASE + 32, `${nl.format(totalKm)} km`, 15, "end"),
+  ];
+  for (const m of marks) {
+    if (m.style === "cirkel") {
+      const e = ellipseOf(m);
+      // De ellips staat 8° scheef: een paar eenheden ruimer.
+      taken.push({ x0: e.cx - e.rx - 4, x1: e.cx + e.rx + 4, y0: e.cy - e.ry - 4, y1: e.cy + e.ry + 4 });
+    }
+    if (m.style === "boog") taken.push({ x0: x(m.fromKm) - 2, x1: x(m.fromKm) + 2, y0: yAt(m.fromKm) - 5, y1: BASE + 14 });
+  }
+  type Spec = { size: number; bold: boolean; anchor: Anchor; px: number; ys: number[]; shifts: number[]; bottom: number };
+  const specOf = (m: SketchMark): Spec => {
+    if (m.style === "cirkel") {
+      const py = topY(m.fromKm, m.toKm) - 18;
+      return { size: 17, bold: true, anchor: "end", px: x(m.fromKm) - 6, ys: [py, py - 18, py + 18], shifts: [0, -0.5], bottom: BASE + 6 };
+    }
+    if (m.style === "markeer") {
+      // Links van het eind, zodat er rechts ruimte blijft voor de finale.
+      const py = topY(m.fromKm, m.toKm) - 14;
+      return { size: 17, bold: true, anchor: "end", px: x(m.toKm) - 8, ys: [py, py - 18, py - 36], shifts: [0, -0.5, 0.5], bottom: BASE + 6 };
+    }
+    if (m.style === "boog") return { size: 15, bold: false, anchor: "end", px: x(m.fromKm) - 5, ys: [BASE + 32], shifts: [0, -0.5, 1, -1], bottom: H };
+    const size = m.style === "sprint" ? 14 : 15;
+    const width = m.text.length * size * charWidth(false);
+    const px = Math.min(W - 2 - width / 2, Math.max(2 + width / 2, x((m.fromKm + m.toKm) / 2)));
+    const span = [...lineYs(textBox(px, 0, m.text, size, "middle")), yAt(m.fromKm)];
+    const above = Math.min(...span) - 7;
+    const below = Math.max(...span) + size * 0.8 + 5;
+    // Een sprint ligt meestal vlak: liefst eronder, de klimlabels staan erboven.
+    const ys = m.style === "sprint" ? [below, above, above - 16, above - 32] : [above, above - 16, above - 32, below];
+    return { size, bold: false, anchor: "middle", px, ys, shifts: [0, -0.6, 0.6], bottom: BASE + 6 };
+  };
+  const ORDER: SketchMark["style"][] = ["cirkel", "markeer", "boog", "label", "sprint"];
+  const placed = new Map<SketchMark, { x: number; y: number }>();
+  const scoredFor = (m: SketchMark) => {
+    const spec = specOf(m);
+    const width = m.text.length * spec.size * charWidth(spec.bold);
+    const candidates = spec.shifts.flatMap((shift) => spec.ys.map((py) => ({ px: spec.px + shift * width, py })));
+    return candidates.map(({ px, py }) => {
+      const box = textBox(px, py, m.text, spec.size, spec.anchor, spec.bold);
+      const outside = box.x0 < 0 || box.x1 > W || box.y0 < 0 || box.y1 > spec.bottom;
+      const crossesLine = lineYs(box).some((ly) => ly >= box.y0 - 3 && ly <= box.y1 + 3);
+      return { px, py, box, cost: (outside ? 10 : 0) + (crossesLine ? 5 : 0) + taken.filter((t) => overlap(t, box)).length };
+    });
+  };
+  const place = (m: SketchMark, spot: { px: number; py: number; box: Box }) => {
+    taken.push(spot.box);
+    placed.set(m, { x: spot.px, y: spot.py });
+  };
+  // Eerst alles wat vrij past; daarna de rest op de minst slechte plek, behalve
+  // een tekst die er al staat.
+  const deferred: SketchMark[] = [];
+  for (const m of [...marks].sort((a, b) => ORDER.indexOf(a.style) - ORDER.indexOf(b.style) || a.fromKm - b.fromKm)) {
+    const free = scoredFor(m).find((c) => c.cost === 0);
+    if (free) place(m, free);
+    else deferred.push(m);
+  }
+  for (const m of deferred) {
+    if ([...placed.keys()].some((other) => other.text === m.text)) continue;
+    place(m, scoredFor(m).reduce((a, b) => (b.cost < a.cost ? b : a)));
+  }
+
   const label = marks.length ? `Profiel: ${marks.map((m) => `${m.text} op ${km(m.fromKm)}`).join(", ")}` : "Profiel van de route";
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="mt-1 w-full" role="img" aria-label={label}>
@@ -79,60 +183,31 @@ function RouteSketch({ segments, marks }: { segments: PacingSegment[]; marks: Sk
       <path d={line} stroke={INK} strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       <path d={`M${PAD_X} ${BASE + 9} C ${W * 0.3} ${BASE + 8}, ${W * 0.62} ${BASE + 10.5}, ${W - PAD_X} ${BASE + 8.5}`} stroke={PENCIL} strokeWidth={1} fill="none" strokeLinecap="round" />
 
+      {marks
+        .filter((m) => m.style === "cirkel")
+        .map((m) => {
+          const { cx, cy, rx, ry } = ellipseOf(m);
+          return <ellipse key={`c-${m.fromKm}-${m.text}`} cx={cx} cy={cy} rx={rx} ry={ry} stroke={RED} strokeWidth={1.8} fill="none" transform={`rotate(-8 ${cx} ${cy})`} />;
+        })}
+      {marks
+        .filter((m) => m.style === "boog")
+        .map((m) => (
+          <path key={`b-${m.fromKm}-${m.text}`} d={`M${x(m.fromKm)} ${yAt(m.fromKm) - 5} L${x(m.fromKm) + 0.6} ${BASE + 14}`} stroke={PENCIL} strokeWidth={1.2} strokeDasharray="3 3" strokeLinecap="round" />
+        ))}
+      {/* Een sprintlabel dat ver van zijn streep staat, krijgt een stippellijn erheen. */}
       {marks.map((m) => {
-        const key = `${m.style}-${m.fromKm}-${m.text}`;
-        if (m.style === "markeer") {
-          // Links van het eind, zodat er rechts ruimte blijft voor de finale.
-          return (
-            <text key={key} x={x(m.toKm) - 8} y={topY(m.fromKm, m.toKm) - 14} fontSize={17} fontWeight={700} fill={TEAL} textAnchor="end">
-              {m.text}
-            </text>
-          );
-        }
-        if (m.style === "cirkel") {
-          const cx = x((m.fromKm + m.toKm) / 2);
-          const cy = (yAt(m.fromKm) + yAt(m.toKm)) / 2;
-          return (
-            <g key={key}>
-              <ellipse
-                cx={cx}
-                cy={cy}
-                rx={Math.max(16, (x(m.toKm) - x(m.fromKm)) / 2 + 9)}
-                ry={(Math.abs(yAt(m.fromKm) - yAt(m.toKm)) / 2 || 6) + 9}
-                stroke={RED}
-                strokeWidth={1.8}
-                fill="none"
-                transform={`rotate(-8 ${cx} ${cy})`}
-              />
-              <text x={x(m.fromKm) - 6} y={topY(m.fromKm, m.toKm) - 18} fontSize={17} fontWeight={700} fill={RED} textAnchor="end">
-                {m.text}
-              </text>
-            </g>
-          );
-        }
-        if (m.style === "sprint") {
-          // Onder de lijn, daarboven staan de klimmen; zo laag als de lijn over de breedte van het label komt.
-          const cx = x((m.fromKm + m.toKm) / 2);
-          const half = m.text.length * 3.6;
-          const bottom = Math.max(yAt(m.fromKm), yAt(m.toKm), ...pts.filter((p) => Math.abs(x(p.km) - cx) <= half).map((p) => y(p.m)));
-          return (
-            <text key={key} x={cx} y={Math.min(BASE + 2, bottom + 16)} fontSize={14} fill={GREEN} textAnchor="middle">
-              {m.text}
-            </text>
-          );
-        }
-        if (m.style === "boog") {
-          return (
-            <g key={key}>
-              <path d={`M${x(m.fromKm)} ${yAt(m.fromKm) - 5} L${x(m.fromKm) + 0.6} ${BASE + 14}`} stroke={PENCIL} strokeWidth={1.2} strokeDasharray="3 3" strokeLinecap="round" />
-              <text x={x(m.fromKm) - 5} y={BASE + 32} fontSize={15} fill={PENCIL} textAnchor="end">
-                {m.text}
-              </text>
-            </g>
-          );
-        }
+        const at = placed.get(m);
+        const mid = (m.fromKm + m.toKm) / 2;
+        if (m.style !== "sprint" || !at || Math.abs(at.y - yAt(mid)) < 24) return null;
+        const fromY = at.y < yAt(mid) ? at.y + 4 : at.y - 14;
+        const toY = at.y < yAt(mid) ? yAt(mid) - 5 : yAt(mid) + 5;
+        return <path key={`l-${m.fromKm}-${m.text}`} d={`M${at.x} ${fromY} L${x(mid)} ${toY}`} stroke={GREEN} strokeOpacity={0.7} strokeWidth={1} strokeDasharray="2 3" strokeLinecap="round" />;
+      })}
+      {marks.map((m) => {
+        const at = placed.get(m);
+        if (!at) return null;
         return (
-          <text key={key} x={x((m.fromKm + m.toKm) / 2)} y={topY(m.fromKm, m.toKm) - 9} fontSize={15} fill={PENCIL} textAnchor="middle">
+          <text key={`${m.style}-${m.fromKm}-${m.text}`} x={at.x} y={at.y} {...TEXT_LOOK[m.style]}>
             {m.text}
           </text>
         );

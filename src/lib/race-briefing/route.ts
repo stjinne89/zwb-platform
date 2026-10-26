@@ -9,7 +9,7 @@
 //   een lint, en op de klim breekt het;
 // - de finale: een klim kort voor de streep, of een vlakke aankomst;
 // - de laatste boog: daar krijg je de laatste powerup;
-// - de sprintsegmenten: in een puntenrace leveren die FAL- en FTS-punten op.
+// - de sprints en KOM's: in een puntenrace leveren die FAL- en FTS-punten op.
 
 import type { PacingAccent, PacingSegment } from "@/lib/pacing/route-profile";
 
@@ -53,8 +53,9 @@ export type BriefingClimb = {
 
 export type BriefingDescent = { startKm: number; endKm: number; dropM: number };
 
-/** Een Zwift-sprintsegment; ligt het meer dan eens op de route, dan per passage. */
-export type BriefingSprint = {
+/** Een Zwift-sprint of -KOM; ligt hij meer dan eens op de route, dan per passage. */
+export type BriefingSegment = {
+  kind: "sprint" | "kom";
   startKm: number;
   endKm: number;
   name: string;
@@ -78,7 +79,8 @@ export type RouteKeyPoints = {
   /** De eerste klim in de eerste 8 km: daar valt vaak de eerste selectie. */
   earlyClimb: BriefingClimb | null;
   finale: BriefingFinale;
-  sprints: BriefingSprint[];
+  /** De sprints en KOM's van de route: in een puntenrace leveren ze FAL- en FTS-punten op. */
+  segments: BriefingSegment[];
   /** Km van de laatste boog vóór de streep (eind van een segment of een rondestreep). */
   lastArchKm: number | null;
 };
@@ -291,10 +293,11 @@ export function routeKeyPoints(input: {
       ? { kind: "climb", climb: lastClimb, runInKm: round(totalKm - lastClimb.endKm) }
       : { kind: "flat", flatKm: round(totalKm - (lastClimb?.endKm ?? 0)) };
 
-  const sprintAccents = zwiftAccents.filter((a) => a.kind === "sprint").sort((a, b) => a.startKm - b.startKm);
-  const sprints: BriefingSprint[] = sprintAccents.map((a) => {
-    const same = sprintAccents.filter((b) => b.name === a.name);
-    return { startKm: round(a.startKm), endKm: round(a.endKm), name: a.name, pass: same.indexOf(a) + 1, passes: same.length };
+  const sorted = [...zwiftAccents].sort((a, b) => a.startKm - b.startKm);
+  const segments: BriefingSegment[] = sorted.map((a) => {
+    const same = sorted.filter((b) => b.name === a.name);
+    const kind = a.kind === "sprint" ? "sprint" : "kom";
+    return { kind, startKm: round(a.startKm), endKm: round(a.endKm), name: a.name, pass: same.indexOf(a) + 1, passes: same.length };
   });
 
   const laps = Math.max(1, Math.round(input.laps ?? 1));
@@ -305,13 +308,22 @@ export function routeKeyPoints(input: {
   }
   const lastArchKm = archKms.length ? round(Math.max(...archKms)) : null;
 
-  return { totalKm: round(totalKm), climbs, descentsIntoClimbs, hardestClimb, earlyClimb, finale, sprints, lastArchKm };
+  return { totalKm: round(totalKm), climbs, descentsIntoClimbs, hardestClimb, earlyClimb, finale, segments, lastArchKm };
 }
 
-/** "Manhattan Sprint" → "sprint Manhattan", met de passage als hij vaker voorkomt. */
-export function sprintLabel(sprint: BriefingSprint): string {
-  const short = sprint.name.replace(/\s*\bsprint\b\s*/i, " ").replace(/^the\s+/i, "").trim();
-  return `sprint ${short || sprint.name}${sprint.passes > 1 ? ` (${sprint.pass}e)` : ""}`;
+/**
+ * "Manhattan Sprint" → "sprint Manhattan", "Jarvis KOM" → "KOM Jarvis"; met de
+ * passage erbij als hij vaker op de route ligt en `withPass` niet uit staat.
+ */
+export function segmentLabel(segment: BriefingSegment, withPass = true): string {
+  const short = segment.name.replace(/\s*\b(sprint|kom|qom)\b\s*/gi, " ").replace(/^the\s+/i, "").trim() || segment.name;
+  const pass = withPass && segment.passes > 1 ? ` (${segment.pass}e)` : "";
+  return `${segment.kind === "sprint" ? "sprint" : "KOM"} ${short}${pass}`;
+}
+
+/** Overlapt een Zwift-segment deze klim? */
+export function overlaps(segment: BriefingSegment, climb: BriefingClimb): boolean {
+  return Math.min(segment.endKm, climb.endKm) - Math.max(segment.startKm, climb.startKm) > 0;
 }
 
 /**

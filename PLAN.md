@@ -11390,6 +11390,51 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gewijzigd — Racebriefje: KOM's als moment, profiel zonder overlap
+
+**2026-10-26.** Commit `COMMIT_HASH`. Geen migratie.
+
+**Waarom.** De eigenaar zag op het briefje van Spiral Summit (Bdev, 27 oktober)
+dat de labels door elkaar stonden: "sprint Jarvis (1e)" en "(2e)" liepen door de
+lijn, over elkaar en over de stippellijn van de boog. En Jarvis KOM stond niet
+bij de momenten: een klim kwam er alleen op als hij beslissend was, terwijl een
+KOM in een puntenrace net zo goed FAL- en FTS-punten oplevert als een sprint.
+
+**Wat.**
+- `routeKeyPoints.segments` (was `sprints`): alle sprints en KOM's van de route
+  per passage, met `kind`. `segmentLabel` geeft "sprint Jarvis" of "KOM Jarvis",
+  met "(2e)" als hij vaker op de route ligt (in het profiel zonder, de plek zegt
+  het al).
+- Momenten bij een puntenrace: per KOM "klimmers erop, de rest in het wiel", met
+  hoogtemeters en tijd van de klim eronder. Niet apart: een KOM over een klim die
+  al een moment heeft (vroeg, na een afdaling, de zwaarste, de finale), en een
+  segment dat op de streep eindigt (Volcano op Spiral Summit: dan telt de finish).
+  Bij een Race of Truth komen de KOM's die geen klim in de lijst zijn erbij met
+  "telt voor FAL en FTS".
+- Het profiel (`RouteSketch` in `race-sheet.tsx`) zet elke tekst waar hij vrij
+  staat van de lijn, van de andere teksten, van de rode cirkel, de stippellijn van
+  de boog, de vlag en de km-getallen: eerst de eigen plek, dan een rij hoger of
+  lager en wat opzij. De breedte is geschat uit het aantal tekens. Volgorde:
+  voluit!, de markeerstift-teksten, de boog, de klimlabels, de sprints. Past een
+  tekst nergens en staat dezelfde tekst er al (een volgende ronde), dan valt hij
+  weg; anders komt hij op de minst slechte plek. Een sprintlabel dat ver van zijn
+  streep staat, krijgt een groene stippellijn erheen.
+- Nieuwe fixture `tests/fixtures/zwift/spiral-summit-100m.json` (profiel uit
+  `zwift_routes` op productie, elk 4e punt).
+
+**Bewust niet.** Geen meting van de echte tekstbreedte (dat kan pas in de
+browser en het briefje wordt op de server getekend). Geen eigen stijl voor KOM's
+in het profiel: de klimmen staan er al met hun naam.
+
+**Gecontroleerd.** Vitest (`race-briefing.test.ts`, 26 tests, met Spiral
+Summit: de momenten in volgorde, Jarvis KOM twee keer, Volcano alleen als
+finale), `tsc` (alleen de bekende ontbrekende pakketten in deze worktree),
+ESLint. De schets tijdelijk los gerenderd met Shantell Sans en bekeken voor
+Spiral Summit, Green to Screen en Green to Screen in drie ronden: niets over
+elkaar of door de lijn. **Niet geverifieerd:** in de app zelf; de lokale
+`zwift-data` is 1.50 en kent Spiral Summit niet, daarom staan de segmenten van
+zwift-data 2.1 met de hand in de test.
+
 ### Gebouwd — Racebriefje: sprintsegmenten van het parcours
 
 **2026-10-26.** Commit `befe317e`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
@@ -11404,11 +11449,14 @@ einden van segmenten voor de laatste boog.
 - `routeKeyPoints` (`lib/race-briefing/route.ts`) geeft nu `sprints`: elk
   Zwift-sprintsegment op de route, per passage, met `pass`/`passes`.
   `sprintLabel` maakt er "sprint Manhattan" van, met "(2e)" als een sprint vaker
-  op de route ligt.
+  op de route ligt. *Sinds de ronde hierboven: `segments` (sprints én KOM's) en
+  `segmentLabel`.*
 - Het profiel op het briefje krijgt een vijfde stijl, **sprint**: een groene
   streep over het stuk, het label onder de lijn (boven de lijn staan de klimmen),
   zo laag als de lijn over de breedte van het label komt. De captain kan de stijl
-  ook zelf kiezen in Briefje bewerken.
+  ook zelf kiezen in Briefje bewerken. *Niet meer zo: op Spiral Summit liep het
+  label door de lijn en over het volgende; sinds de ronde hierboven schuiven alle
+  teksten tot ze vrij staan.*
 - Momenten: bij een **puntenrace** per sprint "sprinters erop, de rest in het
   wiel" (past bij de regel "1 soort segment" in Onthouden); bij een **Race of
   Truth** "telt voor FAL en FTS". Bij een **scratch** (alleen de finish telt) en
@@ -11416,10 +11464,8 @@ einden van segmenten voor de laatste boog.
 - `/hulp` noemt de sprints in groen en de stijl sprint.
 
 **Bewust niet.** Geen sprint-tip in `briefingTips`: die tips worden sinds het
-spiekbriefje nergens meer getoond. De KOM's krijgen geen eigen regel: een klim
-staat op het briefje als hij beslissend is (vroeg, na een afdaling, de zwaarste,
-de finale) of als label in het profiel, ook als hij in een puntenrace punten
-oplevert. Welke segmenten WTRL in een race echt laat tellen, leest het briefje
+spiekbriefje nergens meer getoond. ~~De KOM's krijgen geen eigen regel~~ (zie de
+ronde hierboven: de eigenaar miste Jarvis KOM). Welke segmenten WTRL in een race echt laat tellen, leest het briefje
 niet; het neemt alle sprintsegmenten van de route uit zwift-data.
 Een captain die het profiel of de momenten al had aangepast, krijgt de sprints
 niet vanzelf: de aangepaste versie van dat blok gaat voor (Voorstel terugzetten haalt ze
