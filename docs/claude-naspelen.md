@@ -74,3 +74,21 @@ grofweg $60–80 per maand.
 - Coachchat, weekoverzicht, pacing en voedingsherkenning: hun context staat niet
   volledig opgeslagen, dus naspelen kan niet exact.
 - De inhoudelijke kwaliteit: daarvoor is `compare.html` (blind, A/B).
+
+## Blinde beoordeling
+
+Via de deelbare pagina (zie PLAN.md). Per beoordelaar het aantal gevallen waarin
+Claude (Opus 5.5) of GPT-5.5 als beter werd gekozen, of beide even goed.
+
+| Beoordelaar | Dagelijkse aanpassing | Aanpassing door renner | Bijwerking | Nieuw schema | Totaal |
+|---|---|---|---|---|---|
+| 1 (2026-10-26) | Claude 3 · gelijk 2 | Claude 1 · OpenAI 2 · gelijk 1 | Claude 1 · gelijk 4 | Claude 2 · OpenAI 2 · gelijk 1 | Claude 7 · OpenAI 4 · gelijk 8 |
+
+- Bij de dagelijkse aanpassing koos beoordelaar 1 drie keer het "laat staan" van
+  Claude boven een wijziging van GPT-5.5; de twee gelijke waren gevallen waarin
+  beide niets wijzigden.
+- De twee keer dat GPT-5.5 won bij de aanpassing door de renner, paste GPT-5.5
+  vier à vijf dagen aan en Claude één à drie; GPT-5.5 brak daarbij meer regels
+  van de meetlat (3 en 5 tegen 1 en 3).
+- Bij de bijwerking zag beoordelaar 1 weinig verschil, terwijl de meetlat bij
+  Claude veel minder fouten telt.
