@@ -6,6 +6,8 @@
 // bij de betreffende functies.
 
 import { defaultPacingPrompt } from "@/lib/pacing/prompt";
+import { createClaudeJob, isClaudeJobId, readClaudeJob, todayLine } from "@/lib/ai/claude";
+import { claudeSettings, usesClaude } from "@/lib/ai/settings";
 
 export type PacingAiStatus =
   | "queued"
@@ -209,6 +211,7 @@ type PacingAiOptions = {
  * de schema-generatie te raken.
  */
 export function getPacingModel(options: PacingAiOptions = {}) {
+  if (usesClaude()) return claudeSettings("pacing").model;
   return (
     options.model?.trim() ||
     process.env.OPENAI_PACING_MODEL?.trim() ||
@@ -325,6 +328,17 @@ export async function startPacingPlanBackground(
   model: string;
   promptSummary: string;
 }> {
+  if (usesClaude()) {
+    const { model, effort } = claudeSettings("pacing");
+    const responseId = await createClaudeJob("pacing", {
+      model,
+      effort,
+      system: promptText,
+      user: `${todayLine()}\n\nMaak een pacingplan op basis van dit parcours, deze renner en dit basisvoorstel:\n${JSON.stringify(input, null, 2)}`,
+      schema: planSchema,
+    });
+    return { responseId, status: "queued", model, promptSummary: JSON.stringify(input, null, 2) };
+  }
   const apiKey = requireOpenAiKey();
   const model = getPacingModel(options);
   const promptSummary = JSON.stringify(input, null, 2);
@@ -366,6 +380,17 @@ export async function retrievePacingPlan(
   | { status: "completed"; plan: GeneratedPacingPlan; responseJson: unknown }
   | { status: "failed" | "cancelled" | "incomplete"; error: string; responseJson: unknown }
 > {
+  if (isClaudeJobId(responseId)) {
+    const job = await readClaudeJob(responseId);
+    if (job.status === "failed") return { status: "failed", error: job.error, responseJson: null };
+    if (job.status !== "completed") return { status: job.status };
+    try {
+      const plan = JSON.parse(job.text) as GeneratedPacingPlan;
+      return { status: "completed", plan, responseJson: plan };
+    } catch {
+      return { status: "failed", error: "Claude gaf geen leesbaar pacingplan terug.", responseJson: null };
+    }
+  }
   const apiKey = requireOpenAiKey();
   const res = await fetchOpenAi(
     `https://api.openai.com/v1/responses/${encodeURIComponent(responseId)}`,

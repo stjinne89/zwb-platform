@@ -5,6 +5,15 @@ import type { PreferenceForAi } from "@/lib/training/preferences";
 import { PLAN_BLOCK_DAYS } from "@/lib/training/season";
 import type { GoalTargetForAi } from "@/lib/training/goal-forecast";
 import type { CurrentLoad } from "@/lib/training/load-basis";
+import {
+  createClaudeJob,
+  isClaudeJobId,
+  readClaudeJob,
+  runClaude,
+  todayLine,
+  type ClaudeRequest,
+} from "@/lib/ai/claude";
+import { claudeSettings, usesClaude, type AiKind } from "@/lib/ai/settings";
 
 export type GeneratedWorkout = {
   date: string;
@@ -425,15 +434,34 @@ type GenerateTrainingPlanOptions = {
   timeoutMs?: number;
   /** Minimum aantal workouts dat het antwoord moet bevatten. Default 3. */
   minWorkouts?: number;
+  /** Bij Claude: welk model en welke effort (src/lib/ai/settings.ts). */
+  kind?: AiKind;
 };
 
 /**
  * Welk model deze generatie gebruikt. Geëxporteerd omdat startPlanUpdate de rij
- * in training_ai_generations aanmaakt vóórdat de call naar OpenAI vertrekt, en
- * het model dus al moet weten.
+ * in training_ai_generations aanmaakt vóórdat de call naar de AI vertrekt, en
+ * het model dus al moet weten. Bij Claude telt `model` uit de opties niet: de
+ * aanroepers geven daar het OpenAI-model mee.
  */
 export function getTrainingModel(options: GenerateTrainingPlanOptions = {}) {
+  if (usesClaude()) return claudeSettings(options.kind ?? "nieuw_schema").model;
   return options.model?.trim() || process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5";
+}
+
+function trainingClaudeRequest(
+  input: TrainingAiInput,
+  promptText: string,
+  options: GenerateTrainingPlanOptions,
+): ClaudeRequest {
+  const { model, effort } = claudeSettings(options.kind ?? "nieuw_schema");
+  return {
+    model,
+    effort,
+    system: promptText,
+    user: `${todayLine()}\n\nMaak een trainingsplan-concept op basis van deze intake en recente data:\n${JSON.stringify(input, null, 2)}`,
+    schema: planSchema(options.minWorkouts ?? 3),
+  };
 }
 
 function requireOpenAiKey() {
@@ -519,6 +547,14 @@ export async function generateTrainingPlanDraft(
   promptText = defaultTrainingPrompt(),
   options: GenerateTrainingPlanOptions = {},
 ): Promise<{ model: string; promptSummary: string; plan: GeneratedTrainingPlan }> {
+  if (usesClaude()) {
+    const result = await runClaude(trainingClaudeRequest(input, promptText, options));
+    return {
+      model: result.model,
+      promptSummary: JSON.stringify(input, null, 2),
+      plan: JSON.parse(result.text) as GeneratedTrainingPlan,
+    };
+  }
   const apiKey = requireOpenAiKey();
   const model = getTrainingModel(options);
   const timeoutMs = options.timeoutMs ?? 45_000;
@@ -553,6 +589,11 @@ export async function startTrainingPlanDraftBackground(
   promptText = defaultTrainingPrompt(),
   options: GenerateTrainingPlanOptions = {},
 ): Promise<{ responseId: string; status: TrainingAiResponseStatus; model: string; promptSummary: string }> {
+  if (usesClaude()) {
+    const request = trainingClaudeRequest(input, promptText, options);
+    const responseId = await createClaudeJob("training", request);
+    return { responseId, status: "queued", model: request.model, promptSummary: JSON.stringify(input, null, 2) };
+  }
   const apiKey = requireOpenAiKey();
   const model = getTrainingModel(options);
   const promptSummary = JSON.stringify(input, null, 2);
@@ -598,6 +639,19 @@ export async function retrieveTrainingPlanDraftBackground(
   | { status: "completed"; plan: GeneratedTrainingPlan; responseJson: unknown }
   | { status: "failed" | "cancelled" | "incomplete"; error: string; responseJson: unknown }
 > {
+  // Op het id, niet op AI_PROVIDER: een generatie die vóór de overstap bij
+  // OpenAI startte, wordt daar ook opgehaald.
+  if (isClaudeJobId(responseId)) {
+    const job = await readClaudeJob(responseId);
+    if (job.status === "failed") return { status: "failed", error: job.error, responseJson: null };
+    if (job.status !== "completed") return { status: job.status };
+    try {
+      const plan = JSON.parse(job.text) as GeneratedTrainingPlan;
+      return { status: "completed", plan, responseJson: plan };
+    } catch {
+      return { status: "failed", error: "Claude gaf geen leesbaar schema terug.", responseJson: null };
+    }
+  }
   const apiKey = requireOpenAiKey();
   const res = await fetchOpenAiResponse(
     `https://api.openai.com/v1/responses/${encodeURIComponent(responseId)}`,
@@ -647,15 +701,29 @@ export { defaultTrainingPrompt };
 /** Welk model de coach gebruikt. Losse env-knop: uitleg mag een goedkoper model
  * zijn dan een heel schema, zonder dat het een ander model wordt zodra iemand
  * OPENAI_TRAINING_MODEL omzet. */
-export function getCoachModel(): string {
+export function getCoachModel(kind: "coach" | "weekly" = "coach"): string {
+  if (usesClaude()) return claudeSettings(kind).model;
   return process.env.OPENAI_COACH_MODEL?.trim() || getTrainingModel();
 }
 
 export async function startCoachAnswerBackground(
   instructions: string,
   userText: string,
-  options: { model?: string; timeoutMs?: number } = {},
+  options: { model?: string; timeoutMs?: number; kind?: "coach" | "weekly" } = {},
 ): Promise<{ responseId: string; status: TrainingAiResponseStatus; model: string }> {
+  if (usesClaude()) {
+    const { model, effort } = claudeSettings(options.kind ?? "coach");
+    // De instructies (met de kennisbanken) zijn voor iedereen gelijk; gecachet
+    // kost elke volgende vraag een fractie van de invoer.
+    const responseId = await createClaudeJob("coach", {
+      model,
+      effort,
+      system: instructions,
+      user: `${todayLine()}\n\n${userText}`,
+      cacheSystem: true,
+    });
+    return { responseId, status: "queued", model };
+  }
   const apiKey = requireOpenAiKey();
   const model = options.model?.trim() || getCoachModel();
 
@@ -696,6 +764,12 @@ export async function retrieveCoachAnswerBackground(
   | { status: "completed"; text: string }
   | { status: "failed" | "cancelled" | "incomplete"; error: string }
 > {
+  if (isClaudeJobId(responseId)) {
+    const job = await readClaudeJob(responseId);
+    if (job.status !== "completed") return job;
+    const text = job.text.trim();
+    return text ? { status: "completed", text } : { status: "failed", error: "Claude gaf een leeg antwoord." };
+  }
   const apiKey = requireOpenAiKey();
   const res = await fetchOpenAiResponse(
     `https://api.openai.com/v1/responses/${encodeURIComponent(responseId)}`,

@@ -14,7 +14,7 @@ const SOURCE_LABELS: Record<string, string> = {
   zwiftpower: "ZwiftPower",
   ladder: "Club-ladder",
   wtrl: "WTRL / ZRL",
-  openai: "Training-AI (OpenAI)",
+  openai: "Training-AI",
   signup_notification: "Melding bij nieuwe aanmelding",
   strava_webhook: "Strava-webhooks",
 };

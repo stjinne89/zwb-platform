@@ -199,7 +199,7 @@ export async function startCoachAnswer(
       author_id: null,
       role: "coach",
       body:
-        err instanceof Error && err.message.includes("OPENAI_API_KEY")
+        err instanceof Error && err.message.includes("_API_KEY ontbreekt")
           ? "De coach is niet ingesteld. Je trainer ziet je bericht wel."
           : "De coach kon niet antwoorden. Je trainer ziet je bericht wel.",
       status: "failed",

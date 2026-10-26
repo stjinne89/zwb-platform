@@ -13,6 +13,9 @@ gaat stabiliteit voor nieuwe features.
    aan** tot de app naar Claude overstapt; dat scheelt nu geld, en na de
    overstap gaat er niets meer naar OpenAI. De privacytekst blijft tot dan
    ongewijzigd. Zie de ronde "Claude als vervanger van OpenAI".
+   **Besluit eigenaar 2026-10-26: overstappen.** De code staat klaar (ronde
+   "Overstap naar Claude klaar"). Open: migratie `0274`, env in Netlify, deploy,
+   en de privacytekst (voorstel ligt bij de eigenaar).
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11350,6 +11353,64 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Overstap naar Claude klaar (AI_PROVIDER)
+
+**2026-10-26.** Lokaal, niet gepusht. Migratie `0274_ai_jobs.sql` (niet toegepast,
+niet lokaal te testen). Commit: zie git log ("Overstap naar Claude").
+
+**Waarom.** Na het naspelen en de blinde beoordeling (ronde hieronder) besloot de
+eigenaar over te stappen: Claude doet het minstens even goed, het
+maandtegoed van het Max-abonnement dekt het grootste deel, en de ledendata gaat
+dan niet meer naar OpenAI om te trainen. Keuze eigenaar: Opus 5.5 voor alles,
+bijwerkingen op effort `low`, model per soort instelbaar.
+
+**Wat er is.**
+- `AI_PROVIDER` (`openai` standaard, of `anthropic`) kiest de aanbieder; de code
+  kan dus live zonder dat er iets verandert. `src/lib/ai/settings.ts` geeft per
+  soort (nieuw schema, bijwerking, dagelijks, dag, coach, week, pacing, voeding)
+  model en effort, over te schrijven met `ANTHROPIC_MODEL_<SOORT>` en
+  `ANTHROPIC_EFFORT_<SOORT>`.
+- Claude heeft geen background-modus. `src/lib/ai/claude.ts` zet een vraag in de
+  nieuwe tabel `ai_jobs` en stoot de Netlify-achtergrondfunctie
+  `netlify/functions/ai-job-background.mts` aan (tot 15 minuten; een bijwerking
+  duurt 4 à 6). Lokaal draait de opdracht in hetzelfde proces. Het id
+  (`aij_…`) staat waar het response-id van OpenAI stond; de ophaal-code kiest op
+  het id, zodat lopende OpenAI-opdrachten na de overstap nog worden opgehaald.
+  Blijft een opdracht een minuut in de rij, dan stoot het ophalen hem opnieuw
+  aan; na 16 minuten bezig geldt hij als mislukt. De prompt en invoer in
+  `ai_jobs.request` gaan leeg zodra de opdracht klaar is; rijen ouder dan zeven
+  dagen ruimt de functie op.
+- Elke Claude-vraag begint met "Vandaag is <weekdag> <datum>." (zie het
+  naspelen: zonder ankerdatum plande Claude in de verkeerde maand).
+- Structured outputs: grenzen die Claude niet kent (`minItems` boven 1,
+  `maxItems`, getal- en tekstgrenzen) gaan uit het schema (`claudeSchema`).
+  Gevolg: bij een nieuw schema of bijwerking dwingt het schema geen minimum
+  van drie workouts meer af.
+- Weigert het model, dan maakt de API het met een ander model af
+  (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`).
+- De instructies van coach en weekoverzicht worden gecachet.
+- Weekoverzicht, de doelenpagina en de gezondheidscheck kijken naar de sleutel
+  van de gekozen aanbieder (`aiConfigured`); de bron in de check heet nog
+  `openai`, het label "Training-AI".
+- Stappen voor de overstap in [runbook](docs/runbook.md) §9.
+
+**Bewust niet.**
+- De privacytekst en de toestemmingszin bij voedingsherkenning noemen nog
+  OpenAI: een voorstel ligt bij de eigenaar (geheugenregel: eerst voorleggen).
+- Het OpenAI-pad blijft bestaan, om terug te kunnen.
+- De datum gaat alleen bij Claude mee; aan het OpenAI-pad is niets veranderd.
+
+**Getest.** `tsc`, ESLint op de gewijzigde bestanden, de hele unit-suite (3433
+geslaagd), nieuwe tests in `tests/unit/ai-claude.test.ts`, en drie echte
+Claude-aanroepen via de nieuwe code zonder database: voedingsherkenning (5 s),
+een coachantwoord (4 s) en een dag-aanpassing via
+`generateTrainingPlanDraft` (26 s, datums vanaf vandaag).
+
+**Niet getest.** De opdrachtentabel (migratie niet toegepast), de
+achtergrondfunctie op Netlify naast de Next.js-site, en of `URL` in de
+functie-env van Next staat (anders `NEXT_PUBLIC_SITE_URL`). Dat blijkt pas na
+migratie en deploy.
 
 ### Gemeten — Claude als vervanger van OpenAI: naspelen op eigen generaties
 

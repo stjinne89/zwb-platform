@@ -3,13 +3,18 @@
 // Een maaltijd herkennen uit een omschrijving (Naleving, stap 3). Herkennen uit
 // een foto is op 2026-10-15 weggehaald: de eerste meting zat er ver naast.
 //
-// Het model draait in background-modus en de pagina vraagt het antwoord op,
-// net als het pacingplan: een Netlify-functie is eerder klaar dan het model. Wat
+// Het model draait in de achtergrond (bij OpenAI in background-modus, bij Claude
+// als opdracht in ai_jobs) en de pagina vraagt het antwoord op, net als het
+// pacingplan: een Netlify-functie is eerder klaar dan het model. Wat
 // het model teruggeeft zijn namen en grammen; de koppeling aan NEVO gebeurt hier,
 // en het lid bevestigt alles in het formulier voor er iets wordt bewaard.
 
 import { revalidatePath } from "next/cache";
+import { createClaudeJob, isClaudeJobId, readClaudeJob } from "@/lib/ai/claude";
+import { claudeSettings, usesClaude } from "@/lib/ai/settings";
 import {
+  RECOGNITION_INSTRUCTIONS,
+  RECOGNITION_SCHEMA,
   RECOGNITION_TEXT_MAX,
   parseRecognition,
   recognitionRequestBody,
@@ -85,22 +90,38 @@ export async function startRecognition(input: { text: string }): Promise<StartRe
   if (left === 0) return { ok: false, error: "Je hebt het maximum voor vandaag bereikt. Voer de maaltijd zelf in." };
 
   let id: string;
-  try {
-    const res = await openAi(
-      "responses",
-      {
-        method: "POST",
-        body: JSON.stringify({ ...recognitionRequestBody({ text }), background: true, store: true }),
-      },
-      20_000,
-    );
-    if (!res.ok) return { ok: false, error: "Herkennen lukt nu niet. Voer de maaltijd zelf in." };
-    const body = (await res.json()) as { id?: string };
-    if (!body.id) return { ok: false, error: "Herkennen lukt nu niet. Voer de maaltijd zelf in." };
-    id = body.id;
-  } catch (err) {
-    const message = err instanceof Error && err.message.startsWith("Herkennen") ? err.message : null;
-    return { ok: false, error: message ?? "Herkennen lukt nu niet. Voer de maaltijd zelf in." };
+  if (usesClaude()) {
+    if (!process.env.ANTHROPIC_API_KEY?.trim()) return { ok: false, error: "Herkennen staat nu niet aan." };
+    try {
+      const { model, effort } = claudeSettings("nutrition");
+      id = await createClaudeJob("nutrition", {
+        model,
+        effort,
+        system: RECOGNITION_INSTRUCTIONS,
+        user: text,
+        schema: RECOGNITION_SCHEMA,
+      });
+    } catch {
+      return { ok: false, error: "Herkennen lukt nu niet. Voer de maaltijd zelf in." };
+    }
+  } else {
+    try {
+      const res = await openAi(
+        "responses",
+        {
+          method: "POST",
+          body: JSON.stringify({ ...recognitionRequestBody({ text }), background: true, store: true }),
+        },
+        20_000,
+      );
+      if (!res.ok) return { ok: false, error: "Herkennen lukt nu niet. Voer de maaltijd zelf in." };
+      const body = (await res.json()) as { id?: string };
+      if (!body.id) return { ok: false, error: "Herkennen lukt nu niet. Voer de maaltijd zelf in." };
+      id = body.id;
+    } catch (err) {
+      const message = err instanceof Error && err.message.startsWith("Herkennen") ? err.message : null;
+      return { ok: false, error: message ?? "Herkennen lukt nu niet. Voer de maaltijd zelf in." };
+    }
   }
 
   // Via de service role: leden kunnen deze tabel alleen lezen (0234).
@@ -145,22 +166,38 @@ export async function pollRecognition(id: string): Promise<PollResult> {
     .maybeSingle();
   if (!usage) return { status: "failed", error: "Deze herkenning bestaat niet." };
 
-  let body: { status?: string };
-  try {
-    const res = await openAi(`responses/${encodeURIComponent(id)}`, { method: "GET" }, 10_000);
-    if (!res.ok) return { status: "failed", error: "Herkennen lukt nu niet. Voer de maaltijd zelf in." };
-    body = (await res.json()) as { status?: string };
-  } catch {
-    return { status: "busy" };
-  }
-  if (body.status === "queued" || body.status === "in_progress") return { status: "busy" };
-  if (body.status !== "completed") {
-    return { status: "failed", error: "Herkennen lukt nu niet. Voer de maaltijd zelf in." };
+  let answer: string;
+  if (isClaudeJobId(id)) {
+    let job;
+    try {
+      job = await readClaudeJob(id);
+    } catch {
+      return { status: "busy" };
+    }
+    if (job.status === "queued" || job.status === "in_progress") return { status: "busy" };
+    if (job.status !== "completed") {
+      return { status: "failed", error: "Herkennen lukt nu niet. Voer de maaltijd zelf in." };
+    }
+    answer = job.text;
+  } else {
+    let body: { status?: string };
+    try {
+      const res = await openAi(`responses/${encodeURIComponent(id)}`, { method: "GET" }, 10_000);
+      if (!res.ok) return { status: "failed", error: "Herkennen lukt nu niet. Voer de maaltijd zelf in." };
+      body = (await res.json()) as { status?: string };
+    } catch {
+      return { status: "busy" };
+    }
+    if (body.status === "queued" || body.status === "in_progress") return { status: "busy" };
+    if (body.status !== "completed") {
+      return { status: "failed", error: "Herkennen lukt nu niet. Voer de maaltijd zelf in." };
+    }
+    answer = responseText(body);
   }
 
   let recognition;
   try {
-    recognition = parseRecognition(JSON.parse(responseText(body)));
+    recognition = parseRecognition(JSON.parse(answer));
   } catch {
     return { status: "failed", error: "Herkennen lukt nu niet. Voer de maaltijd zelf in." };
   }

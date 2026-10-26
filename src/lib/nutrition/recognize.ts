@@ -7,8 +7,10 @@
 // maakt (zie docs/naleving-voeding-plan.md, §5). Het lid bevestigt daarna elke
 // hoeveelheid.
 //
-// Puur, zonder netwerk: het verzoek bouwen en het antwoord uitlezen. De
-// aanroepen zelf staan in de server-actie.
+// Zonder netwerk: het verzoek bouwen en het antwoord uitlezen. De aanroepen
+// zelf staan in de server-actie.
+
+import { claudeSettings, usesClaude } from "@/lib/ai/settings";
 
 /** Herkenningen per lid per 24 uur. */
 export const RECOGNITION_DAILY_LIMIT = 6;
@@ -39,6 +41,7 @@ export type Recognition = {
 };
 
 export function getNutritionModel() {
+  if (usesClaude()) return claudeSettings("nutrition").model;
   return (
     process.env.OPENAI_NUTRITION_MODEL?.trim() || process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5"
   );

@@ -6,6 +6,7 @@
 // voor de hele club te draaien.
 
 import type { createAdminClient } from "@/lib/supabase/admin";
+import { aiConfigured } from "@/lib/ai/settings";
 import {
   retrieveCoachAnswerBackground,
   startCoachAnswerBackground,
@@ -17,7 +18,7 @@ import { hasContent, SUMMARY_VERSION } from "@/lib/weekly-review/summary";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-/** Langer dan dit wachten we niet op OpenAI; dan blijft de tekst uit regels staan. */
+/** Langer dan dit wachten we niet op de AI; dan blijft de tekst uit regels staan. */
 const COACH_TIMEOUT_MS = 5 * 60_000;
 
 export type CoachState = "rules" | "pending" | "done" | "failed";
@@ -66,8 +67,10 @@ async function createRow(admin: Admin, profileId: string, weekStart: string, nex
     coach_started_at: null,
     coach_model: null,
   };
-  if (process.env.OPENAI_API_KEY && (await usesTraining(admin, profileId))) {
-    const started = await startCoachAnswerBackground(WEEK_COACH_PROMPT, coachInput(summary, next)).catch(() => null);
+  if (aiConfigured() && (await usesTraining(admin, profileId))) {
+    const started = await startCoachAnswerBackground(WEEK_COACH_PROMPT, coachInput(summary, next), {
+      kind: "weekly",
+    }).catch(() => null);
     if (started) {
       coach = {
         coach_status: "pending",
