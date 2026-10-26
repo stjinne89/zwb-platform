@@ -11392,7 +11392,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gewijzigd — ZWBriljant: naleving per week als gereden tegen geplande TSS
 
-**2026-10-26.** Commit `COMMIT_HASH`, gepusht naar `main` op 2026-10-26 (eigenaar).
+**2026-10-26.** Commit `01950476`, gepusht naar `main` op 2026-10-26 (eigenaar).
 Geen migratie.
 
 **Waarom.** Vervolg op de ronde hieronder. De eigenaar vroeg of de naleving niet
