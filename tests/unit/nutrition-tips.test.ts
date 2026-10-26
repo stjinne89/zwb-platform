@@ -14,7 +14,15 @@ describe("nutritionTipForToday", () => {
   it("geeft eten onderweg voor een lange rit die nog komt", () => {
     const tip = nutritionTipForToday({ ...base, plannedToday: [{ minutes: 180, intensity: "endurance" }] });
     expect(tip.kind).toBe("tijdens_rit");
-    expect(tip.body).toContain("60–90 g");
+    // Rustige duur: de onderkant van de band van 60–90 g.
+    expect(tip.body).toContain("60 g");
+    expect(tip.body).not.toContain("meng glucose en fructose");
+  });
+
+  it("noemt bij een lange race de bovenkant van de band en de suikermix", () => {
+    const tip = nutritionTipForToday({ ...base, plannedToday: [{ minutes: 180, intensity: "race" }] });
+    expect(tip.body).toContain("90 g");
+    expect(tip.body).toContain("meng glucose en fructose");
   });
 
   it("wijst bij een korte race op de maaltijd vooraf", () => {

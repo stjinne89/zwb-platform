@@ -31,6 +31,7 @@ export const HELP_VIDEOS = [
   { id: "zonder-strava", title: "Ritten zonder Strava", seconds: 17 },
   { id: "meldingen", title: "Meldingen aanzetten", seconds: 16 },
   { id: "aanmelden-event", title: "Aanmelden voor een event", seconds: 12 },
+  { id: "kj-standen", title: "Durability: de kJ-standen", seconds: 48 },
 ] as const;
 
 export type HelpVideoId = (typeof HELP_VIDEOS)[number]["id"];
@@ -216,7 +217,7 @@ export const GUIDES = [
       "AI maakt conceptschema's; de trainer keurt publicatie goed.",
       "Sla je een doel op, dan krijgt je trainer een melding dat er een concept gedraaid kan worden.",
       "In de coachchat vraag je waarom je schema eruitziet zoals het eruitziet, en wat je trainingsdata zeggen.",
-      "Op zondagavond vanaf 18:00 opent je weekoverzicht: per scherm wat je die week deed (ritten, schema, belasting, vermogen, teams, voeding en core, club), het oordeel van de coach, en als laatste je beschikbaarheid voor de week erna. Tik rechts voor verder, links voor terug, houd vast om te pauzeren. Wat je die week niet gebruikte, krijgt geen scherm.",
+      "Op zondagavond vanaf 18:00 opent je weekoverzicht: per scherm wat je die week deed (ritten, schema, belasting, vermogen, je ZWBriljant-steen, teams, voeding en core, club), het oordeel van de coach, en als laatste je beschikbaarheid voor de week erna. Tik rechts voor verder, links voor terug, houd vast om te pauzeren. Wat je die week niet gebruikte, krijgt geen scherm.",
       "Op de laatste pagina van het weekoverzicht schuif je per dag je tijd; je ziet erbij voor welke events je al beschikbaar, opgesteld of aangemeld bent, en waar een event meer tijd vraagt dan je opgaf. Opslaan werkt je schema bij, net als op de schemapagina.",
       "Het oordeel in het weekoverzicht schrijft de AI-coach als je ZWBeter voor je training gebruikt; anders is het een korte samenvatting uit vaste regels. De pop-up komt vanzelf tot en met woensdag; op het dashboard staat de hele week een ingang naar het overzicht van de laatst afgesloten week.",
       "Je trainer ziet bij een gereden training suggesties uit de uitvoering, en onder Races de tips uit je Zwift-races; hij beslist zelf wat hij je als feedback stuurt.",

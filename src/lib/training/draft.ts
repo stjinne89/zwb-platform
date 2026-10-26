@@ -23,6 +23,7 @@ import {
   normalizeWorkoutBlocks,
   planUpdatePrompt,
   resizeBlocks,
+  retitleForDuration,
   WORKOUT_INTENSITIES,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
@@ -59,7 +60,11 @@ import { rootIdOf } from "@/lib/training/plan-tree";
 import { archiveOtherBasePlans, extendRootPlanEnd } from "@/lib/training/active-plan";
 import { preferencesForAi } from "@/lib/training/preferences";
 import { loadProtocolsForAi } from "@/lib/protocols/ai-data";
-import { summarizeRecentRides } from "@/lib/training/ride-metrics";
+import { rideMetricsFromStrava, summarizeRecentRides } from "@/lib/training/ride-metrics";
+import { loadFtpAt } from "@/lib/training/ftp-history";
+import { loadHrBasis } from "@/lib/training/hr-load";
+import { currentWeeklyLoad } from "@/lib/training/load-basis";
+import { uniqueRides } from "@/lib/rides/unique-rides";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { CAUTION_PREFIX } from "@/lib/training/plan-summary";
 import { methodLabelOf } from "@/lib/training/method-label";
@@ -220,19 +225,62 @@ export async function buildRecentLoad(
   // Alleen fietsen. Zonder deze filter telde een hardloopblok of een wandeling
   // mee als fietsvolume, en dat is precies het getal waar de planner zijn
   // ondergrens op baseert.
-  const { data: activities } = await admin
-    .from("strava_activities")
-    .select("distance_m, total_elevation_gain_m, moving_time_seconds, sport_type")
-    .eq("profile_id", athleteId)
-    .in("sport_type", CYCLING_SPORTS)
-    .gte("start_date", new Date(Date.now() - days * 86400_000).toISOString());
+  // Uit `raw` alleen de velden voor de TSS: de hele payload van 28 dagen ritten
+  // per generatie kost egress, en die zit al boven de limiet (PLAN.md).
+  const [{ data: activities }, { data: profile }, hrBasis] = await Promise.all([
+    admin
+      .from("strava_activities")
+      .select(
+        "id, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, sport_type, trainer, " +
+          "device_watts:raw->device_watts, average_watts:raw->average_watts, " +
+          "weighted_average_watts:raw->weighted_average_watts, average_heartrate:raw->average_heartrate, " +
+          "hr_load:raw->hr_load",
+      )
+      .eq("profile_id", athleteId)
+      .in("sport_type", CYCLING_SPORTS)
+      .gte("start_date", new Date(Date.now() - days * 86400_000).toISOString()),
+    admin.from("profiles").select("ftp_watts").eq("id", athleteId).maybeSingle(),
+    loadHrBasis(admin, athleteId),
+  ]);
+  const ftpAt = await loadFtpAt(admin, athleteId, profile?.ftp_watts == null ? null : Number(profile.ftp_watts));
 
   // Voorgerekend, want dit is precies de deling die het model eerder zelf maakte
   // en toen tegen het urenplafond legde alsof het een overschrijding was. Nu is
   // het waar het voor bedoeld is: het volume dat dit lid al aankan — met erbij
   // hóé het dat rijdt, zodat er geen drie blokken van 3,5 uur uit komen voor
-  // iemand die elke dag een uurtje fietst.
-  const shape = summarizeRecentRides(activities ?? [], days);
+  // iemand die elke dag een uurtje fietst — en de belasting per uur, binnen en
+  // buiten. Een dubbel opgenomen rit telt één keer.
+  type RecentRideRow = {
+    id: number;
+    start_date: string;
+    distance_m: number | null;
+    total_elevation_gain_m: number | null;
+    moving_time_seconds: number | null;
+    sport_type: string | null;
+    trainer: boolean | null;
+    device_watts: unknown;
+    average_watts: unknown;
+    weighted_average_watts: unknown;
+    average_heartrate: unknown;
+    hr_load: unknown;
+  };
+  const rows = ((activities ?? []) as unknown as RecentRideRow[]).map((ride) => ({
+    ...ride,
+    raw: {
+      start_date: ride.start_date,
+      device_watts: ride.device_watts,
+      average_watts: ride.average_watts,
+      weighted_average_watts: ride.weighted_average_watts,
+      average_heartrate: ride.average_heartrate,
+      hr_load: ride.hr_load,
+    },
+  }));
+  const rides = uniqueRides(rows).map((ride) => ({
+    ...ride,
+    tss: rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, ftpAt, hrBasis).tss,
+    indoor: ride.sport_type === "VirtualRide" || Boolean(ride.trainer),
+  }));
+  const shape = summarizeRecentRides(rides, days);
   return { days, ...shape };
 }
 
@@ -399,6 +447,7 @@ async function buildTrainingInput(
     profile: profileForAi(profile, ftpTests[0]?.testedOn ?? null),
     symptoms: await loadSymptomLoadForAi(admin, athleteId),
     recentLoad: recent,
+    currentLoad: currentWeeklyLoad({ recentLoad: recent, intervalsLoad }),
     wellness: wellnessInputForAi(wellness),
     intervalsLoad,
     upcomingEvents,
@@ -527,12 +576,13 @@ export async function insertPlanWorkouts(
         ftpWatts,
       );
       const intensity = aligned.intensity;
-      const title = conciseWorkoutTitle(workout.title);
+      let title = conciseWorkoutTitle(workout.title);
       let blocks = aligned.blocks;
       let durationMinutes = Math.min(480, Math.round(workout.durationMinutes));
       if (limit != null && durationMinutes > limit) {
         blocks = resizeBlocks(blocks, limit);
         durationMinutes = limit;
+        title = retitleForDuration(title, limit);
       }
       return [{
         plan_id: plan.id,
@@ -1020,6 +1070,7 @@ export async function startTodayAdjustmentDraft(
       },
       profile: profileForAi(profile, ftpTests[0]?.testedOn ?? null),
       recentLoad,
+      currentLoad: currentWeeklyLoad({ recentLoad, intervalsLoad }),
       wellness: wellnessInputForAi(wellness),
       intervalsLoad,
       availability,

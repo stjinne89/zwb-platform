@@ -72,6 +72,7 @@ describe("rideMetricsFromStrava", () => {
       kilojoules: 1721.1,
       hasPowerMeter: true,
       tss: 156,
+      tssSource: "power",
       intensityFactor: 0.73,
     });
   });
@@ -255,6 +256,29 @@ describe("summarizeRecentRides", () => {
     expect(shape.ridesPerWeek).toBe(1.8);
     expect(shape.avgDurationMinutes).toBe(86);
     expect(shape.longestRideMinutes).toBe(240);
+  });
+
+  it("telt belasting per week en per uur, binnen en buiten apart", () => {
+    // Twee uur binnen op 70 TSS per uur, twee uur buiten op 50, en een uur
+    // buiten zonder TSS.
+    const rides = [
+      { ...rit(120), tss: 140, indoor: true },
+      { ...rit(120), tss: 100, indoor: false },
+      { ...rit(60), tss: null, indoor: false },
+    ];
+    const shape = summarizeRecentRides(rides, 14);
+    expect(shape.tssPerWeek).toBe(120);
+    expect(shape.loadCoverage).toBe(0.8);
+    expect(shape.indoorHoursPerWeek).toBe(1);
+    expect(shape.indoorTssPerHour).toBe(70);
+    expect(shape.outdoorTssPerHour).toBe(50);
+  });
+
+  it("laat de belasting leeg zonder ritten met TSS", () => {
+    const shape = summarizeRecentRides([rit(60)], 28);
+    expect(shape.tssPerWeek).toBeNull();
+    expect(shape.loadCoverage).toBe(0);
+    expect(shape.indoorTssPerHour).toBeNull();
   });
 
   it("onderscheidt vaak-en-kort van weinig-en-lang bij hetzelfde weektotaal", () => {

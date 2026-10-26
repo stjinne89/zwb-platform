@@ -11,7 +11,7 @@
 
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { CLIPS, SCENES, VIDEO } from "./scenes.mjs";
+import { CLIPS, HULP_SCENES, SCENES, VIDEO } from "./scenes.mjs";
 import { HERE, OUT, LEAD_IN, audioFor, runFfmpeg, subtitleChunks } from "./lib.mjs";
 
 const WIDTH = 1080;
@@ -28,7 +28,10 @@ const missing = SCENES.filter((scene) => !manifest[scene.id]);
 if (missing.length) {
   console.warn(`let op, nog niet opgenomen en overgeslagen: ${missing.map((scene) => scene.id).join(", ")}`);
 }
-const scenes = SCENES.filter((scene) => manifest[scene.id]);
+// De hoofdvideo uit SCENES; de losse clips mogen ook scènes uit HULP_SCENES gebruiken.
+const mainScenes = SCENES.filter((scene) => manifest[scene.id]);
+const allScenes = [...SCENES, ...HULP_SCENES];
+const scenes = allScenes.filter((scene) => manifest[scene.id]);
 
 function assTime(seconds) {
   const cs = Math.round(seconds * 100);
@@ -174,17 +177,19 @@ function render({ name, sceneList, label, small = false }) {
   return offset;
 }
 
-// 2. De hele video, met "Stap 3 van 15" boven de ondertitels.
-const total = render({
-  name: VIDEO.id,
-  sceneList: scenes,
-  label: (scene) => `STAP ${SCENES.indexOf(scene) + 1} VAN ${SCENES.length}  ·  ${scene.titel.toUpperCase()}`,
-});
+// 2. De hele video, met "Stap 3 van 15" boven de ondertitels (als er scènes van zijn).
+const total = mainScenes.length
+  ? render({
+      name: VIDEO.id,
+      sceneList: mainScenes,
+      label: (scene) => `STAP ${SCENES.indexOf(scene) + 1} VAN ${SCENES.length}  ·  ${scene.titel.toUpperCase()}`,
+    })
+  : 0;
 
 // 3. Losse clips per onderdeel van /hulp, alleen als al hun scènes er zijn.
 const built = [];
 for (const clip of CLIPS) {
-  const sceneList = clip.scenes.map((id) => SCENES.find((scene) => scene.id === id));
+  const sceneList = clip.scenes.map((id) => allScenes.find((scene) => scene.id === id));
   if (sceneList.some((scene) => !scene || !manifest[scene.id])) continue;
   const seconds = render({
     name: `hulp/${clip.id}`,
@@ -196,10 +201,12 @@ for (const clip of CLIPS) {
 }
 writeFileSync(path.join(OUT, "hulp", "clips.json"), JSON.stringify(built, null, 2));
 
-const withAudio = scenes.filter((scene) => audioFor(scene.id)).length;
-console.log(`${VIDEO.id}.mp4: ${total.toFixed(1)} s${withAudio ? `, ${withAudio} van ${SCENES.length} scènes met geluid` : ""}`);
+const withAudio = mainScenes.filter((scene) => audioFor(scene.id)).length;
+if (mainScenes.length) {
+  console.log(`${VIDEO.id}.mp4: ${total.toFixed(1)} s${withAudio ? `, ${withAudio} van ${SCENES.length} scènes met geluid` : ""}`);
+}
 for (const clip of built) console.log(`hulp/${clip.id}.mp4: ${clip.seconds} s → /hulp#${clip.hulp}`);
-if (!existsSync(path.join(OUT, `${VIDEO.id}.mp4`))) process.exit(1);
+if (mainScenes.length && !existsSync(path.join(OUT, `${VIDEO.id}.mp4`))) process.exit(1);
 
 // 4. Met --publiceer: de hulpclips naar public/hulp-video/, waar /hulp naar linkt.
 if (process.argv.includes("--publiceer")) {

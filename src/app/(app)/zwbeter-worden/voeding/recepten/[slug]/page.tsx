@@ -81,6 +81,8 @@ export default async function RecipePage({
           energyFactor: energyFactorFor(profile),
           dayType: day.dayType,
           rideMinutes: day.rideMinutes,
+          rideIntensity: day.rideIntensity,
+          rideGut: day.rideGut,
         }
       : null,
   );

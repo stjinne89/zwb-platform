@@ -395,6 +395,27 @@ async function handleAuth(req, res, url) {
   return send(res, 404, { msg: `onbekend auth-endpoint ${path}` });
 }
 
+// ---- intervals.icu --------------------------------------------------------
+
+// Een verzonnen powercurve voor "Mijn vermogen", met vermoeide curves na 1000 en
+// 2000 kJ zodra de demo een powerprofiel met kJ-standen heeft (state.intervals).
+const CURVE_SECS = [1, 5, 15, 30, 60, 120, 180, 300, 420, 600, 840, 1200, 1800, 2700, 3600, 5400, 7200];
+const CURVE_WATTS = [780, 700, 560, 420, 330, 280, 262, 240, 228, 215, 205, 195, 182, 172, 165, 152, 145];
+
+function handleIntervals(res, url) {
+  const intervals = state.intervals ?? {};
+  if (url.pathname.endsWith("/power-curves")) {
+    const list = [{ secs: CURVE_SECS, watts: CURVE_WATTS }];
+    for (const [afterKj, factor] of intervals.fatigue ?? []) {
+      list.push({ after_kj: afterKj, secs: CURVE_SECS.slice(4, 15), watts: CURVE_WATTS.slice(4, 15).map((w) => Math.round(w * factor)) });
+    }
+    return send(res, 200, { list });
+  }
+  if (url.pathname.endsWith("/wellness")) return send(res, 200, []);
+  if (/\/athlete\/[^/]+$/.test(url.pathname)) return send(res, 200, { id: "i000001", name: "Sanne de Vries" });
+  return send(res, 404, { message: `onbekend intervals-pad ${url.pathname}` });
+}
+
 // ---- Server --------------------------------------------------------------
 
 const server = http.createServer(async (req, res) => {
@@ -417,6 +438,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname.startsWith("/rest/v1/")) return await handleRest(req, res, url);
     if (url.pathname.startsWith("/auth/v1/")) return await handleAuth(req, res, url);
     if (url.pathname.startsWith("/storage/v1/")) return send(res, 404, { message: "geen opslag in demo" });
+    if (url.pathname.startsWith("/api/")) return handleIntervals(res, url);
     return send(res, 404, { message: `onbekend pad ${url.pathname}` });
   } catch (error) {
     console.error("[mock-supabase]", error);

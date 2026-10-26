@@ -9,7 +9,9 @@ import {
 
 export type { IntervalsPowerCurvePoint } from "@/lib/intervals/power-curve";
 
-const BASE = "https://intervals.icu";
+// INTERVALS_BASE_URL alleen voor de instructievideo: daar speelt de nep-Supabase
+// ook intervals.icu na (scripts/instructievideo/serve.mjs).
+const BASE = process.env.INTERVALS_BASE_URL ?? "https://intervals.icu";
 
 function authHeader(apiKey: string): string {
   // De api_key kan versleuteld uit de DB komen; hier centraal ontsleutelen zodat
@@ -106,6 +108,8 @@ export type IntervalsActivity = {
   elapsed_time?: number;
   total_elevation_gain?: number;
   icu_training_load?: number; // TSS
+  /** HRSS: belasting uit hartslag, ook zonder vermogensmeter. */
+  hr_load?: number;
   icu_ftp?: number;
   icu_intensity?: number; // IF
   average_watts?: number;

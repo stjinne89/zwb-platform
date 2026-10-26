@@ -104,6 +104,7 @@ export const HELP_CATEGORIES = [
       "trainingsvormen",
       "warming-up",
       "rit-koppelen",
+      "naleving",
       "tijd-per-zone",
     ],
   },

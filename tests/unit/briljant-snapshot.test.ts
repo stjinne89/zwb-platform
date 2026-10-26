@@ -13,6 +13,7 @@ import {
   powerProfileStale,
   snapshotFrom,
   terugblikRows,
+  weightOnOrBefore,
   zrsAtMonthEnd,
   type KnownRace,
 } from "@/lib/briljant/snapshot";
@@ -149,6 +150,29 @@ describe("snapshot", () => {
     expect(complianceFrom([], "2026-10-01", "2026-10-21")).toBeNull();
   });
 
+  it("telt een training met een rit op dezelfde dag als gedaan, één rit per training", () => {
+    const planned = [
+      { day: "2026-10-06", minutes: 60, status: "completed" as const },
+      { day: "2026-10-06", minutes: 90, status: "planned" as const },
+      { day: "2026-10-08", minutes: 120, status: "skipped" as const },
+      { day: "2026-10-13", minutes: 60, status: "planned" as const },
+      { day: "2026-10-14", minutes: 45, status: "planned" as const },
+    ];
+    const rides = [
+      // Twee ritten op de 6e: de afgeronde training houdt er een bezet, de geplande krijgt de andere.
+      { day: "2026-10-06", minutes: 55 },
+      { day: "2026-10-06", minutes: 85 },
+      // Een overgeslagen training telt niet, ook niet met een rit.
+      { day: "2026-10-08", minutes: 100 },
+      // Losgekoppeld van het schema: geen training.
+      { day: "2026-10-13", minutes: 60, excluded: true },
+      { day: "2026-10-14", minutes: 40 },
+    ];
+    expect(complianceFrom(planned, "2026-10-01", "2026-10-21", rides)).toBeCloseTo((60 + 90 + 45) / 375, 9);
+    // Eén rit voor twee trainingen op een dag: de tweede telt niet.
+    expect(complianceFrom(planned.slice(0, 2), "2026-10-01", "2026-10-21", rides.slice(0, 1))).toBeCloseTo(60 / 150, 9);
+  });
+
   it("haalt W/kg uit een curve, met het gewicht als de punten die niet hebben", () => {
     const power = powerFromCurve(
       [
@@ -162,6 +186,21 @@ describe("snapshot", () => {
     expect(power).toEqual({ s15: 12, m1: 7.4, m5: 4.8, m20: 4 });
     expect(powerFromCurve([], 75)).toBeNull();
     expect(powerFromCurve([{ seconds: 60, watts: 555 }], null)).toEqual({ s15: null, m1: null, m5: null, m20: null });
+  });
+
+  it("neemt het laatste gewicht op of vóór het maandeinde", () => {
+    const wellness = [
+      { id: "2026-07-31", weight: 0 },
+      { id: "2026-08-12", weight: 78.4 },
+      { id: "2026-08-20" },
+      { id: "2026-09-03", weight: 77.1 },
+      { id: "2026-09-30", weight: 76.5 },
+    ];
+    expect(weightOnOrBefore(wellness, "2026-07-31")).toBeNull();
+    expect(weightOnOrBefore(wellness, "2026-08-31")).toBe(78.4);
+    expect(weightOnOrBefore(wellness, "2026-09-30")).toBe(76.5);
+    // De volgorde van intervals.icu maakt niet uit.
+    expect(weightOnOrBefore([...wellness].reverse(), "2026-09-29")).toBe(77.1);
   });
 
   it("geeft de maandeinden van het afgelopen jaar en het bereik van 90 dagen", () => {

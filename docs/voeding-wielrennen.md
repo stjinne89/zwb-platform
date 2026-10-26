@@ -100,12 +100,30 @@ Bronnen:
 | 60–150 min | 30–60 g/u |
 | ≥ 150 min | 60–90 g/u |
 
+**Het doel binnen de band** (`rideTargetPerHour`, sinds 2026-10-25) volgt de
+zwaarte van de rit: `recovery` en `endurance` de onderkant, `tempo` en een rit
+zonder zwaarte het midden, `threshold`, `vo2max`, `anaerobic` en `race` de
+bovenkant. De band verandert niet. Die indeling is een vertaling van ZWB; de
+grond is dat de koolhydraatverbranding met de intensiteit stijgt en dat
+Fleitas-Paniagua et al. (2026) alleen na zware inspanning winst zagen van meer
+koolhydraten. Bij twee ritten op een dag telt de zwaarte van de langste. *Tot
+2026-10-25 rekende ZWB altijd met het midden: 45 en 75 g/u.*
+
 - **Tot 120 g/u.** Bij getrainde renners kan dat de oxidatie verder verhogen
   (Morton et al. 2026). Het vraagt wel darmtraining. Het staat daarom in de
   kennisbank, maar niet als standaard in de rekenregel.
 - **Mix van suikers.** Fructose:glucose 0,6–1,0 werkt het best. Gewone suiker
   (sucrose) is 1:1; de zelfgemaakte sportdrank in de recepten gebruikt dat.
 - **Vorm.** Drank, gel en reep geven vergelijkbare oxidatie.
+- **Hoe geconcentreerd een bidon mag.** De Oliveira & Burini (2014) noemen
+  5–8% koolhydraten het beste tijdens een wedstrijd, en 8–10% met glucose plus
+  fructose; boven 6% alleen glucose kwam er minder vocht door. Het ritplan
+  (`src/lib/nutrition/ride-plan.ts`, sinds 2026-10-25) zet hoogstens 60 g in een
+  bidon van 750 ml (8%) en rekent met één bidon per uur; wat er per uur meer
+  nodig is, komt uit vast eten. Eén bidon per uur is een vertaling van ZWB, geen
+  vochtadvies: dat volgt pas uit een zweettest (stap 5 van
+  [ritvoeding-plan.md](ritvoeding-plan.md)). *Sinds 2026-10-25 volgt het
+  aantal bidons uit het vochtdoel als het lid een zweettest heeft, zie §6.*
 - **Hitte en hoogte.** Die verlagen de oxidatie met 20–50%. De richtlijn
   verandert daardoor niet.
 - **Profpeloton.** Het ≥100 g/u daar hangt samen met een hoge dagelijkse inname.
@@ -117,6 +135,7 @@ Bronnen:
 - Podlogar T, Wallis GA (2022). New Horizons in Carbohydrate Research and Application for Endurance Athletes. *Sports Med* 52(Suppl 1):5–23 — https://pmc.ncbi.nlm.nih.gov/articles/PMC9734239/
 - Wilson PB (2025). A Narrative Review of the High-Carbohydrate Fueling Revolution (≥100 g/h) in the Professional Peloton. *Sports Med* 56(2):295–313 — https://link.springer.com/article/10.1007/s40279-025-02372-6
 - Jeukendrup AE, et al. (2026). UCI Sports Nutrition Project: Race Nutrition for Road Cycling. *IJSNEM* — https://pubmed.ncbi.nlm.nih.gov/41911900/
+- de Oliveira EP, Burini RC (2014). Carbohydrate-dependent, exercise-induced gastrointestinal distress. *Nutrients* 6(10):4191–4199 — https://pmc.ncbi.nlm.nih.gov/articles/PMC4210913/
 
 ## 4. Darmtraining en maagklachten
 
@@ -125,6 +144,13 @@ Bronnen:
 - **Low-FODMAP en probiotica.** Het bewijs is beperkt.
 - **Stapgrootte in de kennisbank.** De ophoging van 10–15 g/u per stap is een
   praktische vertaling, geen harde grens uit de bronnen.
+- **Darmtraining en het doel onderweg** (`gut-training.ts`, sinds 2026-10-25).
+  Tijdens de darmtraining is het getal van die week het doel bij een rit van
+  minstens 90 minuten (het vervolg naar 150: drie uur), ook als dat onder of
+  boven de gewone band ligt: dat is de opdracht van het protocol. Wie de
+  darmtraining afrondde, kan zelf 120 g/u als bovenkant kiezen voor ritten
+  vanaf 2,5 uur; standaard blijft het 90, omdat sneller worden boven 90 g/u
+  niet is aangetoond (zie §3 en de beperkingen in het protocol).
 
 Bronnen:
 - Jeukendrup AE (2017). Training the Gut for Athletes. *Sports Med* 47(Suppl 1):101–110 — https://pmc.ncbi.nlm.nih.gov/articles/PMC5371619/
@@ -159,6 +185,17 @@ Bronnen:
 
 ## 6. Herstel en vocht
 
+**Zweettest en vochtdoel** (`src/lib/nutrition/sweat.ts`, sinds 2026-10-25).
+Het lid weegt zich voor en na een rit van minstens 45 minuten, zonder kleren en
+na plassen vooraf, en noteert wat het dronk: zweetverlies = gewichtsverlies +
+gedronken, per uur (Baker 2017; een kilo is ongeveer een liter). Een uitkomst
+buiten 0,2–3 l per uur slaat de app niet op. Het vochtdoel per uur ligt tussen
+wat nodig is om onder 2% gewichtsverlies te blijven en het zweetverlies zelf
+("niet meer drinken dan je zweet"); het aantal bidons van 750 ml volgt uit het
+midden daarvan. ZWB rekent met de laatste test. Natrium krijgt geen getal: het
+zoutgehalte van zweet is niet uit gewicht af te leiden. De grenzen (45 minuten,
+0,2–3 l) zijn keuzes van ZWB.
+
 - **Snel herstel.** Valt de volgende zware sessie binnen ongeveer 8 uur, dan
   1,0–1,2 g/kg/u koolhydraten in de eerste uren. ZWB geeft deze tip als je al
   gereden hebt en er vandaag nog een sessie gepland staat. De receptportie "na
@@ -175,6 +212,7 @@ Bronnen:
 - Thomas et al. 2016; Kerksick et al. 2017; Morton et al. 2025 (zie boven).
 - McCubbin AJ, Allanson BA, et al. (2020). SDA Position Statement: Nutrition for Exercise in Hot Environments. *IJSNEM* 30(1):83 — https://journals.humankinetics.com/view/journals/ijsnem/30/1/article-p83.xml
 - McCubbin AJ (2023). Modelling sodium requirements of athletes across a variety of exercise scenarios. *Eur J Sport Sci* — https://onlinelibrary.wiley.com/doi/10.1080/17461391.2022.2083526
+- Baker LB (2017). Sweating Rate and Sweat Sodium Concentration in Athletes: A Review of Methodology and Intra/Interindividual Variability. *Sports Med* 47(Suppl 1):111–128 — https://pubmed.ncbi.nlm.nih.gov/28332116/
 - Cheung S, et al. (2025). UCI Sports Nutrition Project: Special Environments. *IJSNEM* — https://pubmed.ncbi.nlm.nih.gov/41468209/
 - Whitfield J, Mujika I, Burke LM (2026). UCI Sports Nutrition Project: Nutrition for Esports and Gravel. *IJSNEM* — https://pubmed.ncbi.nlm.nih.gov/41569815/
 
@@ -322,15 +360,28 @@ Doelen per moment (`mealTarget`):
 
 | Moment | Koolhydraten | Eiwit |
 |---|---|---|
-| ontbijt / lunch / diner | 25% / 20% / 30% van het dagmidden | 0,35 g/kg |
-| tussendoor | 10% van het dagmidden | — |
+| ontbijt / lunch / diner | 25% / 20% / 30% van de maaltijdbasis | 0,35 g/kg |
+| tussendoor | 10% van de maaltijdbasis | — |
 | voor de rit | 1 g/kg | — |
-| tijdens de rit | midden van de g/u-band (één portie = één uur) | — |
+| tijdens de rit | doel per uur naar de zwaarte, `rideTargetPerHour` (één portie = één uur) | — |
 | na de rit | 1,0 g/kg | 0,3 g/kg |
 | voor het slapen | — | 40 g |
 
 **De verdeling over maaltijden is van ZWB, niet uit een bron.** De bronnen geven
 dagtotalen en momenten rond de rit, geen percentages per maaltijd.
+
+**Maaltijdbasis** (`mealCarbsBasis`, sinds 2026-10-25). Het midden van het
+dagdoel min de koolhydraten rond de rit: voor de rit, tijdens de rit (alle
+uren) en na de rit. De dagbanden zijn de totale inname, ook wat je op de fiets
+eet. De basis gaat nooit onder het midden van een rustdag (4 g/kg), zodat de
+maaltijden op een ritdag niet kleiner worden dan op een dag zonder rit. *Tot
+2026-10-25 kregen de maaltijden een vast deel van het dagmidden en kwamen de
+ritmomenten daarbovenop; een lange dag met 4 uur fietsen kwam zo op ongeveer
+14,8 g/kg bij 70 kg.* Nu blijft het dagtotaal bij 55, 70 en 90 kg en ritten tot
+4 uur binnen de band (test). Langer dan ongeveer 5 uur kan een lichte renner
+boven 12 g/kg uitkomen: het eten onderweg geldt per uur, niet per kg, en de
+ondergrens van de maaltijden blijft. Het UCI-positiestandpunt noemt voor
+extreme dagen 10–25 g/kg.
 
 ## Receptkeuze: het dagmenu
 
@@ -359,7 +410,9 @@ zijn gekozen, niet gemeten. Gemeten is wat ze opleveren: bij 55, 70 en 90 kg
 heeft elk moment op elk dagtype een clubrecept dat het doel voor minstens 85%
 haalt (test), en over veertien dagen toont het menu bij 70 kg per moment 7 tot
 14 verschillende recepten. Uitzondering: de lunch op zware, lange en
-wedstrijddagen, met 4 of 5.
+wedstrijddagen, met 4 of 5. *Na de maaltijdbasis van 2026-10-25 (hierboven) is
+de 85%-test opnieuw gedraaid en geslaagd; de afwisseling over veertien dagen is
+niet opnieuw geteld.*
 
 ### Labels per portie (`traits.ts`)
 

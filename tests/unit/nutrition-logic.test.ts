@@ -4,9 +4,13 @@ import {
   ageFromBirthDate,
   dailyCarbs,
   dailyProtein,
+  mealCarbsBasis,
   mealTarget,
   portionEnergyFactor,
   rideCarbsPerHour,
+  rideDayCarbs,
+  rideTargetPerHour,
+  type MealMoment,
 } from "@/lib/nutrition/targets";
 import { basePortion, macrosFor, roundGrams, scaleRecipe, type NutritionFood } from "@/lib/nutrition/scale";
 
@@ -68,12 +72,68 @@ describe("doelen", () => {
     expect(rideCarbsPerHour(240)).toEqual({ min: 60, max: 90 });
   });
 
+  it("kiest het doel per uur binnen de band naar de zwaarte van de rit", () => {
+    expect(rideTargetPerHour(45, "race")).toBeNull();
+    expect(rideTargetPerHour(120, "endurance")).toBe(30);
+    expect(rideTargetPerHour(120, "recovery")).toBe(30);
+    expect(rideTargetPerHour(120, "tempo")).toBe(45);
+    expect(rideTargetPerHour(120, null)).toBe(45);
+    expect(rideTargetPerHour(120, "threshold")).toBe(60);
+    expect(rideTargetPerHour(240, "endurance")).toBe(60);
+    expect(rideTargetPerHour(240, "race")).toBe(90);
+    // De portie per uur en de aftrek van het dagdoel volgen hetzelfde doel.
+    const hard = { weightKg: 70, dayType: "lang" as const, rideMinutes: 240, rideIntensity: "race" };
+    expect(mealTarget("tijdens_rit", hard).carbsG).toBe(90);
+    expect(rideDayCarbs(70, 240, "race")).toBe(70 + 360 + 70);
+    expect(rideDayCarbs(70, 240, "endurance")).toBe(70 + 240 + 70);
+  });
+
   it("zet per moment een passend doel", () => {
     const input = { weightKg: 70, dayType: "rust" as const, rideMinutes: null };
     expect(mealTarget("diner", input)).toEqual({ carbsG: 84, proteinG: 25 });
     expect(mealTarget("voor_slapen", input)).toEqual({ carbsG: null, proteinG: 40 });
     expect(mealTarget("tijdens_rit", { ...input, rideMinutes: 240 })).toEqual({ carbsG: 75, proteinG: null });
     expect(mealTarget("na_rit", input)).toEqual({ carbsG: 70, proteinG: 21 });
+  });
+
+  it("telt de koolhydraten rond de rit mee", () => {
+    expect(rideDayCarbs(70, null)).toBe(0);
+    expect(rideDayCarbs(70, 45)).toBe(70);
+    // 70 voor + 4 × 75 tijdens + 70 na.
+    expect(rideDayCarbs(70, 240)).toBe(440);
+  });
+
+  it("geeft de maaltijden wat er na de rit overblijft, nooit minder dan op een rustdag", () => {
+    expect(mealCarbsBasis({ weightKg: 70, dayType: "rust", rideMinutes: null })).toBe(280);
+    // Zwaar, 2 uur: 560 − (70 + 90 + 70) = 330.
+    expect(mealCarbsBasis({ weightKg: 70, dayType: "zwaar", rideMinutes: 120 })).toBe(330);
+    // Lang, 4 uur: 700 − 440 = 260, onder de 280 van een rustdag.
+    expect(mealCarbsBasis({ weightKg: 70, dayType: "lang", rideMinutes: 240 })).toBe(280);
+    expect(mealTarget("diner", { weightKg: 70, dayType: "lang", rideMinutes: 240 }).carbsG).toBe(84);
+  });
+
+  it("houdt het dagtotaal van alle momenten binnen de band", () => {
+    const outside: string[] = [];
+    for (const weightKg of [55, 70, 90]) {
+      for (const [minutes, intensity] of [0, 45, 75, 90, 120, 150, 180, 240].flatMap((m) =>
+        ["endurance", "tempo", "threshold"].map((i) => [m, m === 0 ? "rest" : i] as const),
+      )) {
+        const dayType = classifyFuelDay(minutes === 0 ? [] : [{ minutes, intensity }]);
+        const input = { weightKg, dayType, rideMinutes: minutes || null, rideIntensity: intensity };
+        const moments: [MealMoment, number][] = [
+          ["ontbijt", 1],
+          ["lunch", 1],
+          ["diner", 1],
+        ];
+        if (dayType !== "rust" && dayType !== "licht") moments.push(["tussendoor", 1]);
+        if (minutes > 0) moments.push(["voor_rit", 1]);
+        if (minutes >= 60) moments.push(["tijdens_rit", minutes / 60], ["na_rit", 1]);
+        const total = moments.reduce((sum, [moment, times]) => sum + (mealTarget(moment, input).carbsG ?? 0) * times, 0);
+        const band = dailyCarbs(dayType, weightKg);
+        if (total < band.min - 1 || total > band.max + 1) outside.push(`${weightKg} kg ${minutes} min ${intensity}: ${total} (${band.min}–${band.max})`);
+      }
+    }
+    expect(outside).toEqual([]);
   });
 
   it("schaalt vaste ingrediënten begrensd mee met de renner", () => {

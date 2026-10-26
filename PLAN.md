@@ -299,7 +299,30 @@ gaat stabiliteit voor nieuwe features.
    intervals.icu; daarna nakijken of haar CTL en vermogensprofiel bijtrekken, en
    daarmee of de vermogenscurve ritten meetelt die via Strava binnenkwamen. Een
    Strava-terugval voor CTL is bewust niet gebouwd: bij de 23 leden met een steen
-   had alleen Femke dit.
+   had alleen Femke dit. *2026-10-25:* haar CTL in de steen is nu 23; de maanden
+   van haar terugblik staan nog op fitheid 0.
+14. **ZWBriljant: consistentie hersteld, melding en hulpvideo voor de kJ-standen,
+   en het groei-onderdeel in weekoverzicht en Strava-tip** (rondes van 2026-10-25
+   hieronder): gebouwd, lokaal getest en op 2026-10-25 samen gepusht naar `main`.
+   Geen migratie; het geslacht van 14 leden is op productie gezet. Open: de
+   dialoog in de browser bekijken, na de job de consistentie van de vijf leden
+   zonder consistentie en van de drie met lage naleving nakijken, en de clip op
+   een telefoon bekijken.
+15. **Ritvoeding na de vergelijking met Musette** (ronde van 2026-10-25
+   hieronder): voorstel in [ritvoeding-plan.md](docs/ritvoeding-plan.md). De
+   volgorde en de besluiten van §2 daar zijn akkoord (2026-10-25): rekenfout,
+   dan het ritplan, dan de verfijningen. Stap 1 (de rekenfout in het dagmenu)
+   en stap 2 tot en met 5 (ritplan "Klaarzetten" bij elke rit en event, doel
+   naar zwaarte, darmtraining als plafond, zweettest en vochtdoel) zijn gebouwd
+   en op 2026-10-25 samen gepusht naar `main`, op verzoek van de eigenaar en
+   zonder te wachten op het besluit over de featurepauze. Migraties
+   `0272_nutrition_ride_carbs_120.sql` en `0273_nutrition_sweat_tests.sql` zijn
+   toegepast op 2026-10-25 via de Supabase-connector (op verzoek van de eigenaar) en nagekeken. De tekst op `/privacy#zweettest` is goedgekeurd
+   (eigenaar, 2026-10-25). Daarmee is het ritvoedingsplan af. Open: de
+   schakelaar "tot 120 g per uur", een lopende darmtraining, opslaan en wissen
+   van een zweettest en "Gegeten" voor het ritplan zijn nog niet in de browser
+   of op productie gebruikt; de avondherinnering met "Zet klaar" is nog niet
+   echt verstuurd.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -311,8 +334,11 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0271`
-(`0270_zwbriljant_weights_fitheid20` is van ZWBriljant fitheid 20% en racen 12,5%, 2026-10-22, toegepast op 2026-10-22;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0274`
+(`0273_nutrition_sweat_tests` is van ritvoeding stap 5, 2026-10-25, toegepast op 2026-10-25;
+`0272_nutrition_ride_carbs_120` is van ritvoeding stap 4, 2026-10-25, toegepast op 2026-10-25;
+`0271_zwift_race_scores` is toegepast, zie punt 11 hierboven;
+`0270_zwbriljant_weights_fitheid20` is van ZWBriljant fitheid 20% en racen 12,5%, 2026-10-22, toegepast op 2026-10-22;
 `0269_zwbriljant_ctl40` is van ZWBriljant CTL-Goud op 40 en vermogen 50%, 2026-10-22, toegepast op 2026-10-22;
 `0268_zwbriljant_share_to_see` is van ZWBriljant alleen zien als je deelt, 2026-10-22, toegepast op 2026-10-22;
 `0267_zwbriljant_share_by_default` is van ZWBriljant standaard gedeeld, 2026-10-21, toegepast op 2026-10-21;
@@ -957,7 +983,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - `src/lib/weekly-review/`: `period.ts` (welke week, en het venster: zondag
 >   vanaf 18:00 tot en met woensdag), `summary.ts` (pure samenvatting per
 >   onderdeel: ritten, schema, belasting, vermogen, teams, voeding en core, club,
->   plus de vooruitblik), `load.ts` (de queries), `coach-text.ts` (de AI-opdracht
+>   sinds 2026-10-25 ook de ZWBriljant-steen, plus de vooruitblik), `load.ts` (de queries), `coach-text.ts` (de AI-opdracht
 >   en een tekst uit vaste regels), `service.ts` (aanmaken, coachtekst ophalen,
 >   gezien zetten). Een onderdeel dat het lid die week niet gebruikte is `null`
 >   en krijgt geen scherm.
@@ -5086,7 +5112,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > event of van zijn raceweek; op de raceweek heeft elk team de chip van zijn
 > eigen route, dus A/B en C/D verschillen als hun routes verschillen. De chip
 > hangt aan `zwift_route_id` en staat er dus ook zonder gekoppeld Zwift-event.
-> ZwifterBikes noemt 36 routes anders dan `zwift-data`; die staan in een tabel
+> ZwifterBikes noemt 36 routes anders dan `zwift-data` (35 sinds `zwift-data`
+> 2.1.0, 2026-10-25); die staan in een tabel
 > in dat bestand, vergeleken op naam en wereld met `assets/routes.json` van de
 > site. 289 van de 292 fietsroutes hebben er een pagina; de twee Climb
 > Portal-routes en de Bologna-tijdrit niet, daar staat geen chip. `/hulp` noemt
@@ -5399,7 +5426,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   Zwift-eventspiegel (`POST /api/zwift/events/sync`), één publiek
 >   event-verzoek per Zwift-event, en meldt in het antwoord onder `zrlRoutes`
 >   wat er is omgezet. Raakt alleen events waarvan de route afwijkt; zonder
->   categorieletter in de teamnaam of zonder route in `zwift-data` gebeurt er niets.
+>   categorieletter in de teamnaam of zonder route in `zwift-data` gebeurt er niets
+>   (sinds 2026-10-25 meldt de sync een onbekende route wel in `notes`).
 >
 > **Nagekeken, niet gewijzigd.** De live stand koos de route al per subgroep
 > (`parseSubgroups`). De vijf sprints per route in `route-segments.json` liggen
@@ -6019,9 +6047,10 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > (staat op de routepagina van ZwiftInsider, 24,8 km) en op Routes ophalen
 > klikken.
 >
-> **Bekend en niet opgelost.** `zwift-data` geeft Urumaze een lead-in van
-> 0,085 km; ZwiftInsider noemt 2 km. Het pacingplan rekent met de lead-in uit
-> `zwift-data` en komt voor deze route dus zo'n 2 km te kort uit.
+> **Opgelost op 2026-10-25.** `zwift-data` 1.50.0 gaf Urumaze een lead-in van
+> 0,085 km waar ZwiftInsider 2 km noemt, waardoor het pacingplan zo'n 2 km te
+> kort uitkwam. 2.1.0 geeft 2,031 km en zelf segment `41887960`; sinds die
+> versie missen alleen de drie Climb Portal-routes nog een segment.
 >
 > **Bewust niet gebouwd.** (a) Het profiel uit een gereden rit van een lid:
 > werkt pas na de eerste rit en vraagt een tweede profielbron met migratie.
@@ -8119,7 +8148,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > meeleveren. Geen netwerk, geen HTML die kan veranderen, en ZwiftInsider biedt
 > geen API of licentie voor hergebruik (zie `0177`). Ontbreken nu o.a. Power
 > Punches, Flat Out Fast, Urumaze en de Climb Portals; die blijven handwerk tot
-> een nieuwere `zwift-data`. (b) Opzoeken in de browser: de routecatalogus is
+> een nieuwere `zwift-data`. (Met 2.1.0, 2026-10-25: 291 van de 293, alleen de
+> twee Climb Portals missen nog.) (b) Opzoeken in de browser: de routecatalogus is
 > 265 KB. (c) Afstand en rondes uit de Zwift-eventlink halen: kan via
 > `fetchZwiftEvent`, maar is een eigen ronde. (d) Geen wijziging op `/hulp`:
 > daar staat geen uitleg over dit formulier.
@@ -10024,7 +10054,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > volledige rustdag herstelt beter. **Nu:** bij opbouwen en bijwerken van een schema
 > plant de AI geen losse hersteltraining onder 90 min maar een lege dag (rustdag).
 > Daarop mag het lid naar keus tot 90 min zonder intensiteit fietsen (Z1 tot lage
-> Z2); die optionele rit telt niet mee in het weekvolume of het 85%-piekweekdoel,
+> Z2); die optionele rit telt niet mee in het weekvolume of het 85%-piekweekdoel (dat doel
+> vervalt op 2026-10-26; nu: niet in de weekbelasting),
 > en de dag-aanpassing behandelt zo'n rit niet als extra belasting. Een rustdag telt
 > als rijdag voor de ritmeregel. Korte duurritten (bijv. 60 min Z2 bij weinig tijd)
 > en openers vóór een race of test blijven: dat is training, geen herstel. Vangnet
@@ -11100,7 +11131,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   beweegt mee met het lid in plaats van één keer gegenereerd te blijven
   (`root_plan_id`, `adaptation_kind`, `origin`, `event_id`). De maand is de
   ingang; aanpassen blijft bij de trainer. Het schema bouwt naar het
-  urenplafond toe in plaats van eronder te blijven hangen, een taper komt alleen
+  urenplafond toe in plaats van eronder te blijven hangen (sinds 2026-10-26 niet
+  meer: het stuurt op belasting uit de CTL, de uren zijn alleen een grens), een taper komt alleen
   bij een doel met één piekdag, en een clubevent komt pas in het schema als het
   lid ja zegt. Beschikbaarheid per week in `training_availability` (migr. `0115`).
   **Die weekbeschikbaarheid werd tot 2026-08-20 alleen opgeslagen, niet gepland:**
@@ -11400,6 +11432,1072 @@ Instelling en privacytekst zijn niet aangepast.
 **Niet gemeten.** Coachchat, weekoverzicht, pacing en voeding (hun context staat
 niet volledig opgeslagen); de rekentijd van GPT-5.5; wat OpenAI zonder gratis
 tokens zou kosten (geschat $60–80 per maand).
+
+### Gewijzigd — Schema stuurt op belasting uit de CTL, beschikbaarheid is alleen tijd
+
+**2026-10-26.** Commit `970b8b22`. Geen migratie. Gepusht naar `main` op 2026-10-26. Onderzoek en
+cijfers: [docs/schema-belasting-2026-10-26.md](docs/schema-belasting-2026-10-26.md).
+
+Aanleiding: meerdere leden vonden de schema's te voorzichtig en vol duur. Gemeten
+in productie: 68 % van de geplande sessies was duur van gemiddeld 96 minuten, op
+41-47 TSS per uur, terwijl leden binnen 55-80 rijden. Bij de meeste leden lag de
+geplande weekbelasting op of onder CTL × 7. In een week met een race zakte het
+aantal sleutelsessies van de AI van 0,77 naar 0,22.
+
+**Besluit van de eigenaar (2026-10-26):** een lid geeft beschikbaarheid op, en
+die werd gelezen als `maxHoursPerWeek` waar de opbouw naartoe werkt. Dat was
+fout. Beschikbaarheid is de tijd die er is; wat het lid aankan volgt uit de CTL,
+verdeeld volgens de kennisbank (trainingsleer). Geen maximum aan het aantal
+sleutelsessies, zeker in de winter met meer binnen rijden.
+
+- **Invoer** (`buildRecentLoad` in `draft.ts`, `summarizeRecentRides` in
+  `ride-metrics.ts`). `recentLoad` krijgt `tssPerWeek`, `loadCoverage`,
+  `indoorHoursPerWeek`, `indoorTssPerHour` en `outdoorTssPerHour`. De TSS per rit
+  komt uit `rideMetricsFromStrava` met de FTP van de ritdag en de hartslagbasis,
+  zoals op de belastingpagina. Een dubbel opgenomen rit telt nu ook hier één keer
+  (`uniqueRides`). Uit `raw` komen alleen de vijf velden voor de TSS, niet de hele
+  payload, vanwege de egress. In productie had 88 % van de ritten van de laatste
+  28 dagen NP met een echte meter. Nieuw `currentLoad` (`load-basis.ts`): het hoogste van CTL × 7
+  en de gereden TSS per week, opgeschaald naar ritten zonder TSS; onder 50 %
+  dekking telt de gereden TSS niet. Gezet in het nieuwe schema, de bijwerking, de
+  dag-aanpassing en het dagvoorstel.
+- **Prompt** (`defaultTrainingPrompt`, en via die ook de bijwerking en de
+  dag-aanpassing). Weg: "werk toe naar `maxHoursPerWeek`", "piekweek ≥ 85 % van
+  het plafond", en `recentLoad.hoursPerWeek` als ondergrens (blijft alleen als
+  terugval zonder `currentLoad`). Nieuw: sturen op weekbelasting in TSS met de
+  formule per blok; nooit een opbouwweek onder `currentLoad.weeklyTss`; de CTL
+  volgen als ZWB ritten mist; past de belasting niet in de tijd, dan meer
+  dichtheid in plaats van meer uren; verdeling volgens de kennisbank
+  (intensiteitsverdeling, intervallen, rustige ritten); geen maximum aan
+  sleutelsessies, bij intermediate/advanced meestal minstens twee per
+  opbouwweek; een race vervangt de andere sleutelsessies niet; binnen korter en
+  dichter rond `indoorTssPerHour`. De ZRL-regel zegt nu "minstens één" prikkel.
+  De 10 %-groei en de grens van een kwart gaan nu over de weekbelasting.
+- **Meetlat** (`schema-check.ts`). `piekweek`, `onder-recente-belasting` en
+  `opbouwgroei` rekenen met geschatte TSS (`estimateTrainingLoad` per workout,
+  `loadForIntensity` voor vaste afspraken). De piek moet minstens 10 % boven
+  `currentLoad` liggen, de opbouwweek erboven (5 % marge voor de blok-som). Geen
+  oordeel als een week zijn beschikbare tijd al voor 95 % vult. Zonder
+  belastingsbron geen piekoordeel meer; de ondergrens valt dan terug op uren.
+  `docs/schema-meetlat.md` bijgewerkt.
+- **Hulp** (`/hulp/schema`, de vaste regels): "je uren per week zijn het volume
+  waar de zwaarste week naartoe werkt" wordt "de tijd die je hebt, geen doel";
+  de zwaarte volgt uit je CTL, en bij weinig tijd of binnen rijden worden
+  trainingen korter en intensiever. "Waar je schema op leunt" (`plan-basis.ts`)
+  zegt hetzelfde en toont de gereden TSS per week en per uur binnen en buiten.
+
+**Bewust niet gedaan.**
+- *Geen herziening voor alle lopende schema's* (besluit eigenaar, 2026-10-26).
+  De nieuwe regels komen organisch binnen: bij een nieuw schema, een bijwerking,
+  een volgend blok of een automatische herziening door de dagelijkse cron. Wat al
+  gepland staat, blijft tot dan zoals het was.
+- *De regelmotor.* Die plant nog in uren (`periodization.ts`) en haalt de nieuwe
+  `piekweek`- en `onder-recente-belasting` niet: in de testscenario's 225-317
+  TSS tegen 385 die het lid aankan. De motortest slaat die twee regels nu over
+  (`tests/unit/engine/index.test.ts`). De motor draait alleen ter vergelijking, dus
+  leden merken het niet, maar de vergelijkingspagina telt die fouten wel.
+- *Geen eigen CTL uit Strava* voor leden zonder intervals.icu (8 van de 39 nieuwe
+  schema's). Voor hen telt alleen de gereden TSS van 28 dagen.
+- *Geen vaste verdeling in procenten.* De kennisbank zegt dat gepolariseerd en
+  piramidaal even goed werken; de prompt kiest per renner.
+- *Ritten met `training_excluded_at` tellen gewoon mee.* Die horen bij geen
+  training, maar zijn wel gereden.
+- *De regel "geen hersteltraining onder 90 minuten" blijft.* Hij maakt sessies
+  langer, maar korte duurritten en kwaliteit mogen al.
+
+**Niet meer waar.** Eerdere rondes noemen "piekweek ≥ 85 % van het plafond" en
+"het schema bouwt naar het urenplafond toe". Dat geldt sinds deze ronde niet meer
+voor de AI; de regelmotor doet het nog wel.
+
+**Getest.** Nieuw `load-basis` (CTL × 7, gereden TSS opgeschaald, terugval bij
+ontbrekende ritten, te lage dekking). `ride-metrics`: TSS per week en per uur,
+binnen en buiten apart. `training-prompts`: geen 85 %, sturen op belasting, geen
+maximum aan sleutelsessies, race vervangt niets, binnen dichter. `training-schema-check`:
+piek en ondergrens op TSS, dezelfde tijd met sweet spot haalt wat duur niet haalt,
+de tijd begrenst bij een volle week, geen piekoordeel zonder bron, de groeigrens in
+belasting. Alle trainingstests slagen (262, met `training-preferences`). De volledige suite: drie fouten buiten
+deze ronde (`omnium-live` mist `.env.local` in de worktree, een timeout in
+`admin-areas`, routedata in `race-links` en `zwift-route`). `tsc` alleen de bekende
+fout op `modern-screenshot`; ESLint schoon op de gewijzigde bestanden.
+**Niet getest:** een echte generatie met de nieuwe prompt, en of het model de
+TSS-sommen per week goed maakt. Dat blijkt pas uit de volgende schema's; de
+meetlat laat het zien.
+
+### Hersteld — ZWBriljant: terugblik rekent met het gewicht van toen
+
+**2026-10-26.** Commit `66999765`. Geen migratie. Gepusht naar `main` op 2026-10-26.
+
+**Waarom.** De terugblik zocht het gewicht alleen in de wellness van precies het
+maandeinde (`byDay.get(end)`). Wie zich die dag niet woog, kreeg voor die maand het
+huidige profielgewicht, ook als er een paar dagen eerder een weging in intervals.icu
+stond. Wie sindsdien afviel, kreeg zo te hoge historische W/kg (en omgekeerd), ook
+in de kJ/kg van durability. Vraag van de eigenaar.
+
+**Nu.** `weightOnOrBefore` (`snapshot.ts`) neemt per maand de laatste weging in de
+wellness op of vóór het maandeinde. Pas als er tot dan nog niets gewogen is, geldt de
+bestaande terugval: profiel, laatste gewicht in intervals.icu, Zwift. Waar
+intervals.icu in de curve zelf W/kg meegeeft, gaat die nog steeds voor.
+`TERUGBLIK_SPAN` werd `alles-gewicht-tss-p25-naleving-weging`, zodat elke terugblik
+opnieuw wordt gemaakt; de gevonden ZRS van vroeger blijft staan.
+
+**Bewust niet gedaan.** Voor maanden vóór de eerste weging niet de eerste weging
+gebruiken (die ligt dichter bij toen): de eigenaar koos voor terugvallen op het
+huidige gewicht. De weeksteen blijft zoals hij was (profiel eerst).
+
+**Getest.** `briljant-snapshot` (laatste weging tot de dag, lege en nulwaarden,
+volgorde maakt niet uit), alle ZWBriljant-tests, ESLint; `tsc` alleen de bekende
+fout op `modern-screenshot`. **Niet nagekeken:** of intervals.icu bij de maandcurves
+W/kg meestuurt, en hoeveel maanden er nu anders uitkomen; snapshots bewaren geen
+gewicht. Na een nieuwe span krijgt de ZRS-historie in de job een tijd weinig budget
+(zie de ronde "ZRS van vroeger per race bewaard").
+
+### Gebouwd — ZWBeter voeden: zweettest en vochtdoel
+
+**2026-10-25.** Commit `89bf101e`, stap 5 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
+besluiten 5, 6 en 7 van dat plan. Migratie `0273_nutrition_sweat_tests.sql`,
+toegepast op 2026-10-25 via de Supabase-connector (op verzoek van de eigenaar) en nagekeken (RLS aan, één regel voor het lid zelf; de
+beveiligingsadviezen noemen de tabel niet). Privacytekst goedgekeurd door de
+eigenaar (2026-10-25, zonder wijziging). Op 2026-10-25 gepusht naar `main`.
+
+- **Rekenwerk** (`src/lib/nutrition/sweat.ts`). Zweetverlies per uur =
+  (gewicht voor − gewicht na) × 1000 + gedronken ml, gedeeld door de duur
+  (Baker 2017). Korter dan 45 minuten of een uitkomst buiten 0,2–3 l per uur:
+  niet opgeslagen, met de reden erbij. Vochtdoel per uur: van wat nodig is om
+  onder 2% van je gewicht (uit het profiel) te blijven tot het zweetverlies
+  zelf; zonder gewicht alleen "tot". Afgerond op 50 ml. ZWB rekent met de
+  laatste test.
+- **Ritplan.** Met een test staat bovenaan "Drinken: 0,6–1,0 l per uur" en
+  volgt het aantal bidons van 750 ml uit het midden van het vochtdoel; de
+  koolhydraten worden over die bidons verdeeld (hoogstens 60 g per bidon, de
+  rest water of vast eten). Zonder test een link "Zweettest" en, zoals
+  voorheen, één bidon per uur. Overal: Dagmenu, Vandaag, schema, eventpagina,
+  briefing, herinnering en Boodschappen.
+- **Protocol "Zweettest"** (`protocols/nutrition.ts`, groep Opbouw, bewijs
+  "Onderbouwd"): één fase van vier weken met een binnen- en een buitentest,
+  bronnen Baker 2017 en McCubbin 2020 (SDA, hitte). Nieuw `measure:
+  "zweettest"`: op de protocolpagina het invulformulier en de eigen tests met
+  een knop om te wissen (`SweatTestPanel`, `saveSweatTest`, `deleteSweatTest`).
+  De invoer staat los van het starten van het protocol.
+- **Wat bewaard wordt** (besluit 5): datum, duur, binnen of buiten, warm, en het
+  zweetverlies per uur. Het gewicht van voor en na gaat alleen door de
+  serveractie en wordt niet opgeslagen. Eigen toestemming bij de eerste test
+  (`SWEAT_CONSENT_VERSION` 2026-10-25, besluit 7). Alleen het lid leest,
+  schrijft en wist (RLS); in de data-export.
+- **Privacy.** `/privacy#zweettest` heeft een nieuwe alinea, en `privacy.ts`
+  noemt de negende uitzondering (eigen toestemming, geen nieuwe versie).
+  De eigenaar keurde die tekst ongewijzigd goed op 2026-10-25 (besluit 7).
+- **Ook verplaatst:** de schakelaar "tot 120 g per uur" uit stap 4 stond boven
+  de titel van het protocol; hij staat nu, net als de zweettest, onder de
+  metingen (`ProtocolDetail` kreeg een `extra`).
+
+**Bewust niet gedaan.** Geen natriumdoel (besluit 6). Geen keuze per rit voor
+binnen of buiten: de laatste test geldt. Geen "betrouwbaarheid" over meerdere
+tests zoals Musette die heeft. Geen bovengrens aan wat je per uur kunt drinken;
+het vochtdoel volgt alleen je zweetverlies.
+
+**Getest.** Nieuw `nutrition-sweat` (rekenregel, te korte en onwaarschijnlijke
+test, laatste test, vochtdoel met en zonder gewicht, bidons) en in
+`nutrition-ride-plan` het vochtdoel in het plan. `nutrition-migration` past nu
+0272 en 0273 toe tegen PGlite en test: 120 g standaard uit en alleen door het lid
+zelf aan te zetten; zweettests alleen voor het lid zelf te lezen, op te slaan en
+te wissen; een onwaarschijnlijke of te korte test geweigerd. `tsc` alleen de
+bekende fout op `modern-screenshot`; ESLint schoon. In de browser: de
+protocolpagina toont het formulier met de toestemming onder de opzet; het
+ritplan toont de link "Zweettest". **Niet getest:** opslaan en wissen in de
+browser (de tabel stond toen nog niet op productie), en een ritplan met
+vochtdoel in de browser (de test dekt het).
+
+### Gebouwd — ZWBeter voeden: darmtraining bepaalt het plafond onderweg
+
+**2026-10-25.** Commit `d1aa61cb`, stap 4 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
+besluit 4 van dat plan. Migratie `0272_nutrition_ride_carbs_120.sql`,
+toegepast op 2026-10-25 via de Supabase-connector (op verzoek van de eigenaar) en nagekeken (standaard uit, bij niemand aan). Op 2026-10-25
+gepusht naar `main`.
+
+- **Lopende darmtraining** (`gut-training.ts`). Bij een rit van minstens 90
+  minuten is het getal van die week het doel (60, 70 … 110 g/u), ook boven of
+  onder de gewone band: dat is de opdracht van het protocol. Het vervolg
+  "Doorbouwen naar 150" (130, 140, 150) geldt vanaf drie uur. De stappen staan
+  nu als `GUT_TRAINING_STEPS` en `GUT_TRAINING_150_STEPS` in
+  `protocols/nutrition.ts`, en de protocollen zelf gebruiken ze ook.
+- **Na de darmtraining: 120 g/u als keuze.** Op de protocolpagina van de
+  darmtraining (en het vervolg) staat na afronden een schakelaar "Onderweg: tot
+  90 / tot 120 g per uur" (`setRideCarbs120`, kolom
+  `nutrition_profiles.ride_carbs_120`, standaard uit). Aan: bij ritten vanaf
+  2,5 uur is 120 de bovenkant van de band (`rideBand`), dus een race rekent met
+  120, tempo met 90, rustig blijft 60. Afgerond is: status `afgerond`, of nog
+  actief maar voorbij de zesde week. De eigenaar koos op 2026-10-25 voor een
+  bewaarde schakelaar boven een keuze per toestel of alleen tijdens het
+  protocol, zodat ook de herinnering en Boodschappen ermee rekenen.
+- **Overal mee**: dagdoel en portie, Dagmenu, Vandaag, schema, eventpagina,
+  briefing, herinnering (de cron leest runs en keuze voor alle leden tegelijk)
+  en Boodschappen. De dag krijgt `gut` mee in `NutritionDayInput`.
+
+**Bewust niet gedaan.** Geen keuze voor 150 g/u na het vervolg: het plan noemt
+alleen 120, en boven 120 is niets getest. Het weekgetal geldt voor elke rit van
+90 minuten of langer in die week, niet alleen voor de twee oefenritten die het
+protocol vraagt. Een trainer ziet de keuze voor 120 niet (RLS op
+`nutrition_profiles`); bij de trainerweergave rekent de app dus zonder. Geen
+privacytekst aangepast: het is een instelling naast lengte en gezin in dezelfde
+tabel, geen nieuwe soort gegevens.
+
+**Volgorde bij het pushen.** Zonder 0272 werkt alles behalve de schakelaar zelf:
+de app leest de keuze dan als uit, maar opslaan geeft een fout. Pas de migratie
+dus toe voordat dit live gaat. *Gedaan: 0272 stond op productie voor de push.*
+
+**Getest.** Nieuw `nutrition-gut-training` (weekgetal per week, voor de start en
+na zes weken niets, vanaf 90 minuten ook boven de band, het vervolg vanaf drie
+uur, 120 alleen na afronden en alleen als gekozen, rustig en korter dan 2,5 uur
+ongewijzigd). Alle voedings- en protocoltests slagen (252). *Niet waar wat hier
+eerst stond: de migratietest paste 0272 toen niet toe. Dat doet hij sinds stap 5
+wel (zie de ronde hierboven).* `tsc` alleen de bekende fout op `modern-screenshot`;
+ESLint schoon. In de browser (de eigenaar heeft geen darmtraining): de
+protocolpagina laadt zonder schakelaar, Dagmenu, Vandaag en schema ongewijzigd.
+**Niet getest:** de schakelaar in de browser en op productie (vraagt een
+afgeronde darmtraining en de migratie), en een lopende darmtraining in de
+browser.
+
+### Gebouwd — ZWBeter voeden: het doel per uur volgt de zwaarte van de rit
+
+**2026-10-25.** Commit `d7794e53`, stap 3 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
+besluit 3 van dat plan. Geen migratie. Op 2026-10-25 gepusht naar `main`.
+
+- **`rideTargetPerHour(duur, zwaarte)`** in `targets.ts`: binnen de bestaande
+  band de onderkant voor `recovery` en `endurance`, het midden voor `tempo` en
+  voor een rit zonder zwaarte (gereden zonder schema), de bovenkant voor
+  `threshold`, `vo2max`, `anaerobic` en `race`. De band (`rideCarbsPerHour`)
+  blijft gelijk en staat nog op de kaart "Onderweg".
+- **Overal hetzelfde doel**: de portie "Tijdens de rit", de aftrek van het
+  dagdoel (`rideDayCarbs`, stap 1), het ritplan in Dagmenu, Vandaag, schema,
+  eventpagina, briefing, herinnering en Boodschappen, en de tip. De zwaarte
+  loopt mee als `rideIntensity` (dag: de langste geplande rit; schema en event:
+  de training zelf; herinnering: de langste rit van morgen).
+- **De tip** noemt nu het doel van de rit ("30 g koolhydraten per uur") in plaats
+  van de band, en de suikermix alleen boven 60 g per uur.
+- **Bidons met water.** Een recept schaalt niet kleiner dan een halve portie
+  (`scale.ts`); de zelfgemaakte sportdrank is dan 36 g. Bij een rustige rit van
+  1u30 (doel 45 g) gaven twee bidons zo 72 g. Nu gaan er zoveel bidons
+  sportdrank mee als nodig en de rest met water ("1× bidon water"); uit een
+  waterbidon komen in het schema per 20 minuten geen koolhydraten.
+
+**Gevolg voor leden.** Een rustige duurrit krijgt minder dan voorheen: 2 uur
+van 45 naar 30 g per uur, 4 uur van 75 naar 60. Een drempel- of VO2max-training
+en een race krijgen meer: 2 uur 60, langer dan 2,5 uur 90. De maaltijden op die
+dagen schuiven mee, binnen de ondergrens van stap 1.
+
+**Bewust niet gedaan.** Geen Intensity Factor of TSS uit intervals.icu: de
+zwaarte uit het schema volstaat en is er voor elke training. Een rit zonder
+schema krijgt het midden. Vast eten kan net als de sportdrank niet kleiner dan
+een halve portie; bij een korte harde training (VO2max 1u15, doel 75 g) komt het
+plan daardoor op 86 g.
+
+**Getest.** `nutrition-logic` (nieuw: het doel per zwaarte, de portie en de
+aftrek; het dagtotaal blijft bij duur, tempo en drempel binnen de band),
+`nutrition-tips` (rustige lange rit 60 g zonder suikermix, lange race 90 g met),
+`nutrition-ride-plan` (15; nieuw: zwaarte, en water als de sportdrank niet
+kleiner kan). Alle voedingstests slagen, ook de 85%-test met de 120
+clubrecepten (die rekent zonder zwaarte). `tsc` alleen de bekende fout op
+`modern-screenshot`. In de browser: Dagmenu vandaag (2 uur duur) "30 g
+koolhydraten per uur" en 30 g per bidon; schema 1u30 duur 46 g met 1× bidon
+water, 2 uur 60 g, VO2max 1u15 86 g.
+
+### Gebouwd — ZWBeter voeden: ritplan in de herinnering en in Boodschappen
+
+**2026-10-25.** Commit `0386ef8b`, rest van stap 2c van [ritvoeding-plan.md](docs/ritvoeding-plan.md).
+Geen migratie. Op 2026-10-25 gepusht naar `main`.
+
+- **Herinnering van de avond vooraf** (`reminders.ts`). De herinnering
+  `morgen_zwaar` (voor wie Naleving en herinneringen aan heeft, de avond voor
+  een zware, lange of wedstrijddag) krijgt er "Zet klaar: 2× bidon …, 1× …"
+  bij als er morgen een uur of langer gereden wordt. Het plan komt uit
+  dezelfde regels als het Dagmenu (`tomorrowRidePlan`): de recepten die het lid
+  zelf ziet (clubrecepten, eigen, en door leden gedeelde), favorieten en
+  "niet voor mij", en een eigen keuze voor morgen bij "Tijdens de rit". De cron
+  draait met de serviceclient en filtert die zichtbaarheid zelf; een
+  privérecept van een ander lid komt er nooit in (test). Zonder dieetfilter: dat
+  staat alleen in de URL. De gegevens worden alleen opgehaald als iemand morgen
+  een rit van een uur of langer heeft; een fout houdt de herinnering niet tegen.
+- **Boodschappen.** "Tijdens de rit" telde één portie van één recept, ook bij
+  een rit van vier uur. Nu telt het hele ritplan (`ridePlanShoppingSlots`):
+  alle bidons en porties. In de dagkolom staat de samenvatting
+  ("2× bidon Sportdrank van appelsap") in plaats van het recept.
+- `/hulp` noemt beide.
+
+**Bewust niet gedaan.** Geen herinnering voor een ritdag die geen zware dag is
+(bijvoorbeeld 75 minuten duur): dat is een nieuwe soort in
+`nutrition_reminder_sends` (check op `kind`), dus een migratie. Geen
+herinnering voor wie Naleving niet aan heeft; die regel staat sinds stap 5 van
+het naleving-plan. Geen privacytekst aangepast: er komen geen nieuwe gegevens
+bij, alleen recepttitels in een bericht dat er al was.
+
+**Getest.** `nutrition-reminders` (6 tests; nieuw: "Zet klaar" in het bericht
+en geen tekst die om minder eten vraagt, en de zichtbaarheid van recepten) en
+`nutrition-ride-plan` (13; nieuw: de samenvatting, en dat Boodschappen alle
+bidons telt). `tsc` alleen de bekende fout op `modern-screenshot`; ESLint
+schoon. In de browser: Boodschappen over zeven dagen toont "2× bidon …" bij de
+ritdagen, met appelsap 1,1 l en kristalsuiker 230 g op de lijst. **Niet
+getest:** de herinnering zelf (gaat om 19:00 als pushbericht en is lokaal niet
+af te vuren zonder echte berichten te sturen).
+
+### Gebouwd — ZWBeter voeden: ritplan op de eventpagina en in de racebriefing
+
+**2026-10-25.** Commit `351b5ec2`, stap 2b van [ritvoeding-plan.md](docs/ritvoeding-plan.md). Geen
+migratie. Op 2026-10-25 gepusht naar `main`.
+
+- **Eventpagina** (`events/[id]`), onder Raceinfo, en **racebriefing**
+  (`events/[id]/briefing`), onder het racebriefje: hetzelfde blok
+  "Klaarzetten" als in het schema, voor wie ingelogd is en zolang het event nog
+  moet komen. Onder een uur niets, net als bij een training.
+- **De duur** (`eventRide` in `ride-plan.ts`, `loadEventRidePlan` in
+  `voeding/_data.ts`): het eigen pacingplan (`summary.totalSeconds`), anders de
+  eigen training voor dit event in het schema, anders de schatting die het
+  schema ook gebruikt (`eventWorkoutDefaults`). De zwaarte uit de training of
+  die schatting. Fouten breken de pagina niet.
+- **Koolhydraten laden.** Bij een wedstrijd of gran fondo van 90 minuten of
+  langer een link "Koolhydraten laden vanaf <dag>", twee dagen ervoor (de
+  laadfase van het protocol). De protocolpagina zet het event dan voorgeselecteerd
+  als wedstrijd (`?event=`, `loadEventRaceOption`); zonder parameter blijft het
+  de lijst uit de jaarplanning. Een lange clubrit krijgt de link niet.
+- `/hulp` (Je menu voor vandaag) noemt de eventpagina, de briefing en de link.
+
+**Bewust niet gedaan.** Geen ritplan op het gedeelde racebriefje (de afbeelding
+voor de groep): het plan is per renner. Bij een korte race (de meeste ZRL-races)
+zegt de briefing niets over eten; een tip voor de maaltijd vooraf daar is niet
+gebouwd.
+
+**Getest.** `nutrition-ride-plan` heeft nu 11 tests; nieuw: de volgorde
+pacing, schema, schatting, en laden alleen voor een lange wedstrijd of gran
+fondo. `tsc` alleen de bekende fout op `modern-screenshot`; ESLint schoon. In de
+browser (lokaal, productiedata alleen gelezen): SRC-kwalificatie (geschat 85
+min) toont 1 bidon van 60 g zonder laadlink; Millars Gran Fondo (378 min uit het
+schema) toont 6 bidons van 60 g en 2 broodjes met jam, 474 g, met "Koolhydraten
+laden vanaf vr 12 mrt"; de protocolpagina met `?event=` toont dat event
+voorgeselecteerd; de ZRL-briefing (39 min) laadt zonder plan. **Niet gezien:** een
+briefing mét plan (geen ZRL-race van een uur of langer in het schema), en de duur
+uit een pacingplan in de browser (de test dekt hem).
+
+### Gebouwd — ZWBeter voeden: ritplan "Klaarzetten" bij elke rit
+
+**2026-10-25.** Commit `c1e103f4`, stap 2a van [ritvoeding-plan.md](docs/ritvoeding-plan.md), op
+verzoek van de eigenaar zonder te wachten op het besluit over de featurepauze.
+Geen migratie. Op 2026-10-25 gepusht naar `main`.
+
+De eigenaar miste wat Musette wel doet: zien wat je voor een rit klaarzet. Tot
+nu toe stond er bij "Tijdens de rit" één recept voor één uur, zonder dat erbij
+stond dat het per uur was.
+
+- **Rekenwerk** (`src/lib/nutrition/ride-plan.ts`). Totaal = midden van de
+  g/u-band × ritduur (*sinds stap 3: het doel naar de zwaarte, en bidons met
+  water als de sportdrank niet kleiner kan*). Eén bidon per uur (afgerond, minstens één), elk hoogstens
+  60 g koolhydraten: 8% van 750 ml, naar de Oliveira & Burini 2014 (5–8%, met
+  glucose en fructose 8–10%). Wat erboven nodig is, komt uit vast eten, in
+  porties van het recept; minder dan 15 g vast eten laat het plan weg. Een
+  recept is een bidon als er een product uit de NEVO-groep "Niet-alcoholische
+  dranken" in zit; zo vallen de twee sportdranken onder de clubrecepten goed,
+  en ook eigen recepten met sap of siroop. Zonder sportdrank: bidons met water.
+- **Schema per 20 minuten.** Eerste moment na een kwartier, daarna elke twintig
+  minuten tot tien minuten voor het einde. De bidons worden op volgorde leeg
+  gedronken; vast eten staat niet op het eerste moment en is verdeeld over de
+  rest.
+- **Welk recept.** Het recept dat het dagmenu bij "Tijdens de rit" zet; het
+  andere soort (bidon of vast eten) komt uit dezelfde rangorde (`rankRecipes`).
+  Koos het lid zelf vast eten, dan draagt de bidon de helft, anders verdwijnt
+  die keuze uit het plan.
+- **Waar.** Dagmenu (in plaats van de receptkaart bij "Tijdens de rit"), de
+  voedingstip op Vandaag als die "Eet onderweg" zegt, en elke geplande training
+  van een uur of langer in het schema, in de lijst en in de maandkalender
+  (`loadRidePlans` in `voeding/_data.ts`, die alleen de recepten voor onderweg
+  laadt). Een fout daarin breekt het schema niet.
+- **"Gegeten" legt het hele plan vast** (`logRidePlan`): per recept één
+  maaltijd bij "Tijdens de rit", met alle bidons of porties. Daarvoor legde de
+  knop één portie van het recept vast, ook bij een rit van vier uur.
+- Sap en water staan in ml (`SHOPPING_NAMES.liquid`).
+- `/hulp` (Je menu voor vandaag) legt Klaarzetten uit.
+
+**Bewust niet gedaan.**
+- Geen vochtdoel: één bidon per uur is een vertaling, geen advies over hoeveel
+  je drinkt. Dat komt met de zweettest (stap 5).
+- Nog niet uit eerder vastgelegde producten (gels, repen met barcode) kiezen;
+  het plan kiest alleen uit recepten voor onderweg.
+- Herinnering en boodschappenlijst (2c) en eventpagina en briefing (2b) nog niet.
+  *Inmiddels gebouwd, zie de twee rondes hierboven.*
+  Bij twee ritten op één dag rekent het Dagmenu met de totale duur, het schema
+  per training.
+- Het schema houdt geen rekening met recepten die het lid de twee dagen ervoor
+  of erna zelf koos (het dagmenu wel); op een dag zonder eigen keuze kan het
+  schema daardoor een ander recept tonen dan het Dagmenu.
+
+**Getest.** Nieuw `nutrition-ride-plan` (9 tests): bidon herkennen, geen plan
+onder een uur, bidons tot 60 g, vast eten erboven en niet op het eerste
+moment, eigen keuze voor vast eten blijft, water zonder sportdrank, Gegeten
+per recept, ml voor dranken, eetmomenten en bidonvolgorde. `tsc` alleen de
+bekende fout op `modern-screenshot`; ESLint schoon op de gewijzigde bestanden.
+In de browser (lokaal, productiedata van de eigenaar, alleen gelezen): Dagmenu,
+Vandaag, schema-lijst en maandkalender tonen het plan; vandaag 2 uur → 2 bidons
+sportdrank van appelsap van 45 g. **Niet getest:** "Gegeten" voor het plan
+(zou in het echte eetdagboek schrijven), en een rit van 2,5 uur of langer met
+vast eten in de browser (die staat niet in het schema; de test dekt hem).
+
+### Hersteld — ZWBeter voeden: ritkoolhydraten tellen mee in het dagmenu
+
+**2026-10-25.** Commit `23b9ad8b`, stap 1 van [ritvoeding-plan.md](docs/ritvoeding-plan.md). Geen
+migratie. Op 2026-10-25 gepusht naar `main`.
+
+`mealTarget` gaf ontbijt, lunch, diner en tussendoor samen 85% van het midden
+van het dagdoel, en zette voor, tijdens en na de rit daarbovenop. Bij 70 kg op
+een lange dag met 4 uur fietsen kwam het menu zo op ongeveer 14,8 g/kg, terwijl
+de band tot 12 gaat. De dagbanden zijn de totale inname, ook op de fiets.
+
+- **Maaltijdbasis** (`mealCarbsBasis` en `rideDayCarbs` in `targets.ts`): het
+  midden van het dagdoel min voor de rit (1 g/kg), tijdens de rit (midden van de
+  g/u-band × uren) en na de rit (1 g/kg vanaf 60 minuten). De maaltijden krijgen
+  hun vaste deel van wat overblijft. Nooit minder dan het midden van een rustdag
+  (besluit 2 van het plan): een ritdag geeft geen kleinere maaltijden dan een
+  dag zonder rit. Dagen zonder rit veranderen niet.
+- **`topUpMenu` telde de rit als één uur.** Een portie "Tijdens de rit" is één
+  uur; het aanvullen tot de ondergrens van de dag rekent nu met de ritduur
+  (`rideHours`), anders zou het de aftrek weer ongedaan maken.
+- `RECOVERY_RIDE_MINUTES` staat nu in `targets.ts`, zodat menu en aftrek dezelfde
+  grens gebruiken.
+- Gevolg dat leden zien: op ritdagen zijn de hoofdmaaltijden kleiner. Bij 70 kg
+  op een lange dag met 4 uur fietsen mikt het diner op 84 g koolhydraten in
+  plaats van 210, net als op een rustdag.
+- [voeding-wielrennen.md](docs/voeding-wielrennen.md) (receptschaling) beschrijft
+  de maaltijdbasis; de tabel sprak van "dagmidden".
+
+**Bewust niet gedaan.** De verdeling over de maaltijden (25/20/30/10%) is
+gebleven; op een rustdag halen de drie maaltijden zo de onderkant van de band,
+zoals voorheen. Geen aparte regel voor ritten langer dan ongeveer 5 uur, waar
+een lichte renner boven 12 g/kg uitkomt: het eten onderweg geldt per uur, en
+het UCI-positiestandpunt noemt voor extreme dagen 10–25 g/kg.
+
+**Getest.** Nieuw in `nutrition-logic`: de ritkoolhydraten, de ondergrens, en
+dat het dagtotaal van alle momenten bij 55, 70 en 90 kg en ritten van 0 tot 240
+minuten binnen de band valt. In `nutrition-log-week`: het aanvullen telt elk uur
+op de fiets. In `nutrition-menu` rekent de test van `portionFit` nu zonder
+ritduur, zodat het diner op 210 g blijft mikken. De test dat elk moment met een
+clubrecept 85% van zijn doel haalt (`nutrition-migration`, 120 recepten, PGlite)
+slaagt. `tsc` geeft alleen de bekende fout op `modern-screenshot`; ESLint schoon
+op de gewijzigde bestanden. Volledige vitest-run: 5 tests in 6 bestanden falen,
+geen ervan over voeding: de ankers in `help-categories` (bekend uit een eerdere
+ronde), twee Zwift-routetests (de worktree heeft geen eigen `node_modules`,
+dus geen zwift-data 2.1.0) en drie databasetests. **Niet nagekeken:** het menu
+in de browser, en de afwisseling over veertien dagen.
+
+### Onderzocht — Ritvoeding: vergelijking met Musette
+
+**2026-10-25.** Commit `78875f4a`. Alleen een voorstel, geen code en geen migratie. Uitwerking in
+[ritvoeding-plan.md](docs/ritvoeding-plan.md).
+
+De eigenaar vroeg ZWBeter voeden te vergelijken met musette.io, een gratis
+planner voor eten en drinken tijdens een training. Musette is op dat stuk
+concreter: bidons en paklijst uit je eigen producten, een vochtdoel uit een
+zweettest, en een doel dat met de zwaarte meeschuift. Daaruit volgen vijf
+stappen: (1) het dagmenu laat de ritkoolhydraten meetellen in het dagdoel,
+(2) een ritplan om in te pakken bij elke training in het schema, op de
+eventpagina en in de briefing, en met één tik vast te leggen, (3) het ritdoel
+volgt de intensiteit binnen de bestaande band, (4) de darmtraining bepaalt het
+plafond, (5) een zweettest met vochtdoel. Het ritplan is de kern: nu staat
+alleen op de dagkaart van vandaag iets over eten onderweg. De eigenaar besloot
+op 2026-10-25 het daarom direct na de rekenfout te bouwen; stap 3 en 4
+verfijnen daarna het doel per uur.
+
+**Gevonden bij het vergelijken.** `mealTarget` geeft de hoofdmaaltijden en
+tussendoor 85% van het dagdoel en zet voor, tijdens en na de rit daarbovenop.
+Op een lange dag met 4 uur fietsen komt het menu zo op ongeveer 14,8 g/kg
+(band 8–12). Rekenwerk op de doelen; niet in de app nagekeken.
+
+**Bewust niet**, met redenen in het voorstel (§4): voorraadbeheer,
+glucose:fructose per product, een natriumdoel in mg, plafonds boven 120 g/u als
+standaard, AI die het plan maakt, kcal uit kJ, een ochtendmail en eetmomenten in
+de FIT-workout.
+
+### Gebouwd — Hulpvideo: durability en de kJ-standen in intervals.icu
+
+**2026-10-25.** Commit `058b1d3a`, op 2026-10-25 gepusht naar `main` (op verzoek van de eigenaar). Geen migratie.
+
+Op verzoek van de eigenaar een clip bij de melding over de kJ-standen (ronde
+hieronder): `public/hulp-video/kj-standen.mp4` (48 s, staand, ondertitels,
+geen stem), gelinkt onder stap 2 van "Zo haal je het meeste uit je steen" op
+`/hulp/training#zwbriljant` en in `HELP_VIDEOS`. Drie scènes:
+
+- **16-kj-melding**: de nieuwe dialoog op Vandaag, met het demolid (preset
+  `kj-melding`: intervals.icu gekoppeld, geen vermoeide curve).
+- **17-kj-intervals**: de stappen in intervals.icu. Geen app, dus een pagina met
+  schermafdrukken uit de ingebouwde browser van het account van de eigenaar
+  (telefoonformaat, op zijn verzoek; hij logde zelf in). Naam, foto en
+  vermogensgrafiek zijn vervaagd. In `3-curves-1000.jpg` staat de eerste stand
+  op 1000 kJ, gemaakt uit de echte "000 kJ" van de tweede stand: in zijn
+  account stond 830 kJ en er is niets opgeslagen (het invulveld met 1000 is
+  vastgelegd en daarna geannuleerd). De beelden staan in
+  `scripts/instructievideo/intervals/`, de tikvlakken in `INTERVALS_SPOTS`
+  (`scenes.mjs`); `opname.mjs` zet zo'n scène neer via `scene.html`.
+- **18-kj-ophalen**: Mijn vermogen met "Mijn waarden ophalen", met het demolid
+  (preset `vermogen`). Daarvoor speelt de nep-Supabase ook intervals.icu na
+  (`handleIntervals`), via de nieuwe omgevingsvariabele `INTERVALS_BASE_URL`
+  in `src/lib/intervals/client.ts`; zonder die variabele (productie) blijft het
+  `https://intervals.icu`.
+
+Deze scènes staan in `HULP_SCENES`, niet in `SCENES`: de hoofdvideo "Aan de
+slag" blijft vijftien stappen. `opname.mjs` zonder nummers neemt alleen de
+hoofdvideo op (`opname.mjs 16 17 18` voor deze clip); `bouw.mjs` bouwt de
+hoofdvideo alleen als er scènes van zijn.
+
+**Let op:** `bouw.mjs --publiceer` leegt eerst heel `public/hulp-video/`. In
+deze worktree waren de andere tien clips niet opgenomen, dus is de clip met de
+hand gekopieerd. Wie later alles opnieuw publiceert, neemt eerst alle scènes
+op.
+
+**Hulptekst gecorrigeerd.** `/hulp` zei "klik boven de powercurve op de knoppen
+met ? kJ". In intervals.icu staat het onder Beste prestaties → Vermogenscurves
+(op de telefoon onder de knop met drie puntjes), onderaan "Na … kJ" met een
+potloodje. Aangepast in `briljant.tsx` en `training.tsx`.
+
+**Getest.** `tsc`, ESLint, de hulp- en ZWBriljant-tests. Volle suite groen op drie
+bestanden na (`rls-initplan-migration`, `admin-areas`, `intervals-ride-sync`),
+die los wel slagen: traag onder de volle run. De clip beeld voor beeld
+nagekeken. `/hulp/training` met de demo-server: de link staat er en de mp4 komt
+terug als `video/mp4`. **Niet getest:** de clip op een telefoon, en de
+Engelstalige intervals.icu (de video toont de Nederlandse).
+
+### Gebouwd — ZWBriljant: consistentie hersteld, geen consistentie is de volle straf, melding voor de kJ-standen
+
+**2026-10-25.** Commit `5d8673d1`, op 2026-10-25 gepusht naar `main` (op verzoek van de eigenaar). Geen migratie. Wel een
+datawijziging op productie (zie onder).
+
+Aanleiding: een melding dat ZWBriljanten niet klopten. Controle op productie
+(24 stenen van week 19 oktober en 1.018 terugblikmaanden): elke bewaarde score
+volgt precies uit facetten, gewichten en consistentie, en de ZRS in elke steen is
+de actuele. De fouten zaten in de consistentie, en in ontbrekende data.
+
+- **Naleving telt ritten op de trainingsdag** (`complianceFrom` in
+  `snapshot.ts`). Eerst telde alleen de status `completed`, en die zet
+  `detectCompletedWorkouts` alleen binnen zeven dagen. Ritten die later
+  binnenkwamen, telden nooit, terwijl de naleving voor de trainer
+  (`pickRideForWorkout`) ze wel per dag koppelt. Gemeten over twaalf weken: één lid
+  12% tegen 67% met de ritten, een ander 14% tegen 60%, een derde 23% tegen 47%.
+  De consistentie van het eerste lid zakte bij de start van het schema van
+  0,56–0,83 naar 0,03–0,06. Nu: één rit per training op dezelfde dag, bij meer
+  ritten de duur die het dichtst bij de geplande ligt; een afgeronde training houdt
+  een rit bezet, een overgeslagen training telt niet, een losgekoppelde rit
+  (`training_excluded_at`) ook niet.
+- **De norm valt niet meer op 0** (`consistencyFrom`). Bij vijf leden was de
+  consistentie leeg. In TSS was de norm de mediaan over 52 weken, met weken van
+  vóór de koppeling met intervals.icu en weken waarin intervals.icu de
+  Strava-ritten miste als 0 TSS. Meer dan de helft van de weken 0 gaf norm 0, dus
+  geen consistentie. Nu telt in TSS alleen de weken die intervals.icu kent; TSS
+  alleen als intervals.icu ook de meeste recente weken met een rit kent; en is de
+  mediaan 0 (minder dan de helft van de weken gereden), dan geldt de mediaan van de
+  weken waarin je reed.
+- **Geen consistentie is de volle straf** (eigenaar): `consistencyFactor(null)` is
+  0,8 in plaats van 1. Eerst kwam wie niets liet zien beter uit dan wie
+  onregelmatig reed. `scoreFor` vraagt de consistentie nu altijd expliciet; de
+  recordsteen rekent met 1. Het scherm toont dan "Consistentie 0%" met factor 0,80
+  (`storedConsistencyView`). Dit geldt ook voor bewaarde stenen en terugblikmaanden
+  zonder consistentie, omdat de score bij het lezen opnieuw wordt gerekend.
+- **`TERUGBLIK_SPAN` is nu `alles-gewicht-tss-p25-naleving`**, zodat de wekelijkse
+  job (en een bezoek) de terugblik met de nieuwe consistentie opnieuw maakt. De
+  gevonden ZRS van vroeger blijft staan.
+- **Melding voor de kJ-standen** (`fatigue-setup.ts`, `durability-setup-dialog.tsx`
+  in de app-layout). Bij 16 van de 24 stenen ontbrak durability: 15 leden krijgen
+  uit intervals.icu geen vermoeide curve, en bij één stond de enige stand op 500 kJ
+  (6,1 kJ/kg, onder de grens van 10). Wie zo'n powerprofiel heeft, krijgt een
+  dialoog met wat er mis is en een link naar `/hulp/training#zwbriljant`. Na
+  "Later" of de link een week stil (localStorage). Nooit samen met de privacy- of
+  Zwift-ID-vraag, en hij opent niet als er al een dialoog openstaat
+  (het weekoverzicht). `/hulp` noemt nu ook de grens van 10 kJ/kg en wat het
+  betekent als de standen al goed staan.
+- **Geslacht op productie gezet** (eigenaar, 2026-10-25, direct met SQL): bij de 14
+  leden met een steen zonder geslacht één op `vrouw` en dertien op `man`. Er waren
+  geen SRC-inschrijvingen die mee moesten (`followSrcProfileSex` liep dus bewust
+  niet). Haar weeksteen rekent bij het volgende bezoek of in de job van maandag met
+  de vrouwennormen; haar terugblik pas na de push (nieuwe `TERUGBLIK_SPAN`).
+- Meegenomen: het anker `naleving` stond niet in de categorie schema van
+  `help-categories.ts` (uit de ronde "naleving als balken"); `help-categories.test`
+  faalde daardoor op `main`.
+
+**Bewust niet gebouwd.**
+- Geen video bij de melding. *Achterhaald dezelfde dag:* de clip
+  `kj-standen` staat nu op `/hulp`, zie de ronde erboven.
+- Geen terugval voor een ontbrekende durability of ZRS: een ontbrekend onderdeel
+  telt voor 0, zoals de eigenaar op 2026-10-22 besloot. Eén lid verloor zo racen:
+  laatste race 20 januari, Zwift toont geen ZRS meer.
+- De status `completed` niet met terugwerkende kracht gezet: dat maakt rapporten en
+  meldingen aan. ZWBriljant koppelt zelf.
+
+**Gevonden, niet opgelost.**
+- Een lid met durability 54 punten: na 2000 kJ in 90 dagen hooguit 6 minuten
+  gereden, dus het verval is een ondergrens.
+- In de terugblik krijgen maanden van vóór de eerste race de ZRS van de eerste
+  latere race als "historie" (tot 38 maanden terug, tot 2018).
+
+**Getest.** Nieuwe tests voor de naleving met ritten, de norm bij minder dan de
+helft van de weken, TSS alleen over bekende weken, uren als intervals.icu de
+ritweken mist, de volle straf, en `fatigueSetupIssue`/`loadFatigueSetupIssue`.
+Alle ZWBriljant-tests (104), `tsc`, ESLint, `npm run build`. Volle suite groen,
+op `omnium-live` na: zonder `.env.local` in deze worktree faalde die, met het
+bestand slaat hij zijn zes tests over. `admin-areas` faalde één keer in de volle
+run en slaagt los. **Niet getest:**
+de dialoog in de browser (geen ledenlogin hier), en de nieuwe consistentie op
+productie, die pas na de push en de job te zien is.
+
+### Gewijzigd — Strava-tip: werk aan wat het meest oplevert
+
+**2026-10-25.** Commit `a0e8c79d`. Geen migratie. Op 2026-10-25 gepusht naar `main`, samen met de rondes van de kJ-standen (op verzoek van de eigenaar).
+
+Op verzoek van de eigenaar dezelfde wissel als in het weekoverzicht (ronde
+hieronder): de tip "bijna een klasse hoger" in het ZWBeter-blok op Strava noemt
+niet meer het laagste facet, maar het onderdeel waar 5% beter de meeste punten
+oplevert.
+
+- `BriljantSummary.weakestFacet` heet nu `growFacet` en komt uit
+  `winsFromLevels`. `loadBriljantSummary` leest daarvoor ook het geslacht uit
+  het profiel en `provenance` van de snapshot (de durability-bron).
+  `weakestFacet` in `briljant/score.ts` had geen gebruikers meer en is weg.
+- De drie varianten van "bijna-klasse" zijn nu:
+  "Nog {punten} punten tot {volgende}. Werk aan {facet}, daar groeit je steen het
+  snelst.", "{Volgende} is nog {punten} punten weg. Met {facet} kom je er het
+  snelst." en "Nog {punten} punten en je steen wordt {volgende}. {Facet} levert
+  daarvoor het meeste op." Ze zijn nieuw en nog niet goedgekeurd, en niet met de
+  avoid-ai-writing-skill nagelopen.
+- Privacyverklaring (Terugschrijven naar Strava): "soms je laagste facet" is nu
+  "soms het onderdeel waar je het meest wint". Tekst, geen nieuwe versie.
+- Al geschreven blokken blijven zoals ze zijn (`written_at`).
+
+**Getest.** `strava-summary` (de teststeen met sprint als laagste onderdeel geeft
+nu VO2max) en `strava-summary-tips` aangepast; met `weekly-review`,
+`briljant-view` en `briljant-score` groen (115). `tsc` (alleen de bekende fout op
+`modern-screenshot`), ESLint. **Niet getest:** een echte write naar Strava.
+
+### Gewijzigd — ZWBriljant in het weekoverzicht: werk aan wat het meest oplevert
+
+**2026-10-25.** Commit `385efa9b`. Geen migratie. Op 2026-10-25 gepusht naar `main`.
+
+De eigenaar wilde in plaats van "Laagste facet: X" een aanwijzing waar je steen
+het snelst groeit. Het laagste onderdeel is daar een slechte maat voor: sprint
+weegt 5%, VO2max en fitheid 20%. Het scherm zegt nu "Werk aan **X** om je steen
+sneller te laten groeien." X is het onderdeel waar 5% beter de meeste punten
+oplevert. Dat is dezelfde rekensom als "Waar win je het meest" op de steen
+(`bestWins`).
+
+- `winsFromLevels` (`briljant/view.ts`) doet die rekensom op een bewaarde steen:
+  de meting terug uit het niveau (zoals bij je eigen oude stenen), met het
+  geslacht uit het profiel en de durability-bron uit `provenance.durability`
+  (bij ritten blijft het plafond van niveau 9 staan). `bestWins` en
+  `winsFromLevels` delen nu `winsFromReadings`.
+- `BriljantSection.weakestFacet` heet nu `growFacet`. `SUMMARY_VERSION` blijft 3:
+  deze ronde ging samen met de ronde die versie 3 invoerde naar `main` (op `main`
+  stond nog versie 2), dus er staan geen samenvattingen van versie 3 met het oude
+  veld in de database.
+- Is er nergens iets te winnen (minder dan vier onderdelen, dus geen score), dan
+  valt de zin weg.
+- Privacyverklaring (Weekoverzicht): "je laagste onderdeel" is nu "het onderdeel
+  waar je het meest wint". Ook dit nog niet aan de eigenaar voorgelegd.
+
+**Bewust niet gedaan.** Het Strava-blok eerst niet meegenomen, omdat de eigenaar
+die tipteksten had goedgekeurd. Op zijn verzoek dezelfde dag toch gedaan (ronde
+hierboven).
+
+**Getest.** `weekly-review.test.ts`: een steen met sprint als laagste onderdeel
+geeft VO2max, en zonder score geen onderdeel. `briljant-view` (9) en
+`strava-summary` groen, `tsc` (alleen de bekende fout op `modern-screenshot`),
+ESLint. In de browser met voorbeelddata op 375 px, donker. **Niet getest:** met
+echte snapshots.
+
+### Gebouwd — ZWBriljant in het weekoverzicht
+
+**2026-10-25.** Commit `9fae85b6`. Geen migratie. Gemaakt op
+`claude/zwbriljant-weekoverzicht-5440b1`, op 2026-10-25 gepusht naar `main`.
+
+Wens van de eigenaar: de ZWBriljant-steen ook in het weekoverzicht. Hij krijgt een
+eigen scherm, na Vermogen en vóór Teams:
+
+- **Groot getal** de punten (427), daaronder de klasse met het verschil met een
+  week eerder ("Platina, 15 punten erbij.", "gelijk gebleven", of "Omhoog naar
+  Amethist." bij een nieuwe klasse), en "Nog 73 tot Amethist." met eerst het
+  laagste facet erachter (sinds dezelfde dag: het onderdeel waar je het meest
+  wint, zie de ronde hierboven). In Diamant valt het stuk over de volgende klasse weg.
+- **De print** (`BriljantPrint`): een briljant geslepen silhouet in salie dat in
+  petrol volloopt tot de voortgang binnen de klasse, met de stand van vorige week
+  als stippellijn (zoals "beste van het jaar" bij Vermogen). Het vult op
+  oppervlakte, niet op hoogte: op hoogte oogde een kwart in de smalle punt als
+  bijna niets. De clip zit op een binnenste `<g>`, omdat de rakel zelf een
+  `clip-path` op `.ink` zet.
+- **Bron** (`buildBriljant` in `summary.ts`, query in `load.ts`): de bewaarde
+  weeksnapshots op de huidige schaal, net als het Strava-blok. De laatste met
+  score tot en met de maandag van de week, hooguit 35 dagen oud, naast die van
+  precies een week eerder. `weakestFacet` staat nu in `briljant/score.ts` en wordt
+  ook door het Strava-blok gebruikt.
+- `SUMMARY_VERSION` is 3: een bestaand overzicht van deze week wordt bij de
+  volgende opening opnieuw opgebouwd en krijgt de steen (gezien en coachtekst
+  blijven staan, zoals bij versie 2).
+- De steen alleen telt niet als inhoud (`hasContent`): wie een week niets deed,
+  krijgt geen overzicht alleen voor de steen.
+- Ook wie zijn steen niet met leden deelt, ziet hem in het eigen overzicht: dat
+  leest alleen het lid zelf.
+- `/hulp` (Training) noemt de steen bij de schermen; de privacyverklaring
+  (Weekoverzicht) noemt wat er van de steen in de samenvatting staat, dat alleen
+  het lid het leest, en dat de steen niet naar OpenAI gaat. Geen nieuwe versie:
+  het zijn gegevens die al per week bewaard worden. **De tekst is nog niet aan de
+  eigenaar voorgelegd.**
+
+**Bewust niet gedaan.**
+- Geen live berekening van de steen bij het maken van het overzicht: dat kost een
+  jaar wellness bij intervals.icu, de ZRS bij Zwift en mogelijk de durability-test,
+  en het overzicht heeft voor intervals.icu maar 4 s. Gevolg: de job maakt de
+  snapshot op maandag, dus op zondagavond loopt de steen tot een week achter,
+  tenzij het lid ZWBriljant die week opende (dat ververst de snapshot).
+- De steen gaat niet mee naar de AI-coach (`coachInput` haalt hem eruit): de
+  ZWBriljant-tekst in de privacyverklaring belooft dat er niets naar OpenAI gaat.
+- Geen eigen kleur van de klasse (vELO-kleur) in de print: het weekoverzicht
+  drukt alleen in de drie tenue-inkten.
+
+**Getest.** Nieuwe tests in `weekly-review.test.ts` (`buildBriljant`: de laatste
+steen met die van de week ervoor, een latere week genegeerd, te oud of zonder
+score, Diamant; en de steen niet in `coachInput`). `weekly-review`,
+`strava-summary`, `strava-summary-tips` en `briljant-score` groen (105), `tsc`
+(alleen de bekende fout op `modern-screenshot`), ESLint op de gewijzigde
+bestanden. In de browser met voorbeelddata bekeken op 375 px, licht en donker
+(`/ontwerp-voorbeeld?scherm=weekoverzicht`). **Niet getest:** de query op
+`zwbriljant_snapshots` tegen de echte database en het overzicht met echte data.
+
+### Gebouwd — ZWBeter-blok op Strava: eigen opbouw, de steen en een tip
+
+**2026-10-25.** Commit `870e8380`, op 2026-10-25 gepusht naar `main` (op verzoek
+van de eigenaar). Tipteksten goedgekeurd door de eigenaar. Geen migratie. Bij de
+merge met `main` is `/hulp` bijgewerkt: de belasting komt zonder vermogensmeter
+nu uit de hartslag (ronde "TSS uit hartslag").
+
+De eigenaar vond dat het blok onderaan de Strava-beschrijving te veel op dat van
+JOIN leek, en wilde de ZWBriljant-steen erin in plaats van alleen CTL. Tot nu toe
+volgde het blok JOIN regel voor regel: twee kopjes, labels met een dubbele punt,
+"-" voor een lege waarde. Nu:
+
+```
+𝗭𝗪𝗕𝗲𝘁𝗲𝗿 𝘄𝗼𝗿𝗸𝗼𝘂𝘁-𝘀𝗮𝗺𝗲𝗻𝘃𝗮𝘁𝘁𝗶𝗻𝗴
+💎 ZWBriljant Platina · 427 punten, nog 73 tot Amethist
+🎯 3x10 min drempel (75 min) → gereden als drempel
+⚡ 82 TSS, 8% boven plan
+🔋 Gereedscore 72, fris genoeg · fitheid stijgt
+💬 Je fitheid stijgt al een paar weken. Gewoon zo doorgaan.
+```
+
+- **Titel** zonder emoji en vet (keus van de eigenaar). Strava kent geen opmaak,
+  dus het vet zijn de vette letters uit Unicode (`unicodeBold`). De naam volgt de
+  hernoeming van ZWBeter Worden naar ZWBeter.
+- **De steen** komt uit de laatste weeksnapshot (`zwbriljant_snapshots`, huidige
+  schaal, hooguit 35 dagen oud; `briljantSummaryFrom`). Geen extra calls naar
+  intervals.icu of Zwift. Alleen als het lid zijn steen deelt
+  (`zwbriljant_preferences.visible`, standaard aan): wie hem voor clubgenoten
+  verbergt, wil hem ook niet openbaar op Strava. Zonder steen staat er CTL. In
+  Diamant staat de groei in vier weken in plaats van de punten tot de volgende
+  klasse.
+- **Regels zonder gegevens vallen weg** in plaats van "-". Zonder schema staat er
+  "Vrije rit".
+- **De tip** (`strava-summary-tips.ts`) komt uit tien situaties op volgorde (moe en
+  toch hard, zwaarder type dan gepland, ruim boven of onder plan, volgens plan,
+  bijna een klasse hoger met het laagste facet (sinds dezelfde dag het onderdeel
+  waar je het meest wint, zie "Strava-tip: werk aan wat het meest oplevert"),
+  fitheid stijgt of zakt, vrije rit,
+  algemeen), elk met drie varianten. De variant hangt aan het Strava-id, zodat een
+  nieuwe poging dezelfde zin geeft. De teksten zijn gecontroleerd met de
+  avoid-ai-writing-skill en de regels uit `lib/ai-writing.ts`.
+- Oude blokken (kop "📊 ZWBeter Worden") worden nog herkend en vervangen.
+- Privacyverklaring (Terugschrijven naar Strava) noemt nu de steen, het laagste
+  facet en de tip; geen nieuwe versie, de gegevens waren al opgegeven. `/hulp`
+  (strava-samenvatting) heeft het nieuwe voorbeeld.
+
+**Bewust niet gedaan.**
+- Geen AI voor de tip: de tekst staat openbaar zonder dat iemand hem leest, en het
+  zou ritgegevens naar OpenAI sturen van leden die ZWBeter verder niet gebruiken.
+- Geen live berekening van de steen bij elke rit: die kost calls naar intervals.icu
+  en Zwift en het Strava-budget is krap. De steen kan daardoor tot een week achter
+  lopen.
+- Al geschreven blokken worden niet herschreven: een rit met `written_at` blijft
+  zoals hij is.
+
+**Getest.** `strava-summary.test.ts` (aangepast) en `strava-summary-tips.test.ts`
+(nieuw), `tsc` (alleen de bekende fout op `modern-screenshot`), ESLint op de
+gewijzigde bestanden. Volledige vitest-run: drie fouten die hier los van staan
+(`.env.local` ontbreekt in de worktree, een databasetest met een time-out, en het
+anker `naleving` in `help-categories` uit de vorige ronde). **Niet getest:** een
+echte write naar Strava en hoe Strava de vette letters en emoji toont.
+
+### Hersteld — ZRL-raceweek zonder parcours: zwift-data naar 2.1.0
+
+**2026-10-25.** Commit `4229ef2e`, op 2026-10-25 gepusht naar `main` (op verzoek
+van de eigenaar). Geen migratie.
+
+**Waarom.** De eigenaar zag bij R1 · W6 (27 oktober) geen parcours. Geen van de
+zeven teamraces had een `zwift_route_id`; W1 t/m W5 wel. Zwift geeft voor de
+hele raceweek route 159415549 op, Spiral Summit (Watopia, event-only, 23,9 km).
+Die stond niet in `zwift-data` 1.50.0. `zrlRouteUpdate` krijgt dan geen route
+en laat het event stil staan, en zonder `zwift_route_id` slaat de eventpagina
+de parcourssectie over. Niemand zag het, want de sync meldde niets.
+
+**Nu.**
+- `zwift-data` van 1.50.0 naar 2.1.0 (353 routes, was 335; o.a. Spiral Summit
+  en 17 hardlooproutes). 2.x is alleen ESM met één `lib` in plaats van
+  `cjs`/`esm`/`types`; de typen van `routes`, `segments`, `worlds` en
+  `bikeFrames` zijn gelijk gebleven. 85 bestaande routes kregen andere data:
+  vooral `levelLocked`, segmenten, Strava-segmenten en lead-ins. Twee routes
+  heten niet langer naar hun id: 362278484 is `twilight-crit` en 811898717 is
+  `what-yumezi-were-lost`. Geen van beide staat in `zwift_routes` of in een
+  event, dus geen opgeslagen slug die verouderd is.
+- `syncZrlSubgroupRoutes` meldt een route die `zwift-data` niet kent, met het
+  aantal teamevents, in `zrlRoutes.notes` van de uurlijkse eventsync
+  (`unknownZrlRoute`).
+- `zwifterbikes.ts`: de twee id-sleutels zijn weg; What Yumezi We're Lost
+  staat er onder zijn nieuwe slug in (ZwifterBikes zegt `whatyumeziwerelost`).
+  De tabel telt nu 35 afwijkingen. `zwift-data` levert sinds 2.x zelf een
+  `zwifterBikesUrl`, maar die wijkt bij 17 routes af van onze tabel, en een
+  paar zijn duidelijk fout (`london-8` → `greatest-london-loop`). De tabel is op
+  2026-10-10 tegen de site zelf gecontroleerd en blijft dus de bron.
+- Test `eigen segment-id` draait op Power to the Portal in plaats van Urumaze,
+  want Urumaze heeft in 2.1 zelf segment `41887960`.
+
+**Te doen na het pushen.** De volgende uurlijkse sync zet de W6-teamraces op
+Spiral Summit en registreert de route in `zwift_routes`. Het hoogteprofiel en
+de vorm komen pas na **Routes ophalen** op `/beheer/zwift-routes`; tot die klik
+blijft de parcourssectie leeg.
+
+**Bewust niet gebouwd.** Een eigen route uit de Zwift-API voor routes die
+`zwift-data` (nog) niet kent: lead-in, rondelengte en segmenten komen uit
+`zwift-data`, en zonder die gegevens klopt het pacingplan niet. De melding
+maakt het gat zichtbaar; bijwerken blijft de oplossing.
+
+**Getest.** `tsc`, eslint op de gewijzigde bestanden, de zwift-data-tests
+(125) en `next build` (met tijdelijk `.env.local`) slagen. In de volle suite
+falen `help-categories` (een hulpanker in `schema`; deze ronde raakt `/hulp`
+niet), `omnium-live` (geen `.env.local` in de worktree) en
+`admin-areas`/`rls-initplan-migration` (time-out in de volle run, los gedraaid
+groen). Of ZwifterBikes een pagina voor Spiral Summit heeft is niet gecontroleerd.
+Niet in de app bekeken.
+
+### Gebouwd — TSS uit hartslag voor ritten zonder vermogensmeter
+
+**2026-10-25.** Commits `aa256eb4` (vaste rust-HR) en `97628bbe` (eigen
+rust-HR en privacytekst), op 2026-10-25 gepusht naar `main` (op verzoek van de
+eigenaar). Geen migratie.
+
+De eigenaar vroeg om TSS voor ritten zonder vermogensmeter maar met hartslag,
+zoals intervals.icu dat doet. Tot nu toe bleef de TSS van zo'n rit leeg: overal
+in ZWB (belastingpagina, kalender, naleving, AI-coach, Strava-blok,
+statistieken) kwam de TSS alleen uit NP en FTP. In productie ging dat over 174
+van de 1.880 ritten van de laatste 120 dagen, van 13 leden — allemaal met
+intervals-koppeling, LTHR en max-HR.
+
+Hoe intervals het doet: **HRSS**, de TRIMP van de rit (Banister) gedeeld door de
+TRIMP van een uur op LTHR, maal 100, per seconde over de hartslagstream. Wij
+hebben van een Strava-rit alleen de gemiddelde hartslag. Daarom twee bronnen, in
+`rideMetricsFromStrava` (alleen als er geen echte meter is):
+- **Ritten via intervals.icu** krijgen intervals' eigen HRSS (`hr_load`) mee in
+  `raw` (`buildIntervalsRideRow`), en die nemen we letterlijk over. Bestaande
+  rijen hebben dat veld pas als de uursync ze om een andere reden herschrijft;
+  `hr_load` zit bewust niet in `rideSignature`, anders draait het nawerk (cols,
+  badges) één keer opnieuw voor alle intervals-ritten van 30 dagen.
+- **Andere ritten**: dezelfde TRIMP-formule op de gemiddelde hartslag
+  (`src/lib/training/hr-load.ts`), met LTHR en max-HR uit
+  `profile_sport_settings`, de eigen rust-HR (mediaan van `profile_wellness`
+  over 60 dagen, waarden buiten 30–90 genegeerd; anders vast 50), en de
+  weegfactor 1,92 (man of onbekend) of 1,67 (vrouw).
+
+Getoetst tegen 2.441 ritten waarvan intervals de HRSS gaf (gemiddeld 77): met de
+eigen rust-HR mediaan 4 % onder intervals, gemiddeld 5,0 TSS ernaast, r = 0,99;
+met de vaste 50 gemiddeld 6,4. Van de 13 betrokken leden hadden er 8 een
+rust-HR in de laatste 60 dagen. De vrouwenfactor halveerde de afwijking bij
+vrouwen (8,9 → 4,7). De eenvoudiger formule uur × (HR/LTHR)² × 100 zat er
+gemiddeld 46 % boven en is afgevallen.
+
+**Privacy (2026-10-25, keuze van de eigenaar).** De eigen rust-HR is opt-in
+hersteldata; de TSS die eruit volgt gaat naar trainer, AI-coach en het
+Strava-blok. Eerst was de rust-HR daarom vast (commit `aa256eb4`); na voorleggen
+koos de eigenaar voor de eigen rust-HR met **alleen een tekstaanpassing in
+`/privacy`, bewust zonder nieuwe versie in `src/lib/privacy.ts`** (geen
+hertekening): de rust-HR zelf wordt met niemand gedeeld, alleen een berekend
+getal, net als de gereedscore die al naar AI-coach en Strava ging. De tekst noemt
+nu (1) het gebruik van de rust-HR voor de TSS bij de opt-in-hersteldata, (2) dat
+we FTP, CP, W', zones en drempel- en maximale hartslag uit de
+intervals-instellingen bewaren — dat gebeurde al sinds migratie `0101` maar stond
+er niet — en (3) dat het Strava-blok ook de belasting uit hartslag kan bevatten.
+
+`RideMetrics` en `RideLoad` kregen `tssSource` (`"power"`, `"hr"` of null). IF en
+NP blijven leeg zonder meter. De meldingen "Zonder vermogensmeter zijn TSS en IF
+niet te bepalen" (kalender, bevestigscherm, belastingtabel) verschijnen alleen nog
+als er ook geen TSS uit hartslag is. `/hulp/training` en `/hulp/schema` zijn
+bijgewerkt; een rit zonder meter krijgt in de kalender nu de kleur van zijn zone
+via de TSS uit hartslag.
+
+Doorgegeven aan alle plekken die ritbelasting tonen of gebruiken: belasting,
+schemakalender (ongeplande ritten), naleving en momentopnames (`completion.ts`,
+`compliance.ts`), AI-coachdata, gisteren/vandaag voor dag-aanpassingen, het
+Strava-samenvattingsblok en `/stats/ik`. Lege momentopnames die het lid nog niet
+bevestigde, vullen zichzelf binnen het venster van 7 dagen opnieuw; bevestigde
+blijven zoals ze waren.
+
+**Bewust niet gedaan.**
+- Geen hartslagstreams ophalen om per seconde te rekenen zoals intervals: kost
+  per rit een Strava-verzoek binnen de rate limit, voor ~1 TSS winst.
+- Leden zonder intervals-koppeling hebben geen LTHR; voor hen blijft de TSS van
+  een rit zonder meter leeg. Geen LTHR-schatting uit de hoogste gemeten hartslag:
+  één piek van een losse borstband zet die scheef.
+- Geen "hrTSS"-label in de interface: intervals noemt het ook gewoon belasting.
+- CTL/ATL/TSB veranderen niet: met koppeling komen die al van intervals (die
+  rekent HRSS mee), zonder koppeling is er geen LTHR.
+
+**Eenmalig aangevuld in productie (2026-10-25, op verzoek van de eigenaar).**
+De 13 momentopnames (`training_workout_reports.metrics_json`) van ritten met
+hartslag maar zonder meter en zonder TSS kregen hun TSS, `loadPct` en `verdict`,
+ook de 5 die het lid al had bevestigd. Uit zichzelf vult de code alleen
+onbevestigde momentopnames binnen 7 dagen aan. Met SQL via de
+Supabase-connector, dezelfde formule als `heartRateStressScore` (drie waarden
+tegen de TypeScript-functie gecontroleerd). 12 van de 13 gingen van "volgens
+plan" naar "te licht" (18–60 % van de geplande TSS), één naar "te zwaar"
+(118 %); een rit van 3 seconden die aan een training hing kreeg TSS 0. Al
+geschreven Strava-samenvattingen zijn niet herschreven. Oude waarden zijn niet
+apart bewaard; ze waren `tss: null`, `loadPct: null`, `verdict: volgens_plan`.
+
+**Getest.** `hr-load.test.ts` (nieuw), `ride-metrics.test.ts` bijgewerkt.
+Volledige vitest-run groen op drie bekende uitzonderingen na (`.env.local`
+ontbreekt in de worktree; twee asserts in `help-categories.test.ts` die al vóór
+deze ronde faalden). ESLint op de gewijzigde bestanden, `tsc` (alleen de bekende
+fout op `modern-screenshot`). Niet in de app bekeken, ook de privacypagina niet.
+
+### Gebouwd — ZWBeter Worden: naleving als balken in de ZWB-kleuren
+
+**2026-10-25.** Commit `f5aba7a6` (cherry-pick van `c1f76716` van de branch
+`claude/training-compliance-zones-fd2d1a`), op 2026-10-25 gepusht naar `main` (op
+verzoek van de eigenaar). Geen migratie.
+
+De eigenaar vond de tabel van de vorige ronde en vooral de zoneweergave niet
+duidelijk genoeg en vroeg om horizontale balken in de ZWB-kleuren. Elk onderdeel
+(duur, TSS, IF, RPE en elke zone) is nu één vlakke balk in `WorkoutMetricsPanel`:
+**teal** is gereden tot het plan, **goud** wat erboven kwam, een **streep** is het
+plan. Eén legenda staat erboven.
+- Duur, TSS en IF delen een procentschaal tot 150 %, zodat hun planstrepen op
+  dezelfde plek staan; daarboven loopt de balk vol en noemt het getal de rest.
+- RPE op de schaal 0–10, de streep op de verwachte RPE (bij een band als 2-3 op
+  de bovenkant).
+- De zones delen één schaal in minuten (15 % ruimte voorbij de langste zone), zodat
+  je ziet waar de meeste tijd zat. Een zone die niet gepland was, is helemaal goud.
+  Het vierkantje voor Z1–Z6 houdt de Zwift-zonekleur, omdat de blokken van het
+  schema die kleuren ook dragen. Zonder geplande opbouw alleen teal, zonder streep.
+- Nieuwe tokens `--zwb-meter` en `--zwb-meter-over` (`bg-zwb-meter`,
+  `bg-zwb-meter-over`) in `globals.css`: teal en goud bij licht, de lichtere tinten
+  van de ZWBlokken-kaart bij donker, omdat teal op nachtpetrol wegvalt.
+- `/hulp/schema#naleving` en `#tijd-per-zone` beschrijven de balken.
+
+**Bewust niet gedaan.** De balken kleuren niet naar de grenzen 80–115 %: die gelden
+voor TSS en het oordeel, en dat staat al op de pil.
+
+**Getest.** Bekeken in de lokale dev-server op een tijdelijke voorbeeldpagina onder
+`/ontwerp-voorbeeld` (niet gecommit), licht en donker en op telefoonbreedte, met een
+drempeltraining met zones en RPE en een te lichte zonder zonedata. ESLint, `tsc`
+(alleen de bekende fout op `modern-screenshot`) en de unittests van de uitsplitsing.
+Niet met echte ritten in de app bekeken.
+
+### Gebouwd — ZWBeter Worden: training uit een clubevent linkt terug naar het event
+
+**2026-10-25.** Commit `8dff0327` (cherry-pick van `bc744b19` van de branch
+`claude/trainingsschema-events-clickable-a7c52a`), op 2026-10-25 gepusht naar
+`main` (op verzoek van de eigenaar). Geen migratie.
+
+De eigenaar vroeg of een event dat via de kalender in het schema komt ook weer
+terug te klikken is naar dat event. Een training uit een clubevent droeg al
+`training_workouts.event_id`; die werd alleen nergens getoond. Nu:
+- Maandweergave (`MemberWorkoutCalendar`): in het detailpaneel is de titel een link
+  naar `/events/[id]`, en bij een geplande training staat een knop
+  **Naar het event** naast Download FIT en intervals.icu.
+- Lijstweergave van `/zwbeter-worden/schema`: dezelfde knop, ook als de training
+  nog niet naar intervals.icu is gezet.
+- ZWBeter Vandaag, Eerstvolgende workout: **Naar het event** naast Vraag je coach.
+- `/hulp/schema` noemt de knop bij Clubevents in je schema; "zeg je af bij de
+  events" werd "bij het event zelf".
+
+**Bewust niet gedaan.** De titel in de lijstweergave en op ZWBeter Vandaag
+(`WorkoutTitle`) blijft naar intervals.icu linken: die link bestond al en is voor
+het rijden de belangrijkste. Zwift-events die het lid bij een training koos
+(`zwift_event_id`) staan niet op de ZWB-kalender en vallen hier buiten.
+
+Alleen met eslint en tsc gecontroleerd, niet in de app bekeken.
+
+### Gebouwd — ZWBeter Worden: naleving per onderdeel (duur, TSS, IF, zones, RPE)
+
+**2026-10-24.** Commit `27212aac`, op 2026-10-25 gepusht naar `main` (op verzoek
+van de eigenaar). Geen migratie.
+
+De eigenaar vroeg de naleving van een gereden training verder uit te splitsen dan
+alleen TSS: over zones, plus duur, intensiteit (IF) en verwachte tegenover
+ingevulde RPE. Keuzes van de eigenaar (2026-10-24): het percentage op de pil blijft
+**% van de geplande TSS**, het oordeel (te licht / volgens plan / te zwaar) blijft op
+TSS 80–115 %, en RPE wordt **alleen getoond**, telt nergens mee. De AI-regels en de
+replan-signalen lezen dat oordeel en veranderen dus niet.
+
+Wat er is gebouwd, in `WorkoutMetricsPanel` (bevestigscherm, kalender, afgeronde
+trainingen en de beoordelingsrij van de trainer):
+- Een tabel **Gepland · Gereden · %** voor duur, TSS en IF, en een RPE-rij met de
+  verwachte RPE naast de ingevulde. Die vervangt de losse tegels TSS/Duur/IF en de
+  regel "Gepland" onder Meer details. *Sinds 2026-10-25 geen tabel meer maar
+  balken; zie de ronde hierboven.*
+- Bij **Tijd per zone** per zone het percentage van de geplande minuten, en bovenaan
+  **Verdeling**: hoeveel van de rit in dezelfde verhouding over de zones lag als
+  gepland (som van de kleinste aandelen per zone), los van de duur.
+- Rekenwerk in `compliance-breakdown.ts`, puur en bij het tonen uitgerekend uit de
+  momentopname plus de geplande blokken. Zo werkt het ook voor oude momentopnames;
+  er is niets aan `metrics_json` toegevoegd.
+- Geplande IF = √(geplande TSS / (uren × 100)), op de duur van de blokken.
+- Verwachte RPE = de zwaarste RPE-band waarin het schema minstens 5 minuten rijdt
+  (anders de band met de meeste tijd), op de banden die de blokken al gebruiken.
+  Die banden staan nu in `rpe.ts` (verhuisd uit `engine/catalog.ts`). De 5 minuten
+  zijn een productkeuze: een opener of korte sprints maken een duurrit geen RPE 10.
+- `plannedSegments()` in `zone-times.ts`: het schema als stukken met één doel,
+  gedeeld door `plannedZoneSeconds()` en de verwachte RPE.
+- Het bevestigscherm kreeg de geplande blokken en de FTP op de ritdag erbij
+  (`loadPendingReview`); daar stonden tot nu toe geen geplande zones.
+- `/hulp/schema#naleving` legt de getallen uit; `#tijd-per-zone` noemt nu ook
+  Verdeling.
+
+**Bewust niet gedaan.**
+- Geen samengestelde nalevingsscore: de eigenaar koos voor TSS-% als hoofdgetal.
+- RPE weegt niet mee: een hogere RPE op het juiste vermogen wijst eerder op
+  vermoeidheid dan op slecht naleven.
+- De AI-context (`WorkoutCompliance` in `compliance.ts`) krijgt geen geplande IF,
+  verwachte RPE of zoneverdeling erbij; die vraag ging over de weergave.
+- Geen kleur op de percentages per onderdeel: 80–115 % geldt voor TSS, niet
+  vanzelf voor duur, IF of een zone. (De balken van 2026-10-25 kleuren alleen
+  boven of onder het plan, niet naar die grenzen.)
+
+**Getest.** `compliance-breakdown.test.ts` (nieuw), plus `zone-times`,
+`workout-on-off`, `engine/catalog` en `compliance`. Volledige vitest-run groen op
+drie bekende uitzonderingen na (`.env.local` ontbreekt in de worktree; twee
+databasetests met een time-out die los wel slagen). ESLint op de gewijzigde
+bestanden, `tsc` (alleen de bekende fout op `modern-screenshot`). Niet in de app of
+tegen de database bekeken.
+
+### Gebouwd — ZWBeter Worden: de titel schuift mee met de duur
+
+**2026-10-24.** Commit `edeee2ab`, op 2026-10-24 gepusht naar `main` (op verzoek
+van de eigenaar). Geen migratie.
+
+De eigenaar zette een training via **Duur aanpassen** op 150 minuten, maar de titel
+bleef "Rustige duur 120 min". De catalogus zet de totaalduur in de titel, en geen van
+de drie plekken die de duur achteraf veranderen paste de titel aan. Nu doet
+`retitleForDuration()` in `workouts.ts` dat overal waar `resizeBlocks()` draait:
+`setWorkoutDuration()`, `fitScheduleToAvailability()` (inkorten op beschikbaarheid)
+en `insertPlanWorkouts()` (AI-uitvoer boven het plafond). Alleen een duur aan het
+eind van de titel telt: "N min", "N minuten", "2u30" en "3 uur"; die laatste twee
+worden "N min". In productie had op 2026-10-24 bijna elke titel met een duur die
+vorm (320 keer "Rustige duur N min").
+
+**Bewust niet gedaan.** Bestaande titels die al niet meer kloppen zijn niet
+rechtgezet: één keer opnieuw **Duur aanpassen** doet dat. Een duur midden in een
+titel ("Lange duur met 2x20 min tempo", "Sweet spot 3x12") blijft staan: dat is een
+blok, geen totaal.
+
+**Getest.** `workout-resize.test.ts` (nieuwe gevallen voor `retitleForDuration()`),
+ESLint op de gewijzigde bestanden, `tsc` (alleen de bekende fout op
+`modern-screenshot`, dat in deze worktree niet is geïnstalleerd). Niet in de app of
+tegen de database getest.
 
 ### Gebouwd — ZWBriljant: kleine stenen in de galerij naar verhouding groter
 
@@ -12138,7 +13236,8 @@ er wel, maar er was nergens een gewicht, dus geen W/kg; met twee onderdelen teld
 - **Gewicht:** zonder gewicht in ZWB het laatste gewicht uit intervals.icu (wellness, 90
   dagen), anders het Zwift-gewicht via het serviceaccount (`fetchZwiftWeightKg`, niet
   bewaard). Ontbrekende W/kg in het powerprofiel worden uit de curve berekend. De terugblik
-  gebruikt per maand het gewicht van die dag, anders dezelfde terugval.
+  gebruikt per maand het laatste gewicht tot het maandeinde (sinds 2026-10-26; eerst alleen
+  dat van die dag), anders dezelfde terugval.
 - **Basisregel:** een steen pas vanaf vier onderdelen (`MIN_FACETS_FOR_SCORE`, was twee).
 - **Tegel op Vandaag:** helemaal in de kleur van de klasse, met donkere of lichte tekst naar
   de helderheid, en "nog N tot <klasse>".
@@ -12930,8 +14029,9 @@ duidelijker is").
   daarvoor iets omlaag). Even waren de namen weg; de eigenaar bedoelde alleen dat
   racen (ZRS) niet aan een groep hangt.
 - **Consistentie telt mee als factor**: score = profielscore × (0,8 + 0,2 ×
-  consistentie), zonder ritgegevens factor 1 (`consistencyFactor`). Eerst telde
-  consistentie niet mee; de eigenaar koos voor tot 20%.
+  consistentie). Eerst telde consistentie niet mee; de eigenaar koos voor tot 20%.
+  *Achterhaald per 2026-10-25:* zonder ritgegevens was dat factor 1, nu 0,8 (de
+  volle straf), zie de ronde van die dag.
 - **Racen is een rechte lijn**: 0 ZRS is 0 en 1000 ZRS (nooit gehaald) is Aliens, dus
   0,9 punt per ZRS-punt, los van Zwift's categorieën. Eerst stond er één decimaal (4,5); de eigenaar
   koos daarna voor punten, omdat een groter getal dat in kleine stappen groeit meer
@@ -16072,7 +17172,7 @@ controle moet straks AI- en motorschema's naast elkaar beoordelen
   (availability.ts), `shiftDays`/`daysBetween`/`REBUILD_AFTER_REST_DAYS`
   (season.ts) en `normalizeWorkoutBlocks`/`alignBlockIntensity`/`alignWorkoutIntensities`/
   `powerRangePercentForBlock`/`OPTIONAL_REST_RIDE_MINUTES` (workouts.ts). Zeventien
-  regels: beschikbaarheid, vaste afspraken, weekplafond, piekweek ≥ 85%, groei ≤ 25%,
+  regels: beschikbaarheid, vaste afspraken, weekplafond, piekweek ≥ 85% (sinds 2026-10-26 in TSS tegen CTL × 7), groei ≤ 25%,
   herstelweek, niet onder recentLoad, blok- en workoutintensiteit, drempelblokken,
   boven FTP, korte herstelrit, rustdag als workout, taper zonder piek, sleutelsessies
   op rij, sleutelsessie vóór race, plus ongeldige datum. Drempels en de gekozen
@@ -22040,7 +23140,9 @@ anaeroob paars), terwijl de meeste leden hun workouts in Zwift rijden.
   2026-09-28:* ze volgen nu de Zwift-zones, zie de ronde "Intensiteit,
   trainingsvormen en titels".
 - Een rit zonder vermogensmeter in de maandkalender was grijs en is nu een
-  gestippeld blokje zonder vulling.
+  gestippeld blokje zonder vulling. *Bijgewerkt 2026-10-25:* met TSS uit hartslag
+  krijgt zo'n rit nu wel de kleur van zijn zone; alleen een rit zonder vermogen
+  én hartslag blijft ongevuld.
 - Dode `_components/workout-list.tsx` verwijderd (werd nergens geïmporteerd).
 
 **Bewust niet gebouwd.** De nalevingspillen (te licht oranje, te zwaar rood) zijn
@@ -22607,6 +23709,7 @@ aanwijzing, geen grens.
   in de lijst en in het detailpaneel van de maandweergave
   (`setWorkoutDuration()`). De training krijgt daarna origin `member`, zodat een
   herziening hem niet terugzet; hij toont dan het label *Eigen rit*.
+  Sinds 2026-10-24 schuift de duur in de titel mee (`retitleForDuration()`).
 - `Verwijder` staat nu ook in het detailpaneel van de maandweergave, de
   standaardweergave van het schema.
 

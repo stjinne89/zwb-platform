@@ -45,6 +45,9 @@
   --color-zwb-teal: var(--zwb-teal);
   --color-zwb-sage: var(--zwb-sage);
   --color-zwb-gold: var(--zwb-gold);
+  /* Nalevingsbalken: gereden tot het plan, en wat erboven kwam. */
+  --color-zwb-meter: var(--zwb-meter);
+  --color-zwb-meter-over: var(--zwb-meter-over);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -63,6 +66,8 @@
   --zwb-teal: #1f6068;
   --zwb-sage: #7f9590;
   --zwb-gold: #b8873d;
+  --zwb-meter: var(--zwb-teal);
+  --zwb-meter-over: var(--zwb-gold);
 
   /* ZWBlokken-kaart. Als losse RGB-tripletten omdat een canvas geen CSS
      variabelen kent: de laag leest ze uit en bouwt er zelf rgba() mee.
@@ -121,6 +126,9 @@
   --zwblok-own: 214 172 96;
   /* Op donker haalt het kaartgoud zelf 7:1, dus geen aparte tekstkleur nodig. */
   --zwblok-own-text: 214 172 96;
+  /* Teal verdwijnt op de nachtpetrol; de balken nemen de lichtere tinten. */
+  --zwb-meter: rgb(60 130 140);
+  --zwb-meter-over: rgb(214 172 96);
 
   --background: oklch(0.16 0.025 220);              /* deep petrol */
   --foreground: oklch(0.97 0.005 80);

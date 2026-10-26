@@ -37,6 +37,7 @@ import {
   blocksFromForm,
   normalizeWorkoutBlocks,
   resizeBlocks,
+  retitleForDuration,
   WORKOUT_INTENSITIES,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
@@ -1515,7 +1516,7 @@ export async function setWorkoutDuration(formData: FormData) {
     const { data: workout } = await admin
       .from("training_workouts")
       .select(
-        "id, profile_id, origin, status, superseded_at, test_type, intensity, structure_json, intervals_event_id",
+        "id, profile_id, title, origin, status, superseded_at, test_type, intensity, structure_json, intervals_event_id",
       )
       .eq("id", workoutId)
       .maybeSingle();
@@ -1534,6 +1535,7 @@ export async function setWorkoutDuration(formData: FormData) {
     const { error } = await admin
       .from("training_workouts")
       .update({
+        title: retitleForDuration(String(workout.title ?? ""), minutes),
         duration_minutes: minutes,
         structure_json: blocks,
         origin: "member",

@@ -18,7 +18,7 @@ import { isKeyDay, totalMinutes, type FuelDayType } from "./day-type";
 import type { DietTag, FuelProfile } from "./labels";
 import { matchesDiet, portionForRider, type Recipe, type Rider } from "./recipes";
 import { SCALE_MAX, macrosFor, roundGrams, type IngredientRole, type ScaledRecipe } from "./scale";
-import { MEAL_MOMENTS, mealTarget, type MealMoment } from "./targets";
+import { MEAL_MOMENTS, RECOVERY_RIDE_MINUTES, mealTarget, type MealMoment } from "./targets";
 import { EVENING_START_HOUR, type NutritionDay, type NutritionDayInput } from "./tips";
 import { portionTraits, type PortionTraits } from "./traits";
 
@@ -31,8 +31,6 @@ export const DAY_MOMENTS: MealMoment[] = ["ontbijt", "lunch", "tussendoor", "din
 export const RIDE_MOMENTS: MealMoment[] = ["voor_rit", "tijdens_rit", "na_rit"];
 
 const MAIN_MEALS = new Set<MealMoment>(["ontbijt", "lunch", "diner"]);
-/** Vanaf deze ritduur hoort er een herstelmoment bij (zelfde grens als de tip). */
-const RECOVERY_RIDE_MINUTES = 60;
 
 /** Welke momenten vandaag in het menu staan. */
 export function menuMoments(input: NutritionDayInput, day: NutritionDay): MealMoment[] {
@@ -94,6 +92,8 @@ export function portionFit(recipe: Recipe, portion: ScaledRecipe, rider: Rider |
     weightKg: rider.weightKg,
     dayType: rider.dayType,
     rideMinutes: rider.rideMinutes,
+    rideIntensity: rider.rideIntensity,
+    rideGut: rider.rideGut,
   });
   const parts: number[] = [];
   if (target.carbsG) {
@@ -282,6 +282,8 @@ export type TopUpInput = {
   /** De ondergrens van de dag; null zonder gewicht. */
   floor: { carbsG: number | null; proteinG: number | null };
   energyFactor: number;
+  /** Ritduur in uren: een portie "Tijdens de rit" is één uur op de fiets. */
+  rideHours?: number;
 };
 
 /**
@@ -296,10 +298,11 @@ export type TopUpInput = {
 export function topUpMenu(slots: MenuSlot[], input: TopUpInput): MenuSlot[] {
   const open = slots.filter((slot) => TOP_UP_MOMENTS.has(slot.moment) && !input.eatenMoments.has(slot.moment));
   if (open.length === 0) return slots;
+  const portions = (slot: MenuSlot) => (slot.moment === "tijdens_rit" ? Math.max(1, input.rideHours ?? 1) : 1);
   const planned = (key: "carbsG" | "proteinG") =>
     slots
       .filter((slot) => !input.eatenMoments.has(slot.moment))
-      .reduce((total, slot) => total + slot.portion.perPortion[key], 0);
+      .reduce((total, slot) => total + slot.portion.perPortion[key] * portions(slot), 0);
   const short = (key: "carbsG" | "proteinG") => {
     const floor = input.floor[key];
     return floor == null ? 0 : Math.max(0, floor - input.eaten[key] - planned(key));

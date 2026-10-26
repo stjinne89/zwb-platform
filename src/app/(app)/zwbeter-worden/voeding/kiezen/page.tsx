@@ -75,6 +75,8 @@ export default async function KiezenPage({ searchParams }: { searchParams: Promi
       energyFactor: energyFactorFor(profile),
       dayType: nutrition.dayType,
       rideMinutes: nutrition.rideMinutes,
+      rideIntensity: nutrition.rideIntensity,
+      rideGut: nutrition.rideGut,
     },
     dayType: nutrition.dayType,
     tomorrowType: nutrition.tomorrowType,

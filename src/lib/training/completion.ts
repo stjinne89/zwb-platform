@@ -41,6 +41,7 @@ import {
 } from "@/lib/training/workouts";
 import { amsterdamDayKey, computeZwbStatus } from "@/lib/training/zwbeterworden";
 import { loadFtpAt, type FtpAt } from "@/lib/training/ftp-history";
+import { loadHrBasis, type HrBasis } from "@/lib/training/hr-load";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -61,7 +62,7 @@ export type WorkoutMetricsSnapshot = {
   maxHr: number | null;
   averageCadence: number | null;
   movingMinutes: number | null;
-  /** Zonder vermogensmeter blijven TSS en IF leeg; dit legt uit waarom. */
+  /** Zonder vermogensmeter blijft IF leeg en komt de TSS uit hartslag. */
   hasPowerMeter: boolean;
   plannedMinutes: number | null;
   plannedLoad: number | null;
@@ -147,6 +148,7 @@ export function buildMetricsSnapshot({
   workout,
   ride,
   ftpWatts,
+  hr = null,
   weightKg = null,
   ctl,
   readiness,
@@ -154,6 +156,8 @@ export function buildMetricsSnapshot({
   workout: PlannedWorkoutRow;
   ride: StravaRideRow | null;
   ftpWatts: number | null;
+  /** Voor de TSS uit hartslag van een rit zonder vermogensmeter. */
+  hr?: HrBasis | null;
   weightKg?: number | null;
   ctl: { before: number | null; after: number | null };
   readiness: { score: number | null; level: number | null; title: string | null };
@@ -164,7 +168,7 @@ export function buildMetricsSnapshot({
   );
   const plannedLoad = blocks.length > 0 ? estimateTrainingLoad(blocks, ftpWatts) : null;
   const metrics: RideMetrics = ride
-    ? rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, ftpWatts)
+    ? rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, ftpWatts, hr)
     : EMPTY_RIDE_METRICS;
   const loadPct = loadPercentage(metrics.tss, plannedLoad);
 
@@ -351,6 +355,7 @@ export async function releaseDeletedRides(
 type SnapshotContext = {
   /** FTP op de dag van de training (0175): gepland en gereden met dezelfde FTP. */
   ftpAt: FtpAt;
+  hr: HrBasis | null;
   weightKg: number | null;
   wellness: IntervalsWellness[];
   readiness: { score: number | null; level: number | null; title: string | null };
@@ -381,8 +386,13 @@ async function loadSnapshotContext(admin: Admin, profileId: string): Promise<Sna
     wellnessDevice: (profile?.wellness_device ?? null) as WellnessDevice | null,
   });
   const currentFtp = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);
+  const [ftpAt, hr] = await Promise.all([
+    loadFtpAt(admin, profileId, currentFtp),
+    loadHrBasis(admin, profileId),
+  ]);
   return {
-    ftpAt: await loadFtpAt(admin, profileId, currentFtp),
+    ftpAt,
+    hr,
     weightKg: profile?.weight_kg == null ? null : Number(profile.weight_kg),
     wellness,
     readiness: {
@@ -465,7 +475,7 @@ export async function detectCompletedWorkouts(
   }
   if (rides.length === 0) return empty;
 
-  const { ftpAt, weightKg, wellness, readiness } = await loadSnapshotContext(admin, profileId);
+  const { ftpAt, hr, weightKg, wellness, readiness } = await loadSnapshotContext(admin, profileId);
 
   // Ook koppelingen van workouts buiten het venster: een rit die het lid aan de
   // training van een eerdere dag heeft gehangen, mag de training van de ritdag
@@ -506,6 +516,7 @@ export async function detectCompletedWorkouts(
       workout,
       ride: match,
       ftpWatts: ftpAt(dayKey),
+      hr,
       weightKg,
       ctl: ctlAround(wellness, dayKey),
       readiness,
@@ -778,6 +789,7 @@ async function rebuildSnapshot(
         profileId,
         profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
       ),
+      hr: await loadHrBasis(admin, profileId),
       // Het gewicht van de oorspronkelijke momentopname gaat voor: het is dezelfde rit.
       weightKg:
         previous.weightKg ?? (profile?.weight_kg == null ? null : Number(profile.weight_kg)),
@@ -797,6 +809,7 @@ async function rebuildSnapshot(
       workout,
       ride,
       ftpWatts: context.ftpAt(rideDayKey),
+      hr: context.hr,
       weightKg: context.weightKg,
       ctl: previous.plannedTitle
         ? { before: previous.ctlBefore ?? null, after: previous.ctlAfter ?? null }

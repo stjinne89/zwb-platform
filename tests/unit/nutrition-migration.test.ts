@@ -6,7 +6,7 @@ import { portionFit, rankRecipes } from "@/lib/nutrition/menu";
 import type { Recipe } from "@/lib/nutrition/recipes";
 import { MEAL_MOMENTS } from "@/lib/nutrition/targets";
 
-// 0168, 0169, 0213, 0214, 0259, 0261 en 0264 tegen een geïsoleerde PostgreSQL. Zegt niets over de
+// 0168, 0169, 0213, 0214, 0259, 0261, 0264, 0272 en 0273 tegen een geïsoleerde PostgreSQL. Zegt niets over de
 // productiedatabase zelf; daar worden migraties met de hand toegepast.
 
 let db: PGlite;
@@ -38,6 +38,8 @@ beforeAll(async () => {
   await db.exec(await migration("0259_nutrition_household.sql"));
   await db.exec(await migration("0261_nutrition_menu_choices.sql"));
   await db.exec(await migration("0264_nutrition_recipe_sharing.sql"));
+  await db.exec(await migration("0272_nutrition_ride_carbs_120.sql"));
+  await db.exec(await migration("0273_nutrition_sweat_tests.sql"));
   await db.exec(
     "grant usage on schema public to authenticated; grant all on all tables in schema public to authenticated;",
   );
@@ -507,5 +509,49 @@ describe("recepten delen met alle leden (0264)", () => {
     ).toBe(1);
     expect(await sees(APPROVED, "link-club-recept")).toBe(1);
     await db.query("delete from nutrition_recipes where id = $1", [id]);
+  });
+});
+
+describe("onderweg tot 120 g per uur (0272)", () => {
+  it("staat standaard uit en alleen het lid zelf zet hem aan", async () => {
+    await as(APPROVED, () =>
+      db.query("insert into nutrition_profiles(profile_id) values($1) on conflict (profile_id) do nothing", [APPROVED]),
+    );
+    expect(
+      await as(APPROVED, () => count("select count(*) from nutrition_profiles where profile_id = $1 and not ride_carbs_120", [APPROVED])),
+    ).toBe(1);
+    await as(APPROVED, () => db.query("update nutrition_profiles set ride_carbs_120 = true where profile_id = $1", [APPROVED]));
+    // Een ander lid ziet de rij niet en kan hem dus ook niet terugzetten.
+    await as(OTHER, () => db.query("update nutrition_profiles set ride_carbs_120 = false where profile_id = $1", [APPROVED]));
+    expect(await count("select count(*) from nutrition_profiles where profile_id = $1 and ride_carbs_120", [APPROVED])).toBe(1);
+  });
+});
+
+describe("zweettests (0273)", () => {
+  const insert = (owner: string, mlPerHour: number, minutes = 60) =>
+    db.query(
+      "insert into nutrition_sweat_tests(profile_id, tested_on, duration_minutes, sweat_ml_per_hour, setting, consent_version) values($1, '2026-10-20', $2, $3, 'binnen', '2026-10-25')",
+      [owner, minutes, mlPerHour],
+    );
+
+  it("laat het lid eigen tests opslaan, lezen en wissen", async () => {
+    await as(APPROVED, () => insert(APPROVED, 900));
+    expect(await as(APPROVED, () => count("select count(*) from nutrition_sweat_tests"))).toBe(1);
+    await as(APPROVED, () => db.query("delete from nutrition_sweat_tests where profile_id = $1", [APPROVED]));
+    expect(await count("select count(*) from nutrition_sweat_tests")).toBe(0);
+  });
+
+  it("toont een test niet aan een ander lid en laat niemand voor een ander opslaan", async () => {
+    await as(APPROVED, () => insert(APPROVED, 900));
+    expect(await as(OTHER, () => count("select count(*) from nutrition_sweat_tests"))).toBe(0);
+    await expect(as(OTHER, () => insert(APPROVED, 900))).rejects.toThrow();
+    await as(OTHER, () => db.query("delete from nutrition_sweat_tests"));
+    expect(await count("select count(*) from nutrition_sweat_tests")).toBe(1);
+    await db.query("delete from nutrition_sweat_tests");
+  });
+
+  it("weigert een onwaarschijnlijke of te korte test", async () => {
+    await expect(as(APPROVED, () => insert(APPROVED, 100))).rejects.toThrow();
+    await expect(as(APPROVED, () => insert(APPROVED, 900, 30))).rejects.toThrow();
   });
 });

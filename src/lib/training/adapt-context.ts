@@ -9,6 +9,7 @@ import {
 } from "@/lib/training/ride-metrics";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { loadFtpAt, type FtpAt } from "@/lib/training/ftp-history";
+import { loadHrBasis, type HrBasis } from "@/lib/training/hr-load";
 import { uniqueRides } from "@/lib/rides/unique-rides";
 
 /** Hoeveel dagen vóór gisteren een niet-gereden training nog meetelt als "net gemist". */
@@ -81,6 +82,8 @@ export function yesterdayContextFrom(input: {
   pairings: PairingRow[];
   /** Vaste FTP, of de FTP op de ritdag (0175). */
   ftpWatts: number | null | FtpAt;
+  /** Voor de TSS uit hartslag van een rit zonder vermogensmeter. */
+  hr?: HrBasis | null;
 }): YesterdayContext | null {
   const { yesterdayKey, ftpWatts } = input;
   const dayOf = (iso: string) => amsterdamDayKey(new Date(iso));
@@ -147,7 +150,7 @@ export function yesterdayContextFrom(input: {
     (planned ? input.pairings.find((row) => row.workout_id === planned.id) : undefined);
 
   const metrics = actual
-    ? rideMetricsFromStrava(actual.raw, actual.moving_time_seconds, ftpWatts)
+    ? rideMetricsFromStrava(actual.raw, actual.moving_time_seconds, ftpWatts, input.hr)
     : null;
 
   return {
@@ -175,13 +178,19 @@ export function todayRidesFrom(input: {
   todayKey: string;
   rides: StravaRideRow[];
   ftpWatts: number | null;
+  hr?: HrBasis | null;
 }): TodayRide[] {
   // Een rit die het lid twee keer opnam, telt één keer (lib/rides/unique-rides.ts).
   return uniqueRides(input.rides)
     .filter((ride) => amsterdamDayKey(new Date(ride.start_date)) === input.todayKey)
     .sort((a, b) => (b.moving_time_seconds ?? 0) - (a.moving_time_seconds ?? 0))
     .map((ride) => {
-      const metrics = rideMetricsFromStrava(ride.raw, ride.moving_time_seconds, input.ftpWatts);
+      const metrics = rideMetricsFromStrava(
+        ride.raw,
+        ride.moving_time_seconds,
+        input.ftpWatts,
+        input.hr,
+      );
       return { name: ride.name, minutes: metrics.movingMinutes, load: metrics.tss };
     });
 }
@@ -199,7 +208,7 @@ export async function buildTodayRides(
   profileId: string,
 ): Promise<TodayRide[]> {
   const now = Date.now();
-  const [{ data: rides }, { data: profile }] = await Promise.all([
+  const [{ data: rides }, { data: profile }, hr] = await Promise.all([
     admin
       .from("strava_activities")
       .select(STRAVA_RIDE_COLUMNS)
@@ -207,11 +216,13 @@ export async function buildTodayRides(
       .gte("start_date", new Date(now - 26 * 3600_000).toISOString())
       .lte("start_date", new Date(now).toISOString()),
     admin.from("profiles").select("ftp_watts").eq("id", profileId).maybeSingle(),
+    loadHrBasis(admin, profileId),
   ]);
   return todayRidesFrom({
     todayKey: amsterdamDayKey(new Date(now)),
     rides: (rides ?? []) as StravaRideRow[],
     ftpWatts: profile?.ftp_watts == null ? null : Number(profile.ftp_watts),
+    hr,
   });
 }
 
@@ -293,5 +304,6 @@ export async function buildYesterdayContext(
     rides: rideRows,
     pairings: [...pairings.values()],
     ftpWatts: await loadFtpAt(admin, profileId, currentFtp),
+    hr: await loadHrBasis(admin, profileId),
   });
 }

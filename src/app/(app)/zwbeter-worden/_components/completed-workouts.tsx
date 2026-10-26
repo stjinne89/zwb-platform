@@ -239,7 +239,7 @@ export function CompletedWorkouts({
               <details className="rounded-md border bg-background/60 p-3">
                 <summary className="cursor-pointer text-sm font-medium">Alle cijfers</summary>
                 <div className="mt-3">
-                  <WorkoutMetricsPanel metrics={metrics} blocks={item.blocks} ftpWatts={ftpWatts} />
+                  <WorkoutMetricsPanel metrics={metrics} blocks={item.blocks} ftpWatts={ftpWatts} rpe={item.rpe} />
                 </div>
               </details>
             ) : null}

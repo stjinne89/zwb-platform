@@ -105,6 +105,18 @@ export async function loadProtocolProfile(
 }
 
 /** Mikpunten uit de jaarplanning in het komende jaar, als keuze voor een wedstrijdprotocol. */
+/** Een event als wedstrijd voor een protocol, als het nog moet komen. */
+export async function loadEventRaceOption(
+  viewer: Viewer,
+  eventId: string,
+  today: string,
+): Promise<{ date: string; title: string } | null> {
+  const { data } = await viewer.supabase.from("events").select("title, start_at").eq("id", eventId).maybeSingle();
+  if (!data) return null;
+  const date = new Date(String(data.start_at)).toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
+  return date >= today ? { date, title: String(data.title) } : null;
+}
+
 export async function loadRaceOptions(
   viewer: Viewer,
   today: string,

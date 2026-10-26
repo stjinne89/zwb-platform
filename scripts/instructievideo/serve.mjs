@@ -21,6 +21,8 @@ const env = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "demo-anon-key",
   SUPABASE_SERVICE_ROLE_KEY: "demo-service-role-key",
   NEXT_PUBLIC_SITE_URL: `http://localhost:${appPort}`,
+  // De nep-Supabase beantwoordt ook de vragen aan intervals.icu (powercurve).
+  INTERVALS_BASE_URL: `http://127.0.0.1:${mockPort}`,
   STRAVA_CLIENT_ID: "00000",
   NEXT_PUBLIC_VAPID_PUBLIC_KEY:
     "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U",

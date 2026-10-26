@@ -9,6 +9,7 @@ import {
 } from "@/lib/training/ride-metrics";
 import { toTrainingLoadPoints } from "@/lib/training/load-points";
 import { loadFtpAt } from "@/lib/training/ftp-history";
+import { loadHrBasis } from "@/lib/training/hr-load";
 import { ActivityLoadPanel } from "../_components/activity-load-panel";
 import { DataFreshness } from "../_components/data-freshness";
 import { TrainingLoadMetrics } from "../_components/training-load-chart";
@@ -35,7 +36,7 @@ export default async function ZwbeterWordenLoadPage() {
   since.setDate(since.getDate() - 120);
 
   const currentFtp = profile?.ftp_watts == null ? null : Number(profile.ftp_watts);
-  const [snapshot, { data: rideRows }, { data: lastStravaSync }, ftpAt] = await Promise.all([
+  const [snapshot, { data: rideRows }, { data: lastStravaSync }, ftpAt, hrBasis] = await Promise.all([
     loadIntervalsSnapshot(viewer, conn, { wellnessDays: 730 }),
     viewer.supabase
       .from("strava_activities")
@@ -52,14 +53,15 @@ export default async function ZwbeterWordenLoadPage() {
       .limit(1)
       .maybeSingle(),
     loadFtpAt(viewer.supabase, viewer.user.id, currentFtp),
+    loadHrBasis(viewer.supabase, viewer.user.id),
   ]);
   const subjective = await loadSubjectiveRecovery(viewer.supabase, viewer.user.id, {
     includeSymptoms: true,
   }).catch(() => null);
 
   // Belasting uit Strava, met TSS en IF uit NP en de FTP die op de ritdag gold —
-  // intervals.icu geeft voor Strava-ritten niets terug.
-  const activityLoad = rideLoadRows((rideRows ?? []) as StravaRideRow[], ftpAt);
+  // intervals.icu geeft voor Strava-ritten niets terug. Zonder meter: uit hartslag.
+  const activityLoad = rideLoadRows((rideRows ?? []) as StravaRideRow[], ftpAt, hrBasis);
   const loadPoints = toTrainingLoadPoints(snapshot.wellness);
   const zwbStatus = zwbStatusFor(snapshot.wellness, conn, profile, subjective);
   const lastWellnessDay = lastWellnessDayOf(snapshot.wellness);

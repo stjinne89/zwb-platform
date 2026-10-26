@@ -114,8 +114,39 @@ describe("training prompts", () => {
   it("maakt de wedstrijdspecifieke ZRL-prikkel expliciet", () => {
     const prompt = defaultTrainingPrompt();
     expect(prompt).toContain("goal.type 'zrl'");
-    expect(prompt).toContain("één VO2max-, anaerobe of raceprikkel");
+    expect(prompt).toContain("minstens één VO2max-, anaerobe of raceprikkel");
+    expect(prompt).toContain("niet als de hele kwaliteit van de week");
     expect(prompt).toContain("herstelweek of concrete vermoeidheidssignalen");
+  });
+
+  it("ziet beschikbaarheid als tijd en stuurt op belasting uit de CTL", () => {
+    const prompt = defaultTrainingPrompt();
+    // De oude lezing: maxHoursPerWeek als volume waar de opbouw naartoe werkt.
+    expect(prompt).not.toContain("Werk met de opbouwweken toe naar goal.maxHoursPerWeek");
+    expect(prompt).not.toContain("85%");
+    expect(prompt).toContain("het is geen doel");
+    expect(prompt).toContain("Stuur het schema op weekbelasting in TSS");
+    expect(prompt).toContain("Plan een opbouwweek nooit onder currentLoad.weeklyTss");
+    expect(prompt).toContain("verhoog dan de dichtheid");
+    expect(planUpdatePrompt()).toContain("het weektotaal volgt uit de weekbelasting");
+  });
+
+  it("valt terug op de CTL als ZWB ritten mist", () => {
+    expect(defaultTrainingPrompt()).toContain("recentLoad.loadCoverage laag terwijl intervalsLoad.ctl er wel is");
+  });
+
+  it("legt geen maximum op sleutelsessies en laat een race de rest niet vervangen", () => {
+    const prompt = defaultTrainingPrompt();
+    expect(prompt).toContain("Er is geen maximum aan het aantal sleutelsessies");
+    expect(prompt).toContain("maar vervangt de andere niet");
+  });
+
+  it("verdeelt volgens de kennisbank en plant binnen korter en dichter", () => {
+    const prompt = defaultTrainingPrompt();
+    expect(prompt).toContain("Verdeel de belasting volgens de kennisbank");
+    expect(prompt).toContain("Vul een week niet aan met lange rustige duurritten");
+    expect(prompt).toContain("indoorTssPerHour");
+    expect(prompt).toContain("goal.preferredMode 'indoor'");
   });
 
   it("plant een rustdag met een optionele rustige rit in plaats van een korte hersteltraining", () => {

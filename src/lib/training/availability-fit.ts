@@ -13,7 +13,12 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { loadAvailabilityRange, minutesForDate, shiftWeeks } from "@/lib/training/availability";
 import { pushWorkoutToIntervals, retireWorkoutRows } from "@/lib/training/publish";
-import { normalizeWorkoutBlocks, resizeBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
+import {
+  normalizeWorkoutBlocks,
+  resizeBlocks,
+  retitleForDuration,
+  type WorkoutIntensity,
+} from "@/lib/training/workouts";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -34,7 +39,7 @@ export async function fitScheduleToAvailability(
 
   const { data: rows } = await admin
     .from("training_workouts")
-    .select("id, scheduled_at, duration_minutes, intensity, structure_json, intervals_event_id")
+    .select("id, title, scheduled_at, duration_minutes, intensity, structure_json, intervals_event_id")
     .eq("profile_id", profileId)
     .eq("status", "planned")
     .is("superseded_at", null)
@@ -61,6 +66,7 @@ export async function fitScheduleToAvailability(
     const { error } = await admin
       .from("training_workouts")
       .update({
+        title: retitleForDuration(String(row.title ?? ""), limit),
         duration_minutes: limit,
         structure_json: blocks,
         publish_status: "pending",

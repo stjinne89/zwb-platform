@@ -144,10 +144,16 @@ const HELP_INDEX: HelpResult[] = [
     terms: "app installeren webapp telefoon beginscherm startscherm ios iphone ipad android chrome safari",
   },
   {
+    title: "Naleving van een training",
+    text: "Gepland tegenover gereden: duur, TSS, IF, zones en RPE.",
+    href: "/hulp/schema#naleving",
+    terms: "naleving volgens plan te licht te zwaar percentage tss if intensiteit duur rpe verwacht gepland gereden",
+  },
+  {
     title: "Tijd per zone",
     text: "Gemeten minuten per zone bij een gereden training.",
     href: "/hulp/schema#tijd-per-zone",
-    terms: "tijd per zone zones gereden gemeten minuten zonedata geen zonedata intervals garmin wahoo strava vermogen",
+    terms: "tijd per zone zones gereden gemeten minuten zonedata geen zonedata intervals garmin wahoo strava vermogen verdeling",
   },
   {
     title: "Watt, W/kg of % FTP",

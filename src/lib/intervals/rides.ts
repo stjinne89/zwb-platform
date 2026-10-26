@@ -336,6 +336,9 @@ export function intervalsActivityToRideRow(
     kilojoules: kilojoulesFromActivity(activity),
     average_heartrate: positive(activity.average_heartrate),
     max_heartrate: positive(activity.max_heartrate),
+    // De HRSS van intervals zelf; rideMetricsFromStrava neemt die over als TSS
+    // voor een rit zonder vermogensmeter.
+    hr_load: positive(activity.hr_load),
     average_cadence: positive(activity.average_cadence),
     map: { summary_polyline: opts.summaryPolyline ?? null },
   };

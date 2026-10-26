@@ -16,9 +16,11 @@
 import type { GeneratedWorkout, TrainingAiInput } from "@/lib/training/ai";
 import { minutesForDate, mondayKey, weekdayOf, WEEKDAY_SLUGS, type AvailabilityPlan } from "@/lib/training/availability";
 import { REBUILD_AFTER_REST_DAYS, daysBetween, shiftDays } from "@/lib/training/season";
+import { currentWeeklyLoad, loadForIntensity } from "@/lib/training/load-basis";
 import {
   alignBlockIntensity,
   alignWorkoutIntensities,
+  estimateTrainingLoad,
   intensityFromPct,
   normalizeWorkoutBlocks,
   OPTIONAL_REST_RIDE_MINUTES,
@@ -31,10 +33,10 @@ export const SCHEMA_RULES = {
   beschikbaarheid: { ernst: "fout", omschrijving: "Training op een dag zonder tijd, of langer dan de beschikbare minuten." },
   "vaste-afspraak": { ernst: "fout", omschrijving: "Training op een dag met een fixedWorkout." },
   weekplafond: { ernst: "fout", omschrijving: "Weekvolume boven goal.maxHoursPerWeek, buiten een kamp." },
-  piekweek: { ernst: "fout", omschrijving: "Piekweek van een opbouwblok onder 85% van het plafond, zonder vermoeidheidssignaal." },
-  opbouwgroei: { ernst: "waarschuwing", omschrijving: "Opbouwweek meer dan 25% boven de opbouwweek ervoor." },
+  piekweek: { ernst: "fout", omschrijving: "Zwaarste week van een opbouwblok niet duidelijk boven de huidige weekbelasting (currentLoad), zonder vermoeidheidssignaal." },
+  opbouwgroei: { ernst: "waarschuwing", omschrijving: "Opbouwweek met meer dan 25% meer belasting dan de opbouwweek ervoor." },
   herstelweek: { ernst: "waarschuwing", omschrijving: "Herstelweek niet op grofweg 60-70% van de week ervoor." },
-  "onder-recente-belasting": { ernst: "fout", omschrijving: "Opbouwweek onder recentLoad.hoursPerWeek, zonder vermoeidheidssignaal." },
+  "onder-recente-belasting": { ernst: "fout", omschrijving: "Opbouwweek onder de huidige weekbelasting (currentLoad; zonder die bron recentLoad.hoursPerWeek), zonder vermoeidheidssignaal." },
   blokintensiteit: { ernst: "fout", omschrijving: "Intensity van een blok valt niet in de zone van zijn doel." },
   workoutintensiteit: { ernst: "fout", omschrijving: "Intensity van de workout is niet die van het kernwerk." },
   "drempelblok-lang": { ernst: "fout", omschrijving: "Drempelblok van 15 minuten of langer boven 95% FTP." },
@@ -74,7 +76,19 @@ const PEAK_GOAL_TYPES = new Set(["outdoor_event", "gran_fondo"]);
 /** De prompt: een taper duurt één tot hooguit drie weken. */
 const TAPER_MAX_DAYS = 21;
 
-const PEAK_MIN_SHARE = 0.85;
+/**
+ * "Duidelijk boven" de huidige weekbelasting: tien procent erboven. Bij 10 %
+ * groei per week haalt een blok dat in zijn tweede opbouwweek.
+ */
+const PEAK_LOAD_SHARE = 1.1;
+/**
+ * De belasting hier is een blok-som; een gereden rit meet TSS met het
+ * genormaliseerd vermogen en komt zo'n 5 % hoger uit (estimateTrainingLoad).
+ * Die marge krijgt het schema mee.
+ */
+const LOAD_ESTIMATE_MARGIN = 0.95;
+/** Vult een week zijn beschikbare tijd al zo ver, dan begrenst de tijd en niet de planner. */
+const FULL_TIME_SHARE = 0.95;
 const MAX_WEEK_GROWTH = 1.25;
 /** "Grofweg 60-70%": vijf procentpunt marge aan beide kanten. */
 const RECOVERY_WEEK_BAND: [number, number] = [0.55, 0.75];
@@ -106,6 +120,8 @@ function isDayKey(value: unknown): value is string {
 type DayEntry = {
   date: string;
   minutes: number;
+  /** Geschatte TSS. */
+  load: number;
   intensity: string;
   source: "ai" | "vast" | "plan";
 };
@@ -113,6 +129,8 @@ type DayEntry = {
 type Week = {
   monday: string;
   minutes: number;
+  /** Geschatte TSS van de week, vaste afspraken inbegrepen. */
+  load: number;
   aiMinutes: number;
   complete: boolean;
   special: string | null;
@@ -160,6 +178,10 @@ function blockRange(block: WorkoutBlock, ftp: number | null): [number, number] |
 
 function hours(minutes: number) {
   return `${(minutes / 60).toFixed(1).replace(".", ",")} u`;
+}
+
+function tss(load: number) {
+  return `${Math.round(load)} TSS`;
 }
 
 function pct(share: number) {
@@ -232,7 +254,8 @@ export function checkTrainingPlan(
 
     const blocks = normalizeWorkoutBlocks(workout.structure, workout.intensity);
     const aligned = alignWorkoutIntensities(workout.intensity, blocks, ftp);
-    entries.push({ date: workout.date, minutes, intensity: aligned.intensity, source: "ai" });
+    const load = blocks.length > 0 ? estimateTrainingLoad(blocks, ftp) : loadForIntensity(minutes, aligned.intensity);
+    entries.push({ date: workout.date, minutes, load, intensity: aligned.intensity, source: "ai" });
 
     if (fixedDates.has(workout.date)) {
       add("vaste-afspraak", workout.date, "Op deze dag ligt al een vaste afspraak.");
@@ -323,7 +346,8 @@ export function checkTrainingPlan(
   }
 
   for (const workout of fixed) {
-    entries.push({ date: workout.date, minutes: Number(workout.durationMinutes) || 0, intensity: workout.intensity, source: "vast" });
+    const minutes = Number(workout.durationMinutes) || 0;
+    entries.push({ date: workout.date, minutes, load: loadForIntensity(minutes, workout.intensity), intensity: workout.intensity, source: "vast" });
   }
   // Een dag-aanpassing geeft alleen de gewijzigde dagen terug; de rest van de
   // week staat in currentPlan. Vaste afspraken staan daar soms ook in.
@@ -332,7 +356,8 @@ export function checkTrainingPlan(
     for (const workout of input.currentPlan?.workouts ?? []) {
       if (!isDayKey(workout.date)) continue;
       if (aiDates.has(workout.date) || fixedKeys.has(`${workout.date}|${workout.title}`)) continue;
-      entries.push({ date: workout.date, minutes: Number(workout.durationMinutes) || 0, intensity: workout.intensity, source: "plan" });
+      const minutes = Number(workout.durationMinutes) || 0;
+      entries.push({ date: workout.date, minutes, load: loadForIntensity(minutes, workout.intensity), intensity: workout.intensity, source: "plan" });
     }
   }
 
@@ -387,6 +412,7 @@ export function checkTrainingPlan(
     weeks.push({
       monday,
       minutes: inWeek.reduce((sum, entry) => sum + entry.minutes, 0),
+      load: inWeek.reduce((sum, entry) => sum + entry.load, 0),
       aiMinutes: inWeek.filter((entry) => entry.source === "ai").reduce((sum, entry) => sum + entry.minutes, 0),
       complete: monday >= from && sunday <= to,
       special: kinds.includes("kamp") ? "kamp" : kinds.includes("rust") ? "rust" : kinds.includes("rustig") ? "rustig" : taper ? "taper" : null,
@@ -444,10 +470,16 @@ export function checkTrainingPlan(
     else kinds.push("opbouw");
   });
 
+  // Wat het lid nu aankan, in TSS per week. Zonder die bron (geen CTL, geen
+  // ritten met TSS) blijft alleen de oude ondergrens in uren over, en geen
+  // oordeel over de piek: het urenplafond is beschikbare tijd, geen doel.
+  const current = currentWeeklyLoad(input);
   const recentMinutes = input.recentLoad?.hoursPerWeek ? input.recentLoad.hoursPerWeek * 60 : null;
+  const timeFull = (week: Week) => week.capMinutes != null && week.minutes >= week.capMinutes * FULL_TIME_SHARE;
+  const loadSource = current?.source === "ctl" ? "CTL × 7" : "gereden";
   let lastBuild: Week | null = null;
   let block: Week[] = [];
-  /** Het volume vóór de eerste week van het blok: daarvandaan mag het per week een kwart groeien. */
+  /** De belasting vóór de eerste week van het blok: daarvandaan mag het per week een kwart groeien. */
   let blockStart: number | null = null;
   // Bij een bijwerking kan het eerste blok al vóór fromDate zijn begonnen; zijn
   // piek ligt dan mogelijk buiten beeld.
@@ -456,22 +488,19 @@ export function checkTrainingPlan(
   // einde van een blok: loopt het laatste blok daar nog, dan kan zijn piek erna
   // liggen.
   const closeBlock = (atWindowEnd = false) => {
-    if (block.length > 0 && !fatigue && !startedBefore(block[0]) && !(atWindowEnd && flow === "bijwerking")) {
-      const peak = block.reduce((best, week) => (week.minutes > best.minutes ? week : best));
+    if (current && block.length > 0 && !fatigue && !startedBefore(block[0]) && !(atWindowEnd && flow === "bijwerking")) {
+      const peak = block.reduce((best, week) => (week.load > best.load ? week : best));
       // De groeigrens gaat vóór de piekweek (besluit eigenaar, 2026-10-17): is
-      // 85 % niet te halen zonder sprongen van meer dan een kwart, dan is een
+      // de piek niet te halen zonder sprongen van meer dan een kwart, dan is een
       // lagere piek geen fout.
       const reachable =
-        blockStart != null && blockStart > 0
-          ? blockStart * MAX_WEEK_GROWTH ** (block.indexOf(peak) + 1)
-          : Infinity;
-      // Vijf procent marge op dat bereik: per week afronden kost een paar minuten.
-      const needed = peak.capMinutes != null ? Math.min(peak.capMinutes * PEAK_MIN_SHARE, reachable * 0.95) : null;
-      if (peak.capMinutes != null && needed != null && peak.minutes < needed - 1) {
+        blockStart != null && blockStart > 0 ? blockStart * MAX_WEEK_GROWTH ** (block.indexOf(peak) + 1) : Infinity;
+      const needed = Math.min(current.weeklyTss * PEAK_LOAD_SHARE, reachable) * LOAD_ESTIMATE_MARGIN;
+      if (peak.load < needed - 1 && !timeFull(peak)) {
         add(
           "piekweek",
           peak.monday,
-          `Piekweek ${hours(peak.minutes)} is ${Math.floor((peak.minutes / peak.capMinutes) * 100)}% van het plafond ${hours(peak.capMinutes)}.`,
+          `Zwaarste week ${tss(peak.load)}, lid kan nu ${tss(current.weeklyTss)} per week (${loadSource}).`,
         );
       }
     }
@@ -505,22 +534,32 @@ export function checkTrainingPlan(
     // De eerste week van een bijwerking kan een geplande herstelweek zijn na
     // opbouwweken die buiten beeld liggen.
     const unknownBefore = flow === "bijwerking" && !prev && lastBuild == null;
-    if (reference && reference.minutes > 0 && !week.rebuild && !week.beforeTaper && week.minutes > reference.minutes * MAX_WEEK_GROWTH) {
-      add("opbouwgroei", week.monday, `${pct(week.minutes / reference.minutes - 1)} groei ten opzichte van ${reference.monday}.`);
+    if (reference && reference.load > 0 && !week.rebuild && !week.beforeTaper && week.load > reference.load * MAX_WEEK_GROWTH) {
+      add("opbouwgroei", week.monday, `${pct(week.load / reference.load - 1)} meer belasting dan ${reference.monday}.`);
     }
-    if (recentMinutes != null && !fatigue && !week.rebuild && !unknownBefore) {
-      const floor = Math.min(recentMinutes, week.capMinutes ?? Infinity);
-      if (week.minutes < floor) {
-        add(
-          "onder-recente-belasting",
-          week.monday,
-          floor < recentMinutes
-            ? `${hours(week.minutes)} gepland, onder het plafond ${hours(floor)}; lid rijdt nu ${hours(recentMinutes)} per week.`
-            : `${hours(week.minutes)} gepland, lid rijdt nu ${hours(recentMinutes)} per week.`,
-        );
+    if (!fatigue && !week.rebuild && !unknownBefore) {
+      if (current) {
+        if (week.load < current.weeklyTss * LOAD_ESTIMATE_MARGIN && !timeFull(week)) {
+          add(
+            "onder-recente-belasting",
+            week.monday,
+            `${tss(week.load)} gepland, lid kan nu ${tss(current.weeklyTss)} per week (${loadSource}).`,
+          );
+        }
+      } else if (recentMinutes != null) {
+        const floor = Math.min(recentMinutes, week.capMinutes ?? Infinity);
+        if (week.minutes < floor) {
+          add(
+            "onder-recente-belasting",
+            week.monday,
+            floor < recentMinutes
+              ? `${hours(week.minutes)} gepland, onder het plafond ${hours(floor)}; lid rijdt nu ${hours(recentMinutes)} per week.`
+              : `${hours(week.minutes)} gepland, lid rijdt nu ${hours(recentMinutes)} per week.`,
+          );
+        }
       }
     }
-    if (block.length === 0) blockStart = reference?.minutes ?? recentMinutes;
+    if (block.length === 0) blockStart = reference?.load ?? current?.weeklyTss ?? null;
     block.push(week);
     lastBuild = week;
   });

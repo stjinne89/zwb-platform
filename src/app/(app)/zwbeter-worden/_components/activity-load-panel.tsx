@@ -78,7 +78,9 @@ export function ActivityLoadPanel({
 }) {
   const [active, setActive] = useState<number | null>(null);
   const maxLoad = Math.max(...weeks.map((week) => week.load), 1);
-  const withoutPower = recent.filter((row) => !row.hasPowerMeter).length;
+  const withoutPower = recent.filter(
+    (row) => !row.hasPowerMeter && row.training_load == null,
+  ).length;
   const labelTicks = new Set(tickIndices(weeks.length, 4));
   const activeWeek = active == null ? null : weeks[active] ?? null;
 

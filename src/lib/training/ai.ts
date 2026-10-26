@@ -4,6 +4,7 @@ import type { ComplianceContext } from "@/lib/training/compliance";
 import type { PreferenceForAi } from "@/lib/training/preferences";
 import { PLAN_BLOCK_DAYS } from "@/lib/training/season";
 import type { GoalTargetForAi } from "@/lib/training/goal-forecast";
+import type { CurrentLoad } from "@/lib/training/load-basis";
 
 export type GeneratedWorkout = {
   date: string;
@@ -112,7 +113,23 @@ export type TrainingAiInput = {
     ridesPerWeek: number;
     avgDurationMinutes: number;
     longestRideMinutes: number;
+    /**
+     * De belasting erbij (oktober 2026). Met alleen uren plande het model een
+     * winter vol lange duurritten op 45 TSS per uur voor leden die binnen 60-80
+     * rijden: meer uren, minder belasting. Optioneel: oudere invoer mist ze.
+     */
+    tssPerWeek?: number | null;
+    loadCoverage?: number;
+    indoorHoursPerWeek?: number;
+    indoorTssPerHour?: number | null;
+    outdoorTssPerHour?: number | null;
   };
+  /**
+   * Wat het lid nu aankan, in TSS per week: het hoogste van CTL × 7 en de
+   * gereden belasting. Voorgerekend met currentWeeklyLoad(), zodat de planner
+   * niet zelf kiest welke bron telt. Zie docs/schema-belasting-2026-10-26.md.
+   */
+  currentLoad?: CurrentLoad | null;
   /** Herstel-trend uit intervals.icu (alleen als het lid wellness deelt). */
   wellness?: {
     days: number;

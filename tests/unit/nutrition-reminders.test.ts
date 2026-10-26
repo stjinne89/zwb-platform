@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nutritionReminderDue, remindersFor } from "@/lib/nutrition/reminders";
+import { nutritionReminderDue, remindersFor, tomorrowRidePlan } from "@/lib/nutrition/reminders";
 
 describe("voedingsherinneringen, wanneer", () => {
   it("verstuurt tussen 19:00 en 21:00 Nederlandse tijd", () => {
@@ -36,5 +36,86 @@ describe("voedingsherinneringen, welke", () => {
     for (const reminder of all) {
       expect(`${reminder.title} ${reminder.body}`).not.toMatch(/minder|te veel|calorie|afval|gewicht/i);
     }
+  });
+
+  it("zet erbij wat je voor de rit van morgen klaarzet", () => {
+    const tomorrowRide = {
+      minutes: 120,
+      perHourG: 45,
+      totalG: 90,
+      bidons: { recipe: { slug: "sportdrank", title: "Zelfgemaakte sportdrank" }, count: 2, carbsG: 45, ingredients: [] },
+      waterBidons: 0,
+      fluid: null,
+      solid: null,
+      feeds: [],
+    };
+    const [reminder] = remindersFor({ tomorrowType: "zwaar", rodeMinutesToday: 0, recoveryLogged: false, tomorrowRide });
+    expect(reminder.body).toContain("Zet klaar: 2× bidon Zelfgemaakte sportdrank.");
+    expect(reminder.body).not.toMatch(/minder|te veel|calorie|afval|gewicht/i);
+    // Zonder rit van een uur of langer blijft het bericht zoals het was.
+    expect(remindersFor({ tomorrowType: "zwaar", rodeMinutesToday: 0, recoveryLogged: false })[0].body).not.toContain("Zet klaar");
+  });
+});
+
+describe("voedingsherinneringen, het ritplan van morgen", () => {
+  const food = (id: string, carbs: number, group: string) => ({
+    id,
+    nevo_code: 1,
+    name_nl: id,
+    kcal: null,
+    carbs_g: carbs,
+    sugars_g: null,
+    protein_g: 0,
+    fat_g: 0,
+    fiber_g: 0,
+    sodium_mg: 0,
+    food_group: group,
+    quantity_unit: "g" as const,
+  });
+  const recipe = (slug: string, owner: string | null, visibility: "prive" | "leden", drink: boolean) => ({
+    id: slug,
+    slug,
+    title: slug,
+    meal_moment: "tijdens_rit" as const,
+    fuel_profile: "hoog_kh" as const,
+    diet_tags: [],
+    servings: 1,
+    prep_minutes: 5,
+    steps_md: "",
+    is_standard: owner == null,
+    owner_id: owner,
+    visibility,
+    source_name: null,
+    source_url: null,
+    share_status: null,
+    contributor: null,
+    ingredients: [
+      {
+        id: `${slug}-0`,
+        sort_order: 0,
+        grams: 60,
+        role: "kh_bron" as const,
+        food: food(`${slug}-kh`, 100, drink ? "Niet-alcoholische dranken" : "Graanproducten en meelsoorten"),
+      },
+    ],
+  });
+  const ctx = (choice?: string) => ({
+    recipes: [recipe("club", null, "prive", true), recipe("prive-van-ander", "ander", "prive", true), recipe("eigen", "lid", "prive", true)],
+    prefs: [],
+    choices: choice ? [{ profile_id: "lid", recipe_id: choice }] : [],
+    profiles: new Map(),
+    heights: new Map(),
+    gutRuns: [],
+    gutHigh: new Set<string>(),
+    sweatTests: [],
+  });
+
+  it("kiest nooit een privérecept van een ander lid, wel het eigen recept als het lid dat koos", () => {
+    const auto = tomorrowRidePlan(ctx(), "lid", 120, "2026-10-26", "2026-10-25")!;
+    expect(auto.bidons.recipe?.slug).not.toBe("prive-van-ander");
+    const own = tomorrowRidePlan(ctx("eigen"), "lid", 120, "2026-10-26", "2026-10-25")!;
+    expect(own.bidons.recipe?.slug).toBe("eigen");
+    const sneaky = tomorrowRidePlan(ctx("prive-van-ander"), "lid", 120, "2026-10-26", "2026-10-25")!;
+    expect(sneaky.bidons.recipe?.slug).not.toBe("prive-van-ander");
   });
 });

@@ -254,6 +254,18 @@ export default function PrivacyPage() {
             Je kunt een protocol altijd stoppen; de gegevens verdwijnen als je
             je account opheft.
           </li>
+          <li id="zweettest" className="scroll-mt-20">
+            <strong>Zweettest (alleen met opt-in):</strong> vul je een
+            zweettest in, dan teken je daar bij de eerste test apart voor. Je
+            geeft je gewicht voor en na de rit, hoe lang je reed en hoeveel je
+            dronk; de app rekent daaruit je zweetverlies per uur. We bewaren per
+            test alleen de datum, de duur, binnen of buiten, of het warm was en
+            dat zweetverlies per uur. Je gewicht van voor en na bewaren we niet.
+            Het ritplan rekent met je laatste test hoeveel je per uur drinkt en
+            hoeveel bidons je meeneemt. Alleen jij ziet je tests; je trainer,
+            het bestuur en andere leden niet, en ze gaan niet naar OpenAI. Je
+            kunt elke test wissen, en ze staan in je data-export.
+          </li>
           <li id="zwbieb" className="scroll-mt-20">
             <strong>ZWBieb, eerst &ldquo;Wie weet wat&rdquo; (alleen met
             opt-in):</strong> doe je mee of stel je een vraag, dan teken je daar
@@ -306,7 +318,13 @@ export default function PrivacyPage() {
             slaap en readiness. Deze worden alléén gesynchroniseerd als je daar
             expliciet toestemming voor geeft, en zijn alleen voor jou (en een door
             jou aangewezen trainer) zichtbaar. Zet je de opt-in uit of ontkoppel
-            je intervals.icu, dan verwijderen we deze gegevens.
+            je intervals.icu, dan verwijderen we deze gegevens. Je rusthartslag
+            gebruiken we ook om de belasting (TSS) te berekenen van een rit zonder
+            vermogensmeter, samen met je drempel- en maximale hartslag uit je
+            intervals.icu-instellingen. Die TSS zien jij en je trainer, hij gaat
+            mee naar de AI-coach en staat in de samenvatting op Strava. Je
+            rusthartslag zelf blijft afgeschermd. Zonder opt-in rekenen we met een
+            vaste rusthartslag.
           </li>
           <li>
             <strong>Locatiegegevens tijdens live tracking:</strong> als je een
@@ -366,7 +384,9 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Activiteiten- en koppelingsgegevens:</strong> Strava-ritten en
-            intervals.icu-trainingsdata, gekoppeld via jouw toestemming. Geef je
+            intervals.icu-trainingsdata, gekoppeld via jouw toestemming. Uit je
+            intervals.icu-instellingen bewaren we je FTP, CP, W&apos;, zones en je
+            drempel- en maximale hartslag. Geef je
             een trainer toegang, dan ziet die je trainingsbelasting (CTL, form),
             je eFTP en je powercurve, ook in W/kg; daarvoor bewaren we bij een
             afgeronde training je gewicht van dat moment. Van een gereden training
@@ -426,9 +446,11 @@ export default function PrivacyPage() {
             <strong>Weekoverzicht:</strong> op zondagavond zie je een terugblik
             op je week. We bewaren per week een samenvatting van je ritten,
             schema, belasting, vermogen, teamuitslagen, voedings- en
-            corelogboek en clubritten, en of je het overzicht hebt gezien.
-            Alleen jij kunt het lezen. Gebruik je ZWBeter voor je training, dan
-            gaat die samenvatting zonder je naam naar OpenAI om het oordeel van
+            corelogboek en clubritten, je ZWBriljant-steen (klasse, punten en
+            het onderdeel waar je het meest wint, uit je bewaarde weeksteen), en of je het
+            overzicht hebt gezien. Alleen jij kunt het lezen, ook als je je
+            steen niet met leden deelt. Gebruik je ZWBeter voor je training, dan
+            gaat die samenvatting zonder je naam en zonder je steen naar OpenAI om het oordeel van
             de coach te schrijven, samen met je beschikbaarheid, trainingen en
             events van de week erna. Het staat in je data-export en verdwijnt
             als je je account opheft.
@@ -480,11 +502,15 @@ export default function PrivacyPage() {
             <strong>Terugschrijven naar Strava:</strong> koppel je Strava met het
             recht om je activiteiten te wijzigen, dan zet ZWB na een rit een
             samenvatting onderaan de omschrijving van die rit. Daarin staan je
-            geplande en gedetecteerde trainingstype, de duur, het verschil tussen
-            geplande en werkelijke belasting (TSS), je CTL, je gereedscore en je
-            fitness-richting. Wie jouw Strava-activiteit kan zien, kan die
+            geplande en gedetecteerde trainingstype, de duur, de belasting (TSS)
+            en het verschil met het plan, je gereedscore, je fitness-richting en
+            een tip die uit die gegevens volgt. Deel je je ZWBriljant-steen met
+            leden, dan staan ook je klasse, je punten en de punten tot de
+            volgende klasse erin, en soms het onderdeel waar je het meest wint; deel je hem niet,
+            dan staat er je CTL. Wie jouw Strava-activiteit kan zien, kan die
             samenvatting dus ook zien. Je onderliggende hersteldata (slaap, HRV,
-            hartslag) komt er nooit in — alleen de daaruit berekende score. Je
+            hartslag) komt er nooit in, alleen wat we daaruit berekenen: je
+            gereedscore en, bij een rit zonder vermogensmeter, de belasting. Je
             eigen tekst in de omschrijving laten we staan, en verwijder je de
             samenvatting, dan zetten we hem niet terug. Wil je dit helemaal niet,
             koppel Strava dan opnieuw zonder het wijzigrecht, of verbreek de

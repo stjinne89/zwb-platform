@@ -11,7 +11,12 @@ import { plannedSessions, ridesOnDay, type Recipe } from "@/lib/nutrition/recipe
 import type { NutritionDayInput } from "@/lib/nutrition/tips";
 import type { LoggedMeal } from "@/lib/nutrition/log";
 import { productLabel, type NutritionProduct } from "@/lib/nutrition/products";
-import { RECIPE_PREFS, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
+import { RECIPE_PREFS, rankRecipes, type RecipePref, type RecipePrefs } from "@/lib/nutrition/menu";
+import { classifyFuelDay } from "@/lib/nutrition/day-type";
+import { eventRide, ridePlan, type RidePlan } from "@/lib/nutrition/ride-plan";
+import { eventWorkoutDefaults, type ClubEventRow } from "@/lib/training/events";
+import { GUT_PROTOCOLS, gutTrainingOn, type GutRun, type GutSource } from "@/lib/nutrition/gut-training";
+import { currentSweatRate, type SweatSetting, type SweatTest } from "@/lib/nutrition/sweat";
 import { ageFromBirthDate, portionEnergyFactor } from "@/lib/nutrition/targets";
 import { householdFromRow, type Household } from "@/lib/nutrition/shopping";
 import type { MenuChoice } from "@/lib/nutrition/plan";
@@ -145,8 +150,11 @@ function normalizeRecipe(row: Recipe, viewerId: string): Recipe {
  * Clubrecepten, de eigen recepten en wat andere leden delen; RLS filtert al op
  * wat dit lid mag zien. Een voorstel dat een beoordelaar ziet, telt niet mee.
  */
-export async function loadRecipes(viewer: Viewer): Promise<Recipe[]> {
-  const data = await withColumnFallback((columns) => viewer.supabase.from("nutrition_recipes").select(columns));
+export async function loadRecipes(viewer: Viewer, moment?: MealMoment): Promise<Recipe[]> {
+  const data = await withColumnFallback((columns) => {
+    const query = viewer.supabase.from("nutrition_recipes").select(columns);
+    return moment ? query.eq("meal_moment", moment) : query;
+  });
   return ((data ?? []) as unknown as Recipe[])
     .map((row) => normalizeRecipe(row, viewer.user.id))
     .filter((recipe) => !recipe.from_member || recipe.visibility === "leden")
@@ -334,7 +342,7 @@ export async function loadNutritionDayInputs(
   const from = `${shiftDayKey(sorted[0], -1)}T00:00:00Z`;
   const to = `${shiftDayKey(sorted[sorted.length - 1], 3)}T00:00:00Z`;
 
-  const [workouts, proposals, rides, wellness] = await Promise.all([
+  const [workouts, proposals, rides, wellness, gut, sweatTests] = await Promise.all([
     viewer.supabase
       .from("training_workouts")
       .select("scheduled_at, duration_minutes, intensity, status, plan_id")
@@ -356,7 +364,10 @@ export async function loadNutritionDayInputs(
       .gte("start_date", from)
       .lt("start_date", to),
     getWellnessSummary(viewer.supabase, profileId, 45).catch(() => null),
+    loadGutSource(viewer, profileId),
+    loadSweatTests(viewer, profileId),
   ]);
+  const sweatMlPerHour = currentSweatRate(sweatTests);
 
   const proposalIds = new Set((proposals.data ?? []).map((plan) => plan.id as string));
   const rows = (workouts.data ?? []).filter((row) => !proposalIds.has(row.plan_id as string)) as {
@@ -376,7 +387,187 @@ export async function loadNutritionDayInputs(
         ...plannedSessions(rows, day),
         ridesToday: ridesOnDay(rideRows, day),
         wellnessState: wellness?.state ?? null,
+        gut: gutTrainingOn(gut, day),
+        sweatMlPerHour,
       },
     ]),
   );
+}
+
+type PlannedRide = {
+  id: string;
+  scheduled_at: string;
+  duration_minutes: number | null;
+  intensity: string | null;
+  status: string;
+};
+
+/**
+ * Het ritplan per geplande training van vandaag of later, op training-id. Het
+ * recept bij "Tijdens de rit" is wat het lid die dag zelf koos, anders het
+ * beste; het andere soort (bidon of vast eten) volgt uit dezelfde rangorde als
+ * het dagmenu.
+ */
+export async function loadRidePlans(
+  viewer: Viewer,
+  workouts: PlannedRide[],
+  today: string,
+): Promise<Map<string, RidePlan>> {
+  const dayOf = (workout: PlannedRide) => String(workout.scheduled_at).slice(0, 10);
+  const upcoming = workouts.filter(
+    (workout) => workout.status === "planned" && dayOf(workout) >= today && Number(workout.duration_minutes ?? 0) >= 60,
+  );
+  const plans = new Map<string, RidePlan>();
+  if (upcoming.length === 0) return plans;
+  const days = upcoming.map(dayOf).sort();
+  const [recipes, prefs, profile, choices, gutSource, sweatTests] = await Promise.all([
+    loadRecipes(viewer, "tijdens_rit"),
+    loadRecipePrefs(viewer),
+    loadNutritionProfile(viewer, today),
+    loadMenuChoices(viewer, days[0], days[days.length - 1]),
+    loadGutSource(viewer),
+    loadSweatTests(viewer),
+  ]);
+  const sweatMlPerHour = currentSweatRate(sweatTests);
+  const byId = new Map(recipes.map((recipe) => [recipe.id, recipe]));
+  const energyFactor = energyFactorFor(profile);
+  for (const workout of upcoming) {
+    const day = dayOf(workout);
+    const minutes = Number(workout.duration_minutes);
+    const dayType = classifyFuelDay([{ minutes, intensity: workout.intensity }]);
+    const gut = gutTrainingOn(gutSource, day);
+    const ranked = rankRecipes(recipes, "tijdens_rit", {
+      rider: { weightKg: profile.weightKg, energyFactor, dayType, rideMinutes: minutes, rideIntensity: workout.intensity, rideGut: gut },
+      dayType,
+      tomorrowType: "rust",
+      today: day,
+      prefs,
+      diet: null,
+    }).map((item) => item.recipe);
+    const choice = choices.find((row) => row.day === day && row.moment === "tijdens_rit");
+    const chosen = choice ? byId.get(choice.recipeId) : undefined;
+    const plan = ridePlan({
+      minutes,
+      intensity: workout.intensity,
+      gut,
+      sweatMlPerHour,
+      weightKg: profile.weightKg,
+      ranked,
+      lead: chosen ?? ranked[0] ?? null,
+      leadChosen: Boolean(chosen),
+      energyFactor,
+    });
+    if (plan) plans.set(workout.id, plan);
+  }
+  return plans;
+}
+
+/**
+ * De darmtraining van een lid: lopende en afgeronde runs, en of het zelf voor
+ * 120 g per uur koos. Zonder kolom ride_carbs_120 (0272 niet toegepast) of zonder
+ * leesrecht (een trainer op nutrition_profiles) telt de keuze als uit.
+ */
+export async function loadGutSource(viewer: Viewer, profileId = viewer.user.id): Promise<GutSource> {
+  const [runs, own] = await Promise.all([
+    viewer.supabase
+      .from("member_protocols")
+      .select("protocol_slug, start_date, status")
+      .eq("profile_id", profileId)
+      .in("protocol_slug", [...GUT_PROTOCOLS])
+      .in("status", ["actief", "afgerond"]),
+    viewer.supabase.from("nutrition_profiles").select("ride_carbs_120").eq("profile_id", profileId).maybeSingle(),
+  ]);
+  return {
+    runs: ((runs.data ?? []) as { protocol_slug: string; start_date: string; status: GutRun["status"] }[]).map((row) => ({
+      protocolSlug: row.protocol_slug,
+      startDate: String(row.start_date).slice(0, 10),
+      status: row.status,
+    })),
+    high: Boolean((own.data as { ride_carbs_120?: boolean } | null)?.ride_carbs_120),
+  };
+}
+
+/**
+ * De eigen zweettests, nieuwste eerst (0273). Leeg zolang de migratie er niet is
+ * of voor een trainer: alleen het lid zelf leest ze.
+ */
+export async function loadSweatTests(viewer: Viewer, profileId = viewer.user.id): Promise<SweatTest[]> {
+  const { data } = await viewer.supabase
+    .from("nutrition_sweat_tests")
+    .select("id, tested_on, duration_minutes, sweat_ml_per_hour, setting, warm")
+    .eq("profile_id", profileId)
+    .order("tested_on", { ascending: false })
+    .limit(20);
+  return ((data ?? []) as {
+    id: string;
+    tested_on: string;
+    duration_minutes: number;
+    sweat_ml_per_hour: number;
+    setting: SweatSetting;
+    warm: boolean;
+  }[]).map((row) => ({
+    id: row.id,
+    testedOn: String(row.tested_on).slice(0, 10),
+    durationMinutes: Number(row.duration_minutes),
+    mlPerHour: Number(row.sweat_ml_per_hour),
+    setting: row.setting,
+    warm: Boolean(row.warm),
+  }));
+}
+
+export type EventRidePlan = {
+  plan: RidePlan;
+  /** Dag waarop koolhydraten laden begint; null als dat niet past (korter dan 90 minuten, geen wedstrijd). */
+  loadFrom: string | null;
+};
+
+/** De laadfase van het protocol begint twee dagen voor de wedstrijd. */
+const LOADING_DAYS_BEFORE = 2;
+
+/**
+ * Het ritplan voor een event, voor wie het bekijkt (stap 2b van
+ * docs/ritvoeding-plan.md). De duur komt uit het eigen pacingplan, dan uit de
+ * eigen training voor dit event in het schema, en anders uit dezelfde schatting
+ * als het schema (eventWorkoutDefaults). Null voor een event dat voorbij is of
+ * korter dan een uur.
+ */
+export async function loadEventRidePlan(
+  viewer: Viewer,
+  event: ClubEventRow,
+  today: string,
+): Promise<EventRidePlan | null> {
+  const day = new Date(event.start_at).toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
+  if (day < today) return null;
+  const defaults = eventWorkoutDefaults(event);
+  const [pacing, { data: workout }] = await Promise.all([
+    import("@/lib/pacing/session")
+      .then(({ readOwnPlan }) => readOwnPlan(event.id, viewer.user.id))
+      .catch(() => null),
+    viewer.supabase
+      .from("training_workouts")
+      .select("duration_minutes, intensity")
+      .eq("profile_id", viewer.user.id)
+      .eq("event_id", event.id)
+      .is("superseded_at", null)
+      .neq("status", "skipped")
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  const { minutes, intensity, longRace } = eventRide({
+    pacedSeconds: pacing?.summary?.totalSeconds ?? null,
+    workout: workout
+      ? { minutes: workout.duration_minutes == null ? null : Number(workout.duration_minutes), intensity: workout.intensity }
+      : null,
+    estimate: { minutes: defaults.durationMinutes, intensity: defaults.intensity },
+    eventType: event.type,
+  });
+
+  const plans = await loadRidePlans(
+    viewer,
+    [{ id: event.id, scheduled_at: `${day}T12:00:00`, duration_minutes: minutes, intensity, status: "planned" }],
+    today,
+  );
+  const plan = plans.get(event.id);
+  if (!plan) return null;
+  return { plan, loadFrom: longRace ? shiftDayKey(day, -LOADING_DAYS_BEFORE) : null };
 }

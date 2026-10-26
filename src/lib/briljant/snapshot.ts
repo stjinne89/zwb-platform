@@ -58,8 +58,11 @@ export type SnapshotRow = {
 
 export type CurvePoint = { seconds: number; watts: number };
 
-/** Een rit: de dag ("YYYY-MM-DD", Amsterdam) en de minuten. */
-export type RideDay = { day: string; minutes: number };
+/**
+ * Een rit: de dag ("YYYY-MM-DD", Amsterdam) en de minuten. `excluded`: het lid
+ * koppelde hem los van zijn schema; hij telt dan wel als gereden, niet als training.
+ */
+export type RideDay = { day: string; minutes: number; excluded?: boolean };
 
 /** Maandag van de week van `day` ("YYYY-MM-DD"). */
 export function mondayKey(day: string): string {
@@ -232,16 +235,46 @@ export function consistencyWeeks(
   });
 }
 
+/** Volgorde bij het koppelen: afgeronde trainingen pakken hun rit eerst. */
+const PAIR_ORDER: Record<PlannedWorkout["status"], number> = { completed: 0, planned: 1, skipped: 2 };
+
 /**
  * Naleving: het deel van de geplande minuten dat gedaan is, over de afgesloten
  * weken vanaf `from` tot de week van `day`. Null zonder geplande trainingen.
+ *
+ * Gedaan is een afgeronde training, en sinds 2026-10-25 ook een training met een
+ * rit op dezelfde dag, zoals de naleving voor de trainer koppelt (pickRideForWorkout):
+ * één rit per training, bij meer ritten die met de duur het dichtst bij de geplande.
+ * De status wordt alleen binnen zeven dagen gezet; ritten die later binnenkwamen,
+ * telden niet, en bij één lid zakte de naleving zo van 67% naar 12%. Een
+ * overgeslagen training telt niet, ook niet met een rit.
  */
-export function complianceFrom(planned: PlannedWorkout[], from: string, day: string): number | null {
+export function complianceFrom(planned: PlannedWorkout[], from: string, day: string, rides: RideDay[] = []): number | null {
   const end = mondayKey(day);
   const due = planned.filter((workout) => workout.day >= from && workout.day < end && workout.minutes > 0);
   const total = due.reduce((sum, workout) => sum + workout.minutes, 0);
   if (total === 0) return null;
-  const done = due.filter((workout) => workout.status === "completed").reduce((sum, workout) => sum + workout.minutes, 0);
+  const free = new Map<string, number[]>();
+  for (const ride of rides) {
+    if (ride.excluded || ride.day < from || ride.day >= end) continue;
+    free.set(ride.day, [...(free.get(ride.day) ?? []), ride.minutes]);
+  }
+  const claim = (workout: PlannedWorkout) => {
+    const left = free.get(workout.day);
+    if (!left?.length) return false;
+    let best = 0;
+    for (let index = 1; index < left.length; index++) {
+      if (Math.abs(left[index] - workout.minutes) < Math.abs(left[best] - workout.minutes)) best = index;
+    }
+    left.splice(best, 1);
+    return true;
+  };
+  let done = 0;
+  for (const workout of [...due].sort((a, b) => PAIR_ORDER[a.status] - PAIR_ORDER[b.status])) {
+    if (workout.status === "skipped") continue;
+    // Een afgeronde training telt altijd, en houdt een rit van die dag bezet.
+    if (claim(workout) || workout.status === "completed") done += workout.minutes;
+  }
   return done / total;
 }
 
@@ -376,6 +409,20 @@ export function monthEnds(today: string, months: number): string[] {
     // Dag 0 van een maand is de laatste dag van de maand ervoor.
     return new Date(Date.UTC(year, month - offset, 0)).toISOString().slice(0, 10);
   });
+}
+
+/**
+ * Het laatste gewicht in de wellness op of vóór `day` (id = datum), null als er
+ * tot die dag niets gewogen is. Bijna niemand weegt zich op het maandeinde zelf.
+ */
+export function weightOnOrBefore(rows: Array<{ id: string; weight?: number | null }>, day: string): number | null {
+  let latest: { id: string; weight: number } | null = null;
+  for (const row of rows) {
+    const weight = Number(row.weight ?? NaN);
+    if (row.id > day || !Number.isFinite(weight) || weight <= 0) continue;
+    if (!latest || row.id > latest.id) latest = { id: row.id, weight };
+  }
+  return latest?.weight ?? null;
 }
 
 /** Het datumbereik van intervals.icu voor 90 dagen tot en met `end`. */

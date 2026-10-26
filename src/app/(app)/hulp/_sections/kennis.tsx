@@ -319,6 +319,37 @@ export function KennisHelp() {
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
+                  Onderweg staat er &quot;Klaarzetten&quot;: hoeveel bidons en
+                  porties je meeneemt, met de hoeveelheden, en onder &quot;Per 20
+                  minuten&quot; wanneer je wat neemt. Dat plan staat ook bij elke
+                  training van een uur of langer in je schema, en op de
+                  eventpagina, in de racebriefing en in Boodschappen, met alle
+                  bidons en porties. Bij een event komt de duur
+                  uit je pacingplan, anders uit je schema of een schatting. Bij
+                  een wedstrijd van anderhalf uur of langer staat er een link
+                  naar koolhydraten laden, met de dag waarop je begint. Hoeveel
+                  per uur hangt af van de rit: een rustige rit de onderkant van
+                  de band, tempo het midden, drempel en harder de bovenkant.
+                  Volg je de darmtraining, dan rekent een rit van anderhalf uur
+                  of langer met het getal van die week. Na de darmtraining kun
+                  je op de protocolpagina kiezen voor tot 120 g per uur bij
+                  ritten vanaf 2,5 uur. Je
+                  rekent met één bidon per uur. Een bidon bevat hoogstens 60 g
+                  koolhydraten (8% van 750 ml); wat je per uur meer nodig hebt,
+                  komt uit vast eten. Heb je minder nodig dan een bidon
+                  sportdrank bevat, dan gaat er een bidon water mee. Kies je zelf vast eten bij &quot;Tijdens de
+                  rit&quot;, dan draagt de bidon de helft. &quot;Gegeten&quot;
+                  legt het hele plan vast. Hoeveel je drinkt, hangt af van wat je
+                  zweet: doe de zweettest (bij Protocollen), dan staat er
+                  hoeveel liter per uur, en volgt het aantal bidons daaruit.
+                  Je drinkt dan zo dat je onder ongeveer 2% van je gewicht
+                  verliest, maar niet meer dan je zweet. ZWB rekent met je
+                  laatste test.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+                <span>
                   De keuze volgt je dag. Op zware dagen koolhydraatrijk en
                   licht verteerbaar, op rustdagen meer eiwit en vezels. Een
                   recept waarvan de portie je doel niet haalt, zakt in de rij.
@@ -516,9 +547,9 @@ export function KennisHelp() {
                   aparte toestemming). Je trainer ziet dan per dag wat je at en
                   of je je minimum haalde, maar kan niets wijzigen. Met
                   Herinneringen krijg je &apos;s avonds een pushbericht als er
-                  morgen een zware, lange of wedstrijddag staat, of als je
-                  vandaag een uur of langer reed en bij &quot;Na de rit&quot;
-                  nog niets staat.
+                  morgen een zware, lange of wedstrijddag staat, met wat je
+                  voor de rit klaarzet, of als je vandaag een uur of langer
+                  reed en bij &quot;Na de rit&quot; nog niets staat.
                 </span>
               </li>
               <li className="flex gap-2">

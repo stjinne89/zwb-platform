@@ -202,6 +202,8 @@ export async function logRecipe(formData: FormData): Promise<ActionResult> {
           energyFactor: energyFactorFor(profile),
           dayType: fuelDay.dayType,
           rideMinutes: fuelDay.rideMinutes,
+          rideIntensity: fuelDay.rideIntensity,
+          rideGut: fuelDay.rideGut,
         }
       : null,
   );
@@ -216,6 +218,49 @@ export async function logRecipe(formData: FormData): Promise<ActionResult> {
       .filter((item) => item.grams > 0)
       .map((item) => ({ food_id: item.food.id, grams: item.grams })),
   });
+}
+
+/**
+ * Het hele ritplan als gegeten: per recept één maaltijd bij "Tijdens de rit",
+ * met alle bidons of porties samen (ridePlanMeals). Alleen ingrediënten van
+ * dat recept tellen.
+ */
+export async function logRidePlan(formData: FormData): Promise<ActionResult> {
+  const viewer = await requireViewer();
+  const day = parseLogDay(text(formData.get("day")), todayKeyAmsterdam());
+  let parts: { slug: string; title: string; items: ItemInput[] | null }[];
+  try {
+    const parsed = JSON.parse(text(formData.get("parts"))) as { slug?: unknown; title?: unknown; items?: unknown }[];
+    if (!Array.isArray(parsed) || parsed.length === 0 || parsed.length > 2) throw new Error();
+    parts = parsed.map((part) => ({
+      slug: String(part.slug ?? ""),
+      title: String(part.title ?? ""),
+      items: parseItems(JSON.stringify(part.items ?? null)),
+    }));
+  } catch {
+    return { ok: false, error: "Geen ritplan opgegeven." };
+  }
+
+  const recipes = await Promise.all(parts.map((part) => loadRecipeBySlug(viewer, part.slug)));
+  for (const [index, part] of parts.entries()) {
+    const recipe = recipes[index];
+    const allowed = new Set(recipe?.ingredients.map((item) => item.food.id) ?? []);
+    if (!recipe || !part.items || part.items.length === 0 || !part.items.every((item) => item.food_id && allowed.has(item.food_id))) {
+      return { ok: false, error: "Dit ritplan klopt niet meer. Laad de pagina opnieuw." };
+    }
+  }
+  for (const [index, part] of parts.entries()) {
+    const result = await insertMeal(viewer, {
+      day,
+      moment: "tijdens_rit",
+      source: "recept",
+      recipeId: recipes[index]!.id,
+      title: part.title || recipes[index]!.title,
+      items: part.items!,
+    });
+    if (!result.ok) return result;
+  }
+  return { ok: true };
 }
 
 function parseItems(raw: string): ItemInput[] | null {

@@ -343,17 +343,22 @@ export function profileScore(facets: Record<Facet, number | null>): number | nul
  */
 export const CONSISTENCY_WEIGHT = 0.2;
 
-/** 0,8 + 0,2 × consistentie; zonder consistentie (geen ritgegevens) 1, zodat ontbrekende gegevens niets kosten. */
+/**
+ * 0,8 + 0,2 × consistentie. Zonder consistentie (geen ritgegevens) de volle straf,
+ * 0,8 (eigenaar, 2026-10-25): eerst was dat 1, waardoor wie niets liet zien beter
+ * uitkwam dan wie onregelmatig reed.
+ */
 export function consistencyFactor(consistency: number | null): number {
-  if (consistency == null || !Number.isFinite(consistency)) return 1;
+  if (consistency == null || !Number.isFinite(consistency)) return 1 - CONSISTENCY_WEIGHT;
   return 1 - CONSISTENCY_WEIGHT + CONSISTENCY_WEIGHT * Math.min(1, Math.max(0, consistency));
 }
 
 /**
  * De score: de profielscore maal de consistentiefactor, op twee decimalen (het
- * scherm toont punten). Null bij te weinig facetten.
+ * scherm toont punten). Null bij te weinig facetten. Zonder consistentie (null) de
+ * volle straf; 1 is de steen op volle maat.
  */
-export function scoreFor(facets: Record<Facet, number | null>, consistency: number | null = null): number | null {
+export function scoreFor(facets: Record<Facet, number | null>, consistency: number | null): number | null {
   const profile = profileScore(facets);
   return profile == null ? null : round2(profile * consistencyFactor(consistency));
 }
@@ -425,18 +430,33 @@ function median(values: number[]): number {
  * beschikbaarheid: dat is een plafond voor het plannen, geen doel (eigenaar,
  * 2026-10-21; wie zijn schema volgde, haalde eerst de norm niet). Meer dan de
  * norm telt als gehaald, nooit als straf. Een geplande herstelweek telt als
- * gehaald. Null als er geen norm te bepalen is.
+ * gehaald. Null zonder ritten en zonder schema (dan telt de volle straf, zie
+ * consistencyFactor).
  */
 export function consistencyFrom(input: ConsistencyInput): Consistency | null {
   const weeks = input.weeks;
   if (weeks.length === 0) return null;
   const recent = weeks.slice(-CONSISTENCY_WEEKS);
-  // TSS als die er voor de meeste recente weken is, anders uren.
+  // TSS als die er voor de meeste recente weken is én intervals.icu de meeste
+  // weken met een rit ook kent, anders uren. Zonder die tweede eis telde een lid
+  // van wie intervals.icu de Strava-ritten miste, als niet gereden (2026-10-25).
   const withLoad = recent.filter((week) => week.load != null).length;
-  const measure: Consistency["measure"] = withLoad * 2 >= recent.length && weeks.some((week) => (week.load ?? 0) > 0) ? "tss" : "uren";
+  const ridden = recent.filter((week) => week.hours > 0);
+  const covered = ridden.filter((week) => (week.load ?? 0) > 0).length;
+  const measure: Consistency["measure"] =
+    withLoad * 2 >= recent.length && covered * 2 >= ridden.length && weeks.some((week) => (week.load ?? 0) > 0)
+      ? "tss"
+      : "uren";
   const done = (week: ConsistencyWeek) => Math.max(0, measure === "tss" ? (week.load ?? 0) : week.hours);
   const planned = (week: ConsistencyWeek) => positive(measure === "tss" ? week.plannedLoad : week.plannedHours);
-  const usual = median(weeks.map(done));
+  // In TSS alleen de weken die intervals.icu kent: een week van vóór de koppeling
+  // is geen week zonder belasting. Reed je minder dan de helft van de weken, dan is
+  // de mediaan 0; dan geldt de mediaan van de weken waarin je reed. Eerst gaf dat
+  // geen norm en dus geen consistentie (2026-10-25: vijf leden).
+  const measured = (measure === "tss" ? weeks.filter((week) => week.load != null) : weeks).map(done);
+  const active = measured.filter((value) => value > 0);
+  const overall = measured.length > 0 ? median(measured) : 0;
+  const usual = overall > 0 ? overall : active.length > 0 ? median(active) : 0;
   const normOf = (week: ConsistencyWeek) => planned(week) ?? usual;
   if (!weeks.some((week) => normOf(week) > 0)) return null;
 

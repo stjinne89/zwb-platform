@@ -71,9 +71,15 @@ export function zoneSecondsFromStream(
   return seconds;
 }
 
-/** Geplande seconden per Zwift-zone, op het midden van elk blokdoel. */
-export function plannedZoneSeconds(blocks: WorkoutBlock[], ftpWatts: number | null): number[] {
-  const seconds = ZWIFT_ZONES.map(() => 0);
+/**
+ * Het schema als stukken met één doel: het midden van het blokdoel in %FTP
+ * (null zonder leesbaar doel) en de duur in seconden.
+ */
+export function plannedSegments(
+  blocks: WorkoutBlock[],
+  ftpWatts: number | null,
+): Array<{ pct: number | null; seconds: number }> {
+  const out: Array<{ pct: number | null; seconds: number }> = [];
   for (const block of blocks) {
     const segments = onOffSegments(block);
     if (segments && block.onOff) {
@@ -81,14 +87,21 @@ export function plannedZoneSeconds(blocks: WorkoutBlock[], ftpWatts: number | nu
       const offBlock: WorkoutBlock = { ...block, target: block.onOff.offTarget, intensity: "recovery", onOff: undefined };
       for (const segment of segments) {
         const range = powerRangePercentForBlock(segment.on ? block : offBlock, ftpWatts);
-        const pct = range ? (range[0] + range[1]) / 2 : 0;
-        seconds[zwiftZoneForPct(pct).zone - 1] += segment.seconds;
+        out.push({ pct: range ? (range[0] + range[1]) / 2 : null, seconds: segment.seconds });
       }
       continue;
     }
     const range = block.intensity === "rest" ? [0, 0] : powerRangePercentForBlock(block, ftpWatts);
-    const pct = range ? (range[0] + range[1]) / 2 : 0;
-    seconds[zwiftZoneForPct(pct).zone - 1] += block.durationMinutes * 60;
+    out.push({ pct: range ? (range[0] + range[1]) / 2 : null, seconds: block.durationMinutes * 60 });
+  }
+  return out;
+}
+
+/** Geplande seconden per Zwift-zone, op het midden van elk blokdoel. */
+export function plannedZoneSeconds(blocks: WorkoutBlock[], ftpWatts: number | null): number[] {
+  const seconds = ZWIFT_ZONES.map(() => 0);
+  for (const segment of plannedSegments(blocks, ftpWatts)) {
+    seconds[zwiftZoneForPct(segment.pct ?? 0).zone - 1] += segment.seconds;
   }
   return seconds;
 }

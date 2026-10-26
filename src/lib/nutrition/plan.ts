@@ -13,12 +13,15 @@ import type { DietTag } from "./labels";
 import {
   dayMenu,
   menuMoments,
+  rankRecipes,
   stapleOf,
   topUpMenu,
+  type MenuContext,
   type MenuSlot,
   type RecipePrefs,
 } from "./menu";
 import type { Recipe } from "./recipes";
+import { ridePlan, type RidePlan } from "./ride-plan";
 import { MEAL_MOMENTS, type MealMoment } from "./targets";
 import { nutritionDay, type NutritionDay, type NutritionDayInput } from "./tips";
 
@@ -62,7 +65,7 @@ export function planDayMenu({
   choices,
   eaten = { carbsG: 0, proteinG: 0 },
   eatenMoments = new Set(),
-}: PlanDayInput): { nutrition: NutritionDay; slots: MenuSlot[] } {
+}: PlanDayInput): { nutrition: NutritionDay; slots: MenuSlot[]; ride: RidePlan | null } {
   const day = input.today;
   const nutrition = nutritionDay(input);
   const byId = new Map(recipes.map((recipe) => [recipe.id, recipe]));
@@ -82,32 +85,49 @@ export function planDayMenu({
     if (staple) avoidStaples.add(staple);
   }
 
-  const slots = dayMenu(
-    recipes,
-    menuMoments(input, nutrition),
-    {
-      rider: {
-        weightKg: input.weightKg,
-        energyFactor,
-        dayType: nutrition.dayType,
-        rideMinutes: nutrition.rideMinutes,
-      },
+  const context: MenuContext = {
+    rider: {
+      weightKg: input.weightKg,
+      energyFactor,
       dayType: nutrition.dayType,
-      tomorrowType: nutrition.tomorrowType,
-      today: day,
-      prefs,
-      diet,
+      rideMinutes: nutrition.rideMinutes,
+      rideIntensity: nutrition.rideIntensity,
+      rideGut: nutrition.rideGut,
     },
-    { chosen, avoid, avoidStaples },
-  );
+    dayType: nutrition.dayType,
+    tomorrowType: nutrition.tomorrowType,
+    today: day,
+    prefs,
+    diet,
+  };
+  const slots = dayMenu(recipes, menuMoments(input, nutrition), context, { chosen, avoid, avoidStaples });
+
+  // Het ritplan bouwt op het recept dat het menu bij "Tijdens de rit" zet.
+  const rideSlot = slots.find((slot) => slot.moment === "tijdens_rit");
+  const ride =
+    rideSlot && nutrition.rideMinutes
+      ? ridePlan({
+          minutes: nutrition.rideMinutes,
+          intensity: nutrition.rideIntensity,
+          gut: nutrition.rideGut,
+          sweatMlPerHour: input.sweatMlPerHour ?? null,
+          weightKg: input.weightKg,
+          ranked: rankRecipes(recipes, "tijdens_rit", context).map((item) => item.recipe),
+          lead: rideSlot.recipe,
+          leadChosen: rideSlot.chosen,
+          energyFactor,
+        })
+      : null;
 
   return {
     nutrition,
+    ride,
     slots: topUpMenu(slots, {
       eaten,
       eatenMoments,
       floor: { carbsG: nutrition.carbs?.min ?? null, proteinG: nutrition.protein?.min ?? null },
       energyFactor,
+      rideHours: (nutrition.rideMinutes ?? 0) / 60,
     }),
   };
 }
