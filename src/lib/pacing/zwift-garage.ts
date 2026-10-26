@@ -1,7 +1,8 @@
 // De Zwift-garage van een lid: welke frames (met upgradeniveau) en welke wielen
 // het in Zwift heeft. Snelste fiets rekent daarmee in het pacingplan en in de
 // racebriefing. ZWB kan de garage niet uit Zwift lezen; het lid vult hem in op
-// /mijn-garage/zwift. Tabel member_zwift_bikes, migratie 0277.
+// /mijn-garage/zwift. Tabel member_zwift_bikes, migratie 0278 (op productie
+// toegepast onder de naam 0277_member_zwift_bikes).
 
 import type { BikePart } from "@/lib/pacing/zwift-setup";
 
@@ -39,7 +40,7 @@ export function garageFromRows(rows: GarageRow[], parts: BikePart[]): ZwiftGarag
   return Object.keys(frames).length > 0 ? { frames, wheels } : null;
 }
 
-/** De rijen van dit lid; leeg als de tabel nog ontbreekt (migratie 0277). */
+/** De rijen van dit lid; leeg als de tabel nog ontbreekt (migratie 0278). */
 export async function loadGarageRows(client: Client, profileId: string): Promise<GarageRow[]> {
   const { data, error } = await client
     .from("member_zwift_bikes")

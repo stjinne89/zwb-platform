@@ -300,10 +300,11 @@ gaat stabiliteit voor nieuwe features.
    gebouwd, lokaal getest en op 2026-10-20 gepusht naar `main`. Migratie
    `0262_zwift_bike_fixed_wheels.sql` is toegepast. Open: beide schermen in
    de browser bekijken. Op 2026-10-26 hersteld (Espada als tijdritfiets,
-   gesplitste namen in de sheet) en een Zwift-garage per lid gebouwd
-   (lokaal gecommit, niet gepusht). Migratie `0277_member_zwift_bikes.sql`
-   is op 2026-10-26 toegepast en de fietslijst is op productie ververst. Open:
-   pushen, en de garage, het pacingplan en de briefing na de deploy bekijken.
+   gesplitste namen in de sheet), testperiodes gelijkgetrokken en een
+   Zwift-garage per lid gebouwd; op 2026-10-26 gepusht naar `main`. Migratie
+   `0278_member_zwift_bikes.sql` (op productie als `0277_member_zwift_bikes`)
+   is toegepast en de fietslijst is op productie ververst. Open: de garage, het
+   pacingplan en de briefing na de deploy bekijken.
 11. **ZRS van vroeger per race bewaard** (ronde van 2026-10-23 hieronder):
    gebouwd, lokaal getest en op 2026-10-23 gepusht naar `main`. Migratie
    `0271_zwift_race_scores.sql` is toegepast. Open: op cron-job.org een job
@@ -371,8 +372,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0278`
-(`0277_member_zwift_bikes` is van de Zwift-garage per lid, 2026-10-26, toegepast op 2026-10-26;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0279`
+(`0278_member_zwift_bikes` is van de Zwift-garage per lid, 2026-10-26, toegepast op 2026-10-26; geschreven als `0277` en zo ook op productie toegepast (`schema_migrations` noemt hem `0277_member_zwift_bikes`), hernummerd bij het samenvoegen met main, waar `0277_zitvlees_week_badge` al stond;
+`0277_zitvlees_week_badge` is van ZWB Rankings, 2026-10-26, toegepast op 2026-10-26;
 `0276_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, toegepast op 2026-10-26; geschreven als `0275` en hernummerd bij het samenvoegen met main, waar `0275_ai_jobs` al stond;
 `0275_ai_jobs` is van de overstap naar Claude, toegepast op 2026-10-26;
 `0274_training_plan_status_cleanup` is van schema publiceren ronde 3, 2026-10-26, toegepast op 2026-10-26;
@@ -11399,7 +11401,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Snelste fiets: metingen uit twee testperiodes gelijkgetrokken
 
-**2026-10-26.** Commit `2aa95e21`, lokaal, niet gepusht. Geen migratie.
+**2026-10-26.** Commit `2aa95e21`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
 `zwift_bike_parts` op productie is op 2026-10-26 met deze code ververst (zie
 "Fietsen ververst" onderaan deze ronde).
 
@@ -11469,7 +11471,7 @@ daar nu ook als tijdritfiets.
 
 ### Gewijzigd — Zwift-garage: niveau kiezen door op de streepjes te klikken
 
-**2026-10-26.** Commit `841ce129`, lokaal, niet gepusht. Geen migratie.
+**2026-10-26.** Commit `841ce129`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
 
 **Waarom.** De eigenaar vond klikken op de streepjes mooier dan een
 uitklapmenu met Stage 0–5.
@@ -11489,7 +11491,7 @@ klikken en terug naar 0 (niet opgeslagen). `tsc` en ESLint schoon.
 
 ### Gewijzigd — Zwift-garage: upgradeniveau als streepjes in tenuekleuren
 
-**2026-10-26.** Commit `5ebfd5da`, lokaal, niet gepusht. Geen migratie.
+**2026-10-26.** Commit `5ebfd5da`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
 
 **Waarom.** De eigenaar wilde het niveau van een fiets zien in een beeld dat bij
 de upgrade past: goud op het hoogste niveau, daaronder teruglopend door de
@@ -11518,7 +11520,7 @@ de briefing (daarvoor moet er een garage opgeslagen zijn op productie).
 
 ### Gewijzigd — Zwift-garage: fietsen buiten de garage op stage 0
 
-**2026-10-26.** Commit `b57683ff`, lokaal, niet gepusht. Geen migratie.
+**2026-10-26.** Commit `b57683ff`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
 
 **Waarom.** De eigenaar wil dat Snelste fiets met een garage alle fietsen
 meeneemt: een frame dat niet in de garage staat op stage 0, wat je krijgt als je
@@ -11551,8 +11553,9 @@ op productie een plan en garage-rijen aan; aan de eigenaar gelaten).
 
 ### Gebouwd — Zwift-garage per lid voor Snelste fiets
 
-**2026-10-26.** Commit `892de397`, lokaal, niet gepusht. Migratie
-`0277_member_zwift_bikes.sql`, op 2026-10-26 via de Supabase-connector op
+**2026-10-26.** Commit `892de397`, gepusht naar `main` op 2026-10-26 (eigenaar). Migratie
+`0278_member_zwift_bikes.sql` (geschreven als `0277` en zo toegepast; hernummerd
+bij het samenvoegen met main), op 2026-10-26 via de Supabase-connector op
 productie toegepast (lokaal niet te testen: geen Docker of Supabase-config).
 Nagekeken: kolommen, primaire sleutel, de checks (stage 0–5, een wiel alleen
 stage 0) en de foreign key met `on delete cascade`. RLS getest als ingelogd
@@ -11618,9 +11621,9 @@ gecontroleerd, zie boven).
 
 ### Hersteld — Snelste fiets: Espada is een tijdritfiets, gesplitste namen in de sheet
 
-**2026-10-26.** Commit `cd103d3d`. Geen migratie: het herstel zit in het
-inlezen van de sheet. Op productie pas na een deploy en daarna "Fietsen ophalen"
-op `/beheer/zwift-routes`; tot dan staat de oude lijst in `zwift_bike_parts`.
+**2026-10-26.** Commit `cd103d3d`, gepusht naar `main` op 2026-10-26
+(eigenaar). Geen migratie: het herstel zit in het inlezen van de sheet. De lijst
+in `zwift_bike_parts` is op 2026-10-26 met deze code ververst.
 
 **Waarom.** De eigenaar vond dat Snelste fiets niet klopte met andere rekenaars.
 Nagerekend op Spiral Summit (profiel uit `zwift_routes`, de sheet van vandaag,
@@ -11667,12 +11670,12 @@ per lid".*
 en de Espada als tijdritfiets; de twee HADRON-rijen staan nu in de fixture),
 ESLint, `tsc` (alleen de bekende ontbrekende pakketten in deze worktree). De
 doorrekening op Spiral Summit is een tijdelijk script geweest en niet bewaard.
-**Niet geverifieerd:** de lijst op productie na "Fietsen ophalen", en het blok in
-de app.
+*Sindsdien gedaan: de lijst is op productie ververst en de briefing lokaal
+bekeken (zie "Fietsen ververst" bij de testperiodes).*
 
 ### Gewijzigd — ZWB Rankings: alle ranglijsten per week
 
-**2026-10-26.** Commit `ecf04cb4`. Geen migratie. Niet gepusht.
+**2026-10-26.** Commit `ecf04cb4`. Geen migratie. Gepusht naar `main` op 2026-10-26 (eigenaar).
 
 **Waarom.** Metronoom, Clubmens en Groeibriljant gingen over vier weken; de
 eigenaar wil alles per week. Er komt elke maandag een nieuwe ZWBriljant-steen
@@ -11700,7 +11703,7 @@ oktober gingen er 18 omhoog, hooguit 114 punten.
 
 ### Gewijzigd — ZWB Rankings: Buitenbeentje en Binnenvetter in km of uren
 
-**2026-10-26.** Commit `d5fd8740`. Geen migratie. Niet gepusht.
+**2026-10-26.** Commit `d5fd8740`. Geen migratie. Gepusht naar `main` op 2026-10-26 (eigenaar).
 
 **Waarom.** De eigenaar: Buitenbeentje stond in km en Binnenvetter in uren;
 beide moeten in allebei te bekijken zijn.
