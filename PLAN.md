@@ -11344,7 +11344,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter Worden: één knop Publiceren (ronde 1)
 
-**2026-10-26.** Commit volgt (lokaal, niet gepusht). Geen migratie. Ronde 1 uit
+**2026-10-26.** Commit `0280eb50` (lokaal, niet gepusht). Geen migratie. Ronde 1 uit
 [schema-goedkeuren-publiceren-analyse.md](docs/schema-goedkeuren-publiceren-analyse.md).
 
 - **Publiceren keurt ook goed.** `publishTrainingPlan` accepteert nu ook een
