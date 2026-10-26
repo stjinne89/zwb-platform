@@ -9760,6 +9760,42 @@ in de code gezet oordeel dat daarna weer is weggehaald. tsc groen; volledige
 testsuite groen op twee PGlite/pacing-tests na die onder volle belasting een
 time-out gaven en los slagen. Niet gepusht.
 
+**Literatuurtoets en pilotvoorstel, 2026-10-26.** Commit: de commit die deze
+alinea toevoegt. Geen migratie. Naast de meetlat (regels van de prompt) een tweede
+maat: legt AI en motor langs drie maatstaven uit onderzoek —
+intensiteitsverdeling (Treff 2019, Rosenblat 2025, Esteve-Lanao 2007, Seiler
+2010), taper (Bosquet 2007, Wang 2023) en onderbreking van meer dan tien dagen
+(Mujika & Padilla 2000/2001). Bronnen nagekeken in PubMed. Code:
+`src/lib/training/literature-check.ts` (puur), tests in
+`tests/unit/literature-check.test.ts`, tellingen met
+`scripts/engine-literature.mjs` op een verse export (532 generaties, waarvan 241
+nieuwe schema's en bijwerkingen). Rapport en conclusie:
+[docs/regelmotor-literatuurtoets.md](docs/regelmotor-literatuurtoets.md).
+**Uitkomst:** op deze maatstaven zijn AI en motor niet uit elkaar te halen —
+beide maken vrijwel alleen piramidale schema's of basisblokken, en die steunt de
+literatuur allebei; een taper was maar in één schema te toetsen. Wel twee
+bevindingen: de AI hield in 6 van de 33 nieuwe schema's (alle van vóór 2026-08)
+meer dan tien dagen vóór het einde op met plannen, de motor nergens; en de motor
+maakt bij één à twee ritten per week elke rit een tempo- of sweetspotsessie (één
+schema, zone 2 57 %), zonder rustige rit — **open punt voor de motor, niet in deze
+ronde opgelost.** *Bewust niet getoetst:* lange ritten (literatuur alleen
+beschrijvend), opbouw per week (zit al in de meetlat), aantal sleutelsessies en
+één VO2max-prikkel bij ZRL (eigen keuzes zonder bron), dagaanpassingen (geen eigen
+verdeling). *Beperkingen:* getoetst wordt het plan, niet wat er gereden is; de
+zones zijn benaderd via %FTP-labels; binnen de bandbreedtes blijven bewijst niet
+dat een schema beter traint.
+**Pilotvoorstel**, niets gebouwd:
+[docs/crossover-pilot-voorstel.md](docs/crossover-pilot-voorstel.md). AB/BA-crossover,
+twee periodes van zes weken, naleving als primaire uitkomst en een vooraf
+vastgelegd niet-inferioriteitsbesluit; met 18 leden met een schema kan de proef
+niet aantonen dat de motor fitter maakt, alleen of hij in de praktijk niet slechter
+is. Vraagt een pilotschakelaar in `draft.ts`, twee kleine migraties (wie welke arm
+heeft; wie een workout wijzigde — dat laatste wordt nu nergens vastgelegd), een
+opt-in met aangepaste privacytekst (eerst voorleggen) en een vraag aan het lid na
+elke periode. **Wacht op besluit van de eigenaar.** tsc groen; volledige
+testsuite groen op twee PGlite-tests na die onder volle belasting faalden en los
+slagen. Niet gepusht.
+
 ### Opgeleverd — Meetlat voor trainingsschema's, met nulmeting van de AI
 
 **2026-10-17.** Commit `77acd48`. Geen migratie.
