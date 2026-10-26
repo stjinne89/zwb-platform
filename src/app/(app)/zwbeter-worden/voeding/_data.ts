@@ -21,6 +21,7 @@ import { ageFromBirthDate, portionEnergyFactor } from "@/lib/nutrition/targets";
 import { householdFromRow, type Household } from "@/lib/nutrition/shopping";
 import type { MenuChoice } from "@/lib/nutrition/plan";
 import { MEAL_MOMENTS, type MealMoment } from "@/lib/nutrition/targets";
+import { memberHiddenPlanIds } from "@/lib/training/member-hidden-plans";
 
 export { requireViewer, todayKeyAmsterdam } from "../_data";
 export type { Viewer } from "../_data";
@@ -350,13 +351,9 @@ export async function loadNutritionDayInputs(
       .is("superseded_at", null)
       .gte("scheduled_at", from)
       .lt("scheduled_at", to),
-    // Niet-toegepaste dagvoorstellen tellen niet, net als in loadMemberWorkouts.
-    viewer.supabase
-      .from("training_plans")
-      .select("id")
-      .eq("profile_id", profileId)
-      .eq("status", "draft")
-      .eq("adaptation_kind", "daily"),
+    // Niet-toegepaste dagvoorstellen en concepten van de trainer tellen niet,
+    // net als in loadMemberWorkouts.
+    memberHiddenPlanIds(viewer.supabase, [profileId]),
     viewer.supabase
       .from("strava_activities")
       .select("start_date, moving_time_seconds")
@@ -369,8 +366,7 @@ export async function loadNutritionDayInputs(
   ]);
   const sweatMlPerHour = currentSweatRate(sweatTests);
 
-  const proposalIds = new Set((proposals.data ?? []).map((plan) => plan.id as string));
-  const rows = (workouts.data ?? []).filter((row) => !proposalIds.has(row.plan_id as string)) as {
+  const rows = (workouts.data ?? []).filter((row) => !proposals.has(row.plan_id as string)) as {
     scheduled_at: string;
     duration_minutes: number | null;
     intensity: string | null;

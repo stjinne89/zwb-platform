@@ -99,8 +99,9 @@ export function WorkoutsHelp() {
               <p className="mt-2 text-sm text-muted-foreground">
                 De <strong>Download FIT</strong>-knop is bedoeld voor Garmin en
                 andere apparaten die losse workout-bestanden accepteren. Voor
-                Wahoo gebruik je de cloudkoppeling hierboven. Pas je een schema
-                aan? Publiceer opnieuw, dan staat de nieuwste versie klaar.
+                Wahoo gebruik je de cloudkoppeling hierboven. Wordt een training
+                aangepast, dan staat de nieuwe versie vanzelf in intervals.icu;
+                een FIT-bestand download je dan opnieuw.
               </p>
             </div>
           </div>

@@ -19,7 +19,9 @@ import {
   dateValue,
   formAction,
   formatDayMonth,
+  paramString,
   timeValue,
+  unsentByPlan,
 } from "../../_components/format";
 import type {
   GoalRow,
@@ -110,14 +112,39 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
   const reportsByWorkout = byWorkout((reportRows ?? []) as WorkoutReportRow[]);
 
   // Het schema dat "bijwerken" aanpast (loopt nu), en het schema dat standaard
-  // openklapt (het eerste niet-gearchiveerde).
+  // openklapt: het gevraagde (vanaf een net gemaakt concept), anders het eerste
+  // niet-gearchiveerde.
   const runningPlan = activePlan(plans);
   const updateDefaults = planUpdateDefaults(runningPlan, goals);
-  const openPlan = families.find((family) => family.root.status !== "archived")?.root;
+  const requestedPlan = paramString(((await searchParams) ?? {}).plan);
+  const openPlan =
+    families.find((family) => family.root.id === requestedPlan)?.root ??
+    families.find((family) => family.root.status !== "archived")?.root;
   const canPublish = viewer.access.has("training.publish_plans");
 
   const ftpTestState = await loadFtpTestState(viewer, athleteId);
   const templates = (templateRows ?? []) as WorkoutTemplateRow[];
+  const todayKey = todayKeyAmsterdam();
+  const unsent = unsentByPlan((workoutRows ?? []) as WorkoutRow[], todayKey);
+  // Een concept hoort bovenaan, met wat het doet: hoeveel trainingen, vanaf
+  // wanneer, en welk schema het vervangt. Daarvoor stond het onderaan de pagina,
+  // onder vijf andere kaarten.
+  const conceptIds = new Set(
+    plans.filter((plan) => plan.status === "draft" || plan.status === "review").map((plan) => plan.id),
+  );
+  const concepts = families
+    .map((family) => family.root)
+    .filter((plan) => conceptIds.has(plan.id) && plan.end_date >= todayKey)
+    .map((plan) => {
+      const planWorkouts = ((workoutRows ?? []) as WorkoutRow[]).filter(
+        (workout) => workout.plan_id === plan.id && workout.status === "planned",
+      );
+      return {
+        plan,
+        count: planWorkouts.length,
+        firstDay: planWorkouts[0] ? dateValue(planWorkouts[0].scheduled_at) : plan.start_date,
+      };
+    });
   const calendarWorkouts: CalendarEditWorkout[] = ((workoutRows ?? []) as WorkoutRow[]).map(
     (workout) => ({
       id: workout.id,
@@ -134,6 +161,7 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
       ),
       skipped: workout.status === "skipped",
       publishStatus: workout.publish_status,
+      concept: conceptIds.has(workout.plan_id),
       testType: workout.test_type ?? null,
       methodLabel: methodLabelOf(workout.method_label),
     }),
@@ -163,6 +191,33 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
       ftpWatts={athlete?.ftp_watts == null ? null : Number(athlete.ftp_watts)}
     >
       <div className="space-y-4">
+        {concepts.map(({ plan, count, firstDay }) => (
+          <section key={plan.id} className="rounded-lg border border-primary/40 bg-card p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="font-semibold">Nieuw concept: {plan.title}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {count === 1 ? "1 training" : `${count} trainingen`} - vanaf{" "}
+                  {formatDayMonth(firstDay, false)}
+                  {runningPlan && runningPlan.id !== plan.id
+                    ? ` - vervangt ${runningPlan.title}`
+                    : ""}
+                </p>
+              </div>
+              <PlanBadge status={plan.status} />
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <PlanActions
+                planId={plan.id}
+                status={plan.status}
+                mayApprove
+                mayPublish={canPublish}
+              />
+              <DeleteTrainingPlanButton planId={plan.id} title={plan.title} />
+            </div>
+          </section>
+        ))}
+
         {updateDefaults ? <PlanUpdateForm defaults={updateDefaults} /> : null}
 
         <FtpTestPlanner
@@ -222,6 +277,7 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
             families.map(({ root: plan, derived }) => (
               <CollapsibleCard
                 key={plan.id}
+                id={`schema-${plan.id}`}
                 title={plan.title}
                 subtitle={`${formatDayMonth(plan.start_date, false)} - ${formatDayMonth(plan.end_date, false)}`}
                 defaultOpen={plan.id === openPlan?.id}
@@ -279,7 +335,13 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
                   <PlanBadge status={plan.status} />
                 </div>
                 <div className="flex flex-wrap items-center gap-2 border-b p-3">
-                  <PlanActions planId={plan.id} status={plan.status} mayApprove mayPublish={canPublish} />
+                  <PlanActions
+                    planId={plan.id}
+                    status={plan.status}
+                    mayApprove
+                    mayPublish={canPublish}
+                    unsent={unsent.get(plan.id) ?? 0}
+                  />
                   <DeleteTrainingPlanButton planId={plan.id} title={plan.title} />
                 </div>
                 {derived.length > 0 ? (
@@ -307,6 +369,7 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
                               status={adaptation.status}
                               mayApprove
                               mayPublish={canPublish}
+                              unsent={unsent.get(adaptation.id) ?? 0}
                             />
                             <DeleteTrainingPlanButton
                               planId={adaptation.id}

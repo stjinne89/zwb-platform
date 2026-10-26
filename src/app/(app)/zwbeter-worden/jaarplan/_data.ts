@@ -4,6 +4,7 @@
 import { groupByRoot } from "@/lib/training/plan-tree";
 import { loadScheduleEvents } from "@/lib/training/events";
 import { loadSeasonPeriods, loadSeasonTargets } from "@/lib/training/season-data";
+import { memberHiddenPlanIds } from "@/lib/training/member-hidden-plans";
 import {
   seasonWarnings,
   shiftDays,
@@ -104,7 +105,7 @@ export async function loadSeason(
 ): Promise<SeasonData> {
   const { from, to } = seasonWindow(today);
 
-  const [targets, periods, { data: planRows }, scheduleEvents, { data: workoutRows }] =
+  const [targets, periods, { data: planRows }, scheduleEvents, { data: workoutRows }, hiddenIds] =
     await Promise.all([
       loadSeasonTargets(admin, profileId, from, to),
       loadSeasonPeriods(admin, profileId, from, to),
@@ -121,12 +122,14 @@ export async function loadSeason(
       loadScheduleEvents(admin, profileId, from, to, EVENT_LIMIT).catch(() => []),
       admin
         .from("training_workouts")
-        .select("scheduled_at")
+        .select("scheduled_at, plan_id")
         .eq("profile_id", profileId)
         .eq("status", "planned")
         .is("superseded_at", null)
         .gte("scheduled_at", `${today}T00:00:00`)
         .lte("scheduled_at", `${to}T23:59:59`),
+      // Een concept van de trainer staat nog niet op de weg; zie member-hidden-plans.ts.
+      memberHiddenPlanIds(admin, [profileId]),
     ]);
 
   const events: SeasonEvent[] = scheduleEvents
@@ -140,9 +143,9 @@ export async function loadSeason(
     }));
 
   const plans = planBars((planRows ?? []) as PlanRow[]);
-  const plannedWorkoutDays = (workoutRows ?? []).map((row) =>
-    String(row.scheduled_at).slice(0, 10),
-  );
+  const plannedWorkoutDays = (workoutRows ?? [])
+    .filter((row) => !hiddenIds.has(row.plan_id as string))
+    .map((row) => String(row.scheduled_at).slice(0, 10));
 
   return {
     from,

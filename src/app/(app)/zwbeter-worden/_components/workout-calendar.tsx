@@ -29,6 +29,11 @@ export type CalendarWorkout = {
    * historie, maar mag er niet uitzien als iets dat nog gereden moet worden.
    */
   missed?: boolean;
+  /**
+   * Training uit een concept dat nog niet is gepubliceerd. Alleen de trainer ziet
+   * die; gestippeld, zodat hij niet doorgaat voor wat het lid nu rijdt.
+   */
+  concept?: boolean;
   /** Nieuwe methode (veelbelovend of experimenteel); staat in de tooltip. */
   methodLabel?: string | null;
 };
@@ -50,6 +55,7 @@ function labelFor(workout: CalendarWorkout) {
   const intensity = (workout.intensity ?? "") as WorkoutIntensity;
   const parts = [
     workout.source === "rit" ? "gereden rit" : null,
+    workout.concept ? "concept" : null,
     workout.missed ? "niet gereden" : null,
     workout.durationMinutes ? `${workout.durationMinutes} min` : null,
     workout.intensityLabel ?? INTENSITY_LABELS[intensity] ?? null,
@@ -152,7 +158,9 @@ export function WorkoutCalendar({
                   // Een gereden rit stond niet in het schema, dus krijgt hij
                   // niet het volle vlak van een geplande training: gestippeld
                   // en doorzichtig, in de kleur van de zone waarin hij viel.
-                  const ridden = workout.source === "rit";
+                  // Een concepttraining krijgt dezelfde lichte vorm: hij staat er
+                  // nog niet echt.
+                  const ridden = workout.source === "rit" || Boolean(workout.concept);
                   const className = cn(
                     "block w-full rounded-full text-left sm:h-auto sm:truncate sm:rounded sm:px-1 sm:py-0.5 sm:text-xs sm:leading-tight",
                     // Aanklikbaar wil op een telefoon een grotere raakvlek dan

@@ -89,6 +89,7 @@ import type { RideLink } from "./_components/ride-link";
 import type { PlanUpdateDefaults } from "./_components/plan-update-form";
 import type { AvailabilityOptions } from "./_components/availability-form";
 import type { ScheduleEventItem } from "./_components/event-choice";
+import { memberHiddenPlanIds } from "@/lib/training/member-hidden-plans";
 
 export type IntervalsConnection = {
   athlete_id: string;
@@ -301,13 +302,14 @@ export function zwbStatusFor(
  * Ook eruit: de workouts van een nog niet toegepast voorstel uit de dagelijkse
  * bijstelling. Die staan al wel in de database, maar zouden anders naast de
  * bestaande training van diezelfde dag verschijnen — precies de dubbeling die we
- * met het voorstel-strookje wilden voorkomen.
+ * met het voorstel-strookje wilden voorkomen. En die van een concept van de
+ * trainer: dat staat nog niet in intervals.icu. Zie member-hidden-plans.ts.
  */
 export async function loadMemberWorkouts(
   viewer: Viewer,
   events: IntervalsEvent[],
 ): Promise<WorkoutRow[]> {
-  const [{ data }, { data: proposalPlans }] = await Promise.all([
+  const [{ data }, hiddenIds] = await Promise.all([
     viewer.supabase
       .from("training_workouts")
       .select("*")
@@ -315,16 +317,10 @@ export async function loadMemberWorkouts(
       .eq("profile_id", viewer.user.id)
       .order("scheduled_at", { ascending: true })
       .limit(200),
-    viewer.supabase
-      .from("training_plans")
-      .select("id")
-      .eq("profile_id", viewer.user.id)
-      .eq("status", "draft")
-      .eq("adaptation_kind", "daily"),
+    memberHiddenPlanIds(viewer.supabase, [viewer.user.id]),
   ]);
 
-  const proposalIds = new Set((proposalPlans ?? []).map((plan) => plan.id as string));
-  const rows = ((data ?? []) as WorkoutRow[]).filter((row) => !proposalIds.has(row.plan_id));
+  const rows = ((data ?? []) as WorkoutRow[]).filter((row) => !hiddenIds.has(row.plan_id));
   const movedDates = events.length
     ? await syncWorkoutDatesFromIntervals(viewer.admin, rows, events).catch(
         () => new Map<string, string>(),
