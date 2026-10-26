@@ -11,6 +11,7 @@ import { FORMAT_LABELS } from "@/lib/race-briefing/rules";
 import { cleanRiderName, ROLE_LABELS } from "@/lib/race-briefing/field";
 import { km } from "@/lib/race-briefing/tips";
 import type { SketchMark } from "@/lib/race-briefing/sheet";
+import type { SegmentRecord } from "@/lib/race-briefing/segment-records";
 import type { PacingSegment } from "@/lib/pacing/route-profile";
 import { profilePoints, type Point } from "@/lib/race-briefing/route";
 
@@ -368,6 +369,86 @@ function Notes({ view }: { view: BriefingView }) {
   );
 }
 
+const wkg1 = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+/** 17,9 s; vanaf een minuut 1:02. */
+function segmentTime(seconds: number): string {
+  if (seconds < 60) return `${nl.format(Math.round(seconds * 10) / 10)} s`;
+  const whole = Math.round(seconds);
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+}
+
+function SegmentRecordBlock({ record }: { record: SegmentRecord }) {
+  const target = record.target;
+  return (
+    <div className={cn("border-b py-1.5 leading-snug", RULE)}>
+      <p>
+        <span className="font-bold">{record.label}</span>
+        <span style={{ color: PENCIL }}>
+          {" "}
+          · {nl.format(record.firstKm)} km{record.passes > 1 ? ` · ${record.passes}×` : ""}
+        </span>
+      </p>
+      {target && (
+        <p>
+          {target.scope === "veld" ? "richttijd" : "snelste van ons"} <span className={cn("font-bold tabular-nums", HIGHLIGHT)}>{segmentTime(target.seconds)}</span>
+          <span style={{ color: PENCIL }}>
+            {" "}
+            {target.name}
+            {target.wkg !== null && ` · ${wkg1.format(target.wkg)} w/kg`}
+          </span>
+        </p>
+      )}
+      <ul className="mt-0.5">
+        {record.riders.map((rider) => (
+          <li key={rider.zwiftId} className="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] gap-2">
+            <span className="truncate font-bold">{rider.name.split(/\s+/)[0]}</span>
+            <span className="tabular-nums">
+              {rider.pr ? (
+                <>
+                  PR {segmentTime(rider.pr.seconds)}
+                  {rider.pr.watts !== null && (
+                    <span style={{ color: PENCIL }}>
+                      {" "}
+                      · {rider.pr.watts} W{rider.pr.wkg !== null && ` · ${wkg1.format(rider.pr.wkg)} w/kg`}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span style={{ color: PENCIL }}>{rider.fetched ? "geen PR in 90 dagen" : "PR volgt"}</span>
+              )}
+              {rider.holder ? (
+                <span style={{ color: GREEN }}> · richttijd</span>
+              ) : (
+                rider.neededWatts !== null && (
+                  <>
+                    {" "}
+                    <span style={{ color: PENCIL }}>→</span> <span className="font-bold">{rider.neededWatts} W</span>
+                  </>
+                )
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function SegmentRecords({ view }: { view: BriefingView }) {
+  if (view.segmentRecords.length === 0) return null;
+  return (
+    <div className="mt-4">
+      <Title>Segmenten</Title>
+      <div className="grid gap-x-10 md:grid-cols-2">
+        {view.segmentRecords.map((record) => (
+          <SegmentRecordBlock key={record.segmentId} record={record} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function RaceSheet({ view }: { view: BriefingView }) {
   const loaded = view.route?.loaded ?? null;
   const meta = [
@@ -404,6 +485,7 @@ export function RaceSheet({ view }: { view: BriefingView }) {
           <Notes view={view} />
         </div>
       </div>
+      <SegmentRecords view={view} />
     </SpiekPaper>
   );
 }

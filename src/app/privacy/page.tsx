@@ -167,8 +167,17 @@ export default function PrivacyPage() {
             en het beste vermogen in W/kg over 15 seconden tot 20 minuten op,
             zoals ZwiftRacing dat openbaar toont; daarvoor sturen we de
             Zwift-ID&apos;s van de startgroep naar ZwiftRacing. Gewicht en FTP
-            nemen we niet over. We bewaren deze gegevens hooguit 90 dagen.
-            Ingelogde leden zien ze in de briefing.
+            nemen we daarvoor niet over. Bij een puntenrace of Race of Truth
+            vragen we daarnaast per sprint en KOM op de route bij Zwift de
+            snelste passage van de laatste 90 dagen op van iedereen in de
+            startgroep: tijd, gemiddeld vermogen en je gewicht op dat moment. Op
+            het racebriefje staat per segment de snelste tijd uit de startgroep,
+            met naam en W/kg, en per renner van het eigen team de eigen beste
+            tijd met watt en W/kg en de watt die nodig is voor die snelste tijd.
+            Daaruit is het gewicht van teamgenoten af te leiden; het gewicht van
+            renners van andere teams tonen we niet. We bewaren deze gegevens
+            hooguit 90 dagen. Ingelogde leden zien ze in de briefing, en het
+            briefje kan als plaatje worden gedeeld.
           </li>
           <li>
             <strong>Sunday Race Club (MyWhoosh):</strong> doe je mee aan de SRC,

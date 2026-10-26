@@ -6,7 +6,8 @@ import "server-only";
 // deze ronde en het plan van de captain.
 //
 // Zichtbaar voor alle leden (eigenaar, 2026-10-20). Tegenstanders per renner,
-// zonder gewicht of FTP.
+// zonder gewicht of FTP; bij de segmentrecords wel de w/kg van de snelste passage
+// in het veld (eigenaar, 2026-10-26).
 
 import { after } from "next/server";
 import { unstable_cache } from "next/cache";
@@ -54,6 +55,8 @@ import {
   type WatchReason,
 } from "./field";
 import { briefingTips, type BriefingTip } from "./tips";
+import { loadSegmentBests, refreshSegmentBests, segmentIdsForRoute } from "./segment-bests";
+import { segmentRecords, type SegmentRecord } from "./segment-records";
 import { defaultSheet, effectiveSheet, sanitizeOverride, type SheetContent, type SheetSection } from "./sheet";
 
 type Access = Pick<CurrentUserAccess, "has">;
@@ -139,6 +142,8 @@ export type BriefingView = {
   route: { loaded: LoadedRoute; keyPoints: RouteKeyPoints } | null;
   /** Snelste fietsen op de route; null zonder Zwift-route, fietslijst of bij een opgelegd frame. */
   bikes: { advice: BikeAdvice; wkg: number } | null;
+  /** Per sprint en KOM de richttijd uit het veld en de PR van onze renners; leeg buiten een puntenrace of Race of Truth. */
+  segmentRecords: SegmentRecord[];
   powerups: Array<{ powerup: Powerup; percent: number }>;
   /** Labels van eerdere races van deze ronde, in volgorde ("W1", "W2" …). */
   historyLabels: string[];
@@ -452,6 +457,28 @@ export async function loadRaceBriefing(
     warnings.push({ kind: "limits", text: `${r.name}: ${r.limits.status === "over" ? "boven" : "dicht bij"} de grens van ${division?.label ?? "de divisie"} (${parts.join(", ")} W/kg).` });
   }
 
+  // Segmentrecords: alleen waar sprints en KOM's punten opleveren.
+  let segmentRecordList: SegmentRecord[] = [];
+  if (keyPoints && (format === "points" || format === "rot")) {
+    const idBySlug = segmentIdsForRoute(event.zwift_route_id);
+    const segmentIds = [...new Set(keyPoints.segments.map((s) => idBySlug.get(s.slug)).filter((id): id is string => Boolean(id)))];
+    const recordOwn = (inPen.length > 0 ? inPen : own).map((r) => ({ zwiftId: r.zwiftId, name: cleanRiderName(r.name) }));
+    const ownIds = new Set(recordOwn.map((r) => r.zwiftId));
+    const riderIds = [...ownIds, ...field.map((r) => r.zwiftId).filter((id) => !ownIds.has(id))];
+    const loaded = await loadSegmentBests(riderIds, segmentIds);
+    const bests = loaded ?? [];
+    if (loaded && segmentIds.length > 0 && Date.now() < startMs) {
+      after(() => refreshSegmentBests(riderIds, segmentIds, bests, { budgetMs: REFRESH_BUDGET_MS }));
+    }
+    segmentRecordList = segmentRecords({
+      segments: keyPoints.segments,
+      segmentIds: idBySlug,
+      bests,
+      own: recordOwn,
+      field: field.map((r) => ({ zwiftId: r.zwiftId, name: r.name })),
+    });
+  }
+
   const ownZftp = (inPen.length > 0 ? inPen : own).map((r) => r.zftpWkg).filter((v): v is number => v !== null && v > 0);
   const bikes =
     loadedRoute?.route.source === "zwift" ? await bikeAdviceFor(event.id, loadedRoute.route, format, ownZftp) : null;
@@ -504,6 +531,7 @@ export async function loadRaceBriefing(
       subgroupLabel: view?.subgroupLabel ?? null,
       route: loadedRoute && keyPoints ? { loaded: loadedRoute, keyPoints } : null,
       bikes,
+      segmentRecords: segmentRecordList,
       powerups,
       historyLabels: history.labels,
       field: briefingField,

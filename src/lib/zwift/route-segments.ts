@@ -35,3 +35,41 @@ export function routeSegments(routeId: number | string, laps = 1): RouteSegmentR
   }
   return refs;
 }
+
+/** Een sprint of KOM van zwift-data: slug, naam en km binnen de ronde. */
+export type NamedSegment = { slug: string; name: string; kind: "climb" | "sprint"; startKm: number };
+
+const normalized = (name: string) => name.toLowerCase().replace(/\brev\.?(?=\s|$)/g, "reverse").replace(/[^a-z0-9]/g, "");
+const kindOfName = (name: string) => (/sprint/i.test(name) ? "sprint" : /kom|qom/i.test(name) ? "climb" : null);
+
+/**
+ * Zwifts segment-ID per slug van zwift-data. Eerst op naam binnen een kilometer
+ * van de plek in de ronde, anders het dichtstbijzijnde segment van dezelfde soort
+ * binnen 300 m. Op naam alleen faalt het in Richmond ("SPRINT"), op plek alleen
+ * waar twee segmenten dicht bij elkaar liggen. Getoetst op alle routes van
+ * zwift-data 2.1 (2026-10-26): 566 van de 607 sprints en KOM's gekoppeld; de rest
+ * staat niet in de tabel of ligt meer dan een kilometer verschoven.
+ */
+export function matchSegmentIds(
+  segments: NamedSegment[],
+  lap: Array<[string, number]>,
+  names: Record<string, string> = table.segments,
+): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const segment of segments) {
+    if (out.has(segment.slug)) continue;
+    const candidates = lap
+      .map(([segmentId, offsetM]) => ({ segmentId, name: names[segmentId] ?? "", distanceM: Math.abs(offsetM - segment.startKm * 1000) }))
+      .sort((a, b) => a.distanceM - b.distanceM);
+    const byName = candidates.find((c) => normalized(c.name) === normalized(segment.name) && c.distanceM <= 1000);
+    const byPlace = candidates.find((c) => c.distanceM <= 300 && (kindOfName(c.name) ?? segment.kind) === segment.kind);
+    const match = byName ?? byPlace;
+    if (match) out.set(segment.slug, match.segmentId);
+  }
+  return out;
+}
+
+/** De ronde van een route uit de tabel: segment-ID en afstand vanaf de start van de ronde. */
+export function routeLap(routeId: number | string): Array<[string, number]> | null {
+  return table.routes[String(routeId)] ?? null;
+}

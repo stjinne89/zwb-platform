@@ -56,6 +56,8 @@ export type BriefingDescent = { startKm: number; endKm: number; dropM: number };
 /** Een Zwift-sprint of -KOM; ligt hij meer dan eens op de route, dan per passage. */
 export type BriefingSegment = {
   kind: "sprint" | "kom";
+  /** Slug van zwift-data ("jarvis-sprint"), zonder het rondenummer. */
+  slug: string;
   startKm: number;
   endKm: number;
   name: string;
@@ -297,7 +299,8 @@ export function routeKeyPoints(input: {
   const segments: BriefingSegment[] = sorted.map((a) => {
     const same = sorted.filter((b) => b.name === a.name);
     const kind = a.kind === "sprint" ? "sprint" : "kom";
-    return { kind, startKm: round(a.startKm), endKm: round(a.endKm), name: a.name, pass: same.indexOf(a) + 1, passes: same.length };
+    const slug = a.lap ? a.id.replace(new RegExp(`-${a.lap}$`), "") : a.id;
+    return { kind, slug, startKm: round(a.startKm), endKm: round(a.endKm), name: a.name, pass: same.indexOf(a) + 1, passes: same.length };
   });
 
   const laps = Math.max(1, Math.round(input.laps ?? 1));

@@ -357,6 +357,13 @@ gaat stabiliteit voor nieuwe features.
    en zonder schema op productie vergelijken (vóór deze ronde 0,38 tegen 0,65
    gemiddeld).
 
+18. **Segmentrecords op het racebriefje** (ronde van 2026-10-26 hieronder):
+   gebouwd en lokaal getest, nog niet gepusht. Open: migratie
+   `0277_zwift_segment_bests.sql` toepassen (vóór de push, anders blijft het blok
+   leeg en vraagt de app niets op), de privacyzin laten goedkeuren door de
+   eigenaar, en na de deploy op een briefing van een puntenrace kijken of de PR's
+   binnenkomen.
+
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
 **Let op, dubbele migratienummers (vastgesteld 2026-09-21 bij het samenvoegen):**
@@ -367,8 +374,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0277`
-(`0276_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, toegepast op 2026-10-26; geschreven als `0275` en hernummerd bij het samenvoegen met main, waar `0275_ai_jobs` al stond;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0278`
+(`0277_zwift_segment_bests` is van de segmentrecords op het racebriefje, 2026-10-26, nog niet toegepast;
+`0276_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, toegepast op 2026-10-26; geschreven als `0275` en hernummerd bij het samenvoegen met main, waar `0275_ai_jobs` al stond;
 `0275_ai_jobs` is van de overstap naar Claude, toegepast op 2026-10-26;
 `0274_training_plan_status_cleanup` is van schema publiceren ronde 3, 2026-10-26, toegepast op 2026-10-26;
 `0273_nutrition_sweat_tests` is van ritvoeding stap 5, 2026-10-25, toegepast op 2026-10-25;
@@ -11389,6 +11397,69 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Segmentrecords op het racebriefje
+
+**2026-10-26.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Migratie
+`0277_zwift_segment_bests.sql`, **nog niet toegepast** en lokaal niet te testen
+(geen Docker of Supabase-config).
+
+**Waarom.** Vraag van de eigenaar: op het briefje per segment waar je je op
+richt, met de watt en w/kg per renner en de eigen PR. Keuzes van de eigenaar:
+de eigen PR als doel en de snelste PR van het startveld als richttijd; alles op
+het briefje zelf (dus ook in het gedeelde plaatje); voor iedereen 90 dagen terug.
+
+**Gemeten bij Zwift (2026-10-26, serviceaccount, een handvol leesverzoeken).**
+`/segment-results` met `player_id` geeft alle passages van één renner op een
+segment in een venster, met tijd, gemiddeld vermogen en gewicht. Het venster mag
+hooguit 90 dagen zijn: 120, 180, 270 en 365 dagen gaven status 400. Ouder kan in
+stappen (een passage van februari kwam terug), maar dat koos de eigenaar niet.
+`only-best` maakt geen verschil. Oude passages hebben soms 0 W.
+
+**Wat.**
+- **Migratie 0277:** `zwift_segment_bests`, per Zwift-ID en segment-ID de
+  snelste passage van de laatste 90 dagen (tijd, watt, gewicht, moment) of null
+  als er geen was. Cache van 90 dagen, RLS aan zonder policies.
+- `segment-bests.ts`: lezen en verversen zoals de ZRS (`metrics.ts`): na het
+  antwoord, binnen 20 s, eerst onze renners en dan de rest van het startveld,
+  550 ms tussen de verzoeken, stoppen bij een 429. Een dag oud is verlopen. Niet
+  meer na de start: dan pollt de live stand hetzelfde endpoint. Kan de tabel
+  niet gelezen worden (migratie niet toegepast), dan wordt er ook niets
+  opgehaald.
+- **Segment-ID's:** `matchSegmentIds` (`route-segments.ts`) koppelt de slugs van
+  zwift-data aan Zwifts ID's uit de tabel van Sauce: eerst op naam binnen 1 km
+  van de plek in de ronde, anders het dichtstbijzijnde segment van dezelfde
+  soort binnen 300 m. Op alle routes van zwift-data 2.1: 566 van de 607 sprints
+  en KOM's (op naam alleen 365). `BriefingSegment` kreeg daarvoor `slug`.
+- `segment-records.ts` (puur): per segment-ID één regel met het aantal passages,
+  de richttijd (snelste PR uit het startveld, of zonder groep bij Zwift de
+  snelste van de ploeg) en per eigen renner de PR met watt en w/kg en de
+  benodigde watt: de w/kg van de richttijd maal het eigen gewicht (van de laatste
+  passage met gewicht). De houder van de richttijd krijgt zijn eigen watt.
+- **Het briefje:** blok Segmenten onderaan, over de volle breedte, twee kolommen.
+  Per renner "PR volgt" zolang Zwift nog niet is gevraagd, "geen PR in 90 dagen"
+  als er geen passage was. Alleen bij een puntenrace en een Race of Truth.
+- **Privacy:** `/privacy#racebriefing` noemt de passages, het gewicht en dat het
+  gewicht van teamgenoten uit watt en W/kg af te leiden is; de zin "Gewicht en
+  FTP nemen we niet over" geldt nu alleen voor ZwiftRacing. Geen nieuwe versie
+  (zoals eerder bij het verruimen van al opgegeven data). **Nog niet
+  goedgekeurd door de eigenaar.**
+- `/hulp` legt richttijd, PR en benodigde watt uit.
+
+**Bewust niet.** Geen fysicamodel voor de benodigde watt: een sprint rij je in
+het wiel, en zonder slipstream zou het model te hoog uitkomen; de w/kg van een
+echte passage neemt die omstandigheden mee, al zie je niet hoeveel. Geen
+gewicht van tegenstanders op het briefje. Geen naam-alleen-koppeling (faalt in
+Richmond en bij "Rev."). Geen PR's ouder dan 90 dagen (keuze eigenaar: scheelt
+verzoeken).
+
+**Gecontroleerd.** Vitest (`segment-records.test.ts`, 7 tests: de ID's van
+Spiral Summit, terugval op plek, richttijd en watt, houder, zonder startveld,
+gewicht), de bestaande racebriefje-tests, `tsc` (alleen de bekende ontbrekende
+pakketten in deze worktree), ESLint. Het blok los gerenderd met voorbeeldwaarden
+en bekeken. **Niet geverifieerd:** de migratie, het ophalen op productie
+(tijdsbudget van `after` op Netlify, en of de limiet van `/segment-results` ook
+2 per seconde is), en het blok met echte renners.
 
 ### Gewijzigd — Racebriefje: KOM's als moment, profiel zonder overlap
 
