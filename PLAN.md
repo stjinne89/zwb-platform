@@ -11342,6 +11342,34 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — ZWBriljant: terugblik rekent met het gewicht van toen
+
+**2026-10-26.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+
+**Waarom.** De terugblik zocht het gewicht alleen in de wellness van precies het
+maandeinde (`byDay.get(end)`). Wie zich die dag niet woog, kreeg voor die maand het
+huidige profielgewicht, ook als er een paar dagen eerder een weging in intervals.icu
+stond. Wie sindsdien afviel, kreeg zo te hoge historische W/kg (en omgekeerd), ook
+in de kJ/kg van durability. Vraag van de eigenaar.
+
+**Nu.** `weightOnOrBefore` (`snapshot.ts`) neemt per maand de laatste weging in de
+wellness op of vóór het maandeinde. Pas als er tot dan nog niets gewogen is, geldt de
+bestaande terugval: profiel, laatste gewicht in intervals.icu, Zwift. Waar
+intervals.icu in de curve zelf W/kg meegeeft, gaat die nog steeds voor.
+`TERUGBLIK_SPAN` werd `alles-gewicht-tss-p25-naleving-weging`, zodat elke terugblik
+opnieuw wordt gemaakt; de gevonden ZRS van vroeger blijft staan.
+
+**Bewust niet gedaan.** Voor maanden vóór de eerste weging niet de eerste weging
+gebruiken (die ligt dichter bij toen): de eigenaar koos voor terugvallen op het
+huidige gewicht. De weeksteen blijft zoals hij was (profiel eerst).
+
+**Getest.** `briljant-snapshot` (laatste weging tot de dag, lege en nulwaarden,
+volgorde maakt niet uit), alle ZWBriljant-tests, ESLint; `tsc` alleen de bekende
+fout op `modern-screenshot`. **Niet nagekeken:** of intervals.icu bij de maandcurves
+W/kg meestuurt, en hoeveel maanden er nu anders uitkomen; snapshots bewaren geen
+gewicht. Na een nieuwe span krijgt de ZRS-historie in de job een tijd weinig budget
+(zie de ronde "ZRS van vroeger per race bewaard").
+
 ### Gebouwd — ZWBeter voeden: zweettest en vochtdoel
 
 **2026-10-25.** Commit `89bf101e`, stap 5 van [ritvoeding-plan.md](docs/ritvoeding-plan.md),
@@ -13027,7 +13055,8 @@ er wel, maar er was nergens een gewicht, dus geen W/kg; met twee onderdelen teld
 - **Gewicht:** zonder gewicht in ZWB het laatste gewicht uit intervals.icu (wellness, 90
   dagen), anders het Zwift-gewicht via het serviceaccount (`fetchZwiftWeightKg`, niet
   bewaard). Ontbrekende W/kg in het powerprofiel worden uit de curve berekend. De terugblik
-  gebruikt per maand het gewicht van die dag, anders dezelfde terugval.
+  gebruikt per maand het laatste gewicht tot het maandeinde (sinds 2026-10-26; eerst alleen
+  dat van die dag), anders dezelfde terugval.
 - **Basisregel:** een steen pas vanaf vier onderdelen (`MIN_FACETS_FOR_SCORE`, was twee).
 - **Tegel op Vandaag:** helemaal in de kleur van de klasse, met donkere of lichte tekst naar
   de helderheid, en "nog N tot <klasse>".

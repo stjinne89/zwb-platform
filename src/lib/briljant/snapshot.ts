@@ -411,6 +411,20 @@ export function monthEnds(today: string, months: number): string[] {
   });
 }
 
+/**
+ * Het laatste gewicht in de wellness op of vóór `day` (id = datum), null als er
+ * tot die dag niets gewogen is. Bijna niemand weegt zich op het maandeinde zelf.
+ */
+export function weightOnOrBefore(rows: Array<{ id: string; weight?: number | null }>, day: string): number | null {
+  let latest: { id: string; weight: number } | null = null;
+  for (const row of rows) {
+    const weight = Number(row.weight ?? NaN);
+    if (row.id > day || !Number.isFinite(weight) || weight <= 0) continue;
+    if (!latest || row.id > latest.id) latest = { id: row.id, weight };
+  }
+  return latest?.weight ?? null;
+}
+
 /** Het datumbereik van intervals.icu voor 90 dagen tot en met `end`. */
 export function curveRange(end: string): string {
   return `r.${shiftDay(end, -89)}.${end}`;
