@@ -17765,7 +17765,8 @@ op een generatie die je al beoordeelde. *Bewust niet:* titel, samenvatting en
 aandachtspunten van de schema's tonen — die van de motor zijn sjabloonzinnen en
 verraden hem; de workouttitels, -beschrijvingen en de schrijfwijze van de
 blokdoelen ("RPE 2-3, 155-207w" tegen "173-224 W") doen dat deels ook, dat is
-niet te vermijden zonder de inhoud weg te halen. Generaties van vóór 2026-09-17 —
+niet te vermijden zonder de inhoud weg te halen. *(Grens bijgesteld op 2026-10-26, zie
+hieronder: nu alleen Claude-generaties vanaf die dag.)* Generaties van vóór 2026-09-17 —
 die prompt kende nog niet alle regels, zelfde grens als het naspelen. Een
 overzicht over trainers heen: komt pas als er oordelen zijn. Dagaanpassingen
 waarin geen van beide iets wijzigt overslaan: dat vraagt per paginalading de
@@ -17834,6 +17835,25 @@ opt-in met aangepaste privacytekst (eerst voorleggen) en een vraag aan het lid n
 elke periode. **Wacht op besluit van de eigenaar.** tsc groen; volledige
 testsuite groen op twee PGlite-tests na die onder volle belasting faalden en los
 slagen. Niet gepusht.
+
+**Vergelijken alleen op Claude-generaties, 2026-10-26.** Commit: de commit die
+deze alinea toevoegt. Geen migratie (0247 bleek al toegepast). Het tabblad
+Vergelijken toont nu alleen generaties van Claude vanaf 2026-10-26
+(`COMPARISON_SINCE`, `COMPARISON_MODEL_PREFIX` en `isComparableGeneration()` in
+`engine-comparison.ts`), en de teller telt alleen oordelen op die generaties.
+**Waarom:** de GPT-antwoorden van daarvoor zijn gemaakt zonder de 90-minutenregel
+en de indoorregel van 2026-10-26, die de motor wel volgt; wie die paren
+beoordeelt, vergelijkt oude met nieuwe regels in plaats van AI met motor (zie de
+literatuurtoets hierboven). Besluit eigenaar: stoppen met beoordelen van de oude
+paren, later verder op de nieuwe. Op 2026-10-26 stonden er 22 oordelen in
+productie, waarvan 3 op Claude-generaties (van de 5 die er toen waren); de
+overige 19 blijven bewaard en tellen niet mee. `/hulp#vergelijken` noemt de
+nieuwe grens. **Zinvol oordelen pas** als de volumefout van de motor (korte
+rustige ritten worden rustdagen; aparte sessie) is opgelost en er genoeg
+Claude-generaties zijn. *Niet geverifieerd:* de pagina in de browser — de lokale
+sessie was uitgelogd; filter en telling zijn getest in
+`tests/unit/engine-comparison.test.ts` en de aantallen met een SQL-query op
+productie nagekeken. Niet gepusht.
 
 ### Opgeleverd — Meetlat voor trainingsschema's, met nulmeting van de AI
 

@@ -11,11 +11,22 @@ import type { GeneratedTrainingPlan, GeneratedWorkout, TrainingAiInput } from "@
 import { engineMode, generateEnginePlan, type EngineMode } from "@/lib/training/engine";
 
 /**
- * Vanaf hier stonden alle regels van de meetlat in de prompt. Oudere generaties
- * zijn gemaakt met een prompt die ze nog niet kende; die vergelijken zou de AI
- * tekortdoen. Zelfde grens als docs/regelmotor-naspelen.md.
+ * Alleen generaties van Claude, vanaf de overstap op 2026-10-26. Tot die dag
+ * stond hier 2026-09-17 (alle meetlatregels in de prompt), maar de GPT-antwoorden
+ * van daarvoor zijn gemaakt zonder de 90-minutenregel en de indoorregel van
+ * 2026-10-26, die de motor wel volgt: wie die paren beoordeelt, vergelijkt oude
+ * met nieuwe regels in plaats van AI met motor. Oordelen op oudere generaties
+ * blijven bewaard maar tellen niet mee.
  */
-export const COMPARISON_SINCE = "2026-09-17";
+export const COMPARISON_SINCE = "2026-10-26";
+export const COMPARISON_MODEL_PREFIX = "claude";
+
+/** Hoort deze generatie bij de vergelijking? Zelfde grens als de query op de pagina. */
+export function isComparableGeneration(row: { model?: string | null; created_at?: string | null } | null | undefined) {
+  return Boolean(
+    row?.model?.startsWith(COMPARISON_MODEL_PREFIX) && row.created_at && row.created_at >= COMPARISON_SINCE,
+  );
+}
 
 export const REASON_MAX = 280;
 

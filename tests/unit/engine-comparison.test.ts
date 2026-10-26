@@ -7,6 +7,7 @@ import {
   comparisonWeeks,
   mondayOf,
   engineSide,
+  isComparableGeneration,
   parseChoice,
   tallyVerdicts,
   winnerOf,
@@ -148,5 +149,14 @@ describe("comparisonWeeks", () => {
   it("vindt de maandag ook op zondag", () => {
     expect(mondayOf("2026-10-25")).toBe("2026-10-19");
     expect(mondayOf("2026-10-19")).toBe("2026-10-19");
+  });
+});
+
+describe("isComparableGeneration", () => {
+  it("telt alleen Claude-generaties vanaf de overstap", () => {
+    expect(isComparableGeneration({ model: "claude-opus-5-5", created_at: "2026-10-26T14:00:00+00:00" })).toBe(true);
+    expect(isComparableGeneration({ model: "gpt-5.5", created_at: "2026-10-26T14:00:00+00:00" })).toBe(false);
+    expect(isComparableGeneration({ model: "claude-opus-5-5", created_at: "2026-10-20T10:00:00+00:00" })).toBe(false);
+    expect(isComparableGeneration(null)).toBe(false);
   });
 });
