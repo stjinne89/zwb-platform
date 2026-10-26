@@ -11394,7 +11394,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gewijzigd — ZWB Rankings: Buitenbeentje en Binnenvetter in km of uren
 
-**2026-10-26.** Commit `COMMIT_HASH`. Geen migratie. Niet gepusht.
+**2026-10-26.** Commit `d5fd8740`. Geen migratie. Niet gepusht.
 
 **Waarom.** De eigenaar: Buitenbeentje stond in km en Binnenvetter in uren;
 beide moeten in allebei te bekijken zijn.
