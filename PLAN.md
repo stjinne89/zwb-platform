@@ -11416,8 +11416,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Club Ladder-overzicht leest de echte opmaak van /summary
 
-**2026-10-26.** Commit: de commit die dit blok toevoegt, op branch
-`claude/ladder-onderdeel-kaart-0ae3c9`, niet gepusht. Geen migratie.
+**2026-10-26.** Commit `a7d43743`, gepusht naar `main` op 2026-10-26 (eigenaar).
+Geen migratie.
 
 **Waarom.** Vervolg op de sync-ronde hieronder, op verzoek van de eigenaar. Op
 `/teams/club-ladder` was de vorm leeg, klopte de stijging niet en stonden er 0
@@ -11465,8 +11465,8 @@ productie).
 
 ### Hersteld — Club Ladder-sync: cookie, positie uit de parser, overgeslagen bron wist geen fout
 
-**2026-10-26.** Commit: de commit die dit blok toevoegt, op branch
-`claude/ladder-onderdeel-kaart-0ae3c9`, niet gepusht. Geen migratie.
+**2026-10-26.** Commit `75ae3c1d`, gepusht naar `main` op 2026-10-26 (eigenaar).
+Geen migratie.
 
 **Waarom.** Bij het in kaart brengen van het ladderdeel bleek op productie
 (alleen lezen): de vier ladderteams staan op het kerkhof en hebben 0 leden, en er
