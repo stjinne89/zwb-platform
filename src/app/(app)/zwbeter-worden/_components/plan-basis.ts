@@ -91,7 +91,7 @@ export function planBasisGroups(input: Partial<TrainingAiInput>): BasisGroup[] {
       title: "Doel",
       rows,
       effect:
-        "De uren per week zijn waar de zwaarste week van een blok naartoe werkt. Het soort doel bepaalt of er een afbouw naar een piek komt.",
+        "De uren per week zijn de tijd die je hebt, geen doel. Het soort doel bepaalt of er een afbouw naar een piek komt.",
       link: { href: "/zwbeter-worden/doelen", label: "Doelen" },
     });
   }
@@ -128,9 +128,16 @@ export function planBasisGroups(input: Partial<TrainingAiInput>): BasisGroup[] {
         { label: "Ritten per week", value: num(recent.ridesPerWeek, 1) },
         { label: "Gemiddelde rit", value: minutesLabel(recent.avgDurationMinutes) },
         { label: "Langste rit", value: minutesLabel(recent.longestRideMinutes) },
+        ...(known(recent.tssPerWeek) ? [{ label: "Belasting", value: `${num(recent.tssPerWeek)} TSS per week` }] : []),
+        ...(known(recent.indoorTssPerHour)
+          ? [{ label: "Binnen", value: `${num(recent.indoorTssPerHour)} TSS per uur` }]
+          : []),
+        ...(known(recent.outdoorTssPerHour)
+          ? [{ label: "Buiten", value: `${num(recent.outdoorTssPerHour)} TSS per uur` }]
+          : []),
       ],
       effect:
-        "Een opbouwweek komt niet onder wat je nu al rijdt, en het schema volgt je ritme van rijdagen en ritduur.",
+        "Een opbouwweek komt niet onder de belasting die je nu aankan, en het schema volgt je ritme van rijdagen en ritduur.",
       link: { href: "/zwbeter-worden/kennis/opbouwen", label: "Opbouwen" },
     });
   }
@@ -147,7 +154,7 @@ export function planBasisGroups(input: Partial<TrainingAiInput>): BasisGroup[] {
         ...(known(load.rampRate) ? [{ label: "Stijging per week", value: num(load.rampRate, 1) }] : []),
       ],
       effect:
-        "Bij een sterk negatieve vorm of een snelle stijging van je belasting begint het schema lichter.",
+        "Je fitness bepaalt hoeveel belasting een week krijgt. Bij een sterk negatieve vorm of een snelle stijging van je belasting begint het schema lichter.",
       link: { href: "/zwbeter-worden/belasting", label: "Belasting" },
     });
   }

@@ -280,15 +280,48 @@ describe("checkTrainingPlan: weken", () => {
     expect(rules(checkTrainingPlan(plan, week(MONDAY, [60, 60, 60])))).toContain("weekplafond");
   });
 
-  it("vraagt een piekweek van minstens 85% van het plafond, tenzij er vermoeidheid is", () => {
-    // 5 / 5,3 / 5,0 uur en dan herstel: de piek is 88%, net genoeg.
-    const enough = [...week(MONDAY, [100, 100, 100]), ...week(day(7), [100, 110, 108]), ...week(day(14), [70, 70, 70])];
-    expect(rules(checkTrainingPlan(input({ planWindow: window(3) }), enough))).not.toContain("piekweek");
+  it("vraagt een zwaarste week duidelijk boven wat het lid nu aankan, tenzij er vermoeidheid is", () => {
+    // CTL 33: het lid kan 231 TSS per week. Rustige duur op 65-70% is zo'n 46
+    // TSS per uur; 325 minuten is 247 TSS, ruim 10% erboven.
+    const plan = input({ planWindow: window(3), intervalsLoad: { ctl: 33, atl: null, tsb: null, eftp: null, rampRate: null } });
+    const enough = [...week(MONDAY, [100, 100, 100]), ...week(day(7), [100, 115, 110]), ...week(day(14), [70, 70, 70])];
+    expect(rules(checkTrainingPlan(plan, enough))).not.toContain("piekweek");
 
     const low = [...week(MONDAY, [90, 90, 100]), ...week(day(7), [100, 100, 100]), ...week(day(14), [65, 65, 65])];
-    const plan = input({ planWindow: window(3) });
     expect(rules(checkTrainingPlan(plan, low))).toContain("piekweek");
     expect(rules(checkTrainingPlan({ ...plan, wellness: { ...wellness(), state: "fatigued" } }, low))).not.toContain("piekweek");
+  });
+
+  it("toetst de piek niet aan het urenplafond: zonder belastingsbron geen oordeel", () => {
+    // Vroeger: piek onder 85% van 6 uur was een fout. Beschikbare tijd is geen doel.
+    const low = [...week(MONDAY, [90, 90, 100]), ...week(day(7), [100, 100, 100]), ...week(day(14), [65, 65, 65])];
+    expect(rules(checkTrainingPlan(input({ planWindow: window(3), recentLoad: { ...input().recentLoad, hoursPerWeek: 4 } }), low))).not.toContain(
+      "piekweek",
+    );
+  });
+
+  it("toetst belasting, niet uren: dezelfde tijd met kwaliteit haalt wat rustige duur niet haalt", () => {
+    // CTL 40: 280 TSS per week, plafond 8 uur.
+    const plan = input({
+      planWindow: window(1),
+      goal: { ...input().goal, maxHoursPerWeek: 8 },
+      intervalsLoad: { ctl: 40, atl: null, tsb: null, eftp: null, rampRate: null },
+    });
+    // Vijf en een half uur rustige duur: 258 TSS, onder de 280.
+    const easy = [endurance(day(0), 60), ...week(MONDAY, [90, 90, 100])];
+    expect(checkTrainingPlan(plan, easy).find((finding) => finding.regel === "onder-recente-belasting")?.toelichting).toBe(
+      "258 TSS gepland, lid kan nu 280 TSS per week (CTL × 7).",
+    );
+    // Korter, met twee sweet-spotsessies: 282 TSS.
+    const dense = [endurance(day(0), 60), sweetSpot(day(1)), endurance(day(3), 90), sweetSpot(day(5))];
+    expect(rules(checkTrainingPlan(plan, dense))).not.toContain("onder-recente-belasting");
+  });
+
+  it("laat de tijd begrenzen als de week zijn beschikbare tijd al vult", () => {
+    // CTL 60 vraagt 420 TSS; in 6 uur rustige duur zit dat er niet in.
+    const plan = input({ planWindow: window(1), intervalsLoad: { ctl: 60, atl: null, tsb: null, eftp: null, rampRate: null } });
+    expect(rules(checkTrainingPlan(plan, week(MONDAY, [115, 115, 115])))).not.toContain("onder-recente-belasting");
+    expect(rules(checkTrainingPlan(plan, week(MONDAY, [90, 90, 90])))).toContain("onder-recente-belasting");
   });
 
   it("rekent de piek ten opzichte van de beschikbaarheid als die krapper is", () => {
@@ -449,6 +482,7 @@ describe("checkTrainingPlan: piek bij een bijwerking", () => {
       input({
         planUpdate: { reason: "Doel", fromDate, toDate: day(20), previousTitle: "Oud", previousSummary: null, changed: {}, remainingWorkouts: [] },
         recentLoad: { ...input().recentLoad, hoursPerWeek: 4 },
+        intervalsLoad: { ctl: 33, atl: null, tsb: null, eftp: null, rampRate: null },
       });
     const low = [...week(MONDAY, [90, 90, 90]), ...week(day(7), [90, 90, 100]), ...week(day(14), [60, 60, 65])];
     expect(rules(checkTrainingPlan(update(MONDAY), low))).not.toContain("piekweek");
@@ -549,19 +583,23 @@ describe("checkTrainingPlan: bijgesteld bij het naspelen van de regelmotor", () 
 });
 
 describe("checkTrainingPlan: groeigrens gaat vóór de piekweek", () => {
-  it("rekent een lagere piek niet aan als 85% alleen met sprongen van meer dan een kwart te halen is", () => {
-    // Lid rijdt 2 uur per week, plafond 14 uur: in twee weken kan het hooguit
-    // 2 → 2,5 → 3,1 uur worden. Een piek van 3 uur is dan geen fout.
+  it("rekent een lagere piek niet aan als die alleen met sprongen van meer dan een kwart te halen is", () => {
+    // CTL 33 (231 TSS), maar het vorige blok lag laag (2,5 uur, 114 TSS). Het
+    // blok na de herstelweek mag daarvandaan een kwart groeien: tot 143 TSS.
     const plan = input({
       planWindow: window(3),
       goal: { ...input().goal, maxHoursPerWeek: 14 },
-      recentLoad: { ...input().recentLoad, hoursPerWeek: 2 },
+      intervalsLoad: { ctl: 33, atl: null, tsb: null, eftp: null, rampRate: null },
     });
-    const capped = [...week(MONDAY, [50, 50, 50]), ...week(day(7), [62, 63, 63]), ...week(day(14), [40, 40, 40])];
-    expect(rules(checkTrainingPlan(plan, capped))).not.toContain("piekweek");
+    const piekweken = (workouts: GeneratedWorkout[]) =>
+      checkTrainingPlan(plan, workouts)
+        .filter((finding) => finding.regel === "piekweek")
+        .map((finding) => finding.datum);
+    const capped = [...week(MONDAY, [50, 50, 50]), ...week(day(7), [35, 35, 35]), ...week(day(14), [62, 63, 63])];
+    expect(piekweken(capped)).not.toContain(day(14));
 
     // Blijft de piek ook onder wat binnen de groeigrens kon, dan wel.
-    const timid = [...week(MONDAY, [40, 40, 40]), ...week(day(7), [40, 40, 45]), ...week(day(14), [30, 30, 30])];
-    expect(rules(checkTrainingPlan(plan, timid))).toContain("piekweek");
+    const timid = [...week(MONDAY, [50, 50, 50]), ...week(day(7), [35, 35, 35]), ...week(day(14), [40, 40, 45])];
+    expect(piekweken(timid)).toContain(day(14));
   });
 });

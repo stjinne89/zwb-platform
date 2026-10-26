@@ -20,6 +20,7 @@ import {
   STALE_GENERATION_MINUTES,
 } from "@/lib/training/draft";
 import { preferencesForAi } from "@/lib/training/preferences";
+import { currentWeeklyLoad } from "@/lib/training/load-basis";
 import { loadProtocolsForAi } from "@/lib/protocols/ai-data";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { amsterdamWallTimeToIso } from "@/lib/birthdays";
@@ -581,6 +582,7 @@ export async function POST(request: Request) {
           profile: profileForAi(profile, ftpTests[0]?.testedOn ?? null),
           symptoms: await loadSymptomLoadForAi(admin, plan.profile_id),
           recentLoad: recent,
+          currentLoad: currentWeeklyLoad({ recentLoad: recent, intervalsLoad }),
           wellness: wellnessInputForAi(wellness),
           intervalsLoad,
           availability,
