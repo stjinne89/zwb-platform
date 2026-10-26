@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { adviseBikes, steadySeconds } from "@/lib/pacing/bike-advice";
 import type { CpModel } from "@/lib/pacing/cp";
 import { evaluatePlan, type PlanSegment } from "@/lib/pacing/plan";
+import { garageFromRows, type ZwiftGarage } from "@/lib/pacing/zwift-garage";
 import type { PacingRoute, PacingSegment } from "@/lib/pacing/route-profile";
 import {
   constraintsFromZwiftEvent,
@@ -61,7 +62,14 @@ const plan = (km: number, wkg = 3.5): PlanSegment[] => [
   { startKm: 0, endKm: km, targetWkg: wkg, label: "Alles", effort: "tempo" },
 ];
 
-function advise(input: { route: PacingRoute; constraints?: EventConstraints; parts?: BikePart[]; stage?: number }) {
+function advise(input: {
+  route: PacingRoute;
+  constraints?: EventConstraints;
+  parts?: BikePart[];
+  stage?: number;
+  garage?: ZwiftGarage | null;
+  garageOnly?: boolean;
+}) {
   const constraints = input.constraints ?? RACE;
   return adviseBikes({
     parts: input.parts ?? PARTS,
@@ -69,6 +77,8 @@ function advise(input: { route: PacingRoute; constraints?: EventConstraints; par
     setup: { ...defaultSetup(constraints), stage: input.stage ?? 0 },
     weightKg: MODEL.weightKg,
     heightCm: 180,
+    garage: input.garage,
+    garageOnly: input.garageOnly,
     seconds: (physics: RidePhysics) =>
       evaluatePlan(plan(input.route.totalKm), input.route, MODEL, { ride: physics }).totalSeconds,
   });
@@ -155,6 +165,61 @@ describe("adviseBikes", () => {
     const elapsed = performance.now() - start;
     expect(advice?.best).toHaveLength(3);
     expect(elapsed).toBeLessThan(3000);
+  });
+});
+
+describe("adviseBikes met een Zwift-garage", () => {
+  it("neemt frames buiten de garage mee op stage 0", () => {
+    const flat = route(0, 20);
+    const garage: ZwiftGarage = { frames: { Klimfiets: 0 }, wheels: ["Licht"] };
+    const advice = advise({ route: flat, constraints: NO_TT, stage: 5, garage })!;
+    expect(advice.best[0]).toMatchObject({ frame: "Aerofiets", stage: 0, wheels: "Diep", owned: false });
+    const stage0 = advise({ route: flat, constraints: NO_TT, stage: 0 })!;
+    expect(advice.best[0].seconds).toBeCloseTo(stage0.best[0].seconds, 6);
+    // Een eigen frame is pas "in je garage" met eigen of standaardwielen.
+    const climber = advice.best.find((row) => row.frame === "Klimfiets")!;
+    expect(climber.owned).toBe(climber.wheels === null || climber.wheels === "Licht");
+  });
+
+  it("met garageOnly alleen de eigen frames en wielen", () => {
+    const garage: ZwiftGarage = { frames: { "Zwift Carbon": 0, Klimfiets: 0 }, wheels: ["Licht"] };
+    const advice = advise({ route: route(0, 20), constraints: NO_TT, garage, garageOnly: true })!;
+    expect(advice.stage).toBeNull();
+    expect(new Set(advice.best.map((row) => row.frame))).toEqual(new Set(["Zwift Carbon", "Klimfiets"]));
+    expect(advice.best.every((row) => row.wheels === null || row.wheels === "Licht")).toBe(true);
+    expect(advice.best.every((row) => row.owned === true)).toBe(true);
+  });
+
+  it("rekent elk frame op zijn eigen upgradeniveau", () => {
+    const flat = route(0, 20);
+    const low = advise({ route: flat, constraints: NO_TT, garage: { frames: { Aerofiets: 0 }, wheels: [] } })!;
+    const high = advise({ route: flat, constraints: NO_TT, garage: { frames: { Aerofiets: 5 }, wheels: [] } })!;
+    expect(high.best[0]).toMatchObject({ frame: "Aerofiets", stage: 5 });
+    expect(high.best[0].seconds).toBeLessThan(low.best[0].seconds);
+  });
+
+  it("zonder aangevinkte wielen tellen alle wielen mee", () => {
+    const advice = advise({ route: route(0, 20), constraints: NO_TT, garage: { frames: { Aerofiets: 0 }, wheels: [] }, garageOnly: true })!;
+    expect(advice.best[0]).toMatchObject({ frame: "Aerofiets", wheels: "Diep", owned: true });
+  });
+
+  it("de huidige opzet houdt zijn eigen niveau", () => {
+    const advice = advise({ route: route(0, 20), constraints: NO_TT, stage: 0, garage: { frames: { Aerofiets: 5 }, wheels: [] } })!;
+    expect(advice.current.stage).toBe(0);
+  });
+
+  it("garageFromRows slaat onbekende namen over en is leeg zonder frames", () => {
+    const garage = garageFromRows(
+      [
+        { part: "frame", name: "Aerofiets", stage: 7 },
+        { part: "frame", name: "Bestaat niet", stage: 2 },
+        { part: "wheel", name: "Diep", stage: 0 },
+        { part: "wheel", name: "Weg", stage: 0 },
+      ],
+      PARTS,
+    );
+    expect(garage).toEqual({ frames: { Aerofiets: 5 }, wheels: ["Diep"] });
+    expect(garageFromRows([{ part: "wheel", name: "Diep", stage: 0 }], PARTS)).toBeNull();
   });
 });
 

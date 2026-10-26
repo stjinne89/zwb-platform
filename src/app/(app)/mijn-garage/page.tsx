@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Bike } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { Button } from "@/components/ui/button";
 import { ConnectWithStrava, StravaAttribution } from "@/components/strava-brand";
 import { EmptyState, PageHeader, SectionHeader } from "@/components/app-ui";
 import { cn } from "@/lib/utils";
@@ -118,6 +119,11 @@ export default async function MijnGaragePage() {
       eyebrow="Mijn garage"
       title="Mijn garage"
       description="Je fietsen en de slijtage van hun onderdelen."
+      actions={
+        <Link href="/mijn-garage/zwift">
+          <Button variant="outline">Zwift-fietsen</Button>
+        </Link>
+      }
     />
   );
 

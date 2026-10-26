@@ -299,7 +299,12 @@ gaat stabiliteit voor nieuwe features.
 10. **Snelste fiets in pacingplan en briefing** (ronde van 2026-10-20 hieronder):
    gebouwd, lokaal getest en op 2026-10-20 gepusht naar `main`. Migratie
    `0262_zwift_bike_fixed_wheels.sql` is toegepast. Open: beide schermen in
-   de browser bekijken.
+   de browser bekijken. Op 2026-10-26 hersteld (Espada als tijdritfiets,
+   gesplitste namen in de sheet), testperiodes gelijkgetrokken en een
+   Zwift-garage per lid gebouwd; op 2026-10-26 gepusht naar `main`. Migratie
+   `0278_member_zwift_bikes.sql` (op productie als `0277_member_zwift_bikes`)
+   is toegepast en de fietslijst is op productie ververst. Open: de garage, het
+   pacingplan en de briefing na de deploy bekijken.
 11. **ZRS van vroeger per race bewaard** (ronde van 2026-10-23 hieronder):
    gebouwd, lokaal getest en op 2026-10-23 gepusht naar `main`. Migratie
    `0271_zwift_race_scores.sql` is toegepast. Open: op cron-job.org een job
@@ -367,8 +372,10 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0277`
-(`0276_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, toegepast op 2026-10-26; geschreven als `0275` en hernummerd bij het samenvoegen met main, waar `0275_ai_jobs` al stond;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0279`
+(`0278_member_zwift_bikes` is van de Zwift-garage per lid, 2026-10-26, toegepast op 2026-10-26; geschreven als `0277` en zo ook op productie toegepast (`schema_migrations` noemt hem `0277_member_zwift_bikes`), hernummerd bij het samenvoegen met main, waar `0277_zitvlees_week_badge` al stond;
+`0277_zitvlees_week_badge` is van ZWB Rankings, 2026-10-26, toegepast op 2026-10-26;
+`0276_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, toegepast op 2026-10-26; geschreven als `0275` en hernummerd bij het samenvoegen met main, waar `0275_ai_jobs` al stond;
 `0275_ai_jobs` is van de overstap naar Claude, toegepast op 2026-10-26;
 `0274_training_plan_status_cleanup` is van schema publiceren ronde 3, 2026-10-26, toegepast op 2026-10-26;
 `0273_nutrition_sweat_tests` is van ritvoeding stap 5, 2026-10-25, toegepast op 2026-10-25;
@@ -11394,7 +11401,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gewijzigd — Rider of the month met de ranglijsten van ZWB Rankings
 
-**2026-10-26.** Commit `b1c51d8b`. Geen migratie. Niet gepusht.
+**2026-10-26.** Commit `b1c51d8b`. Geen migratie. Gepusht naar `main` op 2026-10-26 (eigenaar).
 
 **Waarom.** De eigenaar: Rider of the month op het dashboard moest de nieuwe
 statistieken krijgen en Kudo-magneet ("Kudo's") moest eruit, om dezelfde reden als
@@ -11429,9 +11436,283 @@ door; Buitenbeentje staat in km en Binnenvetter in uren.
 volledige suite op de vier bekende worktree-fouten na, `tsc`, ESLint.
 **Niet geverifieerd:** het dashboard in de browser.
 
+### Hersteld — Snelste fiets: metingen uit twee testperiodes gelijkgetrokken
+
+**2026-10-26.** Commit `2aa95e21`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
+`zwift_bike_parts` op productie is op 2026-10-26 met deze code ververst (zie
+"Fietsen ververst" onderaan deze ronde).
+
+**Waarom.** De eigenaar vroeg of we zeker weten dat de fietsberekening klopt met
+ZwiftBikes en ZwifterBikes. Nagerekend:
+- **Het model tegen de ZwiftInsider-metingen.** Gefit op 300 W en voorspeld op
+  150 W (een vermogen dat niet in de fit zat): het verschil met de Zwift Carbon
+  komt per fiets binnen 2 s op de Alpe en binnen 3 s per uur op het vlak uit
+  (95 racefietsen). De absolute tijd wijkt systematisch af (Alpe zo'n 26 s op 45
+  min): onze fysica is niet precies die van Zwift, maar dat is voor elke fiets
+  gelijk en valt in een vergelijking weg.
+- **Tegen ZwifterBikes.** Hun `assets/bikes.json` heeft per frame, wielset en
+  stage een luchtweerstand en gewicht, uit dezelfde ZwiftInsider-sheet. Met onze
+  fysica op Spiral Summit doorgerekend voor 3135 combinaties: eerst lag de SL8
+  bovenaan en zij de SL9, en onze keuze was hun nummer 31.
+- **De oorzaak, een echte fout.** De sheet heeft metingen uit twee periodes.
+  Sinds juni 2026 rijdt alles in Zwift iets trager (op het vlak ongeveer 2 s per
+  uur); ZwiftInsider meet nieuwe fietsen tegen een nieuwe basismeting en zet het
+  verschil daarmee in de kolom "Hour Time Gap". Wij legden de ruwe snelheid
+  tegen de oude Zwift Carbon, waardoor 29 framerijen (en wielen op de Zwift TT)
+  uit de nieuwe periode te traag uitkwamen: juist de nieuwste fietsen, zoals de
+  SL9, LAB71 Team, Aeroad CFR, Filante ID2, S5 en een reeks tijdritfietsen.
+  *De bewering "zo valt een verschil in testperiode tegen elkaar weg" in
+  `bike-sheet.ts` was dus niet waar voor frames; die zin is vervangen.*
+
+**Wat.** `inReferencePeriod` in `bike-sheet.ts` rekent elke meting via het
+uurverschil terug naar de periode van de referentiefiets: referentie × (1 +
+verschil / 3600), ten opzichte van de Zwift TT voor tijdritfietsen en wielen op
+de Zwift TT, anders de Zwift Carbon. Past een meting bij geen van beide periodes
+(meer dan 0,2 % ernaast, zoals de Espada tegen de Zwift Carbon), dan blijft de
+ruwe snelheid staan.
+
+**Daarna.** Op Spiral Summit kiest ZWB op stage 0 dezelfde nummer 1 als de
+ZwifterBikes-data (S-Works Tarmac SL9 met CADEX 4-Spoke), in de groep en solo.
+Per fiets scheelt het 90 % van de tijd minder dan 1,5 s op een race van 40
+minuten; op stage 5 komen wij 1 à 2 s sneller uit en staat onze keuze 0,7 s
+achter hun beste. ZwiftBikes geeft een score en geen tijd; hun onderdelen lagen
+al dicht bij de onze (zie de ronde "Espada is een tijdritfiets").
+
+**Bewust niet.** Geen eigen meting in Zwift (de Sauce-testcomputer kan dat, maar
+de ZwiftInsider-sheet is de bron van alle drie de rekenaars). De doorrekeningen
+waren tijdelijke scripts en zijn niet bewaard; de downloads van ZwifterBikes
+stonden alleen in de scratchmap.
+
+**Gecontroleerd.** Vitest: `zwift-bike-sheet.test.ts` met een test voor
+`inReferencePeriod` (SL9 nu sneller dan SL8, Espada blijft ruw, zonder
+uurverschil niets), samen met `bike-advice` en `pacing-zwift` 64 tests groen.
+`tsc` en ESLint schoon.
+
+**Fietsen ververst op productie (2026-10-26, op verzoek van de eigenaar).** Met
+"Fietsen ophalen" op `/beheer/zwift-routes` in de lokale app (deze code, de
+productiedatabase): 882 frame-varianten en 149 wielsets, referentie ongewijzigd
+(CdA 0,3191, 2,42 kg). Nagekeken met de Supabase-connector:
+- Pinarello Espada: `kind` van `road` naar `tt`, `fixed_wheels` blijft aan.
+- Swiss Side HADRON Ultimate 650 op de Zwift Carbon: één rij (CdA −0,0126,
+  +0,02 kg) in plaats van twee met elk één meting (−0,0136/+0,20 en
+  −0,0098/−0,17). ZwiftBikes heeft −0,0131/−0,01.
+- S-Works Tarmac SL9: stage 0 CdA −0,0153 → −0,0162, nu net onder de SL8
+  (−0,0160); stage 5 −0,0241 → −0,0246.
+- De dubbele "VanRysel RCR Pro" is weg; 1031 rijen (was 1034), alle uit één
+  ophaalronde. Geen garage-rij of pacingplan verwijst naar een naam die niet
+  meer bestaat.
+- De briefing van Spiral Summit (B1, lokaal bekeken) zet nu de SL9 met CADEX
+  4-Spoke bovenaan, de SL8 1 s erachter; de Espada staat er niet meer in.
+De live site draait nog de oude code, maar leest dezelfde tabel; de Espada telt
+daar nu ook als tijdritfiets.
+
+### Gewijzigd — Zwift-garage: niveau kiezen door op de streepjes te klikken
+
+**2026-10-26.** Commit `841ce129`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
+
+**Waarom.** De eigenaar vond klikken op de streepjes mooier dan een
+uitklapmenu met Stage 0–5.
+
+**Wat.**
+- `StagePicker` (`src/components/stage-picker.tsx`): dezelfde vijf streepjes
+  als `StagePips`, iets groter, elk een knop (radiogroep voor schermlezers).
+  Klik op het n-de streepje = stage n; nog eens op het hoogste gevulde = stage 0.
+  Ernaast "Stage n" in klein grijs. Vervangt het uitklapmenu op
+  `/mijn-garage/zwift`; in de opzet van het pacingplan blijft het uitklapmenu,
+  met de streepjes ernaast.
+- Op donker waren stage 1 en 2 nauwelijks te zien naast de lege streepjes;
+  `--zwb-stage-2` en `--zwb-stage-1` zijn daar nu lichtere salietinten.
+
+**Gecontroleerd.** Lokaal in de browser, donker: stage 1 t/m 5 gezet door te
+klikken en terug naar 0 (niet opgeslagen). `tsc` en ESLint schoon.
+
+### Gewijzigd — Zwift-garage: upgradeniveau als streepjes in tenuekleuren
+
+**2026-10-26.** Commit `5ebfd5da`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
+
+**Waarom.** De eigenaar wilde het niveau van een fiets zien in een beeld dat bij
+de upgrade past: goud op het hoogste niveau, daaronder teruglopend door de
+ZWB-kleuren.
+
+**Wat.**
+- `StagePips` (`src/components/stage-pips.tsx`): vijf oplopende streepjes zoals
+  in de garage van Zwift; gevuld tot het niveau, in de kleur van dat niveau.
+  Lege streepjes zijn een omlijning, anders viel salie op licht weg tegen grijs.
+- Kleuren `--zwb-stage-1` t/m `--zwb-stage-5` in `globals.css`: goud, teal,
+  petrol, salie en lichte salie. Op donker dezelfde volgorde in lichtere tinten
+  (zoals de ZWBlokken-schaal), omdat petrol en teal daar wegvallen.
+- Gebruikt op `/mijn-garage/zwift` naast de stagekeuze, bij Snelste fiets in
+  het pacingplan als de niveaus per frame verschillen (garage), naast Upgrade in
+  de opzet, en bij de regel Jij in de briefing (het label is nu "Jij"; de stage
+  staat in de streepjes).
+- Goud blijft klein (streepjes, geen tekst), conform de Goudregel in DESIGN.md.
+
+**Bewust niet.** Eerst kwam de stagekeuze bij elk frame zichtbaar, ook zonder
+vinkje; de eigenaar wilde dat niet ("is goed zo"), dus teruggedraaid.
+
+**Gecontroleerd.** Lokaal in de browser op `/mijn-garage/zwift`, licht en
+donker, met stage 5 t/m 2 in het formulier (niet opgeslagen). `tsc`, ESLint en
+`bike-advice.test.ts` groen. **Niet gezien:** de streepjes in het pacingplan en
+de briefing (daarvoor moet er een garage opgeslagen zijn op productie).
+
+### Gewijzigd — Zwift-garage: fietsen buiten de garage op stage 0
+
+**2026-10-26.** Commit `b57683ff`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
+
+**Waarom.** De eigenaar wil dat Snelste fiets met een garage alle fietsen
+meeneemt: een frame dat niet in de garage staat op stage 0, wat je krijgt als je
+het koopt. Eerst koos Snelste fiets met een garage alleen uit de eigen frames
+en wielen.
+
+**Wat.**
+- `adviseBikes` met een garage: elk frame uit de garage op zijn eigen stage,
+  elk ander frame op stage 0, en alle wielen. Nieuw `garageOnly` voor alleen de
+  garage (het oude gedrag). Elke regel krijgt `owned`: frame in de garage en
+  eigen of standaardwielen (geen wielen aangevinkt = alle wielen).
+- **Pacingplan:** standaard alle fietsen zo gerekend, met "niet in je garage"
+  onder een fiets die je niet hebt; Alleen mijn garage (`?fietsen=garage`) toont
+  wat je nu kunt rijden. De schakelaar `?fietsen=alle` van de vorige ronde is
+  weg. Een nieuw plan begint nog steeds met de snelste fiets uit de garage.
+- **Briefing:** ongewijzigd. De lijst blijft stage 0 voor iedereen, de regel Jij
+  is de snelste fiets die je hebt.
+- `/hulp/racen#pacing-zwift` bijgewerkt.
+
+**Gecontroleerd.** Vitest: volle suite 3471 van 3478 groen (6 overgeslagen;
+`admin-areas` faalt alleen onder parallelle belasting en slaagt los). `tsc` en
+ESLint schoon. De worktree heeft nu eigen `node_modules` (`npm ci`, zwift-data
+2.1) in plaats van een koppeling naar de hoofdmap; daarmee vallen de eerder
+genoemde fouten door ontbrekende pakketten weg. Lokaal gestart met
+`npm run dev`: `/mijn-garage/zwift` en de briefing van Spiral Summit renderen.
+De briefing toont nog de oude fietslijst van productie (Espada bovenaan), omdat
+"Fietsen ophalen" nog niet met de nieuwe code is gedraaid. **Niet
+geverifieerd:** opslaan in de garage en het pacingplan in de browser (dat maakt
+op productie een plan en garage-rijen aan; aan de eigenaar gelaten).
+
+### Gebouwd — Zwift-garage per lid voor Snelste fiets
+
+**2026-10-26.** Commit `892de397`, gepusht naar `main` op 2026-10-26 (eigenaar). Migratie
+`0278_member_zwift_bikes.sql` (geschreven als `0277` en zo toegepast; hernummerd
+bij het samenvoegen met main), op 2026-10-26 via de Supabase-connector op
+productie toegepast (lokaal niet te testen: geen Docker of Supabase-config).
+Nagekeken: kolommen, primaire sleutel, de checks (stage 0–5, een wiel alleen
+stage 0) en de foreign key met `on delete cascade`. RLS getest als ingelogd
+lid in een transactie die is teruggedraaid: eigen rijen schrijven en lezen
+lukt, rijen van een ander zijn onzichtbaar en een insert voor een ander geeft
+42501; een wiel met stage 2 geeft 23514. De tabel is daarna leeg. Zonder de
+migratie leest de app een lege garage en rekent alles zoals voorheen.
+
+**Waarom.** De eigenaar vroeg of je kunt instellen welke fiets je op welk niveau
+hebt, zodat Snelste fiets daarmee rekent. Na de uitleg en het herstel hieronder
+koos hij het voorstel: een garage per lid, de standaard in het pacingplan, en een
+regel "Jouw snelste" in de briefing. ZWB kan de garage niet uit Zwift lezen; het
+lid vult hem zelf in.
+
+**Wat.**
+- Tabel `member_zwift_bikes` (`profile_id`, `part` frame of wheel, `name`,
+  `stage` 0–5, alleen bij een frame). RLS: alleen het lid zelf. Namen zoals in
+  `zwift_bike_parts`, zonder foreign key: een naam die na een nieuwe sheet
+  verdwijnt, slaat de app over (`garageFromRows`). In de gegevensexport.
+  De eigenaar noemde de tabel `member_bikes`; het werd `member_zwift_bikes`
+  omdat `strava_bikes` en Mijn garage al over de echte fietsen gaan.
+- `src/lib/pacing/zwift-garage.ts`: type, laden en opschonen.
+- `adviseBikes` krijgt een optionele `garage`: alleen eigen frames, elk op zijn
+  eigen stage, en alleen eigen wielen. Geen wielen aangevinkt = alle wielen.
+  De standaardwielen van het testframe tellen altijd mee. Elke regel draagt nu
+  zijn `stage`; `advice.stage` is `null` als de niveaus per frame verschillen.
+  De huidige opzet ("Nu") blijft op het niveau uit die opzet.
+- **Scherm** `/mijn-garage/zwift` (knop Zwift-fietsen op Mijn garage): frames
+  aanvinken met een stage, wielen aanvinken, zoeken in beide lijsten. Opslaan
+  zet de garage op precies die lijst.
+- **Pacingplan:** een nieuw plan begint met de snelste fiets uit de garage
+  (gekozen op een vast vermogen, CP, omdat er dan nog geen plan is). Snelste
+  fiets kiest uit de garage, met Alle fietsen (`?fietsen=alle`) als schakelaar
+  (*sinds de ronde hierboven: standaard alle fietsen, de rest op stage 0, en
+  Alleen mijn garage als schakelaar*);
+  Kies neemt de stage van die regel mee. In de frame-keuzelijst staat de garage
+  bovenaan, en een frame uit de garage krijgt meteen zijn stage. Zonder garage:
+  een link Garage invullen. Bestaande plannen veranderen niet.
+- **Briefing:** onder Snelste fiets een regel "Jij · stage N" met de snelste
+  fiets uit de garage van wie kijkt, met dezelfde renner (75 kg, 183 cm) en
+  hetzelfde vermogen als de lijst, zodat alleen de fiets verschilt. Niet op het
+  racebriefje dat gedeeld wordt.
+- `/hulp/racen#pacing-zwift`, `/hulp/club#mijn-garage`, de briefingtekst in
+  `/hulp`, de zoektermen, en een zin "Zwift-fietsen" in de privacyverklaring
+  (zonder nieuwe versie: het lid vult het zelf in en ziet het alleen zelf).
+
+**Bewust niet.** Geen import uit Zwift (er is geen API voor de garage). Geen
+eigen gewicht of lengte in de Jij-regel van de briefing: dan zou het verschil
+met de lijst ook over de renner gaan. Bestaande pacingplannen krijgen niet
+vanzelf een andere fiets; Snelste fiets met Kies is daarvoor.
+
+**Gecontroleerd.** Vitest: `bike-advice.test.ts` met vijf nieuwe tests (alleen
+eigen frames en wielen, stage per frame, lege wielenlijst, huidige opzet houdt
+zijn niveau, `garageFromRows`), samen met `zwift-bike-sheet` en `pacing-zwift`
+62 tests groen. `tsc` en ESLint schoon op de bekende ontbrekende pakketten na.
+De volle suite faalt alleen op de omgeving van deze worktree: de gedeelde
+`node_modules` mist `@anthropic-ai/sdk` en heeft `zwift-data` 1.50 in plaats van
+2.1 (`zwift-route`, `race-links`, en alles wat `ai/claude.ts` importeert).
+zwift-data 2.1 (uit de lockfile, los uitgepakt) kent de Espada ook als
+tijdritfiets. **Niet geverifieerd:** het scherm, het pacingplan en de briefing
+in de browser, en opslaan vanuit de app (de migratie is wel op productie
+gecontroleerd, zie boven).
+
+### Hersteld — Snelste fiets: Espada is een tijdritfiets, gesplitste namen in de sheet
+
+**2026-10-26.** Commit `cd103d3d`, gepusht naar `main` op 2026-10-26
+(eigenaar). Geen migratie: het herstel zit in het inlezen van de sheet. De lijst
+in `zwift_bike_parts` is op 2026-10-26 met deze code ververst.
+
+**Waarom.** De eigenaar vond dat Snelste fiets niet klopte met andere rekenaars.
+Nagerekend op Spiral Summit (profiel uit `zwift_routes`, de sheet van vandaag,
+die gelijk is aan `zwift_bike_parts` van 25 oktober) en vergeleken met de open
+API van ZwiftBikes (`/api/recommend/spiral-summit`). Twee echte fouten:
+- **De Pinarello Espada stond als racefiets in de lijst** en won elke route met
+  25–50 s voorsprong. De sheet noemt hem "Halo", net als de andere
+  halo-fietsen, maar in Zwift is het de enige halo-tijdritfiets
+  (zwift-data `isTT`, ZwiftInsider "Halo TT"). Daardoor kreeg hij de
+  slipstream van een racefiets en ontsnapte hij aan "geen tijdritfietsen".
+  `kindFromSheet` vraagt nu bij een halo-fiets aan zwift-data of het een
+  tijdritfiets is. Alleen de Espada wijkt af; de andere 134 frames die
+  zwift-data kent kloppen met de sheet.
+- **Drie onderdelen stonden er twee keer in, elk met één meting.** De sheet
+  spelt de 150 W-rij soms anders dan de 300 W-rij: "Swiss Side" en "SwissSide
+  HADRON Ultimate 650" (wielen op de Zwift Carbon), "Van Rysel" en "VanRysel"
+  bij de RCR Pro en de RCR-F. De 300 W-helft van de HADRON kwam daardoor als
+  beste wielset uit de bus. Frames en wielen worden nu gegroepeerd op de naam
+  zonder spaties, leestekens en hoofdletters; de eerste spelling blijft.
+
+Na het herstel staat op Spiral Summit de S-Works Tarmac SL8/SL9 bovenaan, net
+als bij ZwiftBikes. De eerste acht frames liggen binnen 3 s van elkaar; tussen
+de beste wielsets zit ongeveer 1 s. Geen opgeslagen pacingplan gebruikte een van
+de namen die verdwijnen (nagekeken in `event_pacing_plans`).
+
+**Waarom Snelste fiets afwijkt van andere rekenaars (geen fout).** Uitgelegd aan
+de eigenaar: de briefing rekent op stage 0 (ZwiftBikes toont stage 5; op Spiral
+Summit scheelt dat voor de SL8 ruim 20 s), voor de ZwiftInsider-renner (75 kg,
+183 cm) op de mediane zFTP van de ploeg in plaats van 300 W, met 30 % minder
+luchtweerstand in de groep bij een puntenrace of scratch, en op een vast
+vermogen. ZwiftBikes geeft een score op aero en klimmen, geen tijd. De
+onderdelen zelf komen uit dezelfde ZwiftInsider-sheet: wielen liggen dicht bij
+die van ZwiftBikes, wegframes op stage 5 komen bij ons ongeveer 0,003 m² CdA
+gunstiger uit dan bij hen (voor alle frames ongeveer gelijk, dus de rangorde
+verandert er nauwelijks door).
+
+**Bewust niet gebouwd (nog).** Een eigen garage, dus welke frames, welke wielen
+en op welk niveau een lid heeft. Het voorstel ligt bij de eigenaar; dat is een
+nieuwe tabel en dus een migratie. *Gebouwd in de ronde hierboven, "Zwift-garage
+per lid".*
+
+**Gecontroleerd.** Vitest (`zwift-bike-sheet.test.ts`, `bike-advice.test.ts`,
+`pacing-zwift.test.ts`: 57 tests, met een nieuwe test voor de gesplitste HADRON
+en de Espada als tijdritfiets; de twee HADRON-rijen staan nu in de fixture),
+ESLint, `tsc` (alleen de bekende ontbrekende pakketten in deze worktree). De
+doorrekening op Spiral Summit is een tijdelijk script geweest en niet bewaard.
+*Sindsdien gedaan: de lijst is op productie ververst en de briefing lokaal
+bekeken (zie "Fietsen ververst" bij de testperiodes).*
+
 ### Gewijzigd — ZWB Rankings: alle ranglijsten per week
 
-**2026-10-26.** Commit `ecf04cb4`. Geen migratie. Niet gepusht.
+**2026-10-26.** Commit `ecf04cb4`. Geen migratie. Gepusht naar `main` op 2026-10-26 (eigenaar).
 
 **Waarom.** Metronoom, Clubmens en Groeibriljant gingen over vier weken; de
 eigenaar wil alles per week. Er komt elke maandag een nieuwe ZWBriljant-steen
@@ -11459,7 +11740,7 @@ oktober gingen er 18 omhoog, hooguit 114 punten.
 
 ### Gewijzigd — ZWB Rankings: Buitenbeentje en Binnenvetter in km of uren
 
-**2026-10-26.** Commit `d5fd8740`. Geen migratie. Niet gepusht.
+**2026-10-26.** Commit `d5fd8740`. Geen migratie. Gepusht naar `main` op 2026-10-26 (eigenaar).
 
 **Waarom.** De eigenaar: Buitenbeentje stond in km en Binnenvetter in uren;
 beide moeten in allebei te bekijken zijn.
@@ -15360,6 +15641,9 @@ doorrekening met echte data stonden de Pinarello Espada, de Specialized
 PROJECT 74 en de Cannondale R4000 Roller Blade bovenaan, mét Swiss
 Side-wielen. ZwiftInsider test deze fietsen, samen met de Zwift Concept Z1,
 op hun eigen wielen. Die wielen zitten dus al in het verschil van het frame.
+*Correctie 2026-10-26: de Espada is een tijdritfiets; als racefiets stond hij
+daarna ten onrechte bovenaan. Zie "Snelste fiets: Espada is een
+tijdritfiets" in het chronologisch werkplan.*
 Dat gold ook voor de bestaande wielkeuze in het pacingplan sinds 2026-09-21:
 daar kon je wielen op een halo-fiets zetten, en die telden dan dubbel.
 `bike-sheet.ts` zet nu `fixedWheels` bij elk frame dat niet op de wielen van

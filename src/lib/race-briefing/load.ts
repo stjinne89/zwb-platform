@@ -18,12 +18,14 @@ import { loadZrlLive, type ZrlLiveView } from "@/lib/zrl-live/snapshot";
 import { captainTeamIds } from "@/lib/zrl-analysis/load";
 import { loadPacingRoute, type LoadedRoute } from "@/lib/pacing/route-loader";
 import { loadZwiftEventContext } from "@/lib/pacing/ride-context";
-import { adviseBikes, steadySeconds, type BikeAdvice } from "@/lib/pacing/bike-advice";
+import { adviseBikes, steadySeconds, type BikeAdvice, type BikeChoice } from "@/lib/pacing/bike-advice";
+import { loadZwiftGarage } from "@/lib/pacing/zwift-garage";
 import {
   DEFAULT_TEAM_SIZE,
   ZWIFT_REF_HEIGHT_CM,
   ZWIFT_REF_WEIGHT_KG,
   type RaceFormat,
+  type RidePhysics,
 } from "@/lib/pacing/zwift-setup";
 import { MAX_PER_RACE } from "@/lib/teams/zrl-season";
 import { FULL_TEAM_STARTERS } from "@/lib/zrl-live/scoring";
@@ -77,29 +79,45 @@ const RIDE_FORMATS: Record<BriefingFormat, RaceFormat> = { points: "race", scrat
 /**
  * De snelste fietsen op deze route, voor de referentierenner van ZwiftInsider
  * (75 kg, 183 cm) op de mediane zFTP van onze renners, op stage 0: dat stage
- * heeft iedereen die het frame heeft.
+ * heeft iedereen die het frame heeft. Daarnaast de snelste fiets uit de
+ * Zwift-garage van wie kijkt, met dezelfde renner en hetzelfde vermogen, zodat
+ * alleen de fiets verschilt.
  */
 async function bikeAdviceFor(
   eventId: string,
   route: LoadedRoute["route"],
   format: BriefingFormat,
   zftpWkgs: number[],
-): Promise<{ advice: BikeAdvice; wkg: number } | null> {
-  const zwift = await loadZwiftEventContext(createAdminClient(), eventId, route).catch(() => null);
+  viewerId: string,
+): Promise<BriefingBikes | null> {
+  const admin = createAdminClient();
+  const zwift = await loadZwiftEventContext(admin, eventId, route).catch(() => null);
   if (!zwift) return null;
   const sorted = [...zftpWkgs].sort((a, b) => a - b);
   const wkg = sorted.length > 0 ? sorted[Math.floor((sorted.length - 1) / 2)] : BIKE_ADVICE_FALLBACK_WKG;
   const rideFormat = RIDE_FORMATS[format];
-  const advice = adviseBikes({
+  const input = {
     parts: zwift.parts,
     constraints: zwift.constraints,
     setup: { format: rideFormat, frame: null, wheels: null, stage: 0, teamSize: rideFormat === "ttt" ? DEFAULT_TEAM_SIZE : null },
     weightKg: ZWIFT_REF_WEIGHT_KG,
     heightCm: ZWIFT_REF_HEIGHT_CM,
-    seconds: (physics) => steadySeconds(route, physics, wkg * ZWIFT_REF_WEIGHT_KG, ZWIFT_REF_WEIGHT_KG),
-  });
-  return advice && advice.best.length > 0 ? { advice, wkg } : null;
+    seconds: (physics: RidePhysics) => steadySeconds(route, physics, wkg * ZWIFT_REF_WEIGHT_KG, ZWIFT_REF_WEIGHT_KG),
+  };
+  const advice = adviseBikes(input);
+  if (!advice || advice.best.length === 0) return null;
+  const garage = await loadZwiftGarage(admin, viewerId, zwift.parts).catch(() => null);
+  const own = garage ? (adviseBikes({ ...input, garage, garageOnly: true, limit: 1 })?.best[0] ?? null) : null;
+  return { advice, wkg, own, hasGarage: garage !== null };
 }
+
+export type BriefingBikes = {
+  advice: BikeAdvice;
+  wkg: number;
+  /** De snelste fiets uit de Zwift-garage van wie kijkt. */
+  own: BikeChoice | null;
+  hasGarage: boolean;
+};
 
 export type BriefingRider = FieldRider & {
   teamLabel: string | null;
@@ -138,7 +156,7 @@ export type BriefingView = {
   subgroupLabel: string | null;
   route: { loaded: LoadedRoute; keyPoints: RouteKeyPoints } | null;
   /** Snelste fietsen op de route; null zonder Zwift-route, fietslijst of bij een opgelegd frame. */
-  bikes: { advice: BikeAdvice; wkg: number } | null;
+  bikes: BriefingBikes | null;
   powerups: Array<{ powerup: Powerup; percent: number }>;
   /** Labels van eerdere races van deze ronde, in volgorde ("W1", "W2" …). */
   historyLabels: string[];
@@ -454,7 +472,7 @@ export async function loadRaceBriefing(
 
   const ownZftp = (inPen.length > 0 ? inPen : own).map((r) => r.zftpWkg).filter((v): v is number => v !== null && v > 0);
   const bikes =
-    loadedRoute?.route.source === "zwift" ? await bikeAdviceFor(event.id, loadedRoute.route, format, ownZftp) : null;
+    loadedRoute?.route.source === "zwift" ? await bikeAdviceFor(event.id, loadedRoute.route, format, ownZftp, user.id) : null;
 
   const watch = projection ? watchList(projection) : [];
   const powerups = powerupsFromTags(zwiftEvent?.tags);

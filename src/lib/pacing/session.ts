@@ -45,8 +45,10 @@ import {
   type ZwiftEventContext,
 } from "@/lib/pacing/ride-context";
 import { sharedPlanView, type SharedPlanView } from "@/lib/pacing/share";
-import { adviseBikes, type BikeAdvice } from "@/lib/pacing/bike-advice";
+import { adviseBikes, REFERENCE_FRAME, steadySeconds, type BikeAdvice } from "@/lib/pacing/bike-advice";
 import { evaluatePlan } from "@/lib/pacing/plan";
+import { loadZwiftGarage, type ZwiftGarage } from "@/lib/pacing/zwift-garage";
+import { defaultSetup, type RideSetup } from "@/lib/pacing/zwift-setup";
 
 const EVENT_COLUMNS =
   "id, title, type, start_at, gpx_path, distance_km, elevation_m, zwift_event_id, zwift_route_id, laps, parent_event_id";
@@ -66,6 +68,8 @@ type Loaded = {
   zwift: ZwiftEventContext | null;
   /** Uit het receptenboek; alleen voor de luchtweerstand in Zwift. */
   heightCm: number | null;
+  /** Wat het lid in Zwift heeft; null zonder Zwift-route of zonder ingevulde frames. */
+  garage: ZwiftGarage | null;
 };
 
 /**
@@ -124,8 +128,32 @@ async function loadForUser(
       rider,
       zwift,
       heightCm,
+      garage: zwift ? await loadZwiftGarage(admin, access.user.id, zwift.parts) : null,
     },
   };
+}
+
+/**
+ * De opzet waarmee een nieuw plan begint: met een garage de snelste eigen fiets
+ * op deze route, op een vast vermogen (er is nog geen plan om door te rekenen).
+ */
+function startSetup(ctx: Loaded): RideSetup | undefined {
+  if (!ctx.zwift || !ctx.garage) return undefined;
+  const setup = defaultSetup(ctx.zwift.constraints);
+  const advice = adviseBikes({
+    parts: ctx.zwift.parts,
+    constraints: ctx.zwift.constraints,
+    setup,
+    weightKg: ctx.rider.model.weightKg,
+    heightCm: ctx.heightCm,
+    garage: ctx.garage,
+    garageOnly: true,
+    limit: 1,
+    seconds: (physics) => steadySeconds(ctx.loaded.route, physics, ctx.rider.model.cpWatts, ctx.rider.model.weightKg),
+  });
+  const best = advice?.best[0];
+  if (!best) return undefined;
+  return { ...setup, frame: best.frame === REFERENCE_FRAME ? null : best.frame, wheels: best.wheels, stage: best.stage };
 }
 
 export type PacingPageData = {
@@ -139,6 +167,8 @@ export type PacingPageData = {
   ride: RideContext | null;
   /** Zwift: de snelste fietsen voor dit plan; null bij een .gpx-route of opgelegd frame. */
   bikeAdvice: BikeAdvice | null;
+  /** De Zwift-garage van het lid; null als die niet is ingevuld. */
+  garage: ZwiftGarage | null;
   sharedPlans: SharedPlanView[];
   similarRides: ScoredRide[];
   userId: string;
@@ -151,6 +181,7 @@ export type PacingPageData = {
  */
 export async function loadPacingPage(
   eventId: string,
+  options: { garageOnly?: boolean } = {},
 ): Promise<{ ok: true; data: PacingPageData } | { ok: false; error: string }> {
   const result = await loadForUser(eventId);
   if (!result.ok) return result;
@@ -167,7 +198,7 @@ export async function loadPacingPage(
       route: ctx.loaded.route,
       rider: ctx.rider,
       routeSyncedAt: ctx.loaded.routeSyncedAt,
-      ride: rideFor(ctx),
+      ride: rideFor(ctx, startSetup(ctx)),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "";
@@ -219,6 +250,8 @@ export async function loadPacingPage(
               setup: ride.setup,
               weightKg: ctx.rider.model.weightKg,
               heightCm: ctx.heightCm,
+              garage: ctx.garage,
+              garageOnly: options.garageOnly === true,
               seconds: (physics) =>
                 evaluatePlan(plan.segments, ctx.loaded.route, ctx.rider.model, {
                   durability: ctx.rider.durability,
@@ -226,6 +259,7 @@ export async function loadPacingPage(
                 }).totalSeconds,
             })
           : null,
+      garage: ctx.garage,
       sharedPlans,
       similarRides,
       userId: ctx.userId,

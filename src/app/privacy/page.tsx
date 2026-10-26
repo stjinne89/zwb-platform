@@ -185,6 +185,13 @@ export default function PrivacyPage() {
             op je profiel en kun je daar zelf aanpassen.
           </li>
           <li>
+            <strong>Zwift-fietsen:</strong> vul je bij Mijn garage in welke frames,
+            op welk upgradeniveau, en welke wielen je in Zwift hebt, dan bewaren we
+            die lijst om in je pacingplan en in de racebriefing de snelste fiets
+            uit je eigen garage te tonen. Alleen jij ziet die lijst; je past hem
+            aan of maakt hem leeg op dezelfde plek.
+          </li>
+          <li>
             <strong>Lengte en eigen recepten:</strong> vul je je lengte in, dan
             gebruiken we die om de porties in het receptenboek op jou af te
             stemmen en om in je pacingplan voor een Zwift-event je luchtweerstand
