@@ -11396,6 +11396,35 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gewijzigd — Zwift-garage: upgradeniveau als streepjes in tenuekleuren
+
+**2026-10-26.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Geen migratie.
+
+**Waarom.** De eigenaar wilde het niveau van een fiets zien in een beeld dat bij
+de upgrade past: goud op het hoogste niveau, daaronder teruglopend door de
+ZWB-kleuren.
+
+**Wat.**
+- `StagePips` (`src/components/stage-pips.tsx`): vijf oplopende streepjes zoals
+  in de garage van Zwift; gevuld tot het niveau, in de kleur van dat niveau.
+  Lege streepjes zijn een omlijning, anders viel salie op licht weg tegen grijs.
+- Kleuren `--zwb-stage-1` t/m `--zwb-stage-5` in `globals.css`: goud, teal,
+  petrol, salie en lichte salie. Op donker dezelfde volgorde in lichtere tinten
+  (zoals de ZWBlokken-schaal), omdat petrol en teal daar wegvallen.
+- Gebruikt op `/mijn-garage/zwift` naast de stagekeuze, bij Snelste fiets in
+  het pacingplan als de niveaus per frame verschillen (garage), naast Upgrade in
+  de opzet, en bij de regel Jij in de briefing (het label is nu "Jij"; de stage
+  staat in de streepjes).
+- Goud blijft klein (streepjes, geen tekst), conform de Goudregel in DESIGN.md.
+
+**Bewust niet.** Eerst kwam de stagekeuze bij elk frame zichtbaar, ook zonder
+vinkje; de eigenaar wilde dat niet ("is goed zo"), dus teruggedraaid.
+
+**Gecontroleerd.** Lokaal in de browser op `/mijn-garage/zwift`, licht en
+donker, met stage 5 t/m 2 in het formulier (niet opgeslagen). `tsc`, ESLint en
+`bike-advice.test.ts` groen. **Niet gezien:** de streepjes in het pacingplan en
+de briefing (daarvoor moet er een garage opgeslagen zijn op productie).
+
 ### Gewijzigd — Zwift-garage: fietsen buiten de garage op stage 0
 
 **2026-10-26.** Commit `b57683ff`, lokaal, niet gepusht. Geen migratie.

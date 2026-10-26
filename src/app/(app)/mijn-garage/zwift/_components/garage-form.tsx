@@ -6,6 +6,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { StagePips } from "@/components/stage-pips";
 import type { BikeKind } from "@/lib/pacing/zwift-setup";
 import { saveZwiftGarage } from "../_actions";
 
@@ -122,6 +123,7 @@ export function ZwiftGarageForm({
                     <span className="block text-xs text-muted-foreground">{KIND_LABELS[frame.kind]}</span>
                   </span>
                 </label>
+                {checked && <StagePips stage={owned[frame.name]} className="shrink-0" />}
                 {checked && (
                   <select
                     value={owned[frame.name]}

@@ -68,6 +68,13 @@
   --zwb-gold: #b8873d;
   --zwb-meter: var(--zwb-teal);
   --zwb-meter-over: var(--zwb-gold);
+  /* Upgradeniveau van een Zwift-frame: goud bovenaan, dan teruglopend door de
+     tenuekleuren (StagePips). */
+  --zwb-stage-5: var(--zwb-gold);
+  --zwb-stage-4: var(--zwb-teal);
+  --zwb-stage-3: var(--zwb-petrol);
+  --zwb-stage-2: var(--zwb-sage);
+  --zwb-stage-1: #b4c2be;
 
   /* ZWBlokken-kaart. Als losse RGB-tripletten omdat een canvas geen CSS
      variabelen kent: de laag leest ze uit en bouwt er zelf rgba() mee.
@@ -129,6 +136,12 @@
   /* Teal verdwijnt op de nachtpetrol; de balken nemen de lichtere tinten. */
   --zwb-meter: rgb(60 130 140);
   --zwb-meter-over: rgb(214 172 96);
+  /* Petrol en teal verdwijnen op donker: dezelfde volgorde in lichtere tinten. */
+  --zwb-stage-5: rgb(214 172 96);
+  --zwb-stage-4: rgb(110 200 210);
+  --zwb-stage-3: rgb(60 130 140);
+  --zwb-stage-2: #7f9590;
+  --zwb-stage-1: #4f6461;
 
   --background: oklch(0.16 0.025 220);              /* deep petrol */
   --foreground: oklch(0.97 0.005 80);

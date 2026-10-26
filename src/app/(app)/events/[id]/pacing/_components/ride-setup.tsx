@@ -6,6 +6,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { StagePips } from "@/components/stage-pips";
 import {
   FORMAT_LABELS,
   RACE_FORMATS,
@@ -156,7 +157,9 @@ export function RideSetupForm({
 
         {!upgradesDisabled && stages.length > 1 && (
           <label className="grid gap-1 text-sm">
-            <span className="font-medium">Upgrade</span>
+            <span className="flex items-center gap-2 font-medium">
+              Upgrade <StagePips stage={stage} />
+            </span>
             <select
               value={stage}
               onChange={(event) => setStage(Number(event.target.value))}

@@ -135,7 +135,7 @@ function Bikes({ view }: { view: BriefingView }) {
   const { advice, wkg: riderWkg, own, hasGarage } = view.bikes;
   const reference = advice.best.some((row) => row.frame === advice.current.frame && row.wheels === advice.current.wheels);
   const rows: BikeAdviceRow[] = reference ? advice.best : [...advice.best, advice.current];
-  if (own) rows.push({ ...own, label: `Jij · stage ${own.stage}` });
+  if (own) rows.push({ ...own, label: "Jij", showStage: true });
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
