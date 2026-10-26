@@ -17,6 +17,7 @@
 //
 // Puur: CSV erin, onderdelen eruit. Het ophalen staat in bike-sync.ts.
 
+import { bikeFrames } from "zwift-data";
 import { AIR_DENSITY, DRIVETRAIN_EFF, G } from "@/lib/ride-estimate";
 import { wheelTestFrame, type BikeKind, type BikePart } from "@/lib/pacing/zwift-setup";
 
@@ -84,11 +85,25 @@ const number = (value: string | undefined) => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };
 
-function kindFromSheet(value: string): BikeKind | null {
+/**
+ * Sleutel voor één onderdeel. De sheet spelt soms de 150 W-rij anders dan de
+ * 300 W-rij ("Swiss Side" en "SwissSide", "Van Rysel" en "VanRysel"); zonder
+ * deze sleutel werden dat twee onderdelen met elk één meting. 2026-10-26.
+ */
+const nameKey = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/**
+ * De sheet noemt elke halo-fiets "Halo", maar de Pinarello Espada is in Zwift
+ * een tijdritfiets (ZwiftInsider: "Halo TT"). zwift-data weet het per frame.
+ */
+const TT_FRAME_KEYS = new Set(bikeFrames.filter((frame) => frame.isTT).map((frame) => nameKey(frame.name)));
+
+function kindFromSheet(value: string, name: string): BikeKind | null {
   switch (clean(value).toLowerCase()) {
     case "road":
-    case "halo":
       return "road";
+    case "halo":
+      return TT_FRAME_KEYS.has(nameKey(name)) ? "tt" : "road";
     case "tt":
       return "tt";
     case "gravel":
@@ -130,7 +145,7 @@ export function parseFramesTab(csv: string): SheetFrame[] {
   const map = new Map<string, SheetFrame>();
   for (const row of rows.slice(header + 1)) {
     const name = clean(row[0]);
-    const kind = kindFromSheet(row[2]);
+    const kind = kindFromSheet(row[2], name);
     const powerW = number(row[7]);
     if (!name || !kind || !powerW) continue;
     for (let stage = 0; stage <= 5; stage++) {
@@ -139,7 +154,7 @@ export function parseFramesTab(csv: string): SheetFrame[] {
       if (!flatMph || !climbMph) continue;
       addTest(
         map,
-        `${name}|${stage}`,
+        `${nameKey(name)}|${stage}`,
         () => ({ name, wheels: clean(row[1]), kind, stage, tests: [] }),
         { powerW, flatMph, climbMph },
       );
@@ -160,7 +175,7 @@ export function parseWheelsTab(csv: string): SheetWheel[] {
     const flatMph = number(row[7]);
     const climbMph = number(row[9]);
     if (!frame || !name || !powerW || !flatMph || !climbMph) continue;
-    addTest(map, `${frame}|${name}`, () => ({ frame, name, tests: [] }), {
+    addTest(map, `${frame}|${nameKey(name)}`, () => ({ frame, name, tests: [] }), {
       powerW,
       flatMph,
       climbMph,

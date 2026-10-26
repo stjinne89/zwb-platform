@@ -12,7 +12,8 @@ import { ZWIFT_BASE_BIKE_KG, ZWIFT_BASE_CDA } from "@/lib/pacing/zwift-setup";
 
 // Uitsnede van de echte sheet (21 september 2026): een handvol frames, wielen
 // en het volledige basistabblad. De Pinarello Espada (halo, eigen wielen) kwam
-// er op 20 oktober 2026 bij.
+// er op 20 oktober 2026 bij, de twee spellingen van de Swiss Side HADRON
+// Ultimate 650 op 26 oktober.
 const read = (name: string) =>
   readFileSync(path.join(__dirname, "..", "fixtures", "zwift", name), "utf8");
 
@@ -34,6 +35,13 @@ describe("tabbladen", () => {
     expect(sl8[0].tests.map((test) => test.powerW).sort()).toEqual([150, 300]);
   });
 
+  it("voegt een anders gespelde 150 W-rij samen met de 300 W-rij", () => {
+    const hadron = wheels.filter((wheel) => wheel.name.includes("HADRON Ultimate 650"));
+    expect(hadron).toHaveLength(1);
+    expect(hadron[0].name).toBe("Swiss Side HADRON Ultimate 650");
+    expect(hadron[0].tests.map((test) => test.powerW).sort()).toEqual([150, 300]);
+  });
+
   it("slaat fun bikes over", () => {
     expect(frames.some((frame) => frame.name === "Zwift MX Rider")).toBe(false);
   });
@@ -48,7 +56,8 @@ describe("afgeleide onderdelen", () => {
   it("een halo-fiets heeft vaste wielen, een gewone fiets niet", () => {
     const frame = (name: string) => catalog.parts.find((item) => item.part === "frame" && item.name === name)!;
     expect(frame("Pinarello Espada").fixedWheels).toBe(true);
-    expect(frame("Pinarello Espada").kind).toBe("road");
+    // De enige halo-tijdritfiets; de sheet zegt alleen "Halo".
+    expect(frame("Pinarello Espada").kind).toBe("tt");
     expect(frame("Specialized Tarmac SL8").fixedWheels).toBe(false);
     expect(frame("Zwift TT").fixedWheels).toBe(false);
   });

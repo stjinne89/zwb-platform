@@ -299,7 +299,9 @@ gaat stabiliteit voor nieuwe features.
 10. **Snelste fiets in pacingplan en briefing** (ronde van 2026-10-20 hieronder):
    gebouwd, lokaal getest en op 2026-10-20 gepusht naar `main`. Migratie
    `0262_zwift_bike_fixed_wheels.sql` is toegepast. Open: beide schermen in
-   de browser bekijken.
+   de browser bekijken. Op 2026-10-26 hersteld (Espada als tijdritfiets,
+   gesplitste namen in de sheet); open: na de deploy "Fietsen ophalen" op
+   `/beheer/zwift-routes`, en de keuze van de eigenaar over een eigen garage.
 11. **ZRS van vroeger per race bewaard** (ronde van 2026-10-23 hieronder):
    gebouwd, lokaal getest en op 2026-10-23 gepusht naar `main`. Migratie
    `0271_zwift_race_scores.sql` is toegepast. Open: op cron-job.org een job
@@ -11390,6 +11392,59 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Snelste fiets: Espada is een tijdritfiets, gesplitste namen in de sheet
+
+**2026-10-26.** Commit `COMMIT_HASH`. Geen migratie: het herstel zit in het
+inlezen van de sheet. Op productie pas na een deploy en daarna "Fietsen ophalen"
+op `/beheer/zwift-routes`; tot dan staat de oude lijst in `zwift_bike_parts`.
+
+**Waarom.** De eigenaar vond dat Snelste fiets niet klopte met andere rekenaars.
+Nagerekend op Spiral Summit (profiel uit `zwift_routes`, de sheet van vandaag,
+die gelijk is aan `zwift_bike_parts` van 25 oktober) en vergeleken met de open
+API van ZwiftBikes (`/api/recommend/spiral-summit`). Twee echte fouten:
+- **De Pinarello Espada stond als racefiets in de lijst** en won elke route met
+  25–50 s voorsprong. De sheet noemt hem "Halo", net als de andere
+  halo-fietsen, maar in Zwift is het de enige halo-tijdritfiets
+  (zwift-data `isTT`, ZwiftInsider "Halo TT"). Daardoor kreeg hij de
+  slipstream van een racefiets en ontsnapte hij aan "geen tijdritfietsen".
+  `kindFromSheet` vraagt nu bij een halo-fiets aan zwift-data of het een
+  tijdritfiets is. Alleen de Espada wijkt af; de andere 134 frames die
+  zwift-data kent kloppen met de sheet.
+- **Drie onderdelen stonden er twee keer in, elk met één meting.** De sheet
+  spelt de 150 W-rij soms anders dan de 300 W-rij: "Swiss Side" en "SwissSide
+  HADRON Ultimate 650" (wielen op de Zwift Carbon), "Van Rysel" en "VanRysel"
+  bij de RCR Pro en de RCR-F. De 300 W-helft van de HADRON kwam daardoor als
+  beste wielset uit de bus. Frames en wielen worden nu gegroepeerd op de naam
+  zonder spaties, leestekens en hoofdletters; de eerste spelling blijft.
+
+Na het herstel staat op Spiral Summit de S-Works Tarmac SL8/SL9 bovenaan, net
+als bij ZwiftBikes. De eerste acht frames liggen binnen 3 s van elkaar; tussen
+de beste wielsets zit ongeveer 1 s. Geen opgeslagen pacingplan gebruikte een van
+de namen die verdwijnen (nagekeken in `event_pacing_plans`).
+
+**Waarom Snelste fiets afwijkt van andere rekenaars (geen fout).** Uitgelegd aan
+de eigenaar: de briefing rekent op stage 0 (ZwiftBikes toont stage 5; op Spiral
+Summit scheelt dat voor de SL8 ruim 20 s), voor de ZwiftInsider-renner (75 kg,
+183 cm) op de mediane zFTP van de ploeg in plaats van 300 W, met 30 % minder
+luchtweerstand in de groep bij een puntenrace of scratch, en op een vast
+vermogen. ZwiftBikes geeft een score op aero en klimmen, geen tijd. De
+onderdelen zelf komen uit dezelfde ZwiftInsider-sheet: wielen liggen dicht bij
+die van ZwiftBikes, wegframes op stage 5 komen bij ons ongeveer 0,003 m² CdA
+gunstiger uit dan bij hen (voor alle frames ongeveer gelijk, dus de rangorde
+verandert er nauwelijks door).
+
+**Bewust niet gebouwd (nog).** Een eigen garage, dus welke frames, welke wielen
+en op welk niveau een lid heeft. Het voorstel ligt bij de eigenaar; dat is een
+nieuwe tabel en dus een migratie.
+
+**Gecontroleerd.** Vitest (`zwift-bike-sheet.test.ts`, `bike-advice.test.ts`,
+`pacing-zwift.test.ts`: 57 tests, met een nieuwe test voor de gesplitste HADRON
+en de Espada als tijdritfiets; de twee HADRON-rijen staan nu in de fixture),
+ESLint, `tsc` (alleen de bekende ontbrekende pakketten in deze worktree). De
+doorrekening op Spiral Summit is een tijdelijk script geweest en niet bewaard.
+**Niet geverifieerd:** de lijst op productie na "Fietsen ophalen", en het blok in
+de app.
+
 ### Gewijzigd — Racebriefje: KOM's als moment, profiel zonder overlap
 
 **2026-10-26.** Commit `6ece137a`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
@@ -15196,6 +15251,9 @@ doorrekening met echte data stonden de Pinarello Espada, de Specialized
 PROJECT 74 en de Cannondale R4000 Roller Blade bovenaan, mét Swiss
 Side-wielen. ZwiftInsider test deze fietsen, samen met de Zwift Concept Z1,
 op hun eigen wielen. Die wielen zitten dus al in het verschil van het frame.
+*Correctie 2026-10-26: de Espada is een tijdritfiets; als racefiets stond hij
+daarna ten onrechte bovenaan. Zie "Snelste fiets: Espada is een
+tijdritfiets" in het chronologisch werkplan.*
 Dat gold ook voor de bestaande wielkeuze in het pacingplan sinds 2026-09-21:
 daar kon je wielen op een halo-fiets zetten, en die telden dan dubbel.
 `bike-sheet.ts` zet nu `fixedWheels` bij elk frame dat niet op de wielen van
