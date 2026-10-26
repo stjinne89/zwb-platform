@@ -13,6 +13,7 @@ import {
   powerProfileStale,
   snapshotFrom,
   terugblikRows,
+  weightOnOrBefore,
   zrsAtMonthEnd,
   type KnownRace,
 } from "@/lib/briljant/snapshot";
@@ -185,6 +186,21 @@ describe("snapshot", () => {
     expect(power).toEqual({ s15: 12, m1: 7.4, m5: 4.8, m20: 4 });
     expect(powerFromCurve([], 75)).toBeNull();
     expect(powerFromCurve([{ seconds: 60, watts: 555 }], null)).toEqual({ s15: null, m1: null, m5: null, m20: null });
+  });
+
+  it("neemt het laatste gewicht op of vóór het maandeinde", () => {
+    const wellness = [
+      { id: "2026-07-31", weight: 0 },
+      { id: "2026-08-12", weight: 78.4 },
+      { id: "2026-08-20" },
+      { id: "2026-09-03", weight: 77.1 },
+      { id: "2026-09-30", weight: 76.5 },
+    ];
+    expect(weightOnOrBefore(wellness, "2026-07-31")).toBeNull();
+    expect(weightOnOrBefore(wellness, "2026-08-31")).toBe(78.4);
+    expect(weightOnOrBefore(wellness, "2026-09-30")).toBe(76.5);
+    // De volgorde van intervals.icu maakt niet uit.
+    expect(weightOnOrBefore([...wellness].reverse(), "2026-09-29")).toBe(77.1);
   });
 
   it("geeft de maandeinden van het afgelopen jaar en het bereik van 90 dagen", () => {
