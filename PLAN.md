@@ -11344,7 +11344,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — ZWBriljant: terugblik rekent met het gewicht van toen
 
-**2026-10-26.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet gepusht.
+**2026-10-26.** Commit `66999765`. Geen migratie. Gepusht naar `main` op 2026-10-26.
 
 **Waarom.** De terugblik zocht het gewicht alleen in de wellness van precies het
 maandeinde (`byDay.get(end)`). Wie zich die dag niet woog, kreeg voor die maand het
