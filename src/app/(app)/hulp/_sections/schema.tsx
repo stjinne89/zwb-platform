@@ -371,7 +371,8 @@ export function SchemaHelp() {
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Je ziet alleen schema&apos;s van leden die jou als trainer hebben
-              aangewezen, gemaakt vanaf 17 september 2026. Titels,
+              aangewezen, gemaakt door Claude vanaf 26 oktober 2026: oudere
+              schema&apos;s volgden nog niet dezelfde regels als de motor. Titels,
               samenvattingen en aandachtspunten blijven weg, omdat die de motor
               verraden; je beoordeelt de trainingen zelf. Bij een
               dagaanpassing staat onder de datum wat er gepland was, en

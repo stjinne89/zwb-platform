@@ -17838,7 +17838,8 @@ op een generatie die je al beoordeelde. *Bewust niet:* titel, samenvatting en
 aandachtspunten van de schema's tonen — die van de motor zijn sjabloonzinnen en
 verraden hem; de workouttitels, -beschrijvingen en de schrijfwijze van de
 blokdoelen ("RPE 2-3, 155-207w" tegen "173-224 W") doen dat deels ook, dat is
-niet te vermijden zonder de inhoud weg te halen. Generaties van vóór 2026-09-17 —
+niet te vermijden zonder de inhoud weg te halen. *(Grens bijgesteld op 2026-10-26, zie
+hieronder: nu alleen Claude-generaties vanaf die dag.)* Generaties van vóór 2026-09-17 —
 die prompt kende nog niet alle regels, zelfde grens als het naspelen. Een
 overzicht over trainers heen: komt pas als er oordelen zijn. Dagaanpassingen
 waarin geen van beide iets wijzigt overslaan: dat vraagt per paginalading de
@@ -17855,6 +17856,144 @@ dagaanpassing naast elkaar, het formulier, en de ontblinding met een tijdelijk
 in de code gezet oordeel dat daarna weer is weggehaald. tsc groen; volledige
 testsuite groen op twee PGlite/pacing-tests na die onder volle belasting een
 time-out gaven en los slagen. Niet gepusht.
+
+**Literatuurtoets en pilotvoorstel, 2026-10-26.** Commit `3504645`; bijgewerkt na
+het samenvoegen met `main` in de commit daarna. Geen migratie. Naast de meetlat (regels van de prompt) een tweede
+maat: legt AI en motor langs drie maatstaven uit onderzoek —
+intensiteitsverdeling (Treff 2019, Rosenblat 2025, Esteve-Lanao 2007, Seiler
+2010), taper (Bosquet 2007, Wang 2023) en onderbreking van meer dan tien dagen
+(Mujika & Padilla 2000/2001). Bronnen nagekeken in PubMed. Code:
+`src/lib/training/literature-check.ts` (puur), tests in
+`tests/unit/literature-check.test.ts`, tellingen met
+`scripts/engine-literature.mjs` op een verse export (532 generaties, waarvan 241
+nieuwe schema's en bijwerkingen). Rapport en conclusie:
+[docs/regelmotor-literatuurtoets.md](docs/regelmotor-literatuurtoets.md).
+**Uitkomst (bijgewerkt na het samenvoegen met `main`, 2026-10-26):** de
+literatuur kiest niet tussen AI en motor. De AI-kant zijn oude antwoorden (235
+GPT-5.5, 4 Claude), gemaakt vóór de 90-minutenregel en de indoorregel van
+2026-10-26; de kolom "AI nu" past de 90-minutenregel er alsnog op toe, de
+indoorregel is op oude antwoorden niet na te spelen. De motor maakt bij leden die
+indoor of op dagen van 60-90 minuten trainen een verdeling met evenveel
+tempo/drempel als rustig (13 % van de recente nieuwe schema's sinds het herstel
+hieronder, daarvoor 20 %): de 90-minutenregel
+laat daar alleen kwaliteitssessies over. Dat volgt uit de keuze van de eigenaar
+en is geen motorfout; dat het op gespannen voet staat met de literatuur over
+verdelingen (die komt van sporters met veel uren), is een besluit voor de
+eigenaar. *(Niet meer waar: de eerdere zin hier dat de motor bij één à twee ritten
+per week ten onrechte elke rit een sleutelsessie maakt; dat bleek de
+90-minutenregel bij een indoorlid met dagen van 60 minuten.)* **Wel een
+motorfout, gevonden via dezelfde gevallen:** waar een lid lange dagen had,
+maakte de motor van zijn korte rustige ritten rustdagen in plaats van ze 90
+minuten of langer te maken, en plande hij ver onder zijn eigen weekdoel
+(voorbeeld: doel 3,2-5,2 uur, gepland ~1,7 uur); het aandeel motorbijwerkingen
+met een fout steeg van 11 % naar 30 %. *(Niet meer waar: dat dit open stond en dat
+`docs/regelmotor-naspelen.md` nog 11 % toonde. Hersteld in de ronde "Rustige
+ritten op lange dagen" hieronder; het aandeel is nu 13 %.)* Verder: de
+AI hield in 6 van de 33 oude nieuwe schema's meer dan tien dagen vóór het einde op
+met plannen, de motor nergens; een taper was maar in één schema te toetsen.
+`scripts/engine-export.mjs` neemt nu ook het model mee.
+*Bewust niet getoetst:* lange ritten (literatuur alleen
+beschrijvend), opbouw per week (zit al in de meetlat), aantal sleutelsessies en
+één VO2max-prikkel bij ZRL (eigen keuzes zonder bron), dagaanpassingen (geen eigen
+verdeling). *Beperkingen:* getoetst wordt het plan, niet wat er gereden is; de
+zones zijn benaderd via %FTP-labels; binnen de bandbreedtes blijven bewijst niet
+dat een schema beter traint.
+**Pilotvoorstel**, niets gebouwd:
+[docs/crossover-pilot-voorstel.md](docs/crossover-pilot-voorstel.md). AB/BA-crossover,
+twee periodes van zes weken, naleving als primaire uitkomst en een vooraf
+vastgelegd niet-inferioriteitsbesluit; met 18 leden met een schema kan de proef
+niet aantonen dat de motor fitter maakt, alleen of hij in de praktijk niet slechter
+is. Vraagt een pilotschakelaar in `draft.ts`, twee kleine migraties (wie welke arm
+heeft; wie een workout wijzigde — dat laatste wordt nu nergens vastgelegd), een
+opt-in met aangepaste privacytekst (eerst voorleggen) en een vraag aan het lid na
+elke periode. **Wacht op besluit van de eigenaar.** tsc groen; volledige
+testsuite groen op twee PGlite-tests na die onder volle belasting faalden en los
+slagen. Niet gepusht.
+
+**Vergelijken alleen op Claude-generaties, 2026-10-26.** Commits `a4912e4` en
+`5d3c197`. Geen migratie (0247 bleek al toegepast). Het tabblad
+Vergelijken toont nu alleen generaties van Claude vanaf 2026-10-26
+(`COMPARISON_SINCE`, `COMPARISON_MODEL_PREFIX` en `isComparableGeneration()` in
+`engine-comparison.ts`), en de teller telt alleen oordelen op die generaties.
+**Waarom:** de GPT-antwoorden van daarvoor zijn gemaakt zonder de 90-minutenregel
+en de indoorregel van 2026-10-26, die de motor wel volgt; wie die paren
+beoordeelt, vergelijkt oude met nieuwe regels in plaats van AI met motor (zie de
+literatuurtoets hierboven). Besluit eigenaar: stoppen met beoordelen van de oude
+paren, later verder op de nieuwe. Op 2026-10-26 stonden er 22 oordelen in
+productie, waarvan 3 op Claude-generaties (van de 5 die er toen waren); de
+overige 19 blijven bewaard en tellen niet mee. `/hulp#vergelijken` noemt de
+nieuwe grens. **Zinvol oordelen pas** als de volumefout van de motor (korte
+rustige ritten worden rustdagen) is opgelost — gedaan in `ba23fd24`, zie de
+volgende alinea — en er genoeg Claude-generaties zijn. Lokaal in de browser bekeken (als trainer van de
+eigenaar): de lijst toont drie Claude-bijwerkingen van 2026-10-26, alle drie
+beoordeeld, teller "3 oordelen · motor 0 · AI 3 · gelijk 0"; de andere twee
+Claude-generaties horen bij leden die deze trainer niet coacht. In het getoonde
+paar plant de motor 1:20 u tegen 3:00 u bij de AI in dezelfde week: de volumefout
+hierboven. Filter en telling getest in `tests/unit/engine-comparison.test.ts`,
+aantallen met een SQL-query op productie nagekeken. Gepusht naar `main` op
+2026-10-26, samen met de volgende twee alinea's.
+
+**Rustige ritten op lange dagen, 2026-10-26.** Commit `ba23fd24`. Geen migratie. *Waarom:* sinds de 90-minutenregel (`022cbede`) verdeelde
+`allocateMinutes()` het weekbudget nog gelijk over alle ritten. Een lid dat veel
+korte ritten gewend is (vijf à zes per week van 35-40 minuten) kreeg zo ritten van
+rond een uur, die `buildDay()` stuk voor stuk tot rustdag maakte, ook op dagen met
+180 minuten tijd; over bleven twee kwaliteitssessies (~1,7 uur bij een weekdoel van
+3,2-5,2 uur). *Wat:* in `compose.ts` brengt `gatherEasyRides()` na het verdelen de
+minuten van de rustige duurritten samen op zo min mogelijk dagen met minstens 90
+minuten tijd: die ritten worden 90 minuten of langer (tot de tijd van de dag), de
+rest wordt rustdag. Scheelt het maar een paar minuten (een rit van 85 minuten
+zonder andere rustige rit om van te lenen), dan wordt de rit toch 90 als de week
+daardoor minder boven haar doel komt dan ze er anders onder zou zakken. Het
+inkorten van de langste duurrit, als een sleutelsessie langer uitvalt dan zijn
+deel, gaat bij een rustige rit niet meer onder de 90 minuten (die rit werd anders
+alsnog een rustdag terwijl hij in de uitvoer bleef staan). Dagen onder 90 minuten
+blijven zoals ze waren: daar komt geen rustige rit, alleen een kwaliteitssessie of
+een lege dag. Tests: een lid met ma 60, di 90, wo 60, do 60, vr 180, za 120, zo 180
+krijgt elke week rustige ritten van minstens 90 minuten en haalt 85 % van het
+weekdoel; een lid met alleen dagen tot 75 minuten krijgt geen rustige rit; de
+hersteltest kreeg twee dagen van 60 minuten, omdat bij de standaardinvoer geen rit
+meer wegvalt. *Naspelen* (verse export, 533 generaties; vanaf 2026-09-17):
+bijwerkingen met een fout bij de motor 30 % → 13 % (AI 83 %), nieuwe schema's
+60 % → 27 % (AI 100 %); `docs/regelmotor-naspelen.md` en de literatuurtoets zijn
+opnieuw gegenereerd. *Meetlat zelf, gecontroleerd:* `970b8b22` toetst piekweek en
+ondergrens sinds die ochtend in TSS tegen CTL × 7 in plaats van in uren. Met de
+meetlat van vóór die commit geeft dezelfde motor 17 % (bijwerkingen) en de motor
+van vóór de 90-minutenregel 8 %; met de nieuwe meetlat haalt de motor van vóór de
+90-minutenregel op de belastingregels 13 %, maar faalt hij op 91 % door
+`korte-herstelrit`. De nieuwe meetlat oordeelt dus niet strenger over de motor; het
+verschil met het oude foutaandeel komt van de 90-minutenregel zelf. Van de
+resterende fouten die met de oude samenstelling niet optraden, zijn er vijf van
+één lid met alleen dagen tot 60 minuten naast de lange rit en één van een lid
+met twee dagen van 60 minuten naast sleutelsessies: daar vallen rustige ritten
+bewust weg en haalt de week de CTL-belasting niet. *Bewust niet:* die korte dagen
+vullen met extra kwaliteitssessies (de motor plant nog twee à drie sleutelsessies
+uit de periodisering en geen "dichtheid" zoals de prompt sinds `970b8b22`; dat is
+een eigen ontwerpkeuze) en de vrijgekomen minuten naar intensieve duur of een
+langere lange rit sturen (verandert het karakter van die ritten). *Gevonden, niet
+in deze ronde:* bij de dagelijkse aanpassing heeft de motor 10 % `korte-herstelrit`
+(voorheen 0 %): de meetlat past de 90-minutenregel sinds `022cbede` ook op de
+dag-aanpassing toe, terwijl die volgens dezelfde commit de oude regel houdt.
+`npx vitest run tests/unit/engine` en `npx tsc --noEmit` groen. Gepusht naar `main`
+op 2026-10-26.
+
+**Beslisregel blind vergelijken, vastgelegd 2026-10-26 (vóór het beoordelen).**
+Besluit eigenaar: trainers beoordelen op het tabblad Vergelijken tot en met
+**2026-11-15**; daarna wordt de stand opgemaakt. Geteld worden alleen oordelen
+op Claude-generaties vanaf 2026-10-26, zonder de oordelen "gelijk":
+- **AI wint duidelijk** — bij 30 oordelen 21-9 of schever (tweezijdige tekentoets
+  p < 0,05), naar rato bij een ander aantal: geen praktijktest. Eerst de motor
+  verbeteren aan de hand van de ingevulde redenen.
+- **Dicht bij elkaar** — alles daartussen, of meer dan de helft "gelijk": de
+  crossover-pilot uit [docs/crossover-pilot-voorstel.md](docs/crossover-pilot-voorstel.md).
+- **Motor wint duidelijk** — de pilot toch, als veiligheidscheck vóór een
+  overstap: het oordeel komt grotendeels van één trainer en de blindheid lekt
+  deels via de schrijfstijl.
+Onder de 30 oordelen zonder gelijkspel zegt de stand te weinig; dan wordt de
+periode verlengd in plaats van beslist. Afspraken voor de periode: de motor blijft
+bevroren tot 2026-11-15 (alleen echte fouten herstellen, en die dan hier
+vermelden met datum), bijwerkingen en nieuwe schema's gaan voor dagaanpassingen,
+en een reden invullen waar het kan. Een tweede trainer die meebeoordeelt, maakt
+de stand sterker.
 
 ### Opgeleverd — Meetlat voor trainingsschema's, met nulmeting van de AI
 
