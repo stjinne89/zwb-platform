@@ -11392,6 +11392,34 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gewijzigd — ZWB Rankings: alle ranglijsten per week
+
+**2026-10-26.** Commit `COMMIT_HASH`. Geen migratie. Niet gepusht.
+
+**Waarom.** Metronoom, Clubmens en Groeibriljant gingen over vier weken; de
+eigenaar wil alles per week. Er komt elke maandag een nieuwe ZWBriljant-steen
+(weekstenen sinds 2026-10-19), dus de groei kan tegen die van vorige week, ook
+al is het verschil klein.
+
+**Wat.**
+- Metronoom (dagen gefietst) en Clubmens (events met ja en live-dagen) tellen
+  alleen de gekozen week. Bij gelijke stand blijft de plek gedeeld; de volgorde
+  binnen de stand gaat op uren (Metronoom) of events (Clubmens).
+- `briljantGrowth` vergelijkt de steen van de week met die van de week ervoor;
+  zonder steen in beide weken doe je niet mee, alleen groei telt. In punten, zoals
+  op de steen (0,1 op de score is 10 punten). `loadGrowthSnapshots` haalt alleen
+  die twee weken op.
+- Het label "4 weken" en `LONG_WEEKS` zijn weg. Hulp en privacy (`/privacy`:
+  "sinds vorige week" in plaats van "in vier weken") zeggen het mee.
+- Gevolg: "Vorige week" (week van 19 oktober) heeft voor Groeibriljant nog geen
+  vergelijking, want van 12 oktober is er geen steen; vanaf volgende week wel.
+
+**Gecontroleerd.** Vitest (`rankings.test.ts`: groei week op week, overslaan
+zonder steen in een van beide weken), `tsc` (alleen de bekende ontbrekende
+pakketten), ESLint. Productie gelezen: van de 26 leden met een steen op 19 en 26
+oktober gingen er 18 omhoog, hooguit 114 punten.
+**Niet geverifieerd:** in de browser.
+
 ### Gewijzigd — ZWB Rankings: Buitenbeentje en Binnenvetter in km of uren
 
 **2026-10-26.** Commit `d5fd8740`. Geen migratie. Niet gepusht.
@@ -11446,7 +11474,9 @@ de meeste uren, meer ranglijsten, en lijstjes met alleen de top 3.
     een eventdag telt niet apart) en **Groeibriljant** (punten erbij op de
     ZWBriljant-steen: laatste steen van hooguit twee weken oud tegen de laatste
     die minstens vier en hooguit negen weken eerder ligt, `briljantGrowth` in
-    `lib/briljant/compare.ts`; alleen groei).
+    `lib/briljant/compare.ts`; alleen groei). *Niet meer zo: sinds de ronde
+    "Alle ranglijsten per week" gaan ook deze drie over één week, en vergelijkt
+    Groeibriljant de steen van de week met die van de week ervoor.*
 - Groeibriljant leest met de sessie van het lid (`loadGrowthSnapshots`), dus RLS
   beslist: alleen wie deelt staat erin, en wie zijn steen verbergt ziet niemand.
   Je eigen stenen tellen alleen als je voorkeur zichtbaar staat, zoals anderen je zien.

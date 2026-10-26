@@ -1,5 +1,5 @@
-// ZWB Rankings: de ranglijsten van een week en van de vier weken ervoor. Puur; de
-// pagina levert ritten, aanmeldingen en live-ritten. Alles telt uit elke bron
+// ZWB Rankings: de ranglijsten van een week. Puur; de pagina levert ritten,
+// aanmeldingen, live-ritten en ZWBriljant-stenen. Alles telt uit elke bron
 // (Strava, intervals.icu, import), daarom geen kudos: die heeft alleen Strava.
 
 import { weeklyScores, type ActivityRow, type WeekScore } from "@/lib/achievements/awards";
@@ -8,8 +8,6 @@ import type { BriljantGrowth } from "@/lib/briljant/compare";
 import { formatScore } from "@/lib/briljant/score";
 import { uniqueRides } from "@/lib/rides/unique-rides";
 
-/** Metronoom en Clubmens kijken naar de gekozen week en de drie ervoor. */
-export const LONG_WEEKS = 4;
 /** Een live-rit telt pas mee voor Clubmens vanaf zoveel minuten. */
 export const LIVE_MIN_MINUTES = 20;
 
@@ -30,7 +28,6 @@ export type Ranking = {
   id: string;
   title: string;
   icon: RankingIcon;
-  span: "week" | "4 weken";
   /** De eerste weergave; met `views` is dat views[0]. */
   entries: RankingEntry[];
   /** Twee of meer weergaven met een schakelaar, zoals km en uren. */
@@ -100,7 +97,6 @@ export function weekRankings(rows: ActivityRow[], week: string): Ranking[] {
     id,
     title,
     icon,
-    span: "week",
     entries: rankBy(scores, value, label, { detail, tie: (score) => score.movingSeconds }),
   });
 
@@ -120,7 +116,7 @@ export function weekRankings(rows: ActivityRow[], week: string): Ranking[] {
       { label: "uren", entries: hours },
     ];
     if (first === "uren") views.reverse();
-    return { id, title, icon, span: "week", entries: views[0].entries, views };
+    return { id, title, icon, entries: views[0].entries, views };
   };
 
   return [
@@ -134,7 +130,7 @@ export function weekRankings(rows: ActivityRow[], week: string): Ranking[] {
   ];
 }
 
-/** Metronoom: op hoeveel dagen je fietste, in de vier weken. Bij gelijke stand de meeste uren. */
+/** Metronoom: op hoeveel dagen van de week je fietste. Bij gelijke stand eerst de meeste uren. */
 export function metronoom(rows: ActivityRow[]): Ranking {
   const byProfile = new Map<string, { profileId: string; days: Set<string>; seconds: number }>();
   for (const row of uniqueRides(rows)) {
@@ -149,7 +145,6 @@ export function metronoom(rows: ActivityRow[]): Ranking {
     id: "metronoom",
     title: "Metronoom",
     icon: "calendar",
-    span: "4 weken",
     entries: rankBy(
       [...byProfile.values()],
       (item) => item.days.size,
@@ -199,7 +194,6 @@ export function clubmens(rsvps: ClubEventRsvp[], live: LiveRide[], now = new Dat
     id: "clubmens",
     title: "Clubmens",
     icon: "users",
-    span: "4 weken",
     entries: rankBy(
       rows,
       (row) => row.events + row.live,
@@ -215,13 +209,12 @@ export function clubmens(rsvps: ClubEventRsvp[], live: LiveRide[], now = new Dat
   };
 }
 
-/** Groeibriljant: de meeste punten erbij op je ZWBriljant-steen in vier weken. */
+/** Groeibriljant: de meeste punten erbij op je ZWBriljant-steen sinds vorige week. */
 export function groeibriljant(growth: BriljantGrowth[]): Ranking {
   return {
     id: "groeibriljant",
     title: "Groeibriljant",
     icon: "gem",
-    span: "4 weken",
     entries: rankBy(
       growth,
       (row) => row.growth,

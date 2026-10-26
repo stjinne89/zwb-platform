@@ -141,34 +141,30 @@ describe("briljantGrowth", () => {
     consistency: null,
   });
 
-  it("vergelijkt de laatste steen met die van minstens vier weken eerder", () => {
+  it("vergelijkt de steen van de week met die van de week ervoor", () => {
     const growth = briljantGrowth(
       [
-        snapshot(A, "2026-10-19", 4),
-        snapshot(A, "2026-10-12", 3.9),
-        // Het beginpunt: de laatste steen die minstens vier weken eerder ligt.
-        snapshot(A, "2026-09-21", 3.5),
-        snapshot(A, "2026-08-31", 1),
-        snapshot(B, "2026-10-19", 3),
-        snapshot(B, "2026-09-14", 3.2),
+        snapshot(A, "2026-10-26", 4.3),
+        snapshot(A, "2026-10-19", 4.15),
+        // Ouder: telt niet.
+        snapshot(A, "2026-09-28", 1),
+        snapshot(B, "2026-10-26", 3),
+        snapshot(B, "2026-10-19", 3.2),
       ],
       "2026-10-26",
     );
-    // Zonder consistentie telt de score voor 0,8 (scoreFor): 3,5 → 2,8 en 4 → 3,2.
-    expect(growth).toEqual([
-      { profileId: A, from: 2.8, to: 3.2, growth: 40, fromWeek: "2026-09-21", toWeek: "2026-10-19" },
-    ]);
-    expect(groeibriljant(growth).entries[0]).toMatchObject({ label: "+40 punten", detail: "280 → 320" });
+    // Zonder consistentie telt de score voor 0,8 (scoreFor): 4,15 → 3,32 en 4,3 → 3,44.
+    expect(growth).toEqual([{ profileId: A, from: 3.32, to: 3.44, growth: 12 }]);
+    expect(groeibriljant(growth).entries[0]).toMatchObject({ label: "+12 punten", detail: "332 → 344" });
   });
 
-  it("slaat een lid zonder recente steen of zonder beginpunt over", () => {
+  it("slaat een lid zonder steen in een van beide weken over", () => {
     expect(
       briljantGrowth(
         [
-          snapshot(A, "2026-09-28", 4),
-          snapshot(A, "2026-08-24", 3),
+          snapshot(A, "2026-10-26", 4),
+          snapshot(A, "2026-09-28", 3),
           snapshot(B, "2026-10-19", 4),
-          snapshot(B, "2026-10-05", 3),
         ],
         "2026-10-26",
       ),

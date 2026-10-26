@@ -109,7 +109,7 @@ export function RankingCard({
   views,
   viewerId,
 }: {
-  ranking: Pick<Ranking, "id" | "title" | "icon" | "span">;
+  ranking: Pick<Ranking, "id" | "title" | "icon">;
   views: Array<{ label: string; entries: NamedEntry[] }>;
   viewerId: string | null;
 }) {
@@ -124,11 +124,6 @@ export function RankingCard({
     <span className="flex items-center gap-2 font-semibold">
       <Icon className="size-4 text-primary" />
       {ranking.title}
-      {ranking.span !== "week" && (
-        <span className="rounded-full border px-2 py-0.5 text-[0.6875rem] font-normal text-muted-foreground">
-          {ranking.span}
-        </span>
-      )}
     </span>
   );
   const toggle = views.length > 1 && <ViewToggle views={views} active={active} onChange={setActive} />;
