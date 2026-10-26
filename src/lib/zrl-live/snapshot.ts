@@ -468,22 +468,24 @@ function addZwiftIds(ids: Set<number>, rows: unknown) {
 }
 
 /**
- * Onze renners: WTRL-renners en leden van het team, plus de opstelling van dit
- * event of van het hoofdevent van de raceweek (daar staat die sinds migr. 0178).
+ * Renners van een team: WTRL-renners en leden, plus de opstelling van dit event
+ * of van het hoofdevent van de raceweek (daar staat die sinds migr. 0178). De
+ * opstelling ook apart: die zegt voor wie iemand deze week rijdt.
  */
-async function ownZwiftIds(teamId: string | null, eventIds: string[]): Promise<Set<number>> {
-  if (!teamId) return new Set();
+async function teamZwiftIds(teamId: string | null, eventIds: string[]): Promise<{ all: Set<number>; lineup: Set<number> }> {
+  if (!teamId) return { all: new Set(), lineup: new Set() };
   const admin = createAdminClient();
-  const ids = new Set<number>();
+  const lineupIds = new Set<number>();
   const { data: lineup } = await admin
     .from("team_event_lineups")
     .select("profiles!team_event_lineups_profile_id_fkey(zwift_id), roster_entries(zwift_id)")
     .in("event_id", eventIds)
     .eq("team_id", teamId);
   for (const row of (lineup ?? []) as unknown as Array<{ profiles: unknown; roster_entries: unknown }>) {
-    addZwiftIds(ids, row.profiles);
-    addZwiftIds(ids, row.roster_entries);
+    addZwiftIds(lineupIds, row.profiles);
+    addZwiftIds(lineupIds, row.roster_entries);
   }
+  const ids = new Set(lineupIds);
   const { data: wtrl } = await admin.from("wtrl_teams").select("trc_ref").eq("team_id", teamId);
   const refs = (wtrl ?? []).map((row) => row.trc_ref as string);
   if (refs.length) {
@@ -497,7 +499,44 @@ async function ownZwiftIds(teamId: string | null, eventIds: string[]): Promise<S
   for (const row of (members ?? []) as unknown as Array<{ profiles: unknown }>) {
     addZwiftIds(ids, row.profiles);
   }
-  return ids;
+  return { all: ids, lineup: lineupIds };
+}
+
+/**
+ * Onze renners en die van andere ZWB-ploegen in hetzelfde Zwift-event. A en B1
+ * rijden vaak in één Zwift-event, in groep A en groep B. Wie deze week bij de
+ * andere ploeg in de opstelling staat, rijdt daar, ook als hij in onze
+ * WTRL-selectie of ledenlijst staat (W6, 2026-10-27: zo telde groep B voor A).
+ */
+export function splitTeamRiders(
+  ours: { all: Set<number>; lineup: Set<number> },
+  siblings: Array<{ all: Set<number>; lineup: Set<number> }>,
+): { own: Set<number>; others: Set<number> } {
+  const elsewhere = (id: number) => siblings.some((s) => s.lineup.has(id));
+  const own = new Set([...ours.all].filter((id) => ours.lineup.has(id) || !elsewhere(id)));
+  const others = new Set(siblings.flatMap((s) => [...s.all]).filter((id) => !own.has(id)));
+  return { own, others };
+}
+
+async function ownAndOtherZwiftIds(
+  event: { id: string; team_id: string | null; parent_event_id: string | null; zwift_event_id: number | string },
+): Promise<{ own: Set<number>; others: Set<number> }> {
+  const eventIds = (row: { id: string; parent_event_id: string | null }) => [row.id, row.parent_event_id].filter((id): id is string => Boolean(id));
+  const { data: siblingRows } = await createAdminClient()
+    .from("events")
+    .select("id, team_id, parent_event_id")
+    .eq("type", "zrl")
+    .eq("zwift_event_id", event.zwift_event_id)
+    .neq("id", event.id)
+    .not("team_id", "is", null);
+  const siblings = ((siblingRows ?? []) as Array<{ id: string; team_id: string; parent_event_id: string | null }>).filter(
+    (row) => row.team_id !== event.team_id,
+  );
+  const [ours, ...others] = await Promise.all([
+    teamZwiftIds(event.team_id, eventIds(event)),
+    ...siblings.map((row) => teamZwiftIds(row.team_id, eventIds(row))),
+  ]);
+  return splitTeamRiders(ours, others);
 }
 
 /** "Linda Kuiper [ZWB]", "Femke Vaessen [ZWB-Synergy]". */
@@ -512,12 +551,14 @@ export function hasZwbTag(name: string): boolean {
 export function pickSubgroup<T extends { entrants: Array<{ zwiftId: string; name: string }> }>(
   subgroups: T[],
   own: Set<number>,
+  /** Renners van een andere ZWB-ploeg in hetzelfde Zwift-event: hun ZWB-tag telt niet voor ons. */
+  others: Set<number> = new Set(),
 ): T | undefined {
   const occupied = subgroups.filter((s) => s.entrants.length > 0);
   // Eigen renner of ZWB-tag, elk één keer: één verkeerd gekoppelde "Femke" in A
   // mag niet winnen van vier ZWB'ers in B (Zwiftladies B, 2026-09-22).
   const score = (s: T) =>
-    s.entrants.filter((e) => own.has(Number(e.zwiftId)) || hasZwbTag(e.name)).length;
+    s.entrants.filter((e) => own.has(Number(e.zwiftId)) || (hasZwbTag(e.name) && !others.has(Number(e.zwiftId)))).length;
   // Bij gelijkspel de groep met onze eigen renners. Twee ZWB-ploegen kunnen in
   // hetzelfde Zwift-event zitten: A in groep A en B1 in groep B (Open Aqua
   // Division 1, 2026-09-22), allebei vijf ZWB-tags. Zonder deze regel won de
@@ -567,17 +608,20 @@ export async function loadZrlLive(
     if (raceSettled(data)) await saveFrozenRaceData(zwiftEventId, data);
   }
 
-  const own = await ownZwiftIds(
-    event.team_id as string | null,
-    [event.id as string, event.parent_event_id as string | null].filter((id): id is string => Boolean(id)),
-  );
+  const { own, others } = await ownAndOtherZwiftIds({
+    id: event.id as string,
+    team_id: event.team_id as string | null,
+    parent_event_id: event.parent_event_id as string | null,
+    zwift_event_id: event.zwift_event_id as number | string,
+  });
   const subgroup = options.subgroupId
     ? data.subgroups.find((s) => s.id === options.subgroupId && s.entrants.length > 0)
-    : pickSubgroup(data.subgroups, own);
+    : pickSubgroup(data.subgroups, own, others);
   if (!subgroup) return { status: options.subgroupId ? "not-found" : "no-route" };
-  // Kent het platform niemand in deze groep, dan gelden de ZWB-tags als ons team.
+  // Kent het platform niemand in deze groep, dan gelden de ZWB-tags als ons team,
+  // behalve die van een andere ZWB-ploeg in dit Zwift-event.
   if (!subgroup.entrants.some((e) => own.has(Number(e.zwiftId)))) {
-    for (const e of subgroup.entrants) if (hasZwbTag(e.name)) own.add(Number(e.zwiftId));
+    for (const e of subgroup.entrants) if (hasZwbTag(e.name) && !others.has(Number(e.zwiftId))) own.add(Number(e.zwiftId));
   }
   const route = subgroup.routeId ? routeSegments(subgroup.routeId, subgroup.laps) : null;
   if (!route) return { status: "no-route" };

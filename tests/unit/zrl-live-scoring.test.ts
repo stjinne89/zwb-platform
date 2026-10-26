@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickSubgroup, zrlFormatOf } from "@/lib/zrl-live/snapshot";
+import { pickSubgroup, splitTeamRiders, zrlFormatOf } from "@/lib/zrl-live/snapshot";
 import { scoreRace, type Passage, type Rider, type RouteSegment } from "@/lib/zrl-live/scoring";
 import { extractTeamTag, pickTeamLabel, teamKey, zrlLeagueKey } from "@/lib/zrl-live/team-tags";
 
@@ -344,5 +344,27 @@ describe("pickSubgroup", () => {
     const teamA = new Set([11, 12, 13]);
     expect(pickSubgroup([groepA, groepB], b1)?.label).toBe("B");
     expect(pickSubgroup([groepA, groepB], teamA)?.label).toBe("A");
+  });
+
+  it("telt de ZWB'ers van B1 niet voor A, ook niet de renner die deze week bij B1 rijdt (W6, 2026-10-27)", () => {
+    // Groep A: drie renners van A en één ZWB'er zonder koppeling. Groep B: vier
+    // renners van B1 en één die in de selectie van A staat maar in de opstelling
+    // van B1. Zonder de andere ploeg won B met 5 tegen 4.
+    const groepA = { label: "A", entrants: [e("11", "A1 [ZWB]"), e("12", "A2 [ZWB]"), e("13", "A3 [ZWB]"), e("14", "A4 [ZWB]")] };
+    const groepB = { label: "B", entrants: [e("21", "B1 [ZWB]"), e("22", "B2 [ZWB]"), e("23", "B3 [ZWB]"), e("24", "B4 [ZWB]"), e("30", "Wissel [ZWB]")] };
+    const teamA = { all: new Set([11, 12, 13, 30]), lineup: new Set([11, 12, 13]) };
+    const teamB1 = { all: new Set([21, 22, 23, 24, 30]), lineup: new Set([21, 22, 23, 24, 30]) };
+    expect(pickSubgroup([groepA, groepB], teamA.all)?.label).toBe("B");
+    const { own, others } = splitTeamRiders(teamA, [teamB1]);
+    expect([...own].sort()).toEqual([11, 12, 13]);
+    expect(others.has(30)).toBe(true);
+    expect(pickSubgroup([groepA, groepB], own, others)?.label).toBe("A");
+    const forB1 = splitTeamRiders(teamB1, [teamA]);
+    expect(pickSubgroup([groepA, groepB], forB1.own, forB1.others)?.label).toBe("B");
+  });
+
+  it("houdt een renner die in beide opstellingen staat bij ons", () => {
+    const { own } = splitTeamRiders({ all: new Set([1, 2]), lineup: new Set([1, 2]) }, [{ all: new Set([2]), lineup: new Set([2]) }]);
+    expect([...own].sort()).toEqual([1, 2]);
   });
 });
