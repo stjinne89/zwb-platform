@@ -11394,8 +11394,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWB Rankings in plaats van Achievements
 
-**2026-10-26.** Commit `69256778`. Migratie `0277_zitvlees_week_badge.sql`
-(niet toegepast, niet lokaal te testen). Niet gepusht.
+**2026-10-26.** Commit `69256778`, gepusht naar `main` op 2026-10-26 (eigenaar).
+Migratie `0277_zitvlees_week_badge.sql`, op verzoek van de eigenaar via de
+Supabase-connector toegepast (2026-10-26) en nagekeken: `hours_week` staat er als
+weekly/auto; niet lokaal te testen.
 
 **Waarom.** Wens van de eigenaar: van Achievements een plek met ranglijsten
 maken. Kudo-magneet moest eruit, omdat leden die via intervals.icu of een import
@@ -11440,7 +11442,7 @@ de meeste uren, meer ranglijsten, en lijstjes met alleen de top 3.
   locatie) met je event-ja's meetelt voor Clubmens; bij ZWBriljant dat leden op
   ZWB Rankings ook je groei in vier weken zien, met je score van toen en nu.
   **Bewust zonder nieuwe privacyversie** (zelfde ontvangers, al gedeelde
-  gegevens); dit moet de eigenaar nog goedkeuren vóór de push.
+  gegevens); goedgekeurd door de eigenaar op 2026-10-26 ("tekst is goed").
 
 **Bewust niet.**
 - Vroege vogel (ritten vóór 7:00): voorgesteld, eigenaar wilde hem niet.
@@ -11459,9 +11461,10 @@ suite: alleen de bekende fouten van deze worktree (`@anthropic-ai/sdk`,
 `.env.local`, `zwift-data` 1.50). `tsc` zonder nieuwe fouten, ESLint schoon.
 Productie gelezen (alleen lezen, 2026-10-26): 31 leden met een ja op een event
 in de laatste vier weken, 5 met een live-rit, 25 van de 26 ZWBriljant-gebruikers
-met een beginpunt voor de groei; `hours_week` staat er nog niet.
+met een beginpunt voor de groei.
 **Niet geverifieerd:** de pagina en de dialoog in de browser (geen `.env.local`
-in deze worktree), en de migratie.
+in deze worktree), en de eerste toekenning van Zitvleeskampioen (na afloop van
+deze week).
 
 ### Gewijzigd — Racebriefje: KOM's als moment, profiel zonder overlap
 
