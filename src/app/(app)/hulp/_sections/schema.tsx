@@ -613,9 +613,9 @@ export function SchemaHelp() {
               helemaal niets doen, of tot 1,5 uur rustig fietsen zonder
               intensiteit: zone 1 tot lage zone 2, praten moet makkelijk gaan.
               De planner rekent die rit niet mee in je weekvolume en remt er de
-              dagen erna niet om af. Losse hersteltrainingen korter dan 1,5 uur
-              plant de AI niet meer: die leveren weinig op, en een echte rustdag
-              herstelt beter.
+              dagen erna niet om af. Hersteltrainingen en rustige duurritten
+              korter dan 1,5 uur plant de AI niet: die leveren weinig op, en een
+              echte rustdag herstelt beter. Een korte rit met intensiteit kan wel.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">

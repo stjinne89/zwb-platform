@@ -177,9 +177,18 @@ describe("composePlan", () => {
         recentLoad: { ...baseInput().recentLoad, ridesPerWeek, avgDurationMinutes },
       });
       const weeks = weeksFor(input, () => ({ longRideMinutes: null }));
-      const { workouts } = compose(input, weeks);
+      const { workouts, reasons } = compose(input, weeks);
+      // De motor kiest evenveel rijdagen als het lid gewend is. Een korte rustige
+      // rit wordt daarbij een rustdag, en die telt als rijdag: het lid mag er tot
+      // 90 minuten rustig fietsen. Er staan dus hooguit zoveel workouts.
+      const picked = reasons
+        .filter((reason) => reason.rule === "dag.ritten")
+        .map((reason) => Number(/: (\d+) ritten/.exec(reason.text)?.[1]));
+      expect(picked).toEqual(weeks.map(() => ridesPerWeek));
       for (const week of weeks) {
-        expect(workouts.filter((workout) => mondayKey(workout.date) === week.weekStart)).toHaveLength(ridesPerWeek);
+        expect(workouts.filter((workout) => mondayKey(workout.date) === week.weekStart).length).toBeLessThanOrEqual(
+          ridesPerWeek,
+        );
       }
     }
   });
@@ -199,6 +208,11 @@ describe("composePlan", () => {
       expect(ride.durationMinutes).toBeLessThanOrEqual(minutesOn(input, ride.date)!);
     }
     expect(reasons.filter((reason) => reason.rule === "dag.lange_rit")).toHaveLength(12);
+  });
+
+  it("plant geen rustige duur onder de 90 minuten: dat wordt een rustdag", () => {
+    const { workouts } = compose(baseInput());
+    expect(workouts.some((workout) => workout.title.startsWith("Rustige duur") && workout.durationMinutes < 90)).toBe(false);
   });
 
   it("plant geen hersteltraining onder de 90 minuten: dat wordt een rustdag", () => {

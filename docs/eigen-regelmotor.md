@@ -221,6 +221,8 @@ is niet aangepast; de AI kiest nog meestal de piek.
 - **Kalender.** De dag vóór een A- of B-mikpunt is licht, net als vóór een race.
 - **Dag-aanpassing.** Een hersteltraining wordt bij vermoeidheid niet ingekort
   tot onder de 90 minuten, tenzij het lid zelf om een korte rit vraagt.
+- **Rustige duur.** Sinds 2026-10-26 wordt ook een rustige duurrit onder de 90
+  minuten een rustdag; de overgangsrit met sprints heet "Duur met sprints".
 - **Ingang.** Invoer van vóór september 2026 mist de ritmevelden van
   `recentLoad`; die worden uit de totalen afgeleid. Events zonder duur slaat
   de motor over.

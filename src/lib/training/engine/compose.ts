@@ -437,7 +437,8 @@ function buildDay(
       lowCadence: protocolOn(state.input, plan.date, (slug) => slug === LOW_CADENCE_PROTOCOL) || undefined,
     });
 
-  let session = request(plan.form);
+  let form = plan.form;
+  let session = request(form);
   if (!session && plan.role === "sleutel") {
     state.hardDays.delete(plan.date);
     reason(
@@ -446,13 +447,18 @@ function buildDay(
       true,
       plan.date,
     );
-    session = request("rustige_duur");
+    form = "rustige_duur";
+    session = request(form);
   }
   if (!session || session.durationMinutes > plan.cap) {
     reason("dag.past_niet", `Geen sessie die in de tijd van ${dayLabel(plan.date)} past.`, false, plan.date);
     return null;
   }
-  if (session.intensity === "recovery" && session.durationMinutes < OPTIONAL_REST_RIDE_MINUTES) {
+  // Herstel én rustige duur: een rit zonder intensiteit onder de 90 minuten
+  // wordt een rustdag (eigenaar, 2026-10-26). Openers, de overgangsrit met
+  // sprints en kwaliteit mogen korter.
+  const easy = session.intensity === "recovery" || (form === "rustige_duur" && plan.role !== "overgang");
+  if (easy && session.durationMinutes < OPTIONAL_REST_RIDE_MINUTES) {
     reason("dag.rustdag", `Rustdag: naar keuze tot ${OPTIONAL_REST_RIDE_MINUTES} minuten rustig fietsen.`, false, plan.date);
     return null;
   }
@@ -460,10 +466,15 @@ function buildDay(
     // TODO(catalogus): het contract kent geen vraag naar "rustige duur met
     // sprints"; tot dat er is staan de sprints als notitie, niet als blokken
     // met burstSeconds.
-    return sessionToWorkout(plan.date, session, {
-      note: "Rij drie series van drie sprints van 30 seconden voluit, met 10 minuten rustige duur tussen de series.",
-      methodLabel: "veelbelovend",
-    });
+    // "met sprints" in de titel: zonder burst-blokken ziet isEasyRide() de
+    // sprints anders niet, en is dit een korte rustige rit.
+    return {
+      ...sessionToWorkout(plan.date, session, {
+        note: "Rij drie series van drie sprints van 30 seconden voluit, met 10 minuten rustige duur tussen de series.",
+        methodLabel: "veelbelovend",
+      }),
+      title: `Duur met sprints ${session.durationMinutes} min`,
+    };
   }
   return sessionToWorkout(plan.date, session);
 }

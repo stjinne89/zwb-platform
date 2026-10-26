@@ -242,20 +242,51 @@ export function intensityFromLoad(
  */
 export const OPTIONAL_REST_RIDE_MINUTES = 90;
 
+type EasyRideCandidate = { intensity: string; durationMinutes: number; title?: string; structure?: unknown };
+
+const EASY_TITLE = /\b(?:rustige?|herstel\w*|recovery)\b/i;
+const NOT_EASY_TITLE = /intensie|opener|sprint|versnell/i;
+
 /**
- * Het vangnet onder de promptregel: een workout met intensiteit 'recovery' onder
- * OPTIONAL_REST_RIDE_MINUTES wordt een rustdag, en een expliciete 'rest'-workout
- * ook — een rustdag is een dag zónder rij, anders ging hij als training naar
- * intervals.icu.
+ * Een rit zonder intensiteit: herstel of rustige duur. Geen burst of aan/uit-serie
+ * en geen openers, sprints of intensieve duur in de titel (dat is intensiteit,
+ * ook als de AI de versnellingen niet als burst schreef), en het kernwerk is herstel of ligt tot
+ * en met 70% FTP, de bovengrens van rustige duur (trainingFormForPct). Een
+ * duurrit op 71-75% of zonder leesbaar doel telt alleen als rustig als de titel
+ * dat zegt: de AI schreef "Rustige duur 60 min" met blokken die bij een lagere
+ * FTP net boven 70% uitkwamen, en intensieve duur deelt die zone.
  */
-export function dropShortRecoveryRides<T extends { intensity: string; durationMinutes: number }>(
+export function isEasyRide(workout: EasyRideCandidate, ftp: number | null = null): boolean {
+  if (workout.intensity === "rest" || workout.intensity === "race") return false;
+  const intensity = asIntensity(workout.intensity, "endurance");
+  const blocks = normalizeWorkoutBlocks(workout.structure, intensity);
+  const title = workout.title ?? "";
+  if (NOT_EASY_TITLE.test(title) || blocks.some((block) => block.burstSeconds || block.onOff)) return false;
+  const aligned = alignWorkoutIntensities(intensity, blocks, ftp);
+  if (aligned.intensity === "recovery") return true;
+  if (aligned.intensity !== "endurance") return false;
+  const pct = keyWorkPct(aligned.blocks, ftp);
+  return (pct != null && pct <= 70) || EASY_TITLE.test(title);
+}
+
+/**
+ * Het vangnet onder de promptregel: een rit zonder intensiteit (isEasyRide)
+ * onder OPTIONAL_REST_RIDE_MINUTES wordt een rustdag, en een expliciete
+ * 'rest'-workout ook — een rustdag is een dag zónder rij, anders ging hij als
+ * training naar intervals.icu. Tot 2026-10-26 alleen intensiteit 'recovery';
+ * "Rustige duur 60 min" op 'endurance' glipte erdoor. Met `scope` "recovery"
+ * geldt nog alleen die oude regel; zie insertPlanWorkouts().
+ */
+export function dropShortEasyRides<T extends EasyRideCandidate>(
   workouts: T[],
+  ftp: number | null = null,
+  scope: "easy" | "recovery" = "easy",
 ): T[] {
-  return workouts.filter(
-    (workout) =>
-      workout.intensity !== "rest" &&
-      !(workout.intensity === "recovery" && workout.durationMinutes < OPTIONAL_REST_RIDE_MINUTES),
-  );
+  return workouts.filter((workout) => {
+    if (workout.intensity === "rest") return false;
+    if (workout.durationMinutes >= OPTIONAL_REST_RIDE_MINUTES) return true;
+    return scope === "recovery" ? workout.intensity !== "recovery" : !isEasyRide(workout, ftp);
+  });
 }
 
 export function defaultTrainingPrompt() {
@@ -271,8 +302,8 @@ export function defaultTrainingPrompt() {
     "Reed het lid in een voorbije week méér dan zijn beschikbare tijd, dan is dat op zichzelf GEEN reden om de komende week af te remmen, te compenseren of het volume te verlagen. Plan gewoon binnen de beschikbare tijd verder volgens de periodisering. Benoem zo'n overschrijding ook niet in cautions.",
     "Belasting verlaag je alleen bij echte overbelastingssignalen: sterk negatieve TSB, een hoge ramp_rate, wellness state 'fatigued', een dalende HRV of verhoogde rust-hartslag, lage readiness, of naleving 'te_zwaar' samen met een hoge RPE (8+) of gevoel 'zwaar'/'slecht'. Ontbreken die signalen, dan bouw je normaal door. Een geplande herstelweek uit de periodisering en een eventuele taper richting de target_date vallen hier buiten: die horen bij de opbouw en gaan gewoon door.",
     "recentLoad.ridesPerWeek, recentLoad.avgDurationMinutes en recentLoad.longestRideMinutes zeggen hóé het lid zijn uren rijdt. Volg dat ritme: verdeel het weekvolume over ongeveer evenveel dagen als het lid zelf rijdt, en houd de gemiddelde sessie in de buurt van wat het gewend is. Iemand die zes keer per week een uur rijdt hoort geen week van drie blokken van drieënhalf uur te krijgen, ook niet als het weektotaal klopt. Een rustdag telt daarbij als rijdag: het lid mag er rustig fietsen (zie de rustdagregel).",
-    `Plan geen losse hersteltraining korter dan ${OPTIONAL_REST_RIDE_MINUTES} minuten. Is een dag bedoeld om te herstellen — na een sleutelsessie, lange rit of race — dan is het een rustdag: neem die dag niet op in je antwoord. Op een rustdag mag het lid naar eigen keus tot ${OPTIONAL_REST_RIDE_MINUTES} minuten fietsen zonder intensiteit (zone 1 tot lage zone 2, RPE 2-3); dat is een optie, geen opdracht. Reken die optionele rit niet mee in het weekvolume of de weekbelasting: die haal je met de geplande sessies. Noem de optie één keer kort in summary, niet per dag en niet in cautions.`,
-    "Een korte duurrit is geen hersteltraining. Heeft het lid op een dag maar een uur, dan is een uur duur (zone 2) of een korte kwaliteitssessie gewoon training en mag die blijven. Ook de lichte rit met een paar versnellingen vóór een race of FTP-test (openers) is geen hersteltraining: geef die intensiteit 'endurance'.",
+    `Plan geen losse hersteltraining of rustige duurrit korter dan ${OPTIONAL_REST_RIDE_MINUTES} minuten. Is een dag bedoeld om te herstellen — na een sleutelsessie, lange rit of race — dan is het een rustdag: neem die dag niet op in je antwoord. Op een rustdag mag het lid naar eigen keus tot ${OPTIONAL_REST_RIDE_MINUTES} minuten fietsen zonder intensiteit (zone 1 tot lage zone 2, RPE 2-3); dat is een optie, geen opdracht. Reken die optionele rit niet mee in het weekvolume of de weekbelasting: die haal je met de geplande sessies. Noem de optie één keer kort in summary, niet per dag en niet in cautions.`,
+    `Een rit met intensiteit mag wel korter. Heeft het lid op een dag minder dan ${OPTIONAL_REST_RIDE_MINUTES} minuten, plan dan een korte kwaliteitssessie (intensieve duur, tempo, sweet spot, drempel of VO2max) of laat de dag leeg; een uur rustige duur (tot 70% FTP) plan je niet. Ook de lichte rit met een paar versnellingen vóór een race of FTP-test (openers) mag korter: geef die intensiteit 'endurance' en schrijf de versnellingen met burstSeconds.`,
     "recentLoad.longestRideMinutes is de langste rit van de afgelopen periode. Eén lange rit per week mag daaroverheen groeien als het doel dat vraagt — richting een gran fondo of een bergrit moet dat zelfs — maar bouw dat op in stappen en zet niet twee of drie van die ritten in dezelfde week.",
     "recentLoad gaat over recentLoad.days dagen, niet over één week. Reken dat niet om naar een weekgemiddelde om het met maxHoursPerWeek te vergelijken; gebruik het als beeld van de opgebouwde conditie.",
     "Bouw gestructureerde workouts met duidelijke blokken: warming-up, kern, herstel en cooling-down.",
