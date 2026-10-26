@@ -12,7 +12,7 @@ import { GuideCards } from "./guide-cards";
 export function ClubHelp() {
   return (
     <>
-      <GuideCards ids={["profiel", "privacy", "badges", "cols", "onderhoud", "community", "zwbieb"]} />
+      <GuideCards ids={["profiel", "privacy", "rankings", "badges", "cols", "onderhoud", "community", "zwbieb"]} />
 
       <section
         id="verjaardagsrondje"

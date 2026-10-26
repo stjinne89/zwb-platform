@@ -6,20 +6,20 @@ export type BadgeDefinition = {
   id: string;
   title: string;
   description: string;
-  metric: "distanceM" | "elevationM" | "kudos" | "activities";
-  unit: "m" | "km" | "kudos" | "ritten";
-  icon: "mountain" | "route" | "heart" | "refresh";
+  metric: "distanceM" | "elevationM" | "movingSeconds" | "activities";
+  unit: "m" | "km" | "uren" | "ritten";
+  icon: "mountain" | "route" | "clock" | "refresh";
   color: "gold" | "petrol" | "sage" | "steel";
 };
 
-type ActivityRow = {
+export type ActivityRow = {
   id: number;
   profile_id: string;
   start_date: string;
   distance_m: number | string | null;
   total_elevation_gain_m: number | string | null;
-  kudos_count: number | null;
   moving_time_seconds: number | null;
+  trainer?: boolean | null;
 };
 
 /**
@@ -30,7 +30,7 @@ type ActivityRow = {
 export const AWARD_WEEKS = 8;
 
 const ACTIVITY_COLUMNS =
-  "id, profile_id, start_date, distance_m, total_elevation_gain_m, kudos_count, moving_time_seconds";
+  "id, profile_id, start_date, distance_m, total_elevation_gain_m, moving_time_seconds, trainer";
 const PAGE = 1000;
 
 /** Maandag van de week van een rit, uit de starttijd (zoals de ingest hem zet). */
@@ -46,14 +46,17 @@ function addWeeks(week: string, weeks: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-type Score = {
+export type WeekScore = {
   profileId: string;
   week: string;
   activities: number;
   distanceM: number;
   elevationM: number;
-  kudos: number;
   movingSeconds: number;
+  /** De langste rit van de week, in tijd. */
+  longestSeconds: number;
+  outdoorM: number;
+  indoorSeconds: number;
 };
 
 export const BADGES: BadgeDefinition[] = [
@@ -75,13 +78,16 @@ export const BADGES: BadgeDefinition[] = [
     icon: "route",
     color: "petrol",
   },
+  // Kudo-magneet (`kudos_received_week`) is sinds 2026-10-26 geen weekbadge
+  // meer: kudos bestaan alleen bij Strava, dus wie via intervals.icu of een
+  // import rijdt kon hem nooit winnen. Eerder gewonnen badges blijven staan.
   {
-    id: "kudos_received_week",
-    title: "Kudo-magneet",
-    description: "Meeste ontvangen kudos op gesyncte Strava-ritten.",
-    metric: "kudos",
-    unit: "kudos",
-    icon: "heart",
+    id: "hours_week",
+    title: "Zitvleeskampioen",
+    description: "Meeste uren op de fiets in een ZWB-week.",
+    metric: "movingSeconds",
+    unit: "uren",
+    icon: "clock",
     color: "sage",
   },
   {
@@ -112,7 +118,7 @@ function weekEnd(week: string) {
  * bij 2.405 ritten uit juni–augustus 2026 een zondag (PLAN.md, 2026-10-18).
  */
 export function weeklyScores(rows: ActivityRow[]) {
-  const scores = new Map<string, Score>();
+  const scores = new Map<string, WeekScore>();
 
   for (const row of uniqueRides(rows)) {
     const week = weekOf(row.start_date);
@@ -126,22 +132,28 @@ export function weeklyScores(rows: ActivityRow[]) {
         activities: 0,
         distanceM: 0,
         elevationM: 0,
-        kudos: 0,
         movingSeconds: 0,
+        longestSeconds: 0,
+        outdoorM: 0,
+        indoorSeconds: 0,
       };
 
+    const distance = toNumber(row.distance_m);
+    const seconds = row.moving_time_seconds ?? 0;
     score.activities += 1;
-    score.distanceM += toNumber(row.distance_m);
+    score.distanceM += distance;
     score.elevationM += toNumber(row.total_elevation_gain_m);
-    score.kudos += row.kudos_count ?? 0;
-    score.movingSeconds += row.moving_time_seconds ?? 0;
+    score.movingSeconds += seconds;
+    score.longestSeconds = Math.max(score.longestSeconds, seconds);
+    if (row.trainer) score.indoorSeconds += seconds;
+    else score.outdoorM += distance;
     scores.set(key, score);
   }
 
   return Array.from(scores.values());
 }
 
-function winnersForWeek(scores: Score[], week: string) {
+function winnersForWeek(scores: WeekScore[], week: string) {
   const weekScores = scores.filter((score) => score.week === week);
 
   return BADGES.flatMap((badge) => {
@@ -164,7 +176,6 @@ function winnersForWeek(scores: Score[], week: string) {
           activities: winner.activities,
           distance_m: winner.distanceM,
           elevation_m: winner.elevationM,
-          kudos: winner.kudos,
           moving_time_seconds: winner.movingSeconds,
         },
       },
@@ -178,6 +189,10 @@ export function formatBadgeValue(value: number | string, unit?: string | null) {
     return `${(n / 1000).toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km`;
   }
   if (unit === "m") return `${Math.round(n).toLocaleString("nl-NL")} m`;
+  if (unit === "uren") {
+    return `${(n / 3600).toLocaleString("nl-NL", { maximumFractionDigits: 1 })} u`;
+  }
+  // Alleen nog voor eerder gewonnen Kudo-magneten.
   if (unit === "kudos") return `${Math.round(n).toLocaleString("nl-NL")} kudos`;
   if (unit === "ritten") return `${Math.round(n).toLocaleString("nl-NL")} ritten`;
   return n.toLocaleString("nl-NL");
@@ -187,7 +202,7 @@ export function formatBadgeValue(value: number | string, unit?: string | null) {
 type Db = any;
 
 /** Alle ritten tussen twee weken, gepagineerd: PostgREST geeft per keer hooguit 1000 rijen. */
-async function loadRides(supabase: Db, fromWeek: string | null, toWeek: string) {
+export async function loadRides(supabase: Db, fromWeek: string | null, toWeek: string) {
   const rows: ActivityRow[] = [];
   for (let from = 0; ; from += PAGE) {
     let query = supabase
@@ -255,10 +270,20 @@ export async function awardCompletedAchievementWeeks(
   const stale = existing.filter((award) => !winners.has(key(award)));
   const newAwards = awards.filter((award) => !existingKeys.has(key(award)));
 
-  if (awards.length > 0) {
+  // Per badge: een badge die nog niet in achievement_badges staat (de migratie
+  // van een nieuwe badge loopt achter op de deploy) geeft een foreign-key-fout
+  // en mag de andere badges niet tegenhouden.
+  const missing = new Set<string>();
+  for (const badge of BADGES) {
+    const rows = awards.filter((award) => award.badge_id === badge.id);
+    if (rows.length === 0) continue;
     const { error } = await supabase
       .from("achievement_awards")
-      .upsert(awards, { onConflict: "badge_id,profile_id,period_start" });
+      .upsert(rows, { onConflict: "badge_id,profile_id,period_start" });
+    if (error?.code === "23503") {
+      missing.add(badge.id);
+      continue;
+    }
     if (error) throw new Error(error.message);
   }
 
@@ -273,7 +298,7 @@ export async function awardCompletedAchievementWeeks(
   const lastWeek = previousAchievementWeek();
   const newAwardsByProfile = new Map<string, typeof newAwards>();
   for (const award of newAwards) {
-    if (award.period_start !== lastWeek) continue;
+    if (award.period_start !== lastWeek || missing.has(award.badge_id)) continue;
     const list = newAwardsByProfile.get(award.profile_id) ?? [];
     list.push(award);
     newAwardsByProfile.set(award.profile_id, list);
@@ -300,5 +325,8 @@ export async function awardCompletedAchievementWeeks(
       ).catch(() => null);
     }),
   );
-  return { awarded: awards.length, removed: stale.length };
+  return {
+    awarded: awards.filter((award) => !missing.has(award.badge_id)).length,
+    removed: stale.length,
+  };
 }

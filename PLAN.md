@@ -1954,6 +1954,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   afrondknop). Zo valt hij vanzelf onder het menu-item Stats en de plek Club.
 >   `/achievements` geeft een permanente redirect (`next.config.ts`); de
 >   querystring (`?week=vorige`) gaat mee. Gecontroleerd met de dev-server: 308.
+>   *Sinds 2026-10-26 heet de pagina ZWB Rankings en staat hij op
+>   `/stats/rankings`; beide oude adressen sturen daarheen (ronde "ZWB Rankings").*
 > - `StatsTabs` heeft een derde tab; de achievementspagina toont de tabbalk en
 >   het kopje "ZWB Stats".
 > - Weg uit het Club-menu (`nav-config.ts`), uit de Club-tegels (`club/page.tsx`)
@@ -11389,6 +11391,77 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZWB Rankings in plaats van Achievements
+
+**2026-10-26.** Commit `COMMIT_HASH`. Migratie `0277_zitvlees_week_badge.sql`
+(niet toegepast, niet lokaal te testen). Niet gepusht.
+
+**Waarom.** Wens van de eigenaar: van Achievements een plek met ranglijsten
+maken. Kudo-magneet moest eruit, omdat leden die via intervals.icu of een import
+rijden geen kudos hebben en hem nooit konden winnen. Erbij: een ludieke naam voor
+de meeste uren, meer ranglijsten, en lijstjes met alleen de top 3.
+
+**Wat.**
+- Route `/stats/achievements` → `/stats/rankings` (map verhuisd, met
+  `_actions.ts`). Titel "ZWB Rankings", tab "Rankings". `/achievements` en
+  `/stats/achievements` sturen permanent door (`next.config.ts`).
+- Weekbadges (`lib/achievements/awards.ts`): Kudo-magneet (`kudos_received_week`)
+  wordt niet meer toegekend; **Zitvleeskampioen** (`hours_week`, meeste uren,
+  icoon klok) neemt zijn plek in. Eerder gewonnen Kudo-magneten blijven op
+  profielen; de Hall of fame toont alleen de vier huidige weekbadges. De upsert
+  gaat per badge, en een foreign-key-fout (badge nog niet in `achievement_badges`)
+  slaat alleen die badge over, zonder melding. Zo mag `0277` voor of na de deploy.
+- Ranglijsten (`lib/rankings/rankings.ts`, puur), uit ritten van elke bron en met
+  dubbele ritten één keer (`uniqueRides`):
+  - per week: Zitvleeskampioen, Kilometervreter, Klimmer van de week, Meest
+    actief, **Lange adem** (langste rit in tijd), **Buitenbeentje**
+    (buiten-km), **Binnenvetter** (rollenbankuren);
+  - over de gekozen week en de drie ervoor: **Metronoom** (dagen gefietst,
+    Nederlandse tijd), **Clubmens** (events met "ja" die al begonnen, plus dagen
+    met een live-rit van minstens 20 minuten via Samen fietsen; een live-rit op
+    een eventdag telt niet apart) en **Groeibriljant** (punten erbij op de
+    ZWBriljant-steen: laatste steen van hooguit twee weken oud tegen de laatste
+    die minstens vier en hooguit negen weken eerder ligt, `briljantGrowth` in
+    `lib/briljant/compare.ts`; alleen groei).
+- Groeibriljant leest met de sessie van het lid (`loadGrowthSnapshots`), dus RLS
+  beslist: alleen wie deelt staat erin, en wie zijn steen verbergt ziet niemand.
+  Je eigen stenen tellen alleen als je voorkeur zichtbaar staat, zoals anderen je zien.
+- Kaarten (`ranking-card.tsx`): top 3 met goud, zilver en brons, je eigen plek
+  onder een stippellijn als je er niet bij staat; tikken op de kaart opent de
+  hele lijst in een dialoog (met links naar de leden).
+- De weekstanden telden tot nu toe op de kolom `achievement_week` (fout bij
+  2.405 ritten, zie 2026-10-18) en zonder ontdubbeling; nu dezelfde rekenregel
+  als de badges. De kaart "Badges: 4, 1 wacht op kudo-brondata" en het blok
+  "Kudomaster" zijn weg; in de plaats een kaart met de uren.
+- `/hulp/club#rankings` legt per lijst uit wat telt; het vraagteken op de pagina
+  wijst daarheen. Dashboard, Strava-sectie en hulp noemen "ZWB Rankings".
+- Privacy (`/privacy`): bij live tracking dat het aantal dagen live (geen
+  locatie) met je event-ja's meetelt voor Clubmens; bij ZWBriljant dat leden op
+  ZWB Rankings ook je groei in vier weken zien, met je score van toen en nu.
+  **Bewust zonder nieuwe privacyversie** (zelfde ontvangers, al gedeelde
+  gegevens); dit moet de eigenaar nog goedkeuren vóór de push.
+
+**Bewust niet.**
+- Vroege vogel (ritten vóór 7:00): voorgesteld, eigenaar wilde hem niet.
+- Nachtuil, KOM-jager en Stamgast: niet voorgesteld om te bouwen; KOM's hebben al
+  eigen ranglijsten bij de segmenten.
+- Badges voor de nieuwe lijsten: alleen de vier weekbadges. Een badge is voor
+  iedereen zichtbaar, ook de groei op je ZWBriljant-steen; dat past niet bij
+  delen dat je kunt intrekken.
+- Kudo-magneten wissen: dat zijn verdiende badges.
+
+**Gecontroleerd.** Vitest: `rankings.test.ts` (nieuw: gelijke stand, ontdubbelen,
+buiten/binnen, Metronoom in Nederlandse tijd, Clubmens, groei met en zonder
+beginpunt) en `achievement-week-awards.test.ts` (Zitvleeskampioen erbij,
+Kudo-magneet niet, ontbrekende badge overgeslagen zonder melding). Volledige
+suite: alleen de bekende fouten van deze worktree (`@anthropic-ai/sdk`,
+`.env.local`, `zwift-data` 1.50). `tsc` zonder nieuwe fouten, ESLint schoon.
+Productie gelezen (alleen lezen, 2026-10-26): 31 leden met een ja op een event
+in de laatste vier weken, 5 met een live-rit, 25 van de 26 ZWBriljant-gebruikers
+met een beginpunt voor de groei; `hours_week` staat er nog niet.
+**Niet geverifieerd:** de pagina en de dialoog in de browser (geen `.env.local`
+in deze worktree), en de migratie.
 
 ### Gewijzigd — Racebriefje: KOM's als moment, profiel zonder overlap
 

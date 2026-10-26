@@ -346,7 +346,10 @@ export default function PrivacyPage() {
             Track-link, alleen zichtbaar voor jou, en kijken we daarmee of je
             rijdt zodra iemand de live-kaart opent. Zolang de rit loopt halen we
             je posities op bij Garmin of Wahoo. Stoppen kan op Samen fietsen met
-            &ldquo;Koppeling stoppen&rdquo; of &ldquo;Ontkoppelen&rdquo;.
+            &ldquo;Koppeling stoppen&rdquo; of &ldquo;Ontkoppelen&rdquo;. Op
+            hoeveel dagen je live reed (geen locatie of tijden) telt, samen met
+            de events waar je ja op zei, mee voor de ranglijst Clubmens op ZWB
+            Rankings, die alle goedgekeurde leden zien.
           </li>
           <li>
             <strong>Berichten op je fietscomputer:</strong> de maker van een
@@ -479,7 +482,9 @@ export default function PrivacyPage() {
             daarna verversen we je vermogensprofiel na een nieuwe rit en
             minstens één keer per week, en je Racing Score één keer per week. Alle goedgekeurde leden zien standaard je laatste score,
             je punten per onderdeel en je consistentie (geen metingen) en kunnen
-            die naast hun eigen steen zetten. Wil je dat niet, zet dan
+            die naast hun eigen steen zetten. Op ZWB Rankings zien zij ook hoeveel
+            punten je score in vier weken steeg, met je score van toen en van nu
+            (Groeibriljant). Wil je dat niet, zet dan
             &ldquo;Mijn ZWBriljant-steen delen met leden&rdquo; in je profiel uit:
             dan is je steen meteen voor niemand anders meer te zien, en zie je
             zelf ook de stenen van andere leden niet. Voor het ZWB-gemiddelde tellen we de laatste score van
