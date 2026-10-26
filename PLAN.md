@@ -14,8 +14,8 @@ gaat stabiliteit voor nieuwe features.
    overstap gaat er niets meer naar OpenAI. De privacytekst blijft tot dan
    ongewijzigd. Zie de ronde "Claude als vervanger van OpenAI".
    **Besluit eigenaar 2026-10-26: overstappen.** De code staat klaar (ronde
-   "Overstap naar Claude klaar"). Open: migratie `0274`, env in Netlify, deploy,
-   en de privacytekst (voorstel ligt bij de eigenaar).
+   "Overstap naar Claude klaar"). Open: migratie `0274`, env in Netlify, deploy.
+   De privacytekst noemt de aanbieder die `AI_PROVIDER` kiest (akkoord eigenaar).
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11395,9 +11395,17 @@ bijwerkingen op effort `low`, model per soort instelbaar.
   `openai`, het label "Training-AI".
 - Stappen voor de overstap in [runbook](docs/runbook.md) §9.
 
+- **Privacytekst (akkoord eigenaar, zelfde dag).** `/privacy` en de
+  toestemmingszin bij voedingsherkenning noemen de aanbieder die `AI_PROVIDER`
+  kiest (`aiProcessorName`), zodat de tekst vóór en na de overstap klopt. De
+  verwerkersalinea noemt nu ook pacingplannen (die gingen al naar OpenAI maar
+  stonden er niet bij) en, alleen bij Anthropic, dat Anthropic de gegevens niet
+  gebruikt om zijn modellen te trainen. Die laatste zin is niet nagekeken in de
+  voorwaarden van de API-organisatie van de eigenaar. Geen nieuwe
+  privacyversie: de eigenaar keurde de tekst goed en vroeg er niet om. De
+  pagina gerenderd met beide waarden, zonder aan elkaar geplakte woorden.
+
 **Bewust niet.**
-- De privacytekst en de toestemmingszin bij voedingsherkenning noemen nog
-  OpenAI: een voorstel ligt bij de eigenaar (geheugenregel: eerst voorleggen).
 - Het OpenAI-pad blijft bestaan, om terug te kunnen.
 - De datum gaat alleen bij Claude mee; aan het OpenAI-pad is niets veranderd.
 

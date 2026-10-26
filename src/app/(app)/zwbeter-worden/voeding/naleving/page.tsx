@@ -15,6 +15,7 @@ import {
   Wheat,
 } from "lucide-react";
 import { shiftDayKey } from "@/lib/training/mobility";
+import { aiProcessorName } from "@/lib/ai/settings";
 import { FUEL_DAY_LABELS } from "@/lib/nutrition/day-type";
 import {
   dayTotals,
@@ -312,7 +313,7 @@ export default async function LogPage({
             {!settings.recognition && (
               <ConsentForm
                 action={setRecognitionConsent}
-                text="Mijn omschrijving van een maaltijd gaat naar OpenAI, dat herkent wat erin zit en de hoeveelheden schat. Ik controleer elke hoeveelheid voor het bewaren."
+                text={`Mijn omschrijving van een maaltijd gaat naar ${aiProcessorName()}, dat herkent wat erin zit en de hoeveelheden schat. Ik controleer elke hoeveelheid voor het bewaren.`}
               >
                 <Sparkles className="size-4" />
                 Tekst herkennen aanzetten

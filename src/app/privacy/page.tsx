@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BackLink } from "@/components/app-ui";
 import { formatPrivacyVersion } from "@/lib/privacy";
+import { aiProcessorName } from "@/lib/ai/settings";
 
 export const metadata = {
   title: "Privacyverklaring — ZWB Cycling",
@@ -31,6 +32,7 @@ function Section({
 }
 
 export default function PrivacyPage() {
+  const AI = aiProcessorName();
   return (
     <main className="mx-auto max-w-2xl space-y-8 px-6 py-12">
       <header className="space-y-2">
@@ -225,7 +227,7 @@ export default function PrivacyPage() {
             verpakt product op met de barcode, dan vragen we het op bij Open Food
             Facts; daarbij gaat alleen de barcode mee, niet wie het vraagt. Zet
             je daarnaast &quot;Tekst herkennen&quot; aan (een aparte
-            toestemming), dan gaat je omschrijving van een maaltijd naar OpenAI,
+            toestemming), dan gaat je omschrijving van een maaltijd naar {AI},
             dat herkent wat erin zit en de hoeveelheden schat. We houden alleen
             bij wanneer je de herkenning gebruikte, voor
             de daglimiet. Je eetdagboek staat in je data-export.
@@ -240,7 +242,7 @@ export default function PrivacyPage() {
             trainer zien het; het bestuur en andere leden niet. Doses rekent de
             app bij het tonen uit het gewicht in je profiel; die worden niet
             apart opgeslagen. Loopt er een trainingsprotocol (hitte of lage
-            cadans), dan gaan de naam en de datums mee naar OpenAI bij elke
+            cadans), dan gaan de naam en de datums mee naar {AI} bij elke
             schemageneratie; voedingsprotocollen gaan niet mee.
             Volg je een hitteprotocol en heb je intervals.icu gekoppeld, dan
             kijken we bij je ritten op hittedagen of er een kerntemperatuur van
@@ -250,7 +252,7 @@ export default function PrivacyPage() {
             van de rit de sensor mat; niet de meting zelf. Voldoet de rit aan de
             hittesessie, dan vinkt de app hem voor je af; anders legt hij uit
             waarom niet. Dat oordeel rekent de app zelf uit met vaste regels. Jij en je eigen trainer zien die waarden; ze gaan niet
-            naar OpenAI.
+            naar {AI}.
             Je kunt een protocol altijd stoppen; de gegevens verdwijnen als je
             je account opheft.
           </li>
@@ -263,7 +265,7 @@ export default function PrivacyPage() {
             dat zweetverlies per uur. Je gewicht van voor en na bewaren we niet.
             Het ritplan rekent met je laatste test hoeveel je per uur drinkt en
             hoeveel bidons je meeneemt. Alleen jij ziet je tests; je trainer,
-            het bestuur en andere leden niet, en ze gaan niet naar OpenAI. Je
+            het bestuur en andere leden niet, en ze gaan niet naar {AI}. Je
             kunt elke test wissen, en ze staan in je data-export.
           </li>
           <li id="zwbieb" className="scroll-mt-20">
@@ -286,7 +288,7 @@ export default function PrivacyPage() {
             als je die aan hebt staan; die zegt van wie het komt en over welk
             onderwerp, niet wat erin staat. Een tip op jouw naam kun je altijd
             zelf aanpassen of verwijderen. Er gaat
-            niets naar OpenAI. Stop je, dan verdwijnen je onderwerpen en spullen; tips en
+            niets naar {AI}. Stop je, dan verdwijnen je onderwerpen en spullen; tips en
             gesprekken kun je zelf verwijderen, en alles verdwijnt als je je
             account opheft. Het staat in je data-export.
           </li>
@@ -301,7 +303,7 @@ export default function PrivacyPage() {
             Wie antwoordt, krijgt een pushmelding dat jij een vraag stelde; jij
             krijgt er een als hij beantwoord is, als je die aan hebt staan. Een
             melding noemt nooit wat er in de vraag of het antwoord staat. Er
-            gaat niets naar OpenAI. Tik je &ldquo;Ik ook&rdquo; bij een
+            gaat niets naar {AI}. Tik je &ldquo;Ik ook&rdquo; bij een
             clubvraag, dan bewaren we dat: anderen zien alleen hoe vaak een
             vraag gesteld is, wie antwoordt ziet ook door wie. Stel je een
             vraag die er al staat, dan kan wie antwoordt hem samenvoegen: jouw
@@ -430,7 +432,7 @@ export default function PrivacyPage() {
             over je schema en over je trainingsdata. Je vraag, het antwoord van de
             AI-coach en de reacties van je trainer worden bewaard als één doorlopend
             gesprek. Alleen jij en de trainers die jij hebt aangewezen kunnen het
-            lezen — het bestuur en communitybeheer niet. Je bericht gaat naar OpenAI
+            lezen — het bestuur en communitybeheer niet. Je bericht gaat naar {AI}{" "}
             om het antwoord te maken, samen met je schema, je doel, je belasting, je
             gereden ritten van de laatste drie maanden (met de titel die je er zelf
             aan gaf, duur, afstand, hoogtemeters, vermogen en hartslag), je FTP,
@@ -439,7 +441,7 @@ export default function PrivacyPage() {
             opt-in aan hebt staan. Vink je aan dat een bericht je schema raakt, dan
             gaat de tekst ook mee naar de eerstvolgende schemaherziening. Je eigen berichten kun je verwijderen; het gesprek
             staat verder in je data-export en verdwijnt als je je account opheft.
-            Zet er geen gegevens in die je niet met je trainer of met OpenAI wilt
+            Zet er geen gegevens in die je niet met je trainer of met {AI} wilt
             delen.
           </li>
           <li>
@@ -450,7 +452,7 @@ export default function PrivacyPage() {
             het onderdeel waar je het meest wint, uit je bewaarde weeksteen), en of je het
             overzicht hebt gezien. Alleen jij kunt het lezen, ook als je je
             steen niet met leden deelt. Gebruik je ZWBeter voor je training, dan
-            gaat die samenvatting zonder je naam en zonder je steen naar OpenAI om het oordeel van
+            gaat die samenvatting zonder je naam en zonder je steen naar {AI} om het oordeel van
             de coach te schrijven, samen met je beschikbaarheid, trainingen en
             events van de week erna. Het staat in je data-export en verdwijnt
             als je je account opheft.
@@ -481,8 +483,8 @@ export default function PrivacyPage() {
             zelf ook de stenen van andere leden niet. Voor het ZWB-gemiddelde tellen we de laatste score van
             iedereen met ZWBriljant mee, ook als je niet deelt. Heb je in je profiel een
             geslacht opgegeven, dan tel je ook mee in het gemiddelde voor mannen of voor
-            vrouwen. Elk gemiddelde is anoniem en verschijnt pas vanaf vijf leden. Er gaat niets naar
-            OpenAI of een andere partij. Het staat in je data-export en
+            vrouwen. Elk gemiddelde is anoniem en verschijnt pas vanaf vijf leden. Er gaat niets naar{" "}
+            {AI} of een andere partij. Het staat in je data-export en
             verdwijnt als je je account opheft.
           </li>
           <li>
@@ -492,11 +494,11 @@ export default function PrivacyPage() {
             trainers die jij hebt aangewezen kunnen dat ook voor jou doen. We
             bewaren de tekst, wie hem schreef en wanneer. Alleen jij en die
             trainers kunnen de voorkeuren lezen — het bestuur en communitybeheer
-            niet. Ze gaan mee naar OpenAI bij elke schemageneratie en bij
+            niet. Ze gaan mee naar {AI} bij elke schemageneratie en bij
             antwoorden in de coachchat. Je kunt elke voorkeur weghalen, ook
             een die je trainer schreef; ze staan in je data-export en verdwijnen
             als je je account opheft. Zet er geen gegevens in die je niet met je
-            trainer of met OpenAI wilt delen.
+            trainer of met {AI} wilt delen.
           </li>
           <li>
             <strong>Terugschrijven naar Strava:</strong> koppel je Strava met het
@@ -643,12 +645,13 @@ export default function PrivacyPage() {
             je deze koppelt, voor je eigen activiteiten- en trainingsdata.
           </li>
           <li>
-            <strong>OpenAI</strong> — voor het genereren van concept-trainings­schema&apos;s
-            en voor de antwoorden in de coachchat en het oordeel in het weekoverzicht, en als je dat aanzet voor het
-            herkennen van een maaltijd uit een omschrijving. Meegestuurd worden relevante
-            trainingscontext — waaronder je gereden ritten en je vermogensgegevens —
-            en, bij de chat, de tekst die je zelf typt; geen directe
+            <strong>{AI === "Anthropic" ? "Anthropic (Claude)" : "OpenAI"}</strong> — voor het genereren van
+            concept-trainings­schema&apos;s en pacingplannen, voor de antwoorden in de coachchat en het
+            oordeel in het weekoverzicht, en als je dat aanzet voor het herkennen van een maaltijd uit
+            een omschrijving. Meegestuurd worden relevante trainingscontext — waaronder je gereden
+            ritten en je vermogensgegevens — en, bij de chat, de tekst die je zelf typt; geen directe
             identificatiegegevens waar vermijdbaar.
+            {AI === "Anthropic" && " Anthropic gebruikt deze gegevens niet om zijn modellen te trainen."}
           </li>
           <li>
             <strong>Mapbox/OpenStreetMap</strong> (kaarten), <strong>Resend</strong>{" "}

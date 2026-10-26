@@ -19,7 +19,7 @@
  * categorie gegevens, maar kreeg op besluit van de eigenaar geen versie hier.
  * Alleen wie Naleving aanzet levert die gegevens aan, en tekent daar apart voor
  * (`LOG_CONSENT_VERSION` in `src/lib/nutrition/log.ts`, tabel
- * `nutrition_log_settings`). Tekst herkennen (naar OpenAI) heeft daarbovenop
+ * `nutrition_log_settings`). Tekst herkennen (naar de AI-aanbieder) heeft daarbovenop
  * een eigen toestemming (`ai_consent_at`), net als de trainer laten meekijken
  * (`trainer_consent_at`). `/privacy` beschrijft het wel.
  *

@@ -48,6 +48,14 @@ export function usesClaude(): boolean {
   return aiProvider() === "anthropic";
 }
 
+/**
+ * De AI-verwerker zoals de privacyteksten hem noemen. Volgt AI_PROVIDER, zodat
+ * de tekst vóór en na de overstap klopt (besluit eigenaar 2026-10-26).
+ */
+export function aiProcessorName(): "Anthropic" | "OpenAI" {
+  return usesClaude() ? "Anthropic" : "OpenAI";
+}
+
 /** Staat de sleutel van de gekozen aanbieder er? */
 export function aiConfigured(): boolean {
   return Boolean(usesClaude() ? process.env.ANTHROPIC_API_KEY?.trim() : process.env.OPENAI_API_KEY?.trim());
