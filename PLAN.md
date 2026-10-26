@@ -11400,7 +11400,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Segmentrecords op het racebriefje
 
-**2026-10-26.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Migratie
+**2026-10-26.** Commit `a697f4de`, lokaal, niet gepusht. Migratie
 `0277_zwift_segment_bests.sql`, **nog niet toegepast** en lokaal niet te testen
 (geen Docker of Supabase-config).
 
