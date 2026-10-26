@@ -11392,7 +11392,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Racebriefje: sprintsegmenten van het parcours
 
-**2026-10-26.** Commit `befe317e`, lokaal, niet gepusht. Geen migratie.
+**2026-10-26.** Commit `befe317e`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
 
 **Waarom.** De eigenaar zag dat het racebriefje de sprintsegmenten van het
 parcours niet noemt, terwijl ze in een puntenrace FAL- en FTS-punten opleveren.
