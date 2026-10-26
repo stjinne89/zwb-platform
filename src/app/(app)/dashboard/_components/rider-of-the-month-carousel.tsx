@@ -1,32 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Trophy,
-  Bike,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Mountain,
-  Heart,
-  type LucideIcon,
-} from "lucide-react";
+import { Trophy, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { MemberLink } from "@/components/member-link";
+import { RANKING_ICONS } from "@/components/ranking-icon";
+import type { RankingIcon } from "@/lib/rankings/rankings";
 
-export type RiderEntry = { id: string; name: string; value: string };
+/** `rank` uit de ranglijst: bij gelijke stand dezelfde plek. */
+export type RiderEntry = { id: string; name: string; value: string; rank: number };
+/** Een ranglijst van ZWB Rankings over de maand (sinds 2026-10-26; daarvoor km, uren, kudo's en hm). */
 export type RiderMetricSlide = {
-  key: "km" | "uren" | "kudos" | "hm";
+  key: string;
   label: string;
-  unit: string;
+  icon: RankingIcon;
   riders: RiderEntry[];
-};
-
-const ICONS: Record<RiderMetricSlide["key"], LucideIcon> = {
-  km: Bike,
-  uren: Clock,
-  kudos: Heart,
-  hm: Mountain,
 };
 
 const ROTATE_MS = 6500;
@@ -50,7 +38,7 @@ export function RiderOfTheMonthCarousel({ slides }: { slides: RiderMetricSlide[]
     setIndex((i) => (i + delta + slides.length) % slides.length);
 
   const slide = slides[index];
-  const Icon = ICONS[slide.key];
+  const Icon = RANKING_ICONS[slide.icon];
 
   return (
     <div
@@ -74,7 +62,11 @@ export function RiderOfTheMonthCarousel({ slides }: { slides: RiderMetricSlide[]
               <ChevronLeft className="size-4" />
             </button>
           )}
-          <div className="flex items-center gap-1.5 px-1" role="tablist" aria-label="Maatstaf">
+          {/* Tien stippen passen niet naast de titel op een telefoon; daar een teller. */}
+          <span className="px-1 text-xs tabular-nums text-muted-foreground sm:hidden" aria-hidden>
+            {index + 1}/{slides.length}
+          </span>
+          <div className="hidden items-center px-1 sm:flex" role="tablist" aria-label="Maatstaf">
             {slides.map((s, i) => (
               <button
                 key={s.key}
@@ -83,7 +75,7 @@ export function RiderOfTheMonthCarousel({ slides }: { slides: RiderMetricSlide[]
                 aria-selected={i === index}
                 aria-label={s.label}
                 onClick={() => setIndex(i)}
-                className="flex size-8 items-center justify-center"
+                className="flex size-6 items-center justify-center"
               >
                 {/* Stip blijft klein; het tapdoel eromheen niet. */}
                 <span
@@ -113,18 +105,17 @@ export function RiderOfTheMonthCarousel({ slides }: { slides: RiderMetricSlide[]
           {slide.label}
         </div>
         <ol className="space-y-1 text-sm">
-          {slide.riders.map((rider, idx) => (
+          {slide.riders.map((rider) => (
             <li key={rider.id} className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2">
-                <span className="inline-block w-5 text-right tabular-nums text-muted-foreground">
-                  {idx + 1}.
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="inline-block w-5 shrink-0 text-right tabular-nums text-muted-foreground">
+                  {rider.rank}.
                 </span>
-                <MemberLink id={rider.id}>{rider.name}</MemberLink>
+                <span className="truncate">
+                  <MemberLink id={rider.id}>{rider.name}</MemberLink>
+                </span>
               </span>
-              <span className="font-medium tabular-nums">
-                {rider.value}
-                {slide.unit && <span className="ml-1 text-muted-foreground">{slide.unit}</span>}
-              </span>
+              <span className="shrink-0 font-medium tabular-nums">{rider.value}</span>
             </li>
           ))}
         </ol>

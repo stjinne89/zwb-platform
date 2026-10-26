@@ -149,7 +149,7 @@ export default async function RankingsPage({
         .select("profile_id, started_at, last_seen_at, ended_at")
         .gte("started_at", `${week}T00:00:00.000Z`)
         .lt("started_at", `${nextWeek}T00:00:00.000Z`),
-      user ? loadGrowthSnapshots(supabase, user.id, week) : Promise.resolve([]),
+      user ? loadGrowthSnapshots(supabase, user.id, addWeeks(week, -1), week) : Promise.resolve([]),
       supabase
         .from("achievement_awards")
         .select(

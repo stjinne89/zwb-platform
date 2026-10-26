@@ -84,7 +84,39 @@ const plural = (count: number, one: string, many: string) => `${count} ${count =
 
 /** De ranglijsten uit de ritten van één week. */
 export function weekRankings(rows: ActivityRow[], week: string): Ranking[] {
-  const scores = weeklyScores(rows).filter((score) => score.week === week);
+  return rideRankings(
+    weeklyScores(rows).filter((score) => score.week === week),
+    "week",
+  );
+}
+
+/**
+ * De ranglijsten over alle aangeleverde ritten samen, zoals Rider of the month op
+ * het dashboard (één maand). Per lid opgeteld over de weken; de langste rit is de
+ * langste van allemaal.
+ */
+export function monthRankings(rows: ActivityRow[]): Ranking[] {
+  const byProfile = new Map<string, WeekScore>();
+  for (const score of weeklyScores(rows)) {
+    const total = byProfile.get(score.profileId);
+    if (!total) {
+      byProfile.set(score.profileId, { ...score });
+      continue;
+    }
+    total.activities += score.activities;
+    total.distanceM += score.distanceM;
+    total.elevationM += score.elevationM;
+    total.movingSeconds += score.movingSeconds;
+    total.longestSeconds = Math.max(total.longestSeconds, score.longestSeconds);
+    total.outdoorM += score.outdoorM;
+    total.outdoorSeconds += score.outdoorSeconds;
+    total.indoorM += score.indoorM;
+    total.indoorSeconds += score.indoorSeconds;
+  }
+  return rideRankings([...byProfile.values()], "maand");
+}
+
+function rideRankings(scores: WeekScore[], period: "week" | "maand"): Ranking[] {
   const rides = (score: WeekScore) => plural(score.activities, "rit", "ritten");
   const list = (
     id: string,
@@ -122,7 +154,7 @@ export function weekRankings(rows: ActivityRow[], week: string): Ranking[] {
   return [
     list("zitvlees", "Zitvleeskampioen", "clock", (s) => s.movingSeconds, (s) => formatHours(s.movingSeconds)),
     list("kilometers", "Kilometervreter", "route", (s) => s.distanceM, (s) => formatKm(s.distanceM)),
-    list("klimmer", "Klimmer van de week", "mountain", (s) => s.elevationM, (s) => formatMeters(s.elevationM)),
+    list("klimmer", `Klimmer van de ${period}`, "mountain", (s) => s.elevationM, (s) => formatMeters(s.elevationM)),
     list("actief", "Meest actief", "refresh", (s) => s.activities, rides, (s) => formatHours(s.movingSeconds)),
     list("lange-adem", "Lange adem", "timer", (s) => s.longestSeconds, (s) => formatDuration(s.longestSeconds)),
     both("buitenbeentje", "Buitenbeentje", "sun", (s) => s.outdoorM, (s) => s.outdoorSeconds, "km"),
@@ -130,7 +162,7 @@ export function weekRankings(rows: ActivityRow[], week: string): Ranking[] {
   ];
 }
 
-/** Metronoom: op hoeveel dagen van de week je fietste. Bij gelijke stand eerst de meeste uren. */
+/** Metronoom: op hoeveel dagen je fietste (van de week of de maand). Bij gelijke stand eerst de meeste uren. */
 export function metronoom(rows: ActivityRow[]): Ranking {
   const byProfile = new Map<string, { profileId: string; days: Set<string>; seconds: number }>();
   for (const row of uniqueRides(rows)) {

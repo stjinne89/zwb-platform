@@ -1,36 +1,11 @@
 "use client";
 
-import {
-  CalendarCheck,
-  Clock,
-  Gem,
-  House,
-  type LucideIcon,
-  Mountain,
-  RefreshCw,
-  Route,
-  Sun,
-  Timer,
-  Users,
-} from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { MemberLink } from "@/components/member-link";
-import type { Ranking, RankingEntry, RankingIcon } from "@/lib/rankings/rankings";
+import { RANKING_ICONS } from "@/components/ranking-icon";
+import type { Ranking, RankingEntry } from "@/lib/rankings/rankings";
 import { cn } from "@/lib/utils";
-
-const ICONS: Record<RankingIcon, LucideIcon> = {
-  clock: Clock,
-  route: Route,
-  mountain: Mountain,
-  refresh: RefreshCw,
-  timer: Timer,
-  sun: Sun,
-  home: House,
-  calendar: CalendarCheck,
-  users: Users,
-  gem: Gem,
-};
 
 /** Goud, zilver en brons, de tinten van de ring van de badges (achievement-badge.tsx). */
 const MEDALS: Record<number, string> = {
@@ -114,7 +89,7 @@ export function RankingCard({
   viewerId: string | null;
 }) {
   const [active, setActive] = useState(0);
-  const Icon = ICONS[ranking.icon];
+  const Icon = RANKING_ICONS[ranking.icon];
   const entries = views[active]?.entries ?? [];
   const top = entries.slice(0, 3);
   const ownIndex = entries.findIndex((entry) => entry.profileId === viewerId);

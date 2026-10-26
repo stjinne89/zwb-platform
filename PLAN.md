@@ -11392,6 +11392,43 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gewijzigd — Rider of the month met de ranglijsten van ZWB Rankings
+
+**2026-10-26.** Commit `COMMIT_HASH`. Geen migratie. Niet gepusht.
+
+**Waarom.** De eigenaar: Rider of the month op het dashboard moest de nieuwe
+statistieken krijgen en Kudo-magneet ("Kudo's") moest eruit, om dezelfde reden als
+op ZWB Rankings: wie via intervals.icu of een import rijdt heeft geen kudos.
+
+**Wat.**
+- De carrousel (`dashboard/_components/club-stats.tsx`) toont nu per maand de
+  top 3 van elke ranglijst van ZWB Rankings: Zitvleeskampioen, Kilometervreter,
+  Klimmer van de maand, Meest actief, Lange adem, Buitenbeentje (km),
+  Binnenvetter (uren), Metronoom, Clubmens en Groeibriljant. Was: km, uren,
+  kudo's en hoogtemeters, en zonder ontdubbelen van gelijke stand.
+- `monthRankings` (`lib/rankings/rankings.ts`) telt de weekscores per lid op; de
+  langste rit is de langste van de maand. De ritten komen uit de bestaande
+  gedeelde cache (nu met `trainer`, sleutel `v3`); events en live-ritten uit een
+  tweede gedeelde cache van tien minuten (`loadClubMoments`, live alleen met
+  zichtbaarheid "members", zoals de RLS).
+- Groeibriljant per maand: `briljantMonthGrowth` (`lib/briljant/compare.ts`)
+  vergelijkt de laatste steen met een maandag in de maand met de laatste steen
+  daarvoor (hooguit zes weken eerder). Met de sessie van het lid, dus buiten de
+  gedeelde cache; `loadGrowthSnapshots` neemt nu een van-tot-bereik.
+- Plek bij gelijke stand komt uit de ranglijst (1, 1, 3). Tien lijsten passen
+  op een telefoon niet als stippen naast de titel; daar staat een teller (3/10).
+- Het icoon per lijst staat in `components/ranking-icon.ts`, voor de kaarten en
+  de carrousel samen.
+- Privacy: Clubmens en Groeibriljant (per maand) worden ook bij Rider of the
+  month genoemd; zelfde ontvangers, zonder nieuwe versie.
+
+**Bewust niet.** Geen km/uren-schakelaar in de carrousel: die draait vanzelf
+door; Buitenbeentje staat in km en Binnenvetter in uren.
+
+**Gecontroleerd.** Vitest (`rankings.test.ts`: maandtotalen en maandgroei),
+volledige suite op de vier bekende worktree-fouten na, `tsc`, ESLint.
+**Niet geverifieerd:** het dashboard in de browser.
+
 ### Gewijzigd — ZWB Rankings: alle ranglijsten per week
 
 **2026-10-26.** Commit `ecf04cb4`. Geen migratie. Niet gepusht.

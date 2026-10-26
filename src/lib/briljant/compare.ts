@@ -245,38 +245,60 @@ export type BriljantGrowth = {
   growth: number;
 };
 
-/**
- * ZWB Rankings: wie zijn score in `week` het meest zag stijgen ten opzichte van de
- * week ervoor. Elke maandag komt er een nieuwe steen; zonder steen in beide weken
- * doet het lid niet mee. Alleen groei; wie daalde, staat er niet in.
- */
-export function briljantGrowth(
-  rows: Array<{ profile_id: string; week: string; facets: unknown; consistency: number | string | null }>,
-  week: string,
-): BriljantGrowth[] {
-  const date = new Date(`${week}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - 7);
-  const previous = date.toISOString().slice(0, 10);
+type GrowthRow = { profile_id: string; week: string; facets: unknown; consistency: number | string | null };
 
-  const scores = new Map<string, { from?: number; to?: number }>();
+/**
+ * Per lid de laatste steen waarvoor `isTo` geldt tegen de laatste waarvoor
+ * `isFrom` geldt. Zonder beide doet het lid niet mee; alleen groei telt.
+ */
+function growthBetween(rows: GrowthRow[], isTo: (week: string) => boolean, isFrom: (week: string) => boolean): BriljantGrowth[] {
+  const picks = new Map<string, { from?: { week: string; score: number }; to?: { week: string; score: number } }>();
   for (const row of rows) {
-    if (row.week !== week && row.week !== previous) continue;
+    const side = isTo(row.week) ? "to" : isFrom(row.week) ? "from" : null;
+    if (!side) continue;
     const score = storedScore(
       (row.facets ?? {}) as StoredSnapshot["facets"],
       row.consistency == null ? null : Number(row.consistency),
     );
     if (score == null) continue;
-    const item = scores.get(row.profile_id) ?? {};
-    if (row.week === week) item.to = score;
-    else item.from = score;
-    scores.set(row.profile_id, item);
+    const item = picks.get(row.profile_id) ?? {};
+    const current = item[side];
+    if (!current || row.week > current.week) item[side] = { week: row.week, score };
+    picks.set(row.profile_id, item);
   }
 
   const result: BriljantGrowth[] = [];
-  for (const [profileId, { from, to }] of scores) {
-    if (from == null || to == null) continue;
-    const growth = points(to) - points(from);
-    if (growth > 0) result.push({ profileId, from, to, growth });
+  for (const [profileId, { from, to }] of picks) {
+    if (!from || !to) continue;
+    const growth = points(to.score) - points(from.score);
+    if (growth > 0) result.push({ profileId, from: from.score, to: to.score, growth });
   }
   return result.sort((a, b) => b.growth - a.growth);
+}
+
+const shiftWeek = (week: string, days: number) => {
+  const date = new Date(`${week}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+
+/**
+ * ZWB Rankings: wie zijn score in `week` het meest zag stijgen ten opzichte van de
+ * week ervoor. Elke maandag komt er een nieuwe steen.
+ */
+export function briljantGrowth(rows: GrowthRow[], week: string): BriljantGrowth[] {
+  const previous = shiftWeek(week, -7);
+  return growthBetween(rows, (w) => w === week, (w) => w === previous);
+}
+
+/** Zo ver voor de maand mag de steen liggen waar de maandgroei mee begint. */
+export const MONTH_GROWTH_LOOKBACK_DAYS = 42;
+
+/**
+ * Rider of the month: de laatste steen van de maand (maandag in de maand) tegen
+ * de laatste steen ervoor, hooguit zes weken eerder.
+ */
+export function briljantMonthGrowth(rows: GrowthRow[], monthStart: string): BriljantGrowth[] {
+  const floor = shiftWeek(monthStart, -MONTH_GROWTH_LOOKBACK_DAYS);
+  return growthBetween(rows, (w) => w >= monthStart, (w) => w < monthStart && w >= floor);
 }

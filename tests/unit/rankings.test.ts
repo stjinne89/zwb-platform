@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { briljantGrowth } from "@/lib/briljant/compare";
-import { clubmens, groeibriljant, metronoom, rankBy, weekRankings } from "@/lib/rankings/rankings";
+import { briljantGrowth, briljantMonthGrowth } from "@/lib/briljant/compare";
+import { clubmens, groeibriljant, metronoom, monthRankings, rankBy, weekRankings } from "@/lib/rankings/rankings";
 
 // ZWB Rankings: ranglijsten uit ritten van elke bron, aanmeldingen, live-ritten en
 // ZWBriljant-stenen.
@@ -79,6 +79,25 @@ describe("weekRankings", () => {
 
   it("Lange adem: de langste rit, niet de som", () => {
     expect(ranking(list, "lange-adem").entries.map((entry) => entry.label)).toEqual(["4:00 u", "2:00 u"]);
+  });
+});
+
+describe("monthRankings", () => {
+  it("telt de weken van de maand op, met de langste rit van allemaal", () => {
+    const list = monthRankings([
+      ride(1, A, "2026-10-06T08:00:00Z", 2 * 3600),
+      ride(2, A, "2026-10-20T08:00:00Z", 3 * 3600),
+      ride(3, B, "2026-10-14T08:00:00Z", 4 * 3600),
+    ]);
+    expect(list.map((item) => item.title)).toContain("Klimmer van de maand");
+    expect(ranking(list, "zitvlees").entries.map((entry) => [entry.profileId, entry.label])).toEqual([
+      [A, "5 u"],
+      [B, "4 u"],
+    ]);
+    expect(ranking(list, "lange-adem").entries.map((entry) => [entry.profileId, entry.label])).toEqual([
+      [B, "4:00 u"],
+      [A, "3:00 u"],
+    ]);
   });
 });
 
@@ -169,5 +188,20 @@ describe("briljantGrowth", () => {
         "2026-10-26",
       ),
     ).toEqual([]);
+  });
+
+  it("maandgroei: laatste steen van de maand tegen de laatste ervoor", () => {
+    const growth = briljantMonthGrowth(
+      [
+        snapshot(A, "2026-10-26", 4.3),
+        snapshot(A, "2026-10-19", 4.2),
+        snapshot(A, "2026-09-28", 4),
+        // Te oud om mee te beginnen.
+        snapshot(B, "2026-10-26", 4),
+        snapshot(B, "2026-08-10", 3),
+      ],
+      "2026-10-01",
+    );
+    expect(growth).toEqual([{ profileId: A, from: 3.2, to: 3.44, growth: 24 }]);
   });
 });
