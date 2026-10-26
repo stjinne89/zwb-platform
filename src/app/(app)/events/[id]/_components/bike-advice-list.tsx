@@ -40,7 +40,13 @@ export function BikeAdviceList({
     <ul className="divide-y rounded-md border text-sm">
       {rows.map((row) => {
         const diff = row.seconds - baseSeconds;
-        const detail = [showStage ? `stage ${row.stage}` : null, row.wheels].filter(Boolean).join(" · ");
+        const detail = [
+          showStage ? `stage ${row.stage}` : null,
+          row.wheels,
+          showStage && row.owned === false ? "niet in je garage" : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
         return (
           <li key={`${row.label ?? ""}${row.frame}|${row.wheels ?? ""}`} className="flex items-center gap-3 px-3 py-2">
             <div className="min-w-0 flex-1">

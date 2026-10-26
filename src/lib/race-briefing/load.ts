@@ -107,7 +107,7 @@ async function bikeAdviceFor(
   const advice = adviseBikes(input);
   if (!advice || advice.best.length === 0) return null;
   const garage = await loadZwiftGarage(admin, viewerId, zwift.parts).catch(() => null);
-  const own = garage ? (adviseBikes({ ...input, garage, limit: 1 })?.best[0] ?? null) : null;
+  const own = garage ? (adviseBikes({ ...input, garage, garageOnly: true, limit: 1 })?.best[0] ?? null) : null;
   return { advice, wkg, own, hasGarage: garage !== null };
 }
 

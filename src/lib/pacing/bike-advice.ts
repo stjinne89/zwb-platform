@@ -6,8 +6,9 @@
 //
 // Puur. De aanroeper geeft een functie die bij een fysica de eindtijd geeft:
 // het pacingplan rekent zijn eigen plan door, de briefing een vast vermogen.
-// Met een garage (zwift-garage.ts) alleen wat het lid in Zwift heeft, elk frame
-// op zijn eigen upgradeniveau.
+// Met een garage (zwift-garage.ts) rijdt elk frame uit de garage op zijn eigen
+// upgradeniveau en elk ander frame op stage 0, wat je krijgt als je het koopt.
+// Met garageOnly alleen wat het lid in Zwift heeft.
 //
 // Alle combinaties frame × wielen doorrekenen is 146 × 74 keer de route. Het
 // kan in drie stappen omdat frame en wielen in ons model optellen (CdA en massa
@@ -44,6 +45,8 @@ export type BikeChoice = {
   wheels: string | null;
   /** Upgradeniveau waarop dit frame gerekend is. */
   stage: number;
+  /** Frame en wielen staan in de garage; null zonder garage. */
+  owned: boolean | null;
   seconds: number;
 };
 
@@ -68,10 +71,12 @@ export function adviseBikes(input: {
   seconds: (physics: RidePhysics) => number;
   limit?: number;
   /**
-   * Alleen de frames en wielen die het lid in Zwift heeft, elk frame op zijn
-   * eigen upgradeniveau. Wielen leeg = alle wielen.
+   * Wat het lid in Zwift heeft: een frame uit de garage rijdt op zijn eigen
+   * upgradeniveau, elk ander frame op stage 0.
    */
   garage?: ZwiftGarage | null;
+  /** Alleen frames en wielen uit de garage. Wielen leeg = alle wielen. */
+  garageOnly?: boolean;
 }): BikeAdvice | null {
   const { parts, constraints, setup } = input;
   const garage = input.garage ?? null;
@@ -82,6 +87,10 @@ export function adviseBikes(input: {
   const stageFor = (frame: string | null) =>
     constraints.upgradesDisabled ? 0 : garage ? (frame ? (garage.frames[frame] ?? 0) : 0) : stage;
   const ownedWheels = garage && garage.wheels.length > 0 ? new Set(garage.wheels) : null;
+  const only = garage !== null && input.garageOnly === true;
+  // De standaardwielen van het testframe heeft iedereen.
+  const ownedFor = (frame: string | null, wheels: string | null) =>
+    garage ? (frame ?? REFERENCE_FRAME) in garage.frames && (wheels === null || !ownedWheels || ownedWheels.has(wheels)) : null;
 
   const timeFor = (frame: string | null, wheels: string | null, frameStage = stageFor(frame)) =>
     input.seconds(
@@ -96,7 +105,7 @@ export function adviseBikes(input: {
 
   const frames: Array<{ name: string; kind: BikeKind; fixedWheels: boolean }> = [];
   for (const name of new Set(parts.filter((part) => part.part === "frame").map((part) => part.name))) {
-    if (garage && !(name in garage.frames)) continue;
+    if (only && !(name in garage.frames)) continue;
     const frame = findFrame(parts, name, stageFor(name));
     if (!frame || (frame.kind === "tt" && !constraints.ttBikesAllowed)) continue;
     frames.push({ name, kind: frame.kind, fixedWheels: frame.fixedWheels === true });
@@ -109,7 +118,7 @@ export function adviseBikes(input: {
     const testFrame = wheelTestFrame(kind);
     const names = parts
       .filter((part) => part.part === "wheel" && part.testFrame === testFrame)
-      .filter((part) => !ownedWheels || ownedWheels.has(part.name))
+      .filter((part) => !only || !ownedWheels || ownedWheels.has(part.name))
       .map((part) => part.name);
     if (constraints.forcedWheels || !testFrame || names.length === 0) {
       wheelsByKind.set(kind, [null]);
@@ -141,6 +150,7 @@ export function adviseBikes(input: {
         fixedWheels: frame.fixedWheels,
         wheels,
         stage: stageFor(frame.name),
+        owned: ownedFor(frame.name, wheels),
         seconds: timeFor(frame.name, wheels),
       };
     })
@@ -151,7 +161,7 @@ export function adviseBikes(input: {
     let best = row;
     for (const wheels of wheelsFor(row).slice(1)) {
       const seconds = timeFor(row.frame, wheels);
-      if (seconds < best.seconds) best = { ...row, wheels, seconds };
+      if (seconds < best.seconds) best = { ...row, wheels, owned: ownedFor(row.frame, wheels), seconds };
     }
     return best;
   });
@@ -170,6 +180,7 @@ export function adviseBikes(input: {
       fixedWheels: currentFrame?.fixedWheels === true,
       wheels: constraints.forcedWheels || currentFrame?.fixedWheels ? null : setup.wheels,
       stage,
+      owned: ownedFor(setup.frame, setup.wheels),
       seconds: timeFor(setup.frame, setup.wheels, stage),
     },
   };

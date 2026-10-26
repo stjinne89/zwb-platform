@@ -45,12 +45,12 @@ export default async function PacingPage({
   searchParams: Promise<{ fietsen?: string }>;
 }) {
   const { id } = await params;
-  const allBikes = (await searchParams).fietsen === "alle";
+  const garageOnly = (await searchParams).fietsen === "garage";
 
   const access = await getRequestAccess();
   if (!access.user) redirect("/login");
 
-  const result = await loadPacingPage(id, { allBikes });
+  const result = await loadPacingPage(id, { garageOnly });
   if (!result.ok) {
     // Een event dat niet bestaat is een 404; alle andere redenen (geen route,
     // profiel nog niet opgehaald) zijn een normale toestand met uitleg.
@@ -145,7 +145,7 @@ export default async function PacingPage({
               eventId={id}
               setup={ride.setup}
               advice={bikeAdvice}
-              garage={garage ? (allBikes ? "alle" : "eigen") : null}
+              garage={garage ? (garageOnly ? "alleen" : "alle") : null}
             />
           )}
         </section>

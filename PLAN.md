@@ -11396,6 +11396,39 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gewijzigd — Zwift-garage: fietsen buiten de garage op stage 0
+
+**2026-10-26.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Geen migratie.
+
+**Waarom.** De eigenaar wil dat Snelste fiets met een garage alle fietsen
+meeneemt: een frame dat niet in de garage staat op stage 0, wat je krijgt als je
+het koopt. Eerst koos Snelste fiets met een garage alleen uit de eigen frames
+en wielen.
+
+**Wat.**
+- `adviseBikes` met een garage: elk frame uit de garage op zijn eigen stage,
+  elk ander frame op stage 0, en alle wielen. Nieuw `garageOnly` voor alleen de
+  garage (het oude gedrag). Elke regel krijgt `owned`: frame in de garage en
+  eigen of standaardwielen (geen wielen aangevinkt = alle wielen).
+- **Pacingplan:** standaard alle fietsen zo gerekend, met "niet in je garage"
+  onder een fiets die je niet hebt; Alleen mijn garage (`?fietsen=garage`) toont
+  wat je nu kunt rijden. De schakelaar `?fietsen=alle` van de vorige ronde is
+  weg. Een nieuw plan begint nog steeds met de snelste fiets uit de garage.
+- **Briefing:** ongewijzigd. De lijst blijft stage 0 voor iedereen, de regel Jij
+  is de snelste fiets die je hebt.
+- `/hulp/racen#pacing-zwift` bijgewerkt.
+
+**Gecontroleerd.** Vitest: volle suite 3471 van 3478 groen (6 overgeslagen;
+`admin-areas` faalt alleen onder parallelle belasting en slaagt los). `tsc` en
+ESLint schoon. De worktree heeft nu eigen `node_modules` (`npm ci`, zwift-data
+2.1) in plaats van een koppeling naar de hoofdmap; daarmee vallen de eerder
+genoemde fouten door ontbrekende pakketten weg. Lokaal gestart met
+`npm run dev`: `/mijn-garage/zwift` en de briefing van Spiral Summit renderen.
+De briefing toont nog de oude fietslijst van productie (Espada bovenaan), omdat
+"Fietsen ophalen" nog niet met de nieuwe code is gedraaid. **Niet
+geverifieerd:** opslaan in de garage en het pacingplan in de browser (dat maakt
+op productie een plan en garage-rijen aan; aan de eigenaar gelaten).
+
 ### Gebouwd — Zwift-garage per lid voor Snelste fiets
 
 **2026-10-26.** Commit `892de397`, lokaal, niet gepusht. Migratie

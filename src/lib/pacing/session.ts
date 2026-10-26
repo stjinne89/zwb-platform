@@ -147,6 +147,7 @@ function startSetup(ctx: Loaded): RideSetup | undefined {
     weightKg: ctx.rider.model.weightKg,
     heightCm: ctx.heightCm,
     garage: ctx.garage,
+    garageOnly: true,
     limit: 1,
     seconds: (physics) => steadySeconds(ctx.loaded.route, physics, ctx.rider.model.cpWatts, ctx.rider.model.weightKg),
   });
@@ -180,7 +181,7 @@ export type PacingPageData = {
  */
 export async function loadPacingPage(
   eventId: string,
-  options: { allBikes?: boolean } = {},
+  options: { garageOnly?: boolean } = {},
 ): Promise<{ ok: true; data: PacingPageData } | { ok: false; error: string }> {
   const result = await loadForUser(eventId);
   if (!result.ok) return result;
@@ -249,7 +250,8 @@ export async function loadPacingPage(
               setup: ride.setup,
               weightKg: ctx.rider.model.weightKg,
               heightCm: ctx.heightCm,
-              garage: options.allBikes ? null : ctx.garage,
+              garage: ctx.garage,
+              garageOnly: options.garageOnly === true,
               seconds: (physics) =>
                 evaluatePlan(plan.segments, ctx.loaded.route, ctx.rider.model, {
                   durability: ctx.rider.durability,

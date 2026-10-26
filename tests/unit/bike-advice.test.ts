@@ -68,6 +68,7 @@ function advise(input: {
   parts?: BikePart[];
   stage?: number;
   garage?: ZwiftGarage | null;
+  garageOnly?: boolean;
 }) {
   const constraints = input.constraints ?? RACE;
   return adviseBikes({
@@ -77,6 +78,7 @@ function advise(input: {
     weightKg: MODEL.weightKg,
     heightCm: 180,
     garage: input.garage,
+    garageOnly: input.garageOnly,
     seconds: (physics: RidePhysics) =>
       evaluatePlan(plan(input.route.totalKm), input.route, MODEL, { ride: physics }).totalSeconds,
   });
@@ -167,12 +169,25 @@ describe("adviseBikes", () => {
 });
 
 describe("adviseBikes met een Zwift-garage", () => {
-  it("kiest alleen uit de eigen frames en wielen", () => {
+  it("neemt frames buiten de garage mee op stage 0", () => {
+    const flat = route(0, 20);
+    const garage: ZwiftGarage = { frames: { Klimfiets: 0 }, wheels: ["Licht"] };
+    const advice = advise({ route: flat, constraints: NO_TT, stage: 5, garage })!;
+    expect(advice.best[0]).toMatchObject({ frame: "Aerofiets", stage: 0, wheels: "Diep", owned: false });
+    const stage0 = advise({ route: flat, constraints: NO_TT, stage: 0 })!;
+    expect(advice.best[0].seconds).toBeCloseTo(stage0.best[0].seconds, 6);
+    // Een eigen frame is pas "in je garage" met eigen of standaardwielen.
+    const climber = advice.best.find((row) => row.frame === "Klimfiets")!;
+    expect(climber.owned).toBe(climber.wheels === null || climber.wheels === "Licht");
+  });
+
+  it("met garageOnly alleen de eigen frames en wielen", () => {
     const garage: ZwiftGarage = { frames: { "Zwift Carbon": 0, Klimfiets: 0 }, wheels: ["Licht"] };
-    const advice = advise({ route: route(0, 20), constraints: NO_TT, garage })!;
+    const advice = advise({ route: route(0, 20), constraints: NO_TT, garage, garageOnly: true })!;
     expect(advice.stage).toBeNull();
     expect(new Set(advice.best.map((row) => row.frame))).toEqual(new Set(["Zwift Carbon", "Klimfiets"]));
     expect(advice.best.every((row) => row.wheels === null || row.wheels === "Licht")).toBe(true);
+    expect(advice.best.every((row) => row.owned === true)).toBe(true);
   });
 
   it("rekent elk frame op zijn eigen upgradeniveau", () => {
@@ -184,8 +199,8 @@ describe("adviseBikes met een Zwift-garage", () => {
   });
 
   it("zonder aangevinkte wielen tellen alle wielen mee", () => {
-    const advice = advise({ route: route(0, 20), constraints: NO_TT, garage: { frames: { Aerofiets: 0 }, wheels: [] } })!;
-    expect(advice.best[0]).toMatchObject({ frame: "Aerofiets", wheels: "Diep" });
+    const advice = advise({ route: route(0, 20), constraints: NO_TT, garage: { frames: { Aerofiets: 0 }, wheels: [] }, garageOnly: true })!;
+    expect(advice.best[0]).toMatchObject({ frame: "Aerofiets", wheels: "Diep", owned: true });
   });
 
   it("de huidige opzet houdt zijn eigen niveau", () => {

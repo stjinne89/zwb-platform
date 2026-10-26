@@ -23,8 +23,11 @@ export function PacingBikeAdvice({
   eventId: string;
   setup: RideSetup;
   advice: BikeAdvice;
-  /** "eigen": uit de Zwift-garage, "alle": alle fietsen, null: geen garage ingevuld. */
-  garage: "eigen" | "alle" | null;
+  /**
+   * "alle": alle fietsen, die uit de garage op hun eigen stage en de rest op
+   * stage 0; "alleen": alleen de garage; null: geen garage ingevuld.
+   */
+  garage: "alle" | "alleen" | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -57,18 +60,18 @@ export function PacingBikeAdvice({
         <p className="text-sm font-medium">
           Snelste fiets{" "}
           <span className="font-normal text-muted-foreground">
-            · {garage === "eigen" ? "uit je garage" : `stage ${advice.stage ?? 0}`}
+            · {garage === "alleen" ? "uit je garage" : garage === "alle" ? "met je garage" : `stage ${advice.stage ?? 0}`}
           </span>
         </p>
         <p className="text-sm">
-          {garage === "eigen" && (
-            <Link href={`/events/${eventId}/pacing?fietsen=alle`} scroll={false} className="underline underline-offset-2">
-              Alle fietsen
+          {garage === "alle" && (
+            <Link href={`/events/${eventId}/pacing?fietsen=garage`} scroll={false} className="underline underline-offset-2">
+              Alleen mijn garage
             </Link>
           )}
-          {garage === "alle" && (
+          {garage === "alleen" && (
             <Link href={`/events/${eventId}/pacing`} scroll={false} className="underline underline-offset-2">
-              Uit je garage
+              Alle fietsen
             </Link>
           )}
           {garage === null && (
