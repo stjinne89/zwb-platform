@@ -83,6 +83,8 @@ Claude (Opus 5.5) of GPT-5.5 als beter werd gekozen, of beide even goed.
 | Beoordelaar | Dagelijkse aanpassing | Aanpassing door renner | Bijwerking | Nieuw schema | Totaal |
 |---|---|---|---|---|---|
 | 1 (2026-10-26) | Claude 3 · gelijk 2 | Claude 1 · OpenAI 2 · gelijk 1 | Claude 1 · gelijk 4 | Claude 2 · OpenAI 2 · gelijk 1 | Claude 7 · OpenAI 4 · gelijk 8 |
+| 2 (2026-10-26) | Claude 3 · gelijk 2 | OpenAI 3 · gelijk 1 | Claude 5 | Claude 3 · gelijk 2 | Claude 11 · OpenAI 3 · gelijk 5 |
+| **Samen** | **Claude 6 · gelijk 4** | **Claude 1 · OpenAI 5 · gelijk 2** | **Claude 6 · gelijk 4** | **Claude 5 · OpenAI 2 · gelijk 3** | **Claude 18 · OpenAI 7 · gelijk 13** |
 
 - Bij de dagelijkse aanpassing koos beoordelaar 1 drie keer het "laat staan" van
   Claude boven een wijziging van GPT-5.5; de twee gelijke waren gevallen waarin
@@ -90,5 +92,8 @@ Claude (Opus 5.5) of GPT-5.5 als beter werd gekozen, of beide even goed.
 - De twee keer dat GPT-5.5 won bij de aanpassing door de renner, paste GPT-5.5
   vier à vijf dagen aan en Claude één à drie; GPT-5.5 brak daarbij meer regels
   van de meetlat (3 en 5 tegen 1 en 3).
-- Bij de bijwerking zag beoordelaar 1 weinig verschil, terwijl de meetlat bij
-  Claude veel minder fouten telt.
+- Bij de bijwerking zag beoordelaar 1 weinig verschil (vier keer gelijk);
+  beoordelaar 2 koos alle vijf keer Claude. Nergens won GPT-5.5.
+- De twee beoordelaars waren het in 12 van de 19 gevallen eens. Beiden kozen
+  bij dezelfde twee aanpassingen door de renner voor GPT-5.5: het enige
+  onderdeel waar Claude achterblijft.
