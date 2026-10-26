@@ -371,7 +371,7 @@ gaat stabiliteit voor nieuwe features.
    kijken of de PR's binnenkomen, en of `/segment-results` geen 429 geeft.
 
 19. **Tabbalk op de iPhone, derde ronde** (ronde van 2026-10-26 hieronder):
-   gebouwd en lokaal getest, nog niet gepusht. Geen migratie. Open: op een
+   gebouwd, lokaal getest en op 2026-10-26 gepusht naar `main`. Geen migratie. Open: op een
    iPhone in de beginscherm-app iets typen, het toetsenbord sluiten en scrollen;
    leden die de balk midden in beeld zagen vragen of het nog gebeurt.
 
@@ -11415,8 +11415,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Tabbalk op de iPhone: sprong herhalen en balk zelf omlaag
 
-**2026-10-26.** Commit: de commit die dit blok toevoegt; nog niet gepusht. Geen
-migratie.
+**2026-10-26.** Commit `0a15d62c`, gepusht naar `main` op 2026-10-26
+(eigenaar). Geen migratie.
 
 **Aanleiding.** Na de ronde van 2026-10-16 zagen leden de tabbalk nog steeds
 "af en toe" midden in beeld, nu op een eventpagina. Op de screenshot staat de
@@ -11465,6 +11465,40 @@ meldt alleen pakketten die in deze worktree ontbreken (`modern-screenshot`,
 `@anthropic-ai/sdk`). Of het schuiven precies op de onderrand uitkomt, hangt af
 van wat iOS in de vastgelopen toestand teruggeeft; de berekening gaat ervan uit
 dat `innerHeight` te klein blijft, zoals beschreven in de bron.
+
+### Hersteld — Racebriefje en live stand van A kozen groep B (A en B1 in één Zwift-event)
+
+**2026-10-26.** Commit `8f38c1a8`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.
+
+**Waarom.** De eigenaar zag op het racebriefje van A (W6, Spiral Summit,
+2026-10-27) renners van B. A en B1 rijden in hetzelfde Zwift-event (5758531), in
+groep A en groep B. `pickSubgroup` telt per groep de eigen renners plus iedereen
+met een ZWB-tag. Gemeten bij Zwift en in de database (alleen lezen): groep A had
+4 ZWB'ers (3 bekend bij A, 1 zonder koppeling), groep B 5: vier van B1 en één
+renner die in de WTRL-selectie en ledenlijst van A staat, maar deze week in de
+opstelling van B1. B won met 5 tegen 4, dus het briefje en de live stand van A
+toonden groep B. De regel van 2026-09-22 (bij gelijkspel de groep met eigen
+renners) hielp alleen bij gelijkspel.
+
+**Nu.** `loadZrlLive` zoekt de andere ZWB-ploegen met hetzelfde Zwift-event op
+(`ownAndOtherZwiftIds`). `splitTeamRiders`: wie deze week bij een andere ploeg in
+de opstelling staat en niet in de onze, rijdt daar en telt niet als eigen renner;
+de renners van die andere ploegen (selectie, leden, opstelling) zijn `others`.
+`pickSubgroup` telt de ZWB-tag van `others` niet mee, en de terugval "ZWB-tags
+gelden als ons team" (als we niemand in de groep kennen) slaat `others` over.
+Met de gegevens van W6: voor A groep A 4 tegen B 0, voor B1 groep B 5 tegen A 1.
+Dit raakt ook de live ZRL-stand en het wegschrijven van de uitslag, die dezelfde
+`loadZrlLive` gebruiken.
+
+**Bewust niet.** De selectie of ledenlijst van A aanpassen voor de renner die bij
+B1 rijdt: de opstelling van deze week zegt al voor wie hij rijdt.
+
+**Gecontroleerd.** Vitest (`zrl-live-scoring.test.ts`, twee nieuwe cases: de
+situatie van W6 en een renner in beide opstellingen), de racebriefje-tests,
+`tsc`, ESLint. Kost per keer dat `loadZrlLive` draait één query voor de andere
+events plus vier per andere ploeg. **Niet geverifieerd:** het briefje van A in
+de browser (Chrome kwam niet op de pagina: de tab ging terug naar een lege
+pagina), en de live stand tijdens de race.
 
 ### Gebouwd — Segmentrecords op het racebriefje
 
