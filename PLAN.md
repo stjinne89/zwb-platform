@@ -11396,6 +11396,26 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gewijzigd — Zwift-garage: niveau kiezen door op de streepjes te klikken
+
+**2026-10-26.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Geen migratie.
+
+**Waarom.** De eigenaar vond klikken op de streepjes mooier dan een
+uitklapmenu met Stage 0–5.
+
+**Wat.**
+- `StagePicker` (`src/components/stage-picker.tsx`): dezelfde vijf streepjes
+  als `StagePips`, iets groter, elk een knop (radiogroep voor schermlezers).
+  Klik op het n-de streepje = stage n; nog eens op het hoogste gevulde = stage 0.
+  Ernaast "Stage n" in klein grijs. Vervangt het uitklapmenu op
+  `/mijn-garage/zwift`; in de opzet van het pacingplan blijft het uitklapmenu,
+  met de streepjes ernaast.
+- Op donker waren stage 1 en 2 nauwelijks te zien naast de lege streepjes;
+  `--zwb-stage-2` en `--zwb-stage-1` zijn daar nu lichtere salietinten.
+
+**Gecontroleerd.** Lokaal in de browser, donker: stage 1 t/m 5 gezet door te
+klikken en terug naar 0 (niet opgeslagen). `tsc` en ESLint schoon.
+
 ### Gewijzigd — Zwift-garage: upgradeniveau als streepjes in tenuekleuren
 
 **2026-10-26.** Commit `5ebfd5da`, lokaal, niet gepusht. Geen migratie.

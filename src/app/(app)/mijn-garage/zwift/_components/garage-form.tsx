@@ -6,7 +6,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { StagePips } from "@/components/stage-pips";
+import { StagePicker } from "@/components/stage-picker";
 import type { BikeKind } from "@/lib/pacing/zwift-setup";
 import { saveZwiftGarage } from "../_actions";
 
@@ -123,20 +123,13 @@ export function ZwiftGarageForm({
                     <span className="block text-xs text-muted-foreground">{KIND_LABELS[frame.kind]}</span>
                   </span>
                 </label>
-                {checked && <StagePips stage={owned[frame.name]} className="shrink-0" />}
                 {checked && (
-                  <select
-                    value={owned[frame.name]}
-                    onChange={(event) => setOwned((current) => ({ ...current, [frame.name]: Number(event.target.value) }))}
-                    aria-label={`Upgrade ${frame.name}`}
-                    className={fieldClass}
-                  >
-                    {[0, 1, 2, 3, 4, 5].map((value) => (
-                      <option key={value} value={value}>
-                        Stage {value}
-                      </option>
-                    ))}
-                  </select>
+                  <StagePicker
+                    stage={owned[frame.name]}
+                    onChange={(stage) => setOwned((current) => ({ ...current, [frame.name]: stage }))}
+                    label={`Niveau ${frame.name}`}
+                    className="shrink-0"
+                  />
                 )}
               </li>
             );

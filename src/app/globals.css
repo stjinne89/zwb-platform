@@ -140,8 +140,8 @@
   --zwb-stage-5: rgb(214 172 96);
   --zwb-stage-4: rgb(110 200 210);
   --zwb-stage-3: rgb(60 130 140);
-  --zwb-stage-2: #7f9590;
-  --zwb-stage-1: #4f6461;
+  --zwb-stage-2: #a3b5b1;
+  --zwb-stage-1: #71857f;
 
   --background: oklch(0.16 0.025 220);              /* deep petrol */
   --foreground: oklch(0.97 0.005 80);
