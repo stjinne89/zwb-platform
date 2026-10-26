@@ -11394,7 +11394,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gewijzigd — ZWB Rankings: alle ranglijsten per week
 
-**2026-10-26.** Commit `COMMIT_HASH`. Geen migratie. Niet gepusht.
+**2026-10-26.** Commit `ecf04cb4`. Geen migratie. Niet gepusht.
 
 **Waarom.** Metronoom, Clubmens en Groeibriljant gingen over vier weken; de
 eigenaar wil alles per week. Er komt elke maandag een nieuwe ZWBriljant-steen
