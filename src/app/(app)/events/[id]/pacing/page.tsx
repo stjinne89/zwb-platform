@@ -39,15 +39,18 @@ function hhmm(seconds: number) {
 
 export default async function PacingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ fietsen?: string }>;
 }) {
   const { id } = await params;
+  const allBikes = (await searchParams).fietsen === "alle";
 
   const access = await getRequestAccess();
   if (!access.user) redirect("/login");
 
-  const result = await loadPacingPage(id);
+  const result = await loadPacingPage(id, { allBikes });
   if (!result.ok) {
     // Een event dat niet bestaat is een 404; alle andere redenen (geen route,
     // profiel nog niet opgehaald) zijn een normale toestand met uitleg.
@@ -63,7 +66,7 @@ export default async function PacingPage({
     );
   }
 
-  const { event, loaded, rider, plan, staleness, sharedPlans, similarRides, zwift, ride, bikeAdvice } =
+  const { event, loaded, rider, plan, staleness, sharedPlans, similarRides, zwift, ride, bikeAdvice, garage } =
     result.data;
   const summary = plan.summary;
   // Hoe ver het lid van de doeltijd af zit, en of er al een trainingsdoel met
@@ -135,9 +138,15 @@ export default async function PacingPage({
             ttBikesAllowed={zwift.constraints.ttBikesAllowed}
             forcedWheels={zwift.constraints.forcedWheels}
             upgradesDisabled={zwift.constraints.upgradesDisabled}
+            garageStages={garage?.frames ?? null}
           />
           {bikeAdvice && bikeAdvice.best.length > 0 && (
-            <PacingBikeAdvice eventId={id} setup={ride.setup} advice={bikeAdvice} />
+            <PacingBikeAdvice
+              eventId={id}
+              setup={ride.setup}
+              advice={bikeAdvice}
+              garage={garage ? (allBikes ? "alle" : "eigen") : null}
+            />
           )}
         </section>
       )}

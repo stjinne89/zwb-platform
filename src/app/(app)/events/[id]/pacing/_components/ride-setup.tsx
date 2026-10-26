@@ -37,6 +37,7 @@ export function RideSetupForm({
   ttBikesAllowed,
   forcedWheels,
   upgradesDisabled,
+  garageStages,
 }: {
   eventId: string;
   setup: RideSetup;
@@ -46,6 +47,8 @@ export function RideSetupForm({
   ttBikesAllowed: boolean;
   forcedWheels: boolean;
   upgradesDisabled: boolean;
+  /** Frames uit de Zwift-garage met hun upgradeniveau; null zonder garage. */
+  garageStages: Record<string, number> | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -90,8 +93,12 @@ export function RideSetupForm({
     });
   }
 
+  const owned = allowedFrames.filter((item) => garageStages && item.name in garageStages);
   const byKind = (["road", "tt", "gravel", "mtb"] as BikeKind[])
-    .map((group) => ({ group, items: allowedFrames.filter((item) => item.kind === group) }))
+    .map((group) => ({
+      group,
+      items: allowedFrames.filter((item) => item.kind === group && !(garageStages && item.name in garageStages)),
+    }))
     .filter((entry) => entry.items.length > 0);
 
   return (
@@ -119,12 +126,21 @@ export function RideSetupForm({
             onChange={(event) => {
               setFrame(event.target.value);
               setWheel("");
-              setStage(0);
+              setStage(garageStages?.[event.target.value] ?? 0);
             }}
             className={fieldClass}
           >
             {!allowedFrames.some((item) => item.name === REFERENCE_FRAME) && (
               <option value={REFERENCE_FRAME}>{REFERENCE_FRAME}</option>
+            )}
+            {owned.length > 0 && (
+              <optgroup label="Mijn garage">
+                {owned.map((item) => (
+                  <option key={item.name} value={item.name}>
+                    {item.name}
+                  </option>
+                ))}
+              </optgroup>
             )}
             {byKind.map(({ group, items }) => (
               <optgroup key={group} label={KIND_LABELS[group]}>

@@ -27,16 +27,20 @@ export function BikeAdviceList({
   rows,
   baseSeconds,
   action,
+  showStage = false,
 }: {
   rows: BikeAdviceRow[];
   /** Het verschil per regel is ten opzichte van deze tijd. */
   baseSeconds: number;
   action?: (row: BikeAdviceRow) => ReactNode;
+  /** Upgradeniveau per regel, als de frames niet op hetzelfde niveau staan (garage). */
+  showStage?: boolean;
 }) {
   return (
     <ul className="divide-y rounded-md border text-sm">
       {rows.map((row) => {
         const diff = row.seconds - baseSeconds;
+        const detail = [showStage ? `stage ${row.stage}` : null, row.wheels].filter(Boolean).join(" · ");
         return (
           <li key={`${row.label ?? ""}${row.frame}|${row.wheels ?? ""}`} className="flex items-center gap-3 px-3 py-2">
             <div className="min-w-0 flex-1">
@@ -44,7 +48,7 @@ export function BikeAdviceList({
                 {row.label && <span className="mr-2 font-normal text-muted-foreground">{row.label}</span>}
                 {row.frame}
               </p>
-              {row.wheels && <p className="truncate text-muted-foreground">{row.wheels}</p>}
+              {detail && <p className="truncate text-muted-foreground">{detail}</p>}
             </div>
             <span className="tabular-nums text-muted-foreground">{clock(row.seconds)}</span>
             <span

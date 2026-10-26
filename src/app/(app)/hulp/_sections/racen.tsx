@@ -293,9 +293,20 @@ export function RacenHelp() {
                 worden vergeleken op het upgradeniveau dat je bij je frame hebt
                 gekozen; een frame dat op dat niveau niet getest is, rijdt op het
                 hoogste niveau daaronder. Met Kies zet je die fiets in je opzet en
-                wordt het plan opnieuw doorgerekend. Of je het frame en de wielen in
-                Zwift al hebt, weet ZWB niet. Legt het event een frame op, dan is er
-                niets te kiezen en staat de lijst er niet.
+                wordt het plan opnieuw doorgerekend. Legt het event een frame op, dan
+                is er niets te kiezen en staat de lijst er niet.
+              </p>
+              <p>
+                Welke fietsen je in Zwift hebt, kan ZWB niet uit Zwift lezen. Vul ze
+                in bij Mijn garage onder Zwift-fietsen: je frames met hun
+                upgradeniveau en je wielen. Dan kiest Snelste fiets alleen uit wat je
+                hebt, elk frame op zijn eigen niveau, en begint een nieuw pacingplan
+                met de snelste daarvan. Met Alle fietsen zie je wat je met een ander
+                frame zou winnen. Vink je geen wielen aan, dan tellen alle wielen
+                mee. In de racebriefing staat onder Snelste fiets dan ook een regel
+                Jij: de snelste fiets uit jouw garage, met dezelfde renner en
+                hetzelfde vermogen als de rest van de lijst, zodat alleen de fiets
+                verschilt.
               </p>
               <p>
                 In een wedstrijd kies je per stuk In de groep of Alleen. In de groep

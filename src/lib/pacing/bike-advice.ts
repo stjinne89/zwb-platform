@@ -6,6 +6,8 @@
 //
 // Puur. De aanroeper geeft een functie die bij een fysica de eindtijd geeft:
 // het pacingplan rekent zijn eigen plan door, de briefing een vast vermogen.
+// Met een garage (zwift-garage.ts) alleen wat het lid in Zwift heeft, elk frame
+// op zijn eigen upgradeniveau.
 //
 // Alle combinaties frame × wielen doorrekenen is 146 × 74 keer de route. Het
 // kan in drie stappen omdat frame en wielen in ons model optellen (CdA en massa
@@ -28,6 +30,7 @@ import {
 } from "@/lib/pacing/zwift-setup";
 import { estimateRide } from "@/lib/ride-estimate";
 import type { PacingRoute } from "@/lib/pacing/route-profile";
+import type { ZwiftGarage } from "@/lib/pacing/zwift-garage";
 
 /** Het frame waarmee het pacingplan zonder keuze rekent. */
 export const REFERENCE_FRAME = "Zwift Carbon";
@@ -39,12 +42,14 @@ export type BikeChoice = {
   fixedWheels: boolean;
   /** null = de wielen waarmee het frame getest is. */
   wheels: string | null;
+  /** Upgradeniveau waarop dit frame gerekend is. */
+  stage: number;
   seconds: number;
 };
 
 export type BikeAdvice = {
-  /** Upgradeniveau waarop alle frames vergeleken zijn. */
-  stage: number;
+  /** Upgradeniveau waarop alle frames vergeleken zijn; null = per frame uit de garage. */
+  stage: number | null;
   /** Snelste eerst, één regel per frame. */
   best: BikeChoice[];
   /** De opzet zoals die nu is (pacingplan) of de referentiefiets (briefing). */
@@ -62,17 +67,26 @@ export function adviseBikes(input: {
   heightCm: number | null;
   seconds: (physics: RidePhysics) => number;
   limit?: number;
+  /**
+   * Alleen de frames en wielen die het lid in Zwift heeft, elk frame op zijn
+   * eigen upgradeniveau. Wielen leeg = alle wielen.
+   */
+  garage?: ZwiftGarage | null;
 }): BikeAdvice | null {
   const { parts, constraints, setup } = input;
+  const garage = input.garage ?? null;
   const limit = input.limit ?? 3;
   // Een opgelegd frame laat niets te kiezen.
   if (constraints.forcedFrame || !parts.some((part) => part.part === "frame")) return null;
   const stage = constraints.upgradesDisabled ? 0 : setup.stage;
+  const stageFor = (frame: string | null) =>
+    constraints.upgradesDisabled ? 0 : garage ? (frame ? (garage.frames[frame] ?? 0) : 0) : stage;
+  const ownedWheels = garage && garage.wheels.length > 0 ? new Set(garage.wheels) : null;
 
-  const timeFor = (frame: string | null, wheels: string | null) =>
+  const timeFor = (frame: string | null, wheels: string | null, frameStage = stageFor(frame)) =>
     input.seconds(
       resolveRidePhysics({
-        setup: { ...setup, frame, wheels, stage },
+        setup: { ...setup, frame, wheels, stage: frameStage },
         constraints,
         parts,
         weightKg: input.weightKg,
@@ -82,7 +96,8 @@ export function adviseBikes(input: {
 
   const frames: Array<{ name: string; kind: BikeKind; fixedWheels: boolean }> = [];
   for (const name of new Set(parts.filter((part) => part.part === "frame").map((part) => part.name))) {
-    const frame = findFrame(parts, name, stage);
+    if (garage && !(name in garage.frames)) continue;
+    const frame = findFrame(parts, name, stageFor(name));
     if (!frame || (frame.kind === "tt" && !constraints.ttBikesAllowed)) continue;
     frames.push({ name, kind: frame.kind, fixedWheels: frame.fixedWheels === true });
   }
@@ -94,6 +109,7 @@ export function adviseBikes(input: {
     const testFrame = wheelTestFrame(kind);
     const names = parts
       .filter((part) => part.part === "wheel" && part.testFrame === testFrame)
+      .filter((part) => !ownedWheels || ownedWheels.has(part.name))
       .map((part) => part.name);
     if (constraints.forcedWheels || !testFrame || names.length === 0) {
       wheelsByKind.set(kind, [null]);
@@ -124,6 +140,7 @@ export function adviseBikes(input: {
         kind: frame.kind,
         fixedWheels: frame.fixedWheels,
         wheels,
+        stage: stageFor(frame.name),
         seconds: timeFor(frame.name, wheels),
       };
     })
@@ -141,17 +158,19 @@ export function adviseBikes(input: {
   contenders.sort((a, b) => a.seconds - b.seconds);
 
   // Zoals resolveRidePhysics: een verboden tijdritfiets wordt de referentiefiets.
+  // De huidige opzet rekent op het niveau dat in die opzet staat, ook met garage.
   const chosen = findFrame(parts, setup.frame, stage);
   const currentFrame = chosen?.kind === "tt" && !constraints.ttBikesAllowed ? null : chosen;
   return {
-    stage,
+    stage: garage && !constraints.upgradesDisabled ? null : stage,
     best: contenders.slice(0, limit),
     current: {
       frame: currentFrame?.name ?? REFERENCE_FRAME,
       kind: currentFrame?.kind ?? "road",
       fixedWheels: currentFrame?.fixedWheels === true,
       wheels: constraints.forcedWheels || currentFrame?.fixedWheels ? null : setup.wheels,
-      seconds: timeFor(setup.frame, setup.wheels),
+      stage,
+      seconds: timeFor(setup.frame, setup.wheels, stage),
     },
   };
 }

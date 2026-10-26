@@ -300,8 +300,11 @@ gaat stabiliteit voor nieuwe features.
    gebouwd, lokaal getest en op 2026-10-20 gepusht naar `main`. Migratie
    `0262_zwift_bike_fixed_wheels.sql` is toegepast. Open: beide schermen in
    de browser bekijken. Op 2026-10-26 hersteld (Espada als tijdritfiets,
-   gesplitste namen in de sheet); open: na de deploy "Fietsen ophalen" op
-   `/beheer/zwift-routes`, en de keuze van de eigenaar over een eigen garage.
+   gesplitste namen in de sheet) en een Zwift-garage per lid gebouwd
+   (lokaal gecommit, niet gepusht). Open: migratie
+   `0277_member_zwift_bikes.sql` toepassen, na de deploy "Fietsen ophalen" op
+   `/beheer/zwift-routes`, en de garage, het pacingplan en de briefing in de
+   browser bekijken.
 11. **ZRS van vroeger per race bewaard** (ronde van 2026-10-23 hieronder):
    gebouwd, lokaal getest en op 2026-10-23 gepusht naar `main`. Migratie
    `0271_zwift_race_scores.sql` is toegepast. Open: op cron-job.org een job
@@ -369,8 +372,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0277`
-(`0276_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, toegepast op 2026-10-26; geschreven als `0275` en hernummerd bij het samenvoegen met main, waar `0275_ai_jobs` al stond;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0278`
+(`0277_member_zwift_bikes` is van de Zwift-garage per lid, 2026-10-26, **nog niet toegepast**;
+`0276_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, toegepast op 2026-10-26; geschreven als `0275` en hernummerd bij het samenvoegen met main, waar `0275_ai_jobs` al stond;
 `0275_ai_jobs` is van de overstap naar Claude, toegepast op 2026-10-26;
 `0274_training_plan_status_cleanup` is van schema publiceren ronde 3, 2026-10-26, toegepast op 2026-10-26;
 `0273_nutrition_sweat_tests` is van ritvoeding stap 5, 2026-10-25, toegepast op 2026-10-25;
@@ -11392,6 +11396,66 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Zwift-garage per lid voor Snelste fiets
+
+**2026-10-26.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Migratie
+`0277_member_zwift_bikes.sql`, **nog niet toegepast** en lokaal niet te testen
+(geen Docker of Supabase-config). Zonder de migratie leest de app een lege
+garage en rekent alles zoals voorheen; opslaan op het nieuwe scherm geeft dan
+"Opslaan lukte niet.".
+
+**Waarom.** De eigenaar vroeg of je kunt instellen welke fiets je op welk niveau
+hebt, zodat Snelste fiets daarmee rekent. Na de uitleg en het herstel hieronder
+koos hij het voorstel: een garage per lid, de standaard in het pacingplan, en een
+regel "Jouw snelste" in de briefing. ZWB kan de garage niet uit Zwift lezen; het
+lid vult hem zelf in.
+
+**Wat.**
+- Tabel `member_zwift_bikes` (`profile_id`, `part` frame of wheel, `name`,
+  `stage` 0–5, alleen bij een frame). RLS: alleen het lid zelf. Namen zoals in
+  `zwift_bike_parts`, zonder foreign key: een naam die na een nieuwe sheet
+  verdwijnt, slaat de app over (`garageFromRows`). In de gegevensexport.
+  De eigenaar noemde de tabel `member_bikes`; het werd `member_zwift_bikes`
+  omdat `strava_bikes` en Mijn garage al over de echte fietsen gaan.
+- `src/lib/pacing/zwift-garage.ts`: type, laden en opschonen.
+- `adviseBikes` krijgt een optionele `garage`: alleen eigen frames, elk op zijn
+  eigen stage, en alleen eigen wielen. Geen wielen aangevinkt = alle wielen.
+  De standaardwielen van het testframe tellen altijd mee. Elke regel draagt nu
+  zijn `stage`; `advice.stage` is `null` als de niveaus per frame verschillen.
+  De huidige opzet ("Nu") blijft op het niveau uit die opzet.
+- **Scherm** `/mijn-garage/zwift` (knop Zwift-fietsen op Mijn garage): frames
+  aanvinken met een stage, wielen aanvinken, zoeken in beide lijsten. Opslaan
+  zet de garage op precies die lijst.
+- **Pacingplan:** een nieuw plan begint met de snelste fiets uit de garage
+  (gekozen op een vast vermogen, CP, omdat er dan nog geen plan is). Snelste
+  fiets kiest uit de garage, met Alle fietsen (`?fietsen=alle`) als schakelaar;
+  Kies neemt de stage van die regel mee. In de frame-keuzelijst staat de garage
+  bovenaan, en een frame uit de garage krijgt meteen zijn stage. Zonder garage:
+  een link Garage invullen. Bestaande plannen veranderen niet.
+- **Briefing:** onder Snelste fiets een regel "Jij · stage N" met de snelste
+  fiets uit de garage van wie kijkt, met dezelfde renner (75 kg, 183 cm) en
+  hetzelfde vermogen als de lijst, zodat alleen de fiets verschilt. Niet op het
+  racebriefje dat gedeeld wordt.
+- `/hulp/racen#pacing-zwift`, `/hulp/club#mijn-garage`, de briefingtekst in
+  `/hulp`, de zoektermen, en een zin "Zwift-fietsen" in de privacyverklaring
+  (zonder nieuwe versie: het lid vult het zelf in en ziet het alleen zelf).
+
+**Bewust niet.** Geen import uit Zwift (er is geen API voor de garage). Geen
+eigen gewicht of lengte in de Jij-regel van de briefing: dan zou het verschil
+met de lijst ook over de renner gaan. Bestaande pacingplannen krijgen niet
+vanzelf een andere fiets; Snelste fiets met Kies is daarvoor.
+
+**Gecontroleerd.** Vitest: `bike-advice.test.ts` met vijf nieuwe tests (alleen
+eigen frames en wielen, stage per frame, lege wielenlijst, huidige opzet houdt
+zijn niveau, `garageFromRows`), samen met `zwift-bike-sheet` en `pacing-zwift`
+62 tests groen. `tsc` en ESLint schoon op de bekende ontbrekende pakketten na.
+De volle suite faalt alleen op de omgeving van deze worktree: de gedeelde
+`node_modules` mist `@anthropic-ai/sdk` en heeft `zwift-data` 1.50 in plaats van
+2.1 (`zwift-route`, `race-links`, en alles wat `ai/claude.ts` importeert).
+zwift-data 2.1 (uit de lockfile, los uitgepakt) kent de Espada ook als
+tijdritfiets. **Niet geverifieerd:** de migratie, het scherm, het pacingplan en
+de briefing in de browser.
+
 ### Hersteld — Snelste fiets: Espada is een tijdritfiets, gesplitste namen in de sheet
 
 **2026-10-26.** Commit `cd103d3d`. Geen migratie: het herstel zit in het
@@ -11435,7 +11499,8 @@ verandert er nauwelijks door).
 
 **Bewust niet gebouwd (nog).** Een eigen garage, dus welke frames, welke wielen
 en op welk niveau een lid heeft. Het voorstel ligt bij de eigenaar; dat is een
-nieuwe tabel en dus een migratie.
+nieuwe tabel en dus een migratie. *Gebouwd in de ronde hierboven, "Zwift-garage
+per lid".*
 
 **Gecontroleerd.** Vitest (`zwift-bike-sheet.test.ts`, `bike-advice.test.ts`,
 `pacing-zwift.test.ts`: 57 tests, met een nieuwe test voor de gesplitste HADRON
