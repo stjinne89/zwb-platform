@@ -31,7 +31,7 @@ export type RecipeIngredientRow = {
   food: NutritionFood & { quantity_unit: "g" | "ml" };
 };
 
-/** Een ingrediënt zoals de database het geeft: NEVO (`food`) of een barcodeproduct (`product`, 0275). */
+/** Een ingrediënt zoals de database het geeft: NEVO (`food`) of een barcodeproduct (`product`, 0276). */
 export type RecipeIngredientDbRow = Omit<RecipeIngredientRow, "food" | "grams"> & {
   grams: number | string;
   food: RecipeIngredientRow["food"] | null;

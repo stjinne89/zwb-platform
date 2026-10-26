@@ -1,4 +1,5 @@
 import { ClipboardList, ShieldCheck } from "lucide-react";
+import { aiConfigured } from "@/lib/ai/settings";
 import { ConnectIntervalsForm } from "../_components/connect-form";
 import { DisconnectIntervalsButton } from "../_components/disconnect-button";
 import { TrainerAccessPanel } from "../_components/trainer-access-panel";
@@ -107,7 +108,7 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
   const selfPlanning =
     viewer.access.has("training.ai_generate") &&
     viewer.access.has("training.create_plans") &&
-    Boolean(process.env.OPENAI_API_KEY) &&
+    aiConfigured() &&
     !assignments.some((assignment) => assignment.trainer_id !== viewer.user.id);
   const [awaiting, { data: generationRows }] = selfPlanning
     ? await Promise.all([

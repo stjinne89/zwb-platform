@@ -64,6 +64,7 @@ import { rideMetricsFromStrava, summarizeRecentRides } from "@/lib/training/ride
 import { loadFtpAt } from "@/lib/training/ftp-history";
 import { loadHrBasis } from "@/lib/training/hr-load";
 import { currentWeeklyLoad } from "@/lib/training/load-basis";
+import { trainingKind } from "@/lib/ai/settings";
 import { uniqueRides } from "@/lib/rides/unique-rides";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { CAUTION_PREFIX } from "@/lib/training/plan-summary";
@@ -931,6 +932,7 @@ export async function generateAiDraftFromForm(formData: FormData): Promise<Train
       model: process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5",
       reasoningEffort: "medium",
       timeoutMs: 15_000,
+      kind: "nieuw_schema",
     });
     const initialStatus: TrainingDraftStatus = background.status === "queued" ? "queued" : "in_progress";
 
@@ -1099,6 +1101,7 @@ export async function startTodayAdjustmentDraft(
       model: process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5",
       reasoningEffort: "low",
       timeoutMs: 15_000,
+      kind: "day",
       // Een dag-aanpassing mag één workout zijn; het oude minimum van 3 dwong de
       // AI om de rest van de week te verzinnen.
       minWorkouts: 1,
@@ -1561,6 +1564,7 @@ export async function startPlanUpdate(args: PlanUpdateArgs): Promise<TrainingDra
   const options = {
     reasoningEffort: "medium" as const,
     timeoutMs: 15_000,
+    kind: "plan_update" as const,
   };
 
   // Eerst de rij, dan pas OpenAI. Andersom was de grendel in preparePlanUpdate
@@ -1664,6 +1668,7 @@ export async function startBackgroundAdaptation(args: {
     reasoningEffort: args.options?.reasoningEffort ?? ("low" as const),
     minWorkouts: args.options?.minWorkouts ?? 1,
     timeoutMs: args.options?.timeoutMs ?? 15_000,
+    kind: trainingKind(args.adaptationKind),
   };
 
   const { data: aiRow, error: aiError } = await args.admin
@@ -1748,6 +1753,7 @@ export async function runPlanUpdateNow(
     model: process.env.OPENAI_TRAINING_MODEL?.trim() || "gpt-5.5",
     reasoningEffort: "medium",
     timeoutMs: 120_000,
+    kind: "plan_update",
   });
 
   const { data: aiRow, error: aiError } = await args.admin

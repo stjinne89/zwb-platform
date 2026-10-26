@@ -211,7 +211,7 @@ describe("eetdagboek, migratie 0231", () => {
     await db.exec(await migration("0233_nutrition_log_products.sql"));
     await db.exec(await migration("0234_nutrition_log_recognition.sql"));
     await db.exec(await migration("0235_nutrition_log_trainer_reminders.sql"));
-    await db.exec(await migration("0275_nutrition_recipe_products.sql"));
+    await db.exec(await migration("0276_nutrition_recipe_products.sql"));
     await db.exec(
       `insert into nutrition_products(barcode, name, carbs_g, protein_g) values ('8710400000017', 'Gel', 62.5, 0);`,
     );
@@ -329,7 +329,7 @@ describe("eetdagboek, migratie 0231", () => {
     ).rejects.toThrow(/one_source_check/);
   });
 
-  it("neemt een barcodeproduct op in een eigen recept, met één bron per ingrediënt (0275)", async () => {
+  it("neemt een barcodeproduct op in een eigen recept, met één bron per ingrediënt (0276)", async () => {
     await db.query("insert into nutrition_products(barcode, name, quantity_unit, carbs_g, protein_g) values ('5000000000017', 'Sportdrank', 'ml', 6, 0)");
     const recipe = await as(MEMBER, async () => {
       const { rows } = await db.query<{ id: string }>(

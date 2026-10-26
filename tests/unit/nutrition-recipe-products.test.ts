@@ -5,7 +5,7 @@ import { isBidonRecipe, ridePlan, ridePlanMeals } from "@/lib/nutrition/ride-pla
 import type { NutritionFood } from "@/lib/nutrition/scale";
 import { NO_HOUSEHOLD, shoppingList } from "@/lib/nutrition/shopping";
 
-// Sportvoeding met een barcode als ingrediënt van een eigen recept (0275).
+// Sportvoeding met een barcode als ingrediënt van een eigen recept (0276).
 
 const GEL: ProductRow = {
   barcode: "8710400000017",

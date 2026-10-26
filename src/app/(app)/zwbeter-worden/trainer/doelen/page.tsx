@@ -3,6 +3,7 @@
 
 import { EmptyState } from "@/components/app-ui";
 import { goalsAwaitingPlan } from "@/lib/training/goals-awaiting-plan";
+import { aiConfigured } from "@/lib/ai/settings";
 import { defaultTrainingPrompt } from "@/lib/training/workouts";
 import { formatDayMonth, GOAL_LABELS } from "../../_components/format";
 import type { AiGenerationRow, GoalRow, SearchParamsProp } from "../../_components/types";
@@ -86,7 +87,7 @@ export default async function TrainerGoalsPage({ searchParams }: SearchParamsPro
 
   const waiting = new Set(awaiting.get(athleteId) ?? []);
 
-  const canUseAi = Boolean(process.env.OPENAI_API_KEY);
+  const canUseAi = aiConfigured();
   const canGenerateAi = viewer.access.has("training.ai_generate");
 
   return (

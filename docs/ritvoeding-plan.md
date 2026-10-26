@@ -137,7 +137,7 @@ eigenaar kwamen de dagkaarten (Dagmenu en de voedingstip op Vandaag) en
 "Gegeten" voor het hele plan al mee uit 2c; de rest van 2c staat hierboven. Een
 voorraad uit wat het lid eerder vastlegde is niet gebouwd; het plan kiest uit
 recepten voor onderweg. Sinds 2026-10-26 kan zo'n recept ook een gescande gel of
-sportdrank zijn (Sportvoeding in het receptenboek, `0275`, zie `PLAN.md`). Hoe het plan rekent:
+sportdrank zijn (Sportvoeding in het receptenboek, `0276`, zie `PLAN.md`). Hoe het plan rekent:
 bidons eerst, hoogstens 60 g per bidon (8% van 750 ml), één bidon per uur, de
 rest uit vast eten (zie §3 van [voeding-wielrennen.md](voeding-wielrennen.md)).*
 

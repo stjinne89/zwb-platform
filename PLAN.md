@@ -7,6 +7,19 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **OpenAI traint op ledendata (gevonden 2026-10-24).** In de OpenAI-organisatie
+   staat het delen van in- en uitvoer aan voor gratis tokens; de
+   privacyverklaring zegt dat niet. **Besluit eigenaar 2026-10-24: delen blijft
+   aan** tot de app naar Claude overstapt; dat scheelt nu geld, en na de
+   overstap gaat er niets meer naar OpenAI. De privacytekst blijft tot dan
+   ongewijzigd. Zie de ronde "Claude als vervanger van OpenAI".
+   **Besluit eigenaar 2026-10-26: overstappen.** De code staat klaar (ronde
+   "Overstap naar Claude klaar"). Migratie `0275_ai_jobs` is toegepast, de env
+   staat in Netlify en de code is gepusht naar `main` (alle drie 2026-10-26).
+   Open: na de deploy controleren dat de achtergrondfunctie draait (runbook §9,
+   stap 4). Daarna kan het delen bij OpenAI uit; dat doet de eigenaar.
+   De privacytekst noemt de aanbieder die `AI_PROVIDER` kiest (akkoord eigenaar).
+
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
    (limiet 5 GB), en de banner "Organization exceeded its quota in the previous
@@ -72,7 +85,7 @@ gaat stabiliteit voor nieuwe features.
    `0195`, `0197`, `0198`, `0200` en `0213` bestaan; 120 recepten; 993
    Zwift-fietsonderdelen (dus "Fietsen ophalen" is gedaan). Niet elk nummer is
    apart nagekeken.
-   - **Sportvoeding in recepten:** `0275_nutrition_recipe_products.sql` is op
+   - **Sportvoeding in recepten:** `0276_nutrition_recipe_products.sql` is op
      2026-10-26 via de Supabase-connector toegepast, op verzoek van de eigenaar,
      vóór de push. Vooraf: 724 ingrediënten, `food_id` verplicht, geen kolom
      `product_barcode`. Achteraf: 724 ingrediënten, geen zonder bron, nog geen
@@ -334,7 +347,7 @@ gaat stabiliteit voor nieuwe features.
 
 16. **Sportvoeding met barcode in het receptenboek** (ronde van 2026-10-26
    hieronder): gebouwd, lokaal getest en op 2026-10-26 gepusht naar `main`.
-   Migratie `0275_nutrition_recipe_products.sql` is toegepast; de privacyzin is
+   Migratie `0276_nutrition_recipe_products.sql` is toegepast; de privacyzin is
    goedgekeurd (eigenaar, 2026-10-26). Open: een gel en een sportdrank scannen
    op een telefoon, en het ritplan met een eigen gel bekijken.
 
@@ -348,8 +361,9 @@ en de Zwift/buitenrit-rondes (`0172_zwift_event_cache`,
 genummerd. Ze raken elkaar inhoudelijk niet, dus de volgorde maakt niet uit.
 Hernummeren is bewust niet gedaan: de ZRL-paren zijn al met de hand op
 productie toegepast, en PLAN.md verwijst op veel plekken naar de nummers. Noem
-een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0276`
-(`0275_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, toegepast op 2026-10-26;
+een migratie daarom met zijn volledige bestandsnaam. De volgende vrije is `0277`
+(`0276_nutrition_recipe_products` is van sportvoeding met barcode in het receptenboek, 2026-10-26, toegepast op 2026-10-26; geschreven als `0275` en hernummerd bij het samenvoegen met main, waar `0275_ai_jobs` al stond;
+`0275_ai_jobs` is van de overstap naar Claude, toegepast op 2026-10-26;
 `0274_training_plan_status_cleanup` is van schema publiceren ronde 3, 2026-10-26, toegepast op 2026-10-26;
 `0273_nutrition_sweat_tests` is van ritvoeding stap 5, 2026-10-25, toegepast op 2026-10-25;
 `0272_nutrition_ride_carbs_120` is van ritvoeding stap 4, 2026-10-25, toegepast op 2026-10-25;
@@ -11371,8 +11385,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 **2026-10-26.** Commit `e71088c3`, met de privacyzin en dit blok in de commit
 erna, op `claude/barcode-scanner-sports-nutrition-0d7a92`; gepusht naar `main`
-op 2026-10-26 (eigenaar). Migratie `0275_nutrition_recipe_products.sql`,
-toegepast op 2026-10-26 (zie "Handwerk op productie").
+op 2026-10-26 (eigenaar). Migratie `0276_nutrition_recipe_products.sql`
+(geschreven als `0275`; hernummerd bij het samenvoegen met main, waar
+`0275_ai_jobs.sql` al stond), toegepast op 2026-10-26 (zie "Handwerk op
+productie"). In de migratiehistorie van Supabase staat hij als
+`0275_nutrition_recipe_products`.
 
 **Waarom.** De eigenaar wil zijn eigen gels, sportdrank en andere sportvoeding
 in het receptenboek, om ze te gebruiken. NEVO kent geen merken en nauwelijks
@@ -11380,7 +11397,7 @@ sportvoeding; de barcode (Open Food Facts) bestond al, maar alleen in het
 eetdagboek. Het ritplan koos daardoor alleen uit recepten met NEVO-producten
 (het open punt bij stap 2a in [ritvoeding-plan.md](docs/ritvoeding-plan.md)).
 
-- **Migratie 0275:** `nutrition_recipe_ingredients.food_id` mag leeg, met een
+- **Migratie 0276:** `nutrition_recipe_ingredients.food_id` mag leeg, met een
   nieuwe kolom `product_barcode` naar `nutrition_products`, en een check dat
   precies één van de twee gevuld is. Dezelfde vorm als `nutrition_log_items` in
   `0233`. RLS ongewijzigd: de policies op recepten en ingrediënten gelden ook
@@ -11432,6 +11449,171 @@ groen, met nieuwe tests in `tests/unit/nutrition-recipe-products.test.ts`. Rood
 en los hiervan: `omnium-live` (mist `.env.local`), `zwift-route` (Spiral
 Summit) en `race-links` (ZwifterBikes); `admin-areas` liep in de volle run uit
 de tijd en slaagt los. `npm run build` niet gedraaid.
+
+### Gebouwd — Overstap naar Claude klaar (AI_PROVIDER)
+
+**2026-10-26.** Gepusht naar `main` op 2026-10-26 (op verzoek van de eigenaar;
+`AI_PROVIDER=anthropic` en `ANTHROPIC_API_KEY` staan in Netlify, dus vanaf deze
+deploy draait de AI op Claude). Migratie `0275_ai_jobs.sql`, toegepast op
+productie op 2026-10-26 (eerst `0274_ai_jobs` genoemd; dat nummer had
+`0274_training_plan_status_cleanup` op main dezelfde ochtend al). Commit: zie git
+log ("Overstap naar Claude").
+
+**Waarom.** Na het naspelen en de blinde beoordeling (ronde hieronder) besloot de
+eigenaar over te stappen: Claude doet het minstens even goed, het
+maandtegoed van het Max-abonnement dekt het grootste deel, en de ledendata gaat
+dan niet meer naar OpenAI om te trainen. Keuze eigenaar: Opus 5.5 voor alles,
+bijwerkingen op effort `low`, model per soort instelbaar.
+
+**Wat er is.**
+- `AI_PROVIDER` (`openai` standaard, of `anthropic`) kiest de aanbieder; de code
+  kan dus live zonder dat er iets verandert. `src/lib/ai/settings.ts` geeft per
+  soort (nieuw schema, bijwerking, dagelijks, dag, coach, week, pacing, voeding)
+  model en effort, over te schrijven met `ANTHROPIC_MODEL_<SOORT>` en
+  `ANTHROPIC_EFFORT_<SOORT>`.
+- Claude heeft geen background-modus. `src/lib/ai/claude.ts` zet een vraag in de
+  nieuwe tabel `ai_jobs` en stoot de Netlify-achtergrondfunctie
+  `netlify/functions/ai-job-background.mts` aan (tot 15 minuten; een bijwerking
+  duurt 4 à 6). Lokaal draait de opdracht in hetzelfde proces. Het id
+  (`aij_…`) staat waar het response-id van OpenAI stond; de ophaal-code kiest op
+  het id, zodat lopende OpenAI-opdrachten na de overstap nog worden opgehaald.
+  Blijft een opdracht een minuut in de rij, dan stoot het ophalen hem opnieuw
+  aan; na 16 minuten bezig geldt hij als mislukt. De prompt en invoer in
+  `ai_jobs.request` gaan leeg zodra de opdracht klaar is; rijen ouder dan zeven
+  dagen ruimt de functie op.
+- Elke Claude-vraag begint met "Vandaag is <weekdag> <datum>." (zie het
+  naspelen: zonder ankerdatum plande Claude in de verkeerde maand).
+- Structured outputs: grenzen die Claude niet kent (`minItems` boven 1,
+  `maxItems`, getal- en tekstgrenzen) gaan uit het schema (`claudeSchema`).
+  Gevolg: bij een nieuw schema of bijwerking dwingt het schema geen minimum
+  van drie workouts meer af.
+- Weigert het model, dan maakt de API het met een ander model af
+  (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`).
+- De instructies van coach en weekoverzicht worden gecachet.
+- Weekoverzicht, de doelenpagina en de gezondheidscheck kijken naar de sleutel
+  van de gekozen aanbieder (`aiConfigured`); de bron in de check heet nog
+  `openai`, het label "Training-AI".
+- Stappen voor de overstap in [runbook](docs/runbook.md) §9.
+
+- **Privacytekst (akkoord eigenaar, zelfde dag).** `/privacy` en de
+  toestemmingszin bij voedingsherkenning noemen de aanbieder die `AI_PROVIDER`
+  kiest (`aiProcessorName`), zodat de tekst vóór en na de overstap klopt. De
+  verwerkersalinea noemt nu ook pacingplannen (die gingen al naar OpenAI maar
+  stonden er niet bij) en, alleen bij Anthropic, dat Anthropic de gegevens niet
+  gebruikt om zijn modellen te trainen. Die laatste zin is niet nagekeken in de
+  voorwaarden van de API-organisatie van de eigenaar. Geen nieuwe
+  privacyversie: de eigenaar keurde de tekst goed en vroeg er niet om. De
+  pagina gerenderd met beide waarden, zonder aan elkaar geplakte woorden.
+
+**Bewust niet.**
+- Het OpenAI-pad blijft bestaan, om terug te kunnen.
+- De datum gaat alleen bij Claude mee; aan het OpenAI-pad is niets veranderd.
+
+**Getest.** `tsc`, ESLint op de gewijzigde bestanden, de hele unit-suite (3433
+geslaagd), nieuwe tests in `tests/unit/ai-claude.test.ts`, en drie echte
+Claude-aanroepen via de nieuwe code zonder database: voedingsherkenning (5 s),
+een coachantwoord (4 s) en een dag-aanpassing via
+`generateTrainingPlanDraft` (26 s, datums vanaf vandaag).
+
+**Hersteld na de push (zelfde dag).** De sessie-middleware ving
+`/.netlify/functions/ai-job-background` af en stuurde de aanroep met een 307
+naar `/login`; `fetch` volgde die en telde de inlogpagina als geslaagd, zodat
+een opdracht nooit zou draaien. Nu slaat de matcher in `src/middleware.ts`
+`/.netlify/` over (en staat het pad in `PUBLIC_PATHS` als vangrail), en
+`triggerJob` volgt geen doorverwijzing meer en eist een 202. Daarnaast keek de
+nieuwe "Maak mijn schema" op `/zwbeter-worden/doelen` (ronde 3, die tegelijk op
+main kwam) nog naar de OpenAI-sleutel; nu `aiConfigured()`.
+
+Na het toepassen van de migratie: het opdrachtenpad lokaal van begin tot eind
+(`AI_JOB_RUNNER=inline`) met een voedingsvraag zonder ledendata: opdracht
+aangemaakt, uitgevoerd en opgehaald in 7,6 s, `request` daarna leeg; de testrij
+is weer verwijderd.
+
+**Niet getest.** De achtergrondfunctie op Netlify naast de Next.js-site, en of
+`URL` in de functie-env van Next staat (anders `NEXT_PUBLIC_SITE_URL`). Dat
+blijkt pas na de deploy (runbook §9, stap 4).
+
+### Gemeten — Claude als vervanger van OpenAI: naspelen op eigen generaties
+
+**2026-10-24.** Gepusht naar `main` op 2026-10-26, met de overstap. Geen migratie. Commit: zie git log
+("Claude naspelen").
+
+**Waarom.** Het Max-abonnement van de eigenaar geeft $100 API-tegoed per maand bij
+Anthropic. Vraag: kan de AI van de app naar Claude, en is die even goed? Eerst
+gedacht aan oktober OpenAI, november Claude en dan vergelijken; dat vervalt. De
+eigenaar wil zo snel mogelijk Claude-uitvoer om te toetsen, en opgeslagen
+OpenAI-generaties naspelen op exact dezelfde invoer is eerlijker dan twee maanden
+met andere leden en ritten naast elkaar leggen.
+
+**Wat er is.** `scripts/claude-replay.mjs` haalt de generaties van één profiel op
+(`--profile` is verplicht), stuurt dezelfde systeemprompt, invoer en hetzelfde
+JSON-schema naar Claude, legt beide antwoorden langs `checkTrainingPlan` en
+schrijft `.tmp/claude-replay/compare.html`: per generatie A en B blind naast
+elkaar, met een stem en een notitie, en pas op verzoek wie wie is. `planSchema` in
+`ai.ts` is daarvoor geëxporteerd; `@anthropic-ai/sdk` staat in de dependencies.
+Claude kent geen `minItems` boven 1 en geen `maxItems` in structured outputs; het
+script haalt die weg en telt achteraf zelf.
+
+Om met meer mensen te beoordelen maakt `scripts/claude-replay-share.mjs` (met het
+sjabloon `claude-replay-share.html`) een deelbare versie, gepubliceerd als
+privé-artifact van de eigenaar. Daarin staat niet welke kant Claude is; die
+sleutel staat alleen lokaal in `.tmp/claude-replay/share/key.json`. Stemmen gaan
+naar de artifact-database onder `votes/<beoordelaar>/pairs/<geval>`: elke
+beoordelaar ziet alleen de eigen stemmen, de eigenaar ziet ze allemaal.
+Op verzoek van de eigenaar geanonimiseerd (versie 2): de naam van de renner valt
+uit titels weg en wordt in lopende tekst "de renner" (bezittelijk "zijn"); het
+script stopt als de naam nog ergens staat. FTP, gewicht, hersteldata, ritnamen
+en events (ZRL-team, gran fondo's) staan er nog in, dus binnen de club blijft de
+renner herkenbaar. De eigenaar deelt de pagina met "iedereen met de link".
+**Iedereen laten stemmen kan niet zoals gevraagd:** bezoekers van buiten de
+organisatie van de eigenaar krijgen via een link alleen leesrechten, en
+schrijven in de artifact-database kan pas vanaf Contributor; een per e-mail
+uitgenodigde Editor verliest zijn schrijfrecht zolang de pagina ook via een link
+gedeeld is. Zulke bezoekers kopiëren hun oordelen met een knop en sturen die
+op. **Besluit eigenaar 2026-10-25:** zo blijft het; beoordelaars sturen hun
+gekopieerde oordelen naar hem, hij geeft ze door. Geen Google-formulier.
+Sleutel en uitkomst staan ook in `.tmp/claude-replay/` van de hoofdmap, zodat
+ze een opgeruimde worktree overleven. Niet getest met een tweede account.
+
+**Uitkomst** (details en tabellen in [claude-naspelen](docs/claude-naspelen.md)),
+19 generaties van de eigenaar:
+- Bijwerkingen: Claude Opus 5.5 breekt veel minder regels dan GPT-5.5 (2 tegen 21
+  fouten op vijf), ook op effort `low`. Maar ~4 tot 6 minuten en $0,83–1,06 per
+  stuk; Sonnet 5.5 $0,50 met 12 fouten.
+- Dagelijkse aanpassing: Claude liet het schema vijf keer ongemoeid, GPT-5.5 paste
+  drie keer iets aan. Wie gelijk heeft moet uit de blinde vergelijking komen.
+- Op het huidige volume kost alles op Opus ~$135 per maand, boven het tegoed;
+  bijwerkingen met Sonnet ~$71.
+- **Claude kent de datum van vandaag niet** (GPT-5.5 krijgt die van OpenAI).
+  Bij oude invoer zonder ankerdatum plande Claude in de verkeerde maand; met één
+  regel "Vandaag is …" in de vraag klopt het en breekt Claude bij elk nieuw
+  schema minder regels dan GPT-5.5. Een overstap moet de datum dus altijd
+  meesturen. De blinde beoordeling van g08, g09 en g15–g19 liep op de versies
+  zonder datum en valt daardoor in het nadeel van Claude uit (2026-10-26).
+
+**Gevonden: OpenAI krijgt de ledendata ook om te trainen.** In de OpenAI-organisatie
+staat *Share inputs and outputs with OpenAI* op *Enabled for all projects*, in ruil
+voor gratis dagelijkse tokens. Daarom toont het dashboard maar $23,20 over 30
+dagen. De privacyverklaring noemt OpenAI alleen als verwerker voor het genereren;
+dat de gegevens ook voor het trainen van hun modellen gebruikt worden, staat er
+niet. **Besluit eigenaar (zelfde dag): delen blijft aan** tot de overstap naar
+Claude, omdat het nu geld scheelt en na de overstap niets meer naar OpenAI gaat.
+Instelling en privacytekst zijn niet aangepast.
+
+**Bewust niet.**
+- Geen omschakeling van de app naar Claude in deze ronde: eerst de blinde
+  vergelijking en de keuze van model en effort. Een omschakeling vraagt een
+  Netlify-achtergrondfunctie in plaats van OpenAI's background-modus (Netlify
+  kapt server-werk rond 30 s af; een bijwerking duurt bij Claude minuten) en een
+  andere verwerker in de privacyverklaring.
+- Geen eigen logtabel voor tokens en kosten: die staan in het OpenAI-dashboard en
+  de Anthropic Console.
+- Geen naspelen van andere leden: Anthropic staat nog niet in de
+  privacyverklaring.
+
+**Niet gemeten.** Coachchat, weekoverzicht, pacing en voeding (hun context staat
+niet volledig opgeslagen); de rekentijd van GPT-5.5; wat OpenAI zonder gratis
+tokens zou kosten (geschat $60–80 per maand).
 
 ### Gebouwd — ZWBeter Worden: mijn schema maken op het doel, review opgeruimd (ronde 3)
 

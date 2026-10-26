@@ -42,7 +42,7 @@ const BASE_RECIPE_COLUMNS =
 const FOOD_COLUMNS = `${BASE_FOOD_COLUMNS}, food_group, calcium_mg, iron_mg, magnesium_mg, zinc_mg, vitamin_d_ug, vitamin_c_mg, epa_g, dha_g`;
 
 /**
- * 3: met barcodeproducten als ingrediënt (0275), 2: met delen onder leden
+ * 3: met barcodeproducten als ingrediënt (0276), 2: met delen onder leden
  * (0264), 1: met bron en voorstellen (0213), 0: de kolommen van 0168. Zo werkt
  * de pagina ook zolang een migratie ontbreekt.
  */
@@ -197,7 +197,7 @@ export async function loadRecipePrefs(viewer: Viewer): Promise<RecipePrefs> {
 
 /** Recepten die leden met de club willen delen, voor wie schema's mag maken. */
 export async function loadProposedRecipes(viewer: Viewer): Promise<(Recipe & { owner_name: string | null })[]> {
-  // Met de barcodeproducten (0275) als die er zijn; anders de kolommen van 0213.
+  // Met de barcodeproducten (0276) als die er zijn; anders de kolommen van 0213.
   const data = await withColumnFallback(
     (columns) =>
       viewer.supabase

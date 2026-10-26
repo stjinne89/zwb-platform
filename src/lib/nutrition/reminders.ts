@@ -81,7 +81,7 @@ type Workout = {
   plan_id: string | null;
 };
 
-/** Met de barcodeproducten als ingrediënt (0275); zonder die migratie zonder. */
+/** Met de barcodeproducten als ingrediënt (0276); zonder die migratie zonder. */
 function rideRecipeColumns(withProducts: boolean) {
   return (
     "id, slug, title, meal_moment, fuel_profile, diet_tags, servings, prep_minutes, steps_md, is_standard, owner_id, visibility, " +

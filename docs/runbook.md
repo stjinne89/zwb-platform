@@ -125,7 +125,8 @@ vangen, maar weet hier hoe je ze ververst:
 | `WTRL_COOKIE` | ZRL/WTRL-data; alleen gebruikt als `WTRL_SYNC_ENABLED=true` (staat uit sinds 2026-09-21, WTRL-voorwaarden) | Ja, sessiecookie | Inloggen bij WTRL, sessiecookie kopiëren |
 | `ZWIFT_USERNAME` / `ZWIFT_PASSWORD` | Zwift-club-serviceaccount (event-feed + entrants) | Wachtwoord/lockout | Eigen ZWB-serviceaccount; bij lockout wachtwoord resetten. Verifieer met "Test clubkoppeling" op `/beheer/event-scan` |
 | `STRAVA_CLIENT_SECRET` | Strava OAuth | Nee (tenzij geroteerd) | Strava API-dashboard |
-| `OPENAI_API_KEY` | Trainings-AI | Bij rotatie/quota | OpenAI-dashboard |
+| `OPENAI_API_KEY` | Trainings-AI zolang `AI_PROVIDER` niet op `anthropic` staat | Bij rotatie/quota | OpenAI-dashboard |
+| `ANTHROPIC_API_KEY` | Trainings-AI als `AI_PROVIDER=anthropic` (zie "Overstap naar Claude" onderaan) | Bij rotatie, of als het maandtegoed op is | Claude Console (platform.claude.com), API Keys en Usage |
 | `INSTAGRAM_ACCESS_TOKEN` | Instagram-sync (`/media` en de cron) | Ja, long-lived token (~60 dgn) | Token uit de Meta-app, "API setup with Instagram login" (begint met `IGAA`; een `EAA`-token is van Facebook en werkt niet). Verlengen: `graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=…` |
 | `YOUTUBE_API_KEY` | `/media` YouTube-sync | Quota/rotatie | Google Cloud Console |
 
@@ -171,7 +172,7 @@ waarschuwing kunnen wijzigen:
 | ZwiftPower-uitslag | zwiftpower.com | alleen link (geen scrape) | n.v.t. (link blijft werken) |
 | TTT-planner | Export van zwiftgopher.com/TTT (JSON, link of tekst), geen API-key. Een geplakte link haalt de server op bij `zwiftgopher.com/TTT/?save=…&json=true` | geplakte export | ZwiftGopher die de vorm van de export wijzigt; dan meldt de import een fout |
 | TTT-bot (Discord) | eigen proces in `bot/` op de pc met Zwift en Sauce; **draait niet op Netlify**. Haalt het plan op via `/api/ttt/plan/<token>` | Discord-bot + Sauce-websocket + Piper | pc uit, Discord-token ingetrokken, deellink ingetrokken, of Sauce die zijn API wijzigt. Het token staat alleen in `bot/.env` op die pc. Zie [ttt-discord-bot](ttt-discord-bot.md) |
-| Training-AI | OpenAI | API + key | quota/model-wijziging |
+| Training-AI | OpenAI, of Anthropic (Claude) als `AI_PROVIDER=anthropic` | API + key; bij Claude via de achtergrondfunctie `ai-job-background` en tabel `ai_jobs` | quota/model-wijziging; bij Claude ook een achtergrondfunctie die niet draait (opdrachten blijven op `queued`) |
 | Strava | officiële OAuth API | API | rate-limit / app-cap |
 | Live volgen Garmin | livetrack.garmin.com, endpoints van de eigen webpagina | onofficieel, CSRF-token uit `<meta>` + cookie | Garmin die de CSRF-aanpak wijzigt of ons blokkeert (health-check `garmin_livetrack`); renners staan dan als "live, met link" op de kaart |
 | Live volgen Wahoo | wahooligan.com live-pagina (vaste link van het lid) | onofficieel: status uit data-attributen, spoor uit `window.livetrack_fit` (FIT) | markup-wijziging; een rit wordt dan niet meer opgemerkt of heeft geen posities. Er is geen health-check: controleer met een eigen link |
@@ -634,3 +635,28 @@ Staat er iets stil, kijk dan in de job-historie naar de responscode: **401/403**
 = secret klopt niet of staat niet in de draaiende deploy (env-vars gelden pas
 vanaf een nieuwe deploy), **308** = dubbele slash in de URL, **timeout** = de
 route is wél begonnen; verlaag `limit` of zie de storingenlijst in sectie 6.
+
+## 9. Overstap naar Claude (AI_PROVIDER)
+
+Sinds 2026-10-26 kan de trainings-AI (schema's, dagaanpassingen, coachchat,
+weekoverzicht, pacing en voedingsherkenning) op Claude draaien in plaats van
+OpenAI. De code staat klaar; de overstap is een instelling.
+
+1. Migratie `0275_ai_jobs.sql` (tabel `ai_jobs`): toegepast op 2026-10-26.
+2. In Netlify env: `ANTHROPIC_API_KEY` en `AI_PROVIDER=anthropic`. Optioneel per
+   soort `ANTHROPIC_MODEL_<SOORT>` / `ANTHROPIC_EFFORT_<SOORT>` (zie
+   `.env.local.example`; standaard Opus 5.5, bijwerkingen op effort `low`).
+3. Deployen (env-waarden gelden pas vanaf een nieuwe deploy). De
+   achtergrondfunctie `netlify/functions/ai-job-background.mts` gaat mee.
+4. Controleren: start een coachvraag of een dagaanpassing en kijk in `ai_jobs`.
+   `queued` → `in_progress` → `completed` betekent dat de functie draait. Blijft
+   een rij op `queued`, dan bereikt de app de functie niet: kijk in de
+   Netlify-functielogs naar `ai-job-background` en of `URL` in de functie-env staat.
+
+Terug naar OpenAI: `AI_PROVIDER` leeg of `openai`, en deployen. Opdrachten die
+al bij Claude liepen, worden daarna nog uit `ai_jobs` opgehaald (het id begint
+met `aij_`); andersom geldt hetzelfde voor ids van OpenAI (`resp_`).
+
+Kosten staan in de Claude Console onder Usage. Het Max-abonnement geeft $100
+tegoed per maand; de schatting voor het huidige volume staat in
+[claude-naspelen](claude-naspelen.md).

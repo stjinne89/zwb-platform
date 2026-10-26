@@ -58,7 +58,7 @@ export async function searchFoods(query: string): Promise<FoodOption[]> {
   return queryFoods(supabase, query);
 }
 
-/** Een NEVO-product (`food_id`) of een barcodeproduct (`barcode`, 0275). */
+/** Een NEVO-product (`food_id`) of een barcodeproduct (`barcode`, 0276). */
 type IngredientInput = { food_id?: string; barcode?: string; grams: number; role: IngredientRole };
 
 function parseIngredients(raw: string): IngredientInput[] | null {
@@ -210,7 +210,7 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
 
   const { error: itemsError } = await supabase.from("nutrition_recipe_ingredients").insert(
     // De kolom product_barcode gaat alleen mee als er een barcodeproduct in zit:
-    // een recept met alleen NEVO-producten werkt zo ook zonder 0275.
+    // een recept met alleen NEVO-producten werkt zo ook zonder 0276.
     ingredients.map((item, index) => ({
       recipe_id: id,
       ...(item.barcode ? { food_id: null, product_barcode: item.barcode } : { food_id: item.food_id }),
