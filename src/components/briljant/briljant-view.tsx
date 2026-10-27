@@ -164,6 +164,10 @@ function facetStep(change: FacetChange, unit: Unit): string {
 /** Het verschil volgens dezelfde knop: "+0,13 W/kg" of "+30". */
 const facetDelta = (change: FacetChange, unit: Unit) => (unit === "waarden" && change.value ? change.value : plus(change.points));
 
+/** Alleen de getallen, voor de smalle tabel onder de score: "11,75 → 8,56", "+14". */
+const numbers = (change: FacetChange, text: string) =>
+  text.replaceAll(` ${FACET_MEASURES[change.key].unit}`, "").replace(/ punten$/, "");
+
 const consistencyStep = (change: ConsistencyChange) => `${Math.round(change.from * 100)}% → ${Math.round(change.to * 100)}%`;
 const consistencyDelta = (change: ConsistencyChange) =>
   `${plus(Math.round(change.to * 100) - Math.round(change.from * 100))}%`;
@@ -459,10 +463,9 @@ function PanelBody({
               {changes.facets.map((change) => (
                 <tr key={change.key}>
                   <td>{FACET_LABELS[change.key]}</td>
-                  <td>{facetStep(change, unit)}</td>
+                  <td>{numbers(change, facetStep(change, unit))}</td>
                   <td>
-                    {/* De eenheid staat al in de kolom ernaast. */}
-                    <Delta up={change.up} text={facetDelta(change, unit).replace(` ${FACET_MEASURES[change.key].unit}`, "")} />
+                    <Delta up={change.up} text={numbers(change, facetDelta(change, unit))} />
                   </td>
                 </tr>
               ))}

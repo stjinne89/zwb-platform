@@ -11527,6 +11527,10 @@ telefoon) de berekening erachter.
   588 punten" en "+30". Onder de score een regel "+20 punten sinds 19 oktober"; die
   opent het scorepaneel met alle verschillen in een tabel. Bij durability is minder
   procent beter, dus groen omhoog.
+- In die tabel alleen de getallen ("11,75 → 8,56", "+14"), zonder eenheid: met
+  eenheden ("% per 10 kJ/kg") werd het paneel breder dan het scherm en moest de
+  eigenaar opzij scrollen (2026-10-27, na de push). De eenheid staat bij het
+  onderdeel zelf, in het kaartje en het paneel.
 - Eerst toonde het kaartje ook wat het onderdeel je score deed (Δpunten × gewicht ×
   consistentiefactor, en voor de consistentie profiel × verschil in factor). Dat
   vond de eigenaar te veel (2026-10-27, commit `eede2e0f`): alleen de groei in waarde
