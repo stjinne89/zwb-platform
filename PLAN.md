@@ -232,11 +232,13 @@ gaat stabiliteit voor nieuwe features.
      beheren in de app zelf. De
      privacy- en voorwaardentekst (spullen, §3a) is goedgekeurd, zonder nieuwe
      toestemmingsversie (eigenaar, 2026-10-16).
-   - **Racetips:** `0282_race_tips_topic.sql`, `0283_member_tips_external_source.sql`
-     en `0284_seed_race_tips_zwift_insider.sql` toepassen (2026-10-27). **Volgorde:**
-     0283 vóór de deploy (de code leest de nieuwe kolommen; zonder 0283 vallen
-     alle ledentips weg), 0284 pas ná de deploy (de oude code kan geen tip zonder
-     lid aan). Zonder 0282 toont `/zwbeter-worden/racen/tips` alleen Zwift.
+   - **Racetips:** `0282_race_tips_topic.sql` en `0283_member_tips_external_source.sql`
+     zijn op 2026-10-27 toegepast via de Supabase-connector, op verzoek van de
+     eigenaar, vóór de push naar `main` (de code leest de nieuwe kolommen).
+     Achteraf nagekeken: `wegracen` actief, `source_name` en `source_url`
+     aanwezig, `profile_id` nullable, beide checks zoals in de migratie.
+     `0284_seed_race_tips_zwift_insider.sql` volgt pas ná de deploy (de oude code
+     kan geen tip zonder lid aan).
      Daarna ingelogd: de vijftien Zwift Insider-tips met bronlink bekijken, en
      een eigen tip plaatsen bij Zwift en bij Buiten, aanpassen en verwijderen
      (ronde "Racetips onder ZWBeter racen").
@@ -11512,9 +11514,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Racetips onder ZWBeter racen
 
 **2026-10-27.** Commits `3a16e313`, `6cc583bb` en `e772d395` (Zwift
-Insider-tips), lokaal, niet gepusht. Migraties `0282_race_tips_topic.sql`,
-`0283_member_tips_external_source.sql` en `0284_seed_race_tips_zwift_insider.sql`,
-**niet toegepast** (volgorde: zie Actieve volgorde, punt Racetips).
+Insider-tips), gepusht naar `main` op 2026-10-27. Migraties `0282_race_tips_topic.sql`,
+`0283_member_tips_external_source.sql` en `0284_seed_race_tips_zwift_insider.sql`.
+0282 en 0283 toegepast op 2026-10-27, daarna gepusht naar `main`; 0284 na de
+deploy (zie Actieve volgorde, punt Racetips).
 
 **Waarom.** Vraag van de eigenaar: onder ZWBeter racen een pagina waar leden
 tips over Zwift-racen en over racen buiten kunnen plaatsen.
