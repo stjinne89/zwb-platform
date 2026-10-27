@@ -97,3 +97,45 @@ export function eventPowerups(input: {
   if (type === "TIME_TRIAL" || type === "TEAM_TIME_TRIAL" || noDrafting) return null;
   return { kind: "standard" };
 }
+
+/** Wat een boog of het startvak geeft: een powerup of alleen XP. */
+export type ArchReward = ZwiftPowerup | "xp";
+
+// 2, 3 en 10 zijn XP en dergelijke (zie NUMBERS).
+const XP_NUMBERS = new Set([2, 3, 10]);
+
+function rewardOf(value: number): ArchReward | null {
+  if (XP_NUMBERS.has(value)) return "xp";
+  return NUMBERS[value] ?? null;
+}
+
+function tagValue(tags: unknown, name: string): string | null {
+  if (!Array.isArray(tags)) return null;
+  const tag = tags.map(String).find((item) => item.split("=")[0].trim().toLowerCase() === name);
+  return tag ? (tag.split("=")[1] ?? "").replace(/["']/g, "").trim() : null;
+}
+
+/**
+ * De tag `arch_powerup="0,0,82,0,81,5,5,3"` (ZRL, per subgroep): paren *boog,
+ * powerup*. Het boognummer is Zwifts archId van een segment; 0 geldt voor bogen
+ * zonder eigen nummer. Ontcijferd op ZRL W6 2026/27 (Spiral Summit) tegen
+ * Zwift Insider: veer bij de Jarvis Lap (0) en Jarvis Sprint (82), aerohelm bij
+ * Jarvis KOM (81), XP bij Volcano KOM (5). Null zonder de tag.
+ */
+export function archPowerups(tags: unknown): Map<number, ArchReward> | null {
+  const value = tagValue(tags, "arch_powerup");
+  if (value === null) return null;
+  const numbers = value.split(",").map((part) => Number(part.trim()));
+  const out = new Map<number, ArchReward>();
+  for (let i = 0; i + 1 < numbers.length; i += 2) {
+    const reward = rewardOf(numbers[i + 1]);
+    if (Number.isInteger(numbers[i]) && reward && !out.has(numbers[i])) out.set(numbers[i], reward);
+  }
+  return out;
+}
+
+/** De tag `starting_powerup=4`: wat iedereen in het startvak krijgt. */
+export function startingPowerup(tags: unknown): ArchReward | null {
+  const value = tagValue(tags, "starting_powerup");
+  return value === null || value === "" ? null : rewardOf(Number(value));
+}

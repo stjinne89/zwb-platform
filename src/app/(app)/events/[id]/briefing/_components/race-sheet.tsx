@@ -12,6 +12,8 @@ import { cleanRiderName, ROLE_LABELS } from "@/lib/race-briefing/field";
 import { km } from "@/lib/race-briefing/tips";
 import type { SketchMark } from "@/lib/race-briefing/sheet";
 import type { SegmentRecord } from "@/lib/race-briefing/segment-records";
+import type { ArchPowerup } from "@/lib/race-briefing/arches";
+import { ZWIFT_POWERUP_ICONS, ZWIFT_POWERUP_LABELS } from "@/lib/zwift/powerups";
 import type { PacingSegment } from "@/lib/pacing/route-profile";
 import { profilePoints, type Point } from "@/lib/race-briefing/route";
 
@@ -251,6 +253,31 @@ function RouteSketch({ segments, marks }: { segments: PacingSegment[]; marks: Sk
 }
 
 // ── De blokken op het briefje ─────────────────────────────────────────────
+
+/** Wat je in het startvak en bij elke boog krijgt, met Zwifts eigen icoon. */
+function ArchPowerups({ arches }: { arches: ArchPowerup[] }) {
+  if (arches.length === 0) return null;
+  return (
+    <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm" aria-label="Powerups per boog">
+      {arches.map((arch) => (
+        <li key={`${arch.km}-${arch.label}`} className="inline-flex items-center gap-1.5">
+          {arch.reward === "xp" ? (
+            <span className="inline-flex size-5 items-center justify-center rounded-full border text-[9px] font-bold" style={{ borderColor: PENCIL, color: PENCIL }}>
+              XP
+            </span>
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={ZWIFT_POWERUP_ICONS[arch.reward]} alt={ZWIFT_POWERUP_LABELS[arch.reward]} width={20} height={20} className="size-5 shrink-0 rounded-full object-cover" />
+          )}
+          <span>
+            {arch.km > 0 && <span className="tabular-nums" style={{ color: PENCIL }}>{km(arch.km)} </span>}
+            {arch.label}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function Moments({ view }: { view: BriefingView }) {
   const moments = view.sheet.moments;
@@ -504,6 +531,7 @@ export function RaceSheet({ view }: { view: BriefingView }) {
         <div className="mt-3">
           <Title>De route</Title>
           <RouteSketch segments={loaded.route.segments} marks={view.sheet.sketch} />
+          <ArchPowerups arches={view.archPowerups} />
         </div>
       )}
       <div className="mt-3 grid gap-x-10 md:grid-cols-2">

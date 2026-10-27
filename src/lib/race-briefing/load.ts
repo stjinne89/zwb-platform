@@ -33,6 +33,8 @@ import { FULL_TEAM_STARTERS } from "@/lib/zrl-live/scoring";
 import { zwiftRacingConfigured } from "@/lib/zwiftracing/client";
 import { loadRiderMetrics, refreshRiderMetrics, type RiderMetrics } from "./metrics";
 import { routeKeyPoints, type RouteKeyPoints } from "./route";
+import { archPowerupList, type ArchPowerup } from "./arches";
+import { archPowerups, startingPowerup } from "@/lib/zwift/powerups";
 import {
   briefingFormatOf,
   checkLimits,
@@ -167,6 +169,8 @@ export type BriefingView = {
   /** Per sprint en KOM de richttijd uit het veld en de PR van onze renners; leeg buiten een puntenrace of Race of Truth. */
   segmentRecords: SegmentRecord[];
   powerups: Array<{ powerup: Powerup; percent: number }>;
+  /** Startvak en bogen met wat ze geven (ZRL: arch_powerup en starting_powerup). */
+  archPowerups: ArchPowerup[];
   /** Labels van eerdere races van deze ronde, in volgorde ("W1", "W2" …). */
   historyLabels: string[];
   field: BriefingRider[];
@@ -203,11 +207,22 @@ type EventRow = {
 
 const cachedZwiftEvent = unstable_cache(
   async (zwiftEventId: string) => {
-    const event = (await fetchZwiftEvent(zwiftEventId)) as { tags?: unknown; description?: unknown; eventType?: unknown } | null;
+    const event = (await fetchZwiftEvent(zwiftEventId)) as {
+      tags?: unknown;
+      description?: unknown;
+      eventType?: unknown;
+      eventSubgroups?: Array<{ subgroupLabel?: unknown; tags?: unknown }>;
+    } | null;
     // Alleen wat de briefing gebruikt; de rest van het event hoeft niet in de cache.
-    return { tags: event?.tags ?? [], description: event?.description ?? "", eventType: event?.eventType ?? null };
+    // De powerups per boog (arch_powerup) staan alleen in de tags van de subgroep.
+    return {
+      tags: event?.tags ?? [],
+      description: event?.description ?? "",
+      eventType: event?.eventType ?? null,
+      subgroups: (event?.eventSubgroups ?? []).map((g) => ({ label: String(g.subgroupLabel ?? ""), tags: g.tags ?? [] })),
+    };
   },
-  ["race-briefing-zwift-event"],
+  ["race-briefing-zwift-event-subgroups"],
   { revalidate: 60 * 60 },
 );
 
@@ -512,6 +527,10 @@ export async function loadRaceBriefing(
 
   const watch = projection ? watchList(projection) : [];
   const powerups = powerupsFromTags(zwiftEvent?.tags);
+  const subgroupTags = zwiftEvent?.subgroups?.find((g) => g.label === view?.subgroupLabel)?.tags ?? null;
+  const archList = keyPoints
+    ? archPowerupList({ segments: keyPoints.segments, totalKm: keyPoints.totalKm, arches: archPowerups(subgroupTags), start: startingPowerup(subgroupTags) })
+    : [];
   const tips = briefingTips({
     format,
     category: division?.category ?? null,
@@ -560,6 +579,7 @@ export async function loadRaceBriefing(
       bikes,
       segmentRecords: segmentRecordList,
       powerups,
+      archPowerups: archList,
       historyLabels: history.labels,
       field: briefingField,
       projection,

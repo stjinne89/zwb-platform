@@ -11501,6 +11501,49 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Racebriefje: powerup per boog
+
+**2026-10-27.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Geen migratie.
+
+**Waarom.** Vraag van de eigenaar: op het racebriefje welke powerup je bij welke
+boog krijgt, met het icoon. De eventpagina toonde alleen de kans per powerup
+(`powerup_percent`), niet per boog.
+
+**Bron.** De ZRL zet het per subgroep in de Zwift-tags, niet in de tags van het
+event: `starting_powerup=4` en `arch_powerup="0,0,82,0,81,5,5,3"` (W6,
+event 5758531). Paren *boog, powerup*; de powerupnummers zijn die van
+`powerup_percent` (2, 3 en 10 zijn XP). Ontcijferd tegen Zwift Insider
+(zwiftinsider.com/zrl-r20-w6, gelezen 2026-10-27): burrito in het startvak,
+veer bij de Jarvis Lap en Jarvis Sprint, aerohelm bij Jarvis KOM, XP bij
+Volcano KOM. Het boognummer is Zwifts `archId` van het segment (zo leest de
+Sauce-mod van Zenmaster het ook); 0 geldt voor bogen zonder eigen nummer.
+
+**Wat.**
+- `archPowerups`, `startingPowerup` (`zwift/powerups.ts`): de tags lezen.
+- `ARCH_IDS` (`zwift/arch-ids.ts`): archId per zwift-data-slug. Alleen de vier
+  nagekeken bogen: jarvis-lap 0, jarvis-kom 81, jarvis-sprint 82, volcano-kom 5.
+- `archPowerupList` (`race-briefing/arches.ts`): startvak plus elke boog met
+  bekende archId, op kilometer; een boog op de streep valt weg.
+- `load.ts`: de Zwift-cache bewaart nu ook de tags per subgroep (nieuwe
+  cachesleutel); `BriefingView.archPowerups` uit de subgroep van de eigen groep.
+- Op het briefje onder de route: per boog het icoon, de kilometer en het segment.
+  XP staat er als "XP".
+- `/hulp` legt het uit. Geen privacywijziging: geen persoonsgegevens.
+
+**Bewust niet.**
+- Geen gok voor bogen waarvan de archId onbekend is: dan geen regel. Een nieuwe
+  export uit Sauce (`getSegments` met `archId`) zou de tabel compleet maken;
+  de Sauce-pc stond uit. Tot dan per nieuwe route de tag tegen Zwift Insider
+  controleren en `ARCH_IDS` aanvullen.
+- Niet op de eventpagina: daar blijft de kans per powerup.
+- Na de start heeft de briefing geen subgroep meer (`loadZrlLive` draait alleen
+  vóór de start), dus dan geen regel; de briefing is voor vóór de race.
+
+**Gecontroleerd.** Vitest (`arch-powerups.test.ts`: de tag van W6 en de lijst
+van Spiral Summit zoals Zwift Insider), `tsc`, ESLint. Profiel met de regel los
+gerenderd en bekeken. **Niet geverifieerd:** het briefje op productie, en of
+`view.subgroupLabel` daar gelijk is aan het label in de Zwift-tags.
+
 ### Gebouwd — Racebriefje: rondesegmenten zoals de Jarvis Lap
 
 **2026-10-27.** Commits `25ffa34e`, `afa0bdf0` en `1de01aaa`, gepusht naar `main` op
