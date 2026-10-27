@@ -75,3 +75,41 @@ export async function unassignLadderRider(teamId: string, profileId: string) {
   refresh(teamId);
   return { ok: true as const };
 }
+
+const CAPTAIN_ROLES = ["captain", "co-captain"] as const;
+type CaptainRole = (typeof CAPTAIN_ROLES)[number];
+
+/** Maakt een lid captain of co-captain van een ladderteam; zet hem zo nodig in het team. */
+export async function setLadderCaptain(teamId: string, profileId: string, role: CaptainRole) {
+  if (!CAPTAIN_ROLES.includes(role)) return { ok: false as const, error: "Ongeldige rol." };
+  const check = await guard(teamId);
+  if (!check.ok) return check;
+
+  await check.admin
+    .from("team_member_seed_overrides")
+    .delete()
+    .eq("team_id", teamId)
+    .eq("profile_id", profileId);
+  const { error } = await check.admin.from("team_members").upsert(
+    { team_id: teamId, profile_id: profileId, role, assignment_source: "manual" },
+    { onConflict: "team_id,profile_id" },
+  );
+  if (error) return { ok: false as const, error: error.message };
+  refresh(teamId);
+  return { ok: true as const };
+}
+
+/** Captain af: blijft lid van het team. Uit het team halen gaat via de selectie. */
+export async function clearLadderCaptain(teamId: string, profileId: string) {
+  const check = await guard(teamId);
+  if (!check.ok) return check;
+
+  const { error } = await check.admin
+    .from("team_members")
+    .update({ role: "member" })
+    .eq("team_id", teamId)
+    .eq("profile_id", profileId);
+  if (error) return { ok: false as const, error: error.message };
+  refresh(teamId);
+  return { ok: true as const };
+}

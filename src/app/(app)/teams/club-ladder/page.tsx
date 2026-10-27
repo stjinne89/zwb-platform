@@ -38,6 +38,7 @@ import {
   LadderTeamPicker,
   type AssignTeam,
 } from "./_components/ladder-assign";
+import { LadderCaptains, type CaptainTeam } from "./_components/ladder-captains";
 import { canAssignLadderRiders } from "@/lib/club-ladder/access";
 import { getRequestAccess } from "@/lib/auth/request";
 
@@ -256,6 +257,7 @@ export default async function ClubLadderPage({
     canAssignLadderRiders(access),
   ]);
   const ladderGroups = groupLadderRidersBySex(sortLadderRiders(allLadderRiders, riderSort));
+  const captainData = canAssign ? await loadLadderCaptains(teamRows, admin) : null;
   const assignTeams: AssignTeam[] = teamRows.map((team) => ({
     id: team.id,
     name: team.name,
@@ -494,10 +496,65 @@ export default async function ClubLadderPage({
               )}
             </section>
           </LadderAssignProvider>
+
+          {captainData && (
+            <LadderCaptains
+              teams={captainData.teams}
+              members={captainData.members}
+              initialTeamId={selectedTeam.id}
+            />
+          )}
         </>
       )}
     </div>
   );
+}
+
+async function loadLadderCaptains(
+  ladderTeams: TeamRow[],
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<{ teams: CaptainTeam[]; members: Array<{ id: string; name: string }> }> {
+  const [{ data: captainRows }, { data: memberRows }] = await Promise.all([
+    ladderTeams.length > 0
+      ? admin
+          .from("team_members")
+          .select("team_id, profile_id, role, profiles(display_name)")
+          .in(
+            "team_id",
+            ladderTeams.map((team) => team.id),
+          )
+          .in("role", ["captain", "co-captain"])
+      : Promise.resolve({ data: [] }),
+    admin
+      .from("profiles")
+      .select("id, display_name")
+      .eq("is_approved", true)
+      .order("display_name"),
+  ]);
+  const captains = (captainRows ?? []) as unknown as Array<{
+    team_id: string;
+    profile_id: string;
+    role: "captain" | "co-captain";
+    profiles?: { display_name?: string | null } | null;
+  }>;
+  return {
+    teams: ladderTeams.map((team) => ({
+      id: team.id,
+      name: team.name,
+      archived: Boolean(team.is_graveyard),
+      captains: captains
+        .filter((row) => row.team_id === team.id)
+        .map((row) => ({
+          id: row.profile_id,
+          name: row.profiles?.display_name?.trim() || "Onbekend",
+          role: row.role,
+        }))
+        .sort((a, b) => (a.role === b.role ? a.name.localeCompare(b.name, "nl") : a.role === "captain" ? -1 : 1)),
+    })),
+    members: ((memberRows ?? []) as Array<{ id: string; display_name: string | null }>)
+      .filter((row) => row.display_name?.trim())
+      .map((row) => ({ id: row.id, name: row.display_name!.trim() })),
+  };
 }
 
 async function loadLadderRiders(

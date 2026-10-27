@@ -11511,6 +11511,39 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: captains aanwijzen onderaan de pagina
+
+**2026-10-27.** Commit volgt hieronder, lokaal, niet gepusht. Geen migratie.
+
+**Waarom.** Vraag van de eigenaar: onderaan `/teams/club-ladder` leden als
+captain kunnen toevoegen. Alle ladderteams hadden op 2026-10-27 nul leden en dus
+geen captains, zodat alleen rosterbeheerders konden indelen (ronde hieronder).
+
+**Wat.**
+- Sectie Captains (`_components/ladder-captains.tsx`), alleen voor wie mag
+  indelen (zelfde regel als de Captain-selectie). Kies een ladderteam, een lid
+  (alle goedgekeurde leden, niet alleen ladderrenners) en Captain of Co-captain.
+  Staat het lid nog niet in het team, dan komt hij erin; staat hij er al in, dan
+  krijgt hij de rol. Per team de huidige captains met hun rol.
+- Het kruisje (`clearLadderCaptain`) maakt een captain weer gewoon lid; hij
+  blijft in het team. Uit het team halen gaat via de Captain-selectie, zodat de
+  twee knoppen niet hetzelfde doen.
+- Een nieuwe captain mag meteen alle ladderteams indelen
+  (`canAssignLadderRiders`). Wie mag indelen, mag ook captains aanwijzen, zoals
+  een captain op de teampagina ook een captain kan toevoegen.
+- `/hulp` (Teams en wedstrijden) legt het uit.
+
+**Bewust niet.**
+- Geen aparte rechtenregel voor captains aanwijzen: dezelfde groep die indeelt.
+- Geen zoekveld in de keuzelijst (48 goedgekeurde leden op 2026-10-27); pas als
+  de lijst te lang wordt.
+
+**Gecontroleerd.** `tsc` schoon, ESLint op `teams/club-ladder` en de hulp.
+Lokaal ingelogd bekeken tegen de productie-database: sectie onderaan, 48 leden
+in de keuzelijst, vier teams zonder captain; op 375 px velden en knop 44 px,
+geen horizontale scroll. **Niet geverifieerd:** echt een captain aanwijzen en
+weer weghalen, om geen rol op productie te zetten. Eerst na de deploy proberen.
+
 ### Gebouwd — Club Ladder: renners vanaf de lijst in een ladderteam zetten
 
 **2026-10-27.** Commit `a5e1f4d2`, lokaal, niet gepusht. Geen migratie.
