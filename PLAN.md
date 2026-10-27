@@ -11513,7 +11513,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: lijst van alle ladderrenners voor de captains
 
-**2026-10-27.** Commit volgt hieronder. Geen migratie.
+**2026-10-27.** Commit `0633c3c3`, lokaal, niet gepusht. Geen migratie.
 
 **Waarom.** Vraag van de eigenaar: op `/teams/club-ladder` een overzicht van
 alle ladderrenners met hun waardes, zodat de captains makkelijk een verdeling
