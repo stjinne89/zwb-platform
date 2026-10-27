@@ -11522,9 +11522,11 @@ segment 1063552145.
   laatste boog. Begin en eind van alle segmenten nu op de meter (was 10 m), anders
   werd 4,847 km "4,9 km".
 - Momenten: een ronde krijgt er twee, want de streep ligt kilometers na het
-  begin. Puntenrace: "ronde Jarvis 4,8 km — in de kopgroep blijven: de rondetijd
-  telt" en "eind ronde Jarvis — eerste over de streep: FAL-punten". Race of
-  Truth: "telt voor FTS: de rondetijd" en "eerste over de streep: FAL". De
+  begin. Begin: "rondetijd telt voor FTS", eind: "eerste over de streep: FAL"; de
+  telling is in een puntenrace en een Race of Truth gelijk. In een puntenrace
+  komt er bij het begin ": in de kopgroep blijven" bij, omdat daar slipstream is
+  (net als "sprinters erop, de rest in het wiel" bij een sprint; in een Race of
+  Truth staat daar alleen "telt voor FAL en FTS"). De
   streep aan het eind ontbrak in de eerste versie (`25ffa34e`); de eigenaar zag
   het, toegevoegd in een volgende commit.
 - Profiel: nieuwe stijl `ronde`, een groene haak onder het stuk met het label

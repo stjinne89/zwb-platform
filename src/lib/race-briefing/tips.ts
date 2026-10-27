@@ -188,7 +188,7 @@ export function briefingMoments(input: {
     }
     if (format === "rot") {
       const both = "telt voor FAL en FTS";
-      out.push(...scoring(route.climbs, { sprint: both, kom: both, lap: "telt voor FTS: de rondetijd", lapEnd: "eerste over de streep: FAL" }));
+      out.push(...scoring(route.climbs, { sprint: both, kom: both, lap: "rondetijd telt voor FTS", lapEnd: "eerste over de streep: FAL" }));
     }
     return out.sort((a, b) => a.km - b.km);
   }
@@ -211,8 +211,9 @@ export function briefingMoments(input: {
       ...scoring(covered, {
         sprint: "sprinters erop, de rest in het wiel",
         kom: "klimmers erop, de rest in het wiel",
-        lap: "in de kopgroep blijven: de rondetijd telt",
-        lapEnd: "eerste over de streep: FAL-punten",
+        // Zelfde telling als de Race of Truth; met slipstream komt de tactiek erbij.
+        lap: "rondetijd telt voor FTS: in de kopgroep blijven",
+        lapEnd: "eerste over de streep: FAL",
       }),
     );
   }

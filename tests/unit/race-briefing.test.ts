@@ -348,10 +348,10 @@ describe("sprints en KOM's", () => {
     const spiralRoute = routeKeyPoints({ segments: pacing.segments, accents: pacing.accents, totalKm: pacing.totalKm, laps: 1, lapSegments });
     const sheet = defaultSheet({ format: "points", category: "B", route: spiralRoute, powerups: [], own, watch: [], warnings: [] });
     expect(sheet.moments.map((m) => [m.what.replace(/ ·.*/, ""), m.todo])).toEqual([
-      ["ronde Jarvis 4,8 km", "in de kopgroep blijven: de rondetijd telt"],
+      ["ronde Jarvis 4,8 km", "rondetijd telt voor FTS: in de kopgroep blijven"],
       ["KOM Jarvis (1e) 36 m", "klimmers erop, de rest in het wiel"],
       ["sprint Jarvis (1e)", "sprinters erop, de rest in het wiel"],
-      ["eind ronde Jarvis", "eerste over de streep: FAL-punten"],
+      ["eind ronde Jarvis", "eerste over de streep: FAL"],
       ["KOM Jarvis (2e) 36 m", "klimmers erop, de rest in het wiel"],
       ["sprint Jarvis (2e)", "sprinters erop, de rest in het wiel"],
       ["laatste boog", "powerup vóór de boog op"],
