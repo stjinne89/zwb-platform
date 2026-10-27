@@ -11511,8 +11511,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Racetips onder ZWBeter racen
 
-**2026-10-27.** Commits `3a16e313`, `6cc583bb` en de commit van de Zwift
-Insider-tips, lokaal, niet gepusht. Migraties `0282_race_tips_topic.sql`,
+**2026-10-27.** Commits `3a16e313`, `6cc583bb` en `e772d395` (Zwift
+Insider-tips), lokaal, niet gepusht. Migraties `0282_race_tips_topic.sql`,
 `0283_member_tips_external_source.sql` en `0284_seed_race_tips_zwift_insider.sql`,
 **niet toegepast** (volgorde: zie Actieve volgorde, punt Racetips).
 
