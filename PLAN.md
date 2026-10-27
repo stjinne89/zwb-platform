@@ -11503,7 +11503,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Racebriefje: rondesegmenten zoals de Jarvis Lap
 
-**2026-10-27.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Geen migratie.
+**2026-10-27.** Commit `25ffa34e`, lokaal, niet gepusht. Geen migratie.
 
 **Waarom.** De eigenaar miste de Jarvis Lap op het racebriefje van W6 (Spiral
 Summit). zwift-data 2.1 kent hem wel (10,17–15,02 km in de ronde), maar als type
