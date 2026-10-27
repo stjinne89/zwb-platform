@@ -11513,7 +11513,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: lijst van alle ladderrenners voor de captains
 
-**2026-10-27.** Commit `0633c3c3`, lokaal, niet gepusht. Geen migratie.
+**2026-10-27.** Commit `0633c3c3`, gepusht naar `main` op 2026-10-27. Geen migratie.
 
 **Waarom.** Vraag van de eigenaar: op `/teams/club-ladder` een overzicht van
 alle ladderrenners met hun waardes, zodat de captains makkelijk een verdeling
@@ -11573,6 +11573,13 @@ naar 11 van de 12), zoals de racebriefing ook doet.
 `parseZwiftRacingRider` leest `race.rating` zonder dat vaststaat of dat vELO 2
 of legacy vELO is. Dat wordt uitgezocht in de aparte sessie "Zwiftracing ranking
 systeem: legacy vs velo 2"; de ladderlijst toont wat daar in `velo` belandt.
+**Bekend na de bouw:** bij Rolf Buunk bleef de ZRS leeg, terwijl ZwiftPower 651
+toont en hij die avond ZRL reed. Oorzaak (gemeten 2026-10-27): zijn Zwift-profiel
+heeft `privacy.approvalRequired: true`, en dan geeft `profiles/{id}` aan het
+serviceaccount `competitionMetrics: null`. Een lid met een open profiel krijgt
+wel een score. Geldt ook voor de racebriefing. Besluit eigenaar: hij vraagt Rolf
+het serviceaccount als volger goed te keuren of zijn profiel open te zetten; geen
+codewijziging.
 
 ### Gebouwd — Racetips onder ZWBeter racen
 
