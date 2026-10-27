@@ -11422,7 +11422,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gewijzigd — ZWBriljant: records van de minuut en 5 minuten, de beste 10% van de profs als houvast
 
-**2026-10-27.** Geen migratie, geen nieuwe schaalversie: de ijkwaarden van de klassen
+**2026-10-27.** Commit `d281d5b9`, nog niet gepusht. Geen migratie, geen nieuwe schaalversie: de ijkwaarden van de klassen
 blijven gelijk, alleen de recordsteen verandert (die wordt live gerekend, niet bewaard).
 
 **Waarom.** De eigenaar zag op Instagram (Knowledge is Watt) wat de beste 10% van 144
