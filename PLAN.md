@@ -11408,10 +11408,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Racebriefje: grens van de divisie in watt per renner
 
-**2026-10-27.** Commit `36c04baf`, lokaal, niet gepusht. Geen migratie.
+**2026-10-27.** Commit `36c04baf`, gepusht naar `main` op 2026-10-27. Geen migratie.
 
 **Waarom.** Vraag van de eigenaar: op het racebriefje per renner het absolute
-wattage waaronder hij moet blijven om zFTP of zMAP niet boven de grens van de
+wattage waaronder de renner moet blijven om zFTP of zMAP niet boven de grens van de
 divisie te krijgen.
 
 **Wat.**
@@ -11425,8 +11425,8 @@ divisie te krijgen.
   344 W". Zonder grenzen (A Standard) of zonder zFTP in watt bij WTRL: geen
   regel.
 - `/hulp` legt het uit. **Privacy:** `/privacy#racebriefing` noemt de
-  wattgrens en hoe die is gerekend; geen nieuwe versie. **Nog niet goedgekeurd
-  door de eigenaar.**
+  wattgrens en hoe die is gerekend; geen nieuwe versie. Goedgekeurd door de eigenaar
+  op 2026-10-27.
 
 **Bewust niet.** Geen duur bij de grens ("20 minuten", "5 minuten"): hoe Zwift
 zFTP en zMAP uit een rit afleidt, staat niet in de bronnen van de app; de regel
