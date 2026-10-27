@@ -84,8 +84,8 @@ gaat stabiliteit voor nieuwe features.
    onder de grens van 20%. Nieuw: `delete training_plans` gemiddeld 1.030 ms;
    zes verwijzingen naar `training_plans` hebben geen index (nagekeken via de
    connector). Beide aangepakt in de ronde "Indexen en eigen-tijdenvlag"
-   hieronder (`0280`, `0281`; toegepast op 2026-10-27, de code nog niet
-   gepusht). De ~7.500 checks per dag op `profiles.is_approved` komen uit de
+   hieronder (`0280`, `0281`; toegepast en de code gepusht op
+   2026-10-27). De ~7.500 checks per dag op `profiles.is_approved` komen uit de
    approval-gate in `src/lib/supabase/middleware.ts`, die bij elk verzoek
    buiten de publieke paden het profiel opvraagt (goedkoop: ~0,1 ms per
    aanroep). `live_positions` 17.638 (+1.231 in een week). cron-job.org: alle
@@ -516,8 +516,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Indexen en eigen-tijdenvlag, 2026-10-27 — gebouwd; unit-tests en lint schoon op de gewijzigde bestanden; niet gepusht. Migraties `0280_training_plan_fk_indexes.sql` en `0281_strava_has_gps_times.sql`, op verzoek van de eigenaar toegepast via de Supabase-connector (2026-10-27) en nagekeken; niet lokaal te testen.**
-> Commit: `5dd0154f`, op `main` (lokaal).
+> **Indexen en eigen-tijdenvlag, 2026-10-27 — gebouwd; unit-tests en lint schoon op de gewijzigde bestanden; gepusht naar `main` (2026-10-27). Migraties `0280_training_plan_fk_indexes.sql` en `0281_strava_has_gps_times.sql`, op verzoek van de eigenaar toegepast via de Supabase-connector (2026-10-27) en nagekeken; niet lokaal te testen.**
+> Commit: `5dd0154f`, op `main`.
 >
 > **Waarom.** De databasecheck van 2026-10-27 vond twee dingen. (1) `delete
 > training_plans` duurde gemiddeld 1.030 ms: zes verwijzingen met `on delete set
@@ -559,9 +559,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > install`); geen in de gewijzigde bestanden.
 >
 > **Op productie (2026-10-27).** `0280` en `0281` toegepast via de
-> Supabase-connector, vóór de push: de live code kent `has_gps_times` niet en
-> blijft het oude filter gebruiken tot de push; de trigger houdt de kolom
-> intussen al bij. Nagekeken, alleen lezen: geen verwijzing naar
+> Supabase-connector, vóór de push; de code is daarna dezelfde dag gepusht
+> (`09bf04ad`), dus vanaf de deploy leest de app via `has_gps_times`. Nagekeken, alleen lezen: geen verwijzing naar
 > `training_plans` meer zonder index; de zeven nieuwe indexen staan (samen
 > ~200 kB); 232 ritten hebben `has_gps_times = true` (gelijk aan de telling
 > vooraf), geen enkele `false`; de trigger `strava_activities_has_gps_times`
