@@ -67,7 +67,7 @@ export default async function RaceTipsPage({ searchParams }: PageProps) {
                   href={filter.key ? `${BASE}?waar=${filter.key}` : BASE}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "inline-flex min-h-9 items-center rounded-full border px-3 text-sm",
+                    "inline-flex min-h-11 items-center rounded-full border px-4 text-sm",
                     active ? "border-foreground bg-foreground text-background" : "bg-card hover:bg-muted",
                   )}
                 >

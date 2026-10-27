@@ -42,7 +42,7 @@ export function RaceTipForm({ kinds, initial }: { kinds: RaceTipKind[]; initial:
             aria-checked={topic === kind.slug}
             onClick={() => setTopic(kind.slug)}
             className={cn(
-              "min-h-9 rounded-full border px-3 text-sm",
+              "min-h-11 rounded-full border px-4 text-sm",
               topic === kind.slug
                 ? "border-primary bg-primary text-primary-foreground"
                 : "bg-background hover:bg-muted",
@@ -65,7 +65,7 @@ export function RaceTipForm({ kinds, initial }: { kinds: RaceTipKind[]; initial:
         <p className={length > TIP_MAX ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
           {length}/{TIP_MAX}
         </p>
-        <Button disabled={pending || !topic || length < TIP_MIN || length > TIP_MAX} onClick={save}>
+        <Button className="min-h-11" disabled={pending || !topic || length < TIP_MIN || length > TIP_MAX} onClick={save}>
           {pending ? "Plaatsen…" : "Plaatsen"}
         </Button>
       </div>

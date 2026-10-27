@@ -11543,11 +11543,15 @@ tips over Zwift-racen en over racen buiten kunnen plaatsen.
 
 **Gecontroleerd.** ESLint op de gewijzigde bestanden; Vitest `zwbieb`,
 `nav-active`, `admin-areas`, `racen-kennis`, `help-anchors` en `help-categories`
-groen. `tsc` en de volledige unit-suite vallen elders om door pakketten die in
-de gedeelde `node_modules` ontbreken (`@anthropic-ai/sdk`, `modern-screenshot`)
-en drie route- en pacingtests buiten deze ronde. **Niet geverifieerd:** de
-pagina ingelogd bekeken, plaatsen tegen de echte database, en de migratie (geen
-Docker of Supabase-config hier).
+groen. De eerste `tsc`- en unit-run liep tegen de `node_modules` van de
+hoofdcheckout, waar `@anthropic-ai/sdk` en `modern-screenshot` ontbraken; daarna
+`npm ci` in de worktree. De pagina is ingelogd bekeken op de lokale dev-server
+(productie-database), op desktop en 375 px: tab actief, alleen Zwift (0282 niet
+toegepast), lege lijst, geen horizontale scroll. Daarna de keuzeknoppen, filters
+en Plaatsen naar 44 px gezet (duimregel). **Niet geverifieerd:** een tip
+plaatsen, aanpassen en verwijderen tegen de echte database (niet gedaan om geen
+testtip op productie te zetten), en de migratie (geen Docker of Supabase-config
+hier).
 
 ### Gebouwd — Racebriefje: powerup per boog
 
