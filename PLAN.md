@@ -11503,7 +11503,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: pijltjes sinds de vorige steen
 
-**2026-10-27.** Geen migratie.
+**2026-10-27, commit `e69e684e`.** Geen migratie.
 
 **Waarom.** De eigenaar zag de score na het weekeinde een stap zetten maar kon niet
 herleiden waar die vandaan kwam. Gevraagd: bij het onderdeel dat veranderde een groen
