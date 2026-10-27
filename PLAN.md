@@ -11529,7 +11529,7 @@ telefoon) de berekening erachter.
   procent beter, dus groen omhoog.
 - Eerst toonde het kaartje ook wat het onderdeel je score deed (Δpunten × gewicht ×
   consistentiefactor, en voor de consistentie profiel × verschil in factor). Dat
-  vond de eigenaar te veel (2026-10-27, commit hierna): alleen de groei in waarde
+  vond de eigenaar te veel (2026-10-27, commit `deb85860`): alleen de groei in waarde
   of punten. De formule zelf staat op `/hulp` onder De formules.
 - `/hulp` (ZWBriljant, Terugkijken) legt de pijltjes uit.
 
