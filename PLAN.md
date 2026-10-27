@@ -11408,7 +11408,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Racebriefje: grens van de divisie in watt per renner
 
-**2026-10-27.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Geen migratie.
+**2026-10-27.** Commit `36c04baf`, lokaal, niet gepusht. Geen migratie.
 
 **Waarom.** Vraag van de eigenaar: op het racebriefje per renner het absolute
 wattage waaronder hij moet blijven om zFTP of zMAP niet boven de grens van de
