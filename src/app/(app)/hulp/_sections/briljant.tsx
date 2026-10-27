@@ -168,6 +168,14 @@ export function BriljantHelp() {
               score, staat er je huidige ZRS. Durability rekent ook in het verleden met je huidige
               kJ-drempels uit intervals.icu, en alleen uit je ritten, zonder de test. Met Waarden en Punten wissel je wat de labels tonen.
             </dd>
+            <dt className="font-medium">Pijltjes</dt>
+            <dd className="text-muted-foreground">
+              Een groen pijltje omhoog of rood pijltje omlaag bij een onderdeel of de consistentie laat zien wat er
+              veranderde sinds je vorige steen, de week ervoor. Wijs het aan of tik erop voor de berekening: de meting
+              toen en nu, de punten, en het verschil maal het gewicht maal je consistentiefactor, wat het onderdeel je
+              score deed. Bij durability is omlaag in procenten beter, en dus groen. Tik op de regel onder je score
+              voor alle verschillen bij elkaar.
+            </dd>
             <dt className="font-medium">Ik, ZWB en Vergelijken</dt>
             <dd className="text-muted-foreground">
               Bovenaan kies je tussen drie tabbladen. Ik is je eigen steen, met de datum. ZWB is de galerij: een museum
