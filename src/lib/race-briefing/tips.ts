@@ -165,14 +165,17 @@ export function briefingMoments(input: {
   /**
    * De sprints, KOM's en ronden met punten, behalve een KOM over een klim die al een
    * moment heeft en een segment dat op de streep eindigt (dan telt de finish).
+   * Een ronde krijgt er twee: het begin (de rondetijd, FTS) en de streep aan het
+   * eind (FAL), want daar ligt hij kilometers verder.
    */
-  const scoring = (covered: Array<BriefingClimb | null>, todo: (segment: BriefingSegment) => string): BriefingMoment[] =>
+  const scoring = (covered: Array<BriefingClimb | null>, todo: Record<BriefingSegment["kind"] | "lapEnd", string>): BriefingMoment[] =>
     route.segments
       .filter((s) => s.endKm < route.totalKm - 0.3 && !(s.kind === "kom" && covered.some((c) => c && overlaps(s, c))))
-      .map((s) => {
+      .flatMap((s) => {
         const climb = s.kind === "kom" ? route.climbs.find((c) => overlaps(s, c)) : undefined;
         const what = climb ? `${segmentLabel(s)} ${climb.gainM} m · ${time(climb)}` : s.kind === "lap" ? `${segmentLabel(s)} ${km(s.endKm - s.startKm)}` : segmentLabel(s);
-        return { km: s.startKm, what, todo: todo(s) };
+        const start = { km: s.startKm, what, todo: todo[s.kind] };
+        return s.kind === "lap" ? [start, { km: s.endKm, what: `eind ${segmentLabel(s)}`, todo: todo.lapEnd }] : [start];
       });
 
   if (format === "ttt" || format === "rot") {
@@ -183,7 +186,10 @@ export function briefingMoments(input: {
         todo: format === "ttt" ? "W/kg-doel, bij elkaar blijven" : "niet harder dan je drempel",
       });
     }
-    if (format === "rot") out.push(...scoring(route.climbs, () => "telt voor FAL en FTS"));
+    if (format === "rot") {
+      const both = "telt voor FAL en FTS";
+      out.push(...scoring(route.climbs, { sprint: both, kom: both, lap: "telt voor FTS: de rondetijd", lapEnd: "eerste over de streep: FAL" }));
+    }
     return out.sort((a, b) => a.km - b.km);
   }
 
@@ -201,8 +207,14 @@ export function briefingMoments(input: {
   }
   if (format === "points") {
     const covered = [route.earlyClimb, finaleClimb, hardestOwn ? hardest : null, ...route.descentsIntoClimbs.map((d) => d.climb)];
-    const todo = { sprint: "sprinters erop, de rest in het wiel", kom: "klimmers erop, de rest in het wiel", lap: "in de kopgroep blijven: de rondetijd telt" };
-    out.push(...scoring(covered, (s) => todo[s.kind]));
+    out.push(
+      ...scoring(covered, {
+        sprint: "sprinters erop, de rest in het wiel",
+        kom: "klimmers erop, de rest in het wiel",
+        lap: "in de kopgroep blijven: de rondetijd telt",
+        lapEnd: "eerste over de streep: FAL-punten",
+      }),
+    );
   }
   if (route.lastArchKm !== null) out.push({ km: route.lastArchKm, what: "laatste boog", todo: "powerup vóór de boog op" });
   if (route.finale.kind === "climb") {

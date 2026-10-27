@@ -351,6 +351,7 @@ describe("sprints en KOM's", () => {
       ["ronde Jarvis 4,8 km", "in de kopgroep blijven: de rondetijd telt"],
       ["KOM Jarvis (1e) 36 m", "klimmers erop, de rest in het wiel"],
       ["sprint Jarvis (1e)", "sprinters erop, de rest in het wiel"],
+      ["eind ronde Jarvis", "eerste over de streep: FAL-punten"],
       ["KOM Jarvis (2e) 36 m", "klimmers erop, de rest in het wiel"],
       ["sprint Jarvis (2e)", "sprinters erop, de rest in het wiel"],
       ["laatste boog", "powerup vóór de boog op"],

@@ -11521,8 +11521,12 @@ segment 1063552145.
   Rev.") houdt zijn naam. Het eind van een rondesegment telt als boog voor de
   laatste boog. Begin en eind van alle segmenten nu op de meter (was 10 m), anders
   werd 4,847 km "4,9 km".
-- Momenten bij een puntenrace: "ronde Jarvis 4,8 km — in de kopgroep blijven: de
-  rondetijd telt"; bij een Race of Truth "telt voor FAL en FTS".
+- Momenten: een ronde krijgt er twee, want de streep ligt kilometers na het
+  begin. Puntenrace: "ronde Jarvis 4,8 km — in de kopgroep blijven: de rondetijd
+  telt" en "eind ronde Jarvis — eerste over de streep: FAL-punten". Race of
+  Truth: "telt voor FTS: de rondetijd" en "eerste over de streep: FAL". De
+  streep aan het eind ontbrak in de eerste versie (`25ffa34e`); de eigenaar zag
+  het, toegevoegd in een volgende commit.
 - Profiel: nieuwe stijl `ronde`, een groene haak onder het stuk met het label
   eronder; ook te kiezen in Briefje bewerken.
 - Segmentrecords: `segmentIdsForRoute` koppelt ook de rondesegmenten
@@ -11539,7 +11543,7 @@ pacingplan een ronde van 4,8 km als één accent zien en de klimmen en sprints
 erbinnen kwijtraken. Welke segmenten WTRL echt laat tellen, leest het briefje
 nog steeds niet.
 
-**Gecontroleerd.** Vitest: Spiral Summit met de Jarvis Lap (moment, haak, slug),
+**Gecontroleerd.** Vitest: Spiral Summit met de Jarvis Lap (begin en eind als moment, haak, slug),
 labels, `expandLapSegments` over twee ronden, `matchSegmentIds` koppelt
 jarvis-lap aan 1063552145; `tsc`, ESLint. Het profiel van Spiral Summit los
 gerenderd en bekeken. **Niet geverifieerd:** of `/segment-results` voor een
