@@ -12,7 +12,9 @@ export const dynamic = "force-dynamic";
 
 // Racetips: tips van leden over Zwift-racen en racen buiten. Het zijn gewone
 // tips van ZWBieb (member_tips) onder twee onderwerpen (0282), dus aanpassen,
-// verwijderen en de moderatie lopen via de acties van ZWBieb.
+// verwijderen en de moderatie lopen via de acties van ZWBieb. De eerste tips
+// zijn samenvattingen uit Zwift Insider, met de bron in plaats van een lid
+// (0283, 0284).
 
 const BASE = "/zwbeter-worden/racen/tips";
 
@@ -85,7 +87,7 @@ export default async function RaceTipsPage({ searchParams }: PageProps) {
               <TipItem
                 key={tip.id}
                 tip={tip}
-                author={authors.get(tip.profile_id)}
+                author={tip.profile_id ? authors.get(tip.profile_id) : undefined}
                 viewerId={user.id}
                 canModerate={canModerate}
                 topicName={focus ? undefined : labelOf[tip.topic_slug]}

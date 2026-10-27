@@ -58,7 +58,7 @@ export default async function MijnZwbiebPage() {
               <TipItem
                 key={tip.id}
                 tip={tip}
-                author={members.get(tip.profile_id)}
+                author={tip.profile_id ? members.get(tip.profile_id) : undefined}
                 viewerId={user.id}
                 canModerate={false}
                 topicName={catalog.label(tip.topic_slug)}

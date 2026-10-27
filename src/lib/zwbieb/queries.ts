@@ -28,18 +28,22 @@ export type ExpertTopicRow = {
 
 export type TipRow = {
   id: string;
-  profile_id: string;
+  /** Null bij een tip met een externe bron (0283). */
+  profile_id: string | null;
   topic_slug: string;
   event_id: string | null;
   col_slug: string | null;
   body: string;
-  source: "lid" | "import" | "gesprek";
+  source: "lid" | "import" | "gesprek" | "bron";
+  /** Alleen bij source 'bron': de naam en het artikel. */
+  source_name: string | null;
+  source_url: string | null;
   status: "published" | "hidden";
   created_at: string;
 };
 
 export const TIP_COLUMNS =
-  "id, profile_id, topic_slug, event_id, col_slug, body, source, status, created_at";
+  "id, profile_id, topic_slug, event_id, col_slug, body, source, source_name, source_url, status, created_at";
 
 export type ThreadRow = ThreadReadState & {
   id: string;
@@ -51,12 +55,12 @@ export type ThreadRow = ThreadReadState & {
 export const THREAD_COLUMNS =
   "id, asker_id, expert_id, topic_slug, status, last_message_at, last_author_id, asker_read_at, expert_read_at, created_at";
 
-/** Naam en avatar per lid, voor een lijst id's. */
+/** Naam en avatar per lid, voor een lijst id's. Null (een tip met een bron) valt weg. */
 export async function loadMembers(
   supabase: Supabase,
-  ids: Iterable<string>,
+  ids: Iterable<string | null>,
 ): Promise<Map<string, MemberSummary>> {
-  const unique = Array.from(new Set(ids));
+  const unique = Array.from(new Set(ids)).filter((id): id is string => id !== null);
   if (unique.length === 0) return new Map();
   const { data } = await supabase
     .from("profiles")

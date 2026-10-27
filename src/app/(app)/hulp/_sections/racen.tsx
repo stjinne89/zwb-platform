@@ -37,7 +37,9 @@ export function RacenHelp() {
             Onder Racen → Racetips zetten leden hun tips over racen: in Zwift of
             buiten, op de weg en in criteriums. Kies Zwift of Buiten, schrijf je tip
             (hooguit 300 tekens) en plaats hem. Elk lid ziet de tip, met je naam
-            erbij. Je kunt je eigen tip later aanpassen of verwijderen. Racetips
+            erbij. Je kunt je eigen tip later aanpassen of verwijderen. Een deel
+            van de tips is een samenvatting uit Zwift Insider; daar staat de bron
+            bij, met een link naar het artikel. Racetips
             staan ook in de ZWBieb, bij het onderwerp Zwift-racen of Wegracen en
             criteriums, en bij jouw tips op je profiel.
           </p>

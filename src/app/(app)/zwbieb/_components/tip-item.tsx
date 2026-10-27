@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 import type { MemberSummary, TipRow } from "@/lib/zwbieb/queries";
 import { MemberChip } from "./member-chip";
 import { TipActions } from "./tip-actions";
@@ -27,7 +28,19 @@ export function TipItem({
     <li className={hidden ? "rounded-md border border-dashed p-3 opacity-70" : "rounded-md border p-3"}>
       <p className="whitespace-pre-wrap text-sm leading-6">{tip.body}</p>
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        <MemberChip member={author} />
+        {tip.source === "bron" && tip.source_url ? (
+          <a
+            href={tip.source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 hover:text-primary hover:underline"
+          >
+            Bron: {tip.source_name}
+            <ExternalLink className="size-3" aria-hidden />
+          </a>
+        ) : (
+          <MemberChip member={author} />
+        )}
         {topicName && (
           <Link
             href={`/zwbieb?onderwerp=${tip.topic_slug}`}

@@ -232,10 +232,14 @@ gaat stabiliteit voor nieuwe features.
      beheren in de app zelf. De
      privacy- en voorwaardentekst (spullen, §3a) is goedgekeurd, zonder nieuwe
      toestemmingsversie (eigenaar, 2026-10-16).
-   - **Racetips:** `0282_race_tips_topic.sql` toepassen (2026-10-27): één
-     onderwerp `wegracen` erbij. Zonder de migratie toont `/zwbeter-worden/racen/tips`
-     alleen Zwift. Daarna één keer ingelogd een tip plaatsen bij Zwift en bij
-     Buiten, aanpassen en verwijderen (ronde "Racetips onder ZWBeter racen").
+   - **Racetips:** `0282_race_tips_topic.sql`, `0283_member_tips_external_source.sql`
+     en `0284_seed_race_tips_zwift_insider.sql` toepassen (2026-10-27). **Volgorde:**
+     0283 vóór de deploy (de code leest de nieuwe kolommen; zonder 0283 vallen
+     alle ledentips weg), 0284 pas ná de deploy (de oude code kan geen tip zonder
+     lid aan). Zonder 0282 toont `/zwbeter-worden/racen/tips` alleen Zwift.
+     Daarna ingelogd: de vijftien Zwift Insider-tips met bronlink bekijken, en
+     een eigen tip plaatsen bij Zwift en bij Buiten, aanpassen en verwijderen
+     (ronde "Racetips onder ZWBeter racen").
    - **Mijn statistieken (tegelkeuze):** `0241_profile_stats_tiles.sql`
      toepassen (2026-10-16). Let op: de migratie kreeg dezelfde dag een tweede
      kolom `club_tiles` voor de clubpagina; pas de versie van de laatste
@@ -11507,8 +11511,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Racetips onder ZWBeter racen
 
-**2026-10-27.** Commit `3a16e313`, lokaal, niet gepusht. Migratie `0282_race_tips_topic.sql`,
-**niet toegepast**.
+**2026-10-27.** Commits `3a16e313`, `6cc583bb` en de commit van de Zwift
+Insider-tips, lokaal, niet gepusht. Migraties `0282_race_tips_topic.sql`,
+`0283_member_tips_external_source.sql` en `0284_seed_race_tips_zwift_insider.sql`,
+**niet toegepast** (volgorde: zie Actieve volgorde, punt Racetips).
 
 **Waarom.** Vraag van de eigenaar: onder ZWBeter racen een pagina waar leden
 tips over Zwift-racen en over racen buiten kunnen plaatsen.
@@ -11532,6 +11538,23 @@ tips over Zwift-racen en over racen buiten kunnen plaatsen.
 - `/hulp` (Racen en pacing, anker `racen-tips`) legt het uit. Geen
   privacywijziging: de privacyverklaring dekt ZWBieb-tips al (op naam,
   zichtbaar voor leden, zelf te beheren).
+- **Eerste tips uit Zwift Insider.** Op verzoek van de eigenaar vijftien tips,
+  "onder de naam van Zwift Insider". Een tip hing altijd aan een lid; een
+  nep-account "Zwift Insider" is niet gemaakt, omdat dat zich als clublid
+  voordoet. In plaats daarvan een vierde bron, `bron` (0283): `profile_id` leeg,
+  met `source_name` en een https-`source_url`, zoals de pro-tips in Mijn garage
+  (0122). Een check dwingt af dat een bron-tip nooit een lid heeft en elke andere
+  tip altijd. Alleen `community.manage` kan zo'n tip plaatsen, aanpassen of
+  weghalen (bestaande policies). De tip toont "Bron: Zwift Insider" met een
+  link naar het artikel in plaats van een lid.
+- 0284 zet de tips erin: samenvattingen in eigen woorden, geen citaten, onder
+  `zwift-racen`. Gelezen op 2026-10-27; twaalf komen uit stukken van september
+  en oktober 2026 ("How the Race Was Lost" Makuri 40 en Innsbruckring, de
+  powerupgids, de ZRL-gids week 5), drie uit oudere stukken (2023 en 2025).
+  Opnieuw draaien voegt niets dubbel toe.
+- `TipRow.profile_id` kan nu null zijn; `loadMembers` slaat null over en de vier
+  plekken die de auteur opzoeken, controleren eerst of er een lid is. Zonder dat
+  stuurde één bron-tip een lege id mee en verdwenen alle namen in de lijst.
 
 **Bewust niet.**
 - Geen eigen tabel of forum met reacties en likes. Vragen aan een kenner lopen
@@ -11540,6 +11563,9 @@ tips over Zwift-racen en over racen buiten kunnen plaatsen.
   (`TIP_MAX`, ook als check in 0239).
 - Geen koppeling aan een specifieke race of event op deze pagina; dat kan al via
   "Tip toevoegen" op de eventpagina.
+- Geen buitentips uit Zwift Insider: die site gaat alleen over Zwift.
+- Geen invoerscherm voor bron-tips: de vijftien staan in een migratie. Komen er
+  vaker bronnen bij, dan pas een beheerscherm.
 
 **Gecontroleerd.** ESLint op de gewijzigde bestanden; Vitest `zwbieb`,
 `nav-active`, `admin-areas`, `racen-kennis`, `help-anchors` en `help-categories`
@@ -11552,6 +11578,13 @@ en Plaatsen naar 44 px gezet (duimregel). **Niet geverifieerd:** een tip
 plaatsen, aanpassen en verwijderen tegen de echte database (niet gedaan om geen
 testtip op productie te zetten), en de migratie (geen Docker of Supabase-config
 hier).
+**Zwift Insider-ronde:** `tsc` en ESLint schoon, unit-suite groen (vier tests die
+in de volle run wisselend omvallen, slagen los). 0282, 0283 en 0284 samen een keer
+op productie gedraaid binnen een blok dat met een afgedwongen fout terugdraaide:
+15 bron-tips, langste 252 tekens, `wegracen` aanwezig; daarna nagekeken dat er
+niets bleef staan (geen nieuwe kolommen, geen tips, `profile_id` nog not null).
+**Niet geverifieerd:** de weergave van een bron-tip in de app, want lokaal leest
+de app de productie-database en daar staat 0283 nog niet.
 
 ### Gebouwd — Racebriefje: powerup per boog
 

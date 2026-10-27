@@ -49,7 +49,7 @@ export function VanLeden({
           <TipItem
             key={tip.id}
             tip={tip}
-            author={authors.get(tip.profile_id)}
+            author={tip.profile_id ? authors.get(tip.profile_id) : undefined}
             viewerId={viewerId}
             canModerate={canModerate}
             topicName={topicNames[tip.topic_slug] ?? tip.topic_slug}

@@ -187,7 +187,7 @@ export async function ZwbiebOverview({
                     <TipItem
                       key={tip.id}
                       tip={tip}
-                      author={members.get(tip.profile_id)}
+                      author={tip.profile_id ? members.get(tip.profile_id) : undefined}
                       viewerId={user.id}
                       canModerate={canModerate}
                       eventTitle={tip.event_id ? eventTitles.get(tip.event_id) : undefined}
