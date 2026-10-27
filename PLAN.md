@@ -376,8 +376,7 @@ gaat stabiliteit voor nieuwe features.
    leden die de balk midden in beeld zagen vragen of het nog gebeurt.
 
 20. **ZWBriljant: records van de minuut en 5 minuten, profs als houvast** (ronde van
-   2026-10-27 hieronder): gebouwd en lokaal getest, gepusht naar de branch `ccr-fa452236-d2g8j8`, nog niet naar
-   `main`. Geen migratie.
+   2026-10-27 hieronder): gebouwd, lokaal getest en op 2026-10-27 gepusht naar `main`. Geen migratie.
    Open: de tabel van Valenzuela 2022 nalopen zodra de pdf er is (P90 op 1 s, 10 s,
    1 min, 5 min en 240 min komen nu uit een samenvatting), en de recordsteen in de
    zaal bekijken.
@@ -11423,7 +11422,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gewijzigd — ZWBriljant: records van de minuut en 5 minuten, de beste 10% van de profs als houvast
 
-**2026-10-27.** Commit `d281d5b9`, gepusht naar de branch `ccr-fa452236-d2g8j8` op 2026-10-27, nog niet naar `main`. Geen migratie, geen nieuwe schaalversie: de ijkwaarden van de klassen
+**2026-10-27.** Commit `d281d5b9`, gepusht naar `main` op 2026-10-27 (eigenaar). Geen migratie, geen nieuwe schaalversie: de ijkwaarden van de klassen
 blijven gelijk, alleen de recordsteen verandert (die wordt live gerekend, niet bewaard).
 
 **Waarom.** De eigenaar zag op Instagram (Knowledge is Watt) wat de beste 10% van 144
