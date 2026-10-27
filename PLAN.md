@@ -11507,7 +11507,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Racetips onder ZWBeter racen
 
-**2026-10-27.** Lokaal gecommit, niet gepusht. Migratie `0282_race_tips_topic.sql`,
+**2026-10-27.** Commit `3a16e313`, lokaal, niet gepusht. Migratie `0282_race_tips_topic.sql`,
 **niet toegepast**.
 
 **Waarom.** Vraag van de eigenaar: onder ZWBeter racen een pagina waar leden
