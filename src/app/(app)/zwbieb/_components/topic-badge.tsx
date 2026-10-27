@@ -3,6 +3,7 @@ import {
   Caravan,
   CarFront,
   CloudRain,
+  Flag,
   Dumbbell,
   Gauge,
   Lightbulb,
@@ -51,6 +52,8 @@ const GROUPS: Record<string, Group> = {
   groepsrijden: "rijden",
   toertochten: "rijden",
   "kleding-weer": "materiaal",
+  // 0282: racen buiten, naast zwift-racen op de racetips.
+  wegracen: "rijden",
 };
 
 type Icon = ComponentType<LucideProps>;
@@ -129,6 +132,7 @@ const ICONS: Record<string, Icon> = {
   groepsrijden: Users,
   toertochten: Route,
   "kleding-weer": CloudRain,
+  wegracen: Flag,
   fietskoffer: Luggage,
   momentsleutel: Wrench,
   fietsendrager: Bike,

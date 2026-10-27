@@ -96,9 +96,11 @@ export const KRACHT_SECTIONS: NavLeaf[] = [
 ];
 
 /** De tabs binnen Racen: je races en, sinds 2026-10-19, de kennisbank racen. Een
- * race (/racen/<id>) valt onder Jouw races, een artikel onder Kennisbank. */
+ * race (/racen/<id>) valt onder Jouw races, een artikel onder Kennisbank.
+ * Racetips (2026-10-27) zijn tips van leden, uit ZWBieb (0282). */
 export const RACEN_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/racen", label: "Jouw races" },
+  { type: "link", href: "/zwbeter-worden/racen/tips", label: "Racetips" },
   { type: "link", href: "/zwbeter-worden/racen/kennis", label: "Kennisbank" },
 ];
 

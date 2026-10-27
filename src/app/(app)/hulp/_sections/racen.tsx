@@ -31,6 +31,18 @@ export function RacenHelp() {
           </div>
         </header>
 
+        <div id="racen-tips" className="mt-4 scroll-mt-20 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Racetips</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Onder Racen → Racetips zetten leden hun tips over racen: in Zwift of
+            buiten, op de weg en in criteriums. Kies Zwift of Buiten, schrijf je tip
+            (hooguit 300 tekens) en plaats hem. Elk lid ziet de tip, met je naam
+            erbij. Je kunt je eigen tip later aanpassen of verwijderen. Racetips
+            staan ook in de ZWBieb, bij het onderwerp Zwift-racen of Wegracen en
+            criteriums, en bij jouw tips op je profiel.
+          </p>
+        </div>
+
         <div id="racen-kennis" className="mt-4 scroll-mt-20 rounded-md border bg-background p-4">
           <h3 className="text-sm font-semibold">De kennisbank racen</h3>
           <p className="mt-2 text-sm text-muted-foreground">

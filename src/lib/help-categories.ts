@@ -123,6 +123,7 @@ export const HELP_CATEGORIES = [
     tone: "kalender",
     anchors: [
       "racen",
+      "racen-tips",
       "racen-kennis",
       "racen-trainer",
       "racen-eigen-rit",

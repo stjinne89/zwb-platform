@@ -232,6 +232,10 @@ gaat stabiliteit voor nieuwe features.
      beheren in de app zelf. De
      privacy- en voorwaardentekst (spullen, §3a) is goedgekeurd, zonder nieuwe
      toestemmingsversie (eigenaar, 2026-10-16).
+   - **Racetips:** `0282_race_tips_topic.sql` toepassen (2026-10-27): één
+     onderwerp `wegracen` erbij. Zonder de migratie toont `/zwbeter-worden/racen/tips`
+     alleen Zwift. Daarna één keer ingelogd een tip plaatsen bij Zwift en bij
+     Buiten, aanpassen en verwijderen (ronde "Racetips onder ZWBeter racen").
    - **Mijn statistieken (tegelkeuze):** `0241_profile_stats_tiles.sql`
      toepassen (2026-10-16). Let op: de migratie kreeg dezelfde dag een tweede
      kolom `club_tiles` voor de clubpagina; pas de versie van de laatste
@@ -11500,6 +11504,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Racetips onder ZWBeter racen
+
+**2026-10-27.** Lokaal gecommit, niet gepusht. Migratie `0282_race_tips_topic.sql`,
+**niet toegepast**.
+
+**Waarom.** Vraag van de eigenaar: onder ZWBeter racen een pagina waar leden
+tips over Zwift-racen en over racen buiten kunnen plaatsen.
+
+**Wat.**
+- Nieuwe tab Racetips (`/zwbeter-worden/racen/tips`) tussen Jouw races en
+  Kennisbank. Bovenaan kies je Zwift of Buiten en schrijf je een tip; eronder
+  alle racetips, nieuwste eerst, te filteren op Alle, Zwift of Buiten.
+- Geen eigen tabel: een racetip is een gewone tip van ZWBieb (`member_tips`,
+  0239) onder het bestaande onderwerp `zwift-racen` of het nieuwe `wegracen`
+  ("Wegracen en criteriums", 0282). Plaatsen loopt via `addMyTip`; aanpassen,
+  verwijderen, verbergen door de moderatie, de tips op het profiel en de
+  RLS (alleen goedgekeurde leden lezen) komen zo zonder extra code mee. De
+  tips staan ook in ZWBieb bij hun onderwerp. Bij de check op 2026-10-27
+  stonden er in heel `member_tips` nog nul tips.
+- `wegracen` krijgt in `topic-badge.tsx` de groep rijden en het icoon Flag. Het
+  staat niet in `BUILT_IN_TOPICS`: die lijst is de startlijst van 0242 (een test
+  houdt ze gelijk) en alleen de terugval als `knowledge_topics` niet te lezen is.
+- Een onderwerp dat nog niet in `knowledge_topics` staat, valt op de pagina weg.
+  Tot 0282 is toegepast toont de pagina dus alleen Zwift, zonder fout.
+- `/hulp` (Racen en pacing, anker `racen-tips`) legt het uit. Geen
+  privacywijziging: de privacyverklaring dekt ZWBieb-tips al (op naam,
+  zichtbaar voor leden, zelf te beheren).
+
+**Bewust niet.**
+- Geen eigen tabel of forum met reacties en likes. Vragen aan een kenner lopen
+  al via ZWBieb; een tweede plek voor gesprekken versnippert dat.
+- Geen langere tips dan 300 tekens: dezelfde grens als de andere ZWBieb-tips
+  (`TIP_MAX`, ook als check in 0239).
+- Geen koppeling aan een specifieke race of event op deze pagina; dat kan al via
+  "Tip toevoegen" op de eventpagina.
+
+**Gecontroleerd.** ESLint op de gewijzigde bestanden; Vitest `zwbieb`,
+`nav-active`, `admin-areas`, `racen-kennis`, `help-anchors` en `help-categories`
+groen. `tsc` en de volledige unit-suite vallen elders om door pakketten die in
+de gedeelde `node_modules` ontbreken (`@anthropic-ai/sdk`, `modern-screenshot`)
+en drie route- en pacingtests buiten deze ronde. **Niet geverifieerd:** de
+pagina ingelogd bekeken, plaatsen tegen de echte database, en de migratie (geen
+Docker of Supabase-config hier).
 
 ### Gebouwd — Racebriefje: powerup per boog
 
