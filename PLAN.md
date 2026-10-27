@@ -402,8 +402,8 @@ gaat stabiliteit voor nieuwe features.
 
 21. **ZWBriljant: pijltjes sinds de vorige steen** (ronde van 2026-10-27 hieronder):
    gebouwd en lokaal getest, nog niet gepusht. Geen migratie. Open: op productie
-   met echte snapshots kijken of de verschillen per onderdeel optellen tot de stap
-   in de score, en het aanwijzen op een laptop en tikken op een telefoon proberen.
+   met echte snapshots kijken, en het aanwijzen op een laptop en tikken op een
+   telefoon proberen.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11513,22 +11513,24 @@ telefoon) de berekening erachter.
 **Nu.**
 - `changesSince` in `src/lib/briljant/compare.ts` legt de steen van nu (of de gekozen
   week) naast de vorige bewaarde steen, de laatste snapshot met score vóór die week.
-  Per onderdeel: de meting toen en nu, de punten, en wat het met gewicht en de
-  consistentiefactor van nu je score deed (Δpunten × gewicht × factor). De
-  consistentie apart: profielscore van de vorige steen × verschil in factor. Samen
-  is dat de stap in de score, op afronding na (punten worden naar beneden afgerond).
+  Per onderdeel de meting en de punten, toen en nu; de consistentie apart.
 - Een bewaard niveau staat op twee decimalen; een verschil kleiner dan die afronding
   (0,005) telt niet, anders kreeg elk onderdeel van de live steen een pijltje van
   ±1 punt. Een onderdeel dat er toen nog niet was, telt mee vanaf 0, net als in de
   optelling van de score.
 - De meting van toen wordt uit het niveau teruggerekend (zoals de datumkiezer al
   deed); die van nu is de echte meting.
-- Op de steen: het pijltje achter het label van het onderdeel (in W/kg, CTL, ZRS of
-  punten, volgens de knop Waarden/Punten) en achter de consistentie. Aanwijzen toont
-  de berekening in een kaartje (alleen op apparaten met hover); tikken opent het
-  paneel van het onderdeel, met dezelfde berekening onder "Sinds". Onder de score
-  een regel "+20 punten sinds 19 oktober"; die opent het scorepaneel met alle
-  verschillen in een tabel. Bij durability is minder procent beter, dus groen omhoog.
+- Op de steen: het pijltje achter het label van het onderdeel en achter de
+  consistentie. Aanwijzen toont toen en nu in een kaartje (alleen op apparaten met
+  hover); tikken opent het paneel van het onderdeel, met hetzelfde onder "Sinds".
+  Alles volgt de knop Waarden/Punten: "4,17 → 4,3 W/kg" en "+0,13 W/kg", of "558 →
+  588 punten" en "+30". Onder de score een regel "+20 punten sinds 19 oktober"; die
+  opent het scorepaneel met alle verschillen in een tabel. Bij durability is minder
+  procent beter, dus groen omhoog.
+- Eerst toonde het kaartje ook wat het onderdeel je score deed (Δpunten × gewicht ×
+  consistentiefactor, en voor de consistentie profiel × verschil in factor). Dat
+  vond de eigenaar te veel (2026-10-27, commit hierna): alleen de groei in waarde
+  of punten. De formule zelf staat op `/hulp` onder De formules.
 - `/hulp` (ZWBriljant, Terugkijken) legt de pijltjes uit.
 
 **Niet gebouwd.** Een vergelijking met gisteren: er is per week één steen (de steen

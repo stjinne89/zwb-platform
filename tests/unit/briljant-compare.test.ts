@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MIN_FOR_AVERAGE, changesSince, clubAverage, clubAverages, compareLines, snapshotAt, storedScore, viewFromSnapshot, type StoredSnapshot } from "@/lib/briljant/compare";
 import type { BriljantInput } from "@/lib/briljant/score";
-import { DURABILITY_DURATIONS, FACET_WEIGHTS, LEVELS } from "@/lib/briljant/norms";
+import { DURABILITY_DURATIONS, LEVELS } from "@/lib/briljant/norms";
 import { bestWins } from "@/lib/briljant/view";
 
 const snap = (week: string, score: number | null, facets: StoredSnapshot["facets"] = { sprint: 5, drempel: 4 }): StoredSnapshot => ({
@@ -213,7 +213,7 @@ describe("compareLines", () => {
 describe("changesSince", () => {
   const before: StoredSnapshot = { week: "2026-10-19", score: 3.5, facets: { sprint: 4, drempel: 3.5, vo2max: 3, racen: 4.2 }, consistency: 0.5 };
 
-  it("geeft per onderdeel de meting, de punten en wat dat met gewicht en factor je score deed", () => {
+  it("geeft per onderdeel de meting en de punten, toen en nu", () => {
     const after: StoredSnapshot = { week: "2026-10-26", score: 3.6, facets: { sprint: 4, drempel: 3.8, vo2max: 2.9, racen: 4.2 }, consistency: 0.5 };
     const changes = changesSince({ from: before, to: after, sex: "man" })!;
     expect(changes.since).toBe("2026-10-19");
@@ -221,8 +221,7 @@ describe("changesSince", () => {
     expect(changes.consistency).toBeNull();
     expect(changes.facets.map((change) => change.key)).toEqual(["vo2max", "drempel"]);
     const drempel = changes.facets[1];
-    expect(drempel).toMatchObject({ up: true, fromPoints: 350, toPoints: 380, points: 30, weight: FACET_WEIGHTS.drempel, factor: 0.9 });
-    expect(drempel.score).toBeCloseTo(Math.round(30 * FACET_WEIGHTS.drempel * 0.9 * 10) / 10, 9);
+    expect(drempel).toMatchObject({ up: true, fromPoints: 350, toPoints: 380, points: 30 });
     expect(drempel.value).toMatch(/^\+0,\d+ W\/kg$/);
     expect(drempel.from).toMatch(/W\/kg$/);
     expect(changes.facets[0]).toMatchObject({ up: false, points: -10 });
@@ -240,10 +239,7 @@ describe("changesSince", () => {
     const after: StoredSnapshot = { week: "2026-10-26", score: 3.9, facets: { ...before.facets, fitheid: 2 }, consistency: 0.75 };
     const changes = changesSince({ from: before, to: after, sex: "man" })!;
     expect(changes.facets[0]).toMatchObject({ key: "fitheid", up: true, from: null, fromPoints: 0, toPoints: 200 });
-    expect(changes.consistency).toMatchObject({ up: true, from: 0.5, to: 0.75, fromFactor: 0.9 });
-    expect(changes.consistency!.toFactor).toBeCloseTo(0.95, 9);
-    // Profielscore van de vorige steen × verschil in factor.
-    expect(changes.consistency!.score).toBeCloseTo(Math.round(changes.consistency!.profile * 0.05 * 10) / 10, 9);
+    expect(changes.consistency).toEqual({ up: true, from: 0.5, to: 0.75 });
   });
 
   it("geeft null zonder vorige steen of zonder score", () => {

@@ -171,10 +171,9 @@ export function BriljantHelp() {
             <dt className="font-medium">Pijltjes</dt>
             <dd className="text-muted-foreground">
               Een groen pijltje omhoog of rood pijltje omlaag bij een onderdeel of de consistentie laat zien wat er
-              veranderde sinds je vorige steen, de week ervoor. Wijs het aan of tik erop voor de berekening: de meting
-              toen en nu, de punten, en het verschil maal het gewicht maal je consistentiefactor, wat het onderdeel je
-              score deed. Bij durability is omlaag in procenten beter, en dus groen. Tik op de regel onder je score
-              voor alle verschillen bij elkaar.
+              veranderde sinds je vorige steen, de week ervoor. Wijs het aan of tik erop en je ziet toen en nu: de
+              meting bij Waarden, de punten bij Punten. Bij durability is omlaag in procenten beter, en dus groen. Tik
+              op de regel onder je score voor alle verschillen bij elkaar.
             </dd>
             <dt className="font-medium">Ik, ZWB en Vergelijken</dt>
             <dd className="text-muted-foreground">

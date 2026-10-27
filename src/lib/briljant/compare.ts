@@ -5,7 +5,7 @@
 // rekenen we de meting terug uit het niveau (de schaal is recht tussen de
 // ijkwaarden); van anderen bewust niet, want leden zien elkaars metingen niet.
 
-import { FACETS, FACET_LABELS, FACET_MEASURES, consistencyFactor, points, positionFor, profileScore, scoreFor, type Facet } from "./score";
+import { FACETS, FACET_LABELS, FACET_MEASURES, points, positionFor, profileScore, scoreFor, type Facet } from "./score";
 import { FACET_WEIGHTS, LEVELS, levelOf } from "./norms";
 import type { Sex } from "./norms";
 import { formatMeasure, meterFor, readingFromLevel, storedConsistencyView, type BriljantView, type FacetMeter, type FacetView } from "./view";
@@ -164,7 +164,7 @@ export function clubAverages(
 /** Een bewaard niveau staat op twee decimalen: een kleiner verschil is afronding. */
 const LEVEL_NOISE = 0.0051;
 
-/** Wat er op één onderdeel veranderde sinds de vorige steen, en wat dat je score deed. */
+/** Wat er op één onderdeel veranderde sinds de vorige steen: de meting en de punten. */
 export type FacetChange = {
   key: Facet;
   /** Beter: meer vermogen, CTL en ZRS, minder verval. */
@@ -178,11 +178,6 @@ export type FacetChange = {
   toPoints: number;
   /** Het verschil in punten. */
   points: number;
-  weight: number;
-  /** De consistentiefactor van nu, waarmee het verschil op je score komt. */
-  factor: number;
-  /** Punten × gewicht × factor: wat dit onderdeel je score deed, op één decimaal. */
-  score: number;
 };
 
 export type ConsistencyChange = {
@@ -190,12 +185,6 @@ export type ConsistencyChange = {
   /** 0 tot 1. */
   from: number;
   to: number;
-  fromFactor: number;
-  toFactor: number;
-  /** De profielscore van de vorige steen, in punten. */
-  profile: number;
-  /** Profiel × verschil in factor, op één decimaal. */
-  score: number;
 };
 
 export type BriljantChanges = {
@@ -207,13 +196,12 @@ export type BriljantChanges = {
   consistency: ConsistencyChange | null;
 };
 
-const round1 = (value: number) => Math.round(value * 10) / 10;
 const signed = (text: string, negative: boolean) => `${negative ? "−" : "+"}${text}`;
 
 /**
- * De steen van nu tegen de vorige: per onderdeel de meting, de punten en wat dat
- * met gewicht en consistentiefactor je score deed, en apart de consistentie. Zo is
- * een stap in je score te herleiden. `to` mag ruwe niveaus hebben (de steen van
+ * De steen van nu tegen de vorige: per onderdeel de meting en de punten, en apart
+ * de consistentie. Zo is een stap in je score te herleiden zonder de formule; die
+ * staat op /hulp (eigenaar, 2026-10-27). `to` mag ruwe niveaus hebben (de steen van
  * nu); verschillen binnen de afronding van een bewaard niveau tellen niet. `values`
  * zijn de echte metingen van nu; anders rekenen we ze terug uit het niveau, zoals
  * bij je eigen bewaarde stenen. Null zonder score aan een van beide kanten.
@@ -226,7 +214,6 @@ export function changesSince(args: {
 }): BriljantChanges | null {
   const { from, to } = args;
   if (!from || from.score == null || to.score == null) return null;
-  const toFactor = consistencyFactor(to.consistency);
   const measure = (facet: Facet, level: number | null, value?: number) =>
     level == null ? null : (value ?? readingFromLevel(facet, level, args.sex).value);
 
@@ -245,7 +232,6 @@ export function changesSince(args: {
     if (fromPoints === toPoints && fromText === toText) return [];
     const difference = fromValue != null && toValue != null ? toValue - fromValue : null;
     const differenceText = difference == null ? null : formatMeasure(facet, Math.abs(difference));
-    const weight = FACET_WEIGHTS[facet];
     return [
       {
         key: facet,
@@ -257,18 +243,12 @@ export function changesSince(args: {
         fromPoints,
         toPoints,
         points: toPoints - fromPoints,
-        weight,
-        factor: toFactor,
-        score: round1((toPoints - fromPoints) * weight * toFactor),
       },
     ];
   });
 
-  const fromProfile = profileScore(Object.fromEntries(FACETS.map((facet) => [facet, from.facets[facet] ?? null])) as Record<Facet, number | null>);
-  const fromFactor = consistencyFactor(from.consistency);
   const fromShare = Math.round((from.consistency ?? 0) * 100);
   const toShare = Math.round((to.consistency ?? 0) * 100);
-  const profilePoints = points(fromProfile ?? 0);
   const consistency: ConsistencyChange | null =
     fromShare === toShare
       ? null
@@ -276,10 +256,6 @@ export function changesSince(args: {
           up: toShare > fromShare,
           from: from.consistency ?? 0,
           to: to.consistency ?? 0,
-          fromFactor,
-          toFactor,
-          profile: profilePoints,
-          score: round1(profilePoints * (toFactor - fromFactor)),
         };
 
   return { since: from.week, score: points(to.score) - points(from.score), facets, consistency };

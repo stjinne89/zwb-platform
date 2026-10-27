@@ -929,6 +929,10 @@
   font-style: normal;
 }
 
+.panel .changes td:nth-child(n + 2) {
+  white-space: nowrap;
+}
+
 .since {
   display: block;
   margin: 6px 0 0;
@@ -948,12 +952,7 @@
   outline-offset: 4px;
 }
 
-.panel dd.steps span {
-  display: block;
-  font-variant-numeric: tabular-nums;
-}
-
-/* De berekening bij aanwijzen; op een telefoon tik je en staat ze in het paneel. */
+/* Toen en nu bij aanwijzen; op een telefoon tik je en staat het in het paneel. */
 .anchor .why {
   display: none;
 }

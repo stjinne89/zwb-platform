@@ -137,11 +137,8 @@ const shown = (facet: FacetView | undefined, unit: Unit) =>
 const nl = (value: number, digits = 0) =>
   value.toLocaleString("nl-NL", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
-/** Met teken: "+19", "−3,5". */
-const plus = (value: number, digits = 0) => `${value < 0 ? "−" : "+"}${nl(Math.abs(value), digits)}`;
-/** Een factor zoals 0,97 of 0,971. */
-const factor = (value: number) => value.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 3 });
-const percent = (value: number) => `${value.toLocaleString("nl-NL", { maximumFractionDigits: 1 })}%`;
+/** Met teken: "+19", "−3". */
+const plus = (value: number) => `${value < 0 ? "−" : "+"}${nl(Math.abs(value))}`;
 
 /** Het pijltje bij een onderdeel: groen omhoog is beter, rood omlaag slechter. */
 function Delta({ up, text }: { up: boolean; text: string }) {
@@ -152,34 +149,31 @@ function Delta({ up, text }: { up: boolean; text: string }) {
   );
 }
 
-/** De berekening achter het pijltje, regel voor regel. */
-function facetSteps(change: FacetChange): string[] {
-  return [
-    // De eenheid één keer: "4,17 → 4,3 W/kg".
-    ...(change.from || change.to
-      ? [`${(change.to ? change.from?.replace(` ${FACET_MEASURES[change.key].unit}`, "") : change.from) ?? "–"} → ${change.to ?? "–"}`]
-      : []),
-    `${change.fromPoints} → ${change.toPoints} punten`,
-    `${plus(change.points)} × ${percent(change.weight * 100)} × ${factor(change.factor)} = ${plus(change.score, 1)} op je score`,
-  ];
+/**
+ * Toen en nu, volgens de knop Waarden/Punten (eigenaar, 2026-10-27): "4,17 → 4,3
+ * W/kg" of "558 → 588 punten". Zonder meting de punten.
+ */
+function facetStep(change: FacetChange, unit: Unit): string {
+  if (unit === "waarden" && change.from && change.to) {
+    // De eenheid één keer.
+    return `${change.from.replace(` ${FACET_MEASURES[change.key].unit}`, "")} → ${change.to}`;
+  }
+  return `${change.fromPoints} → ${change.toPoints} punten`;
 }
 
-function consistencySteps(change: ConsistencyChange): string[] {
-  return [
-    `${Math.round(change.from * 100)}% → ${Math.round(change.to * 100)}%`,
-    `factor ${factor(change.fromFactor)} → ${factor(change.toFactor)}`,
-    `${change.profile} × ${plus(change.toFactor - change.fromFactor, 3)} = ${plus(change.score, 1)} op je score`,
-  ];
-}
+/** Het verschil volgens dezelfde knop: "+0,13 W/kg" of "+30". */
+const facetDelta = (change: FacetChange, unit: Unit) => (unit === "waarden" && change.value ? change.value : plus(change.points));
 
-/** Bij aanwijzen: sinds wanneer en de berekening. */
-function Why({ label, steps }: { label: string; steps: string[] }) {
+const consistencyStep = (change: ConsistencyChange) => `${Math.round(change.from * 100)}% → ${Math.round(change.to * 100)}%`;
+const consistencyDelta = (change: ConsistencyChange) =>
+  `${plus(Math.round(change.to * 100) - Math.round(change.from * 100))}%`;
+
+/** Bij aanwijzen: sinds wanneer, en toen en nu. */
+function Why({ label, step }: { label: string; step: string }) {
   return (
     <span className={styles.why} aria-hidden>
       <span>sinds {label}</span>
-      {steps.map((step) => (
-        <span key={step}>{step}</span>
-      ))}
+      <span>{step}</span>
     </span>
   );
 }
@@ -274,10 +268,8 @@ function PanelBody({
           {change && changes && (
             <>
               <dt>Sinds {changes.label}</dt>
-              <dd className={styles.steps}>
-                {facetSteps(change).map((step) => (
-                  <span key={step}>{step}</span>
-                ))}
+              <dd>
+                {facetStep(change, unit)} <Delta up={change.up} text={facetDelta(change, unit)} />
               </dd>
             </>
           )}
@@ -395,10 +387,8 @@ function PanelBody({
           {changes?.consistency && (
             <>
               <dt>Sinds {changes.label}</dt>
-              <dd className={styles.steps}>
-                {consistencySteps(changes.consistency).map((step) => (
-                  <span key={step}>{step}</span>
-                ))}
+              <dd>
+                {consistencyStep(changes.consistency)} <Delta up={changes.consistency.up} text={consistencyDelta(changes.consistency)} />
               </dd>
             </>
           )}
@@ -464,27 +454,24 @@ function PanelBody({
       {changes && (changes.facets.length > 0 || changes.consistency) && (
         <div className={styles.wins}>
           <h3>Sinds {changes.label}</h3>
-          <table>
+          <table className={styles.changes}>
             <tbody>
               {changes.facets.map((change) => (
                 <tr key={change.key}>
                   <td>{FACET_LABELS[change.key]}</td>
+                  <td>{facetStep(change, unit)}</td>
                   <td>
-                    {change.fromPoints} → {change.toPoints}
-                  </td>
-                  <td>
-                    <Delta up={change.up} text={plus(change.score, 1)} />
+                    {/* De eenheid staat al in de kolom ernaast. */}
+                    <Delta up={change.up} text={facetDelta(change, unit).replace(` ${FACET_MEASURES[change.key].unit}`, "")} />
                   </td>
                 </tr>
               ))}
               {changes.consistency && (
                 <tr>
                   <td>Consistentie</td>
+                  <td>{consistencyStep(changes.consistency)}</td>
                   <td>
-                    {Math.round(changes.consistency.from * 100)}% → {Math.round(changes.consistency.to * 100)}%
-                  </td>
-                  <td>
-                    <Delta up={changes.consistency.up} text={plus(changes.consistency.score, 1)} />
+                    <Delta up={changes.consistency.up} text={consistencyDelta(changes.consistency)} />
                   </td>
                 </tr>
               )}
@@ -593,8 +580,7 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
 
   const changeOf = (key: FacetView["key"]) => changes?.facets.find((change) => change.key === key) ?? null;
   /** Het pijltje volgt de weergave: de meting of de punten. */
-  const deltaFor = (change: FacetChange | null) =>
-    change && <Delta up={change.up} text={unit === "waarden" && change.value ? change.value : plus(change.points)} />;
+  const deltaFor = (change: FacetChange | null) => change && <Delta up={change.up} text={facetDelta(change, unit)} />;
 
   // Alleen je eigen stenen en de records hebben metingen; van leden zie je punten.
   const hasValues = view.facets.some((facet) => facet.value) || Boolean(compare?.view.facets.some((facet) => facet.value));
@@ -836,14 +822,11 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
                   {changes?.consistency && (
                     <>
                       {" "}
-                      <Delta
-                        up={changes.consistency.up}
-                        text={`${plus(Math.round(changes.consistency.to * 100) - Math.round(changes.consistency.from * 100))}%`}
-                      />
+                      <Delta up={changes.consistency.up} text={consistencyDelta(changes.consistency)} />
                     </>
                   )}
                   <span>de steen is {Math.round(view.consistency.factor * 100)}% van zijn volle maat</span>
-                  {changes?.consistency && <Why label={changes.label} steps={consistencySteps(changes.consistency)} />}
+                  {changes?.consistency && <Why label={changes.label} step={consistencyStep(changes.consistency)} />}
                 </button>
               </div>
             )}
@@ -862,7 +845,7 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
                       {facet.level.name}
                       {unit === "waarden" && facet.value ? ` · ${facet.points} punten` : facet.value ? ` · ${facet.value}` : ""}
                     </span>
-                    {change && changes && <Why label={changes.label} steps={facetSteps(change)} />}
+                    {change && changes && <Why label={changes.label} step={facetStep(change, unit)} />}
                   </button>
                 </div>
               );
