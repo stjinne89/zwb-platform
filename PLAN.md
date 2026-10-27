@@ -11503,7 +11503,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Racebriefje: powerup per boog
 
-**2026-10-27.** Commit `9ea88768`, lokaal, niet gepusht. Geen migratie.
+**2026-10-27.** Commit `9ea88768`, gepusht naar `main` op 2026-10-27. Geen migratie.
 
 **Waarom.** Vraag van de eigenaar: op het racebriefje welke powerup je bij welke
 boog krijgt, met het icoon. De eventpagina toonde alleen de kans per powerup
