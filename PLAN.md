@@ -11513,7 +11513,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: captains aanwijzen onderaan de pagina
 
-**2026-10-27.** Commit `c3239578`, lokaal, niet gepusht. Geen migratie.
+**2026-10-27.** Commit `c3239578`, gepusht naar `main` op 2026-10-27. Geen migratie.
 
 **Waarom.** Vraag van de eigenaar: onderaan `/teams/club-ladder` leden als
 captain kunnen toevoegen. Alle ladderteams hadden op 2026-10-27 nul leden en dus
@@ -11546,7 +11546,7 @@ weer weghalen, om geen rol op productie te zetten. Eerst na de deploy proberen.
 
 ### Gebouwd — Club Ladder: renners vanaf de lijst in een ladderteam zetten
 
-**2026-10-27.** Commit `a5e1f4d2`, lokaal, niet gepusht. Geen migratie.
+**2026-10-27.** Commit `a5e1f4d2`, gepusht naar `main` op 2026-10-27. Geen migratie.
 
 **Waarom.** Vraag van de eigenaar, vervolg op de ladderrennerslijst hieronder:
 renners vanaf `/teams/club-ladder` in het juiste ladderteam zetten, "zoals dat
