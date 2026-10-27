@@ -11513,8 +11513,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: leden zonder interesse in de ladderlijst zetten
 
-**2026-10-27.** Commit `067eff2d`, lokaal, niet gepusht. Migratie
-`0285_ladder_pool.sql`, **nog niet toegepast**.
+**2026-10-27.** Commit `067eff2d`, gepusht naar `main` op 2026-10-27. Migratie
+`0285_ladder_pool.sql`, op 2026-10-27 toegepast via de Supabase-connector, op
+verzoek van de eigenaar, vóór de push. Achteraf nagekeken: tabel met
+`profile_id`, `added_by` en `created_at`, RLS aan, 0 policies, 2 foreign keys,
+0 rijen.
 
 **Waarom.** Vraag van de eigenaar: naast captains ook leden kunnen toewijzen
 die zelf nog geen Ladder bij Interesses aanvinkten, "eerst bij het roster iig".
@@ -11552,8 +11555,8 @@ productie-database, zonder 0285: lijst ongewijzigd (12), het formulier met 36
 leden die nog niet in de lijst staan, geen kruisjes. Bij die controle bleek dat
 het indelen en captains aanwijzen op productie in gebruik is: ZWB Zwiftladies en
 ZWBandits hebben sinds 2026-10-27 een captain en leden (`assignment_source`
-manual). **Niet geverifieerd:** de migratie (geen Docker of Supabase-config hier)
-en toevoegen en weghalen in de pool; een testklik op Toevoegen zonder tabel is
+manual). **Niet geverifieerd:** de migratie lokaal (geen Docker of Supabase-config
+hier; op productie wel nagekeken, zie boven) en toevoegen en weghalen in de pool; een testklik op Toevoegen zonder tabel is
 niet uitgevoerd.
 
 ### Gebouwd — Club Ladder: captains aanwijzen onderaan de pagina
