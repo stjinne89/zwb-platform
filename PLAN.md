@@ -401,7 +401,7 @@ gaat stabiliteit voor nieuwe features.
    zaal bekijken.
 
 21. **ZWBriljant: pijltjes sinds de vorige steen** (ronde van 2026-10-27 hieronder):
-   gebouwd en lokaal getest, nog niet gepusht. Geen migratie. Open: op productie
+   gebouwd, lokaal getest en op 2026-10-27 gepusht naar `main`. Geen migratie. Open: op productie
    met echte snapshots kijken, en het aanwijzen op een laptop en tikken op een
    telefoon proberen.
 
@@ -11503,7 +11503,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBriljant: pijltjes sinds de vorige steen
 
-**2026-10-27, commit `e69e684e`.** Geen migratie.
+**2026-10-27, commits `3424928a` en `eede2e0f`.** Geen migratie.
 
 **Waarom.** De eigenaar zag de score na het weekeinde een stap zetten maar kon niet
 herleiden waar die vandaan kwam. Gevraagd: bij het onderdeel dat veranderde een groen
@@ -11529,7 +11529,7 @@ telefoon) de berekening erachter.
   procent beter, dus groen omhoog.
 - Eerst toonde het kaartje ook wat het onderdeel je score deed (Δpunten × gewicht ×
   consistentiefactor, en voor de consistentie profiel × verschil in factor). Dat
-  vond de eigenaar te veel (2026-10-27, commit `deb85860`): alleen de groei in waarde
+  vond de eigenaar te veel (2026-10-27, commit `eede2e0f`): alleen de groei in waarde
   of punten. De formule zelf staat op `/hulp` onder De formules.
 - `/hulp` (ZWBriljant, Terugkijken) legt de pijltjes uit.
 
