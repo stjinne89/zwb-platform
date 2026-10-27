@@ -134,6 +134,25 @@ export function accentsForRoute(routeSlug: string): RouteAccent[] {
     .sort((a, b) => a.startKm - b.startKm);
 }
 
+/** Een rondesegment (zwift-data type "segment", zoals de Jarvis Lap), met km binnen één ronde. */
+export type RouteLapSegment = { slug: string; name: string; startKm: number; endKm: number };
+
+/**
+ * De rondesegmenten op een route. Die staan los van accentsForRoute: het
+ * pacingplan kent alleen klimmen en sprints, het racebriefje ook deze.
+ */
+export function lapSegmentsForRoute(routeSlug: string): RouteLapSegment[] {
+  const route = routes.find((item) => item.slug === routeSlug);
+  if (!route) return [];
+  return route.segmentsOnRoute
+    .flatMap((onRoute) => {
+      const segment = segments.find((item) => item.slug === onRoute.segment);
+      if (segment?.type !== "segment") return [];
+      return [{ slug: segment.slug, name: segment.name, startKm: onRoute.from, endKm: onRoute.to }];
+    })
+    .sort((a, b) => a.startKm - b.startKm);
+}
+
 /** Vertaalt een `routeId` uit de Zwift-API naar wat wij van die route weten. */
 export function routeFromZwiftId(routeId: number): ZwiftRouteInfo | null {
   const route = routes.find((item) => item.id === routeId);

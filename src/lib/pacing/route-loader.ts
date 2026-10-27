@@ -21,7 +21,7 @@ import {
   type ColLite,
 } from "@/lib/gpx-climbs";
 import { sampleRoute } from "@/lib/route-sample";
-import { accentsForRoute } from "@/lib/events/zwift-route";
+import { accentsForRoute, lapSegmentsForRoute, type RouteLapSegment } from "@/lib/events/zwift-route";
 import { SHAPE_STEP_M, type RouteProfile, type RouteShape } from "@/lib/events/zwift-route-streams";
 import { surfacesAlongShape } from "@/lib/zwift/surfaces";
 import {
@@ -62,7 +62,34 @@ export type LoadedRoute = {
   world: string | null;
   /** Wanneer het routeprofiel voor het laatst is opgehaald; voor verouderdetectie. */
   routeSyncedAt: string | null;
+  /** Alleen bij Zwift: rondesegmenten zoals de Jarvis Lap, in km over het hele event. */
+  lapSegments?: LapSegment[];
 };
+
+/** Een rondesegment per passage; `id` en `lap` zoals bij PacingAccent. */
+export type LapSegment = { id: string; name: string; startKm: number; endKm: number; lap: number | null };
+
+/** Zelfde verschuiving als expandAccents: lead-in plus de ronden ervoor. */
+export function expandLapSegments(
+  lapSegments: RouteLapSegment[],
+  options: { leadInKm: number; lapKm: number; laps: number },
+): LapSegment[] {
+  const laps = Math.max(1, Math.round(options.laps));
+  const out: LapSegment[] = [];
+  for (let lap = 1; lap <= laps; lap++) {
+    const offsetKm = options.leadInKm + (lap - 1) * options.lapKm;
+    for (const segment of lapSegments) {
+      out.push({
+        id: laps > 1 ? `${segment.slug}-${lap}` : segment.slug,
+        name: segment.name,
+        startKm: offsetKm + segment.startKm,
+        endKm: offsetKm + segment.endKm,
+        lap: laps > 1 ? lap : null,
+      });
+    }
+  }
+  return out.sort((a, b) => a.startKm - b.startKm);
+}
 
 export type LoadRouteResult =
   | { ok: true; loaded: LoadedRoute }
@@ -171,6 +198,11 @@ async function loadZwiftRoute(
       routeName: row.name,
       world: row.world,
       routeSyncedAt: row.synced_at,
+      lapSegments: expandLapSegments(lapSegmentsForRoute(row.slug), {
+        leadInKm: meta?.leadInDistance ?? 0,
+        lapKm,
+        laps,
+      }),
     },
   };
 }

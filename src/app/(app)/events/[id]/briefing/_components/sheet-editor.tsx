@@ -57,6 +57,7 @@ const STYLE_LABELS: Record<SketchMark["style"], string> = {
   label: "label",
   boog: "boog",
   sprint: "sprint",
+  ronde: "ronde",
 };
 
 const EMPTY: { [K in SheetSection]: Draft[K][number] } = {

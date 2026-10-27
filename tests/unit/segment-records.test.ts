@@ -5,6 +5,7 @@ import type { BriefingSegment } from "@/lib/race-briefing/route";
 
 // zwift-data 2.1, Spiral Summit: segmentsOnRoute (km binnen de ronde).
 const spiral = [
+  { slug: "jarvis-lap", name: "Jarvis Lap", kind: "lap" as const, startKm: 10.174 },
   { slug: "jarvis-kom", name: "Jarvis KOM", kind: "climb" as const, startKm: 10.838 },
   { slug: "jarvis-sprint", name: "Jarvis Sprint", kind: "sprint" as const, startKm: 13.984 },
   { slug: "jarvis-kom", name: "Jarvis KOM", kind: "climb" as const, startKm: 15.685 },
@@ -16,6 +17,7 @@ describe("matchSegmentIds", () => {
   it("koppelt de segmenten van Spiral Summit aan Zwifts ID's", () => {
     const ids = matchSegmentIds(spiral, routeLap(159415549)!);
     expect(Object.fromEntries(ids)).toEqual({
+      "jarvis-lap": "1063552145",
       "jarvis-kom": "1053743496",
       "jarvis-sprint": "1061044010",
       "volcano-kom": "8176359221329222504",

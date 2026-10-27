@@ -53,9 +53,9 @@ export type BriefingClimb = {
 
 export type BriefingDescent = { startKm: number; endKm: number; dropM: number };
 
-/** Een Zwift-sprint of -KOM; ligt hij meer dan eens op de route, dan per passage. */
+/** Een Zwift-sprint, -KOM of -ronde; ligt hij meer dan eens op de route, dan per passage. */
 export type BriefingSegment = {
-  kind: "sprint" | "kom";
+  kind: "sprint" | "kom" | "lap";
   /** Slug van zwift-data ("jarvis-sprint"), zonder het rondenummer. */
   slug: string;
   startKm: number;
@@ -81,7 +81,7 @@ export type RouteKeyPoints = {
   /** De eerste klim in de eerste 8 km: daar valt vaak de eerste selectie. */
   earlyClimb: BriefingClimb | null;
   finale: BriefingFinale;
-  /** De sprints en KOM's van de route: in een puntenrace leveren ze FAL- en FTS-punten op. */
+  /** De sprints, KOM's en rondesegmenten van de route: in een puntenrace leveren ze FAL- en FTS-punten op. */
   segments: BriefingSegment[];
   /** Km van de laatste boog vóór de streep (eind van een segment of een rondestreep). */
   lastArchKm: number | null;
@@ -238,6 +238,8 @@ export function routeKeyPoints(input: {
   totalKm: number;
   /** Ronden: elke rondestreep is ook een boog met powerups. */
   laps?: number | null;
+  /** Rondesegmenten zoals de Jarvis Lap (LapSegment uit de route-loader). */
+  lapSegments?: Array<{ id: string; name: string; startKm: number; endKm: number; lap: number | null }>;
 }): RouteKeyPoints {
   const points = profilePoints(input.segments);
   // Het pacingplan zet er eigen klimmen bij ("Klim km 26.6", id klim-…); die
@@ -295,16 +297,20 @@ export function routeKeyPoints(input: {
       ? { kind: "climb", climb: lastClimb, runInKm: round(totalKm - lastClimb.endKm) }
       : { kind: "flat", flatKm: round(totalKm - (lastClimb?.endKm ?? 0)) };
 
-  const sorted = [...zwiftAccents].sort((a, b) => a.startKm - b.startKm);
+  const lapSegments = input.lapSegments ?? [];
+  const sorted = [
+    ...zwiftAccents.map((a) => ({ ...a, kind: a.kind === "sprint" ? ("sprint" as const) : ("kom" as const) })),
+    ...lapSegments.map((a) => ({ ...a, kind: "lap" as const })),
+  ].sort((a, b) => a.startKm - b.startKm);
   const segments: BriefingSegment[] = sorted.map((a) => {
     const same = sorted.filter((b) => b.name === a.name);
-    const kind = a.kind === "sprint" ? "sprint" : "kom";
     const slug = a.lap ? a.id.replace(new RegExp(`-${a.lap}$`), "") : a.id;
-    return { kind, slug, startKm: round(a.startKm), endKm: round(a.endKm), name: a.name, pass: same.indexOf(a) + 1, passes: same.length };
+    // Op de meter: de lengte van een ronde ("4,8 km") komt uit begin en eind.
+    return { kind: a.kind, slug, startKm: round(a.startKm, 3), endKm: round(a.endKm, 3), name: a.name, pass: same.indexOf(a) + 1, passes: same.length };
   });
 
   const laps = Math.max(1, Math.round(input.laps ?? 1));
-  const archKms = zwiftAccents.map((a) => a.endKm).filter((km) => km < totalKm - 0.05);
+  const archKms = [...zwiftAccents, ...lapSegments].map((a) => a.endKm).filter((km) => km < totalKm - 0.05);
   if (laps > 1) {
     const lapKm = totalKm / laps;
     for (let lap = 1; lap < laps; lap += 1) archKms.push(lap * lapKm);
@@ -315,12 +321,18 @@ export function routeKeyPoints(input: {
 }
 
 /**
- * "Manhattan Sprint" → "sprint Manhattan", "Jarvis KOM" → "KOM Jarvis"; met de
- * passage erbij als hij vaker op de route ligt en `withPass` niet uit staat.
+ * "Manhattan Sprint" → "sprint Manhattan", "Jarvis KOM" → "KOM Jarvis", "Jarvis
+ * Lap" → "ronde Jarvis"; een rondesegment zonder ronde in de naam ("Fuego Flats
+ * Rev.") houdt zijn naam. Met de passage erbij als hij vaker op de route ligt en
+ * `withPass` niet uit staat.
  */
 export function segmentLabel(segment: BriefingSegment, withPass = true): string {
-  const short = segment.name.replace(/\s*\b(sprint|kom|qom)\b\s*/gi, " ").replace(/^the\s+/i, "").trim() || segment.name;
   const pass = withPass && segment.passes > 1 ? ` (${segment.pass}e)` : "";
+  if (segment.kind === "lap") {
+    const short = segment.name.replace(/\s*\b(lap|loop|circuit)\b\s*/gi, " ").trim();
+    return `${short && short !== segment.name.trim() ? `ronde ${short}` : segment.name}${pass}`;
+  }
+  const short = segment.name.replace(/\s*\b(sprint|kom|qom)\b\s*/gi, " ").replace(/^the\s+/i, "").trim() || segment.name;
   return `${segment.kind === "sprint" ? "sprint" : "KOM"} ${short}${pass}`;
 }
 

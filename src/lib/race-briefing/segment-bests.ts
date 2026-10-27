@@ -15,7 +15,7 @@ import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchSegmentResults } from "@/lib/events/zwift-club";
-import { routeFromZwiftId } from "@/lib/events/zwift-route";
+import { lapSegmentsForRoute, routeFromZwiftId } from "@/lib/events/zwift-route";
 import { matchSegmentIds, routeLap } from "@/lib/zwift/route-segments";
 import type { SegmentBest } from "./segment-records";
 
@@ -44,7 +44,8 @@ export function segmentIdsForRoute(routeId: number | null): Map<string, string> 
   const route = routeFromZwiftId(routeId);
   const lap = routeLap(routeId);
   if (!route || !lap) return new Map();
-  return matchSegmentIds(route.accents, lap);
+  const laps = lapSegmentsForRoute(route.slug).map((s) => ({ ...s, kind: "lap" as const }));
+  return matchSegmentIds([...route.accents, ...laps], lap);
 }
 
 /** Null als de tabel niet te lezen is (migratie 0279 nog niet toegepast): dan ook niet verversen. */

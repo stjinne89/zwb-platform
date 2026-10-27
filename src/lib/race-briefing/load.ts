@@ -395,6 +395,7 @@ export async function loadRaceBriefing(
         accents: loadedRoute.route.accents,
         totalKm: loadedRoute.route.totalKm,
         laps: event.laps ?? view?.laps ?? 1,
+        lapSegments: loadedRoute.lapSegments,
       })
     : null;
 

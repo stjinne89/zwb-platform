@@ -26,6 +26,8 @@ const H = 178;
 const PAD_X = 10;
 const TOP = 40;
 const BASE = 128;
+/** De haak van een rondesegment, onder de potloodlijn van de basis. */
+const BRACKET_Y = BASE + 17;
 
 type Box = { x0: number; x1: number; y0: number; y1: number };
 
@@ -48,6 +50,7 @@ const TEXT_LOOK: Record<SketchMark["style"], { fontSize: number; fontWeight?: nu
   cirkel: { fontSize: 17, fontWeight: 700, fill: RED, textAnchor: "end" },
   boog: { fontSize: 15, fill: PENCIL, textAnchor: "end" },
   sprint: { fontSize: 14, fill: GREEN, textAnchor: "middle" },
+  ronde: { fontSize: 14, fill: GREEN, textAnchor: "middle" },
   label: { fontSize: 15, fill: PENCIL, textAnchor: "middle" },
 };
 
@@ -113,6 +116,7 @@ function RouteSketch({ segments, marks }: { segments: PacingSegment[]; marks: Sk
       taken.push({ x0: e.cx - e.rx - 4, x1: e.cx + e.rx + 4, y0: e.cy - e.ry - 4, y1: e.cy + e.ry + 4 });
     }
     if (m.style === "boog") taken.push({ x0: x(m.fromKm) - 2, x1: x(m.fromKm) + 2, y0: yAt(m.fromKm) - 5, y1: BASE + 14 });
+    if (m.style === "ronde") taken.push({ x0: x(m.fromKm) - 1, x1: x(m.toKm) + 1, y0: BRACKET_Y - 5, y1: BRACKET_Y + 1 });
   }
   type Spec = { size: number; bold: boolean; anchor: Anchor; px: number; ys: number[]; shifts: number[]; bottom: number };
   const specOf = (m: SketchMark): Spec => {
@@ -126,6 +130,7 @@ function RouteSketch({ segments, marks }: { segments: PacingSegment[]; marks: Sk
       return { size: 17, bold: true, anchor: "end", px: x(m.toKm) - 8, ys: [py, py - 18, py - 36], shifts: [0, -0.5, 0.5], bottom: BASE + 6 };
     }
     if (m.style === "boog") return { size: 15, bold: false, anchor: "end", px: x(m.fromKm) - 5, ys: [BASE + 32], shifts: [0, -0.5, 1, -1], bottom: H };
+    if (m.style === "ronde") return { size: 14, bold: false, anchor: "middle", px: x((m.fromKm + m.toKm) / 2), ys: [BRACKET_Y + 14, BRACKET_Y + 28], shifts: [0, -0.4, 0.4], bottom: H };
     const size = m.style === "sprint" ? 14 : 15;
     const width = m.text.length * size * charWidth(false);
     const px = Math.min(W - 2 - width / 2, Math.max(2 + width / 2, x((m.fromKm + m.toKm) / 2)));
@@ -136,7 +141,7 @@ function RouteSketch({ segments, marks }: { segments: PacingSegment[]; marks: Sk
     const ys = m.style === "sprint" ? [below, above, above - 16, above - 32] : [above, above - 16, above - 32, below];
     return { size, bold: false, anchor: "middle", px, ys, shifts: [0, -0.6, 0.6], bottom: BASE + 6 };
   };
-  const ORDER: SketchMark["style"][] = ["cirkel", "markeer", "boog", "label", "sprint"];
+  const ORDER: SketchMark["style"][] = ["cirkel", "markeer", "boog", "ronde", "label", "sprint"];
   const placed = new Map<SketchMark, { x: number; y: number }>();
   const scoredFor = (m: SketchMark) => {
     const spec = specOf(m);
@@ -182,6 +187,21 @@ function RouteSketch({ segments, marks }: { segments: PacingSegment[]; marks: Sk
           <path key={`s-${m.fromKm}-${m.text}`} d={stretch(m.fromKm, Math.max(m.toKm, m.fromKm + 0.1))} stroke={GREEN} strokeOpacity={0.6} strokeWidth={6} fill="none" strokeLinecap="round" strokeLinejoin="round" />
         ))}
       <path d={line} stroke={INK} strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Rondesegmenten: een groene haak onder het stuk, van boog tot boog. */}
+      {marks
+        .filter((m) => m.style === "ronde")
+        .map((m) => (
+          <path
+            key={`r-${m.fromKm}-${m.text}`}
+            d={`M${x(m.fromKm)} ${BRACKET_Y - 5} L${x(m.fromKm) + 0.5} ${BRACKET_Y} L${x(m.toKm) - 0.5} ${BRACKET_Y + 0.6} L${x(m.toKm)} ${BRACKET_Y - 5}`}
+            stroke={GREEN}
+            strokeOpacity={0.8}
+            strokeWidth={1.6}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ))}
       <path d={`M${PAD_X} ${BASE + 9} C ${W * 0.3} ${BASE + 8}, ${W * 0.62} ${BASE + 10.5}, ${W - PAD_X} ${BASE + 8.5}`} stroke={PENCIL} strokeWidth={1} fill="none" strokeLinecap="round" />
 
       {marks

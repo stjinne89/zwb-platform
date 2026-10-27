@@ -17,8 +17,8 @@ export type SketchMark = {
   fromKm: number;
   toKm: number;
   text: string;
-  /** markeer: markeerstift over het stuk, label in teal; cirkel: rood omcirkeld; label: potlood erboven; boog: stippellijn met label eronder; sprint: groen over het stuk. Alle teksten schuiven op tot ze vrij staan (RouteSketch). */
-  style: "markeer" | "cirkel" | "label" | "boog" | "sprint";
+  /** markeer: markeerstift over het stuk, label in teal; cirkel: rood omcirkeld; label: potlood erboven; boog: stippellijn met label eronder; sprint: groen over het stuk; ronde: groene haak onder het stuk. Alle teksten schuiven op tot ze vrij staan (RouteSketch). */
+  style: "markeer" | "cirkel" | "label" | "boog" | "sprint" | "ronde";
 };
 
 export type WatchLine = { name: string; note: string };
@@ -40,7 +40,7 @@ export type SheetOverride = Partial<SheetContent>;
 const MAX_ROWS = 20;
 const MAX_TEXT = 120;
 const MAX_KM = 500;
-const SKETCH_STYLES: SketchMark["style"][] = ["markeer", "cirkel", "label", "boog", "sprint"];
+const SKETCH_STYLES: SketchMark["style"][] = ["markeer", "cirkel", "label", "boog", "sprint", "ronde"];
 
 const text = (value: unknown, max = MAX_TEXT) => (typeof value === "string" ? value.trim().slice(0, max) : "");
 const kmValue = (value: unknown) => {
@@ -156,6 +156,7 @@ export function defaultSheet(input: {
       for (const s of route.segments) {
         // De KOM's staan er al als klim; een passage ziet de lezer aan de plek.
         if (s.kind === "sprint") sketch.push({ fromKm: s.startKm, toKm: s.endKm, text: segmentLabel(s, false), style: "sprint" });
+        if (s.kind === "lap") sketch.push({ fromKm: s.startKm, toKm: s.endKm, text: segmentLabel(s, false), style: "ronde" });
       }
     }
     if (route.lastArchKm !== null) sketch.push({ fromKm: route.lastArchKm, toKm: route.lastArchKm, text: "laatste boog", style: "boog" });

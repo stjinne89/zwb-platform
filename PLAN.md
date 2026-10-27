@@ -11501,6 +11501,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Racebriefje: rondesegmenten zoals de Jarvis Lap
+
+**2026-10-27.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Geen migratie.
+
+**Waarom.** De eigenaar miste de Jarvis Lap op het racebriefje van W6 (Spiral
+Summit). zwift-data 2.1 kent hem wel (10,17–15,02 km in de ronde), maar als type
+`segment`; `accentsForRoute` neemt alleen `climb` en `sprint` mee, dus het
+briefje zag hem niet. Zwifts eigen tabel (`route-segments.json`) heeft hem als
+segment 1063552145.
+
+**Wat.**
+- `lapSegmentsForRoute` (`zwift-route.ts`): de segmenten van type `segment`
+  op een route. Los van `accentsForRoute`, zodat het pacingplan niets merkt.
+- `route-loader.ts`: `LoadedRoute.lapSegments` (alleen Zwift), per ronde
+  verschoven zoals `expandAccents` (`expandLapSegments`).
+- `BriefingSegment.kind` heeft nu `"lap"`. `segmentLabel`: "Jarvis Lap" →
+  "ronde Jarvis"; een segment zonder lap/loop/circuit in de naam ("Fuego Flats
+  Rev.") houdt zijn naam. Het eind van een rondesegment telt als boog voor de
+  laatste boog. Begin en eind van alle segmenten nu op de meter (was 10 m), anders
+  werd 4,847 km "4,9 km".
+- Momenten bij een puntenrace: "ronde Jarvis 4,8 km — in de kopgroep blijven: de
+  rondetijd telt"; bij een Race of Truth "telt voor FAL en FTS".
+- Profiel: nieuwe stijl `ronde`, een groene haak onder het stuk met het label
+  eronder; ook te kiezen in Briefje bewerken.
+- Segmentrecords: `segmentIdsForRoute` koppelt ook de rondesegmenten
+  (`kindOfName` herkent lap/loop/circuit), dus de ronde krijgt richttijd, PR's
+  en benodigde watt.
+- `/hulp` noemt de haak, de stijl ronde en de richttijd per rondesegment.
+  **Privacy:** `/privacy#racebriefing` zegt nu "per sprint, KOM en
+  rondesegment (zoals de Jarvis Lap)"; dat is één segment meer per route bij
+  Zwift opvragen, met dezelfde gegevens. Geen nieuwe versie. **Nog niet
+  goedgekeurd door de eigenaar.**
+
+**Bewust niet.** Rondesegmenten niet in `accentsForRoute`: dan zou het
+pacingplan een ronde van 4,8 km als één accent zien en de klimmen en sprints
+erbinnen kwijtraken. Welke segmenten WTRL echt laat tellen, leest het briefje
+nog steeds niet.
+
+**Gecontroleerd.** Vitest: Spiral Summit met de Jarvis Lap (moment, haak, slug),
+labels, `expandLapSegments` over twee ronden, `matchSegmentIds` koppelt
+jarvis-lap aan 1063552145; `tsc`, ESLint. Het profiel van Spiral Summit los
+gerenderd en bekeken. **Niet geverifieerd:** of `/segment-results` voor een
+rondesegment tijden geeft (de Sauce-pc stond uit), en het briefje op productie.
+
 ### Gebouwd — Racebriefje: grens van de divisie in watt per renner
 
 **2026-10-27.** Commit `36c04baf`, gepusht naar `main` op 2026-10-27. Geen migratie.
@@ -12401,7 +12445,7 @@ KOM in een puntenrace net zo goed FAL- en FTS-punten oplevert als een sprint.
 
 **Wat.**
 - `routeKeyPoints.segments` (was `sprints`): alle sprints en KOM's van de route
-  per passage, met `kind`. `segmentLabel` geeft "sprint Jarvis" of "KOM Jarvis",
+  (sinds 2026-10-27 ook de rondesegmenten, zie de ronde Jarvis Lap) per passage, met `kind`. `segmentLabel` geeft "sprint Jarvis" of "KOM Jarvis",
   met "(2e)" als hij vaker op de route ligt (in het profiel zonder, de plek zegt
   het al).
 - Momenten bij een puntenrace: per KOM "klimmers erop, de rest in het wiel", met
@@ -27336,6 +27380,7 @@ daarna zelf bij te schuiven. Voor Zwift-events zonder dat het lid een .gpx uploa
 `routeId`/`laps`/`distanceInMeters`; alle 320 routes in `zwift-data` (al een
 dependency) hebben dat `id`; 263 van de 279 fietsroutes hebben een
 `stravaSegmentId`; en `segmentsOnRoute` levert de klimmen en sprints van een route
+(en de rondesegmenten, type `segment`, die het pacingplan niet gebruikt)
 met naam en kilometrering, zodat er voor Zwift-routes géén klimdetectie nodig is.
 
 **De spike is gedraaid en geslaagd.** Alle vier de testroutes gaven zowel een

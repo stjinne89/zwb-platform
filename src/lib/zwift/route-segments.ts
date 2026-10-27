@@ -36,11 +36,12 @@ export function routeSegments(routeId: number | string, laps = 1): RouteSegmentR
   return refs;
 }
 
-/** Een sprint of KOM van zwift-data: slug, naam en km binnen de ronde. */
-export type NamedSegment = { slug: string; name: string; kind: "climb" | "sprint"; startKm: number };
+/** Een sprint, KOM of rondesegment van zwift-data: slug, naam en km binnen de ronde. */
+export type NamedSegment = { slug: string; name: string; kind: "climb" | "sprint" | "lap"; startKm: number };
 
 const normalized = (name: string) => name.toLowerCase().replace(/\brev\.?(?=\s|$)/g, "reverse").replace(/[^a-z0-9]/g, "");
-const kindOfName = (name: string) => (/sprint/i.test(name) ? "sprint" : /kom|qom/i.test(name) ? "climb" : null);
+const kindOfName = (name: string) =>
+  /sprint/i.test(name) ? "sprint" : /kom|qom/i.test(name) ? "climb" : /\b(lap|loop|circuit)\b/i.test(name) ? "lap" : null;
 
 /**
  * Zwifts segment-ID per slug van zwift-data. Eerst op naam binnen een kilometer

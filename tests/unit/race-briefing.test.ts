@@ -3,6 +3,7 @@ import fixture from "../fixtures/zwift/green-to-screen-100m.json";
 import type { PacingAccent, PacingSegment } from "@/lib/pacing/route-profile";
 import { climbSeconds, routeKeyPoints, segmentLabel, withoutTunnelSteps } from "@/lib/race-briefing/route";
 import { pacingRouteFromZwift } from "@/lib/pacing/route-profile";
+import { expandLapSegments } from "@/lib/pacing/route-loader";
 import spiral from "../fixtures/zwift/spiral-summit-100m.json";
 import { briefingFormatOf, checkLimits, cheatRules, divisionLimits, divisionOf, limitWatts, powerupsFromTags } from "@/lib/race-briefing/rules";
 import { cleanRiderName, projectField, suggestRoles, watchList, type FieldRider } from "@/lib/race-briefing/field";
@@ -326,7 +327,7 @@ describe("sprints en KOM's", () => {
     expect(scratch.moments.some((m) => m.what.startsWith("sprint"))).toBe(false);
   });
 
-  it("zet op Spiral Summit de KOM's van Jarvis erbij, maar niet Volcano: die eindigt op de streep", () => {
+  it("zet op Spiral Summit de Jarvis Lap en de KOM's van Jarvis erbij, maar niet Volcano: die eindigt op de streep", () => {
     // zwift-data 2.1, Spiral Summit: segmentsOnRoute, lead-in 0,15 km.
     const zwiftAccent = (name: string, kind: "climb" | "sprint", startKm: number, endKm: number) => ({ slug: name, name, kind, startKm, endKm, avgInclinePct: null });
     const pacing = pacingRouteFromZwift({
@@ -343,9 +344,11 @@ describe("sprints en KOM's", () => {
       lapKm: 23.869,
       laps: 1,
     });
-    const spiralRoute = routeKeyPoints({ segments: pacing.segments, accents: pacing.accents, totalKm: pacing.totalKm, laps: 1 });
+    const lapSegments = expandLapSegments([{ slug: "jarvis-lap", name: "Jarvis Lap", startKm: 10.174, endKm: 15.021 }], { leadInKm: 0.15, lapKm: 23.869, laps: 1 });
+    const spiralRoute = routeKeyPoints({ segments: pacing.segments, accents: pacing.accents, totalKm: pacing.totalKm, laps: 1, lapSegments });
     const sheet = defaultSheet({ format: "points", category: "B", route: spiralRoute, powerups: [], own, watch: [], warnings: [] });
     expect(sheet.moments.map((m) => [m.what.replace(/ ·.*/, ""), m.todo])).toEqual([
+      ["ronde Jarvis 4,8 km", "in de kopgroep blijven: de rondetijd telt"],
       ["KOM Jarvis (1e) 36 m", "klimmers erop, de rest in het wiel"],
       ["sprint Jarvis (1e)", "sprinters erop, de rest in het wiel"],
       ["KOM Jarvis (2e) 36 m", "klimmers erop, de rest in het wiel"],
@@ -354,6 +357,23 @@ describe("sprints en KOM's", () => {
       ["Volcano 126 m", "voluit tot de top"],
     ]);
     expect(sheet.sketch.filter((m) => m.style === "sprint").map((m) => m.text)).toEqual(["sprint Jarvis", "sprint Jarvis"]);
+    expect(sheet.sketch.filter((m) => m.style === "ronde").map((m) => [m.fromKm, m.toKm, m.text])).toEqual([[10.324, 15.171, "ronde Jarvis"]]);
+    expect(spiralRoute.segments.find((s) => s.kind === "lap")).toMatchObject({ slug: "jarvis-lap", pass: 1, passes: 1 });
+  });
+
+  it("noemt een rondesegment naar de ronde, en houdt de naam als er geen ronde in staat", () => {
+    const lap = (name: string, pass = 1, passes = 1) => ({ kind: "lap" as const, slug: "x", startKm: 1, endKm: 5, name, pass, passes });
+    expect(segmentLabel(lap("Jarvis Lap"))).toBe("ronde Jarvis");
+    expect(segmentLabel(lap("Volcano Circuit Rev.", 2, 3))).toBe("ronde Volcano Rev. (2e)");
+    expect(segmentLabel(lap("Fuego Flats Rev."))).toBe("Fuego Flats Rev.");
+  });
+
+  it("legt een rondesegment per ronde op de juiste kilometer", () => {
+    const laps = expandLapSegments([{ slug: "jarvis-lap", name: "Jarvis Lap", startKm: 0, endKm: 4.84 }], { leadInKm: 0.5, lapKm: 4.836, laps: 2 });
+    expect(laps.map((l) => [l.id, l.lap, Math.round(l.startKm * 1000)])).toEqual([
+      ["jarvis-lap-1", 1, 500],
+      ["jarvis-lap-2", 2, 5336],
+    ]);
   });
 
   it("noemt een KOM niet apart als de klim al een moment heeft", () => {

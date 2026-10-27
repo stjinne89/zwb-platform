@@ -168,7 +168,8 @@ export default function PrivacyPage() {
             zoals ZwiftRacing dat openbaar toont; daarvoor sturen we de
             Zwift-ID&apos;s van de startgroep naar ZwiftRacing. Gewicht en FTP
             nemen we daarvoor niet over. Bij een puntenrace of Race of Truth
-            vragen we daarnaast per sprint en KOM op de route bij Zwift de
+            vragen we daarnaast per sprint, KOM en rondesegment (zoals de
+            Jarvis Lap) op de route bij Zwift de
             snelste passage van de laatste 90 dagen op van iedereen in de
             startgroep: tijd, gemiddeld vermogen en je gewicht op dat moment. Op
             het racebriefje staat per segment de snelste tijd uit de startgroep,
