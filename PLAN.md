@@ -11513,7 +11513,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: leden zonder interesse in de ladderlijst zetten
 
-**2026-10-27.** Commit volgt hieronder, lokaal, niet gepusht. Migratie
+**2026-10-27.** Commit `067eff2d`, lokaal, niet gepusht. Migratie
 `0285_ladder_pool.sql`, **nog niet toegepast**.
 
 **Waarom.** Vraag van de eigenaar: naast captains ook leden kunnen toewijzen
