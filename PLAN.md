@@ -11503,7 +11503,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Racebriefje: rondesegmenten zoals de Jarvis Lap
 
-**2026-10-27.** Commit `25ffa34e`, lokaal, niet gepusht. Geen migratie.
+**2026-10-27.** Commits `25ffa34e`, `afa0bdf0` en `1de01aaa`, gepusht naar `main` op
+2026-10-27. Geen migratie.
 
 **Waarom.** De eigenaar miste de Jarvis Lap op het racebriefje van W6 (Spiral
 Summit). zwift-data 2.1 kent hem wel (10,17–15,02 km in de ronde), maar als type
@@ -11537,8 +11538,8 @@ segment 1063552145.
 - `/hulp` noemt de haak, de stijl ronde en de richttijd per rondesegment.
   **Privacy:** `/privacy#racebriefing` zegt nu "per sprint, KOM en
   rondesegment (zoals de Jarvis Lap)"; dat is één segment meer per route bij
-  Zwift opvragen, met dezelfde gegevens. Geen nieuwe versie. **Nog niet
-  goedgekeurd door de eigenaar.**
+  Zwift opvragen, met dezelfde gegevens. Geen nieuwe versie. Goedgekeurd door de
+  eigenaar op 2026-10-27.
 
 **Bewust niet.** Rondesegmenten niet in `accentsForRoute`: dan zou het
 pacingplan een ronde van 4,8 km als één accent zien en de klimmen en sprints
