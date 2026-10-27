@@ -375,6 +375,12 @@ gaat stabiliteit voor nieuwe features.
    iPhone in de beginscherm-app iets typen, het toetsenbord sluiten en scrollen;
    leden die de balk midden in beeld zagen vragen of het nog gebeurt.
 
+20. **ZWBriljant: records van de minuut en 5 minuten, profs als houvast** (ronde van
+   2026-10-27 hieronder): gebouwd en lokaal getest, nog niet gepusht. Geen migratie.
+   Open: de tabel van Valenzuela 2022 nalopen zodra de pdf er is (P90 op 1 s, 10 s,
+   1 min, 5 min en 240 min komen nu uit een samenvatting), en de recordsteen in de
+   zaal bekijken.
+
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
 **Let op, dubbele migratienummers (vastgesteld 2026-09-21 bij het samenvoegen):**
@@ -11414,6 +11420,51 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gewijzigd — ZWBriljant: records van de minuut en 5 minuten, de beste 10% van de profs als houvast
+
+**2026-10-27.** Geen migratie, geen nieuwe schaalversie: de ijkwaarden van de klassen
+blijven gelijk, alleen de recordsteen verandert (die wordt live gerekend, niet bewaard).
+
+**Waarom.** De eigenaar zag op Instagram (Knowledge is Watt) wat de beste 10% van 144
+mannelijke profs per duur rijdt, uit Valenzuela 2022, en vroeg of dat klopt en in
+ZWBriljant past. Het artikel bestaat en de P90 op 20 en 60 minuten klopt volgens
+tweede bronnen. Twee records lagen daaronder: de minuut 11,2 tegen P90 11,3 en 5
+minuten 7,6 tegen P90 7,7. Ongeveer 14 van de 144 profs zaten dus boven ons
+"record". Keuze eigenaar: de records corrigeren en de profwaarden als houvast in het
+onderzoek opnemen (opties 1 en 2 van drie).
+
+**Nu.**
+- `src/lib/briljant/records.ts`: mannen minuut 11,5 en 5 minuten 7,8 (was 11,2 en
+  7,6); vrouwen naar hetzelfde aandeel 9,45 en 6,55 (was 9,2 en 6,4). De minuut voor
+  vrouwen ligt zo ook boven de geschatte P90 van profvrouwen (8,4 ± 0,8, Mateo-March
+  2022: 9,4). De 5 minuten past bij Pogačar als houder: zijn 7,2 binnen een rit van
+  vier uur is fris 7,55 tot 7,9 met het verval van de WorldTour. De recordsteen gaat
+  van 1170 naar 1182 (mannen) en van 1162 naar 1173 (vrouwen).
+- [Het onderzoek](docs/zwbriljant-onderzoek.md) kreeg "Houvast boven Diamant": de
+  P90 per duur op onze schaal (minuut 1186, 5 minuten 1130, 20 minuten 1150 punten),
+  hoe je die leest (loopbaan en training, per duur andere renners) en wat wel en niet
+  is nagekeken.
+
+**Bewust niet gedaan.**
+- **De profwaarden als ijkwaarde van Robijn of Diamant.** Ze liggen 230 tot 290
+  punten boven Diamant; zo zou Diamant weer onhaalbaar worden, en dat besloot de
+  eigenaar op 2026-10-21 anders.
+- **Een "profsteen" in de zaal** (de beste 10% als eigen steen, optie 3): een nieuw
+  onderdeel; hoort eerst in het plannenboek.
+- **De 15 s uit de profwaarden.** Die duur staat niet in de bron; de schatting rond
+  17 W/kg staat alleen als houvast in het onderzoek.
+- **Het minuutrecord hoger dan 11,5.** Het hoogste van de 144 staat niet in wat we
+  konden lezen; 11,5 en 7,8 zijn een ondergrens, geen gemeten record.
+
+**Niet geverifieerd.** De tabel van het artikel zelf: de volledige tekst was in deze
+omgeving niet bereikbaar (niet in PubMed Central, uitgever geblokkeerd). De P90 op 1
+s, 10 s, 1 min, 5 min en 240 min komen uit de Instagram-samenvatting. De recordsteen
+niet in de browser bekeken.
+
+**Gecontroleerd.** `briljant-records.test.ts` op de nieuwe totalen; alle acht
+`briljant-*`-testbestanden groen (105 tests), `tsc` schoon, ESLint schoon op de
+gewijzigde bestanden.
+
 ### Gebouwd — Doeltijd: welke klasse van je steen de tijd vraagt
 
 **2026-10-26.** Commit `ad492698`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie: de eisen gaan in de
@@ -14711,7 +14762,9 @@ W/kg; was 6,4 en 7,1). Daarboven loopt de schaal met dezelfde stap door, zonder 
 Fitheid: Robijn 100, Diamant 110 (was 120 en 150). Durability: Robijn ProTeam 2,2,
 Diamant WorldTour 1,5 (was 1,2 en 0,7). Racen: elke ZRS een punt, Diamant vanaf 900 ZRS
 (was 1000 ZRS precies Diamant). De records staan los in `records.ts`; de recordsteen komt
-op 1136 (mannen) en 1131 (vrouwen). Rekenvoorbeeld van 593 naar 606.
+op 1136 (mannen) en 1131 (vrouwen). *(Klopt niet meer: na de wijzigingen in durability
+en fitheid was het 1170 en 1162, en sinds 2026-10-27 is het 1182 en 1173, zie de ronde
+"records van de minuut en 5 minuten".)* Rekenvoorbeeld van 593 naar 606.
 `SCALE_VERSION` werd `2026-10-21-sd3`: de terugblik en weekopnames worden opnieuw gemaakt,
 en de wekelijkse job zoekt de ZRS van vroeger opnieuw op (de oude markeringen horen bij de
 oude schaal). *(Sinds 0271, 2026-10-23, niet meer: een nieuwe schaal leidt de ZRS van toen
@@ -14756,7 +14809,8 @@ een zaal met ieders steen, en Aliens: profs met echte data. Die Aliens kwamen er
   de recordsteen. `glow` verhuisde naar `stone.ts` voor beide scènes.
 - **De recordsteen** (`src/lib/briljant/records.ts`, keuze "Records" bij vergelijken en de
   grootste steen in de zaal): elk onderdeel op de recordwaarde, de ijkwaarde van Diamant,
-  dus precies 900. Voor vrouwen hun eigen recordwaarden. Bij een record met een bekende
+  dus precies 900. *(Klopt niet meer: sinds later op 2026-10-21 liggen de records ver
+  boven Diamant, zie "Diamant haalbaar" hierboven.)* Voor vrouwen hun eigen recordwaarden. Bij een record met een bekende
   houder staat de naam in goud onder de waarde: Pogačar bij drempel en VO2max (onderbouwde
   berekeningen, zie het onderzoek). Sprint, anaeroob, durability, fitheid en racen hebben
   geen houder.

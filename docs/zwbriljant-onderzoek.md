@@ -54,8 +54,8 @@ aan een groep, al toont het facet wel de kleur van zijn klasse.
 Voorbij 900 telt de score met dezelfde stap door (1.000, …). **Diamant** is sinds
 2026-10-21 zwaar maar haalbaar: 3 standaarddeviaties boven het gemiddelde, ongeveer de
 beste 1 op 1000 (eigenaar: "Diamant zou haalbaar moeten zijn, maar dit blijft dan
-oneindig doorlopen"). De records liggen daar ver boven, de recordsteen op 1136 punten
-(mannen) en 1131 (vrouwen). Eerst waren Robijn de WorldTour-winnaars en Diamant de
+oneindig doorlopen"). De records liggen daar ver boven, de recordsteen op 1182 punten
+(mannen) en 1173 (vrouwen; sinds 2026-10-27, zie "De records"). Eerst waren Robijn de WorldTour-winnaars en Diamant de
 records (drempel 6,4 en 7,1 W/kg), zodat alleen een perfecte renner Diamant haalde. Punten worden
 afgekapt, niet afgerond: 499,9 is nog 499, en 500 verschijnt pas bij de volgende
 klasse. Eerder heetten de niveaus Starter tot Wereldtop en Aliens.
@@ -261,7 +261,7 @@ Zonder opgegeven geslacht rekent ZWBriljant met de waarden voor mannen.
 **De records** (gepubliceerde schattingen; profs publiceren hun gegevens zelden, dus
 officiële records bestaan niet). Eerst waren dit de ijkwaarden van Diamant; sinds
 2026-10-21 liggen ze ver boven Diamant en vormen ze de recordsteen in de zaal (mannen
-1136, vrouwen 1131 punten; vrouwen: 15,6, 9,2, 6,4 en 6,05 W/kg); de houder staat erbij waar die bekend is (drempel en VO2max:
+1182, vrouwen 1173 punten; vrouwen: 15,6, 9,45, 6,55 en 6,05 W/kg); de houder staat erbij waar die bekend is (drempel en VO2max:
 Pogačar). Bij sprint en anaeroob is de waarde een afronding naar boven zonder één houder
 (de hoogst gepubliceerde minuut is Campenaerts' 10,1 W/kg), en durability, fitheid en
 racen hebben geen houder.
@@ -272,12 +272,66 @@ racen hebben geen houder.
   Over 20 minuten ligt dat iets hoger: 7,1.
 - VO2max: 7,2 W/kg over 5 minuten binnen een rit van vier uur (Pogačar, Tour 2020;
   [Stages](https://stagescycling.com/us/news/stages-power-and-stages-dash-in-the-2020-tour-de-france/)).
-  Fris ligt hoger; 7,6.
+  Fris ligt hoger: met het verval van de WorldTour na 45 kJ/kg (4,7 tot 8,8%,
+  Mateo-March 2022) 7,55 tot 7,9. Bovendien rijdt de beste 10% van 144 profs al 7,7
+  (Valenzuela 2022, hieronder); 7,8.
 - Sprint: 17 tot 19 W/kg om een Tourspurt te winnen; piekvermogen in profsprints
   17,4 ± 1,7 W/kg ([Murdoch University](https://researchportal.murdoch.edu.au/esploro/outputs/journalArticle/Sprinting-for-the-win-Distribution-of/991005543935407891)). 19,5.
 - Anaeroob: 10,1 W/kg over een minuut (Campenaerts, Ronde van Vlaanderen 2022;
   [Velo](https://velo.outsideonline.com/2022/04/big-numbers-mathieu-van-der-poels-strava-file-with-power/?scope=anon)).
-  De beste punchers zitten hoger; 11,2.
+  De beste punchers zitten hoger, en de beste 10% van 144 profs rijdt al 11,3
+  (Valenzuela 2022, hieronder); 11,5.
+- Vrouwen: de mannenrecords naar het aandeel van de vrouwelijke profs. De minuut
+  (9,45) ligt boven de beste 10% van 44 profvrouwen, geschat uit 8,4 ± 0,8 W/kg
+  (Mateo-March 2022, normale verdeling: 9,4).
+
+*Gecorrigeerd op 2026-10-27.* De minuut en 5 minuten waren 11,2 en 7,6 (vrouwen 9,2
+en 6,4). Dat lag onder de beste 10% van de profs in Valenzuela 2022, dus ongeveer 14
+van de 144 renners zaten erboven; een record kan dat niet zijn. De nieuwe waarden zijn
+een afronding naar boven en een ondergrens: het hoogste van de 144 staat niet in de
+samenvattingen die we konden lezen. De recordsteen ging van 1170 naar 1182 (mannen)
+en van 1162 naar 1173 (vrouwen). *(De 1136 en 1131 die hier eerder stonden waren al
+verouderd: die golden vóór de wijzigingen in durability en fitheid van 2026-10-22 en
+2026-10-23.)*
+
+**Houvast boven Diamant: de beste 10% van de profs** (2026-10-27). Valenzuela 2022
+([doi:10.1123/ijspp.2021-0263](https://doi.org/10.1123/ijspp.2021-0263)) gaf
+normwaarden voor 144 mannelijke profs (98 WorldTour, 46 ProTeam; 129.262 bestanden
+uit training en wedstrijd over 8 jaar) met per duur P10, P75 en P90. Op onze schaal
+voor mannen:
+
+| Duur | P90 (W/kg) | Punten | Facet |
+|---|---|---|---|
+| 1 s | 24,7 | – | niet op de steen |
+| 10 s | 18,9 | – | (15 s niet in de bron; geschat rond 17, ongeveer 960) |
+| 1 min | 11,3 | 1186 | anaeroob |
+| 5 min | 7,7 | 1130 | VO2max |
+| 20 min | 6,6 | 1150 | drempel |
+| 60 min | 5,8 | – | niet op de steen |
+| 240 min | 4,6 | – | niet op de steen |
+
+Zo ligt de beste 10% van de profs op 1100 tot 1200 punten, twee à drie klassen boven
+Diamant: Diamant is haalbaar, een prof is iets anders. **Niet gebruikt als ijkwaarde
+van Robijn of Diamant:** dan zou Diamant weer onhaalbaar zijn, en dat besloot de
+eigenaar op 2026-10-21 juist anders.
+
+Hoe te lezen:
+- Het zijn de beste waarden over de loopbaan (gemiddeld 7 seizoenen), training
+  inbegrepen. ZWBriljant kijkt naar de beste 90 dagen, dus de profwaarden liggen
+  hoger dan een seizoen.
+- De beste 10% geldt per duur, telkens met andere renners (sprinters kort, klimmers
+  lang). Niemand haalt alle P90's tegelijk.
+- 1 s is het minst betrouwbaar: pieken van de vermogensmeter tellen daar zwaar.
+- **Wat is nagekeken:** het artikel zelf (PubMed: 144 renners, 1 s tot 240 min,
+  percentielen) en P90 op 20 en 60 minuten (6,59 en 5,76) via tweede bronnen
+  ([TrainerRoad-forum](https://www.trainerroad.com/forum/t/power-records-of-144-professional-cyclists/78177),
+  [W/KG](https://www.wattkg.com/power-records/)); P75 op 20, 60, 120 en 240
+  minuten (6,3, 5,5, 4,9 en 4,4) volgens
+  [More Speed, Less Power](https://www.morespeedlesspower.com/2022/12/critical-power-curves-of-professional.html).
+  **Niet zelf gezien:** de tabel van het artikel. De P90 op 1 s, 10 s, 1 min, 5 min
+  en 240 min komt uit een samenvatting van Knowledge is Watt (Instagram), die naar
+  het artikel verwijst. Als de pdf beschikbaar komt: die vijf waarden en de
+  records van de minuut en 5 minuten nalopen.
 
 Houvast voor Robijn: U23-elite in grote rittenkoersen rijden gemiddeld 5,5 W/kg over
 20 minuten (Mateo-March 2026); critical power van profs ligt rond 5,3 tot 5,6 W/kg
