@@ -120,6 +120,16 @@ async function gpsActivities(
   profileId: string,
 ): Promise<GpsActivity[]> {
   const select = "id, col_times:raw->gps_col_times, segment_times:raw->gps_segment_times";
+  // Migratie 0281: has_gps_times wijst de ritten met eigen tijden aan, zodat
+  // Postgres niet bij elke rit de hele raw uitpakt. Zonder 0281 bestaat de
+  // kolom niet en valt dit terug op het filter op raw.
+  const flagged = await admin
+    .from("strava_activities")
+    .select(select)
+    .eq("profile_id", profileId)
+    .is("has_gps_times", true);
+  if (!flagged.error) return (flagged.data ?? []) as GpsActivity[];
+
   const [withCols, withSegments] = await Promise.all([
     admin.from("strava_activities").select(select).eq("profile_id", profileId).not("raw->gps_col_times", "is", null),
     admin.from("strava_activities").select(select).eq("profile_id", profileId).not("raw->gps_segment_times", "is", null),

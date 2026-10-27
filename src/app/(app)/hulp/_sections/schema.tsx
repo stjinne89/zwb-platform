@@ -93,6 +93,19 @@ export function SchemaHelp() {
                 waar het parcours om vraagt. Het is geen advies om af te vallen.
               </li>
               <li>
+                <strong className="text-foreground">Je steen:</strong> welke
+                klasse van je ZWBriljant-steen de doeltijd vraagt, naast de klasse
+                die je nu hebt. Bij drempel is dat je beste 20 minuten per kilo,
+                zoveel sterker als de doeltijd vraagt; is hij al haalbaar, dan zie
+                je hoeveel minder het mag zijn. Bij fitheid is het de geschatte
+                belasting van de rit in je doeltijd, gedeeld door zeven: de helft
+                van de ZWB&apos;ers met lange ritten reed er minstens één uit die
+                zo ver boven hun CTL lag. Dat is een schatting, geen grens.
+                Durability staat er niet bij, omdat je steen en de prognose het
+                verval anders meten. Sprint, anaeroob en racen beslissen geen
+                toertocht. Alleen jij ziet deze regels, je trainer niet.
+              </li>
+              <li>
                 <strong className="text-foreground">Nadruk in je schema:</strong>{" "}
                 klimmen of drempel, lange duurritten en duurvermogen laat in de
                 rit, afhankelijk van het parcours en je eigen data. Je schema

@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-10-21)
+## Actieve volgorde (bijgewerkt 2026-10-27)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -27,11 +27,17 @@ gaat stabiliteit voor nieuwe features.
    quotum blijft. Deze cyclus komt niet meer onder 5 GB; **de eigenaar beslist
    vóór 2 november over Pro of de beperking.** Oorzaak en fix: zie de ronde
    "Egress-golf door zichtbaarheids-events" hieronder (migraties `0255` en `0256`
-   toegepast op 2026-10-20; de code staat lokaal en gaat mee met de volgende push).
+   toegepast op 2026-10-20; de code staat op `main` als `ef6e8273`, vastgesteld
+   op 2026-10-27).
+   **Check 2026-10-27:** egress 8,33 GB na 16 dagen. Na de fix ~0,13 GB per dag
+   (21–26 okt, afgelezen uit de grafiek; was ~0,3 vóór 13 okt en tot 1,3 tijdens
+   de golf). Doorgerekend ~10 GB aan het eind van de cyclus; vanaf de volgende
+   cyclus ~4 GB per maand, net onder de limiet. De beslissing over Pro staat dus
+   nog steeds open.
    **Database slank en snel: afgerond op 2026-10-01.** `0212_remove_segment_explorer.sql`
    is toegepast; de database ging van 1.260 naar **200 MB** (Free-limiet 512 MB).
-   Nog te doen, klein: `vacuum full public.zwb_segment_maps;` (niet vast te stellen
-   of het al is gedraaid). `?segmentBackfill=0` is uit de URL van de job "ZWB Strava
+   `vacuum full public.zwb_segment_maps;` is gedraaid (gemeld door de eigenaar
+   op 2026-10-27). `?segmentBackfill=0` is uit de URL van de job "ZWB Strava
    webhooks": op 2026-10-13 stond die op `/api/strava/webhook/process` zonder
    parameter. De Supabase CLI
    werkt weer: `npm run db:health` draaide op 2026-10-02 zonder ingreep (CLI 2.119.0,
@@ -71,6 +77,19 @@ gaat stabiliteit voor nieuwe features.
    beginnen. Nagelopen op de hele codebase: van de 73 meldingen verdween alleen
    deze ene. Bewust niet gedaan: de overige 72 plekken nalopen; die tellen pas
    mee als hun tabel boven de 800 rijen komt.
+   **Check 2026-10-27:** database 261 MB (+29 MB in 7 dagen; Supabase telt
+   276 MB), disk 29%. Databasetijd achtergrond 1.950 s tegen leden 1.076 s (de
+   week ervoor 7.203 tegen 642): de fixes van `ef6e8273` werken. De zwaarste
+   query is nu `gps-col-times.ts` (`raw->gps_col_times`, 17%, gemiddeld 573 ms);
+   onder de grens van 20%. Nieuw: `delete training_plans` gemiddeld 1.030 ms;
+   zes verwijzingen naar `training_plans` hebben geen index (nagekeken via de
+   connector). Beide aangepakt in de ronde "Indexen en eigen-tijdenvlag"
+   hieronder (`0280`, `0281`; toegepast en de code gepusht op
+   2026-10-27). De ~7.500 checks per dag op `profiles.is_approved` komen uit de
+   approval-gate in `src/lib/supabase/middleware.ts`, die bij elk verzoek
+   buiten de publieke paden het profiel opvraagt (goedkoop: ~0,1 ms per
+   aanroep). `live_positions` 17.638 (+1.231 in een week). cron-job.org: alle
+   19 jobs geslaagd.
 2. **Omnium editie 1: verzet naar november, datum onzeker** (gemeld door de
    eigenaar, 2026-10-02; was 11 oktober). De migraties staan (`0174`, `0190`).
    Nog te doen: seizoen `2026-27` plannen en publiceren, dan event-ID's,
@@ -187,7 +206,9 @@ gaat stabiliteit voor nieuwe features.
      staat de cover na opslaan in storage (ronde 2026-10-18, "Eventlink").
    - **Tabbalk op de iPhone:** na het pushen in de beginscherm-app iets typen,
      het toetsenbord sluiten en kijken of de tabbalk onderaan blijft (ronde
-     2026-10-16, "Tabbalk blijft hangen na het toetsenbord").
+     2026-10-16, "Tabbalk blijft hangen na het toetsenbord"). *Bijgewerkt
+     2026-10-26:* leden zagen het daarna nog; zie de derde ronde "Tabbalk op de
+     iPhone: sprong herhalen en balk zelf omlaag".
    - **Fietsen op het ledenprofiel:** `0243_member_profile_bikes.sql` is op
      2026-10-16 toegepast via de Supabase-connector, op verzoek van de eigenaar,
      en daarna gepusht. Nog doen: als ander lid in de app een profiel met
@@ -368,6 +389,22 @@ gaat stabiliteit voor nieuwe features.
    goedgekeurd (eigenaar). Open: na de deploy op een briefing van een puntenrace
    kijken of de PR's binnenkomen, en of `/segment-results` geen 429 geeft.
 
+19. **Tabbalk op de iPhone, derde ronde** (ronde van 2026-10-26 hieronder):
+   gebouwd, lokaal getest en op 2026-10-26 gepusht naar `main`. Geen migratie. Open: op een
+   iPhone in de beginscherm-app iets typen, het toetsenbord sluiten en scrollen;
+   leden die de balk midden in beeld zagen vragen of het nog gebeurt.
+
+20. **ZWBriljant: records van de minuut en 5 minuten, profs als houvast** (ronde van
+   2026-10-27 hieronder): gebouwd, lokaal getest en op 2026-10-27 gepusht naar `main`. Geen migratie.
+   Open: de tabel van Valenzuela 2022 nalopen zodra de pdf er is (P90 op 1 s, 10 s,
+   1 min, 5 min en 240 min komen nu uit een samenvatting), en de recordsteen in de
+   zaal bekijken.
+
+21. **ZWBriljant: pijltjes sinds de vorige steen** (ronde van 2026-10-27 hieronder):
+   gebouwd, lokaal getest en op 2026-10-27 gepusht naar `main`. Geen migratie. Open: op productie
+   met echte snapshots kijken, en het aanwijzen op een laptop en tikken op een
+   telefoon proberen.
+
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
 **Let op, dubbele migratienummers (vastgesteld 2026-09-21 bij het samenvoegen):**
@@ -484,8 +521,65 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Egress-golf door zichtbaarheids-events, 2026-10-20 — gebouwd; unit-tests, typecheck en lint schoon op de gewijzigde bestanden; niet gepusht. Migraties `0255_col_scan_cache.sql` en `0256_rls_initplan_feed_telegram.sql`, op verzoek van de eigenaar toegepast via de Supabase-connector (2026-10-20) en nagekeken; niet lokaal te testen.**
-> Commit: de commit die dit blok toevoegt, op `main` (lokaal).
+> **Indexen en eigen-tijdenvlag, 2026-10-27 — gebouwd; unit-tests en lint schoon op de gewijzigde bestanden; gepusht naar `main` (2026-10-27). Migraties `0280_training_plan_fk_indexes.sql` en `0281_strava_has_gps_times.sql`, op verzoek van de eigenaar toegepast via de Supabase-connector (2026-10-27) en nagekeken; niet lokaal te testen.**
+> Commit: `5dd0154f`, op `main`.
+>
+> **Waarom.** De databasecheck van 2026-10-27 vond twee dingen. (1) `delete
+> training_plans` duurde gemiddeld 1.030 ms: zes verwijzingen met `on delete set
+> null` hadden geen index, dus elke delete liep o.a. `training_workouts` (~8.400
+> rijen) helemaal door. (2) De zwaarste query was `gps-col-times.ts` (17% van de
+> databasetijd, 573 ms gemiddeld, ~900 keer per week): het filter
+> `raw->gps_col_times is not null` laat Postgres bij elke rit van het lid de
+> hele `raw` uitpakken, terwijl maar 232 van de 29.356 ritten (12 leden) eigen
+> tijden hebben (geteld via de connector).
+>
+> **Wat.**
+> - `0280`: indexen op `training_workouts.superseded_by_plan_id`,
+>   `training_plans.parent_plan_id` en `root_plan_id`,
+>   `training_adaptation_runs.source_plan_id` en `draft_plan_id`, en
+>   `training_chat_messages.plan_id`.
+> - `0281`: kolom `strava_activities.has_gps_times` (zonder default, geen
+>   herschrijving van de tabel), een trigger `before insert or update of raw`
+>   die hem zet zodra `raw` wordt geschreven, een backfill van alleen de 232
+>   rijen met tijden, en een gedeeltelijke index `(profile_id) where
+>   has_gps_times is true`. Via de trigger hoeft geen schrijver (gps-sync, de
+>   intervals-sync, imports) de kolom te kennen.
+> - `gpsActivities` in `src/lib/cols/gps-col-times.ts`: één query met
+>   `.is("has_gps_times", true)` in plaats van twee filters op `raw`. Geeft die
+>   een fout (kolom bestaat nog niet), dan valt hij terug op de oude route; de
+>   code kan dus vóór de migratie live.
+>
+> **Bewust niet gebouwd.** Een gegenereerde kolom: die herschrijft de hele
+> tabel (127 MB) en geeft een WAL-piek, zoals op 2026-10-01. De vlag in de
+> schrijvers zelf zetten: de trigger dekt ook schrijvers die later bijkomen.
+>
+> **Getest.** `tests/unit/gps-times-flag.test.ts` draait beide migraties in
+> PGlite: backfill, de trigger bij insert en bij een update van `raw`, geen
+> trigger bij een update van andere kolommen, idempotent, en elke verwijzing
+> naar `training_plans` heeft een index. Daarnaast de query zelf en de
+> terugvalroute met een stub. Met een geforceerd generiek plan gebruikt
+> Postgres de gedeeltelijke index (EXPLAIN in PGlite). `gps-sync.test.ts` blijft
+> groen. `tsc` geeft 25 fouten buiten deze bestanden (verouderde `.next/types`,
+> en `@anthropic-ai/sdk` en `modern-screenshot` ontbreken lokaal tot `npm
+> install`); geen in de gewijzigde bestanden.
+>
+> **Op productie (2026-10-27).** `0280` en `0281` toegepast via de
+> Supabase-connector, vóór de push; de code is daarna dezelfde dag gepusht
+> (`09bf04ad`), dus vanaf de deploy leest de app via `has_gps_times`. Nagekeken, alleen lezen: geen verwijzing naar
+> `training_plans` meer zonder index; de zeven nieuwe indexen staan (samen
+> ~200 kB); 232 ritten hebben `has_gps_times = true` (gelijk aan de telling
+> vooraf), geen enkele `false`; de trigger `strava_activities_has_gps_times`
+> staat aan; beide migraties staan in `supabase_migrations.schema_migrations`.
+> `EXPLAIN` van de nieuwe query gebruikt `strava_activities_gps_times_idx`.
+>
+> **Niet geverifieerd.** De migraties lokaal (geen Docker of Supabase-config);
+> het effect op de databasetijd, dat moet na de push uit de volgende wekelijkse
+> check blijken.
+
+---
+
+> **Egress-golf door zichtbaarheids-events, 2026-10-20 — gebouwd; unit-tests, typecheck en lint schoon op de gewijzigde bestanden; gepusht naar `main` (vastgesteld 2026-10-27). Migraties `0255_col_scan_cache.sql` en `0256_rls_initplan_feed_telegram.sql`, op verzoek van de eigenaar toegepast via de Supabase-connector (2026-10-20) en nagekeken; niet lokaal te testen.**
+> Commit: `ef6e8273`, op `main`.
 >
 > **Waarom.** De wekelijkse databasecheck van 2026-10-20 vond 7,23 GB egress na
 > 9 dagen (limiet 5 GB) en een banner van Supabase: beperking vanaf 2026-11-02.
@@ -542,8 +636,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   scant de hele historie één keer en schrijft ~29.000 rijen bij; dat geeft wel
 >   wat WAL, verspreid over de runs.
 >
-> **Te beslissen door de eigenaar.** Pro of de beperking vanaf 2 november;
-> `vacuum full public.zwb_segment_maps;` (open sinds 2026-10-01).
+> **Te beslissen door de eigenaar.** Pro of de beperking vanaf 2 november.
+> `vacuum full public.zwb_segment_maps;` is gedraaid (gemeld 2026-10-27).
 >
 > **Op productie (2026-10-20).** `0255` en `0256` toegepast via de
 > Supabase-connector, vóór de push: de oude code gebruikt de nieuwe kolommen en
@@ -9346,7 +9440,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > op `/summary`. `fetchHeaders()` stuurt `LADDER_COOKIE` niet mee, en de pagina
 > bevat de teamnamen niet. Daarnaast wist een overgeslagen bron (`SyncSkip`)
 > `last_error`. Daardoor meldt de health-check `ladder_sync` groen terwijl er
-> niets binnenkomt.
+> niets binnenkomt. *Hersteld op 2026-10-26: zie de ronde "Club Ladder-sync:
+> cookie, positie uit de parser" bovenaan het chronologische werkplan.*
 > **In plaats daarvan: een link naar WTRL.** De eigenaar koos ervoor om
 > uitslagen niet te verwerken, ook niet met de hand. Het blok Teamresultaten op
 > de teampagina linkt naar `https://www.wtrl.racing/zrl/results/`. Die pagina
@@ -11436,6 +11531,327 @@ Zwift-passages: zonder de zFTP van WTRL is er ook geen grenscontrole.
 **Gecontroleerd.** Vitest (`race-briefing.test.ts`, nieuwe case voor BDEV met
 280 W bij 3,68 W/kg), `tsc`, ESLint. Rollen los gerenderd en bekeken. **Niet
 geverifieerd:** het briefje met echte renners.
+
+### Gebouwd — ZWBriljant: pijltjes sinds de vorige steen
+
+**2026-10-27, commits `3424928a` en `eede2e0f`.** Geen migratie.
+
+**Waarom.** De eigenaar zag de score na het weekeinde een stap zetten maar kon niet
+herleiden waar die vandaan kwam. Gevraagd: bij het onderdeel dat veranderde een groen
+pijltje omhoog of rood omlaag met het verschil, en bij aanwijzen (of tikken op de
+telefoon) de berekening erachter.
+
+**Nu.**
+- `changesSince` in `src/lib/briljant/compare.ts` legt de steen van nu (of de gekozen
+  week) naast de vorige bewaarde steen, de laatste snapshot met score vóór die week.
+  Per onderdeel de meting en de punten, toen en nu; de consistentie apart.
+- Een bewaard niveau staat op twee decimalen; een verschil kleiner dan die afronding
+  (0,005) telt niet, anders kreeg elk onderdeel van de live steen een pijltje van
+  ±1 punt. Een onderdeel dat er toen nog niet was, telt mee vanaf 0, net als in de
+  optelling van de score.
+- De meting van toen wordt uit het niveau teruggerekend (zoals de datumkiezer al
+  deed); die van nu is de echte meting.
+- Op de steen: het pijltje achter het label van het onderdeel en achter de
+  consistentie. Aanwijzen toont toen en nu in een kaartje (alleen op apparaten met
+  hover); tikken opent het paneel van het onderdeel, met hetzelfde onder "Sinds".
+  Alles volgt de knop Waarden/Punten: "4,17 → 4,3 W/kg" en "+0,13 W/kg", of "558 →
+  588 punten" en "+30". Onder de score een regel "+20 punten sinds 19 oktober"; die
+  opent het scorepaneel met alle verschillen in een tabel. Bij durability is minder
+  procent beter, dus groen omhoog.
+- In die tabel alleen de getallen ("11,75 → 8,56", "+14"), zonder eenheid: met
+  eenheden ("% per 10 kJ/kg") werd het paneel breder dan het scherm en moest de
+  eigenaar opzij scrollen (2026-10-27, na de push). De eenheid staat bij het
+  onderdeel zelf, in het kaartje en het paneel.
+- Eerst toonde het kaartje ook wat het onderdeel je score deed (Δpunten × gewicht ×
+  consistentiefactor, en voor de consistentie profiel × verschil in factor). Dat
+  vond de eigenaar te veel (2026-10-27, commit `eede2e0f`): alleen de groei in waarde
+  of punten. De formule zelf staat op `/hulp` onder De formules.
+- `/hulp` (ZWBriljant, Terugkijken) legt de pijltjes uit.
+
+**Niet gebouwd.** Een vergelijking met gisteren: er is per week één steen (de steen
+van deze week wordt bij elk bezoek overschreven), dus "de vorige steen" is die van
+de week ervoor. Een dagelijkse snapshot zou een tabel die elke dag groeit vragen,
+voor een vraag die de weekstap al beantwoordt. Geen pijltjes bij andermans stenen of
+bij Vergelijken: daar gaat het om het verschil tussen twee stenen, niet in de tijd.
+
+**Getest.** Unit-tests voor `changesSince` (richting, afronding, nieuw onderdeel,
+consistentie, geen vorige steen). Het scherm bekeken met voorbeelddata op een
+tijdelijke pagina onder `/ontwerp-voorbeeld` (niet gecommit), op laptop- en
+telefoonbreedte. Niet bekeken met echte snapshots: dat kan alleen ingelogd.
+
+### Gewijzigd — ZWBriljant: records van de minuut en 5 minuten, de beste 10% van de profs als houvast
+
+**2026-10-27.** Commit `d281d5b9`, gepusht naar `main` op 2026-10-27 (eigenaar). Geen migratie, geen nieuwe schaalversie: de ijkwaarden van de klassen
+blijven gelijk, alleen de recordsteen verandert (die wordt live gerekend, niet bewaard).
+
+**Waarom.** De eigenaar zag op Instagram (Knowledge is Watt) wat de beste 10% van 144
+mannelijke profs per duur rijdt, uit Valenzuela 2022, en vroeg of dat klopt en in
+ZWBriljant past. Het artikel bestaat en de P90 op 20 en 60 minuten klopt volgens
+tweede bronnen. Twee records lagen daaronder: de minuut 11,2 tegen P90 11,3 en 5
+minuten 7,6 tegen P90 7,7. Ongeveer 14 van de 144 profs zaten dus boven ons
+"record". Keuze eigenaar: de records corrigeren en de profwaarden als houvast in het
+onderzoek opnemen (opties 1 en 2 van drie).
+
+**Nu.**
+- `src/lib/briljant/records.ts`: mannen minuut 11,5 en 5 minuten 7,8 (was 11,2 en
+  7,6); vrouwen naar hetzelfde aandeel 9,45 en 6,55 (was 9,2 en 6,4). De minuut voor
+  vrouwen ligt zo ook boven de geschatte P90 van profvrouwen (8,4 ± 0,8, Mateo-March
+  2022: 9,4). De 5 minuten past bij Pogačar als houder: zijn 7,2 binnen een rit van
+  vier uur is fris 7,55 tot 7,9 met het verval van de WorldTour. De recordsteen gaat
+  van 1170 naar 1182 (mannen) en van 1162 naar 1173 (vrouwen).
+- [Het onderzoek](docs/zwbriljant-onderzoek.md) kreeg "Houvast boven Diamant": de
+  P90 per duur op onze schaal (minuut 1186, 5 minuten 1130, 20 minuten 1150 punten),
+  hoe je die leest (loopbaan en training, per duur andere renners) en wat wel en niet
+  is nagekeken.
+
+**Bewust niet gedaan.**
+- **De profwaarden als ijkwaarde van Robijn of Diamant.** Ze liggen 230 tot 290
+  punten boven Diamant; zo zou Diamant weer onhaalbaar worden, en dat besloot de
+  eigenaar op 2026-10-21 anders.
+- **Een "profsteen" in de zaal** (de beste 10% als eigen steen, optie 3): een nieuw
+  onderdeel; hoort eerst in het plannenboek.
+- **De 15 s uit de profwaarden.** Die duur staat niet in de bron; de schatting rond
+  17 W/kg staat alleen als houvast in het onderzoek.
+- **Het minuutrecord hoger dan 11,5.** Het hoogste van de 144 staat niet in wat we
+  konden lezen; 11,5 en 7,8 zijn een ondergrens, geen gemeten record.
+
+**Niet geverifieerd.** De tabel van het artikel zelf: de volledige tekst was in deze
+omgeving niet bereikbaar (niet in PubMed Central, uitgever geblokkeerd). De P90 op 1
+s, 10 s, 1 min, 5 min en 240 min komen uit de Instagram-samenvatting. De recordsteen
+niet in de browser bekeken.
+
+**Gecontroleerd.** `briljant-records.test.ts` op de nieuwe totalen; alle acht
+`briljant-*`-testbestanden groen (105 tests), `tsc` schoon, ESLint schoon op de
+gewijzigde bestanden.
+
+### Gebouwd — Doeltijd: welke klasse van je steen de tijd vraagt
+
+**2026-10-26.** Commit `ad492698`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie: de eisen gaan in de
+bestaande jsonb-kolom `training_goal_forecasts.detail`.
+
+**Waarom.** Wens van de eigenaar: JOIN zegt met de JOINscore of je getraind genoeg
+bent voor de Amstel Gold Race of de Marmotte; kan ZWBriljant dat ook? Plan eerst in
+het plannenboek, daarna "ga dit plan maar uitwerken". "Aankunnen" is een eigen
+doeltijd (keuze eigenaar). De totaalscore van de steen is er de verkeerde maat voor:
+sprint, anaeroob, racen en consistentie tellen mee en beslissen geen toertocht.
+Daarom een eis per onderdeel. Onderzoek en ijking in
+[eisen-per-doel.md](docs/eisen-per-doel.md).
+
+**Nu.**
+- `src/lib/training/goal-requirements.ts` (nieuw, puur):
+  - **Drempel:** `wkg_20m` (dezelfde waarde als de steen) maal de factor waarmee
+    het hele vermogensprofiel de doeltijd haalt, op de schaal van de steen
+    (`powerAnchors("m20", sex)`). Bij een al haalbare doeltijd zoekt
+    `cpFactorForTime` omlaag tot 0,5, zodat de eis ook dan een klasse is.
+  - **Fitheid:** de belasting van de rit in de doeltijd (uren × IF² × 100,
+    genormaliseerd vermogen over de segmenten van het snelste plan, CP als FTP)
+    gedeeld door `EVENT_LOAD_PER_CTL = 7`, op `CTL_ANCHORS`. Jouw kant: `icu_ctl`
+    van de laatste rit in `intervals_activities`, teruggerekend naar vandaag
+    (× e^(−dagen/42)).
+- `goal-target-time.ts`: `requiredFactor` heet nu `cpFactorForTime`, is
+  geëxporteerd en zoekt tussen twee grenzen; `assessTargetTime` geeft de factor
+  mee; `forecastGoal` rekent de eisen als er steengegevens zijn.
+- `goal-forecast.ts`: `loadSteenInputs` (geslacht, `wkg_20m`, CTL); de eisen gaan
+  mee in `detail.requirements`, alleen als niveaus. `forecastIsStale` rekent een
+  prognose zonder eisen één keer opnieuw.
+- Doelkaart: twee regels "Drempel nodig" en "Fitheid nodig", klasse en punten met
+  de kleur van de klasse, en "jij" ernaast. Alleen op de eigen doelenpagina
+  (`showRequirements`); de trainer ziet ze niet.
+- `/hulp/schema#doeltijd` kreeg een punt "Je steen"; de zoekindex een ingang voor
+  de doeltijd (die ontbrak).
+
+**IJking (productie, alleen gelezen).** Fitheid: per lid de rit van drie uur of
+langer die het verst boven de CTL van die dag lag, 2,6 tot 9,5 keer bij 15 leden,
+mediaan 7. P90 over alle ritten (5,7) viel af: dan konden drie leden met CTL rond
+33 hun eigen ritten van 256 tot 335 TSS niet aan. Een schatting, zo ook op `/hulp`.
+
+**Bewust niet gebouwd.**
+- **Durability.** Bij 17 leden met vermoeidheidscurves vergeleken: zes hebben op de
+  steen hooguit 1% verval per 10 kJ/kg (Diamant), terwijl de prognose voor hen 2
+  tot 18% CP-verlies na 1000 kJ en tot 25% na 2000 kJ rekent. De steen meet P25
+  over 1 tot 20 minuten op de laagste kJ-stand, de prognose CP per kJ-stand. Een
+  eis in steenklassen zou de prognose tegenspreken. Keuze eigenaar: weglaten. Het
+  verval blijft in de prognose en als nadruk.
+- **VO2max, sprint, anaeroob, racen, consistentie.** Het pacingmodel schaalt het
+  hele profiel met één factor, dus een losse VO2max-eis zegt niets nieuws. De rest
+  beslist geen toertocht.
+- **Zonder doeltijd ("rustig uitrijden").** Zonder durability blijft alleen
+  fitheid over, op een duur die we zelf zouden moeten kiezen.
+- **Bij elk event en op de pacingpagina.** De eisen hangen aan de bewaarde,
+  wekelijks ververste prognose van een doel.
+- **Voor de trainer.** Anderen zien de steen alleen als het lid hem deelt; de
+  trainer krijgt de kaart zonder de twee regels. De niveaus staan wel in de
+  prognoserij, die de trainer via RLS al kan lezen (net als CP en gewicht).
+
+**Privacy.** Geen nieuwe gegevens of ontvangers: de eisen rekenen met wat de
+prognose en de steen al gebruiken, en zijn deel van de prognose die de verklaring
+al noemt. Tekst niet gewijzigd.
+
+**Gecontroleerd.** Nieuw: `goal-requirements.test.ts` (9 tests: NP en belasting,
+drempel maal factor met het voorbeeld 424 → boven 486, fitheid door 7, ontbrekende
+waarden, schaal voor vrouwen, eis onder en boven je huidige klasse in de prognose,
+geen eisen zonder steen). `goal-target-time.test.ts`: een prognose zonder eisen is
+verouderd. `tsc` schoon, ESLint schoon op de gewijzigde bestanden. Volle suite:
+3523 van 3525 groen; de twee rode (`admin-areas`, `intervals-ride-sync`) liepen
+onder volle belasting tegen de tijdslimiet en slagen los, en `omnium-live` mist
+`.env.local` in deze worktree. **In dev bekeken** (2026-10-26, tegen de
+productiedatabase): een testdoel van de eigenaar op de Marmotte 2027 met doeltijd
+8:30, rechtstreeks ingevoegd zodat er geen melding naar de trainers ging. De pagina
+rekende de prognose zelf (ambitieus, 329 W nodig, belasting 439 TSS) en toonde
+drempel Amethist 548 tegen Goud 387 en fitheid Amethist 527 tegen Platina 490.
+Daarna is het testdoel met zijn prognose verwijderd. **Niet geverifieerd:** de
+kaart op de live site na de deploy.
+
+### Hersteld — Club Ladder-overzicht leest de echte opmaak van /summary
+
+**2026-10-26.** Commit `a7d43743`, gepusht naar `main` op 2026-10-26 (eigenaar).
+Geen migratie.
+
+**Waarom.** Vervolg op de sync-ronde hieronder, op verzoek van de eigenaar. Op
+`/teams/club-ladder` was de vorm leeg, klopte de stijging niet en stonden er 0
+wedstrijden. De parser zocht naar generieke tabelcellen en platte tekst, maar
+`/summary` heeft een vaste opmaak. Gemeten op de pagina van 2026-10-26 had de oude
+parser nog twee fouten: de vrouwenladder heet `WOMENS` (niet `WOMEN`), en de
+World-ladder (alle regio's samen, 242 teams) stond er ook in. Die twee rijtjes
+werden bij AMER geteld (310 in plaats van 48).
+
+**Nu** (`src/lib/club-ladder/summary.ts`, herschreven).
+- Stand: per `section.aLadder` de regio uit de `h2`, en per `tr.ladderRow`
+  positie (`data-position`), naam, vorm en stijging. De World-ladder
+  (`section.pLadder`) blijft erbuiten.
+- Vorm: de letter in elk `.formSquare`. Een verdedigde plek (`DEFEND`) is een W,
+  zoals de ladder hem toont. Lege blokjes tellen niet.
+- Stijging: de klasse van `.movebubble` (`upMove`, `downMove`, `staticMove`)
+  plus het aantal plekken, bijvoorbeeld "▲ 2". De zombie-badge telt niet mee.
+- Wedstrijden: uit de tabel in `.fixtureTab`. `tr.dayBounds` geeft de dag
+  ("Today" wordt de UTC-datum van het ophalen); daarna tijd, thuis- en uitploeg,
+  route en powerups. Nieuw: `startsAt` in UTC.
+- Weg: `avg`, `med` en `club` (die kolommen staan wel in de kop, maar niet in de
+  rijen; de pagina gebruikte ze niet) en de terugval op platte tekst. Bij een
+  onbekende opmaak is de stand nu leeg, in plaats van gegokt. Een actief team
+  geeft dan bij de sync een fout, en die maakt `ladder_sync` rood.
+- Pagina: een wedstrijd hoort bij je team als thuis- of uitploeg exact gelijk is
+  (was: de naam ergens in de regel). Tijd in Nederlandse tijd, ploegen
+  "thuis – uit", route en powerups eronder.
+
+**Gemeten.** Tegen `/summary` van 2026-10-26: 242 teams (EMEA 161, APAC 12, AMER
+48, WOMENS 21). Vorm: 239 teams met 5 uitslagen, 2 met 3 en 1 met 1. 95
+wedstrijden, allemaal met een datum.
+
+**Bewust niet.** De "Dead in N days"-teller en de zombie-markering (een team
+dat naar het kerkhof dreigt te gaan) worden niet gelezen. De uitslagen in
+`.resultsTab` ook niet. Niets daarvan was gevraagd. De volgorde van de
+vormblokjes is overgenomen zoals de ladder hem toont; of de nieuwste links of
+rechts staat, is niet nagegaan.
+
+**Gecontroleerd.** Nieuw: `club-ladder-summary.test.ts` (5 tests op een pagina
+die is nagebouwd naar de echte opmaak, in `tests/fixtures/club-ladder.ts`).
+`club-ladder-sync.test.ts` gebruikt nu dezelfde opmaak. 13 tests slagen.
+ESLint schoon. `tsc` meldt alleen de ontbrekende pakketten van deze worktree.
+**Niet geverifieerd:** de pagina in de browser (daarvoor moet je inloggen op
+productie).
+
+### Hersteld — Club Ladder-sync: cookie, positie uit de parser, overgeslagen bron wist geen fout
+
+**2026-10-26.** Commit `75ae3c1d`, gepusht naar `main` op 2026-10-26 (eigenaar).
+Geen migratie.
+
+**Waarom.** Bij het in kaart brengen van het ladderdeel bleek op productie
+(alleen lezen): de vier ladderteams staan op het kerkhof en hebben 0 leden, en er
+staat 0 keer een Club Ladder-uitslag in `team_results`. De laatste sync was
+2026-10-02 en had `last_error` leeg. De drie oorzaken uit de ronde van
+2026-09-21 (WTRL-sync uit) zaten er nog: geen cookie, een zoektocht in platte
+tekst die de positie niet vond, en een overgeslagen bron die `last_error` wiste.
+
+**Nu** (`src/lib/team-results/sync.ts`).
+- `fetchHeaders()` stuurt voor `club_ladder` `LADDER_COOKIE` en de Referer mee.
+- De positie komt uit `parseClubLadderSummary` (dezelfde parser als
+  `/teams/club-ladder`), via `clubLadderResultFromSummary`. Het team wordt op
+  `normalizeTeamName` gezocht. `total_teams` is het aantal teams in dezelfde regio,
+  en `metadata` bevat naam, regio en stijging of daling (was: een stuk platte tekst).
+- Staat het team niet in de stand: een team op het kerkhof is een overgeslagen
+  bron; een actief team is een fout. Zo wordt `ladder_sync` rood als een actief
+  team uit de stand valt.
+- Een overgeslagen bron (`SyncSkip`) zet alleen `last_synced_at`; `last_error`
+  blijft staan. Alleen een gelukte sync wist hem. Dat geldt ook voor WTRL.
+- `stripHtml` is weg; niets anders gebruikte het.
+
+**Gemeten op 2026-10-26.** Op de publieke `/summary` las de parser 483 teams
+(EMEA 161, AMER 310, APAC 12) met de juiste positie en naam. Geen van de ZWB-teams
+staat erin, wat past bij het kerkhof. Met de huidige data levert de sync dus
+nog steeds niets op, maar nu met de juiste reden.
+
+**Gevonden, bewust niet in deze ronde.** Op `/teams/club-ladder` kloppen vorm
+en stijging niet en zijn er 0 wedstrijden. *Hersteld in de ronde "Club
+Ladder-overzicht leest de echte opmaak" hierboven, waarin de parser is
+herschreven. De 483 teams hieronder waren te veel: de World-ladder telde mee.*
+Ook niet gedaan: `/summary` (1 MB) één keer per syncrun ophalen in plaats van
+per bron.
+
+**Let op.** Een bron die eerder een fout had en daarna op het kerkhof belandt,
+houdt die fout en blijft rood tot een gelukte sync, of tot de bron uit gaat.
+
+**Gecontroleerd.** Nieuw: `club-ladder-sync.test.ts` (8 tests: positie uit de
+parser, naamvergelijking, kerkhof is overslaan, actief team ontbreekt is een
+fout, cookie in de request, en `last_error` blijft staan, wordt gezet of wordt
+gewist). ESLint schoon. `tsc` meldt alleen de pakketten die in deze worktree
+ontbreken (`modern-screenshot`, `@anthropic-ai/sdk`). De hele unit-suite: 22
+bestanden falen, allemaal op die ontbrekende pakketten, een ontbrekende
+`.env.local` of al bestaande fouten buiten deze code. **Niet geverifieerd:**
+de sync tegen productie met de echte `LADDER_COOKIE`, en of die cookie nog geldig is.
+
+### Gebouwd — Tabbalk op de iPhone: sprong herhalen en balk zelf omlaag
+
+**2026-10-26.** Commit `0a15d62c`, gepusht naar `main` op 2026-10-26
+(eigenaar). Geen migratie.
+
+**Aanleiding.** Na de ronde van 2026-10-16 zagen leden de tabbalk nog steeds
+"af en toe" midden in beeld, nu op een eventpagina. Op de screenshot staat de
+onderrand van de balk ongeveer 384 pt boven de onderkant van het scherm
+(iPhone, 393×852 pt): een toetsenbord met de balk erboven. Het is dus dezelfde
+bug, en het herstel van de vorige ronde werkte daar niet.
+
+**Waarom het vorige herstel misliep.** Twee zwakke plekken in
+`ios-viewport-herstel.tsx`:
+- Het controleerde 150 ms na `focusout`, terwijl het toetsenbord dan nog
+  dichtklapt. Het beeld was op dat moment nog terecht klein, dus deed het een
+  sprong die niets uithaalde. De resize daarna viel binnen de grens van één
+  herstel per seconde en werd overgeslagen, zonder nieuwe poging. Daarna komt
+  er geen gebeurtenis meer, dus bleef de balk hangen tot de app dicht ging.
+- Als de sprong niet hielp, gebeurde er verder niets.
+
+**Wat er veranderde.**
+- Een sprong die te snel na de vorige komt, wordt uitgesteld in plaats van
+  overgeslagen. Na elke sprong volgt een controle; tot drie sprongen per keer
+  dat het beeld blijft hangen. De eerste controle wacht 350 ms na `focusout`.
+- Ook na het scrollen wordt gecontroleerd. In de beginscherm-app verandert de
+  hoogte niet door scrollen, dus dat geeft geen vals alarm, en wie het ziet,
+  scrolt meestal.
+- Een onzichtbare vaste laag ter grootte van het scherm in de body. Volgens de
+  bron van de vorige ronde meet WebKit het beeld pas opnieuw als zo'n laag na de
+  sprong terugkomt; de body zelf is langer dan het scherm.
+- Terugval op de iPhone: zolang het beeld hangt, schuift de tabbalk het tekort
+  zelf omlaag (`transform` via `--ios-viewport-fout` op `html`). Het tekort is de
+  grootste hoogte bij deze breedte min `innerHeight`, of anders een blijvende
+  `visualViewport.offsetTop` (de iOS 26-variant uit WebKit-bug 297779). Zodra een
+  veld de focus krijgt, of het beeld weer klopt, staat de balk weer gewoon.
+- Een veld in een iframe telt als "toetsenbord kan open zijn".
+- De rekenregels staan los in `src/lib/ios-viewport.ts`, met unit-tests.
+
+**Bewust niet gedaan.**
+- Niet schuiven op de iPad: daar kan het venster echt lager worden (Stage
+  Manager), en zou de balk uit beeld schuiven. Daar alleen de sprong.
+- Geen meting van leden naar de server sturen om de echte waarden te zien; dat
+  is gegevens verzamelen en vraagt eerst een afweging voor de privacyverklaring.
+- Geen waas over de sprong (zoals de bron voorstelt) en niet terug naar
+  `fixed`; dezelfde redenen als in de vorige ronde.
+
+**Niet geverifieerd.** Niet op een echte iPhone; de bug is lokaal niet na te
+bootsen. Lokaal: de nieuwe unit-tests slagen en lint is schoon; de typecheck
+meldt alleen pakketten die in deze worktree ontbreken (`modern-screenshot`,
+`@anthropic-ai/sdk`). Of het schuiven precies op de onderrand uitkomt, hangt af
+van wat iOS in de vastgelopen toestand teruggeeft; de berekening gaat ervan uit
+dat `innerHeight` te klein blijft, zoals beschreven in de bron.
 
 ### Hersteld — Racebriefje en live stand van A kozen groep B (A en B1 in één Zwift-event)
 
@@ -14505,7 +14921,9 @@ W/kg; was 6,4 en 7,1). Daarboven loopt de schaal met dezelfde stap door, zonder 
 Fitheid: Robijn 100, Diamant 110 (was 120 en 150). Durability: Robijn ProTeam 2,2,
 Diamant WorldTour 1,5 (was 1,2 en 0,7). Racen: elke ZRS een punt, Diamant vanaf 900 ZRS
 (was 1000 ZRS precies Diamant). De records staan los in `records.ts`; de recordsteen komt
-op 1136 (mannen) en 1131 (vrouwen). Rekenvoorbeeld van 593 naar 606.
+op 1136 (mannen) en 1131 (vrouwen). *(Klopt niet meer: na de wijzigingen in durability
+en fitheid was het 1170 en 1162, en sinds 2026-10-27 is het 1182 en 1173, zie de ronde
+"records van de minuut en 5 minuten".)* Rekenvoorbeeld van 593 naar 606.
 `SCALE_VERSION` werd `2026-10-21-sd3`: de terugblik en weekopnames worden opnieuw gemaakt,
 en de wekelijkse job zoekt de ZRS van vroeger opnieuw op (de oude markeringen horen bij de
 oude schaal). *(Sinds 0271, 2026-10-23, niet meer: een nieuwe schaal leidt de ZRS van toen
@@ -14550,7 +14968,8 @@ een zaal met ieders steen, en Aliens: profs met echte data. Die Aliens kwamen er
   de recordsteen. `glow` verhuisde naar `stone.ts` voor beide scènes.
 - **De recordsteen** (`src/lib/briljant/records.ts`, keuze "Records" bij vergelijken en de
   grootste steen in de zaal): elk onderdeel op de recordwaarde, de ijkwaarde van Diamant,
-  dus precies 900. Voor vrouwen hun eigen recordwaarden. Bij een record met een bekende
+  dus precies 900. *(Klopt niet meer: sinds later op 2026-10-21 liggen de records ver
+  boven Diamant, zie "Diamant haalbaar" hierboven.)* Voor vrouwen hun eigen recordwaarden. Bij een record met een bekende
   houder staat de naam in goud onder de waarde: Pogačar bij drempel en VO2max (onderbouwde
   berekeningen, zie het onderzoek). Sprint, anaeroob, durability, fitheid en racen hebben
   geen houder.
@@ -16309,7 +16728,9 @@ nadruk in het schema en een prognose die met de tijd meeloopt.
   laatste een week oud is, CP of gewicht veranderd is of de doeltijd is
   aangepast (`forecastIsStale`). Op de kaart staan oordeel, benodigde CP,
   gevoeligheid, nadruk en het verloop (laatste zes prognoses). De trainer ziet
-  dezelfde kaart zonder bewerken.
+  dezelfde kaart zonder bewerken. Sinds 2026-10-26 staan op de kaart van het lid
+  ook de klassen die de doeltijd van de steen vraagt; die ziet de trainer niet
+  (ronde "Doeltijd: welke klasse van je steen de tijd vraagt").
 - **Schema-AI.** `buildTrainingInput` geeft `goal.targetTime` mee (laatste
   prognose, of een verse als die verouderd is), met een promptregel: nadruk
   voor de sleutelsessies, geen extra volume of intensiteit, geen finishtijd
@@ -19628,7 +20049,10 @@ geen veld meer de focus heeft. Zo ja, dan zet het de body heel even op
 `display: none` en terug, met een gedwongen herberekening ertussen, en zet het
 de scrollpositie terug. Die sprong dwingt WebKit het beeld opnieuw te meten.
 Ingezoomd (`visualViewport.scale` > 1) telt niet als hangen. Hoogstens één
-herstel per seconde.
+herstel per seconde. *Correctie 2026-10-26:* die grens liet juist de sprong
+vallen die nodig was; de sprong wordt nu uitgesteld in plaats van overgeslagen
+en zo nodig herhaald, zie de ronde "Tabbalk op de iPhone: sprong herhalen en
+balk zelf omlaag".
 
 **Bewust niet gedaan.**
 - Niet in Safari zelf: daar verandert de hoogte terecht als de adresbalk in- en

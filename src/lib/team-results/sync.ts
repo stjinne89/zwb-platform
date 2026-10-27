@@ -1,12 +1,15 @@
 import { assertSafeUrl } from "@/lib/net/safe-fetch";
+import { parseClubLadderSummary, type ClubLadderSummary } from "@/lib/club-ladder/summary";
+import { normalizeTeamName } from "@/lib/ladder";
 
 type SourceTeam = {
   name?: string | null;
   type?: string | null;
   division?: string | null;
+  is_graveyard?: boolean | null;
 };
 
-type SourceRow = {
+export type SourceRow = {
   id: string;
   team_id: string;
   provider: "wtrl" | "club_ladder";
@@ -27,7 +30,7 @@ type WtrlCandidate = {
   classStr: string;
 };
 
-type ParsedResult = {
+export type ParsedResult = {
   externalSource: "wtrl" | "club_ladder";
   externalId: string;
   teamId: string;
@@ -160,7 +163,7 @@ function wtrlSyncEnabled() {
   return process.env.WTRL_SYNC_ENABLED === "true";
 }
 
-class SyncSkip extends Error {
+export class SyncSkip extends Error {
   constructor(message: string) {
     super(message);
     this.name = "SyncSkip";
@@ -313,6 +316,11 @@ function fetchHeaders(provider: SourceRow["provider"]): HeadersInit {
     headers["X-Requested-With"] = "XMLHttpRequest";
   }
 
+  if (provider === "club_ladder") {
+    headers.Referer = "https://ladder.cycleracing.club/";
+    if (process.env.LADDER_COOKIE) headers.Cookie = process.env.LADDER_COOKIE;
+  }
+
   return headers;
 }
 
@@ -335,17 +343,6 @@ async function fetchText(source: SourceRow, url = source.source_url) {
 
 async function wait(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function stripHtml(html: string) {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function numberOrNull(value: unknown) {
@@ -699,45 +696,41 @@ async function syncWtrlSource(source: SourceRow) {
   throw new SyncSkip(`Geen WTRL-resultaat gevonden voor "${source.match_name}".`);
 }
 
-async function syncClubLadderSource(source: SourceRow) {
-  const html = await fetchText(source);
-  const text = stripHtml(html);
-  const matchIndex = normalize(text).indexOf(normalize(source.match_name));
+// Een team op het kerkhof staat niet in de stand; dat is een overgeslagen bron.
+// Een actief team dat ontbreekt, is een fout, zodat de health-check rood wordt.
+export function clubLadderResultFromSummary(
+  source: SourceRow,
+  summary: ClubLadderSummary,
+): ParsedResult[] {
+  const name = normalizeTeamName(source.match_name);
+  const standing = summary.standings.find((row) => normalizeTeamName(row.name) === name);
 
-  if (matchIndex === -1) {
-    throw new SyncSkip(
-      `Geen publieke Club Ladder-stand gevonden voor "${source.match_name}".`,
-    );
-  }
-
-  const start = Math.max(0, matchIndex - 300);
-  const end = Math.min(text.length, matchIndex + source.match_name.length + 300);
-  const context = text.slice(start, end);
-  const rankMatch = context.match(/(?:rank|#|positie)?\s*(\d{1,4})/i);
-  const position = rankMatch ? Number(rankMatch[1]) : null;
-
-  if (!position) {
-    throw new SyncSkip(
-      `Club Ladder-vermelding voor "${source.match_name}" gevonden, maar positie niet herkend.`,
-    );
+  if (!standing) {
+    const message = `"${source.match_name}" staat niet in de Club Ladder-stand (${summary.standings.length} teams gelezen).`;
+    if (sourceTeam(source)?.is_graveyard) throw new SyncSkip(`${message} Team staat op het kerkhof.`);
+    throw new Error(message);
   }
 
   return [
     {
-      externalSource: "club_ladder" as const,
+      externalSource: "club_ladder",
       externalId: `club_ladder:${source.id}:current`,
       teamId: source.team_id,
       competition: "Club Ladder",
       roundLabel: "Ladder positie",
       roundAt: null,
-      position,
+      position: standing.position,
       points: null,
-      totalTeams: null,
+      totalTeams: summary.standings.filter((row) => row.region === standing.region).length,
       notes: null,
       sourceUrl: source.source_url,
-      metadata: { context },
+      metadata: { name: standing.name, region: standing.region, move: standing.move },
     },
   ];
+}
+
+async function syncClubLadderSource(source: SourceRow) {
+  return clubLadderResultFromSummary(source, parseClubLadderSummary(await fetchText(source)));
 }
 
 async function syncSource(source: SourceRow) {
@@ -1025,7 +1018,7 @@ export async function syncTeamResults(
   const defaults = await ensureDefaultTeamsAndSources(supabase);
   const { data, error } = await supabase
     .from("team_result_sources")
-    .select("id, team_id, provider, source_url, match_name, teams(name, type, division)")
+    .select("id, team_id, provider, source_url, match_name, teams(name, type, division, is_graveyard)")
     .eq("enabled", true)
     .order("provider")
     .order("match_name");
@@ -1066,9 +1059,9 @@ export async function syncTeamResults(
     } catch (err) {
       const message = err instanceof Error ? err.message : "Onbekende sync-fout.";
       if (err instanceof SyncSkip) {
+        // last_error blijft staan: alleen een gelukte sync wist hem.
         await markSource(supabase, source.id, {
           last_synced_at: new Date().toISOString(),
-          last_error: null,
         });
         outcomes.push({
           sourceId: source.id,

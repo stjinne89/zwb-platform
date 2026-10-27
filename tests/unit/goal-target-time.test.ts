@@ -252,7 +252,14 @@ describe("hulpfuncties", () => {
       cp_watts: 260,
       weight_kg: "75.0",
       required_cp_watts: 270,
-      detail: { riding: "alone" as const },
+      detail: {
+        riding: "alone" as const,
+        requirements: {
+          drempel: { required: 4.5, current: 4.2 },
+          fitheid: { required: 4.6, current: 3.1 },
+          eventLoad: 320,
+        },
+      },
     };
     const current = { cpWatts: 260, weightKg: 75 };
     expect(forecastIsStale(goal, undefined, current, now)).toBe(true);
@@ -262,6 +269,8 @@ describe("hulpfuncties", () => {
     expect(forecastIsStale({ ...goal, target_riding: "group" }, latest, current, now)).toBe(true);
     expect(forecastIsStale(goal, latest, { cpWatts: 265, weightKg: 75 }, now)).toBe(true);
     expect(forecastIsStale(goal, latest, { cpWatts: 260, weightKg: 74.2 }, now)).toBe(true);
+    // Een prognose van vóór de eisen per onderdeel wordt één keer opnieuw gerekend.
+    expect(forecastIsStale(goal, { ...latest, detail: { riding: "alone" } }, current, now)).toBe(true);
   });
 });
 

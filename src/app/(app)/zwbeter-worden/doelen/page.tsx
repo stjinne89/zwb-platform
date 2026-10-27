@@ -293,6 +293,7 @@ export default async function ZwbeterWordenGoalsPage({ searchParams }: SearchPar
                     routeLabel={goalRouteLabel(goal, eventTitles)}
                     forecasts={forecasts.get(goal.id) ?? []}
                     editable={goal.status === "active"}
+                    showRequirements
                   />
                 ) : null}
                 {selfPlanning && (waitingGoals.has(goal.id) || pendingByGoal.has(goal.id)) ? (

@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, X } from "lucide-react";
 import { FACET_WEIGHTS, LEVELS, type Level } from "@/lib/briljant/norms";
-import { FACETS, FACET_LABELS } from "@/lib/briljant/score";
+import { FACETS, FACET_LABELS, FACET_MEASURES } from "@/lib/briljant/score";
+import type { BriljantChanges, ConsistencyChange, FacetChange } from "@/lib/briljant/compare";
 import type { BriljantView as View, FacetView, Win } from "@/lib/briljant/view";
 import type { SceneStone } from "./stone-scene";
 import { briljantSans, briljantSerif } from "./fonts";
@@ -78,6 +79,8 @@ type Props = {
     /** Je mooiste steen tot nu toe, als keuze bij vergelijken. */
     best: boolean;
   };
+  /** Wat er veranderde sinds de vorige steen; alleen bij je eigen steen. */
+  changes: (BriljantChanges & { label: string }) | null;
   /** Waar je het meest wint met 5% beter; alleen bij je eigen steen van nu. */
   wins: Win[];
   /** De galerij: alle stenen die je mag zien, met de jouwe ("ik"); null buiten de galerij. */
@@ -134,6 +137,51 @@ const shown = (facet: FacetView | undefined, unit: Unit) =>
 const nl = (value: number, digits = 0) =>
   value.toLocaleString("nl-NL", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
+/** Met teken: "+19", "−3". */
+const plus = (value: number) => `${value < 0 ? "−" : "+"}${nl(Math.abs(value))}`;
+
+/** Het pijltje bij een onderdeel: groen omhoog is beter, rood omlaag slechter. */
+function Delta({ up, text }: { up: boolean; text: string }) {
+  return (
+    <em className={up ? styles.up : styles.down}>
+      <i aria-hidden>{up ? "▲" : "▼"}</i> {text}
+    </em>
+  );
+}
+
+/**
+ * Toen en nu, volgens de knop Waarden/Punten (eigenaar, 2026-10-27): "4,17 → 4,3
+ * W/kg" of "558 → 588 punten". Zonder meting de punten.
+ */
+function facetStep(change: FacetChange, unit: Unit): string {
+  if (unit === "waarden" && change.from && change.to) {
+    // De eenheid één keer.
+    return `${change.from.replace(` ${FACET_MEASURES[change.key].unit}`, "")} → ${change.to}`;
+  }
+  return `${change.fromPoints} → ${change.toPoints} punten`;
+}
+
+/** Het verschil volgens dezelfde knop: "+0,13 W/kg" of "+30". */
+const facetDelta = (change: FacetChange, unit: Unit) => (unit === "waarden" && change.value ? change.value : plus(change.points));
+
+/** Alleen de getallen, voor de smalle tabel onder de score: "11,75 → 8,56", "+14". */
+const numbers = (change: FacetChange, text: string) =>
+  text.replaceAll(` ${FACET_MEASURES[change.key].unit}`, "").replace(/ punten$/, "");
+
+const consistencyStep = (change: ConsistencyChange) => `${Math.round(change.from * 100)}% → ${Math.round(change.to * 100)}%`;
+const consistencyDelta = (change: ConsistencyChange) =>
+  `${plus(Math.round(change.to * 100) - Math.round(change.from * 100))}%`;
+
+/** Bij aanwijzen: sinds wanneer, en toen en nu. */
+function Why({ label, step }: { label: string; step: string }) {
+  return (
+    <span className={styles.why} aria-hidden>
+      <span>sinds {label}</span>
+      <span>{step}</span>
+    </span>
+  );
+}
+
 const sceneStone = (view: View): SceneStone => ({
   seed: view.seed,
   score: view.points,
@@ -183,6 +231,7 @@ function PanelBody({
   subject,
   compare,
   lines,
+  changes,
   wins,
   unit,
 }: {
@@ -191,11 +240,13 @@ function PanelBody({
   subject: BriljantCompare | null;
   compare: BriljantCompare | null;
   lines: string[];
+  changes: Props["changes"];
   wins: Win[];
   unit: Unit;
 }) {
   if (panel.kind === "facet") {
     const facet = view.facets.find((candidate) => candidate.key === panel.key)!;
+    const change = changes?.facets.find((candidate) => candidate.key === panel.key) ?? null;
     const theirs = compare?.view.facets.find((candidate) => candidate.key === panel.key) ?? null;
     return (
       <>
@@ -218,6 +269,14 @@ function PanelBody({
           <dd>
             {nl(facet.weight * 100, 1)}% · {facet.contribution} punten
           </dd>
+          {change && changes && (
+            <>
+              <dt>Sinds {changes.label}</dt>
+              <dd>
+                {facetStep(change, unit)} <Delta up={change.up} text={facetDelta(change, unit)} />
+              </dd>
+            </>
+          )}
           {compare && (
             <>
               <dt>{compare.label}</dt>
@@ -329,6 +388,14 @@ function PanelBody({
           )}
           <dt>Telt mee</dt>
           <dd>factor {nl(c.factor, 2)} op je score</dd>
+          {changes?.consistency && (
+            <>
+              <dt>Sinds {changes.label}</dt>
+              <dd>
+                {consistencyStep(changes.consistency)} <Delta up={changes.consistency.up} text={consistencyDelta(changes.consistency)} />
+              </dd>
+            </>
+          )}
         </dl>
       </>
     );
@@ -388,6 +455,38 @@ function PanelBody({
           </tr>
         </tbody>
       </table>
+      {changes && (changes.facets.length > 0 || changes.consistency) && (
+        <div className={styles.wins}>
+          <h3>Sinds {changes.label}</h3>
+          <table className={styles.changes}>
+            <tbody>
+              {changes.facets.map((change) => (
+                <tr key={change.key}>
+                  <td>{FACET_LABELS[change.key]}</td>
+                  <td>{numbers(change, facetStep(change, unit))}</td>
+                  <td>
+                    <Delta up={change.up} text={numbers(change, facetDelta(change, unit))} />
+                  </td>
+                </tr>
+              ))}
+              {changes.consistency && (
+                <tr>
+                  <td>Consistentie</td>
+                  <td>{consistencyStep(changes.consistency)}</td>
+                  <td>
+                    <Delta up={changes.consistency.up} text={consistencyDelta(changes.consistency)} />
+                  </td>
+                </tr>
+              )}
+              <tr className={styles.sum}>
+                <td>Score</td>
+                <td />
+                <td>{plus(changes.score)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
       {wins.length > 0 && (
         <div className={styles.wins}>
           <h3>Hier win je het meest</h3>
@@ -407,7 +506,7 @@ function PanelBody({
   );
 }
 
-export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compare, lines, options, wins, hall, sponsors, hidden }: Props) {
+export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compare, lines, options, changes, wins, hall, sponsors, hidden }: Props) {
   const labels = useRef(new Map<string, HTMLElement>());
   const [failed, setFailed] = useState(false);
   const [panel, setPanel] = useState<Panel>(null);
@@ -481,6 +580,10 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
     setPanel(null);
     router.push(params.size ? `?${params.toString()}` : "?", { scroll: false });
   };
+
+  const changeOf = (key: FacetView["key"]) => changes?.facets.find((change) => change.key === key) ?? null;
+  /** Het pijltje volgt de weergave: de meting of de punten. */
+  const deltaFor = (change: FacetChange | null) => change && <Delta up={change.up} text={facetDelta(change, unit)} />;
 
   // Alleen je eigen stenen en de records hebben metingen; van leden zie je punten.
   const hasValues = view.facets.some((facet) => facet.value) || Boolean(compare?.view.facets.some((facet) => facet.value));
@@ -562,6 +665,11 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
                 ? `nog ${view.toNext} punten tot ${view.next.name}`
                 : "Diamant: de score telt door"}
           </p>
+          {changes && changes.score !== 0 && (
+            <button type="button" className={styles.since} onClick={(event) => open({ kind: "score" }, event.currentTarget)}>
+              <Delta up={changes.score > 0} text={`${plus(changes.score)} punten`} /> sinds {changes.label}
+            </button>
+          )}
           {!asOf && !subject && view.delta4w != null && view.delta4w !== 0 && (
             <p className={styles.next}>
               {view.delta4w > 0 ? "+" : "−"}
@@ -714,25 +822,37 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
               <div ref={setLabel("foot")} className={styles.anchor}>
                 <button type="button" className={styles.foot} onClick={(event) => open({ kind: "consistency" }, event.currentTarget)}>
                   Consistentie <b>{Math.round(view.consistency.value * 100)}%</b> · factor {nl(view.consistency.factor, 2)}
+                  {changes?.consistency && (
+                    <>
+                      {" "}
+                      <Delta up={changes.consistency.up} text={consistencyDelta(changes.consistency)} />
+                    </>
+                  )}
                   <span>de steen is {Math.round(view.consistency.factor * 100)}% van zijn volle maat</span>
+                  {changes?.consistency && <Why label={changes.label} step={consistencyStep(changes.consistency)} />}
                 </button>
               </div>
             )}
             {/* Bij vergelijken staan de onderdelen naast elkaar in het paneel van de tweede steen. */}
-            {!compare && view.facets.map((facet) => (
-              <div key={facet.key} ref={setLabel(`facet:${facet.key}`)} className={styles.anchor}>
-                <button type="button" className={styles.facet} onClick={(event) => open({ kind: "facet", key: facet.key }, event.currentTarget)}>
-                  <b>
-                    <Lozenge level={facet.level} className={styles.facetMark} />
-                    {facet.label} {shown(facet, unit)}
-                  </b>
-                  <span>
-                    {facet.level.name}
-                    {unit === "waarden" && facet.value ? ` · ${facet.points} punten` : facet.value ? ` · ${facet.value}` : ""}
-                  </span>
-                </button>
-              </div>
-            ))}
+            {!compare && view.facets.map((facet) => {
+              const change = changeOf(facet.key);
+              return (
+                <div key={facet.key} ref={setLabel(`facet:${facet.key}`)} className={styles.anchor}>
+                  <button type="button" className={styles.facet} onClick={(event) => open({ kind: "facet", key: facet.key }, event.currentTarget)}>
+                    <b>
+                      <Lozenge level={facet.level} className={styles.facetMark} />
+                      {facet.label} {shown(facet, unit)}
+                      {deltaFor(change)}
+                    </b>
+                    <span>
+                      {facet.level.name}
+                      {unit === "waarden" && facet.value ? ` · ${facet.points} punten` : facet.value ? ` · ${facet.value}` : ""}
+                    </span>
+                    {change && changes && <Why label={changes.label} step={facetStep(change, unit)} />}
+                  </button>
+                </div>
+              );
+            })}
             {LEVELS.map((level) => (
               <div key={level.n} ref={setLabel(`ref:${level.n}`)} className={styles.anchor} aria-hidden>
                 <span className={styles.ref}>
@@ -752,6 +872,7 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
                 <button type="button" onClick={(event) => open({ kind: "facet", key: facet.key }, event.currentTarget)}>
                   <Lozenge level={facet.level} className={styles.facetMark} />
                   {facet.label} <b>{shown(facet, unit)}</b>
+                  {deltaFor(changeOf(facet.key))}
                   <span>{facet.level.name}</span>
                 </button>
               </li>
@@ -791,6 +912,7 @@ export function BriljantView({ tab, view, subject, asOf, asOfLabel, dates, compa
               subject={subject}
               compare={compare}
               lines={lines}
+              changes={changes}
               wins={wins}
               unit={unit}
             />

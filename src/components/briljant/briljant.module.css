@@ -9,6 +9,8 @@
   --muted: #a8a296;
   --gold: #e7c56b;
   --night: #0a2b34;
+  --up: #7bd88f;
+  --down: #f08a7a;
   --serif: var(--font-briljant-serif), "Cormorant Garamond", Georgia, serif;
   --sans: var(--font-briljant-sans), "Jost", system-ui, sans-serif;
   color: var(--ink);
@@ -904,6 +906,101 @@
   margin-top: 18px;
 }
 
+/* Sinds de vorige steen: groen omhoog is beter, rood omlaag slechter (2026-10-27). */
+.up,
+.down {
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.up {
+  color: var(--up);
+}
+
+.down {
+  color: var(--down);
+}
+
+.up i,
+.down i {
+  font-size: 0.8em;
+  font-style: normal;
+}
+
+.panel .changes td:nth-child(n + 2) {
+  white-space: nowrap;
+}
+
+.since {
+  display: block;
+  margin: 6px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.since:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 4px;
+}
+
+/* Toen en nu bij aanwijzen; op een telefoon tik je en staat het in het paneel. */
+.anchor .why {
+  display: none;
+}
+
+@media (hover: hover) {
+  .anchor:hover,
+  .anchor:focus-within {
+    z-index: 2;
+  }
+  .anchor button:hover .why,
+  .anchor button:focus-visible .why {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    z-index: 2;
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 8px 10px;
+    transform: translateX(-50%);
+    border: 1px solid rgb(244 239 228 / 0.14);
+    border-radius: 4px;
+    background: rgb(8 36 44 / 0.96);
+    box-shadow: 0 12px 28px -12px rgb(0 0 0 / 0.75);
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    text-align: left;
+    text-transform: none;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+  }
+  .anchor .why span {
+    display: block;
+    margin: 0;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    color: inherit;
+  }
+  .anchor .why span:first-child {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+}
+
 .wins h3 {
   margin: 0 0 8px;
   font-size: 11px;
@@ -932,6 +1029,10 @@
 }
 
 @media (max-width: 640px) {
+  .since {
+    max-width: calc(100vw - 150px);
+    text-align: left;
+  }
   .controls {
     margin-top: 12px;
     max-width: calc(100vw - 150px);

@@ -8,17 +8,23 @@ export type ClubLadderStanding = {
   position: number;
   name: string;
   region: string;
-  club: string | null;
-  avg: string | null;
-  med: string | null;
+  /** Laatste uitslagen in de volgorde van de ladder: W (ook een verdedigde plek) of L. */
   form: string[];
+  /** "▲ 2", "▼", "=" of null. */
   move: string | null;
 };
 
 export type ClubLadderFixture = {
+  /** YYYY-MM-DD (UTC), of null als de dag niet te lezen is. */
   date: string | null;
+  /** HH:MM in UTC, zoals de ladder hem toont. */
   time: string;
-  raw: string;
+  /** ISO-tijdstip in UTC, of null zonder datum. */
+  startsAt: string | null;
+  home: string;
+  away: string;
+  route: string | null;
+  powerups: string[];
 };
 
 export type ClubLadderSummary = {
@@ -28,153 +34,90 @@ export type ClubLadderSummary = {
   sourceUrl: string;
 };
 
-const REGION_LABELS = new Set(["EMEA", "AMER", "APAC", "WOMEN", "MIXED"]);
+const MOVE_SYMBOLS: Record<string, string> = { upMove: "▲", downMove: "▼", staticMove: "=" };
 
 function clean(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function moveText(value: string) {
-  const match = value.match(/[▲▼=](?:\s*\d+)?|Bonus Drop/i);
-  return match ? clean(match[0]) : null;
-}
-
-function isRegion(value: string) {
-  return REGION_LABELS.has(value.toUpperCase());
-}
-
-function parseTableStandings(html: string) {
-  const $ = cheerio.load(html);
+// Opmaak van /summary (oktober 2026): per regio een section.aLadder met een h2
+// en rijen tr.ladderRow. De World-ladder (section.pLadder) telt alle regio's
+// samen opnieuw en blijft buiten de stand, anders staat elk team er twee keer in.
+function parseStandings($: cheerio.CheerioAPI) {
   const rows: ClubLadderStanding[] = [];
-  let region = "Club Ladder";
 
-  $("h1,h2,h3,h4,table,tr").each((_, node) => {
-    const element = $(node);
-    const tag = node.type === "tag" ? node.name.toLowerCase() : "";
-    const text = clean(element.text());
-    if (!text) return;
+  $("section.aLadder").each((_, section) => {
+    const block = $(section);
+    if (block.hasClass("pLadder")) return;
+    const region = clean(block.children("h2").first().text()).toUpperCase() || "Club Ladder";
 
-    if (tag !== "tr" && isRegion(text)) {
-      region = text.toUpperCase();
-      return;
-    }
-    if (tag !== "tr") return;
+    block.find("tr.ladderRow").each((__, tr) => {
+      const row = $(tr);
+      const position = Number(row.attr("data-position") ?? clean(row.find("td.nposCol").text()));
+      const name = clean(row.find("td.highlightBold").text());
+      if (!Number.isFinite(position) || position <= 0 || !name) return;
 
-    const cells = element
-      .children("td,th")
-      .map((__, cell) => clean($(cell).text()))
-      .get()
-      .filter(Boolean);
-    if (cells.length < 2 || !/^\d{1,4}$/.test(cells[0])) return;
+      const form = row
+        .find(".formSquare")
+        .map((___, square) => clean($(square).text()).toUpperCase())
+        .get()
+        .filter((result) => result === "W" || result === "L");
 
-    const position = Number(cells[0]);
-    const name = cells[1];
-    if (!Number.isFinite(position) || !name || /^name$/i.test(name)) return;
+      const bubble = row.find(".movebubble").first().clone();
+      bubble.find("span").remove();
+      const symbol = Object.entries(MOVE_SYMBOLS).find(([cls]) => bubble.hasClass(cls))?.[1];
+      const steps = clean(bubble.text()).match(/\d+/)?.[0];
+      const move = symbol ? (steps && symbol !== "=" ? `${symbol} ${steps}` : symbol) : null;
 
-    const form = cells.filter((cell) => /^[WL]$/i.test(cell)).map((cell) => cell.toUpperCase());
-    rows.push({
-      position,
-      name,
-      region,
-      avg: cells[2] && !/^[WL]$/i.test(cells[2]) ? cells[2] : null,
-      med: cells[3] && !/^[WL]$/i.test(cells[3]) ? cells[3] : null,
-      club:
-        cells[4] && !/^[WL]$/i.test(cells[4]) && !moveText(cells[4])
-          ? cells[4]
-          : null,
-      form,
-      move: moveText(cells.join(" ")),
+      rows.push({ position, name, region, form, move });
     });
   });
 
   return rows;
 }
 
-function parseTextStandings(html: string) {
-  const $ = cheerio.load(html);
-  $("script,style,svg").remove();
-  const lines = $("body")
-    .text()
-    .split(/\r?\n/)
-    .map(clean)
-    .filter(Boolean);
-  const rows: ClubLadderStanding[] = [];
-  let region = "Club Ladder";
-  let inRankings = false;
-
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i];
-    if (isRegion(line)) {
-      region = line.toUpperCase();
-      inRankings = true;
-      continue;
-    }
-    if (/^Pos\s+Name/i.test(line)) {
-      inRankings = true;
-      continue;
-    }
-    if (/^(Fixtures|Results|Riders|Belts|Captains)/i.test(line)) {
-      inRankings = false;
-      continue;
-    }
-    if (!inRankings) continue;
-
-    const match = line.match(/^(\d{1,4})\s+(.+)$/);
-    if (!match) continue;
-    const position = Number(match[1]);
-    const name = clean(match[2]);
-    if (!Number.isFinite(position) || !name || /^Rung\s+/i.test(name)) continue;
-
-    const chunk: string[] = [];
-    for (let j = i + 1; j < Math.min(lines.length, i + 12); j += 1) {
-      if (/^\d{1,4}\s+/.test(lines[j]) || isRegion(lines[j]) || /^Time \(UTC\)/i.test(lines[j])) {
-        break;
-      }
-      chunk.push(lines[j]);
-    }
-    const form = chunk.filter((item) => /^[WL]$/i.test(item)).map((item) => item.toUpperCase());
-
-    rows.push({
-      position,
-      name,
-      region,
-      avg: null,
-      med: null,
-      club: null,
-      form,
-      move: moveText(chunk.join(" ")),
-    });
-  }
-
-  return rows;
+function dayToDate(label: string, fetchedAt: Date) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(label)) return label;
+  const offset = /^today$/i.test(label) ? 0 : /^tomorrow$/i.test(label) ? 1 : null;
+  if (offset == null) return null;
+  const day = new Date(fetchedAt);
+  day.setUTCDate(day.getUTCDate() + offset);
+  return day.toISOString().slice(0, 10);
 }
 
-function parseFixtures(html: string) {
-  const $ = cheerio.load(html);
-  $("script,style,svg").remove();
-  const lines = $("body")
-    .text()
-    .split(/\r?\n/)
-    .map(clean)
-    .filter(Boolean);
+// Wedstrijden staan in de tabel van .fixtureTab: een tr.dayBounds per dag, dan
+// tr.fixToday/tr.fixFuture met tijd, thuis- en uitploeg, route en powerups.
+function parseFixtures($: cheerio.CheerioAPI, fetchedAt: Date) {
   const fixtures: ClubLadderFixture[] = [];
-  let currentDate: string | null = null;
+  let date: string | null = null;
 
-  for (const line of lines) {
-    if (/^(Today|Tomorrow|\d{4}-\d{2}-\d{2})$/i.test(line)) {
-      currentDate = line;
-      continue;
+  $(".fixtureTab tr").each((_, tr) => {
+    const row = $(tr);
+    if (row.hasClass("dayBounds")) {
+      date = dayToDate(clean(row.text()), fetchedAt);
+      return;
     }
-    const match = line.match(/^(\d{1,2}:\d{2})\s+(.+)$/);
-    if (!match) continue;
-    fixtures.push({
-      date: currentDate,
-      time: match[1],
-      raw: clean(match[2]),
-    });
-  }
+    const home = clean(row.find("td.homeTeam").text());
+    const away = clean(row.find("td.awayTeam").text());
+    const time = clean(row.children("td").first().text());
+    if (!home || !away || !/^\d{1,2}:\d{2}$/.test(time)) return;
 
-  return fixtures.slice(0, 80);
+    fixtures.push({
+      date,
+      time,
+      startsAt: date ? `${date}T${time.padStart(5, "0")}:00Z` : null,
+      home,
+      away,
+      route: clean(row.children("td").eq(3).text()) || null,
+      powerups: row
+        .find("img.pup-small")
+        .map((__, img) => $(img).attr("title") ?? "")
+        .get()
+        .filter(Boolean),
+    });
+  });
+
+  return fixtures;
 }
 
 function dedupeStandings(rows: ClubLadderStanding[]) {
@@ -187,13 +130,12 @@ function dedupeStandings(rows: ClubLadderStanding[]) {
   });
 }
 
-export function parseClubLadderSummary(html: string): ClubLadderSummary {
-  const tableRows = parseTableStandings(html);
-  const standings = dedupeStandings(tableRows.length > 0 ? tableRows : parseTextStandings(html));
+export function parseClubLadderSummary(html: string, now = new Date()): ClubLadderSummary {
+  const $ = cheerio.load(html);
   return {
-    standings,
-    fixtures: parseFixtures(html),
-    fetchedAt: new Date().toISOString(),
+    standings: dedupeStandings(parseStandings($)),
+    fixtures: parseFixtures($, now),
+    fetchedAt: now.toISOString(),
     sourceUrl: CLUB_LADDER_SUMMARY_URL,
   };
 }

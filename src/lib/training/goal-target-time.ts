@@ -24,6 +24,13 @@ import type { PacingRoute } from "@/lib/pacing/route-profile";
 import { fitPlanToTime, parseTargetTime, TARGET_TOLERANCE_S } from "@/lib/pacing/target-time";
 import type { RiderType } from "@/lib/teams/power-profile";
 import type { RidePhysics } from "@/lib/pacing/zwift-setup";
+import {
+  eventLoad,
+  goalRequirements,
+  MIN_CP_FACTOR,
+  type GoalRequirements,
+  type SteenInputs,
+} from "@/lib/training/goal-requirements";
 
 export type GoalRiding = "alone" | "group";
 
@@ -146,6 +153,8 @@ export type GoalForecast = {
   durabilityFadePct: number | null;
   riding: GoalRiding;
   emphasis: GoalEmphasis[];
+  /** Wat de doeltijd van je steen vraagt; null zonder steengegevens. */
+  requirements: GoalRequirements | null;
 };
 
 export type ForecastRider = {
@@ -164,6 +173,8 @@ export type ForecastInput = {
   weeksToGoal: number | null;
   /** Langste fietsrit van de laatste weken, in minuten; null als onbekend. */
   longestRideMinutes: number | null;
+  /** Voor de eisen per onderdeel van de steen; zonder: geen eisen. */
+  steen?: SteenInputs | null;
 };
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
@@ -233,13 +244,19 @@ export function fastestPlan(
  * zit al tegen de grens van wat de renner kan; schalen we plan en profiel samen,
  * dan blijft het net zo haalbaar en hoeft er alleen doorgerekend te worden — geen
  * nieuwe zoektocht met de ruis van een bisectie per stap.
+ *
+ * Gezocht tussen `from` en `to`: boven 1 als de doeltijd groei vraagt, onder 1 voor
+ * hoeveel minder het mag zijn als hij al haalbaar is. Null als zelfs `to` te traag
+ * is; `from` als die al snel genoeg is.
  */
-function requiredFactor(
+export function cpFactorForTime(
   plan: PlanSegment[],
   route: PacingRoute,
   rider: ForecastRider,
   targetSeconds: number,
   physics: TargetPhysics,
+  from = 1,
+  to = MAX_CP_FACTOR,
 ): number | null {
   const timeAt = (factor: number) => {
     const scaled = scaleRider(rider, factor);
@@ -250,9 +267,10 @@ function requiredFactor(
       evaluateOptions(scaled, physics),
     ).totalSeconds;
   };
-  if (timeAt(MAX_CP_FACTOR) > targetSeconds + TARGET_TOLERANCE_S) return null;
-  let lo = 1;
-  let hi = MAX_CP_FACTOR;
+  if (timeAt(to) > targetSeconds + TARGET_TOLERANCE_S) return null;
+  if (from < 1 && timeAt(from) <= targetSeconds) return from;
+  let lo = from;
+  let hi = to;
   for (let step = 0; step < 30 && hi - lo > 0.001; step++) {
     const mid = (lo + hi) / 2;
     if (timeAt(mid) > targetSeconds) lo = mid;
@@ -376,7 +394,11 @@ export function assessTargetTime(input: {
   physics?: TargetPhysics;
   /** Het eigen plan van het lid; zonder: het basisvoorstel. */
   startPlan?: PlanSegment[];
-}): TargetAssessment & { fastest: { plan: PlanSegment[]; evaluation: PlanEvaluation } } {
+}): TargetAssessment & {
+  fastest: { plan: PlanSegment[]; evaluation: PlanEvaluation };
+  /** Hoeveel sterker het profiel moet zijn; null als het al haalbaar of buiten bereik is. */
+  cpFactor: number | null;
+} {
   const { route, rider, targetSeconds } = input;
   const physics = input.physics ?? {};
   const { model } = rider;
@@ -412,10 +434,12 @@ export function assessTargetTime(input: {
   let verdict: GoalVerdict;
   let requiredCpWatts: number | null = null;
   let requiredGainPct: number | null = null;
+  let cpFactor: number | null = null;
   if (predictedSeconds <= targetSeconds + TARGET_TOLERANCE_S) {
     verdict = "haalbaar";
   } else {
-    const factor = requiredFactor(fastest.plan, route, rider, targetSeconds, physics);
+    const factor = cpFactorForTime(fastest.plan, route, rider, targetSeconds, physics);
+    cpFactor = factor;
     if (factor === null) {
       verdict = "buiten_bereik";
     } else {
@@ -437,17 +461,19 @@ export function assessTargetTime(input: {
     secondsPerCpPct: Math.round(secondsPerCpPct),
     secondsPerKg: Math.round(secondsPerKg),
     fastest,
+    cpFactor,
   };
 }
 
 export function forecastGoal(input: ForecastInput): GoalForecast {
   const { route, rider, targetSeconds, riding } = input;
-  const { fastest, ...assessment } = assessTargetTime({
+  const physics = { cdaFactor: riding === "group" ? GROUP_CDA_FACTOR : 1 };
+  const { fastest, cpFactor, ...assessment } = assessTargetTime({
     route,
     rider,
     targetSeconds,
     weeksToGoal: input.weeksToGoal,
-    physics: { cdaFactor: riding === "group" ? GROUP_CDA_FACTOR : 1 },
+    physics,
   });
 
   const climbs = climbStats(route, fastest.evaluation);
@@ -468,5 +494,33 @@ export function forecastGoal(input: ForecastInput): GoalForecast {
       durabilityFadePct,
       longestRideMinutes: input.longestRideMinutes,
     }),
+    requirements: input.steen
+      ? requirementsFor(input.steen, assessment.verdict, cpFactor, fastest, route, rider, targetSeconds, physics)
+      : null,
   };
+}
+
+/**
+ * Bij een al haalbare doeltijd: hoeveel zwakker het profiel mag zijn. Daarmee
+ * zegt de drempeleis ook dan welke klasse de tijd vraagt, en niet alleen "haalbaar".
+ */
+function requirementsFor(
+  steen: SteenInputs,
+  verdict: GoalVerdict,
+  cpFactor: number | null,
+  fastest: { plan: PlanSegment[]; evaluation: PlanEvaluation },
+  route: PacingRoute,
+  rider: ForecastRider,
+  targetSeconds: number,
+  physics: TargetPhysics,
+): GoalRequirements {
+  const factor =
+    verdict === "haalbaar"
+      ? cpFactorForTime(fastest.plan, route, rider, targetSeconds, physics, MIN_CP_FACTOR, 1)
+      : cpFactor;
+  return goalRequirements({
+    cpFactor: factor,
+    eventLoad: eventLoad(fastest.evaluation, rider.model.cpWatts, targetSeconds, factor ?? MAX_CP_FACTOR),
+    steen,
+  });
 }

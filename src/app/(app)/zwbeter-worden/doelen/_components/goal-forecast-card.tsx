@@ -1,12 +1,50 @@
-// Doeltijd bij een doel: oordeel, benodigde CP, gevoeligheden, nadruk in het
-// schema en het verloop van de prognose. Voor het lid en, alleen lezen, voor de
+// Doeltijd bij een doel: oordeel, benodigde CP, gevoeligheden, wat de tijd van
+// je ZWBriljant-steen vraagt, nadruk in het schema en het verloop van de prognose.
+// De klassen van de steen alleen voor het lid zelf: anderen zien de steen alleen
+// als het lid hem deelt. Voor het lid en, alleen lezen, voor de
 // trainer. De uitleg staat op /hulp#doeltijd, niet hier.
 
 import type { GoalForecastRow } from "@/lib/training/goal-forecast";
 import { CP_SOURCE_LABELS } from "@/lib/pacing/cp";
+import { levelOf } from "@/lib/briljant/norms";
+import { points } from "@/lib/briljant/score";
+import type { Requirement } from "@/lib/training/goal-requirements";
 import { formatClock } from "@/lib/training/goal-target-time";
 import { TargetAssessmentRows, VerdictBadge } from "@/components/target-assessment";
 import { GoalTargetEdit } from "./goal-target-edit";
+
+/** "Platina 486" met de kleur van de klasse ervoor. */
+function SteenLevel({ level }: { level: number }) {
+  const klasse = levelOf(level);
+  return (
+    <span className="whitespace-nowrap">
+      <span
+        aria-hidden
+        className="mr-1 inline-block size-2 rounded-full align-middle"
+        style={{ backgroundColor: klasse.color }}
+      />
+      {klasse.name} {points(level)}
+    </span>
+  );
+}
+
+function RequirementRow({ label, requirement }: { label: string; requirement?: Requirement }) {
+  if (requirement?.required == null) return null;
+  return (
+    <div>
+      <dt className="inline text-foreground">{label} nodig: </dt>
+      <dd className="inline tabular-nums">
+        <SteenLevel level={requirement.required} />
+        {requirement.current != null ? (
+          <>
+            {" · jij "}
+            <SteenLevel level={requirement.current} />
+          </>
+        ) : null}
+      </dd>
+    </div>
+  );
+}
 
 export function GoalForecastCard({
   goalId,
@@ -15,6 +53,7 @@ export function GoalForecastCard({
   routeLabel,
   forecasts,
   editable,
+  showRequirements = false,
 }: {
   goalId: string;
   targetSeconds: number;
@@ -23,6 +62,8 @@ export function GoalForecastCard({
   /** Nieuwste eerst. */
   forecasts: GoalForecastRow[];
   editable: boolean;
+  /** De klassen die de doeltijd van de steen vraagt; alleen voor het lid zelf. */
+  showRequirements?: boolean;
 }) {
   const latest = forecasts[0];
   const detail = latest?.detail ?? {};
@@ -48,6 +89,12 @@ export function GoalForecastCard({
             secondsPerCpPct={detail.secondsPerCpPct}
             secondsPerKg={detail.secondsPerKg}
           />
+          {showRequirements ? (
+            <>
+              <RequirementRow label="Drempel" requirement={detail.requirements?.drempel} />
+              <RequirementRow label="Fitheid" requirement={detail.requirements?.fitheid} />
+            </>
+          ) : null}
           {detail.emphasis && detail.emphasis.length > 0 ? (
             <div>
               <dt className="inline text-foreground">Nadruk in je schema: </dt>

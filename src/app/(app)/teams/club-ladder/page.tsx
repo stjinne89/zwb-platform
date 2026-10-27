@@ -90,8 +90,20 @@ function latestResultFor(teamId: string, results: ResultRow[]) {
 }
 
 function fixtureMatches(fixture: ClubLadderFixture, aliases: string[]) {
-  const text = normalizeTeamName(fixture.raw);
-  return aliases.some((alias) => text.includes(normalizeTeamName(alias)));
+  const teams = [fixture.home, fixture.away].map(normalizeTeamName);
+  return aliases.some((alias) => teams.includes(normalizeTeamName(alias)));
+}
+
+function fixtureWhen(fixture: ClubLadderFixture) {
+  if (!fixture.startsAt) return `${fixture.time} UTC`;
+  return new Date(fixture.startsAt).toLocaleString("nl-NL", {
+    timeZone: "Europe/Amsterdam",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function teamAliases(team: TeamRow, source: SourceRow | null) {
@@ -391,11 +403,16 @@ export default async function ClubLadderPage({
               ) : (
                 <ul className="mt-3 space-y-2">
                   {fixtures.map((fixture) => (
-                    <li key={`${fixture.date}-${fixture.time}-${fixture.raw}`} className="rounded-md border bg-background p-3 text-sm">
-                      <p className="font-medium">
-                        {fixture.date ?? "Datum onbekend"} - {fixture.time} UTC
+                    <li key={`${fixture.date}-${fixture.time}-${fixture.home}-${fixture.away}`} className="rounded-md border bg-background p-3 text-sm">
+                      <p className="font-medium">{fixtureWhen(fixture)}</p>
+                      <p className="mt-1">
+                        {fixture.home} – {fixture.away}
                       </p>
-                      <p className="mt-1 text-muted-foreground">{fixture.raw}</p>
+                      {(fixture.route || fixture.powerups.length > 0) && (
+                        <p className="mt-1 text-muted-foreground">
+                          {[fixture.route, fixture.powerups.join(", ")].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
                     </li>
                   ))}
                 </ul>

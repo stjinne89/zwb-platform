@@ -27,6 +27,7 @@ import {
   type GoalVerdict,
 } from "@/lib/training/goal-target-time";
 import type { CpSource } from "@/lib/pacing/cp";
+import type { SteenInputs } from "@/lib/training/goal-requirements";
 
 type Admin = ReturnType<typeof createAdminClient>;
 // Leest ook met de gewone sessieclient (RLS); alleen select is nodig.
@@ -73,6 +74,7 @@ export type GoalForecastDetail = Pick<
   | "durabilityFadePct"
   | "riding"
   | "emphasis"
+  | "requirements"
 >;
 
 export type GoalForecastRow = {
@@ -244,6 +246,54 @@ export async function loadGoalRoute(
   return result.ok ? result.loaded.route : null;
 }
 
+/** CTL zakt op een dag zonder belasting met 1/42 van zichzelf. */
+const CTL_DAYS = 42;
+
+/**
+ * Wat de steen nodig heeft voor de eisen: geslacht, de beste 20 minuten in W/kg
+ * zoals de steen ze leest, en de CTL van de laatste rit in intervals.icu,
+ * teruggerekend naar vandaag. Ontbreekt iets, dan blijft dat leeg.
+ */
+export async function loadSteenInputs(admin: Admin, profileId: string, now = new Date()): Promise<SteenInputs> {
+  const [{ data: profile }, { data: power }, { data: activity }] = await Promise.all([
+    admin.from("profiles").select("sex, weight_kg").eq("id", profileId).maybeSingle(),
+    admin
+      .from("rider_power_profiles")
+      .select("wkg_20m, watts_20m, weight_kg")
+      .eq("profile_id", profileId)
+      .maybeSingle(),
+    admin
+      .from("intervals_activities")
+      .select("start_date_local, ctl:raw->>icu_ctl")
+      .eq("profile_id", profileId)
+      .not("raw->>icu_ctl", "is", null)
+      .order("start_date_local", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  const p = (profile ?? {}) as { sex?: string | null; weight_kg?: number | string | null };
+  const pw = (power ?? {}) as Record<string, number | string | null>;
+  const weightKg = Number(pw.weight_kg ?? p.weight_kg);
+  const wkg20 =
+    Number(pw.wkg_20m) > 0
+      ? Number(pw.wkg_20m)
+      : Number(pw.watts_20m) > 0 && weightKg > 0
+        ? Number(pw.watts_20m) / weightKg
+        : null;
+
+  const row = activity as { start_date_local?: string; ctl?: string | null } | null;
+  let ctl: number | null = null;
+  if (row?.start_date_local && Number.isFinite(Number(row.ctl))) {
+    const days = Math.max(
+      0,
+      (now.getTime() - new Date(`${row.start_date_local.slice(0, 10)}T12:00:00Z`).getTime()) / 86400_000,
+    );
+    ctl = Number(row.ctl) * Math.exp(-days / CTL_DAYS);
+  }
+
+  return { sex: p.sex === "man" || p.sex === "vrouw" ? p.sex : null, wkg20, ctl };
+}
+
 export async function longestRideMinutes(admin: Admin, profileId: string): Promise<number | null> {
   const { data } = await admin
     .from("strava_activities")
@@ -283,9 +333,10 @@ export async function computeGoalForecast(
   const route = await loadGoalRoute(admin, goal);
   if (!route) return null;
 
-  const [rider, longest] = await Promise.all([
+  const [rider, longest, steen] = await Promise.all([
     loadRiderContext(admin, goal.profile_id),
     longestRideMinutes(admin, goal.profile_id),
+    loadSteenInputs(admin, goal.profile_id),
   ]);
   const forecast = forecastGoal({
     route,
@@ -294,6 +345,7 @@ export async function computeGoalForecast(
     riding: riding(goal.target_riding),
     weeksToGoal: weeksUntil(goal.target_date),
     longestRideMinutes: longest,
+    steen,
   });
 
   const detail: GoalForecastDetail = {
@@ -307,6 +359,7 @@ export async function computeGoalForecast(
     durabilityFadePct: forecast.durabilityFadePct,
     riding: forecast.riding,
     emphasis: forecast.emphasis,
+    requirements: forecast.requirements,
   };
   const { data, error } = await admin
     .from("training_goal_forecasts")
@@ -358,6 +411,8 @@ export function forecastIsStale(
   if (!latest) return true;
   if (latest.target_seconds !== goal.target_time_seconds) return true;
   if ((latest.detail.riding ?? "alone") !== riding(goal.target_riding)) return true;
+  // Van vóór de eisen per onderdeel (2026-10-26): één keer opnieuw.
+  if (!latest.detail.requirements) return true;
   const ageDays = (now.getTime() - new Date(latest.computed_at).getTime()) / 86400_000;
   if (ageDays >= FORECAST_MAX_AGE_DAYS) return true;
   if (current) {

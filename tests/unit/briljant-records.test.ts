@@ -6,7 +6,7 @@ describe("recordsteen", () => {
     const { view, holders } = recordView("man");
     expect(view.facets.map((facet) => facet.key)).toEqual(["sprint", "anaeroob", "vo2max", "drempel", "durability", "fitheid", "racen"]);
     expect(view.facets.every((facet) => facet.points >= 1000)).toBe(true);
-    expect(view.points).toBe(1170);
+    expect(view.points).toBe(1182);
     expect(view.level.name).toBe("Diamant");
     expect(view.facets.find((facet) => facet.key === "drempel")).toMatchObject({ value: "7,1 W/kg", points: 1275 });
     expect(holders.drempel).toBe("Tadej Pogačar");
@@ -14,7 +14,7 @@ describe("recordsteen", () => {
 
   it("gebruikt voor vrouwen hun eigen records, zonder houders", () => {
     const { view, holders } = recordView("vrouw");
-    expect(view.points).toBe(1162);
+    expect(view.points).toBe(1173);
     expect(view.facets.find((facet) => facet.key === "drempel")!.value).toBe("6,05 W/kg");
     expect(holders).toEqual({});
   });

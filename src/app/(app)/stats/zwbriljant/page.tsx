@@ -9,9 +9,9 @@ import {
 } from "@/components/briljant/briljant-view";
 import { StatsTabs } from "../_components/stats-tabs";
 import { getRequestUser } from "@/lib/auth/request";
-import { compareLines, snapshotAt, viewFromSnapshot, type AverageGroup } from "@/lib/briljant/compare";
+import { changesSince, compareLines, snapshotAt, viewFromSnapshot, type AverageGroup } from "@/lib/briljant/compare";
 import { recordView } from "@/lib/briljant/records";
-import { FACET_LABELS } from "@/lib/briljant/score";
+import { FACETS, FACET_LABELS, facetReadings } from "@/lib/briljant/score";
 import {
   collectBriljant,
   loadClubAverages,
@@ -38,6 +38,9 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const TERUGBLIK_WAIT_MS = 6_000;
 const weekLabel = (monday: string) =>
   new Date(`${monday}T12:00:00Z`).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
+
+const shortWeekLabel = (monday: string) =>
+  new Date(`${monday}T12:00:00Z`).toLocaleDateString("nl-NL", { day: "numeric", month: "long" });
 
 /** De gemiddelde stenen: van iedereen, en van mannen en vrouwen (eigenaar, 2026-10-22). */
 const AVERAGE_STONES: Array<{ id: string; group: AverageGroup; label: string; short: string; subject: string }> = [
@@ -115,6 +118,25 @@ export default async function BriljantPage({
   const view = past
     ? viewFromSnapshot({ seed: user.id, snapshot: past, source: `week van ${weekLabel(past.week)}`, own })
     : live;
+
+  // Wat er veranderde sinds de vorige steen: de week ervoor, bij nu en bij een
+  // week uit het verleden (eigenaar, 2026-10-27).
+  const shownWeek = past ? past.week : mondayKey(today);
+  const previous = snapshots.filter((snapshot) => snapshot.score != null && snapshot.week < shownWeek).at(-1) ?? null;
+  const readings = facetReadings(collected.input);
+  const changes = past
+    ? changesSince({ from: previous, to: past, sex: collected.input.sex })
+    : changesSince({
+        from: previous,
+        to: {
+          week: shownWeek,
+          score: live.score,
+          facets: Object.fromEntries(FACETS.map((facet) => [facet, readings[facet]?.level ?? null])),
+          consistency: live.consistency?.value ?? null,
+        },
+        sex: collected.input.sex,
+        values: Object.fromEntries(FACETS.flatMap((facet) => (readings[facet] ? [[facet, readings[facet]!.value]] : []))),
+      });
 
   // Je mooiste steen: de week met de hoogste score, uit alles wat er bewaard is.
   const best = snapshots.reduce<(typeof snapshots)[number] | null>(
@@ -233,6 +255,7 @@ export default async function BriljantPage({
         compare={compare}
         lines={lines}
         options={{ averages: averageStones.map(({ id, label }) => ({ id, label })), members, best: best != null }}
+        changes={tab === "ik" && changes ? { ...changes, label: shortWeekLabel(changes.since) } : null}
         wins={tab === "ik" && !past ? bestWins(collected.input, live.consistency?.value ?? null).slice(0, 3) : []}
         hall={hall}
         sponsors={sponsors}

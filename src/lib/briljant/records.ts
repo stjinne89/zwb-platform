@@ -9,10 +9,14 @@ import type { PowerDuration, Sex } from "./norms";
 import type { BriljantInput, Facet } from "./score";
 import { briljantView, type BriljantView } from "./view";
 
-/** De records in W/kg; voor vrouwen naar het aandeel van de vrouwelijke profs. */
+/**
+ * De records in W/kg; voor vrouwen naar het aandeel van de vrouwelijke profs. De
+ * minuut en 5 minuten liggen sinds 2026-10-27 boven de beste 10% van 144 profs
+ * (Valenzuela 2022: 11,3 en 7,7); eerst 11,2 en 7,6, en dat kon geen record zijn.
+ */
 const POWER_RECORDS: Record<"man" | "vrouw", Record<PowerDuration, number>> = {
-  man: { s15: 19.5, m1: 11.2, m5: 7.6, m20: 7.1 },
-  vrouw: { s15: 15.6, m1: 9.2, m5: 6.4, m20: 6.05 },
+  man: { s15: 19.5, m1: 11.5, m5: 7.8, m20: 7.1 },
+  vrouw: { s15: 15.6, m1: 9.45, m5: 6.55, m20: 6.05 },
 };
 /** CTL van de WorldTour in het seizoen, het maximum van ZRS, verval van de beste profs. */
 const CTL_RECORD = 150;
