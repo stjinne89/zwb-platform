@@ -11513,7 +11513,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: captains aanwijzen onderaan de pagina
 
-**2026-10-27.** Commit volgt hieronder, lokaal, niet gepusht. Geen migratie.
+**2026-10-27.** Commit `c3239578`, lokaal, niet gepusht. Geen migratie.
 
 **Waarom.** Vraag van de eigenaar: onderaan `/teams/club-ladder` leden als
 captain kunnen toevoegen. Alle ladderteams hadden op 2026-10-27 nul leden en dus
