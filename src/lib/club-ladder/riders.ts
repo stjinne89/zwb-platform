@@ -1,5 +1,5 @@
 // Ladderrenners voor de verdeling over de ladderteams: wie "Ladder" bij zijn
-// interesses aanvinkte plus wie al in een actief ladderteam zit. Mannen en
+// interesses aanvinkte plus wie al in een ladderteam zit. Mannen en
 // vrouwen racen in de ladder apart, dus de lijst komt per geslacht.
 
 export type LadderRiderProfile = {
@@ -24,6 +24,7 @@ export type LadderRiderPower = {
 
 export type LadderRiderMembership = {
   profile_id: string;
+  team_id: string;
   team_name: string;
 };
 
@@ -37,6 +38,7 @@ export type LadderRider = {
   /** ZRS, of vELO 2 zodra ZwiftRacing gekoppeld is; nooit door elkaar. */
   score: number | null;
   teams: string[];
+  teamIds: string[];
   category: string | null;
   riderType: string | null;
   ftpWatts: number | null;
@@ -83,10 +85,10 @@ export function buildLadderRiders(
   scores: Map<number, number | null> = new Map(),
 ): LadderRider[] {
   const powerByProfile = new Map(powers.map((power) => [power.profile_id, power]));
-  const teamsByProfile = new Map<string, string[]>();
+  const teamsByProfile = new Map<string, Map<string, string>>();
   for (const membership of memberships) {
-    const teams = teamsByProfile.get(membership.profile_id) ?? [];
-    if (!teams.includes(membership.team_name)) teams.push(membership.team_name);
+    const teams = teamsByProfile.get(membership.profile_id) ?? new Map<string, string>();
+    teams.set(membership.team_id, membership.team_name);
     teamsByProfile.set(membership.profile_id, teams);
   }
 
@@ -95,13 +97,15 @@ export function buildLadderRiders(
     const ftp = num(power?.ftp_watts) ?? num(profile.ftp_watts);
     const weight = num(profile.weight_kg);
     const zwiftId = zwiftIdOf(profile.zwift_id);
+    const teams = teamsByProfile.get(profile.id) ?? new Map<string, string>();
     return {
       id: profile.id,
       name: profile.display_name?.trim() || "Onbekend",
       sex: profile.sex === "man" || profile.sex === "vrouw" ? profile.sex : null,
       zwiftId,
       score: zwiftId == null ? null : num(scores.get(zwiftId)),
-      teams: (teamsByProfile.get(profile.id) ?? []).sort((a, b) => a.localeCompare(b, "nl")),
+      teams: Array.from(new Set(teams.values())).sort((a, b) => a.localeCompare(b, "nl")),
+      teamIds: Array.from(teams.keys()),
       category: profile.zrl_category?.trim() || null,
       riderType: power?.rider_type ?? null,
       ftpWatts: ftp,

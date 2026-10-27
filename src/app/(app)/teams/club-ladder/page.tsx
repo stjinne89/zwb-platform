@@ -32,6 +32,13 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { SyncResultsButton } from "../_components/sync-results-button";
+import {
+  LadderAssignButton,
+  LadderAssignProvider,
+  LadderTeamPicker,
+  type AssignTeam,
+} from "./_components/ladder-assign";
+import { canAssignLadderRiders } from "@/lib/club-ladder/access";
 import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
@@ -244,17 +251,20 @@ export default async function ClubLadderPage({
 
   // ZRS is tijdelijk: met een ZwiftRacing-sleutel vervangt vELO 2 hem.
   const useVelo = zwiftRacingConfigured();
-  const ladderGroups = groupLadderRidersBySex(
-    sortLadderRiders(
-      await loadLadderRiders(
-        teamRows.filter((team) => !team.is_graveyard),
-        admin,
-        supabase,
-        useVelo,
-      ),
-      riderSort,
-    ),
-  );
+  const [allLadderRiders, canAssign] = await Promise.all([
+    loadLadderRiders(teamRows, admin, supabase, useVelo),
+    canAssignLadderRiders(access),
+  ]);
+  const ladderGroups = groupLadderRidersBySex(sortLadderRiders(allLadderRiders, riderSort));
+  const assignTeams: AssignTeam[] = teamRows.map((team) => ({
+    id: team.id,
+    name: team.name,
+    archived: Boolean(team.is_graveyard),
+    riders: allLadderRiders
+      .filter((rider) => rider.teamIds.includes(team.id))
+      .map((rider) => ({ id: rider.id, name: rider.name }))
+      .sort((a, b) => a.name.localeCompare(b.name, "nl")),
+  }));
 
   let liveStandings: ClubLadderStanding[] = [];
   let liveFixtures: ClubLadderFixture[] = [];
@@ -457,29 +467,33 @@ export default async function ClubLadderPage({
             </section>
           </section>
 
-          <section id="ladderrenners" className="scroll-mt-20 space-y-6 rounded-lg border bg-card p-4">
-            {ladderGroups.length === 0 ? (
-              <>
-                <h2 className="font-semibold">Ladderrenners</h2>
-                <EmptyState>Nog geen ladderrenners.</EmptyState>
-              </>
-            ) : (
-              ladderGroups.map((group) => (
-                <div key={group.sex ?? "onbekend"}>
-                  <h2 className="font-semibold">
-                    Ladderrenners · {group.sex ? SEX_LABEL[group.sex] : "Geslacht onbekend"} (
-                    {group.riders.length})
-                  </h2>
-                  <LadderRidersTable
-                    riders={group.riders}
-                    sort={riderSort}
-                    teamId={selectedTeam.id}
-                    scoreLabel={useVelo ? "vELO 2" : "ZRS"}
-                  />
-                </div>
-              ))
-            )}
-          </section>
+          <LadderAssignProvider initialTeamId={selectedTeam.id}>
+            <section id="ladderrenners" className="scroll-mt-20 space-y-6 rounded-lg border bg-card p-4">
+              {canAssign && <LadderTeamPicker teams={assignTeams} />}
+              {ladderGroups.length === 0 ? (
+                <>
+                  <h2 className="font-semibold">Ladderrenners</h2>
+                  <EmptyState>Nog geen ladderrenners.</EmptyState>
+                </>
+              ) : (
+                ladderGroups.map((group) => (
+                  <div key={group.sex ?? "onbekend"}>
+                    <h2 className="font-semibold">
+                      Ladderrenners · {group.sex ? SEX_LABEL[group.sex] : "Geslacht onbekend"} (
+                      {group.riders.length})
+                    </h2>
+                    <LadderRidersTable
+                      riders={group.riders}
+                      sort={riderSort}
+                      teamId={selectedTeam.id}
+                      scoreLabel={useVelo ? "vELO 2" : "ZRS"}
+                      canAssign={canAssign}
+                    />
+                  </div>
+                ))
+              )}
+            </section>
+          </LadderAssignProvider>
         </>
       )}
     </div>
@@ -487,14 +501,16 @@ export default async function ClubLadderPage({
 }
 
 async function loadLadderRiders(
-  activeTeams: TeamRow[],
+  ladderTeams: TeamRow[],
   admin: ReturnType<typeof createAdminClient>,
   supabase: Awaited<ReturnType<typeof createClient>>,
   useVelo: boolean,
 ): Promise<LadderRider[]> {
-  const teamNames = new Map(activeTeams.map((team) => [team.id, team.name]));
+  // Ook teams in het archief: een captain kan er al renners in zetten voordat het
+  // team op de ladder terugkeert.
+  const teamNames = new Map(ladderTeams.map((team) => [team.id, team.name]));
   const { data: memberRows } =
-    activeTeams.length > 0
+    ladderTeams.length > 0
       ? await admin
           .from("team_members")
           .select("team_id, profile_id")
@@ -502,7 +518,11 @@ async function loadLadderRiders(
       : { data: [] };
   const memberships: LadderRiderMembership[] = (
     (memberRows ?? []) as Array<{ team_id: string; profile_id: string }>
-  ).map((row) => ({ profile_id: row.profile_id, team_name: teamNames.get(row.team_id) ?? "" }));
+  ).map((row) => ({
+    profile_id: row.profile_id,
+    team_id: row.team_id,
+    team_name: teamNames.get(row.team_id) ?? "",
+  }));
   const memberIds = Array.from(new Set(memberships.map((row) => row.profile_id)));
 
   const ladderFilter = ["event_type_interests.cs.{ladder}"];
@@ -545,11 +565,13 @@ function LadderRidersTable({
   sort,
   teamId,
   scoreLabel,
+  canAssign,
 }: {
   riders: LadderRider[];
   sort: LadderRiderSort;
   teamId: string;
   scoreLabel: string;
+  canAssign: boolean;
 }) {
   const header = (key: LadderRiderSort, label: string) => (
     <Link
@@ -635,6 +657,22 @@ function LadderRidersTable({
           cell: (rider) => wkg(rider.wkg20m),
           cellClassName: "tabular-nums",
         },
+        ...(canAssign
+          ? [
+              {
+                key: "assign",
+                header: <span className="sr-only">Toevoegen</span>,
+                align: "right" as const,
+                cell: (rider: LadderRider) => (
+                  <LadderAssignButton
+                    riderId={rider.id}
+                    riderName={rider.name}
+                    teamIds={rider.teamIds}
+                  />
+                ),
+              },
+            ]
+          : []),
       ]}
     />
   );

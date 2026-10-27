@@ -27,10 +27,10 @@ const riders = buildLadderRiders(
     },
   ],
   [
-    { profile_id: "a", team_name: "ZWBeasts" },
-    { profile_id: "a", team_name: "ZWBeasts" },
-    { profile_id: "b", team_name: "ZWB Zwiftladies" },
-    { profile_id: "a", team_name: "Aero Club" },
+    { profile_id: "a", team_id: "t1", team_name: "ZWBeasts" },
+    { profile_id: "a", team_id: "t1", team_name: "ZWBeasts" },
+    { profile_id: "b", team_id: "t2", team_name: "ZWB Zwiftladies" },
+    { profile_id: "a", team_id: "t3", team_name: "Aero Club" },
   ],
   new Map([
     [101, 512],
@@ -67,6 +67,7 @@ describe("buildLadderRiders", () => {
 
   it("toont elk ladderteam één keer, op naam", () => {
     expect(riders[0].teams).toEqual(["Aero Club", "ZWBeasts"]);
+    expect(riders[0].teamIds).toEqual(["t1", "t3"]);
     expect(riders[2].teams).toEqual([]);
     expect(riders[2].name).toBe("Onbekend");
   });

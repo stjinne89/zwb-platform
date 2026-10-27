@@ -11511,6 +11511,52 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: renners vanaf de lijst in een ladderteam zetten
+
+**2026-10-27.** Commit volgt hieronder, lokaal, niet gepusht. Geen migratie.
+
+**Waarom.** Vraag van de eigenaar, vervolg op de ladderrennerslijst hieronder:
+renners vanaf `/teams/club-ladder` in het juiste ladderteam zetten, "zoals dat
+bij ZRL-teams werkt".
+
+**Wat.**
+- Dezelfde opzet als de Captain-selectie van ZRL (`team-lineup-planner.tsx`):
+  bovenaan een keuzelijst met de ladderteams, per team de renners als chip met
+  een kruisje, en per renner in de lijst een plusknop die hem in het gekozen team
+  zet (`_components/ladder-assign.tsx`). Op telefoonbreedte is de plus een knop
+  van 44 px met "Toevoegen".
+- Anders dan bij ZRL gaat het niet om een opstelling per raceweek
+  (`team_event_lineups`), maar om het lidmaatschap van het team
+  (`team_members`): ladderwedstrijden staan niet als event in de kalender (0
+  ladder-events op 2026-10-27), dus er is geen raceweek om aan te hangen.
+- `assignLadderRider` en `unassignLadderRider` (`club-ladder/_actions.ts`) doen
+  wat Toevoegen en Verwijderen op de teampagina doen, inclusief de
+  `team_member_seed_overrides`. Toevoegen laat een bestaande rol (captain) staan.
+  Een renner kan in meer ladderteams staan, net als bij ZRL.
+- **Wie mag indelen** (`lib/club-ladder/access.ts`): `teams.manage_roster`, of
+  captain/co-captain van een ladderteam, en dan voor álle ladderteams, omdat de
+  captains samen de verdeling maken (zoals een ZRL-captain van het hoofdteam alle
+  subteams indeelt). Op de teampagina mag een captain alleen zijn eigen team.
+- Teams in het archief tellen nu mee: de keuzelijst toont ze met "(archief)", en
+  hun leden staan in de lijst. Op 2026-10-27 stonden alle vier de ladderteams in
+  het archief; zonder dit kon er niemand worden ingedeeld.
+- `/hulp` (Teams en wedstrijden) legt het uit.
+
+**Bewust niet.**
+- Geen opstelling per wedstrijd: de ladder staat niet in de kalender.
+- Geen maximum per team en geen blokkade op mannen in het damesteam: de captains
+  delen in, de app adviseert niet.
+- Geen rol kiezen (captain) vanaf deze pagina; dat blijft op de teampagina.
+
+**Gecontroleerd.** `tsc` schoon, ESLint op de gewijzigde bestanden, Vitest
+`club-ladder-*` groen. Lokaal ingelogd bekeken tegen de productie-database:
+keuzelijst met vier teams, vier lege teams, plusknop bij alle 12 renners;
+op 375 px een knop van 44 bij 118 px zonder horizontale scroll, op desktop een
+plus van 24 px. **Niet geverifieerd:** daadwerkelijk toevoegen en weghalen. Dat
+schrijft een echt lidmaatschap op productie, en weghalen laat een
+uitsluitingsregel achter; daarom niet lokaal geklikt. Eerst na de deploy met een
+echte indeling proberen.
+
 ### Gebouwd — Club Ladder: lijst van alle ladderrenners voor de captains
 
 **2026-10-27.** Commit `0633c3c3`, gepusht naar `main` op 2026-10-27. Geen migratie.
@@ -11523,8 +11569,9 @@ apart"), en de ZRS is tijdelijk: met de ZwiftRacing-API wordt het vELO 2.
 
 **Wie er in staat.** Keuze van de eigenaar (2026-10-27): iedereen die bij
 Interesses op het profiel Ladder aanvinkte (`profiles.event_type_interests`
-bevat `ladder`), plus de leden van een actief ladderteam (niet op het kerkhof),
-alleen goedgekeurde leden. Bij de check op 2026-10-27 hadden de vier ladderteams
+bevat `ladder`), plus de leden van een ladderteam, alleen goedgekeurde leden.
+(Eerst alleen actieve ladderteams; sinds de ronde "renners vanaf de lijst in een
+ladderteam zetten" ook teams in het archief.) Bij de check op 2026-10-27 hadden de vier ladderteams
 0 leden (alle vier op het kerkhof) en hadden 12 leden Ladder aangevinkt (8
 mannen, 4 vrouwen). Een lege interesselijst betekent in de kalender "alles
 interessant"; die leden staan hier bewust niet in, anders bestaat de lijst uit
