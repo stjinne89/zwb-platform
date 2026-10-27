@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { after } from "next/server";
 import { Activity, ArrowRight, RefreshCw, Swords, Trophy, Users } from "lucide-react";
 import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
 import { MemberLink } from "@/components/member-link";
@@ -10,7 +11,22 @@ import {
   type ClubLadderFixture,
   type ClubLadderStanding,
 } from "@/lib/club-ladder/summary";
+import {
+  buildLadderRiders,
+  groupLadderRidersBySex,
+  parseLadderRiderSort,
+  sortLadderRiders,
+  type LadderRider,
+  type LadderRiderMembership,
+  type LadderRiderPower,
+  type LadderRiderProfile,
+  type LadderRiderSort,
+  type LadderSex,
+} from "@/lib/club-ladder/riders";
 import { normalizeTeamName } from "@/lib/ladder";
+import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metrics";
+import { riderTypeLabel } from "@/lib/teams/power-profile";
+import { zwiftRacingConfigured } from "@/lib/zwiftracing/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -19,10 +35,16 @@ import { SyncResultsButton } from "../_components/sync-results-button";
 import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
+
+/** Zelfde budget als de racebriefing voor ZRS/vELO die ontbreken of verlopen zijn. */
+const METRICS_REFRESH_BUDGET_MS = 20_000;
+
+const SEX_LABEL: Record<Exclude<LadderSex, null>, string> = { man: "Mannen", vrouw: "Vrouwen" };
 export const revalidate = 0;
 
 type Search = {
   team?: string;
+  sort?: string;
 };
 
 type TeamRow = {
@@ -145,7 +167,8 @@ export default async function ClubLadderPage({
 }: {
   searchParams: Promise<Search>;
 }) {
-  const { team: selectedTeamId } = await searchParams;
+  const { team: selectedTeamId, sort: sortParam } = await searchParams;
+  const riderSort = parseLadderRiderSort(sortParam);
   const supabase = await createClient();
   const admin = createAdminClient();
 
@@ -218,6 +241,20 @@ export default async function ClubLadderPage({
   const selectedStrength = selectedTeam
     ? strengthFor(selectedTeam.id, members, powerByProfile)
     : null;
+
+  // ZRS is tijdelijk: met een ZwiftRacing-sleutel vervangt vELO 2 hem.
+  const useVelo = zwiftRacingConfigured();
+  const ladderGroups = groupLadderRidersBySex(
+    sortLadderRiders(
+      await loadLadderRiders(
+        teamRows.filter((team) => !team.is_graveyard),
+        admin,
+        supabase,
+        useVelo,
+      ),
+      riderSort,
+    ),
+  );
 
   let liveStandings: ClubLadderStanding[] = [];
   let liveFixtures: ClubLadderFixture[] = [];
@@ -419,9 +456,187 @@ export default async function ClubLadderPage({
               )}
             </section>
           </section>
+
+          <section id="ladderrenners" className="scroll-mt-20 space-y-6 rounded-lg border bg-card p-4">
+            {ladderGroups.length === 0 ? (
+              <>
+                <h2 className="font-semibold">Ladderrenners</h2>
+                <EmptyState>Nog geen ladderrenners.</EmptyState>
+              </>
+            ) : (
+              ladderGroups.map((group) => (
+                <div key={group.sex ?? "onbekend"}>
+                  <h2 className="font-semibold">
+                    Ladderrenners · {group.sex ? SEX_LABEL[group.sex] : "Geslacht onbekend"} (
+                    {group.riders.length})
+                  </h2>
+                  <LadderRidersTable
+                    riders={group.riders}
+                    sort={riderSort}
+                    teamId={selectedTeam.id}
+                    scoreLabel={useVelo ? "vELO 2" : "ZRS"}
+                  />
+                </div>
+              ))
+            )}
+          </section>
         </>
       )}
     </div>
+  );
+}
+
+async function loadLadderRiders(
+  activeTeams: TeamRow[],
+  admin: ReturnType<typeof createAdminClient>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  useVelo: boolean,
+): Promise<LadderRider[]> {
+  const teamNames = new Map(activeTeams.map((team) => [team.id, team.name]));
+  const { data: memberRows } =
+    activeTeams.length > 0
+      ? await admin
+          .from("team_members")
+          .select("team_id, profile_id")
+          .in("team_id", Array.from(teamNames.keys()))
+      : { data: [] };
+  const memberships: LadderRiderMembership[] = (
+    (memberRows ?? []) as Array<{ team_id: string; profile_id: string }>
+  ).map((row) => ({ profile_id: row.profile_id, team_name: teamNames.get(row.team_id) ?? "" }));
+  const memberIds = Array.from(new Set(memberships.map((row) => row.profile_id)));
+
+  const ladderFilter = ["event_type_interests.cs.{ladder}"];
+  if (memberIds.length > 0) ladderFilter.push(`id.in.(${memberIds.join(",")})`);
+  const { data: profileRows } = await admin
+    .from("profiles")
+    .select("id, display_name, sex, zwift_id, zrl_category, ftp_watts, weight_kg")
+    .eq("is_approved", true)
+    .or(ladderFilter.join(","));
+  const profiles = (profileRows ?? []) as LadderRiderProfile[];
+  if (profiles.length === 0) return [];
+
+  const zwiftIds = Array.from(
+    new Set(
+      profiles
+        .map((profile) => Number(profile.zwift_id?.trim()))
+        .filter((id) => Number.isSafeInteger(id) && id > 0),
+    ),
+  );
+  const [{ data: powerRows }, metrics] = await Promise.all([
+    supabase
+      .from("rider_power_profiles")
+      .select("profile_id, ftp_watts, ftp_wkg, wkg_1m, wkg_5m, wkg_20m, rider_type")
+      .in(
+        "profile_id",
+        profiles.map((profile) => profile.id),
+      ),
+    loadRiderMetrics(zwiftIds),
+  ]);
+  // Wat ontbreekt of ouder is dan een dag, komt na het antwoord binnen.
+  after(() => refreshRiderMetrics(zwiftIds, metrics, { budgetMs: METRICS_REFRESH_BUDGET_MS }));
+  const scores = new Map(
+    Array.from(metrics, ([id, row]) => [id, useVelo ? row.velo : row.racingScore] as const),
+  );
+  return buildLadderRiders(profiles, (powerRows ?? []) as LadderRiderPower[], memberships, scores);
+}
+
+function LadderRidersTable({
+  riders,
+  sort,
+  teamId,
+  scoreLabel,
+}: {
+  riders: LadderRider[];
+  sort: LadderRiderSort;
+  teamId: string;
+  scoreLabel: string;
+}) {
+  const header = (key: LadderRiderSort, label: string) => (
+    <Link
+      href={`/teams/club-ladder?team=${teamId}&sort=${key}#ladderrenners`}
+      scroll={false}
+      aria-current={sort === key ? "true" : undefined}
+      className={cn("hover:text-foreground", sort === key && "text-foreground underline underline-offset-4")}
+    >
+      {label}
+    </Link>
+  );
+  const wkg = (value: number | null) => n(value, 2);
+
+  return (
+    <ResponsiveTable
+      className="mt-3"
+      rows={riders}
+      rowKey={(rider) => rider.id}
+      minWidth={820}
+      columns={[
+        {
+          key: "rider",
+          header: header("name", "Renner"),
+          primary: true,
+          cell: (rider) => <MemberLink id={rider.id}>{rider.name}</MemberLink>,
+          cellClassName: "font-medium",
+        },
+        {
+          key: "team",
+          header: header("team", "Team"),
+          secondary: true,
+          cell: (rider) => (rider.teams.length > 0 ? rider.teams.join(", ") : "-"),
+        },
+        {
+          key: "cat",
+          header: header("cat", "Cat"),
+          cell: (rider) => rider.category ?? "-",
+        },
+        {
+          key: "score",
+          header: header("score", scoreLabel),
+          align: "right",
+          cell: (rider) => n(rider.score),
+          cellClassName: "tabular-nums",
+        },
+        {
+          key: "type",
+          header: "Type",
+          cell: (rider) => (rider.riderType ? riderTypeLabel(rider.riderType) : "-"),
+        },
+        {
+          key: "ftp",
+          header: header("ftp", "FTP"),
+          align: "right",
+          cell: (rider) => (rider.ftpWatts == null ? "-" : `${n(rider.ftpWatts)}w`),
+          cellClassName: "tabular-nums",
+        },
+        {
+          key: "wkg",
+          header: header("wkg", "W/kg"),
+          align: "right",
+          cell: (rider) => wkg(rider.ftpWkg),
+          cellClassName: "tabular-nums font-medium",
+        },
+        {
+          key: "w1m",
+          header: header("w1m", "1m W/kg"),
+          align: "right",
+          cell: (rider) => wkg(rider.wkg1m),
+          cellClassName: "tabular-nums",
+        },
+        {
+          key: "w5m",
+          header: header("w5m", "5m W/kg"),
+          align: "right",
+          cell: (rider) => wkg(rider.wkg5m),
+          cellClassName: "tabular-nums",
+        },
+        {
+          key: "w20m",
+          header: header("w20m", "20m W/kg"),
+          align: "right",
+          cell: (rider) => wkg(rider.wkg20m),
+          cellClassName: "tabular-nums",
+        },
+      ]}
+    />
   );
 }
 

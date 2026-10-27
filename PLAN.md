@@ -11511,6 +11511,69 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: lijst van alle ladderrenners voor de captains
+
+**2026-10-27.** Commit volgt hieronder. Geen migratie.
+
+**Waarom.** Vraag van de eigenaar: op `/teams/club-ladder` een overzicht van
+alle ladderrenners met hun waardes, zodat de captains makkelijk een verdeling
+over de ladderteams kunnen maken. Tijdens het bouwen kwamen er drie aanvullingen
+bij: de ZRS in de tabel, mannen en vrouwen apart ("die racen in de ladder
+apart"), en de ZRS is tijdelijk: met de ZwiftRacing-API wordt het vELO 2.
+
+**Wie er in staat.** Keuze van de eigenaar (2026-10-27): iedereen die bij
+Interesses op het profiel Ladder aanvinkte (`profiles.event_type_interests`
+bevat `ladder`), plus de leden van een actief ladderteam (niet op het kerkhof),
+alleen goedgekeurde leden. Bij de check op 2026-10-27 hadden de vier ladderteams
+0 leden (alle vier op het kerkhof) en hadden 12 leden Ladder aangevinkt (8
+mannen, 4 vrouwen). Een lege interesselijst betekent in de kalender "alles
+interessant"; die leden staan hier bewust niet in, anders bestaat de lijst uit
+de hele club.
+
+**Wat.**
+- `src/lib/club-ladder/riders.ts`: rijen opbouwen, sorteren en groeperen per
+  geslacht (Mannen, Vrouwen, en "Geslacht onbekend" alleen als die er zijn).
+  Per renner: ladderteam(s), ZRL-categorie, ZRS, rennerstype, FTP, W/kg bij FTP
+  en over 1, 5 en 20 minuten. Vermogen uit `rider_power_profiles`, met FTP en
+  gewicht van het profiel als terugval voor FTP en W/kg.
+- Sorteren via de kolomkoppen (`?sort=`, standaard W/kg). Getallen van hoog naar
+  laag, tekst van A naar Z, lege waardes onderaan; binnen een categorie of team
+  staat de hoogste W/kg bovenaan.
+- **ZRS nu, vELO 2 later.** De score komt uit de cache `zwift_rider_metrics`
+  (0260) van de racebriefing, met `loadRiderMetrics` en daarna `after` →
+  `refreshRiderMetrics` (zelfde budget van 20 s) voor wat ontbreekt of ouder is
+  dan een dag. Zonder `ZWIFTRACING_API_KEY` toont de kolom ZRS; met de sleutel
+  heet hij vELO 2 en toont hij `velo` uit dezelfde cache. De wissel geldt voor
+  de hele kolom, nooit per renner: ZRS en vELO hebben een andere schaal en
+  sorteren door elkaar heen zou niets zeggen.
+- `/hulp` (Teams en wedstrijden) en de privacyverklaring (Account- en
+  profielgegevens) beschrijven de lijst. Privacy: tekst aangepast, geen nieuwe
+  versie in `privacy.ts`, op voorstel aan en met akkoord van de eigenaar
+  (2026-10-27): het zijn zelf opgegeven profiel- en vermogensgegevens die
+  ingelogde leden al zien bij teamleden op dezelfde pagina; de ZRS is wat Zwift
+  openbaar toont. Gewicht staat er niet los bij, maar volgt uit FTP en W/kg (dat
+  staat er ook zo).
+
+**Bewust niet.**
+- Geen indelen vanuit de lijst (slepen naar een team, knoppen). Teamleden
+  beheren loopt al via de teampagina's; de vraag was een overzicht.
+- Geen gewicht- of wattkolom voor 1, 5 en 20 minuten: W/kg is wat de ladder
+  vergelijkt, en minder losse lichaamsgegevens op een clubbrede lijst.
+- ZRS en vELO 2 niet per renner mengen (zie hierboven).
+- Leden met een lege interesselijst niet meenemen (zie Wie er in staat).
+
+**Gecontroleerd.** `tsc` schoon (na `npm ci` in de worktree), ESLint op de
+gewijzigde bestanden, Vitest `club-ladder-*` (21 tests, waarvan 9 nieuw in
+`club-ladder-riders.test.ts`) en `help-*` groen. Ingelogd bekeken op de lokale
+dev-server tegen de productie-database: Mannen (8) en Vrouwen (4), sorteren op
+categorie, ZRS en W/kg, op desktop en 375 px (kaarten, geen horizontale scroll).
+Bij dat bezoek vulde `refreshRiderMetrics` de ZRS-cache op productie aan (van 9
+naar 11 van de 12), zoals de racebriefing ook doet.
+**Niet geverifieerd:** de vELO 2-kolom. Er is nog geen ZwiftRacing-sleutel, en
+`parseZwiftRacingRider` leest `race.rating` zonder dat vaststaat of dat vELO 2
+of legacy vELO is. Dat wordt uitgezocht in de aparte sessie "Zwiftracing ranking
+systeem: legacy vs velo 2"; de ladderlijst toont wat daar in `velo` belandt.
+
 ### Gebouwd — Racetips onder ZWBeter racen
 
 **2026-10-27.** Commits `3a16e313`, `6cc583bb` en `e772d395` (Zwift
