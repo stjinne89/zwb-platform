@@ -14,6 +14,7 @@ import {
 import {
   buildLadderRiders,
   groupLadderRidersBySex,
+  onlyInLadderPool,
   parseLadderRiderSort,
   sortLadderRiders,
   type LadderRider,
@@ -35,10 +36,12 @@ import { SyncResultsButton } from "../_components/sync-results-button";
 import {
   LadderAssignButton,
   LadderAssignProvider,
+  LadderPoolRemoveButton,
   LadderTeamPicker,
   type AssignTeam,
 } from "./_components/ladder-assign";
 import { LadderCaptains, type CaptainTeam } from "./_components/ladder-captains";
+import { LadderPoolAdd } from "./_components/ladder-pool-add";
 import { canAssignLadderRiders } from "@/lib/club-ladder/access";
 import { getRequestAccess } from "@/lib/auth/request";
 
@@ -498,6 +501,14 @@ export default async function ClubLadderPage({
           </LadderAssignProvider>
 
           {captainData && (
+            <LadderPoolAdd
+              members={captainData.members.filter(
+                (member) => !allLadderRiders.some((rider) => rider.id === member.id),
+              )}
+            />
+          )}
+
+          {captainData && (
             <LadderCaptains
               teams={captainData.teams}
               members={captainData.members}
@@ -566,13 +577,16 @@ async function loadLadderRiders(
   // Ook teams in het archief: een captain kan er al renners in zetten voordat het
   // team op de ladder terugkeert.
   const teamNames = new Map(ladderTeams.map((team) => [team.id, team.name]));
-  const { data: memberRows } =
+  const [{ data: memberRows }, { data: poolRows }] = await Promise.all([
     ladderTeams.length > 0
-      ? await admin
+      ? admin
           .from("team_members")
           .select("team_id, profile_id")
           .in("team_id", Array.from(teamNames.keys()))
-      : { data: [] };
+      : Promise.resolve({ data: [] }),
+    // Leeg zolang 0285 niet is toegepast: dan geeft de query een fout en geen rijen.
+    admin.from("ladder_pool").select("profile_id"),
+  ]);
   const memberships: LadderRiderMembership[] = (
     (memberRows ?? []) as Array<{ team_id: string; profile_id: string }>
   ).map((row) => ({
@@ -580,13 +594,16 @@ async function loadLadderRiders(
     team_id: row.team_id,
     team_name: teamNames.get(row.team_id) ?? "",
   }));
-  const memberIds = Array.from(new Set(memberships.map((row) => row.profile_id)));
+  const poolIds = new Set(((poolRows ?? []) as Array<{ profile_id: string }>).map((row) => row.profile_id));
+  const memberIds = Array.from(
+    new Set([...memberships.map((row) => row.profile_id), ...poolIds]),
+  );
 
   const ladderFilter = ["event_type_interests.cs.{ladder}"];
   if (memberIds.length > 0) ladderFilter.push(`id.in.(${memberIds.join(",")})`);
   const { data: profileRows } = await admin
     .from("profiles")
-    .select("id, display_name, sex, zwift_id, zrl_category, ftp_watts, weight_kg")
+    .select("id, display_name, sex, zwift_id, event_type_interests, zrl_category, ftp_watts, weight_kg")
     .eq("is_approved", true)
     .or(ladderFilter.join(","));
   const profiles = (profileRows ?? []) as LadderRiderProfile[];
@@ -614,7 +631,13 @@ async function loadLadderRiders(
   const scores = new Map(
     Array.from(metrics, ([id, row]) => [id, useVelo ? row.velo : row.racingScore] as const),
   );
-  return buildLadderRiders(profiles, (powerRows ?? []) as LadderRiderPower[], memberships, scores);
+  return buildLadderRiders(
+    profiles,
+    (powerRows ?? []) as LadderRiderPower[],
+    memberships,
+    scores,
+    poolIds,
+  );
 }
 
 function LadderRidersTable({
@@ -721,11 +744,16 @@ function LadderRidersTable({
                 header: <span className="sr-only">Toevoegen</span>,
                 align: "right" as const,
                 cell: (rider: LadderRider) => (
-                  <LadderAssignButton
-                    riderId={rider.id}
-                    riderName={rider.name}
-                    teamIds={rider.teamIds}
-                  />
+                  <span className="inline-flex flex-wrap justify-end gap-1">
+                    {onlyInLadderPool(rider) && (
+                      <LadderPoolRemoveButton riderId={rider.id} riderName={rider.name} />
+                    )}
+                    <LadderAssignButton
+                      riderId={rider.id}
+                      riderName={rider.name}
+                      teamIds={rider.teamIds}
+                    />
+                  </span>
                 ),
               },
             ]

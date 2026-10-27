@@ -2,13 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   buildLadderRiders,
   groupLadderRidersBySex,
+  onlyInLadderPool,
   parseLadderRiderSort,
   sortLadderRiders,
   type LadderRiderProfile,
 } from "@/lib/club-ladder/riders";
 
 const profiles: LadderRiderProfile[] = [
-  { id: "a", display_name: "Anna", sex: "vrouw", zwift_id: " 101 ", zrl_category: "B", ftp_watts: 250, weight_kg: "62.5" },
+  { id: "a", event_type_interests: ["ladder"], display_name: "Anna", sex: "vrouw", zwift_id: " 101 ", zrl_category: "B", ftp_watts: 250, weight_kg: "62.5" },
   { id: "b", display_name: "Bram", sex: "man", zwift_id: "202", zrl_category: "A", ftp_watts: 320, weight_kg: 80 },
   { id: "c", display_name: " ", sex: null, zwift_id: "geen", zrl_category: null, ftp_watts: null, weight_kg: null },
 ];
@@ -36,6 +37,7 @@ const riders = buildLadderRiders(
     [101, 512],
     [202, 640],
   ]),
+  new Set(["c"]),
 );
 
 describe("buildLadderRiders", () => {
@@ -63,6 +65,14 @@ describe("buildLadderRiders", () => {
       [null, ["c"]],
     ]);
     expect(groupLadderRidersBySex(riders.slice(0, 1)).map((g) => g.sex)).toEqual(["vrouw"]);
+  });
+
+  it("weet wie via de ladderpool in de lijst staat", () => {
+    expect(riders.map((r) => r.inPool)).toEqual([false, false, true]);
+    expect(riders.map((r) => r.interested)).toEqual([true, false, false]);
+    expect(riders.map(onlyInLadderPool)).toEqual([false, false, true]);
+    expect(onlyInLadderPool({ ...riders[0], inPool: true })).toBe(false);
+    expect(onlyInLadderPool({ ...riders[2], teamIds: ["t1"] })).toBe(false);
   });
 
   it("toont elk ladderteam één keer, op naam", () => {

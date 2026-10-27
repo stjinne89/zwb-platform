@@ -11511,6 +11511,51 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: leden zonder interesse in de ladderlijst zetten
+
+**2026-10-27.** Commit volgt hieronder, lokaal, niet gepusht. Migratie
+`0285_ladder_pool.sql`, **nog niet toegepast**.
+
+**Waarom.** Vraag van de eigenaar: naast captains ook leden kunnen toewijzen
+die zelf nog geen Ladder bij Interesses aanvinkten, "eerst bij het roster iig".
+Keuze van de eigenaar (2026-10-27): eerst in de ladderlijst zonder team, niet
+meteen in een team.
+
+**Wat.**
+- `ladder_pool` (0285): één rij per lid dat een captain aan de lijst toevoegde,
+  met wie en wanneer. RLS aan zonder policies; alleen de server leest en schrijft
+  (zoals `zwift_rider_metrics`). De interesse van het lid zelf blijft
+  ongemoeid: die stuurt ook zijn kalender en is zijn eigen keuze.
+- In de ladderlijst staat nu: wie Ladder aanvinkte, wie in een ladderteam zit, en
+  wie in de pool staat.
+- Onderaan "Lid aan de ladderlijst toevoegen": keuzelijst met goedgekeurde leden
+  die nog niet in de lijst staan, voor dezelfde groep die indeelt
+  (`addToLadderPool`, `canAssignLadderRiders`).
+- Een kruisje in de lijst (`removeFromLadderPool`) alleen bij wie er uitsluitend
+  via de pool in staat (`onlyInLadderPool`): niet bij wie zelf Ladder aanvinkte
+  of in een team zit, want dan blijft hij toch in de lijst staan.
+- Zolang 0285 niet is toegepast, geeft de pool-query een fout en blijft de pool
+  leeg; de pagina werkt dan gewoon, Toevoegen geeft een foutmelding.
+- `/hulp` en de privacyverklaring (zin over de Club Ladder-pagina) noemen de
+  ladderlijst als derde manier om erop te komen. Geen nieuwe privacyversie, net
+  als bij de ladderlijst zelf: het is hetzelfde als een captain die je in een
+  team zet. **Ter bevestiging bij de eigenaar.**
+
+**Bewust niet.**
+- De interesse van het lid niet voor hem aanzetten: dat verandert ook zijn
+  kalender en zijn eigen keuze op het profiel.
+- Geen melding aan het lid dat hij op de lijst is gezet.
+
+**Gecontroleerd.** `tsc` schoon, ESLint op `teams/club-ladder`, `lib/club-ladder`
+en de test, Vitest `club-ladder-*` groen (22). Lokaal ingelogd tegen de
+productie-database, zonder 0285: lijst ongewijzigd (12), het formulier met 36
+leden die nog niet in de lijst staan, geen kruisjes. Bij die controle bleek dat
+het indelen en captains aanwijzen op productie in gebruik is: ZWB Zwiftladies en
+ZWBandits hebben sinds 2026-10-27 een captain en leden (`assignment_source`
+manual). **Niet geverifieerd:** de migratie (geen Docker of Supabase-config hier)
+en toevoegen en weghalen in de pool; een testklik op Toevoegen zonder tabel is
+niet uitgevoerd.
+
 ### Gebouwd — Club Ladder: captains aanwijzen onderaan de pagina
 
 **2026-10-27.** Commit `c3239578`, gepusht naar `main` op 2026-10-27. Geen migratie.
@@ -11542,7 +11587,9 @@ geen captains, zodat alleen rosterbeheerders konden indelen (ronde hieronder).
 Lokaal ingelogd bekeken tegen de productie-database: sectie onderaan, 48 leden
 in de keuzelijst, vier teams zonder captain; op 375 px velden en knop 44 px,
 geen horizontale scroll. **Niet geverifieerd:** echt een captain aanwijzen en
-weer weghalen, om geen rol op productie te zetten. Eerst na de deploy proberen.
+weer weghalen, om geen rol op productie te zetten. *Na de deploy in gebruik: op
+2026-10-27 hadden ZWB Zwiftladies en ZWBandits een captain (zie de ronde
+"leden zonder interesse in de ladderlijst zetten"). Weghalen niet nagekeken.*
 
 ### Gebouwd — Club Ladder: renners vanaf de lijst in een ladderteam zetten
 
@@ -11587,8 +11634,9 @@ keuzelijst met vier teams, vier lege teams, plusknop bij alle 12 renners;
 op 375 px een knop van 44 bij 118 px zonder horizontale scroll, op desktop een
 plus van 24 px. **Niet geverifieerd:** daadwerkelijk toevoegen en weghalen. Dat
 schrijft een echt lidmaatschap op productie, en weghalen laat een
-uitsluitingsregel achter; daarom niet lokaal geklikt. Eerst na de deploy met een
-echte indeling proberen.
+uitsluitingsregel achter; daarom niet lokaal geklikt. *Na de deploy in gebruik:
+op 2026-10-27 stonden er leden in ZWB Zwiftladies en ZWBandits, en Femke staat in
+de lijst met haar team. Weghalen niet nagekeken.*
 
 ### Gebouwd — Club Ladder: lijst van alle ladderrenners voor de captains
 

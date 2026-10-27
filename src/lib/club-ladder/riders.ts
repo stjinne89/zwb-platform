@@ -1,5 +1,6 @@
 // Ladderrenners voor de verdeling over de ladderteams: wie "Ladder" bij zijn
-// interesses aanvinkte plus wie al in een ladderteam zit. Mannen en
+// interesses aanvinkte, wie in een ladderteam zit en wie een captain aan de
+// ladderpool toevoegde (0285). Mannen en
 // vrouwen racen in de ladder apart, dus de lijst komt per geslacht.
 
 export type LadderRiderProfile = {
@@ -7,6 +8,7 @@ export type LadderRiderProfile = {
   display_name: string | null;
   sex: string | null;
   zwift_id: string | null;
+  event_type_interests?: string[] | null;
   zrl_category: string | null;
   ftp_watts: number | null;
   weight_kg: number | string | null;
@@ -39,6 +41,10 @@ export type LadderRider = {
   score: number | null;
   teams: string[];
   teamIds: string[];
+  /** Vinkte zelf Ladder aan bij Interesses. */
+  interested: boolean;
+  /** Door een captain aan de lijst toegevoegd (ladder_pool). */
+  inPool: boolean;
   category: string | null;
   riderType: string | null;
   ftpWatts: number | null;
@@ -83,6 +89,7 @@ export function buildLadderRiders(
   powers: LadderRiderPower[],
   memberships: LadderRiderMembership[],
   scores: Map<number, number | null> = new Map(),
+  poolIds: ReadonlySet<string> = new Set(),
 ): LadderRider[] {
   const powerByProfile = new Map(powers.map((power) => [power.profile_id, power]));
   const teamsByProfile = new Map<string, Map<string, string>>();
@@ -106,6 +113,8 @@ export function buildLadderRiders(
       score: zwiftId == null ? null : num(scores.get(zwiftId)),
       teams: Array.from(new Set(teams.values())).sort((a, b) => a.localeCompare(b, "nl")),
       teamIds: Array.from(teams.keys()),
+      interested: profile.event_type_interests?.includes("ladder") ?? false,
+      inPool: poolIds.has(profile.id),
       category: profile.zrl_category?.trim() || null,
       riderType: power?.rider_type ?? null,
       ftpWatts: ftp,
@@ -174,4 +183,9 @@ export function groupLadderRidersBySex(riders: LadderRider[]) {
     sex,
     riders: riders.filter((rider) => rider.sex === sex),
   })).filter((group) => group.riders.length > 0);
+}
+
+/** Staat alleen via de ladderpool in de lijst: dan kan een captain hem er weer uit halen. */
+export function onlyInLadderPool(rider: LadderRider) {
+  return rider.inPool && !rider.interested && rider.teamIds.length === 0;
 }

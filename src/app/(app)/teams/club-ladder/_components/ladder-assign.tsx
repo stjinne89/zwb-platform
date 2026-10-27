@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useTransition, type ReactNode } fr
 import { Plus, X } from "lucide-react";
 import { MemberLink } from "@/components/member-link";
 import { Button } from "@/components/ui/button";
-import { assignLadderRider, unassignLadderRider } from "../_actions";
+import { assignLadderRider, removeFromLadderPool, unassignLadderRider } from "../_actions";
 
 export type AssignTeam = {
   id: string;
@@ -133,6 +133,26 @@ export function LadderAssignButton({
     >
       <Plus />
       <span className="sm:hidden">Toevoegen</span>
+    </Button>
+  );
+}
+
+/** Alleen bij wie via de ladderpool in de lijst staat (geen interesse, geen team). */
+export function LadderPoolRemoveButton({ riderId, riderName }: { riderId: string; riderName: string }) {
+  const { pending, run } = useAssign();
+
+  return (
+    <Button
+      type="button"
+      size="icon-xs"
+      variant="ghost"
+      disabled={pending}
+      onClick={() => run(() => removeFromLadderPool(riderId))}
+      aria-label={`${riderName} uit de ladderlijst halen`}
+      className="max-sm:h-11 max-sm:w-auto max-sm:gap-1 max-sm:px-4"
+    >
+      <X />
+      <span className="sm:hidden">Uit de lijst</span>
     </Button>
   );
 }

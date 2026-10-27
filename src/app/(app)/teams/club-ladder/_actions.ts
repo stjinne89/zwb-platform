@@ -6,15 +6,20 @@ import { canAssignLadderRiders } from "@/lib/club-ladder/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-async function guard(teamId: string) {
+async function guardAccess() {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
   if (!(await canAssignLadderRiders(access))) {
     return { ok: false as const, error: "Geen recht om ladderteams in te delen." };
   }
+  return { ok: true as const, userId: access.user.id, admin: createAdminClient() };
+}
 
-  const admin = createAdminClient();
+async function guard(teamId: string) {
+  const check = await guardAccess();
+  if (!check.ok) return check;
+  const { admin } = check;
   const { data: team } = await admin
     .from("teams")
     .select("id")
@@ -22,7 +27,7 @@ async function guard(teamId: string) {
     .eq("type", "ladder")
     .maybeSingle();
   if (!team) return { ok: false as const, error: "Geen ladderteam." };
-  return { ok: true as const, userId: access.user.id, admin };
+  return check;
 }
 
 function refresh(teamId: string) {
@@ -111,5 +116,39 @@ export async function clearLadderCaptain(teamId: string, profileId: string) {
     .eq("profile_id", profileId);
   if (error) return { ok: false as const, error: error.message };
   refresh(teamId);
+  return { ok: true as const };
+}
+
+/** Zet een lid in de ladderlijst zonder team, ook zonder eigen interesse (0285). */
+export async function addToLadderPool(profileId: string) {
+  const check = await guardAccess();
+  if (!check.ok) return check;
+
+  const { data: profile } = await check.admin
+    .from("profiles")
+    .select("id")
+    .eq("id", profileId)
+    .eq("is_approved", true)
+    .maybeSingle();
+  if (!profile) return { ok: false as const, error: "Geen goedgekeurd lid." };
+  const { error } = await check.admin
+    .from("ladder_pool")
+    .upsert(
+      { profile_id: profileId, added_by: check.userId },
+      { onConflict: "profile_id", ignoreDuplicates: true },
+    );
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/teams/club-ladder");
+  return { ok: true as const };
+}
+
+/** Haalt een lid uit de ladderpool; interesse en teams blijven zoals ze zijn. */
+export async function removeFromLadderPool(profileId: string) {
+  const check = await guardAccess();
+  if (!check.ok) return check;
+
+  const { error } = await check.admin.from("ladder_pool").delete().eq("profile_id", profileId);
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/teams/club-ladder");
   return { ok: true as const };
 }

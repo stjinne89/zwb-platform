@@ -101,7 +101,8 @@ export default function PrivacyPage() {
             Je fietsen (naam, merk en model, afstand en foto) zien andere leden op
             je profiel, behalve de fietsen die je daar verbergt. Zet je je
             publieke profiel aan, dan zien bezoekers daarvan ze ook. Vink je
-            Ladder aan bij je interesses of zit je in een ladderteam, dan zien
+            Ladder aan bij je interesses, zit je in een ladderteam of zet een
+            captain je op de ladderlijst, dan zien
             ingelogde leden je op de Club Ladder-pagina met je ZRL-categorie,
             Zwift Racing Score (of, zodra ZwiftRacing gekoppeld is, je vELO 2),
             rennerstype, FTP en W/kg (bij FTP en over 1, 5 en 20 minuten), in
