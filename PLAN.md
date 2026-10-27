@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-10-21)
+## Actieve volgorde (bijgewerkt 2026-10-27)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -27,11 +27,17 @@ gaat stabiliteit voor nieuwe features.
    quotum blijft. Deze cyclus komt niet meer onder 5 GB; **de eigenaar beslist
    vóór 2 november over Pro of de beperking.** Oorzaak en fix: zie de ronde
    "Egress-golf door zichtbaarheids-events" hieronder (migraties `0255` en `0256`
-   toegepast op 2026-10-20; de code staat lokaal en gaat mee met de volgende push).
+   toegepast op 2026-10-20; de code staat op `main` als `ef6e8273`, vastgesteld
+   op 2026-10-27).
+   **Check 2026-10-27:** egress 8,33 GB na 16 dagen. Na de fix ~0,13 GB per dag
+   (21–26 okt, afgelezen uit de grafiek; was ~0,3 vóór 13 okt en tot 1,3 tijdens
+   de golf). Doorgerekend ~10 GB aan het eind van de cyclus; vanaf de volgende
+   cyclus ~4 GB per maand, net onder de limiet. De beslissing over Pro staat dus
+   nog steeds open.
    **Database slank en snel: afgerond op 2026-10-01.** `0212_remove_segment_explorer.sql`
    is toegepast; de database ging van 1.260 naar **200 MB** (Free-limiet 512 MB).
-   Nog te doen, klein: `vacuum full public.zwb_segment_maps;` (niet vast te stellen
-   of het al is gedraaid). `?segmentBackfill=0` is uit de URL van de job "ZWB Strava
+   `vacuum full public.zwb_segment_maps;` is gedraaid (gemeld door de eigenaar
+   op 2026-10-27). `?segmentBackfill=0` is uit de URL van de job "ZWB Strava
    webhooks": op 2026-10-13 stond die op `/api/strava/webhook/process` zonder
    parameter. De Supabase CLI
    werkt weer: `npm run db:health` draaide op 2026-10-02 zonder ingreep (CLI 2.119.0,
@@ -71,6 +77,17 @@ gaat stabiliteit voor nieuwe features.
    beginnen. Nagelopen op de hele codebase: van de 73 meldingen verdween alleen
    deze ene. Bewust niet gedaan: de overige 72 plekken nalopen; die tellen pas
    mee als hun tabel boven de 800 rijen komt.
+   **Check 2026-10-27:** database 261 MB (+29 MB in 7 dagen; Supabase telt
+   276 MB), disk 29%. Databasetijd achtergrond 1.950 s tegen leden 1.076 s (de
+   week ervoor 7.203 tegen 642): de fixes van `ef6e8273` werken. De zwaarste
+   query is nu `gps-col-times.ts` (`raw->gps_col_times`, 17%, gemiddeld 573 ms);
+   onder de grens van 20%. Nieuw: `delete training_plans` gemiddeld 1.030 ms;
+   zes verwijzingen naar `training_plans` hebben geen index (nagekeken via de
+   connector). De ~7.500 checks per dag op `profiles.is_approved` komen uit de
+   approval-gate in `src/lib/supabase/middleware.ts`, die bij elk verzoek
+   buiten de publieke paden het profiel opvraagt (goedkoop: ~0,1 ms per
+   aanroep). `live_positions` 17.638 (+1.231 in een week). cron-job.org: alle
+   19 jobs geslaagd.
 2. **Omnium editie 1: verzet naar november, datum onzeker** (gemeld door de
    eigenaar, 2026-10-02; was 11 oktober). De migraties staan (`0174`, `0190`).
    Nog te doen: seizoen `2026-27` plannen en publiceren, dan event-ID's,
@@ -497,8 +514,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Egress-golf door zichtbaarheids-events, 2026-10-20 — gebouwd; unit-tests, typecheck en lint schoon op de gewijzigde bestanden; niet gepusht. Migraties `0255_col_scan_cache.sql` en `0256_rls_initplan_feed_telegram.sql`, op verzoek van de eigenaar toegepast via de Supabase-connector (2026-10-20) en nagekeken; niet lokaal te testen.**
-> Commit: de commit die dit blok toevoegt, op `main` (lokaal).
+> **Egress-golf door zichtbaarheids-events, 2026-10-20 — gebouwd; unit-tests, typecheck en lint schoon op de gewijzigde bestanden; gepusht naar `main` (vastgesteld 2026-10-27). Migraties `0255_col_scan_cache.sql` en `0256_rls_initplan_feed_telegram.sql`, op verzoek van de eigenaar toegepast via de Supabase-connector (2026-10-20) en nagekeken; niet lokaal te testen.**
+> Commit: `ef6e8273`, op `main`.
 >
 > **Waarom.** De wekelijkse databasecheck van 2026-10-20 vond 7,23 GB egress na
 > 9 dagen (limiet 5 GB) en een banner van Supabase: beperking vanaf 2026-11-02.
@@ -555,8 +572,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   scant de hele historie één keer en schrijft ~29.000 rijen bij; dat geeft wel
 >   wat WAL, verspreid over de runs.
 >
-> **Te beslissen door de eigenaar.** Pro of de beperking vanaf 2 november;
-> `vacuum full public.zwb_segment_maps;` (open sinds 2026-10-01).
+> **Te beslissen door de eigenaar.** Pro of de beperking vanaf 2 november.
+> `vacuum full public.zwb_segment_maps;` is gedraaid (gemeld 2026-10-27).
 >
 > **Op productie (2026-10-20).** `0255` en `0256` toegepast via de
 > Supabase-connector, vóór de push: de oude code gebruikt de nieuwe kolommen en
