@@ -83,7 +83,8 @@ gaat stabiliteit voor nieuwe features.
    query is nu `gps-col-times.ts` (`raw->gps_col_times`, 17%, gemiddeld 573 ms);
    onder de grens van 20%. Nieuw: `delete training_plans` gemiddeld 1.030 ms;
    zes verwijzingen naar `training_plans` hebben geen index (nagekeken via de
-   connector). De ~7.500 checks per dag op `profiles.is_approved` komen uit de
+   connector). Beide aangepakt in de ronde "Indexen en eigen-tijdenvlag"
+   hieronder (`0280`, `0281`; **nog toe te passen**). De ~7.500 checks per dag op `profiles.is_approved` komen uit de
    approval-gate in `src/lib/supabase/middleware.ts`, die bij elk verzoek
    buiten de publieke paden het profiel opvraagt (goedkoop: ~0,1 ms per
    aanroep). `live_positions` 17.638 (+1.231 in een week). cron-job.org: alle
@@ -511,6 +512,54 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > blijft alleen de duurrit van 3 oktober (hij reed die dag de race). Los in de
 > kalender staan nog de korte warming-ups (8 en 13 okt) en de groepsritten (17 en
 > 18 okt), want daar stond geen training voor.
+
+---
+
+> **Indexen en eigen-tijdenvlag, 2026-10-27 — gebouwd; unit-tests en lint schoon op de gewijzigde bestanden; niet gepusht. Migraties `0280_training_plan_fk_indexes.sql` en `0281_strava_has_gps_times.sql`: nog niet toegepast, alleen in PGlite getest.**
+> Commit: de commit die dit blok toevoegt, op `main` (lokaal).
+>
+> **Waarom.** De databasecheck van 2026-10-27 vond twee dingen. (1) `delete
+> training_plans` duurde gemiddeld 1.030 ms: zes verwijzingen met `on delete set
+> null` hadden geen index, dus elke delete liep o.a. `training_workouts` (~8.400
+> rijen) helemaal door. (2) De zwaarste query was `gps-col-times.ts` (17% van de
+> databasetijd, 573 ms gemiddeld, ~900 keer per week): het filter
+> `raw->gps_col_times is not null` laat Postgres bij elke rit van het lid de
+> hele `raw` uitpakken, terwijl maar 232 van de 29.356 ritten (12 leden) eigen
+> tijden hebben (geteld via de connector).
+>
+> **Wat.**
+> - `0280`: indexen op `training_workouts.superseded_by_plan_id`,
+>   `training_plans.parent_plan_id` en `root_plan_id`,
+>   `training_adaptation_runs.source_plan_id` en `draft_plan_id`, en
+>   `training_chat_messages.plan_id`.
+> - `0281`: kolom `strava_activities.has_gps_times` (zonder default, geen
+>   herschrijving van de tabel), een trigger `before insert or update of raw`
+>   die hem zet zodra `raw` wordt geschreven, een backfill van alleen de 232
+>   rijen met tijden, en een gedeeltelijke index `(profile_id) where
+>   has_gps_times is true`. Via de trigger hoeft geen schrijver (gps-sync, de
+>   intervals-sync, imports) de kolom te kennen.
+> - `gpsActivities` in `src/lib/cols/gps-col-times.ts`: één query met
+>   `.is("has_gps_times", true)` in plaats van twee filters op `raw`. Geeft die
+>   een fout (kolom bestaat nog niet), dan valt hij terug op de oude route; de
+>   code kan dus vóór de migratie live.
+>
+> **Bewust niet gebouwd.** Een gegenereerde kolom: die herschrijft de hele
+> tabel (127 MB) en geeft een WAL-piek, zoals op 2026-10-01. De vlag in de
+> schrijvers zelf zetten: de trigger dekt ook schrijvers die later bijkomen.
+>
+> **Getest.** `tests/unit/gps-times-flag.test.ts` draait beide migraties in
+> PGlite: backfill, de trigger bij insert en bij een update van `raw`, geen
+> trigger bij een update van andere kolommen, idempotent, en elke verwijzing
+> naar `training_plans` heeft een index. Daarnaast de query zelf en de
+> terugvalroute met een stub. Met een geforceerd generiek plan gebruikt
+> Postgres de gedeeltelijke index (EXPLAIN in PGlite). `gps-sync.test.ts` blijft
+> groen. `tsc` geeft 25 fouten buiten deze bestanden (verouderde `.next/types`,
+> en `@anthropic-ai/sdk` en `modern-screenshot` ontbreken lokaal tot `npm
+> install`); geen in de gewijzigde bestanden.
+>
+> **Niet geverifieerd.** De migraties op productie (geen Docker of
+> Supabase-config); het effect op de databasetijd, dat moet uit de volgende
+> wekelijkse check blijken.
 
 ---
 
