@@ -289,6 +289,24 @@ function RoleLine({ rider, limitLabel }: { rider: OwnBriefingRider; limitLabel: 
       <p>
         <span className="font-bold">{cleanRiderName(rider.name)}</span> <span style={{ color: PENCIL }}>→</span> {role}
       </p>
+      {rider.limitWatts && (rider.limitWatts.zftp !== null || rider.limitWatts.zmap !== null) && (
+        <p className="tabular-nums" style={{ color: PENCIL }}>
+          blijf onder{" "}
+          {[
+            rider.limitWatts.zftp !== null ? `zFTP ${rider.limitWatts.zftp} W` : null,
+            rider.limitWatts.zmap !== null ? `zMAP ${rider.limitWatts.zmap} W` : null,
+          ]
+            .filter(Boolean)
+            .map((part, i) => (
+              <span key={part}>
+                {i > 0 && " · "}
+                <span className="font-bold" style={{ color: INK }}>
+                  {part}
+                </span>
+              </span>
+            ))}
+        </p>
+      )}
       {rider.role === "positie" && !rider.captainRole && (
         <p className="inline-flex items-center gap-1" style={{ color: INK }}>
           <Mountain aria-hidden strokeWidth={2.4} className="size-4 shrink-0" />

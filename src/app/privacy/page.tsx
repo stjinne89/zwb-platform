@@ -174,6 +174,9 @@ export default function PrivacyPage() {
             het racebriefje staat per segment de snelste tijd uit de startgroep,
             met naam en W/kg, en per renner van het eigen team de eigen beste
             tijd met watt en W/kg en de watt die nodig is voor die snelste tijd.
+            Bij elke renner van het eigen team staat ook de grens van de divisie
+            in watt: de W/kg-grens maal het gewicht dat WTRL gebruikt (zFTP in
+            watt gedeeld door zFTP in W/kg).
             Daaruit is het gewicht van teamgenoten af te leiden; het gewicht van
             renners van andere teams tonen we niet. We bewaren deze gegevens
             hooguit 90 dagen. Ingelogde leden zien ze in de briefing, en het

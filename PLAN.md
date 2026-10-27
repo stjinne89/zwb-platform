@@ -11406,6 +11406,37 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Racebriefje: grens van de divisie in watt per renner
+
+**2026-10-27.** Commit `COMMIT_HASH`, lokaal, niet gepusht. Geen migratie.
+
+**Waarom.** Vraag van de eigenaar: op het racebriefje per renner het absolute
+wattage waaronder hij moet blijven om zFTP of zMAP niet boven de grens van de
+divisie te krijgen.
+
+**Wat.**
+- `limitWatts` (`rules.ts`): de W/kg-grens maal het gewicht dat WTRL gebruikt,
+  naar beneden afgerond. Het gewicht is zFTP in watt gedeeld door zFTP in W/kg
+  uit `wtrl_team_riders` (`zftp_w`, `zftp_wkg`): zo rekent WTRL zelf, dus de
+  watt kloppen met de controle van WTRL (op de afronding van de W/kg op twee
+  decimalen na, hooguit een paar tienden van een procent).
+- `load.ts` leest nu ook `zftp_w`; `OwnBriefingRider.limitWatts`.
+- Op het briefje onder Rollen bij elke renner: "blijf onder zFTP 284 W · zMAP
+  344 W". Zonder grenzen (A Standard) of zonder zFTP in watt bij WTRL: geen
+  regel.
+- `/hulp` legt het uit. **Privacy:** `/privacy#racebriefing` noemt de
+  wattgrens en hoe die is gerekend; geen nieuwe versie. **Nog niet goedgekeurd
+  door de eigenaar.**
+
+**Bewust niet.** Geen duur bij de grens ("20 minuten", "5 minuten"): hoe Zwift
+zFTP en zMAP uit een rit afleidt, staat niet in de bronnen van de app; de regel
+zegt alleen waaronder de waarde moet blijven. Geen terugval op het gewicht uit
+Zwift-passages: zonder de zFTP van WTRL is er ook geen grenscontrole.
+
+**Gecontroleerd.** Vitest (`race-briefing.test.ts`, nieuwe case voor BDEV met
+280 W bij 3,68 W/kg), `tsc`, ESLint. Rollen los gerenderd en bekeken. **Niet
+geverifieerd:** het briefje met echte renners.
+
 ### Hersteld — Racebriefje en live stand van A kozen groep B (A en B1 in één Zwift-event)
 
 **2026-10-26.** Commit `8f38c1a8`, gepusht naar `main` op 2026-10-26 (eigenaar). Geen migratie.

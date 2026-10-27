@@ -4,7 +4,7 @@ import type { PacingAccent, PacingSegment } from "@/lib/pacing/route-profile";
 import { climbSeconds, routeKeyPoints, segmentLabel, withoutTunnelSteps } from "@/lib/race-briefing/route";
 import { pacingRouteFromZwift } from "@/lib/pacing/route-profile";
 import spiral from "../fixtures/zwift/spiral-summit-100m.json";
-import { briefingFormatOf, checkLimits, cheatRules, divisionLimits, divisionOf, powerupsFromTags } from "@/lib/race-briefing/rules";
+import { briefingFormatOf, checkLimits, cheatRules, divisionLimits, divisionOf, limitWatts, powerupsFromTags } from "@/lib/race-briefing/rules";
 import { cleanRiderName, projectField, suggestRoles, watchList, type FieldRider } from "@/lib/race-briefing/field";
 import { briefingMoments, briefingTips } from "@/lib/race-briefing/tips";
 import { defaultSheet, diffOverride, effectiveSheet, sanitizeOverride } from "@/lib/race-briefing/sheet";
@@ -94,6 +94,13 @@ describe("regels", () => {
     expect(checkLimits(limits, 3.71, 4.23).status).toBe("near");
     expect(checkLimits(limits, 3.18, 3.93).status).toBe("ok");
     expect(checkLimits(limits, 3.75, 4.0).status).toBe("over");
+  });
+
+  it("rekent de grenzen om naar watt met het gewicht van WTRL, naar beneden afgerond", () => {
+    // BDEV: zFTP 280 W bij 3,68 W/kg is 76,1 kg; 3,74 × 76,1 = 284,6 en 4,53 × 76,1 = 344,7.
+    expect(limitWatts({ zftpWkg: 3.74, zmapWkg: 4.53 }, 280, 3.68)).toEqual({ zftp: 284, zmap: 344 });
+    expect(limitWatts(null, 280, 3.68)).toBeNull();
+    expect(limitWatts({ zftpWkg: 3.74, zmapWkg: 4.53 }, null, 3.68)).toBeNull();
   });
 
   it("leest de powerups van het event", () => {

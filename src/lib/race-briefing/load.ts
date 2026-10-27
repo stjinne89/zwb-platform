@@ -42,7 +42,9 @@ import {
   powerupsFromTags,
   type BriefingFormat,
   type Division,
+  limitWatts,
   type LimitCheck,
+  type LimitWatts,
   type Powerup,
 } from "./rules";
 import {
@@ -140,6 +142,8 @@ export type OwnBriefingRider = {
   zftpWkg: number | null;
   zmapWkg: number | null;
   limits: LimitCheck;
+  /** De grenzen van de divisie in watt; null zonder grenzen of zonder zFTP in watt. */
+  limitWatts: LimitWatts | null;
   metrics: RiderMetrics | null;
   history: Array<number | null>;
   expectedPlace: number | null;
@@ -319,18 +323,21 @@ async function otherLineups(event: EventRow, zwiftIds: number[]): Promise<Map<nu
   return out;
 }
 
-async function wtrlPower(teamId: string | null): Promise<Map<number, { zftpWkg: number | null; zmapWkg: number | null }>> {
-  const out = new Map<number, { zftpWkg: number | null; zmapWkg: number | null }>();
+type WtrlPower = { zftpW: number | null; zftpWkg: number | null; zmapWkg: number | null };
+
+async function wtrlPower(teamId: string | null): Promise<Map<number, WtrlPower>> {
+  const out = new Map<number, WtrlPower>();
   if (!teamId) return out;
   const admin = createAdminClient();
   const { data: teams } = await admin.from("wtrl_teams").select("trc_ref").eq("team_id", teamId);
   const refs = (teams ?? []).map((t) => t.trc_ref as string);
   if (refs.length === 0) return out;
-  const { data } = await admin.from("wtrl_team_riders").select("zwift_id, zftp_wkg, zmap_wkg").in("trc_ref", refs);
+  const { data } = await admin.from("wtrl_team_riders").select("zwift_id, zftp_w, zftp_wkg, zmap_wkg").in("trc_ref", refs);
   for (const row of data ?? []) {
     const id = Number(row.zwift_id);
     if (!id) continue;
     out.set(id, {
+      zftpW: row.zftp_w === null ? null : Number(row.zftp_w),
       zftpWkg: row.zftp_wkg === null ? null : Number(row.zftp_wkg),
       zmapWkg: row.zmap_wkg === null ? null : Number(row.zmap_wkg),
     });
@@ -442,6 +449,7 @@ export async function loadRaceBriefing(
       zftpWkg: wtrl?.zftpWkg ?? null,
       zmapWkg: wtrl?.zmapWkg ?? null,
       limits: checkLimits(limits, wtrl?.zftpWkg ?? null, wtrl?.zmapWkg ?? null),
+      limitWatts: limitWatts(limits, wtrl?.zftpW ?? null, wtrl?.zftpWkg ?? null),
       metrics: metrics.get(r.zwiftId) ?? null,
       history: history.places.get(r.zwiftId) ?? history.labels.map(() => null),
       expectedPlace: expectedPlace(r.zwiftId),

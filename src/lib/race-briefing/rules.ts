@@ -141,6 +141,21 @@ export function checkLimits(limits: DivisionLimits | null, zftpWkg: number | nul
   return { zftpShare, zmapShare, status: worst >= 1 ? "over" : worst >= LIMIT_WARN_SHARE ? "near" : "ok" };
 }
 
+export type LimitWatts = { zftp: number | null; zmap: number | null };
+
+/**
+ * De grenzen van de divisie in watt voor één renner: de W/kg-grens maal het
+ * gewicht dat WTRL gebruikt (zFTP in watt gedeeld door zFTP in W/kg). Naar
+ * beneden afgerond, want de renner moet eronder blijven. Null zonder grenzen of
+ * zonder zFTP in watt en W/kg van WTRL.
+ */
+export function limitWatts(limits: DivisionLimits | null, zftpW: number | null, zftpWkg: number | null): LimitWatts | null {
+  if (!limits || !zftpW || !zftpWkg) return null;
+  const weightKg = zftpW / zftpWkg;
+  const watts = (wkg: number | null) => (wkg === null ? null : Math.floor(wkg * weightKg));
+  return { zftp: watts(limits.zftpWkg), zmap: watts(limits.zmapWkg) };
+}
+
 /** Powerups uit de event-tag `powerup_percent="0,34,1,33,5,33"` (type, kans, type, kans …). */
 export type Powerup = "veer" | "draft boost" | "aerohelm" | "spook" | "burrito" | "steamroller" | "anvil";
 
