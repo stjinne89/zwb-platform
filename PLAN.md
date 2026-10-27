@@ -11513,7 +11513,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: renners vanaf de lijst in een ladderteam zetten
 
-**2026-10-27.** Commit volgt hieronder, lokaal, niet gepusht. Geen migratie.
+**2026-10-27.** Commit `a5e1f4d2`, lokaal, niet gepusht. Geen migratie.
 
 **Waarom.** Vraag van de eigenaar, vervolg op de ladderrennerslijst hieronder:
 renners vanaf `/teams/club-ladder` in het juiste ladderteam zetten, "zoals dat
