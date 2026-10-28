@@ -23,9 +23,9 @@ gaat stabiliteit voor nieuwe features.
 0b. **ZWBekers (2026-10-28): migratie `0286` toegepast en gepusht.** Open: de
    privacytekst `/privacy#zwbekers` wacht op akkoord van de eigenaar, net als de
    vraag of dit zonder nieuwe privacyversie kan (zie de ronde "ZWBekers").
-   **Migratie `0287_zwbeker_zrl_round.sql` is nog niet toegepast** en moet vóór
-   de deploy van de ronde "ZWBekers: ZRL-ronde en de 1": de bekerpagina leest
-   de kolom `zrl_round`.
+   Migratie `0287_zwbeker_zrl_round.sql` is op 2026-10-28 toegepast; de code van
+   de ronde "ZWBekers: een beker voor een hele ZRL-ronde" (`5b05403e`) is nog
+   niet gepusht.
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11524,8 +11524,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBekers: een beker voor een hele ZRL-ronde, en de 1 voor nummer 1
 
-**2026-10-28.** Lokaal gecommit, niet gepusht; de hash staat in `git log` bij
-deze ronde. Migratie `0287_zwbeker_zrl_round.sql`, **nog niet toegepast**.
+**2026-10-28.** Commit `5b05403e`, lokaal, niet gepusht. Migratie
+`0287_zwbeker_zrl_round.sql` op 2026-10-28 toegepast via de Supabase-connector
+(op verzoek van de eigenaar) en nagekeken: kolom `zrl_round` aanwezig, beide
+checks (`zwbekers_zrl_round_format`, `zwbekers_event_or_round`) aanwezig, de
+ene bestaande beker ongemoeid.
 
 **Waarom.** Drie wensen van de eigenaar, dezelfde dag:
 - De zin onder de beker op `/zwbekers/[id]` ("Gouden beker met vleugels, slank,
@@ -11575,11 +11578,12 @@ bestanden, Vitest `zwbekers.test.ts` groen (21 tests, nieuw: de 1, regio en
 periode, oude ontwerpen, ronde uit een titel, event óf ronde). De 1 bekeken als
 plaatje en als 3D-extrusie in een losse testpagina. Op productie nagekeken via
 de Supabase-connector: de raceweken heten "ZRL 2026/27 · R1 · W1 — Race of
-Truth" t/m W6, het patroon klopt. **Niet geverifieerd:** de migratie (lokaal
-geen Docker of Supabase-config), het formulier en de bekerpagina met een
-ingelogde sessie.
+Truth" t/m W6, het patroon klopt. **Niet geverifieerd:** de migratie lokaal (geen
+Docker of Supabase-config; op productie wel nagekeken, zie boven), het
+formulier en de bekerpagina met een ingelogde sessie.
 
-**Volgorde bij uitrollen.** Eerst `0287` toepassen, dan deployen.
+**Volgorde bij uitrollen.** `0287` staat al op productie; de code kan mee met de
+volgende push.
 
 ### Gebouwd — ZWBekers: prijzenkast voor prestaties, door leden voorgedragen en ontworpen
 
