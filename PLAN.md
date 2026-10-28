@@ -403,7 +403,7 @@ gaat stabiliteit voor nieuwe features.
 19. **Tabbalk op de iPhone, vierde ronde** (rondes van 2026-10-28 hieronder):
    de derde ronde liet de balk bij het scrollen verdwijnen en is teruggedraaid
    (`5ce751af`). Daarna opnieuw gebouwd: het herstel werkt alleen nog binnen een
-   toetsenbordbeurt (`11e46e39`). Nog niet gepusht. Geen migratie. Open: na
+   toetsenbordbeurt (`11e46e39`). Op 2026-10-28 gepusht naar `main` (eigenaar). Geen migratie. Open: na
    het pushen op een iPhone in de beginscherm-app (1) scrollen zonder te typen:
    de balk blijft staan; (2) iets typen, het toetsenbord sluiten en scrollen: de
    balk staat onderaan, niet midden in beeld.
@@ -11517,7 +11517,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Tabbalk op de iPhone: herstel alleen binnen een toetsenbordbeurt
 
-**2026-10-28.** Commit `11e46e39`, lokaal, nog niet gepusht. Geen migratie.
+**2026-10-28.** Commit `11e46e39`, gepusht naar `main` op 2026-10-28 (eigenaar). Geen migratie.
 
 **Aanleiding.** Na het terugdraaien (`5ce751af`, ronde hieronder) vroeg de
 eigenaar het probleem van 2026-10-26 (balk midden in beeld na het toetsenbord)
@@ -11566,7 +11566,7 @@ van wat iOS in de vastgelopen toestand teruggeeft.
 
 ### Teruggedraaid — Tabbalk op de iPhone: geen controle bij het scrollen, balk schuift niet meer
 
-**2026-10-28.** Commit `5ce751af`, lokaal, nog niet gepusht. Geen migratie.
+**2026-10-28.** Commit `5ce751af`, samen met de ronde hierboven gepusht naar `main` op 2026-10-28 (eigenaar). Geen migratie.
 
 **Aanleiding.** De eigenaar meldde dat op de iPhone de vier blokken onderin
 (Vandaag, Kalender, …) verdwijnen zodra je scrollt.
