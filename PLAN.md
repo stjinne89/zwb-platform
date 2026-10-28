@@ -27,13 +27,13 @@ gaat stabiliteit voor nieuwe features.
    van de ronde "ZWBekers: een beker voor een hele ZRL-ronde" (`5b05403e`) is
    dezelfde dag gepusht naar `main`.
 
-0c. **Clubverhaal (2026-10-28): migratie `0288_club_stories.sql` nog niet
-   toegepast, code niet gepusht.** Eerst de migratie, dan de code: het
-   profiel schrijft de pushkolommen `on_story_submitted` en
-   `on_story_reviewed`, en zonder die kolommen faalt het opslaan van de
-   pushvoorkeuren. Open: de privacytekst `/privacy#clubverhaal` wacht op
-   akkoord van de eigenaar, net als de vraag of openbare verhalen zonder
-   nieuwe privacyversie kunnen (zie de ronde "Clubverhaal").
+0c. **Clubverhaal (2026-10-28): migratie `0288` toegepast en gepusht.**
+   `0288_club_stories.sql` is op 2026-10-28 via de Supabase-connector
+   toegepast, op verzoek van de eigenaar, vóór de push naar `main` (zelfde
+   dag). Open: de privacytekst `/privacy#clubverhaal` wacht op akkoord van de
+   eigenaar, net als de vraag of openbare verhalen zonder nieuwe
+   privacyversie kunnen (zie de ronde "Clubverhaal"). Nog doen: één verhaal
+   met foto insturen, plaatsen en op `/verhaal` en bij de beker bekijken.
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11533,8 +11533,14 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Clubverhaal: /verhaal in de stijl van de ZWBgame, met verhalen van leden
 
-**2026-10-28.** Migratie `0288_club_stories.sql` (nog niet toegepast). Commit:
-zie de git-log van deze ronde; niet gepusht.
+**2026-10-28.** Commit `33ec279b`, gepusht naar `main` op 2026-10-28
+(eigenaar). Migratie `0288_club_stories.sql`, dezelfde dag vóór de push via de
+Supabase-connector toegepast. Vooraf: geen van de twee tabellen, geen bucket,
+geen pushkolommen; `zwbekers` en `current_user_has_permission` bestonden.
+Achteraf: RLS aan op beide tabellen met elk één select-policy, `anon` geen
+leesrecht, `authenticated` geen insertrecht, bucket besloten met 10 MB, beide
+pushkolommen, en de foreign key `club_stories_profile_id_fkey` waarop de code
+de schrijver koppelt. De beveiligingsadviezen noemen de nieuwe tabellen niet.
 
 **Waarom.** Wens van de eigenaar: het verhaal van ZWB op `/verhaal` met de
 verbeterde visuals van de ZWBgame (dezelfde renners en engine), met plek voor
@@ -11621,9 +11627,9 @@ suites die niet laden, allemaal door `@anthropic-ai/sdk` en Zwift-routedata,
 niet door deze ronde. In de lokale app (800 px en 375 px): alle vier de
 hoofdstukken met hun groep en tenue, de kaarten en de detailpagina, met
 tijdelijke voorbeelddata in de code (weer weggehaald) omdat de tabellen
-lokaal niet bestaan. **Niet geverifieerd:** de migratie (geen Docker of
-Supabase-config hier), insturen, uploaden, plaatsen en de pushmeldingen tegen
-een echte database, de beker-link, en de scène op een trage telefoon.
+lokaal niet bestonden. **Niet geverifieerd:** insturen, uploaden, plaatsen en
+de pushmeldingen met een ingelogde sessie, de beker-link, en de scène op een
+trage telefoon.
 ### Gebouwd — ZWBekers: een toegekende beker aanpassen (bestuur)
 
 **2026-10-28.** Commit `b1333314`, gepusht naar `main` op 2026-10-28
