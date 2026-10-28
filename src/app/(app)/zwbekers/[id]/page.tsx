@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, Copy, ExternalLink, Trophy } from "lucide-react";
+import { BookOpen, CalendarDays, Copy, ExternalLink, PenLine, Trophy } from "lucide-react";
 import { EmptyState } from "@/components/app-ui";
 import { buttonVariants } from "@/components/ui/button";
 import { TrophyPreview } from "@/components/zwbekers/trophy-preview";
 import { KIND_LABEL, STATUS_LABEL, canEdit, dayLabel, zrlRoundLabel } from "@/lib/zwbekers/nomination";
 import { REVIEW_PERMISSION, loadBeker, requireBekerMember } from "@/lib/zwbekers/server";
+import { loadStoriesForBeker } from "@/lib/clubverhaal/server";
 import { BekerActions, Congrats, ReviewPanel } from "../_components/beker-controls";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,8 @@ export default async function BekerPage({ params }: { params: Promise<{ id: stri
   const editable = canEdit({ status: beker.status, profileId: beker.nominator?.id ?? null }, member.id, canReview);
   const ownOpen = canEdit({ status: beker.status, profileId: beker.nominator?.id ?? null }, member.id);
   const awarded = beker.status === "toegekend";
+  // Het verhaal achter de prestatie op /verhaal (0288); alleen bij een toegekende beker.
+  const stories = awarded ? await loadStoriesForBeker(beker.id) : [];
 
   return (
     <article className="space-y-6">
@@ -94,6 +97,25 @@ export default async function BekerPage({ params }: { params: Promise<{ id: stri
           {beker.photoUrl && (
             // eslint-disable-next-line @next/next/no-img-element -- ondertekende url uit een besloten bucket
             <img src={beker.photoUrl} alt={`Foto bij ${beker.title}`} className="max-h-[28rem] w-full rounded-lg border object-cover" />
+          )}
+
+          {awarded && (
+            <ul className="flex flex-wrap gap-2 text-sm">
+              {stories.map((story) => (
+                <li key={story.id}>
+                  <Link href={`/verhaal/${story.id}`} className="inline-flex min-h-9 items-center gap-2 rounded-md border px-3 font-medium hover:bg-muted">
+                    <BookOpen className="size-4" aria-hidden />
+                    {stories.length === 1 ? "Lees het verhaal" : story.title}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link href={`/clubverhaal/insturen?beker=${beker.id}`} className="inline-flex min-h-9 items-center gap-2 rounded-md border border-dashed px-3 hover:bg-muted">
+                  <PenLine className="size-4" aria-hidden />
+                  Vertel het verhaal
+                </Link>
+              </li>
+            </ul>
           )}
 
           {(beker.event || beker.zrlRound || beker.resultUrl) && (

@@ -79,6 +79,7 @@ export async function updateNotificationPreferences(formData: FormData) {
     on_knowledge_message: formData.get("on_knowledge_message") === "on",
     on_qa_answer: formData.get("on_qa_answer") === "on",
     on_zwbeker_awarded: formData.get("on_zwbeker_awarded") === "on",
+    on_story_reviewed: formData.get("on_story_reviewed") === "on",
     on_event_reminder: formData.get("on_event_reminder") === "on",
     on_admin_broadcast: formData.get("on_admin_broadcast") === "on",
     on_maintenance_due: formData.get("on_maintenance_due") === "on",
@@ -97,6 +98,10 @@ export async function updateNotificationPreferences(formData: FormData) {
     // En voor wie voordrachten voor ZWBekers keurt.
     ...(formData.has("__has_zwbeker_nomination")
       ? { on_zwbeker_nomination: formData.get("on_zwbeker_nomination") === "on" }
+      : {}),
+    // En voor wie verhalen voor het clubverhaal plaatst.
+    ...(formData.has("__has_story_submitted")
+      ? { on_story_submitted: formData.get("on_story_submitted") === "on" }
       : {}),
     updated_at: new Date().toISOString(),
   };

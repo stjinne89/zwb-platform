@@ -27,6 +27,14 @@ gaat stabiliteit voor nieuwe features.
    van de ronde "ZWBekers: een beker voor een hele ZRL-ronde" (`5b05403e`) is
    dezelfde dag gepusht naar `main`.
 
+0c. **Clubverhaal (2026-10-28): migratie `0288_club_stories.sql` nog niet
+   toegepast, code niet gepusht.** Eerst de migratie, dan de code: het
+   profiel schrijft de pushkolommen `on_story_submitted` en
+   `on_story_reviewed`, en zonder die kolommen faalt het opslaan van de
+   pushvoorkeuren. Open: de privacytekst `/privacy#clubverhaal` wacht op
+   akkoord van de eigenaar, net als de vraag of openbare verhalen zonder
+   nieuwe privacyversie kunnen (zie de ronde "Clubverhaal").
+
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
    (limiet 5 GB), en de banner "Organization exceeded its quota in the previous
@@ -8622,8 +8630,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > renners), segmentbeheer, hulp bij segmenten, ZWBgame-beheer, privacy en
 > voorwaarden (→ ZWB Cycling). De lokale `BackLink` van het pacingplan is weg.
 >
-> **Bewust niet.** `/verhaal` en `/brochure` (losse deelpagina's zonder ingang
-> vanuit de app), de Omnium-site (eigen menu) en de OBS-overlay. Ook niet: "Terug
+> **Bewust niet.** `/verhaal` en `/brochure` (losse deelpagina's; `/verhaal`
+> heeft sinds 2026-10-28 wel een ingang via Club → Clubverhaal, maar een eigen
+> balk in plaats van een `BackLink`), de Omnium-site (eigen menu) en de OBS-overlay. Ook niet: "Terug
 > naar inloggen" (een stap in het inlogformulier), de knop "Coach-cockpit" op
 > Vermogen (een menupagina) en de mobiele terugknop in de app-kop
 > (`back-button.tsx`, gaat via de browsergeschiedenis; een andere functie).
@@ -11522,6 +11531,99 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Clubverhaal: /verhaal in de stijl van de ZWBgame, met verhalen van leden
+
+**2026-10-28.** Migratie `0288_club_stories.sql` (nog niet toegepast). Commit:
+zie de git-log van deze ronde; niet gepusht.
+
+**Waarom.** Wens van de eigenaar: het verhaal van ZWB op `/verhaal` met de
+verbeterde visuals van de ZWBgame (dezelfde renners en engine), met plek voor
+anekdotes en verhalen met foto's die meer ruimte nodig hebben. Op de vraag wie
+die plaatst koos de eigenaar "leden dragen voor, het bestuur keurt", en "eerst
+de vorm" (geen verzonnen clubgeschiedenis als vulling). Tijdens het bouwen
+kwam erbij: vanaf een prestatie doorlinken naar het verhaal ervan.
+
+**Wat.**
+- `/verhaal` is herbouwd. Achter de tekst staat een vaste 3D-scène
+  (`verhaal/story-scene.tsx`) met `createPeloton`, `groundGeometry`,
+  `createForest` en `createRidges` uit de ZWBgame, dezelfde lucht, zon en
+  schaduwen. Per hoofdstuk rijdt een groep in het tenue van toen: blanco (1
+  renner), het blauwe Z-shirt (2), VBTM (4) en het huidige clubshirt (7). Bij
+  een nieuw hoofdstuk rijdt de nieuwe groep van achteren aan en zwenkt de
+  camera naar de hoek van dat hoofdstuk. De hoofdstukken en verhalen scrollen
+  eroverheen in de stijl van de game (donker petrol, goud, Arial); rechts een
+  hoofdstukrail, bovenaan een voortgangsbalk.
+- De hoofdstukken staan nu in `lib/clubverhaal/chapters.ts` (waren in
+  `story-experience.tsx`); dezelfde vier ids staan in de check-constraint van
+  0288. De oude SVG-renner (`public/story/riders/cyclist-base.svg`) wordt niet
+  meer gebruikt maar staat er nog.
+- `rider-model.ts` (ZWBgame): `createPeloton` neemt een optionele
+  jerseyschilder (standaard het clubshirt, `clubJersey`), `RiderLook` een
+  optionele mouwkleur, en er is `setVisible`. De game zelf geeft niets mee en
+  ziet er hetzelfde uit.
+- Verhalen van leden (`club_stories`, `club_story_photos`, bucket
+  `club-story-photos`, besloten): insturen op `/clubverhaal/insturen` met
+  hoofdstuk, titel, tekst (20–5000 tekens), jaar, een toegekende ZWBeker en
+  hooguit zes foto's met onderschrift (in de browser verkleind tot 1920 px).
+  `/clubverhaal` toont je eigen verhalen met status; aanpassen zolang niet
+  geplaatst, weghalen altijd. Plaatsen of terugsturen (met notitie) op
+  `/beheer/clubverhaal`, met het recht `community.manage`, zoals tips en
+  citaten. Pushmeldingen voor wie plaatst en voor wie schreef.
+- Op `/verhaal`: een korte anekdote zonder foto (tot 420 tekens) staat in zijn
+  geheel bij het hoofdstuk; een verhaal met foto's of een langer verhaal is een
+  kaart naar `/verhaal/[id]`, met de scène van het hoofdstuk als kop en de
+  foto's tussen de alinea's.
+- Prestaties: een verhaal kan aan een toegekende ZWBeker hangen. De beker
+  toont "Lees het verhaal" en "Vertel het verhaal"
+  (`/clubverhaal/insturen?beker=<id>`); het verhaal linkt naar de beker.
+- Ingangen: Club → Clubverhaal in het menu en op de clubpagina, beheer onder
+  Community, `/hulp/club#clubverhaal`.
+- Data-export (verhalen en foto-rijen), accountverwijdering (verhalen gaan via
+  de cascade mee, de foto's ruimt `deleteMyAccount` op), privacytekst
+  `/privacy#clubverhaal`.
+
+**Bewust zo.**
+- De member-pagina's heten `/clubverhaal`, niet `/verhalen`: de middleware
+  behandelt alles wat met `/verhaal` begint als publiek (`startsWith`), dus
+  `/verhalen` zou zonder inloggen open staan.
+- Geplaatste verhalen leest de server met de admin-client en een vaste filter
+  op `status = 'geplaatst'`; anon krijgt geen rechten op de tabellen. Zo blijft
+  RLS voor leden simpel (alleen eigen verhalen en wie plaatst).
+- Foto's blijven besloten met leeslinks van een uur, net als bij ZWBekers.
+  Daarom is `/verhaal` dynamisch (geen cache).
+- Een verhaal verdwijnt als de schrijver het account opheft (`on delete
+  cascade`, anders dan een beker): het staat openbaar, en zonder de schrijver
+  kan niemand het nog terugnemen.
+
+**Bewust niet.**
+- Geen verzonnen anekdotes als vulling: zonder geplaatste verhalen toont
+  `/verhaal` alleen de vier hoofdstukken.
+- Geen kleinere versie van elke foto voor het overzicht. Het overzicht laadt
+  één foto per verhaal, lui (`loading="lazy"`). Bij veel verhalen telt dat mee
+  in de egress (zie punt 1); dan alsnog een miniatuur bij het uploaden maken.
+  Image-transformaties van Supabase vragen Pro.
+- Geen link vanaf andere prestaties dan ZWBekers (badges, uitslagen): alleen
+  bekers hebben een eigen pagina met een verhaal.
+- Geen eigen recht "verhalen plaatsen": dat vraagt de check-constraint van
+  `community_role_permissions` (zie 0254).
+
+**Niet meer waar.** Ronde "Materiaal" (bewust niet): de SVG-renner "uit het
+clubverhaal" wordt sinds deze ronde niet meer gebruikt; het clubverhaal toont
+de renners van de ZWBgame. De regel "`/verhaal` ... losse deelpagina zonder
+ingang vanuit de app" (ronde BackLink) klopt niet meer: Club → Clubverhaal
+linkt ernaar.
+
+**Gecontroleerd.** `tsc` (alleen de bestaande fouten over `modern-screenshot`
+en `@anthropic-ai/sdk`, ontbrekende pakketten in de lokale `node_modules`),
+ESLint op de gewijzigde bestanden, Vitest `clubverhaal.test.ts` (nieuw, 17
+tests) en `zwbekers.test.ts`. De volledige unit-suite: 3 mislukte tests en 20
+suites die niet laden, allemaal door `@anthropic-ai/sdk` en Zwift-routedata,
+niet door deze ronde. In de lokale app (800 px en 375 px): alle vier de
+hoofdstukken met hun groep en tenue, de kaarten en de detailpagina, met
+tijdelijke voorbeelddata in de code (weer weggehaald) omdat de tabellen
+lokaal niet bestaan. **Niet geverifieerd:** de migratie (geen Docker of
+Supabase-config hier), insturen, uploaden, plaatsen en de pushmeldingen tegen
+een echte database, de beker-link, en de scène op een trage telefoon.
 ### Gebouwd — ZWBekers: een toegekende beker aanpassen (bestuur)
 
 **2026-10-28.** Commit `b1333314`, gepusht naar `main` op 2026-10-28
@@ -18907,7 +19009,8 @@ bron afgeleid, en bandenspanning en wegdek zijn twee aparte keuzes.
 - Een losse keuze voor een los of strak shirt. Bij clubtempo is dat niet
   gemeten (artikel Kleding); het blijft een eigen percentage.
 - De renner uit het clubverhaal (`public/story/riders/cyclist-base.svg`): dat
-  is een stockicoon zonder tenue.
+  is een stockicoon zonder tenue. (Sinds 2026-10-28 gebruikt het clubverhaal
+  hem niet meer, maar de renners van de ZWBgame.)
 
 **Getest.**
 - `materiaal.test.ts`, nu twaalf tests. Nieuw: de spanning op ruw wegdek

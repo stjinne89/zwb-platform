@@ -169,7 +169,7 @@ export default async function ProfielPage({
     supabase
       .from("notification_preferences")
       .select(
-        "on_new_event, on_live_started, on_ride_message, on_new_badge, on_training_plan, on_training_chat, on_knowledge_message, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_intervals_visit_reminder, on_qa_question, on_qa_answer, on_zwbeker_nomination, on_zwbeker_awarded",
+        "on_new_event, on_live_started, on_ride_message, on_new_badge, on_training_plan, on_training_chat, on_knowledge_message, on_event_reminder, on_admin_broadcast, on_maintenance_due, on_member_pending, on_strava_link_expiring, on_intervals_visit_reminder, on_qa_question, on_qa_answer, on_zwbeker_nomination, on_zwbeker_awarded, on_story_submitted, on_story_reviewed",
       )
       .eq("profile_id", user.id)
       .maybeSingle(),
@@ -372,10 +372,13 @@ export default async function ProfielPage({
             on_qa_answer: pushPrefs?.on_qa_answer ?? true,
             on_zwbeker_nomination: pushPrefs?.on_zwbeker_nomination ?? true,
             on_zwbeker_awarded: pushPrefs?.on_zwbeker_awarded ?? true,
+            on_story_submitted: pushPrefs?.on_story_submitted ?? true,
+            on_story_reviewed: pushPrefs?.on_story_reviewed ?? true,
           }}
           canApproveMembers={access.has("members.approve")}
           canAnswerQuestions={access.has("qa.answer")}
           canReviewBekers={access.has("achievements.finalize")}
+          canPlaceStories={access.has("community.manage")}
           hasSubscriptionInDb={(pushSubs?.length ?? 0) > 0}
         />
       </div>

@@ -62,19 +62,24 @@ export function solvePose(pose: Pose, tuck: number, stand: number, crank: number
   return pose;
 }
 
+/** Paints a jersey on a 64×128 canvas: top is the collar, x = 32 the middle of the back. */
+export type JerseyPainter = (paint: CanvasRenderingContext2D) => void;
+
 /** Club jersey: white shoulders, petrol body with slate chevrons, gold collar, dark side panels. */
-function jerseyTexture() {
+export const clubJersey: JerseyPainter = (paint) => {
+  const band = (y: number, color: string) => { paint.fillStyle = color; paint.beginPath(); paint.moveTo(0, y); paint.lineTo(32, y + 18); paint.lineTo(64, y); paint.lineTo(64, 128); paint.lineTo(0, 128); paint.fill(); };
+  paint.fillStyle = "#ffffff"; paint.fillRect(0, 0, 64, 128);
+  band(56, "#6f8f96"); band(68, "#4d767f"); band(80, "#2f6470"); band(92, "#185663"); band(104, "#0b4654");
+  paint.fillStyle = "#c9974a"; paint.fillRect(0, 22, 64, 4);
+  paint.fillStyle = "#0b3a45"; paint.fillRect(14, 64, 4, 64); paint.fillRect(46, 64, 4, 64);
+  paint.fillStyle = "#15191b"; paint.fillRect(0, 118, 64, 10);
+};
+
+function jerseyTexture(painter: JerseyPainter) {
   const canvas = document.createElement("canvas");
   canvas.width = 64; canvas.height = 128;
   const paint = canvas.getContext("2d");
-  if (paint) {
-    const band = (y: number, color: string) => { paint.fillStyle = color; paint.beginPath(); paint.moveTo(0, y); paint.lineTo(32, y + 18); paint.lineTo(64, y); paint.lineTo(64, 128); paint.lineTo(0, 128); paint.fill(); };
-    paint.fillStyle = "#ffffff"; paint.fillRect(0, 0, 64, 128);
-    band(56, "#6f8f96"); band(68, "#4d767f"); band(80, "#2f6470"); band(92, "#185663"); band(104, "#0b4654");
-    paint.fillStyle = "#c9974a"; paint.fillRect(0, 22, 64, 4);
-    paint.fillStyle = "#0b3a45"; paint.fillRect(14, 64, 4, 64); paint.fillRect(46, 64, 4, 64);
-    paint.fillStyle = "#15191b"; paint.fillRect(0, 118, 64, 10);
-  }
+  if (paint) painter(paint);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
@@ -135,13 +140,14 @@ function bikeGeometry() {
 /** A limb or tube from a to b: the unit geometry runs from y = 0 to y = 1. */
 const limb = (r0: number, r1: number) => new THREE.CylinderGeometry(r1, r0, 1, 8, 1).translate(0, 0.5, 0);
 
-export type RiderLook = { kit: string; helmet: string; skin: string };
+/** sleeve: the sleeve colour when it differs from the kit tint (the club story's old kits). */
+export type RiderLook = { kit: string; helmet: string; skin: string; sleeve?: string };
 
-export function createPeloton(scene: THREE.Scene, count: number) {
+export function createPeloton(scene: THREE.Scene, count: number, jersey: JerseyPainter = clubJersey) {
   const geometries: THREE.BufferGeometry[] = [];
   const materials: THREE.Material[] = [];
   const meshes: THREE.InstancedMesh[] = [];
-  const texture = jerseyTexture();
+  const texture = jerseyTexture(jersey);
   const standard = (params: THREE.MeshStandardMaterialParameters) => { const m = new THREE.MeshStandardMaterial(params); materials.push(m); return m; };
   const instanced = (g: THREE.BufferGeometry, m: THREE.Material) => {
     geometries.push(g);
@@ -171,7 +177,8 @@ export function createPeloton(scene: THREE.Scene, count: number) {
 
   const tint = new THREE.Color();
   const dress = (i: number, look: RiderLook) => {
-    for (const mesh of [torso, ...sleeves]) mesh.setColorAt(i, tint.set(look.kit));
+    torso.setColorAt(i, tint.set(look.kit));
+    for (const mesh of sleeves) mesh.setColorAt(i, tint.set(look.sleeve ?? look.kit));
     for (const mesh of [...forearms, ...shins, neck, head]) mesh.setColorAt(i, tint.set(look.skin));
     helmet.setColorAt(i, tint.set(look.helmet));
     bike.setColorAt(i, tint.set(look.helmet));
@@ -210,12 +217,13 @@ export function createPeloton(scene: THREE.Scene, count: number) {
     });
   };
   const commit = () => { for (const mesh of meshes) mesh.instanceMatrix.needsUpdate = true; };
+  const setVisible = (visible: boolean) => { for (const mesh of meshes) mesh.visible = visible; };
   const finishDressing = () => { for (const mesh of meshes) if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; };
   const dispose = () => {
     meshes.forEach((mesh) => { scene.remove(mesh); mesh.dispose(); });
     geometries.forEach((g) => g.dispose()); materials.forEach((m) => m.dispose()); texture.dispose();
   };
-  return { dress, finishDressing, place, commit, dispose };
+  return { dress, finishDressing, place, commit, setVisible, dispose };
 }
 
 /** A few skin tones, picked per rider so the field is not one person copied. */

@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "arial",
+        "createdAt": "2026-10-28T09:59:38.092Z",
+        "reason": "ZWBgame (game.module.css) sets Arial; owner asked /verhaal to follow the game's design (2026-10-28)"
+      }
+    ]
+  }
+}

@@ -367,6 +367,13 @@ const HELP_INDEX: HelpResult[] = [
       "zwbekers beker bekers prijs prijzen prijzenkast kast trofee voordragen nomineren nominatie ontwerpen ontwerp bokaal schaal medaille gravure team teambeker feliciteren felicitatie keuren toekennen teruggestuurd",
   },
   {
+    title: "Clubverhaal",
+    text: "Een anekdote of verhaal met foto's insturen voor het verhaal van ZWB.",
+    href: "/hulp/club#clubverhaal",
+    terms:
+      "clubverhaal verhaal verhalen anekdote anekdotes geschiedenis historie foto fotos insturen plaatsen hoofdstuk tenue shirt beker",
+  },
+  {
     title: "Privacy en zichtbaarheid",
     text: "Profielvelden, live tracking en trainer-data delen.",
     href: "/hulp/club#privacy",

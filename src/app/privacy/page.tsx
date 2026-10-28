@@ -546,6 +546,25 @@ export default function PrivacyPage() {
             niets naar {AI} of een andere partij. Je voordrachten, bekers en
             felicitaties staan in je data-export.
           </li>
+          <li id="clubverhaal" className="scroll-mt-20">
+            <strong>Clubverhaal:</strong> een lid kan een anekdote of verhaal
+            met hooguit zes foto&apos;s insturen voor het verhaal van ZWB op{" "}
+            <Link href="/verhaal" className="underline">/verhaal</Link>. We bewaren de
+            titel, de tekst, het jaar, het hoofdstuk, een eventuele ZWBeker, de
+            foto&apos;s met onderschrift, wie het schreef en wat het bestuur
+            besloot, met een eventuele notitie. Zolang het bestuur het nog niet
+            plaatste, zien alleen jij en wie verhalen plaatst het. Een geplaatst
+            verhaal staat op een openbare pagina: iedereen kan het lezen, ook
+            zonder in te loggen, met je naam erbij. Zet er daarom niets in wat
+            niet openbaar mag, en vraag wie op een foto staat of dat goed is.
+            Foto&apos;s staan in een besloten opslag; de pagina toont ze met
+            links die na een uur verlopen. Je kunt je verhaal altijd zelf
+            weghalen, ook als het geplaatst is; sta je op een foto bij het
+            verhaal van een ander en wil je dat niet, vraag het bestuur (zie
+            &ldquo;Je rechten&rdquo;). Hef je je account op, dan verdwijnen je
+            verhalen en hun foto&apos;s. Er gaat niets naar {AI} of een andere
+            partij. Je verhalen staan in je data-export.
+          </li>
           <li>
             <strong>Persoonlijke voorkeuren:</strong> op het tabblad
             Uitgangspunten, of met het vinkje &ldquo;Onthoud als voorkeur&rdquo; in

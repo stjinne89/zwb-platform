@@ -129,6 +129,8 @@ export const NAV_GROUPS: NavNode[] = [
       { type: "link", href: "/stats", label: "Stats" },
       // De prijzenkast (0286, 2026-10-28).
       { type: "link", href: "/zwbekers", label: "ZWBekers" },
+      // Verhalen insturen voor /verhaal (0288).
+      { type: "link", href: "/clubverhaal", label: "Clubverhaal" },
       { type: "link", href: "/profiel/segments/collecties", label: "ZWB Segments" },
       { type: "link", href: "/zwblokken", label: "ZWBlokken" },
       { type: "link", href: "/zwbgame", label: "ZWBgame" },
@@ -211,6 +213,7 @@ export const BEHEER_CATEGORIES: BeheerCategory[] = [
       { type: "link", href: "/community", label: "WhatsApp-groepen", permission: "community.manage" },
       { type: "link", href: "/media", label: "Media", permission: "media.manage" },
       adminLink("citaten"),
+      adminLink("clubverhaal"),
       adminLink("achievements"),
       adminLink("zwbekers"),
       adminLink("zwbgame"),

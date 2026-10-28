@@ -57,6 +57,9 @@ const PROFILE_TABLES: string[] = [
   "zwbekers",
   "zwbeker_winners",
   "zwbeker_congrats",
+  // Clubverhaal (0288): je ingestuurde verhalen (profile_id is wie schreef).
+  // De foto's staan in club_story_photos, aan het verhaal; zie hieronder.
+  "club_stories",
 ];
 
 export async function GET() {
@@ -129,6 +132,19 @@ export async function GET() {
         meals.map((meal) => meal.id),
       );
     if (!error) data.nutrition_log_items = items ?? [];
+  }
+
+  // De foto's bij je verhalen voor het clubverhaal (0288); zonder profile_id.
+  const clubStories = (data.club_stories ?? []) as { id: string }[];
+  if (clubStories.length > 0) {
+    const { data: photos, error } = await admin
+      .from("club_story_photos")
+      .select("*")
+      .in(
+        "story_id",
+        clubStories.map((story) => story.id),
+      );
+    if (!error) data.club_story_photos = photos ?? [];
   }
 
   // Afvinken en CORE-metingen per protocol; die rijen hebben geen profile_id.

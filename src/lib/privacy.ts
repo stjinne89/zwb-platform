@@ -93,6 +93,14 @@
  * ook zonder nieuwe versie kwamen, maar of dat hier ook mag, is aan de
  * eigenaar: tekst op `/privacy#zwbekers`, nog niet goedgekeurd (zie PLAN.md,
  * ronde "ZWBekers").
+ *
+ * **Elfde uitzondering, voorgesteld: Clubverhaal (2026-10-28).** Een lid stuurt
+ * een eigen verhaal met foto's in; na plaatsing door het bestuur staat het met
+ * naam op de openbare pagina /verhaal (0288). Nieuw is dat ledendata openbaar
+ * wordt, maar alleen wat het lid zelf instuurt en zelf altijd kan weghalen.
+ * Of dat zonder nieuwe versie kan, is aan de eigenaar: tekst op
+ * `/privacy#clubverhaal`, nog niet goedgekeurd (zie PLAN.md, ronde
+ * "Clubverhaal").
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring

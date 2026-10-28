@@ -307,6 +307,7 @@ export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/media", name: "Media", text: "Nieuws, nieuwsbrieven, podcasts, video's en Instagram." },
   { href: "/stats", name: "Stats", text: "Club: de cijfers en ranglijst van alle leden. Ik: je eigen ritten, vermogen en records." },
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
+  { href: "/clubverhaal", name: "Clubverhaal", text: "Je anekdotes en verhalen met foto's voor het verhaal van ZWB." },
   { href: "/zwbekers", name: "ZWBekers", text: "De prijzenkast van de club: per jaar een kast met bekers voor prestaties die aandacht verdienen." },
   { href: "/voorzpwelbokaal", name: "voorZpWelBokaal", text: "Wedden met ZWBallen op het veldrijden: het bord, je briefjes en de lei." },
   { href: "/profiel?weergave=bewerken", name: "Profiel", text: "Je gegevens, zichtbaarheid, je fietsen, koppelingen (Strava/intervals) en account." },

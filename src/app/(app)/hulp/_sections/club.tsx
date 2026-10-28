@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  BookOpen,
   Bike,
   Cake,
   Trophy,
@@ -262,6 +263,81 @@ export function ClubHelp() {
           >
             <Trophy className="size-4 text-primary" />
             Naar de prijzenkast
+          </Link>
+        </div>
+      </section>
+
+      <section
+        id="clubverhaal"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <BookOpen className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Clubverhaal</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Het verhaal van ZWB op /verhaal, in vier hoofdstukken met de
+              renners uit de ZWBgame in het tenue van toen. Leden vullen het aan
+              met anekdotes en verhalen met foto&apos;s.
+            </p>
+          </div>
+        </header>
+
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Insturen.</strong> Kies
+              Verhaal insturen onder Club &rarr; Clubverhaal, of Vertel jouw
+              verhaal op /verhaal. Kies het hoofdstuk, geef een titel en
+              vertel; het jaar, een ZWBeker en hooguit zes foto&apos;s met
+              onderschrift zijn niet verplicht.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Plaatsen.</strong> Het
+              bestuur leest elk verhaal eerst. Stuurt het bestuur het terug, dan
+              staat erbij waarom en kun je het aanpassen. Een geplaatst verhaal
+              staat openbaar op /verhaal, met je naam: ook wie niet inlogt, kan
+              het lezen. Vraag wie op een foto staat of dat goed is.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Kort of lang.</strong> Een
+              korte anekdote zonder foto staat in zijn geheel bij het hoofdstuk.
+              Een verhaal met foto&apos;s of een langer verhaal krijgt een eigen
+              pagina, met de foto&apos;s tussen de tekst.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Bij een beker.</strong> Kies
+              je een ZWBeker, dan linkt de beker naar je verhaal en het verhaal
+              naar de beker. Bij een beker staat ook Vertel het verhaal.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Weghalen.</strong> Je kunt
+              je verhaal altijd weghalen onder Je verhalen, ook als het al
+              geplaatst is.
+            </span>
+          </li>
+        </ul>
+
+        <div className="mt-4">
+          <Link
+            href="/verhaal"
+            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+          >
+            <BookOpen className="size-4 text-primary" />
+            Naar het verhaal
           </Link>
         </div>
       </section>

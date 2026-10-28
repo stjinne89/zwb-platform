@@ -51,7 +51,11 @@ export type NotificationTrigger =
   // ZWBekers (0286): een nieuwe voordracht voor wie keurt; een gewonnen of
   // beoordeelde beker voor de winnaars en wie voordroeg.
   | "on_zwbeker_nomination"
-  | "on_zwbeker_awarded";
+  | "on_zwbeker_awarded"
+  // Clubverhaal (0288): een nieuw verhaal voor wie plaatst; een geplaatst of
+  // teruggestuurd verhaal voor wie het schreef.
+  | "on_story_submitted"
+  | "on_story_reviewed";
 
 let vapidConfigured = false;
 function ensureVapid(): boolean {

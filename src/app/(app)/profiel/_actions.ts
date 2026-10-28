@@ -98,6 +98,17 @@ export async function deleteMyAccount(confirmEmail: string) {
   } catch {
     // niet kritiek
   }
+  // Je verhalen voor /verhaal verdwijnen mee (0288, cascade); hun foto's hier.
+  try {
+    const { data: photos } = await admin
+      .from("club_story_photos")
+      .select("path, story:club_stories!inner(profile_id)")
+      .eq("story.profile_id", user.id);
+    const paths = (photos ?? []).map((p) => p.path as string).filter(Boolean);
+    if (paths.length) await admin.storage.from("club-story-photos").remove(paths);
+  } catch {
+    // niet kritiek
+  }
 
   // Strava's toestemming intrekken vóór de cascade. Zonder dit blijft de grant bij
   // Strava bestaan terwijl wij zeggen dat alles weg is: een AVG-hiaat, én de
