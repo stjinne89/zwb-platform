@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, ExternalLink, Trophy } from "lucide-react";
+import { CalendarDays, Copy, ExternalLink, Trophy } from "lucide-react";
 import { EmptyState } from "@/components/app-ui";
+import { buttonVariants } from "@/components/ui/button";
 import { TrophyPreview } from "@/components/zwbekers/trophy-preview";
 import { KIND_LABEL, STATUS_LABEL, canEdit, dayLabel, zrlRoundLabel } from "@/lib/zwbekers/nomination";
 import { REVIEW_PERMISSION, loadBeker, requireBekerMember } from "@/lib/zwbekers/server";
@@ -143,6 +144,10 @@ export default async function BekerPage({ params }: { params: Promise<{ id: stri
                   In de kast
                 </Link>
               )}
+              <Link href={`/zwbekers/voordragen?van=${beker.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                <Copy className="size-4" aria-hidden />
+                Kopiëren
+              </Link>
               <BekerActions bekerId={beker.id} canEdit={editable} canRemove={canReview && !editable} />
             </div>
           </div>

@@ -11522,6 +11522,33 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBekers: een beker kopiëren als nieuwe voordracht
+
+**2026-10-28.** Lokaal gecommit, niet gepusht; de hash staat in `git log` bij
+deze ronde. Geen migratie.
+
+**Waarom.** Wens van de eigenaar: "een beker kopiëren en bewerken". Handig voor
+een beker die terugkomt, zoals de 1 voor nummer 1 in de ladder in een volgende
+periode.
+
+**Wat.** Op elke beker die je kunt zien (`/zwbekers/[id]`) staat Kopiëren. Dat
+opent `/zwbekers/voordragen?van=<id>` met soort, titel, verhaal, team,
+winnaars en ontwerp al ingevuld. Opslaan maakt een nieuwe voordracht die het
+bestuur gewoon keurt; het origineel verandert niet. De bron wordt met de sessie
+van het lid gelezen, dus RLS bepaalt wat je kunt kopiëren: een toegekende beker,
+of een voordracht die je zelf deed of mag keuren.
+
+**Bewust niet.**
+- Datum, event of ZRL-ronde, uitslaglink en foto gaan niet mee: die horen bij
+  die ene prestatie. De datum begint op vandaag.
+- Geen kopie van felicitaties of van de beoordeling.
+- Geen serverwijziging: een kopie gaat door dezelfde controles en dezelfde
+  limiet (5 voordrachten per dag) als elke voordracht.
+
+**Gecontroleerd.** `tsc` zonder nieuwe fouten, ESLint op `src/app/(app)/zwbekers`.
+**Niet geverifieerd:** de knop en het ingevulde formulier met een ingelogde
+sessie.
+
 ### Gebouwd — ZWBekers: de gravure neemt de titel over
 
 **2026-10-28.** Commit `657dc466`, gepusht naar `main` op 2026-10-28

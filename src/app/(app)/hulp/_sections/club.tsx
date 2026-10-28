@@ -194,7 +194,9 @@ export function ClubHelp() {
               waarom. Bij een team kies je het team en vink je aan wie er
               meereed; ook wie niet (meer) in het team zit, kun je toevoegen.
               Een event of een hele ZRL-ronde, een link naar de uitslag en een
-              foto zijn niet verplicht.
+              foto zijn niet verplicht. Lijkt de prestatie op een beker die er
+              al is, kies dan Kopiëren bij die beker: titel, verhaal, winnaars
+              en ontwerp staan dan al klaar.
             </span>
           </li>
           <li className="flex gap-2">

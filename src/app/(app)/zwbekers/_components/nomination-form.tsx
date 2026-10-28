@@ -36,7 +36,8 @@ export type FormOptions = {
 };
 
 export type FormInitial = {
-  id: string;
+  /** Null bij een kopie: dan wordt het een nieuwe voordracht. */
+  id: string | null;
   kind: BekerKind;
   title: string;
   story: string;
@@ -78,7 +79,8 @@ async function resizePhoto(file: File): Promise<Blob> {
 /**
  * Een voordracht voor een ZWBeker, met de beker die het lid erbij ontwerpt (wens
  * eigenaar, 2026-10-28). Het voorbeeld verandert bij elke keuze mee. Nieuw of
- * aanpassen: met `initial` past het een bestaande voordracht aan.
+ * aanpassen: met `initial` past het een bestaande voordracht aan, of begint het
+ * een nieuwe als kopie van een andere beker (`initial.id` null).
  */
 export function NominationForm({ options, today, initial }: { options: FormOptions; today: string; initial?: FormInitial }) {
   const router = useRouter();
