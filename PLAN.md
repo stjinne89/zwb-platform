@@ -11524,8 +11524,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBekers: een toegekende beker aanpassen (bestuur)
 
-**2026-10-28.** Lokaal gecommit, niet gepusht; de hash staat in `git log` bij
-deze ronde. Geen migratie.
+**2026-10-28.** Commit `b1333314`, gepusht naar `main` op 2026-10-28
+(eigenaar). Geen migratie.
 
 **Waarom.** Wens van de eigenaar: een beker ook na toevoegen kunnen aanpassen
 "bij een foutje", maar alleen door het bestuur of de eigenaar.
@@ -11548,7 +11548,7 @@ deze ronde. Geen migratie.
 **Wie dat zijn (productie, 2026-10-28).** Het recht `achievements.finalize`
 hebben de eigenaar (beheerder), vier bestuursleden, en één communitymanager die
 niet in het bestuur zit. Die laatste kon al keuren en verwijderen; hij kan nu
-ook aanpassen. Voorgelegd aan de eigenaar.
+ook aanpassen. Voorgelegd aan de eigenaar: akkoord (2026-10-28).
 
 **Bewust niet.**
 - Geen eigen recht voor aanpassen: dat vraagt de check-constraint van
