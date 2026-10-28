@@ -403,7 +403,7 @@ gaat stabiliteit voor nieuwe features.
 19. **Tabbalk op de iPhone, vierde ronde** (rondes van 2026-10-28 hieronder):
    de derde ronde liet de balk bij het scrollen verdwijnen en is teruggedraaid
    (`5ce751af`). Daarna opnieuw gebouwd: het herstel werkt alleen nog binnen een
-   toetsenbordbeurt. Lokaal gecommit, nog niet gepusht. Geen migratie. Open: na
+   toetsenbordbeurt (`11e46e39`). Nog niet gepusht. Geen migratie. Open: na
    het pushen op een iPhone in de beginscherm-app (1) scrollen zonder te typen:
    de balk blijft staan; (2) iets typen, het toetsenbord sluiten en scrollen: de
    balk staat onderaan, niet midden in beeld.
@@ -11517,7 +11517,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Tabbalk op de iPhone: herstel alleen binnen een toetsenbordbeurt
 
-**2026-10-28.** Lokaal gecommit, nog niet gepusht. Geen migratie.
+**2026-10-28.** Commit `11e46e39`, lokaal, nog niet gepusht. Geen migratie.
 
 **Aanleiding.** Na het terugdraaien (`5ce751af`, ronde hieronder) vroeg de
 eigenaar het probleem van 2026-10-26 (balk midden in beeld na het toetsenbord)
