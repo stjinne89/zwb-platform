@@ -11524,8 +11524,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBekers op het dashboard, met slingers en confetti
 
-**2026-10-28.** Lokaal gecommit, niet gepusht; de hash staat in `git log` bij
-deze ronde. Geen migratie.
+**2026-10-28.** Commit `99d59ba4`, gepusht naar `main` op 2026-10-28
+(eigenaar). Geen migratie.
 
 **Waarom.** Wens van de eigenaar: toegekende bekers van de afgelopen 7 dagen op
 het dashboard, de eerste keer met confetti en slingers, "zodat leden weten wat
