@@ -180,6 +180,16 @@ export function zrlRoundLabel(round: string): string {
   return `ZRL ${season} · ronde ${r.slice(1)}`;
 }
 
+/** Zo lang staat een toegekende beker op het dashboard, gerekend vanaf de dag van de prestatie. */
+export const DASHBOARD_DAYS = 7;
+
+/** De eerste dag die nog meetelt: vandaag en de zes dagen ervoor ("YYYY-MM-DD"). */
+export function recentSince(today: string, days = DASHBOARD_DAYS): string {
+  const day = new Date(`${today}T12:00:00Z`);
+  day.setUTCDate(day.getUTCDate() - (days - 1));
+  return day.toISOString().slice(0, 10);
+}
+
 /** "12 oktober 2026" */
 export function dayLabel(day: string): string {
   return new Date(`${day}T12:00:00Z`).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });

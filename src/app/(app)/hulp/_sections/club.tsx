@@ -233,6 +233,17 @@ export function ClubHelp() {
           <li className="flex gap-2">
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <span>
+              <strong className="text-foreground">Op het dashboard.</strong>{" "}
+              Een toegekende beker staat een week lang op het dashboard, gerekend
+              vanaf de dag van de prestatie, met een knop om te feliciteren. De
+              eerste keer dat je hem ziet, hangen er slingers en valt er
+              confetti. Je toestel onthoudt welke bekers je al zag; op een ander
+              toestel krijg je het feestje dus nog een keer.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
               <strong className="text-foreground">Op je profiel.</strong> Je
               bekers staan op een plank op je profiel, ook een teambeker als je
               meereed. Ze volgen de zichtbaarheid van je badges: verberg je je

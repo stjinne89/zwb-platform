@@ -10,6 +10,7 @@ import {
   canEdit,
   isPhotoPathFor,
   photoPath,
+  recentSince,
   zrlRoundLabel,
   zrlRoundOf,
   type BekerKind,
@@ -161,6 +162,25 @@ export async function loadProfileBekers(client: SupabaseClient, profileId: strin
     .eq("status", "toegekend")
     .order("achieved_on", { ascending: false })
     .returns<SummaryRow[]>();
+  return (data ?? []).map(summary);
+}
+
+/**
+ * Toegekende bekers van de afgelopen week, nieuwste eerst: voor het dashboard.
+ * Bij een storing (of zonder 0286) gewoon niets; het dashboard blijft werken.
+ */
+export async function loadRecentBekers(client: SupabaseClient, today: string): Promise<BekerSummary[]> {
+  const { data, error } = await client
+    .from("zwbekers")
+    .select(SUMMARY_COLUMNS)
+    .eq("status", "toegekend")
+    .gte("achieved_on", recentSince(today))
+    .lte("achieved_on", today)
+    .order("achieved_on", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(12)
+    .returns<SummaryRow[]>();
+  if (error) return [];
   return (data ?? []).map(summary);
 }
 

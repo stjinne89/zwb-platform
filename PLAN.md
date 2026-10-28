@@ -11522,6 +11522,55 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBekers op het dashboard, met slingers en confetti
+
+**2026-10-28.** Lokaal gecommit, niet gepusht; de hash staat in `git log` bij
+deze ronde. Geen migratie.
+
+**Waarom.** Wens van de eigenaar: toegekende bekers van de afgelopen 7 dagen op
+het dashboard, de eerste keer met confetti en slingers, "zodat leden weten wat
+er gepresteerd is en de winnaars kunnen feliciteren".
+
+**Wat.**
+- `loadRecentBekers` (`lib/zwbekers/server.ts`): toegekende bekers met
+  `achieved_on` van vandaag en de zes dagen ervoor (`recentSince`,
+  `DASHBOARD_DAYS = 7` in `lib/zwbekers/nomination.ts`), nieuwste eerst, hooguit
+  12. Gelezen met de sessie van het lid; alleen voor wie de prijzenkast mag zien
+  (`requireBekerMember`: goedgekeurd en privacyverklaring getekend), anders
+  geen blok. Bij een storing ook geen blok.
+- Het blok "ZWBekers van deze week" (`dashboard/_components/recent-bekers.tsx`)
+  staat bovenaan het dashboard, in beide designs, na de begroeting. Per beker
+  het plaatje op de donkere plank van het profiel, titel, team en winnaars,
+  datum en een knop Feliciteren naar `/zwbekers/[id]#felicitaties`.
+- `BekerFeest` (`components/zwbekers/beker-feest.tsx`): zit er een beker bij die
+  dit toestel nog niet zag, dan zakken twee vlaggenlijnen in de ruimte boven het
+  blok en valt er 4,5 s confetti over het scherm (eigen canvas, geen pakket;
+  klikken gaat erdoorheen). Met `prefers-reduced-motion` hangen de slingers stil
+  en blijft de confetti weg.
+- `/ontwerp-voorbeeld` toont het blok met drie verzonnen bekers
+  (`zwbekers-voorbeeld.ts`).
+
+**Bewust niet.**
+- "Al gezien" staat in `localStorage` (`zwbekers-gevierd`, alleen beker-id's),
+  niet in de database. Gevolg: op een tweede toestel komt het feestje nog een
+  keer. Een tabel per lid per beker zou een migratie en een schrijfactie bij
+  elk dashboardbezoek vragen, voor een feestje. Kan de opslag niet, dan geen
+  feest (liever te weinig dan elke keer).
+- De privacytekst is niet aangepast: in de browser staan alleen id's van
+  bekers die alle leden al zien, functioneel, en niets verlaat het toestel. Wel
+  zegt §8 "alleen functionele cookies"; dit is geen cookie maar wel
+  browseropslag. Ter beoordeling bij de eigenaar of §8 dat moet noemen.
+- Een beker die later dan 7 dagen na de prestatie wordt toegekend, komt niet op
+  het dashboard: de periode telt vanaf de prestatie, zoals gevraagd.
+
+**Gecontroleerd.** `tsc` zonder nieuwe fouten, ESLint, Vitest
+`zwbekers.test.ts` (nieuw: de periode over maand- en jaargrens). In de lokale
+app op `/ontwerp-voorbeeld` (design tegels) op 1280 en 375 px breed: blok,
+slingers en confetti bij het eerste bezoek, niets bij een tweede bezoek, en
+weer feest als er één nieuwe beker bij komt. Daarbij de slingers boven de kop
+gehangen (ze hingen er eerst overheen). **Niet geverifieerd:** het echte
+dashboard met een ingelogde sessie en echte bekers, en het klassieke design.
+
 ### Gebouwd — ZWBekers: onbeperkt voordragen
 
 **2026-10-28.** Commit `989a9a38`, gepusht naar `main` op 2026-10-28

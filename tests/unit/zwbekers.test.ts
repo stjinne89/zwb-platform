@@ -30,6 +30,7 @@ import {
   namesLabel,
   parseNomination,
   photoPath,
+  recentSince,
   zrlRoundLabel,
   zrlRoundOf,
 } from "@/lib/zwbekers/nomination";
@@ -178,6 +179,15 @@ describe("ZWBekers: de 1", () => {
     expect(parseDesign({ ...een, regio: "  UTC+1  " }).regio).toBe("UTC+1");
     expect(() => parseDesign({ ...een, periode: "x".repeat(GRAVURE_MAX + 1) })).toThrow(ZodError);
     expect(readDesign({ ...een, regio: "<b>" }).regio).toBe("");
+  });
+});
+
+describe("ZWBekers: op het dashboard", () => {
+  it("telt vandaag en de zes dagen ervoor, ook over een maand- en jaargrens", () => {
+    expect(recentSince("2026-10-28")).toBe("2026-10-22");
+    expect(recentSince("2026-11-03")).toBe("2026-10-28");
+    expect(recentSince("2027-01-02")).toBe("2026-12-27");
+    expect(recentSince("2026-10-28", 1)).toBe("2026-10-28");
   });
 });
 

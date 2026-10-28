@@ -160,7 +160,7 @@ export default async function BekerPage({ params }: { params: Promise<{ id: stri
           )}
 
           {awarded && (
-            <section className="space-y-3">
+            <section id="felicitaties" className="scroll-mt-20 space-y-3">
               <h2 className={sectionTitle}>Felicitaties{beker.congrats.length > 0 ? ` (${beker.congrats.length})` : ""}</h2>
               <Congrats
                 bekerId={beker.id}

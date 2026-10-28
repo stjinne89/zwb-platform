@@ -1,0 +1,59 @@
+/* Slingers en confetti bij nieuwe ZWBekers op het dashboard (beker-feest.tsx). */
+
+/* In de ruimte boven het blok, zodat de vlaggen niet over de kop hangen. */
+.slingers {
+  position: absolute;
+  inset: -2rem 0 auto;
+  z-index: 1;
+  width: 100%;
+  height: 2.75rem;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* De lijn zakt van boven in het blok en veert even na. */
+.line {
+  transform-box: fill-box;
+  animation: slinger-in 900ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+/* De vlaggetjes wiegen zacht, elk iets later. */
+.flag {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: vlag-wieg 2.6s ease-in-out infinite alternate;
+}
+
+.confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+@keyframes slinger-in {
+  from {
+    transform: translateY(-120%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes vlag-wieg {
+  from {
+    transform: rotate(-6deg);
+  }
+  to {
+    transform: rotate(6deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line,
+  .flag {
+    animation: none;
+  }
+}
