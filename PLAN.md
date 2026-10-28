@@ -11524,8 +11524,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBekers: onbeperkt voordragen
 
-**2026-10-28.** Lokaal gecommit, niet gepusht; de hash staat in `git log` bij
-deze ronde. Geen migratie.
+**2026-10-28.** Commit `989a9a38`, gepusht naar `main` op 2026-10-28
+(eigenaar). Geen migratie.
 
 **Waarom.** Wens van de eigenaar: "maak het aantal voordrachten ongelimiteerd".
 Met Kopiëren draagt het bestuur makkelijk een reeks bekers in één keer voor
