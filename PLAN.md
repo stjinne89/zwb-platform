@@ -23,9 +23,9 @@ gaat stabiliteit voor nieuwe features.
 0b. **ZWBekers (2026-10-28): migratie `0286` toegepast en gepusht.** Open: de
    privacytekst `/privacy#zwbekers` wacht op akkoord van de eigenaar, net als de
    vraag of dit zonder nieuwe privacyversie kan (zie de ronde "ZWBekers").
-   Migratie `0287_zwbeker_zrl_round.sql` is op 2026-10-28 toegepast; de code van
-   de ronde "ZWBekers: een beker voor een hele ZRL-ronde" (`5b05403e`) is nog
-   niet gepusht.
+   Migratie `0287_zwbeker_zrl_round.sql` is op 2026-10-28 toegepast en de code
+   van de ronde "ZWBekers: een beker voor een hele ZRL-ronde" (`5b05403e`) is
+   dezelfde dag gepusht naar `main`.
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11524,7 +11524,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBekers: een beker voor een hele ZRL-ronde, en de 1 voor nummer 1
 
-**2026-10-28.** Commit `5b05403e`, lokaal, niet gepusht. Migratie
+**2026-10-28.** Commit `5b05403e`, gepusht naar `main` op 2026-10-28
+(eigenaar), na de migratie. Migratie
 `0287_zwbeker_zrl_round.sql` op 2026-10-28 toegepast via de Supabase-connector
 (op verzoek van de eigenaar) en nagekeken: kolom `zrl_round` aanwezig, beide
 checks (`zwbekers_zrl_round_format`, `zwbekers_event_or_round`) aanwezig, de
@@ -11582,8 +11583,7 @@ Truth" t/m W6, het patroon klopt. **Niet geverifieerd:** de migratie lokaal (gee
 Docker of Supabase-config; op productie wel nagekeken, zie boven), het
 formulier en de bekerpagina met een ingelogde sessie.
 
-**Volgorde bij uitrollen.** `0287` staat al op productie; de code kan mee met de
-volgende push.
+**Volgorde bij uitrollen** (zo gedaan). Eerst `0287` toepassen, dan pushen.
 
 ### Gebouwd — ZWBekers: prijzenkast voor prestaties, door leden voorgedragen en ontworpen
 
