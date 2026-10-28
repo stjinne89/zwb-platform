@@ -447,6 +447,15 @@ export default function PrivacyPage() {
             intervals.icu even te openen; we bewaren wanneer je dat afvinkt.
           </li>
           <li>
+            <strong>Krachttraining uit intervals.icu:</strong> heb je
+            intervals.icu gekoppeld, dan tonen we je krachttrainingen van de
+            afgelopen vier weken in het krachtspoor, met datum, naam en duur, en
+            tellen ze mee voor het krachtadvies. Welke spieren je per training
+            aantikt, bewaren we bij die training. Dat ziet alleen jij. Het staat
+            in je data-export en verdwijnt als de training uit ZWB verdwijnt of
+            als je je account opheft.
+          </li>
+          <li>
             <strong>Zelf geüploade ritten:</strong> upload je activities.csv,
             GPX- of FIT-bestanden, dan bewaren we per rit naam, tijd, afstand en
             hoogtemeters, en bij een GPX of FIT een vereenvoudigd GPS-spoor.

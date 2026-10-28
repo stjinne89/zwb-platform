@@ -37,8 +37,9 @@ gaat stabiliteit voor nieuwe features.
 0e. **Kracht uit intervals.icu (2026-10-28): lokaal gecommit, niet gepusht.**
    Migratie `0290_intervals_strength_muscles.sql` is **niet toegepast**; eerst
    toepassen, dan pushen (zonder tabel werkt het meetellen wel, het aantikken
-   van spieren niet). Open: de privacytekst wacht op akkoord van de eigenaar.
-   Zie de ronde "Kracht: krachttraining uit intervals.icu meetellen".
+   van spieren niet). De privacytekst staat erin (akkoord eigenaar
+   2026-10-28). Zie de ronde "Kracht: krachttraining uit intervals.icu
+   meetellen".
 
 0c. **Clubverhaal (2026-10-28): migratie `0288` toegepast en gepusht.**
    `0288_club_stories.sql` is op 2026-10-28 via de Supabase-connector
@@ -11618,8 +11619,11 @@ vier aangetikte groepen, voor en achter gekleurd.
 **Niet geverifieerd:** de migratie, en de pagina met een ingelogde sessie
 (lijst, dialoog, klikken en opslaan, de krachtregel met echte data).
 
-**Privacy.** De tekst staat nog niet aangepast; voorstel ligt bij de
-eigenaar (zie actieve volgorde 0e).
+**Privacy.** Nieuw punt "Krachttraining uit intervals.icu" op `/privacy`, onder
+de ritten via intervals.icu. Akkoord eigenaar 2026-10-28, zonder nieuwe
+privacyversie: het gaat om gegevens die de intervals-koppeling al ophaalde
+(en de spierkeuze voert het lid zelf in). Opgemerkt, niet aangepast: de
+data-export bevat `mobility_sessions` (de afgevinkte series) niet.
 
 ### Gebouwd — Clubverhaal: een eigen verhaal in hoofdstukken, met poppetjes en scènes
 
