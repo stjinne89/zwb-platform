@@ -6,9 +6,12 @@
 
 import * as THREE from "three";
 import {
+  BELT,
+  BELT_PLATE,
   LINT_COLOR,
   MEDAL,
   METAL_COLOR,
+  NIVEAU_COLOR,
   ONE_DEPTH,
   ONE_OUTLINE,
   SOKKEL_COLOR,
@@ -16,8 +19,11 @@ import {
   bodyProfile,
   gravureLines,
   handleCurves,
+  isGem,
+  sidePlateOutline,
   trophyBounds,
   type BekerDesign,
+  type Point,
 } from "@/lib/zwbekers/design";
 
 export type BuiltTrophy = {
@@ -225,7 +231,8 @@ export function buildTrophy(
   const withMetal = (geometry: THREE.BufferGeometry) => new THREE.Mesh(geometry, metal);
 
   // De sokkel: een blok, vierkant bij een beker, ondiep bij een medaille of de 1.
-  const depth = design.vorm === "medaille" || design.vorm === "een" ? 0.5 : bounds.sokkelWidth * 0.82;
+  const depth =
+    design.vorm === "medaille" || design.vorm === "een" ? 0.5 : design.vorm === "riem" ? 1.05 : bounds.sokkelWidth * 0.82;
   const sokkel = new THREE.Mesh(new THREE.BoxGeometry(bounds.sokkelWidth, SOKKEL_HEIGHT, depth), sokkelMaterial(design));
   sokkel.position.y = SOKKEL_HEIGHT / 2;
   group.add(sokkel);
@@ -238,6 +245,8 @@ export function buildTrophy(
 
   if (design.vorm === "medaille") {
     buildMedal(design, spinner, withMetal, segments);
+  } else if (design.vorm === "riem") {
+    buildBelt(design, spinner, withMetal, segments);
   } else if (design.vorm === "een") {
     // De 1: de omtrek uitgezaagd en dik gemaakt, met een afgeronde rand voor de glans.
     const shape = new THREE.Shape(ONE_OUTLINE.map(([x, y]) => new THREE.Vector2(x, y)));
@@ -273,6 +282,155 @@ export function buildTrophy(
   }
 
   return { group, spinner, height: bounds.height, radius: bounds.radius, dispose: () => disposeTree(group) };
+}
+
+/** Een plaat met afgeronde rand uit een omtrek, met de achterkant op z = 0 en naar +z. */
+function plateGeometry(outline: readonly Point[], depth: number, segments: number) {
+  const bevel = Math.min(0.008, depth / 4);
+  const geometry = new THREE.ExtrudeGeometry(new THREE.Shape(outline.map(([x, y]) => new THREE.Vector2(x, y))), {
+    depth: depth - bevel * 2,
+    bevelEnabled: true,
+    bevelThickness: bevel,
+    bevelSize: bevel,
+    bevelSegments: segments > 40 ? 3 : 2,
+  });
+  geometry.translate(0, 0, bevel);
+  return geometry;
+}
+
+/** Een geslepen steen met het tafelvlak naar voren, of een metalen knop bij Koper tot Platina. */
+function gemMesh(design: BekerDesign, radius: number) {
+  const color = new THREE.Color(NIVEAU_COLOR[design.niveau]);
+  const material = isGem(design.niveau)
+    ? new THREE.MeshPhysicalMaterial({
+        color,
+        roughness: 0.04,
+        metalness: 0,
+        clearcoat: 1,
+        clearcoatRoughness: 0.02,
+        // Een steen vangt licht: een beetje eigen gloed, anders wordt hij in de kast zwart.
+        emissive: color.clone().multiplyScalar(0.28),
+        envMapIntensity: 1.6,
+      })
+    : new THREE.MeshPhysicalMaterial({ color, metalness: 1, roughness: 0.22, clearcoat: 0.4, envMapIntensity: 1.2 });
+  const gem = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.62, radius, radius * 0.55, 8), material);
+  gem.rotation.x = Math.PI / 2;
+  gem.position.z = radius * 0.275;
+  return gem;
+}
+
+/** Een boog om de y-as op hoogte y, van links (-span/2) naar rechts; hoek 0 is +z. */
+class BeltArc extends THREE.Curve<THREE.Vector3> {
+  constructor(
+    private radius: number,
+    private y: number,
+  ) {
+    super();
+  }
+  override getPoint(t: number, target = new THREE.Vector3()) {
+    const angle = -BELT.span / 2 + t * BELT.span;
+    return target.set(this.radius * Math.sin(angle), this.y, this.radius * Math.cos(angle));
+  }
+}
+
+/**
+ * Een kampioensriem zoals een boksriem op zijn standaard (wens eigenaar,
+ * 2026-10-28, de belts van de clubladder): leer in een boog, een metalen schild
+ * met kroontje voorop, zijplaten, en stenen in de kleur van de klasse.
+ */
+function buildBelt(
+  design: BekerDesign,
+  spinner: THREE.Group,
+  withMetal: (geometry: THREE.BufferGeometry) => THREE.Mesh,
+  segments: number,
+) {
+  const belt = new THREE.Group();
+  // Het midden van de boog (achter) tot het schild (voor) midden op de sokkel.
+  belt.position.z = -(BELT.radius + BELT.radius * Math.cos(BELT.span / 2) + BELT.plateDepth) / 2 + 0.02;
+  spinner.add(belt);
+
+  const leather = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(LINT_COLOR[design.lint]).multiplyScalar(design.lint === "goud" ? 0.8 : 1),
+    roughness: 0.55,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.4,
+    envMapIntensity: 0.5,
+    side: THREE.DoubleSide,
+  });
+  const { radius, span, center, height, thickness } = BELT;
+  const arcSegments = Math.round(segments * 1.4);
+  // De standaard waar de riem omheen zit: donker fluweel, van de sokkel tot de bovenrand.
+  const standHeight = center + height / 2;
+  const stand = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius - thickness - 0.004, radius - thickness - 0.004, standHeight, arcSegments),
+    new THREE.MeshStandardMaterial({ color: 0x0f2f36, roughness: 0.95, envMapIntensity: 0.2 }),
+  );
+  stand.position.y = standHeight / 2;
+  belt.add(stand);
+  for (const r of [radius, radius - thickness]) {
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(r, r, height, arcSegments, 1, true, -span / 2, span), leather);
+    band.position.y = center;
+    belt.add(band);
+  }
+  for (const y of [center - height / 2, center + height / 2]) {
+    const edge = new THREE.Mesh(new THREE.RingGeometry(radius - thickness, radius, arcSegments, 1, -Math.PI / 2 - span / 2, span), leather);
+    edge.rotation.x = -Math.PI / 2;
+    edge.position.y = y;
+    belt.add(edge);
+  }
+  // Stiksels langs boven- en onderrand.
+  const thread = new THREE.MeshStandardMaterial({ color: 0xd9cfb8, roughness: 0.8 });
+  for (const y of [center - height / 2 + 0.025, center + height / 2 - 0.025]) {
+    belt.add(new THREE.Mesh(new THREE.TubeGeometry(new BeltArc(radius + 0.002, y), arcSegments, 0.004, 4, false), thread));
+  }
+
+  // Het schild voorop, met emaille in de kleur van de klasse, een metalen ring,
+  // knopjes eromheen en de steen in het midden.
+  const plate = new THREE.Group();
+  plate.position.set(0, center, radius + 0.002);
+  belt.add(plate);
+  plate.add(withMetal(plateGeometry(BELT_PLATE, BELT.plateDepth, segments)));
+  const front = BELT.plateDepth;
+  const enamel = new THREE.Mesh(
+    new THREE.CylinderGeometry(BELT.enamel, BELT.enamel, 0.012, segments),
+    new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color(NIVEAU_COLOR[design.niveau]).multiplyScalar(0.5),
+      roughness: 0.25,
+      clearcoat: 1,
+      envMapIntensity: 0.8,
+    }),
+  );
+  enamel.rotation.x = Math.PI / 2;
+  enamel.position.z = front + 0.002;
+  plate.add(enamel);
+  const bezel = withMetal(new THREE.TorusGeometry(BELT.enamel + 0.008, 0.013, 10, segments));
+  bezel.position.z = front + 0.006;
+  plate.add(bezel);
+  const studs = 12;
+  for (let i = 0; i < studs; i++) {
+    const angle = (i / studs) * Math.PI * 2;
+    const stud = withMetal(new THREE.SphereGeometry(0.014, 10, 8));
+    stud.position.set(Math.cos(angle) * 0.245, Math.sin(angle) * 0.245, front);
+    plate.add(stud);
+  }
+  const gem = gemMesh(design, BELT.gem);
+  gem.position.z += front + 0.008;
+  plate.add(gem);
+
+  // Zijplaten links en rechts, elk met een kleine steen.
+  for (const side of BELT.sides) {
+    for (const sign of [-1, 1]) {
+      const angle = side.angle * sign;
+      const holder = new THREE.Group();
+      holder.position.set((radius + 0.002) * Math.sin(angle), center, (radius + 0.002) * Math.cos(angle));
+      holder.rotation.y = angle;
+      holder.add(withMetal(plateGeometry(sidePlateOutline(side.width, side.height), 0.022, segments)));
+      const stone = gemMesh(design, side.width * 0.18);
+      stone.position.z += 0.024;
+      holder.add(stone);
+      belt.add(holder);
+    }
+  }
 }
 
 /** Een medaille aan een lint, op een fluwelen bordje dat iets achterover leunt. */

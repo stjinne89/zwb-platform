@@ -9,14 +9,20 @@
 // terugsturen.
 
 import { z } from "zod";
+import { LEVELS } from "@/lib/briljant/norms";
 
-export const VORMEN = ["beker", "bokaal", "schaal", "medaille", "een"] as const;
+export const VORMEN = ["beker", "bokaal", "schaal", "medaille", "een", "riem"] as const;
 export const METALEN = ["goud", "zilver", "brons"] as const;
 export const OREN = ["geen", "rond", "vleugel"] as const;
 export const SILHOUETTEN = ["slank", "klassiek", "bol"] as const;
 export const VOETEN = ["laag", "hoog"] as const;
 export const SOKKELS = ["zwart", "hout", "marmer"] as const;
-export const LINTEN = ["petrol", "goud", "rood", "oranje"] as const;
+export const LINTEN = ["petrol", "goud", "rood", "oranje", "zwart"] as const;
+/**
+ * De klassen van ZwiftRacing.app, voor de steen van een kampioensriem: dezelfde
+ * namen, volgorde en kleuren als ZWBriljant (`LEVELS` in briljant/norms.ts).
+ */
+export const NIVEAUS = ["koper", "brons", "zilver", "goud", "platina", "amethist", "saffier", "smaragd", "robijn", "diamant"] as const;
 
 export type Vorm = (typeof VORMEN)[number];
 export type Metaal = (typeof METALEN)[number];
@@ -25,6 +31,7 @@ export type Silhouet = (typeof SILHOUETTEN)[number];
 export type Voet = (typeof VOETEN)[number];
 export type Sokkel = (typeof SOKKELS)[number];
 export type Lint = (typeof LINTEN)[number];
+export type Niveau = (typeof NIVEAUS)[number];
 
 /** Zoveel tekens passen op het plaatje van de sokkel. */
 export const GRAVURE_MAX = 24;
@@ -36,7 +43,10 @@ export type BekerDesign = {
   silhouet: Silhouet;
   voet: Voet;
   sokkel: Sokkel;
+  /** Bij een medaille het lint, bij een kampioensriem het leer. */
   lint: Lint;
+  /** Alleen bij een kampioensriem: de klasse van de steen. */
+  niveau: Niveau;
   gravure: string;
   /** Alleen bij de 1: waar je nummer 1 was ("Wereld", een tijdzone) en wanneer. */
   regio: string;
@@ -51,19 +61,32 @@ export const DEFAULT_DESIGN: BekerDesign = {
   voet: "laag",
   sokkel: "zwart",
   lint: "petrol",
+  niveau: "diamant",
   gravure: "",
   regio: "",
   periode: "",
 };
 
 export const LABELS = {
-  vorm: { beker: "Beker", bokaal: "Bokaal", schaal: "Schaal", medaille: "Medaille", een: "Nummer 1" },
+  vorm: { beker: "Beker", bokaal: "Bokaal", schaal: "Schaal", medaille: "Medaille", een: "Nummer 1", riem: "Riem" },
   metaal: { goud: "Goud", zilver: "Zilver", brons: "Brons" },
   oren: { geen: "Geen", rond: "Rond", vleugel: "Vleugels" },
   silhouet: { slank: "Slank", klassiek: "Klassiek", bol: "Bol" },
   voet: { laag: "Laag", hoog: "Hoog" },
   sokkel: { zwart: "Zwart", hout: "Hout", marmer: "Marmer" },
-  lint: { petrol: "Petrol", goud: "Goud", rood: "Rood", oranje: "Oranje" },
+  lint: { petrol: "Petrol", goud: "Goud", rood: "Rood", oranje: "Oranje", zwart: "Zwart" },
+  niveau: {
+    koper: "Koper",
+    brons: "Brons",
+    zilver: "Zilver",
+    goud: "Goud",
+    platina: "Platina",
+    amethist: "Amethist",
+    saffier: "Saffier",
+    smaragd: "Smaragd",
+    robijn: "Robijn",
+    diamant: "Diamant",
+  },
 } as const satisfies { [K in Exclude<keyof BekerDesign, "gravure" | "regio" | "periode">]: Record<BekerDesign[K], string> };
 
 /**
@@ -89,16 +112,30 @@ export const LINT_COLOR: Record<Lint, string> = {
   goud: "#c9a45a",
   rood: "#b3262d",
   oranje: "#e8762b",
+  zwart: "#1b1b1d",
 };
+
+/** De kleur van de steen per klasse, die van ZwiftRacing.app (via ZWBriljant). */
+export const NIVEAU_COLOR = Object.fromEntries(
+  LEVELS.map((level) => [level.name.toLowerCase(), level.color]),
+) as Record<Niveau, string>;
+
+/** Koper tot Platina is metaal, Amethist tot Diamant een edelsteen. */
+export function isGem(niveau: Niveau): boolean {
+  return NIVEAUS.indexOf(niveau) >= NIVEAUS.indexOf("amethist");
+}
 
 /** Welke keuzes bij deze vorm iets doen; de rest blijft staan maar telt niet. */
 export function relevant(vorm: Vorm) {
-  const lathe = vorm !== "medaille" && vorm !== "een";
+  const lathe = vorm !== "medaille" && vorm !== "een" && vorm !== "riem";
   return {
     oren: vorm === "beker" || vorm === "bokaal",
     silhouet: lathe,
     voet: lathe,
-    lint: vorm === "medaille",
+    lint: vorm === "medaille" || vorm === "riem",
+    // De kampioensriem van de clubladder (wens eigenaar 2026-10-28): een steen
+    // in de kleur van de klasse.
+    niveau: vorm === "riem",
     // De 1 (nummer 1 van de ladder, wens eigenaar 2026-10-28) graveert regio en
     // periode in plaats van een vrije regel.
     gravure: vorm !== "een",
@@ -106,9 +143,9 @@ export function relevant(vorm: Vorm) {
   };
 }
 
-/** Of de vorm op zijn sokkel ronddraait: een medaille en de 1 tonen hun voorkant. */
+/** Of de vorm op zijn sokkel ronddraait: een medaille, de 1 en de riem tonen hun voorkant. */
 export function spins(vorm: Vorm): boolean {
-  return vorm !== "medaille" && vorm !== "een";
+  return vorm !== "medaille" && vorm !== "een" && vorm !== "riem";
 }
 
 /** De regels op het plaatje van de sokkel, van boven naar onder; leeg zonder gravure. */
@@ -150,6 +187,8 @@ const designSchema = z.object({
   voet: z.enum(VOETEN),
   sokkel: z.enum(SOKKELS),
   lint: z.enum(LINTEN),
+  // Ontwerpen van voor de riem hebben dit veld niet.
+  niveau: z.enum(NIVEAUS).default(DEFAULT_DESIGN.niveau),
   gravure: engraving,
   // Ontwerpen van voor de 1 hebben deze velden niet.
   regio: engraving.default(""),
@@ -184,6 +223,7 @@ export function readDesign(stored: unknown): BekerDesign {
     voet: pick(VOETEN, source.voet, DEFAULT_DESIGN.voet),
     sokkel: pick(SOKKELS, source.sokkel, DEFAULT_DESIGN.sokkel),
     lint: pick(LINTEN, source.lint, DEFAULT_DESIGN.lint),
+    niveau: pick(NIVEAUS, source.niveau, DEFAULT_DESIGN.niveau),
     gravure: engraved(source.gravure),
     regio: engraved(source.regio),
     periode: engraved(source.periode),
@@ -264,9 +304,9 @@ export type BodyProfile = {
 
 const SAMPLES = 18;
 
-/** Het profiel van beker, bokaal of schaal (null bij een medaille of de 1). */
+/** Het profiel van beker, bokaal of schaal (null bij een medaille, de 1 of de riem). */
 export function bodyProfile(design: Pick<BekerDesign, "vorm" | "silhouet" | "voet">): BodyProfile | null {
-  if (design.vorm === "medaille" || design.vorm === "een") return null;
+  if (design.vorm === "medaille" || design.vorm === "een" || design.vorm === "riem") return null;
   const base = footAndStem(design.voet);
   const height = bowlHeight(design.vorm);
   const outer: Point[] = [...base.points];
@@ -361,11 +401,71 @@ export const ONE_OUTLINE: readonly Point[] = [
 /** Hoe dik de 1 is, van voor naar achter. */
 export const ONE_DEPTH = 0.16;
 
+/**
+ * De kampioensriem, zoals een boksriem in een vitrine: rechtop in een boog om
+ * een fluwelen standaard, met de opening naar achteren, het grote schild voorop
+ * en platen opzij. De boog is een stuk van een cilinder om de y-as; hoek 0 is
+ * de voorkant (+z). Breed genoeg dat het schild een derde van de riem is: met
+ * een smallere boog leek het een horloge.
+ */
+export const BELT = {
+  /** Straal van de boog, en hoe ver hij om loopt (in radialen, van links naar rechts). */
+  radius: 0.78,
+  span: (200 * Math.PI) / 180,
+  /** De riem zelf: midden, hoogte en dikte van het leer. */
+  center: 0.42,
+  height: 0.3,
+  thickness: 0.03,
+  /** Het middenschild: dikte, de steen en het emaille eromheen (straal). */
+  plateDepth: 0.045,
+  gem: 0.085,
+  enamel: 0.17,
+  /** Zijplaten: hoek op de boog, breedte en hoogte. */
+  sides: [
+    { angle: (36 * Math.PI) / 180, width: 0.22, height: 0.27 },
+    { angle: (64 * Math.PI) / 180, width: 0.18, height: 0.23 },
+  ],
+} as const;
+
+/** De omtrek van het middenschild om zijn midden: achthoekig, met een kroontje bovenop. */
+export const BELT_PLATE: readonly Point[] = [
+  [-0.2, -0.33],
+  [0.2, -0.33],
+  [0.32, -0.21],
+  [0.32, 0.21],
+  [0.2, 0.33],
+  [0.09, 0.33],
+  [0, 0.42],
+  [-0.09, 0.33],
+  [-0.2, 0.33],
+  [-0.32, 0.21],
+  [-0.32, -0.21],
+];
+
+/** Een zijplaat: een rechthoek met afgesneden hoeken, om zijn midden. */
+export function sidePlateOutline(width: number, height: number): Point[] {
+  const [w, h, c] = [width / 2, height / 2, Math.min(width, height) * 0.22];
+  return [
+    [-w + c, -h],
+    [w - c, -h],
+    [w, -h + c],
+    [w, h - c],
+    [w - c, h],
+    [-w + c, h],
+    [-w, h - c],
+    [-w, -h + c],
+  ];
+}
+
 /** Hoe groot het geheel is, met sokkel: voor de schaal in de galerij en het plaatje. */
 export function trophyBounds(design: BekerDesign): { height: number; radius: number; sokkelWidth: number } {
   if (design.vorm === "een") {
     // Breed genoeg voor twee regels gravure.
     return { height: SOKKEL_HEIGHT + 1.18, radius: 0.36, sokkelWidth: 0.9 };
+  }
+  if (design.vorm === "riem") {
+    const top = BELT.center + Math.max(...BELT_PLATE.map((point) => point[1]));
+    return { height: SOKKEL_HEIGHT + top, radius: BELT.radius + 0.1, sokkelWidth: BELT.radius * 2 + 0.2 };
   }
   if (design.vorm === "medaille") {
     const width = MEDAL.board.width + 0.2;
@@ -426,6 +526,9 @@ export function describeDesign(design: BekerDesign): string {
   const metal = { goud: "gouden", zilver: "zilveren", brons: "bronzen" }[design.metaal];
   const sokkel = { zwart: "zwarte", hout: "houten", marmer: "marmeren" }[design.sokkel];
   if (design.vorm === "een") return `${capitalize(metal)} nummer 1 op een ${sokkel} sokkel`;
+  if (design.vorm === "riem") {
+    return `${capitalize(metal)} kampioensriem, ${LABELS.niveau[design.niveau]}, ${LABELS.lint[design.lint].toLowerCase()} leer, op een ${sokkel} sokkel`;
+  }
   if (design.vorm === "medaille") {
     return `${capitalize(metal)} medaille aan een ${LABELS.lint[design.lint].toLowerCase()} lint, op een ${sokkel} sokkel`;
   }

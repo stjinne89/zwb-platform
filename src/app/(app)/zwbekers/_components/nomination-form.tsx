@@ -15,6 +15,8 @@ import {
   LINTEN,
   METALEN,
   METAL_COLOR,
+  NIVEAUS,
+  NIVEAU_COLOR,
   OREN,
   SILHOUETTEN,
   SOKKELS,
@@ -370,9 +372,19 @@ export function NominationForm({ options, today, initial }: { options: FormOptio
           )}
           {show.oren && <Choices label="Oren" options={OREN} labels={LABELS.oren} value={design.oren} onChange={(value) => set("oren", value)} />}
           {show.voet && <Choices label="Voet" options={VOETEN} labels={LABELS.voet} value={design.voet} onChange={(value) => set("voet", value)} />}
+          {show.niveau && (
+            <Choices
+              label="Klasse"
+              options={NIVEAUS}
+              labels={LABELS.niveau}
+              value={design.niveau}
+              onChange={(value) => set("niveau", value)}
+              swatch={(value) => NIVEAU_COLOR[value]}
+            />
+          )}
           {show.lint && (
             <Choices
-              label="Lint"
+              label={design.vorm === "riem" ? "Leer" : "Lint"}
               options={LINTEN}
               labels={LABELS.lint}
               value={design.lint}

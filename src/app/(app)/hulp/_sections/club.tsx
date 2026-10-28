@@ -206,8 +206,10 @@ export function ClubHelp() {
               beker, bokaal, schaal of medaille, het metaal, de vorm, de voet,
               de sokkel en een korte gravure. Voor wie nummer 1 werd, zoals in
               de ladder, is er een 1 met de regio (de wereld of een tijdzone)
-              en de periode in de gravure. Het voorbeeld verandert meteen mee;
-              sleep om hem rond te draaien.
+              en de periode in de gravure. Voor een kampioen in de clubladder
+              is er een riem, met een steen in de kleur van de klasse van
+              ZwiftRacing (Koper tot Diamant). Het voorbeeld verandert meteen
+              mee; sleep om hem rond te draaien.
             </span>
           </li>
           <li className="flex gap-2">

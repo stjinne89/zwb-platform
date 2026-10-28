@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { ZodError } from "zod";
+import { LEVELS } from "@/lib/briljant/norms";
 import {
+  BELT,
+  BELT_PLATE,
   DEFAULT_DESIGN,
   GRAVURE_MAX,
+  NIVEAUS,
+  NIVEAU_COLOR,
   METALEN,
   OREN,
   SILHOUETTEN,
@@ -15,7 +20,10 @@ import {
   gravureLines,
   handleCurves,
   handlesPath,
+  isGem,
   parseDesign,
+  relevant,
+  sidePlateOutline,
   readDesign,
   silhouettePath,
   spins,
@@ -72,7 +80,7 @@ describe("ZWBekers: ontwerp", () => {
   it("geeft elke vorm een gesloten, staand profiel", () => {
     for (const design of allDesigns()) {
       const profile = bodyProfile(design);
-      if (design.vorm === "medaille" || design.vorm === "een") {
+      if (!relevant(design.vorm).silhouet) {
         expect(profile).toBeNull();
         continue;
       }
@@ -118,7 +126,8 @@ describe("ZWBekers: ontwerp", () => {
     for (const design of allDesigns()) {
       const path = silhouettePath(design) + handlesPath(design);
       expect(path).not.toMatch(/NaN|undefined|Infinity/);
-      if (design.vorm !== "medaille") expect(path.startsWith("M ")).toBe(true);
+      // Medaille en riem tekenen zich zelf, zonder silhouet.
+      if (design.vorm !== "medaille" && design.vorm !== "riem") expect(path.startsWith("M ")).toBe(true);
     }
     // Een bokaal heeft een tweede vorm: de deksel.
     expect(silhouettePath({ ...DEFAULT_DESIGN, vorm: "bokaal" }).match(/M /g)).toHaveLength(2);
@@ -146,6 +155,48 @@ describe("ZWBekers: gravure uit de titel", () => {
     for (const title of ["Promotie naar A1 in ronde 2 van ZRL", "Snelste <ooit> 🚀", ""]) {
       expect(parseDesign({ ...DEFAULT_DESIGN, gravure: gravureFromTitle(title) }).gravure).toBe(gravureFromTitle(title));
     }
+  });
+});
+
+describe("ZWBekers: de kampioensriem", () => {
+  const riem: BekerDesign = { ...DEFAULT_DESIGN, vorm: "riem", niveau: "robijn", lint: "zwart" };
+
+  it("heeft de klassen van ZwiftRacing, in dezelfde volgorde en kleur als ZWBriljant", () => {
+    expect(NIVEAUS).toEqual(LEVELS.map((level) => level.name.toLowerCase()));
+    expect(NIVEAU_COLOR.diamant).toBe(LEVELS[9].color);
+    expect(isGem("platina")).toBe(false);
+    expect(isGem("amethist")).toBe(true);
+  });
+
+  it("toont klasse en leer, staat stil en heeft geen beker-profiel", () => {
+    expect(relevant("riem")).toMatchObject({ niveau: true, lint: true, oren: false, silhouet: false, voet: false, gravure: true });
+    expect(relevant("beker").niveau).toBe(false);
+    expect(spins("riem")).toBe(false);
+    expect(bodyProfile(riem)).toBeNull();
+    expect(handleCurves({ ...riem, oren: "vleugel" })).toEqual([]);
+    expect(describeDesign(riem)).toBe("Gouden kampioensriem, Robijn, zwart leer, op een zwarte sokkel");
+  });
+
+  it("past met schild en zijplaten op zijn sokkel", () => {
+    const bounds = trophyBounds(riem);
+    expect(bounds.sokkelWidth / 2).toBeGreaterThanOrEqual(BELT.radius);
+    expect(bounds.height).toBeCloseTo(SOKKEL_HEIGHT + BELT.center + 0.42);
+    // Het schild steekt niet onder de sokkel door.
+    expect(BELT.center + Math.min(...BELT_PLATE.map((point) => point[1]))).toBeGreaterThan(0);
+    for (const side of BELT.sides) {
+      const outline = sidePlateOutline(side.width, side.height);
+      expect(Math.max(...outline.map((point) => point[0]))).toBeCloseTo(side.width / 2);
+      expect(Math.max(...outline.map((point) => point[1]))).toBeCloseTo(side.height / 2);
+    }
+  });
+
+  it("leest een ontwerp van voor de riem, en weigert een onbekende klasse", () => {
+    const older: Partial<BekerDesign> = { ...DEFAULT_DESIGN };
+    delete older.niveau;
+    expect(parseDesign(older).niveau).toBe(DEFAULT_DESIGN.niveau);
+    expect(readDesign({ ...riem, niveau: "obsidiaan" }).niveau).toBe(DEFAULT_DESIGN.niveau);
+    expect(() => parseDesign({ ...riem, niveau: "obsidiaan" })).toThrow(ZodError);
+    expect(parseDesign({ ...riem, lint: "zwart" }).lint).toBe("zwart");
   });
 });
 

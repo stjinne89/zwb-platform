@@ -28,6 +28,16 @@ export const ZWBEKERS_VOORBEELD: BekerSummary[] = [
     winners: ["Bert", "Carla", "Dirk", "Eva", "Femke"].map((name, index) => person(`t${index}`, name)),
   },
   {
+    id: "00000000-0000-4000-8000-0000000000b4",
+    kind: "team",
+    title: "Club Ladder-kampioen Diamant",
+    achievedOn: "2026-10-09",
+    status: "toegekend",
+    design: { ...DEFAULT_DESIGN, vorm: "riem", niveau: "diamant", lint: "zwart", sokkel: "zwart", gravure: "Club Ladder Diamant" },
+    teamName: "ZWB Ladder",
+    winners: ["Hanna", "Ivo", "Joris", "Kim"].map((name, index) => person(`l${index}`, name)),
+  },
+  {
     id: "00000000-0000-4000-8000-0000000000b3",
     kind: "individueel",
     title: "Koning van de Muur",

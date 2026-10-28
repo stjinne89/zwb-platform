@@ -11522,6 +11522,51 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBekers: de kampioensriem van de clubladder
+
+**2026-10-28.** Lokaal gecommit, niet gepusht; de hash staat in `git log` bij
+deze ronde. Geen migratie.
+
+**Waarom.** Wens van de eigenaar: in de clubladder kon je een tijd een belt
+verdienen per klasse van ZwiftRacing.app (Diamant, Robijn, …); daarvoor een riem
+zoals uit het boksen, die in de prijzenkast past.
+
+**Wat.**
+- Vorm `riem` ("Riem") in `lib/zwbekers/design.ts`, met een nieuw veld
+  `niveau`: de tien klassen Koper tot Diamant. Namen, volgorde en kleuren komen
+  uit `LEVELS` van ZWBriljant (`briljant/norms.ts`), zelf van vELO
+  (ZwiftRacing.app); een test bewaakt dat ze gelijk blijven. Het leer gebruikt
+  het bestaande veld `lint` (in het formulier "Leer"); `LINTEN` kreeg er zwart
+  bij, ook voor de medaille. Oude ontwerpen zonder `niveau` lezen als Diamant;
+  `design` is jsonb, dus geen migratie.
+- 3D (`components/zwbekers/trophy.ts`, `buildBelt`): leer in een boog van 200°
+  om een fluwelen standaard (opening naar achteren), stiksels langs de randen,
+  een metalen schild met kroontje voorop met emaille in de klassekleur, een
+  ring, twaalf knopjes en een geslepen steen, en twee zijplaten per kant met
+  een kleinere steen. Amethist tot Diamant is een glanzende steen met wat eigen
+  gloed; Koper tot Platina een metalen knop in die kleur. Staat stil met de
+  voorkant naar voren (`spins`), zoals de medaille en de 1.
+- Plaatje (`beker-icon.tsx`, `Belt`): dezelfde maten (`BELT`, `BELT_PLATE`,
+  `sidePlateOutline`) van voren, met de zijplaten smaller naar opzij.
+- Formulier: bij Riem de keuzes Klasse (met kleurbolletje) en Leer;
+  `/ontwerp-voorbeeld` heeft een riem bij de voorbeeldbekers.
+
+**Bewust niet.**
+- Geen koppeling aan de ladderuitslag: wie kampioen was, beoordeelt het bestuur
+  bij het keuren, zoals bij elke beker.
+- Geen tekst op het schild zelf: de klasse zit in de kleur van de steen, de
+  naam in de gravure op de sokkel.
+
+**Gecontroleerd.** `tsc`, ESLint, Vitest `zwbekers.test.ts` groen (27 tests;
+nieuw: klassen gelijk aan ZWBriljant, keuzes per vorm, maten op de sokkel,
+oude ontwerpen). De riem in 3D en als plaatje bekeken in de lokale app (een
+tijdelijke pagina onder `/ontwerp-voorbeeld`, daarna weer weggehaald), in
+Diamant, Robijn, Smaragd en Goud. Daarbij aangepast: de boog breder (straal
+0,78 in plaats van 0,55), want met het schild over de halve breedte leek het een
+horloge, en de fluwelen standaard eronder, want de riem zweefde boven de
+sokkel. **Niet geverifieerd:** de riem in de echte kast (met inloggen), en het
+formulier met een ingelogde sessie.
+
 ### Gebouwd — ZWBekers op het dashboard, met slingers en confetti
 
 **2026-10-28.** Commit `99d59ba4`, gepusht naar `main` op 2026-10-28
