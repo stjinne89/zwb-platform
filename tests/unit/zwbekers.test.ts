@@ -11,6 +11,7 @@ import {
   VORMEN,
   bodyProfile,
   describeDesign,
+  gravureFromTitle,
   gravureLines,
   handleCurves,
   handlesPath,
@@ -132,6 +133,18 @@ describe("ZWBekers: ontwerp", () => {
     expect(describeDesign({ ...DEFAULT_DESIGN, vorm: "medaille", metaal: "brons", lint: "oranje" })).toBe(
       "Bronzen medaille aan een oranje lint, op een zwarte sokkel",
     );
+  });
+});
+
+describe("ZWBekers: gravure uit de titel", () => {
+  it("neemt de titel over, kort genoeg voor het plaatje", () => {
+    expect(gravureFromTitle("  Koning van\nde Muur ")).toBe("Koning van de Muur");
+    expect(gravureFromTitle("Promotie naar A1 in ronde 2 van ZRL")).toBe("Promotie naar A1 in");
+    expect(gravureFromTitle("Onafgebrokenwoordzonderspaties!")).toBe("Onafgebrokenwoordzonders");
+    expect(gravureFromTitle("Snelste <ooit> 🚀")).toBe("Snelste ooit");
+    for (const title of ["Promotie naar A1 in ronde 2 van ZRL", "Snelste <ooit> 🚀", ""]) {
+      expect(parseDesign({ ...DEFAULT_DESIGN, gravure: gravureFromTitle(title) }).gravure).toBe(gravureFromTitle(title));
+    }
   });
 });
 

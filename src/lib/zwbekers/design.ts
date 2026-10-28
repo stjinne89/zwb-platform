@@ -124,6 +124,19 @@ export function cleanGravure(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
+/**
+ * De titel als gravure (wens eigenaar, 2026-10-28): zonder tekens die niet op
+ * het plaatje mogen, en te lang afgekapt op het laatste hele woord.
+ */
+export function gravureFromTitle(title: string): string {
+  const text = cleanGravure(
+    [...title].filter((char) => GRAVURE_CHARS.test(char) || /\s/.test(char)).join(""),
+  );
+  if (text.length <= GRAVURE_MAX) return text;
+  const cut = text.slice(0, GRAVURE_MAX + 1).lastIndexOf(" ");
+  return (cut > 0 ? text.slice(0, cut) : text.slice(0, GRAVURE_MAX)).trim();
+}
+
 const engraving = z
   .string()
   .transform(cleanGravure)

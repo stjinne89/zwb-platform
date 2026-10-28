@@ -21,6 +21,7 @@ import {
   SOKKEL_COLOR,
   VOETEN,
   VORMEN,
+  gravureFromTitle,
   relevant,
   type BekerDesign,
 } from "@/lib/zwbekers/design";
@@ -114,6 +115,14 @@ export function NominationForm({ options, today, initial }: { options: FormOptio
 
   const set = <K extends keyof BekerDesign>(key: K, value: BekerDesign[K]) => setDesign((current) => ({ ...current, [key]: value }));
 
+  // De gravure volgt de titel, tot het lid hem zelf verandert.
+  const changeTitle = (next: string) => {
+    setDesign((current) =>
+      current.gravure === gravureFromTitle(title) ? { ...current, gravure: gravureFromTitle(next) } : current,
+    );
+    setTitle(next);
+  };
+
   const chooseLinked = (value: string) => {
     setLinked(value);
     // Een ronde is geleverd op de dag van de laatste race.
@@ -205,7 +214,7 @@ export function NominationForm({ options, today, initial }: { options: FormOptio
             onChange={(value) => setKind(value as BekerKind)}
           />
           <Field label="Titel" hint={`${title.trim().length}/${TITLE_MAX}`}>
-            <input className={field} value={title} maxLength={TITLE_MAX} onChange={(event) => setTitle(event.target.value)} required />
+            <input className={field} value={title} maxLength={TITLE_MAX} onChange={(event) => changeTitle(event.target.value)} required />
           </Field>
           <Field label="Datum">
             <input className={field} type="date" max={today} min="2000-01-01" value={achievedOn} onChange={(event) => setAchievedOn(event.target.value)} required />

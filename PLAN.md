@@ -11522,6 +11522,30 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBekers: de gravure neemt de titel over
+
+**2026-10-28.** Lokaal gecommit, niet gepusht; de hash staat in `git log` bij
+deze ronde. Geen migratie.
+
+**Waarom.** Wens van de eigenaar: "neem titel in principe standaard over naar
+gravure".
+
+**Wat.** In het voordrachtformulier volgt de gravure de titel zolang hij gelijk
+is aan wat uit de vorige titel kwam. Verandert of wist het lid de gravure, dan
+stopt het volgen. Bij aanpassen volgt hij alleen als de bewaarde gravure al de
+titel was. `gravureFromTitle` (`lib/zwbekers/design.ts`, puur) laat tekens weg
+die niet op het plaatje mogen en kapt een titel van meer dan 24 tekens af op
+het laatste hele woord (de titel mag 60 tekens zijn).
+
+**Bewust niet.** Niets aan de server: wat binnenkomt, controleert `parseDesign`
+zoals altijd. Bij de 1 doet het niets zichtbaars; daar staan regio en periode op
+het plaatje.
+
+**Gecontroleerd.** Vitest `zwbekers.test.ts` groen (22 tests, nieuw: titel naar
+gravure, ook dat het resultaat altijd door `parseDesign` komt), ESLint en `tsc`
+zonder nieuwe fouten. **Niet geverifieerd:** het formulier met een ingelogde
+sessie.
+
 ### Gebouwd — ZWBekers: een beker voor een hele ZRL-ronde, en de 1 voor nummer 1
 
 **2026-10-28.** Commit `5b05403e`, gepusht naar `main` op 2026-10-28
