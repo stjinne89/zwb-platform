@@ -400,12 +400,13 @@ gaat stabiliteit voor nieuwe features.
    goedgekeurd (eigenaar). Open: na de deploy op een briefing van een puntenrace
    kijken of de PR's binnenkomen, en of `/segment-results` geen 429 geeft.
 
-19. **Tabbalk op de iPhone, derde ronde teruggedraaid** (ronde van 2026-10-28
-   hieronder): de balk verdween bij het scrollen, dus de code staat weer op de
-   ronde van 2026-10-16. Commit `5ce751af`, nog niet gepusht. Geen migratie. Open:
-   na het pushen op een iPhone in de beginscherm-app scrollen (blijft de balk
-   staan?), en daarna iets typen en het toetsenbord sluiten; het oude probleem
-   (balk midden in beeld) kan terugkomen.
+19. **Tabbalk op de iPhone, vierde ronde** (rondes van 2026-10-28 hieronder):
+   de derde ronde liet de balk bij het scrollen verdwijnen en is teruggedraaid
+   (`5ce751af`). Daarna opnieuw gebouwd: het herstel werkt alleen nog binnen een
+   toetsenbordbeurt. Lokaal gecommit, nog niet gepusht. Geen migratie. Open: na
+   het pushen op een iPhone in de beginscherm-app (1) scrollen zonder te typen:
+   de balk blijft staan; (2) iets typen, het toetsenbord sluiten en scrollen: de
+   balk staat onderaan, niet midden in beeld.
 
 20. **ZWBriljant: records van de minuut en 5 minuten, profs als houvast** (ronde van
    2026-10-27 hieronder): gebouwd, lokaal getest en op 2026-10-27 gepusht naar `main`. Geen migratie.
@@ -11514,6 +11515,55 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Tabbalk op de iPhone: herstel alleen binnen een toetsenbordbeurt
+
+**2026-10-28.** Lokaal gecommit, nog niet gepusht. Geen migratie.
+
+**Aanleiding.** Na het terugdraaien (`5ce751af`, ronde hieronder) vroeg de
+eigenaar het probleem van 2026-10-26 (balk midden in beeld na het toetsenbord)
+alsnog op te lossen, zonder dat de balk bij het scrollen weer verdwijnt.
+
+**Waarom de derde ronde misliep.** Twee dingen samen:
+- De maat waarmee werd vergeleken was de grootste hoogte ooit gemeten bij deze
+  breedte, en daarbij werden `innerHeight` en `visualViewport.height` door
+  elkaar gebruikt. Is de ene in de beginscherm-app een paar punten groter dan de
+  andere, of is het beeld bij het starten even groter, dan lijkt het beeld
+  altijd "te klein".
+- Die controle liep ook na elke scroll, zonder dat er een toetsenbord was
+  geweest, en schoof de balk dan omlaag, onder de onderrand.
+
+**Wat er veranderde.** `src/components/ios-viewport-herstel.tsx` en de pure
+regels in `src/lib/ios-viewport.ts`:
+- **Toetsenbordbeurt.** Krijgt een tekstveld de focus, dan legt de app de maat
+  van het beeld vast, vóór het toetsenbord opent. Na het sluiten wordt elke
+  meting daarmee vergeleken: `innerHeight` met `innerHeight`, `visualViewport`
+  met `visualViewport`. Klopt het beeld weer, dan is de beurt voorbij. Zonder
+  beurt doen scrollen, resize en terugkeren naar de app niets; de balk kan dan
+  niet bewegen.
+- **Pas schuiven bij een toetsenbordhoogte.** De balk schuift alleen bij een
+  tekort van minstens 150 pt (`MIN_TOETSENBORD`); het geval van 2026-10-26 was
+  384 pt. Een kleiner verschil (statusbalk, safe area) geeft hooguit de sprong.
+- Uit de derde ronde blijft: de sprong uitstellen in plaats van overslaan, tot
+  drie per beurt; de onzichtbare laag; een iframe telt als veld; niet schuiven
+  op de iPad. De controles na het sluiten staan op 600, 1200 en 2000 ms (was 350,
+  het toetsenbord klapt dan nog dicht). Scrollen controleert alleen binnen een
+  beurt, voor het geval iOS na het sluiten geen gebeurtenis meer geeft.
+- Unit-tests in `tests/unit/ios-viewport.test.ts`, waaronder: zonder beurt
+  nooit schuiven, ook niet bij een klein beeld; scheve `innerHeight` en
+  `visualViewport` geven geen tekort.
+
+**Bewust niet gedaan.**
+- Geen metingen van leden naar de server; dezelfde reden als in de derde ronde.
+- Niet terug naar `fixed` en geen waas over de sprong; zie de eerdere rondes.
+- Draaien tijdens een beurt beëindigt de beurt: de oude maat zegt dan niets
+  meer. Blijft het beeld na draaien hangen, dan herstelt de app dat niet.
+
+**Niet geverifieerd.** Niet op een iPhone; de bug is lokaal niet na te bootsen.
+Lokaal: de unit-tests (12) slagen, ESLint is schoon, en `tsc` meldt alleen
+`modern-screenshot` en `@anthropic-ai/sdk`, die in de gedeelde `node_modules`
+ontbreken. Of het schuiven precies op de onderrand uitkomt, hangt nog steeds af
+van wat iOS in de vastgelopen toestand teruggeeft.
+
 ### Teruggedraaid — Tabbalk op de iPhone: geen controle bij het scrollen, balk schuift niet meer
 
 **2026-10-28.** Commit `5ce751af`, lokaal, nog niet gepusht. Geen migratie.
@@ -11542,10 +11592,9 @@ unit-tests.
 - Niet alleen de scrollcontrole eruit gehaald: een vals alarm na het
   toetsenbord had de balk dan nog steeds uit beeld geschoven. De eigenaar vroeg
   om terugdraaien.
-- Geen nieuwe poging voor het oude probleem (balk midden in beeld na het
-  toetsenbord). Dat kan nu weer af en toe gebeuren. Een volgende poging moet
-  eerst op een echte iPhone meten wat `innerHeight` en `visualViewport` geven
-  vóór er iets schuift.
+- In deze commit geen nieuwe poging voor het oude probleem (balk midden in
+  beeld na het toetsenbord). *Bijgewerkt 2026-10-28:* die poging volgde direct
+  daarna, zie "Tabbalk op de iPhone: herstel alleen binnen een toetsenbordbeurt".
 
 **Niet geverifieerd.** Niet op een iPhone. In deze worktree staan geen
 `node_modules`, dus geen lint, typecheck of build gedraaid; de teruggezette file
@@ -12227,8 +12276,10 @@ de sync tegen productie met de echte `LADDER_COOKIE`, en of die cookie nog geldi
 
 **2026-10-26.** Commit `0a15d62c`, gepusht naar `main` op 2026-10-26
 (eigenaar). Geen migratie. **Teruggedraaid op 2026-10-28**: de balk verdween
-daarna bij het scrollen. Wat hieronder staat, is geen code meer; zie de ronde
-"Teruggedraaid — Tabbalk op de iPhone". De zin "dat geeft geen vals alarm" klopte
+daarna bij het scrollen. Wat hieronder staat, is grotendeels opnieuw gebouwd
+in de ronde "Tabbalk op de iPhone: herstel alleen binnen een toetsenbordbeurt";
+de vergelijking met de grootste hoogte ooit en de controle buiten een beurt
+zijn weg. De zin "dat geeft geen vals alarm" klopte
 niet.
 
 **Aanleiding.** Na de ronde van 2026-10-16 zagen leden de tabbalk nog steeds

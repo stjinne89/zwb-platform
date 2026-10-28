@@ -717,6 +717,11 @@ a.tg-row:focus-visible,
   align-items: end;
   pointer-events: none;
 }
+/* Beginscherm-app op de iPhone met een beeld dat na het toetsenbord te klein
+   bleef: de balk schuift het tekort zelf omlaag (`ios-viewport-herstel.tsx`). */
+html[data-viewport-fout] .tg-tabs-bottom {
+  transform: translateY(var(--ios-viewport-fout, 0px));
+}
 .tg-tab {
   pointer-events: auto;
   display: grid;
