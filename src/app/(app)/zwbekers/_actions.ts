@@ -93,10 +93,10 @@ export async function submitNomination(input: unknown): Promise<Reply<{ id: stri
 
 export async function saveNomination(bekerId: string, input: unknown): Promise<Reply<{ id: string }>> {
   return run(async () => {
-    const { member } = await requireBekerMember();
+    const { member, canReview } = await requireBekerMember();
     const target = id.parse(bekerId);
     const nomination = parseNomination(input, amsterdamDayKey());
-    await updateNomination(createAdminClient(), member.id, target, nomination);
+    await updateNomination(createAdminClient(), member.id, target, nomination, canReview);
     refresh(target);
     return { id: target };
   });
@@ -173,18 +173,18 @@ export async function removeCongrats(congratsId: string): Promise<Reply> {
 
 export async function requestPhotoUpload(bekerId: string): Promise<Reply<{ path: string; token: string }>> {
   return run(async () => {
-    const { member } = await requireBekerMember();
+    const { member, canReview } = await requireBekerMember();
     const budget = await rateLimitHit("zwbekers-photo", member.id, 20, 3600);
     if (!budget.allowed) throw new NominationError("Even wachten met nog een foto.");
-    return photoUploadTarget(createAdminClient(), member.id, id.parse(bekerId));
+    return photoUploadTarget(createAdminClient(), member.id, id.parse(bekerId), canReview);
   });
 }
 
 export async function confirmPhoto(bekerId: string, path: string): Promise<Reply> {
   return run(async () => {
-    const { member } = await requireBekerMember();
+    const { member, canReview } = await requireBekerMember();
     const target = id.parse(bekerId);
-    await attachPhoto(createAdminClient(), member.id, target, z.string().max(300).parse(path));
+    await attachPhoto(createAdminClient(), member.id, target, z.string().max(300).parse(path), canReview);
     refresh(target);
     return undefined;
   });

@@ -11522,6 +11522,44 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBekers: een toegekende beker aanpassen (bestuur)
+
+**2026-10-28.** Lokaal gecommit, niet gepusht; de hash staat in `git log` bij
+deze ronde. Geen migratie.
+
+**Waarom.** Wens van de eigenaar: een beker ook na toevoegen kunnen aanpassen
+"bij een foutje", maar alleen door het bestuur of de eigenaar.
+
+**Wat.**
+- `canEdit` (`lib/zwbekers/nomination.ts`) kreeg `canReview`: wie keurt
+  (`achievements.finalize`) mag elke beker aanpassen, ook een toegekende; wie
+  voordroeg nog steeds alleen zolang hij niet is toegekend. Dezelfde regel geldt
+  voor de foto (uploaden, vervangen, weghalen) en voor verwijderen.
+- `updateNomination`: een toegekende beker blijft bij aanpassen toegekend, met
+  dezelfde beoordeling, en er gaat geen melding uit; het is een correctie. Een
+  open of teruggestuurde voordracht gaat zoals voorheen (weer) naar het bestuur.
+  Het opslaan lukt alleen als de status nog is wat de server net las (eerst:
+  "niet toegekend"), zodat aanpassen en keuren elkaar niet overschrijven.
+- Bekerpagina: wie keurt ziet Aanpassen en Verwijderen bij elke beker; wie
+  voordroeg Aanpassen en Intrekken bij zijn open voordracht. `BekerActions`
+  heeft daarvoor `remove: "intrekken" | "verwijderen" | null` in plaats van
+  `canRemove`. De pagina heet bij een toegekende beker "Beker aanpassen".
+
+**Wie dat zijn (productie, 2026-10-28).** Het recht `achievements.finalize`
+hebben de eigenaar (beheerder), vier bestuursleden, en één communitymanager die
+niet in het bestuur zit. Die laatste kon al keuren en verwijderen; hij kan nu
+ook aanpassen. Voorgelegd aan de eigenaar.
+
+**Bewust niet.**
+- Geen eigen recht voor aanpassen: dat vraagt de check-constraint van
+  `community_role_permissions` (zie 0254), en wie mag keuren en verwijderen,
+  hoort ook een foutje te mogen herstellen.
+- Geen geschiedenis van wijzigingen; `updated_at` gaat wel mee.
+
+**Gecontroleerd.** `tsc`, ESLint, Vitest `zwbekers.test.ts` groen (27 tests;
+`canEdit` met en zonder keurrecht). **Niet geverifieerd:** aanpassen met een
+ingelogde sessie, met of zonder keurrecht.
+
 ### Gebouwd — ZWBekers: de kampioensriem van de clubladder
 
 **2026-10-28.** Commit `db7e2bb7`, gepusht naar `main` op 2026-10-28
@@ -11823,7 +11861,8 @@ inzoomen op een plank.
   en een staand scherm die rand als streep zag; in ZWBriljant valt hij buiten
   beeld, dus daar niets veranderd.
 - Winnaars kunnen na toekenning zelf geen foto toevoegen en niet zelf van een
-  beker af; dat gaat via het bestuur.
+  beker af; dat gaat via het bestuur. (Sinds de ronde "Een toegekende beker
+  aanpassen" kan wie keurt een toegekende beker ook aanpassen, foto erbij.)
 - Geen nieuwe privacyversie: **voorstel, ter goedkeuring bij de eigenaar**
   (tiende uitzondering in `lib/privacy.ts`). Nieuw is dat een lid gegevens over
   een ander lid plaatst die na goedkeuring alle leden zien.

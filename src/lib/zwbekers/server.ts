@@ -411,34 +411,45 @@ export async function createNomination(admin: Admin, nominatorId: string, nomina
   return data.id as string;
 }
 
-/** Aanpassen zet een teruggestuurde voordracht weer open voor het bestuur. */
-export async function updateNomination(admin: Admin, editorId: string, id: string, nomination: Nomination) {
+/**
+ * Aanpassen. Een open of teruggestuurde voordracht gaat (weer) naar het bestuur.
+ * Een toegekende beker (alleen wie keurt) blijft toegekend: dat is een
+ * correctie, geen nieuwe voordracht, en er gaat geen melding uit.
+ */
+export async function updateNomination(
+  admin: Admin,
+  editorId: string,
+  id: string,
+  nomination: Nomination,
+  canReview: boolean,
+) {
   const beker = await stored(admin, id);
-  if (!canEdit({ status: beker.status, profileId: beker.profile_id }, editorId)) {
+  if (!canEdit({ status: beker.status, profileId: beker.profile_id }, editorId, canReview)) {
     throw new NominationError("Deze voordracht kun je niet meer aanpassen.");
   }
   const teamName = await checkReferences(admin, nomination);
-  const { error } = await admin
+  const now = new Date().toISOString();
+  const reopen =
+    beker.status === "toegekend"
+      ? {}
+      : { status: "voorgedragen", review_note: null, reviewed_by: null, reviewed_at: null };
+  const { data, error } = await admin
     .from("zwbekers")
-    .update({
-      ...columns(nomination, teamName),
-      status: "voorgedragen",
-      review_note: null,
-      reviewed_by: null,
-      reviewed_at: null,
-      updated_at: new Date().toISOString(),
-    })
+    .update({ ...columns(nomination, teamName), ...reopen, updated_at: now })
     .eq("id", id)
-    // Niet tegelijk met een beoordeling: alleen zolang hij niet is toegekend.
-    .neq("status", "toegekend");
+    // Niet tegelijk met een beoordeling: alleen als de status nog is wat we lazen.
+    .eq("status", beker.status)
+    .select("id")
+    .maybeSingle();
   if (error) throw new Error(error.message);
+  if (!data) throw new NominationError("Deze beker is net beoordeeld. Laad de pagina opnieuw.");
   await setWinners(admin, id, nomination.winners);
 }
 
 /** Intrekken door wie voordroeg (zolang niet toegekend) of verwijderen door wie keurt. */
 export async function deleteBeker(admin: Admin, actorId: string, id: string, canReview: boolean) {
   const beker = await stored(admin, id);
-  if (!canReview && !canEdit({ status: beker.status, profileId: beker.profile_id }, actorId)) {
+  if (!canEdit({ status: beker.status, profileId: beker.profile_id }, actorId, canReview)) {
     throw new NominationError("Deze beker kun je niet verwijderen.");
   }
   const { error } = await admin.from("zwbekers").delete().eq("id", id);
@@ -485,10 +496,10 @@ export async function deleteCongrats(admin: Admin, actorId: string, congratsId: 
   return data.beker_id as string;
 }
 
-/** Een uploadlink voor de foto bij een voordracht die je nog mag aanpassen. */
-export async function photoUploadTarget(admin: Admin, uploaderId: string, bekerId: string) {
+/** Een uploadlink voor de foto bij een beker die je mag aanpassen. */
+export async function photoUploadTarget(admin: Admin, uploaderId: string, bekerId: string, canReview: boolean) {
   const beker = await stored(admin, bekerId);
-  if (!canEdit({ status: beker.status, profileId: beker.profile_id }, uploaderId)) {
+  if (!canEdit({ status: beker.status, profileId: beker.profile_id }, uploaderId, canReview)) {
     throw new NominationError("Bij deze beker kun je geen foto meer zetten.");
   }
   const path = photoPath(bekerId, uploaderId, Date.now());
@@ -498,9 +509,9 @@ export async function photoUploadTarget(admin: Admin, uploaderId: string, bekerI
 }
 
 /** Na het uploaden: de foto aan de beker hangen en een vorige weghalen. */
-export async function attachPhoto(admin: Admin, uploaderId: string, bekerId: string, path: string) {
+export async function attachPhoto(admin: Admin, uploaderId: string, bekerId: string, path: string, canReview: boolean) {
   const beker = await stored(admin, bekerId);
-  if (!canEdit({ status: beker.status, profileId: beker.profile_id }, uploaderId)) {
+  if (!canEdit({ status: beker.status, profileId: beker.profile_id }, uploaderId, canReview)) {
     throw new NominationError("Bij deze beker kun je geen foto meer zetten.");
   }
   if (!isPhotoPathFor(path, bekerId, uploaderId)) throw new NominationError("Die foto hoort niet bij deze beker.");
@@ -517,7 +528,7 @@ export async function attachPhoto(admin: Admin, uploaderId: string, bekerId: str
 /** De foto weghalen: door wie voordroeg (zolang niet toegekend) of door wie keurt. */
 export async function removePhoto(admin: Admin, actorId: string, bekerId: string, canReview: boolean) {
   const beker = await stored(admin, bekerId);
-  if (!canReview && !canEdit({ status: beker.status, profileId: beker.profile_id }, actorId)) {
+  if (!canEdit({ status: beker.status, profileId: beker.profile_id }, actorId, canReview)) {
     throw new NominationError("Deze foto kun je niet weghalen.");
   }
   if (!beker.photo_path) return;

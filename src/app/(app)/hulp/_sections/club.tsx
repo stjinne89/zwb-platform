@@ -219,7 +219,8 @@ export function ClubHelp() {
               en het bestuur zien je voordracht, ook de winnaars niet: het
               blijft een verrassing. Stuurt het bestuur hem terug, dan staat
               erbij waarom en kun je hem aanpassen. Je voordrachten vind je in
-              de kast onder Je voordrachten.
+              de kast onder Je voordrachten. Staat er na het toekennen een
+              foutje in een beker, dan past het bestuur hem aan.
             </span>
           </li>
           <li className="flex gap-2">

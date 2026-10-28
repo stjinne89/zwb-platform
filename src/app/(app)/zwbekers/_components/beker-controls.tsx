@@ -48,19 +48,32 @@ export function ReviewPanel({ bekerId }: { bekerId: string }) {
 }
 
 /** Aanpassen en intrekken voor wie voordroeg; verwijderen voor wie keurt. */
-export function BekerActions({ bekerId, canEdit, canRemove }: { bekerId: string; canEdit: boolean; canRemove: boolean }) {
+/**
+ * Aanpassen, en weghalen: `intrekken` voor wie voordroeg (een open voordracht),
+ * `verwijderen` voor wie keurt (ook uit de kast).
+ */
+export function BekerActions({
+  bekerId,
+  canEdit,
+  remove: removal,
+}: {
+  bekerId: string;
+  canEdit: boolean;
+  remove: "intrekken" | "verwijderen" | null;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  if (!canEdit && !canRemove) return null;
+  if (!canEdit && !removal) return null;
+  const withdraw = removal === "intrekken";
   const remove = () => {
-    const question = canEdit ? "Deze voordracht intrekken?" : "Deze beker uit de kast en van de profielen halen?";
+    const question = withdraw ? "Deze voordracht intrekken?" : "Deze beker uit de kast en van de profielen halen?";
     if (!window.confirm(question)) return;
     start(async () => {
       setError(null);
       const reply = await withdrawBeker(bekerId);
       if (!reply.ok) return setError(reply.error);
-      router.push(canEdit ? "/zwbekers/voordrachten" : "/zwbekers");
+      router.push(withdraw ? "/zwbekers/voordrachten" : "/zwbekers");
       router.refresh();
     });
   };
@@ -71,10 +84,12 @@ export function BekerActions({ bekerId, canEdit, canRemove }: { bekerId: string;
           Aanpassen
         </Link>
       )}
-      <Button type="button" variant="ghost" size="sm" onClick={remove} disabled={pending} className="text-destructive hover:text-destructive">
-        {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Trash2 className="size-4" aria-hidden />}
-        {canEdit ? "Intrekken" : "Verwijderen"}
-      </Button>
+      {removal && (
+        <Button type="button" variant="ghost" size="sm" onClick={remove} disabled={pending} className="text-destructive hover:text-destructive">
+          {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Trash2 className="size-4" aria-hidden />}
+          {withdraw ? "Intrekken" : "Verwijderen"}
+        </Button>
+      )}
       {error && <p className="w-full text-sm text-destructive">{error}</p>}
     </div>
   );

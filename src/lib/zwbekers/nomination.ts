@@ -152,9 +152,17 @@ export function cleanText(text: string, max: number): string {
   return clean;
 }
 
-/** Wie een voordracht nog mag aanpassen: wie hem deed, zolang hij niet is toegekend. */
-export function canEdit(beker: { status: BekerStatus; profileId: string | null }, viewerId: string): boolean {
-  return beker.profileId === viewerId && beker.status !== "toegekend";
+/**
+ * Wie een beker mag aanpassen: wie keurt altijd, ook na toekennen (een foutje
+ * herstellen, wens eigenaar 2026-10-28); wie voordroeg zolang hij niet is
+ * toegekend.
+ */
+export function canEdit(
+  beker: { status: BekerStatus; profileId: string | null },
+  viewerId: string,
+  canReview = false,
+): boolean {
+  return canReview || (beker.profileId === viewerId && beker.status !== "toegekend");
 }
 
 /** Waar de foto van een beker staat: <beker>/<uploader>/<tijd>.jpg. */

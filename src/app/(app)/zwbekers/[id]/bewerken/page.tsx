@@ -6,7 +6,7 @@ import { loadBeker, loadFormOptions, requireBekerMember } from "@/lib/zwbekers/s
 import { NominationForm } from "../../_components/nomination-form";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Voordracht aanpassen" };
+export const metadata = { title: "Beker aanpassen" };
 
 export default async function BewerkenPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -19,14 +19,16 @@ export default async function BewerkenPage({ params }: { params: Promise<{ id: s
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const beker = await loadBeker(guard.client, id);
   if (!beker) notFound();
-  if (!canEdit({ status: beker.status, profileId: beker.nominator?.id ?? null }, guard.member.id)) redirect(`/zwbekers/${id}`);
+  if (!canEdit({ status: beker.status, profileId: beker.nominator?.id ?? null }, guard.member.id, guard.canReview)) {
+    redirect(`/zwbekers/${id}`);
+  }
 
   const today = amsterdamDayKey();
   const options = await loadFormOptions(guard.client, today);
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="ZWBekers" title="Voordracht aanpassen" />
+      <PageHeader eyebrow="ZWBekers" title={beker.status === "toegekend" ? "Beker aanpassen" : "Voordracht aanpassen"} />
       {beker.status === "afgewezen" && beker.reviewNote && (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
           <p className="font-medium">Het bestuur schreef</p>

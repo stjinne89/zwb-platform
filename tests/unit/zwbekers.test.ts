@@ -313,12 +313,16 @@ describe("ZWBekers: voordracht", () => {
     expect(cleanResultUrl("   ")).toBeNull();
   });
 
-  it("laat alleen de voordrager een niet-toegekende beker aanpassen", () => {
+  it("laat de voordrager een niet-toegekende beker aanpassen, en wie keurt elke beker", () => {
     expect(canEdit({ status: "voorgedragen", profileId: A }, A)).toBe(true);
     expect(canEdit({ status: "afgewezen", profileId: A }, A)).toBe(true);
     expect(canEdit({ status: "toegekend", profileId: A }, A)).toBe(false);
     expect(canEdit({ status: "voorgedragen", profileId: A }, B)).toBe(false);
     expect(canEdit({ status: "voorgedragen", profileId: null }, A)).toBe(false);
+    // Wie keurt, herstelt ook een foutje in een toegekende beker van een ander.
+    expect(canEdit({ status: "toegekend", profileId: A }, B, true)).toBe(true);
+    expect(canEdit({ status: "toegekend", profileId: null }, B, true)).toBe(true);
+    expect(canEdit({ status: "toegekend", profileId: A }, B, false)).toBe(false);
   });
 
   it("hangt aan een event of aan een hele ZRL-ronde", () => {

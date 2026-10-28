@@ -31,7 +31,8 @@ export default async function BekerPage({ params }: { params: Promise<{ id: stri
   if (!beker) notFound();
 
   const { member, canReview, access } = guard;
-  const editable = canEdit({ status: beker.status, profileId: beker.nominator?.id ?? null }, member.id);
+  const editable = canEdit({ status: beker.status, profileId: beker.nominator?.id ?? null }, member.id, canReview);
+  const ownOpen = canEdit({ status: beker.status, profileId: beker.nominator?.id ?? null }, member.id);
   const awarded = beker.status === "toegekend";
 
   return (
@@ -148,7 +149,11 @@ export default async function BekerPage({ params }: { params: Promise<{ id: stri
                 <Copy className="size-4" aria-hidden />
                 Kopiëren
               </Link>
-              <BekerActions bekerId={beker.id} canEdit={editable} canRemove={canReview && !editable} />
+              <BekerActions
+                bekerId={beker.id}
+                canEdit={editable}
+                remove={canReview ? "verwijderen" : ownOpen ? "intrekken" : null}
+              />
             </div>
           </div>
 
