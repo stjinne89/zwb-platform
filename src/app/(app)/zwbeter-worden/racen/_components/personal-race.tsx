@@ -8,6 +8,7 @@ import type { PersonalRaceOutcome } from "@/lib/zrl-analysis/load";
 import type { RaceKind } from "@/lib/zrl-analysis/personal";
 import { raceClock, raceTime, signedSeconds, wkg } from "@/lib/zrl-analysis/format";
 import { OwnRide, Stat, TipList, dateLabel } from "./race-parts";
+import { ExpectationStats, RaceTrendView, SegmentDepth } from "./race-depth";
 
 const KIND_LABEL: Record<RaceKind, string> = {
   race: "Race",
@@ -43,7 +44,7 @@ export function PersonalRaceView({ outcome }: { outcome: Exclude<PersonalRaceOut
     );
   }
 
-  const { race, frr, tips } = outcome;
+  const { race, frr, tips, depth } = outcome;
   const rider = race.rider;
   return (
     <div className="space-y-8">
@@ -84,6 +85,14 @@ export function PersonalRaceView({ outcome }: { outcome: Exclude<PersonalRaceOut
           <Stat value={rider.wkg !== null ? `${wkg(rider.wkg)} W/kg` : "—"} label={rider.avgWatts ? `gemiddeld · ${rider.avgWatts} W` : "gemiddeld"} />
         )}
       </div>
+
+      {(rider.expected || depth.segments.length > 0) && (
+        <section className="space-y-3">
+          <SectionHeader title="Jouw race tegenover de verwachting" />
+          <ExpectationStats rider={rider} />
+          <SegmentDepth depth={depth} />
+        </section>
+      )}
 
       {race.segmentLoss.length > 0 && (
         <section className="space-y-3">
@@ -149,6 +158,8 @@ export function PersonalRaceView({ outcome }: { outcome: Exclude<PersonalRaceOut
           </section>
         )
       )}
+
+      <RaceTrendView depth={depth} />
 
       <OwnRide ride={outcome.ride} />
     </div>

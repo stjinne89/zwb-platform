@@ -11,6 +11,9 @@ import "server-only";
 // is alleen voor dat lid.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { after } from "next/server";
+import { unstable_cache } from "next/cache";
+import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { CurrentUserAccess } from "@/lib/auth/permissions";
 import {
@@ -21,9 +24,20 @@ import {
 import { loadZrlLive, loadZwiftRaceData, type RaceData, type ZrlLiveView } from "@/lib/zrl-live/snapshot";
 import { analysePersonalRace, raceKindOf, type PersonalRace, type RaceKind } from "@/lib/zrl-analysis/personal";
 import { loadFrrStandingRows } from "@/lib/frr/zwb-standings";
-import { analyseRace, segmentKind, type RaceAnalysis } from "@/lib/zrl-analysis/race";
+import { analyseRace, segmentKind, type RaceAnalysis, type RiderAnalysis } from "@/lib/zrl-analysis/race";
 import { analyseRide, type RideAnalysis, type RideAnchor } from "@/lib/zrl-analysis/ride";
-import { ownAdvice, personalAdvice, riderRaceAdvice, teamAdvice, tttPlanAdvice, type Advice, type PlanRider } from "@/lib/zrl-analysis/advice";
+import { ownAdvice, personalAdvice, riderRaceAdvice, strengthAdvice, teamAdvice, tttPlanAdvice, type Advice, type PlanRider } from "@/lib/zrl-analysis/advice";
+import {
+  compareSegments,
+  raceContribution,
+  raceRecord,
+  raceTrend,
+  type RaceContribution,
+  type RaceRecord,
+  type RaceTrend,
+  type SegmentComparison,
+} from "@/lib/zrl-analysis/history";
+import { loadSegmentBests } from "@/lib/race-briefing/segment-bests";
 import { routeSegments } from "@/lib/zwift/route-segments";
 import { activityStartMs, pickRaceActivity, type ActivityWithStart } from "@/lib/zrl-analysis/activity";
 
@@ -33,6 +47,8 @@ const BOARD_PERMISSIONS = ["teams.manage_results", "teams.manage_roster"] as con
 const CAPTAIN_ROLES = ["captain", "co-captain"];
 /** Zo ver terug toont de lijst races. */
 const LIST_DAYS = 120;
+/** Zoveel tips voor jezelf, inclusief die uit je eerdere races. */
+const OWN_TIPS = 4;
 
 /** Waarom iemand een race mag zien; bepaalt ook welke tips er bovenaan staan. */
 export type ViewerRole = "rider" | "captain" | "board";
@@ -190,6 +206,8 @@ export type RaceAnalysisOutcome =
       ride: RideOutcome;
       /** Tips voor het lid zelf, als hij reed. */
       ownTips: Advice[];
+      /** Verdieping voor het lid zelf, als hij reed. */
+      depth: RaceDepth | null;
       /** Voor captain en bestuur: tips voor de ploeg en per renner. */
       teamTips: Advice[];
       riderTips: Array<{ athleteId: number; name: string; tips: Advice[] }>;
@@ -259,6 +277,7 @@ export async function loadRaceAnalysis(
     : ({ status: "not-riding" } as const);
 
   const ownRider = rode ? analysis.riders.find((r) => r.athleteId === ownZwiftId) ?? null : null;
+  const depth = ownRider && subgroup ? await loadDepth(ownRider, subgroup) : null;
   const leads = viewer === "captain" || viewer === "board";
   const plan = leads && analysis.format === "ttt"
     ? await loadTttPlan([eventRow.id as string, eventRow.parent_event_id as string | null], eventRow.team_id as string | null)
@@ -275,7 +294,13 @@ export async function loadRaceAnalysis(
     viewer,
     ownAthleteId: rode ? ownZwiftId : null,
     ride,
-    ownTips: rode ? ownAdvice(analysis, ownRider, ride.status === "ok" ? ride.analysis : null, ftp) : [],
+    ownTips: rode
+      ? [
+          ...ownAdvice(analysis, ownRider, ride.status === "ok" ? ride.analysis : null, ftp).slice(0, OWN_TIPS - (depth?.tips.length ?? 0)),
+          ...(depth?.tips ?? []),
+        ]
+      : [],
+    depth,
     teamTips: leads ? [...tttPlanAdvice(analysis, plan), ...teamAdvice(analysis)].slice(0, 5) : [],
     riderTips: leads
       ? analysis.riders
@@ -438,6 +463,7 @@ export type PersonalRaceOutcome =
       race: PersonalRace;
       ride: RideOutcome;
       tips: Advice[];
+      depth: RaceDepth;
       frr: FrrContext | null;
       /** Het kalenderevent, voor de link naar de eventpagina; null bij een geplakte link. */
       calendarEventId: string | null;
@@ -466,13 +492,14 @@ async function loadPersonal(
   if (!race) return { status: "not-riding" };
   const subgroup = data.subgroups.find((s) => s.results.some((r) => r.profileId === zwiftId));
   const ftp = Number(profile?.ftp_watts) || null;
-  const [ride, frr] = await Promise.all([
+  const [ride, frr, depth] = await Promise.all([
     subgroup
       ? loadOwnRide({ data, subgroup, zwiftId, ftp, userId: user.id, supabase })
       : Promise.resolve<RideOutcome>({ status: "not-riding" }),
     calendar?.frrTourId && calendar.frrStage
       ? loadFrrContext(calendar.frrTourId, calendar.frrStage, zwiftId, names)
       : Promise.resolve(null),
+    subgroup ? loadDepth(race.rider, subgroup) : Promise.resolve<RaceDepth>({ segments: [], trend: raceTrend([]), tips: [] }),
   ]);
   return {
     status: "ok",
@@ -481,7 +508,11 @@ async function loadPersonal(
     kind,
     race,
     ride,
-    tips: personalAdvice(race, ride.status === "ok" ? ride.analysis : null, ftp),
+    tips: [
+      ...personalAdvice(race, ride.status === "ok" ? ride.analysis : null, ftp).slice(0, OWN_TIPS - depth.tips.length),
+      ...depth.tips,
+    ],
+    depth,
     frr,
     calendarEventId: calendar?.id ?? null,
   };
@@ -711,4 +742,111 @@ export async function loadTttRaces(): Promise<TttRaceRecord[]> {
     });
   }
   return records;
+}
+
+// ---------------------------------------------------------------------------
+// Verdieping voor de renner zelf (eigenaar, 2026-10-28): de eigen sprints en
+// klimmen naast eerdere races, de eigen PR en de richttijd van het racebriefje,
+// en over alle bewaarde races waar de punten vandaan komen. Alleen uit wat al
+// bewaard is: geen Zwift-verzoeken tijdens het laden.
+
+export type RaceDepth = { segments: SegmentComparison[]; trend: RaceTrend; tips: Advice[] };
+
+/** Zoveel tijd krijgt het aanvullen van de ZRS in oude races na het antwoord. */
+const SCORE_BACKFILL_MS = 20_000;
+
+/**
+ * De samenvatting van bewaarde races, gecachet: de bewaarde uitslagen zijn
+ * samen zo'n megabyte per renner, en egress is krap. De sleutel bevat per race
+ * of vermogen en ZRS er al zijn, dus een aangevulde race wordt opnieuw gelezen.
+ */
+const summarizeRaces = unstable_cache(
+  async (zwiftId: number, keys: string[]): Promise<RaceRecord[]> => {
+    const ids = keys.map((key) => key.split(":")[0]);
+    const admin = createAdminClient();
+    const [{ data: snaps }, { data: events }] = await Promise.all([
+      admin.from("zrl_race_snapshots").select("zwift_event_id, data").in("zwift_event_id", ids),
+      admin.from("events").select("title, type, zwift_event_id, zwift_event_type").in("zwift_event_id", ids),
+    ]);
+    const calendar = new Map<string, { title: string; type: string; zwift_event_type: string | null }>();
+    for (const e of (events ?? []) as Array<{ title: string; type: string; zwift_event_id: number | string; zwift_event_type: string | null }>) {
+      if (!calendar.has(String(e.zwift_event_id))) calendar.set(String(e.zwift_event_id), e);
+    }
+    const records: RaceRecord[] = [];
+    for (const row of (snaps ?? []) as Array<{ zwift_event_id: string | number; data: RaceData }>) {
+      const id = String(row.zwift_event_id);
+      const data = row.data;
+      const event = calendar.get(id);
+      const zrl = event?.type === "zrl";
+      const title = event?.title ?? data.eventName;
+      const kind: RaceKind = zrl && data.format === "ttt" ? "ttt" : raceKindOf(data.eventType ?? event?.zwift_event_type, title);
+      const race = analysePersonalRace(data, zwiftId, new Map(), kind, zrl ? data.format : undefined);
+      if (race) records.push(raceRecord(race.rider, { zwiftEventId: id, title, startAt: race.startAt, kind, finishers: race.finishers }));
+    }
+    return records;
+  },
+  ["zwbeter-race-history", "v1"],
+  { revalidate: 7 * 24 * 60 * 60 },
+);
+
+/**
+ * Gereden races van een renner uit de bewaarde Zwift-uitslagen, samengevat. Een
+ * groepsrit telt niet. Een ZRL-race telt zoals de ZRL (met segmentpunten), de
+ * rest zoals de eigen race. Races zonder ZRS van vóór de race worden na het
+ * antwoord aangevuld, een paar per bezoek. Eén keer per verzoek: de trainer
+ * laadt alle races van een lid achter elkaar.
+ */
+const loadRaceHistory = cache(async (zwiftId: number): Promise<RaceRecord[]> => {
+  const since = Date.now() - LIST_DAYS * 24 * 60 * 60 * 1000;
+  // Eerst alleen welke races er zijn (klein); de uitslagen zelf alleen bij een nieuwe sleutel.
+  const { data: list } = await createAdminClient()
+    .from("zrl_race_snapshots")
+    .select("zwift_event_id, type:data->>eventType, start:data->subgroups->0->>startAt, power:data->>withPower, scores:data->>withScores")
+    .contains("data", { subgroups: [{ results: [{ profileId: zwiftId }] }] });
+  const rows = ((list ?? []) as unknown as Array<{ zwift_event_id: string | number; type: string | null; start: string | null; power: string | null; scores: string | null }>)
+    .filter((r) => r.type !== "GROUP_RIDE" && Number(r.start) >= since);
+  if (rows.length === 0) return [];
+  const flag = (value: string | null) => (value === "true" ? 1 : 0);
+  const keys = rows.map((r) => `${r.zwift_event_id}:${flag(r.power)}${flag(r.scores)}`).sort();
+  const records = await summarizeRaces(zwiftId, keys);
+
+  // Alleen data die al vermogen heeft: dan haalt het aanvullen alleen de uitslag opnieuw.
+  const missingScores = rows.filter((r) => r.power === "true" && r.scores !== "true").map((r) => String(r.zwift_event_id));
+  if (missingScores.length > 0) {
+    after(async () => {
+      const started = Date.now();
+      for (const id of missingScores) {
+        if (Date.now() - started > SCORE_BACKFILL_MS) break;
+        await loadZwiftRaceData(id).catch(() => null);
+      }
+    });
+  }
+  return records;
+});
+
+/** De verdieping voor de renner in deze race. */
+async function loadDepth(rider: RiderAnalysis, subgroup: RaceData["subgroups"][number]): Promise<RaceDepth> {
+  const field = [...new Set([...subgroup.entrants.map((e) => Number(e.zwiftId)), ...subgroup.results.map((r) => r.profileId)])];
+  const segmentIds = [...new Set(rider.segments.map((s) => s.segmentId))];
+  const [history, bests] = await Promise.all([loadRaceHistory(rider.athleteId), loadSegmentBests(field, segmentIds)]);
+  const own = subgroup.results.find((r) => r.profileId === rider.athleteId);
+  const raceStart = own?.finishedAt && own.durationMs ? own.finishedAt - own.durationMs : subgroup.startAt;
+  const trend = raceTrend(history);
+  return {
+    segments: compareSegments({ rider, raceStart, weightKg: own?.weightKg ?? null, history, bests: bests ?? [], field }),
+    trend,
+    tips: strengthAdvice(trend),
+  };
+}
+
+/**
+ * Voor het weekoverzicht: de eigen race en bijdrage in een gereden ZRL-race van
+ * het team. Null als de renner niet in de ploeg reed. De race is dan al bevroren
+ * (er is een teamuitslag); alleen een oude snapshot wordt nog aangevuld.
+ */
+export async function loadRaceContribution(eventId: string, zwiftId: number): Promise<RaceContribution | null> {
+  const live = await loadZrlLive(eventId);
+  if (live.status !== "ok" || !live.view.ownRiders.includes(zwiftId)) return null;
+  const { analysis } = await analyseView(live.view, live.view.event.title);
+  return raceContribution(analysis, zwiftId);
 }

@@ -10,6 +10,7 @@ import type { RaceAnalysis, RiderAnalysis } from "@/lib/zrl-analysis/race";
 import type { RideAnalysis } from "@/lib/zrl-analysis/ride";
 import type { PersonalRace, RaceKind } from "@/lib/zrl-analysis/personal";
 import { durationLabel, raceClock as clock } from "@/lib/zrl-analysis/format";
+import type { RaceTrend } from "@/lib/zrl-analysis/history";
 
 export type Advice = {
   /** Wat de data laat zien. */
@@ -490,4 +491,36 @@ export function planCompositionAdvice(plan: PlanRider[]): Advice[] {
     });
   }
   return advice;
+}
+
+/** Zoveel puntenraces met een verwachting voor een uitspraak over je sterkste punt. */
+export const STRENGTH_MIN_RACES = 3;
+/** Zoveel punten per race boven de verwachting op sprints of klimmen: een sterk punt. */
+export const STRENGTH_POINTS = 5;
+
+/**
+ * Over je eigen puntenraces: haal je op de sprints of op de klimmen structureel
+ * meer punten dan je ZRS laat verwachten? Alleen als het verschil met de andere
+ * soort ook groot is; anders zegt het niets over een keuze (eigenaar, 2026-10-28).
+ */
+export function strengthAdvice(trend: RaceTrend): Advice[] {
+  const kinds = trend.sources.filter((s) => (s.source === "sprint" || s.source === "klim") && s.races >= STRENGTH_MIN_RACES);
+  const best = [...kinds].sort((a, b) => b.perRace - a.perRace)[0];
+  if (!best || best.perRace < STRENGTH_POINTS) return [];
+  const other = kinds.find((s) => s !== best);
+  if (other && best.perRace - other.perRace < STRENGTH_POINTS) return [];
+  const nl = new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 1 });
+  const signed = (value: number) => `${value >= 0 ? "+" : "−"}${nl.format(Math.abs(value))}`;
+  const word = best.source === "sprint" ? "sprints" : "klimmen";
+  return [
+    {
+      finding:
+        `In je laatste ${best.races} puntenraces scoorde je op de ${word} gemiddeld ${nl.format(best.perRace)} punten per race meer dan je ZRS liet verwachten` +
+        (other ? `; op de ${other.source === "sprint" ? "sprints" : "klimmen"} ${signed(other.perRace)}.` : "."),
+      tip:
+        best.source === "sprint"
+          ? "Bouw je puntenrace rond de sprints: rij de klimmen in het wiel en zit vooraan in de aanloop naar de sprint."
+          : "Bouw je puntenrace rond de klimmen: rij de sprints in het wiel en spaar je voor de KOM's.",
+    },
+  ];
 }

@@ -148,8 +148,9 @@ describe("segmentKind", () => {
 });
 
 describe("resultPowerFields", () => {
-  it("haalt vermogen, gewicht, meter en finishmoment uit een uitslagrij, maar geen hartslag", () => {
+  it("haalt vermogen, gewicht, meter, finishmoment en de ZRS van vóór de race uit een uitslagrij, maar geen hartslag", () => {
     const fields = resultPowerFields({
+      scoreHistory: { newScore: 336.39, previousScore: 331.2, scoreChangeType: "INCREASED" },
       activityData: { durationInMilliseconds: 2597964, endDate: "2026-10-13T18:50:17.964+0000" },
       criticalP: { criticalP15Seconds: 572, criticalP1Minute: 355, criticalP20Minutes: 259, criticalP5Minutes: 279 },
       sensorData: { avgWatts: 256, heartRateData: { avgHeartRate: 173, heartRateMonitor: true }, powerType: "POWER_METER" },
@@ -157,6 +158,7 @@ describe("resultPowerFields", () => {
     });
     expect(fields).toEqual({
       finishedAt: Date.parse("2026-10-13T18:50:17.964Z"),
+      scoreBefore: 331.2,
       avgWatts: 256,
       weightKg: 74,
       powerType: "POWER_METER",
@@ -169,6 +171,7 @@ describe("resultPowerFields", () => {
   it("laat ontbrekende of lege velden leeg", () => {
     expect(resultPowerFields({ sensorData: { avgWatts: 0 } })).toEqual({
       finishedAt: null,
+      scoreBefore: null,
       avgWatts: null,
       weightKg: null,
       powerType: null,

@@ -14,12 +14,14 @@ import type { Sex } from "@/lib/briljant/norms";
 import { points as briljantPoints, positionFor, type Facet } from "@/lib/briljant/score";
 import { winsFromLevels } from "@/lib/briljant/view";
 import { addDays, weekDays } from "@/lib/weekly-review/period";
+import type { RaceContribution } from "@/lib/zrl-analysis/history";
 
 /**
  * 2: vermogen kreeg `focus`, teams alleen het team waarin het lid reed.
  * 3: de ZWBriljant-steen (`briljant`).
+ * 4: per teamuitslag de eigen race en bijdrage (`race`).
  */
-export const SUMMARY_VERSION = 3;
+export const SUMMARY_VERSION = 4;
 
 export type DayKm = { day: string; km: number; minutes: number };
 
@@ -72,6 +74,8 @@ export type TeamResult = {
   /** Plaats van het lid zelf, als die bekend is. */
   riderPosition: number | null;
   riderCategory: string | null;
+  /** De eigen race uit ZWBeter racen: plek en punten tegenover de verwachting, en de bijdrage aan de ploeg. */
+  race?: RaceContribution | null;
 };
 
 export type TeamsSection = {

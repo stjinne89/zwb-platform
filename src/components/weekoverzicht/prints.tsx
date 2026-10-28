@@ -12,6 +12,7 @@ import type {
   RidesSection,
   TeamResult,
 } from "@/lib/weekly-review/summary";
+import type { RaceContribution } from "@/lib/zrl-analysis/history";
 import s from "./week-review.module.css";
 
 const DAY_LABELS = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -304,6 +305,53 @@ export function TeamPrint({ result }: { result: TeamResult }) {
       <Label x={22 + rankIndex * width + (width - 4) / 2} y={190 - (150 - (rankIndex * 120) / count) - 10} anchor="middle">{result.team}</Label>
       <Label x={22 + (width - 4) / 2} y={212} anchor="middle">1</Label>
       <Label x={22 + (count - 1) * width + (width - 4) / 2} y={212} anchor="middle">{result.teams}</Label>
+    </svg>
+  );
+}
+
+/**
+ * De eigen race: boven waar je verwacht werd (salie) en waar je finishte
+ * (petrol) op een lijn van 1 tot de laatste finisher; onder de ploeg als
+ * staven, punten of W/kg van hoog naar laag, jij in goud.
+ */
+export function RacePrint({ race }: { race: RaceContribution }) {
+  const track = race.place !== null && race.expectedPlace !== null && race.finishers ? race.finishers : null;
+  const at = (place: number) => 30 + ((place - 1) * 330) / Math.max(1, (track ?? 2) - 1);
+  const width = Math.min(56, 330 / Math.max(1, race.team.length));
+  const max = Math.max(...race.team, 0.01);
+  const base = 300;
+  const h = (value: number) => Math.max(4, (value / max) * 140);
+  const ttt = race.format === "ttt";
+  const own = race.team[race.ownIndex] ?? 0;
+  const ownX = 30 + race.ownIndex * width;
+  return (
+    <svg viewBox="0 0 390 330" aria-label={track ? `Verwacht ${race.expectedPlace}e, gefinisht ${race.place}e` : "Jouw bijdrage aan de ploeg"}>
+      {track ? (
+        <>
+          <line className={s.axis} x1={30} x2={360} y1={70} y2={70} />
+          <Label x={30} y={96} anchor="middle" soft>1</Label>
+          <Label x={360} y={96} anchor="middle" soft>{track}</Label>
+          <g className={pass(1)}>
+            <circle className={s.fs} cx={at(race.expectedPlace as number)} cy={70} r={15} />
+          </g>
+          <g className={pass(2)}>
+            <circle className={s.fc} cx={at(race.place as number)} cy={70} r={15} />
+          </g>
+          <Label x={at(race.expectedPlace as number)} y={race.place === race.expectedPlace ? 22 : 42} anchor="middle" soft>verwacht {race.expectedPlace}</Label>
+          <Label x={at(race.place as number)} y={42} anchor="middle">jij {race.place}</Label>
+        </>
+      ) : null}
+      <g className={pass(1)}>
+        {race.team.map((value, i) => (i === race.ownIndex ? null : <rect key={i} className={s.fs} x={30 + i * width} y={base - h(value)} width={width - 6} height={h(value)} />))}
+      </g>
+      <g className={pass(3)}>
+        <rect className={s.fg} x={ownX} y={base - h(own)} width={width - 6} height={h(own)} />
+      </g>
+      <text x={ownX + (width - 6) / 2} y={base - h(own) - 8} textAnchor="middle" className={s.num}>
+        {ttt ? own.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : own}
+      </text>
+      <line className={s.axis} x1={24} x2={366} y1={base} y2={base} />
+      <Label x={30} y={base + 22} soft>{ttt ? "W/kg van de ploeg" : "punten van de ploeg"}</Label>
     </svg>
   );
 }

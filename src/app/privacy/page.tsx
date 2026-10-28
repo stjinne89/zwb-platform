@@ -132,7 +132,8 @@ export default function PrivacyPage() {
             ZRL-race bewaren we uit de uitslag en de segmentresultaten van Zwift
             per renner ook het gemiddelde vermogen, het gewicht, het soort
             vermogensmeter, het beste vermogen over 15 seconden en 1, 5 en 20
-            minuten, het finishmoment en per sprint of klim het vermogen. Dat is
+            minuten, het finishmoment, per sprint of klim het vermogen en de Zwift
+            Racing Score van vóór de race. Dat is
             wat Zwift ook in de game en op ZwiftPower laat zien, en het geldt voor
             iedereen in de groep, ook renners zonder ZWB-account en van andere
             clubs. Hartslag nemen we niet over. Wie de race reed of in de
@@ -149,7 +150,11 @@ export default function PrivacyPage() {
             bewaren haar niet. Bij een FRR-etappe, een andere Zwift-race uit de
             kalender of een race waarvan je de link plakt, bewaren we de uitslag
             en de segmenttijden van je startgroep; vermogen, gewicht en naam alleen
-            van ZWB&apos;ers, van anderen alleen plek en tijden. Een geplakte race
+            van ZWB&apos;ers, van anderen alleen plek, tijden en de Zwift Racing
+            Score van vóór de race. Met die score rekenen we je verwachte plek en
+            punten uit. Je eigen races leggen we naast elkaar: je eerdere passages
+            over dezelfde sprint of klim, je PR en de richttijd van het
+            racebriefje. Die terugblik ziet alleen jij. Een geplakte race
             halen we alleen op als je zelf in de uitslag staat. Andere ZWB&apos;ers
             in zo&apos;n race zien jouw plek en tijd, niet je vermogen.
           </li>
@@ -481,7 +486,9 @@ export default function PrivacyPage() {
           <li>
             <strong>Weekoverzicht:</strong> op zondagavond zie je een terugblik
             op je week. We bewaren per week een samenvatting van je ritten,
-            schema, belasting, vermogen, teamuitslagen, voedings- en
+            schema, belasting, vermogen, teamuitslagen (in een ZRL-race ook je
+            plek en punten tegenover de verwachting, en de punten of W/kg van je
+            ploeggenoten zonder naam), voedings- en
             corelogboek en clubritten, je ZWBriljant-steen (klasse, punten en
             het onderdeel waar je het meest wint, uit je bewaarde weeksteen), en of je het
             overzicht hebt gezien. Alleen jij kunt het lezen, ook als je je

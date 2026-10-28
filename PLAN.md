@@ -34,6 +34,12 @@ gaat stabiliteit voor nieuwe features.
    `/verhaal/[id]` doorscrollen. Zie de ronde "Clubverhaal: een eigen verhaal in
    hoofdstukken".
 
+0e. **ZWBeter racen: verwachting en terugblik (2026-10-28): gecommit op de
+   branch `claude/zwbeter-race-analyses-a810ee`, niet gepusht.** Geen migratie. In het weekoverzicht wordt het
+   teamscherm "Je race". Open: de privacyteksten `/privacy#racen` en die van het
+   weekoverzicht wachten op akkoord van de eigenaar.
+   Zie de ronde "ZWBeter racen: verwachting, punten per bron en de terugblik".
+
 0c. **Clubverhaal (2026-10-28): migratie `0288` toegepast en gepusht.**
    `0288_club_stories.sql` is op 2026-10-28 via de Supabase-connector
    toegepast, op verzoek van de eigenaar, vóór de push naar `main` (zelfde
@@ -3218,7 +3224,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - **Bewaren:** `loadZrlRaceData` heet nu `loadZwiftRaceData` en bewaart elke
 >   gereden race in `zrl_race_snapshots` (de naam van de tabel is gebleven). Buiten
 >   de ZRL met `minimizeRaceData`: van wie niet bij ZWB hoort alleen plek, tijd en
->   segmenttijden. Nieuwe snapshots krijgen `eventType`.
+>   segmenttijden (sinds 2026-10-28 ook de ZRS van vóór de race, ronde "ZWBeter
+>   racen: verwachting, punten per bron en de terugblik"). Nieuwe snapshots
+>   krijgen `eventType`.
 > - **De lijst** (`listRaces`): ZRL zoals voorheen, plus FRR-slots met een eigen
 >   finishtijd en elke bewaarde race met het eigen Zwift-ID in de uitslag; een
 >   geplakte race staat erin zodra hij één keer bekeken is. Per regel het soort
@@ -11538,6 +11546,123 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBeter racen: verwachting, punten per bron en de terugblik
+
+**2026-10-28.** Commit: de commit die dit blok toevoegt, op de branch
+`claude/zwbeter-race-analyses-a810ee`; niet gepusht. Geen migratie (de ZRS gaat
+in de bestaande jsonb van `zrl_race_snapshots`).
+
+**Waarom.** Vraag van de eigenaar: hij had "vergeleken met andere races een paar
+goede sprints en scoorde meer punten dan dat zwiftracing voor mij zou voorspeld
+hebben ook vergeleken met wat het racebriefje dacht dat mogelijk was. Worden dat
+soort elementen ook meegenomen?" Dat werd niet meegenomen: de analyse hield per
+renner alleen het totaal aan punten over, en keek niet naar de verwachting en
+niet naar eerdere races. Na het voorstel (puntenopbouw, verwachting tegenover
+uitkomst, briefje tegenover gereden, sprints tegenover het eigen niveau,
+terugblik): "Alles, ook 4 en 5". Metingen, regels en keuzes:
+[zrl-analyse.md](docs/zrl-analyse.md), sectie "Verdieping".
+
+**Wat.**
+- **ZRS van vóór de race uit de uitslag van Zwift** (`scoreHistory.previousScore`,
+  in vier gemeten startgroepen voor elke renner). `resultPowerFields` leest hem
+  als `scoreBefore`; `minimizeRaceData` houdt hem ook van renners buiten ZWB. Nieuwe
+  snapshots krijgen `withScores`; oude snapshots met vermogen worden één keer
+  aangevuld (`addScores` in `zrl-live/snapshot.ts`: alleen de uitslag opnieuw).
+  `loadZwiftRaceData` bewaart alleen als vermogen of ZRS er echt bij kwam.
+- **Punten per passage** (`race.ts`): FAL en FTS per segment, de opbouw per
+  renner (FAL, FTS, FIN, podium), en de verwachting.
+- **Verwachting** (`expectation.ts`, nieuw): plek op ZRS onder de finishers; in een
+  puntenrace de punten als elk segment en de finish in die volgorde waren
+  gereden. Dezelfde volgorde als het racebriefje (dat zonder ZwiftRacing-sleutel
+  ook op ZRS sorteert), maar met de score van vóór de race. Een meetlat, geen
+  voorspelling; het verschil per bron zegt waar de punten vandaan kwamen.
+- **Vergelijking en terugblik** (`history.ts`, nieuw): per sprint en klim vandaag
+  tegenover de eigen eerdere passages, de eigen PR en de richttijd van het
+  briefje (uit `zwift_segment_bests`, alleen van vóór de race), en over alle
+  bewaarde races van de laatste 120 dagen plek en punten tegenover de verwachting.
+  `analysePersonalRace` kreeg een optioneel scoringsformat, zodat een ZRL-race in
+  de terugblik met segmentpunten telt.
+- **Tip** (`strengthAdvice`): na drie puntenraces met verwachting, als sprints of
+  klimmen gemiddeld ≥ 5 punten per race boven verwachting liggen en ≥ 5 boven de
+  andere soort. Hij komt achteraan bij de eigen tips (samen hooguit vier) en
+  gaat zo ook mee naar de trainer.
+- **Laden** (`load.ts`): `loadDepth` voor de renner zelf, op de ZRL-pagina en de
+  pagina van een individuele race. De terugblik leest eerst alleen welke races er
+  zijn en haalt de uitslagen dan via `unstable_cache` (sleutel per race met de
+  vlaggen vermogen en ZRS, een week). Binnen een verzoek één keer (`cache`), want
+  de trainerpagina laadt alle races van een lid. Ontbrekende ZRS worden na het
+  antwoord aangevuld, hooguit 20 s per bezoek.
+- **Pagina's**: een blok "Jouw race tegenover de verwachting" (verwachte en echte
+  plek, punten, punten per bron, per sprint en klim de vergelijking) en "Jouw
+  races" (de terugblik); bij de captain een kolom Verwacht in de rennerstabel en
+  een bevinding met de verwachte punten van de eigen renners.
+- Hulp (`/hulp/racen#racen-verwachting`, plus een regel in de hulpzoeker) en
+  privacyverklaring (`#racen`).
+- **Weekoverzicht: het teamscherm wordt "Je race"** (vraag van de eigenaar,
+  dezelfde dag: het teamscherm "zegt vrij weinig met alleen die balken en de
+  positie van de ploeg. Ook mooi als daar iets over de bijdrage van de renner
+  staat"; eerst als apart scherm na het teamscherm gebouwd, daarna op zijn
+  verzoek samengevoegd: "ik vind die teams pagina nu niet veel toevoegen").
+  Reed het lid in de ploeg, dan vervangt dit scherm het teamscherm: in een punten- of scratchrace de
+  punten (of de plek), plekken voor of achter de verwachting, de verwachte
+  punten, het deel van de ploegpunten (en of dat het meeste was) en de bron met
+  het grootste verschil; in een ploegentijdrit W/kg naast het ploeggemiddelde en
+  of je bij de ploeg finishte. De tekening (`RacePrint`): verwacht en gefinisht
+  op een lijn, en de ploeg als staven met jou in goud. Data: `raceContribution`
+  in `history.ts` (puur), `loadRaceContribution` in `zrl-analysis/load.ts`
+  (bevroren race, 6 s budget per uitslag in `weekly-review/load.ts`), veld
+  `race` op `TeamResult`. `SUMMARY_VERSION` 4: een bestaand overzicht wordt bij
+  de volgende opening opnieuw opgebouwd. De punten of W/kg van ploeggenoten staan
+  zonder naam in de samenvatting en gaan zo ook naar de AI-coach; privacytekst
+  `#weekoverzicht` aangevuld. De plaats van de ploeg (en andere teams en de SRC)
+  staat als laatste zin op hetzelfde scherm; de balken (`TeamPrint`) alleen nog
+  als het lid niet in de ploeg reed of er geen race-analyse is. Hulp: de
+  regel over het weekoverzicht in `hulp/_data.ts`. Voorbeelddata in
+  `/ontwerp-voorbeeld?scherm=weekoverzicht`.
+
+**Op echte data (alleen lezen, de ZRS in het geheugen bijgezet).** De eigen races
+van de eigenaar: ZRL race 5 (27 oktober) verwacht 17e, gefinisht 6e, 241 punten
+tegen 112 verwacht (sprints +33, klimmen +59, overige segmenten +26, finish +11);
+Jarvis Sprint 12,3 s tegen 15,6 s eerder en een richttijd van 15,0 s. Over negen
+races gemiddeld 7,1 plekken voor de verwachting. Twee puntenraces met
+verwachting, dus nog geen tip.
+
+**Bewust niet.** vELO of de voorspelling van ZwiftRacing (geen sleutel; met sleutel
+moet eerst de vELO van vóór de race bewaard worden). Een model dat voorspelt wie
+welke sprint rijdt. De richttijd van het briefje bij de start vastleggen (de
+PR-cache verliest een PR van vóór de race als iemand in de race een nieuwe zet;
+bij race 5 speelde dat niet). Sprint tegenover de intervals-curve. De terugblik
+voor captains of trainers.
+
+**Niet meer waar.** In de ronde "ZWBeter racen voor elke Zwift-race" bewaarde
+`minimizeRaceData` van anderen alleen plek, tijd en segmenttijden; nu ook de ZRS
+van vóór de race (daar inline gecorrigeerd, net als in `docs/zrl-analyse.md`).
+
+**Gecontroleerd.** `tsc` (alleen de bekende fouten over ontbrekende pakketten),
+ESLint op de gewijzigde bestanden, Vitest: nieuw `zrl-analysis-depth.test.ts`
+(verwachte volgorde en dekking, verwachte punten met FTS over ronden, punten per
+bron, vergelijking met eerder, PR en richttijd van vóór de race, terugblik, de
+tip en wanneer niet, punten per passage via `analysePersonalRace`);
+`zrl-race-data-power.test.ts` (aanvullen van de ZRS, niets bewaren als dat
+mislukt, de ZRS blijft bij minimaliseren); `zrl-analysis-race.test.ts`
+(`scoreBefore` uit de uitslagrij); `raceContribution` (puntenrace, ploegentijdrit,
+niet in de ploeg). `tsc` schoon na `npm ci` in de worktree; de volledige suite
+groen op één beheertest na die alleen onder volle belasting een time-out geeft
+(los gedraaid groen). In de lokale app (dev-server met `--webpack`; Turbopack
+vond de CSS-binary niet door de twee lockfiles): de ZRL-pagina van race 5 met de
+login van de eigenaar, alle blokken met echte data (verwacht 17e, 6e, 241 tegen
+112 punten, segmenten met eerder en briefje); het scherm "Je race" met
+voorbeelddata op `/ontwerp-voorbeeld?scherm=weekoverzicht` op telefoonbreedte.
+Bij dat bezoek is de snapshot van race 5 op productie aangevuld met de ZRS van
+vóór de race (de bedoelde aanvulling, geen proef).
+**Niet geverifieerd:** `npm run build`, het echte weekoverzicht van een lid
+(een week met een ZRL-race moet eerst opnieuw worden opgebouwd), het aanvullen
+op Netlify en de cache daar.
+**Privacytekst `#racen` en die van het weekoverzicht voorleggen aan de eigenaar:**
+de ZRS van vóór de race wordt nu ook van renners buiten ZWB bewaard (zonder
+naam), de terugblik is nieuw, en het weekoverzicht bewaart de punten of W/kg van
+ploeggenoten (zonder naam). Is dit zonder nieuwe privacyversie goed?
+
 ### Gebouwd — Clubverhaal: een eigen verhaal in hoofdstukken, met poppetjes en scènes
 
 **2026-10-28.** Commit `caf7d96e`, gepusht naar `main` op 2026-10-28
@@ -14802,7 +14927,8 @@ eigen scherm, na Vermogen en vóór Teams:
   score tot en met de maandag van de week, hooguit 35 dagen oud, naast die van
   precies een week eerder. `weakestFacet` staat nu in `briljant/score.ts` en wordt
   ook door het Strava-blok gebruikt.
-- `SUMMARY_VERSION` is 3: een bestaand overzicht van deze week wordt bij de
+- `SUMMARY_VERSION` werd 3 (sinds 2026-10-28 is hij 4, ronde "ZWBeter racen:
+  verwachting, punten per bron en de terugblik"): een bestaand overzicht van deze week wordt bij de
   volgende opening opnieuw opgebouwd en krijgt de steen (gezien en coachtekst
   blijven staan, zoals bij versie 2).
 - De steen alleen telt niet als inhoud (`hasContent`): wie een week niets deed,
