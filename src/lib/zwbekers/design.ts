@@ -10,7 +10,7 @@
 
 import { z } from "zod";
 
-export const VORMEN = ["beker", "bokaal", "schaal", "medaille"] as const;
+export const VORMEN = ["beker", "bokaal", "schaal", "medaille", "een"] as const;
 export const METALEN = ["goud", "zilver", "brons"] as const;
 export const OREN = ["geen", "rond", "vleugel"] as const;
 export const SILHOUETTEN = ["slank", "klassiek", "bol"] as const;
@@ -38,6 +38,9 @@ export type BekerDesign = {
   sokkel: Sokkel;
   lint: Lint;
   gravure: string;
+  /** Alleen bij de 1: waar je nummer 1 was ("Wereld", een tijdzone) en wanneer. */
+  regio: string;
+  periode: string;
 };
 
 export const DEFAULT_DESIGN: BekerDesign = {
@@ -49,17 +52,19 @@ export const DEFAULT_DESIGN: BekerDesign = {
   sokkel: "zwart",
   lint: "petrol",
   gravure: "",
+  regio: "",
+  periode: "",
 };
 
 export const LABELS = {
-  vorm: { beker: "Beker", bokaal: "Bokaal", schaal: "Schaal", medaille: "Medaille" },
+  vorm: { beker: "Beker", bokaal: "Bokaal", schaal: "Schaal", medaille: "Medaille", een: "Nummer 1" },
   metaal: { goud: "Goud", zilver: "Zilver", brons: "Brons" },
   oren: { geen: "Geen", rond: "Rond", vleugel: "Vleugels" },
   silhouet: { slank: "Slank", klassiek: "Klassiek", bol: "Bol" },
   voet: { laag: "Laag", hoog: "Hoog" },
   sokkel: { zwart: "Zwart", hout: "Hout", marmer: "Marmer" },
   lint: { petrol: "Petrol", goud: "Goud", rood: "Rood", oranje: "Oranje" },
-} as const satisfies { [K in Exclude<keyof BekerDesign, "gravure">]: Record<BekerDesign[K], string> };
+} as const satisfies { [K in Exclude<keyof BekerDesign, "gravure" | "regio" | "periode">]: Record<BekerDesign[K], string> };
 
 /**
  * De kleuren van het metaal. `hex` is wat het metaal terugkaatst (three.js) en
@@ -88,12 +93,28 @@ export const LINT_COLOR: Record<Lint, string> = {
 
 /** Welke keuzes bij deze vorm iets doen; de rest blijft staan maar telt niet. */
 export function relevant(vorm: Vorm) {
+  const lathe = vorm !== "medaille" && vorm !== "een";
   return {
     oren: vorm === "beker" || vorm === "bokaal",
-    silhouet: vorm !== "medaille",
-    voet: vorm !== "medaille",
+    silhouet: lathe,
+    voet: lathe,
     lint: vorm === "medaille",
+    // De 1 (nummer 1 van de ladder, wens eigenaar 2026-10-28) graveert regio en
+    // periode in plaats van een vrije regel.
+    gravure: vorm !== "een",
+    regioPeriode: vorm === "een",
   };
+}
+
+/** Of de vorm op zijn sokkel ronddraait: een medaille en de 1 tonen hun voorkant. */
+export function spins(vorm: Vorm): boolean {
+  return vorm !== "medaille" && vorm !== "een";
+}
+
+/** De regels op het plaatje van de sokkel, van boven naar onder; leeg zonder gravure. */
+export function gravureLines(design: BekerDesign): string[] {
+  const show = relevant(design.vorm);
+  return (show.regioPeriode ? [design.regio, design.periode] : show.gravure ? [design.gravure] : []).filter(Boolean);
 }
 
 /** Wat de gravure mag bevatten: letters (ook met accent), cijfers, spatie en wat leestekens. */
@@ -103,6 +124,11 @@ export function cleanGravure(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
+const engraving = z
+  .string()
+  .transform(cleanGravure)
+  .pipe(z.string().max(GRAVURE_MAX).regex(GRAVURE_CHARS));
+
 const designSchema = z.object({
   vorm: z.enum(VORMEN),
   metaal: z.enum(METALEN),
@@ -111,10 +137,10 @@ const designSchema = z.object({
   voet: z.enum(VOETEN),
   sokkel: z.enum(SOKKELS),
   lint: z.enum(LINTEN),
-  gravure: z
-    .string()
-    .transform(cleanGravure)
-    .pipe(z.string().max(GRAVURE_MAX).regex(GRAVURE_CHARS)),
+  gravure: engraving,
+  // Ontwerpen van voor de 1 hebben deze velden niet.
+  regio: engraving.default(""),
+  periode: engraving.default(""),
 });
 
 /**
@@ -133,7 +159,10 @@ export function readDesign(stored: unknown): BekerDesign {
   const source = stored && typeof stored === "object" ? (stored as Record<string, unknown>) : {};
   const pick = <T extends string>(options: readonly T[], value: unknown, fallback: T): T =>
     typeof value === "string" && (options as readonly string[]).includes(value) ? (value as T) : fallback;
-  const gravure = typeof source.gravure === "string" ? cleanGravure(source.gravure).slice(0, GRAVURE_MAX) : "";
+  const engraved = (value: unknown) => {
+    const text = typeof value === "string" ? cleanGravure(value).slice(0, GRAVURE_MAX) : "";
+    return GRAVURE_CHARS.test(text) ? text : "";
+  };
   return {
     vorm: pick(VORMEN, source.vorm, DEFAULT_DESIGN.vorm),
     metaal: pick(METALEN, source.metaal, DEFAULT_DESIGN.metaal),
@@ -142,7 +171,9 @@ export function readDesign(stored: unknown): BekerDesign {
     voet: pick(VOETEN, source.voet, DEFAULT_DESIGN.voet),
     sokkel: pick(SOKKELS, source.sokkel, DEFAULT_DESIGN.sokkel),
     lint: pick(LINTEN, source.lint, DEFAULT_DESIGN.lint),
-    gravure: GRAVURE_CHARS.test(gravure) ? gravure : "",
+    gravure: engraved(source.gravure),
+    regio: engraved(source.regio),
+    periode: engraved(source.periode),
   };
 }
 
@@ -220,9 +251,9 @@ export type BodyProfile = {
 
 const SAMPLES = 18;
 
-/** Het profiel van beker, bokaal of schaal (null bij een medaille). */
+/** Het profiel van beker, bokaal of schaal (null bij een medaille of de 1). */
 export function bodyProfile(design: Pick<BekerDesign, "vorm" | "silhouet" | "voet">): BodyProfile | null {
-  if (design.vorm === "medaille") return null;
+  if (design.vorm === "medaille" || design.vorm === "een") return null;
   const base = footAndStem(design.voet);
   const height = bowlHeight(design.vorm);
   const outer: Point[] = [...base.points];
@@ -297,8 +328,32 @@ export const MEDAL = {
   ribbon: { top: 1.08, spread: 0.18, bottomSpread: 0.07, width: 0.13 },
 } as const;
 
+/**
+ * De omtrek van de 1, tegen de klok in vanaf linksonder: een voetje, de staander
+ * en schuin links bovenaan de vlag. Uitgezaagd en dik gemaakt in three.js.
+ */
+export const ONE_OUTLINE: readonly Point[] = [
+  [-0.3, 0],
+  [0.3, 0],
+  [0.3, 0.11],
+  [0.16, 0.15],
+  [0.16, 1.18],
+  [-0.02, 1.18],
+  [-0.34, 0.96],
+  [-0.34, 0.85],
+  [-0.12, 0.96],
+  [-0.12, 0.15],
+  [-0.3, 0.11],
+];
+/** Hoe dik de 1 is, van voor naar achter. */
+export const ONE_DEPTH = 0.16;
+
 /** Hoe groot het geheel is, met sokkel: voor de schaal in de galerij en het plaatje. */
 export function trophyBounds(design: BekerDesign): { height: number; radius: number; sokkelWidth: number } {
+  if (design.vorm === "een") {
+    // Breed genoeg voor twee regels gravure.
+    return { height: SOKKEL_HEIGHT + 1.18, radius: 0.36, sokkelWidth: 0.9 };
+  }
   if (design.vorm === "medaille") {
     const width = MEDAL.board.width + 0.2;
     return { height: SOKKEL_HEIGHT + MEDAL.board.height, radius: width / 2, sokkelWidth: width };
@@ -323,6 +378,7 @@ export function trophyBounds(design: BekerDesign): { height: number; radius: num
 
 /** De omtrek van beker, bokaal of schaal als SVG-pad, in de eenheden hierboven (y omhoog). */
 export function silhouettePath(design: BekerDesign): string {
+  if (design.vorm === "een") return `M ${ONE_OUTLINE.map(([x, y]) => `${fmt(x)} ${fmt(-y)}`).join(" L ")} Z`;
   const profile = bodyProfile(design);
   if (!profile) return "";
   const right = profile.outline;
@@ -356,6 +412,7 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
 export function describeDesign(design: BekerDesign): string {
   const metal = { goud: "gouden", zilver: "zilveren", brons: "bronzen" }[design.metaal];
   const sokkel = { zwart: "zwarte", hout: "houten", marmer: "marmeren" }[design.sokkel];
+  if (design.vorm === "een") return `${capitalize(metal)} nummer 1 op een ${sokkel} sokkel`;
   if (design.vorm === "medaille") {
     return `${capitalize(metal)} medaille aan een ${LABELS.lint[design.lint].toLowerCase()} lint, op een ${sokkel} sokkel`;
   }

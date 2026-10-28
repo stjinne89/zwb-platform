@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
 import { AIR, QUOTES, board, emblem, floorMaterial, rail, textureCache, wallMaterial, wallText } from "@/components/briljant/gallery";
 import { studioEnvironment } from "@/components/briljant/stone";
-import type { BekerDesign } from "@/lib/zwbekers/design";
+import { spins, type BekerDesign } from "@/lib/zwbekers/design";
 import { softWash } from "./loods";
 import { buildTrophy, disposeTree, trophyEnvironment, type BuiltTrophy } from "./trophy";
 
@@ -284,7 +284,7 @@ export default function CabinetScene({ bekers, startId, sponsors = [], labels, o
         trophy.group.scale.setScalar(fit);
         trophy.group.position.set(sx, sy, -0.06);
         group.add(trophy.group);
-        if (beker.design.vorm !== "medaille") spinners.push(trophy.spinner);
+        if (spins(beker.design.vorm)) spinners.push(trophy.spinner);
         anchors.set(`kast:${beker.id}`, {
           position: new THREE.Vector3(cx + sx, sy - 0.045, front - 0.02),
           radius: CABINET.slot / 2,

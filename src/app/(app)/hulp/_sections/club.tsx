@@ -193,8 +193,8 @@ export function ClubHelp() {
               Voordragen in de kast. Geef de beker een titel, de datum en kort
               waarom. Bij een team kies je het team en vink je aan wie er
               meereed; ook wie niet (meer) in het team zit, kun je toevoegen.
-              Een event, een link naar de uitslag en een foto zijn niet
-              verplicht.
+              Een event of een hele ZRL-ronde, een link naar de uitslag en een
+              foto zijn niet verplicht.
             </span>
           </li>
           <li className="flex gap-2">
@@ -202,8 +202,10 @@ export function ClubHelp() {
             <span>
               <strong className="text-foreground">Ontwerpen.</strong> Kies een
               beker, bokaal, schaal of medaille, het metaal, de vorm, de voet,
-              de sokkel en een korte gravure. Het voorbeeld verandert meteen
-              mee; sleep om hem rond te draaien.
+              de sokkel en een korte gravure. Voor wie nummer 1 werd, zoals in
+              de ladder, is er een 1 met de regio (de wereld of een tijdzone)
+              en de periode in de gravure. Het voorbeeld verandert meteen mee;
+              sleep om hem rond te draaien.
             </span>
           </li>
           <li className="flex gap-2">

@@ -33,6 +33,8 @@ export const STATUS_LABEL: Record<BekerStatus, string> = {
 };
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
+/** Een ZRL-ronde zoals de beker hem bewaart: "2026/27 R1" (0287). */
+export const ZRL_ROUND = /^\d{4}\/\d{2} R[1-4]$/;
 const uuid = z.string().uuid();
 
 /** Eén regel: geen enters of dubbele spaties in een titel. */
@@ -53,6 +55,7 @@ export type Nomination = {
   winners: string[];
   teamId: string | null;
   eventId: string | null;
+  zrlRound: string | null;
   resultUrl: string | null;
   design: BekerDesign;
 };
@@ -74,6 +77,7 @@ export function parseNomination(input: unknown, today: string): Nomination {
       winners: z.array(uuid).max(200),
       teamId: uuid.nullish(),
       eventId: uuid.nullish(),
+      zrlRound: z.string().max(20).nullish(),
       resultUrl: z.string().max(2000).nullish(),
       design: z.unknown(),
     })
@@ -104,6 +108,11 @@ export function parseNomination(input: unknown, today: string): Nomination {
     if (winners.length > TEAM_MAX) throw new NominationError(`Hooguit ${TEAM_MAX} renners per teambeker.`);
   }
 
+  const eventId = raw.eventId ?? null;
+  const zrlRound = raw.zrlRound?.trim() || null;
+  if (zrlRound && !ZRL_ROUND.test(zrlRound)) throw new NominationError("Kies een ZRL-ronde uit de lijst.");
+  if (zrlRound && eventId) throw new NominationError("Kies een event of een ZRL-ronde, niet allebei.");
+
   return {
     kind: raw.kind,
     title,
@@ -111,7 +120,8 @@ export function parseNomination(input: unknown, today: string): Nomination {
     achievedOn: raw.achievedOn,
     winners,
     teamId,
-    eventId: raw.eventId ?? null,
+    eventId,
+    zrlRound,
     resultUrl: cleanResultUrl(raw.resultUrl ?? null),
     design: parseDesign(raw.design),
   };
@@ -158,6 +168,18 @@ export function photoPath(bekerId: string, uploaderId: string, now: number): str
 export function isPhotoPathFor(path: string, bekerId: string, uploaderId: string): boolean {
   const parts = path.split("/");
   return parts.length === 3 && parts[0] === bekerId && parts[1] === uploaderId && /^\d{10,16}\.jpg$/.test(parts[2]);
+}
+
+/** "2026/27 R1" uit een ZRL-titel als "ZRL 2026/27 · R1 · W3"; null bij een andere titel. */
+export function zrlRoundOf(title: string): string | null {
+  const match = /^ZRL (\d{4}\/\d{2}) · R([1-4]) · W\d+/.exec(title);
+  return match ? `${match[1]} R${match[2]}` : null;
+}
+
+/** "ZRL 2026/27 · ronde 1" */
+export function zrlRoundLabel(round: string): string {
+  const [season, r] = round.split(" ");
+  return `ZRL ${season} · ronde ${r.slice(1)}`;
 }
 
 /** "12 oktober 2026" */

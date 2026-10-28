@@ -31,6 +31,7 @@ export type FormOptions = {
   members: Array<{ id: string; name: string }>;
   teams: Array<{ id: string; name: string; members: string[] }>;
   events: Array<{ id: string; title: string; day: string }>;
+  zrlRounds: Array<{ key: string; label: string; lastDay: string }>;
 };
 
 export type FormInitial = {
@@ -42,6 +43,7 @@ export type FormInitial = {
   winners: string[];
   teamId: string | null;
   eventId: string | null;
+  zrlRound: string | null;
   resultUrl: string | null;
   design: BekerDesign;
   photoUrl: string | null;
@@ -49,6 +51,9 @@ export type FormInitial = {
 
 const field = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
 const sectionTitle = "text-sm font-semibold uppercase tracking-wide text-muted-foreground";
+
+/** In de keuzelijst "Erbij" staat een ZRL-ronde als "zrl:2026/27 R1", een event als zijn id. */
+const ROUND_PREFIX = "zrl:";
 
 const MAX_LONGEST_SIDE = 1920;
 const MAX_INPUT_SIZE = 20 * 1024 * 1024;
@@ -88,7 +93,9 @@ export function NominationForm({ options, today, initial }: { options: FormOptio
   const [winner, setWinner] = useState(initial?.kind === "individueel" ? (initial.winners[0] ?? "") : "");
   const [teamId, setTeamId] = useState(initial?.teamId ?? "");
   const [riders, setRiders] = useState<string[]>(initial?.kind === "team" ? initial.winners : []);
-  const [eventId, setEventId] = useState(initial?.eventId ?? "");
+  const [linked, setLinked] = useState(
+    initial?.zrlRound ? `${ROUND_PREFIX}${initial.zrlRound}` : (initial?.eventId ?? ""),
+  );
   const [resultUrl, setResultUrl] = useState(initial?.resultUrl ?? "");
   const [design, setDesign] = useState<BekerDesign>(initial?.design ?? DEFAULT_DESIGN);
   const [photo, setPhoto] = useState<File | null>(null);
@@ -106,6 +113,13 @@ export function NominationForm({ options, today, initial }: { options: FormOptio
   const show = relevant(design.vorm);
 
   const set = <K extends keyof BekerDesign>(key: K, value: BekerDesign[K]) => setDesign((current) => ({ ...current, [key]: value }));
+
+  const chooseLinked = (value: string) => {
+    setLinked(value);
+    // Een ronde is geleverd op de dag van de laatste race.
+    const round = options.zrlRounds.find((item) => `${ROUND_PREFIX}${item.key}` === value);
+    if (round) setAchievedOn(round.lastDay);
+  };
 
   const chooseTeam = (id: string) => {
     setTeamId(id);
@@ -144,7 +158,8 @@ export function NominationForm({ options, today, initial }: { options: FormOptio
       achievedOn,
       winners: kind === "individueel" ? (winner ? [winner] : []) : riders,
       teamId: kind === "team" ? teamId || null : null,
-      eventId: eventId || null,
+      eventId: linked && !linked.startsWith(ROUND_PREFIX) ? linked : null,
+      zrlRound: linked.startsWith(ROUND_PREFIX) ? linked.slice(ROUND_PREFIX.length) : null,
       resultUrl,
       design,
     };
@@ -265,14 +280,25 @@ export function NominationForm({ options, today, initial }: { options: FormOptio
 
         <section className="space-y-4 rounded-lg border bg-card p-4">
           <h2 className={sectionTitle}>Erbij</h2>
-          <Field label="Event">
-            <select className={field} value={eventId} onChange={(event) => setEventId(event.target.value)}>
+          <Field label="Event of ZRL-ronde">
+            <select className={field} value={linked} onChange={(event) => chooseLinked(event.target.value)}>
               <option value="">Geen</option>
-              {options.events.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.day.split("-").reverse().join("-")} · {item.title}
-                </option>
-              ))}
+              {options.zrlRounds.length > 0 && (
+                <optgroup label="ZRL-rondes">
+                  {options.zrlRounds.map((round) => (
+                    <option key={round.key} value={`${ROUND_PREFIX}${round.key}`}>
+                      {round.label}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              <optgroup label="Events">
+                {options.events.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.day.split("-").reverse().join("-")} · {item.title}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </Field>
           <Field label="Link naar de uitslag">
@@ -351,14 +377,40 @@ export function NominationForm({ options, today, initial }: { options: FormOptio
             onChange={(value) => set("sokkel", value)}
             swatch={(value) => SOKKEL_COLOR[value]}
           />
-          <Field label="Gravure" hint={`${design.gravure.length}/${GRAVURE_MAX}`}>
-            <input
-              className={field}
-              value={design.gravure}
-              maxLength={GRAVURE_MAX}
-              onChange={(event) => set("gravure", event.target.value)}
-            />
-          </Field>
+          {show.gravure && (
+            <Field label="Gravure" hint={`${design.gravure.length}/${GRAVURE_MAX}`}>
+              <input
+                className={field}
+                value={design.gravure}
+                maxLength={GRAVURE_MAX}
+                onChange={(event) => set("gravure", event.target.value)}
+              />
+            </Field>
+          )}
+          {show.regioPeriode && (
+            <>
+              <Field label="Regio" hint={`${design.regio.length}/${GRAVURE_MAX}`}>
+                <input
+                  className={field}
+                  value={design.regio}
+                  maxLength={GRAVURE_MAX}
+                  list="zwbeker-regio"
+                  onChange={(event) => set("regio", event.target.value)}
+                />
+                <datalist id="zwbeker-regio">
+                  <option value="Wereld" />
+                </datalist>
+              </Field>
+              <Field label="Periode" hint={`${design.periode.length}/${GRAVURE_MAX}`}>
+                <input
+                  className={field}
+                  value={design.periode}
+                  maxLength={GRAVURE_MAX}
+                  onChange={(event) => set("periode", event.target.value)}
+                />
+              </Field>
+            </>
+          )}
         </section>
 
         {error && (

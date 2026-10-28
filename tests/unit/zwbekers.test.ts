@@ -11,11 +11,13 @@ import {
   VORMEN,
   bodyProfile,
   describeDesign,
+  gravureLines,
   handleCurves,
   handlesPath,
   parseDesign,
   readDesign,
   silhouettePath,
+  spins,
   trophyBounds,
   type BekerDesign,
 } from "@/lib/zwbekers/design";
@@ -27,6 +29,8 @@ import {
   namesLabel,
   parseNomination,
   photoPath,
+  zrlRoundLabel,
+  zrlRoundOf,
 } from "@/lib/zwbekers/nomination";
 
 const A = "11111111-1111-4111-8111-111111111111";
@@ -66,7 +70,7 @@ describe("ZWBekers: ontwerp", () => {
   it("geeft elke vorm een gesloten, staand profiel", () => {
     for (const design of allDesigns()) {
       const profile = bodyProfile(design);
-      if (design.vorm === "medaille") {
+      if (design.vorm === "medaille" || design.vorm === "een") {
         expect(profile).toBeNull();
         continue;
       }
@@ -128,6 +132,48 @@ describe("ZWBekers: ontwerp", () => {
     expect(describeDesign({ ...DEFAULT_DESIGN, vorm: "medaille", metaal: "brons", lint: "oranje" })).toBe(
       "Bronzen medaille aan een oranje lint, op een zwarte sokkel",
     );
+  });
+});
+
+describe("ZWBekers: de 1", () => {
+  const een: BekerDesign = { ...DEFAULT_DESIGN, vorm: "een", gravure: "ZWB", regio: "Wereld", periode: "Oktober 2026" };
+
+  it("graveert regio en periode in plaats van de vrije regel", () => {
+    expect(gravureLines(een)).toEqual(["Wereld", "Oktober 2026"]);
+    expect(gravureLines({ ...een, regio: "" })).toEqual(["Oktober 2026"]);
+    expect(gravureLines({ ...een, vorm: "beker" })).toEqual(["ZWB"]);
+    expect(gravureLines(DEFAULT_DESIGN)).toEqual([]);
+  });
+
+  it("staat stil met de voorkant naar voren, en heeft een eigen omtrek", () => {
+    expect(spins("een")).toBe(false);
+    expect(spins("medaille")).toBe(false);
+    expect(spins("bokaal")).toBe(true);
+    expect(bodyProfile(een)).toBeNull();
+    expect(handleCurves({ ...een, oren: "vleugel" })).toEqual([]);
+    expect(silhouettePath(een)).toMatch(/^M .* Z$/);
+    expect(trophyBounds(een).height).toBeGreaterThan(SOKKEL_HEIGHT + 1);
+    expect(describeDesign(een)).toBe("Gouden nummer 1 op een zwarte sokkel");
+  });
+
+  it("leest regio en periode, ook uit een ontwerp van daarvoor", () => {
+    const older: Partial<BekerDesign> = { ...DEFAULT_DESIGN };
+    delete older.regio;
+    delete older.periode;
+    expect(parseDesign(older)).toEqual(DEFAULT_DESIGN);
+    expect(readDesign(older)).toEqual(DEFAULT_DESIGN);
+    expect(parseDesign({ ...een, regio: "  UTC+1  " }).regio).toBe("UTC+1");
+    expect(() => parseDesign({ ...een, periode: "x".repeat(GRAVURE_MAX + 1) })).toThrow(ZodError);
+    expect(readDesign({ ...een, regio: "<b>" }).regio).toBe("");
+  });
+});
+
+describe("ZWBekers: ZRL-ronde", () => {
+  it("haalt de ronde uit de titel van een raceweek", () => {
+    expect(zrlRoundOf("ZRL 2026/27 · R1 · W1 — Race of Truth")).toBe("2026/27 R1");
+    expect(zrlRoundOf("ZRL 2026/27 · R3 · W4 · ZRL B1")).toBe("2026/27 R3");
+    expect(zrlRoundOf("Zwift ritje")).toBeNull();
+    expect(zrlRoundLabel("2026/27 R2")).toBe("ZRL 2026/27 · ronde 2");
   });
 });
 
@@ -199,6 +245,14 @@ describe("ZWBekers: voordracht", () => {
     expect(canEdit({ status: "toegekend", profileId: A }, A)).toBe(false);
     expect(canEdit({ status: "voorgedragen", profileId: A }, B)).toBe(false);
     expect(canEdit({ status: "voorgedragen", profileId: null }, A)).toBe(false);
+  });
+
+  it("hangt aan een event of aan een hele ZRL-ronde", () => {
+    expect(parseNomination({ ...base, zrlRound: "2026/27 R1" }, TODAY).zrlRound).toBe("2026/27 R1");
+    expect(parseNomination(base, TODAY).zrlRound).toBeNull();
+    expect(() => parseNomination({ ...base, zrlRound: "R1" }, TODAY)).toThrow(NominationError);
+    expect(() => parseNomination({ ...base, zrlRound: "2026/27 R5" }, TODAY)).toThrow(NominationError);
+    expect(() => parseNomination({ ...base, zrlRound: "2026/27 R1", eventId: TEAM }, TODAY)).toThrow("niet allebei");
   });
 
   it("controleert het pad van een foto", () => {

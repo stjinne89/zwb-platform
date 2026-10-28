@@ -10,6 +10,8 @@ import {
   canEdit,
   isPhotoPathFor,
   photoPath,
+  zrlRoundLabel,
+  zrlRoundOf,
   type BekerKind,
   type BekerStatus,
   type Nomination,
@@ -43,6 +45,8 @@ export type BekerDetail = BekerSummary & {
   story: string;
   teamId: string | null;
   event: { id: string; title: string; startAt: string } | null;
+  /** Een hele ZRL-ronde, "2026/27 R1" (0287); nooit samen met een event. */
+  zrlRound: string | null;
   resultUrl: string | null;
   photoPath: string | null;
   photoUrl: string | null;
@@ -56,7 +60,7 @@ export type BekerDetail = BekerSummary & {
 
 const SUMMARY_COLUMNS =
   "id, kind, title, achieved_on, status, design, team_name, winners:zwbeker_winners(profile:profiles(id, display_name, avatar_url))";
-const DETAIL_COLUMNS = `${SUMMARY_COLUMNS}, story, team_id, event_id, result_url, photo_path, profile_id, review_note, reviewed_at, created_at, nominator:profiles!zwbekers_profile_id_fkey(id, display_name, avatar_url), event:events(id, title, start_at)`;
+const DETAIL_COLUMNS = `${SUMMARY_COLUMNS}, story, team_id, event_id, zrl_round, result_url, photo_path, profile_id, review_note, reviewed_at, created_at, nominator:profiles!zwbekers_profile_id_fkey(id, display_name, avatar_url), event:events(id, title, start_at)`;
 
 type ProfileRef = { id: string; display_name: string | null; avatar_url: string | null } | null;
 type SummaryRow = {
@@ -73,6 +77,7 @@ type DetailRow = SummaryRow & {
   story: string;
   team_id: string | null;
   event_id: string | null;
+  zrl_round: string | null;
   result_url: string | null;
   photo_path: string | null;
   profile_id: string | null;
@@ -220,6 +225,7 @@ async function detail(
     story: row.story,
     teamId: row.team_id,
     event: row.event ? { id: row.event.id, title: row.event.title, startAt: row.event.start_at } : null,
+    zrlRound: row.zrl_round,
     resultUrl: row.result_url,
     photoPath: row.photo_path,
     // De rij is met RLS gelezen, dus wie hem ziet, mag de foto zien.
@@ -242,21 +248,42 @@ async function signedPhotoUrl(path: string): Promise<string | null> {
   return data?.signedUrl ?? null;
 }
 
-/** Wat het formulier nodig heeft: goedgekeurde leden, teams met hun leden, en events van het afgelopen jaar. */
+/**
+ * Wat het formulier nodig heeft: goedgekeurde leden, teams met hun leden, events
+ * van het afgelopen jaar, en de ZRL-rondes die al begonnen zijn (uit de titels
+ * van de hoofdevents per raceweek, 0178).
+ */
 export async function loadFormOptions(client: SupabaseClient, today: string) {
   const yearAgo = new Date(`${today}T12:00:00Z`);
   yearAgo.setUTCFullYear(yearAgo.getUTCFullYear() - 1);
-  const [members, teams, events] = await Promise.all([
+  const endOfToday = new Date(`${today}T23:59:59Z`).toISOString();
+  const [members, teams, events, raceWeeks] = await Promise.all([
     client.from("profiles").select("id, display_name").eq("is_approved", true).order("display_name"),
     client.from("teams").select("id, name, type, team_members(profile_id)").order("name"),
     client
       .from("events")
       .select("id, title, start_at")
       .gte("start_at", yearAgo.toISOString())
-      .lte("start_at", new Date(`${today}T23:59:59Z`).toISOString())
+      .lte("start_at", endOfToday)
       .order("start_at", { ascending: false })
       .limit(300),
+    client
+      .from("events")
+      .select("title, start_at")
+      .eq("type", "zrl")
+      .is("parent_event_id", null)
+      .lte("start_at", endOfToday)
+      .order("start_at", { ascending: false })
+      .limit(200),
   ]);
+  // Nieuwste ronde eerst; per ronde de dag van de laatste race tot nu.
+  const rounds = new Map<string, { key: string; label: string; lastDay: string }>();
+  for (const row of raceWeeks.data ?? []) {
+    const key = zrlRoundOf(row.title as string);
+    if (key && !rounds.has(key)) {
+      rounds.set(key, { key, label: zrlRoundLabel(key), lastDay: (row.start_at as string).slice(0, 10) });
+    }
+  }
   return {
     members: (members.data ?? [])
       .filter((row) => (row.display_name as string | null)?.trim())
@@ -271,6 +298,7 @@ export async function loadFormOptions(client: SupabaseClient, today: string) {
       title: row.title as string,
       day: (row.start_at as string).slice(0, 10),
     })),
+    zrlRounds: [...rounds.values()],
   };
 }
 
@@ -292,9 +320,9 @@ async function stored(admin: Admin, id: string): Promise<StoredBeker> {
   return data;
 }
 
-/** Controleert winnaars, team en event tegen de database; geeft de teamnaam terug. */
+/** Controleert winnaars, team, event en ZRL-ronde tegen de database; geeft de teamnaam terug. */
 async function checkReferences(admin: Admin, nomination: Nomination): Promise<string | null> {
-  const [winners, team, event] = await Promise.all([
+  const [winners, team, event, raceWeek] = await Promise.all([
     admin.from("profiles").select("id").in("id", nomination.winners).eq("is_approved", true),
     nomination.teamId
       ? admin.from("teams").select("name").eq("id", nomination.teamId).maybeSingle()
@@ -302,12 +330,22 @@ async function checkReferences(admin: Admin, nomination: Nomination): Promise<st
     nomination.eventId
       ? admin.from("events").select("id").eq("id", nomination.eventId).maybeSingle()
       : Promise.resolve({ data: null }),
+    nomination.zrlRound
+      ? admin
+          .from("events")
+          .select("id")
+          .eq("type", "zrl")
+          .like("title", `ZRL ${nomination.zrlRound.replace(" ", " · ")} · W%`)
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
   if ((winners.data ?? []).length !== nomination.winners.length) {
     throw new NominationError("Kies alleen goedgekeurde ZWB-leden als winnaar.");
   }
   if (nomination.teamId && !team.data) throw new NominationError("Dat team bestaat niet meer.");
   if (nomination.eventId && !event.data) throw new NominationError("Dat event bestaat niet meer.");
+  if (nomination.zrlRound && !raceWeek.data) throw new NominationError("Die ZRL-ronde staat niet in de kalender.");
   return nomination.teamId ? ((team.data as { name: string }).name.slice(0, 80) ?? null) : null;
 }
 
@@ -320,6 +358,7 @@ function columns(nomination: Nomination, teamName: string | null) {
     team_id: nomination.teamId,
     team_name: teamName,
     event_id: nomination.eventId,
+    zrl_round: nomination.zrlRound,
     result_url: nomination.resultUrl,
     design: nomination.design,
   };

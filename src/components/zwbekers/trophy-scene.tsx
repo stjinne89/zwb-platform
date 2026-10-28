@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { AIR, floorMaterial, plinthMaterials, wallMaterial } from "@/components/briljant/gallery";
 import { glow, studioEnvironment } from "@/components/briljant/stone";
 import { softWash } from "./loods";
-import { trophyBounds, type BekerDesign } from "@/lib/zwbekers/design";
+import { spins, trophyBounds, type BekerDesign } from "@/lib/zwbekers/design";
 import { buildTrophy, disposeTree, trophyEnvironment, type BuiltTrophy } from "./trophy";
 
 type Props = {
@@ -106,7 +106,7 @@ export default function TrophyScene({ design, onFailed }: Props) {
     let trophy: BuiltTrophy | null = null;
     // Hoe ver iemand de beker heeft rondgedraaid; blijft staan als hij een andere kiest.
     let turn = 0;
-    let spinning = latest.current.vorm !== "medaille";
+    let spinning = spins(latest.current.vorm);
     const show = (next: BekerDesign) => {
       if (trophy) {
         scene.remove(trophy.group);
@@ -119,7 +119,7 @@ export default function TrophyScene({ design, onFailed }: Props) {
       const bounds = trophyBounds(next);
       targetHeight = bounds.height;
       targetWidth = Math.max(bounds.radius, bounds.sokkelWidth / 2);
-      spinning = next.vorm !== "medaille";
+      spinning = spins(next.vorm);
     };
     show(latest.current);
     stage.current = { show };

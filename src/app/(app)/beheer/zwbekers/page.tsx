@@ -5,7 +5,7 @@ import { BekerIcon } from "@/components/zwbekers/beker-icon";
 import { adminAreaPermission } from "@/lib/admin-areas";
 import { getRequestAccess } from "@/lib/auth/request";
 import { createClient } from "@/lib/supabase/server";
-import { describeDesign } from "@/lib/zwbekers/design";
+import { describeDesign, gravureLines } from "@/lib/zwbekers/design";
 import { KIND_LABEL, STATUS_LABEL, dayLabel, namesLabel } from "@/lib/zwbekers/nomination";
 import { loadReviewQueue } from "@/lib/zwbekers/server";
 import { ReviewPanel } from "../../zwbekers/_components/beker-controls";
@@ -61,7 +61,7 @@ export default async function ZwbekersBeheerPage() {
                   <p className="whitespace-pre-line text-sm text-muted-foreground">{beker.story}</p>
                   <p className="text-xs text-muted-foreground">
                     {describeDesign(beker.design)}
-                    {beker.design.gravure ? ` · gravure “${beker.design.gravure}”` : ""}
+                    {gravureLines(beker.design).length > 0 ? ` · gravure “${gravureLines(beker.design).join(" / ")}”` : ""}
                     {beker.photoUrl ? " · met foto" : ""}
                   </p>
                   <ReviewPanel bekerId={beker.id} />

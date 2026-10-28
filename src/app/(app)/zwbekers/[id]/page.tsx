@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import { CalendarDays, ExternalLink, Trophy } from "lucide-react";
 import { EmptyState } from "@/components/app-ui";
 import { TrophyPreview } from "@/components/zwbekers/trophy-preview";
-import { describeDesign } from "@/lib/zwbekers/design";
-import { KIND_LABEL, STATUS_LABEL, canEdit, dayLabel } from "@/lib/zwbekers/nomination";
+import { KIND_LABEL, STATUS_LABEL, canEdit, dayLabel, zrlRoundLabel } from "@/lib/zwbekers/nomination";
 import { REVIEW_PERMISSION, loadBeker, requireBekerMember } from "@/lib/zwbekers/server";
 import { BekerActions, Congrats, ReviewPanel } from "../_components/beker-controls";
 
@@ -52,9 +51,8 @@ export default async function BekerPage({ params }: { params: Promise<{ id: stri
       )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(280px,420px)_minmax(0,1fr)] lg:items-start">
-        <div className="space-y-2 lg:sticky lg:top-20">
+        <div className="lg:sticky lg:top-20">
           <TrophyPreview design={beker.design} />
-          <p className="text-center text-xs text-muted-foreground">{describeDesign(beker.design)}</p>
         </div>
 
         <div className="space-y-6">
@@ -96,8 +94,14 @@ export default async function BekerPage({ params }: { params: Promise<{ id: stri
             <img src={beker.photoUrl} alt={`Foto bij ${beker.title}`} className="max-h-[28rem] w-full rounded-lg border object-cover" />
           )}
 
-          {(beker.event || beker.resultUrl) && (
+          {(beker.event || beker.zrlRound || beker.resultUrl) && (
             <ul className="flex flex-wrap gap-2 text-sm">
+              {beker.zrlRound && (
+                <li className="inline-flex min-h-9 items-center gap-2 rounded-md border px-3">
+                  <CalendarDays className="size-4" aria-hidden />
+                  {zrlRoundLabel(beker.zrlRound)}
+                </li>
+              )}
               {beker.event && (
                 <li>
                   <Link href={`/events/${beker.event.id}`} className="inline-flex min-h-9 items-center gap-2 rounded-md border px-3 hover:bg-muted">

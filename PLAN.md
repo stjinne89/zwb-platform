@@ -23,6 +23,9 @@ gaat stabiliteit voor nieuwe features.
 0b. **ZWBekers (2026-10-28): migratie `0286` toegepast en gepusht.** Open: de
    privacytekst `/privacy#zwbekers` wacht op akkoord van de eigenaar, net als de
    vraag of dit zonder nieuwe privacyversie kan (zie de ronde "ZWBekers").
+   **Migratie `0287_zwbeker_zrl_round.sql` is nog niet toegepast** en moet vóór
+   de deploy van de ronde "ZWBekers: ZRL-ronde en de 1": de bekerpagina leest
+   de kolom `zrl_round`.
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11519,6 +11522,65 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBekers: een beker voor een hele ZRL-ronde, en de 1 voor nummer 1
+
+**2026-10-28.** Lokaal gecommit, niet gepusht; de hash staat in `git log` bij
+deze ronde. Migratie `0287_zwbeker_zrl_round.sql`, **nog niet toegepast**.
+
+**Waarom.** Drie wensen van de eigenaar, dezelfde dag:
+- De zin onder de beker op `/zwbekers/[id]` ("Gouden beker met vleugels, slank,
+  op een marmeren sokkel") hoeft niet: de beker staat er zelf. Weg. De zin
+  blijft wel de beschrijving voor schermlezers en in het beheer.
+- Een beker moet ook aan een hele ZRL-ronde kunnen hangen. Een ZRL-prestatie
+  (promotie, de ronde winnen) beslaat zes raceweken; geen enkel event dekt hem.
+- Een passende bokaal voor nummer 1 van de wereld of een tijdzone in de ladder:
+  in de vorm van een 1, met in de gravure de regio en de periode.
+
+**Wat.**
+- `0287`: kolom `zwbekers.zrl_round` ("2026/27 R1"), met een check op dat
+  formaat en een check dat een beker aan een event of aan een ronde hangt, niet
+  aan allebei. Een ronde is in de database geen rij maar een titelpatroon van de
+  hoofdevents per raceweek (`0178`); daarom bewaart de beker de ronde zelf en
+  niet een event-id. Hij blijft zo kloppen als raceweken later worden
+  opgeruimd.
+- Formulier: de keuzelijst "Event" heet "Event of ZRL-ronde", met een groep
+  ZRL-rondes (die al begonnen zijn, uit de titels van de hoofdevents) boven de
+  events. Een ronde kiezen zet de datum op de laatste race tot nu. De server
+  controleert dat er een raceweek van die ronde bestaat.
+- Bekerpagina: de ronde als label naast event en uitslag ("ZRL 2026/27 ·
+  ronde 1"), zonder link: er is geen pagina per ronde.
+- Ontwerp: vorm `een` ("Nummer 1"): de omtrek van een 1 (`ONE_OUTLINE`),
+  in 3D uitgezaagd en dik gemaakt met `ExtrudeGeometry` en een afgeronde rand,
+  als plaatje hetzelfde pad. Draait niet rond (net als de medaille, `spins`),
+  zodat de voorkant met de gravure naar voren staat. In plaats van de vrije
+  gravure twee velden in het ontwerp, `regio` en `periode` (elk hooguit 24
+  tekens, dezelfde tekens als de gravure); het plaatje op de sokkel krijgt dan
+  twee regels (`gravureLines`). Regio is vrije tekst met "Wereld" als
+  suggestie: de ladder-site noemt zijn regio's in koppen die we niet vastleggen
+  (`lib/club-ladder/summary.ts`). Oude ontwerpen zonder deze velden lezen als
+  leeg; geen migratie nodig, `design` is jsonb.
+
+**Bewust niet.**
+- Geen tabel of pagina per ZRL-ronde: het titelpatroon is de bron, zoals bij de
+  ZRL-import.
+- Geen vaste lijst regio's voor de 1, en geen koppeling aan de ladderstand: wie
+  nummer 1 was, beoordeelt het bestuur bij het keuren, zoals bij elke beker.
+
+**Correctie op de ronde "ZWBekers" hieronder:** de vormen zijn nu beker, bokaal,
+schaal, medaille en de 1, en een beker hangt aan een event of een ZRL-ronde.
+
+**Gecontroleerd.** `tsc` zonder nieuwe fouten (de drie bestaande over
+ontbrekende modules buiten ZWBekers blijven), ESLint op de gewijzigde
+bestanden, Vitest `zwbekers.test.ts` groen (21 tests, nieuw: de 1, regio en
+periode, oude ontwerpen, ronde uit een titel, event óf ronde). De 1 bekeken als
+plaatje en als 3D-extrusie in een losse testpagina. Op productie nagekeken via
+de Supabase-connector: de raceweken heten "ZRL 2026/27 · R1 · W1 — Race of
+Truth" t/m W6, het patroon klopt. **Niet geverifieerd:** de migratie (lokaal
+geen Docker of Supabase-config), het formulier en de bekerpagina met een
+ingelogde sessie.
+
+**Volgorde bij uitrollen.** Eerst `0287` toepassen, dan deployen.
+
 ### Gebouwd — ZWBekers: prijzenkast voor prestaties, door leden voorgedragen en ontworpen
 
 **2026-10-28.** Gepusht naar `main` op 2026-10-28 (eigenaar); de hash staat in
@@ -11556,7 +11618,7 @@ inzoomen op een plank.
   want dat vraagt de check-constraint van `community_role_permissions` (zie
   0254). Beheergebied `/beheer/zwbekers` in de categorie Community.
 - Ontwerp (`lib/zwbekers/design.ts`, puur): vorm (beker, bokaal, schaal,
-  medaille), metaal, oren, silhouet, voet, sokkel, lint (medaille) en een
+  medaille; later de 1, zie de ronde hierboven), metaal, oren, silhouet, voet, sokkel, lint (medaille) en een
   gravure van hooguit 24 tekens, alleen uit vaste lijsten. Uit dezelfde maten
   komen de 3D-beker (`components/zwbekers/trophy.ts`, draaivorm met
   `LatheGeometry`, oren als buis langs een kromme) en het SVG-plaatje

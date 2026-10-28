@@ -6,6 +6,7 @@ import {
   SOKKEL_COLOR,
   SOKKEL_HEIGHT,
   describeDesign,
+  gravureLines,
   handlesPath,
   silhouettePath,
   trophyBounds,
@@ -34,6 +35,7 @@ export function BekerIcon({
   const height = bounds.height + 0.08;
   const sokkelTop = -SOKKEL_HEIGHT;
   const sokkelColor = SOKKEL_COLOR[design.sokkel];
+  const plateHeight = SOKKEL_HEIGHT * (gravureLines(design).length > 1 ? 0.6 : 0.4);
 
   return (
     <svg
@@ -66,12 +68,12 @@ export function BekerIcon({
         stroke={design.sokkel === "marmer" ? "#bdb8ad" : "none"}
         strokeWidth={0.01}
       />
-      {design.gravure && (
+      {gravureLines(design).length > 0 && (
         <rect
           x={-Math.min(bounds.sokkelWidth * 0.84, 1.1) / 2}
-          y={sokkelTop + SOKKEL_HEIGHT * 0.3}
+          y={sokkelTop + (SOKKEL_HEIGHT - plateHeight) / 2}
           width={Math.min(bounds.sokkelWidth * 0.84, 1.1)}
-          height={SOKKEL_HEIGHT * 0.4}
+          height={plateHeight}
           fill="#c9a45a"
         />
       )}

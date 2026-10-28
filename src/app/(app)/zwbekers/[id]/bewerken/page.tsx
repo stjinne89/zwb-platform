@@ -45,6 +45,7 @@ export default async function BewerkenPage({ params }: { params: Promise<{ id: s
           winners: beker.winners.map((winner) => winner.id),
           teamId: beker.teamId,
           eventId: beker.event?.id ?? null,
+          zrlRound: beker.zrlRound,
           resultUrl: beker.resultUrl,
           design: beker.design,
           photoUrl: beker.photoUrl,

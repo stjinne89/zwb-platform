@@ -9,9 +9,12 @@ import {
   LINT_COLOR,
   MEDAL,
   METAL_COLOR,
+  ONE_DEPTH,
+  ONE_OUTLINE,
   SOKKEL_COLOR,
   SOKKEL_HEIGHT,
   bodyProfile,
+  gravureLines,
   handleCurves,
   trophyBounds,
   type BekerDesign,
@@ -156,11 +159,11 @@ function sokkelMaterial(design: BekerDesign) {
   });
 }
 
-/** Het gegraveerde plaatje op de voorkant van de sokkel: donkere letters op messing. */
-function gravurePlate(text: string, width: number, serif: string) {
+/** Het gegraveerde plaatje op de voorkant van de sokkel: donkere letters op messing, één of twee regels. */
+function gravurePlate(lines: string[], width: number, serif: string) {
   const canvas = document.createElement("canvas");
   canvas.width = 1024;
-  canvas.height = 192;
+  canvas.height = lines.length > 1 ? 256 : 192;
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;
@@ -175,18 +178,22 @@ function gravurePlate(text: string, width: number, serif: string) {
     context.strokeStyle = "rgba(70,48,14,.55)";
     context.lineWidth = 6;
     context.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
-    let size = 110;
+    let size = lines.length > 1 ? 92 : 110;
     context.textAlign = "center";
     context.textBaseline = "middle";
     for (; size > 40; size -= 6) {
       context.font = `500 ${size}px ${serif}`;
-      if (context.measureText(text).width < canvas.width * 0.86) break;
+      if (Math.max(...lines.map((line) => context.measureText(line).width)) < canvas.width * 0.86) break;
     }
-    // Gegraveerd: een lichte rand onder de donkere letters.
-    context.fillStyle = "rgba(255,240,200,.45)";
-    context.fillText(text, canvas.width / 2, canvas.height / 2 + 3);
-    context.fillStyle = "#3d2a0c";
-    context.fillText(text, canvas.width / 2, canvas.height / 2);
+    const step = canvas.height / (lines.length + 1);
+    lines.forEach((line, index) => {
+      const y = lines.length > 1 ? step * (index + 1) + (index === 0 ? 8 : -8) : canvas.height / 2;
+      // Gegraveerd: een lichte rand onder de donkere letters.
+      context.fillStyle = "rgba(255,240,200,.45)";
+      context.fillText(line, canvas.width / 2, y + 3);
+      context.fillStyle = "#3d2a0c";
+      context.fillText(line, canvas.width / 2, y);
+    });
     texture.needsUpdate = true;
   };
   draw();
@@ -217,19 +224,34 @@ export function buildTrophy(
   const metal = metalMaterial(design, options.envMap);
   const withMetal = (geometry: THREE.BufferGeometry) => new THREE.Mesh(geometry, metal);
 
-  // De sokkel: een blok, vierkant bij een beker, ondiep bij een medaille.
-  const depth = design.vorm === "medaille" ? 0.5 : bounds.sokkelWidth * 0.82;
+  // De sokkel: een blok, vierkant bij een beker, ondiep bij een medaille of de 1.
+  const depth = design.vorm === "medaille" || design.vorm === "een" ? 0.5 : bounds.sokkelWidth * 0.82;
   const sokkel = new THREE.Mesh(new THREE.BoxGeometry(bounds.sokkelWidth, SOKKEL_HEIGHT, depth), sokkelMaterial(design));
   sokkel.position.y = SOKKEL_HEIGHT / 2;
   group.add(sokkel);
-  if (design.gravure) {
-    const plate = gravurePlate(design.gravure, Math.min(bounds.sokkelWidth * 0.84, 1.1), serif);
+  const lines = gravureLines(design);
+  if (lines.length > 0) {
+    const plate = gravurePlate(lines, Math.min(bounds.sokkelWidth * 0.84, 1.1), serif);
     plate.position.set(0, SOKKEL_HEIGHT / 2, depth / 2 + 0.003);
     group.add(plate);
   }
 
   if (design.vorm === "medaille") {
     buildMedal(design, spinner, withMetal, segments);
+  } else if (design.vorm === "een") {
+    // De 1: de omtrek uitgezaagd en dik gemaakt, met een afgeronde rand voor de glans.
+    const shape = new THREE.Shape(ONE_OUTLINE.map(([x, y]) => new THREE.Vector2(x, y)));
+    const bevel = 0.018;
+    const geometry = new THREE.ExtrudeGeometry(shape, {
+      depth: ONE_DEPTH - bevel * 2,
+      bevelEnabled: true,
+      bevelThickness: bevel,
+      bevelSize: bevel,
+      bevelSegments: options.lowQuality ? 2 : 4,
+    });
+    // Midden op de sokkel, en met de afgeronde rand niet door de sokkel heen.
+    geometry.translate(0, bevel, -(ONE_DEPTH - bevel * 2) / 2);
+    spinner.add(withMetal(geometry));
   } else {
     const profile = bodyProfile(design)!;
     const body = withMetal(new THREE.LatheGeometry(profile.lathe.map(([x, y]) => new THREE.Vector2(x, y)), segments));
