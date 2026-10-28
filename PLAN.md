@@ -11524,8 +11524,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBekers: de kampioensriem van de clubladder
 
-**2026-10-28.** Lokaal gecommit, niet gepusht; de hash staat in `git log` bij
-deze ronde. Geen migratie.
+**2026-10-28.** Commit `db7e2bb7`, gepusht naar `main` op 2026-10-28
+(eigenaar). Geen migratie.
 
 **Waarom.** Wens van de eigenaar: in de clubladder kon je een tijd een belt
 verdienen per klasse van ZwiftRacing.app (Diamant, Robijn, …); daarvoor een riem
