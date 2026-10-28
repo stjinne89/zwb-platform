@@ -8,6 +8,12 @@
         "value": "arial",
         "createdAt": "2026-10-28T09:59:38.092Z",
         "reason": "ZWBgame (game.module.css) sets Arial; owner asked /verhaal to follow the game's design (2026-10-28)"
+      },
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "createdAt": "2026-10-28T10:14:40.696Z",
+        "reason": "ZWBgame (game.module.css) sets Arial; owner asked /verhaal to follow the game's design (2026-10-28)"
       }
     ]
   }
