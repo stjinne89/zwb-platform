@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-10-27)
+## Actieve volgorde (bijgewerkt 2026-10-28)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -208,7 +208,8 @@ gaat stabiliteit voor nieuwe features.
      het toetsenbord sluiten en kijken of de tabbalk onderaan blijft (ronde
      2026-10-16, "Tabbalk blijft hangen na het toetsenbord"). *Bijgewerkt
      2026-10-26:* leden zagen het daarna nog; zie de derde ronde "Tabbalk op de
-     iPhone: sprong herhalen en balk zelf omlaag".
+     iPhone: sprong herhalen en balk zelf omlaag". *Bijgewerkt 2026-10-28:* die
+     derde ronde is teruggedraaid, zie "Teruggedraaid — Tabbalk op de iPhone".
    - **Fietsen op het ledenprofiel:** `0243_member_profile_bikes.sql` is op
      2026-10-16 toegepast via de Supabase-connector, op verzoek van de eigenaar,
      en daarna gepusht. Nog doen: als ander lid in de app een profiel met
@@ -399,10 +400,12 @@ gaat stabiliteit voor nieuwe features.
    goedgekeurd (eigenaar). Open: na de deploy op een briefing van een puntenrace
    kijken of de PR's binnenkomen, en of `/segment-results` geen 429 geeft.
 
-19. **Tabbalk op de iPhone, derde ronde** (ronde van 2026-10-26 hieronder):
-   gebouwd, lokaal getest en op 2026-10-26 gepusht naar `main`. Geen migratie. Open: op een
-   iPhone in de beginscherm-app iets typen, het toetsenbord sluiten en scrollen;
-   leden die de balk midden in beeld zagen vragen of het nog gebeurt.
+19. **Tabbalk op de iPhone, derde ronde teruggedraaid** (ronde van 2026-10-28
+   hieronder): de balk verdween bij het scrollen, dus de code staat weer op de
+   ronde van 2026-10-16. Lokaal gecommit, nog niet gepusht. Geen migratie. Open:
+   na het pushen op een iPhone in de beginscherm-app scrollen (blijft de balk
+   staan?), en daarna iets typen en het toetsenbord sluiten; het oude probleem
+   (balk midden in beeld) kan terugkomen.
 
 20. **ZWBriljant: records van de minuut en 5 minuten, profs als houvast** (ronde van
    2026-10-27 hieronder): gebouwd, lokaal getest en op 2026-10-27 gepusht naar `main`. Geen migratie.
@@ -11511,6 +11514,43 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Teruggedraaid — Tabbalk op de iPhone: geen controle bij het scrollen, balk schuift niet meer
+
+**2026-10-28.** Lokaal gecommit, nog niet gepusht. Geen migratie.
+
+**Aanleiding.** De eigenaar meldde dat op de iPhone de vier blokken onderin
+(Vandaag, Kalender, …) verdwijnen zodra je scrollt.
+
+**Waarom.** De ronde van 2026-10-26 (`0a15d62c`) liet de controle ook na elke
+scroll lopen, en schoof de tabbalk bij een "hangend" beeld met `translateY` het
+tekort omlaag. Vóór die ronde liep de controle alleen na het toetsenbord, een
+resize of het terugkeren naar de app, en schoof er niets. Kennelijk ziet de
+controle in de beginscherm-app een te klein beeld terwijl er niets hangt
+(`innerHeight` onder de grootst gemeten hoogte, of een `visualViewport.offsetTop`
+boven 4 px). Dan schoof de balk onder de onderrand, precies bij de eerste
+scroll. Welke van de twee het is, is niet gemeten: het gebeurt alleen op een
+echte iPhone.
+
+**Wat er veranderde.** `src/components/ios-viewport-herstel.tsx` staat weer op
+de versie van 2026-10-16 (alleen de sprong, na `focusout`, resize en terugkeer;
+één per seconde). Weg: de controle na het scrollen, het schuiven van de balk
+(`--ios-viewport-fout` en de regel in `globals.css`), de onzichtbare laag, het
+uitstellen en herhalen van de sprong, en `src/lib/ios-viewport.ts` met de
+unit-tests.
+
+**Bewust niet gedaan.**
+- Niet alleen de scrollcontrole eruit gehaald: een vals alarm na het
+  toetsenbord had de balk dan nog steeds uit beeld geschoven. De eigenaar vroeg
+  om terugdraaien.
+- Geen nieuwe poging voor het oude probleem (balk midden in beeld na het
+  toetsenbord). Dat kan nu weer af en toe gebeuren. Een volgende poging moet
+  eerst op een echte iPhone meten wat `innerHeight` en `visualViewport` geven
+  vóór er iets schuift.
+
+**Niet geverifieerd.** Niet op een iPhone. In deze worktree staan geen
+`node_modules`, dus geen lint, typecheck of build gedraaid; de teruggezette file
+is letterlijk de versie die van 2026-10-16 tot 2026-10-26 op `main` stond.
+
 ### Gebouwd — Club Ladder: leden zonder interesse in de ladderlijst zetten
 
 **2026-10-27.** Commit `067eff2d`, gepusht naar `main` op 2026-10-27. Migratie
@@ -12186,7 +12226,10 @@ de sync tegen productie met de echte `LADDER_COOKIE`, en of die cookie nog geldi
 ### Gebouwd — Tabbalk op de iPhone: sprong herhalen en balk zelf omlaag
 
 **2026-10-26.** Commit `0a15d62c`, gepusht naar `main` op 2026-10-26
-(eigenaar). Geen migratie.
+(eigenaar). Geen migratie. **Teruggedraaid op 2026-10-28**: de balk verdween
+daarna bij het scrollen. Wat hieronder staat, is geen code meer; zie de ronde
+"Teruggedraaid — Tabbalk op de iPhone". De zin "dat geeft geen vals alarm" klopte
+niet.
 
 **Aanleiding.** Na de ronde van 2026-10-16 zagen leden de tabbalk nog steeds
 "af en toe" midden in beeld, nu op een eventpagina. Op de screenshot staat de
