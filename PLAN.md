@@ -11524,8 +11524,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBekers: een beker kopiëren als nieuwe voordracht
 
-**2026-10-28.** Lokaal gecommit, niet gepusht; de hash staat in `git log` bij
-deze ronde. Geen migratie.
+**2026-10-28.** Commit `0567b7c4`, gepusht naar `main` op 2026-10-28
+(eigenaar). Geen migratie.
 
 **Waarom.** Wens van de eigenaar: "een beker kopiëren en bewerken". Handig voor
 een beker die terugkomt, zoals de 1 voor nummer 1 in de ladder in een volgende
