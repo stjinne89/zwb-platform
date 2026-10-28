@@ -11522,6 +11522,25 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBekers: onbeperkt voordragen
+
+**2026-10-28.** Lokaal gecommit, niet gepusht; de hash staat in `git log` bij
+deze ronde. Geen migratie.
+
+**Waarom.** Wens van de eigenaar: "maak het aantal voordrachten ongelimiteerd".
+Met Kopiëren draagt het bestuur makkelijk een reeks bekers in één keer voor
+(bijvoorbeeld alle nummers 1 van een periode), en dan zat 5 per dag in de weg.
+
+**Wat.** De limiet van 5 voordrachten per lid per dag (`NOMINATIONS_PER_DAY`,
+`rateLimitHit` in `submitNomination`) is weg. Het bestuur keurt nog steeds elke
+voordracht.
+
+**Bewust niet.** De limieten op felicitaties (20 per uur) en foto-uploads (20
+per uur) blijven: daar gaat het om spam en opslag, niet om het aantal bekers.
+
+**Gecontroleerd.** `tsc` zonder nieuwe fouten, ESLint, Vitest
+`zwbekers.test.ts` groen.
+
 ### Gebouwd — ZWBekers: een beker kopiëren als nieuwe voordracht
 
 **2026-10-28.** Commit `0567b7c4`, gepusht naar `main` op 2026-10-28
@@ -11543,7 +11562,7 @@ of een voordracht die je zelf deed of mag keuren.
   die ene prestatie. De datum begint op vandaag.
 - Geen kopie van felicitaties of van de beoordeling.
 - Geen serverwijziging: een kopie gaat door dezelfde controles en dezelfde
-  limiet (5 voordrachten per dag) als elke voordracht.
+  limiet als elke voordracht (sinds de ronde hierboven geen limiet meer).
 
 **Gecontroleerd.** `tsc` zonder nieuwe fouten, ESLint op `src/app/(app)/zwbekers`.
 **Niet geverifieerd:** de knop en het ingevulde formulier met een ingelogde
@@ -11688,7 +11707,8 @@ inzoomen op een plank.
 - Voordragen en aanpassen (`/zwbekers/voordragen`, `/zwbekers/[id]/bewerken`)
   met een live 3D-voorbeeld dat bij elke keuze meeverandert
   (`trophy-scene.tsx`, wisselt alleen de beker). Teruggestuurd kan opnieuw.
-  Hooguit 5 voordrachten per lid per dag, 20 felicitaties per uur.
+  Hooguit 20 felicitaties per uur. (Voordrachten waren eerst hooguit 5 per lid
+  per dag; die limiet is weg, zie de ronde "Onbeperkt voordragen".)
 - De beker (`/zwbekers/[id]`): de beker in de loods, winnaars, team, verhaal,
   foto, event en uitslag, wie voordroeg, keuren (voor wie keurt) en
   felicitaties. `/zwbekers/voordrachten` toont je open en teruggestuurde

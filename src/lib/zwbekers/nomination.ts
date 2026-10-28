@@ -15,8 +15,6 @@ export const NOTE_MAX = 500;
 export const CONGRATS_MAX = 500;
 /** Een ploeg is minstens twee renners; meer dan dit is geen ploeg meer maar de club. */
 export const TEAM_MAX = 30;
-/** Zoveel voordrachten per lid per dag; genoeg voor een goede week, te weinig om te spammen. */
-export const NOMINATIONS_PER_DAY = 5;
 /** Zoveel felicitaties per lid per uur, over alle bekers samen. */
 export const CONGRATS_PER_HOUR = 20;
 /** Verder terug dan dit hoort een prestatie in het clubarchief, niet hier. */

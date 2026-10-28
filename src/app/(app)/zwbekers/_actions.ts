@@ -10,7 +10,6 @@ import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import {
   CONGRATS_MAX,
   CONGRATS_PER_HOUR,
-  NOMINATIONS_PER_DAY,
   NOTE_MAX,
   NominationError,
   cleanText,
@@ -71,8 +70,6 @@ export async function submitNomination(input: unknown): Promise<Reply<{ id: stri
   return run(async () => {
     const { member } = await requireBekerMember();
     const nomination = parseNomination(input, amsterdamDayKey());
-    const budget = await rateLimitHit("zwbekers-nomination", member.id, NOMINATIONS_PER_DAY, 86_400);
-    if (!budget.allowed) throw new NominationError(`Je kunt ${NOMINATIONS_PER_DAY} voordrachten per dag doen.`);
     const admin = createAdminClient();
     const bekerId = await createNomination(admin, member.id, nomination);
     await notify(async () => {
