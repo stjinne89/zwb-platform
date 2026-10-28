@@ -25,6 +25,8 @@ export default async function VerhaalPage() {
       beker: story.beker,
       photo: first?.url ? { url: first.url, caption: first.caption } : null,
       photoCount: story.photos.length,
+      scene: story.scenes[0],
+      sceneCount: story.scenes.length,
     };
   });
   return <StoryExperience stories={cards} />;

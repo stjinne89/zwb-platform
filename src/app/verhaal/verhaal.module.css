@@ -67,25 +67,20 @@ a.card:hover{border-color:#d2a95f80;transform:translateY(-2px)}
 .outro h2{font-size:clamp(34px,4.6vw,60px);line-height:1;letter-spacing:-2px;font-weight:800;margin:16px 0 26px}
 .actions{display:flex;flex-wrap:wrap;gap:10px}
 
-/* Detail page */
-.hero{position:relative;height:max(460px,74svh);overflow:hidden;background:#165e72}
-.heroShade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(0deg,#08232a 0%,#08232ae0 18%,#08232a00 55%),linear-gradient(90deg,#08232acc 0%,#08232a00 55%)}
-.heroText{position:absolute;left:40px;right:40px;bottom:44px;max-width:46rem}
-.heroText h1{font-size:clamp(36px,5.4vw,72px);line-height:1;letter-spacing:-2.4px;font-weight:800;margin:14px 0 14px;text-wrap:balance}
-.byline{font-size:14px;color:var(--soft)}
-.back{display:inline-flex;align-items:center;gap:6px;min-height:44px;font-size:13px;color:#d5dfe2;margin-bottom:6px}
+/* Detail page: the story's own chapters over its scenes */
+.storyTitle{font-size:clamp(38px,5.6vw,76px)!important;letter-spacing:-2.4px!important;text-wrap:balance}
+.back{display:inline-flex;align-items:center;gap:6px;min-height:44px;font-size:13px;color:#d5dfe2;margin-bottom:14px;width:fit-content}
 .back:hover{color:var(--gold)}
-.article{padding:28px 40px 40px;max-width:72rem}
-.text{max-width:42rem}
-.text p{font-size:18px;line-height:1.75;color:var(--soft);margin:0 0 22px}
-.text p:first-child{font-size:21px;line-height:1.6;color:#eef2f4}
-.figure{margin:34px 0 38px}
-.figure img{display:block;width:100%;max-height:78svh;object-fit:cover;border-radius:12px;border:1px solid var(--line);background:#0f3f4c}
-.figure figcaption{margin-top:10px;font-size:13px;color:var(--muted)}
-.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:34px 0}
-.gallery .figure{margin:0}
+.scene{min-height:100svh;display:flex;flex-direction:column;justify-content:center;gap:28px;padding:80px 40px}
+.scenePanel{max-width:34rem;border-radius:14px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(10px);padding:24px 26px}
+.scenePanel .chapterIndex{margin-bottom:14px}
+.scenePanel p{font-size:18px;line-height:1.7;color:var(--soft);margin:0}
+.scenePanel p+p{margin-top:16px}
+.figure{margin:0;max-width:44rem}
+.figure img{display:block;width:100%;max-height:70svh;object-fit:cover;border-radius:12px;border:1px solid var(--line);background:#0f3f4c}
+.figure figcaption{margin-top:10px;font-size:13px;color:#d5dfe2;text-shadow:0 1px 6px #08232a}
+.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:0 0 28px;max-width:56rem}
 .gallery .figure img{aspect-ratio:4/3}
-.footerLinks{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:40px;padding-top:24px;border-top:1px solid #ffffff14}
 
 @media(max-width:760px){
   .bar{padding:10px 16px}
@@ -101,10 +96,9 @@ a.card:hover{border-color:#d2a95f80;transform:translateY(-2px)}
   .stories{max-width:none}
   .rail{display:none}
   .outro{padding:80px 16px 96px}
-  .heroText{left:16px;right:16px;bottom:28px}
-  .article{padding:20px 16px 32px}
-  .text p{font-size:16px}
-  .text p:first-child{font-size:18px}
+  .scene{padding:72px 16px;justify-content:flex-end}
+  .scenePanel{padding:18px 18px}
+  .scenePanel p{font-size:16px}
   .gallery{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){.scrollCue svg{animation:none}.card,.rail a span{transition:none}}

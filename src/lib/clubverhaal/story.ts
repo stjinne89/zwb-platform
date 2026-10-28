@@ -2,7 +2,8 @@
 // server-acties gebruiken dit; de tests ook.
 
 import { z } from "zod";
-import { CHAPTER_IDS, type ChapterId } from "./chapters";
+import type { ChapterId } from "./chapters";
+import { SceneError, parseScenes, scenesBody, type Scene } from "./scenes";
 
 export const TITLE_MIN = 3;
 export const TITLE_MAX = 80;
@@ -39,9 +40,12 @@ const paragraphs = (text: string) =>
     .trim();
 
 export type StoryInput = {
+  /** De periode op /verhaal: het shirt van het eerste hoofdstuk. */
   chapter: ChapterId;
   title: string;
+  /** Alle hoofdstukteksten samen (club_stories.body). */
   body: string;
+  scenes: Scene[];
   happenedYear: number | null;
   bekerId: string | null;
   /** Bestaande foto's in de gewenste volgorde, met hun onderschrift. */
@@ -58,9 +62,8 @@ export class StoryError extends Error {}
 export function parseStory(input: unknown, year: number): StoryInput {
   const raw = z
     .object({
-      chapter: z.enum(CHAPTER_IDS),
       title: z.string().max(400),
-      body: z.string().max(20000),
+      scenes: z.unknown(),
       happenedYear: z.number().int().nullish(),
       bekerId: uuid.nullish(),
       photos: z.array(z.object({ id: uuid, caption: z.string().max(1000).nullish() })).max(PHOTOS_MAX).default([]),
@@ -71,7 +74,14 @@ export function parseStory(input: unknown, year: number): StoryInput {
   if (title.length < TITLE_MIN) throw new StoryError("Geef het verhaal een titel.");
   if (title.length > TITLE_MAX) throw new StoryError(`De titel is hooguit ${TITLE_MAX} tekens.`);
 
-  const body = paragraphs(raw.body);
+  let scenes: Scene[];
+  try {
+    scenes = parseScenes(raw.scenes);
+  } catch (error) {
+    if (error instanceof SceneError) throw new StoryError(error.message);
+    throw error;
+  }
+  const body = scenesBody(scenes);
   if (body.length < BODY_MIN) throw new StoryError("Vertel iets meer.");
   if (body.length > BODY_MAX) throw new StoryError(`Het verhaal is hooguit ${BODY_MAX} tekens.`);
 
@@ -84,9 +94,10 @@ export function parseStory(input: unknown, year: number): StoryInput {
   if (new Set(ids).size !== ids.length) throw new StoryError("Een foto staat er twee keer in.");
 
   return {
-    chapter: raw.chapter,
+    chapter: scenes[0].kit,
     title,
     body,
+    scenes,
     happenedYear,
     bekerId: raw.bekerId ?? null,
     photos: raw.photos.map((photo) => ({ id: photo.id, caption: cleanCaption(photo.caption ?? null) })),

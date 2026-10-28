@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { privacyConsentIsCurrent } from "@/lib/privacy";
 import { isChapterId, type ChapterId } from "./chapters";
+import { readScenes, type Scene } from "./scenes";
 import {
   PHOTOS_MAX,
   StoryError,
@@ -41,6 +42,8 @@ export type StorySummary = {
 
 export type StoryDetail = StorySummary & {
   body: string;
+  /** De hoofdstukken van het verhaal, met hun scène (0289). */
+  scenes: Scene[];
   authorId: string | null;
   author: string;
   beker: { id: string; title: string } | null;
@@ -48,13 +51,14 @@ export type StoryDetail = StorySummary & {
 };
 
 const COLUMNS =
-  "id, chapter, title, body, happened_year, status, review_note, created_at, profile_id, author:profiles!club_stories_profile_id_fkey(display_name), beker:zwbekers(id, title, status), photos:club_story_photos(id, path, caption, position)";
+  "id, chapter, title, body, scenes, happened_year, status, review_note, created_at, profile_id, author:profiles!club_stories_profile_id_fkey(display_name), beker:zwbekers(id, title, status), photos:club_story_photos(id, path, caption, position)";
 
 type Row = {
   id: string;
   chapter: string;
   title: string;
   body: string;
+  scenes: unknown;
   happened_year: number | null;
   status: StoryStatus;
   review_note: string | null;
@@ -95,6 +99,7 @@ async function details(rows: Row[], photoLimit = PHOTOS_MAX): Promise<StoryDetai
   return sorted.map(({ row, photos }) => ({
     ...summary(row),
     body: row.body,
+    scenes: readScenes(row.scenes, { chapter: summary(row).chapter, body: row.body }),
     authorId: row.profile_id,
     author: row.author?.display_name?.trim() || "Een lid",
     // Alleen een toegekende beker; een voordracht is geheim (0286).
@@ -251,6 +256,7 @@ function columns(input: StoryInput) {
     chapter: input.chapter,
     title: input.title,
     body: input.body,
+    scenes: input.scenes,
     happened_year: input.happenedYear,
     beker_id: input.bekerId,
   };

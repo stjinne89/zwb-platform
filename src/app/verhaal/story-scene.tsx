@@ -2,30 +2,72 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { CHAPTERS, type ChapterId, type ChapterKit } from "@/lib/clubverhaal/chapters";
-import { clubJersey, createPeloton, skinTone, type JerseyPainter } from "@/app/(app)/zwbgame/rider-model";
+import { CHAPTERS, type ChapterKit } from "@/lib/clubverhaal/chapters";
+import { RIDERS_MAX, type Light, type Pose, type SceneSpec } from "@/lib/clubverhaal/scenes";
+import { clubJersey, createPeloton, skinTone, type JerseyPainter, type Mood } from "@/app/(app)/zwbgame/rider-model";
 import { createForest, createRidges, groundGeometry, smoothstep } from "@/app/(app)/zwbgame/scenery";
 
 /**
  * The club story's backdrop: the ZWBgame's riders and landscape, without a race.
- * Per chapter a small group in that era's kit rides an endless country road; the
- * group grows with the club. The scene is built once; switching chapters swaps
- * the group (new riders roll in from behind) and eases the camera to that
- * chapter's angle.
+ * A scene is a few fixed choices (SceneSpec): the kit of an era, what the main
+ * rider (rider 0) does, how many ride along, and the light. The 3D world is
+ * built once; a new spec swaps the group (new riders roll in from behind),
+ * moves to the stretch of road that suits the pose (flat, the finish arch, the
+ * climb, the descent) and eases the camera and the light.
  *
  * frame "story": the text sits on the left on a wide screen, so the picture
  * shifts right; on a phone the text sits at the bottom, so it shifts up.
- * frame "hero": the same, a little less.
+ * frame "hero": the same, a little less. frame "preview": centred.
  */
-type Props = { chapter: ChapterId; frame?: "story" | "hero" };
+type Props = { spec: SceneSpec; frame?: "story" | "hero" | "preview" };
 
 const bend = (d: number) => Math.sin(d / 450) * 35 + Math.sin(d / 180) * 7;
-const height = (d: number) => Math.sin(d / 520) * 9 + Math.sin(d / 160) * 2.2;
-const LENGTH = 5200;
-const START = 300;
-const SPEED = 9.5;
-const SUN = new THREE.Vector3(0.55, 0.72, -0.42).normalize();
-const HORIZON = "#cde2e6";
+// Flat country, then a climb of 110 m (up to 10%), a plateau and the descent back.
+const climb = (d: number) => 110 * smoothstep(1900, 3500, d) - 110 * smoothstep(3800, 5400, d);
+const height = (d: number) => Math.sin(d / 520) * 4 + Math.sin(d / 160) * 1.2 + climb(d);
+const LENGTH = 6000;
+/** The finish arch for cheering and sprinting. */
+const ARCH = 1320;
+
+/** Per pose: the stretch the leader loops over (metres) and the speed (m/s). */
+const STRETCH: Record<Pose, { from: number; to: number; speed: number }> = {
+  rijden: { from: 300, to: 1500, speed: 9.5 },
+  afzien: { from: 300, to: 1500, speed: 8 },
+  juichen: { from: ARCH - 170, to: ARCH + 75, speed: 10 },
+  sprinten: { from: ARCH - 190, to: ARCH + 70, speed: 15 },
+  klimmen: { from: 2500, to: 2950, speed: 5 },
+  afdalen: { from: 4300, to: 5000, speed: 17 },
+};
+
+/** Camera in the road's frame: right, up, back (negative is in front), fov; and what it follows. */
+type View = { at: [number, number, number, number]; follow: "leader" | "group" };
+function viewFor(spec: SceneSpec): View {
+  switch (spec.pose) {
+    case "juichen": return { at: [2.2, 1.5, -7.5, 38], follow: "leader" };
+    case "sprinten": return { at: [2.2, 1.1, -8, 44], follow: "leader" };
+    // From behind the one who is dropped, with the group riding away up the road.
+    case "afzien": return { at: [3.6, 2.1, 6.5, 42], follow: "leader" };
+    case "klimmen": return { at: [6.5, 2.2, 3.5, 40], follow: "leader" };
+    case "afdalen": return { at: [3.2, 1.4, -9, 48], follow: "group" };
+    default:
+      // Riding: in profile alone, from behind as a pair, higher for a group, in front of a bunch.
+      if (spec.riders === 1) return { at: [8.4, 1.9, -1, 36], follow: "group" };
+      if (spec.riders === 2) return { at: [4.2, 2.6, 7.2, 40], follow: "group" };
+      if (spec.riders <= 4) return { at: [6.2, 4.4, 10.5, 42], follow: "group" };
+      return { at: [7.6, 3.4, -10, 44], follow: "group" };
+  }
+}
+
+type LightLook = { zenith: string; horizon: string; glow: string; sun: [number, number, number]; sunColor: string; sunPower: number; sky: string; ground: string; hemi: number; near: number; far: number };
+const LIGHTS: Record<Light, LightLook> = {
+  // Late-morning sun from the right and a little ahead, as in the game.
+  zon: { zenith: "#4f93c6", horizon: "#cde2e6", glow: "#fff3d6", sun: [0.55, 0.72, -0.42], sunColor: "#fff0d8", sunPower: 3.1, sky: "#dcefff", ground: "#5f6e3c", hemi: 1.5, near: 70, far: 380 },
+  // Low sun ahead and to the left: long shadows towards the camera.
+  avond: { zenith: "#3d5a8a", horizon: "#f2c9a0", glow: "#ffb26b", sun: [-0.5, 0.2, -0.85], sunColor: "#ffb070", sunPower: 2.8, sky: "#ffd9b8", ground: "#5a5340", hemi: 1.45, near: 60, far: 330 },
+  // Overcast: flat light, faint shadows, the distance in haze.
+  grijs: { zenith: "#8d9aa3", horizon: "#c3cacd", glow: "#000000", sun: [0.3, 0.9, -0.2], sunColor: "#e8eef0", sunPower: 0.9, sky: "#e1e7ea", ground: "#5d6650", hemi: 2.1, near: 35, far: 240 },
+};
+
 const SHADOW_REACH = 30;
 const SKY_VERTEX = "varying vec3 vDir; void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }";
 const SKY_FRAGMENT = `
@@ -43,18 +85,6 @@ void main() {
 
 /** Where each rider rides in the group: metres right of and behind the leader. */
 const SLOTS: [number, number][] = [[0, 0], [-0.85, 2.1], [0.85, 2.25], [0, 4.3], [-0.85, 6.4], [0.85, 6.55], [0, 8.6]];
-
-/** Camera per chapter in the road's frame: right, up, back (negative is in front), fov. */
-const VIEWS: Record<ChapterId, [number, number, number, number]> = {
-  // One rider in profile, close by.
-  basis: [8.4, 1.9, -1, 36],
-  // From behind and to the side, so the Z on the back reads.
-  anders: [4.2, 2.6, 7.2, 40],
-  // Higher, so the group reads as a group.
-  team: [6.2, 4.4, 10.5, 42],
-  // In front of the whole bunch, looking back at it.
-  nu: [7.6, 3.4, -10, 44],
-};
 
 const sideStrips = (paint: CanvasRenderingContext2D, color: string) => {
   paint.fillStyle = color; paint.fillRect(14, 64, 4, 54); paint.fillRect(46, 64, 4, 54);
@@ -87,11 +117,14 @@ const JERSEYS: Record<ChapterKit["back"], JerseyPainter> = {
   club: clubJersey,
 };
 
-export default function StoryScene({ chapter, frame = "story" }: Props) {
+/** Per rider, eased between frames. */
+type Motion = { crank: number; tuck: number; stand: number; cheer: number; slump: number };
+
+export default function StoryScene({ spec, frame = "story" }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const latest = useRef(chapter);
+  const latest = useRef(spec);
   const [failed, setFailed] = useState(false);
-  useEffect(() => { latest.current = chapter; }, [chapter]);
+  useEffect(() => { latest.current = spec; }, [spec]);
   useEffect(() => {
     const element = host.current;
     if (!element) return;
@@ -101,9 +134,12 @@ export default function StoryScene({ chapter, frame = "story" }: Props) {
     let renderer: THREE.WebGLRenderer;
     try { renderer = new THREE.WebGLRenderer({ antialias: !lowQuality, alpha: false, powerPreference: "low-power" }); }
     catch { queueMicrotask(() => setFailed(true)); return; }
+    const look0 = LIGHTS[latest.current.light];
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(HORIZON);
-    scene.fog = new THREE.Fog(HORIZON, 70, 380);
+    const horizon = new THREE.Color(look0.horizon);
+    scene.background = horizon;
+    const fog = new THREE.Fog(horizon, look0.near, look0.far);
+    scene.fog = fog;
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 600);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, lowQuality ? 1.25 : 1.75));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -117,8 +153,9 @@ export default function StoryScene({ chapter, frame = "story" }: Props) {
     element.appendChild(renderer.domElement);
     const materials: THREE.Material[] = [];
     const geometries: THREE.BufferGeometry[] = [];
-    scene.add(new THREE.HemisphereLight(0xdcefff, 0x5f6e3c, 1.5));
-    const sunlight = new THREE.DirectionalLight(0xfff0d8, 3.1);
+    const hemisphere = new THREE.HemisphereLight(look0.sky, look0.ground, look0.hemi);
+    scene.add(hemisphere);
+    const sunlight = new THREE.DirectionalLight(look0.sunColor, look0.sunPower);
     sunlight.castShadow = !lowQuality;
     sunlight.shadow.mapSize.set(2048, 2048);
     sunlight.shadow.camera.left = sunlight.shadow.camera.bottom = -SHADOW_REACH;
@@ -128,9 +165,10 @@ export default function StoryScene({ chapter, frame = "story" }: Props) {
     scene.add(sunlight, sunlight.target);
     const material = (color: string) => { const m = new THREE.MeshStandardMaterial({ color, roughness: 0.9, flatShading: true }); materials.push(m); return m; };
     const geometry = <T extends THREE.BufferGeometry>(g: T) => { geometries.push(g); return g; };
+    const sun = new THREE.Vector3(...look0.sun).normalize();
+    const skyUniforms = { zenith: { value: new THREE.Color(look0.zenith) }, horizon: { value: horizon }, glow: { value: new THREE.Color(look0.glow) }, sun: { value: sun } };
     const sky = new THREE.Mesh(geometry(new THREE.SphereGeometry(450, 32, 16)), new THREE.ShaderMaterial({
-      uniforms: { zenith: { value: new THREE.Color("#4f93c6") }, horizon: { value: new THREE.Color(HORIZON) }, glow: { value: new THREE.Color("#fff3d6") }, sun: { value: SUN } },
-      vertexShader: SKY_VERTEX, fragmentShader: SKY_FRAGMENT, side: THREE.BackSide, depthWrite: false, toneMapped: false,
+      uniforms: skyUniforms, vertexShader: SKY_VERTEX, fragmentShader: SKY_FRAGMENT, side: THREE.BackSide, depthWrite: false, toneMapped: false,
     }));
     materials.push(sky.material); sky.renderOrder = -1; sky.frustumCulled = false; scene.add(sky);
     const worldY = (d: number) => height(Math.max(0, d));
@@ -157,28 +195,39 @@ export default function StoryScene({ chapter, frame = "story" }: Props) {
       ribbon(side * 3.6, side * 3.47, 0.012, "#e7e5d6");
     }
     const dummy = new THREE.Object3D();
+    const heading = (d: number) => -Math.atan((bend(d + 1) - bend(d - 1)) / 2);
     const dashCount = Math.ceil(LENGTH / 12);
     const dashes = new THREE.InstancedMesh(geometry(new THREE.BoxGeometry(0.1, 0.02, 3)), material("#e7e5d6"), dashCount);
     for (let i = 0; i < dashCount; i++) {
       const d = i * 12;
       dummy.position.set(bend(d), worldY(d) + 0.012, -d);
-      dummy.rotation.set(0, -Math.atan((bend(d + 1) - bend(d - 1)) / 2), 0); dummy.updateMatrix(); dashes.setMatrixAt(i, dummy.matrix);
+      dummy.rotation.set(0, heading(d), 0); dummy.updateMatrix(); dashes.setMatrixAt(i, dummy.matrix);
     }
     dashes.receiveShadow = true; scene.add(dashes);
     const forest = createForest(scene, track, lowQuality);
-    const ridges = createRidges(scene, "clubverhaal", HORIZON);
+    // The ridges fade into the horizon colour, so they are rebuilt with the light.
+    let ridges = createRidges(scene, "clubverhaal", look0.horizon), ridgeLight = latest.current.light;
+    // The finish, as in the game: gold poles, a petrol banner and a chequered line.
+    const arch = new THREE.Group();
+    arch.position.set(bend(ARCH), worldY(ARCH), -ARCH);
+    arch.rotation.y = heading(ARCH);
+    for (const x of [-4.4, 4.4]) { const pole = new THREE.Mesh(geometry(new THREE.BoxGeometry(0.28, 4.6, 0.28)), material("#c9974a")); pole.position.set(x, 2.3, 0); arch.add(pole); }
+    const banner = new THREE.Mesh(geometry(new THREE.BoxGeometry(9.1, 0.9, 0.3)), material("#004653")); banner.position.y = 4.6; arch.add(banner);
+    for (let i = 0; i < 16; i++) { const square = new THREE.Mesh(geometry(new THREE.PlaneGeometry(0.5, 0.8)), material(i % 2 ? "#ffffff" : "#0a2b34")); square.rotation.x = -Math.PI / 2; square.position.set(-3.75 + i * 0.5, 0.03, 0); arch.add(square); }
+    arch.traverse((part) => { part.castShadow = part.receiveShadow = true; });
+    scene.add(arch);
 
-    // One group per chapter, built up front; only the current one is shown.
+    // One group of seven per kit, built up front; only the current kit is shown.
     const groups = CHAPTERS.map((item) => {
-      const peloton = createPeloton(scene, item.riders, JERSEYS[item.kit.back]);
-      for (let i = 0; i < item.riders; i++) {
+      const peloton = createPeloton(scene, RIDERS_MAX, JERSEYS[item.kit.back]);
+      for (let i = 0; i < RIDERS_MAX; i++) {
         peloton.dress(i, { kit: "#ffffff", sleeve: item.kit.sleeve, helmet: item.kit.helmet, skin: skinTone(`${item.id}-${i}`) });
       }
       peloton.finishDressing();
       peloton.setVisible(false);
-      const centre = SLOTS.slice(0, item.riders).reduce((sum, slot) => sum + slot[1], 0) / item.riders;
-      return { id: item.id, count: item.riders, peloton, centre, entry: 0, cranks: Array.from({ length: item.riders }, (_, i) => i * 1.7) };
+      return { kit: item.id, peloton };
     });
+    const motion: Motion[] = Array.from({ length: RIDERS_MAX }, (_, i) => ({ crank: i * 1.7, tuck: 0, stand: 0, cheer: 0, slump: 0 }));
 
     // Soft dark patches under the bikes, as in the game.
     const blobCanvas = document.createElement("canvas");
@@ -192,24 +241,26 @@ export default function StoryScene({ chapter, frame = "story" }: Props) {
     const blobTexture = new THREE.CanvasTexture(blobCanvas);
     const blobMaterial = new THREE.MeshBasicMaterial({ map: blobTexture, transparent: true, opacity: lowQuality ? 0.6 : 0.28, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
     materials.push(blobMaterial);
-    const blobs = new THREE.InstancedMesh(geometry(new THREE.PlaneGeometry(1, 1)), blobMaterial, SLOTS.length);
+    const blobs = new THREE.InstancedMesh(geometry(new THREE.PlaneGeometry(1, 1)), blobMaterial, RIDERS_MAX);
     blobs.instanceMatrix.setUsage(THREE.DynamicDrawUsage); blobs.frustumCulled = false; scene.add(blobs);
     const blobLocal = new THREE.Matrix4().compose(new THREE.Vector3(0, 0.03, 0), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2), new THREE.Vector3(0.9, 2.1, 1));
     const hidden = new THREE.Matrix4().makeScale(0, 0, 0);
 
-    const sunRight = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), SUN).normalize();
-    const sunUp = new THREE.Vector3().crossVectors(SUN, sunRight).normalize();
+    const up = new THREE.Vector3(0, 1, 0), sunRight = new THREE.Vector3(), sunUp = new THREE.Vector3();
     const texel = (SHADOW_REACH * 2) / sunlight.shadow.mapSize.x;
-    const sunTarget = new THREE.Vector3(), snapped = new THREE.Vector3();
+    const sunTarget = new THREE.Vector3(), snapped = new THREE.Vector3(), sunGoal = new THREE.Vector3();
     const parent = new THREE.Object3D(), matrix = new THREE.Matrix4();
     const look = new THREE.Vector3(), roadAhead = new THREE.Vector3(), roadRight = new THREE.Vector3();
     const grade = (d: number) => (worldY(d + 1) - worldY(d - 1)) / 2;
+    const colour = new THREE.Color();
+    const fade = (target: THREE.Color, hex: string, t: number) => target.lerp(colour.set(hex), t);
 
     const frameView = () => {
       const { width, height: tall } = element.getBoundingClientRect();
       const narrow = narrowQuery.matches;
-      const shift = frame === "story" ? (narrow ? 0.17 : 0.2) : (narrow ? 0.12 : 0.14);
-      if (narrow) camera.setViewOffset(width, tall, 0, tall * shift, width, tall);
+      const shift = frame === "story" ? (narrow ? 0.17 : 0.2) : frame === "hero" ? (narrow ? 0.12 : 0.14) : 0;
+      if (!shift) camera.clearViewOffset();
+      else if (narrow) camera.setViewOffset(width, tall, 0, tall * shift, width, tall);
       else camera.setViewOffset(width, tall, -width * shift, 0, width, tall);
       camera.aspect = width / Math.max(1, tall); camera.updateProjectionMatrix();
     };
@@ -221,64 +272,116 @@ export default function StoryScene({ chapter, frame = "story" }: Props) {
     const visibility = new IntersectionObserver(([entry]) => { onScreen = entry.isIntersecting; });
     visibility.observe(element);
 
-    const rig = { right: 0, up: 0, back: 0, fov: 42, centre: 0 };
-    let shown = "", distance = START, lastFrame = 0, frameId = 0, disposed = false, initialized = false;
+    const rig = { right: 0, up: 0, back: 0, fov: 42, focus: 0 };
+    let shown: SceneSpec | null = null, entry = 0, distance = STRETCH.rijden.from, lastFrame = 0, frameId = 0, disposed = false, initialized = false;
+    const mood: Mood = { cheer: 0, slump: 0 };
     const render = (now: number) => {
       if (disposed) return;
       frameId = requestAnimationFrame(render);
       const dt = lastFrame ? Math.min(0.1, (now - lastFrame) / 1000) : 0;
       lastFrame = now;
       if (!onScreen || document.hidden) return;
-      const current = groups.find((group) => group.id === latest.current) ?? groups[0];
-      if (current.id !== shown) {
-        for (const group of groups) group.peloton.setVisible(group === current);
-        // A new group rolls in from behind, unless motion is reduced.
-        current.entry = initialized && !still ? 1 : 0;
-        shown = current.id;
+      const spec = latest.current;
+      const stretch = STRETCH[spec.pose];
+      if (!shown || shown.kit !== spec.kit || shown.riders !== spec.riders || shown.pose !== spec.pose) {
+        for (const group of groups) group.peloton.setVisible(group.kit === spec.kit);
+        // Another stretch of road: start near its beginning. A new group rolls in from behind.
+        if (!shown || STRETCH[shown.pose] !== stretch) distance = stretch.from + (stretch.to - stretch.from) * 0.15;
+        if (shown && (shown.kit !== spec.kit || shown.riders !== spec.riders) && !still) entry = 1;
+        shown = spec;
       }
-      if (!still) distance += SPEED * dt;
-      if (distance > LENGTH - 300) distance = START;
-      current.entry = Math.max(0, current.entry - dt * 0.55);
+      if (spec.light !== ridgeLight) {
+        ridges.dispose();
+        ridges = createRidges(scene, "clubverhaal", LIGHTS[spec.light].horizon);
+        ridgeLight = spec.light;
+      }
       const ease = (rate: number) => (initialized ? 1 - Math.exp(-dt * rate) : 1);
-      const view = VIEWS[current.id];
-      // A slow drift around the group keeps the picture alive.
-      const drift = still ? 0 : Math.sin(now / 5200) * 0.14;
-      rig.right += (view[0] - rig.right) * ease(1.6); rig.up += (view[1] - rig.up) * ease(1.6);
-      rig.back += (view[2] - rig.back) * ease(1.6); rig.fov += (view[3] - rig.fov) * ease(1.6);
-      rig.centre += (current.centre - rig.centre) * ease(1.6);
+      if (!still) distance += stretch.speed * dt;
+      if (distance > stretch.to) distance = stretch.from;
+      entry = Math.max(0, entry - dt * 0.55);
+
+      // Light: everything eases to the chosen look.
+      const light = LIGHTS[spec.light], t = ease(1.2);
+      fade(horizon, light.horizon, t); fade(skyUniforms.zenith.value, light.zenith, t); fade(skyUniforms.glow.value, light.glow, t);
+      fade(sunlight.color, light.sunColor, t); fade(hemisphere.color, light.sky, t); fade(hemisphere.groundColor, light.ground, t);
+      sunlight.intensity += (light.sunPower - sunlight.intensity) * t; hemisphere.intensity += (light.hemi - hemisphere.intensity) * t;
+      fog.near += (light.near - fog.near) * t; fog.far += (light.far - fog.far) * t;
+      sun.lerp(sunGoal.set(...light.sun).normalize(), t).normalize();
+
+      // Where everyone rides: the leader (rider 0) is the one the story is about.
+      const count = spec.riders, progress = (distance - stretch.from) / (stretch.to - stretch.from);
+      const place = (i: number): [number, number] => {
+        const [lane, behind] = SLOTS[i];
+        if (spec.pose === "juichen") return i ? [lane, behind + 7] : [0, 0];
+        if (spec.pose === "afzien") {
+          // The others ride on; the leader slowly drops off the back.
+          if (!i) return [0.3, count > 1 ? SLOTS[count - 1][1] + 2.5 + progress * 14 : 0];
+          return SLOTS[i - 1];
+        }
+        if (spec.pose === "sprinten") return i ? [lane * 1.6, behind * 0.7 + 1.2] : [0, 0];
+        return [lane, behind];
+      };
+      let centre = 0;
+      for (let i = 0; i < count; i++) centre += place(i)[1];
+      centre /= count;
+      const view = viewFor(spec);
+      rig.right += (view.at[0] - rig.right) * ease(1.6); rig.up += (view.at[1] - rig.up) * ease(1.6);
+      rig.back += (view.at[2] - rig.back) * ease(1.6); rig.fov += (view.at[3] - rig.fov) * ease(1.6);
+      rig.focus += ((view.follow === "leader" ? place(0)[1] : centre) - rig.focus) * ease(1.6);
       if (Math.abs(camera.fov - rig.fov) > 0.01) { camera.fov = rig.fov; camera.updateProjectionMatrix(); }
       initialized = true;
 
-      const focus = distance - rig.centre, focusX = bend(focus), focusY = worldY(focus);
+      // A slow drift around the riders keeps the picture alive.
+      const drift = still ? 0 : Math.sin(now / 5200) * 0.12;
+      const focus = distance - rig.focus, focusX = bend(focus), focusY = worldY(focus);
       const slope = (bend(focus + 10) - bend(focus - 10)) / 20, norm = Math.hypot(slope, 1);
       roadAhead.set(slope / norm, 0, -1 / norm); roadRight.set(1 / norm, 0, slope / norm);
-      // A portrait screen sees a narrow slice: the camera steps back so the group still fits.
-      const away = camera.aspect < 1 ? Math.min(1.9, camera.aspect ** -0.7) : 1;
+      // A portrait screen sees a narrow slice: the camera steps back so the riders still fit.
+      const away = (camera.aspect < 1 ? Math.min(1.9, camera.aspect ** -0.7) : 1) * (1 + (count - 1) * 0.04);
       const right = (rig.right * Math.cos(drift) + rig.back * Math.sin(drift)) * away, back = (rig.back * Math.cos(drift) - rig.right * Math.sin(drift)) * away;
       camera.position.set(focusX, focusY + rig.up * away, -focus).addScaledVector(roadRight, right).addScaledVector(roadAhead, -back);
+      // On a climb or descent the ground under the camera differs from the road at the riders.
+      camera.position.y = Math.max(camera.position.y, worldY(focus - back) + 0.8);
       look.set(bend(focus + 0.5), worldY(focus + 0.5) + 0.95, -focus - 0.5);
       camera.lookAt(look);
       sky.position.copy(camera.position);
       ridges.group.position.set(camera.position.x, focusY - 12, camera.position.z);
+      sunRight.crossVectors(up, sun).normalize(); sunUp.crossVectors(sun, sunRight).normalize();
       sunTarget.set(focusX, focusY, -focus);
       const a = Math.round(sunTarget.dot(sunRight) / texel) * texel, b = Math.round(sunTarget.dot(sunUp) / texel) * texel;
-      snapped.copy(sunRight).multiplyScalar(a).addScaledVector(sunUp, b).addScaledVector(SUN, sunTarget.dot(SUN));
-      sunlight.target.position.copy(snapped); sunlight.position.copy(snapped).addScaledVector(SUN, 130);
+      snapped.copy(sunRight).multiplyScalar(a).addScaledVector(sunUp, b).addScaledVector(sun, sunTarget.dot(sun));
+      sunlight.target.position.copy(snapped); sunlight.position.copy(snapped).addScaledVector(sun, 130);
+      arch.visible = spec.pose === "juichen" || spec.pose === "sprinten";
 
-      const entry = smoothstep(0, 1, current.entry);
-      for (let i = 0; i < SLOTS.length; i++) {
-        if (i >= current.count) { blobs.setMatrixAt(i, hidden); continue; }
-        const [lane, behind] = SLOTS[i];
+      const current = groups.find((group) => group.kit === spec.kit) ?? groups[0];
+      const rolledIn = smoothstep(0, 1, entry);
+      const toLine = distance - ARCH;
+      for (let i = 0; i < RIDERS_MAX; i++) {
+        if (i >= count) { blobs.setMatrixAt(i, hidden); current.peloton.place(i, hidden, 0, 0, 0); continue; }
+        const [lane, behind] = place(i);
+        const m = motion[i], leader = i === 0;
+        // What this rider does now, per pose.
+        let tuck = 0, stand = 0, cheer = 0, slump = 0, rpm = 86 + (i % 3) * 4;
+        if (spec.pose === "afdalen") { tuck = 1; rpm = 0; }
+        if (spec.pose === "klimmen") { rpm = 70; stand = leader && Math.sin(now / 2600) > 0.25 ? 1 : 0; }
+        if (spec.pose === "sprinten") { stand = toLine < 2 ? (leader ? 1 : 0.8) : 0; rpm = toLine < 2 ? 112 : 30; cheer = leader ? smoothstep(2, 10, toLine) : 0; }
+        if (spec.pose === "juichen" && leader) { cheer = smoothstep(-30, -12, toLine); rpm = cheer > 0.5 ? 0 : 84; }
+        if (spec.pose === "afzien" && leader) { slump = 1; rpm = 60; }
+        const blend = 1 - Math.exp(-dt * 5);
+        m.tuck += (tuck - m.tuck) * blend; m.stand += (stand - m.stand) * blend;
+        m.cheer += (cheer - m.cheer) * (1 - Math.exp(-dt * 3)); m.slump += (slump - m.slump) * blend;
+        if (!still) m.crank += dt * rpm * Math.PI / 30;
         // Every rider breathes a little in the group, so it never looks frozen.
-        const sway = still ? 0 : Math.sin(now / 1900 + i * 2.3) * 0.12;
-        const d = distance - behind - entry * (16 + i * 4) + (still ? 0 : Math.sin(now / 2600 + i) * 0.25);
-        const x = bend(d) + lane + sway;
-        parent.position.set(x, worldY(d), -d);
-        if (!still) current.cranks[i] += dt * (86 + (i % 3) * 4) * Math.PI / 30;
-        parent.rotation.set(-Math.atan(grade(d)), -Math.atan((bend(d + 1) - bend(d - 1)) / 2), 0);
+        const sway = still ? 0 : Math.sin(now / 1900 + i * 2.3) * (leader && m.slump > 0.5 ? 0.25 : 0.12);
+        const d = distance - behind - rolledIn * (16 + i * 4) + (still ? 0 : Math.sin(now / 2600 + i) * 0.25);
+        parent.position.set(bend(d) + lane + sway, worldY(d), -d);
+        // Out of the saddle the bike rocks; hanging over the bars it wobbles.
+        const roll = Math.sin(m.crank) * (0.12 * m.stand + 0.05 * m.slump);
+        parent.rotation.set(-Math.atan(grade(d)), heading(d), roll);
         parent.updateMatrix();
         blobs.setMatrixAt(i, matrix.multiplyMatrices(parent.matrix, blobLocal));
-        current.peloton.place(i, parent.matrix, 0, 0, current.cranks[i]);
+        mood.cheer = m.cheer; mood.slump = m.slump;
+        current.peloton.place(i, parent.matrix, m.tuck, m.stand, m.crank, mood);
       }
       current.peloton.commit();
       blobs.instanceMatrix.needsUpdate = true;

@@ -14,6 +14,8 @@ export type ChapterKit = {
   back: "blanco" | "z" | "banden" | "club";
   sleeve: string;
   helmet: string;
+  /** De kleur die het shirt in een keuzelijst of label vertegenwoordigt. */
+  swatch: string;
 };
 
 export type Chapter = {
@@ -35,7 +37,7 @@ export const CHAPTERS: Chapter[] = [
       "De basis is simpel: een renner, een fiets en zin om samen harder te rijden. Nog geen uitgesproken shirt, wel al het begin van herkenning.",
     stat: "1 renner, 1 idee",
     riders: 1,
-    kit: { name: "Blanco", back: "blanco", sleeve: "#f4f2ec", helmet: "#d7dcd8" },
+    kit: { name: "Blanco", back: "blanco", sleeve: "#f4f2ec", helmet: "#d7dcd8", swatch: "#f4f2ec" },
   },
   {
     id: "anders",
@@ -45,7 +47,7 @@ export const CHAPTERS: Chapter[] = [
       "Daarna kwam het eerste echte clubgevoel: felblauw, roze en de grote Z. Niet subtiel, wel precies herkenbaar genoeg om elkaar in het peloton te vinden.",
     stat: "Zwift, Discord, koersdrang",
     riders: 2,
-    kit: { name: "Net effe anders", back: "z", sleeve: "#1d4ed8", helmet: "#f05a8b" },
+    kit: { name: "Net effe anders", back: "z", sleeve: "#1d4ed8", helmet: "#f05a8b", swatch: "#2563eb" },
   },
   {
     id: "team",
@@ -55,7 +57,7 @@ export const CHAPTERS: Chapter[] = [
       "De stijl werd strakker, de groep serieuzer. Het VBTM/Tactic-shirt markeert de periode waarin ZWB meer team, meer competitie en meer structuur kreeg.",
     stat: "ZRL, teams, afspraken",
     riders: 4,
-    kit: { name: "VBTM", back: "banden", sleeve: "#2e7780", helmet: "#0f5963" },
+    kit: { name: "VBTM", back: "banden", sleeve: "#2e7780", helmet: "#0f5963", swatch: "#0f5963" },
   },
   {
     id: "nu",
@@ -65,7 +67,7 @@ export const CHAPTERS: Chapter[] = [
       "Het huidige shirt voelt volwassen: sponsorstructuur, vaste lijnen en een herkenbare identiteit. Daaromheen groeit het platform mee met trainingen, badges, live tracking, events en teams.",
     stat: "Platform, community, toekomst",
     riders: 7,
-    kit: { name: "Hage", back: "club", sleeve: "#ffffff", helmet: "#004653" },
+    kit: { name: "Hage", back: "club", sleeve: "#ffffff", helmet: "#004653", swatch: "#004653" },
   },
 ];
 

@@ -5,6 +5,7 @@ import { adminAreaPermission } from "@/lib/admin-areas";
 import { getRequestAccess } from "@/lib/auth/request";
 import { createClient } from "@/lib/supabase/server";
 import { chapterById } from "@/lib/clubverhaal/chapters";
+import { describeScene } from "@/lib/clubverhaal/scenes";
 import { loadReviewQueue } from "@/lib/clubverhaal/server";
 import { RemoveStoryButton, StoryReviewPanel } from "../../clubverhaal/_components/story-controls";
 
@@ -55,7 +56,16 @@ export default async function ClubverhaalBeheerPage() {
                     </p>
                   )}
                 </div>
-                <p className="whitespace-pre-line text-sm text-muted-foreground">{story.body}</p>
+                <ol className="space-y-3">
+                  {story.scenes.map((scene, index) => (
+                    <li key={index} className="space-y-1 border-l-2 pl-3">
+                      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                        Hoofdstuk {index + 1} · {describeScene(scene)}
+                      </p>
+                      <p className="whitespace-pre-line text-sm text-muted-foreground">{scene.text}</p>
+                    </li>
+                  ))}
+                </ol>
                 {story.photos.length > 0 && (
                   <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {story.photos.map((photo) => (

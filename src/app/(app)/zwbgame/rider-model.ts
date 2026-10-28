@@ -23,6 +23,13 @@ type Key = keyof typeof HOODS;
 const KEYS: Key[] = ["hip", "shoulder", "head", "hand"];
 const TO_TUCK = Object.fromEntries(KEYS.map((k) => [k, TUCK[k].clone().sub(HOODS[k])])) as Record<Key, THREE.Vector3>;
 const TO_STAND = Object.fromEntries(KEYS.map((k) => [k, STAND[k].clone().sub(HOODS[k])])) as Record<Key, THREE.Vector3>;
+/** The club story's extra moods: sitting up with both arms in the air, and hanging over the bars. */
+const TO_CHEER = { hip: v(0, 0, 0.03), shoulder: v(0, 0.14, 0.16), head: v(0, 0.16, 0.19) };
+const TO_SLUMP = { hip: v(0, -0.01, 0), shoulder: v(0, -0.06, -0.03), head: v(0, -0.13, -0.05) };
+const CHEER_HAND = v(0.27, 0.5, 0.06);
+/** cheer and slump are 0–1 blends on top of the riding position; the game leaves them at 0. */
+export type Mood = { cheer: number; slump: number };
+const CALM: Mood = { cheer: 0, slump: 0 };
 
 type Side = { hip: THREE.Vector3; knee: THREE.Vector3; ankle: THREE.Vector3; pedal: THREE.Vector3; shoulder: THREE.Vector3; elbow: THREE.Vector3; hand: THREE.Vector3 };
 export type Pose = { hip: THREE.Vector3; shoulder: THREE.Vector3; head: THREE.Vector3; crank: number; sides: [Side, Side] };
@@ -42,10 +49,13 @@ function bendJoint(out: THREE.Vector3, from: THREE.Vector3, to: THREE.Vector3, a
   out.set(from.x + (to.x - from.x) * (a / (a + b)), from.y + a * (cos * uy - sin * uz * bend), from.z + a * (cos * uz + sin * uy * bend));
 }
 
+const cheerHand = v(0, 0, 0);
+
 /** tuck and stand are 0–1 blends from riding on the hoods; crank is the right crank angle (0 = up). */
-export function solvePose(pose: Pose, tuck: number, stand: number, crank: number) {
+export function solvePose(pose: Pose, tuck: number, stand: number, crank: number, mood: Mood = CALM) {
   const blend = (out: THREE.Vector3, key: Key) => out.copy(HOODS[key]).addScaledVector(TO_TUCK[key], tuck).addScaledVector(TO_STAND[key], stand);
-  blend(pose.hip, "hip"); blend(pose.shoulder, "shoulder"); blend(pose.head, "head");
+  const moody = (out: THREE.Vector3, key: "hip" | "shoulder" | "head") => { blend(out, key); out.addScaledVector(TO_CHEER[key], mood.cheer).addScaledVector(TO_SLUMP[key], mood.slump); };
+  moody(pose.hip, "hip"); moody(pose.shoulder, "shoulder"); moody(pose.head, "head");
   pose.crank = crank;
   pose.sides.forEach((s, index) => {
     const sign = index ? -1 : 1, angle = crank + (index ? Math.PI : 0);
@@ -55,6 +65,7 @@ export function solvePose(pose: Pose, tuck: number, stand: number, crank: number
     bendJoint(s.knee, s.hip, s.ankle, THIGH, SHIN, 1);
     s.shoulder.set(sign * SHOULDER_X, pose.shoulder.y, pose.shoulder.z);
     blend(s.hand, "hand"); s.hand.x *= sign;
+    if (mood.cheer) s.hand.lerp(cheerHand.set(sign * CHEER_HAND.x, s.shoulder.y + CHEER_HAND.y, s.shoulder.z + CHEER_HAND.z), mood.cheer);
     bendJoint(s.elbow, s.shoulder, s.hand, UPPER_ARM, FOREARM, -1);
     // Elbows point a little outwards.
     s.elbow.x += sign * 0.03;
@@ -199,10 +210,10 @@ export function createPeloton(scene: THREE.Scene, count: number, jersey: JerseyP
   };
 
   /** Places rider i: parent is the bike's world matrix on the road. */
-  const place = (i: number, parent: THREE.Matrix4, tuck: number, stand: number, crank: number) => {
+  const place = (i: number, parent: THREE.Matrix4, tuck: number, stand: number, crank: number, mood?: Mood) => {
     index = i; parentMatrix = parent;
     bike.setMatrixAt(i, parent);
-    solvePose(pose, tuck, stand, crank);
+    solvePose(pose, tuck, stand, crank, mood);
     bone(torso, pose.hip, pose.shoulder, 0.6, 1.3, 0.85);
     bone(neck, offset.copy(pose.shoulder).lerp(pose.head, 0.25), pose.head);
     at(head, pose.head);

@@ -34,9 +34,8 @@ export default async function BewerkenPage({ params }: { params: Promise<{ id: s
         year={Number(amsterdamDayKey().slice(0, 4))}
         initial={{
           id: story.id,
-          chapter: story.chapter,
           title: story.title,
-          body: story.body,
+          scenes: story.scenes,
           happenedYear: story.happenedYear,
           bekerId: story.beker?.id ?? null,
           photos: story.photos.map((photo) => ({ id: photo.id, caption: photo.caption, url: photo.url })),

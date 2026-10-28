@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, ChevronDown, Images, PenLine, Quote, Trophy } from "lucide-react";
+import { ArrowRight, ChevronDown, Images, Layers, PenLine, Quote, Trophy } from "lucide-react";
 import { CHAPTERS, type ChapterId } from "@/lib/clubverhaal/chapters";
+import { defaultSpec, type SceneSpec } from "@/lib/clubverhaal/scenes";
 import { SHORT_BODY, bodyParagraphs, excerpt } from "@/lib/clubverhaal/story";
 import { SceneStage } from "./scene-stage";
 import { StoryBar } from "./story-bar";
@@ -19,25 +20,36 @@ export type StoryCard = {
   beker: { id: string; title: string } | null;
   photo: { url: string; caption: string | null } | null;
   photoCount: number;
+  /** De scène van het eerste hoofdstuk: die staat achter de kaart als hij in beeld is. */
+  scene: SceneSpec;
+  sceneCount: number;
 };
-
-const KIT_SWATCH: Record<ChapterId, string> = { basis: "#f4f2ec", anders: "#2563eb", team: "#0f5963", nu: "#004653" };
 
 /**
  * Het clubverhaal: de 3D-scène uit de ZWBgame staat vast op de achtergrond, de
- * hoofdstukken en de verhalen van leden scrollen eroverheen. Welk hoofdstuk
- * midden in beeld staat, bepaalt het tenue en de groep in de scène.
+ * hoofdstukken en de verhalen van leden scrollen eroverheen. Wat midden in beeld
+ * staat, bepaalt de scène: bij een hoofdstuk het tenue en de groep van die
+ * periode, bij een verhaal de scène van zijn eerste hoofdstuk.
  */
 export function StoryExperience({ stories }: { stories: StoryCard[] }) {
-  const [active, setActive] = useState<ChapterId>("basis");
+  const [active, setActive] = useState<SceneSpec>(() => defaultSpec("basis"));
+  const [period, setPeriod] = useState<ChapterId>("basis");
   const progress = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const sections = [...document.querySelectorAll<HTMLElement>("[data-chapter]")];
+    const specs = new Map<string, SceneSpec>([
+      ...CHAPTERS.map((item) => [`chapter:${item.id}`, defaultSpec(item.id)] as const),
+      ...stories.map((story) => [`story:${story.id}`, story.scene] as const),
+    ]);
+    const sections = [...document.querySelectorAll<HTMLElement>("[data-scene]")];
     const watcher = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting) setActive(entry.target.getAttribute("data-chapter") as ChapterId);
+          if (!entry.isIntersecting) continue;
+          const spec = specs.get(entry.target.getAttribute("data-scene") ?? "");
+          if (spec) setActive(spec);
+          const own = entry.target.closest<HTMLElement>("[data-chapter]")?.getAttribute("data-chapter");
+          if (own) setPeriod(own as ChapterId);
         }
       },
       { rootMargin: "-50% 0px -50% 0px" },
@@ -58,7 +70,7 @@ export function StoryExperience({ stories }: { stories: StoryCard[] }) {
       cancelAnimationFrame(frame);
       window.removeEventListener("scroll", scrolled);
     };
-  }, []);
+  }, [stories]);
 
   return (
     <main className={styles.page}>
@@ -66,16 +78,16 @@ export function StoryExperience({ stories }: { stories: StoryCard[] }) {
       <StoryBar />
 
       <div className={styles.stage}>
-        <SceneStage chapter={active} />
+        <SceneStage spec={active} />
         <div className={styles.shade} />
       </div>
 
       <nav aria-label="Hoofdstukken">
         <ol className={styles.rail}>
-          {CHAPTERS.map((chapter) => (
-            <li key={chapter.id}>
-              <a href={`#${chapter.id}`} aria-current={active === chapter.id}>
-                <span>{chapter.title}</span>
+          {CHAPTERS.map((item) => (
+            <li key={item.id}>
+              <a href={`#${item.id}`} aria-current={period === item.id}>
+                <span>{item.title}</span>
                 <i />
               </a>
             </li>
@@ -84,7 +96,7 @@ export function StoryExperience({ stories }: { stories: StoryCard[] }) {
       </nav>
 
       <div className={styles.flow}>
-        <section className={styles.intro} data-chapter="basis">
+        <section className={styles.intro} data-chapter="basis" data-scene="chapter:basis">
           <span className={styles.eyebrow}>ZWB Cycling</span>
           <h1>
             Het verhaal van <em>ZWB</em>
@@ -100,7 +112,7 @@ export function StoryExperience({ stories }: { stories: StoryCard[] }) {
           const own = stories.filter((story) => story.chapter === chapter.id);
           return (
             <section key={chapter.id} id={chapter.id} className={styles.chapter} data-chapter={chapter.id} aria-labelledby={`${chapter.id}-titel`}>
-              <div className={styles.chapterHead}>
+              <div className={styles.chapterHead} data-scene={`chapter:${chapter.id}`}>
                 <span className={styles.chapterIndex}>
                   <b>
                     {String(index + 1).padStart(2, "0")} / {String(CHAPTERS.length).padStart(2, "0")}
@@ -111,7 +123,7 @@ export function StoryExperience({ stories }: { stories: StoryCard[] }) {
                 <p>{chapter.body}</p>
                 <div className={styles.chips}>
                   <span>
-                    <i style={{ background: KIT_SWATCH[chapter.id] }} />
+                    <i style={{ background: chapter.kit.swatch }} />
                     {chapter.kit.name}
                   </span>
                   <span>{chapter.stat}</span>
@@ -120,7 +132,7 @@ export function StoryExperience({ stories }: { stories: StoryCard[] }) {
               {own.length > 0 && (
                 <ul className={styles.stories}>
                   {own.map((story) => (
-                    <li key={story.id}>
+                    <li key={story.id} data-scene={`story:${story.id}`}>
                       <StoryCardView story={story} />
                     </li>
                   ))}
@@ -130,7 +142,7 @@ export function StoryExperience({ stories }: { stories: StoryCard[] }) {
           );
         })}
 
-        <section className={styles.outro} data-chapter="nu">
+        <section className={styles.outro} data-chapter="nu" data-scene="chapter:nu">
           <span className={styles.eyebrow}>Jouw hoofdstuk</span>
           <h2>Vertel jouw verhaal</h2>
           <div className={styles.actions}>
@@ -162,7 +174,7 @@ function Meta({ story }: { story: StoryCard }) {
  * foto's of een lang verhaal opent een eigen pagina met meer ruimte.
  */
 function StoryCardView({ story }: { story: StoryCard }) {
-  const short = !story.photo && story.body.length <= SHORT_BODY;
+  const short = !story.photo && story.sceneCount === 1 && story.body.length <= SHORT_BODY;
   if (short) {
     return (
       <article className={`${styles.card} ${styles.anecdote}`}>
@@ -191,10 +203,20 @@ function StoryCardView({ story }: { story: StoryCard }) {
         // eslint-disable-next-line @next/next/no-img-element -- ondertekende url uit een besloten bucket
         <img src={story.photo.url} alt={story.photo.caption ?? ""} loading="lazy" decoding="async" />
       )}
-      {story.photoCount > 1 && (
+      {(story.photoCount > 1 || story.sceneCount > 1) && (
         <span className={styles.photoCount}>
-          <Images className="size-3.5" aria-hidden />
-          {story.photoCount}
+          {story.sceneCount > 1 && (
+            <>
+              <Layers className="size-3.5" aria-hidden />
+              {story.sceneCount}
+            </>
+          )}
+          {story.photoCount > 1 && (
+            <>
+              <Images className="size-3.5" aria-hidden />
+              {story.photoCount}
+            </>
+          )}
         </span>
       )}
       <div className={styles.cardBody}>

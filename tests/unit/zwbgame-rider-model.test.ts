@@ -44,6 +44,18 @@ describe("rider pose", () => {
     expect(stand.hip.z).toBeLessThan(hoods.hip.z - 0.1);
   });
 
+  it("cheering puts both hands above the head; slumping drops the head; limbs keep their length", () => {
+    const calm = solvePose(createPose(), 0, 0, 0);
+    const headY = calm.head.y;
+    const cheer = solvePose(createPose(), 0, 0, 0, { cheer: 1, slump: 0 });
+    for (const s of cheer.sides) {
+      expect(s.hand.y).toBeGreaterThan(cheer.head.y);
+      expect(side(s.shoulder, s.elbow)).toBeCloseTo(UPPER_ARM, 3);
+      expect(side(s.elbow, s.hand)).toBeCloseTo(FOREARM, 3);
+    }
+    expect(solvePose(createPose(), 0, 0, 0, { cheer: 0, slump: 1 }).head.y).toBeLessThan(headY - 0.1);
+  });
+
   it("skin tone is stable per rider", () => {
     expect(skinTone("rider-7")).toBe(skinTone("rider-7"));
     expect(new Set(Array.from({ length: 40 }, (_, i) => skinTone(String(i)))).size).toBeGreaterThan(2);

@@ -371,7 +371,7 @@ const HELP_INDEX: HelpResult[] = [
     text: "Een anekdote of verhaal met foto's insturen voor het verhaal van ZWB.",
     href: "/hulp/club#clubverhaal",
     terms:
-      "clubverhaal verhaal verhalen anekdote anekdotes geschiedenis historie foto fotos insturen plaatsen hoofdstuk tenue shirt beker",
+      "clubverhaal verhaal verhalen anekdote anekdotes geschiedenis historie foto fotos insturen plaatsen hoofdstuk hoofdstukken scene tenue shirt periode poppetje juichen sprinten afzien klimmen afdalen avond beker",
   },
   {
     title: "Privacy en zichtbaarheid",

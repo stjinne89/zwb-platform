@@ -27,6 +27,13 @@ gaat stabiliteit voor nieuwe features.
    van de ronde "ZWBekers: een beker voor een hele ZRL-ronde" (`5b05403e`) is
    dezelfde dag gepusht naar `main`.
 
+0d. **Clubverhaal in eigen hoofdstukken (2026-10-28): migratie
+   `0289_club_story_scenes.sql` nog niet toegepast, code niet gepusht.** Eerst
+   de migratie, dan de code: de server leest en schrijft de kolom `scenes`, en
+   zonder die kolom werken insturen, je verhalen en het beheer niet (`/verhaal`
+   toont dan alleen de periodes). Zie de ronde "Clubverhaal: een eigen verhaal
+   in hoofdstukken".
+
 0c. **Clubverhaal (2026-10-28): migratie `0288` toegepast en gepusht.**
    `0288_club_stories.sql` is op 2026-10-28 via de Supabase-connector
    toegepast, op verzoek van de eigenaar, vóór de push naar `main` (zelfde
@@ -11531,6 +11538,84 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Clubverhaal: een eigen verhaal in hoofdstukken, met poppetjes en scènes
+
+**2026-10-28.** Migratie `0289_club_story_scenes.sql` (nog niet toegepast).
+Niet gepusht.
+
+**Waarom.** Wens van de eigenaar, direct na de eerste ronde: een lid moet zijn
+verhaal anders kunnen opbouwen dan de vier vaste periodes, met "verschillende
+elementen" om uit te kiezen: welk shirt of welke periode, "een juichend
+poppetje of juist een afziend poppetje", zodat een anekdote passende
+animaties krijgt.
+
+**Wat.**
+- Een verhaal bestaat nu uit eigen hoofdstukken (1–8, `club_stories.scenes`,
+  jsonb). Per hoofdstuk: tekst (hooguit 1500 tekens) en vier keuzes voor de
+  3D-scène (`lib/clubverhaal/scenes.ts`): shirt (blanco, Net effe anders,
+  VBTM, Hage; dat is ook de periode), poppetje (rijden, juichen, sprinten,
+  afzien, klimmen, afdalen), renners (1–7) en moment (zon, avond, grijs). De
+  server maakt `body` van alle teksten samen (20–5000 tekens) en `chapter` van
+  het shirt van het eerste hoofdstuk; het formulier vraagt geen periode meer.
+- De scène (`verhaal/story-scene.tsx`) toont een `SceneSpec` in plaats van een
+  periode. De weg heeft nu een vlak stuk met een finishboog (zoals in de
+  game), een klim van 110 m (tot 10%), een plateau en een afdaling; elke pose
+  rijdt op zijn eigen stuk:
+  - juichen: de hoofdrenner (renner 0) komt los aan, armen omhoog vanaf 30 m
+    voor de lijn, de rest volgt; camera ervoor.
+  - sprinten: uit het zadel met hoge cadans naar de lijn, na de lijn juichen.
+  - afzien: hangend over het stuur, lage cadans, wiebelend; hij zakt langzaam
+    uit de groep die verderop rijdt. Camera erachter, zodat je de groep ziet
+    wegrijden.
+  - klimmen: op de klim, de hoofdrenner af en toe uit het zadel.
+  - afdalen: iedereen in tuck, freewheelen, 17 m/s.
+  - rijden: zoals de periodes, met de camerahoek naar het aantal renners.
+  Licht: zon zoals in de game; avond met lage zon voorop en lange schaduwen;
+  grijs met vlak licht en nevel. Lucht, mist, zon en heuvels lopen in ruim een
+  seconde over.
+- `rider-model.ts` (ZWBgame): `solvePose` en `place` nemen een optionele
+  `Mood` (`cheer`, `slump`): rechtop met beide armen in de lucht, of het hoofd
+  omlaag over het stuur. De game geeft niets mee; een test bewaakt dat de
+  armen hun lengte houden en de handen boven het hoofd komen.
+- Formulier (`clubverhaal/_components/scene-builder.tsx`): per hoofdstuk de
+  tekst en de keuzes als knoppen, hoofdstukken toevoegen, verschuiven en
+  weghalen. Naast het formulier (op de telefoon erboven) een live 3D-voorbeeld
+  van het hoofdstuk waar je mee bezig bent.
+- `/verhaal/[id]` (`story-reader.tsx`): de scène staat vast op de achtergrond
+  en wisselt naar het hoofdstuk dat midden in beeld staat; de tekst staat per
+  hoofdstuk in een paneel, de foto's ertussen, de rest onderaan.
+- `/verhaal`: staat een verhaalkaart midden in beeld, dan toont de scène het
+  eerste hoofdstuk van dat verhaal. Een korte anekdote staat alleen inline als
+  hij één hoofdstuk heeft.
+- Beheer toont per hoofdstuk de keuzes en de tekst. Hulp en privacytekst
+  ("de hoofdstukken met hun tekst en gekozen scène") bijgewerkt.
+
+**Bewust niet.**
+- Geen vrije kleuren of eigen shirts: alleen de vier tenues die de club echt
+  had, zodat de periode klopt.
+- Geen poppetje naast de fiets (pech, val) of zonder fiets: het rennermodel
+  van de game kent alleen houdingen op de fiets.
+- Geen regen of nacht: grijs dekt het slechte weer; regendruppels en
+  koplampen vragen eigen deeltjes en licht, voor weinig extra.
+- Geen eigen scène bij een foto; foto's blijven tussen de hoofdstukken.
+- De vier periodes zelf (titel en tekst op `/verhaal`) zijn niet aan te passen
+  vanuit de app; ze staan in `lib/clubverhaal/chapters.ts`.
+
+**Niet meer waar.** In de ronde hieronder: het formulier vraagt geen
+hoofdstuk meer en de detailpagina heeft geen vaste kop meer (in die ronde
+inline gecorrigeerd).
+
+**Gecontroleerd.** `tsc` (alleen de bekende fouten over ontbrekende pakketten),
+ESLint op de gewijzigde bestanden, Vitest `clubverhaal.test.ts` (nu 23 tests:
+hoofdstukken, periode uit het eerste shirt, kapotte opgeslagen hoofdstukken),
+`zwbgame-rider-model.test.ts` (nieuw: juichen en afzien) en
+`zwbekers.test.ts`. In de lokale app, op een tijdelijke proefpagina (weer
+weggehaald): alle zes poses, de drie lichtstanden, 1–7 renners en de vier
+shirts in het voorbeeld, en de verhaalpagina met drie hoofdstukken die per
+hoofdstuk van scène wisselt. `/verhaal` zonder verhalen ongewijzigd.
+**Niet geverifieerd:** de migratie, het echte formulier met een ingelogde
+sessie (insturen, aanpassen, plaatsen), en de scène op een trage telefoon.
+
 ### Gebouwd — Clubverhaal: /verhaal in de stijl van de ZWBgame, met verhalen van leden
 
 **2026-10-28.** Commit `33ec279b`, gepusht naar `main` op 2026-10-28
@@ -11569,16 +11654,19 @@ kwam erbij: vanaf een prestatie doorlinken naar het verhaal ervan.
   ziet er hetzelfde uit.
 - Verhalen van leden (`club_stories`, `club_story_photos`, bucket
   `club-story-photos`, besloten): insturen op `/clubverhaal/insturen` met
-  hoofdstuk, titel, tekst (20–5000 tekens), jaar, een toegekende ZWBeker en
+  titel, tekst (20–5000 tekens; sinds de ronde "verhaal in eigen
+  hoofdstukken" verdeeld over hoofdstukken, en de periode volgt uit het shirt
+  van het eerste), jaar, een toegekende ZWBeker en
   hooguit zes foto's met onderschrift (in de browser verkleind tot 1920 px).
   `/clubverhaal` toont je eigen verhalen met status; aanpassen zolang niet
   geplaatst, weghalen altijd. Plaatsen of terugsturen (met notitie) op
   `/beheer/clubverhaal`, met het recht `community.manage`, zoals tips en
   citaten. Pushmeldingen voor wie plaatst en voor wie schreef.
-- Op `/verhaal`: een korte anekdote zonder foto (tot 420 tekens) staat in zijn
-  geheel bij het hoofdstuk; een verhaal met foto's of een langer verhaal is een
-  kaart naar `/verhaal/[id]`, met de scène van het hoofdstuk als kop en de
-  foto's tussen de alinea's.
+- Op `/verhaal`: een korte anekdote zonder foto (tot 420 tekens, en sinds de
+  volgende ronde in één hoofdstuk) staat in zijn geheel bij het hoofdstuk; een
+  verhaal met foto's of een langer verhaal is een kaart naar `/verhaal/[id]`.
+  (De detailpagina met de scène van het hoofdstuk als kop is in de volgende
+  ronde vervangen door een pagina die per eigen hoofdstuk van scène wisselt.)
 - Prestaties: een verhaal kan aan een toegekende ZWBeker hangen. De beker
   toont "Lees het verhaal" en "Vertel het verhaal"
   (`/clubverhaal/insturen?beker=<id>`); het verhaal linkt naar de beker.

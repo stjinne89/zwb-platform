@@ -5,16 +5,16 @@ import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, ImagePlus, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
-import { CHAPTERS, type ChapterId } from "@/lib/clubverhaal/chapters";
-import { BODY_MAX, CAPTION_MAX, EARLIEST_YEAR, PHOTOS_MAX, TITLE_MAX } from "@/lib/clubverhaal/story";
+import { SceneStage } from "@/app/verhaal/scene-stage";
+import { defaultSpec, describeScene, type Scene } from "@/lib/clubverhaal/scenes";
+import { CAPTION_MAX, EARLIEST_YEAR, PHOTOS_MAX, TITLE_MAX } from "@/lib/clubverhaal/story";
 import { confirmStoryPhoto, requestStoryPhotoUpload, saveStory, submitStory } from "../_actions";
+import { SceneBuilder } from "./scene-builder";
 
 export type StoryFormInitial = {
   id: string;
-  chapter: ChapterId;
   title: string;
-  body: string;
+  scenes: Scene[];
   happenedYear: number | null;
   bekerId: string | null;
   photos: Array<{ id: string; caption: string | null; url: string | null }>;
@@ -47,9 +47,10 @@ async function resizePhoto(file: File): Promise<Blob> {
 }
 
 /**
- * Een verhaal voor het clubverhaal op /verhaal (0288): hoofdstuk, tekst, een
- * jaar, een ZWBeker en hooguit zes foto's met onderschrift. Met `initial` past
- * het een bestaand verhaal aan.
+ * Een verhaal voor het clubverhaal op /verhaal (0288, 0289): een titel, eigen
+ * hoofdstukken met elk een 3D-scène (met live voorbeeld), een jaar, een ZWBeker
+ * en hooguit zes foto's met onderschrift. Met `initial` past het een bestaand
+ * verhaal aan.
  */
 export function StoryForm({
   bekers,
@@ -68,9 +69,10 @@ export function StoryForm({
   // Na een nieuw verhaal waarvan een foto mislukte: verder als aanpassen, geen tweede verhaal.
   const [savedId, setSavedId] = useState<string | null>(initial?.id ?? null);
 
-  const [chapter, setChapter] = useState<ChapterId>(initial?.chapter ?? "nu");
   const [title, setTitle] = useState(initial?.title ?? "");
-  const [body, setBody] = useState(initial?.body ?? "");
+  const [scenes, setScenes] = useState<Scene[]>(initial?.scenes ?? [{ ...defaultSpec("nu"), text: "" }]);
+  const [active, setActive] = useState(0);
+  const preview = scenes[Math.min(active, scenes.length - 1)];
   const [happenedYear, setHappenedYear] = useState(initial?.happenedYear ? String(initial.happenedYear) : "");
   const [bekerId, setBekerId] = useState(initial?.bekerId ?? presetBeker ?? "");
   const [photos, setPhotos] = useState<PhotoItem[]>(
@@ -113,9 +115,8 @@ export function StoryForm({
     setError(null);
     const stored = photos.filter((photo) => photo.kind === "stored");
     const input = {
-      chapter,
       title,
-      body,
+      scenes,
       happenedYear: happenedYear ? Number(happenedYear) : null,
       bekerId: bekerId || null,
       photos: stored.map((photo) => ({ id: photo.id, caption: photo.caption })),
@@ -142,143 +143,128 @@ export function StoryForm({
 
   return (
     <form
-      className="max-w-3xl space-y-6"
+      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,440px)] lg:items-start"
       onSubmit={(event) => {
         event.preventDefault();
         submit();
       }}
     >
-      <section className="space-y-3 rounded-lg border bg-card p-4">
-        <h2 className={sectionTitle}>Hoofdstuk</h2>
-        <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Hoofdstuk">
-          {CHAPTERS.map((item, index) => (
-            <button
-              key={item.id}
-              type="button"
-              role="radio"
-              aria-checked={chapter === item.id}
-              onClick={() => setChapter(item.id)}
-              className={cn(
-                "flex min-h-16 flex-col items-start justify-center rounded-md border px-3 py-2 text-left transition-colors hover:bg-muted",
-                chapter === item.id && "border-primary bg-primary/5 ring-1 ring-primary",
-              )}
-            >
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                {String(index + 1).padStart(2, "0")} · {item.era}
-              </span>
-              <span className="text-sm font-semibold">{item.title}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-4 rounded-lg border bg-card p-4">
-        <h2 className={sectionTitle}>Het verhaal</h2>
-        <Field label="Titel" hint={`${title.trim().length}/${TITLE_MAX}`}>
-          <input className={field} value={title} maxLength={TITLE_MAX} onChange={(event) => setTitle(event.target.value)} required />
-        </Field>
-        <Field label="Verhaal" hint={`${body.trim().length}/${BODY_MAX}`}>
-          <textarea className={cn(field, "min-h-56")} value={body} maxLength={BODY_MAX} onChange={(event) => setBody(event.target.value)} required />
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
-          <Field label="Jaar">
-            <input
-              className={field}
-              type="number"
-              inputMode="numeric"
-              min={EARLIEST_YEAR}
-              max={year}
-              value={happenedYear}
-              onChange={(event) => setHappenedYear(event.target.value)}
-            />
+      <div className="min-w-0 space-y-6">
+        <section className="space-y-4 rounded-lg border bg-card p-4">
+          <h2 className={sectionTitle}>Het verhaal</h2>
+          <Field label="Titel" hint={`${title.trim().length}/${TITLE_MAX}`}>
+            <input className={field} value={title} maxLength={TITLE_MAX} onChange={(event) => setTitle(event.target.value)} required />
           </Field>
-          <Field label="ZWBeker">
-            <select className={field} value={bekerId} onChange={(event) => setBekerId(event.target.value)}>
-              <option value="">Geen</option>
-              {bekers.map((beker) => (
-                <option key={beker.id} value={beker.id}>
-                  {beker.day.slice(0, 4)} · {beker.title}
-                </option>
+          <div className="grid gap-4 sm:grid-cols-[10rem_minmax(0,1fr)]">
+            <Field label="Jaar">
+              <input
+                className={field}
+                type="number"
+                inputMode="numeric"
+                min={EARLIEST_YEAR}
+                max={year}
+                value={happenedYear}
+                onChange={(event) => setHappenedYear(event.target.value)}
+              />
+            </Field>
+            <Field label="ZWBeker">
+              <select className={field} value={bekerId} onChange={(event) => setBekerId(event.target.value)}>
+                <option value="">Geen</option>
+                {bekers.map((beker) => (
+                  <option key={beker.id} value={beker.id}>
+                    {beker.day.slice(0, 4)} · {beker.title}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+        </section>
+
+        <SceneBuilder scenes={scenes} active={active} onChange={setScenes} onActivate={setActive} />
+
+        <section className="space-y-3 rounded-lg border bg-card p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className={sectionTitle}>Foto&apos;s</h2>
+            <span className="text-xs text-muted-foreground">
+              {photos.length}/{PHOTOS_MAX}
+            </span>
+          </div>
+          {photos.length > 0 && (
+            <ul className="space-y-3">
+              {photos.map((photo, index) => (
+                <li key={photo.key} className="grid gap-3 rounded-md border p-2 sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:items-center">
+                  {photo.url ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- een ondertekende of lokale url
+                    <img src={photo.url} alt="" className="aspect-[4/3] w-full rounded object-cover sm:w-32" />
+                  ) : (
+                    <div className="aspect-[4/3] w-full rounded bg-muted sm:w-32" />
+                  )}
+                  <input
+                    className={field}
+                    value={photo.caption}
+                    maxLength={CAPTION_MAX}
+                    placeholder="Onderschrift"
+                    aria-label={`Onderschrift foto ${index + 1}`}
+                    onChange={(event) =>
+                      setPhotos((current) => current.map((item) => (item.key === photo.key ? { ...item, caption: event.target.value } : item)))
+                    }
+                  />
+                  <div className="flex gap-1">
+                    <IconButton label="Eerder" disabled={index === 0} onClick={() => move(index, -1)}>
+                      <ArrowUp className="size-4" />
+                    </IconButton>
+                    <IconButton label="Later" disabled={index === photos.length - 1} onClick={() => move(index, 1)}>
+                      <ArrowDown className="size-4" />
+                    </IconButton>
+                    <IconButton label="Foto weghalen" onClick={() => setPhotos((current) => current.filter((item) => item.key !== photo.key))}>
+                      <X className="size-4" />
+                    </IconButton>
+                  </div>
+                </li>
               ))}
-            </select>
-          </Field>
-        </div>
-      </section>
-
-      <section className="space-y-3 rounded-lg border bg-card p-4">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className={sectionTitle}>Foto&apos;s</h2>
-          <span className="text-xs text-muted-foreground">
-            {photos.length}/{PHOTOS_MAX}
-          </span>
-        </div>
-        {photos.length > 0 && (
-          <ul className="space-y-3">
-            {photos.map((photo, index) => (
-              <li key={photo.key} className="grid gap-3 rounded-md border p-2 sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:items-center">
-                {photo.url ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- een ondertekende of lokale url
-                  <img src={photo.url} alt="" className="aspect-[4/3] w-full rounded object-cover sm:w-32" />
-                ) : (
-                  <div className="aspect-[4/3] w-full rounded bg-muted sm:w-32" />
-                )}
-                <input
-                  className={field}
-                  value={photo.caption}
-                  maxLength={CAPTION_MAX}
-                  placeholder="Onderschrift"
-                  aria-label={`Onderschrift foto ${index + 1}`}
-                  onChange={(event) =>
-                    setPhotos((current) => current.map((item) => (item.key === photo.key ? { ...item, caption: event.target.value } : item)))
-                  }
-                />
-                <div className="flex gap-1">
-                  <IconButton label="Eerder" disabled={index === 0} onClick={() => move(index, -1)}>
-                    <ArrowUp className="size-4" />
-                  </IconButton>
-                  <IconButton label="Later" disabled={index === photos.length - 1} onClick={() => move(index, 1)}>
-                    <ArrowDown className="size-4" />
-                  </IconButton>
-                  <IconButton label="Foto weghalen" onClick={() => setPhotos((current) => current.filter((item) => item.key !== photo.key))}>
-                    <X className="size-4" />
-                  </IconButton>
-                </div>
-              </li>
-            ))}
-          </ul>
+            </ul>
+          )}
+          {photos.length < PHOTOS_MAX && (
+            <label className="flex w-fit cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-2 text-sm hover:bg-muted">
+              <ImagePlus className="size-4" aria-hidden />
+              Foto&apos;s kiezen
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="sr-only"
+                onChange={(event) => {
+                  addPhotos(event.target.files);
+                  event.target.value = "";
+                }}
+              />
+            </label>
+          )}
+        </section>
+        {error && (
+          <p className="text-sm text-destructive" role="alert">
+            {error}
+          </p>
         )}
-        {photos.length < PHOTOS_MAX && (
-          <label className="flex w-fit cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-2 text-sm hover:bg-muted">
-            <ImagePlus className="size-4" aria-hidden />
-            Foto&apos;s kiezen
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="sr-only"
-              onChange={(event) => {
-                addPhotos(event.target.files);
-                event.target.value = "";
-              }}
-            />
-          </label>
-        )}
-      </section>
-
-      {error && (
-        <p className="text-sm text-destructive" role="alert">
-          {error}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={pending}>
-          {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
-          {initial ? "Opslaan" : "Insturen"}
-        </Button>
-        <Button type="button" variant="ghost" onClick={() => router.back()} disabled={pending}>
-          Annuleren
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" disabled={pending}>
+            {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+            {initial ? "Opslaan" : "Insturen"}
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => router.back()} disabled={pending}>
+            Annuleren
+          </Button>
+        </div>
       </div>
+
+      <aside className="order-first space-y-2 lg:sticky lg:top-20 lg:order-none" aria-label="Voorbeeld">
+        <div className="relative aspect-video overflow-hidden rounded-lg border bg-[#165e72] lg:aspect-[4/3]">
+          <SceneStage spec={preview} frame="preview" />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Hoofdstuk {Math.min(active, scenes.length - 1) + 1} · {describeScene(preview)}
+        </p>
+      </aside>
     </form>
   );
 }

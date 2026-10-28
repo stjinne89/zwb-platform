@@ -550,7 +550,8 @@ export default function PrivacyPage() {
             <strong>Clubverhaal:</strong> een lid kan een anekdote of verhaal
             met hooguit zes foto&apos;s insturen voor het verhaal van ZWB op{" "}
             <Link href="/verhaal" className="underline">/verhaal</Link>. We bewaren de
-            titel, de tekst, het jaar, het hoofdstuk, een eventuele ZWBeker, de
+            titel, de hoofdstukken met hun tekst en gekozen scène, het jaar, een
+            eventuele ZWBeker, de
             foto&apos;s met onderschrift, wie het schreef en wat het bestuur
             besloot, met een eventuele notitie. Zolang het bestuur het nog niet
             plaatste, zien alleen jij en wie verhalen plaatst het. Een geplaatst

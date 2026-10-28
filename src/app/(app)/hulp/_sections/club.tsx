@@ -289,9 +289,21 @@ export function ClubHelp() {
             <span>
               <strong className="text-foreground">Insturen.</strong> Kies
               Verhaal insturen onder Club &rarr; Clubverhaal, of Vertel jouw
-              verhaal op /verhaal. Kies het hoofdstuk, geef een titel en
-              vertel; het jaar, een ZWBeker en hooguit zes foto&apos;s met
-              onderschrift zijn niet verplicht.
+              verhaal op /verhaal. Geef een titel en vertel je verhaal in een
+              of meer hoofdstukken (hooguit acht). Het jaar, een ZWBeker en
+              hooguit zes foto&apos;s met onderschrift zijn niet verplicht.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">De scène.</strong> Kies per
+              hoofdstuk het shirt (en daarmee de periode), wat je poppetje doet
+              (rijden, juichen, sprinten, afzien, klimmen of afdalen), met
+              hoeveel renners je rijdt en het moment (zon, avond of grijs). Het
+              voorbeeld naast het formulier laat meteen zien hoe het eruitziet.
+              Het shirt van het eerste hoofdstuk bepaalt bij welke periode je
+              verhaal op /verhaal staat.
             </span>
           </li>
           <li className="flex gap-2">
@@ -308,9 +320,10 @@ export function ClubHelp() {
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
             <span>
               <strong className="text-foreground">Kort of lang.</strong> Een
-              korte anekdote zonder foto staat in zijn geheel bij het hoofdstuk.
-              Een verhaal met foto&apos;s of een langer verhaal krijgt een eigen
-              pagina, met de foto&apos;s tussen de tekst.
+              korte anekdote in één hoofdstuk zonder foto staat in zijn geheel
+              bij de periode. Een verhaal met meer hoofdstukken, foto&apos;s of
+              meer tekst krijgt een eigen pagina: tijdens het scrollen wisselt
+              de scène per hoofdstuk, met de foto&apos;s ertussen.
             </span>
           </li>
           <li className="flex gap-2">
