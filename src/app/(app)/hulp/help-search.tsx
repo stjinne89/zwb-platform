@@ -360,6 +360,13 @@ const HELP_INDEX: HelpResult[] = [
       "zwblokken blokken kaart heatmap verkennen gebied squadrats tegels ontdekken koning koningin vorst gouverneur titel provincie deelstaat zwift watopia makuri france london new york virtueel",
   },
   {
+    title: "ZWBekers",
+    text: "De prijzenkast: een prestatie voordragen, de beker ontwerpen en feliciteren.",
+    href: "/hulp/club#zwbekers",
+    terms:
+      "zwbekers beker bekers prijs prijzen prijzenkast kast trofee voordragen nomineren nominatie ontwerpen ontwerp bokaal schaal medaille gravure team teambeker feliciteren felicitatie keuren toekennen teruggestuurd",
+  },
+  {
     title: "Privacy en zichtbaarheid",
     text: "Profielvelden, live tracking en trainer-data delen.",
     href: "/hulp/club#privacy",

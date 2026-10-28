@@ -1,0 +1,350 @@
+/* ZWBekers: de prijzenkast in de galerij van ZWBriljant (eigenaar, 2026-10-28:
+   "dezelfde ruimte qua loods"). Dezelfde kleuren en letters als
+   briljant.module.css: petrol wanden, witte sokkels, petrol bordjes,
+   Cormorant Garamond voor titels en Jost in spatiekapitalen voor de rest. */
+
+.root {
+  --ink: #f4efe4;
+  --muted: #a8a296;
+  --gold: #e7c56b;
+  --night: #0a2b34;
+  --serif: var(--font-briljant-serif), "Cormorant Garamond", Georgia, serif;
+  --sans: var(--font-briljant-sans), "Jost", system-ui, sans-serif;
+  color: var(--ink);
+  font-family: var(--sans);
+}
+
+.stage {
+  position: relative;
+  overflow: hidden;
+  height: min(78vh, 820px);
+  min-height: 500px;
+  border-radius: 6px;
+  background: var(--night);
+  isolation: isolate;
+}
+
+.loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* De kop linksboven: naam van de kast en hoeveel bekers erin staan. */
+.crest {
+  position: absolute;
+  top: 26px;
+  left: 30px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.crest h1 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(34px, 4.4vw, 52px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+.crest p {
+  margin: 8px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Knoppen rechtsboven: voordragen, je voordrachten, keuren. */
+.actions {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 60%;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgb(231 197 107 / 0.45);
+  border-radius: 2px;
+  background: rgb(10 43 52 / 0.72);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  backdrop-filter: blur(4px);
+}
+
+.action:hover {
+  border-color: var(--gold);
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.action.primary {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--night);
+  font-weight: 500;
+}
+
+.count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--gold);
+  color: var(--night);
+  font-size: 10px;
+  letter-spacing: 0;
+}
+
+/* Terug: alleen op de telefoon, waar de kast het hele scherm vult. */
+.back {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  display: none;
+  min-height: 44px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 0 8px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.back:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Bordjes die met de sokkels meelopen */
+.labels {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.anchor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  transition: opacity 0.3s;
+  will-change: transform;
+}
+
+/* Een messing bordje op de rand van de plank: titel en wie hem won. De scène
+   schaalt het tot de breedte van het vak. */
+.plaque {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  width: 10em;
+  padding: 4px 8px 5px;
+  transform: translate(-50%, 0);
+  border: 0;
+  border-radius: 1px;
+  background: linear-gradient(180deg, #ecd391 0%, #c9a45a 55%, #a8843f 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 248 220 / 0.7),
+    0 3px 6px -3px rgb(0 0 0 / 0.6);
+  color: #3d2a0c;
+  font: inherit;
+  text-align: center;
+  text-decoration: none;
+  white-space: normal;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.plaque b {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.plaque span {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5a4216;
+}
+
+.plaque:hover {
+  filter: brightness(1.08);
+}
+
+.plaque:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Zonder WebGL, of als de kast nog leeg is: de bekers als plaatjes op een plank. */
+.shelf {
+  position: absolute;
+  inset: 120px 24px 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  align-content: start;
+  gap: 18px;
+  overflow-y: auto;
+  padding-bottom: 12px;
+}
+
+.shelfItem {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 14px 10px 12px;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.04);
+  color: inherit;
+  text-align: center;
+  text-decoration: none;
+}
+
+.shelfItem:hover {
+  background: rgb(255 255 255 / 0.08);
+}
+
+.shelfItem:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.shelfItem svg {
+  width: 72px;
+  height: 92px;
+}
+
+.shelfItem b {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.shelfItem small {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 18px;
+  padding: 24px;
+  text-align: center;
+}
+
+.empty svg {
+  width: 110px;
+  height: 140px;
+  opacity: 0.85;
+}
+
+.empty p {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 22px;
+  color: var(--ink);
+}
+
+/* Het voorbeeld van één beker: bij het ontwerpen en op de pagina van de beker. */
+.preview {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  width: 100%;
+  border-radius: 6px;
+  background: var(--night);
+  isolation: isolate;
+}
+
+.preview .fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.preview .fallback svg {
+  width: 52%;
+  height: auto;
+}
+
+@media (max-width: 640px) {
+  /* Schermvullend, boven de app-balk, zoals ZWBriljant; de terugknop brengt je terug. */
+  .stage {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    height: 100dvh;
+    min-height: 0;
+    border-radius: 0;
+    touch-action: none;
+  }
+  .back {
+    display: inline-flex;
+    top: max(8px, env(safe-area-inset-top));
+  }
+  .crest {
+    top: calc(max(8px, env(safe-area-inset-top)) + 52px);
+    left: 20px;
+  }
+  .actions {
+    top: auto;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    left: 16px;
+    right: 16px;
+    max-width: none;
+    justify-content: center;
+  }
+  .shelf {
+    inset: calc(max(8px, env(safe-area-inset-top)) + 140px) 16px calc(80px + env(safe-area-inset-bottom));
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anchor {
+    transition: none;
+  }
+}

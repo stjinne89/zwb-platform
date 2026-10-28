@@ -127,6 +127,8 @@ export const NAV_GROUPS: NavNode[] = [
       { type: "link", href: "/zwbieb", label: "ZWBieb" },
       { type: "link", href: "/teams", label: "Teams" },
       { type: "link", href: "/stats", label: "Stats" },
+      // De prijzenkast (0286, 2026-10-28).
+      { type: "link", href: "/zwbekers", label: "ZWBekers" },
       { type: "link", href: "/profiel/segments/collecties", label: "ZWB Segments" },
       { type: "link", href: "/zwblokken", label: "ZWBlokken" },
       { type: "link", href: "/zwbgame", label: "ZWBgame" },
@@ -210,6 +212,7 @@ export const BEHEER_CATEGORIES: BeheerCategory[] = [
       { type: "link", href: "/media", label: "Media", permission: "media.manage" },
       adminLink("citaten"),
       adminLink("achievements"),
+      adminLink("zwbekers"),
       adminLink("zwbgame"),
       adminLink("bokaal"),
     ],

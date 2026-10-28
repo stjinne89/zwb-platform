@@ -47,7 +47,11 @@ export type NotificationTrigger =
   | "on_ride_message"
   // Q&A (0254): een nieuwe vraag voor wie antwoordt, een antwoord voor de vrager.
   | "on_qa_question"
-  | "on_qa_answer";
+  | "on_qa_answer"
+  // ZWBekers (0286): een nieuwe voordracht voor wie keurt; een gewonnen of
+  // beoordeelde beker voor de winnaars en wie voordroeg.
+  | "on_zwbeker_nomination"
+  | "on_zwbeker_awarded";
 
 let vapidConfigured = false;
 function ensureVapid(): boolean {

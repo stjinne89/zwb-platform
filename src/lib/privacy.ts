@@ -84,6 +84,15 @@
  * 0273). Het gewicht van voor en na wordt niet bewaard. Besluit 7 van
  * docs/ritvoeding-plan.md; de eigenaar keurde de tekst op `/privacy#zweettest`
  * goed op 2026-10-25.
+ *
+ * **Tiende uitzondering, voorgesteld: ZWBekers (2026-10-28).** Leden dragen een
+ * prestatie van zichzelf, een ander lid of een team voor; het bestuur keurt
+ * (0286). Nieuw is dat een lid gegevens over een ánder lid plaatst (naam bij
+ * een prestatie, verhaal, eventueel een foto), die na goedkeuring alle
+ * goedgekeurde leden zien. Dat lijkt op ritverslagen en verjaardagsfoto's, die
+ * ook zonder nieuwe versie kwamen, maar of dat hier ook mag, is aan de
+ * eigenaar: tekst op `/privacy#zwbekers`, nog niet goedgekeurd (zie PLAN.md,
+ * ronde "ZWBekers").
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring

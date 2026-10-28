@@ -20,6 +20,10 @@ gaat stabiliteit voor nieuwe features.
    stap 4). Daarna kan het delen bij OpenAI uit; dat doet de eigenaar.
    De privacytekst noemt de aanbieder die `AI_PROVIDER` kiest (akkoord eigenaar).
 
+0b. **ZWBekers (2026-10-28): migratie `0286` toegepast en gepusht.** Open: de
+   privacytekst `/privacy#zwbekers` wacht op akkoord van de eigenaar, net als de
+   vraag of dit zonder nieuwe privacyversie kan (zie de ronde "ZWBekers").
+
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
    (limiet 5 GB), en de banner "Organization exceeded its quota in the previous
@@ -11515,6 +11519,100 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBekers: prijzenkast voor prestaties, door leden voorgedragen en ontworpen
+
+**2026-10-28.** Gepusht naar `main` op 2026-10-28 (eigenaar); de hash staat in
+`git log` bij deze ronde. Migratie `0286_zwbekers.sql`, op 2026-10-28 door de
+eigenaar toegepast in de SQL-editor, vóór de push. Achteraf nagekeken via de
+Supabase-connector: drie tabellen met RLS aan, drie selectpolicies, `anon` geen
+select, `authenticated` alleen select, 4 foreign keys op `zwbekers`, bucket
+`zwbeker-photos` besloten met 10 MB, beide pushkolommen aanwezig, 0 rijen.
+
+**Waarom.** Wens van de eigenaar: "in navolging van de ZWBriljant ook ZWBekers
+inruimen voor teamprestaties en individuele prestaties die een plekje in de
+aandacht verdienen", in een prijzenkast waar je op een beker klikt voor de
+details, in dezelfde loods als de galerij van ZWBriljant, en met de prijzen
+op iemands profiel. Keuzes van de eigenaar (2026-10-28): leden nomineren en
+het bestuur keurt; het lid dat nomineert ontwerpt ook de prijs; een teambeker
+hangt aan een team en de leden die meereden; de kast staat onder Club; bij een
+beker een foto, een event of uitslag, felicitaties en een bekersoort. Na een
+eerste versie met sokkels zoals ZWBriljant: "meer een prijzenkast dan een
+galerij", met één kast per jaar, notenhout met messing, en op de telefoon
+inzoomen op een plank.
+
+**Wat.**
+- `0286`: `zwbekers` (voordracht en beker in één rij, `status` voorgedragen /
+  toegekend / afgewezen, `design` als jsonb, `profile_id` = wie voordroeg, bij
+  opheffen `set null`), `zwbeker_winners` (beker × lid), `zwbeker_congrats`.
+  Alleen selectpolicies: een voordracht zien alleen wie hem deed en wie keurt,
+  ook niet de winnaars (een verrassing); een toegekende beker elk goedgekeurd
+  lid. Schrijven alleen via de server (admin-client na de checks in
+  `lib/zwbekers/server.ts`), zoals `ladder_pool`. Besloten bucket
+  `zwbeker-photos` zonder policies: de server maakt een ondertekende uploadlink
+  (alleen voor wie de voordracht nog mag aanpassen) en leeslinks (na het lezen
+  van de beker met RLS). Pushvoorkeuren `on_zwbeker_nomination` (voor wie keurt)
+  en `on_zwbeker_awarded` (winnaars en wie voordroeg).
+- Keuren met het recht `achievements.finalize` (Badgebeheer); geen nieuw recht,
+  want dat vraagt de check-constraint van `community_role_permissions` (zie
+  0254). Beheergebied `/beheer/zwbekers` in de categorie Community.
+- Ontwerp (`lib/zwbekers/design.ts`, puur): vorm (beker, bokaal, schaal,
+  medaille), metaal, oren, silhouet, voet, sokkel, lint (medaille) en een
+  gravure van hooguit 24 tekens, alleen uit vaste lijsten. Uit dezelfde maten
+  komen de 3D-beker (`components/zwbekers/trophy.ts`, draaivorm met
+  `LatheGeometry`, oren als buis langs een kromme) en het SVG-plaatje
+  (`beker-icon.tsx`) voor profiel, lijsten en de kast zonder WebGL.
+- De kast (`/zwbekers`, `cabinet-scene.tsx`): per jaar een kast van notenhout
+  met glazen deuren, verlichte glazen planken, fluweel binnenin en het jaartal
+  op de kroon, in de loods van ZWBriljant (wand, vloer, plint, spreuken, logo en
+  sponsorbordjes uit `briljant/gallery.ts`). Een vol jaar maakt de kast breder.
+  Onder elke beker een messing bordje (HTML-knop) dat de beker opent. Breed
+  scherm: een hele kast per stop; staand scherm: twee vakken per stop, vegen van
+  plank naar plank. `?bij=<id>` begint bij een beker.
+- Voordragen en aanpassen (`/zwbekers/voordragen`, `/zwbekers/[id]/bewerken`)
+  met een live 3D-voorbeeld dat bij elke keuze meeverandert
+  (`trophy-scene.tsx`, wisselt alleen de beker). Teruggestuurd kan opnieuw.
+  Hooguit 5 voordrachten per lid per dag, 20 felicitaties per uur.
+- De beker (`/zwbekers/[id]`): de beker in de loods, winnaars, team, verhaal,
+  foto, event en uitslag, wie voordroeg, keuren (voor wie keurt) en
+  felicitaties. `/zwbekers/voordrachten` toont je open en teruggestuurde
+  voordrachten.
+- Profiel: een plank met je bekers vlak voor de badges (`beker-shelf.tsx`), ook
+  teambekers waar je bij stond. Volgt de zichtbaarheid van badges.
+- Club-menu en Club-tegel (teal, prestaties), `/hulp/club#zwbekers`, zoekterm in
+  de hulp, data-export (drie tabellen), privacytekst `/privacy#zwbekers`.
+
+**Bewust niet.**
+- Geen vrije maten, kleuren of eigen afbeelding als beker: een ZWBeker blijft
+  herkenbaar en het bestuur hoeft niets onleesbaars terug te sturen.
+- De bekers niet op het publieke profiel (`/profielen/[id]`).
+- Geen eigen zichtbaarheidsschakelaar voor bekers: ze volgen die van badges.
+- De sokkels-galerij uit de eerste versie is weg (vervangen door de kast); de
+  galerij van ZWBriljant zelf is niet aangeraakt. De kast gebruikt een eigen
+  lichtvlek (`zwbekers/loods.ts`), omdat `wash` aan de bovenkant niet uitloopt
+  en een staand scherm die rand als streep zag; in ZWBriljant valt hij buiten
+  beeld, dus daar niets veranderd.
+- Winnaars kunnen na toekenning zelf geen foto toevoegen en niet zelf van een
+  beker af; dat gaat via het bestuur.
+- Geen nieuwe privacyversie: **voorstel, ter goedkeuring bij de eigenaar**
+  (tiende uitzondering in `lib/privacy.ts`). Nieuw is dat een lid gegevens over
+  een ander lid plaatst die na goedkeuring alle leden zien.
+
+**Volgorde bij uitrollen** (zo gedaan). Eerst `0286` toepassen, dan deployen. `/profiel`
+leest de twee nieuwe pushkolommen: zonder de migratie valt die hele select om,
+toont het formulier de standaardwaarden en mislukt opslaan.
+
+**Gecontroleerd.** `tsc` schoon, ESLint op alle nieuwe en gewijzigde bestanden,
+Vitest `zwbekers.test.ts` groen (alle combinaties van het ontwerp: gesloten
+profiel, geen NaN in het SVG-pad, oren alleen bij beker en bokaal; voordracht,
+link, fotopad). De scènes bekeken in een losse testpagina met headless Chromium
+(SwiftShader): de kast op 1280×760 en 390×844, alle ontwerpen los. Daarbij
+aangepast: lichtere metaalkleuren en een eigen reflectieomgeving voor het
+metaal (goud werd in de petrol galerij olijfgroen), fluweel aan de binnenkant
+van de kast, een donkerder lint. **Niet geverifieerd:** de migratie lokaal (geen
+Docker of Supabase-config hier; op productie wel nagekeken, zie boven), de pagina's met een ingelogde sessie, uploaden
+van een foto via de ondertekende link, en de pushmeldingen. `next build` niet
+afgerond: hier stopte hij op het ophalen van Google Fonts (geen netwerk naar
+Google in deze omgeving), vóór het compileren van de nieuwe pagina's.
 ### Gebouwd — Tabbalk op de iPhone: herstel alleen binnen een toetsenbordbeurt
 
 **2026-10-28.** Commit `11e46e39`, gepusht naar `main` op 2026-10-28 (eigenaar). Geen migratie.

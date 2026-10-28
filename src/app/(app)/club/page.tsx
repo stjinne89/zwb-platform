@@ -25,6 +25,7 @@ const TILE_STYLE: Record<string, Pick<PlaceLink, "tone" | "size">> = {
   "/sponsors": { tone: "club" },
   // teal: prestaties en cijfers
   "/stats": { tone: "zwbeter" },
+  "/zwbekers": { tone: "zwbeter" },
   // donker petrol: spel en ontdekken
   "/zwblokken": { tone: "meer" },
   "/profiel/segments/collecties": { tone: "meer" },

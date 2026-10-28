@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   Bike,
   Cake,
+  Trophy,
   ChartNoAxesColumn,
   CheckCircle2,
   Grid3x3,
@@ -162,6 +163,87 @@ export function ClubHelp() {
           >
             <Grid3x3 className="size-4 text-primary" />
             Naar ZWBlokken
+          </Link>
+        </div>
+      </section>
+
+      <section
+        id="zwbekers"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Trophy className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">ZWBekers</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              De prijzenkast van de club. Elk lid kan een prestatie voordragen
+              die aandacht verdient, van een clubgenoot of van een team, en
+              ontwerpt er zelf de beker bij. Keurt het bestuur hem goed, dan
+              staat hij in de kast van dat jaar en op het profiel van wie hem
+              won.
+            </p>
+          </div>
+        </header>
+
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Voordragen.</strong> Kies
+              Voordragen in de kast. Geef de beker een titel, de datum en kort
+              waarom. Bij een team kies je het team en vink je aan wie er
+              meereed; ook wie niet (meer) in het team zit, kun je toevoegen.
+              Een event, een link naar de uitslag en een foto zijn niet
+              verplicht.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Ontwerpen.</strong> Kies een
+              beker, bokaal, schaal of medaille, het metaal, de vorm, de voet,
+              de sokkel en een korte gravure. Het voorbeeld verandert meteen
+              mee; sleep om hem rond te draaien.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Keuren.</strong> Alleen jij
+              en het bestuur zien je voordracht, ook de winnaars niet: het
+              blijft een verrassing. Stuurt het bestuur hem terug, dan staat
+              erbij waarom en kun je hem aanpassen. Je voordrachten vind je in
+              de kast onder Je voordrachten.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">In de kast.</strong> Elk jaar
+              heeft een eigen kast. Scroll, sleep of gebruik de pijltjes om van
+              kast naar kast te gaan; op de telefoon veeg je van plank naar
+              plank. Tik op het bordje onder een beker voor het verhaal, de
+              foto en de felicitaties.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Op je profiel.</strong> Je
+              bekers staan op een plank op je profiel, ook een teambeker als je
+              meereed. Ze volgen de zichtbaarheid van je badges: verberg je je
+              badges, dan ook je bekers.
+            </span>
+          </li>
+        </ul>
+
+        <div className="mt-4">
+          <Link
+            href="/zwbekers"
+            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+          >
+            <Trophy className="size-4 text-primary" />
+            Naar de prijzenkast
           </Link>
         </div>
       </section>

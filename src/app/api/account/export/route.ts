@@ -52,6 +52,11 @@ const PROFILE_TABLES: string[] = [
   // ZWBriljant (0265): of je deelt, en je hoogte per week.
   "zwbriljant_preferences",
   "zwbriljant_snapshots",
+  // ZWBekers (0286): je voordrachten (profile_id is wie voordroeg), de bekers
+  // waar je bij staat en je felicitaties.
+  "zwbekers",
+  "zwbeker_winners",
+  "zwbeker_congrats",
 ];
 
 export async function GET() {

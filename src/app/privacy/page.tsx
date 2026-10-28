@@ -524,6 +524,28 @@ export default function PrivacyPage() {
             {AI} of een andere partij. Het staat in je data-export en
             verdwijnt als je je account opheft.
           </li>
+          <li id="zwbekers" className="scroll-mt-20">
+            <strong>ZWBekers:</strong> een lid kan een prestatie voordragen voor
+            een beker in de prijzenkast, van zichzelf, van een ander lid of van
+            een team. We bewaren wie voordroeg, voor wie, het team (en de leden
+            die meereden), de titel, de datum, het verhaal, het ontwerp van de
+            beker, een eventuele foto en link naar de uitslag, en wat het bestuur
+            besloot, met een eventuele notitie. Zolang het bestuur nog niet
+            besliste, zien alleen wie voordroeg en het bestuur de voordracht; de
+            winnaars krijgen hem niet te zien. Een toegekende beker zien alle
+            goedgekeurde leden, met de namen van de winnaars, in de kast en op
+            het profiel van elke winnaar. Op je profiel volgen je bekers de
+            zichtbaarheid van je badges; in de kast staat je naam altijd bij de
+            beker. Niet op je publieke profiel. Leden kunnen onder een beker
+            feliciteren; die felicitaties zien alle goedgekeurde leden. Foto&apos;s
+            staan in een besloten opslag en zijn alleen te zien voor wie de beker
+            mag zien. Wil je niet (meer) bij een beker staan, of moet een foto
+            weg, vraag het bestuur (zie &ldquo;Je rechten&rdquo;). Hef je je
+            account op, dan verdwijnen je naam bij een beker en je felicitaties;
+            een beker die je zelf voordroeg blijft staan, zonder je naam. Er gaat
+            niets naar {AI} of een andere partij. Je voordrachten, bekers en
+            felicitaties staan in je data-export.
+          </li>
           <li>
             <strong>Persoonlijke voorkeuren:</strong> op het tabblad
             Uitgangspunten, of met het vinkje &ldquo;Onthoud als voorkeur&rdquo; in

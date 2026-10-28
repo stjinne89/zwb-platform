@@ -28,12 +28,16 @@ type Props = {
     on_intervals_visit_reminder: boolean;
     on_qa_question: boolean;
     on_qa_answer: boolean;
+    on_zwbeker_nomination: boolean;
+    on_zwbeker_awarded: boolean;
   };
   hasSubscriptionInDb: boolean;
   /** Alleen zichtbaar voor wie leden mag goedkeuren; anders vuurt hij nooit. */
   canApproveMembers?: boolean;
   /** Alleen zichtbaar voor wie vragen in Q&A mag beantwoorden. */
   canAnswerQuestions?: boolean;
+  /** Alleen zichtbaar voor wie voordrachten voor ZWBekers keurt. */
+  canReviewBekers?: boolean;
 };
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -53,6 +57,7 @@ export function PushToggle({
   hasSubscriptionInDb,
   canApproveMembers = false,
   canAnswerQuestions = false,
+  canReviewBekers = false,
 }: Props) {
   const [supported, setSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | null>(
@@ -332,6 +337,14 @@ export function PushToggle({
           />
           intervals.icu even openen, zodat mijn ritten blijven komen
         </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="on_zwbeker_awarded"
+            defaultChecked={initialPreferences.on_zwbeker_awarded}
+          />
+          Ik win een ZWBeker, of mijn voordracht is beoordeeld
+        </label>
         {canApproveMembers && (
           <label className="flex items-center gap-2 text-sm">
             <input type="hidden" name="__has_member_pending" value="1" />
@@ -352,6 +365,17 @@ export function PushToggle({
               defaultChecked={initialPreferences.on_qa_question}
             />
             Nieuwe vraag in Q&amp;A
+          </label>
+        )}
+        {canReviewBekers && (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="hidden" name="__has_zwbeker_nomination" value="1" />
+            <input
+              type="checkbox"
+              name="on_zwbeker_nomination"
+              defaultChecked={initialPreferences.on_zwbeker_nomination}
+            />
+            Nieuwe voordracht voor een ZWBeker
           </label>
         )}
         <div className="flex justify-end">

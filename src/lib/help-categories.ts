@@ -59,6 +59,7 @@ export const HELP_CATEGORIES = [
       "zwbieb",
       "verjaardagsrondje",
       "zwblokken",
+      "zwbekers",
       "mijn-statistieken",
       "mijn-garage",
     ],
