@@ -27,12 +27,12 @@ gaat stabiliteit voor nieuwe features.
    van de ronde "ZWBekers: een beker voor een hele ZRL-ronde" (`5b05403e`) is
    dezelfde dag gepusht naar `main`.
 
-0d. **Clubverhaal in eigen hoofdstukken (2026-10-28): migratie
-   `0289_club_story_scenes.sql` nog niet toegepast, code niet gepusht.** Eerst
-   de migratie, dan de code: de server leest en schrijft de kolom `scenes`, en
-   zonder die kolom werken insturen, je verhalen en het beheer niet (`/verhaal`
-   toont dan alleen de periodes). Zie de ronde "Clubverhaal: een eigen verhaal
-   in hoofdstukken".
+0d. **Clubverhaal in eigen hoofdstukken (2026-10-28): migratie `0289`
+   toegepast en gepusht.** `0289_club_story_scenes.sql` is op 2026-10-28 via
+   de Supabase-connector toegepast, op verzoek van de eigenaar, vóór de push.
+   Nog doen: een verhaal met twee of meer hoofdstukken insturen, plaatsen en op
+   `/verhaal/[id]` doorscrollen. Zie de ronde "Clubverhaal: een eigen verhaal in
+   hoofdstukken".
 
 0c. **Clubverhaal (2026-10-28): migratie `0288` toegepast en gepusht.**
    `0288_club_stories.sql` is op 2026-10-28 via de Supabase-connector
@@ -11540,8 +11540,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Clubverhaal: een eigen verhaal in hoofdstukken, met poppetjes en scènes
 
-**2026-10-28.** Migratie `0289_club_story_scenes.sql` (nog niet toegepast).
-Niet gepusht.
+**2026-10-28.** Commit `caf7d96e`, gepusht naar `main` op 2026-10-28
+(eigenaar). Migratie `0289_club_story_scenes.sql`, dezelfde dag vóór de push via
+de Supabase-connector toegepast. Vooraf: geen kolom `scenes`, 0 verhalen.
+Achteraf: `scenes` jsonb, niet leeg, standaard `'[]'`, en de check
+`club_stories_scenes_check`.
 
 **Waarom.** Wens van de eigenaar, direct na de eerste ronde: een lid moet zijn
 verhaal anders kunnen opbouwen dan de vier vaste periodes, met "verschillende
@@ -11613,8 +11616,8 @@ hoofdstukken, periode uit het eerste shirt, kapotte opgeslagen hoofdstukken),
 weggehaald): alle zes poses, de drie lichtstanden, 1–7 renners en de vier
 shirts in het voorbeeld, en de verhaalpagina met drie hoofdstukken die per
 hoofdstuk van scène wisselt. `/verhaal` zonder verhalen ongewijzigd.
-**Niet geverifieerd:** de migratie, het echte formulier met een ingelogde
-sessie (insturen, aanpassen, plaatsen), en de scène op een trage telefoon.
+**Niet geverifieerd:** het echte formulier met een ingelogde sessie
+(insturen, aanpassen, plaatsen), en de scène op een trage telefoon.
 
 ### Gebouwd — Clubverhaal: /verhaal in de stijl van de ZWBgame, met verhalen van leden
 
