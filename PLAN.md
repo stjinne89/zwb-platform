@@ -34,6 +34,12 @@ gaat stabiliteit voor nieuwe features.
    `/verhaal/[id]` doorscrollen. Zie de ronde "Clubverhaal: een eigen verhaal in
    hoofdstukken".
 
+0e. **Kracht uit intervals.icu (2026-10-28): lokaal gecommit, niet gepusht.**
+   Migratie `0290_intervals_strength_muscles.sql` is **niet toegepast**; eerst
+   toepassen, dan pushen (zonder tabel werkt het meetellen wel, het aantikken
+   van spieren niet). Open: de privacytekst wacht op akkoord van de eigenaar.
+   Zie de ronde "Kracht: krachttraining uit intervals.icu meetellen".
+
 0c. **Clubverhaal (2026-10-28): migratie `0288` toegepast en gepusht.**
    `0288_club_stories.sql` is op 2026-10-28 via de Supabase-connector
    toegepast, op verzoek van de eigenaar, vóór de push naar `main` (zelfde
@@ -11538,6 +11544,83 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kracht: krachttraining uit intervals.icu meetellen, spieren aantikken op het figuur
+
+**2026-10-28.** Commit: de commit die dit blok toevoegt, op de branch
+`claude/zwbeter-intervals-strength-export-a84f34`, niet gepusht. Migratie
+`0290_intervals_strength_muscles.sql`, **niet toegepast** en niet lokaal te
+testen (geen Docker of Supabase-config).
+
+**Waarom.** Vraag van de eigenaar: een krachttraining uit intervals.icu
+meenemen in ZWBeter kracht, en daarbij op het getekende krachtmensje kunnen
+aantikken welke spiergroepen getraind zijn. Uitgezocht in productie
+(2026-10-28): `intervals_activities` had al 52 sessies `WeightTraining` van 4
+leden (35 van Garmin, 17 met de hand in intervals ingevoerd). In
+`mobility_sessions` stonden in totaal 12 afgevinkte series. De krachtregel
+(drie dagen rust, hooguit twee per week) zag alleen die afgevinkte series:
+na een avond in de sportschool kon ZWB de dag erna een squatserie voorstellen.
+
+**Wat.**
+- `lib/training/intervals-strength.ts`: alleen type `WeightTraining` telt.
+  `recommendStrength()` krijgt de dagen van die trainingen erbij
+  (`otherStrengthDays`) voor de rust en het weekmaximum; een dag met ook een
+  afgevinkte serie telt één keer. Op Vandaag, Series en het blok op de
+  ZWBeter-startpagina.
+- Tabblad Vandaag (`/zwbeter-worden/core`): blok "Krachttraining uit
+  intervals.icu" met de trainingen van de afgelopen 28 dagen. Tik op een
+  training: een dialoog met het figuur (`components/mobility/muscle-map-picker.tsx`)
+  waar elke spiergroep een schakelaar is, voor en achter. Ook met het
+  toetsenbord te bedienen (per figuur elke groep één focusbaar element).
+- Aangetikte spieren tellen mee in "Deze week getraind": elke groep als drie
+  sets (`INTERVALS_SESSION_SETS`, eigen keuze; intervals weet niet hoeveel
+  sets je deed, en met 1 kleurt een hele gymsessie lichter dan een korte serie
+  thuis).
+- Tabel `intervals_strength_muscles` (profile_id, intervals_id, muscles):
+  alleen het lid zelf (RLS zoals `mobility_sessions`), vreemde sleutel naar
+  `intervals_activities` met cascade, en een check op de zestien namen uit
+  `MUSCLE_GROUPS` (een test bewaakt dat die gelijk blijven). Niets aangetikt
+  wist de rij. In de data-export.
+- Het krachtspoor werkt `intervals_activities` bij als die ouder is dan zes uur
+  (`refreshIntervalsActivitiesIfStale`, nu geëxporteerd uit
+  `zwbeter-worden/_data.ts`): leden met Strava hebben geen uurlijkse
+  intervals-sync. Het blok op de startpagina slaat dat over, die pagina werkt
+  de lijst zelf al bij.
+- `/hulp#kracht`: alinea over krachttraining uit intervals.icu;
+  `/hulp#spiergroepen` noemt de aangetikte trainingen.
+
+**Bewust niet.**
+- *Sets, herhalingen en gewicht uit het FIT-bestand.* Kan via
+  `/api/v1/activity/{id}/file` en een uitbreiding van `lib/strava/fit.ts`,
+  maar alleen de Garmin-sessies hebben zo'n bestand, correcties in Garmin
+  Connect staan er volgens het intervals-forum niet in, de oefeningcodes van
+  Garmin passen niet op onze oefeningen, en de krachtregel gebruikt alleen de
+  dag.
+- *Type `Workout`* (13 sessies van 4 leden): kan een bootcamp of spinningles
+  zijn en zou de krachtregel ten onrechte laten ingrijpen.
+- *Meetellen voor de core-teller* ("Sessies in 28 dagen", "Weken op doel"):
+  dat doel gaat over core en mobiliteit, niet over de sportschool.
+- *TSS, CTL of naleving*: het krachtspoor blijft daarbuiten, zoals altijd.
+- *Trainerzicht*: de spierkeuze is alleen voor het lid, net als de afgevinkte
+  series.
+- *Spieren aantikken bij een afgevinkte ZWB-serie*: die weet zelf al welke
+  spieren erin zitten.
+
+**Niet meer waar.** "Deze week getraind" staat er niet alleen meer als er een
+serie is afgevinkt, en `recommendStrength` ziet ook intervals-trainingen (in de
+rondes van fase A en B hieronder inline gecorrigeerd).
+
+**Gecontroleerd.** Vitest `mobility.test.ts` (drie nieuwe gevallen voor
+trainingen buiten ZWB), `intervals-strength.test.ts` (nieuw, ook de
+spiergroepen in migratie 0290 tegen `MUSCLE_GROUPS`) en `muscles.test.ts`;
+`tsc` (alleen de bekende fouten over ontbrekende pakketten); ESLint op de
+gewijzigde bestanden. Het figuur is als statische HTML bekeken: leeg en met
+vier aangetikte groepen, voor en achter gekleurd.
+**Niet geverifieerd:** de migratie, en de pagina met een ingelogde sessie
+(lijst, dialoog, klikken en opslaan, de krachtregel met echte data).
+
+**Privacy.** De tekst staat nog niet aangepast; voorstel ligt bij de
+eigenaar (zie actieve volgorde 0e).
+
 ### Gebouwd — Clubverhaal: een eigen verhaal in hoofdstukken, met poppetjes en scènes
 
 **2026-10-28.** Commit `caf7d96e`, gepusht naar `main` op 2026-10-28
@@ -22383,7 +22466,8 @@ De spierkaart per oefening, per serie en als weekoverzicht.
   achteren. Te zien bij elke oefening (bibliotheek, seriepagina, tijdens het
   doorlopen), op de seriekaart en bovenaan de seriepagina, en op het tabblad als
   "Deze week getraind". Die laatste sectie staat er alleen als er in zeven dagen
-  een core- of krachtserie is afgevinkt.
+  een core- of krachtserie is afgevinkt *(sinds 2026-10-28 ook bij een
+  krachttraining uit intervals.icu met aangetikte spieren)*.
 - `/hulp#spiergroepen`: wat de kleuren betekenen en wat de week telt.
 
 **Onderweg besloten.**
@@ -25864,7 +25948,8 @@ belastingberekening, om dezelfde redenen als in `0109`.
 - `recommendStrength()` in `mobility.ts`: alleen op een dag zonder training of
   rit, minstens drie dagen na de vorige krachtsessie en hooguit twee per zeven
   dagen, anders de serie die het langst geleden is *(sinds 2026-10-14 alleen
-  series zonder materiaal; zie fase B)*. `recommendSeries` neemt
+  series zonder materiaal; zie fase B. Sinds 2026-10-28 tellen krachttrainingen
+  uit intervals.icu mee voor de rust en het maximum)*. `recommendSeries` neemt
   krachtseries niet meer mee in de rustdagrotatie. `CoreTodayCard` toont kracht
   als tweede regel ("Of kracht: …"); op `/zwbeter-worden/core` is die serie ook
   gemarkeerd. De bibliotheek kent de categorie Kracht en de seriebouwer het doel

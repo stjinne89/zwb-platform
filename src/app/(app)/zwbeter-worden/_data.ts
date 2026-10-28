@@ -237,8 +237,9 @@ export async function loadIntervalsSnapshot(
   }
 }
 
-/** Belasting per rit bijwerken als de opgeslagen versie verouderd is. */
-async function refreshIntervalsActivitiesIfStale(
+/** Belasting per rit bijwerken als de opgeslagen versie verouderd is. Ook voor
+ * het krachtspoor, dat de krachttrainingen uit dezelfde tabel leest. */
+export async function refreshIntervalsActivitiesIfStale(
   viewer: Viewer,
   conn: IntervalsConnection,
 ) {

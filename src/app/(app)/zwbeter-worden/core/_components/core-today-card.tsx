@@ -12,7 +12,8 @@ import {
   shiftDayKey,
   type RecommendContext,
 } from "@/lib/training/mobility";
-import { loadSeries, loadSessions, type Viewer } from "../_data";
+import { intervalsStrengthDays } from "@/lib/training/intervals-strength";
+import { loadIntervalsStrength, loadSeries, loadSessions, type Viewer } from "../_data";
 
 export async function CoreTodayCard({
   viewer,
@@ -23,15 +24,22 @@ export async function CoreTodayCard({
   today: string;
   context: RecommendContext;
 }) {
-  const [series, sessions] = await Promise.all([
+  const [series, sessions, intervalsStrength] = await Promise.all([
     loadSeries(viewer),
     loadSessions(viewer, today),
+    loadIntervalsStrength(viewer, today, { refresh: false }),
   ]);
 
   const suggestion = recommendSeries(series, sessions, today, context);
   if (!suggestion) return null;
   // Kracht als tweede voorstel, alleen als het vandaag past (zie recommendStrength).
-  const strength = recommendStrength(series, sessions, today, context);
+  const strength = recommendStrength(
+    series,
+    sessions,
+    today,
+    context,
+    intervalsStrengthDays(intervalsStrength),
+  );
 
   const doneToday = sessions.some(
     (session) => session.series_id === suggestion.id && session.completed_on === today,

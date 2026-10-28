@@ -307,6 +307,22 @@ describe("recommendStrength", () => {
     expect(recommendStrength(STANDARD_SERIES, [], today, restDay)).toBeNull();
   });
 
+  it("telt krachttraining buiten ZWB mee voor de rust ertussen", () => {
+    expect(recommendStrength(STRENGTH, [], today, restDay, ["2026-08-08"])).toBeNull();
+    expect(recommendStrength(STRENGTH, [], today, restDay, ["2026-08-07"])).not.toBeNull();
+  });
+
+  it("telt krachttraining buiten ZWB mee voor het weekmaximum, één keer per dag", () => {
+    const rows = [session("2026-08-04", "k1")];
+    expect(recommendStrength(STRENGTH, rows, today, restDay, ["2026-08-06"])).toBeNull();
+    // Zelfde dag als de afgevinkte serie: dat is één krachtdag, geen twee.
+    expect(recommendStrength(STRENGTH, rows, today, restDay, ["2026-08-04"])).not.toBeNull();
+  });
+
+  it("negeert krachttraining buiten ZWB na vandaag", () => {
+    expect(recommendStrength(STRENGTH, [], today, restDay, ["2026-08-11"])).not.toBeNull();
+  });
+
   it("stelt een serie met materiaal nooit voor, maar telt hem wel mee voor de rust", () => {
     const gym = {
       ...series({ id: "g1", slug: "gym-opbouw-1", goal: "kracht", level: 3 }),

@@ -258,21 +258,29 @@ export const BONE_SERIES_SLUGS = new Set(["springen"]);
  * Een serie die materiaal vraagt (halter, apparaat, dumbbell, band) wordt nooit
  * voorgesteld: de app weet niet wat je in huis hebt, en zwaar werk in de
  * sportschool kies je zelf. Zo'n sessie telt wel mee voor de rust ertussen.
+ *
+ * `otherStrengthDays` zijn dagen met krachttraining buiten ZWB, uit intervals.icu
+ * (zie intervals-strength.ts). Die tellen mee voor de rust en het weekmaximum;
+ * een dag met zowel een serie als een intervals-sessie telt één keer.
  */
 export function recommendStrength<T extends MobilitySeries & { items?: MobilitySeriesItem[] }>(
   series: T[],
   sessions: MobilitySession[],
   today: string,
   context: RecommendContext,
+  otherStrengthDays: string[] = [],
 ): T | null {
   if (context.hasPlannedWorkoutToday || context.rodeToday) return null;
   const strength = series.filter((row) => row.goal === "kracht" && !BONE_SERIES_SLUGS.has(row.slug));
   if (strength.length === 0) return null;
 
   const strengthIds = new Set(strength.map((row) => row.id));
-  const strengthDays = sessions
-    .filter((session) => strengthIds.has(session.series_id) && session.completed_on <= today)
-    .map((session) => session.completed_on);
+  const strengthDays = [
+    ...sessions
+      .filter((session) => strengthIds.has(session.series_id))
+      .map((session) => session.completed_on),
+    ...otherStrengthDays,
+  ].filter((day) => day <= today);
 
   const last = strengthDays.sort().at(-1);
   if (last && last > shiftDayKey(today, -STRENGTH_MIN_DAYS_BETWEEN)) return null;

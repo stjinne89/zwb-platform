@@ -2,9 +2,15 @@
 //
 // Bewust losse queries op de mobility_*-tabellen: dit spoor deelt geen enkele
 // tabel met de fietspijplijn, dus er is hier niets uit training_workouts,
-// compliance of de belastingberekening te halen — en dat moet zo blijven.
+// compliance of de belastingberekening te halen — en dat moet zo blijven. De
+// uitzondering is lezen: welke rit er vandaag is, en de krachttrainingen uit
+// intervals_activities.
 
-import type { Viewer } from "../_data";
+import {
+  loadConnection,
+  refreshIntervalsActivitiesIfStale,
+  type Viewer,
+} from "../_data";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { memberHiddenPlanIds } from "@/lib/training/member-hidden-plans";
 import {
@@ -16,6 +22,11 @@ import {
   type MobilitySession,
   type RecommendContext,
 } from "@/lib/training/mobility";
+import {
+  INTERVALS_STRENGTH_TYPES,
+  normalizeMuscleSelection,
+  type IntervalsStrengthSession,
+} from "@/lib/training/intervals-strength";
 
 export { requireViewer, todayKeyAmsterdam } from "../_data";
 export type { Viewer } from "../_data";
@@ -124,4 +135,60 @@ export async function loadSessions(
     .gte("completed_on", from)
     .order("completed_on", { ascending: false });
   return (data ?? []) as unknown as MobilitySession[];
+}
+
+/**
+ * Krachttrainingen uit intervals.icu binnen het venster van 28 dagen, nieuwste
+ * eerst, met de spieren die het lid heeft aangetikt. Is de opgeslagen lijst
+ * ouder dan zes uur, dan eerst bijwerken: leden met Strava hebben geen uurlijkse
+ * intervals-sync, en een gymsessie van vanochtend moet de krachtregel kennen.
+ * Het blok op de ZWBeter-startpagina slaat dat over (`refresh: false`): die
+ * pagina werkt de lijst zelf al bij.
+ */
+export async function loadIntervalsStrength(
+  viewer: Viewer,
+  today: string,
+  { refresh = true }: { refresh?: boolean } = {},
+): Promise<IntervalsStrengthSession[]> {
+  if (refresh) {
+    const conn = await loadConnection(viewer);
+    if (conn?.api_key && conn.athlete_id) {
+      await refreshIntervalsActivitiesIfStale(viewer, conn).catch(() => undefined);
+    }
+  }
+
+  const from = shiftDayKey(today, -(MOBILITY_WINDOW_DAYS - 1));
+  const [activities, choices] = await Promise.all([
+    viewer.supabase
+      .from("intervals_activities")
+      .select("intervals_id, start_date_local, name, moving_time_seconds")
+      .eq("profile_id", viewer.user.id)
+      .in("type", [...INTERVALS_STRENGTH_TYPES])
+      .gte("start_date_local", from)
+      .lte("start_date_local", today)
+      .order("start_date_local", { ascending: false }),
+    // Zonder migratie 0290 bestaat deze tabel niet; dan alleen geen spieren.
+    viewer.supabase
+      .from("intervals_strength_muscles")
+      .select("intervals_id, muscles")
+      .eq("profile_id", viewer.user.id),
+  ]);
+
+  const musclesById = new Map(
+    ((choices.error ? [] : choices.data) ?? []).map((row) => [
+      row.intervals_id as string,
+      normalizeMuscleSelection((row.muscles as string[] | null) ?? []),
+    ]),
+  );
+
+  return (activities.data ?? []).map((row) => {
+    const seconds = row.moving_time_seconds as number | null;
+    return {
+      intervalsId: row.intervals_id as string,
+      day: String(row.start_date_local).slice(0, 10),
+      name: (row.name as string | null) ?? null,
+      minutes: seconds && seconds > 0 ? Math.round(seconds / 60) : null,
+      muscles: musclesById.get(row.intervals_id as string) ?? [],
+    };
+  });
 }
