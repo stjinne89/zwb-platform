@@ -34,8 +34,8 @@ gaat stabiliteit voor nieuwe features.
    `/verhaal/[id]` doorscrollen. Zie de ronde "Clubverhaal: een eigen verhaal in
    hoofdstukken".
 
-0e. **ZWBeter racen: verwachting en terugblik (2026-10-28): gecommit op de
-   branch `claude/zwbeter-race-analyses-a810ee`, niet gepusht.** Geen migratie. In het weekoverzicht wordt het
+0e. **ZWBeter racen: verwachting en terugblik (2026-10-28): gepusht naar
+   `main` (`d72e16b1`).** Geen migratie. In het weekoverzicht wordt het
    teamscherm "Je race". Open: de privacyteksten `/privacy#racen` en die van het
    weekoverzicht wachten op akkoord van de eigenaar.
    Zie de ronde "ZWBeter racen: verwachting, punten per bron en de terugblik".
@@ -11548,9 +11548,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBeter racen: verwachting, punten per bron en de terugblik
 
-**2026-10-28.** Commit: de commit die dit blok toevoegt, op de branch
-`claude/zwbeter-race-analyses-a810ee`; niet gepusht. Geen migratie (de ZRS gaat
-in de bestaande jsonb van `zrl_race_snapshots`).
+**2026-10-28.** Commit `d72e16b1`, gepusht naar `main` op 2026-10-28
+(eigenaar). Geen migratie (de ZRS gaat in de bestaande jsonb van
+`zrl_race_snapshots`).
 
 **Waarom.** Vraag van de eigenaar: hij had "vergeleken met andere races een paar
 goede sprints en scoorde meer punten dan dat zwiftracing voor mij zou voorspeld
