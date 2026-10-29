@@ -11548,8 +11548,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Ladderpuzzel: weergave, volgorde en renners weghalen
 
-**2026-10-29.** Commit volgt, niet gepusht. Migratie `0291_ladder_withdrawn.sql`,
-**nog niet toegepast**.
+**2026-10-29.** Commits `e2ab84cd` en `5977935a`, gepusht naar `main` op
+2026-10-29. Migratie `0291_ladder_withdrawn.sql`, op 2026-10-29 toegepast via de
+Supabase-connector, op verzoek van de eigenaar, vóór de push. Nagekeken: RLS aan,
+0 policies, 0 rijen.
 
 **Waarom.** De eigenaar bekeek de puzzel live in Chrome: "dit ziet er niet goed
 uit". De vakken stonden met `2xl:grid-cols-5` naast elkaar, maar dat breekpunt
@@ -11585,9 +11587,6 @@ kunnen halen als iemand niet meer mee wil doen.
   houden de oude regel (`canAssignLadderRiders`): zonder die regel kan niemand
   de eerste captain van een nieuw ladderteam aanwijzen. Nu captain: Jeroen
   (ZWBandits), Femke (ZWB Zwiftladies), co-captain Stijn (ZWBandits).
-- Zolang 0291 niet is toegepast, is de lijst met weggehaalde leden leeg (de
-  pagina werkt) en geeft Weghalen bij een lid een foutmelding; bij een
-  rosternaam werkt het wel.
 
 **Gegevens (2026-10-29, op verzoek van de eigenaar).** Het account "Annet" is
 Annet van de Geyn: het Zwift-ID op haar profiel gezet. `link_roster_by_zwift_id`
@@ -11600,8 +11599,9 @@ losse stukjes). Daarmee is die trigger op productie bevestigd.
 weghalen verbergt zo iemand wel.
 
 **Gecontroleerd.** `tsc` schoon, ESLint op `teams/club-ladder` en
-`lib/club-ladder`, Vitest `club-ladder-*` (19). **Niet geverifieerd:** de nieuwe
-weergave in de browser (lokaal vraagt de pagina een login) en de migratie.
+`lib/club-ladder`, Vitest `club-ladder-*` (19). **Niet geverifieerd:** de migratie lokaal
+(geen Docker of Supabase-config; op productie nagekeken) en Weghalen met een
+echte klik.
 
 ### Gebouwd — Club Ladder: Ladderpuzzel
 
