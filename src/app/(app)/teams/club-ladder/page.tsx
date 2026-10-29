@@ -49,7 +49,7 @@ import {
   type LadderPuzzleTeam,
   type LadderRosterRow,
 } from "@/lib/club-ladder/puzzle";
-import { canAssignLadderRiders } from "@/lib/club-ladder/access";
+import { canAssignLadderRiders, canEditLadderPuzzle } from "@/lib/club-ladder/access";
 import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
@@ -262,9 +262,10 @@ export default async function ClubLadderPage({
 
   // ZRS is tijdelijk: met een ZwiftRacing-sleutel vervangt vELO 2 hem.
   const useVelo = zwiftRacingConfigured();
-  const [allLadderRiders, canAssign] = await Promise.all([
+  const [allLadderRiders, canAssign, canPuzzle] = await Promise.all([
     loadLadderRiders(teamRows, admin, supabase, useVelo),
     canAssignLadderRiders(access),
+    canEditLadderPuzzle(access),
   ]);
   const puzzle = await loadLadderPuzzle(teamRows, allLadderRiders, admin);
   const ladderGroups = groupLadderRidersBySex(sortLadderRiders(allLadderRiders, riderSort));
@@ -485,7 +486,7 @@ export default async function ClubLadderPage({
               teams={puzzle.teams}
               riders={puzzle.riders}
               otherTeams={puzzle.otherTeams}
-              canEdit={canAssign}
+              canEdit={canPuzzle}
             />
           )}
 

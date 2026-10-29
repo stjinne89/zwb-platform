@@ -11576,6 +11576,15 @@ kunnen halen als iemand niet meer mee wil doen.
   rosternamen bij de losse stukjes) en `removeLadderRosterRider` zijn daarin
   opgegaan.
 - `/hulp` vermeldt de volgorde en Weghalen.
+- **Alleen captains puzzelen** (eigenaar: "captains moeten recht hebben om mee
+  te puzzelen andere rollen niet"). `canEditLadderPuzzle` (`lib/club-ladder/access.ts`):
+  captain of co-captain van een ladderteam, ook in het archief. Bestuur en de
+  rol teamcaptain hebben `teams.manage_roster` en mochten tot nu toe mee
+  indelen; in de puzzel (weergave en de vijf puzzelacties) nu niet meer. De
+  Captain-selectie, "Lid aan de ladderlijst toevoegen" en captains aanwijzen
+  houden de oude regel (`canAssignLadderRiders`): zonder die regel kan niemand
+  de eerste captain van een nieuw ladderteam aanwijzen. Nu captain: Jeroen
+  (ZWBandits), Femke (ZWB Zwiftladies), co-captain Stijn (ZWBandits).
 - Zolang 0291 niet is toegepast, is de lijst met weggehaalde leden leeg (de
   pagina werkt) en geeft Weghalen bij een lid een foutmelding; bij een
   rosternaam werkt het wel.

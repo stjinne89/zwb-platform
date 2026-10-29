@@ -2,23 +2,27 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { canAssignLadderRiders } from "@/lib/club-ladder/access";
+import { canAssignLadderRiders, canEditLadderPuzzle } from "@/lib/club-ladder/access";
 import { parseLadderBand, parseLadderRank } from "@/lib/club-ladder/puzzle";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-async function guardAccess() {
+/** `puzzle`: alleen captains van een ladderteam, zie canEditLadderPuzzle. */
+async function guardAccess(puzzle = false) {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
   if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
-  if (!(await canAssignLadderRiders(access))) {
-    return { ok: false as const, error: "Geen recht om ladderteams in te delen." };
+  if (!(await (puzzle ? canEditLadderPuzzle(access) : canAssignLadderRiders(access)))) {
+    return {
+      ok: false as const,
+      error: puzzle ? "Alleen captains van een ladderteam puzzelen mee." : "Geen recht om ladderteams in te delen.",
+    };
   }
   return { ok: true as const, userId: access.user.id, admin: createAdminClient() };
 }
 
-async function guard(teamId: string) {
-  const check = await guardAccess();
+async function guard(teamId: string, puzzle = false) {
+  const check = await guardAccess(puzzle);
   if (!check.ok) return check;
   const { admin } = check;
   const { data: team } = await admin
@@ -199,7 +203,7 @@ async function clearWithdrawn(admin: Admin, profileId: string) {
  * zelf Ladder aanvinkte uit de lijst blijft. Zijn interesse blijft zijn keuze.
  */
 export async function withdrawLadderRider(rider: PuzzleRiderRef) {
-  const check = await guardAccess();
+  const check = await guardAccess(true);
   if (!check.ok) return check;
   const { admin } = check;
 
@@ -232,7 +236,7 @@ export async function withdrawLadderRider(rider: PuzzleRiderRef) {
  * met een seed-override zoals bij Verwijderen.
  */
 export async function moveLadderPuzzleRider(rider: PuzzleRiderRef, teamId: string | null) {
-  const check = teamId ? await guard(teamId) : await guardAccess();
+  const check = teamId ? await guard(teamId, true) : await guardAccess(true);
   if (!check.ok) return check;
   const { admin } = check;
   const teamIds = await puzzleTeamIds(admin);
@@ -287,7 +291,7 @@ export async function moveLadderPuzzleRider(rider: PuzzleRiderRef, teamId: strin
 
 /** Ladderrank per Zwift-ID, tot de ZwiftRacing-API hem levert; `null` wist hem. */
 export async function setLadderRiderRank(zwiftId: string, rank: number | null) {
-  const check = await guardAccess();
+  const check = await guardAccess(true);
   if (!check.ok) return check;
   const id = zwiftId.trim();
   if (!/^\d+$/.test(id)) return { ok: false as const, error: "Geen geldig Zwift-ID." };
@@ -308,7 +312,7 @@ export async function setLadderRiderRank(zwiftId: string, rank: number | null) {
 
 /** Afgesproken band van een ladderteam; `null` haalt het team uit de puzzel. */
 export async function setLadderTeamBand(teamId: string, band: [number, number] | null) {
-  const check = await guard(teamId);
+  const check = await guard(teamId, true);
   if (!check.ok) return check;
   const parsed = band ? parseLadderBand(band[0], band[1]) : null;
   if (band && !parsed) return { ok: false as const, error: "Ongeldige band." };
@@ -332,7 +336,7 @@ export async function addLadderRosterRider(input: {
   sex: "man" | "vrouw" | null;
   rank: number | null;
 }) {
-  const check = await guardAccess();
+  const check = await guardAccess(true);
   if (!check.ok) return check;
   const { admin } = check;
   const name = input.name.trim();
