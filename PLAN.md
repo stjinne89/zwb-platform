@@ -19315,9 +19315,9 @@ fouten in de console.
 eigen schema en start een herziening op productie); ook niet gecontroleerd dat
 zo'n workout goed in intervals.icu landt.
 
-**Bijgestuurd (2026-10-29; lokaal gecommit, niet gepusht).** Op verzoek van de
+**Bijgestuurd (2026-10-29; gepusht naar `main`, eigenaar).** Op verzoek van de
 eigenaar schuiven alle duurinvoeren van het schema per 5 minuten in plaats van
-per kwartier (commits `91b7f177` en de volgende):
+per kwartier (commits `91b7f177` en `d370c183`):
 - **Rit inplannen**: de Duur-balk (nog steeds 15 min tot 8 uur). `planOwnRide`
   rondt alleen af op hele minuten, dus de server hoefde niet mee.
 - **Wekelijkse beschikbaarheid**: `AVAILABILITY_STEP_MINUTES` is 5. Die stap
