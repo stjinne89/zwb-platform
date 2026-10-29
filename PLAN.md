@@ -11513,7 +11513,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: Ladderpuzzel
 
-**2026-10-29.** Commit volgt, niet gepusht. Migratie `0286_ladder_puzzle.sql`,
+**2026-10-29.** Commit `424a3948`, niet gepusht. Migratie `0286_ladder_puzzle.sql`,
 **nog niet toegepast**.
 
 **Waarom.** De eigenaar vond het artifact "Ladderpuzzelen" (een losse pagina
