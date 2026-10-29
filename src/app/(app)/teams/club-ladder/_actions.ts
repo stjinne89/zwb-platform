@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { canAssignLadderRiders } from "@/lib/club-ladder/access";
+import { parseLadderBand, parseLadderRank } from "@/lib/club-ladder/puzzle";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -137,6 +138,231 @@ export async function addToLadderPool(profileId: string) {
       { profile_id: profileId, added_by: check.userId },
       { onConflict: "profile_id", ignoreDuplicates: true },
     );
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/teams/club-ladder");
+  return { ok: true as const };
+}
+
+type Admin = ReturnType<typeof createAdminClient>;
+
+async function puzzleTeamIds(admin: Admin) {
+  const { data } = await admin
+    .from("teams")
+    .select("id")
+    .eq("type", "ladder")
+    .not("ladder_rank_min", "is", null);
+  return (data ?? []).map((row: { id: string }) => row.id);
+}
+
+export type PuzzleRiderRef = { kind: "profile" | "roster"; id: string };
+
+/**
+ * Legt een renner in een puzzelteam (0286), of bij de losse stukjes (`null`).
+ * Een renner rijdt in één ladderteam: uit de andere puzzelteams gaat hij eruit,
+ * met een seed-override zoals bij Verwijderen.
+ */
+export async function moveLadderPuzzleRider(rider: PuzzleRiderRef, teamId: string | null) {
+  const check = teamId ? await guard(teamId) : await guardAccess();
+  if (!check.ok) return check;
+  const { admin } = check;
+  const teamIds = await puzzleTeamIds(admin);
+  if (teamId && !teamIds.includes(teamId)) return { ok: false as const, error: "Team staat niet in de puzzel." };
+
+  if (rider.kind === "roster") {
+    const { data, error } = await admin
+      .from("ladder_roster_riders")
+      .update({ team_id: teamId })
+      .eq("roster_entry_id", rider.id)
+      .select("roster_entry_id");
+    if (error) return { ok: false as const, error: error.message };
+    if (!data?.length) return { ok: false as const, error: "Renner staat niet in de ladderlijst." };
+    revalidatePath("/teams/club-ladder");
+    return { ok: true as const };
+  }
+
+  const others = teamIds.filter((id) => id !== teamId);
+  const { data: current } = others.length
+    ? await admin
+        .from("team_members")
+        .select("team_id")
+        .eq("profile_id", rider.id)
+        .in("team_id", others)
+    : { data: [] };
+  const leaving = (current ?? []).map((row: { team_id: string }) => row.team_id);
+  if (leaving.length > 0) {
+    const now = new Date().toISOString();
+    await admin.from("team_member_seed_overrides").upsert(
+      leaving.map((id) => ({
+        team_id: id,
+        profile_id: rider.id,
+        excluded: true,
+        reason: "manual_remove",
+        created_by: check.userId,
+        updated_at: now,
+      })),
+      { onConflict: "team_id,profile_id" },
+    );
+    const { error } = await admin
+      .from("team_members")
+      .delete()
+      .eq("profile_id", rider.id)
+      .in("team_id", leaving);
+    if (error) return { ok: false as const, error: error.message };
+  }
+
+  if (teamId) {
+    await admin
+      .from("team_member_seed_overrides")
+      .delete()
+      .eq("team_id", teamId)
+      .eq("profile_id", rider.id);
+    const { error } = await admin.from("team_members").upsert(
+      { team_id: teamId, profile_id: rider.id, role: "member", assignment_source: "manual" },
+      { onConflict: "team_id,profile_id", ignoreDuplicates: true },
+    );
+    if (error) return { ok: false as const, error: error.message };
+  } else {
+    // Zonder team en zonder eigen interesse zou hij uit de lijst verdwijnen.
+    await admin
+      .from("ladder_pool")
+      .upsert(
+        { profile_id: rider.id, added_by: check.userId },
+        { onConflict: "profile_id", ignoreDuplicates: true },
+      );
+  }
+
+  for (const id of [...leaving, teamId].filter((id): id is string => Boolean(id))) refresh(id);
+  return { ok: true as const };
+}
+
+/** Ladderrank per Zwift-ID, tot de ZwiftRacing-API hem levert; `null` wist hem. */
+export async function setLadderRiderRank(zwiftId: string, rank: number | null) {
+  const check = await guardAccess();
+  if (!check.ok) return check;
+  const id = zwiftId.trim();
+  if (!/^\d+$/.test(id)) return { ok: false as const, error: "Geen geldig Zwift-ID." };
+  const parsed = rank == null ? null : parseLadderRank(rank);
+  if (rank != null && parsed == null) return { ok: false as const, error: "Ongeldige rank." };
+
+  const { error } =
+    parsed == null
+      ? await check.admin.from("ladder_ranks").delete().eq("zwift_id", id)
+      : await check.admin.from("ladder_ranks").upsert(
+          { zwift_id: id, rank: parsed, updated_by: check.userId, updated_at: new Date().toISOString() },
+          { onConflict: "zwift_id" },
+        );
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/teams/club-ladder");
+  return { ok: true as const };
+}
+
+/** Afgesproken band van een ladderteam; `null` haalt het team uit de puzzel. */
+export async function setLadderTeamBand(teamId: string, band: [number, number] | null) {
+  const check = await guard(teamId);
+  if (!check.ok) return check;
+  const parsed = band ? parseLadderBand(band[0], band[1]) : null;
+  if (band && !parsed) return { ok: false as const, error: "Ongeldige band." };
+
+  const { error } = await check.admin
+    .from("teams")
+    .update({ ladder_rank_min: parsed?.[0] ?? null, ladder_rank_max: parsed?.[1] ?? null })
+    .eq("id", teamId);
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath("/teams/club-ladder");
+  return { ok: true as const };
+}
+
+/**
+ * Renner bij de losse stukjes, op Zwift-ID. Met account: in de ladderpool. Zonder
+ * account: zijn rosternaam, zoals bij ZRL; bestaat die nog niet, dan komt hij erbij.
+ */
+export async function addLadderRosterRider(input: {
+  name: string;
+  zwiftId: string;
+  sex: "man" | "vrouw" | null;
+  rank: number | null;
+}) {
+  const check = await guardAccess();
+  if (!check.ok) return check;
+  const { admin } = check;
+  const name = input.name.trim();
+  const zwiftId = input.zwiftId.trim();
+  if (!/^\d+$/.test(zwiftId)) return { ok: false as const, error: "Geen geldig Zwift-ID." };
+  const sex = input.sex === "man" || input.sex === "vrouw" ? input.sex : null;
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("zwift_id", zwiftId)
+    .eq("is_approved", true)
+    .limit(1)
+    .maybeSingle();
+  const { data: entry } = profile
+    ? { data: null }
+    : await admin
+        .from("roster_entries")
+        .select("id, claimed_by")
+        .eq("zwift_id", zwiftId)
+        .limit(1)
+        .maybeSingle();
+  const profileId = profile?.id ?? entry?.claimed_by ?? null;
+
+  if (profileId) {
+    const { error } = await admin
+      .from("ladder_pool")
+      .upsert(
+        { profile_id: profileId, added_by: check.userId },
+        { onConflict: "profile_id", ignoreDuplicates: true },
+      );
+    if (error) return { ok: false as const, error: error.message };
+  } else {
+    let entryId = entry?.id ?? null;
+    if (!entryId) {
+      if (!name) return { ok: false as const, error: "Naam ontbreekt." };
+      const { data: created, error } = await admin
+        .from("roster_entries")
+        .insert({ name, zwift_id: zwiftId, team_assignment_source: "manual" })
+        .select("id")
+        .single();
+      if (error) {
+        return {
+          ok: false as const,
+          error: error.code === "23505" ? `Er is al een rosternaam "${name}".` : error.message,
+        };
+      }
+      entryId = created.id as string;
+    }
+    const { error } = await admin
+      .from("ladder_roster_riders")
+      .upsert(
+        { roster_entry_id: entryId, sex, added_by: check.userId },
+        { onConflict: "roster_entry_id", ignoreDuplicates: true },
+      );
+    if (error) return { ok: false as const, error: error.message };
+  }
+
+  if (input.rank != null) {
+    const rank = parseLadderRank(input.rank);
+    if (rank != null) {
+      await admin.from("ladder_ranks").upsert(
+        { zwift_id: zwiftId, rank, updated_by: check.userId, updated_at: new Date().toISOString() },
+        { onConflict: "zwift_id" },
+      );
+    }
+  }
+  revalidatePath("/teams/club-ladder");
+  return { ok: true as const };
+}
+
+/** Haalt een rosternaam uit de ladderlijst; de rosternaam zelf blijft bestaan. */
+export async function removeLadderRosterRider(rosterEntryId: string) {
+  const check = await guardAccess();
+  if (!check.ok) return check;
+
+  const { error } = await check.admin
+    .from("ladder_roster_riders")
+    .delete()
+    .eq("roster_entry_id", rosterEntryId);
   if (error) return { ok: false as const, error: error.message };
   revalidatePath("/teams/club-ladder");
   return { ok: true as const };

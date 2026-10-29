@@ -42,6 +42,13 @@ import {
 } from "./_components/ladder-assign";
 import { LadderCaptains, type CaptainTeam } from "./_components/ladder-captains";
 import { LadderPoolAdd } from "./_components/ladder-pool-add";
+import { LadderPuzzle } from "./_components/ladder-puzzle";
+import {
+  buildPuzzleRiders,
+  parseLadderBand,
+  type LadderPuzzleTeam,
+  type LadderRosterRow,
+} from "@/lib/club-ladder/puzzle";
 import { canAssignLadderRiders } from "@/lib/club-ladder/access";
 import { getRequestAccess } from "@/lib/auth/request";
 
@@ -259,6 +266,7 @@ export default async function ClubLadderPage({
     loadLadderRiders(teamRows, admin, supabase, useVelo),
     canAssignLadderRiders(access),
   ]);
+  const puzzle = await loadLadderPuzzle(teamRows, allLadderRiders, admin);
   const ladderGroups = groupLadderRidersBySex(sortLadderRiders(allLadderRiders, riderSort));
   const captainData = canAssign ? await loadLadderCaptains(teamRows, admin) : null;
   const assignTeams: AssignTeam[] = teamRows.map((team) => ({
@@ -472,6 +480,15 @@ export default async function ClubLadderPage({
             </section>
           </section>
 
+          {puzzle && (
+            <LadderPuzzle
+              teams={puzzle.teams}
+              riders={puzzle.riders}
+              otherTeams={puzzle.otherTeams}
+              canEdit={canAssign}
+            />
+          )}
+
           <LadderAssignProvider initialTeamId={selectedTeam.id}>
             <section id="ladderrenners" className="scroll-mt-20 space-y-6 rounded-lg border bg-card p-4">
               {canAssign && <LadderTeamPicker teams={assignTeams} />}
@@ -519,6 +536,72 @@ export default async function ClubLadderPage({
       )}
     </div>
   );
+}
+
+/** Teams met een band staan in de puzzel (0286); de rest kan erbij. Null zonder 0286. */
+async function loadLadderPuzzle(
+  ladderTeams: TeamRow[],
+  members: LadderRider[],
+  admin: ReturnType<typeof createAdminClient>,
+) {
+  // Leeg zolang 0286 niet is toegepast: dan geven de queries een fout en geen rijen.
+  // De band daarom apart, zodat de rest van de pagina blijft werken.
+  const [{ data: bandRows, error: bandError }, { data: rosterRows }] = await Promise.all([
+    admin.from("teams").select("id, ladder_rank_min, ladder_rank_max").eq("type", "ladder"),
+    admin
+      .from("ladder_roster_riders")
+      .select("roster_entry_id, team_id, sex, roster_entries(name, zwift_id, claimed_by)"),
+  ]);
+  if (bandError) return null;
+  const bands = new Map(
+    ((bandRows ?? []) as Array<{ id: string; ladder_rank_min: number | null; ladder_rank_max: number | null }>).map(
+      (row) => [row.id, parseLadderBand(row.ladder_rank_min, row.ladder_rank_max)],
+    ),
+  );
+  const teams: LadderPuzzleTeam[] = [];
+  const otherTeams: Array<{ id: string; name: string }> = [];
+  for (const team of ladderTeams) {
+    const band = bands.get(team.id);
+    if (band) teams.push({ id: team.id, name: team.name, archived: Boolean(team.is_graveyard), band });
+    else otherTeams.push({ id: team.id, name: team.name });
+  }
+  const roster: LadderRosterRow[] = (
+    (rosterRows ?? []) as unknown as Array<{
+      roster_entry_id: string;
+      team_id: string | null;
+      sex: string | null;
+      roster_entries: { name: string; zwift_id: string | null; claimed_by: string | null } | null;
+    }>
+  )
+    .filter((row) => row.roster_entries && !row.roster_entries.claimed_by)
+    .map((row) => ({
+      roster_entry_id: row.roster_entry_id,
+      team_id: row.team_id,
+      sex: row.sex,
+      name: row.roster_entries!.name,
+      zwift_id: row.roster_entries!.zwift_id,
+    }));
+
+  const zwiftIds = Array.from(
+    new Set(
+      [
+        ...members.map((member) => (member.zwiftId == null ? null : String(member.zwiftId))),
+        ...roster.map((row) => row.zwift_id?.trim() || null),
+      ].filter((id): id is string => Boolean(id)),
+    ),
+  );
+  const { data: rankRows } = zwiftIds.length
+    ? await admin.from("ladder_ranks").select("zwift_id, rank").in("zwift_id", zwiftIds)
+    : { data: [] };
+  const ranks = new Map(
+    ((rankRows ?? []) as Array<{ zwift_id: string; rank: number }>).map((row) => [row.zwift_id, row.rank]),
+  );
+
+  return {
+    teams,
+    otherTeams,
+    riders: buildPuzzleRiders(members, roster, ranks, new Set(teams.map((team) => team.id))),
+  };
 }
 
 async function loadLadderCaptains(

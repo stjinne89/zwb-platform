@@ -11511,6 +11511,85 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: Ladderpuzzel
+
+**2026-10-29.** Commit volgt, niet gepusht. Migratie `0286_ladder_puzzle.sql`,
+**nog niet toegepast**.
+
+**Waarom.** De eigenaar vond het artifact "Ladderpuzzelen" (een losse pagina
+waarin de renners als puzzelstukjes over de ladderteams verdeeld werden) zo
+duidelijk dat hij het in de Club Ladder-sectie wilde, gekoppeld aan de leden, en
+met renners zonder account "op dezelfde manier als bij ZRL". Nieuwe indeling van
+de eigenaar (2026-10-29): Zwiftladies en Bandits gaan samen op in ZWBrains, en
+ZWBeauties komt erbij; vier teams met een afgesproken band: ZWBeasts
+Diamond–Ruby, ZWBullets Ruby–Sapphire, ZWBrains Sapphire–Platinum, ZWBeauties
+Amethyst–Gold.
+
+**Keuzes van de eigenaar (2026-10-29).** Ranks vullen captains in zolang de
+ZwiftRacing-API er niet is; de ranks die bij het artifact van zwiftracing.app
+zijn overgenomen, gaan er bij het toepassen in. ZWBrains en ZWBeauties zijn twee
+nieuwe teams; Bandits en Zwiftladies blijven in het archief. De privacyverklaring
+mocht zonder nieuwe versie worden aangevuld. Alleen klasseproblemen controleren,
+geen club-, aantal- of 60%-regel. De klasseregel zoals de eigenaar hem hanteert:
+een team beslaat hooguit 3 ranks, hoeveel renners er per rank zijn maakt niet
+uit (de regel uit het race book over de middelste renner bij het toevoegen telt
+hier niet).
+
+**Wat.**
+- `0286`: `teams.ladder_rank_min/max` (band; rank 1 = Diamond, 10 = Copper),
+  `ladder_ranks` (rank per Zwift-ID, zodat het voor leden en rosternamen gelijk
+  werkt en bij claimen niets verhuist) en `ladder_roster_riders` (rosternamen
+  zonder account in de ladderlijst, met ladderteam, leeg = losse stukjes, en
+  geslacht). Beide tabellen RLS aan zonder policies, zoals `ladder_pool`. De
+  migratie maakt ZWBrains en ZWBeauties aan en zet de vier banden. De ranks
+  zelf staan er niet in: gegevens van renners horen niet in de repo.
+- **Renners zonder account.** "Zoals bij ZRL" klopt half: ZRL gebruikt
+  `roster_entries`, maar een rosternaam heeft één `team_id` en dat is bij deze
+  renners al een ZRL-team (Niekie in ZRL A, Annet en Gina in Zwiftladies C,
+  enz.). De ladder krijgt daarom een eigen koppeling. Een trigger op
+  `roster_entries.claimed_by` (vangt zowel `claim_roster_entry` als
+  `link_roster_by_zwift_id`) maakt de claimer lid van dat ladderteam (herkomst
+  `manual`) of zet hem in `ladder_pool`, en haalt de koppeling weg.
+- `lib/club-ladder/puzzle.ts` (puur): klassecontrole per team zoals in het
+  artifact (geen rank → mag niet op het roster; meer dan 3 ranks → de hoogst
+  gerankte renners scoren 50%; buiten de band → waarschuwing; leeg team →
+  waarschuwing), welke ranks er nog bij kunnen, en het samenvoegen van leden en
+  rosternamen (een rosternaam met het Zwift-ID van een lid in de lijst valt weg).
+- Pagina: de puzzel staat boven de ladderrenners, voor iedereen die de pagina
+  ziet; indelen alleen voor wie al mag indelen (`canAssignLadderRiders`). Teams
+  met een band zijn een vak, ook in het archief (ZWBeasts en ZWBullets staan daar
+  nu); wie in geen van die teams zit, ligt bij "Losse stukjes". Slepen of het
+  team kiezen in het stukje (`moveLadderPuzzleRider`): een lid gaat uit de
+  andere puzzelteams (met seed-override, zoals Verwijderen) en een lid dat naar
+  de losse stukjes gaat, komt in `ladder_pool` zodat hij niet uit de lijst
+  verdwijnt. Rank per renner en band per team zijn in te stellen; een team gaat
+  met het kruisje uit de puzzel en onderaan weer terug. "Renner toevoegen" op
+  Zwift-ID: met account de ladderpool, zonder account de bestaande rosternaam of
+  een nieuwe.
+- De vorm van het artifact (stukjes met nop en uitsparing, ladder van tien
+  sporten, "x van 4 passen") staat als `.ladder-stuk` in `globals.css`. De
+  uitleg die in het artifact onderaan stond, staat op `/hulp`, niet op het
+  scherm.
+- Zolang 0286 niet is toegepast, faalt de bandquery en verschijnt de puzzel niet;
+  de rest van de pagina werkt. **Eerst 0286 toepassen, dan pushen.**
+- `/hulp` (Teams en wedstrijden) en de privacyverklaring (ladderrank en
+  ladderteam, ook voor renners zonder account) aangevuld; geen nieuwe
+  privacyversie, met akkoord van de eigenaar.
+
+**Bewust niet.**
+- Geen controle op club, aantal per roster of de 60%-regel (keuze eigenaar).
+- De damesregel (Emerald–Diamond als één rank) niet: die geldt alleen in een
+  damesteam, en ZWBrains is gemengd.
+- De bestaande Captain-selectie en de ladderlijst blijven staan: de puzzel kent
+  alleen teams met een band, de selectie alle ladderteams.
+- Geen ophalen van ranks bij zwiftracing.app: de pagina's daar zijn
+  client-gerenderd en vragen een login; dat wacht op de API.
+
+**Gecontroleerd.** `tsc` schoon, ESLint op `teams/club-ladder` en
+`lib/club-ladder`, Vitest `club-ladder-puzzle` (10). **Niet geverifieerd:** de
+migratie en de trigger (geen Docker of Supabase-config hier), en de puzzel in de
+browser met echte teams, omdat die pas na 0286 verschijnt.
+
 ### Gebouwd — Club Ladder: leden zonder interesse in de ladderlijst zetten
 
 **2026-10-27.** Commit `067eff2d`, gepusht naar `main` op 2026-10-27. Migratie

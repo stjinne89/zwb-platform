@@ -108,7 +108,12 @@ export default function PrivacyPage() {
             rennerstype, FTP en W/kg (bij FTP en over 1, 5 en 20 minuten), in
             de lijst van mannen of vrouwen volgens je profiel, zodat de captains
             de ladderteams kunnen indelen. Je gewicht staat er niet los bij,
-            maar volgt uit FTP en W/kg.
+            maar volgt uit FTP en W/kg. Voor die indeling legt een captain ook
+            je ladderrank vast (de rank die zwiftracing.app openbaar toont) en
+            in welk ladderteam je rijdt. Dat kan ook voor renners zonder
+            ZWB-account: dan staat hun naam uit het rooster met Zwift-ID, rank
+            en eventueel geslacht op de Club Ladder-pagina, tot ze hun naam
+            claimen.
           </li>
           <li>
             <strong>ZRL-teamgegevens van WTRL:</strong> voor de ZRL-teams nemen
