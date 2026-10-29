@@ -25,8 +25,8 @@ export const WEEKDAY_LABELS: Record<WeekdaySlug, string> = {
   zo: "Zondag",
 };
 
-/** De schuifbalk loopt in kwartieren tot zes uur; daarboven is het geen dagritje meer. */
-export const AVAILABILITY_STEP_MINUTES = 15;
+/** De schuifbalk loopt per 5 minuten tot zes uur; daarboven is het geen dagritje meer. */
+export const AVAILABILITY_STEP_MINUTES = 5;
 export const AVAILABILITY_MAX_MINUTES = 360;
 
 export type MinutesByDay = Partial<Record<WeekdaySlug, number>>;
@@ -82,7 +82,7 @@ export function weekdayOf(dayKey: string): WeekdaySlug {
   return WEEKDAY_SLUGS[(date.getUTCDay() || 7) - 1];
 }
 
-/** Rondt af op kwartieren en houdt de waarde binnen de grenzen van de schuifbalk. */
+/** Rondt af op de stap van de schuifbalk en houdt de waarde binnen de grenzen van de schuifbalk. */
 export function clampMinutes(value: unknown): number {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return 0;

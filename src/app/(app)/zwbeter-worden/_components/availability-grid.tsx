@@ -25,7 +25,7 @@ export function minutesLabel(minutes: number) {
   const rest = minutes % 60;
   if (hours === 0) return `${rest} min`;
   if (rest === 0) return `${hours} uur`;
-  return `${hours}u ${rest}`;
+  return `${hours}u ${String(rest).padStart(2, "0")}`;
 }
 
 export function AvailabilityGrid({

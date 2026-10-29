@@ -19316,10 +19316,21 @@ eigen schema en start een herziening op productie); ook niet gecontroleerd dat
 zo'n workout goed in intervals.icu landt.
 
 **Bijgestuurd (2026-10-29; lokaal gecommit, niet gepusht).** Op verzoek van de
-eigenaar schuift de Duur-balk in stappen van 5 minuten in plaats van 15 (nog
-steeds 15 min tot 8 uur). Het label toont nu "1u 05" in plaats van "1u 5".
-`planOwnRide` rondt alleen af op hele minuten, dus de server hoefde niet mee.
-Geen migratie. Niet in de browser bekeken.
+eigenaar schuiven alle duurinvoeren van het schema per 5 minuten in plaats van
+per kwartier (commits `91b7f177` en de volgende):
+- **Rit inplannen**: de Duur-balk (nog steeds 15 min tot 8 uur). `planOwnRide`
+  rondt alleen af op hele minuten, dus de server hoefde niet mee.
+- **Wekelijkse beschikbaarheid**: `AVAILABILITY_STEP_MINUTES` is 5. Die stap
+  geldt voor de balken in het schema en in het weekoverzicht, én voor
+  `clampMinutes()` op de server, die nu op 5 minuten afrondt. Bestaande
+  waarden (veelvouden van 15) blijven geldig.
+- **Duur aanpassen** van een geplande training: het getalveld nam alleen
+  veelvouden van 15 aan (de browser weigerde bijvoorbeeld 50); nu per 5.
+  `setWorkoutDuration` controleerde alleen 15–480.
+- De labels tonen "1u 05" in plaats van "1u 5".
+
+Geen migratie. Unit-tests van `availability` groen, lint schoon. Niet in de
+browser bekeken.
 
 ### Opgeleverd — beleid bewijsniveau voor alle kennisbanken
 

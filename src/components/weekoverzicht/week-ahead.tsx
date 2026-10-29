@@ -26,7 +26,7 @@ const DAY = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
  */
 const BAR_MINUTES = AVAILABILITY_MAX_MINUTES;
 
-/** Minuten op de plek van de vinger of muis op de balk, in kwartieren. */
+/** Minuten op de plek van de vinger of muis op de balk, per stap van de schuifbalk. */
 function minutesAt(track: HTMLElement, clientX: number): number {
   const rect = track.getBoundingClientRect();
   const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
