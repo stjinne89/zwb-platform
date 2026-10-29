@@ -7,7 +7,7 @@ import { parseLadderBand, parseLadderRank } from "@/lib/club-ladder/puzzle";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
-/** `puzzle`: alleen captains van een ladderteam, zie canEditLadderPuzzle. */
+/** `puzzle`: alleen de rol teamcaptain, zie canEditLadderPuzzle. */
 async function guardAccess(puzzle = false) {
   const supabase = await createClient();
   const access = await getCurrentUserAccess(supabase);
@@ -15,7 +15,7 @@ async function guardAccess(puzzle = false) {
   if (!(await (puzzle ? canEditLadderPuzzle(access) : canAssignLadderRiders(access)))) {
     return {
       ok: false as const,
-      error: puzzle ? "Alleen captains van een ladderteam puzzelen mee." : "Geen recht om ladderteams in te delen.",
+      error: puzzle ? "Alleen teamcaptains puzzelen mee." : "Geen recht om ladderteams in te delen.",
     };
   }
   return { ok: true as const, userId: access.user.id, admin: createAdminClient() };

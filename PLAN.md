@@ -11578,15 +11578,18 @@ kunnen halen als iemand niet meer mee wil doen.
   rosternamen bij de losse stukjes) en `removeLadderRosterRider` zijn daarin
   opgegaan.
 - `/hulp` vermeldt de volgorde en Weghalen.
-- **Alleen captains puzzelen** (eigenaar: "captains moeten recht hebben om mee
-  te puzzelen andere rollen niet"). `canEditLadderPuzzle` (`lib/club-ladder/access.ts`):
-  captain of co-captain van een ladderteam, ook in het archief. Bestuur en de
-  rol teamcaptain hebben `teams.manage_roster` en mochten tot nu toe mee
-  indelen; in de puzzel (weergave en de vijf puzzelacties) nu niet meer. De
+- **Alleen teamcaptains puzzelen.** Eerst gebouwd als "captain of co-captain
+  van een ladderteam" (commit `5977935a`, op "captains moeten recht hebben om
+  mee te puzzelen andere rollen niet"); de eigenaar verbeterde: "iedereen met
+  de rol teamcaptain moet dit kunnen". `canEditLadderPuzzle`
+  (`lib/club-ladder/access.ts`) kijkt nu naar de communityrol `team_captain`,
+  niet naar een permissie: bestuur heeft ook `teams.manage_roster` en mag in de
+  puzzel niet meer bewerken, tenzij het ook de rol teamcaptain heeft. Captain
+  van een ladderteam zijn telt niet mee. Op 2026-10-29 hebben negen leden die
+  rol, onder wie de captains Jeroen en Femke en de eigenaar. De
   Captain-selectie, "Lid aan de ladderlijst toevoegen" en captains aanwijzen
-  houden de oude regel (`canAssignLadderRiders`): zonder die regel kan niemand
-  de eerste captain van een nieuw ladderteam aanwijzen. Nu captain: Jeroen
-  (ZWBandits), Femke (ZWB Zwiftladies), co-captain Stijn (ZWBandits).
+  houden de oude regel (`canAssignLadderRiders`: `teams.manage_roster`, of
+  captain van een ladderteam).
 
 **Gegevens (2026-10-29, op verzoek van de eigenaar).** Het account "Annet" is
 Annet van de Geyn: het Zwift-ID op haar profiel gezet. `link_roster_by_zwift_id`
