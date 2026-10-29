@@ -11548,7 +11548,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: Ladderpuzzel
 
-**2026-10-29.** Commit `424a3948`, gepusht naar `main` op 2026-10-29. Migratie
+**2026-10-29.** Commit `424a3948` (en `abfd118b` voor het nieuwe migratienummer),
+gepusht naar `main` op 2026-10-29 (merge `2dba5007`). Migratie
 `0290_ladder_puzzle.sql` (gebouwd als 0286; hernoemd omdat `0286_zwbekers` op
 `main` dat nummer al had), op 2026-10-29 toegepast via de Supabase-connector, op
 verzoek van de eigenaar, vóór de push. Nagekeken: ZWBrains en ZWBeauties
