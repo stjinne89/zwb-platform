@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import {
   addLadderRosterRider,
   moveLadderPuzzleRider,
-  removeLadderRosterRider,
+  withdrawLadderRider,
   setLadderRiderRank,
   setLadderTeamBand,
 } from "../_actions";
@@ -59,7 +59,8 @@ type State = { teams: LadderPuzzleTeam[]; riders: LadderPuzzleRider[] };
 type Change =
   | { type: "move"; key: string; teamId: string | null }
   | { type: "rank"; zwiftId: string; rank: number | null }
-  | { type: "band"; teamId: string; band: LadderBand | null };
+  | { type: "band"; teamId: string; band: LadderBand | null }
+  | { type: "remove"; key: string };
 
 function apply(state: State, change: Change): State {
   switch (change.type) {
@@ -73,6 +74,8 @@ function apply(state: State, change: Change): State {
         ...state,
         riders: state.riders.map((r) => (r.zwiftId === change.zwiftId ? { ...r, rank: change.rank } : r)),
       };
+    case "remove":
+      return { ...state, riders: state.riders.filter((r) => r.key !== change.key) };
     case "band":
       return {
         ...state,
@@ -138,6 +141,41 @@ export function LadderPuzzle({
     { id: BENCH, team: null },
   ];
 
+  function piece(rider: LadderPuzzleRider, check: LadderTeamCheck | null) {
+    return (
+      <Piece
+        key={rider.key}
+        rider={rider}
+        check={check}
+        lanes={lanes}
+        canEdit={canEdit}
+        pending={pending}
+        justPlaced={placed === rider.key}
+        dragging={dragKey === rider.key}
+        onDragStart={(event) => {
+          event.dataTransfer.setData("text/plain", rider.key);
+          event.dataTransfer.effectAllowed = "move";
+          setDragKey(rider.key);
+        }}
+        onDragEnd={() => {
+          setDragKey(null);
+          setDropLane(null);
+        }}
+        onMove={(teamId) => move(rider.key, teamId)}
+        onRank={(rank) =>
+          rider.zwiftId &&
+          run({ type: "rank", zwiftId: rider.zwiftId, rank }, () => setLadderRiderRank(rider.zwiftId!, rank))
+        }
+        onRemove={() => {
+          if (!window.confirm(`${rider.name} uit de ladder halen?`)) return;
+          run({ type: "remove", key: rider.key }, () =>
+            withdrawLadderRider({ kind: rider.kind, id: rider.id }),
+          );
+        }}
+      />
+    );
+  }
+
   function dropProps(laneId: string) {
     if (!canEdit) return {};
     return {
@@ -183,21 +221,19 @@ export function LadderPuzzle({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <div className="grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-        {lanes.map(({ id, team }) => {
-          const laneRiders = sortPuzzleRiders(team ? state.riders.filter((r) => r.teamId === id) : loose);
-          const check = team ? checks.get(id)! : null;
+      <div className="grid items-start gap-3 sm:grid-cols-[repeat(auto-fill,minmax(13.5rem,1fr))]">
+        {state.teams.map((team) => {
+          const laneRiders = sortPuzzleRiders(state.riders.filter((r) => r.teamId === team.id));
+          const check = checks.get(team.id)!;
           return (
             <section
-              key={id || "bench"}
-              aria-label={team?.name ?? "Losse stukjes"}
+              key={team.id}
+              aria-label={team.name}
               className={cn(
-                "grid min-w-0 gap-2.5 rounded-lg border p-3",
-                team ? "bg-card" : "border-dashed bg-muted",
-                dropLane === id && "outline-2 -outline-offset-4 outline-primary outline-dashed",
+                "grid min-w-0 content-start gap-2.5 rounded-lg border bg-card p-3",
+                dropLane === team.id && "outline-2 -outline-offset-4 outline-primary outline-dashed",
               )}
-              style={team ? undefined : ({ "--ladder-gat": "var(--muted)" } as CSSProperties)}
-              {...dropProps(id)}
+              {...dropProps(team.id)}
             >
               <LaneHead
                 team={team}
@@ -206,46 +242,40 @@ export function LadderPuzzle({
                 riders={laneRiders}
                 canEdit={canEdit}
                 pending={pending}
-                onBand={(band) =>
-                  team && run({ type: "band", teamId: team.id, band }, () => setLadderTeamBand(team.id, band))
-                }
+                onBand={(band) => run({ type: "band", teamId: team.id, band }, () => setLadderTeamBand(team.id, band))}
               />
-              <div className="ladder-stukken">
-                {laneRiders.map((rider) => (
-                  <Piece
-                    key={rider.key}
-                    rider={rider}
-                    check={check}
-                    lanes={lanes}
-                    canEdit={canEdit}
-                    pending={pending}
-                    justPlaced={placed === rider.key}
-                    dragging={dragKey === rider.key}
-                    onDragStart={(event) => {
-                      event.dataTransfer.setData("text/plain", rider.key);
-                      event.dataTransfer.effectAllowed = "move";
-                      setDragKey(rider.key);
-                    }}
-                    onDragEnd={() => {
-                      setDragKey(null);
-                      setDropLane(null);
-                    }}
-                    onMove={(teamId) => move(rider.key, teamId)}
-                    onRank={(rank) =>
-                      rider.zwiftId &&
-                      run({ type: "rank", zwiftId: rider.zwiftId, rank }, () =>
-                        setLadderRiderRank(rider.zwiftId!, rank),
-                      )
-                    }
-                    onRemove={() => run(null, () => removeLadderRosterRider(rider.id))}
-                  />
-                ))}
-              </div>
-              {!team && canEdit && <AddRider pending={pending} run={run} />}
+              <div className="ladder-stukken">{laneRiders.map((rider) => piece(rider, check))}</div>
             </section>
           );
         })}
       </div>
+
+      <section
+        aria-label="Losse stukjes"
+        className={cn(
+          "grid gap-3 rounded-lg border border-dashed bg-muted p-3",
+          canEdit && "md:grid-cols-[minmax(0,1fr)_15rem]",
+          dropLane === BENCH && "outline-2 -outline-offset-4 outline-primary outline-dashed",
+        )}
+        style={{ "--ladder-gat": "var(--muted)" } as CSSProperties}
+        {...dropProps(BENCH)}
+      >
+        <div className="min-w-0">
+          <LaneHead
+            team={null}
+            check={null}
+            count={loose.length}
+            riders={loose}
+            canEdit={canEdit}
+            pending={pending}
+            onBand={() => {}}
+          />
+          <div className="ladder-stukken sm:grid-cols-[repeat(auto-fill,minmax(13.5rem,1fr))] sm:gap-x-3">
+            {sortPuzzleRiders(loose).map((rider) => piece(rider, null))}
+          </div>
+        </div>
+        {canEdit && <AddRider pending={pending} run={run} />}
+      </section>
 
       {canEdit && otherTeams.length > 0 && (
         <AddTeam teams={otherTeams} pending={pending} run={run} />
@@ -286,18 +316,16 @@ function LaneHead({
 
   return (
     <div className="grid gap-2">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-baseline justify-between gap-2">
         <h3 className="min-w-0 truncate font-semibold">{team.name}</h3>
-        <span className="flex shrink-0 items-center gap-2">
-          <span className="text-sm tabular-nums text-muted-foreground">
-            {count}/{LADDER_ROSTER_SIZE}
-          </span>
-          <span className={cn("rounded-full px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide", LEVEL_PILL[check.level])}>
-            {LEVEL_LABEL[check.level]}
-          </span>
+        <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+          {count}/{LADDER_ROSTER_SIZE}
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+        <span className={cn("rounded-full px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide", LEVEL_PILL[check.level])}>
+          {LEVEL_LABEL[check.level]}
+        </span>
         {team.archived && <span className="rounded border px-1.5">archief</span>}
         {canEdit ? (
           <>
@@ -409,43 +437,45 @@ function Piece({
       onDragEnd={canEdit ? onDragEnd : undefined}
       data-net-gelegd={justPlaced || undefined}
       className={cn(
-        "ladder-stuk grid grid-cols-[6px_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-0.5 rounded-md border bg-card py-2 pr-2",
+        "ladder-stuk grid grid-cols-[6px_minmax(0,1fr)] gap-x-2 gap-y-1 rounded-md border bg-card py-2 pr-2",
         canEdit && "cursor-grab",
         dragging && "opacity-40",
         out ? "border-destructive" : offBand && "border-amber-500",
       )}
     >
-      <span className="row-span-2 self-stretch rounded-l-md" style={{ background: color }} />
-      <span className="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">
+      <span className="row-span-3 self-stretch rounded-l-md" style={{ background: color }} />
+      <span className="min-w-0 truncate text-sm font-medium" title={rider.name}>
         {rider.kind === "profile" ? <MemberLink id={rider.id}>{rider.name}</MemberLink> : rider.name}
       </span>
-      {canEdit ? (
-        <select
-          value={rider.teamId ?? BENCH}
-          disabled={pending}
-          onChange={(event) => onMove(event.target.value || null)}
-          aria-label={`Team van ${rider.name}`}
-          className={cn(SELECT, "row-span-2 max-w-32")}
-        >
-          {lanes.map((lane) => (
-            <option key={lane.id || "bench"} value={lane.id}>
-              {lane.team?.name ?? "Losse stukjes"}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <span className="row-span-2" />
-      )}
-      <span className="col-start-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-        {canEdit && rider.zwiftId ? (
-          <RankSelect
-            value={rider.rank}
-            label={`Rank van ${rider.name}`}
+      {canEdit && (
+        <span className="flex min-w-0 gap-1">
+          {rider.zwiftId && (
+            <RankSelect
+              value={rider.rank}
+              label={`Rank van ${rider.name}`}
+              disabled={pending}
+              allowEmpty
+              onChange={onRank}
+              className="min-w-0 flex-1"
+            />
+          )}
+          <select
+            value={rider.teamId ?? BENCH}
             disabled={pending}
-            allowEmpty
-            onChange={onRank}
-          />
-        ) : (
+            onChange={(event) => onMove(event.target.value || null)}
+            aria-label={`Team van ${rider.name}`}
+            className={cn(SELECT, "min-w-0 flex-1")}
+          >
+            {lanes.map((lane) => (
+              <option key={lane.id || "bench"} value={lane.id}>
+                {lane.team?.name ?? "Losse stukjes"}
+              </option>
+            ))}
+          </select>
+        </span>
+      )}
+      <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+        {!(canEdit && rider.zwiftId) && (
           <span className={cn("font-semibold", rider.rank == null ? "text-destructive" : "text-foreground")}>
             {ladderRankName(rider.rank)}
           </span>
@@ -453,14 +483,14 @@ function Piece({
         {!rider.zwiftId && <span className="text-destructive">geen Zwift-ID</span>}
         {rider.sex && <span>{rider.sex}</span>}
         {rider.kind === "roster" && <span>geen account</span>}
-        {canEdit && rider.kind === "roster" && !rider.teamId && (
+        {canEdit && (
           <button
             type="button"
             disabled={pending}
             onClick={onRemove}
-            className="min-h-11 underline-offset-2 hover:text-destructive hover:underline sm:min-h-0"
+            className="ml-auto min-h-11 underline-offset-2 hover:text-destructive hover:underline sm:min-h-0"
           >
-            Uit de lijst
+            Weghalen
           </button>
         )}
       </span>
@@ -474,12 +504,14 @@ function RankSelect({
   disabled,
   allowEmpty = false,
   onChange,
+  className,
 }: {
   value: number | null;
   label: string;
   disabled: boolean;
   allowEmpty?: boolean;
   onChange: (rank: number | null) => void;
+  className?: string;
 }) {
   return (
     <select
@@ -487,7 +519,7 @@ function RankSelect({
       disabled={disabled}
       onChange={(event) => onChange(parseLadderRank(event.target.value))}
       aria-label={label}
-      className={SELECT}
+      className={cn(SELECT, className)}
     >
       {allowEmpty && <option value="">Geen rank</option>}
       {LADDER_RANKS.map((rank) => (
@@ -523,7 +555,7 @@ function AddRider({
   }
 
   return (
-    <form key={formKey} action={onAdd} className="grid gap-1.5 border-t pt-2.5">
+    <form key={formKey} action={onAdd} className="grid content-start gap-1.5 border-t pt-2.5 md:border-t-0 md:border-l md:pt-0 md:pl-3">
       <h4 className="text-sm font-semibold">Renner toevoegen</h4>
       <input name="name" placeholder="Naam" aria-label="Naam" className={FIELD} />
       <input

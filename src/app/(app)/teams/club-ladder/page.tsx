@@ -565,6 +565,10 @@ async function loadLadderPuzzle(
     if (band) teams.push({ id: team.id, name: team.name, archived: Boolean(team.is_graveyard), band });
     else otherTeams.push({ id: team.id, name: team.name });
   }
+  // Sterkste team links: op de hoogste rank van de band, dan de laagste.
+  teams.sort(
+    (a, b) => a.band[0] - b.band[0] || a.band[1] - b.band[1] || a.name.localeCompare(b.name, "nl"),
+  );
   const roster: LadderRosterRow[] = (
     (rosterRows ?? []) as unknown as Array<{
       roster_entry_id: string;
@@ -660,7 +664,7 @@ async function loadLadderRiders(
   // Ook teams in het archief: een captain kan er al renners in zetten voordat het
   // team op de ladder terugkeert.
   const teamNames = new Map(ladderTeams.map((team) => [team.id, team.name]));
-  const [{ data: memberRows }, { data: poolRows }] = await Promise.all([
+  const [{ data: memberRows }, { data: poolRows }, { data: withdrawnRows }] = await Promise.all([
     ladderTeams.length > 0
       ? admin
           .from("team_members")
@@ -669,7 +673,12 @@ async function loadLadderRiders(
       : Promise.resolve({ data: [] }),
     // Leeg zolang 0285 niet is toegepast: dan geeft de query een fout en geen rijen.
     admin.from("ladder_pool").select("profile_id"),
+    // Uit de ladder gehaald (0291); leeg zolang die niet is toegepast.
+    admin.from("ladder_withdrawn").select("profile_id"),
   ]);
+  const withdrawn = new Set(
+    ((withdrawnRows ?? []) as Array<{ profile_id: string }>).map((row) => row.profile_id),
+  );
   const memberships: LadderRiderMembership[] = (
     (memberRows ?? []) as Array<{ team_id: string; profile_id: string }>
   ).map((row) => ({
@@ -689,7 +698,9 @@ async function loadLadderRiders(
     .select("id, display_name, sex, zwift_id, event_type_interests, zrl_category, ftp_watts, weight_kg")
     .eq("is_approved", true)
     .or(ladderFilter.join(","));
-  const profiles = (profileRows ?? []) as LadderRiderProfile[];
+  const profiles = ((profileRows ?? []) as LadderRiderProfile[]).filter(
+    (profile) => !withdrawn.has(profile.id),
+  );
   if (profiles.length === 0) return [];
 
   const zwiftIds = Array.from(

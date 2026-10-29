@@ -31,6 +31,8 @@ async function guard(teamId: string) {
   return check;
 }
 
+type Admin = ReturnType<typeof createAdminClient>;
+
 function refresh(teamId: string) {
   revalidatePath("/teams/club-ladder");
   revalidatePath(`/teams/${teamId}`);
@@ -41,6 +43,7 @@ function refresh(teamId: string) {
 export async function assignLadderRider(teamId: string, profileId: string) {
   const check = await guard(teamId);
   if (!check.ok) return check;
+  await clearWithdrawn(check.admin, profileId);
 
   await check.admin
     .from("team_member_seed_overrides")
@@ -91,6 +94,7 @@ export async function setLadderCaptain(teamId: string, profileId: string, role: 
   const check = await guard(teamId);
   if (!check.ok) return check;
 
+  await clearWithdrawn(check.admin, profileId);
   await check.admin
     .from("team_member_seed_overrides")
     .delete()
@@ -132,6 +136,7 @@ export async function addToLadderPool(profileId: string) {
     .eq("is_approved", true)
     .maybeSingle();
   if (!profile) return { ok: false as const, error: "Geen goedgekeurd lid." };
+  await clearWithdrawn(check.admin, profileId);
   const { error } = await check.admin
     .from("ladder_pool")
     .upsert(
@@ -143,8 +148,6 @@ export async function addToLadderPool(profileId: string) {
   return { ok: true as const };
 }
 
-type Admin = ReturnType<typeof createAdminClient>;
-
 async function puzzleTeamIds(admin: Admin) {
   const { data } = await admin
     .from("teams")
@@ -155,6 +158,73 @@ async function puzzleTeamIds(admin: Admin) {
 }
 
 export type PuzzleRiderRef = { kind: "profile" | "roster"; id: string };
+
+/** Haalt een lid uit deze teams, met een seed-override zoals bij Verwijderen. */
+async function leavePuzzleTeams(admin: Admin, profileId: string, teamIds: string[], userId: string) {
+  const { data: current } = teamIds.length
+    ? await admin.from("team_members").select("team_id").eq("profile_id", profileId).in("team_id", teamIds)
+    : { data: [] };
+  const leaving = (current ?? []).map((row: { team_id: string }) => row.team_id);
+  if (leaving.length === 0) return { teamIds: leaving, error: null };
+
+  const now = new Date().toISOString();
+  await admin.from("team_member_seed_overrides").upsert(
+    leaving.map((id) => ({
+      team_id: id,
+      profile_id: profileId,
+      excluded: true,
+      reason: "manual_remove",
+      created_by: userId,
+      updated_at: now,
+    })),
+    { onConflict: "team_id,profile_id" },
+  );
+  const { error } = await admin
+    .from("team_members")
+    .delete()
+    .eq("profile_id", profileId)
+    .in("team_id", leaving);
+  return { teamIds: leaving, error: error?.message ?? null };
+}
+
+/** Wie weer wordt ingedeeld of toegevoegd, doet weer mee (0291). */
+async function clearWithdrawn(admin: Admin, profileId: string) {
+  await admin.from("ladder_withdrawn").delete().eq("profile_id", profileId);
+}
+
+/**
+ * Haalt een renner uit de puzzel en de ladderlijst, als hij niet meer mee wil
+ * doen. Een rosternaam verliest zijn ladderkoppeling; een lid gaat uit de
+ * puzzelteams en de ladderpool, en krijgt een markering (0291), zodat ook wie
+ * zelf Ladder aanvinkte uit de lijst blijft. Zijn interesse blijft zijn keuze.
+ */
+export async function withdrawLadderRider(rider: PuzzleRiderRef) {
+  const check = await guardAccess();
+  if (!check.ok) return check;
+  const { admin } = check;
+
+  if (rider.kind === "roster") {
+    const { error } = await admin.from("ladder_roster_riders").delete().eq("roster_entry_id", rider.id);
+    if (error) return { ok: false as const, error: error.message };
+    revalidatePath("/teams/club-ladder");
+    return { ok: true as const };
+  }
+
+  const { error } = await admin
+    .from("ladder_withdrawn")
+    .upsert(
+      { profile_id: rider.id, withdrawn_by: check.userId, created_at: new Date().toISOString() },
+      { onConflict: "profile_id" },
+    );
+  if (error) return { ok: false as const, error: error.message };
+  const left = await leavePuzzleTeams(admin, rider.id, await puzzleTeamIds(admin), check.userId);
+  if (left.error) return { ok: false as const, error: left.error };
+  await admin.from("ladder_pool").delete().eq("profile_id", rider.id);
+
+  for (const id of left.teamIds) refresh(id);
+  revalidatePath("/teams/club-ladder");
+  return { ok: true as const };
+}
 
 /**
  * Legt een renner in een puzzelteam (0290), of bij de losse stukjes (`null`).
@@ -180,35 +250,15 @@ export async function moveLadderPuzzleRider(rider: PuzzleRiderRef, teamId: strin
     return { ok: true as const };
   }
 
-  const others = teamIds.filter((id) => id !== teamId);
-  const { data: current } = others.length
-    ? await admin
-        .from("team_members")
-        .select("team_id")
-        .eq("profile_id", rider.id)
-        .in("team_id", others)
-    : { data: [] };
-  const leaving = (current ?? []).map((row: { team_id: string }) => row.team_id);
-  if (leaving.length > 0) {
-    const now = new Date().toISOString();
-    await admin.from("team_member_seed_overrides").upsert(
-      leaving.map((id) => ({
-        team_id: id,
-        profile_id: rider.id,
-        excluded: true,
-        reason: "manual_remove",
-        created_by: check.userId,
-        updated_at: now,
-      })),
-      { onConflict: "team_id,profile_id" },
-    );
-    const { error } = await admin
-      .from("team_members")
-      .delete()
-      .eq("profile_id", rider.id)
-      .in("team_id", leaving);
-    if (error) return { ok: false as const, error: error.message };
-  }
+  const left = await leavePuzzleTeams(
+    admin,
+    rider.id,
+    teamIds.filter((id) => id !== teamId),
+    check.userId,
+  );
+  if (left.error) return { ok: false as const, error: left.error };
+  const leaving = left.teamIds;
+  await clearWithdrawn(admin, rider.id);
 
   if (teamId) {
     await admin
@@ -308,6 +358,7 @@ export async function addLadderRosterRider(input: {
   const profileId = profile?.id ?? entry?.claimed_by ?? null;
 
   if (profileId) {
+    await clearWithdrawn(admin, profileId);
     const { error } = await admin
       .from("ladder_pool")
       .upsert(
@@ -350,20 +401,6 @@ export async function addLadderRosterRider(input: {
       );
     }
   }
-  revalidatePath("/teams/club-ladder");
-  return { ok: true as const };
-}
-
-/** Haalt een rosternaam uit de ladderlijst; de rosternaam zelf blijft bestaan. */
-export async function removeLadderRosterRider(rosterEntryId: string) {
-  const check = await guardAccess();
-  if (!check.ok) return check;
-
-  const { error } = await check.admin
-    .from("ladder_roster_riders")
-    .delete()
-    .eq("roster_entry_id", rosterEntryId);
-  if (error) return { ok: false as const, error: error.message };
   revalidatePath("/teams/club-ladder");
   return { ok: true as const };
 }

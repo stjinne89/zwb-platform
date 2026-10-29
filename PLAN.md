@@ -11546,6 +11546,54 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Ladderpuzzel: weergave, volgorde en renners weghalen
+
+**2026-10-29.** Commit volgt, niet gepusht. Migratie `0291_ladder_withdrawn.sql`,
+**nog niet toegepast**.
+
+**Waarom.** De eigenaar bekeek de puzzel live in Chrome: "dit ziet er niet goed
+uit". De vakken stonden met `2xl:grid-cols-5` naast elkaar, maar dat breekpunt
+kijkt naar het scherm, en de inhoud is `max-w-5xl`: vijf kolommen van 182px,
+waarin de keuzelijst naast de naam stond en namen per letter afbraken. De teams
+stonden op naam (Beauties eerst). Daarnaast twee wensen: teams van links naar
+rechts op kracht (Beasts, Bullets, Brains, Beauties), en namen uit de puzzel
+kunnen halen als iemand niet meer mee wil doen.
+
+**Wat.**
+- Vakken met een minimale breedte (`repeat(auto-fill, minmax(13.5rem, 1fr))`,
+  vier naast elkaar in de inhoudsbreedte); de losse stukjes staan eronder over
+  de volle breedte, met "Renner toevoegen" ernaast. In een stukje staat de naam
+  op een eigen regel, daaronder rank en team. In de teamkop eerst naam en aantal,
+  daaronder status en band.
+- Teams gesorteerd op band (hoogste rank, dan laagste): sterkste links.
+- **Weghalen** op elk stukje (met bevestiging), `withdrawLadderRider`: een
+  rosternaam verliest zijn ladderkoppeling; een lid gaat uit de puzzelteams en
+  de ladderpool en komt in `ladder_withdrawn` (0291). Wie daar staat, valt uit
+  puzzel en ladderlijst, ook als hij zelf Ladder aanvinkte: die interesse is zijn
+  eigen keuze en stuurt zijn kalender (zelfde reden als bij 0285), dus die zet
+  een captain niet uit. Indelen, captain maken, aan de ladderlijst toevoegen of
+  "Renner toevoegen" halen de markering weg. Het kruisje "Uit de lijst" (alleen
+  rosternamen bij de losse stukjes) en `removeLadderRosterRider` zijn daarin
+  opgegaan.
+- `/hulp` vermeldt de volgorde en Weghalen.
+- Zolang 0291 niet is toegepast, is de lijst met weggehaalde leden leeg (de
+  pagina werkt) en geeft Weghalen bij een lid een foutmelding; bij een
+  rosternaam werkt het wel.
+
+**Gegevens (2026-10-29, op verzoek van de eigenaar).** Het account "Annet" is
+Annet van de Geyn: het Zwift-ID op haar profiel gezet. `link_roster_by_zwift_id`
+claimde daarop haar rosternaam (lid van ZRL Zwiftladies C, zoals bij elke claim)
+en de trigger uit 0290 zette haar ladderplek over naar haar account (ladderpool,
+losse stukjes). Daarmee is die trigger op productie bevestigd.
+
+**Bewust niet.** De interesse "Ladder" van een lid niet uitzetten bij weghalen
+(zie boven). Geen lidmaatschap van ladderteams buiten de puzzel aanraken:
+weghalen verbergt zo iemand wel.
+
+**Gecontroleerd.** `tsc` schoon, ESLint op `teams/club-ladder` en
+`lib/club-ladder`, Vitest `club-ladder-*` (19). **Niet geverifieerd:** de nieuwe
+weergave in de browser (lokaal vraagt de pagina een login) en de migratie.
+
 ### Gebouwd — Club Ladder: Ladderpuzzel
 
 **2026-10-29.** Commit `424a3948` (en `abfd118b` voor het nieuwe migratienummer),
