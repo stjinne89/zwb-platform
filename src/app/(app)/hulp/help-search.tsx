@@ -272,6 +272,13 @@ const HELP_INDEX: HelpResult[] = [
       "racen race analyse zrl frr flamme rouge etappe tijdslot klassement tijdrit itt link plakken zwiftpower ploegentijdrit ttt puntenrace uitslag ploegtijd tegenstander verloop tussentijd segment sprint klim kom vermogen w/kg zwiftpower los gelost eigen rit bestand np genormaliseerd intensiteit if w-balans wbal critical power hartslag cadans curve",
   },
   {
+    title: "Je race tegenover de verwachting",
+    text: "Verwachte plek en punten op je ZRS, waar je punten vandaan kwamen, je sprints naast eerder en het racebriefje.",
+    href: "/hulp/racen#racen-verwachting",
+    terms:
+      "verwachting verwacht voorspelling voorspeld zrs zwift racing score velo zwiftracing racebriefje briefje richttijd pr persoonlijk record punten fal fts fin podium sprintpunten klimpunten boven verwachting sterkste punt sprinter klimmer terugblik trend jouw races eerdere passages snelste",
+  },
+  {
     title: "Protocollen",
     text: "Hitte, lage cadans, ademspiertraining, duurtest en supplementen: starten, afvinken en de grenzen.",
     href: "/hulp/kennis#protocollen",
@@ -358,6 +365,20 @@ const HELP_INDEX: HelpResult[] = [
     href: "/hulp/club#zwblokken",
     terms:
       "zwblokken blokken kaart heatmap verkennen gebied squadrats tegels ontdekken koning koningin vorst gouverneur titel provincie deelstaat zwift watopia makuri france london new york virtueel",
+  },
+  {
+    title: "ZWBekers",
+    text: "De prijzenkast: een prestatie voordragen, de beker ontwerpen en feliciteren.",
+    href: "/hulp/club#zwbekers",
+    terms:
+      "zwbekers beker bekers prijs prijzen prijzenkast kast trofee voordragen nomineren nominatie ontwerpen ontwerp bokaal schaal medaille gravure team teambeker feliciteren felicitatie keuren toekennen teruggestuurd",
+  },
+  {
+    title: "Clubverhaal",
+    text: "Een anekdote of verhaal met foto's insturen voor het verhaal van ZWB.",
+    href: "/hulp/club#clubverhaal",
+    terms:
+      "clubverhaal verhaal verhalen anekdote anekdotes geschiedenis historie foto fotos insturen plaatsen hoofdstuk hoofdstukken scene tenue shirt periode poppetje juichen sprinten afzien klimmen afdalen avond beker",
   },
   {
     title: "Privacy en zichtbaarheid",

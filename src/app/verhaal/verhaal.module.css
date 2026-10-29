@@ -1,0 +1,104 @@
+.page{--gold:#d2a95f;--ink:#08232a;--panel:#0b2f39e0;--line:#ffffff1f;--muted:#a9bbc0;--soft:#d5dfe2;min-height:100svh;background:var(--ink);color:#f0f4f5;font-family:Arial,Helvetica,sans-serif}
+.page a:focus-visible,.page button:focus-visible{outline:3px solid var(--gold);outline-offset:3px;border-radius:6px}
+
+/* Top bar */
+.bar{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px;background:linear-gradient(180deg,#08232a 0%,#08232ad0 55%,#08232a00);pointer-events:none}
+.bar>*{pointer-events:auto}
+.brand{display:flex;align-items:center;font-size:22px;font-weight:800;letter-spacing:-1px;color:#f0f4f5;min-height:44px}
+.brand span{color:var(--gold);font-weight:400}
+.cta{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:9px;background:var(--gold);color:#0a2b34;font-size:13px;font-weight:750;border:1px solid var(--gold);transition:filter .15s}
+.cta:hover{filter:brightness(1.1)}
+.ghost{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:9px;border:1px solid #ffffff30;color:#e5ebed;font-size:13px;font-weight:600;background:#0b2f39b0;backdrop-filter:blur(6px)}
+.ghost:hover{background:#0f3f4ccc}
+.progress{position:fixed;top:0;left:0;height:3px;background:var(--gold);z-index:31;transform-origin:left;width:100%}
+
+/* Sticky 3D stage behind the scrolling story */
+.stage{position:sticky;top:0;height:100svh;overflow:hidden;background:#165e72}
+.shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#08232af0 0%,#08232ab8 30%,#08232a00 62%),linear-gradient(0deg,#08232a 0%,#08232a00 22%)}
+.flow{position:relative;z-index:2;margin-top:-100svh}
+
+.intro{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:96px 40px 72px;max-width:40rem}
+.eyebrow{display:block;font-size:11px;letter-spacing:2.4px;font-weight:700;text-transform:uppercase;color:var(--gold)}
+.intro h1{font-size:clamp(44px,7vw,96px);line-height:.95;letter-spacing:-3px;font-weight:800;margin:18px 0 20px}
+.intro h1 em{font-style:normal;color:var(--gold)}
+.intro p{font-size:17px;line-height:1.55;color:var(--soft);max-width:30rem}
+.scrollCue{display:flex;align-items:center;gap:8px;margin-top:36px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#b9c7cb}
+.scrollCue svg{animation:nudge 2.4s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+
+.chapter{padding:0 40px 18vh}
+.chapterHead{min-height:92svh;display:flex;flex-direction:column;justify-content:center;max-width:34rem;padding-top:80px}
+.chapterIndex{display:flex;align-items:center;gap:12px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:700}
+.chapterIndex b{font-family:var(--font-geist-mono),ui-monospace,monospace;font-weight:500;color:#b9c7cb;letter-spacing:.5px}
+.chapterHead h2{font-size:clamp(34px,4.6vw,60px);line-height:1;letter-spacing:-2px;font-weight:800;margin:16px 0 18px;text-wrap:balance}
+.chapterHead p{font-size:16px;line-height:1.6;color:var(--soft)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.chips span{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border-radius:30px;border:1px solid #ffffff26;background:#0b2f39b0;font-size:12px;color:#e3e9eb;backdrop-filter:blur(6px)}
+.chips i{width:9px;height:9px;border-radius:50%;border:1px solid #ffffff60}
+
+/* Story cards */
+.stories{display:flex;flex-direction:column;gap:18px;max-width:31rem;list-style:none;margin:0;padding:0}
+.card{display:block;position:relative;border-radius:14px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(10px);overflow:hidden;color:inherit;transition:border-color .15s,transform .2s}
+a.card:hover{border-color:#d2a95f80;transform:translateY(-2px)}
+.card img{display:block;width:100%;aspect-ratio:3/2;object-fit:cover;background:#0f3f4c}
+.cardBody{padding:18px 20px 20px}
+.meta{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;letter-spacing:.6px;color:var(--muted)}
+.card h3{font-size:21px;line-height:1.2;letter-spacing:-.4px;font-weight:750;margin:8px 0 10px;text-wrap:balance}
+.card p{font-size:14px;line-height:1.6;color:var(--soft);margin:0}
+.card p+p{margin-top:10px}
+.quote{color:var(--gold);flex-shrink:0}
+.anecdote .cardBody{padding-top:20px}
+.anecdote h3{display:flex;gap:10px;align-items:flex-start}
+.more{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding-top:12px;border-top:1px solid #ffffff14;font-size:12px;font-weight:700;color:var(--gold)}
+.more span{color:var(--muted);font-weight:400}
+.photoCount{position:absolute;top:12px;right:12px;display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:20px;background:#08232ad0;font-size:11px;color:#e3e9eb}
+.beker{display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--gold)}
+.beker:hover{text-decoration:underline}
+
+/* Chapter rail */
+.rail{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:20;display:flex;flex-direction:column;gap:6px;list-style:none;margin:0;padding:0}
+.rail a{display:flex;align-items:center;justify-content:flex-end;gap:10px;min-height:32px;font-size:11px;color:#c5d2d6}
+.rail a span{opacity:0;transform:translateX(6px);transition:opacity .2s,transform .2s;background:#08232ad0;padding:4px 8px;border-radius:6px;white-space:nowrap}
+.rail a:hover span,.rail a:focus-visible span,.rail a[aria-current=true] span{opacity:1;transform:none}
+.rail a i{width:8px;height:8px;border-radius:50%;background:#ffffff55;transition:background .2s,height .2s}
+.rail a[aria-current=true] i{background:var(--gold);height:24px;border-radius:5px}
+
+.outro{min-height:90svh;display:flex;flex-direction:column;justify-content:center;padding:80px 40px 120px;max-width:34rem}
+.outro h2{font-size:clamp(34px,4.6vw,60px);line-height:1;letter-spacing:-2px;font-weight:800;margin:16px 0 26px}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+
+/* Detail page: the story's own chapters over its scenes */
+.storyTitle{font-size:clamp(38px,5.6vw,76px)!important;letter-spacing:-2.4px!important;text-wrap:balance}
+.back{display:inline-flex;align-items:center;gap:6px;min-height:44px;font-size:13px;color:#d5dfe2;margin-bottom:14px;width:fit-content}
+.back:hover{color:var(--gold)}
+.scene{min-height:100svh;display:flex;flex-direction:column;justify-content:center;gap:28px;padding:80px 40px}
+.scenePanel{max-width:34rem;border-radius:14px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(10px);padding:24px 26px}
+.scenePanel .chapterIndex{margin-bottom:14px}
+.scenePanel p{font-size:18px;line-height:1.7;color:var(--soft);margin:0}
+.scenePanel p+p{margin-top:16px}
+.figure{margin:0;max-width:44rem}
+.figure img{display:block;width:100%;max-height:70svh;object-fit:cover;border-radius:12px;border:1px solid var(--line);background:#0f3f4c}
+.figure figcaption{margin-top:10px;font-size:13px;color:#d5dfe2;text-shadow:0 1px 6px #08232a}
+.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:0 0 28px;max-width:56rem}
+.gallery .figure img{aspect-ratio:4/3}
+
+@media(max-width:760px){
+  .bar{padding:10px 16px}
+  .brand{font-size:19px}
+  .cta{padding:0 13px;font-size:12px}
+  .shade{background:linear-gradient(0deg,#08232af5 0%,#08232ad0 34%,#08232a00 62%)}
+  .intro{justify-content:flex-end;padding:96px 16px 48px}
+  .intro h1{letter-spacing:-2px}
+  .intro p{font-size:15px}
+  .chapter{padding:0 16px 12vh}
+  .chapterHead{justify-content:flex-end;min-height:96svh;padding:80px 0 40px}
+  .chapterHead p{font-size:15px}
+  .stories{max-width:none}
+  .rail{display:none}
+  .outro{padding:80px 16px 96px}
+  .scene{padding:72px 16px;justify-content:flex-end}
+  .scenePanel{padding:18px 18px}
+  .scenePanel p{font-size:16px}
+  .gallery{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){.scrollCue svg{animation:none}.card,.rail a span{transition:none}}

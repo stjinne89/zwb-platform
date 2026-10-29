@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { GapChart } from "../_components/gap-chart";
 import { Chip, OwnRide, Stat, TipList, dateLabel } from "../_components/race-parts";
 import { PersonalRaceView } from "../_components/personal-race";
+import { ExpectationStats, PointsSources, RaceTrendView, SegmentDepth } from "../_components/race-depth";
 
 type PageProps = { params: Promise<{ eventId: string }> };
 
@@ -87,7 +88,18 @@ function RidersTable({ analysis, ownAthleteId }: { analysis: RaceAnalysis; ownAt
     { key: "cp20", header: "Beste 20 min", cell: (r) => (r.criticalPower?.m20 ? `${r.criticalPower.m20} W · ${wkg(r.cp20Wkg)}` : "—"), align: "right" },
     { key: "cp5", header: "Beste 5 min", cell: (r) => (r.criticalPower?.m5 ? `${r.criticalPower.m5} W` : "—"), align: "right" },
     { key: "cp1", header: "Beste 1 min", cell: (r) => (r.criticalPower?.m1 ? `${r.criticalPower.m1} W` : "—"), align: "right" },
-    ...(ttt ? [] : [{ key: "points", header: "Punten", cell: (r: RiderAnalysis) => r.points, align: "right" as const }]),
+    ...(ttt
+      ? []
+      : [
+          { key: "points", header: "Punten", cell: (r: RiderAnalysis) => r.points, align: "right" as const },
+          {
+            key: "expected",
+            header: "Verwacht",
+            cell: (r: RiderAnalysis) =>
+              r.expected ? `${r.expected.place}e${r.expected.points ? ` · ${Math.round(r.expected.points.total)}` : ""}` : "—",
+            align: "right" as const,
+          },
+        ]),
   ];
   return (
     <ResponsiveTable
@@ -171,8 +183,9 @@ export default async function RaceAnalysisPage({ params }: PageProps) {
     );
   }
 
-  const { event, analysis, ride, ownAthleteId, viewer, ownTips, teamTips, riderTips } = outcome;
+  const { event, analysis, ride, ownAthleteId, viewer, ownTips, teamTips, riderTips, depth } = outcome;
   const ttt = analysis.format === "ttt";
+  const ownRider = analysis.riders.find((r) => r.athleteId === ownAthleteId) ?? null;
   return (
     <div className="space-y-8">
       <div className="space-y-2">
@@ -197,6 +210,15 @@ export default async function RaceAnalysisPage({ params }: PageProps) {
         <section className="space-y-3">
           <SectionHeader title="Tips voor jou" />
           {ownTips.length > 0 ? <TipList tips={ownTips} /> : <EmptyState>Geen opvallende punten in je race.</EmptyState>}
+        </section>
+      )}
+
+      {ownRider && depth && (ownRider.expected || depth.segments.length > 0) && (
+        <section className="space-y-3">
+          <SectionHeader title="Jouw race tegenover de verwachting" />
+          <ExpectationStats rider={ownRider} />
+          <PointsSources rider={ownRider} />
+          <SegmentDepth depth={depth} />
         </section>
       )}
 
@@ -257,6 +279,8 @@ export default async function RaceAnalysisPage({ params }: PageProps) {
         <SectionHeader title="Teams in de groep" />
         <TeamsTable analysis={analysis} />
       </section>
+
+      {depth && <RaceTrendView depth={depth} />}
 
       <OwnRide ride={ride} />
     </div>

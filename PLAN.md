@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-10-27)
+## Actieve volgorde (bijgewerkt 2026-10-28)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -19,6 +19,34 @@ gaat stabiliteit voor nieuwe features.
    Open: na de deploy controleren dat de achtergrondfunctie draait (runbook §9,
    stap 4). Daarna kan het delen bij OpenAI uit; dat doet de eigenaar.
    De privacytekst noemt de aanbieder die `AI_PROVIDER` kiest (akkoord eigenaar).
+
+0b. **ZWBekers (2026-10-28): migratie `0286` toegepast en gepusht.** Open: de
+   privacytekst `/privacy#zwbekers` wacht op akkoord van de eigenaar, net als de
+   vraag of dit zonder nieuwe privacyversie kan (zie de ronde "ZWBekers").
+   Migratie `0287_zwbeker_zrl_round.sql` is op 2026-10-28 toegepast en de code
+   van de ronde "ZWBekers: een beker voor een hele ZRL-ronde" (`5b05403e`) is
+   dezelfde dag gepusht naar `main`.
+
+0d. **Clubverhaal in eigen hoofdstukken (2026-10-28): migratie `0289`
+   toegepast en gepusht.** `0289_club_story_scenes.sql` is op 2026-10-28 via
+   de Supabase-connector toegepast, op verzoek van de eigenaar, vóór de push.
+   Nog doen: een verhaal met twee of meer hoofdstukken insturen, plaatsen en op
+   `/verhaal/[id]` doorscrollen. Zie de ronde "Clubverhaal: een eigen verhaal in
+   hoofdstukken".
+
+0e. **ZWBeter racen: verwachting en terugblik (2026-10-28): gepusht naar
+   `main` (`d72e16b1`).** Geen migratie. In het weekoverzicht wordt het
+   teamscherm "Je race". Open: de privacyteksten `/privacy#racen` en die van het
+   weekoverzicht wachten op akkoord van de eigenaar.
+   Zie de ronde "ZWBeter racen: verwachting, punten per bron en de terugblik".
+
+0c. **Clubverhaal (2026-10-28): migratie `0288` toegepast en gepusht.**
+   `0288_club_stories.sql` is op 2026-10-28 via de Supabase-connector
+   toegepast, op verzoek van de eigenaar, vóór de push naar `main` (zelfde
+   dag). Open: de privacytekst `/privacy#clubverhaal` wacht op akkoord van de
+   eigenaar, net als de vraag of openbare verhalen zonder nieuwe
+   privacyversie kunnen (zie de ronde "Clubverhaal"). Nog doen: één verhaal
+   met foto insturen, plaatsen en op `/verhaal` en bij de beker bekijken.
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -208,7 +236,8 @@ gaat stabiliteit voor nieuwe features.
      het toetsenbord sluiten en kijken of de tabbalk onderaan blijft (ronde
      2026-10-16, "Tabbalk blijft hangen na het toetsenbord"). *Bijgewerkt
      2026-10-26:* leden zagen het daarna nog; zie de derde ronde "Tabbalk op de
-     iPhone: sprong herhalen en balk zelf omlaag".
+     iPhone: sprong herhalen en balk zelf omlaag". *Bijgewerkt 2026-10-28:* die
+     derde ronde is teruggedraaid, zie "Teruggedraaid — Tabbalk op de iPhone".
    - **Fietsen op het ledenprofiel:** `0243_member_profile_bikes.sql` is op
      2026-10-16 toegepast via de Supabase-connector, op verzoek van de eigenaar,
      en daarna gepusht. Nog doen: als ander lid in de app een profiel met
@@ -399,10 +428,13 @@ gaat stabiliteit voor nieuwe features.
    goedgekeurd (eigenaar). Open: na de deploy op een briefing van een puntenrace
    kijken of de PR's binnenkomen, en of `/segment-results` geen 429 geeft.
 
-19. **Tabbalk op de iPhone, derde ronde** (ronde van 2026-10-26 hieronder):
-   gebouwd, lokaal getest en op 2026-10-26 gepusht naar `main`. Geen migratie. Open: op een
-   iPhone in de beginscherm-app iets typen, het toetsenbord sluiten en scrollen;
-   leden die de balk midden in beeld zagen vragen of het nog gebeurt.
+19. **Tabbalk op de iPhone, vierde ronde** (rondes van 2026-10-28 hieronder):
+   de derde ronde liet de balk bij het scrollen verdwijnen en is teruggedraaid
+   (`5ce751af`). Daarna opnieuw gebouwd: het herstel werkt alleen nog binnen een
+   toetsenbordbeurt (`11e46e39`). Op 2026-10-28 gepusht naar `main` (eigenaar). Geen migratie. Open: na
+   het pushen op een iPhone in de beginscherm-app (1) scrollen zonder te typen:
+   de balk blijft staan; (2) iets typen, het toetsenbord sluiten en scrollen: de
+   balk staat onderaan, niet midden in beeld.
 
 20. **ZWBriljant: records van de minuut en 5 minuten, profs als houvast** (ronde van
    2026-10-27 hieronder): gebouwd, lokaal getest en op 2026-10-27 gepusht naar `main`. Geen migratie.
@@ -3192,7 +3224,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - **Bewaren:** `loadZrlRaceData` heet nu `loadZwiftRaceData` en bewaart elke
 >   gereden race in `zrl_race_snapshots` (de naam van de tabel is gebleven). Buiten
 >   de ZRL met `minimizeRaceData`: van wie niet bij ZWB hoort alleen plek, tijd en
->   segmenttijden. Nieuwe snapshots krijgen `eventType`.
+>   segmenttijden (sinds 2026-10-28 ook de ZRS van vóór de race, ronde "ZWBeter
+>   racen: verwachting, punten per bron en de terugblik"). Nieuwe snapshots
+>   krijgen `eventType`.
 > - **De lijst** (`listRaces`): ZRL zoals voorheen, plus FRR-slots met een eigen
 >   finishtijd en elke bewaarde race met het eigen Zwift-ID in de uitslag; een
 >   geplakte race staat erin zodra hij één keer bekeken is. Per regel het soort
@@ -8611,8 +8645,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > renners), segmentbeheer, hulp bij segmenten, ZWBgame-beheer, privacy en
 > voorwaarden (→ ZWB Cycling). De lokale `BackLink` van het pacingplan is weg.
 >
-> **Bewust niet.** `/verhaal` en `/brochure` (losse deelpagina's zonder ingang
-> vanuit de app), de Omnium-site (eigen menu) en de OBS-overlay. Ook niet: "Terug
+> **Bewust niet.** `/verhaal` en `/brochure` (losse deelpagina's; `/verhaal`
+> heeft sinds 2026-10-28 wel een ingang via Club → Clubverhaal, maar een eigen
+> balk in plaats van een `BackLink`), de Omnium-site (eigen menu) en de OBS-overlay. Ook niet: "Terug
 > naar inloggen" (een stap in het inlogformulier), de knop "Coach-cockpit" op
 > Vermogen (een menupagina) en de mobiele terugknop in de app-kop
 > (`back-button.tsx`, gaat via de browsergeschiedenis; een andere functie).
@@ -11612,6 +11647,752 @@ aangemaakt. Resultaat: Beasts 8, Bullets 8, Brains 10, Beauties 7; Annet
   blijven dat bij ZWBandits, Femke bij ZWB Zwiftladies; in ZWBrains zijn ze lid.
   Indelen kunnen ze toch, want dat mag elke captain van een ladderteam.
 
+### Gebouwd — ZWBeter racen: verwachting, punten per bron en de terugblik
+
+**2026-10-28.** Commit `d72e16b1`, gepusht naar `main` op 2026-10-28
+(eigenaar). Geen migratie (de ZRS gaat in de bestaande jsonb van
+`zrl_race_snapshots`).
+
+**Waarom.** Vraag van de eigenaar: hij had "vergeleken met andere races een paar
+goede sprints en scoorde meer punten dan dat zwiftracing voor mij zou voorspeld
+hebben ook vergeleken met wat het racebriefje dacht dat mogelijk was. Worden dat
+soort elementen ook meegenomen?" Dat werd niet meegenomen: de analyse hield per
+renner alleen het totaal aan punten over, en keek niet naar de verwachting en
+niet naar eerdere races. Na het voorstel (puntenopbouw, verwachting tegenover
+uitkomst, briefje tegenover gereden, sprints tegenover het eigen niveau,
+terugblik): "Alles, ook 4 en 5". Metingen, regels en keuzes:
+[zrl-analyse.md](docs/zrl-analyse.md), sectie "Verdieping".
+
+**Wat.**
+- **ZRS van vóór de race uit de uitslag van Zwift** (`scoreHistory.previousScore`,
+  in vier gemeten startgroepen voor elke renner). `resultPowerFields` leest hem
+  als `scoreBefore`; `minimizeRaceData` houdt hem ook van renners buiten ZWB. Nieuwe
+  snapshots krijgen `withScores`; oude snapshots met vermogen worden één keer
+  aangevuld (`addScores` in `zrl-live/snapshot.ts`: alleen de uitslag opnieuw).
+  `loadZwiftRaceData` bewaart alleen als vermogen of ZRS er echt bij kwam.
+- **Punten per passage** (`race.ts`): FAL en FTS per segment, de opbouw per
+  renner (FAL, FTS, FIN, podium), en de verwachting.
+- **Verwachting** (`expectation.ts`, nieuw): plek op ZRS onder de finishers; in een
+  puntenrace de punten als elk segment en de finish in die volgorde waren
+  gereden. Dezelfde volgorde als het racebriefje (dat zonder ZwiftRacing-sleutel
+  ook op ZRS sorteert), maar met de score van vóór de race. Een meetlat, geen
+  voorspelling; het verschil per bron zegt waar de punten vandaan kwamen.
+- **Vergelijking en terugblik** (`history.ts`, nieuw): per sprint en klim vandaag
+  tegenover de eigen eerdere passages, de eigen PR en de richttijd van het
+  briefje (uit `zwift_segment_bests`, alleen van vóór de race), en over alle
+  bewaarde races van de laatste 120 dagen plek en punten tegenover de verwachting.
+  `analysePersonalRace` kreeg een optioneel scoringsformat, zodat een ZRL-race in
+  de terugblik met segmentpunten telt.
+- **Tip** (`strengthAdvice`): na drie puntenraces met verwachting, als sprints of
+  klimmen gemiddeld ≥ 5 punten per race boven verwachting liggen en ≥ 5 boven de
+  andere soort. Hij komt achteraan bij de eigen tips (samen hooguit vier) en
+  gaat zo ook mee naar de trainer.
+- **Laden** (`load.ts`): `loadDepth` voor de renner zelf, op de ZRL-pagina en de
+  pagina van een individuele race. De terugblik leest eerst alleen welke races er
+  zijn en haalt de uitslagen dan via `unstable_cache` (sleutel per race met de
+  vlaggen vermogen en ZRS, een week). Binnen een verzoek één keer (`cache`), want
+  de trainerpagina laadt alle races van een lid. Ontbrekende ZRS worden na het
+  antwoord aangevuld, hooguit 20 s per bezoek.
+- **Pagina's**: een blok "Jouw race tegenover de verwachting" (verwachte en echte
+  plek, punten, punten per bron, per sprint en klim de vergelijking) en "Jouw
+  races" (de terugblik); bij de captain een kolom Verwacht in de rennerstabel en
+  een bevinding met de verwachte punten van de eigen renners.
+- Hulp (`/hulp/racen#racen-verwachting`, plus een regel in de hulpzoeker) en
+  privacyverklaring (`#racen`).
+- **Weekoverzicht: het teamscherm wordt "Je race"** (vraag van de eigenaar,
+  dezelfde dag: het teamscherm "zegt vrij weinig met alleen die balken en de
+  positie van de ploeg. Ook mooi als daar iets over de bijdrage van de renner
+  staat"; eerst als apart scherm na het teamscherm gebouwd, daarna op zijn
+  verzoek samengevoegd: "ik vind die teams pagina nu niet veel toevoegen").
+  Reed het lid in de ploeg, dan vervangt dit scherm het teamscherm: in een punten- of scratchrace de
+  punten (of de plek), plekken voor of achter de verwachting, de verwachte
+  punten, het deel van de ploegpunten (en of dat het meeste was) en de bron met
+  het grootste verschil; in een ploegentijdrit W/kg naast het ploeggemiddelde en
+  of je bij de ploeg finishte. De tekening (`RacePrint`): verwacht en gefinisht
+  op een lijn, en de ploeg als staven met jou in goud. Data: `raceContribution`
+  in `history.ts` (puur), `loadRaceContribution` in `zrl-analysis/load.ts`
+  (bevroren race, 6 s budget per uitslag in `weekly-review/load.ts`), veld
+  `race` op `TeamResult`. `SUMMARY_VERSION` 4: een bestaand overzicht wordt bij
+  de volgende opening opnieuw opgebouwd. De punten of W/kg van ploeggenoten staan
+  zonder naam in de samenvatting en gaan zo ook naar de AI-coach; privacytekst
+  `#weekoverzicht` aangevuld. De plaats van de ploeg (en andere teams en de SRC)
+  staat als laatste zin op hetzelfde scherm; de balken (`TeamPrint`) alleen nog
+  als het lid niet in de ploeg reed of er geen race-analyse is. Hulp: de
+  regel over het weekoverzicht in `hulp/_data.ts`. Voorbeelddata in
+  `/ontwerp-voorbeeld?scherm=weekoverzicht`.
+
+**Op echte data (alleen lezen, de ZRS in het geheugen bijgezet).** De eigen races
+van de eigenaar: ZRL race 5 (27 oktober) verwacht 17e, gefinisht 6e, 241 punten
+tegen 112 verwacht (sprints +33, klimmen +59, overige segmenten +26, finish +11);
+Jarvis Sprint 12,3 s tegen 15,6 s eerder en een richttijd van 15,0 s. Over negen
+races gemiddeld 7,1 plekken voor de verwachting. Twee puntenraces met
+verwachting, dus nog geen tip.
+
+**Bewust niet.** vELO of de voorspelling van ZwiftRacing (geen sleutel; met sleutel
+moet eerst de vELO van vóór de race bewaard worden). Een model dat voorspelt wie
+welke sprint rijdt. De richttijd van het briefje bij de start vastleggen (de
+PR-cache verliest een PR van vóór de race als iemand in de race een nieuwe zet;
+bij race 5 speelde dat niet). Sprint tegenover de intervals-curve. De terugblik
+voor captains of trainers.
+
+**Niet meer waar.** In de ronde "ZWBeter racen voor elke Zwift-race" bewaarde
+`minimizeRaceData` van anderen alleen plek, tijd en segmenttijden; nu ook de ZRS
+van vóór de race (daar inline gecorrigeerd, net als in `docs/zrl-analyse.md`).
+
+**Gecontroleerd.** `tsc` (alleen de bekende fouten over ontbrekende pakketten),
+ESLint op de gewijzigde bestanden, Vitest: nieuw `zrl-analysis-depth.test.ts`
+(verwachte volgorde en dekking, verwachte punten met FTS over ronden, punten per
+bron, vergelijking met eerder, PR en richttijd van vóór de race, terugblik, de
+tip en wanneer niet, punten per passage via `analysePersonalRace`);
+`zrl-race-data-power.test.ts` (aanvullen van de ZRS, niets bewaren als dat
+mislukt, de ZRS blijft bij minimaliseren); `zrl-analysis-race.test.ts`
+(`scoreBefore` uit de uitslagrij); `raceContribution` (puntenrace, ploegentijdrit,
+niet in de ploeg). `tsc` schoon na `npm ci` in de worktree; de volledige suite
+groen op één beheertest na die alleen onder volle belasting een time-out geeft
+(los gedraaid groen). In de lokale app (dev-server met `--webpack`; Turbopack
+vond de CSS-binary niet door de twee lockfiles): de ZRL-pagina van race 5 met de
+login van de eigenaar, alle blokken met echte data (verwacht 17e, 6e, 241 tegen
+112 punten, segmenten met eerder en briefje); het scherm "Je race" met
+voorbeelddata op `/ontwerp-voorbeeld?scherm=weekoverzicht` op telefoonbreedte.
+Bij dat bezoek is de snapshot van race 5 op productie aangevuld met de ZRS van
+vóór de race (de bedoelde aanvulling, geen proef).
+**Niet geverifieerd:** `npm run build`, het echte weekoverzicht van een lid
+(een week met een ZRL-race moet eerst opnieuw worden opgebouwd), het aanvullen
+op Netlify en de cache daar.
+**Privacytekst `#racen` en die van het weekoverzicht voorleggen aan de eigenaar:**
+de ZRS van vóór de race wordt nu ook van renners buiten ZWB bewaard (zonder
+naam), de terugblik is nieuw, en het weekoverzicht bewaart de punten of W/kg van
+ploeggenoten (zonder naam). Is dit zonder nieuwe privacyversie goed?
+
+### Gebouwd — Clubverhaal: een eigen verhaal in hoofdstukken, met poppetjes en scènes
+
+**2026-10-28.** Commit `caf7d96e`, gepusht naar `main` op 2026-10-28
+(eigenaar). Migratie `0289_club_story_scenes.sql`, dezelfde dag vóór de push via
+de Supabase-connector toegepast. Vooraf: geen kolom `scenes`, 0 verhalen.
+Achteraf: `scenes` jsonb, niet leeg, standaard `'[]'`, en de check
+`club_stories_scenes_check`.
+
+**Waarom.** Wens van de eigenaar, direct na de eerste ronde: een lid moet zijn
+verhaal anders kunnen opbouwen dan de vier vaste periodes, met "verschillende
+elementen" om uit te kiezen: welk shirt of welke periode, "een juichend
+poppetje of juist een afziend poppetje", zodat een anekdote passende
+animaties krijgt.
+
+**Wat.**
+- Een verhaal bestaat nu uit eigen hoofdstukken (1–8, `club_stories.scenes`,
+  jsonb). Per hoofdstuk: tekst (hooguit 1500 tekens) en vier keuzes voor de
+  3D-scène (`lib/clubverhaal/scenes.ts`): shirt (blanco, Net effe anders,
+  VBTM, Hage; dat is ook de periode), poppetje (rijden, juichen, sprinten,
+  afzien, klimmen, afdalen), renners (1–7) en moment (zon, avond, grijs). De
+  server maakt `body` van alle teksten samen (20–5000 tekens) en `chapter` van
+  het shirt van het eerste hoofdstuk; het formulier vraagt geen periode meer.
+- De scène (`verhaal/story-scene.tsx`) toont een `SceneSpec` in plaats van een
+  periode. De weg heeft nu een vlak stuk met een finishboog (zoals in de
+  game), een klim van 110 m (tot 10%), een plateau en een afdaling; elke pose
+  rijdt op zijn eigen stuk:
+  - juichen: de hoofdrenner (renner 0) komt los aan, armen omhoog vanaf 30 m
+    voor de lijn, de rest volgt; camera ervoor.
+  - sprinten: uit het zadel met hoge cadans naar de lijn, na de lijn juichen.
+  - afzien: hangend over het stuur, lage cadans, wiebelend; hij zakt langzaam
+    uit de groep die verderop rijdt. Camera erachter, zodat je de groep ziet
+    wegrijden.
+  - klimmen: op de klim, de hoofdrenner af en toe uit het zadel.
+  - afdalen: iedereen in tuck, freewheelen, 17 m/s.
+  - rijden: zoals de periodes, met de camerahoek naar het aantal renners.
+  Licht: zon zoals in de game; avond met lage zon voorop en lange schaduwen;
+  grijs met vlak licht en nevel. Lucht, mist, zon en heuvels lopen in ruim een
+  seconde over.
+- `rider-model.ts` (ZWBgame): `solvePose` en `place` nemen een optionele
+  `Mood` (`cheer`, `slump`): rechtop met beide armen in de lucht, of het hoofd
+  omlaag over het stuur. De game geeft niets mee; een test bewaakt dat de
+  armen hun lengte houden en de handen boven het hoofd komen.
+- Formulier (`clubverhaal/_components/scene-builder.tsx`): per hoofdstuk de
+  tekst en de keuzes als knoppen, hoofdstukken toevoegen, verschuiven en
+  weghalen. Naast het formulier (op de telefoon erboven) een live 3D-voorbeeld
+  van het hoofdstuk waar je mee bezig bent.
+- `/verhaal/[id]` (`story-reader.tsx`): de scène staat vast op de achtergrond
+  en wisselt naar het hoofdstuk dat midden in beeld staat; de tekst staat per
+  hoofdstuk in een paneel, de foto's ertussen, de rest onderaan.
+- `/verhaal`: staat een verhaalkaart midden in beeld, dan toont de scène het
+  eerste hoofdstuk van dat verhaal. Een korte anekdote staat alleen inline als
+  hij één hoofdstuk heeft.
+- Beheer toont per hoofdstuk de keuzes en de tekst. Hulp en privacytekst
+  ("de hoofdstukken met hun tekst en gekozen scène") bijgewerkt.
+
+**Bewust niet.**
+- Geen vrije kleuren of eigen shirts: alleen de vier tenues die de club echt
+  had, zodat de periode klopt.
+- Geen poppetje naast de fiets (pech, val) of zonder fiets: het rennermodel
+  van de game kent alleen houdingen op de fiets.
+- Geen regen of nacht: grijs dekt het slechte weer; regendruppels en
+  koplampen vragen eigen deeltjes en licht, voor weinig extra.
+- Geen eigen scène bij een foto; foto's blijven tussen de hoofdstukken.
+- De vier periodes zelf (titel en tekst op `/verhaal`) zijn niet aan te passen
+  vanuit de app; ze staan in `lib/clubverhaal/chapters.ts`.
+
+**Niet meer waar.** In de ronde hieronder: het formulier vraagt geen
+hoofdstuk meer en de detailpagina heeft geen vaste kop meer (in die ronde
+inline gecorrigeerd).
+
+**Gecontroleerd.** `tsc` (alleen de bekende fouten over ontbrekende pakketten),
+ESLint op de gewijzigde bestanden, Vitest `clubverhaal.test.ts` (nu 23 tests:
+hoofdstukken, periode uit het eerste shirt, kapotte opgeslagen hoofdstukken),
+`zwbgame-rider-model.test.ts` (nieuw: juichen en afzien) en
+`zwbekers.test.ts`. In de lokale app, op een tijdelijke proefpagina (weer
+weggehaald): alle zes poses, de drie lichtstanden, 1–7 renners en de vier
+shirts in het voorbeeld, en de verhaalpagina met drie hoofdstukken die per
+hoofdstuk van scène wisselt. `/verhaal` zonder verhalen ongewijzigd.
+**Niet geverifieerd:** het echte formulier met een ingelogde sessie
+(insturen, aanpassen, plaatsen), en de scène op een trage telefoon.
+
+### Gebouwd — Clubverhaal: /verhaal in de stijl van de ZWBgame, met verhalen van leden
+
+**2026-10-28.** Commit `33ec279b`, gepusht naar `main` op 2026-10-28
+(eigenaar). Migratie `0288_club_stories.sql`, dezelfde dag vóór de push via de
+Supabase-connector toegepast. Vooraf: geen van de twee tabellen, geen bucket,
+geen pushkolommen; `zwbekers` en `current_user_has_permission` bestonden.
+Achteraf: RLS aan op beide tabellen met elk één select-policy, `anon` geen
+leesrecht, `authenticated` geen insertrecht, bucket besloten met 10 MB, beide
+pushkolommen, en de foreign key `club_stories_profile_id_fkey` waarop de code
+de schrijver koppelt. De beveiligingsadviezen noemen de nieuwe tabellen niet.
+
+**Waarom.** Wens van de eigenaar: het verhaal van ZWB op `/verhaal` met de
+verbeterde visuals van de ZWBgame (dezelfde renners en engine), met plek voor
+anekdotes en verhalen met foto's die meer ruimte nodig hebben. Op de vraag wie
+die plaatst koos de eigenaar "leden dragen voor, het bestuur keurt", en "eerst
+de vorm" (geen verzonnen clubgeschiedenis als vulling). Tijdens het bouwen
+kwam erbij: vanaf een prestatie doorlinken naar het verhaal ervan.
+
+**Wat.**
+- `/verhaal` is herbouwd. Achter de tekst staat een vaste 3D-scène
+  (`verhaal/story-scene.tsx`) met `createPeloton`, `groundGeometry`,
+  `createForest` en `createRidges` uit de ZWBgame, dezelfde lucht, zon en
+  schaduwen. Per hoofdstuk rijdt een groep in het tenue van toen: blanco (1
+  renner), het blauwe Z-shirt (2), VBTM (4) en het huidige clubshirt (7). Bij
+  een nieuw hoofdstuk rijdt de nieuwe groep van achteren aan en zwenkt de
+  camera naar de hoek van dat hoofdstuk. De hoofdstukken en verhalen scrollen
+  eroverheen in de stijl van de game (donker petrol, goud, Arial); rechts een
+  hoofdstukrail, bovenaan een voortgangsbalk.
+- De hoofdstukken staan nu in `lib/clubverhaal/chapters.ts` (waren in
+  `story-experience.tsx`); dezelfde vier ids staan in de check-constraint van
+  0288. De oude SVG-renner (`public/story/riders/cyclist-base.svg`) wordt niet
+  meer gebruikt maar staat er nog.
+- `rider-model.ts` (ZWBgame): `createPeloton` neemt een optionele
+  jerseyschilder (standaard het clubshirt, `clubJersey`), `RiderLook` een
+  optionele mouwkleur, en er is `setVisible`. De game zelf geeft niets mee en
+  ziet er hetzelfde uit.
+- Verhalen van leden (`club_stories`, `club_story_photos`, bucket
+  `club-story-photos`, besloten): insturen op `/clubverhaal/insturen` met
+  titel, tekst (20–5000 tekens; sinds de ronde "verhaal in eigen
+  hoofdstukken" verdeeld over hoofdstukken, en de periode volgt uit het shirt
+  van het eerste), jaar, een toegekende ZWBeker en
+  hooguit zes foto's met onderschrift (in de browser verkleind tot 1920 px).
+  `/clubverhaal` toont je eigen verhalen met status; aanpassen zolang niet
+  geplaatst, weghalen altijd. Plaatsen of terugsturen (met notitie) op
+  `/beheer/clubverhaal`, met het recht `community.manage`, zoals tips en
+  citaten. Pushmeldingen voor wie plaatst en voor wie schreef.
+- Op `/verhaal`: een korte anekdote zonder foto (tot 420 tekens, en sinds de
+  volgende ronde in één hoofdstuk) staat in zijn geheel bij het hoofdstuk; een
+  verhaal met foto's of een langer verhaal is een kaart naar `/verhaal/[id]`.
+  (De detailpagina met de scène van het hoofdstuk als kop is in de volgende
+  ronde vervangen door een pagina die per eigen hoofdstuk van scène wisselt.)
+- Prestaties: een verhaal kan aan een toegekende ZWBeker hangen. De beker
+  toont "Lees het verhaal" en "Vertel het verhaal"
+  (`/clubverhaal/insturen?beker=<id>`); het verhaal linkt naar de beker.
+- Ingangen: Club → Clubverhaal in het menu en op de clubpagina, beheer onder
+  Community, `/hulp/club#clubverhaal`.
+- Data-export (verhalen en foto-rijen), accountverwijdering (verhalen gaan via
+  de cascade mee, de foto's ruimt `deleteMyAccount` op), privacytekst
+  `/privacy#clubverhaal`.
+
+**Bewust zo.**
+- De member-pagina's heten `/clubverhaal`, niet `/verhalen`: de middleware
+  behandelt alles wat met `/verhaal` begint als publiek (`startsWith`), dus
+  `/verhalen` zou zonder inloggen open staan.
+- Geplaatste verhalen leest de server met de admin-client en een vaste filter
+  op `status = 'geplaatst'`; anon krijgt geen rechten op de tabellen. Zo blijft
+  RLS voor leden simpel (alleen eigen verhalen en wie plaatst).
+- Foto's blijven besloten met leeslinks van een uur, net als bij ZWBekers.
+  Daarom is `/verhaal` dynamisch (geen cache).
+- Een verhaal verdwijnt als de schrijver het account opheft (`on delete
+  cascade`, anders dan een beker): het staat openbaar, en zonder de schrijver
+  kan niemand het nog terugnemen.
+
+**Bewust niet.**
+- Geen verzonnen anekdotes als vulling: zonder geplaatste verhalen toont
+  `/verhaal` alleen de vier hoofdstukken.
+- Geen kleinere versie van elke foto voor het overzicht. Het overzicht laadt
+  één foto per verhaal, lui (`loading="lazy"`). Bij veel verhalen telt dat mee
+  in de egress (zie punt 1); dan alsnog een miniatuur bij het uploaden maken.
+  Image-transformaties van Supabase vragen Pro.
+- Geen link vanaf andere prestaties dan ZWBekers (badges, uitslagen): alleen
+  bekers hebben een eigen pagina met een verhaal.
+- Geen eigen recht "verhalen plaatsen": dat vraagt de check-constraint van
+  `community_role_permissions` (zie 0254).
+
+**Niet meer waar.** Ronde "Materiaal" (bewust niet): de SVG-renner "uit het
+clubverhaal" wordt sinds deze ronde niet meer gebruikt; het clubverhaal toont
+de renners van de ZWBgame. De regel "`/verhaal` ... losse deelpagina zonder
+ingang vanuit de app" (ronde BackLink) klopt niet meer: Club → Clubverhaal
+linkt ernaar.
+
+**Gecontroleerd.** `tsc` (alleen de bestaande fouten over `modern-screenshot`
+en `@anthropic-ai/sdk`, ontbrekende pakketten in de lokale `node_modules`),
+ESLint op de gewijzigde bestanden, Vitest `clubverhaal.test.ts` (nieuw, 17
+tests) en `zwbekers.test.ts`. De volledige unit-suite: 3 mislukte tests en 20
+suites die niet laden, allemaal door `@anthropic-ai/sdk` en Zwift-routedata,
+niet door deze ronde. In de lokale app (800 px en 375 px): alle vier de
+hoofdstukken met hun groep en tenue, de kaarten en de detailpagina, met
+tijdelijke voorbeelddata in de code (weer weggehaald) omdat de tabellen
+lokaal niet bestonden. **Niet geverifieerd:** insturen, uploaden, plaatsen en
+de pushmeldingen met een ingelogde sessie, de beker-link, en de scène op een
+trage telefoon.
+### Gebouwd — ZWBekers: een toegekende beker aanpassen (bestuur)
+
+**2026-10-28.** Commit `b1333314`, gepusht naar `main` op 2026-10-28
+(eigenaar). Geen migratie.
+
+**Waarom.** Wens van de eigenaar: een beker ook na toevoegen kunnen aanpassen
+"bij een foutje", maar alleen door het bestuur of de eigenaar.
+
+**Wat.**
+- `canEdit` (`lib/zwbekers/nomination.ts`) kreeg `canReview`: wie keurt
+  (`achievements.finalize`) mag elke beker aanpassen, ook een toegekende; wie
+  voordroeg nog steeds alleen zolang hij niet is toegekend. Dezelfde regel geldt
+  voor de foto (uploaden, vervangen, weghalen) en voor verwijderen.
+- `updateNomination`: een toegekende beker blijft bij aanpassen toegekend, met
+  dezelfde beoordeling, en er gaat geen melding uit; het is een correctie. Een
+  open of teruggestuurde voordracht gaat zoals voorheen (weer) naar het bestuur.
+  Het opslaan lukt alleen als de status nog is wat de server net las (eerst:
+  "niet toegekend"), zodat aanpassen en keuren elkaar niet overschrijven.
+- Bekerpagina: wie keurt ziet Aanpassen en Verwijderen bij elke beker; wie
+  voordroeg Aanpassen en Intrekken bij zijn open voordracht. `BekerActions`
+  heeft daarvoor `remove: "intrekken" | "verwijderen" | null` in plaats van
+  `canRemove`. De pagina heet bij een toegekende beker "Beker aanpassen".
+
+**Wie dat zijn (productie, 2026-10-28).** Het recht `achievements.finalize`
+hebben de eigenaar (beheerder), vier bestuursleden, en één communitymanager die
+niet in het bestuur zit. Die laatste kon al keuren en verwijderen; hij kan nu
+ook aanpassen. Voorgelegd aan de eigenaar: akkoord (2026-10-28).
+
+**Bewust niet.**
+- Geen eigen recht voor aanpassen: dat vraagt de check-constraint van
+  `community_role_permissions` (zie 0254), en wie mag keuren en verwijderen,
+  hoort ook een foutje te mogen herstellen.
+- Geen geschiedenis van wijzigingen; `updated_at` gaat wel mee.
+
+**Gecontroleerd.** `tsc`, ESLint, Vitest `zwbekers.test.ts` groen (27 tests;
+`canEdit` met en zonder keurrecht). **Niet geverifieerd:** aanpassen met een
+ingelogde sessie, met of zonder keurrecht.
+
+### Gebouwd — ZWBekers: de kampioensriem van de clubladder
+
+**2026-10-28.** Commit `db7e2bb7`, gepusht naar `main` op 2026-10-28
+(eigenaar). Geen migratie.
+
+**Waarom.** Wens van de eigenaar: in de clubladder kon je een tijd een belt
+verdienen per klasse van ZwiftRacing.app (Diamant, Robijn, …); daarvoor een riem
+zoals uit het boksen, die in de prijzenkast past.
+
+**Wat.**
+- Vorm `riem` ("Riem") in `lib/zwbekers/design.ts`, met een nieuw veld
+  `niveau`: de tien klassen Koper tot Diamant. Namen, volgorde en kleuren komen
+  uit `LEVELS` van ZWBriljant (`briljant/norms.ts`), zelf van vELO
+  (ZwiftRacing.app); een test bewaakt dat ze gelijk blijven. Het leer gebruikt
+  het bestaande veld `lint` (in het formulier "Leer"); `LINTEN` kreeg er zwart
+  bij, ook voor de medaille. Oude ontwerpen zonder `niveau` lezen als Diamant;
+  `design` is jsonb, dus geen migratie.
+- 3D (`components/zwbekers/trophy.ts`, `buildBelt`): leer in een boog van 200°
+  om een fluwelen standaard (opening naar achteren), stiksels langs de randen,
+  een metalen schild met kroontje voorop met emaille in de klassekleur, een
+  ring, twaalf knopjes en een geslepen steen, en twee zijplaten per kant met
+  een kleinere steen. Amethist tot Diamant is een glanzende steen met wat eigen
+  gloed; Koper tot Platina een metalen knop in die kleur. Staat stil met de
+  voorkant naar voren (`spins`), zoals de medaille en de 1.
+- Plaatje (`beker-icon.tsx`, `Belt`): dezelfde maten (`BELT`, `BELT_PLATE`,
+  `sidePlateOutline`) van voren, met de zijplaten smaller naar opzij.
+- Formulier: bij Riem de keuzes Klasse (met kleurbolletje) en Leer;
+  `/ontwerp-voorbeeld` heeft een riem bij de voorbeeldbekers.
+
+**Bewust niet.**
+- Geen koppeling aan de ladderuitslag: wie kampioen was, beoordeelt het bestuur
+  bij het keuren, zoals bij elke beker.
+- Geen tekst op het schild zelf: de klasse zit in de kleur van de steen, de
+  naam in de gravure op de sokkel.
+
+**Gecontroleerd.** `tsc`, ESLint, Vitest `zwbekers.test.ts` groen (27 tests;
+nieuw: klassen gelijk aan ZWBriljant, keuzes per vorm, maten op de sokkel,
+oude ontwerpen). De riem in 3D en als plaatje bekeken in de lokale app (een
+tijdelijke pagina onder `/ontwerp-voorbeeld`, daarna weer weggehaald), in
+Diamant, Robijn, Smaragd en Goud. Daarbij aangepast: de boog breder (straal
+0,78 in plaats van 0,55), want met het schild over de halve breedte leek het een
+horloge, en de fluwelen standaard eronder, want de riem zweefde boven de
+sokkel. **Niet geverifieerd:** de riem in de echte kast (met inloggen), en het
+formulier met een ingelogde sessie.
+
+### Gebouwd — ZWBekers op het dashboard, met slingers en confetti
+
+**2026-10-28.** Commit `99d59ba4`, gepusht naar `main` op 2026-10-28
+(eigenaar). Geen migratie.
+
+**Waarom.** Wens van de eigenaar: toegekende bekers van de afgelopen 7 dagen op
+het dashboard, de eerste keer met confetti en slingers, "zodat leden weten wat
+er gepresteerd is en de winnaars kunnen feliciteren".
+
+**Wat.**
+- `loadRecentBekers` (`lib/zwbekers/server.ts`): toegekende bekers met
+  `achieved_on` van vandaag en de zes dagen ervoor (`recentSince`,
+  `DASHBOARD_DAYS = 7` in `lib/zwbekers/nomination.ts`), nieuwste eerst, hooguit
+  12. Gelezen met de sessie van het lid; alleen voor wie de prijzenkast mag zien
+  (`requireBekerMember`: goedgekeurd en privacyverklaring getekend), anders
+  geen blok. Bij een storing ook geen blok.
+- Het blok "ZWBekers van deze week" (`dashboard/_components/recent-bekers.tsx`)
+  staat bovenaan het dashboard, in beide designs, na de begroeting. Per beker
+  het plaatje op de donkere plank van het profiel, titel, team en winnaars,
+  datum en een knop Feliciteren naar `/zwbekers/[id]#felicitaties`.
+- `BekerFeest` (`components/zwbekers/beker-feest.tsx`): zit er een beker bij die
+  dit toestel nog niet zag, dan zakken twee vlaggenlijnen in de ruimte boven het
+  blok en valt er 4,5 s confetti over het scherm (eigen canvas, geen pakket;
+  klikken gaat erdoorheen). Met `prefers-reduced-motion` hangen de slingers stil
+  en blijft de confetti weg.
+- `/ontwerp-voorbeeld` toont het blok met drie verzonnen bekers
+  (`zwbekers-voorbeeld.ts`).
+
+**Bewust niet.**
+- "Al gezien" staat in `localStorage` (`zwbekers-gevierd`, alleen beker-id's),
+  niet in de database. Gevolg: op een tweede toestel komt het feestje nog een
+  keer. Een tabel per lid per beker zou een migratie en een schrijfactie bij
+  elk dashboardbezoek vragen, voor een feestje. Kan de opslag niet, dan geen
+  feest (liever te weinig dan elke keer).
+- De privacytekst is niet aangepast: in de browser staan alleen id's van
+  bekers die alle leden al zien, functioneel, en niets verlaat het toestel. Wel
+  zegt §8 "alleen functionele cookies"; dit is geen cookie maar wel
+  browseropslag. Ter beoordeling bij de eigenaar of §8 dat moet noemen.
+- Een beker die later dan 7 dagen na de prestatie wordt toegekend, komt niet op
+  het dashboard: de periode telt vanaf de prestatie, zoals gevraagd.
+
+**Gecontroleerd.** `tsc` zonder nieuwe fouten, ESLint, Vitest
+`zwbekers.test.ts` (nieuw: de periode over maand- en jaargrens). In de lokale
+app op `/ontwerp-voorbeeld` (design tegels) op 1280 en 375 px breed: blok,
+slingers en confetti bij het eerste bezoek, niets bij een tweede bezoek, en
+weer feest als er één nieuwe beker bij komt. Daarbij de slingers boven de kop
+gehangen (ze hingen er eerst overheen). **Niet geverifieerd:** het echte
+dashboard met een ingelogde sessie en echte bekers, en het klassieke design.
+
+### Gebouwd — ZWBekers: onbeperkt voordragen
+
+**2026-10-28.** Commit `989a9a38`, gepusht naar `main` op 2026-10-28
+(eigenaar). Geen migratie.
+
+**Waarom.** Wens van de eigenaar: "maak het aantal voordrachten ongelimiteerd".
+Met Kopiëren draagt het bestuur makkelijk een reeks bekers in één keer voor
+(bijvoorbeeld alle nummers 1 van een periode), en dan zat 5 per dag in de weg.
+
+**Wat.** De limiet van 5 voordrachten per lid per dag (`NOMINATIONS_PER_DAY`,
+`rateLimitHit` in `submitNomination`) is weg. Het bestuur keurt nog steeds elke
+voordracht.
+
+**Bewust niet.** De limieten op felicitaties (20 per uur) en foto-uploads (20
+per uur) blijven: daar gaat het om spam en opslag, niet om het aantal bekers.
+
+**Gecontroleerd.** `tsc` zonder nieuwe fouten, ESLint, Vitest
+`zwbekers.test.ts` groen.
+
+### Gebouwd — ZWBekers: een beker kopiëren als nieuwe voordracht
+
+**2026-10-28.** Commit `0567b7c4`, gepusht naar `main` op 2026-10-28
+(eigenaar). Geen migratie.
+
+**Waarom.** Wens van de eigenaar: "een beker kopiëren en bewerken". Handig voor
+een beker die terugkomt, zoals de 1 voor nummer 1 in de ladder in een volgende
+periode.
+
+**Wat.** Op elke beker die je kunt zien (`/zwbekers/[id]`) staat Kopiëren. Dat
+opent `/zwbekers/voordragen?van=<id>` met soort, titel, verhaal, team,
+winnaars en ontwerp al ingevuld. Opslaan maakt een nieuwe voordracht die het
+bestuur gewoon keurt; het origineel verandert niet. De bron wordt met de sessie
+van het lid gelezen, dus RLS bepaalt wat je kunt kopiëren: een toegekende beker,
+of een voordracht die je zelf deed of mag keuren.
+
+**Bewust niet.**
+- Datum, event of ZRL-ronde, uitslaglink en foto gaan niet mee: die horen bij
+  die ene prestatie. De datum begint op vandaag.
+- Geen kopie van felicitaties of van de beoordeling.
+- Geen serverwijziging: een kopie gaat door dezelfde controles en dezelfde
+  limiet als elke voordracht (sinds de ronde hierboven geen limiet meer).
+
+**Gecontroleerd.** `tsc` zonder nieuwe fouten, ESLint op `src/app/(app)/zwbekers`.
+**Niet geverifieerd:** de knop en het ingevulde formulier met een ingelogde
+sessie.
+
+### Gebouwd — ZWBekers: de gravure neemt de titel over
+
+**2026-10-28.** Commit `657dc466`, gepusht naar `main` op 2026-10-28
+(eigenaar). Geen migratie.
+
+**Waarom.** Wens van de eigenaar: "neem titel in principe standaard over naar
+gravure".
+
+**Wat.** In het voordrachtformulier volgt de gravure de titel zolang hij gelijk
+is aan wat uit de vorige titel kwam. Verandert of wist het lid de gravure, dan
+stopt het volgen. Bij aanpassen volgt hij alleen als de bewaarde gravure al de
+titel was. `gravureFromTitle` (`lib/zwbekers/design.ts`, puur) laat tekens weg
+die niet op het plaatje mogen en kapt een titel van meer dan 24 tekens af op
+het laatste hele woord (de titel mag 60 tekens zijn).
+
+**Bewust niet.** Niets aan de server: wat binnenkomt, controleert `parseDesign`
+zoals altijd. Bij de 1 doet het niets zichtbaars; daar staan regio en periode op
+het plaatje.
+
+**Gecontroleerd.** Vitest `zwbekers.test.ts` groen (22 tests, nieuw: titel naar
+gravure, ook dat het resultaat altijd door `parseDesign` komt), ESLint en `tsc`
+zonder nieuwe fouten. **Niet geverifieerd:** het formulier met een ingelogde
+sessie.
+
+### Gebouwd — ZWBekers: een beker voor een hele ZRL-ronde, en de 1 voor nummer 1
+
+**2026-10-28.** Commit `5b05403e`, gepusht naar `main` op 2026-10-28
+(eigenaar), na de migratie. Migratie
+`0287_zwbeker_zrl_round.sql` op 2026-10-28 toegepast via de Supabase-connector
+(op verzoek van de eigenaar) en nagekeken: kolom `zrl_round` aanwezig, beide
+checks (`zwbekers_zrl_round_format`, `zwbekers_event_or_round`) aanwezig, de
+ene bestaande beker ongemoeid.
+
+**Waarom.** Drie wensen van de eigenaar, dezelfde dag:
+- De zin onder de beker op `/zwbekers/[id]` ("Gouden beker met vleugels, slank,
+  op een marmeren sokkel") hoeft niet: de beker staat er zelf. Weg. De zin
+  blijft wel de beschrijving voor schermlezers en in het beheer.
+- Een beker moet ook aan een hele ZRL-ronde kunnen hangen. Een ZRL-prestatie
+  (promotie, de ronde winnen) beslaat zes raceweken; geen enkel event dekt hem.
+- Een passende bokaal voor nummer 1 van de wereld of een tijdzone in de ladder:
+  in de vorm van een 1, met in de gravure de regio en de periode.
+
+**Wat.**
+- `0287`: kolom `zwbekers.zrl_round` ("2026/27 R1"), met een check op dat
+  formaat en een check dat een beker aan een event of aan een ronde hangt, niet
+  aan allebei. Een ronde is in de database geen rij maar een titelpatroon van de
+  hoofdevents per raceweek (`0178`); daarom bewaart de beker de ronde zelf en
+  niet een event-id. Hij blijft zo kloppen als raceweken later worden
+  opgeruimd.
+- Formulier: de keuzelijst "Event" heet "Event of ZRL-ronde", met een groep
+  ZRL-rondes (die al begonnen zijn, uit de titels van de hoofdevents) boven de
+  events. Een ronde kiezen zet de datum op de laatste race tot nu. De server
+  controleert dat er een raceweek van die ronde bestaat.
+- Bekerpagina: de ronde als label naast event en uitslag ("ZRL 2026/27 ·
+  ronde 1"), zonder link: er is geen pagina per ronde.
+- Ontwerp: vorm `een` ("Nummer 1"): de omtrek van een 1 (`ONE_OUTLINE`),
+  in 3D uitgezaagd en dik gemaakt met `ExtrudeGeometry` en een afgeronde rand,
+  als plaatje hetzelfde pad. Draait niet rond (net als de medaille, `spins`),
+  zodat de voorkant met de gravure naar voren staat. In plaats van de vrije
+  gravure twee velden in het ontwerp, `regio` en `periode` (elk hooguit 24
+  tekens, dezelfde tekens als de gravure); het plaatje op de sokkel krijgt dan
+  twee regels (`gravureLines`). Regio is vrije tekst met "Wereld" als
+  suggestie: de ladder-site noemt zijn regio's in koppen die we niet vastleggen
+  (`lib/club-ladder/summary.ts`). Oude ontwerpen zonder deze velden lezen als
+  leeg; geen migratie nodig, `design` is jsonb.
+
+**Bewust niet.**
+- Geen tabel of pagina per ZRL-ronde: het titelpatroon is de bron, zoals bij de
+  ZRL-import.
+- Geen vaste lijst regio's voor de 1, en geen koppeling aan de ladderstand: wie
+  nummer 1 was, beoordeelt het bestuur bij het keuren, zoals bij elke beker.
+
+**Correctie op de ronde "ZWBekers" hieronder:** de vormen zijn nu beker, bokaal,
+schaal, medaille en de 1, en een beker hangt aan een event of een ZRL-ronde.
+
+**Gecontroleerd.** `tsc` zonder nieuwe fouten (de drie bestaande over
+ontbrekende modules buiten ZWBekers blijven), ESLint op de gewijzigde
+bestanden, Vitest `zwbekers.test.ts` groen (21 tests, nieuw: de 1, regio en
+periode, oude ontwerpen, ronde uit een titel, event óf ronde). De 1 bekeken als
+plaatje en als 3D-extrusie in een losse testpagina. Op productie nagekeken via
+de Supabase-connector: de raceweken heten "ZRL 2026/27 · R1 · W1 — Race of
+Truth" t/m W6, het patroon klopt. **Niet geverifieerd:** de migratie lokaal (geen
+Docker of Supabase-config; op productie wel nagekeken, zie boven), het
+formulier en de bekerpagina met een ingelogde sessie.
+
+**Volgorde bij uitrollen** (zo gedaan). Eerst `0287` toepassen, dan pushen.
+
+### Gebouwd — ZWBekers: prijzenkast voor prestaties, door leden voorgedragen en ontworpen
+
+**2026-10-28.** Gepusht naar `main` op 2026-10-28 (eigenaar); de hash staat in
+`git log` bij deze ronde. Migratie `0286_zwbekers.sql`, op 2026-10-28 door de
+eigenaar toegepast in de SQL-editor, vóór de push. Achteraf nagekeken via de
+Supabase-connector: drie tabellen met RLS aan, drie selectpolicies, `anon` geen
+select, `authenticated` alleen select, 4 foreign keys op `zwbekers`, bucket
+`zwbeker-photos` besloten met 10 MB, beide pushkolommen aanwezig, 0 rijen.
+
+**Waarom.** Wens van de eigenaar: "in navolging van de ZWBriljant ook ZWBekers
+inruimen voor teamprestaties en individuele prestaties die een plekje in de
+aandacht verdienen", in een prijzenkast waar je op een beker klikt voor de
+details, in dezelfde loods als de galerij van ZWBriljant, en met de prijzen
+op iemands profiel. Keuzes van de eigenaar (2026-10-28): leden nomineren en
+het bestuur keurt; het lid dat nomineert ontwerpt ook de prijs; een teambeker
+hangt aan een team en de leden die meereden; de kast staat onder Club; bij een
+beker een foto, een event of uitslag, felicitaties en een bekersoort. Na een
+eerste versie met sokkels zoals ZWBriljant: "meer een prijzenkast dan een
+galerij", met één kast per jaar, notenhout met messing, en op de telefoon
+inzoomen op een plank.
+
+**Wat.**
+- `0286`: `zwbekers` (voordracht en beker in één rij, `status` voorgedragen /
+  toegekend / afgewezen, `design` als jsonb, `profile_id` = wie voordroeg, bij
+  opheffen `set null`), `zwbeker_winners` (beker × lid), `zwbeker_congrats`.
+  Alleen selectpolicies: een voordracht zien alleen wie hem deed en wie keurt,
+  ook niet de winnaars (een verrassing); een toegekende beker elk goedgekeurd
+  lid. Schrijven alleen via de server (admin-client na de checks in
+  `lib/zwbekers/server.ts`), zoals `ladder_pool`. Besloten bucket
+  `zwbeker-photos` zonder policies: de server maakt een ondertekende uploadlink
+  (alleen voor wie de voordracht nog mag aanpassen) en leeslinks (na het lezen
+  van de beker met RLS). Pushvoorkeuren `on_zwbeker_nomination` (voor wie keurt)
+  en `on_zwbeker_awarded` (winnaars en wie voordroeg).
+- Keuren met het recht `achievements.finalize` (Badgebeheer); geen nieuw recht,
+  want dat vraagt de check-constraint van `community_role_permissions` (zie
+  0254). Beheergebied `/beheer/zwbekers` in de categorie Community.
+- Ontwerp (`lib/zwbekers/design.ts`, puur): vorm (beker, bokaal, schaal,
+  medaille; later de 1, zie de ronde hierboven), metaal, oren, silhouet, voet, sokkel, lint (medaille) en een
+  gravure van hooguit 24 tekens, alleen uit vaste lijsten. Uit dezelfde maten
+  komen de 3D-beker (`components/zwbekers/trophy.ts`, draaivorm met
+  `LatheGeometry`, oren als buis langs een kromme) en het SVG-plaatje
+  (`beker-icon.tsx`) voor profiel, lijsten en de kast zonder WebGL.
+- De kast (`/zwbekers`, `cabinet-scene.tsx`): per jaar een kast van notenhout
+  met glazen deuren, verlichte glazen planken, fluweel binnenin en het jaartal
+  op de kroon, in de loods van ZWBriljant (wand, vloer, plint, spreuken, logo en
+  sponsorbordjes uit `briljant/gallery.ts`). Een vol jaar maakt de kast breder.
+  Onder elke beker een messing bordje (HTML-knop) dat de beker opent. Breed
+  scherm: een hele kast per stop; staand scherm: twee vakken per stop, vegen van
+  plank naar plank. `?bij=<id>` begint bij een beker.
+- Voordragen en aanpassen (`/zwbekers/voordragen`, `/zwbekers/[id]/bewerken`)
+  met een live 3D-voorbeeld dat bij elke keuze meeverandert
+  (`trophy-scene.tsx`, wisselt alleen de beker). Teruggestuurd kan opnieuw.
+  Hooguit 20 felicitaties per uur. (Voordrachten waren eerst hooguit 5 per lid
+  per dag; die limiet is weg, zie de ronde "Onbeperkt voordragen".)
+- De beker (`/zwbekers/[id]`): de beker in de loods, winnaars, team, verhaal,
+  foto, event en uitslag, wie voordroeg, keuren (voor wie keurt) en
+  felicitaties. `/zwbekers/voordrachten` toont je open en teruggestuurde
+  voordrachten.
+- Profiel: een plank met je bekers vlak voor de badges (`beker-shelf.tsx`), ook
+  teambekers waar je bij stond. Volgt de zichtbaarheid van badges.
+- Club-menu en Club-tegel (teal, prestaties), `/hulp/club#zwbekers`, zoekterm in
+  de hulp, data-export (drie tabellen), privacytekst `/privacy#zwbekers`.
+
+**Bewust niet.**
+- Geen vrije maten, kleuren of eigen afbeelding als beker: een ZWBeker blijft
+  herkenbaar en het bestuur hoeft niets onleesbaars terug te sturen.
+- De bekers niet op het publieke profiel (`/profielen/[id]`).
+- Geen eigen zichtbaarheidsschakelaar voor bekers: ze volgen die van badges.
+- De sokkels-galerij uit de eerste versie is weg (vervangen door de kast); de
+  galerij van ZWBriljant zelf is niet aangeraakt. De kast gebruikt een eigen
+  lichtvlek (`zwbekers/loods.ts`), omdat `wash` aan de bovenkant niet uitloopt
+  en een staand scherm die rand als streep zag; in ZWBriljant valt hij buiten
+  beeld, dus daar niets veranderd.
+- Winnaars kunnen na toekenning zelf geen foto toevoegen en niet zelf van een
+  beker af; dat gaat via het bestuur. (Sinds de ronde "Een toegekende beker
+  aanpassen" kan wie keurt een toegekende beker ook aanpassen, foto erbij.)
+- Geen nieuwe privacyversie: **voorstel, ter goedkeuring bij de eigenaar**
+  (tiende uitzondering in `lib/privacy.ts`). Nieuw is dat een lid gegevens over
+  een ander lid plaatst die na goedkeuring alle leden zien.
+
+**Volgorde bij uitrollen** (zo gedaan). Eerst `0286` toepassen, dan deployen. `/profiel`
+leest de twee nieuwe pushkolommen: zonder de migratie valt die hele select om,
+toont het formulier de standaardwaarden en mislukt opslaan.
+
+**Gecontroleerd.** `tsc` schoon, ESLint op alle nieuwe en gewijzigde bestanden,
+Vitest `zwbekers.test.ts` groen (alle combinaties van het ontwerp: gesloten
+profiel, geen NaN in het SVG-pad, oren alleen bij beker en bokaal; voordracht,
+link, fotopad). De scènes bekeken in een losse testpagina met headless Chromium
+(SwiftShader): de kast op 1280×760 en 390×844, alle ontwerpen los. Daarbij
+aangepast: lichtere metaalkleuren en een eigen reflectieomgeving voor het
+metaal (goud werd in de petrol galerij olijfgroen), fluweel aan de binnenkant
+van de kast, een donkerder lint. **Niet geverifieerd:** de migratie lokaal (geen
+Docker of Supabase-config hier; op productie wel nagekeken, zie boven), de pagina's met een ingelogde sessie, uploaden
+van een foto via de ondertekende link, en de pushmeldingen. `next build` niet
+afgerond: hier stopte hij op het ophalen van Google Fonts (geen netwerk naar
+Google in deze omgeving), vóór het compileren van de nieuwe pagina's.
+### Gebouwd — Tabbalk op de iPhone: herstel alleen binnen een toetsenbordbeurt
+
+**2026-10-28.** Commit `11e46e39`, gepusht naar `main` op 2026-10-28 (eigenaar). Geen migratie.
+
+**Aanleiding.** Na het terugdraaien (`5ce751af`, ronde hieronder) vroeg de
+eigenaar het probleem van 2026-10-26 (balk midden in beeld na het toetsenbord)
+alsnog op te lossen, zonder dat de balk bij het scrollen weer verdwijnt.
+
+**Waarom de derde ronde misliep.** Twee dingen samen:
+- De maat waarmee werd vergeleken was de grootste hoogte ooit gemeten bij deze
+  breedte, en daarbij werden `innerHeight` en `visualViewport.height` door
+  elkaar gebruikt. Is de ene in de beginscherm-app een paar punten groter dan de
+  andere, of is het beeld bij het starten even groter, dan lijkt het beeld
+  altijd "te klein".
+- Die controle liep ook na elke scroll, zonder dat er een toetsenbord was
+  geweest, en schoof de balk dan omlaag, onder de onderrand.
+
+**Wat er veranderde.** `src/components/ios-viewport-herstel.tsx` en de pure
+regels in `src/lib/ios-viewport.ts`:
+- **Toetsenbordbeurt.** Krijgt een tekstveld de focus, dan legt de app de maat
+  van het beeld vast, vóór het toetsenbord opent. Na het sluiten wordt elke
+  meting daarmee vergeleken: `innerHeight` met `innerHeight`, `visualViewport`
+  met `visualViewport`. Klopt het beeld weer, dan is de beurt voorbij. Zonder
+  beurt doen scrollen, resize en terugkeren naar de app niets; de balk kan dan
+  niet bewegen.
+- **Pas schuiven bij een toetsenbordhoogte.** De balk schuift alleen bij een
+  tekort van minstens 150 pt (`MIN_TOETSENBORD`); het geval van 2026-10-26 was
+  384 pt. Een kleiner verschil (statusbalk, safe area) geeft hooguit de sprong.
+- Uit de derde ronde blijft: de sprong uitstellen in plaats van overslaan, tot
+  drie per beurt; de onzichtbare laag; een iframe telt als veld; niet schuiven
+  op de iPad. De controles na het sluiten staan op 600, 1200 en 2000 ms (was 350,
+  het toetsenbord klapt dan nog dicht). Scrollen controleert alleen binnen een
+  beurt, voor het geval iOS na het sluiten geen gebeurtenis meer geeft.
+- Unit-tests in `tests/unit/ios-viewport.test.ts`, waaronder: zonder beurt
+  nooit schuiven, ook niet bij een klein beeld; scheve `innerHeight` en
+  `visualViewport` geven geen tekort.
+
+**Bewust niet gedaan.**
+- Geen metingen van leden naar de server; dezelfde reden als in de derde ronde.
+- Niet terug naar `fixed` en geen waas over de sprong; zie de eerdere rondes.
+- Draaien tijdens een beurt beëindigt de beurt: de oude maat zegt dan niets
+  meer. Blijft het beeld na draaien hangen, dan herstelt de app dat niet.
+
+**Niet geverifieerd.** Niet op een iPhone; de bug is lokaal niet na te bootsen.
+Lokaal: de unit-tests (12) slagen, ESLint is schoon, en `tsc` meldt alleen
+`modern-screenshot` en `@anthropic-ai/sdk`, die in de gedeelde `node_modules`
+ontbreken. Of het schuiven precies op de onderrand uitkomt, hangt nog steeds af
+van wat iOS in de vastgelopen toestand teruggeeft.
+
+### Teruggedraaid — Tabbalk op de iPhone: geen controle bij het scrollen, balk schuift niet meer
+
+**2026-10-28.** Commit `5ce751af`, samen met de ronde hierboven gepusht naar `main` op 2026-10-28 (eigenaar). Geen migratie.
+
+**Aanleiding.** De eigenaar meldde dat op de iPhone de vier blokken onderin
+(Vandaag, Kalender, …) verdwijnen zodra je scrollt.
+
+**Waarom.** De ronde van 2026-10-26 (`0a15d62c`) liet de controle ook na elke
+scroll lopen, en schoof de tabbalk bij een "hangend" beeld met `translateY` het
+tekort omlaag. Vóór die ronde liep de controle alleen na het toetsenbord, een
+resize of het terugkeren naar de app, en schoof er niets. Kennelijk ziet de
+controle in de beginscherm-app een te klein beeld terwijl er niets hangt
+(`innerHeight` onder de grootst gemeten hoogte, of een `visualViewport.offsetTop`
+boven 4 px). Dan schoof de balk onder de onderrand, precies bij de eerste
+scroll. Welke van de twee het is, is niet gemeten: het gebeurt alleen op een
+echte iPhone.
+
+**Wat er veranderde.** `src/components/ios-viewport-herstel.tsx` staat weer op
+de versie van 2026-10-16 (alleen de sprong, na `focusout`, resize en terugkeer;
+één per seconde). Weg: de controle na het scrollen, het schuiven van de balk
+(`--ios-viewport-fout` en de regel in `globals.css`), de onzichtbare laag, het
+uitstellen en herhalen van de sprong, en `src/lib/ios-viewport.ts` met de
+unit-tests.
+
+**Bewust niet gedaan.**
+- Niet alleen de scrollcontrole eruit gehaald: een vals alarm na het
+  toetsenbord had de balk dan nog steeds uit beeld geschoven. De eigenaar vroeg
+  om terugdraaien.
+- In deze commit geen nieuwe poging voor het oude probleem (balk midden in
+  beeld na het toetsenbord). *Bijgewerkt 2026-10-28:* die poging volgde direct
+  daarna, zie "Tabbalk op de iPhone: herstel alleen binnen een toetsenbordbeurt".
+
+**Niet geverifieerd.** Niet op een iPhone. In deze worktree staan geen
+`node_modules`, dus geen lint, typecheck of build gedraaid; de teruggezette file
+is letterlijk de versie die van 2026-10-16 tot 2026-10-26 op `main` stond.
+
 ### Gebouwd — Club Ladder: leden zonder interesse in de ladderlijst zetten
 
 **2026-10-27.** Commit `067eff2d`, gepusht naar `main` op 2026-10-27. Migratie
@@ -12287,7 +13068,12 @@ de sync tegen productie met de echte `LADDER_COOKIE`, en of die cookie nog geldi
 ### Gebouwd — Tabbalk op de iPhone: sprong herhalen en balk zelf omlaag
 
 **2026-10-26.** Commit `0a15d62c`, gepusht naar `main` op 2026-10-26
-(eigenaar). Geen migratie.
+(eigenaar). Geen migratie. **Teruggedraaid op 2026-10-28**: de balk verdween
+daarna bij het scrollen. Wat hieronder staat, is grotendeels opnieuw gebouwd
+in de ronde "Tabbalk op de iPhone: herstel alleen binnen een toetsenbordbeurt";
+de vergelijking met de grootste hoogte ooit en de controle buiten een beurt
+zijn weg. De zin "dat geeft geen vals alarm" klopte
+niet.
 
 **Aanleiding.** Na de ronde van 2026-10-16 zagen leden de tabbalk nog steeds
 "af en toe" midden in beeld, nu op een eventpagina. Op de screenshot staat de
@@ -14242,7 +15028,8 @@ eigen scherm, na Vermogen en vóór Teams:
   score tot en met de maandag van de week, hooguit 35 dagen oud, naast die van
   precies een week eerder. `weakestFacet` staat nu in `briljant/score.ts` en wordt
   ook door het Strava-blok gebruikt.
-- `SUMMARY_VERSION` is 3: een bestaand overzicht van deze week wordt bij de
+- `SUMMARY_VERSION` werd 3 (sinds 2026-10-28 is hij 4, ronde "ZWBeter racen:
+  verwachting, punten per bron en de terugblik"): een bestaand overzicht van deze week wordt bij de
   volgende opening opnieuw opgebouwd en krijgt de steen (gezien en coachtekst
   blijven staan, zoals bij versie 2).
 - De steen alleen telt niet als inhoud (`hasContent`): wie een week niets deed,
@@ -18546,7 +19333,8 @@ bron afgeleid, en bandenspanning en wegdek zijn twee aparte keuzes.
 - Een losse keuze voor een los of strak shirt. Bij clubtempo is dat niet
   gemeten (artikel Kleding); het blijft een eigen percentage.
 - De renner uit het clubverhaal (`public/story/riders/cyclist-base.svg`): dat
-  is een stockicoon zonder tenue.
+  is een stockicoon zonder tenue. (Sinds 2026-10-28 gebruikt het clubverhaal
+  hem niet meer, maar de renners van de ZWBgame.)
 
 **Getest.**
 - `materiaal.test.ts`, nu twaalf tests. Nieuw: de spanning op ruw wegdek

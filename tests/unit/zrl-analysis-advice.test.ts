@@ -4,7 +4,7 @@ import type { RaceAnalysis, RiderAnalysis, RiderSegment } from "@/lib/zrl-analys
 import type { RideAnalysis, RidePhase } from "@/lib/zrl-analysis/ride";
 
 function seg(index: number, name: string, elapsed: number, watts: number): RiderSegment {
-  return { index, name, kind: /kom/i.test(name) ? "klim" : "sprint", elapsed, watts, wkg: watts / 80, rank: 1, of: 30, falRank: 1 };
+  return { index, segmentId: `s${index}`, name, kind: /kom/i.test(name) ? "klim" : "sprint", elapsed, watts, wkg: watts / 80, rank: 1, of: 30, falRank: 1, falPoints: 0, ftsPoints: 0 };
 }
 
 function rider(id: number, name: string, klim1: [number, number], klim2: [number, number], extra: Partial<RiderAnalysis> = {}): RiderAnalysis {
@@ -19,6 +19,8 @@ function rider(id: number, name: string, klim1: [number, number], klim2: [number
     criticalPower: null,
     cp20Wkg: null,
     points: 0,
+    pointsSplit: null,
+    expected: null,
     dropped: false,
     segments: [seg(0, "Sprint", 30, 300), seg(1, "KOM 1", ...klim1), seg(2, "KOM 2", ...klim2)],
     aheadWkg: null,
@@ -43,6 +45,7 @@ function ttt(): RaceAnalysis {
       { name: "Sprint → KOM 2", kind: "klim", versusRival: 16000, fastest: "ZWB" },
     ],
     spread: 700,
+    expectedTeamPoints: null,
     route: [
       { index: 0, name: "Sprint", kind: "sprint", lap: 1 },
       { index: 1, name: "KOM 1", kind: "klim", lap: 1 },

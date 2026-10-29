@@ -16,7 +16,13 @@ export const ADMIN_AREAS = {
     label: "Badgebeheer",
     permission: "achievements.finalize",
   },
+  // Voordrachten voor ZWBekers keuren (0286): hetzelfde werk als badges
+  // toekennen, dus hetzelfde recht.
+  zwbekers: { href: "/beheer/zwbekers", label: "ZWBekers", permission: "achievements.finalize" },
   citaten: { href: "/beheer/citaten", label: "Tips en citaten", permission: "community.manage" },
+  // Verhalen voor de publieke pagina /verhaal plaatsen (0288): communitywerk,
+  // net als tips en citaten.
+  clubverhaal: { href: "/beheer/clubverhaal", label: "Clubverhaal", permission: "community.manage" },
   zrl: { href: "/beheer/zrl", label: "ZRL-beheer", permission: "competitions.manage" },
   frr: { href: "/beheer/frr-kalender", label: "FRR-kalender", permission: "competitions.manage" },
   src: { href: "/beheer/src", label: "SRC-kalender", permission: "src.manage" },

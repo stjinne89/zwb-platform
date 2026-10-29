@@ -13,6 +13,8 @@ import { getRequestAccess } from "@/lib/auth/request";
 import { TIP_COLUMNS, loadTopicCatalog, type ExpertTopicRow, type TipRow } from "@/lib/zwbieb/queries";
 import { topicInfo } from "@/lib/zwbieb/topics";
 import { MemberKnowledgeSection } from "@/app/(app)/zwbieb/_components/member-knowledge-section";
+import { BekerShelf } from "@/components/zwbekers/beker-shelf";
+import { loadProfileBekers } from "@/lib/zwbekers/server";
 
 type ProfileRow = ReadonlyProfile & {
   share_birthday: boolean | null;
@@ -72,6 +74,7 @@ export async function MemberProfile({
     { data: knowledgeTips },
     access,
     topicCatalog,
+    bekers,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -118,6 +121,8 @@ export async function MemberProfile({
     })(),
     getRequestAccess(),
     loadTopicCatalog(supabase),
+    // ZWBekers (0286); zonder de migratie of bij een storing gewoon geen plank.
+    loadProfileBekers(supabase, profileId).catch(() => []),
   ]);
 
   if (!profile) notFound();
@@ -174,6 +179,8 @@ export async function MemberProfile({
               href={self ? "/stats/ik" : undefined}
             />
           )}
+          {/* Vlak voor de badges. De bekers volgen de zichtbaarheid van badges: wie zijn badges verbergt, verbergt ook zijn bekers. */}
+          {showBadges && <BekerShelf bekers={bekers} />}
         </>
       }
     />

@@ -46,6 +46,7 @@ import { Greeting } from "./_components/greeting";
 import { MyRaces } from "./_components/my-races";
 import { PhotoNudge } from "./_components/photo-nudge";
 import { QaDashboard } from "./_components/qa";
+import { RecentBekers } from "./_components/recent-bekers";
 import { InstagramStrip, type InstagramPost } from "./_components/instagram-strip";
 import { SrcResults } from "./_components/src-results";
 import {
@@ -1093,6 +1094,13 @@ export default async function DashboardPage({
           <AlertTriangle className="size-4 shrink-0" />
           Vul je Zwift-ID in, anders sta je niet in de ZwiftPower- en ZwiftRacing-standen.
         </Link>
+      )}
+
+      {/* Bekers van de afgelopen week, met een feestje als ze nieuw zijn. */}
+      {user && (
+        <Suspense fallback={null}>
+          <RecentBekers />
+        </Suspense>
       )}
 
       {tegels ? (

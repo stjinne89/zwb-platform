@@ -12,6 +12,7 @@ import { emphasisParts } from "@/lib/weekly-review/coach-text";
 import { isoWeekNumber } from "@/lib/weekly-review/period";
 import type { WeekReview } from "@/lib/weekly-review/service";
 import { durationWords, type WeekSummary } from "@/lib/weekly-review/summary";
+import type { RaceContribution } from "@/lib/zrl-analysis/history";
 import { refreshWeekReview } from "@/app/(app)/weekoverzicht/_actions";
 import { karlaFont, stencilFont } from "./fonts";
 import {
@@ -23,6 +24,7 @@ import {
   OpenerPrint,
   PlanPrint,
   PowerPrint,
+  RacePrint,
   RidesPrint,
   TeamPrint,
 } from "./prints";
@@ -48,6 +50,88 @@ const weekdayName = (day: string) =>
   ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"][(new Date(`${day}T12:00:00Z`).getUTCDay() + 6) % 7];
 
 const elevation = (m: number) => m.toLocaleString("nl-NL");
+
+const SOURCE_WORDS: Record<NonNullable<RaceContribution["standout"]>["source"], string> = {
+  sprint: "de sprints",
+  klim: "de klimmen",
+  segment: "de andere segmenten",
+  finish: "de finish",
+};
+
+const signed = (value: number) => `${value > 0 ? "+" : "−"}${Math.abs(Math.round(value))}`;
+const wkgLabel = (value: number) => value.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const places = (n: number) => `${n} ${n === 1 ? "plek" : "plekken"}`;
+
+/**
+ * Het teamscherm met de eigen race uit ZWBeter racen: plek en punten tegenover
+ * de verwachting, je deel van de ploeg, en daarna de plaats van de ploeg (en
+ * andere teams of de SRC) in één regel.
+ */
+function RaceSlide({ race, event, team }: { race: RaceContribution; event: string; team: React.ReactNode }) {
+  const ttt = race.format === "ttt";
+  const gain = race.place !== null && race.expectedPlace !== null ? race.expectedPlace - race.place : null;
+  const lead = ttt
+    ? race.withTeam
+      ? "Bij de ploeg gefinisht."
+      : "Los van de ploeg gefinisht."
+    : gain === null
+      ? "Jouw race."
+      : gain > 0
+        ? `${places(gain)} beter dan verwacht.`
+        : gain < 0
+          ? `${places(-gain)} achter de verwachting.`
+          : "Precies zoals verwacht.";
+  return (
+    <>
+      {ttt ? (
+        <h2 className={`${s.big} ${s.m} ${s.txt}`}>
+          {race.wkg !== null ? wkgLabel(race.wkg) : "—"}
+          <small>W/kg</small>
+        </h2>
+      ) : race.format === "points" && race.points !== null ? (
+        <h2 className={`${s.big} ${s.txt}`}>
+          {race.points}
+          <small>pt</small>
+        </h2>
+      ) : (
+        <h2 className={`${s.big} ${s.txt}`}>{race.place ?? "—"}e</h2>
+      )}
+      <p className={`${s.lead} ${s.txt}`}>{lead}</p>
+      <p className={`${s.sub} ${s.txt}`}>
+        {ttt ? (
+          race.teamWkg !== null ? (
+            <>
+              De ploeg reed gemiddeld <b>{wkgLabel(race.teamWkg)} W/kg</b>.{" "}
+            </>
+          ) : null
+        ) : (
+          <>
+            {race.place !== null && race.expectedPlace !== null ? (
+              <>
+                Jij werd <b>{race.place}e</b> in {event}; op je ZRS verwacht: {race.expectedPlace}e
+                {race.expectedPoints !== null ? ` met ${race.expectedPoints} punten` : ""}.{" "}
+              </>
+            ) : null}
+            {race.teamShare !== null ? (
+              <>
+                <b>{race.teamShare}%</b> van de ploegpunten{race.teamRank === 1 ? ", het meeste van de ploeg" : ""}.{" "}
+              </>
+            ) : null}
+            {race.standout ? (
+              <>
+                {race.standout.diff > 0 ? "Grootste winst" : "Grootste verlies"} op {SOURCE_WORDS[race.standout.source]}: <b>{signed(race.standout.diff)}</b>.{" "}
+              </>
+            ) : null}
+          </>
+        )}
+        {team}
+      </p>
+      <div className={s.art}>
+        <RacePrint race={race} />
+      </div>
+    </>
+  );
+}
 
 function CoachText({ text, waiting }: { text: string; waiting: boolean }) {
   return (
@@ -257,12 +341,27 @@ function buildSlides(
   if (teams) {
     const result = teams.results[0];
     const src = teams.src[0];
+    const race = result?.race;
     slides.push({
       key: "teams",
-      label: "Teams",
-      seconds: 6,
+      label: race ? "Je race" : "Teams",
+      seconds: race ? 7 : 6,
       render: () =>
-        result ? (
+        // Reed het lid zelf mee, dan is dit scherm de eigen race, met de plaats
+        // van de ploeg in één regel; los zei het teamscherm te weinig (eigenaar, 2026-10-28).
+        race && result ? (
+          <RaceSlide
+            race={race}
+            event={result.event}
+            team={
+              <>
+                {result.team} werd <b>{result.rank}e</b> van {result.teams}.
+                {teams.results.slice(1).map((other) => ` ${other.team}: ${other.rank}e.`)}
+                {src ? ` Sunday Race Club: ${src.rank}e.` : ""}
+              </>
+            }
+          />
+        ) : result ? (
           <>
             <h2 className={`${s.big} ${s.txt}`}>{result.rank}e</h2>
             <p className={`${s.lead} ${s.txt}`}>

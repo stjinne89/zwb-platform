@@ -468,6 +468,12 @@ export type SubgroupResult = {
    * eigen startrij (gecontroleerd 2026-10-13 voor alle 33 renners van groep B).
    */
   finishedAt?: number | null;
+  /**
+   * Zwift Racing Score vóór de race (`scoreHistory.previousScore`), voor de
+   * verwachte volgorde achteraf. Ontbreekt in data van vóór 2026-10-28; gemeten
+   * op die dag: in vier races (ZRL en FRR) had elke rij hem.
+   */
+  scoreBefore?: number | null;
 };
 
 function positiveNumber(value: unknown): number | null {
@@ -475,7 +481,7 @@ function positiveNumber(value: unknown): number | null {
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
-/** Vermogen, gewicht, meter en finishmoment uit een ruwe uitslagrij van Zwift. */
+/** Vermogen, gewicht, meter, finishmoment en de ZRS van vóór de race uit een ruwe uitslagrij van Zwift. */
 export function resultPowerFields(row: Record<string, unknown>): Omit<SubgroupResult, "profileId" | "rank" | "durationMs"> {
   const sensor = (row.sensorData ?? {}) as Record<string, unknown>;
   const profile = (row.profileData ?? {}) as Record<string, unknown>;
@@ -485,8 +491,10 @@ export function resultPowerFields(row: Record<string, unknown>): Omit<SubgroupRe
   // Zwift schrijft "2026-10-13T18:50:17.964+0000"; zonder dubbele punt in de
   // tijdzone is Date.parse niet overal betrouwbaar.
   const end = typeof activity.endDate === "string" ? Date.parse(activity.endDate.replace(/([+-]\d\d)(\d\d)$/, "$1:$2")) : NaN;
+  const history = (row.scoreHistory ?? null) as { previousScore?: unknown } | null;
   return {
     finishedAt: Number.isFinite(end) ? end : null,
+    scoreBefore: positiveNumber(history?.previousScore),
     avgWatts: positiveNumber(sensor.avgWatts),
     weightKg: grams === null ? null : Math.round(grams / 100) / 10,
     powerType: typeof sensor.powerType === "string" ? sensor.powerType : null,

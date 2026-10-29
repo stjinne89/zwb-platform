@@ -1,20 +1,26 @@
 "use client";
 
 import { useEffect } from "react";
-import { blijftHangen, viewportFout, type ViewportMeting } from "@/lib/ios-viewport";
+import { beoordeel, startBeurt, type ToetsenbordBeurt, type ViewportMeting } from "@/lib/ios-viewport";
 
 // iOS (vooral de app op het beginscherm) zet na het sluiten van het
 // toetsenbord soms het beeld niet terug: het blijft rekenen alsof het
 // toetsenbord er nog is. Alles wat onderaan vastzit, zoals de tabbalk, hangt
 // dan een toetsenbordhoogte boven de onderrand, tot de app wordt afgesloten.
 // Een sprong van de body van display: none naar terug dwingt WebKit het beeld
-// opnieuw op te meten. Dat doen we alleen als het beeld aantoonbaar te klein
-// is gebleven en er geen veld meer de focus heeft. Helpt de sprong niet, dan
-// schuift de tabbalk zelf het tekort omlaag (`--ios-viewport-fout`).
+// opnieuw op te meten. Helpt de sprong niet, dan schuift de tabbalk op de
+// iPhone zelf het tekort omlaag (`--ios-viewport-fout`).
+//
+// Dit gebeurt alleen binnen een toetsenbordbeurt: van het moment dat een veld
+// de focus krijgt tot het beeld na het sluiten weer even groot is als ervoor.
+// Buiten zo'n beurt doet scrollen of een resize niets (ronde 2026-10-28).
 
-// Sprongen per keer dat het beeld blijft hangen; daarna alleen het schuiven.
+// Sprongen per beurt; daarna alleen het schuiven.
 const MAX_SPRONGEN = 3;
 const SPRONG_PAUZE = 700;
+// Controles na het sluiten: het toetsenbord klapt nog even dicht, en daarna
+// komt er soms geen gebeurtenis meer.
+const NA_SLUITEN = [600, 1200, 2000];
 
 // Alleen de app op het beginscherm: in Safari zelf verandert de hoogte ook
 // terecht als de adresbalk in- en uitklapt.
@@ -58,30 +64,26 @@ export function IosViewportHerstel() {
     // Op een iPad kan het venster echt lager worden (Stage Manager); daar
     // schuift de balk niet mee, alleen de sprong.
     const schuiven = /iP(hone|od)/.test(navigator.userAgent);
-    // Grootste hoogte per breedte, zodat draaien geen vals alarm geeft.
-    const grootste = new Map<number, number>();
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    let beurt: ToetsenbordBeurt | null = null;
+    let timers: ReturnType<typeof setTimeout>[] = [];
     let laatsteSprong = 0;
     let sprongen = 0;
 
     const meting = (): ViewportMeting => ({
+      breedte: window.innerWidth,
       innerHeight: window.innerHeight,
       vvHeight: vv?.height,
       vvOffsetTop: vv?.offsetTop,
       vvScale: vv?.scale,
     });
 
-    const meet = () => {
-      const breedte = window.innerWidth;
-      const hoogte = Math.max(window.innerHeight, vv && vv.scale < 1.01 ? vv.height : 0);
-      if (!toetsenbordNodig(document.activeElement)) {
-        grootste.set(breedte, Math.max(grootste.get(breedte) ?? 0, hoogte));
-      }
+    const stop = () => {
+      timers.forEach(clearTimeout);
+      timers = [];
     };
-
-    const later = (ms: number) => {
-      clearTimeout(timer);
-      timer = setTimeout(controleer, ms);
+    const later = (...ms: number[]) => {
+      stop();
+      timers = ms.map((t) => setTimeout(controleer, t));
     };
 
     const spring = () => {
@@ -97,22 +99,21 @@ export function IosViewportHerstel() {
     };
 
     function controleer() {
+      if (!beurt) return;
       if (toetsenbordNodig(document.activeElement)) {
         zetFout(0);
         return;
       }
-      const max = grootste.get(window.innerWidth);
-      const m = meting();
-      if (!blijftHangen(max, m)) {
+      const oordeel = beoordeel(beurt, meting());
+      beurt = oordeel.beurt;
+      zetFout(schuiven ? oordeel.verschuiving : 0);
+      if (!oordeel.hangt) {
+        stop();
         sprongen = 0;
-        zetFout(0);
-        meet();
         return;
       }
-      if (schuiven) zetFout(viewportFout(max, m));
       if (sprongen >= MAX_SPRONGEN) return;
-      // Te snel na de vorige sprong: niet overslaan maar uitstellen, anders
-      // valt de sprong weg die na het dichtklappen van het toetsenbord nodig is.
+      // Te snel na de vorige sprong: niet overslaan maar uitstellen.
       const wacht = SPRONG_PAUZE - (Date.now() - laatsteSprong);
       if (wacht > 0) {
         later(wacht);
@@ -125,19 +126,25 @@ export function IosViewportHerstel() {
     }
 
     const naFocusIn = (e: FocusEvent) => {
-      if (toetsenbordNodig(e.target as Element)) zetFout(0);
+      if (!toetsenbordNodig(e.target as Element)) return;
+      stop();
+      zetFout(0);
+      sprongen = 0;
+      beurt = startBeurt(beurt, meting());
     };
-    const naFocusUit = () => later(350);
-    const naResize = () => {
-      meet();
-      later(250);
+    const naFocusUit = () => {
+      if (beurt) later(...NA_SLUITEN);
     };
-    const naScroll = () => later(300);
+    // Alleen binnen een beurt; daarbuiten verandert er niets aan de balk.
+    const binnenBeurt = (ms: number) => () => {
+      if (beurt) later(ms);
+    };
+    const naResize = binnenBeurt(250);
+    const naScroll = binnenBeurt(300);
     const naTerugkeer = () => {
-      if (document.visibilityState === "visible") later(250);
+      if (document.visibilityState === "visible" && beurt) later(250);
     };
 
-    meet();
     document.addEventListener("focusin", naFocusIn);
     document.addEventListener("focusout", naFocusUit);
     window.addEventListener("resize", naResize);
@@ -146,7 +153,7 @@ export function IosViewportHerstel() {
     window.addEventListener("pageshow", naTerugkeer);
     document.addEventListener("visibilitychange", naTerugkeer);
     return () => {
-      clearTimeout(timer);
+      stop();
       zetFout(0);
       document.removeEventListener("focusin", naFocusIn);
       document.removeEventListener("focusout", naFocusUit);

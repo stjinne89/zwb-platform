@@ -1,7 +1,9 @@
 import Link from "next/link";
 import {
+  BookOpen,
   Bike,
   Cake,
+  Trophy,
   ChartNoAxesColumn,
   CheckCircle2,
   Grid3x3,
@@ -162,6 +164,193 @@ export function ClubHelp() {
           >
             <Grid3x3 className="size-4 text-primary" />
             Naar ZWBlokken
+          </Link>
+        </div>
+      </section>
+
+      <section
+        id="zwbekers"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <Trophy className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">ZWBekers</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              De prijzenkast van de club. Elk lid kan een prestatie voordragen
+              die aandacht verdient, van een clubgenoot of van een team, en
+              ontwerpt er zelf de beker bij. Keurt het bestuur hem goed, dan
+              staat hij in de kast van dat jaar en op het profiel van wie hem
+              won.
+            </p>
+          </div>
+        </header>
+
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Voordragen.</strong> Kies
+              Voordragen in de kast. Geef de beker een titel, de datum en kort
+              waarom. Bij een team kies je het team en vink je aan wie er
+              meereed; ook wie niet (meer) in het team zit, kun je toevoegen.
+              Een event of een hele ZRL-ronde, een link naar de uitslag en een
+              foto zijn niet verplicht. Lijkt de prestatie op een beker die er
+              al is, kies dan Kopiëren bij die beker: titel, verhaal, winnaars
+              en ontwerp staan dan al klaar.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Ontwerpen.</strong> Kies een
+              beker, bokaal, schaal of medaille, het metaal, de vorm, de voet,
+              de sokkel en een korte gravure. Voor wie nummer 1 werd, zoals in
+              de ladder, is er een 1 met de regio (de wereld of een tijdzone)
+              en de periode in de gravure. Voor een kampioen in de clubladder
+              is er een riem, met een steen in de kleur van de klasse van
+              ZwiftRacing (Koper tot Diamant). Het voorbeeld verandert meteen
+              mee; sleep om hem rond te draaien.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Keuren.</strong> Alleen jij
+              en het bestuur zien je voordracht, ook de winnaars niet: het
+              blijft een verrassing. Stuurt het bestuur hem terug, dan staat
+              erbij waarom en kun je hem aanpassen. Je voordrachten vind je in
+              de kast onder Je voordrachten. Staat er na het toekennen een
+              foutje in een beker, dan past het bestuur hem aan.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">In de kast.</strong> Elk jaar
+              heeft een eigen kast. Scroll, sleep of gebruik de pijltjes om van
+              kast naar kast te gaan; op de telefoon veeg je van plank naar
+              plank. Tik op het bordje onder een beker voor het verhaal, de
+              foto en de felicitaties.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Op het dashboard.</strong>{" "}
+              Een toegekende beker staat een week lang op het dashboard, gerekend
+              vanaf de dag van de prestatie, met een knop om te feliciteren. De
+              eerste keer dat je hem ziet, hangen er slingers en valt er
+              confetti. Je toestel onthoudt welke bekers je al zag; op een ander
+              toestel krijg je het feestje dus nog een keer.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Op je profiel.</strong> Je
+              bekers staan op een plank op je profiel, ook een teambeker als je
+              meereed. Ze volgen de zichtbaarheid van je badges: verberg je je
+              badges, dan ook je bekers.
+            </span>
+          </li>
+        </ul>
+
+        <div className="mt-4">
+          <Link
+            href="/zwbekers"
+            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+          >
+            <Trophy className="size-4 text-primary" />
+            Naar de prijzenkast
+          </Link>
+        </div>
+      </section>
+
+      <section
+        id="clubverhaal"
+        className="scroll-mt-20 rounded-lg border bg-card/90 p-5"
+      >
+        <header className="flex items-start gap-2">
+          <BookOpen className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <h2 className="font-semibold">Clubverhaal</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Het verhaal van ZWB op /verhaal, in vier hoofdstukken met de
+              renners uit de ZWBgame in het tenue van toen. Leden vullen het aan
+              met anekdotes en verhalen met foto&apos;s.
+            </p>
+          </div>
+        </header>
+
+        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Insturen.</strong> Kies
+              Verhaal insturen onder Club &rarr; Clubverhaal, of Vertel jouw
+              verhaal op /verhaal. Geef een titel en vertel je verhaal in een
+              of meer hoofdstukken (hooguit acht). Het jaar, een ZWBeker en
+              hooguit zes foto&apos;s met onderschrift zijn niet verplicht.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">De scène.</strong> Kies per
+              hoofdstuk het shirt (en daarmee de periode), wat je poppetje doet
+              (rijden, juichen, sprinten, afzien, klimmen of afdalen), met
+              hoeveel renners je rijdt en het moment (zon, avond of grijs). Het
+              voorbeeld naast het formulier laat meteen zien hoe het eruitziet.
+              Het shirt van het eerste hoofdstuk bepaalt bij welke periode je
+              verhaal op /verhaal staat.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Plaatsen.</strong> Het
+              bestuur leest elk verhaal eerst. Stuurt het bestuur het terug, dan
+              staat erbij waarom en kun je het aanpassen. Een geplaatst verhaal
+              staat openbaar op /verhaal, met je naam: ook wie niet inlogt, kan
+              het lezen. Vraag wie op een foto staat of dat goed is.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Kort of lang.</strong> Een
+              korte anekdote in één hoofdstuk zonder foto staat in zijn geheel
+              bij de periode. Een verhaal met meer hoofdstukken, foto&apos;s of
+              meer tekst krijgt een eigen pagina: tijdens het scrollen wisselt
+              de scène per hoofdstuk, met de foto&apos;s ertussen.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Bij een beker.</strong> Kies
+              je een ZWBeker, dan linkt de beker naar je verhaal en het verhaal
+              naar de beker. Bij een beker staat ook Vertel het verhaal.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <strong className="text-foreground">Weghalen.</strong> Je kunt
+              je verhaal altijd weghalen onder Je verhalen, ook als het al
+              geplaatst is.
+            </span>
+          </li>
+        </ul>
+
+        <div className="mt-4">
+          <Link
+            href="/verhaal"
+            className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
+          >
+            <BookOpen className="size-4 text-primary" />
+            Naar het verhaal
           </Link>
         </div>
       </section>

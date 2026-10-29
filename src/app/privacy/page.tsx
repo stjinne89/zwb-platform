@@ -137,7 +137,8 @@ export default function PrivacyPage() {
             ZRL-race bewaren we uit de uitslag en de segmentresultaten van Zwift
             per renner ook het gemiddelde vermogen, het gewicht, het soort
             vermogensmeter, het beste vermogen over 15 seconden en 1, 5 en 20
-            minuten, het finishmoment en per sprint of klim het vermogen. Dat is
+            minuten, het finishmoment, per sprint of klim het vermogen en de Zwift
+            Racing Score van vóór de race. Dat is
             wat Zwift ook in de game en op ZwiftPower laat zien, en het geldt voor
             iedereen in de groep, ook renners zonder ZWB-account en van andere
             clubs. Hartslag nemen we niet over. Wie de race reed of in de
@@ -154,7 +155,11 @@ export default function PrivacyPage() {
             bewaren haar niet. Bij een FRR-etappe, een andere Zwift-race uit de
             kalender of een race waarvan je de link plakt, bewaren we de uitslag
             en de segmenttijden van je startgroep; vermogen, gewicht en naam alleen
-            van ZWB&apos;ers, van anderen alleen plek en tijden. Een geplakte race
+            van ZWB&apos;ers, van anderen alleen plek, tijden en de Zwift Racing
+            Score van vóór de race. Met die score rekenen we je verwachte plek en
+            punten uit. Je eigen races leggen we naast elkaar: je eerdere passages
+            over dezelfde sprint of klim, je PR en de richttijd van het
+            racebriefje. Die terugblik ziet alleen jij. Een geplakte race
             halen we alleen op als je zelf in de uitslag staat. Andere ZWB&apos;ers
             in zo&apos;n race zien jouw plek en tijd, niet je vermogen.
           </li>
@@ -486,7 +491,9 @@ export default function PrivacyPage() {
           <li>
             <strong>Weekoverzicht:</strong> op zondagavond zie je een terugblik
             op je week. We bewaren per week een samenvatting van je ritten,
-            schema, belasting, vermogen, teamuitslagen, voedings- en
+            schema, belasting, vermogen, teamuitslagen (in een ZRL-race ook je
+            plek en punten tegenover de verwachting, en de punten of W/kg van je
+            ploeggenoten zonder naam), voedings- en
             corelogboek en clubritten, je ZWBriljant-steen (klasse, punten en
             het onderdeel waar je het meest wint, uit je bewaarde weeksteen), en of je het
             overzicht hebt gezien. Alleen jij kunt het lezen, ook als je je
@@ -528,6 +535,48 @@ export default function PrivacyPage() {
             vrouwen. Elk gemiddelde is anoniem en verschijnt pas vanaf vijf leden. Er gaat niets naar{" "}
             {AI} of een andere partij. Het staat in je data-export en
             verdwijnt als je je account opheft.
+          </li>
+          <li id="zwbekers" className="scroll-mt-20">
+            <strong>ZWBekers:</strong> een lid kan een prestatie voordragen voor
+            een beker in de prijzenkast, van zichzelf, van een ander lid of van
+            een team. We bewaren wie voordroeg, voor wie, het team (en de leden
+            die meereden), de titel, de datum, het verhaal, het ontwerp van de
+            beker, een eventuele foto en link naar de uitslag, en wat het bestuur
+            besloot, met een eventuele notitie. Zolang het bestuur nog niet
+            besliste, zien alleen wie voordroeg en het bestuur de voordracht; de
+            winnaars krijgen hem niet te zien. Een toegekende beker zien alle
+            goedgekeurde leden, met de namen van de winnaars, in de kast en op
+            het profiel van elke winnaar. Op je profiel volgen je bekers de
+            zichtbaarheid van je badges; in de kast staat je naam altijd bij de
+            beker. Niet op je publieke profiel. Leden kunnen onder een beker
+            feliciteren; die felicitaties zien alle goedgekeurde leden. Foto&apos;s
+            staan in een besloten opslag en zijn alleen te zien voor wie de beker
+            mag zien. Wil je niet (meer) bij een beker staan, of moet een foto
+            weg, vraag het bestuur (zie &ldquo;Je rechten&rdquo;). Hef je je
+            account op, dan verdwijnen je naam bij een beker en je felicitaties;
+            een beker die je zelf voordroeg blijft staan, zonder je naam. Er gaat
+            niets naar {AI} of een andere partij. Je voordrachten, bekers en
+            felicitaties staan in je data-export.
+          </li>
+          <li id="clubverhaal" className="scroll-mt-20">
+            <strong>Clubverhaal:</strong> een lid kan een anekdote of verhaal
+            met hooguit zes foto&apos;s insturen voor het verhaal van ZWB op{" "}
+            <Link href="/verhaal" className="underline">/verhaal</Link>. We bewaren de
+            titel, de hoofdstukken met hun tekst en gekozen scène, het jaar, een
+            eventuele ZWBeker, de
+            foto&apos;s met onderschrift, wie het schreef en wat het bestuur
+            besloot, met een eventuele notitie. Zolang het bestuur het nog niet
+            plaatste, zien alleen jij en wie verhalen plaatst het. Een geplaatst
+            verhaal staat op een openbare pagina: iedereen kan het lezen, ook
+            zonder in te loggen, met je naam erbij. Zet er daarom niets in wat
+            niet openbaar mag, en vraag wie op een foto staat of dat goed is.
+            Foto&apos;s staan in een besloten opslag; de pagina toont ze met
+            links die na een uur verlopen. Je kunt je verhaal altijd zelf
+            weghalen, ook als het geplaatst is; sta je op een foto bij het
+            verhaal van een ander en wil je dat niet, vraag het bestuur (zie
+            &ldquo;Je rechten&rdquo;). Hef je je account op, dan verdwijnen je
+            verhalen en hun foto&apos;s. Er gaat niets naar {AI} of een andere
+            partij. Je verhalen staan in je data-export.
           </li>
           <li>
             <strong>Persoonlijke voorkeuren:</strong> op het tabblad

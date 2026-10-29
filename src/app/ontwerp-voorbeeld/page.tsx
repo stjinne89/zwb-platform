@@ -19,6 +19,8 @@ import { WeekReviewDashboardLink } from "@/components/weekoverzicht/dashboard-li
 import { BokaalShell } from "@/components/bokaal/shell";
 import { BokaalBoard } from "@/components/bokaal/board";
 import { BOKAAL_ANSWERS, BOKAAL_NOW, BOKAAL_PLACED, BOKAAL_RACES } from "./bokaal-voorbeeld";
+import { RecentBekersList } from "../(app)/dashboard/_components/recent-bekers";
+import { ZWBEKERS_VOORBEELD } from "./zwbekers-voorbeeld";
 
 // Het design "tegels" met voorbeelddata, zonder login. Alleen bij lokaal
 // ontwikkelen: in productie bestaat deze pagina niet. Bedoeld om het uiterlijk
@@ -154,6 +156,7 @@ export default async function OntwerpVoorbeeldPage({
             <WeekReviewDashboardLink tegels />
           </div>
         )}
+        {(!scherm || scherm === "vandaag") && <RecentBekersList bekers={ZWBEKERS_VOORBEELD} />}
         <p className="flex flex-wrap gap-4 text-sm text-muted-foreground">
           Voorbeelddata.
           {SCREENS.map((screen) => (

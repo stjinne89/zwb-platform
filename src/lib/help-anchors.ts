@@ -36,6 +36,8 @@ export const HELP_ANCHORS: ReadonlyArray<readonly [pattern: string, anchor: stri
   ["/profiel/cols", "cols"],
   ["/mijn-garage", "mijn-garage"],
   ["/zwblokken", "zwblokken"],
+  ["/zwbekers", "zwbekers"],
+  ["/clubverhaal", "clubverhaal"],
   ["/zwbgame", "zwbgame"],
   ["/voorzpwelbokaal", "voorzpwelbokaal"],
   ["/verjaardagen", "verjaardagsrondje"],

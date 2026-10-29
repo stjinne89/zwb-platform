@@ -232,7 +232,7 @@ export const GUIDES = [
       "AI maakt conceptschema's; de trainer keurt publicatie goed.",
       "Sla je een doel op, dan krijgt je trainer een melding dat er een concept gedraaid kan worden.",
       "In de coachchat vraag je waarom je schema eruitziet zoals het eruitziet, en wat je trainingsdata zeggen.",
-      "Op zondagavond vanaf 18:00 opent je weekoverzicht: per scherm wat je die week deed (ritten, schema, belasting, vermogen, je ZWBriljant-steen, teams, voeding en core, club), het oordeel van de coach, en als laatste je beschikbaarheid voor de week erna. Tik rechts voor verder, links voor terug, houd vast om te pauzeren. Wat je die week niet gebruikte, krijgt geen scherm.",
+      "Op zondagavond vanaf 18:00 opent je weekoverzicht: per scherm wat je die week deed (ritten, schema, belasting, vermogen, je ZWBriljant-steen, teams, voeding en core, club), het oordeel van de coach, en als laatste je beschikbaarheid voor de week erna. Tik rechts voor verder, links voor terug, houd vast om te pauzeren. Wat je die week niet gebruikte, krijgt geen scherm. Reed je een ZRL-race met je team, dan toont het teamscherm je eigen race: je plek en punten tegenover de verwachting op je ZRS, je deel van de ploegpunten en waar je het meeste won of verloor; in een ploegentijdrit je W/kg naast de ploeg en of je bij de ploeg finishte. Daaronder de plaats van je ploeg.",
       "Op de laatste pagina van het weekoverzicht schuif je per dag je tijd; je ziet erbij voor welke events je al beschikbaar, opgesteld of aangemeld bent, en waar een event meer tijd vraagt dan je opgaf. Opslaan werkt je schema bij, net als op de schemapagina.",
       "Het oordeel in het weekoverzicht schrijft de AI-coach als je ZWBeter voor je training gebruikt; anders is het een korte samenvatting uit vaste regels. De pop-up komt vanzelf tot en met woensdag; op het dashboard staat de hele week een ingang naar het overzicht van de laatst afgesloten week.",
       "Je trainer ziet bij een gereden training suggesties uit de uitvoering, en onder Races de tips uit je Zwift-races; hij beslist zelf wat hij je als feedback stuurt.",
@@ -308,6 +308,8 @@ export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/media", name: "Media", text: "Nieuws, nieuwsbrieven, podcasts, video's en Instagram." },
   { href: "/stats", name: "Stats", text: "Club: de cijfers en ranglijst van alle leden. Ik: je eigen ritten, vermogen en records." },
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
+  { href: "/clubverhaal", name: "Clubverhaal", text: "Je anekdotes en verhalen met foto's voor het verhaal van ZWB." },
+  { href: "/zwbekers", name: "ZWBekers", text: "De prijzenkast van de club: per jaar een kast met bekers voor prestaties die aandacht verdienen." },
   { href: "/voorzpwelbokaal", name: "voorZpWelBokaal", text: "Wedden met ZWBallen op het veldrijden: het bord, je briefjes en de lei." },
   { href: "/profiel?weergave=bewerken", name: "Profiel", text: "Je gegevens, zichtbaarheid, je fietsen, koppelingen (Strava/intervals) en account." },
 ];
