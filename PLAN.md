@@ -19416,6 +19416,12 @@ fouten in de console.
 eigen schema en start een herziening op productie); ook niet gecontroleerd dat
 zo'n workout goed in intervals.icu landt.
 
+**Bijgestuurd (2026-10-29; lokaal gecommit, niet gepusht).** Op verzoek van de
+eigenaar schuift de Duur-balk in stappen van 5 minuten in plaats van 15 (nog
+steeds 15 min tot 8 uur). Het label toont nu "1u 05" in plaats van "1u 5".
+`planOwnRide` rondt alleen af op hele minuten, dus de server hoefde niet mee.
+Geen migratie. Niet in de browser bekeken.
+
 ### Opgeleverd — beleid bewijsniveau voor alle kennisbanken
 
 **Voorgesteld (`77449114`), goedgekeurd en gebouwd 2026-10-18; gepusht naar `main`
