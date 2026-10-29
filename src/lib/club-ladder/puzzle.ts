@@ -1,5 +1,5 @@
 // Ladderpuzzel: renners over de ladderteams verdelen en per team de klasseregel
-// controleren (0286). Alleen klasseproblemen; club, aantal en 60%-regel niet
+// controleren (0290). Alleen klasseproblemen; club, aantal en 60%-regel niet
 // (afspraak eigenaar 2026-10-29).
 //
 // Klasseregel uit het Club Ladder Race Book, zoals de eigenaar hem hanteert: een

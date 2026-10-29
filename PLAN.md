@@ -11513,8 +11513,13 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: Ladderpuzzel
 
-**2026-10-29.** Commit `424a3948`, niet gepusht. Migratie `0286_ladder_puzzle.sql`,
-**nog niet toegepast**.
+**2026-10-29.** Commit `424a3948`, gepusht naar `main` op 2026-10-29. Migratie
+`0290_ladder_puzzle.sql` (gebouwd als 0286; hernoemd omdat `0286_zwbekers` op
+`main` dat nummer al had), op 2026-10-29 toegepast via de Supabase-connector, op
+verzoek van de eigenaar, vóór de push. Nagekeken: ZWBrains en ZWBeauties
+aangemaakt, banden Beasts 1–2, Bullets 2–4, Brains 4–6, Beauties 5–7, Bandits en
+Zwiftladies zonder band; `ladder_ranks` en `ladder_roster_riders` RLS aan, 0
+policies; trigger `roster_entries_claim_ladder` aanwezig.
 
 **Waarom.** De eigenaar vond het artifact "Ladderpuzzelen" (een losse pagina
 waarin de renners als puzzelstukjes over de ladderteams verdeeld werden) zo
@@ -11536,7 +11541,7 @@ uit (de regel uit het race book over de middelste renner bij het toevoegen telt
 hier niet).
 
 **Wat.**
-- `0286`: `teams.ladder_rank_min/max` (band; rank 1 = Diamond, 10 = Copper),
+- `0290`: `teams.ladder_rank_min/max` (band; rank 1 = Diamond, 10 = Copper),
   `ladder_ranks` (rank per Zwift-ID, zodat het voor leden en rosternamen gelijk
   werkt en bij claimen niets verhuist) en `ladder_roster_riders` (rosternamen
   zonder account in de ladderlijst, met ladderteam, leeg = losse stukjes, en
@@ -11570,8 +11575,8 @@ hier niet).
   sporten, "x van 4 passen") staat als `.ladder-stuk` in `globals.css`. De
   uitleg die in het artifact onderaan stond, staat op `/hulp`, niet op het
   scherm.
-- Zolang 0286 niet is toegepast, faalt de bandquery en verschijnt de puzzel niet;
-  de rest van de pagina werkt. **Eerst 0286 toepassen, dan pushen.**
+- Zolang 0290 niet is toegepast, faalt de bandquery en verschijnt de puzzel niet;
+  de rest van de pagina werkt.
 - `/hulp` (Teams en wedstrijden) en de privacyverklaring (ladderrank en
   ladderteam, ook voor renners zonder account) aangevuld; geen nieuwe
   privacyversie, met akkoord van de eigenaar.
@@ -11588,7 +11593,24 @@ hier niet).
 **Gecontroleerd.** `tsc` schoon, ESLint op `teams/club-ladder` en
 `lib/club-ladder`, Vitest `club-ladder-puzzle` (10). **Niet geverifieerd:** de
 migratie en de trigger (geen Docker of Supabase-config hier), en de puzzel in de
-browser met echte teams, omdat die pas na 0286 verschijnt.
+browser met echte teams (de pagina vraagt een login).
+
+**Gegevens bij het toepassen (2026-10-29, op verzoek van de eigenaar).** Ranks
+van de 35 renners uit het artifact in `ladder_ranks` (opgehaald van
+zwiftracing.app op 2026-10-29) en de indeling uit het artifact: 28 leden als
+`team_members` (herkomst `manual`), 7 renners zonder account met hun rosternaam
+in `ladder_roster_riders`; voor Ragna van Rixtel-Zanin (eSRT) is een rosternaam
+aangemaakt. Resultaat: Beasts 8, Bullets 8, Brains 10, Beauties 7; Annet
+(rosternaam) en Sanneke (in de ladderpool) bij de losse stukjes.
+- **Sven Hund** heeft een account zonder Zwift-ID: hij staat als lid in
+  ZWBeauties, maar zonder rank (zijn rank staat op zijn Zwift-ID klaar). Vult hij
+  zijn Zwift-ID in, dan verschijnt de rank; `link_roster_by_zwift_id` claimt dan
+  ook zijn rosternaam (ZRL Bdev).
+- **Annet**: er is een account "Annet" zonder Zwift-ID; niet zeker dat zij het
+  is, dus haar rosternaam is gebruikt.
+- **Captains** zijn niet verplaatst: Jeroen (captain) en Stijn (co-captain)
+  blijven dat bij ZWBandits, Femke bij ZWB Zwiftladies; in ZWBrains zijn ze lid.
+  Indelen kunnen ze toch, want dat mag elke captain van een ladderteam.
 
 ### Gebouwd — Club Ladder: leden zonder interesse in de ladderlijst zetten
 

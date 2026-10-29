@@ -538,13 +538,13 @@ export default async function ClubLadderPage({
   );
 }
 
-/** Teams met een band staan in de puzzel (0286); de rest kan erbij. Null zonder 0286. */
+/** Teams met een band staan in de puzzel (0290); de rest kan erbij. Null zonder 0290. */
 async function loadLadderPuzzle(
   ladderTeams: TeamRow[],
   members: LadderRider[],
   admin: ReturnType<typeof createAdminClient>,
 ) {
-  // Leeg zolang 0286 niet is toegepast: dan geven de queries een fout en geen rijen.
+  // Leeg zolang 0290 niet is toegepast: dan geven de queries een fout en geen rijen.
   // De band daarom apart, zodat de rest van de pagina blijft werken.
   const [{ data: bandRows, error: bandError }, { data: rosterRows }] = await Promise.all([
     admin.from("teams").select("id, ladder_rank_min, ladder_rank_max").eq("type", "ladder"),

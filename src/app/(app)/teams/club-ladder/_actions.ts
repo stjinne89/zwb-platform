@@ -157,7 +157,7 @@ async function puzzleTeamIds(admin: Admin) {
 export type PuzzleRiderRef = { kind: "profile" | "roster"; id: string };
 
 /**
- * Legt een renner in een puzzelteam (0286), of bij de losse stukjes (`null`).
+ * Legt een renner in een puzzelteam (0290), of bij de losse stukjes (`null`).
  * Een renner rijdt in één ladderteam: uit de andere puzzelteams gaat hij eruit,
  * met een seed-override zoals bij Verwijderen.
  */
