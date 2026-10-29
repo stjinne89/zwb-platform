@@ -316,23 +316,31 @@ function LaneHead({
 
   return (
     <div className="grid gap-2">
-      <div className="flex items-baseline justify-between gap-2">
+      <div className="flex items-center gap-2">
         <h3 className="min-w-0 truncate font-semibold">{team.name}</h3>
-        <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+        {team.archived && (
+          <span className="shrink-0 rounded border px-1 text-[0.7rem] text-muted-foreground">archief</span>
+        )}
+        <span className="ml-auto shrink-0 text-sm tabular-nums text-muted-foreground">
           {count}/{LADDER_ROSTER_SIZE}
         </span>
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-        <span className={cn("rounded-full px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide", LEVEL_PILL[check.level])}>
+        <span
+          className={cn(
+            "shrink-0 rounded-full px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wide",
+            LEVEL_PILL[check.level],
+          )}
+        >
           {LEVEL_LABEL[check.level]}
         </span>
-        {team.archived && <span className="rounded border px-1.5">archief</span>}
+      </div>
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         {canEdit ? (
           <>
             <RankSelect
               value={team.band[0]}
               label={`Hoogste rank ${team.name}`}
               disabled={pending}
+              className="min-w-0 flex-1"
               onChange={(rank) => rank != null && onBand([rank, Math.max(rank, team.band[1])])}
             />
             <span>–</span>
@@ -340,6 +348,7 @@ function LaneHead({
               value={team.band[1]}
               label={`Laagste rank ${team.name}`}
               disabled={pending}
+              className="min-w-0 flex-1"
               onChange={(rank) => rank != null && onBand([Math.min(rank, team.band[0]), rank])}
             />
             <Button

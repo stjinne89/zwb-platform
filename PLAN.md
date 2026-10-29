@@ -11548,8 +11548,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Ladderpuzzel: weergave, volgorde en renners weghalen
 
-**2026-10-29.** Commits `e2ab84cd` en `5977935a`, gepusht naar `main` op
-2026-10-29. Migratie `0291_ladder_withdrawn.sql`, op 2026-10-29 toegepast via de
+**2026-10-29.** Commits `e2ab84cd`, `5977935a`, `93d46e03` (rol teamcaptain) en
+de teamkop hieronder, gepusht naar `main` op 2026-10-29. Migratie `0291_ladder_withdrawn.sql`, op 2026-10-29 toegepast via de
 Supabase-connector, op verzoek van de eigenaar, vóór de push. Nagekeken: RLS aan,
 0 policies, 0 rijen.
 
@@ -11578,6 +11578,11 @@ kunnen halen als iemand niet meer mee wil doen.
   rosternamen bij de losse stukjes) en `removeLadderRosterRider` zijn daarin
   opgegaan.
 - `/hulp` vermeldt de volgorde en Weghalen.
+- **Live nagekeken in Chrome** (na `93d46e03`): vier vakken van 230px, sterkste
+  links, namen op één regel, losse stukjes eronder. Eén ding nog: in de teamkop
+  brak de band halverwege af, omdat status, "archief" en twee keuzelijsten op één
+  regel moesten. Nu: naam, archief, aantal en status boven; de band eronder,
+  met de keuzelijsten die de breedte delen.
 - **Alleen teamcaptains puzzelen.** Eerst gebouwd als "captain of co-captain
   van een ladderteam" (commit `5977935a`, op "captains moeten recht hebben om
   mee te puzzelen andere rollen niet"); de eigenaar verbeterde: "iedereen met
