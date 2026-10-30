@@ -58,11 +58,14 @@ gaat stabiliteit voor nieuwe features.
    met foto insturen, plaatsen en op `/verhaal` en bij de beker bekijken.
 
 0g. **App-updates (2026-10-30): migratie `0293` nog niet toegepast, niet
-   gepusht.** `0293_app_updates.sql` staat in de repo; toepassen gebeurt alleen
-   op verzoek van de eigenaar. Zonder de tabel toont `/updates` "Nog geen
-   updates" en komt er geen pop-up. Daarna de eerste update schrijven op
-   `/beheer/app-updates`. Zie de ronde "App-updates: elke donderdag wat er
-   veranderd is".
+   gepusht.** `0293_app_updates.sql` staat in de repo, met de geschiedenis
+   van 21 mei tot en met 29 oktober erin; toepassen gebeurt alleen op verzoek
+   van de eigenaar. Zonder de tabel toont `/updates` "Nog geen updates" en komt
+   er geen pop-up. Na het toepassen krijgen leden week 44 tot 5 november als
+   pop-up. Daarna de update van week 45 schrijven op `/beheer/app-updates`
+   (kracht uit intervals.icu en rit invoeren bij de training gingen op
+   30 oktober live en staan nog nergens). Zie de ronde "App-updates: elke
+   donderdag wat er veranderd is".
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11564,9 +11567,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — App-updates: elke donderdag wat er veranderd is
 
-**2026-10-30.** Commit `b4bdb2cf`. Migratie
-`0293_app_updates.sql`, **nog niet toegepast** en niet lokaal te testen (geen
-Docker of Supabase-config). Niet gepusht.
+**2026-10-30.** Commit `b4bdb2cf`; de geschiedenis in de commit erna (zie
+`git log`). Migratie `0293_app_updates.sql`, **nog niet toegepast**; niet
+lokaal tegen Supabase te testen (geen Docker of Supabase-config). Niet gepusht.
 
 **Waarom.** De eigenaar wil leden elke week laten weten wat er in de app
 veranderd is: een pagina voor alle leden met de updates en bugfixes kort
@@ -11596,6 +11599,15 @@ en een link naar die pagina.
 - De verschijntijd hangt aan de database, niet aan een deploy: een update kan
   eerder in de week klaarstaan en verschijnt vanzelf. Dat spaart
   Netlify-credits.
+- De geschiedenis (wens eigenaar: "de volledige geschiedenis terug kunnen
+  halen") zit in `0293`: twintig weken, van 21 mei tot en met 29 oktober. Bron
+  tot 17 oktober is de tijdlijn "Zo groeide ZWBasis" (artifact "ZWBasis
+  tijdlijn", uit de chat "ZWBasis features artifact update"); daarna de rondes
+  in dit plan. Een week loopt van vrijdag tot en met donderdag; weken zonder
+  iets voor leden ontbreken. Alleen wat op `main` stond, per ronde nagelopen.
+  `on conflict (week_start) do nothing`: een week die al geschreven is, blijft.
+  Opgelost staat er pas vanaf oktober in: daarvoor hield dit plan fixes niet
+  per ronde bij.
 
 **Bewust niet.**
 - Geen pushbericht erbij: gevraagd was een pop-up in de app. Wie ook een
@@ -11606,13 +11618,19 @@ en een link naar die pagina.
   gevraagd.
 - Geen automatisch opgestelde tekst uit de commits: de eigenaar schrijft de
   update zelf.
+- Geen beheerwerk in de geschiedenis (zoals de proefversie van het
+  tegelsdesign): de updates zijn voor leden.
 
 **Gecontroleerd.** ESLint schoon op de nieuwe en gewijzigde bestanden; `tsc`
 geeft alleen de bekende fouten over ontbrekende pakketten (`@anthropic-ai/sdk`,
 `modern-screenshot`) in de gedeelde `node_modules`. Vitest `app-updates` (6),
-`admin-areas` en `help-anchors` slagen. **Niet geverifieerd:** de migratie, de
-pagina's en de pop-up in de browser; lokaal vraagt de app om in te loggen en de
-tabel bestaat nog niet.
+`admin-areas` en `help-anchors` slagen. De migratie draait in PGlite (met
+stubs voor `profiles` en `current_user_has_permission`) twee keer achter
+elkaar zonder fouten en zet twintig weken neer. Ingelogd in dev bekeken met de
+geschiedenis als tijdelijke voorbeelddata (niet gecommit): de pop-up na
+"Nieuw in ZWBeter trainen", de link naar de juiste week op `/updates`, en
+`/beheer/app-updates` onder Beheer → App. **Niet geverifieerd:** de migratie
+op Supabase en opslaan op het beheerscherm; de tabel bestaat nog niet.
 
 ### Gebouwd — Ladderrenners-lijst weg, rennersdata in het ZWB teamprofiel
 
