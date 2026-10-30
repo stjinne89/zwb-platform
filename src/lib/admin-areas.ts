@@ -48,6 +48,13 @@ export const ADMIN_AREAS = {
     label: "Notificaties",
     permission: "notifications.broadcast",
   },
+  // De wekelijkse app-updates (0293): een bericht aan alle leden, net als een
+  // pushbericht.
+  appUpdates: {
+    href: "/beheer/app-updates",
+    label: "App-updates",
+    permission: "notifications.broadcast",
+  },
 } as const satisfies Record<string, AdminArea>;
 
 export type AdminAreaKey = keyof typeof ADMIN_AREAS;

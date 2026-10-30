@@ -163,6 +163,8 @@ export const AVATAR_NAV: NavLeaf[] = [
   { type: "link", href: "/hulp", label: "Hulp" },
   // Vragen over de app (0254): hoort bij de hulp, niet bij een plek.
   { type: "link", href: "/qa", label: "Q&A" },
+  // Wat er elke week veranderd is (0293).
+  { type: "link", href: "/updates", label: "App-updates" },
 ];
 
 // Admin-items met bijbehorende permission, uit het register van de
@@ -223,7 +225,7 @@ export const BEHEER_CATEGORIES: BeheerCategory[] = [
   {
     label: "App",
     tone: "meer",
-    items: [adminLink("rechten"), adminLink("notificaties"), adminLink("strava")],
+    items: [adminLink("rechten"), adminLink("notificaties"), adminLink("appUpdates"), adminLink("strava")],
   },
 ];
 

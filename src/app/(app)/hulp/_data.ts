@@ -305,6 +305,7 @@ export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/community", name: "Community", text: "Mededelingen en clubnieuws." },
   { href: "/polls", name: "Polls", text: "Snelle stemmingen vanuit de club." },
   { href: "/qa", name: "Q&A", text: "Je vraag over de app, met het antwoord van het bestuur." },
+  { href: "/updates", name: "App-updates", text: "Elke donderdag kort wat er nieuw is in de app en wat er opgelost is. Na 17:00 zie je de samenvatting één keer als pop-up." },
   { href: "/media", name: "Media", text: "Nieuws, nieuwsbrieven, podcasts, video's en Instagram." },
   { href: "/stats", name: "Stats", text: "Club: de cijfers en ranglijst van alle leden. Ik: je eigen ritten, vermogen en records." },
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },

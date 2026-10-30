@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-10-28)
+## Actieve volgorde (bijgewerkt 2026-10-30)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -56,6 +56,13 @@ gaat stabiliteit voor nieuwe features.
    eigenaar, net als de vraag of openbare verhalen zonder nieuwe
    privacyversie kunnen (zie de ronde "Clubverhaal"). Nog doen: één verhaal
    met foto insturen, plaatsen en op `/verhaal` en bij de beker bekijken.
+
+0g. **App-updates (2026-10-30): migratie `0293` nog niet toegepast, niet
+   gepusht.** `0293_app_updates.sql` staat in de repo; toepassen gebeurt alleen
+   op verzoek van de eigenaar. Zonder de tabel toont `/updates` "Nog geen
+   updates" en komt er geen pop-up. Daarna de eerste update schrijven op
+   `/beheer/app-updates`. Zie de ronde "App-updates: elke donderdag wat er
+   veranderd is".
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11554,6 +11561,58 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — App-updates: elke donderdag wat er veranderd is
+
+**2026-10-30.** Commit volgt in de PLAN-commit hierna. Migratie
+`0293_app_updates.sql`, **nog niet toegepast** en niet lokaal te testen (geen
+Docker of Supabase-config). Niet gepusht.
+
+**Waarom.** De eigenaar wil leden elke week laten weten wat er in de app
+veranderd is: een pagina voor alle leden met de updates en bugfixes kort
+omschreven, en elke donderdag om 17:00 een pop-up met een korte samenvatting
+en een link naar die pagina.
+
+**Wat.**
+- Tabel `app_updates` (`0293`): één update per week (`week_start`, de
+  maandag), met `publish_at` (donderdag 17:00 Nederlandse tijd, door de server
+  uitgerekend in `src/lib/app-updates/schedule.ts`), een samenvatting voor de
+  pop-up en twee lijsten: Nieuw en Opgelost. Leden lezen een update zodra
+  `publish_at` voorbij is; wie schrijft ziet ook wat klaarstaat.
+- Schrijven op `/beheer/app-updates` (beheertegel App), met het recht
+  `notifications.broadcast`: hetzelfde als een pushbericht aan alle leden, en
+  geen nieuw recht dat de check-constraint van `community_role_permissions`
+  zou vragen. Eén punt per regel; opsommingstekens vallen weg. Dezelfde week
+  opnieuw opslaan past hem aan.
+- `/updates` voor alle leden, nieuwste eerst, per week "Week 44 · 29 oktober".
+  In het avatarmenu (en mobiel) als "App-updates", en in de wegwijzer op
+  `/hulp`.
+- De pop-up (`app-update-dialog.tsx`) komt vanaf donderdag 17:00 een week lang
+  bij het openen van de app, één keer per update per apparaat (localStorage,
+  zoals "Nieuw in ZWBeter trainen"). Nooit boven op de privacy- of
+  Zwift-ID-vraag of een andere open dialoog; dan komt hij bij een volgende
+  pagina. Na een week opent hij niet meer vanzelf, zodat een nieuw lid geen
+  oude update krijgt.
+- De verschijntijd hangt aan de database, niet aan een deploy: een update kan
+  eerder in de week klaarstaan en verschijnt vanzelf. Dat spaart
+  Netlify-credits.
+
+**Bewust niet.**
+- Geen pushbericht erbij: gevraagd was een pop-up in de app. Wie ook een
+  pushbericht wil, stuurt dat via `/beheer/notificaties`.
+- "Gezien" niet in de database: per apparaat volstaat, zoals bij de andere
+  meldingen. Een lid met telefoon en laptop ziet hem dus twee keer.
+- Geen eigen tijdstip per update: het is altijd donderdag 17:00, zoals
+  gevraagd.
+- Geen automatisch opgestelde tekst uit de commits: de eigenaar schrijft de
+  update zelf.
+
+**Gecontroleerd.** ESLint schoon op de nieuwe en gewijzigde bestanden; `tsc`
+geeft alleen de bekende fouten over ontbrekende pakketten (`@anthropic-ai/sdk`,
+`modern-screenshot`) in de gedeelde `node_modules`. Vitest `app-updates` (6),
+`admin-areas` en `help-anchors` slagen. **Niet geverifieerd:** de migratie, de
+pagina's en de pop-up in de browser; lokaal vraagt de app om in te loggen en de
+tabel bestaat nog niet.
 
 ### Gebouwd — Ladderrenners-lijst weg, rennersdata in het ZWB teamprofiel
 
