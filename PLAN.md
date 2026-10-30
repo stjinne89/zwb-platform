@@ -4781,10 +4781,12 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > draaiende app in de browser.
 >
 > **Logo: het origineel vervangt de drie schuine vlakken (besluit eigenaar,
-> 2026-10-12) — vastgelegd, nog niet gebouwd.** `DESIGN.md` en `PRODUCT.md`
+> 2026-10-12) — deels gebouwd.** `DESIGN.md` en `PRODUCT.md`
 > noemen `public/zwb-logo.png` als merkteken; `ZwbLogo`/`ZwbMark` en
 > `public/icon.svg` zijn een benadering en moeten eruit (balk, publieke
-> pagina's, app-icoon). Open voor de bouw: de B en de ondertitel zijn zwart en
+> pagina's, app-icoon). App-icoon en favicons zijn op 2026-10-30 omgezet en
+> `icon.svg` is weg (ronde "app-icoon en favicon uit het echte ZWB-logo");
+> `ZwbLogo`/`ZwbMark` staan nog op de publieke pagina's. Open voor de bouw: de B en de ondertitel zijn zwart en
 > vallen weg in het donkere thema (tot er een lichte variant is: op een licht
 > vlak), en het bestand is maar 300 bij 104 pixels, te klein voor het
 > app-icoon.
@@ -11554,6 +11556,36 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — app-icoon en favicon uit het echte ZWB-logo
+
+**2026-10-30.** Commit: de commit die dit blok toevoegt, niet gepusht. Geen
+migratie.
+
+**Waarom.** De eigenaar zag in de titelbalk van de geïnstalleerde app (Windows)
+nog het oude icoon en wilde daar het logo uit de balk, zoals bij de meldingen
+op de telefoon. Dat volgt het besluit van 2026-10-12: het origineel vervangt de
+drie schuine vlakken.
+
+**Wat.**
+- `scripts/generate-icons.mjs` maakt de app-icons (192/512, maskable,
+  apple-touch) en favicons (16/32 en `src/app/favicon.ico`) nu uit
+  `public/zwb-logo.png`: alleen de letters ZWB, zonder "Cycling Community",
+  gecentreerd op het lichte vlak `#fbfbf7` (de `--tg-paper` achter het logo in
+  de balk). Licht omdat de B zwart is. Kleine favicons krijgen meer breedte.
+- `public/icon.svg` (de drie vlakken) is weg, ook uit `manifest.json` en de
+  root-metadata. Browsers kozen die SVG vóór de PNG's.
+
+**Niet veranderd, met reden.** De push-badge (`badge-96.png`) blijft één
+schuin vlak: Android tekent de badge als wit alfamasker op ~24px, daar is het
+woordmerk een vlek. De OG-kaart blijft het beeldmerk op petrol, waar de zwarte
+B wegvalt. `ZwbLogo`/`ZwbMark` op de publieke pagina's zijn nog niet vervangen.
+
+**Niet geverifieerd.** De iconen zijn als plaatje bekeken, niet in een browser
+of geïnstalleerde app. Een al geïnstalleerde app neemt een nieuw icoon pas over
+na de manifestcontrole van de browser; soms moet hij opnieuw worden
+geïnstalleerd. Het bronbestand is 300 px breed, dus `icon-512.png` is iets
+opgeschaald.
 
 ### Gebouwd — Ladderrenners-lijst weg, rennersdata in het ZWB teamprofiel
 
