@@ -24,7 +24,7 @@ export function LadderPoolAdd({ members }: { members: Array<{ id: string; name: 
 
   return (
     <section className="space-y-3 rounded-lg border bg-card p-4">
-      <h2 className="font-semibold">Lid aan de ladderlijst toevoegen</h2>
+      <h2 className="font-semibold">Lid aan de puzzel toevoegen</h2>
       <form action={onAdd} className="grid gap-2 sm:grid-cols-[1fr_auto]">
         <select name="profile_id" defaultValue="" aria-label="Lid" className={FIELD}>
           <option value="" disabled>

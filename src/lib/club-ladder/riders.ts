@@ -174,13 +174,3 @@ export function sortLadderRiders(riders: LadderRider[], sort: LadderRiderSort) {
     return byName(a, b);
   });
 }
-
-const SEX_ORDER: LadderSex[] = ["man", "vrouw", null];
-
-/** Mannen, vrouwen en wie geen geslacht invulde; lege groepen vallen weg. */
-export function groupLadderRidersBySex(riders: LadderRider[]) {
-  return SEX_ORDER.map((sex) => ({
-    sex,
-    riders: riders.filter((rider) => rider.sex === sex),
-  })).filter((group) => group.riders.length > 0);
-}

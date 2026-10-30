@@ -13,7 +13,6 @@ import {
 } from "@/lib/club-ladder/summary";
 import {
   buildLadderRiders,
-  groupLadderRidersBySex,
   parseLadderRiderSort,
   sortLadderRiders,
   type LadderRider,
@@ -21,7 +20,6 @@ import {
   type LadderRiderPower,
   type LadderRiderProfile,
   type LadderRiderSort,
-  type LadderSex,
 } from "@/lib/club-ladder/riders";
 import { normalizeTeamName } from "@/lib/ladder";
 import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metrics";
@@ -49,7 +47,6 @@ export const dynamic = "force-dynamic";
 /** Zelfde budget als de racebriefing voor ZRS/vELO die ontbreken of verlopen zijn. */
 const METRICS_REFRESH_BUDGET_MS = 20_000;
 
-const SEX_LABEL: Record<Exclude<LadderSex, null>, string> = { man: "Mannen", vrouw: "Vrouwen" };
 export const revalidate = 0;
 
 type Search = {
@@ -78,23 +75,6 @@ type ResultRow = {
   total_teams: number | null;
   synced_at: string | null;
   metadata: unknown;
-};
-
-type MemberRow = {
-  team_id: string;
-  profile_id: string;
-  profiles?: {
-    display_name?: string | null;
-    ftp_watts?: number | null;
-    weight_kg?: number | string | null;
-  } | null;
-};
-
-type PowerRow = {
-  profile_id: string;
-  ftp_watts: number | null;
-  ftp_wkg: number | string | null;
-  watts_5m: number | null;
 };
 
 function num(value: number | string | null | undefined) {
@@ -144,31 +124,13 @@ function teamAliases(team: TeamRow, source: SourceRow | null) {
   );
 }
 
-function strengthFor(
-  teamId: string,
-  members: MemberRow[],
-  powerByProfile: Map<string, PowerRow>,
-) {
-  const teamMembers = members.filter((member) => member.team_id === teamId);
-  const ftpValues = teamMembers.map((member) => {
-    const power = powerByProfile.get(member.profile_id);
-    return power?.ftp_watts ?? member.profiles?.ftp_watts ?? null;
-  });
-  const wkgValues = teamMembers.map((member) => {
-    const power = powerByProfile.get(member.profile_id);
-    const ftp = power?.ftp_watts ?? member.profiles?.ftp_watts ?? null;
-    const weight = num(member.profiles?.weight_kg);
-    return num(power?.ftp_wkg) ?? (ftp && weight ? ftp / weight : null);
-  });
-  const fiveMinuteValues = teamMembers.map(
-    (member) => powerByProfile.get(member.profile_id)?.watts_5m ?? null,
-  );
-
+function strengthFor(riders: LadderRider[]) {
   return {
-    riders: teamMembers.length,
-    avgFtp: avg(ftpValues),
-    avgWkg: avg(wkgValues),
-    avg5m: avg(fiveMinuteValues),
+    riders: riders.length,
+    avgScore: avg(riders.map((rider) => rider.score)),
+    avgFtp: avg(riders.map((rider) => rider.ftpWatts)),
+    avgWkg: avg(riders.map((rider) => rider.ftpWkg)),
+    avg5m: avg(riders.map((rider) => rider.wkg5m)),
   };
 }
 
@@ -217,50 +179,25 @@ export default async function ClubLadderPage({
   );
   const resultRows = (results ?? []) as ResultRow[];
 
-  const profileIds = selectedTeam
-    ? Array.from(
-        new Set(
-          (
-            await admin
-              .from("team_members")
-              .select("team_id, profile_id, profiles(display_name, ftp_watts, weight_kg)")
-              .eq("team_id", selectedTeam.id)
-          ).data?.map((row) => row.profile_id) ?? [],
-        ),
-      )
-    : [];
-  const [{ data: memberRows }, { data: powerRows }] = selectedTeam
-    ? await Promise.all([
-        admin
-          .from("team_members")
-          .select("team_id, profile_id, profiles(display_name, ftp_watts, weight_kg)")
-          .eq("team_id", selectedTeam.id),
-        profileIds.length > 0
-          ? supabase
-              .from("rider_power_profiles")
-              .select("profile_id, ftp_watts, ftp_wkg, watts_5m")
-              .in("profile_id", profileIds)
-          : Promise.resolve({ data: [] }),
-      ])
-    : [{ data: [] }, { data: [] }];
-
-  const members = (memberRows ?? []) as unknown as MemberRow[];
-  const powerByProfile = new Map(
-    ((powerRows ?? []) as PowerRow[]).map((row) => [row.profile_id, row]),
-  );
-  const selectedStrength = selectedTeam
-    ? strengthFor(selectedTeam.id, members, powerByProfile)
-    : null;
-
   // ZRS is tijdelijk: met een ZwiftRacing-sleutel vervangt vELO 2 hem.
   const useVelo = zwiftRacingConfigured();
-  const [allLadderRiders, canAssign, canPuzzle] = await Promise.all([
+  const scoreLabel = useVelo ? "vELO 2" : "ZRS";
+  const [{ riders: loadedRiders, withdrawn }, canAssign, canPuzzle] = await Promise.all([
     loadLadderRiders(teamRows, admin, supabase, useVelo),
     canAssignLadderRiders(access),
     canEditLadderPuzzle(access),
   ]);
+  // Wie uit de ladder is gehaald, valt uit de puzzel, maar blijft in het
+  // teamprofiel van een team buiten de puzzel waar hij nog lid van is.
+  const allLadderRiders = loadedRiders.filter((rider) => !withdrawn.has(rider.id));
+  const teamRiders = selectedTeam
+    ? sortLadderRiders(
+        loadedRiders.filter((rider) => rider.teamIds.includes(selectedTeam.id)),
+        riderSort,
+      )
+    : [];
+  const selectedStrength = strengthFor(teamRiders);
   const puzzle = await loadLadderPuzzle(teamRows, allLadderRiders, admin);
-  const ladderGroups = groupLadderRidersBySex(sortLadderRiders(allLadderRiders, riderSort));
   const captainData = canAssign ? await loadLadderCaptains(teamRows, admin) : null;
 
   let liveStandings: ClubLadderStanding[] = [];
@@ -384,57 +321,21 @@ export default async function ClubLadderPage({
             </div>
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-            <section className="rounded-lg border bg-card p-4">
+          <section className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <section id="teamprofiel" className="scroll-mt-20 rounded-lg border bg-card p-4">
               <h2 className="font-semibold">ZWB teamprofiel</h2>
-              <div className="mt-3 grid gap-3 sm:grid-cols-4">
-                <Metric icon={<Users className="size-4" />} label="Riders" value={selectedStrength?.riders ?? 0} />
-                <Metric icon={<Activity className="size-4" />} label="FTP gem." value={`${n(selectedStrength?.avgFtp)}w`} />
-                <Metric icon={<Activity className="size-4" />} label="W/kg gem." value={n(selectedStrength?.avgWkg, 2)} />
-                <Metric icon={<Activity className="size-4" />} label="5m gem." value={`${n(selectedStrength?.avg5m)}w`} />
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+                <Metric icon={<Users className="size-4" />} label="Riders" value={selectedStrength.riders} />
+                <Metric icon={<Activity className="size-4" />} label={`${scoreLabel} gem.`} value={n(selectedStrength.avgScore)} />
+                <Metric icon={<Activity className="size-4" />} label="FTP gem." value={`${n(selectedStrength.avgFtp)}w`} />
+                <Metric icon={<Activity className="size-4" />} label="W/kg gem." value={n(selectedStrength.avgWkg, 2)} />
+                <Metric icon={<Activity className="size-4" />} label="5m W/kg gem." value={n(selectedStrength.avg5m, 2)} />
               </div>
-              <ResponsiveTable
-                className="mt-4"
-                rows={members}
-                rowKey={(member) => member.profile_id}
-                minWidth={520}
-                columns={[
-                  {
-                    key: "rider",
-                    header: "Rider",
-                    primary: true,
-                    cell: (member) => (
-                      <MemberLink id={member.profile_id}>
-                        {member.profiles?.display_name ?? "Onbekend"}
-                      </MemberLink>
-                    ),
-                    cellClassName: "font-medium",
-                  },
-                  {
-                    key: "ftp",
-                    header: "FTP",
-                    align: "right",
-                    cell: (member) =>
-                      `${n(powerByProfile.get(member.profile_id)?.ftp_watts ?? member.profiles?.ftp_watts ?? null)}w`,
-                  },
-                  {
-                    key: "wkg",
-                    header: "W/kg",
-                    align: "right",
-                    cell: (member) => {
-                      const power = powerByProfile.get(member.profile_id);
-                      const ftp = power?.ftp_watts ?? member.profiles?.ftp_watts ?? null;
-                      const weight = num(member.profiles?.weight_kg);
-                      return n(num(power?.ftp_wkg) ?? (ftp && weight ? ftp / weight : null), 2);
-                    },
-                  },
-                  {
-                    key: "w5m",
-                    header: "5m",
-                    align: "right",
-                    cell: (member) => `${n(powerByProfile.get(member.profile_id)?.watts_5m)}w`,
-                  },
-                ]}
+              <TeamRidersTable
+                riders={teamRiders}
+                sort={riderSort}
+                teamId={selectedTeam.id}
+                scoreLabel={scoreLabel}
               />
             </section>
 
@@ -472,30 +373,6 @@ export default async function ClubLadderPage({
               canEdit={canPuzzle}
             />
           )}
-
-          <section id="ladderrenners" className="scroll-mt-20 space-y-6 rounded-lg border bg-card p-4">
-            {ladderGroups.length === 0 ? (
-              <>
-                <h2 className="font-semibold">Ladderrenners</h2>
-                <EmptyState>Nog geen ladderrenners.</EmptyState>
-              </>
-            ) : (
-              ladderGroups.map((group) => (
-                <div key={group.sex ?? "onbekend"}>
-                  <h2 className="font-semibold">
-                    Ladderrenners · {group.sex ? SEX_LABEL[group.sex] : "Geslacht onbekend"} (
-                    {group.riders.length})
-                  </h2>
-                  <LadderRidersTable
-                    riders={group.riders}
-                    sort={riderSort}
-                    teamId={selectedTeam.id}
-                    scoreLabel={useVelo ? "vELO 2" : "ZRS"}
-                  />
-                </div>
-              ))
-            )}
-          </section>
 
           {captainData && (
             <LadderPoolAdd
@@ -640,7 +517,7 @@ async function loadLadderRiders(
   admin: ReturnType<typeof createAdminClient>,
   supabase: Awaited<ReturnType<typeof createClient>>,
   useVelo: boolean,
-): Promise<LadderRider[]> {
+): Promise<{ riders: LadderRider[]; withdrawn: Set<string> }> {
   // Ook teams in het archief: een captain kan er al renners in zetten voordat het
   // team op de ladder terugkeert.
   const teamNames = new Map(ladderTeams.map((team) => [team.id, team.name]));
@@ -678,10 +555,12 @@ async function loadLadderRiders(
     .select("id, display_name, sex, zwift_id, event_type_interests, zrl_category, ftp_watts, weight_kg")
     .eq("is_approved", true)
     .or(ladderFilter.join(","));
+  // Ook wie uit de ladder is gehaald, maar alleen als lid van een ladderteam.
+  const teamMemberIds = new Set(memberships.map((row) => row.profile_id));
   const profiles = ((profileRows ?? []) as LadderRiderProfile[]).filter(
-    (profile) => !withdrawn.has(profile.id),
+    (profile) => !withdrawn.has(profile.id) || teamMemberIds.has(profile.id),
   );
-  if (profiles.length === 0) return [];
+  if (profiles.length === 0) return { riders: [], withdrawn };
 
   const zwiftIds = Array.from(
     new Set(
@@ -705,16 +584,19 @@ async function loadLadderRiders(
   const scores = new Map(
     Array.from(metrics, ([id, row]) => [id, useVelo ? row.velo : row.racingScore] as const),
   );
-  return buildLadderRiders(
-    profiles,
-    (powerRows ?? []) as LadderRiderPower[],
-    memberships,
-    scores,
-    poolIds,
-  );
+  return {
+    riders: buildLadderRiders(
+      profiles,
+      (powerRows ?? []) as LadderRiderPower[],
+      memberships,
+      scores,
+      poolIds,
+    ),
+    withdrawn,
+  };
 }
 
-function LadderRidersTable({
+function TeamRidersTable({
   riders,
   sort,
   teamId,
@@ -727,7 +609,7 @@ function LadderRidersTable({
 }) {
   const header = (key: LadderRiderSort, label: string) => (
     <Link
-      href={`/teams/club-ladder?team=${teamId}&sort=${key}#ladderrenners`}
+      href={`/teams/club-ladder?team=${teamId}&sort=${key}#teamprofiel`}
       scroll={false}
       aria-current={sort === key ? "true" : undefined}
       className={cn("hover:text-foreground", sort === key && "text-foreground underline underline-offset-4")}
@@ -739,10 +621,10 @@ function LadderRidersTable({
 
   return (
     <ResponsiveTable
-      className="mt-3"
+      className="mt-4"
       rows={riders}
       rowKey={(rider) => rider.id}
-      minWidth={820}
+      minWidth={760}
       columns={[
         {
           key: "rider",
@@ -750,12 +632,6 @@ function LadderRidersTable({
           primary: true,
           cell: (rider) => <MemberLink id={rider.id}>{rider.name}</MemberLink>,
           cellClassName: "font-medium",
-        },
-        {
-          key: "team",
-          header: header("team", "Team"),
-          secondary: true,
-          cell: (rider) => (rider.teams.length > 0 ? rider.teams.join(", ") : "-"),
         },
         {
           key: "cat",

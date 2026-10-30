@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   buildLadderRiders,
-  groupLadderRidersBySex,
   parseLadderRiderSort,
   sortLadderRiders,
   type LadderRiderProfile,
@@ -55,15 +54,6 @@ describe("buildLadderRiders", () => {
     expect(riders.map((r) => r.score)).toEqual([512, 640, null]);
     expect(riders[2].zwiftId).toBeNull();
     expect(sortLadderRiders(riders, "score").map((r) => r.id)).toEqual(["b", "a", "c"]);
-  });
-
-  it("splitst mannen en vrouwen, wie geen geslacht invulde apart", () => {
-    expect(groupLadderRidersBySex(riders).map((g) => [g.sex, g.riders.map((r) => r.id)])).toEqual([
-      ["man", ["b"]],
-      ["vrouw", ["a"]],
-      [null, ["c"]],
-    ]);
-    expect(groupLadderRidersBySex(riders.slice(0, 1)).map((g) => g.sex)).toEqual(["vrouw"]);
   });
 
   it("weet wie via de ladderpool in de lijst staat", () => {

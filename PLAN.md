@@ -11555,6 +11555,46 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Ladderrenners-lijst weg, rennersdata in het ZWB teamprofiel
+
+**2026-10-30.** Commit volgt, niet gepusht. Geen migratie.
+
+**Waarom.** De eigenaar bedoelde met "de captain selectie" de hele lijst
+Ladderrenners: "dit is nu in de vorm van de puzzel". Wat de lijst nog
+toevoegde, waren de wattages per renner; die wilde hij in het teamprofiel
+("In het ZWB teamprofiel mag dan wel meer rennersdata zoals in de lijst").
+
+**Wat.**
+- De sectie Ladderrenners (per geslacht, alle teams in één tabel) is weg, met
+  `groupLadderRidersBySex` en de test ervan.
+- Het ZWB teamprofiel van het links gekozen team toont nu de kolommen van de
+  lijst: Cat, ZRS (later vELO 2), Type, FTP, W/kg en W/kg over 1, 5 en 20
+  minuten, sorteerbaar met `?sort=` (anker `#teamprofiel`). De teamkolom viel
+  weg: het is één team. Gemiddelden: Riders, ZRS, FTP, W/kg en 5m in W/kg
+  (was 5m in watt).
+- De data komt uit `loadLadderRiders`, die de pagina al voor de puzzel laadde;
+  de twee eigen queries van het teamprofiel (`team_members` met profiel,
+  `rider_power_profiles` met `watts_5m`) zijn weg.
+- `loadLadderRiders` geeft nu ook de set uit `ladder_withdrawn` terug. Wie is
+  weggehaald, valt uit de puzzel en is via "Lid aan de puzzel toevoegen" weer
+  toe te voegen, maar staat nog in het teamprofiel van een team waar hij lid van is (kan alleen
+  een team buiten de puzzel zijn, zoals ZWBandits).
+- Teamprofiel is op brede schermen 2/3 breed, Komende matchups 1/3.
+- "Lid aan de ladderlijst toevoegen" heet nu "Lid aan de puzzel toevoegen".
+- `/hulp` en de privacyverklaring aangepast. De privacytekst is smaller
+  geworden: wattages zijn alleen nog te zien van leden van een ladderteam, niet
+  meer van wie alleen Ladder aanvinkte of in de pool staat. Geen nieuwe versie.
+
+**Bewust niet.** Geen wattages op de puzzelstukjes: die staan in het
+teamprofiel (keuze eigenaar). Geen tabel met alle teams naast elkaar meer;
+renners vergelijken gaat per team.
+
+**Let op.** Het teamprofiel toont alleen goedgekeurde profielen
+(`is_approved`), omdat `loadLadderRiders` daarop filtert; het oude teamprofiel
+toonde elk teamlid.
+
+**Gecontroleerd.** `tsc` schoon, ESLint, Vitest `club-ladder-*` en hulp (39). **Niet geverifieerd:** de pagina in de browser; lokaal vraagt hij om in te loggen.
+
 ### Gebouwd — Ladderpuzzel vervangt de Captain-selectie op Club Ladder
 
 **2026-10-30.** Commit `f20952e9`, gepusht naar `main` op 2026-10-30. Geen migratie.
@@ -11567,7 +11607,8 @@ in dezelfde teams in; twee plekken voor één handeling.
 kruisje), de plusknop en het kruisje "uit de ladderlijst" per renner in de
 tabel, de component `ladder-assign.tsx`, de acties `assignLadderRider`,
 `unassignLadderRider` en `removeFromLadderPool`, en `onlyInLadderPool` (met de
-drie testregels). De ladderlijst is nu alleen om te bekijken en te sorteren.
+drie testregels). De ladderlijst bleef daarna nog even om te bekijken en te
+sorteren; ook die is weg, zie de ronde hierboven.
 Indelen, weghalen, rank en band gaan via de puzzel (rol teamcaptain). Blijven
 staan: "Lid aan de ladderlijst toevoegen" en captains aanwijzen, met de oude
 regel (`canAssignLadderRiders`). `/hulp` aangepast. De Captain-selectie bij
