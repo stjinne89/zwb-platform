@@ -1,5 +1,9 @@
 -- Krachttraining uit intervals.icu in het krachtspoor (wens eigenaar, 2026-10-28).
 --
+-- Op 2026-10-28 toegepast als `0290_intervals_strength_muscles`; daarna kreeg
+-- de Ladderpuzzel op main het nummer 0290, dus dit bestand heet 0292. In de
+-- migratiehistorie van productie staat de oude naam.
+--
 -- De sync zet al alle activiteiten in intervals_activities, ook WeightTraining
 -- van een Garmin of met de hand ingevoerd. Het krachtspoor telt die nu mee voor
 -- de rust tussen krachtsessies. Welke spieren je trainde weet intervals niet;

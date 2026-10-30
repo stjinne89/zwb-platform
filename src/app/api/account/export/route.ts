@@ -60,7 +60,7 @@ const PROFILE_TABLES: string[] = [
   // Clubverhaal (0288): je ingestuurde verhalen (profile_id is wie schreef).
   // De foto's staan in club_story_photos, aan het verhaal; zie hieronder.
   "club_stories",
-  // Kracht uit intervals.icu (0290): welke spieren je per training aantikte.
+  // Kracht uit intervals.icu (0292): welke spieren je per training aantikte.
   "intervals_strength_muscles",
 ];
 

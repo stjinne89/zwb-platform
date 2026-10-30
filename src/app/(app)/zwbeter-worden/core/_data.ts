@@ -167,7 +167,7 @@ export async function loadIntervalsStrength(
       .gte("start_date_local", from)
       .lte("start_date_local", today)
       .order("start_date_local", { ascending: false }),
-    // Zonder migratie 0290 bestaat deze tabel niet; dan alleen geen spieren.
+    // Zonder migratie 0292 bestaat deze tabel niet; dan alleen geen spieren.
     viewer.supabase
       .from("intervals_strength_muscles")
       .select("intervals_id, muscles")

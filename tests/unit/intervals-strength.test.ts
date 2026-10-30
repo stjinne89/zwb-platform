@@ -74,10 +74,10 @@ describe("mergeLoad", () => {
   });
 });
 
-describe("migratie 0290", () => {
+describe("migratie 0292", () => {
   it("staat dezelfde spiergroepen toe als MUSCLE_GROUPS", () => {
     const sql = readFileSync(
-      join(process.cwd(), "supabase/migrations/0290_intervals_strength_muscles.sql"),
+      join(process.cwd(), "supabase/migrations/0292_intervals_strength_muscles.sql"),
       "utf8",
     );
     const list = sql.match(/muscles <@ array\[([\s\S]*?)\]::text\[\]/)?.[1] ?? "";
