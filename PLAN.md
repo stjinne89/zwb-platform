@@ -11557,7 +11557,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Ladderrenners-lijst weg, rennersdata in het ZWB teamprofiel
 
-**2026-10-30.** Commit volgt, niet gepusht. Geen migratie.
+**2026-10-30.** Commit `5fb83bc4`, gepusht naar `main` op 2026-10-30. Geen migratie.
 
 **Waarom.** De eigenaar bedoelde met "de captain selectie" de hele lijst
 Ladderrenners: "dit is nu in de vorm van de puzzel". Wat de lijst nog
