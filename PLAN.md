@@ -11576,7 +11576,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 **2026-10-30.** Commit `598abb42`. Migratie `0294_app_updates_auto.sql`, op
 2026-10-30 via de Supabase-connector toegepast (op verzoek van de eigenaar):
 de check op `ai_jobs.feature` kent `app_updates`, week 44 heeft 15 nieuwe
-punten met krachttraining als laatste. Gepusht naar `main` op 2026-10-30.
+punten met krachttraining als laatste. Gepusht naar `main` op 2026-10-30. Bij
+het aanmaken van de cron gaf `/api/app-updates/weekly` een 307 naar `/login`:
+de route stond niet in `PUBLIC_PATHS` (src/lib/supabase/middleware.ts).
+Dezelfde dag toegevoegd; `tests/unit/middleware-public-paths.test.ts` had dit
+gevangen maar was niet meegedraaid.
 
 **Waarom.** De eigenaar: "Ik wil dit nooit zelf schrijven, dit moet
 automatisch geput worden uit plan.md". PLAN.md beschrijft elke ronde al; de

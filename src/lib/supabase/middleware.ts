@@ -44,6 +44,7 @@ const PUBLIC_PATHS = [
   "/api/instagram/sync",
   "/api/briljant/weekly",
   "/api/briljant/zrs-history",
+  "/api/app-updates/weekly",
   // Geen cron: de server stoot hier een Claude-opdracht aan (ai-job-background).
   // De matcher in src/middleware.ts slaat /.netlify/ al over; dit is de vangrail.
   "/.netlify/functions",
