@@ -4793,10 +4793,12 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > draaiende app in de browser.
 >
 > **Logo: het origineel vervangt de drie schuine vlakken (besluit eigenaar,
-> 2026-10-12) — vastgelegd, nog niet gebouwd.** `DESIGN.md` en `PRODUCT.md`
+> 2026-10-12) — deels gebouwd.** `DESIGN.md` en `PRODUCT.md`
 > noemen `public/zwb-logo.png` als merkteken; `ZwbLogo`/`ZwbMark` en
 > `public/icon.svg` zijn een benadering en moeten eruit (balk, publieke
-> pagina's, app-icoon). Open voor de bouw: de B en de ondertitel zijn zwart en
+> pagina's, app-icoon). App-icoon en favicons zijn op 2026-10-30 omgezet en
+> `icon.svg` is weg (ronde "app-icoon en favicon uit het echte ZWB-logo");
+> `ZwbLogo`/`ZwbMark` staan nog op de publieke pagina's. Open voor de bouw: de B en de ondertitel zijn zwart en
 > vallen weg in het donkere thema (tot er een lichte variant is: op een licht
 > vlak), en het bestand is maar 300 bij 104 pixels, te klein voor het
 > app-icoon.
@@ -11693,6 +11695,112 @@ weken, RLS aan, twee policies; een md5 over alle teksten is gelijk aan die uit
 het migratiebestand in PGlite. **Niet geverifieerd:** opslaan op het
 beheerscherm en de pop-up op productie; de code staat nog niet op `main`.
 
+### Gebouwd — Rosternamen zonder account in het ZWB teamprofiel
+
+**2026-10-30.** Commit `918b5af6`, gepusht naar `main` op 2026-10-30. Geen migratie.
+
+**Waarom.** Eigenaar: bij ZWBeauties stonden 9 renners in de puzzel maar 6 in
+het teamprofiel, bij ZWBullets net zo; "ik wil dat deze zichtbaar zijn anders
+kunnen we ze nooit indelen". Het verschil waren rosternamen zonder account
+(`ladder_roster_riders`, 0290): Beauties 3, Bullets 2, Brains 1.
+
+**Wat.**
+- `loadLadderPuzzle` geeft de rosterrijen ook terug; `loadTeamRosterRiders`
+  neemt die van het gekozen team, met dezelfde ontdubbeling als de puzzel (een
+  rosternaam met het Zwift-ID van een lid valt weg). Ze staan in het
+  teamprofiel met "geen account" en tellen mee bij Riders.
+- Hun ZRS (later vELO 2) komt via het Zwift-ID uit `zwift_rider_metrics`; wat
+  ontbreekt, haalt `refreshRiderMetrics` na het antwoord op, zoals bij leden.
+  FTP, W/kg en type blijven leeg: die komen uit een ZWB-profiel.
+- `sortLadderRiders` is generiek, zodat het teamprofiel met `TeamProfileRider`
+  (lid of rosternaam) sorteert.
+- Het kruisje (teams buiten de puzzel) werkt ook voor een rosternaam: die gaat
+  naar de losse stukjes (`team_id` leeg), zoals op de bank in de puzzel.
+- `/hulp` en privacyverklaring: van rosternamen is nu ook de ZRS te zien.
+  Openbaar op Zwift en zwiftracing.app; geen nieuwe versie.
+
+**Gecontroleerd.** `tsc` schoon, ESLint. Productie uitgelezen: Bullets 2
+rosternamen met ZRS, Beauties 3 en Brains 1 nog zonder (komt bij de eerste
+paginalading). **Niet geverifieerd:** de pagina in de browser.
+
+### Gebouwd — Kruisje in het teamprofiel voor teams buiten de puzzel
+
+**2026-10-30.** Commit `6142bf4a`, gepusht naar `main` op 2026-10-30. Geen migratie.
+
+**Waarom.** Eigenaar: "Ik kan in teams die niet in de puzzel zitten, geen leden
+meer verwijderen." Dat kon via de Captain-selectie, die weg is; de puzzel toont
+alleen teams met een band.
+
+**Wat.** Nieuwe actie `removeFromLadderTeam` (zelfde recht als captains
+aanwijzen: `canAssignLadderRiders`) met een kruisje per renner in het
+teamprofiel, met bevestiging (`ladder-team-remove.tsx`). Zelfde afhandeling als
+de oude `unassignLadderRider`: seed-override `manual_remove` en het lidmaatschap
+weg. Het kruisje staat alleen bij teams die niet in de puzzel staan; de actie
+weigert een puzzelteam ook zelf. `/hulp` aangepast, ook met de sorteerknoppen op
+mobiel uit de ronde hieronder.
+
+**Bewust niet.** Geen kruisje bij puzzelteams: die deelt alleen de rol
+teamcaptain in (afspraak 2026-10-29), via Weghalen of de bank in de puzzel.
+Leden die niet zijn goedgekeurd staan niet in het teamprofiel en zijn hier dus
+ook niet weg te halen.
+
+**Gecontroleerd.** `tsc` schoon, ESLint, Vitest `club-ladder-*` en hulp (39).
+**Niet geverifieerd:** het kruisje in de browser; lokaal vraagt de pagina om in
+te loggen.
+
+### Gebouwd — app-icoon en favicon uit het echte ZWB-logo
+
+**2026-10-30.** Commits `ae374564` en `9dffb98e`, gepusht naar `main` op
+2026-10-30. Geen migratie.
+
+**Waarom.** De eigenaar zag in de titelbalk van de geïnstalleerde app (Windows)
+nog het oude icoon en wilde daar het logo uit de balk, zoals bij de meldingen
+op de telefoon. Dat volgt het besluit van 2026-10-12: het origineel vervangt de
+drie schuine vlakken.
+
+**Wat.**
+- `scripts/generate-icons.mjs` maakt de app-icons (192/512, maskable,
+  apple-touch) en favicons (16/32 en `src/app/favicon.ico`) nu uit
+  `public/zwb-logo.png`: alleen de letters ZWB, zonder "Cycling Community",
+  gecentreerd op het lichte vlak `#fbfbf7` (de `--tg-paper` achter het logo in
+  de balk). Licht omdat de B zwart is. Kleine favicons krijgen meer breedte.
+- `public/icon.svg` (de drie vlakken) is weg, ook uit `manifest.json` en de
+  root-metadata. Browsers kozen die SVG vóór de PNG's.
+
+**Niet veranderd, met reden.** De push-badge (`badge-96.png`) blijft één
+schuin vlak: Android tekent de badge als wit alfamasker op ~24px, daar is het
+woordmerk een vlek. De OG-kaart blijft het beeldmerk op petrol, waar de zwarte
+B wegvalt. `ZwbLogo`/`ZwbMark` op de publieke pagina's zijn nog niet vervangen.
+Op 16 px is het woordmerk maar een dun streepje; de eigenaar koos er na een
+vergelijking oud/nieuw voor om ook daar het echte logo te houden en niet terug
+te vallen op de drie vlakken.
+
+**Niet geverifieerd.** De iconen zijn als plaatje bekeken, niet in een browser
+of geïnstalleerde app. Een al geïnstalleerde app neemt een nieuw icoon pas over
+na de manifestcontrole van de browser; soms moet hij opnieuw worden
+geïnstalleerd. Het bronbestand is 300 px breed, dus `icon-512.png` is iets
+opgeschaald.
+
+### Bijgesteld — ZWB teamprofiel over de hele breedte, ook op mobiel leesbaar
+
+**2026-10-30.** Commit `b483b994`, gepusht naar `main` op 2026-10-30. Geen migratie.
+
+**Waarom.** Live bleek de tabel (min. 760px) in 2/3 van de pagina te breed (vak
+617px): 5m en 20m vielen buiten beeld. Eigenaar: "zet het teamprofiel over de
+gehele breedte en zorg dat het mobiel ook goed te lezen valt".
+
+**Wat.**
+- Teamprofiel en Komende matchups staan onder elkaar, elk over de hele breedte.
+  De matchups staan in een raster van 2 of 3 naast elkaar.
+- Onder `sm` toont `ResponsiveTable` al een kaart per renner. De kolomkoppen
+  waren daar sorteerlinks als label; nu is het label daar gewone tekst en
+  staat boven de kaarten een rij sorteerknoppen (W/kg, ZRS, FTP, 1m, 5m, 20m,
+  Cat, Naam). Vanaf `sm` sorteer je zoals eerder via de kolomkop.
+
+**Gecontroleerd.** `tsc` schoon, ESLint. **Niet geverifieerd:** de weergave op
+een telefoon; lokaal vraagt de pagina om in te loggen en het Chrome-venster
+liet zich niet smal zetten.
+
 ### Gebouwd — Ladderrenners-lijst weg, rennersdata in het ZWB teamprofiel
 
 **2026-10-30.** Commit `5fb83bc4`, gepusht naar `main` op 2026-10-30. Geen migratie.
@@ -11717,7 +11825,8 @@ toevoegde, waren de wattages per renner; die wilde hij in het teamprofiel
   weggehaald, valt uit de puzzel en is via "Lid aan de puzzel toevoegen" weer
   toe te voegen, maar staat nog in het teamprofiel van een team waar hij lid van is (kan alleen
   een team buiten de puzzel zijn, zoals ZWBandits).
-- Teamprofiel is op brede schermen 2/3 breed, Komende matchups 1/3.
+- Teamprofiel stond eerst 2/3 breed naast Komende matchups; zie de bijstelling
+  hieronder.
 - "Lid aan de ladderlijst toevoegen" heet nu "Lid aan de puzzel toevoegen".
 - `/hulp` en de privacyverklaring aangepast. De privacytekst is smaller
   geworden: wattages zijn alleen nog te zien van leden van een ladderteam, niet

@@ -155,7 +155,7 @@ function byNumber(get: (rider: LadderRider) => number | null) {
  * Waardes van hoog naar laag, tekst van A naar Z; lege waardes onderaan.
  * Binnen een categorie of team staat de sterkste (W/kg) bovenaan.
  */
-export function sortLadderRiders(riders: LadderRider[], sort: LadderRiderSort) {
+export function sortLadderRiders<T extends LadderRider>(riders: T[], sort: LadderRiderSort): T[] {
   const numeric = NUMERIC[sort];
   const text = TEXT[sort];
   const byWkg = byNumber((rider) => rider.ftpWkg);

@@ -89,8 +89,8 @@ Bindend (bevestigd door de eigenaar, 2026-10-12):
 
 - **Tenuekleuren en logo.** Petrol, teal, sage, goud en crème uit het
   ZWB-tenue, en het originele ZWB-logo (`public/zwb-logo.png`). De drie
-  schuine vlakken in de app en in `public/icon.svg` zijn een benadering en
-  worden daardoor vervangen (eigenaar, 2026-10-12).
+  schuine vlakken in de app zijn een benadering en worden daardoor vervangen
+  (eigenaar, 2026-10-12); app-icoon en favicons zijn al omgezet (2026-10-30).
 - **ZWB-woordspelingen.** ZWBeter Worden, ZWBlokken, ZWBasis en ZWBgame zijn
   vaste productnamen; het patroon mag worden doorgezet. ZWBeter Worden wordt
   ZWBeter, met een woord erachter per onderdeel: ZWBeter trainen, ZWBeter

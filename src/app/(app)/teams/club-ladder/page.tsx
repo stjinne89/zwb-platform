@@ -33,6 +33,7 @@ import { SyncResultsButton } from "../_components/sync-results-button";
 import { LadderCaptains, type CaptainTeam } from "./_components/ladder-captains";
 import { LadderPoolAdd } from "./_components/ladder-pool-add";
 import { LadderPuzzle } from "./_components/ladder-puzzle";
+import { LadderTeamRemoveButton } from "./_components/ladder-team-remove";
 import {
   buildPuzzleRiders,
   parseLadderBand,
@@ -48,6 +49,9 @@ export const dynamic = "force-dynamic";
 const METRICS_REFRESH_BUDGET_MS = 20_000;
 
 export const revalidate = 0;
+
+/** Renner in het teamprofiel: een lid, of een rosternaam zonder account (0290). */
+type TeamProfileRider = LadderRider & { rosterEntryId: string | null };
 
 type Search = {
   team?: string;
@@ -190,14 +194,19 @@ export default async function ClubLadderPage({
   // Wie uit de ladder is gehaald, valt uit de puzzel, maar blijft in het
   // teamprofiel van een team buiten de puzzel waar hij nog lid van is.
   const allLadderRiders = loadedRiders.filter((rider) => !withdrawn.has(rider.id));
-  const teamRiders = selectedTeam
+  const puzzle = await loadLadderPuzzle(teamRows, allLadderRiders, admin);
+  const teamRiders: TeamProfileRider[] = selectedTeam
     ? sortLadderRiders(
-        loadedRiders.filter((rider) => rider.teamIds.includes(selectedTeam.id)),
+        [
+          ...loadedRiders
+            .filter((rider) => rider.teamIds.includes(selectedTeam.id))
+            .map((rider) => ({ ...rider, rosterEntryId: null })),
+          ...(await loadTeamRosterRiders(selectedTeam.id, puzzle?.roster ?? [], loadedRiders, useVelo)),
+        ],
         riderSort,
       )
     : [];
   const selectedStrength = strengthFor(teamRiders);
-  const puzzle = await loadLadderPuzzle(teamRows, allLadderRiders, admin);
   const captainData = canAssign ? await loadLadderCaptains(teamRows, admin) : null;
 
   let liveStandings: ClubLadderStanding[] = [];
@@ -321,7 +330,7 @@ export default async function ClubLadderPage({
             </div>
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <section className="space-y-4">
             <section id="teamprofiel" className="scroll-mt-20 rounded-lg border bg-card p-4">
               <h2 className="font-semibold">ZWB teamprofiel</h2>
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
@@ -335,7 +344,11 @@ export default async function ClubLadderPage({
                 riders={teamRiders}
                 sort={riderSort}
                 teamId={selectedTeam.id}
+                teamName={selectedTeam.name}
                 scoreLabel={scoreLabel}
+                canRemove={
+                  canAssign && !puzzle?.teams.some((team) => team.id === selectedTeam.id)
+                }
               />
             </section>
 
@@ -346,7 +359,7 @@ export default async function ClubLadderPage({
                   Geen openbare wedstrijd gevonden.
                 </EmptyState>
               ) : (
-                <ul className="mt-3 space-y-2">
+                <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {fixtures.map((fixture) => (
                     <li key={`${fixture.date}-${fixture.time}-${fixture.home}-${fixture.away}`} className="rounded-md border bg-background p-3 text-sm">
                       <p className="font-medium">{fixtureWhen(fixture)}</p>
@@ -461,8 +474,60 @@ async function loadLadderPuzzle(
   return {
     teams,
     otherTeams,
+    roster,
     riders: buildPuzzleRiders(members, roster, ranks, new Set(teams.map((team) => team.id))),
   };
+}
+
+function zwiftIdOf(value: string | null) {
+  const id = Number(value?.trim());
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+/**
+ * Rosternamen zonder account in dit team, zoals in de puzzel: een rosternaam
+ * met het Zwift-ID van een lid valt weg. De score komt via het Zwift-ID; FTP en
+ * W/kg komen uit een ZWB-profiel en ontbreken dus.
+ */
+async function loadTeamRosterRiders(
+  teamId: string,
+  roster: LadderRosterRow[],
+  members: LadderRider[],
+  useVelo: boolean,
+): Promise<TeamProfileRider[]> {
+  const memberZwiftIds = new Set(members.map((member) => member.zwiftId));
+  const rows = roster
+    .filter((row) => row.team_id === teamId)
+    .map((row) => ({ row, zwiftId: zwiftIdOf(row.zwift_id) }))
+    .filter(({ zwiftId }) => zwiftId == null || !memberZwiftIds.has(zwiftId));
+  if (rows.length === 0) return [];
+
+  const zwiftIds = rows.map(({ zwiftId }) => zwiftId).filter((id): id is number => id != null);
+  const metrics = await loadRiderMetrics(zwiftIds);
+  after(() => refreshRiderMetrics(zwiftIds, metrics, { budgetMs: METRICS_REFRESH_BUDGET_MS }));
+  return rows.map(({ row, zwiftId }) => {
+    const metric = zwiftId == null ? undefined : metrics.get(zwiftId);
+    const score = useVelo ? metric?.velo : metric?.racingScore;
+    return {
+      id: row.roster_entry_id,
+      rosterEntryId: row.roster_entry_id,
+      name: row.name.trim() || "Onbekend",
+      sex: row.sex === "man" || row.sex === "vrouw" ? row.sex : null,
+      zwiftId,
+      score: score != null && score > 0 ? score : null,
+      teams: [],
+      teamIds: [teamId],
+      interested: false,
+      inPool: false,
+      category: null,
+      riderType: null,
+      ftpWatts: null,
+      ftpWkg: null,
+      wkg1m: null,
+      wkg5m: null,
+      wkg20m: null,
+    };
+  });
 }
 
 async function loadLadderCaptains(
@@ -600,93 +665,160 @@ function TeamRidersTable({
   riders,
   sort,
   teamId,
+  teamName,
   scoreLabel,
+  canRemove,
 }: {
-  riders: LadderRider[];
+  riders: TeamProfileRider[];
   sort: LadderRiderSort;
   teamId: string;
+  teamName: string;
   scoreLabel: string;
+  /** Teams buiten de puzzel: daar haal je een lid hier uit het team. */
+  canRemove: boolean;
 }) {
+  const sortHref = (key: LadderRiderSort) =>
+    `/teams/club-ladder?team=${teamId}&sort=${key}#teamprofiel`;
+  // Op telefoonbreedte is de kop het label in de kaart; sorteren gaat daar via de knoppen.
   const header = (key: LadderRiderSort, label: string) => (
-    <Link
-      href={`/teams/club-ladder?team=${teamId}&sort=${key}#teamprofiel`}
-      scroll={false}
-      aria-current={sort === key ? "true" : undefined}
-      className={cn("hover:text-foreground", sort === key && "text-foreground underline underline-offset-4")}
-    >
-      {label}
-    </Link>
+    <>
+      <span className="sm:hidden">{label}</span>
+      <Link
+        href={sortHref(key)}
+        scroll={false}
+        aria-current={sort === key ? "true" : undefined}
+        className={cn(
+          "max-sm:hidden hover:text-foreground",
+          sort === key && "text-foreground underline underline-offset-4",
+        )}
+      >
+        {label}
+      </Link>
+    </>
   );
   const wkg = (value: number | null) => n(value, 2);
+  const mobileSorts: Array<[LadderRiderSort, string]> = [
+    ["wkg", "W/kg"],
+    ["score", scoreLabel],
+    ["ftp", "FTP"],
+    ["w1m", "1m"],
+    ["w5m", "5m"],
+    ["w20m", "20m"],
+    ["cat", "Cat"],
+    ["name", "Naam"],
+  ];
 
   return (
-    <ResponsiveTable
-      className="mt-4"
-      rows={riders}
-      rowKey={(rider) => rider.id}
-      minWidth={760}
-      columns={[
-        {
-          key: "rider",
-          header: header("name", "Renner"),
-          primary: true,
-          cell: (rider) => <MemberLink id={rider.id}>{rider.name}</MemberLink>,
-          cellClassName: "font-medium",
-        },
-        {
-          key: "cat",
-          header: header("cat", "Cat"),
-          cell: (rider) => rider.category ?? "-",
-        },
-        {
-          key: "score",
-          header: header("score", scoreLabel),
-          align: "right",
-          cell: (rider) => n(rider.score),
-          cellClassName: "tabular-nums",
-        },
-        {
-          key: "type",
-          header: "Type",
-          cell: (rider) => (rider.riderType ? riderTypeLabel(rider.riderType) : "-"),
-        },
-        {
-          key: "ftp",
-          header: header("ftp", "FTP"),
-          align: "right",
-          cell: (rider) => (rider.ftpWatts == null ? "-" : `${n(rider.ftpWatts)}w`),
-          cellClassName: "tabular-nums",
-        },
-        {
-          key: "wkg",
-          header: header("wkg", "W/kg"),
-          align: "right",
-          cell: (rider) => wkg(rider.ftpWkg),
-          cellClassName: "tabular-nums font-medium",
-        },
-        {
-          key: "w1m",
-          header: header("w1m", "1m W/kg"),
-          align: "right",
-          cell: (rider) => wkg(rider.wkg1m),
-          cellClassName: "tabular-nums",
-        },
-        {
-          key: "w5m",
-          header: header("w5m", "5m W/kg"),
-          align: "right",
-          cell: (rider) => wkg(rider.wkg5m),
-          cellClassName: "tabular-nums",
-        },
-        {
-          key: "w20m",
-          header: header("w20m", "20m W/kg"),
-          align: "right",
-          cell: (rider) => wkg(rider.wkg20m),
-          cellClassName: "tabular-nums",
-        },
-      ]}
-    />
+    <>
+      <nav aria-label="Sorteren" className="mt-4 flex flex-wrap gap-1.5 sm:hidden">
+        {mobileSorts.map(([key, label]) => (
+          <Link
+            key={key}
+            href={sortHref(key)}
+            scroll={false}
+            aria-current={sort === key ? "true" : undefined}
+            className={cn(
+              "rounded-md border px-2.5 py-1 text-xs",
+              sort === key ? "border-primary bg-primary/10 text-foreground" : "text-muted-foreground",
+            )}
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
+      <ResponsiveTable
+        className="mt-3 sm:mt-4"
+        rows={riders}
+        rowKey={(rider) => rider.id}
+        minWidth={760}
+        columns={[
+          {
+            key: "rider",
+            header: header("name", "Renner"),
+            primary: true,
+            cell: (rider) =>
+              rider.rosterEntryId ? (
+                <span>
+                  {rider.name}{" "}
+                  <span className="text-xs font-normal text-muted-foreground">geen account</span>
+                </span>
+              ) : (
+                <MemberLink id={rider.id}>{rider.name}</MemberLink>
+              ),
+            cellClassName: "font-medium",
+          },
+          {
+            key: "cat",
+            header: header("cat", "Cat"),
+            cell: (rider) => rider.category ?? "-",
+          },
+          {
+            key: "score",
+            header: header("score", scoreLabel),
+            align: "right",
+            cell: (rider) => n(rider.score),
+            cellClassName: "tabular-nums",
+          },
+          {
+            key: "type",
+            header: "Type",
+            cell: (rider) => (rider.riderType ? riderTypeLabel(rider.riderType) : "-"),
+          },
+          {
+            key: "ftp",
+            header: header("ftp", "FTP"),
+            align: "right",
+            cell: (rider) => (rider.ftpWatts == null ? "-" : `${n(rider.ftpWatts)}w`),
+            cellClassName: "tabular-nums",
+          },
+          {
+            key: "wkg",
+            header: header("wkg", "W/kg"),
+            align: "right",
+            cell: (rider) => wkg(rider.ftpWkg),
+            cellClassName: "tabular-nums font-medium",
+          },
+          {
+            key: "w1m",
+            header: header("w1m", "1m W/kg"),
+            align: "right",
+            cell: (rider) => wkg(rider.wkg1m),
+            cellClassName: "tabular-nums",
+          },
+          {
+            key: "w5m",
+            header: header("w5m", "5m W/kg"),
+            align: "right",
+            cell: (rider) => wkg(rider.wkg5m),
+            cellClassName: "tabular-nums",
+          },
+          {
+            key: "w20m",
+            header: header("w20m", "20m W/kg"),
+            align: "right",
+            cell: (rider) => wkg(rider.wkg20m),
+            cellClassName: "tabular-nums",
+          },
+          ...(canRemove
+            ? [
+                {
+                  key: "remove",
+                  header: <span className="sr-only">Uit het team</span>,
+                  align: "right" as const,
+                  cell: (rider: TeamProfileRider) => (
+                    <LadderTeamRemoveButton
+                      teamId={teamId}
+                      teamName={teamName}
+                      rider={{ kind: rider.rosterEntryId ? "roster" : "profile", id: rider.id }}
+                      riderName={rider.name}
+                    />
+                  ),
+                },
+              ]
+            : []),
+        ]}
+      />
+    </>
   );
 }
 
