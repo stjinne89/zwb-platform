@@ -11546,6 +11546,30 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Ladderpuzzel vervangt de Captain-selectie op Club Ladder
+
+**2026-10-30.** Commit volgt, niet gepusht. Geen migratie.
+
+**Waarom.** De eigenaar: "De ladderpuzzel komt in de plaats van de captain
+selectie, dus doe die weg dat is nu overbodig." Beide deelden dezelfde renners
+in dezelfde teams in; twee plekken voor één handeling.
+
+**Wat.** Weg: de Captain-selectie boven de ladderlijst (teamkeuze en chips met
+kruisje), de plusknop en het kruisje "uit de ladderlijst" per renner in de
+tabel, de component `ladder-assign.tsx`, de acties `assignLadderRider`,
+`unassignLadderRider` en `removeFromLadderPool`, en `onlyInLadderPool` (met de
+drie testregels). De ladderlijst is nu alleen om te bekijken en te sorteren.
+Indelen, weghalen, rank en band gaan via de puzzel (rol teamcaptain). Blijven
+staan: "Lid aan de ladderlijst toevoegen" en captains aanwijzen, met de oude
+regel (`canAssignLadderRiders`). `/hulp` aangepast. De Captain-selectie bij
+ZRL-teams (`team-lineup-planner.tsx`) is een ander scherm en blijft.
+
+**Bewust niet.** Teams die niet in de puzzel staan (ZWBandits, ZWB Zwiftladies,
+zonder band) kun je nu niet meer vanaf deze pagina indelen; dat kan op de
+teampagina zelf, of door het team met een band aan de puzzel toe te voegen.
+
+**Gecontroleerd.** `tsc` schoon, ESLint, Vitest `club-ladder-*` (19).
+
 ### Gebouwd — Ladderpuzzel: weergave, volgorde en renners weghalen
 
 **2026-10-29.** Commits `e2ab84cd`, `5977935a`, `93d46e03` (rol teamcaptain) en

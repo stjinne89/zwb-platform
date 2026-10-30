@@ -43,52 +43,6 @@ function refresh(teamId: string) {
   revalidatePath("/teams");
 }
 
-/** Zet een renner in een ladderteam; een bestaande rol (captain) blijft staan. */
-export async function assignLadderRider(teamId: string, profileId: string) {
-  const check = await guard(teamId);
-  if (!check.ok) return check;
-  await clearWithdrawn(check.admin, profileId);
-
-  await check.admin
-    .from("team_member_seed_overrides")
-    .delete()
-    .eq("team_id", teamId)
-    .eq("profile_id", profileId);
-  const { error } = await check.admin.from("team_members").upsert(
-    { team_id: teamId, profile_id: profileId, role: "member", assignment_source: "manual" },
-    { onConflict: "team_id,profile_id", ignoreDuplicates: true },
-  );
-  if (error) return { ok: false as const, error: error.message };
-  refresh(teamId);
-  return { ok: true as const };
-}
-
-/** Haalt een renner uit een ladderteam, zoals Verwijderen op de teampagina. */
-export async function unassignLadderRider(teamId: string, profileId: string) {
-  const check = await guard(teamId);
-  if (!check.ok) return check;
-
-  await check.admin.from("team_member_seed_overrides").upsert(
-    {
-      team_id: teamId,
-      profile_id: profileId,
-      excluded: true,
-      reason: "manual_remove",
-      created_by: check.userId,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "team_id,profile_id" },
-  );
-  const { error } = await check.admin
-    .from("team_members")
-    .delete()
-    .eq("team_id", teamId)
-    .eq("profile_id", profileId);
-  if (error) return { ok: false as const, error: error.message };
-  refresh(teamId);
-  return { ok: true as const };
-}
-
 const CAPTAIN_ROLES = ["captain", "co-captain"] as const;
 type CaptainRole = (typeof CAPTAIN_ROLES)[number];
 
@@ -405,17 +359,6 @@ export async function addLadderRosterRider(input: {
       );
     }
   }
-  revalidatePath("/teams/club-ladder");
-  return { ok: true as const };
-}
-
-/** Haalt een lid uit de ladderpool; interesse en teams blijven zoals ze zijn. */
-export async function removeFromLadderPool(profileId: string) {
-  const check = await guardAccess();
-  if (!check.ok) return check;
-
-  const { error } = await check.admin.from("ladder_pool").delete().eq("profile_id", profileId);
-  if (error) return { ok: false as const, error: error.message };
   revalidatePath("/teams/club-ladder");
   return { ok: true as const };
 }

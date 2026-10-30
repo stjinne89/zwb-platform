@@ -184,8 +184,3 @@ export function groupLadderRidersBySex(riders: LadderRider[]) {
     riders: riders.filter((rider) => rider.sex === sex),
   })).filter((group) => group.riders.length > 0);
 }
-
-/** Staat alleen via de ladderpool in de lijst: dan kan een captain hem er weer uit halen. */
-export function onlyInLadderPool(rider: LadderRider) {
-  return rider.inPool && !rider.interested && rider.teamIds.length === 0;
-}

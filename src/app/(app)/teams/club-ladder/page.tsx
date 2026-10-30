@@ -14,7 +14,6 @@ import {
 import {
   buildLadderRiders,
   groupLadderRidersBySex,
-  onlyInLadderPool,
   parseLadderRiderSort,
   sortLadderRiders,
   type LadderRider,
@@ -33,13 +32,6 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { SyncResultsButton } from "../_components/sync-results-button";
-import {
-  LadderAssignButton,
-  LadderAssignProvider,
-  LadderPoolRemoveButton,
-  LadderTeamPicker,
-  type AssignTeam,
-} from "./_components/ladder-assign";
 import { LadderCaptains, type CaptainTeam } from "./_components/ladder-captains";
 import { LadderPoolAdd } from "./_components/ladder-pool-add";
 import { LadderPuzzle } from "./_components/ladder-puzzle";
@@ -270,15 +262,6 @@ export default async function ClubLadderPage({
   const puzzle = await loadLadderPuzzle(teamRows, allLadderRiders, admin);
   const ladderGroups = groupLadderRidersBySex(sortLadderRiders(allLadderRiders, riderSort));
   const captainData = canAssign ? await loadLadderCaptains(teamRows, admin) : null;
-  const assignTeams: AssignTeam[] = teamRows.map((team) => ({
-    id: team.id,
-    name: team.name,
-    archived: Boolean(team.is_graveyard),
-    riders: allLadderRiders
-      .filter((rider) => rider.teamIds.includes(team.id))
-      .map((rider) => ({ id: rider.id, name: rider.name }))
-      .sort((a, b) => a.name.localeCompare(b.name, "nl")),
-  }));
 
   let liveStandings: ClubLadderStanding[] = [];
   let liveFixtures: ClubLadderFixture[] = [];
@@ -490,33 +473,29 @@ export default async function ClubLadderPage({
             />
           )}
 
-          <LadderAssignProvider initialTeamId={selectedTeam.id}>
-            <section id="ladderrenners" className="scroll-mt-20 space-y-6 rounded-lg border bg-card p-4">
-              {canAssign && <LadderTeamPicker teams={assignTeams} />}
-              {ladderGroups.length === 0 ? (
-                <>
-                  <h2 className="font-semibold">Ladderrenners</h2>
-                  <EmptyState>Nog geen ladderrenners.</EmptyState>
-                </>
-              ) : (
-                ladderGroups.map((group) => (
-                  <div key={group.sex ?? "onbekend"}>
-                    <h2 className="font-semibold">
-                      Ladderrenners · {group.sex ? SEX_LABEL[group.sex] : "Geslacht onbekend"} (
-                      {group.riders.length})
-                    </h2>
-                    <LadderRidersTable
-                      riders={group.riders}
-                      sort={riderSort}
-                      teamId={selectedTeam.id}
-                      scoreLabel={useVelo ? "vELO 2" : "ZRS"}
-                      canAssign={canAssign}
-                    />
-                  </div>
-                ))
-              )}
-            </section>
-          </LadderAssignProvider>
+          <section id="ladderrenners" className="scroll-mt-20 space-y-6 rounded-lg border bg-card p-4">
+            {ladderGroups.length === 0 ? (
+              <>
+                <h2 className="font-semibold">Ladderrenners</h2>
+                <EmptyState>Nog geen ladderrenners.</EmptyState>
+              </>
+            ) : (
+              ladderGroups.map((group) => (
+                <div key={group.sex ?? "onbekend"}>
+                  <h2 className="font-semibold">
+                    Ladderrenners · {group.sex ? SEX_LABEL[group.sex] : "Geslacht onbekend"} (
+                    {group.riders.length})
+                  </h2>
+                  <LadderRidersTable
+                    riders={group.riders}
+                    sort={riderSort}
+                    teamId={selectedTeam.id}
+                    scoreLabel={useVelo ? "vELO 2" : "ZRS"}
+                  />
+                </div>
+              ))
+            )}
+          </section>
 
           {captainData && (
             <LadderPoolAdd
@@ -740,13 +719,11 @@ function LadderRidersTable({
   sort,
   teamId,
   scoreLabel,
-  canAssign,
 }: {
   riders: LadderRider[];
   sort: LadderRiderSort;
   teamId: string;
   scoreLabel: string;
-  canAssign: boolean;
 }) {
   const header = (key: LadderRiderSort, label: string) => (
     <Link
@@ -832,27 +809,6 @@ function LadderRidersTable({
           cell: (rider) => wkg(rider.wkg20m),
           cellClassName: "tabular-nums",
         },
-        ...(canAssign
-          ? [
-              {
-                key: "assign",
-                header: <span className="sr-only">Toevoegen</span>,
-                align: "right" as const,
-                cell: (rider: LadderRider) => (
-                  <span className="inline-flex flex-wrap justify-end gap-1">
-                    {onlyInLadderPool(rider) && (
-                      <LadderPoolRemoveButton riderId={rider.id} riderName={rider.name} />
-                    )}
-                    <LadderAssignButton
-                      riderId={rider.id}
-                      riderName={rider.name}
-                      teamIds={rider.teamIds}
-                    />
-                  </span>
-                ),
-              },
-            ]
-          : []),
       ]}
     />
   );

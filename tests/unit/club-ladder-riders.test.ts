@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   buildLadderRiders,
   groupLadderRidersBySex,
-  onlyInLadderPool,
   parseLadderRiderSort,
   sortLadderRiders,
   type LadderRiderProfile,
@@ -70,9 +69,6 @@ describe("buildLadderRiders", () => {
   it("weet wie via de ladderpool in de lijst staat", () => {
     expect(riders.map((r) => r.inPool)).toEqual([false, false, true]);
     expect(riders.map((r) => r.interested)).toEqual([true, false, false]);
-    expect(riders.map(onlyInLadderPool)).toEqual([false, false, true]);
-    expect(onlyInLadderPool({ ...riders[0], inPool: true })).toBe(false);
-    expect(onlyInLadderPool({ ...riders[2], teamIds: ["t1"] })).toBe(false);
   });
 
   it("toont elk ladderteam één keer, op naam", () => {
