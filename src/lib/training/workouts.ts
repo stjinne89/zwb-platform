@@ -1054,7 +1054,7 @@ function loadIntensityFactor(block: WorkoutBlock, ftpWatts: number | null): numb
 /**
  * Geschatte TSS van een workout, uit de blokken.
  *
- * TSS is kwadratisch in intensiteit: een uur op IF x levert x² x 100. Tot
+ * TSS is kwadratisch in intensiteit: een uur op IF x levert x² x 100. Vóór
  * 2026-08-20 telde deze functie `minuten x IF` op — lineair — met een eigen
  * factorentabel naast INTENSITY_FTP_RANGE. Die twee schalen kruisen elkaar
  * alleen bij IF 0,6 (duur); daarboven kwam de geplande belasting structureel te
@@ -1068,38 +1068,56 @@ function loadIntensityFactor(block: WorkoutBlock, ftpWatts: number | null): numb
  * Zonder FTP blijven wattage-doelen onleesbaar en geldt de band van de
  * intensiteit.
  *
- * Blijft een schatting van de blok-som. Een gereden rit meet TSS via het
- * genormaliseerd vermogen over de hele rit, en dat is een vierdemachtsgemiddelde
- * — bij een blokkige workout komt dat zo'n 5% boven deze som uit.
+ * Net als een gereden rit (trainingStressScore) rekent het schema met
+ * genormaliseerd vermogen: het schema wordt per seconde uitgeschreven, over 30
+ * seconden gemiddeld en tot de vierde macht genomen. Tot 2026-10-30 telde deze
+ * functie per blok `uren x IF²` op. Dat klopt bij een constant vermogen, maar
+ * weegt harde blokken te licht: een exact gereden VO2max 5x3 kwam op 47
+ * gepland tegen 60 gereden, 128% en rood. Rust telt als stilstaan, net als de
+ * bewegende tijd van een rit.
  */
 export function estimateTrainingLoad(
   blocks: WorkoutBlock[],
   ftpWatts: number | null = null,
 ) {
-  return Math.round(
-    blocks.reduce((total, block) => {
-      const segments = onOffSegments(block);
-      if (segments) {
-        const on = loadIntensityFactor(block, ftpWatts);
-        const off = loadIntensityFactor(offPartOf(block), ftpWatts);
-        return (
-          total +
-          segments.reduce((sum, segment) => {
-            const factor = segment.on ? on : off;
-            return sum + (segment.seconds / 3600) * factor * factor * 100;
-          }, 0)
-        );
-      }
-      const factor = loadIntensityFactor(block, ftpWatts);
-      const burstHours = (block.burstSeconds ?? 0) / 3600;
-      const burstFactor = (BURST_FTP_RANGE[0] + BURST_FTP_RANGE[1]) / 200;
-      return (
-        total +
-        (block.durationMinutes / 60 - burstHours) * factor * factor * 100 +
-        burstHours * burstFactor * burstFactor * 100
-      );
-    }, 0),
-  );
+  const perSecond: number[] = [];
+  const hold = (seconds: number, factor: number) => {
+    for (let s = 0; s < seconds; s++) perSecond.push(factor);
+  };
+  for (const block of blocks) {
+    if (block.intensity === "rest") continue;
+    const factor = loadIntensityFactor(block, ftpWatts);
+    const segments = onOffSegments(block);
+    if (segments) {
+      const off = loadIntensityFactor(offPartOf(block), ftpWatts);
+      for (const segment of segments) hold(segment.seconds, segment.on ? factor : off);
+      continue;
+    }
+    // De burst staat vooraan, zoals in blocksToWorkoutDoc.
+    const seconds = Math.round(block.durationMinutes * 60);
+    const burst = Math.min(block.burstSeconds ?? 0, seconds);
+    hold(burst, (BURST_FTP_RANGE[0] + BURST_FTP_RANGE[1]) / 200);
+    hold(seconds - burst, factor);
+  }
+  if (perSecond.length === 0) return 0;
+  return Math.round((perSecond.length / 3600) * normalizedFactor(perSecond) ** 2 * 100);
+}
+
+const NP_WINDOW_SECONDS = 30;
+
+/** Genormaliseerd vermogen van een reeks per seconde, in dezelfde eenheid. */
+function normalizedFactor(perSecond: number[]): number {
+  if (perSecond.length < NP_WINDOW_SECONDS) {
+    return perSecond.reduce((sum, value) => sum + value, 0) / perSecond.length;
+  }
+  let window = 0;
+  let fourthSum = 0;
+  for (let i = 0; i < perSecond.length; i++) {
+    window += perSecond[i];
+    if (i >= NP_WINDOW_SECONDS) window -= perSecond[i - NP_WINDOW_SECONDS];
+    if (i >= NP_WINDOW_SECONDS - 1) fourthSum += (window / NP_WINDOW_SECONDS) ** 4;
+  }
+  return (fourthSum / (perSecond.length - NP_WINDOW_SECONDS + 1)) ** 0.25;
 }
 
 export function projectCtl(initialCtl: number | null | undefined, dailyLoads: Array<{ date: string; load: number }>) {

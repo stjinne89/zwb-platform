@@ -58,6 +58,7 @@ import {
 import type { WellnessDevice } from "@/lib/training/wellness";
 import { MaintenanceStatus } from "./_components/maintenance-status";
 import { WeekReviewDashboardLink } from "@/components/weekoverzicht/dashboard-link";
+import { ManualRideDialog } from "@/components/manual-ride-dialog";
 import { StravaImportForm } from "@/components/strava-import-form";
 import { StravaSyncButton } from "@/components/strava-sync-button";
 import {
@@ -1471,7 +1472,10 @@ export default async function DashboardPage({
                 )}
               </div>
             )}
-            <StravaImportForm />
+            <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-start">
+              <ManualRideDialog />
+              <StravaImportForm />
+            </div>
           </div>
         )}
         {activities.length === 0 ? (

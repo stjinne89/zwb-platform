@@ -96,9 +96,9 @@ describe("buildMetricsSnapshot", () => {
       readiness: { score: 26, level: 2, title: "RICHT OP HERSTEL" },
     });
 
-    // Per blok het midden van zijn eigen doel, kwadratisch:
-    // 15' op 57,5% + 2x20' op 97,5% + 10' op 54% + 10' op 50% = 81.
-    expect(snapshot.plannedLoad).toBe(81);
+    // Per blok het midden van zijn eigen doel, met genormaliseerd vermogen over
+    // 15' op 57,5% + 2x20' op 97,5% + 10' op 54% + 10' op 50% = 90.
+    expect(snapshot.plannedLoad).toBe(90);
     // IF = 232/250 = 0,928; TSS = 4500*232*0,928/(250*3600)*100 = 108
     expect(snapshot.intensityFactor).toBe(0.93);
     expect(snapshot.tss).toBe(108);
@@ -113,7 +113,7 @@ describe("buildMetricsSnapshot", () => {
     expect(snapshot.ctlAfter).toBe(53);
     expect(snapshot.readinessScore).toBe(26);
     expect(snapshot.readinessTitle).toBe("RICHT OP HERSTEL");
-    expect(snapshot.loadPct).toBe(133);
+    expect(snapshot.loadPct).toBe(120);
     expect(snapshot.verdict).toBe("te_zwaar");
     expect(snapshot.weightKg).toBeNull();
   });

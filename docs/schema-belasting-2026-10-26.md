@@ -73,7 +73,8 @@ Zie PLAN.md, ronde "Schema stuurt op belasting uit de CTL" (2026-10-26).
 ## Voorbehoud
 
 - De geplande TSS is een schatting uit de zone van elk blok (midden van de band).
-  Een gereden rit met NP komt zo'n 5 % hoger uit. Vaste races en de optionele
+  Een gereden rit met NP kwam bij intervallen hoger uit (tot 28%); sinds
+  2026-10-30 rekent de schatting zelf met NP. Vaste races en de optionele
   rustdagrit zitten er niet in.
 - Bij drie leden liep het schema in de gemeten week af; die tellen niet mee in de
   vergelijking van uren per week.

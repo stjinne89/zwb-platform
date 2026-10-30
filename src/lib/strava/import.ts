@@ -1,4 +1,5 @@
 import { weekStartDate } from "@/lib/strava/client";
+import { amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { haversineKm } from "@/lib/gpx";
 import { encodeTrackPolyline } from "@/lib/track-polyline";
 import type { TimedPoint } from "@/lib/segments/gps-efforts";
@@ -969,5 +970,160 @@ export function stravaActivityFromFit(
       effort: activity.effort,
     }),
     track: timedPoints.map((point) => ({ lat: point.lat, lon: point.lon, t: point.timeMs! })),
+  };
+}
+
+// --- Handmatig: een gereden rit zonder bestand ---
+
+export const MANUAL_IMPORT_SOURCE = "manual";
+
+/** Wat het lid invult; de getallen als tekst, zoals ze uit het formulier komen. */
+export type ManualRideInput = {
+  name?: string;
+  /** YYYY-MM-DD, Amsterdamse datum. */
+  date: string;
+  /** HH:MM, Amsterdamse tijd. */
+  time: string;
+  /** Uren en minuten als "1:30", of alleen minuten als "90". */
+  duration: string;
+  distanceKm?: string;
+  elevationM?: string;
+  indoor?: boolean;
+  averageWatts?: string;
+  normalizedWatts?: string;
+  averageHr?: string;
+};
+
+export type ManualRideResult =
+  | { ok: true; row: ImportedStravaActivity }
+  | { ok: false; error: string };
+
+const MANUAL_MAX_SECONDS = 24 * 3600;
+
+/** Leeg is null; een getal met komma telt ook. NaN als het geen getal is. */
+function optionalNumber(value: string | undefined): number | null {
+  const text = (value ?? "").trim().replace(",", ".");
+  if (text === "") return null;
+  const n = Number(text);
+  return Number.isFinite(n) ? n : Number.NaN;
+}
+
+function durationSeconds(value: string): number | null {
+  const text = value.trim();
+  const clock = text.match(/^(\d{1,2})[:.uh](\d{2})$/i);
+  if (clock) {
+    const minutes = Number(clock[2]);
+    return minutes < 60 ? (Number(clock[1]) * 60 + minutes) * 60 : null;
+  }
+  return /^\d{1,4}$/.test(text) ? Number(text) * 60 : null;
+}
+
+/**
+ * De rij van een rit die het lid zelf invult, als het bestand verloren ging. Geen
+ * spoor, dus geen cols, segmenten of ZWBlokken; wel kilometers, badges en de
+ * trainingsbelasting. Met vermogen telt dat als gemeten, net als bij een FIT;
+ * zonder NP rekent de TSS met het gemiddelde, dus eerder te laag dan te hoog.
+ *
+ * Het id hangt alleen aan het lid en de starttijd: dezelfde rit opnieuw invullen
+ * overschrijft hem.
+ */
+export function manualRideRow(
+  input: ManualRideInput,
+  profileId: string,
+  athleteId: number | string = syntheticAthleteId(profileId),
+  now: Date = new Date(),
+): ManualRideResult {
+  const clock = input.time.match(/^(\d{1,2}):(\d{2})$/);
+  if (!clock || Number(clock[1]) > 23 || Number(clock[2]) > 59) {
+    return { ok: false, error: "Vul datum en starttijd in." };
+  }
+  const startIso = amsterdamWallTimeToIso(input.date, input.time);
+  if (!startIso) return { ok: false, error: "Vul datum en starttijd in." };
+  const start = new Date(startIso);
+
+  const seconds = durationSeconds(input.duration);
+  if (!seconds || seconds > MANUAL_MAX_SECONDS) {
+    return { ok: false, error: "Vul de duur in als uu:mm, bijvoorbeeld 1:30." };
+  }
+  if (start.getTime() + seconds * 1000 > now.getTime() + 5 * 60_000) {
+    return { ok: false, error: "Deze rit is nog niet afgelopen." };
+  }
+
+  const distanceKm = optionalNumber(input.distanceKm) ?? 0;
+  const elevationM = optionalNumber(input.elevationM) ?? 0;
+  const averageWatts = optionalNumber(input.averageWatts);
+  const normalizedWatts = optionalNumber(input.normalizedWatts);
+  const averageHr = optionalNumber(input.averageHr);
+
+  if (!(distanceKm >= 0) || distanceKm * 1000 > MAX_PLAUSIBLE_DISTANCE_M) {
+    return { ok: false, error: "Afstand klopt niet." };
+  }
+  if (!(elevationM >= 0) || elevationM > 20_000) {
+    return { ok: false, error: "Hoogtemeters kloppen niet." };
+  }
+  for (const watts of [averageWatts, normalizedWatts]) {
+    if (watts !== null && !(watts > 0 && watts <= 2000)) {
+      return { ok: false, error: "Vermogen klopt niet." };
+    }
+  }
+  if (normalizedWatts !== null && averageWatts === null) {
+    return { ok: false, error: "Vul ook het gemiddelde vermogen in." };
+  }
+  if (normalizedWatts !== null && averageWatts !== null && normalizedWatts < averageWatts) {
+    return { ok: false, error: "NP kan niet lager zijn dan het gemiddelde vermogen." };
+  }
+  if (averageHr !== null && !(averageHr >= 30 && averageHr <= 250)) {
+    return { ok: false, error: "Hartslag klopt niet." };
+  }
+
+  const indoor = Boolean(input.indoor);
+  const name = (input.name ?? "").trim().slice(0, 120) || (indoor ? "Binnenrit" : "Fietsrit");
+  const sportType = "Ride";
+  const syncedAt = now.toISOString();
+  const watts = averageWatts === null ? null : Math.round(averageWatts);
+  const effort: Record<string, number | boolean> = {};
+  if (watts !== null) {
+    effort.average_watts = watts;
+    effort.weighted_average_watts = Math.round(normalizedWatts ?? watts);
+    effort.device_watts = true;
+    effort.kilojoules = Math.round((watts * seconds) / 1000);
+  }
+  if (averageHr !== null) effort.average_heartrate = Math.round(averageHr);
+
+  return {
+    ok: true,
+    row: {
+      id: -hashDigits([MANUAL_IMPORT_SOURCE, profileId, startIso].join("|")),
+      profile_id: profileId,
+      strava_athlete_id: athleteId,
+      name,
+      sport_type: sportType,
+      start_date: startIso,
+      achievement_week: dateOnly(weekStartDate(start)),
+      distance_m: Math.round(distanceKm * 1000),
+      total_elevation_gain_m: Math.round(elevationM),
+      kudos_count: 0,
+      moving_time_seconds: seconds,
+      elapsed_time_seconds: seconds,
+      trainer: indoor,
+      commute: false,
+      raw: {
+        import_source: MANUAL_IMPORT_SOURCE,
+        name,
+        sport_type: sportType,
+        type: sportType,
+        start_date: startIso,
+        start_date_local: startIso,
+        moving_time: seconds,
+        source_activity_id: null,
+        gear: null,
+        filename: null,
+        ...effort,
+      },
+      synced_at: syncedAt,
+      // Negatief id: zonder deze stempel vraagt de segment-inhaalslag de rit bij
+      // Strava op en verwijdert hij hem na de 404.
+      efforts_fetched_at: syncedAt,
+    },
   };
 }

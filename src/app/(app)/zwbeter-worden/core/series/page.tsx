@@ -1,8 +1,10 @@
 import { lastDoneOn, recommendSeries, recommendStrength } from "@/lib/training/mobility";
+import { intervalsStrengthDays } from "@/lib/training/intervals-strength";
 import { saveOwnSeries } from "../_actions";
 import {
   loadDayContext,
   loadExercises,
+  loadIntervalsStrength,
   loadSeries,
   loadSessions,
   requireViewer,
@@ -30,15 +32,22 @@ export default async function SeriesOverviewPage() {
   const viewer = await requireViewer();
   const today = todayKeyAmsterdam();
 
-  const [series, sessions, exercises, dayContext] = await Promise.all([
+  const [series, sessions, exercises, dayContext, intervalsStrength] = await Promise.all([
     loadSeries(viewer),
     loadSessions(viewer, today),
     loadExercises(viewer),
     loadDayContext(viewer, today),
+    loadIntervalsStrength(viewer, today),
   ]);
 
   const suggestion = recommendSeries(series, sessions, today, dayContext);
-  const strength = recommendStrength(series, sessions, today, dayContext);
+  const strength = recommendStrength(
+    series,
+    sessions,
+    today,
+    dayContext,
+    intervalsStrengthDays(intervalsStrength),
+  );
   const suggested = (id: string) => id === suggestion?.id || id === strength?.id;
 
   const standard = series.filter((row) => row.is_standard);

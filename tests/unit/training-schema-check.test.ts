@@ -293,9 +293,9 @@ describe("checkTrainingPlan: weken", () => {
 
   it("vraagt een zwaarste week duidelijk boven wat het lid nu aankan, tenzij er vermoeidheid is", () => {
     // CTL 33: het lid kan 231 TSS per week. Rustige duur op 65-70% is zo'n 46
-    // TSS per uur; 325 minuten is 247 TSS, ruim 10% erboven.
+    // TSS per uur; 340 minuten is zo'n 258 TSS, ruim 10% erboven.
     const plan = input({ planWindow: window(3), intervalsLoad: { ctl: 33, atl: null, tsb: null, eftp: null, rampRate: null } });
-    const enough = [...week(MONDAY, [100, 100, 100]), ...week(day(7), [100, 115, 110]), ...week(day(14), [70, 70, 70])];
+    const enough = [...week(MONDAY, [100, 100, 100]), ...week(day(7), [100, 120, 120]), ...week(day(14), [70, 70, 70])];
     expect(rules(checkTrainingPlan(plan, enough))).not.toContain("piekweek");
 
     const low = [...week(MONDAY, [90, 90, 100]), ...week(day(7), [100, 100, 100]), ...week(day(14), [65, 65, 65])];

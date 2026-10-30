@@ -40,6 +40,15 @@ gaat stabiliteit voor nieuwe features.
    weekoverzicht wachten op akkoord van de eigenaar.
    Zie de ronde "ZWBeter racen: verwachting, punten per bron en de terugblik".
 
+0f. **Kracht uit intervals.icu (2026-10-28): migratie toegepast en gepusht.**
+   De migratie staat in de repo als `0292_intervals_strength_muscles.sql` en is
+   op 2026-10-28 via de Supabase-connector toegepast (op verzoek van de
+   eigenaar), in de historie van productie onder de oude naam
+   `0290_intervals_strength_muscles`. Gepusht naar `main` op 2026-10-30. De
+   privacytekst staat erin (akkoord eigenaar 2026-10-28). Nog doen: ingelogd
+   een krachttraining openen, spieren aantikken en opslaan. Zie de ronde
+   "Kracht: krachttraining uit intervals.icu meetellen".
+
 0c. **Clubverhaal (2026-10-28): migratie `0288` toegepast en gepusht.**
    `0288_club_stories.sql` is op 2026-10-28 via de Supabase-connector
    toegepast, op verzoek van de eigenaar, vóór de push naar `main` (zelfde
@@ -11548,7 +11557,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Ladderpuzzel vervangt de Captain-selectie op Club Ladder
 
-**2026-10-30.** Commit `f20952e9`, niet gepusht. Geen migratie.
+**2026-10-30.** Commit `f20952e9`, gepusht naar `main` op 2026-10-30. Geen migratie.
 
 **Waarom.** De eigenaar: "De ladderpuzzel komt in de plaats van de captain
 selectie, dus doe die weg dat is nu overbodig." Beide deelden dezelfde renners
@@ -11569,6 +11578,104 @@ zonder band) kun je nu niet meer vanaf deze pagina indelen; dat kan op de
 teampagina zelf, of door het team met een band aan de puzzel toe te voegen.
 
 **Gecontroleerd.** `tsc` schoon, ESLint, Vitest `club-ladder-*` (19).
+
+### Hersteld — Geplande TSS met genormaliseerd vermogen, zoals de gereden rit
+
+**2026-10-30.** De commit met deze ronde (van branch
+`claude/zwift-tss-if-discrepancy-49d3a7`), gepusht naar `main` op 2026-10-30.
+Geen migratie.
+
+**Waarom.** Een lid reed VO2max 5x3 in Zwift exact volgens plan (277 W, 111%
+FTP, zones 99% gelijk) en kreeg "Te zwaar · 128%": TSS 60 tegen 47 gepland, IF
+0,87 tegen 0,77. De gereden kant rekent met NP (30 s glijdend gemiddelde, vierde
+macht); `estimateTrainingLoad` telde per blok `uren × IF²` op. Bij constant
+vermogen is dat gelijk, maar bij intervallen weegt het harde werk te licht. De
+ronde van 2026-08-20 schatte dat verschil op "zo'n 5%"; bij deze workout was het
+28%. De geplande IF (`plannedIntensityFactor`) volgt uit de geplande TSS en was
+dus ook te laag.
+
+**Wat.**
+- `estimateTrainingLoad` (`lib/training/workouts.ts`) schrijft het schema per
+  seconde uit (bursts vooraan, aan/uit-stappen, zoals `blocksToWorkoutDoc`) en
+  rekent er NP over: TSS = uren × NP-IF² × 100. Rust telt als stilstaan, net als
+  de bewegende tijd van een rit. Deze workout: 57 TSS, IF 0,85 gepland; de rit
+  komt op 105% en is volgens plan.
+- De 5%-marge `LOAD_ESTIMATE_MARGIN` in `schema-check.ts` is weg: die
+  compenseerde precies dit verschil. Een test van `piekweek` was op die marge
+  afgesteld en vraagt nu een iets zwaardere week.
+- Gevolg overal waar `estimateTrainingLoad` gebruikt wordt: naleving, de
+  intervals-belasting bij publiceren, de Zwift-matching, de trainerpagina en de
+  meetlat. Intervaltrainingen krijgen een hogere geplande TSS; ritten op constant
+  vermogen blijven gelijk. Opgeslagen `plannedLoad` in bestaande snapshots
+  verandert niet met terugwerkende kracht.
+
+**Bewust niet.** De nalevingsband (`COMPLIANCE_HIGH` 115) blijft. `plannedTss`
+in `lib/briljant/snapshot.ts` (minuten × intensiteit, zonder blokken) is niet
+aangeraakt. Oude snapshots niet herberekend.
+
+**Gecontroleerd.** Vitest: nieuwe test met de workout van het lid (57-60) plus
+de bestaande belastingtests (164 groen in de geraakte bestanden). In de volle
+run falen dezelfde tests als zonder deze wijziging (o.a. `race-links`,
+`zwift-route`, `intervals-ride-sync` en ontbrekende packages in de gedeelde
+`node_modules`). ESLint schoon; `tsc` alleen met de bestaande fouten over
+`@anthropic-ai/sdk` en `modern-screenshot`. **Niet geverifieerd:** de pagina met
+echte data.
+
+### Gebouwd — Rit invoeren zonder bestand
+
+**2026-10-30.** Commit `625cac3c` (van branch `claude/manual-training-entry-cd7b1e`),
+gepusht naar `main` op 2026-10-30. Geen migratie.
+
+**Waarom.** Een lid reed een training, maar de opname mislukte en er is geen
+bestand. Zonder rit bleef de training uit zijn schema open en telde de
+belasting niet mee. Wens eigenaar: een rit met de hand kunnen invoeren.
+
+**Wat.**
+- Knop **Rit invoeren** op het dashboard, naast Importeer ritten
+  (`components/manual-ride-dialog.tsx`). Velden: naam, datum, starttijd, duur
+  (`1:30` of minuten), afstand, hoogtemeters, binnen, gemiddeld vermogen, NP en
+  gemiddelde hartslag. Alleen datum, starttijd en duur zijn verplicht.
+- `manualRideRow` (`lib/strava/import.ts`) bouwt een gewone rij in
+  `strava_activities`, met `raw.import_source = "manual"`, zoals de CSV-, GPX-
+  en FIT-import. Datum en tijd zijn Amsterdamse tijd. Het id is een negatieve
+  hash van lid en starttijd: dezelfde rit opnieuw invullen overschrijft hem.
+  `efforts_fetched_at` staat meteen, anders vraagt de segment-inhaalslag het
+  negatieve id bij Strava op en verwijdert hij de rit na de 404.
+- Ingevuld vermogen telt als gemeten (`device_watts`), net als bij een FIT.
+  Zonder NP rekent de TSS met het gemiddelde vermogen, dus eerder te laag dan
+  te hoog. Zonder vermogen komt de TSS uit de hartslag.
+- `saveManualRide` (`app/(app)/_actions/manual-ride.ts`) weigert een rit die al
+  uit een andere bron binnen is (`isSameRide`: start binnen 2 minuten, afstand
+  binnen 5%). Daarna het nawerk dat een rit zonder spoor nodig heeft: training
+  afvinken (`detectCompletedWorkouts`) en milestone- en weekbadges. Geen cols,
+  segmenten of ZWBlokken: er is geen spoor.
+- In hetzelfde venster staan de laatste vijf handmatige ritten onder
+  **Ingevoerd**, met verwijderen. `deleteManualRide` verwijdert alleen eigen
+  ritten met `import_source = "manual"` en laat een gekoppelde training los
+  (`removedActivityIds`).
+- `/hulp/koppelen#rit-invoeren` en een zoekregel in de hulp.
+
+**Bewust niet gebouwd.**
+- Geen voorrang voor een echte opname op een handmatige rit. Komt het bestand
+  later toch, en ligt de ingevulde starttijd binnen 2 minuten, dan ziet de
+  import de rit als dubbel. Anders staan er twee ritten; het lid verwijdert de
+  handmatige. Het bestand is in dit geval juist kwijt, dus dit is de
+  uitzondering.
+- Geen markering "handmatig" in ranglijsten of badges. Strava telt een
+  handmatige activiteit ook mee.
+- Geen TSS of RPE als los veld: de TSS volgt uit vermogen of hartslag, zoals bij
+  elke rit.
+
+**Beperking.** De training afvinken gaat alleen tot een week terug
+(`COMPLETION_WINDOW_DAYS`). Opnieuw opslaan met andere getallen ververst de
+momentopname van een al afgevinkte training niet.
+
+**Gecontroleerd.** Vitest `strava-manual-ride` (19, nieuw) en
+`help-categories`; ESLint schoon op de gewijzigde bestanden; `tsc` zonder
+nieuwe fouten (de drie bestaande gaan over `modern-screenshot` en
+`@anthropic-ai/sdk`, die in deze worktree niet geïnstalleerd zijn; daardoor
+falen ook 23 andere testbestanden). **Niet geverifieerd:** het venster in de
+browser en opslaan, afvinken en verwijderen tegen de database.
 
 ### Gebouwd — Ladderpuzzel: weergave, volgorde en renners weghalen
 
@@ -11853,6 +11960,91 @@ op Netlify en de cache daar.
 de ZRS van vóór de race wordt nu ook van renners buiten ZWB bewaard (zonder
 naam), de terugblik is nieuw, en het weekoverzicht bewaart de punten of W/kg van
 ploeggenoten (zonder naam). Is dit zonder nieuwe privacyversie goed?
+
+### Gebouwd — Kracht: krachttraining uit intervals.icu meetellen, spieren aantikken op het figuur
+
+**2026-10-28.** Commits `92fa43c2` en `d5af059d` (privacytekst), gepusht naar
+`main` op 2026-10-30 (eigenaar). Migratie `0292_intervals_strength_muscles.sql`,
+op 2026-10-28 via de Supabase-connector toegepast, op verzoek van de eigenaar,
+vóór de push. Vooraf: geen tabel, 52 krachttrainingen in
+`intervals_activities`. Achteraf: tabel leeg, RLS aan, policy
+`intervals_strength_muscles_own`, de check op spiergroepen en de vreemde
+sleutel. Toegepast als `0290_intervals_strength_muscles`; daarna bleek 0290 op
+`main` al de Ladderpuzzel, dus het bestand heet nu 0292 en in de historie van
+productie staat de oude naam.
+
+**Waarom.** Vraag van de eigenaar: een krachttraining uit intervals.icu
+meenemen in ZWBeter kracht, en daarbij op het getekende krachtmensje kunnen
+aantikken welke spiergroepen getraind zijn. Uitgezocht in productie
+(2026-10-28): `intervals_activities` had al 52 sessies `WeightTraining` van 4
+leden (35 van Garmin, 17 met de hand in intervals ingevoerd). In
+`mobility_sessions` stonden in totaal 12 afgevinkte series. De krachtregel
+(drie dagen rust, hooguit twee per week) zag alleen die afgevinkte series:
+na een avond in de sportschool kon ZWB de dag erna een squatserie voorstellen.
+
+**Wat.**
+- `lib/training/intervals-strength.ts`: alleen type `WeightTraining` telt.
+  `recommendStrength()` krijgt de dagen van die trainingen erbij
+  (`otherStrengthDays`) voor de rust en het weekmaximum; een dag met ook een
+  afgevinkte serie telt één keer. Op Vandaag, Series en het blok op de
+  ZWBeter-startpagina.
+- Tabblad Vandaag (`/zwbeter-worden/core`): blok "Krachttraining uit
+  intervals.icu" met de trainingen van de afgelopen 28 dagen. Tik op een
+  training: een dialoog met het figuur (`components/mobility/muscle-map-picker.tsx`)
+  waar elke spiergroep een schakelaar is, voor en achter. Ook met het
+  toetsenbord te bedienen (per figuur elke groep één focusbaar element).
+- Aangetikte spieren tellen mee in "Deze week getraind": elke groep als drie
+  sets (`INTERVALS_SESSION_SETS`, eigen keuze; intervals weet niet hoeveel
+  sets je deed, en met 1 kleurt een hele gymsessie lichter dan een korte serie
+  thuis).
+- Tabel `intervals_strength_muscles` (profile_id, intervals_id, muscles):
+  alleen het lid zelf (RLS zoals `mobility_sessions`), vreemde sleutel naar
+  `intervals_activities` met cascade, en een check op de zestien namen uit
+  `MUSCLE_GROUPS` (een test bewaakt dat die gelijk blijven). Niets aangetikt
+  wist de rij. In de data-export.
+- Het krachtspoor werkt `intervals_activities` bij als die ouder is dan zes uur
+  (`refreshIntervalsActivitiesIfStale`, nu geëxporteerd uit
+  `zwbeter-worden/_data.ts`): leden met Strava hebben geen uurlijkse
+  intervals-sync. Het blok op de startpagina slaat dat over, die pagina werkt
+  de lijst zelf al bij.
+- `/hulp#kracht`: alinea over krachttraining uit intervals.icu;
+  `/hulp#spiergroepen` noemt de aangetikte trainingen.
+
+**Bewust niet.**
+- *Sets, herhalingen en gewicht uit het FIT-bestand.* Kan via
+  `/api/v1/activity/{id}/file` en een uitbreiding van `lib/strava/fit.ts`,
+  maar alleen de Garmin-sessies hebben zo'n bestand, correcties in Garmin
+  Connect staan er volgens het intervals-forum niet in, de oefeningcodes van
+  Garmin passen niet op onze oefeningen, en de krachtregel gebruikt alleen de
+  dag.
+- *Type `Workout`* (13 sessies van 4 leden): kan een bootcamp of spinningles
+  zijn en zou de krachtregel ten onrechte laten ingrijpen.
+- *Meetellen voor de core-teller* ("Sessies in 28 dagen", "Weken op doel"):
+  dat doel gaat over core en mobiliteit, niet over de sportschool.
+- *TSS, CTL of naleving*: het krachtspoor blijft daarbuiten, zoals altijd.
+- *Trainerzicht*: de spierkeuze is alleen voor het lid, net als de afgevinkte
+  series.
+- *Spieren aantikken bij een afgevinkte ZWB-serie*: die weet zelf al welke
+  spieren erin zitten.
+
+**Niet meer waar.** "Deze week getraind" staat er niet alleen meer als er een
+serie is afgevinkt, en `recommendStrength` ziet ook intervals-trainingen (in de
+rondes van fase A en B hieronder inline gecorrigeerd).
+
+**Gecontroleerd.** Vitest `mobility.test.ts` (drie nieuwe gevallen voor
+trainingen buiten ZWB), `intervals-strength.test.ts` (nieuw, ook de
+spiergroepen in migratie 0292 tegen `MUSCLE_GROUPS`) en `muscles.test.ts`;
+`tsc` (alleen de bekende fouten over ontbrekende pakketten); ESLint op de
+gewijzigde bestanden. Het figuur is als statische HTML bekeken: leeg en met
+vier aangetikte groepen, voor en achter gekleurd.
+**Niet geverifieerd:** de pagina met een ingelogde sessie (lijst, dialoog,
+klikken en opslaan, de krachtregel met echte data).
+
+**Privacy.** Nieuw punt "Krachttraining uit intervals.icu" op `/privacy`, onder
+de ritten via intervals.icu. Akkoord eigenaar 2026-10-28, zonder nieuwe
+privacyversie: het gaat om gegevens die de intervals-koppeling al ophaalde
+(en de spierkeuze voert het lid zelf in). Opgemerkt, niet aangepast: de
+data-export bevat `mobility_sessions` (de afgevinkte series) niet.
 
 ### Gebouwd — Clubverhaal: een eigen verhaal in hoofdstukken, met poppetjes en scènes
 
@@ -14465,7 +14657,8 @@ sleutelsessies, zeker in de winter met meer binnen rijden.
 - **Meetlat** (`schema-check.ts`). `piekweek`, `onder-recente-belasting` en
   `opbouwgroei` rekenen met geschatte TSS (`estimateTrainingLoad` per workout,
   `loadForIntensity` voor vaste afspraken). De piek moet minstens 10 % boven
-  `currentLoad` liggen, de opbouwweek erboven (5 % marge voor de blok-som). Geen
+  `currentLoad` liggen, de opbouwweek erboven (tot 2026-10-30 met 5 % marge
+  voor de blok-som; sinds de geplande TSS met NP rekent, zonder marge). Geen
   oordeel als een week zijn beschikbare tijd al voor 95 % vult. Zonder
   belastingsbron geen piekoordeel meer; de ondergrens valt dan terug op uren.
   `docs/schema-meetlat.md` bijgewerkt.
@@ -22717,7 +22910,8 @@ De spierkaart per oefening, per serie en als weekoverzicht.
   achteren. Te zien bij elke oefening (bibliotheek, seriepagina, tijdens het
   doorlopen), op de seriekaart en bovenaan de seriepagina, en op het tabblad als
   "Deze week getraind". Die laatste sectie staat er alleen als er in zeven dagen
-  een core- of krachtserie is afgevinkt.
+  een core- of krachtserie is afgevinkt *(sinds 2026-10-28 ook bij een
+  krachttraining uit intervals.icu met aangetikte spieren)*.
 - `/hulp#spiergroepen`: wat de kleuren betekenen en wat de week telt.
 
 **Onderweg besloten.**
@@ -26198,7 +26392,8 @@ belastingberekening, om dezelfde redenen als in `0109`.
 - `recommendStrength()` in `mobility.ts`: alleen op een dag zonder training of
   rit, minstens drie dagen na de vorige krachtsessie en hooguit twee per zeven
   dagen, anders de serie die het langst geleden is *(sinds 2026-10-14 alleen
-  series zonder materiaal; zie fase B)*. `recommendSeries` neemt
+  series zonder materiaal; zie fase B. Sinds 2026-10-28 tellen krachttrainingen
+  uit intervals.icu mee voor de rust en het maximum)*. `recommendSeries` neemt
   krachtseries niet meer mee in de rustdagrotatie. `CoreTodayCard` toont kracht
   als tweede regel ("Of kracht: …"); op `/zwbeter-worden/core` is die serie ook
   gemarkeerd. De bibliotheek kent de categorie Kracht en de seriebouwer het doel
@@ -27782,6 +27977,9 @@ van de losse blokken ligt. Dat is echte natuurkunde, geen fout — TrainingPeaks
 heeft hetzelfde. Een expliciete variabiliteits-opslag van ~5% op de planning is
 eerlijker dan de band oprekken, maar dat is een keuze over hoe streng het
 oordeel moet zijn en die hoort niet in een bugfix.
+*(Achterhaald 2026-10-30: dat verschil bleek bij intervallen geen 5% maar tot
+28% (VO2max 5x3: 47 gepland, 60 gereden). `estimateTrainingLoad` rekent sinds
+de ronde "Geplande TSS met genormaliseerd vermogen" zelf met NP.)*
 
 Ook niet aangeraakt: dat ZWB alle historie omrekent met de húdige
 `profiles.ftp_watts`, terwijl intervals.icu de FTP gebruikt die gold op de dag
@@ -29395,20 +29593,13 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   CTL-reeks, dus historische cijfers verschuiven eenmalig. Hangt samen met punt 1
   hierboven — dezelfde vraag naar welke FTP-bron leidend is, maar dan over de tijd.
 
-- **Naleving komt structureel net boven 100% uit bij blokkige workouts**
-  (2026-08-20, restant van dezelfde fix). Een gereden rit meet TSS via het
-  genormaliseerd vermogen over de héle rit, en NP is een vierdemachtsgemiddelde;
-  de geplande kant is een kwadratische som over losse blokken. Bij blokkig werk
-  ligt het eerste zo'n 5% boven het tweede — dat is de definitie van TSS, geen
-  fout, en TrainingPeaks heeft hetzelfde. Gevolg: wie in ERG exact volgens plan
-  rijdt scoort ~105% in plaats van 100%, en bij variabeler werk loopt dat op.
-
-  `COMPLIANCE_HIGH` staat op 115 en vangt dat nu, maar de marge voor een sessie
-  die wel echt te zwaar was is daarmee smal. Overwegen: een expliciete
-  variabiliteits-opslag van ~5% op `estimateTrainingLoad` in plaats van de band
-  oprekken. Dat is een keuze over hoe streng het oordeel moet zijn — die hoort
-  bij de trainer, niet in een bugfix. Eerst meten: wat is de gemiddelde `loadPct`
-  over sessies die aantoonbaar in ERG zijn gereden?
+- ~~**Naleving komt structureel net boven 100% uit bij blokkige workouts**~~
+  **Opgelost 2026-10-30.** De geplande kant was een kwadratische som over losse
+  blokken, de gereden kant NP. Het verschil bleek bij intervallen geen 5% maar
+  tot 28%: een exact gereden VO2max 5x3 scoorde 128% en "te zwaar".
+  `estimateTrainingLoad` rekent nu zelf met NP over het uitgeschreven schema;
+  zie de ronde "Geplande TSS met genormaliseerd vermogen". Een
+  variabiliteits-opslag is daarmee niet meer nodig.
 
 ---
 

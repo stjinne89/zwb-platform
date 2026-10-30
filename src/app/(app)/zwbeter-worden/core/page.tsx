@@ -9,15 +9,23 @@ import {
   weeklyStreak,
 } from "@/lib/training/mobility";
 import { weekLoad } from "@/lib/training/muscles";
+import {
+  intervalsStrengthDays,
+  intervalsWeekLoad,
+  mergeLoad,
+} from "@/lib/training/intervals-strength";
 import { MetricCard } from "../_components/ui";
 import { formatWellnessDate } from "../_components/format";
+import { saveIntervalsMuscles } from "./_actions";
 import {
   loadDayContext,
+  loadIntervalsStrength,
   loadSeries,
   loadSessions,
   requireViewer,
   todayKeyAmsterdam,
 } from "./_data";
+import { IntervalsStrengthList } from "./_components/intervals-strength-list";
 import { MuscleSummary } from "./_components/muscle-summary";
 import { SeriesCard } from "./_components/series-card";
 
@@ -30,18 +38,28 @@ export default async function CoreTodayPage() {
   const viewer = await requireViewer();
   const today = todayKeyAmsterdam();
 
-  const [series, sessions, dayContext] = await Promise.all([
+  const [series, sessions, dayContext, intervalsStrength] = await Promise.all([
     loadSeries(viewer),
     loadSessions(viewer, today),
     loadDayContext(viewer, today),
+    loadIntervalsStrength(viewer, today),
   ]);
 
   const recent = sessionsLast28Days(sessions, today);
   const streak = weeklyStreak(sessions, today);
   const suggestion = recommendSeries(series, sessions, today, dayContext);
-  const strength = recommendStrength(series, sessions, today, dayContext);
+  const strength = recommendStrength(
+    series,
+    sessions,
+    today,
+    dayContext,
+    intervalsStrengthDays(intervalsStrength),
+  );
   const todays = [suggestion, strength].filter((row) => row != null);
-  const week = weekLoad(sessions, series, today);
+  const week = mergeLoad(
+    weekLoad(sessions, series, today),
+    intervalsWeekLoad(intervalsStrength, today),
+  );
   const trainedThisWeek = Object.keys(week).length > 0;
 
   return (
@@ -85,6 +103,13 @@ export default async function CoreTodayPage() {
           </div>
         )}
       </section>
+
+      {intervalsStrength.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="font-semibold">Krachttraining uit intervals.icu</h2>
+          <IntervalsStrengthList sessions={intervalsStrength} saveAction={saveIntervalsMuscles} />
+        </section>
+      )}
 
       {recent.length > 0 && (
         <p className="text-xs text-muted-foreground">

@@ -10,6 +10,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { seriesMinutes, type MobilitySeriesItem } from "@/lib/training/mobility";
+import {
+  isIntervalsStrengthType,
+  normalizeMuscleSelection,
+} from "@/lib/training/intervals-strength";
 
 const FEELINGS = ["goed", "neutraal", "zwaar"];
 
@@ -198,6 +202,50 @@ export async function deleteOwnSeries(formData: FormData): Promise<ActionResult>
     .delete()
     .eq("id", seriesId)
     .eq("owner_id", user.id);
+  if (error) return { ok: false, error: error.message };
+
+  refresh();
+  return { ok: true };
+}
+
+/**
+ * Welke spieren een krachttraining uit intervals.icu raakte. Niets aangetikt
+ * wist de keuze: de sessie telt dan nog wel voor de rust, niet op de spierkaart.
+ */
+export async function saveIntervalsMuscles(formData: FormData): Promise<ActionResult> {
+  const intervalsId = text(formData.get("intervals_id"));
+  if (!intervalsId) return { ok: false, error: "Geen training opgegeven." };
+  const muscles = normalizeMuscleSelection(
+    String(formData.get("muscles") ?? "").split(",").map((value) => value.trim()),
+  );
+
+  const { supabase, user } = await currentUser();
+  const { data: activity } = await supabase
+    .from("intervals_activities")
+    .select("type")
+    .eq("profile_id", user.id)
+    .eq("intervals_id", intervalsId)
+    .maybeSingle();
+  if (!activity || !isIntervalsStrengthType(activity.type as string | null)) {
+    return { ok: false, error: "Deze training staat niet in je krachttrainingen." };
+  }
+
+  const { error } =
+    muscles.length === 0
+      ? await supabase
+          .from("intervals_strength_muscles")
+          .delete()
+          .eq("profile_id", user.id)
+          .eq("intervals_id", intervalsId)
+      : await supabase.from("intervals_strength_muscles").upsert(
+          {
+            profile_id: user.id,
+            intervals_id: intervalsId,
+            muscles,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "profile_id,intervals_id" },
+        );
   if (error) return { ok: false, error: error.message };
 
   refresh();

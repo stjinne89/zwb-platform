@@ -768,8 +768,10 @@ export function KennisHelp() {
             oefening om draait, lichter gekleurd is wat meehelpt. Bij een
             rekoefening is dat wat je rekt. De spierkaart bij een serie telt
             alle oefeningen van die serie op. &quot;Deze week getraind&quot; telt
-            alleen de core- en krachtseries die je in de afgelopen zeven dagen
-            hebt afgevinkt; rekken en losmaken tellen daar niet als training.
+            de core- en krachtseries die je in de afgelopen zeven dagen hebt
+            afgevinkt, plus je krachttrainingen uit intervals.icu waarvan je de
+            spieren hebt aangetikt; rekken en losmaken tellen daar niet als
+            training.
           </p>
         </div>
 
@@ -791,6 +793,21 @@ export function KennisHelp() {
             Van de series met je eigen gewicht mag je geen extra watt
             verwachten. Ze maken je benen en romp belastbaarder en je
             trapbeweging per been stabieler.
+          </p>
+          <h4 className="mt-4 text-sm font-semibold">Krachttraining uit intervals.icu</h4>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Heb je intervals.icu gekoppeld, dan staan je krachttrainingen van de
+            afgelopen vier weken op het tabblad Vandaag: wat je met je horloge
+            opneemt of in intervals.icu invoert als krachttraining
+            (WeightTraining). Ze tellen mee voor de rust tussen krachtsessies en
+            het maximum van twee per week, dus na een avond in de sportschool
+            stelt ZWB de volgende dagen geen krachtserie voor. Tik op een
+            training en daarna op het figuur om aan te geven welke spieren je
+            trainde; die tellen mee in &quot;Deze week getraind&quot;, als
+            ongeveer drie sets per spiergroep. Een training als
+            &quot;Workout&quot; telt niet mee: dat kan van alles zijn. Ook deze
+            trainingen tellen niet mee in je trainingsbelasting of je
+            core-teller.
           </p>
           <h4 className="mt-4 text-sm font-semibold">Springen voor je botten</h4>
           <p className="mt-2 text-sm text-muted-foreground">
