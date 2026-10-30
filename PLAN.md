@@ -11555,6 +11555,31 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kruisje in het teamprofiel voor teams buiten de puzzel
+
+**2026-10-30.** Commit volgt, niet gepusht. Geen migratie.
+
+**Waarom.** Eigenaar: "Ik kan in teams die niet in de puzzel zitten, geen leden
+meer verwijderen." Dat kon via de Captain-selectie, die weg is; de puzzel toont
+alleen teams met een band.
+
+**Wat.** Nieuwe actie `removeFromLadderTeam` (zelfde recht als captains
+aanwijzen: `canAssignLadderRiders`) met een kruisje per renner in het
+teamprofiel, met bevestiging (`ladder-team-remove.tsx`). Zelfde afhandeling als
+de oude `unassignLadderRider`: seed-override `manual_remove` en het lidmaatschap
+weg. Het kruisje staat alleen bij teams die niet in de puzzel staan; de actie
+weigert een puzzelteam ook zelf. `/hulp` aangepast, ook met de sorteerknoppen op
+mobiel uit de ronde hieronder.
+
+**Bewust niet.** Geen kruisje bij puzzelteams: die deelt alleen de rol
+teamcaptain in (afspraak 2026-10-29), via Weghalen of de bank in de puzzel.
+Leden die niet zijn goedgekeurd staan niet in het teamprofiel en zijn hier dus
+ook niet weg te halen.
+
+**Gecontroleerd.** `tsc` schoon, ESLint, Vitest `club-ladder-*` en hulp (39).
+**Niet geverifieerd:** het kruisje in de browser; lokaal vraagt de pagina om in
+te loggen.
+
 ### Bijgesteld — ZWB teamprofiel over de hele breedte, ook op mobiel leesbaar
 
 **2026-10-30.** Commit volgt, niet gepusht. Geen migratie.

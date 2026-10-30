@@ -33,6 +33,7 @@ import { SyncResultsButton } from "../_components/sync-results-button";
 import { LadderCaptains, type CaptainTeam } from "./_components/ladder-captains";
 import { LadderPoolAdd } from "./_components/ladder-pool-add";
 import { LadderPuzzle } from "./_components/ladder-puzzle";
+import { LadderTeamRemoveButton } from "./_components/ladder-team-remove";
 import {
   buildPuzzleRiders,
   parseLadderBand,
@@ -335,7 +336,11 @@ export default async function ClubLadderPage({
                 riders={teamRiders}
                 sort={riderSort}
                 teamId={selectedTeam.id}
+                teamName={selectedTeam.name}
                 scoreLabel={scoreLabel}
+                canRemove={
+                  canAssign && !puzzle?.teams.some((team) => team.id === selectedTeam.id)
+                }
               />
             </section>
 
@@ -600,12 +605,17 @@ function TeamRidersTable({
   riders,
   sort,
   teamId,
+  teamName,
   scoreLabel,
+  canRemove,
 }: {
   riders: LadderRider[];
   sort: LadderRiderSort;
   teamId: string;
+  teamName: string;
   scoreLabel: string;
+  /** Teams buiten de puzzel: daar haal je een lid hier uit het team. */
+  canRemove: boolean;
 }) {
   const sortHref = (key: LadderRiderSort) =>
     `/teams/club-ladder?team=${teamId}&sort=${key}#teamprofiel`;
@@ -721,6 +731,23 @@ function TeamRidersTable({
             cell: (rider) => wkg(rider.wkg20m),
             cellClassName: "tabular-nums",
           },
+          ...(canRemove
+            ? [
+                {
+                  key: "remove",
+                  header: <span className="sr-only">Uit het team</span>,
+                  align: "right" as const,
+                  cell: (rider: LadderRider) => (
+                    <LadderTeamRemoveButton
+                      teamId={teamId}
+                      teamName={teamName}
+                      riderId={rider.id}
+                      riderName={rider.name}
+                    />
+                  ),
+                },
+              ]
+            : []),
         ]}
       />
     </>
