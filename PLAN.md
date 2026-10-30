@@ -57,15 +57,17 @@ gaat stabiliteit voor nieuwe features.
    privacyversie kunnen (zie de ronde "Clubverhaal"). Nog doen: één verhaal
    met foto insturen, plaatsen en op `/verhaal` en bij de beker bekijken.
 
-0g. **App-updates (2026-10-30): migraties `0293` en `0294` toegepast, code
-   niet gepusht.** `0293_app_updates.sql`, met de geschiedenis van 21 mei
+0g. **App-updates (2026-10-30): migraties `0293` en `0294` toegepast,
+   gepusht naar `main` op 2026-10-30.** `0293_app_updates.sql`, met de geschiedenis van 21 mei
    tot en met 29 oktober, is op 2026-10-30 via de Supabase-connector toegepast
-   (op verzoek van de eigenaar). Tot de code op `main` staat, zien leden er
-   niets van. Na de push krijgen ze week 44 tot 5 november als pop-up.
-   `0294` is dezelfde dag toegepast (op verzoek van de eigenaar). Voor de
-   automatische update vanaf week 45 nog nodig: `APP_UPDATES_SECRET` in
-   Netlify zetten (vóór de deploy) en op cron-job.org
-   een job elk uur naar `POST /api/app-updates/weekly` (docs/runbook.md). Zie
+   (op verzoek van de eigenaar). Leden krijgen week 44 tot 5 november als
+   pop-up.
+   `0294` is dezelfde dag toegepast (op verzoek van de eigenaar).
+   `APP_UPDATES_SECRET` staat in Netlify (gemeld door de eigenaar, vóór de
+   push). Nog nodig: op cron-job.org een job elk uur naar
+   `POST /api/app-updates/weekly` (docs/runbook.md). Na de deploy nalopen:
+   `/updates`, de pop-up, en donderdag 5 november na 15:00 of week 45 er
+   staat. Zie
    de rondes "App-updates: elke donderdag wat er veranderd is" en "App-updates
    vanzelf uit PLAN.md".
 
@@ -11574,7 +11576,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 **2026-10-30.** Commit `598abb42`. Migratie `0294_app_updates_auto.sql`, op
 2026-10-30 via de Supabase-connector toegepast (op verzoek van de eigenaar):
 de check op `ai_jobs.feature` kent `app_updates`, week 44 heeft 15 nieuwe
-punten met krachttraining als laatste. Niet gepusht.
+punten met krachttraining als laatste. Gepusht naar `main` op 2026-10-30.
 
 **Waarom.** De eigenaar: "Ik wil dit nooit zelf schrijven, dit moet
 automatisch geput worden uit plan.md". PLAN.md beschrijft elke ronde al; de
@@ -11629,7 +11631,8 @@ achtergrondopdracht daar.
 **2026-10-30.** Commit `b4bdb2cf`; de geschiedenis in de commit erna (zie
 `git log`). Migratie `0293_app_updates.sql`, op 2026-10-30 via de
 Supabase-connector toegepast op productie (op verzoek van de eigenaar). Niet
-lokaal tegen Supabase te testen (geen Docker of Supabase-config). Niet gepusht.
+lokaal tegen Supabase te testen (geen Docker of Supabase-config). Gepusht naar
+`main` op 2026-10-30.
 
 **Waarom.** De eigenaar wil leden elke week laten weten wat er in de app
 veranderd is: een pagina voor alle leden met de updates en bugfixes kort
@@ -11693,7 +11696,7 @@ geschiedenis als tijdelijke voorbeelddata (niet gecommit): de pop-up na
 `/beheer/app-updates` onder Beheer → App. **Op productie (2026-10-30):** 20
 weken, RLS aan, twee policies; een md5 over alle teksten is gelijk aan die uit
 het migratiebestand in PGlite. **Niet geverifieerd:** opslaan op het
-beheerscherm en de pop-up op productie; de code staat nog niet op `main`.
+beheerscherm en de pop-up op productie.
 
 ### Gebouwd — Rosternamen zonder account in het ZWB teamprofiel
 
