@@ -11555,6 +11555,34 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Rosternamen zonder account in het ZWB teamprofiel
+
+**2026-10-30.** Commit volgt, niet gepusht. Geen migratie.
+
+**Waarom.** Eigenaar: bij ZWBeauties stonden 9 renners in de puzzel maar 6 in
+het teamprofiel, bij ZWBullets net zo; "ik wil dat deze zichtbaar zijn anders
+kunnen we ze nooit indelen". Het verschil waren rosternamen zonder account
+(`ladder_roster_riders`, 0290): Beauties 3, Bullets 2, Brains 1.
+
+**Wat.**
+- `loadLadderPuzzle` geeft de rosterrijen ook terug; `loadTeamRosterRiders`
+  neemt die van het gekozen team, met dezelfde ontdubbeling als de puzzel (een
+  rosternaam met het Zwift-ID van een lid valt weg). Ze staan in het
+  teamprofiel met "geen account" en tellen mee bij Riders.
+- Hun ZRS (later vELO 2) komt via het Zwift-ID uit `zwift_rider_metrics`; wat
+  ontbreekt, haalt `refreshRiderMetrics` na het antwoord op, zoals bij leden.
+  FTP, W/kg en type blijven leeg: die komen uit een ZWB-profiel.
+- `sortLadderRiders` is generiek, zodat het teamprofiel met `TeamProfileRider`
+  (lid of rosternaam) sorteert.
+- Het kruisje (teams buiten de puzzel) werkt ook voor een rosternaam: die gaat
+  naar de losse stukjes (`team_id` leeg), zoals op de bank in de puzzel.
+- `/hulp` en privacyverklaring: van rosternamen is nu ook de ZRS te zien.
+  Openbaar op Zwift en zwiftracing.app; geen nieuwe versie.
+
+**Gecontroleerd.** `tsc` schoon, ESLint. Productie uitgelezen: Bullets 2
+rosternamen met ZRS, Beauties 3 en Brains 1 nog zonder (komt bij de eerste
+paginalading). **Niet geverifieerd:** de pagina in de browser.
+
 ### Gebouwd — Kruisje in het teamprofiel voor teams buiten de puzzel
 
 **2026-10-30.** Commit volgt, niet gepusht. Geen migratie.

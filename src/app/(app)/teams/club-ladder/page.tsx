@@ -50,6 +50,9 @@ const METRICS_REFRESH_BUDGET_MS = 20_000;
 
 export const revalidate = 0;
 
+/** Renner in het teamprofiel: een lid, of een rosternaam zonder account (0290). */
+type TeamProfileRider = LadderRider & { rosterEntryId: string | null };
+
 type Search = {
   team?: string;
   sort?: string;
@@ -191,14 +194,19 @@ export default async function ClubLadderPage({
   // Wie uit de ladder is gehaald, valt uit de puzzel, maar blijft in het
   // teamprofiel van een team buiten de puzzel waar hij nog lid van is.
   const allLadderRiders = loadedRiders.filter((rider) => !withdrawn.has(rider.id));
-  const teamRiders = selectedTeam
+  const puzzle = await loadLadderPuzzle(teamRows, allLadderRiders, admin);
+  const teamRiders: TeamProfileRider[] = selectedTeam
     ? sortLadderRiders(
-        loadedRiders.filter((rider) => rider.teamIds.includes(selectedTeam.id)),
+        [
+          ...loadedRiders
+            .filter((rider) => rider.teamIds.includes(selectedTeam.id))
+            .map((rider) => ({ ...rider, rosterEntryId: null })),
+          ...(await loadTeamRosterRiders(selectedTeam.id, puzzle?.roster ?? [], loadedRiders, useVelo)),
+        ],
         riderSort,
       )
     : [];
   const selectedStrength = strengthFor(teamRiders);
-  const puzzle = await loadLadderPuzzle(teamRows, allLadderRiders, admin);
   const captainData = canAssign ? await loadLadderCaptains(teamRows, admin) : null;
 
   let liveStandings: ClubLadderStanding[] = [];
@@ -466,8 +474,60 @@ async function loadLadderPuzzle(
   return {
     teams,
     otherTeams,
+    roster,
     riders: buildPuzzleRiders(members, roster, ranks, new Set(teams.map((team) => team.id))),
   };
+}
+
+function zwiftIdOf(value: string | null) {
+  const id = Number(value?.trim());
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+/**
+ * Rosternamen zonder account in dit team, zoals in de puzzel: een rosternaam
+ * met het Zwift-ID van een lid valt weg. De score komt via het Zwift-ID; FTP en
+ * W/kg komen uit een ZWB-profiel en ontbreken dus.
+ */
+async function loadTeamRosterRiders(
+  teamId: string,
+  roster: LadderRosterRow[],
+  members: LadderRider[],
+  useVelo: boolean,
+): Promise<TeamProfileRider[]> {
+  const memberZwiftIds = new Set(members.map((member) => member.zwiftId));
+  const rows = roster
+    .filter((row) => row.team_id === teamId)
+    .map((row) => ({ row, zwiftId: zwiftIdOf(row.zwift_id) }))
+    .filter(({ zwiftId }) => zwiftId == null || !memberZwiftIds.has(zwiftId));
+  if (rows.length === 0) return [];
+
+  const zwiftIds = rows.map(({ zwiftId }) => zwiftId).filter((id): id is number => id != null);
+  const metrics = await loadRiderMetrics(zwiftIds);
+  after(() => refreshRiderMetrics(zwiftIds, metrics, { budgetMs: METRICS_REFRESH_BUDGET_MS }));
+  return rows.map(({ row, zwiftId }) => {
+    const metric = zwiftId == null ? undefined : metrics.get(zwiftId);
+    const score = useVelo ? metric?.velo : metric?.racingScore;
+    return {
+      id: row.roster_entry_id,
+      rosterEntryId: row.roster_entry_id,
+      name: row.name.trim() || "Onbekend",
+      sex: row.sex === "man" || row.sex === "vrouw" ? row.sex : null,
+      zwiftId,
+      score: score != null && score > 0 ? score : null,
+      teams: [],
+      teamIds: [teamId],
+      interested: false,
+      inPool: false,
+      category: null,
+      riderType: null,
+      ftpWatts: null,
+      ftpWkg: null,
+      wkg1m: null,
+      wkg5m: null,
+      wkg20m: null,
+    };
+  });
 }
 
 async function loadLadderCaptains(
@@ -609,7 +669,7 @@ function TeamRidersTable({
   scoreLabel,
   canRemove,
 }: {
-  riders: LadderRider[];
+  riders: TeamProfileRider[];
   sort: LadderRiderSort;
   teamId: string;
   teamName: string;
@@ -676,7 +736,15 @@ function TeamRidersTable({
             key: "rider",
             header: header("name", "Renner"),
             primary: true,
-            cell: (rider) => <MemberLink id={rider.id}>{rider.name}</MemberLink>,
+            cell: (rider) =>
+              rider.rosterEntryId ? (
+                <span>
+                  {rider.name}{" "}
+                  <span className="text-xs font-normal text-muted-foreground">geen account</span>
+                </span>
+              ) : (
+                <MemberLink id={rider.id}>{rider.name}</MemberLink>
+              ),
             cellClassName: "font-medium",
           },
           {
@@ -737,11 +805,11 @@ function TeamRidersTable({
                   key: "remove",
                   header: <span className="sr-only">Uit het team</span>,
                   align: "right" as const,
-                  cell: (rider: LadderRider) => (
+                  cell: (rider: TeamProfileRider) => (
                     <LadderTeamRemoveButton
                       teamId={teamId}
                       teamName={teamName}
-                      riderId={rider.id}
+                      rider={{ kind: rider.rosterEntryId ? "roster" : "profile", id: rider.id }}
                       riderName={rider.name}
                     />
                   ),

@@ -146,18 +146,28 @@ async function leavePuzzleTeams(admin: Admin, profileId: string, teamIds: string
 }
 
 /**
- * Haalt een lid uit een ladderteam dat niet in de puzzel staat (ZWBandits e.d.),
- * via het teamprofiel. Teams in de puzzel deelt alleen de rol teamcaptain in.
+ * Haalt een renner uit een ladderteam dat niet in de puzzel staat (ZWBandits
+ * e.d.), via het teamprofiel. Een rosternaam gaat naar de losse stukjes. Teams
+ * in de puzzel deelt alleen de rol teamcaptain in.
  */
-export async function removeFromLadderTeam(teamId: string, profileId: string) {
+export async function removeFromLadderTeam(teamId: string, rider: PuzzleRiderRef) {
   const check = await guard(teamId);
   if (!check.ok) return check;
   if ((await puzzleTeamIds(check.admin)).includes(teamId)) {
     return { ok: false as const, error: "Dit team staat in de puzzel." };
   }
 
-  const res = await leavePuzzleTeams(check.admin, profileId, [teamId], check.userId);
-  if (res.error) return { ok: false as const, error: res.error };
+  if (rider.kind === "roster") {
+    const { error } = await check.admin
+      .from("ladder_roster_riders")
+      .update({ team_id: null })
+      .eq("roster_entry_id", rider.id)
+      .eq("team_id", teamId);
+    if (error) return { ok: false as const, error: error.message };
+  } else {
+    const res = await leavePuzzleTeams(check.admin, rider.id, [teamId], check.userId);
+    if (res.error) return { ok: false as const, error: res.error };
+  }
   refresh(teamId);
   return { ok: true as const };
 }

@@ -111,9 +111,9 @@ export default function PrivacyPage() {
             maar volgt uit FTP en W/kg. Voor die indeling legt een captain ook
             je ladderrank vast (de rank die zwiftracing.app openbaar toont) en
             in welk ladderteam je rijdt. Dat kan ook voor renners zonder
-            ZWB-account: dan staat hun naam uit het rooster met Zwift-ID, rank
-            en eventueel geslacht op de Club Ladder-pagina, tot ze hun naam
-            claimen.
+            ZWB-account: dan staat hun naam uit het rooster met Zwift-ID, rank,
+            eventueel geslacht en hun Zwift Racing Score (of vELO 2) op de Club
+            Ladder-pagina, tot ze hun naam claimen.
           </li>
           <li>
             <strong>ZRL-teamgegevens van WTRL:</strong> voor de ZRL-teams nemen
