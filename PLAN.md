@@ -11564,7 +11564,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — App-updates: elke donderdag wat er veranderd is
 
-**2026-10-30.** Commit volgt in de PLAN-commit hierna. Migratie
+**2026-10-30.** Commit `b4bdb2cf`. Migratie
 `0293_app_updates.sql`, **nog niet toegepast** en niet lokaal te testen (geen
 Docker of Supabase-config). Niet gepusht.
 
