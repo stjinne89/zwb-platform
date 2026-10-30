@@ -11580,6 +11580,9 @@ drie schuine vlakken.
 schuin vlak: Android tekent de badge als wit alfamasker op ~24px, daar is het
 woordmerk een vlek. De OG-kaart blijft het beeldmerk op petrol, waar de zwarte
 B wegvalt. `ZwbLogo`/`ZwbMark` op de publieke pagina's zijn nog niet vervangen.
+Op 16 px is het woordmerk maar een dun streepje; de eigenaar koos er na een
+vergelijking oud/nieuw voor om ook daar het echte logo te houden en niet terug
+te vallen op de drie vlakken.
 
 **Niet geverifieerd.** De iconen zijn als plaatje bekeken, niet in een browser
 of geïnstalleerde app. Een al geïnstalleerde app neemt een nieuw icoon pas over
