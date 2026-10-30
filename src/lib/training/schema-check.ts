@@ -82,12 +82,6 @@ const TAPER_MAX_DAYS = 21;
  * groei per week haalt een blok dat in zijn tweede opbouwweek.
  */
 const PEAK_LOAD_SHARE = 1.1;
-/**
- * De belasting hier is een blok-som; een gereden rit meet TSS met het
- * genormaliseerd vermogen en komt zo'n 5 % hoger uit (estimateTrainingLoad).
- * Die marge krijgt het schema mee.
- */
-const LOAD_ESTIMATE_MARGIN = 0.95;
 /** Vult een week zijn beschikbare tijd al zo ver, dan begrenst de tijd en niet de planner. */
 const FULL_TIME_SHARE = 0.95;
 const MAX_WEEK_GROWTH = 1.25;
@@ -496,7 +490,7 @@ export function checkTrainingPlan(
       // lagere piek geen fout.
       const reachable =
         blockStart != null && blockStart > 0 ? blockStart * MAX_WEEK_GROWTH ** (block.indexOf(peak) + 1) : Infinity;
-      const needed = Math.min(current.weeklyTss * PEAK_LOAD_SHARE, reachable) * LOAD_ESTIMATE_MARGIN;
+      const needed = Math.min(current.weeklyTss * PEAK_LOAD_SHARE, reachable);
       if (peak.load < needed - 1 && !timeFull(peak)) {
         add(
           "piekweek",
@@ -540,7 +534,7 @@ export function checkTrainingPlan(
     }
     if (!fatigue && !week.rebuild && !unknownBefore) {
       if (current) {
-        if (week.load < current.weeklyTss * LOAD_ESTIMATE_MARGIN && !timeFull(week)) {
+        if (week.load < current.weeklyTss && !timeFull(week)) {
           add(
             "onder-recente-belasting",
             week.monday,

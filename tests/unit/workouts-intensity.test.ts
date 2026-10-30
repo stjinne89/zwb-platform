@@ -137,6 +137,22 @@ describe("estimateTrainingLoad", () => {
       ),
     ).toBe(100);
   });
+
+  it("rekent een intervaltraining met genormaliseerd vermogen, zoals de gereden rit", () => {
+    // VO2max 5x3 die een lid exact in ERG reed: 60 TSS en IF 0,87 gemeten.
+    // De oude som per blok gaf 47; daarmee scoorde de rit 128% en "te zwaar".
+    const vo2 = { durationMinutes: 3, target: "107-115%", intensity: "vo2max" };
+    const herstel = { durationMinutes: 3, target: "50-55%", intensity: "recovery" };
+    const load = estimateTrainingLoad(
+      blocks([
+        { durationMinutes: 12, target: "55-70%", intensity: "endurance" },
+        vo2, herstel, vo2, herstel, vo2, herstel, vo2, herstel, vo2,
+        { durationMinutes: 8, target: "45-55%", intensity: "recovery" },
+      ]),
+    );
+    expect(load).toBeGreaterThanOrEqual(57);
+    expect(load).toBeLessThanOrEqual(60);
+  });
 });
 
 describe("Zwift-zonekleuren", () => {

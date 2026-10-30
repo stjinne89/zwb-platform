@@ -11555,10 +11555,52 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Geplande TSS met genormaliseerd vermogen, zoals de gereden rit
+
+**2026-10-30.** De commit met deze ronde (van branch
+`claude/zwift-tss-if-discrepancy-49d3a7`), gepusht naar `main` op 2026-10-30.
+Geen migratie.
+
+**Waarom.** Een lid reed VO2max 5x3 in Zwift exact volgens plan (277 W, 111%
+FTP, zones 99% gelijk) en kreeg "Te zwaar · 128%": TSS 60 tegen 47 gepland, IF
+0,87 tegen 0,77. De gereden kant rekent met NP (30 s glijdend gemiddelde, vierde
+macht); `estimateTrainingLoad` telde per blok `uren × IF²` op. Bij constant
+vermogen is dat gelijk, maar bij intervallen weegt het harde werk te licht. De
+ronde van 2026-08-20 schatte dat verschil op "zo'n 5%"; bij deze workout was het
+28%. De geplande IF (`plannedIntensityFactor`) volgt uit de geplande TSS en was
+dus ook te laag.
+
+**Wat.**
+- `estimateTrainingLoad` (`lib/training/workouts.ts`) schrijft het schema per
+  seconde uit (bursts vooraan, aan/uit-stappen, zoals `blocksToWorkoutDoc`) en
+  rekent er NP over: TSS = uren × NP-IF² × 100. Rust telt als stilstaan, net als
+  de bewegende tijd van een rit. Deze workout: 57 TSS, IF 0,85 gepland; de rit
+  komt op 105% en is volgens plan.
+- De 5%-marge `LOAD_ESTIMATE_MARGIN` in `schema-check.ts` is weg: die
+  compenseerde precies dit verschil. Een test van `piekweek` was op die marge
+  afgesteld en vraagt nu een iets zwaardere week.
+- Gevolg overal waar `estimateTrainingLoad` gebruikt wordt: naleving, de
+  intervals-belasting bij publiceren, de Zwift-matching, de trainerpagina en de
+  meetlat. Intervaltrainingen krijgen een hogere geplande TSS; ritten op constant
+  vermogen blijven gelijk. Opgeslagen `plannedLoad` in bestaande snapshots
+  verandert niet met terugwerkende kracht.
+
+**Bewust niet.** De nalevingsband (`COMPLIANCE_HIGH` 115) blijft. `plannedTss`
+in `lib/briljant/snapshot.ts` (minuten × intensiteit, zonder blokken) is niet
+aangeraakt. Oude snapshots niet herberekend.
+
+**Gecontroleerd.** Vitest: nieuwe test met de workout van het lid (57-60) plus
+de bestaande belastingtests (164 groen in de geraakte bestanden). In de volle
+run falen dezelfde tests als zonder deze wijziging (o.a. `race-links`,
+`zwift-route`, `intervals-ride-sync` en ontbrekende packages in de gedeelde
+`node_modules`). ESLint schoon; `tsc` alleen met de bestaande fouten over
+`@anthropic-ai/sdk` en `modern-screenshot`. **Niet geverifieerd:** de pagina met
+echte data.
+
 ### Gebouwd — Rit invoeren zonder bestand
 
-**2026-10-30.** De commit met deze ronde op branch
-`claude/manual-training-entry-cd7b1e`; niet gepusht. Geen migratie.
+**2026-10-30.** Commit `625cac3c` (van branch `claude/manual-training-entry-cd7b1e`),
+gepusht naar `main` op 2026-10-30. Geen migratie.
 
 **Waarom.** Een lid reed een training, maar de opname mislukte en er is geen
 bestand. Zonder rit bleef de training uit zijn schema open en telde de
@@ -14591,7 +14633,8 @@ sleutelsessies, zeker in de winter met meer binnen rijden.
 - **Meetlat** (`schema-check.ts`). `piekweek`, `onder-recente-belasting` en
   `opbouwgroei` rekenen met geschatte TSS (`estimateTrainingLoad` per workout,
   `loadForIntensity` voor vaste afspraken). De piek moet minstens 10 % boven
-  `currentLoad` liggen, de opbouwweek erboven (5 % marge voor de blok-som). Geen
+  `currentLoad` liggen, de opbouwweek erboven (tot 2026-10-30 met 5 % marge
+  voor de blok-som; sinds de geplande TSS met NP rekent, zonder marge). Geen
   oordeel als een week zijn beschikbare tijd al voor 95 % vult. Zonder
   belastingsbron geen piekoordeel meer; de ondergrens valt dan terug op uren.
   `docs/schema-meetlat.md` bijgewerkt.
@@ -27910,6 +27953,9 @@ van de losse blokken ligt. Dat is echte natuurkunde, geen fout — TrainingPeaks
 heeft hetzelfde. Een expliciete variabiliteits-opslag van ~5% op de planning is
 eerlijker dan de band oprekken, maar dat is een keuze over hoe streng het
 oordeel moet zijn en die hoort niet in een bugfix.
+*(Achterhaald 2026-10-30: dat verschil bleek bij intervallen geen 5% maar tot
+28% (VO2max 5x3: 47 gepland, 60 gereden). `estimateTrainingLoad` rekent sinds
+de ronde "Geplande TSS met genormaliseerd vermogen" zelf met NP.)*
 
 Ook niet aangeraakt: dat ZWB alle historie omrekent met de húdige
 `profiles.ftp_watts`, terwijl intervals.icu de FTP gebruikt die gold op de dag
@@ -29523,20 +29569,13 @@ Challenges, visuele herziening, AI-agenten en de on-hold-punten staan onder
   CTL-reeks, dus historische cijfers verschuiven eenmalig. Hangt samen met punt 1
   hierboven — dezelfde vraag naar welke FTP-bron leidend is, maar dan over de tijd.
 
-- **Naleving komt structureel net boven 100% uit bij blokkige workouts**
-  (2026-08-20, restant van dezelfde fix). Een gereden rit meet TSS via het
-  genormaliseerd vermogen over de héle rit, en NP is een vierdemachtsgemiddelde;
-  de geplande kant is een kwadratische som over losse blokken. Bij blokkig werk
-  ligt het eerste zo'n 5% boven het tweede — dat is de definitie van TSS, geen
-  fout, en TrainingPeaks heeft hetzelfde. Gevolg: wie in ERG exact volgens plan
-  rijdt scoort ~105% in plaats van 100%, en bij variabeler werk loopt dat op.
-
-  `COMPLIANCE_HIGH` staat op 115 en vangt dat nu, maar de marge voor een sessie
-  die wel echt te zwaar was is daarmee smal. Overwegen: een expliciete
-  variabiliteits-opslag van ~5% op `estimateTrainingLoad` in plaats van de band
-  oprekken. Dat is een keuze over hoe streng het oordeel moet zijn — die hoort
-  bij de trainer, niet in een bugfix. Eerst meten: wat is de gemiddelde `loadPct`
-  over sessies die aantoonbaar in ERG zijn gereden?
+- ~~**Naleving komt structureel net boven 100% uit bij blokkige workouts**~~
+  **Opgelost 2026-10-30.** De geplande kant was een kwadratische som over losse
+  blokken, de gereden kant NP. Het verschil bleek bij intervallen geen 5% maar
+  tot 28%: een exact gereden VO2max 5x3 scoorde 128% en "te zwaar".
+  `estimateTrainingLoad` rekent nu zelf met NP over het uitgeschreven schema;
+  zie de ronde "Geplande TSS met genormaliseerd vermogen". Een
+  variabiliteits-opslag is daarmee niet meer nodig.
 
 ---
 
