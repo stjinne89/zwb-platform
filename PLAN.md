@@ -11548,7 +11548,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Ladderpuzzel vervangt de Captain-selectie op Club Ladder
 
-**2026-10-30.** Commit volgt, niet gepusht. Geen migratie.
+**2026-10-30.** Commit `f20952e9`, niet gepusht. Geen migratie.
 
 **Waarom.** De eigenaar: "De ladderpuzzel komt in de plaats van de captain
 selectie, dus doe die weg dat is nu overbodig." Beide deelden dezelfde renners
