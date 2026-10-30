@@ -57,13 +57,14 @@ gaat stabiliteit voor nieuwe features.
    privacyversie kunnen (zie de ronde "Clubverhaal"). Nog doen: één verhaal
    met foto insturen, plaatsen en op `/verhaal` en bij de beker bekijken.
 
-0g. **App-updates (2026-10-30): migratie `0293` toegepast, `0294` nog niet,
-   code niet gepusht.** `0293_app_updates.sql`, met de geschiedenis van 21 mei
+0g. **App-updates (2026-10-30): migraties `0293` en `0294` toegepast, code
+   niet gepusht.** `0293_app_updates.sql`, met de geschiedenis van 21 mei
    tot en met 29 oktober, is op 2026-10-30 via de Supabase-connector toegepast
    (op verzoek van de eigenaar). Tot de code op `main` staat, zien leden er
    niets van. Na de push krijgen ze week 44 tot 5 november als pop-up.
-   Voor de automatische update vanaf week 45 nog nodig: `0294` toepassen,
-   `APP_UPDATES_SECRET` in Netlify zetten (vóór de deploy) en op cron-job.org
+   `0294` is dezelfde dag toegepast (op verzoek van de eigenaar). Voor de
+   automatische update vanaf week 45 nog nodig: `APP_UPDATES_SECRET` in
+   Netlify zetten (vóór de deploy) en op cron-job.org
    een job elk uur naar `POST /api/app-updates/weekly` (docs/runbook.md). Zie
    de rondes "App-updates: elke donderdag wat er veranderd is" en "App-updates
    vanzelf uit PLAN.md".
@@ -11568,8 +11569,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — App-updates vanzelf uit PLAN.md
 
-**2026-10-30.** Commit: zie `git log` bij deze ronde. Migratie
-`0294_app_updates_auto.sql`, **nog niet toegepast**. Niet gepusht.
+**2026-10-30.** Commit `598abb42`. Migratie `0294_app_updates_auto.sql`, op
+2026-10-30 via de Supabase-connector toegepast (op verzoek van de eigenaar):
+de check op `ai_jobs.feature` kent `app_updates`, week 44 heeft 15 nieuwe
+punten met krachttraining als laatste. Niet gepusht.
 
 **Waarom.** De eigenaar: "Ik wil dit nooit zelf schrijven, dit moet
 automatisch geput worden uit plan.md". PLAN.md beschrijft elke ronde al; de
@@ -11617,7 +11620,7 @@ af en toe een lid bij naam. De prompt verbiedt namen in de update.
 Een proefrun met de echte prompt op de rondes van week 44 (Opus 5.5, 36 s,
 88.000 tokens invoer, niets opgeslagen) gaf 14 nieuwe en 9 opgeloste punten in
 de gevraagde toon. **Niet geverifieerd:** de route op Netlify, de
-achtergrondopdracht daar en `0294`.
+achtergrondopdracht daar.
 
 ### Gebouwd — App-updates: elke donderdag wat er veranderd is
 
