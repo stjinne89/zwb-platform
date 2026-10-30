@@ -660,6 +660,34 @@ type CandidateWorkout = {
 };
 
 /**
+ * Tot welke dag een lid bij deze training zelf een rit kan invoeren (Rit
+ * invoeren, voor een rit zonder bestand), of null als dat niet kan: de training
+ * is al gereden, ligt nog in de toekomst, of is rust of een clubevent. De
+ * ritdag loopt van de trainingsdag tot en met vandaag, binnen dezelfde week die
+ * reassignCandidates toestaat.
+ */
+export function manualRideWindow(
+  workout: Pick<CandidateWorkout, "scheduled_at" | "status" | "intensity" | "origin">,
+  paired: boolean,
+  todayKey: string,
+): { maxDateKey: string } | null {
+  const dayKey = String(workout.scheduled_at).slice(0, 10);
+  if (
+    paired ||
+    workout.status !== "planned" ||
+    workout.intensity === "rest" ||
+    workout.origin === "event" ||
+    dayKey > todayKey
+  ) {
+    return null;
+  }
+  const last = new Date(`${dayKey}T12:00:00Z`);
+  last.setUTCDate(last.getUTCDate() + COMPLETION_WINDOW_DAYS - 1);
+  const lastKey = last.toISOString().slice(0, 10);
+  return { maxDateKey: lastKey < todayKey ? lastKey : todayKey };
+}
+
+/**
  * Welke andere trainingen deze rit kan zijn geweest: nog niet gereden, niet
  * als rustdag afgeschreven, geen rust en geen clubevent, en gepland in de week
  * tot en met de ritdag. Een training die later gepland staat valt af: die staat

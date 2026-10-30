@@ -1,8 +1,10 @@
 "use client";
 
+// Een training gereden, maar de opname mislukte: de rit zelf invoeren, meteen
+// aan deze training. Zie saveManualRide in _actions/manual-ride.ts.
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { PencilLine, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,64 +13,43 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  deleteManualRide,
-  listMyManualRides,
-  saveManualRide,
-  type ManualRide,
-} from "@/app/(app)/_actions/manual-ride";
+import { deleteManualRide, saveManualRide } from "@/app/(app)/_actions/manual-ride";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
 const LABEL = "mb-1 block text-sm font-medium";
+const SMALL_BUTTON =
+  "rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent disabled:opacity-50";
 
-function todayKey() {
-  return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
+function durationText(minutes: number | null) {
+  if (!minutes) return "";
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}`;
 }
 
-function rideLabel(ride: ManualRide) {
-  const when = new Date(ride.start_date).toLocaleDateString("nl-NL", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Amsterdam",
-  });
-  const minutes = Math.round(ride.moving_time_seconds / 60);
-  const duration = `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}`;
-  const km = ride.distance_m > 0 ? ` · ${(ride.distance_m / 1000).toLocaleString("nl-NL", { maximumFractionDigits: 1 })} km` : "";
-  return `${when} · ${duration}${km}`;
-}
-
-/** Een gereden rit zelf invullen als het bestand ontbreekt. */
-export function ManualRideDialog() {
+export function ManualRideDialog({
+  workoutId,
+  title,
+  dateKey,
+  maxDateKey,
+  durationMinutes,
+}: {
+  workoutId: string;
+  title: string;
+  /** De dag van de training; de rit kan niet eerder zijn. */
+  dateKey: string;
+  maxDateKey: string;
+  durationMinutes: number | null;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [date, setDate] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [rides, setRides] = useState<ManualRide[]>([]);
   const [pending, startTransition] = useTransition();
-
-  function loadRides() {
-    listMyManualRides()
-      .then((res) => setRides(res.ok ? res.rides : []))
-      .catch(() => setRides([]));
-  }
-
-  function onOpenChange(next: boolean) {
-    setOpen(next);
-    if (!next) return;
-    setError(null);
-    setDate((current) => current || todayKey());
-    loadRides();
-  }
 
   function submit(formData: FormData) {
     const text = (key: string) => String(formData.get(key) ?? "");
     setError(null);
     startTransition(async () => {
-      const res = await saveManualRide({
+      const res = await saveManualRide(workoutId, {
         name: text("name"),
         date: text("date"),
         time: text("time"),
@@ -85,37 +66,23 @@ export function ManualRideDialog() {
         return;
       }
       setOpen(false);
-      setDate("");
-      router.refresh();
-    });
-  }
-
-  function remove(id: number) {
-    setError(null);
-    startTransition(async () => {
-      const res = await deleteManualRide(id).catch(() => null);
-      if (!res?.ok) {
-        setError(res?.error ?? "Verwijderen mislukt.");
-        return;
-      }
-      setRides((current) => current.filter((ride) => ride.id !== id));
       router.refresh();
     });
   }
 
   return (
     <>
-      <Button
+      <button
         type="button"
-        variant="outline"
-        size="sm"
-        className="shrink-0"
-        onClick={() => onOpenChange(true)}
+        className={SMALL_BUTTON}
+        onClick={() => {
+          setError(null);
+          setOpen(true);
+        }}
       >
-        <PencilLine data-icon="inline-start" />
         Rit invoeren
-      </Button>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Rit invoeren</DialogTitle>
@@ -123,7 +90,7 @@ export function ManualRideDialog() {
           <form action={submit} className="grid grid-cols-2 gap-3">
             <label className="col-span-2">
               <span className={LABEL}>Naam</span>
-              <input name="name" maxLength={120} placeholder="Fietsrit" className={FIELD} />
+              <input name="name" maxLength={120} defaultValue={title} className={FIELD} />
             </label>
             <label>
               <span className={LABEL}>Datum</span>
@@ -131,9 +98,9 @@ export function ManualRideDialog() {
                 name="date"
                 type="date"
                 required
-                value={date}
-                max={todayKey()}
-                onChange={(event) => setDate(event.target.value)}
+                defaultValue={dateKey}
+                min={dateKey}
+                max={maxDateKey}
                 className={FIELD}
               />
             </label>
@@ -146,6 +113,7 @@ export function ManualRideDialog() {
               <input
                 name="duration"
                 required
+                defaultValue={durationText(durationMinutes)}
                 placeholder="1:30"
                 inputMode="numeric"
                 pattern="\d{1,2}[:.uh]\d{2}|\d{1,4}"
@@ -183,35 +151,37 @@ export function ManualRideDialog() {
               </Button>
             </DialogFooter>
           </form>
-          {rides.length > 0 ? (
-            <div className="mt-5 border-t pt-4">
-              <p className="mb-2 text-sm font-medium">Ingevoerd</p>
-              <ul className="divide-y rounded-md border">
-                {rides.map((ride) => (
-                  <li key={ride.id} className="flex items-center justify-between gap-3 px-3 py-2">
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm">{ride.name}</span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {rideLabel(ride)}
-                      </span>
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`${ride.name} verwijderen`}
-                      disabled={pending}
-                      onClick={() => remove(ride.id)}
-                    >
-                      <Trash2 />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+/** Een zelf ingevoerde rit weer weghalen; de training staat daarna weer open. */
+export function DeleteManualRideButton({ activityId }: { activityId: string }) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function remove() {
+    if (!confirm("Ingevoerde rit verwijderen?")) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await deleteManualRide(Number(activityId)).catch(() => null);
+      if (!res?.ok) {
+        setError(res?.error ?? "Verwijderen mislukt.");
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <button type="button" onClick={remove} disabled={pending} className={SMALL_BUTTON}>
+        {pending ? "Bezig…" : "Ingevoerde rit verwijderen"}
+      </button>
+      {error ? <span className="text-xs text-destructive">{error}</span> : null}
+    </span>
   );
 }

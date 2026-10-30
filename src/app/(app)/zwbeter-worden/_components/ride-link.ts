@@ -8,6 +8,8 @@ export type RideLink = {
   activityId: string;
   /** De training waar de rit nu aan hangt; null als hij ongepland staat. */
   workoutId: string | null;
+  /** Zelf ingevoerd (Rit invoeren): het lid kan hem weer verwijderen. */
+  manual?: boolean;
   /** Naam en dag van de rit, voor bij een training. */
   rideLabel: string;
   options: Array<{ workoutId: string; label: string }>;

@@ -11662,41 +11662,55 @@ run falen dezelfde tests als zonder deze wijziging (o.a. `race-links`,
 `@anthropic-ai/sdk` en `modern-screenshot`. **Niet geverifieerd:** de pagina met
 echte data.
 
-### Gebouwd — Rit invoeren zonder bestand
+### Gebouwd — Rit invoeren bij de training, zonder bestand
 
-**2026-10-30.** Commit `625cac3c` (van branch `claude/manual-training-entry-cd7b1e`),
-gepusht naar `main` op 2026-10-30. Geen migratie.
+**2026-10-30.** Commit `625cac3c` (eerste versie, knop op het dashboard) en de
+commit erna (verhuisd naar de training), allebei van branch
+`claude/manual-training-entry-cd7b1e` en gepusht naar `main` op 2026-10-30.
+Geen migratie.
 
 **Waarom.** Een lid reed een training, maar de opname mislukte en er is geen
-bestand. Zonder rit bleef de training uit zijn schema open en telde de
-belasting niet mee. Wens eigenaar: een rit met de hand kunnen invoeren.
+bestand. Zonder rit bleef de training open en telde de belasting niet mee. Wens
+eigenaar: een rit met de hand kunnen invoeren. De eerste versie zette de knop op
+het dashboard naast Importeer ritten en liet de detectie de rit op kalenderdag
+aan een training hangen. De eigenaar wilde hem "bij de training zelf zodat het
+gelijk aan elkaar gekoppeld is"; die dashboardknop is weer weg.
 
 **Wat.**
-- Knop **Rit invoeren** op het dashboard, naast Importeer ritten
-  (`components/manual-ride-dialog.tsx`). Velden: naam, datum, starttijd, duur
-  (`1:30` of minuten), afstand, hoogtemeters, binnen, gemiddeld vermogen, NP en
-  gemiddelde hartslag. Alleen datum, starttijd en duur zijn verplicht.
+- In de maandkalender op `/zwbeter-worden/schema`: klik een training die nog
+  niet gereden is (vandaag of eerder) en kies **Rit invoeren**
+  (`zwbeter-worden/_components/manual-ride-dialog.tsx`). Naam, datum en duur
+  komen uit de training; het lid vult de starttijd in en wat het weet van
+  afstand, hoogtemeters, binnen, gemiddeld vermogen, NP en hartslag. De datum
+  kan tot een week na de trainingsdag, niet na vandaag.
+- Wanneer de knop er staat, bepaalt `manualRideWindow`
+  (`lib/training/completion.ts`): training op `planned`, geen rit eraan, geen
+  rust of clubevent, en dezelfde week als `reassignCandidates` toestaat.
 - `manualRideRow` (`lib/strava/import.ts`) bouwt een gewone rij in
   `strava_activities`, met `raw.import_source = "manual"`, zoals de CSV-, GPX-
   en FIT-import. Datum en tijd zijn Amsterdamse tijd. Het id is een negatieve
-  hash van lid en starttijd: dezelfde rit opnieuw invullen overschrijft hem.
-  `efforts_fetched_at` staat meteen, anders vraagt de segment-inhaalslag het
-  negatieve id bij Strava op en verwijdert hij de rit na de 404.
+  hash van lid en starttijd. `efforts_fetched_at` staat meteen, anders vraagt de
+  segment-inhaalslag het negatieve id bij Strava op en verwijdert hij de rit na
+  de 404.
 - Ingevuld vermogen telt als gemeten (`device_watts`), net als bij een FIT.
   Zonder NP rekent de TSS met het gemiddelde vermogen, dus eerder te laag dan
   te hoog. Zonder vermogen komt de TSS uit de hartslag.
-- `saveManualRide` (`app/(app)/_actions/manual-ride.ts`) weigert een rit die al
-  uit een andere bron binnen is (`isSameRide`: start binnen 2 minuten, afstand
-  binnen 5%). Daarna het nawerk dat een rit zonder spoor nodig heeft: training
-  afvinken (`detectCompletedWorkouts`) en milestone- en weekbadges. Geen cols,
+- `saveManualRide(workoutId, …)` (`app/(app)/_actions/manual-ride.ts`) toetst
+  eerst of de rit bij de training kan (`reassignCandidates`), weigert een rit die
+  al uit een andere bron binnen is (`isSameRide`), slaat op en hangt de rit met
+  `relinkRide` aan precies die training. Lukt dat koppelen niet, dan gaat een
+  net opgeslagen rit weer weg. Daarna milestone- en weekbadges. Geen cols,
   segmenten of ZWBlokken: er is geen spoor.
-- In hetzelfde venster staan de laatste vijf handmatige ritten onder
-  **Ingevoerd**, met verwijderen. `deleteManualRide` verwijdert alleen eigen
-  ritten met `import_source = "manual"` en laat een gekoppelde training los
-  (`removedActivityIds`).
-- `/hulp/koppelen#rit-invoeren` en een zoekregel in de hulp.
+- Bij een training of losse rit met een ingevoerde rit staat **Ingevoerde rit
+  verwijderen** (`RideLink.manual`, gevuld in `loadScheduleRides`).
+  `deleteManualRide` verwijdert alleen eigen ritten met `import_source =
+  "manual"` en laat de training los (`removedActivityIds`); die staat daarna
+  weer open.
+- `/hulp/schema#rit-invoeren` (onder "Hoort bij") en een zoekregel in de hulp.
 
 **Bewust niet gebouwd.**
+- Geen invoer zonder training, en geen knop meer op het dashboard (wens
+  eigenaar: de rit hoort meteen aan de training te hangen).
 - Geen voorrang voor een echte opname op een handmatige rit. Komt het bestand
   later toch, en ligt de ingevulde starttijd binnen 2 minuten, dan ziet de
   import de rit als dubbel. Anders staan er twee ritten; het lid verwijdert de
@@ -11705,18 +11719,19 @@ belasting niet mee. Wens eigenaar: een rit met de hand kunnen invoeren.
 - Geen markering "handmatig" in ranglijsten of badges. Strava telt een
   handmatige activiteit ook mee.
 - Geen TSS of RPE als los veld: de TSS volgt uit vermogen of hartslag, zoals bij
-  elke rit.
+  elke rit; RPE vult het lid daarna in bij de training zelf.
 
-**Beperking.** De training afvinken gaat alleen tot een week terug
-(`COMPLETION_WINDOW_DAYS`). Opnieuw opslaan met andere getallen ververst de
-momentopname van een al afgevinkte training niet.
+**Beperking.** De kalender neemt de trainingsdag uit `scheduled_at` in UTC,
+`relinkRide` in Amsterdamse tijd. Bij een training tussen middernacht en 01:00
+of 02:00 Amsterdamse tijd kan de vroegste datum in het venster een dag te vroeg
+zijn; opslaan geeft dan "Deze datum past niet bij de training."
 
-**Gecontroleerd.** Vitest `strava-manual-ride` (19, nieuw) en
-`help-categories`; ESLint schoon op de gewijzigde bestanden; `tsc` zonder
+**Gecontroleerd.** Vitest `strava-manual-ride` (26, nieuw), `shifted-workout`
+en `help-categories`; ESLint schoon op de gewijzigde bestanden; `tsc` zonder
 nieuwe fouten (de drie bestaande gaan over `modern-screenshot` en
 `@anthropic-ai/sdk`, die in deze worktree niet geïnstalleerd zijn; daardoor
 falen ook 23 andere testbestanden). **Niet geverifieerd:** het venster in de
-browser en opslaan, afvinken en verwijderen tegen de database.
+browser, en opslaan, koppelen en verwijderen tegen de database.
 
 ### Gebouwd — Ladderpuzzel: weergave, volgorde en renners weghalen
 

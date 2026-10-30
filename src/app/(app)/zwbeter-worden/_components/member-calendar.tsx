@@ -31,6 +31,7 @@ import { TrainerFeedbackText } from "./trainer-feedback-text";
 import { RemoveWorkoutButton } from "./remove-workout-button";
 import type { RideLink } from "./ride-link";
 import { RideLinkForm } from "./ride-link-form";
+import { DeleteManualRideButton, ManualRideDialog } from "./manual-ride-dialog";
 import { WorkoutDurationControl } from "./workout-duration-control";
 import { RaceWarmupControl, type RaceWarmupView } from "./race-warmup-control";
 import { RidePlanView } from "./ride-plan-view";
@@ -95,6 +96,8 @@ export type MemberCalendarItem = {
     warmup?: RaceWarmupView | null;
     /** Wat je voor deze rit klaarzet; null onder een uur. */
     ridePlan?: RidePlan | null;
+    /** Nog niet gereden en vandaag of eerder: de rit zelf invoeren, tot deze dag. */
+    enterRide?: { maxDateKey: string } | null;
   };
 };
 
@@ -193,6 +196,11 @@ function RideDetail({ item }: { item: MemberCalendarItem & { ride: NonNullable<M
       )}
 
       {item.rideLink ? <RideLinkForm key={item.id} link={item.rideLink} /> : null}
+      {item.rideLink?.manual ? (
+        <div>
+          <DeleteManualRideButton key={`wis-${item.id}`} activityId={item.rideLink.activityId} />
+        </div>
+      ) : null}
 
       <ViewOnStrava activityId={stravaId} />
     </div>
@@ -312,6 +320,16 @@ function WorkoutDetail({
               ) : null}
             </div>
           ) : null}
+          {detail.enterRide ? (
+            <ManualRideDialog
+              key={`invoeren-${item.id}`}
+              workoutId={item.id}
+              title={item.title}
+              dateKey={item.dateKey}
+              maxDateKey={detail.enterRide.maxDateKey}
+              durationMinutes={item.durationMinutes}
+            />
+          ) : null}
           {detail.warmup ? (
             <RaceWarmupControl key={`warmup-${item.id}`} raceWorkoutId={item.id} warmup={detail.warmup} />
           ) : null}
@@ -345,12 +363,27 @@ function WorkoutDetail({
           {detail.metrics ? (
             <WorkoutMetricsPanel metrics={detail.metrics} blocks={detail.blocks} ftpWatts={ftpWatts} rpe={detail.rpe} />
           ) : null}
+          {detail.enterRide ? (
+            <ManualRideDialog
+              key={`invoeren-${item.id}`}
+              workoutId={item.id}
+              title={item.title}
+              dateKey={item.dateKey}
+              maxDateKey={detail.enterRide.maxDateKey}
+              durationMinutes={item.durationMinutes}
+            />
+          ) : null}
           {item.rideLink ? (
             <RideLinkForm
               key={`link-${item.id}`}
               link={item.rideLink}
               currentLabel={`${item.title} · ${formatDayMonth(`${item.dateKey}T12:00:00`)}`}
             />
+          ) : null}
+          {item.rideLink?.manual && item.rideLink.workoutId ? (
+            <div>
+              <DeleteManualRideButton key={`wis-${item.id}`} activityId={item.rideLink.activityId} />
+            </div>
           ) : null}
           <WorkoutReportForm
             key={item.id}
