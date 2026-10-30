@@ -11555,6 +11555,62 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Rit invoeren zonder bestand
+
+**2026-10-30.** De commit met deze ronde op branch
+`claude/manual-training-entry-cd7b1e`; niet gepusht. Geen migratie.
+
+**Waarom.** Een lid reed een training, maar de opname mislukte en er is geen
+bestand. Zonder rit bleef de training uit zijn schema open en telde de
+belasting niet mee. Wens eigenaar: een rit met de hand kunnen invoeren.
+
+**Wat.**
+- Knop **Rit invoeren** op het dashboard, naast Importeer ritten
+  (`components/manual-ride-dialog.tsx`). Velden: naam, datum, starttijd, duur
+  (`1:30` of minuten), afstand, hoogtemeters, binnen, gemiddeld vermogen, NP en
+  gemiddelde hartslag. Alleen datum, starttijd en duur zijn verplicht.
+- `manualRideRow` (`lib/strava/import.ts`) bouwt een gewone rij in
+  `strava_activities`, met `raw.import_source = "manual"`, zoals de CSV-, GPX-
+  en FIT-import. Datum en tijd zijn Amsterdamse tijd. Het id is een negatieve
+  hash van lid en starttijd: dezelfde rit opnieuw invullen overschrijft hem.
+  `efforts_fetched_at` staat meteen, anders vraagt de segment-inhaalslag het
+  negatieve id bij Strava op en verwijdert hij de rit na de 404.
+- Ingevuld vermogen telt als gemeten (`device_watts`), net als bij een FIT.
+  Zonder NP rekent de TSS met het gemiddelde vermogen, dus eerder te laag dan
+  te hoog. Zonder vermogen komt de TSS uit de hartslag.
+- `saveManualRide` (`app/(app)/_actions/manual-ride.ts`) weigert een rit die al
+  uit een andere bron binnen is (`isSameRide`: start binnen 2 minuten, afstand
+  binnen 5%). Daarna het nawerk dat een rit zonder spoor nodig heeft: training
+  afvinken (`detectCompletedWorkouts`) en milestone- en weekbadges. Geen cols,
+  segmenten of ZWBlokken: er is geen spoor.
+- In hetzelfde venster staan de laatste vijf handmatige ritten onder
+  **Ingevoerd**, met verwijderen. `deleteManualRide` verwijdert alleen eigen
+  ritten met `import_source = "manual"` en laat een gekoppelde training los
+  (`removedActivityIds`).
+- `/hulp/koppelen#rit-invoeren` en een zoekregel in de hulp.
+
+**Bewust niet gebouwd.**
+- Geen voorrang voor een echte opname op een handmatige rit. Komt het bestand
+  later toch, en ligt de ingevulde starttijd binnen 2 minuten, dan ziet de
+  import de rit als dubbel. Anders staan er twee ritten; het lid verwijdert de
+  handmatige. Het bestand is in dit geval juist kwijt, dus dit is de
+  uitzondering.
+- Geen markering "handmatig" in ranglijsten of badges. Strava telt een
+  handmatige activiteit ook mee.
+- Geen TSS of RPE als los veld: de TSS volgt uit vermogen of hartslag, zoals bij
+  elke rit.
+
+**Beperking.** De training afvinken gaat alleen tot een week terug
+(`COMPLETION_WINDOW_DAYS`). Opnieuw opslaan met andere getallen ververst de
+momentopname van een al afgevinkte training niet.
+
+**Gecontroleerd.** Vitest `strava-manual-ride` (19, nieuw) en
+`help-categories`; ESLint schoon op de gewijzigde bestanden; `tsc` zonder
+nieuwe fouten (de drie bestaande gaan over `modern-screenshot` en
+`@anthropic-ai/sdk`, die in deze worktree niet geïnstalleerd zijn; daardoor
+falen ook 23 andere testbestanden). **Niet geverifieerd:** het venster in de
+browser en opslaan, afvinken en verwijderen tegen de database.
+
 ### Gebouwd — Ladderpuzzel: weergave, volgorde en renners weghalen
 
 **2026-10-29.** Commits `e2ab84cd`, `5977935a`, `93d46e03` (rol teamcaptain) en

@@ -35,6 +35,7 @@ export const HELP_CATEGORIES = [
       "strava-rechten",
       "ritten-via-intervals",
       "strava-import",
+      "rit-invoeren",
       "externe-profielen",
       "zwift-id",
       "strava-id",
