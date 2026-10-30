@@ -321,7 +321,7 @@ export default async function ClubLadderPage({
             </div>
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <section className="space-y-4">
             <section id="teamprofiel" className="scroll-mt-20 rounded-lg border bg-card p-4">
               <h2 className="font-semibold">ZWB teamprofiel</h2>
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
@@ -346,7 +346,7 @@ export default async function ClubLadderPage({
                   Geen openbare wedstrijd gevonden.
                 </EmptyState>
               ) : (
-                <ul className="mt-3 space-y-2">
+                <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {fixtures.map((fixture) => (
                     <li key={`${fixture.date}-${fixture.time}-${fixture.home}-${fixture.away}`} className="rounded-md border bg-background p-3 text-sm">
                       <p className="font-medium">{fixtureWhen(fixture)}</p>
@@ -607,86 +607,123 @@ function TeamRidersTable({
   teamId: string;
   scoreLabel: string;
 }) {
+  const sortHref = (key: LadderRiderSort) =>
+    `/teams/club-ladder?team=${teamId}&sort=${key}#teamprofiel`;
+  // Op telefoonbreedte is de kop het label in de kaart; sorteren gaat daar via de knoppen.
   const header = (key: LadderRiderSort, label: string) => (
-    <Link
-      href={`/teams/club-ladder?team=${teamId}&sort=${key}#teamprofiel`}
-      scroll={false}
-      aria-current={sort === key ? "true" : undefined}
-      className={cn("hover:text-foreground", sort === key && "text-foreground underline underline-offset-4")}
-    >
-      {label}
-    </Link>
+    <>
+      <span className="sm:hidden">{label}</span>
+      <Link
+        href={sortHref(key)}
+        scroll={false}
+        aria-current={sort === key ? "true" : undefined}
+        className={cn(
+          "max-sm:hidden hover:text-foreground",
+          sort === key && "text-foreground underline underline-offset-4",
+        )}
+      >
+        {label}
+      </Link>
+    </>
   );
   const wkg = (value: number | null) => n(value, 2);
+  const mobileSorts: Array<[LadderRiderSort, string]> = [
+    ["wkg", "W/kg"],
+    ["score", scoreLabel],
+    ["ftp", "FTP"],
+    ["w1m", "1m"],
+    ["w5m", "5m"],
+    ["w20m", "20m"],
+    ["cat", "Cat"],
+    ["name", "Naam"],
+  ];
 
   return (
-    <ResponsiveTable
-      className="mt-4"
-      rows={riders}
-      rowKey={(rider) => rider.id}
-      minWidth={760}
-      columns={[
-        {
-          key: "rider",
-          header: header("name", "Renner"),
-          primary: true,
-          cell: (rider) => <MemberLink id={rider.id}>{rider.name}</MemberLink>,
-          cellClassName: "font-medium",
-        },
-        {
-          key: "cat",
-          header: header("cat", "Cat"),
-          cell: (rider) => rider.category ?? "-",
-        },
-        {
-          key: "score",
-          header: header("score", scoreLabel),
-          align: "right",
-          cell: (rider) => n(rider.score),
-          cellClassName: "tabular-nums",
-        },
-        {
-          key: "type",
-          header: "Type",
-          cell: (rider) => (rider.riderType ? riderTypeLabel(rider.riderType) : "-"),
-        },
-        {
-          key: "ftp",
-          header: header("ftp", "FTP"),
-          align: "right",
-          cell: (rider) => (rider.ftpWatts == null ? "-" : `${n(rider.ftpWatts)}w`),
-          cellClassName: "tabular-nums",
-        },
-        {
-          key: "wkg",
-          header: header("wkg", "W/kg"),
-          align: "right",
-          cell: (rider) => wkg(rider.ftpWkg),
-          cellClassName: "tabular-nums font-medium",
-        },
-        {
-          key: "w1m",
-          header: header("w1m", "1m W/kg"),
-          align: "right",
-          cell: (rider) => wkg(rider.wkg1m),
-          cellClassName: "tabular-nums",
-        },
-        {
-          key: "w5m",
-          header: header("w5m", "5m W/kg"),
-          align: "right",
-          cell: (rider) => wkg(rider.wkg5m),
-          cellClassName: "tabular-nums",
-        },
-        {
-          key: "w20m",
-          header: header("w20m", "20m W/kg"),
-          align: "right",
-          cell: (rider) => wkg(rider.wkg20m),
-          cellClassName: "tabular-nums",
-        },
-      ]}
-    />
+    <>
+      <nav aria-label="Sorteren" className="mt-4 flex flex-wrap gap-1.5 sm:hidden">
+        {mobileSorts.map(([key, label]) => (
+          <Link
+            key={key}
+            href={sortHref(key)}
+            scroll={false}
+            aria-current={sort === key ? "true" : undefined}
+            className={cn(
+              "rounded-md border px-2.5 py-1 text-xs",
+              sort === key ? "border-primary bg-primary/10 text-foreground" : "text-muted-foreground",
+            )}
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
+      <ResponsiveTable
+        className="mt-3 sm:mt-4"
+        rows={riders}
+        rowKey={(rider) => rider.id}
+        minWidth={760}
+        columns={[
+          {
+            key: "rider",
+            header: header("name", "Renner"),
+            primary: true,
+            cell: (rider) => <MemberLink id={rider.id}>{rider.name}</MemberLink>,
+            cellClassName: "font-medium",
+          },
+          {
+            key: "cat",
+            header: header("cat", "Cat"),
+            cell: (rider) => rider.category ?? "-",
+          },
+          {
+            key: "score",
+            header: header("score", scoreLabel),
+            align: "right",
+            cell: (rider) => n(rider.score),
+            cellClassName: "tabular-nums",
+          },
+          {
+            key: "type",
+            header: "Type",
+            cell: (rider) => (rider.riderType ? riderTypeLabel(rider.riderType) : "-"),
+          },
+          {
+            key: "ftp",
+            header: header("ftp", "FTP"),
+            align: "right",
+            cell: (rider) => (rider.ftpWatts == null ? "-" : `${n(rider.ftpWatts)}w`),
+            cellClassName: "tabular-nums",
+          },
+          {
+            key: "wkg",
+            header: header("wkg", "W/kg"),
+            align: "right",
+            cell: (rider) => wkg(rider.ftpWkg),
+            cellClassName: "tabular-nums font-medium",
+          },
+          {
+            key: "w1m",
+            header: header("w1m", "1m W/kg"),
+            align: "right",
+            cell: (rider) => wkg(rider.wkg1m),
+            cellClassName: "tabular-nums",
+          },
+          {
+            key: "w5m",
+            header: header("w5m", "5m W/kg"),
+            align: "right",
+            cell: (rider) => wkg(rider.wkg5m),
+            cellClassName: "tabular-nums",
+          },
+          {
+            key: "w20m",
+            header: header("w20m", "20m W/kg"),
+            align: "right",
+            cell: (rider) => wkg(rider.wkg20m),
+            cellClassName: "tabular-nums",
+          },
+        ]}
+      />
+    </>
   );
 }
 

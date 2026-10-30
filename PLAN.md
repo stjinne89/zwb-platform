@@ -11555,6 +11555,26 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Bijgesteld — ZWB teamprofiel over de hele breedte, ook op mobiel leesbaar
+
+**2026-10-30.** Commit volgt, niet gepusht. Geen migratie.
+
+**Waarom.** Live bleek de tabel (min. 760px) in 2/3 van de pagina te breed (vak
+617px): 5m en 20m vielen buiten beeld. Eigenaar: "zet het teamprofiel over de
+gehele breedte en zorg dat het mobiel ook goed te lezen valt".
+
+**Wat.**
+- Teamprofiel en Komende matchups staan onder elkaar, elk over de hele breedte.
+  De matchups staan in een raster van 2 of 3 naast elkaar.
+- Onder `sm` toont `ResponsiveTable` al een kaart per renner. De kolomkoppen
+  waren daar sorteerlinks als label; nu is het label daar gewone tekst en
+  staat boven de kaarten een rij sorteerknoppen (W/kg, ZRS, FTP, 1m, 5m, 20m,
+  Cat, Naam). Vanaf `sm` sorteer je zoals eerder via de kolomkop.
+
+**Gecontroleerd.** `tsc` schoon, ESLint. **Niet geverifieerd:** de weergave op
+een telefoon; lokaal vraagt de pagina om in te loggen en het Chrome-venster
+liet zich niet smal zetten.
+
 ### Gebouwd — Ladderrenners-lijst weg, rennersdata in het ZWB teamprofiel
 
 **2026-10-30.** Commit `5fb83bc4`, gepusht naar `main` op 2026-10-30. Geen migratie.
@@ -11579,7 +11599,8 @@ toevoegde, waren de wattages per renner; die wilde hij in het teamprofiel
   weggehaald, valt uit de puzzel en is via "Lid aan de puzzel toevoegen" weer
   toe te voegen, maar staat nog in het teamprofiel van een team waar hij lid van is (kan alleen
   een team buiten de puzzel zijn, zoals ZWBandits).
-- Teamprofiel is op brede schermen 2/3 breed, Komende matchups 1/3.
+- Teamprofiel stond eerst 2/3 breed naast Komende matchups; zie de bijstelling
+  hieronder.
 - "Lid aan de ladderlijst toevoegen" heet nu "Lid aan de puzzel toevoegen".
 - `/hulp` en de privacyverklaring aangepast. De privacytekst is smaller
   geworden: wattages zijn alleen nog te zien van leden van een ladderteam, niet
