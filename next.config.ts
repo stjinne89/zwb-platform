@@ -39,6 +39,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // De wekelijkse app-update leest PLAN.md van de versie die live staat
+  // (src/lib/app-updates/auto.ts).
+  outputFileTracingIncludes: {
+    "/api/app-updates/weekly": ["./PLAN.md"],
+  },
   experimental: {
     serverActions: {
       // De Strava-import (activities.csv / GPX-rit) upload via een Server

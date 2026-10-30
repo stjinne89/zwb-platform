@@ -23,7 +23,7 @@ import type { AiEffort } from "./settings";
 
 export const CLAUDE_JOB_PREFIX = "aij_";
 
-export type ClaudeFeature = "training" | "coach" | "pacing" | "nutrition";
+export type ClaudeFeature = "training" | "coach" | "pacing" | "nutrition" | "app_updates";
 
 export type ClaudeRequest = {
   model: string;

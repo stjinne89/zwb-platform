@@ -57,15 +57,16 @@ gaat stabiliteit voor nieuwe features.
    privacyversie kunnen (zie de ronde "Clubverhaal"). Nog doen: één verhaal
    met foto insturen, plaatsen en op `/verhaal` en bij de beker bekijken.
 
-0g. **App-updates (2026-10-30): migratie `0293` toegepast, code niet
-   gepusht.** `0293_app_updates.sql`, met de geschiedenis van 21 mei tot en
-   met 29 oktober, is op 2026-10-30 via de Supabase-connector toegepast (op
-   verzoek van de eigenaar). Tot de code op `main` staat, zien leden er niets
-   van. Na de push krijgen ze week 44 tot 5 november als pop-up. Daarna de
-   update van week 45 schrijven op `/beheer/app-updates`
-   (kracht uit intervals.icu en rit invoeren bij de training gingen op
-   30 oktober live en staan nog nergens). Zie de ronde "App-updates: elke
-   donderdag wat er veranderd is".
+0g. **App-updates (2026-10-30): migratie `0293` toegepast, `0294` nog niet,
+   code niet gepusht.** `0293_app_updates.sql`, met de geschiedenis van 21 mei
+   tot en met 29 oktober, is op 2026-10-30 via de Supabase-connector toegepast
+   (op verzoek van de eigenaar). Tot de code op `main` staat, zien leden er
+   niets van. Na de push krijgen ze week 44 tot 5 november als pop-up.
+   Voor de automatische update vanaf week 45 nog nodig: `0294` toepassen,
+   `APP_UPDATES_SECRET` in Netlify zetten (vóór de deploy) en op cron-job.org
+   een job elk uur naar `POST /api/app-updates/weekly` (docs/runbook.md). Zie
+   de rondes "App-updates: elke donderdag wat er veranderd is" en "App-updates
+   vanzelf uit PLAN.md".
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11565,6 +11566,59 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — App-updates vanzelf uit PLAN.md
+
+**2026-10-30.** Commit: zie `git log` bij deze ronde. Migratie
+`0294_app_updates_auto.sql`, **nog niet toegepast**. Niet gepusht.
+
+**Waarom.** De eigenaar: "Ik wil dit nooit zelf schrijven, dit moet
+automatisch geput worden uit plan.md". PLAN.md beschrijft elke ronde al; de
+update voor leden is daar een samenvatting van.
+
+**Wat.**
+- `POST /api/app-updates/weekly` (cron-job.org, elk uur, `APP_UPDATES_SECRET`)
+  draait `runWeeklyUpdate` uit `src/lib/app-updates/auto.ts`. Vanaf donderdag
+  14:00 tot en met zondag, alleen als de week nog geen update heeft:
+  1. de rondes uit PLAN.md met een datum van vrijdag tot en met donderdag
+     (`plan-rounds.ts`; beide rondevormen, zonder Onderzocht, Voorstel,
+     Gemeten, In uitvoering, Geparkeerd en Besluit);
+  2. een Claude-opdracht in `ai_jobs` (soort `app_updates`, effort `medium`),
+     met de vorige update als voorbeeld van toon en lengte;
+  3. bij een volgende aanroep het antwoord opgeschoond (lengtes en aantallen
+     zoals de tabel toestaat) als update van die week, met publish_at
+     donderdag 17:00.
+  Hooguit drie opdrachten per week. Zegt Claude dat er niets voor leden is,
+  dan komt er die week geen update.
+- PLAN.md gaat mee in de server-trace van die route
+  (`outputFileTracingIncludes` in `next.config.ts`), dus de route leest de
+  versie die live staat: alleen wat ook echt in de app zit.
+- Per ronde gaan de eerste 3.000 tekens mee, samen hooguit 200.000 (week 43
+  had 143 rondes en 437.000 tekens).
+- `0294` zet `app_updates` in de check van `ai_jobs.feature`, en zet
+  krachttraining uit intervals.icu alsnog bij week 44: gebouwd op 28 oktober,
+  live op 30 oktober, dus de automatische update van week 45 (die op bouwdatum
+  kijkt) slaat hem over.
+- `/beheer/app-updates` blijft, om een update na te kijken of bij te stellen.
+  Een week die al een update heeft, raakt de cron niet aan.
+
+**Bewust niet.**
+- Geen Netlify Scheduled Function: alle crons staan op cron-job.org
+  (runbook), en een Next-route met file tracing is lokaal na te gaan.
+- Geen PLAN.md van GitHub: het leest de versie die live staat, niet wat
+  misschien nog niet gedeployed is.
+- Geen goedkeuringsstap vooraf: de eigenaar wil er niets aan doen. Bijstellen
+  kan achteraf op het beheerscherm.
+
+**Let op.** De invoer naar Anthropic is PLAN.md, geen ledendata; het plan noemt
+af en toe een lid bij naam. De prompt verbiedt namen in de update.
+
+**Gecontroleerd.** Vitest `app-updates` (13), typecheck schoon, ESLint schoon.
+`next build` slaagt en `PLAN.md` staat in `route.js.nft.json` van de route.
+Een proefrun met de echte prompt op de rondes van week 44 (Opus 5.5, 36 s,
+88.000 tokens invoer, niets opgeslagen) gaf 14 nieuwe en 9 opgeloste punten in
+de gevraagde toon. **Niet geverifieerd:** de route op Netlify, de
+achtergrondopdracht daar en `0294`.
+
 ### Gebouwd — App-updates: elke donderdag wat er veranderd is
 
 **2026-10-30.** Commit `b4bdb2cf`; de geschiedenis in de commit erna (zie
@@ -11617,8 +11671,9 @@ en een link naar die pagina.
   meldingen. Een lid met telefoon en laptop ziet hem dus twee keer.
 - Geen eigen tijdstip per update: het is altijd donderdag 17:00, zoals
   gevraagd.
-- Geen automatisch opgestelde tekst uit de commits: de eigenaar schrijft de
-  update zelf.
+- ~~Geen automatisch opgestelde tekst: de eigenaar schrijft de update zelf.~~
+  Achterhaald dezelfde dag: de eigenaar wil hem nooit zelf schrijven. Zie de
+  ronde "App-updates vanzelf uit PLAN.md".
 - Geen beheerwerk in de geschiedenis (zoals de proefversie van het
   tegelsdesign): de updates zijn voor leden.
 

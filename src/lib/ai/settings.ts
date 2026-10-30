@@ -24,7 +24,8 @@ export type AiKind =
   | "coach"
   | "weekly"
   | "pacing"
-  | "nutrition";
+  | "nutrition"
+  | "app_updates";
 
 const DEFAULT_MODEL = "claude-opus-5-5";
 
@@ -38,6 +39,8 @@ const DEFAULT_EFFORT: Record<AiKind, AiEffort> = {
   weekly: "low",
   pacing: "medium",
   nutrition: "low",
+  // De wekelijkse app-update (0294): kiezen wat leden merken en dat kort zeggen.
+  app_updates: "medium",
 };
 
 export function aiProvider(): AiProvider {
