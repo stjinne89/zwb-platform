@@ -112,9 +112,9 @@ describe("shiftWeeks en weekdayOf", () => {
 });
 
 describe("clampMinutes", () => {
-  it("rondt af op kwartieren", () => {
-    expect(clampMinutes(52)).toBe(45);
-    expect(clampMinutes(53)).toBe(60);
+  it("rondt af op stappen van 5 minuten", () => {
+    expect(clampMinutes(52)).toBe(50);
+    expect(clampMinutes(53)).toBe(55);
   });
 
   it("houdt de waarde binnen de grenzen van de schuifbalk", () => {

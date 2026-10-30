@@ -7,7 +7,7 @@
 // ZWB'ers in dezelfde race (alleen plek en tijd). Uitwerking: docs/zrl-analyse.md.
 
 import type { RaceData } from "@/lib/zrl-live/snapshot";
-import { scoreRace } from "@/lib/zrl-live/scoring";
+import { scoreRace, type ZrlScoringFormat } from "@/lib/zrl-live/scoring";
 import { routeSegments } from "@/lib/zwift/route-segments";
 import { analyseRace, segmentKind, type RiderAnalysis, type SegmentKind } from "@/lib/zrl-analysis/race";
 
@@ -65,6 +65,11 @@ export function analysePersonalRace(
   /** Zwift-ID → naam van ZWB'ers (profiel of roster). */
   zwbNames: Map<number, string>,
   kind: RaceKind,
+  /**
+   * Hoe de stand telt. Standaard zonder segmentpunten (FRR en andere races); een
+   * ZRL-race in de terugblik telt zoals de ZRL (`data.format`).
+   */
+  format: ZrlScoringFormat = kind === "ttt" ? "ttt" : "scratch",
 ): PersonalRace | null {
   const subgroup = data.subgroups.find((s) => s.results.some((r) => r.profileId === zwiftId));
   if (!subgroup) return null;
@@ -77,7 +82,7 @@ export function analysePersonalRace(
   }
   const finished = subgroup.results.filter((r) => r.durationMs != null);
   const score = scoreRace({
-    format: kind === "ttt" ? "ttt" : "scratch",
+    format,
     route: route.map(({ segmentId, name }) => ({ segmentId, name })),
     riders,
     passages: data.passages,

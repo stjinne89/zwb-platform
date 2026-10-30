@@ -127,6 +127,7 @@ export const HELP_CATEGORIES = [
       "racen",
       "racen-tips",
       "racen-kennis",
+      "racen-verwachting",
       "racen-trainer",
       "racen-eigen-rit",
       "pacing",

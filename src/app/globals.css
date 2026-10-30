@@ -2004,3 +2004,54 @@ html[data-viewport-fout] .tg-tabs-bottom {
     transition: none;
   }
 }
+
+/* Ladderpuzzel (teams/club-ladder): een renner is een puzzelstukje met een nop
+   boven en een uitsparing onder; opeenvolgende stukjes grijpen in elkaar. */
+.ladder-stukken {
+  display: grid;
+  padding-top: 9px;
+  min-height: 3rem;
+}
+.ladder-stuk {
+  position: relative;
+  margin-top: -1px;
+}
+.ladder-stuk::before,
+.ladder-stuk::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  border-radius: 9999px;
+  border: 1px solid;
+  border-color: inherit;
+  background: var(--card);
+  clip-path: inset(-2px -2px 50% -2px);
+  pointer-events: none;
+}
+.ladder-stuk::before {
+  top: -10px;
+  z-index: 1;
+}
+.ladder-stuk::after {
+  bottom: -10px;
+  background: var(--ladder-gat, var(--card));
+}
+.ladder-stuk[data-net-gelegd] {
+  animation: ladder-klik 0.35s ease-out;
+}
+@keyframes ladder-klik {
+  0% {
+    transform: scale(1.05) rotate(-1deg);
+  }
+  60% {
+    transform: scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ladder-stuk[data-net-gelegd] {
+    animation: none;
+  }
+}

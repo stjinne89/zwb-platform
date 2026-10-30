@@ -22,6 +22,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 import { loadAvailability, weekdayOf } from "@/lib/training/availability";
 import { loadFtpAt } from "@/lib/training/ftp-history";
 import { withBudget } from "@/lib/training/training-data";
+import { loadRaceContribution } from "@/lib/zrl-analysis/load";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { addDays } from "@/lib/weekly-review/period";
 import {
@@ -50,6 +51,8 @@ type Admin = ReturnType<typeof createAdminClient>;
 
 /** Hoe lang intervals.icu mag doen over vorm en vermogen. */
 const INTERVALS_BUDGET_MS = 4_000;
+/** Zo lang mag de eigen race per ZRL-uitslag kosten (een oude snapshot wordt nog aangevuld). */
+const RACE_BUDGET_MS = 6_000;
 const FITNESS_DAYS = 120;
 /** Buitenritten die als clubrit tellen. */
 const CLUB_RIDE_TYPES = ["outdoor", "toertocht", "gran_fondo", "gravel_race"];
@@ -109,7 +112,7 @@ export async function buildWeekSummary(admin: Admin, profileId: string, weekStar
   };
 
   const [{ data: profile }, { data: connection }, { data: memberships }] = await Promise.all([
-    admin.from("profiles").select("display_name, ftp_watts, weight_kg, sex").eq("id", profileId).maybeSingle(),
+    admin.from("profiles").select("display_name, ftp_watts, weight_kg, sex, zwift_id").eq("id", profileId).maybeSingle(),
     admin.from("intervals_connections").select("athlete_id, api_key").eq("profile_id", profileId).maybeSingle(),
     admin.from("team_members").select("team_id, teams(name)").eq("profile_id", profileId),
   ]);
@@ -163,11 +166,11 @@ export async function buildWeekSummary(admin: Admin, profileId: string, weekStar
     teamIds.length
       ? admin
           .from("zrl_team_results")
-          .select("team_id, rank, teams, events!inner(title, start_at)")
+          .select("event_id, team_id, rank, teams, events!inner(title, start_at)")
           .in("team_id", teamIds)
           .gte("events.start_at", window.from)
           .lte("events.start_at", window.to)
-          .then(({ data }) => (data ?? []) as Array<{ team_id: string | null; rank: number; teams: number; events: One<EventRef> }>)
+          .then(({ data }) => (data ?? []) as Array<{ event_id: string; team_id: string | null; rank: number; teams: number; events: One<EventRef> }>)
       : Promise.resolve([]),
     admin
       .from("zrl_rider_results")
@@ -266,7 +269,15 @@ export async function buildWeekSummary(admin: Admin, profileId: string, weekStar
     if (!event || !inWeek(event.start_at) || !row.team_id) return [];
     return [{ ...row, teamId: row.team_id, event, day: dayOf(event.start_at) }];
   });
-  const results: TeamResult[] = keepRiddenTeams(teamRows, rode).map((row) => {
+  // De eigen race uit ZWBeter racen (plek en punten tegenover de verwachting,
+  // bijdrage aan de ploeg), binnen een tijdsbudget: zonder komt de slide zoals
+  // voorheen.
+  const zwiftId = Number(profile?.zwift_id) || null;
+  const ridden = keepRiddenTeams(teamRows, rode);
+  const contributions = zwiftId
+    ? await Promise.all(ridden.map((row) => withBudget(loadRaceContribution(row.event_id, zwiftId), RACE_BUDGET_MS)))
+    : ridden.map(() => null);
+  const results: TeamResult[] = ridden.map((row, index) => {
     const { day, event } = row;
     const own = riderResults.find((rider) => rider.team_id === row.teamId && rider.round_at && dayOf(rider.round_at) === day);
     return {
@@ -277,6 +288,7 @@ export async function buildWeekSummary(admin: Admin, profileId: string, weekStar
       teams: row.teams,
       riderPosition: own?.position ?? null,
       riderCategory: own?.category ?? null,
+      race: contributions[index],
     };
   });
   const src = srcRows.flatMap((row) => {

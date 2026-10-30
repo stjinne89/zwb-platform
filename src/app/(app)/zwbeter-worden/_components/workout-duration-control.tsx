@@ -55,7 +55,7 @@ export function WorkoutDurationControl({
         type="number"
         min={15}
         max={480}
-        step={15}
+        step={5}
         required
         value={value}
         onChange={(event) => setValue(event.target.value)}

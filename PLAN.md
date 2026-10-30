@@ -34,12 +34,20 @@ gaat stabiliteit voor nieuwe features.
    `/verhaal/[id]` doorscrollen. Zie de ronde "Clubverhaal: een eigen verhaal in
    hoofdstukken".
 
-0e. **Kracht uit intervals.icu (2026-10-28): lokaal gecommit, niet gepusht.**
-   Migratie `0290_intervals_strength_muscles.sql` is **niet toegepast**; eerst
-   toepassen, dan pushen (zonder tabel werkt het meetellen wel, het aantikken
-   van spieren niet). De privacytekst staat erin (akkoord eigenaar
-   2026-10-28). Zie de ronde "Kracht: krachttraining uit intervals.icu
-   meetellen".
+0e. **ZWBeter racen: verwachting en terugblik (2026-10-28): gepusht naar
+   `main` (`d72e16b1`).** Geen migratie. In het weekoverzicht wordt het
+   teamscherm "Je race". Open: de privacyteksten `/privacy#racen` en die van het
+   weekoverzicht wachten op akkoord van de eigenaar.
+   Zie de ronde "ZWBeter racen: verwachting, punten per bron en de terugblik".
+
+0f. **Kracht uit intervals.icu (2026-10-28): migratie toegepast en gepusht.**
+   De migratie staat in de repo als `0292_intervals_strength_muscles.sql` en is
+   op 2026-10-28 via de Supabase-connector toegepast (op verzoek van de
+   eigenaar), in de historie van productie onder de oude naam
+   `0290_intervals_strength_muscles`. Gepusht naar `main` op 2026-10-30. De
+   privacytekst staat erin (akkoord eigenaar 2026-10-28). Nog doen: ingelogd
+   een krachttraining openen, spieren aantikken en opslaan. Zie de ronde
+   "Kracht: krachttraining uit intervals.icu meetellen".
 
 0c. **Clubverhaal (2026-10-28): migratie `0288` toegepast en gepusht.**
    `0288_club_stories.sql` is op 2026-10-28 via de Supabase-connector
@@ -3225,7 +3233,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - **Bewaren:** `loadZrlRaceData` heet nu `loadZwiftRaceData` en bewaart elke
 >   gereden race in `zrl_race_snapshots` (de naam van de tabel is gebleven). Buiten
 >   de ZRL met `minimizeRaceData`: van wie niet bij ZWB hoort alleen plek, tijd en
->   segmenttijden. Nieuwe snapshots krijgen `eventType`.
+>   segmenttijden (sinds 2026-10-28 ook de ZRS van vóór de race, ronde "ZWBeter
+>   racen: verwachting, punten per bron en de terugblik"). Nieuwe snapshots
+>   krijgen `eventType`.
 > - **De lijst** (`listRaces`): ZRL zoals voorheen, plus FRR-slots met een eigen
 >   finishtijd en elke bewaarde race met het eigen Zwift-ID in de uitslag; een
 >   geplakte race staat erin zodra hij één keer bekeken is. Per regel het soort
@@ -11545,12 +11555,301 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Ladderpuzzel: weergave, volgorde en renners weghalen
+
+**2026-10-29.** Commits `e2ab84cd`, `5977935a`, `93d46e03` (rol teamcaptain) en
+de teamkop hieronder, gepusht naar `main` op 2026-10-29. Migratie `0291_ladder_withdrawn.sql`, op 2026-10-29 toegepast via de
+Supabase-connector, op verzoek van de eigenaar, vóór de push. Nagekeken: RLS aan,
+0 policies, 0 rijen.
+
+**Waarom.** De eigenaar bekeek de puzzel live in Chrome: "dit ziet er niet goed
+uit". De vakken stonden met `2xl:grid-cols-5` naast elkaar, maar dat breekpunt
+kijkt naar het scherm, en de inhoud is `max-w-5xl`: vijf kolommen van 182px,
+waarin de keuzelijst naast de naam stond en namen per letter afbraken. De teams
+stonden op naam (Beauties eerst). Daarnaast twee wensen: teams van links naar
+rechts op kracht (Beasts, Bullets, Brains, Beauties), en namen uit de puzzel
+kunnen halen als iemand niet meer mee wil doen.
+
+**Wat.**
+- Vakken met een minimale breedte (`repeat(auto-fill, minmax(13.5rem, 1fr))`,
+  vier naast elkaar in de inhoudsbreedte); de losse stukjes staan eronder over
+  de volle breedte, met "Renner toevoegen" ernaast. In een stukje staat de naam
+  op een eigen regel, daaronder rank en team. In de teamkop eerst naam en aantal,
+  daaronder status en band.
+- Teams gesorteerd op band (hoogste rank, dan laagste): sterkste links.
+- **Weghalen** op elk stukje (met bevestiging), `withdrawLadderRider`: een
+  rosternaam verliest zijn ladderkoppeling; een lid gaat uit de puzzelteams en
+  de ladderpool en komt in `ladder_withdrawn` (0291). Wie daar staat, valt uit
+  puzzel en ladderlijst, ook als hij zelf Ladder aanvinkte: die interesse is zijn
+  eigen keuze en stuurt zijn kalender (zelfde reden als bij 0285), dus die zet
+  een captain niet uit. Indelen, captain maken, aan de ladderlijst toevoegen of
+  "Renner toevoegen" halen de markering weg. Het kruisje "Uit de lijst" (alleen
+  rosternamen bij de losse stukjes) en `removeLadderRosterRider` zijn daarin
+  opgegaan.
+- `/hulp` vermeldt de volgorde en Weghalen.
+- **Live nagekeken in Chrome** (na `93d46e03`): vier vakken van 230px, sterkste
+  links, namen op één regel, losse stukjes eronder. Eén ding nog: in de teamkop
+  brak de band halverwege af, omdat status, "archief" en twee keuzelijsten op één
+  regel moesten. Nu: naam, archief, aantal en status boven; de band eronder,
+  met de keuzelijsten die de breedte delen.
+- **Alleen teamcaptains puzzelen.** Eerst gebouwd als "captain of co-captain
+  van een ladderteam" (commit `5977935a`, op "captains moeten recht hebben om
+  mee te puzzelen andere rollen niet"); de eigenaar verbeterde: "iedereen met
+  de rol teamcaptain moet dit kunnen". `canEditLadderPuzzle`
+  (`lib/club-ladder/access.ts`) kijkt nu naar de communityrol `team_captain`,
+  niet naar een permissie: bestuur heeft ook `teams.manage_roster` en mag in de
+  puzzel niet meer bewerken, tenzij het ook de rol teamcaptain heeft. Captain
+  van een ladderteam zijn telt niet mee. Op 2026-10-29 hebben negen leden die
+  rol, onder wie de captains Jeroen en Femke en de eigenaar. De
+  Captain-selectie, "Lid aan de ladderlijst toevoegen" en captains aanwijzen
+  houden de oude regel (`canAssignLadderRiders`: `teams.manage_roster`, of
+  captain van een ladderteam).
+
+**Gegevens (2026-10-29, op verzoek van de eigenaar).** Het account "Annet" is
+Annet van de Geyn: het Zwift-ID op haar profiel gezet. `link_roster_by_zwift_id`
+claimde daarop haar rosternaam (lid van ZRL Zwiftladies C, zoals bij elke claim)
+en de trigger uit 0290 zette haar ladderplek over naar haar account (ladderpool,
+losse stukjes). Daarmee is die trigger op productie bevestigd.
+
+**Bewust niet.** De interesse "Ladder" van een lid niet uitzetten bij weghalen
+(zie boven). Geen lidmaatschap van ladderteams buiten de puzzel aanraken:
+weghalen verbergt zo iemand wel.
+
+**Gecontroleerd.** `tsc` schoon, ESLint op `teams/club-ladder` en
+`lib/club-ladder`, Vitest `club-ladder-*` (19). **Niet geverifieerd:** de migratie lokaal
+(geen Docker of Supabase-config; op productie nagekeken) en Weghalen met een
+echte klik.
+
+### Gebouwd — Club Ladder: Ladderpuzzel
+
+**2026-10-29.** Commit `424a3948` (en `abfd118b` voor het nieuwe migratienummer),
+gepusht naar `main` op 2026-10-29 (merge `2dba5007`). Migratie
+`0290_ladder_puzzle.sql` (gebouwd als 0286; hernoemd omdat `0286_zwbekers` op
+`main` dat nummer al had), op 2026-10-29 toegepast via de Supabase-connector, op
+verzoek van de eigenaar, vóór de push. Nagekeken: ZWBrains en ZWBeauties
+aangemaakt, banden Beasts 1–2, Bullets 2–4, Brains 4–6, Beauties 5–7, Bandits en
+Zwiftladies zonder band; `ladder_ranks` en `ladder_roster_riders` RLS aan, 0
+policies; trigger `roster_entries_claim_ladder` aanwezig.
+
+**Waarom.** De eigenaar vond het artifact "Ladderpuzzelen" (een losse pagina
+waarin de renners als puzzelstukjes over de ladderteams verdeeld werden) zo
+duidelijk dat hij het in de Club Ladder-sectie wilde, gekoppeld aan de leden, en
+met renners zonder account "op dezelfde manier als bij ZRL". Nieuwe indeling van
+de eigenaar (2026-10-29): Zwiftladies en Bandits gaan samen op in ZWBrains, en
+ZWBeauties komt erbij; vier teams met een afgesproken band: ZWBeasts
+Diamond–Ruby, ZWBullets Ruby–Sapphire, ZWBrains Sapphire–Platinum, ZWBeauties
+Amethyst–Gold.
+
+**Keuzes van de eigenaar (2026-10-29).** Ranks vullen captains in zolang de
+ZwiftRacing-API er niet is; de ranks die bij het artifact van zwiftracing.app
+zijn overgenomen, gaan er bij het toepassen in. ZWBrains en ZWBeauties zijn twee
+nieuwe teams; Bandits en Zwiftladies blijven in het archief. De privacyverklaring
+mocht zonder nieuwe versie worden aangevuld. Alleen klasseproblemen controleren,
+geen club-, aantal- of 60%-regel. De klasseregel zoals de eigenaar hem hanteert:
+een team beslaat hooguit 3 ranks, hoeveel renners er per rank zijn maakt niet
+uit (de regel uit het race book over de middelste renner bij het toevoegen telt
+hier niet).
+
+**Wat.**
+- `0290`: `teams.ladder_rank_min/max` (band; rank 1 = Diamond, 10 = Copper),
+  `ladder_ranks` (rank per Zwift-ID, zodat het voor leden en rosternamen gelijk
+  werkt en bij claimen niets verhuist) en `ladder_roster_riders` (rosternamen
+  zonder account in de ladderlijst, met ladderteam, leeg = losse stukjes, en
+  geslacht). Beide tabellen RLS aan zonder policies, zoals `ladder_pool`. De
+  migratie maakt ZWBrains en ZWBeauties aan en zet de vier banden. De ranks
+  zelf staan er niet in: gegevens van renners horen niet in de repo.
+- **Renners zonder account.** "Zoals bij ZRL" klopt half: ZRL gebruikt
+  `roster_entries`, maar een rosternaam heeft één `team_id` en dat is bij deze
+  renners al een ZRL-team (Niekie in ZRL A, Annet en Gina in Zwiftladies C,
+  enz.). De ladder krijgt daarom een eigen koppeling. Een trigger op
+  `roster_entries.claimed_by` (vangt zowel `claim_roster_entry` als
+  `link_roster_by_zwift_id`) maakt de claimer lid van dat ladderteam (herkomst
+  `manual`) of zet hem in `ladder_pool`, en haalt de koppeling weg.
+- `lib/club-ladder/puzzle.ts` (puur): klassecontrole per team zoals in het
+  artifact (geen rank → mag niet op het roster; meer dan 3 ranks → de hoogst
+  gerankte renners scoren 50%; buiten de band → waarschuwing; leeg team →
+  waarschuwing), welke ranks er nog bij kunnen, en het samenvoegen van leden en
+  rosternamen (een rosternaam met het Zwift-ID van een lid in de lijst valt weg).
+- Pagina: de puzzel staat boven de ladderrenners, voor iedereen die de pagina
+  ziet; indelen alleen voor wie al mag indelen (`canAssignLadderRiders`). Teams
+  met een band zijn een vak, ook in het archief (ZWBeasts en ZWBullets staan daar
+  nu); wie in geen van die teams zit, ligt bij "Losse stukjes". Slepen of het
+  team kiezen in het stukje (`moveLadderPuzzleRider`): een lid gaat uit de
+  andere puzzelteams (met seed-override, zoals Verwijderen) en een lid dat naar
+  de losse stukjes gaat, komt in `ladder_pool` zodat hij niet uit de lijst
+  verdwijnt. Rank per renner en band per team zijn in te stellen; een team gaat
+  met het kruisje uit de puzzel en onderaan weer terug. "Renner toevoegen" op
+  Zwift-ID: met account de ladderpool, zonder account de bestaande rosternaam of
+  een nieuwe.
+- De vorm van het artifact (stukjes met nop en uitsparing, ladder van tien
+  sporten, "x van 4 passen") staat als `.ladder-stuk` in `globals.css`. De
+  uitleg die in het artifact onderaan stond, staat op `/hulp`, niet op het
+  scherm.
+- Zolang 0290 niet is toegepast, faalt de bandquery en verschijnt de puzzel niet;
+  de rest van de pagina werkt.
+- `/hulp` (Teams en wedstrijden) en de privacyverklaring (ladderrank en
+  ladderteam, ook voor renners zonder account) aangevuld; geen nieuwe
+  privacyversie, met akkoord van de eigenaar.
+
+**Bewust niet.**
+- Geen controle op club, aantal per roster of de 60%-regel (keuze eigenaar).
+- De damesregel (Emerald–Diamond als één rank) niet: die geldt alleen in een
+  damesteam, en ZWBrains is gemengd.
+- De bestaande Captain-selectie en de ladderlijst blijven staan: de puzzel kent
+  alleen teams met een band, de selectie alle ladderteams.
+- Geen ophalen van ranks bij zwiftracing.app: de pagina's daar zijn
+  client-gerenderd en vragen een login; dat wacht op de API.
+
+**Gecontroleerd.** `tsc` schoon, ESLint op `teams/club-ladder` en
+`lib/club-ladder`, Vitest `club-ladder-puzzle` (10). **Niet geverifieerd:** de
+migratie en de trigger (geen Docker of Supabase-config hier), en de puzzel in de
+browser met echte teams (de pagina vraagt een login).
+
+**Gegevens bij het toepassen (2026-10-29, op verzoek van de eigenaar).** Ranks
+van de 35 renners uit het artifact in `ladder_ranks` (opgehaald van
+zwiftracing.app op 2026-10-29) en de indeling uit het artifact: 28 leden als
+`team_members` (herkomst `manual`), 7 renners zonder account met hun rosternaam
+in `ladder_roster_riders`; voor Ragna van Rixtel-Zanin (eSRT) is een rosternaam
+aangemaakt. Resultaat: Beasts 8, Bullets 8, Brains 10, Beauties 7; Annet
+(rosternaam) en Sanneke (in de ladderpool) bij de losse stukjes.
+- **Sven Hund** heeft een account zonder Zwift-ID: hij staat als lid in
+  ZWBeauties, maar zonder rank (zijn rank staat op zijn Zwift-ID klaar). Vult hij
+  zijn Zwift-ID in, dan verschijnt de rank; `link_roster_by_zwift_id` claimt dan
+  ook zijn rosternaam (ZRL Bdev).
+- **Annet**: er is een account "Annet" zonder Zwift-ID; niet zeker dat zij het
+  is, dus haar rosternaam is gebruikt.
+- **Captains** zijn niet verplaatst: Jeroen (captain) en Stijn (co-captain)
+  blijven dat bij ZWBandits, Femke bij ZWB Zwiftladies; in ZWBrains zijn ze lid.
+  Indelen kunnen ze toch, want dat mag elke captain van een ladderteam.
+
+### Gebouwd — ZWBeter racen: verwachting, punten per bron en de terugblik
+
+**2026-10-28.** Commit `d72e16b1`, gepusht naar `main` op 2026-10-28
+(eigenaar). Geen migratie (de ZRS gaat in de bestaande jsonb van
+`zrl_race_snapshots`).
+
+**Waarom.** Vraag van de eigenaar: hij had "vergeleken met andere races een paar
+goede sprints en scoorde meer punten dan dat zwiftracing voor mij zou voorspeld
+hebben ook vergeleken met wat het racebriefje dacht dat mogelijk was. Worden dat
+soort elementen ook meegenomen?" Dat werd niet meegenomen: de analyse hield per
+renner alleen het totaal aan punten over, en keek niet naar de verwachting en
+niet naar eerdere races. Na het voorstel (puntenopbouw, verwachting tegenover
+uitkomst, briefje tegenover gereden, sprints tegenover het eigen niveau,
+terugblik): "Alles, ook 4 en 5". Metingen, regels en keuzes:
+[zrl-analyse.md](docs/zrl-analyse.md), sectie "Verdieping".
+
+**Wat.**
+- **ZRS van vóór de race uit de uitslag van Zwift** (`scoreHistory.previousScore`,
+  in vier gemeten startgroepen voor elke renner). `resultPowerFields` leest hem
+  als `scoreBefore`; `minimizeRaceData` houdt hem ook van renners buiten ZWB. Nieuwe
+  snapshots krijgen `withScores`; oude snapshots met vermogen worden één keer
+  aangevuld (`addScores` in `zrl-live/snapshot.ts`: alleen de uitslag opnieuw).
+  `loadZwiftRaceData` bewaart alleen als vermogen of ZRS er echt bij kwam.
+- **Punten per passage** (`race.ts`): FAL en FTS per segment, de opbouw per
+  renner (FAL, FTS, FIN, podium), en de verwachting.
+- **Verwachting** (`expectation.ts`, nieuw): plek op ZRS onder de finishers; in een
+  puntenrace de punten als elk segment en de finish in die volgorde waren
+  gereden. Dezelfde volgorde als het racebriefje (dat zonder ZwiftRacing-sleutel
+  ook op ZRS sorteert), maar met de score van vóór de race. Een meetlat, geen
+  voorspelling; het verschil per bron zegt waar de punten vandaan kwamen.
+- **Vergelijking en terugblik** (`history.ts`, nieuw): per sprint en klim vandaag
+  tegenover de eigen eerdere passages, de eigen PR en de richttijd van het
+  briefje (uit `zwift_segment_bests`, alleen van vóór de race), en over alle
+  bewaarde races van de laatste 120 dagen plek en punten tegenover de verwachting.
+  `analysePersonalRace` kreeg een optioneel scoringsformat, zodat een ZRL-race in
+  de terugblik met segmentpunten telt.
+- **Tip** (`strengthAdvice`): na drie puntenraces met verwachting, als sprints of
+  klimmen gemiddeld ≥ 5 punten per race boven verwachting liggen en ≥ 5 boven de
+  andere soort. Hij komt achteraan bij de eigen tips (samen hooguit vier) en
+  gaat zo ook mee naar de trainer.
+- **Laden** (`load.ts`): `loadDepth` voor de renner zelf, op de ZRL-pagina en de
+  pagina van een individuele race. De terugblik leest eerst alleen welke races er
+  zijn en haalt de uitslagen dan via `unstable_cache` (sleutel per race met de
+  vlaggen vermogen en ZRS, een week). Binnen een verzoek één keer (`cache`), want
+  de trainerpagina laadt alle races van een lid. Ontbrekende ZRS worden na het
+  antwoord aangevuld, hooguit 20 s per bezoek.
+- **Pagina's**: een blok "Jouw race tegenover de verwachting" (verwachte en echte
+  plek, punten, punten per bron, per sprint en klim de vergelijking) en "Jouw
+  races" (de terugblik); bij de captain een kolom Verwacht in de rennerstabel en
+  een bevinding met de verwachte punten van de eigen renners.
+- Hulp (`/hulp/racen#racen-verwachting`, plus een regel in de hulpzoeker) en
+  privacyverklaring (`#racen`).
+- **Weekoverzicht: het teamscherm wordt "Je race"** (vraag van de eigenaar,
+  dezelfde dag: het teamscherm "zegt vrij weinig met alleen die balken en de
+  positie van de ploeg. Ook mooi als daar iets over de bijdrage van de renner
+  staat"; eerst als apart scherm na het teamscherm gebouwd, daarna op zijn
+  verzoek samengevoegd: "ik vind die teams pagina nu niet veel toevoegen").
+  Reed het lid in de ploeg, dan vervangt dit scherm het teamscherm: in een punten- of scratchrace de
+  punten (of de plek), plekken voor of achter de verwachting, de verwachte
+  punten, het deel van de ploegpunten (en of dat het meeste was) en de bron met
+  het grootste verschil; in een ploegentijdrit W/kg naast het ploeggemiddelde en
+  of je bij de ploeg finishte. De tekening (`RacePrint`): verwacht en gefinisht
+  op een lijn, en de ploeg als staven met jou in goud. Data: `raceContribution`
+  in `history.ts` (puur), `loadRaceContribution` in `zrl-analysis/load.ts`
+  (bevroren race, 6 s budget per uitslag in `weekly-review/load.ts`), veld
+  `race` op `TeamResult`. `SUMMARY_VERSION` 4: een bestaand overzicht wordt bij
+  de volgende opening opnieuw opgebouwd. De punten of W/kg van ploeggenoten staan
+  zonder naam in de samenvatting en gaan zo ook naar de AI-coach; privacytekst
+  `#weekoverzicht` aangevuld. De plaats van de ploeg (en andere teams en de SRC)
+  staat als laatste zin op hetzelfde scherm; de balken (`TeamPrint`) alleen nog
+  als het lid niet in de ploeg reed of er geen race-analyse is. Hulp: de
+  regel over het weekoverzicht in `hulp/_data.ts`. Voorbeelddata in
+  `/ontwerp-voorbeeld?scherm=weekoverzicht`.
+
+**Op echte data (alleen lezen, de ZRS in het geheugen bijgezet).** De eigen races
+van de eigenaar: ZRL race 5 (27 oktober) verwacht 17e, gefinisht 6e, 241 punten
+tegen 112 verwacht (sprints +33, klimmen +59, overige segmenten +26, finish +11);
+Jarvis Sprint 12,3 s tegen 15,6 s eerder en een richttijd van 15,0 s. Over negen
+races gemiddeld 7,1 plekken voor de verwachting. Twee puntenraces met
+verwachting, dus nog geen tip.
+
+**Bewust niet.** vELO of de voorspelling van ZwiftRacing (geen sleutel; met sleutel
+moet eerst de vELO van vóór de race bewaard worden). Een model dat voorspelt wie
+welke sprint rijdt. De richttijd van het briefje bij de start vastleggen (de
+PR-cache verliest een PR van vóór de race als iemand in de race een nieuwe zet;
+bij race 5 speelde dat niet). Sprint tegenover de intervals-curve. De terugblik
+voor captains of trainers.
+
+**Niet meer waar.** In de ronde "ZWBeter racen voor elke Zwift-race" bewaarde
+`minimizeRaceData` van anderen alleen plek, tijd en segmenttijden; nu ook de ZRS
+van vóór de race (daar inline gecorrigeerd, net als in `docs/zrl-analyse.md`).
+
+**Gecontroleerd.** `tsc` (alleen de bekende fouten over ontbrekende pakketten),
+ESLint op de gewijzigde bestanden, Vitest: nieuw `zrl-analysis-depth.test.ts`
+(verwachte volgorde en dekking, verwachte punten met FTS over ronden, punten per
+bron, vergelijking met eerder, PR en richttijd van vóór de race, terugblik, de
+tip en wanneer niet, punten per passage via `analysePersonalRace`);
+`zrl-race-data-power.test.ts` (aanvullen van de ZRS, niets bewaren als dat
+mislukt, de ZRS blijft bij minimaliseren); `zrl-analysis-race.test.ts`
+(`scoreBefore` uit de uitslagrij); `raceContribution` (puntenrace, ploegentijdrit,
+niet in de ploeg). `tsc` schoon na `npm ci` in de worktree; de volledige suite
+groen op één beheertest na die alleen onder volle belasting een time-out geeft
+(los gedraaid groen). In de lokale app (dev-server met `--webpack`; Turbopack
+vond de CSS-binary niet door de twee lockfiles): de ZRL-pagina van race 5 met de
+login van de eigenaar, alle blokken met echte data (verwacht 17e, 6e, 241 tegen
+112 punten, segmenten met eerder en briefje); het scherm "Je race" met
+voorbeelddata op `/ontwerp-voorbeeld?scherm=weekoverzicht` op telefoonbreedte.
+Bij dat bezoek is de snapshot van race 5 op productie aangevuld met de ZRS van
+vóór de race (de bedoelde aanvulling, geen proef).
+**Niet geverifieerd:** `npm run build`, het echte weekoverzicht van een lid
+(een week met een ZRL-race moet eerst opnieuw worden opgebouwd), het aanvullen
+op Netlify en de cache daar.
+**Privacytekst `#racen` en die van het weekoverzicht voorleggen aan de eigenaar:**
+de ZRS van vóór de race wordt nu ook van renners buiten ZWB bewaard (zonder
+naam), de terugblik is nieuw, en het weekoverzicht bewaart de punten of W/kg van
+ploeggenoten (zonder naam). Is dit zonder nieuwe privacyversie goed?
+
 ### Gebouwd — Kracht: krachttraining uit intervals.icu meetellen, spieren aantikken op het figuur
 
-**2026-10-28.** Commit: de commit die dit blok toevoegt, op de branch
-`claude/zwbeter-intervals-strength-export-a84f34`, niet gepusht. Migratie
-`0290_intervals_strength_muscles.sql`, **niet toegepast** en niet lokaal te
-testen (geen Docker of Supabase-config).
+**2026-10-28.** Commits `92fa43c2` en `d5af059d` (privacytekst), gepusht naar
+`main` op 2026-10-30 (eigenaar). Migratie `0292_intervals_strength_muscles.sql`,
+op 2026-10-28 via de Supabase-connector toegepast, op verzoek van de eigenaar,
+vóór de push. Vooraf: geen tabel, 52 krachttrainingen in
+`intervals_activities`. Achteraf: tabel leeg, RLS aan, policy
+`intervals_strength_muscles_own`, de check op spiergroepen en de vreemde
+sleutel. Toegepast als `0290_intervals_strength_muscles`; daarna bleek 0290 op
+`main` al de Ladderpuzzel, dus het bestand heet nu 0292 en in de historie van
+productie staat de oude naam.
 
 **Waarom.** Vraag van de eigenaar: een krachttraining uit intervals.icu
 meenemen in ZWBeter kracht, en daarbij op het getekende krachtmensje kunnen
@@ -11612,12 +11911,12 @@ rondes van fase A en B hieronder inline gecorrigeerd).
 
 **Gecontroleerd.** Vitest `mobility.test.ts` (drie nieuwe gevallen voor
 trainingen buiten ZWB), `intervals-strength.test.ts` (nieuw, ook de
-spiergroepen in migratie 0290 tegen `MUSCLE_GROUPS`) en `muscles.test.ts`;
+spiergroepen in migratie 0292 tegen `MUSCLE_GROUPS`) en `muscles.test.ts`;
 `tsc` (alleen de bekende fouten over ontbrekende pakketten); ESLint op de
 gewijzigde bestanden. Het figuur is als statische HTML bekeken: leeg en met
 vier aangetikte groepen, voor en achter gekleurd.
-**Niet geverifieerd:** de migratie, en de pagina met een ingelogde sessie
-(lijst, dialoog, klikken en opslaan, de krachtregel met echte data).
+**Niet geverifieerd:** de pagina met een ingelogde sessie (lijst, dialoog,
+klikken en opslaan, de krachtregel met echte data).
 
 **Privacy.** Nieuw punt "Krachttraining uit intervals.icu" op `/privacy`, onder
 de ritten via intervals.icu. Akkoord eigenaar 2026-10-28, zonder nieuwe
@@ -14889,7 +15188,8 @@ eigen scherm, na Vermogen en vóór Teams:
   score tot en met de maandag van de week, hooguit 35 dagen oud, naast die van
   precies een week eerder. `weakestFacet` staat nu in `briljant/score.ts` en wordt
   ook door het Strava-blok gebruikt.
-- `SUMMARY_VERSION` is 3: een bestaand overzicht van deze week wordt bij de
+- `SUMMARY_VERSION` werd 3 (sinds 2026-10-28 is hij 4, ronde "ZWBeter racen:
+  verwachting, punten per bron en de terugblik"): een bestaand overzicht van deze week wordt bij de
   volgende opening opnieuw opgebouwd en krijgt de steen (gezien en coachtekst
   blijven staan, zoals bij versie 2).
 - De steen alleen telt niet als inhoud (`hasContent`): wie een week niets deed,
@@ -19275,6 +19575,23 @@ fouten in de console.
 **Niet geverifieerd.** Niet echt een workout ingepland (dat schrijft in het
 eigen schema en start een herziening op productie); ook niet gecontroleerd dat
 zo'n workout goed in intervals.icu landt.
+
+**Bijgestuurd (2026-10-29; gepusht naar `main`, eigenaar).** Op verzoek van de
+eigenaar schuiven alle duurinvoeren van het schema per 5 minuten in plaats van
+per kwartier (commits `91b7f177` en `d370c183`):
+- **Rit inplannen**: de Duur-balk (nog steeds 15 min tot 8 uur). `planOwnRide`
+  rondt alleen af op hele minuten, dus de server hoefde niet mee.
+- **Wekelijkse beschikbaarheid**: `AVAILABILITY_STEP_MINUTES` is 5. Die stap
+  geldt voor de balken in het schema en in het weekoverzicht, én voor
+  `clampMinutes()` op de server, die nu op 5 minuten afrondt. Bestaande
+  waarden (veelvouden van 15) blijven geldig.
+- **Duur aanpassen** van een geplande training: het getalveld nam alleen
+  veelvouden van 15 aan (de browser weigerde bijvoorbeeld 50); nu per 5.
+  `setWorkoutDuration` controleerde alleen 15–480.
+- De labels tonen "1u 05" in plaats van "1u 5".
+
+Geen migratie. Unit-tests van `availability` groen, lint schoon. Niet in de
+browser bekeken.
 
 ### Opgeleverd — beleid bewijsniveau voor alle kennisbanken
 

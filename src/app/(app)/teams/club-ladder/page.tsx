@@ -42,7 +42,14 @@ import {
 } from "./_components/ladder-assign";
 import { LadderCaptains, type CaptainTeam } from "./_components/ladder-captains";
 import { LadderPoolAdd } from "./_components/ladder-pool-add";
-import { canAssignLadderRiders } from "@/lib/club-ladder/access";
+import { LadderPuzzle } from "./_components/ladder-puzzle";
+import {
+  buildPuzzleRiders,
+  parseLadderBand,
+  type LadderPuzzleTeam,
+  type LadderRosterRow,
+} from "@/lib/club-ladder/puzzle";
+import { canAssignLadderRiders, canEditLadderPuzzle } from "@/lib/club-ladder/access";
 import { getRequestAccess } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
@@ -255,10 +262,12 @@ export default async function ClubLadderPage({
 
   // ZRS is tijdelijk: met een ZwiftRacing-sleutel vervangt vELO 2 hem.
   const useVelo = zwiftRacingConfigured();
-  const [allLadderRiders, canAssign] = await Promise.all([
+  const [allLadderRiders, canAssign, canPuzzle] = await Promise.all([
     loadLadderRiders(teamRows, admin, supabase, useVelo),
     canAssignLadderRiders(access),
+    canEditLadderPuzzle(access),
   ]);
+  const puzzle = await loadLadderPuzzle(teamRows, allLadderRiders, admin);
   const ladderGroups = groupLadderRidersBySex(sortLadderRiders(allLadderRiders, riderSort));
   const captainData = canAssign ? await loadLadderCaptains(teamRows, admin) : null;
   const assignTeams: AssignTeam[] = teamRows.map((team) => ({
@@ -472,6 +481,15 @@ export default async function ClubLadderPage({
             </section>
           </section>
 
+          {puzzle && (
+            <LadderPuzzle
+              teams={puzzle.teams}
+              riders={puzzle.riders}
+              otherTeams={puzzle.otherTeams}
+              canEdit={canPuzzle}
+            />
+          )}
+
           <LadderAssignProvider initialTeamId={selectedTeam.id}>
             <section id="ladderrenners" className="scroll-mt-20 space-y-6 rounded-lg border bg-card p-4">
               {canAssign && <LadderTeamPicker teams={assignTeams} />}
@@ -519,6 +537,76 @@ export default async function ClubLadderPage({
       )}
     </div>
   );
+}
+
+/** Teams met een band staan in de puzzel (0290); de rest kan erbij. Null zonder 0290. */
+async function loadLadderPuzzle(
+  ladderTeams: TeamRow[],
+  members: LadderRider[],
+  admin: ReturnType<typeof createAdminClient>,
+) {
+  // Leeg zolang 0290 niet is toegepast: dan geven de queries een fout en geen rijen.
+  // De band daarom apart, zodat de rest van de pagina blijft werken.
+  const [{ data: bandRows, error: bandError }, { data: rosterRows }] = await Promise.all([
+    admin.from("teams").select("id, ladder_rank_min, ladder_rank_max").eq("type", "ladder"),
+    admin
+      .from("ladder_roster_riders")
+      .select("roster_entry_id, team_id, sex, roster_entries(name, zwift_id, claimed_by)"),
+  ]);
+  if (bandError) return null;
+  const bands = new Map(
+    ((bandRows ?? []) as Array<{ id: string; ladder_rank_min: number | null; ladder_rank_max: number | null }>).map(
+      (row) => [row.id, parseLadderBand(row.ladder_rank_min, row.ladder_rank_max)],
+    ),
+  );
+  const teams: LadderPuzzleTeam[] = [];
+  const otherTeams: Array<{ id: string; name: string }> = [];
+  for (const team of ladderTeams) {
+    const band = bands.get(team.id);
+    if (band) teams.push({ id: team.id, name: team.name, archived: Boolean(team.is_graveyard), band });
+    else otherTeams.push({ id: team.id, name: team.name });
+  }
+  // Sterkste team links: op de hoogste rank van de band, dan de laagste.
+  teams.sort(
+    (a, b) => a.band[0] - b.band[0] || a.band[1] - b.band[1] || a.name.localeCompare(b.name, "nl"),
+  );
+  const roster: LadderRosterRow[] = (
+    (rosterRows ?? []) as unknown as Array<{
+      roster_entry_id: string;
+      team_id: string | null;
+      sex: string | null;
+      roster_entries: { name: string; zwift_id: string | null; claimed_by: string | null } | null;
+    }>
+  )
+    .filter((row) => row.roster_entries && !row.roster_entries.claimed_by)
+    .map((row) => ({
+      roster_entry_id: row.roster_entry_id,
+      team_id: row.team_id,
+      sex: row.sex,
+      name: row.roster_entries!.name,
+      zwift_id: row.roster_entries!.zwift_id,
+    }));
+
+  const zwiftIds = Array.from(
+    new Set(
+      [
+        ...members.map((member) => (member.zwiftId == null ? null : String(member.zwiftId))),
+        ...roster.map((row) => row.zwift_id?.trim() || null),
+      ].filter((id): id is string => Boolean(id)),
+    ),
+  );
+  const { data: rankRows } = zwiftIds.length
+    ? await admin.from("ladder_ranks").select("zwift_id, rank").in("zwift_id", zwiftIds)
+    : { data: [] };
+  const ranks = new Map(
+    ((rankRows ?? []) as Array<{ zwift_id: string; rank: number }>).map((row) => [row.zwift_id, row.rank]),
+  );
+
+  return {
+    teams,
+    otherTeams,
+    riders: buildPuzzleRiders(members, roster, ranks, new Set(teams.map((team) => team.id))),
+  };
 }
 
 async function loadLadderCaptains(
@@ -577,7 +665,7 @@ async function loadLadderRiders(
   // Ook teams in het archief: een captain kan er al renners in zetten voordat het
   // team op de ladder terugkeert.
   const teamNames = new Map(ladderTeams.map((team) => [team.id, team.name]));
-  const [{ data: memberRows }, { data: poolRows }] = await Promise.all([
+  const [{ data: memberRows }, { data: poolRows }, { data: withdrawnRows }] = await Promise.all([
     ladderTeams.length > 0
       ? admin
           .from("team_members")
@@ -586,7 +674,12 @@ async function loadLadderRiders(
       : Promise.resolve({ data: [] }),
     // Leeg zolang 0285 niet is toegepast: dan geeft de query een fout en geen rijen.
     admin.from("ladder_pool").select("profile_id"),
+    // Uit de ladder gehaald (0291); leeg zolang die niet is toegepast.
+    admin.from("ladder_withdrawn").select("profile_id"),
   ]);
+  const withdrawn = new Set(
+    ((withdrawnRows ?? []) as Array<{ profile_id: string }>).map((row) => row.profile_id),
+  );
   const memberships: LadderRiderMembership[] = (
     (memberRows ?? []) as Array<{ team_id: string; profile_id: string }>
   ).map((row) => ({
@@ -606,7 +699,9 @@ async function loadLadderRiders(
     .select("id, display_name, sex, zwift_id, event_type_interests, zrl_category, ftp_watts, weight_kg")
     .eq("is_approved", true)
     .or(ladderFilter.join(","));
-  const profiles = (profileRows ?? []) as LadderRiderProfile[];
+  const profiles = ((profileRows ?? []) as LadderRiderProfile[]).filter(
+    (profile) => !withdrawn.has(profile.id),
+  );
   if (profiles.length === 0) return [];
 
   const zwiftIds = Array.from(

@@ -103,12 +103,35 @@ describe("loadZwiftRaceData", () => {
     expect(db.saved[0].frozen_at).toBe(new Date(START + 3 * 3600_000).toISOString());
   });
 
-  it("vraagt niets aan Zwift als het vermogen er al is", async () => {
-    db.frozen = { ...oldSnapshot(), withPower: true };
+  it("vraagt niets aan Zwift als vermogen en ZRS er al zijn", async () => {
+    db.frozen = { ...oldSnapshot(), withPower: true, withScores: true };
     const data = await loadZwiftRaceData("5737449");
     expect(data?.withPower).toBe(true);
     expect(zwift.results).not.toHaveBeenCalled();
     expect(zwift.segments).not.toHaveBeenCalled();
+    expect(db.saved).toHaveLength(0);
+  });
+
+  it("vult data met vermogen maar zonder ZRS alleen aan met de ZRS van vóór de race", async () => {
+    db.frozen = { ...oldSnapshot(), withPower: true };
+    zwift.results.mockResolvedValue([{ profileId: 1, rank: 1, durationMs: 2_600_000, avgWatts: 999, scoreBefore: 312.5 }]);
+
+    const data = await loadZwiftRaceData("5737449");
+
+    expect(data?.withScores).toBe(true);
+    // Alleen de score komt erbij; de rest van de bewaarde rij blijft.
+    expect(data?.subgroups[0].results[0]).toEqual({ profileId: 1, rank: 1, durationMs: 2_600_000, scoreBefore: 312.5 });
+    expect(zwift.results).toHaveBeenCalledWith("77");
+    expect(zwift.segments).not.toHaveBeenCalled();
+    expect(db.saved).toHaveLength(1);
+    expect(db.saved[0].frozen_at).toBe(new Date(START + 3 * 3600_000).toISOString());
+  });
+
+  it("bewaart niets als het aanvullen van de ZRS mislukt", async () => {
+    db.frozen = { ...oldSnapshot(), withPower: true };
+    zwift.results.mockRejectedValue(new Error("Zwift-API gaf status 429"));
+    const data = await loadZwiftRaceData("5737449");
+    expect(data?.withScores).toBe(false);
     expect(db.saved).toHaveLength(0);
   });
 
@@ -149,8 +172,8 @@ describe("loadZwiftRaceData voor een geplakte link", () => {
       { zwiftId: "2", name: "Onbekende", category: "C" },
     ]);
     zwift.results.mockResolvedValue([
-      { profileId: 2, rank: 1, durationMs: 2_000_000, avgWatts: 310, weightKg: 70 },
-      { profileId: 1, rank: 2, durationMs: 2_030_000, avgWatts: 250, weightKg: 80 },
+      { profileId: 2, rank: 1, durationMs: 2_000_000, avgWatts: 310, weightKg: 70, scoreBefore: 420 },
+      { profileId: 1, rank: 2, durationMs: 2_030_000, avgWatts: 250, weightKg: 80, scoreBefore: 380 },
     ]);
     zwift.segments.mockImplementation(async (segmentId: string) => [
       { id: `${segmentId}-1`, athleteId: 1, segmentId, ts: start + 600_000, elapsed: 30, avgPower: 400, weightKg: 80 },
@@ -165,7 +188,9 @@ describe("loadZwiftRaceData voor een geplakte link", () => {
     expect(db.saved).toHaveLength(1);
     const saved = db.saved[0].data as RaceData;
     expect(saved.subgroups[0].entrants.find((e) => e.zwiftId === "2")?.name).toBe("");
-    expect(saved.subgroups[0].results.find((r) => r.profileId === 2)).toEqual({ profileId: 2, rank: 1, durationMs: 2_000_000 });
+    // Van een onbekende ook de ZRS van vóór de race: die is nodig voor de verwachte volgorde.
+    expect(saved.subgroups[0].results.find((r) => r.profileId === 2)).toEqual({ profileId: 2, rank: 1, durationMs: 2_000_000, scoreBefore: 420 });
+    expect(saved.withScores).toBe(true);
     expect(saved.subgroups[0].results.find((r) => r.profileId === 1)?.avgWatts).toBe(250);
     expect(saved.passages.filter((p) => p.athleteId === 2).every((p) => p.avgPower === undefined)).toBe(true);
     expect(saved.passages.filter((p) => p.athleteId === 1).every((p) => p.avgPower === 400)).toBe(true);

@@ -8,7 +8,8 @@
 // Uitwerking en keuzes: docs/zrl-analyse.md.
 
 import type { RaceCriticalPower, SubgroupResult } from "@/lib/events/zwift-club";
-import type { Passage, ScoredPass, TeamScore, ZrlScoringFormat } from "@/lib/zrl-live/scoring";
+import { FTS_POINTS, type Passage, type ScoredPass, type TeamScore, type ZrlScoringFormat } from "@/lib/zrl-live/scoring";
+import { riderExpectation, type PointsSplit, type RiderExpectation } from "@/lib/zrl-analysis/expectation";
 
 /** Wat race.ts uit de live stand nodig heeft; `ZrlLiveView` past hierop. */
 export type RaceViewInput = {
@@ -38,6 +39,7 @@ export function segmentKind(name: string): SegmentKind {
 
 export type RiderSegment = {
   index: number;
+  segmentId: string;
   name: string;
   kind: SegmentKind;
   /** Seconden over het segment. */
@@ -49,6 +51,9 @@ export type RiderSegment = {
   of: number;
   /** Plek over de streep van dit segment (zoals FAL telt). */
   falRank: number;
+  /** Puntenrace: FAL- en FTS-punten op deze passage; 0 in een andere race. */
+  falPoints: number;
+  ftsPoints: number;
 };
 
 export type RiderAnalysis = {
@@ -66,6 +71,10 @@ export type RiderAnalysis = {
   cp20Wkg: number | null;
   /** Punten (puntenrace en scratch); 0 in een ploegentijdrit. */
   points: number;
+  /** Waar de punten vandaan kwamen; null in een ploegentijdrit. */
+  pointsSplit: PointsSplit | null;
+  /** Verwachte plek en punten op ZRS van vóór de race; null in een ploegentijdrit of zonder scores. */
+  expected: RiderExpectation | null;
   /** In een ploegentijdrit: niet bij de ploeg gefinisht (later dan de vierde plus de marge). */
   dropped: boolean;
   segments: RiderSegment[];
@@ -107,6 +116,8 @@ export type RaceAnalysis = {
   hasPower: boolean;
   /** Een race zonder draft (Race of Truth): positie en wiel tellen niet. */
   noDraft: boolean;
+  /** Puntenrace: de verwachte punten van de eigen renners samen, op ZRS van vóór de race. */
+  expectedTeamPoints: number | null;
   findings: string[];
 };
 
@@ -174,6 +185,22 @@ export function analyseRace(
   };
   const hasPower = results.some((r) => r.avgWatts) || passages.some((p) => p.avgPower);
 
+  // FTS-punten per passage: de stand telt ze per segment over alle ronden samen.
+  const ftsByCrossing = new Map<string, number>();
+  if (score.format === "points") {
+    const bySegment = new Map<string, ScoredPass["crossings"]>();
+    for (const pass of score.passes) bySegment.set(pass.segmentId, [...(bySegment.get(pass.segmentId) ?? []), ...pass.crossings]);
+    for (const efforts of bySegment.values()) {
+      [...efforts]
+        .sort((a, b) => a.elapsed - b.elapsed || a.ts - b.ts)
+        .slice(0, FTS_POINTS.length)
+        .forEach((effort, i) => ftsByCrossing.set(`${effort.athleteId}:${effort.ts}`, FTS_POINTS[i]));
+    }
+  }
+  const scores = new Map(results.map((r) => [r.profileId, r.scoreBefore]));
+  const starters = score.riders.map((r) => r.athleteId);
+  const finishers = finishOrder.map((r) => r.profileId);
+
   const route = score.passes.map((pass) => ({ index: pass.index, name: pass.name, kind: segmentKind(pass.name), lap: pass.lap }));
 
   // Ploegtijd van de eigen ploeg, voor "gelost".
@@ -199,6 +226,7 @@ export function analyseRace(
         const watts = raw?.avgPower ?? null;
         segments.push({
           index: pass.index,
+          segmentId: pass.segmentId,
           name: pass.name,
           kind: segmentKind(pass.name),
           elapsed: crossing.elapsed,
@@ -207,6 +235,8 @@ export function analyseRace(
           rank: at + 1,
           of: ordered.length,
           falRank,
+          falPoints: score.format === "points" ? crossing.fal : 0,
+          ftsPoints: ftsByCrossing.get(`${crossing.athleteId}:${crossing.ts}`) ?? 0,
         });
       }
       const cp = result?.criticalPower ?? null;
@@ -221,6 +251,18 @@ export function analyseRace(
         criticalPower: cp,
         cp20Wkg: wkgOf(cp?.m20, kg),
         points: score.format === "ttt" ? 0 : r.total,
+        pointsSplit: score.format === "ttt" ? null : { fal: r.fal, fts: r.fts, fin: r.fin, podium: r.podium, total: r.total },
+        expected:
+          score.format === "ttt"
+            ? null
+            : riderExpectation({
+                athleteId: r.athleteId,
+                points: score.format === "points",
+                starters,
+                finishers,
+                scores,
+                passes: score.passes.map((pass) => ({ index: pass.index, segmentId: pass.segmentId })),
+              }),
         dropped: score.format === "ttt" && teamTime !== null && (r.time === null || r.time > teamTime + DROPPED_MARGIN_MS),
         segments,
         aheadWkg: score.format === "ttt" ? null : aheadWkg(r.athleteId),
@@ -297,6 +339,17 @@ export function analyseRace(
     const top = [...riders].sort((a, b) => b.points - a.points)[0];
     if (top && top.points > 0) findings.push(`Meeste punten: ${top.name} (${top.points}).`);
   }
+  const expectedTeamPoints =
+    score.format === "points" && riders.length > 0 && riders.every((r) => r.expected?.points)
+      ? Math.round(riders.reduce((sum, r) => sum + (r.expected?.points?.total ?? 0), 0))
+      : null;
+  if (expectedTeamPoints !== null && ownScore) {
+    const scored = riders.reduce((sum, r) => sum + r.points, 0);
+    const diff = scored - expectedTeamPoints;
+    findings.push(
+      `Op ZRS van vóór de race verwacht: ${expectedTeamPoints} punten voor deze renners; gescoord ${scored} (${diff >= 0 ? "+" : "−"}${Math.abs(diff)}).`,
+    );
+  }
   if (!hasPower) findings.push("Zwift gaf geen vermogen voor deze race.");
 
   return {
@@ -313,6 +366,7 @@ export function analyseRace(
     route,
     hasPower,
     noDraft: options.noDraft ?? false,
+    expectedTeamPoints,
     findings,
   };
 }

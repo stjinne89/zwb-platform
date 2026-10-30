@@ -85,6 +85,11 @@ export type RaceData = {
    * vóór 2026-10-15; loadZwiftRaceData vult die één keer aan.
    */
   withPower?: boolean;
+  /**
+   * De uitslag heeft de ZRS van vóór de race (`scoreBefore`). Ontbreekt in data
+   * van vóór 2026-10-28; loadZwiftRaceData vult die één keer aan.
+   */
+  withScores?: boolean;
   /** Zwifts `eventType`: "RACE", "TIME_TRIAL" of "TEAM_TIME_TRIAL". Ontbreekt in data van vóór 2026-10-15. */
   eventType?: string;
 };
@@ -287,6 +292,7 @@ async function fetchRaceData(zwiftEventId: string): Promise<RaceData> {
     passages,
     segmentsOk,
     withPower: true,
+    withScores: true,
     ...(typeof (zwiftEvent as { eventType?: unknown })?.eventType === "string"
       ? { eventType: (zwiftEvent as { eventType: string }).eventType }
       : {}),
@@ -339,14 +345,40 @@ async function addPower(data: RaceData): Promise<RaceData> {
     }
   }
   const passages = data.passages.map((p) => ({ ...p, ...(power.get(p.id) ?? {}) }));
-  return { ...data, subgroups, passages, withPower: ok };
+  // De uitslag is opnieuw opgehaald, dus de ZRS van vóór de race zit er nu ook in.
+  return { ...data, subgroups, passages, withPower: ok, withScores: ok };
+}
+
+/**
+ * Vult bevroren data van vóór 2026-10-28 aan met de ZRS van vóór de race: de
+ * uitslag opnieuw per subgroep, alleen `scoreBefore` overgenomen. Zwift gaf hem
+ * nog voor de ZRL-race van 22 september (gemeten 2026-10-28). Lukt een subgroep
+ * niet, dan blijft `withScores` onwaar en probeert een volgende bezoeker het opnieuw.
+ */
+async function addScores(data: RaceData): Promise<RaceData> {
+  let ok = true;
+  const subgroups: RaceData["subgroups"] = [];
+  for (const subgroup of data.subgroups) {
+    if (subgroup.results.length === 0) {
+      subgroups.push(subgroup);
+      continue;
+    }
+    try {
+      const scores = new Map((await fetchSubgroupResults(subgroup.id)).map((r) => [r.profileId, r.scoreBefore ?? null]));
+      subgroups.push({ ...subgroup, results: subgroup.results.map((r) => ({ ...r, scoreBefore: scores.get(r.profileId) ?? null })) });
+    } catch {
+      ok = false;
+      subgroups.push(subgroup);
+    }
+  }
+  return { ...data, subgroups, withScores: ok };
 }
 
 /**
  * Buiten de ZRL bewaren we van renners die niet bij ZWB horen alleen wat de
- * plaats en de segmentrangen nodig hebben: plek, tijd en segmenttijden. Geen
- * naam, vermogen, gewicht of meter: het gaat om duizenden onbekenden in een
- * openbare race. In de ZRL blijft alles staan; de live stand leest daar de
+ * plaats, de segmentrangen en de verwachte volgorde nodig hebben: plek, tijd,
+ * segmenttijden en de ZRS van vóór de race. Geen naam, vermogen, gewicht of
+ * meter: het gaat om duizenden onbekenden in een openbare race. In de ZRL blijft alles staan; de live stand leest daar de
  * teamtags uit de namen.
  */
 export function minimizeRaceData(data: RaceData, keep: Set<number>): RaceData {
@@ -356,7 +388,9 @@ export function minimizeRaceData(data: RaceData, keep: Set<number>): RaceData {
       ...subgroup,
       entrants: subgroup.entrants.map((e) => (keep.has(Number(e.zwiftId)) ? e : { zwiftId: e.zwiftId, name: "" })),
       results: subgroup.results.map((r) =>
-        keep.has(r.profileId) ? r : { profileId: r.profileId, rank: r.rank, durationMs: r.durationMs },
+        keep.has(r.profileId)
+          ? r
+          : { profileId: r.profileId, rank: r.rank, durationMs: r.durationMs, ...(r.scoreBefore !== undefined ? { scoreBefore: r.scoreBefore } : {}) },
       ),
     })),
     passages: data.passages.map((p) =>
@@ -396,8 +430,9 @@ export type RaceDataOptions = {
 /**
  * Ruwe Zwift-data van een race voor de analyse achteraf (ZWBeter racen). Uit
  * de database als de race bewaard is, anders vers bij Zwift; een gereden race
- * wordt daarna bewaard. Bewaarde data zonder vermogen wordt één keer aangevuld;
- * `frozen_at` blijft dan staan, want `fetchedAt` verandert niet.
+ * wordt daarna bewaard. Bewaarde data zonder vermogen of zonder de ZRS van vóór
+ * de race wordt één keer aangevuld; `frozen_at` blijft dan staan, want
+ * `fetchedAt` verandert niet.
  */
 export async function loadZwiftRaceData(zwiftEventId: string, options: RaceDataOptions = {}): Promise<RaceData | null> {
   const store = (data: RaceData) =>
@@ -405,9 +440,11 @@ export async function loadZwiftRaceData(zwiftEventId: string, options: RaceDataO
   const frozen = await loadFrozenRaceData(zwiftEventId);
   if (frozen) {
     if (options.requireRider !== undefined && !hasResult(frozen, options.requireRider)) return null;
-    if (frozen.withPower) return frozen;
-    const enriched = await addPower(frozen);
-    if (enriched.withPower) await store(enriched);
+    if (frozen.withPower && frozen.withScores) return frozen;
+    const enriched = frozen.withPower ? await addScores(frozen) : await addPower(frozen);
+    // Bewaar wat erbij kwam; wat mislukte, probeert een volgende bezoeker opnieuw.
+    const gained = (key: "withPower" | "withScores") => Boolean(enriched[key]) && !frozen[key];
+    if (gained("withPower") || gained("withScores")) await store(enriched);
     return enriched;
   }
   try {

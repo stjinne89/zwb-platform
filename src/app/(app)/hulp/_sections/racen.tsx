@@ -87,6 +87,32 @@ export function RacenHelp() {
           </p>
         </div>
 
+        <div id="racen-verwachting" className="mt-4 scroll-mt-20 rounded-md border bg-background p-4">
+          <h3 className="text-sm font-semibold">Je race tegenover de verwachting</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            De verwachte plek is je plek als je startgroep op de Zwift Racing
+            Score van vóór de race was geëindigd, de score die Zwift in de
+            uitslag geeft. Het racebriefje zet het veld op dezelfde volgorde. In
+            een ZRL-puntenrace rekent de app ook de punten uit die bij die
+            volgorde horen: elke sprint en klim en de finish in die volgorde.
+            Dat is een meetlat, geen voorspelling; in een echte puntenrace kiest
+            bijna iedereen segmenten. Het verschil per sprint, klim en finish
+            laat zien waar je punten vandaan kwamen.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Per sprint en klim zie je je passage naast je eerdere passages in de
+            races die de app bewaard heeft (&ldquo;snelste&rdquo; als je nog
+            nooit sneller was), je eigen PR van de 90 dagen ervoor en de
+            richttijd van het racebriefje: de snelste PR van je startgroep, met
+            de watt die jij daarvoor nodig had. PR en richttijd staan er alleen
+            als het briefje ze vóór de race had opgehaald. Onder Jouw races staan
+            al je races van de laatste vier maanden met plek en punten tegenover
+            de verwachting. Na minstens drie puntenraces met een duidelijk
+            verschil tussen sprints en klimmen krijg je een tip over waar je je
+            race omheen bouwt. Dit deel ziet alleen jij.
+          </p>
+        </div>
+
         <div className="mt-4 rounded-md border bg-background p-4">
           <h3 className="text-sm font-semibold">FRR en andere Zwift-races</h3>
           <p className="mt-2 text-sm text-muted-foreground">

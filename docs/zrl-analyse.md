@@ -95,8 +95,9 @@ koppelen als het lid de link geeft. SRC rijdt op MyWhoosh en valt erbuiten.
   segmenten pas als het lid in de uitslag staat. Zo laat een lid het
   serviceaccount geen willekeurige races ophalen.
 - **Bewaren buiten de ZRL** (`minimizeRaceData`): van wie niet bij ZWB hoort
-  alleen plek, tijd en segmenttijden; geen naam, vermogen, gewicht of meter. De
-  analyse van de eigen race blijft daarmee gelijk (getest).
+  alleen plek, tijd en segmenttijden (sinds 2026-10-28 ook de ZRS van vóór de
+  race, zie Verdieping); geen naam, vermogen, gewicht of meter. De analyse van
+  de eigen race blijft daarmee gelijk (getest).
 - **De lijst**: ZRL zoals voorheen, plus FRR-slots met een eigen finishtijd en
   elke bewaarde race met het eigen Zwift-ID in de uitslag. Een geplakte race
   staat er dus in zodra hij één keer bekeken is; een tabel per lid is niet nodig.
@@ -105,6 +106,109 @@ Proefgedraaid op productie, schrijven geblokkeerd: etappe 8 van Tour Ignite
 voor een lid dat reed (plek in de groep, achterstand, segmenten, vier ZWB'ers in
 de etappe, plek in het klassement, eigen rit uitgelijnd) en voor een lid dat
 niet reed (geen toegang; alleen event en uitslag opgehaald, geen segmenten).
+
+## Verdieping: verwachting, punten per bron en de terugblik (2026-10-28)
+
+Vraag van de eigenaar: "ik zelf had bijvoorbeeld vergeleken met andere races een
+paar goede sprints en scoorde meer punten dan dat zwiftracing voor mij zou
+voorspeld hebben ook vergeleken met wat het racebriefje dacht dat mogelijk was.
+Worden dat soort elementen ook meegenomen?" Dat werd niet meegenomen: de
+analyse hield per renner alleen het totaal aan punten over en keek nooit naar de
+verwachting of naar eerdere races. Na het voorstel: "Alles, ook 4 en 5".
+
+### Wat gemeten is
+
+- **Zwift geeft de ZRS van vóór de race in de uitslag** (`scoreHistory.previousScore`),
+  voor elke renner. Gemeten op 2026-10-28 in vier startgroepen (ZRL 22 september
+  en 27 oktober, ZRL 20 oktober, FRR Ignite etappe 7): 31/31, 28/28, 34/34 en
+  28/28 rijen. Daarmee is de verwachte volgorde achteraf voor het hele veld te
+  maken, ook voor oude races, zonder dat we vóór de race iets hoefden te bewaren.
+  In ZRL-races stond `scoreChangeType` op `NO_CHANGE`: vóór en na zijn daar gelijk.
+- **ZwiftRacing doet nog niet mee.** `zwift_rider_metrics` had op 2026-10-28 0
+  van 215 renners met vELO (geen API-sleutel); het briefje rekende met ZRS. De
+  voorspelling op de site van ZwiftRacing kunnen we niet lezen (besluit
+  2026-10-20, zie `zwiftracing/client.ts`). De verwachting hier is dus die van
+  het briefje: dezelfde volgorde op ZRS.
+- **Richttijden van het briefje zijn terug te halen** als de PR-cache vóór de
+  race gevuld werd: voor ZRL race 5 (27 oktober) 406 PR's van 124 renners op
+  4 segmenten, alle opgehaald vóór de start.
+
+### Wat gebouwd is
+
+- **ZRS bewaard.** `resultPowerFields` leest `scoreBefore`; `minimizeRaceData`
+  houdt hem ook van renners buiten ZWB (zonder naam), want de verwachte volgorde
+  heeft het hele veld nodig. Nieuwe data heeft `withScores`. Oude snapshots met
+  vermogen worden één keer aangevuld (`addScores`: alleen de uitslag opnieuw, per
+  subgroep), bij een bezoek aan de race of na het antwoord vanuit de terugblik
+  (hooguit 20 s per bezoek).
+- **Punten per passage** (`race.ts`): per segment de FAL- en FTS-punten, per
+  renner de opbouw (FAL, FTS, FIN, podium).
+- **Verwachting** (`expectation.ts`): de plek op ZRS onder de finishers, en in
+  een puntenrace de punten als élk segment en de finish in die volgorde waren
+  gereden. Een meetlat, geen voorspelling: in een echte puntenrace kiest bijna
+  iedereen segmenten, dus een renner die alles meedoet scoort vanzelf boven de
+  verwachting. Het verschil per bron (sprints, klimmen, overige segmenten,
+  finish) is de informatie. Geen verwachting onder 70% dekking (zoals het
+  briefje) en niet in een ploegentijdrit.
+- **Per sprint en klim** (`history.ts`, `compareSegments`): de passage van
+  vandaag, de plek over de streep tegenover de verwachte, de punten tegenover de
+  verwachte, de eigen eerdere passages in bewaarde races (beste en aantal;
+  "snelste" als je nooit sneller was), de eigen PR van vóór de race en de
+  richttijd van het briefje (snelste PR van het startveld van vóór de race, met
+  de watt voor je eigen gewicht). In een puntenrace ook de andere segmenten die
+  punten gaven.
+- **Terugblik** (`raceTrend`): alle bewaarde races van de laatste 120 dagen
+  (geen groepsritten) met plek en punten tegenover de verwachting, per race het
+  verschil op sprints en klimmen, en het beste 15 s-vermogen. Gemiddeld: plekken
+  voor of achter de verwachting, en punten per race boven of onder de verwachting
+  per bron. Gecachet per renner (`unstable_cache`, sleutel per race met de
+  vlaggen vermogen en ZRS): de uitslagen zijn samen ongeveer een megabyte per
+  renner en egress is krap.
+- **Tip** (`strengthAdvice`): na minstens 3 puntenraces met verwachting, als
+  sprints of klimmen gemiddeld ≥ 5 punten per race boven de verwachting liggen
+  en ≥ 5 boven de andere soort: bouw je race daar omheen.
+- **Captain**: in de rennerstabel een kolom Verwacht (plek en punten), en bij de
+  bevindingen de verwachte punten van de eigen renners samen.
+
+### In het weekoverzicht
+
+Daarna (dezelfde dag): het teamscherm van het weekoverzicht "zegt vrij weinig met
+alleen die balken en de positie van de ploeg. Ook mooi als daar iets over de
+bijdrage van de renner staat." Eerst als apart scherm gebouwd, daarna op verzoek
+samengevoegd: reed het lid in de ploeg, dan is het teamscherm nu "Je race"
+(`raceContribution`), met de plaats van de ploeg als laatste zin: plek en punten tegenover de verwachting, het deel van de
+ploegpunten met de plek daarin, en de bron met het grootste verschil; in een
+ploegentijdrit W/kg naast de ploeg en of je bij de ploeg finishte. Alleen uit
+een bevroren race (er is dan een teamuitslag), met een tijdsbudget per race. De
+waarden van ploeggenoten staan zonder naam in de bewaarde samenvatting.
+
+### Op de eigen races van de eigenaar (alleen lezen, ZRS in het geheugen bijgezet)
+
+- ZRL race 5, 27 oktober (puntenrace): verwacht 17e, gefinisht 6e; 241 punten
+  tegen 112 verwacht. Sprints +33, klimmen +59, overige segmenten +26, finish
+  +11. Op de Jarvis Sprint 12,3 s met 8,5 W/kg, tegen eerder 15,6 s en een
+  richttijd van 15,0 s.
+- Over 9 races met een verwachte plek: gemiddeld 7,1 plekken voor de verwachting.
+- Puntenraces met verwachting: 2 (22 september en 27 oktober), dus nog geen tip
+  (de regel vraagt er 3).
+
+### Bewust niet gebouwd
+
+- **vELO of de voorspelling van ZwiftRacing.** Zonder sleutel niet te lezen;
+  met sleutel kan de verwachting op vELO, mits we de vELO van vóór de race
+  bewaren (de cache wordt dagelijks overschreven).
+- **Een model dat segmentkeuze voorspelt.** Wie welke sprint rijdt, is niet uit
+  de data te halen; de meetlat "alles in volgorde" is eerlijker dan een gok.
+- **De richttijd van het briefje vastleggen bij de start.** De PR-cache bewaart
+  één beste tijd per renner; zet iemand in de race een nieuwe PR, dan is zijn
+  PR van daarvoor weg en valt hij buiten de richttijd. Bij race 5 speelde dat
+  niet (alles vóór de start opgehaald). Een eigen tabel per event loont pas als
+  dat vaker misgaat.
+- **Sprint tegenover de vermogenscurve uit intervals.icu.** De beste 15 s uit de
+  Zwift-uitslag per race zit in de terugblik; de curve zou ook deze race zelf
+  bevatten.
+- **De terugblik voor captains of trainers.** Alleen voor de renner zelf; de
+  trainer krijgt wel de tip mee in de tips die het lid ziet.
 
 ## Keuzes
 
