@@ -69,13 +69,6 @@ const HELP_INDEX: HelpResult[] = [
       "strava export csv activities importeren upload bestand geen koppeling limiet gpx een rit losse rit meerdere bulk archief spoor cols segmenten zwblokken taal geen fietsritten gevonden",
   },
   {
-    title: "Rit invoeren zonder bestand",
-    text: "Opname mislukt of bestand kwijt? Vul de rit zelf in met Rit invoeren op het dashboard.",
-    href: "/hulp/koppelen#rit-invoeren",
-    terms:
-      "handmatig invoeren rit toevoegen opname mislukt bestand kwijt vergeten op te nemen geen bestand training afvinken tss vermogen hartslag verwijderen",
-  },
-  {
     title: "Doorklikken naar je andere profielen",
     text: "Zwift-ID, Strava en intervals.icu invullen voor knoppen naar ZwiftPower, ZwiftRacing.app, Strava en intervals.",
     href: "/hulp/koppelen#externe-profielen",
@@ -161,6 +154,13 @@ const HELP_INDEX: HelpResult[] = [
     text: "Gepland tegenover gereden: duur, TSS, IF, zones en RPE.",
     href: "/hulp/schema#naleving",
     terms: "naleving volgens plan te licht te zwaar percentage tss if intensiteit duur rpe verwacht gepland gereden",
+  },
+  {
+    title: "Rit invoeren zonder bestand",
+    text: "Opname mislukt of bestand kwijt? Klik de training aan en kies Rit invoeren.",
+    href: "/hulp/schema#rit-invoeren",
+    terms:
+      "handmatig invoeren rit toevoegen opname mislukt bestand kwijt vergeten op te nemen geen bestand training afvinken niet gereden tss vermogen hartslag verwijderen",
   },
   {
     title: "Tijd per zone",

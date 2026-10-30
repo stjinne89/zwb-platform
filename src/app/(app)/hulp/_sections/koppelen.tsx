@@ -241,27 +241,6 @@ export function KoppelenHelp() {
               FIT-bestand van Zwift, Garmin of Wahoo werkt ook.
             </p>
           </article>
-          <article
-            id="rit-invoeren"
-            className="scroll-mt-20 rounded-md border bg-background p-4 md:col-span-2"
-          >
-            <h3 className="text-sm font-semibold">Rit zonder bestand (Rit invoeren)</h3>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Mislukte de opname, of is het bestand weg? Vul de rit dan zelf in
-              met Rit invoeren op het dashboard: datum, starttijd, duur en wat
-              je weet van afstand, hoogtemeters, vermogen en hartslag. Een
-              training uit je schema van die dag (tot een week terug) telt
-              daarna als gereden.
-            </p>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Zonder spoor tellen cols, ZWB Segments en ZWBlokken niet mee. Met
-              vermogen rekent ZWB de TSS met je NP; vul je alleen het
-              gemiddelde in, dan valt die iets te laag uit. Zonder vermogen komt
-              de TSS uit je hartslag. Een verkeerd ingevulde rit haal je weg
-              onder Ingevoerd in hetzelfde venster; dezelfde datum en starttijd
-              opnieuw invullen overschrijft hem.
-            </p>
-          </article>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <a

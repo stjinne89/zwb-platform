@@ -56,6 +56,7 @@ import {
 import { loadFtpAt } from "@/lib/training/ftp-history";
 import { loadHrBasis } from "@/lib/training/hr-load";
 import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
+import { MANUAL_IMPORT_SOURCE } from "@/lib/strava/import";
 import { STRAVA_RIDE_COLUMNS, type StravaRideRow } from "@/lib/training/ride-metrics";
 import { unplannedRides, type UnplannedRide } from "@/lib/training/unplanned-rides";
 import type {
@@ -346,7 +347,7 @@ export type ScheduleRides = {
   /** Ritten waar geen geplande training tegenover stond. */
   unplanned: UnplannedRide[];
   /** Alle ritten uit het venster, op Strava-id: dag en naam, voor het koppelen. */
-  byId: Map<string, { dateKey: string; name: string }>;
+  byId: Map<string, { dateKey: string; name: string; manual: boolean }>;
   /** Strava-id's waar een training aan hangt, maar die rit bestaat niet meer. */
   deleted: Set<string>;
 };
@@ -407,7 +408,11 @@ export async function loadScheduleRides(
   const byId = new Map(
     rides.map((ride) => [
       String(ride.id),
-      { dateKey: amsterdamDayKey(new Date(ride.start_date)), name: ride.name?.trim() || "Rit" },
+      {
+        dateKey: amsterdamDayKey(new Date(ride.start_date)),
+        name: ride.name?.trim() || "Rit",
+        manual: (ride.raw as { import_source?: unknown } | null)?.import_source === MANUAL_IMPORT_SOURCE,
+      },
     ]),
   );
   const deleted = await deletedPairedRides(viewer, reports, byId);
@@ -444,7 +449,7 @@ export async function loadScheduleRides(
  * laat die eerst los.
  */
 export function rideLinkFor(
-  ride: { activityId: string; dateKey: string; name: string },
+  ride: { activityId: string; dateKey: string; name: string; manual?: boolean },
   workoutId: string | null,
   workouts: WorkoutRow[],
   reports: WorkoutReportRow[],
@@ -466,6 +471,7 @@ export function rideLinkFor(
   return {
     activityId: ride.activityId,
     workoutId,
+    manual: ride.manual ?? false,
     rideLabel: `${ride.name} · ${formatDayMonth(`${ride.dateKey}T12:00:00`)}`,
     options: reassignCandidates(pool, ride.dateKey, workoutId ?? "", paired).map(
       (candidate) => ({

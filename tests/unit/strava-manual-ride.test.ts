@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { manualRideRow, MANUAL_IMPORT_SOURCE } from "@/lib/strava/import";
+import { manualRideWindow } from "@/lib/training/completion";
 import { rideMetricsFromStrava } from "@/lib/training/ride-metrics";
 
 const profileId = "00000000-0000-0000-0000-000000000001";
@@ -93,5 +94,33 @@ describe("manualRideRow", () => {
       now,
     );
     expect(result).toEqual({ ok: false, error });
+  });
+});
+
+describe("manualRideWindow", () => {
+  const workout = {
+    scheduled_at: "2026-10-27T16:00:00Z",
+    status: "planned",
+    intensity: "endurance",
+    origin: "plan",
+  };
+
+  it("loopt van de trainingsdag tot en met vandaag", () => {
+    expect(manualRideWindow(workout, false, "2026-10-30")).toEqual({ maxDateKey: "2026-10-30" });
+    expect(manualRideWindow(workout, false, "2026-10-27")).toEqual({ maxDateKey: "2026-10-27" });
+  });
+
+  it("houdt op na de week die reassignCandidates toestaat", () => {
+    expect(manualRideWindow(workout, false, "2026-11-20")).toEqual({ maxDateKey: "2026-11-02" });
+  });
+
+  it.each([
+    ["al gereden", { ...workout }, true, "2026-10-30"],
+    ["nog niet aan de beurt", { ...workout }, false, "2026-10-26"],
+    ["afgerond", { ...workout, status: "completed" }, false, "2026-10-30"],
+    ["rustdag", { ...workout, intensity: "rest" }, false, "2026-10-30"],
+    ["clubevent", { ...workout, origin: "event" }, false, "2026-10-30"],
+  ])("niet bij een training die %s is", (_label, input, paired, today) => {
+    expect(manualRideWindow(input, paired, today)).toBeNull();
   });
 });

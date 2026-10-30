@@ -1,8 +1,9 @@
 "use server";
 
-// Een gereden rit zelf invullen, als het bestand verloren ging (opname mislukt,
-// toestel leeg). De rij bouwt manualRideRow; hier alleen opslaan, verwijderen en
-// het nawerk dat een rit zonder spoor nodig heeft: de training afvinken en badges.
+// Een training gereden, maar het bestand ging verloren (opname mislukt, toestel
+// leeg): de rit zelf invullen bij die training. De rij bouwt manualRideRow; hier
+// opslaan, aan de training hangen (relinkRide) en het nawerk dat een rit zonder
+// spoor nodig heeft: badges.
 
 import { revalidatePath } from "next/cache";
 import { awardCompletedAchievementWeeks } from "@/lib/achievements/awards";
@@ -16,17 +17,12 @@ import {
 import { runPostSyncForProfile } from "@/lib/strava/post-sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-
-export type ManualRide = {
-  id: number;
-  name: string;
-  start_date: string;
-  distance_m: number;
-  moving_time_seconds: number;
-};
+import { reassignCandidates, relinkRide } from "@/lib/training/completion";
+import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
 function revalidateRidePages() {
-  for (const path of ["/dashboard", "/stats/rankings", "/stats", "/leden", "/profiel", "/zwbeter-worden"]) {
+  revalidatePath("/zwbeter-worden", "layout");
+  for (const path of ["/dashboard", "/stats/rankings", "/stats", "/leden", "/profiel"]) {
     revalidatePath(path);
   }
 }
@@ -39,28 +35,7 @@ async function currentUserId() {
   return { supabase, userId: user?.id ?? null };
 }
 
-export async function listMyManualRides() {
-  const { supabase, userId } = await currentUserId();
-  if (!userId) return { ok: false as const, error: "Niet ingelogd." };
-  const { data, error } = await supabase
-    .from("strava_activities")
-    .select("id, name, start_date, distance_m, moving_time_seconds")
-    .eq("profile_id", userId)
-    .eq("raw->>import_source", MANUAL_IMPORT_SOURCE)
-    .order("start_date", { ascending: false })
-    .limit(5);
-  if (error) return { ok: false as const, error: error.message };
-  return {
-    ok: true as const,
-    rides: (data ?? []).map((ride) => ({
-      ...ride,
-      id: Number(ride.id),
-      distance_m: Number(ride.distance_m) || 0,
-    })) as ManualRide[],
-  };
-}
-
-export async function saveManualRide(input: ManualRideInput) {
+export async function saveManualRide(workoutId: string, input: ManualRideInput) {
   const { supabase, userId } = await currentUserId();
   if (!userId) return { ok: false as const, error: "Niet ingelogd." };
 
@@ -78,8 +53,30 @@ export async function saveManualRide(input: ManualRideInput) {
   if (!built.ok) return built;
   const row = built.row;
 
+  // Vooraf dezelfde toets als relinkRide, zodat er geen losse rit achterblijft
+  // als hij niet bij de training kan horen.
+  const admin = createAdminClient();
+  const { data: workout } = await admin
+    .from("training_workouts")
+    .select("id, scheduled_at, title, status, intensity, origin")
+    .eq("id", workoutId)
+    .eq("profile_id", userId)
+    .is("superseded_at", null)
+    .maybeSingle();
+  if (!workout) return { ok: false as const, error: "Die training is niet gevonden." };
+  const rideDayKey = amsterdamDayKey(new Date(row.start_date));
+  if (reassignCandidates([workout], rideDayKey, "", new Set()).length === 0) {
+    return {
+      ok: false as const,
+      error:
+        workout.status === "planned"
+          ? "Deze datum past niet bij de training."
+          : "Deze training is al afgerond.",
+    };
+  }
+
   // Dezelfde rit uit een andere bron (Strava, intervals.icu, een upload) staat
-  // er al: dan niet nog eens. Dezelfde handmatige rit (zelfde id) overschrijft.
+  // er al: dan die rit koppelen, niet nog eens invoeren.
   const startMs = Date.parse(row.start_date);
   const { data: nearby, error: readError } = await supabase
     .from("strava_activities")
@@ -91,11 +88,22 @@ export async function saveManualRide(input: ManualRideInput) {
   if ((nearby ?? []).some((ride) => String(ride.id) !== String(row.id) && isSameRide(ride, row))) {
     return { ok: false as const, error: "Deze rit staat er al." };
   }
+  const existed = (nearby ?? []).some((ride) => String(ride.id) === String(row.id));
 
   const { error } = await supabase.from("strava_activities").upsert(row, { onConflict: "id" });
   if (error) return { ok: false as const, error: error.message };
 
-  await runAfterChange(userId, []);
+  const linked = await relinkRide(admin, {
+    profileId: userId,
+    activityId: String(row.id),
+    toWorkoutId: workoutId,
+  });
+  if (!linked.ok) {
+    if (!existed) await supabase.from("strava_activities").delete().eq("id", row.id);
+    return { ok: false as const, error: linked.error };
+  }
+
+  await runAfterChange(admin, userId, []);
   return { ok: true as const };
 }
 
@@ -114,16 +122,18 @@ export async function deleteManualRide(id: number) {
   if (error) return { ok: false as const, error: error.message };
   if (!data || data.length === 0) return { ok: false as const, error: "Rit niet gevonden." };
 
-  await runAfterChange(userId, [id]);
+  // removedActivityIds laat de training los; die staat daarna weer open.
+  await runAfterChange(createAdminClient(), userId, [id]);
   return { ok: true as const };
 }
 
-/** Training afvinken of loslaten en badges bijwerken; een rit zonder spoor heeft niet meer nodig. */
-async function runAfterChange(userId: string, removedActivityIds: number[]) {
-  const admin = createAdminClient();
+async function runAfterChange(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  removedActivityIds: number[],
+) {
   await Promise.all([
     runPostSyncForProfile(admin, userId, null, {
-      workoutCompletion: true,
       milestones: true,
       removedActivityIds,
     }).catch(() => null),

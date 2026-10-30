@@ -763,6 +763,22 @@ export function SchemaHelp() {
               invulde staan, zodat je er een andere rit aan kunt hangen.
             </p>
             <p
+              id="rit-invoeren"
+              className="mt-2 scroll-mt-20 text-sm text-muted-foreground"
+            >
+              Gereden, maar mislukte de opname of is het bestand weg? Klik de
+              training aan en kies{" "}
+              <strong className="text-foreground">Rit invoeren</strong>. Datum,
+              naam en duur staan al ingevuld; vul de starttijd in en wat je weet
+              van afstand, hoogtemeters, vermogen en hartslag. De rit hangt meteen
+              aan die training. Met vermogen rekent ZWB de TSS met je NP; vul je
+              alleen het gemiddelde in, dan valt die iets te laag uit. Zonder
+              vermogen komt de TSS uit je hartslag. Zonder spoor tellen cols, ZWB
+              Segments en ZWBlokken niet mee. Klopt er iets niet, kies dan{" "}
+              <strong className="text-foreground">Ingevoerde rit verwijderen</strong>;
+              de training staat daarna weer open.
+            </p>
+            <p
               id="naleving"
               className="mt-2 scroll-mt-20 text-sm text-muted-foreground"
             >

@@ -80,6 +80,7 @@ import {
 } from "../_data";
 import { calendarMarkers } from "@/lib/protocols";
 import { shiftDays } from "@/lib/training/season";
+import { manualRideWindow } from "@/lib/training/completion";
 import { loadOwnWorkoutOptions } from "@/lib/training/own-workouts";
 import { loadActiveRuns } from "../_protocol-data";
 import { loadRidePlans } from "../voeding/_data";
@@ -261,6 +262,8 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
       const pairedId = report?.paired_activity_id ? String(report.paired_activity_id) : null;
       const pairedRide = pairedId ? ridesById.get(pairedId) : undefined;
       const planned = plannedWorkoutIntensity(workout, profile?.ftp_watts ?? null);
+      // Gereden maar zonder bestand: de rit zelf invoeren, meteen aan deze training.
+      const enterRide = manualRideWindow(workout, Boolean(pairedId), todayKey);
       // In Strava verwijderd: dan kan het lid de training nog wel loslaten.
       const rideLink = pairedRide
         ? rideLinkFor(
@@ -320,6 +323,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
             ? raceWarmupView(workout, memberWorkouts, warmupOptions)
             : null,
           ridePlan: ridePlans.get(workout.id) ?? null,
+          enterRide,
         },
       };
     }),
@@ -343,7 +347,12 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
       source: "rit" as const,
       skipped: false,
       rideLink: rideLinkFor(
-        { activityId: String(ride.id), dateKey: ride.dateKey, name: ride.name },
+        {
+          activityId: String(ride.id),
+          dateKey: ride.dateKey,
+          name: ride.name,
+          manual: ridesById.get(String(ride.id))?.manual,
+        },
         null,
         memberWorkouts,
         reports,
