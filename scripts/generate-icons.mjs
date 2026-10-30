@@ -1,24 +1,32 @@
-// Genereert de PWA-icons, de push-badge en de Open Graph-kaart uit het
-// ZWB-beeldmerk (public/icon.svg — de drie schuine parallellogrammen).
+// Genereert de PWA-icons, favicons, de push-badge en de Open Graph-kaart.
 //
-// Waarom niet meer uit het wordmerk: dat is 956x313 en werd op een dekwit
-// vierkant geplakt. Op 192px vulde het logo ~26% van de tegel, wat op een
-// telefoon een wit vlak met een klein logo oplevert. Erger nog: Android maakt
-// van de notificatie-badge een alfamasker, dus een volledig dekkende PNG werd
-// een massief wit blok in de statusbalk.
+// App-icons en favicons komen uit het echte ZWB-logo uit de balk
+// (public/zwb-logo.png), zonder de regel "Cycling Community" en op een lichte
+// tegel: de B is zwart en valt weg op een donker vlak. Het logo vult de
+// breedte van de tegel; met de ondertitel erbij bleef er op 192px maar een
+// klein logo in een groot wit vlak over.
+//
+// De push-badge en de OG-kaart houden het beeldmerk (de drie schuine
+// parallellogrammen). Android tekent de badge als alfamasker, dus daar telt
+// alleen de vorm; de OG-kaart staat op het petrolvlak waar de zwarte B wegvalt.
 //
 // Run met: npm run generate-icons
 
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import sharp from "sharp";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicDir = join(__dirname, "..", "public");
-const markPath = join(publicDir, "icon.svg");
+const logoPath = join(publicDir, "zwb-logo.png");
+const faviconIcoPath = join(__dirname, "..", "src", "app", "favicon.ico");
 
-// De achtergrond van icon.svg, zodat composities naadloos aansluiten.
+// zwb-logo.png is 300x104; rij 0-83 zijn de letters, daaronder de ondertitel.
+const LETTERS = { left: 0, top: 0, width: 300, height: 84 };
+
+// Het lichte vlak achter het logo, gelijk aan --tg-paper in de balk.
+const PAPER = { r: 0xfb, g: 0xfb, b: 0xf7, alpha: 1 };
 const BRAND_BG = { r: 0x1f, g: 0x3a, b: 0x47, alpha: 1 };
 const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 };
 
@@ -35,7 +43,7 @@ function badgeSvg(size) {
   );
 }
 
-/** Het volledige beeldmerk zonder achtergrondvlak, voor composities. */
+/** Het volledige beeldmerk zonder achtergrondvlak, voor de OG-kaart. */
 function markOnlySvg(width) {
   const height = Math.round((width * 192) / 377);
   return Buffer.from(
@@ -47,34 +55,56 @@ function markOnlySvg(width) {
   );
 }
 
-/** Vierkant icoon: het beeldmerk inclusief eigen achtergrondvlak, opgeschaald. */
-async function renderIcon(markBuffer, size) {
-  return sharp(markBuffer, { density: 384 })
-    .resize(size, size)
+/**
+ * Vierkant icoon: de ZWB-letters gecentreerd op het lichte vlak, `fill` als
+ * aandeel van de breedte. Kleine favicons krijgen meer breedte, anders zijn
+ * de letters op 16px maar drie pixels hoog.
+ */
+async function renderIcon(size, fill) {
+  const width = Math.round(size * fill);
+  const letters = await sharp(logoPath)
+    .extract(LETTERS)
+    .resize({ width, kernel: "lanczos3" })
+    .png()
+    .toBuffer();
+  const meta = await sharp(letters).metadata();
+  return sharp({
+    create: { width: size, height: size, channels: 4, background: PAPER },
+  })
+    .composite([
+      {
+        input: letters,
+        top: Math.round((size - (meta.height ?? 0)) / 2),
+        left: Math.round((size - (meta.width ?? width)) / 2),
+      },
+    ])
     .png({ compressionLevel: 9 })
     .toBuffer();
 }
 
 /**
- * Maskable variant: Android snijdt tot een cirkel van ~80%. Het merk krijgt
- * daarom extra lucht en staat op een egaal merkvlak dat wél tot de rand loopt.
+ * ICO met PNG-frames (Vista+), zodat /favicon.ico hetzelfde logo toont als de
+ * PNG-favicons. sharp schrijft zelf geen ICO.
  */
-async function renderMaskable(size) {
-  const inner = Math.round(size * 0.62);
-  const mark = await sharp(markOnlySvg(inner)).png().toBuffer();
-  const meta = await sharp(mark).metadata();
-  return sharp({
-    create: { width: size, height: size, channels: 4, background: BRAND_BG },
-  })
-    .composite([
-      {
-        input: mark,
-        top: Math.round((size - (meta.height ?? inner)) / 2),
-        left: Math.round((size - (meta.width ?? inner)) / 2),
-      },
-    ])
-    .png({ compressionLevel: 9 })
-    .toBuffer();
+function toIco(frames) {
+  const header = Buffer.alloc(6 + 16 * frames.length);
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(frames.length, 4);
+  let offset = header.length;
+  frames.forEach(({ size, png }, i) => {
+    const entry = 6 + 16 * i;
+    header.writeUInt8(size >= 256 ? 0 : size, entry);
+    header.writeUInt8(size >= 256 ? 0 : size, entry + 1);
+    header.writeUInt8(0, entry + 2);
+    header.writeUInt8(0, entry + 3);
+    header.writeUInt16LE(1, entry + 4);
+    header.writeUInt16LE(32, entry + 6);
+    header.writeUInt32LE(png.length, entry + 8);
+    header.writeUInt32LE(offset, entry + 12);
+    offset += png.length;
+  });
+  return Buffer.concat([header, ...frames.map((f) => f.png)]);
 }
 
 /** Liggende Open Graph-kaart voor gedeelde links (WhatsApp, Signal, Slack). */
@@ -108,25 +138,33 @@ async function renderOgCard(width, height) {
 }
 
 async function main() {
-  const mark = await readFile(markPath);
-
+  // Maskable: Android snijdt tot een cirkel van ~80%. Een logo van 66% breed
+  // en 18% hoog blijft daar met zijn hoeken binnen.
   const squares = [
-    { name: "icon-192.png", size: 192 },
-    { name: "icon-512.png", size: 512 },
-    { name: "apple-touch-icon.png", size: 180 },
-    { name: "favicon-32.png", size: 32 },
-    { name: "favicon-16.png", size: 16 },
+    { name: "icon-192.png", size: 192, fill: 0.8 },
+    { name: "icon-512.png", size: 512, fill: 0.8 },
+    { name: "icon-192-maskable.png", size: 192, fill: 0.66 },
+    { name: "icon-512-maskable.png", size: 512, fill: 0.66 },
+    { name: "apple-touch-icon.png", size: 180, fill: 0.8 },
+    { name: "favicon-32.png", size: 32, fill: 0.94 },
+    { name: "favicon-16.png", size: 16, fill: 1 },
   ];
   for (const t of squares) {
-    await writeFile(join(publicDir, t.name), await renderIcon(mark, t.size));
+    await writeFile(join(publicDir, t.name), await renderIcon(t.size, t.fill));
     console.log(`✓ ${t.name} (${t.size}x${t.size})`);
   }
 
-  for (const size of [192, 512]) {
-    const name = `icon-${size}-maskable.png`;
-    await writeFile(join(publicDir, name), await renderMaskable(size));
-    console.log(`✓ ${name} (${size}x${size})`);
+  const icoFrames = [];
+  for (const [size, fill] of [
+    [16, 1],
+    [32, 0.94],
+    [48, 0.9],
+    [256, 0.8],
+  ]) {
+    icoFrames.push({ size, png: await renderIcon(size, fill) });
   }
+  await writeFile(faviconIcoPath, toIco(icoFrames));
+  console.log("✓ src/app/favicon.ico (16/32/48/256)");
 
   const badge = await sharp(badgeSvg(96), { density: 384 })
     .resize(96, 96, { fit: "contain", background: TRANSPARENT })
