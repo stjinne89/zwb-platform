@@ -71,7 +71,7 @@ gaat stabiliteit voor nieuwe features.
    de rondes "App-updates: elke donderdag wat er veranderd is" en "App-updates
    vanzelf uit PLAN.md".
 
-0h. **ZRL-beschikbaarheid in het schema (2026-10-31): gebouwd, niet gepusht.**
+0h. **ZRL-beschikbaarheid in het schema (2026-10-31): gepusht naar `main` (`9528bfe`).**
    Geen migratie. De eerste cronrun na de deploy reserveert de races van alle
    al gegeven beschikbaarheid en vraagt per lid één herziening aan (AI-runs).
    Nalopen: Stijns R2-avonden als race in het schema. Zie de ronde
@@ -11581,8 +11581,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZRL-beschikbaarheid in het schema
 
-**2026-10-31.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet
-gepusht.
+**2026-10-31.** Commit `9528bfe`. Geen migratie. Gepusht naar `main` op
+2026-10-31 (eigenaar).
 
 **Waarom.** Vraag van de eigenaar: de ZRL-races waar een lid zich beschikbaar
 voor meldt ook in zijn ZWBeter-schema meenemen. Tot nu toe deed
