@@ -419,6 +419,12 @@ export type ScheduleEvent = ClubEventRow & {
    * van zijn fietscomputer.
    */
   inIntervals: boolean;
+  /**
+   * Staat de raceweek van deze teamrace als gereserveerde race in het schema
+   * (beschikbaar gemeld, nog niet opgesteld; zie zrl-reservation.ts)? Dan is
+   * deze race voor het lid al geregeld: de captain beslist welk team.
+   */
+  weekReserved: boolean;
 };
 
 /**
@@ -472,6 +478,10 @@ export async function loadScheduleEvents(
   if (events.length === 0) return [];
 
   const ids = events.map((event) => event.id as string);
+  // De raceweken erbij: daar hangt een ZRL-reservering aan, niet aan de race.
+  const weekIds = [
+    ...new Set(events.map((event) => event.parent_event_id).filter((id): id is string => Boolean(id))),
+  ];
   const [{ data: rsvps }, { data: workouts }] = await Promise.all([
     admin
       .from("event_rsvps")
@@ -483,7 +493,7 @@ export async function loadScheduleEvents(
       .select("event_id, intervals_event_id")
       .eq("profile_id", profileId)
       .is("superseded_at", null)
-      .in("event_id", ids),
+      .in("event_id", [...ids, ...weekIds]),
   ]);
 
   const byEvent = new Map((rsvps ?? []).map((row) => [row.event_id as string, row.status as string]));
@@ -499,6 +509,7 @@ export async function loadScheduleEvents(
     rsvp: byEvent.get(event.id) ?? null,
     inSchedule: scheduled.has(event.id),
     inIntervals: Boolean(scheduled.get(event.id)),
+    weekReserved: Boolean(event.parent_event_id) && scheduled.has(event.parent_event_id as string),
   }));
 }
 

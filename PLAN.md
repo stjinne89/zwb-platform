@@ -11651,6 +11651,18 @@ beschikbaarheden in R1 werden er 23 (82%) ook opgesteld.
 **Let op.** Het ICS-agendafeed toont een reservering als losse training ("Training:
 ZRL …"), want het feed vouwt alleen events met een ja samen. Niet aangepast.
 
+**Vervolg 2026-10-31 (melding eigenaar na de deploy).** De reserveringen
+stonden erin (bij Stijn vier R2-avonden, 50 minuten op race, in intervals.icu),
+maar de melding "Controleer je ZRL-opbouw — Geef bij de ZRL-races aan welke je
+rijdt" bleef staan. Die keek alleen naar een ja of een blok op de teamraces
+zelf (`loadScheduleEvents`), en de reservering hangt aan de raceweek.
+`ScheduleEvent` kreeg `weekReserved`: de raceweek van deze teamrace heeft een
+blok. De melding telt dat mee, en in "Clubevents in je schemaperiode" tellen de
+teamraces van een gereserveerde week niet als nog te beantwoorden; ze krijgen
+"raceweek staat in je schema". De "Ik doe mee"-knop blijft. Ook een typefout in
+`tests/unit/zrl-reservation.test.ts` uit `9528bfe` hersteld (vitest draaide
+groen, `tsc` niet).
+
 **Gecontroleerd.** `tests/unit/zrl-reservation.test.ts` (15: reserveren,
 overnemen door de opstelling, misschien/niet, nee op een teamrace, één per
 week, opruimen na de race, gereden blijft staan, route van de teamrace), de

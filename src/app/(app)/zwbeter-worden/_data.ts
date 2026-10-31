@@ -743,6 +743,7 @@ export async function loadScheduleEventChoices(
       rsvp: event.rsvp,
       inSchedule: event.inSchedule,
       inIntervals: event.inIntervals,
+      weekReserved: event.weekReserved,
     }));
 }
 

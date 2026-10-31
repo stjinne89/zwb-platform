@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { ClubEventRow } from "@/lib/training/events";
 import {
   planZrlReservations,
   RESERVATION_GRACE_MS,
@@ -177,7 +178,7 @@ describe("withChildRoutes", () => {
       order: () => Promise.resolve({ data: children, error: null }),
     };
     const admin = { from: () => builder } as unknown as Parameters<typeof withChildRoutes>[0];
-    const week = {
+    const week: ClubEventRow = {
       id: WEEK,
       title: "ZRL 2026/27 · R1 · W4",
       type: "zrl",

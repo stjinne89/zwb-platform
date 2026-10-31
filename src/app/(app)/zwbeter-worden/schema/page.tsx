@@ -235,7 +235,9 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     const zrlEvents = eventChoices.filter((event) => event.type === "zrl");
     if (zrlEvents.length === 0) {
       zrlMessages.push("Er staan geen ZRL-races binnen de looptijd van dit schema.");
-    } else if (!zrlEvents.some((event) => event.rsvp === "yes" || event.inSchedule)) {
+    } else if (
+      !zrlEvents.some((event) => event.rsvp === "yes" || event.inSchedule || event.weekReserved)
+    ) {
       zrlMessages.push("Geef bij de ZRL-races aan welke je rijdt, zodat ze als kwaliteitsprikkel meetellen.");
     }
     const specificityWarning = zrlUpcomingSpecificityWarning(

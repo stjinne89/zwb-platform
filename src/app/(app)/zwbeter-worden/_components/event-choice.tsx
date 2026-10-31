@@ -23,6 +23,8 @@ export type ScheduleEventItem = {
   inSchedule: boolean;
   /** Staat het blok ook in intervals.icu? Zo niet, dan mist het op de fietscomputer. */
   inIntervals: boolean;
+  /** De raceweek staat als gereserveerde ZRL-race in het schema. */
+  weekReserved: boolean;
 };
 
 function durationLabel(minutes: number) {
@@ -93,8 +95,12 @@ export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
   // Een ZRL-seizoen levert tientallen events in dezelfde schemaperiode op; open
   // duwde die lijst de rest van de pagina weg. Dicht blijft de vraag zichtbaar
   // in de kop: alles wat nog een klik nodig heeft, telt mee.
+  // Een teamrace van een gereserveerde raceweek telt niet: daar beslist de
+  // captain welk team je rijdt.
   const openCount = events.filter(
-    (event) => !(event.rsvp === "yes" && event.inSchedule && event.inIntervals),
+    (event) =>
+      !(event.rsvp === "yes" && event.inSchedule && event.inIntervals) &&
+      !(event.rsvp == null && event.weekReserved),
   ).length;
 
   return (
@@ -144,7 +150,9 @@ export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
                     ? event.inIntervals
                       ? " — staat in je schema"
                       : " — in je schema, nog niet in intervals.icu"
-                    : ""}
+                    : event.weekReserved && event.rsvp == null
+                      ? " — raceweek staat in je schema"
+                      : ""}
                 </p>
               </div>
               {/* Ja gezegd, maar er staat geen blok — of wel een blok dat nooit
