@@ -7,6 +7,7 @@ import {
   clearReplanPending,
   loadPendingReplan,
   planIsIgnored,
+  requestReplan,
 } from "@/lib/training/replan";
 import { availabilityForAi, loadFixedWorkouts, mondayKey } from "@/lib/training/availability";
 import { loadFtpTests, profileForAi } from "@/lib/training/ftp-test";
@@ -27,6 +28,7 @@ import { amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { checkCronSecret } from "@/lib/cron/auth";
 import { onePlanPerProfile } from "@/lib/training/active-plan";
 import { refreshEventWorkouts } from "@/lib/training/events";
+import { reconcileZrlReservations } from "@/lib/training/zrl-reservation";
 
 /**
  * Hoe lang een voorstel blijft staan. Daarna is het achterhaald: het ging over
@@ -668,12 +670,25 @@ export async function POST(request: Request) {
     // liggen. Met wat er van het budget over is; de rest volgt de run erna.
     const eventWorkouts = await refreshEventWorkouts(admin, { deadline }).catch(() => null);
 
+    // ZRL-beschikbaarheid als gereserveerde race (zrl-reservation.ts): neerzetten
+    // voor wie pas later een schema kreeg, weghalen bij wie na de race niet
+    // opgesteld bleek. Wie zo een andere week kreeg, krijgt een herziening; de
+    // cooldown en de rij in requestReplan vangen een drukke run op.
+    const zrlReservations = await reconcileZrlReservations(admin, { deadline }).catch(() => null);
+    for (const profileId of zrlReservations?.changedProfiles ?? []) {
+      if (Date.now() > deadline) break;
+      await requestReplan(admin, profileId, "ZRL-beschikbaarheid in het schema bijgewerkt.").catch(
+        () => null,
+      );
+    }
+
     return Response.json({
       ok: true,
       archived,
       finishedGenerations,
       generationsStarted,
       eventWorkouts,
+      zrlReservations,
       budgetSpent: Date.now() > deadline,
       results,
     });

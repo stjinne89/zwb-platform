@@ -8,6 +8,7 @@ import { DISCORD_URL_ERROR, isValidDiscordUrl } from "@/lib/discord";
 import { fetchWhatsAppGroupInfo, isChannelUrl, isValidInviteUrl } from "@/lib/whatsapp";
 import { syncEventWorkout } from "@/lib/training/events";
 import { requestReplan } from "@/lib/training/replan";
+import { syncZrlReservation } from "@/lib/training/zrl-reservation";
 
 const ROLES = ["member", "captain", "co-captain"] as const;
 type Role = (typeof ROLES)[number];
@@ -284,6 +285,25 @@ export async function setTeamAvailability(
     }
     revalidatePath("/teams");
     revalidatePath("/kalender");
+  }
+
+  // Beschikbaar voor een ZRL-raceweek reserveert de race in het trainingsschema,
+  // al lang voordat de captain opstelt (zrl-reservation.ts). Afmelden haalt de
+  // reservering weer weg. Het opslaan van de beschikbaarheid zelf is al gelukt;
+  // lukt dit niet, dan haalt de cron het binnen het uur in.
+  const admin = createAdminClient();
+  const reservation = await syncZrlReservation(admin, user.id, eventId).catch(() => null);
+  if (reservation && (reservation.added > 0 || reservation.removed > 0)) {
+    const { data: event } = await admin.from("events").select("title").eq("id", eventId).maybeSingle();
+    const title = event?.title ?? "ZRL-race";
+    await requestReplan(
+      admin,
+      user.id,
+      reservation.added > 0
+        ? `Beschikbaar voor ${title}; race gereserveerd, schema eromheen.`
+        : `Niet meer beschikbaar voor ${title}; die dag opnieuw ingevuld.`,
+    ).catch(() => null);
+    revalidatePath("/zwbeter-worden", "layout");
   }
 
   revalidatePath(`/teams/${teamId}`);

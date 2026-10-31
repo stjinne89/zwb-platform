@@ -3,7 +3,8 @@
 // De planner kreeg tot nu toe elk aankomend event mee en zette het als sessie in
 // het schema, ook bij een lid dat zich niet had opgegeven. Alleen een 'ja' in
 // event_rsvps is een toezegging; de rest is hooguit een suggestie waar het lid
-// zelf over gaat.
+// zelf over gaat. Eén uitzondering sinds 2026-10-31: beschikbaar voor een
+// ZRL-raceweek reserveert de race al vóór de opstelling (zrl-reservation.ts).
 
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { deleteIntervalsWorkoutEvent } from "@/lib/intervals/client";
@@ -357,6 +358,56 @@ export async function withParentRoutes<T extends ClubEventRow>(admin: Admin, eve
   });
 }
 
+/**
+ * Vult bij een ZRL-raceweek zonder eigen route de route en het format van een
+ * teamrace eronder in. Een raceweek heeft nooit een eigen route; de Zwift-link
+ * komt op de teamraces, die in één raceweek allemaal hetzelfde parcours rijden
+ * (nagekeken op R1, 2026-10). Zonder dit bleef een gereserveerde race (zie
+ * zrl-reservation.ts) op de terugval van 50 minuten staan, ook een TTT.
+ */
+export async function withChildRoutes<T extends ClubEventRow>(admin: Admin, events: T[]): Promise<T[]> {
+  const needsChild = (event: T) =>
+    event.type === "zrl" &&
+    !event.parent_event_id &&
+    positive(event.distance_km) == null &&
+    !hasOwnRoute({ gpx_path: event.gpx_path ?? null, zwift_route_id: event.zwift_route_id ?? null });
+  const parentIds = events.filter(needsChild).map((event) => event.id);
+  if (parentIds.length === 0) return events;
+
+  const { data } = await admin
+    .from("events")
+    .select("parent_event_id, distance_km, elevation_m, zwift_route_id, laps, zwift_event_type, zwift_tags")
+    .in("parent_event_id", parentIds)
+    .order("start_at", { ascending: true });
+  type ChildRoute = Pick<
+    ClubEventRow,
+    "distance_km" | "elevation_m" | "zwift_route_id" | "laps" | "zwift_event_type" | "zwift_tags"
+  > & { parent_event_id: string };
+  const byParent = new Map<string, ChildRoute>();
+  for (const child of (data ?? []) as ChildRoute[]) {
+    const hasRoute = positive(child.distance_km) != null || positive(child.zwift_route_id) != null;
+    if (hasRoute && !byParent.has(child.parent_event_id)) byParent.set(child.parent_event_id, child);
+  }
+  return events.map((event) => {
+    const child = needsChild(event) ? byParent.get(event.id) : undefined;
+    if (!child) return event;
+    return {
+      ...event,
+      distance_km: child.distance_km,
+      elevation_m: child.elevation_m,
+      zwift_route_id: child.zwift_route_id,
+      laps: child.laps,
+      zwift_event_type: event.zwift_event_type ?? child.zwift_event_type,
+      zwift_tags: event.zwift_tags ?? child.zwift_tags,
+    };
+  });
+}
+
+/** Route van de raceweek voor een teamrace, en van een teamrace voor een raceweek. */
+export async function withEventRoutes<T extends ClubEventRow>(admin: Admin, events: T[]): Promise<T[]> {
+  return withChildRoutes(admin, await withParentRoutes(admin, events));
+}
+
 export type ScheduleEvent = ClubEventRow & {
   /** 'yes' | 'maybe' | 'no' | null — null is nog niet beantwoord. */
   rsvp: string | null;
@@ -469,8 +520,21 @@ export async function committedEventsForAi(
   to: string,
 ) {
   const events = await loadScheduleEvents(admin, profileId, from, to).catch(() => []);
-  return events
-    .filter((event) => event.rsvp === "yes")
+  const committed: ClubEventRow[] = events.filter((event) => event.rsvp === "yes");
+
+  // ZRL-raceweken waarvoor het lid zich beschikbaar meldde en nog niet is
+  // opgesteld (zie zrl-reservation.ts). Die zijn als race gereserveerd; een
+  // raceweek staat als hoofdevent niet in loadScheduleEvents.
+  const { reservedZrlEventIds } = await import("@/lib/training/zrl-reservation");
+  const reservedIds = await reservedZrlEventIds(admin, profileId, from, to).catch(() => []);
+  const missing = reservedIds.filter((id) => !committed.some((event) => event.id === id));
+  if (missing.length > 0) {
+    const { data } = await admin.from("events").select(EVENT_COLUMNS).in("id", missing);
+    committed.push(...(await withChildRoutes(admin, (data ?? []) as ClubEventRow[])));
+    committed.sort((a, b) => String(a.start_at).localeCompare(String(b.start_at)));
+  }
+
+  return committed
     .map((event) => ({
       title: event.title,
       type: event.type,
@@ -499,6 +563,32 @@ export async function syncEventWorkout(
   eventId: string,
   status: "yes" | "maybe" | "no",
 ): Promise<{ inserted: boolean; removed: boolean; pushed: boolean }> {
+  const result = await applyEventBlock(admin, profileId, eventId, status === "yes");
+
+  // Bij de ZRL hangt er mogelijk een reservering op de raceweek (zie
+  // zrl-reservation.ts): een ja op een teamrace neemt die over, en wie na een
+  // afmelding nog beschikbaar staat krijgt hem terug. Telt mee als wijziging,
+  // zodat de beller het schema laat herzien.
+  const { syncZrlReservation } = await import("@/lib/training/zrl-reservation");
+  const reservation = await syncZrlReservation(admin, profileId, eventId).catch(() => null);
+  return {
+    ...result,
+    inserted: result.inserted || (reservation?.added ?? 0) > 0,
+    removed: result.removed || (reservation?.removed ?? 0) > 0,
+  };
+}
+
+/**
+ * Zet het blok van één event in het schema (`wanted`) of haalt het eruit, los
+ * van de RSVP. syncEventWorkout gebruikt dit voor een antwoord, de
+ * ZRL-reservering voor beschikbaarheid.
+ */
+export async function applyEventBlock(
+  admin: Admin,
+  profileId: string,
+  eventId: string,
+  wanted: boolean,
+): Promise<{ inserted: boolean; removed: boolean; pushed: boolean }> {
   const unchanged = { inserted: false, removed: false, pushed: false };
 
   const { data: existing } = await admin
@@ -509,7 +599,7 @@ export async function syncEventWorkout(
     .is("superseded_at", null)
     .maybeSingle();
 
-  if (status !== "yes") {
+  if (!wanted) {
     if (!existing) return unchanged;
     // Ook uit intervals.icu halen; anders blijft daar een training staan voor
     // een event waar het lid zich net voor heeft afgemeld.
@@ -549,7 +639,7 @@ export async function syncEventWorkout(
     .eq("id", eventId)
     .maybeSingle();
   if (!row) return unchanged;
-  const [event] = await withParentRoutes(admin, [row as ClubEventRow]);
+  const [event] = await withEventRoutes(admin, [row as ClubEventRow]);
 
   // Zonder lopend schema is er niets om het blok in te hangen. De toezegging is
   // dan wel vastgelegd, en zodra er een schema komt pakt de planner het event op
@@ -651,7 +741,7 @@ export async function refreshEventWorkouts(
     .from("events")
     .select(EVENT_COLUMNS)
     .in("id", [...new Set(workouts.map((w) => w.event_id as string))]);
-  const events = await withParentRoutes(admin, (rows ?? []) as ClubEventRow[]);
+  const events = await withEventRoutes(admin, (rows ?? []) as ClubEventRow[]);
   const byId = new Map(events.map((event) => [event.id, event]));
 
   const toPush: string[] = [];

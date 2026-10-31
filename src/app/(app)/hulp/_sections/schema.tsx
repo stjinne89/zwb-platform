@@ -490,7 +490,7 @@ export function SchemaHelp() {
             <p className="mt-2 text-sm text-muted-foreground">
               Clubevents waar je ja of misschien op hebt gezegd staan
               automatisch op de tijdlijn. Alleen een ja wordt een blok in je
-              schema; misschien blijft een aantekening. Je trainer kan je
+              schema (bij de ZRL ook beschikbaar); misschien blijft een aantekening. Je trainer kan je
               jaarplan bekijken maar niet wijzigen.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -645,7 +645,12 @@ export function SchemaHelp() {
               groepstraining met 80-90%. Kies je{" "}
               <strong className="text-foreground">Nee</strong>, dan verdwijnt het
               uit de lijst en blijft je schema ongemoeid. &apos;Misschien&apos;
-              telt als nog niet beslist, dus dat blijft gewoon staan. Via{" "}
+              telt als nog niet beslist, dus dat blijft gewoon staan. Bij de
+              ZRL is <strong className="text-foreground">Beschikbaar</strong>{" "}
+              al genoeg: de raceweek staat dan als race in je schema, ook als de
+              captain nog moet opstellen. Word je opgesteld, dan neemt de race
+              van je team het over; word je niet opgesteld, dan verdwijnt het
+              blok na de race. Via{" "}
               <strong className="text-foreground">Naar het event</strong> bij de
               training in je schema ga je terug naar het event op de kalender.
             </p>

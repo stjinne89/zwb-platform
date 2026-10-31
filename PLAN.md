@@ -71,6 +71,12 @@ gaat stabiliteit voor nieuwe features.
    de rondes "App-updates: elke donderdag wat er veranderd is" en "App-updates
    vanzelf uit PLAN.md".
 
+0h. **ZRL-beschikbaarheid in het schema (2026-10-31): gebouwd, niet gepusht.**
+   Geen migratie. De eerste cronrun na de deploy reserveert de races van alle
+   al gegeven beschikbaarheid en vraagt per lid één herziening aan (AI-runs).
+   Nalopen: Stijns R2-avonden als race in het schema. Zie de ronde
+   "ZRL-beschikbaarheid in het schema".
+
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
    (limiet 5 GB), en de banner "Organization exceeded its quota in the previous
@@ -11469,7 +11475,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
      zette het blok erbij. Wie zich opgaf op de logische plek, kreeg een schema
      dat niets van het event wist. Beide knoppen lopen nu via één
      `syncEventWorkout` in `training/events.ts`: 'ja' zet het blok erin, 'nee'
-     én 'misschien' halen het eruit (alleen 'ja' is een toezegging).
+     én 'misschien' halen het eruit (alleen 'ja' is een toezegging). *Sinds
+     2026-10-31 telt bij de ZRL ook "beschikbaar" voor een raceweek; zie de
+     ronde "ZRL-beschikbaarheid in het schema".*
   2. **De planner kreeg geen cijfers.** `committedEventsForAi` gaf alleen titel,
      type en datum door. De AI kón niet weten dat het een rit van zeven uur was
      en maakte er een "gecontroleerde eventprikkel" van. Nu gaan duur, afstand
@@ -11570,6 +11578,87 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — ZRL-beschikbaarheid in het schema
+
+**2026-10-31.** Commit: de commit die dit blok toevoegt. Geen migratie. Niet
+gepusht.
+
+**Waarom.** Vraag van de eigenaar: de ZRL-races waar een lid zich beschikbaar
+voor meldt ook in zijn ZWBeter-schema meenemen. Tot nu toe deed
+beschikbaarheid (`team_event_availability`) niets met het schema; alleen een ja
+of een opstelling zette de race erin. Gemeten op productie (alleen lezen,
+2026-10-31, ronde R1 van september en oktober): beschikbaarheid kwam mediaan
+14 dagen vóór de race binnen, de opstelling mediaan 10 uur ervoor (een kwart
+minder dan 2,3 uur). Het schema kende de race dus pas op de racedag zelf. Bij
+Stijn stond op 17 november, 1, 15 en 22 december (beschikbaar voor R2 W1, W3,
+W5 en W6) een VO2max van 75 tot 105 minuten op de raceavond. Van de 28
+beschikbaarheden in R1 werden er 23 (82%) ook opgesteld.
+
+**Wat.**
+- `src/lib/training/zrl-reservation.ts`: beschikbaar voor een ZRL-event wordt
+  een gereserveerd raceblok (`origin = 'event'`) op dat event. Bij een paraplu
+  is dat de raceweek (het hoofdevent), bij een team zonder subteams de teamrace.
+  De beslissing staat in de pure functie `planZrlReservations`:
+  - een ja op een race in die week (zelf, of door de opstelling) neemt het over:
+    de reservering verdwijnt, de race van het team heeft zijn eigen blok;
+  - misschien en niet beschikbaar reserveren niet;
+  - een nee of misschien op de teamrace zelf gaat voor beschikbaarheid op die
+    race; een nee op één teamrace onder een raceweek niet (les van 2026-09-22);
+  - hooguit één reservering per lid per raceweek;
+  - niet opgesteld: drie uur na de start valt de reservering weg (alleen als
+    hij nog op `planned` staat), zodat een race die het lid niet mocht rijden
+    niet als gemist telt;
+  - een blok met een ja op zijn eigen event is van de RSVP en blijft altijd
+    buiten beschouwing.
+- `syncEventWorkout` is gesplitst: `applyEventBlock` zet of haalt één blok, en
+  `syncEventWorkout` brengt daarna de reservering van die raceweek op orde. Zo
+  werkt elke ja/nee (eventpagina, schemapaneel, opstelling, SRC) zonder eigen
+  aanpassing.
+- `setTeamAvailability` reserveert of geeft vrij en vraagt bij een wijziging
+  een herziening aan.
+- De dagelijkse cron (`/api/training/adaptations/daily`, elk uur) draait
+  `reconcileZrlReservations` als vangnet: voor leden die pas later een schema
+  kregen, voor beschikbaarheid die buiten de app om verdween (de omzettingen van
+  `0179`/`0184`), en om reserveringen na de race op te ruimen. Wie zo een
+  andere week krijgt, krijgt een herziening. **De eerste run na de deploy zet
+  de reserveringen van alle al gegeven beschikbaarheid neer** (bij Stijn vier
+  raceavonden) en vraagt per lid één herziening aan.
+- `committedEventsForAi` geeft gereserveerde raceweken mee aan de planner,
+  voor een nieuw schema waarin het blok nog niet bestaat.
+- `withChildRoutes`/`withEventRoutes` (`training/events.ts`): een raceweek heeft
+  nooit een eigen route; de Zwift-link staat op de teamraces, die in een
+  raceweek hetzelfde parcours rijden (R1 nagekeken). De reservering neemt route
+  en format van een teamrace over, dus een TTT wordt als TTT geschat. Zonder
+  link (R2 op dit moment) blijft het de terugval van 50 minuten;
+  `refreshEventWorkouts` rekent hem bij als de link er is.
+- `/hulp` (Schema): beschikbaar bij de ZRL zet de race in je schema.
+
+**Bewust niet gebouwd.**
+- Geen reservering op een geraden teamrace (bijvoorbeeld het team van vorige
+  week). Dat breekt de regel dat plannen op het onderste event gebeurt
+  (`sub-events.ts`) wel, maar een gok die de captain anders invult geeft twee
+  wisselingen in plaats van één. De kalender vouwt het blok netjes onder de
+  raceweek.
+- Geen aparte "voorlopig"-markering of eigen tekst in het blok, en geen
+  promptwijziging: een reservering is voor de planner gewoon een race.
+- Geen herplanning van de raceavond van een lid dat niet werd opgesteld. De
+  dag ervoor is dan voor niets licht gehouden en de sleutelsessie van die dag
+  is weg; bij 18% van de beschikbaarheden. Een ander antwoord vraagt een
+  signaal "opstelling is definitief" dat er niet is.
+- Misschien reserveert niet, net als een RSVP-misschien elders in de app.
+
+**Let op.** Het ICS-agendafeed toont een reservering als losse training ("Training:
+ZRL …"), want het feed vouwt alleen events met een ja samen. Niet aangepast.
+
+**Gecontroleerd.** `tests/unit/zrl-reservation.test.ts` (15: reserveren,
+overnemen door de opstelling, misschien/niet, nee op een teamrace, één per
+week, opruimen na de race, gereden blijft staan, route van de teamrace), de
+bestaande eventtests, de volledige unit-suite (alleen `omnium-live` faalt op
+de ontbrekende `.env.local`), typecheck en ESLint schoon. **Niet
+geverifieerd:** tegen de database (geen `.env.local`), de eerste cronrun op
+productie en de herzieningen die daaruit volgen. Na de deploy nalopen: staan
+bij Stijn de vier R2-avonden als race in het schema en is de VO2max weg?
 
 ### Gebouwd — App-updates vanzelf uit PLAN.md
 
