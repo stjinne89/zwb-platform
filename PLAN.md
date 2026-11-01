@@ -77,6 +77,12 @@ gaat stabiliteit voor nieuwe features.
    Nalopen: Stijns R2-avonden als race in het schema. Zie de ronde
    "ZRL-beschikbaarheid in het schema".
 
+0i. **Ladderteams ZWBandits en ZWBeauties (2026-11-01): code niet gepusht,
+   migratie `0295` nog niet toegepast.** Eerst de code live, dan 0295 via de
+   Supabase-connector, en nakijken met de controlequery in het bestand. Zie de
+   ronde "Ladderteams: ZWBrains gaat op in ZWBandits, ZWB Zwiftladies heet
+   ZWBeauties".
+
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
    (limiet 5 GB), en de banner "Organization exceeded its quota in the previous
@@ -11579,6 +11585,75 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Ladderteams: ZWBrains gaat op in ZWBandits, ZWB Zwiftladies heet ZWBeauties
+
+**2026-11-01.** De commit met deze ronde, op branch `ccr-889b9a85-7w5uiv`,
+niet gepusht (de push werd door de sessie geweigerd). Migratie
+`0295_ladder_bandits_beauties.sql`, **nog niet toegepast** op productie: een
+proefdraai via de Supabase-connector vroeg om een bevestiging die niet op tijd
+kwam, dus productie is ongewijzigd.
+
+**Waarom.** Vraag van de eigenaar: "Kun je de naam ZWBrains naar ZWBandits
+wijzigen? Of de leden van de Brains verhuizen naar de ZWBandits en de Bandits
+in de puzzel zetten." En daarna: "de Beauties zijn de nieuwe naam voor de
+Zwiftladies. Misschien kun je die dan ook integreren." 0290 had ZWBrains en
+ZWBeauties als nieuwe teams naast ZWBandits en ZWB Zwiftladies gezet; dat waren
+dus twee keer twee teams voor één ploeg.
+
+Gekozen: per paar blijft het oude team en neemt het de inhoud van het nieuwe
+over. Het oude team heeft de uitslagenbron op ladder.cycleracing.club
+(`team_result_sources`, club_ladder), ZWB Zwiftladies ook een event (LIV Ladies
+Ride, 2026-08-08). De nieuwe teams hadden alleen leden, rosternamen en
+uitsluitingen; geen uitslagen, events, lineups of andere koppelingen (productie
+gelezen op 2026-11-01). Alleen hernoemen kon niet: de sync
+(`ensureDefaultTeamsAndSources`) maakt een team ZWBandits aan als het op naam
+ontbreekt, en dan waren er twee.
+
+**Wat.**
+- `0295`, per paar (ZWBrains → ZWBandits, ZWBeauties → ZWB Zwiftladies):
+  - het oude team krijgt precies de leden van het nieuwe. Wie alleen in het
+    oude stond, gaat eruit met een uitsluiting (`manual_remove`), zoals bij
+    verplaatsen in de puzzel; op 2026-11-01 alleen Femke uit ZWB Zwiftladies
+    (zij zit in ZWBrains, straks ZWBandits). Jeroen en Stijn stonden al in
+    ZWBandits en houden hun rij;
+  - uitsluitingen, rosternamen (`ladder_roster_riders`) en de band gaan mee:
+    ZWBandits 4–6, ZWBeauties 5–7. Division en omschrijving volgen de band,
+    zoals bij ZWBeasts en ZWBullets ("Sapphire-Platinum", "Amethyst-Gold");
+  - ZWB Zwiftladies heet daarna ZWBeauties, en de club_ladder-bron matcht op
+    "ZWBeauties";
+  - het nieuwe team wordt verwijderd. Op naam, dus opnieuw draaien doet niets.
+- `lib/team-results/sync.ts`: in de standaardteams en -bronnen ZWBeauties in
+  plaats van ZWB Zwiftladies (ladder; ZRL Zwiftladies blijft), en de divisions
+  van ZWBandits en ZWBeauties.
+- Commentaar bij `removeFromLadderTeam` noemde ZWBandits als team buiten de
+  puzzel; nu "een team zonder band".
+
+**Volgorde bij uitrollen.** Eerst de code live, dan 0295. Andersom maakt de
+oude code bij de eerstvolgende sync een leeg team "ZWB Zwiftladies" opnieuw
+aan, met bron. In de tussentijd hangt de nieuwe code een bron "ZWBeauties" aan
+het nieuwe ZWBeauties-team, dat niet in het archief staat; staat die naam niet in
+de ladderstand, dan geeft de sync een fout tot 0295 draait (die bron verdwijnt
+met het team).
+
+**Bewust niet.**
+- ZWBandits en ZWBeauties niet uit het archief gehaald (ZWBrains en ZWBeauties
+  stonden er niet in). Een team buiten het archief met een bron die niet in de
+  ladderstand staat, maakt de sync rood (`clubLadderResultFromSummary`); ZWBeasts
+  en ZWBullets staan om die reden ook in het archief en toch in de puzzel. Uit
+  het archief halen kan een captain op de teampagina, als het seizoen begint.
+- Niet nagekeken of ladder.cycleracing.club de ploeg al "ZWBeauties" noemt: de
+  site is vanuit deze omgeving niet bereikbaar. Zolang het team in het archief
+  staat, slaat de sync een ontbrekende naam over.
+- De testfixtures met "ZWBrains" (`club-ladder-puzzle.test.ts`) niet
+  aangepast: een willekeurige teamnaam in een pure test.
+
+**Gecontroleerd.** `tsc` schoon, ESLint op de twee bestanden, Vitest
+`club-ladder-*` (31). De migratie in PGlite op een nagebouwd stukje schema met
+dezelfde teams, leden, rosternamen, uitsluitingen, bronnen en het event als op
+productie: uitkomst zoals hierboven, en een tweede run verandert niets. **Niet
+geverifieerd:** de migratie op het echte schema (geen Docker of Supabase-config
+hier), de sync na de hernoeming, en de puzzel in de browser.
+
 ### Gebouwd — ZRL-beschikbaarheid in het schema
 
 **2026-10-31.** Commit `9528bfe`. Geen migratie. Gepusht naar `main` op
@@ -11932,7 +12007,8 @@ toevoegde, waren de wattages per renner; die wilde hij in het teamprofiel
 - `loadLadderRiders` geeft nu ook de set uit `ladder_withdrawn` terug. Wie is
   weggehaald, valt uit de puzzel en is via "Lid aan de puzzel toevoegen" weer
   toe te voegen, maar staat nog in het teamprofiel van een team waar hij lid van is (kan alleen
-  een team buiten de puzzel zijn, zoals ZWBandits).
+  een team buiten de puzzel zijn; ZWBandits en ZWB Zwiftladies, toen de
+  voorbeelden, staan sinds 0295 in de puzzel, de laatste als ZWBeauties).
 - Teamprofiel stond eerst 2/3 breed naast Komende matchups; zie de bijstelling
   hieronder.
 - "Lid aan de ladderlijst toevoegen" heet nu "Lid aan de puzzel toevoegen".
@@ -11969,8 +12045,9 @@ staan: "Lid aan de ladderlijst toevoegen" en captains aanwijzen, met de oude
 regel (`canAssignLadderRiders`). `/hulp` aangepast. De Captain-selectie bij
 ZRL-teams (`team-lineup-planner.tsx`) is een ander scherm en blijft.
 
-**Bewust niet.** Teams die niet in de puzzel staan (ZWBandits, ZWB Zwiftladies,
-zonder band) kun je nu niet meer vanaf deze pagina indelen; dat kan op de
+**Bewust niet.** Teams die niet in de puzzel staan (toen ZWBandits en ZWB
+Zwiftladies, zonder band; sinds 0295 staan beide in de puzzel, de laatste als
+ZWBeauties) kun je nu niet meer vanaf deze pagina indelen; dat kan op de
 teampagina zelf, of door het team met een band aan de puzzel toe te voegen.
 
 **Gecontroleerd.** `tsc` schoon, ESLint, Vitest `club-ladder-*` (19).
@@ -12171,7 +12248,10 @@ met renners zonder account "op dezelfde manier als bij ZRL". Nieuwe indeling van
 de eigenaar (2026-10-29): Zwiftladies en Bandits gaan samen op in ZWBrains, en
 ZWBeauties komt erbij; vier teams met een afgesproken band: ZWBeasts
 Diamond–Ruby, ZWBullets Ruby–Sapphire, ZWBrains Sapphire–Platinum, ZWBeauties
-Amethyst–Gold.
+Amethyst–Gold. *Bijgesteld 2026-11-01 (0295): ZWBrains gaat op in ZWBandits
+(band 4–6), en ZWB Zwiftladies heet ZWBeauties en neemt het nieuwe ZWBeauties
+over; zie de ronde "Ladderteams: ZWBrains gaat op in ZWBandits, ZWB Zwiftladies
+heet ZWBeauties".*
 
 **Keuzes van de eigenaar (2026-10-29).** Ranks vullen captains in zolang de
 ZwiftRacing-API er niet is; de ranks die bij het artifact van zwiftracing.app
@@ -12227,7 +12307,7 @@ hier niet).
 **Bewust niet.**
 - Geen controle op club, aantal per roster of de 60%-regel (keuze eigenaar).
 - De damesregel (Emerald–Diamond als één rank) niet: die geldt alleen in een
-  damesteam, en ZWBrains is gemengd.
+  damesteam, en ZWBrains (sinds 0295 ZWBandits) is gemengd.
 - De bestaande Captain-selectie en de ladderlijst blijven staan: de puzzel kent
   alleen teams met een band, de selectie alle ladderteams.
 - Geen ophalen van ranks bij zwiftracing.app: de pagina's daar zijn
@@ -12253,6 +12333,9 @@ aangemaakt. Resultaat: Beasts 8, Bullets 8, Brains 10, Beauties 7; Annet
   is, dus haar rosternaam is gebruikt.
 - **Captains** zijn niet verplaatst: Jeroen (captain) en Stijn (co-captain)
   blijven dat bij ZWBandits, Femke bij ZWB Zwiftladies; in ZWBrains zijn ze lid.
+  *Op 2026-11-01 waren Jeroen en Stijn in ZWBandits gewoon `member`, en Femke
+  in ZWB Zwiftladies ook. Met 0295 is Femke lid van ZWBandits en niet meer van
+  ZWB Zwiftladies (nu ZWBeauties).*
   Indelen kunnen ze toch, want dat mag elke captain van een ladderteam.
 
 ### Gebouwd — ZWBeter racen: verwachting, punten per bron en de terugblik

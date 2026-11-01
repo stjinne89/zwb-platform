@@ -146,8 +146,8 @@ async function leavePuzzleTeams(admin: Admin, profileId: string, teamIds: string
 }
 
 /**
- * Haalt een renner uit een ladderteam dat niet in de puzzel staat (ZWBandits
- * e.d.), via het teamprofiel. Een rosternaam gaat naar de losse stukjes. Teams
+ * Haalt een renner uit een ladderteam dat niet in de puzzel staat (een team
+ * zonder band), via het teamprofiel. Een rosternaam gaat naar de losse stukjes. Teams
  * in de puzzel deelt alleen de rol teamcaptain in.
  */
 export async function removeFromLadderTeam(teamId: string, rider: PuzzleRiderRef) {
