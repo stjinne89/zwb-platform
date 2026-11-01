@@ -77,11 +77,12 @@ gaat stabiliteit voor nieuwe features.
    Nalopen: Stijns R2-avonden als race in het schema. Zie de ronde
    "ZRL-beschikbaarheid in het schema".
 
-0i. **Ladderteams ZWBandits en ZWBeauties (2026-11-01): code niet gepusht,
-   migratie `0295` nog niet toegepast.** Eerst de code live, dan 0295 via de
-   Supabase-connector, en nakijken met de controlequery in het bestand. Zie de
-   ronde "Ladderteams: ZWBrains gaat op in ZWBandits, ZWB Zwiftladies heet
-   ZWBeauties".
+0i. **Ladderteams ZWBandits en ZWBeauties (2026-11-01): migratie `0295`
+   toegepast, code op branch `ccr-889b9a85-7w5uiv`, nog niet op `main`.** Open:
+   de code naar `main`. Tot die live staat, maakt een sync van de teamuitslagen
+   een leeg ladderteam "ZWB Zwiftladies" opnieuw aan; is dat gebeurd, dan dat
+   team verwijderen. Zie de ronde "Ladderteams: ZWBrains gaat op in ZWBandits,
+   ZWB Zwiftladies heet ZWBeauties".
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11587,11 +11588,13 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Ladderteams: ZWBrains gaat op in ZWBandits, ZWB Zwiftladies heet ZWBeauties
 
-**2026-11-01.** De commit met deze ronde, op branch `ccr-889b9a85-7w5uiv`,
-niet gepusht (de push werd door de sessie geweigerd). Migratie
-`0295_ladder_bandits_beauties.sql`, **nog niet toegepast** op productie: een
-proefdraai via de Supabase-connector vroeg om een bevestiging die niet op tijd
-kwam, dus productie is ongewijzigd.
+**2026-11-01.** Commit `3ce50e9`, op verzoek van de eigenaar gepusht naar
+branch `ccr-889b9a85-7w5uiv` (nog niet op `main`). Migratie
+`0295_ladder_bandits_beauties.sql` op 2026-11-01 via de Supabase-connector
+toegepast, op verzoek van de eigenaar. Nagekeken met de controlequery:
+ZWBandits 4–6, 8 leden, 1 rosternaam, bron ZWBandits; ZWBeauties 5–7, 6 leden,
+3 rosternamen, bron ZWBeauties, met het event LIV Ladies Ride; ZWBrains en ZWB
+Zwiftladies (ladder) bestaan niet meer; alle vier puzzelteams in het archief.
 
 **Waarom.** Vraag van de eigenaar: "Kun je de naam ZWBrains naar ZWBandits
 wijzigen? Of de leden van de Brains verhuizen naar de ZWBandits en de Bandits
@@ -11628,7 +11631,8 @@ ontbreekt, en dan waren er twee.
 - Commentaar bij `removeFromLadderTeam` noemde ZWBandits als team buiten de
   puzzel; nu "een team zonder band".
 
-**Volgorde bij uitrollen.** Eerst de code live, dan 0295. Andersom maakt de
+**Volgorde bij uitrollen.** Bedoeld was eerst de code live, dan 0295; de
+eigenaar liet 0295 meteen toepassen, terwijl de code nog niet op `main` staat. Andersom maakt de
 oude code bij de eerstvolgende sync een leeg team "ZWB Zwiftladies" opnieuw
 aan, met bron. In de tussentijd hangt de nieuwe code een bron "ZWBeauties" aan
 het nieuwe ZWBeauties-team, dat niet in het archief staat; staat die naam niet in
@@ -11651,8 +11655,7 @@ met het team).
 `club-ladder-*` (31). De migratie in PGlite op een nagebouwd stukje schema met
 dezelfde teams, leden, rosternamen, uitsluitingen, bronnen en het event als op
 productie: uitkomst zoals hierboven, en een tweede run verandert niets. **Niet
-geverifieerd:** de migratie op het echte schema (geen Docker of Supabase-config
-hier), de sync na de hernoeming, en de puzzel in de browser.
+geverifieerd:** de sync na de hernoeming en de puzzel in de browser.
 
 ### Gebouwd — ZRL-beschikbaarheid in het schema
 
