@@ -5529,7 +5529,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   (eigenaar). Binnen een as is
 >   het "of", tussen categorie en type "en": Zwift plus Training toont de
 >   Zwift-trainingen. Verjaardagen staan er zonder keuze bij, en met een keuze
->   alleen als hun label aanstaat (`lib/events/type-filter.ts`). Wisselen tussen
+>   alleen als hun label aanstaat (`lib/events/type-filter.ts`). Sinds
+>   2026-11-01 geldt dat ook voor de eigen trainingen in het design "tegels"
+>   (label Mijn trainingen, zie die ronde). Wisselen tussen
 >   Alles en Voor mij houdt de keuze vast.
 > - **Kleur.** Eén kleur per categorie (`eventColorStyle`): rand links van de
 >   regel, het label rechts en het bolletje in het filter. Buitenritten: Gran
@@ -11578,6 +11580,43 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Kalender: eigen label Mijn trainingen
+
+**2026-11-01.** Commit "Kalender: eigen trainingen krijgen een eigen label".
+Geen migratie. Niet gepusht.
+
+**Waarom.** Melding eigenaar: wie op de kalender een label koos, bleef zijn
+eigen trainingen zien. In het design "tegels" voegt de kalender de trainingen
+uit het schema (`training_workouts`) toe aan de lijst, en die liepen buiten het
+labelfilter om.
+
+**Wat.**
+- `lib/events/type-filter.ts`: nieuw label `mijn-training`
+  (`OWN_TRAINING_FILTER`; niet `training`, want dat is de soort van een
+  event). Het werkt als Verjaardagen: zonder keuze staan de trainingen erbij,
+  met een ander label gekozen vallen ze weg, tenzij Mijn trainingen ook
+  aanstaat (`ownTrainingsMatchFilter`). Met alleen Mijn trainingen aan vallen
+  de events weg, en ook de verjaardagen.
+- `kalender/page.tsx`: het label staat in de dropdown onder Verjaardagen, met
+  het aantal geplande trainingen (maximaal 21, de bestaande limiet). Alleen in
+  het design "tegels" en ingelogd; het klassieke design toont geen
+  trainingen. De trainingen worden daarvoor vóór het opbouwen van de labels
+  opgehaald in plaats van erna.
+- Een training die bij een getoond event hoort blijft als "jouw training" bij
+  dat event staan; dat is informatie over het event, geen losse regel. Staat
+  alleen Mijn trainingen aan, dan verschijnt zo'n training als losse regel,
+  want het event is dan weg.
+
+**Niet gedaan.** Voor mij laat de eigen trainingen staan: die zijn per
+definitie voor jou, en Voor mij is een keuze tussen Alles en een smallere
+lijst, geen label.
+
+**Gecontroleerd.** `tests/unit/calendar-type-filter.test.ts` (nieuwe test voor
+het label), `tests/unit/event-programs.test.ts`, ESLint op de gewijzigde
+bestanden. `tsc` geeft alleen de bekende fouten over ontbrekende modules in
+deze worktree (`modern-screenshot`, `@anthropic-ai/sdk`). Niet in de browser
+bekeken.
 
 ### Gebouwd — ZRL-beschikbaarheid in het schema
 

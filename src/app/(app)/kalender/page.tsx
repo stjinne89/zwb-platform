@@ -21,6 +21,8 @@ import {
   birthdaysMatchFilter,
   calendarHref,
   eventMatchesFilter,
+  OWN_TRAINING_FILTER,
+  ownTrainingsMatchFilter,
   parseProgramFilter,
   parseTypeFilter,
   splitTypeFilter,
@@ -299,6 +301,20 @@ export default async function KalenderPage({
     ];
   });
   const birthdays = birthdaysMatchFilter(filter) ? allBirthdays : [];
+  // Eigen trainingen staan alleen in het design "tegels" in de lijst; het
+  // label bestaat daarom ook alleen daar.
+  const tegels = (await getDesign()) === "tegels";
+  const { data: workoutRows } =
+    tegels && user
+      ? await supabase
+          .from("training_workouts")
+          .select("id, title, scheduled_at, duration_minutes, event_id")
+          .is("superseded_at", null)
+          .eq("profile_id", user.id)
+          .gte("scheduled_at", `${todayKey}T00:00:00`)
+          .order("scheduled_at", { ascending: true })
+          .limit(21)
+      : { data: null };
   // Een gekozen label blijft staan als er (onder Voor mij) niets meer van over
   // is, anders kun je het niet meer uitzetten.
   const present = (option: LabelOption) =>
@@ -351,6 +367,16 @@ export default async function KalenderPage({
           count: allBirthdays.length,
           dot: "var(--zwb-gold)",
         },
+        ...(tegels && user
+          ? [
+              {
+                value: OWN_TRAINING_FILTER,
+                label: "Mijn trainingen",
+                count: workoutRows?.length ?? 0,
+                dot: "var(--tg-zwbeter)",
+              },
+            ]
+          : []),
       ].filter(present),
     },
   ].filter((group) => group.options.length > 0);
@@ -510,7 +536,7 @@ export default async function KalenderPage({
   // Design "tegels" (achter de schakelaar, lib/design.ts): events en de eigen
   // trainingen in één lijst, met wat geweest is erboven. Ritverslagen vervalt
   // daar als los onderdeel; een voorbij event open je vanuit deze lijst.
-  if ((await getDesign()) === "tegels") {
+  if (tegels) {
     const zone = { timeZone: "Europe/Amsterdam" } as const;
     const dayOf = (date: Date, timeZone: string = zone.timeZone) => ({
       day: date.toLocaleDateString("nl-NL", { weekday: "short", timeZone }).slice(0, 2),
@@ -519,27 +545,18 @@ export default async function KalenderPage({
     const timeOf = (iso: string) =>
       new Date(iso).toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit", ...zone });
 
-    const { data: workoutRows } = user
-      ? await supabase
-          .from("training_workouts")
-          .select("id, title, scheduled_at, duration_minutes, event_id")
-          .is("superseded_at", null)
-          .eq("profile_id", user.id)
-          .gte("scheduled_at", `${todayKey}T00:00:00`)
-          .order("scheduled_at", { ascending: true })
-          .limit(21)
-      : { data: null };
-
     // Een training die bij een event hoort (training_workouts.event_id, migr.
     // 0116) staat niet als eigen regel: het event staat er al. De duur komt dan
     // bij dat event te staan. Een teamevent telt mee via zijn hoofdevent.
+    // Losse trainingen volgen het label Mijn trainingen.
     const shownEventIds = new Set(events.map((event) => event.id));
+    const showOwnTrainings = ownTrainingsMatchFilter(filter);
     const workoutByEvent = new Map<string, { duration_minutes: number | null }>();
     const looseWorkouts = (workoutRows ?? []).filter((workout) => {
       const target = workout.event_id
         ? (rsvpTarget.get(workout.event_id as string) ?? (workout.event_id as string))
         : null;
-      if (!target || !shownEventIds.has(target)) return true;
+      if (!target || !shownEventIds.has(target)) return showOwnTrainings;
       workoutByEvent.set(target, { duration_minutes: workout.duration_minutes });
       return false;
     });

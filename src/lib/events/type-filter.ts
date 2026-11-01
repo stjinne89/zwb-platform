@@ -12,16 +12,21 @@
  *
  * Verjaardagen zijn geen event, maar staan wel tussen de events. Ze krijgen
  * daarom een eigen label, anders kun je ze niet los aan- of uitzetten.
+ * Hetzelfde geldt voor je eigen trainingen uit het schema: met een ander label
+ * gekozen vallen ze weg, tenzij Mijn trainingen ook aanstaat.
  */
 
 import { EVENT_KIND_VALUES, EVENT_TYPE_VALUES } from "@/lib/event-types";
 
 export const BIRTHDAY_FILTER = "verjaardag";
+/** Niet `training`: dat is de soort van een event. */
+export const OWN_TRAINING_FILTER = "mijn-training";
 
 const FILTER_ORDER: string[] = [
   ...EVENT_TYPE_VALUES,
   ...EVENT_KIND_VALUES,
   BIRTHDAY_FILTER,
+  OWN_TRAINING_FILTER,
 ];
 
 /** Onbekende waarden vallen weg; de volgorde is die van de eventtypes. */
@@ -60,6 +65,7 @@ export type CalendarFilter = {
   kinds: string[];
   programs: string[];
   birthdays: boolean;
+  ownTrainings: boolean;
 };
 
 export function splitTypeFilter(selected: string[], programs: string[] = []): CalendarFilter {
@@ -68,12 +74,14 @@ export function splitTypeFilter(selected: string[], programs: string[] = []): Ca
     types: selected.filter((value) => (EVENT_TYPE_VALUES as string[]).includes(value)),
     kinds: selected.filter((value) => EVENT_KIND_VALUES.includes(value)),
     birthdays: selected.includes(BIRTHDAY_FILTER),
+    ownTrainings: selected.includes(OWN_TRAINING_FILTER),
   };
 }
 
 /**
- * Verjaardagen horen op de categorie-as: zonder gekozen categorie blijven de
- * events van een gekozen soort staan, met alleen Verjaardagen aan geen enkel.
+ * Verjaardagen en eigen trainingen horen op de categorie-as: zonder gekozen
+ * categorie blijven de events van een gekozen soort staan, met alleen
+ * Verjaardagen of Mijn trainingen aan geen enkel.
  */
 export function eventMatchesFilter(
   event: { type: string; kind?: string | null },
@@ -89,15 +97,31 @@ export function eventMatchesFilter(
   }
   if (filter.kinds.length > 0 && !filter.kinds.includes(event.kind ?? "")) return false;
   if (filter.types.length > 0) return filter.types.includes(event.type);
-  return !filter.birthdays || filter.kinds.length > 0 || filter.programs.length > 0;
+  return (
+    !(filter.birthdays || filter.ownTrainings) ||
+    filter.kinds.length > 0 ||
+    filter.programs.length > 0
+  );
+}
+
+function nothingSelected(filter: CalendarFilter): boolean {
+  return (
+    filter.types.length === 0 &&
+    filter.kinds.length === 0 &&
+    filter.programs.length === 0 &&
+    !filter.birthdays &&
+    !filter.ownTrainings
+  );
 }
 
 /** Zonder keuze staan verjaardagen erbij; met een keuze alleen als hun label aanstaat. */
 export function birthdaysMatchFilter(filter: CalendarFilter): boolean {
-  return (
-    filter.birthdays ||
-    (filter.types.length === 0 && filter.kinds.length === 0 && filter.programs.length === 0)
-  );
+  return filter.birthdays || nothingSelected(filter);
+}
+
+/** Net als verjaardagen: zonder keuze erbij, met een keuze alleen via hun eigen label. */
+export function ownTrainingsMatchFilter(filter: CalendarFilter): boolean {
+  return filter.ownTrainings || nothingSelected(filter);
 }
 
 export function calendarHref(filter: {

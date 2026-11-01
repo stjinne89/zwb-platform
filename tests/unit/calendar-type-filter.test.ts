@@ -10,6 +10,8 @@ import {
   birthdaysMatchFilter,
   calendarHref,
   eventMatchesFilter,
+  OWN_TRAINING_FILTER,
+  ownTrainingsMatchFilter,
   parseTypeFilter,
   splitTypeFilter,
   toggleTypeFilter,
@@ -87,6 +89,22 @@ describe("categorie en soort samen", () => {
     expect(birthdaysMatchFilter(splitTypeFilter(["zwift", BIRTHDAY_FILTER]))).toBe(true);
     expect(match(zwiftRace, BIRTHDAY_FILTER)).toBe(false);
     expect(match(zwiftTraining, `training,${BIRTHDAY_FILTER}`)).toBe(true);
+    expect(birthdaysMatchFilter(splitTypeFilter([OWN_TRAINING_FILTER]))).toBe(false);
+  });
+
+  it("toont eigen trainingen alleen zonder keuze of met hun eigen label", () => {
+    expect(ownTrainingsMatchFilter(splitTypeFilter([]))).toBe(true);
+    expect(ownTrainingsMatchFilter(splitTypeFilter(["zwift"]))).toBe(false);
+    expect(ownTrainingsMatchFilter(splitTypeFilter(["training"]))).toBe(false);
+    expect(ownTrainingsMatchFilter(splitTypeFilter([BIRTHDAY_FILTER]))).toBe(false);
+    expect(ownTrainingsMatchFilter(splitTypeFilter([], ["road-to-wk-gf"]))).toBe(false);
+    expect(ownTrainingsMatchFilter(splitTypeFilter(["zwift", OWN_TRAINING_FILTER]))).toBe(true);
+    expect(match(zwiftRace, OWN_TRAINING_FILTER)).toBe(false);
+    expect(match(zwiftRace, `zwift,${OWN_TRAINING_FILTER}`)).toBe(true);
+    expect(parseTypeFilter(`${OWN_TRAINING_FILTER},training`)).toEqual([
+      "training",
+      OWN_TRAINING_FILTER,
+    ]);
   });
 });
 
