@@ -11583,8 +11583,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kalender: eigen label Mijn trainingen
 
-**2026-11-01.** Commit "Kalender: eigen trainingen krijgen een eigen label".
-Geen migratie. Niet gepusht.
+**2026-11-01.** Commit `7ba4e14`. Geen migratie. Gepusht naar `main` op
+2026-11-01 (eigenaar).
 
 **Waarom.** Melding eigenaar: wie op de kalender een label koos, bleef zijn
 eigen trainingen zien. In het design "tegels" voegt de kalender de trainingen
