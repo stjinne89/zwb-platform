@@ -11631,9 +11631,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Ladderrace: matchup met vermogen op de eventpagina
 
-**2026-11-02.** Lokaal gecommit, **niet gepusht**. Migratie
-`0302_club_ladder_matchup.sql`, **nog niet toegepast**. Pas pushen nadat 0302
-is toegepast: de fixture-sync schrijft `events.club_ladder_opponent`, en zonder
+**2026-11-02.** Commit `519d4675`, gepusht naar `main` op 2026-11-02 (eigenaar).
+Migratie `0302_club_ladder_matchup.sql`, **toegepast op productie op 2026-11-02**
+via de Supabase-connector, op verzoek van de eigenaar en vóór de push (versie
+`20261102185255`; kolom, tabel en RLS zonder policies daarna gecontroleerd). De
+volgorde telt: de fixture-sync schrijft `events.club_ladder_opponent`, en zonder
 die kolom mislukt het aanmaken en bijwerken van ladder-events. De eventpagina
 zelf blijft zonder 0302 heel (die leest de kolom apart en slaat de matchup
 over).
