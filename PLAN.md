@@ -11622,8 +11622,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Ladderwedstrijden in de kalender, met opstelling
 
-**2026-11-02.** Migratie `0300_club_ladder_fixture_events.sql` (**nog niet
-toegepast op productie**; vóór toepassen `origin/main` checken op het nummer).
+**2026-11-02.** Commit `ee443e0e`, gepusht naar `main` op 2026-11-02 (eigenaar). Migratie
+`0300_club_ladder_fixture_events.sql`, **toegepast op productie op 2026-11-02** via de
+Supabase-connector, op verzoek van de eigenaar (kolom en unieke index daarna gecontroleerd).
 Op verzoek van de eigenaar: de ZWBeasts-wedstrijd van 6 november stond op de
 ladder, maar niet in ZWB. De sync las alleen de stand, en alle vier de
 ladderteams stonden in ZWB op het kerkhof, waardoor de sync ze stil oversloeg.
@@ -11674,7 +11675,7 @@ ladderteams stonden in ZWB op het kerkhof, waardoor de sync ze stil oversloeg.
 nagebouwde wedstrijdpagina en een nep-database: aanmaken, opstelling, RSVP,
 gewijzigde opstelling, afgezegde wedstrijd, kerkhof, verlopen cookie, onleesbare
 stand); `club-ladder-summary.test.ts` bijgewerkt. tsc en ESLint schoon.
-**Niet geverifieerd:** de migratie (geen lokale Supabase), schrijven op
+**Niet geverifieerd:** de migratie lokaal (geen lokale Supabase), schrijven op
 productie, en de wedstrijdpagina via `fetch` met de cookie (alleen in Chrome
 bekeken). `LADDER_COOKIE` moet de eigenaar vernieuwen in Netlify.
 
