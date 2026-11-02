@@ -3308,7 +3308,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - Bij FRR telt de eigen plek in het klassement na de laatst verwerkte etappe,
 >   niet die na deze etappe.
 >
-> **Bewust niet gebouwd.** De Ladder (geen Zwift-event in de kalender), SRC
+> **Bewust niet gebouwd.** De Ladder (geen Zwift-event in de kalender; *sinds
+> 2026-11-02 staan ladderwedstrijden wel als event in de kalender, zie de ronde
+> "Ladderwedstrijden in de kalender, met opstelling"*), SRC
 > (MyWhoosh), en zelf races zoeken buiten de kalender op de naam van een
 > intervals-rit (zou raden zijn). Een tabel met de geplakte races per lid: de
 > bewaarde uitslag zegt al wie meereed.
@@ -11618,6 +11620,64 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Ladderwedstrijden in de kalender, met opstelling
+
+**2026-11-02.** Migratie `0300_club_ladder_fixture_events.sql` (**nog niet
+toegepast op productie**; vóór toepassen `origin/main` checken op het nummer).
+Op verzoek van de eigenaar: de ZWBeasts-wedstrijd van 6 november stond op de
+ladder, maar niet in ZWB. De sync las alleen de stand, en alle vier de
+ladderteams stonden in ZWB op het kerkhof, waardoor de sync ze stil oversloeg.
+
+- **Wedstrijden scannen.** De parser van `/summary` leest nu ook het
+  wedstrijdnummer (`tr[data-id]`) en de team-ID's. De team-results-sync (cron,
+  `POST /api/team-results/sync`) haalt de summary één keer per run op (was vier
+  keer, één per ladderbron) en roept daarna `syncLadderFixtures` aan
+  (`src/lib/club-ladder/fixture-sync.ts`, pure delen in `fixture-events.ts`).
+- **Event per wedstrijd per ZWB-team**, type `ladder`, gekoppeld met
+  `events.club_ladder_fixture_id` (uniek met `team_id`). Titel
+  "Club Ladder: thuis – uit", start in UTC, locatie "Zwift · wereld", route
+  (alleen als hij in `zwift_routes` staat, vanwege de foreign key), rondes,
+  afstand, hoogtemeters, powerups in de omschrijving, link naar
+  `/fixture/<id>`. Maker: captain, dan co-captain van het team, dan iemand met
+  de rol teamcaptain. Een wedstrijd die nog moest beginnen en van de ladder
+  verdwijnt, gaat uit de kalender.
+- **Opstelling** (alleen met `LADDER_COOKIE`): de wedstrijdpagina
+  `/fixture/<id>` staat achter login. Tab Signups heeft per ploeg
+  `tr[data-rider-id]` (de Zwift-ID; gecontroleerd tegen twee ZWB-profielen) en
+  een startplek. Wie een startplek heeft, komt in `team_event_lineups`
+  (`parent_team_id` = het ladderteam, `slot` = startplek): eerst op profiel,
+  anders op rosternaam. Leden krijgen een ja-RSVP en het event in hun schema,
+  zoals bij een ZRL-opstelling; wie eruit gaat, verliest die weer. De ladder is
+  de bron: een opstelling die in ZWB met de hand is aangepast, wordt bij de
+  volgende run teruggezet. Rondes en afstand komen dan ook van die pagina.
+  Zonder cookie, of met een verlopen cookie (doorverwijzing naar /signin), komen
+  de events er wel, zonder opstelling, met `lineupError` in het antwoord van de
+  cron.
+- **Kerkhof volgt de ladder.** Een ladderteam in de stand of met een wedstrijd
+  is actief, anders archief. Dat was alleen met de hand via
+  `syncLadderGraveyard` (cookie), en de cookie was verlopen. Een team dat terugkomt
+  en nog niet in de stand staat, geeft geen sync-fout meer ("Wel een wedstrijd
+  gepland"). Bij minder dan 20 teams in de stand (onbekende opmaak) doet de sync
+  niets met kerkhof of events.
+- De eventpagina toont de opstelling nu ook bij een ladderrace.
+- `/hulp` (Teams en wedstrijden): één alinea.
+
+**Bewust niet.**
+- Geen eigen opstelling-scherm voor de ladder: de captain stelt op de ladder op.
+- Renners zonder startplek (aangemeld, rijdt niet) komen niet in de opstelling.
+  Hoe de ladder zo'n renner toont, is niet gezien (op 2 november hadden alle
+  aanmeldingen een plek); de parser neemt aan: geen nummer = rijdt niet.
+- Geen Zwift-event-ID bij het event: de wedstrijdpagina noemt hem niet, en de
+  aanmeldingen lezen via Zwift gaat daarom niet.
+
+**Getest.** `tests/unit/club-ladder-fixtures.test.ts` (9 tests, met een
+nagebouwde wedstrijdpagina en een nep-database: aanmaken, opstelling, RSVP,
+gewijzigde opstelling, afgezegde wedstrijd, kerkhof, verlopen cookie, onleesbare
+stand); `club-ladder-summary.test.ts` bijgewerkt. tsc en ESLint schoon.
+**Niet geverifieerd:** de migratie (geen lokale Supabase), schrijven op
+productie, en de wedstrijdpagina via `fetch` met de cookie (alleen in Chrome
+bekeken). `LADDER_COOKIE` moet de eigenaar vernieuwen in Netlify.
+
 ### Gebouwd — Ladderparcoursen: hoogteprofiel uitklappen, door naar ZwiftInsider
 
 **2026-11-02.** Geen migratie. Op verzoek van de eigenaar: een parcours in de
@@ -13840,8 +13900,10 @@ bij ZRL-teams werkt".
   van 44 px met "Toevoegen".
 - Anders dan bij ZRL gaat het niet om een opstelling per raceweek
   (`team_event_lineups`), maar om het lidmaatschap van het team
-  (`team_members`): ladderwedstrijden staan niet als event in de kalender (0
-  ladder-events op 2026-10-27), dus er is geen raceweek om aan te hangen.
+  (`team_members`): ladderwedstrijden stonden niet als event in de kalender (0
+  ladder-events op 2026-10-27), dus er was geen raceweek om aan te hangen.
+  *(Sinds 2026-11-02 wel, met de opstelling van de ladder zelf; zie de ronde
+  "Ladderwedstrijden in de kalender, met opstelling".)*
 - `assignLadderRider` en `unassignLadderRider` (`club-ladder/_actions.ts`) doen
   wat Toevoegen en Verwijderen op de teampagina doen, inclusief de
   `team_member_seed_overrides`. Toevoegen laat een bestaande rol (captain) staan.
@@ -13856,7 +13918,9 @@ bij ZRL-teams werkt".
 - `/hulp` (Teams en wedstrijden) legt het uit.
 
 **Bewust niet.**
-- Geen opstelling per wedstrijd: de ladder staat niet in de kalender.
+- Geen opstelling per wedstrijd: de ladder stond niet in de kalender. *(Sinds
+  2026-11-02 komt de opstelling per wedstrijd van de ladder; zie de ronde
+  "Ladderwedstrijden in de kalender, met opstelling".)*
 - Geen maximum per team en geen blokkade op mannen in het damesteam: de captains
   delen in, de app adviseert niet.
 - Geen rol kiezen (captain) vanaf deze pagina; dat blijft op de teampagina.
