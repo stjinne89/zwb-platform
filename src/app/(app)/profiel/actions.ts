@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { followSrcProfileSex } from "@/lib/src/availability";
+import { requestSrcResultsRecheck } from "@/lib/src/results-sync";
 import { amsterdamDateKey, parseDateKey } from "@/lib/birthdays";
 import { intervalsId, stravaHandle, zwiftId } from "@/lib/profile/ids";
 import { WELLNESS_DEVICES } from "@/lib/training/wellness";
@@ -156,9 +157,10 @@ export async function updateProfile(formData: FormData) {
 
   const { data: before } = await supabase
     .from("profiles")
-    .select("sex")
+    .select("sex, mywhoosh_id")
     .eq("id", user.id)
     .maybeSingle();
+  const mywhooshId = optionalString(formData.get("mywhoosh_id"));
 
   const { error } = await supabase
     .from("profiles")
@@ -166,7 +168,7 @@ export async function updateProfile(formData: FormData) {
       display_name,
       region: optionalString(formData.get("region")),
       zwift_id: zwift.value,
-      mywhoosh_id: optionalString(formData.get("mywhoosh_id")),
+      mywhoosh_id: mywhooshId,
       strava_id: strava.value,
       intervals_id: intervals.value,
       zrl_category,
@@ -240,6 +242,14 @@ export async function updateProfile(formData: FormData) {
       revalidatePath("/events/[id]", "page");
       revalidatePath("/zwbeter-worden", "layout");
     }
+  }
+
+  // Nieuw MyWhoosh-id: de SRC-uitslagen van deze en vorige maand nog eens
+  // ophalen, zodat races waarin je nog niet herkend werd alsnog meetellen.
+  const sameMywhoosh =
+    (before?.mywhoosh_id ?? "").trim().toLowerCase() === (mywhooshId ?? "").trim().toLowerCase();
+  if (mywhooshId && !sameMywhoosh) {
+    await requestSrcResultsRecheck(createAdminClient()).catch(() => 0);
   }
 
   revalidatePath("/profiel");
