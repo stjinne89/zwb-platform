@@ -117,10 +117,16 @@ gaat stabiliteit voor nieuwe features.
    ronde). Zie de ronde "Club Ladder: legacy vELO per renner".
 
 0n. **Persoonlijk racetempo en nieuwe fit van het Zwift-racemodel (2026-11-02):
-   lokaal gecommit, niet gepusht.** Geen migratie. Na de push: de dagelijkse cron
+   gepusht naar `main` op 2026-11-03.** Geen migratie. Na de push: de dagelijkse cron
    herrekent de komende Zwift-raceblokken per lid; nalopen dat de ladderrace op de
    Muckle Yin niet meer op 39 minuten staat. Zie de rondes "Zwift-racemodel
    opnieuw gefit" en "Persoonlijk racetempo in de duur van een Zwift-race".
+0o. **RPE bij een losse rit (2026-11-02): gepusht naar `main` op 2026-11-03.**
+   Migratie `0303_strava_activity_rpe.sql` is **niet toegepast** (0303 was bij
+   de push nog vrij op `main`); de eigenaar liet pushen vóór het toepassen. Zonder de kolom
+   faalt alleen het opslaan van de RPE, de rest werkt. Nalopen na de deploy:
+   een niet-geplande rit aanklikken, RPE opslaan, en de rit daarna aan een
+   training hangen. Zie de ronde "RPE bij een losse rit".
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11508,8 +11514,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
   via de API niets terug voor ritten die daar via Strava binnenkwamen. Omdat de
   schemapagina nu Strava-data toont, staat er een `StravaAttribution` onder
   zodra er zo'n rit is.
-  **Bewust niet gebouwd:** geen RPE/rapportage-formulier bij zo'n rit (een
-  rapportage hangt aan een `workout_id`, en die is er niet), geen automatisch
+  **Bewust niet gebouwd:** geen rapportage-formulier bij zo'n rit (een
+  rapportage hangt aan een `workout_id`, en die is er niet; sinds 2026-11-02
+  wel een RPE op de rit zelf, zie de ronde "RPE bij een losse rit"), geen automatisch
   samenvoegen van twee helften tot één rit (dat zou de bron herschrijven op basis
   van een gok), en de lijstweergave blijft ongemoeid — die toont alleen wat nog
   komt, en een gereden rit is per definitie verleden tijd.
@@ -11670,7 +11677,7 @@ bewust niet mee; de eigenaar koos voor alleen `WeightTraining`.
 
 ### Bijgesteld — Vermoeidheid telt één keer, per dag
 
-**2026-11-02.** Commit `2ca26e7b`, lokaal, niet gepusht. Geen migratie.
+**2026-11-02.** Commit `2ca26e7b`, gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie.
 
 Een lid had in de week van 2 november nog maar 3 uur en geen enkele rit boven
 78 % FTP. Hij zette zaterdag en zondag op 0. De bijwerking die daarop volgde
@@ -11712,6 +11719,53 @@ tegenwerkte.
 **Niet geverifieerd**: alleen de prompttekst is getest
 (`training-prompts.test.ts`). Hoe de AI de nieuwe regels toepast, blijkt pas
 bij de volgende bijwerking en dag-aanpassing op productie.
+
+### Gebouwd — RPE bij een losse rit
+
+**2026-11-02.** Gepusht naar `main` op 2026-11-03 (eigenaar). Migratie
+`0303_strava_activity_rpe.sql`, **niet toegepast** en niet lokaal te testen
+(geen Docker of Supabase-config).
+
+Vraag van de eigenaar: wie spontaan een rit doet, moet toch zijn RPE kunnen
+geven. Een rapportage hangt aan een `workout_id`, en een rit zonder training heeft
+er geen; daarom was dit op 2026-08-18 bewust niet gebouwd (ronde "Ongeplande
+ritten in het schema"). Die zin is nu bijgewerkt.
+
+- **Opslag:** kolom `strava_activities.athlete_rpe` (1..10), net als
+  `training_excluded_at` (0163): de RPE hoort bij precies één rit en verdwijnt
+  met die rit. Niet in `STRAVA_RIDE_COLUMNS`; `ride-rpe.ts` leest en schrijft hem
+  apart, zodat zonder migratie alleen dit faalt.
+- **Invullen:** in de maandkalender (`/zwbeter-worden/schema`) heeft het
+  detailpaneel van een niet-geplande rit een RPE-veld (`RideRpeForm`,
+  `saveRideRpeAction`, admin-client met `profile_id` van het lid).
+- **Eén bron:** een rit aan een training heeft geen eigen RPE; die staat in de
+  rapportage. Koppelt het lid de rit aan een training (`relinkRide`) of doet de
+  detectie dat (`detectCompletedWorkouts`), dan gaat de RPE mee naar de
+  rapportage als daar nog geen stond, en wordt hij op de rit gewist. Loskoppelen
+  zet de RPE van de rapportage terug op de rit. Gevoel en opmerking vervallen bij
+  loskoppelen nog steeds; `/hulp/schema#rit-koppelen` zegt dat nu zo.
+- **Herstelsignaal:** `loadSubjectiveRecovery` telt losse ritten van de laatste
+  drie dagen mee (`rideReportsFrom`). Er stond geen training tegenover, dus de
+  intensiteit volgt uit TSS per uur (`detectIntensityFromLoad`); een rustige rit
+  met RPE 7 of hoger telt als zwaar, net als bij een training. Een rit zonder
+  TSS (geen vermogen en geen hartslag) telt niet mee.
+- Hulp: `/hulp/schema#rpe-losse-rit` plus zoekentry.
+
+**Bewust niet.**
+- **Gevoel en opmerking bij een losse rit.** Gevraagd was RPE; een opmerking is
+  vrije tekst zonder trainer die hem leest (er is geen rapportage, dus geen
+  beoordelingsrij).
+- **De AI-dagcontext** (`buildTodayRides`, `buildYesterdayContext`) en de
+  coachchat krijgen de RPE van een losse rit nog niet; alleen het herstelsignaal
+  gebruikt hem.
+- **Geen nieuwe privacytekst.** De verklaring noemt RPE nergens apart; het is de
+  beleving bij een rit, dezelfde categorie als bij een training, en hij staat in
+  de data-export (`strava_activities`).
+
+**Getest:** unit tests in `reassign-ride.test.ts` (meenemen bij koppelen,
+bestaande RPE blijft staan, terugzetten bij loskoppelen) en
+`subjective-recovery.test.ts` (rustig/hard/zonder TSS). De UI is niet in een
+browser gezien (geen `.env.local` in deze worktree).
 
 ### Gebouwd — Ladderrace: geschiedenis per team voor de matchup
 
@@ -11821,7 +11875,7 @@ schoon; `club-ladder-matchup.test.ts` (5 tests) en de aangevulde
 
 ### Gebouwd — Zwift-racemodel opnieuw gefit
 
-**2026-11-02.** Lokaal gecommit, niet gepusht. Geen migratie. De eigenaar zag dat
+**2026-11-02.** Gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie. De eigenaar zag dat
 het model voor iedereen te ruim zat op de Muckle Yin en vroeg om een nieuwe fit.
 
 - **Wat er mis was.** Over 1913 "Zwift - Race: …"-ritten van ZWB'ers (10 tot
@@ -11853,7 +11907,7 @@ het model voor iedereen te ruim zat op de Muckle Yin en vroeg om een nieuwe fit.
 
 ### Gebouwd — Persoonlijk racetempo in de duur van een Zwift-race
 
-**2026-11-02.** Lokaal gecommit, niet gepusht. Geen migratie. De eigenaar vroeg
+**2026-11-02.** Gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie. De eigenaar vroeg
 of de duurschatting op persoonlijke data kon steunen in plaats van op het
 clubgemiddelde (aanleiding: de ronde hieronder).
 

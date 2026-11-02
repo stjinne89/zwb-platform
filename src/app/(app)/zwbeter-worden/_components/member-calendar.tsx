@@ -31,6 +31,7 @@ import { TrainerFeedbackText } from "./trainer-feedback-text";
 import { RemoveWorkoutButton } from "./remove-workout-button";
 import type { RideLink } from "./ride-link";
 import { RideLinkForm } from "./ride-link-form";
+import { RideRpeForm } from "./ride-rpe-form";
 import { DeleteManualRideButton, ManualRideDialog } from "./manual-ride-dialog";
 import { WorkoutDurationControl } from "./workout-duration-control";
 import { RaceWarmupControl, type RaceWarmupView } from "./race-warmup-control";
@@ -68,6 +69,8 @@ export type MemberCalendarItem = {
     stravaId: number;
     distanceKm: number | null;
     metrics: RideMetrics;
+    /** RPE die het lid bij deze rit invulde (0303). */
+    rpe?: number | null;
   };
   /** Alleen voor ZWB-workouts; een intervals-event heeft geen detail. */
   detail?: {
@@ -194,6 +197,8 @@ function RideDetail({ item }: { item: MemberCalendarItem & { ride: NonNullable<M
           Zonder vermogensmeter zijn TSS en IF niet te bepalen.
         </p>
       )}
+
+      <RideRpeForm key={`rpe-${item.id}`} activityId={String(stravaId)} rpe={item.ride.rpe ?? null} />
 
       {item.rideLink ? <RideLinkForm key={item.id} link={item.rideLink} /> : null}
       {item.rideLink?.manual ? (

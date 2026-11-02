@@ -156,6 +156,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "naleving volgens plan te licht te zwaar percentage tss if intensiteit duur rpe verwacht gepland gereden",
   },
   {
+    title: "RPE bij een losse rit",
+    text: "Zonder training gereden? Klik de rit in de kalender aan en vul je RPE in.",
+    href: "/hulp/schema#rpe-losse-rit",
+    terms: "rpe losse rit spontaan ongepland niet gepland extra rit zonder training inspanning zwaar herstel gevoel",
+  },
+  {
     title: "Rit invoeren zonder bestand",
     text: "Opname mislukt of bestand kwijt? Klik de training aan en kies Rit invoeren.",
     href: "/hulp/schema#rit-invoeren",
