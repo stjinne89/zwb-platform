@@ -45,9 +45,11 @@ gaat stabiliteit voor nieuwe features.
    op 2026-10-28 via de Supabase-connector toegepast (op verzoek van de
    eigenaar), in de historie van productie onder de oude naam
    `0290_intervals_strength_muscles`. Gepusht naar `main` op 2026-10-30. De
-   privacytekst staat erin (akkoord eigenaar 2026-10-28). Nog doen: ingelogd
-   een krachttraining openen, spieren aantikken en opslaan. Zie de ronde
-   "Kracht: krachttraining uit intervals.icu meetellen".
+   privacytekst staat erin (akkoord eigenaar 2026-10-28). Op 2026-11-02 met de
+   eigenaar getest (lokale app, productiedata): werkt. Wachttijd voor het
+   krachtspoor naar een kwartier: lokaal gecommit, nog niet gepusht. Zie de
+   rondes "Kracht: krachttraining uit intervals.icu meetellen" en "Kracht:
+   intervals-trainingen na een kwartier zichtbaar".
 
 0c. **Clubverhaal (2026-10-28): migratie `0288` toegepast en gepusht.**
    `0288_club_stories.sql` is op 2026-10-28 via de Supabase-connector
@@ -11629,6 +11631,37 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kracht: intervals-trainingen na een kwartier zichtbaar
+
+**2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal, niet gepusht.
+Geen migratie.
+
+**Waarom.** Uit de test met de eigenaar (2026-11-02): het krachtspoor haalde
+`intervals_activities` pas opnieuw op als de laatste ophaalbeurt meer dan zes
+uur oud was. Wie net uit de sportschool kwam, zag zijn training dus tot zes uur
+niet, en de krachtregel kende hem niet.
+
+**Wat.** `STRENGTH_SYNC_MAX_AGE_MS` (een kwartier) in
+`lib/intervals/activities.ts`; `refreshIntervalsActivitiesIfStale` neemt een
+optionele `maxAgeMs`. Vandaag en Series van het krachtspoor gebruiken het
+kwartier; de rest van ZWBeter houdt zes uur.
+
+**Bewust niet.** Geen knop "Ophalen" in het krachtspoor (geen extra UI); niet
+korter dan een kwartier: elke ophaalbeurt haalt 120 dagen activiteiten bij
+intervals.icu op.
+
+**Getest met de eigenaar (2026-11-02), lokale app tegen productie, wachttijd
+tijdelijk op een minuut.** Een handmatige *Gewichtstraining* in intervals.icu
+(zo heet WeightTraining in de Nederlandse versie; via Agenda → dag →
+Handmatige activiteit) verscheen in het blok, het voorstel "Kracht: basis"
+verdween, de dialoog opende, vijf aangetikte spieren stonden daarna in
+`intervals_strength_muscles` en kleurden in "Deze week getraind".
+Gevonden bij twee leden zonder resultaat: krachttraining die via **Strava** in
+intervals.icu komt, levert via de API alleen een stub zonder type (Stijn); en
+een Garmin-band schrijft trainingen als `Workout` weg (Harmen). Beide tellen
+bewust niet mee; de eigenaar koos voor alleen `WeightTraining`.
+**Niet geverifieerd:** het kwartier zelf in productie.
+
 ### Gebouwd — Ladderrace: geschiedenis per team voor de matchup
 
 **2026-11-02.** Commit `6e7efdee`, gepusht naar `main` op 2026-11-02 (eigenaar). Geen migratie.
@@ -13381,6 +13414,7 @@ na een avond in de sportschool kon ZWB de dag erna een squatserie voorstellen.
   `MUSCLE_GROUPS` (een test bewaakt dat die gelijk blijven). Niets aangetikt
   wist de rij. In de data-export.
 - Het krachtspoor werkt `intervals_activities` bij als die ouder is dan zes uur
+  *(sinds 2026-11-03 een kwartier, zie de ronde hierboven)*
   (`refreshIntervalsActivitiesIfStale`, nu geëxporteerd uit
   `zwbeter-worden/_data.ts`): leden met Strava hebben geen uurlijkse
   intervals-sync. Het blok op de startpagina slaat dat over, die pagina werkt

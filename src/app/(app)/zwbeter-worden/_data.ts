@@ -239,10 +239,12 @@ export async function loadIntervalsSnapshot(
 }
 
 /** Belasting per rit bijwerken als de opgeslagen versie verouderd is. Ook voor
- * het krachtspoor, dat de krachttrainingen uit dezelfde tabel leest. */
+ * het krachtspoor, dat de krachttrainingen uit dezelfde tabel leest; dat geeft
+ * een kortere `maxAgeMs` mee. */
 export async function refreshIntervalsActivitiesIfStale(
   viewer: Viewer,
   conn: IntervalsConnection,
+  maxAgeMs = ACTIVITY_SYNC_MAX_AGE_MS,
 ) {
   const { data: newest } = await viewer.admin
     .from("intervals_activities")
@@ -251,7 +253,7 @@ export async function refreshIntervalsActivitiesIfStale(
     .order("synced_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const staleSince = Date.now() - ACTIVITY_SYNC_MAX_AGE_MS;
+  const staleSince = Date.now() - maxAgeMs;
   if (newest && new Date(newest.synced_at).getTime() >= staleSince) return;
   await syncIntervalsActivities(viewer.admin, {
     profile_id: viewer.user.id,
