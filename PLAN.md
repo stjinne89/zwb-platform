@@ -11629,6 +11629,51 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Bijgesteld — Vermoeidheid telt één keer, per dag
+
+**2026-11-02.** Lokaal gecommit, niet gepusht. Geen migratie.
+
+Een lid had in de week van 2 november nog maar 3 uur en geen enkele rit boven
+78 % FTP. Hij zette zaterdag en zondag op 0. De bijwerking die daarop volgde
+(zondagavond) zag wellness 'fatigued', HRV onder de band, een afgeleide
+readiness van 41 en een TSB van −24. Op grond daarvan maakte ze de hele week
+licht: de VO2max van dinsdag ging eruit, de sweet spot werd korter en donderdag
+bleef leeg, terwijl daar tijd was. De dag-aanpassing van maandagnacht zag
+dezelfde meting en maakte van de sweet spot van woensdag, twee dagen vooruit,
+nog een rustige duurrit. Zo telde één meting twee keer. Terug kwam de sessie
+ook niet: regel 4 voegt alleen kwaliteit toe bij een positieve TSB of een fris
+gevoel, en na een zware week blijft de TSB dagen negatief.
+
+- `planUpdatePrompt()`: bij een bijwerking vervangt een eigen regel de
+  basisregel over herstel-data. Met de meting van vandaag wordt de komende week
+  niet lichter; de sleutelsessies blijven staan, en bij vermoeidheid schuift de
+  eerste naar later in de week. Lichter alleen bij aanhoudende overbelasting:
+  ramp_rate 8 of hoger, symptoms boven 0,65, of meerdere ritten 'te_zwaar' met
+  RPE 8+ of gevoel zwaar/slecht. Ook dan blijft er minstens één sleutelsessie.
+- `adaptiveDailyPrompt()`: herstelwaarden van vandaag gelden voor vandaag en
+  hooguit morgen. Staat er deze week geen sleutelsessie meer, is de week geen
+  herstelweek of taper en is wellness weer 'normal' of 'fresh', dan komt er
+  één terug, ook als de TSB nog negatief is.
+
+Zo werkt trainen op HRV ook: per dag rustig als de waarden laag zijn, en
+kwaliteit terug zodra ze weer normaal zijn. Van een week zonder intensiteit
+gaat lichamelijk weinig verloren; het punt is dat de planner zichzelf
+tegenwerkte.
+
+**Bewust niet.**
+- De regelmotor (`engine/periodization.ts`, `fatigueHere` in de eerste
+  opbouwweek; `engine/daily.ts`) is niet mee aangepast. Die draait alleen ter
+  vergelijking. Bij overstappen op de motor moet hij deze regel alsnog krijgen.
+- Het schema van dit lid is niet met de hand hersteld; dat doet de trainer, of
+  de dag-aanpassing vanaf nu zelf zodra zijn herstel weer in orde is.
+- `currentPlan` in de dag-aanpassing krijgt geen beschrijving of eerdere versie
+  van een training mee. De AI ziet alleen dat er geen sleutelsessie meer staat,
+  niet welke er eerst stond.
+
+**Niet geverifieerd**: alleen de prompttekst is getest
+(`training-prompts.test.ts`). Hoe de AI de nieuwe regels toepast, blijkt pas
+bij de volgende bijwerking en dag-aanpassing op productie.
+
 ### Gebouwd — Ladderrace: geschiedenis per team voor de matchup
 
 **2026-11-02.** Commit `6e7efdee`, gepusht naar `main` op 2026-11-02 (eigenaar). Geen migratie.
