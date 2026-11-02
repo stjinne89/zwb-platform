@@ -83,6 +83,15 @@ gaat stabiliteit voor nieuwe features.
    training van die dag op de gekozen duur. Zie de ronde "Duur aanpassen zet een
    training niet meer vast".
 
+0j. **Ritten via intervals.icu naast Strava (2026-11-02): gebouwd, niet
+   gepusht, migratie `0299` niet toegepast.** `0298` is in productie al bezet
+   door `0298_club_ladder_routes`. Volgorde: eerst `0299` toepassen, dan pushen.
+   Zonder de kolom werkt alles zoals voorheen, dus andersom breekt niets. Daarna
+   zet de eigenaar op `/profiel#strava` **Ritten via intervals.icu** aan. Nalopen:
+   zijn ritten van 30 september tot nu staan er, en de volgende rit krijgt de
+   samenvatting in de Strava-beschrijving. Zie de ronde "Ritten via intervals.icu
+   naast Strava".
+
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
    (limiet 5 GB), en de banner "Organization exceeded its quota in the previous
@@ -11595,6 +11604,82 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Ritten via intervals.icu naast Strava
+
+**2026-11-02.** Commit: de commit die dit blok toevoegt. Migratie
+`0299_intervals_rides_with_strava.sql`, **niet toegepast**; `0298` is in
+productie al bezet door `0298_club_ladder_routes`. Niet gepusht.
+
+**Waarom.** De eigenaar koppelde Strava opnieuw en wil zijn ritten toch uit
+intervals.icu: vermogen en toestel komen daar rechtstreeks van Zwift en de
+Wahoo. Strava blijft nodig voor de ZWBeter-samenvatting in de beschrijving en
+voor de Zwift-routes, die hun profiel met zijn token uit Strava-segmentstreams
+halen (`lib/events/zwift-route-sync.ts`). Tot nu toe won Strava altijd
+(`rideSourceFor`). Bij het opnieuw koppelen om 17:28 wiste de callback zijn
+intervals-ritten. Daarna stond er vanaf 30 september geen rit meer, tot de
+eerste Strava-sync.
+
+**Wat er veranderde.**
+
+- Kolom `intervals_connections.rides_via_intervals`. Die staat niet op
+  `strava_connections`: de keuze moet een nieuwe Strava-koppeling overleven.
+  `lib/intervals/ride-preference.ts` leest hem. Elke fout telt als "nee", dus
+  vóór `0299` werkt alles als voorheen.
+- `rideSourceFor`: met de keuze en een intervals-koppeling wordt de bron
+  `intervals`, ook met Strava. De uurcron, de knop **Ritten ophalen** en het
+  dashboard volgen daardoor vanzelf.
+- Strava levert dan geen ritten meer. `syncStravaActivitiesForUser` slaat
+  ophalen, opslaan en de reconciliatie over. Die reconciliatie zou de
+  intervals-ritten in het venster als verdwenen wissen, want ze filtert niet op
+  id. Fietsen, samenvatting en Watopia-kalibratie draaien wel. De webhook slaat
+  een nieuwe Strava-rit niet op, maar draait wel het nawerk. De callback wist de
+  intervals-ritten niet meer.
+- Samenvatting (`summary-writer.ts`): de kandidaat is de intervals-rit. Het
+  Strava-id komt uit één call naar Strava's ritlijst, alleen als er een rit
+  openstaat (`matchStravaRides`, zelfde start en afstand via `isSameRide`). De
+  boekhouding hangt aan het id van de intervals-rit, want
+  `strava_activity_summaries` verwijst naar `strava_activities`. Een rit die
+  niet op Strava staat, telt als poging en wordt na vier pogingen losgelaten.
+  De intervals-sync roept de schrijver na elke run aan voor leden met een
+  Strava-token met schrijfrecht. Zonder open rit is dat één databasevraag.
+- Schakelaar **Ritten via intervals.icu** op het profiel, bij Strava, alleen
+  met beide koppelingen (`setRidesViaIntervals`). **Aan:** bestaande
+  Strava-ritten blijven staan (keuze eigenaar). intervals.icu vult aan vanaf de
+  laatste rit die er staat (minimaal 30, hooguit 365 dagen) en ontdubbelt tegen
+  de rest. **Uit:** de intervals-ritten gaan weg (`dropIntervalsRides`, dezelfde
+  stap als de callback) en Strava haalt ze direct opnieuw op.
+- `/beheer/strava` telt zulke leden bij "Via intervals.icu". `/hulp` heeft een
+  regel bij Ritten via intervals.icu. De privacytekst zegt "of kies je daar zelf
+  voor naast Strava".
+
+**Bewust niet gebouwd.**
+
+- De Strava-ritten van het afgelopen jaar vervangen door de intervals-versie:
+  de eigenaar koos "alleen nieuwe ritten". Kudos, de Strava-link en
+  Strava-segmenttijden blijven zo bij de oude ritten.
+- Het Strava-id uit de Strava-stubs in `intervals_activities` halen in plaats
+  van een call: intervals.icu houdt geen Strava-kopie bij van een rit die het
+  al rechtstreeks heeft. Bij de eigenaar kwam in oktober geen enkele stub op
+  het tijdstip van een rit.
+- De historie-inhaalslag (ritten ouder dan vijf jaar) gewoon laten lopen: die
+  zit nooit in het venster van intervals.icu.
+- Geen nieuwe privacyversie. Het gaat om dezelfde gegevens, die het lid zelf
+  kiest. **Voor te leggen aan de eigenaar**, net als de aangepaste zin.
+
+**Gevolg om te kennen.** Een nieuwe rit krijgt de samenvatting pas na de
+eerstvolgende intervals-run (uurlijks, of **Ritten ophalen**), niet meer
+binnen vijf minuten via de webhook.
+
+**Niet lokaal te verifiëren.** De migratie (geen Docker of Supabase-config), de
+schakelaar met een echt account, de call naar Strava's ritlijst en het
+schrijven van de beschrijving. Lokaal: nieuwe tests (`rideSourceFor`, de
+cronselectie, de samenvatting via de intervals-sync, `matchStravaRides`, de
+webhook), lint schoon, `tsc` schoon op de bekende ontbrekende pakketten na.
+Volledige suite 3576 geslaagd. De fouten komen van ontbrekende pakketten in
+deze worktree (`@anthropic-ai/sdk`, `modern-screenshot`), `omnium-live` (geen
+`.env.local`) en verouderde Zwift-routedata (`race-links`, `zwift-route`).
+`admin-areas` faalde in de volle run en slaagt los.
 
 ### Hersteld — Duur aanpassen zet een training niet meer vast
 

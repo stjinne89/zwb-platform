@@ -318,6 +318,7 @@ export default async function ProfielPage({
               ? {
                   viaIntervals: rideStatus.source === "intervals",
                   intervalsConnected: rideStatus.intervalsConnected,
+                  ridesViaIntervals: rideStatus.ridesViaIntervals,
                   stravaCapFull: rideStatus.stravaCapFull,
                 }
               : null

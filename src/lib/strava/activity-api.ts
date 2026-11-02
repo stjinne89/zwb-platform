@@ -152,6 +152,58 @@ export async function fetchStravaActivityDetail(
   }
 }
 
+/** Wat de ritlijst per activiteit teruggeeft en de samenvatting nodig heeft. */
+export type StravaActivitySummary = {
+  id: number;
+  start_date?: string | null;
+  distance?: number | null;
+  sport_type?: string | null;
+  type?: string | null;
+};
+
+/**
+ * De activiteiten sinds `afterUnix`, nieuwste pagina van hooguit 30. Voor leden
+ * van wie de ritten via intervals.icu komen: die staan niet in strava_activities,
+ * dus het Strava-id voor de samenvatting komt hier vandaan.
+ */
+export async function fetchRecentStravaActivities(
+  accessToken: string,
+  afterUnix: number,
+): Promise<
+  | { ok: true; activities: StravaActivitySummary[]; usage: StravaRateLimitUsage | null }
+  | StravaApiFailure
+> {
+  try {
+    const url = new URL(`${STRAVA_API}/athlete/activities`);
+    url.searchParams.set("after", String(Math.floor(afterUnix)));
+    url.searchParams.set("per_page", "30");
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return failure(
+        res.status,
+        `Strava activiteiten ophalen faalde (${res.status}): ${text.slice(0, 160)}`,
+        res.headers,
+      );
+    }
+    const activities = (await res.json()) as StravaActivitySummary[];
+    return {
+      ok: true,
+      activities: Array.isArray(activities) ? activities : [],
+      usage: readRateLimitUsage(res.headers),
+    };
+  } catch (err) {
+    return failure(
+      0,
+      err instanceof Error ? err.message : "Strava activiteiten ophalen faalde.",
+    );
+  }
+}
+
 /**
  * Zet de beschrijving. We sturen uitsluitend `description` mee, zodat naam,
  * gear, commute/trainer-vlaggen en sport_type onaangeroerd blijven — Strava

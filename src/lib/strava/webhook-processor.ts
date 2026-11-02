@@ -10,6 +10,7 @@
 //   athlete   -> de deauthorisatie. Dit is de melding waar Strava's afwijzing om
 //                draaide: hierop moet de koppeling direct dood.
 
+import { ridesComeViaIntervals } from "@/lib/intervals/ride-preference";
 import { accessTokenFor, type StravaConnection } from "@/lib/strava/client";
 import { ingestStravaActivity, removeStravaActivity } from "@/lib/strava/ingest-activity";
 import {
@@ -185,6 +186,24 @@ export async function processStravaWebhookEvents(
       }
 
       const accessToken = await accessTokenFor(admin, connection);
+
+      // Ritten via intervals.icu: de rit zelf komt daarvandaan. Wel het nawerk
+      // hieronder, voor de samenvatting in de Strava-beschrijving.
+      if (await ridesComeViaIntervals(admin, connection.profile_id)) {
+        const entry = touchedProfiles.get(connection.profile_id) ?? {
+          accessToken,
+          scope: connection.scope,
+          removedActivityIds: [] as number[],
+        };
+        entry.accessToken = accessToken;
+        touchedProfiles.set(connection.profile_id, entry);
+        await touchConnection(admin, connection.profile_id, event.eventTime);
+        await markProcessed(admin, row.id, "Ritten komen via intervals.icu.");
+        result.skipped += 1;
+        result.processed += 1;
+        continue;
+      }
+
       const outcome = await ingestStravaActivity(
         admin,
         {

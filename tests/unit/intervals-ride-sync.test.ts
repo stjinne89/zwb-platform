@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   trackCalls: [] as string[],
   postSync: vi.fn<(...args: unknown[]) => Promise<unknown>>(async () => ({})),
   awards: vi.fn(async () => ({ awarded: 0 })),
+  summaries: vi.fn(async () => ({ written: 0, skipped: 0, rateLimited: false, errors: [] })),
 }));
 
 vi.mock("@/lib/intervals/client", async (importOriginal) => {
@@ -36,6 +37,11 @@ vi.mock("@/lib/strava/post-sync", () => ({ runPostSyncForProfile: mocks.postSync
 vi.mock("@/lib/achievements/awards", () => ({
   awardCompletedAchievementWeeks: mocks.awards,
 }));
+vi.mock("@/lib/strava/summary-writer", () => ({ writeZwbSummariesForUser: mocks.summaries }));
+vi.mock("@/lib/strava/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/strava/client")>();
+  return { ...actual, accessTokenFor: vi.fn(async () => "token") };
+});
 
 const { syncIntervalsRidesForProfile, loadIntervalsRideConnections } = await import(
   "@/lib/intervals/ride-sync"
@@ -71,6 +77,7 @@ beforeEach(() => {
   mocks.trackCalls = [];
   mocks.postSync.mockClear();
   mocks.awards.mockClear();
+  mocks.summaries.mockClear();
 });
 
 describe("syncIntervalsRidesForProfile", () => {
@@ -325,6 +332,69 @@ describe("loadIntervalsRideConnections", () => {
     });
     const rows = await loadIntervalsRideConnections(db);
     expect(rows.map((row) => row.profile_id)).toEqual([B, "e"]);
+  });
+
+  it("neemt een lid met Strava mee als hij zijn ritten via intervals.icu wil", async () => {
+    const db = fakeDb({
+      intervals_connections: [
+        connection({ profile_id: A, last_synced_at: "2026-09-30T10:00:00Z" }),
+        connection({ profile_id: "c", rides_via_intervals: true, last_synced_at: null }),
+        connection({ profile_id: "d", rides_via_intervals: false }),
+      ],
+      strava_connections: [
+        { profile_id: "c", revoked_at: null },
+        { profile_id: "d", revoked_at: null },
+      ],
+    });
+    const rows = await loadIntervalsRideConnections(db);
+    expect(rows.map((row) => row.profile_id)).toEqual(["c", A]);
+  });
+});
+
+describe("ritten via intervals.icu naast Strava", () => {
+  it("laat een rit die al van Strava kwam staan en schrijft de samenvatting", async () => {
+    const conn = connection({ rides_via_intervals: true, rides_backfilled_at: NOW.toISOString() });
+    const wahoo = (fixture as Array<Record<string, unknown>>).find(
+      (activity) => activity.id === "i81234567",
+    )!;
+    const db = fakeDb({
+      intervals_connections: [conn],
+      strava_activities: [
+        {
+          id: 9_000_001,
+          profile_id: A,
+          start_date: new Date(String(wahoo.start_date)).toISOString(),
+          distance_m: Number(wahoo.distance),
+          raw: { device_watts: true, average_watts: 190 },
+        },
+      ],
+      intervals_activities: [],
+      strava_connections: [
+        { profile_id: A, revoked_at: null, scope: "read,activity:read_all,activity:write" },
+      ],
+    });
+
+    const result = await syncIntervalsRidesForProfile(db, conn, { now: NOW });
+    expect(result.error).toBeUndefined();
+    expect(result.duplicates).toBeGreaterThanOrEqual(1);
+    const ids = db.tables.strava_activities.map((ride) => Number(ride.id));
+    expect(ids).toContain(9_000_001);
+    expect(ids).not.toContain(-1_000_081_234_567);
+
+    expect(mocks.summaries).toHaveBeenCalledTimes(1);
+    expect(mocks.summaries.mock.calls[0]).toMatchObject([db, A, "token", { maxWrites: 1 }]);
+  });
+
+  it("schrijft geen samenvatting zonder Strava-schrijfrecht", async () => {
+    const conn = connection({ rides_via_intervals: true });
+    const db = fakeDb({
+      intervals_connections: [conn],
+      strava_activities: [],
+      intervals_activities: [],
+      strava_connections: [{ profile_id: A, revoked_at: null, scope: "read,activity:read_all" }],
+    });
+    await syncIntervalsRidesForProfile(db, conn, { now: NOW });
+    expect(mocks.summaries).not.toHaveBeenCalled();
   });
 });
 

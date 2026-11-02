@@ -1,15 +1,19 @@
 "use server";
 
-// Ritten via intervals.icu vanuit de app: zelf ophalen, de herinnering afvinken
-// en overstappen van Strava. De uurlijkse cron doet hetzelfde ophalen voor
+// Ritten via intervals.icu vanuit de app: zelf ophalen, de herinnering afvinken,
+// intervals.icu naast Strava als ritbron kiezen en overstappen van Strava. De uurlijkse cron doet hetzelfde ophalen voor
 // iedereen; zie lib/intervals/ride-sync.ts.
 
 import { revalidatePath } from "next/cache";
 import {
+  dropIntervalsRides,
+  FIRST_SYNC_DAYS,
   intervalsRideSourceFor,
+  SYNC_WINDOW_DAYS,
   syncIntervalsRidesForProfile,
 } from "@/lib/intervals/ride-sync";
 import { rateLimitHit } from "@/lib/rate-limit";
+import { syncStravaActivitiesForUser } from "@/lib/strava/client";
 import { revokeAndCleanupStravaConnection } from "@/lib/strava/sweep";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -58,6 +62,92 @@ export async function confirmIntervalsVisit() {
   if (error) return { ok: false as const, error: error.message };
   revalidatePath("/dashboard");
   return { ok: true as const };
+}
+
+/**
+ * Ritten via intervals.icu terwijl Strava gekoppeld blijft, of weer terug naar
+ * Strava (ride-preference.ts, migratie 0299).
+ *
+ * Aan: de Strava-ritten blijven staan; intervals.icu vult aan vanaf de laatste
+ * rit die er staat, en ontdubbelt tegen de rest (dedupeRides).
+ * Uit: de intervals-ritten gaan weg en Strava haalt ze opnieuw op, net als bij
+ * een nieuwe Strava-koppeling.
+ */
+export async function setRidesViaIntervals(on: boolean) {
+  const { userId } = await currentUserId();
+  if (!userId) return { ok: false as const, error: "Niet ingelogd." };
+
+  const budget = await rateLimitHit("intervals-rides-choice", userId, 6, 3600);
+  if (!budget.allowed) {
+    return { ok: false as const, error: "Probeer het over een uur opnieuw." };
+  }
+
+  const admin = createAdminClient();
+  const [{ data: connection }, { data: strava }] = await Promise.all([
+    admin
+      .from("intervals_connections")
+      .select("profile_id, athlete_id, api_key, rides_backfilled_at")
+      .eq("profile_id", userId)
+      .maybeSingle(),
+    admin
+      .from("strava_connections")
+      .select("revoked_at")
+      .eq("profile_id", userId)
+      .maybeSingle(),
+  ]);
+  if (!connection?.athlete_id) {
+    return { ok: false as const, error: "Koppel eerst intervals.icu." };
+  }
+
+  if (!on) {
+    const { error } = await admin
+      .from("intervals_connections")
+      .update({ rides_via_intervals: false })
+      .eq("profile_id", userId);
+    if (error) return { ok: false as const, error: error.message };
+    await dropIntervalsRides(admin, userId);
+    if (strava && !strava.revoked_at) {
+      await syncStravaActivitiesForUser(admin, userId, { skipPostProcessing: true }).catch(
+        () => null,
+      );
+    }
+    revalidateRidePages();
+    return { ok: true as const, stored: 0 };
+  }
+
+  if (!strava || strava.revoked_at) {
+    return { ok: false as const, error: "Koppel eerst Strava." };
+  }
+
+  // Aanvullen vanaf de laatste rit die er al staat, niet een heel jaar: oudere
+  // ritten staan er al van Strava.
+  const now = new Date();
+  const { data: latest } = await admin
+    .from("strava_activities")
+    .select("start_date")
+    .eq("profile_id", userId)
+    .order("start_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const sinceLatest = latest?.start_date
+    ? Math.ceil((now.getTime() - Date.parse(latest.start_date)) / 86400_000) + 1
+    : FIRST_SYNC_DAYS;
+  const days = Math.min(FIRST_SYNC_DAYS, Math.max(SYNC_WINDOW_DAYS, sinceLatest));
+
+  const { error } = await admin
+    .from("intervals_connections")
+    .update({ rides_via_intervals: true, rides_backfilled_at: now.toISOString() })
+    .eq("profile_id", userId);
+  if (error) return { ok: false as const, error: error.message };
+
+  const result = await syncIntervalsRidesForProfile(
+    admin,
+    { ...connection, rides_backfilled_at: now.toISOString() },
+    { now, days },
+  );
+  revalidateRidePages();
+  if (result.error) return { ok: false as const, error: result.error };
+  return { ok: true as const, stored: result.stored };
 }
 
 /**

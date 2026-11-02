@@ -6,6 +6,7 @@
 // migratie 0198. Zonder die migratie valt de herinnering stil weg in plaats van
 // dat de pagina breekt.
 
+import { ridesComeViaIntervals } from "@/lib/intervals/ride-preference";
 import { rideSourceFor, type RideSource } from "@/lib/intervals/rides";
 import { visitReminderDue } from "@/lib/intervals/visit-reminder";
 import { stravaAthleteCap } from "@/lib/strava/sweep";
@@ -16,6 +17,8 @@ export type RideSourceStatus = {
   /** Actieve Strava-koppeling (niet ingetrokken). */
   stravaActive: boolean;
   intervalsConnected: boolean;
+  /** Ritten via intervals.icu terwijl Strava gekoppeld blijft (migratie 0299). */
+  ridesViaIntervals: boolean;
   /** Alle Strava-plekken bezet; een nieuwe koppeling zou Strava weigeren. */
   stravaCapFull: boolean;
   /** Balk "open intervals.icu even" tonen. */
@@ -24,7 +27,7 @@ export type RideSourceStatus = {
 
 export async function loadRideSourceStatus(profileId: string): Promise<RideSourceStatus> {
   const admin = createAdminClient();
-  const [intervals, strava, activeCount, visit] = await Promise.all([
+  const [intervals, strava, activeCount, visit, ridesViaIntervals] = await Promise.all([
     admin
       .from("intervals_connections")
       .select("athlete_id")
@@ -44,6 +47,7 @@ export async function loadRideSourceStatus(profileId: string): Promise<RideSourc
       .select("created_at, visit_confirmed_at")
       .eq("profile_id", profileId)
       .maybeSingle(),
+    ridesComeViaIntervals(admin, profileId),
   ]);
 
   const intervalsConnected = Boolean(
@@ -53,6 +57,7 @@ export async function loadRideSourceStatus(profileId: string): Promise<RideSourc
   const source = rideSourceFor({
     hasStravaConnection: Boolean(stravaRow),
     hasIntervals: intervalsConnected,
+    ridesViaIntervals,
   });
   const visitRow = visit.error
     ? null
@@ -62,6 +67,7 @@ export async function loadRideSourceStatus(profileId: string): Promise<RideSourc
     source,
     stravaActive: Boolean(stravaRow && !stravaRow.revoked_at),
     intervalsConnected,
+    ridesViaIntervals,
     stravaCapFull: (activeCount.count ?? 0) >= stravaAthleteCap(),
     visitReminderDue:
       source === "intervals" && visitRow != null && visitReminderDue(visitRow),

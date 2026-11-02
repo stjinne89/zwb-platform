@@ -447,7 +447,8 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Ritten via intervals.icu:</strong> heb je geen Strava-koppeling
-            maar wel intervals.icu, dan halen we elk uur je fietsritten daar op:
+            maar wel intervals.icu, of kies je daar zelf voor naast Strava, dan
+            halen we elk uur je fietsritten daar op:
             naam, tijd, afstand, hoogtemeters, vermogen, hartslag, cadans, het
             toestel en een vereenvoudigd GPS-spoor. Net als Strava-ritten tellen
             ze mee voor badges, weekstanden, clubstatistieken, cols, ZWBlokken en

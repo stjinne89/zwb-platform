@@ -1,4 +1,6 @@
-// Ritten ophalen bij intervals.icu voor leden zonder Strava-koppeling.
+// Ritten ophalen bij intervals.icu voor leden zonder Strava-koppeling, en voor
+// leden die met Strava gekoppeld toch hun ritten via intervals.icu willen
+// (ride-preference.ts).
 //
 // Draait per lid vanuit de uurlijkse cron (/api/intervals/rides/sync) of de knop
 // "Ritten ophalen". Eén lijst-call vult zowel intervals_activities (belasting,
@@ -17,6 +19,7 @@ import {
   importRidesToReplace,
   encodeTrackPolyline,
   INTERVALS_IMPORT_SOURCE,
+  INTERVALS_RIDE_ID_CEILING,
   intervalsActivityToRideRow,
   intervalsRideId,
   latLngFromStreams,
@@ -28,6 +31,10 @@ import {
   type IntervalsRideRow,
   type RideFingerprint,
 } from "@/lib/intervals/rides";
+import {
+  loadRidesViaIntervalsProfiles,
+  ridesComeViaIntervals,
+} from "@/lib/intervals/ride-preference";
 import { visitPushDue } from "@/lib/intervals/visit-reminder";
 import { sendNotificationToMembers } from "@/lib/push/send";
 import { runPostSyncForProfile } from "@/lib/strava/post-sync";
@@ -88,13 +95,14 @@ function existingTrack(row: ExistingRow | undefined): {
 
 /**
  * Welke leden hun ritten via intervals.icu krijgen: een intervals-koppeling en
- * geen Strava-koppeling (ook geen ingetrokken die nog op opruiming wacht). Gesorteerd op wie het langst niet aan de beurt
+ * geen Strava-koppeling (ook geen ingetrokken die nog op opruiming wacht), of de
+ * eigen keuze voor intervals.icu. Gesorteerd op wie het langst niet aan de beurt
  * was.
  */
 export async function loadIntervalsRideConnections(
   admin: Admin,
 ): Promise<IntervalsRideConnection[]> {
-  const [connections, strava] = await Promise.all([
+  const [connections, strava, viaIntervals] = await Promise.all([
     admin
       .from("intervals_connections")
       .select(
@@ -103,6 +111,7 @@ export async function loadIntervalsRideConnections(
       .not("athlete_id", "is", null)
       .order("last_synced_at", { ascending: true, nullsFirst: true }),
     admin.from("strava_connections").select("profile_id"),
+    loadRidesViaIntervalsProfiles(admin),
   ]);
   if (connections.error) throw new Error(connections.error.message);
   if (strava.error) throw new Error(strava.error.message);
@@ -114,6 +123,7 @@ export async function loadIntervalsRideConnections(
       rideSourceFor({
         hasStravaConnection: withStrava.has(row.profile_id),
         hasIntervals: true,
+        ridesViaIntervals: viaIntervals.has(row.profile_id),
       }) === "intervals",
   );
 }
@@ -123,7 +133,7 @@ export async function intervalsRideSourceFor(
   admin: Admin,
   profileId: string,
 ): Promise<IntervalsRideConnection | null> {
-  const [connection, strava] = await Promise.all([
+  const [connection, strava, viaIntervals] = await Promise.all([
     admin
       .from("intervals_connections")
       .select("profile_id, athlete_id, api_key, rides_backfilled_at")
@@ -134,11 +144,15 @@ export async function intervalsRideSourceFor(
       .select("profile_id")
       .eq("profile_id", profileId)
       .maybeSingle(),
+    ridesComeViaIntervals(admin, profileId),
   ]);
   const row = connection.data as IntervalsRideConnection | null;
   if (!row?.athlete_id) return null;
-  return rideSourceFor({ hasStravaConnection: Boolean(strava.data), hasIntervals: true }) ===
-    "intervals"
+  return rideSourceFor({
+    hasStravaConnection: Boolean(strava.data),
+    hasIntervals: true,
+    ridesViaIntervals: viaIntervals,
+  }) === "intervals"
     ? row
     : null;
 }
@@ -146,12 +160,17 @@ export async function intervalsRideSourceFor(
 export async function syncIntervalsRidesForProfile(
   admin: Admin,
   connection: IntervalsRideConnection,
-  opts: { now?: Date; maxTracks?: number } = {},
+  opts: {
+    now?: Date;
+    maxTracks?: number;
+    /** Venster in dagen in plaats van het standaardvenster; bij het aanzetten van de keuze. */
+    days?: number;
+  } = {},
 ): Promise<RideSyncResult> {
   const now = opts.now ?? new Date();
   const profileId = connection.profile_id;
   const firstRun = !connection.rides_backfilled_at;
-  const days = firstRun ? FIRST_SYNC_DAYS : SYNC_WINDOW_DAYS;
+  const days = opts.days ?? (firstRun ? FIRST_SYNC_DAYS : SYNC_WINDOW_DAYS);
   const result: RideSyncResult = {
     profileId,
     fetched: 0,
@@ -326,6 +345,11 @@ export async function syncIntervalsRidesForProfile(
       await awardCompletedAchievementWeeks(admin).catch(() => null);
     }
 
+    // Strava nog gekoppeld: de samenvatting in de Strava-beschrijving. Ook zonder
+    // nieuwe rit, want Strava kan de rit later krijgen dan intervals.icu; zonder
+    // open rit kost dit alleen een databasevraag.
+    await writeStravaSummaries(admin, profileId);
+
     await admin
       .from("intervals_connections")
       .update({
@@ -350,6 +374,46 @@ export async function syncIntervalsRidesForProfile(
       );
     return result;
   }
+}
+
+async function writeStravaSummaries(admin: Admin, profileId: string): Promise<void> {
+  try {
+    const { data } = await admin
+      .from("strava_connections")
+      .select(
+        "profile_id, strava_athlete_id, access_token, refresh_token, expires_at, scope, revoked_at",
+      )
+      .eq("profile_id", profileId)
+      .maybeSingle();
+    if (!data || data.revoked_at) return;
+    const { hasActivityWriteScope } = await import("@/lib/strava/scope");
+    if (!hasActivityWriteScope(data.scope)) return;
+    const { accessTokenFor } = await import("@/lib/strava/client");
+    const { writeZwbSummariesForUser } = await import("@/lib/strava/summary-writer");
+    const token = await accessTokenFor(admin, data);
+    await writeZwbSummariesForUser(admin, profileId, token, { maxWrites: 1 });
+  } catch {
+    // Niet kritiek: de Strava-sync probeert het ook.
+  }
+}
+
+/**
+ * Haalt de intervals-ritten van een lid weg, zodat Strava weer de ritbron is.
+ * Strava levert dezelfde ritten opnieuw; met intervals-rijen in de tabel zou de
+ * eerste Strava-sync denken dat hij al gedraaid heeft en maar 30 dagen ophalen
+ * (lib/strava/client.ts). Kiest het lid later weer intervals.icu, dan haalt de
+ * intervals-sync weer een jaar op.
+ */
+export async function dropIntervalsRides(admin: Admin, profileId: string): Promise<void> {
+  await admin
+    .from("strava_activities")
+    .delete()
+    .eq("profile_id", profileId)
+    .lte("id", INTERVALS_RIDE_ID_CEILING);
+  await admin
+    .from("intervals_connections")
+    .update({ rides_backfilled_at: null })
+    .eq("profile_id", profileId);
 }
 
 /**
