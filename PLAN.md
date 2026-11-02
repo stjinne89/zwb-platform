@@ -11629,6 +11629,49 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Ladderrace: geschiedenis per team voor de matchup
+
+**2026-11-02.** Lokaal gecommit, niet gepusht. Geen migratie.
+
+Na de push van de matchup stond het blok op het ZWBeasts-event, maar leeg: van
+de 79 bewaarde wedstrijden (de summary toont één week) was er geen van ZWBeasts
+of Galaxy Avengers. In Chrome gevonden: de ladder heeft per team een
+uitslagenlijst, `/matchlist/results/<team>`, met de hele geschiedenis
+(Galaxy Avengers 108 wedstrijden, de laatste 17777 op 28 oktober; ZWBeasts 69,
+de laatste gereden in februari 2026). Alleen ingelogd; zonder sessie volgt
+`/signin`. De ID's zijn die van de openbare uitslagpagina (`/public/result/17777`
+opent zonder login, met renners). De eigenaar koos ervoor dit te bouwen.
+
+- `team-history.ts`: `parseLadderTeamResults` leest `table.resTable` met
+  `tr.dayBounds` (datum als tekst, "Wednesday, October 28, 2026") en
+  `tr.expandor[data-id]` (tijd, uitdager, scores, tegenstander, route met
+  rondes of afstand, fase). De route verliest "2 laps"/"24.66 kms", zodat
+  `findLadderRouteSlug` hem vindt. `recentRacedResults` neemt de laatste acht
+  zonder Forfeit (die hebben geen renners). De regels zijn in Chrome op de echte
+  lijsten nagelopen: 108 van 108 rijen van Galaxy Avengers, 68 van 69 van
+  ZWBeasts.
+- `syncLadderFixtures` haalt met `LADDER_COOKIE` voor beide ploegen van elke
+  komende wedstrijd die lijst op (één pagina per team per run) en bewaart de
+  wedstrijden met `storeLadderResults` (bekende blijven zoals ze zijn). Een
+  verlopen sessie stopt de rest, net als bij de wedstrijdpagina's. Nieuw in het
+  resultaat: `historyMatches`.
+- Renners en vermogen van die wedstrijden haalt de eventpagina op, zoals
+  eerder (6 s tijdens het laden, de rest na het antwoord); bij een paar bezoeken
+  is de matchup gevuld. De sync zelf doet het niet: die draait al de hele
+  team-results-sync in één verzoek.
+
+**Bewust niet.**
+- Niet de hele geschiedenis: acht wedstrijden per team, hetzelfde aantal dat
+  `loadTeamMatches` gebruikt.
+- Geen pagina's van teams zonder geplande wedstrijd tegen ZWB.
+
+**Let op.** De tijd in de lijst is die van de ingelogde ladder-gebruiker; de
+summary geeft UTC. `raced_at` kan dus een uur verschillen tussen beide bronnen.
+Alleen datum en ID worden gebruikt (volgorde).
+
+**Niet geverifieerd** op productie: hangt af van `LADDER_COOKIE` op Netlify. Unit
+tests (`club-ladder-fixtures.test.ts`: parser en sync) slagen.
+
 ### Gebouwd — Ladderrace: matchup met vermogen op de eventpagina
 
 **2026-11-02.** Commit `519d4675`, gepusht naar `main` op 2026-11-02 (eigenaar).
@@ -11981,10 +12024,12 @@ eigen pagina.
 - Geen eigen kopie van het race book: Notion laat zich niet automatisch lezen.
   De regels komen uit de lezing van 28 september (`docs/zwbgame.md`).
 - Geen weigerregel voor de verdediger en geen powerup-advies.
-- Geen terugwerkende import van oudere uitslagen. De ID's van de openbare
+- Geen terugwerkende import van alle oudere uitslagen. De ID's van de openbare
   uitslagen lopen op en zouden af te lopen zijn, maar dat zijn honderden
-  pagina's van een vrijwilligerssite; eerst kijken of het advies met de groei
-  vanaf nu genoeg heeft.
+  pagina's van een vrijwilligerssite. *Bijgewerkt 2026-11-02:* voor de ploegen
+  van een geplande wedstrijd haalt de sync nu wél hun laatste acht gereden
+  wedstrijden op, uit de uitslagenlijst per team (één pagina per team, met
+  `LADDER_COOKIE`); zie "Ladderrace: geschiedenis per team voor de matchup".
 - Geen ZwiftRacing-vELO of 90-dagen-profielen van tegenstanders: hun vermogen
   komt uit dezelfde bron als het onze (ladderraces), zodat de vergelijking
   eerlijk blijft.

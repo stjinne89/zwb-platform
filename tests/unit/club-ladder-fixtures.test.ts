@@ -21,7 +21,17 @@ import { ladderRaceLinks } from "@/lib/events/race-links";
 import { syncLadderFixtures } from "@/lib/club-ladder/fixture-sync";
 import { parseClubLadderSummary, type ClubLadderFixture, type ClubLadderSummary } from "@/lib/club-ladder/summary";
 import { clubLadderResultFromSummary } from "@/lib/team-results/sync";
-import { dayRow, fixturePage, fixtureRow, ladderRow, ladderSection, summaryPage } from "../fixtures/club-ladder";
+import { parseLadderTeamResults, recentRacedResults, routeNameFromMatchlist } from "@/lib/club-ladder/team-history";
+import {
+  dayRow,
+  fixturePage,
+  fixtureRow,
+  ladderRow,
+  ladderSection,
+  summaryPage,
+  teamResultRow,
+  teamResultsPage,
+} from "../fixtures/club-ladder";
 
 const stay = { cls: "staticMove" } as const;
 const MUCKLE_YIN = 3662705581;
@@ -85,6 +95,31 @@ describe("wedstrijd naar event", () => {
     { id: "beasts", name: "ZWBeasts" },
     { id: "bullets", name: "ZWBullets" },
   ];
+
+  it("leest de uitslagen van één team met datum, route zonder rondes en fase", () => {
+    const html = teamResultsPage([
+      {
+        label: "Wednesday, October 28, 2026",
+        rows: [teamResultRow({ id: 17777, time: "19:15", home: "DIRTy Beasts", homeScore: 33, awayScore: 22, away: "Galaxy Avengers", route: "Park Perimeter Reverse 2 laps" })],
+      },
+      {
+        label: "Friday, October 3, 2026",
+        rows: [
+          teamResultRow({ id: 17190, time: "9:30", home: "Galaxy Avengers", homeScore: 0, awayScore: 1, away: "X", route: "Coastal Crown Loop 1 lap", stage: "Forfeit" }),
+          teamResultRow({ id: 17158, time: "20:00", home: "Galaxy Avengers", homeScore: 28, awayScore: 27, away: "Y", route: "Legends and Lava 24.66 kms" }),
+        ],
+      },
+    ]);
+    const results = parseLadderTeamResults(html);
+    expect(results).toEqual([
+      { resultId: 17777, date: "2026-10-28", time: "19:15", route: "Park Perimeter Reverse", challenger: "DIRTy Beasts", challengerScore: 33, opponent: "Galaxy Avengers", opponentScore: 22, stage: "Finished" },
+      { resultId: 17190, date: "2026-10-03", time: "09:30", route: "Coastal Crown Loop", challenger: "Galaxy Avengers", challengerScore: 0, opponent: "X", opponentScore: 1, stage: "Forfeit" },
+      { resultId: 17158, date: "2026-10-03", time: "20:00", route: "Legends and Lava", challenger: "Galaxy Avengers", challengerScore: 28, opponent: "Y", opponentScore: 27, stage: "Finished" },
+    ]);
+    expect(recentRacedResults(results, 1).map((r) => r.resultId)).toEqual([17777]);
+    expect(recentRacedResults(results).map((r) => r.resultId)).toEqual([17777, 17158]);
+    expect(routeNameFromMatchlist("Astoria Line 8 2 laps")).toBe("Astoria Line 8");
+  });
 
   it("koppelt een wedstrijd aan elk ZWB-team dat meedoet", () => {
     const matches = ladderFixtureMatches(
@@ -189,12 +224,14 @@ function fakeDb(tables: Record<string, Row[]>) {
       this.op = "delete";
       return this;
     }
-    upsert(payload: Row, options: { onConflict: string }) {
+    upsert(payload: Row | Row[], options: { onConflict: string; ignoreDuplicates?: boolean }) {
       this.op = "upsert";
       this.payload = payload;
       this.conflict = options.onConflict.split(",");
+      this.ignoreDuplicates = Boolean(options.ignoreDuplicates);
       return this;
     }
+    private ignoreDuplicates = false;
     single() {
       this.one = true;
       return this;
@@ -220,10 +257,11 @@ function fakeDb(tables: Record<string, Row[]>) {
         tables[this.table] = rows.filter((row) => !match(row));
       }
       if (this.op === "upsert") {
-        const payload = this.payload as Row;
-        const existing = rows.find((row) => this.conflict.every((key) => row[key] === payload[key]));
-        if (existing) Object.assign(existing, payload);
-        else rows.push({ ...payload });
+        for (const payload of [this.payload as Row | Row[]].flat()) {
+          const existing = rows.find((row) => this.conflict.every((key) => row[key] === payload[key]));
+          if (existing && !this.ignoreDuplicates) Object.assign(existing, payload);
+          else if (!existing) rows.push({ ...payload });
+        }
       }
       return { data: this.one ? (data[0] ?? null) : data, error: null };
     }
@@ -276,11 +314,32 @@ describe("syncLadderFixtures", () => {
   });
 
   it("zet de wedstrijd met opstelling in de kalender en ruimt een afgezegde op", async () => {
+    const asked: string[] = [];
     const result = await syncLadderFixtures(db, summary([fixture()]), {
       cookie: "connect.sid=x",
       now,
       fetchPage: async () => page([[619970, "T ako [ZWB]", 1], [2650151, "Bart de Groot [ZWB]", 2], [777, "Gast", 3], [555, "Reserve", null]]),
+      fetchTeamResults: async (team) => {
+        asked.push(team);
+        return parseLadderTeamResults(
+          teamResultsPage([
+            {
+              label: "Wednesday, October 28, 2026",
+              rows: [
+                teamResultRow({ id: 17777, time: "19:15", home: "DIRTy Beasts", homeScore: 33, awayScore: 22, away: team, route: "Park Perimeter Reverse 2 laps" }),
+                teamResultRow({ id: 17776, time: "18:00", home: team, homeScore: 0, awayScore: 1, away: "Iemand", route: "Castle Crit 6 laps", stage: "Forfeit" }),
+              ],
+            },
+          ]),
+        );
+      },
     });
+    // Geschiedenis van beide ploegen; een opgegeven wedstrijd niet.
+    expect(asked).toEqual(["ZWBeasts", "Galaxy Avengers"]);
+    expect(result.historyMatches).toBe(2);
+    expect(db.tables.club_ladder_matches.map((row) => [row.result_id, row.raced_on, row.route_name])).toEqual([
+      [17777, "2026-10-28", "Park Perimeter Reverse"],
+    ]);
 
     expect(result).toMatchObject({ created: 1, removed: 1, lineupRiders: 3, lineupError: null, archived: ["ZWBullets"] });
     expect(result.reactivated.sort()).toEqual(["ZWBeasts", "ZWBeauties"]);
@@ -309,7 +368,7 @@ describe("syncLadderFixtures", () => {
   });
 
   it("volgt een gewijzigde opstelling en laat het event staan zonder sessie", async () => {
-    const options = { cookie: "connect.sid=x", now };
+    const options = { cookie: "connect.sid=x", now, fetchTeamResults: async () => [] };
     await syncLadderFixtures(db, summary([fixture()]), { ...options, fetchPage: async () => page([[619970, "T ako", 1], [2650151, "Bart", 2]]) });
     const second = await syncLadderFixtures(db, summary([fixture()]), { ...options, fetchPage: async () => page([[2650151, "Bart", 1]]) });
 

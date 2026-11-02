@@ -221,3 +221,34 @@ ${signupSection("awayTeamSignins", opts.away, "away")}
 </section></div></div>
 </body></html>`;
 }
+
+/** Uitslagen van één team (/matchlist/results/<team>, achter login, november 2026). */
+export function teamResultRow(opts: {
+  id: number;
+  time: string;
+  home: string;
+  homeScore: number;
+  awayScore: number;
+  away: string;
+  route: string;
+  stage?: string;
+}) {
+  const color = (mine: number, theirs: number) => (mine > theirs ? "text-success" : "text-secondary");
+  return `<tr class="expandor" data-id="${opts.id}" data-region="1">
+<td class="datecol">${opts.time}</td><td></td>
+<td class="homeTeam text-end fw-bold">${opts.home}</td>
+<td class="score lscore ${color(opts.homeScore, opts.awayScore)}">${opts.homeScore}</td><td class="text-center"></td>
+<td class="score rscore ${color(opts.awayScore, opts.homeScore)}">${opts.awayScore}</td>
+<td class="awayTeam noVersus fw-bold">${opts.away}</td>
+<td class="text-muted small">${opts.route}</td>
+<td class="text-muted small text-center">${opts.stage ?? "Finished"}</td>
+</tr>
+<tr class="d-none expandedResult text-center" data-race-id="${opts.id}"></tr>`;
+}
+
+export function teamResultsPage(days: Array<{ label: string; rows: string[] }>) {
+  return `<html><body><div class="container w-100 matchlist-scroll"><table class="table resTable table-striped"><tbody id="thebody">
+<tr class="headRow"><th>Date</th><th></th><th>Challenger</th><th></th><th></th><th></th><th>Opponent</th></tr>
+${days.map((day) => `<tr class="dayBounds"><td colspan="50">${day.label}</td></tr>\n${day.rows.join("\n")}`).join("\n")}
+</tbody></table></div></body></html>`;
+}

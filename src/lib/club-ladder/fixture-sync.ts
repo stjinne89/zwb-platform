@@ -9,8 +9,11 @@ import {
   type LadderEventFields,
   type LadderFixtureMatch,
 } from "./fixture-events";
+import { normalizeTeamName } from "@/lib/ladder";
 import { fetchLadderFixturePage, LadderLoginError, type LadderFixturePage } from "./fixture-page";
+import { storeLadderResults } from "./store";
 import type { ClubLadderSummary } from "./summary";
+import { fetchLadderTeamResults, recentRacedResults } from "./team-history";
 
 // Shared by the cron (service role) and tests; structurally typed like sync.ts.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,6 +27,8 @@ export type LadderFixtureSyncResult = {
   archived: string[];
   lineupRiders: number;
   lineupError: string | null;
+  /** Eerdere wedstrijden van beide ploegen, aangeboden voor de matchup (bekende blijven staan). */
+  historyMatches: number;
   warnings: string[];
 };
 
@@ -182,7 +187,12 @@ async function syncSignups(admin: Admin, match: LadderFixtureMatch, page: Ladder
 export async function syncLadderFixtures(
   admin: Admin,
   summary: ClubLadderSummary,
-  options: { cookie?: string | null; now?: Date; fetchPage?: typeof fetchLadderFixturePage } = {},
+  options: {
+    cookie?: string | null;
+    now?: Date;
+    fetchPage?: typeof fetchLadderFixturePage;
+    fetchTeamResults?: typeof fetchLadderTeamResults;
+  } = {},
 ): Promise<LadderFixtureSyncResult> {
   const result: LadderFixtureSyncResult = {
     created: 0,
@@ -192,6 +202,7 @@ export async function syncLadderFixtures(
     archived: [],
     lineupRiders: 0,
     lineupError: null,
+    historyMatches: 0,
     warnings: [],
   };
   if (summary.standings.length < MIN_STANDINGS) {
@@ -310,7 +321,30 @@ export async function syncLadderFixtures(
     }
   }
 
-  // 3. Een wedstrijd die nog moest beginnen en van de ladder verdween, is afgezegd.
+  // 3. Geschiedenis voor de matchup: de summary toont maar een week, dus van
+  // beide ploegen van een komende wedstrijd hun laatste gereden wedstrijden.
+  // Eén pagina per team; renners en vermogen haalt de eventpagina op.
+  const fetchTeamResults = options.fetchTeamResults ?? fetchLadderTeamResults;
+  const upcoming = matches.filter((match) => Date.parse(match.fixture.startsAt) > now.getTime());
+  const historyTeams = new Map<string, string>();
+  for (const match of upcoming) {
+    for (const name of [match.fixture.home, match.fixture.away]) historyTeams.set(normalizeTeamName(name), name);
+  }
+  for (const name of historyTeams.values()) {
+    if (!cookie) break;
+    try {
+      result.historyMatches += await storeLadderResults(admin, recentRacedResults(await fetchTeamResults(name, cookie)));
+    } catch (err) {
+      if (err instanceof LadderLoginError) {
+        result.lineupError = err.message;
+        cookie = null;
+      } else {
+        result.warnings.push(`Uitslagen ${name}: ${err instanceof Error ? err.message : "niet gelezen"}`);
+      }
+    }
+  }
+
+  // 4. Een wedstrijd die nog moest beginnen en van de ladder verdween, is afgezegd.
   if (summary.fixtures.length > 0) {
     const gone = [...existing.entries()]
       .filter(([key, row]) => !seen.has(key) && Date.parse(row.start_at) > now.getTime())
