@@ -95,6 +95,19 @@ export function ladderEventFields(match: LadderFixtureMatch, page: LadderFixture
   };
 }
 
+/**
+ * Tegenstander uit de titel die `ladderEventFields` maakt ("Club Ladder: thuis – uit"),
+ * voor events van vóór 0302 tot de sync de kolom heeft gevuld.
+ */
+export function ladderOpponentFromTitle(title: string, teamName: string): string | null {
+  const match = title.match(/^Club Ladder: (.+) – (.+)$/);
+  if (!match) return null;
+  const [, home, away] = match;
+  if (normalizeTeamName(home) === normalizeTeamName(teamName)) return away;
+  if (normalizeTeamName(away) === normalizeTeamName(teamName)) return home;
+  return null;
+}
+
 /** Wie de captain heeft opgesteld: alleen renners met een startplek, op volgorde. */
 export function ladderLineup(page: LadderFixturePage, side: "home" | "away"): LadderSignup[] {
   return page[side]

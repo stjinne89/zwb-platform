@@ -9,7 +9,13 @@ vi.mock("@/lib/training/events", () => ({
 }));
 vi.mock("@/lib/training/replan", () => ({ requestReplan: vi.fn(async () => ({ started: false })) }));
 
-import { activeLadderTeamIds, ladderEventFields, ladderFixtureMatches, ladderLineup } from "@/lib/club-ladder/fixture-events";
+import {
+  activeLadderTeamIds,
+  ladderEventFields,
+  ladderFixtureMatches,
+  ladderLineup,
+  ladderOpponentFromTitle,
+} from "@/lib/club-ladder/fixture-events";
 import { LadderLoginError, parseLadderFixturePage } from "@/lib/club-ladder/fixture-page";
 import { ladderRaceLinks } from "@/lib/events/race-links";
 import { syncLadderFixtures } from "@/lib/club-ladder/fixture-sync";
@@ -108,6 +114,10 @@ describe("wedstrijd naar event", () => {
     });
     const [, away] = ladderFixtureMatches([fixture({ fixtureId: 2, home: "ZWBullets", away: "ZWBeasts" })], teams);
     expect(ladderEventFields(away, null).club_ladder_opponent).toBe("ZWBullets");
+    // Events van vóór 0302: de tegenstander uit de titel.
+    expect(ladderOpponentFromTitle("Club Ladder: ZWBeasts – Galaxy Avengers", "ZWBeasts")).toBe("Galaxy Avengers");
+    expect(ladderOpponentFromTitle("Club Ladder: ZWBullets – ZWBeasts", "ZWBeasts")).toBe("ZWBullets");
+    expect(ladderOpponentFromTitle("Club Ladder: A – B", "ZWBeasts")).toBeNull();
     expect(ladderEventFields(match, page([]))).toMatchObject({ laps: 1, distance_km: 23.57, zwift_event_id: 5772909 });
   });
 

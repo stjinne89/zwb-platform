@@ -11668,6 +11668,10 @@ voordeel heeft.
   een opgehaalde wedstrijd nu ook in het geheugen, zodat die tweede ronde hem
   overslaat.
 - `/hulp` (Teams en wedstrijden) beschrijft de matchup.
+- **Hersteld na de push** (eigenaar zag geen matchup, in Chrome bevestigd): het
+  ZWBeasts-event was van vóór 0302 en de sync had `club_ladder_opponent` nog
+  niet gevuld, dus verborg de pagina het blok. Nu leest `ladderOpponentFromTitle`
+  de tegenstander uit de titel die de sync zelf maakt, als de kolom leeg is.
 
 **Bewust niet.**
 - Geen vELO1 in de matchup: die hebben we alleen van ZWB-leden (0301), niet van

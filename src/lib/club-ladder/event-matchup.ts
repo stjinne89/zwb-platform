@@ -4,6 +4,7 @@ import { after } from "next/server";
 import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metrics";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import type { createClient } from "@/lib/supabase/server";
+import { ladderOpponentFromTitle } from "./fixture-events";
 import { ensureMatchRiders, loadStoredMatches, loadTeamMatches } from "./matches";
 import { buildLadderMatchup, type LadderMatchup, type MatchupSignup } from "./matchup";
 import { findLadderRouteSlug, ladderRouteBySlug, ROUTE_CLASS_LABELS } from "./routes";
@@ -28,7 +29,7 @@ export async function loadLadderEventMatchup(
   admin: Admin,
   supabase: Client,
   eventId: string,
-  event: { team_id: string | null; zwift_route_id: number | string | null },
+  event: { team_id: string | null; title: string; zwift_route_id: number | string | null },
 ): Promise<LadderEventMatchup | null> {
   if (!event.team_id) return null;
   // Apart gelezen: zonder 0302 geeft dit een fout en blijft de pagina heel.
@@ -36,10 +37,12 @@ export async function loadLadderEventMatchup(
     admin.from("events").select("club_ladder_fixture_id, club_ladder_opponent").eq("id", eventId).maybeSingle(),
     admin.from("teams").select("name").eq("id", event.team_id).maybeSingle(),
   ]);
-  const opponent = (link?.club_ladder_opponent as string | null | undefined) ?? null;
   const fixtureId = positiveId(link?.club_ladder_fixture_id);
   const ourName = (team?.name as string | undefined) ?? null;
-  if (linkError || !opponent || !fixtureId || !ourName) return null;
+  if (linkError || !fixtureId || !ourName) return null;
+  const opponent =
+    (link?.club_ladder_opponent as string | null | undefined) ?? ladderOpponentFromTitle(event.title, ourName);
+  if (!opponent) return null;
 
   const { data: signupRows } = await admin
     .from("club_ladder_fixture_signups")
