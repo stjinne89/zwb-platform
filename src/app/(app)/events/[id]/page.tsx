@@ -33,6 +33,9 @@ import {
 } from "@/lib/events/race-links";
 import { RaceInfoCard, RaceLinkChips } from "./_components/race-info-card";
 import { ZrlTeamRank } from "./_components/zrl-team-rank";
+import { LadderMatchupView } from "./_components/ladder-matchup";
+import { loadLadderEventMatchup } from "@/lib/club-ladder/event-matchup";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { FrrStagePanel } from "./_components/frr-stage-panel";
 import { SrcPanel } from "./_components/src-panel";
 import { setSrcAvailability } from "../../src/_actions";
@@ -497,6 +500,11 @@ export default async function EventDetailPage({
   }
   for (const list of lineupByTeam.values()) list.sort((a, b) => a.name.localeCompare(b.name, "nl"));
   const ownLineup = event.team_id ? lineupByTeam.get(event.team_id) ?? [] : [];
+  // Ladderrace: ZWB tegen de tegenstander, vermogen per duur (migr. 0302).
+  const ladderMatchup =
+    event.type === "ladder" && event.team_id && user
+      ? await loadLadderEventMatchup(createAdminClient(), supabase, event.id, event).catch(() => null)
+      : null;
 
   // Een ZRL-raceweek is waar je je aanmeldt bij een paraplu (hoofdteam met
   // subteams, migr. 0179); de captain deelt je daarna in bij een subteam.
@@ -1596,6 +1604,8 @@ export default async function EventDetailPage({
           <LineupNames riders={ownLineup} className="rounded-lg border bg-card p-3" />
         </section>
       )}
+
+      {ladderMatchup && <LadderMatchupView matchup={ladderMatchup.matchup} routeLabel={ladderMatchup.routeLabel} />}
 
       {showTttPlan && (
         <section className="space-y-3">

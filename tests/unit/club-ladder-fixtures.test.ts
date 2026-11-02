@@ -104,7 +104,10 @@ describe("wedstrijd naar event", () => {
       laps: 1,
       distance_km: 23.7,
       elevation_m: 282,
+      club_ladder_opponent: "Galaxy Avengers",
     });
+    const [, away] = ladderFixtureMatches([fixture({ fixtureId: 2, home: "ZWBullets", away: "ZWBeasts" })], teams);
+    expect(ladderEventFields(away, null).club_ladder_opponent).toBe("ZWBullets");
     expect(ladderEventFields(match, page([]))).toMatchObject({ laps: 1, distance_km: 23.57, zwift_event_id: 5772909 });
   });
 
@@ -284,6 +287,15 @@ describe("syncLadderFixtures", () => {
       ["tako", "yes"],
       ["bart", "yes"],
     ]);
+    // Voor de matchup: de tegenstander en de aanmeldingen van beide ploegen.
+    expect(event.club_ladder_opponent).toBe("Galaxy Avengers");
+    expect(db.tables.club_ladder_fixture_signups.map((row) => [row.zwift_id, row.team, row.position])).toEqual([
+      [619970, "ZWBeasts", 1],
+      [2650151, "ZWBeasts", 2],
+      [777, "ZWBeasts", 3],
+      [555, "ZWBeasts", null],
+      [3327689, "Galaxy Avengers", 1],
+    ]);
   });
 
   it("volgt een gewijzigde opstelling en laat het event staan zonder sessie", async () => {
@@ -294,6 +306,8 @@ describe("syncLadderFixtures", () => {
     expect(second).toMatchObject({ created: 0, updated: 0, lineupRiders: 1 });
     expect(db.tables.team_event_lineups.map((row) => [row.profile_id, row.slot])).toEqual([["bart", 1]]);
     expect(db.tables.event_rsvps.map((row) => row.profile_id)).toEqual(["bart"]);
+    // Aanmeldingen worden vervangen, niet aangevuld.
+    expect(db.tables.club_ladder_fixture_signups.map((row) => row.zwift_id)).toEqual([2650151, 3327689]);
 
     const expired = await syncLadderFixtures(db, summary([fixture()]), {
       ...options,
@@ -307,6 +321,7 @@ describe("syncLadderFixtures", () => {
     expect(expired.updated).toBe(0);
     expect(db.tables.events.find((row) => row.club_ladder_fixture_id === 17729)).toMatchObject({ zwift_event_id: 5772909, distance_km: 23.57 });
     expect(db.tables.team_event_lineups).toHaveLength(1);
+    expect(db.tables.club_ladder_fixture_signups).toHaveLength(2);
   });
 
   it("doet niets met een stand die niet gelezen is", async () => {

@@ -107,6 +107,7 @@ export async function ensureMatchRiders(admin: Admin, matches: MatchRow[], budge
         .update({ zwift_event_id: page.zwiftEventId, route_slug: routeSlug, ...(complete ? { riders_fetched_at: new Date().toISOString() } : {}) })
         .eq("result_id", match.result_id);
       match.route_slug = routeSlug;
+      if (complete) match.riders_fetched_at = new Date().toISOString();
     } catch {
       // Een pagina die niet laadt, slaan we deze keer over.
     }

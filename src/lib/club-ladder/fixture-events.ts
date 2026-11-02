@@ -56,6 +56,8 @@ export type LadderEventFields = {
   laps: number | null;
   distance_km: number | null;
   elevation_m: number | null;
+  /** Ladder-naam van de tegenstander, voor de matchup (0302). */
+  club_ladder_opponent: string;
 };
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
@@ -89,6 +91,7 @@ export function ladderEventFields(match: LadderFixtureMatch, page: LadderFixture
     laps,
     distance_km: page?.km ?? distance,
     elevation_m: elevation,
+    club_ladder_opponent: match.side === "home" ? fixture.away : fixture.home,
   };
 }
 

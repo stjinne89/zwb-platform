@@ -11629,6 +11629,63 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Ladderrace: matchup met vermogen op de eventpagina
+
+**2026-11-02.** Lokaal gecommit, **niet gepusht**. Migratie
+`0302_club_ladder_matchup.sql`, **nog niet toegepast**. Pas pushen nadat 0302
+is toegepast: de fixture-sync schrijft `events.club_ladder_opponent`, en zonder
+die kolom mislukt het aanmaken en bijwerken van ladder-events. De eventpagina
+zelf blijft zonder 0302 heel (die leest de kolom apart en slaat de matchup
+over).
+
+Vraag van de eigenaar: op het event van een ladderwedstrijd het ZWB-team en de
+tegenstander naast elkaar, met de vermogens tegen elkaar afgezet en waar ZWB het
+voordeel heeft.
+
+- **0302**: `events.club_ladder_opponent` (ladder-naam van de tegenstander, uit
+  de openbare summary) en `club_ladder_fixture_signups` (per wedstrijd de
+  aanmeldingen van beide ploegen: Zwift-ID, team, naam, startplek). RLS aan
+  zonder policies, zoals `club_ladder_match_riders`; lezen via de admin-client.
+- **Sync**: `ladderEventFields` geeft de tegenstander mee; met een gelezen
+  wedstrijdpagina (alleen met `LADDER_COOKIE`) vervangt `syncSignups` de
+  aanmeldingen van die wedstrijd, één keer per wedstrijd.
+- **Matchup** (`matchup.ts`, puur; `event-matchup.ts` laadt): per renner de
+  beste W/kg per duur over al zijn bewaarde ladderraces, ook voor een ander
+  team. Met aanmeldingen aan beide kanten: het gemiddelde van de vijf besten van
+  de opstelling (startplek gegeven), anders van wie zich aanmeldde. Zonder:
+  `teamPowerFromMatches` van beide teams, zoals het advies. Verschil per duur
+  als log-verschil in procenten (zoals het advies); vanaf 2% heet het voordeel,
+  daaronder gelijk (eigen vuistregel). Het parcours weegt de duren met de
+  gewichten van `ladderRouteOptions`, opgeteld tot één voordeel op dit parcours.
+- Een ZWB-renner zonder ladderraces krijgt zijn 90-dagenprofiel
+  (`rider_power_profiles`, RLS van de kijker, geen 15 s), gemarkeerd "(90 d)".
+  Een tegenstander nooit: van hen hebben we alleen ladderraces.
+- ZRS per renner uit `zwift_rider_metrics`, na het antwoord ververst.
+- Ontbrekende renners van bewaarde wedstrijden haalt de eventpagina op binnen
+  6 s, de rest na het antwoord (`after`, 30 s). `ensureMatchRiders` markeert
+  een opgehaalde wedstrijd nu ook in het geheugen, zodat die tweede ronde hem
+  overslaat.
+- `/hulp` (Teams en wedstrijden) beschrijft de matchup.
+
+**Bewust niet.**
+- Geen vELO1 in de matchup: die hebben we alleen van ZWB-leden (0301), niet van
+  de tegenstander; een kolom die aan één kant leeg is, vergelijkt niets.
+- Geen paarsgewijze vergelijking per startplek (1 tegen 1): op de ladder rijdt
+  iedereen dezelfde race, plekken zijn punten en geen duels.
+- De privacytekst niet aangepast: de aanmeldingen bevatten Zwift-ID's van
+  renners buiten ZWB, net als de ladderuitslagen. Eerst aan de eigenaar
+  voorleggen.
+
+**Stand in productie (2026-11-02).** 79 ladderwedstrijden bewaard, maar van geen
+enkele de renners (`club_ladder_match_riders` leeg): die worden pas opgehaald
+als iemand het advies of nu het event opent. De matchup is dus eerst leeg en
+vult zich bij bezoek.
+
+**Niet geverifieerd.** De migratie lokaal (geen Docker of Supabase-config) en
+de eventpagina in de browser (inloggen op productie). Typecheck en ESLint
+schoon; `club-ladder-matchup.test.ts` (5 tests) en de aangevulde
+`club-ladder-fixtures.test.ts` slagen.
+
 ### Gebouwd — Ladderteam: één teampagina, onder Club Ladder
 
 **2026-11-02.** Commit `0ff1b85e`, gepusht naar `main` op 2026-11-02 (eigenaar). Geen migratie. De eigenaar zag dat een ladderteam twee pagina's

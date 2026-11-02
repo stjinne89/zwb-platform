@@ -30,7 +30,7 @@ export type LadderFixtureSyncResult = {
 type EventRow = LadderEventFields & { id: string; club_ladder_fixture_id: number; team_id: string };
 
 const EVENT_COLUMNS =
-  "id, club_ladder_fixture_id, team_id, title, start_at, location, description, external_url, zwift_route_id, zwift_event_id, laps, distance_km, elevation_m";
+  "id, club_ladder_fixture_id, team_id, title, start_at, location, description, external_url, zwift_route_id, zwift_event_id, laps, distance_km, elevation_m, club_ladder_opponent";
 
 /** Zo weinig teams in de stand betekent een onbekende opmaak: dan niets archiveren of weghalen. */
 const MIN_STANDINGS = 20;
@@ -153,6 +153,27 @@ async function syncLineup(admin: Admin, eventId: string, teamId: string, page: L
   return wanted.length;
 }
 
+/** Aanmeldingen van beide ploegen voor de matchup op de eventpagina (0302). */
+async function syncSignups(admin: Admin, match: LadderFixtureMatch, page: LadderFixturePage) {
+  const fixtureId = match.fixture.fixtureId;
+  const now = new Date().toISOString();
+  const rows = (["home", "away"] as const).flatMap((side) =>
+    page[side].map((rider) => ({
+      fixture_id: fixtureId,
+      zwift_id: rider.zwiftId,
+      team: match.fixture[side],
+      name: rider.name,
+      position: rider.position,
+      updated_at: now,
+    })),
+  );
+  const { error: deleteError } = await admin.from("club_ladder_fixture_signups").delete().eq("fixture_id", fixtureId);
+  if (deleteError) throw new Error(deleteError.message);
+  if (rows.length === 0) return;
+  const { error } = await admin.from("club_ladder_fixture_signups").insert(rows);
+  if (error) throw new Error(error.message);
+}
+
 /**
  * Wedstrijden van de ladder als event in de kalender, met de opstelling van de
  * wedstrijdpagina als er een ladder-sessie (`LADDER_COOKIE`) is. Zet ook het
@@ -233,10 +254,19 @@ export async function syncLadderFixtures(
   const known = new Set(((knownRoutes ?? []) as Array<{ route_id: number }>).map((row) => Number(row.route_id)));
 
   const seen = new Set<string>();
+  const signupsSaved = new Set<number>();
   for (const match of matches) {
     const key = `${match.fixture.fixtureId}:${match.team.id}`;
     seen.add(key);
     const page = await pageFor(match);
+    if (page && !signupsSaved.has(match.fixture.fixtureId)) {
+      signupsSaved.add(match.fixture.fixtureId);
+      try {
+        await syncSignups(admin, match, page);
+      } catch (err) {
+        result.warnings.push(`Aanmeldingen ${match.fixture.fixtureId}: ${err instanceof Error ? err.message : "niet opgeslagen"}`);
+      }
+    }
     const fields = ladderEventFields(match, page);
     if (fields.zwift_route_id !== null && !known.has(fields.zwift_route_id)) fields.zwift_route_id = null;
 
