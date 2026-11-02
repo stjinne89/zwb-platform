@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { canAssignLadderRiders, canEditLadderPuzzle } from "@/lib/club-ladder/access";
 import { parseLadderBand, parseLadderRank } from "@/lib/club-ladder/puzzle";
+import { loadLadderRouteProfile } from "@/lib/club-ladder/route-profile";
 import { ladderRouteBySlug } from "@/lib/club-ladder/routes";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -406,4 +407,12 @@ export async function setLadderFavoriteRoute(teamId: string, routeSlug: string, 
   if (error) return { ok: false as const, error: error.message };
   revalidatePath(`/teams/club-ladder/${teamId}`);
   return { ok: true as const };
+}
+
+/** Hoogteprofiel van een ladderparcours, opgehaald bij het uitklappen in de lijst. */
+export async function getLadderRouteProfile(routeSlug: string) {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return null;
+  return loadLadderRouteProfile(supabase, routeSlug);
 }

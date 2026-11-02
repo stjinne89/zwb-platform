@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Star } from "lucide-react";
+import { ExternalLink, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { LadderRouteProfile } from "@/lib/club-ladder/route-profile";
 import { cn } from "@/lib/utils";
-import { setLadderFavoriteRoute } from "../_actions";
+import { ZwiftProfile } from "../../../events/[id]/_components/zwift-route-section";
+import { getLadderRouteProfile, setLadderFavoriteRoute } from "../_actions";
 
 const FIELD =
   "min-h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring sm:min-h-0";
@@ -15,6 +17,7 @@ export type LadderRouteRow = {
   world: string;
   worldLabel: string;
   eventOnly: boolean;
+  zwiftInsiderUrl: string | null;
   classLabel: string;
   laps: Array<{ laps: number; km: number; elevationM: number }>;
 };
@@ -24,7 +27,82 @@ function lapsLabel(laps: LadderRouteRow["laps"]) {
   return laps.map((lap) => `${lap.laps}× ${km(lap.km)} km · ${lap.elevationM} hm`).join(" / ");
 }
 
+type ProfileState = LadderRouteProfile | null | "laden";
+
+/**
+ * Eén parcours. De eerste klik klapt het hoogteprofiel uit; daarna is het hele
+ * blok een link naar de route op ZwiftInsider.
+ */
 function RouteLine({
+  route,
+  favorite,
+  canEdit,
+  pending,
+  onToggle,
+  open,
+  profile,
+  onOpen,
+}: {
+  route: LadderRouteRow;
+  favorite: boolean;
+  canEdit: boolean;
+  pending: boolean;
+  onToggle: () => void;
+  open: boolean;
+  profile: ProfileState | undefined;
+  onOpen: () => void;
+}) {
+  const link = open && route.zwiftInsiderUrl;
+  const details = (
+    <>
+      <span className="flex items-center gap-1.5 font-medium">
+        {route.name}
+        {route.eventOnly && <span className="text-xs font-normal text-muted-foreground">event-only</span>}
+        {link && <ExternalLink aria-hidden className="size-3.5 text-muted-foreground" />}
+      </span>
+      <span className="block text-xs text-muted-foreground">
+        {route.worldLabel} · {route.classLabel} · {lapsLabel(route.laps)}
+      </span>
+    </>
+  );
+  const chart = open && (
+    <div className="px-2.5 pb-2.5">
+      {profile === "laden" || profile === undefined ? (
+        <p className="text-xs text-muted-foreground">Profiel laden…</p>
+      ) : profile ? (
+        <ZwiftProfile segments={profile.segments} accents={profile.accents} totalKm={profile.totalKm} />
+      ) : (
+        <p className="text-xs text-muted-foreground">Geen profiel.</p>
+      )}
+    </div>
+  );
+
+  return (
+    <li className={cn("rounded-md border bg-background text-sm", open && "md:col-span-2 border-primary/40")}>
+      <div className="flex items-start gap-2 p-2.5">
+        <FavoriteStar route={route} favorite={favorite} canEdit={canEdit} pending={pending} onToggle={onToggle} />
+        {link ? (
+          <a href={link} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 hover:underline">
+            {details}
+          </a>
+        ) : (
+          <button type="button" onClick={onOpen} aria-expanded={open} className="min-w-0 flex-1 text-left">
+            {details}
+          </button>
+        )}
+      </div>
+      {link ? (
+        <a href={link} target="_blank" rel="noopener noreferrer" aria-label={`${route.name} op ZwiftInsider`} className="block">
+          {chart}
+        </a>
+      ) : (
+        chart
+      )}
+    </li>
+  );
+}
+
+function FavoriteStar({
   route,
   favorite,
   canEdit,
@@ -38,7 +116,7 @@ function RouteLine({
   onToggle: () => void;
 }) {
   return (
-    <li className="flex items-start gap-2 rounded-md border bg-background p-2.5 text-sm">
+    <>
       {canEdit ? (
         <Button
           type="button"
@@ -55,16 +133,7 @@ function RouteLine({
       ) : (
         favorite && <Star aria-label="Favoriet" className="mt-0.5 size-4 shrink-0 fill-primary text-primary" />
       )}
-      <div className="min-w-0">
-        <p className="font-medium">
-          {route.name}
-          {route.eventOnly && <span className="ml-2 text-xs font-normal text-muted-foreground">event-only</span>}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {route.worldLabel} · {route.classLabel} · {lapsLabel(route.laps)}
-        </p>
-      </div>
-    </li>
+    </>
   );
 }
 
@@ -85,6 +154,8 @@ export function LadderRoutes({
   const [query, setQuery] = useState("");
   const [routeClass, setRouteClass] = useState("");
   const [world, setWorld] = useState("");
+  const [open, setOpen] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<Record<string, ProfileState>>({});
 
   const worlds = useMemo(
     () => [...new Map(routes.map((route) => [route.world, route.worldLabel])).entries()].sort((a, b) => a[1].localeCompare(b[1], "nl")),
@@ -100,6 +171,15 @@ export function LadderRoutes({
       (!routeClass || route.classLabel === routeClass) &&
       (!world || route.world === world),
   );
+
+  function openRoute(slug: string) {
+    setOpen(slug);
+    if (profiles[slug] !== undefined) return;
+    setProfiles((current) => ({ ...current, [slug]: "laden" }));
+    getLadderRouteProfile(slug)
+      .then((profile) => setProfiles((current) => ({ ...current, [slug]: profile })))
+      .catch(() => setProfiles((current) => ({ ...current, [slug]: null })));
+  }
 
   function toggle(slug: string) {
     const next = !favorites.has(slug);
@@ -130,6 +210,9 @@ export function LadderRoutes({
               canEdit={canEdit}
               pending={busy === route.slug}
               onToggle={() => toggle(route.slug)}
+              open={open === route.slug}
+              profile={profiles[route.slug]}
+              onOpen={() => openRoute(route.slug)}
             />
           ))}
         </ul>
@@ -173,6 +256,9 @@ export function LadderRoutes({
               canEdit={canEdit}
               pending={busy === route.slug}
               onToggle={() => toggle(route.slug)}
+              open={open === route.slug}
+              profile={profiles[route.slug]}
+              onOpen={() => openRoute(route.slug)}
             />
           ))}
         </ul>

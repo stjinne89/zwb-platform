@@ -20,6 +20,7 @@ export type LadderRouteOption = {
   name: string;
   world: string;
   eventOnly: boolean;
+  zwiftInsiderUrl: string | null;
   /** De rondentallen die binnen 15–25 km vallen, oplopend. */
   laps: LadderRouteLaps[];
   routeClass: LadderRouteClass;
@@ -120,6 +121,7 @@ export function ladderRouteOptions(): LadderRouteOption[] {
           name: route.name,
           world: route.world,
           eventOnly: Boolean(route.eventOnly),
+          zwiftInsiderUrl: route.zwiftInsiderUrl ?? null,
           laps,
           routeClass: routeClassFor(metersPerKm, longestClimbKm, steepestPct, uphillFinish),
           metersPerKm,

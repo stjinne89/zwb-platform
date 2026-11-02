@@ -47,7 +47,7 @@ export function ZwiftRouteSection({
   );
 }
 
-function ZwiftProfile({
+export function ZwiftProfile({
   segments,
   accents,
   totalKm,

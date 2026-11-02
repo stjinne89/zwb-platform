@@ -127,6 +127,7 @@ export default async function ClubLadderTeamPage({
     world: option.world,
     worldLabel: worldLabel(option.world),
     eventOnly: option.eventOnly,
+    zwiftInsiderUrl: option.zwiftInsiderUrl,
     classLabel: ROUTE_CLASS_LABELS[option.routeClass],
     laps: option.laps,
   }));

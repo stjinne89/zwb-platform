@@ -11618,6 +11618,30 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Ladderparcoursen: hoogteprofiel uitklappen, door naar ZwiftInsider
+
+**2026-11-02.** Geen migratie. Op verzoek van de eigenaar: een parcours in de
+favorieten of onder Alle ladderparcoursen klapt bij de eerste klik open en toont
+het hoogteprofiel; een tweede klik op het blok opent de route op ZwiftInsider
+(nieuw tabblad). Zo zie je eerst wat een route vraagt zonder de app te verlaten.
+
+- Profiel uit de routebibliotheek (`zwift_routes.profile`) via de nieuwe
+  `src/lib/club-ladder/route-profile.ts`, uitgerold met `pacingRouteFromZwift` over
+  de lead-in en het **kleinste** toegestane rondental (zoals de afstand in de lijst
+  begint). Zelfde marge van 10 % als de pacing- en gameloader; past het profiel
+  niet bij de route, dan staat er "Geen profiel.".
+- Opgehaald per route bij het uitklappen (server action `getLadderRouteProfile`,
+  alleen ingelogd) en daarna in de pagina bewaard, zodat de lijst van ~150 routes
+  niet bij het laden alle profielen meestuurt.
+- De grafiek is de bestaande `ZwiftProfile` van de eventpagina, nu geëxporteerd.
+- ZwiftInsider-link uit `zwift-data` (`zwiftInsiderUrl`); zonder link blijft het
+  blok alleen uitklapbaar.
+- **Niet gebouwd:** een profiel per rondental (alleen het kleinste); de ster
+  blijft een losse knop en klapt niets uit.
+- **Niet in de browser gecontroleerd:** de teampagina vraagt een login. Wel getest:
+  `tests/unit/club-ladder-route-profile.test.ts` (rondental, lengte, geen profiel),
+  tsc en eslint.
+
 ### Gebouwd — Club Ladder: teampagina, favoriete parcoursen en route-advies
 
 **2026-11-02.** Commit `f812196e`. Migratie `0298_club_ladder_routes.sql` (`0297` is op `main` en
