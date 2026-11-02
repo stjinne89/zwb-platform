@@ -4,7 +4,6 @@ import { ArrowRight } from "lucide-react";
 import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
 import { buttonVariants } from "@/components/ui/button";
 import { CLUB_LADDER_SUMMARY_URL } from "@/lib/club-ladder/summary";
-import { zwiftRacingConfigured } from "@/lib/zwiftracing/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -42,10 +41,8 @@ export default async function ClubLadderPage({
     loadLadderTeams(supabase),
   ]);
 
-  // ZRS is tijdelijk: met een ZwiftRacing-sleutel vervangt vELO 2 hem.
-  const useVelo = zwiftRacingConfigured();
   const [{ riders: loadedRiders, withdrawn }, canAssign, canPuzzle] = await Promise.all([
-    loadLadderRiders(teamRows, admin, supabase, useVelo),
+    loadLadderRiders(teamRows, admin, supabase),
     canAssignLadderRiders(access),
     canEditLadderPuzzle(access),
   ]);
