@@ -114,10 +114,11 @@ gaat stabiliteit voor nieuwe features.
    voorgelegd, nog niet aangepast. Verversen: opnieuw ophalen via Chrome (zie de
    ronde). Zie de ronde "Club Ladder: legacy vELO per renner".
 
-0n. **Persoonlijk racetempo (2026-11-02): lokaal gecommit, niet gepusht.** Geen
-   migratie. Na de push: de dagelijkse cron herrekent de komende Zwift-raceblokken
-   per lid; nalopen dat een lid met snelle races een korter blok krijgt. Zie de
-   ronde "Persoonlijk racetempo in de duur van een Zwift-race".
+0n. **Persoonlijk racetempo en nieuwe fit van het Zwift-racemodel (2026-11-02):
+   lokaal gecommit, niet gepusht.** Geen migratie. Na de push: de dagelijkse cron
+   herrekent de komende Zwift-raceblokken per lid; nalopen dat de ladderrace op de
+   Muckle Yin niet meer op 39 minuten staat. Zie de rondes "Zwift-racemodel
+   opnieuw gefit" en "Persoonlijk racetempo in de duur van een Zwift-race".
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11634,6 +11635,38 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Zwift-racemodel opnieuw gefit
+
+**2026-11-02.** Lokaal gecommit, niet gepusht. Geen migratie. De eigenaar zag dat
+het model voor iedereen te ruim zat op de Muckle Yin en vroeg om een nieuwe fit.
+
+- **Wat er mis was.** Over 1913 "Zwift - Race: …"-ritten van ZWB'ers (10 tot
+  80 km, strava_activities) reed men mediaan 0,956 keer de modeltijd (ZRL 0,955,
+  Club Ladder 0,938, FRR 0,980). De oude fit (30 september 2026, 43 km/h en
+  0,02 min per hm) was een kleinste-kwadraten-fit in minuten, die zich laat
+  trekken door lange tijden van wie gelost raakte. En elke hoogtemeter telde
+  even zwaar: op 10 tot 15 hm per km (Muckle Yin 11,6) 0,93, op 20+ hm per km
+  1,05.
+- **Nieuw model** (`ZWIFT_RACE_PACE.race`): 40,6 km/h, en alleen hoogtemeters
+  boven 10 per km tellen als klim, 0,028 min per hm. Gefit op de relatieve fout.
+  Een vrije klimdrempel van 0, 8 en 10 hm/km vergeleken; 10 gaf de kleinste
+  fout en de vlakste verdeling per steilheid. Een kwadratische klimterm gaf
+  hetzelfde (5,4%) maar loopt bij echte klimmen uit de bocht.
+- **Getoetst buiten de fit:** gefit op de races tot juli 2025, getoetst op de
+  718 daarna. Mediane afwijking van 6,6% naar 5,5%; per steilheid 0,97 tot
+  1,03 van de gereden tijd, Muckle Yin 0,99.
+- De ladderrace op de Muckle Yin (23,7 km, 282 hm) gaat van 39 naar 36 minuten
+  in het clubmodel.
+- **Bewust niet gedaan.** Het TTT-model blijft: het zat al op mediaan 1,01 over
+  257 TTT's, en een klimdrempel maakte het met zo weinig ritten onrustig
+  (42 km/h vlak). Het groepsritmodel en de buitenmodellen zijn niet opnieuw
+  bekeken. Buiten de data (een Alpe du Zwift: 12 km, 1036 hm) is het model niet
+  getoetst; daar geeft het 44 minuten.
+- **Wat niet meer klopt:** de SRC-uitspraak in `events.ts` (2 tot 5% van de
+  finishtijd) gold het oude model; niet opnieuw nagelopen.
+- **Niet in de browser of tegen productie gedraaid.** Unit-tests aangepast aan
+  het nieuwe model en groen; ESLint schoon.
+
 ### Gebouwd — Persoonlijk racetempo in de duur van een Zwift-race
 
 **2026-11-02.** Lokaal gecommit, niet gepusht. Geen migratie. De eigenaar vroeg
@@ -11643,7 +11676,7 @@ clubgemiddelde (aanleiding: de ronde hieronder).
 - `src/lib/training/race-pace.ts`: de factor van een lid is de mediaan van
   gereden tijd ÷ modeltijd over de tien nieuwste "Zwift - Race: …"-ritten in
   `strava_activities` (Strava of intervals.icu), 10 tot 80 km en langer dan een
-  kwartier. Afgerond op 0,05 en begrensd op 0,85–1,15; met minder dan drie
+  kwartier. Afgerond op 0,05 en begrensd op 0,85–1,25; met minder dan drie
   races 1, het clubmodel.
 - `eventWorkoutDefaults(event, { racePace })` vermenigvuldigt alleen de
   routeschatting van een Zwift-race (ook TTT) met die factor. Een ingestelde
@@ -11654,9 +11687,11 @@ clubgemiddelde (aanleiding: de ronde hieronder).
   één query per lid met een Zwift-race), `committedEventsForAi` (de planner) en
   de eventlijst in het schemapaneel (`loadScheduleEventChoices`). Alleen
   opgehaald als er een Zwift-race tussen zit.
-- **Toetsing** (2 november 2026, per race de factor uit de tien races ervóór):
-  1858 races van 16 renners, mediane afwijking in duur van 7,0% naar 4,5%
-  (4,3% zonder de afronding); 238 TTT's met dezelfde factor van 5,2% naar 4,3%.
+- **Toetsing** (2 november 2026, per race de factor uit de tien races ervóór),
+  tegen het nieuwe clubmodel (ronde hierboven): 1858 races van 16 renners,
+  mediane afwijking in duur van 5,4% naar 4,3% (p90 van 12,7% naar 11,6%);
+  238 TTT's met dezelfde factor van 5,2% naar 4,5%. Tegen het oude model was
+  dat 7,0% naar 4,5%. Factoren lagen tussen 0,89 en 1,21.
 - **Privacy:** geen nieuwe tekst. De privacyverklaring zegt al dat ritten
   meetellen voor je trainingsschema, en de factor blijft bij het lid zelf.
 - **Bewust niet gedaan.** TTT's tellen niet mee voor de factor (ander tempo; de
@@ -11664,8 +11699,11 @@ clubgemiddelde (aanleiding: de ronde hieronder).
   (`calendar/feed.ts`), die toont de eventtijd, en niet als losse schatting in
   het ritvoedingsplan: dat neemt eerst de duur van het eigen blok over, die de
   factor al heeft. Geen persoonlijke factor voor buitenritten.
-- **Wat het niet oplost:** de route. Op de Muckle Yin zit het model voor
-  iedereen te ruim; Bart heeft factor 0,99 en houdt 39 minuten.
+- **Wat het niet oplost:** de route; daarvoor is de klimterm van het nieuwe
+  model. Bart heeft tegen het nieuwe model factor 1,03, afgerond 1,05: zijn tien
+  laatste races waren wat trager dan de club. Hij krijgt op de Muckle Yin 38
+  minuten, waar hij die route zelf in 33 tot 36 reed (afgerekend op de
+  raceafstand, zonder uitrijden).
 - **Niet in de browser of tegen productie gedraaid.** De nieuwe en geraakte
   unit-tests slagen en ESLint is schoon. In deze worktree ontbreekt
   `@anthropic-ai/sdk`; daardoor falen tsc en een deel van de suite, los van
@@ -11675,8 +11713,8 @@ clubgemiddelde (aanleiding: de ronde hieronder).
 ### Bewust niet gebouwd — Club Ladder: een eigen tempo voor de duurschatting
 
 **2026-11-02.** Geen code, geen migratie. Bart kreeg voor de ladderrace op de
-Muckle Yin (6 november, 23,7 km, 282 hm) 39 minuten in zijn schema. Dat is het
-Zwift-racemodel (`ZWIFT_RACE_PACE.race` in `src/lib/training/events.ts`):
+Muckle Yin (6 november, 23,7 km, 282 hm) 39 minuten in zijn schema. Dat was het
+Zwift-racemodel van vóór de nieuwe fit (ronde "Zwift-racemodel opnieuw gefit") (`ZWIFT_RACE_PACE.race` in `src/lib/training/events.ts`):
 43 km/h plus 0,02 min per hoogtemeter, gefit op ZRL- en FRR-races. De ladder
 heeft geen eigen fit.
 

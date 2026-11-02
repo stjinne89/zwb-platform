@@ -3,13 +3,13 @@
 //
 // Het clubmodel is een fit over alle ZWB'ers samen. Per renner wijkt het
 // structureel af: wie vooraan rijdt, is sneller klaar. Getoetst op 2 november
-// 2026 over 1858 Zwift-races van 16 renners, met per race de mediaan van de tien
-// races die het lid daarvoor reed: de mediane afwijking in duur zakte van 7,0%
-// naar 4,5% (afgerond op 0,05, zoals hieronder). Op 238 TTT's, met dezelfde
-// factor uit de gewone races, van 5,2% naar 4,3%.
+// 2026, tegen het clubmodel van die dag, over 1858 Zwift-races van 16 renners,
+// met per race de mediaan van de tien races die het lid daarvoor reed: de
+// mediane afwijking in duur zakte van 5,4% naar 4,3% (p90 van 12,7% naar
+// 11,6%). Op 238 TTT's, met dezelfde factor uit de gewone races, van 5,2% naar
+// 4,5%.
 //
-// De factor zegt niets over de route. Op de Muckle Yin zit het model voor
-// iedereen te ruim; dat lost dit niet op.
+// De factor zegt niets over de route; daarvoor is de klimterm in het clubmodel.
 
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { zwiftRaceModelMinutes } from "@/lib/training/events";
@@ -28,12 +28,13 @@ const SAMPLE = 10;
 const MIN_RACES = 3;
 /**
  * Afgerond op 0,05, zodat niet elke nieuwe race de duur een minuut verschuift en
- * het blok opnieuw naar intervals.icu gaat. Kost 0,2 procentpunt nauwkeurigheid.
+ * het blok opnieuw naar intervals.icu gaat. Kostte bij de eerste toetsing 0,2
+ * procentpunt nauwkeurigheid.
  */
 const STEP = 0.05;
-/** Gemeten factoren lagen tussen 0,85 en 1,15. */
+/** Gemeten factoren lagen tussen 0,89 en 1,21. */
 const MIN_FACTOR = 0.85;
-const MAX_FACTOR = 1.15;
+const MAX_FACTOR = 1.25;
 
 function num(value: number | string | null): number {
   return value == null ? NaN : Number(value);

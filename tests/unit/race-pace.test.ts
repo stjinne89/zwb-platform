@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { eventWorkoutDefaults, type ClubEventRow } from "@/lib/training/events";
 import { racePaceFactor } from "@/lib/training/race-pace";
 
-/** Een race van 30 km en 300 hm, `ratio` keer de modeltijd. */
+/** Een race van 30 km en 300 hm (geen klim boven 10 hm/km), `ratio` keer de modeltijd. */
 function ride(ratio: number, over: Partial<{ distance_m: number; moving_time_seconds: number }> = {}) {
-  const modelMinutes = (30 / 43) * 60 + 300 * 0.02;
+  const modelMinutes = (30 / 40.6) * 60;
   return {
     distance_m: 30_000,
     total_elevation_gain_m: 300,
@@ -29,9 +29,9 @@ describe("racePaceFactor", () => {
     expect(racePaceFactor([short, quick, ride(0.9), ride(0.9)])).toBe(1);
   });
 
-  it("begrenst de factor tussen 0,85 en 1,15", () => {
+  it("begrenst de factor tussen 0,85 en 1,25", () => {
     expect(racePaceFactor([ride(0.6), ride(0.6), ride(0.6)])).toBe(0.85);
-    expect(racePaceFactor([ride(1.5), ride(1.5), ride(1.5)])).toBe(1.15);
+    expect(racePaceFactor([ride(1.5), ride(1.5), ride(1.5)])).toBe(1.25);
   });
 
   it("neemt alleen de tien nieuwste races", () => {
@@ -53,8 +53,9 @@ describe("eventWorkoutDefaults met racetempo", () => {
   };
 
   it("schaalt de duur van een Zwift-race", () => {
-    expect(eventWorkoutDefaults(ladder).durationMinutes).toBe(39);
-    expect(eventWorkoutDefaults(ladder, { racePace: 0.9 }).durationMinutes).toBe(35);
+    // De Muckle Yin: 23,7 km bij 40,6 km/u plus 45 hm boven 10 per km x 0,028.
+    expect(eventWorkoutDefaults(ladder).durationMinutes).toBe(36);
+    expect(eventWorkoutDefaults(ladder, { racePace: 0.9 }).durationMinutes).toBe(33);
   });
 
   it("laat een ingestelde eindtijd en een buitenrit staan", () => {

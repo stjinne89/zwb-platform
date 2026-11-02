@@ -210,7 +210,7 @@ describe("refreshEventWorkouts", () => {
     const fast = Array.from({ length: 4 }, () => ({
       distance_m: 30_000,
       total_elevation_gain_m: 300,
-      moving_time_seconds: Math.round(((30 / 43) * 60 + 300 * 0.02) * 0.9 * 60),
+      moving_time_seconds: Math.round((30 / 40.6) * 60 * 0.9 * 60),
     }));
     const { admin, updates } = fakeAdmin(
       [event],
