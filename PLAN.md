@@ -78,9 +78,10 @@ gaat stabiliteit voor nieuwe features.
    "ZRL-beschikbaarheid in het schema".
 
 0i. **Duur aanpassen zet een training niet meer vast (2026-11-02): migratie
-   `0297` nog niet toegepast, niet gepusht.** Volgorde: eerst `0297` toepassen,
-   dan pushen; de code schrijft `member_duration_minutes` en faalt zonder die
-   kolom. Zie de ronde "Duur aanpassen zet een training niet meer vast".
+   `0297` toegepast en gepusht naar `main` (`35b8dd4`).** Nalopen: bij de
+   eerstvolgende herziening van een lid met een duurwens staat de nieuwe
+   training van die dag op de gekozen duur. Zie de ronde "Duur aanpassen zet een
+   training niet meer vast".
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11597,9 +11598,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Hersteld — Duur aanpassen zet een training niet meer vast
 
-**2026-11-02.** Commit "Duur aanpassen zet een training niet meer vast".
-Migratie `0297_training_workout_member_duration.sql`. Niet toegepast, niet
-gepusht.
+**2026-11-02.** Commit `35b8dd4`. Migratie
+`0297_training_workout_member_duration.sql`; `0295` was in productie al bezet
+door `0295_ladder_bandits_beauties` en `0296` op `main`. Toegepast op productie
+en gepusht naar `main` op 2026-11-02 (eigenaar). Na het toepassen staan precies
+de zeven verwachte rijen weer op origin `ai`, met hun duur als wens.
 
 **Waarom.** Melding eigenaar: na **Duur aanpassen** door een lid "slaat elke
 bewerking vast" (Rolf en Bart). Oorzaak: `setWorkoutDuration()` zette de
@@ -11785,7 +11788,9 @@ nog binnen 15 pagina's geeft.
 
 ### Gebouwd — Gravelkoers als race; pacingplan en liveticker over alle rondes
 
-**2026-11-02.** Commit `d453361`. Geen migratie (bouwt op 0296). Vervolg op de ronde hieronder,
+**2026-11-02.** Commit `a07f52f` (gebouwd als `d453361`, op `main` gezet
+met een cherry-pick). Geen migratie (bouwt op 0296). Gepusht naar `main` op
+2026-11-02 (eigenaar). Vervolg op de ronde hieronder,
 op verzoek van de eigenaar.
 
 **Waarom.** Na rondes en koersduur stond een gravelkoers nog op de
