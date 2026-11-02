@@ -10,6 +10,7 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { amsterdamDateKey } from "@/lib/birthdays";
 import { eventLabel } from "@/lib/event-types";
+import { eventRouteSize } from "@/lib/events/route-size";
 import {
   eventWorkoutDefaults,
   withParentRoutes,
@@ -25,7 +26,7 @@ const PAST_DAYS = 60;
 const FUTURE_DAYS = 400;
 
 const EVENT_COLUMNS =
-  "id, title, type, kind, start_at, end_at, location, distance_km, elevation_m, gpx_path, zwift_route_id, laps, zwift_event_type, zwift_tags, parent_event_id";
+  "id, title, type, kind, start_at, end_at, location, distance_km, elevation_m, gpx_path, zwift_route_id, laps, duration_minutes, zwift_event_type, zwift_tags, parent_event_id";
 
 export type FeedEvent = ClubEventRow & { kind?: string | null; location?: string | null };
 
@@ -61,10 +62,11 @@ export function feedItems(
     const start = new Date(event.start_at);
     const minutes = eventWorkoutDefaults(event).durationMinutes;
     const url = `${site}/events/${event.id}`;
+    const size = eventRouteSize(event);
     const facts = [
       eventLabel(event.type, event.kind),
-      formatNumber(event.distance_km, "km"),
-      formatNumber(event.elevation_m, "hm"),
+      formatNumber(size.distanceKm, "km"),
+      formatNumber(size.elevationM, "hm"),
     ].filter(Boolean);
     return {
       uid: `event-${event.id}@zwb`,

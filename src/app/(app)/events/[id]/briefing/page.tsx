@@ -254,7 +254,7 @@ async function loadBriefingRidePlan(
     const { data } = await supabase
       .from("events")
       .select(
-        "id, title, type, start_at, end_at, distance_km, elevation_m, gpx_path, zwift_route_id, laps, zwift_event_type, zwift_tags, parent_event_id",
+        "id, title, type, start_at, end_at, distance_km, elevation_m, gpx_path, zwift_route_id, laps, duration_minutes, zwift_event_type, zwift_tags, parent_event_id",
       )
       .eq("id", eventId)
       .maybeSingle();

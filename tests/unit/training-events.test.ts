@@ -85,6 +85,31 @@ describe("eventWorkoutDefaults", () => {
   });
 });
 
+describe("rondekoers op een GPX", () => {
+  const peel = { type: "gravel_race", gpx_path: "u/peel.gpx", distance_km: "8.14", elevation_m: 5 };
+
+  it("telt de ronde uit de GPX keer het aantal rondes", () => {
+    // 10 × 8,14 km = 81,4 km bij 34 km/u, plus 50 hm.
+    expect(eventWorkoutDefaults(event({ ...peel, laps: 10 })).durationMinutes).toBe(146);
+  });
+
+  it("neemt een ingestelde koersduur over, ook boven de eindtijd", () => {
+    const result = eventWorkoutDefaults(
+      event({ ...peel, duration_minutes: 150, end_at: "2026-08-16T17:00:00+02:00" }),
+    );
+    expect(result.durationMinutes).toBe(150);
+  });
+
+  it("blijft zonder rondes of duur één ronde", () => {
+    expect(eventWorkoutDefaults(event(peel)).durationMinutes).toBe(20);
+  });
+
+  it("laat de ronden van een Zwift-route aan zwiftRaceTotals", () => {
+    const zwift = event({ type: "zwift", gpx_path: "u/x.gpx", zwift_route_id: 1, distance_km: 40, laps: 3 });
+    expect(eventWorkoutDefaults(zwift).durationMinutes).toBe(eventWorkoutDefaults({ ...zwift, laps: null }).durationMinutes);
+  });
+});
+
 describe("Zwift-races", () => {
   const frrEtappe = event({
     title: "FRR Ignite · Etappe 1 · 07:00",

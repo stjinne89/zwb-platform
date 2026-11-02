@@ -3785,8 +3785,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   geen rustdag), als hele dag: de begintijd van een training is een
 >   plaatshouder (09:00). Een training die bij een event in de feed hoort, krijgt
 >   geen eigen regel, net als op de kalender. Venster: 60 dagen terug, 400 vooruit.
-> - De duur van een event komt uit `eventWorkoutDefaults` (eindtijd, dan
->   route, dan typegemiddelde); `withParentRoutes` in `lib/training/events.ts` is
+> - De duur van een event komt uit `eventWorkoutDefaults` (koersduur, eindtijd,
+>   dan route, dan typegemiddelde; de koersduur sinds 2026-11-02); `withParentRoutes` in `lib/training/events.ts` is
 >   daarvoor geëxporteerd.
 > - Het token staat onversleuteld in `calendar_feed_tokens` (RLS: alleen het
 >   eigen lid), net als `ttt_plans.share_token`: het lid moet de link opnieuw
@@ -7385,7 +7385,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >
 > **Nu** (`lib/training/events.ts`). Voor een Zwift-race (`zrl`, `ladder`,
 > `flamme_rouge`, en `zwift` als Zwift het een race noemt):
-> 1. **Duur uit de route.** Eerst een eindtijd, dan de afstand en hoogtemeters van
+> 1. **Duur uit de route.** Eerst een ingestelde koersduur (sinds 2026-11-02,
+>    migr. 0296), dan een eindtijd, dan de afstand en hoogtemeters van
 >    het event zelf (bij het plakken van de Zwift-link gevuld voor de eigen
 >    subgroep, dus A/B met een ronde meer tellen vanzelf mee), dan route plus
 >    ronden uit `zwift-data`, ook geërfd van de raceweek (`withParentRoute`). Zonder
@@ -11580,6 +11581,63 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Rondes en koersduur bij een event met GPX
+
+**2026-11-02.** Migratie `0296_event_laps_duration.sql`; 0295 was in productie al
+bezet door `0295_ladder_bandits_beauties` uit een andere branch. Toegepast op
+productie en gepusht naar `main` op 2026-11-02 (eigenaar).
+
+**Waarom.** Melding eigenaar: bij de Prins van de Peel (gravelkoers, 150 minuten
+rondjes rijden tot de tijd op is) staat de GPX van één ronde, en daarmee dacht
+de app dat het een rit van 8 km was. In productie: `distance_km` 8,14,
+`elevation_m` 5, geen eindtijd. `eventWorkoutDefaults` maakte er zo een blok
+van het minimum van 20 minuten van, voor iedereen die zich aanmeldde.
+
+**Wat.**
+- Migratie 0296: nieuwe kolom `events.duration_minutes` (1–1440) voor de
+  koersduur. `laps` bestond al voor Zwift (0145) en betekent bij een GPX-event nu
+  hetzelfde: zoveel keer wordt de route gereden. Op 2026-11-02 had geen enkel
+  GPX-event een `laps`, en geen event had zowel een GPX als een Zwift-route.
+- `distance_km` en `elevation_m` blijven bij een GPX-event de maten van het
+  bestand, dus van één ronde. Het totaal rekent `lib/events/route-size.ts` uit
+  (`eventRouteSize`): keer de rondes, of onbekend bij rijden op tijd. Bij een
+  Zwift-route verandert er niets, want daar is `distance_km` al het totaal.
+- `eventWorkoutDefaults`: koersduur → eindtijd → afstand × rondes → standaard
+  van het type. De koersduur gaat vóór de eindtijd, omdat de eindtijd van een
+  evenementdag ook de prijsuitreiking kan bevatten. `committedEventsForAi` geeft
+  de planner de totale afstand, of geen afstand bij rijden op tijd.
+- Eventformulier: bij een GPX (en zonder Zwift-koppeling) twee velden, Rondes
+  en Koersduur in min. Wie de GPX weghaalt, wist ze ook. De server controleert
+  hele getallen (rondes 1–200, duur 1–1440).
+- Kopregel van de eventpagina, kalender (kaart en Voor mij-filter), agendafeed
+  en weekvooruitblik gebruiken het totaal. Een uitleg staat op /hulp onder
+  Events, routes en uitslagen.
+
+**Niet gedaan.**
+- Het pacingplan, de liveticker en de klimmen blijven over één ronde: de GPX
+  is één ronde, en een plan over tien keer dezelfde ronde is een eigen ronde
+  werk.
+- `gravel_race` (en `toertocht`) staan niet in `EVENT_DEFAULTS` en krijgen dus
+  de intensiteit van een gewone buitenrit (duur). Een gravelkoers is een race,
+  maar een race-intensiteit zonder vermogensdoel rekent 150 minuten rond 100%
+  FTP. Dat vraagt een eigen IF-fit, en is aan de eigenaar voorgelegd.
+- De bestaande eventblokken van de Prins van de Peel worden pas bijgewerkt als
+  de beheerder rondes of duur invult en opslaat (`refreshEventWorkouts` bij
+  opslaan), of door de dagelijkse cron.
+
+**Volgorde bij uitrollen.** `EVENT_COLUMNS` in `lib/training/events.ts` (en de
+agendafeed, briefing, kalender en weekvooruitblik) selecteren
+`duration_minutes`. Zonder migratie 0296 falen die queries en blijft het
+schema zonder events. Eerst de migratie toepassen, dan pushen.
+
+**Gecontroleerd.** Nieuwe tests in `tests/unit/route-size.test.ts` en
+`tests/unit/training-events.test.ts` (rondekoers: tien rondes Peel = 146 min,
+koersduur gaat voor de eindtijd), ESLint op de gewijzigde bestanden. Volledige
+vitest: alleen de bekende omgevingsfouten in deze worktree (`@anthropic-ai/sdk`
+ontbreekt, geen `.env.local`, verouderde Zwift-routedata). `tsc` alleen de
+bekende ontbrekende modules. De migratie is niet lokaal te testen (geen
+Docker/Supabase-config), en het formulier is niet in de browser bekeken.
 
 ### Gebouwd — Kalender: eigen label Mijn trainingen
 

@@ -17,6 +17,7 @@ import {
   personalRidesFromRows,
   type PersonalRideRow,
 } from "@/lib/stats/personal";
+import { eventRouteSize } from "@/lib/events/route-size";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { loadAvailability, weekdayOf } from "@/lib/training/availability";
@@ -60,7 +61,18 @@ const CLUB_RIDE_TYPES = ["outdoor", "toertocht", "gran_fondo", "gravel_race"];
 type One<T> = T | T[] | null;
 const one = <T>(value: One<T>): T | null => (Array.isArray(value) ? (value[0] ?? null) : value);
 
-type EventRef = { id?: string; title: string; start_at: string; end_at?: string | null; distance_km?: number | string | null };
+type EventRef = {
+  id?: string;
+  title: string;
+  start_at: string;
+  end_at?: string | null;
+  distance_km?: number | string | null;
+  elevation_m?: number | string | null;
+  gpx_path?: string | null;
+  zwift_route_id?: number | string | null;
+  laps?: number | string | null;
+  duration_minutes?: number | string | null;
+};
 
 const dayOf = (iso: string) => amsterdamDayKey(new Date(iso));
 const timeOf = (iso: string) =>
@@ -344,7 +356,8 @@ export async function buildWeekSummary(admin: Admin, profileId: string, weekStar
 export async function buildNextWeekFor(admin: Admin, profileId: string, weekStart: string): Promise<NextWeek> {
   const weekEnd = addDays(weekStart, 6);
   const window = isoWindow(weekStart, weekEnd);
-  const select = "events!inner(id, title, start_at, end_at, distance_km)";
+  const select =
+    "events!inner(id, title, start_at, end_at, distance_km, elevation_m, gpx_path, zwift_route_id, laps, duration_minutes)";
   const [availability, workouts, lineups, teamAvailability, rsvps] = await Promise.all([
     loadAvailability(admin, profileId, weekStart),
     loadWorkouts(admin, profileId, weekStart, weekEnd),
@@ -369,6 +382,7 @@ export async function buildNextWeekFor(admin: Admin, profileId: string, weekStar
     if (!ref?.id) return [];
     const day = dayOf(ref.start_at);
     if (day < weekStart || day > weekEnd) return [];
+    const size = eventRouteSize({ ...ref, distance_km: ref.distance_km ?? null, elevation_m: ref.elevation_m ?? null });
     return [
       {
         id: ref.id,
@@ -376,7 +390,8 @@ export async function buildNextWeekFor(admin: Admin, profileId: string, weekStar
         time: timeOf(ref.start_at),
         title: ref.title,
         status,
-        durationMinutes: eventMinutes(ref.start_at, ref.end_at ?? null, ref.distance_km == null ? null : Number(ref.distance_km)),
+        // Een rondekoers telt met al zijn rondes, of met de ingestelde koersduur.
+        durationMinutes: size.durationMinutes ?? eventMinutes(ref.start_at, ref.end_at ?? null, size.distanceKm),
       },
     ];
   };

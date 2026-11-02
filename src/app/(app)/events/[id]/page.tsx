@@ -90,6 +90,7 @@ import { tipsForEvent } from "@/lib/zwbieb/data";
 import { TIP_COLUMNS, loadMembers, loadTopicCatalog, type TipRow } from "@/lib/zwbieb/queries";
 import { topicLabels } from "@/lib/zwbieb/topics";
 import { VanLeden } from "./_components/van-leden";
+import { eventRouteSizeLabel } from "@/lib/events/route-size";
 
 type RsvpStatus = "yes" | "maybe" | "no";
 type TeamAvailabilityStatus = "available" | "maybe" | "unavailable";
@@ -238,7 +239,7 @@ export default async function EventDetailPage({
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, type, kind, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, zwift_event_id, zwift_route_id, laps, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by, team_id, parent_event_id, zwift_event_type, zwift_rules, zwift_tags",
+      "id, type, kind, title, description, start_at, end_at, location, distance_km, elevation_m, start_lat, start_lon, gpx_path, zwift_event_id, zwift_route_id, laps, duration_minutes, external_url, live_timing_url, results_url, cover_image_path, last_results_scrape_at, results_scrape_error, created_by, team_id, parent_event_id, zwift_event_type, zwift_rules, zwift_tags",
     )
     .eq("id", id)
     .single();
@@ -764,6 +765,8 @@ export default async function EventDetailPage({
   // raceweek.
   const routeEvent = withParentRoute(event, parentEvent);
   const hasRoute = hasOwnRoute(routeEvent);
+  // Bij een rondekoers is de GPX één ronde; de kopregel toont het totaal.
+  const routeSizeLabel = eventRouteSizeLabel(event);
   // Op een raceweek zonder eigen route wijst het pacingplan naar de race van je
   // eigen team: daar hangen de Zwift-regels en het aantal rondes aan.
   const myRaceWithRoute = subEvents.find((sub) => sub.isMine && sub.hasRoute);
@@ -1334,8 +1337,7 @@ export default async function EventDetailPage({
             timeZone: "Europe/Amsterdam",
           })}
           {event.location ? ` · ${event.location}` : ""}
-          {event.distance_km ? ` · ${event.distance_km} km` : ""}
-          {event.elevation_m ? ` · ${event.elevation_m} hm` : ""}
+          {routeSizeLabel ? ` · ${routeSizeLabel}` : ""}
         </p>
       </header>
 

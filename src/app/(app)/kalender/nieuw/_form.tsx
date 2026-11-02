@@ -38,6 +38,7 @@ export type EventInitial = {
   zwift_event_id?: number | string | null;
   zwift_route_id?: number | string | null;
   laps?: number | string | null;
+  duration_minutes?: number | string | null;
   program_ids?: string[];
 };
 
@@ -59,6 +60,14 @@ function coverPublicUrl(path: string | null): string | null {
   if (!path) return null;
   return createClient().storage.from("event-photos").getPublicUrl(path).data
     .publicUrl;
+}
+
+/** Een leeg getalveld is null, geen 0. */
+function optionalNumber(value: FormDataEntryValue | null): number | null {
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+  const n = Number(text);
+  return Number.isFinite(n) ? n : null;
 }
 
 /** Converteer ISO-datum naar "YYYY-MM-DDTHH:MM" in local timezone. */
@@ -108,6 +117,10 @@ export function EventForm({
 
   const hasExistingGpx = Boolean(initial?.gpx_path);
   const hasExistingZwift = Boolean(initial?.zwift_event_id);
+  // Rondes en koersduur horen bij een GPX van één ronde; bij Zwift komen de
+  // ronden uit de eventlink.
+  const hasGpx = Boolean(gpxFile) || (hasExistingGpx && !removeExistingGpx);
+  const showLapFields = hasGpx && !zwift && !hasExistingZwift;
 
   function formField(name: string) {
     return formRef.current?.elements.namedItem(name) as
@@ -278,6 +291,17 @@ export function EventForm({
         elevation_m = prefill.elevation_m;
       }
 
+      // Rondes en koersduur bij een GPX van één ronde. Zonder GPX gaan ze weg,
+      // behalve de ronden van een Zwift-koppeling.
+      let duration_minutes: number | null | undefined = undefined;
+      if (showLapFields) {
+        laps = optionalNumber(formData.get("laps"));
+        duration_minutes = optionalNumber(formData.get("duration_minutes"));
+      } else if (!hasGpx) {
+        duration_minutes = isEdit && !removeExistingGpx ? undefined : null;
+        if (isEdit && removeExistingGpx && !zwift && !hasExistingZwift) laps = null;
+      }
+
       // Cover-afbeelding: undefined = niet wijzigen, null = verwijderen.
       let cover_image_path: string | null | undefined = undefined;
       if (coverFile) {
@@ -336,6 +360,7 @@ export function EventForm({
         zwift_event_id,
         zwift_route_id,
         laps,
+        duration_minutes,
       };
 
       const res = isEdit
@@ -686,6 +711,37 @@ export function EventForm({
             Nieuwe GPX gelezen: {gpx.points.length} punten · {gpx.distance_km} km ·{" "}
             {gpx.elevation_m} hm
           </p>
+        )}
+
+        {showLapFields && (
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium">Rondes (optioneel)</label>
+              <input
+                type="number"
+                name="laps"
+                min={1}
+                max={200}
+                step={1}
+                inputMode="numeric"
+                defaultValue={initial?.zwift_route_id ? "" : (initial?.laps ?? "")}
+                className={FIELD_CLASS}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Koersduur in min (optioneel)</label>
+              <input
+                type="number"
+                name="duration_minutes"
+                min={1}
+                max={1440}
+                step={1}
+                inputMode="numeric"
+                defaultValue={initial?.duration_minutes ?? ""}
+                className={FIELD_CLASS}
+              />
+            </div>
+          </div>
         )}
       </div>
 

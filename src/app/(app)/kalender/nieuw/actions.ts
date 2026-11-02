@@ -93,6 +93,8 @@ type EventInput = {
   zwift_event_id?: number | null;
   zwift_route_id?: number | null;
   laps?: number | null;
+  /** Koersduur bij rijden tot de tijd op is (migr. 0296); undefined = niet wijzigen. */
+  duration_minutes?: number | null;
   /** Programma's van het event; undefined = niet wijzigen. */
   program_ids?: string[];
 };
@@ -117,6 +119,15 @@ function validate(input: EventInput) {
   }
   if (input.cover_image_url && !/^https?:\/\//i.test(input.cover_image_url)) {
     return "Ongeldige cover-URL.";
+  }
+  if (input.laps != null && !(Number.isInteger(input.laps) && input.laps >= 1 && input.laps <= 200)) {
+    return "Rondes moet een heel getal tussen 1 en 200 zijn.";
+  }
+  if (
+    input.duration_minutes != null &&
+    !(Number.isInteger(input.duration_minutes) && input.duration_minutes >= 1 && input.duration_minutes <= 1440)
+  ) {
+    return "Koersduur moet een heel aantal minuten zijn, hooguit 1440.";
   }
   return null;
 }
@@ -160,6 +171,7 @@ export async function createEvent(input: EventInput) {
       zwift_event_id: input.zwift_event_id ?? null,
       zwift_route_id: input.zwift_route_id ?? null,
       laps: input.laps ?? null,
+      duration_minutes: input.duration_minutes ?? null,
       created_by: access.user.id,
     })
     .select("id")
@@ -256,6 +268,7 @@ export async function updateEvent(id: string, input: EventInput) {
   if (input.zwift_route_id !== undefined)
     update.zwift_route_id = input.zwift_route_id;
   if (input.laps !== undefined) update.laps = input.laps;
+  if (input.duration_minutes !== undefined) update.duration_minutes = input.duration_minutes;
 
   const { error } = await supabase.from("events").update(update).eq("id", id);
   if (error) return { ok: false as const, error: error.message };

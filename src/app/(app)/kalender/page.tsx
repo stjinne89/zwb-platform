@@ -33,6 +33,7 @@ import { LabelFilter, type LabelGroup, type LabelOption } from "./_components/la
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { groupRouteFigures, groupSubEvents, subEventLabel } from "@/lib/events/sub-events";
 import { groupByMonth } from "@/lib/events/month-groups";
+import { eventRouteSize } from "@/lib/events/route-size";
 import {
   eventGroupFitsMember,
   fitIsInformative,
@@ -136,7 +137,7 @@ export default async function KalenderPage({
       supabase
         .from("events")
         .select(
-          "id, title, description, type, kind, start_at, location, distance_km, elevation_m, cover_image_path, team_id, parent_event_id",
+          "id, title, description, type, kind, start_at, location, distance_km, elevation_m, gpx_path, zwift_route_id, laps, duration_minutes, cover_image_path, team_id, parent_event_id",
         )
         .gte("start_at", windowStartIso)
         .order("start_at", { ascending: true }),
@@ -232,7 +233,13 @@ export default async function KalenderPage({
   // verhuizen naar /ritverslagen. Zo staat het event van vandaag (of het
   // eerstvolgende) bovenaan.
   // Teamevents staan onder hun hoofdevent (migr. 0178), niet als eigen regel.
-  const { topLevel, childrenByParent } = groupSubEvents(allEvents ?? []);
+  // Bij een rondekoers is de GPX één ronde: kaart en Voor mij-filter kijken naar
+  // het totaal, en bij rijden op tijd ligt de afstand niet vast.
+  const sizedEvents = (allEvents ?? []).map((event) => {
+    const size = eventRouteSize(event);
+    return { ...event, distance_km: size.distanceKm, elevation_m: size.elevationM };
+  });
+  const { topLevel, childrenByParent } = groupSubEvents(sizedEvents);
   // Een FRR-tour (migr. 0196) heeft een laag extra: tour → etappe → tijdslot.
   // Het laatste event eronder bepaalt tot wanneer de regel blijft staan.
   const lastDayOf = (event: { id: string; start_at: string }) => {

@@ -9,6 +9,7 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { deleteIntervalsWorkoutEvent } from "@/lib/intervals/client";
 import { hasOwnRoute, withParentRoute } from "@/lib/events/route-source";
+import { eventRouteSize } from "@/lib/events/route-size";
 import { withoutParentEvents } from "@/lib/events/sub-events";
 import { routeFromZwiftId } from "@/lib/events/zwift-route";
 import { activeBasePlan } from "@/lib/training/active-plan";
@@ -34,19 +35,26 @@ export type ClubEventRow = {
   gpx_path?: string | null;
   zwift_route_id?: number | string | null;
   laps?: number | string | null;
+  /** Koersduur bij rijden tot de tijd op is (migr. 0296); zie eventRouteSize. */
+  duration_minutes?: number | string | null;
   zwift_event_type?: string | null;
   zwift_tags?: string[] | null;
   parent_event_id?: string | null;
 };
 
 const EVENT_COLUMNS =
-  "id, title, type, start_at, end_at, distance_km, elevation_m, gpx_path, zwift_route_id, laps, zwift_event_type, zwift_tags, parent_event_id";
+  "id, title, type, start_at, end_at, distance_km, elevation_m, gpx_path, zwift_route_id, laps, duration_minutes, zwift_event_type, zwift_tags, parent_event_id";
 
 /**
  * Wat een event in het schema wordt als het lid meedoet. De duur komt bij
- * voorkeur uit de eindtijd, dan uit afstand + hoogtemeters, en pas daarna uit
- * een typegemiddelde — een clubrit van 80 km is nu eenmaal iets anders dan een
- * ZRL van drie kwartier.
+ * voorkeur uit de ingestelde koersduur, dan uit de eindtijd, dan uit afstand +
+ * hoogtemeters, en pas daarna uit een typegemiddelde — een clubrit van 80 km is
+ * nu eenmaal iets anders dan een ZRL van drie kwartier.
+ *
+ * Bij een rondekoers op een GPX van één ronde telt de afstand keer het aantal
+ * rondes (eventRouteSize). Tot 2026-11-02 kon een GPX-event geen rondes of
+ * koersduur krijgen, en stond de Prins van de Peel (150 minuten gravel op een
+ * ronde van 8 km) als kwartiertje in het schema.
  *
  * `gran_fondo` en `zwift` ontbraken hier tot 2026-08-18 en vielen daardoor terug
  * op `outdoor`. Bij een gran fondo neemt de afstand de duur meestal over, maar
@@ -281,14 +289,15 @@ export function eventWorkoutDefaults(event: ClubEventRow): {
       ? Math.round((end - start) / 60_000)
       : null;
 
+  const size = eventRouteSize(event);
   const fromRoute = raceKind
     ? estimateZwiftRaceMinutes(event, raceKind)
     : groupKind === "workout"
       ? null
       : groupKind === "ride"
         ? estimateZwiftGroupRideMinutes(event)
-        : estimateEventMinutes(event.distance_km, event.elevation_m);
-  const minutes = fromEnd ?? fromRoute ?? fallback.minutes;
+        : estimateEventMinutes(size.distanceKm, size.elevationM);
+  const minutes = size.durationMinutes ?? fromEnd ?? fromRoute ?? fallback.minutes;
   const durationMinutes = Math.min(MAX_EVENT_MINUTES, Math.max(20, minutes));
   if (groupKind) return { durationMinutes, ...ZWIFT_GROUP_BLOCK[groupKind] };
   return {
@@ -546,14 +555,18 @@ export async function committedEventsForAi(
   }
 
   return committed
-    .map((event) => ({
-      title: event.title,
-      type: event.type,
-      date: String(event.start_at).slice(0, 10),
-      durationMinutes: eventWorkoutDefaults(event).durationMinutes,
-      distanceKm: event.distance_km == null ? null : Number(event.distance_km),
-      elevationM: event.elevation_m ?? null,
-    }));
+    .map((event) => {
+      // Het totaal, niet de ene ronde uit de GPX; leeg bij rijden op tijd.
+      const size = eventRouteSize(event);
+      return {
+        title: event.title,
+        type: event.type,
+        date: String(event.start_at).slice(0, 10),
+        durationMinutes: eventWorkoutDefaults(event).durationMinutes,
+        distanceKm: size.distanceKm,
+        elevationM: size.elevationM,
+      };
+    });
 }
 
 /**
