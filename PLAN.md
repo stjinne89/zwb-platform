@@ -11783,6 +11783,54 @@ ESLint op de gewijzigde bestanden en de unit-suite (3716 van 3717 groen;
 (vanuit deze omgeving geblokkeerd), en of de lijst van MyWhoosh de oktoberraces
 nog binnen 15 pagina's geeft.
 
+### Gebouwd — Gravelkoers als race; pacingplan en liveticker over alle rondes
+
+**2026-11-02.** Geen migratie (bouwt op 0296). Vervolg op de ronde hieronder,
+op verzoek van de eigenaar.
+
+**Waarom.** Na rondes en koersduur stond een gravelkoers nog op de
+intensiteit van een duurrit, en rekenden het pacingplan en de liveticker over de
+ene ronde uit de GPX.
+
+**Wat.**
+- `gravel_race` heeft nu een eigen standaard in `EVENT_DEFAULTS` (race, 150
+  min) met een vermogensdoel rond een verwachte IF (`OUTDOOR_RACE_IF`): IF =
+  1,196 − 0,0767 · ln(minuten), tussen 0,70 en 0,95. Gefit op 42 als
+  wedstrijd gemarkeerde buitenritten met vermogensmeter (Strava workout_type
+  11), tegen de FTP van dat moment; r² 0,64. Voor 150 minuten: 76–86% FTP,
+  ongeveer 164 TSS, waar een race zonder doel 250 had gerekend.
+- Gravel rekent 11% trager dan het buitenritmodel (`GRAVEL_TIME_FACTOR`):
+  gravelritten van ZWB'ers duurden mediaan 1,19 keer de modeltijd (206
+  ritten), wegritten 1,07 keer.
+- `repeatLaps` (`lib/pacing/route-profile.ts`) rolt een GPX-ronde uit over
+  `laps`, met per ronde een eigen accent per klim ("klim-1-3"). Het zit in
+  `loadPacingRoute`, dus pacingplan, racebriefing, doelvoorspelling en de
+  materiaalrekenaar rekenen allemaal over de hele koers.
+- Liveticker (eventpagina en /live): krijgt de totale afstand mee. Die
+  herkende een rondjeskoers al aan een eventafstand die langer is dan de GPX
+  (`raceTotalKm`), maar kreeg de afstand van één ronde.
+
+**Niet gedaan.**
+- `toertocht` valt bewust terug op `outdoor` (duur): een toertocht is geen
+  wedstrijd.
+- Bij rijden op tijd (alleen koersduur, geen rondes) blijven pacingplan en
+  liveticker over één ronde: hoeveel rondes iemand haalt, hangt van zijn
+  tempo af. Het schema rekent wel met de koersduur.
+- Routekaart, hoogteprofiel en klimmenlijst op de eventpagina blijven één
+  ronde; dat is wat de kaart toont. De kopregel noemt het aantal rondes.
+- Neutralisaties (`event_zones`) gelden alleen in de eerste ronde, omdat hun
+  km's op de ronde staan.
+- De IF-fit is dun: 31 van de 42 ritten zijn van één renner, en er zat maar
+  één gemarkeerde gravelkoers tussen. Opnieuw fitten zodra er meer gereden
+  zijn.
+
+**Gecontroleerd.** Nieuwe tests in `tests/unit/training-events.test.ts`
+(gravel als race, 76–86%, 150–175 TSS; gravel 162 min voor tien rondes Peel) en
+`tests/unit/pacing-route-profile.test.ts` (`repeatLaps`). Volledige vitest:
+alleen de bekende omgevingsfouten in deze worktree; drie databasetests faalden
+onder parallelle belasting en slagen los. ESLint schoon, `tsc` alleen de
+bekende ontbrekende modules. Niet in de browser bekeken.
+
 ### Gebouwd — Rondes en koersduur bij een event met GPX
 
 **2026-11-02.** Commit `7775edc`, migratie `0296_event_laps_duration.sql`; 0295 was in productie al
@@ -11816,13 +11864,9 @@ van het minimum van 20 minuten van, voor iedereen die zich aanmeldde.
   Events, routes en uitslagen.
 
 **Niet gedaan.**
-- Het pacingplan, de liveticker en de klimmen blijven over één ronde: de GPX
-  is één ronde, en een plan over tien keer dezelfde ronde is een eigen ronde
-  werk.
-- `gravel_race` (en `toertocht`) staan niet in `EVENT_DEFAULTS` en krijgen dus
-  de intensiteit van een gewone buitenrit (duur). Een gravelkoers is een race,
-  maar een race-intensiteit zonder vermogensdoel rekent 150 minuten rond 100%
-  FTP. Dat vraagt een eigen IF-fit, en is aan de eigenaar voorgelegd.
+- Pacingplan, liveticker en de intensiteit van een gravelkoers: in deze ronde
+  bleven ze over één ronde en op duurintensiteit. Dat is dezelfde dag
+  opgepakt, zie de ronde hierboven.
 - De bestaande eventblokken van de Prins van de Peel worden pas bijgewerkt als
   de beheerder rondes of duur invult en opslaat (`refreshEventWorkouts` bij
   opslaan), of door de dagelijkse cron.

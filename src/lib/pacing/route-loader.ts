@@ -5,7 +5,8 @@
 //    met de klim- en sprintsegmenten uit `zwift-data` als accenten.
 //  - GPX: het bestand uit de `event-gpx`-bucket, geparsed met de server-veilige
 //    regex-variant (parseGpx gebruikt DOMParser en draait dus alleen in de
-//    browser), daarna door de bestaande klimdetectie en `sampleRoute`.
+//    browser), daarna door de bestaande klimdetectie en `sampleRoute`. Met
+//    `laps` is de GPX één ronde en wordt hij uitgerold (repeatLaps).
 //
 // De handmatige klim-overrides uit `event_climbs` gaan vóór de automatische
 // detectie — precies zoals de routesectie op de eventpagina dat al doet. Zonder
@@ -13,6 +14,7 @@
 // correctie in het pacingplan weer kwijt zijn.
 
 import { allTrkptFromGpx } from "@/lib/gpx";
+import { gpxLaps } from "@/lib/events/route-size";
 import {
   climbsFromRanges,
   detectClimbs,
@@ -29,6 +31,7 @@ import {
   withDescents,
   pacingRouteFromGpx,
   pacingRouteFromZwift,
+  repeatLaps,
   type PacingRoute,
 } from "@/lib/pacing/route-profile";
 
@@ -316,7 +319,12 @@ async function loadGpxRoute(
   return {
     ok: true,
     loaded: {
-      route: pacingRouteFromGpx(sampleRoute(points, climbs), climbs),
+      // Een rondekoers: de GPX is één ronde (migr. 0296). Bij rijden op tijd
+      // ligt het aantal ronden niet vast en blijft het plan over één ronde.
+      route: repeatLaps(
+        pacingRouteFromGpx(sampleRoute(points, climbs), climbs),
+        gpxLaps(event) ?? 1,
+      ),
       shape: null,
       routeName: null,
       world: null,

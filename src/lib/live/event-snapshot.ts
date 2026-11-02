@@ -7,6 +7,7 @@
 
 import { cache } from "react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { eventRouteSize } from "@/lib/events/route-size";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import type {
   EventLiveSession,
@@ -61,7 +62,7 @@ async function _fetchEventLiveSnapshot(
 
   const { data: event } = await admin
     .from("events")
-    .select("id, title, start_at, location, start_lat, start_lon, gpx_path, distance_km")
+    .select("id, title, start_at, location, start_lat, start_lon, gpx_path, distance_km, elevation_m, zwift_route_id, laps")
     .eq("id", eventId)
     .maybeSingle();
 
@@ -88,7 +89,8 @@ async function _fetchEventLiveSnapshot(
     location: event.location,
     start_lat: event.start_lat != null ? Number(event.start_lat) : null,
     start_lon: event.start_lon != null ? Number(event.start_lon) : null,
-    distanceKm: Number(event.distance_km) || null,
+    // Bij een rondekoers het totaal: dan telt de ticker de rondes mee.
+    distanceKm: eventRouteSize(event).distanceKm ?? (Number(event.distance_km) || null),
     gpxUrl,
     isToday,
   };

@@ -90,7 +90,7 @@ describe("rondekoers op een GPX", () => {
 
   it("telt de ronde uit de GPX keer het aantal rondes", () => {
     // 10 × 8,14 km = 81,4 km bij 34 km/u, plus 50 hm.
-    expect(eventWorkoutDefaults(event({ ...peel, laps: 10 })).durationMinutes).toBe(146);
+    expect(eventWorkoutDefaults(event({ ...peel, type: "outdoor", laps: 10 })).durationMinutes).toBe(146);
   });
 
   it("neemt een ingestelde koersduur over, ook boven de eindtijd", () => {
@@ -101,7 +101,22 @@ describe("rondekoers op een GPX", () => {
   });
 
   it("blijft zonder rondes of duur één ronde", () => {
-    expect(eventWorkoutDefaults(event(peel)).durationMinutes).toBe(20);
+    expect(eventWorkoutDefaults(event({ ...peel, type: "outdoor" })).durationMinutes).toBe(20);
+  });
+
+  it("rijdt een gravelkoers als race, met een doel rond de verwachte IF", () => {
+    const result = eventWorkoutDefaults(event({ ...peel, duration_minutes: 150 }));
+    expect(result.intensity).toBe("race");
+    expect(result.target).toBe("76-86%");
+    // 150 minuten op IF 0,81: ruim 160 TSS, niet de 250 van de hele raceband.
+    const tss = estimateTrainingLoad(eventWorkoutBlocks(event({ ...peel, duration_minutes: 150 })));
+    expect(tss).toBeGreaterThan(150);
+    expect(tss).toBeLessThan(175);
+  });
+
+  it("rekent gravel trager dan de weg", () => {
+    // 10 rondes = 146 minuten op de weg, keer 1,11.
+    expect(eventWorkoutDefaults(event({ ...peel, laps: 10 })).durationMinutes).toBe(162);
   });
 
   it("laat de ronden van een Zwift-route aan zwiftRaceTotals", () => {

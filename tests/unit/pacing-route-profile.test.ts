@@ -5,6 +5,7 @@ import {
   expandLaps,
   pacingRouteFromGpx,
   pacingRouteFromZwift,
+  repeatLaps,
   segmentEndKms,
   segmentsFromProfile,
   PACING_SEGMENT_M,
@@ -294,5 +295,34 @@ describe("detectProfileAccents", () => {
 
   it("geeft niets terug voor een te kort profiel", () => {
     expect(detectProfileAccents({ distanceM: [0, 25], altitudeM: [10, 12] }, [])).toEqual([]);
+  });
+});
+
+describe("repeatLaps", () => {
+  const lap = pacingRouteFromZwift({
+    profile: lapProfile(),
+    accents: [],
+    leadInKm: 0,
+    leadInElevationM: 0,
+    lapKm: 2,
+    laps: 1,
+  });
+
+  it("laat één ronde ongemoeid", () => {
+    expect(repeatLaps(lap, 1)).toBe(lap);
+  });
+
+  it("herhaalt segmenten en klimmen per ronde", () => {
+    expect(lap.accents.length).toBeGreaterThan(0);
+    const three = repeatLaps({ ...lap, source: "gpx" }, 3);
+    expect(three.totalKm).toBeCloseTo(6);
+    expect(three.segments).toHaveLength(lap.segments.length * 3);
+    expect(three.accents).toHaveLength(lap.accents.length * 3);
+    const last = three.accents.at(-1)!;
+    expect(last.lap).toBe(3);
+    expect(last.startKm).toBeCloseTo(lap.accents.at(-1)!.startKm + 4);
+    // De segmenten van ronde 3 wijzen naar de klimmen van ronde 3.
+    const lastClimbSegment = three.segments.findLast((segment) => segment.accentIndex != null)!;
+    expect(three.accents[lastClimbSegment.accentIndex!].lap).toBe(3);
   });
 });

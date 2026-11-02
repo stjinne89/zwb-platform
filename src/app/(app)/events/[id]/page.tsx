@@ -90,7 +90,7 @@ import { tipsForEvent } from "@/lib/zwbieb/data";
 import { TIP_COLUMNS, loadMembers, loadTopicCatalog, type TipRow } from "@/lib/zwbieb/queries";
 import { topicLabels } from "@/lib/zwbieb/topics";
 import { VanLeden } from "./_components/van-leden";
-import { eventRouteSizeLabel } from "@/lib/events/route-size";
+import { eventRouteSize, eventRouteSizeLabel } from "@/lib/events/route-size";
 
 type RsvpStatus = "yes" | "maybe" | "no";
 type TeamAvailabilityStatus = "available" | "maybe" | "unavailable";
@@ -1652,7 +1652,7 @@ export default async function EventDetailPage({
             eventStartAt={event.start_at}
             sessions={eventLiveSessions}
             initialPositions={eventLivePositions}
-            raceKm={Number(event.distance_km) || null}
+            raceKm={eventRouteSize(event).distanceKm ?? (Number(event.distance_km) || null)}
             cols={cols}
             climbOverrides={climbOverrides}
             pois={eventPois}

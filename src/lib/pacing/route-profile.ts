@@ -34,7 +34,7 @@ export type PacingAccent = {
   endKm: number;
   /** rise/run over het accent, uit het profiel gerekend. */
   avgGradient: number;
-  /** Welke ronde dit accent hoort bij; null voor een .gpx-route. */
+  /** Welke ronde dit accent hoort bij; null bij een route van één ronde. */
   lap: number | null;
 };
 
@@ -605,4 +605,36 @@ export function pacingRouteFromGpx(
     accents,
     leadInApproximated: false,
   };
+}
+
+/**
+ * Rolt een GPX van één ronde uit over `laps` ronden, zoals expandLaps dat voor
+ * een Zwift-route doet. Elke klim krijgt per ronde een eigen accent
+ * ("klim-1-3"), zodat het plan per passage een eigen tempo kan geven.
+ */
+export function repeatLaps(route: PacingRoute, laps: number): PacingRoute {
+  const count = Math.max(1, Math.round(laps));
+  if (count === 1) return route;
+  const segments: PacingSegment[] = [];
+  const accents: PacingAccent[] = [];
+  for (let lap = 1; lap <= count; lap++) {
+    const offsetKm = (lap - 1) * route.totalKm;
+    const indexOffset = accents.length;
+    for (const accent of route.accents) {
+      accents.push({
+        ...accent,
+        id: `${accent.id}-${lap}`,
+        startKm: offsetKm + accent.startKm,
+        endKm: offsetKm + accent.endKm,
+        lap,
+      });
+    }
+    for (const segment of route.segments) {
+      segments.push({
+        ...segment,
+        accentIndex: segment.accentIndex == null ? null : segment.accentIndex + indexOffset,
+      });
+    }
+  }
+  return { ...route, totalKm: route.totalKm * count, segments, accents };
 }

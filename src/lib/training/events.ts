@@ -64,6 +64,10 @@ const EVENT_COLUMNS =
  * aangemaakt, dus zolang de Zwift-link er niet in staat is dit de duur; en 60
  * minuten op race-intensiteit is precies 100 TSS, voor elke race. De mediaan van
  * 468 gereden ZRL-races van ZWB'ers is 53 minuten, van de TTT's 43.
+ *
+ * `gravel_race` viel tot 2026-11-02 terug op `outdoor`: een duurrit. Zie
+ * OUTDOOR_RACE_IF voor de intensiteit. `toertocht` valt daar bewust nog op terug;
+ * een toertocht is geen wedstrijd.
  */
 const EVENT_DEFAULTS: Record<string, { minutes: number; intensity: WorkoutIntensity }> = {
   zrl: { minutes: 50, intensity: "race" },
@@ -72,6 +76,7 @@ const EVENT_DEFAULTS: Record<string, { minutes: number; intensity: WorkoutIntens
   src: { minutes: 85, intensity: "race" },
   zwift: { minutes: 60, intensity: "race" },
   gran_fondo: { minutes: 300, intensity: "endurance" },
+  gravel_race: { minutes: 150, intensity: "race" },
   outdoor: { minutes: 120, intensity: "endurance" },
   social: { minutes: 90, intensity: "endurance" },
   training: { minutes: 75, intensity: "tempo" },
@@ -100,6 +105,29 @@ const EVENT_DEFAULTS: Record<string, { minutes: number; intensity: WorkoutIntens
  */
 const VLAK_KMH = 34;
 const MIN_PER_HM = 0.045;
+
+/**
+ * Gravel is trager dan dit model, dat op wegroutes is gefit. Op de buitenritten
+ * van ZWB'ers van minstens een uur (strava_activities, 2 november 2026) reden
+ * gravelritten mediaan 1,19 keer de modeltijd (206 ritten, 11 renners), ritten
+ * op de weg 1,07 keer (7289 ritten). Een gravelkoers krijgt de verhouding
+ * daartussen erbij.
+ */
+const GRAVEL_TIME_FACTOR = 1.11;
+
+/**
+ * De IF van een wedstrijd buiten zakt met de duur, net als in Zwift
+ * (ZWIFT_RACE_IF), maar die lijn loopt hier logaritmisch: IF = base −
+ * perLnMinute · ln(minuten). Gefit op 42 als wedstrijd gemarkeerde buitenritten
+ * met vermogensmeter (Strava workout_type 11, 2 november 2026), tegen de FTP van
+ * dat moment: r² 0,64. Uitkomst 0,90 bij 45 minuten, 0,81 bij 150 en 0,76 bij
+ * vijf uur; gereden mediaan tussen twee en vier uur was 0,77.
+ *
+ * Een kleine basis: 31 van de 42 ritten zijn van één renner, en er zat maar één
+ * gemarkeerde gravelkoers bij. Wie het preciezer wil, fit opnieuw zodra er meer
+ * gravelkoersen gereden zijn.
+ */
+const OUTDOOR_RACE_IF = { base: 1.196, perLnMinute: 0.0767, min: 0.7, max: 0.95 };
 
 /** Bovengrens; een gran fondo van tien uur bestaat, een van twintig niet. */
 const MAX_EVENT_MINUTES = 720;
@@ -256,6 +284,12 @@ export function estimateZwiftRaceMinutes(event: ClubEventRow, kind: ZwiftRaceKin
   return Math.round((totals.distanceKm / pace.kmh) * 60 + totals.elevationM * pace.minPerHm);
 }
 
+/** De verwachte IF van een wedstrijd buiten (gravelkoers) van zoveel minuten. */
+export function outdoorRaceIntensityFactor(minutes: number): number {
+  const factor = OUTDOOR_RACE_IF.base - OUTDOOR_RACE_IF.perLnMinute * Math.log(Math.max(1, minutes));
+  return Math.min(OUTDOOR_RACE_IF.max, Math.max(OUTDOOR_RACE_IF.min, factor));
+}
+
 /** De verwachte IF van een Zwift-race van zoveel minuten. */
 export function zwiftRaceIntensityFactor(minutes: number): number {
   const factor = ZWIFT_RACE_IF.base - ZWIFT_RACE_IF.perMinute * minutes;
@@ -263,12 +297,12 @@ export function zwiftRaceIntensityFactor(minutes: number): number {
 }
 
 /**
- * Het vermogensdoel van een Zwift-race: een band rond de verwachte IF. De
+ * Het vermogensdoel van een race (Zwift of gravel): een band rond de verwachte IF. De
  * belasting in ZWB en in intervals.icu rekent met het midden daarvan; zonder
  * doel was dat het midden van de hele raceband, 100% FTP.
  */
-function zwiftRaceTarget(minutes: number): string {
-  const pct = Math.round(zwiftRaceIntensityFactor(minutes) * 100);
+function raceTarget(factor: number): string {
+  const pct = Math.round(factor * 100);
   return `${pct - ZWIFT_RACE_TARGET_SPREAD}-${pct + ZWIFT_RACE_TARGET_SPREAD}%`;
 }
 
@@ -296,15 +330,23 @@ export function eventWorkoutDefaults(event: ClubEventRow): {
       ? null
       : groupKind === "ride"
         ? estimateZwiftGroupRideMinutes(event)
-        : estimateEventMinutes(size.distanceKm, size.elevationM);
+        : gravelMinutes(event.type, estimateEventMinutes(size.distanceKm, size.elevationM));
   const minutes = size.durationMinutes ?? fromEnd ?? fromRoute ?? fallback.minutes;
   const durationMinutes = Math.min(MAX_EVENT_MINUTES, Math.max(20, minutes));
   if (groupKind) return { durationMinutes, ...ZWIFT_GROUP_BLOCK[groupKind] };
   return {
     durationMinutes,
     intensity: fallback.intensity,
-    target: raceKind ? zwiftRaceTarget(durationMinutes) : "",
+    target: raceKind
+      ? raceTarget(zwiftRaceIntensityFactor(durationMinutes))
+      : event.type === "gravel_race"
+        ? raceTarget(outdoorRaceIntensityFactor(durationMinutes))
+        : "",
   };
+}
+
+function gravelMinutes(type: string, minutes: number | null): number | null {
+  return minutes != null && type === "gravel_race" ? Math.round(minutes * GRAVEL_TIME_FACTOR) : minutes;
 }
 
 /** Het ene blok waaruit een event in het schema bestaat. */
