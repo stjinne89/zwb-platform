@@ -17,6 +17,8 @@ export type ClubLadderStanding = {
 };
 
 export type ClubLadderFixture = {
+  /** Wedstrijdnummer van de ladder (`/fixture/<id>`), of null als het ontbreekt. */
+  fixtureId: number | null;
   /** YYYY-MM-DD (UTC), of null als de dag niet te lezen is. */
   date: string | null;
   /** HH:MM in UTC, zoals de ladder hem toont. */
@@ -25,6 +27,8 @@ export type ClubLadderFixture = {
   startsAt: string | null;
   home: string;
   away: string;
+  homeId: number | null;
+  awayId: number | null;
   route: string | null;
   powerups: string[];
 };
@@ -107,7 +111,7 @@ function dayToDate(label: string, fetchedAt: Date) {
 }
 
 // Wedstrijden staan in de tabel van .fixtureTab: een tr.dayBounds per dag, dan
-// tr.fixToday/tr.fixFuture met tijd, thuis- en uitploeg, route en powerups.
+// tr.fixToday/tr.fixFuture[data-id] met tijd, thuis- en uitploeg, route en powerups.
 function parseFixtures($: cheerio.CheerioAPI, fetchedAt: Date) {
   const fixtures: ClubLadderFixture[] = [];
   let date: string | null = null;
@@ -123,12 +127,19 @@ function parseFixtures($: cheerio.CheerioAPI, fetchedAt: Date) {
     const time = clean(row.children("td").first().text());
     if (!home || !away || !/^\d{1,2}:\d{2}$/.test(time)) return;
 
+    const id = (value: string | undefined) => {
+      const number = Number(value);
+      return Number.isSafeInteger(number) && number > 0 ? number : null;
+    };
     fixtures.push({
+      fixtureId: id(row.attr("data-id")),
       date,
       time,
       startsAt: date ? `${date}T${time.padStart(5, "0")}:00Z` : null,
       home,
       away,
+      homeId: id(row.find("td.homeTeam .teamOpener").attr("data-team-id")),
+      awayId: id(row.find("td.awayTeam .teamOpener").attr("data-team-id")),
       route: clean(row.children("td").eq(3).text()) || null,
       powerups: row
         .find("img.pup-small")

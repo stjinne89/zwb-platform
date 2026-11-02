@@ -1,6 +1,7 @@
 import { assertSafeUrl } from "@/lib/net/safe-fetch";
 import { parseClubLadderSummary, type ClubLadderResult, type ClubLadderSummary } from "@/lib/club-ladder/summary";
 import { storeLadderResults } from "@/lib/club-ladder/store";
+import { syncLadderFixtures, type LadderFixtureSyncResult } from "@/lib/club-ladder/fixture-sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeTeamName } from "@/lib/ladder";
 
@@ -82,6 +83,8 @@ export type TeamResultsSyncSummary = {
   sourcesCreated: number;
   insertedOrUpdated: number;
   sources: SyncSourceOutcome[];
+  /** Wedstrijden van de Club Ladder als event (0300); null zonder ladderbron. */
+  ladderFixtures?: LadderFixtureSyncResult | { error: string } | null;
 };
 
 type TeamSeed = {
@@ -711,6 +714,11 @@ export function clubLadderResultFromSummary(
   if (!standing) {
     const message = `"${source.match_name}" staat niet in de Club Ladder-stand (${summary.standings.length} teams gelezen).`;
     if (sourceTeam(source)?.is_graveyard) throw new SyncSkip(`${message} Team staat op het kerkhof.`);
+    // Terug van het kerkhof: pas na de eerste wedstrijd weer in de stand.
+    const planned = summary.fixtures.some((fixture) =>
+      [fixture.home, fixture.away].some((team) => normalizeTeamName(team) === name),
+    );
+    if (planned) throw new SyncSkip(`${message} Wel een wedstrijd gepland.`);
     throw new Error(message);
   }
 
@@ -732,17 +740,21 @@ export function clubLadderResultFromSummary(
   ];
 }
 
+type LadderRun = { results: Map<number, ClubLadderResult>; summary: ClubLadderSummary | null };
+
 // De uitslagen van de summary gaan mee naar club_ladder_matches (0298), ook als
-// het team zelf op het kerkhof staat.
-async function syncClubLadderSource(source: SourceRow, ladderResults: Map<number, ClubLadderResult>) {
-  const summary = parseClubLadderSummary(await fetchText(source));
-  for (const result of summary.results) ladderResults.set(result.resultId, result);
+// het team zelf op het kerkhof staat. Alle ladderbronnen lezen dezelfde pagina:
+// één keer ophalen per run.
+async function syncClubLadderSource(source: SourceRow, ladder: LadderRun) {
+  const summary = ladder.summary ?? parseClubLadderSummary(await fetchText(source));
+  ladder.summary = summary;
+  for (const result of summary.results) ladder.results.set(result.resultId, result);
   return clubLadderResultFromSummary(source, summary);
 }
 
-async function syncSource(source: SourceRow, ladderResults: Map<number, ClubLadderResult>) {
+async function syncSource(source: SourceRow, ladder: LadderRun) {
   if (source.provider === "wtrl") return await syncWtrlSource(source);
-  return await syncClubLadderSource(source, ladderResults);
+  return await syncClubLadderSource(source, ladder);
 }
 
 // Supabase query builders are structurally typed here because this helper is
@@ -1040,11 +1052,11 @@ export async function syncTeamResults(
     });
   const outcomes: SyncSourceOutcome[] = [];
   let insertedOrUpdated = 0;
-  const ladderResults = new Map<number, ClubLadderResult>();
+  const ladder: LadderRun = { results: new Map(), summary: null };
 
   for (const source of sources) {
     try {
-      const parsedResults = await syncSource(source, ladderResults);
+      const parsedResults = await syncSource(source, ladder);
       let rosterSynced = 0;
       let ridersSynced = 0;
       for (const result of parsedResults) {
@@ -1097,11 +1109,22 @@ export async function syncTeamResults(
     }
   }
 
-  if (ladderResults.size > 0) {
+  if (ladder.results.size > 0) {
     try {
-      await storeLadderResults(createAdminClient(), [...ladderResults.values()]);
+      await storeLadderResults(createAdminClient(), [...ladder.results.values()]);
     } catch {
       // Zonder service-rolsleutel of 0298 blijft de stand-sync gewoon werken.
+    }
+  }
+
+  let ladderFixtures: TeamResultsSyncSummary["ladderFixtures"] = null;
+  if (ladder.summary) {
+    try {
+      ladderFixtures = await syncLadderFixtures(createAdminClient(), ladder.summary, {
+        cookie: process.env.LADDER_COOKIE ?? null,
+      });
+    } catch (err) {
+      ladderFixtures = { error: err instanceof Error ? err.message : "Ladderwedstrijden niet gesynct." };
     }
   }
 
@@ -1111,5 +1134,6 @@ export async function syncTeamResults(
     sourcesCreated: defaults.sourcesCreated,
     insertedOrUpdated,
     sources: outcomes,
+    ladderFixtures,
   };
 }

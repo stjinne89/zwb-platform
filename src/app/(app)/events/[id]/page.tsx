@@ -455,13 +455,14 @@ export default async function EventDetailPage({
   // Een hoofdteam zonder subteams (ZRL A, ZRL C) maakt zijn opstelling op zijn
   // eigen teamevent in plaats van op de raceweek; op de raceweek tellen de
   // teamevents daarom mee, zodat die teams hun renners net zo tonen als B1 en B2.
+  // Een ladderrace krijgt zijn opstelling van de ladder (sync, migr. 0300).
   const lineupEventIds = [
     id,
     event.parent_event_id,
     ...(isParentEvent ? subEvents.map((sub) => sub.id) : []),
   ].filter(Boolean) as string[];
   const { data: lineupRows } =
-    isParentEvent || (event.type === "zrl" && event.team_id)
+    isParentEvent || ((event.type === "zrl" || event.type === "ladder") && event.team_id)
       ? await supabase
           .from("team_event_lineups")
           .select(

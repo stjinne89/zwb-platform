@@ -49,6 +49,9 @@ describe("parseClubLadderSummary", () => {
   it("leest wedstrijden met datum, ploegen, route en powerups", () => {
     expect(summary.fixtures).toEqual([
       {
+        fixtureId: 1,
+        homeId: 1,
+        awayId: 2,
         date: "2026-10-26",
         time: "23:30",
         startsAt: "2026-10-26T23:30:00Z",
@@ -58,6 +61,9 @@ describe("parseClubLadderSummary", () => {
         powerups: ["FEATHER", "AERO"],
       },
       {
+        fixtureId: 1,
+        homeId: 1,
+        awayId: 2,
         date: "2026-10-27",
         time: "0:30",
         startsAt: "2026-10-27T00:30:00Z",

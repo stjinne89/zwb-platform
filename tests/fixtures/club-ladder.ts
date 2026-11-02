@@ -60,14 +60,22 @@ export function dayRow(label: string) {
   return `<tr class="dayBounds"> <td colspan=50>${label}</td> </tr>`;
 }
 
-export function fixtureRow(time: string, home: string, away: string, route = "", powerups: string[] = [], today = true) {
+export function fixtureRow(
+  time: string,
+  home: string,
+  away: string,
+  route = "",
+  powerups: string[] = [],
+  today = true,
+  ids: { fixtureId?: number; homeId?: number; awayId?: number } = {},
+) {
   const pups = powerups
     .map((p) => `<img class="pup-small" src="/img/powerups/${p}.png"\ndata-bs-toggle="tooltip"\ntitle="${p}" alt="${p}">`)
     .join("\n");
-  return `<tr class="${today ? "fixToday" : "fixFuture"}" data-id="1">
+  return `<tr class="${today ? "fixToday" : "fixFuture"}" data-id="${ids.fixtureId ?? 1}">
 <td class="">${time}</td>
-<td class="homeTeam text-end"><span class="teamOpener" data-team-id="1">${home}</span></td>
-<td class="awayTeam"><span class="teamOpener" data-team-id="2">${away}</span></td>
+<td class="homeTeam text-end"><span class="teamOpener" data-team-id="${ids.homeId ?? 1}">${home}</span></td>
+<td class="awayTeam"><span class="teamOpener" data-team-id="${ids.awayId ?? 2}">${away}</span></td>
 <td>${route}</td>
 <td>
 ${pups}
@@ -160,5 +168,55 @@ ${sections.join("\n")}
 <thead><tr><th class="text-center datecol">Time</th><th></th><th class="text-end">Challenger</th><th class="score"></th><th class="score"></th><th>Opponent</th><th></th></tr></thead>
 ${resultDays.join("\n")}
 </table></div>
+</body></html>`;
+}
+
+type SignupRider = { zwiftId: number; name: string; position: number | null };
+
+function signupRows(riders: SignupRider[], side: "home" | "away") {
+  return riders
+    .map(
+      (rider) => `<tr data-rider-id="${rider.zwiftId}" data-is-nonladder="false" data-riderplayedyet="21" id="row_${rider.zwiftId}" class="hoverMe
+
+" data-dq-reason="">
+<td class="
+rider-position-cell
+sticky-col
+" data-sticky-col="0" data-rider-id="${rider.zwiftId}" data-team="${side}" data-fixture-id="17729">${
+        rider.position === null
+          ? `<span class="position-indicator not-racing" title="Not racing - click to set as racing">-</span>`
+          : `<span class="position-indicator" title="Position ${rider.position} - click to set as not racing">${rider.position}</span>`
+      }</td>
+<td data-goto="/rider/${rider.zwiftId}" class="text-nowrap sticky-col linkTo sticky-col" data-sticky-col="1"><div class="sticky-truncate">${rider.name}</div></td>
+<td class=""><div class="d-flex flex-row position-relative gap-2"><div class="">✅</div></div></td>
+<td class="text-center p-0 m-0" data-format="wkg" data-time="30" data-power-time="5">-</td>
+</tr>`,
+    )
+    .join("\n");
+}
+
+function signupSection(cls: string, riders: SignupRider[], side: "home" | "away") {
+  return `<section class="${cls} p-2 px-0 border rounded bg-light"><div class="powerTable-scroll-wrapper">
+<table id="pt_${side}" class="table-sm newPowerTable sortable w-100  has-sticky-cols"><thead class="table-dark"><tr><th></th><th>Rider</th></tr></thead>
+<tbody>${signupRows(riders, side)}</tbody></table></div></section>`;
+}
+
+/** Wedstrijdpagina achter login (/fixture/<id>, november 2026), ingekort tot wat de parser leest. */
+export function fixturePage(opts: { route: string; laps: number; km: number; home: SignupRider[]; away: SignupRider[] }) {
+  return `<html><head><title>ZWBeasts v Galaxy Avengers</title></head><body>
+<div class="tab-pane fade" id="pane-info" role="tabpanel">
+<div class="card-img-overlay text-start">
+<div class="ribbon resultRibbon card-title"><b>Scotland</b></div>
+<div class="h2 card-text">${opts.route}</div>
+<div class="h3">laps <span class="badge bg-danger">${opts.laps}</span></div>
+<div class="lapsConv">Calculated at ${opts.km} km</div>
+</div></div>
+<div class="tab-pane fade active show" id="pane-signups" role="tabpanel">
+<div class="downloadContainer"><section class="signups mt-4 container"></section>
+<section class="modernSignins container overflow-auto">
+${signupSection("homeTeamSignins", opts.home, "home")}
+${signupSection("awayTeamSignins", opts.away, "away")}
+<section class="mergeTeamSignins p-2 px-0 border rounded bg-light d-none"><table><tbody>${signupRows(opts.home, "home")}${signupRows(opts.away, "away")}</tbody></table></section>
+</section></div></div>
 </body></html>`;
 }
