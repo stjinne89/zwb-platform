@@ -30,12 +30,12 @@ export type LadderFixtureSyncResult = {
 type EventRow = LadderEventFields & { id: string; club_ladder_fixture_id: number; team_id: string };
 
 const EVENT_COLUMNS =
-  "id, club_ladder_fixture_id, team_id, title, start_at, location, description, external_url, zwift_route_id, laps, distance_km, elevation_m";
+  "id, club_ladder_fixture_id, team_id, title, start_at, location, description, external_url, zwift_route_id, zwift_event_id, laps, distance_km, elevation_m";
 
 /** Zo weinig teams in de stand betekent een onbekende opmaak: dan niets archiveren of weghalen. */
 const MIN_STANDINGS = 20;
 
-const NUMERIC = new Set<keyof LadderEventFields>(["zwift_route_id", "laps", "distance_km", "elevation_m"]);
+const NUMERIC = new Set<keyof LadderEventFields>(["zwift_route_id", "zwift_event_id", "laps", "distance_km", "elevation_m"]);
 
 function changed(row: EventRow, fields: LadderEventFields) {
   const value = (key: keyof LadderEventFields, raw: unknown) => {
@@ -241,6 +241,13 @@ export async function syncLadderFixtures(
     if (fields.zwift_route_id !== null && !known.has(fields.zwift_route_id)) fields.zwift_route_id = null;
 
     let row = existing.get(key);
+    // Zonder wedstrijdpagina (geen of verlopen cookie) blijven rondes en afstand
+    // van een eerdere lezing staan, zolang de route dezelfde is.
+    if (!page && row && Number(row.zwift_route_id) === fields.zwift_route_id) {
+      delete (fields as Partial<LadderEventFields>).laps;
+      delete (fields as Partial<LadderEventFields>).distance_km;
+      delete (fields as Partial<LadderEventFields>).elevation_m;
+    }
     if (!row) {
       const createdBy = creatorFor(match.team.id);
       if (!createdBy) {

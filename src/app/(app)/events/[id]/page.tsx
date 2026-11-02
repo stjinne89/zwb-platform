@@ -24,6 +24,7 @@ import { hasOwnRoute, withParentRoute } from "@/lib/events/route-source";
 import {
   derivedZwiftLinks,
   frrTourLinks,
+  ladderRaceLinks,
   mergeLinks,
   racepassFor,
   type EventLinkRow,
@@ -787,8 +788,10 @@ export default async function EventDetailPage({
     ((linkRows ?? []) as Array<EventLinkRow & { event_id: string }>).filter(
       (row) => row.event_id === eventId,
     );
+  const ownLinks = mergeLinks(linksOf(event.id), linksOf(event.parent_event_id));
   const raceLinks = [
-    ...mergeLinks(linksOf(event.id), linksOf(event.parent_event_id)),
+    ...(event.type === "ladder" ? ladderRaceLinks(event, ownLinks) : []),
+    ...ownLinks,
     ...(isFrr ? frrTourLinks() : []),
   ];
 

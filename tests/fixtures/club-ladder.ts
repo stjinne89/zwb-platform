@@ -202,8 +202,9 @@ function signupSection(cls: string, riders: SignupRider[], side: "home" | "away"
 }
 
 /** Wedstrijdpagina achter login (/fixture/<id>, november 2026), ingekort tot wat de parser leest. */
-export function fixturePage(opts: { route: string; laps: number; km: number; home: SignupRider[]; away: SignupRider[] }) {
+export function fixturePage(opts: { route: string; laps: number; km: number; home: SignupRider[]; away: SignupRider[]; zwiftEventId?: number }) {
   return `<html><head><title>ZWBeasts v Galaxy Avengers</title></head><body>
+<input type="hidden" name="zwiftEventId" id="fixture_zid" value="${opts.zwiftEventId ?? 5772909}">
 <div class="tab-pane fade" id="pane-info" role="tabpanel">
 <div class="card-img-overlay text-start">
 <div class="ribbon resultRibbon card-title"><b>Scotland</b></div>

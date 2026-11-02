@@ -11620,6 +11620,31 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Ladderrace: Zwift-links, ZwiftInsider en link vanuit de matchups
+
+**2026-11-02.** Geen migratie. De eigenaar vond dat het ladder-event veel minder
+links had dan een ZRL-race, en wilde vanuit Komende matchups direct naar het event.
+
+- **Zwift-event.** De wedstrijdpagina (`/fixture/<id>`, achter login) heeft een
+  verborgen veld `input#fixture_zid[name=zwiftEventId]`. Gecontroleerd: 5772909
+  is bij Zwift "ClubLadder 🪜ZWBeasts vs Galaxy Avengers 🗺️ EMEA", zelfde start en
+  route. De sync zet het in `events.zwift_event_id`; daarmee krijgt de ladderrace
+  vanzelf Zwift, ZwiftPower en ZwiftRacing, Aanmelden op Zwift en ZWB DS, net als
+  een ZRL-race. Alleen met `LADDER_COOKIE`.
+- Zonder wedstrijdpagina (geen of verlopen cookie) laat de sync het Zwift-event
+  en de gelezen rondes en afstand staan, in plaats van ze terug te zetten naar de
+  schatting uit de stand.
+- **Links op de eventpagina** (`ladderRaceLinks` in `race-links.ts`): de
+  wedstrijd op de ladder (Club Ladder) en de route op ZwiftInsider (uit
+  `zwift-data`; een eigen ZwiftInsider-link van de beheerder gaat voor).
+  ZwifterBikes en het pacingplan waren er al via de route.
+- **Komende matchups** op de teampagina linken naar het ZWB-event van die
+  wedstrijd (op `club_ladder_fixture_id` en het team).
+- **Bewust niet:** racebriefing en live stand; die zijn op ZRL gebouwd (racepass,
+  WTRL-gegevens, ZRL-puntentelling). Geen racepass: de ladder heeft er geen.
+- **Getest:** `club-ladder-fixtures.test.ts` (10 tests). **Niet in de browser
+  gezien** (inloggen op productie).
+
 ### Hersteld — Ladder: geen cookie naar de openbare stand
 
 **2026-11-02.** Geen migratie. De eigenaar zag de ZWBeasts-wedstrijd wel in de
@@ -11686,7 +11711,9 @@ ladderteams stonden in ZWB op het kerkhof, waardoor de sync ze stil oversloeg.
   Hoe de ladder zo'n renner toont, is niet gezien (op 2 november hadden alle
   aanmeldingen een plek); de parser neemt aan: geen nummer = rijdt niet.
 - Geen Zwift-event-ID bij het event: de wedstrijdpagina noemt hem niet, en de
-  aanmeldingen lezen via Zwift gaat daarom niet.
+  aanmeldingen lezen via Zwift gaat daarom niet. *(Niet meer waar: hij staat in
+  een verborgen veld; zie "Ladderrace: Zwift-links, ZwiftInsider en link vanuit
+  de matchups".)*
 
 **Getest.** `tests/unit/club-ladder-fixtures.test.ts` (9 tests, met een
 nagebouwde wedstrijdpagina en een nep-database: aanmaken, opstelling, RSVP,

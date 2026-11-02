@@ -11,6 +11,7 @@ vi.mock("@/lib/training/replan", () => ({ requestReplan: vi.fn(async () => ({ st
 
 import { activeLadderTeamIds, ladderEventFields, ladderFixtureMatches, ladderLineup } from "@/lib/club-ladder/fixture-events";
 import { LadderLoginError, parseLadderFixturePage } from "@/lib/club-ladder/fixture-page";
+import { ladderRaceLinks } from "@/lib/events/race-links";
 import { syncLadderFixtures } from "@/lib/club-ladder/fixture-sync";
 import { parseClubLadderSummary, type ClubLadderFixture, type ClubLadderSummary } from "@/lib/club-ladder/summary";
 import { clubLadderResultFromSummary } from "@/lib/team-results/sync";
@@ -66,7 +67,7 @@ describe("ladderwedstrijden lezen", () => {
       [2650151, "Bart de Groot [ZWB]", 2],
       [555, "Reserve [ZWB]", null],
     ]);
-    expect(parsed).toMatchObject({ routeName: "The Muckle Yin", laps: 1, km: 23.57 });
+    expect(parsed).toMatchObject({ zwiftEventId: 5772909, routeName: "The Muckle Yin", laps: 1, km: 23.57 });
     expect(parsed.home.map((rider) => rider.zwiftId)).toEqual([619970, 2650151, 555]);
     expect(parsed.away).toEqual([{ zwiftId: 3327689, name: "Marnix van Zetten [GXY]", position: 1 }]);
     expect(ladderLineup(parsed, "home").map((rider) => rider.name)).toEqual(["T ako [ZWB]", "Bart de Groot [ZWB]"]);
@@ -104,7 +105,17 @@ describe("wedstrijd naar event", () => {
       distance_km: 23.7,
       elevation_m: 282,
     });
-    expect(ladderEventFields(match, page([]))).toMatchObject({ laps: 1, distance_km: 23.57 });
+    expect(ladderEventFields(match, page([]))).toMatchObject({ laps: 1, distance_km: 23.57, zwift_event_id: 5772909 });
+  });
+
+  it("geeft een ladderrace de wedstrijd op de ladder en de route op ZwiftInsider", () => {
+    const event = { external_url: "https://ladder.cycleracing.club/fixture/17729", zwift_route_id: MUCKLE_YIN };
+    expect(ladderRaceLinks(event, []).map((link) => [link.kind, link.url])).toEqual([
+      ["ladder", "https://ladder.cycleracing.club/fixture/17729"],
+      ["zwiftinsider", "https://zwiftinsider.com/route/the-muckle-yin"],
+    ]);
+    const own = [{ key: "x", kind: "zwiftinsider" as const, label: "ZwiftInsider", url: "https://zwiftinsider.com/eigen/" }];
+    expect(ladderRaceLinks(event, own).map((link) => link.kind)).toEqual(["ladder"]);
   });
 
   it("telt een team als actief in de stand of met een wedstrijd", () => {
@@ -261,7 +272,7 @@ describe("syncLadderFixtures", () => {
     expect(result).toMatchObject({ created: 1, removed: 1, lineupRiders: 3, lineupError: null, archived: ["ZWBullets"] });
     expect(result.reactivated.sort()).toEqual(["ZWBeasts", "ZWBeauties"]);
     const event = db.tables.events.find((row) => row.club_ladder_fixture_id === 17729)!;
-    expect(event).toMatchObject({ type: "ladder", team_id: "beasts", created_by: "bart", laps: 1, distance_km: 23.57, zwift_route_id: MUCKLE_YIN });
+    expect(event).toMatchObject({ type: "ladder", team_id: "beasts", created_by: "bart", laps: 1, distance_km: 23.57, zwift_route_id: MUCKLE_YIN, zwift_event_id: 5772909 });
     expect(db.tables.events.map((row) => row.id)).not.toContain("afgezegd");
     expect(db.tables.events.map((row) => row.id)).toContain("gereden");
     expect(db.tables.team_event_lineups.map((row) => [row.profile_id ?? row.roster_entry_id, row.slot, row.parent_team_id])).toEqual([
@@ -292,6 +303,9 @@ describe("syncLadderFixtures", () => {
     });
     expect(expired.lineupError).toMatch(/verlopen/);
     expect(db.tables.events.filter((row) => row.club_ladder_fixture_id === 17729)).toHaveLength(1);
+    // Zonder wedstrijdpagina blijven Zwift-event en gelezen afstand staan.
+    expect(expired.updated).toBe(0);
+    expect(db.tables.events.find((row) => row.club_ladder_fixture_id === 17729)).toMatchObject({ zwift_event_id: 5772909, distance_km: 23.57 });
     expect(db.tables.team_event_lineups).toHaveLength(1);
   });
 

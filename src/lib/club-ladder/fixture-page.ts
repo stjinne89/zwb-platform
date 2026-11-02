@@ -11,6 +11,8 @@ export type LadderSignup = {
 };
 
 export type LadderFixturePage = {
+  /** Het Zwift-event van de wedstrijd (verborgen veld `zwiftEventId`). */
+  zwiftEventId: number | null;
   routeName: string | null;
   laps: number | null;
   km: number | null;
@@ -30,7 +32,8 @@ function positive(value: string | undefined) {
   return Number.isSafeInteger(number) && number > 0 ? number : null;
 }
 
-// Opmaak van /fixture/<id> (november 2026). Tab Info: route in .card-img-overlay
+// Opmaak van /fixture/<id> (november 2026). Het Zwift-event staat in het
+// verborgen veld input#fixture_zid[name=zwiftEventId]. Tab Info: route in .card-img-overlay
 // .h2, rondes in .h3, afstand in .lapsConv. Tab Signups: per ploeg een
 // section.homeTeamSignins / .awayTeamSignins met tr[data-rider-id] (de Zwift-ID);
 // .mergeTeamSignins herhaalt beide en blijft erbuiten. De startplek staat in
@@ -58,6 +61,7 @@ export function parseLadderFixturePage(html: string): LadderFixturePage {
   };
 
   return {
+    zwiftEventId: positive($("input#fixture_zid, input[name='zwiftEventId']").first().attr("value")),
     routeName: clean(overlay.find(".h2").first().text()) || null,
     laps: positive(lapsText),
     km: kmText ? Number(kmText) : null,

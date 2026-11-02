@@ -2,6 +2,7 @@
 // het Zwift-event-id; recon, ZwiftInsider en de ZWB-site vult de beheerder in.
 // Een teamrace neemt de handmatige links van zijn raceweek over.
 
+import { routes as zwiftRoutes } from "zwift-data";
 import { zwiftEventUrl } from "@/lib/events/external-scan";
 
 export const EVENT_LINK_KINDS = ["recon", "zwiftinsider", "zwb", "overig"] as const;
@@ -28,7 +29,7 @@ export type RaceLinkIcon =
 
 export type RaceLink = {
   key: string;
-  kind: EventLinkKind | "zwift" | "zwiftpower" | "zwiftracing" | "zwifterbikes" | "racepass" | "frr";
+  kind: EventLinkKind | "zwift" | "zwiftpower" | "zwiftracing" | "zwifterbikes" | "racepass" | "frr" | "ladder";
   label: string;
   url: string;
   icon?: RaceLinkIcon;
@@ -123,6 +124,25 @@ export function frrTourLinks(): RaceLink[] {
     })),
     { key: "frr-discord", kind: "frr", label: "Discord", url: FRR_DISCORD_URL },
   ];
+}
+
+// ── Club Ladder (migr. 0300) ────────────────────────────────────────────────
+// De sync zet de wedstrijdpagina in external_url; de route op ZwiftInsider volgt
+// uit de Zwift-route. Een ZwiftInsider-link van de beheerder gaat voor.
+
+export function ladderRaceLinks(
+  event: { external_url: string | null; zwift_route_id: number | string | null },
+  own: RaceLink[],
+): RaceLink[] {
+  const links: RaceLink[] = [];
+  if (event.external_url) {
+    links.push({ key: "ladder-fixture", kind: "ladder", label: "Club Ladder", url: event.external_url, icon: { glyph: "stage" } });
+  }
+  const route = zwiftRoutes.find((item) => item.id === Number(event.zwift_route_id));
+  if (route?.zwiftInsiderUrl && !own.some((link) => link.kind === "zwiftinsider")) {
+    links.push({ key: `zi-${route.id}`, kind: "zwiftinsider", label: "ZwiftInsider", url: route.zwiftInsiderUrl });
+  }
+  return links;
 }
 
 /** Alleen https-links; alles anders valt weg. */

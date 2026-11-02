@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { Activity, RefreshCw, Star, Swords, Trophy, Users } from "lucide-react";
@@ -117,6 +118,14 @@ export default async function ClubLadderTeamPage({
   const challengeable = match ? challengeableTeams(standings, match) : [];
   const teamFixtures = fixtures.filter((fixture) => fixtureMatches(fixture, aliases)).slice(0, 6);
   const planned = teamFixtures.flatMap((fixture) => [fixture.home, fixture.away]);
+  // Het event dat de sync per wedstrijd aanmaakt (migr. 0300).
+  const fixtureIds = teamFixtures.map((fixture) => fixture.fixtureId).filter((id): id is number => id !== null);
+  const { data: fixtureEvents } = fixtureIds.length
+    ? await supabase.from("events").select("id, club_ladder_fixture_id").eq("team_id", team.id).in("club_ladder_fixture_id", fixtureIds)
+    : { data: [] };
+  const eventByFixture = new Map(
+    ((fixtureEvents ?? []) as Array<{ id: string; club_ladder_fixture_id: number }>).map((row) => [row.club_ladder_fixture_id, row.id]),
+  );
   const opponent = tegen ? standings.find((row) => normalizeTeamName(row.name) === normalizeTeamName(tegen)) ?? null : null;
 
   const options = ladderRouteOptions();
@@ -228,19 +237,36 @@ export default async function ClubLadderTeamPage({
           <EmptyState className="mt-3">Geen openbare wedstrijd gevonden.</EmptyState>
         ) : (
           <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {teamFixtures.map((fixture) => (
-              <li key={`${fixture.date}-${fixture.time}-${fixture.home}-${fixture.away}`} className="rounded-md border bg-background p-3 text-sm">
-                <p className="font-medium">{fixtureWhen(fixture)}</p>
-                <p className="mt-1">
-                  {fixture.home} – {fixture.away}
-                </p>
-                {(fixture.route || fixture.powerups.length > 0) && (
-                  <p className="mt-1 text-muted-foreground">
-                    {[fixture.route, fixture.powerups.join(", ")].filter(Boolean).join(" · ")}
+            {teamFixtures.map((fixture) => {
+              const eventId = fixture.fixtureId ? eventByFixture.get(fixture.fixtureId) : undefined;
+              const body = (
+                <>
+                  <p className="font-medium">{fixtureWhen(fixture)}</p>
+                  <p className="mt-1">
+                    {fixture.home} – {fixture.away}
                   </p>
-                )}
-              </li>
-            ))}
+                  {(fixture.route || fixture.powerups.length > 0) && (
+                    <p className="mt-1 text-muted-foreground">
+                      {[fixture.route, fixture.powerups.join(", ")].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                </>
+              );
+              return (
+                <li key={`${fixture.date}-${fixture.time}-${fixture.home}-${fixture.away}`}>
+                  {eventId ? (
+                    <Link
+                      href={`/events/${eventId}`}
+                      className="block h-full rounded-md border bg-background p-3 text-sm transition hover:border-primary/40 hover:bg-muted/40"
+                    >
+                      {body}
+                    </Link>
+                  ) : (
+                    <div className="h-full rounded-md border bg-background p-3 text-sm">{body}</div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

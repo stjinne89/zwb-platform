@@ -51,6 +51,8 @@ export type LadderEventFields = {
   description: string | null;
   external_url: string;
   zwift_route_id: number | null;
+  /** Alleen van de wedstrijdpagina (achter login). */
+  zwift_event_id?: number;
   laps: number | null;
   distance_km: number | null;
   elevation_m: number | null;
@@ -63,8 +65,9 @@ function powerupLabel(name: string) {
 }
 
 /**
- * De velden van het event. Route en rondes komen van de wedstrijdpagina als die
- * gelezen is; anders het kleinste rondental dat binnen de ladderregel past.
+ * De velden van het event. Route, rondes en het Zwift-event komen van de
+ * wedstrijdpagina als die gelezen is; anders het kleinste rondental dat binnen
+ * de ladderregel past, en geen Zwift-event.
  */
 export function ladderEventFields(match: LadderFixtureMatch, page: LadderFixturePage | null): LadderEventFields {
   const { fixture } = match;
@@ -76,6 +79,7 @@ export function ladderEventFields(match: LadderFixtureMatch, page: LadderFixture
   const elevation = route && laps ? Math.round((route.leadInElevation ?? 0) + laps * route.elevation) : null;
 
   return {
+    ...(page?.zwiftEventId ? { zwift_event_id: page.zwiftEventId } : {}),
     title: `Club Ladder: ${fixture.home} – ${fixture.away}`,
     start_at: new Date(fixture.startsAt).toISOString(),
     location: route ? `Zwift · ${worldLabel(route.world)}` : "Zwift",
