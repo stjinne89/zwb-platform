@@ -11643,8 +11643,13 @@ heeft geen eigen fit.
 - Een fit op die ritten geeft 42,3 km/h en 0,011 min/hm (mediaan 4,8%
   afwijking), en voor dit event 37 minuten.
 - **Niet doorgevoerd**, op keuze van de eigenaar: het scheelt een paar minuten
-  en een paar TSS, en het blijft een clubgemiddelde. Een snelle A-rijder zit er
-  ook dan onder (Bart reed zijn ZRL-races 3 tot 13% sneller dan het model).
+  en een paar TSS, en het blijft een clubgemiddelde.
+- Een persoonlijke factor (mediaan van je laatste tien Zwift-races t.o.v. het
+  model) is getoetst: over 1860 races van 16 renners zakt de mediane afwijking
+  van 7,0% naar 4,3% (p90 van 15,7% naar 11,8%). Voor Bart zelf helpt het hier
+  niet: zijn factor is 0,99 (38,5 min). Wat op de Muckle Yin afwijkt is de
+  route (de klimterm op glooiend terrein), niet de renner. Alleen getoetst,
+  nog niet gebouwd.
 
 ### Gebouwd — Ladderteam: één teampagina, onder Club Ladder
 
