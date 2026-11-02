@@ -135,14 +135,15 @@ const DEFAULT_TEAM_SEEDS: TeamSeed[] = [
   {
     name: "ZWBandits",
     type: "ladder",
-    division: null,
-    description: "ZWB Club Ladder team",
+    division: "Sapphire-Platinum",
+    description: "ZWB Club Ladder team Sapphire-Platinum",
   },
   {
-    name: "ZWB Zwiftladies",
+    // Heette ZWB Zwiftladies (tot 0295).
+    name: "ZWBeauties",
     type: "ladder",
-    division: null,
-    description: "ZWB Zwiftladies Club Ladder team",
+    division: "Amethyst-Gold",
+    description: "ZWB Club Ladder team Amethyst-Gold",
   },
 ];
 
@@ -153,7 +154,7 @@ const DEFAULT_SOURCE_SEEDS: SourceSeed[] = [
   { teamName: "ZWBeasts", provider: "club_ladder", sourceUrl: CLUB_LADDER_URL, matchName: "ZWBeasts" },
   { teamName: "ZWBullets", provider: "club_ladder", sourceUrl: CLUB_LADDER_URL, matchName: "ZWBullets" },
   { teamName: "ZWBandits", provider: "club_ladder", sourceUrl: CLUB_LADDER_URL, matchName: "ZWBandits" },
-  { teamName: "ZWB Zwiftladies", provider: "club_ladder", sourceUrl: CLUB_LADDER_URL, matchName: "ZWB Zwiftladies" },
+  { teamName: "ZWBeauties", provider: "club_ladder", sourceUrl: CLUB_LADDER_URL, matchName: "ZWBeauties" },
 ];
 
 const LEGACY_WTRL_SOURCE_NAMES = ["ZRL B", "ZRL C"];
