@@ -20,6 +20,7 @@ import {
   type SrcApiResultRow,
   type SrcListEvent,
   type SrcMatchProfile,
+  type SrcResultEvent,
 } from "@/lib/src/results";
 
 /** Na de start van cat 6 duurt het zo lang voor de laatsten binnen zijn. */
@@ -33,7 +34,7 @@ export const SRC_PROVISIONAL_STATUS = "un-official";
 
 export type SrcPost = (path: string, body: Record<string, unknown>) => Promise<unknown>;
 
-async function defaultPost(path: string, body: Record<string, unknown>) {
+export async function postSrcApi(path: string, body: Record<string, unknown>) {
   const response = await safeFetch(`${SRC_RESULTS_API}/${path}`, {
     method: "POST",
     cache: "no-store",
@@ -106,12 +107,50 @@ export function srcRaceNeedsResults(
   return t - new Date(race.results_synced_at).getTime() >= RESYNC_MS;
 }
 
+/**
+ * Zoekt een race in de uitslagenlijst van MyWhoosh (op zondag en geslacht, want
+ * de id's verschillen van die in de agenda). De lijst wordt per pagina
+ * opgehaald en tussen aanroepen gedeeld.
+ */
+export function srcResultFinder(post: SrcPost) {
+  const list: SrcListEvent[] = [];
+  let page = 0;
+  let exhausted = false;
+  return async function findEvent(sunday: string, gender: SrcGender) {
+    for (;;) {
+      const found = findSrcResultEvent(list, sunday, gender);
+      if (found) return found;
+      const oldest = oldestListDay(list);
+      if (exhausted || page >= MAX_LIST_PAGES || (oldest !== null && oldest < sunday)) return null;
+      page += 1;
+      const payload = (await post("src-events-list", { page })) as {
+        data?: { data?: SrcListEvent[] };
+      };
+      const rows = payload?.data?.data;
+      if (!Array.isArray(rows) || rows.length === 0) exhausted = true;
+      else list.push(...rows);
+    }
+  };
+}
+
+/** De hele uitslag van één race, alle renners. */
+export async function fetchSrcRaceResults(post: SrcPost, event: SrcResultEvent) {
+  const payload = (await post("getEventResults", {
+    eventId: event.eventId,
+    dayId: event.dayId,
+    leaderboardType: "individual",
+  })) as { data?: { resultData?: SrcApiResultRow[] } };
+  const rows = payload?.data?.resultData;
+  if (!Array.isArray(rows)) throw new Error("Uitslag zonder renners.");
+  return parseSrcResults(rows);
+}
+
 export async function syncSrcResults(
   admin: SupabaseClient,
   options: { now?: Date; post?: SrcPost; force?: boolean } = {},
 ): Promise<SrcResultsSyncResult> {
   const now = options.now ?? new Date();
-  const post = options.post ?? defaultPost;
+  const post = options.post ?? postSrcApi;
   const deadline = Date.now() + SRC_RESULTS_BUDGET_MS;
   const result: SrcResultsSyncResult = { synced: 0, pending: 0, notes: [] };
 
@@ -147,25 +186,7 @@ export async function syncSrcResults(
     .filter((name): name is string => Boolean(name));
   const profiles = (profileRows ?? []) as SrcMatchProfile[];
 
-  // De uitslagenlijst, gedeeld over alle races van deze run.
-  const list: SrcListEvent[] = [];
-  let page = 0;
-  let exhausted = false;
-  async function findEvent(sunday: string, gender: SrcGender) {
-    for (;;) {
-      const found = findSrcResultEvent(list, sunday, gender);
-      if (found) return found;
-      const oldest = oldestListDay(list);
-      if (exhausted || page >= MAX_LIST_PAGES || (oldest !== null && oldest < sunday)) return null;
-      page += 1;
-      const payload = (await post("src-events-list", { page })) as {
-        data?: { data?: SrcListEvent[] };
-      };
-      const rows = payload?.data?.data;
-      if (!Array.isArray(rows) || rows.length === 0) exhausted = true;
-      else list.push(...rows);
-    }
-  }
+  const findEvent = srcResultFinder(post);
 
   for (const { race } of due) {
     if (Date.now() > deadline) {
@@ -182,14 +203,7 @@ export async function syncSrcResults(
           .eq("event_id", race.event_id);
         continue;
       }
-      const payload = (await post("getEventResults", {
-        eventId: event.eventId,
-        dayId: event.dayId,
-        leaderboardType: "individual",
-      })) as { data?: { resultData?: SrcApiResultRow[] } };
-      const rows = payload?.data?.resultData;
-      if (!Array.isArray(rows)) throw new Error("Uitslag zonder renners.");
-      const parsed = parseSrcResults(rows);
+      const parsed = await fetchSrcRaceResults(post, event);
       const stored = srcRelevantResults(parsed, teamNames, profiles);
       const teams = srcTeamStandings(parsed);
       const { error: replaceError } = await admin.rpc("src_replace_results", {

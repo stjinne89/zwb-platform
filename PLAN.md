@@ -476,10 +476,12 @@ gaat stabiliteit voor nieuwe features.
    met echte snapshots kijken, en het aanwijzen op een laptop en tikken op een
    telefoon proberen.
 
-22. **SRC: uitslag opnieuw ophalen na een MyWhoosh-id** (ronde van 2026-11-02
-   hieronder): gebouwd en lokaal getest, niet gepusht. Geen migratie. Open:
-   Femke vult haar MyWhoosh-ID in op `/profiel`; daarna nakijken dat ze in de
-   uitslag van 1 november staat en op `/src` 1/2 heeft.
+22. **SRC: lid zonder herkenbare naam koppelen** (rondes van 2026-11-02
+   hieronder: "uitslag opnieuw ophalen na een MyWhoosh-id" en "renner zoeken in
+   de uitslag"): gebouwd en lokaal getest, niet gepusht. Geen migratie. Open:
+   na de deploy op `/beheer/src` bij de race van 1 november (dames) op "Femke"
+   zoeken, haar koppelen en Nu verversen; daarna nakijken dat ze in die uitslag
+   staat en op `/src` 1/2 heeft. Het zoeken is nog niet tegen MyWhoosh gedraaid.
 
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
@@ -11586,10 +11588,58 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — SRC: renner zoeken in de uitslag
+
+**2026-11-02.** Commit "SRC: renner op naam zoeken in de hele uitslag". Geen
+migratie. Niet gepusht.
+
+**Aanleiding.** Op de ronde hieronder zei de eigenaar dat er voor een lid geen
+MyWhoosh-id bestaat: het id staat alleen in de uitslag-API, en een lid ziet het
+nergens. Het profielveld helpt Femke dus niet. Een beheerder kon haar ook niet
+koppelen, want `/beheer/src` toont alleen renners die al in `src_results`
+staan, en zij werd niet bewaard.
+
+**Nu.**
+- `/beheer/src` heeft een blok "Renner zoeken in de uitslag": kies een gereden
+  race van deze of vorige maand, zoek op (een deel van de) naam, kies het lid en
+  koppel. De server-actie `searchSrcRaceRiders` haalt de hele uitslag live bij
+  MyWhoosh op, zoekt met `searchSrcResults` (`src/lib/src/results.ts`;
+  hoofdletters en accenten tellen niet, minstens twee tekens, hooguit 20
+  treffers) en geeft naam, team, categorie en tijd terug. Er wordt niets
+  bewaard.
+- Koppelen gaat via het bestaande `linkSrcRider`: het id gaat in het profiel,
+  en `requestSrcResultsRecheck` zet de races van deze en vorige maand klaar. De
+  volgende cron-run (elk uur) of Nu verversen haalt ze op en koppelt het lid op
+  id. Officiële races en races van meer dan twee weken oud tellen daarbij mee.
+- Het zoeken in de lijst van MyWhoosh en het ophalen van één uitslag zijn uit
+  `syncSrcResults` gehaald (`srcResultFinder`, `fetchSrcRaceResults`,
+  `postSrcApi` in `results-sync.ts`), zodat de sync en het zoeken dezelfde code
+  gebruiken.
+- `/hulp`: bij de SRC staat dat een beheerder je één keer koppelt als je naam
+  en team niet volstaan; bij Beheer → SRC-kalender staat hoe dat gaat. De zin
+  uit de ronde hieronder over het MyWhoosh-ID in je profiel is vervangen.
+
+**Bewust niet.**
+- Geen automatisch voorstel op voornaam. Dan zouden we vreemden met dezelfde
+  voornaam bewaren, terwijl de privacyverklaring alleen exacte naamgenoten
+  noemt. Zoeken door een beheerder bewaart niets, dus de privacytekst blijft
+  zoals hij is: die zegt al dat een beheerder je MyWhoosh-ID kan koppelen.
+- Het profielveld MyWhoosh-ID blijft staan: daar zie je het gekoppelde id, en
+  het nieuwe of gewijzigde id zet nog steeds de uitslagen klaar.
+- Geen direct ophalen na het koppelen. Dat kost tot 18 seconden; Nu verversen
+  doet het al als je niet op de cron wilt wachten.
+
+**Getest.** `tests/unit/src-results.test.ts`: `searchSrcResults` (deel van de
+naam, zonder hoofdletters en accenten, niet op één letter, limiet), en de
+bestaande sync-tests lopen via de uitgelichte functies. Verder `tsc`, ESLint
+op de gewijzigde bestanden en de unit-suite (3719 groen; `omnium-live.test.ts`
+mist `.env.local` in deze omgeving). *Niet geverifieerd:* het blok in de browser (vraagt
+een ingelogde beheerder), en het zoeken tegen MyWhoosh zelf (vanuit deze
+omgeving geblokkeerd).
+
 ### Gebouwd — SRC: uitslag opnieuw ophalen na een MyWhoosh-id
 
-**2026-11-02.** Commit "SRC: uitslag opnieuw ophalen na een nieuw MyWhoosh-id".
-Geen migratie. Niet gepusht.
+**2026-11-02.** Commit `e6ed975`. Geen migratie. Niet gepusht.
 
 **Aanleiding.** Vraag eigenaar: Femke stond niet in de SRC-uitslag, terwijl ze
 op 11 oktober en 1 november een damesrace reed (beide op Strava). Onderzocht op
@@ -11599,7 +11649,9 @@ bewaart alleen renners onder een ZWB-teamnaam, op MyWhoosh-id, of met precies
 de naam van een lid. Femke rijdt voor FEMME CYCLE COLLAB, heeft geen
 MyWhoosh-id, en haar weergavenaam is alleen "Femke". Ze viel dus helemaal weg,
 ook als koppelvoorstel, en is daardoor niet te koppelen op `/beheer/src`.
-De oplossing is haar MyWhoosh-id in het profiel. Maar een officiële race werd
+De oplossing leek haar MyWhoosh-id in het profiel. *Achteraf: een lid kan dat
+id nergens vinden; zie de ronde "renner zoeken in de uitslag" hierboven.* Ook
+werd een officiële race
 nooit meer opgehaald, ook niet met Nu verversen. De race van 1 november werd op
 2026-11-02 om 13:00 UTC officieel, dus een later ingevuld id hielp niet meer
 voor haar novembertelling.

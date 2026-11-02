@@ -216,6 +216,16 @@ export function srcRelevantResults(
   return stored;
 }
 
+/**
+ * Renners uit een hele uitslag op (een deel van) hun naam, voor het koppelen
+ * door een beheerder als naam, team en MyWhoosh-id niet volstaan.
+ */
+export function searchSrcResults(results: SrcResult[], query: string, limit = 20) {
+  const needle = normalizeName(query);
+  if (needle.length < 2) return [];
+  return results.filter((result) => normalizeName(result.name).includes(needle)).slice(0, limit);
+}
+
 /** Een race telt voor de finale als je hem uitreed. */
 export function srcCompleted(result: { finished_ms: number | string | null }) {
   const ms = Number(result.finished_ms ?? 0);

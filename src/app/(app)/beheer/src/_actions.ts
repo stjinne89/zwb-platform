@@ -5,7 +5,14 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { syncSrcCalendar } from "@/lib/src/sync";
-import { requestSrcResultsRecheck } from "@/lib/src/results-sync";
+import {
+  fetchSrcRaceResults,
+  postSrcApi,
+  requestSrcResultsRecheck,
+  srcResultFinder,
+} from "@/lib/src/results-sync";
+import { formatRaceTime, searchSrcResults } from "@/lib/src/results";
+import type { SrcGender } from "@/lib/src/feed";
 import { SRC_MANAGERS as MANAGERS } from "@/lib/src/access";
 
 /** De knop "Nu verversen": haalt de SRC-agenda op en zet nieuwe zondagen erin. */
@@ -110,4 +117,53 @@ export async function linkSrcRider(mywhooshUserId: string, profileId: string) {
   revalidatePath("/src");
   revalidatePath("/events/[id]", "page");
   return { ok: true as const };
+}
+
+export type SrcFoundRider = {
+  userId: string;
+  name: string;
+  teamName: string | null;
+  category: number | null;
+  time: string;
+};
+
+/**
+ * Zoekt op naam in de hele, openbare uitslag van een gereden race, voor een lid
+ * dat niet onder een ZWB-teamnaam en niet onder precies zijn eigen naam rijdt.
+ * Wordt live bij MyWhoosh opgehaald en niet bewaard.
+ */
+export async function searchSrcRaceRiders(raceEventId: string, query: string) {
+  const supabase = await createClient();
+  const access = await getCurrentUserAccess(supabase);
+  if (!access.user) return { ok: false as const, error: "Niet ingelogd." };
+  if (!access.hasAny(MANAGERS)) {
+    return { ok: false as const, error: "Geen recht om renners te koppelen." };
+  }
+  if (query.trim().length < 2) return { ok: false as const, error: "Typ minstens twee letters." };
+
+  const { data: race } = await createAdminClient()
+    .from("src_races")
+    .select("sunday, gender")
+    .eq("event_id", raceEventId)
+    .maybeSingle();
+  if (!race) return { ok: false as const, error: "Race niet gevonden." };
+
+  try {
+    const event = await srcResultFinder(postSrcApi)(race.sunday as string, race.gender as SrcGender);
+    if (!event) return { ok: false as const, error: "MyWhoosh geeft deze uitslag niet (meer)." };
+    const results = await fetchSrcRaceResults(postSrcApi, event);
+    const riders: SrcFoundRider[] = searchSrcResults(results, query).map((result) => ({
+      userId: result.userId,
+      name: result.name,
+      teamName: result.teamName,
+      category: result.category,
+      time: formatRaceTime(result.finishedMs),
+    }));
+    return { ok: true as const, riders };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Uitslag ophalen mislukt.",
+    };
+  }
 }

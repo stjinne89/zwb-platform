@@ -9,6 +9,8 @@ import { SRC_MANAGERS } from "@/lib/src/access";
 import { RefreshButton } from "./_components/refresh-button";
 import { SrcTeamForm } from "./_components/team-form";
 import { LinkRiders, type SrcUnlinkedRider } from "./_components/link-riders";
+import { FindRider } from "./_components/find-rider";
+import { srcRecheckFrom } from "@/lib/src/results-sync";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +38,8 @@ function when(iso: string | null) {
   });
 }
 
+const DAY = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", timeZone: "UTC" });
+
 function time(iso: string) {
   return new Date(iso).toLocaleTimeString("nl-NL", {
     hour: "2-digit",
@@ -59,6 +63,7 @@ export default async function SrcKalenderPage() {
     { data: teamRows },
     { data: unlinkedRows },
     { data: memberRows },
+    { data: racedRows },
   ] = await Promise.all([
       supabase
         .from("src_sync_state")
@@ -94,6 +99,13 @@ export default async function SrcKalenderPage() {
         .eq("is_approved", true)
         .order("display_name")
         .limit(1000),
+      // Gereden races van deze en vorige maand, om in de hele uitslag te zoeken.
+      supabase
+        .from("src_races")
+        .select("event_id, sunday, gender")
+        .not("results_status", "is", null)
+        .gte("sunday", srcRecheckFrom(new Date()))
+        .order("sunday", { ascending: false }),
     ]);
   // Per MyWhoosh-renner één regel, met het aantal races en het laatste voorstel.
   const unlinked = new Map<string, SrcUnlinkedRider>();
@@ -120,6 +132,11 @@ export default async function SrcKalenderPage() {
   const members = ((memberRows ?? []) as Array<{ id: string; display_name: string | null }>).map(
     (row) => ({ id: row.id, name: row.display_name ?? "Onbekend" }),
   );
+  const raced = ((racedRows ?? []) as Array<{ event_id: string; sunday: string; gender: SrcGender }>)
+    .map((race) => ({
+      id: race.event_id,
+      label: `${DAY.format(new Date(`${race.sunday}T12:00:00Z`))} · ${genderLabel(race.gender)}`,
+    }));
   const teams = (teamRows ?? []) as Array<{
     id: string;
     name: string;
@@ -180,6 +197,15 @@ export default async function SrcKalenderPage() {
             Renners koppelen
           </h2>
           <LinkRiders riders={riders} members={members} />
+        </section>
+      )}
+
+      {raced.length > 0 && (
+        <section className="space-y-3 rounded-lg border bg-card p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Renner zoeken in de uitslag
+          </h2>
+          <FindRider races={raced} members={members} />
         </section>
       )}
 
