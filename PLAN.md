@@ -84,10 +84,9 @@ gaat stabiliteit voor nieuwe features.
    training niet meer vast".
 
 0j. **Club Ladder-teampagina (2026-11-02): lokaal gecommit (`f812196e`), migratie `0298`
-   niet toegepast, niet gepusht.** Tot `0298` is toegepast, toont de pagina
-   geen favorieten en bewaart ze geen uitslagen. Nalopen na toepassen: 14
-   favorieten bij ZWBeauties en ZWBandits, en ingelogd een advies openen tegen
-   een uit te dagen ploeg. Zie de ronde "Club Ladder: teampagina, favoriete
+   toegepast op 2026-11-02 (op verzoek van de eigenaar; 14 favorieten bij
+   ZWBeauties en ZWBandits nagelopen), code niet gepusht.** Nalopen na de push:
+   ingelogd een advies openen tegen een uit te dagen ploeg. Zie de ronde "Club Ladder: teampagina, favoriete
    parcoursen en route-advies". Daar staat ook dat de codehelft van `0295` niet
    op `main` staat.
 
@@ -11607,7 +11606,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Club Ladder: teampagina, favoriete parcoursen en route-advies
 
 **2026-11-02.** Commit `f812196e`. Migratie `0298_club_ladder_routes.sql` (`0297` is op `main` en
-in productie al bezet). Lokaal gecommit, **niet toegepast en niet gepusht**.
+in productie al bezet). **Toegepast op productie op 2026-11-02** via de
+Supabase-connector, op verzoek van de eigenaar; daarna hebben ZWBandits en
+ZWBeauties elk 14 favorieten en staat RLS aan zonder policies op de drie
+tabellen. De code is lokaal gecommit, **niet gepusht**.
 
 **Waarom.** Vraag eigenaar: per ladderteam een eigen pagina met de ranking en
 welke teams uit te dagen zijn, een lijst favoriete parcoursen (een selectie uit
@@ -11683,8 +11685,8 @@ eigen pagina.
 - De drempels van de typering en de gewichten van het advies zijn een eigen
   vuistregel, niet getoetst aan uitslagen.
 
-**Niet lokaal te verifiëren.** De migratie (geen Docker of Supabase-config) en
-het ophalen van Zwift-uitslagen voor ladder-events. De parsers zijn getest op de
+**Niet lokaal te verifiëren.** De migratie (geen Docker of Supabase-config; na
+het toepassen met leesquery's nagelopen) en het ophalen van Zwift-uitslagen voor ladder-events. De parsers zijn getest op de
 echte HTML van 2 november (summary: 245 teams met ID, 78 uitslagen; uitslag
 17855: 10 renners, juist over beide teams verdeeld). Typecheck en lint schoon;
 de unit tests slagen. De teampagina is niet ingelogd in de browser bekeken.
