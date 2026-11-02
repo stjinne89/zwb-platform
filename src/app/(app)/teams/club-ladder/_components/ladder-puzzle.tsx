@@ -489,6 +489,7 @@ function Piece({
             {ladderRankName(rider.rank)}
           </span>
         )}
+        {rider.velo != null && <span className="tabular-nums">vELO1 {Math.round(rider.velo)}</span>}
         {!rider.zwiftId && <span className="text-destructive">geen Zwift-ID</span>}
         {rider.sex && <span>{rider.sex}</span>}
         {rider.kind === "roster" && <span>geen account</span>}

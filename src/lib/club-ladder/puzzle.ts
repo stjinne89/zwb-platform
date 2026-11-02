@@ -6,6 +6,7 @@
 // team beslaat hooguit 3 ranks; hoeveel renners er per rank zijn, maakt niet uit.
 // Beslaat een team er meer, dan scoren de hoogst gerankte renners 50%.
 
+import { rankFromLegacyVelo } from "./legacy-velo";
 import type { LadderRider, LadderSex } from "./riders";
 
 export const LADDER_RANK_NAMES: Record<number, string> = {
@@ -48,6 +49,8 @@ export type LadderPuzzleRider = {
   sex: LadderSex;
   zwiftId: string | null;
   rank: number | null;
+  /** Legacy vELO waar de ladder mee rekent (max 30 dagen, anders 90), 0301. */
+  velo: number | null;
   /** In welk puzzelteam hij ligt; null = losse stukjes. */
   teamId: string | null;
 };
@@ -101,6 +104,18 @@ export type LadderRosterRow = {
 };
 
 /**
+ * Rank zoals de ladder hem telt: de vastgezette rank uit `ladder_ranks`, maar
+ * stijgt de legacy vELO een klasse, dan geldt meteen de hogere (Race Book: tussen
+ * transferperiodes zakt een rank niet, stijgen telt wel). Zonder vastgezette
+ * rank de klasse van de vELO.
+ */
+export function effectiveLadderRank(stored: number | null, velo: number | null): number | null {
+  const fromVelo = rankFromLegacyVelo(velo);
+  if (stored == null) return fromVelo;
+  return fromVelo != null && fromVelo < stored ? fromVelo : stored;
+}
+
+/**
  * Leden uit de ladderlijst plus rosternamen zonder account. Een rosternaam met
  * het Zwift-ID van een lid in de lijst valt weg: dat is dezelfde renner.
  */
@@ -109,11 +124,14 @@ export function buildPuzzleRiders(
   roster: LadderRosterRow[],
   ranks: ReadonlyMap<string, number>,
   puzzleTeamIds: ReadonlySet<string>,
+  velos: ReadonlyMap<number, number> = new Map(),
 ): LadderPuzzleRider[] {
   const memberZwiftIds = new Set(
     members.map((member) => (member.zwiftId == null ? null : String(member.zwiftId))),
   );
-  const rankOf = (zwiftId: string | null) => (zwiftId ? (ranks.get(zwiftId) ?? null) : null);
+  const veloOf = (zwiftId: string | null) => (zwiftId ? (velos.get(Number(zwiftId)) ?? null) : null);
+  const rankOf = (zwiftId: string | null) =>
+    effectiveLadderRank(zwiftId ? (ranks.get(zwiftId) ?? null) : null, veloOf(zwiftId));
 
   return [
     ...members.map((member) => {
@@ -126,6 +144,7 @@ export function buildPuzzleRiders(
         sex: member.sex,
         zwiftId,
         rank: rankOf(zwiftId),
+        velo: veloOf(zwiftId),
         teamId: puzzleTeamFor(member.teamIds, puzzleTeamIds),
       };
     }),
@@ -140,6 +159,7 @@ export function buildPuzzleRiders(
         sex: row.sex === "man" || row.sex === "vrouw" ? row.sex : null,
         zwiftId,
         rank: rankOf(zwiftId),
+        velo: veloOf(zwiftId),
         teamId: row.team_id && puzzleTeamIds.has(row.team_id) ? row.team_id : null,
       })),
   ];

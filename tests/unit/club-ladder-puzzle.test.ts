@@ -14,7 +14,7 @@ import {
 const team: LadderPuzzleTeam = { id: "t", name: "ZWBrains", archived: false, band: [4, 6] };
 
 function rider(name: string, rank: number | null): LadderPuzzleRider {
-  return { key: `p:${name}`, kind: "profile", id: name, name, sex: null, zwiftId: null, rank, teamId: "t" };
+  return { key: `p:${name}`, kind: "profile", id: name, name, sex: null, zwiftId: null, rank, velo: null, teamId: "t" };
 }
 
 describe("checkLadderTeam", () => {

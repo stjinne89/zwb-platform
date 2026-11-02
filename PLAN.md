@@ -105,6 +105,14 @@ gaat stabiliteit voor nieuwe features.
    samenvatting in de Strava-beschrijving. Zie de ronde "Ritten via intervals.icu
    naast Strava".
 
+0m. **Legacy vELO voor de Club Ladder (2026-11-02): gebouwd, lokaal getest,
+   niet gepusht. Migratie `0301` nog niet toegepast.** Toepassen op verzoek van
+   de eigenaar, met daarna de 64 opgehaalde ratings (staan niet in de repo; bij
+   een volgende sessie opnieuw ophalen via Chrome, zie de ronde). Vóór het
+   toepassen: de privacytekst over de ladder (ZRS → vELO1, en dat de rating van
+   ieder lid met een Zwift-ID wordt bewaard) voorleggen. Zie de ronde "Club
+   Ladder: legacy vELO per renner".
+
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
    (limiet 5 GB), en de banner "Organization exceeded its quota in the previous
@@ -11618,6 +11626,65 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: legacy vELO per renner
+
+**2026-11-02.** Migratie `0301_zwift_legacy_velo.sql` (niet toegepast; `0300`
+was op `main` intussen bezet door `0300_club_ladder_fixture_events`). Niet gepusht.
+
+**Waarom.** Vraag van de eigenaar: voor ieder lid de legacy vELO, zodat de
+Ladder die kan gebruiken. Het Club Ladder Race Book (gelezen 2026-11-02 via
+ladder.cycleracing.club/rules) zegt sinds 23 oktober 2026: elke verwijzing naar
+vELO is vELO1 (legacy), niet vELO 2. De rank is de **open/mixed** klasse van de
+hoogste rating over **30 dagen**, zonder 30-dagenwaarde die over 90 dagen; ook in
+de damesladder de open schaal (daar tellen Emerald–Diamond als één rank).
+
+**Bron.** zwiftracing.app heeft per renner een vELO-grafiek met Current/Legacy.
+De site is een TanStack Start-app; de loader van `/riders/$riderId/` geeft
+`legacyRatings: {live, max30, max90}`. Uitgelezen in Chrome (ingelogd als de
+eigenaar) met `__TSR_ROUTER__.preloadRoute(...)` per Zwift-ID, één tegelijk met
+0,8 s pauze. De clubpagina (`/clubs/<id>`) geeft alleen vELO 2, dus geen batch.
+De klassengrenzen staan in de bundel van de site (legacy open: Diamond 2200,
+Ruby 1900, Emerald 1650, Sapphire 1450, Amethyst 1300, Platinum 1150, Gold 1000,
+Silver 850, Bronze 650, Copper 0). Opgehaald: 102 Zwift-ID's (goedgekeurde
+leden, rosternamen zonder account, `ladder_ranks`); 64 met een rating, 37 zonder
+(geen recente races), 1 onbekend bij ZwiftRacing.
+**Controle:** van de 35 ranks die op 2026-10-29 in `ladder_ranks` zijn gezet,
+kloppen er 34 met de legacy max30-klasse (live 33, max90 30). De ene afwijking is
+een renner die sindsdien van Platinum naar Amethyst steeg.
+
+**Wat.**
+- `0301`: `zwift_legacy_velo` (Zwift-ID, `velo_live`, `velo_max30`,
+  `velo_max90`, `fetched_at`). Op Zwift-ID zodat ook rosternamen erin passen; RLS
+  aan zonder policies, zoals de andere laddertabellen. Geen cache die verloopt:
+  de waardes worden met de hand opgehaald en blijven staan.
+- `src/lib/club-ladder/legacy-velo.ts`: max30 anders max90, klasse uit de
+  rating.
+- Ladderpuzzel: `effectiveLadderRank` — de vastgezette rank uit `ladder_ranks`,
+  maar geeft de vELO1 een hogere rank, dan geldt die (Race Book: tussen
+  transferperiodes zakt een rank niet, stijgen telt meteen). Zonder vastgezette
+  rank de klasse van de vELO1. Op elk stukje staat "vELO1 2734".
+- Teamprofiel: de scorekolom en het gemiddelde zijn vELO1 zodra de tabel
+  bestaat; zonder `0301` blijft het ZRS (of vELO 2 met een API-sleutel). Eén
+  bron per kolom, nooit per renner. `loadLadderRiders` geeft de bron terug.
+- `/hulp` (Teams en wedstrijden) beschrijft vELO1 en de rankregel.
+
+**Bewust niet.**
+- Geen automatisch verversen vanaf de server: de site zit achter een
+  Vercel-controle en wordt niet uitgelezen (besluit 2026-10-20); de API-sleutel
+  is er nog niet. Verversen = opnieuw via Chrome ophalen.
+- `ladder_ranks` niet overschreven: de vastgezette ranks blijven, de vELO1
+  promoveert alleen. Een captain die een lagere rank kiest dan de vELO1 geeft,
+  ziet de hogere terug.
+- De damesgrenzen van de site (legacy women) niet gebruikt: het Race Book noemt
+  de open/mixed rank.
+- De privacytekst niet aangepast: eerst voorleggen (zie 0m).
+
+**Gecontroleerd.** `tsc` schoon, ESLint op `teams/club-ladder`,
+`lib/club-ladder` en de tests, Vitest `club-ladder-*` en `help-*` (66 tests,
+waarvan 5 nieuw in `club-ladder-legacy-velo.test.ts`). **Niet geverifieerd:**
+de migratie (geen Docker of Supabase-config hier) en de pagina's met vELO1 in de
+browser (kan pas na het toepassen; de pagina vraagt een login).
+
 ### Gebouwd — Ladderparcoursen: hoogteprofiel uitklappen, door naar ZwiftInsider
 
 **2026-11-02.** Geen migratie. Op verzoek van de eigenaar: een parcours in de
@@ -13900,6 +13967,8 @@ de hele club.
 - Sorteren via de kolomkoppen (`?sort=`, standaard W/kg). Getallen van hoog naar
   laag, tekst van A naar Z, lege waardes onderaan; binnen een categorie of team
   staat de hoogste W/kg bovenaan.
+- *Achterhaald 2026-11-02:* de ladder rekent met legacy vELO (vELO1), niet
+  vELO 2; zie de ronde "Club Ladder: legacy vELO per renner".
 - **ZRS nu, vELO 2 later.** De score komt uit de cache `zwift_rider_metrics`
   (0260) van de racebriefing, met `loadRiderMetrics` en daarna `after` →
   `refreshRiderMetrics` (zelfde budget van 20 s) voor wat ontbreekt of ouder is
@@ -13934,6 +14003,8 @@ naar 11 van de 12), zoals de racebriefing ook doet.
 `parseZwiftRacingRider` leest `race.rating` zonder dat vaststaat of dat vELO 2
 of legacy vELO is. Dat wordt uitgezocht in de aparte sessie "Zwiftracing ranking
 systeem: legacy vs velo 2"; de ladderlijst toont wat daar in `velo` belandt.
+*Uitgezocht 2026-11-02: de ladder gebruikt legacy vELO (max 30 dagen); die komt
+uit `zwift_legacy_velo` (0301), niet uit `velo`.*
 **Bekend na de bouw:** bij Rolf Buunk bleef de ZRS leeg, terwijl ZwiftPower 651
 toont en hij die avond ZRL reed. Oorzaak (gemeten 2026-10-27): zijn Zwift-profiel
 heeft `privacy.approvalRequired: true`, en dan geeft `profiles/{id}` aan het

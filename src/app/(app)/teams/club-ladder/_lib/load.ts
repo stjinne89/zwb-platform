@@ -15,14 +15,61 @@ import {
   type LadderPuzzleTeam,
   type LadderRosterRow,
 } from "@/lib/club-ladder/puzzle";
+import { ladderVeloByZwiftId, type LegacyVeloRow } from "@/lib/club-ladder/legacy-velo";
 import { normalizeTeamName } from "@/lib/ladder";
 import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metrics";
+import { zwiftRacingConfigured } from "@/lib/zwiftracing/client";
 import type { CaptainTeam } from "../_components/ladder-captains";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 /** Zelfde budget als de racebriefing voor ZRS/vELO die ontbreken of verlopen zijn. */
 const METRICS_REFRESH_BUDGET_MS = 20_000;
+
+/**
+ * Waar de scorekolom van de ladder uit komt: legacy vELO (0301) zodra die tabel
+ * er is, anders ZRS of vELO 2 uit de cache van de racebriefing. Eén bron voor de
+ * hele kolom, nooit per renner: de schalen verschillen.
+ */
+export type LadderScoreSource = "legacy" | "velo2" | "zrs";
+
+export const LADDER_SCORE_LABELS: Record<LadderScoreSource, string> = {
+  legacy: "vELO1",
+  velo2: "vELO 2",
+  zrs: "ZRS",
+};
+
+/** Ladder-vELO per Zwift-ID; null zolang 0301 niet is toegepast. */
+export async function loadLegacyVelo(
+  admin: ReturnType<typeof createAdminClient>,
+  zwiftIds: number[],
+): Promise<Map<number, number> | null> {
+  if (zwiftIds.length === 0) {
+    const { error } = await admin.from("zwift_legacy_velo").select("zwift_id").limit(1);
+    return error ? null : new Map();
+  }
+  const { data, error } = await admin
+    .from("zwift_legacy_velo")
+    .select("zwift_id, velo_live, velo_max30, velo_max90")
+    .in("zwift_id", zwiftIds);
+  if (error) return null;
+  return ladderVeloByZwiftId((data ?? []) as LegacyVeloRow[]);
+}
+
+/** Score per Zwift-ID uit de gekozen bron; ZRS en vELO 2 vullen de cache achteraf aan. */
+async function loadScores(
+  admin: ReturnType<typeof createAdminClient>,
+  zwiftIds: number[],
+  source: LadderScoreSource,
+): Promise<Map<number, number | null>> {
+  if (source === "legacy") return (await loadLegacyVelo(admin, zwiftIds)) ?? new Map();
+  const metrics = await loadRiderMetrics(zwiftIds);
+  // Wat ontbreekt of ouder is dan een dag, komt na het antwoord binnen.
+  after(() => refreshRiderMetrics(zwiftIds, metrics, { budgetMs: METRICS_REFRESH_BUDGET_MS }));
+  return new Map(
+    Array.from(metrics, ([id, row]) => [id, source === "velo2" ? row.velo : row.racingScore] as const),
+  );
+}
 
 /** Renner in het teamprofiel: een lid, of een rosternaam zonder account (0290). */
 export type TeamProfileRider = LadderRider & { rosterEntryId: string | null };
@@ -195,12 +242,17 @@ export async function loadLadderPuzzle(
   const ranks = new Map(
     ((rankRows ?? []) as Array<{ zwift_id: string; rank: number }>).map((row) => [row.zwift_id, row.rank]),
   );
+  const velos =
+    (await loadLegacyVelo(
+      admin,
+      zwiftIds.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0),
+    )) ?? new Map<number, number>();
 
   return {
     teams,
     otherTeams,
     roster,
-    riders: buildPuzzleRiders(members, roster, ranks, new Set(teams.map((team) => team.id))),
+    riders: buildPuzzleRiders(members, roster, ranks, new Set(teams.map((team) => team.id)), velos),
   };
 }
 
@@ -218,7 +270,8 @@ export async function loadTeamRosterRiders(
   teamId: string,
   roster: LadderRosterRow[],
   members: LadderRider[],
-  useVelo: boolean,
+  admin: ReturnType<typeof createAdminClient>,
+  source: LadderScoreSource,
 ): Promise<TeamProfileRider[]> {
   const memberZwiftIds = new Set(members.map((member) => member.zwiftId));
   const rows = roster
@@ -228,11 +281,9 @@ export async function loadTeamRosterRiders(
   if (rows.length === 0) return [];
 
   const zwiftIds = rows.map(({ zwiftId }) => zwiftId).filter((id): id is number => id != null);
-  const metrics = await loadRiderMetrics(zwiftIds);
-  after(() => refreshRiderMetrics(zwiftIds, metrics, { budgetMs: METRICS_REFRESH_BUDGET_MS }));
+  const scores = await loadScores(admin, zwiftIds, source);
   return rows.map(({ row, zwiftId }) => {
-    const metric = zwiftId == null ? undefined : metrics.get(zwiftId);
-    const score = useVelo ? metric?.velo : metric?.racingScore;
+    const score = zwiftId == null ? null : scores.get(zwiftId);
     return {
       id: row.roster_entry_id,
       rosterEntryId: row.roster_entry_id,
@@ -306,12 +357,11 @@ export async function loadLadderRiders(
   ladderTeams: TeamRow[],
   admin: ReturnType<typeof createAdminClient>,
   supabase: Awaited<ReturnType<typeof createClient>>,
-  useVelo: boolean,
-): Promise<{ riders: LadderRider[]; withdrawn: Set<string> }> {
+): Promise<{ riders: LadderRider[]; withdrawn: Set<string>; scoreSource: LadderScoreSource }> {
   // Ook teams in het archief: een captain kan er al renners in zetten voordat het
   // team op de ladder terugkeert.
   const teamNames = new Map(ladderTeams.map((team) => [team.id, team.name]));
-  const [{ data: memberRows }, { data: poolRows }, { data: withdrawnRows }] = await Promise.all([
+  const [{ data: memberRows }, { data: poolRows }, { data: withdrawnRows }, legacyProbe] = await Promise.all([
     ladderTeams.length > 0
       ? admin
           .from("team_members")
@@ -322,7 +372,10 @@ export async function loadLadderRiders(
     admin.from("ladder_pool").select("profile_id"),
     // Uit de ladder gehaald (0291); leeg zolang die niet is toegepast.
     admin.from("ladder_withdrawn").select("profile_id"),
+    loadLegacyVelo(admin, []),
   ]);
+  // De ladder rekent sinds het Race Book van 2026-10-23 met legacy vELO; ZRS was tijdelijk.
+  const scoreSource: LadderScoreSource = legacyProbe ? "legacy" : zwiftRacingConfigured() ? "velo2" : "zrs";
   const withdrawn = new Set(
     ((withdrawnRows ?? []) as Array<{ profile_id: string }>).map((row) => row.profile_id),
   );
@@ -350,7 +403,7 @@ export async function loadLadderRiders(
   const profiles = ((profileRows ?? []) as LadderRiderProfile[]).filter(
     (profile) => !withdrawn.has(profile.id) || teamMemberIds.has(profile.id),
   );
-  if (profiles.length === 0) return { riders: [], withdrawn };
+  if (profiles.length === 0) return { riders: [], withdrawn, scoreSource };
 
   const zwiftIds = Array.from(
     new Set(
@@ -359,7 +412,7 @@ export async function loadLadderRiders(
         .filter((id) => Number.isSafeInteger(id) && id > 0),
     ),
   );
-  const [{ data: powerRows }, metrics] = await Promise.all([
+  const [{ data: powerRows }, scores] = await Promise.all([
     supabase
       .from("rider_power_profiles")
       .select("profile_id, ftp_watts, ftp_wkg, wkg_1m, wkg_5m, wkg_20m, rider_type")
@@ -367,13 +420,8 @@ export async function loadLadderRiders(
         "profile_id",
         profiles.map((profile) => profile.id),
       ),
-    loadRiderMetrics(zwiftIds),
+    loadScores(admin, zwiftIds, scoreSource),
   ]);
-  // Wat ontbreekt of ouder is dan een dag, komt na het antwoord binnen.
-  after(() => refreshRiderMetrics(zwiftIds, metrics, { budgetMs: METRICS_REFRESH_BUDGET_MS }));
-  const scores = new Map(
-    Array.from(metrics, ([id, row]) => [id, useVelo ? row.velo : row.racingScore] as const),
-  );
   return {
     riders: buildLadderRiders(
       profiles,
@@ -383,5 +431,6 @@ export async function loadLadderRiders(
       poolIds,
     ),
     withdrawn,
+    scoreSource,
   };
 }

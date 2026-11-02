@@ -19,7 +19,6 @@ import {
 import { DURATIONS, teamPowerFromMatches, topFiveAverage, type TeamPower } from "@/lib/club-ladder/team-power";
 import { normalizeTeamName } from "@/lib/ladder";
 import { getRequestAccess } from "@/lib/auth/request";
-import { zwiftRacingConfigured } from "@/lib/zwiftracing/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -33,6 +32,7 @@ import {
   loadLadderRiders,
   loadLadderTeams,
   loadTeamRosterRiders,
+  LADDER_SCORE_LABELS,
   n,
   strengthFor,
   teamAliases,
@@ -72,15 +72,14 @@ export default async function ClubLadderTeamPage({
   const team = teamRows.find((row) => row.id === teamId);
   if (!team) notFound();
 
-  const useVelo = zwiftRacingConfigured();
-  const scoreLabel = useVelo ? "vELO 2" : "ZRS";
-  const [{ riders: loadedRiders, withdrawn }, canAssign, canEditRoutes, { data: favoriteRows }] = await Promise.all([
-    loadLadderRiders(teamRows, admin, supabase, useVelo),
+  const [{ riders: loadedRiders, withdrawn, scoreSource }, canAssign, canEditRoutes, { data: favoriteRows }] = await Promise.all([
+    loadLadderRiders(teamRows, admin, supabase),
     canAssignLadderRiders(access),
     canEditLadderPuzzle(access),
     // Leeg zolang 0298 niet is toegepast.
     admin.from("club_ladder_favorite_routes").select("route_slug").eq("team_id", team.id),
   ]);
+  const scoreLabel = LADDER_SCORE_LABELS[scoreSource];
   const allLadderRiders = loadedRiders.filter((rider) => !withdrawn.has(rider.id));
   const puzzle = await loadLadderPuzzle(teamRows, allLadderRiders, admin);
   const teamRiders: TeamProfileRider[] = sortLadderRiders(
@@ -88,7 +87,7 @@ export default async function ClubLadderTeamPage({
       ...loadedRiders
         .filter((rider) => rider.teamIds.includes(team.id))
         .map((rider) => ({ ...rider, rosterEntryId: null })),
-      ...(await loadTeamRosterRiders(team.id, puzzle?.roster ?? [], loadedRiders, useVelo)),
+      ...(await loadTeamRosterRiders(team.id, puzzle?.roster ?? [], loadedRiders, admin, scoreSource)),
     ],
     riderSort,
   );

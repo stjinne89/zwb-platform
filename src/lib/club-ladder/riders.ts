@@ -37,7 +37,7 @@ export type LadderRider = {
   name: string;
   sex: LadderSex;
   zwiftId: number | null;
-  /** ZRS, of vELO 2 zodra ZwiftRacing gekoppeld is; nooit door elkaar. */
+  /** Legacy vELO (0301), anders ZRS of vELO 2; per lijst één bron, nooit door elkaar. */
   score: number | null;
   teams: string[];
   teamIds: string[];
