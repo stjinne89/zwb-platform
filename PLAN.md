@@ -106,9 +106,10 @@ gaat stabiliteit voor nieuwe features.
    naast Strava".
 
 0m. **Legacy vELO voor de Club Ladder (2026-11-02): gebouwd, lokaal getest,
-   niet gepusht. Migratie `0301` toegepast en de 64 ratings ingevuld (op verzoek
-   van de eigenaar).** Tot de push toont productie nog ZRS: de code die de tabel
-   leest, staat alleen op de branch. Open: de privacytekst over de ladder (ZRS →
+   gepusht naar `main` op 2026-11-02 (samen met `4a4cb9ea`, geen cookie naar de
+   openbare stand). Migratie `0301` toegepast en de 64 ratings ingevuld (op
+   verzoek van de eigenaar).** Nalopen: ingelogd op Club Ladder staat vELO1 op de
+   puzzelstukjes en in het teamprofiel. Open: de privacytekst over de ladder (ZRS →
    vELO1, en dat de rating van ieder lid met een Zwift-ID wordt bewaard) is
    voorgelegd, nog niet aangepast. Verversen: opnieuw ophalen via Chrome (zie de
    ronde). Zie de ronde "Club Ladder: legacy vELO per renner".
@@ -11635,7 +11636,8 @@ productie op 2026-11-02** via de Supabase-connector, op verzoek van de eigenaar 
 was op `main` intussen bezet door `0300_club_ladder_fixture_events`). Daarna de 64
 ratings ingevuld (`fetched_at` 2026-11-02 18:30); controle op productie: 64 rijen, RLS
 aan zonder policies, van de 35 ranks in `ladder_ranks` 34 gelijk aan de vELO1-klasse
-en 1 promotie, 29 renners krijgen hun rank alleen uit de vELO1. Niet gepusht.
+en 1 promotie, 29 renners krijgen hun rank alleen uit de vELO1. Gepusht naar `main` op
+2026-11-02, op verzoek van de eigenaar.
 
 **Waarom.** Vraag van de eigenaar: voor ieder lid de legacy vELO, zodat de
 Ladder die kan gebruiken. Het Club Ladder Race Book (gelezen 2026-11-02 via
@@ -11689,11 +11691,12 @@ een renner die sindsdien van Platinum naar Amethyst steeg.
 `lib/club-ladder` en de tests, Vitest `club-ladder-*` en `help-*` (66 tests,
 waarvan 5 nieuw in `club-ladder-legacy-velo.test.ts`). **Niet geverifieerd:**
 de migratie lokaal (geen Docker of Supabase-config hier) en de pagina's met vELO1
-in de browser (de pagina vraagt een login; productie leest de tabel pas na de push).
+in de browser (de pagina vraagt een login).
 
 ### Hersteld — Ladder: geen cookie naar de openbare stand
 
-**2026-11-02.** Geen migratie. De eigenaar zag de ZWBeasts-wedstrijd wel in de
+**2026-11-02.** Commit `4a4cb9ea`, gepusht naar `main` op 2026-11-02 (eigenaar), samen met
+de legacy vELO. Geen migratie. De eigenaar zag de ZWBeasts-wedstrijd wel in de
 kalender, maar niet bij Komende matchups op de teampagina.
 
 - Oorzaak: met een geldige ladder-sessie stuurt `/summary` door naar het
