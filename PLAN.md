@@ -122,9 +122,9 @@ gaat stabiliteit voor nieuwe features.
    Muckle Yin niet meer op 39 minuten staat. Zie de rondes "Zwift-racemodel
    opnieuw gefit" en "Persoonlijk racetempo in de duur van een Zwift-race".
 0o. **RPE bij een losse rit (2026-11-02): gepusht naar `main` op 2026-11-03.**
-   Migratie `0303_strava_activity_rpe.sql` is **niet toegepast** (0303 was bij
-   de push nog vrij op `main`); de eigenaar liet pushen vóór het toepassen. Zonder de kolom
-   faalt alleen het opslaan van de RPE, de rest werkt. Nalopen na de deploy:
+   Migratie `0303_strava_activity_rpe.sql` is toegepast (versie
+   `20261102230627`; kolom `athlete_rpe` smallint, gecontroleerd 2026-11-03).
+   Nalopen na de deploy:
    een niet-geplande rit aanklikken, RPE opslaan, en de rit daarna aan een
    training hangen. Zie de ronde "RPE bij een losse rit".
 
@@ -11723,8 +11723,9 @@ bij de volgende bijwerking en dag-aanpassing op productie.
 ### Gebouwd — RPE bij een losse rit
 
 **2026-11-02.** Gepusht naar `main` op 2026-11-03 (eigenaar). Migratie
-`0303_strava_activity_rpe.sql`, **niet toegepast** en niet lokaal te testen
-(geen Docker of Supabase-config).
+`0303_strava_activity_rpe.sql`, toegepast in productie (versie
+`20261102230627`; kolom `strava_activities.athlete_rpe` smallint, gecontroleerd
+2026-11-03). Niet lokaal te testen (geen Docker of Supabase-config).
 
 Vraag van de eigenaar: wie spontaan een rit doet, moet toch zijn RPE kunnen
 geven. Een rapportage hangt aan een `workout_id`, en een rit zonder training heeft
