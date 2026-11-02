@@ -4,7 +4,8 @@
 // Per race: eerst de race in de uitslagenlijst zoeken (op zondag en geslacht,
 // want de id's verschillen van die in de agenda), dan de uitslag, en die in één
 // keer vervangen. Tot MyWhoosh de uitslag officieel noemt, gebeurt dat hooguit
-// eens per drie uur, twee weken lang.
+// eens per drie uur, twee weken lang. Een nieuw MyWhoosh-id in een profiel haalt
+// de races van deze en vorige maand nog één keer op (requestSrcResultsRecheck).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { safeFetch } from "@/lib/net/safe-fetch";
@@ -59,6 +60,35 @@ export type SrcResultsSyncResult = {
   notes: string[];
 };
 
+/**
+ * Eerste dag van de vorige maand: zover terug haalt een nieuw MyWhoosh-id de
+ * uitslag nog eens op. De teller op /src telt deze maand, en de laatst gereden
+ * categorie komt ook uit de vorige.
+ */
+export function srcRecheckFrom(now: Date) {
+  const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Na een nieuw MyWhoosh-id: de al opgehaalde races van deze en vorige maand nog
+ * één keer ophalen, ook als ze officieel zijn. Zonder MyWhoosh-id viel een lid
+ * met een afwijkende naam en een niet-ZWB-team helemaal uit de uitslag, en een
+ * officiële race werd nooit meer opgehaald. Een lege results_synced_at bij een
+ * gevulde status is het teken; de volgende run zet hem weer, ook als MyWhoosh de
+ * race niet meer in de lijst heeft, dus het blijft bij één keer.
+ */
+export async function requestSrcResultsRecheck(admin: SupabaseClient, now = new Date()) {
+  const { data, error } = await admin
+    .from("src_races")
+    .update({ results_synced_at: null })
+    .gte("sunday", srcRecheckFrom(now))
+    .not("results_status", "is", null)
+    .select("event_id");
+  if (error) throw new Error(error.message);
+  return (data ?? []).length;
+}
+
 /** Moet deze race (nog eens) opgehaald worden? */
 export function srcRaceNeedsResults(
   race: { results_status: string | null; results_synced_at: string | null },
@@ -67,7 +97,10 @@ export function srcRaceNeedsResults(
 ) {
   const start = new Date(startAt).getTime();
   const t = now.getTime();
-  if (t < start + RESULTS_AFTER_START_MS || t > start + GIVE_UP_MS) return false;
+  if (t < start + RESULTS_AFTER_START_MS) return false;
+  // Teruggezet door requestSrcResultsRecheck: officieel of niet, en ook na twee weken.
+  if (race.results_status !== null && !race.results_synced_at) return true;
+  if (t > start + GIVE_UP_MS) return false;
   if (race.results_status === "official") return false;
   if (!race.results_synced_at) return true;
   return t - new Date(race.results_synced_at).getTime() >= RESYNC_MS;
@@ -83,21 +116,24 @@ export async function syncSrcResults(
   const result: SrcResultsSyncResult = { synced: 0, pending: 0, notes: [] };
 
   const since = new Date(now.getTime() - GIVE_UP_MS).toISOString().slice(0, 10);
+  // Vanaf de vorige maand, voor races die requestSrcResultsRecheck terugzette.
   const { data: raceRows, error } = await admin
     .from("src_races")
     .select("event_id, sunday, gender, results_status, results_synced_at, events(start_at)")
-    .gte("sunday", since);
+    .gte("sunday", srcRecheckFrom(now) < since ? srcRecheckFrom(now) : since);
   if (error) throw new Error(error.message);
   const due = ((raceRows ?? []) as unknown as RaceRow[])
     .map((race) => {
       const event = Array.isArray(race.events) ? race.events[0] : race.events;
       return { race, startAt: event?.start_at ?? `${race.sunday}T07:25:00Z` };
     })
-    .filter(({ race, startAt }) =>
-      options.force
-        ? new Date(startAt).getTime() + RESULTS_AFTER_START_MS <= now.getTime() &&
-          race.results_status !== "official"
-        : srcRaceNeedsResults(race, startAt, now),
+    .filter(
+      ({ race, startAt }) =>
+        srcRaceNeedsResults(race, startAt, now) ||
+        (Boolean(options.force) &&
+          race.sunday >= since &&
+          new Date(startAt).getTime() + RESULTS_AFTER_START_MS <= now.getTime() &&
+          race.results_status !== "official"),
     )
     .sort((a, b) => b.startAt.localeCompare(a.startAt));
   if (due.length === 0) return result;

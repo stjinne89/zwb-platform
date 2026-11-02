@@ -12,7 +12,13 @@ import {
   type SrcApiResultRow,
   type SrcListEvent,
 } from "@/lib/src/results";
-import { srcRaceNeedsResults, syncSrcResults, type SrcPost } from "@/lib/src/results-sync";
+import {
+  requestSrcResultsRecheck,
+  srcRaceNeedsResults,
+  srcRecheckFrom,
+  syncSrcResults,
+  type SrcPost,
+} from "@/lib/src/results-sync";
 import { fakeAdmin, type Row } from "./src-fake-admin";
 
 const events = list.data.data as SrcListEvent[];
@@ -162,7 +168,11 @@ describe("srcRaceNeedsResults", () => {
     expect(srcRaceNeedsResults(fresh, start, at("2026-10-04T11:30:00Z"))).toBe(false);
     expect(srcRaceNeedsResults(fresh, start, at("2026-10-04T11:45:00Z"))).toBe(true);
     expect(
-      srcRaceNeedsResults({ ...fresh, results_status: "official" }, start, at("2026-10-05T12:00:00Z")),
+      srcRaceNeedsResults(
+        { results_status: "official", results_synced_at: "2026-10-04T12:00:00Z" },
+        start,
+        at("2026-10-05T12:00:00Z"),
+      ),
     ).toBe(false);
     expect(srcRaceNeedsResults(fresh, start, at("2026-10-19T12:00:00Z"))).toBe(false);
   });
@@ -171,6 +181,45 @@ describe("srcRaceNeedsResults", () => {
     const synced = { results_status: "un-official", results_synced_at: "2026-10-04T12:00:00Z" };
     expect(srcRaceNeedsResults(synced, start, at("2026-10-04T14:59:00Z"))).toBe(false);
     expect(srcRaceNeedsResults(synced, start, at("2026-10-04T15:00:00Z"))).toBe(true);
+  });
+
+  it("haalt een teruggezette race nog eens op, ook officieel en na twee weken", () => {
+    const reset = { results_status: "official", results_synced_at: null };
+    expect(srcRaceNeedsResults(reset, start, at("2026-10-05T12:00:00Z"))).toBe(true);
+    expect(srcRaceNeedsResults(reset, start, at("2026-11-02T12:00:00Z"))).toBe(true);
+    // Nooit opgehaald is geen terugzetting: na twee weken blijft die weg.
+    const never = { results_status: null, results_synced_at: null };
+    expect(srcRaceNeedsResults(never, start, at("2026-11-02T12:00:00Z"))).toBe(false);
+  });
+});
+
+describe("srcRecheckFrom", () => {
+  it("geeft de eerste dag van de vorige maand, ook over de jaargrens", () => {
+    expect(srcRecheckFrom(new Date("2026-11-02T12:00:00Z"))).toBe("2026-10-01");
+    expect(srcRecheckFrom(new Date("2026-11-30T23:00:00Z"))).toBe("2026-10-01");
+    expect(srcRecheckFrom(new Date("2027-01-15T12:00:00Z"))).toBe("2026-12-01");
+  });
+});
+
+describe("requestSrcResultsRecheck", () => {
+  it("zet alleen opgehaalde races van deze en vorige maand terug", async () => {
+    const synced = "2026-11-02T13:00:00Z";
+    const tables: Record<string, Row[]> = {
+      src_races: [
+        { event_id: "sep-27", sunday: "2026-09-27", results_status: "official", results_synced_at: synced },
+        { event_id: "oct-11", sunday: "2026-10-11", results_status: "official", results_synced_at: synced },
+        { event_id: "nov-01", sunday: "2026-11-01", results_status: "official", results_synced_at: synced },
+        { event_id: "nov-08", sunday: "2026-11-08", results_status: null, results_synced_at: null },
+      ],
+    };
+    const count = await requestSrcResultsRecheck(
+      fakeAdmin(tables),
+      new Date("2026-11-02T15:00:00Z"),
+    );
+    expect(count).toBe(2);
+    expect(
+      Object.fromEntries(tables.src_races.map((race) => [race.event_id, race.results_synced_at])),
+    ).toEqual({ "sep-27": synced, "oct-11": null, "nov-01": null, "nov-08": null });
   });
 });
 
@@ -267,6 +316,72 @@ describe("syncSrcResults", () => {
     expect(result.synced).toBe(1);
     const [replace] = tables["rpc:src_replace_results"] as Array<{ p_status: string }>;
     expect(replace.p_status).toBe("un-official");
+  });
+
+  it("haalt een officiële race na een nieuw MyWhoosh-id op en koppelt het lid op id", async () => {
+    const tables: Record<string, Row[]> = {
+      src_races: [
+        {
+          // Teruggezet door requestSrcResultsRecheck, ruim twee weken na de race.
+          event_id: "men-27",
+          sunday: "2026-09-27",
+          gender: "men",
+          results_status: "official",
+          results_synced_at: null,
+          events: { start_at: "2026-09-27T09:45:00.000Z" },
+        },
+        {
+          event_id: "men-20",
+          sunday: "2026-09-20",
+          gender: "men",
+          results_status: "official",
+          results_synced_at: "2026-09-21T12:00:00Z",
+          events: { start_at: "2026-09-20T09:45:00.000Z" },
+        },
+        {
+          // Voor de vorige maand: blijft buiten beeld.
+          event_id: "men-aug",
+          sunday: "2026-08-30",
+          gender: "men",
+          results_status: "official",
+          results_synced_at: null,
+          events: { start_at: "2026-08-30T09:45:00.000Z" },
+        },
+      ],
+      // Alleen een voornaam en geen ZWB-team: zonder id viel dit lid weg.
+      profiles: [
+        {
+          id: "p-femke",
+          display_name: "Femke",
+          mywhoosh_id: "00000000-0000-4000-8000-000000000002",
+          is_approved: true,
+        },
+      ],
+    };
+    const results: string[] = [];
+    const post: SrcPost = async (path, body) => {
+      if (path === "src-events-list") {
+        const page = Number(body.page);
+        return { data: { data: events.slice((page - 1) * 2, page * 2) } };
+      }
+      results.push(String(body.eventId));
+      return sample;
+    };
+
+    const result = await syncSrcResults(fakeAdmin(tables), {
+      now: new Date("2026-10-20T12:00:00Z"),
+      post,
+    });
+    expect(result).toEqual({ synced: 1, pending: 0, notes: [] });
+    expect(results).toEqual(["62b8dfe8-18db-4a8d-a019-7aa9072edbcb"]);
+    const [replace] = tables["rpc:src_replace_results"] as Array<{
+      p_event_id: string;
+      p_status: string;
+      p_rows: Array<{ name: string; profile_id: string | null }>;
+    }>;
+    expect(replace.p_event_id).toBe("men-27");
+    expect(replace.p_status).toBe("official");
+    expect(replace.p_rows).toEqual([expect.objectContaining({ name: "Renner 2", profile_id: "p-femke" })]);
   });
 
   it("noteert een race die MyWhoosh nog niet heeft, zonder fout", async () => {

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { syncSrcCalendar } from "@/lib/src/sync";
+import { requestSrcResultsRecheck } from "@/lib/src/results-sync";
 import { SRC_MANAGERS as MANAGERS } from "@/lib/src/access";
 
 /** De knop "Nu verversen": haalt de SRC-agenda op en zet nieuwe zondagen erin. */
@@ -67,7 +68,7 @@ export async function saveSrcTeam(input: { id?: string; name: string; mywhooshTe
 /**
  * Koppelt een renner uit de SRC-uitslag aan een lid (migr. 0202): zijn
  * MyWhoosh-id gaat in het profiel, en de uitslagen matchen daarna alleen nog
- * daarop.
+ * daarop. De races van deze en vorige maand worden nog eens opgehaald.
  */
 export async function linkSrcRider(mywhooshUserId: string, profileId: string) {
   const supabase = await createClient();
@@ -102,6 +103,8 @@ export async function linkSrcRider(mywhooshUserId: string, profileId: string) {
     .update({ suggested_profile_id: null })
     .eq("suggested_profile_id", profileId)
     .neq("mywhoosh_user_id", userId);
+  // Races waarin het lid niet als voorstel stond, alsnog op het nieuwe id.
+  await requestSrcResultsRecheck(admin).catch(() => 0);
 
   revalidatePath("/beheer/src");
   revalidatePath("/src");

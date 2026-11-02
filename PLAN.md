@@ -476,6 +476,11 @@ gaat stabiliteit voor nieuwe features.
    met echte snapshots kijken, en het aanwijzen op een laptop en tikken op een
    telefoon proberen.
 
+22. **SRC: uitslag opnieuw ophalen na een MyWhoosh-id** (ronde van 2026-11-02
+   hieronder): gebouwd en lokaal getest, niet gepusht. Geen migratie. Open:
+   Femke vult haar MyWhoosh-ID in op `/profiel`; daarna nakijken dat ze in de
+   uitslag van 1 november staat en op `/src` 1/2 heeft.
+
 Standaardcheck blijft `npm run lint`, `npm run test` en `npm run build`.
 
 **Let op, dubbele migratienummers (vastgesteld 2026-09-21 bij het samenvoegen):**
@@ -11580,6 +11585,75 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — SRC: uitslag opnieuw ophalen na een MyWhoosh-id
+
+**2026-11-02.** Commit "SRC: uitslag opnieuw ophalen na een nieuw MyWhoosh-id".
+Geen migratie. Niet gepusht.
+
+**Aanleiding.** Vraag eigenaar: Femke stond niet in de SRC-uitslag, terwijl ze
+op 11 oktober en 1 november een damesrace reed (beide op Strava). Onderzocht op
+productie, alleen gelezen. Haar novemberinschrijving klopt (ZWB SRC, dames, ja
+op 1 november), maar ze komt in geen enkele `src_results`-rij voor. De sync
+bewaart alleen renners onder een ZWB-teamnaam, op MyWhoosh-id, of met precies
+de naam van een lid. Femke rijdt voor FEMME CYCLE COLLAB, heeft geen
+MyWhoosh-id, en haar weergavenaam is alleen "Femke". Ze viel dus helemaal weg,
+ook als koppelvoorstel, en is daardoor niet te koppelen op `/beheer/src`.
+De oplossing is haar MyWhoosh-id in het profiel. Maar een officiële race werd
+nooit meer opgehaald, ook niet met Nu verversen. De race van 1 november werd op
+2026-11-02 om 13:00 UTC officieel, dus een later ingevuld id hielp niet meer
+voor haar novembertelling.
+
+**Nu.**
+- `requestSrcResultsRecheck` (`src/lib/src/results-sync.ts`) zet bij de al
+  opgehaalde races van deze en vorige maand (`srcRecheckFrom`) de
+  `results_synced_at` op leeg. Een gevulde status met een lege
+  `results_synced_at` betekent "nog één keer ophalen". `srcRaceNeedsResults`
+  haalt zo'n race op, ook als hij officieel is en ouder dan twee weken. Die
+  combinatie kwam eerder niet voor, want `src_replace_results` zet status en
+  tijdstip altijd samen. De volgende cron-run (elk uur) zet het tijdstip weer,
+  ook als MyWhoosh de race niet meer in de lijst heeft. Daarbij blijft de
+  bestaande uitslag staan, en het blijft bij één keer.
+- Twee aanroepen: `updateProfile` (`profiel/actions.ts`) als het lid een
+  nieuw of ander MyWhoosh-id invult, en `linkSrcRider` (`/beheer/src`) na het
+  koppelen. Mislukt het terugzetten, dan blijft het opslaan of koppelen gewoon
+  gelukt.
+- De sync leest de races nu vanaf de vorige maand in plaats van twee weken
+  terug. Nu verversen dwingt nog steeds alleen niet-officiële races van de
+  laatste twee weken af.
+
+**Bewust niet.**
+- Niet verder terug dan de vorige maand. De teller op `/src` telt alleen deze
+  maand, en de laatst gereden categorie komt uit deze en de vorige. Bovendien
+  bladert de sync hooguit 15 pagina's van twee events terug in de lijst van
+  MyWhoosh. Of de oktoberraces van Femke daar nog in staan, is niet bekend. Zo
+  niet, dan blijven ze ontbreken, zonder fout.
+- Geen koppeling op voornaam. "Femke" tegen een volledige naam is te los; het
+  MyWhoosh-id is de bedoelde weg.
+- Geen directe ophaalactie bij het opslaan van het profiel. Dat zou het
+  opslaan laten wachten op MyWhoosh; de cron draait toch elk uur.
+
+**Verder gezien, niet aangepast.** Rittenvraag van dezelfde melding: haar
+Strava-ritten komen allemaal binnen. Vier Strava-activiteiten (22 en 28
+oktober, 1 november) staan er niet in, waarschijnlijk omdat het geen fietsritten
+zijn; het type is niet nagekeken. In intervals.icu komen 72 van haar 85
+activiteiten via Strava, en intervals.icu geeft die zonder inhoud door. Haar
+belasting vóór 20 oktober ontbreekt dus nog steeds (zie punt 13 van de actieve
+volgorde). Dat lost alleen een directe koppeling van haar apparaten aan
+intervals.icu op.
+
+**Getest.** `tests/unit/src-results.test.ts`: terugzetten alleen vanaf de vorige
+maand en alleen voor al opgehaalde races; een teruggezette officiële race van
+ruim twee weken oud wordt opgehaald en koppelt het lid op id (alleen voornaam,
+ander team); een officiële race met een tijdstip en een race van vóór de vorige
+maand worden niet opgehaald. Eén bestaande test gebruikte "officieel zonder
+tijdstip" als voorbeeld van een afgeronde race. Die combinatie is nu het teken
+voor een nieuwe ophaalbeurt, dus de test kreeg een tijdstip. Verder `tsc`,
+ESLint op de gewijzigde bestanden en de unit-suite (3716 van 3717 groen;
+`admin-areas.test.ts` liep onder volle belasting tegen de time-out en slaagt los,
+`omnium-live.test.ts` mist `.env.local` in deze omgeving). *Niet geverifieerd:* tegen MyWhoosh zelf
+(vanuit deze omgeving geblokkeerd), en of de lijst van MyWhoosh de oktoberraces
+nog binnen 15 pagina's geeft.
 
 ### Gebouwd — Kalender: eigen label Mijn trainingen
 
@@ -24974,7 +25048,9 @@ prijzengeld gaat.
 - De sync (cron en Nu verversen) haalt na de agenda de uitslagen op. Hij begint
   twee uur na de start van cat 6 en stopt als MyWhoosh de uitslag officieel
   noemt, of na twee weken; tot dan hooguit eens per drie uur. De knop op
-  `/beheer/src` negeert die drie uur. Hij zoekt de race op zondag en geslacht in
+  `/beheer/src` negeert die drie uur. *Sinds 2026-11-02:* een nieuw
+  MyWhoosh-id haalt de races van deze en vorige maand nog één keer op, ook
+  officiële (ronde "SRC: uitslag opnieuw ophalen na een MyWhoosh-id"). Hij zoekt de race op zondag en geslacht in
   de lijst: de id's verschillen van die in de agenda. Een fout per race komt in
   `src_races.results_error`, en de agenda loopt dan gewoon door.
 - `src_results` bewaart alleen wie voor ZWB telt: renners onder een
