@@ -11629,6 +11629,23 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Bewust niet gebouwd — Club Ladder: een eigen tempo voor de duurschatting
+
+**2026-11-02.** Geen code, geen migratie. Bart kreeg voor de ladderrace op de
+Muckle Yin (6 november, 23,7 km, 282 hm) 39 minuten in zijn schema. Dat is het
+Zwift-racemodel (`ZWIFT_RACE_PACE.race` in `src/lib/training/events.ts`):
+43 km/h plus 0,02 min per hoogtemeter, gefit op ZRL- en FRR-races. De ladder
+heeft geen eigen fit.
+
+- ZWB'ers reden de Club Ladder op de Muckle Yin (24,1 km) in 33,7 tot 36,5
+  minuten; het model zit daar zo'n 10% te ruim. Over alle 315 Club
+  Ladder-ritten (11 renners, strava_activities, 2 november 2026) mediaan 6,6%.
+- Een fit op die ritten geeft 42,3 km/h en 0,011 min/hm (mediaan 4,8%
+  afwijking), en voor dit event 37 minuten.
+- **Niet doorgevoerd**, op keuze van de eigenaar: het scheelt een paar minuten
+  en een paar TSS, en het blijft een clubgemiddelde. Een snelle A-rijder zit er
+  ook dan onder (Bart reed zijn ZRL-races 3 tot 13% sneller dan het model).
+
 ### Gebouwd — Ladderteam: één teampagina, onder Club Ladder
 
 **2026-11-02.** Commit `0ff1b85e`, gepusht naar `main` op 2026-11-02 (eigenaar). Geen migratie. De eigenaar zag dat een ladderteam twee pagina's
