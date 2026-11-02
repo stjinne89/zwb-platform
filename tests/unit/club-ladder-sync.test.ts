@@ -105,11 +105,12 @@ describe("syncTeamResults voor de Club Ladder", () => {
     fetchMock.mockClear();
   });
 
-  it("stuurt LADDER_COOKIE mee", async () => {
+  // Ingelogd stuurt /summary door naar het persoonlijke dashboard, zonder stand.
+  it("stuurt LADDER_COOKIE niet mee naar de openbare summary", async () => {
     const { client } = fakeSupabase([source("ZWBeasts")]);
     await syncTeamResults(client);
     const headers = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].headers as Record<string, string>;
-    expect(headers.Cookie).toBe("connect.sid=test");
+    expect(headers.Cookie).toBeUndefined();
   });
 
   it("wist last_error niet bij een overgeslagen bron", async () => {

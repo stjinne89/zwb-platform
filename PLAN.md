@@ -11691,6 +11691,23 @@ waarvan 5 nieuw in `club-ladder-legacy-velo.test.ts`). **Niet geverifieerd:**
 de migratie lokaal (geen Docker of Supabase-config hier) en de pagina's met vELO1
 in de browser (de pagina vraagt een login; productie leest de tabel pas na de push).
 
+### Hersteld — Ladder: geen cookie naar de openbare stand
+
+**2026-11-02.** Geen migratie. De eigenaar zag de ZWBeasts-wedstrijd wel in de
+kalender, maar niet bij Komende matchups op de teampagina.
+
+- Oorzaak: met een geldige ladder-sessie stuurt `/summary` door naar het
+  persoonlijke dashboard (2,8 MB, geen `.fixtureTab`, geen `tr.ladderRow`;
+  gezien in de ingelogde Chrome van de eigenaar). De teampagina
+  (`fetchClubLadderSummary`) en de team-results-sync (`fetchHeaders`) stuurden
+  `LADDER_COOKIE` mee, dus zodra die cookie geldig is, leest ZWB een lege stand:
+  geen ranking, geen matchups, en de sync slaat de wedstrijden over ("Ladderstand
+  niet gelezen").
+- Nu gaat de cookie alleen nog naar `/fixture/<id>` (opstelling) en
+  `/graveyard`. `/summary` is openbaar.
+- Test omgedraaid in `club-ladder-sync.test.ts`: geen Cookie-header naar de summary.
+- **Niet geverifieerd** op productie: hangt af van de cookie die op Netlify staat.
+
 ### Gebouwd — Ladderwedstrijden in de kalender, met opstelling
 
 **2026-11-02.** Commit `ee443e0e`, gepusht naar `main` op 2026-11-02 (eigenaar). Migratie
@@ -14518,6 +14535,9 @@ tekst die de positie niet vond, en een overgeslagen bron die `last_error` wiste.
 
 **Nu** (`src/lib/team-results/sync.ts`).
 - `fetchHeaders()` stuurt voor `club_ladder` `LADDER_COOKIE` en de Referer mee.
+  *(Sinds 2026-11-02 alleen nog de Referer: met een geldige cookie stuurt de
+  ladder `/summary` door naar het dashboard; zie "Ladder: geen cookie naar de
+  openbare stand".)*
 - De positie komt uit `parseClubLadderSummary` (dezelfde parser als
   `/teams/club-ladder`), via `clubLadderResultFromSummary`. Het team wordt op
   `normalizeTeamName` gezocht. `total_teams` is het aantal teams in dezelfde regio,

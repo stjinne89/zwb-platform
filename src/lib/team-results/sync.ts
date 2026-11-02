@@ -322,10 +322,9 @@ function fetchHeaders(provider: SourceRow["provider"]): HeadersInit {
     headers["X-Requested-With"] = "XMLHttpRequest";
   }
 
-  if (provider === "club_ladder") {
-    headers.Referer = "https://ladder.cycleracing.club/";
-    if (process.env.LADDER_COOKIE) headers.Cookie = process.env.LADDER_COOKIE;
-  }
+  // Geen LADDER_COOKIE: ingelogd stuurt /summary door naar het persoonlijke
+  // dashboard, zonder stand en wedstrijden. De cookie is alleen voor /fixture.
+  if (provider === "club_ladder") headers.Referer = "https://ladder.cycleracing.club/";
 
   return headers;
 }

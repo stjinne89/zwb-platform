@@ -218,7 +218,8 @@ export async function fetchClubLadderSummary(): Promise<ClubLadderSummary> {
     "User-Agent": "ZWB Platform Club Ladder comparison",
     Referer: "https://ladder.cycleracing.club/",
   };
-  if (process.env.LADDER_COOKIE) headers.Cookie = process.env.LADDER_COOKIE;
+  // Geen LADDER_COOKIE: ingelogd stuurt /summary door naar het persoonlijke
+  // dashboard, zonder stand en wedstrijden. De pagina is openbaar.
 
   const res = await fetch(CLUB_LADDER_SUMMARY_URL, {
     headers,
