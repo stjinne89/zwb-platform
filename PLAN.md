@@ -77,6 +77,11 @@ gaat stabiliteit voor nieuwe features.
    Nalopen: Stijns R2-avonden als race in het schema. Zie de ronde
    "ZRL-beschikbaarheid in het schema".
 
+0i. **Duur aanpassen zet een training niet meer vast (2026-11-02): migratie
+   `0297` nog niet toegepast, niet gepusht.** Volgorde: eerst `0297` toepassen,
+   dan pushen; de code schrijft `member_duration_minutes` en faalt zonder die
+   kolom. Zie de ronde "Duur aanpassen zet een training niet meer vast".
+
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
    (limiet 5 GB), en de banner "Organization exceeded its quota in the previous
@@ -11590,6 +11595,74 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Hersteld — Duur aanpassen zet een training niet meer vast
+
+**2026-11-02.** Commit "Duur aanpassen zet een training niet meer vast".
+Migratie `0297_training_workout_member_duration.sql`. Niet toegepast, niet
+gepusht.
+
+**Waarom.** Melding eigenaar: na **Duur aanpassen** door een lid "slaat elke
+bewerking vast" (Rolf en Bart). Oorzaak: `setWorkoutDuration()` zette de
+training op origin `member`, zodat de volgende herziening de duur niet
+terugzette. Maar `member` betekent overal "eigen rit van het lid, een vaste
+afspraak". Na één duur-aanpassing:
+
+- vervangt geen herziening de training nog (`supersedableWorkouts`), en
+  `insertPlanWorkouts` houdt de hele dag leeg;
+- valt hij uit de AI-invoer als resterende training en uit het dagvoorstel;
+- slaan de chat en "vandaag aanpassen" hem over als training van vandaag;
+- wist **Verwijder** hem als eigen rit, met een herziening erachteraan, in
+  plaats van hem als overgeslagen te markeren;
+- toont de kalender hem als eigen training.
+
+In productie: Rolfs "VO2max 5x4" van 180 minuten op 3 november lag zo sinds
+1 november vast, aan een schema dat daarna vijf keer was herzien (inmiddels
+door Rolf verwijderd). Bart had er vier gehad, Rolf, Mathijs en Remco elk nog
+één.
+
+**Wat er veranderde.**
+
+- Nieuwe kolom `training_workouts.member_duration_minutes` (15–480).
+  `setWorkoutDuration()` vult hem en laat `origin` ongemoeid.
+- `insertPlanWorkouts()` (nieuw schema en herziening, `keepDurationWishes`)
+  geeft de eerste nieuwe training van een dag met een wens die duur, ook boven
+  de beschikbaarheid van die dag, en neemt de wens mee naar de nieuwe rij. Een
+  dag met 0 minuten blijft leeg. Dag-aanpassing en dagvoorstel nemen de wens
+  niet over: die zijn zelf een nieuwere keuze over die dag.
+- `supersedableWorkouts()`: een training met wens valt alleen weg als het
+  nieuwe schema die dag iets neerzet. Laat de herziening de dag leeg, dan blijft
+  de training van het lid staan.
+- AI-invoer: `durationWishes` (`loadDurationWishes()`), met een promptregel in
+  `workouts.ts`: inhoud vrij, duur vast.
+- De migratie zet de zeven bestaande gevallen terug op origin `ai`, met hun duur
+  als wens. Herkend als: origin `member`, geen test, geen warming-up, in een
+  AI-plan en binnen twee minuten na dat plan aangemaakt. Een eigen rit komt
+  later in een bestaand plan.
+- `/hulp`: "Daarna ligt die training vast" is "die duur blijft staan als het
+  schema later wordt bijgewerkt; de inhoud kan dan nog meebewegen".
+
+**Bewust niet gebouwd.** Geen herziening na **Duur aanpassen**: de reden uit de
+ronde van 11 september geldt nog. Een trainer die via `updateWorkout()` de duur
+wijzigt, wist de wens van het lid niet. Een vrije rit kiest het lid via **Rit
+inplannen**; die blijft een vaste afspraak. Geen herstel voor trainingen uit een
+trainersschema (`source = 'manual'`): daar zegt het aanmaaktijdstip niet of een
+lid de duur koos, en er is geen geval gevonden. De meetlat (`schema-check.ts`)
+kent de wens niet en kan op zo'n dag dus "boven de beschikbaarheid" melden.
+
+**Bijvangst die al klopte.** Rolfs training van 26 oktober heet "Rustige duur
+45 min" bij 120 minuten. Die kreeg zijn nieuwe duur vóór de commit van
+24 oktober die de titel laat meeschuiven; `retitleForDuration()` werkt.
+
+**Niet lokaal te verifiëren.** De migratie (geen Docker of Supabase-config). De
+herkenning van de zeven rijen is vooraf met een leesquery op productie
+nagelopen. Lokaal: typecheck en lint schoon; 3715 tests geslaagd. Eén
+testbestand (`omnium-live`) faalt omdat deze worktree geen `.env.local` heeft.
+
+**Ook gezien, niet opgelost.** Herzieningen duren bij alle leden vaak tot het
+volgende hele uur: de browser maakt ze niet af en de uurcron neemt ze over.
+Rijen met `status = completed` maar zonder `completed_at` laten zien dat het
+schema wel werd gemaakt, maar dat de afronding stopte. Dat staat los van deze
+ronde.
 ### Gebouwd — SRC: renner zoeken in de uitslag
 
 **2026-11-02.** Commit `cc76479`. Geen migratie. Gepusht naar `main` op
@@ -27699,8 +27772,11 @@ aanwijzing, geen grens.
   (`resetWeekAvailability()`).
 - **Duur aanpassen** bij elke geplande training (niet bij tests en clubevents),
   in de lijst en in het detailpaneel van de maandweergave
-  (`setWorkoutDuration()`). De training krijgt daarna origin `member`, zodat een
-  herziening hem niet terugzet; hij toont dan het label *Eigen rit*.
+  (`setWorkoutDuration()`). ~~De training krijgt daarna origin `member`, zodat een
+  herziening hem niet terugzet; hij toont dan het label *Eigen rit*.~~ Sinds
+  2026-11-02 niet meer: de duur staat in `member_duration_minutes` en de
+  training blijft een gewone training (ronde "Duur aanpassen zet een training
+  niet meer vast").
   Sinds 2026-10-24 schuift de duur in de titel mee (`retitleForDuration()`).
 - `Verwijder` staat nu ook in het detailpaneel van de maandweergave, de
   standaardweergave van het schema.

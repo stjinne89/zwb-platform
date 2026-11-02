@@ -112,6 +112,39 @@ describe("supersedableWorkouts en tests", () => {
   });
 });
 
+describe("supersedableWorkouts en een zelf gekozen duur", () => {
+  // Rolf en Bart, november 2026: "Duur aanpassen" maakte van een training een
+  // eigen rit, waarna geen herziening hem nog kon bijstellen. De duur is nu een
+  // wens, geen afspraak.
+  const rows = [
+    { ...workout("oud", "2026-08-11"), member_duration_minutes: 180 },
+    { ...workout("oud", "2026-08-12"), member_duration_minutes: null },
+  ];
+
+  it("vervangt de training als het nieuwe schema die dag iets plant", () => {
+    const result = supersedableWorkouts(rows, {
+      newerPlanIds: geenNieuwere,
+      dayKeys: new Set(["2026-08-11"]),
+      wholeRange: true,
+      now: nu,
+    });
+    expect(result.map((row) => row.scheduled_at.slice(0, 10))).toEqual([
+      "2026-08-11",
+      "2026-08-12",
+    ]);
+  });
+
+  it("laat de training staan als het nieuwe schema de dag leeg laat", () => {
+    const result = supersedableWorkouts(rows, {
+      newerPlanIds: geenNieuwere,
+      dayKeys: alleDagen,
+      wholeRange: true,
+      now: nu,
+    });
+    expect(result.map((row) => row.scheduled_at.slice(0, 10))).toEqual(["2026-08-12"]);
+  });
+});
+
 describe("supersedableWorkouts en wat al voorbij is", () => {
   // Jeroen, 17 oktober 2026: een herziening om 21:23 (19:23 UTC) met bereik vanaf
   // die dag, waarvan het eerste nieuwe schema pas op 19 oktober begon.

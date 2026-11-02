@@ -72,6 +72,7 @@ type SupersedeCandidate = {
   status: string;
   origin?: string;
   test_type?: string | null;
+  member_duration_minutes?: number | null;
 };
 
 /** Wat het lid zelf heeft vastgezet; een herziening plant daaromheen. */
@@ -80,7 +81,7 @@ const FIXED_ORIGINS = new Set(["member", "event"]);
 /**
  * Welke van de gevonden workouts werkelijk vervangen worden.
  *
- * Zes regels, elk uit een bug:
+ * Zeven regels, elk uit een bug:
  * - Alleen wat nog gepland staat. Gereden of gerapporteerde sessies zijn
  *   geschiedenis, geen planning.
  * - Nooit wat het lid zelf heeft vastgezet: een eigen rit of een toegezegd
@@ -96,6 +97,9 @@ const FIXED_ORIGINS = new Set(["member", "event"]);
  * - Buiten een bereik alleen de datums waar dit plan zelf iets neerzet; mét
  *   bereik geldt het hele bereik, zodat een geschrapte trainingsdag ook echt
  *   vervalt.
+ * - Een training waarvan het lid zelf de duur koos, valt alleen weg als dit
+ *   plan die dag iets neerzet: dat neemt de duur over (insertPlanWorkouts).
+ *   Liet de herziening de dag leeg, dan blijft de training van het lid staan.
  * - Binnen een bereik geen workout waarvan het begintijdstip al voorbij is,
  *   tenzij dit plan die dag zelf iets neerzet. Het bereik begint op de dag van
  *   de herziening, maar het nieuwe schema begint vaak pas morgen. Zo verdween
@@ -113,7 +117,7 @@ export function supersedableWorkouts<T extends SupersedeCandidate>(
     if (row.test_type) return false;
     if (options.newerPlanIds.has(row.plan_id)) return false;
     if (options.dayKeys.has(String(row.scheduled_at).slice(0, 10))) return true;
-    if (!options.wholeRange) return false;
+    if (!options.wholeRange || row.member_duration_minutes) return false;
     // Een onleesbaar tijdstip telt als toekomst: dan geldt het bereik zoals vroeger.
     const startsAt = Date.parse(String(row.scheduled_at));
     return Number.isNaN(startsAt) || startsAt >= now;
@@ -181,7 +185,9 @@ export async function retireSupersededWorkouts(
 
   const { data: others } = await admin
     .from("training_workouts")
-    .select("id, plan_id, scheduled_at, intervals_event_id, status, origin, test_type")
+    .select(
+      "id, plan_id, scheduled_at, intervals_event_id, status, origin, test_type, member_duration_minutes",
+    )
     .eq("profile_id", profileId)
     .neq("plan_id", planId)
     .is("superseded_at", null)

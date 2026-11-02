@@ -1533,9 +1533,11 @@ export async function resetWeekAvailability(formData: FormData) {
  * De duur van een geplande training zelf aanpassen. De kern blijft staan;
  * inrijden, uitrijden en duurblokken schuiven mee (resizeBlocks()).
  *
- * Daarna ligt de training vast (origin 'member'): anders zette de eerstvolgende
- * herziening hem terug op wat de AI had bedacht. Een test heeft een vast
- * protocol en een clubevent een vaste lengte; die blijven zoals ze zijn.
+ * De gekozen duur gaat mee in member_duration_minutes (0297): een herziening
+ * mag de training vervangen, maar de nieuwe van die dag krijgt deze duur. Tot
+ * november 2026 werd de training hier origin 'member', een eigen rit, en kon
+ * geen herziening hem daarna nog bijstellen. Een test heeft een vast protocol
+ * en een clubevent een vaste lengte; die blijven zoals ze zijn.
  */
 export async function setWorkoutDuration(formData: FormData) {
   try {
@@ -1570,7 +1572,7 @@ export async function setWorkoutDuration(formData: FormData) {
         title: retitleForDuration(String(workout.title ?? ""), minutes),
         duration_minutes: minutes,
         structure_json: blocks,
-        origin: "member",
+        member_duration_minutes: minutes,
         publish_status: "pending",
         publish_error: null,
       })

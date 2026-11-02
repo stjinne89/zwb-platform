@@ -219,6 +219,8 @@ export type TrainingAiInput = {
     intensity: string;
     kind: "eigen_rit" | "clubevent" | "ftp_test";
   }>;
+  /** De duur die het lid zelf voor een dag koos; de training zelf ligt niet vast. */
+  durationWishes?: Array<{ date: string; durationMinutes: number }>;
   /**
    * Persoonlijke voorkeuren (0230): wat het lid van zichzelf weet en wat een
    * trainer over hem weet, in hun eigen woorden. Blijvend, anders dan

@@ -34,6 +34,7 @@ import {
   availabilityForAi,
   dropWorkoutsOnBlockedDays,
   loadAvailabilityRange,
+  loadDurationWishes,
   loadFixedWorkouts,
   minutesForDate,
 } from "@/lib/training/availability";
@@ -407,10 +408,11 @@ async function buildTrainingInput(
   // klaar voor events waar het lid niet eens heen ging. De beschikbaarheid gaat
   // over het hele venster: één week meegeven liet de planner elke latere week op
   // de minuten van vandaag plannen.
-  const [availability, loadedFixedWorkouts, upcomingEvents, ftpTests, seasonPlan] =
+  const [availability, loadedFixedWorkouts, durationWishes, upcomingEvents, ftpTests, seasonPlan] =
     await Promise.all([
       availabilityForAi(admin, athleteId, today, horizonKey),
       loadFixedWorkouts(admin, athleteId, today, horizonKey).catch(() => []),
+      loadDurationWishes(admin, athleteId, today, horizonKey).catch(() => []),
       committedEventsForAi(admin, athleteId, today, horizonKey),
       loadFtpTests(admin, athleteId, 1).catch(() => []),
       // De jaarplanning: mikpunten en rustperiodes. Zonder dit plant de AI een
@@ -456,6 +458,7 @@ async function buildTrainingInput(
     availability,
     seasonPlan,
     fixedWorkouts,
+    ...(durationWishes.length > 0 ? { durationWishes } : {}),
     preferences: await preferencesForAi(admin, athleteId),
     protocols: await loadProtocolsForAi(admin, athleteId, today, horizonKey),
     planWindow: {
@@ -517,6 +520,13 @@ export async function insertPlanWorkouts(
      * lid zelf om een rustig uurtje, dan hoort het dat ook te krijgen.
      */
     shortRidesAsRest?: "easy" | "recovery" | "keep";
+    /**
+     * De duur die het lid zelf koos ("Duur aanpassen") overnemen op de nieuwe
+     * training van die dag. Aan bij een nieuw schema of een herziening; uit bij
+     * een dag-aanpassing en een dagvoorstel, want die zijn zelf een nieuwere
+     * keuze over die dag.
+     */
+    keepDurationWishes?: boolean;
   } = {},
 ) {
   // Testdagen, dagen die het lid heeft vrijgemaakt, dagen waarop al een
@@ -555,6 +565,26 @@ export async function insertPlanWorkouts(
           dates[dates.length - 1],
         ).catch(() => null);
 
+  // De duur die het lid per dag zelf koos. Die gaat voor op de AI en op de
+  // beschikbaarheid: het lid heeft hem voor díé dag gekozen. Alleen een dag
+  // zonder tijd blijft leeg.
+  const durationWishes = new Map<string, number>();
+  if (options.keepDurationWishes && dates.length > 0) {
+    const { data: wishes } = await admin
+      .from("training_workouts")
+      .select("scheduled_at, member_duration_minutes")
+      .eq("profile_id", plan.profile_id)
+      .eq("status", "planned")
+      .is("superseded_at", null)
+      .not("member_duration_minutes", "is", null)
+      .gte("scheduled_at", `${dates[0]}T00:00:00`)
+      .lte("scheduled_at", `${dates[dates.length - 1]}T23:59:59`)
+      .order("updated_at", { ascending: true });
+    for (const row of wishes ?? []) {
+      durationWishes.set(String(row.scheduled_at).slice(0, 10), Number(row.member_duration_minutes));
+    }
+  }
+
   // Met de FTP van het lid worden ook doelen in watt leesbaar voor
   // alignWorkoutIntensities(); zonder FTP tellen alleen de %-doelen.
   const { data: profile } = await admin
@@ -584,10 +614,15 @@ export async function insertPlanWorkouts(
       let title = conciseWorkoutTitle(workout.title);
       let blocks = aligned.blocks;
       let durationMinutes = Math.min(480, Math.round(workout.durationMinutes));
-      if (limit != null && durationMinutes > limit) {
-        blocks = resizeBlocks(blocks, limit);
-        durationMinutes = limit;
-        title = retitleForDuration(title, limit);
+      // Eén training per dag krijgt de wens; zette de AI er twee neer, dan
+      // houdt de tweede zijn eigen duur.
+      const wish = durationWishes.get(workout.date) ?? null;
+      durationWishes.delete(workout.date);
+      const target = wish ?? (limit != null && durationMinutes > limit ? limit : null);
+      if (target != null && target !== durationMinutes) {
+        blocks = resizeBlocks(blocks, target);
+        durationMinutes = target;
+        title = retitleForDuration(title, target);
       }
       return [{
         plan_id: plan.id,
@@ -602,6 +637,7 @@ export async function insertPlanWorkouts(
         structure_json: blocks,
         method_label: methodLabelOf(workout.methodLabel),
         origin: "ai",
+        member_duration_minutes: wish,
         intervals_external_id: `zwb-${plan.id}-${workout.date}-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 48)}`,
       }];
     });
@@ -797,6 +833,7 @@ async function createPlanFromAiGeneration(
     {
       fitToAvailability: !memberSetTime,
       shortRidesAsRest: memberSetTime ? "keep" : isAdaptation && !isPlanUpdate ? "recovery" : "easy",
+      keepDurationWishes: !isAdaptation || isPlanUpdate,
     },
   );
 

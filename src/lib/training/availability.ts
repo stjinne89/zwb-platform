@@ -291,3 +291,31 @@ export async function loadFixedWorkouts(
         : ("eigen_rit" as const),
   }));
 }
+
+/**
+ * De duur die het lid per dag zelf koos ("Duur aanpassen"). Geen vaste
+ * afspraak: de planner mag de training van die dag vervangen, maar houdt de
+ * duur aan. insertPlanWorkouts() dwingt dat daarna ook af.
+ */
+export async function loadDurationWishes(
+  admin: Admin,
+  profileId: string,
+  from: string,
+  to: string,
+) {
+  const { data } = await admin
+    .from("training_workouts")
+    .select("scheduled_at, member_duration_minutes")
+    .eq("profile_id", profileId)
+    .eq("status", "planned")
+    .is("superseded_at", null)
+    .not("member_duration_minutes", "is", null)
+    .gte("scheduled_at", `${from}T00:00:00`)
+    .lte("scheduled_at", `${to}T23:59:59`)
+    .order("scheduled_at", { ascending: true });
+
+  return (data ?? []).map((workout) => ({
+    date: String(workout.scheduled_at).slice(0, 10),
+    durationMinutes: Number(workout.member_duration_minutes),
+  }));
+}

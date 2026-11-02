@@ -549,7 +549,8 @@ export function SchemaHelp() {
               vanzelf langer. Wil je een training langer of korter, gebruik dan{" "}
               <strong className="text-foreground">Duur aanpassen</strong> bij die
               training. De intervallen blijven gelijk; in- en uitrijden en
-              duurblokken schuiven mee. Daarna ligt die training vast.
+              duurblokken schuiven mee. Die duur blijft staan als het schema
+              later wordt bijgewerkt; de inhoud kan dan nog meebewegen.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
