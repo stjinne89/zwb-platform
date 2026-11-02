@@ -172,7 +172,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
     memberWorkouts,
     zwift,
     outdoor,
-    { unplanned: extraRides, byId: ridesById, deleted: deletedRides },
+    { unplanned: extraRides, byId: ridesById, deleted: deletedRides, rpe: rideRpe },
     eventChoices,
     ridePlans,
   ] = await Promise.all([
@@ -364,6 +364,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
         stravaId: ride.id,
         distanceKm: ride.distanceKm,
         metrics: ride.metrics,
+        rpe: rideRpe.get(String(ride.id)) ?? null,
       },
     })),
   ];

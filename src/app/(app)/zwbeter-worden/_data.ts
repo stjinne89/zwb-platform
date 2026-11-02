@@ -59,6 +59,7 @@ import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/wo
 import { MANUAL_IMPORT_SOURCE } from "@/lib/strava/import";
 import { STRAVA_RIDE_COLUMNS, type StravaRideRow } from "@/lib/training/ride-metrics";
 import { unplannedRides, type UnplannedRide } from "@/lib/training/unplanned-rides";
+import { loadRideRpe } from "@/lib/training/ride-rpe";
 import type {
   GoalRow,
   PlanRow,
@@ -350,6 +351,8 @@ export type ScheduleRides = {
   byId: Map<string, { dateKey: string; name: string; manual: boolean }>;
   /** Strava-id's waar een training aan hangt, maar die rit bestaat niet meer. */
   deleted: Set<string>;
+  /** RPE van de ongeplande ritten die er een hebben (0303), op Strava-id. */
+  rpe: Map<string, number>;
 };
 
 /**
@@ -416,7 +419,7 @@ export async function loadScheduleRides(
     ]),
   );
   const deleted = await deletedPairedRides(viewer, reports, byId);
-  if (rides.length === 0) return { unplanned: [], byId, deleted };
+  if (rides.length === 0) return { unplanned: [], byId, deleted, rpe: new Map() };
 
   const [ftpAt, hrBasis] = await Promise.all([
     loadFtpAt(viewer.supabase, viewer.user.id, ftpWatts),
@@ -440,7 +443,12 @@ export async function loadScheduleRides(
     })),
     hrBasis,
   );
-  return { unplanned, byId, deleted };
+  const rpe = await loadRideRpe(
+    viewer.supabase,
+    viewer.user.id,
+    unplanned.map((ride) => ride.id),
+  );
+  return { unplanned, byId, deleted, rpe };
 }
 
 /**

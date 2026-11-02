@@ -60,6 +60,11 @@ function fakeAdmin(tables: Record<string, Row[]>, options: { failUpsert?: boolea
         filters.push((row) => (row[column] ?? null) === value);
         return builder;
       },
+      // Alleen `not(kolom, "is", null)`, zoals loadRideRpe hem gebruikt.
+      not: (column: string) => {
+        filters.push((row) => (row[column] ?? null) !== null);
+        return builder;
+      },
       maybeSingle: async () => ({ data: run()[0] ?? null }),
       then: (resolve: (value: { data: Row[]; error: null }) => unknown) =>
         Promise.resolve({ data: run(), error: null }).then(resolve),
@@ -242,6 +247,13 @@ describe("relinkRide — loskoppelen", () => {
     expect(tables.training_workout_reports).toHaveLength(0);
     expect(tables.training_workouts[1].status).toBe("planned");
   });
+
+  it("laat de RPE bij de rit, die nu ongepland staat", async () => {
+    const tables = world();
+    tables.training_workout_reports[0].athlete_rpe = 8;
+    await relinkRide(fakeAdmin(tables), { ...input, toWorkoutId: null });
+    expect(tables.strava_activities[0].athlete_rpe).toBe(8);
+  });
 });
 
 describe("relinkRide — ongeplande rit koppelen", () => {
@@ -261,6 +273,28 @@ describe("relinkRide — ongeplande rit koppelen", () => {
     // Niet meegestuurd: een nieuwe rij krijgt de default van de database (null).
     expect(report.athlete_rpe ?? null).toBeNull();
     expect((report.metrics_json as Record<string, unknown>).plannedTitle).toBe("Rustige duurrit");
+  });
+
+  it("neemt de RPE van de losse rit mee naar de rapportage", async () => {
+    const tables = world();
+    tables.training_workouts[1].status = "planned";
+    tables.training_workout_reports = [];
+    tables.strava_activities[0].athlete_rpe = 5;
+
+    await relinkRide(fakeAdmin(tables), { ...input, toWorkoutId: "vr", review: undefined });
+
+    expect(tables.training_workout_reports[0].athlete_rpe).toBe(5);
+    // Eén bron: anders telt de rit in het herstelsignaal dubbel.
+    expect(tables.strava_activities[0].athlete_rpe).toBeNull();
+  });
+
+  it("laat een RPE die al bij de training stond staan", async () => {
+    const tables = bartsWorld();
+    tables.strava_activities[0].athlete_rpe = 9;
+
+    await relinkRide(fakeAdmin(tables), { profileId: "lid", activityId: "9001", toWorkoutId: "vr" });
+
+    expect(tables.training_workout_reports[0].athlete_rpe).toBe(6);
   });
 });
 

@@ -763,10 +763,21 @@ export function SchemaHelp() {
               je schema staan. Je RPE, gevoel en opmerking verhuizen mee, de
               training waar de rit eerst aan hing telt weer als niet gereden. Kies
               je <strong className="text-foreground">Geen training</strong>, dan
-              blijft de rit los staan en koppelt ZWB hem niet opnieuw; wat je bij
-              die training had ingevuld vervalt dan. Verwijder je een rit in
+              blijft de rit los staan en koppelt ZWB hem niet opnieuw; je RPE
+              blijft bij de rit, je gevoel en opmerking vervallen. Verwijder je een rit in
               Strava, dan komt de training vanzelf weer vrij en blijft wat je
               invulde staan, zodat je er een andere rit aan kunt hangen.
+            </p>
+            <p
+              id="rpe-losse-rit"
+              className="mt-2 scroll-mt-20 text-sm text-muted-foreground"
+            >
+              Reed je zonder training, dan staat de rit als niet gepland in de
+              kalender. Klik hem aan om je RPE in te vullen. Een rustige rit die
+              zwaar voelde (RPE 7 of hoger) telt de dagen erna mee als
+              herstelsignaal, net als bij een training; daarvoor is vermogen of
+              hartslag nodig, anders is niet te zeggen of de rit rustig was. Hang
+              je de rit later aan een training, dan gaat je RPE mee.
             </p>
             <p
               id="rit-invoeren"

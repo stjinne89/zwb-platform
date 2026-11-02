@@ -43,6 +43,7 @@ import {
 } from "@/lib/training/workouts";
 import { fitScheduleToAvailability } from "@/lib/training/availability-fit";
 import { relinkRide, reviewNotificationBody } from "@/lib/training/completion";
+import { clampRpe, writeRideRpe } from "@/lib/training/ride-rpe";
 import { NO_WORKOUT } from "./_components/ride-link";
 import {
   asFtpTestType,
@@ -2383,6 +2384,28 @@ export async function relinkRideAction(formData: FormData) {
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : "Koppelen faalde.",
+    };
+  }
+}
+
+/**
+ * RPE bij een rit zonder training. Leeg wist hem. Hangt de rit aan een training,
+ * dan hoort de RPE in de rapportage en niet hier.
+ */
+export async function saveRideRpeAction(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const activityId = mustString(formData.get("activity_id"), "Rit");
+    const rpe = clampRpe(optionalNumber(formData.get("athlete_rpe")));
+    const admin = createAdminClient();
+    const { error } = await writeRideRpe(admin, user.id, activityId, rpe);
+    if (error) throw new Error(error);
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Opslaan faalde.",
     };
   }
 }
