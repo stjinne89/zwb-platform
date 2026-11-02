@@ -11584,7 +11584,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Rondes en koersduur bij een event met GPX
 
-**2026-11-02.** Migratie `0296_event_laps_duration.sql`; 0295 was in productie al
+**2026-11-02.** Commit `7775edc`, migratie `0296_event_laps_duration.sql`; 0295 was in productie al
 bezet door `0295_ladder_bandits_beauties` uit een andere branch. Toegepast op
 productie en gepusht naar `main` op 2026-11-02 (eigenaar).
 
