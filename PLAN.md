@@ -83,11 +83,12 @@ gaat stabiliteit voor nieuwe features.
    training van die dag op de gekozen duur. Zie de ronde "Duur aanpassen zet een
    training niet meer vast".
 
-0j. **Ritten via intervals.icu naast Strava (2026-11-02): gebouwd, niet
-   gepusht, migratie `0299` niet toegepast.** `0298` is in productie al bezet
-   door `0298_club_ladder_routes`. Volgorde: eerst `0299` toepassen, dan pushen.
-   Zonder de kolom werkt alles zoals voorheen, dus andersom breekt niets. Daarna
-   zet de eigenaar op `/profiel#strava` **Ritten via intervals.icu** aan. Nalopen:
+0j. **Ritten via intervals.icu naast Strava (2026-11-02): migratie `0299`
+   toegepast, niet gepusht.** `0298` is in productie al bezet door
+   `0298_club_ladder_routes`. `0299` is op 2026-11-02 via de Supabase-connector
+   toegepast, op verzoek van de eigenaar; de kolom staat bij alle 28
+   intervals-koppelingen op `false`, dus tot de push verandert er niets.
+   Open: pushen (wacht op de eigenaar). Daarna zet de eigenaar op `/profiel#strava` **Ritten via intervals.icu** aan. Nalopen:
    zijn ritten van 30 september tot nu staan er, en de volgende rit krijgt de
    samenvatting in de Strava-beschrijving. Zie de ronde "Ritten via intervals.icu
    naast Strava".
@@ -11608,8 +11609,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Ritten via intervals.icu naast Strava
 
 **2026-11-02.** Commit `9690d357`. Migratie
-`0299_intervals_rides_with_strava.sql`, **niet toegepast**; `0298` is in
-productie al bezet door `0298_club_ladder_routes`. Niet gepusht.
+`0299_intervals_rides_with_strava.sql`; `0298` is in productie al bezet door
+`0298_club_ladder_routes`. Toegepast op productie op 2026-11-02 via de
+Supabase-connector (op verzoek van de eigenaar). Niet gepusht.
 
 **Waarom.** De eigenaar koppelde Strava opnieuw en wil zijn ritten toch uit
 intervals.icu: vermogen en toestel komen daar rechtstreeks van Zwift en de
@@ -11671,8 +11673,9 @@ eerste Strava-sync.
 eerstvolgende intervals-run (uurlijks, of **Ritten ophalen**), niet meer
 binnen vijf minuten via de webhook.
 
-**Niet lokaal te verifiëren.** De migratie (geen Docker of Supabase-config), de
-schakelaar met een echt account, de call naar Strava's ritlijst en het
+**Niet lokaal te verifiëren.** De migratie (geen Docker of Supabase-config; na
+het toepassen nagekeken: kolom `boolean not null default false`, 28 rijen op
+`false`), de schakelaar met een echt account, de call naar Strava's ritlijst en het
 schrijven van de beschrijving. Lokaal: nieuwe tests (`rideSourceFor`, de
 cronselectie, de samenvatting via de intervals-sync, `matchStravaRides`, de
 webhook), lint schoon, `tsc` schoon op de bekende ontbrekende pakketten na.
