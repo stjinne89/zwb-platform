@@ -83,7 +83,7 @@ gaat stabiliteit voor nieuwe features.
    training van die dag op de gekozen duur. Zie de ronde "Duur aanpassen zet een
    training niet meer vast".
 
-0j. **Club Ladder-teampagina (2026-11-02): lokaal gecommit, migratie `0298`
+0j. **Club Ladder-teampagina (2026-11-02): lokaal gecommit (`f812196e`), migratie `0298`
    niet toegepast, niet gepusht.** Tot `0298` is toegepast, toont de pagina
    geen favorieten en bewaart ze geen uitslagen. Nalopen na toepassen: 14
    favorieten bij ZWBeauties en ZWBandits, en ingelogd een advies openen tegen
@@ -11606,7 +11606,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: teampagina, favoriete parcoursen en route-advies
 
-**2026-11-02.** Migratie `0298_club_ladder_routes.sql` (`0297` is op `main` en
+**2026-11-02.** Commit `f812196e`. Migratie `0298_club_ladder_routes.sql` (`0297` is op `main` en
 in productie al bezet). Lokaal gecommit, **niet toegepast en niet gepusht**.
 
 **Waarom.** Vraag eigenaar: per ladderteam een eigen pagina met de ranking en
