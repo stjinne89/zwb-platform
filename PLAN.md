@@ -478,7 +478,8 @@ gaat stabiliteit voor nieuwe features.
 
 22. **SRC: lid zonder herkenbare naam koppelen** (rondes van 2026-11-02
    hieronder: "uitslag opnieuw ophalen na een MyWhoosh-id" en "renner zoeken in
-   de uitslag"): gebouwd en lokaal getest, niet gepusht. Geen migratie. Open:
+   de uitslag"): gebouwd, lokaal getest en op 2026-11-02 gepusht naar `main`
+   (`9e2d0d3`, `cc76479`). Geen migratie. Open:
    na de deploy op `/beheer/src` bij de race van 1 november (dames) op "Femke"
    zoeken, haar koppelen en Nu verversen; daarna nakijken dat ze in die uitslag
    staat en op `/src` 1/2 heeft. Het zoeken is nog niet tegen MyWhoosh gedraaid.
@@ -11591,8 +11592,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — SRC: renner zoeken in de uitslag
 
-**2026-11-02.** Commit "SRC: renner op naam zoeken in de hele uitslag". Geen
-migratie. Niet gepusht.
+**2026-11-02.** Commit `cc76479`. Geen migratie. Gepusht naar `main` op
+2026-11-02.
 
 **Aanleiding.** Op de ronde hieronder zei de eigenaar dat er voor een lid geen
 MyWhoosh-id bestaat: het id staat alleen in de uitslag-API, en een lid ziet het
@@ -11640,7 +11641,8 @@ omgeving geblokkeerd).
 
 ### Gebouwd — SRC: uitslag opnieuw ophalen na een MyWhoosh-id
 
-**2026-11-02.** Commit `e6ed975`. Geen migratie. Niet gepusht.
+**2026-11-02.** Commit `9e2d0d3`. Geen migratie. Gepusht naar `main` op
+2026-11-02.
 
 **Aanleiding.** Vraag eigenaar: Femke stond niet in de SRC-uitslag, terwijl ze
 op 11 oktober en 1 november een damesrace reed (beide op Strava). Onderzocht op
