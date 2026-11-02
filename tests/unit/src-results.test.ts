@@ -6,6 +6,7 @@ import {
   formatRaceTime,
   oldestListDay,
   parseSrcResults,
+  searchSrcResults,
   srcRelevantResults,
   srcRiderProgress,
   srcTeamStandings,
@@ -140,6 +141,25 @@ describe("srcRelevantResults", () => {
       profileId: null,
       suggestedProfileId: null,
     });
+  });
+});
+
+describe("searchSrcResults", () => {
+  const parsed = parseSrcResults([
+    { userId: "u1", userFullName: "Femke de Vries", teamName: "FEMME CYCLE COLLAB 4A", teamId: "t1" },
+    { userId: "u2", userFullName: "Linda Kuiper", teamName: "Individual", teamId: "" },
+    { userId: "u3", userFullName: "Fémke Jansen", teamName: "Individual", teamId: "" },
+  ]);
+
+  it("vindt een deel van de naam, zonder hoofdletters en accenten", () => {
+    expect(searchSrcResults(parsed, "femke").map((result) => result.userId)).toEqual(["u1", "u3"]);
+    expect(searchSrcResults(parsed, " DE VRIES ").map((result) => result.userId)).toEqual(["u1"]);
+  });
+
+  it("zoekt niet op één letter en houdt de lijst kort", () => {
+    expect(searchSrcResults(parsed, "f")).toEqual([]);
+    expect(searchSrcResults(parsed, "e", 1)).toEqual([]);
+    expect(searchSrcResults(parsed, "ke", 1)).toHaveLength(1);
   });
 });
 
