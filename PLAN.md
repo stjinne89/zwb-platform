@@ -106,12 +106,12 @@ gaat stabiliteit voor nieuwe features.
    naast Strava".
 
 0m. **Legacy vELO voor de Club Ladder (2026-11-02): gebouwd, lokaal getest,
-   niet gepusht. Migratie `0301` nog niet toegepast.** Toepassen op verzoek van
-   de eigenaar, met daarna de 64 opgehaalde ratings (staan niet in de repo; bij
-   een volgende sessie opnieuw ophalen via Chrome, zie de ronde). Vóór het
-   toepassen: de privacytekst over de ladder (ZRS → vELO1, en dat de rating van
-   ieder lid met een Zwift-ID wordt bewaard) voorleggen. Zie de ronde "Club
-   Ladder: legacy vELO per renner".
+   niet gepusht. Migratie `0301` toegepast en de 64 ratings ingevuld (op verzoek
+   van de eigenaar).** Tot de push toont productie nog ZRS: de code die de tabel
+   leest, staat alleen op de branch. Open: de privacytekst over de ladder (ZRS →
+   vELO1, en dat de rating van ieder lid met een Zwift-ID wordt bewaard) is
+   voorgelegd, nog niet aangepast. Verversen: opnieuw ophalen via Chrome (zie de
+   ronde). Zie de ronde "Club Ladder: legacy vELO per renner".
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11630,8 +11630,12 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: legacy vELO per renner
 
-**2026-11-02.** Commit `946e8dfb`. Migratie `0301_zwift_legacy_velo.sql` (niet toegepast; `0300`
-was op `main` intussen bezet door `0300_club_ladder_fixture_events`). Niet gepusht.
+**2026-11-02.** Commit `946e8dfb`. Migratie `0301_zwift_legacy_velo.sql`, **toegepast op
+productie op 2026-11-02** via de Supabase-connector, op verzoek van de eigenaar (`0300`
+was op `main` intussen bezet door `0300_club_ladder_fixture_events`). Daarna de 64
+ratings ingevuld (`fetched_at` 2026-11-02 18:30); controle op productie: 64 rijen, RLS
+aan zonder policies, van de 35 ranks in `ladder_ranks` 34 gelijk aan de vELO1-klasse
+en 1 promotie, 29 renners krijgen hun rank alleen uit de vELO1. Niet gepusht.
 
 **Waarom.** Vraag van de eigenaar: voor ieder lid de legacy vELO, zodat de
 Ladder die kan gebruiken. Het Club Ladder Race Book (gelezen 2026-11-02 via
@@ -11684,8 +11688,8 @@ een renner die sindsdien van Platinum naar Amethyst steeg.
 **Gecontroleerd.** `tsc` schoon, ESLint op `teams/club-ladder`,
 `lib/club-ladder` en de tests, Vitest `club-ladder-*` en `help-*` (66 tests,
 waarvan 5 nieuw in `club-ladder-legacy-velo.test.ts`). **Niet geverifieerd:**
-de migratie (geen Docker of Supabase-config hier) en de pagina's met vELO1 in de
-browser (kan pas na het toepassen; de pagina vraagt een login).
+de migratie lokaal (geen Docker of Supabase-config hier) en de pagina's met vELO1
+in de browser (de pagina vraagt een login; productie leest de tabel pas na de push).
 
 ### Gebouwd — Ladderwedstrijden in de kalender, met opstelling
 
