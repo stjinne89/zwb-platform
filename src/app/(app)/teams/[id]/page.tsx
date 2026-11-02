@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowUpRight, CalendarDays, Plus, Trophy, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -150,6 +150,8 @@ export default async function TeamDetailPage({
     .single<TeamRow>();
 
   if (!team) notFound();
+  // Een ladderteam heeft één pagina: die onder Club Ladder.
+  if (team.type === "ladder") redirect(`/teams/club-ladder/${team.id}`);
 
   const rootTeamId = team.parent_team_id ?? team.id;
   const { data: childTeams } = await supabase

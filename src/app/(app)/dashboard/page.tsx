@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { isStravaActivityId } from "@/lib/intervals/ride-id";
 import Link from "next/link";
+import { teamHref } from "@/lib/teams/href";
 import {
   AlertTriangle,
   BadgeCheck,
@@ -298,8 +299,8 @@ function latestStandings(results: TeamStanding[]): TeamStandingWithTeam[] {
     const key = `${result.competition}|${result.team_id}`;
     if (byTeam.has(key)) continue;
     const href = result.id.startsWith("zrl:")
-      ? (result.source_url ?? `/teams/${result.team_id}`)
-      : `/teams/${result.team_id}`;
+      ? (result.source_url ?? teamHref({ id: result.team_id, type: team.type }))
+      : teamHref({ id: result.team_id, type: team.type });
     byTeam.set(key, { ...result, team, href });
   }
 

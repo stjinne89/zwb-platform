@@ -33,6 +33,7 @@ export type TeamRow = {
   division: string | null;
   description: string | null;
   is_graveyard: boolean | null;
+  discord_url: string | null;
 };
 
 export type SourceRow = {
@@ -112,7 +113,7 @@ export async function loadLadderTeams(supabase: Awaited<ReturnType<typeof create
   const [{ data: teams }, { data: sources }, { data: results }] = await Promise.all([
     supabase
       .from("teams")
-      .select("id, name, division, description, is_graveyard")
+      .select("id, name, division, description, is_graveyard, discord_url")
       .eq("type", "ladder")
       .order("is_graveyard")
       .order("name"),

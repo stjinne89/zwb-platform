@@ -16,6 +16,7 @@ import {
   zmapWatts,
 } from "./wtrl-cells";
 import type { PowerUnit } from "@/lib/training/power-unit";
+import { teamHref } from "@/lib/teams/href";
 
 export type TeamOption = {
   id: string;
@@ -116,6 +117,7 @@ export function TeamRosterTable({
   curveCollapsed?: boolean;
 }) {
   const [showCurve, setShowCurve] = useState(!curveCollapsed);
+  const typeById = useMemo(() => new Map(teams.map((team) => [team.id, team.type])), [teams]);
   const [query, setQuery] = useState("");
   const [teamId, setTeamId] = useState("");
   const [category, setCategory] = useState("");
@@ -256,7 +258,7 @@ export function TeamRosterTable({
                   {row.teams.map((team) => (
                     <Link
                       key={team.id}
-                      href={`/teams/${team.id}`}
+                      href={teamHref({ id: team.id, type: typeById.get(team.id) })}
                       className="rounded-full border px-2 py-0.5 text-xs hover:bg-muted"
                     >
                       {team.name}
@@ -350,7 +352,7 @@ export function TeamRosterTable({
                         row.teams.map((team) => (
                           <Link
                             key={team.id}
-                            href={`/teams/${team.id}`}
+                            href={teamHref({ id: team.id, type: typeById.get(team.id) })}
                             className="rounded-full border px-2 py-0.5 text-xs hover:bg-muted"
                           >
                             {team.name}

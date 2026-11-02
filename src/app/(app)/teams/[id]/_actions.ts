@@ -18,6 +18,12 @@ type Role = (typeof ROLES)[number];
  * of captain/co-captain van dit team is. Gelijk aan de RLS van team_members en
  * team_results.
  */
+/** De teampagina; een ladderteam heeft die onder Club Ladder. */
+function revalidateTeam(teamId: string) {
+  revalidatePath(`/teams/${teamId}`);
+  revalidatePath(`/teams/club-ladder/${teamId}`);
+}
+
 async function canManageTeamRoster(
   teamId: string,
   permission: "teams.manage_roster" | "teams.manage_results" = "teams.manage_roster",
@@ -68,7 +74,7 @@ export async function addMember(
       assignment_source: "manual",
     });
   if (error) return { ok: false as const, error: error.message };
-  revalidatePath(`/teams/${teamId}`);
+  revalidateTeam(teamId);
   revalidatePath("/teams");
   return { ok: true as const };
 }
@@ -95,7 +101,7 @@ export async function removeMember(teamId: string, profileId: string) {
     .eq("team_id", teamId)
     .eq("profile_id", profileId);
   if (error) return { ok: false as const, error: error.message };
-  revalidatePath(`/teams/${teamId}`);
+  revalidateTeam(teamId);
   revalidatePath("/teams");
   return { ok: true as const };
 }
@@ -129,7 +135,7 @@ export async function addResult(teamId: string, formData: FormData) {
     created_by: guard.userId,
   });
   if (error) return { ok: false as const, error: error.message };
-  revalidatePath(`/teams/${teamId}`);
+  revalidateTeam(teamId);
   return { ok: true as const };
 }
 
@@ -143,7 +149,7 @@ export async function deleteResult(teamId: string, resultId: string) {
     .eq("id", resultId)
     .eq("team_id", teamId);
   if (error) return { ok: false as const, error: error.message };
-  revalidatePath(`/teams/${teamId}`);
+  revalidateTeam(teamId);
   return { ok: true as const };
 }
 
@@ -161,7 +167,7 @@ export async function toggleGraveyard(teamId: string, isGraveyard: boolean) {
     .eq("id", teamId);
   if (error) return { ok: false as const, error: error.message };
 
-  revalidatePath(`/teams/${teamId}`);
+  revalidateTeam(teamId);
   revalidatePath("/teams");
   revalidatePath("/dashboard");
   return { ok: true as const };
@@ -241,7 +247,7 @@ export async function setTeamChatLinks(
     if (error) return { ok: false as const, error: error.message };
   }
 
-  revalidatePath(`/teams/${teamId}`);
+  revalidateTeam(teamId);
   revalidatePath("/teams");
   revalidatePath("/community");
   return { ok: true as const };
@@ -306,7 +312,7 @@ export async function setTeamAvailability(
     revalidatePath("/zwbeter-worden", "layout");
   }
 
-  revalidatePath(`/teams/${teamId}`);
+  revalidateTeam(teamId);
   revalidatePath(`/events/${eventId}`);
   return { ok: true as const };
 }

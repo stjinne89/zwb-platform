@@ -15,6 +15,7 @@ import {
   type TeamRosterRow,
 } from "./_components/team-roster-table";
 import { getRequestAccess } from "@/lib/auth/request";
+import { teamHref } from "@/lib/teams/href";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -357,7 +358,7 @@ export default async function TeamsPage() {
                   {typeTeams.map((team) => (
                     <Link
                       key={team.id}
-                      href={`/teams/${team.id}`}
+                      href={teamHref({ id: team.id, type })}
                       className="rounded-md border bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
                     >
                       {team.name}

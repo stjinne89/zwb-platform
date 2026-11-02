@@ -11620,6 +11620,31 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Ladderteam: één teampagina, onder Club Ladder
+
+**2026-11-02.** Geen migratie. De eigenaar zag dat een ladderteam twee pagina's
+had: de losse teampagina (`/teams/<id>`, via Teams) en de pagina onder Club
+Ladder (`/teams/club-ladder/<id>`). De eerste mocht weg, de tweede op die plek.
+
+- `/teams/<id>` stuurt een ladderteam door naar `/teams/club-ladder/<id>`.
+  Links gaan er direct heen via `teamHref` (`src/lib/teams/href.ts`): Teams-overzicht,
+  teamchips in het rennersoverzicht, de standen op het dashboard en een nieuw
+  aangemaakt ladderteam. Andere links (zoals ZWBekers) lopen via de doorverwijzing.
+- Meegenomen naar de Club Ladder-teampagina, op keuze van de eigenaar:
+  - **Chatkanalen**: WhatsApp en Discord bovenaan; onder Beheer het formulier
+    (`TeamChatLinksForm`, uit het beheerpaneel gehaald).
+  - **Beschikbaarheid per wedstrijd**: bij elke komende matchup met een event de
+    knoppen Beschikbaar/Misschien/Niet, en wie beschikbaar of misschien is.
+  - **Teamresultaten** met verwijderen, en onder Beheer handmatig toevoegen
+    (`TeamResultForm`).
+  - De acties van de losse teampagina verversen nu ook de Club Ladder-pagina.
+- **Niet meegenomen**, op keuze van de eigenaar: de archief-schakelaar (de sync
+  zet het archief sinds vandaag zelf). Ook niet: de opstellingsplanner (de
+  opstelling komt van de ladder), subteams, lid toevoegen met rol (puzzel en
+  Captains doen dat) en omschrijving/divisie.
+- **Niet in de browser gezien** (inloggen op productie). tsc, ESLint en de
+  unit-tests slagen; `admin-areas` faalt alleen in de volle run op een time-out.
+
 ### Gebouwd — Ladderrace: Zwift-links, ZwiftInsider en link vanuit de matchups
 
 **2026-11-02.** Geen migratie. De eigenaar vond dat het ladder-event veel minder

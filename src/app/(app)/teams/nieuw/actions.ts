@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { DISCORD_URL_ERROR, isValidDiscordUrl } from "@/lib/discord";
 import { fetchWhatsAppGroupInfo, isChannelUrl, isValidInviteUrl } from "@/lib/whatsapp";
+import { teamHref } from "@/lib/teams/href";
 
 const TYPES = ["zrl", "ladder", "social", "outdoor"];
 
@@ -68,5 +69,5 @@ export async function createTeam(formData: FormData) {
       });
   }
 
-  redirect(`/teams/${data.id}`);
+  redirect(teamHref({ id: data.id, type }));
 }

@@ -19,19 +19,7 @@ type Profile = { id: string; display_name: string };
 type Member = { profile_id: string; role: string; display_name: string };
 type Result = { id: string };
 
-export function AdminPanel({
-  teamId,
-  candidates,
-  members,
-  whatsappUrl,
-  discordUrl,
-}: {
-  teamId: string;
-  candidates: Profile[];
-  members: Member[];
-  whatsappUrl: string | null;
-  discordUrl: string | null;
-}) {
+function useAction() {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -46,24 +34,29 @@ export function AdminPanel({
     });
   }
 
+  return { pending, error, setError, call };
+}
+
+export function AdminPanel({
+  teamId,
+  candidates,
+  members,
+  whatsappUrl,
+  discordUrl,
+}: {
+  teamId: string;
+  candidates: Profile[];
+  members: Member[];
+  whatsappUrl: string | null;
+  discordUrl: string | null;
+}) {
+  const { pending, error, setError, call } = useAction();
+
   function onAddMember(fd: FormData) {
     const profileId = String(fd.get("profile_id") ?? "");
     const role = String(fd.get("role") ?? "member");
     if (!profileId) return setError("Kies een lid.");
     call(addMember, teamId, profileId, role as "member" | "captain" | "co-captain");
-  }
-
-  function onAddResult(fd: FormData) {
-    call(addResult, teamId, fd);
-  }
-
-  function onSaveChatLinks(fd: FormData) {
-    call(
-      setTeamChatLinks,
-      teamId,
-      String(fd.get("whatsapp_url") ?? ""),
-      String(fd.get("discord_url") ?? ""),
-    );
   }
 
   return (
@@ -116,6 +109,38 @@ export function AdminPanel({
         )}
       </section>
 
+      <TeamChatLinksForm teamId={teamId} whatsappUrl={whatsappUrl} discordUrl={discordUrl} />
+
+      <TeamResultForm teamId={teamId} />
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+/** WhatsApp- en Discord-link van een team; ook op de Club Ladder-teampagina. */
+export function TeamChatLinksForm({
+  teamId,
+  whatsappUrl,
+  discordUrl,
+}: {
+  teamId: string;
+  whatsappUrl: string | null;
+  discordUrl: string | null;
+}) {
+  const { pending, error, call } = useAction();
+
+  function onSaveChatLinks(fd: FormData) {
+    call(
+      setTeamChatLinks,
+      teamId,
+      String(fd.get("whatsapp_url") ?? ""),
+      String(fd.get("discord_url") ?? ""),
+    );
+  }
+
+  return (
+    <>
       <section className="space-y-3">
         <h3 className="text-sm font-medium">Chatkanalen</h3>
         <form action={onSaveChatLinks} className="grid gap-3 sm:grid-cols-2">
@@ -148,7 +173,21 @@ export function AdminPanel({
           </div>
         </form>
       </section>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </>
+  );
+}
 
+/** Handmatig resultaat; ook op de Club Ladder-teampagina. */
+export function TeamResultForm({ teamId }: { teamId: string }) {
+  const { pending, error, call } = useAction();
+
+  function onAddResult(fd: FormData) {
+    call(addResult, teamId, fd);
+  }
+
+  return (
+    <>
       <section className="space-y-3">
         <h3 className="text-sm font-medium">Resultaat toevoegen</h3>
         <form action={onAddResult} className="grid grid-cols-2 gap-3">
@@ -196,9 +235,8 @@ export function AdminPanel({
           </div>
         </form>
       </section>
-
       {error && <p className="text-sm text-destructive">{error}</p>}
-    </div>
+    </>
   );
 }
 
