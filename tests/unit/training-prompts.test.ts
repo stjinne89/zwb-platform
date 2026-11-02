@@ -108,6 +108,17 @@ describe("training prompts", () => {
     expect(adaptiveDailyPrompt()).toContain("geef geen workout met de datum van vandaag terug");
   });
 
+  it("telt een vermoeide meting maar één keer: per dag, niet voor de hele week", () => {
+    const update = planUpdatePrompt();
+    expect(update).toContain("vervangt deze regel de regel over herstel-data hierboven");
+    expect(update).toContain("maak je de komende week daarom niet lichter");
+    expect(update).toContain("houd minstens één sleutelsessie");
+    const daily = adaptiveDailyPrompt();
+    expect(daily).toContain("gelden voor vandaag en hooguit morgen");
+    expect(daily).toContain("dan zet je er één terug");
+    expect(daily).toContain("Een negatieve TSB na een opbouwweek is daarbij geen reden");
+  });
+
   it("weet bij een bijwerking dat een A-mikpunt wél een piekmoment is", () => {
     expect(planUpdatePrompt()).toContain("A-mikpunt uit seasonPlan");
   });
