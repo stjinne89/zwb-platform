@@ -11607,7 +11607,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Ritten via intervals.icu naast Strava
 
-**2026-11-02.** Commit: de commit die dit blok toevoegt. Migratie
+**2026-11-02.** Commit `9690d357`. Migratie
 `0299_intervals_rides_with_strava.sql`, **niet toegepast**; `0298` is in
 productie al bezet door `0298_club_ladder_routes`. Niet gepusht.
 
