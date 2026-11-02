@@ -1,5 +1,7 @@
 import { assertSafeUrl } from "@/lib/net/safe-fetch";
-import { parseClubLadderSummary, type ClubLadderSummary } from "@/lib/club-ladder/summary";
+import { parseClubLadderSummary, type ClubLadderResult, type ClubLadderSummary } from "@/lib/club-ladder/summary";
+import { storeLadderResults } from "@/lib/club-ladder/store";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeTeamName } from "@/lib/ladder";
 
 type SourceTeam = {
@@ -729,13 +731,17 @@ export function clubLadderResultFromSummary(
   ];
 }
 
-async function syncClubLadderSource(source: SourceRow) {
-  return clubLadderResultFromSummary(source, parseClubLadderSummary(await fetchText(source)));
+// De uitslagen van de summary gaan mee naar club_ladder_matches (0298), ook als
+// het team zelf op het kerkhof staat.
+async function syncClubLadderSource(source: SourceRow, ladderResults: Map<number, ClubLadderResult>) {
+  const summary = parseClubLadderSummary(await fetchText(source));
+  for (const result of summary.results) ladderResults.set(result.resultId, result);
+  return clubLadderResultFromSummary(source, summary);
 }
 
-async function syncSource(source: SourceRow) {
+async function syncSource(source: SourceRow, ladderResults: Map<number, ClubLadderResult>) {
   if (source.provider === "wtrl") return await syncWtrlSource(source);
-  return await syncClubLadderSource(source);
+  return await syncClubLadderSource(source, ladderResults);
 }
 
 // Supabase query builders are structurally typed here because this helper is
@@ -1033,10 +1039,11 @@ export async function syncTeamResults(
     });
   const outcomes: SyncSourceOutcome[] = [];
   let insertedOrUpdated = 0;
+  const ladderResults = new Map<number, ClubLadderResult>();
 
   for (const source of sources) {
     try {
-      const parsedResults = await syncSource(source);
+      const parsedResults = await syncSource(source, ladderResults);
       let rosterSynced = 0;
       let ridersSynced = 0;
       for (const result of parsedResults) {
@@ -1086,6 +1093,14 @@ export async function syncTeamResults(
         rosterSynced: 0,
         error: message,
       });
+    }
+  }
+
+  if (ladderResults.size > 0) {
+    try {
+      await storeLadderResults(createAdminClient(), [...ladderResults.values()]);
+    } catch {
+      // Zonder service-rolsleutel of 0298 blijft de stand-sync gewoon werken.
     }
   }
 

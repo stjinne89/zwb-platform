@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { canAssignLadderRiders, canEditLadderPuzzle } from "@/lib/club-ladder/access";
 import { parseLadderBand, parseLadderRank } from "@/lib/club-ladder/puzzle";
+import { ladderRouteBySlug } from "@/lib/club-ladder/routes";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -15,7 +16,7 @@ async function guardAccess(puzzle = false) {
   if (!(await (puzzle ? canEditLadderPuzzle(access) : canAssignLadderRiders(access)))) {
     return {
       ok: false as const,
-      error: puzzle ? "Alleen teamcaptains puzzelen mee." : "Geen recht om ladderteams in te delen.",
+      error: puzzle ? "Alleen teamcaptains." : "Geen recht om ladderteams in te delen.",
     };
   }
   return { ok: true as const, userId: access.user.id, admin: createAdminClient() };
@@ -39,6 +40,7 @@ type Admin = ReturnType<typeof createAdminClient>;
 
 function refresh(teamId: string) {
   revalidatePath("/teams/club-ladder");
+  revalidatePath(`/teams/club-ladder/${teamId}`);
   revalidatePath(`/teams/${teamId}`);
   revalidatePath("/teams");
 }
@@ -387,5 +389,21 @@ export async function addLadderRosterRider(input: {
     }
   }
   revalidatePath("/teams/club-ladder");
+  return { ok: true as const };
+}
+
+/** Favoriet parcours van een ladderteam aan of uit; alleen de rol teamcaptain (0298). */
+export async function setLadderFavoriteRoute(teamId: string, routeSlug: string, favorite: boolean) {
+  const check = await guard(teamId, true);
+  if (!check.ok) return check;
+  if (!ladderRouteBySlug(routeSlug)) return { ok: false as const, error: "Geen ladderparcours." };
+
+  const { error } = favorite
+    ? await check.admin
+        .from("club_ladder_favorite_routes")
+        .upsert({ team_id: teamId, route_slug: routeSlug, created_by: check.userId }, { onConflict: "team_id,route_slug", ignoreDuplicates: true })
+    : await check.admin.from("club_ladder_favorite_routes").delete().eq("team_id", teamId).eq("route_slug", routeSlug);
+  if (error) return { ok: false as const, error: error.message };
+  revalidatePath(`/teams/club-ladder/${teamId}`);
   return { ok: true as const };
 }

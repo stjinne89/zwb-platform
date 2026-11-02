@@ -83,6 +83,14 @@ gaat stabiliteit voor nieuwe features.
    training van die dag op de gekozen duur. Zie de ronde "Duur aanpassen zet een
    training niet meer vast".
 
+0j. **Club Ladder-teampagina (2026-11-02): lokaal gecommit, migratie `0298`
+   niet toegepast, niet gepusht.** Tot `0298` is toegepast, toont de pagina
+   geen favorieten en bewaart ze geen uitslagen. Nalopen na toepassen: 14
+   favorieten bij ZWBeauties en ZWBandits, en ingelogd een advies openen tegen
+   een uit te dagen ploeg. Zie de ronde "Club Ladder: teampagina, favoriete
+   parcoursen en route-advies". Daar staat ook dat de codehelft van `0295` niet
+   op `main` staat.
+
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
    (limiet 5 GB), en de banner "Organization exceeded its quota in the previous
@@ -11595,6 +11603,105 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Club Ladder: teampagina, favoriete parcoursen en route-advies
+
+**2026-11-02.** Migratie `0298_club_ladder_routes.sql` (`0297` is op `main` en
+in productie al bezet). Lokaal gecommit, **niet toegepast en niet gepusht**.
+
+**Waarom.** Vraag eigenaar: per ladderteam een eigen pagina met de ranking en
+welke teams uit te dagen zijn, een lijst favoriete parcoursen (een selectie uit
+alle Zwift-routes volgens de ladderregels, aan te merken door captains) en een
+route-advies per tegenstander op basis van een analyse vooraf. Daarna: de
+routes uit zijn sheet "Zwiftladies ladder parcours" alvast als favoriet bij
+ZWBeauties en ZWBandits.
+
+**Keuzes eigenaar (2026-11-02).** Parcoursregel 15–25 km met lead-in, één of
+meer rondes, event-only telt mee. Favorieten zet de communityrol `team_captain`
+(zelfde recht als de Ladderpuzzel, `canEditLadderPuzzle`). De analyse gebruikt
+uitslagen én de renners van de tegenstander. Het teamdeel verhuist naar een
+eigen pagina.
+
+**Wat er veranderde.**
+
+- `/teams/club-ladder/[teamId]`: ranking in de eigen regio (zeven plekken
+  erboven tot drie eronder), uit te dagen ploegen met **Advies** (en
+  **Gepland** bij een wedstrijd op de ladder), het advies tegen de gekozen
+  ploeg (`?tegen=`), de favoriete parcoursen, het teamprofiel en de komende
+  matchups. `/teams/club-ladder` is nu het overzicht: teams, puzzel, pool en
+  captains; `?team=` stuurt door naar de teampagina. De loaders en tabellen
+  staan in `_lib/load.ts` en `_components/team-tables.tsx`.
+- **Regels** in `src/lib/club-ladder/rules.ts`: `CHALLENGE_RANGE = 7` (de
+  ZWBgame importeert hem nu hier vandaan), `challengeableTeams()` en de grenzen
+  van 15 en 25 km.
+- **Parcoursen** (`routes.ts`): alle fietsroutes uit `zwift-data`, per route de
+  rondentallen waarbij lead-in plus rondes, afgerond op 0,1 km zoals Zwift het
+  toont, binnen 15–25 km valt (154 routes). Twee rondes Loop de Loop zijn
+  25,03 km en tellen dus mee. Type Vlak/Punch/Heuvels/Klim en gewichten over
+  15 s, 1, 5 en 20 min volgen uit m/km, de langste klim en een bergop finish
+  (segmenten uit `accentsForRoute`).
+- **Uitslagen**: de summary heeft een uitslagentab (`table.resTable`, alleen de
+  laatste week, 78 wedstrijden op 2 november). `parseClubLadderSummary` leest
+  die nu, plus het ladder-team-ID per rij. De team-results-sync en de teampagina
+  bewaren ze in `club_ladder_matches`.
+- **Renners van de tegenstander**: de teampagina's van de ladder (`/team/n/<id>`)
+  zitten achter een login en `LADDER_COOKIE` was verlopen. De openbare
+  uitslagpagina (`/public/result/<id>`) toont wél per wedstrijd de renners, welke
+  kant won, rijtijd en het Zwift-event. `result-page.ts` leest die; het team
+  volgt uit de winnende kant (bij gelijke stand verliest de uitdager).
+  `matches.ts` haalt daarna de Zwift-uitslag van het event op
+  (`fetchSubgroupResults`, met de bestaande wachtrij van 2 verzoeken per
+  seconde) en koppelt renners op rijtijd, anders op finishplek. Zo krijgt elke
+  renner Zwift-ID, gewicht, ZRS en `criticalP` (15 s, 1, 5, 20 min) in W/kg,
+  bewaard in `club_ladder_match_riders`. Alleen voor teams die iemand
+  analyseert, binnen 12 s per paginaverzoek.
+- **Advies** (`advice.ts`): per team het gemiddelde van de vijf besten per duur
+  uit hun ladderraces. Score per route = gewogen log-verschil in W/kg + 0,1 ×
+  het puntenaandeel per routetype (ons minus hun, gedempt bij weinig races) −
+  0,02 per keer dat de tegenstander die route zelf koos, + een kleine
+  favorietenbonus. Toont de top 3 met redenen en de beste favoriet. Heeft ons
+  team geen bewaarde ladderraces, dan komt ons vermogen uit
+  `rider_power_profiles` (90 dagen, geen 15 s).
+- **Startfavorieten**: de 14 routes uit de sheet staan in de migratie bij
+  ZWBeauties en ZWBandits. Alle 14 vallen in de regel met een passend
+  rondental (Castle Crit 4–6, Rolling Highlands 2, Flat Route Reverse 2).
+- `/hulp`: de ladderteksten beschrijven de teampagina, de parcoursregel, de
+  typering en hoe het advies rekent.
+
+**Bewust niet gebouwd.**
+
+- Geen eigen kopie van het race book: Notion laat zich niet automatisch lezen.
+  De regels komen uit de lezing van 28 september (`docs/zwbgame.md`).
+- Geen weigerregel voor de verdediger en geen powerup-advies.
+- Geen terugwerkende import van oudere uitslagen. De ID's van de openbare
+  uitslagen lopen op en zouden af te lopen zijn, maar dat zijn honderden
+  pagina's van een vrijwilligerssite; eerst kijken of het advies met de groei
+  vanaf nu genoeg heeft.
+- Geen ZwiftRacing-vELO of 90-dagen-profielen van tegenstanders: hun vermogen
+  komt uit dezelfde bron als het onze (ladderraces), zodat de vergelijking
+  eerlijk blijft.
+- De drempels van de typering en de gewichten van het advies zijn een eigen
+  vuistregel, niet getoetst aan uitslagen.
+
+**Niet lokaal te verifiëren.** De migratie (geen Docker of Supabase-config) en
+het ophalen van Zwift-uitslagen voor ladder-events. De parsers zijn getest op de
+echte HTML van 2 november (summary: 245 teams met ID, 78 uitslagen; uitslag
+17855: 10 renners, juist over beide teams verdeeld). Typecheck en lint schoon;
+de unit tests slagen. De teampagina is niet ingelogd in de browser bekeken.
+
+**Ook gezien, niet opgelost.**
+
+- Alle vier ladderteams staan in productie op `is_graveyard = true`. De
+  teampagina werkt ook dan.
+- De codehelft van `0295` staat niet op `main`: `DEFAULT_TEAM_SEEDS` en
+  `DEFAULT_SOURCE_SEEDS` in `src/lib/team-results/sync.ts` noemen nog
+  "ZWB Zwiftladies", en de sync maakt teams aan die op naam ontbreken. Een
+  volgende sync kan dus een leeg "ZWB Zwiftladies"-team terugzetten. De fix
+  staat op branch `origin/ccr-889b9a85-7w5uiv` (`3ce50e97`).
+- Zes routenamen uit de uitslagen staan niet in `zwift-data` 2.1 (zoals
+  "Caldera Coaster" en "Seafoam Circuit"). Via het routeId van de
+  uitslagpagina vinden die ook geen slug; ze tellen niet mee in de uitslagen
+  per routetype tot `zwift-data` ze kent.
 
 ### Hersteld — Duur aanpassen zet een training niet meer vast
 

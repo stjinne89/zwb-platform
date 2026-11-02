@@ -7,6 +7,8 @@ export const CLUB_LADDER_SUMMARY_URL = "https://ladder.cycleracing.club/summary"
 export type ClubLadderStanding = {
   position: number;
   name: string;
+  /** Team-ID van de ladder (`data-team-id`), of null als hij ontbreekt. */
+  ladderTeamId: number | null;
   region: string;
   /** Laatste uitslagen in de volgorde van de ladder: W (ook een verdedigde plek) of L. */
   form: string[];
@@ -27,9 +29,26 @@ export type ClubLadderFixture = {
   powerups: string[];
 };
 
+/** Een gespeelde wedstrijd uit de uitslagentab; de uitdager staat links. */
+export type ClubLadderResult = {
+  /** ID van de openbare uitslagpagina (`/public/result/<id>`). */
+  resultId: number;
+  /** YYYY-MM-DD (UTC). */
+  date: string;
+  /** HH:MM in UTC. */
+  time: string;
+  route: string | null;
+  challenger: string;
+  challengerScore: number;
+  opponent: string;
+  opponentScore: number;
+  stage: string | null;
+};
+
 export type ClubLadderSummary = {
   standings: ClubLadderStanding[];
   fixtures: ClubLadderFixture[];
+  results: ClubLadderResult[];
   fetchedAt: string;
   sourceUrl: string;
 };
@@ -69,7 +88,9 @@ function parseStandings($: cheerio.CheerioAPI) {
       const steps = clean(bubble.text()).match(/\d+/)?.[0];
       const move = symbol ? (steps && symbol !== "=" ? `${symbol} ${steps}` : symbol) : null;
 
-      rows.push({ position, name, region, form, move });
+      const teamId = Number(row.attr("data-team-id"));
+      const ladderTeamId = Number.isSafeInteger(teamId) && teamId > 0 ? teamId : null;
+      rows.push({ position, name, ladderTeamId, region, form, move });
     });
   });
 
@@ -120,6 +141,44 @@ function parseFixtures($: cheerio.CheerioAPI, fetchedAt: Date) {
   return fixtures;
 }
 
+// Uitslagen staan in .resTable (november 2026): per dag een tbody.dateBundle[data-date],
+// dan tr.pubResultOpener[data-id] met tijd, route, uitdager, twee scores, tegenstander en fase.
+function parseResults($: cheerio.CheerioAPI) {
+  const results: ClubLadderResult[] = [];
+  $("table.resTable tbody.dateBundle").each((_, body) => {
+    const date = clean($(body).attr("data-date") ?? "");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    $(body)
+      .find("tr.pubResultOpener")
+      .each((__, tr) => {
+        const row = $(tr);
+        const cells = row.children("td");
+        const resultId = Number(row.attr("data-id"));
+        const time = clean(cells.eq(0).text());
+        const challenger = clean(row.find("td.homeTeam").text());
+        const opponent = clean(row.find("td.awayTeam").text());
+        const scores = row
+          .find("td.score")
+          .map((___, td) => Number(clean($(td).text())))
+          .get();
+        if (!Number.isSafeInteger(resultId) || resultId <= 0 || !/^\d{1,2}:\d{2}$/.test(time)) return;
+        if (!challenger || !opponent || scores.length < 2 || !scores.every(Number.isFinite)) return;
+        results.push({
+          resultId,
+          date,
+          time: time.padStart(5, "0"),
+          route: clean(cells.eq(1).text()) || null,
+          challenger,
+          challengerScore: scores[0],
+          opponent,
+          opponentScore: scores[1],
+          stage: clean(cells.last().text()) || null,
+        });
+      });
+  });
+  return results;
+}
+
 function dedupeStandings(rows: ClubLadderStanding[]) {
   const seen = new Set<string>();
   return rows.filter((row) => {
@@ -135,6 +194,7 @@ export function parseClubLadderSummary(html: string, now = new Date()): ClubLadd
   return {
     standings: dedupeStandings(parseStandings($)),
     fixtures: parseFixtures($, now),
+    results: parseResults($),
     fetchedAt: now.toISOString(),
     sourceUrl: CLUB_LADDER_SUMMARY_URL,
   };

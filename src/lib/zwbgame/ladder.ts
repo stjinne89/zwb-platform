@@ -1,3 +1,4 @@
+import { CHALLENGE_RANGE } from "@/lib/club-ladder/rules";
 import { randomAt, standings } from "./engine";
 import { strength } from "./roster";
 import { OWN_TEAM, type GameRider, type RaceState } from "./types";
@@ -9,7 +10,7 @@ import { OWN_TEAM, type GameRider, type RaceState } from "./types";
  * leapfrogs you onto the loser's place and moves everyone in between down one.
  */
 export const LADDER_POINTS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
-export const CHALLENGE_RANGE = 7;
+export { CHALLENGE_RANGE };
 export const TEAM_SIZE = 5;
 export { OWN_TEAM };
 const RIVAL_TEAMS = 9;

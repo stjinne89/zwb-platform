@@ -75,7 +75,76 @@ ${pups}
 </tr>`;
 }
 
-export function summaryPage(fixtures: string[], sections: string[]) {
+export function resultRow(
+  id: number,
+  time: string,
+  route: string,
+  challenger: string,
+  challengerScore: number,
+  opponentScore: number,
+  opponent: string,
+) {
+  const color = (mine: number, theirs: number) => (mine > theirs ? "text-success" : "text-secondary");
+  return `<tr class="pubResultOpener" data-id="${id}">
+<td class="datecol">${time}</td>
+<td class="text-muted small">${route} </td> <td class="homeTeam text-end"><span class="teamOpener ">${challenger}</span></td>
+<td class="score ${color(challengerScore, opponentScore)}">${challengerScore}</td>
+<td class="score ${color(opponentScore, challengerScore)}">${opponentScore}</td>
+<td class="awayTeam noVersus"><span class="teamOpener ">${opponent}</span></td>
+<td class="text-muted small">Final</td>
+</tr>`;
+}
+
+export function resultDay(date: string, rows: string[]) {
+  return `<tbody class="dateBundle" data-date="${date}">
+<tr class="dayBounds"><td colspan="50">${date}</td></tr>
+${rows.join("\n")}
+</tbody>`;
+}
+
+/** Openbare uitslagpagina (/public/result/<id>, november 2026), ingekort tot wat de parser leest. */
+export function resultPage(opts: {
+  eventId: number;
+  routeId: number;
+  route: string;
+  laps: number;
+  riders: Array<{ name: string; points: number; win: boolean; time: number; wkg: number }>;
+}) {
+  const rows = opts.riders
+    .map(
+      (rider, index) => `<tr data-finish-group="${index}" data-riderId="${300000 + index}" data-eventId="${opts.eventId}" class="analyse  ">
+<td class="riderPos text-muted" > ${index + 1} </td>
+<td class="riderScore ${rider.win ? "riderWinScore" : "riderLoseScore"}">
+${rider.points}
+</td>
+<td class="riderName">
+${rider.name}
+</td>
+<td class="riderRank" data-rider-score="1500">undefined undefined</td>
+<td class="timeFormat text-end"    >${rider.time}</td>
+<td class="powerFormat"   >${rider.wkg}</td>
+<td class="hrFormat"      >140</td>
+</tr>
+<tr class="grpdivider" data-finish-group="${index + 1}"><td class="grpdefault" colspan=100></td></tr>`,
+    )
+    .join("\n");
+  return `<html><body>
+<div class="resultInfoSection container d-flex">
+<div class="card text-bg-light w-100 specialBackground mobileExtend-200">
+<div class="specialBackgroundBefore" style="background-image:url('/routeMap/${opts.routeId}')"> </div>
+<div class="card-img-overlay text-start">
+<div class="ribbon resultRibbon card-title"><b> Watopia </b></div>
+<div class="h2 card-text">${opts.route}</div>
+ <div class="h3">laps      <span class="dataFld">${opts.laps}</span></div>
+<div class="resultLinks">
+<a class="col btn" href="https://zwiftpower.com/events.php?zid=${opts.eventId}" target="_blank">ZwiftPower Result</a>
+</div></div></div></div>
+<table class="table resultTable presortable"><tbody>
+${rows}
+</tbody></table></body></html>`;
+}
+
+export function summaryPage(fixtures: string[], sections: string[], resultDays: string[] = []) {
   return `<html><body>
 <div class="col aTab fixtureTab d-none py-4">
 <table class="table">
@@ -86,5 +155,10 @@ ${fixtures.join("\n")}
 <div class="col aTab ladderTab py-4"><div class=""><div class="row gap-2 flex-nowrap m-2">
 ${sections.join("\n")}
 </div></div></div>
+<div class="col aTab resultsTab d-none py-4">
+<table class="table resTable">
+<thead><tr><th class="text-center datecol">Time</th><th></th><th class="text-end">Challenger</th><th class="score"></th><th class="score"></th><th>Opponent</th><th></th></tr></thead>
+${resultDays.join("\n")}
+</table></div>
 </body></html>`;
 }
