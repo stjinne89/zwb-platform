@@ -11630,7 +11630,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: legacy vELO per renner
 
-**2026-11-02.** Migratie `0301_zwift_legacy_velo.sql` (niet toegepast; `0300`
+**2026-11-02.** Commit `946e8dfb`. Migratie `0301_zwift_legacy_velo.sql` (niet toegepast; `0300`
 was op `main` intussen bezet door `0300_club_ladder_fixture_events`). Niet gepusht.
 
 **Waarom.** Vraag van de eigenaar: voor ieder lid de legacy vELO, zodat de
