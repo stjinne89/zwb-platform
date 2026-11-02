@@ -33,6 +33,16 @@ describe("rideSourceFor", () => {
     expect(rideSourceFor({ hasStravaConnection: false, hasIntervals: true })).toBe("intervals");
     expect(rideSourceFor({ hasStravaConnection: false, hasIntervals: false })).toBe("none");
   });
+
+  it("geeft intervals voorrang als het lid daar zelf voor koos", () => {
+    expect(
+      rideSourceFor({ hasStravaConnection: true, hasIntervals: true, ridesViaIntervals: true }),
+    ).toBe("intervals");
+    // Zonder intervals-koppeling zegt de keuze niets.
+    expect(
+      rideSourceFor({ hasStravaConnection: true, hasIntervals: false, ridesViaIntervals: true }),
+    ).toBe("strava");
+  });
 });
 
 describe("intervalsRideId", () => {

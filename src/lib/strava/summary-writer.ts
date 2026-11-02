@@ -15,14 +15,27 @@
 //    Ontbreekt de variabele, dan doet deze module niets. Zonder die grens zou
 //    een fullBackfill-run jaren historie willen herschrijven.
 //  - een venster van 48 uur, zodat we alleen recent gereden ritten oppakken.
+//
+// Komen de ritten van een lid via intervals.icu terwijl Strava gekoppeld blijft
+// (lib/intervals/ride-preference.ts), dan is de intervals-rit de kandidaat. Die
+// draagt hetzelfde vermogen en dezelfde hartslag in `raw`; het Strava-id komt
+// uit Strava's ritlijst (matchStravaRides). De boekhouding hangt aan het id van
+// de intervals-rit, want strava_activity_summaries verwijst naar
+// strava_activities.
 
 import type { createAdminClient } from "@/lib/supabase/admin";
 import {
+  fetchRecentStravaActivities,
   fetchStravaActivityDetail,
   nearRateLimit,
   updateStravaActivityDescription,
+  type StravaActivitySummary,
   type StravaRateLimitUsage,
 } from "@/lib/strava/activity-api";
+import { INTERVALS_RIDE_ID_CEILING } from "@/lib/intervals/ride-id";
+import { ridesComeViaIntervals } from "@/lib/intervals/ride-preference";
+import { isSameRide } from "@/lib/rides/same-ride";
+import { isCyclingSportType } from "@/lib/strava/sports";
 import { fetchIntervalsWellness } from "@/lib/intervals/client";
 import { rideMetricsFromStrava } from "@/lib/training/ride-metrics";
 import { loadFtpAt } from "@/lib/training/ftp-history";
@@ -81,9 +94,40 @@ const EMPTY_RESULT: SummaryWriteResult = {
 type CandidateRow = {
   id: number;
   start_date: string;
+  distance_m: number | string | null;
   moving_time_seconds: number | null;
   raw: unknown;
 };
+
+/**
+ * Welke Strava-rit hoort bij welke intervals-rit: dezelfde start en afstand
+ * (isSameRide). Elke Strava-rit hooguit één keer. Puur.
+ */
+export function matchStravaRides(
+  candidates: Array<Pick<CandidateRow, "id" | "start_date" | "distance_m">>,
+  activities: StravaActivitySummary[],
+): Map<number, number> {
+  const matches = new Map<number, number>();
+  const taken = new Set<number>();
+  for (const candidate of candidates) {
+    const hit = activities.find(
+      (activity) =>
+        Number(activity.id) > 0 &&
+        !taken.has(Number(activity.id)) &&
+        Boolean(activity.start_date) &&
+        isCyclingSportType(activity.sport_type ?? activity.type) &&
+        isSameRide(candidate, {
+          id: activity.id,
+          start_date: String(activity.start_date),
+          distance_m: activity.distance ?? null,
+        }),
+    );
+    if (!hit) continue;
+    taken.add(Number(hit.id));
+    matches.set(candidate.id, Number(hit.id));
+  }
+  return matches;
+}
 
 type SummaryRow = {
   activity_id: number;
@@ -128,12 +172,16 @@ export async function writeZwbSummariesForUser(
     Math.max(since.getTime(), now - maxAgeHours * 3600_000),
   );
 
-  const { data: candidateRows } = await admin
+  const viaIntervals = await ridesComeViaIntervals(admin, profileId);
+  const candidateQuery = admin
     .from("strava_activities")
-    .select("id, start_date, moving_time_seconds, raw")
-    .eq("profile_id", profileId)
-    // Negatieve id's komen uit de CSV/GPX-import en bestaan niet bij Strava.
-    .gt("id", 0)
+    .select("id, start_date, distance_m, moving_time_seconds, raw")
+    .eq("profile_id", profileId);
+  const { data: candidateRows } = await (viaIntervals
+    ? candidateQuery.lte("id", INTERVALS_RIDE_ID_CEILING)
+    : // Negatieve id's komen uit de CSV/GPX-import en bestaan niet bij Strava.
+      candidateQuery.gt("id", 0)
+  )
     .gte("start_date", windowStart.toISOString())
     .lte("start_date", new Date(now - MIN_ACTIVITY_AGE_MS).toISOString())
     .order("start_date", { ascending: false })
@@ -224,6 +272,24 @@ export async function writeZwbSummariesForUser(
   const plannedWorkouts = (workoutRows ?? []) as PlannedWorkoutRow[];
 
   let usage: StravaRateLimitUsage | null = null;
+  // Zonder ritten van Strava zelf: het Strava-id per intervals-rit. Eén call,
+  // en alleen als er een rit openstaat.
+  let stravaIds: Map<number, number> | null = null;
+  if (viaIntervals) {
+    const oldestStart = Date.parse(oldestCandidate.start_date);
+    const listed = await fetchRecentStravaActivities(
+      accessToken,
+      (oldestStart - 3600_000) / 1000,
+    );
+    if (!listed.ok) {
+      result.errors.push(listed.error);
+      result.rateLimited = listed.rateLimited;
+      return result;
+    }
+    usage = listed.usage;
+    stravaIds = matchStravaRides(open, listed.activities);
+  }
+
   for (const candidate of open) {
     if (result.written >= maxWrites) break;
     if (nearRateLimit(usage)) {
@@ -292,7 +358,16 @@ export async function writeZwbSummariesForUser(
       continue;
     }
 
-    const detail = await fetchStravaActivityDetail(accessToken, candidate.id);
+    // Staat de rit (nog) niet op Strava, dan telt dat als poging; na
+    // MAX_ATTEMPTS laten we hem los.
+    const stravaId = stravaIds ? (stravaIds.get(candidate.id) ?? null) : candidate.id;
+    if (stravaId == null) {
+      await releaseSummary(admin, candidate.id, "Geen Strava-rit gevonden.");
+      result.skipped++;
+      continue;
+    }
+
+    const detail = await fetchStravaActivityDetail(accessToken, stravaId);
     usage = detail.usage ?? usage;
     if (!detail.ok) {
       await releaseSummary(admin, candidate.id, detail.error);
@@ -319,7 +394,7 @@ export async function writeZwbSummariesForUser(
 
     const put = await updateStravaActivityDescription(
       accessToken,
-      candidate.id,
+      stravaId,
       next,
     );
     usage = put.usage ?? usage;

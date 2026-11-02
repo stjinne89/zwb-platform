@@ -51,15 +51,18 @@ export type IntervalsRideInput = IntervalsActivity & {
 export type RideSource = "strava" | "intervals" | "none";
 
 /**
- * Een lid met een Strava-koppeling krijgt nooit intervals-ritten. Ook een
- * ingetrokken koppeling telt, zolang de rij er nog staat: dan zijn de
- * Strava-ritten nog niet opgeruimd, en zou de intervals-sync ze als dubbel zien
- * en zijn eigen versie overslaan. De sweeper wist rij en ritten samen.
+ * Een lid met een Strava-koppeling krijgt geen intervals-ritten, tenzij hij daar
+ * zelf voor koos (`ridesViaIntervals`, migratie 0299). Ook een ingetrokken
+ * koppeling telt, zolang de rij er nog staat: dan zijn de Strava-ritten nog niet
+ * opgeruimd, en zou de intervals-sync ze als dubbel zien en zijn eigen versie
+ * overslaan. De sweeper wist rij en ritten samen.
  */
 export function rideSourceFor(opts: {
   hasStravaConnection: boolean;
   hasIntervals: boolean;
+  ridesViaIntervals?: boolean;
 }): RideSource {
+  if (opts.hasIntervals && opts.ridesViaIntervals) return "intervals";
   if (opts.hasStravaConnection) return "strava";
   return opts.hasIntervals ? "intervals" : "none";
 }

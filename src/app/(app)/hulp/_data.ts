@@ -497,6 +497,7 @@ export const INTERVALS_RIDE_NOTES = [
   "Oudere ritten: importeer het archief dat Strava je mailt (Settings → Download or delete your account) in intervals.icu, of upload activities.csv hieronder.",
   "Wat via intervals.icu niet kan: kudos en de kilometers per fiets in Mijn garage. Badges, weekstanden, ZWBlokken, cols en je trainingsschema werken wel. Segment- en coltijden meet ZWB zelf uit het spoor; die staan met GPS in het klassement.",
   "Heb je nu Strava gekoppeld? Op je profiel kun je overstappen. Je Strava-ritten verdwijnen dan en komen terug via intervals.icu, voor zover ze daar staan. Zo komt er een Strava-plek vrij voor een ander lid.",
+  "Wil je Strava houden maar je ritten uit intervals.icu? Zet op je profiel bij Strava Ritten via intervals.icu aan. Strava blijft dan gekoppeld voor de ZWBeter-samenvatting in je beschrijving en de kilometers per fiets. Ritten die al van Strava kwamen, blijven staan. Zet je het weer uit, dan haalt Strava je ritten opnieuw op.",
 ];
 
 export const ADMIN_GUIDES = [

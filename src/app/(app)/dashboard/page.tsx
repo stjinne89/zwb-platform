@@ -1452,10 +1452,10 @@ export default async function DashboardPage({
             id="strava-sync"
             className="mb-3 flex scroll-mt-4 flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
           >
-            {canSyncStrava ? (
-              <StravaSyncButton variant="sync" />
-            ) : rideStatus?.source === "intervals" ? (
+            {rideStatus?.source === "intervals" ? (
               <IntervalsRideSyncButton />
+            ) : canSyncStrava ? (
+              <StravaSyncButton variant="sync" />
             ) : (
               <div className="flex flex-wrap items-center gap-3">
                 {rideStatus?.stravaCapFull ? null : (

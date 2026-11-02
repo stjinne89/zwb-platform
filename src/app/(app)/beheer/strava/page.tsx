@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { loadRidesViaIntervalsProfiles } from "@/lib/intervals/ride-preference";
 import { PageHeader } from "@/components/app-ui";
 import { MemberLink } from "@/components/member-link";
 import { hasActivityScope, hasActivityWriteScope } from "@/lib/strava/scope";
@@ -77,6 +78,7 @@ export default async function BeheerStravaPage() {
     { data: subscriptionRow },
     lastSeen,
     intervalsResult,
+    viaIntervals,
   ] = await Promise.all([
     admin
       .from("strava_connections")
@@ -108,6 +110,7 @@ export default async function BeheerStravaPage() {
     admin
       .from("intervals_connections")
       .select("profile_id, athlete_id, last_synced_at, last_ride_sync_error"),
+    loadRidesViaIntervalsProfiles(admin),
   ]);
 
   const allConnections = (connections ?? []) as ConnectionRow[];
@@ -168,7 +171,8 @@ export default async function BeheerStravaPage() {
   const writeScopeIssueCount = members.filter((m) => m.missingWriteScope).length;
 
   // Leden die hun ritten via intervals.icu krijgen: een intervals-koppeling en
-  // geen Strava-rij (lib/intervals/rides.ts, rideSourceFor).
+  // geen Strava-rij, of de eigen keuze voor intervals.icu (lib/intervals/rides.ts,
+  // rideSourceFor).
   const withStravaRow = new Set(allConnections.map((c) => c.profile_id));
   const intervalsRows = intervalsResult.error
     ? null
@@ -179,7 +183,11 @@ export default async function BeheerStravaPage() {
           last_synced_at: string | null;
           last_ride_sync_error: string | null;
         }[]
-      ).filter((row) => row.athlete_id && !withStravaRow.has(row.profile_id));
+      ).filter(
+        (row) =>
+          row.athlete_id &&
+          (!withStravaRow.has(row.profile_id) || viaIntervals.has(row.profile_id)),
+      );
   if (intervalsRows && intervalsRows.length > 0) {
     const missing = intervalsRows
       .map((row) => row.profile_id)

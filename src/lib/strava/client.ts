@@ -1,4 +1,5 @@
 import { encryptSecret, decryptSecret } from "@/lib/crypto/secrets";
+import { ridesComeViaIntervals } from "@/lib/intervals/ride-preference";
 import { guessDiscipline } from "@/lib/maintenance/guess-discipline";
 import { hasActivityWriteScope } from "@/lib/strava/scope";
 import { isCyclingSportType } from "@/lib/strava/sports";
@@ -506,6 +507,13 @@ export async function syncStravaActivitiesForUser(
     await refreshStravaAthleteInfo(supabase, profileId, accessToken);
   }
 
+  // Ritten via intervals.icu (lib/intervals/ride-preference.ts): Strava levert
+  // dan geen ritten, alleen nog fietsen en de samenvatting. Ook geen
+  // reconciliatie: die zou de intervals-ritten in het venster als verdwenen zien.
+  if (await ridesComeViaIntervals(supabase, profileId)) {
+    return syncStravaExtrasOnly(supabase, profileId, accessToken, connection, options);
+  }
+
   // Smart since-datum: bij eerste sync 5 jaar terug. Daarna halen we minimaal
   // de laatste 30 dagen opnieuw op, zodat Strava-naamswijzigingen doorkomen en
   // verwijderde device-dubbelen uit de lokale database kunnen worden gehaald.
@@ -825,6 +833,50 @@ export async function syncStravaActivitiesForUser(
     afterTs: after,
     done,
     stravaRateLimited,
+  };
+}
+
+/** De Strava-sync voor een lid van wie de ritten via intervals.icu komen. */
+async function syncStravaExtrasOnly(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  profileId: string,
+  accessToken: string,
+  connection: { scope?: string | null },
+  options: SyncChunkOptions,
+) {
+  await supabase
+    .from("strava_connections")
+    .update({
+      last_synced_at: new Date().toISOString(),
+      consecutive_failures: 0,
+      last_error: null,
+      last_error_at: null,
+    })
+    .eq("profile_id", profileId);
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const { runPostSyncForProfile } = await import("@/lib/strava/post-sync");
+  const post = await runPostSyncForProfile(createAdminClient(), profileId, accessToken, {
+    gear: true,
+    summaries: options.zwbSummaryMaxWrites ?? 1,
+    hasActivityWriteScope: hasActivityWriteScope(connection.scope),
+    watopiaCalibration: !options.skipPostProcessing,
+  });
+
+  return {
+    ok: true as const,
+    upserted: 0,
+    removed: 0,
+    ...post,
+    pagesScanned: 0,
+    totalSeen: 0,
+    nonCyclingSkipped: 0,
+    isFirstSync: false,
+    nextPage: null,
+    afterTs: Math.floor(Date.now() / 1000),
+    done: true,
+    stravaRateLimited: false,
   };
 }
 

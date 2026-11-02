@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { disconnectStrava } from "../../stats/rankings/_actions";
-import { switchStravaToIntervals } from "../../_actions/intervals-rides";
+import { setRidesViaIntervals, switchStravaToIntervals } from "../../_actions/intervals-rides";
 import { refreshMyStravaProfile } from "../_actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 
@@ -28,6 +28,7 @@ export function StravaSection({
   rides?: {
     viaIntervals: boolean;
     intervalsConnected: boolean;
+    ridesViaIntervals: boolean;
     stravaCapFull: boolean;
   } | null;
 }) {
@@ -117,6 +118,28 @@ export function StravaSection({
               </p>
             </div>
           )}
+          {rides?.intervalsConnected ? (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="size-4"
+                checked={rides.ridesViaIntervals}
+                disabled={pending}
+                onChange={(event) => {
+                  const on = event.target.checked;
+                  if (!on && !confirm("Ritten weer via Strava ophalen?")) return;
+                  setError(null);
+                  setMessage(null);
+                  startTransition(async () => {
+                    const res = await setRidesViaIntervals(on);
+                    if (!res.ok) setError(res.error);
+                    else if (on) setMessage(`${res.stored} ritten opgehaald uit intervals.icu.`);
+                  });
+                }}
+              />
+              Ritten via intervals.icu
+            </label>
+          ) : null}
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/stats/rankings"
