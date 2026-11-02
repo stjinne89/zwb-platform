@@ -11631,7 +11631,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Ladderrace: geschiedenis per team voor de matchup
 
-**2026-11-02.** Lokaal gecommit, niet gepusht. Geen migratie.
+**2026-11-02.** Commit `6e7efdee`, gepusht naar `main` op 2026-11-02 (eigenaar). Geen migratie.
 
 Na de push van de matchup stond het blok op het ZWBeasts-event, maar leeg: van
 de 79 bewaarde wedstrijden (de summary toont één week) was er geen van ZWBeasts
