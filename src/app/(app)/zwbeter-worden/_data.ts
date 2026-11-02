@@ -31,7 +31,7 @@ import {
   type FtpTestType,
   type FtpTestWorkout,
 } from "@/lib/training/ftp-test";
-import { eventWorkoutDefaults, loadScheduleEvents } from "@/lib/training/events";
+import { eventWorkoutDefaults, loadScheduleEvents, racePaceFor } from "@/lib/training/events";
 import { amsterdamDayKey, computeZwbStatus, type ZwbStatus } from "@/lib/training/zwbeterworden";
 import { cautionsFromSummary, memberCautions } from "@/lib/training/plan-summary";
 import {
@@ -726,6 +726,7 @@ export async function loadScheduleEventChoices(
   if (to < today) return [];
 
   const events = await loadScheduleEvents(viewer.admin, viewer.user.id, today, to).catch(() => []);
+  const racePace = await racePaceFor(viewer.admin, viewer.user.id, events);
   return events
     .filter((event) => event.rsvp !== "no")
     .map((event) => ({
@@ -739,7 +740,7 @@ export async function loadScheduleEventChoices(
         month: "short",
         timeZone: "Europe/Amsterdam",
       }),
-      durationMinutes: eventWorkoutDefaults(event).durationMinutes,
+      durationMinutes: eventWorkoutDefaults(event, { racePace }).durationMinutes,
       rsvp: event.rsvp,
       inSchedule: event.inSchedule,
       inIntervals: event.inIntervals,

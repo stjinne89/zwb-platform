@@ -114,6 +114,11 @@ gaat stabiliteit voor nieuwe features.
    voorgelegd, nog niet aangepast. Verversen: opnieuw ophalen via Chrome (zie de
    ronde). Zie de ronde "Club Ladder: legacy vELO per renner".
 
+0n. **Persoonlijk racetempo (2026-11-02): lokaal gecommit, niet gepusht.** Geen
+   migratie. Na de push: de dagelijkse cron herrekent de komende Zwift-raceblokken
+   per lid; nalopen dat een lid met snelle races een korter blok krijgt. Zie de
+   ronde "Persoonlijk racetempo in de duur van een Zwift-race".
+
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
    (limiet 5 GB), en de banner "Organization exceeded its quota in the previous
@@ -11629,6 +11634,44 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Persoonlijk racetempo in de duur van een Zwift-race
+
+**2026-11-02.** Lokaal gecommit, niet gepusht. Geen migratie. De eigenaar vroeg
+of de duurschatting op persoonlijke data kon steunen in plaats van op het
+clubgemiddelde (aanleiding: de ronde hieronder).
+
+- `src/lib/training/race-pace.ts`: de factor van een lid is de mediaan van
+  gereden tijd ÷ modeltijd over de tien nieuwste "Zwift - Race: …"-ritten in
+  `strava_activities` (Strava of intervals.icu), 10 tot 80 km en langer dan een
+  kwartier. Afgerond op 0,05 en begrensd op 0,85–1,15; met minder dan drie
+  races 1, het clubmodel.
+- `eventWorkoutDefaults(event, { racePace })` vermenigvuldigt alleen de
+  routeschatting van een Zwift-race (ook TTT) met die factor. Een ingestelde
+  koersduur of eindtijd gaat voor, en buitenritten, groepsritten en gravel
+  blijven op hun eigen model.
+- De factor gaat mee waar het blok voor één lid wordt gemaakt of herrekend:
+  `applyEventBlock` (ja op een event), `refreshEventWorkouts` (dagelijkse cron,
+  één query per lid met een Zwift-race), `committedEventsForAi` (de planner) en
+  de eventlijst in het schemapaneel (`loadScheduleEventChoices`). Alleen
+  opgehaald als er een Zwift-race tussen zit.
+- **Toetsing** (2 november 2026, per race de factor uit de tien races ervóór):
+  1858 races van 16 renners, mediane afwijking in duur van 7,0% naar 4,5%
+  (4,3% zonder de afronding); 238 TTT's met dezelfde factor van 5,2% naar 4,3%.
+- **Privacy:** geen nieuwe tekst. De privacyverklaring zegt al dat ritten
+  meetellen voor je trainingsschema, en de factor blijft bij het lid zelf.
+- **Bewust niet gedaan.** TTT's tellen niet mee voor de factor (ander tempo; de
+  factor uit gewone races verbeterde ze al). Niet in de agendafeed
+  (`calendar/feed.ts`), die toont de eventtijd, en niet als losse schatting in
+  het ritvoedingsplan: dat neemt eerst de duur van het eigen blok over, die de
+  factor al heeft. Geen persoonlijke factor voor buitenritten.
+- **Wat het niet oplost:** de route. Op de Muckle Yin zit het model voor
+  iedereen te ruim; Bart heeft factor 0,99 en houdt 39 minuten.
+- **Niet in de browser of tegen productie gedraaid.** De nieuwe en geraakte
+  unit-tests slagen en ESLint is schoon. In deze worktree ontbreekt
+  `@anthropic-ai/sdk`; daardoor falen tsc en een deel van de suite, los van
+  deze ronde. Na de push past de dagelijkse cron de komende raceblokken aan;
+  wie intervals.icu heeft, krijgt die blokken opnieuw doorgezet.
+
 ### Bewust niet gebouwd — Club Ladder: een eigen tempo voor de duurschatting
 
 **2026-11-02.** Geen code, geen migratie. Bart kreeg voor de ladderrace op de
@@ -11648,8 +11691,8 @@ heeft geen eigen fit.
   model) is getoetst: over 1860 races van 16 renners zakt de mediane afwijking
   van 7,0% naar 4,3% (p90 van 15,7% naar 11,8%). Voor Bart zelf helpt het hier
   niet: zijn factor is 0,99 (38,5 min). Wat op de Muckle Yin afwijkt is de
-  route (de klimterm op glooiend terrein), niet de renner. Alleen getoetst,
-  nog niet gebouwd.
+  route (de klimterm op glooiend terrein), niet de renner. Wel gebouwd, in de
+  ronde hierboven.
 
 ### Gebouwd — Ladderteam: één teampagina, onder Club Ladder
 
