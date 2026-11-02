@@ -11785,7 +11785,7 @@ nog binnen 15 pagina's geeft.
 
 ### Gebouwd — Gravelkoers als race; pacingplan en liveticker over alle rondes
 
-**2026-11-02.** Geen migratie (bouwt op 0296). Vervolg op de ronde hieronder,
+**2026-11-02.** Commit `d453361`. Geen migratie (bouwt op 0296). Vervolg op de ronde hieronder,
 op verzoek van de eigenaar.
 
 **Waarom.** Na rondes en koersduur stond een gravelkoers nog op de
