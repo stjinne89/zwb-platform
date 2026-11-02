@@ -11631,7 +11631,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Bijgesteld — Vermoeidheid telt één keer, per dag
 
-**2026-11-02.** Lokaal gecommit, niet gepusht. Geen migratie.
+**2026-11-02.** Commit `2ca26e7b`, lokaal, niet gepusht. Geen migratie.
 
 Een lid had in de week van 2 november nog maar 3 uur en geen enkele rit boven
 78 % FTP. Hij zette zaterdag en zondag op 0. De bijwerking die daarop volgde
