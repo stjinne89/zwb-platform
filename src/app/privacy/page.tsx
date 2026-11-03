@@ -459,9 +459,10 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Krachttraining uit intervals.icu:</strong> heb je
-            intervals.icu gekoppeld, dan tonen we je krachttrainingen van de
-            afgelopen vier weken in het krachtspoor, met datum, naam en duur, en
-            tellen ze mee voor het krachtadvies. Welke spieren je per training
+            intervals.icu gekoppeld, dan tonen we je krachttrainingen en workouts
+            van de afgelopen vier weken in het krachtspoor, met datum, naam en
+            duur. Een krachttraining telt mee voor het krachtadvies, een workout
+            pas als je er spieren bij aantikt. Welke spieren je per training
             aantikt, bewaren we bij die training. Dat ziet alleen jij. Het staat
             in je data-export en verdwijnt als de training uit ZWB verdwijnt of
             als je je account opheft.

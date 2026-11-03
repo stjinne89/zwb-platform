@@ -11683,8 +11683,10 @@ aangetikt worden, telt als kracht, dagen voor de krachtregel),
 **Niet geverifieerd:** de lijst met een echte Workout in de browser (Stijn
 heeft er geen; Harmen wel).
 
-**Privacy.** De tekst op `/privacy` noemt alleen krachttrainingen; voorstel om
-"en workouts" toe te voegen ligt bij de eigenaar.
+**Privacy.** Het punt "Krachttraining uit intervals.icu" op `/privacy` noemt nu
+krachttrainingen én workouts, en dat een workout pas meetelt met aangetikte
+spieren. Akkoord eigenaar 2026-11-03, zonder nieuwe privacyversie: dezelfde
+data die de koppeling al ophaalde, alleen voor het lid zelf getoond.
 
 ### Gebouwd — Kalender: labels uitzetten
 
