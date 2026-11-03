@@ -11709,6 +11709,45 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Dashboard: tegel "Jouw teams"
+
+**2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch
+`claude/dashboard-teams-tile-5c859c`; niet gepusht. Geen migratie.
+
+**Waarom.** Wens van de eigenaar: vanaf het dashboard in één tik bij de teams
+waar je in zit. Tot nu toe liep dat via Club → Teams, waar alleen de hoofdteams
+als knop staan.
+
+**Wat.**
+- Nieuwe tegel `MyTeams` (`src/app/(app)/dashboard/_components/my-teams.tsx`)
+  in de tegelrij, na Q&A en vóór Instagram, achter een eigen Suspense. Petrol
+  (`tg-kalender`), want teams zijn koers volgens het kleurbeleid. Kopje "Club",
+  titel "Jouw teams" als link naar `/teams`, en per team een regel van minstens
+  44 px naar de teampagina (`teamHref`, dus een ladderteam onder Club Ladder):
+  de naam, met eronder de paraplu of de soort (ZRL, Club Ladder, ...) en
+  "captain" of "co-captain".
+- Zit je in een subteam, dan valt de paraplu erboven weg (je zit daar meestal
+  automatisch in, migr. 0070 en 0179); het subteam toont de naam van de
+  paraplu. Ben je captain of co-captain van de paraplu, dan blijft die staan,
+  bovenaan zijn subteams: daar regel je de opstelling. Volgorde: ZRL, ladder,
+  social, outdoor, SRC.
+- Vanaf drie teams is de tegel twee kolommen breed; op de telefoon staan de
+  regels dan onder elkaar, vanaf 768 px in twee kolommen. De tegelrij kreeg
+  `grid-flow-row-dense`, zodat de brede tegel geen gat achterlaat.
+- Twee queries tegelijk: de eigen `team_members` en alle teams (een handvol
+  rijen), zodat de naam van de paraplu zonder tweede ronde meekomt.
+
+**Bewust niet.** Geen tegel zonder teams: een gekleurd vlak moet ergens heen
+leiden, en `/teams` staat al onder Club. Niet in het klassieke design; dat
+houdt zijn link "Teams" bij het scorebord. Geen volgende race of uitslag per
+team in de tegel: die staan al in "Jouw races" en de uitslagtegel. Graveyard-
+teams van de ladder worden niet weggefilterd; je zit er nog in.
+
+**Niet geverifieerd.** Lokaal bekeken met een account dat captain van een
+ZRL-paraplu is en lid van een subteam en een ladderteam (drie regels, breed),
+op 375 px en 1024 px, licht en donker; de smalle tegel met twee regels alleen
+vóór de captainregel. Niet op productie.
+
 ### Gebouwd — Racebriefje: alle powerups en bogen
 
 **2026-11-03.** Eén commit, samen met deze PLAN-regel; gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie.

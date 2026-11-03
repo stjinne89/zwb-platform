@@ -45,6 +45,7 @@ import { CoreStatus, CoreStatusSkeleton } from "./_components/core-status";
 import { FrrStandings } from "./_components/frr-standings";
 import { Greeting } from "./_components/greeting";
 import { MyRaces } from "./_components/my-races";
+import { MyTeams } from "./_components/my-teams";
 import { PhotoNudge } from "./_components/photo-nudge";
 import { QaDashboard } from "./_components/qa";
 import { RecentBekers } from "./_components/recent-bekers";
@@ -1105,8 +1106,9 @@ export default async function DashboardPage({
       )}
 
       {tegels ? (
-        // Eén tegelrij: jouw races, Q&A, en de Instagram-posts van deze week.
-        <div className="grid grid-cols-2 gap-2 empty:hidden md:grid-cols-4">
+        // Eén tegelrij: jouw races, Q&A, jouw teams en de Instagram-posts van deze
+        // week. Dense: een brede teamtegel laat geen gat achter.
+        <div className="grid grid-flow-row-dense grid-cols-2 gap-2 empty:hidden md:grid-cols-4">
           {user && <WeekReviewDashboardLink tegels />}
           {user && (
             <Suspense fallback={null}>
@@ -1116,6 +1118,11 @@ export default async function DashboardPage({
           <Suspense fallback={null}>
             <QaDashboard tegels />
           </Suspense>
+          {user && (
+            <Suspense fallback={null}>
+              <MyTeams userId={user.id} />
+            </Suspense>
+          )}
           <InstagramStrip
             tegels
             posts={instagramPosts.filter((post) => instagramRecentIds.has(post.id))}
