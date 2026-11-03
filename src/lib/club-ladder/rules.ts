@@ -10,6 +10,12 @@ import type { ClubLadderStanding } from "./summary";
 export const CHALLENGE_RANGE = 7;
 export const LADDER_ROUTE_MIN_KM = 15;
 export const LADDER_ROUTE_MAX_KM = 25;
+/**
+ * Geen race book-regel maar een keuze van de eigenaar (2026-11-03): een parcours
+ * dat volgens het clubmodel langer dan 45 minuten duurt (Ven-Top, Road to Sky,
+ * Lutscher) is geen ladderrace. 45 valt in het gat tussen 42,5 en 49 minuten.
+ */
+export const LADDER_ROUTE_MAX_MINUTES = 45;
 
 /** De ploegen die `team` mag uitdagen: tot zeven plekken hoger in dezelfde regio. */
 export function challengeableTeams(standings: ClubLadderStanding[], team: ClubLadderStanding) {

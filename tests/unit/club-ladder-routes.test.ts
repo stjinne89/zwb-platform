@@ -56,6 +56,14 @@ describe("ladderparcoursen", () => {
     expect(lapsWithinRule(0, 10, false)).toEqual([]);
   });
 
+  it("laat parcoursen van meer dan 45 minuten weg, ook al vallen ze binnen 15–25 km", () => {
+    const slugs = new Set(ladderRouteOptions().map((option) => option.slug));
+    for (const slug of ["ven-top", "road-to-sky", "lutscher", "la-reine"]) expect(slugs.has(slug), slug).toBe(false);
+    // 20 km vlak (30 min) mag, 20 km met 1500 hm (66 min) niet.
+    expect(lapsWithinRule(0, 20, false, 50)).toHaveLength(1);
+    expect(lapsWithinRule(0, 20, false, 1500)).toEqual([]);
+  });
+
   it("bevat alle startfavorieten uit de sheet, ook event-only", () => {
     const slugs = new Set(ladderRouteOptions().map((option) => option.slug));
     for (const slug of [

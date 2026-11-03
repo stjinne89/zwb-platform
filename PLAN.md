@@ -11721,6 +11721,36 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: geen parcoursen boven 45 minuten
+
+**2026-11-03.** Geen migratie. Niet gepusht.
+
+**Waarom.** Na het nieuwe advies stonden Road to Sky en Ven-Top bovenaan tegen
+SZ Loki. Volgens de eigenaar zijn die te lang in tijd voor een ladderrace,
+al vallen ze binnen 15–25 km.
+
+**Wat er veranderde.** `lapsWithinRule` laat een rondental weg dat volgens het
+clubmodel (`zwiftRaceModelMinutes`, nagefit op 2 november) langer dan 45
+minuten duurt (`LADDER_ROUTE_MAX_MINUTES`). Keuze van de eigenaar uit 45 of 50
+minuten of alleen deze twee: 45 valt in het gat tussen 42,5 min (2018 Worlds
+Short Lap) en 49 min (Radio Rendezvous); de mediaan van alle rondentallen is
+31 minuten. Daardoor 148 in plaats van 154 parcoursen: weg zijn Ven-Top (68
+min), La Reine (61), Lutscher (53), Road to Sky (50), Lutscher CCW (50) en
+Radio Rendezvous (49); van Oh Hill No vervalt alleen 3 rondes (54 min). Geen
+van de bewaarde favorieten valt af (nagekeken in productie). Het racetijdmodel
+staat nu in `training/race-model.ts`, zonder afhankelijkheden;
+`training/events.ts` geeft het door, zodat bestaande imports en mocks blijven
+werken. `/hulp` noemt de grens.
+
+**Bewust niet.** Geen race book-regel: de ladder kent alleen 15–25 km. Een
+uitslag op zo'n route blijft gewoon bewaard en telt mee in de uitslagen per
+routetype; alleen de keuzelijst en het advies laten hem weg.
+
+**Niet geverifieerd.** De pagina na deze wijziging (vraagt een deploy). De
+ladder-tests slagen (92); over alle unit tests falen dezelfde suites als op
+een schone HEAD (ontbrekende pakketten in de gedeelde `node_modules`, geen
+`.env.local` in de worktree), niets nieuws.
+
 ### Gebouwd — Club Ladder: advies op de huidige ploeg, klimtijd bepaalt de duur
 
 **2026-11-03.** Commits `1040b226` en `c7dcd4b9`, gepusht naar `main` op
@@ -13211,7 +13241,8 @@ eigen pagina.
   van 15 en 25 km.
 - **Parcoursen** (`routes.ts`): alle fietsroutes uit `zwift-data`, per route de
   rondentallen waarbij lead-in plus rondes, afgerond op 0,1 km zoals Zwift het
-  toont, binnen 15–25 km valt (154 routes). Twee rondes Loop de Loop zijn
+  toont, binnen 15–25 km valt (154 routes; *sinds 2026-11-03 148*, zonder
+  parcoursen boven 45 minuten). Twee rondes Loop de Loop zijn
   25,03 km en tellen dus mee. Type Vlak/Punch/Heuvels/Klim en gewichten over
   15 s, 1, 5 en 20 min volgen uit m/km, de langste klim en een bergop finish
   (segmenten uit `accentsForRoute`). *Bijgewerkt 2026-11-03:* de gewichten
