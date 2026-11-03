@@ -98,7 +98,7 @@ gaat stabiliteit voor nieuwe features.
    ingelogd een advies openen tegen een uit te dagen ploeg. Zie de ronde "Club
    Ladder: teampagina, favoriete parcoursen en route-advies". *2026-11-03:*
    een ploeg zonder plek in de stand (ZWBandits) had geen Advies-link; nu
-   staat die bij elke komende matchup, niet gepusht. Zie "Club Ladder: Advies
+   staat die bij elke komende matchup (`7d0eb3e3`, gepusht). Zie "Club Ladder: Advies
    bij elke komende matchup".
 
 0k. **Ladderteams ZWBandits en ZWBeauties (2026-11-02): migratie `0295` al
@@ -11723,7 +11723,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: Advies bij elke komende matchup
 
-**2026-11-03.** Geen migratie. Niet gepusht.
+**2026-11-03.** Commit `7d0eb3e3`, gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie.
 
 **Waarom.** De eigenaar vond het route-advies niet bij de eerste matchup van
 ZWBandits (ZWBandits – SZ Loki, 10 november). Op de live summary staat
@@ -11752,8 +11752,9 @@ fouten over `@anthropic-ai/sdk` en `modern-screenshot`, die in de gedeelde
 
 ### Gebouwd — ZWBekers op de telefoon: knoppen boven de tabbalk, vegen langs de planken
 
-**2026-11-03.** Eén commit, samen met deze PLAN-regel, op de branch
-`claude/mobile-bekers-nominate-add-dec699`; niet gepusht. Geen migratie.
+**2026-11-03.** Commit `1502683f` op de branch
+`claude/mobile-bekers-nominate-add-dec699`, als `9d757e59` op `main` gezet en
+gepusht op 2026-11-03 (eigenaar). Geen migratie.
 
 **Waarom.** Melding van de eigenaar: op de telefoon kon hij geen bekers
 voordragen of keuren, en de 3D-kast scrolde niet lekker.
