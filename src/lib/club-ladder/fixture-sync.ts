@@ -104,17 +104,24 @@ async function syncLineup(admin: Admin, eventId: string, teamId: string, page: L
 
   const { data: existingRows, error } = await admin
     .from("team_event_lineups")
-    .select("id, profile_id, roster_entry_id, slot")
+    .select("id, profile_id, roster_entry_id, slot, selected_by")
     .eq("event_id", eventId)
     .eq("team_id", teamId);
   if (error) throw new Error(error.message);
-  const existing = (existingRows ?? []) as Array<{ id: string; profile_id: string | null; roster_entry_id: string | null; slot: number | null }>;
+  const existing = (existingRows ?? []) as Array<{
+    id: string;
+    profile_id: string | null;
+    roster_entry_id: string | null;
+    slot: number | null;
+    selected_by: string | null;
+  }>;
   const keyOf = (row: { profile_id: string | null; roster_entry_id: string | null }) =>
     row.profile_id ? `p:${row.profile_id}` : `r:${row.roster_entry_id}`;
   const wantedKeys = new Set(wanted.map((row) => row.key));
   const existingByKey = new Map(existing.map((row) => [keyOf(row), row]));
 
-  const removed = existing.filter((row) => !wantedKeys.has(keyOf(row)));
+  // Zonder opstelling op de ladder blijft de selectie van de captain staan; met een gaat de ladder voor.
+  const removed = existing.filter((row) => !wantedKeys.has(keyOf(row)) && (riders.length > 0 || row.selected_by == null));
   if (removed.length > 0) {
     const { error: deleteError } = await admin.from("team_event_lineups").delete().in("id", removed.map((row) => row.id));
     if (deleteError) throw new Error(deleteError.message);

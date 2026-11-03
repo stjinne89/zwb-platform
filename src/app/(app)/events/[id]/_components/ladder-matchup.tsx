@@ -84,7 +84,11 @@ export function LadderMatchupView({ matchup, routeLabel }: { matchup: LadderMatc
                 ? `${ours.name} sterker op ${advantages.map((d) => DURATION_LABELS[d]).join(", ")}`
                 : `${ours.name} nergens sterker`}
               {" · "}
-              {matchup.basis === "lineup" ? "beste vijf aangemelden, 90 dagen" : `ladderraces ${ours.races} / ${theirs.races}`}
+              {matchup.basis === "lineup"
+                ? `beste vijf ${ours.selection ? "uit de selectie" : "aangemelden"}, 90 dagen`
+                : matchup.basis === "squad"
+                  ? `beste vijf, 90 dagen; ${theirs.name} uit recente races`
+                  : `ladderraces ${ours.races} / ${theirs.races}`}
             </p>
           </>
         )}
@@ -104,7 +108,7 @@ function SideRiders({ side }: { side: MatchupSide }) {
   return (
     <div className="min-w-0">
       <p className="text-xs font-medium text-muted-foreground">
-        {side.name} · {side.riders.length === 0 ? "geen aanmeldingen" : side.lineup ? "opstelling" : "aangemeld"}
+        {side.name} · {side.riders.length === 0 ? "geen aanmeldingen" : side.lineup ? "opstelling" : side.selection ? "selectie" : "aangemeld"}
       </p>
       {side.riders.length > 0 && (
         <div className="mt-1 overflow-x-auto">

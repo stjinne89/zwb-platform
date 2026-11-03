@@ -139,7 +139,7 @@ export async function loadLadderBriefing(
   const warnings: BriefingWarning[] = [];
   if (matchup) {
     const count = matchup.ours.riders.length;
-    if (!matchup.ours.lineup) warnings.push({ kind: "lineup", text: count > 0 ? `Nog geen opstelling op de ladder; ${count} aangemeld.` : "Nog niemand aangemeld op de ladder." });
+    if (!matchup.ours.lineup) warnings.push({ kind: "lineup", text: count > 0 ? `Nog geen opstelling op de ladder; ${count} ${matchup.ours.selection ? "in de selectie" : "aangemeld"}.` : "Nog niemand aangemeld op de ladder." });
     else if (count < LADDER_TEAM_SIZE) warnings.push({ kind: "starters", text: `${count} van de ${LADDER_TEAM_SIZE} startplekken ingevuld.` });
   }
 

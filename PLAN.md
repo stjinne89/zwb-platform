@@ -11721,6 +11721,54 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: vaste selectie per matchup
+
+**2026-11-03.** Commit volgt in deze ronde, nog niet gepusht. Geen migratie.
+
+**Waarom.** De eigenaar wil dat captains vast teamleden in de selectie zetten
+voor betere vergelijkingen. Het advies rekende met alle teamleden (de Bandits
+hebben er acht), terwijl er vijf rijden; zolang de ladder zelf nog geen
+aanmeldingen heeft, wist ZWB niet wie. Keuze van de eigenaar: per matchup, niet
+één vaste vijf voor het team.
+
+**Wat er veranderde.**
+- Op elke komende matchup-kaart zet een captain, co-captain of iemand met
+  `teams.manage_roster` met **Selectie** wie er rijdt (vinkjes, Opslaan). Dat
+  komt in `team_event_lineups` van het ladder-event, zoals een ZRL-opstelling:
+  `selected_by` is de captain. Nieuwe actie `setLadderSelection` in
+  `teams/[id]/_actions.ts` vervangt de selectie in één keer, controleert dat
+  het event van dit team is en dat elke renner lid is (`team_members`) of op
+  het rooster van het ladderteam staat (`ladder_roster_riders`). Geselecteerd
+  is een ja op de race met trainingsschema-sync, eruit is die ja kwijt, net als
+  bij de ZRL (`syncLineupRsvp`, nu met een eigen reden voor het herplannen).
+  De kaart toont de namen.
+- **Advies** tegen een ploeg rekent met de selectie van de eerste komende
+  matchup tegen die ploeg; zonder selectie met alle teamleden zoals eerder. De
+  regel bovenaan begint dan met "Selectie".
+- **Matchup** en racebriefje: zolang wij op de ladder niemand aangemeld hebben,
+  telt de selectie aan onze kant. Heeft de tegenstander nog niemand aangemeld,
+  dan telt hij met wie zijn laatste wedstrijden reed (`opponentRiderIds`,
+  `squadPower`), net als het advies: basis `squad`. Zonder selectie en
+  aanmeldingen blijft het de vergelijking uit ladderraces.
+- **De ladder gaat voor.** `syncLineup` haalt een regel van een captain alleen
+  weg als de ladder zelf een opstelling heeft; zonder opstelling op de ladder
+  blijft de selectie staan. Een opstelling van de ladder is op de kaart te zien
+  en dan niet te wijzigen; de actie weigert dan ook.
+- Nieuw `club-ladder/selection.ts` leest selectie of opstelling per event.
+  `/hulp` beschrijft Selectie, het advies en de matchup.
+
+**Bewust niet.**
+- Geen maximum van vijf: reserves mogen erin; het vermogen neemt altijd de
+  vijf besten per duur.
+- Geen startplekken: die zet de ladder zelf.
+- Geen selectie voor een ladderwedstrijd zonder event (geen fixture-id); het
+  event maakt de sync aan.
+
+**Niet geverifieerd.** De pagina en de actie in de app (vraagt een deploy en
+een captain-account). De ladder-tests slagen (95, waarvan drie nieuw: selectie
+in de matchup, selectie wijkt voor aanmeldingen, de sync laat een selectie
+staan tot de ladder een opstelling heeft).
+
 ### Gebouwd — Club Ladder: geen parcoursen boven 45 minuten
 
 **2026-11-03.** Commit `dc7d89e5`, gepusht naar `main` op 2026-11-03
@@ -11808,6 +11856,9 @@ bedoeld, maar met twee fouten.
   Loop) heet daardoor nog Klim, al weegt hij nu vooral bij 5 minuten.
 - De matchup zonder aanmeldingen vergelijkt nog de teams uit hun ladderraces
   (`teamPowerFromMatches`), dus ook daar de oude opstelling. Niet in deze ronde.
+  *Bijgewerkt 2026-11-03:* met een selectie van een captain niet meer, zie
+  "Club Ladder: vaste selectie per matchup"; zonder selectie en aanmeldingen
+  nog wel.
 
 - **Reden bij een route** noemt nu de duur die daar het zwaarst weegt. Eerst was
   het de duur met de grootste bijdrage (gewicht × verschil), waardoor Lutscher

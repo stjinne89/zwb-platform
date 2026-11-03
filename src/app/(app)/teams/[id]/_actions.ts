@@ -397,6 +397,89 @@ export async function setTeamLineup(
   return { ok: true as const };
 }
 
+/**
+ * Selectie van een captain voor een ladderwedstrijd: wie er rijdt, voor de
+ * matchup en het advies. Vervangt de vorige selectie in één keer. Staat er al een
+ * opstelling op de ladder zelf (sync, selected_by leeg), dan gaat die voor.
+ */
+export async function setLadderSelection(teamId: string, eventId: string, riders: LineupRider[]) {
+  const guard = await canManageTeamSelection(teamId);
+  if (!guard.ok) return { ok: false as const, error: guard.error };
+
+  const admin = createAdminClient();
+  const { data: event } = await admin
+    .from("events")
+    .select("team_id, club_ladder_fixture_id")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (!event || event.team_id !== teamId || event.club_ladder_fixture_id == null) {
+    return { ok: false as const, error: "Geen ladderwedstrijd van dit team." };
+  }
+
+  const profileIds = [...new Set(riders.filter((rider) => rider.kind === "profile").map((rider) => rider.id))];
+  const rosterIds = [...new Set(riders.filter((rider) => rider.kind === "roster").map((rider) => rider.id))];
+  const [{ data: existingRows, error: readError }, { data: members }, { data: roster }] = await Promise.all([
+    admin.from("team_event_lineups").select("id, profile_id, roster_entry_id, selected_by").eq("event_id", eventId).eq("team_id", teamId),
+    profileIds.length
+      ? admin.from("team_members").select("profile_id").eq("team_id", teamId).in("profile_id", profileIds)
+      : Promise.resolve({ data: [] }),
+    rosterIds.length
+      ? admin.from("ladder_roster_riders").select("roster_entry_id").eq("team_id", teamId).in("roster_entry_id", rosterIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+  if (readError) return { ok: false as const, error: readError.message };
+  const existing = (existingRows ?? []) as Array<{
+    id: string;
+    profile_id: string | null;
+    roster_entry_id: string | null;
+    selected_by: string | null;
+  }>;
+  if (existing.some((row) => row.selected_by == null)) {
+    return { ok: false as const, error: "De ladder heeft al een opstelling." };
+  }
+  const memberIds = new Set(((members ?? []) as Array<{ profile_id: string }>).map((row) => row.profile_id));
+  const rosterOk = new Set(((roster ?? []) as Array<{ roster_entry_id: string }>).map((row) => row.roster_entry_id));
+  if (profileIds.some((id) => !memberIds.has(id)) || rosterIds.some((id) => !rosterOk.has(id))) {
+    return { ok: false as const, error: "Alleen renners van dit team." };
+  }
+
+  const wanted = new Set([...profileIds.map((id) => `p:${id}`), ...rosterIds.map((id) => `r:${id}`)]);
+  const keyOf = (row: { profile_id: string | null; roster_entry_id: string | null }) =>
+    row.profile_id ? `p:${row.profile_id}` : `r:${row.roster_entry_id}`;
+  const have = new Set(existing.map(keyOf));
+  const removed = existing.filter((row) => !wanted.has(keyOf(row)));
+  if (removed.length > 0) {
+    const { error } = await admin.from("team_event_lineups").delete().in("id", removed.map((row) => row.id));
+    if (error) return { ok: false as const, error: error.message };
+  }
+  const now = new Date().toISOString();
+  const added = [
+    ...profileIds.filter((id) => !have.has(`p:${id}`)).map((id) => ({ profile_id: id, roster_entry_id: null })),
+    ...rosterIds.filter((id) => !have.has(`r:${id}`)).map((id) => ({ profile_id: null, roster_entry_id: id })),
+  ];
+  if (added.length > 0) {
+    const { error } = await admin.from("team_event_lineups").insert(
+      added.map((row) => ({
+        ...row,
+        event_id: eventId,
+        parent_team_id: teamId,
+        team_id: teamId,
+        selected_by: guard.userId,
+        updated_at: now,
+      })),
+    );
+    if (error) return { ok: false as const, error: error.message };
+  }
+
+  // Zoals bij de ZRL: geselecteerd is een ja op de race, eruit is die ja kwijt.
+  for (const row of added) if (row.profile_id) await syncLineupRsvp(admin, row.profile_id, eventId, teamId, null, "Geselecteerd voor een ladderrace.");
+  for (const row of removed) if (row.profile_id) await syncLineupRsvp(admin, row.profile_id, eventId, null, teamId, "Niet meer geselecteerd voor een ladderrace.");
+
+  revalidateTeam(teamId);
+  revalidatePath(`/events/${eventId}`);
+  return { ok: true as const };
+}
+
 export async function removeTeamLineup(parentTeamId: string, lineupId: string) {
   const guard = await canManageTeamSelection(parentTeamId);
   if (!guard.ok) return { ok: false as const, error: guard.error };
@@ -458,6 +541,7 @@ async function syncLineupRsvp(
   eventId: string,
   newTeamId: string | null,
   oldTeamId: string | null,
+  reason = "Opstelling voor een ZRL-race gewijzigd.",
 ) {
   try {
     const newRace = newTeamId ? await raceForLineup(admin, eventId, newTeamId) : null;
@@ -487,7 +571,7 @@ async function syncLineupRsvp(
     }
 
     if (changed) {
-      await requestReplan(admin, profileId, "Opstelling voor een ZRL-race gewijzigd.");
+      await requestReplan(admin, profileId, reason);
     }
     revalidatePath("/kalender");
     revalidatePath("/zwbeter-worden", "layout");

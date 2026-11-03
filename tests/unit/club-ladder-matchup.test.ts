@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buildLadderMatchup, ourAdvantages, riderPowerFromMatches, squadPower, type MatchupSignup } from "@/lib/club-ladder/matchup";
+import {
+  buildLadderMatchup,
+  opponentRiderIds,
+  ourAdvantages,
+  riderPowerFromMatches,
+  squadPower,
+  type MatchupSignup,
+} from "@/lib/club-ladder/matchup";
 import type { MatchRider, PowerWkg, StoredMatch } from "@/lib/club-ladder/team-power";
 
 const wkg = (s15: number | null, m1: number | null, m5: number | null, m20: number | null): PowerWkg => ({ s15, m1, m5, m20 });
@@ -88,6 +95,41 @@ describe("buildLadderMatchup", () => {
     expect(ourAdvantages(result)).toEqual(["m5", "m20"]);
     // 0,1 × −0,0953 + 0,3 × 0,0953 + 0,6 × 0,1054 = 0,082 → +8%
     expect(result.routeEdgePct).toBe(8);
+  });
+
+  it("rekent met de selectie van een captain tegen de recente renners van de tegenstander", () => {
+    const result = buildLadderMatchup({
+      ourName: "ZWBeasts",
+      opponent: "Galaxy Avengers",
+      signups: [],
+      ourSelection: [signup(1, "ZWBeasts", null)],
+      theirSquad: opponentRiderIds(matches, "Galaxy Avengers"),
+      matches,
+      power90: new Map([[1, wkg(11, 7, 5, 4.5)]]),
+      scores: new Map(),
+      weights: null,
+    });
+    expect(result.basis).toBe("squad");
+    expect(result.ours.selection).toBe(true);
+    expect(result.ours.lineup).toBe(false);
+    expect(result.ours.wkg).toEqual(wkg(11, 7, 5, 4.5));
+    expect(result.theirs.wkg).toEqual(wkg(12, 6.6, 4, 3.6));
+  });
+
+  it("negeert de selectie zodra wij op de ladder aangemeld zijn", () => {
+    const result = buildLadderMatchup({
+      ourName: "ZWBeasts",
+      opponent: "Galaxy Avengers",
+      signups: [signup(2, "ZWBeasts", 1), signup(11, "Galaxy Avengers", 1)],
+      ourSelection: [signup(1, "ZWBeasts", null)],
+      matches,
+      power90: new Map([[1, wkg(11, 7, 5, 4.5)]]),
+      scores: new Map(),
+      weights: null,
+    });
+    expect(result.basis).toBe("lineup");
+    expect(result.ours.selection).toBe(false);
+    expect(result.ours.riders.map((r) => r.zwiftId)).toEqual([2]);
   });
 
   it("valt zonder opstelling terug op de ladderraces van beide teams", () => {

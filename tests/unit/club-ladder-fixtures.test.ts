@@ -393,6 +393,19 @@ describe("syncLadderFixtures", () => {
     expect(db.tables.club_ladder_fixture_signups).toHaveLength(2);
   });
 
+  it("laat de selectie van een captain staan tot de ladder een opstelling heeft", async () => {
+    const options = { cookie: "connect.sid=x", now, fetchTeamResults: async () => [] };
+    await syncLadderFixtures(db, summary([fixture()]), { ...options, fetchPage: async () => page([[555, "Reserve", null]]) });
+    const eventId = db.tables.events.find((row) => row.club_ladder_fixture_id === 17729)!.id;
+    db.tables.team_event_lineups.push({ id: "keuze", event_id: eventId, parent_team_id: "beasts", team_id: "beasts", profile_id: "tako", roster_entry_id: null, slot: null, selected_by: "bart" });
+
+    await syncLadderFixtures(db, summary([fixture()]), { ...options, fetchPage: async () => page([[555, "Reserve", null]]) });
+    expect(db.tables.team_event_lineups.map((row) => row.profile_id)).toEqual(["tako"]);
+
+    await syncLadderFixtures(db, summary([fixture()]), { ...options, fetchPage: async () => page([[2650151, "Bart", 1]]) });
+    expect(db.tables.team_event_lineups.map((row) => [row.profile_id, row.slot])).toEqual([["bart", 1]]);
+  });
+
   it("doet niets met een stand die niet gelezen is", async () => {
     const result = await syncLadderFixtures(db, { ...summary([]), standings: [] }, { now });
     expect(result.warnings).toHaveLength(1);

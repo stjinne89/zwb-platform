@@ -5,8 +5,10 @@ import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metri
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { ladderOpponentFromTitle } from "./fixture-events";
 import { ensureMatchRiders, loadStoredMatches, loadTeamMatches } from "./matches";
-import { buildLadderMatchup, type LadderMatchup, type MatchupSignup } from "./matchup";
+import { buildLadderMatchup, opponentRiderIds, type LadderMatchup, type MatchupSignup } from "./matchup";
 import { findLadderRouteSlug, ladderRouteBySlug, ROUTE_CLASS_LABELS } from "./routes";
+import { loadLadderSelections } from "./selection";
+import { sameTeam } from "./team-power";
 import type { PowerWkg, StoredMatch } from "./team-power";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -41,22 +43,29 @@ export async function loadLadderEventMatchup(
     (link?.club_ladder_opponent as string | null | undefined) ?? ladderOpponentFromTitle(event.title, ourName);
   if (!opponent) return null;
 
-  const { data: signupRows } = await admin
-    .from("club_ladder_fixture_signups")
-    .select("zwift_id, team, name, position")
-    .eq("fixture_id", fixtureId);
+  const [{ data: signupRows }, selections] = await Promise.all([
+    admin.from("club_ladder_fixture_signups").select("zwift_id, team, name, position").eq("fixture_id", fixtureId),
+    loadLadderSelections(admin, event.team_id, [eventId]),
+  ]);
   const signups: MatchupSignup[] = ((signupRows ?? []) as Array<{ zwift_id: number | string; team: string; name: string; position: number | null }>)
     .map((row) => ({ zwiftId: positiveId(row.zwift_id) ?? 0, team: row.team, name: row.name, position: row.position }))
     .filter((row) => row.zwiftId > 0);
-  const zwiftIds = signups.map((row) => row.zwiftId);
+  // Selectie van een captain: telt alleen zolang wij op de ladder niemand aangemeld hebben.
+  const ourSelection: MatchupSignup[] = signups.some((row) => sameTeam(row.team, ourName))
+    ? []
+    : (selections.get(eventId)?.riders ?? []).flatMap((rider) =>
+        rider.zwiftId ? [{ zwiftId: rider.zwiftId, team: ourName, name: rider.name, position: null }] : [],
+      );
 
   const [ours, theirs] = await Promise.all([loadTeamMatches(admin, [ourName]), loadTeamMatches(admin, [opponent])]);
   const all = [...new Map([...ours, ...theirs].map((row) => [row.result_id, row])).values()];
   await ensureMatchRiders(admin, all, PAGE_BUDGET_MS);
   if (all.some((row) => !row.riders_fetched_at)) after(() => ensureMatchRiders(admin, all, AFTER_BUDGET_MS));
 
-  const [matches, riderMatches, metrics] = await Promise.all([
-    loadStoredMatches(admin, all),
+  const matches = await loadStoredMatches(admin, all);
+  const theirSquad = signups.some((row) => sameTeam(row.team, opponent)) ? [] : opponentRiderIds(matches, opponent);
+  const zwiftIds = [...new Set([...signups.map((row) => row.zwiftId), ...ourSelection.map((row) => row.zwiftId), ...theirSquad])];
+  const [riderMatches, metrics] = await Promise.all([
     riderRaces(admin, zwiftIds),
     loadRiderMetrics(zwiftIds),
   ]);
@@ -77,6 +86,8 @@ export async function loadLadderEventMatchup(
       ourName,
       opponent,
       signups,
+      ourSelection,
+      theirSquad,
       matches,
       riderMatches: [...matches, ...riderMatches.filter((match) => !known.has(match.resultId))],
       power90,

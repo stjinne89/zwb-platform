@@ -29,6 +29,8 @@ export type MatchupSide = {
   riders: MatchupRider[];
   /** Opgesteld (startplek gegeven) of alleen aangemeld. */
   lineup: boolean;
+  /** Geen aanmeldingen op de ladder: de selectie van een captain. */
+  selection: boolean;
   wkg: PowerWkg | null;
   races: number;
 };
@@ -44,7 +46,8 @@ export type MatchupDuration = {
 };
 
 export type LadderMatchup = {
-  basis: "lineup" | "races";
+  /** lineup: beide kanten uit renners; squad: de tegenstander uit zijn recente renners; races: beide uit ladderraces. */
+  basis: "lineup" | "squad" | "races";
   ours: MatchupSide;
   theirs: MatchupSide;
   durations: MatchupDuration[];
@@ -98,6 +101,17 @@ export function squadPower(zwiftIds: number[], power: Map<number, RiderPower>, p
   return rows.length > 0 ? { wkg: topFiveAverage(rows), riders: rows.length, with90d } : null;
 }
 
+/** Zwift-ID's van wie de laatste wedstrijden voor dit team reed. */
+export function opponentRiderIds(matches: StoredMatch[], team: string): number[] {
+  return [
+    ...new Set(
+      matches.flatMap((match) =>
+        match.riders.filter((rider) => rider.zwiftId && sameTeam(rider.team, team)).map((rider) => rider.zwiftId!),
+      ),
+    ),
+  ];
+}
+
 function sideRiders(
   signups: MatchupSignup[],
   power: Map<number, RiderPower>,
@@ -134,6 +148,10 @@ export function buildLadderMatchup(input: {
   ourName: string;
   opponent: string;
   signups: MatchupSignup[];
+  /** Selectie van een captain, voor onze kant zolang wij niemand aangemeld hebben. */
+  ourSelection?: MatchupSignup[];
+  /** Recente renners van de tegenstander, als die nog niemand aangemeld heeft. */
+  theirSquad?: number[];
   /** Wedstrijden van beide teams, voor het teamprofiel. */
   matches: StoredMatch[];
   /** Alle bewaarde races van de aangemelde renners, ook voor een ander team. */
@@ -145,12 +163,9 @@ export function buildLadderMatchup(input: {
 }): LadderMatchup {
   const { ourName, opponent, signups, matches, power90, scores, weights } = input;
   const power = riderPowerFromMatches(input.riderMatches ?? matches);
-  const ours = sideRiders(
-    signups.filter((row) => sameTeam(row.team, ourName)),
-    power,
-    power90,
-    scores,
-  );
+  const ourSignups = signups.filter((row) => sameTeam(row.team, ourName));
+  const selection = ourSignups.length === 0 && (input.ourSelection?.length ?? 0) > 0;
+  const ours = sideRiders(selection ? input.ourSelection! : ourSignups, power, power90, scores);
   const theirs = sideRiders(
     signups.filter((row) => sameTeam(row.team, opponent)),
     power,
@@ -164,13 +179,16 @@ export function buildLadderMatchup(input: {
   };
   const ourLineupWkg = lineupPower(ours.riders);
   const theirLineupWkg = lineupPower(theirs.riders);
-  const basis = ourLineupWkg && theirLineupWkg ? "lineup" : "races";
+  // Wij weten wie er rijdt, de tegenstander nog niet: zijn recente renners, net als het advies.
+  const theirSquadWkg =
+    ourLineupWkg && !theirLineupWkg && input.theirSquad ? squadPower(input.theirSquad, power, power90)?.wkg ?? null : null;
+  const basis = ourLineupWkg && theirLineupWkg ? "lineup" : theirSquadWkg ? "squad" : "races";
 
   const ourTeam = teamPowerFromMatches([ourName], matches);
   const theirTeam = teamPowerFromMatches([opponent], matches);
-  // Zonder aanmeldingen aan beide kanten: beide teams uit hun ladderraces, nooit gemengd.
-  const ourWkg = basis === "lineup" ? ourLineupWkg : ourTeam?.wkg ?? null;
-  const theirWkg = basis === "lineup" ? theirLineupWkg : theirTeam?.wkg ?? null;
+  // Anders beide teams uit hun ladderraces, nooit gemengd.
+  const ourWkg = basis === "races" ? ourTeam?.wkg ?? null : ourLineupWkg;
+  const theirWkg = basis === "lineup" ? theirLineupWkg : basis === "squad" ? theirSquadWkg : theirTeam?.wkg ?? null;
 
   let weighted = 0;
   let weightSum = 0;
@@ -192,8 +210,8 @@ export function buildLadderMatchup(input: {
 
   return {
     basis,
-    ours: { name: ourName, riders: ours.riders, lineup: ours.lineup, wkg: ourWkg ?? null, races: ourTeam?.races ?? 0 },
-    theirs: { name: opponent, riders: theirs.riders, lineup: theirs.lineup, wkg: theirWkg ?? null, races: theirTeam?.races ?? 0 },
+    ours: { name: ourName, riders: ours.riders, lineup: ours.lineup, selection, wkg: ourWkg ?? null, races: ourTeam?.races ?? 0 },
+    theirs: { name: opponent, riders: theirs.riders, lineup: theirs.lineup, selection: false, wkg: theirWkg ?? null, races: theirTeam?.races ?? 0 },
     durations,
     routeEdgePct: weightSum > 0 ? Math.round((weighted / weightSum) * 100) : null,
   };

@@ -8,8 +8,9 @@ import { buildLadderAdvice, DURATION_LABELS, recentMatches, type LadderAdvice, t
 import { canAssignLadderRiders, canEditLadderPuzzle } from "@/lib/club-ladder/access";
 import { riderRaces } from "@/lib/club-ladder/event-matchup";
 import { ensureMatchRiders, loadStoredMatches, loadTeamMatches } from "@/lib/club-ladder/matches";
-import { riderPowerFromMatches, squadPower } from "@/lib/club-ladder/matchup";
+import { opponentRiderIds, riderPowerFromMatches, squadPower } from "@/lib/club-ladder/matchup";
 import { parseLadderRiderSort, sortLadderRiders } from "@/lib/club-ladder/riders";
+import { loadLadderSelections } from "@/lib/club-ladder/selection";
 import { ladderRouteOptions, ROUTE_CLASS_LABELS, worldLabel } from "@/lib/club-ladder/routes";
 import { CHALLENGE_RANGE, challengeableTeams } from "@/lib/club-ladder/rules";
 import { storeLadderResults } from "@/lib/club-ladder/store";
@@ -20,7 +21,7 @@ import {
   type ClubLadderResult,
   type ClubLadderStanding,
 } from "@/lib/club-ladder/summary";
-import { DURATIONS, sameTeam, type PowerWkg } from "@/lib/club-ladder/team-power";
+import { DURATIONS, type PowerWkg } from "@/lib/club-ladder/team-power";
 import { normalizeTeamName } from "@/lib/ladder";
 import { loadRiderMetrics } from "@/lib/race-briefing/metrics";
 import { getRequestAccess } from "@/lib/auth/request";
@@ -30,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { DeleteResultButton, TeamChatLinksForm, TeamResultForm } from "../../[id]/_components/admin-panel";
 import { TeamAvailabilityButtons } from "../../[id]/_components/team-availability-buttons";
 import { LadderRoutes, type LadderRouteRow } from "../_components/ladder-routes";
+import { LadderSelection, type SelectionOption } from "../_components/ladder-selection";
 import { Metric, StandingsTable, TeamRidersTable } from "../_components/team-tables";
 import {
   fixtureMatches,
@@ -135,7 +137,7 @@ export default async function ClubLadderTeamPage({
   const userId = access.user?.id ?? null;
 
   // Wat de losse teampagina had: chatkanalen, beschikbaarheid per wedstrijd en teamresultaten.
-  const [{ data: waGroups }, { data: availabilityRows }, { data: teamResults }, { data: captainRows }] = await Promise.all([
+  const [{ data: waGroups }, { data: availabilityRows }, { data: teamResults }, { data: captainRows }, selections] = await Promise.all([
     supabase
       .from("whatsapp_groups")
       .select("id, name, invite_url, description, kind")
@@ -158,8 +160,10 @@ export default async function ClubLadderTeamPage({
     userId
       ? admin.from("team_members").select("role").eq("team_id", team.id).eq("profile_id", userId).in("role", ["captain", "co-captain"])
       : Promise.resolve({ data: [] }),
+    loadLadderSelections(admin, team.id, matchupEventIds),
   ]);
   const isCaptain = (captainRows ?? []).length > 0;
+  const canSelect = access.has("teams.manage_roster") || isCaptain;
   const canEditChat = access.has("teams.manage_roster") || isCaptain;
   const canEditResults = access.has("teams.manage_results") || isCaptain;
   type Availability = { event_id: string; profile_id: string; status: "available" | "maybe" | "unavailable" };
@@ -192,7 +196,30 @@ export default async function ClubLadderTeamPage({
     laps: option.laps,
   }));
 
+  // Ook zonder eigen plek in de stand (een nieuwe ploeg) is de tegenstander van een matchup te analyseren.
+  const ranked = new Set(standings.map((row) => normalizeTeamName(row.name)));
+  const ourAliases = new Set(aliases.map(normalizeTeamName));
+  const fixtureOpponent = (fixture: ClubLadderFixture) => {
+    const name = ourAliases.has(normalizeTeamName(fixture.home)) ? fixture.away : fixture.home;
+    return ranked.has(normalizeTeamName(name)) ? name : null;
+  };
+  const selectionFor = (fixture: ClubLadderFixture) => {
+    const eventId = fixture.fixtureId ? eventByFixture.get(fixture.fixtureId) : undefined;
+    return eventId ? selections.get(eventId) ?? null : null;
+  };
+  const selectionOptions: SelectionOption[] = teamRiders.map((rider) => ({
+    kind: rider.rosterEntryId ? "roster" : "profile",
+    id: rider.id,
+    name: rider.name,
+  }));
+
   let advice: LadderAdvice | null = null;
+  // Zet een captain (of de ladder) een selectie op de matchup, dan rekent het advies met precies die renners.
+  const opponentFixture = opponent
+    ? teamFixtures.find((fixture) => normalizeTeamName(fixtureOpponent(fixture) ?? "") === normalizeTeamName(opponent.name))
+    : undefined;
+  const adviceSelection = opponentFixture ? selectionFor(opponentFixture) : null;
+  const selectedIds = (adviceSelection?.riders ?? []).map((rider) => rider.zwiftId).filter((id): id is number => id != null);
   if (opponent) {
     // Eerst de verse uitslagen bewaren, dan de renners van beide teams aanvullen.
     await storeLadderResults(admin, ladderResults);
@@ -201,16 +228,13 @@ export default async function ClubLadderTeamPage({
     const all = [...new Map([...ours, ...theirs].map((row) => [row.result_id, row])).values()];
     await ensureMatchRiders(admin, all, ANALYSIS_BUDGET_MS);
     const stored = await loadStoredMatches(admin, all);
-    // Wie nu in de ploeg zit tegen wie de laatste wedstrijden van de tegenstander reed,
-    // niet de oude opstelling uit eerdere ladderraces (2026-11-03).
-    const ourIds = [...new Set(teamRiders.map((rider) => rider.zwiftId).filter((id): id is number => id != null))];
-    const theirIds = [
-      ...new Set(
-        stored.flatMap((row) =>
-          row.riders.filter((rider) => rider.zwiftId && sameTeam(rider.team, opponent.name)).map((rider) => rider.zwiftId!),
-        ),
-      ),
-    ];
+    // De selectie, anders wie nu in de ploeg zit, tegen wie de laatste wedstrijden van de
+    // tegenstander reed; niet de oude opstelling uit eerdere ladderraces (2026-11-03).
+    const ourIds =
+      selectedIds.length > 0
+        ? [...new Set(selectedIds)]
+        : [...new Set(teamRiders.map((rider) => rider.zwiftId).filter((id): id is number => id != null))];
+    const theirIds = opponentRiderIds(stored, opponent.name);
     const [ourRaces, metrics] = await Promise.all([riderRaces(admin, ourIds), loadRiderMetrics([...ourIds, ...theirIds])]);
     const known = new Set(stored.map((row) => row.resultId));
     const ladderPower = riderPowerFromMatches([...stored, ...ourRaces.filter((row) => !known.has(row.resultId))]);
@@ -236,13 +260,6 @@ export default async function ClubLadderTeamPage({
   const adviceHref = (name: string) =>
     `/teams/club-ladder/${team.id}?tegen=${encodeURIComponent(name)}${sortParam ? `&sort=${sortParam}` : ""}#advies`;
   const opponentHref = (row: ClubLadderStanding) => adviceHref(row.name);
-  // Ook zonder eigen plek in de stand (een nieuwe ploeg) is de tegenstander van een matchup te analyseren.
-  const ranked = new Set(standings.map((row) => normalizeTeamName(row.name)));
-  const ourAliases = new Set(aliases.map(normalizeTeamName));
-  const fixtureOpponent = (fixture: ClubLadderFixture) => {
-    const name = ourAliases.has(normalizeTeamName(fixture.home)) ? fixture.away : fixture.home;
-    return ranked.has(normalizeTeamName(name)) ? name : null;
-  };
 
   return (
     <div className="space-y-6">
@@ -284,7 +301,7 @@ export default async function ClubLadderTeamPage({
       {opponent && (
         <section id="advies" className="scroll-mt-20 rounded-lg border bg-card p-4">
           <h2 className="font-semibold">Advies tegen {opponent.name}</h2>
-          <AdviceView advice={advice} opponent={opponent.name} options={routeRows} />
+          <AdviceView advice={advice} opponent={opponent.name} options={routeRows} selection={selectedIds.length > 0} />
         </section>
       )}
 
@@ -336,6 +353,7 @@ export default async function ClubLadderTeamPage({
               );
               const mine = eventId && userId ? availability.find((row) => row.event_id === eventId && row.profile_id === userId) : undefined;
               const rival = fixtureOpponent(fixture);
+              const selection = selectionFor(fixture);
               return (
                 <li
                   key={`${fixture.date}-${fixture.time}-${fixture.home}-${fixture.away}`}
@@ -356,6 +374,20 @@ export default async function ClubLadderTeamPage({
                     >
                       Advies
                     </Link>
+                  )}
+                  {selection && selection.riders.length > 0 && (
+                    <p className="text-xs">
+                      <span className="text-muted-foreground">{selection.fromLadder ? "Opstelling" : "Selectie"}: </span>
+                      {selection.riders.map((rider) => rider.name).join(", ")}
+                    </p>
+                  )}
+                  {eventId && canSelect && !selection?.fromLadder && selectionOptions.length > 0 && (
+                    <LadderSelection
+                      teamId={team.id}
+                      eventId={eventId}
+                      options={selectionOptions}
+                      selected={(selection?.riders ?? []).map(({ kind, id }) => ({ kind, id }))}
+                    />
                   )}
                   {eventId && userId && (
                     <div className="mt-auto space-y-2">
@@ -426,7 +458,17 @@ type TeamResult = {
   points: number | string | null;
 };
 
-function AdviceView({ advice, opponent, options }: { advice: LadderAdvice | null; opponent: string; options: LadderRouteRow[] }) {
+function AdviceView({
+  advice,
+  opponent,
+  options,
+  selection,
+}: {
+  advice: LadderAdvice | null;
+  opponent: string;
+  options: LadderRouteRow[];
+  selection: boolean;
+}) {
   if (!advice) return <EmptyState className="mt-3">Nog geen wedstrijden van {opponent} bewaard.</EmptyState>;
   const bySlug = new Map(options.map((option) => [option.slug, option]));
   const extraFavorite =
@@ -449,6 +491,7 @@ function AdviceView({ advice, opponent, options }: { advice: LadderAdvice | null
           );
         })}
         <span className="px-1 py-1 text-muted-foreground">
+          {selection ? "Selectie · " : ""}
           {advice.ours.riders} / {advice.theirs.riders} renners · 90 d: {advice.ours.with90d} / {advice.theirs.with90d}
         </span>
       </div>
