@@ -11648,8 +11648,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Kalender: labels uitzetten
 
-**2026-11-03.** Commit op branch `claude/calendar-labels-toggle-a2ac6b`, niet
-gepusht. Geen migratie.
+**2026-11-03.** Commit `9f29e107` (en deze PLAN-regel), gepusht naar `main` op
+2026-11-03 (eigenaar). Geen migratie.
 
 **Waarom.** Vraag van de eigenaar: in de dropdown Labels kon je alleen kiezen
 wat je wilt zien. Wie bijvoorbeeld alles behalve de verjaardagen wil, moest
