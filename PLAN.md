@@ -45,9 +45,11 @@ gaat stabiliteit voor nieuwe features.
    op 2026-10-28 via de Supabase-connector toegepast (op verzoek van de
    eigenaar), in de historie van productie onder de oude naam
    `0290_intervals_strength_muscles`. Gepusht naar `main` op 2026-10-30. De
-   privacytekst staat erin (akkoord eigenaar 2026-10-28). Nog doen: ingelogd
-   een krachttraining openen, spieren aantikken en opslaan. Zie de ronde
-   "Kracht: krachttraining uit intervals.icu meetellen".
+   privacytekst staat erin (akkoord eigenaar 2026-10-28). Op 2026-11-02 met de
+   eigenaar getest (lokale app, productiedata): werkt. Wachttijd voor het
+   krachtspoor naar een kwartier: gepusht op 2026-11-03. Zie de
+   rondes "Kracht: krachttraining uit intervals.icu meetellen" en "Kracht:
+   intervals-trainingen na een kwartier zichtbaar".
 
 0c. **Clubverhaal (2026-10-28): migratie `0288` toegepast en gepusht.**
    `0288_club_stories.sql` is op 2026-10-28 via de Supabase-connector
@@ -113,6 +115,18 @@ gaat stabiliteit voor nieuwe features.
    vELO1, en dat de rating van ieder lid met een Zwift-ID wordt bewaard) is
    voorgelegd, nog niet aangepast. Verversen: opnieuw ophalen via Chrome (zie de
    ronde). Zie de ronde "Club Ladder: legacy vELO per renner".
+
+0n. **Persoonlijk racetempo en nieuwe fit van het Zwift-racemodel (2026-11-02):
+   gepusht naar `main` op 2026-11-03.** Geen migratie. Na de push: de dagelijkse cron
+   herrekent de komende Zwift-raceblokken per lid; nalopen dat de ladderrace op de
+   Muckle Yin niet meer op 39 minuten staat. Zie de rondes "Zwift-racemodel
+   opnieuw gefit" en "Persoonlijk racetempo in de duur van een Zwift-race".
+0o. **RPE bij een losse rit (2026-11-02): gepusht naar `main` op 2026-11-03.**
+   Migratie `0303_strava_activity_rpe.sql` is **niet toegepast** (0303 was bij
+   de push nog vrij op `main`); de eigenaar liet pushen vóór het toepassen. Zonder de kolom
+   faalt alleen het opslaan van de RPE, de rest werkt. Nalopen na de deploy:
+   een niet-geplande rit aanklikken, RPE opslaan, en de rit daarna aan een
+   training hangen. Zie de ronde "RPE bij een losse rit".
 
 1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
@@ -11500,8 +11514,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
   via de API niets terug voor ritten die daar via Strava binnenkwamen. Omdat de
   schemapagina nu Strava-data toont, staat er een `StravaAttribution` onder
   zodra er zo'n rit is.
-  **Bewust niet gebouwd:** geen RPE/rapportage-formulier bij zo'n rit (een
-  rapportage hangt aan een `workout_id`, en die is er niet), geen automatisch
+  **Bewust niet gebouwd:** geen rapportage-formulier bij zo'n rit (een
+  rapportage hangt aan een `workout_id`, en die is er niet; sinds 2026-11-02
+  wel een RPE op de rit zelf, zie de ronde "RPE bij een losse rit"), geen automatisch
   samenvoegen van twee helften tot één rit (dat zou de bron herschrijven op basis
   van een gok), en de lijstweergave blijft ongemoeid — die toont alleen wat nog
   komt, en een gereden rit is per definitie verleden tijd.
@@ -11631,7 +11646,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Ladderrace: matchup met 90 dagen van ZwiftRacing
 
-**2026-11-03.** Lokaal gecommit, niet gepusht. Geen migratie.
+**2026-11-03.** Commit `48d5e402`, gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie.
 
 De eigenaar zag dat de matchup bij de tegenstander te lage waarden toonde:
 Adam Dawson (Galaxy Avengers) heeft op ZwiftPower en ZwiftRacing over 90 dagen
@@ -11673,6 +11688,129 @@ tegenstanderkant race-waarden stonden. Keuze van de eigenaar: via Chrome halen
 **Niet geverifieerd.** De eventpagina in de browser na deze wijziging (vraagt een
 deploy). Unit tests (`club-ladder-matchup.test.ts`, 6), typecheck en ESLint
 schoon.
+
+### Gebouwd — Kracht: intervals-trainingen na een kwartier zichtbaar
+
+**2026-11-03.** Commit `1b4cc467`, gepusht naar `main` op 2026-11-03 (eigenaar).
+Geen migratie.
+
+**Waarom.** Uit de test met de eigenaar (2026-11-02): het krachtspoor haalde
+`intervals_activities` pas opnieuw op als de laatste ophaalbeurt meer dan zes
+uur oud was. Wie net uit de sportschool kwam, zag zijn training dus tot zes uur
+niet, en de krachtregel kende hem niet.
+
+**Wat.** `STRENGTH_SYNC_MAX_AGE_MS` (een kwartier) in
+`lib/intervals/activities.ts`; `refreshIntervalsActivitiesIfStale` neemt een
+optionele `maxAgeMs`. Vandaag en Series van het krachtspoor gebruiken het
+kwartier; de rest van ZWBeter houdt zes uur.
+
+**Bewust niet.** Geen knop "Ophalen" in het krachtspoor (geen extra UI); niet
+korter dan een kwartier: elke ophaalbeurt haalt 120 dagen activiteiten bij
+intervals.icu op.
+
+**Getest met de eigenaar (2026-11-02), lokale app tegen productie, wachttijd
+tijdelijk op een minuut.** Een handmatige *Gewichtstraining* in intervals.icu
+(zo heet WeightTraining in de Nederlandse versie; via Agenda → dag →
+Handmatige activiteit) verscheen in het blok, het voorstel "Kracht: basis"
+verdween, de dialoog opende, vijf aangetikte spieren stonden daarna in
+`intervals_strength_muscles` en kleurden in "Deze week getraind".
+Gevonden bij twee leden zonder resultaat: krachttraining die via **Strava** in
+intervals.icu komt, levert via de API alleen een stub zonder type (Stijn); en
+een Garmin-band schrijft trainingen als `Workout` weg (Harmen). Beide tellen
+bewust niet mee; de eigenaar koos voor alleen `WeightTraining`.
+**Niet geverifieerd:** het kwartier zelf in productie.
+
+### Bijgesteld — Vermoeidheid telt één keer, per dag
+
+**2026-11-02.** Commit `2ca26e7b`, gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie.
+
+Een lid had in de week van 2 november nog maar 3 uur en geen enkele rit boven
+78 % FTP. Hij zette zaterdag en zondag op 0. De bijwerking die daarop volgde
+(zondagavond) zag wellness 'fatigued', HRV onder de band, een afgeleide
+readiness van 41 en een TSB van −24. Op grond daarvan maakte ze de hele week
+licht: de VO2max van dinsdag ging eruit, de sweet spot werd korter en donderdag
+bleef leeg, terwijl daar tijd was. De dag-aanpassing van maandagnacht zag
+dezelfde meting en maakte van de sweet spot van woensdag, twee dagen vooruit,
+nog een rustige duurrit. Zo telde één meting twee keer. Terug kwam de sessie
+ook niet: regel 4 voegt alleen kwaliteit toe bij een positieve TSB of een fris
+gevoel, en na een zware week blijft de TSB dagen negatief.
+
+- `planUpdatePrompt()`: bij een bijwerking vervangt een eigen regel de
+  basisregel over herstel-data. Met de meting van vandaag wordt de komende week
+  niet lichter; de sleutelsessies blijven staan, en bij vermoeidheid schuift de
+  eerste naar later in de week. Lichter alleen bij aanhoudende overbelasting:
+  ramp_rate 8 of hoger, symptoms boven 0,65, of meerdere ritten 'te_zwaar' met
+  RPE 8+ of gevoel zwaar/slecht. Ook dan blijft er minstens één sleutelsessie.
+- `adaptiveDailyPrompt()`: herstelwaarden van vandaag gelden voor vandaag en
+  hooguit morgen. Staat er deze week geen sleutelsessie meer, is de week geen
+  herstelweek of taper en is wellness weer 'normal' of 'fresh', dan komt er
+  één terug, ook als de TSB nog negatief is.
+
+Zo werkt trainen op HRV ook: per dag rustig als de waarden laag zijn, en
+kwaliteit terug zodra ze weer normaal zijn. Van een week zonder intensiteit
+gaat lichamelijk weinig verloren; het punt is dat de planner zichzelf
+tegenwerkte.
+
+**Bewust niet.**
+- De regelmotor (`engine/periodization.ts`, `fatigueHere` in de eerste
+  opbouwweek; `engine/daily.ts`) is niet mee aangepast. Die draait alleen ter
+  vergelijking. Bij overstappen op de motor moet hij deze regel alsnog krijgen.
+- Het schema van dit lid is niet met de hand hersteld; dat doet de trainer, of
+  de dag-aanpassing vanaf nu zelf zodra zijn herstel weer in orde is.
+- `currentPlan` in de dag-aanpassing krijgt geen beschrijving of eerdere versie
+  van een training mee. De AI ziet alleen dat er geen sleutelsessie meer staat,
+  niet welke er eerst stond.
+
+**Niet geverifieerd**: alleen de prompttekst is getest
+(`training-prompts.test.ts`). Hoe de AI de nieuwe regels toepast, blijkt pas
+bij de volgende bijwerking en dag-aanpassing op productie.
+
+### Gebouwd — RPE bij een losse rit
+
+**2026-11-02.** Gepusht naar `main` op 2026-11-03 (eigenaar). Migratie
+`0303_strava_activity_rpe.sql`, **niet toegepast** en niet lokaal te testen
+(geen Docker of Supabase-config).
+
+Vraag van de eigenaar: wie spontaan een rit doet, moet toch zijn RPE kunnen
+geven. Een rapportage hangt aan een `workout_id`, en een rit zonder training heeft
+er geen; daarom was dit op 2026-08-18 bewust niet gebouwd (ronde "Ongeplande
+ritten in het schema"). Die zin is nu bijgewerkt.
+
+- **Opslag:** kolom `strava_activities.athlete_rpe` (1..10), net als
+  `training_excluded_at` (0163): de RPE hoort bij precies één rit en verdwijnt
+  met die rit. Niet in `STRAVA_RIDE_COLUMNS`; `ride-rpe.ts` leest en schrijft hem
+  apart, zodat zonder migratie alleen dit faalt.
+- **Invullen:** in de maandkalender (`/zwbeter-worden/schema`) heeft het
+  detailpaneel van een niet-geplande rit een RPE-veld (`RideRpeForm`,
+  `saveRideRpeAction`, admin-client met `profile_id` van het lid).
+- **Eén bron:** een rit aan een training heeft geen eigen RPE; die staat in de
+  rapportage. Koppelt het lid de rit aan een training (`relinkRide`) of doet de
+  detectie dat (`detectCompletedWorkouts`), dan gaat de RPE mee naar de
+  rapportage als daar nog geen stond, en wordt hij op de rit gewist. Loskoppelen
+  zet de RPE van de rapportage terug op de rit. Gevoel en opmerking vervallen bij
+  loskoppelen nog steeds; `/hulp/schema#rit-koppelen` zegt dat nu zo.
+- **Herstelsignaal:** `loadSubjectiveRecovery` telt losse ritten van de laatste
+  drie dagen mee (`rideReportsFrom`). Er stond geen training tegenover, dus de
+  intensiteit volgt uit TSS per uur (`detectIntensityFromLoad`); een rustige rit
+  met RPE 7 of hoger telt als zwaar, net als bij een training. Een rit zonder
+  TSS (geen vermogen en geen hartslag) telt niet mee.
+- Hulp: `/hulp/schema#rpe-losse-rit` plus zoekentry.
+
+**Bewust niet.**
+- **Gevoel en opmerking bij een losse rit.** Gevraagd was RPE; een opmerking is
+  vrije tekst zonder trainer die hem leest (er is geen rapportage, dus geen
+  beoordelingsrij).
+- **De AI-dagcontext** (`buildTodayRides`, `buildYesterdayContext`) en de
+  coachchat krijgen de RPE van een losse rit nog niet; alleen het herstelsignaal
+  gebruikt hem.
+- **Geen nieuwe privacytekst.** De verklaring noemt RPE nergens apart; het is de
+  beleving bij een rit, dezelfde categorie als bij een training, en hij staat in
+  de data-export (`strava_activities`).
+
+**Getest:** unit tests in `reassign-ride.test.ts` (meenemen bij koppelen,
+bestaande RPE blijft staan, terugzetten bij loskoppelen) en
+`subjective-recovery.test.ts` (rustig/hard/zonder TSS). De UI is niet in een
+browser gezien (geen `.env.local` in deze worktree).
 
 ### Gebouwd — Ladderrace: geschiedenis per team voor de matchup
 
@@ -11781,6 +11919,103 @@ vult zich bij bezoek.
 de eventpagina in de browser (inloggen op productie). Typecheck en ESLint
 schoon; `club-ladder-matchup.test.ts` (5 tests) en de aangevulde
 `club-ladder-fixtures.test.ts` slagen.
+
+### Gebouwd — Zwift-racemodel opnieuw gefit
+
+**2026-11-02.** Gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie. De eigenaar zag dat
+het model voor iedereen te ruim zat op de Muckle Yin en vroeg om een nieuwe fit.
+
+- **Wat er mis was.** Over 1913 "Zwift - Race: …"-ritten van ZWB'ers (10 tot
+  80 km, strava_activities) reed men mediaan 0,956 keer de modeltijd (ZRL 0,955,
+  Club Ladder 0,938, FRR 0,980). De oude fit (30 september 2026, 43 km/h en
+  0,02 min per hm) was een kleinste-kwadraten-fit in minuten, die zich laat
+  trekken door lange tijden van wie gelost raakte. En elke hoogtemeter telde
+  even zwaar: op 10 tot 15 hm per km (Muckle Yin 11,6) 0,93, op 20+ hm per km
+  1,05.
+- **Nieuw model** (`ZWIFT_RACE_PACE.race`): 40,6 km/h, en alleen hoogtemeters
+  boven 10 per km tellen als klim, 0,028 min per hm. Gefit op de relatieve fout.
+  Een vrije klimdrempel van 0, 8 en 10 hm/km vergeleken; 10 gaf de kleinste
+  fout en de vlakste verdeling per steilheid. Een kwadratische klimterm gaf
+  hetzelfde (5,4%) maar loopt bij echte klimmen uit de bocht.
+- **Getoetst buiten de fit:** gefit op de races tot juli 2025, getoetst op de
+  718 daarna. Mediane afwijking van 6,6% naar 5,5%; per steilheid 0,97 tot
+  1,03 van de gereden tijd, Muckle Yin 0,99.
+- De ladderrace op de Muckle Yin (23,7 km, 282 hm) gaat van 39 naar 36 minuten
+  in het clubmodel.
+- **Bewust niet gedaan.** Het TTT-model blijft: het zat al op mediaan 1,01 over
+  257 TTT's, en een klimdrempel maakte het met zo weinig ritten onrustig
+  (42 km/h vlak). Het groepsritmodel en de buitenmodellen zijn niet opnieuw
+  bekeken. Buiten de data (een Alpe du Zwift: 12 km, 1036 hm) is het model niet
+  getoetst; daar geeft het 44 minuten.
+- **Wat niet meer klopt:** de SRC-uitspraak in `events.ts` (2 tot 5% van de
+  finishtijd) gold het oude model; niet opnieuw nagelopen.
+- **Niet in de browser of tegen productie gedraaid.** Unit-tests aangepast aan
+  het nieuwe model en groen; ESLint schoon.
+
+### Gebouwd — Persoonlijk racetempo in de duur van een Zwift-race
+
+**2026-11-02.** Gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie. De eigenaar vroeg
+of de duurschatting op persoonlijke data kon steunen in plaats van op het
+clubgemiddelde (aanleiding: de ronde hieronder).
+
+- `src/lib/training/race-pace.ts`: de factor van een lid is de mediaan van
+  gereden tijd ÷ modeltijd over de tien nieuwste "Zwift - Race: …"-ritten in
+  `strava_activities` (Strava of intervals.icu), 10 tot 80 km en langer dan een
+  kwartier. Afgerond op 0,05 en begrensd op 0,85–1,25; met minder dan drie
+  races 1, het clubmodel.
+- `eventWorkoutDefaults(event, { racePace })` vermenigvuldigt alleen de
+  routeschatting van een Zwift-race (ook TTT) met die factor. Een ingestelde
+  koersduur of eindtijd gaat voor, en buitenritten, groepsritten en gravel
+  blijven op hun eigen model.
+- De factor gaat mee waar het blok voor één lid wordt gemaakt of herrekend:
+  `applyEventBlock` (ja op een event), `refreshEventWorkouts` (dagelijkse cron,
+  één query per lid met een Zwift-race), `committedEventsForAi` (de planner) en
+  de eventlijst in het schemapaneel (`loadScheduleEventChoices`). Alleen
+  opgehaald als er een Zwift-race tussen zit.
+- **Toetsing** (2 november 2026, per race de factor uit de tien races ervóór),
+  tegen het nieuwe clubmodel (ronde hierboven): 1858 races van 16 renners,
+  mediane afwijking in duur van 5,4% naar 4,3% (p90 van 12,7% naar 11,6%);
+  238 TTT's met dezelfde factor van 5,2% naar 4,5%. Tegen het oude model was
+  dat 7,0% naar 4,5%. Factoren lagen tussen 0,89 en 1,21.
+- **Privacy:** geen nieuwe tekst. De privacyverklaring zegt al dat ritten
+  meetellen voor je trainingsschema, en de factor blijft bij het lid zelf.
+- **Bewust niet gedaan.** TTT's tellen niet mee voor de factor (ander tempo; de
+  factor uit gewone races verbeterde ze al). Niet in de agendafeed
+  (`calendar/feed.ts`), die toont de eventtijd, en niet als losse schatting in
+  het ritvoedingsplan: dat neemt eerst de duur van het eigen blok over, die de
+  factor al heeft. Geen persoonlijke factor voor buitenritten.
+- **Wat het niet oplost:** de route; daarvoor is de klimterm van het nieuwe
+  model. Bart heeft tegen het nieuwe model factor 1,03, afgerond 1,05: zijn tien
+  laatste races waren wat trager dan de club. Hij krijgt op de Muckle Yin 38
+  minuten, waar hij die route zelf in 33 tot 36 reed (afgerekend op de
+  raceafstand, zonder uitrijden).
+- **Niet in de browser of tegen productie gedraaid.** De nieuwe en geraakte
+  unit-tests slagen en ESLint is schoon. In deze worktree ontbreekt
+  `@anthropic-ai/sdk`; daardoor falen tsc en een deel van de suite, los van
+  deze ronde. Na de push past de dagelijkse cron de komende raceblokken aan;
+  wie intervals.icu heeft, krijgt die blokken opnieuw doorgezet.
+
+### Bewust niet gebouwd — Club Ladder: een eigen tempo voor de duurschatting
+
+**2026-11-02.** Geen code, geen migratie. Bart kreeg voor de ladderrace op de
+Muckle Yin (6 november, 23,7 km, 282 hm) 39 minuten in zijn schema. Dat was het
+Zwift-racemodel van vóór de nieuwe fit (ronde "Zwift-racemodel opnieuw gefit") (`ZWIFT_RACE_PACE.race` in `src/lib/training/events.ts`):
+43 km/h plus 0,02 min per hoogtemeter, gefit op ZRL- en FRR-races. De ladder
+heeft geen eigen fit.
+
+- ZWB'ers reden de Club Ladder op de Muckle Yin (24,1 km) in 33,7 tot 36,5
+  minuten; het model zit daar zo'n 10% te ruim. Over alle 315 Club
+  Ladder-ritten (11 renners, strava_activities, 2 november 2026) mediaan 6,6%.
+- Een fit op die ritten geeft 42,3 km/h en 0,011 min/hm (mediaan 4,8%
+  afwijking), en voor dit event 37 minuten.
+- **Niet doorgevoerd**, op keuze van de eigenaar: het scheelt een paar minuten
+  en een paar TSS, en het blijft een clubgemiddelde.
+- Een persoonlijke factor (mediaan van je laatste tien Zwift-races t.o.v. het
+  model) is getoetst: over 1860 races van 16 renners zakt de mediane afwijking
+  van 7,0% naar 4,3% (p90 van 15,7% naar 11,8%). Voor Bart zelf helpt het hier
+  niet: zijn factor is 0,99 (38,5 min). Wat op de Muckle Yin afwijkt is de
+  route (de klimterm op glooiend terrein), niet de renner. Wel gebouwd, in de
+  ronde hierboven.
 
 ### Gebouwd — Ladderteam: één teampagina, onder Club Ladder
 
@@ -13428,6 +13663,7 @@ na een avond in de sportschool kon ZWB de dag erna een squatserie voorstellen.
   `MUSCLE_GROUPS` (een test bewaakt dat die gelijk blijven). Niets aangetikt
   wist de rij. In de data-export.
 - Het krachtspoor werkt `intervals_activities` bij als die ouder is dan zes uur
+  *(sinds 2026-11-03 een kwartier, zie de ronde hierboven)*
   (`refreshIntervalsActivitiesIfStale`, nu geëxporteerd uit
   `zwbeter-worden/_data.ts`): leden met Strava hebben geen uurlijkse
   intervals-sync. Het blok op de startpagina slaat dat over, die pagina werkt

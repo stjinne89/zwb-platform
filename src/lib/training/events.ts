@@ -159,10 +159,26 @@ export function estimateEventMinutes(
  * Race of Truth — al zat die op 22 september 2026 zo'n 6% trager.
  *
  * Afwijking van dit model op die ritten: mediaan 7% in duur (5,5% bij TTT's).
+ *
+ * De race is op 2 november 2026 opnieuw gefit, op 1913 "Zwift - Race: …"-ritten
+ * van ZWB'ers (10 tot 80 km). Het oude model (43 km/h, 0,02 min per hm) zat
+ * mediaan 4,4% te ruim: een kleinste-kwadraten-fit in minuten laat zich trekken
+ * door lange tijden van wie gelost raakte. Ook telde elke hoogtemeter even
+ * zwaar, terwijl je glooiing in de groep bijna gratis meeneemt: op routes met
+ * 10 tot 15 hm per km (de Muckle Yin) zat het 7% te ruim, op echte klimmen
+ * (20+ hm per km) 5% te krap.
+ *
+ * Nu een fit op de relatieve fout, en de eerste 10 hm per km tellen niet als
+ * klim. Gefit op de races tot juli 2025 en getoetst op de 718 daarna: mediane
+ * afwijking van 6,6% naar 5,5%, en per steilheid tussen 0,97 en 1,03 van de
+ * gereden tijd. Buiten de data (een Alpe du Zwift) is het niet getoetst.
+ *
+ * Het TTT-model zat al goed (mediaan 1,01 van de gereden tijd over 257 TTT's)
+ * en is gebleven.
  */
-const ZWIFT_RACE_PACE: Record<ZwiftRaceKind, { kmh: number; minPerHm: number }> = {
-  race: { kmh: 43, minPerHm: 0.02 },
-  ttt: { kmh: 46.5, minPerHm: 0.021 },
+const ZWIFT_RACE_PACE: Record<ZwiftRaceKind, { kmh: number; minPerHm: number; freeHmPerKm: number }> = {
+  race: { kmh: 40.6, minPerHm: 0.028, freeHmPerKm: 10 },
+  ttt: { kmh: 46.5, minPerHm: 0.021, freeHmPerKm: 0 },
 };
 
 /**
@@ -180,6 +196,8 @@ const ZWIFT_RACE_TARGET_SPREAD = 5;
 // De Sunday Race Club rijdt op MyWhoosh, maar het tempo is dat van een
 // Zwift-race: op de acht SRC-races van september 2026 zat dit model 2 tot 5%
 // van de mediane finishtijd bij de heren, en 8 tot 10% te kort bij de dames.
+// Dat was het model van vóór 2 november 2026; met de nieuwe fit niet opnieuw
+// nagelopen.
 const ZWIFT_RACE_TYPES = new Set(["zrl", "ladder", "flamme_rouge", "src"]);
 const ZWIFT_RACE_EVENT_TYPES = new Set(["RACE", "TIME_TRIAL", "TEAM_TIME_TRIAL"]);
 
@@ -276,12 +294,25 @@ export function zwiftRaceTotals(
   };
 }
 
-/** Geschatte racetijd in minuten, of null zonder afstand of route. */
-export function estimateZwiftRaceMinutes(event: ClubEventRow, kind: ZwiftRaceKind): number | null {
+/** Modeltijd van een Zwift-race in minuten, niet afgerond. */
+export function zwiftRaceModelMinutes(distanceKm: number, elevationM: number, kind: ZwiftRaceKind): number {
+  const pace = ZWIFT_RACE_PACE[kind];
+  const climbM = Math.max(0, elevationM - pace.freeHmPerKm * distanceKm);
+  return (distanceKm / pace.kmh) * 60 + climbM * pace.minPerHm;
+}
+
+/**
+ * Geschatte racetijd in minuten, of null zonder afstand of route. `racePace` is
+ * de persoonlijke factor uit race-pace.ts; 1 is het clubmodel.
+ */
+export function estimateZwiftRaceMinutes(
+  event: ClubEventRow,
+  kind: ZwiftRaceKind,
+  racePace = 1,
+): number | null {
   const totals = zwiftRaceTotals(event);
   if (!totals) return null;
-  const pace = ZWIFT_RACE_PACE[kind];
-  return Math.round((totals.distanceKm / pace.kmh) * 60 + totals.elevationM * pace.minPerHm);
+  return Math.round(zwiftRaceModelMinutes(totals.distanceKm, totals.elevationM, kind) * racePace);
 }
 
 /** De verwachte IF van een wedstrijd buiten (gravelkoers) van zoveel minuten. */
@@ -306,7 +337,17 @@ function raceTarget(factor: number): string {
   return `${pct - ZWIFT_RACE_TARGET_SPREAD}-${pct + ZWIFT_RACE_TARGET_SPREAD}%`;
 }
 
-export function eventWorkoutDefaults(event: ClubEventRow): {
+/**
+ * Voor één lid: `racePace` is de persoonlijke factor op de duur van een
+ * Zwift-race (race-pace.ts). Zonder geldt het clubmodel. Een ingestelde
+ * koersduur of eindtijd gaat voor; die is voor iedereen gelijk.
+ */
+export type EventWorkoutOptions = { racePace?: number };
+
+export function eventWorkoutDefaults(
+  event: ClubEventRow,
+  options: EventWorkoutOptions = {},
+): {
   durationMinutes: number;
   intensity: WorkoutIntensity;
   /** Vermogensdoel van het blok; leeg laat de band van de intensiteit gelden. */
@@ -325,7 +366,7 @@ export function eventWorkoutDefaults(event: ClubEventRow): {
 
   const size = eventRouteSize(event);
   const fromRoute = raceKind
-    ? estimateZwiftRaceMinutes(event, raceKind)
+    ? estimateZwiftRaceMinutes(event, raceKind, options.racePace)
     : groupKind === "workout"
       ? null
       : groupKind === "ride"
@@ -350,8 +391,11 @@ function gravelMinutes(type: string, minutes: number | null): number | null {
 }
 
 /** Het ene blok waaruit een event in het schema bestaat. */
-export function eventWorkoutBlocks(event: ClubEventRow): WorkoutBlock[] {
-  const { durationMinutes, intensity, target } = eventWorkoutDefaults(event);
+export function eventWorkoutBlocks(
+  event: ClubEventRow,
+  options: EventWorkoutOptions = {},
+): WorkoutBlock[] {
+  const { durationMinutes, intensity, target } = eventWorkoutDefaults(event, options);
   return normalizeWorkoutBlocks(
     [
       {
@@ -367,6 +411,21 @@ export function eventWorkoutBlocks(event: ClubEventRow): WorkoutBlock[] {
 }
 
 const EVENT_BLOCK_NOTE = "Clubevent uit de ZWB-kalender.";
+
+/**
+ * De persoonlijke racefactor van een lid, maar alleen opgehaald als er een
+ * Zwift-race tussen de events zit. Dynamisch geïmporteerd: race-pace.ts leunt
+ * zelf op dit bestand.
+ */
+export async function racePaceFor(
+  admin: Admin,
+  profileId: string,
+  events: ClubEventRow[],
+): Promise<number> {
+  if (!events.some((event) => zwiftRaceKind(event))) return 1;
+  const { loadRacePaceFactor } = await import("@/lib/training/race-pace");
+  return loadRacePaceFactor(admin, profileId).catch(() => 1);
+}
 
 /**
  * Vult bij teamraces zonder eigen route de route van hun raceweek in. De
@@ -596,6 +655,7 @@ export async function committedEventsForAi(
     committed.sort((a, b) => String(a.start_at).localeCompare(String(b.start_at)));
   }
 
+  const racePace = await racePaceFor(admin, profileId, committed);
   return committed
     .map((event) => {
       // Het totaal, niet de ene ronde uit de GPX; leeg bij rijden op tijd.
@@ -604,7 +664,7 @@ export async function committedEventsForAi(
         title: event.title,
         type: event.type,
         date: String(event.start_at).slice(0, 10),
-        durationMinutes: eventWorkoutDefaults(event).durationMinutes,
+        durationMinutes: eventWorkoutDefaults(event, { racePace }).durationMinutes,
         distanceKm: size.distanceKm,
         elevationM: size.elevationM,
       };
@@ -713,8 +773,9 @@ export async function applyEventBlock(
   const plan = await activeBasePlan(admin, profileId);
   if (!plan) return unchanged;
 
-  const { durationMinutes, intensity } = eventWorkoutDefaults(event);
-  const blocks = eventWorkoutBlocks(event);
+  const racePace = await racePaceFor(admin, profileId, [event]);
+  const { durationMinutes, intensity } = eventWorkoutDefaults(event, { racePace });
+  const blocks = eventWorkoutBlocks(event, { racePace });
   const slug = String(event.title)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -792,7 +853,7 @@ export async function refreshEventWorkouts(
   let query = admin
     .from("training_workouts")
     .select(
-      "id, event_id, duration_minutes, intensity, structure_json, intervals_event_id, publish_status",
+      "id, profile_id, event_id, duration_minutes, intensity, structure_json, intervals_event_id, publish_status",
     )
     .eq("origin", "event")
     .eq("status", "planned")
@@ -810,6 +871,23 @@ export async function refreshEventWorkouts(
   const events = await withEventRoutes(admin, (rows ?? []) as ClubEventRow[]);
   const byId = new Map(events.map((event) => [event.id, event]));
 
+  // Eén factor per lid, alleen voor wie een Zwift-race in de lijst heeft.
+  const raceEventsByProfile = new Map<string, ClubEventRow[]>();
+  for (const workout of workouts) {
+    const event = byId.get(workout.event_id as string);
+    if (!event || !workout.profile_id) continue;
+    const list = raceEventsByProfile.get(workout.profile_id as string) ?? [];
+    list.push(event);
+    raceEventsByProfile.set(workout.profile_id as string, list);
+  }
+  const racePaces = new Map(
+    await Promise.all(
+      [...raceEventsByProfile].map(
+        async ([profileId, list]) => [profileId, await racePaceFor(admin, profileId, list)] as const,
+      ),
+    ),
+  );
+
   const toPush: string[] = [];
   for (const workout of workouts) {
     const event = byId.get(workout.event_id as string);
@@ -823,8 +901,9 @@ export async function refreshEventWorkouts(
     );
     let publishStatus = workout.publish_status as string;
     if (current.length === 1) {
-      const blocks = eventWorkoutBlocks(event);
-      const { durationMinutes, intensity } = eventWorkoutDefaults(event);
+      const options = { racePace: racePaces.get(workout.profile_id as string) ?? 1 };
+      const blocks = eventWorkoutBlocks(event, options);
+      const { durationMinutes, intensity } = eventWorkoutDefaults(event, options);
       const same =
         Number(workout.duration_minutes) === durationMinutes &&
         workout.intensity === intensity &&

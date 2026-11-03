@@ -11,6 +11,7 @@ import {
   refreshIntervalsActivitiesIfStale,
   type Viewer,
 } from "../_data";
+import { STRENGTH_SYNC_MAX_AGE_MS } from "@/lib/intervals/activities";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { memberHiddenPlanIds } from "@/lib/training/member-hidden-plans";
 import {
@@ -140,8 +141,9 @@ export async function loadSessions(
 /**
  * Krachttrainingen uit intervals.icu binnen het venster van 28 dagen, nieuwste
  * eerst, met de spieren die het lid heeft aangetikt. Is de opgeslagen lijst
- * ouder dan zes uur, dan eerst bijwerken: leden met Strava hebben geen uurlijkse
- * intervals-sync, en een gymsessie van vanochtend moet de krachtregel kennen.
+ * ouder dan een kwartier, dan eerst bijwerken: leden met Strava hebben geen
+ * uurlijkse intervals-sync, en wie net uit de sportschool komt moet zijn
+ * training zien (de rest van ZWBeter wacht zes uur).
  * Het blok op de ZWBeter-startpagina slaat dat over (`refresh: false`): die
  * pagina werkt de lijst zelf al bij.
  */
@@ -153,7 +155,9 @@ export async function loadIntervalsStrength(
   if (refresh) {
     const conn = await loadConnection(viewer);
     if (conn?.api_key && conn.athlete_id) {
-      await refreshIntervalsActivitiesIfStale(viewer, conn).catch(() => undefined);
+      await refreshIntervalsActivitiesIfStale(viewer, conn, STRENGTH_SYNC_MAX_AGE_MS).catch(
+        () => undefined,
+      );
     }
   }
 

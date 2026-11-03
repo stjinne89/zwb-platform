@@ -48,10 +48,11 @@ function oldBlock(title: string) {
 type Row = Record<string, unknown>;
 
 /**
- * Supabase-stub per tabel: leest `events` en `training_workouts`, en onthoudt
- * welke workouts met welke waarden zijn bijgewerkt.
+ * Supabase-stub per tabel: leest `events`, `training_workouts` en de
+ * Strava-races per lid, en onthoudt welke workouts met welke waarden zijn
+ * bijgewerkt.
  */
-function fakeAdmin(events: ClubEventRow[], workouts: Row[]) {
+function fakeAdmin(events: ClubEventRow[], workouts: Row[], races: Record<string, Row[]> = {}) {
   const updates: Array<{ id: unknown; values: Row }> = [];
   const from = (table: string) => {
     let values: Row | null = null;
@@ -63,6 +64,11 @@ function fakeAdmin(events: ClubEventRow[], workouts: Row[]) {
       is: chain,
       not: chain,
       gte: chain,
+      lte: chain,
+      gt: chain,
+      ilike: chain,
+      order: chain,
+      limit: chain,
       update: (next: Row) => {
         values = next;
         return builder;
@@ -81,6 +87,10 @@ function fakeAdmin(events: ClubEventRow[], workouts: Row[]) {
           return resolve({ data: null, error: null });
         }
         if (table === "training_workouts") return resolve({ data: workouts, error: null });
+        if (table === "strava_activities") {
+          const profileId = filters.find(([c]) => c === "profile_id")?.[1] as string;
+          return resolve({ data: races[profileId] ?? [], error: null });
+        }
         const byParent = filters.some(([c]) => c === "parent_event_id");
         return resolve({ data: byParent ? [] : events, error: null });
       },
@@ -192,6 +202,38 @@ describe("refreshEventWorkouts", () => {
 
     expect(await refreshEventWorkouts(admin)).toEqual({ updated: 0, pushed: 0, failed: 0 });
     expect(updates).toHaveLength(0);
+  });
+
+  it("rekent met het eigen racetempo van het lid", async () => {
+    const event = race();
+    // Vier races die elk 10% sneller gingen dan het clubmodel.
+    const fast = Array.from({ length: 4 }, () => ({
+      distance_m: 30_000,
+      total_elevation_gain_m: 300,
+      moving_time_seconds: Math.round((30 / 40.6) * 60 * 0.9 * 60),
+    }));
+    const { admin, updates } = fakeAdmin(
+      [event],
+      [
+        {
+          id: "w1",
+          profile_id: "snel",
+          event_id: event.id,
+          duration_minutes: eventWorkoutDefaults(event).durationMinutes,
+          intensity: "race",
+          structure_json: eventWorkoutBlocks(event),
+          intervals_event_id: null,
+          publish_status: "published",
+        },
+      ],
+      { snel: fast },
+    );
+
+    expect(await refreshEventWorkouts(admin)).toEqual({ updated: 1, pushed: 0, failed: 0 });
+    expect(updates[0].values.duration_minutes).toBe(
+      eventWorkoutDefaults(event, { racePace: 0.9 }).durationMinutes,
+    );
+    expect(updates[0].values.duration_minutes).toBeLessThan(eventWorkoutDefaults(event).durationMinutes);
   });
 
   it("stopt met doorzetten na de deadline, maar werkt het blok wel bij", async () => {

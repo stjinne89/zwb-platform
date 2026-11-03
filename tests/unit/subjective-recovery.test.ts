@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  rideReportsFrom,
   summarizeSubjectiveRecovery,
   type SubjectiveReport,
 } from "@/lib/training/subjective-recovery";
@@ -52,6 +53,37 @@ describe("summarizeSubjectiveRecovery", () => {
   it("telt een hoge klachtenlast uit het logboek", () => {
     expect(summarizeSubjectiveRecovery([], 0.7, NOW)?.heavy).toBe(true);
     expect(summarizeSubjectiveRecovery([], 0.5, NOW)).toBeNull();
+  });
+});
+
+describe("rideReportsFrom — RPE bij een losse rit", () => {
+  function ride(watts: number | null, rpe: number | null) {
+    return {
+      id: 1,
+      name: "Rondje",
+      start_date: "2026-10-15T09:00:00Z",
+      moving_time_seconds: 3600,
+      raw: watts == null ? { moving_time: 3600 } : { moving_time: 3600, device_watts: true, weighted_average_watts: watts },
+      athlete_rpe: rpe,
+    };
+  }
+
+  it("telt een rustige losse rit die zwaar voelde", () => {
+    // NP 150 bij FTP 250: IF 0,6, zo'n 36 TSS in een uur, duurtempo.
+    const reports = rideReportsFrom([ride(150, 8)], 250, null);
+    expect(reports[0]).toMatchObject({ athlete_rpe: 8, intensity: "endurance" });
+    expect(summarizeSubjectiveRecovery(reports, null, NOW)?.heavy).toBe(true);
+  });
+
+  it("telt geen harde losse rit die zwaar voelde", () => {
+    const reports = rideReportsFrom([ride(260, 9)], 250, null);
+    expect(summarizeSubjectiveRecovery(reports, null, NOW)).toBeNull();
+  });
+
+  it("telt een rit zonder vermogen of hartslag niet: rustig of niet is onbekend", () => {
+    const reports = rideReportsFrom([ride(null, 9)], 250, null);
+    expect(reports[0].intensity).toBeNull();
+    expect(summarizeSubjectiveRecovery(reports, null, NOW)).toBeNull();
   });
 });
 

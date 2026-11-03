@@ -5,6 +5,9 @@ type Admin = ReturnType<typeof createAdminClient>;
 
 /** Hoe oud de opgeslagen belasting mag zijn voordat we opnieuw ophalen. */
 export const ACTIVITY_SYNC_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+/** Korter voor het krachtspoor: wie net uit de sportschool komt en de app
+ * opent, moet zijn training zien, en de krachtregel moet hem kennen. */
+export const STRENGTH_SYNC_MAX_AGE_MS = 15 * 60 * 1000;
 
 function positive(value: unknown) {
   const n = Number(value);

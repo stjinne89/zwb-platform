@@ -31,7 +31,7 @@ import {
   type FtpTestType,
   type FtpTestWorkout,
 } from "@/lib/training/ftp-test";
-import { eventWorkoutDefaults, loadScheduleEvents } from "@/lib/training/events";
+import { eventWorkoutDefaults, loadScheduleEvents, racePaceFor } from "@/lib/training/events";
 import { amsterdamDayKey, computeZwbStatus, type ZwbStatus } from "@/lib/training/zwbeterworden";
 import { cautionsFromSummary, memberCautions } from "@/lib/training/plan-summary";
 import {
@@ -59,6 +59,7 @@ import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/wo
 import { MANUAL_IMPORT_SOURCE } from "@/lib/strava/import";
 import { STRAVA_RIDE_COLUMNS, type StravaRideRow } from "@/lib/training/ride-metrics";
 import { unplannedRides, type UnplannedRide } from "@/lib/training/unplanned-rides";
+import { loadRideRpe } from "@/lib/training/ride-rpe";
 import type {
   GoalRow,
   PlanRow,
@@ -239,10 +240,12 @@ export async function loadIntervalsSnapshot(
 }
 
 /** Belasting per rit bijwerken als de opgeslagen versie verouderd is. Ook voor
- * het krachtspoor, dat de krachttrainingen uit dezelfde tabel leest. */
+ * het krachtspoor, dat de krachttrainingen uit dezelfde tabel leest; dat geeft
+ * een kortere `maxAgeMs` mee. */
 export async function refreshIntervalsActivitiesIfStale(
   viewer: Viewer,
   conn: IntervalsConnection,
+  maxAgeMs = ACTIVITY_SYNC_MAX_AGE_MS,
 ) {
   const { data: newest } = await viewer.admin
     .from("intervals_activities")
@@ -251,7 +254,7 @@ export async function refreshIntervalsActivitiesIfStale(
     .order("synced_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const staleSince = Date.now() - ACTIVITY_SYNC_MAX_AGE_MS;
+  const staleSince = Date.now() - maxAgeMs;
   if (newest && new Date(newest.synced_at).getTime() >= staleSince) return;
   await syncIntervalsActivities(viewer.admin, {
     profile_id: viewer.user.id,
@@ -350,6 +353,8 @@ export type ScheduleRides = {
   byId: Map<string, { dateKey: string; name: string; manual: boolean }>;
   /** Strava-id's waar een training aan hangt, maar die rit bestaat niet meer. */
   deleted: Set<string>;
+  /** RPE van de ongeplande ritten die er een hebben (0303), op Strava-id. */
+  rpe: Map<string, number>;
 };
 
 /**
@@ -416,7 +421,7 @@ export async function loadScheduleRides(
     ]),
   );
   const deleted = await deletedPairedRides(viewer, reports, byId);
-  if (rides.length === 0) return { unplanned: [], byId, deleted };
+  if (rides.length === 0) return { unplanned: [], byId, deleted, rpe: new Map() };
 
   const [ftpAt, hrBasis] = await Promise.all([
     loadFtpAt(viewer.supabase, viewer.user.id, ftpWatts),
@@ -440,7 +445,12 @@ export async function loadScheduleRides(
     })),
     hrBasis,
   );
-  return { unplanned, byId, deleted };
+  const rpe = await loadRideRpe(
+    viewer.supabase,
+    viewer.user.id,
+    unplanned.map((ride) => ride.id),
+  );
+  return { unplanned, byId, deleted, rpe };
 }
 
 /**
@@ -726,6 +736,7 @@ export async function loadScheduleEventChoices(
   if (to < today) return [];
 
   const events = await loadScheduleEvents(viewer.admin, viewer.user.id, today, to).catch(() => []);
+  const racePace = await racePaceFor(viewer.admin, viewer.user.id, events);
   return events
     .filter((event) => event.rsvp !== "no")
     .map((event) => ({
@@ -739,7 +750,7 @@ export async function loadScheduleEventChoices(
         month: "short",
         timeZone: "Europe/Amsterdam",
       }),
-      durationMinutes: eventWorkoutDefaults(event).durationMinutes,
+      durationMinutes: eventWorkoutDefaults(event, { racePace }).durationMinutes,
       rsvp: event.rsvp,
       inSchedule: event.inSchedule,
       inIntervals: event.inIntervals,

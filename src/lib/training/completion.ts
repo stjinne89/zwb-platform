@@ -42,6 +42,7 @@ import {
 import { amsterdamDayKey, computeZwbStatus } from "@/lib/training/zwbeterworden";
 import { loadFtpAt, type FtpAt } from "@/lib/training/ftp-history";
 import { loadHrBasis, type HrBasis } from "@/lib/training/hr-load";
+import { loadRideRpe, writeRideRpe } from "@/lib/training/ride-rpe";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -276,6 +277,7 @@ type ExistingReport = {
   athlete_confirmed_at: string | null;
   paired_activity_id: string | null;
   metrics_json: Partial<WorkoutMetricsSnapshot> | null;
+  athlete_rpe?: number | null;
 };
 
 export { pairWorkoutsWithRides, type WorkoutForPairing } from "@/lib/training/compliance";
@@ -440,7 +442,7 @@ export async function detectCompletedWorkouts(
 
   const { data: reportRows } = await admin
     .from("training_workout_reports")
-    .select("workout_id, athlete_confirmed_at, paired_activity_id, metrics_json")
+    .select("workout_id, athlete_confirmed_at, paired_activity_id, metrics_json, athlete_rpe")
     .in(
       "workout_id",
       workouts.map((workout) => workout.id),
@@ -549,6 +551,11 @@ export async function detectCompletedWorkouts(
       .select("id");
     if ((claimed ?? []).length === 0) continue;
 
+    // Vulde het lid al een RPE in toen de rit nog als ongepland stond (0303),
+    // dan gaat die mee naar de rapportage, tenzij daar al een staat.
+    const rideRpe = (await loadRideRpe(admin, profileId, [match.id])).get(String(match.id)) ?? null;
+    const carryRideRpe = rideRpe != null && report?.athlete_rpe == null;
+
     const { error } = await admin.from("training_workout_reports").upsert(
       {
         workout_id: workout.id,
@@ -557,6 +564,7 @@ export async function detectCompletedWorkouts(
         paired_activity_id: String(match.id),
         intervals_event_id: workout.intervals_event_id,
         metrics_json: metrics,
+        ...(carryRideRpe ? { athlete_rpe: rideRpe } : {}),
         created_by: profileId,
         updated_by: profileId,
       },
@@ -564,6 +572,7 @@ export async function detectCompletedWorkouts(
     );
     if (error) continue;
     result.completed++;
+    if (rideRpe != null) await writeRideRpe(admin, profileId, String(match.id), null);
 
     const push = await sendNotificationToMembers(
       "on_workout_review",
@@ -995,6 +1004,10 @@ export async function relinkRide(
       .eq("profile_id", profileId)
       .eq("id", activityId);
     if (error) return { ok: false, error: error.message };
+    // De RPE blijft bij de rit, die nu ongepland staat (0303). Zonder die
+    // migratie faalt alleen dit.
+    const rpe = linked.find((report) => report.athlete_rpe != null)?.athlete_rpe ?? null;
+    if (rpe != null) await writeRideRpe(admin, profileId, activityId, rpe);
     for (const report of linked) await releaseReport(admin, profileId, report);
     return { ok: true, workoutId: null, trainerId: null, title: null, metricsJson: null };
   }
@@ -1016,7 +1029,7 @@ export async function relinkRide(
 
   const { data: targetReport } = await admin
     .from("training_workout_reports")
-    .select("paired_activity_id")
+    .select("paired_activity_id, athlete_rpe")
     .eq("workout_id", toWorkoutId)
     .eq("profile_id", profileId)
     .maybeSingle();
@@ -1058,7 +1071,11 @@ export async function relinkRide(
 
   // Zonder bevestigscherm en zonder oude rapportage (een ongeplande rit) laten we
   // de beleving van de doeltraining staan: die kan nog van een verwijderde rit
-  // zijn, en dan hoort hij vaak juist bij deze.
+  // zijn, en dan hoort hij vaak juist bij deze. Alleen een lege RPE vult de RPE
+  // die het lid bij de losse rit invulde (0303).
+  const rideRpe = (await loadRideRpe(admin, profileId, [activityId])).get(activityId) ?? null;
+  const carryRideRpe =
+    !input.review && !source && rideRpe != null && targetReport?.athlete_rpe == null;
   const review: AthleteReview | null =
     input.review ??
     (source
@@ -1086,6 +1103,7 @@ export async function relinkRide(
             athlete_confirmed_at: review.confirmedAt,
           }
         : {}),
+      ...(carryRideRpe ? { athlete_rpe: rideRpe } : {}),
       created_by: profileId,
       updated_by: profileId,
     },
@@ -1107,6 +1125,9 @@ export async function relinkRide(
     .update({ training_excluded_at: null })
     .eq("profile_id", profileId)
     .eq("id", activityId);
+  // Vanaf nu is de rapportage de bron van de RPE: een rit aan een training heeft
+  // er zelf geen, anders telt hij in het herstelsignaal dubbel.
+  if (rideRpe != null) await writeRideRpe(admin, profileId, activityId, null);
 
   for (const report of linked) await releaseReport(admin, profileId, report);
 

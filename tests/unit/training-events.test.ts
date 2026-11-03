@@ -135,14 +135,14 @@ describe("Zwift-races", () => {
   });
 
   it("rekent een Zwift-race met racesnelheid, niet met die van een buitenrit", () => {
-    // 42,9 km bij 43 km/u plus 333 hm x 0,02 min: 67 minuten. Het buitenritmodel
-    // gaf hier 83.
-    expect(eventWorkoutDefaults(frrEtappe).durationMinutes).toBe(67);
+    // 42,9 km bij 40,6 km/u; 333 hm is minder dan 10 per km en telt niet als
+    // klim: 63 minuten. Het buitenritmodel gaf hier 83.
+    expect(eventWorkoutDefaults(frrEtappe).durationMinutes).toBe(63);
   });
 
   it("geeft een Zwift-race een vermogensdoel rond de verwachte IF", () => {
-    // IF bij 67 minuten: 1,05 - 0,0019 x 67 = 0,92.
-    expect(eventWorkoutDefaults(frrEtappe).target).toBe("87-97%");
+    // IF bij 63 minuten: 1,05 - 0,0019 x 63 = 0,93.
+    expect(eventWorkoutDefaults(frrEtappe).target).toBe("88-98%");
     expect(eventWorkoutDefaults(event({ type: "outdoor" })).target).toBe("");
   });
 
