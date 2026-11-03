@@ -28,6 +28,8 @@ type Row = {
   food: Pick<FoodOption, "id" | "name_nl" | "quantity_unit"> & { barcode?: string | null };
   grams: string;
   role: IngredientRole;
+  /** Gram per schep, bij een gescand poeder (0305); leeg is geen schep. */
+  scoop?: string;
   /** De regel van de receptsite waar dit ingrediënt uit komt. */
   source?: string;
 };
@@ -57,6 +59,14 @@ function amount(value: number) {
 function validAmount(grams: string) {
   const value = Number(grams.replace(",", "."));
   return Number.isFinite(value) && value > 0 && value <= 5000;
+}
+
+/** Leeg mag; anders tussen 0 en 200 g, zoals de check in 0305. */
+function scoopValue(scoop: string | undefined): number | null | undefined {
+  const trimmed = (scoop ?? "").trim();
+  if (!trimmed) return null;
+  const value = Number(trimmed.replace(",", "."));
+  return Number.isFinite(value) && value > 0 && value <= 200 ? value : undefined;
 }
 
 const inputClass = "min-h-[44px] w-full rounded-md border bg-background px-3";
@@ -142,13 +152,14 @@ export function RecipeForm({
     if (titleRef.current && !titleRef.current.value.trim()) titleRef.current.value = name.slice(0, 120);
   }
 
-  const amountsMissing = rows.some((row) => !validAmount(row.grams));
+  const amountsMissing = rows.some((row) => !validAmount(row.grams) || scoopValue(row.scoop) === undefined);
 
   const payload = JSON.stringify(
     rows.map((row) => {
       const grams = Number(row.grams.replace(",", "."));
+      const scoop = scoopValue(row.scoop);
       return row.food.barcode
-        ? { barcode: row.food.barcode, grams, role: row.role }
+        ? { barcode: row.food.barcode, grams, role: row.role, ...(scoop ? { scoop_g: scoop } : {}) }
         : { food_id: row.food.id, grams, role: row.role };
     }),
   );
@@ -236,6 +247,20 @@ export function RecipeForm({
                 <span className="min-w-0 text-sm">
                   {row.food.name_nl}
                   {row.source && <span className="block text-xs text-muted-foreground">{row.source}</span>}
+                  {row.food.barcode && row.food.quantity_unit === "g" && (
+                    <label className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                      Schep
+                      <input
+                        inputMode="decimal"
+                        aria-label={`Gram per schep ${row.food.name_nl}`}
+                        value={row.scoop ?? ""}
+                        onChange={(event) => update(index, { scoop: event.target.value })}
+                        aria-invalid={scoopValue(row.scoop) === undefined}
+                        className="min-h-[36px] w-16 rounded-md border bg-background px-2 text-right text-sm aria-[invalid=true]:border-destructive"
+                      />
+                      g
+                    </label>
+                  )}
                 </span>
                 <label className="flex items-center gap-1 text-sm">
                   <input

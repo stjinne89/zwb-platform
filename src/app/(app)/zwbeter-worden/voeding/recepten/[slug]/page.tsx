@@ -4,6 +4,7 @@ import { Check, Pencil } from "lucide-react";
 import { Markdown } from "@/components/markdown";
 import { DIET_TAG_LABELS, FUEL_PROFILE_LABELS, isPackagedRecipe, portionForRider } from "@/lib/nutrition/recipes";
 import { BIDON_SIZES, isBidonMl, isBidonRecipe, resizeBidon } from "@/lib/nutrition/ride-plan";
+import { scoopsLabel } from "@/lib/nutrition/scoops";
 import { unitFor } from "@/lib/nutrition/shopping-names";
 import { DEFAULT_BIDON_ML } from "@/lib/nutrition/sweat";
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
@@ -31,6 +32,7 @@ import { DeleteRecipeButton } from "../../_components/delete-recipe-button";
 import { RecipePrefButtons, ShareRecipeButton } from "../../_components/recipe-actions";
 import { RecipeSharer } from "../../_components/recipe-sharer";
 import { BackLink } from "@/components/app-ui";
+import { BidonIcon } from "../../../_components/bidon-icon";
 import { bidonLabel, bidonOptionClass } from "../../../_components/bidon-options";
 
 export const dynamic = "force-dynamic";
@@ -177,6 +179,7 @@ export default async function RecipePage({
                   scroll={false}
                   className={bidonOptionClass(size === bidon)}
                 >
+                  <BidonIcon ml={size} fill="leeg" />
                   {bidonLabel(size)}
                 </Link>
               ))}
@@ -188,6 +191,9 @@ export default async function RecipePage({
                 <span className="min-w-0">{item.food.name_nl}</span>
                 <span className="shrink-0 tabular-nums text-muted-foreground">
                   {amount(item.grams, unitFor(item.food))}
+                  {unitFor(item.food) === "g" && scoopsLabel(item.grams, item.food.scoop_g) && (
+                    <span className="block text-xs">{scoopsLabel(item.grams, item.food.scoop_g)}</span>
+                  )}
                 </span>
               </li>
             ))}

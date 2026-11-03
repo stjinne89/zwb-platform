@@ -10,7 +10,7 @@ export function bidonLabel(ml: number): string {
 
 export function bidonOptionClass(active: boolean): string {
   return cn(
-    "inline-flex min-h-[28px] items-center rounded-full px-2.5 tabular-nums",
+    "inline-flex min-h-[28px] items-end gap-1 rounded-full px-2.5 py-1 tabular-nums",
     active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
   );
 }

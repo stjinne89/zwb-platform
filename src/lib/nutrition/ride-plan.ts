@@ -87,6 +87,8 @@ export type RidePlanIngredient = {
   name: string;
   amount: number;
   unit: "g" | "ml";
+  /** Gram per schep uit het recept, om poeder in schepjes te tonen. */
+  scoopG?: number;
 };
 
 export type RidePlanItem = {
@@ -151,6 +153,7 @@ function ingredientsOf(items: RecipeIngredient[]): RidePlanIngredient[] {
       ...(item.food.barcode ? { barcode: item.food.barcode } : {}),
       name: item.food.name_nl,
       amount: item.grams,
+      ...(item.food.scoop_g ? { scoopG: Number(item.food.scoop_g) } : {}),
       // Sap en water in ml, zoals op de boodschappenlijst (1 g ≈ 1 ml).
       unit: unitFor(item.food as { nevo_code: number; quantity_unit?: string }),
     }));

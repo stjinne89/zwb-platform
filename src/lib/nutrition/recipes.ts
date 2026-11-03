@@ -36,14 +36,20 @@ export type RecipeIngredientDbRow = Omit<RecipeIngredientRow, "food" | "grams"> 
   grams: number | string;
   food: RecipeIngredientRow["food"] | null;
   product?: ProductRow | null;
+  /** Gram per schep (0305); ontbreekt zolang die migratie er niet is. */
+  scoop_g?: number | string | null;
 };
 
 /** De ingrediënten op volgorde; een barcodeproduct krijgt de vorm van een NEVO-product. */
 export function recipeIngredients(rows: RecipeIngredientDbRow[] | null | undefined): RecipeIngredientRow[] {
   return [...(rows ?? [])]
     .flatMap((row): RecipeIngredientRow[] => {
-      const { product, ...rest } = row;
-      const food = row.food ?? (product ? productAsFood(product) : null);
+      const { product, scoop_g, ...rest } = row;
+      const base = row.food ?? (product ? productAsFood(product) : null);
+      // De schep hoort bij deze regel van het recept; via `food` reist hij mee
+      // door het schalen tot in het ritplan.
+      const scoop = scoop_g == null ? null : Number(scoop_g);
+      const food = base && scoop && scoop > 0 ? { ...base, scoop_g: scoop } : base;
       return food ? [{ ...rest, food, grams: Number(row.grams) }] : [];
     })
     .sort((a, b) => a.sort_order - b.sort_order);

@@ -50,6 +50,8 @@ export type NutritionFood = {
   barcode?: string | null;
   /** Eén stuk of portie van dat product. */
   serving_g?: number | null;
+  /** Gram per schep, zoals het lid die bij het recept invulde (0305). */
+  scoop_g?: number | null;
 };
 
 export type RecipeIngredient = {

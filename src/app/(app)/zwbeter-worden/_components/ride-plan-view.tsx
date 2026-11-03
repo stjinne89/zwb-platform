@@ -3,8 +3,17 @@
 import { useState, type ComponentProps } from "react";
 import Link from "next/link";
 import { Bike, Check } from "lucide-react";
-import { formatRideMinute, ridePlanMeals, type BidonMl, type RidePlan, type RidePlanItem } from "@/lib/nutrition/ride-plan";
+import {
+  formatRideMinute,
+  ridePlanMeals,
+  type BidonMl,
+  type RidePlan,
+  type RidePlanIngredient,
+  type RidePlanItem,
+} from "@/lib/nutrition/ride-plan";
+import { scoopsLabel } from "@/lib/nutrition/scoops";
 import { LogActionButton } from "../voeding/_components/log-controls";
+import { BidonIcon } from "./bidon-icon";
 import { bidonLabel, bidonOptionClass } from "./bidon-options";
 
 // Het ritplan bij een training: wat je klaarzet en wanneer je het neemt
@@ -25,7 +34,15 @@ function hours(minutes: number): string {
   return m === 0 ? `${h} uur` : `${h}u${String(m).padStart(2, "0")}`;
 }
 
-function ItemRow({ item, kind }: { item: RidePlanItem; kind: "bidon" | "vast" }) {
+function ingredientText(ingredient: RidePlanIngredient): string {
+  const scoops = ingredient.unit === "g" ? scoopsLabel(ingredient.amount, ingredient.scoopG) : null;
+  return `${amount(ingredient.amount, ingredient.unit)}${scoops ? ` (${scoops})` : ""} ${ingredient.name}`;
+}
+
+/** Hoogstens zoveel bidons naast elkaar; daarboven staat alleen het aantal. */
+const MAX_ICONS = 6;
+
+function ItemRow({ item, kind, bidonMl }: { item: RidePlanItem; kind: "bidon" | "vast"; bidonMl: number }) {
   const name = item.recipe ? (
     <Link href={`/zwbeter-worden/voeding/recepten/${item.recipe.slug}`} className="hover:text-primary hover:underline">
       {item.recipe.title}
@@ -34,19 +51,26 @@ function ItemRow({ item, kind }: { item: RidePlanItem; kind: "bidon" | "vast" })
     "Water"
   );
   return (
-    <li className="space-y-0.5">
-      <p className="text-sm">
-        <span className="font-medium tabular-nums">{item.count}×</span> {kind === "bidon" ? "bidon" : "portie"}:{" "}
-        {name}
-        {item.carbsG > 0 ? (
-          <span className="text-muted-foreground"> · {item.carbsG} g per {kind === "bidon" ? "bidon" : "portie"}</span>
-        ) : null}
-      </p>
-      {item.ingredients.length > 0 ? (
-        <p className="text-xs text-muted-foreground">
-          {item.ingredients.map((ingredient) => `${amount(ingredient.amount, ingredient.unit)} ${ingredient.name}`).join(", ")}
+    <li className="flex gap-3">
+      <span className="flex min-w-7 items-end gap-0.5">
+        {kind === "bidon" && item.count <= MAX_ICONS
+          ? Array.from({ length: item.count }, (_, index) => (
+              <BidonIcon key={index} ml={bidonMl} fill={item.recipe ? "drank" : "water"} />
+            ))
+          : null}
+      </span>
+      <div className="min-w-0 space-y-0.5">
+        <p className="text-sm">
+          <span className="font-medium tabular-nums">{item.count}×</span> {kind === "bidon" ? "bidon" : "portie"}:{" "}
+          {name}
+          {item.carbsG > 0 ? (
+            <span className="text-muted-foreground"> · {item.carbsG} g per {kind === "bidon" ? "bidon" : "portie"}</span>
+          ) : null}
         </p>
-      ) : null}
+        {item.ingredients.length > 0 ? (
+          <p className="text-xs text-muted-foreground">{item.ingredients.map(ingredientText).join(", ")}</p>
+        ) : null}
+      </div>
     </li>
   );
 }
@@ -102,6 +126,7 @@ export function RidePlanView({
               onClick={() => setBidonMl(size.bidonMl)}
               className={bidonOptionClass(size.bidonMl === plan.bidonMl)}
             >
+              <BidonIcon ml={size.bidonMl} fill="leeg" />
               {bidonLabel(size.bidonMl)}
             </button>
           ))}
@@ -121,11 +146,15 @@ export function RidePlanView({
         </Link>
       )}
       <ul className="space-y-2">
-        <ItemRow item={plan.bidons} kind="bidon" />
+        <ItemRow item={plan.bidons} kind="bidon" bidonMl={plan.bidonMl} />
         {plan.waterBidons > 0 ? (
-          <ItemRow item={{ recipe: null, count: plan.waterBidons, carbsG: 0, ingredients: [] }} kind="bidon" />
+          <ItemRow
+            item={{ recipe: null, count: plan.waterBidons, carbsG: 0, ingredients: [] }}
+            kind="bidon"
+            bidonMl={plan.bidonMl}
+          />
         ) : null}
-        {plan.solid ? <ItemRow item={plan.solid} kind="vast" /> : null}
+        {plan.solid ? <ItemRow item={plan.solid} kind="vast" bidonMl={plan.bidonMl} /> : null}
       </ul>
       <details className="text-sm">
         <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Per 20 minuten</summary>

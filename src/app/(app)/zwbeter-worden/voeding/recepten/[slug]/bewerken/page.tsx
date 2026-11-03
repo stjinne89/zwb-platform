@@ -47,6 +47,7 @@ export default async function EditRecipePage({ params }: { params: Promise<{ slu
             },
             grams: String(item.grams).replace(".", ","),
             role: item.role,
+            scoop: item.food.scoop_g ? String(item.food.scoop_g).replace(".", ",") : "",
           })),
         }}
       />

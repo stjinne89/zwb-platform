@@ -11709,6 +11709,46 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Bidon-icoontjes en gram per schep
+
+**2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch
+`claude/drinkmix-favorites-zwbeter-6a454b`, niet gepusht. Migratie
+`0305_nutrition_recipe_scoops.sql`, **niet toegepast**.
+
+**Waarom.** Wens van de eigenaar: in één oogopslag zien welke en hoe grote
+bidons je nodig hebt en waarmee je ze vult, en bij poeder weten hoeveel
+schepjes de grammen zijn.
+
+**Wat.**
+- `BidonIcon` (`zwbeter-worden/_components/bidon-icon.tsx`): een bidon die
+  hoger wordt van 500 ml naar 1 l, leeg in de bidonkeuze, gevuld met
+  sportdrank of (lichtblauw) water in de rijen van Klaarzetten; één icoontje
+  per bidon, tot zes.
+- `scoop_g` op `nutrition_recipe_ingredients` (0305): gram per schep, per
+  regel van een eigen recept en niet per product, omdat `nutrition_products`
+  alleen door de server gevuld wordt (0276). Het receptformulier vraagt het
+  onder een gescand product in grammen. `recipeIngredients` zet de schep op
+  `food.scoop_g`, zodat hij meereist door het schalen tot in het ritplan
+  (`RidePlanIngredient.scoopG`).
+- `scoopsLabel` (`src/lib/nutrition/scoops.ts`): afgerond op halve scheppen,
+  minstens een halve. Klaarzetten toont "48 g (1½ schep) …", de receptpagina
+  de schepjes onder de grammen.
+- Zolang 0305 er niet is: `_data.ts` valt met kolomniveau 4 terug op het
+  oude select, en opslaan probeert het bij PGRST204 opnieuw zonder schep. De
+  schep gaat dan verloren, het recept niet.
+- `/hulp` (Kennis): de icoontjes en de schep in één zin.
+
+**Niet gebouwd.** De schep per product voor iedereen: dat zou betekenen dat
+leden `nutrition_products` mogen bewerken, of een aparte tabel per lid. Per
+recept volstaat voor wie zijn eigen drankrecept maakt.
+
+**Niet lokaal te controleren.** Migratie 0305 (geen Docker of Supabase-config
+hier); het invullen en bewaren van de schep werkt pas na toepassen.
+
+**Gecontroleerd.** Vitest `nutrition-*.test.ts` (nieuw: `nutrition-scoops`),
+`tsc` en ESLint schoon. In dev bekeken: de icoontjes in de bidonkeuze en in de
+rijen van Klaarzetten.
+
 ### Bijgesteld — Drank schaalt vrij omlaag, receptenboek schaalt met de bidon
 
 **2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch

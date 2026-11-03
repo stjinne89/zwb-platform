@@ -58,8 +58,8 @@ export async function searchFoods(query: string): Promise<FoodOption[]> {
   return queryFoods(supabase, query);
 }
 
-/** Een NEVO-product (`food_id`) of een barcodeproduct (`barcode`, 0276). */
-type IngredientInput = { food_id?: string; barcode?: string; grams: number; role: IngredientRole };
+/** Een NEVO-product (`food_id`) of een barcodeproduct (`barcode`, 0276), met gram per schep (0305). */
+type IngredientInput = { food_id?: string; barcode?: string; grams: number; role: IngredientRole; scoop_g?: number };
 
 function parseIngredients(raw: string): IngredientInput[] | null {
   try {
@@ -72,6 +72,7 @@ function parseIngredients(raw: string): IngredientInput[] | null {
         ...(barcode ? { barcode } : { food_id: String(row.food_id ?? "") }),
         grams: Number(row.grams),
         role: String(row.role ?? "") as IngredientRole,
+        ...(row.scoop_g != null ? { scoop_g: Number(row.scoop_g) } : {}),
       };
     });
     const valid = items.every(
@@ -80,6 +81,7 @@ function parseIngredients(raw: string): IngredientInput[] | null {
         Number.isFinite(item.grams) &&
         item.grams > 0 &&
         item.grams <= 5000 &&
+        (item.scoop_g == null || (Number.isFinite(item.scoop_g) && item.scoop_g > 0 && item.scoop_g <= 200)) &&
         (INGREDIENT_ROLES as readonly string[]).includes(item.role),
     );
     return valid ? items : null;
@@ -164,7 +166,8 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
     show_owner: visibility === "leden" && formData.get("show_owner") === "on",
     image_url: httpsUrl(text(formData.get("image_url"))),
   };
-  const missingSharing = (error: { code?: string } | null) => error?.code === "PGRST204";
+  // Een kolom die er nog niet is: delen (0264) of de schep (0305).
+  const missingColumn = (error: { code?: string } | null) => error?.code === "PGRST204";
 
   const recipeId = text(formData.get("recipe_id"));
   let id: string;
@@ -181,7 +184,7 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
         .select("id, slug")
         .maybeSingle();
     let { data: updated, error } = await update({ ...fields, ...sharing });
-    if (missingSharing(error)) ({ data: updated, error } = await update(fields));
+    if (missingColumn(error)) ({ data: updated, error } = await update(fields));
     if (error) return { ok: false, error: error.message };
     if (!updated) return { ok: false, error: "Dit recept kun je niet wijzigen." };
     id = updated.id as string;
@@ -202,23 +205,28 @@ export async function saveOwnRecipe(formData: FormData): Promise<ActionResult> {
     const insert = (values: Record<string, unknown>) =>
       supabase.from("nutrition_recipes").insert(values).select("id, slug").single();
     let { data: created, error } = await insert({ ...base, ...sharing });
-    if (missingSharing(error)) ({ data: created, error } = await insert(base));
+    if (missingColumn(error)) ({ data: created, error } = await insert(base));
     if (error || !created) return { ok: false, error: error?.message ?? "Recept opslaan mislukt." };
     id = created.id as string;
     slug = created.slug as string;
   }
 
-  const { error: itemsError } = await supabase.from("nutrition_recipe_ingredients").insert(
-    // De kolom product_barcode gaat alleen mee als er een barcodeproduct in zit:
-    // een recept met alleen NEVO-producten werkt zo ook zonder 0276.
-    ingredients.map((item, index) => ({
-      recipe_id: id,
-      ...(item.barcode ? { food_id: null, product_barcode: item.barcode } : { food_id: item.food_id }),
-      sort_order: index,
-      grams: item.grams,
-      role: item.role,
-    })),
-  );
+  // De kolommen product_barcode en scoop_g gaan alleen mee als ze gevuld zijn:
+  // een recept zonder barcodeproduct of schep werkt zo ook zonder 0276 of 0305.
+  const insertItems = (withScoop: boolean) =>
+    supabase.from("nutrition_recipe_ingredients").insert(
+      ingredients.map((item, index) => ({
+        recipe_id: id,
+        ...(item.barcode ? { food_id: null, product_barcode: item.barcode } : { food_id: item.food_id }),
+        sort_order: index,
+        grams: item.grams,
+        role: item.role,
+        ...(withScoop && item.scoop_g ? { scoop_g: item.scoop_g } : {}),
+      })),
+    );
+  let { error: itemsError } = await insertItems(true);
+  // Zonder 0305 vervalt de schep, de rest van het recept niet.
+  if (missingColumn(itemsError)) ({ error: itemsError } = await insertItems(false));
   if (itemsError) {
     // Een nieuw recept zonder ingrediënten is nutteloos; niet laten staan.
     if (!recipeId) await supabase.from("nutrition_recipes").delete().eq("id", id);

@@ -353,7 +353,11 @@ export function KennisHelp() {
                   alleen voor wat je op dat moment bekijkt, standaard is 750 ml.
                   In het receptenboek groeit het hele recept mee met de bidon;
                   bij Klaarzetten bepaalt de rit de koolhydraten per bidon en
-                  groeit het water mee. Zonder
+                  groeit het water mee. Elke bidon staat als icoontje in zijn
+                  grootte, gevuld met sportdrank of met water. Vul je bij een
+                  eigen recept onder een poeder in hoeveel gram een schep is,
+                  dan staan de grammen er ook in schepjes, afgerond op een
+                  halve schep. Zonder
                   zweettest neem je 750 ml per uur mee. Een bidon bevat
                   hoogstens 90 g koolhydraten per 500 ml; wat je per uur meer
                   nodig hebt, komt uit vast eten. Heb je minder nodig dan een bidon
