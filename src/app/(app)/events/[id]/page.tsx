@@ -503,7 +503,7 @@ export default async function EventDetailPage({
   // Ladderrace: ZWB tegen de tegenstander, vermogen per duur (migr. 0302).
   const ladderMatchup =
     event.type === "ladder" && event.team_id && user
-      ? await loadLadderEventMatchup(createAdminClient(), supabase, event.id, event).catch(() => null)
+      ? await loadLadderEventMatchup(createAdminClient(), event.id, event).catch(() => null)
       : null;
 
   // Een ZRL-raceweek is waar je je aanmeldt bij een paraplu (hoofdteam met

@@ -11629,6 +11629,46 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Ladderrace: matchup met 90 dagen van ZwiftRacing
+
+**2026-11-03.** Lokaal gecommit, niet gepusht. Geen migratie.
+
+De eigenaar zag dat de matchup bij de tegenstander te lage waarden toonde:
+Adam Dawson (Galaxy Avengers) heeft op ZwiftPower en ZwiftRacing over 90 dagen
+veel hogere 20 minuten. Gecontroleerd in Chrome: ZWB had van hem twee bewaarde
+ladderraces (20 min 3,65 en 3,62 W/kg, gelijk aan de racewaarden op
+ZwiftRacing), maar over 90 dagen haalt hij 4,18 (15 s 14,47 tegen 9,38). Een
+ladderrace van 20–25 km vraagt zelden het uiterste, en zijn beste waarden
+reed hij voor een ander team (Galaxy Velorum). Daarbij kreeg een ZWB-renner
+zonder ladderraces zijn eigen 90-dagenprofiel, zodat ZWB-kant maximale en
+tegenstanderkant race-waarden stonden. Keuze van de eigenaar: via Chrome halen
+(er is nog geen ZwiftRacing-API-sleutel).
+
+- **Data**: op 2026-11-03 met `__TSR_ROUTER__.preloadRoute` op zwiftracing.app
+  per aangemelde renner `loaderData.power` gelezen (`wkg15`, `wkg60`,
+  `wkg120`, `wkg300`, `wkg1200`: de 90-dagenwaarden, zelfde velden als de API)
+  en in `zwift_rider_metrics.power_wkg` gezet, de kolom die 0260 daarvoor al
+  had. Zes renners van wedstrijd 17729 (4 Galaxy Avengers, 2 ZWBeasts).
+- **Matchup** (`matchup.ts`): per renner eerst 90 dagen uit
+  `zwift_rider_metrics`, voor beide teams; zonder die waarden het beste uit zijn
+  ladderraces, gemarkeerd "(ladder)". Het 90-dagenprofiel uit
+  `rider_power_profiles` is eruit. Zonder aanmeldingen aan beide kanten
+  vergelijkt hij beide teams uit hun ladderraces en vult hij ZWB niet meer aan
+  met andere bronnen.
+- `/hulp` beschrijft de bron.
+
+**Bewust niet.**
+- Geen automatisch ophalen: zwiftracing.app zit achter een Vercel-controle
+  (besluit 2026-10-20). Met een API-sleutel vult `refreshRiderMetrics` dezelfde
+  kolom vanzelf; tot dan per wedstrijd met de hand via Chrome, na de
+  aanmeldingen.
+- `zwift_rider_metrics` gooit rijen weg die 90 dagen niet zijn bijgewerkt; met
+  de hand gezette waarden verdwijnen dus vanzelf.
+
+**Niet geverifieerd.** De eventpagina in de browser na deze wijziging (vraagt een
+deploy). Unit tests (`club-ladder-matchup.test.ts`, 6), typecheck en ESLint
+schoon.
+
 ### Gebouwd — Ladderrace: geschiedenis per team voor de matchup
 
 **2026-11-02.** Commit `6e7efdee`, gepusht naar `main` op 2026-11-02 (eigenaar). Geen migratie.
@@ -11702,9 +11742,11 @@ voordeel heeft.
   als log-verschil in procenten (zoals het advies); vanaf 2% heet het voordeel,
   daaronder gelijk (eigen vuistregel). Het parcours weegt de duren met de
   gewichten van `ladderRouteOptions`, opgeteld tot één voordeel op dit parcours.
-- Een ZWB-renner zonder ladderraces krijgt zijn 90-dagenprofiel
-  (`rider_power_profiles`, RLS van de kijker, geen 15 s), gemarkeerd "(90 d)".
-  Een tegenstander nooit: van hen hebben we alleen ladderraces.
+- ~~Een ZWB-renner zonder ladderraces krijgt zijn 90-dagenprofiel
+  (`rider_power_profiles`), gemarkeerd "(90 d)".~~ *Vervangen 2026-11-03:* dat
+  mengde maximale waarden aan ZWB-kant met race-inspanningen aan de andere kant.
+  Nu 90 dagen van ZwiftRacing voor beide teams; zie "Ladderrace: matchup met
+  90 dagen van ZwiftRacing".
 - ZRS per renner uit `zwift_rider_metrics`, na het antwoord ververst.
 - Ontbrekende renners van bewaarde wedstrijden haalt de eventpagina op binnen
   6 s, de rest na het antwoord (`after`, 30 s). `ensureMatchRiders` markeert
