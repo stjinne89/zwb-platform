@@ -1165,7 +1165,7 @@ html[data-viewport-fout] .tg-tabs-bottom {
    het cijfer boven het label, geen pictogram. !important: de paneelregel voor
    bg-card is specifieker. */
 [data-design="tegels"] .tg-metric-row {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
   background: var(--tg-panel);
 }

@@ -2104,9 +2104,10 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   de beheerschermen, SRC, profiel en ledenprofiel, de formulieren) krijgt
 >   dezelfde lichte grote titel als de paginakop. De eventkop en de paginakop
 >   zelf houden hun eigen regel.
-> - *Cijferkaarten.* De drie kaarten Renners, Teamraces en ZRL-starts op
->   Teams-detail zijn één paneel met drie cijfers, cijfer boven het label, geen
->   pictogram (klasse `tg-metric-row`).
+> - *Cijferkaarten.* De kaarten Renners en Teamraces op Teams-detail zijn één
+>   paneel met de cijfers, cijfer boven het label, geen pictogram (klasse
+>   `tg-metric-row`). *Tot 2026-11-03 stond ZRL-starts er als derde kaart bij;
+>   zie "Teams: ZRL-starts weg" in het chronologische werkplan.*
 > - *Omlijnde knoppen* (variant outline, ook als link): geen rand, een vlak in
 >   `--muted`. Een knop is een actie en krijgt geen plekkleur; de hoofdknop houdt
 >   de actiekleur.
@@ -11747,6 +11748,34 @@ teams van de ladder worden niet weggefilterd; je zit er nog in.
 ZRL-paraplu is en lid van een subteam en een ladderteam (drie regels, breed),
 op 375 px en 1024 px, licht en donker; de smalle tegel met twee regels alleen
 vóór de captainregel. Niet op productie.
+
+### Gebouwd — Teams: ZRL-starts weg
+
+**2026-11-03.** Eén commit, samen met deze PLAN-regel; lokaal op de branch
+`claude/remove-zrl-starts-column-13df54`, niet gepusht. Geen migratie.
+
+**Waarom.** De kolom ZRL in de rennerstabel (Teams en Teams-detail) toonde bij
+iedereen "0 starts · best - · - pt". Hij las `zrl_rider_results`, en die tabel
+wordt alleen gevuld door de WTRL-resultatensync, die sinds 2026-09-21 uit staat
+en nooit een resultaat heeft opgeslagen (zie "WTRL-resultatensync uitgezet").
+Een kolom die altijd nul zegt, suggereert dat niemand ZRL rijdt.
+
+**Wat.**
+- `TeamRosterRow` verliest `zrlStarts`, `zrlBestPosition` en `zrlAvgPoints`; de
+  ZRL-kolom, de sortering erop en de ZRL-regel in de telefoonkaart zijn weg.
+- Teams en Teams-detail vragen `zrl_rider_results` niet meer op.
+- Dezelfde lege bron zat op Teams-detail in de cijferkaart "ZRL-starts" en in
+  de kolom ZRL van de opstellingsplanner ("0 · best -"): ook weg. Het
+  cijferpaneel heeft nu twee kaarten (`sm:grid-cols-2`, en in tegels
+  `.tg-metric-row` op twee kolommen).
+
+**Bewust niet.** De tabel `zrl_rider_results` blijft staan, net als het gebruik
+in `team-results/sync.ts` en `weekly-review/load.ts`: daar valt een lege tabel
+niet op als nul. De ZRL-categorie (`zrl_category`, het lettertje bij de naam)
+blijft; die komt uit het profiel, niet uit WTRL. Komt er toestemming van WTRL
+of een andere uitslagbron, dan is de kolom terug te halen uit deze commit.
+
+**Niet geverifieerd.** Alleen typecheck en lint; niet in de browser bekeken.
 
 ### Gebouwd — Racebriefje: alle powerups en bogen
 

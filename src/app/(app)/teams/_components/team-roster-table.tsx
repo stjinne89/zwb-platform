@@ -54,9 +54,6 @@ export type TeamRosterRow = {
     wkg10m: number | null;
     wkg20m: number | null;
   } | null;
-  zrlStarts: number;
-  zrlBestPosition: number | null;
-  zrlAvgPoints: number | null;
   /** zFTP, zMAP en divisieadvies uit de WTRL-import (migr. 0180). */
   wtrl: WtrlRiderSummary | null;
   /** Rosternaam zonder ZWB-account; `id` is dan de rosternaam, geen profiel. */
@@ -83,8 +80,7 @@ type SortKey =
   | "20m"
   | "ftp"
   | "zftp"
-  | "zmap"
-  | "zrl";
+  | "zmap";
 
 type SortDirection = "asc" | "desc";
 
@@ -289,14 +285,6 @@ export function TeamRosterTable({
                     </dd>
                   </div>
                 )}
-                <div className="col-span-2 flex items-baseline justify-between gap-2">
-                  <dt className="text-muted-foreground">ZRL</dt>
-                  <dd className="tabular-nums">
-                    {row.zrlStarts} starts · best{" "}
-                    {row.zrlBestPosition ? `#${row.zrlBestPosition}` : "-"} ·{" "}
-                    {fmt(row.zrlAvgPoints, 1)} pt
-                  </dd>
-                </div>
               </dl>
             </li>
           );
@@ -324,7 +312,6 @@ export function TeamRosterTable({
               <SortableHeader label="FTP" sortKey="ftp" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <SortableHeader label="zFTP" sortKey="zftp" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <SortableHeader label="zMAP" sortKey="zmap" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-              <SortableHeader label="ZRL" sortKey="zrl" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
               <th className="py-2 font-medium">Bijgewerkt</th>
             </tr>
           </thead>
@@ -402,12 +389,6 @@ export function TeamRosterTable({
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
-                  </td>
-                  <td className="py-2 pr-3 align-top">
-                    <div className="tabular-nums">{row.zrlStarts} starts</div>
-                    <div className="text-xs text-muted-foreground">
-                      best {row.zrlBestPosition ? `#${row.zrlBestPosition}` : "-"} · {fmt(row.zrlAvgPoints, 1)} pt
-                    </div>
                   </td>
                   <td className="py-2 align-top text-xs text-muted-foreground">
                     {power?.syncStatus === "error" ? "fout" : syncedLabel(power?.syncedAt)}
@@ -579,7 +560,5 @@ function sortValue(row: TeamRosterRow, key: SortKey, unit: PowerUnit): string | 
       return pick(row.wtrl?.zftpW, row.wtrl?.zftpWkg);
     case "zmap":
       return pick(row.wtrl ? zmapWatts(row.wtrl) : null, row.wtrl?.zmapWkg);
-    case "zrl":
-      return row.zrlStarts;
   }
 }

@@ -67,12 +67,6 @@ type PowerRow = {
   wkg_20m: number | string | null;
 };
 
-type ZrlResultRow = {
-  profile_id: string | null;
-  position: number | null;
-  points: number | string | null;
-};
-
 const TYPE_LABELS: Record<string, string> = {
   zrl: "ZRL teams",
   ladder: "Ladder teams",
@@ -135,7 +129,6 @@ export default async function TeamsPage() {
     { data: teams },
     { data: teamMembers },
     { data: powerRows },
-    { data: zrlResults },
   ] = await Promise.all([
     getRequestAccess(),
     supabase
@@ -156,12 +149,6 @@ export default async function TeamsPage() {
       .select(
         "profile_id, rider_type, sync_status, synced_at, ftp_watts, ftp_wkg, watts_15s, watts_30s, watts_1m, watts_2m, watts_5m, watts_10m, watts_20m, wkg_15s, wkg_30s, wkg_1m, wkg_2m, wkg_5m, wkg_10m, wkg_20m",
       ),
-    supabase
-      .from("zrl_rider_results")
-      .select("profile_id, position, points")
-      .not("profile_id", "is", null)
-      .order("round_at", { ascending: false, nullsFirst: false })
-      .limit(1000),
   ]);
 
   const teamOptions: TeamOption[] = ((teams ?? []) as TeamRow[]).map((team) => ({
@@ -204,29 +191,6 @@ export default async function TeamsPage() {
     ((powerRows ?? []) as PowerRow[]).map((row) => [row.profile_id, row]),
   );
 
-  const zrlByProfile = new Map<
-    string,
-    { starts: number; bestPosition: number | null; points: number[] }
-  >();
-  for (const result of ((zrlResults ?? []) as ZrlResultRow[])) {
-    if (!result.profile_id) continue;
-    const current = zrlByProfile.get(result.profile_id) ?? {
-      starts: 0,
-      bestPosition: null,
-      points: [],
-    };
-    current.starts += 1;
-    if (result.position != null) {
-      current.bestPosition =
-        current.bestPosition == null
-          ? result.position
-          : Math.min(current.bestPosition, result.position);
-    }
-    const points = num(result.points);
-    if (points != null) current.points.push(points);
-    zrlByProfile.set(result.profile_id, current);
-  }
-
   let profileRows = (profiles ?? []) as ProfileRow[];
   if (access.user && !profileRows.some((profile) => profile.id === access.user?.id)) {
     const { data: myProfile } = await supabase
@@ -240,7 +204,6 @@ export default async function TeamsPage() {
   const wtrlByZwiftId = await loadWtrlSummaries(supabase, null);
   const rows: TeamRosterRow[] = profileRows.map((profile) => {
     const power = powerByProfile.get(profile.id);
-    const zrl = zrlByProfile.get(profile.id);
     return {
       id: profile.id,
       name: profile.display_name ?? "Onbekend",
@@ -272,12 +235,6 @@ export default async function TeamsPage() {
             wkg20m: num(power.wkg_20m),
           }
         : null,
-      zrlStarts: zrl?.starts ?? 0,
-      zrlBestPosition: zrl?.bestPosition ?? null,
-      zrlAvgPoints:
-        zrl && zrl.points.length > 0
-          ? zrl.points.reduce((sum, point) => sum + point, 0) / zrl.points.length
-          : null,
       wtrl: profile.zwift_id ? wtrlByZwiftId.get(profile.zwift_id.trim()) ?? null : null,
     };
   });

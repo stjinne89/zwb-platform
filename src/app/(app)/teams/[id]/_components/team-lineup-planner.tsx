@@ -33,8 +33,6 @@ export type PlannerRider = {
   watts20m: number | null;
   wkg5m: number | null;
   wkg20m: number | null;
-  zrlStarts: number;
-  bestPosition: number | null;
   /** Rosternaam zonder account: `id` is dan de rosternaam. */
   unregistered?: boolean;
   /** zFTP, zMAP en divisiestatus uit de WTRL-import. */
@@ -231,13 +229,6 @@ export function TeamLineupPlanner({
                   cell: (rider: PlannerRider) => power(rider.ftpWatts, rider.ftpWkg),
                 },
               ]),
-          {
-            key: "zrl",
-            header: "ZRL",
-            align: "right",
-            cell: (rider) =>
-              `${rider.zrlStarts} · best ${rider.bestPosition ? `#${rider.bestPosition}` : "-"}`,
-          },
           {
             key: "add",
             header: <span className="sr-only">Toevoegen</span>,

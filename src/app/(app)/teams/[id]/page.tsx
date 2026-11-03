@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowUpRight, CalendarDays, Plus, Trophy, Users } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Plus, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -116,20 +116,9 @@ type LineupRow = {
   roster_entry_id: string | null;
 };
 
-type ZrlResultRow = {
-  profile_id: string | null;
-  position: number | null;
-  points: number | string | null;
-};
-
 function num(value: number | string | null | undefined) {
   const n = Number(value ?? NaN);
   return Number.isFinite(n) ? n : null;
-}
-
-function metricAvg(values: number[]) {
-  if (values.length === 0) return null;
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 export default async function TeamDetailPage({
@@ -189,7 +178,6 @@ export default async function TeamDetailPage({
     { data: rosterPending },
     { data: waGroups },
     { data: powerRows },
-    { data: zrlRows },
     { data: events },
   ] = await Promise.all([
     admin
@@ -217,12 +205,6 @@ export default async function TeamDetailPage({
       .order("display_order")
       .order("name"),
     supabase.from("rider_power_profiles").select("*"),
-    supabase
-      .from("zrl_rider_results")
-      .select("profile_id, position, points")
-      .in("team_id", scopeIds)
-      .not("profile_id", "is", null)
-      .limit(1000),
     supabase
       .from("events")
       .select("id, title, type, start_at, location, team_id, parent_event_id")
@@ -406,33 +388,9 @@ export default async function TeamDetailPage({
     });
   }
 
-  const zrlByProfile = new Map<
-    string,
-    { starts: number; bestPosition: number | null; points: number[] }
-  >();
-  for (const result of ((zrlRows ?? []) as ZrlResultRow[])) {
-    if (!result.profile_id) continue;
-    const current = zrlByProfile.get(result.profile_id) ?? {
-      starts: 0,
-      bestPosition: null,
-      points: [],
-    };
-    current.starts += 1;
-    if (result.position != null) {
-      current.bestPosition =
-        current.bestPosition == null
-          ? result.position
-          : Math.min(current.bestPosition, result.position);
-    }
-    const points = num(result.points);
-    if (points != null) current.points.push(points);
-    zrlByProfile.set(result.profile_id, current);
-  }
-
   const rows: TeamRosterRow[] = profileIds.map((profileId) => {
     const profile = profileById.get(profileId);
     const power = powerByProfile.get(profileId);
-    const zrl = zrlByProfile.get(profileId);
     return {
       id: profileId,
       name: profile?.display_name ?? "Onbekend",
@@ -464,9 +422,6 @@ export default async function TeamDetailPage({
             wkg20m: num(power.wkg_20m),
           }
         : null,
-      zrlStarts: zrl?.starts ?? 0,
-      zrlBestPosition: zrl?.bestPosition ?? null,
-      zrlAvgPoints: zrl ? metricAvg(zrl.points) : null,
       wtrl: wtrlByZwiftId.get(zwiftIdByProfile.get(profileId) ?? "") ?? null,
     };
   });
@@ -502,9 +457,6 @@ export default async function TeamDetailPage({
           ]
         : [],
       power: null,
-      zrlStarts: 0,
-      zrlBestPosition: null,
-      zrlAvgPoints: null,
       wtrl: entry.zwift_id ? wtrlByZwiftId.get(entry.zwift_id.trim()) ?? null : null,
       unregistered: true,
     };
@@ -652,12 +604,11 @@ export default async function TeamDetailPage({
         </section>
       )}
 
-      {/* tg-metric-row: in het design "tegels" één paneel met drie cijfers in
-          plaats van drie gelijke kaarten. */}
-      <section className="tg-metric-row grid gap-3 sm:grid-cols-3">
+      {/* tg-metric-row: in het design "tegels" één paneel met de cijfers in
+          plaats van losse gelijke kaarten. */}
+      <section className="tg-metric-row grid gap-3 sm:grid-cols-2">
         <Metric icon={<Users className="size-4" />} label="Renners" value={rows.length} />
         <Metric icon={<CalendarDays className="size-4" />} label="Teamraces" value={calendarEvents.length} />
-        <Metric icon={<Trophy className="size-4" />} label="ZRL-starts" value={rows.reduce((sum, row) => sum + row.zrlStarts, 0)} />
       </section>
 
       <TeamRosterTable
@@ -708,8 +659,6 @@ export default async function TeamDetailPage({
                 wkg5m: row.power?.wkg5m ?? null,
                 wkg20m: row.power?.wkg20m ?? null,
                 wtrl: row.wtrl,
-                zrlStarts: row.zrlStarts,
-                bestPosition: row.zrlBestPosition,
               }));
               const myAvailability = user
                 ? availabilityByEventProfile.get(`${event.id}:${user.id}`) ?? null
