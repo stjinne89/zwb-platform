@@ -9,6 +9,8 @@
 import type { CheatRule, Powerup } from "@/lib/race-briefing/rules";
 import type { WatchLine } from "@/lib/race-briefing/sheet";
 import { cleanRiderName, type OwnRole } from "@/lib/race-briefing/field";
+import { climbSeconds, type BriefingClimb, type RouteKeyPoints } from "@/lib/race-briefing/route";
+import { durationLabel, km, type BriefingMoment } from "@/lib/race-briefing/tips";
 import { DURATION_LABELS } from "./advice";
 import type { LadderMatchup, MatchupRider } from "./matchup";
 import type { DurationWeights, PowerDuration } from "./routes";
@@ -161,7 +163,11 @@ export type LadderRole = {
   behind: string | null;
 };
 
-const firstName = (name: string) => name.split(/\s+/)[0] ?? name;
+/** Voornaam, of de hele naam als het eerste woord een letter of twee is ("T ako"). */
+const firstName = (name: string) => {
+  const first = name.split(/\s+/)[0] ?? name;
+  return first.length > 2 ? first : name;
+};
 
 /**
  * Rollen op de ladder: geen kopman, want elke plek telt even zwaar voor de
@@ -224,14 +230,80 @@ export function ladderCheatRules(input: { challenger: boolean | null; opponent: 
 
 const nl1 = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-/** De sterkste tegenstanders, met hun W/kg op de duur die hier het zwaarst telt. */
-export function ladderWatch(projection: LadderProjection, weights: DurationWeights | null, max = 3): WatchLine[] {
+/**
+ * Volgen op de ladder: de tegenstanders die vlak voor of vlak achter een van
+ * ons verwacht worden, want daar zitten de 2 punten per plek. De sterkste die
+ * toch voor ons allemaal finisht, kost geen extra punten. Zonder renners van ons
+ * in de verwachting: de sterkste tegenstanders.
+ */
+export function ladderWatch(projection: LadderProjection, weights: DurationWeights | null, max = 4): WatchLine[] {
   const key = keyDuration(weights);
-  return projection.order
-    .filter((row) => !row.own && row.rating !== null)
-    .slice(0, max)
-    .map((row) => {
-      const value = row.wkg?.[key];
-      return { name: row.name, note: [`verwacht ${row.place}e`, value != null ? `${DURATION_LABELS[key]} ${nl1.format(value)} w/kg` : null].filter(Boolean).join(" · ") };
-    });
+  const rated = projection.order.filter((row) => row.rating !== null);
+  const relations = new Map<number, string[]>();
+  for (const own of rated.filter((row) => row.own)) {
+    const ahead = rated.filter((row) => !row.own && row.place < own.place).at(-1);
+    const behind = rated.find((row) => !row.own && row.place > own.place);
+    const who = firstName(own.name);
+    if (ahead) relations.set(ahead.zwiftId, [...(relations.get(ahead.zwiftId) ?? []), `vóór ${who}`]);
+    if (behind) relations.set(behind.zwiftId, [...(relations.get(behind.zwiftId) ?? []), `achter ${who}`]);
+  }
+  const opponents = rated.filter((row) => !row.own);
+  const chosen = relations.size > 0 ? opponents.filter((row) => relations.has(row.zwiftId)) : opponents;
+  return chosen.slice(0, max).map((row) => {
+    const value = row.wkg?.[key];
+    return {
+      name: row.name,
+      note: [`${row.place}e`, ...(relations.get(row.zwiftId) ?? []), value != null ? `${DURATION_LABELS[key]} ${nl1.format(value)} w/kg` : null]
+        .filter(Boolean)
+        .join(" · "),
+    };
+  });
+}
+
+/**
+ * De route als momenten per kilometer, op de laddertelling: niet je eigen plek
+ * maar die van de ploeg. Op elke klim zit het gevaar dat iemand van ons lost en
+ * plekken verliest; de aanhakers zitten er vooraan, wie gaten dichtrijdt blijft
+ * achter ze. In de finale sprint iedereen, ook achterin: plek 8 tegen 9 is net
+ * zoveel waard als 1 tegen 2.
+ */
+export function ladderMoments(input: {
+  route: RouteKeyPoints | null;
+  powerups: Array<{ powerup: Powerup; percent: number }>;
+  own: Array<{ name: string; role: OwnRole }>;
+}): BriefingMoment[] {
+  const { route } = input;
+  if (!route) return [];
+  const names = (role: OwnRole) => input.own.filter((r) => r.role === role).map((r) => firstName(cleanRiderName(r.name)));
+  const hookers = names("aanhaken");
+  const bridge = names("brug")[0] ?? null;
+  const has = (p: Powerup) => input.powerups.some((x) => x.powerup === p);
+  const short = (climb: BriefingClimb) => (climb.name ?? "klim").replace(/\s+(KOM|QOM)$/i, "");
+  const time = (climb: BriefingClimb) => durationLabel(climbSeconds(climb, null));
+  const hold = bridge ? `niemand lossen, ${bridge} haalt terug` : "niemand lossen: wie lost, verliest plekken";
+  const forward = hookers.length ? `${hookers.join(", ")} naar voren` : "allemaal naar voren";
+  const finaleClimb = route.finale.kind === "climb" ? route.finale.climb : null;
+  const out: BriefingMoment[] = [];
+
+  const afterDescent = route.descentsIntoClimbs.some((d) => d.climb === route.earlyClimb);
+  if (route.earlyClimb && !afterDescent && route.earlyClimb !== finaleClimb) {
+    out.push({ km: route.earlyClimb.startKm, what: `${short(route.earlyClimb)} ${route.earlyClimb.gainM} m`, todo: `${forward}, ${hold}` });
+  }
+  for (const { descent, climb } of route.descentsIntoClimbs) {
+    out.push({ km: descent.startKm, what: `afdaling ${descent.dropM} m`, todo: forward, key: true });
+    if (climb !== finaleClimb) out.push({ km: climb.startKm, what: `${short(climb)} ${climb.gainM} m · ${time(climb)}`, todo: hold, key: true });
+  }
+  const hardest = route.hardestClimb;
+  if (hardest && hardest !== finaleClimb && hardest !== route.earlyClimb && !route.descentsIntoClimbs.some((d) => d.climb === hardest)) {
+    out.push({ km: hardest.startKm, what: `${short(hardest)} ${hardest.gainM} m · ${time(hardest)}`, todo: `samen over de top, ${hold}` });
+  }
+  if (route.lastArchKm !== null) out.push({ km: route.lastArchKm, what: "laatste boog", todo: "powerup vóór de boog op" });
+  const helmet = has("aerohelm") ? ", helm op ±200 m" : "";
+  if (finaleClimb && route.finale.kind === "climb") {
+    out.push({ km: finaleClimb.startKm, what: `slotklim ${finaleClimb.gainM} m · ${time(finaleClimb)}`, todo: `iedereen voluit, elke plek is 2 punten${has("veer") ? ", veer aan" : ""}`, key: true });
+    if (route.finale.runInKm >= 0.5) out.push({ km: finaleClimb.endKm, what: `nog ${km(route.finale.runInKm)}`, todo: `iedereen sprinten, ook achterin${helmet}` });
+  } else {
+    out.push({ km: Math.max(0, route.totalKm - 0.5), what: "finish", todo: `iedereen sprinten: van 9 naar 8 is evenveel als van 2 naar 1${helmet}`, key: true });
+  }
+  return out.sort((a, b) => a.km - b.km);
 }

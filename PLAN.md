@@ -11676,8 +11676,23 @@ bij de ZRL. Eerst als voorstel voorgelegd en goedgekeurd ("Ja, bouwen").
   telt een ontbrekende duur niet als zwak en weegt 15 s niet zwaarder dan 20 min
   door de schaal. Zonder vermogen achteraan, zonder punten. Op de pagina vervangt
   de tabel Verwachte uitslag "Onze ploeg" en "Het veld".
-- **Volgen**: de drie sterkste tegenstanders met hun W/kg op de duur die het
-  zwaarst telt. **Let op**: geen opstelling of minder dan vijf startplekken.
+- **Volgen**: ~~de drie sterkste tegenstanders met hun W/kg op de duur die het
+  zwaarst telt.~~ *Vervangen dezelfde dag, op aanwijzing van de eigenaar ("echt
+  specifiek op laddertelling"):* de tegenstanders die vlak voor of vlak achter
+  een van ons verwacht worden ("5e · vóór Bart · 20 min 4,4 w/kg"), want daar
+  zitten de 2 punten; de sterkste die toch voor ons allemaal finisht, kost geen
+  extra punten. Zonder renners van ons in de verwachting de sterksten.
+  **Let op**: geen opstelling of minder dan vijf startplekken.
+- **Momenten per kilometer op de laddertelling** (`ladderMoments`), in plaats van
+  de scratch-momenten van de ZRL ("naar voren, plek 3–8", "sprint uit het wiel"),
+  die over je eigen plek gaan. Nu over de ploeg: vóór een klim "Bart naar voren"
+  (de aanhakers), op de klim "niemand lossen: wie lost, verliest plekken" (met
+  een gatendichtrijder: "Tako haalt terug"), op de slotklim "iedereen voluit,
+  elke plek is 2 punten", en in de finale "iedereen sprinten, ook achterin" of
+  bij een vlakke finish "van 9 naar 8 is evenveel als van 2 naar 1". Het
+  getekende profiel blijft dat van de ZRL.
+- Namen op het briefje: de voornaam, of de hele naam als het eerste woord één of
+  twee letters is ("T ako", niet "T").
 - **Rollen zonder kopman** (`ladderRoles`). ~~`suggestRoles` met die sterkte en
   de 5 minuten.~~ *Vervangen dezelfde dag, op aanwijzing van de eigenaar:* op de
   ladder is er geen kopman, want je haalt samen zoveel mogelijk punten. Wie in
@@ -11729,7 +11744,7 @@ van vóór deze ronde hersteld, die ook ZRL-briefjes raakten:
   vroege klim volgt het lint, de slotklim zijn eigen regel. Test met de opbouw
   van The Muckle Yin; de ZRL-briefing van Women's B (3 november) bekeken.
 
-**Gecontroleerd.** Vitest `club-ladder-briefing.test.ts` (14 nieuw), een nieuwe case in `race-briefing.test.ts`, de andere
+**Gecontroleerd.** Vitest `club-ladder-briefing.test.ts` (19 nieuw), een nieuwe case in `race-briefing.test.ts`, de andere
 `club-ladder-*`, `race-briefing`, `help-*` en de volle run (los herhaald wat
 alleen in de volle run op een time-out viel; `omnium-live` mist `.env.local` in
 de worktree). `tsc` en ESLint schoon. De berekening nagelopen met de echte

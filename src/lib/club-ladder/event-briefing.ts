@@ -26,6 +26,7 @@ import { zwiftRacingConfigured } from "@/lib/zwiftracing/client";
 import {
   keyDuration,
   ladderCheatRules,
+  ladderMoments,
   ladderPowerups,
   ladderRiders,
   ladderRoles,
@@ -162,6 +163,7 @@ export async function loadLadderBriefing(
   });
   const sheetDefaults = {
     ...proposal,
+    moments: ladderMoments({ route: keyPoints, powerups, own }),
     rules: ladderCheatRules({ challenger, opponent, projection }),
     watch: projection ? ladderWatch(projection, weights) : [],
   };

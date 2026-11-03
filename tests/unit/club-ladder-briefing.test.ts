@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   keyDuration,
   ladderCheatRules,
+  ladderMoments,
   ladderRoles,
   ladderWatch,
   projectLadder,
@@ -10,6 +11,7 @@ import {
 } from "@/lib/club-ladder/briefing";
 import { ladderChallengerFromTitle } from "@/lib/club-ladder/fixture-events";
 import type { PowerWkg } from "@/lib/club-ladder/team-power";
+import type { BriefingClimb, RouteKeyPoints } from "@/lib/race-briefing/route";
 
 const wkg = (s15: number | null, m1: number | null, m5: number | null, m20: number | null): PowerWkg => ({ s15, m1, m5, m20 });
 
@@ -118,14 +120,82 @@ describe("ladderCheatRules", () => {
 });
 
 describe("ladderWatch", () => {
-  it("geeft de sterkste tegenstanders met de duur die het zwaarst telt", () => {
-    const riders = alternating(true).map((r) => ({ ...r, wkg: wkg(10, 6, 4.36, 4) }));
+  it("volgt de tegenstanders vlak voor en vlak achter onze renners", () => {
+    // Zoals 17729: wij 1e en 6e van 6.
+    const riders = [rider(1, true, 1.03), rider(2, false, 1.02), rider(3, false, 1.01), rider(4, false, 1), rider(5, false, 0.98), rider(6, true, 0.95)].map((r) => ({
+      ...r,
+      wkg: wkg(10, 6, 4.36, 4),
+    }));
     const weights = { s15: 0.1, m1: 0.2, m5: 0.5, m20: 0.2 };
     expect(keyDuration(weights)).toBe("m5");
-    const lines = ladderWatch(projectLadder(riders, true), weights, 2);
-    expect(lines).toEqual([
-      { name: "R2", note: "verwacht 2e · 5 min 4,4 w/kg" },
-      { name: "R4", note: "verwacht 4e · 5 min 4,4 w/kg" },
+    expect(ladderWatch(projectLadder(riders, true), weights)).toEqual([
+      { name: "R2", note: "2e · achter R1 · 5 min 4,4 w/kg" },
+      { name: "R5", note: "5e · vóór R6 · 5 min 4,4 w/kg" },
+    ]);
+  });
+
+  it("kort een naam niet af tot één letter", () => {
+    const lines = ladderWatch(projectLadder([{ ...rider(1, true, 2), name: "T ako" }, { ...rider(2, false, 1), name: "Connor Webb" }], true), null);
+    expect(lines).toEqual([{ name: "Connor Webb", note: "2e · achter T ako" }]);
+  });
+
+  it("noemt een tegenstander tussen twee van ons één keer, met beide", () => {
+    const lines = ladderWatch(projectLadder([rider(1, true, 3), rider(2, false, 2), rider(3, true, 1)], false), null);
+    expect(lines).toEqual([{ name: "R2", note: "2e · achter R1 · vóór R3" }]);
+  });
+
+  it("zonder renners van ons: de sterkste tegenstanders", () => {
+    const lines = ladderWatch(projectLadder([rider(1, true, null), rider(2, false, 2), rider(3, false, 1)], false), null, 1);
+    expect(lines).toEqual([{ name: "R2", note: "1e" }]);
+  });
+});
+
+describe("ladderMoments", () => {
+  const climb = (startKm: number, endKm: number, gainM: number, name: string | null = null): BriefingClimb => ({
+    startKm,
+    endKm,
+    gainM,
+    avgGradient: 0.035,
+    maxGradient: 0.05,
+    name,
+  });
+  const early = climb(4.5, 4.9, 15);
+  const north = climb(8.5, 10.1, 59, "Sgurr Summit North");
+  const last = climb(20.9, 22, 22);
+  const route: RouteKeyPoints = {
+    totalKm: 23.6,
+    climbs: [early, north, last],
+    descentsIntoClimbs: [
+      { descent: { startKm: 3.2, endKm: 4.4, dropM: 30 }, climb: early },
+      { descent: { startKm: 19.1, endKm: 20.8, dropM: 58 }, climb: last },
+    ],
+    hardestClimb: north,
+    earlyClimb: early,
+    finale: { kind: "climb", climb: last, runInKm: 1.6 },
+    segments: [],
+    lastArchKm: 19.1,
+  };
+  const own = [
+    { name: "Tako de Vries", role: "brug" as const },
+    { name: "Bart de Groot", role: "aanhaken" as const },
+    { name: "Eva Kok", role: "aanhaken" as const },
+  ];
+
+  it("zet de ploeg voorop: aanhakers naar voren, niemand lossen, iedereen sprinten", () => {
+    const moments = ladderMoments({ route, powerups: [{ powerup: "veer", percent: 0 }], own });
+    const at = (km: number) => moments.filter((m) => m.km === km).map((m) => m.todo);
+    expect(at(3.2)).toEqual(["Bart, Eva naar voren"]);
+    expect(at(4.5)).toEqual(["niemand lossen, Tako haalt terug"]);
+    expect(at(8.5)).toEqual(["samen over de top, niemand lossen, Tako haalt terug"]);
+    expect(at(20.9)).toEqual(["iedereen voluit, elke plek is 2 punten, veer aan"]);
+    expect(at(22)).toEqual(["iedereen sprinten, ook achterin"]);
+    expect(moments.map((m) => m.km)).toEqual([...moments.map((m) => m.km)].sort((a, b) => a - b));
+  });
+
+  it("zonder rollen en met een vlakke finish", () => {
+    const flat: RouteKeyPoints = { ...route, descentsIntoClimbs: [], earlyClimb: null, hardestClimb: null, climbs: [], finale: { kind: "flat", flatKm: 5 }, lastArchKm: null };
+    expect(ladderMoments({ route: flat, powerups: [], own: [] })).toEqual([
+      { km: 23.1, what: "finish", todo: "iedereen sprinten: van 9 naar 8 is evenveel als van 2 naar 1", key: true },
     ]);
   });
 });
