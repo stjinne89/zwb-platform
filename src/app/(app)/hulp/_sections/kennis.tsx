@@ -348,9 +348,12 @@ export function KennisHelp() {
                   Volg je de darmtraining, dan rekent een rit van anderhalf uur
                   of langer met het getal van die week. Na de darmtraining kun
                   je op de protocolpagina kiezen voor tot 120 g per uur bij
-                  ritten vanaf 2,5 uur. Bij Klaarzetten en bij een recept voor
-                  onderweg kies je een bidon van 500 ml, 750 ml of 1 l; dat geldt
-                  alleen voor wat je op dat moment bekijkt, standaard is 750 ml.
+                  ritten vanaf 2,5 uur. Bij een recept voor onderweg kies je een
+                  bidon van 500 ml, 750 ml of 1 l; bij Klaarzetten kies je dat
+                  voor elk van je twee bidonhouders. Bij een lange rit vul je om
+                  en om bij, in dezelfde maten, en een grote bidon krijgt naar
+                  verhouding meer koolhydraten. De keuze geldt alleen voor wat je
+                  op dat moment bekijkt, standaard is 750 ml.
                   In het receptenboek groeit het hele recept mee met de bidon;
                   bij Klaarzetten bepaalt de rit de koolhydraten per bidon en
                   groeit het water mee. Elke bidon staat als icoontje in zijn

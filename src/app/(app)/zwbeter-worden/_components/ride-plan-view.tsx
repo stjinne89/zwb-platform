@@ -1,24 +1,28 @@
 "use client";
 
-import { useState, type ComponentProps } from "react";
+import { Fragment, useId, useState, type ComponentProps } from "react";
 import Link from "next/link";
 import { Bike, Check } from "lucide-react";
 import {
+  BIDON_SIZES,
   formatRideMinute,
   ridePlanMeals,
+  sameHolders,
+  type BidonHolders,
   type BidonMl,
   type RidePlan,
+  type RidePlanBidon,
   type RidePlanIngredient,
   type RidePlanItem,
 } from "@/lib/nutrition/ride-plan";
 import { scoopsLabel } from "@/lib/nutrition/scoops";
 import { LogActionButton } from "../voeding/_components/log-controls";
-import { BidonIcon } from "./bidon-icon";
-import { bidonLabel, bidonOptionClass } from "./bidon-options";
+import { BidonChoice, BidonIcon } from "./bidon-icon";
+import { bidonGroupClass, bidonLabel, bidonOptionClass } from "./bidon-options";
 
 // Het ritplan bij een training: wat je klaarzet en wanneer je het neemt
-// (src/lib/nutrition/ride-plan.ts). De bidongrootte kies je hier; die keuze
-// geldt alleen voor deze weergave.
+// (src/lib/nutrition/ride-plan.ts). De maat in elk van de twee bidonhouders
+// kies je hier; die keuze geldt alleen voor deze weergave.
 
 function amount(value: number, unit: "g" | "ml"): string {
   return `${value.toLocaleString("nl-NL")} ${unit}`;
@@ -42,7 +46,7 @@ function ingredientText(ingredient: RidePlanIngredient): string {
 /** Hoogstens zoveel bidons naast elkaar; daarboven staat alleen het aantal. */
 const MAX_ICONS = 6;
 
-function ItemRow({ item, kind, bidonMl }: { item: RidePlanItem; kind: "bidon" | "vast"; bidonMl: number }) {
+function ItemRow({ item }: { item: RidePlanItem & { ml?: BidonMl } }) {
   const name = item.recipe ? (
     <Link href={`/zwbeter-worden/voeding/recepten/${item.recipe.slug}`} className="hover:text-primary hover:underline">
       {item.recipe.title}
@@ -50,21 +54,27 @@ function ItemRow({ item, kind, bidonMl }: { item: RidePlanItem; kind: "bidon" | 
   ) : (
     "Water"
   );
+  const unit = item.ml ? "bidon" : "portie";
   return (
     <li className="flex gap-3">
-      <span className="flex min-w-7 items-end gap-0.5">
-        {kind === "bidon" && item.count <= MAX_ICONS
+      <span className="flex min-w-7 items-end gap-0.5 self-start">
+        {item.ml && item.count <= MAX_ICONS
           ? Array.from({ length: item.count }, (_, index) => (
-              <BidonIcon key={index} ml={bidonMl} fill={item.recipe ? "drank" : "water"} />
+              <BidonIcon key={index} ml={item.ml!} fill={item.recipe ? "drank" : "water"} />
             ))
           : null}
       </span>
       <div className="min-w-0 space-y-0.5">
         <p className="text-sm">
-          <span className="font-medium tabular-nums">{item.count}×</span> {kind === "bidon" ? "bidon" : "portie"}:{" "}
-          {name}
+          <span className="font-medium tabular-nums">
+            {item.count}× {item.ml ? bidonLabel(item.ml) : "portie"}
+          </span>
+          : {name}
           {item.carbsG > 0 ? (
-            <span className="text-muted-foreground"> · {item.carbsG} g per {kind === "bidon" ? "bidon" : "portie"}</span>
+            <span className="text-muted-foreground">
+              {" "}
+              · {item.carbsG} g per {unit}
+            </span>
           ) : null}
         </p>
         {item.ingredients.length > 0 ? (
@@ -102,9 +112,12 @@ export function RidePlanView({
   /** "Gegeten" onder het plan: legt de gekozen bidons en porties vast. */
   log?: { action: ComponentProps<typeof LogActionButton>["action"]; day: string };
 }) {
-  const [bidonMl, setBidonMl] = useState<BidonMl>(initial.bidonMl);
-  const sizes = initial.sizes ?? [initial];
-  const plan = sizes.find((size) => size.bidonMl === bidonMl) ?? initial;
+  const [holders, setHolders] = useState<BidonHolders>(initial.holders);
+  const options = initial.options ?? [initial];
+  const plan = options.find((option) => sameHolders(option.holders, holders)) ?? initial;
+  const pickerId = useId();
+  const choose = (holder: 0 | 1, ml: BidonMl) =>
+    setHolders((current) => (holder === 0 ? [ml, current[1]] : [current[0], ml]));
   return (
     <div className="space-y-3 rounded-lg border bg-card p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -116,19 +129,27 @@ export function RidePlanView({
           {hours(plan.minutes)} · {plan.totalG} g koolhydraten
         </p>
       </div>
-      {sizes.length > 1 ? (
-        <div role="group" aria-label="Bidon" className="flex w-fit rounded-full border p-0.5 text-xs">
-          {sizes.map((size) => (
-            <button
-              key={size.bidonMl}
-              type="button"
-              aria-pressed={size.bidonMl === plan.bidonMl}
-              onClick={() => setBidonMl(size.bidonMl)}
-              className={bidonOptionClass(size.bidonMl === plan.bidonMl)}
-            >
-              <BidonIcon ml={size.bidonMl} fill="leeg" />
-              {bidonLabel(size.bidonMl)}
-            </button>
+      {options.length > 1 ? (
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5">
+          {([0, 1] as const).map((holder) => (
+            <Fragment key={holder}>
+              <span id={`${pickerId}-${holder}`} className="text-sm text-muted-foreground">
+                Bidon {holder + 1}
+              </span>
+              <div role="group" aria-labelledby={`${pickerId}-${holder}`} className={bidonGroupClass}>
+                {BIDON_SIZES.map((ml) => (
+                  <button
+                    key={ml}
+                    type="button"
+                    aria-pressed={plan.holders[holder] === ml}
+                    onClick={() => choose(holder, ml)}
+                    className={bidonOptionClass(plan.holders[holder] === ml)}
+                  >
+                    <BidonChoice ml={ml} active={plan.holders[holder] === ml} />
+                  </button>
+                ))}
+              </div>
+            </Fragment>
           ))}
         </div>
       ) : null}
@@ -146,15 +167,10 @@ export function RidePlanView({
         </Link>
       )}
       <ul className="space-y-2">
-        <ItemRow item={plan.bidons} kind="bidon" bidonMl={plan.bidonMl} />
-        {plan.waterBidons > 0 ? (
-          <ItemRow
-            item={{ recipe: null, count: plan.waterBidons, carbsG: 0, ingredients: [] }}
-            kind="bidon"
-            bidonMl={plan.bidonMl}
-          />
-        ) : null}
-        {plan.solid ? <ItemRow item={plan.solid} kind="vast" bidonMl={plan.bidonMl} /> : null}
+        {plan.bidons.map((item: RidePlanBidon) => (
+          <ItemRow key={`${item.recipe?.slug ?? "water"}-${item.ml}`} item={item} />
+        ))}
+        {plan.solid ? <ItemRow item={plan.solid} /> : null}
       </ul>
       <details className="text-sm">
         <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Per 20 minuten</summary>

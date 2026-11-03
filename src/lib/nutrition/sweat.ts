@@ -87,8 +87,13 @@ export function fluidPerHour(sweatMlPerHour: number, weightKg: number | null, mi
   return { minMl: Math.min(maxMl, Math.max(0, round50(sweatMlPerHour - allowedPerHour))), maxMl };
 }
 
+/** Hoeveel ml je over de hele rit drinkt: het midden van het vochtdoel. */
+export function fluidMl(fluid: FluidTarget, minutes: number): number {
+  const perHour = fluid.minMl == null ? fluid.maxMl : (fluid.minMl + fluid.maxMl) / 2;
+  return (perHour * minutes) / 60;
+}
+
 /** Hoeveel bidons je meeneemt: het midden van het vochtdoel over de hele rit. */
 export function fluidBidons(fluid: FluidTarget, minutes: number, bidonMl = DEFAULT_BIDON_ML): number {
-  const perHour = fluid.minMl == null ? fluid.maxMl : (fluid.minMl + fluid.maxMl) / 2;
-  return Math.max(1, Math.round((perHour * minutes) / 60 / bidonMl));
+  return Math.max(1, Math.round(fluidMl(fluid, minutes) / bidonMl));
 }

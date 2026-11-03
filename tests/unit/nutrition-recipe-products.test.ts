@@ -109,8 +109,8 @@ describe("sportvoeding met barcode in het receptenboek", () => {
     expect(isBidonRecipe(DRINK_RECIPE)).toBe(true);
     expect(isBidonRecipe(GEL_RECIPE)).toBe(false);
     const plan = ridePlan({ minutes: 180, ranked: [DRINK_RECIPE, GEL_RECIPE], energyFactor: 1 })!;
-    expect(plan.bidons.recipe?.slug).toBe("sportdrank");
-    expect(plan.bidons.carbsG).toBe(30);
+    expect(plan.bidons[0].recipe?.slug).toBe("sportdrank");
+    expect(plan.bidons[0].carbsG).toBe(30);
     expect(plan.solid?.recipe?.slug).toBe("gel");
     expect(plan.solid?.carbsG).toBe(25);
     expect(plan.solid?.ingredients[0]).toMatchObject({ amount: 40, barcode: GEL.barcode });

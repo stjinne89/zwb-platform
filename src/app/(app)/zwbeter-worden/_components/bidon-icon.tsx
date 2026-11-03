@@ -1,7 +1,9 @@
 import { cn } from "@/lib/utils";
+import { bidonLabel } from "./bidon-options";
 
 // Een bidon, hoger naarmate hij groter is: 500 ml klein, 1 l groot. Gevuld met
-// sportdrank of met water. Zonder hooks, voor de server en de client.
+// sportdrank of met water, vol in de tekstkleur (de gekozen maat) of leeg.
+// Zonder hooks, voor de server en de client.
 
 const MIN_ML = 500;
 const MAX_ML = 1000;
@@ -12,11 +14,11 @@ export function BidonIcon({
   className,
 }: {
   ml: number;
-  fill?: "drank" | "water" | "leeg";
+  fill?: "drank" | "water" | "vol" | "leeg";
   className?: string;
 }) {
   const share = Math.min(1, Math.max(0, (ml - MIN_ML) / (MAX_ML - MIN_ML)));
-  const height = Math.round(20 + share * 12);
+  const height = Math.round(22 + share * 12);
   return (
     <svg
       viewBox="0 0 20 40"
@@ -39,5 +41,18 @@ export function BidonIcon({
         strokeWidth="1.5"
       />
     </svg>
+  );
+}
+
+/**
+ * De inhoud van een bidonknop: de bidon op zijn maat, met de maat eronder. De
+ * drie bidons staan op één lijn, zodat je het verschil in grootte meteen ziet.
+ */
+export function BidonChoice({ ml, active }: { ml: number; active: boolean }) {
+  return (
+    <span className="flex flex-col items-center justify-end gap-1 self-stretch">
+      <BidonIcon ml={ml} fill={active ? "vol" : "leeg"} />
+      <span className="whitespace-nowrap leading-none">{bidonLabel(ml)}</span>
+    </span>
   );
 }

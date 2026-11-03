@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Recipe } from "@/lib/nutrition/recipes";
 import {
+  bidonCountFor,
   bidonMaxCarbs,
   eventRide,
   feedMinutes,
@@ -11,6 +12,8 @@ import {
   ridePlanShoppingSlots,
   ridePlanSummary,
   resizeBidon,
+  sameHolders,
+  type RidePlan,
 } from "@/lib/nutrition/ride-plan";
 import { basePortion, type NutritionFood } from "@/lib/nutrition/scale";
 import { NO_HOUSEHOLD, shoppingList } from "@/lib/nutrition/shopping";
@@ -80,6 +83,14 @@ const CAKES = recipe("rijsttaartjes", 6, [
 // 4 uur met 150 g per uur uit de darmtraining: 600 g, meer dan vier bidons dragen.
 const LONG = { minutes: 240, gut: { weekGrams: 150, minMinutes: 60, high: false } };
 
+function bidonTotal(plan: RidePlan): number {
+  return plan.bidons.reduce((sum, item) => sum + item.count, 0);
+}
+
+function waterCount(plan: RidePlan): number {
+  return plan.bidons.filter((item) => !item.recipe).reduce((sum, item) => sum + item.count, 0);
+}
+
 describe("ritplan", () => {
   it("herkent een bidon aan een drank in het recept", () => {
     expect(isBidonRecipe(DRINK)).toBe(true);
@@ -94,9 +105,9 @@ describe("ritplan", () => {
     // 2 uur × 45 g: twee bidons van ongeveer 45 g, geen vast eten.
     const plan = ridePlan({ minutes: 120, ranked: [CAKES, DRINK], energyFactor: 1 })!;
     expect(plan.perHourG).toBe(45);
-    expect(plan.bidons.count).toBe(2);
-    expect(plan.bidons.recipe?.slug).toBe("sportdrank");
-    expect(Math.abs(plan.bidons.carbsG - 45)).toBeLessThanOrEqual(2);
+    expect(plan.bidons[0].count).toBe(2);
+    expect(plan.bidons[0].recipe?.slug).toBe("sportdrank");
+    expect(Math.abs(plan.bidons[0].carbsG - 45)).toBeLessThanOrEqual(2);
     expect(plan.solid).toBeNull();
     expect(Math.abs(plan.totalG - 90)).toBeLessThanOrEqual(4);
   });
@@ -104,9 +115,9 @@ describe("ritplan", () => {
   it("vult boven de grens per bidon aan met vast eten", () => {
     // 600 g: vier bidons van 135 g en 60 g vast eten.
     const plan = ridePlan({ ...LONG, ranked: [DRINK, CAKES], energyFactor: 1 })!;
-    expect(plan.bidons.count).toBe(4);
+    expect(plan.bidons[0].count).toBe(4);
     // Boven 50 g rondt het recept af op vijftallen (roundGrams).
-    expect(plan.bidons.carbsG).toBeLessThanOrEqual(bidonMaxCarbs(750) + 3);
+    expect(plan.bidons[0].carbsG).toBeLessThanOrEqual(bidonMaxCarbs(750) + 3);
     expect(plan.solid?.recipe?.slug).toBe("rijsttaartjes");
     expect(Math.abs(plan.totalG - 600)).toBeLessThanOrEqual(10);
     // Het vast eten staat niet op het eerste moment.
@@ -119,15 +130,15 @@ describe("ritplan", () => {
     const plan = ridePlan({ minutes: 120, ranked: [DRINK, CAKES], lead: CAKES, leadChosen: true, energyFactor: 1 })!;
     expect(plan.solid?.recipe?.slug).toBe("rijsttaartjes");
     // De bidons dragen de helft: één bidon sportdrank, één met water.
-    expect(plan.bidons.count).toBe(1);
-    expect(plan.waterBidons).toBe(1);
+    expect(plan.bidons[0].count).toBe(1);
+    expect(waterCount(plan)).toBe(1);
     expect(Math.abs(plan.totalG - 90)).toBeLessThanOrEqual(10);
   });
 
   it("neemt water mee als er geen sportdrank is", () => {
     const plan = ridePlan({ minutes: 120, ranked: [CAKES], energyFactor: 1 })!;
-    expect(plan.bidons.recipe).toBeNull();
-    expect(plan.bidons.carbsG).toBe(0);
+    expect(plan.bidons[0].recipe).toBeNull();
+    expect(plan.bidons[0].carbsG).toBe(0);
     expect(plan.solid?.recipe?.slug).toBe("rijsttaartjes");
   });
 
@@ -135,7 +146,7 @@ describe("ritplan", () => {
     const plan = ridePlan({ ...LONG, ranked: [DRINK, CAKES], energyFactor: 1 })!;
     const meals = ridePlanMeals(plan);
     expect(meals.map((meal) => meal.slug)).toEqual(["sportdrank", "rijsttaartjes"]);
-    const sugar = plan.bidons.ingredients.find((item) => item.foodId === "suiker")!;
+    const sugar = plan.bidons[0].ingredients.find((item) => item.foodId === "suiker")!;
     expect(meals[0].items.find((item) => "food_id" in item && item.food_id === "suiker")?.grams).toBe(sugar.amount * 4);
     expect(meals[0].title).toBe("4× sportdrank");
   });
@@ -148,8 +159,8 @@ describe("ritplan", () => {
       [water, 750, "vast"],
     ]);
     const plan = ridePlan({ minutes: 90, ranked: [mix, DRINK], energyFactor: 1.15 })!;
-    expect(plan.bidons.recipe?.slug).toBe("poeder-met-water");
-    expect(plan.bidons.ingredients.find((item) => item.foodId === "water")).toMatchObject({ amount: 750, unit: "ml" });
+    expect(plan.bidons[0].recipe?.slug).toBe("poeder-met-water");
+    expect(plan.bidons[0].ingredients.find((item) => item.foodId === "water")).toMatchObject({ amount: 750, unit: "ml" });
   });
 
   it("rekent met de gekozen bidon: aantal, grens en water", () => {
@@ -160,17 +171,52 @@ describe("ritplan", () => {
       [water, 750, "vast"],
     ]);
     const plan = ridePlan({ minutes: 120, ranked: [mix, CAKES], energyFactor: 1 })!;
-    expect(plan.bidonMl).toBe(750);
-    expect(plan.sizes?.map((size) => [size.bidonMl, size.bidons.count + size.waterBidons])).toEqual([
-      [500, 3],
-      [750, 2],
-      [1000, 2],
-    ]);
-    const small = plan.sizes!.find((size) => size.bidonMl === 500)!;
-    expect(small.bidons.ingredients.find((item) => item.foodId === "water")?.amount).toBe(500);
+    expect(plan.holders).toEqual([750, 750]);
+    expect(plan.options).toHaveLength(9);
+    const option = (first: 500 | 750 | 1000, second: 500 | 750 | 1000) =>
+      plan.options!.find((item) => sameHolders(item.holders, [first, second]))!;
+    expect([option(500, 500), option(750, 750), option(1000, 1000)].map(bidonTotal)).toEqual([3, 2, 2]);
+    const small = option(500, 500);
+    expect(small.bidons[0].ingredients.find((item) => item.foodId === "water")?.amount).toBe(500);
     expect(Math.abs(small.totalG - plan.totalG)).toBeLessThanOrEqual(10);
     // Een andere standaard kiezen kan ook.
-    expect(ridePlan({ minutes: 120, ranked: [mix], energyFactor: 1, bidonMl: 1000 })!.bidonMl).toBe(1000);
+    expect(ridePlan({ minutes: 120, ranked: [mix], energyFactor: 1, holders: [1000, 500] })!.holders).toEqual([1000, 500]);
+  });
+
+  it("telt bidons om en om uit de twee houders", () => {
+    expect(bidonCountFor(1500, [750, 750])).toBe(2);
+    expect(bidonCountFor(1500, [500, 500])).toBe(3);
+    expect(bidonCountFor(1500, [750, 500])).toBe(2);
+    expect(bidonCountFor(300, [1000, 1000])).toBe(1);
+  });
+
+  it("verdeelt de sportdrank naar de maat van elke bidon", () => {
+    const water = { ...food("water", 0, "Niet-alcoholische dranken"), nevo_code: 1885 };
+    const mix = recipe("poeder-met-water", 1, [
+      [SUGAR, 60, "kh_bron"],
+      [water, 750, "vast"],
+    ]);
+    // 2 uur: 1,5 l, dus een bidon van 750 en een van 500 ml, samen 90 g.
+    const plan = ridePlan({ minutes: 120, ranked: [mix], energyFactor: 1, holders: [750, 500] })!;
+    expect(plan.bidons.map((item) => [item.ml, item.count])).toEqual([
+      [750, 1],
+      [500, 1],
+    ]);
+    const [large, small] = plan.bidons;
+    expect(large.carbsG).toBeGreaterThan(small.carbsG);
+    expect(Math.abs(large.carbsG / small.carbsG - 1.5)).toBeLessThanOrEqual(0.15);
+    expect(large.ingredients.find((item) => item.foodId === "water")?.amount).toBe(750);
+    expect(small.ingredients.find((item) => item.foodId === "water")?.amount).toBe(500);
+    // De grote bidon gaat langer mee.
+    expect(plan.feeds.map((feed) => feed.bidon)).toEqual([1, 1, 1, 2, 2]);
+    // Gegeten en de boodschappen tellen beide bidons bij één recept op.
+    const [meal] = ridePlanMeals(plan);
+    expect(meal.title).toBe("2× poeder-met-water");
+    const sugar = (item: typeof large) => item.ingredients.find((ingredient) => ingredient.foodId === "suiker")!.amount;
+    expect(meal.items.find((item) => "food_id" in item && item.food_id === "suiker")?.grams).toBe(
+      Math.round((sugar(large) + sugar(small)) * 10) / 10,
+    );
+    expect(ridePlanSummary(plan)).toBe("2× bidon poeder-met-water");
   });
 
   it("schaalt een sterke drank omlaag tot wat de rit vraagt", () => {
@@ -183,8 +229,8 @@ describe("ritplan", () => {
     // 1u30 rustig: 30 g per uur, 45 g in totaal; de halve portie is al 46,5 g.
     const plan = ridePlan({ minutes: 90, intensity: "endurance", ranked: [mix], energyFactor: 1 })!;
     expect(plan.totalG).toBe(45);
-    expect(plan.bidons.count).toBe(1);
-    expect(plan.bidons.ingredients.find((item) => item.foodId === "poeder")?.amount).toBeLessThan(50);
+    expect(plan.bidons[0].count).toBe(1);
+    expect(plan.bidons[0].ingredients.find((item) => item.foodId === "poeder")?.amount).toBeLessThan(50);
   });
 
   it("toont in het receptenboek het hele recept voor een andere bidon", () => {
@@ -200,8 +246,8 @@ describe("ritplan", () => {
 
   it("geeft sap en water in ml", () => {
     const plan = ridePlan({ minutes: 120, ranked: [DRINK], energyFactor: 1 })!;
-    expect(plan.bidons.ingredients.find((item) => item.foodId === "siroop")?.unit).toBe("ml");
-    expect(plan.bidons.ingredients.find((item) => item.foodId === "suiker")?.unit).toBe("g");
+    expect(plan.bidons[0].ingredients.find((item) => item.foodId === "siroop")?.unit).toBe("ml");
+    expect(plan.bidons[0].ingredients.find((item) => item.foodId === "suiker")?.unit).toBe("g");
   });
 
   it("eet elke twintig minuten, vanaf een kwartier, en drinkt de bidons op volgorde leeg", () => {
@@ -242,7 +288,7 @@ describe("ritplan", () => {
   it("zet alle bidons en porties op de boodschappenlijst", () => {
     const plan = ridePlan({ ...LONG, ranked: [DRINK, CAKES], energyFactor: 1 })!;
     const items = shoppingList(ridePlanShoppingSlots(plan, [DRINK, CAKES]), NO_HOUSEHOLD);
-    const sugarPerBidon = plan.bidons.ingredients.find((item) => item.foodId === "suiker")!.amount;
+    const sugarPerBidon = plan.bidons[0].ingredients.find((item) => item.foodId === "suiker")!.amount;
     expect(items.find((item) => item.id === "suiker")?.grams).toBe(sugarPerBidon * 4);
     expect(items.some((item) => item.id === "rijst")).toBe(true);
     // Een recept dat er niet meer is, valt weg.
@@ -268,21 +314,21 @@ describe("ritplan", () => {
       energyFactor: 1,
     })!;
     expect(plan.fluid).toEqual({ minMl: 850, maxMl: 1200 });
-    expect(plan.bidons.count + plan.waterBidons).toBe(5);
+    expect(bidonTotal(plan)).toBe(5);
     // De koolhydraten blijven gelijk; ze zijn alleen over meer bidons verdeeld.
     expect(Math.abs(plan.totalG - 300)).toBeLessThanOrEqual(10);
     // Zonder test: één bidon per uur en geen vochtdoel.
     const without = ridePlan({ minutes: 240, intensity: "tempo", ranked: [DRINK, CAKES], energyFactor: 1 })!;
     expect(without.fluid).toBeNull();
-    expect(without.bidons.count + without.waterBidons).toBe(4);
+    expect(bidonTotal(without)).toBe(4);
   });
 
   it("neemt water mee als de sportdrank niet kleiner kan dan nodig", () => {
     // 1,5 uur rustig: 45 g. Een halve portie sportdrank is al 36 g, dus niet
     // twee bidons sportdrank (72 g) maar één met sportdrank en één met water.
     const plan = ridePlan({ minutes: 90, intensity: "endurance", ranked: [DRINK, CAKES], energyFactor: 1 })!;
-    expect(plan.bidons.count).toBe(1);
-    expect(plan.waterBidons).toBe(1);
+    expect(plan.bidons[0].count).toBe(1);
+    expect(waterCount(plan)).toBe(1);
     expect(Math.abs(plan.totalG - 45)).toBeLessThanOrEqual(3);
     expect(ridePlanSummary(plan)).toBe("1× bidon sportdrank, 1× bidon water");
     // Uit de tweede bidon komen geen koolhydraten.

@@ -21,7 +21,7 @@ import { isBidonRecipe, isPackagedRecipe, type Recipe } from "./recipes";
 import { logItemFor } from "./products";
 import type { ShoppingSlot } from "./shopping";
 import { unitFor } from "./shopping-names";
-import { DEFAULT_BIDON_ML, fluidBidons, fluidPerHour, type FluidTarget } from "./sweat";
+import { DEFAULT_BIDON_ML, fluidMl, fluidPerHour, type FluidTarget } from "./sweat";
 import { rideTargetPerHour, type GutTraining } from "./targets";
 
 /** De bidons om uit te kiezen bij Klaarzetten en in het receptenboek. */
@@ -30,6 +30,31 @@ export type BidonMl = (typeof BIDON_SIZES)[number];
 
 export function isBidonMl(value: unknown): value is BidonMl {
   return BIDON_SIZES.includes(Number(value) as BidonMl);
+}
+
+/** De maat in de twee bidonhouders aan de fiets. */
+export type BidonHolders = readonly [BidonMl, BidonMl];
+export const DEFAULT_HOLDERS: BidonHolders = [DEFAULT_BIDON_ML, DEFAULT_BIDON_ML];
+
+/** Bidon `index` (vanaf 0) komt om en om uit houder 1 en 2, ook als je onderweg bijvult. */
+function bidonSize(holders: BidonHolders, index: number): BidonMl {
+  return holders[index % 2];
+}
+
+/** Zoveel bidons dat ze samen het dichtst bij `ml` komen; minstens één. */
+export function bidonCountFor(ml: number, holders: BidonHolders): number {
+  let count = 1;
+  let volume: number = holders[0];
+  while (volume < ml) {
+    volume += bidonSize(holders, count);
+    count += 1;
+  }
+  const previous = volume - bidonSize(holders, count - 1);
+  return count > 1 && ml - previous < volume - ml ? count - 1 : count;
+}
+
+export function sameHolders(a: BidonHolders, b: BidonHolders): boolean {
+  return a[0] === b[0] && a[1] === b[1];
 }
 
 /**
@@ -100,6 +125,9 @@ export type RidePlanItem = {
   ingredients: RidePlanIngredient[];
 };
 
+/** Bidons van één maat met hetzelfde erin; `recipe` null is water. */
+export type RidePlanBidon = RidePlanItem & { ml: BidonMl };
+
 export type RideFeed = {
   minute: number;
   carbsG: number;
@@ -111,18 +139,17 @@ export type RideFeed = {
 
 export type RidePlan = {
   minutes: number;
-  bidonMl: BidonMl;
+  holders: BidonHolders;
   perHourG: number;
   totalG: number;
-  bidons: RidePlanItem;
-  /** Bidons met alleen water, naast de bidons met sportdrank. */
-  waterBidons: number;
+  /** Sportdrank eerst, dan water; per maat, in de volgorde van de houders. */
+  bidons: RidePlanBidon[];
   /** Hoeveel je per uur drinkt, uit de eigen zweettest; null zonder test. */
   fluid: FluidTarget | null;
   solid: RidePlanItem | null;
   feeds: RideFeed[];
-  /** Hetzelfde plan per bidongrootte, om te kiezen bij Klaarzetten. */
-  sizes?: RidePlan[];
+  /** Hetzelfde plan voor elke maat in elke houder, om te kiezen bij Klaarzetten. */
+  options?: RidePlan[];
 };
 
 export type RidePlanInput = {
@@ -142,7 +169,7 @@ export type RidePlanInput = {
   /** Het lid koos `lead` zelf. */
   leadChosen?: boolean;
   energyFactor: number;
-  bidonMl?: BidonMl;
+  holders?: BidonHolders;
 };
 
 function ingredientsOf(items: RecipeIngredient[]): RidePlanIngredient[] {
@@ -186,18 +213,32 @@ export function feedMinutes(minutes: number): number[] {
   return feeds.length > 0 ? feeds : [FIRST_FEED_MINUTE];
 }
 
+/** Gelijke maten bij elkaar, in de volgorde waarin ze voor het eerst voorkomen. */
+function groupSizes(sizes: BidonMl[]): { ml: BidonMl; count: number }[] {
+  const groups: { ml: BidonMl; count: number }[] = [];
+  for (const ml of sizes) {
+    const group = groups.find((item) => item.ml === ml);
+    if (group) group.count += 1;
+    else groups.push({ ml, count: 1 });
+  }
+  return groups;
+}
+
 /**
  * Het plan voor één rit, of null onder een uur: dan hoeft er onderweg niets bij
  * (targets.ts). Het doel per uur volgt de zwaarte (rideTargetPerHour). In
- * `sizes` staat hetzelfde plan voor elke bidongrootte.
+ * `options` staat hetzelfde plan voor elke maat in elke houder.
  */
 export function ridePlan(input: RidePlanInput): RidePlan | null {
-  const plans = BIDON_SIZES.map((bidonMl) => planForBidon(input, bidonMl));
-  const plan = plans[BIDON_SIZES.indexOf(input.bidonMl ?? DEFAULT_BIDON_ML)];
-  return plan ? { ...plan, sizes: plans.filter((item): item is RidePlan => item != null) } : null;
+  const chosen = input.holders ?? DEFAULT_HOLDERS;
+  const options = BIDON_SIZES.flatMap((first) =>
+    BIDON_SIZES.map((second) => planForHolders(input, [first, second])),
+  ).filter((item): item is RidePlan => item != null);
+  const plan = options.find((item) => sameHolders(item.holders, chosen));
+  return plan ? { ...plan, options } : null;
 }
 
-function planForBidon(
+function planForHolders(
   {
     minutes,
     intensity = null,
@@ -209,7 +250,7 @@ function planForBidon(
     leadChosen = false,
     energyFactor,
   }: RidePlanInput,
-  bidonMl: BidonMl,
+  holders: BidonHolders,
 ): RidePlan | null {
   const perHourG = rideTargetPerHour(minutes, intensity, gut);
   if (perHourG == null) return null;
@@ -219,40 +260,50 @@ function planForBidon(
   const drink = lead && leadIsBidon ? lead : (ranked.find(isBidonRecipe) ?? null);
   const food = lead && !leadIsBidon ? lead : (ranked.find((recipe) => !isBidonRecipe(recipe)) ?? null);
 
-  // Met een zweettest volgt het aantal bidons uit het vochtdoel, anders zoveel
-  // als één bidon van 750 ml per uur.
+  // Met een zweettest volgt het aantal bidons uit het vochtdoel, anders uit
+  // 750 ml per uur. De bidons komen om en om uit de twee houders.
   const fluid = sweatMlPerHour ? fluidPerHour(sweatMlPerHour, weightKg, minutes) : null;
-  const bidonCount = fluid
-    ? fluidBidons(fluid, minutes, bidonMl)
-    : Math.max(1, Math.round((minutes * DEFAULT_BIDON_ML) / 60 / bidonMl));
-  const maxCarbs = bidonMaxCarbs(bidonMl);
+  const neededMl = fluid ? fluidMl(fluid, minutes) : (minutes * DEFAULT_BIDON_ML) / 60;
+  const sizes = Array.from({ length: bidonCountFor(neededMl, holders) }, (_, index) => bidonSize(holders, index));
+  const volumeOf = (list: BidonMl[]) => list.reduce((sum, ml) => sum + ml, 0);
   // Koos het lid zelf vast eten, dan draagt de bidon maar de helft: anders
   // verdwijnt die keuze bij een rit waar de bidons alles kunnen dragen.
   const bidonShare = lead && !leadIsBidon && leadChosen ? 0.5 : 1;
-  const drinkTotal = food ? Math.min(maxCarbs * bidonCount, target * bidonShare) : target;
+  const drinkTotal = food
+    ? Math.min(BIDON_MAX_CARBS_PER_ML * volumeOf(sizes), target * bidonShare)
+    : target;
   // Vraagt de rit per bidon minder dan een halve portie, dan gaat de sportdrank
   // in minder bidons en gaan de overige met water mee. Die ene bidon mag daarna
   // wel kleiner dan een halve portie (scale.ts, drank).
   const smallest = drink ? portion(drink, 0, energyFactor, false).perPortion.carbsG : 0;
-  const drinkBidons = drink ? Math.min(bidonCount, Math.max(1, Math.floor(drinkTotal / Math.max(smallest, 1)))) : 0;
-  const bidonTarget = drink
-    ? food
-      ? Math.min(maxCarbs, drinkTotal / drinkBidons)
-      : drinkTotal / drinkBidons
+  const drinkCount = drink
+    ? Math.min(sizes.length, Math.max(1, Math.floor(drinkTotal / Math.max(smallest, 1))))
     : 0;
+  const drinkVolume = volumeOf(sizes.slice(0, drinkCount));
 
-  const bidonPortion = drink ? portion(drink, bidonTarget, energyFactor) : null;
-  const bidonCarbs = bidonPortion ? Math.round(bidonPortion.perPortion.carbsG) : 0;
-  const carbBidons = drink ? drinkBidons : bidonCount;
-  const bidons: RidePlanItem = {
-    recipe: drink ? { slug: drink.slug, title: drink.title } : null,
-    count: carbBidons,
-    carbsG: bidonCarbs,
-    ingredients: bidonPortion ? ingredientsOf(fillBidon(bidonPortion.ingredients, bidonMl)) : [],
-  };
+  // Dezelfde sportdrank in elke bidon: de koolhydraten naar de maat ervan.
+  const carbsOf = new Map<BidonMl, number>();
+  const bidons: RidePlanBidon[] = [];
+  for (const { ml, count } of groupSizes(sizes.slice(0, drinkCount))) {
+    const share = (drinkTotal * ml) / drinkVolume;
+    const bidonPortion = portion(drink!, food ? Math.min(bidonMaxCarbs(ml), share) : share, energyFactor);
+    const carbsG = Math.round(bidonPortion.perPortion.carbsG);
+    carbsOf.set(ml, carbsG);
+    bidons.push({
+      ml,
+      recipe: { slug: drink!.slug, title: drink!.title },
+      count,
+      carbsG,
+      ingredients: ingredientsOf(fillBidon(bidonPortion.ingredients, ml)),
+    });
+  }
+  for (const { ml, count } of groupSizes(sizes.slice(drinkCount))) {
+    bidons.push({ ml, recipe: null, count, carbsG: 0, ingredients: [] });
+  }
+  const drinkCarbs = bidons.reduce((sum, item) => sum + item.carbsG * item.count, 0);
 
   let solid: RidePlanItem | null = null;
-  const rest = target - bidonCarbs * carbBidons;
+  const rest = target - drinkCarbs;
   if (food && rest >= SOLID_MIN_CARBS_G) {
     const count = Math.max(1, Math.round(rest / Math.max(baseCarbs(food), 1)));
     const solidPortion = portion(food, rest / count, energyFactor);
@@ -272,18 +323,28 @@ function planForBidon(
     const minute = slots[Math.min(slots.length - 1, Math.floor(((i + 0.5) * slots.length) / solid!.count))];
     solidAt.set(minute, (solidAt.get(minute) ?? 0) + 1);
   }
-  // De bidons op volgorde, sportdrank eerst; elke bidon verdeeld over de
-  // momenten waarop je eruit drinkt.
-  const bidonOf = (minute: number) => Math.min(bidonCount, Math.floor((minute * bidonCount) / minutes) + 1);
+  // De bidons op volgorde, sportdrank eerst; een grote bidon gaat langer mee.
+  // Elke bidon verdeeld over de momenten waarop je eruit drinkt.
+  const total = volumeOf(sizes);
+  const bidonOf = (minute: number) => {
+    const drunk = (minute / minutes) * total;
+    let volume = 0;
+    for (let index = 0; index < sizes.length; index += 1) {
+      volume += sizes[index];
+      if (drunk < volume) return index + 1;
+    }
+    return sizes.length;
+  };
   const feedsPerBidon = new Map<number, number>();
   for (const minute of minutesList) feedsPerBidon.set(bidonOf(minute), (feedsPerBidon.get(bidonOf(minute)) ?? 0) + 1);
   const feeds = minutesList.map((minute) => {
     const portions = solidAt.get(minute) ?? 0;
     const bidon = bidonOf(minute);
-    const drinkCarbs = bidon <= carbBidons ? bidonCarbs / (feedsPerBidon.get(bidon) ?? 1) : 0;
+    const fromBidon =
+      bidon <= drinkCount ? (carbsOf.get(sizes[bidon - 1]) ?? 0) / (feedsPerBidon.get(bidon) ?? 1) : 0;
     return {
       minute,
-      carbsG: Math.round(drinkCarbs + portions * (solid?.carbsG ?? 0)),
+      carbsG: Math.round(fromBidon + portions * (solid?.carbsG ?? 0)),
       bidon,
       solid: portions,
     };
@@ -291,11 +352,10 @@ function planForBidon(
 
   return {
     minutes,
-    bidonMl,
+    holders,
     perHourG,
-    totalG: bidonCarbs * carbBidons + (solid ? solid.carbsG * solid.count : 0),
+    totalG: drinkCarbs + (solid ? solid.carbsG * solid.count : 0),
     bidons,
-    waterBidons: bidonCount - carbBidons,
     fluid,
     solid,
     feeds,
@@ -331,13 +391,13 @@ export function eventRide(input: {
 export function ridePlanShoppingSlots(plan: RidePlan, recipes: Recipe[]): ShoppingSlot[] {
   const bySlug = new Map(recipes.map((recipe) => [recipe.slug, recipe]));
   const slots: ShoppingSlot[] = [];
-  for (const item of [plan.bidons, plan.solid]) {
-    const recipe = item?.recipe ? bySlug.get(item.recipe.slug) : undefined;
-    if (!item || !recipe) continue;
+  for (const item of perRecipe(plan)) {
+    const recipe = bySlug.get(item.recipe.slug);
+    if (!recipe) continue;
     const foods = new Map(recipe.ingredients.map((ingredient) => [ingredient.food.id, ingredient]));
     const ingredients = item.ingredients.flatMap((ingredient) => {
       const source = foods.get(ingredient.foodId);
-      return source ? [{ food: source.food, grams: ingredient.amount * item.count, role: source.role }] : [];
+      return source ? [{ food: source.food, grams: ingredient.amount, role: source.role }] : [];
     });
     slots.push({
       moment: "tijdens_rit",
@@ -350,10 +410,37 @@ export function ridePlanShoppingSlots(plan: RidePlan, recipes: Recipe[]): Shoppi
 
 /** Kort, voor een pushbericht: "2× bidon Zelfgemaakte sportdrank, 1× Zacht wit broodje met jam". */
 export function ridePlanSummary(plan: RidePlan): string {
-  const parts = [`${plan.bidons.count}× bidon ${plan.bidons.recipe?.title ?? "water"}`];
-  if (plan.waterBidons > 0) parts.push(`${plan.waterBidons}× bidon water`);
+  const counts = new Map<string, number>();
+  for (const item of plan.bidons) {
+    const name = item.recipe?.title ?? "water";
+    counts.set(name, (counts.get(name) ?? 0) + item.count);
+  }
+  const parts = [...counts].map(([name, count]) => `${count}× bidon ${name}`);
   if (plan.solid?.recipe) parts.push(`${plan.solid.count}× ${plan.solid.recipe.title}`);
   return parts.join(", ");
+}
+
+type RecipeTotal = { recipe: { slug: string; title: string }; count: number; ingredients: RidePlanIngredient[] };
+
+/**
+ * Per recept alles samen: de bidons met sportdrank (in welke maat ook) en het
+ * vaste eten, met de hoeveelheden van alle bidons of porties opgeteld.
+ */
+function perRecipe(plan: RidePlan): RecipeTotal[] {
+  const merged = new Map<string, RecipeTotal>();
+  for (const item of [...plan.bidons, ...(plan.solid ? [plan.solid] : [])]) {
+    if (!item.recipe || item.ingredients.length === 0) continue;
+    const entry = merged.get(item.recipe.slug) ?? { recipe: item.recipe, count: 0, ingredients: [] };
+    entry.count += item.count;
+    for (const ingredient of item.ingredients) {
+      const amount = ingredient.amount * item.count;
+      const known = entry.ingredients.find((other) => other.foodId === ingredient.foodId);
+      if (known) known.amount += amount;
+      else entry.ingredients.push({ ...ingredient, amount });
+    }
+    merged.set(item.recipe.slug, entry);
+  }
+  return [...merged.values()];
 }
 
 /** "0:15", "1:35". */
@@ -365,16 +452,11 @@ export function formatRideMinute(minute: number): string {
 export function ridePlanMeals(
   plan: RidePlan,
 ): { slug: string; title: string; items: ReturnType<typeof logItemFor>[] }[] {
-  return [plan.bidons, plan.solid]
-    .filter((item): item is RidePlanItem => item != null && item.recipe != null && item.ingredients.length > 0)
-    .map((item) => ({
-      slug: item.recipe!.slug,
-      title: `${item.count}× ${item.recipe!.title}`,
-      items: item.ingredients.map((ingredient) =>
-        logItemFor(
-          { id: ingredient.foodId, barcode: ingredient.barcode },
-          Math.round(ingredient.amount * item.count * 10) / 10,
-        ),
-      ),
-    }));
+  return perRecipe(plan).map((item) => ({
+    slug: item.recipe.slug,
+    title: `${item.count}× ${item.recipe.title}`,
+    items: item.ingredients.map((ingredient) =>
+      logItemFor({ id: ingredient.foodId, barcode: ingredient.barcode }, Math.round(ingredient.amount * 10) / 10),
+    ),
+  }));
 }

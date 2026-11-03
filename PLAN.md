@@ -11709,6 +11709,46 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Klaarzetten: een maat per bidonhouder, bidonkeuze als tegels
+
+**2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch
+`claude/drinkmix-favorites-zwbeter-6a454b`, niet gepusht. Geen migratie.
+
+**Waarom.** Wens van de eigenaar: de bidonkeuze moest duidelijker laten zien
+hoe groot de bidon is en strakker ogen, en bij Klaarzetten wil hij de maat voor
+allebei zijn bidons kiezen (gekozen: per bidonhouder, niet per inhoud).
+
+**Wat.**
+- `ridePlan` rekent met `holders` (twee maten, standaard 750 + 750) in plaats
+  van één `bidonMl`. Bidon 1, 3, 5 komen uit houder 1, bidon 2, 4 uit houder 2:
+  bij een lange rit vul je om en om bij. Het aantal is het aantal waarmee de
+  houders samen het dichtst bij de vochtbehoefte komen (`bidonCountFor`).
+- Dezelfde sportdrank in elke bidon: de koolhydraten gaan naar verhouding van
+  de maat (een bidon van 750 krijgt anderhalf keer die van 500), met per bidon
+  de grens van 90 g per 500 ml als er vast eten bij is. Water en zout groeien
+  mee met elke bidon. Een grote bidon gaat in "Per 20 minuten" langer mee.
+- `RidePlan.bidons` is nu een lijst van groepen (`ml`, recept of water,
+  aantal); `waterBidons` en `bidonMl` zijn weg. `options` houdt het plan voor
+  alle negen combinaties, zodat de keuze in de browser zonder serververzoek
+  wisselt (vervangt `sizes`). Gegeten, de boodschappenlijst en de herinnering
+  tellen beide maten per recept bij elkaar.
+- De bidonkeuze (Klaarzetten en receptenboek) is een segmentschakelaar
+  geworden, zodat "tegels" er vlakken in de plekkleur met de gouden lijn van
+  maakt (Hierregel). Drie gelijke kolommen; de bidon staat boven zijn maat en
+  de drie staan op één lijn, dus alleen de hoogte verschilt (22 tot 34 px).
+  De gekozen bidon is vol, de andere leeg. Bij Klaarzetten twee rijen,
+  "Bidon 1" en "Bidon 2". Elke regel van het plan noemt de maat ("1× 750 ml").
+- `/hulp` (Kennis): kiezen per houder en om en om bijvullen.
+
+**Niet gebouwd.** De keuze bewaren: blijft zoals afgesproken alleen op de
+pagina. Een andere drank per houder: het plan houdt één sportdrank.
+
+**Gecontroleerd.** Vitest `nutrition-*.test.ts` (nieuw: tellen per houder,
+drank naar de maat verdeeld, Gegeten en samenvatting over twee maten), `tsc`
+en ESLint schoon. In dev bekeken op 375 px, licht en donker: Klaarzetten bij
+de rit van 1u30 met bidon 2 op 500 ml geeft "1× 750 ml" NRGY en "1× 500 ml"
+water; het receptenboek toont dezelfde keuze.
+
 ### Gebouwd — Bidon-icoontjes en gram per schep
 
 **2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch
@@ -11803,10 +11843,12 @@ McCubbin et al. (2020) testten.
   met de drie in `sizes`. Het aantal bidons volgt met een zweettest uit het
   vochtdoel (`fluidBidons` kreeg de grootte), zonder test uit 750 ml per uur
   (500 ml: 2 uur geeft 3 bidons). Water en zout groeien mee met de bidon:
-  recepten gaan uit van 750 ml.
+  recepten gaan uit van 750 ml. *Bijgesteld 2026-11-03: `bidonMl` en `sizes`
+  zijn `holders` en `options` geworden, een maat per bidonhouder (ronde
+  "Klaarzetten: een maat per bidonhouder").*
 - Klaarzetten (`ride-plan-view.tsx`, nu een client-component): een knoppenrij
-  500 ml, 750 ml, 1 l. "Gegeten" op de voedingspagina zit nu in het plan en
-  legt de gekozen bidon vast.
+  500 ml, 750 ml, 1 l (sinds 2026-11-03 twee rijen, per houder). "Gegeten" op
+  de voedingspagina zit nu in het plan en legt de gekozen bidon vast.
 - Receptpagina: bij een recept met een drank (geen verpakt product) dezelfde
   rij als links (`?bidon=500`); water en zout volgen, de koolhydraten niet.
 - `/hulp` (Kennis) en `docs/voeding-wielrennen.md` §3 bijgewerkt.

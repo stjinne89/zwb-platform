@@ -32,8 +32,8 @@ import { DeleteRecipeButton } from "../../_components/delete-recipe-button";
 import { RecipePrefButtons, ShareRecipeButton } from "../../_components/recipe-actions";
 import { RecipeSharer } from "../../_components/recipe-sharer";
 import { BackLink } from "@/components/app-ui";
-import { BidonIcon } from "../../../_components/bidon-icon";
-import { bidonLabel, bidonOptionClass } from "../../../_components/bidon-options";
+import { BidonChoice } from "../../../_components/bidon-icon";
+import { bidonGroupClass, bidonOptionClass } from "../../../_components/bidon-options";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -169,7 +169,7 @@ export default async function RecipePage({
             )}
           </div>
           {bidon != null && (
-            <div role="group" aria-label="Bidon" className="flex w-fit rounded-full border p-0.5 text-xs">
+            <div role="group" aria-label="Bidon" className={bidonGroupClass}>
               {BIDON_SIZES.map((size) => (
                 <Link
                   key={size}
@@ -179,8 +179,7 @@ export default async function RecipePage({
                   scroll={false}
                   className={bidonOptionClass(size === bidon)}
                 >
-                  <BidonIcon ml={size} fill="leeg" />
-                  {bidonLabel(size)}
+                  <BidonChoice ml={size} active={size === bidon} />
                 </Link>
               ))}
             </div>

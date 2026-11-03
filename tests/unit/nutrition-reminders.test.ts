@@ -41,11 +41,18 @@ describe("voedingsherinneringen, welke", () => {
   it("zet erbij wat je voor de rit van morgen klaarzet", () => {
     const tomorrowRide = {
       minutes: 120,
-      bidonMl: 750 as const,
+      holders: [750, 750] as const,
       perHourG: 45,
       totalG: 90,
-      bidons: { recipe: { slug: "sportdrank", title: "Zelfgemaakte sportdrank" }, count: 2, carbsG: 45, ingredients: [] },
-      waterBidons: 0,
+      bidons: [
+        {
+          ml: 750 as const,
+          recipe: { slug: "sportdrank", title: "Zelfgemaakte sportdrank" },
+          count: 2,
+          carbsG: 45,
+          ingredients: [],
+        },
+      ],
       fluid: null,
       solid: null,
       feeds: [],
@@ -113,10 +120,10 @@ describe("voedingsherinneringen, het ritplan van morgen", () => {
 
   it("kiest nooit een privérecept van een ander lid, wel het eigen recept als het lid dat koos", () => {
     const auto = tomorrowRidePlan(ctx(), "lid", 120, "2026-10-26", "2026-10-25")!;
-    expect(auto.bidons.recipe?.slug).not.toBe("prive-van-ander");
+    expect(auto.bidons[0].recipe?.slug).not.toBe("prive-van-ander");
     const own = tomorrowRidePlan(ctx("eigen"), "lid", 120, "2026-10-26", "2026-10-25")!;
-    expect(own.bidons.recipe?.slug).toBe("eigen");
+    expect(own.bidons[0].recipe?.slug).toBe("eigen");
     const sneaky = tomorrowRidePlan(ctx("prive-van-ander"), "lid", 120, "2026-10-26", "2026-10-25")!;
-    expect(sneaky.bidons.recipe?.slug).not.toBe("prive-van-ander");
+    expect(sneaky.bidons[0].recipe?.slug).not.toBe("prive-van-ander");
   });
 });
