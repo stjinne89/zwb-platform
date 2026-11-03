@@ -11692,7 +11692,11 @@ bij de ZRL. Eerst als voorstel voorgelegd en goedgekeurd ("Ja, bouwen").
   bij een vlakke finish "van 9 naar 8 is evenveel als van 2 naar 1". Het
   getekende profiel blijft dat van de ZRL.
 - Namen op het briefje: de voornaam, of de hele naam als het eerste woord één of
-  twee letters is ("T ako", niet "T").
+  twee letters is ("T ako", niet "T"). Op verzoek van de eigenaar ook voor de
+  ZRL: één helper `shortRiderName` in `race-briefing/field.ts`, gebruikt in de
+  momenten (positierenners), de tips en de segmentrecords op het briefje, en op
+  de ladder. Gevolg: een voornaam van twee letters ("Jo de Vries") staat er nu
+  voluit.
 - **Rollen zonder kopman** (`ladderRoles`). ~~`suggestRoles` met die sterkte en
   de 5 minuten.~~ *Vervangen dezelfde dag, op aanwijzing van de eigenaar:* op de
   ladder is er geen kopman, want je haalt samen zoveel mogelijk punten. Wie in
@@ -11744,7 +11748,7 @@ van vóór deze ronde hersteld, die ook ZRL-briefjes raakten:
   vroege klim volgt het lint, de slotklim zijn eigen regel. Test met de opbouw
   van The Muckle Yin; de ZRL-briefing van Women's B (3 november) bekeken.
 
-**Gecontroleerd.** Vitest `club-ladder-briefing.test.ts` (19 nieuw), een nieuwe case in `race-briefing.test.ts`, de andere
+**Gecontroleerd.** Vitest `club-ladder-briefing.test.ts` (19 nieuw), twee nieuwe cases in `race-briefing.test.ts`, de andere
 `club-ladder-*`, `race-briefing`, `help-*` en de volle run (los herhaald wat
 alleen in de volle run op een time-out viel; `omnium-live` mist `.env.local` in
 de worktree). `tsc` en ESLint schoon. De berekening nagelopen met de echte

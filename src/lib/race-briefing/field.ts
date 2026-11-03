@@ -42,6 +42,16 @@ export function cleanRiderName(name: string): string {
   return cleaned || name.trim();
 }
 
+/**
+ * Korte naam op het briefje: de voornaam van de schone naam, of de hele schone
+ * naam als het eerste woord een letter of twee is ("T ako", niet "T").
+ */
+export function shortRiderName(name: string): string {
+  const clean = cleanRiderName(name);
+  const first = clean.split(/\s+/)[0] ?? clean;
+  return first.length > 2 ? first : clean;
+}
+
 /** Zo'n deel van het veld moet een waarde hebben om erop te sorteren. */
 const MIN_COVERAGE = 0.7;
 

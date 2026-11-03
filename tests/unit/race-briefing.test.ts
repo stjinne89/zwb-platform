@@ -6,7 +6,7 @@ import { pacingRouteFromZwift } from "@/lib/pacing/route-profile";
 import { expandLapSegments } from "@/lib/pacing/route-loader";
 import spiral from "../fixtures/zwift/spiral-summit-100m.json";
 import { briefingFormatOf, checkLimits, cheatRules, divisionLimits, divisionOf, limitWatts, powerupsFromTags } from "@/lib/race-briefing/rules";
-import { cleanRiderName, projectField, suggestRoles, watchList, type FieldRider } from "@/lib/race-briefing/field";
+import { cleanRiderName, projectField, shortRiderName, suggestRoles, watchList, type FieldRider } from "@/lib/race-briefing/field";
 import { briefingMoments, briefingTips } from "@/lib/race-briefing/tips";
 import { defaultSheet, diffOverride, effectiveSheet, sanitizeOverride } from "@/lib/race-briefing/sheet";
 
@@ -234,6 +234,15 @@ describe("racebriefje", () => {
     expect(moments.find((m) => m.what === "laatste boog")?.km).toBe(23.14);
     expect(moments.find((m) => m.what.startsWith("slotklim"))?.todo).toBe("voluit tot de top, veer aan");
     expect(moments.at(-1)?.todo).toBe("sprint uit het wiel, helm op ±200 m");
+  });
+});
+
+describe("shortRiderName", () => {
+  it("geeft de voornaam, maar kort niet af tot een letter of twee", () => {
+    expect(shortRiderName("Stijn Martens(ZWB)")).toBe("Stijn");
+    expect(shortRiderName("T ako [ZWB]")).toBe("T ako");
+    expect(shortRiderName("2Duke [GXY]")).toBe("2Duke");
+    expect(shortRiderName("Jo de Vries")).toBe("Jo de Vries");
   });
 });
 

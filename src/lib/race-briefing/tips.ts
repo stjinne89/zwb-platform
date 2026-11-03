@@ -3,7 +3,7 @@
 // ze aan met een eigen plan. Puur: geen I/O.
 
 import type { BriefingFormat, LimitCheck, Powerup } from "./rules";
-import { cleanRiderName, needsClimbPosition, type OwnRole, type Projection, type WatchReason } from "./field";
+import { needsClimbPosition, shortRiderName, type OwnRole, type Projection, type WatchReason } from "./field";
 import { climbSeconds, overlaps, segmentLabel, type BriefingClimb, type BriefingSegment, type RouteKeyPoints } from "./route";
 
 export type BriefingTip = {
@@ -46,8 +46,7 @@ export function briefingTips(input: {
 }): BriefingTip[] {
   const { format, category, route, own } = input;
   const tips: BriefingTip[] = [];
-  const firstName = (name: string) => cleanRiderName(name).split(/\s+/)[0] ?? name;
-  const names = (list: OwnRiderForTips[]) => list.map((r) => firstName(r.name)).join(" en ");
+  const names = (list: OwnRiderForTips[]) => list.map((r) => shortRiderName(r.name)).join(" en ");
 
   if (format === "scratch") {
     const ownStarters = own.length;
@@ -126,7 +125,7 @@ export function briefingTips(input: {
   }
 
   if (input.watch.length > 0 && format !== "ttt") {
-    const list = input.watch.slice(0, 4).map((w) => `${firstName(w.rider.name)}${w.reason === "won" ? " (won eerder deze ronde)" : ""}`);
+    const list = input.watch.slice(0, 4).map((w) => `${shortRiderName(w.rider.name)}${w.reason === "won" ? " (won eerder deze ronde)" : ""}`);
     tips.push({
       finding: `Gevaarlijk: ${list.join(", ")}.`,
       tip: "Volg hun aanvallen met de renners die tempo rijden; de kopmannen sparen zich voor de finale.",
@@ -193,7 +192,7 @@ export function briefingMoments(input: {
     return out.sort((a, b) => a.km - b.km);
   }
 
-  const positie = input.own.filter((r) => needsClimbPosition(r.role)).map((r) => cleanRiderName(r.name).split(/\s+/)[0]);
+  const positie = input.own.filter((r) => needsClimbPosition(r.role)).map((r) => shortRiderName(r.name));
   const finaleClimb = route.finale.kind === "climb" ? route.finale.climb : null;
   // Eén moment per klim: een vroege klim na een afdaling krijgt de afdaling, de slotklim zijn eigen regel.
   const afterDescent = route.descentsIntoClimbs.some((d) => d.climb === route.earlyClimb);

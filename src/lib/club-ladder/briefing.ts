@@ -8,7 +8,7 @@
 
 import type { CheatRule, Powerup } from "@/lib/race-briefing/rules";
 import type { WatchLine } from "@/lib/race-briefing/sheet";
-import { cleanRiderName, type OwnRole } from "@/lib/race-briefing/field";
+import { cleanRiderName, shortRiderName, type OwnRole } from "@/lib/race-briefing/field";
 import { climbSeconds, type BriefingClimb, type RouteKeyPoints } from "@/lib/race-briefing/route";
 import { durationLabel, km, type BriefingMoment } from "@/lib/race-briefing/tips";
 import { DURATION_LABELS } from "./advice";
@@ -163,11 +163,6 @@ export type LadderRole = {
   behind: string | null;
 };
 
-/** Voornaam, of de hele naam als het eerste woord een letter of twee is ("T ako"). */
-const firstName = (name: string) => {
-  const first = name.split(/\s+/)[0] ?? name;
-  return first.length > 2 ? first : name;
-};
 
 /**
  * Rollen op de ladder: geen kopman, want elke plek telt even zwaar voor de
@@ -194,8 +189,8 @@ export function ladderRoles(projection: LadderProjection): Map<number, LadderRol
     const behind = rated.find((r) => !r.own && r.place > row.place);
     out.set(row.zwiftId, {
       role: row.zwiftId === bridge ? "brug" : row.place <= half ? "voorin" : "aanhaken",
-      ahead: ahead ? firstName(ahead.name) : null,
-      behind: behind ? firstName(behind.name) : null,
+      ahead: ahead ? shortRiderName(ahead.name) : null,
+      behind: behind ? shortRiderName(behind.name) : null,
     });
   }
   return out;
@@ -243,7 +238,7 @@ export function ladderWatch(projection: LadderProjection, weights: DurationWeigh
   for (const own of rated.filter((row) => row.own)) {
     const ahead = rated.filter((row) => !row.own && row.place < own.place).at(-1);
     const behind = rated.find((row) => !row.own && row.place > own.place);
-    const who = firstName(own.name);
+    const who = shortRiderName(own.name);
     if (ahead) relations.set(ahead.zwiftId, [...(relations.get(ahead.zwiftId) ?? []), `vóór ${who}`]);
     if (behind) relations.set(behind.zwiftId, [...(relations.get(behind.zwiftId) ?? []), `achter ${who}`]);
   }
@@ -274,7 +269,7 @@ export function ladderMoments(input: {
 }): BriefingMoment[] {
   const { route } = input;
   if (!route) return [];
-  const names = (role: OwnRole) => input.own.filter((r) => r.role === role).map((r) => firstName(cleanRiderName(r.name)));
+  const names = (role: OwnRole) => input.own.filter((r) => r.role === role).map((r) => shortRiderName(r.name));
   const hookers = names("aanhaken");
   const bridge = names("brug")[0] ?? null;
   const has = (p: Powerup) => input.powerups.some((x) => x.powerup === p);
