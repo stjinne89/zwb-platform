@@ -96,7 +96,10 @@ gaat stabiliteit voor nieuwe features.
    verzoek van de eigenaar; 14 favorieten bij ZWBeauties en ZWBandits
    nagelopen) en gepusht naar `main` (`f812196e`), samen met 0k en 0l.** Nalopen:
    ingelogd een advies openen tegen een uit te dagen ploeg. Zie de ronde "Club
-   Ladder: teampagina, favoriete parcoursen en route-advies".
+   Ladder: teampagina, favoriete parcoursen en route-advies". *2026-11-03:*
+   een ploeg zonder plek in de stand (ZWBandits) had geen Advies-link; nu
+   staat die bij elke komende matchup, niet gepusht. Zie "Club Ladder: Advies
+   bij elke komende matchup".
 
 0k. **Ladderteams ZWBandits en ZWBeauties (2026-11-02): migratie `0295` al
    toegepast, de code gepusht naar `main` (`c89f839a`) op 2026-11-02.** Vóór
@@ -11717,6 +11720,35 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Club Ladder: Advies bij elke komende matchup
+
+**2026-11-03.** Geen migratie. Niet gepusht.
+
+**Waarom.** De eigenaar vond het route-advies niet bij de eerste matchup van
+ZWBandits (ZWBandits – SZ Loki, 10 november). Op de live summary staat
+ZWBandits in geen enkele stand (EMEA noch World): een nieuwe ploeg krijgt pas
+na een race een plek. `findStandingWindow` vindt dan geen eigen rij, toont de
+bovenste 12 van de hele lijst en geeft geen uit te dagen ploegen, dus nergens
+een Advies-link. `?tegen=` zoekt de tegenstander wel in de hele stand, dus het
+advies zelf werkte.
+
+**Wat er veranderde.** Elke kaart onder Komende matchups op
+`/teams/club-ladder/[teamId]` heeft een link Advies naar `?tegen=<tegenstander>#advies`,
+los van de ranking. Alleen als de tegenstander in de stand staat, want anders
+toont de pagina geen adviesblok. `/hulp` zegt het erbij.
+
+**Bewust niet.** De ranking van een ploeg zonder plek niet anders gemaakt
+(geen regio bekend om een venster in te tonen). Het advies rekent voor een
+ploeg zonder ladderraces nog met de 90-dagenprofielen (`rider_power_profiles`)
+tegen de ladderraces van de tegenstander; die scheve vergelijking is in de
+matchup op 2026-11-03 al weggehaald, maar niet in het advies. Aan de eigenaar
+voorgelegd, niet in deze ronde.
+
+**Niet geverifieerd.** De pagina in de browser (inloggen op productie). ESLint
+schoon op de gewijzigde bestanden; de typecheck en de ladder-tests geven alleen
+fouten over `@anthropic-ai/sdk` en `modern-screenshot`, die in de gedeelde
+`node_modules` van de hoofdmap ontbreken, los van deze wijziging.
 
 ### Gebouwd — Schema: meerdere ritten samen één training
 

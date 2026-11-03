@@ -211,8 +211,16 @@ export default async function ClubLadderTeamPage({
     after(() => storeLadderResults(admin, ladderResults));
   }
 
-  const opponentHref = (row: ClubLadderStanding) =>
-    `/teams/club-ladder/${team.id}?tegen=${encodeURIComponent(row.name)}${sortParam ? `&sort=${sortParam}` : ""}#advies`;
+  const adviceHref = (name: string) =>
+    `/teams/club-ladder/${team.id}?tegen=${encodeURIComponent(name)}${sortParam ? `&sort=${sortParam}` : ""}#advies`;
+  const opponentHref = (row: ClubLadderStanding) => adviceHref(row.name);
+  // Ook zonder eigen plek in de stand (een nieuwe ploeg) is de tegenstander van een matchup te analyseren.
+  const ranked = new Set(standings.map((row) => normalizeTeamName(row.name)));
+  const ourAliases = new Set(aliases.map(normalizeTeamName));
+  const fixtureOpponent = (fixture: ClubLadderFixture) => {
+    const name = ourAliases.has(normalizeTeamName(fixture.home)) ? fixture.away : fixture.home;
+    return ranked.has(normalizeTeamName(name)) ? name : null;
+  };
 
   return (
     <div className="space-y-6">
@@ -305,6 +313,7 @@ export default async function ClubLadderTeamPage({
                 </>
               );
               const mine = eventId && userId ? availability.find((row) => row.event_id === eventId && row.profile_id === userId) : undefined;
+              const rival = fixtureOpponent(fixture);
               return (
                 <li
                   key={`${fixture.date}-${fixture.time}-${fixture.home}-${fixture.away}`}
@@ -316,6 +325,15 @@ export default async function ClubLadderTeamPage({
                     </Link>
                   ) : (
                     <div>{body}</div>
+                  )}
+                  {rival && (
+                    <Link
+                      href={adviceHref(rival)}
+                      scroll={false}
+                      className="self-start font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      Advies
+                    </Link>
                   )}
                   {eventId && userId && (
                     <div className="mt-auto space-y-2">
