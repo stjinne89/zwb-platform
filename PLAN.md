@@ -11711,8 +11711,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Bijgesteld — Recepten: water en zout schalen niet mee
 
-**2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch
-`claude/drinkmix-favorites-zwbeter-6a454b`, niet gepusht. Geen migratie.
+**2026-11-03.** Commit `ebfb7937`, gepusht naar `main` op 2026-11-03
+(eigenaar). Geen migratie.
 
 **Waarom.** De eigenaar maakte van een gescand poeder (NRGY Drink 90, in gram)
 een bidon door 750 ml "Water gem" toe te voegen. Het recept toonde daarna
@@ -11740,8 +11740,8 @@ ritplan in de browser.
 
 ### Bijgesteld — Ritplan: hoogstens 90 g per bidon
 
-**2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch
-`claude/drinkmix-favorites-zwbeter-6a454b`, niet gepusht. Geen migratie.
+**2026-11-03.** Commit `0dbfb7ae`, gepusht naar `main` op 2026-11-03
+(eigenaar). Geen migratie.
 
 **Waarom.** Keuze van de eigenaar. De grens van 60 g (8% van 750 ml) kwam uit
 De Oliveira & Burini (2014). Een sportdrank als NRGY Drink 90 is gemaakt voor
