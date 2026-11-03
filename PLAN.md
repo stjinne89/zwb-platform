@@ -11753,8 +11753,8 @@ data die de koppeling al ophaalde, alleen voor het lid zelf getoond.
 
 ### Gebouwd — Kennisbank: literatuurscan 2026-11 doorgevoerd
 
-**2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op `main`,
-niet gepusht. Geen migratie. Voorstel:
+**2026-11-03.** Commit `979442af`, gepusht naar `main` op 2026-11-03
+(eigenaar). Geen migratie. Voorstel:
 [`docs/kennisbank-scan/2026-11.md`](docs/kennisbank-scan/2026-11.md) (de
 scan van 2026-11-02, branch `kennisbank-scan/2026-11`; de scanbestanden komen in
 deze commit mee naar `main`).
