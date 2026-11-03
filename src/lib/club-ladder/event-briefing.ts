@@ -9,8 +9,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CurrentUserAccess } from "@/lib/auth/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadPacingRoute } from "@/lib/pacing/route-loader";
-import { archPowerups, startingPowerup } from "@/lib/zwift/powerups";
-import { archPowerupList } from "@/lib/race-briefing/arches";
+import { archPowerups, powerupChances, startingPowerup } from "@/lib/zwift/powerups";
+import { archPowerupList, powerupOddsWithArches, type PowerupOdds } from "@/lib/race-briefing/arches";
 import { routeKeyPoints } from "@/lib/race-briefing/route";
 import { powerupsFromTags } from "@/lib/race-briefing/rules";
 import { defaultSheet, effectiveSheet, sanitizeOverride } from "@/lib/race-briefing/sheet";
@@ -27,6 +27,7 @@ import {
   keyDuration,
   ladderCheatRules,
   ladderMoments,
+  ladderPowerupOdds,
   ladderPowerups,
   ladderRiders,
   ladderRoles,
@@ -145,9 +146,18 @@ export async function loadLadderBriefing(
   const tagPowerups = powerupsFromTags(zwiftEvent?.tags);
   const powerups = tagPowerups.length > 0 ? tagPowerups : ladderPowerups(event.description);
   const subgroupTags = zwiftEvent?.subgroups?.find((g) => archPowerups(g.tags) !== null)?.tags ?? zwiftEvent?.subgroups?.[0]?.tags ?? null;
+  const chances: PowerupOdds[] = powerupChances(subgroupTags) ?? powerupChances(zwiftEvent?.tags) ?? ladderPowerupOdds(event.description);
+  const arches = archPowerups(subgroupTags);
   const archList = keyPoints
-    ? archPowerupList({ segments: keyPoints.segments, totalKm: keyPoints.totalKm, arches: archPowerups(subgroupTags), start: startingPowerup(subgroupTags) })
+    ? archPowerupList({
+        segments: keyPoints.segments,
+        totalKm: keyPoints.totalKm,
+        arches,
+        start: startingPowerup(subgroupTags),
+        random: chances.length > 0,
+      })
     : [];
+  const powerupOdds = powerupOddsWithArches(chances, arches, archList);
 
   const ownFtp = ourRiders.map((rider) => rider.wkg?.m20).filter((v): v is number => v != null && v > 0).map((v) => v * FTP_FROM_20_MIN);
   const bikes = loadedRoute?.route.source === "zwift" ? await bikeAdviceFor(event.id, loadedRoute.route, "scratch", ownFtp, user.id) : null;
@@ -193,6 +203,7 @@ export async function loadLadderBriefing(
       segmentRecords: [],
       powerups,
       archPowerups: archList,
+      powerupOdds,
       historyLabels: [],
       field: [],
       projection: null,

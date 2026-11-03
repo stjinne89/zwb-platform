@@ -33,8 +33,8 @@ import { FULL_TEAM_STARTERS } from "@/lib/zrl-live/scoring";
 import { zwiftRacingConfigured } from "@/lib/zwiftracing/client";
 import { loadRiderMetrics, refreshRiderMetrics, type RiderMetrics } from "./metrics";
 import { routeKeyPoints, type RouteKeyPoints } from "./route";
-import { archPowerupList, type ArchPowerup } from "./arches";
-import { archPowerups, startingPowerup } from "@/lib/zwift/powerups";
+import { archPowerupList, powerupOddsWithArches, type ArchPowerup, type PowerupOdds } from "./arches";
+import { archPowerups, powerupChances, startingPowerup } from "@/lib/zwift/powerups";
 import {
   briefingFormatOf,
   checkLimits,
@@ -189,8 +189,10 @@ export type BriefingView = {
   /** Per sprint en KOM de richttijd uit het veld en de PR van onze renners; leeg buiten een puntenrace of Race of Truth. */
   segmentRecords: SegmentRecord[];
   powerups: Array<{ powerup: Powerup; percent: number }>;
-  /** Startvak en bogen met wat ze geven (ZRL: arch_powerup en starting_powerup). */
+  /** Startvak en bogen met wat ze geven (ZRL: arch_powerup en starting_powerup); zonder vaste powerup alle bogen. */
   archPowerups: ArchPowerup[];
+  /** Waar een boog zonder vaste powerup uit kiest (powerup_percent). */
+  powerupOdds: PowerupOdds[];
   /** Labels van eerdere races van deze ronde, in volgorde ("W1", "W2" …). */
   historyLabels: string[];
   field: BriefingRider[];
@@ -548,9 +550,18 @@ export async function loadRaceBriefing(
   const watch = projection ? watchList(projection) : [];
   const powerups = powerupsFromTags(zwiftEvent?.tags);
   const subgroupTags = zwiftEvent?.subgroups?.find((g) => g.label === view?.subgroupLabel)?.tags ?? null;
+  const chances: PowerupOdds[] = powerupChances(subgroupTags) ?? powerupChances(zwiftEvent?.tags) ?? [];
+  const arches = archPowerups(subgroupTags);
   const archList = keyPoints
-    ? archPowerupList({ segments: keyPoints.segments, totalKm: keyPoints.totalKm, arches: archPowerups(subgroupTags), start: startingPowerup(subgroupTags) })
+    ? archPowerupList({
+        segments: keyPoints.segments,
+        totalKm: keyPoints.totalKm,
+        arches,
+        start: startingPowerup(subgroupTags),
+        random: chances.length > 0,
+      })
     : [];
+  const powerupOdds = powerupOddsWithArches(chances, arches, archList);
   const tips = briefingTips({
     format,
     category: division?.category ?? null,
@@ -602,6 +613,7 @@ export async function loadRaceBriefing(
       segmentRecords: segmentRecordList,
       powerups,
       archPowerups: archList,
+      powerupOdds,
       historyLabels: history.labels,
       field: briefingField,
       projection,

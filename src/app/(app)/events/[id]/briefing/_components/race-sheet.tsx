@@ -12,8 +12,8 @@ import { cleanRiderName, ROLE_LABELS, shortRiderName } from "@/lib/race-briefing
 import { km } from "@/lib/race-briefing/tips";
 import type { SketchMark } from "@/lib/race-briefing/sheet";
 import type { SegmentRecord } from "@/lib/race-briefing/segment-records";
-import type { ArchPowerup } from "@/lib/race-briefing/arches";
-import { ZWIFT_POWERUP_ICONS, ZWIFT_POWERUP_LABELS } from "@/lib/zwift/powerups";
+import type { ArchPowerup, PowerupOdds } from "@/lib/race-briefing/arches";
+import { ZWIFT_POWERUP_ICONS, ZWIFT_POWERUP_LABELS, type ArchReward } from "@/lib/zwift/powerups";
 import type { PacingSegment } from "@/lib/pacing/route-profile";
 import { profilePoints, type Point } from "@/lib/race-briefing/route";
 
@@ -254,21 +254,30 @@ function RouteSketch({ segments, marks }: { segments: PacingSegment[]; marks: Sk
 
 // ── De blokken op het briefje ─────────────────────────────────────────────
 
-/** Wat je in het startvak en bij elke boog krijgt, met Zwifts eigen icoon. */
-function ArchPowerups({ arches }: { arches: ArchPowerup[] }) {
-  if (arches.length === 0) return null;
+/** Een powerup met Zwifts eigen icoon; XP als getekend rondje. */
+function RewardIcon({ reward }: { reward: ArchReward }) {
+  if (reward === "xp") {
+    return (
+      <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full border text-[9px] font-bold" style={{ borderColor: PENCIL, color: PENCIL }}>
+        XP
+      </span>
+    );
+  }
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={ZWIFT_POWERUP_ICONS[reward]} alt={ZWIFT_POWERUP_LABELS[reward]} width={20} height={20} className="size-5 shrink-0 rounded-full object-cover" />;
+}
+
+/** Naam naast het icoon; XP staat al in het icoon. */
+function rewardName(reward: ArchReward): string | null {
+  return reward === "xp" ? null : ZWIFT_POWERUP_LABELS[reward].toLowerCase();
+}
+
+function FixedArches({ arches }: { arches: Array<ArchPowerup & { reward: ArchReward }> }) {
   return (
     <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm" aria-label="Powerups per boog">
       {arches.map((arch) => (
         <li key={`${arch.km}-${arch.label}`} className="inline-flex items-center gap-1.5">
-          {arch.reward === "xp" ? (
-            <span className="inline-flex size-5 items-center justify-center rounded-full border text-[9px] font-bold" style={{ borderColor: PENCIL, color: PENCIL }}>
-              XP
-            </span>
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={ZWIFT_POWERUP_ICONS[arch.reward]} alt={ZWIFT_POWERUP_LABELS[arch.reward]} width={20} height={20} className="size-5 shrink-0 rounded-full object-cover" />
-          )}
+          <RewardIcon reward={arch.reward} />
           <span>
             {arch.km > 0 && <span className="tabular-nums" style={{ color: PENCIL }}>{km(arch.km)} </span>}
             {arch.label}
@@ -276,6 +285,62 @@ function ArchPowerups({ arches }: { arches: ArchPowerup[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * Onder de route: elke boog met een vaste powerup (ZRL) met zijn icoon. Kiest
+ * een boog uit de kansverdeling (ladder), dan één keer die verdeling en de
+ * bogen waar dat zeker is, zodat de lijst kort blijft.
+ */
+function ArchPowerups({ arches, odds }: { arches: ArchPowerup[]; odds: PowerupOdds[] }) {
+  const fixed = arches.filter((arch): arch is ArchPowerup & { reward: ArchReward } => arch.reward !== null);
+  if (odds.length === 0) return fixed.length > 0 ? <FixedArches arches={fixed} /> : null;
+  const start = fixed.find((arch) => arch.km === 0);
+  const fixedArches = fixed.filter((arch) => arch.km > 0);
+  const open = arches.filter((arch) => arch.reward === null);
+  const row = "grid grid-cols-[4.25rem_minmax(0,1fr)] gap-2 py-0.5 leading-snug";
+  return (
+    <>
+      {fixedArches.length > 0 && <FixedArches arches={fixedArches} />}
+      <dl className="mt-1 text-sm" aria-label="Powerups">
+        {start && (
+          <div className={row}>
+            <dt className="font-bold">start</dt>
+            <dd className="inline-flex items-center gap-1.5">
+              <RewardIcon reward={start.reward} />
+              {rewardName(start.reward)}
+            </dd>
+          </div>
+        )}
+        <div className={row}>
+          <dt className="font-bold">bogen</dt>
+          <dd>
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {odds.map((item) => (
+                <span key={item.powerup} className="inline-flex items-center gap-1.5">
+                  <RewardIcon reward={item.powerup} />
+                  <span>
+                    {rewardName(item.powerup)}
+                    {item.percent !== null && <span className="tabular-nums" style={{ color: PENCIL }}> {item.percent} %</span>}
+                  </span>
+                </span>
+              ))}
+            </span>
+            {open.length > 0 && (
+              <span className="mt-0.5 block">
+                {open.map((arch, i) => (
+                  <span key={`${arch.km}-${arch.label}`}>
+                    {i > 0 && <span style={{ color: PENCIL }}> · </span>}
+                    <span className="whitespace-nowrap tabular-nums" style={{ color: PENCIL }}>{km(arch.km)}</span> {arch.label}
+                  </span>
+                ))}
+              </span>
+            )}
+          </dd>
+        </div>
+      </dl>
+    </>
   );
 }
 
@@ -561,7 +626,7 @@ export function RaceSheet({ view }: { view: BriefingView }) {
         <div className="mt-3">
           <Title>De route</Title>
           <RouteSketch segments={loaded.route.segments} marks={view.sheet.sketch} />
-          <ArchPowerups arches={view.archPowerups} />
+          <ArchPowerups arches={view.archPowerups} odds={view.powerupOdds} />
         </div>
       )}
       <div className="mt-3 grid gap-x-10 md:grid-cols-2">

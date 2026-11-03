@@ -11709,6 +11709,47 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Racebriefje: alle powerups en bogen
+
+**2026-11-03.** Eén commit, samen met deze PLAN-regel; gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie.
+
+**Waarom.** De eigenaar zag op het ladderbriefje niet welke powerups er te halen
+zijn en waar. De ladder legt niets per boog vast: Zwift deelt bij elke boog uit
+`powerup_percent` (op The Muckle Yin `"0,50,1,50"`: veer en draft boost, elk
+50 %), met `starting_powerup=0` (veer) in het startvak. Het briefje toonde alleen
+bogen met een vaste powerup uit `arch_powerup`, dus op de ladder alleen "start".
+De verdeling werd wel geladen (`view.powerups`) maar stond nergens.
+
+**Wat.**
+- `archPowerupList` (`src/lib/race-briefing/arches.ts`) zet met `random` ook de
+  bogen zonder vaste powerup erin (`reward: null`): zonder `arch_powerup` alle
+  bogen, met de tag de bogen met bekende archId die er niet in staan. Een
+  segment met onbekende archId valt nog steeds weg (beter niets dan een gok);
+  twee segmenten die op dezelfde plek eindigen, tellen als één boog.
+- Nieuw in `BriefingView`: `powerupOdds` (subgroep-tags, dan event-tags, bij de
+  ladder anders de omschrijving zonder kans via `ladderPowerupOdds`).
+  `powerupOddsWithArches` voegt wat `arch_powerup` uitdeelt bij bogen die we niet
+  kunnen plaatsen eraan toe, zonder kans: bij ZRL Green to Screen
+  (`arch_powerup="0,3"`) staat zo XP naast veer 34 %, draft boost 33 % en
+  aerohelm 33 %.
+- Op het briefje: vaste bogen zoals voorheen met hun icoon; is er een verdeling,
+  dan rijen **start** (icoon en naam) en **bogen** (de verdeling één keer, met
+  daaronder de kilometers en namen van de bogen), in dezelfde kolom als de
+  momenten. Op de telefoon (375 px) gecontroleerd: de boognamen breken af, de
+  kilometer niet.
+- `/hulp` (racebriefing) beschrijft beide gevallen.
+
+**Bewust niet.** Geen icoon per boog bij een verdeling: elke boog zou dezelfde
+twee iconen krijgen, de eigenaar vroeg om duidelijk, niet per boog. Geen
+markering van de bogen in het getekende profiel; "laatste boog" staat er al.
+Geen archId's geraden voor routes buiten Spiral Summit (`ARCH_IDS`): wie dat
+uitbreidt, controleert eerst tegen een bron.
+
+**Niet geverifieerd.** Of een boog met eigen archId die niet in `arch_powerup`
+staat echt uit `powerup_percent` deelt, is afgeleid uit de ZRL-tags (Green to
+Screen), niet in Zwift nagemeten. Lokaal bekeken op ladder-event `a2426b17`
+(The Muckle Yin) en ZRL-event `048cb1ff` (Green to Screen); niet op productie.
+
 ### Gebouwd — Klaarzetten: een maat per bidonhouder, bidonkeuze als tegels
 
 **2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch
@@ -12127,8 +12168,9 @@ bij de ZRL. Eerst als voorstel voorgelegd en goedgekeurd ("Ja, bouwen").
   en `aanhaken`; `needsClimbPosition` laat de momenten en tips zowel `positie`
   (ZRL) als `aanhaken` noemen.
 - **Powerups**: uit de Zwift-tags, anders uit de omschrijving van de sync
-  ("Powerups: Feather, Draft", `ladderPowerups`). Bogen alleen als het Zwift-event
-  `arch_powerup` heeft. **Fietsadvies** met 95% van de 20 minuten van onze
+  ("Powerups: Feather, Draft", `ladderPowerups`). ~~Bogen alleen als het Zwift-event
+  `arch_powerup` heeft.~~ Sinds de ronde hieronder staan ook de bogen die uit de
+  kansverdeling kiezen op het briefje. **Fietsadvies** met 95% van de 20 minuten van onze
   renners als zFTP (er is geen WTRL-zFTP).
 - Opslaan (`saveRaceBriefing`, `saveRaceSheet`) mag nu ook bij `ladder`, met
   dezelfde rechten: teambeheer of captain/co-captain van het team

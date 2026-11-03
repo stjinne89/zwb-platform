@@ -6,11 +6,13 @@
 // de uitdager. Eén tegenstander inhalen is dus altijd 2 punten verschil (wij +1,
 // zij −1), waar in de uitslag ook.
 
+import type { PowerupOdds } from "@/lib/race-briefing/arches";
 import type { CheatRule, Powerup } from "@/lib/race-briefing/rules";
 import type { WatchLine } from "@/lib/race-briefing/sheet";
 import { cleanRiderName, shortRiderName, type OwnRole } from "@/lib/race-briefing/field";
 import { climbSeconds, type BriefingClimb, type RouteKeyPoints } from "@/lib/race-briefing/route";
 import { durationLabel, km, type BriefingMoment } from "@/lib/race-briefing/tips";
+import { ZWIFT_POWERUP_LABELS, type ZwiftPowerup } from "@/lib/zwift/powerups";
 import { DURATION_LABELS } from "./advice";
 import type { LadderMatchup, MatchupRider } from "./matchup";
 import type { DurationWeights, PowerDuration } from "./routes";
@@ -37,6 +39,16 @@ export function ladderPowerups(description: string | null): Array<{ powerup: Pow
     .map((name) => LADDER_POWERUPS[name.trim().toLowerCase()])
     .filter((p): p is Powerup => Boolean(p));
   return [...new Set(found)].map((powerup) => ({ powerup, percent: 0 }));
+}
+
+/** Dezelfde lijst als soorten van Zwift, voor de iconen bij de bogen; de kans is onbekend. */
+export function ladderPowerupOdds(description: string | null): PowerupOdds[] {
+  const list = description?.match(/^Powerups:\s*(.+)$/m)?.[1] ?? "";
+  const found = list
+    .split(",")
+    .map((name) => name.trim().toLowerCase())
+    .filter((name): name is ZwiftPowerup => name in ZWIFT_POWERUP_LABELS);
+  return [...new Set(found)].map((powerup) => ({ powerup, percent: null }));
 }
 
 export type LadderBriefingRider = {
