@@ -320,6 +320,7 @@
     min-height: 0;
     border-radius: 0;
     touch-action: none;
+    --nav-space: calc(84px + env(safe-area-inset-bottom));
   }
   .back {
     display: inline-flex;
@@ -329,16 +330,17 @@
     top: calc(max(8px, env(safe-area-inset-top)) + 52px);
     left: 20px;
   }
+  /* Boven de tabbalk van de app, die over de kast heen ligt (zoals in ZWBriljant). */
   .actions {
     top: auto;
-    bottom: calc(16px + env(safe-area-inset-bottom));
+    bottom: calc(var(--nav-space) + 12px);
     left: 16px;
     right: 16px;
     max-width: none;
     justify-content: center;
   }
   .shelf {
-    inset: calc(max(8px, env(safe-area-inset-top)) + 140px) 16px calc(80px + env(safe-area-inset-bottom));
+    inset: calc(max(8px, env(safe-area-inset-top)) + 140px) 16px calc(var(--nav-space) + 64px);
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   }
 }

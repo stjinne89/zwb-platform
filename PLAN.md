@@ -11750,6 +11750,39 @@ schoon op de gewijzigde bestanden; de typecheck en de ladder-tests geven alleen
 fouten over `@anthropic-ai/sdk` en `modern-screenshot`, die in de gedeelde
 `node_modules` van de hoofdmap ontbreken, los van deze wijziging.
 
+### Gebouwd — ZWBekers op de telefoon: knoppen boven de tabbalk, vegen langs de planken
+
+**2026-11-03.** Eén commit, samen met deze PLAN-regel, op de branch
+`claude/mobile-bekers-nominate-add-dec699`; niet gepusht. Geen migratie.
+
+**Waarom.** Melding van de eigenaar: op de telefoon kon hij geen bekers
+voordragen of keuren, en de 3D-kast scrolde niet lekker.
+
+- **Knoppen onder de tabbalk.** Op een smal scherm vult de kast het scherm
+  (`position: fixed; z-index: 200`), maar ze staat in `<main>`, dat met
+  `z-index: 1` een eigen stapel vormt (`.app-shell > main` in `globals.css`).
+  De tabbalk van het design "tegels" (`z-index: 40`, 56 tot 72 px hoog) ligt
+  daardoor over de kast, en precies over Voordragen, Je voordrachten en Keuren
+  (16 px boven de rand). ZWBriljant hield hier al rekening mee met
+  `--nav-space`; die is bij ZWBekers niet meegekomen. Nu staan de knoppen op
+  `--nav-space + 12px`, en de plank-weergave zonder WebGL eindigt erboven.
+- **Vegen.** Alleen opzij vegen telde, terwijl de stops op een staand scherm van
+  boven naar beneden lopen; een veeg op een messing bordje telde niet, en het
+  beeld volgde de vinger alleen opzij. Nu kiest een veeg de dichtstbijzijnde
+  stop in de veegrichting (`toward` in `cabinet-scene.tsx`, binnen ongeveer 56°
+  van de richting), volgt de camera de vinger op een staand scherm ook omhoog en
+  omlaag, en telt een veeg die op een bordje begint. Na zo'n veeg opent het
+  bordje de beker niet; een tik wel.
+
+**Bewust niet.** De tabbalk op deze pagina verbergen: ZWBriljant houdt hem ook,
+en hij is de weg terug naast de terugknop. Geen vaart (meerdere stops per lange
+veeg): één veeg is één stop, zoals met het wiel en de pijltjes.
+
+**Niet geverifieerd.** Typecheck en ESLint van de gewijzigde bestanden zijn
+schoon (typecheck met de `node_modules` van de hoofdmap; de enige meldingen zijn
+ontbrekende pakketten buiten ZWBekers). Niet op een telefoon of in de browser
+bekeken: inloggen in de browser van de sessie kon niet.
+
 ### Gebouwd — Schema: meerdere ritten samen één training
 
 **2026-11-03.** Commit `a4aa28ea` op de branch
@@ -15027,7 +15060,8 @@ inzoomen op een plank.
   sponsorbordjes uit `briljant/gallery.ts`). Een vol jaar maakt de kast breder.
   Onder elke beker een messing bordje (HTML-knop) dat de beker opent. Breed
   scherm: een hele kast per stop; staand scherm: twee vakken per stop, vegen van
-  plank naar plank. `?bij=<id>` begint bij een beker.
+  plank naar plank (tot 2026-11-03 alleen opzij; zie de ronde "ZWBekers op de
+  telefoon"). `?bij=<id>` begint bij een beker.
 - Voordragen en aanpassen (`/zwbekers/voordragen`, `/zwbekers/[id]/bewerken`)
   met een live 3D-voorbeeld dat bij elke keuze meeverandert
   (`trophy-scene.tsx`, wisselt alleen de beker). Teruggestuurd kan opnieuw.

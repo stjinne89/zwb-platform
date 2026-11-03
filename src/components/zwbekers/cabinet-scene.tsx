@@ -102,7 +102,8 @@ function crownPlate(text: string, width: number, height: number, serif: string) 
  * spreuken en het logo aan de wand) staat per jaar een kast van notenhout met
  * glazen deuren en verlichte glazen planken. De bekers staan op de planken, met
  * een messing bordje op de rand; dat bordje opent de beker. Een vol jaar maakt
- * de kast breder. Scrollen, slepen of de pijltjes lopen van kast naar kast.
+ * de kast breder. Scrollen, slepen of de pijltjes lopen van kast naar kast; op
+ * de telefoon veeg je ook omhoog en omlaag langs de planken.
  */
 export default function CabinetScene({ bekers, startId, sponsors = [], labels, onFailed, rotate }: Props) {
   const host = useRef<HTMLDivElement>(null);
@@ -392,6 +393,7 @@ export default function CabinetScene({ bekers, startId, sponsors = [], labels, o
 
     let at = 0;
     let dragOffset = 0;
+    let dragOffsetY = 0;
     const cameraState = { x: 0, y: 0, reach: 10 };
     const go = (index: number) => {
       at = Math.min(stops.length - 1, Math.max(0, index));
@@ -414,20 +416,68 @@ export default function CabinetScene({ bekers, startId, sponsors = [], labels, o
       wheelTotal = 0;
       wheelLock = performance.now() + 380;
     };
-    let dragFrom: number | null = null;
+    // De stop die vanaf de huidige in de veegrichting het dichtst bij ligt. Op een
+    // staand scherm liggen de stops in een raster: naar boven of beneden vegen gaat
+    // naar een andere plank, opzij naar het volgende paar of de volgende kast.
+    const toward = (dx: number, dy: number) => {
+      const from = stops[at];
+      if (!from) return at;
+      const length = Math.hypot(dx, dy);
+      let best = at;
+      let bestScore = Infinity;
+      stops.forEach((stop, index) => {
+        const ox = stop.x - from.x;
+        const oy = stop.y - from.y;
+        const along = (ox * dx + oy * dy) / length;
+        const across = Math.abs(ox * dy - oy * dx) / length;
+        // Alleen wat ongeveer in de veegrichting ligt.
+        if (along < 0.01 || across > along * 1.5) return;
+        const score = along + 2 * across;
+        if (score < bestScore) {
+          bestScore = score;
+          best = index;
+        }
+      });
+      return best;
+    };
+    let dragFrom: { x: number; y: number } | null = null;
+    let swiped = false;
     const onDown = (event: PointerEvent) => {
-      dragFrom = event.clientX;
+      swiped = false;
+      // Ook een veeg die op een bordje begint: die bedekken op de telefoon veel van de kast.
+      const target = event.target as Node | null;
+      const onPlaque = target != null && [...(labels.current?.values() ?? [])].some((label) => label.contains(target));
+      if (target !== canvas && !onPlaque) return;
+      dragFrom = { x: event.clientX, y: event.clientY };
     };
     const onMove = (event: PointerEvent) => {
       if (dragFrom == null) return;
-      dragOffset = -((event.clientX - dragFrom) * (stops[at]?.width ?? 5)) / Math.max(1, element.clientWidth);
+      dragOffset = -((event.clientX - dragFrom.x) * (stops[at]?.width ?? 5)) / Math.max(1, element.clientWidth);
+      if (portrait()) dragOffsetY = ((event.clientY - dragFrom.y) * (stops[at]?.height ?? 5)) / Math.max(1, element.clientHeight);
     };
     const onUp = (event: PointerEvent) => {
       if (dragFrom == null) return;
-      const moved = event.clientX - dragFrom;
+      const dx = event.clientX - dragFrom.x;
+      const dy = event.clientY - dragFrom.y;
       dragFrom = null;
       dragOffset = 0;
-      if (Math.abs(moved) > 40) go(at + (moved < 0 ? 1 : -1));
+      dragOffsetY = 0;
+      if (Math.hypot(dx, dy) <= 40) return;
+      swiped = true;
+      // Naar links vegen schuift de kast naar rechts, naar boven vegen naar beneden.
+      go(toward(-dx, dy));
+    };
+    const onCancel = () => {
+      dragFrom = null;
+      dragOffset = 0;
+      dragOffsetY = 0;
+    };
+    // Na een veeg over een bordje opent de beker niet.
+    const onClick = (event: MouseEvent) => {
+      if (!swiped) return;
+      swiped = false;
+      event.preventDefault();
+      event.stopPropagation();
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
@@ -437,9 +487,11 @@ export default function CabinetScene({ bekers, startId, sponsors = [], labels, o
     const canvas = renderer.domElement;
     canvas.style.touchAction = "none";
     canvas.addEventListener("wheel", onWheel, { passive: false });
-    canvas.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointerdown", onDown);
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("click", onClick, true);
     window.addEventListener("keydown", onKey);
 
     let first = true;
@@ -499,7 +551,7 @@ export default function CabinetScene({ bekers, startId, sponsors = [], labels, o
       const stop = stops[at];
       if (stop) {
         cameraState.x += (stop.x + dragOffset - cameraState.x) * (dragFrom != null ? 1 : ease);
-        cameraState.y += (stop.y - cameraState.y) * ease;
+        cameraState.y += (stop.y + dragOffsetY - cameraState.y) * (dragFrom != null ? 1 : ease);
         cameraState.reach += (reachFor(stop) - cameraState.reach) * ease;
       }
       camera.position.set(cameraState.x, cameraState.y + cameraState.reach * 0.05, cameraState.reach);
@@ -524,9 +576,11 @@ export default function CabinetScene({ bekers, startId, sponsors = [], labels, o
       cancelAnimationFrame(frame);
       observer.disconnect();
       canvas.removeEventListener("wheel", onWheel);
-      canvas.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointerdown", onDown);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("click", onClick, true);
       window.removeEventListener("keydown", onKey);
       canvas.removeEventListener("webglcontextlost", lost);
       disposeTree(scene);
