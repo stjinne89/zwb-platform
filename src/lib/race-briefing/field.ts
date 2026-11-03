@@ -42,6 +42,16 @@ export function cleanRiderName(name: string): string {
   return cleaned || name.trim();
 }
 
+/**
+ * Korte naam op het briefje: de voornaam van de schone naam, of de hele schone
+ * naam als het eerste woord een letter of twee is ("T ako", niet "T").
+ */
+export function shortRiderName(name: string): string {
+  const clean = cleanRiderName(name);
+  const first = clean.split(/\s+/)[0] ?? clean;
+  return first.length > 2 ? first : clean;
+}
+
 /** Zo'n deel van het veld moet een waarde hebben om erop te sorteren. */
 const MIN_COVERAGE = 0.7;
 
@@ -122,14 +132,21 @@ export function watchList(projection: Projection, max = 5): Array<{ rider: Field
   return out;
 }
 
-export type OwnRole = "kopman" | "tempo" | "positie" | "steun";
+/** De laatste drie zijn van de ladder, waar elke plek even zwaar telt en er geen kopman is (club-ladder/briefing.ts). */
+export type OwnRole = "kopman" | "tempo" | "positie" | "steun" | "voorin" | "brug" | "aanhaken";
 
 export const ROLE_LABELS: Record<OwnRole, string> = {
   kopman: "Kopman",
   tempo: "Tempo en volgen",
   positie: "Positie op de klim",
   steun: "Steun",
+  voorin: "Voorin, om elke plek sprinten",
+  brug: "Gaten dichtrijden voor de ploeg",
+  aanhaken: "Aanhaken, vooraan vóór de klim",
 };
+
+/** Wie vóór een klim vooraan moet zitten: bij de ZRL de positierenners, op de ladder wie aanhaakt. */
+export const needsClimbPosition = (role: OwnRole) => role === "positie" || role === "aanhaken";
 
 /**
  * Rolvoorstel voor de eigen renners. Kopman: de twee hoogste in de verwachting.

@@ -108,6 +108,19 @@ export function ladderOpponentFromTitle(title: string, teamName: string): string
   return null;
 }
 
+/**
+ * Of dit team de uitdager is. De ladder zet de uitdager links (`homeTeam`, zie de
+ * uitslagentab in summary.ts), en de titel heeft de thuisploeg voorop.
+ */
+export function ladderChallengerFromTitle(title: string, teamName: string): boolean | null {
+  const match = title.match(/^Club Ladder: (.+) – (.+)$/);
+  if (!match) return null;
+  const [, home, away] = match;
+  if (normalizeTeamName(home) === normalizeTeamName(teamName)) return true;
+  if (normalizeTeamName(away) === normalizeTeamName(teamName)) return false;
+  return null;
+}
+
 /** Wie de captain heeft opgesteld: alleen renners met een startplek, op volgorde. */
 export function ladderLineup(page: LadderFixturePage, side: "home" | "away"): LadderSignup[] {
   return page[side]

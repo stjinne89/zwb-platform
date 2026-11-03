@@ -102,7 +102,11 @@ export function PlanRideForm({
         setResult("Ingepland. Je schema wordt eromheen bijgewerkt…");
         poll.watch(outcome.generationId);
       } else {
-        setResult("Ingepland.");
+        setResult(
+          outcome.replanScheduled
+            ? "Ingepland. Je schema wordt er vannacht omheen bijgewerkt."
+            : "Ingepland.",
+        );
       }
     } catch {
       poll.setError("Rit inplannen is mislukt.");

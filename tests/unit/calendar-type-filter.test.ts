@@ -108,6 +108,47 @@ describe("categorie en soort samen", () => {
   });
 });
 
+describe("labels uitzetten", () => {
+  const zwiftTraining = { type: "zwift", kind: "training" };
+  const outdoorSocial = { type: "outdoor", kind: "social" };
+  const off = (types: string[], programs: string[] = []) =>
+    splitTypeFilter([], [], { types, programs });
+
+  it("verbergt alleen wat uitstaat en laat de rest staan", () => {
+    expect(eventMatchesFilter(zwiftTraining, off(["zwift"]))).toBe(false);
+    expect(eventMatchesFilter(outdoorSocial, off(["zwift"]))).toBe(true);
+    expect(eventMatchesFilter(zwiftTraining, off(["training"]))).toBe(false);
+    expect(eventMatchesFilter(zwiftTraining, off([], ["road-to-wk-gf"]), ["road-to-wk-gf"])).toBe(
+      false,
+    );
+    expect(eventMatchesFilter(zwiftTraining, off([], ["road-to-wk-gf"]), [])).toBe(true);
+  });
+
+  it("wint van een gekozen label", () => {
+    const filter = splitTypeFilter(["zwift"], [], { types: ["training"] });
+    expect(eventMatchesFilter(zwiftTraining, filter)).toBe(false);
+    expect(eventMatchesFilter({ type: "zwift", kind: null }, filter)).toBe(true);
+  });
+
+  it("zet verjaardagen en eigen trainingen los uit", () => {
+    expect(birthdaysMatchFilter(off([BIRTHDAY_FILTER]))).toBe(false);
+    expect(ownTrainingsMatchFilter(off([BIRTHDAY_FILTER]))).toBe(true);
+    expect(ownTrainingsMatchFilter(off([OWN_TRAINING_FILTER]))).toBe(false);
+    expect(birthdaysMatchFilter(off(["zwift"]))).toBe(true);
+  });
+
+  it("zet uitgezette labels in hun eigen parameters", () => {
+    expect(
+      calendarHref({
+        onlyForMe: true,
+        types: ["zwift"],
+        excluded: [BIRTHDAY_FILTER],
+        excludedPrograms: ["road-to-wk-gf"],
+      }),
+    ).toBe(`/kalender?voor=mij&type=zwift&zonder=${BIRTHDAY_FILTER}&zonder-programma=road-to-wk-gf`);
+  });
+});
+
 describe("kleur en label", () => {
   it("heeft voor elke categorie een eigen kleur", () => {
     const colors = EVENT_TYPE_VALUES.map((value) => eventTypeColor(value));

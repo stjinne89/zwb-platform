@@ -55,9 +55,9 @@ async function currentUser() {
 
 /**
  * Elke wijziging in de jaarplanning is een verandering van de randvoorwaarden
- * waar het schema op gebouwd is — net als een gewijzigde beschikbaarheid. De
- * cooldown van vijf minuten in requestReplan() vangt op dat iemand er drie
- * periodes achter elkaar in zet.
+ * waar het schema op gebouwd is — net als een gewijzigde beschikbaarheid.
+ * requestReplan() legt het verzoek vast; wie er drie periodes achter elkaar in
+ * zet, krijgt 's nachts één herziening.
  */
 async function afterSeasonChange(profileId: string, reden: string) {
   const admin = createAdminClient();

@@ -55,8 +55,8 @@ export async function setRsvp(eventId: string, status: Status) {
   revalidatePath("/kalender");
 
   // Alleen het schema laten herzien als er werkelijk iets is veranderd;
-  // requestReplan heeft zijn eigen cooldown, maar een AI-run voor niets is nog
-  // steeds een AI-run voor niets. Een afmelding telt ook: die laat een dag leeg
+  // requestReplan bundelt alles tot één herziening per nacht, maar een verzoek
+  // voor niets is nog steeds een herziening voor niets. Een afmelding telt ook: die laat een dag leeg
   // achter waar de planner omheen had gewerkt.
   if (inserted || removed) {
     const { data: event } = await admin

@@ -3,7 +3,6 @@ import "server-only";
 import { after } from "next/server";
 import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metrics";
 import type { createAdminClient } from "@/lib/supabase/admin";
-import type { createClient } from "@/lib/supabase/server";
 import { ladderOpponentFromTitle } from "./fixture-events";
 import { ensureMatchRiders, loadStoredMatches, loadTeamMatches } from "./matches";
 import { buildLadderMatchup, type LadderMatchup, type MatchupSignup } from "./matchup";
@@ -11,7 +10,6 @@ import { findLadderRouteSlug, ladderRouteBySlug, ROUTE_CLASS_LABELS } from "./ro
 import type { PowerWkg, StoredMatch } from "./team-power";
 
 type Admin = ReturnType<typeof createAdminClient>;
-type Client = Awaited<ReturnType<typeof createClient>>;
 
 /** Wachten op ontbrekende renners voordat de pagina rendert; de rest volgt na het antwoord. */
 const PAGE_BUDGET_MS = 6_000;
@@ -27,7 +25,6 @@ const positiveId = (value: unknown) => {
 
 export async function loadLadderEventMatchup(
   admin: Admin,
-  supabase: Client,
   eventId: string,
   event: { team_id: string | null; title: string; zwift_route_id: number | string | null },
 ): Promise<LadderEventMatchup | null> {
@@ -58,15 +55,19 @@ export async function loadLadderEventMatchup(
   await ensureMatchRiders(admin, all, PAGE_BUDGET_MS);
   if (all.some((row) => !row.riders_fetched_at)) after(() => ensureMatchRiders(admin, all, AFTER_BUDGET_MS));
 
-  const [matches, riderMatches, ourProfiles, metrics] = await Promise.all([
+  const [matches, riderMatches, metrics] = await Promise.all([
     loadStoredMatches(admin, all),
     riderRaces(admin, zwiftIds),
-    profilePower(admin, supabase, zwiftIds),
     loadRiderMetrics(zwiftIds),
   ]);
   if (zwiftIds.length > 0) after(() => refreshRiderMetrics(zwiftIds, metrics, { budgetMs: METRICS_BUDGET_MS }));
   const scores = new Map<number, number>();
-  for (const [id, row] of metrics) if (row.racingScore != null) scores.set(id, row.racingScore);
+  // 90 dagen van ZwiftRacing: met de API-sleutel ververst, anders met de hand via Chrome.
+  const power90 = new Map<number, PowerWkg>();
+  for (const [id, row] of metrics) {
+    if (row.racingScore != null) scores.set(id, row.racingScore);
+    if (row.power) power90.set(id, { s15: row.power.s15, m1: row.power.m1, m5: row.power.m5, m20: row.power.m20 });
+  }
 
   const slug = findLadderRouteSlug(null, positiveId(event.zwift_route_id));
   const option = slug ? ladderRouteBySlug(slug) : null;
@@ -78,7 +79,7 @@ export async function loadLadderEventMatchup(
       signups,
       matches,
       riderMatches: [...matches, ...riderMatches.filter((match) => !known.has(match.resultId))],
-      ourProfiles,
+      power90,
       scores,
       weights: option?.weights ?? null,
     }),
@@ -121,27 +122,4 @@ async function riderRaces(admin: Admin, zwiftIds: number[]): Promise<StoredMatch
     byResult.set(row.result_id, match);
   }
   return [...byResult.values()];
-}
-
-/** 90-dagenprofiel (geen 15 s) van ZWB-leden onder de aanmeldingen; RLS van de kijker. */
-async function profilePower(admin: Admin, supabase: Client, zwiftIds: number[]): Promise<Map<number, PowerWkg>> {
-  const out = new Map<number, PowerWkg>();
-  if (zwiftIds.length === 0) return out;
-  const { data: profiles } = await admin.from("profiles").select("id, zwift_id").in("zwift_id", zwiftIds.map(String));
-  const byProfile = new Map(
-    ((profiles ?? []) as Array<{ id: string; zwift_id: string | null }>)
-      .map((row) => [row.id, positiveId(row.zwift_id?.trim())] as const)
-      .filter((entry): entry is readonly [string, number] => entry[1] != null),
-  );
-  if (byProfile.size === 0) return out;
-  const { data: power } = await supabase
-    .from("rider_power_profiles")
-    .select("profile_id, wkg_1m, wkg_5m, wkg_20m")
-    .in("profile_id", [...byProfile.keys()]);
-  const num = (value: number | string | null) => (value == null ? null : Number(value) || null);
-  for (const row of (power ?? []) as Array<{ profile_id: string; wkg_1m: number | string | null; wkg_5m: number | string | null; wkg_20m: number | string | null }>) {
-    const zwiftId = byProfile.get(row.profile_id);
-    if (zwiftId) out.set(zwiftId, { s15: null, m1: num(row.wkg_1m), m5: num(row.wkg_5m), m20: num(row.wkg_20m) });
-  }
-  return out;
 }

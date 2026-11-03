@@ -14,6 +14,10 @@
  * daarom een eigen label, anders kun je ze niet los aan- of uitzetten.
  * Hetzelfde geldt voor je eigen trainingen uit het schema: met een ander label
  * gekozen vallen ze weg, tenzij Mijn trainingen ook aanstaat.
+ *
+ * Een label kun je ook uitzetten: `?zonder=verjaardag,zrl` en
+ * `?zonder-programma=road-to-wk-gf`. Wat uitstaat valt altijd weg, ook als een
+ * ander gekozen label het zou tonen. Aan en uit sluiten elkaar per label uit.
  */
 
 import { EVENT_KIND_VALUES, EVENT_TYPE_VALUES } from "@/lib/event-types";
@@ -66,15 +70,27 @@ export type CalendarFilter = {
   programs: string[];
   birthdays: boolean;
   ownTrainings: boolean;
+  /** Uitgezette categorieën, soorten, verjaardagen en eigen trainingen. */
+  excluded: string[];
+  excludedPrograms: string[];
 };
 
-export function splitTypeFilter(selected: string[], programs: string[] = []): CalendarFilter {
+export function splitTypeFilter(
+  selected: string[],
+  programs: string[] = [],
+  excluded: { types?: string[]; programs?: string[] } = {},
+): CalendarFilter {
+  const excludedTypes = excluded.types ?? [];
+  const excludedPrograms = excluded.programs ?? [];
+  const on = selected.filter((value) => !excludedTypes.includes(value));
   return {
-    programs,
-    types: selected.filter((value) => (EVENT_TYPE_VALUES as string[]).includes(value)),
-    kinds: selected.filter((value) => EVENT_KIND_VALUES.includes(value)),
-    birthdays: selected.includes(BIRTHDAY_FILTER),
-    ownTrainings: selected.includes(OWN_TRAINING_FILTER),
+    programs: programs.filter((slug) => !excludedPrograms.includes(slug)),
+    types: on.filter((value) => (EVENT_TYPE_VALUES as string[]).includes(value)),
+    kinds: on.filter((value) => EVENT_KIND_VALUES.includes(value)),
+    birthdays: on.includes(BIRTHDAY_FILTER),
+    ownTrainings: on.includes(OWN_TRAINING_FILTER),
+    excluded: excludedTypes,
+    excludedPrograms,
   };
 }
 
@@ -89,6 +105,13 @@ export function eventMatchesFilter(
   /** Slugs van de programma's waar het event in zit. */
   programSlugs: string[] = [],
 ): boolean {
+  if (
+    filter.excluded.includes(event.type) ||
+    filter.excluded.includes(event.kind ?? "") ||
+    programSlugs.some((slug) => filter.excludedPrograms.includes(slug))
+  ) {
+    return false;
+  }
   if (
     filter.programs.length > 0 &&
     !programSlugs.some((slug) => filter.programs.includes(slug))
@@ -116,11 +139,13 @@ function nothingSelected(filter: CalendarFilter): boolean {
 
 /** Zonder keuze staan verjaardagen erbij; met een keuze alleen als hun label aanstaat. */
 export function birthdaysMatchFilter(filter: CalendarFilter): boolean {
+  if (filter.excluded.includes(BIRTHDAY_FILTER)) return false;
   return filter.birthdays || nothingSelected(filter);
 }
 
 /** Net als verjaardagen: zonder keuze erbij, met een keuze alleen via hun eigen label. */
 export function ownTrainingsMatchFilter(filter: CalendarFilter): boolean {
+  if (filter.excluded.includes(OWN_TRAINING_FILTER)) return false;
   return filter.ownTrainings || nothingSelected(filter);
 }
 
@@ -128,12 +153,17 @@ export function calendarHref(filter: {
   onlyForMe: boolean;
   types: string[];
   programs?: string[];
+  excluded?: string[];
+  excludedPrograms?: string[];
 }): string {
   const params: string[] = [];
+  const list = (key: string, values: string[] | undefined) => {
+    if (values && values.length > 0) params.push(`${key}=${values.join(",")}`);
+  };
   if (filter.onlyForMe) params.push("voor=mij");
-  if (filter.types.length > 0) params.push(`type=${filter.types.join(",")}`);
-  if (filter.programs && filter.programs.length > 0) {
-    params.push(`programma=${filter.programs.join(",")}`);
-  }
+  list("type", filter.types);
+  list("programma", filter.programs);
+  list("zonder", filter.excluded);
+  list("zonder-programma", filter.excludedPrograms);
   return params.length > 0 ? `/kalender?${params.join("&")}` : "/kalender";
 }

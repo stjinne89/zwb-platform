@@ -1481,6 +1481,7 @@ export async function saveWeekAvailability(formData: FormData) {
     return {
       ok: true as const,
       generationId: replan.started ? replan.generationId : null,
+      replanScheduled: !replan.started && replan.reason === "scheduled",
     };
   } catch (err) {
     return {
@@ -1521,6 +1522,7 @@ export async function resetWeekAvailability(formData: FormData) {
     return {
       ok: true as const,
       generationId: replan.started ? replan.generationId : null,
+      replanScheduled: !replan.started && replan.reason === "scheduled",
     };
   } catch (err) {
     return {
@@ -1714,6 +1716,7 @@ export async function planOwnRide(formData: FormData) {
     return {
       ok: true as const,
       generationId: replan.started ? replan.generationId : null,
+      replanScheduled: !replan.started && replan.reason === "scheduled",
     };
   } catch (err) {
     return {
@@ -1870,6 +1873,7 @@ export async function planFtpTest(formData: FormData) {
     return {
       ok: true as const,
       generationId: replan.started ? replan.generationId : null,
+      replanScheduled: !replan.started && replan.reason === "scheduled",
     };
   } catch (err) {
     return {
@@ -1992,6 +1996,7 @@ export async function saveFtpTestResult(formData: FormData) {
       sameAsBefore: ftpChange(ftpWatts, previousFtpWatts)?.same ?? false,
       deviationPct: check ? Math.round(check.deviation * 100) : null,
       generationId: replan.started ? replan.generationId : null,
+      replanScheduled: !replan.started && replan.reason === "scheduled",
     };
   } catch (err) {
     return {
@@ -2032,7 +2037,7 @@ export async function correctFtpTestResult(formData: FormData) {
 
     revalidatePath("/zwbeter-worden", "layout");
     revalidatePath("/profiel");
-    return { ...change, ok: true as const, generationId: await replanAfterFtpChange(admin, user.id, change) };
+    return { ...change, ok: true as const, ...(await replanAfterFtpChange(admin, user.id, change)) };
   } catch (err) {
     return {
       ok: false as const,
@@ -2052,7 +2057,7 @@ export async function removeFtpTestResult(formData: FormData) {
 
     revalidatePath("/zwbeter-worden", "layout");
     revalidatePath("/profiel");
-    return { ...change, ok: true as const, generationId: await replanAfterFtpChange(admin, user.id, change) };
+    return { ...change, ok: true as const, ...(await replanAfterFtpChange(admin, user.id, change)) };
   } catch (err) {
     return {
       ok: false as const,
@@ -2071,13 +2076,16 @@ async function replanAfterFtpChange(
   profileId: string,
   change: { profileChanged: boolean; profileFtpWatts: number | null },
 ) {
-  if (!change.profileChanged) return null;
+  if (!change.profileChanged) return { generationId: null, replanScheduled: false };
   const replan = await requestReplan(
     admin,
     profileId,
     `FTP gecorrigeerd naar ${change.profileFtpWatts} W.`,
   );
-  return replan.started ? replan.generationId : null;
+  return {
+    generationId: replan.started ? replan.generationId : null,
+    replanScheduled: !replan.started && replan.reason === "scheduled",
+  };
 }
 
 /**
@@ -2127,6 +2135,7 @@ export async function acceptClubEvent(formData: FormData) {
     return {
       ok: true as const,
       generationId: replan.started ? replan.generationId : null,
+      replanScheduled: !replan.started && replan.reason === "scheduled",
       message: pushed
         ? "In je schema gezet en doorgezet naar intervals.icu."
         : "In je schema gezet.",
@@ -2175,6 +2184,7 @@ export async function declineClubEvent(formData: FormData) {
     return {
       ok: true as const,
       generationId: replan.started ? replan.generationId : null,
+      replanScheduled: !replan.started && replan.reason === "scheduled",
     };
   } catch (err) {
     return {
@@ -2258,6 +2268,7 @@ export async function removePlannedWorkout(formData: FormData) {
     return {
       ok: true as const,
       generationId: replan.started ? replan.generationId : null,
+      replanScheduled: !replan.started && replan.reason === "scheduled",
     };
   } catch (err) {
     return {

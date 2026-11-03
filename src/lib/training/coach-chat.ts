@@ -291,6 +291,8 @@ export function replanResultMessage(result: string | null | undefined): string {
   switch (result) {
     case "started":
       return "Je schema wordt herzien.";
+    case "scheduled":
+      return "Je schema wordt vannacht bijgewerkt.";
     case "cooldown":
       return "Meegenomen bij de eerstvolgende herziening.";
     case "no_plan":

@@ -1,9 +1,10 @@
 // Matchup van een ladderwedstrijd: ZWB tegen de tegenstander, vermogen per duur.
 //
-// Bron is dezelfde als voor het route-advies: de beste W/kg per duur uit de
-// ladderraces die we bewaard hebben (club_ladder_match_riders), zodat beide
-// kanten op dezelfde manier gemeten zijn. Een ZWB-renner zonder ladderraces valt
-// terug op zijn 90-dagenprofiel (geen 15 s); dat staat erbij.
+// Per renner het beste W/kg per duur over 90 dagen van ZwiftRacing.app
+// (zwift_rider_metrics.power_wkg), voor beide teams dezelfde bron. Een ladderrace
+// vraagt zelden het uiterste: het beste uit alleen de bewaarde ladderraces lag
+// bij een tegenstander 0,5 W/kg onder zijn 90 dagen (20 min, 2026-11-03). Alleen
+// zonder 90-dagenwaarde valt een renner terug op zijn ladderraces; dat staat erbij.
 
 import { DURATIONS, sameTeam, teamPowerFromMatches, topFiveAverage, type PowerWkg, type StoredMatch } from "./team-power";
 import type { DurationWeights, PowerDuration } from "./routes";
@@ -18,8 +19,8 @@ export type MatchupRider = {
   name: string;
   position: number | null;
   wkg: PowerWkg | null;
-  /** Ladderraces waar het vermogen uit komt; 0 = 90-dagenprofiel. */
-  races: number;
+  /** 90 dagen van ZwiftRacing, of alleen de bewaarde ladderraces. */
+  source: "90d" | "ladder" | null;
   racingScore: number | null;
 };
 
@@ -78,21 +79,21 @@ const hasPower = (wkg: PowerWkg | null | undefined) => Boolean(wkg && DURATIONS.
 function sideRiders(
   signups: MatchupSignup[],
   power: Map<number, RiderPower>,
-  fallback: Map<number, PowerWkg>,
+  power90: Map<number, PowerWkg>,
   scores: Map<number, number>,
 ): { riders: MatchupRider[]; lineup: boolean } {
   const placed = signups.filter((rider) => rider.position != null);
   const chosen = placed.length > 0 ? placed : signups;
   const riders = chosen.map((signup): MatchupRider => {
     const ladder = power.get(signup.zwiftId);
-    const profile = fallback.get(signup.zwiftId);
-    const useLadder = hasPower(ladder?.wkg);
+    const best90 = power90.get(signup.zwiftId);
+    const source = hasPower(best90) ? "90d" : hasPower(ladder?.wkg) ? "ladder" : null;
     return {
       zwiftId: signup.zwiftId,
       name: signup.name,
       position: signup.position,
-      wkg: useLadder ? ladder!.wkg : hasPower(profile) ? profile! : null,
-      races: useLadder ? ladder!.races : 0,
+      wkg: source === "90d" ? best90! : source === "ladder" ? ladder!.wkg : null,
+      source,
       racingScore: scores.get(signup.zwiftId) ?? ladder?.racingScore ?? null,
     };
   });
@@ -115,23 +116,23 @@ export function buildLadderMatchup(input: {
   matches: StoredMatch[];
   /** Alle bewaarde races van de aangemelde renners, ook voor een ander team. */
   riderMatches?: StoredMatch[];
-  /** 90-dagenprofiel van ZWB-renners, alleen als terugval. */
-  ourProfiles: Map<number, PowerWkg>;
+  /** Beste W/kg over 90 dagen van ZwiftRacing, voor beide teams. */
+  power90: Map<number, PowerWkg>;
   scores: Map<number, number>;
   weights: DurationWeights | null;
 }): LadderMatchup {
-  const { ourName, opponent, signups, matches, ourProfiles, scores, weights } = input;
+  const { ourName, opponent, signups, matches, power90, scores, weights } = input;
   const power = riderPowerFromMatches(input.riderMatches ?? matches);
   const ours = sideRiders(
     signups.filter((row) => sameTeam(row.team, ourName)),
     power,
-    ourProfiles,
+    power90,
     scores,
   );
   const theirs = sideRiders(
     signups.filter((row) => sameTeam(row.team, opponent)),
     power,
-    new Map(),
+    power90,
     scores,
   );
 
@@ -145,7 +146,8 @@ export function buildLadderMatchup(input: {
 
   const ourTeam = teamPowerFromMatches([ourName], matches);
   const theirTeam = teamPowerFromMatches([opponent], matches);
-  const ourWkg = basis === "lineup" ? ourLineupWkg : ourTeam?.wkg ?? ourLineupWkg;
+  // Zonder aanmeldingen aan beide kanten: beide teams uit hun ladderraces, nooit gemengd.
+  const ourWkg = basis === "lineup" ? ourLineupWkg : ourTeam?.wkg ?? null;
   const theirWkg = basis === "lineup" ? theirLineupWkg : theirTeam?.wkg ?? null;
 
   let weighted = 0;

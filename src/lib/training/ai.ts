@@ -286,6 +286,11 @@ export type TrainingAiInput = {
     toDate: string;
     /** Het volgende blok: toDate ligt voorbij het einde van het oude schema. */
     nextBlock?: boolean;
+    /**
+     * Alleen dit venster wordt herschreven; na toDate loopt het schema door
+     * zoals het staat (replan-window.ts).
+     */
+    rollingWindow?: boolean;
     previousTitle: string;
     previousSummary: string | null;
     changed: {
@@ -296,6 +301,13 @@ export type TrainingAiInput = {
       availableDays?: [string[], string[]];
     };
     remainingWorkouts: Array<{
+      date: string;
+      title: string;
+      durationMinutes: number;
+      intensity: string;
+    }>;
+    /** Bij rollingWindow: de week na toDate, alleen als context. */
+    followingWorkouts?: Array<{
       date: string;
       title: string;
       durationMinutes: number;

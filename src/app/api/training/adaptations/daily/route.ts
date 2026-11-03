@@ -16,6 +16,7 @@ import {
   buildIntervalsLoad,
   buildRecentLoad,
   finishAiGeneration,
+  planUpdateRunning,
   startBackgroundAdaptation,
   startPlanUpdate,
   STALE_GENERATION_MINUTES,
@@ -26,6 +27,7 @@ import { loadProtocolsForAi } from "@/lib/protocols/ai-data";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { amsterdamWallTimeToIso } from "@/lib/birthdays";
 import { checkCronSecret } from "@/lib/cron/auth";
+import { amsterdamHour } from "@/lib/greeting";
 import { onePlanPerProfile } from "@/lib/training/active-plan";
 import { refreshEventWorkouts } from "@/lib/training/events";
 import { reconcileZrlReservations } from "@/lib/training/zrl-reservation";
@@ -148,7 +150,11 @@ async function latestPlanCandidates(admin: ReturnType<typeof createAdminClient>)
 }
 
 /**
- * Heeft dit schema vandaag al een run of een generatie gehad?
+ * Wat dit schema vandaag al heeft gehad: een dagvoorstel (of een run die dat
+ * verving) en een herziening. De twee tellen apart. De herziening draait 's
+ * nachts op de wijzigingen van gisteren; het dagvoorstel daarna, op de meting
+ * van vandaag. Tot november 2026 verving de herziening het dagvoorstel, en
+ * kreeg een lid op zo'n dag geen bijstelling op zijn nacht.
  *
  * Op de generatie kijken en niet alleen op training_adaptation_runs: die tabel
  * kent geen status 'queued', dus de rij die bij het uitzetten de dagcheck moest
@@ -164,24 +170,64 @@ async function handledToday(
   admin: ReturnType<typeof createAdminClient>,
   plan: PlanRow,
   dayStart: string,
-): Promise<boolean> {
+): Promise<{ daily: boolean; planUpdate: boolean }> {
   const [{ data: runs }, { data: generations }] = await Promise.all([
     admin
       .from("training_adaptation_runs")
-      .select("id")
+      .select("id, input_json")
       .eq("profile_id", plan.profile_id)
       .eq("source_plan_id", plan.id)
-      .gte("created_at", dayStart)
-      .limit(1),
+      .gte("created_at", dayStart),
     admin
       .from("training_ai_generations")
-      .select("id")
+      .select("adaptation_kind")
       .eq("parent_plan_id", plan.id)
       .in("adaptation_kind", ["daily", "plan_update"])
-      .gte("created_at", dayStart)
-      .limit(1),
+      .gte("created_at", dayStart),
   ]);
-  return (runs ?? []).length > 0 || (generations ?? []).length > 0;
+  // Een run van de herziening draagt de trigger in input_json; de rest hoort bij
+  // het dagvoorstel.
+  const runKinds = (runs ?? []).map((run) =>
+    (run.input_json as { trigger?: unknown } | null)?.trigger ? "plan_update" : "daily",
+  );
+  const kinds = new Set([
+    ...runKinds,
+    ...(generations ?? []).map((row) => String(row.adaptation_kind)),
+  ]);
+  return { daily: kinds.has("daily"), planUpdate: kinds.has("plan_update") };
+}
+
+/**
+ * Het dagvoorstel wacht op de meting van vannacht. Het horloge zet die pas na
+ * het wakker worden in Garmin Connect (of Polar, Oura) en dat stroomt door naar
+ * intervals.icu; ZWB kan dat niet afdwingen, wel elk uur vers ophalen. Tot
+ * november 2026 draaide het voorstel tussen middernacht en zes uur, en had van
+ * 41 voorstellen met wellness er 2 de meting van die dag.
+ *
+ * Vanaf READINESS_FIRST_HOUR kijkt elke run of de nacht binnen is; zo ja, dan
+ * gaat het voorstel meteen uit, zodat een vroege rijder niet hoeft te wachten.
+ * Om READINESS_DEADLINE_HOUR gaat het in elk geval, met wat er dan is. Leden
+ * zonder wellness wachten nergens op.
+ */
+const READINESS_FIRST_HOUR = 5;
+const READINESS_DEADLINE_HOUR = 9;
+
+/** Is de meting van vannacht er, of valt er niets op te wachten? */
+async function readinessSettled(
+  admin: ReturnType<typeof createAdminClient>,
+  profileId: string,
+  today: string,
+  hour: number,
+): Promise<boolean> {
+  if (hour >= READINESS_DEADLINE_HOUR) return true;
+  const { wellnessForAi } = await import("@/lib/training/wellness");
+  // Vóór het eerste uur is de nacht er nog niet; de kopie mag dan blijven.
+  const wellness = await wellnessForAi(admin, profileId, {
+    fresh: hour >= READINESS_FIRST_HOUR,
+  }).catch(() => null);
+  // Geen wellness of geen readiness-bron: dan valt er niets af te wachten.
+  if (!wellness?.readinessDate) return true;
+  return wellness.readinessDate >= today;
 }
 
 /** Hoeveel generaties de cron vandaag al heeft uitgezet; voor de noodrem. */
@@ -262,10 +308,9 @@ async function pendingReplanFor(
 /**
  * Beschikbaarheid die is gewijzigd nadat het schema voor het laatst is herzien.
  *
- * Bij het opslaan vraagt het lid al meteen een herziening aan, maar die kan zijn
- * overgeslagen: de cooldown van vijf minuten, een generatie die niemand heeft
- * opgehaald, of een mislukte call. Zonder deze controle bleef zo'n wijziging
- * liggen tot het lid toevallig iets anders deed.
+ * Bij het opslaan legt het lid een verzoek vast, maar dat kan ontbreken: een
+ * mislukte schrijfactie, of een wijziging van vóór 0132. Zonder deze controle
+ * bleef zo'n wijziging liggen tot het lid toevallig iets anders deed.
  *
  * Vergeleken wordt met het laatste moment waarop het schema de beschikbaarheid
  * werkelijk heeft verwerkt: het aanmaken van het basisplan, of een geslaagde
@@ -431,21 +476,39 @@ export async function POST(request: Request) {
     const dayStart = amsterdamWallTimeToIso(today, "00:00") ?? `${today}T00:00:00.000Z`;
     let dailyStartedToday = await generationsStartedToday(admin, dayStart);
 
-    for (const plan of await latestPlanCandidates(admin)) {
+    const candidates = await latestPlanCandidates(admin);
+    // Per lid of de meting van vannacht er is. Parallel: tussen vijf en negen
+    // haalt dit bij intervals.icu op, en na elkaar past dat niet in de run.
+    const hour = amsterdamHour();
+    const settled = new Map(
+      await Promise.all(
+        candidates.map(
+          async (plan) =>
+            [plan.profile_id, await readinessSettled(admin, plan.profile_id, today, hour)] as const,
+        ),
+      ),
+    );
+
+    for (const plan of candidates) {
       // Plafond of budget bereikt: de rest komt volgend uur. Niet doorgaan, want
       // elke start kost tot vijftien seconden en de invocatie stopt na een
       // seconde of tien.
       if (generationsStarted >= MAX_GENERATIONS_STARTED_PER_RUN) break;
       if (Date.now() > deadline) break;
 
-      if (await handledToday(admin, plan, dayStart)) continue;
+      const handled = await handledToday(admin, plan, dayStart);
+      if (handled.daily) continue;
 
-      // Ligt er een herziening klaar, dan is een dagvoorstel het verkeerde
-      // gereedschap: dat laat de verdere toekomst met rust, terwijl de wijziging
-      // vaak juist over een latere week gaat. Dan draait hier een volledige
-      // herziening, en die vervangt het automatische dagvoorstel — hij kijkt
-      // naar dezelfde signalen en beslaat meer.
-      if (planUpdatesRun < MAX_PLAN_UPDATES_PER_RUN) {
+      // Wat het lid overdag veranderde, verwerkt de cron 's nachts in één
+      // herziening (replan.ts bundelt de verzoeken), alleen over de weken die het
+      // raakt, minstens twee (replan-window.ts). Na negen uur niet meer: dan wacht
+      // het tot de volgende nacht, zodat de wijzigingen van een hele dag samen
+      // gaan. Het dagvoorstel volgt 's ochtends, op het bijgewerkte schema.
+      if (
+        !handled.planUpdate &&
+        hour < READINESS_DEADLINE_HOUR &&
+        planUpdatesRun < MAX_PLAN_UPDATES_PER_RUN
+      ) {
         const trigger = await pendingReplanFor(admin, plan, today);
         if (trigger) {
           planUpdatesRun += 1;
@@ -460,6 +523,7 @@ export async function POST(request: Request) {
               actorId: plan.profile_id,
               reason: `${trigger.reason} Het schema is automatisch herzien.`,
               authorized: true,
+              rollingWindow: true,
             });
             generationsStarted += 1;
 
@@ -496,6 +560,17 @@ export async function POST(request: Request) {
           }
           continue;
         }
+      }
+
+      // De herziening van vannacht moet klaar zijn: het voorstel past het
+      // schema aan zoals het er dan ligt.
+      if (await planUpdateRunning(admin, plan.profile_id)) {
+        results.push({ profileId: plan.profile_id, status: "waiting_plan_update" });
+        continue;
+      }
+      if (!settled.get(plan.profile_id)) {
+        results.push({ profileId: plan.profile_id, status: "waiting_readiness" });
+        continue;
       }
 
       if (dailyStartedToday >= MAX_GENERATIONS_STARTED_PER_DAY) {
@@ -672,8 +747,8 @@ export async function POST(request: Request) {
 
     // ZRL-beschikbaarheid als gereserveerde race (zrl-reservation.ts): neerzetten
     // voor wie pas later een schema kreeg, weghalen bij wie na de race niet
-    // opgesteld bleek. Wie zo een andere week kreeg, krijgt een herziening; de
-    // cooldown en de rij in requestReplan vangen een drukke run op.
+    // opgesteld bleek. Wie zo een andere week kreeg, krijgt een verzoek dat de
+    // volgende nacht meegaat.
     const zrlReservations = await reconcileZrlReservations(admin, { deadline }).catch(() => null);
     for (const profileId of zrlReservations?.changedProfiles ?? []) {
       if (Date.now() > deadline) break;

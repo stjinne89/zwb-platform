@@ -503,7 +503,7 @@ export default async function EventDetailPage({
   // Ladderrace: ZWB tegen de tegenstander, vermogen per duur (migr. 0302).
   const ladderMatchup =
     event.type === "ladder" && event.team_id && user
-      ? await loadLadderEventMatchup(createAdminClient(), supabase, event.id, event).catch(() => null)
+      ? await loadLadderEventMatchup(createAdminClient(), event.id, event).catch(() => null)
       : null;
 
   // Een ZRL-raceweek is waar je je aanmeldt bij een paraplu (hoofdteam met
@@ -1355,7 +1355,7 @@ export default async function EventDetailPage({
 
       <RaceInfoCard
         pacingHref={pacingHref}
-        briefingHref={event.type === "zrl" && event.team_id ? `/events/${event.id}/briefing` : null}
+        briefingHref={(event.type === "zrl" || event.type === "ladder") && event.team_id ? `/events/${event.id}/briefing` : null}
         liveHref={event.type === "zrl" && event.team_id && event.zwift_event_id ? `/live/zrl/${event.id}` : null}
         dsHref={dsHref}
         racepasses={ownRacepasses}

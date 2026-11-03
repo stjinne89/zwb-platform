@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { GREEN, HAND_TEXT, HIGHLIGHT, INK, PaperTitle as Title, PENCIL, RED, RULE, SpiekPaper, TEAL } from "@/components/spiekbriefje/paper";
 import type { BriefingView, OwnBriefingRider } from "@/lib/race-briefing/load";
 import { FORMAT_LABELS } from "@/lib/race-briefing/rules";
-import { cleanRiderName, ROLE_LABELS } from "@/lib/race-briefing/field";
+import { cleanRiderName, ROLE_LABELS, shortRiderName } from "@/lib/race-briefing/field";
 import { km } from "@/lib/race-briefing/tips";
 import type { SketchMark } from "@/lib/race-briefing/sheet";
 import type { SegmentRecord } from "@/lib/race-briefing/segment-records";
@@ -354,6 +354,36 @@ function RoleLine({ rider, limitLabel }: { rider: OwnBriefingRider; limitLabel: 
             ))}
         </p>
       )}
+      {rider.targets && (rider.targets.ahead || rider.targets.behind) && (
+        <p style={{ color: PENCIL }}>
+          {[
+            rider.targets.ahead ? (
+              <span key="ahead">
+                pak{" "}
+                <span className="font-bold" style={{ color: INK }}>
+                  {rider.targets.ahead}
+                </span>
+              </span>
+            ) : null,
+            rider.targets.behind ? (
+              <span key="behind">
+                houd{" "}
+                <span className="font-bold" style={{ color: INK }}>
+                  {rider.targets.behind}
+                </span>{" "}
+                achter je
+              </span>
+            ) : null,
+          ]
+            .filter(Boolean)
+            .map((part, i) => (
+              <span key={i}>
+                {i > 0 && " · "}
+                {part}
+              </span>
+            ))}
+        </p>
+      )}
       {rider.role === "positie" && !rider.captainRole && (
         <p className="inline-flex items-center gap-1" style={{ color: INK }}>
           <Mountain aria-hidden strokeWidth={2.4} className="size-4 shrink-0" />
@@ -467,7 +497,7 @@ function SegmentRecordBlock({ record }: { record: SegmentRecord }) {
       <ul className="mt-0.5">
         {record.riders.map((rider) => (
           <li key={rider.zwiftId} className="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] gap-2">
-            <span className="truncate font-bold">{rider.name.split(/\s+/)[0]}</span>
+            <span className="truncate font-bold">{shortRiderName(rider.name)}</span>
             <span className="tabular-nums">
               {rider.pr ? (
                 <>
@@ -518,7 +548,7 @@ export function RaceSheet({ view }: { view: BriefingView }) {
   const loaded = view.route?.loaded ?? null;
   const meta = [
     view.event.teamName,
-    FORMAT_LABELS[view.format].toLowerCase(),
+    view.ladder ? `club ladder tegen ${view.ladder.opponent}` : FORMAT_LABELS[view.format].toLowerCase(),
     loaded?.routeName,
     dateLabel.format(new Date(view.event.startAt)),
   ].filter(Boolean);

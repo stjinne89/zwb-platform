@@ -77,6 +77,7 @@ import {
 import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
 import { TARGET_TIME_GOAL_TYPES } from "@/lib/training/goal-target-types";
 import { amsterdamDayKey, endOfWeekKey } from "@/lib/training/zwbeterworden";
+import { changeReachSince, replanWindowEnd, type ChangeReach } from "@/lib/training/replan-window";
 
 type TrainingDraftStatus = "queued" | "in_progress" | "completed" | "failed" | "cancelled";
 
@@ -758,8 +759,12 @@ async function createPlanFromAiGeneration(
 
   // Een nieuw schema eindigt op het einde van zijn blok, wat het model ook
   // teruggeeft: de prompt vraagt het, dit dwingt het af.
+  // Een herziening over een deel van het schema eindigt op dat venster; wat de
+  // AI daarna nog teruggeeft valt weg.
   const blockEnd = isAdaptation
-    ? null
+    ? isPlanUpdate
+      ? rollingWindowEndDate(generation.prompt_summary)
+      : null
     : planWindowEndDate(planDraft.endDate, generation.prompt_summary);
   const draftWorkouts = blockEnd
     ? planDraft.workouts.filter((workout) => String(workout.date).slice(0, 10) <= blockEnd)
@@ -1195,6 +1200,8 @@ export async function startTodayAdjustmentDraft(
  * wat hen had moeten vervangen.
  */
 export function planUpdateEndDate(aiEndDate: string, promptSummary: string | null): string {
+  const rolling = rollingWindowEndDate(promptSummary);
+  if (rolling) return rolling;
   let requested: unknown;
   try {
     requested = (JSON.parse(promptSummary ?? "") as { planUpdate?: { toDate?: unknown } })
@@ -1204,6 +1211,24 @@ export function planUpdateEndDate(aiEndDate: string, promptSummary: string | nul
   }
   if (typeof requested !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(requested)) return aiEndDate;
   return requested > String(aiEndDate).slice(0, 10) ? requested : aiEndDate;
+}
+
+/**
+ * Einde van het venster van een herziening die maar een deel van het schema
+ * herschrijft (replan-window.ts), of null. Daar is het einde hard: het bereik
+ * van de herziening wordt bij publiceren als vervangen gemarkeerd
+ * (publishRange), en een latere einddatum van de AI zou de weken erna wissen.
+ */
+export function rollingWindowEndDate(promptSummary: string | null): string | null {
+  let update: { rollingWindow?: unknown; toDate?: unknown } | undefined;
+  try {
+    update = (JSON.parse(promptSummary ?? "") as { planUpdate?: typeof update }).planUpdate;
+  } catch {
+    return null;
+  }
+  if (update?.rollingWindow !== true) return null;
+  const to = update.toDate;
+  return typeof to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(to) ? to : null;
 }
 
 /** Is deze herziening een volgend blok? Leest planUpdate.nextBlock uit de AI-invoer. */
@@ -1370,6 +1395,12 @@ type PlanUpdateArgs = {
    * in plaats van tot het einde van het lopende schema.
    */
   nextBlock?: boolean;
+  /**
+   * Alleen de komende twee weken herschrijven, plus de weken die een wijziging
+   * sinds de vorige herziening raakt (replan-window.ts). Voor de automatische
+   * herzieningen; het formulier herschrijft het hele schema.
+   */
+  rollingWindow?: boolean;
 };
 
 type PreparedPlanUpdate = {
@@ -1414,6 +1445,29 @@ export async function planUpdateRunning(
 }
 
 /**
+ * Wanneer het schema voor het laatst als geheel is bijgewerkt: de laatste
+ * geslaagde herziening, anders het aanmaken van het basisplan. Een dagaanpassing
+ * telt niet; die laat de weken erna met rust.
+ */
+async function lastRevisionAt(
+  admin: ReturnType<typeof createAdminClient>,
+  profileId: string,
+  planCreatedAt: string,
+): Promise<string> {
+  const { data } = await admin
+    .from("training_ai_generations")
+    .select("created_at")
+    .eq("profile_id", profileId)
+    .eq("adaptation_kind", "plan_update")
+    .eq("status", "completed")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const last = data?.created_at ? String(data.created_at) : null;
+  return last && Date.parse(last) > Date.parse(planCreatedAt) ? last : planCreatedAt;
+}
+
+/**
  * Alles wat een herziening nodig heeft, klaargezet: rechten gecontroleerd, het
  * doel bijgewerkt, de resterende workouts erbij en de AI-input compleet.
  *
@@ -1432,12 +1486,15 @@ async function preparePlanUpdate({
   goalUpdates,
   authorized = false,
   nextBlock = false,
+  rollingWindow = false,
 }: PlanUpdateArgs): Promise<
   { ok: false; error: string } | { ok: true; prepared: PreparedPlanUpdate }
 > {
   const { data: plan } = await admin
     .from("training_plans")
-    .select("id, profile_id, trainer_id, goal_id, title, summary, end_date, status, root_plan_id")
+    .select(
+      "id, profile_id, trainer_id, goal_id, title, summary, end_date, status, root_plan_id, created_at",
+    )
     .eq("id", planId)
     .maybeSingle();
   if (!plan) return { ok: false, error: "Schema niet gevonden." };
@@ -1493,7 +1550,18 @@ async function preparePlanUpdate({
         fromDate,
         blockEndDate(fromDate, goalDate && goalDate > planEnd ? goalDate : null),
       )
-    : planEnd;
+    : rollingWindow
+      ? replanWindowEnd(
+          fromDate,
+          planEnd,
+          await changeReachSince(
+            admin,
+            plan.profile_id,
+            await lastRevisionAt(admin, plan.profile_id, String(plan.created_at)),
+            fromDate,
+          ).catch((): ChangeReach => "all"),
+        )
+      : planEnd;
 
   // Doel bijwerken vóór de generatie, zodat buildTrainingInput en elke volgende
   // generatie met de nieuwe uitgangspunten werken.
@@ -1520,6 +1588,21 @@ async function preparePlanUpdate({
     .gte("scheduled_at", `${fromDate}T00:00:00`)
     .lte("scheduled_at", `${toDate}T23:59:59`)
     .order("scheduled_at", { ascending: true });
+
+  // Herschrijft deze herziening maar een deel, dan krijgt de AI de week erna
+  // als context mee, zodat het venster daar netjes op aansluit.
+  const partial = rollingWindow && toDate < planEnd;
+  const { data: following } = partial
+    ? await admin
+        .from("training_workouts")
+        .select("scheduled_at, title, duration_minutes, intensity")
+        .eq("profile_id", plan.profile_id)
+        .is("superseded_at", null)
+        .eq("status", "planned")
+        .gt("scheduled_at", `${toDate}T23:59:59`)
+        .lte("scheduled_at", `${shiftDays(toDate, 7)}T23:59:59`)
+        .order("scheduled_at", { ascending: true })
+    : { data: null };
 
   // De omschrijving van het schéma zoals het nu loopt, niet die van het
   // basisplan. Een herziening hangt aan het basisplan, en dat draagt nog de
@@ -1560,6 +1643,7 @@ async function preparePlanUpdate({
     fromDate,
     toDate,
     ...(nextBlock ? { nextBlock: true } : {}),
+    ...(partial ? { rollingWindow: true } : {}),
     previousTitle: newest?.title ?? plan.title,
     previousSummary: newest?.summary ?? plan.summary,
     changed,
@@ -1569,6 +1653,16 @@ async function preparePlanUpdate({
       durationMinutes: Number(workout.duration_minutes ?? 0),
       intensity: workout.intensity as string,
     })),
+    ...(partial
+      ? {
+          followingWorkouts: (following ?? []).map((workout) => ({
+            date: String(workout.scheduled_at).slice(0, 10),
+            title: workout.title as string,
+            durationMinutes: Number(workout.duration_minutes ?? 0),
+            intensity: workout.intensity as string,
+          })),
+        }
+      : {}),
   };
 
   return {

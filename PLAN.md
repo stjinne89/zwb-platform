@@ -5593,7 +5593,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   alleen als hun label aanstaat (`lib/events/type-filter.ts`). Sinds
 >   2026-11-01 geldt dat ook voor de eigen trainingen in het design "tegels"
 >   (label Mijn trainingen, zie die ronde). Wisselen tussen
->   Alles en Voor mij houdt de keuze vast.
+>   Alles en Voor mij houdt de keuze vast. Sinds 2026-11-03 kan een label ook
+>   uit, met een kruisje erachter (`?zonder=`, zie de ronde "Kalender: labels
+>   uitzetten").
 > - **Kleur.** Eén kleur per categorie (`eventColorStyle`): rand links van de
 >   regel, het label rechts en het bolletje in het filter. Buitenritten: Gran
 >   Fondo groen, Toertocht teal, Outdoor rit blauw, Gravel amber. Virtueel van
@@ -11644,6 +11646,271 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kalender: labels uitzetten
+
+**2026-11-03.** Commit `9f29e107` (en deze PLAN-regel), gepusht naar `main` op
+2026-11-03 (eigenaar). Geen migratie.
+
+**Waarom.** Vraag van de eigenaar: in de dropdown Labels kon je alleen kiezen
+wat je wilt zien. Wie bijvoorbeeld alles behalve de verjaardagen wil, moest
+alle andere labels aanvinken.
+
+**Wat.**
+- Achter elk label in de dropdown staat een kruisje. Dat zet het label uit:
+  wat dat label heeft, verdwijnt van de kalender, ook als een ander gekozen
+  label het zou tonen. Een uitgezet label staat doorgestreept, met een rood
+  kruisje; nog eens klikken zet het terug. Aan en uit sluiten elkaar per label
+  uit: aanvinken haalt het kruisje weg en omgekeerd. Wis labels wist beide.
+- URL: `?zonder=verjaardag,zrl` voor categorie, soort, Verjaardagen en Mijn
+  trainingen, `?zonder-programma=<slug>` voor programma's. Staat een waarde
+  met de hand zowel aan als uit, dan wint uit. Alles en Voor mij houden beide
+  vast.
+- `lib/events/type-filter.ts`: `CalendarFilter` heeft `excluded` en
+  `excludedPrograms`; `eventMatchesFilter`, `birthdaysMatchFilter` en
+  `ownTrainingsMatchFilter` kijken daar eerst naar. Alleen labels uit telt
+  niet als keuze, dus de rest blijft staan zoals zonder filter.
+- Het kruisje is een eigen menu-item naast het vinkje (`closeOnClick` uit), zodat
+  het menu openblijft en het met het toetsenbord bereikbaar is.
+- Het getal op de knop Labels telt aan en uit samen.
+
+**Niet gedaan.** Geen opslag van uitgezette labels per lid; het blijft in de
+URL, net als het bestaande filter.
+
+**Gecontroleerd.** Nieuwe tests in `tests/unit/calendar-type-filter.test.ts`,
+plus `tests/unit/event-programs.test.ts`; ESLint op de gewijzigde bestanden.
+`tsc` geeft alleen de bekende fouten over ontbrekende modules in deze worktree
+(`modern-screenshot`, `@anthropic-ai/sdk`). Niet in de browser bekeken.
+
+### Gebouwd — Ladderrace: racebriefje
+
+**2026-11-03.** Commits `63a81ff9` tot en met `47cab45c` (en deze PLAN-regel), gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie.
+
+**Waarom.** Vraag van de eigenaar: in Club Ladder hetzelfde soort racebriefje als
+bij de ZRL. Eerst als voorstel voorgelegd en goedgekeurd ("Ja, bouwen").
+
+**Wat.**
+- **Zelfde pagina en briefje.** `/events/[id]/briefing` kiest op `events.type`:
+  een ladderrace laadt met `loadLadderBriefing`
+  (`src/lib/club-ladder/event-briefing.ts`), een ZRL-race zoals voorheen. Het
+  papieren briefje (`RaceSheet`), Briefje bewerken, Deel als plaatje, het plan en
+  de rollen zijn dezelfde; opslag in `race_briefings` op `event_id`, dus geen
+  migratie. `BriefingView` heeft nu `kind` (`zrl` of `ladder`) en `ladder`
+  (tegenstander, uitdager, opstelling, verwachte uitslag, zwaarste duur).
+- **De telling van de ladder** (`src/lib/club-ladder/briefing.ts`, puur): 5 tegen
+  5, alleen de finish, 10‥1 punten, gelijk is verlies voor de uitdager. Eén
+  tegenstander inhalen is altijd 2 punten verschil; dat is de omcirkelde regel
+  onder Onthouden. Daaronder wie uitdaagt en, met vijf renners met vermogen aan
+  beide kanten, de verwachte stand met de speling of het aantal tegenstanders dat
+  we moeten inhalen. Met een halve opstelling niet: bij 17729 (2 tegen 4
+  aangemeld) gaf dat 15–30, wat niets zegt.
+- **Uitdager**: de thuisploeg in de titel ("Club Ladder: thuis – uit"),
+  `ladderChallengerFromTitle`. Afgeleid uit de uitslagentab, waar de uitdager in
+  `td.homeTeam` staat; niet tegen een wedstrijdpagina gecontroleerd.
+- **Verwachte uitslag**: de renners van de matchup (`loadLadderEventMatchup`,
+  90 dagen van ZwiftRacing, anders ladderraces), op volgorde van sterkte op dit
+  parcours: per duur de W/kg tegenover het meetkundig gemiddelde van wie die duur
+  heeft, gewogen met de gewichten van het parcours (zonder parcours gelijk). Zo
+  telt een ontbrekende duur niet als zwak en weegt 15 s niet zwaarder dan 20 min
+  door de schaal. Zonder vermogen achteraan, zonder punten. Op de pagina vervangt
+  de tabel Verwachte uitslag "Onze ploeg" en "Het veld".
+- **Volgen**: ~~de drie sterkste tegenstanders met hun W/kg op de duur die het
+  zwaarst telt.~~ *Vervangen dezelfde dag, op aanwijzing van de eigenaar ("echt
+  specifiek op laddertelling"):* de tegenstanders die vlak voor of vlak achter
+  een van ons verwacht worden ("5e · vóór Bart · 20 min 4,4 w/kg"), want daar
+  zitten de 2 punten; de sterkste die toch voor ons allemaal finisht, kost geen
+  extra punten. Zonder renners van ons in de verwachting de sterksten.
+  **Let op**: geen opstelling of minder dan vijf startplekken.
+- **Momenten per kilometer op de laddertelling** (`ladderMoments`), in plaats van
+  de scratch-momenten van de ZRL ("naar voren, plek 3–8", "sprint uit het wiel"),
+  die over je eigen plek gaan. Nu over de ploeg: vóór een klim "Bart naar voren"
+  (de aanhakers), op de klim "niemand lossen: wie lost, verliest plekken" (met
+  een gatendichtrijder: "Tako haalt terug"), op de slotklim "iedereen voluit,
+  elke plek is 2 punten", en in de finale "iedereen sprinten, ook achterin" of
+  bij een vlakke finish "van 9 naar 8 is evenveel als van 2 naar 1". Het
+  getekende profiel blijft dat van de ZRL.
+- Namen op het briefje: de voornaam, of de hele naam als het eerste woord één of
+  twee letters is ("T ako", niet "T"). Op verzoek van de eigenaar ook voor de
+  ZRL: één helper `shortRiderName` in `race-briefing/field.ts`, gebruikt in de
+  momenten (positierenners), de tips en de segmentrecords op het briefje, en op
+  de ladder. Gevolg: een voornaam van twee letters ("Jo de Vries") staat er nu
+  voluit.
+- **Rollen zonder kopman** (`ladderRoles`). ~~`suggestRoles` met die sterkte en
+  de 5 minuten.~~ *Vervangen dezelfde dag, op aanwijzing van de eigenaar:* op de
+  ladder is er geen kopman, want je haalt samen zoveel mogelijk punten. Wie in
+  de voorste helft verwacht wordt: **voorin**, om elke plek sprinten; achterin:
+  **aanhaken**, vooraan vóór de klim (die namen staan ook bij de afdalingen in de
+  momenten). Met drie of meer van ons en iemand achterin rijdt de sterkste
+  **gaten dicht**: een ploeggenoot die bij de groep blijft, wint meer plekken
+  dan de sterkste er zelf verliest (eigen vuistregel). Per renner op het briefje
+  "pak X · houd Y achter je": de tegenstander vlak voor en vlak achter hem in de
+  verwachting, waar de 2 punten zitten. `OwnRole` heeft daarvoor `voorin`, `brug`
+  en `aanhaken`; `needsClimbPosition` laat de momenten en tips zowel `positie`
+  (ZRL) als `aanhaken` noemen.
+- **Powerups**: uit de Zwift-tags, anders uit de omschrijving van de sync
+  ("Powerups: Feather, Draft", `ladderPowerups`). Bogen alleen als het Zwift-event
+  `arch_powerup` heeft. **Fietsadvies** met 95% van de 20 minuten van onze
+  renners als zFTP (er is geen WTRL-zFTP).
+- Opslaan (`saveRaceBriefing`, `saveRaceSheet`) mag nu ook bij `ladder`, met
+  dezelfde rechten: teambeheer of captain/co-captain van het team
+  (`captainTeamIds`). De knop Racebriefing staat ook bij een ladderrace.
+- `/hulp` (Teams en wedstrijden) beschrijft het briefje.
+
+**Bewust niet.**
+- Geen live stand voor de ladder: apart werk, niet gevraagd.
+- Geen divisiegrenzen, segmentrecords of ronde-historie: dat is WTRL en de
+  ZRL-telling; op de ladder zijn er geen punten onderweg.
+- Geen rank-controle (vELO1 boven de rank van het team) op het briefje: eerst het
+  Race Book nalezen of dat echt verboden is.
+- De privacytekst niet aangepast: het briefje gebruikt dezelfde gegevens als de
+  matchup (aanmeldingen met Zwift-ID's, 90 dagen W/kg en ZRS van beide teams),
+  en die tekst stond al open om aan de eigenaar voor te leggen (zie "Ladderrace:
+  matchup met vermogen op de eventpagina"). `/privacy#racebriefing` noemt alleen
+  de ZRL.
+
+**Lokaal bekeken (2026-11-03, eigenaar ingelogd, localhost tegen productie).**
+Het briefje van 17729 laadt: kop "Club Ladder · tegen Galaxy Avengers · wij
+dagen uit · heuvels", Onthouden met de laddertelling, Volgen, "2 van de 5
+startplekken ingevuld" en de verwachte uitslag. Daarbij gevonden: de ZRS uit de
+bewaarde ladderraces stond met decimalen ("626.68"); nu afgerond, ook in de
+matchup op de eventpagina. Daarna, op verzoek van de eigenaar, ook twee dingen
+van vóór deze ronde hersteld, die ook ZRL-briefjes raakten:
+- **Hydration-fout in het hoogteprofiel**: een SVG-`<title>` met losse stukken
+  tekst (`ZwiftRouteSection`, en zo ook in `pacing-editor.tsx`) hydrateert in
+  React 19 niet; de hele boom werd op de client opnieuw gebouwd (daar kwam ook
+  de melding over een script-tag vandaan). Nu één string. Na herladen geen
+  issues meer in de dev-overlay.
+- **Dubbele momenten** (`briefingMoments`): een vroege klim na een afdaling
+  kreeg "voorste derde" én "het lint breekt", en een slotklim na een afdaling
+  "het lint breekt" én "voluit". Nu één moment per klim: de afdaling blijft, de
+  vroege klim volgt het lint, de slotklim zijn eigen regel. Test met de opbouw
+  van The Muckle Yin; de ZRL-briefing van Women's B (3 november) bekeken.
+
+**Gecontroleerd.** Vitest `club-ladder-briefing.test.ts` (19 nieuw), twee nieuwe cases in `race-briefing.test.ts`, de andere
+`club-ladder-*`, `race-briefing`, `help-*` en de volle run (los herhaald wat
+alleen in de volle run op een time-out viel; `omnium-live` mist `.env.local` in
+de worktree). `tsc` en ESLint schoon. De berekening nagelopen met de echte
+aanmeldingen van 17729 (The Muckle Yin). **Niet geverifieerd:** de pagina op
+productie na een deploy, en een volle opstelling (vijf tegen vijf).
+
+### Gebouwd — Ladderrace: matchup met 90 dagen van ZwiftRacing
+
+**2026-11-03.** Commit `48d5e402`, gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie.
+
+De eigenaar zag dat de matchup bij de tegenstander te lage waarden toonde:
+Adam Dawson (Galaxy Avengers) heeft op ZwiftPower en ZwiftRacing over 90 dagen
+veel hogere 20 minuten. Gecontroleerd in Chrome: ZWB had van hem twee bewaarde
+ladderraces (20 min 3,65 en 3,62 W/kg, gelijk aan de racewaarden op
+ZwiftRacing), maar over 90 dagen haalt hij 4,18 (15 s 14,47 tegen 9,38). Een
+ladderrace van 20–25 km vraagt zelden het uiterste, en zijn beste waarden
+reed hij voor een ander team (Galaxy Velorum). Daarbij kreeg een ZWB-renner
+zonder ladderraces zijn eigen 90-dagenprofiel, zodat ZWB-kant maximale en
+tegenstanderkant race-waarden stonden. Keuze van de eigenaar: via Chrome halen
+(er is nog geen ZwiftRacing-API-sleutel).
+
+- **Data**: op 2026-11-03 met `__TSR_ROUTER__.preloadRoute` op zwiftracing.app
+  per aangemelde renner `loaderData.power` gelezen (`wkg15`, `wkg60`,
+  `wkg120`, `wkg300`, `wkg1200`: de 90-dagenwaarden, zelfde velden als de API)
+  en in `zwift_rider_metrics.power_wkg` gezet, de kolom die 0260 daarvoor al
+  had. Zes renners van wedstrijd 17729 (4 Galaxy Avengers, 2 ZWBeasts).
+- **Matchup** (`matchup.ts`): per renner eerst 90 dagen uit
+  `zwift_rider_metrics`, voor beide teams; zonder die waarden het beste uit zijn
+  ladderraces, gemarkeerd "(ladder)". Het 90-dagenprofiel uit
+  `rider_power_profiles` is eruit. Zonder aanmeldingen aan beide kanten
+  vergelijkt hij beide teams uit hun ladderraces en vult hij ZWB niet meer aan
+  met andere bronnen.
+- `/hulp` beschrijft de bron.
+
+**Bewust niet.**
+- Geen ophalen door de server: zwiftracing.app zit achter een Vercel-controle
+  (besluit 2026-10-20). Met een API-sleutel vult `refreshRiderMetrics` dezelfde
+  kolom vanzelf; de eigenaar vraagt die sleutel aan. Tot dan een **geplande taak
+  op de pc van de eigenaar** (`ladder-vermogen-zwiftracing`, elke dag 16:30,
+  aangemaakt 2026-11-03 op zijn verzoek): leest de aanmeldingen van
+  ladderwedstrijden in de komende 8 dagen zonder 90-dagenwaarden van de laatste
+  20 uur, haalt ze in Chrome op en schrijft alleen `zwift_rider_metrics`. Draait
+  alleen als de Claude-app open is en Chrome met de extensie verbonden; de query
+  is nagelopen (vond de 6 aanmeldingen van 17729), een volledige run nog niet.
+- `zwift_rider_metrics` gooit rijen weg die 90 dagen niet zijn bijgewerkt; met
+  de hand gezette waarden verdwijnen dus vanzelf.
+
+**Niet geverifieerd.** De eventpagina in de browser na deze wijziging (vraagt een
+deploy). Unit tests (`club-ladder-matchup.test.ts`, 6), typecheck en ESLint
+schoon.
+
+### Onderzocht — Claude-kosten
+
+**2026-11-03.** Geen code, geen migratie. Details in
+[claude-kosten-2026-11-03](docs/claude-kosten-2026-11-03.md).
+
+**Waarom.** De Anthropic-rekening liep na de overstap op tot $96,56 in tien
+dagen; het tegoed stond op 2026-11-03 op $2,89.
+
+**Uitkomst.** ~$65 per week (~$280 per maand), waarvan 80% de bijwerking
+(`plan_update`): 81 in zeven dagen, elk ~28.000 uitvoertokens omdat het hele
+resterende schema opnieuw wordt geschreven. Elke kleine wijziging
+(beschikbaarheid, race toe- of afgezegd, rit vervallen) start er een; de demping
+van vijf minuten houdt dat niet tegen, en `settleOwnReplans()` start een
+blijven liggend verzoek bij het volgende bezoek alsnog. De raming in
+claude-naspelen (114 bijwerkingen per maand) was drie keer te laag.
+
+**Voorgesteld:** bijwerkingen bundelen tot één per lid per dag (−52% op de
+afgelopen week), alleen de komende twee weken herschrijven, of Sonnet 5.5 voor de
+bijwerking via `ANTHROPIC_MODEL_PLAN_UPDATE`. Kleiner: de trainingsprompt cachen,
+de coach-cache uitzetten. De eigenaar koos de eerste twee; zie de ronde
+hieronder. Sonnet en de kleine twee zijn niet gedaan.
+
+### Gebouwd — Herzieningen 's nachts gebundeld, over twee weken; dagvoorstel wacht op de meting
+
+**2026-11-03.** Commit `8c182033` (merge `4feff0bf`), gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie.
+
+**Waarom.** Zie "Onderzocht — Claude-kosten": elke wijziging startte een volledige
+herziening van het hele resterende schema. Tijdens het bouwen merkte de eigenaar
+op dat een herziening 's nachts de gereedheid van die ochtend mist. Gemeten: ook
+het dagvoorstel draaide al tussen 00 en 06 uur, en van 41 dagvoorstellen met
+wellness hadden er 2 de meting van die dag. Het liep dus al een dag achter.
+
+**Wat.**
+- `requestReplan()` legt alleen het verzoek vast; de redenen van een dag worden
+  gebundeld (`combineReasons`, hooguit zes). De cron start de herziening tussen
+  00 en 09 uur, één per lid per dag. Alleen de chat ("dit raakt mijn schema")
+  start direct, met `now: true`, en ook dan hooguit één keer per dag.
+  `settleOwnReplans()` start bij een paginabezoek geen verzoek meer, maar maakt
+  alleen hangende generaties af. `REPLAN_COOLDOWN_MS` is weg.
+- `rollingWindow` in `preparePlanUpdate`: een automatische herziening herschrijft
+  twee hele weken, en loopt door tot de week die een wijziging raakt
+  (`replan-window.ts`, afgeleid uit gewijzigde weekrijen, nieuwe eigen ritten en
+  events, en trainingen die door een regel of het lid vervielen). Bij een
+  gewijzigde standaardweek blijft het het hele schema. De week na het venster
+  gaat als `followingWorkouts` mee als context. De einddatum is hard
+  (`rollingWindowEndDate`): een latere einddatum van de AI zou bij publiceren
+  (`publishRange`) de weken erna wegstrepen. Het formulier "Schema bijwerken" en
+  het volgende blok herschrijven nog steeds alles.
+- Het dagvoorstel en de herziening tellen apart in `handledToday`; de herziening
+  vervangt het dagvoorstel niet meer. Het dagvoorstel wacht tot de herziening
+  klaar is, en op de meting van vannacht: vanaf 05:00 haalt de cron elk uur
+  vers op bij intervals.icu, en zodra `readinessDate` vandaag is gaat het
+  voorstel uit. Om 09:00 gaat het in elk geval. Leden zonder readiness wachten
+  nergens op.
+- Meldingen ("Je schema wordt vannacht bijgewerkt.") via `replanScheduled` in de
+  acties; /hulp bijgewerkt.
+
+**Bewust niet.** De sync van het horloge zelf afdwingen kan niet: horloge →
+telefoon → Garmin Connect → intervals.icu loopt buiten ZWB om; ZWB haalt alleen
+vers op. Geen migratie voor een "tot"-datum per verzoek; het venster wordt uit de
+data afgeleid. Een afgezegd event waarvan de rij is verwijderd, is daarin niet
+te zien; die dag wordt weer ingevuld zodra hij binnen het venster valt.
+
+**Gevolg voor het lid.** Een wijziging overdag (beschikbaarheid, race, rit) is
+meteen zichtbaar voor zover dat zonder AI kan (dag zonder tijd vrij, event in het
+schema). De rest van het schema volgt de volgende ochtend.
+
+**Getest.** Unit-tests voor het venster, het bundelen, de harde einddatum en het
+wachten op de meting (`replan-window.test.ts`,
+`daily-adaptation-concurrency.test.ts`); tsc en eslint schoon.
+**Niet geverifieerd:** de kwaliteit van een herziening over twee weken is niet
+nagespeeld (claude-replay); de besparing in productie (verwachting: van ~$65
+naar ~$20–25 per week) en het gedrag van de cron 's nachts en 's ochtends.
+
 ### Gebouwd — Kracht: intervals-trainingen na een kwartier zichtbaar
 
 **2026-11-03.** Commit `1b4cc467`, gepusht naar `main` op 2026-11-03 (eigenaar).
@@ -11841,9 +12108,11 @@ voordeel heeft.
   als log-verschil in procenten (zoals het advies); vanaf 2% heet het voordeel,
   daaronder gelijk (eigen vuistregel). Het parcours weegt de duren met de
   gewichten van `ladderRouteOptions`, opgeteld tot één voordeel op dit parcours.
-- Een ZWB-renner zonder ladderraces krijgt zijn 90-dagenprofiel
-  (`rider_power_profiles`, RLS van de kijker, geen 15 s), gemarkeerd "(90 d)".
-  Een tegenstander nooit: van hen hebben we alleen ladderraces.
+- ~~Een ZWB-renner zonder ladderraces krijgt zijn 90-dagenprofiel
+  (`rider_power_profiles`), gemarkeerd "(90 d)".~~ *Vervangen 2026-11-03:* dat
+  mengde maximale waarden aan ZWB-kant met race-inspanningen aan de andere kant.
+  Nu 90 dagen van ZwiftRacing voor beide teams; zie "Ladderrace: matchup met
+  90 dagen van ZwiftRacing".
 - ZRS per renner uit `zwift_rider_metrics`, na het antwoord ververst.
 - Ontbrekende renners van bewaarde wedstrijden haalt de eventpagina op binnen
   6 s, de rest na het antwoord (`after`, 30 s). `ensureMatchRiders` markeert
@@ -12016,8 +12285,10 @@ links had dan een ZRL-race, en wilde vanuit Komende matchups direct naar het eve
   ZwifterBikes en het pacingplan waren er al via de route.
 - **Komende matchups** op de teampagina linken naar het ZWB-event van die
   wedstrijd (op `club_ladder_fixture_id` en het team).
-- **Bewust niet:** racebriefing en live stand; die zijn op ZRL gebouwd (racepass,
+- **Bewust niet:** ~~racebriefing en~~ live stand; die is op ZRL gebouwd (racepass,
   WTRL-gegevens, ZRL-puntentelling). Geen racepass: de ladder heeft er geen.
+  *Niet meer waar voor de racebriefing sinds 2026-11-03:* zie "Ladderrace:
+  racebriefje".
 - **Getest:** `club-ladder-fixtures.test.ts` (10 tests). **Niet in de browser
   gezien** (inloggen op productie).
 
@@ -16050,7 +16321,8 @@ ze een opgeruimde worktree overleven. Niet getest met een tweede account.
 - Dagelijkse aanpassing: Claude liet het schema vijf keer ongemoeid, GPT-5.5 paste
   drie keer iets aan. Wie gelijk heeft moet uit de blinde vergelijking komen.
 - Op het huidige volume kost alles op Opus ~$135 per maand, boven het tegoed;
-  bijwerkingen met Sonnet ~$71.
+  bijwerkingen met Sonnet ~$71. **Achterhaald (2026-11-03):** het werden ~350
+  bijwerkingen per maand en ~$280; zie de ronde "Onderzocht — Claude-kosten".
 - **Claude kent de datum van vandaag niet** (GPT-5.5 krijgt die van OpenAI).
   Bij oude invoer zonder ankerdatum plande Claude in de verkeerde maand; met één
   regel "Vandaag is …" in de vraag klopt het en breekt Claude bij elk nieuw

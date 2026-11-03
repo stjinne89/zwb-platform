@@ -81,7 +81,11 @@ export function FtpTestPlanner({
         setResult("Ingepland. Het schema wordt eromheen bijgewerkt…");
         poll.watch(outcome.generationId);
       } else {
-        setResult("Ingepland.");
+        setResult(
+          outcome.replanScheduled
+            ? "Ingepland. Het schema wordt er vannacht omheen bijgewerkt."
+            : "Ingepland.",
+        );
       }
     } catch {
       poll.setError("FTP-test inplannen is mislukt.");
