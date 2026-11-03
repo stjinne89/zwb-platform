@@ -74,7 +74,7 @@ describe("buildLadderMatchup", () => {
         signup(12, "Galaxy Avengers", 2),
       ],
       matches,
-      ourProfiles: new Map(),
+      power90: new Map(),
       scores: new Map([[1, 640]]),
       weights: climb,
     });
@@ -96,7 +96,7 @@ describe("buildLadderMatchup", () => {
       opponent: "Galaxy Avengers",
       signups: [],
       matches,
-      ourProfiles: new Map(),
+      power90: new Map(),
       scores: new Map(),
       weights: null,
     });
@@ -107,23 +107,40 @@ describe("buildLadderMatchup", () => {
     expect(result.durations.every((row) => row.weight === null)).toBe(true);
   });
 
-  it("gebruikt het 90-dagenprofiel alleen voor ZWB-renners zonder ladderraces", () => {
+  it("gebruikt 90 dagen van ZwiftRacing voor beide teams, ook boven de ladderraces", () => {
     const result = buildLadderMatchup({
       ourName: "ZWBeasts",
       opponent: "Galaxy Avengers",
-      signups: [signup(5, "ZWBeasts", 1), signup(13, "Galaxy Avengers", 1)],
-      matches: [],
-      ourProfiles: new Map([
-        [5, wkg(null, 6, 4.5, 4)],
-        [13, wkg(null, 7, 5, 4.5)],
+      signups: [signup(1, "ZWBeasts", 1), signup(11, "Galaxy Avengers", 1), signup(12, "Galaxy Avengers", 2)],
+      matches,
+      // Dawson: 20 min 3,62 in de ladder, 4,18 over 90 dagen.
+      power90: new Map([
+        [1, wkg(11, 7, 5.3, 4.7)],
+        [11, wkg(14.5, 8.2, 5.1, 4.2)],
       ]),
       scores: new Map(),
       weights: climb,
     });
-    expect(result.ours.riders[0]).toMatchObject({ wkg: wkg(null, 6, 4.5, 4), races: 0 });
-    // Een tegenstander krijgt nooit een ZWB-profiel: geen vergelijking.
-    expect(result.theirs.riders[0].wkg).toBeNull();
+    expect(result.ours.riders[0]).toMatchObject({ wkg: wkg(11, 7, 5.3, 4.7), source: "90d" });
+    expect(result.theirs.riders.map((r) => r.source)).toEqual(["90d", "ladder"]);
+    expect(result.basis).toBe("lineup");
+    // Tegenstander: gemiddelde van 90 dagen (11) en ladder (12).
+    expect(result.theirs.wkg).toEqual(wkg(13.25, 7.4, 4.55, 3.9));
+  });
+
+  it("mengt zonder aanmeldingen aan beide kanten geen bronnen", () => {
+    const result = buildLadderMatchup({
+      ourName: "ZWBeasts",
+      opponent: "Galaxy Avengers",
+      signups: [signup(5, "ZWBeasts", 1)],
+      matches: [],
+      power90: new Map([[5, wkg(null, 6, 4.5, 4)]]),
+      scores: new Map(),
+      weights: climb,
+    });
+    expect(result.ours.riders[0]).toMatchObject({ wkg: wkg(null, 6, 4.5, 4), source: "90d" });
     expect(result.basis).toBe("races");
+    expect(result.ours.wkg).toBeNull();
     expect(result.durations.every((row) => row.edgePct === null)).toBe(true);
   });
 
@@ -133,7 +150,7 @@ describe("buildLadderMatchup", () => {
       opponent: "Galaxy Avengers",
       signups: [signup(2, "ZWBeasts", null), signup(1, "ZWBeasts", null)],
       matches,
-      ourProfiles: new Map(),
+      power90: new Map(),
       scores: new Map(),
       weights: null,
     });
