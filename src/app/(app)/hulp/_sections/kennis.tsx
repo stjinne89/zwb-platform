@@ -346,10 +346,13 @@ export function KennisHelp() {
                   Volg je de darmtraining, dan rekent een rit van anderhalf uur
                   of langer met het getal van die week. Na de darmtraining kun
                   je op de protocolpagina kiezen voor tot 120 g per uur bij
-                  ritten vanaf 2,5 uur. Je
-                  rekent met één bidon per uur. Een bidon bevat hoogstens 90 g
-                  koolhydraten (12% van 750 ml); wat je per uur meer nodig hebt,
-                  komt uit vast eten. Heb je minder nodig dan een bidon
+                  ritten vanaf 2,5 uur. Bij Klaarzetten en bij een recept voor
+                  onderweg kies je een bidon van 500 ml, 750 ml of 1 l; dat geldt
+                  alleen voor wat je op dat moment bekijkt, standaard is 750 ml.
+                  Water en zout in het recept groeien mee met de bidon. Zonder
+                  zweettest neem je 750 ml per uur mee. Een bidon bevat
+                  hoogstens 90 g koolhydraten per 500 ml; wat je per uur meer
+                  nodig hebt, komt uit vast eten. Heb je minder nodig dan een bidon
                   sportdrank bevat, dan gaat er een bidon water mee. Kies je zelf vast eten bij &quot;Tijdens de
                   rit&quot;, dan draagt de bidon de helft. &quot;Gegeten&quot;
                   legt het hele plan vast. Hoeveel je drinkt, hangt af van wat je

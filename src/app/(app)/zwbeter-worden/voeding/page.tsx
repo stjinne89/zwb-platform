@@ -6,7 +6,6 @@ import { DIET_TAGS, DIET_TAG_LABELS, type DietTag } from "@/lib/nutrition/recipe
 import { DAY_MOMENTS, RIDE_MOMENTS, type MenuSlot } from "@/lib/nutrition/menu";
 import { choiceWindow, planDayMenu } from "@/lib/nutrition/plan";
 import { logItemFor } from "@/lib/nutrition/products";
-import { ridePlanMeals } from "@/lib/nutrition/ride-plan";
 import { nutritionTipForToday } from "@/lib/nutrition/tips";
 import { MEAL_MOMENT_LABELS, type MealMoment, type Range } from "@/lib/nutrition/targets";
 import { RidePlanView } from "../_components/ride-plan-view";
@@ -97,88 +96,92 @@ export default async function VoedingPage({ searchParams }: { searchParams: Prom
     return `/zwbeter-worden/voeding${text ? `?${text}` : ""}`;
   };
 
-  const slotRow = (slot: MenuSlot) => (
-    <li key={slot.moment} className="space-y-1">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {MEAL_MOMENT_LABELS[slot.moment]}
-          {slot.chosen && <span className="ml-2 normal-case tracking-normal text-primary">Gekozen</span>}
-          {slot.toppedUp && <span className="ml-2 normal-case tracking-normal text-primary">Grotere portie</span>}
-        </h3>
-        <div className="flex items-center">
-          {slot.chosen && (
-            <LogActionButton
-              action={clearMenuChoice}
-              fields={{ day: today, moment: slot.moment }}
-              variant="ghost"
-              size="sm"
-              ariaLabel={`${MEAL_MOMENT_LABELS[slot.moment]}: terug naar voorstel`}
+  const slotRow = (slot: MenuSlot) => {
+    const slotRide = slot.moment === "tijdens_rit" ? ride : null;
+    return (
+      <li key={slot.moment} className="space-y-1">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {MEAL_MOMENT_LABELS[slot.moment]}
+            {slot.chosen && <span className="ml-2 normal-case tracking-normal text-primary">Gekozen</span>}
+            {slot.toppedUp && <span className="ml-2 normal-case tracking-normal text-primary">Grotere portie</span>}
+          </h3>
+          <div className="flex items-center">
+            {slot.chosen && (
+              <LogActionButton
+                action={clearMenuChoice}
+                fields={{ day: today, moment: slot.moment }}
+                variant="ghost"
+                size="sm"
+                ariaLabel={`${MEAL_MOMENT_LABELS[slot.moment]}: terug naar voorstel`}
+              >
+                <Undo2 className="size-3.5" />
+              </LogActionButton>
+            )}
+            {slot.nextRecipeId && (
+              <LogActionButton
+                action={chooseMenuRecipe}
+                fields={{ day: today, moment: slot.moment, recipe_id: slot.nextRecipeId }}
+                variant="ghost"
+                size="sm"
+              >
+                <RefreshCw className="size-3.5" />
+                Ander recept
+              </LogActionButton>
+            )}
+            <Link
+              href={`/zwbeter-worden/voeding/kiezen?dag=${today}&moment=${slot.moment}&terug=${encodeURIComponent(href({}))}`}
+              aria-label={`${MEAL_MOMENT_LABELS[slot.moment]}: recept kiezen`}
+              className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:text-primary"
             >
-              <Undo2 className="size-3.5" />
-            </LogActionButton>
-          )}
-          {slot.nextRecipeId && (
-            <LogActionButton
-              action={chooseMenuRecipe}
-              fields={{ day: today, moment: slot.moment, recipe_id: slot.nextRecipeId }}
-              variant="ghost"
-              size="sm"
-            >
-              <RefreshCw className="size-3.5" />
-              Ander recept
-            </LogActionButton>
-          )}
-          <Link
-            href={`/zwbeter-worden/voeding/kiezen?dag=${today}&moment=${slot.moment}&terug=${encodeURIComponent(href({}))}`}
-            aria-label={`${MEAL_MOMENT_LABELS[slot.moment]}: recept kiezen`}
-            className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:text-primary"
-          >
-            <BookOpen className="size-3.5" />
-          </Link>
+              <BookOpen className="size-3.5" />
+            </Link>
+          </div>
         </div>
-      </div>
-      {slot.moment === "tijdens_rit" && ride ? (
-        <RidePlanView plan={ride} />
-      ) : (
-        <RecipeCard
-          recipe={slot.recipe}
-          portion={slot.portion.perPortion}
-          favorite={prefs.get(slot.recipe.id) === "favoriet"}
-        />
-      )}
-      {logging &&
-        (eatenMoments.has(slot.moment) ? (
-          <p className="flex min-h-[36px] items-center gap-1 text-xs text-muted-foreground">
-            <Check className="size-3.5" />
-            Gegeten
-          </p>
+        {slotRide ? (
+          <RidePlanView
+            plan={slotRide}
+            // Het hele ritplan: alle bidons en porties, met de bidon die het lid koos.
+            log={logging && !eatenMoments.has(slot.moment) ? { action: logRidePlan, day: today } : undefined}
+          />
         ) : (
-          <LogActionButton
-            {...(slot.moment === "tijdens_rit" && ride
-              ? // Het hele ritplan: alle bidons en porties.
-                { action: logRidePlan, fields: { day: today, parts: JSON.stringify(ridePlanMeals(ride)) } }
-              : {
-                  action: logRecipe,
-                  fields: {
-                    slug: slot.recipe.slug,
-                    moment: slot.moment,
-                    day: today,
-                    // Precies de portie die hier staat, ook als die is vergroot.
-                    items: JSON.stringify(
-                      slot.portion.ingredients
-                        .filter((item) => item.grams > 0)
-                        .map((item) => logItemFor(item.food, item.grams)),
-                    ),
-                  },
-                })}
-            size="sm"
-          >
-            <Check className="size-4" />
-            Gegeten
-          </LogActionButton>
-        ))}
-    </li>
-  );
+          <RecipeCard
+            recipe={slot.recipe}
+            portion={slot.portion.perPortion}
+            favorite={prefs.get(slot.recipe.id) === "favoriet"}
+          />
+        )}
+        {logging &&
+          (eatenMoments.has(slot.moment) ? (
+            <p className="flex min-h-[36px] items-center gap-1 text-xs text-muted-foreground">
+              <Check className="size-3.5" />
+              Gegeten
+            </p>
+          ) : (
+            !slotRide && (
+              <LogActionButton
+                action={logRecipe}
+                fields={{
+                  slug: slot.recipe.slug,
+                  moment: slot.moment,
+                  day: today,
+                  // Precies de portie die hier staat, ook als die is vergroot.
+                  items: JSON.stringify(
+                    slot.portion.ingredients
+                      .filter((item) => item.grams > 0)
+                      .map((item) => logItemFor(item.food, item.grams)),
+                  ),
+                }}
+                size="sm"
+              >
+                <Check className="size-4" />
+                Gegeten
+              </LogActionButton>
+            )
+          ))}
+      </li>
+    );
+  };
   const group = (moments: MealMoment[]) => menu.filter((slot) => moments.includes(slot.moment));
   const dayPart = group(DAY_MOMENTS);
   const ridePart = group(RIDE_MOMENTS);

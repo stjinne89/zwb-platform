@@ -138,7 +138,7 @@ eigenaar kwamen de dagkaarten (Dagmenu en de voedingstip op Vandaag) en
 voorraad uit wat het lid eerder vastlegde is niet gebouwd; het plan kiest uit
 recepten voor onderweg. Sinds 2026-10-26 kan zo'n recept ook een gescande gel of
 sportdrank zijn (Sportvoeding in het receptenboek, `0276`, zie `PLAN.md`). Hoe het plan rekent:
-bidons eerst, hoogstens 90 g per bidon (12% van 750 ml; tot 2026-11-03 60 g), één bidon per uur, de
+bidons eerst, hoogstens 90 g per 500 ml (sinds 2026-11-03; daarvoor 60 g per bidon van 750 ml), 750 ml per uur, de
 rest uit vast eten (zie §3 van [voeding-wielrennen.md](voeding-wielrennen.md)).*
 
 ### Stap 3. Het ritdoel volgt de zwaarte

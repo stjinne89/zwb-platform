@@ -1,10 +1,15 @@
+"use client";
+
+import { useState, type ComponentProps } from "react";
 import Link from "next/link";
-import { Bike } from "lucide-react";
-import { formatRideMinute, type RidePlan, type RidePlanItem } from "@/lib/nutrition/ride-plan";
+import { Bike, Check } from "lucide-react";
+import { formatRideMinute, ridePlanMeals, type BidonMl, type RidePlan, type RidePlanItem } from "@/lib/nutrition/ride-plan";
+import { LogActionButton } from "../voeding/_components/log-controls";
+import { bidonLabel, bidonOptionClass } from "./bidon-options";
 
 // Het ritplan bij een training: wat je klaarzet en wanneer je het neemt
-// (src/lib/nutrition/ride-plan.ts). Zonder hooks, zodat zowel het dagmenu als
-// de kalender hem kunnen tonen.
+// (src/lib/nutrition/ride-plan.ts). De bidongrootte kies je hier; die keuze
+// geldt alleen voor deze weergave.
 
 function amount(value: number, unit: "g" | "ml"): string {
   return `${value.toLocaleString("nl-NL")} ${unit}`;
@@ -65,7 +70,17 @@ export function EventRidePlan({ eventId, plan, loadFrom }: { eventId: string; pl
   );
 }
 
-export function RidePlanView({ plan }: { plan: RidePlan }) {
+export function RidePlanView({
+  plan: initial,
+  log,
+}: {
+  plan: RidePlan;
+  /** "Gegeten" onder het plan: legt de gekozen bidons en porties vast. */
+  log?: { action: ComponentProps<typeof LogActionButton>["action"]; day: string };
+}) {
+  const [bidonMl, setBidonMl] = useState<BidonMl>(initial.bidonMl);
+  const sizes = initial.sizes ?? [initial];
+  const plan = sizes.find((size) => size.bidonMl === bidonMl) ?? initial;
   return (
     <div className="space-y-3 rounded-lg border bg-card p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -77,6 +92,21 @@ export function RidePlanView({ plan }: { plan: RidePlan }) {
           {hours(plan.minutes)} · {plan.totalG} g koolhydraten
         </p>
       </div>
+      {sizes.length > 1 ? (
+        <div role="group" aria-label="Bidon" className="flex w-fit rounded-full border p-0.5 text-xs">
+          {sizes.map((size) => (
+            <button
+              key={size.bidonMl}
+              type="button"
+              aria-pressed={size.bidonMl === plan.bidonMl}
+              onClick={() => setBidonMl(size.bidonMl)}
+              className={bidonOptionClass(size.bidonMl === plan.bidonMl)}
+            >
+              {bidonLabel(size.bidonMl)}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {plan.fluid ? (
         <p className="text-sm">
           Drinken:{" "}
@@ -112,6 +142,16 @@ export function RidePlanView({ plan }: { plan: RidePlan }) {
           ))}
         </ol>
       </details>
+      {log ? (
+        <LogActionButton
+          action={log.action}
+          fields={{ day: log.day, parts: JSON.stringify(ridePlanMeals(plan)) }}
+          size="sm"
+        >
+          <Check className="size-4" />
+          Gegeten
+        </LogActionButton>
+      ) : null}
     </div>
   );
 }

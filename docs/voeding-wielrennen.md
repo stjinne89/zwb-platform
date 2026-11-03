@@ -123,8 +123,11 @@ koolhydraten. Bij twee ritten op een dag telt de zwaarte van de langste. *Tot
   onderzoek gaf 90 g per uur als drank van 16% (maltodextrine en fructose,
   McCubbin et al. 2020, 3 uur hardlopen); maagklachten kwamen daar wel bij
   iedereen voor, ook in de controlegroep. Het ritplan
-  (`src/lib/nutrition/ride-plan.ts`, sinds 2026-10-25) zet hoogstens 90 g in een
-  bidon van 750 ml (12%; tot 2026-11-03 was dat 60 g, 8%) en rekent met één
+  (`src/lib/nutrition/ride-plan.ts`, sinds 2026-10-25) zet hoogstens 90 g per
+  500 ml in een bidon (18%, dus 135 g in 750 ml; keuze van de eigenaar
+  2026-11-03, daarvoor 60 g per 750 ml, 8%). 18% ligt boven de 16% die
+  McCubbin testte. Het lid kiest bij Klaarzetten
+  een bidon van 500, 750 of 1000 ml; het plan rekent standaard met 750 ml en één
   bidon per uur; wat er per uur meer
   nodig is, komt uit vast eten. Eén bidon per uur is een vertaling van ZWB, geen
   vochtadvies: dat volgt pas uit een zweettest (stap 5 van

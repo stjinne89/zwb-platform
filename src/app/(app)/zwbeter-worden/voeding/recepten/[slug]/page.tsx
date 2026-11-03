@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { Check, Pencil } from "lucide-react";
 import { Markdown } from "@/components/markdown";
 import { DIET_TAG_LABELS, FUEL_PROFILE_LABELS, isPackagedRecipe, portionForRider } from "@/lib/nutrition/recipes";
+import { BIDON_SIZES, fillBidon, isBidonMl, isBidonRecipe } from "@/lib/nutrition/ride-plan";
 import { unitFor } from "@/lib/nutrition/shopping-names";
+import { DEFAULT_BIDON_ML } from "@/lib/nutrition/sweat";
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import { nutritionDay } from "@/lib/nutrition/tips";
 import { MICRONUTRIENT_LABELS, portionTraits } from "@/lib/nutrition/traits";
@@ -29,6 +31,7 @@ import { DeleteRecipeButton } from "../../_components/delete-recipe-button";
 import { RecipePrefButtons, ShareRecipeButton } from "../../_components/recipe-actions";
 import { RecipeSharer } from "../../_components/recipe-sharer";
 import { BackLink } from "@/components/app-ui";
+import { bidonLabel, bidonOptionClass } from "../../../_components/bidon-options";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -57,7 +60,7 @@ export default async function RecipePage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ portie?: string | string[] }>;
+  searchParams: Promise<{ portie?: string | string[]; bidon?: string | string[] }>;
 }) {
   const [{ slug }, search] = await Promise.all([params, searchParams]);
   const viewer = await requireViewer();
@@ -72,11 +75,21 @@ export default async function RecipePage({
   if (!recipe) notFound();
 
   const wantsBase = search.portie === "basis";
+  const pageHref = (portie: boolean, bidonMl: number | null) => {
+    const query = new URLSearchParams();
+    if (portie) query.set("portie", "basis");
+    if (bidonMl != null && bidonMl !== DEFAULT_BIDON_ML) query.set("bidon", String(bidonMl));
+    const text = query.toString();
+    return `/zwbeter-worden/voeding/recepten/${recipe.slug}${text ? `?${text}` : ""}`;
+  };
   // Een gel of reep schaalt niet (isPackagedRecipe): er is maar één portie.
   const fixed = isPackagedRecipe(recipe);
   const personal = !wantsBase && !fixed && profile.weightKg != null;
+  // Alleen voor deze weergave, niet bewaard: de bidon die het lid hier kiest.
+  const wantedBidon = Number(search.bidon);
+  const bidon = !fixed && isBidonRecipe(recipe) ? (isBidonMl(wantedBidon) ? wantedBidon : DEFAULT_BIDON_ML) : null;
   const day = personal ? nutritionDay(await loadNutritionDayInput(viewer, today, profile.weightKg)) : null;
-  const portion = portionForRider(
+  const scaled = portionForRider(
     recipe,
     day
       ? {
@@ -89,6 +102,8 @@ export default async function RecipePage({
         }
       : null,
   );
+  // Water en zout vullen de gekozen bidon; de koolhydraten blijven gelijk.
+  const portion = bidon ? { ...scaled, ingredients: fillBidon(scaled.ingredients, bidon) } : scaled;
   const own = !recipe.is_standard && recipe.owner_id === viewer.user.id;
   const traits = portionTraits(portion.ingredients);
   const labels = [
@@ -145,13 +160,29 @@ export default async function RecipePage({
             <h3 className="font-semibold">{personal ? "Jouw portie vandaag" : "Eén portie"}</h3>
             {profile.weightKg != null && !fixed && (
               <Link
-                href={`/zwbeter-worden/voeding/recepten/${recipe.slug}${personal ? "?portie=basis" : ""}`}
+                href={pageHref(personal, bidon)}
                 className="inline-flex min-h-[44px] items-center text-sm text-primary hover:underline"
               >
                 {personal ? "Standaardportie" : "Jouw portie"}
               </Link>
             )}
           </div>
+          {bidon != null && (
+            <div role="group" aria-label="Bidon" className="flex w-fit rounded-full border p-0.5 text-xs">
+              {BIDON_SIZES.map((size) => (
+                <Link
+                  key={size}
+                  href={pageHref(wantsBase, size)}
+                  aria-current={size === bidon ? "true" : undefined}
+                  replace
+                  scroll={false}
+                  className={bidonOptionClass(size === bidon)}
+                >
+                  {bidonLabel(size)}
+                </Link>
+              ))}
+            </div>
+          )}
           <ul className="divide-y text-sm">
             {portion.ingredients.map((item, index) => (
               <li key={`${item.food.id}-${index}`} className="flex justify-between gap-3 py-2">

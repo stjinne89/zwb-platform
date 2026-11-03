@@ -2,30 +2,52 @@
 // neemt. Stap 2 van docs/ritvoeding-plan.md.
 //
 // Regelgebaseerd, net als het dagmenu. Bidons eerst: elke bidon draagt
-// hoogstens BIDON_MAX_CARBS_G, wat erboven nodig is komt uit vast eten. Een
+// hoogstens bidonMaxCarbs, wat erboven nodig is komt uit vast eten. Een
 // recept is een bidon als er een drank in zit (NEVO-groep "Niet-alcoholische
 // dranken"); de clubrecepten voor onderweg vallen zo vanzelf goed, en een
 // gescande drank in ml ook (products.ts). Een recept van alleen verpakte
 // producten, zoals een gel, gaat in hele stuks mee.
 
-import { basePortion, macrosFor, scaleRecipe, type RecipeIngredient } from "./scale";
+import { basePortion, energyFree, macrosFor, roundGrams, scaleRecipe, type RecipeIngredient } from "./scale";
 import { isPackagedRecipe, type Recipe } from "./recipes";
 import { logItemFor } from "./products";
 import type { ShoppingSlot } from "./shopping";
 import { unitFor } from "./shopping-names";
-import { fluidBidons, fluidPerHour, type FluidTarget } from "./sweat";
+import { DEFAULT_BIDON_ML, fluidBidons, fluidPerHour, type FluidTarget } from "./sweat";
 import { rideTargetPerHour, type GutTraining } from "./targets";
 
+/** De bidons om uit te kiezen bij Klaarzetten en in het receptenboek. */
+export const BIDON_SIZES = [500, 750, 1000] as const;
+export type BidonMl = (typeof BIDON_SIZES)[number];
+
+export function isBidonMl(value: unknown): value is BidonMl {
+  return BIDON_SIZES.includes(Number(value) as BidonMl);
+}
+
 /**
- * Koolhydraten per bidon van 750 ml: hoogstens 90 g (12%), zoveel als een
- * sportdrank voor 90 g per uur in één bidon zet. McCubbin et al. (2020) gaven
- * 90 g per uur als drank van 16% (maltodextrine en fructose); de review van de
- * Oliveira & Burini (2014) noemde nog 5–8%, en 8–10% met glucose plus
- * fructose. De grens zelf is een keuze van ZWB. De clubdranken gebruiken
- * suiker (glucose en fructose 1:1). Wat er per uur meer nodig is, komt uit
- * vast eten.
+ * Koolhydraten per bidon: hoogstens 90 g per 500 ml (18%), dus 135 g in een
+ * bidon van 750 ml. McCubbin et al. (2020) gaven 90 g per uur als drank van 16%
+ * (maltodextrine en fructose); de review van de Oliveira & Burini (2014) noemde
+ * nog 5–8%, en 8–10% met glucose plus fructose. De grens zelf is een keuze van
+ * ZWB. De clubdranken gebruiken suiker (glucose en fructose 1:1). Wat er per
+ * uur meer nodig is, komt uit vast eten.
  */
-export const BIDON_MAX_CARBS_G = 90;
+const BIDON_MAX_CARBS_PER_ML = 90 / 500;
+
+export function bidonMaxCarbs(bidonMl: number): number {
+  return Math.round(BIDON_MAX_CARBS_PER_ML * bidonMl);
+}
+
+/**
+ * Een recept voor onderweg gaat uit van een bidon van 750 ml: water en zout
+ * (zonder energie, scale.ts) groeien of krimpen mee met de gekozen bidon.
+ */
+export function fillBidon<T extends RecipeIngredient>(ingredients: T[], bidonMl: number): T[] {
+  if (bidonMl === DEFAULT_BIDON_ML) return ingredients;
+  return ingredients.map((item) =>
+    energyFree(item.food) ? { ...item, grams: roundGrams((item.grams * bidonMl) / DEFAULT_BIDON_ML) } : item,
+  );
+}
 /** Een stuk vast eten dat minder dan dit oplevert, laat het plan weg. */
 const SOLID_MIN_CARBS_G = 15;
 /** Eerste eetmoment na een kwartier, daarna elke twintig minuten. */
@@ -69,6 +91,7 @@ export type RideFeed = {
 
 export type RidePlan = {
   minutes: number;
+  bidonMl: BidonMl;
   perHourG: number;
   totalG: number;
   bidons: RidePlanItem;
@@ -78,6 +101,8 @@ export type RidePlan = {
   fluid: FluidTarget | null;
   solid: RidePlanItem | null;
   feeds: RideFeed[];
+  /** Hetzelfde plan per bidongrootte, om te kiezen bij Klaarzetten. */
+  sizes?: RidePlan[];
 };
 
 export type RidePlanInput = {
@@ -97,6 +122,7 @@ export type RidePlanInput = {
   /** Het lid koos `lead` zelf. */
   leadChosen?: boolean;
   energyFactor: number;
+  bidonMl?: BidonMl;
 };
 
 function ingredientsOf(items: RecipeIngredient[]): RidePlanIngredient[] {
@@ -140,19 +166,29 @@ export function feedMinutes(minutes: number): number[] {
 
 /**
  * Het plan voor één rit, of null onder een uur: dan hoeft er onderweg niets bij
- * (targets.ts). Het doel per uur volgt de zwaarte (rideTargetPerHour).
+ * (targets.ts). Het doel per uur volgt de zwaarte (rideTargetPerHour). In
+ * `sizes` staat hetzelfde plan voor elke bidongrootte.
  */
-export function ridePlan({
-  minutes,
-  intensity = null,
-  gut = null,
-  sweatMlPerHour = null,
-  weightKg = null,
-  ranked,
-  lead = null,
-  leadChosen = false,
-  energyFactor,
-}: RidePlanInput): RidePlan | null {
+export function ridePlan(input: RidePlanInput): RidePlan | null {
+  const plans = BIDON_SIZES.map((bidonMl) => planForBidon(input, bidonMl));
+  const plan = plans[BIDON_SIZES.indexOf(input.bidonMl ?? DEFAULT_BIDON_ML)];
+  return plan ? { ...plan, sizes: plans.filter((item): item is RidePlan => item != null) } : null;
+}
+
+function planForBidon(
+  {
+    minutes,
+    intensity = null,
+    gut = null,
+    sweatMlPerHour = null,
+    weightKg = null,
+    ranked,
+    lead = null,
+    leadChosen = false,
+    energyFactor,
+  }: RidePlanInput,
+  bidonMl: BidonMl,
+): RidePlan | null {
   const perHourG = rideTargetPerHour(minutes, intensity, gut);
   if (perHourG == null) return null;
   const target = Math.round((perHourG * minutes) / 60);
@@ -161,20 +197,24 @@ export function ridePlan({
   const drink = lead && leadIsBidon ? lead : (ranked.find(isBidonRecipe) ?? null);
   const food = lead && !leadIsBidon ? lead : (ranked.find((recipe) => !isBidonRecipe(recipe)) ?? null);
 
-  // Met een zweettest volgt het aantal bidons uit het vochtdoel, anders één per uur.
+  // Met een zweettest volgt het aantal bidons uit het vochtdoel, anders zoveel
+  // als één bidon van 750 ml per uur.
   const fluid = sweatMlPerHour ? fluidPerHour(sweatMlPerHour, weightKg, minutes) : null;
-  const bidonCount = fluid ? fluidBidons(fluid, minutes) : Math.max(1, Math.round(minutes / 60));
+  const bidonCount = fluid
+    ? fluidBidons(fluid, minutes, bidonMl)
+    : Math.max(1, Math.round((minutes * DEFAULT_BIDON_ML) / 60 / bidonMl));
+  const maxCarbs = bidonMaxCarbs(bidonMl);
   // Koos het lid zelf vast eten, dan draagt de bidon maar de helft: anders
   // verdwijnt die keuze bij een rit waar de bidons alles kunnen dragen.
   const bidonShare = lead && !leadIsBidon && leadChosen ? 0.5 : 1;
-  const drinkTotal = food ? Math.min(BIDON_MAX_CARBS_G * bidonCount, target * bidonShare) : target;
+  const drinkTotal = food ? Math.min(maxCarbs * bidonCount, target * bidonShare) : target;
   // Kleiner dan een halve portie schaalt een recept niet (scale.ts). Vraagt de
   // rit minder dan dat per bidon, dan gaan de overige bidons met water mee.
   const smallest = drink ? portion(drink, 0, energyFactor).perPortion.carbsG : 0;
   const drinkBidons = drink ? Math.min(bidonCount, Math.max(1, Math.floor(drinkTotal / Math.max(smallest, 1)))) : 0;
   const bidonTarget = drink
     ? food
-      ? Math.min(BIDON_MAX_CARBS_G, drinkTotal / drinkBidons)
+      ? Math.min(maxCarbs, drinkTotal / drinkBidons)
       : drinkTotal / drinkBidons
     : 0;
 
@@ -185,7 +225,7 @@ export function ridePlan({
     recipe: drink ? { slug: drink.slug, title: drink.title } : null,
     count: carbBidons,
     carbsG: bidonCarbs,
-    ingredients: bidonPortion ? ingredientsOf(bidonPortion.ingredients) : [],
+    ingredients: bidonPortion ? ingredientsOf(fillBidon(bidonPortion.ingredients, bidonMl)) : [],
   };
 
   let solid: RidePlanItem | null = null;
@@ -228,6 +268,7 @@ export function ridePlan({
 
   return {
     minutes,
+    bidonMl,
     perHourG,
     totalG: bidonCarbs * carbBidons + (solid ? solid.carbsG * solid.count : 0),
     bidons,

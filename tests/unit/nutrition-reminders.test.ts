@@ -41,6 +41,7 @@ describe("voedingsherinneringen, welke", () => {
   it("zet erbij wat je voor de rit van morgen klaarzet", () => {
     const tomorrowRide = {
       minutes: 120,
+      bidonMl: 750 as const,
       perHourG: 45,
       totalG: 90,
       bidons: { recipe: { slug: "sportdrank", title: "Zelfgemaakte sportdrank" }, count: 2, carbsG: 45, ingredients: [] },

@@ -11709,6 +11709,40 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Ritplan: bidon van 500, 750 of 1000 ml
+
+**2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch
+`claude/drinkmix-favorites-zwbeter-6a454b`, niet gepusht. Geen migratie.
+
+**Waarom.** Wens van de eigenaar: bij Klaarzetten en in het receptenboek
+kiezen tussen drie bidons. De grens per bidon schaalt mee: hoogstens 90 g per
+500 ml (keuze eigenaar), dus 90, 135 en 180 g. Dat is 18%, boven de 16% die
+McCubbin et al. (2020) testten.
+
+**Wat.**
+- `lib/nutrition/ride-plan.ts`: `BIDON_SIZES` (500, 750, 1000),
+  `bidonMaxCarbs`, `fillBidon`. `ridePlan` rekent het plan voor elke
+  grootte uit; het plan voor 750 ml (of `bidonMl` uit de invoer) komt terug,
+  met de drie in `sizes`. Het aantal bidons volgt met een zweettest uit het
+  vochtdoel (`fluidBidons` kreeg de grootte), zonder test uit 750 ml per uur
+  (500 ml: 2 uur geeft 3 bidons). Water en zout groeien mee met de bidon:
+  recepten gaan uit van 750 ml.
+- Klaarzetten (`ride-plan-view.tsx`, nu een client-component): een knoppenrij
+  500 ml, 750 ml, 1 l. "Gegeten" op de voedingspagina zit nu in het plan en
+  legt de gekozen bidon vast.
+- Receptpagina: bij een recept met een drank (geen verpakt product) dezelfde
+  rij als links (`?bidon=500`); water en zout volgen, de koolhydraten niet.
+- `/hulp` (Kennis) en `docs/voeding-wielrennen.md` §3 bijgewerkt.
+
+**Bewust niet.** Bewaren per lid: de eigenaar koos voor een keuze die alleen
+op de pagina geldt, zonder migratie. Daardoor rekenen Boodschappen, de
+herinnering en een nieuwe paginaweergave altijd met 750 ml.
+
+**Gecontroleerd.** Vitest `nutrition-*.test.ts` (nieuw: aantal, grens en
+water per grootte); `tsc` en ESLint schoon op de geraakte bestanden.
+**Niet geverifieerd:** de knoppen in de browser; deze worktree heeft geen
+`.env.local` en geen volledige `node_modules`.
+
 ### Bijgesteld — Recepten: water en zout schalen niet mee
 
 **2026-11-03.** Commit `ebfb7937`, gepusht naar `main` op 2026-11-03
@@ -11750,6 +11784,8 @@ De Oliveira & Burini (2014). Een sportdrank als NRGY Drink 90 is gemaakt voor
 bidon; die is dus niet de reden.
 
 **Wat.** `BIDON_MAX_CARBS_G` in `lib/nutrition/ride-plan.ts` van 60 naar 90.
+*Dezelfde dag vervangen door 90 g per 500 ml (`bidonMaxCarbs`), zie de ronde
+"Ritplan: bidon van 500, 750 of 1000 ml".*
 Bidons dragen nu meer, dus vast eten komt minder vaak in het plan: bij 4 uur
 op 75 g per uur zit alles in de bidons. `/hulp` (Kennis),
 `docs/voeding-wielrennen.md` §3 en `docs/ritvoeding-plan.md` zeggen nu 90 g.
@@ -16878,7 +16914,7 @@ eigenaar (2026-10-25, zonder wijziging). Op 2026-10-25 gepusht naar `main`.
 - **Ritplan.** Met een test staat bovenaan "Drinken: 0,6–1,0 l per uur" en
   volgt het aantal bidons van 750 ml uit het midden van het vochtdoel; de
   koolhydraten worden over die bidons verdeeld (hoogstens 60 g per bidon, sinds
-  2026-11-03 90 g, de
+  2026-11-03 90 g per 500 ml, de
   rest water of vast eten). Zonder test een link "Zweettest" en, zoals
   voorheen, één bidon per uur. Overal: Dagmenu, Vandaag, schema, eventpagina,
   briefing, herinnering en Boodschappen.

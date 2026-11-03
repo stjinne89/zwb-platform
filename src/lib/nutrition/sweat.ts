@@ -18,7 +18,8 @@ export const SWEAT_RATE_MIN_ML = 200;
 export const SWEAT_RATE_MAX_ML = 3000;
 /** Meer dan dit deel van je gewicht verliezen kost prestatie, vooral in de warmte. */
 const MAX_LOSS_FRACTION = 0.02;
-const BIDON_ML = 750;
+/** De gewone bidon; het ritplan kent ook 500 en 1000 ml (ride-plan.ts). */
+export const DEFAULT_BIDON_ML = 750;
 
 export const SWEAT_SETTINGS = ["binnen", "buiten"] as const;
 export type SweatSetting = (typeof SWEAT_SETTINGS)[number];
@@ -86,8 +87,8 @@ export function fluidPerHour(sweatMlPerHour: number, weightKg: number | null, mi
   return { minMl: Math.min(maxMl, Math.max(0, round50(sweatMlPerHour - allowedPerHour))), maxMl };
 }
 
-/** Hoeveel bidons van 750 ml je meeneemt: het midden van het vochtdoel over de hele rit. */
-export function fluidBidons(fluid: FluidTarget, minutes: number): number {
+/** Hoeveel bidons je meeneemt: het midden van het vochtdoel over de hele rit. */
+export function fluidBidons(fluid: FluidTarget, minutes: number, bidonMl = DEFAULT_BIDON_ML): number {
   const perHour = fluid.minMl == null ? fluid.maxMl : (fluid.minMl + fluid.maxMl) / 2;
-  return Math.max(1, Math.round((perHour * minutes) / 60 / BIDON_ML));
+  return Math.max(1, Math.round((perHour * minutes) / 60 / bidonMl));
 }

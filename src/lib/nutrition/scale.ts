@@ -79,7 +79,7 @@ function clampFactor(value: number): number {
  * Water en zout leveren niets: de energiefactor heeft daar niets te schalen, en
  * water vult de bidon. Een onbekende waarde telt niet als nul.
  */
-function energyFree(food: NutritionFood): boolean {
+export function energyFree(food: NutritionFood): boolean {
   return [food.kcal, food.carbs_g, food.protein_g, food.fat_g].every((value) => value != null && Number(value) === 0);
 }
 
