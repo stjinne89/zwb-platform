@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-10-30)
+## Actieve volgorde (bijgewerkt 2026-11-03)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -128,7 +128,11 @@ gaat stabiliteit voor nieuwe features.
    een niet-geplande rit aanklikken, RPE opslaan, en de rit daarna aan een
    training hangen. Zie de ronde "RPE bij een losse rit".
 
-1. **Egress boven de limiet: Supabase beperkt het project vanaf 2026-11-02.**
+1. **Supabase: tijdelijk op Pro sinds 2026-11-02, terug naar Free per 2026-12-02**
+   (besluit eigenaar, 2026-11-03: Pro was nodig omdat het project anders op slot
+   ging; de volgende cyclus weer Free). Daarvoor moet de database onder 500 MB
+   blijven: zie de ronde "Trainingsdata kleiner voor Free" (`0304`).
+   Voorgeschiedenis: egress boven de limiet, beperking vanaf 2026-11-02.
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
    (limiet 5 GB), en de banner "Organization exceeded its quota in the previous
    billing cycle" met beperking vanaf 2 november als de organisatie boven het
@@ -140,8 +144,8 @@ gaat stabiliteit voor nieuwe features.
    **Check 2026-10-27:** egress 8,33 GB na 16 dagen. Na de fix ~0,13 GB per dag
    (21–26 okt, afgelezen uit de grafiek; was ~0,3 vóór 13 okt en tot 1,3 tijdens
    de golf). Doorgerekend ~10 GB aan het eind van de cyclus; vanaf de volgende
-   cyclus ~4 GB per maand, net onder de limiet. De beslissing over Pro staat dus
-   nog steeds open.
+   cyclus ~4 GB per maand, net onder de limiet. (Niet meer open: de organisatie
+   staat sinds 2026-11-02 op Pro, zie boven.)
    **Database slank en snel: afgerond op 2026-10-01.** `0212_remove_segment_explorer.sql`
    is toegepast; de database ging van 1.260 naar **200 MB** (Free-limiet 512 MB).
    `vacuum full public.zwb_segment_maps;` is gedraaid (gemeld door de eigenaar
@@ -198,6 +202,17 @@ gaat stabiliteit voor nieuwe features.
    buiten de publieke paden het profiel opvraagt (goedkoop: ~0,1 ms per
    aanroep). `live_positions` 17.638 (+1.231 in een week). cron-job.org: alle
    19 jobs geslaagd.
+   **Check 2026-11-03:** organisatie op Pro (cyclus 2 nov – 2 dec). Database
+   275 MB (+14 MB; Supabase telt 289,7 MB), disk 30% (0,58 van 2 GB). Egress
+   27 okt – 2 nov ~90–195 MB per dag, gemiddeld ~0,13 GB (~4 GB per maand).
+   Databasetijd achtergrond 1.686 s tegen leden 1.150 s; geen zware query haalt
+   nog `raw` op. `live_positions` daalde naar 14.931: het wissen na 30 dagen
+   werkt. Nieuw: kale `auth.uid()` in `0292_intervals_strength_muscles.sql`
+   (regel 44–45), de receptenlijst (`nutrition_recipes`, 15%, gemiddeld 500 ms,
+   vermoedelijk de RLS-policy; niet bewezen) en `markExcludedRides` (14%,
+   gemiddeld 229 ms, geen gedeeltelijke index op `training_excluded_at`). Alle
+   20 jobs op cron-job.org geslaagd. Groei ~20 MB per week: zonder ingreep is
+   500 MB rond half januari 2027 bereikt.
 2. **Omnium editie 1: verzet naar november, datum onzeker** (gemeld door de
    eigenaar, 2026-10-02; was 11 oktober). De migraties staan (`0174`, `0190`).
    Nog te doen: seizoen `2026-27` plannen en publiceren, dan event-ID's,
@@ -591,6 +606,46 @@ drie 2026-10-16; `0246_workout_method_labels` en
 `0247_training_engine_comparisons` staan op `main`;
 `0248_member_protocol_core_analysis` is van de analyse per hittesessie,
 2026-10-17, hernummerd van `0239` bij het samenvoegen met main).
+
+---
+
+> **Trainingsdata kleiner voor Free, 2026-11-03 — gebouwd; migratietest (`tests/unit/training-storage-retention.test.ts`, PGlite) en lint schoon; niet gepusht. Migratie `0304_training_storage_retention.sql`, niet toegepast en niet lokaal te testen tegen Supabase (geen Docker of Supabase-config).**
+>
+> **Waarom.** De eigenaar wil per 2026-12-02 terug naar Free (500 MB). De
+> database groeit ~20 MB per week; een derde daarvan zat in twee tabellen met
+> data die niemand leest. Onderzoek en cijfers:
+> [database-bewaartermijn](docs/database-bewaartermijn.md).
+>
+> **Wat.**
+> - `training_ai_generations.prompt_text` (~9,5 MB; 60 verschillende prompts op
+>   821 generaties) gaat naar `training_ai_prompts`, één rij per tekst; de
+>   generatie houdt `prompt_hash`. Een trigger doet dat bij elke insert en
+>   update, dus `src/lib/training/draft.ts` is niet aangepast en de volgorde van
+>   migratie en deploy maakt niet uit. `scripts/claude-replay.mjs` en
+>   `scripts/schema-meetlat.mjs` lezen de prompt nu via die tabel (werken pas na
+>   het toepassen van `0304`).
+> - `prune_superseded_training_workouts(keep_days)` verwijdert vervangen
+>   workouts (89% van `training_workouts`, ~1.800 per week erbij) als ze ouder
+>   zijn dan 30 dagen, nooit gereden, zonder intervals.icu-event, rapportage,
+>   FTP-test of ritsamenvatting. `/api/live/cleanup` (elke 15 min) roept hem aan
+>   en zet een fout als `pruneError` in het antwoord. Op 2026-11-03 zouden er
+>   3.393 rijen vallen.
+>
+> **Bewust niet gebouwd.** Generaties zelf verwijderen: dan verdwijnen de
+> oordelen in "Vergelijken" (`training_engine_comparisons`, cascade). Een
+> herziening die ongewijzigde workouts laat staan in plaats van te vervangen:
+> raakt de planningslogica; de opruiming is dan nog steeds nodig. Het commentaar
+> in `retireSupersededWorkouts` ("zodat zichtbaar blijft wat er oorspronkelijk
+> gepland stond") geldt nu nog 30 dagen; geen scherm toonde ze.
+>
+> **Nog te doen door de eigenaar.** `0304` toepassen; daarna eenmalig
+> `vacuum full public.training_ai_generations; vacuum full public.training_workouts;`
+> (pas nadat de cleanup één keer heeft gedraaid), anders krimpt de database niet.
+> Verwachting: ~15 MB terug en de groei van ~20 naar ~7–10 MB per week.
+>
+> **Niet geverifieerd.** De migratie op Supabase zelf (trigger als
+> `security definer`, rechten), en het effect op de groei; dat moet uit de
+> wekelijkse check komen.
 
 ---
 

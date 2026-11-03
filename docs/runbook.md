@@ -116,6 +116,13 @@ OP-punten. Egress en quota op de Supabase-usagepagina en de job-historie op
 cron-job.org ziet het script niet; die kijkt de taak na als Chrome beschikbaar is.
 Achtergrond: [prestatie-onderzoek](prestatie-onderzoek-2026-09-30.md).
 
+Bewaartermijn trainingsdata (`0304`): `/api/live/cleanup` verwijdert vervangen
+workouts na 30 dagen; het antwoord meldt `prunedSupersededWorkouts`, of
+`pruneError` als het mislukt. Eenmalig na het toepassen van `0304` en de eerste
+cleanup-run, in de SQL-editor:
+`vacuum full public.training_ai_generations; vacuum full public.training_workouts;`
+Zie [database-bewaartermijn](database-bewaartermijn.md).
+
 ---
 
 ## 3. Credentials die verlopen (belangrijkste onderhoudspunt)

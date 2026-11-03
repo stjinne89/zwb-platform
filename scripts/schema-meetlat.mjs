@@ -12,7 +12,7 @@
 // alleen tellingen.
 //
 // De invoer van de planner staat in prompt_summary (JSON.stringify van
-// TrainingAiInput); prompt_text is de prompt zelf. Daaruit lezen we alleen of
+// TrainingAiInput); de prompt zelf staat sinds 0304 in training_ai_prompts. Daaruit lezen we alleen of
 // een regel al in de prompt stond toen de generatie liep: een regel die er toen
 // nog niet in stond, kon de AI ook niet breken.
 
@@ -80,16 +80,17 @@ const quote = (text) => `'${text.replaceAll("'", "''")}'`;
 
 function fetchGenerations() {
   const markerColumns = Object.entries(MARKERS)
-    .map(([rule, marker]) => `position(${quote(marker)} in prompt_text) > 0 as "rule:${rule}"`)
+    .map(([rule, marker]) => `position(${quote(marker)} in p.prompt_text) > 0 as "rule:${rule}"`)
     .join(",\n  ");
   const rows = [];
   for (let offset = 0; ; offset += PAGE) {
-    const page = sql(`select id, created_at, coalesce(adaptation_kind, 'new') as kind, model, profile_id,
+    const page = sql(`select g.id, g.created_at, coalesce(adaptation_kind, 'new') as kind, model, profile_id,
   prompt_summary, response_json,
   ${markerColumns}
-from training_ai_generations
+from training_ai_generations g
+left join training_ai_prompts p on p.hash = g.prompt_hash
 where status = 'completed' and response_json is not null and jsonb_typeof(response_json -> 'workouts') = 'array'
-order by created_at, id
+order by g.created_at, g.id
 limit ${PAGE} offset ${offset}`);
     rows.push(...page);
     process.stderr.write(`\r${rows.length} generaties opgehaald`);

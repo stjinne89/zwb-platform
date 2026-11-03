@@ -77,10 +77,20 @@ export async function POST(request: NextRequest) {
     // functie kan ontbreken vóór migratie 0062
   }
 
+  // 6. Vervangen trainingsvoorstellen na 30 dagen weg (0304). De fout komt in
+  //    het antwoord, zodat een geslaagde cron-run niet stil maskeert dat er
+  //    niets gewist wordt.
+  const { data: prunedWorkouts, error: pruneError } = await admin.rpc(
+    "prune_superseded_training_workouts",
+    { keep_days: 30 },
+  );
+
   return NextResponse.json({
     ok: true,
     closedStaleSessions: (closedCount ?? 0) + (closedExternal ?? 0),
     deletedOldPositions: deletedPositions ?? 0,
     deletedOldChat: deletedChat,
+    prunedSupersededWorkouts: pruneError ? null : (prunedWorkouts ?? 0),
+    ...(pruneError ? { pruneError: pruneError.message } : {}),
   });
 }

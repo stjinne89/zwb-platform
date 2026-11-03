@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Speelt opgeslagen OpenAI-generaties na met Claude, voor de vraag of de app van
 // AI-aanbieder kan wisselen. Per generatie gaat precies dezelfde prompt
-// (prompt_text) en invoer (prompt_summary) naar Claude, met hetzelfde
+// (training_ai_prompts via prompt_hash, sinds 0304) en invoer (prompt_summary) naar Claude, met hetzelfde
 // JSON-schema als de app aan OpenAI geeft. Beide schema's gaan daarna langs de
 // meetlat (checkTrainingPlan), en compare.html zet ze blind naast elkaar om zelf
 // te beoordelen.
@@ -101,11 +101,11 @@ const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE
 });
 const { data: rows, error } = await supabase
   .from("training_ai_generations")
-  .select("id, adaptation_kind, parent_plan_id, model, prompt_text, prompt_summary, response_json, created_at")
+  .select("id, adaptation_kind, parent_plan_id, model, prompt:training_ai_prompts(prompt_text), prompt_summary, response_json, created_at")
   .eq("profile_id", PROFILE)
   .eq("status", "completed")
   .not("response_json", "is", null)
-  .not("prompt_text", "is", null)
+  .not("prompt_hash", "is", null)
   .order("created_at", { ascending: false })
   .limit(400);
 if (error) throw new Error(error.message);
@@ -175,7 +175,7 @@ async function replay(row) {
       output_config: { effort: EFFORT ?? cfg.effort, format: { type: "json_schema", schema: claudeSchema(cfg.minWorkouts) } },
       // Geen cache_control: de systeemprompt verschilt per generatie, dus een
       // cache werd alleen geschreven (25% duurder) en nooit gelezen.
-      system: row.prompt_text,
+      system: row.prompt.prompt_text,
       messages: [
         {
           role: "user",
