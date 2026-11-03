@@ -2,7 +2,7 @@
 
 Onderzoek van 2026-11-03, alleen lezend op productie. Gebouwd in migratie
 `0304_training_storage_retention.sql` (beide voorstellen, met een trigger voor de
-prompt); nog niet toegepast.
+prompt); toegepast op 2026-11-03, database daarna 259 MB (was 275).
 
 ## Aanleiding
 

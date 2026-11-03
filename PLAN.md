@@ -131,7 +131,9 @@ gaat stabiliteit voor nieuwe features.
 1. **Supabase: tijdelijk op Pro sinds 2026-11-02, terug naar Free per 2026-12-02**
    (besluit eigenaar, 2026-11-03: Pro was nodig omdat het project anders op slot
    ging; de volgende cyclus weer Free). Daarvoor moet de database onder 500 MB
-   blijven: zie de ronde "Trainingsdata kleiner voor Free" (`0304`).
+   blijven: zie de ronde "Trainingsdata kleiner voor Free" (`0304`, toegepast
+   2026-11-03; database daarna 259 MB). Open: de code pushen, zodat
+   `/api/live/cleanup` de opruiming elke 15 minuten draait.
    Voorgeschiedenis: egress boven de limiet, beperking vanaf 2026-11-02.
    Check 2026-10-20: 7,23 GB egress na 9 dagen van de cyclus 11 okt – 11 nov
    (limiet 5 GB), en de banner "Organization exceeded its quota in the previous
@@ -609,7 +611,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Trainingsdata kleiner voor Free, 2026-11-03 (`b891ff17`) — gebouwd; migratietest (`tests/unit/training-storage-retention.test.ts`, PGlite) en lint schoon; niet gepusht. Migratie `0304_training_storage_retention.sql`, niet toegepast en niet lokaal te testen tegen Supabase (geen Docker of Supabase-config).**
+> **Trainingsdata kleiner voor Free, 2026-11-03 (`20cc390e`) — gebouwd; migratietest (`tests/unit/training-storage-retention.test.ts`, PGlite) en lint schoon; niet gepusht. Migratie `0304_training_storage_retention.sql` op verzoek van de eigenaar toegepast via de Supabase-connector (2026-11-03) en nagekeken; niet lokaal te testen tegen Supabase (geen Docker of Supabase-config).**
 >
 > **Waarom.** De eigenaar wil per 2026-12-02 terug naar Free (500 MB). De
 > database groeit ~20 MB per week; een derde daarvan zat in twee tabellen met
@@ -638,14 +640,20 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > in `retireSupersededWorkouts` ("zodat zichtbaar blijft wat er oorspronkelijk
 > gepland stond") geldt nu nog 30 dagen; geen scherm toonde ze.
 >
-> **Nog te doen door de eigenaar.** `0304` toepassen; daarna eenmalig
-> `vacuum full public.training_ai_generations; vacuum full public.training_workouts;`
-> (pas nadat de cleanup één keer heeft gedraaid), anders krimpt de database niet.
-> Verwachting: ~15 MB terug en de groei van ~20 naar ~7–10 MB per week.
+> **Op productie (2026-11-03, via de connector, op verzoek van de eigenaar).**
+> `0304` toegepast: 60 prompts in `training_ai_prompts`, alle 821 generaties met
+> `prompt_hash` en zonder `prompt_text`, trigger aan; `anon`/`authenticated`
+> kunnen de prompttabel niet lezen en de opruimfunctie niet aanroepen,
+> `service_role` wel. De opruiming één keer met de hand gedraaid: 3.393 rijen weg
+> (11.191 → 7.798). Daarna `vacuum full` op beide tabellen: database 275 → 259 MB;
+> `training_ai_generations` 17 MB → 6,7 MB (+0,7 MB prompttabel),
+> `training_workouts` 18 → 11 MB.
 >
-> **Niet geverifieerd.** De migratie op Supabase zelf (trigger als
-> `security definer`, rechten), en het effect op de groei; dat moet uit de
-> wekelijkse check komen.
+> **Niet geverifieerd.** Een nieuwe generatie op productie na het toepassen (er
+> was er in het eerste uur geen; de trigger is alleen in PGlite getest). De
+> aanroep vanuit `/api/live/cleanup` draait pas na de deploy van deze code; tot
+> dan ruimt niets automatisch op. Het effect op de groei moet uit de wekelijkse
+> check komen (verwachting ~7–10 MB per week in plaats van ~20).
 
 ---
 

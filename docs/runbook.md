@@ -118,9 +118,8 @@ Achtergrond: [prestatie-onderzoek](prestatie-onderzoek-2026-09-30.md).
 
 Bewaartermijn trainingsdata (`0304`): `/api/live/cleanup` verwijdert vervangen
 workouts na 30 dagen; het antwoord meldt `prunedSupersededWorkouts`, of
-`pruneError` als het mislukt. Eenmalig na het toepassen van `0304` en de eerste
-cleanup-run, in de SQL-editor:
-`vacuum full public.training_ai_generations; vacuum full public.training_workouts;`
+`pruneError` als het mislukt. De eenmalige opruiming en `vacuum full` op
+`training_ai_generations` en `training_workouts` zijn op 2026-11-03 gedaan.
 Zie [database-bewaartermijn](database-bewaartermijn.md).
 
 ---
