@@ -777,6 +777,20 @@ export function SchemaHelp() {
               invulde staan, zodat je er een andere rit aan kunt hangen.
             </p>
             <p
+              id="ritten-samenvoegen"
+              className="mt-2 scroll-mt-20 text-sm text-muted-foreground"
+            >
+              Reed je één training in een paar ritten, bijvoorbeeld een workout en
+              daarna nog een group ride op Zwift? Klik de losse rit aan en kies bij{" "}
+              <strong className="text-foreground">Hoort bij</strong>, onder
+              Samenvoegen met, de gereden training van die dag. De ritten tellen
+              dan samen als één training: duur, belasting en het oordeel gaan over
+              het geheel. Dat kan alleen met ritten van dezelfde dag. Met{" "}
+              <strong className="text-foreground">Losmaken</strong> bij de training
+              haal je een rit er weer af. De zonetijden blijven die van de eerste
+              rit.
+            </p>
+            <p
               id="rpe-losse-rit"
               className="mt-2 scroll-mt-20 text-sm text-muted-foreground"
             >

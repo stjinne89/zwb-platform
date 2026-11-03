@@ -42,7 +42,12 @@ import {
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
 import { fitScheduleToAvailability } from "@/lib/training/availability-fit";
-import { relinkRide, reviewNotificationBody } from "@/lib/training/completion";
+import {
+  joinRide,
+  relinkRide,
+  reviewNotificationBody,
+  splitRide,
+} from "@/lib/training/completion";
 import { clampRpe, writeRideRpe } from "@/lib/training/ride-rpe";
 import { NO_WORKOUT } from "./_components/ride-link";
 import {
@@ -2395,6 +2400,30 @@ export async function relinkRideAction(formData: FormData) {
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : "Koppelen faalde.",
+    };
+  }
+}
+
+/**
+ * Het lid zet een rit bij een andere rit van dezelfde dag, of haalt hem er weer
+ * af (`parent_id` leeg). Zie joinRide en splitRide.
+ */
+export async function joinRideAction(formData: FormData) {
+  try {
+    const { user } = await currentUser();
+    const activityId = mustString(formData.get("activity_id"), "Rit");
+    const parentId = optionalString(formData.get("parent_id"));
+    const admin = createAdminClient();
+    const result = parentId
+      ? await joinRide(admin, { profileId: user.id, activityId, parentId })
+      : await splitRide(admin, { profileId: user.id, activityId });
+    if (!result.ok) throw new Error(result.error);
+    revalidatePath("/zwbeter-worden", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Samenvoegen faalde.",
     };
   }
 }

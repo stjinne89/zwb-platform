@@ -60,6 +60,7 @@ import { MANUAL_IMPORT_SOURCE } from "@/lib/strava/import";
 import { STRAVA_RIDE_COLUMNS, type StravaRideRow } from "@/lib/training/ride-metrics";
 import { unplannedRides, type UnplannedRide } from "@/lib/training/unplanned-rides";
 import { loadRideRpe } from "@/lib/training/ride-rpe";
+import { withRideParts } from "@/lib/training/ride-parts";
 import type {
   GoalRow,
   PlanRow,
@@ -343,14 +344,30 @@ export async function loadMemberWorkouts(
   ).sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
 }
 
+export type ScheduleRide = {
+  dateKey: string;
+  name: string;
+  manual: boolean;
+  /** De ritten die bij deze rit horen, met naam en rijtijd. */
+  parts: Array<{ activityId: string; label: string }>;
+};
+
+function minutesLabel(seconds: number | null | undefined) {
+  return seconds ? ` · ${Math.round(Number(seconds) / 60)} min` : "";
+}
+
 /** Hoe ver de schemakalender terugkijkt voor gereden ritten. */
 export const SCHEDULE_RIDE_DAYS = 120;
 
 export type ScheduleRides = {
   /** Ritten waar geen geplande training tegenover stond. */
   unplanned: UnplannedRide[];
-  /** Alle ritten uit het venster, op Strava-id: dag en naam, voor het koppelen. */
-  byId: Map<string, { dateKey: string; name: string; manual: boolean }>;
+  /**
+   * Alle ritten uit het venster, op Strava-id: dag en naam, voor het koppelen.
+   * Een stuk dat bij een hoofdrit hoort (0306) staat er niet los in, maar onder
+   * `parts` van die hoofdrit.
+   */
+  byId: Map<string, ScheduleRide>;
   /** Strava-id's waar een training aan hangt, maar die rit bestaat niet meer. */
   deleted: Set<string>;
   /** RPE van de ongeplande ritten die er een hebben (0303), op Strava-id. */
@@ -405,18 +422,22 @@ export async function loadScheduleRides(
     .order("start_date", { ascending: false })
     .limit(400);
 
-  const rides = await markExcludedRides(
+  const rides = await withRideParts(
     viewer.supabase,
     viewer.user.id,
-    (data ?? []) as StravaRideRow[],
+    await markExcludedRides(viewer.supabase, viewer.user.id, (data ?? []) as StravaRideRow[]),
   );
-  const byId = new Map(
+  const byId = new Map<string, ScheduleRide>(
     rides.map((ride) => [
       String(ride.id),
       {
         dateKey: amsterdamDayKey(new Date(ride.start_date)),
         name: ride.name?.trim() || "Rit",
         manual: (ride.raw as { import_source?: unknown } | null)?.import_source === MANUAL_IMPORT_SOURCE,
+        parts: (ride.parts ?? []).map((part) => ({
+          activityId: String(part.id),
+          label: `${part.name?.trim() || "Rit"}${minutesLabel(part.moving_time_seconds)}`,
+        })),
       },
     ]),
   );
@@ -459,12 +480,36 @@ export async function loadScheduleRides(
  * laat die eerst los.
  */
 export function rideLinkFor(
-  ride: { activityId: string; dateKey: string; name: string; manual?: boolean },
+  ride: {
+    activityId: string;
+    dateKey: string;
+    name: string;
+    manual?: boolean;
+    parts?: ScheduleRide["parts"];
+  },
   workoutId: string | null,
   workouts: WorkoutRow[],
   reports: WorkoutReportRow[],
   deleted: ReadonlySet<string> = new Set(),
+  /** Voor een ongeplande rit: de gereden trainingen van die dag om bij te voegen. */
+  ridesById: ReadonlyMap<string, ScheduleRide> = new Map(),
 ): RideLink {
+  const workoutsById = new Map(workouts.map((workout) => [workout.id, workout]));
+  const joinOptions = workoutId
+    ? []
+    : reports.flatMap((report) => {
+        const parentId = report.paired_activity_id ? String(report.paired_activity_id) : null;
+        const parent = parentId ? ridesById.get(parentId) : undefined;
+        const workout = workoutsById.get(report.workout_id);
+        if (!parentId || !parent || !workout || parentId === ride.activityId) return [];
+        if (parent.dateKey !== ride.dateKey) return [];
+        return [
+          {
+            parentId,
+            label: `${workout.title} · ${formatDayMonth(`${String(workout.scheduled_at).slice(0, 10)}T12:00:00`)}`,
+          },
+        ];
+      });
   const orphaned = new Set(
     reports
       .filter((report) => report.paired_activity_id && deleted.has(String(report.paired_activity_id)))
@@ -489,6 +534,8 @@ export function rideLinkFor(
         label: `${candidate.title} · ${formatDayMonth(`${candidate.dayKey}T12:00:00`)}`,
       }),
     ),
+    joinOptions,
+    parts: ride.parts ?? [],
   };
 }
 
@@ -565,12 +612,16 @@ export async function loadPendingReview(
   // De rit die werkelijk gereden is: die beoordeelt het lid, niet de titel van
   // het plan. En de trainingen waar hij ook bij kan horen, voor als het lid een
   // training van een andere dag reed.
-  const { data: rideRow } = await viewer.supabase
+  const { data: singleRide } = await viewer.supabase
     .from("strava_activities")
-    .select("id, name, start_date, moving_time_seconds, distance_m")
+    .select(STRAVA_RIDE_COLUMNS)
     .eq("profile_id", viewer.user.id)
     .eq("id", picked.paired_activity_id)
     .maybeSingle();
+  // Met de ritten die erbij horen (0306): de duur van het geheel.
+  const [rideRow] = singleRide
+    ? await withRideParts(viewer.supabase, viewer.user.id, [singleRide as unknown as StravaRideRow])
+    : [null];
 
   // De FTP op de trainingsdag, zoals de momentopname ook rekende.
   const { data: profile } = await viewer.supabase

@@ -13,4 +13,11 @@ export type RideLink = {
   /** Naam en dag van de rit, voor bij een training. */
   rideLabel: string;
   options: Array<{ workoutId: string; label: string }>;
+  /** Gereden trainingen van dezelfde dag waar deze rit bij kan (0306). */
+  joinOptions?: Array<{ parentId: string; label: string }>;
+  /** Ritten die al bij deze rit horen; samen één training. */
+  parts?: Array<{ activityId: string; label: string }>;
 };
+
+/** Voorvoegsel van een keuze in "Hoort bij" die de rit bij een andere rit zet. */
+export const JOIN_PREFIX = "rit:";

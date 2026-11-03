@@ -43,6 +43,7 @@ import { amsterdamDayKey, computeZwbStatus } from "@/lib/training/zwbeterworden"
 import { loadFtpAt, type FtpAt } from "@/lib/training/ftp-history";
 import { loadHrBasis, type HrBasis } from "@/lib/training/hr-load";
 import { loadRideRpe, writeRideRpe } from "@/lib/training/ride-rpe";
+import { canJoinRide, withRideParts } from "@/lib/training/ride-parts";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -458,7 +459,12 @@ export async function detectCompletedWorkouts(
     // Een dag extra marge: een rit die 's avonds laat begon valt in Amsterdam-tijd
     // nog op de vorige dag.
     .gte("start_date", new Date(now - (COMPLETION_WINDOW_DAYS + 1) * 86400_000).toISOString());
-  const rides = await markExcludedRides(admin, profileId, (rideRows ?? []) as StravaRideRow[]);
+  // Stukken in hun hoofdrit (0306): de training claimt het geheel.
+  const rides = await withRideParts(
+    admin,
+    profileId,
+    await markExcludedRides(admin, profileId, (rideRows ?? []) as StravaRideRow[]),
+  );
 
   // Een training die aan een rit hangt die er niet meer is: in Strava verwijderd
   // voordat het loslaten bij het verwijderen bestond, of toen dat mislukte. Een
@@ -918,9 +924,11 @@ export async function moveReplacedRidePairings(
   for (const report of reports) {
     const toId = moves.get(String(report.paired_activity_id))!;
     const workout = workouts.get(report.workout_id);
-    const ride = rides.get(toId);
+    const single = rides.get(toId);
     // Zonder de nieuwe rit niet verhuizen: dan laat het nawerk de training los.
-    if (!ride) continue;
+    if (!single) continue;
+    // De stukken zijn al naar het nieuwe id verhuisd (moveRidePartLinks).
+    const [ride] = await withRideParts(admin, profileId, [single]);
     const metrics = workout
       ? await rebuildSnapshot(admin, profileId, workout, ride, report.metrics_json ?? {})
       : report.metrics_json;
@@ -1067,7 +1075,9 @@ export async function relinkRide(
   const source = linked.find((report) => report.metrics_json?.plannedTitle) ?? linked[0];
   const previous = (source?.metrics_json ?? {}) as Partial<WorkoutMetricsSnapshot>;
   const targetRow = target as PlannedWorkoutRow;
-  const metrics = await rebuildSnapshot(admin, profileId, targetRow, rideRow, previous);
+  // Met de stukken die bij deze rit horen (0306): die verhuizen mee.
+  const [wholeRide] = await withRideParts(admin, profileId, [rideRow]);
+  const metrics = await rebuildSnapshot(admin, profileId, targetRow, wholeRide, previous);
 
   // Zonder bevestigscherm en zonder oude rapportage (een ongeplande rit) laten we
   // de beleving van de doeltraining staan: die kan nog van een verwijderde rit
@@ -1140,3 +1150,147 @@ export async function relinkRide(
   };
 }
 
+/**
+ * Nieuwe cijfers voor de trainingen aan deze hoofdrit, nu er een stuk bij is
+ * gekomen of af is gegaan. Ook na het bevestigen: het lid veranderde zelf wat er
+ * gereden is. Wat het lid invulde staat in eigen kolommen en blijft.
+ */
+async function refreshJoinedSnapshots(admin: Admin, profileId: string, parentId: string) {
+  const { data: reportRows } = await admin
+    .from("training_workout_reports")
+    .select("workout_id, metrics_json")
+    .eq("profile_id", profileId)
+    .eq("paired_activity_id", parentId);
+  const reports = (reportRows ?? []) as Array<{
+    workout_id: string;
+    metrics_json: Partial<WorkoutMetricsSnapshot> | null;
+  }>;
+  if (reports.length === 0) return;
+
+  const [{ data: rideRow }, { data: workoutRows }] = await Promise.all([
+    admin
+      .from("strava_activities")
+      .select(STRAVA_RIDE_COLUMNS)
+      .eq("profile_id", profileId)
+      .eq("id", parentId)
+      .maybeSingle(),
+    admin
+      .from("training_workouts")
+      .select(
+        "id, profile_id, trainer_id, scheduled_at, title, duration_minutes, intensity, target_type, structure_json, intervals_event_id",
+      )
+      .eq("profile_id", profileId)
+      .in(
+        "id",
+        reports.map((report) => report.workout_id),
+      ),
+  ]);
+  if (!rideRow) return;
+  const [ride] = await withRideParts(admin, profileId, [rideRow as unknown as StravaRideRow]);
+  const workouts = new Map(
+    ((workoutRows ?? []) as PlannedWorkoutRow[]).map((row) => [row.id, row]),
+  );
+
+  for (const report of reports) {
+    const workout = workouts.get(report.workout_id);
+    if (!workout) continue;
+    const metrics = await rebuildSnapshot(admin, profileId, workout, ride, report.metrics_json ?? {});
+    await admin
+      .from("training_workout_reports")
+      .update({ metrics_json: metrics, updated_by: profileId })
+      .eq("profile_id", profileId)
+      .eq("workout_id", report.workout_id)
+      .eq("paired_activity_id", parentId);
+  }
+}
+
+export type JoinResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Het lid zet een rit bij een andere rit van dezelfde dag (0306): samen zijn ze
+ * één training, met de andere rit als hoofdrit. Altijd aan de hoofdrit, nooit
+ * aan een ander stuk; stukken van deze rit gaan mee.
+ *
+ * Een rit die zelf aan een training hangt, moet eerst los: anders verdween wat
+ * het lid daar invulde stilletjes, samen met de rapportage.
+ */
+export async function joinRide(
+  admin: Admin,
+  input: { profileId: string; activityId: string; parentId: string },
+): Promise<JoinResult> {
+  const { profileId, activityId } = input;
+  type Row = { id: number; start_date: string; part_of_activity_id: number | null };
+  const load = async (ids: string[]) => {
+    const { data } = await admin
+      .from("strava_activities")
+      .select("id, start_date, part_of_activity_id")
+      .eq("profile_id", profileId)
+      .in("id", ids);
+    return (data ?? []) as Row[];
+  };
+
+  const rows = await load([activityId, input.parentId]);
+  const part = rows.find((row) => String(row.id) === activityId);
+  let parent = rows.find((row) => String(row.id) === input.parentId);
+  if (parent?.part_of_activity_id != null) {
+    [parent] = await load([String(parent.part_of_activity_id)]);
+  }
+  if (!part || !parent) return { ok: false, error: "De rit is niet meer gevonden." };
+  if (!canJoinRide(part, parent)) {
+    return { ok: false, error: "Alleen ritten van dezelfde dag horen samen." };
+  }
+
+  const { data: linked } = await admin
+    .from("training_workout_reports")
+    .select("workout_id")
+    .eq("profile_id", profileId)
+    .eq("paired_activity_id", activityId);
+  if ((linked ?? []).length > 0) {
+    return { ok: false, error: "Koppel deze rit eerst los van zijn training." };
+  }
+
+  const previousParent = part.part_of_activity_id == null ? null : String(part.part_of_activity_id);
+  await admin
+    .from("strava_activities")
+    .update({ part_of_activity_id: parent.id })
+    .eq("profile_id", profileId)
+    .eq("part_of_activity_id", activityId);
+  const { error } = await admin
+    .from("strava_activities")
+    .update({ part_of_activity_id: parent.id, training_excluded_at: null })
+    .eq("profile_id", profileId)
+    .eq("id", activityId);
+  if (error) return { ok: false, error: error.message };
+
+  await refreshJoinedSnapshots(admin, profileId, String(parent.id));
+  if (previousParent && previousParent !== String(parent.id)) {
+    await refreshJoinedSnapshots(admin, profileId, previousParent);
+  }
+  return { ok: true };
+}
+
+/** Haalt een rit weer los van zijn hoofdrit; hij staat daarna als losse rit. */
+export async function splitRide(
+  admin: Admin,
+  input: { profileId: string; activityId: string },
+): Promise<JoinResult> {
+  const { profileId, activityId } = input;
+  const { data: row } = await admin
+    .from("strava_activities")
+    .select("id, part_of_activity_id")
+    .eq("profile_id", profileId)
+    .eq("id", activityId)
+    .maybeSingle();
+  if (!row) return { ok: false, error: "De rit is niet meer gevonden." };
+  const parentId = (row as { part_of_activity_id: number | null }).part_of_activity_id;
+  if (parentId == null) return { ok: true };
+
+  const { error } = await admin
+    .from("strava_activities")
+    .update({ part_of_activity_id: null })
+    .eq("profile_id", profileId)
+    .eq("id", activityId);
+  if (error) return { ok: false, error: error.message };
+  await refreshJoinedSnapshots(admin, profileId, String(parentId));
+  return { ok: true };
+}

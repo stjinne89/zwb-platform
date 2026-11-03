@@ -149,6 +149,19 @@ export type StravaRideRow = {
    * Niet in STRAVA_RIDE_COLUMNS: markExcludedRides vult hem apart in.
    */
   training_excluded_at?: string | null;
+  /**
+   * De ritten die bij deze rit horen en er al in zijn opgeteld (migratie 0306).
+   * Alleen gezet door mergeRideParts, op de hoofdrit.
+   */
+  parts?: RidePart[];
+};
+
+/** Een rit die bij een hoofdrit hoort; zie ride-parts.ts. */
+export type RidePart = {
+  id: number;
+  name: string | null;
+  start_date: string;
+  moving_time_seconds: number | null;
 };
 
 export const STRAVA_RIDE_COLUMNS = "id, name, start_date, moving_time_seconds, distance_m, raw";

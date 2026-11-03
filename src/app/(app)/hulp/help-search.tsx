@@ -156,6 +156,13 @@ const HELP_INDEX: HelpResult[] = [
     terms: "naleving volgens plan te licht te zwaar percentage tss if intensiteit duur rpe verwacht gepland gereden",
   },
   {
+    title: "Meerdere ritten als één training",
+    text: "Training in stukken gereden? Klik de losse rit aan en kies Samenvoegen met.",
+    href: "/hulp/schema#ritten-samenvoegen",
+    terms:
+      "ritten samenvoegen meerdere ritten één training stukken zwift group ride video rit losmaken paraplu bij elkaar duurtraining",
+  },
+  {
     title: "RPE bij een losse rit",
     text: "Zonder training gereden? Klik de rit in de kalender aan en vul je RPE in.",
     href: "/hulp/schema#rpe-losse-rit",

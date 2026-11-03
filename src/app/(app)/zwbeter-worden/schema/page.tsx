@@ -359,6 +359,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
         memberWorkouts,
         reports,
         deletedRides,
+        ridesById,
       ),
       ride: {
         stravaId: ride.id,

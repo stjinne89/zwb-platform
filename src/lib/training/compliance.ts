@@ -16,6 +16,7 @@ import {
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { loadFtpAt, type FtpAt } from "@/lib/training/ftp-history";
 import { loadHrBasis, type HrBasis } from "@/lib/training/hr-load";
+import { withRideParts } from "@/lib/training/ride-parts";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -420,7 +421,11 @@ export async function buildComplianceContext(
   const workouts = (workoutRows ?? []) as PlannedWorkoutForCompliance[];
   if (workouts.length === 0) return null;
 
-  const rides = await markExcludedRides(admin, profileId, (rideRows ?? []) as StravaRideRow[]);
+  const rides = await withRideParts(
+    admin,
+    profileId,
+    await markExcludedRides(admin, profileId, (rideRows ?? []) as StravaRideRow[]),
+  );
   const [{ data: reportRows }, otherPairings] = await Promise.all([
     admin
       .from("training_workout_reports")

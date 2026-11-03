@@ -11,6 +11,7 @@ import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 import { loadFtpAt, type FtpAt } from "@/lib/training/ftp-history";
 import { loadHrBasis, type HrBasis } from "@/lib/training/hr-load";
 import { uniqueRides } from "@/lib/rides/unique-rides";
+import { withRideParts } from "@/lib/training/ride-parts";
 
 /** Hoeveel dagen vóór gisteren een niet-gereden training nog meetelt als "net gemist". */
 export const RECENTLY_MISSED_DAYS = 3;
@@ -258,7 +259,7 @@ export async function buildYesterdayContext(
   ]);
 
   const workoutRows = (workouts ?? []) as WorkoutRow[];
-  const rideRows = (rides ?? []) as StravaRideRow[];
+  const rideRows = await withRideParts(admin, profileId, (rides ?? []) as StravaRideRow[]);
   const rideIds = rideRows.map((ride) => String(ride.id));
   const workoutIds = workoutRows.map((workout) => workout.id);
 

@@ -280,6 +280,8 @@ export async function syncIntervalsRidesForProfile(
         }),
       );
       try {
+        const { moveRidePartLinks } = await import("@/lib/training/ride-parts");
+        await moveRidePartLinks(admin, profileId, moves);
         const { moveReplacedRidePairings } = await import("@/lib/training/completion");
         await moveReplacedRidePairings(admin, profileId, moves);
       } catch {

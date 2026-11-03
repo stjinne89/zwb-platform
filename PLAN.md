@@ -20,6 +20,11 @@ gaat stabiliteit voor nieuwe features.
    stap 4). Daarna kan het delen bij OpenAI uit; dat doet de eigenaar.
    De privacytekst noemt de aanbieder die `AI_PROVIDER` kiest (akkoord eigenaar).
 
+0a. **Meerdere ritten samen één training (2026-11-03): niet gepusht,
+   migratie `0306_strava_activity_part_of.sql` niet toegepast.** Vóór het
+   toepassen op `main` kijken of `0306` vrij is. Zie de ronde "Schema: meerdere
+   ritten samen één training".
+
 0b. **ZWBekers (2026-10-28): migratie `0286` toegepast en gepusht.** Open: de
    privacytekst `/privacy#zwbekers` wacht op akkoord van de eigenaar, net als de
    vraag of dit zonder nieuwe privacyversie kan (zie de ronde "ZWBekers").
@@ -11568,7 +11573,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
   groepsrit of de tweede helft van een rit die onderweg in tweeën geknipt werd,
   was daar nergens te zien, terwijl die belasting in de benen wél meetelde.
   `src/lib/training/unplanned-rides.ts` draait daarom dezelfde koppeling als
-  `compliance.ts`: elke geplande training claimt hooguit één rit van die dag, en
+  `compliance.ts`: elke geplande training claimt hooguit één rit van die dag
+  (ritten die het lid samenvoegde tellen sinds `0306` als één rit), en
   wat overblijft komt als gestippeld blokje in de kalender, met de cijfers en
   een `ViewOnStrava`-link in het detailpaneel. Ritten die al vastgelegd aan een
   workout hangen (`training_workout_reports.paired_activity_id`) gaan er sowieso
@@ -11709,6 +11715,69 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Schema: meerdere ritten samen één training
+
+**2026-11-03.** Eén commit, samen met deze PLAN-regel, op de branch
+`claude/zwift-combine-rides-56a83f`; niet gepusht. Migratie
+`0306_strava_activity_part_of.sql`, **nog niet toegepast** (eerst op `main`
+kijken of `0306` intussen bezet is).
+
+**Waarom.** Vraag van de eigenaar: hij reed zijn "Rustige duur 90 min" in drie
+Zwift-ritten (ZWB-workout 49 min, video-rit 32 min, group ride 24 min). Een
+training hing aan precies één rit (`paired_activity_id`): de training telde de
+49 minuten, de andere twee stonden als ongepland. De eigenaar koos uit
+"automatisch en handmatig" voor **alleen handmatig**.
+
+**Wat.**
+- Een paraplu op ritniveau, niet op de training: `strava_activities.
+  part_of_activity_id` wijst naar de hoofdrit (zelfverwijzing, `on delete set
+  null`, niet naar zichzelf). Eén niveau diep.
+- `src/lib/training/ride-parts.ts`: `withRideParts` voegt de stukken in hun
+  hoofdrit, direct na `markExcludedRides`, in de detectie
+  (`detectCompletedWorkouts`), de naleving (`buildComplianceContext`), de
+  schemakalender (`loadScheduleRides`) en de dagcontext voor de AI
+  (`buildYesterdayContext`). Koppeling, oordeel, ongeplande ritten en de
+  momentopname zien daarna één rit met het id van de hoofdrit; de rest van de
+  code hoeft niets van stukken te weten. Rijtijd, afstand, kJ en HRSS tellen op;
+  gemiddelden wegen naar rijtijd. De NP van het geheel is zo gekozen dat de TSS
+  gelijk is aan de som van de stukken. Een vermogensmeter telt alleen als elk
+  stuk er een had, anders rekent het geheel met hartslag.
+- `joinRide` en `splitRide` (`completion.ts`): bij elke wijziging een nieuwe
+  momentopname voor de training aan de hoofdrit, ook na bevestigen; CTL,
+  gereedscore en wat het lid invulde blijven. Alleen ritten van dezelfde dag; een
+  stuk komt altijd aan de hoofdrit. `relinkRide` en de vervanging van een rit
+  door een intervals-rit (`moveRidePartLinks`, vóór het wissen) nemen de stukken
+  mee.
+- Kalender: bij een losse rit staat onder **Hoort bij** een groep "Samenvoegen
+  met" met de gereden trainingen van die dag; bij de training staan de stukken
+  met **Losmaken**. Uitleg op `/hulp#ritten-samenvoegen`. Het bevestigscherm
+  toont de duur van het geheel.
+
+**Bewust niet.**
+- Niet automatisch samenvoegen van ritten die kort na elkaar beginnen: de
+  eigenaar koos alleen handmatig.
+- Een rit die zelf aan een training hangt, kan niet bij een andere rit: eerst
+  loskoppelen. Anders verdween de rapportage met RPE en gevoel zonder dat het lid
+  dat zag.
+- Geen zonetijden of uitvoering per blok over het geheel: die komen uit de
+  stream van één intervals-activiteit (`zone-times-fill.ts`) en blijven van de
+  hoofdrit. Optellen kan later; zonder blokuitvoering over drie bestanden heen
+  is het nu niet de moeite.
+- De belastinggrafiek en het weektotaal telden de ritten al los, wat op
+  hetzelfde uitkomt; die lezen niet via `withRideParts`. Het aantal ritten per
+  week in de plannercontext telt de stukken ook los.
+- Geen samenvoegen van twee ongeplande ritten zonder training: de vraag ging
+  over een training.
+
+**Niet geverifieerd.** Unit-tests (nieuw: `ride-parts`, en `ride-parts-migration`
+op PGlite, dat alleen de regels toetst en niets zegt over productie), typecheck en
+lint van de gewijzigde bestanden zijn schoon. De volledige suite faalt alleen
+buiten deze ronde (ontbrekend `@anthropic-ai/sdk` in de worktree, twee
+Zwift-routetests, een timeout); niet tegen `main` vergeleken. Niet in de browser
+bekeken. De migratie is niet toegepast; zonder migratie werkt alles zoals
+voorheen (`loadRidePartLinks` geeft dan niets terug), alleen het samenvoegen
+faalt.
 
 ### Gebouwd — Dashboard: tegel "Jouw teams"
 
