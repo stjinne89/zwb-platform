@@ -64,6 +64,8 @@ import { briefingTips, type BriefingTip } from "./tips";
 import { loadSegmentBests, refreshSegmentBests, segmentIdsForRoute } from "./segment-bests";
 import { segmentRecords, type SegmentRecord } from "./segment-records";
 import { defaultSheet, effectiveSheet, sanitizeOverride, type SheetContent, type SheetSection } from "./sheet";
+import type { LadderProjection } from "@/lib/club-ladder/briefing";
+import type { PowerDuration } from "@/lib/club-ladder/routes";
 
 type Access = Pick<CurrentUserAccess, "has">;
 
@@ -90,7 +92,7 @@ const RIDE_FORMATS: Record<BriefingFormat, RaceFormat> = { points: "race", scrat
  * Zwift-garage van wie kijkt, met dezelfde renner en hetzelfde vermogen, zodat
  * alleen de fiets verschilt.
  */
-async function bikeAdviceFor(
+export async function bikeAdviceFor(
   eventId: string,
   route: LoadedRoute["route"],
   format: BriefingFormat,
@@ -153,7 +155,23 @@ export type OwnBriefingRider = {
 
 export type BriefingWarning = { kind: "lineup" | "limits" | "starters"; text: string };
 
+/** Wat alleen een ladderrace heeft (club-ladder/event-briefing.ts). */
+export type LadderBriefingInfo = {
+  opponent: string;
+  /** Of wij uitdagen; null als de titel het niet zegt. */
+  challenger: boolean | null;
+  /** Opgesteld (startplek gegeven) of alleen aangemeld, aan onze kant. */
+  lineup: boolean;
+  projection: LadderProjection | null;
+  /** De duur die op dit parcours het zwaarst telt. */
+  keyDuration: PowerDuration;
+  routeLabel: string | null;
+};
+
 export type BriefingView = {
+  kind: "zrl" | "ladder";
+  /** Alleen bij een ladderrace. */
+  ladder: LadderBriefingInfo | null;
   event: { id: string; title: string; startAt: string; teamId: string; teamName: string | null; zwiftEventId: string | null };
   /** Wat er op het racebriefje staat: per blok de aanpassing van de captain, anders het voorstel. */
   sheet: SheetContent & { edited: SheetSection[] };
@@ -205,7 +223,7 @@ type EventRow = {
   teams: { name?: string } | null;
 };
 
-const cachedZwiftEvent = unstable_cache(
+export const cachedZwiftEvent = unstable_cache(
   async (zwiftEventId: string) => {
     const event = (await fetchZwiftEvent(zwiftEventId)) as {
       tags?: unknown;
@@ -360,7 +378,7 @@ async function wtrlPower(teamId: string | null): Promise<Map<number, WtrlPower>>
   return out;
 }
 
-async function canEditBriefing(userId: string, access: Access, teamId: string | null): Promise<boolean> {
+export async function canEditBriefing(userId: string, access: Access, teamId: string | null): Promise<boolean> {
   if (access.has("teams.manage_roster") || access.has("teams.manage_results")) return true;
   if (!teamId) return false;
   return (await captainTeamIds(userId)).has(teamId);
@@ -568,6 +586,8 @@ export async function loadRaceBriefing(
   return {
     status: "ok",
     view: {
+      kind: "zrl",
+      ladder: null,
       event: { id: event.id, title: event.title, startAt: event.start_at, teamId: event.team_id, teamName, zwiftEventId },
       sheet,
       sheetDefaults,

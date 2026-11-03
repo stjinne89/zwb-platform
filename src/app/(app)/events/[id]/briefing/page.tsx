@@ -7,6 +7,9 @@ import { ResponsiveTable, type ResponsiveColumn } from "@/components/ui/responsi
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { loadRaceBriefing, type BriefingRider, type BriefingView, type OwnBriefingRider } from "@/lib/race-briefing/load";
+import { loadLadderBriefing } from "@/lib/club-ladder/event-briefing";
+import { DURATION_LABELS } from "@/lib/club-ladder/advice";
+import type { LadderPlace } from "@/lib/club-ladder/briefing";
 import { FORMAT_LABELS } from "@/lib/race-briefing/rules";
 import { cleanRiderName, ROLE_LABELS, type ProjectedTeam } from "@/lib/race-briefing/field";
 import { climbSeconds } from "@/lib/race-briefing/route";
@@ -231,6 +234,38 @@ function FieldTable({ view }: { view: BriefingView }) {
   );
 }
 
+function LadderTable({ view }: { view: BriefingView }) {
+  const ladder = view.ladder;
+  if (!ladder?.projection) return <EmptyState>Nog geen aanmeldingen van de ladder.</EmptyState>;
+  const key = ladder.keyDuration;
+  const columns: Array<ResponsiveColumn<LadderPlace>> = [
+    { key: "place", header: "#", cell: (r) => (r.rating === null ? "—" : r.place), secondary: true },
+    {
+      key: "name",
+      header: "Renner",
+      primary: true,
+      cell: (r) => (
+        <span className={cn(r.own && "font-semibold")}>
+          {r.name}
+          {r.source === "ladder" && <span className="ml-1 text-xs font-normal text-muted-foreground">(ladder)</span>}
+        </span>
+      ),
+    },
+    { key: "team", header: "Ploeg", cell: (r) => (r.own ? view.event.teamName : ladder.opponent) },
+    { key: "points", header: "Punten", cell: (r) => (r.rating === null ? "—" : r.points), align: "right" },
+    { key: "wkg", header: DURATION_LABELS[key], cell: (r) => wkg(r.wkg?.[key]), align: "right" },
+    { key: "zrs", header: "ZRS", cell: (r) => r.racingScore ?? "—", align: "right" },
+  ];
+  return (
+    <ResponsiveTable
+      columns={columns}
+      rows={ladder.projection.order}
+      rowKey={(r) => String(r.zwiftId)}
+      rowClassName={(r) => (r.own ? "bg-primary/5" : undefined)}
+    />
+  );
+}
+
 const FIELD_MISSING: Record<NonNullable<BriefingView["fieldMissing"]>, string> = {
   "no-zwift-event": "Aan deze race hangt nog geen Zwift-event.",
   "no-entrants": "Er staat nog niemand in de groep bij Zwift.",
@@ -269,18 +304,30 @@ export default async function RaceBriefingPage({ params }: PageProps) {
   const user = await getRequestUser();
   if (!user) redirect("/login");
   const [access, supabase] = await Promise.all([getRequestAccess(), createClient()]);
-  const outcome = await loadRaceBriefing(id, user, access, supabase);
+  const { data: kind } = await supabase.from("events").select("type").eq("id", id).maybeSingle();
+  const outcome =
+    kind?.type === "ladder"
+      ? await loadLadderBriefing(id, user, access, supabase)
+      : await loadRaceBriefing(id, user, access, supabase);
   if (outcome.status === "not-found") notFound();
   const { view } = outcome;
   // Wat je voor deze race klaarzet (ritvoeding, stap 2b); onder een uur niets.
   const eventRidePlan = await loadBriefingRidePlan(supabase, view.event.id);
   const loaded = view.route?.loaded ?? null;
-  const meta = [
-    FORMAT_LABELS[view.format],
-    view.division?.label,
-    view.subgroupLabel ? `groep ${view.subgroupLabel}` : null,
-    view.field.length ? `${view.field.length} renners` : null,
-  ].filter(Boolean);
+  const ladder = view.ladder;
+  const meta = ladder
+    ? [
+        "Club Ladder",
+        `tegen ${ladder.opponent}`,
+        ladder.challenger === true ? "wij dagen uit" : ladder.challenger === false ? "zij dagen uit" : null,
+        ladder.routeLabel?.toLowerCase(),
+      ].filter(Boolean)
+    : [
+        FORMAT_LABELS[view.format],
+        view.division?.label,
+        view.subgroupLabel ? `groep ${view.subgroupLabel}` : null,
+        view.field.length ? `${view.field.length} renners` : null,
+      ].filter(Boolean);
 
   return (
     <div className="space-y-8">
@@ -293,7 +340,7 @@ export default async function RaceBriefingPage({ params }: PageProps) {
               {dateLabel.format(new Date(view.event.startAt))} · {meta.join(" · ")}
             </p>
           </div>
-          {view.event.zwiftEventId && (
+          {view.kind === "zrl" && view.event.zwiftEventId && (
             <Link href={`/live/zrl/${view.event.id}`} className="text-sm underline">
               Live stand
             </Link>
@@ -335,22 +382,31 @@ export default async function RaceBriefingPage({ params }: PageProps) {
         </section>
       )}
 
-      <section className="space-y-3">
-        <SectionHeader title="Onze ploeg" />
-        {view.own.length > 0 ? <OwnTable view={view} /> : <EmptyState>Nog geen renners van ons in de groep of de opstelling.</EmptyState>}
-      </section>
+      {view.kind === "ladder" ? (
+        <section className="space-y-3">
+          <SectionHeader title="Verwachte uitslag" />
+          <LadderTable view={view} />
+        </section>
+      ) : (
+        <>
+          <section className="space-y-3">
+            <SectionHeader title="Onze ploeg" />
+            {view.own.length > 0 ? <OwnTable view={view} /> : <EmptyState>Nog geen renners van ons in de groep of de opstelling.</EmptyState>}
+          </section>
 
-      <section className="space-y-3">
-        <SectionHeader title="Het veld" />
-        {view.fieldMissing ? (
-          <EmptyState>{FIELD_MISSING[view.fieldMissing]}</EmptyState>
-        ) : (
-          <>
-            <TeamsTable view={view} />
-            <FieldTable view={view} />
-          </>
-        )}
-      </section>
+          <section className="space-y-3">
+            <SectionHeader title="Het veld" />
+            {view.fieldMissing ? (
+              <EmptyState>{FIELD_MISSING[view.fieldMissing]}</EmptyState>
+            ) : (
+              <>
+                <TeamsTable view={view} />
+                <FieldTable view={view} />
+              </>
+            )}
+          </section>
+        </>
+      )}
     </div>
   );
 }

@@ -9,6 +9,8 @@ import { sanitizeOverride } from "@/lib/race-briefing/sheet";
 
 const PLAN_MAX = 4000;
 const ROLE_MAX = 60;
+/** ZRL-races en ladderraces hebben een racebriefje. */
+const BRIEFING_TYPES = new Set(["zrl", "ladder"]);
 
 /** Plan en rollen van de racebriefing; alleen captain van het team of teambeheer. */
 export async function saveRaceBriefing(formData: FormData) {
@@ -19,7 +21,7 @@ export async function saveRaceBriefing(formData: FormData) {
   const eventId = String(formData.get("event_id") ?? "");
   const admin = createAdminClient();
   const { data: event } = await admin.from("events").select("id, type, team_id").eq("id", eventId).maybeSingle();
-  if (!event || event.type !== "zrl" || !event.team_id) return;
+  if (!event || !BRIEFING_TYPES.has(event.type as string) || !event.team_id) return;
   const board = access.has("teams.manage_roster") || access.has("teams.manage_results");
   if (!board && !(await captainTeamIds(access.user.id)).has(event.team_id as string)) return;
 
@@ -51,7 +53,7 @@ export async function saveRaceSheet(eventId: string, override: unknown): Promise
   if (!access.user) return { ok: false };
   const admin = createAdminClient();
   const { data: event } = await admin.from("events").select("id, type, team_id").eq("id", String(eventId)).maybeSingle();
-  if (!event || event.type !== "zrl" || !event.team_id) return { ok: false };
+  if (!event || !BRIEFING_TYPES.has(event.type as string) || !event.team_id) return { ok: false };
   const board = access.has("teams.manage_roster") || access.has("teams.manage_results");
   if (!board && !(await captainTeamIds(access.user.id)).has(event.team_id as string)) return { ok: false };
 

@@ -518,7 +518,7 @@ export function RaceSheet({ view }: { view: BriefingView }) {
   const loaded = view.route?.loaded ?? null;
   const meta = [
     view.event.teamName,
-    FORMAT_LABELS[view.format].toLowerCase(),
+    view.ladder ? `club ladder tegen ${view.ladder.opponent}` : FORMAT_LABELS[view.format].toLowerCase(),
     loaded?.routeName,
     dateLabel.format(new Date(view.event.startAt)),
   ].filter(Boolean);

@@ -11644,6 +11644,69 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Ladderrace: racebriefje
+
+**2026-11-03.** Commit volgt hieronder. Geen migratie. Niet gepusht.
+
+**Waarom.** Vraag van de eigenaar: in Club Ladder hetzelfde soort racebriefje als
+bij de ZRL. Eerst als voorstel voorgelegd en goedgekeurd ("Ja, bouwen").
+
+**Wat.**
+- **Zelfde pagina en briefje.** `/events/[id]/briefing` kiest op `events.type`:
+  een ladderrace laadt met `loadLadderBriefing`
+  (`src/lib/club-ladder/event-briefing.ts`), een ZRL-race zoals voorheen. Het
+  papieren briefje (`RaceSheet`), Briefje bewerken, Deel als plaatje, het plan en
+  de rollen zijn dezelfde; opslag in `race_briefings` op `event_id`, dus geen
+  migratie. `BriefingView` heeft nu `kind` (`zrl` of `ladder`) en `ladder`
+  (tegenstander, uitdager, opstelling, verwachte uitslag, zwaarste duur).
+- **De telling van de ladder** (`src/lib/club-ladder/briefing.ts`, puur): 5 tegen
+  5, alleen de finish, 10‥1 punten, gelijk is verlies voor de uitdager. Eén
+  tegenstander inhalen is altijd 2 punten verschil; dat is de omcirkelde regel
+  onder Onthouden. Daaronder wie uitdaagt en, met vijf renners met vermogen aan
+  beide kanten, de verwachte stand met de speling of het aantal tegenstanders dat
+  we moeten inhalen. Met een halve opstelling niet: bij 17729 (2 tegen 4
+  aangemeld) gaf dat 15–30, wat niets zegt.
+- **Uitdager**: de thuisploeg in de titel ("Club Ladder: thuis – uit"),
+  `ladderChallengerFromTitle`. Afgeleid uit de uitslagentab, waar de uitdager in
+  `td.homeTeam` staat; niet tegen een wedstrijdpagina gecontroleerd.
+- **Verwachte uitslag**: de renners van de matchup (`loadLadderEventMatchup`,
+  90 dagen van ZwiftRacing, anders ladderraces), op volgorde van sterkte op dit
+  parcours: per duur de W/kg tegenover het meetkundig gemiddelde van wie die duur
+  heeft, gewogen met de gewichten van het parcours (zonder parcours gelijk). Zo
+  telt een ontbrekende duur niet als zwak en weegt 15 s niet zwaarder dan 20 min
+  door de schaal. Zonder vermogen achteraan, zonder punten. Op de pagina vervangt
+  de tabel Verwachte uitslag "Onze ploeg" en "Het veld".
+- **Volgen**: de drie sterkste tegenstanders met hun W/kg op de duur die het
+  zwaarst telt. **Rollen**: `suggestRoles` met die sterkte en de 5 minuten.
+  **Let op**: geen opstelling of minder dan vijf startplekken.
+- **Powerups**: uit de Zwift-tags, anders uit de omschrijving van de sync
+  ("Powerups: Feather, Draft", `ladderPowerups`). Bogen alleen als het Zwift-event
+  `arch_powerup` heeft. **Fietsadvies** met 95% van de 20 minuten van onze
+  renners als zFTP (er is geen WTRL-zFTP).
+- Opslaan (`saveRaceBriefing`, `saveRaceSheet`) mag nu ook bij `ladder`, met
+  dezelfde rechten: teambeheer of captain/co-captain van het team
+  (`captainTeamIds`). De knop Racebriefing staat ook bij een ladderrace.
+- `/hulp` (Teams en wedstrijden) beschrijft het briefje.
+
+**Bewust niet.**
+- Geen live stand voor de ladder: apart werk, niet gevraagd.
+- Geen divisiegrenzen, segmentrecords of ronde-historie: dat is WTRL en de
+  ZRL-telling; op de ladder zijn er geen punten onderweg.
+- Geen rank-controle (vELO1 boven de rank van het team) op het briefje: eerst het
+  Race Book nalezen of dat echt verboden is.
+- De privacytekst niet aangepast: het briefje gebruikt dezelfde gegevens als de
+  matchup (aanmeldingen met Zwift-ID's, 90 dagen W/kg en ZRS van beide teams),
+  en die tekst stond al open om aan de eigenaar voor te leggen (zie "Ladderrace:
+  matchup met vermogen op de eventpagina"). `/privacy#racebriefing` noemt alleen
+  de ZRL.
+
+**Gecontroleerd.** Vitest `club-ladder-briefing.test.ts` (11 nieuw), de andere
+`club-ladder-*`, `race-briefing`, `help-*` en de volle run (los herhaald wat
+alleen in de volle run op een time-out viel; `omnium-live` mist `.env.local` in
+de worktree). `tsc` en ESLint schoon. De berekening nagelopen met de echte
+aanmeldingen van 17729 (The Muckle Yin). **Niet geverifieerd:** de pagina in de
+browser (inloggen op productie; deze worktree heeft geen `.env.local`).
+
 ### Gebouwd — Ladderrace: matchup met 90 dagen van ZwiftRacing
 
 **2026-11-03.** Commit `48d5e402`, gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie.
@@ -12136,8 +12199,10 @@ links had dan een ZRL-race, en wilde vanuit Komende matchups direct naar het eve
   ZwifterBikes en het pacingplan waren er al via de route.
 - **Komende matchups** op de teampagina linken naar het ZWB-event van die
   wedstrijd (op `club_ladder_fixture_id` en het team).
-- **Bewust niet:** racebriefing en live stand; die zijn op ZRL gebouwd (racepass,
+- **Bewust niet:** ~~racebriefing en~~ live stand; die is op ZRL gebouwd (racepass,
   WTRL-gegevens, ZRL-puntentelling). Geen racepass: de ladder heeft er geen.
+  *Niet meer waar voor de racebriefing sinds 2026-11-03:* zie "Ladderrace:
+  racebriefje".
 - **Getest:** `club-ladder-fixtures.test.ts` (10 tests). **Niet in de browser
   gezien** (inloggen op productie).
 
