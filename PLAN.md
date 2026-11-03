@@ -11723,7 +11723,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: scrollbare ranking zonder plek in de stand
 
-**2026-11-03.** Commit volgt in deze ronde, nog niet gepusht. Geen migratie.
+**2026-11-03.** Commit `41db66f5`, gepusht naar `main` op 2026-11-03
+(eigenaar). Geen migratie.
 
 **Waarom.** Een nieuwe ploeg zonder plek in de stand (de Bandits) zag alleen de
 eerste twaalf teams van de hele ladder, door alle regio's heen
