@@ -73,7 +73,9 @@ export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
         setResult(
           outcome.generationId
             ? "In je schema gezet. De week eromheen wordt bijgewerkt…"
-            : message ?? "In je schema gezet.",
+            : outcome.replanScheduled
+              ? "In je schema gezet. De week eromheen wordt vannacht bijgewerkt."
+              : message ?? "In je schema gezet.",
         );
       } else {
         // Stond het event in je schema, dan valt er een dag vrij en wordt die
@@ -81,7 +83,9 @@ export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
         setResult(
           outcome.generationId
             ? "Genoteerd. Die dag wordt opnieuw ingevuld…"
-            : "Genoteerd; het event blijft uit je schema.",
+            : outcome.replanScheduled
+              ? "Genoteerd. Die dag wordt vannacht opnieuw ingevuld."
+              : "Genoteerd; het event blijft uit je schema.",
         );
       }
       if (outcome.generationId) poll.watch(outcome.generationId);

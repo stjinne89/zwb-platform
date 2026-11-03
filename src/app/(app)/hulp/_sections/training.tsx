@@ -215,7 +215,8 @@ export function TrainingHelp() {
           <p className="mt-2 text-sm text-muted-foreground">
             Vink je <strong className="text-foreground">Dit raakt mijn schema</strong>{" "}
             aan, dan vraagt je bericht een herziening aan en gaat de tekst mee naar
-            de volgende versie van je schema. Handig voor dingen die de app niet
+            de volgende versie van je schema. Die start meteen, of die nacht als je
+            schema vandaag al is herzien. Handig voor dingen die de app niet
             kan zien: een week ziek geweest, een doel dat verschuift.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">

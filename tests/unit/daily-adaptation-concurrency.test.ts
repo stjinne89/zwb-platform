@@ -45,10 +45,14 @@ vi.mock("@/lib/training/adapt-context", () => ({
   buildTodayRides: async () => [],
 }));
 vi.mock("@/lib/training/symptoms", () => ({ loadSymptomLoadForAi: async () => null }));
+// De meting van vannacht en het uur van de run; per test in te stellen.
+let wellnessNow: { readinessDate: string | null } | null = null;
+let hourNow = 10;
 vi.mock("@/lib/training/wellness", () => ({
-  wellnessForAi: async () => null,
+  wellnessForAi: async () => wellnessNow,
   wellnessInputForAi: () => null,
 }));
+vi.mock("@/lib/greeting", () => ({ amsterdamHour: () => hourNow }));
 vi.mock("@/lib/training/availability", () => ({
   availabilityForAi: async () => null,
   loadFixedWorkouts: async () => [],
@@ -143,6 +147,7 @@ function fakeAdmin() {
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => fakeAdmin() }));
 
 const { POST } = await import("@/app/api/training/adaptations/daily/route");
+const { amsterdamDayKey } = await import("@/lib/training/zwbeterworden");
 
 function request() {
   return new Request("https://example.test/api/training/adaptations/daily", {
@@ -155,6 +160,8 @@ describe("dagelijkse aanpassing bij overlappende runs", () => {
   beforeEach(() => {
     process.env.TRAINING_ADAPTATION_SECRET = "geheim";
     openAiStarts.mockClear();
+    wellnessNow = null;
+    hourNow = 10;
     tables = {
       training_plans: [
         {
@@ -193,6 +200,72 @@ describe("dagelijkse aanpassing bij overlappende runs", () => {
 
   it("start dezelfde dag geen tweede keer na een afgeronde run", async () => {
     await POST(request());
+    await POST(request());
+    expect(openAiStarts).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Het dagvoorstel draaide tussen middernacht en zes uur, vóór het horloge de nacht
+// had gesynchroniseerd: van 41 voorstellen met wellness hadden er 2 de meting
+// van die dag (2026-11-03). Nu wacht het tot de meting er is, uiterlijk tot negen.
+describe("dagvoorstel wacht op de meting van vannacht", () => {
+  const today = amsterdamDayKey();
+  const yesterday = new Date(Date.parse(`${today}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+
+  beforeEach(() => {
+    process.env.TRAINING_ADAPTATION_SECRET = "geheim";
+    openAiStarts.mockClear();
+    tables = {
+      training_plans: [
+        {
+          id: "plan-1",
+          profile_id: "lid",
+          trainer_id: null,
+          goal_id: "doel",
+          title: "Schema",
+          end_date: "2099-01-01",
+          root_plan_id: null,
+          created_at: "2026-09-01T00:00:00Z",
+          parent_plan_id: null,
+          status: "published",
+        },
+      ],
+      training_goals: [{ id: "doel", title: "Doel", goal_type: "base_fitness" }],
+      profiles: [{ id: "lid", display_name: "Lid" }],
+      strava_activities: [{ profile_id: "lid", start_date: "2099-01-01T00:00:00Z" }],
+      training_adaptation_runs: [],
+      training_ai_generations: [],
+      training_workouts: [],
+    };
+  });
+
+  it("wacht om zes uur als alleen de meting van gisteren er is", async () => {
+    hourNow = 6;
+    wellnessNow = { readinessDate: yesterday };
+    const body = await (await POST(request())).json();
+    expect(openAiStarts).not.toHaveBeenCalled();
+    expect(body.results.map((r: { status: string }) => r.status)).toEqual(["waiting_readiness"]);
+    // Wachten bezet de dagcheck niet: het volgende uur probeert hij het weer.
+    expect(tables.training_adaptation_runs).toHaveLength(0);
+  });
+
+  it("gaat meteen zodra de meting van vannacht binnen is", async () => {
+    hourNow = 6;
+    wellnessNow = { readinessDate: today };
+    await POST(request());
+    expect(openAiStarts).toHaveBeenCalledTimes(1);
+  });
+
+  it("gaat om negen uur door, ook zonder meting van vannacht", async () => {
+    hourNow = 9;
+    wellnessNow = { readinessDate: yesterday };
+    await POST(request());
+    expect(openAiStarts).toHaveBeenCalledTimes(1);
+  });
+
+  it("wacht nergens op bij een lid zonder readiness", async () => {
+    hourNow = 3;
+    wellnessNow = null;
     await POST(request());
     expect(openAiStarts).toHaveBeenCalledTimes(1);
   });

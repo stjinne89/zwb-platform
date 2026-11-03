@@ -170,7 +170,11 @@ export async function POST(req: Request) {
   // tekens, en viel de kern van een langere uitleg er net af.
   let replanResult: string | null = null;
   if (affectsPlan) {
-    const result = await requestReplan(admin, profileId, `Chatbericht: ${body}`).catch(() => null);
+    // Het lid vraagt hier zelf om een aanpassing; die mag meteen, hooguit één
+    // keer per dag (replan.ts).
+    const result = await requestReplan(admin, profileId, `Chatbericht: ${body}`, {
+      now: true,
+    }).catch(() => null);
     replanResult = result ? (result.started ? "started" : result.reason) : "failed";
   }
 

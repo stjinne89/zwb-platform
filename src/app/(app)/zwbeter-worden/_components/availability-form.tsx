@@ -70,7 +70,7 @@ export function AvailabilityForm({ options }: { options: AvailabilityOptions }) 
     }));
   }
 
-  async function run(action: () => Promise<{ ok: boolean; error?: string; generationId?: string | null }>) {
+  async function run(action: () => Promise<{ ok: boolean; error?: string; generationId?: string | null; replanScheduled?: boolean }>) {
     poll.setError(null);
     setResult(null);
     setSaving(true);
@@ -84,7 +84,7 @@ export function AvailabilityForm({ options }: { options: AvailabilityOptions }) 
         setResult("Opgeslagen. Je schema wordt bijgewerkt…");
         poll.watch(outcome.generationId);
       } else {
-        setResult("Opgeslagen.");
+        setResult(outcome.replanScheduled ? "Opgeslagen. Je schema wordt vannacht bijgewerkt." : "Opgeslagen.");
       }
     } catch {
       poll.setError("Beschikbaarheid opslaan is mislukt.");

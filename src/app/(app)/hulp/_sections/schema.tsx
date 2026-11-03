@@ -303,7 +303,7 @@ export function SchemaHelp() {
               Een voorkeur verschuift de keuzes, maar gaat niet boven je
               herstel, je beschikbaarheid of je vaste afspraken. Kan het schema
               een voorkeur niet volgen, dan staat de reden bij &ldquo;Let
-              op&rdquo;. Na toevoegen of weghalen wordt je schema herzien; een
+              op&rdquo;. Na toevoegen of weghalen wordt je schema die nacht herzien; een
               voorkeur die er nog niet in zit, heeft het label &ldquo;Vanaf de
               volgende herziening&rdquo;.
             </p>
@@ -538,11 +538,19 @@ export function SchemaHelp() {
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Bij het opslaan gaat een training op een dag zonder tijd er meteen
-              af, en wordt een te lange training ingekort. Daarna werkt het schema
-              zichzelf bij op de dagen die nog komen. Dat geldt ook als je een rit
-              inplant of je voor een clubevent aan- of afmeldt. Lukt dat niet
-              meteen, dan gebeurt het de volgende keer dat je je schema opent, of
-              uiterlijk de volgende ochtend.
+              af, en wordt een te lange training ingekort. De rest van het schema
+              werkt zichzelf &rsquo;s nachts bij: alles wat je die dag veranderde
+              in één keer, over de komende twee weken en de weken die je wijziging
+              raakt. Dat geldt ook als je een rit inplant of je voor een clubevent
+              aan- of afmeldt; een event staat wel meteen in je schema.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              De aanpassing van de dag zelf wacht op de meting van je horloge van
+              die nacht. Vanaf vijf uur kijkt ZWB elk uur of die binnen is, en
+              past dan meteen aan; om negen uur in elk geval, met wat er dan is.
+              Je horloge moet daarvoor wel met je telefoon hebben gesynchroniseerd,
+              en dat kan ZWB niet afdwingen: open zo nodig even de app van je
+              horloge.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Beschikbaarheid is een plafond: meer tijd maakt een training niet
@@ -639,7 +647,7 @@ export function SchemaHelp() {
               Bij je schema staan de clubevents die binnen de looptijd vallen. Ze
               komen er pas in als je <strong className="text-foreground">Ik doe mee</strong>{" "}
               kiest: dan wordt het event een vast blok, met een duur uit de
-              eindtijd of de afstand, en werkt het schema de week eromheen bij:
+              eindtijd of de afstand, en werkt het schema &rsquo;s nachts de week eromheen bij:
               geen zware sessie vlak ervoor of erna. De zwaarte hangt af van het
               soort event: een race rekent met wat je bij die duur gemiddeld
               rijdt, een groepsrit in Zwift met 70-80% van je FTP en een
@@ -703,8 +711,8 @@ export function SchemaHelp() {
               Met <strong className="text-foreground">Verwijder</strong> bij een
               geplande training haal je die uit je schema en uit intervals.icu.
               Een voorgestelde training komt daarna niet terug: de planner laat
-              die dag vrij. Een eigen rit verdwijnt helemaal en je schema wordt
-              eromheen bijgewerkt. Een clubevent zeg je af bij het event zelf.
+              die dag vrij. Een eigen rit verdwijnt helemaal en je schema wordt er
+              &rsquo;s nachts omheen bijgewerkt. Een clubevent zeg je af bij het event zelf.
             </p>
           </article>
           <article

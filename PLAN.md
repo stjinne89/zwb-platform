@@ -11644,6 +11644,80 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Onderzocht — Claude-kosten
+
+**2026-11-03.** Geen code, geen migratie. Details in
+[claude-kosten-2026-11-03](docs/claude-kosten-2026-11-03.md).
+
+**Waarom.** De Anthropic-rekening liep na de overstap op tot $96,56 in tien
+dagen; het tegoed stond op 2026-11-03 op $2,89.
+
+**Uitkomst.** ~$65 per week (~$280 per maand), waarvan 80% de bijwerking
+(`plan_update`): 81 in zeven dagen, elk ~28.000 uitvoertokens omdat het hele
+resterende schema opnieuw wordt geschreven. Elke kleine wijziging
+(beschikbaarheid, race toe- of afgezegd, rit vervallen) start er een; de demping
+van vijf minuten houdt dat niet tegen, en `settleOwnReplans()` start een
+blijven liggend verzoek bij het volgende bezoek alsnog. De raming in
+claude-naspelen (114 bijwerkingen per maand) was drie keer te laag.
+
+**Voorgesteld:** bijwerkingen bundelen tot één per lid per dag (−52% op de
+afgelopen week), alleen de komende twee weken herschrijven, of Sonnet 5.5 voor de
+bijwerking via `ANTHROPIC_MODEL_PLAN_UPDATE`. Kleiner: de trainingsprompt cachen,
+de coach-cache uitzetten. De eigenaar koos de eerste twee; zie de ronde
+hieronder. Sonnet en de kleine twee zijn niet gedaan.
+
+### Gebouwd — Herzieningen 's nachts gebundeld, over twee weken; dagvoorstel wacht op de meting
+
+**2026-11-03.** Gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie.
+
+**Waarom.** Zie "Onderzocht — Claude-kosten": elke wijziging startte een volledige
+herziening van het hele resterende schema. Tijdens het bouwen merkte de eigenaar
+op dat een herziening 's nachts de gereedheid van die ochtend mist. Gemeten: ook
+het dagvoorstel draaide al tussen 00 en 06 uur, en van 41 dagvoorstellen met
+wellness hadden er 2 de meting van die dag. Het liep dus al een dag achter.
+
+**Wat.**
+- `requestReplan()` legt alleen het verzoek vast; de redenen van een dag worden
+  gebundeld (`combineReasons`, hooguit zes). De cron start de herziening tussen
+  00 en 09 uur, één per lid per dag. Alleen de chat ("dit raakt mijn schema")
+  start direct, met `now: true`, en ook dan hooguit één keer per dag.
+  `settleOwnReplans()` start bij een paginabezoek geen verzoek meer, maar maakt
+  alleen hangende generaties af. `REPLAN_COOLDOWN_MS` is weg.
+- `rollingWindow` in `preparePlanUpdate`: een automatische herziening herschrijft
+  twee hele weken, en loopt door tot de week die een wijziging raakt
+  (`replan-window.ts`, afgeleid uit gewijzigde weekrijen, nieuwe eigen ritten en
+  events, en trainingen die door een regel of het lid vervielen). Bij een
+  gewijzigde standaardweek blijft het het hele schema. De week na het venster
+  gaat als `followingWorkouts` mee als context. De einddatum is hard
+  (`rollingWindowEndDate`): een latere einddatum van de AI zou bij publiceren
+  (`publishRange`) de weken erna wegstrepen. Het formulier "Schema bijwerken" en
+  het volgende blok herschrijven nog steeds alles.
+- Het dagvoorstel en de herziening tellen apart in `handledToday`; de herziening
+  vervangt het dagvoorstel niet meer. Het dagvoorstel wacht tot de herziening
+  klaar is, en op de meting van vannacht: vanaf 05:00 haalt de cron elk uur
+  vers op bij intervals.icu, en zodra `readinessDate` vandaag is gaat het
+  voorstel uit. Om 09:00 gaat het in elk geval. Leden zonder readiness wachten
+  nergens op.
+- Meldingen ("Je schema wordt vannacht bijgewerkt.") via `replanScheduled` in de
+  acties; /hulp bijgewerkt.
+
+**Bewust niet.** De sync van het horloge zelf afdwingen kan niet: horloge →
+telefoon → Garmin Connect → intervals.icu loopt buiten ZWB om; ZWB haalt alleen
+vers op. Geen migratie voor een "tot"-datum per verzoek; het venster wordt uit de
+data afgeleid. Een afgezegd event waarvan de rij is verwijderd, is daarin niet
+te zien; die dag wordt weer ingevuld zodra hij binnen het venster valt.
+
+**Gevolg voor het lid.** Een wijziging overdag (beschikbaarheid, race, rit) is
+meteen zichtbaar voor zover dat zonder AI kan (dag zonder tijd vrij, event in het
+schema). De rest van het schema volgt de volgende ochtend.
+
+**Getest.** Unit-tests voor het venster, het bundelen, de harde einddatum en het
+wachten op de meting (`replan-window.test.ts`,
+`daily-adaptation-concurrency.test.ts`); tsc en eslint schoon.
+**Niet geverifieerd:** de kwaliteit van een herziening over twee weken is niet
+nagespeeld (claude-replay); de besparing in productie (verwachting: van ~$65
+naar ~$20–25 per week) en het gedrag van de cron 's nachts en 's ochtends.
+
 ### Gebouwd — Kracht: intervals-trainingen na een kwartier zichtbaar
 
 **2026-11-03.** Commit `1b4cc467`, gepusht naar `main` op 2026-11-03 (eigenaar).
@@ -16049,7 +16123,8 @@ ze een opgeruimde worktree overleven. Niet getest met een tweede account.
 - Dagelijkse aanpassing: Claude liet het schema vijf keer ongemoeid, GPT-5.5 paste
   drie keer iets aan. Wie gelijk heeft moet uit de blinde vergelijking komen.
 - Op het huidige volume kost alles op Opus ~$135 per maand, boven het tegoed;
-  bijwerkingen met Sonnet ~$71.
+  bijwerkingen met Sonnet ~$71. **Achterhaald (2026-11-03):** het werden ~350
+  bijwerkingen per maand en ~$280; zie de ronde "Onderzocht — Claude-kosten".
 - **Claude kent de datum van vandaag niet** (GPT-5.5 krijgt die van OpenAI).
   Bij oude invoer zonder ankerdatum plande Claude in de verkeerde maand; met één
   regel "Vandaag is …" in de vraag klopt het en breekt Claude bij elk nieuw

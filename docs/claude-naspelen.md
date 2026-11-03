@@ -59,6 +59,10 @@ zijn klein):
 
 Het Max-abonnement geeft $100 API-tegoed per maand.
 
+**Achterhaald (2026-11-03):** het volume was te laag ingeschat. Na de overstap
+zijn het ~350 bijwerkingen per maand in plaats van 114, en kost Claude ~$280 per
+maand. Zie [claude-kosten-2026-11-03](claude-kosten-2026-11-03.md).
+
 **OpenAI kost nu weinig door gratis tokens.** Het dashboard toont $23,20 over
 dezelfde 30 dagen, maar de organisatie staat ingeschreven voor "complimentary
 daily tokens": in ruil daarvoor staat *Share inputs and outputs with OpenAI* op

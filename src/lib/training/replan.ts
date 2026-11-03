@@ -1,45 +1,52 @@
-// Het schema past zich aan zodra het lid iets verandert: een rit inplannen of
-// de beschikbaarheid van deze week bijstellen. Dat is dezelfde herziening als de
-// knop "Schema bijwerken", maar dan zonder dat het lid er zelf om vraagt.
+// Het schema past zich aan zodra het lid iets verandert: een rit inplannen, de
+// beschikbaarheid van een week bijstellen, een race toezeggen. Dat is dezelfde
+// herziening als de knop "Schema bijwerken", maar dan zonder dat het lid er zelf
+// om vraagt.
 //
-// Elke herziening is een AI-generatie en kost dus geld. Vandaar de demping: een
-// lid dat wat zit te schuiven met schuifbalken mag niet vijf generaties per
-// minuut afvuren. Binnen het venster geven we `skipped` terug — de wijziging is
-// wél opgeslagen en wordt bij de eerstvolgende herziening meegenomen.
+// Elke herziening is een AI-generatie en kost geld: ~$0,66 per stuk, 80% van de
+// rekening in de eerste week op Claude (docs/claude-kosten-2026-11-03.md). Tot
+// november 2026 startte elke wijziging er meteen een, met alleen een demping van
+// vijf minuten; één lid kreeg er zo 23 in zes dagen. Nu legt een wijziging alleen
+// het verzoek vast in `training_replan_requests` (sinds 0132), en verwerkt de
+// dagelijkse cron 's nachts alles van die dag in één herziening. Wat meteen kan,
+// gebeurt nog wel meteen en gratis: een dag zonder tijd valt direct vrij
+// (fitScheduleToAvailability), een toegezegd event staat direct in het schema.
 //
-// Die laatste zin was lang een loze belofte: niets vroeg die volgende herziening
-// aan. Sinds 0132 legt elk verzoek zich vast in `training_replan_requests`, en
-// haalt de dagelijkse cron op wat is blijven liggen. De rij verdwijnt zodra er een
-// herziening uit is gekomen.
+// Alleen een expliciete vraag van het lid (de chat: "dit raakt mijn schema")
+// start direct, en ook dan hooguit één herziening per dag.
 
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { activeBasePlan } from "@/lib/training/active-plan";
 import { buildComplianceContext, planIsBeingIgnored } from "@/lib/training/compliance";
 import { finishAiGeneration, planUpdateRunning, startPlanUpdate } from "@/lib/training/draft";
+import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
+import { amsterdamWallTimeToIso } from "@/lib/birthdays";
 
 type Admin = ReturnType<typeof createAdminClient>;
-
-/** Hoe lang na een herziening we een volgende laten wachten. */
-export const REPLAN_COOLDOWN_MS = 5 * 60_000;
 
 export type ReplanResult =
   | { started: true; generationId: string }
   | {
       started: false;
-      reason: "no_plan" | "cooldown" | "ignored" | "failed";
+      /**
+       * `scheduled`: vastgelegd, gaat vannacht mee. `cooldown`: er loopt al een
+       * herziening; het verzoek gaat mee met de volgende.
+       */
+      reason: "no_plan" | "scheduled" | "cooldown" | "ignored" | "failed";
       error?: string;
     };
 
-/** Loopt er al een verse herziening voor dit lid? */
-async function withinCooldown(admin: Admin, profileId: string) {
-  const since = new Date(Date.now() - REPLAN_COOLDOWN_MS).toISOString();
+/** Heeft dit lid vandaag (Amsterdamse dag) al een herziening gehad? */
+async function plannedUpdateToday(admin: Admin, profileId: string) {
+  const today = amsterdamDayKey();
+  const dayStart = amsterdamWallTimeToIso(today, "00:00") ?? `${today}T00:00:00.000Z`;
   const { data } = await admin
     .from("training_ai_generations")
     .select("id")
     .eq("profile_id", profileId)
     .eq("adaptation_kind", "plan_update")
     .in("status", ["queued", "in_progress", "completed"])
-    .gte("created_at", since)
+    .gte("created_at", dayStart)
     .limit(1);
   return (data ?? []).length > 0;
 }
@@ -56,14 +63,16 @@ export async function planIsIgnored(admin: Admin, profileId: string): Promise<bo
 }
 
 /**
- * Vraag een herziening van het resterende schema aan. Stilletjes overslaan is
- * hier het normale geval: heeft het lid geen lopend schema, of is er net een
- * herziening geweest, dan is er niets aan de hand.
+ * Vraag een herziening van het resterende schema aan. Standaard wordt die alleen
+ * vastgelegd voor de cron van vannacht (`scheduled`). Met `now` start hij direct,
+ * tenzij het lid vandaag al een herziening had of er een loopt; dan gaat hij ook
+ * vannacht mee.
  */
 export async function requestReplan(
   admin: Admin,
   profileId: string,
   reason: string,
+  options: { now?: boolean } = {},
 ): Promise<ReplanResult> {
   try {
     const plan = await activeBasePlan(admin, profileId);
@@ -83,19 +92,26 @@ export async function requestReplan(
       return { started: false, reason: "ignored" };
     }
 
-    // Loopt er nog een herziening, dan is dat hetzelfde als de cooldown: het
-    // verzoek ligt vast en gaat mee met de volgende. Zonder deze regel kwam
-    // startPlanUpdate() met "er wordt al een schema gemaakt" terug en las het
-    // lid in de chat dat de herziening niet kon starten (13 oktober 2026).
-    if ((await withinCooldown(admin, profileId)) || (await planUpdateRunning(admin, profileId))) {
+    if (!options.now) return { started: false, reason: "scheduled" };
+
+    // Loopt er nog een herziening, dan gaat het verzoek mee met de volgende.
+    // Zonder deze regel kwam startPlanUpdate() met "er wordt al een schema
+    // gemaakt" terug en las het lid in de chat dat de herziening niet kon
+    // starten (13 oktober 2026).
+    if (await planUpdateRunning(admin, profileId)) {
       return { started: false, reason: "cooldown" };
+    }
+    if (await plannedUpdateToday(admin, profileId)) {
+      return { started: false, reason: "scheduled" };
     }
 
     const result = await startPlanUpdate({
       admin,
       planId: plan.id,
       actorId: profileId,
-      reason,
+      // Alles wat vandaag al lag gaat mee, niet alleen dit bericht.
+      reason: (await loadPendingReplan(admin, profileId).catch(() => null))?.reason ?? reason,
+      rollingWindow: true,
     });
     if (!result.ok) return { started: false, reason: "failed", error: result.error };
     return { started: true, generationId: result.generationId };
@@ -112,15 +128,16 @@ export async function requestReplan(
 const SETTLE_MAX_AGE_MS = 6 * 3600_000;
 
 /**
- * Zelfherstel bij het openen van het schema.
+ * Zelfherstel bij het openen van het schema: een hangende generatie afmaken.
  *
  * Een achtergrondgeneratie werd pas een schema als de browser van het lid hem
- * ophaalde terwijl de pagina openstond, en een verzoek dat door de cooldown was
- * blijven liggen wachtte tot de nachtelijke cron. Zo bleef Stijns herziening van
+ * ophaalde terwijl de pagina openstond. Zo bleef Stijns herziening van
  * 11 september 09:35 op 'in_progress' staan en zag hij zijn gewijzigde
- * beschikbaarheid niet terug. Nu maakt elk bezoek een hangende generatie af, of
- * start het het blijven liggende verzoek; requestReplan() houdt zich daarbij aan
- * dezelfde remmen (cooldown, schema dat stilligt).
+ * beschikbaarheid niet terug. Nu maakt elk bezoek een hangende generatie af.
+ *
+ * Een blijven liggend verzoek start dit bewust niet meer: dat deed het tot
+ * november 2026, en zo werd elk paginabezoek na een wijziging een betaalde
+ * herziening. Verzoeken gaan 's nachts, via de cron.
  */
 export async function settleOwnReplans(admin: Admin, profileId: string): Promise<void> {
   const since = new Date(Date.now() - SETTLE_MAX_AGE_MS).toISOString();
@@ -133,15 +150,9 @@ export async function settleOwnReplans(admin: Admin, profileId: string): Promise
     .order("created_at", { ascending: true })
     .limit(2);
 
-  if ((pending ?? []).length > 0) {
-    for (const row of pending ?? []) {
-      await finishAiGeneration(admin, row.id as string).catch(() => null);
-    }
-    return;
+  for (const row of pending ?? []) {
+    await finishAiGeneration(admin, row.id as string).catch(() => null);
   }
-
-  const request = await loadPendingReplan(admin, profileId).catch(() => null);
-  if (request) await requestReplan(admin, profileId, request.reason).catch(() => null);
 }
 
 export type PendingReplan = {
@@ -149,22 +160,44 @@ export type PendingReplan = {
   requestedAt: string;
 };
 
+/** Hoeveel redenen een gebundeld verzoek hoogstens meedraagt. */
+const MAX_REASONS = 6;
+
 /**
- * Leg vast dat het schema van dit lid herzien moet worden. Eén rij per lid: vier
- * wijzigingen op één avond horen samen één herziening op te leveren. De nieuwste
- * reden wint — die beschrijft de laatste stand van zaken.
+ * Voegt een reden toe aan wat er al lag: de nieuwste onderaan, dubbele eruit,
+ * hoogstens MAX_REASONS. De herziening van vannacht moet alle wijzigingen van de
+ * dag kennen, niet alleen de laatste.
+ */
+export function combineReasons(existing: string | null | undefined, reason: string): string {
+  const next = reason.trim();
+  const lines = (existing ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && line !== next);
+  return [...lines, next].slice(-MAX_REASONS).join("\n");
+}
+
+/**
+ * Leg vast dat het schema van dit lid herzien moet worden. Eén rij per lid: alle
+ * wijzigingen van een dag horen samen één herziening op te leveren, dus de
+ * redenen worden gebundeld (combineReasons).
  */
 export async function markReplanPending(admin: Admin, profileId: string, reason: string) {
+  // Niet kritiek genoeg om de actie van het lid op te laten klappen: zijn
+  // wijziging is al opgeslagen, alleen het vangnet ontbreekt dan.
+  const existing = await loadPendingReplan(admin, profileId).catch(() => null);
   await admin
     .from("training_replan_requests")
     .upsert(
-      { profile_id: profileId, reason, requested_at: new Date().toISOString() },
+      {
+        profile_id: profileId,
+        reason: combineReasons(existing?.reason, reason),
+        requested_at: new Date().toISOString(),
+      },
       { onConflict: "profile_id" },
     )
     .then(
       () => null,
-      // Niet kritiek genoeg om de actie van het lid op te laten klappen: zijn
-      // wijziging is al opgeslagen, alleen het vangnet ontbreekt dan.
       () => null,
     );
 }

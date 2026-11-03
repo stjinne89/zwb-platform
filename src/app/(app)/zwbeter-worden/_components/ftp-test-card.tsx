@@ -124,7 +124,9 @@ export function FtpTestCard({ todayKey, upcoming, awaitingResult, lastTest }: Ft
         setResult(`FTP op ${ftp}${changed}.${check} Je schema wordt bijgewerkt…`);
         poll.watch(outcome.generationId);
       } else {
-        setResult(`FTP op ${ftp}${changed}.${check}`);
+        setResult(
+          `FTP op ${ftp}${changed}.${check}${outcome.replanScheduled ? " Je schema wordt vannacht bijgewerkt." : ""}`,
+        );
       }
     } catch {
       poll.setError("Uitslag opslaan is mislukt.");

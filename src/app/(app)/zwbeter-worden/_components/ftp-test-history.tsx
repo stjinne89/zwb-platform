@@ -68,6 +68,7 @@ type ChangeOutcome = {
   profileWithoutTest: boolean;
   overwrittenByIntervals: boolean;
   generationId: string | null;
+  replanScheduled?: boolean;
 };
 
 type ChangeResult = ChangeOutcome | { ok: false; error: string };
@@ -88,6 +89,7 @@ function outcomeMessage(
     );
   }
   if (outcome.generationId) parts.push("Je schema wordt bijgewerkt…");
+  else if (outcome.replanScheduled) parts.push("Je schema wordt vannacht bijgewerkt.");
   return parts.join(" ");
 }
 

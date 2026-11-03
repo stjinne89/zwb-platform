@@ -136,8 +136,8 @@ het werk zonder spoor).
 
 ## Kosten
 
-Elk antwoord kost geld. Twee remmen, met hetzelfde motief als de vijf-minuten-cooldown in
-`replan.ts`:
+Elk antwoord kost geld. Twee remmen, met hetzelfde motief als het bundelen van
+herzieningen in `replan.ts` (één per lid per dag, sinds 2026-11-03):
 
 - `rateLimitHit("training-chat", ip, 20, 60)` — tegen floods.
 - `rateLimitHit("training-chat-ai", profileId, 25, 86400)` — 25 antwoorden per lid per dag.

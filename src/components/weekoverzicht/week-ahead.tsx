@@ -96,7 +96,13 @@ export function WeekAhead({ week: initial, onBack, preview = false }: { week: Ne
     }
     setSaved(minutes);
     setJustSaved(true);
-    setStatus(result.generationId ? "Opgeslagen. Je schema wordt bijgewerkt." : "Opgeslagen.");
+    setStatus(
+      result.generationId
+        ? "Opgeslagen. Je schema wordt bijgewerkt."
+        : "replanScheduled" in result && result.replanScheduled
+          ? "Opgeslagen. Je schema wordt vannacht bijgewerkt."
+          : "Opgeslagen.",
+    );
     const fresh = await reloadNextWeek(week.weekStart);
     if (fresh) setWeek(fresh);
     setBusy(false);
