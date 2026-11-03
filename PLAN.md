@@ -20,9 +20,11 @@ gaat stabiliteit voor nieuwe features.
    stap 4). Daarna kan het delen bij OpenAI uit; dat doet de eigenaar.
    De privacytekst noemt de aanbieder die `AI_PROVIDER` kiest (akkoord eigenaar).
 
-0a. **Meerdere ritten samen één training (2026-11-03): niet gepusht,
-   migratie `0306_strava_activity_part_of.sql` niet toegepast.** Vóór het
-   toepassen op `main` kijken of `0306` vrij is. Zie de ronde "Schema: meerdere
+0a. **Meerdere ritten samen één training (2026-11-03): migratie `0306`
+   toegepast en gepusht.** `0306_strava_activity_part_of.sql` is op 2026-11-03
+   via de Supabase-connector toegepast, op verzoek van de eigenaar, vóór de
+   push naar `main` (zelfde dag). Nog doen: de drie ritten van 3 november in de
+   kalender samenvoegen en de training nakijken. Zie de ronde "Schema: meerdere
    ritten samen één training".
 
 0b. **ZWBekers (2026-10-28): migratie `0286` toegepast en gepusht.** Open: de
@@ -11718,10 +11720,13 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Schema: meerdere ritten samen één training
 
-**2026-11-03.** Eén commit, samen met deze PLAN-regel, op de branch
-`claude/zwift-combine-rides-56a83f`; niet gepusht. Migratie
-`0306_strava_activity_part_of.sql`, **nog niet toegepast** (eerst op `main`
-kijken of `0306` intussen bezet is).
+**2026-11-03.** Commit `a4aa28ea` op de branch
+`claude/zwift-combine-rides-56a83f`, plus de commit die dit blok bijwerkt;
+gepusht naar `main` op 2026-11-03 (eigenaar). Migratie
+`0306_strava_activity_part_of.sql` op 2026-11-03 via de Supabase-connector
+toegepast, op verzoek van de eigenaar, nadat `0306` op `main` en in de historie
+van productie vrij bleek. Daarna nagekeken: kolom, verwijzing, controle en index
+aanwezig; de security-advisor meldt niets nieuws over `strava_activities`.
 
 **Waarom.** Vraag van de eigenaar: hij reed zijn "Rustige duur 90 min" in drie
 Zwift-ritten (ZWB-workout 49 min, video-rit 32 min, group ride 24 min). Een
@@ -11775,9 +11780,7 @@ op PGlite, dat alleen de regels toetst en niets zegt over productie), typecheck 
 lint van de gewijzigde bestanden zijn schoon. De volledige suite faalt alleen
 buiten deze ronde (ontbrekend `@anthropic-ai/sdk` in de worktree, twee
 Zwift-routetests, een timeout); niet tegen `main` vergeleken. Niet in de browser
-bekeken. De migratie is niet toegepast; zonder migratie werkt alles zoals
-voorheen (`loadRidePartLinks` geeft dan niets terug), alleen het samenvoegen
-faalt.
+bekeken, en nog niet met echte ritten samengevoegd op productie.
 
 ### Gebouwd — Dashboard: tegel "Jouw teams"
 
