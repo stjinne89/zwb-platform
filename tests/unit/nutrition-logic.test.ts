@@ -182,6 +182,19 @@ describe("scaleRecipe", () => {
     expect(tiny.factors).toEqual({ kh_bron: 0.5, eiwit_bron: 0.5, vast: 0.5 });
   });
 
+  it("schaalt water en zout niet mee", () => {
+    const water = { ...food("water1885", 0, 0), kcal: 0, fat_g: 0 };
+    const drink = [
+      { food: oats, grams: 70, role: "kh_bron" as const },
+      { food: water, grams: 750, role: "vast" as const },
+    ];
+    const scaled = scaleRecipe(drink, 1, { carbsG: 80, proteinG: null }, 1.15);
+    expect(scaled.ingredients.map((item) => item.grams)).toEqual([135, 750]);
+    // Een onbekende waarde telt niet als nul.
+    const unknown = scaleRecipe([{ food: food("x", 0, 0), grams: 100, role: "vast" }], 1, { carbsG: null, proteinG: null }, 1.5);
+    expect(unknown.ingredients[0].grams).toBe(150);
+  });
+
   it("deelt door het aantal porties", () => {
     const double = recipe.map((item) => ({ ...item, grams: item.grams * 2 }));
     expect(basePortion(double, 2).ingredients.map((item) => item.grams)).toEqual([70, 100, 250]);

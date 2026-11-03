@@ -227,6 +227,10 @@ export const SHOPPING_NAMES: Record<number, ShoppingName> = {
   410: { name: "Sinaasappelsap", liquid: true },
   463: { name: "Limonadesiroop", liquid: true },
   747: { name: "Water", liquid: true, pantry: true },
+  598: { name: "Water", liquid: true, pantry: true },
+  599: { name: "Water", liquid: true, pantry: true },
+  600: { name: "Water", liquid: true, pantry: true },
+  1885: { name: "Water", liquid: true, pantry: true },
   // Voorraadkast
   841: { name: "Zout", department: "voorraad", pantry: true },
   823: { name: "Peper", pantry: true },
@@ -277,4 +281,9 @@ export function cleanNevoName(nameNl: string): string {
 
 export function departmentFor(nevoCode: number, foodGroup: string | null | undefined): Department {
   return SHOPPING_NAMES[nevoCode]?.department ?? GROUP_DEPARTMENTS[foodGroup ?? ""] ?? "overig";
+}
+
+/** Ml voor sap, siroop en water (1 g ≈ 1 ml) en een drank met barcode in ml, anders g. */
+export function unitFor(food: { nevo_code: number; quantity_unit?: string | null }): "g" | "ml" {
+  return SHOPPING_NAMES[food.nevo_code]?.liquid || food.quantity_unit === "ml" ? "ml" : "g";
 }

@@ -11709,6 +11709,35 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Bijgesteld — Recepten: water en zout schalen niet mee
+
+**2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch
+`claude/drinkmix-favorites-zwbeter-6a454b`, niet gepusht. Geen migratie.
+
+**Waarom.** De eigenaar maakte van een gescand poeder (NRGY Drink 90, in gram)
+een bidon door 750 ml "Water gem" toe te voegen. Het recept toonde daarna
+860 g water: de rol Vast schaalt met de energiefactor, en "Water gem" (NEVO
+1885) stond niet als vloeistof bekend.
+
+**Wat.**
+- `scaleRecipe` (`lib/nutrition/scale.ts`): een ingrediënt zonder energie
+  (kcal, koolhydraten, eiwit en vet alle vier 0) houdt de hoeveelheid uit het
+  recept. Dat zijn water, mineraalwater en zout; een onbekende waarde telt niet
+  als 0. Geldt overal, dus ook voor het water in "Sportdrank van appelsap" en
+  het zout in de clubsportdrank.
+- `SHOPPING_NAMES`: NEVO 598, 599, 600 en 1885 heten "Water", in ml, uit de
+  kast. Nieuw `unitFor` in `shopping-names.ts`; het ritplan en de receptpagina
+  gebruiken het. De receptpagina toonde sap en siroop eerder in g, want die
+  keek alleen naar `quantity_unit`, en die is in NEVO altijd g.
+
+**Bewust niet.** Zout in een maaltijd schaalt nu ook niet meer mee met een
+grotere portie. Dat scheelt hooguit een halve gram en houdt de regel simpel.
+
+**Gecontroleerd.** Vitest `nutrition-*.test.ts` (nieuw: water en zout blijven
+gelijk, poeder met water wordt een bidon met 750 ml); `tsc` en ESLint schoon
+op de geraakte bestanden. **Niet geverifieerd:** de receptpagina en het
+ritplan in de browser.
+
 ### Bijgesteld — Ritplan: hoogstens 90 g per bidon
 
 **2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch

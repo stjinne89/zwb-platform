@@ -75,6 +75,14 @@ function clampFactor(value: number): number {
   return Math.min(SCALE_MAX, Math.max(SCALE_MIN, value));
 }
 
+/**
+ * Water en zout leveren niets: de energiefactor heeft daar niets te schalen, en
+ * water vult de bidon. Een onbekende waarde telt niet als nul.
+ */
+function energyFree(food: NutritionFood): boolean {
+  return [food.kcal, food.carbs_g, food.protein_g, food.fat_g].every((value) => value != null && Number(value) === 0);
+}
+
 /** Nette hoeveelheden: onder de 5 g op halve grammen (zout, kaneel), tot 50 g op
  * hele grammen, daarboven op vijftallen. */
 export function roundGrams(grams: number): number {
@@ -175,7 +183,7 @@ export function scaleRecipe(
 
   const scaled = perPortion.map((item) => ({
     ...item,
-    grams: roundGrams(item.grams * factors[item.role]),
+    grams: roundGrams(item.grams * (energyFree(item.food) ? 1 : factors[item.role])),
   }));
 
   return { factors, ingredients: scaled, perPortion: macrosFor(scaled) };

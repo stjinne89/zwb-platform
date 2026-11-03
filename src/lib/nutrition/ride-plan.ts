@@ -12,7 +12,7 @@ import { basePortion, macrosFor, scaleRecipe, type RecipeIngredient } from "./sc
 import { isPackagedRecipe, type Recipe } from "./recipes";
 import { logItemFor } from "./products";
 import type { ShoppingSlot } from "./shopping";
-import { SHOPPING_NAMES } from "./shopping-names";
+import { unitFor } from "./shopping-names";
 import { fluidBidons, fluidPerHour, type FluidTarget } from "./sweat";
 import { rideTargetPerHour, type GutTraining } from "./targets";
 
@@ -108,10 +108,7 @@ function ingredientsOf(items: RecipeIngredient[]): RidePlanIngredient[] {
       name: item.food.name_nl,
       amount: item.grams,
       // Sap en water in ml, zoals op de boodschappenlijst (1 g ≈ 1 ml).
-      unit:
-        SHOPPING_NAMES[item.food.nevo_code]?.liquid || (item.food as { quantity_unit?: string }).quantity_unit === "ml"
-          ? "ml"
-          : "g",
+      unit: unitFor(item.food as { nevo_code: number; quantity_unit?: string }),
     }));
 }
 

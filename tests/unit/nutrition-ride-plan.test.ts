@@ -138,6 +138,18 @@ describe("ritplan", () => {
     expect(meals[0].title).toBe("4× sportdrank");
   });
 
+  it("maakt van poeder met water een bidon die vol blijft", () => {
+    const water = { ...food("water", 0, "Niet-alcoholische dranken"), nevo_code: 1885 };
+    const powder = { ...food("poeder", 93, "Diversen"), barcode: "3830081922550" };
+    const mix = recipe("poeder-met-water", 1, [
+      [powder, 100, "kh_bron"],
+      [water, 750, "vast"],
+    ]);
+    const plan = ridePlan({ minutes: 90, ranked: [mix, DRINK], energyFactor: 1.15 })!;
+    expect(plan.bidons.recipe?.slug).toBe("poeder-met-water");
+    expect(plan.bidons.ingredients.find((item) => item.foodId === "water")).toMatchObject({ amount: 750, unit: "ml" });
+  });
+
   it("geeft sap en water in ml", () => {
     const plan = ridePlan({ minutes: 120, ranked: [DRINK], energyFactor: 1 })!;
     expect(plan.bidons.ingredients.find((item) => item.foodId === "siroop")?.unit).toBe("ml");

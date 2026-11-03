@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Check, Pencil } from "lucide-react";
 import { Markdown } from "@/components/markdown";
 import { DIET_TAG_LABELS, FUEL_PROFILE_LABELS, isPackagedRecipe, portionForRider } from "@/lib/nutrition/recipes";
+import { unitFor } from "@/lib/nutrition/shopping-names";
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
 import { nutritionDay } from "@/lib/nutrition/tips";
 import { MICRONUTRIENT_LABELS, portionTraits } from "@/lib/nutrition/traits";
@@ -88,7 +89,6 @@ export default async function RecipePage({
         }
       : null,
   );
-  const unitByFood = new Map(recipe.ingredients.map((item) => [item.food.id, item.food.quantity_unit]));
   const own = !recipe.is_standard && recipe.owner_id === viewer.user.id;
   const traits = portionTraits(portion.ingredients);
   const labels = [
@@ -157,7 +157,7 @@ export default async function RecipePage({
               <li key={`${item.food.id}-${index}`} className="flex justify-between gap-3 py-2">
                 <span className="min-w-0">{item.food.name_nl}</span>
                 <span className="shrink-0 tabular-nums text-muted-foreground">
-                  {amount(item.grams, unitByFood.get(item.food.id) ?? "g")}
+                  {amount(item.grams, unitFor(item.food))}
                 </span>
               </li>
             ))}
