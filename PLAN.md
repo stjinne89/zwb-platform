@@ -11723,7 +11723,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: geen parcoursen boven 45 minuten
 
-**2026-11-03.** Geen migratie. Niet gepusht.
+**2026-11-03.** Commit `dc7d89e5`, gepusht naar `main` op 2026-11-03
+(eigenaar). Geen migratie.
 
 **Waarom.** Na het nieuwe advies stonden Road to Sky en Ven-Top bovenaan tegen
 SZ Loki. Volgens de eigenaar zijn die te lang in tijd voor een ladderrace,
