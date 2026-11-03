@@ -11723,7 +11723,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: advies op de huidige ploeg, klimtijd bepaalt de duur
 
-**2026-11-03.** Geen migratie. Niet gepusht.
+**2026-11-03.** Commits `1040b226` en `c7dcd4b9`, gepusht naar `main` op
+2026-11-03 (eigenaar). Geen migratie.
 
 **Waarom.** De eigenaar vond het advies tegen SZ Loki vreemd: 1 minuut gaf het
 grootste verschil (+11%), toch stuurde het op 20 minuten (+9%), met drie
