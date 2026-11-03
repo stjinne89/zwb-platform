@@ -5593,7 +5593,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   alleen als hun label aanstaat (`lib/events/type-filter.ts`). Sinds
 >   2026-11-01 geldt dat ook voor de eigen trainingen in het design "tegels"
 >   (label Mijn trainingen, zie die ronde). Wisselen tussen
->   Alles en Voor mij houdt de keuze vast.
+>   Alles en Voor mij houdt de keuze vast. Sinds 2026-11-03 kan een label ook
+>   uit, met een kruisje erachter (`?zonder=`, zie de ronde "Kalender: labels
+>   uitzetten").
 > - **Kleur.** Eén kleur per categorie (`eventColorStyle`): rand links van de
 >   regel, het label rechts en het bolletje in het filter. Buitenritten: Gran
 >   Fondo groen, Toertocht teal, Outdoor rit blauw, Gravel amber. Virtueel van
@@ -11643,6 +11645,41 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Kalender: labels uitzetten
+
+**2026-11-03.** Commit op branch `claude/calendar-labels-toggle-a2ac6b`, niet
+gepusht. Geen migratie.
+
+**Waarom.** Vraag van de eigenaar: in de dropdown Labels kon je alleen kiezen
+wat je wilt zien. Wie bijvoorbeeld alles behalve de verjaardagen wil, moest
+alle andere labels aanvinken.
+
+**Wat.**
+- Achter elk label in de dropdown staat een kruisje. Dat zet het label uit:
+  wat dat label heeft, verdwijnt van de kalender, ook als een ander gekozen
+  label het zou tonen. Een uitgezet label staat doorgestreept, met een rood
+  kruisje; nog eens klikken zet het terug. Aan en uit sluiten elkaar per label
+  uit: aanvinken haalt het kruisje weg en omgekeerd. Wis labels wist beide.
+- URL: `?zonder=verjaardag,zrl` voor categorie, soort, Verjaardagen en Mijn
+  trainingen, `?zonder-programma=<slug>` voor programma's. Staat een waarde
+  met de hand zowel aan als uit, dan wint uit. Alles en Voor mij houden beide
+  vast.
+- `lib/events/type-filter.ts`: `CalendarFilter` heeft `excluded` en
+  `excludedPrograms`; `eventMatchesFilter`, `birthdaysMatchFilter` en
+  `ownTrainingsMatchFilter` kijken daar eerst naar. Alleen labels uit telt
+  niet als keuze, dus de rest blijft staan zoals zonder filter.
+- Het kruisje is een eigen menu-item naast het vinkje (`closeOnClick` uit), zodat
+  het menu openblijft en het met het toetsenbord bereikbaar is.
+- Het getal op de knop Labels telt aan en uit samen.
+
+**Niet gedaan.** Geen opslag van uitgezette labels per lid; het blijft in de
+URL, net als het bestaande filter.
+
+**Gecontroleerd.** Nieuwe tests in `tests/unit/calendar-type-filter.test.ts`,
+plus `tests/unit/event-programs.test.ts`; ESLint op de gewijzigde bestanden.
+`tsc` geeft alleen de bekende fouten over ontbrekende modules in deze worktree
+(`modern-screenshot`, `@anthropic-ai/sdk`). Niet in de browser bekeken.
 
 ### Gebouwd — Ladderrace: racebriefje
 

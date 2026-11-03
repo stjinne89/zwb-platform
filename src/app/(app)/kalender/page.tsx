@@ -61,6 +61,8 @@ type SearchParams = Promise<{
   voor?: string;
   type?: string | string[];
   programma?: string | string[];
+  zonder?: string | string[];
+  "zonder-programma"?: string | string[];
 }>;
 
 function pastWindowStartIso() {
@@ -113,10 +115,17 @@ export default async function KalenderPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { voor, type, programma } = await searchParams;
-  const onlyForMe = voor === "mij";
-  const selectedTypes = parseTypeFilter(type);
-  const selectedPrograms = parseProgramFilter(programma);
+  const params = await searchParams;
+  const onlyForMe = params.voor === "mij";
+  const excludedTypes = parseTypeFilter(params.zonder);
+  const excludedPrograms = parseProgramFilter(params["zonder-programma"]);
+  // Aan en uit tegelijk kan alleen via een met de hand gemaakte URL; uit wint.
+  const selectedTypes = parseTypeFilter(params.type).filter(
+    (value) => !excludedTypes.includes(value),
+  );
+  const selectedPrograms = parseProgramFilter(params.programma).filter(
+    (slug) => !excludedPrograms.includes(slug),
+  );
 
   const [supabase, user] = await Promise.all([createClient(), getRequestUser()]);
   const canCreateEvents = (await getRequestAccess()).has("events.create");
@@ -283,7 +292,10 @@ export default async function KalenderPage({
       programCounts.set(program.slug, (programCounts.get(program.slug) ?? 0) + 1);
     }
   }
-  const filter = splitTypeFilter(selectedTypes, selectedPrograms);
+  const filter = splitTypeFilter(selectedTypes, selectedPrograms, {
+    types: excludedTypes,
+    programs: excludedPrograms,
+  });
   const events = scoped.filter((event) =>
     eventMatchesFilter(
       event,
@@ -322,10 +334,12 @@ export default async function KalenderPage({
           .order("scheduled_at", { ascending: true })
           .limit(21)
       : { data: null };
-  // Een gekozen label blijft staan als er (onder Voor mij) niets meer van over
-  // is, anders kun je het niet meer uitzetten.
+  // Een gekozen of uitgezet label blijft staan als er (onder Voor mij) niets
+  // meer van over is, anders kun je het niet meer terugzetten.
   const present = (option: LabelOption) =>
-    option.count > 0 || selectedTypes.includes(option.value);
+    option.count > 0 ||
+    selectedTypes.includes(option.value) ||
+    excludedTypes.includes(option.value);
   const labelGroups: LabelGroup[] = [
     {
       title: "Programma",
@@ -335,6 +349,7 @@ export default async function KalenderPage({
         .filter(
           (program) =>
             selectedPrograms.includes(program.slug) ||
+            excludedPrograms.includes(program.slug) ||
             (!program.archived_at && (programCounts.get(program.slug) ?? 0) > 0),
         )
         .map((program) => ({
@@ -489,6 +504,8 @@ export default async function KalenderPage({
               onlyForMe: false,
               types: selectedTypes,
               programs: selectedPrograms,
+              excluded: excludedTypes,
+              excludedPrograms,
             })}
             aria-current={onlyForMe ? undefined : "page"}
             className={`tg-link tg-kalender tg-chip rounded-full border px-3 py-1 text-xs ${
@@ -502,6 +519,8 @@ export default async function KalenderPage({
               onlyForMe: true,
               types: selectedTypes,
               programs: selectedPrograms,
+              excluded: excludedTypes,
+              excludedPrograms,
             })}
             aria-current={onlyForMe ? "page" : undefined}
             className={`tg-link tg-kalender tg-chip rounded-full border px-3 py-1 text-xs ${
@@ -517,6 +536,8 @@ export default async function KalenderPage({
             groups={labelGroups}
             selected={selectedTypes}
             selectedPrograms={selectedPrograms}
+            excluded={excludedTypes}
+            excludedPrograms={excludedPrograms}
             onlyForMe={onlyForMe}
           />
         )}
