@@ -271,6 +271,14 @@ export const WANG_BET_2026: KnowledgeSource = {
   kind: "review",
 };
 
+export const ZHENG_BET_2026: KnowledgeSource = {
+  citation:
+    "Zheng X, Sun Y, Zhao Z, Wang C, Shang Z, Xie Y, et al. Effects of brain endurance training on cognitive function, physical performance and perceived exertion in healthy adults: a systematic review and three-level meta-analysis. Front Physiol 17:1923855.",
+  year: 2026,
+  url: doi("10.3389/fphys.2026.1923855"),
+  kind: "review",
+};
+
 export const DALLAWAY_2025: KnowledgeSource = {
   citation:
     "Dallaway N, et al. Effects of separate cognitive training on endurance exercise performance. J Funct Morphol Kinesiol 10(4):391.",
@@ -838,12 +846,12 @@ export const TRAINING_PROTOCOLS: Protocol[] = [
     notFor: ["Als je al mentaal overbelast bent of slecht slaapt."],
     limits: [
       "Twee kleine proeven bij wegrenners (26 en 24), zes weken lang vijf keer per week.",
-      "Het effect was duidelijk als renners mentaal moe aan de test begonnen; fris was het onzeker.",
+      "Het effect was duidelijk als renners mentaal moe aan de test begonnen; fris was het onzeker. Twee meta-analyses komen daarop uit.",
       "De meeste studies komen van dezelfde onderzoekers.",
       "Alleen de taak, zonder training ervoor, deed niets.",
       "Drie keer per week is een keuze van ZWB; in de studie was het vijf keer.",
     ],
-    sources: [STAIANO_2023, WANG_BET_2026, DALLAWAY_2025],
+    sources: [STAIANO_2023, WANG_BET_2026, ZHENG_BET_2026, DALLAWAY_2025],
     article: { href: "/zwbeter-worden/kennis/brain-endurance-training", title: "Brain endurance training" },
   },
 ];

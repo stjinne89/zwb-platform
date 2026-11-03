@@ -198,7 +198,7 @@ Protocollen gebruiken dezelfde schaal en dezelfde regels. Een protocol dat bij
 een artikel hoort, krijgt **hooguit** het niveau van dat artikel. Het mag lager
 zijn als het protocol een precies schema voorschrijft dat zelf minder getest is:
 *Voor de rit* is stevig onderbouwd, het protocol *Koolhydraten laden* (36–48 uur,
-10–12 g/kg) onderbouwd (besluit eigenaar, 2026-10-17). Dezelfde verhouding geldt
+8–12 g/kg sinds de literatuurscan 2026-11) onderbouwd (besluit eigenaar, 2026-10-17). Dezelfde verhouding geldt
 nu voor *Darmtraining* en *Herstel tussen sessies*, die omhoog gaan terwijl hun
 protocollen blijven.
 

@@ -21,6 +21,7 @@ Eén regel per scan. De scan begint bij de datum van de vorige regel.
 | Scan | Venster | Zoekvragen | Bekeken | Voorstellen | Voorstel | Status |
 |---|---|---|---|---|---|---|
 | Nulmeting | t/m 2026-10-16 | — | — | — | `docs/wetenschappelijke-toets.md` | Afgerond: de wetenschappelijke toets verwerkte de literatuur tot deze datum |
+| 2026-11 | 2026-10-16 t/m 2026-11-02 | 58 (Consensus 27, PubMed 31) + 18 retractie/errata | 85 PubMed, 536 Consensus (47 inhoudelijk) | 9 | `2026-11.md` | Uitgevoerd 2026-11-03, alle negen (zie PLAN.md) |
 
 ## Zoekvragen per thema
 
@@ -83,3 +84,52 @@ scan slaat ze over, tenzij er iets nieuws is (een erratum, een vervolgstudie).
 
 | Scan | Bron (DOI of PMID) | Thema | Reden |
 |---|---|---|---|
+| 2026-11 | PMID 42933463 | T4 | Nieuwe veldtest (RPO 1-12), één studie |
+| 2026-11 | PMID 42902450 | T24 | W′bal bij hardlopers, niet bij fietsers |
+| 2026-11 | PMID 42947243 | T25 | Ergonomie plus training gecombineerd; effect niet toe te wijzen |
+| 2026-11 | PMID 42968311 | T15 | Narratief over veel koolhydraten en ketonen, voegt niets toe |
+| 2026-11 | PMID 42932892 | T18 | Koude of warme sportdrank in hitte, n=11, verandert geen advies |
+| 2026-11 | PMID 42942424 | T17 | Narratief over botten bij triatleten |
+| 2026-11 | PMID 42931583 | T17 | Pilot-casusreeks energiebeschikbaarheid |
+| 2026-11 | PMID 42963039 | T19 | Bietensap in hypoxie, niet ZWB-relevant |
+| 2026-11 | PMID 42937137 | T19 | Ketonen in hypoxie, post-hoc n=5 |
+| 2026-11 | PMID 42959925 | T19 | Narratief creatine en bèta-alanine |
+| 2026-11 | PMID 42935441 | T20 | Opinie-review omega-3 |
+| 2026-11 | PMID 42887879 | T20 | Verslag van een congressessie |
+| 2026-11 | PMID 42884750 | T20 | Eén probioticum (SLAB51), klein |
+| 2026-11 | PMID 42939527 | T20 | Narratief microbioom |
+| 2026-11 | PMID 42931560 | T7 | Handknijpkracht als readiness-maat, geen meerwaarde |
+| 2026-11 | PMID 42948296 | T21 | Hoogtetraining bij profs |
+| 2026-11 | PMID 42926219 | T21 | Aorta bij masters-hardlopers, cardiologie |
+| 2026-11 | PMID 42893206 | T21 | Master@Heart, cardiologie, buiten scope |
+| 2026-11 | PMID 42890927 | T27 | BFR bij niet-sporters boven 70 |
+| 2026-11 | PMID 42924702 | T27 | Narratief BFR deel 3 |
+| 2026-11 | PMID 42931574 | T8 | Deadlift als PAPE, geen effect |
+| 2026-11 | PMID 42961775 | T24 | Pacing in monumenten bij profs, geen abstract |
+| 2026-11 | PMID 42931597 | T25 | Videosysteem voor binnenfietsen, techniek |
+| 2026-11 | PMID 42952497 | T10 | Ademspiertraining bij jeugdlopers |
+| 2026-11 | PMID 42965396 | T11 | Massage na Ironman |
+| 2026-11 | PMID 42924681 | T23 | Enquête klachten triatleten |
+| 2026-11 | https://doi.org/10.1123/ijspp.2026-0214 | T5 | Eén profrenner |
+| 2026-11 | https://doi.org/10.1080/02640414.2026.2741755 | T4 | Nieuwe 8-minutentest, geen langetermijndata |
+| 2026-11 | https://doi.org/10.1080/02701367.2026.2742219 | T4 | Geen bruikbare uitkomst voor ZWB |
+| 2026-11 | https://doi.org/10.1186/s13102-026-02134-5 | T2 | Sprintherhaling in hypoxie |
+| 2026-11 | https://doi.org/10.1080/15502783.2026.2723237 | T16 | Kikkererwteneiwit, niche |
+| 2026-11 | https://doi.org/10.3390/nu18193267 | T16 | Whey bij uitdroging, niet ZWB-relevant |
+| 2026-11 | https://doi.org/10.1007/s00774-026-01761-9 | T17 | Kaas en botten, geen sporters |
+| 2026-11 | https://doi.org/10.3390/sports14100435 | T18 | Elektrolytdrank, klein |
+| 2026-11 | https://doi.org/10.55860/caqcy191 | T9 | Koeling, n=7 |
+| 2026-11 | https://doi.org/10.1007/s00421-026-06456-7 | T19 | Cafeïne plus capsaïcine, combinatie niet in gebruik |
+| 2026-11 | https://doi.org/10.1002/advs.77664 | T20 | Probioticum, dierexperimenteel/mechanistisch |
+| 2026-11 | https://doi.org/10.1007/s00421-026-06460-x | T19 | Bietensap plus krachttraining |
+| 2026-11 | https://doi.org/10.1186/s40798-026-01124-8 | T4 | VT1-algoritme, nog niet toepasbaar |
+| 2026-11 | https://doi.org/10.1519/jsc.0000000000005610 | T13 | Hormonen, geen trainingsadvies |
+| 2026-11 | https://doi.org/10.1002/ejsc.70265 | T13 | Model voor cyclustracking, geen advies |
+| 2026-11 | https://doi.org/10.1016/j.jnphys.2026.100047 | T19 | Cafeïne en glycogeen, mechanistisch |
+| 2026-11 | https://doi.org/10.1080/02640414.2026.2739775 | T24 | 24-uurs MTB-pacing, niche |
+| 2026-11 | https://doi.org/10.7717/peerj.21807 | T2 | Review bij elitesporters, geen fietsers |
+| 2026-11 | https://doi.org/10.1186/s40798-026-01123-9 | T8 | Scoping review warming-up, geen nieuw advies |
+| 2026-11 | https://doi.org/10.1519/jsc.0000000000005692 | T10 | Apparaat voor ademspiertraining |
+| 2026-11 | https://doi.org/10.3390/sports14100426 | T21 | Zwemmers |
+| 2026-11 | https://doi.org/10.3390/sports14100430 | T21 | Masters-zwemmers |
+| 2026-11 | https://doi.org/10.1186/s13102-026-02121-w | T23 | Coretraining bij teamsporten, geen duuruitkomsten |

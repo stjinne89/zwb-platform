@@ -11743,6 +11743,70 @@ krachttrainingen én workouts, en dat een workout pas meetelt met aangetikte
 spieren. Akkoord eigenaar 2026-11-03, zonder nieuwe privacyversie: dezelfde
 data die de koppeling al ophaalde, alleen voor het lid zelf getoond.
 
+### Gebouwd — Kennisbank: literatuurscan 2026-11 doorgevoerd
+
+**2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op `main`,
+niet gepusht. Geen migratie. Voorstel:
+[`docs/kennisbank-scan/2026-11.md`](docs/kennisbank-scan/2026-11.md) (de
+scan van 2026-11-02, branch `kennisbank-scan/2026-11`; de scanbestanden komen in
+deze commit mee naar `main`).
+
+**Waarom.** De eerste maandelijkse scan vond negen voorstellen; de eigenaar gaf
+akkoord om ze allemaal door te voeren ("pas de veranderingen toe in de app").
+De zwaarste: de kennisbank zei op twee plekken dat boven 120 g koolhydraten per
+uur nooit getest is, en dat klopte niet meer.
+
+**Wat.**
+- **Koolhydraten tijdens de rit** en protocol **Darmtraining 150**: de zin
+  "boven 120 nooit getest" vervangen door de uitkomst van Martyn 2026 (150 g/u
+  gaf geen winst boven 120; optimum voor de groep rond 105–110 g/u). Ook de
+  zin in het artikel Darmtraining en het codecommentaar boven het protocol.
+- **Koolhydraten tijdens de rit**, protocol **Darmtraining** en **Lange
+  ritten**: Mazza 2026 (100 tegen 60 g/u, minder verval op een tijdrit na vier
+  uur) als tweede proef naast Norte 2026.
+- **Voor de rit** en protocol **Koolhydraten laden**: stapelen wordt "minstens
+  8 g/kg, tot 10–12", met 24–36 uur na een zware training vooraf (meta-analyse
+  Jones 2026). De dosis in het protocol gaat van 10–12 naar **8–12 g/kg**; dat
+  verandert het getal dat leden in hun protocol zien. Nieuwe beperking: de
+  opslag verschilt sterk per persoon.
+- **Lange ritten**: Maunder 2026 (na twee uur gelijke critical power, maar W′
+  een kwart kleiner).
+- **Herstel meten**: beperking dat readiness geen vaste definitie heeft en
+  scores zelden op voorspellende waarde getoetst zijn (review Micheli 2026).
+  Bevestigt claim A6/A10 in `docs/wetenschappelijke-toets.md`; geen codewijziging
+  in `wellness.ts`.
+- **Botgezondheid**: Dolan 2026 (vijf dagen te weinig eten remt de botaanmaak,
+  ook met genoeg eiwit).
+- **Ketonen**: Engelbrecht 2026 (geen effect in de Cape Epic) en Poffé 2026
+  (REM-slaap beschermd, zelf geen verschil gemerkt). Conclusie blijft.
+- Protocol **Cafeïne**: beperking over het verwachtingseffect (meta-analyse
+  Hurst 2026).
+- **Brain endurance training**, artikel en protocol: tweede meta-analyse
+  (Zheng 2026). Niveau en label experimenteel blijven.
+- Docs met het oude getal of de oude claim bijgewerkt:
+  `docs/protocollen-onderzoek.md`, `docs/voeding-wielrennen.md`,
+  `docs/bewijsniveau-kennisbank.md`, `docs/beoordelingsbeleid-bewijsniveau.md`,
+  en hieronder de rondes "Darmtraining 150" en de darmtraining-keuze in het
+  dagdoel.
+
+**Bewust niet gedaan.**
+- **Protocol Darmtraining 150 schrappen of op 120 zetten.** De scan legde die
+  keuze bij de eigenaar; het akkoord was "toepassen", dus het protocol blijft
+  op 150 als doel, met de nieuwe beperking. Wie het doel wil verlagen, kan dat
+  als aparte beslissing nemen.
+- **W′ verlagen na lange ritten** in `pacing/w-prime.ts`: één proef met een
+  kunstmatige ingreep. Staat onder "In de gaten houden" in het voorstel.
+- **Bewijsniveaus**: geen enkel niveau of label veranderd.
+- De zoekvraagvoorstellen in het voorstel (sportersfilter, porties van twintig
+  bij de retractiecontrole) zijn nog niet in de skill of README verwerkt.
+
+**Gecontroleerd.** `tsc` geeft geen fouten in de gewijzigde bestanden (alleen de
+bekende over `modern-screenshot`, `@anthropic-ai/sdk` en `.next`-types). ESLint
+op de vier codebestanden schoon. `vitest`: protocollen, training-library,
+article-evidence en de voedingstests slagen; de 24 falende bestanden in de
+volle suite falen op ontbrekende pakketten en Zwift-routedata, los van deze
+wijziging. `kennisbank-inventaris.mjs` draait. Niet in de browser bekeken.
+
 ### Gebouwd — Kalender: labels uitzetten
 
 **2026-11-03.** Commit `9f29e107` (en deze PLAN-regel), gepusht naar `main` op
@@ -16815,7 +16879,8 @@ gepusht naar `main`.
   en Boodschappen. De dag krijgt `gut` mee in `NutritionDayInput`.
 
 **Bewust niet gedaan.** Geen keuze voor 150 g/u na het vervolg: het plan noemt
-alleen 120, en boven 120 is niets getest. Het weekgetal geldt voor elke rit van
+alleen 120, en de enige proef boven 120 (Martyn 2026, bekend sinds de
+literatuurscan 2026-11) vond geen winst. Het weekgetal geldt voor elke rit van
 90 minuten of langer in die week, niet alleen voor de twee oefenritten die het
 protocol vraagt. Een trainer ziet de keuze voor 120 niet (RLS op
 `nutrition_profiles`); bij de trainerweergave rekent de app dus zonder. Geen
@@ -23652,7 +23717,9 @@ protocollen staan in code en `member_protocols` accepteert elke slug.
 er een gewenningsprotocol van te maken valt. Uitkomst van de literatuurcheck
 (alle bronnen in PubMed, details in
 [`docs/protocollen-onderzoek.md`](docs/protocollen-onderzoek.md), Voeden):
-- Gecontroleerd onderzoek gaat tot 120 g/u; 150 g/u is nooit getest.
+- Gecontroleerd onderzoek ging tot 120 g/u; 150 g/u was nooit getest.
+  *Achterhaald 2026-11-03:* Martyn 2026 testte 150 g/u en vond geen winst
+  boven 120 (ronde "Kennisbank: literatuurscan 2026-11 doorgevoerd").
 - Wat je inneemt, verbrand je hooguit tot ongeveer 100 g/u.
 - De nieuwste review houdt 120 g/u aan als bovengrens voor getrainde renners.
 - Darmtraining werkt, maar is getest tot 90 g/u.

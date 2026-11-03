@@ -426,6 +426,31 @@ export const NORTE_2026: NutritionSource = {
   kind: "studie",
 };
 
+// Literatuurscan 2026-11 (docs/kennisbank-scan/2026-11.md).
+export const MARTYN_2026: NutritionSource = {
+  citation:
+    "Martyn HJ, Gonzalez JT, Stellingwerff T, Burke LM, Owens DJ, Pugh JN, Morton JP. Effects of 10, 90, 120 and 150 g·h-1 CHO on substrate metabolism, exogenous oxidation and exercise capacity: implications for CHO personalization. Med Sci Sports Exerc.",
+  year: 2026,
+  url: "https://doi.org/10.1249/MSS.0000000000004176",
+  kind: "studie",
+};
+
+export const MAZZA_2026: NutritionSource = {
+  citation:
+    "Mazza OB, Ørtenblad N, Nielsen J, Lundby C, Gejl KD. Carbohydrate intake of 100 vs. 60 g·h-1 during prolonged cycling improves durability without altering muscle glycogen utilization in male endurance athletes. Med Sci Sports Exerc.",
+  year: 2026,
+  url: "https://doi.org/10.1249/MSS.0000000000004180",
+  kind: "studie",
+};
+
+export const JONES_LOADING_2026: NutritionSource = {
+  citation:
+    "Jones RO, Areta JL, Fortis HO, Pugh J, Louis JB. Dietary carbohydrate intake and skeletal muscle glycogen: a systematic review and meta-analysis to determine optimal carbohydrate loading strategies. Scand J Med Sci Sports 36(10):e70379.",
+  year: 2026,
+  url: "https://doi.org/10.1111/sms.70379",
+  kind: "review",
+};
+
 export const FLEITAS_PANIAGUA_2026: NutritionSource = {
   citation:
     "Fleitas-Paniagua PR, Rasica L, Azevedo RA, et al. Recommended but not high carbohydrate dose improves performance after heavy- but not moderate-intensity exercise in recreationally trained participants. Scand J Med Sci Sports 36(5):e70288.",
@@ -527,6 +552,38 @@ export const BROOKS_2022: NutritionSource = {
     "Brooks E, Lamothe G, Nagpal TS, et al. Acute ingestion of ketone monoesters and precursors do not enhance endurance exercise performance: a systematic review and meta-analysis. Int J Sport Nutr Exerc Metab 32(3):214-225.",
   year: 2022,
   url: "https://doi.org/10.1123/ijsnem.2021-0280",
+  kind: "review",
+};
+
+const POFFE_2026: NutritionSource = {
+  citation:
+    "Poffé C, Lauriks W, Stalmans M, Robberechts R. An intensified training period reduces REM sleep but this decline can be mitigated by ketone ester supplementation. Med Sci Sports Exerc.",
+  year: 2026,
+  url: "https://doi.org/10.1249/MSS.0000000000004172",
+  kind: "studie",
+};
+
+const ENGELBRECHT_2026: NutritionSource = {
+  citation:
+    "Engelbrecht L, Poffé C, Koppo K, Terblanche E. Post-exercise R-1,3-butanediol did not improve markers of fatigue or recovery during a multi-stage mountain bike race. Eur J Sport Sci 26(11):e70260.",
+  year: 2026,
+  url: "https://doi.org/10.1002/ejsc.70260",
+  kind: "studie",
+};
+
+const DOLAN_2026: NutritionSource = {
+  citation:
+    "Dolan E, Pinto RS, Reina BA, Esteves GP, Miranda VCA, Roschel H, Gualano B, Sale C, Swinton P. Bone biomarker and inflammatory cytokine responses to short-term low energy availability with and without preserved protein intake: a randomized, controlled, multi-period, cross-over trial. Eur J Appl Physiol.",
+  year: 2026,
+  url: "https://doi.org/10.1007/s00421-026-06461-w",
+  kind: "studie",
+};
+
+export const HURST_2026: NutritionSource = {
+  citation:
+    "Hurst P, Hanssen J, Marticorena F, Schiphof-Godart L, Souza HLR, Marocolo M, et al. Placebo effects of caffeine on sport performance: a systematic review and meta-analysis. J Int Soc Sports Nutr 23(1):2747142.",
+  year: 2026,
+  url: "https://doi.org/10.1080/15502783.2026.2747142",
   kind: "review",
 };
 
@@ -753,15 +810,16 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     points: [
       "Eén tot vier uur voor een zware of lange rit: ongeveer 1–4 g koolhydraten per kg, hoe dichter bij de start hoe minder.",
       "Kies dan vooral makkelijk verteerbaar. Veel vet of eiwit in de laatste één tot drie uur vertraagt je maag en geeft sneller klachten.",
-      "Stapelen voor een wedstrijd of tocht van meer dan 90 minuten: 36–48 uur lang 10–12 g/kg.",
+      "Stapelen voor een wedstrijd of tocht van meer dan 90 minuten: 36–48 uur lang minstens 8 g/kg, tot 10–12 g/kg. Na een zware training vooraf en met snel verteerbare koolhydraten kan 24–36 uur volstaan.",
       "Voor een korte Zwift-race is stapelen niet nodig; een gewone koolhydraatrijke maaltijd volstaat.",
       "Probeer een nieuwe aanpak eerst op een training, nooit voor het eerst op de wedstrijddag.",
     ],
     limits: [
       "Hoeveel je vooraf verdraagt, verschilt sterk per persoon; de bandbreedte is daarom ruim.",
       "De winst van stapelen is gemeten bij inspanningen van meer dan ongeveer anderhalf uur, niet bij korte races.",
+      "Hoeveel glycogeen je opslaat bij dezelfde hoeveelheid, verschilt sterk per persoon.",
     ],
-    sources: [UCI_POSITION, BURKE_2011, ACSM_2016, KERKSICK_2017],
+    sources: [UCI_POSITION, BURKE_2011, ACSM_2016, KERKSICK_2017, JONES_LOADING_2026],
   },
   {
     slug: "koolhydraten-tijdens-de-rit",
@@ -774,12 +832,12 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Korter dan ongeveer een uur: extra koolhydraten zijn niet nodig. Bij een harde inspanning van 40–75 minuten kan spoelen met sportdrank (5–10 seconden in je mond) helpen.",
       "Eén tot tweeënhalf uur: 30–60 g per uur.",
       "Langer dan tweeënhalf uur: 60–90 g per uur, met 90 als doel als je het verdraagt.",
-      "Tot 120 g per uur komt bij profs voor en vraagt darmtraining. Bij getrainde renners zakte hun critical power na drie uur minder met 120 dan met 60 g per uur; of dat in een wedstrijd winst geeft, is niet getest.",
+      "Tot 120 g per uur komt bij profs voor en vraagt darmtraining. Bij getrainde renners zakte hun critical power na drie uur minder met 120 dan met 60 g per uur. Een tweede proef vond hetzelfde: na vier uur rijden zakte een tijdrit van 15 minuten minder met 100 dan met 60 g per uur (6 tegen 9 procent). Of dat in een wedstrijd winst geeft, is niet getest.",
       "Meer is niet vanzelf beter: bij recreanten werkte 40 g per uur na anderhalf uur rijden beter dan 90 g.",
       "Een verhouding fructose tot glucose van ongeveer 0,6–1,0 werkt het best. Gewone suiker is 1:1.",
       "Drank, gel of reep maakt voor de opname weinig uit; afwisselen helpt je maag.",
       "Het ≥100 g per uur van het profpeloton is niet zonder meer over te zetten naar recreanten.",
-      "Boven 120 g per uur is nooit getest. Je verbrandt hooguit ongeveer 100 g per uur van wat je eet; de rest blijft in je darmen, en daar komen de klachten vandaan.",
+      "Eén proef met getrainde renners testte 150 g per uur. Dat gaf geen hogere totale koolhydraatverbranding dan 120 g en ze hielden het niet langer vol. Het beste lag voor de groep rond 105–110 g per uur, met grote verschillen per renner. Je verbrandt hooguit ongeveer 100 g per uur van wat je eet; de rest blijft in je darmen, en daar komen de klachten vandaan.",
     ],
     limits: [
       "De meeste proeven zijn gedaan met getrainde mannen in een lab.",
@@ -804,6 +862,8 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
         kind: "review",
       },
       NORTE_2026,
+      MAZZA_2026,
+      MARTYN_2026,
       FLEITAS_PANIAGUA_2026,
       HEARRIS_2022,
       RAVIKANTI_2025,
@@ -820,7 +880,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Oefen op trainingen met de hoeveelheid en de producten die je op wedstrijddag wilt gebruiken.",
       "Verhoog in stappen van ongeveer 10–15 g per uur over een aantal weken.",
       "Bij hardlopers halveerden twee weken lang elke dag een uur met 90 g per uur de maagklachten ongeveer, en ze namen meer op.",
-      "Wie 120 g per uur zonder klachten haalt, kan in een vervolgprotocol naar 150. Dat is profpraktijk, geen getest advies.",
+      "Wie 120 g per uur zonder klachten haalt, kan in een vervolgprotocol naar 150. Dat is profpraktijk: in de enige proef gaf 150 geen winst boven 120.",
       "Klachten nemen af als je binnen de aanbevolen hoeveelheden blijft en glucose en fructose mengt.",
       "Voor low-FODMAP-eten en probiotica is het bewijs nog beperkt.",
       "Bij aanhoudende klachten: overleg met een sportdiëtist of arts.",
@@ -1102,7 +1162,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     summary:
       "Wielrenners hebben gemiddeld een lagere botdichtheid dan andere sporters. Fietsen belast je botten nauwelijks, en lange ritten verhogen de botafbraak.",
     points: [
-      "Genoeg eten is de basis: te weinig energie, en vooral te weinig koolhydraten, verstoort de botstofwisseling.",
+      "Genoeg eten is de basis: te weinig energie, en vooral te weinig koolhydraten, verstoort de botstofwisseling. Al vijf dagen te weinig eten remde in een proef de botaanmaak in het bloed, ook als het eiwit op peil bleef.",
       "Calcium: 800–1200 mg per dag. Zuivel, verrijkte plantaardige zuivel, groene groenten en noten leveren het meeste.",
       "Een calciumrijke maaltijd twee uur voor een lange rit remde in een studie met wielrensters de botafbraakwaarden in het bloed tijdens het fietsen. Of dat op termijn je botten sterker maakt, is niet onderzocht.",
       "Vitamine D komt uit zonlicht, vette vis en verrijkte producten. Laat bij twijfel je bloedwaarde meten; streefwaarde boven 50 en liefst 75 nmol/l.",
@@ -1113,7 +1173,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Dat een calciumrijke maaltijd vooraf je botten op termijn sterker maakt, is niet onderzocht; de studie mat bloedwaarden tijdens één rit.",
       "Studies die de botten van renners jarenlang volgen naast hun voeding, ontbreken.",
     ],
-    sources: [UCI_BONE, UCI_POSITION, REDS_2023, HAAKONSSEN_2015],
+    sources: [UCI_BONE, UCI_POSITION, REDS_2023, HAAKONSSEN_2015, DOLAN_2026],
   },
   {
     slug: "weerstand",
@@ -1338,7 +1398,8 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Ketondrankjes verhogen de ketonen in je bloed, maar maken je in een wedstrijd niet sneller. ZWB raadt ze af.",
     points: [
       "Een meta-analyse van dertien proeven vond geen effect op prestatie, ook niet op tijdritten en niet voor ketonesters. Een nieuwere meta-analyse vond hetzelfde voor een drankje vlak voor of tijdens de inspanning.",
-      "Na elke training in een zwaar blok van drie weken remde een ketonester de signalen van overbelasting, en de renners hielden meer vol. Dat is één onderzoeksgroep met kleine groepen mannen.",
+      "Na elke training in een zwaar blok van drie weken remde een ketonester de signalen van overbelasting, en de renners hielden meer vol. Dat is één onderzoeksgroep met kleine groepen mannen. Dezelfde groep vond later dat een ketonester de REM-slaap beschermde in een zwaar blok; de renners merkten zelf geen verschil.",
+      "In een echte etappewedstrijd hielp een ketondrankje (butanediol) na elke etappe niet bij het herstel.",
       "Ze zijn duur en het bewijs voor herstel is dun; daarom staat er geen protocol voor in ZWB.",
     ],
     limits: [
@@ -1354,6 +1415,8 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       },
       BROOKS_2022,
       POFFE_2019,
+      POFFE_2026,
+      ENGELBRECHT_2026,
     ],
   },
   {

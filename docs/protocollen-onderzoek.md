@@ -281,7 +281,13 @@ plafond per inname. Supplementprotocollen zijn er vanaf 18 jaar (AIS).
   vast onderzocht schema.
 - **Darmtraining 150 (2026-10-16).** Op verzoek van de eigenaar, na een
   literatuurcheck die op een advies van maximaal 120 g/u uitkwam. Wat er is:
-  - Gecontroleerd onderzoek gaat tot 120 g/u. 120 g/u werd in elke vorm goed
+  - Tot 2026-11 ging gecontroleerd onderzoek tot 120 g/u. Sindsdien is er één
+    proef met 150 g/u ([Martyn e.a. 2026](https://doi.org/10.1249/MSS.0000000000004176),
+    acht getrainde mannen, drie uur): meer oxidatie van ingenomen koolhydraten
+    dan bij 120, maar dezelfde totale koolhydraatverbranding en hetzelfde
+    uithoudingsvermogen; het berekende optimum lag rond 107 g/u. Uitkomst van
+    de literatuurscan 2026-11; het protocol bleef, met die beperking erbij.
+  - 120 g/u werd in elke vorm goed
     opgenomen ([Hearris e.a. 2022](https://doi.org/10.1152/japplphysiol.00091.2022)).
   - 120 g/u gaf meer oxidatie van ingenomen koolhydraten dan 90 g/u (1,51 tegen
     1,29 g/min), maar spaarde het eigen glycogeen niet extra

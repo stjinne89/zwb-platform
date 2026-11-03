@@ -68,7 +68,7 @@ Twee regels die een niveau begrenzen:
    ging daarom ook van *matig* naar *beperkt*.
 3. **Voor de rit.** Het artikel staat op *sterk*, het protocol Koolhydraten
    laden blijft op *matig*. Het protocol gaat over één precies schema (36–48
-   uur, 10–12 g/kg), niet over stapelen als zodanig.
+   uur, 8–12 g/kg sinds de literatuurscan 2026-11), niet over stapelen als zodanig.
 
 ## Per artikel
 

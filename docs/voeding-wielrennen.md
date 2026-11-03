@@ -87,8 +87,10 @@ Bronnen:
 - **Maaltijd vooraf.** 1–4 g/kg koolhydraten, 1–4 uur voor de start. ZWB rekent
   de snack "voor de rit" op 1 g/kg: de onderkant, omdat die het dichtst bij de
   start zit.
-- **Stapelen.** 10–12 g/kg gedurende 36–48 uur, alleen zinvol bij inspanningen
-  van meer dan ongeveer 90 minuten.
+- **Stapelen.** Minstens 8, tot 10–12 g/kg gedurende 36–48 uur (24–36 uur na
+  een zware training vooraf), alleen zinvol bij inspanningen van meer dan
+  ongeveer 90 minuten. De ondergrens van 8 komt uit de meta-analyse van Jones
+  e.a. 2026 (literatuurscan 2026-11).
 - Bronnen: Burke et al. 2011; Thomas et al. 2016; Kerksick CM et al. (2017), ISSN
   position stand: nutrient timing — https://pmc.ncbi.nlm.nih.gov/articles/PMC5596471/
 

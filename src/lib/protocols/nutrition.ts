@@ -27,6 +27,10 @@ import {
   MIALL_2018,
   MORTON_2026_JNUTR,
   NORTE_2026,
+  MARTYN_2026,
+  MAZZA_2026,
+  JONES_LOADING_2026,
+  HURST_2026,
   POON_2025,
   QIN_2026,
   RAVIKANTI_2025,
@@ -228,8 +232,9 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
       "Hoe sterk het werkt verschilt per persoon. Gewenning aan dagelijkse koffie maakt het effect niet kleiner, volgens een meta-analyse van zestig studies.",
       "Bij vrouwen werkt het ook, maar die studies zijn kleiner en minder zeker.",
       "Bij fietsers was 1 tot 3 mg per kg in een meta-analyse niet duidelijk effectief; andere analyses vonden wel effect.",
+      "Een deel van het effect komt uit verwachting: in zeventien studies presteerden sporters ook beter met een nep-cafeïnepil waarvan ze dachten dat het cafeïne was. Die studies zijn zwak.",
     ],
-    sources: [GUEST_2021, MAUGHAN_2018, CARVALHO_2022, ZHU_2026, CHEN_2024],
+    sources: [GUEST_2021, MAUGHAN_2018, CARVALHO_2022, ZHU_2026, CHEN_2024, HURST_2026],
     article: { href: "/zwbeter-worden/voeding/kennis/supplementen", title: "Supplementen en sportvoeding" },
   },
   {
@@ -464,7 +469,7 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
             label: "Koolhydraten over de dag",
             detail:
               "Verdeeld over de hele dag, vooral makkelijk verteerbaar: rijst, pasta, brood, sap. Minder vezels en vet. Train deze dagen licht.",
-            dose: { perKg: { min: 10, max: 12 }, unit: "g", step: 10, max: 1200 },
+            dose: { perKg: { min: 8, max: 12 }, unit: "g", step: 10, max: 1200 },
           },
         ],
       },
@@ -488,8 +493,9 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     limits: [
       "De winst geldt voor inspanningen langer dan ongeveer 90 minuten.",
       "Het UCI-standpunt legt de nadruk op eten naar de belasting van elke dag; maximaal laden is daar één toepassing van, geen vaste regel.",
+      "Volgens een meta-analyse volstaat meer dan 8 g/kg per dag al; hoeveel glycogeen je opslaat, verschilt sterk per persoon.",
     ],
-    sources: [BURKE_2011, UCI_POSITION],
+    sources: [BURKE_2011, UCI_POSITION, JONES_LOADING_2026],
     article: { href: "/zwbeter-worden/voeding/kennis/voor-de-rit", title: "Voor de rit" },
   },
   {
@@ -610,15 +616,16 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     ],
     notFor: ["Bij darmziekten of aanhoudende buikklachten zonder overleg met een arts of sportdiëtist."],
     limits: [
-      "Boven ongeveer 90 gram per uur neem je meer op, en bij getrainde renners zakte de critical power na drie uur minder. Dat een wedstrijd daardoor sneller gaat, is niet aangetoond.",
+      "Boven ongeveer 90 gram per uur neem je meer op, en in twee proeven met getrainde renners hielden ze na drie tot vier uur meer vermogen over. Dat een wedstrijd daardoor sneller gaat, is niet in een echte wedstrijd getest.",
       "Er is geen vast onderzocht schema; de stappen van 10 gram per week zijn een afleiding uit de reviews.",
     ],
-    sources: [JEUKENDRUP_2017, PODLOGAR_2022, UCI_POSITION, NORTE_2026, COSTA_2017, MIALL_2018, MARTINEZ_2023],
+    sources: [JEUKENDRUP_2017, PODLOGAR_2022, UCI_POSITION, NORTE_2026, MAZZA_2026, COSTA_2017, MIALL_2018, MARTINEZ_2023],
     article: { href: "/zwbeter-worden/voeding/kennis/darmtraining", title: "Darmtraining en maagklachten" },
   },
-  // Vervolg op darmtraining, op verzoek van de eigenaar (2026-10-16). Boven 120
-  // g/u is niets getest; daarom beperkt bewijs en een eigen protocol dat je
-  // alleen bewust start, niet een verlenging van darmtraining.
+  // Vervolg op darmtraining, op verzoek van de eigenaar (2026-10-16). De enige
+  // proef boven 120 g/u (Martyn 2026) vond geen winst; daarom beperkt bewijs en
+  // een eigen protocol dat je alleen bewust start, niet een verlenging van
+  // darmtraining.
   {
     slug: "darmtraining-150",
     pillar: "voeden",
@@ -655,12 +662,12 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
       "Bij darmziekten of aanhoudende buikklachten zonder overleg met een arts of sportdiëtist.",
     ],
     limits: [
-      "Meer dan 120 gram per uur is nooit in een proef getest. De 150 komt uit de praktijk van profs in lange etappes.",
+      "Eén kleine proef (acht renners, drie uur) testte 150 gram per uur: geen winst boven 120 gram. De 150 komt uit de praktijk van profs in lange etappes.",
       "Je verbrandt hooguit ongeveer 100 gram per uur van wat je eet; de rest blijft langer in je darmen. Bij elite-marathonlopers gaf 120 gram per uur al de meeste misselijkheid en krampen.",
       "Dat je er sneller van wordt, is niet aangetoond. De nieuwste review houdt 120 gram per uur aan als bovengrens voor getrainde renners.",
       "Darmtraining is onderzocht tot 90 gram per uur, bij hardlopers, over twee weken. De stappen van 10 gram per week zijn een afleiding.",
     ],
-    sources: [MORTON_2026_JNUTR, WILSON_2025, HEARRIS_2022, PODLOGAR_2022, RAVIKANTI_2025, MIALL_2018, COSTA_2017],
+    sources: [MORTON_2026_JNUTR, MARTYN_2026, WILSON_2025, HEARRIS_2022, PODLOGAR_2022, RAVIKANTI_2025, MIALL_2018, COSTA_2017],
     article: { href: "/zwbeter-worden/voeding/kennis/darmtraining", title: "Darmtraining en maagklachten" },
   },
   // Stap 5 van docs/ritvoeding-plan.md: het eigen zweetverlies als basis voor

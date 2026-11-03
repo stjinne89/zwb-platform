@@ -12,6 +12,7 @@
 import type { ArticleConclusion, ArticleEvidence } from "@/lib/knowledge/evidence";
 import { doi, type KnowledgeSource } from "@/lib/knowledge/source";
 import type { MethodLabel } from "@/lib/training/method-label";
+import { MAZZA_2026 } from "@/lib/nutrition/library";
 import {
   DE_PABLOS_2025,
   HAJGHANBARI_2013,
@@ -36,6 +37,7 @@ import {
   MOLMEN_2019,
   STAIANO_2023,
   WANG_BET_2026,
+  ZHENG_BET_2026,
   DALLAWAY_2025,
   VERDEL_2021,
   ZURAWLEW_2016,
@@ -196,6 +198,14 @@ const ALFONSO_2025: KnowledgeSource = {
   year: 2025,
   url: doi("10.1038/s41598-025-13540-z"),
   kind: "studie",
+};
+
+const MICHELI_2026: KnowledgeSource = {
+  citation:
+    "Micheli L, Greco F, Grossi T, Marini CF, Brink M, Lazzer S, et al. Conceptual frameworks and assessment of readiness to train in endurance exercise: a systematic review. Int J Sports Physiol Perform.",
+  year: 2026,
+  url: doi("10.1123/ijspp.2025-0699"),
+  kind: "review",
 };
 
 const CRAVEN_2022: KnowledgeSource = {
@@ -492,6 +502,14 @@ const STEVENSON_2023: KnowledgeSource = {
   kind: "studie",
 };
 
+const MAUNDER_2026: KnowledgeSource = {
+  citation:
+    "Maunder E, Hofmeyr S, Rothschild JA, Bate IS, Prandoni E, Chang WL, et al. Accelerating endogenous carbohydrate oxidation impairs durability of the moderate-to-heavy intensity transition. J Appl Physiol.",
+  year: 2026,
+  url: doi("10.1152/japplphysiol.90100.2026"),
+  kind: "studie",
+};
+
 const SANCHEZ_JIMENEZ_2025: KnowledgeSource = {
   citation:
     "Sánchez-Jiménez JL, Salas-Montoro JA, Mateo-March M, et al. Is intensity the most important factor in determining the amount of prior work accumulated that affects cyclists' acute durability? A systematic review. Eur J Appl Physiol 126(1):163-179.",
@@ -767,6 +785,8 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       "Hoe goed je je vermogen vasthoudt na uren rijden, is een eigen eigenschap: duurvermogen. Het beslist veel wedstrijden, en lange ritten trainen het.",
     points: [
       "Na een lange rit ligt je drempel lager. Na twee à tweeënhalf uur matig fietsen zakte het vermogen op de eerste drempel met 6 tot 10 procent, en wie daar minder zakte, verloor ook minder op een inspanning van vijf minuten.",
+      "In een andere proef bleef de critical power na twee uur gelijk, maar was je reservecapaciteit erboven (W′) een kwart kleiner.",
+      "Ook eten telt: met 100 g koolhydraten per uur verloren renners na vier uur minder op een tijdrit dan met 60 g.",
       "Bij amateurs verloren de betere renners na 1000 kJ half zoveel op twintig minuten als de mindere (6,5 tegen 12,5 procent).",
       "Hard werk kost meer dan rustig werk: boven je critical power zakt het vermogen al na veel minder kilojoules.",
       "Wat het traint is nog dun onderzocht. Een overzicht noemt jaren van flink volume, regelmatig lange ritten (bij voorkeur met tempo of harder aan het eind) en krachttraining.",
@@ -781,6 +801,8 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       BARSUMYAN_DURABILITY_2025,
       HAMILTON_2024,
       STEVENSON_2023,
+      MAUNDER_2026,
+      MAZZA_2026,
       SANCHEZ_JIMENEZ_2025,
       JONES_KIRBY_2025,
       ROTHSCHILD_2025,
@@ -1008,6 +1030,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       "Het onderzoek naar sturen op HRV is klein, en de winst ten opzichte van een vast schema is bescheiden.",
       "Horloges en ringen meten HRV 's nachts, de studies meestal 's ochtends met een borstband. Hoe goed die metingen overeenkomen, verschilt per apparaat.",
       "De marge van de band (een halve standaardafwijking) is de gangbare keuze in onderzoek; de ondergrens van 3 % voor heel stabiele metingen is een eigen keuze van ZWB.",
+      "Er is geen vaste definitie of meting van readiness. Een review van veertien studies vond dat scores zelden getoetst zijn op hoe goed ze je prestatie voorspellen. Zie de score van ZWB als samenvatting van je eigen signalen, niet als voorspelling.",
     ],
     sources: [
       PLEWS_2013,
@@ -1018,6 +1041,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       MANRESA_ROCAMORA_2021,
       ALFONSO_2025,
       CRAVEN_2022,
+      MICHELI_2026,
     ],
   },
   {
@@ -1163,7 +1187,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       "Na je training je hoofd moe maken met een concentratietaak, zodat mentale vermoeidheid je in een wedstrijd minder vermogen kost.",
     points: [
       "Wegrenners die zes weken na elke training een concentratietaak deden, verbeterden hun tijdrit van 20 minuten meer dan renners die naar neutrale geluiden luisterden. Ze vonden dezelfde inspanning lichter.",
-      "Een meta-analyse vond een duidelijk effect als renners mentaal moe aan de test begonnen.",
+      "Een meta-analyse vond een duidelijk effect als renners mentaal moe aan de test begonnen. Een tweede meta-analyse kwam op hetzelfde uit.",
       "Alleen de taak, zonder training, deed niets: het werkt in combinatie.",
     ],
     limits: [
@@ -1171,7 +1195,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       "Als renners fris begonnen, was het effect onzeker.",
       "Hartslag, lactaat en VO2max veranderden niet; het effect zit in hoe zwaar het voelt.",
     ],
-    sources: [STAIANO_2023, WANG_BET_2026, DALLAWAY_2025],
+    sources: [STAIANO_2023, WANG_BET_2026, ZHENG_BET_2026, DALLAWAY_2025],
     methodLabel: "experimenteel",
   },
   {
