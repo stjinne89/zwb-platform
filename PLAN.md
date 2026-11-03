@@ -11723,7 +11723,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: vaste selectie per matchup
 
-**2026-11-03.** Commit volgt in deze ronde, nog niet gepusht. Geen migratie.
+**2026-11-03.** Commit `6145ede7`, gepusht naar `main` op 2026-11-03
+(eigenaar). Geen migratie.
 
 **Waarom.** De eigenaar wil dat captains vast teamleden in de selectie zetten
 voor betere vergelijkingen. Het advies rekende met alle teamleden (de Bandits
