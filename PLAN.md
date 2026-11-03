@@ -11646,7 +11646,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Ladderrace: racebriefje
 
-**2026-11-03.** Commit `63a81ff9`. Geen migratie. Niet gepusht.
+**2026-11-03.** Commits `63a81ff9` tot en met `47cab45c` (en deze PLAN-regel), gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie.
 
 **Waarom.** Vraag van de eigenaar: in Club Ladder hetzelfde soort racebriefje als
 bij de ZRL. Eerst als voorstel voorgelegd en goedgekeurd ("Ja, bouwen").
