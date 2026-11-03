@@ -76,7 +76,7 @@ export function productLabel(product: Pick<NutritionProduct, "name" | "brand">):
 export const PRODUCT_COLUMNS = "barcode, name, brand, quantity_unit, carbs_g, protein_g, serving_g";
 
 /** Dezelfde NEVO-groep als de dranken, zodat het ritplan er een bidon van maakt (ride-plan.ts). */
-const DRINK_GROUP = "Niet-alcoholische dranken";
+export const DRINK_GROUP = "Niet-alcoholische dranken";
 
 export type ProductRow = Omit<NutritionProduct, "carbs_g" | "protein_g"> & { carbs_g: number | null; protein_g: number | null };
 

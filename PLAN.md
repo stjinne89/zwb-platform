@@ -11709,6 +11709,39 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Bijgesteld — Drank schaalt vrij omlaag, receptenboek schaalt met de bidon
+
+**2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch
+`claude/drinkmix-favorites-zwbeter-6a454b`, niet gepusht. Geen migratie.
+
+**Waarom.** In dev bleek het favoriete NRGY-recept (100 g poeder, 93 g
+koolhydraten) bij een rustige rit van 1u30 te verliezen van "Sportdrank van
+appelsap": het doel was 30 g per uur, en kleiner dan de halve portie (46,5 g)
+schaalde het recept niet, dus de favorietenbonus haalde het niet in. Wens van
+de eigenaar: koolhydraten in een drank mogen omlaag zo nodig, en in het
+receptenboek horen ze mee te schalen met de bidon.
+
+**Wat.**
+- `scaleRecipe` kreeg `{ drink }`: de koolhydraatbron van een drank heeft
+  geen ondergrens (wel de bovengrens 2×). `portionForRider` en het ritplan
+  geven dat mee voor een bidonrecept. `isBidonRecipe` staat nu in
+  `recipes.ts` (ride-plan.ts exporteert hem nog), `DRINK_GROUP` in
+  `products.ts`.
+- Het ritplan houdt de waterbidon: of de sportdrank over minder bidons gaat,
+  rekent het nog met de halve portie; die ene bidon mag daarna kleiner.
+- Receptpagina: `resizeBidon` schaalt het hele recept met de bidon (500 ml is
+  twee derde van 750 ml), koolhydraten inbegrepen. Bij Klaarzetten bepaalt de
+  rit de koolhydraten per bidon en groeit alleen water en zout mee.
+- `/hulp` (Kennis): water en zout schalen niet, een drank mag onder de helft,
+  en wat de bidonkeuze in receptenboek en Klaarzetten doet.
+
+**Gecontroleerd.** Vitest `nutrition-*.test.ts` (nieuw: drank onder de halve
+portie, sterke drank omlaag tot het ritdoel, recept voor een andere bidon);
+`tsc` en ESLint schoon op de geraakte bestanden. In dev (localhost, eigen
+account) bekeken: Klaarzetten kiest bij de rit van 1u30 (45 g) nu het
+NRGY-recept met 48 g poeder; de receptpagina toont 21, 32 en 43 g poeder bij
+500, 750 en 1000 ml.
+
 ### Gebouwd — Ritplan: bidon van 500, 750 of 1000 ml
 
 **2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch
@@ -11739,9 +11772,9 @@ op de pagina geldt, zonder migratie. Daardoor rekenen Boodschappen, de
 herinnering en een nieuwe paginaweergave altijd met 750 ml.
 
 **Gecontroleerd.** Vitest `nutrition-*.test.ts` (nieuw: aantal, grens en
-water per grootte); `tsc` en ESLint schoon op de geraakte bestanden.
-**Niet geverifieerd:** de knoppen in de browser; deze worktree heeft geen
-`.env.local` en geen volledige `node_modules`.
+water per grootte); `tsc` en ESLint schoon op de geraakte bestanden. In dev
+(localhost) bekeken: de knoppen bij Klaarzetten en de links op de
+receptpagina wisselen, water volgt de bidon.
 
 ### Bijgesteld — Recepten: water en zout schalen niet mee
 

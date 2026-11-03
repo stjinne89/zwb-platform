@@ -250,8 +250,10 @@ export function KennisHelp() {
                 <span>
                   Elk ingrediënt heeft een rol. De koolhydraatbron schaalt naar je
                   koolhydraatdoel voor dat moment, de eiwitbron naar je eiwitdoel,
-                  en de rest schaalt mee met je lengte, gewicht en leeftijd. Geen
-                  onderdeel wordt kleiner dan de helft of groter dan het dubbele.
+                  en de rest schaalt mee met je lengte, gewicht en leeftijd;
+                  water en zout niet. Geen onderdeel wordt kleiner dan de helft of
+                  groter dan het dubbele, behalve de koolhydraatbron in een drank:
+                  die mag kleiner.
                 </span>
               </li>
               <li className="flex gap-2">
@@ -349,7 +351,9 @@ export function KennisHelp() {
                   ritten vanaf 2,5 uur. Bij Klaarzetten en bij een recept voor
                   onderweg kies je een bidon van 500 ml, 750 ml of 1 l; dat geldt
                   alleen voor wat je op dat moment bekijkt, standaard is 750 ml.
-                  Water en zout in het recept groeien mee met de bidon. Zonder
+                  In het receptenboek groeit het hele recept mee met de bidon;
+                  bij Klaarzetten bepaalt de rit de koolhydraten per bidon en
+                  groeit het water mee. Zonder
                   zweettest neem je 750 ml per uur mee. Een bidon bevat
                   hoogstens 90 g koolhydraten per 500 ml; wat je per uur meer
                   nodig hebt, komt uit vast eten. Heb je minder nodig dan een bidon

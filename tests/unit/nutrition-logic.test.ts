@@ -195,6 +195,16 @@ describe("scaleRecipe", () => {
     expect(unknown.ingredients[0].grams).toBe(150);
   });
 
+  it("laat een drank onder de halve portie schalen, een maaltijd niet", () => {
+    const meal = scaleRecipe([{ food: oats, grams: 100, role: "kh_bron" }], 1, { carbsG: 15, proteinG: null }, 1);
+    expect(meal.factors.kh_bron).toBe(0.5);
+    const drink = scaleRecipe([{ food: oats, grams: 100, role: "kh_bron" }], 1, { carbsG: 15, proteinG: null }, 1, {
+      drink: true,
+    });
+    expect(drink.factors.kh_bron).toBe(0.25);
+    expect(drink.perPortion.carbsG).toBe(15);
+  });
+
   it("deelt door het aantal porties", () => {
     const double = recipe.map((item) => ({ ...item, grams: item.grams * 2 }));
     expect(basePortion(double, 2).ingredients.map((item) => item.grams)).toEqual([70, 100, 250]);

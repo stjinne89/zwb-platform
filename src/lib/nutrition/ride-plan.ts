@@ -8,8 +8,16 @@
 // gescande drank in ml ook (products.ts). Een recept van alleen verpakte
 // producten, zoals een gel, gaat in hele stuks mee.
 
-import { basePortion, energyFree, macrosFor, roundGrams, scaleRecipe, type RecipeIngredient } from "./scale";
-import { isPackagedRecipe, type Recipe } from "./recipes";
+import {
+  basePortion,
+  energyFree,
+  macrosFor,
+  roundGrams,
+  scaleRecipe,
+  type RecipeIngredient,
+  type ScaledRecipe,
+} from "./scale";
+import { isBidonRecipe, isPackagedRecipe, type Recipe } from "./recipes";
 import { logItemFor } from "./products";
 import type { ShoppingSlot } from "./shopping";
 import { unitFor } from "./shopping-names";
@@ -48,6 +56,20 @@ export function fillBidon<T extends RecipeIngredient>(ingredients: T[], bidonMl:
     energyFree(item.food) ? { ...item, grams: roundGrams((item.grams * bidonMl) / DEFAULT_BIDON_ML) } : item,
   );
 }
+
+/**
+ * Een portie voor onderweg in een andere bidon, zoals het receptenboek hem toont:
+ * alles schaalt mee, dus de koolhydraten ook en de sterkte blijft gelijk. Bij
+ * Klaarzetten bepaalt de rit de koolhydraten per bidon en volgt alleen het water.
+ */
+export function resizeBidon(portion: ScaledRecipe, bidonMl: number): ScaledRecipe {
+  if (bidonMl === DEFAULT_BIDON_ML) return portion;
+  const ingredients = portion.ingredients.map((item) => ({
+    ...item,
+    grams: roundGrams((item.grams * bidonMl) / DEFAULT_BIDON_ML),
+  }));
+  return { ...portion, ingredients, perPortion: macrosFor(ingredients) };
+}
 /** Een stuk vast eten dat minder dan dit oplevert, laat het plan weg. */
 const SOLID_MIN_CARBS_G = 15;
 /** Eerste eetmoment na een kwartier, daarna elke twintig minuten. */
@@ -56,11 +78,7 @@ export const FEED_INTERVAL_MINUTES = 20;
 /** Geen eetmoment meer in de laatste tien minuten. */
 const LAST_FEED_MARGIN_MINUTES = 10;
 
-const DRINK_GROUP = "Niet-alcoholische dranken";
-
-export function isBidonRecipe(recipe: Pick<Recipe, "ingredients">): boolean {
-  return recipe.ingredients.some((item) => item.food.food_group === DRINK_GROUP);
-}
+export { isBidonRecipe };
 
 export type RidePlanIngredient = {
   foodId: string;
@@ -138,13 +156,14 @@ function ingredientsOf(items: RecipeIngredient[]): RidePlanIngredient[] {
     }));
 }
 
-function portion(recipe: Recipe, carbsG: number, energyFactor: number) {
+function portion(recipe: Recipe, carbsG: number, energyFactor: number, drink = isBidonRecipe(recipe)) {
   if (isPackagedRecipe(recipe)) return basePortion(recipe.ingredients, recipe.servings);
   return scaleRecipe(
     recipe.ingredients.map((item) => ({ food: item.food, grams: item.grams, role: item.role })),
     recipe.servings,
     { carbsG, proteinG: null },
     energyFactor,
+    { drink },
   );
 }
 
@@ -208,9 +227,10 @@ function planForBidon(
   // verdwijnt die keuze bij een rit waar de bidons alles kunnen dragen.
   const bidonShare = lead && !leadIsBidon && leadChosen ? 0.5 : 1;
   const drinkTotal = food ? Math.min(maxCarbs * bidonCount, target * bidonShare) : target;
-  // Kleiner dan een halve portie schaalt een recept niet (scale.ts). Vraagt de
-  // rit minder dan dat per bidon, dan gaan de overige bidons met water mee.
-  const smallest = drink ? portion(drink, 0, energyFactor).perPortion.carbsG : 0;
+  // Vraagt de rit per bidon minder dan een halve portie, dan gaat de sportdrank
+  // in minder bidons en gaan de overige met water mee. Die ene bidon mag daarna
+  // wel kleiner dan een halve portie (scale.ts, drank).
+  const smallest = drink ? portion(drink, 0, energyFactor, false).perPortion.carbsG : 0;
   const drinkBidons = drink ? Math.min(bidonCount, Math.max(1, Math.floor(drinkTotal / Math.max(smallest, 1)))) : 0;
   const bidonTarget = drink
     ? food

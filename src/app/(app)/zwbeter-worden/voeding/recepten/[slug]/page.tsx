@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Check, Pencil } from "lucide-react";
 import { Markdown } from "@/components/markdown";
 import { DIET_TAG_LABELS, FUEL_PROFILE_LABELS, isPackagedRecipe, portionForRider } from "@/lib/nutrition/recipes";
-import { BIDON_SIZES, fillBidon, isBidonMl, isBidonRecipe } from "@/lib/nutrition/ride-plan";
+import { BIDON_SIZES, isBidonMl, isBidonRecipe, resizeBidon } from "@/lib/nutrition/ride-plan";
 import { unitFor } from "@/lib/nutrition/shopping-names";
 import { DEFAULT_BIDON_ML } from "@/lib/nutrition/sweat";
 import { MEAL_MOMENT_LABELS } from "@/lib/nutrition/targets";
@@ -102,8 +102,7 @@ export default async function RecipePage({
         }
       : null,
   );
-  // Water en zout vullen de gekozen bidon; de koolhydraten blijven gelijk.
-  const portion = bidon ? { ...scaled, ingredients: fillBidon(scaled.ingredients, bidon) } : scaled;
+  const portion = bidon ? resizeBidon(scaled, bidon) : scaled;
   const own = !recipe.is_standard && recipe.owner_id === viewer.user.id;
   const traits = portionTraits(portion.ingredients);
   const labels = [

@@ -14,7 +14,7 @@ import {
 } from "./scale";
 import { mealTarget, type GutTraining, type MealMoment } from "./targets";
 import type { DietTag, FuelProfile } from "./labels";
-import { productAsFood, type ProductRow } from "./products";
+import { DRINK_GROUP, productAsFood, type ProductRow } from "./products";
 
 export {
   DIET_TAGS,
@@ -107,6 +107,11 @@ export type Rider = {
   rideGut?: GutTraining | null;
 };
 
+/** Een recept met een drank (NEVO-groep of een gescande drank in ml) gaat in een bidon. */
+export function isBidonRecipe(recipe: Pick<Recipe, "ingredients">): boolean {
+  return recipe.ingredients.some((item) => item.food.food_group === DRINK_GROUP);
+}
+
 /** Eén portie op maat, of de basisportie zolang het gewicht onbekend is. */
 export function portionForRider(recipe: Recipe, rider: Rider | null): ScaledRecipe {
   const ingredients = recipe.ingredients.map((item) => ({
@@ -126,6 +131,7 @@ export function portionForRider(recipe: Recipe, rider: Rider | null): ScaledReci
       rideGut: rider.rideGut,
     }),
     rider.energyFactor,
+    { drink: isBidonRecipe(recipe) },
   );
 }
 

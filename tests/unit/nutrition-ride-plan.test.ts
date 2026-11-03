@@ -10,8 +10,9 @@ import {
   ridePlanMeals,
   ridePlanShoppingSlots,
   ridePlanSummary,
+  resizeBidon,
 } from "@/lib/nutrition/ride-plan";
-import type { NutritionFood } from "@/lib/nutrition/scale";
+import { basePortion, type NutritionFood } from "@/lib/nutrition/scale";
 import { NO_HOUSEHOLD, shoppingList } from "@/lib/nutrition/shopping";
 
 type Food = NutritionFood & { quantity_unit: "g" | "ml" };
@@ -170,6 +171,31 @@ describe("ritplan", () => {
     expect(Math.abs(small.totalG - plan.totalG)).toBeLessThanOrEqual(10);
     // Een andere standaard kiezen kan ook.
     expect(ridePlan({ minutes: 120, ranked: [mix], energyFactor: 1, bidonMl: 1000 })!.bidonMl).toBe(1000);
+  });
+
+  it("schaalt een sterke drank omlaag tot wat de rit vraagt", () => {
+    const water = { ...food("water", 0, "Niet-alcoholische dranken"), nevo_code: 1885 };
+    const powder = { ...food("poeder", 93, "Diversen"), barcode: "3830081922550" };
+    const mix = recipe("poeder-met-water", 1, [
+      [powder, 100, "kh_bron"],
+      [water, 750, "vast"],
+    ]);
+    // 1u30 rustig: 30 g per uur, 45 g in totaal; de halve portie is al 46,5 g.
+    const plan = ridePlan({ minutes: 90, intensity: "endurance", ranked: [mix], energyFactor: 1 })!;
+    expect(plan.totalG).toBe(45);
+    expect(plan.bidons.count).toBe(1);
+    expect(plan.bidons.ingredients.find((item) => item.foodId === "poeder")?.amount).toBeLessThan(50);
+  });
+
+  it("toont in het receptenboek het hele recept voor een andere bidon", () => {
+    const portion = basePortion(
+      DRINK.ingredients.map((item) => ({ food: item.food, grams: item.grams, role: item.role })),
+      1,
+    );
+    const small = resizeBidon(portion, 500);
+    expect(small.ingredients.map((item) => item.grams)).toEqual([40, 13, 0.5]);
+    expect(small.perPortion.carbsG).toBeLessThan(portion.perPortion.carbsG);
+    expect(resizeBidon(portion, 750)).toBe(portion);
   });
 
   it("geeft sap en water in ml", () => {

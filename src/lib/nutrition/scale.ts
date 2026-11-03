@@ -70,9 +70,9 @@ export type Macros = {
 export const SCALE_MIN = 0.5;
 export const SCALE_MAX = 2;
 
-function clampFactor(value: number): number {
+function clampFactor(value: number, min = SCALE_MIN): number {
   if (!Number.isFinite(value)) return 1;
-  return Math.min(SCALE_MAX, Math.max(SCALE_MIN, value));
+  return Math.min(SCALE_MAX, Math.max(min, value));
 }
 
 /**
@@ -131,6 +131,11 @@ export function scaleRecipe(
   servings: number,
   target: MealTarget,
   energyFactor: number,
+  /**
+   * Een drank mag minder koolhydraten krijgen dan de halve portie: wat poeder of
+   * siroop minder in de bidon ziet er niet vreemd uit, een halve maaltijd wel.
+   */
+  { drink = false }: { drink?: boolean } = {},
 ): ScaledRecipe {
   const portions = servings > 0 ? servings : 1;
   const perPortion = ingredients.map((item) => ({ ...item, grams: item.grams / portions }));
@@ -154,8 +159,9 @@ export function scaleRecipe(
   const proteinTarget = target.proteinG;
 
   // Los koolhydraten op bij een gegeven eiwitfactor, en omgekeerd.
+  const carbMin = drink ? 0 : SCALE_MIN;
   const solveA = (b: number) =>
-    carbTarget != null && hasKh ? clampFactor((carbTarget - v * cv - b * ce) / ck) : v;
+    carbTarget != null && hasKh ? clampFactor((carbTarget - v * cv - b * ce) / ck, carbMin) : v;
   const solveB = (a: number) =>
     proteinTarget != null && hasEiwit ? clampFactor((proteinTarget - v * pv - a * pk) / pe) : v;
 
@@ -164,7 +170,7 @@ export function scaleRecipe(
   if (carbTarget != null && proteinTarget != null && hasKh && hasEiwit) {
     const det = ck * pe - ce * pk;
     if (Math.abs(det) > 1e-6) {
-      a = clampFactor(((carbTarget - v * cv) * pe - ce * (proteinTarget - v * pv)) / det);
+      a = clampFactor(((carbTarget - v * cv) * pe - ce * (proteinTarget - v * pv)) / det, carbMin);
       b = clampFactor((ck * (proteinTarget - v * pv) - (carbTarget - v * cv) * pk) / det);
     }
     // Na begrenzen past de ander zich één keer aan de begrensde waarde aan.
