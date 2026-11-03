@@ -133,7 +133,7 @@ function SideRiders({ side }: { side: MatchupSide }) {
                       {wkg(rider.wkg?.[d])}
                     </td>
                   ))}
-                  <td className="py-1 pl-1.5 text-right">{rider.racingScore ?? "–"}</td>
+                  <td className="py-1 pl-1.5 text-right">{rider.racingScore == null ? "–" : Math.round(rider.racingScore)}</td>
                 </tr>
               ))}
             </tbody>

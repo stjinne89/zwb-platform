@@ -254,7 +254,7 @@ function LadderTable({ view }: { view: BriefingView }) {
     { key: "team", header: "Ploeg", cell: (r) => (r.own ? view.event.teamName : ladder.opponent) },
     { key: "points", header: "Punten", cell: (r) => (r.rating === null ? "—" : r.points), align: "right" },
     { key: "wkg", header: DURATION_LABELS[key], cell: (r) => wkg(r.wkg?.[key]), align: "right" },
-    { key: "zrs", header: "ZRS", cell: (r) => r.racingScore ?? "—", align: "right" },
+    { key: "zrs", header: "ZRS", cell: (r) => (r.racingScore == null ? "—" : Math.round(r.racingScore)), align: "right" },
   ];
   return (
     <ResponsiveTable

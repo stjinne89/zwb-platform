@@ -11700,12 +11700,23 @@ bij de ZRL. Eerst als voorstel voorgelegd en goedgekeurd ("Ja, bouwen").
   matchup met vermogen op de eventpagina"). `/privacy#racebriefing` noemt alleen
   de ZRL.
 
+**Lokaal bekeken (2026-11-03, eigenaar ingelogd, localhost tegen productie).**
+Het briefje van 17729 laadt: kop "Club Ladder · tegen Galaxy Avengers · wij
+dagen uit · heuvels", Onthouden met de laddertelling, Volgen, "2 van de 5
+startplekken ingevuld" en de verwachte uitslag. Daarbij gevonden: de ZRS uit de
+bewaarde ladderraces stond met decimalen ("626.68"); nu afgerond, ook in de
+matchup op de eventpagina. Ook gezien, maar van vóór deze ronde en niet
+aangepakt: een hydration-fout in het hoogteprofiel (`ZwiftRouteSection`, de
+`<title>` "Klim km 4.5"), en dubbele momenten op dezelfde kilometer als een
+vroege klim ook na een afdaling komt of de laatste klim ook de slotklim is
+(`briefingMoments`, ook op ZRL-briefjes).
+
 **Gecontroleerd.** Vitest `club-ladder-briefing.test.ts` (11 nieuw), de andere
 `club-ladder-*`, `race-briefing`, `help-*` en de volle run (los herhaald wat
 alleen in de volle run op een time-out viel; `omnium-live` mist `.env.local` in
 de worktree). `tsc` en ESLint schoon. De berekening nagelopen met de echte
-aanmeldingen van 17729 (The Muckle Yin). **Niet geverifieerd:** de pagina in de
-browser (inloggen op productie; deze worktree heeft geen `.env.local`).
+aanmeldingen van 17729 (The Muckle Yin). **Niet geverifieerd:** de pagina op
+productie na een deploy, en een volle opstelling (vijf tegen vijf).
 
 ### Gebouwd — Ladderrace: matchup met 90 dagen van ZwiftRacing
 
