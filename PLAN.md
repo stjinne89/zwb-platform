@@ -11658,10 +11658,15 @@ tegenstanderkant race-waarden stonden. Keuze van de eigenaar: via Chrome halen
 - `/hulp` beschrijft de bron.
 
 **Bewust niet.**
-- Geen automatisch ophalen: zwiftracing.app zit achter een Vercel-controle
+- Geen ophalen door de server: zwiftracing.app zit achter een Vercel-controle
   (besluit 2026-10-20). Met een API-sleutel vult `refreshRiderMetrics` dezelfde
-  kolom vanzelf; tot dan per wedstrijd met de hand via Chrome, na de
-  aanmeldingen.
+  kolom vanzelf; de eigenaar vraagt die sleutel aan. Tot dan een **geplande taak
+  op de pc van de eigenaar** (`ladder-vermogen-zwiftracing`, elke dag 16:30,
+  aangemaakt 2026-11-03 op zijn verzoek): leest de aanmeldingen van
+  ladderwedstrijden in de komende 8 dagen zonder 90-dagenwaarden van de laatste
+  20 uur, haalt ze in Chrome op en schrijft alleen `zwift_rider_metrics`. Draait
+  alleen als de Claude-app open is en Chrome met de extensie verbonden; de query
+  is nagelopen (vond de 6 aanmeldingen van 17729), een volledige run nog niet.
 - `zwift_rider_metrics` gooit rijen weg die 90 dagen niet zijn bijgewerkt; met
   de hand gezette waarden verdwijnen dus vanzelf.
 
