@@ -88,7 +88,7 @@ export async function loadLadderEventMatchup(
 }
 
 /** Bewaarde ladderraces van deze renners, ook als ze toen voor een ander team reden. */
-async function riderRaces(admin: Admin, zwiftIds: number[]): Promise<StoredMatch[]> {
+export async function riderRaces(admin: Admin, zwiftIds: number[]): Promise<StoredMatch[]> {
   if (zwiftIds.length === 0) return [];
   const { data } = await admin
     .from("club_ladder_match_riders")

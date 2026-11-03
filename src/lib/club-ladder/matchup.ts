@@ -76,6 +76,28 @@ export function riderPowerFromMatches(matches: StoredMatch[]): Map<number, Rider
 
 const hasPower = (wkg: PowerWkg | null | undefined) => Boolean(wkg && DURATIONS.some((d) => wkg[d] != null));
 
+export type SquadPower = { wkg: PowerWkg; riders: number; with90d: number };
+
+/**
+ * Vermogen van een ploeg voor het advies: per renner 90 dagen, anders het beste
+ * uit zijn ladderraces, dan de vijf besten per duur. Zelfde bron als de matchup.
+ */
+export function squadPower(zwiftIds: number[], power: Map<number, RiderPower>, power90: Map<number, PowerWkg>): SquadPower | null {
+  const rows: PowerWkg[] = [];
+  let with90d = 0;
+  for (const id of new Set(zwiftIds)) {
+    const best90 = power90.get(id);
+    if (hasPower(best90)) {
+      rows.push(best90!);
+      with90d += 1;
+    } else {
+      const ladder = power.get(id)?.wkg;
+      if (hasPower(ladder)) rows.push(ladder!);
+    }
+  }
+  return rows.length > 0 ? { wkg: topFiveAverage(rows), riders: rows.length, with90d } : null;
+}
+
 function sideRiders(
   signups: MatchupSignup[],
   power: Map<number, RiderPower>,

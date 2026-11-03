@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildLadderAdvice, classRecords } from "@/lib/club-ladder/advice";
 import { parseLadderResultPage } from "@/lib/club-ladder/result-page";
-import { durationWeights, findLadderRouteSlug, ladderRouteOptions, lapsWithinRule, routeClassFor } from "@/lib/club-ladder/routes";
+import { climbSeconds, durationWeights, effortMix, findLadderRouteSlug, ladderRouteOptions, lapsWithinRule, routeClassFor } from "@/lib/club-ladder/routes";
 import { challengeableTeams } from "@/lib/club-ladder/rules";
 import { parseClubLadderSummary, type ClubLadderStanding } from "@/lib/club-ladder/summary";
 import { matchZwiftResults, teamPowerFromMatches, type StoredMatch } from "@/lib/club-ladder/team-power";
@@ -81,11 +81,29 @@ describe("ladderparcoursen", () => {
   });
 
   it("legt op een klimroute meer gewicht op 20 minuten dan op een vlakke", () => {
-    const flat = durationWeights(2, 0, false);
-    const climb = durationWeights(12, 4, false);
+    const flat = durationWeights(2, [], null);
+    const climb = durationWeights(30, [{ km: 7.4, pct: 6 }], null);
     expect(flat.s15).toBeGreaterThan(climb.s15);
     expect(climb.m20).toBeGreaterThan(flat.m20);
     expect(flat.s15 + flat.m1 + flat.m5 + flat.m20).toBeCloseTo(1);
+  });
+
+  it("schat de klimtijd: een steil muurtje rond een minuut, de Innsbruck-klim ruim twintig", () => {
+    expect(climbSeconds(0.3, 10)).toBeGreaterThan(60);
+    expect(climbSeconds(0.3, 10)).toBeLessThan(120);
+    expect(climbSeconds(7.4, 6)).toBeGreaterThan(1200);
+    expect(effortMix(60)).toEqual({ s15: 0, m1: 1, m5: 0, m20: 0 });
+    expect(effortMix(5000).m20).toBe(1);
+  });
+
+  it("laat korte steile klimmen bij 1 minuut wegen, niet bij 20 minuten", () => {
+    const richmond = ladderRouteOptions().find((option) => option.slug === "2015-uci-worlds-course")!;
+    expect(richmond.weights.m1).toBeGreaterThan(richmond.weights.m5);
+    expect(richmond.weights.m1).toBeGreaterThan(richmond.weights.m20);
+    // Een flauwe klim scheelt door het wiel weinig: minder gewicht dan een steile van dezelfde lengte.
+    const gentle = durationWeights(8, [{ km: 0.6, pct: 2 }], null);
+    const steep = durationWeights(8, [{ km: 0.6, pct: 7 }], null);
+    expect(steep.m1 + steep.m5).toBeGreaterThan(gentle.m1 + gentle.m5);
   });
 
   it("vindt een route op Zwift-routeId of naam", () => {
@@ -180,9 +198,9 @@ describe("route-advies", () => {
       options,
       favorites: new Set(["the-highline"]),
       ourNames: ["Ons"],
-      ourPower: { wkg: { s15: 9, m1: 6, m5: 4.8, m20: 4.3 }, riders: 5, races: 2 },
+      ourPower: { wkg: { s15: 9, m1: 6, m5: 4.8, m20: 4.3 }, riders: 5 },
       theirName: "Zij",
-      theirPower: { wkg: { s15: 11, m1: 6.5, m5: 4.5, m20: 3.8 }, riders: 5, races: 2 },
+      theirPower: { wkg: { s15: 11, m1: 6.5, m5: 4.5, m20: 3.8 }, riders: 5 },
       matches: [],
     })!;
     expect(advice.routes).toHaveLength(3);
@@ -190,6 +208,19 @@ describe("route-advies", () => {
     expect(advice.edge.m20).toBeGreaterThan(0);
     expect(advice.edge.s15).toBeLessThan(0);
     expect(advice.bestFavorite?.slug).toBe("the-highline");
+  });
+
+  it("telt het vermogen niet mee met minder dan drie renners aan een kant", () => {
+    const advice = buildLadderAdvice({
+      options: ladderRouteOptions(),
+      favorites: new Set(),
+      ourNames: ["Ons"],
+      ourPower: { wkg: { s15: 9, m1: 6, m5: 4.8, m20: 4.3 }, riders: 2 },
+      theirName: "Zij",
+      theirPower: { wkg: { s15: 11, m1: 6.5, m5: 4.5, m20: 3.8 }, riders: 5 },
+      matches: [],
+    });
+    expect(advice).toBeNull();
   });
 
   it("geeft geen advies zonder kracht en zonder uitslagen", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLadderMatchup, ourAdvantages, riderPowerFromMatches, type MatchupSignup } from "@/lib/club-ladder/matchup";
+import { buildLadderMatchup, ourAdvantages, riderPowerFromMatches, squadPower, type MatchupSignup } from "@/lib/club-ladder/matchup";
 import type { MatchRider, PowerWkg, StoredMatch } from "@/lib/club-ladder/team-power";
 
 const wkg = (s15: number | null, m1: number | null, m5: number | null, m20: number | null): PowerWkg => ({ s15, m1, m5, m20 });
@@ -156,5 +156,24 @@ describe("buildLadderMatchup", () => {
     });
     expect(result.ours.lineup).toBe(false);
     expect(result.ours.riders.map((r) => r.zwiftId)).toEqual([1, 2]);
+  });
+});
+
+describe("squadPower", () => {
+  // Renner 9 reed vroeger voor de ploeg maar zit er niet meer in.
+  const races = riderPowerFromMatches([
+    match(1, "Ons", "Zij", [rider(1, "Ons", wkg(9, 6, 4, 3.5)), rider(9, "Ons", wkg(12, 8, 5, 4.5))]),
+  ]);
+
+  it("telt alleen de gevraagde renners, met 90 dagen boven de ladderraces", () => {
+    const power90 = new Map([[2, wkg(10, 7, 4.5, 4)]]);
+    const result = squadPower([1, 2, 3], races, power90)!;
+    expect(result).toMatchObject({ riders: 2, with90d: 1 });
+    expect(result.wkg.m1).toBe(6.5);
+    expect(result.wkg.m20).toBe(3.75);
+  });
+
+  it("geeft niets zonder vermogen", () => {
+    expect(squadPower([3], races, new Map())).toBeNull();
   });
 });

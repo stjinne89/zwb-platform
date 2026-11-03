@@ -1,5 +1,5 @@
 import { routeClassOfSlug, ROUTE_CLASS_LABELS, type LadderRouteClass, type LadderRouteOption, type PowerDuration } from "./routes";
-import { DURATIONS, sameTeam, type StoredMatch, type TeamPower } from "./team-power";
+import { DURATIONS, sameTeam, type PowerWkg, type StoredMatch } from "./team-power";
 
 export const DURATION_LABELS: Record<PowerDuration, string> = { s15: "15 s", m1: "1 min", m5: "5 min", m20: "20 min" };
 
@@ -20,15 +20,26 @@ export type LadderAdvice = {
   bestFavorite: RouteAdvice | null;
   /** Per duur ons voordeel in procenten (+ is sterker), null zonder data. */
   edge: Record<PowerDuration, number | null>;
-  ourRaces: number;
-  theirRaces: number;
+  /** Renners met vermogen, en hoeveel daarvan met 90 dagen. */
+  ours: { riders: number; with90d: number };
+  theirs: { riders: number; with90d: number };
 };
+
+type SidePower = { wkg: PowerWkg; riders: number; with90d?: number };
 
 /** Gewicht van de uitslagen per routeklasse naast het krachtverschil (eigen vuistregel). */
 const HISTORY_WEIGHT = 0.1;
 /** Een route die de tegenstander zelf koos, past bij hem: kleine aftrek per keer. */
 const OWN_PICK_PENALTY = 0.02;
 const FAVORITE_BONUS = 0.005;
+/** Minimaal aantal renners met vermogen per kant voordat het krachtverschil meetelt. */
+export const MIN_RIDERS = 3;
+
+/** Wedstrijden van de laatste 90 dagen, zoals het vermogen van ZwiftRacing. */
+export function recentMatches(matches: StoredMatch[], now = new Date()) {
+  const since = new Date(now.getTime() - 90 * 86_400_000).toISOString().slice(0, 10);
+  return matches.filter((match) => match.racedOn >= since);
+}
 
 function isTeam(names: string[], team: string) {
   return names.some((name) => sameTeam(name, team));
@@ -73,12 +84,16 @@ export function buildLadderAdvice(input: {
   options: LadderRouteOption[];
   favorites: Set<string>;
   ourNames: string[];
-  ourPower: TeamPower | null;
+  ourPower: SidePower | null;
   theirName: string;
-  theirPower: TeamPower | null;
+  theirPower: SidePower | null;
   matches: StoredMatch[];
 }): LadderAdvice | null {
-  const { options, favorites, ourNames, ourPower, theirName, theirPower, matches } = input;
+  const { options, favorites, ourNames, theirName, matches } = input;
+  // Een ladderteam rijdt met vijf: met minder dan drie renners zegt het gemiddelde te weinig.
+  const usable = (side: SidePower | null) => (side && side.riders >= MIN_RIDERS ? side : null);
+  const ourPower = usable(input.ourPower);
+  const theirPower = usable(input.theirPower);
   const edge = Object.fromEntries(
     DURATIONS.map((d) => {
       const ours = ourPower?.wkg[d];
@@ -138,7 +153,7 @@ export function buildLadderAdvice(input: {
     routes: routes.slice(0, 3),
     bestFavorite: routes.find((route) => route.favorite) ?? null,
     edge: percent,
-    ourRaces: ourPower?.races ?? [...ourRecords.values()].reduce((sum, r) => sum + r.races, 0),
-    theirRaces: theirPower?.races ?? [...theirRecords.values()].reduce((sum, r) => sum + r.races, 0),
+    ours: { riders: input.ourPower?.riders ?? 0, with90d: input.ourPower?.with90d ?? 0 },
+    theirs: { riders: input.theirPower?.riders ?? 0, with90d: input.theirPower?.with90d ?? 0 },
   };
 }

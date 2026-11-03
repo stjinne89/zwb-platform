@@ -67,16 +67,78 @@ export function routeClassFor(metersPerKm: number, longestClimbKm: number, steep
   return "vlak";
 }
 
-/** Doorlopende gewichten, zodat routes binnen één klasse ook verschillen. */
-export function durationWeights(metersPerKm: number, longestClimbKm: number, uphillFinish: boolean): DurationWeights {
+export type LadderClimb = { km: number; pct: number };
+
+/** Klimmen zonder helling in zwift-data rekenen we als 4%. */
+const DEFAULT_CLIMB_PCT = 4;
+
+/**
+ * Geschatte klimtijd in seconden: 4 W/kg voor een renner van 75 kg op een fiets
+ * van 8 kg, CdA 0,3, Crr 0,004 (eigen aanname, alleen om klimmen te ordenen).
+ */
+export function climbSeconds(km: number, pct: number) {
+  const power = 4 * 75;
+  const theta = Math.atan(pct / 100);
+  const resist = 83 * 9.81 * (Math.sin(theta) + 0.004 * Math.cos(theta));
+  let low = 0.5;
+  let high = 25;
+  for (let i = 0; i < 40; i += 1) {
+    const v = (low + high) / 2;
+    if (resist * v + 0.5 * 1.2 * 0.3 * v ** 3 > power) high = v;
+    else low = v;
+  }
+  return (km * 1000) / low;
+}
+
+const ANCHORS: Array<[PowerDuration, number]> = [
+  ["s15", 15],
+  ["m1", 60],
+  ["m5", 300],
+  ["m20", 1200],
+];
+
+/** Een inspanning van zoveel seconden, verdeeld over de twee duren eromheen (logaritmisch). */
+export function effortMix(seconds: number): DurationWeights {
+  const mix: DurationWeights = { s15: 0, m1: 0, m5: 0, m20: 0 };
+  if (seconds <= ANCHORS[0][1]) mix.s15 = 1;
+  else if (seconds >= ANCHORS[3][1]) mix.m20 = 1;
+  else {
+    const i = ANCHORS.findIndex(([, s]) => s >= seconds) - 1;
+    const [lowKey, lowS] = ANCHORS[i];
+    const [highKey, highS] = ANCHORS[i + 1];
+    const share = Math.log(seconds / lowS) / Math.log(highS / lowS);
+    mix[lowKey] = 1 - share;
+    mix[highKey] = share;
+  }
+  return mix;
+}
+
+/**
+ * Wat een parcours vraagt, als eigen vuistregel. Elke klim weegt bij de duur
+ * die hij kost: een steil muurtje van een minuut bij 1 min, een klim van een
+ * kwartier bij 20 min. Hoe meer hoogtemeters, hoe zwaarder; onder 5% minder,
+ * omdat het wiel dan nog scheelt, en 1% of minder telt niet. Hoogtemeters
+ * buiten de bekende klimmen tellen als glooiend (5 min), en zonder bergop
+ * finish telt de sprint (15 s). Klimmen per ronde tellen met de wortel van het
+ * aantal rondes: elke volgende doortocht beslist minder.
+ */
+export function durationWeights(metersPerKm: number, climbs: LadderClimb[], finishClimb: LadderClimb | null, laps = 1): DurationWeights {
   const hills = clamp01(metersPerKm / 15);
-  const climb = clamp01(longestClimbKm / 4);
-  const raw = {
-    s15: 0.5 * (1 - hills) * (1 - climb) + 0.02,
-    m1: 0.25 - 0.15 * climb + (uphillFinish ? 0.15 : 0),
-    m5: 0.15 + 0.35 * hills,
-    m20: 0.1 + 0.5 * climb + 0.2 * hills,
+  const raw: DurationWeights = {
+    s15: 0.35 * (1 - hills) + (finishClimb ? 0 : 0.15),
+    m1: 0.2,
+    m5: 0.1 + 0.2 * hills,
+    m20: 0.1,
   };
+  const add = (climb: LadderClimb, factor: number) => {
+    const seconds = climbSeconds(climb.km, climb.pct);
+    const gainM = climb.km * 10 * climb.pct;
+    const importance = (0.15 + 0.45 * Math.sqrt(clamp01(gainM / 300))) * clamp01((climb.pct - 1) / 4) * factor;
+    const mix = effortMix(seconds);
+    for (const [d] of ANCHORS) raw[d] += importance * mix[d];
+  };
+  for (const climb of climbs) add(climb, Math.sqrt(laps));
+  if (finishClimb) add(finishClimb, 1);
   const total = raw.s15 + raw.m1 + raw.m5 + raw.m20;
   return { s15: raw.s15 / total, m1: raw.m1 / total, m5: raw.m5 / total, m20: raw.m20 / total };
 }
@@ -112,9 +174,14 @@ export function ladderRouteOptions(): LadderRouteOption[] {
       const climbs = accentsForRoute(route.slug).filter((accent) => accent.kind === "climb");
       const longestClimbKm = round1(Math.max(0, ...climbs.map((climb) => climb.endKm - climb.startKm)));
       const steepestPct = Math.max(0, ...climbs.map((climb) => climb.avgInclinePct ?? 0));
-      const uphillFinish = climbs.some((climb) => climb.endKm >= route.distance - 0.3);
+      const finish = climbs.find((climb) => climb.endKm >= route.distance - 0.3) ?? null;
+      const uphillFinish = finish !== null;
       const shortest = laps[0];
       const metersPerKm = round1(shortest.elevationM / shortest.km);
+      const effort = (climb: (typeof climbs)[number]): LadderClimb => ({
+        km: climb.endKm - climb.startKm,
+        pct: climb.avgInclinePct ?? DEFAULT_CLIMB_PCT,
+      });
       return [
         {
           slug: route.slug,
@@ -127,7 +194,7 @@ export function ladderRouteOptions(): LadderRouteOption[] {
           metersPerKm,
           longestClimbKm,
           uphillFinish,
-          weights: durationWeights(metersPerKm, longestClimbKm, uphillFinish),
+          weights: durationWeights(metersPerKm, climbs.map(effort), finish ? effort(finish) : null, shortest.laps),
         } satisfies LadderRouteOption,
       ];
     })

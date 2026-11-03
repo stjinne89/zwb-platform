@@ -11721,6 +11721,72 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: advies op de huidige ploeg, klimtijd bepaalt de duur
+
+**2026-11-03.** Geen migratie. Niet gepusht.
+
+**Waarom.** De eigenaar vond het advies tegen SZ Loki vreemd: 1 minuut gaf het
+grootste verschil (+11%), toch stuurde het op 20 minuten (+9%), met drie
+klimroutes bovenaan. Nagerekend met de productiedata: de pagina rekende zoals
+bedoeld, maar met twee fouten.
+
+- **Oude opstelling.** Het vermogen van ZWBandits kwam uit hun vijf bewaarde
+  ladderraces van 30 december 2025 tot 17 februari 2026 (drie met vermogen).
+  Daarin reden vooral renners die nu niet meer in de ploeg zitten; van de
+  huidige acht teamleden alleen Harmen en Jeroen. De +9% op 20 minuten kwam
+  vooral van twee van die oud-renners.
+- **1 minuut woog nergens zwaar.** De oude gewichten verlaagden 1 minuut bij
+  élke klim (−0,15 × langste klim / 4 km), ook bij een kort steil muurtje.
+  Richmond UCI Worlds (Libby Hill 0,6 km 6,4%, 23rd Street 0,3 km 10%) kreeg
+  zo minder 1 minuut dan een vlakke route. Over alle 154 routes was 1 minuut
+  hoogstens 29%, 20 minuten tot 58%.
+
+**Wat er veranderde.**
+
+- **Bron** (`squadPower` in `matchup.ts`, teampagina): aan onze kant de
+  renners die nu in het team zitten (leden en rooster), aan de andere kant wie
+  in de bewaarde wedstrijden voor de tegenstander reed. Per renner 90 dagen van
+  ZwiftRacing (`zwift_rider_metrics.power_wkg`), anders het beste uit al zijn
+  ladderraces, ook voor een ander team (`riderRaces`, nu geëxporteerd uit
+  `event-matchup.ts`). Dan de vijf besten per duur. Pas vanaf drie renners met
+  vermogen per kant telt het krachtverschil (`MIN_RIDERS`). De pagina toont
+  hoeveel renners meetellen en hoeveel met 90 dagen. Uitslagen per routetype
+  en eigen routekeuzes tellen alleen van de laatste 90 dagen (`recentMatches`).
+- **Gewichten** (`durationWeights` in `routes.ts`): per klim een geschatte
+  klimtijd (`climbSeconds`: 4 W/kg, 75 kg plus 8 kg fiets, CdA 0,3, Crr 0,004),
+  logaritmisch verdeeld over de twee duren eromheen (`effortMix`: 15 s, 60 s,
+  300 s, 1200 s). Belang per klim groeit met de wortel van de hoogtemeters (tot
+  300 m) en valt weg onder 5% helling (1% telt niet), omdat het wiel daar nog
+  scheelt. Klimmen per ronde tellen met de wortel van het aantal rondes. Een
+  bergop finish telt de slotklim dubbel, anders krijgt 15 s een sprintbonus.
+  Hoogtemeters buiten bekende klimmen tellen als glooiend (5 min). Voorbeelden:
+  Richmond UCI Worlds 1 min 44%, Cobbled Climbs 49%, Lutscher 20 min 79%,
+  Tempus Fugit 15 s 52%. Ook de matchup en de verwachting op het racebriefje
+  gebruiken deze gewichten.
+- `/hulp` beschrijft de nieuwe bron en weging.
+
+**Bewust niet.**
+- Geen hoogteprofielen uit `zwift_routes.profile` (alle 290 routes, 3,9 MB):
+  dan zou elke adviespagina ~2 MB profielen laden of een script vooraf
+  rekenen. De klimsegmenten van zwift-data volstaan voor de ordening; routes
+  zonder klimsegmenten (Castle Crit, Innsbruckring, New York-ronden) houden het
+  algemene glooiende gewicht.
+- De typering (Vlak/Punch/Heuvels/Klim) niet aangepast: die stuurt alleen de
+  uitslagen per routetype en het label. Een 2%-klim van 3,7 km (Coastal Crown
+  Loop) heet daardoor nog Klim, al weegt hij nu vooral bij 5 minuten.
+- De matchup zonder aanmeldingen vergelijkt nog de teams uit hun ladderraces
+  (`teamPowerFromMatches`), dus ook daar de oude opstelling. Niet in deze ronde.
+
+**Stand in productie (2026-11-03).** Van de acht huidige Bandits en de dertien
+Loki-renners heeft niemand 90 dagen in `zwift_rider_metrics`; de geplande taak
+`ladder-vermogen-zwiftracing` haalt alleen aanmeldingen op, en voor wedstrijd
+17766 zijn er nog geen. Tot dat gevuld is, hebben van de Bandits alleen Harmen
+en Jeroen vermogen (uit ladderraces) en telt het krachtverschil niet mee.
+
+**Niet geverifieerd.** De pagina na deze wijziging (vraagt een deploy). Unit
+tests van de ladder slagen (91), ESLint en typecheck schoon op de gewijzigde
+bestanden, op de bekende ontbrekende pakketten na.
+
 ### Gebouwd — Club Ladder: Advies bij elke komende matchup
 
 **2026-11-03.** Commit `7d0eb3e3`, gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie.
@@ -11739,11 +11805,12 @@ los van de ranking. Alleen als de tegenstander in de stand staat, want anders
 toont de pagina geen adviesblok. `/hulp` zegt het erbij.
 
 **Bewust niet.** De ranking van een ploeg zonder plek niet anders gemaakt
-(geen regio bekend om een venster in te tonen). Het advies rekent voor een
-ploeg zonder ladderraces nog met de 90-dagenprofielen (`rider_power_profiles`)
-tegen de ladderraces van de tegenstander; die scheve vergelijking is in de
-matchup op 2026-11-03 al weggehaald, maar niet in het advies. Aan de eigenaar
-voorgelegd, niet in deze ronde.
+(geen regio bekend om een venster in te tonen). ~~Het advies rekent voor een
+ploeg zonder ladderraces nog met de 90-dagenprofielen.~~ *Gecorrigeerd
+2026-11-03:* ZWBandits hadden wél vijf bewaarde ladderraces (december 2025 tot
+februari 2026), dus het advies gebruikte die, van een grotendeels andere
+opstelling. Opgelost in "Club Ladder: advies op de huidige ploeg, klimtijd
+bepaalt de duur".
 
 **Niet geverifieerd.** De pagina in de browser (inloggen op productie). ESLint
 schoon op de gewijzigde bestanden; de typecheck en de ladder-tests geven alleen
@@ -13129,7 +13196,9 @@ eigen pagina.
   toont, binnen 15–25 km valt (154 routes). Twee rondes Loop de Loop zijn
   25,03 km en tellen dus mee. Type Vlak/Punch/Heuvels/Klim en gewichten over
   15 s, 1, 5 en 20 min volgen uit m/km, de langste klim en een bergop finish
-  (segmenten uit `accentsForRoute`).
+  (segmenten uit `accentsForRoute`). *Bijgewerkt 2026-11-03:* de gewichten
+  volgen nu uit de geschatte klimtijd per klim; zie "Club Ladder: advies op de
+  huidige ploeg, klimtijd bepaalt de duur".
 - **Uitslagen**: de summary heeft een uitslagentab (`table.resTable`, alleen de
   laatste week, 78 wedstrijden op 2 november). `parseClubLadderSummary` leest
   die nu, plus het ladder-team-ID per rij. De team-results-sync en de teampagina
@@ -13149,9 +13218,12 @@ eigen pagina.
   uit hun ladderraces. Score per route = gewogen log-verschil in W/kg + 0,1 ×
   het puntenaandeel per routetype (ons minus hun, gedempt bij weinig races) −
   0,02 per keer dat de tegenstander die route zelf koos, + een kleine
-  favorietenbonus. Toont de top 3 met redenen en de beste favoriet. Heeft ons
+  favorietenbonus. Toont de top 3 met redenen en de beste favoriet. ~~Heeft ons
   team geen bewaarde ladderraces, dan komt ons vermogen uit
-  `rider_power_profiles` (90 dagen, geen 15 s).
+  `rider_power_profiles` (90 dagen, geen 15 s).~~ *Vervangen 2026-11-03:* het
+  vermogen komt per renner uit 90 dagen van ZwiftRacing of zijn ladderraces,
+  voor de huidige ploeg; zie "Club Ladder: advies op de huidige ploeg,
+  klimtijd bepaalt de duur".
 - **Startfavorieten**: de 14 routes uit de sheet staan in de migratie bij
   ZWBeauties en ZWBandits. Alle 14 vallen in de regel met een passend
   rondental (Castle Crit 4–6, Rolling Highlands 2, Flat Route Reverse 2).

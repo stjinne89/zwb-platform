@@ -4,9 +4,11 @@ import { after } from "next/server";
 import { Activity, RefreshCw, Star, Swords, Trophy, Users } from "lucide-react";
 import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
 import { TeamChatLinks } from "@/components/team-chat-links";
-import { buildLadderAdvice, DURATION_LABELS, type LadderAdvice, type RouteAdvice } from "@/lib/club-ladder/advice";
+import { buildLadderAdvice, DURATION_LABELS, recentMatches, type LadderAdvice, type RouteAdvice } from "@/lib/club-ladder/advice";
 import { canAssignLadderRiders, canEditLadderPuzzle } from "@/lib/club-ladder/access";
+import { riderRaces } from "@/lib/club-ladder/event-matchup";
 import { ensureMatchRiders, loadStoredMatches, loadTeamMatches } from "@/lib/club-ladder/matches";
+import { riderPowerFromMatches, squadPower } from "@/lib/club-ladder/matchup";
 import { parseLadderRiderSort, sortLadderRiders } from "@/lib/club-ladder/riders";
 import { ladderRouteOptions, ROUTE_CLASS_LABELS, worldLabel } from "@/lib/club-ladder/routes";
 import { CHALLENGE_RANGE, challengeableTeams } from "@/lib/club-ladder/rules";
@@ -18,8 +20,9 @@ import {
   type ClubLadderResult,
   type ClubLadderStanding,
 } from "@/lib/club-ladder/summary";
-import { DURATIONS, teamPowerFromMatches, topFiveAverage, type TeamPower } from "@/lib/club-ladder/team-power";
+import { DURATIONS, sameTeam, type PowerWkg } from "@/lib/club-ladder/team-power";
 import { normalizeTeamName } from "@/lib/ladder";
+import { loadRiderMetrics } from "@/lib/race-briefing/metrics";
 import { getRequestAccess } from "@/lib/auth/request";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -198,14 +201,33 @@ export default async function ClubLadderTeamPage({
     const all = [...new Map([...ours, ...theirs].map((row) => [row.result_id, row])).values()];
     await ensureMatchRiders(admin, all, ANALYSIS_BUDGET_MS);
     const stored = await loadStoredMatches(admin, all);
+    // Wie nu in de ploeg zit tegen wie de laatste wedstrijden van de tegenstander reed,
+    // niet de oude opstelling uit eerdere ladderraces (2026-11-03).
+    const ourIds = [...new Set(teamRiders.map((rider) => rider.zwiftId).filter((id): id is number => id != null))];
+    const theirIds = [
+      ...new Set(
+        stored.flatMap((row) =>
+          row.riders.filter((rider) => rider.zwiftId && sameTeam(rider.team, opponent.name)).map((rider) => rider.zwiftId!),
+        ),
+      ),
+    ];
+    const [ourRaces, metrics] = await Promise.all([riderRaces(admin, ourIds), loadRiderMetrics([...ourIds, ...theirIds])]);
+    const known = new Set(stored.map((row) => row.resultId));
+    const ladderPower = riderPowerFromMatches([...stored, ...ourRaces.filter((row) => !known.has(row.resultId))]);
+    // 90 dagen van ZwiftRacing, zoals de matchup.
+    const power90 = new Map<number, PowerWkg>();
+    for (const [id, row] of metrics) {
+      if (row.power) power90.set(id, { s15: row.power.s15, m1: row.power.m1, m5: row.power.m5, m20: row.power.m20 });
+    }
     advice = buildLadderAdvice({
       options,
       favorites,
       ourNames,
-      ourPower: teamPowerFromMatches(ourNames, stored) ?? profilePower(teamRiders),
+      ourPower: squadPower(ourIds, ladderPower, power90),
       theirName: opponent.name,
-      theirPower: teamPowerFromMatches([opponent.name], stored),
-      matches: stored,
+      theirPower: squadPower(theirIds, ladderPower, power90),
+      // Uitslagen per routetype en eigen routekeuzes: alleen de laatste 90 dagen, net als het vermogen.
+      matches: recentMatches(stored),
     });
   } else if (ladderResults.length > 0) {
     after(() => storeLadderResults(admin, ladderResults));
@@ -404,15 +426,6 @@ type TeamResult = {
   points: number | string | null;
 };
 
-/** Zonder eigen ladderraces: de vijf besten uit de 90-dagenprofielen (geen 15 s). */
-function profilePower(riders: TeamProfileRider[]): TeamPower | null {
-  const rows = riders
-    .filter((rider) => rider.wkg1m || rider.wkg5m || rider.wkg20m)
-    .map((rider) => ({ s15: null, m1: rider.wkg1m, m5: rider.wkg5m, m20: rider.wkg20m }));
-  if (rows.length === 0) return null;
-  return { wkg: topFiveAverage(rows), riders: rows.length, races: 0 };
-}
-
 function AdviceView({ advice, opponent, options }: { advice: LadderAdvice | null; opponent: string; options: LadderRouteRow[] }) {
   if (!advice) return <EmptyState className="mt-3">Nog geen wedstrijden van {opponent} bewaard.</EmptyState>;
   const bySlug = new Map(options.map((option) => [option.slug, option]));
@@ -436,7 +449,7 @@ function AdviceView({ advice, opponent, options }: { advice: LadderAdvice | null
           );
         })}
         <span className="px-1 py-1 text-muted-foreground">
-          {advice.ourRaces} / {advice.theirRaces} races
+          {advice.ours.riders} / {advice.theirs.riders} renners · 90 d: {advice.ours.with90d} / {advice.theirs.with90d}
         </span>
       </div>
       <ol className="grid gap-2 lg:grid-cols-3">
