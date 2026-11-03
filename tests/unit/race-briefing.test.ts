@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fixture from "../fixtures/zwift/green-to-screen-100m.json";
 import type { PacingAccent, PacingSegment } from "@/lib/pacing/route-profile";
-import { climbSeconds, routeKeyPoints, segmentLabel, withoutTunnelSteps } from "@/lib/race-briefing/route";
+import { climbSeconds, routeKeyPoints, segmentLabel, withoutTunnelSteps, type BriefingClimb, type RouteKeyPoints } from "@/lib/race-briefing/route";
 import { pacingRouteFromZwift } from "@/lib/pacing/route-profile";
 import { expandLapSegments } from "@/lib/pacing/route-loader";
 import spiral from "../fixtures/zwift/spiral-summit-100m.json";
@@ -234,6 +234,37 @@ describe("racebriefje", () => {
     expect(moments.find((m) => m.what === "laatste boog")?.km).toBe(23.14);
     expect(moments.find((m) => m.what.startsWith("slotklim"))?.todo).toBe("voluit tot de top, veer aan");
     expect(moments.at(-1)?.todo).toBe("sprint uit het wiel, helm op ±200 m");
+  });
+});
+
+describe("momenten zonder dubbelingen", () => {
+  // Zoals The Muckle Yin: de vroege klim en de slotklim komen allebei na een afdaling.
+  const climb = (startKm: number, endKm: number, gainM: number): BriefingClimb => ({ startKm, endKm, gainM, avgGradient: 0.035, maxGradient: 0.05, name: null });
+  const early = climb(4.5, 4.9, 15);
+  const middle = climb(12.8, 13.2, 15);
+  const last = climb(20.9, 22, 22);
+  const route: RouteKeyPoints = {
+    totalKm: 23.6,
+    climbs: [early, middle, last],
+    descentsIntoClimbs: [
+      { descent: { startKm: 3.2, endKm: 4.4, dropM: 30 }, climb: early },
+      { descent: { startKm: 10.2, endKm: 12.7, dropM: 62 }, climb: middle },
+      { descent: { startKm: 19.1, endKm: 20.8, dropM: 58 }, climb: last },
+    ],
+    hardestClimb: last,
+    earlyClimb: early,
+    finale: { kind: "climb", climb: last, runInKm: 1.6 },
+    segments: [],
+    lastArchKm: null,
+  };
+
+  it("geeft één moment per klim", () => {
+    const moments = briefingMoments({ format: "scratch", category: "B", route, powerups: [], own: [] });
+    const at = (km: number) => moments.filter((m) => m.km === km).map((m) => m.todo);
+    expect(at(4.5)).toEqual(["het lint breekt: lossen doe je niet"]);
+    expect(at(12.8)).toEqual(["het lint breekt: lossen doe je niet"]);
+    expect(at(20.9)).toEqual(["voluit tot de top"]);
+    expect(at(19.1)[0]).toContain("naar voren");
   });
 });
 

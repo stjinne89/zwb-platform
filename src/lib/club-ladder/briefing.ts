@@ -8,7 +8,7 @@
 
 import type { CheatRule, Powerup } from "@/lib/race-briefing/rules";
 import type { WatchLine } from "@/lib/race-briefing/sheet";
-import { cleanRiderName } from "@/lib/race-briefing/field";
+import { cleanRiderName, type OwnRole } from "@/lib/race-briefing/field";
 import { DURATION_LABELS } from "./advice";
 import type { LadderMatchup, MatchupRider } from "./matchup";
 import type { DurationWeights, PowerDuration } from "./routes";
@@ -151,6 +151,48 @@ export function projectLadder(riders: LadderBriefingRider[], challenger: boolean
   let spare = 0;
   while (win && wins(ours - 2 * (spare + 1), theirs + 2 * (spare + 1), challenger) && spare < LADDER_POINTS.length) spare += 1;
   return { order, ours, theirs, win, overtakesNeeded, spare };
+}
+
+export type LadderRole = {
+  role: Extract<OwnRole, "voorin" | "brug" | "aanhaken">;
+  /** De tegenstander die vlak voor je verwacht wordt: inhalen is 2 punten. */
+  ahead: string | null;
+  /** De tegenstander vlak achter je: die moet erachter blijven. */
+  behind: string | null;
+};
+
+const firstName = (name: string) => name.split(/\s+/)[0] ?? name;
+
+/**
+ * Rollen op de ladder: geen kopman, want elke plek telt even zwaar voor de
+ * ploeg. Wie in de voorste helft verwacht wordt, rijdt voorin en sprint om elke
+ * plek; wie in de achterste helft verwacht wordt, haakt aan en zit vóór een klim
+ * vooraan. Met drie of meer van ons en iemand achterin rijdt de sterkste van ons
+ * gaten dicht: een ploeggenoot die bij de groep blijft, wint meer plekken dan
+ * de sterkste er zelf verliest. Per renner de tegenstander vlak voor en vlak
+ * achter hem in de verwachting, want daar zitten de 2 punten.
+ */
+export function ladderRoles(projection: LadderProjection): Map<number, LadderRole> {
+  const rated = projection.order.filter((row) => row.rating !== null);
+  const half = Math.ceil(rated.length / 2);
+  const ownRated = rated.filter((row) => row.own);
+  const anyBehind = ownRated.some((row) => row.place > half);
+  const bridge = ownRated.length >= 3 && anyBehind ? ownRated[0].zwiftId : null;
+  const out = new Map<number, LadderRole>();
+  for (const row of projection.order.filter((r) => r.own)) {
+    if (row.rating === null) {
+      out.set(row.zwiftId, { role: "aanhaken", ahead: null, behind: null });
+      continue;
+    }
+    const ahead = rated.filter((r) => !r.own && r.place < row.place).at(-1);
+    const behind = rated.find((r) => !r.own && r.place > row.place);
+    out.set(row.zwiftId, {
+      role: row.zwiftId === bridge ? "brug" : row.place <= half ? "voorin" : "aanhaken",
+      ahead: ahead ? firstName(ahead.name) : null,
+      behind: behind ? firstName(behind.name) : null,
+    });
+  }
+  return out;
 }
 
 const plural = (n: number, one: string, more: string) => `${n} ${n === 1 ? one : more}`;

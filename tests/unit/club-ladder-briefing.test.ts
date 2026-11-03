@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   keyDuration,
   ladderCheatRules,
+  ladderRoles,
   ladderWatch,
   projectLadder,
   routeRatings,
@@ -134,5 +135,29 @@ describe("ladderChallengerFromTitle", () => {
     expect(ladderChallengerFromTitle("Club Ladder: ZWBeasts – Galaxy Avengers", "ZWBeasts")).toBe(true);
     expect(ladderChallengerFromTitle("Club Ladder: Galaxy Avengers – ZWBeasts", "ZWBeasts")).toBe(false);
     expect(ladderChallengerFromTitle("ZRL W3", "ZWBeasts")).toBeNull();
+  });
+});
+
+describe("ladderRoles", () => {
+  it("geeft geen kopman: voorin, aanhaken en wie te pakken of achter je te houden", () => {
+    // ZWB op 1 en 6 van 6, zoals 17729 met de aanmeldingen van 3 november.
+    const riders = [rider(1, true, 1.03), rider(2, false, 1.02), rider(3, false, 1.01), rider(4, false, 1), rider(5, false, 0.98), rider(6, true, 0.95)];
+    const roles = ladderRoles(projectLadder(riders, true));
+    expect(roles.get(1)).toEqual({ role: "voorin", ahead: null, behind: "R2" });
+    expect(roles.get(6)).toEqual({ role: "aanhaken", ahead: "R5", behind: null });
+  });
+
+  it("laat de sterkste gaten dichtrijden als er drie of meer van ons zijn en iemand achterin zit", () => {
+    const roles = ladderRoles(projectLadder(alternating(true), true));
+    // Wij op 1, 3, 5, 7, 9 van 10.
+    expect(roles.get(1)?.role).toBe("brug");
+    expect(roles.get(3)?.role).toBe("voorin");
+    expect(roles.get(7)?.role).toBe("aanhaken");
+    expect(roles.get(5)).toEqual({ role: "voorin", ahead: "R4", behind: "R6" });
+  });
+
+  it("een renner zonder vermogen haakt aan, zonder doelen", () => {
+    const roles = ladderRoles(projectLadder([rider(1, true, null), rider(2, false, 1)], false));
+    expect(roles.get(1)).toEqual({ role: "aanhaken", ahead: null, behind: null });
   });
 });

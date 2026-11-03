@@ -90,10 +90,8 @@ export function ZwiftProfile({
                 fill="var(--chart-4)"
                 opacity={0.16}
               >
-                <title>
-                  {climb.name} · km {climb.startKm.toFixed(1)}–{climb.endKm.toFixed(1)} ·{" "}
-                  {(climb.avgGradient * 100).toFixed(1)}%
-                </title>
+                {/* Eén string: React 19 hydrateert een <title> met losse stukken tekst niet. */}
+                <title>{`${climb.name} · km ${climb.startKm.toFixed(1)}–${climb.endKm.toFixed(1)} · ${(climb.avgGradient * 100).toFixed(1)}%`}</title>
               </rect>
             ))}
             <path d={area} fill="var(--chart-2)" opacity={0.22} />

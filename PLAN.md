@@ -11677,8 +11677,19 @@ bij de ZRL. Eerst als voorstel voorgelegd en goedgekeurd ("Ja, bouwen").
   door de schaal. Zonder vermogen achteraan, zonder punten. Op de pagina vervangt
   de tabel Verwachte uitslag "Onze ploeg" en "Het veld".
 - **Volgen**: de drie sterkste tegenstanders met hun W/kg op de duur die het
-  zwaarst telt. **Rollen**: `suggestRoles` met die sterkte en de 5 minuten.
-  **Let op**: geen opstelling of minder dan vijf startplekken.
+  zwaarst telt. **Let op**: geen opstelling of minder dan vijf startplekken.
+- **Rollen zonder kopman** (`ladderRoles`). ~~`suggestRoles` met die sterkte en
+  de 5 minuten.~~ *Vervangen dezelfde dag, op aanwijzing van de eigenaar:* op de
+  ladder is er geen kopman, want je haalt samen zoveel mogelijk punten. Wie in
+  de voorste helft verwacht wordt: **voorin**, om elke plek sprinten; achterin:
+  **aanhaken**, vooraan vóór de klim (die namen staan ook bij de afdalingen in de
+  momenten). Met drie of meer van ons en iemand achterin rijdt de sterkste
+  **gaten dicht**: een ploeggenoot die bij de groep blijft, wint meer plekken
+  dan de sterkste er zelf verliest (eigen vuistregel). Per renner op het briefje
+  "pak X · houd Y achter je": de tegenstander vlak voor en vlak achter hem in de
+  verwachting, waar de 2 punten zitten. `OwnRole` heeft daarvoor `voorin`, `brug`
+  en `aanhaken`; `needsClimbPosition` laat de momenten en tips zowel `positie`
+  (ZRL) als `aanhaken` noemen.
 - **Powerups**: uit de Zwift-tags, anders uit de omschrijving van de sync
   ("Powerups: Feather, Draft", `ladderPowerups`). Bogen alleen als het Zwift-event
   `arch_powerup` heeft. **Fietsadvies** met 95% van de 20 minuten van onze
@@ -11705,13 +11716,20 @@ Het briefje van 17729 laadt: kop "Club Ladder · tegen Galaxy Avengers · wij
 dagen uit · heuvels", Onthouden met de laddertelling, Volgen, "2 van de 5
 startplekken ingevuld" en de verwachte uitslag. Daarbij gevonden: de ZRS uit de
 bewaarde ladderraces stond met decimalen ("626.68"); nu afgerond, ook in de
-matchup op de eventpagina. Ook gezien, maar van vóór deze ronde en niet
-aangepakt: een hydration-fout in het hoogteprofiel (`ZwiftRouteSection`, de
-`<title>` "Klim km 4.5"), en dubbele momenten op dezelfde kilometer als een
-vroege klim ook na een afdaling komt of de laatste klim ook de slotklim is
-(`briefingMoments`, ook op ZRL-briefjes).
+matchup op de eventpagina. Daarna, op verzoek van de eigenaar, ook twee dingen
+van vóór deze ronde hersteld, die ook ZRL-briefjes raakten:
+- **Hydration-fout in het hoogteprofiel**: een SVG-`<title>` met losse stukken
+  tekst (`ZwiftRouteSection`, en zo ook in `pacing-editor.tsx`) hydrateert in
+  React 19 niet; de hele boom werd op de client opnieuw gebouwd (daar kwam ook
+  de melding over een script-tag vandaan). Nu één string. Na herladen geen
+  issues meer in de dev-overlay.
+- **Dubbele momenten** (`briefingMoments`): een vroege klim na een afdaling
+  kreeg "voorste derde" én "het lint breekt", en een slotklim na een afdaling
+  "het lint breekt" én "voluit". Nu één moment per klim: de afdaling blijft, de
+  vroege klim volgt het lint, de slotklim zijn eigen regel. Test met de opbouw
+  van The Muckle Yin; de ZRL-briefing van Women's B (3 november) bekeken.
 
-**Gecontroleerd.** Vitest `club-ladder-briefing.test.ts` (11 nieuw), de andere
+**Gecontroleerd.** Vitest `club-ladder-briefing.test.ts` (14 nieuw), een nieuwe case in `race-briefing.test.ts`, de andere
 `club-ladder-*`, `race-briefing`, `help-*` en de volle run (los herhaald wat
 alleen in de volle run op een time-out viel; `omnium-live` mist `.env.local` in
 de worktree). `tsc` en ESLint schoon. De berekening nagelopen met de echte

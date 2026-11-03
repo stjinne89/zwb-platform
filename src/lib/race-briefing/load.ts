@@ -151,6 +151,8 @@ export type OwnBriefingRider = {
   metrics: RiderMetrics | null;
   history: Array<number | null>;
   expectedPlace: number | null;
+  /** Ladder: de tegenstander vlak voor en vlak achter je in de verwachting. */
+  targets?: { ahead: string | null; behind: string | null };
 };
 
 export type BriefingWarning = { kind: "lineup" | "limits" | "starters"; text: string };

@@ -11,7 +11,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { loadPacingRoute } from "@/lib/pacing/route-loader";
 import { archPowerups, startingPowerup } from "@/lib/zwift/powerups";
 import { archPowerupList } from "@/lib/race-briefing/arches";
-import { suggestRoles } from "@/lib/race-briefing/field";
 import { routeKeyPoints } from "@/lib/race-briefing/route";
 import { powerupsFromTags } from "@/lib/race-briefing/rules";
 import { defaultSheet, effectiveSheet, sanitizeOverride } from "@/lib/race-briefing/sheet";
@@ -29,6 +28,8 @@ import {
   ladderCheatRules,
   ladderPowerups,
   ladderRiders,
+  ladderRoles,
+  type LadderRole,
   ladderWatch,
   LADDER_TEAM_SIZE,
   projectLadder,
@@ -112,7 +113,7 @@ export async function loadLadderBriefing(
 
   const ourRiders = riders.filter((rider) => rider.own);
   const savedRoles = (planRow.data?.roles ?? {}) as Record<string, unknown>;
-  const suggested = suggestRoles(ourRiders.map((rider) => ({ zwiftId: rider.zwiftId, rating: rider.rating, fiveMinWkg: rider.wkg?.m5 ?? null })));
+  const roles = projection ? ladderRoles(projection) : new Map<number, LadderRole>();
   const own: OwnBriefingRider[] = ourRiders.map((rider) => {
     const saved = savedRoles[String(rider.zwiftId)];
     return {
@@ -120,7 +121,7 @@ export async function loadLadderBriefing(
       name: rider.name,
       inPen: true,
       inLineup: matchup?.ours.lineup ?? false,
-      role: suggested.get(rider.zwiftId) ?? "steun",
+      role: roles.get(rider.zwiftId)?.role ?? "aanhaken",
       captainRole: typeof saved === "string" ? saved.trim() || null : null,
       zftpWkg: null,
       zmapWkg: null,
@@ -129,6 +130,7 @@ export async function loadLadderBriefing(
       metrics: null,
       history: [],
       expectedPlace: placeOf.get(rider.zwiftId) ?? null,
+      targets: { ahead: roles.get(rider.zwiftId)?.ahead ?? null, behind: roles.get(rider.zwiftId)?.behind ?? null },
     };
   });
 

@@ -575,9 +575,7 @@ function ProfileChart({
                 height={4}
                 fill="var(--chart-5)"
               >
-                <title>
-                  km {section.startKm.toFixed(1)}–{section.endKm.toFixed(1)}
-                </title>
+                <title>{`km ${section.startKm.toFixed(1)}–${section.endKm.toFixed(1)}`}</title>
               </rect>
             ))}
 

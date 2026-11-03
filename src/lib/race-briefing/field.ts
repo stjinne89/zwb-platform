@@ -122,14 +122,21 @@ export function watchList(projection: Projection, max = 5): Array<{ rider: Field
   return out;
 }
 
-export type OwnRole = "kopman" | "tempo" | "positie" | "steun";
+/** De laatste drie zijn van de ladder, waar elke plek even zwaar telt en er geen kopman is (club-ladder/briefing.ts). */
+export type OwnRole = "kopman" | "tempo" | "positie" | "steun" | "voorin" | "brug" | "aanhaken";
 
 export const ROLE_LABELS: Record<OwnRole, string> = {
   kopman: "Kopman",
   tempo: "Tempo en volgen",
   positie: "Positie op de klim",
   steun: "Steun",
+  voorin: "Voorin, om elke plek sprinten",
+  brug: "Gaten dichtrijden voor de ploeg",
+  aanhaken: "Aanhaken, vooraan vóór de klim",
 };
+
+/** Wie vóór een klim vooraan moet zitten: bij de ZRL de positierenners, op de ladder wie aanhaakt. */
+export const needsClimbPosition = (role: OwnRole) => role === "positie" || role === "aanhaken";
 
 /**
  * Rolvoorstel voor de eigen renners. Kopman: de twee hoogste in de verwachting.

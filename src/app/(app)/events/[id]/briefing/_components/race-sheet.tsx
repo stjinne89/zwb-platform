@@ -354,6 +354,36 @@ function RoleLine({ rider, limitLabel }: { rider: OwnBriefingRider; limitLabel: 
             ))}
         </p>
       )}
+      {rider.targets && (rider.targets.ahead || rider.targets.behind) && (
+        <p style={{ color: PENCIL }}>
+          {[
+            rider.targets.ahead ? (
+              <span key="ahead">
+                pak{" "}
+                <span className="font-bold" style={{ color: INK }}>
+                  {rider.targets.ahead}
+                </span>
+              </span>
+            ) : null,
+            rider.targets.behind ? (
+              <span key="behind">
+                houd{" "}
+                <span className="font-bold" style={{ color: INK }}>
+                  {rider.targets.behind}
+                </span>{" "}
+                achter je
+              </span>
+            ) : null,
+          ]
+            .filter(Boolean)
+            .map((part, i) => (
+              <span key={i}>
+                {i > 0 && " · "}
+                {part}
+              </span>
+            ))}
+        </p>
+      )}
       {rider.role === "positie" && !rider.captainRole && (
         <p className="inline-flex items-center gap-1" style={{ color: INK }}>
           <Mountain aria-hidden strokeWidth={2.4} className="size-4 shrink-0" />
