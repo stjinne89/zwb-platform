@@ -609,7 +609,7 @@ drie 2026-10-16; `0246_workout_method_labels` en
 
 ---
 
-> **Trainingsdata kleiner voor Free, 2026-11-03 — gebouwd; migratietest (`tests/unit/training-storage-retention.test.ts`, PGlite) en lint schoon; niet gepusht. Migratie `0304_training_storage_retention.sql`, niet toegepast en niet lokaal te testen tegen Supabase (geen Docker of Supabase-config).**
+> **Trainingsdata kleiner voor Free, 2026-11-03 (`b891ff17`) — gebouwd; migratietest (`tests/unit/training-storage-retention.test.ts`, PGlite) en lint schoon; niet gepusht. Migratie `0304_training_storage_retention.sql`, niet toegepast en niet lokaal te testen tegen Supabase (geen Docker of Supabase-config).**
 >
 > **Waarom.** De eigenaar wil per 2026-12-02 terug naar Free (500 MB). De
 > database groeit ~20 MB per week; een derde daarvan zat in twee tabellen met
