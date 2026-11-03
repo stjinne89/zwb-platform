@@ -118,18 +118,19 @@ export function buildLadderAdvice(input: {
     const reasons: string[] = [];
     let power = 0;
     let weightSum = 0;
-    let strongest: { d: PowerDuration; contribution: number } | null = null;
+    // De duur die op dit parcours het zwaarst weegt, niet die met de grootste bijdrage:
+    // een klein gewicht maal een groot verschil is geen reden om hier te rijden.
+    let heaviest: PowerDuration | null = null;
     for (const d of DURATIONS) {
       const e = edge[d];
       if (e == null) continue;
       power += option.weights[d] * e;
       weightSum += option.weights[d];
-      const contribution = option.weights[d] * e;
-      if (!strongest || Math.abs(contribution) > Math.abs(strongest.contribution)) strongest = { d, contribution };
+      if (!heaviest || option.weights[d] > option.weights[heaviest]) heaviest = d;
     }
     if (weightSum > 0) {
       power /= weightSum;
-      if (strongest) reasons.push(`${DURATION_LABELS[strongest.d]} telt hier zwaar: wij ${pct(edge[strongest.d]!)}`);
+      if (heaviest) reasons.push(`${DURATION_LABELS[heaviest]} telt hier zwaar: wij ${pct(edge[heaviest]!)}`);
     }
 
     const ours = ourRecords.get(option.routeClass);

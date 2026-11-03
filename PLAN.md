@@ -11777,11 +11777,25 @@ bedoeld, maar met twee fouten.
 - De matchup zonder aanmeldingen vergelijkt nog de teams uit hun ladderraces
   (`teamPowerFromMatches`), dus ook daar de oude opstelling. Niet in deze ronde.
 
-**Stand in productie (2026-11-03).** Van de acht huidige Bandits en de dertien
-Loki-renners heeft niemand 90 dagen in `zwift_rider_metrics`; de geplande taak
-`ladder-vermogen-zwiftracing` haalt alleen aanmeldingen op, en voor wedstrijd
-17766 zijn er nog geen. Tot dat gevuld is, hebben van de Bandits alleen Harmen
-en Jeroen vermogen (uit ladderraces) en telt het krachtverschil niet mee.
+- **Reden bij een route** noemt nu de duur die daar het zwaarst weegt. Eerst was
+  het de duur met de grootste bijdrage (gewicht × verschil), waardoor Lutscher
+  "1 min telt hier zwaar" kreeg bij een gewicht van 8%.
+
+**Stand in productie (2026-11-03).** Eerst had van de acht huidige Bandits en
+de dertien Loki-renners niemand 90 dagen in `zwift_rider_metrics`: de geplande
+taak `ladder-vermogen-zwiftracing` haalde alleen aanmeldingen op, en voor
+wedstrijd 17766 waren er nog geen. Op verzoek van de eigenaar op 2026-11-03 via
+Chrome (`__TSR_ROUTER__.preloadRoute` op zwiftracing.app) gevuld voor alle 58
+renners van de drie ladderwedstrijden in de komende acht dagen (eigen ploeg plus
+wie de laatste acht wedstrijden voor de tegenstander reed); alle 58 hadden
+waarden. De dagtaak is uitgebreid met dezelfde selectie (eigen ploeg en
+tegenstander naast de aanmeldingen) en bewaart de uitkomst in
+`window.__zwb`, omdat één Chrome-aanroep na 45 s afbreekt.
+
+Nagerekend met de nieuwe code en deze waarden (acht Bandits, dertien Loki):
+15 s −17%, 1 min −12%, 5 min −1%, 20 min 0%. Loki is op de korte duren sterker
+en op de lange gelijk; het advies zet daarom lange klimmen bovenaan (Lutscher,
+Road to Sky, Ven-Top), de omgekeerde reden van eerst.
 
 **Niet geverifieerd.** De pagina na deze wijziging (vraagt een deploy). Unit
 tests van de ladder slagen (91), ESLint en typecheck schoon op de gewijzigde
@@ -12527,6 +12541,9 @@ tegenstanderkant race-waarden stonden. Keuze van de eigenaar: via Chrome halen
   20 uur, haalt ze in Chrome op en schrijft alleen `zwift_rider_metrics`. Draait
   alleen als de Claude-app open is en Chrome met de extensie verbonden; de query
   is nagelopen (vond de 6 aanmeldingen van 17729), een volledige run nog niet.
+  *Uitgebreid 2026-11-03:* de taak neemt nu ook de huidige leden van het eigen
+  team en de renners van de tegenstander mee, voor het route-advies; zie "Club
+  Ladder: advies op de huidige ploeg, klimtijd bepaalt de duur".
 - `zwift_rider_metrics` gooit rijen weg die 90 dagen niet zijn bijgewerkt; met
   de hand gezette waarden verdwijnen dus vanzelf.
 
