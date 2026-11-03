@@ -11713,7 +11713,7 @@ hieronder. Sonnet en de kleine twee zijn niet gedaan.
 
 ### Gebouwd — Herzieningen 's nachts gebundeld, over twee weken; dagvoorstel wacht op de meting
 
-**2026-11-03.** Gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie.
+**2026-11-03.** Commit `8c182033` (merge `4feff0bf`), gepusht naar `main` op 2026-11-03 (eigenaar). Geen migratie.
 
 **Waarom.** Zie "Onderzocht — Claude-kosten": elke wijziging startte een volledige
 herziening van het hele resterende schema. Tijdens het bouwen merkte de eigenaar
