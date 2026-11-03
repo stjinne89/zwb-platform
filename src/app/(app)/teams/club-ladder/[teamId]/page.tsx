@@ -121,9 +121,18 @@ export default async function ClubLadderTeamPage({
   const syncResult = latestResultFor(team.id, resultRows);
   const aliases = teamAliases(team, source);
   const { match, window } = findStandingWindow(standings, aliases, syncResult?.position ?? null);
-  const rankingRows = match ? challengeWindow(standings, match) : window;
   const challengeable = match ? challengeableTeams(standings, match) : [];
   const teamFixtures = fixtures.filter((fixture) => fixtureMatches(fixture, aliases)).slice(0, 6);
+  // Nog geen plek in de stand: de hele ranking om door te scrollen, in de regio van de tegenstanders.
+  const fixtureRegions = new Set(
+    teamFixtures.flatMap((fixture) =>
+      standings
+        .filter((row) => [fixture.home, fixture.away].some((name) => normalizeTeamName(name) === normalizeTeamName(row.name)))
+        .map((row) => row.region),
+    ),
+  );
+  const unrankedRows = fixtureRegions.size > 0 ? standings.filter((row) => fixtureRegions.has(row.region)) : standings;
+  const rankingRows = match ? challengeWindow(standings, match) : standings.length > 0 ? unrankedRows : window;
   const planned = teamFixtures.flatMap((fixture) => [fixture.home, fixture.away]);
   // Het event dat de sync per wedstrijd aanmaakt (migr. 0300).
   const fixtureIds = teamFixtures.map((fixture) => fixture.fixtureId).filter((id): id is number => id !== null);
@@ -295,6 +304,7 @@ export default async function ClubLadderTeamPage({
           planned={planned}
           opponentHref={opponentHref}
           activeOpponent={opponent?.name ?? null}
+          scrollable={!match}
         />
       </section>
 

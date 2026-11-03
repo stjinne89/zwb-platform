@@ -11721,6 +11721,29 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: scrollbare ranking zonder plek in de stand
+
+**2026-11-03.** Commit volgt in deze ronde, nog niet gepusht. Geen migratie.
+
+**Waarom.** Een nieuwe ploeg zonder plek in de stand (de Bandits) zag alleen de
+eerste twaalf teams van de hele ladder, door alle regio's heen
+(`findStandingWindow` zonder treffer). De eigenaar wil door de ranking kunnen
+scrollen.
+
+**Wat er veranderde.** Zonder plek in de stand toont de teampagina de hele
+ranking in een eigen scrollvak (`StandingsTable` met `scrollable`, maximaal
+28rem hoog). Alleen de regio('s) van de tegenstanders uit de komende matchups;
+zonder matchups de hele ladder. Een ploeg waartegen een wedstrijd gepland staat
+heeft in de kolom Uitdagen nu altijd een link "Gepland · advies", ook als hij
+niet uit te dagen is (zoals bij een ploeg zonder plek). Met een plek in de
+stand blijft het venster van zeven erboven tot drie eronder. `/hulp` bijgewerkt.
+
+**Bewust niet.** Geen uitdaag-links zonder eigen plek: wie je mag uitdagen hangt
+van je positie af. Geen automatisch scrollen naar de tegenstander.
+
+**Niet geverifieerd.** De pagina na deze wijziging (vraagt een deploy). Lint en
+typecheck schoon.
+
 ### Gebouwd — Club Ladder: vaste selectie per matchup
 
 **2026-11-03.** Commit `6145ede7`, gepusht naar `main` op 2026-11-03

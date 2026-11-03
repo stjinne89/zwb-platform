@@ -201,6 +201,7 @@ export function StandingsTable({
   planned = [],
   opponentHref,
   activeOpponent,
+  scrollable = false,
 }: {
   rows: ClubLadderStanding[];
   selectedAliases: string[];
@@ -210,6 +211,8 @@ export function StandingsTable({
   planned?: string[];
   opponentHref?: (row: ClubLadderStanding) => string;
   activeOpponent?: string | null;
+  /** De hele ranking in een eigen scrollvak, voor een team zonder plek in de stand. */
+  scrollable?: boolean;
 }) {
   if (rows.length === 0) {
     return <EmptyState className="mt-4">Geen publieke rankingrows gevonden.</EmptyState>;
@@ -223,9 +226,9 @@ export function StandingsTable({
     normalizedAliases.includes(normalizeTeamName(row.name));
   const canChallenge = (row: (typeof rows)[number]) => challengeSet.has(normalizeTeamName(row.name));
   return (
-    <div>
+    <div className={cn(scrollable && "mt-4 max-h-[28rem] overflow-y-auto overscroll-contain rounded-md border p-2")}>
       <ResponsiveTable
-        className="mt-4"
+        className={scrollable ? undefined : "mt-4"}
         rows={rows}
         rowKey={(row) => `${row.region}-${row.position}-${row.name}`}
         minWidth={680}
@@ -292,7 +295,7 @@ export function StandingsTable({
                   header: "Uitdagen",
                   align: "right" as const,
                   cell: (row: ClubLadderStanding) =>
-                    canChallenge(row) ? (
+                    canChallenge(row) || plannedSet.has(normalizeTeamName(row.name)) ? (
                       <Link
                         href={opponentHref(row)}
                         scroll={false}
@@ -300,8 +303,6 @@ export function StandingsTable({
                       >
                         {plannedSet.has(normalizeTeamName(row.name)) ? "Gepland · advies" : "Advies"}
                       </Link>
-                    ) : plannedSet.has(normalizeTeamName(row.name)) ? (
-                      "Gepland"
                     ) : (
                       ""
                     ),
