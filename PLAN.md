@@ -11713,7 +11713,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 **2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch
 `claude/drinkmix-favorites-zwbeter-6a454b`, niet gepusht. Migratie
-`0305_nutrition_recipe_scoops.sql`, **niet toegepast**.
+`0305_nutrition_recipe_scoops.sql`, op 2026-11-03 op verzoek van de eigenaar
+toegepast op productie (via de Supabase-connector).
 
 **Waarom.** Wens van de eigenaar: in één oogopslag zien welke en hoe grote
 bidons je nodig hebt en waarmee je ze vult, en bij poeder weten hoeveel
@@ -11743,7 +11744,10 @@ leden `nutrition_products` mogen bewerken, of een aparte tabel per lid. Per
 recept volstaat voor wie zijn eigen drankrecept maakt.
 
 **Niet lokaal te controleren.** Migratie 0305 (geen Docker of Supabase-config
-hier); het invullen en bewaren van de schep werkt pas na toepassen.
+hier). Na toepassen nagekeken op productie: kolom `scoop_g` (numeric,
+nullable) en de check staan er, 0 regels gevuld. Een schep invullen en
+bewaren is nog niet door iemand gedaan; de receptpagina laadt wel zonder
+terugval op het oude select.
 
 **Gecontroleerd.** Vitest `nutrition-*.test.ts` (nieuw: `nutrition-scoops`),
 `tsc` en ESLint schoon. In dev bekeken: de icoontjes in de bidonkeuze en in de
