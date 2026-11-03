@@ -11712,8 +11712,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Dashboard: tegel "Jouw teams"
 
-**2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch
-`claude/dashboard-teams-tile-5c859c`; niet gepusht. Geen migratie.
+**2026-11-03.** Commit `e3d65319` op de branch
+`claude/dashboard-teams-tile-5c859c`; gepusht naar `main` op 2026-11-03
+(eigenaar). Geen migratie.
 
 **Waarom.** Wens van de eigenaar: vanaf het dashboard in één tik bij de teams
 waar je in zit. Tot nu toe liep dat via Club → Teams, waar alleen de hoofdteams
@@ -11751,8 +11752,9 @@ vóór de captainregel. Niet op productie.
 
 ### Gebouwd — Teams: ZRL-starts weg
 
-**2026-11-03.** Eén commit, samen met deze PLAN-regel; lokaal op de branch
-`claude/remove-zrl-starts-column-13df54`, niet gepusht. Geen migratie.
+**2026-11-03.** Eén commit, samen met deze PLAN-regel (`75069664` op de branch
+`claude/remove-zrl-starts-column-13df54`); samen met "Jouw teams" gepusht naar
+`main` op 2026-11-03 (eigenaar). Geen migratie.
 
 **Waarom.** De kolom ZRL in de rennerstabel (Teams en Teams-detail) toonde bij
 iedereen "0 starts · best - · - pt". Hij las `zrl_rider_results`, en die tabel
