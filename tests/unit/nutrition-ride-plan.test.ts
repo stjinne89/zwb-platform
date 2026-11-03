@@ -76,6 +76,8 @@ const CAKES = recipe("rijsttaartjes", 6, [
   [RICE, 250, "kh_bron"],
   [BANANA, 200, "kh_bron"],
 ]);
+// 4 uur met 100 g per uur uit de darmtraining: 400 g, meer dan vier bidons dragen.
+const LONG = { minutes: 240, gut: { weekGrams: 100, minMinutes: 60, high: false } };
 
 describe("ritplan", () => {
   it("herkent een bidon aan een drank in het recept", () => {
@@ -99,12 +101,12 @@ describe("ritplan", () => {
   });
 
   it("vult boven de grens per bidon aan met vast eten", () => {
-    // 4 uur × 75 g = 300 g: vier bidons van 60 g en 60 g vast eten.
-    const plan = ridePlan({ minutes: 240, ranked: [DRINK, CAKES], energyFactor: 1 })!;
+    // 400 g: vier bidons van 90 g en 40 g vast eten.
+    const plan = ridePlan({ ...LONG, ranked: [DRINK, CAKES], energyFactor: 1 })!;
     expect(plan.bidons.count).toBe(4);
     expect(plan.bidons.carbsG).toBeLessThanOrEqual(BIDON_MAX_CARBS_G + 1);
     expect(plan.solid?.recipe?.slug).toBe("rijsttaartjes");
-    expect(Math.abs(plan.totalG - 300)).toBeLessThanOrEqual(10);
+    expect(Math.abs(plan.totalG - 400)).toBeLessThanOrEqual(10);
     // Het vast eten staat niet op het eerste moment.
     const withSolid = plan.feeds.filter((feed) => feed.solid > 0);
     expect(withSolid.reduce((sum, feed) => sum + feed.solid, 0)).toBe(plan.solid!.count);
@@ -128,7 +130,7 @@ describe("ritplan", () => {
   });
 
   it("legt bij Gegeten alle bidons en porties vast, per recept", () => {
-    const plan = ridePlan({ minutes: 240, ranked: [DRINK, CAKES], energyFactor: 1 })!;
+    const plan = ridePlan({ ...LONG, ranked: [DRINK, CAKES], energyFactor: 1 })!;
     const meals = ridePlanMeals(plan);
     expect(meals.map((meal) => meal.slug)).toEqual(["sportdrank", "rijsttaartjes"]);
     const sugar = plan.bidons.ingredients.find((item) => item.foodId === "suiker")!;
@@ -172,13 +174,13 @@ describe("ritplan", () => {
   });
 
   it("vat het plan kort samen voor de herinnering", () => {
-    const plan = ridePlan({ minutes: 240, ranked: [DRINK, CAKES], energyFactor: 1 })!;
+    const plan = ridePlan({ ...LONG, ranked: [DRINK, CAKES], energyFactor: 1 })!;
     expect(ridePlanSummary(plan)).toBe(`4× bidon sportdrank, ${plan.solid!.count}× rijsttaartjes`);
     expect(ridePlanSummary(ridePlan({ minutes: 120, ranked: [CAKES], energyFactor: 1 })!)).toMatch(/^2× bidon water/);
   });
 
   it("zet alle bidons en porties op de boodschappenlijst", () => {
-    const plan = ridePlan({ minutes: 240, ranked: [DRINK, CAKES], energyFactor: 1 })!;
+    const plan = ridePlan({ ...LONG, ranked: [DRINK, CAKES], energyFactor: 1 })!;
     const items = shoppingList(ridePlanShoppingSlots(plan, [DRINK, CAKES]), NO_HOUSEHOLD);
     const sugarPerBidon = plan.bidons.ingredients.find((item) => item.foodId === "suiker")!.amount;
     expect(items.find((item) => item.id === "suiker")?.grams).toBe(sugarPerBidon * 4);

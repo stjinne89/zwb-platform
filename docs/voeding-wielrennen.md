@@ -119,9 +119,13 @@ koolhydraten. Bij twee ritten op een dag telt de zwaarte van de langste. *Tot
 - **Vorm.** Drank, gel en reep geven vergelijkbare oxidatie.
 - **Hoe geconcentreerd een bidon mag.** De Oliveira & Burini (2014) noemen
   5–8% koolhydraten het beste tijdens een wedstrijd, en 8–10% met glucose plus
-  fructose; boven 6% alleen glucose kwam er minder vocht door. Het ritplan
-  (`src/lib/nutrition/ride-plan.ts`, sinds 2026-10-25) zet hoogstens 60 g in een
-  bidon van 750 ml (8%) en rekent met één bidon per uur; wat er per uur meer
+  fructose; boven 6% alleen glucose kwam er minder vocht door. Nieuwer
+  onderzoek gaf 90 g per uur als drank van 16% (maltodextrine en fructose,
+  McCubbin et al. 2020, 3 uur hardlopen); maagklachten kwamen daar wel bij
+  iedereen voor, ook in de controlegroep. Het ritplan
+  (`src/lib/nutrition/ride-plan.ts`, sinds 2026-10-25) zet hoogstens 90 g in een
+  bidon van 750 ml (12%; tot 2026-11-03 was dat 60 g, 8%) en rekent met één
+  bidon per uur; wat er per uur meer
   nodig is, komt uit vast eten. Eén bidon per uur is een vertaling van ZWB, geen
   vochtadvies: dat volgt pas uit een zweettest (stap 5 van
   [ritvoeding-plan.md](ritvoeding-plan.md)). *Sinds 2026-10-25 volgt het

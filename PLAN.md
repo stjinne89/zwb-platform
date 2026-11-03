@@ -11709,6 +11709,33 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Bijgesteld — Ritplan: hoogstens 90 g per bidon
+
+**2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal op de branch
+`claude/drinkmix-favorites-zwbeter-6a454b`, niet gepusht. Geen migratie.
+
+**Waarom.** Keuze van de eigenaar. De grens van 60 g (8% van 750 ml) kwam uit
+De Oliveira & Burini (2014). Een sportdrank als NRGY Drink 90 is gemaakt voor
+90 g in één bidon, en McCubbin et al. (2020) gaven 90 g per uur als drank van
+16%. De literatuurscan van 2026-11 ging over grammen per uur, niet over de
+bidon; die is dus niet de reden.
+
+**Wat.** `BIDON_MAX_CARBS_G` in `lib/nutrition/ride-plan.ts` van 60 naar 90.
+Bidons dragen nu meer, dus vast eten komt minder vaak in het plan: bij 4 uur
+op 75 g per uur zit alles in de bidons. `/hulp` (Kennis),
+`docs/voeding-wielrennen.md` §3 en `docs/ritvoeding-plan.md` zeggen nu 90 g.
+
+**Bewust niet.** Een gescand poeder in gram (zoals NRGY Drink 90) wordt nog
+geen bidon: het ritplan herkent een drank alleen aan ml of aan een
+drankingrediënt. Het lid kan water aan het recept toevoegen; een eigen
+herkenning vraagt een keuze van de eigenaar (bidon-vinkje met migratie).
+
+**Gecontroleerd.** Vitest `nutrition-*.test.ts` (de tests met vast eten
+rekenen nu met 100 g per uur uit de darmtraining). De volledige unit-run heeft
+25 bestanden die in deze worktree niet laden (o.a. `@anthropic-ai/sdk`
+ontbreekt in `node_modules`) en 3 losse fouten in Zwift- en intervals-tests;
+geen daarvan raakt voeding.
+
 ### Gebouwd — Kracht: een Workout telt mee zodra je spieren aantikt
 
 **2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal, niet gepusht.
@@ -16821,7 +16848,8 @@ eigenaar (2026-10-25, zonder wijziging). Op 2026-10-25 gepusht naar `main`.
   laatste test.
 - **Ritplan.** Met een test staat bovenaan "Drinken: 0,6–1,0 l per uur" en
   volgt het aantal bidons van 750 ml uit het midden van het vochtdoel; de
-  koolhydraten worden over die bidons verdeeld (hoogstens 60 g per bidon, de
+  koolhydraten worden over die bidons verdeeld (hoogstens 60 g per bidon, sinds
+  2026-11-03 90 g, de
   rest water of vast eten). Zonder test een link "Zweettest" en, zoals
   voorheen, één bidon per uur. Overal: Dagmenu, Vandaag, schema, eventpagina,
   briefing, herinnering en Boodschappen.

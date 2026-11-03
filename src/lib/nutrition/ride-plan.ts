@@ -17,13 +17,15 @@ import { fluidBidons, fluidPerHour, type FluidTarget } from "./sweat";
 import { rideTargetPerHour, type GutTraining } from "./targets";
 
 /**
- * Koolhydraten per bidon van 750 ml: 8%. De review van de Oliveira & Burini
- * (2014) noemt 5–8% het beste tijdens een wedstrijd, en 8–10% met glucose plus
- * fructose; boven 6% alleen glucose kwam er minder vocht door. De clubdranken
- * gebruiken suiker (glucose en fructose 1:1). Wat er per uur meer nodig is,
- * komt uit vast eten.
+ * Koolhydraten per bidon van 750 ml: hoogstens 90 g (12%), zoveel als een
+ * sportdrank voor 90 g per uur in één bidon zet. McCubbin et al. (2020) gaven
+ * 90 g per uur als drank van 16% (maltodextrine en fructose); de review van de
+ * Oliveira & Burini (2014) noemde nog 5–8%, en 8–10% met glucose plus
+ * fructose. De grens zelf is een keuze van ZWB. De clubdranken gebruiken
+ * suiker (glucose en fructose 1:1). Wat er per uur meer nodig is, komt uit
+ * vast eten.
  */
-export const BIDON_MAX_CARBS_G = 60;
+export const BIDON_MAX_CARBS_G = 90;
 /** Een stuk vast eten dat minder dan dit oplevert, laat het plan weg. */
 const SOLID_MIN_CARBS_G = 15;
 /** Eerste eetmoment na een kwartier, daarna elke twintig minuten. */
