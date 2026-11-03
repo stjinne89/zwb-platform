@@ -3,8 +3,11 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   INTERVALS_SESSION_SETS,
+  countsAsStrength,
+  intervalsStrengthDays,
   intervalsWeekLoad,
   isIntervalsStrengthType,
+  isIntervalsTaggableType,
   mergeLoad,
   normalizeMuscleSelection,
   type IntervalsStrengthSession,
@@ -14,6 +17,7 @@ import { MUSCLE_GROUPS } from "@/lib/training/muscles";
 function session(overrides: Partial<IntervalsStrengthSession> = {}): IntervalsStrengthSession {
   return {
     intervalsId: "i1",
+    type: "WeightTraining",
     day: "2026-08-10",
     name: "Krachttraining",
     minutes: 50,
@@ -28,6 +32,38 @@ describe("isIntervalsStrengthType", () => {
     expect(isIntervalsStrengthType("Workout")).toBe(false);
     expect(isIntervalsStrengthType("Ride")).toBe(false);
     expect(isIntervalsStrengthType(null)).toBe(false);
+  });
+});
+
+describe("isIntervalsTaggableType", () => {
+  it("laat spieren aantikken bij WeightTraining en Workout", () => {
+    expect(isIntervalsTaggableType("WeightTraining")).toBe(true);
+    expect(isIntervalsTaggableType("Workout")).toBe(true);
+    expect(isIntervalsTaggableType("Walk")).toBe(false);
+    expect(isIntervalsTaggableType(null)).toBe(false);
+  });
+});
+
+describe("countsAsStrength", () => {
+  it("telt een krachttraining altijd, ook zonder spieren", () => {
+    expect(countsAsStrength(session())).toBe(true);
+  });
+
+  it("telt een workout pas met aangetikte spieren", () => {
+    expect(countsAsStrength(session({ type: "Workout" }))).toBe(false);
+    expect(countsAsStrength(session({ type: "Workout", muscles: ["buik"] }))).toBe(true);
+  });
+});
+
+describe("intervalsStrengthDays", () => {
+  it("geeft alleen de dagen van sessies die als kracht tellen", () => {
+    expect(
+      intervalsStrengthDays([
+        session({ day: "2026-08-08" }),
+        session({ intervalsId: "i2", type: "Workout", day: "2026-08-09" }),
+        session({ intervalsId: "i3", type: "Workout", day: "2026-08-10", muscles: ["kuiten"] }),
+      ]),
+    ).toEqual(["2026-08-08", "2026-08-10"]);
   });
 });
 

@@ -11646,6 +11646,46 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Kracht: een Workout telt mee zodra je spieren aantikt
+
+**2026-11-03.** Commit: de commit die dit blok toevoegt, lokaal, niet gepusht.
+Geen migratie: de tabel `intervals_strength_muscles` kent geen type, de
+controle op het type zit alleen in de serveractie.
+
+**Waarom.** Wens van de eigenaar, na de test met Harmen: zijn Garmin CIRQA
+Smart Band schrijft elke training weg als `Workout` ("Activiteit met
+tijdmeting"), ook krachttraining. Eerder koos de eigenaar voor alleen
+`WeightTraining`; nu moet een Workout ook kunnen, maar pas meetellen als
+krachttraining wanneer het lid de spieren heeft aangetikt.
+
+**Wat.**
+- `lib/training/intervals-strength.ts`: `INTERVALS_TAGGABLE_TYPES`
+  (WeightTraining en Workout) voor de lijst en het aantikken;
+  `countsAsStrength`: WeightTraining altijd, een Workout alleen met
+  aangetikte spieren. `intervalsStrengthDays` (de krachtregel) filtert daarop;
+  de spierkaart telde al alleen aangetikte spieren.
+- De lijst op Vandaag toont ook workouts, met "Workout ·" voor de datum en
+  gedimd zolang er geen spieren zijn aangetikt. Wissen van alle spieren maakt
+  er weer een gewone workout van.
+- `/hulp#kracht`: workouts staan erbij en tellen pas met spieren; in de
+  Nederlandse intervals.icu heet krachttraining Gewichtstraining; een
+  training die via Strava in intervals.icu komt, geeft intervals.icu niet
+  door.
+
+**Bewust niet.** Workouts met een afstand (wandelingen) niet uitfilteren: of
+een afstand altijd een wandeling betekent is niet nagegaan, en het lid tikt
+toch zelf aan wat kracht was. Andere types (Walk, Yoga) niet
+in de lijst.
+
+**Gecontroleerd.** Vitest `intervals-strength.test.ts` (nieuw: type mag
+aangetikt worden, telt als kracht, dagen voor de krachtregel),
+`mobility.test.ts`, `muscles.test.ts`; `tsc` en ESLint schoon.
+**Niet geverifieerd:** de lijst met een echte Workout in de browser (Stijn
+heeft er geen; Harmen wel).
+
+**Privacy.** De tekst op `/privacy` noemt alleen krachttrainingen; voorstel om
+"en workouts" toe te voegen ligt bij de eigenaar.
+
 ### Gebouwd — Kalender: labels uitzetten
 
 **2026-11-03.** Commit `9f29e107` (en deze PLAN-regel), gepusht naar `main` op
@@ -11939,7 +11979,9 @@ verdween, de dialoog opende, vijf aangetikte spieren stonden daarna in
 Gevonden bij twee leden zonder resultaat: krachttraining die via **Strava** in
 intervals.icu komt, levert via de API alleen een stub zonder type (Stijn); en
 een Garmin-band schrijft trainingen als `Workout` weg (Harmen). Beide tellen
-bewust niet mee; de eigenaar koos voor alleen `WeightTraining`.
+bewust niet mee; de eigenaar koos voor alleen `WeightTraining` *(op 2026-11-03
+herzien: een Workout telt mee zodra er spieren zijn aangetikt, zie de ronde
+hierboven)*.
 **Niet geverifieerd:** het kwartier zelf in productie.
 
 ### Bijgesteld — Vermoeidheid telt één keer, per dag
@@ -13904,7 +13946,8 @@ na een avond in de sportschool kon ZWB de dag erna een squatserie voorstellen.
   Garmin passen niet op onze oefeningen, en de krachtregel gebruikt alleen de
   dag.
 - *Type `Workout`* (13 sessies van 4 leden): kan een bootcamp of spinningles
-  zijn en zou de krachtregel ten onrechte laten ingrijpen.
+  zijn en zou de krachtregel ten onrechte laten ingrijpen. *(Herzien op 2026-11-03: een Workout staat nu in de lijst en telt mee
+  zodra het lid er spieren bij aantikt.)*
 - *Meetellen voor de core-teller* ("Sessies in 28 dagen", "Weken op doel"):
   dat doel gaat over core en mobiliteit, niet over de sportschool.
 - *TSS, CTL of naleving*: het krachtspoor blijft daarbuiten, zoals altijd.

@@ -798,14 +798,18 @@ export function KennisHelp() {
           <p className="mt-2 text-sm text-muted-foreground">
             Heb je intervals.icu gekoppeld, dan staan je krachttrainingen van de
             afgelopen vier weken op het tabblad Vandaag: wat je met je horloge
-            opneemt of in intervals.icu invoert als krachttraining
-            (WeightTraining). Ze tellen mee voor de rust tussen krachtsessies en
+            opneemt of in intervals.icu invoert als krachttraining (in
+            intervals.icu heet dat Gewichtstraining). Een training die via
+            Strava in intervals.icu komt, geeft intervals.icu niet aan ons door;
+            koppel je horloge dan rechtstreeks aan intervals.icu. Ze tellen mee voor de rust tussen krachtsessies en
             het maximum van twee per week, dus na een avond in de sportschool
             stelt ZWB de volgende dagen geen krachtserie voor. Tik op een
             training en daarna op het figuur om aan te geven welke spieren je
             trainde; die tellen mee in &quot;Deze week getraind&quot;, als
             ongeveer drie sets per spiergroep. Een training als
-            &quot;Workout&quot; telt niet mee: dat kan van alles zijn. Ook deze
+            &quot;Workout&quot; staat er ook bij, gedimd: dat kan van alles
+            zijn, ook een wandeling. Die telt pas als krachttraining zodra je er
+            spieren bij aantikt. Ook deze
             trainingen tellen niet mee in je trainingsbelasting of je
             core-teller.
           </p>

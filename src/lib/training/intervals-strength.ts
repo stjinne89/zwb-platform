@@ -6,17 +6,23 @@
 // aangetikt, voor "Deze week getraind". Niet voor de core-teller, en net als de
 // rest van dit spoor nergens in TSS, CTL of naleving.
 //
-// Alleen het type WeightTraining. "Workout" kan van alles zijn, van een
-// bootcamp tot een spinningles, en zou de krachtregel ten onrechte laten
-// ingrijpen.
+// WeightTraining telt altijd. "Workout" kan van alles zijn, van een bootcamp
+// tot een wandeling (een Garmin-band schrijft alles zo weg), dus die telt pas
+// als het lid er spieren bij aantikt: dan heeft hij zelf gezegd dat het kracht
+// was.
 
 import { MUSCLE_GROUPS, type MuscleGroup, type MuscleLoad } from "./muscles";
 import { shiftDayKey } from "./mobility";
 
+/** Telt altijd als krachttraining. */
 export const INTERVALS_STRENGTH_TYPES = new Set(["WeightTraining"]);
+/** Staat in de lijst; telt alleen met aangetikte spieren. */
+export const INTERVALS_TAGGABLE_TYPES = new Set(["WeightTraining", "Workout"]);
 
 export type IntervalsStrengthSession = {
   intervalsId: string;
+  /** Type uit intervals.icu, een van INTERVALS_TAGGABLE_TYPES. */
+  type: string;
   /** Dagsleutel uit start_date_local; intervals rekent al in de eigen tijdzone. */
   day: string;
   name: string | null;
@@ -34,6 +40,17 @@ export function isIntervalsStrengthType(type: string | null | undefined): boolea
   return Boolean(type && INTERVALS_STRENGTH_TYPES.has(type));
 }
 
+/** Mag het lid bij dit type spieren aantikken? */
+export function isIntervalsTaggableType(type: string | null | undefined): boolean {
+  return Boolean(type && INTERVALS_TAGGABLE_TYPES.has(type));
+}
+
+/** Telt deze sessie als krachttraining: altijd bij WeightTraining, bij een
+ * Workout pas als er spieren zijn aangetikt. */
+export function countsAsStrength(session: IntervalsStrengthSession): boolean {
+  return isIntervalsStrengthType(session.type) || session.muscles.length > 0;
+}
+
 /** Alleen bekende groepen, elk één keer, in de vaste volgorde. */
 export function normalizeMuscleSelection(values: Iterable<string>): MuscleGroup[] {
   const chosen = new Set(values);
@@ -41,7 +58,7 @@ export function normalizeMuscleSelection(values: Iterable<string>): MuscleGroup[
 }
 
 export function intervalsStrengthDays(sessions: IntervalsStrengthSession[]): string[] {
-  return sessions.map((session) => session.day);
+  return sessions.filter(countsAsStrength).map((session) => session.day);
 }
 
 /** Belasting uit de aangetikte spieren in de afgelopen zeven dagen, vandaag

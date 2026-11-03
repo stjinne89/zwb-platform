@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { seriesMinutes, type MobilitySeriesItem } from "@/lib/training/mobility";
 import {
-  isIntervalsStrengthType,
+  isIntervalsTaggableType,
   normalizeMuscleSelection,
 } from "@/lib/training/intervals-strength";
 
@@ -209,8 +209,9 @@ export async function deleteOwnSeries(formData: FormData): Promise<ActionResult>
 }
 
 /**
- * Welke spieren een krachttraining uit intervals.icu raakte. Niets aangetikt
- * wist de keuze: de sessie telt dan nog wel voor de rust, niet op de spierkaart.
+ * Welke spieren een krachttraining of workout uit intervals.icu raakte. Niets
+ * aangetikt wist de keuze: een krachttraining telt dan nog wel voor de rust,
+ * een workout helemaal niet meer.
  */
 export async function saveIntervalsMuscles(formData: FormData): Promise<ActionResult> {
   const intervalsId = text(formData.get("intervals_id"));
@@ -226,7 +227,7 @@ export async function saveIntervalsMuscles(formData: FormData): Promise<ActionRe
     .eq("profile_id", user.id)
     .eq("intervals_id", intervalsId)
     .maybeSingle();
-  if (!activity || !isIntervalsStrengthType(activity.type as string | null)) {
+  if (!activity || !isIntervalsTaggableType(activity.type as string | null)) {
     return { ok: false, error: "Deze training staat niet in je krachttrainingen." };
   }
 

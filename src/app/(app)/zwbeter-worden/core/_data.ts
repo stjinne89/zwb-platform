@@ -24,7 +24,7 @@ import {
   type RecommendContext,
 } from "@/lib/training/mobility";
 import {
-  INTERVALS_STRENGTH_TYPES,
+  INTERVALS_TAGGABLE_TYPES,
   normalizeMuscleSelection,
   type IntervalsStrengthSession,
 } from "@/lib/training/intervals-strength";
@@ -139,8 +139,9 @@ export async function loadSessions(
 }
 
 /**
- * Krachttrainingen uit intervals.icu binnen het venster van 28 dagen, nieuwste
- * eerst, met de spieren die het lid heeft aangetikt. Is de opgeslagen lijst
+ * Krachttrainingen en workouts uit intervals.icu binnen het venster van 28
+ * dagen, nieuwste eerst, met de spieren die het lid heeft aangetikt. Of een
+ * workout als kracht telt, beslist countsAsStrength. Is de opgeslagen lijst
  * ouder dan een kwartier, dan eerst bijwerken: leden met Strava hebben geen
  * uurlijkse intervals-sync, en wie net uit de sportschool komt moet zijn
  * training zien (de rest van ZWBeter wacht zes uur).
@@ -165,9 +166,9 @@ export async function loadIntervalsStrength(
   const [activities, choices] = await Promise.all([
     viewer.supabase
       .from("intervals_activities")
-      .select("intervals_id, start_date_local, name, moving_time_seconds")
+      .select("intervals_id, type, start_date_local, name, moving_time_seconds")
       .eq("profile_id", viewer.user.id)
-      .in("type", [...INTERVALS_STRENGTH_TYPES])
+      .in("type", [...INTERVALS_TAGGABLE_TYPES])
       .gte("start_date_local", from)
       .lte("start_date_local", today)
       .order("start_date_local", { ascending: false }),
@@ -189,6 +190,7 @@ export async function loadIntervalsStrength(
     const seconds = row.moving_time_seconds as number | null;
     return {
       intervalsId: row.intervals_id as string,
+      type: row.type as string,
       day: String(row.start_date_local).slice(0, 10),
       name: (row.name as string | null) ?? null,
       minutes: seconds && seconds > 0 ? Math.round(seconds / 60) : null,

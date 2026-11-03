@@ -1,7 +1,8 @@
 "use client";
 
-// Krachttrainingen uit intervals.icu, met per training de spieren die het lid
-// heeft aangetikt. Tikken op een training opent de spierkaart.
+// Krachttrainingen en workouts uit intervals.icu, met per training de spieren
+// die het lid heeft aangetikt. Tikken op een training opent de spierkaart. Een
+// workout zonder spieren telt niet als kracht en staat gedimd.
 
 import { useState, useTransition } from "react";
 import { ChevronRight } from "lucide-react";
@@ -15,7 +16,11 @@ import {
 } from "@/components/ui/dialog";
 import { MuscleMap } from "@/components/mobility/muscle-map";
 import { MuscleMapPicker } from "@/components/mobility/muscle-map-picker";
-import type { IntervalsStrengthSession } from "@/lib/training/intervals-strength";
+import {
+  countsAsStrength,
+  isIntervalsStrengthType,
+  type IntervalsStrengthSession,
+} from "@/lib/training/intervals-strength";
 import { MUSCLE_GROUPS, MUSCLE_LABELS, type MuscleGroup } from "@/lib/training/muscles";
 import { formatWellnessDate } from "../../_components/format";
 
@@ -26,7 +31,9 @@ function fullLoad(muscles: MuscleGroup[]) {
 }
 
 function sessionTitle(session: IntervalsStrengthSession) {
-  return session.name?.trim() || "Krachttraining";
+  return (
+    session.name?.trim() || (isIntervalsStrengthType(session.type) ? "Krachttraining" : "Workout")
+  );
 }
 
 export function IntervalsStrengthList({
@@ -80,11 +87,14 @@ export function IntervalsStrengthList({
             <button
               type="button"
               onClick={() => start(session)}
-              className="flex min-h-[44px] w-full items-center justify-between gap-3 p-4 text-left hover:bg-muted/50"
+              className={`flex min-h-[44px] w-full items-center justify-between gap-3 p-4 text-left hover:bg-muted/50 ${
+                countsAsStrength(session) ? "" : "opacity-60 hover:opacity-100"
+              }`}
             >
               <div className="min-w-0">
                 <p className="truncate font-medium">{sessionTitle(session)}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
+                  {isIntervalsStrengthType(session.type) ? "" : "Workout · "}
                   {formatWellnessDate(session.day)}
                   {session.minutes ? ` · ${session.minutes} min` : ""}
                 </p>
