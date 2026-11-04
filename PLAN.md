@@ -138,7 +138,8 @@ gaat stabiliteit voor nieuwe features.
    een niet-geplande rit aanklikken, RPE opslaan, en de rit daarna aan een
    training hangen. Zie de ronde "RPE bij een losse rit".
 0p. **Club Ladder: gewicht in matchup en advies (2026-11-04): gebouwd, lokaal
-   getest, niet gepusht.** Geen migratie. Open: de privacyzin over gewicht in
+   getest, gepusht naar de branch `claude/festive-bell-ahpdri`, niet naar
+   `main`.** Geen migratie. Open: de privacyzin over gewicht in
    de ladder (voorstel in de ronde) wacht op akkoord van de eigenaar, net als de
    rest van de laddertekst. Nalopen na een deploy: de regel Gewicht in de
    matchup van ZWBullets – Mad Dogs en "Gewicht scheelt hier" in hun advies. Zie
@@ -11729,8 +11730,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: gewicht telt mee in matchup en route-advies
 
-**2026-11-04.** Commit: de commit die dit blok toevoegt, lokaal op de branch
-`claude/festive-bell-ahpdri`, **niet gepusht** (AGENTS.md: alleen op verzoek).
+**2026-11-04.** Commit `33448d9` op de branch `claude/festive-bell-ahpdri`,
+gepusht naar die branch op 2026-11-04 (akkoord eigenaar; niet naar `main`).
 Geen migratie.
 
 **Waarom.** De eigenaar zag dat matchup en advies alleen naar W/kg en de duur
