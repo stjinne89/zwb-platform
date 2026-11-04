@@ -83,7 +83,8 @@ export const COMMUNITY_PERMISSIONS = [
   {
     id: "integrations.manage",
     label: "Koppelingen beheren",
-    description: "Kan de Strava-sync en segmenten beheren en krijgt storingsmeldingen.",
+    description:
+      "Ziet per lid welke koppelingen aanstaan en of ze werken, kan de Strava-sync en segmenten beheren en krijgt storingsmeldingen.",
     category: "Koppelingen",
   },
   {

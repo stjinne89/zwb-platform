@@ -635,6 +635,18 @@ export default function PrivacyPage() {
             wanneer hij voor het laatst is opgehaald. Je kunt hem op je profiel
             vervangen of intrekken; bij het opheffen van je account verdwijnt hij.
           </li>
+          <li id="koppelingen" className="scroll-mt-20">
+            <strong>Hulp bij koppelingen:</strong> wie in de club de koppelingen
+            beheert (standaard het bestuur en communitybeheer), ziet per lid
+            welke koppelingen aanstaan en of ze werken: Strava, intervals.icu,
+            je Zwift-ID, Telegram, meldingen, je agendalink en live volgen. Dat
+            is wanneer er voor het laatst is opgehaald of gesynchroniseerd, een
+            eventuele foutmelding, het soort toestel waarop je meldingen krijgt
+            (zoals iPhone of Windows), wanneer je voor het laatst in de app was
+            en wanneer je laatste rit was. Je sleutels, tokens, je Telegram-chat
+            en de links zelf zien zij niet. Zo kunnen we je helpen als iets niet
+            werkt. We bewaren hiervoor niets extra.
+          </li>
           <li>
             <strong>Door jou geplaatste inhoud:</strong> RSVP&apos;s, chatberichten,
             ritverslagen, reacties, polls en geüploade foto&apos;s.

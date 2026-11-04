@@ -419,6 +419,12 @@ const HELP_INDEX: HelpResult[] = [
     terms: "beheer admin strava sync leden ritten statistieken activiteitenrecht badges cols herberekenen",
   },
   {
+    title: "Koppelingen van leden",
+    text: "Per lid zien wat er gekoppeld is en wat er misgaat.",
+    href: "/hulp/beheer#koppelingenbeheer",
+    terms: "beheer admin koppelingen gekoppeld leden helpen strava intervals zwift telegram meldingen push agenda live status fout",
+  },
+  {
     title: "Problemen oplossen",
     text: "Snelle checks voor badges, live tracking, trainingen en rechten.",
     href: "/hulp/problemen#problemen",

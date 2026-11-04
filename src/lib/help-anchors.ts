@@ -65,6 +65,7 @@ export const HELP_ANCHORS: ReadonlyArray<readonly [pattern: string, anchor: stri
   ["/beheer/notificaties", "rollenbeheer"],
   ["/beheer/rechten", "rollenbeheer"],
   ["/beheer/strava", "stravabeheer"],
+  ["/beheer/koppelingen", "koppelingenbeheer"],
 ];
 
 function segments(path: string) {

@@ -154,6 +154,12 @@ gaat stabiliteit voor nieuwe features.
    de teampagina van ZWBandits het advies tegen SZ Loki met Klim (vlakke routes
    bovenaan), en op het event van 10 november de knoppen met de kolom Races. Zie
    de ronde "Club Ladder: kies de vijf van de tegenstander".
+0r. **Koppelingen per lid (2026-11-04): gebouwd op de branch
+   `claude/amazing-volta-p9uvrd`, niet op `main`.** Geen migratie. Open: de
+   privacyzin `/privacy#koppelingen` wacht op akkoord van de eigenaar, net als
+   de vraag of dit zonder nieuwe privacyversie kan. Nalopen na de deploy:
+   `/beheer/koppelingen` met echte data openen. Zie de ronde "Beheer:
+   koppelingen per lid".
 
 1. **Supabase: tijdelijk op Pro sinds 2026-11-02, terug naar Free per 2026-12-02**
    (besluit eigenaar, 2026-11-03: Pro was nodig omdat het project anders op slot
@@ -11737,6 +11743,106 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Beheer: koppelingen per lid
+
+**2026-11-04.** Op de branch `claude/amazing-volta-p9uvrd`, nog niet op
+`main`. Geen migratie.
+
+**Waarom.** De eigenaar wil leden met vragen makkelijker helpen: in één
+overzicht zien wat elk lid gekoppeld heeft en of dat loopt. Tot nu toe stond
+alleen de Strava- en intervals-ritstatus op `/beheer/strava`; Telegram,
+meldingen, de agendalink, live volgen en Zwift waren voor beheer niet te zien,
+terwijl de vragen vaak daarover gaan ("ik krijg geen meldingen", "mijn agenda
+loopt niet bij").
+
+**Wat er veranderde.**
+- **Nieuw beheerscherm `/beheer/koppelingen`** (gebied `koppelingen` in
+  `lib/admin-areas.ts`, in Beheer → App vóór Strava-sync). Zelfde recht als de
+  Strava-sync, `integrations.manage`: dezelfde mensen, en die zagen de
+  Strava- en intervals-status al. Bovenaan de bestaande integratiestatus
+  (`IntegrationHealth`), zodat een storing bij een dienst zelf meteen opvalt.
+- **Per goedgekeurd lid** zeven koppelingen met een toestand probleem /
+  aandacht / in orde / niet gekoppeld, uitklapbaar met tijdstippen en de
+  foutmelding, plus laatst in de app (`member_last_seen`), laatste rit (120
+  dagen terug) en de ritbron. Filters: alle leden, aandacht nodig, niets
+  gekoppeld, en per koppeling (wie daar een probleem heeft staat bovenaan);
+  zoeken op naam. Leden met een probleem staan bovenaan.
+- **Regels** (`lib/integrations/member-overview.ts`, puur, 20 tests in
+  `member-integrations.test.ts`):
+  - *Strava*: geen activiteitenrecht = probleem; ingetrokken op strava.com of
+    `invalid_grant` = probleem; zelf ontkoppeld, account weg, door beheer of
+    overgestapt = niet gekoppeld; opgeheven wegens inactiviteit = aandacht;
+    `last_error` = aandacht, vanaf 3 mislukte runs op rij
+    (`consecutive_failures`) probleem; inactiviteitswaarschuwing = aandacht;
+    nooit gesynct na een dag = aandacht (niet als de ritten via intervals.icu
+    komen); geen schrijfrecht = aandacht.
+  - *intervals.icu*: geen atleet-ID = probleem. De sync-kolommen
+    (`last_synced_at`, `last_ride_sync_error`) schrijft alleen de ritten-sync,
+    dus alleen bij ritten via intervals.icu tellen ze: fout = probleem, 90
+    dagen geen bevestigd bezoek = probleem (account mogelijk ingeslapen), een
+    dag geen sync = aandacht. Ritbron via `rideSourceFor`, dezelfde regel als
+    de sync.
+  - *Zwift*: Zwift-ID geen getal = probleem; `zwift_race_score_sync.refused` =
+    aandacht.
+  - *Telegram*: gekoppeld, of een koppellink die loopt of niet gebruikt is
+    (aandacht).
+  - *Meldingen*: aantal toestellen met per toestel het grove type uit de
+    user-agent (iPhone, Android, Mac, …) en het laatste gebruik.
+  - *Agenda*: link nooit opgehaald na een dag, of drie dagen niet meer
+    opgehaald = aandacht.
+  - *Live*: actieve OwnTracks-, Garmin- en Wahoo-koppelingen met laatst gezien.
+- **Laden** (`beheer/koppelingen/_data.ts`, `server-only`, admin-client):
+  selecteert nooit tokens, API-keys, chatnummers, push-endpoints of de
+  links zelf. Van Telegram gaat alleen "wel of niet" naar de pagina, van een
+  pushabonnement alleen het toesteltype.
+- **`/hulp/beheer#koppelingenbeheer`**: wat de toestanden betekenen en wat je
+  het lid dan vraagt (opnieuw koppelen met het activiteitenvinkje, intervals.icu
+  openen en de herinnering afvinken, een nieuwe API-key, de agendalink opnieuw
+  toevoegen, meldingen op de iPhone alleen vanaf het beginscherm). Het
+  vraagteken op het scherm wijst daarheen; ook in de hulpzoeker. Op het scherm
+  zelf geen uitleg (AGENTS.md).
+- De omschrijving van `integrations.manage` op `/beheer/rechten` en de
+  rechtenzin in `/hulp` noemen nu dat dit recht de koppelingen per lid laat
+  zien.
+
+**Bewust niet.**
+- **Geen acties op deze pagina.** Syncen en opheffen blijven op
+  `/beheer/strava` (link bij een lid met Strava); dit scherm is om te kijken.
+  Een tweede plek met dezelfde knoppen gaat uiteenlopen.
+- **Geen "stille ritbron" als waarschuwing.** Een lid dat een maand niet rijdt
+  is niet kapot; de laatste rit staat er als feit bij.
+- **Geen alarm op oude pushabonnementen.** Een toestel dat lang geen melding
+  kreeg kan gewoon weinig meldingen aan hebben; dode abonnementen ruimt het
+  versturen al op (410/404).
+- **Geen nieuwe tabel of migratie, geen RPC voor de laatste rit.** Alles staat
+  al in bestaande kolommen; de laatste rit komt uit één gepagineerde query
+  over 120 dagen, wat voor een club van deze omvang licht genoeg is.
+- Geen MyWhoosh-ID en geen trainerstoegang: dat zijn geen koppelingen die
+  stuk kunnen gaan.
+
+**Privacy (wacht op akkoord eigenaar).** Nieuw is geen gegeven maar wie het
+ziet: koppelingsstatus van Telegram, meldingen, agenda en live volgen was
+alleen voor het lid zelf leesbaar (RLS), en is nu zichtbaar voor wie
+`integrations.manage` heeft. In `/privacy` staat onder "Welke gegevens we
+verwerken" een nieuw punt `#koppelingen` (Hulp bij koppelingen). Aan de
+eigenaar: akkoord op de tekst, en of dit zonder nieuwe privacyversie kan. Het
+voorstel is ja: geen nieuwe categorie gegevens of verwerker, en sectie 6 noemt
+beheerders al bij toegang tot gegevens.
+
+**Getest.** Typecheck en ESLint schoon; `next build` slaagt met de nieuwe
+route. Alle 44 geselecteerde kolommen bestaan op productie (2026-11-04,
+`information_schema`, alleen gelezen, geen ledendata). De lijst met
+voorbeelddata bekeken op 375 px licht en 1200 px donker (geen horizontale
+scroll, geen consolefouten; tijdelijke route weer weg). Hele unit-suite: alleen
+`omnium-live.test.ts` faalt, op een ontbrekende `.env.local`, ook zonder deze
+wijziging.
+
+**Niet geverifieerd.** De pagina met echte data (inloggen op productie). Of de
+drempels kloppen met de praktijk (agenda drie dagen, intervals-sync een dag,
+drie Strava-fouten op rij) is een inschatting uit de code, niet uit gemeten
+gedrag; bijstellen als ze vals alarm geven. Dat `refused` bij Zwift door een
+verkeerd ID of door afgeschermde activiteiten komt, is niet onderscheiden.
 
 ### Gebouwd — Club Ladder: kleur voor voordeel en nadeel in het advies
 
@@ -27336,7 +27442,7 @@ thema.
   |---|---|---|
   | `calendar.sources` | eventscan, Zwift-routes | `events.manage_all` |
   | `competitions.manage` | ZRL-kalender, WTRL-teams, FRR | `teams.manage_roster` of `events.manage_all` |
-  | `integrations.manage` | Strava-sync, segmenten, storingsmeldingen | `community.manage` |
+  | `integrations.manage` | Strava-sync, koppelingen per lid (sinds 2026-11-04), segmenten, storingsmeldingen | `community.manage` |
   | `notifications.broadcast` | `/beheer/notificaties` | `community.manage` |
   | `zwbgame.manage` | `/zwbgame/beheer` | alleen bestuur |
 

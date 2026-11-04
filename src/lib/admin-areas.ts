@@ -43,6 +43,14 @@ export const ADMIN_AREAS = {
   // check-constraint van community_role_permissions (0206) vragen.
   bokaal: { href: "/voorzpwelbokaal/beheer", label: "voorZpWelBokaal", permission: "zwbgame.manage" },
   strava: { href: "/beheer/strava", label: "Strava-sync", permission: "integrations.manage" },
+  // Per lid wat er gekoppeld is en of het loopt, om leden met vragen te helpen
+  // (2026-11-04). Zelfde recht als de Strava-sync: dezelfde mensen beheren de
+  // koppelingen, en die zien de Strava- en intervals-status daar al.
+  koppelingen: {
+    href: "/beheer/koppelingen",
+    label: "Koppelingen",
+    permission: "integrations.manage",
+  },
   notificaties: {
     href: "/beheer/notificaties",
     label: "Notificaties",

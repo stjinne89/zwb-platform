@@ -225,7 +225,13 @@ export const BEHEER_CATEGORIES: BeheerCategory[] = [
   {
     label: "App",
     tone: "meer",
-    items: [adminLink("rechten"), adminLink("notificaties"), adminLink("appUpdates"), adminLink("strava")],
+    items: [
+      adminLink("rechten"),
+      adminLink("notificaties"),
+      adminLink("appUpdates"),
+      adminLink("koppelingen"),
+      adminLink("strava"),
+    ],
   },
 ];
 

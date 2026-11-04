@@ -547,7 +547,7 @@ export const ADMIN_GUIDES = [
     id: "rollenbeheer",
     title: "Rollen, rechten en notificaties",
     bullets: [
-      "De rechtenmatrix (Beheer → Rechten) bepaalt per communityrol welke beheeracties zijn toegestaan. Elk beheerscherm hoort bij één recht: Kalenderbronnen (eventscan, Zwift-routes), Competities (ZRL-beheer, FRR), Sunday Race Club, Omnium, Koppelingen (Strava-sync, segmenten en storingsmeldingen), Pushberichten aan alle leden, Tips en citaten (Community beheren), Badges, ZWBgame en Rechten zelf. Wie een recht niet heeft, ziet het scherm ook niet in het beheermenu.",
+      "De rechtenmatrix (Beheer → Rechten) bepaalt per communityrol welke beheeracties zijn toegestaan. Elk beheerscherm hoort bij één recht: Kalenderbronnen (eventscan, Zwift-routes), Competities (ZRL-beheer, FRR), Sunday Race Club, Omnium, Koppelingen (koppelingen van leden, Strava-sync, segmenten en storingsmeldingen), Pushberichten aan alle leden, Tips en citaten (Community beheren), Badges, ZWBgame en Rechten zelf. Wie een recht niet heeft, ziet het scherm ook niet in het beheermenu.",
       "Content modereren geeft het recht om posts, reacties, eventchat, ritverslagen, foto's en verjaardagsberichten van anderen weg te halen. Alle events beheren geeft het recht om andermans events te bewerken of te verwijderen.",
       "Ledenrollen beheren mag rollen geven, maar de rol Bestuur (alle rechten) alleen als je ook rechten beheert. Beheerdersrechten (admin) kan alleen een admin geven.",
       "Technische admins behouden altijd volledige toegang.",
@@ -577,6 +577,21 @@ export const ADMIN_GUIDES = [
       "Leden zonder activiteitenrecht moeten zelf opnieuw koppelen en het activiteitenvinkje aanzetten.",
       "Badges + cols herberekenen draait op bestaande ritten en doet geen extra Strava-calls.",
       "Opheffen maakt de plek van een lid direct vrij. Na 90 dagen zonder bezoek gebeurt dat automatisch, zolang de limiet 10 koppelingen is.",
+    ],
+  },
+  {
+    id: "koppelingenbeheer",
+    title: "Koppelingen van leden",
+    bullets: [
+      "Beheer > Koppelingen toont per lid wat er gekoppeld is: Strava, intervals.icu, Zwift, Telegram, meldingen, de agendalink en live volgen. Rood is een probleem, oranje vraagt aandacht, groen loopt.",
+      "Tik op een lid voor de tijdstippen, de foutmelding en wanneer het lid voor het laatst in de app was en reed. Kies bovenaan een koppeling om alleen de leden te zien die hem hebben; wie daar een probleem heeft, staat bovenaan.",
+      "Strava zonder recht op activiteiten, of ingetrokken op strava.com: het lid koppelt opnieuw op zijn profiel, met het vinkje voor activiteiten aan. Zonder schrijfrecht blijft alleen de samenvatting in de Strava-beschrijving weg.",
+      "Faalt de Strava-sync, start hem dan voor dat lid op Beheer > Strava-sync. Helpt dat niet, laat het lid opnieuw koppelen.",
+      "intervals.icu mogelijk ingeslapen: een gratis account slaapt in na 90 dagen zonder bezoek. Het lid opent intervals.icu en vinkt de herinnering op het dashboard af. Faalt het ophalen van ritten, dan klopt de API-key vaak niet meer; het lid plakt een nieuwe bij Training → Doelen.",
+      "Zwift weigert de activiteitenlijst: controleer het Zwift-ID op het profiel van het lid.",
+      "De agenda-app haalt niet meer op: het abonnement staat waarschijnlijk niet meer in de agenda-app. Het lid voegt de link opnieuw toe, of maakt een nieuwe op zijn profiel.",
+      "Bij meldingen staat per toestel wanneer er voor het laatst een melding heen ging. Geen toestel: het lid zet meldingen aan op zijn profiel; op een iPhone alleen als ZWB als app op het beginscherm staat.",
+      "Sleutels, tokens, chatnummers en de links zelf staan niet op deze pagina.",
     ],
   },
   {

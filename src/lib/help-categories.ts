@@ -168,6 +168,7 @@ export const HELP_CATEGORIES = [
       "rollenbeheer",
       "badgebeheer",
       "stravabeheer",
+      "koppelingenbeheer",
       "ttt-beheer",
       "teambeheer",
     ],
