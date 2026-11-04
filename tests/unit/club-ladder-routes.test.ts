@@ -5,6 +5,7 @@ import { climbSeconds, durationWeights, effortMix, findLadderRouteSlug, ladderRo
 import { challengeableTeams } from "@/lib/club-ladder/rules";
 import { parseClubLadderSummary, type ClubLadderStanding } from "@/lib/club-ladder/summary";
 import { matchZwiftResults, teamPowerFromMatches, type StoredMatch } from "@/lib/club-ladder/team-power";
+import type { AdviceRider } from "@/lib/club-ladder/rank-pairs";
 import { ladderRow, ladderSection, resultDay, resultPage, resultRow, summaryPage } from "../fixtures/club-ladder";
 
 const stay = { cls: "staticMove" } as const;
@@ -200,21 +201,34 @@ describe("route-advies", () => {
     expect(records.get("vlak")).toMatchObject({ races: 2, wins: 1 });
   });
 
+  const five = (side: string, power: [number, number, number, number], count = 5): AdviceRider[] =>
+    Array.from({ length: count }, (_, i) => ({
+      key: `${side}${i}`,
+      name: `${side}${i}`,
+      wkg: { s15: power[0], m1: power[1], m5: power[2], m20: power[3] },
+      weightKg: null,
+      source: "90d" as const,
+    }));
+
   it("zet een klimroute bovenaan als wij op 20 minuten sterker zijn en op 15 s zwakker", () => {
     const options = ladderRouteOptions();
     const advice = buildLadderAdvice({
       options,
       favorites: new Set(["the-highline"]),
       ourNames: ["Ons"],
-      ourPower: { wkg: { s15: 9, m1: 6, m5: 4.8, m20: 4.3 }, riders: 5 },
+      ours: five("o", [9, 6, 4.8, 4.3]),
       theirName: "Zij",
-      theirPower: { wkg: { s15: 11, m1: 6.5, m5: 4.5, m20: 3.8 }, riders: 5 },
+      theirs: five("z", [11, 6.5, 4.5, 3.8]),
       matches: [],
     })!;
     expect(advice.routes).toHaveLength(3);
     expect(advice.routes[0].routeClass).toBe("klim");
-    expect(advice.edge.m20).toBeGreaterThan(0);
-    expect(advice.edge.s15).toBeLessThan(0);
+    expect(advice.routes[0].edgePct!).toBeGreaterThan(0);
+    const byDuration = new Map(advice.durations.map((row) => [row.duration, row]));
+    // 4,3 tegen 3,8: ln(4,3/3,8) = 12% per paar; 9 tegen 11 op 15 s: −20%.
+    expect(byDuration.get("m20")!.edgePct).toBe(12);
+    expect(byDuration.get("s15")!.edgePct).toBe(-20);
+    expect(byDuration.get("m20")!.pairs).toHaveLength(5);
     expect(advice.bestFavorite?.slug).toBe("the-highline");
   });
 
@@ -223,17 +237,35 @@ describe("route-advies", () => {
       options: ladderRouteOptions(),
       favorites: new Set(),
       ourNames: ["Ons"],
-      ourPower: { wkg: { s15: 9, m1: 6, m5: 4.8, m20: 4.3 }, riders: 2 },
+      ours: five("o", [9, 6, 4.8, 4.3], 2),
       theirName: "Zij",
-      theirPower: { wkg: { s15: 11, m1: 6.5, m5: 4.5, m20: 3.8 }, riders: 5 },
+      theirs: five("z", [11, 6.5, 4.5, 3.8]),
       matches: [],
     });
     expect(advice).toBeNull();
   });
 
+  it("noemt wie van ons zonder vermogen meetelt", () => {
+    const ours = [...five("o", [9, 6, 4.8, 4.3], 4), { key: "gina", name: "Gina", wkg: null, weightKg: null, source: null }];
+    const advice = buildLadderAdvice({
+      options: ladderRouteOptions(),
+      favorites: new Set(),
+      ourNames: ["Ons"],
+      ours,
+      theirName: "Zij",
+      theirs: five("z", [9, 6, 4.8, 4.3]),
+      matches: [],
+    })!;
+    expect(advice.missing).toEqual(["Gina"]);
+    expect(advice.ours.riders).toBe(4);
+    // Vier paren: hun zwakste valt weg, net als Gina.
+    expect(advice.durations[0].pairs).toHaveLength(4);
+    expect(advice.routes[0].edgePct).toBe(0);
+  });
+
   it("geeft geen advies zonder kracht en zonder uitslagen", () => {
     expect(
-      buildLadderAdvice({ options: ladderRouteOptions(), favorites: new Set(), ourNames: ["Ons"], ourPower: null, theirName: "Zij", theirPower: null, matches: [] }),
+      buildLadderAdvice({ options: ladderRouteOptions(), favorites: new Set(), ourNames: ["Ons"], ours: [], theirName: "Zij", theirs: [], matches: [] }),
     ).toBeNull();
   });
 
@@ -243,9 +275,9 @@ describe("route-advies", () => {
       options,
       favorites: new Set(),
       ourNames: ["Ons"],
-      ourPower: null,
+      ours: [],
       theirName: "Zij",
-      theirPower: null,
+      theirs: [],
       matches: [match(1, "tempus-fugit", "Zij", 30, "Ander", 25)],
     })!;
     expect(advice.routes[0].slug).toBe("flat-route-rev");

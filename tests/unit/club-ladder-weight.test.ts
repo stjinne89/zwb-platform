@@ -112,15 +112,16 @@ describe("matchup met gewicht", () => {
 });
 
 describe("advies met gewicht", () => {
-  const rows = (kg: number) => [1, 2, 3, 4, 5].map(() => ({ wkg: same, weightKg: kg }));
+  const riders = (side: string, kg: number) =>
+    [1, 2, 3, 4, 5].map((i) => ({ key: `${side}${i}`, name: `${side}${i}`, wkg: same, weightKg: kg, source: "90d" as const }));
   const advise = (ours: number, theirs: number) =>
     buildLadderAdvice({
       options: ladderRouteOptions(),
       favorites: new Set(),
       ourNames: ["Ons"],
-      ourPower: { wkg: same, riders: 5, rows: rows(ours) },
+      ours: riders("o", ours),
       theirName: "Zij",
-      theirPower: { wkg: same, riders: 5, rows: rows(theirs) },
+      theirs: riders("z", theirs),
       matches: [],
     })!;
 
@@ -129,10 +130,11 @@ describe("advies met gewicht", () => {
     expect(heavy.weightCounts).toBe(true);
     expect(heavy.weightKg).toEqual({ ours: 85, theirs: 65 });
     expect(heavy.routes[0].routeClass).toBe("vlak");
+    expect(heavy.routes[0].edgePct!).toBeGreaterThan(10);
     expect(heavy.routes[0].reasons.some((reason) => reason.text === "Gewicht scheelt hier" && reason.pct! > 0)).toBe(true);
     expect(["klim", "heuvel"]).toContain(advise(65, 85).routes[0].routeClass);
-    // De W/kg-chips blijven gewone W/kg.
-    expect(heavy.edge.m20).toBe(0);
+    // Het overzicht per duur blijft gewone W/kg.
+    expect(heavy.durations.every((row) => row.edgePct === 0)).toBe(true);
   });
 });
 

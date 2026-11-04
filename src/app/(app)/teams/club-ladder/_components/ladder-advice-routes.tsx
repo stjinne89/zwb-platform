@@ -57,6 +57,7 @@ function AdviceCard({
 }) {
   const link = open && option?.zwiftInsiderUrl;
   const meta = [option?.worldLabel, option?.classLabel, option?.laps.map((lap) => `${lap.laps}×`).join("/")].filter(Boolean);
+  const edgeColor = edgeTone(route.edgePct);
   // Spans in plaats van een lijst: het blok staat in een knop.
   const details = (
     <>
@@ -65,6 +66,9 @@ function AdviceCard({
         {route.favorite && <Star aria-label="Favoriet" className="size-3.5 shrink-0 fill-primary text-primary" />}
         {route.name}
         {link && <ExternalLink aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />}
+        {route.edgePct != null && (
+          <span className={cn("ml-auto shrink-0 tabular-nums", edgeColor && EDGE_TONE_TEXT[edgeColor])}>{formatEdge(route.edgePct)}</span>
+        )}
       </span>
       {meta.length > 0 && <span className="block text-xs text-muted-foreground">{meta.join(" · ")}</span>}
       {route.reasons.length > 0 && (
