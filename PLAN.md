@@ -160,11 +160,10 @@ gaat stabiliteit voor nieuwe features.
    nieuwe privacyversie kan. Nalopen na de deploy:
    `/beheer/koppelingen` met echte data openen. Zie de ronde "Beheer:
    koppelingen per lid".
-   **Vervolg (2026-11-04): wie iets mist, en een pop-up. Migratie `0307` nog
-   niet toegepast, code nog niet gepusht.** Zonder `0307` werkt het scherm
-   zoals voorheen, maar faalt versturen. Daarna nalopen: een pop-up naar
-   jezelf (zoek je eigen naam), in de app zien, sluiten, en "gezien" op het
-   beheerscherm. De uitgebreide privacyzin wacht ook op akkoord. Zie de ronde
+   **Vervolg (2026-11-04): wie iets mist, en een pop-up. Migratie `0307`
+   toegepast (door de eigenaar) en gepusht naar `main` (`156ea83` en
+   volgende).** Nalopen na de deploy: een pop-up naar jezelf (zoek je eigen
+   naam), in de app zien, sluiten, en "gezien" op het beheerscherm. De uitgebreide privacyzin wacht ook op akkoord. Zie de ronde
    "Koppelingen: wie iets mist, en een pop-up".
 0s. **Starthelper `/welkom` in tegels, met video's (2026-11-04): op verzoek van
    de eigenaar gepusht naar `main`.** Geen migratie. Drie
@@ -11760,8 +11759,13 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Koppelingen: wie iets mist, en een pop-up
 
-**2026-11-04.** Op de branch `claude/amazing-volta-p9uvrd`, nog niet op `main`.
-Migratie `0307_integration_notices.sql`, **nog niet toegepast**.
+**2026-11-04.** Commit `156ea83` op de branch `claude/amazing-volta-p9uvrd`; op
+2026-11-04 op verzoek van de eigenaar naar `main` gepusht, nadat de eigenaar
+migratie `0307_integration_notices.sql` zelf op productie had toegepast.
+Nagekeken (alleen gelezen): tabel, kolommen, RLS met alleen de leesregel voor
+het eigen lid, beide checks en beide indexen kloppen met het bestand. De
+migratie staat niet in `supabase_migrations.schema_migrations` (niet via de
+connector gedraaid); dat zegt niets over de tabel zelf.
 
 **Waarom.** De eigenaar: "wanneer ik filter zie ik alleen de leden die het wel
 goed gekoppeld hebben. Dit zou andersom moeten zijn." En: leden een pop-up
@@ -11835,8 +11839,8 @@ met twee meldingen. Hele suite: alleen `omnium-live.test.ts` (ontbrekende
 `.env.local`). `admin-areas.test.ts` liep één keer tegen zijn time-out van 5 s
 (PGlite koud), daarna twee keer groen; ook zonder deze wijziging.
 
-**Niet geverifieerd.** Versturen en de pop-up tegen een echte database (de
-migratie staat niet op productie). Of de pop-up op de telefoon goed samengaat
+**Niet geverifieerd.** Versturen en de pop-up tegen de echte database (de
+tabel staat er, maar er is nog niets verstuurd). Of de pop-up op de telefoon goed samengaat
 met de andere dialogen (weekoverzicht, app-update): die openen zichzelf en
 ontwijken elkaar op dezelfde manier, maar dat is niet naast elkaar getest.
 
