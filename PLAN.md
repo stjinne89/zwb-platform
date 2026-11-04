@@ -154,10 +154,10 @@ gaat stabiliteit voor nieuwe features.
    de teampagina van ZWBandits het advies tegen SZ Loki met Klim (vlakke routes
    bovenaan), en op het event van 10 november de knoppen met de kolom Races. Zie
    de ronde "Club Ladder: kies de vijf van de tegenstander".
-0r. **Koppelingen per lid (2026-11-04): gebouwd op de branch
-   `claude/amazing-volta-p9uvrd`, niet op `main`.** Geen migratie. Open: de
-   privacyzin `/privacy#koppelingen` wacht op akkoord van de eigenaar, net als
-   de vraag of dit zonder nieuwe privacyversie kan. Nalopen na de deploy:
+0r. **Koppelingen per lid (2026-11-04): gepusht naar `main` (`5d96f6a` en
+   volgende).** Geen migratie. Open: de privacyzin `/privacy#koppelingen` staat
+   live maar wacht op akkoord van de eigenaar, net als de vraag of dit zonder
+   nieuwe privacyversie kan. Nalopen na de deploy:
    `/beheer/koppelingen` met echte data openen. Zie de ronde "Beheer:
    koppelingen per lid".
 
@@ -11746,8 +11746,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Beheer: koppelingen per lid
 
-**2026-11-04.** Commit `03a38d5` op de branch `claude/amazing-volta-p9uvrd`,
-lokaal, niet gepusht. Geen migratie.
+**2026-11-04.** Commit `5d96f6a` op de branch `claude/amazing-volta-p9uvrd`;
+op 2026-11-04 op verzoek van de eigenaar naar `main` gepusht, met de
+privacyzin nog zonder akkoord. Geen migratie.
 
 **Waarom.** De eigenaar wil leden met vragen makkelijker helpen: in één
 overzicht zien wat elk lid gekoppeld heeft en of dat loopt. Tot nu toe stond
