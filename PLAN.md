@@ -27,6 +27,13 @@ gaat stabiliteit voor nieuwe features.
    kalender samenvoegen en de training nakijken. Zie de ronde "Schema: meerdere
    ritten samen één training".
 
+0h. **Teams: powerprofiel direct na koppelen, melding bij ontbrekend gewicht
+   (2026-11-04): gepusht naar `main`.** Geen
+   migratie. Open: na de deploy met een lid zonder gewicht (zoals Gina
+   van Rossum) de melding, het open gewichtsveld en de W/kg in de ladder nalopen.
+   Zie de ronde "Teams: powerprofiel direct na koppelen, melding bij ontbrekend
+   gewicht".
+
 0b. **ZWBekers (2026-10-28): migratie `0286` toegepast en gepusht.** Open: de
    privacytekst `/privacy#zwbekers` wacht op akkoord van de eigenaar, net als de
    vraag of dit zonder nieuwe privacyversie kan (zie de ronde "ZWBekers").
@@ -11726,6 +11733,61 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Teams: powerprofiel direct na koppelen, melding bij ontbrekend gewicht
+
+**2026-11-04.** Deze commit, op branch `claude/vigilant-volta-b8rn7p`; op
+2026-11-04 op verzoek van de eigenaar naar `main` gepusht. Geen migratie.
+
+**Waarom.** Gina van Rossum claimde haar Zwift-ID en koppelde intervals.icu
+(2026-11-04 12:45), maar stond leeg op de teampagina. Koppelen bewaarde alleen de
+sleutel; het powerprofiel kwam pas met de sync-knop op Teams of de wekelijkse
+ZWBriljant-job. Na een handmatige sync van alle 29 koppelingen (12:49) stonden
+haar watts er wel, maar geen W/kg: haar gewicht staat niet in intervals.icu en
+niet op haar profiel. Bij 7 van de 29 powerprofielen ontbreekt het gewicht
+(productie, alleen-lezend geteld). De ladder sorteert en vergelijkt op W/kg,
+dus daar staat zo'n renner zonder bruikbare waarden.
+
+**Wat er veranderde.**
+- `connectIntervalsWithKey` haalt na het opslaan meteen het powerprofiel op
+  (nieuw `syncPowerProfileFor` in `power-sync.ts`). Bewust in de actie zelf en
+  niet via `after()`: wie daarna naar Teams gaat, ziet direct zijn data en, als
+  het gewicht ontbreekt, de melding. Een fout in de sync laat de koppeling staan.
+- Melding `MissingWeightNotice` ("Je gewicht ontbreekt. Vul het in op je
+  profiel, …"), met een link naar het nieuwe anker `#fysiek` op
+  `/profiel?weergave=bewerken`. Op het dashboard voor wie in minstens één team
+  zit, op de teampagina en op de pagina van een ladderteam voor wie zelf in de
+  tabel staat. Gewicht telt als bekend als het op het profiel of in het
+  powerprofiel staat (`src/lib/teams/missing-weight.ts`).
+- Profiel: met **Bijhouden vanuit intervals.icu** aan was het gewichtsveld
+  alleen-lezen, ook als intervals.icu geen gewicht kende. Een lid als Gina kon
+  het dus nergens in ZWB invullen. Nu blijft het veld open zolang het leeg is,
+  en `updateProfile` slaat het dan op. De sync overschrijft het alleen met een
+  gewicht uit intervals.icu (dat deed hij al: hij schrijft alleen wat er is).
+- Een nieuw gewicht op het profiel laat via `after()` het powerprofiel opnieuw
+  rekenen, zodat de W/kg in teams en ladder meteen kloppen. De sync gebruikt
+  het profielgewicht al als intervals.icu er geen heeft.
+- `/hulp` (Teams en wedstrijden): waar het vermogen in de teams vandaan komt,
+  wanneer het binnenkomt en waar je je gewicht invult.
+
+**Claim bijgesteld.** De ronde over de FTP-volgorde noemde als momenten van de
+powerprofiel-sync alleen de knop en de wekelijkse job; nu staan koppelen en
+een nieuw gewicht erbij.
+
+**Bewust niet.**
+- Geen melding in het koppelscherm zelf: de melding op dashboard en teampagina
+  blijft staan tot het gewicht er is, en past bij die van het Zwift-ID.
+- Geen W/kg uitrekenen uit het profielgewicht in de teamtabel voor leden zonder
+  intervals.icu: de ladder doet dat al voor de FTP. Andere duren hebben een
+  curve nodig, en die komt alleen uit intervals.icu.
+- Geen melding aan captains over teamleden zonder gewicht.
+- FTP blijft alleen-lezen met de sync aan; daar is intervals.icu de bron en
+  vult de eFTP het gat.
+
+**Niet geverifieerd.** De koppeling en de melding in de echte app: hier is geen
+`.env.local` en geen productie-sessie. Typecheck en ESLint schoon; Vitest
+3.900 tests groen, waarvan 8 nieuw in `missing-weight.test.ts`. Alleen
+`omnium-live.test.ts` faalt, en dat kwam al voor: die test leest
+`.env.local`.
 ### Gebouwd — Club Ladder: hoogteprofiel en ZwiftInsider bij het advies
 
 **2026-11-04.** Commit `c2dd6b4` op de branch `claude/focused-babbage-e8rcdn`;
@@ -19087,7 +19149,8 @@ profiel.
 - `/zwbeter-worden/vermogen`: de tegel "FTP / eFTP" volgt de nieuwe volgorde; de eFTP
   is de curve, dan de wellness, dan het model.
 - Powerprofiel-sync (`src/lib/teams/power-sync.ts`, knop op Teams en de wekelijkse
-  ZWBriljant-job): `rider_power_profiles.ftp_watts` volgt dezelfde volgorde. Een
+  ZWBriljant-job; sinds 2026-11-04 ook meteen na het koppelen van intervals.icu en na
+  een nieuw gewicht op het profiel): `rider_power_profiles.ftp_watts` volgt dezelfde volgorde. Een
   testuitslag gaat nu ook daar voor; eerder stond de curve-/model-eFTP bovenaan.
 - Profielsync: zonder testuitslag schrijft die alleen de ingestelde FTP weg, nooit
   meer de eFTP. Met een testuitslag blijft de FTP met rust, zoals sinds 2026-09-11.

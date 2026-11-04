@@ -225,3 +225,23 @@ export async function syncOnePowerProfile(
     };
   }
 }
+
+/**
+ * Het powerprofiel van één lid verversen, als die een intervals-koppeling heeft.
+ * Na het koppelen en na een nieuw gewicht op het profiel, zodat de teams niet op
+ * de knop of de wekelijkse job hoeven te wachten. Gooit niet: zonder koppeling
+ * of bij een fout geeft het null of het resultaat van de sync terug.
+ */
+export async function syncPowerProfileFor(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+  profileId: string,
+) {
+  const { data } = await admin
+    .from("intervals_connections")
+    .select("profile_id, athlete_id, api_key, profiles(ftp_watts, weight_kg, auto_sync_physique)")
+    .eq("profile_id", profileId)
+    .maybeSingle();
+  if (!data) return null;
+  return syncOnePowerProfile(admin, data as IntervalsConnectionRow).catch(() => null);
+}

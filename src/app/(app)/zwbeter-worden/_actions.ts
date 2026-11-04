@@ -11,6 +11,7 @@ import {
   fetchIntervalsDayPowerCurve,
 } from "@/lib/intervals/client";
 import { wattsAtDuration } from "@/lib/teams/power-profile";
+import { syncPowerProfileFor } from "@/lib/teams/power-sync";
 import { sendNotificationToMembers } from "@/lib/push/send";
 import {
   clearDayForTest,
@@ -197,8 +198,15 @@ export async function connectIntervalsWithKey(apiKey: string) {
   );
   if (error) return { ok: false as const, error: error.message };
 
+  // Meteen het powerprofiel ophalen: anders staan de teams en de ladder leeg tot
+  // iemand op de sync-knop drukt of de wekelijkse job draait. Mislukt het, dan
+  // blijft de koppeling staan; de knop en de job proberen het later opnieuw.
+  await syncPowerProfileFor(createAdminClient(), user.id);
+
   revalidatePath("/zwbeter-worden", "layout");
   revalidatePath("/profiel");
+  revalidatePath("/teams", "layout");
+  revalidatePath("/dashboard");
   return { ok: true as const, athleteName: athlete.name ?? athlete.id };
 }
 

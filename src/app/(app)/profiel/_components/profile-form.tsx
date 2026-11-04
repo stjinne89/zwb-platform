@@ -72,6 +72,9 @@ const VISIBILITY_FIELDS = [
 export function ProfileForm({ email, initial }: { email: string; initial: Initial }) {
   const [pending, startTransition] = useTransition();
   const [autoSyncPhysique, setAutoSyncPhysique] = useState(initial.auto_sync_physique);
+  // Kent intervals.icu geen gewicht, dan blijft het veld open: anders staan er
+  // geen W/kg in de teams en de ladder. Een gewicht uit intervals wint daarna.
+  const weightLocked = autoSyncPhysique && initial.weight_kg.trim() !== "";
   const [status, setStatus] = useState<
     | { kind: "idle" }
     | { kind: "saved" }
@@ -213,7 +216,7 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
         </div>
       </section>
 
-      <section className="space-y-4">
+      <section id="fysiek" className="scroll-mt-20 space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Fysiek
         </h2>
@@ -239,8 +242,8 @@ export function ProfileForm({ email, initial }: { email: string; initial: Initia
               min={30}
               max={200}
               defaultValue={initial.weight_kg}
-              readOnly={autoSyncPhysique}
-              className={`${FIELD} ${autoSyncPhysique ? "opacity-60" : ""}`}
+              readOnly={weightLocked}
+              className={`${FIELD} ${weightLocked ? "opacity-60" : ""}`}
             />
           </div>
         </div>

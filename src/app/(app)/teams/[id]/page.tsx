@@ -28,6 +28,8 @@ import {
   type PlannerTeam,
 } from "./_components/team-lineup-planner";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
+import { loadWeightMissing } from "@/lib/teams/missing-weight";
+import { MissingWeightNotice } from "@/components/missing-weight-notice";
 
 const TYPE_LABELS: Record<string, string> = {
   zrl: "ZRL",
@@ -517,10 +519,15 @@ export default async function TeamDetailPage({
       rosterNameById.set(row.id, row.name);
     }
   }
+  // Wie zelf in de tabel staat zonder gewicht, ziet waar het in te vullen.
+  const needsWeight =
+    user != null && profileIds.includes(user.id) && (await loadWeightMissing(supabase, user.id));
 
   return (
     <div className="space-y-6">
       <BackLink href="/teams" label="Teams" />
+
+      {needsWeight && <MissingWeightNotice />}
 
       <header className="space-y-3 rounded-lg border bg-card p-4">
         <div className="flex flex-wrap items-center gap-2">

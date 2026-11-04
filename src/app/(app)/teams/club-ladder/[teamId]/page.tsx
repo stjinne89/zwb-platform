@@ -26,6 +26,8 @@ import { DURATIONS, type PowerWkg } from "@/lib/club-ladder/team-power";
 import { normalizeTeamName } from "@/lib/ladder";
 import { loadRiderMetrics } from "@/lib/race-briefing/metrics";
 import { getRequestAccess } from "@/lib/auth/request";
+import { loadWeightMissing } from "@/lib/teams/missing-weight";
+import { MissingWeightNotice } from "@/components/missing-weight-notice";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -272,6 +274,12 @@ export default async function ClubLadderTeamPage({
     after(() => storeLadderResults(admin, ladderResults));
   }
 
+  // Wie zelf in dit team rijdt zonder gewicht, staat leeg in de W/kg-kolommen.
+  const needsWeight =
+    userId != null &&
+    teamRiders.some((rider) => rider.rosterEntryId == null && rider.id === userId) &&
+    (await loadWeightMissing(supabase, userId));
+
   const adviceHref = (name: string) =>
     `/teams/club-ladder/${team.id}?tegen=${encodeURIComponent(name)}${sortParam ? `&sort=${sortParam}` : ""}#advies`;
   const opponentHref = (row: ClubLadderStanding) => adviceHref(row.name);
@@ -284,6 +292,8 @@ export default async function ClubLadderTeamPage({
         title={team.name}
         actions={<TeamChatLinks whatsappGroups={waGroups ?? []} discordUrl={team.discord_url} />}
       />
+
+      {needsWeight && <MissingWeightNotice />}
 
       {liveError && (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{liveError}</p>

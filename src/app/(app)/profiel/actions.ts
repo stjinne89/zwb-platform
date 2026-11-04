@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { followSrcProfileSex } from "@/lib/src/availability";
@@ -10,6 +11,7 @@ import { intervalsId, stravaHandle, zwiftId } from "@/lib/profile/ids";
 import { WELLNESS_DEVICES } from "@/lib/training/wellness";
 import { EVENT_INTEREST_OPTIONS } from "@/lib/event-types";
 import { HOUSEHOLD_MAX, HOUSEHOLD_MOMENTS } from "@/lib/nutrition/shopping";
+import { syncPowerProfileFor } from "@/lib/teams/power-sync";
 
 const ZRL_CATS = ["A", "B", "C", "D", "E"] as const;
 const ZRL_DIVISIONS = ["open", "women"] as const;
@@ -157,9 +159,11 @@ export async function updateProfile(formData: FormData) {
 
   const { data: before } = await supabase
     .from("profiles")
-    .select("sex, mywhoosh_id")
+    .select("sex, mywhoosh_id, weight_kg")
     .eq("id", user.id)
     .maybeSingle();
+  const validWeight = weight !== null && weight > 0 && weight < 300 ? weight : null;
+  const storedWeight = before?.weight_kg == null ? null : Number(before.weight_kg);
   const mywhooshId = optionalString(formData.get("mywhoosh_id"));
 
   const { error } = await supabase
@@ -178,11 +182,15 @@ export async function updateProfile(formData: FormData) {
       auto_sync_physique: autoSyncPhysique,
       // Bij auto-sync blijven de bestaande waarden staan; de intervals-sync
       // schrijft ze bij (de velden staan in het formulier op alleen-lezen).
+      // Uitzondering: zonder gewicht mag het lid er zelf een invullen, want
+      // intervals.icu kent het dan ook niet (de sync schrijft alleen wat er is).
       ...(autoSyncPhysique
-        ? {}
+        ? storedWeight == null && validWeight != null
+          ? { weight_kg: validWeight }
+          : {}
         : {
             ftp_watts: ftp !== null && ftp > 0 && ftp < 800 ? Math.round(ftp) : null,
-            weight_kg: weight !== null && weight > 0 && weight < 300 ? weight : null,
+            weight_kg: validWeight,
           }),
       event_type_interests,
       fit_max_distance_km: maxDistance === null ? null : Math.round(maxDistance),
@@ -250,6 +258,14 @@ export async function updateProfile(formData: FormData) {
     (before?.mywhoosh_id ?? "").trim().toLowerCase() === (mywhooshId ?? "").trim().toLowerCase();
   if (mywhooshId && !sameMywhoosh) {
     await requestSrcResultsRecheck(createAdminClient()).catch(() => 0);
+  }
+
+  // Nieuw gewicht: het powerprofiel opnieuw laten rekenen, zodat de W/kg in de
+  // teams en de ladder meteen kloppen. Na het antwoord; een trage intervals.icu
+  // houdt het opslaan niet op.
+  const savedWeight = autoSyncPhysique ? (storedWeight ?? validWeight) : validWeight;
+  if (savedWeight !== storedWeight) {
+    after(() => syncPowerProfileFor(createAdminClient(), user.id));
   }
 
   revalidatePath("/profiel");

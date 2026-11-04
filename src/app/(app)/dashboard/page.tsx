@@ -91,6 +91,8 @@ import {
 } from "@/components/tegels/vandaag";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { liveRidersLabel } from "@/lib/live/riders-label";
+import { loadWeightMissing } from "@/lib/teams/missing-weight";
+import { MissingWeightNotice } from "@/components/missing-weight-notice";
 import {
   isEventRunning,
   splitLiveRiders,
@@ -547,6 +549,7 @@ export default async function DashboardPage({
     { data: repRows },
     { data: chatRows },
     { data: photoRows },
+    needsWeight,
   ] = await Promise.all([
     user
       ? supabase
@@ -684,6 +687,7 @@ export default async function DashboardPage({
       .select("event_id, storage_path")
       .gte("created_at", since8Iso)
       .order("created_at", { ascending: false }),
+    user ? loadWeightMissing(supabase, user.id, { inTeam: true }) : Promise.resolve(false),
   ]);
   const access = await accessPromise;
   const isModerator = access.has("events.manage_all");
@@ -1097,6 +1101,7 @@ export default async function DashboardPage({
           Vul je Zwift-ID in, anders sta je niet in de ZwiftPower- en ZwiftRacing-standen.
         </Link>
       )}
+      {needsWeight && <MissingWeightNotice />}
 
       {/* Bekers van de afgelopen week, met een feestje als ze nieuw zijn. */}
       {user && (
