@@ -11740,9 +11740,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: kleur voor voordeel en nadeel in het advies
 
-**2026-11-04.** Commit op de branch `claude/focused-babbage-e8rcdn` (hash in
-de git-log; dit PLAN-stuk zit in dezelfde commit). Geen migratie. Lokaal
-gecommit, nog niet gepusht.
+**2026-11-04.** Commit `5bebfca` op de branch `claude/focused-babbage-e8rcdn`;
+op 2026-11-04 op verzoek van de eigenaar naar `main` gepusht. Geen migratie.
 
 **Waarom.** De eigenaar wil aan de kleur zien of een percentage bij Advies in
 het voordeel of het nadeel van ZWB is. Tot nu toe kreeg elke chip van 0% of
