@@ -41,8 +41,8 @@ gaat stabiliteit voor nieuwe features.
    bedoeld. Zie de ronde "Teams: powerprofiel direct na koppelen, melding bij
    ontbrekend gewicht".
 
-0i. **Club Ladder: advies renner tegen renner (2026-11-04): op branch
-   `ccr-71e0c9cf-vu6154`, niet op `main`.** Geen migratie. Open: na een deploy
+0i. **Club Ladder: advies renner tegen renner (2026-11-04): gepusht naar
+   `main` (`6ebd28d`).** Geen migratie. Open: na een deploy
    het advies van ZWBandits tegen SZ Loki in de browser nalopen (overzicht per
    duur, percentages per route, Zonder vermogen). Zie de ronde "Club Ladder:
    advies renner tegen renner, intervals.icu eerst".
@@ -11774,8 +11774,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: advies renner tegen renner, intervals.icu eerst
 
-**2026-11-04.** Deze commit, op branch `ccr-71e0c9cf-vu6154`; niet op `main`.
-Geen migratie.
+**2026-11-04.** Commit `6ebd28d` op branch `ccr-71e0c9cf-vu6154`; op
+2026-11-04 op verzoek van de eigenaar naar `main` gepusht. Geen migratie.
 
 **Waarom.** De eigenaar zag in het advies van ZWBandits tegen SZ Loki maar 4
 van de 5 renners uit de selectie meetellen. Het viel Gina van Rossum: ze had
