@@ -48,8 +48,8 @@ gaat stabiliteit voor nieuwe features.
    advies renner tegen renner, intervals.icu eerst".
 
 0t. **"Pas vandaag aan" bij de melding "vannacht bijgewerkt" (2026-11-04):
-   lokaal gecommit, niet gepusht.** Geen migratie. Open: pushen op verzoek,
-   daarna op Schema de beschikbaarheid van vandaag wijzigen en de link volgen.
+   gepusht naar `main` (`d162849f`, eigenaar).** Geen migratie. Open: na de deploy
+   op Schema de beschikbaarheid van vandaag wijzigen en de link volgen.
    Zie de ronde "Pas vandaag aan bij de melding".
 
 0b. **ZWBekers (2026-10-28): migratie `0286` toegepast en gepusht.** Open: de
@@ -11779,8 +11779,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — "Pas vandaag aan" bij de melding "vannacht bijgewerkt"
 
-**2026-11-04.** Lokaal gecommit op `claude/token-extra-schema-wijziging-eb0874`,
-niet gepusht. Geen migratie.
+**2026-11-04.** Commit `d162849f`, gepusht naar `main` op 2026-11-04 (eigenaar).
+Geen migratie.
 
 **Waarom.** Leden liepen ertegenaan dat ze voor vandaag niets konden wijzigen.
 Sinds de ronde "Herzieningen 's nachts gebundeld" (2026-11-03) zet een wijziging
