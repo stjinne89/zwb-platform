@@ -21,6 +21,7 @@ import type {
 } from "@/lib/integrations/member-overview";
 import type { NoticeSummary } from "@/lib/integrations/load";
 import { isNoticeIntegration, NOTICE_BODY_MAX, noticeTemplate } from "@/lib/integrations/notices";
+import { helpVideo, helpVideoDuration } from "@/lib/help-videos";
 import type { MemberIntegrationRow } from "../_data";
 import { sendIntegrationNotice } from "../_actions";
 
@@ -408,7 +409,8 @@ function NoticeComposer({
               />
             </label>
             <p className={`text-xs tabular-nums ${tooLong ? "text-destructive" : "text-muted-foreground"}`}>
-              {body.trim().length} / {NOTICE_BODY_MAX} · knop: {template.linkLabel}
+              {body.trim().length} / {NOTICE_BODY_MAX} · knop: {template.linkLabel} · uitleg
+              {template.video ? ` · video ${helpVideoDuration(helpVideo(template.video).seconds)}` : ""}
             </p>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
           </div>

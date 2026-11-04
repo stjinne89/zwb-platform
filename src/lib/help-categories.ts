@@ -85,7 +85,15 @@ export const HELP_CATEGORIES = [
     label: "Training",
     text: "Form, herstel, trainer-toegang, vermogen, ZWBriljant en je Strava-samenvatting.",
     tone: "zwbeter",
-    anchors: ["training", "trainingsruimte", "vermogen", "watt-wkg", "zwbriljant", "strava-samenvatting"],
+    anchors: [
+      "training",
+      "trainingsruimte",
+      "intervals-koppelen",
+      "vermogen",
+      "watt-wkg",
+      "zwbriljant",
+      "strava-samenvatting",
+    ],
     legacy: ["trainen"],
   },
   {
@@ -152,7 +160,7 @@ export const HELP_CATEGORIES = [
     label: "Problemen",
     text: "Meldingen, snelle checks als iets niet werkt, en Q&A.",
     tone: "meer",
-    anchors: ["problemen", "qa"],
+    anchors: ["meldingen", "problemen", "qa"],
     legacy: ["meldingen-problemen"],
   },
   {

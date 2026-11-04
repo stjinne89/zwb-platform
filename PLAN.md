@@ -164,6 +164,9 @@ gaat stabiliteit voor nieuwe features.
    volgende).** Nalopen na de deploy: een pop-up naar jezelf (zoek je eigen
    naam), in de app zien, sluiten, en "gezien" op het beheerscherm. Ook de aangevulde privacyzin is akkoord. Zie de ronde
    "Koppelingen: wie iets mist, en een pop-up".
+   **Uitleg- en videolink in de pop-up (2026-11-04): op de branch, nog niet
+   op `main`.** Geen migratie. Zie de ronde 'Pop-up "nog niet gekoppeld":
+   uitleg en video erbij'.
 0s. **Starthelper `/welkom` in tegels, met video's (2026-11-04): op verzoek van
    de eigenaar gepusht naar `main`.** Geen migratie. Drie
    nieuwe hulpclips (intervals.icu, Mijn garage, live met Garmin of Wahoo) en
@@ -11755,6 +11758,49 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Pop-up "nog niet gekoppeld": uitleg en video erbij
+
+**2026-11-04.** Op de branch `claude/amazing-volta-p9uvrd`, nog niet op `main`.
+Geen migratie: de links volgen uit de koppeling, niet uit de opgeslagen
+melding, dus ook al verstuurde meldingen krijgen ze.
+
+**Waarom.** De eigenaar: of de pop-up ook naar het juiste stuk van `/hulp` en
+het bijpassende instructiefilmpje kan linken.
+
+**Wat er veranderde.**
+- Elke tekst in `lib/integrations/notices.ts` heeft een `helpHref` en een
+  `video` (uit `lib/help-videos.ts`): Strava → `/hulp/koppelen#strava-rechten`
+  met "Strava koppelen"; Strava bij volle plekken →
+  `#ritten-via-intervals` met "Ritten zonder Strava", en de knop gaat nu naar
+  intervals.icu koppelen (`/zwbeter-worden/doelen`) in plaats van naar de
+  hulp; intervals.icu → `/hulp/training#intervals-koppelen` met "intervals.icu
+  koppelen"; meldingen → `/hulp/problemen#meldingen` met "Meldingen
+  aanzetten"; live → `/hulp/live-volgen#livetrack` met "Live met Garmin of
+  Wahoo"; Telegram → `#ritberichten` en agenda → `/hulp/koppelen#agenda`,
+  zonder video (die is er niet).
+- Twee nieuwe ankers, zodat de link op het goede blok landt in plaats van
+  bovenaan een lange pagina: `intervals-koppelen` (training) en `meldingen`
+  (problemen), ook in `lib/help-categories.ts`.
+- In de pop-up onder de tekst "Uitleg" en "Bekijk de video (0:19)". De video
+  opent in een nieuw venster, net als op `/hulp`, en laat de melding staan;
+  de uitleg zet hem op gezien, net als de koppelknop. Het verstuurvenster
+  noemt welke links meegaan.
+- Test: elke `helpHref` komt uit op een bestaand anker
+  (`helpHrefForAnchor`), en elk videobestand staat in `public/hulp-video/`.
+
+**Bewust niet.** Geen link of video in de vrije tekst: die is voor uitleg,
+de links liggen vast per koppeling. Geen tweede video bij meldingen ("App op
+je beginscherm"), al noemt de tekst de iPhone: één video per melding; de
+uitleg bij meldingen wijst de weg.
+
+**Getest.** Typecheck en ESLint schoon; de hulp-, anker- en meldingtests
+slagen (38). Met voorbeelddata bekeken op 375 px, met één en met twee
+meldingen: links wijzen naar de goede plek, de video komt als `video/mp4`
+binnen.
+
+**Niet geverifieerd.** Op een echte telefoon of de video in de eigen speler
+opent.
 
 ### Gebouwd — Koppelingen: wie iets mist, en een pop-up
 

@@ -5,7 +5,11 @@
 // Geen Zwift: wie geen Zwift-ID heeft en niet zei dat hij niet zwift, krijgt al
 // elke sessie de vraag (zwift-id-dialog.tsx). Een tweede melding is dubbel.
 //
-// De teksten zeggen alleen wat ook in /privacy en /hulp staat.
+// De teksten zeggen alleen wat ook in /privacy en /hulp staat. Elke melding
+// wijst ook naar het hulponderdeel en, waar die er is, de korte video die daar
+// staat (lib/help-videos.ts).
+
+import type { HelpVideoId } from "@/lib/help-videos";
 
 export const NOTICE_INTEGRATIONS = ["strava", "intervals", "telegram", "push", "agenda", "live"] as const;
 
@@ -22,6 +26,10 @@ export type NoticeTemplate = {
   body: string;
   href: string;
   linkLabel: string;
+  /** Het hulponderdeel, als /hulp/<categorie>#<anker>. */
+  helpHref: string;
+  /** De video bij dat onderdeel; Telegram en de agenda hebben er geen. */
+  video: HelpVideoId | null;
 };
 
 const RIDES_MATTER =
@@ -42,14 +50,18 @@ export function noticeTemplate(
         ? {
             title: "Je ritten komen nog niet binnen",
             body: `Je ritten komen nog niet in ZWB. ${RIDES_MATTER} De Strava-plekken zijn vol; via intervals.icu kan het wel.`,
-            href: "/hulp/koppelen#ritten-via-intervals",
-            linkLabel: "Ritten via intervals.icu",
+            href: "/zwbeter-worden/doelen",
+            linkLabel: "intervals.icu koppelen",
+            helpHref: "/hulp/koppelen#ritten-via-intervals",
+            video: "zonder-strava",
           }
         : {
             title: "Strava is nog niet gekoppeld",
             body: `Zonder Strava-koppeling komen je ritten niet in ZWB. ${RIDES_MATTER}`,
             href: "/profiel?weergave=bewerken#strava",
             linkLabel: "Strava koppelen",
+            helpHref: "/hulp/koppelen#strava-rechten",
+            video: "strava-koppelen",
           };
     case "intervals":
       return {
@@ -57,6 +69,8 @@ export function noticeTemplate(
         body: "Zonder intervals.icu kent je trainingsschema je fitheid (CTL, ATL en TSB), je FTP en je zones niet, en zonder vermogensmeter ook de belasting van je ritten niet. Je powercurve en ZWBriljant hebben het ook nodig.",
         href: "/zwbeter-worden/doelen",
         linkLabel: "intervals.icu koppelen",
+        helpHref: "/hulp/training#intervals-koppelen",
+        video: "intervals-koppelen",
       };
     case "push":
       return {
@@ -64,6 +78,8 @@ export function noticeTemplate(
         body: "Zonder meldingen mis je nieuwe events, herinneringen, berichten tijdens een rit en nieuws over je trainingsschema. Op een iPhone werkt dat alleen als ZWB als app op je beginscherm staat.",
         href: "/profiel?weergave=bewerken#meldingen",
         linkLabel: "Meldingen aanzetten",
+        helpHref: "/hulp/problemen#meldingen",
+        video: "meldingen",
       };
     case "telegram":
       return {
@@ -71,6 +87,8 @@ export function noticeTemplate(
         body: "Rijd je met een Wahoo ELEMNT? Die toont geen ZWB-meldingen, wel die van Telegram. Zonder koppeling komen berichten tijdens een rit niet op je fietscomputer.",
         href: "/samen-fietsen",
         linkLabel: "Telegram koppelen",
+        helpHref: "/hulp/live-volgen#ritberichten",
+        video: null,
       };
     case "agenda":
       return {
@@ -78,6 +96,8 @@ export function noticeTemplate(
         body: "Met een agendalink zie je de events waar je ja op zei, je teamraces en je geplande trainingen in je eigen agenda, zoals Google Agenda, Outlook of Apple Agenda.",
         href: "/profiel?weergave=bewerken#agenda",
         linkLabel: "Agendalink maken",
+        helpHref: "/hulp/koppelen#agenda",
+        video: null,
       };
     case "live":
       return {
@@ -85,6 +105,8 @@ export function noticeTemplate(
         body: "Koppel je Garmin of Wahoo, dan kunnen clubleden je tijdens een rit live op de kaart volgen. Dat zet je per rit aan.",
         href: "/samen-fietsen",
         linkLabel: "Live volgen koppelen",
+        helpHref: "/hulp/live-volgen#livetrack",
+        video: "live-gps",
       };
   }
 }

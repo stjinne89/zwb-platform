@@ -41,7 +41,7 @@ export function TrainingHelp() {
           </div>
         </header>
 
-        <div className="mt-5 rounded-md border bg-background p-4">
+        <div id="intervals-koppelen" className="mt-5 scroll-mt-20 rounded-md border bg-background p-4">
           <h3 className="text-sm font-semibold">intervals.icu koppelen</h3>
           <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
             {INTERVALS_CONNECT_STEPS.map((step, index) => (

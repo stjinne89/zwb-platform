@@ -11,6 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { loadMemberIntegrationInputs, stravaCapIsFull } from "@/lib/integrations/load";
 import { memberIntegrations } from "@/lib/integrations/member-overview";
 import { isNoticeIntegration, noticeTemplate, NOTICE_INTEGRATIONS } from "@/lib/integrations/notices";
+import { helpVideo, helpVideoDuration, helpVideoHref } from "@/lib/help-videos";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Client = any;
@@ -21,6 +22,9 @@ export type OpenIntegrationNotice = {
   body: string;
   href: string;
   linkLabel: string;
+  helpHref: string;
+  /** Het mp4-bestand van de video, met de duur voor naast de link. */
+  video: { href: string; duration: string } | null;
 };
 
 export async function loadOpenIntegrationNotices(
@@ -93,6 +97,10 @@ export async function loadOpenIntegrationNotices(
       body: entry.body,
       href: template.href,
       linkLabel: template.linkLabel,
+      helpHref: template.helpHref,
+      video: template.video
+        ? { href: helpVideoHref(template.video), duration: helpVideoDuration(helpVideo(template.video).seconds) }
+        : null,
     };
   });
 }

@@ -16,7 +16,7 @@ export function ProblemenHelp() {
   return (
     <>
       <section className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-        <article className="rounded-lg border bg-card/90 p-4">
+        <article id="meldingen" className="scroll-mt-20 rounded-lg border bg-card/90 p-4">
           <h2 className="flex items-center gap-2 font-semibold">
             <Bell className="size-5 text-primary" />
             Meldingen

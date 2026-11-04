@@ -6,7 +6,9 @@ import {
   NOTICE_INTEGRATIONS,
   noticeTemplate,
 } from "@/lib/integrations/notices";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
+import { helpHrefForAnchor } from "@/lib/help-categories";
+import { helpVideoHref } from "@/lib/help-videos";
 
 describe("pop-up nog niet gekoppeld", () => {
   it("heeft voor elke koppeling een tekst binnen de grens, en geen voor Zwift", () => {
@@ -23,8 +25,28 @@ describe("pop-up nog niet gekoppeld", () => {
   it("wijst bij volle Strava-plekken naar intervals.icu", () => {
     expect(noticeTemplate("strava").href).toBe("/profiel?weergave=bewerken#strava");
     const full = noticeTemplate("strava", { stravaCapFull: true });
-    expect(full.href).toBe("/hulp/koppelen#ritten-via-intervals");
+    expect(full.href).toBe("/zwbeter-worden/doelen");
+    expect(full.helpHref).toBe("/hulp/koppelen#ritten-via-intervals");
+    expect(full.video).toBe("zonder-strava");
     expect(full.body).toMatch(/intervals\.icu/);
+  });
+
+  it("linkt naar een bestaand hulpanker en een bestaande video", async () => {
+    const templates = [
+      ...NOTICE_INTEGRATIONS.map((integration) => noticeTemplate(integration)),
+      noticeTemplate("strava", { stravaCapFull: true }),
+    ];
+    for (const template of templates) {
+      const anchor = template.helpHref.split("#")[1];
+      expect(anchor, template.title).toBeTruthy();
+      expect(helpHrefForAnchor(anchor), template.title).toBe(template.helpHref);
+      if (template.video) {
+        const file = await stat(`public${helpVideoHref(template.video)}`);
+        expect(file.size, template.video).toBeGreaterThan(0);
+      }
+    }
+    expect(noticeTemplate("telegram").video).toBeNull();
+    expect(noticeTemplate("agenda").video).toBeNull();
   });
 
   it("schoont de tekst op en weigert leeg of te lang", () => {
