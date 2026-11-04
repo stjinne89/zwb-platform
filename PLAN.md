@@ -149,8 +149,8 @@ gaat stabiliteit voor nieuwe features.
    geplaatst (eigenaar, 2026-11-04). Nalopen na de deploy: de regel Gewicht in
    de matchup van ZWBullets – Mad Dogs en "Gewicht scheelt hier" in hun advies. Zie
    de ronde "Club Ladder: gewicht telt mee in matchup en route-advies".
-0q. **Club Ladder: vijf van de tegenstander kiezen (2026-11-04): gebouwd,
-   lokaal getest, nog niet gepusht.** Geen migratie. Nalopen na een deploy: op
+0q. **Club Ladder: vijf van de tegenstander kiezen (2026-11-04): gepusht naar
+   `main` (`4cc9124` en volgende).** Geen migratie. Nalopen na een deploy: op
    de teampagina van ZWBandits het advies tegen SZ Loki met Klim (vlakke routes
    bovenaan), en op het event van 10 november de knoppen met de kolom Races. Zie
    de ronde "Club Ladder: kies de vijf van de tegenstander".
@@ -11740,8 +11740,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: kies de vijf van de tegenstander
 
-**2026-11-04.** Commit: de commit die dit blok toevoegt, op de branch
-`claude/festive-bell-ahpdri`, nog niet gepusht. Geen migratie.
+**2026-11-04.** Commit `4cc9124` op de branch `claude/festive-bell-ahpdri`;
+op 2026-11-04 met akkoord van de eigenaar op `main` gezet en gepusht. Geen
+migratie.
 
 **Waarom.** De eigenaar wil de adviezen spreiden: rekenen tegen het beste
 sprint-, klim-, punch- of overallteam van de tegenstander, met een toggle, en in
