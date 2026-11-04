@@ -6,6 +6,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 import { ladderOpponentFromTitle } from "./fixture-events";
 import { ensureMatchRiders, loadStoredMatches, loadTeamMatches } from "./matches";
 import { buildLadderMatchup, opponentRiderIds, type LadderMatchup, type MatchupSignup } from "./matchup";
+import { RECENT_RACES, recentTeamRiders, SQUAD_FOCUSES, type SquadFocus } from "./opponent-five";
 import { loadRiderWeights } from "./rider-weights";
 import { findLadderRouteSlug, ladderRouteBySlug, ROUTE_CLASS_LABELS } from "./routes";
 import { loadLadderSelections } from "./selection";
@@ -19,7 +20,13 @@ const PAGE_BUDGET_MS = 6_000;
 const AFTER_BUDGET_MS = 30_000;
 const METRICS_BUDGET_MS = 8_000;
 
-export type LadderEventMatchup = { matchup: LadderMatchup; routeLabel: string | null };
+export type LadderEventMatchup = {
+  /** De vijf besten per duur van wie meetelt, zoals het racebriefje rekent. */
+  matchup: LadderMatchup;
+  /** Per type de beste vijf van de tegenstander; null als hij een opstelling heeft of er niets te kiezen is. */
+  byFocus: Record<SquadFocus, LadderMatchup> | null;
+  routeLabel: string | null;
+};
 
 const positiveId = (value: unknown) => {
   const id = Number(value);
@@ -58,16 +65,24 @@ export async function loadLadderEventMatchup(
         rider.zwiftId ? [{ zwiftId: rider.zwiftId, team: ourName, name: rider.name, position: null }] : [],
       );
 
-  const [ours, theirs] = await Promise.all([loadTeamMatches(admin, [ourName]), loadTeamMatches(admin, [opponent])]);
+  const [ours, theirs] = await Promise.all([loadTeamMatches(admin, [ourName]), loadTeamMatches(admin, [opponent], RECENT_RACES)]);
   const all = [...new Map([...ours, ...theirs].map((row) => [row.result_id, row])).values()];
   await ensureMatchRiders(admin, all, PAGE_BUDGET_MS);
   if (all.some((row) => !row.riders_fetched_at)) after(() => ensureMatchRiders(admin, all, AFTER_BUDGET_MS));
 
   const matches = await loadStoredMatches(admin, all);
   const theirSquad = signups.some((row) => sameTeam(row.team, opponent)) ? [] : opponentRiderIds(matches, opponent);
+  const theirRecent = recentTeamRiders(matches, opponent);
   // Ook wie de laatste wedstrijden reed: dat is de vergelijking zonder aanmeldingen.
   const raceIds = matches.flatMap((match) => match.riders.map((rider) => rider.zwiftId).filter((id): id is number => id != null));
-  const zwiftIds = [...new Set([...signups.map((row) => row.zwiftId), ...ourSelection.map((row) => row.zwiftId), ...theirSquad])];
+  const zwiftIds = [
+    ...new Set([
+      ...signups.map((row) => row.zwiftId),
+      ...ourSelection.map((row) => row.zwiftId),
+      ...theirSquad,
+      ...theirRecent.riders.map((rider) => rider.zwiftId),
+    ]),
+  ];
   const [riderMatches, metrics, riderWeights] = await Promise.all([
     riderRaces(admin, zwiftIds),
     loadRiderMetrics(zwiftIds),
@@ -85,21 +100,28 @@ export async function loadLadderEventMatchup(
   const slug = findLadderRouteSlug(null, positiveId(event.zwift_route_id));
   const option = slug ? ladderRouteBySlug(slug) : null;
   const known = new Set(matches.map((match) => match.resultId));
+  const base = {
+    ourName,
+    opponent,
+    signups,
+    ourSelection,
+    theirSquad,
+    matches,
+    riderMatches: [...matches, ...riderMatches.filter((match) => !known.has(match.resultId))],
+    power90,
+    scores,
+    weights: option?.weights ?? null,
+    terrain: option?.terrain ?? null,
+    riderWeights,
+    theirRecent,
+  };
+  const matchup = buildLadderMatchup(base);
+  const variants = SQUAD_FOCUSES.map((focus) => [focus, buildLadderMatchup({ ...base, theirFocus: focus })] as const);
+  // Alleen als er echt te kiezen valt: de tegenstander heeft geen opstelling en er is een vergelijking.
+  const choosable = variants.every(([focus, row]) => row.theirs.focus === focus && row.basis !== "races");
   return {
-    matchup: buildLadderMatchup({
-      ourName,
-      opponent,
-      signups,
-      ourSelection,
-      theirSquad,
-      matches,
-      riderMatches: [...matches, ...riderMatches.filter((match) => !known.has(match.resultId))],
-      power90,
-      scores,
-      weights: option?.weights ?? null,
-      terrain: option?.terrain ?? null,
-      riderWeights,
-    }),
+    matchup,
+    byFocus: choosable ? (Object.fromEntries(variants) as Record<SquadFocus, LadderMatchup>) : null,
     routeLabel: option ? ROUTE_CLASS_LABELS[option.routeClass] : null,
   };
 }

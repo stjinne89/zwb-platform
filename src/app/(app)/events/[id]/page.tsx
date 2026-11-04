@@ -1605,7 +1605,9 @@ export default async function EventDetailPage({
         </section>
       )}
 
-      {ladderMatchup && <LadderMatchupView matchup={ladderMatchup.matchup} routeLabel={ladderMatchup.routeLabel} />}
+      {ladderMatchup && (
+        <LadderMatchupView matchup={ladderMatchup.matchup} byFocus={ladderMatchup.byFocus} routeLabel={ladderMatchup.routeLabel} />
+      )}
 
       {showTttPlan && (
         <section className="space-y-3">

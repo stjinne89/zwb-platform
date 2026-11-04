@@ -11,6 +11,7 @@
 // (`rider-weight.ts`). De tabel toont de gewone W/kg; het verschil is dat op dit
 // parcours, met gewicht.
 
+import { pickFive, type PoolRider, type RecentSquad, type SquadFocus } from "./opponent-five";
 import { averageWeight, logEdges, routeWkg, shownWeight, sideRouteWkg, weightsUsable, type WeightedRider } from "./rider-weight";
 import { DURATIONS, sameTeam, teamRidersFromMatches, topFiveAverage, type PowerWkg, type StoredMatch } from "./team-power";
 import type { DurationTerrain, DurationWeights, PowerDuration } from "./routes";
@@ -32,6 +33,8 @@ export type MatchupRider = {
   weightKg: number | null;
   /** W/kg omgerekend naar 75 kg op dit parcours, null zonder parcours of zonder gewicht aan beide kanten. */
   routeWkg: PowerWkg | null;
+  /** In hoeveel van de recente ladderraces van zijn team hij reed (tegenstander), anders null. */
+  races: number | null;
 };
 
 export type MatchupSide = {
@@ -45,6 +48,10 @@ export type MatchupSide = {
   races: number;
   /** Gemiddeld gewicht (hele kg) van de renners met vermogen, pas vanaf drie met gewicht. */
   weightKg: number | null;
+  /** De gekozen vijf van de tegenstander: zijn beste ploeg voor dit type, of null. */
+  focus: SquadFocus | null;
+  /** Over zoveel recente ladderraces telt `MatchupRider.races`. */
+  recentRaces: number;
 };
 
 export type MatchupDuration = {
@@ -127,6 +134,20 @@ export function squadPower(
   return rows.length > 0 ? { wkg: topFiveAverage(rows.map((row) => row.wkg)), riders: rows.length, with90d, rows } : null;
 }
 
+/** De recente renners van een ploeg met vermogen (90 dagen, anders ladderraces) en gewicht, om vijf uit te kiezen. */
+export function squadPool(
+  recent: RecentSquad,
+  power: Map<number, RiderPower>,
+  power90: Map<number, PowerWkg>,
+  weights: Map<number, number> = new Map(),
+): PoolRider[] {
+  return recent.riders.flatMap((rider) => {
+    const best90 = power90.get(rider.zwiftId);
+    const wkg = hasPower(best90) ? best90! : power.get(rider.zwiftId)?.wkg;
+    return wkg && hasPower(wkg) ? [{ ...rider, wkg, weightKg: weights.get(rider.zwiftId) ?? null }] : [];
+  });
+}
+
 /** Zwift-ID's van wie de laatste wedstrijden voor dit team reed. */
 export function opponentRiderIds(matches: StoredMatch[], team: string): number[] {
   return [
@@ -160,6 +181,7 @@ function sideRiders(
       racingScore: scores.get(signup.zwiftId) ?? ladder?.racingScore ?? null,
       weightKg: weights.get(signup.zwiftId) ?? null,
       routeWkg: null,
+      races: null,
     };
   });
   riders.sort(
@@ -189,6 +211,14 @@ export function buildLadderMatchup(input: {
   terrain?: DurationTerrain | null;
   /** Gewicht per Zwift-ID (`rider-weights.ts`); ontbreekt het, dan W/kg alleen. */
   riderWeights?: Map<number, number>;
+  /** Wie de laatste tien ladderraces voor de tegenstander reed, en hoe vaak. */
+  theirRecent?: RecentSquad;
+  /**
+   * Kies van de tegenstander vijf renners: zijn beste ploeg voor dit type, uit
+   * zijn aanmeldingen of anders uit `theirRecent`. Niet bij een opstelling met
+   * startplekken. Zonder focus de vijf besten per duur, zoals eerder.
+   */
+  theirFocus?: SquadFocus;
 }): LadderMatchup {
   const { ourName, opponent, signups, matches, power90, scores, weights } = input;
   const terrain = input.terrain ?? null;
@@ -197,13 +227,30 @@ export function buildLadderMatchup(input: {
   const ourSignups = signups.filter((row) => sameTeam(row.team, ourName));
   const selection = ourSignups.length === 0 && (input.ourSelection?.length ?? 0) > 0;
   const ours = sideRiders(selection ? input.ourSelection! : ourSignups, power, power90, scores, riderWeights);
-  const theirs = sideRiders(
-    signups.filter((row) => sameTeam(row.team, opponent)),
-    power,
-    power90,
-    scores,
-    riderWeights,
-  );
+  const theirSignups = signups.filter((row) => sameTeam(row.team, opponent));
+  let theirs = sideRiders(theirSignups, power, power90, scores, riderWeights);
+  const recentCount = new Map((input.theirRecent?.riders ?? []).map((rider) => [rider.zwiftId, rider.races]));
+  const withRaces = (riders: MatchupRider[]) =>
+    input.theirRecent ? riders.map((rider) => ({ ...rider, races: recentCount.get(rider.zwiftId) ?? 0 })) : riders;
+  theirs = { ...theirs, riders: withRaces(theirs.riders) };
+  let focus: SquadFocus | null = null;
+  let fromRecent = false;
+  if (input.theirFocus && !theirs.lineup) {
+    const recent = (input.theirRecent?.riders ?? []).map((rider) => ({ zwiftId: rider.zwiftId, team: opponent, name: rider.name, position: null }));
+    const candidates = theirSignups.length > 0 ? theirs.riders : withRaces(sideRiders(recent, power, power90, scores, riderWeights).riders);
+    const pool = candidates.filter((rider) => hasPower(rider.wkg));
+    if (pool.length > 0) {
+      const five = new Set(
+        pickFive(
+          pool.map((rider) => ({ zwiftId: rider.zwiftId, name: rider.name, races: rider.races ?? 0, wkg: rider.wkg!, weightKg: rider.weightKg })),
+          input.theirFocus,
+        ).map((rider) => rider.zwiftId),
+      );
+      theirs = { riders: pool.filter((rider) => five.has(rider.zwiftId)), lineup: false };
+      focus = input.theirFocus;
+      fromRecent = theirSignups.length === 0;
+    }
+  }
 
   const powered = (riders: MatchupRider[]): WeightedRider[] =>
     riders.filter((rider) => hasPower(rider.wkg)).map((rider) => ({ wkg: rider.wkg!, weightKg: rider.weightKg }));
@@ -214,7 +261,14 @@ export function buildLadderMatchup(input: {
     ourLineup.length > 0 && theirLineup.length === 0 && input.theirSquad
       ? squadPower(input.theirSquad, power, power90, riderWeights)?.rows ?? []
       : [];
-  const basis = ourLineup.length > 0 && theirLineup.length > 0 ? "lineup" : theirSquad.length > 0 ? "squad" : "races";
+  const basis =
+    ourLineup.length > 0 && theirLineup.length > 0
+      ? fromRecent
+        ? "squad"
+        : "lineup"
+      : theirSquad.length > 0
+        ? "squad"
+        : "races";
 
   // Anders beide teams uit hun ladderraces, nooit gemengd.
   const fromRaces = (names: string[]) => {
@@ -227,7 +281,7 @@ export function buildLadderMatchup(input: {
   const ourTeam = fromRaces([ourName]);
   const theirTeam = fromRaces([opponent]);
   const ourRows = basis === "races" ? ourTeam.rows : ourLineup;
-  const theirRows = basis === "lineup" ? theirLineup : basis === "squad" ? theirSquad : theirTeam.rows;
+  const theirRows = basis === "races" ? theirTeam.rows : theirLineup.length > 0 ? theirLineup : theirSquad;
   const ourWkg = ourRows.length > 0 ? topFiveAverage(ourRows.map((row) => row.wkg)) : null;
   const theirWkg = theirRows.length > 0 ? topFiveAverage(theirRows.map((row) => row.wkg)) : null;
 
@@ -275,6 +329,8 @@ export function buildLadderMatchup(input: {
       wkg: ourWkg,
       races: ourTeam.races,
       weightKg: shownWeight(ourRows),
+      focus: null,
+      recentRaces: 0,
     },
     theirs: {
       name: opponent,
@@ -284,6 +340,8 @@ export function buildLadderMatchup(input: {
       wkg: theirWkg,
       races: theirTeam.races,
       weightKg: shownWeight(theirRows),
+      focus,
+      recentRaces: input.theirRecent?.races ?? 0,
     },
     durations,
     routeEdgePct: weightSum > 0 ? Math.round((weighted / weightSum) * 100) : null,

@@ -146,3 +146,69 @@ describe("latestRiderWeights", () => {
     expect(weights).toEqual(new Map([[1, 78], [2, 64]]));
   });
 });
+
+import { pickFive, recentTeamRiders, type PoolRider } from "@/lib/club-ladder/opponent-five";
+import type { MatchRider, StoredMatch } from "@/lib/club-ladder/team-power";
+
+describe("beste vijf van de tegenstander", () => {
+  // Vijf sprinters (hard op 15 s, zwak op 20 min) en vijf klimmers (andersom), allemaal 72 kg.
+  const sprinter = (id: number): PoolRider => ({ zwiftId: id, name: `S${id}`, races: 3, wkg: wkg(14, 8, 4.4, 3.6), weightKg: 72 });
+  const climber = (id: number): PoolRider => ({ zwiftId: id, name: `K${id}`, races: 3, wkg: wkg(9, 6.2, 5.2, 4.6), weightKg: 72 });
+  const pool = [1, 2, 3, 4, 5].map(sprinter).concat([11, 12, 13, 14, 15].map(climber));
+
+  it("kiest voor Sprint de sprinters en voor Klim de klimmers", () => {
+    expect(pickFive(pool, "sprint").map((r) => r.zwiftId).sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
+    expect(pickFive(pool, "klim").map((r) => r.zwiftId).sort((a, b) => a - b)).toEqual([11, 12, 13, 14, 15]);
+    expect(pickFive(pool, "overall")).toHaveLength(5);
+  });
+
+  it("laat op het vlakke een zware renner voorgaan bij gelijke W/kg", () => {
+    const even = [1, 2, 3, 4, 5, 6].map((id) => ({ zwiftId: id, name: `R${id}`, races: 1, wkg: same, weightKg: id === 6 ? 90 : 70 }));
+    expect(pickFive(even, "sprint").map((r) => r.zwiftId)).toContain(6);
+  });
+
+  it("telt per renner in hoeveel van de laatste tien races hij reed", () => {
+    const race = (id: number, date: string, riders: number[]): StoredMatch => ({
+      resultId: id,
+      racedOn: date,
+      routeName: null,
+      routeSlug: null,
+      challenger: "Zij",
+      challengerScore: 30,
+      opponent: "Ander",
+      opponentScore: 25,
+      riders: riders.map(
+        (zwiftId): MatchRider => ({ name: `R${zwiftId}`, position: 1, points: 0, team: "Zij", timeS: null, avgWkg: null, zwiftId, weightKg: 70, racingScore: null, powerWkg: null }),
+      ),
+    });
+    const matches = Array.from({ length: 12 }, (_, i) => race(i + 1, `2026-10-${String(i + 1).padStart(2, "0")}`, i < 2 ? [9] : [1, i % 2 ? 2 : 3]));
+    const recent = recentTeamRiders(matches, "Zij");
+    expect(recent.races).toBe(10);
+    expect(recent.riders.find((r) => r.zwiftId === 1)?.races).toBe(10);
+    // Renner 9 reed alleen de twee oudste races.
+    expect(recent.riders.some((r) => r.zwiftId === 9)).toBe(false);
+  });
+
+  it("zet in de matchup de gekozen vijf aan de kant van de tegenstander, met hun races", () => {
+    const ids = [...pool.map((r) => r.zwiftId)];
+    const matchup = buildLadderMatchup({
+      ourName: "Ons",
+      opponent: "Zij",
+      signups: [],
+      ourSelection: [21, 22, 23].map((zwiftId) => ({ zwiftId, team: "Ons", name: `O${zwiftId}`, position: null })),
+      matches: [],
+      power90: new Map([...pool.map((r) => [r.zwiftId, r.wkg] as const), [21, same], [22, same], [23, same]]),
+      scores: new Map(),
+      weights: null,
+      riderWeights: new Map(ids.map((id) => [id, 72])),
+      theirRecent: { riders: pool.map(({ zwiftId, name, races }) => ({ zwiftId, name, races })), races: 10 },
+      theirFocus: "klim",
+    });
+    expect(matchup.basis).toBe("squad");
+    expect(matchup.theirs.focus).toBe("klim");
+    expect(matchup.theirs.recentRaces).toBe(10);
+    expect(matchup.theirs.riders.map((r) => r.zwiftId).sort((a, b) => a - b)).toEqual([11, 12, 13, 14, 15]);
+    expect(matchup.theirs.riders.every((r) => r.races === 3)).toBe(true);
+    expect(matchup.theirs.wkg?.m20).toBe(4.6);
+  });
+});

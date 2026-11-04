@@ -9,7 +9,9 @@ import { canAssignLadderRiders, canEditLadderPuzzle } from "@/lib/club-ladder/ac
 import { riderRaces } from "@/lib/club-ladder/event-matchup";
 import { loadRiderWeights } from "@/lib/club-ladder/rider-weights";
 import { ensureMatchRiders, loadStoredMatches, loadTeamMatches } from "@/lib/club-ladder/matches";
-import { opponentRiderIds, riderPowerFromMatches, squadPower } from "@/lib/club-ladder/matchup";
+import { riderPowerFromMatches, squadPool, squadPower } from "@/lib/club-ladder/matchup";
+import { pickFive, RECENT_RACES, recentTeamRiders, SQUAD_FOCUS_LABELS, SQUAD_FOCUSES, type SquadFocus } from "@/lib/club-ladder/opponent-five";
+import { ChoiceTabs } from "@/components/choice-tabs";
 import { parseLadderRiderSort, sortLadderRiders } from "@/lib/club-ladder/riders";
 import { loadLadderSelections } from "@/lib/club-ladder/selection";
 import { ladderRouteOptions, ROUTE_CLASS_LABELS, worldLabel } from "@/lib/club-ladder/routes";
@@ -227,6 +229,9 @@ export default async function ClubLadderTeamPage({
   }));
 
   let advice: LadderAdvice | null = null;
+  /** Per type de beste vijf van de tegenstander met hun advies; null als er niets te kiezen is. */
+  let adviceByFocus: Array<{ focus: SquadFocus; advice: LadderAdvice | null; squad: OpponentSquad }> | null = null;
+  let adviceSquad: OpponentSquad | null = null;
   // Zet een captain (of de ladder) een selectie op de matchup, dan rekent het advies met precies die renners.
   const opponentFixture = opponent
     ? teamFixtures.find((fixture) => normalizeTeamName(fixtureOpponent(fixture) ?? "") === normalizeTeamName(opponent.name))
@@ -237,7 +242,7 @@ export default async function ClubLadderTeamPage({
     // Eerst de verse uitslagen bewaren, dan de renners van beide teams aanvullen.
     await storeLadderResults(admin, ladderResults);
     const ourNames = [...aliases, ...(match ? [match.name] : [])];
-    const [ours, theirs] = await Promise.all([loadTeamMatches(admin, ourNames), loadTeamMatches(admin, [opponent.name])]);
+    const [ours, theirs] = await Promise.all([loadTeamMatches(admin, ourNames), loadTeamMatches(admin, [opponent.name], RECENT_RACES)]);
     const all = [...new Map([...ours, ...theirs].map((row) => [row.result_id, row])).values()];
     await ensureMatchRiders(admin, all, ANALYSIS_BUDGET_MS);
     const stored = await loadStoredMatches(admin, all);
@@ -247,7 +252,9 @@ export default async function ClubLadderTeamPage({
       selectedIds.length > 0
         ? [...new Set(selectedIds)]
         : [...new Set(teamRiders.map((rider) => rider.zwiftId).filter((id): id is number => id != null))];
-    const theirIds = opponentRiderIds(stored, opponent.name);
+    // Wie de laatste tien ladderraces voor de tegenstander reed; daaruit kiezen we per type vijf (2026-11-04).
+    const recent = recentTeamRiders(stored, opponent.name);
+    const theirIds = recent.riders.map((rider) => rider.zwiftId);
     const [ourRaces, metrics, riderWeights] = await Promise.all([
       riderRaces(admin, ourIds),
       loadRiderMetrics([...ourIds, ...theirIds]),
@@ -260,16 +267,39 @@ export default async function ClubLadderTeamPage({
     for (const [id, row] of metrics) {
       if (row.power) power90.set(id, { s15: row.power.s15, m1: row.power.m1, m5: row.power.m5, m20: row.power.m20 });
     }
-    advice = buildLadderAdvice({
-      options,
-      favorites,
-      ourNames,
-      ourPower: squadPower(ourIds, ladderPower, power90, riderWeights),
-      theirName: opponent.name,
-      theirPower: squadPower(theirIds, ladderPower, power90, riderWeights),
-      // Uitslagen per routetype en eigen routekeuzes: alleen de laatste 90 dagen, net als het vermogen.
-      matches: recentMatches(stored),
-    });
+    const ourPower = squadPower(ourIds, ladderPower, power90, riderWeights);
+    const pool = squadPool(recent, ladderPower, power90, riderWeights);
+    const adviceFor = (focus: SquadFocus) => {
+      const five = pickFive(pool, focus, options);
+      return {
+        focus,
+        squad: { riders: five.map(({ name, races }) => ({ name, races })), races: recent.races },
+        advice: buildLadderAdvice({
+          options,
+          favorites,
+          ourNames,
+          ourPower,
+          theirName: opponent.name,
+          theirPower: squadPower(
+            five.map((rider) => rider.zwiftId),
+            ladderPower,
+            power90,
+            riderWeights,
+          ),
+          // Uitslagen per routetype en eigen routekeuzes: alleen de laatste 90 dagen, net als het vermogen.
+          matches: recentMatches(stored),
+        }),
+      };
+    };
+    // Met vijf of minder renners is er niets te kiezen: dan één advies.
+    if (pool.length > 5) {
+      adviceByFocus = SQUAD_FOCUSES.map(adviceFor);
+      advice = adviceByFocus[0].advice;
+    } else {
+      const only = adviceFor("overall");
+      advice = only.advice;
+      adviceSquad = only.squad;
+    }
   } else if (ladderResults.length > 0) {
     after(() => storeLadderResults(admin, ladderResults));
   }
@@ -327,7 +357,28 @@ export default async function ClubLadderTeamPage({
       {opponent && (
         <section id="advies" className="scroll-mt-20 rounded-lg border bg-card p-4">
           <h2 className="font-semibold">Advies tegen {opponent.name}</h2>
-          <AdviceView advice={advice} opponent={opponent.name} options={routeRows} selection={selectedIds.length > 0} />
+          {adviceByFocus ? (
+            <div className="mt-3">
+              <ChoiceTabs
+                label={`Ploeg van ${opponent.name}`}
+                tabs={adviceByFocus.map((row) => ({
+                  key: row.focus,
+                  label: SQUAD_FOCUS_LABELS[row.focus],
+                  content: (
+                    <AdviceView
+                      advice={row.advice}
+                      opponent={opponent.name}
+                      options={routeRows}
+                      selection={selectedIds.length > 0}
+                      squad={row.squad}
+                    />
+                  ),
+                }))}
+              />
+            </div>
+          ) : (
+            <AdviceView advice={advice} opponent={opponent.name} options={routeRows} selection={selectedIds.length > 0} squad={adviceSquad} />
+          )}
         </section>
       )}
 
@@ -484,20 +535,27 @@ type TeamResult = {
   points: number | string | null;
 };
 
+/** De vijf van de tegenstander waartegen het advies rekent, met in hoeveel van zijn laatste races ze reden. */
+type OpponentSquad = { riders: Array<{ name: string; races: number }>; races: number };
+
 function AdviceView({
   advice,
   opponent,
   options,
   selection,
+  squad,
 }: {
   advice: LadderAdvice | null;
   opponent: string;
   options: LadderRouteRow[];
   selection: boolean;
+  squad?: OpponentSquad | null;
 }) {
   if (!advice) return <EmptyState className="mt-3">Nog geen wedstrijden van {opponent} bewaard.</EmptyState>;
   const extraFavorite =
     advice.bestFavorite && !advice.routes.some((route) => route.slug === advice.bestFavorite!.slug) ? advice.bestFavorite : null;
+  // Alleen de getoonde parcoursen naar de browser: met de knoppen staat dit blok vier keer op de pagina.
+  const shown = new Set([...advice.routes, ...(extraFavorite ? [extraFavorite] : [])].map((route) => route.slug));
   return (
     <div className="mt-3 space-y-3">
       <div className="flex flex-wrap gap-1.5 text-xs">
@@ -525,7 +583,18 @@ function AdviceView({
           {advice.ours.riders} / {advice.theirs.riders} renners · 90 d: {advice.ours.with90d} / {advice.theirs.with90d}
         </span>
       </div>
-      <LadderAdviceRoutes routes={advice.routes} extraFavorite={extraFavorite} options={options} />
+      {squad && squad.riders.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {opponent}:{" "}
+          {squad.riders.map((rider, index) => (
+            <span key={`${rider.name}-${index}`} className="whitespace-nowrap">
+              {index > 0 ? ", " : ""}
+              {rider.name} <span className="tabular-nums">{rider.races}/{squad.races}</span>
+            </span>
+          ))}
+        </p>
+      )}
+      <LadderAdviceRoutes routes={advice.routes} extraFavorite={extraFavorite} options={options.filter((option) => shown.has(option.slug))} />
     </div>
   );
 }

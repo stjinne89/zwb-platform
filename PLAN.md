@@ -149,6 +149,11 @@ gaat stabiliteit voor nieuwe features.
    geplaatst (eigenaar, 2026-11-04). Nalopen na de deploy: de regel Gewicht in
    de matchup van ZWBullets – Mad Dogs en "Gewicht scheelt hier" in hun advies. Zie
    de ronde "Club Ladder: gewicht telt mee in matchup en route-advies".
+0q. **Club Ladder: vijf van de tegenstander kiezen (2026-11-04): gebouwd,
+   lokaal getest, nog niet gepusht.** Geen migratie. Nalopen na een deploy: op
+   de teampagina van ZWBandits het advies tegen SZ Loki met Klim (vlakke routes
+   bovenaan), en op het event van 10 november de knoppen met de kolom Races. Zie
+   de ronde "Club Ladder: kies de vijf van de tegenstander".
 
 1. **Supabase: tijdelijk op Pro sinds 2026-11-02, terug naar Free per 2026-12-02**
    (besluit eigenaar, 2026-11-03: Pro was nodig omdat het project anders op slot
@@ -11733,6 +11738,70 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: kies de vijf van de tegenstander
+
+**2026-11-04.** Commit: de commit die dit blok toevoegt, op de branch
+`claude/festive-bell-ahpdri`, nog niet gepusht. Geen migratie.
+
+**Waarom.** De eigenaar wil de adviezen spreiden: rekenen tegen het beste
+sprint-, klim-, punch- of overallteam van de tegenstander, met een toggle, en in
+de matchup zien wie dat zijn en hoe vaak ze de laatste tien races reden. Tot nu
+toe rekende het advies tegen de vijf besten per duur uit al zijn recente renners:
+een ploeg die niet bestaat (de beste sprinter én de beste klimmer tegelijk).
+
+**Wat er veranderde.**
+- **Keuze van vijf** (`club-ladder/opponent-five.ts`, puur): `recentTeamRiders`
+  geeft wie de laatste tien ladderraces van de tegenstander reed en in hoeveel
+  ervan (`RECENT_RACES`; races zonder renners tellen niet). `pickFive` geeft per
+  type vijf echte renners: per renner W/kg per duur, omgerekend naar 75 kg op de
+  helling (`rider-weight.ts`, als er van minstens drie gewicht is), tegenover het
+  meetkundig gemiddelde van de groep, gewogen per duur. **Overall** is het
+  gemiddelde over alle 148 ladderparcoursen met hun eigen weging. **Sprint**
+  (15 s 0,6, 1 min 0,3, 5 min 0,1, vlak), **Punch** (0,2/0,5/0,3, op 6%) en
+  **Klim** (1 min 0,1, 5 min 0,4, 20 min 0,5, op 6%) hebben een vast profiel,
+  eigen vuistregel. Eerst gebouwd op de routetypes (Sprint = vlak, Klim =
+  heuvels en klim), maar die geven bergop nog een derde aan 15 s en 1 min,
+  waardoor de klimploeg in een test uit sprinters bestond.
+- **Advies** (teampagina): de tegenstander laadt nu tien wedstrijden in plaats
+  van acht. Met meer dan vijf renners met vermogen vier adviezen achter de
+  knoppen Overall, Sprint, Klim, Punch (`ChoiceTabs`, nieuw in
+  `components/choice-tabs.tsx`: de server rendert alle vier, de browser wisselt
+  alleen, er gaat geen data mee naar de client). Onder de knoppen de vijf namen
+  met races, bijv. "7/10". Met vijf of minder één advies, met dezelfde regel.
+- **Matchup** (eventpagina): zolang de tegenstander geen opstelling met
+  startplekken heeft, dezelfde vier knoppen (`byFocus` uit
+  `loadLadderEventMatchup`). De vijf komen uit zijn aanmeldingen, of zonder
+  aanmeldingen uit zijn laatste tien races (basis `squad`). Bij zijn renners een
+  kolom Races ("x/10"); de kop zegt "sprintploeg" enz. Geen knoppen als er niets
+  te vergelijken is (basis `races`).
+- `/hulp` (Advies, Matchup) beschrijft het; de zin over de laatste acht
+  wedstrijden is gecorrigeerd (tegenstander tien).
+
+**Gevolg voor het standaardadvies.** Overall is nu een echte vijf, geen
+samenstelling. Met de productiewaarden van 2026-11-04 tegen SZ Loki
+(ZWBandits-selectie): eerst 15 s −20%, 1 min −14%, 5 min −3%, 20 min 0%; nu
+−18/−13/+7/+15%, want Loki's beste vijf overall zijn zware sprinters met weinig
+20 minuten. Bovenaan blijven London Uprising en Oh Hill No. Met Klim kiest het
+vijf lichtere renners (gem. 70 kg) en zet het vlakke routes bovenaan (Cirque du
+Suffer, Tempus Fugit, Flat Out Fast). Tegen Mad Dogs zijn Overall en Sprint
+dezelfde vijf; Klim maakt de klimroutes ~3% slechter voor ZWBullets.
+
+**Bewust niet.**
+- Onze kant niet: die blijft de vijf besten per duur uit de selectie of de
+  ploeg. Een captain kiest zelf met Selectie wie er rijdt.
+- Het racebriefje niet: de verwachte uitslag rekent nog zoals eerst (zonder
+  aanmeldingen van de tegenstander geen tegenstanders in de volgorde). Eerst
+  zien of de knoppen bevallen.
+- Geen voorkeur voor wie vaker reed: de races staan erbij om zelf te wegen;
+  ze beslissen alleen bij een gelijke score.
+- Geen knop in de URL: wisselen gaat zonder herladen, de keuze wordt niet
+  onthouden.
+
+**Niet geverifieerd.** De pagina's in de browser (inloggen op productie). Vier
+nieuwe tests (sprinters tegen klimmers, zware renner op het vlakke, races over
+de laatste tien, de matchup met een keuze); alle ladder-tests slagen (118).
+Typecheck en ESLint schoon.
+
 ### Gebouwd — Teams: powerprofiel direct na koppelen, melding bij ontbrekend gewicht
 
 **2026-11-04.** Deze commit, op branch `claude/vigilant-volta-b8rn7p`; op
@@ -11972,7 +12041,9 @@ aanmeldingen heeft, wist ZWB niet wie. Keuze van de eigenaar: per matchup, niet
 - **Matchup** en racebriefje: zolang wij op de ladder niemand aangemeld hebben,
   telt de selectie aan onze kant. Heeft de tegenstander nog niemand aangemeld,
   dan telt hij met wie zijn laatste wedstrijden reed (`opponentRiderIds`,
-  `squadPower`), net als het advies: basis `squad`. Zonder selectie en
+  `squadPower`), net als het advies: basis `squad`. *Bijgewerkt 2026-11-04:*
+  op de eventpagina zijn dat nu vijf gekozen renners; alleen het racebriefje
+  rekent nog zo. Zie "Club Ladder: kies de vijf van de tegenstander". Zonder selectie en
   aanmeldingen blijft het de vergelijking uit ladderraces.
 - **De ladder gaat voor.** `syncLineup` haalt een regel van een captain alleen
   weg als de ladder zelf een opstelling heeft; zonder opstelling op de ladder
@@ -12049,7 +12120,10 @@ bedoeld, maar met twee fouten.
 
 - **Bron** (`squadPower` in `matchup.ts`, teampagina): aan onze kant de
   renners die nu in het team zitten (leden en rooster), aan de andere kant wie
-  in de bewaarde wedstrijden voor de tegenstander reed. Per renner 90 dagen van
+  in de bewaarde wedstrijden voor de tegenstander reed. *Bijgewerkt
+  2026-11-04:* aan de andere kant nu vijf gekozen renners (Overall, Sprint,
+  Klim, Punch) uit zijn laatste tien races, niet meer de vijf besten per duur
+  uit allemaal; zie "Club Ladder: kies de vijf van de tegenstander". Per renner 90 dagen van
   ZwiftRacing (`zwift_rider_metrics.power_wkg`), anders het beste uit al zijn
   ladderraces, ook voor een ander team (`riderRaces`, nu geëxporteerd uit
   `event-matchup.ts`). Dan de vijf besten per duur. Pas vanaf drie renners met
