@@ -10,6 +10,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { GuideCards } from "./guide-cards";
+import { HelpVideoLink } from "./help-video";
 
 export function ClubHelp() {
   return (
@@ -539,6 +540,7 @@ export function ClubHelp() {
               </Link>
               .
             </p>
+            <HelpVideoLink video="mijn-garage" className="mt-3 flex w-fit" />
           </div>
         </header>
 

@@ -1,96 +1,146 @@
 import Link from "next/link";
-import {
-  Bell,
-  Bike,
-  CheckCircle2,
-  Clock3,
-  Download,
-  ExternalLink,
-  MailCheck,
-  MapPinned,
-  ShieldCheck,
-  Smartphone,
-  Sparkles,
-  UserRound,
-  Wrench,
-} from "lucide-react";
+import { Check, Play } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { PageHeader } from "@/components/app-ui";
 import { buttonVariants } from "@/components/ui/button";
-import { ZwbLogo } from "@/components/zwb-logo";
+import { tegelsFont } from "@/components/tegels/font";
+import type { PlaceTone } from "@/components/tegels/link-grid";
+import {
+  helpVideo,
+  helpVideoDuration,
+  helpVideoHref,
+  type HelpVideoId,
+} from "@/lib/help-videos";
 import { cn } from "@/lib/utils";
 
-type StepStatus = "done" | "current" | "upcoming";
+// De starthelper voor nieuwe leden, in het design "tegels". Elke stap is een
+// tegel in de kleur van de soort waar hij heen leidt; de eerstvolgende stap is
+// de brede gouden tegel (jij, nu). Een stap die klaar is, of nog niet kan, is
+// een paneel zonder kleur en dus geen link (Klikregel in DESIGN.md). Bij elke
+// stap hoort waar mogelijk een korte video uit /hulp.
+//
+// Deze pagina staat buiten de app-schil: ook wie nog niet is goedgekeurd of
+// niet is ingelogd komt hier. Daarom een eigen kader met dezelfde tenuebanen,
+// zonder de vier tabs (die leiden naar schermen die dan nog dicht zijn).
+
+type StepStatus = "done" | "next" | "open" | "locked";
 
 type Step = {
   title: string;
+  /** Korte regel op de gouden tegel, alleen voor de eerstvolgende stap. */
   text: string;
-  href: string;
   action: string;
-  status: StepStatus;
-  icon: typeof MailCheck;
+  href: string;
+  tone: PlaceTone;
+  video?: HelpVideoId;
+  done: boolean;
+  /** Kan de stap nu al? Zo niet, dan staat er waarom. */
+  lockedLabel?: string;
 };
 
-function statusLabel(status: StepStatus) {
-  if (status === "done") return "Klaar";
-  if (status === "current") return "Nu doen";
-  return "Straks";
+function VideoChip({ id, onTile }: { id: HelpVideoId; onTile: boolean }) {
+  const video = helpVideo(id);
+  const duration = helpVideoDuration(video.seconds);
+  return (
+    <a
+      href={helpVideoHref(id)}
+      target="_blank"
+      rel="noopener"
+      aria-label={`Video: ${video.title} (${duration})`}
+      className={cn("tg-video", !onTile && "tg-video-panel")}
+    >
+      <Play className="size-3.5 fill-current" aria-hidden />
+      {duration}
+    </a>
+  );
 }
 
-function StepCard({ step, index }: { step: Step; index: number }) {
-  const Icon = step.icon;
-  const done = step.status === "done";
-
-  return (
-    <li
-      className={cn(
-        "rounded-lg border bg-card/90 p-4",
-        step.status === "current" && "border-primary/50",
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <span
-          className={cn(
-            "flex size-8 shrink-0 items-center justify-center rounded-md text-sm font-semibold",
-            done
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground",
-          )}
-        >
-          {done ? <CheckCircle2 className="size-4" /> : index + 1}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-semibold">{step.title}</h2>
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-xs font-medium",
-                done
-                  ? "bg-primary/10 text-primary"
-                  : step.status === "current"
-                    ? "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100"
-                    : "bg-secondary text-secondary-foreground",
-              )}
-            >
-              {statusLabel(step.status)}
+function StepTile({ step, number, status }: { step: Step; number: number; status: StepStatus }) {
+  if (status === "done" || status === "locked") {
+    const done = status === "done";
+    return (
+      <li className="relative">
+        <div className="flex h-full min-h-[10.25rem] flex-col bg-[var(--tg-panel)] px-3.5 py-3">
+          <span className="tg-tile-small text-muted-foreground">
+            {done ? "Klaar" : step.lockedLabel}
+          </span>
+          <span className={cn("tg-tile-title", !done && "text-muted-foreground")}>
+            {step.title}
+          </span>
+          {done ? (
+            <Check className="mt-auto size-11 stroke-[1.25] text-primary" aria-label="klaar" />
+          ) : (
+            <span className="tg-tile-num text-muted-foreground" aria-hidden>
+              {number}
             </span>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">{step.text}</p>
+          )}
         </div>
-        <Icon className="mt-1 size-5 shrink-0 text-primary" />
-      </div>
+        {step.video && (
+          <span className="absolute bottom-3 right-3.5">
+            <VideoChip id={step.video} onTile={false} />
+          </span>
+        )}
+      </li>
+    );
+  }
+
+  const next = status === "next";
+  return (
+    <li className={cn("relative", next && "col-span-2")}>
       <Link
         href={step.href}
-        className={cn(
-          buttonVariants({
-            variant: step.status === "current" ? "default" : "outline",
-            size: "sm",
-          }),
-          "mt-4",
-        )}
+        className={cn("tg-tile h-full", next ? "tg-vandaag" : `tg-${step.tone}`)}
       >
-        {step.action}
+        <span className={cn("tg-tile-small", next && step.video && "pr-20")}>
+          {next ? `Stap ${number} · nu` : `Stap ${number}`}
+        </span>
+        <span
+          className={
+            next
+              ? "mt-0.5 pr-20 text-[2rem] font-light leading-[1.05] tracking-tight"
+              : "tg-tile-title"
+          }
+        >
+          {step.title}
+        </span>
+        {next && <span className="mt-1.5 max-w-[34ch] text-[0.9375rem] leading-snug">{step.text}</span>}
+        <span className="mt-auto flex items-end justify-between gap-3">
+          <span className="tg-tile-num" aria-hidden>
+            {number}
+          </span>
+          {next && (
+            <span className="grid min-h-11 place-items-center bg-[var(--tg-paper)] px-5 text-[0.9375rem] font-semibold text-[var(--tg-ink)]">
+              {step.action}
+            </span>
+          )}
+        </span>
       </Link>
+      {step.video && (
+        <span className={cn("absolute right-3.5", next ? "top-3" : "bottom-3")}>
+          <VideoChip id={step.video} onTile />
+        </span>
+      )}
+    </li>
+  );
+}
+
+/** Een video als tegel: de duur is het cijfer onderaan. */
+function VideoTile({ id }: { id: HelpVideoId }) {
+  const video = helpVideo(id);
+  return (
+    <li>
+      <a
+        href={helpVideoHref(id)}
+        target="_blank"
+        rel="noopener"
+        className="tg-tile tg-meer h-full"
+      >
+        <span className="tg-tile-small flex items-center gap-1.5">
+          <Play className="size-3 fill-current" aria-hidden />
+          Video
+        </span>
+        <span className="tg-tile-title">{video.title}</span>
+        <span className="tg-tile-num">{helpVideoDuration(video.seconds)}</span>
+      </a>
     </li>
   );
 }
@@ -109,12 +159,13 @@ export default async function WelkomPage() {
     { data: trackerToken },
     { data: bike },
     { data: stravaActivity },
+    { data: rsvp },
   ] = user
     ? await Promise.all([
         supabase
           .from("profiles")
           .select(
-            "display_name, region, bio, avatar_url, zwift_id, zrl_category, is_approved",
+            "display_name, region, bio, avatar_url, zwift_id, zwift_opt_out, zrl_category, is_approved",
           )
           .eq("id", user.id)
           .maybeSingle(),
@@ -154,246 +205,225 @@ export default async function WelkomPage() {
           .eq("profile_id", user.id)
           .limit(1)
           .maybeSingle(),
+        supabase
+          .from("event_rsvps")
+          .select("event_id")
+          .eq("profile_id", user.id)
+          .in("status", ["yes", "maybe"])
+          .limit(1)
+          .maybeSingle(),
       ])
-    : [
-        { data: null },
-        { data: null },
-        { data: null },
-        { data: null },
-        { data: null },
-        { data: null },
-        { data: null },
-      ];
+    : Array.from({ length: 8 }, () => ({ data: null }));
 
   const isApproved = Boolean(profile?.is_approved);
   const profileComplete = Boolean(
     profile?.display_name &&
-      (profile.region ||
-        profile.bio ||
-        profile.avatar_url ||
-        profile.zwift_id ||
-        profile.zrl_category),
+      (profile.region || profile.bio || profile.avatar_url || profile.zrl_category),
   );
-  const canUseIntegrations = Boolean(user && isApproved);
+  const locked = !user ? "Na je account" : !isApproved ? "Na goedkeuring" : undefined;
 
   const steps: Step[] = [
     {
       title: "Account aanmaken",
-      text: user
-        ? "Je bent ingelogd. De e-mailbevestiging is dus gelukt."
-        : "Registreer met je naam, e-mailadres, wachtwoord en akkoord op de privacyverklaring.",
-      href: user ? "/dashboard" : "/login?mode=register",
-      action: user ? "Naar dashboard" : "Registreren",
-      status: user ? "done" : "current",
-      icon: UserRound,
+      text: "Registreer en tik op de link in de bevestigingsmail. Geen mail? Kijk in je spam.",
+      action: "Registreren",
+      href: "/login?mode=register",
+      tone: "meer",
+      video: "account-aanmaken",
+      done: Boolean(user),
     },
     {
-      title: "E-mail bevestigen",
-      text: "De bevestigingsmail kan vanuit Supabase komen. Check ook ongewenste mail/spam en markeer de afzender als vertrouwd.",
-      href: user ? "/dashboard" : "/login",
-      action: user ? "Bevestigd" : "Naar inloggen",
-      status: user ? "done" : "upcoming",
-      icon: MailCheck,
-    },
-    {
-      title: "Goedkeuring door beheerder",
-      text: isApproved
-        ? "Je account is goedgekeurd en heeft toegang tot het ledenplatform."
-        : "Na bevestigen wacht je account op goedkeuring. Tot die tijd zie je de wachtpagina en deze helper.",
-      href: isApproved ? "/dashboard" : "/wachten",
-      action: isApproved ? "Open platform" : "Bekijk status",
-      status: isApproved ? "done" : user ? "current" : "upcoming",
-      icon: ShieldCheck,
+      title: "Goedkeuring",
+      text: "Een beheerder keurt je account goed. Meestal is dat snel geregeld.",
+      action: "Bekijk status",
+      href: "/wachten",
+      tone: "meer",
+      done: isApproved,
+      lockedLabel: user ? undefined : "Na je account",
     },
     {
       title: "Profiel invullen",
-      text: "Vul regio, Zwift/ZRL-info, bio, foto en zichtbaarheid in. Dit maakt ledenlijst, teams en profielkaarten duidelijker.",
+      text: "Foto, regio, een korte bio en je ZRL-categorie.",
+      action: "Profiel aanvullen",
       href: "/profiel?weergave=bewerken",
-      action: profileComplete ? "Profiel bekijken" : "Profiel aanvullen",
-      status: profileComplete ? "done" : canUseIntegrations ? "current" : "upcoming",
-      icon: UserRound,
+      tone: "club",
+      video: "profiel",
+      done: profileComplete,
+      lockedLabel: locked,
     },
     {
-      title: "Strava koppelen of importeren",
-      text: "Koppel Strava voor automatische sync. Is er geen plek, laat je ritten dan binnenkomen via intervals.icu (zie Hulp), of importeer ze (activities.csv, GPX of FIT) op het dashboard.",
-      href: strava ? "/profiel?weergave=bewerken#strava" : "/dashboard#strava-sync",
-      action: strava
-        ? "Strava bekijken"
-        : stravaActivity
-          ? "Import bekijken"
-          : "Dashboard openen",
-      status: strava || stravaActivity ? "done" : canUseIntegrations ? "current" : "upcoming",
-      icon: Download,
+      title: "Je Zwift-ID",
+      text: "Voor races, uitslagen en je powerprofiel. Zwift je niet, dan sla je dit over.",
+      action: "Zwift-ID invullen",
+      href: "/profiel?weergave=bewerken",
+      tone: "kalender",
+      video: "zwift-id",
+      done: Boolean(profile?.zwift_id || profile?.zwift_opt_out),
+      lockedLabel: locked,
     },
     {
-      title: "Strava syncen voor fietsen",
-      text: "Een echte Strava-koppeling vult je fietsen en kilometerstanden automatisch. Zonder koppeling kun je fietsen handmatig toevoegen.",
-      href: strava ? "/dashboard" : "/profiel?weergave=bewerken#fietsen",
-      action: strava ? "Strava syncen" : "Fiets toevoegen",
-      status: bike ? "done" : strava ? "current" : canUseIntegrations ? "upcoming" : "upcoming",
-      icon: Bike,
-    },
-    {
-      title: "Je fietsen en onderhoud",
-      text: "Toon fietsen op je profiel met een foto, en houd in Mijn garage de slijtage van onderdelen bij.",
-      href: "/mijn-garage",
-      action: bike ? "Mijn garage openen" : "Bekijk Mijn garage",
-      status: bike ? "done" : strava ? "current" : "upcoming",
-      icon: Wrench,
+      title: "Ritten binnenhalen",
+      text: "Koppel Strava, of laat je ritten via intervals.icu binnenkomen.",
+      action: "Strava koppelen",
+      href: "/profiel?weergave=bewerken#strava",
+      tone: "zwbeter",
+      video: "strava-koppelen",
+      done: Boolean(strava || stravaActivity),
+      lockedLabel: locked,
     },
     {
       title: "intervals.icu koppelen",
-      text: "Voor trainingsdashboard, geplande workouts, Wahoo/Garmin-export en optionele hersteldata. Zet in intervals.icu je kJ-drempels op 1000 en 2000, dan vergelijkt de club het vermogen na dezelfde arbeid.",
+      text: "Voor je schema, workouts op je fietscomputer en je hersteldata.",
+      action: "Koppelen",
       href: "/zwbeter-worden/doelen",
-      action: intervals ? "ZWBeter Worden openen" : "intervals koppelen",
-      status: intervals ? "done" : canUseIntegrations ? "current" : "upcoming",
-      icon: Sparkles,
+      tone: "zwbeter",
+      video: "intervals-koppelen",
+      done: Boolean(intervals),
+      lockedLabel: locked,
     },
     {
-      title: "Meldingen activeren",
-      text: "Zet pushmeldingen aan voor events, live ritten, badges, trainingsschema's, onderhoud en bestuurupdates.",
+      title: "Je fietsen",
+      text: "Laat zien waarop je rijdt en houd de slijtage bij.",
+      action: strava ? "Mijn garage" : "Fiets toevoegen",
+      href: strava ? "/mijn-garage" : "/profiel?weergave=bewerken#fietsen",
+      tone: "meer",
+      video: "mijn-garage",
+      done: Boolean(bike),
+      lockedLabel: locked,
+    },
+    {
+      title: "Meldingen aanzetten",
+      text: "Een seintje bij events, live ritten en badges.",
+      action: "Aanzetten",
       href: "/profiel?weergave=bewerken#meldingen",
-      action: pushSubscription ? "Meldingen bekijken" : "Meldingen instellen",
-      status: pushSubscription ? "done" : canUseIntegrations ? "current" : "upcoming",
-      icon: Bell,
+      tone: "meer",
+      video: "meldingen",
+      done: Boolean(pushSubscription),
+      lockedLabel: locked,
     },
     {
-      title: "Live GPS voorbereiden",
-      text: "Koppel je Garmin of Wahoo. Bij een buitenrit sta je dan vanzelf op de kaart.",
+      title: "Live met Garmin of Wahoo",
+      text: "Bij een buitenrit sta je dan vanzelf op de kaart.",
+      action: "Koppelen",
       href: "/live",
-      action: trackerToken ? "Live openen" : "Garmin of Wahoo koppelen",
-      status: trackerToken ? "done" : canUseIntegrations ? "current" : "upcoming",
-      icon: MapPinned,
+      tone: "club",
+      video: "live-gps",
+      done: Boolean(trackerToken),
+      lockedLabel: locked,
+    },
+    {
+      title: "Rij mee",
+      text: "Kies een rit in de kalender en meld je aan.",
+      action: "Naar de kalender",
+      href: "/kalender",
+      tone: "kalender",
+      video: "aanmelden-event",
+      done: Boolean(rsvp),
+      lockedLabel: locked,
     },
   ];
 
-  const doneCount = steps.filter((step) => step.status === "done").length;
-  const firstName = (profile?.display_name ?? user?.email ?? "")
-    .trim()
-    .split(/\s+/)[0];
+  const nextIndex = steps.findIndex((step) => !step.done && !step.lockedLabel);
+  const status = (step: Step, index: number): StepStatus =>
+    step.done ? "done" : step.lockedLabel ? "locked" : index === nextIndex ? "next" : "open";
+
+  const ordered = steps
+    .map((step, index) => ({ step, index }))
+    .sort((a, b) => Number(b.index === nextIndex) - Number(a.index === nextIndex));
+
+  const doneCount = steps.filter((step) => step.done).length;
+  const allDone = doneCount === steps.length;
+  const firstName = (profile?.display_name ?? "").trim().split(/\s+/)[0];
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:py-8">
-        <div className="flex items-center justify-between gap-4">
-          <Link href="/" aria-label="ZWB Cycling Community">
-            <ZwbLogo className="h-12 w-auto text-foreground" />
+    <div
+      data-design="tegels"
+      className={`app-shell flex min-h-dvh flex-col bg-background ${tegelsFont.variable}`}
+    >
+      <header className="relative">
+        <nav className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 pt-3">
+          <Link
+            href={isApproved ? "/dashboard" : "/"}
+            className="tg-logo flex shrink-0 items-center"
+            aria-label="ZWB Cycling Community"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/zwb-logo.png" alt="" />
           </Link>
           <Link
-            href={user ? "/dashboard" : "/login"}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            href={!user ? "/login" : isApproved ? "/dashboard" : "/wachten"}
+            className={cn(buttonVariants({ variant: "outline" }), "min-h-11 px-4 text-base")}
           >
-            {user ? "Dashboard" : "Inloggen"}
+            {!user ? "Inloggen" : isApproved ? "Naar Vandaag" : "Status"}
           </Link>
-        </div>
+        </nav>
+      </header>
 
-        <PageHeader
-          eyebrow={firstName ? `Welkom ${firstName}` : "Welkom bij ZWB"}
-          title="Starthelper voor nieuwe leden"
-          description="Van registratie tot goedkeuring, profiel, Strava, training, meldingen en live GPS: dit is de route die je stap voor stap doorloopt."
-        />
-
-        <section className="grid gap-4 lg:grid-cols-[1fr_18rem]">
-          <div className="rounded-lg border bg-card/90 p-5">
-            <div className="flex items-start gap-3">
-              <MailCheck className="mt-1 size-5 shrink-0 text-primary" />
-              <div>
-                <h2 className="font-semibold">Over de Supabase-mail</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Ja, dat kan kloppen: de bevestigingslink wordt door Supabase
-                  Auth verstuurd. Kijk na registratie ook in ongewenste mail of
-                  spam. Markeer de mail als vertrouwd, klik op de link en kom
-                  daarna terug op deze helper.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg border bg-card/90 p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Voortgang
-                </p>
-                <p className="text-2xl font-semibold">
-                  {doneCount}/{steps.length}
-                </p>
-              </div>
-              <Clock3 className="size-8 text-primary" />
-            </div>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
+      <main className="mx-auto w-full max-w-5xl flex-1 space-y-7 px-4 pb-10 pt-5">
+        <header className="space-y-3">
+          <h1 className="tg-display">{firstName ? `Welkom, ${firstName}` : "Welkom bij ZWB"}</h1>
+          <div className="max-w-md">
+            <p className="text-sm tabular-nums text-muted-foreground">
+              {allDone ? "Alles staat klaar." : `${doneCount} van ${steps.length} stappen klaar`}
+            </p>
+            <div
+              className="mt-2 h-1 bg-[var(--tg-panel)]"
+              role="progressbar"
+              aria-label="Voortgang"
+              aria-valuemin={0}
+              aria-valuemax={steps.length}
+              aria-valuenow={doneCount}
+            >
               <div
-                className="h-full rounded-full bg-primary"
+                className="h-full bg-primary"
                 style={{ width: `${(doneCount / steps.length) * 100}%` }}
               />
             </div>
           </div>
-        </section>
+        </header>
 
-        <section className="rounded-lg border bg-card/90 p-5">
-          <div className="flex items-start gap-3">
-            <Smartphone className="mt-1 size-5 shrink-0 text-primary" />
-            <div className="min-w-0 flex-1">
-              <h2 className="font-semibold">ZWB als app op je telefoon</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Zet de webapp op je beginscherm voor snelle toegang.
-              </p>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <div>
-                  <h3 className="text-sm font-semibold">iPhone of iPad</h3>
-                  <ol className="mt-2 space-y-1.5 text-sm text-muted-foreground">
-                    <li>1. Open ZWB in Safari.</li>
-                    <li>2. Tik op Delen.</li>
-                    <li>3. Kies Zet op beginscherm en daarna Voeg toe.</li>
-                  </ol>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold">Android</h3>
-                  <ol className="mt-2 space-y-1.5 text-sm text-muted-foreground">
-                    <li>1. Open ZWB in Chrome.</li>
-                    <li>2. Tik op het menu met drie puntjes.</li>
-                    <li>3. Kies Toevoegen aan startscherm of Installeren.</li>
-                  </ol>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <ol className="grid gap-3 lg:grid-cols-2">
-          {steps.map((step, index) => (
-            <StepCard key={step.title} step={step} index={index} />
+        {/* De eerstvolgende stap staat vooraan en breed, de rest op volgorde
+            erachter: zo valt er nooit een gat naast de brede tegel. */}
+        <ol aria-label="Stappen" className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          {ordered.map(({ step, index }) => (
+            <StepTile key={step.title} step={step} number={index + 1} status={status(step, index)} />
           ))}
+          {allDone && (
+            <li className="col-span-2">
+              <Link href="/dashboard" className="tg-tile tg-vandaag h-full">
+                <span className="tg-tile-small">Klaar</span>
+                <span className="mt-0.5 text-[2rem] font-light leading-[1.05] tracking-tight">
+                  Naar Vandaag
+                </span>
+              </Link>
+            </li>
+          )}
         </ol>
 
-        <section className="grid gap-4 lg:grid-cols-3">
-          <article className="rounded-lg border bg-card/90 p-4">
-            <h2 className="font-semibold">Wat gebeurt automatisch?</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Je profiel wordt bij registratie aangemaakt. Strava-, badge-,
-              cols-, fiets-, team- en trainingsdata verschijnen daarna via de
-              bestaande syncs zodra je koppelingen actief zijn.
-            </p>
-          </article>
-          <article className="rounded-lg border bg-card/90 p-4">
-            <h2 className="font-semibold">Wat kies je zelf?</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Profielzichtbaarheid, pushmeldingen, hersteldata delen en live GPS
-              zijn expliciete keuzes. Je kunt ze later weer aanpassen.
-            </p>
-          </article>
-          <article className="rounded-lg border bg-card/90 p-4">
-            <h2 className="font-semibold">Meer uitleg</h2>
-            <Link
-              href="/hulp"
-              className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-            >
-              Open de ledenhulp
-              <ExternalLink className="size-3.5" />
-            </Link>
-          </article>
+        <section className="space-y-2.5">
+          <h2 className="text-[1.625rem] font-light leading-[1.1] tracking-tight">Ook handig</h2>
+          <ul className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            <VideoTile id="wegwijs" />
+            <VideoTile id="app-op-beginscherm" />
+            {isApproved && (
+              <>
+                <li>
+                  <Link href="/hulp/beginnen#videos" className="tg-tile tg-meer h-full">
+                    <span className="tg-tile-small">Hulp</span>
+                    <span className="tg-tile-title">Alle video&apos;s</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/hulp" className="tg-tile tg-meer h-full">
+                    <span className="tg-tile-small">Hulp</span>
+                    <span className="tg-tile-title">Per onderwerp</span>
+                  </Link>
+                </li>
+              </>
+            )}
+          </ul>
         </section>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

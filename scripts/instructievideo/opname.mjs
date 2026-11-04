@@ -319,7 +319,12 @@ mkdirSync(FRAMES, { recursive: true });
 const manifest = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, "utf8")) : {};
 
 // Nederlandse browsertaal, anders staat er "Choose Files" bij het importveld.
-const browser = await chromium.launch({ channel: "chromium", args: ["--lang=nl-NL"] });
+// CHROMIUM_PATH: een eigen Chromium, als de Playwright-versie van het project er geen
+// heeft (zoals in een cloudsessie met een vooraf geïnstalleerde browser).
+const browser = await chromium.launch({
+  ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : { channel: "chromium" }),
+  args: ["--lang=nl-NL"],
+});
 await warmUp(browser, scenes);
 for (const scene of scenes) {
   const result = await recordScene(browser, scene);

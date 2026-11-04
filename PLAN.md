@@ -160,6 +160,12 @@ gaat stabiliteit voor nieuwe features.
    nieuwe privacyversie kan. Nalopen na de deploy:
    `/beheer/koppelingen` met echte data openen. Zie de ronde "Beheer:
    koppelingen per lid".
+0s. **Starthelper `/welkom` in tegels, met video's (2026-11-04): op verzoek van
+   de eigenaar gepusht naar `main`.** Geen migratie. Drie
+   nieuwe hulpclips (intervals.icu, Mijn garage, live met Garmin of Wahoo) en
+   drie opnieuw opgenomen. Nalopen na een deploy: `/welkom` uitgelogd, als nieuw
+   lid en als goedgekeurd lid, in licht en donker, en of de clips op de telefoon
+   afspelen. Zie de ronde "Starthelper in tegels, met de hulpvideo's".
 
 1. **Supabase: tijdelijk op Pro sinds 2026-11-02, terug naar Free per 2026-12-02**
    (besluit eigenaar, 2026-11-03: Pro was nodig omdat het project anders op slot
@@ -480,7 +486,9 @@ gaat stabiliteit voor nieuwe features.
 8. **Instructievideo en hulpvideo's** (ronde van 2026-10-19 hieronder). De
    video's tonen het design "tegels"; zolang dat niet voor iedereen aanstaat,
    wijken een paar schermen af van wat leden in het klassieke design zien.
-   Bijwerken na een appwijziging: `opname.mjs` en `bouw.mjs --publiceer`.
+   Bijwerken na een appwijziging: `opname.mjs` en `bouw.mjs --publiceer`
+   (in een cloudsessie met `CHROMIUM_PATH` en `SUBTITLE_FONT`, zie de ronde
+   "Starthelper in tegels, met de hulpvideo's").
 9. **Racebriefing per ZRL-race** (ronde van 2026-10-20 hieronder): gebouwd,
    lokaal getest en op 2026-10-20 gepusht naar `main`. Migratie `0260_race_briefing.sql` is toegepast
    en de privacytekst staat erin. Open: een API-sleutel van ZwiftRacing.app
@@ -11744,6 +11752,98 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Starthelper in tegels, met de hulpvideo's
+
+**2026-11-04.** Deze commit, op branch `claude/exciting-hypatia-wrs45u`; op
+2026-11-04 op verzoek van de eigenaar naar `main` gepusht (bovenop "Beheer:
+koppelingen per lid"). Geen migratie.
+
+**Waarom.** De eigenaar wilde `/welkom` in hetzelfde tegeldesign als de rest
+van de app, met de instructievideo's van `/hulp` erbij, en waar nodig nieuwe
+video's. De pagina was nog het oude design: kaarten met rand, statuslabels en
+lange uitleg (over de Supabase-mail, wat automatisch gaat, wat je zelf kiest).
+
+**Wat er veranderde op `/welkom`** (`src/app/welkom/page.tsx`).
+- Eigen kader met de tenuebanen, het originele logo en één knop rechtsboven
+  (Inloggen, Status of Naar Vandaag), zonder de vier tabs: de pagina is ook
+  voor wie nog niet is goedgekeurd of ingelogd, en de tabs leiden dan naar
+  dichte schermen. Altijd in tegels, ook bij het cookie voor het oude design:
+  het is een pagina voor nieuwe leden, en twee versies van de stappen
+  bijhouden is dubbel werk.
+- Kop: "Welkom, Sanne" in de displayletter, daaronder "3 van 10 stappen klaar"
+  met een dunne voortgangsbalk.
+- De stappen als tegelveld (2 kolommen, 4 vanaf 768px). De eerstvolgende stap
+  staat vooraan, twee kolommen breed en goud (jij, nu), met één korte regel en
+  een papieren knop. Andere stappen die nu kunnen zijn tegels in de kleur van
+  hun soort met het stapnummer als groot cijfer. Klaar of nog dicht ("Na je
+  account", "Na goedkeuring") is een paneel zonder kleur en geen link
+  (Klikregel). Eerst stond de gouden tegel op zijn plek in de volgorde met
+  `grid-flow-dense`, maar dan schoof stap 3 vóór stap 2; vooraan valt er nooit
+  een gat naast de brede tegel.
+- Bij elke stap met een video een knop met de duur (▶ 0:23): papier op een
+  tegel, donker petrol op een paneel (`.tg-video` in `globals.css`). Een gewone
+  link naar de mp4, zoals op `/hulp`.
+- Stappen nu: account (registreren en bevestigen samen), goedkeuring, profiel,
+  Zwift-ID (nieuw als eigen stap; klaar bij een ID of "Ik zwift niet"), ritten
+  binnenhalen, intervals.icu, je fietsen (de twee fietsstappen samen), meldingen,
+  live met Garmin of Wahoo, en "Rij mee" (nieuw: klaar bij een aanmelding Ja of
+  Misschien in `event_rsvps`). Het Zwift-ID telt niet meer mee voor "profiel
+  compleet", anders telde het dubbel.
+- "Ook handig": Wegwijs in de app en App op je beginscherm als videotegels (de
+  duur is het cijfer), en voor goedgekeurde leden Alle video's en Hulp.
+- De lijst met video's staat nu in `src/lib/help-videos.ts` (met duur en link);
+  `hulp/_data.ts` exporteert hem door.
+
+**Video's** (`scripts/instructievideo/`, zie de ronde "Instructievideo").
+- Nieuw: `intervals-koppelen` (19 s: API-key plakken bij ZWBeter → Doelen,
+  Koppelen, en dan de melding over durability), `mijn-garage` (23 s: via het
+  menu naar Mijn garage, onderdelen en slijtagebalk) en `live-gps` (25 s:
+  LiveTrack-adres maken voor Garmin, Wahoo-link plakken). Scènes 19, 20 en 21
+  in `HULP_SCENES`. Ook gelinkt op `/hulp/training#trainingsruimte`,
+  `/hulp/club#mijn-garage` en `/hulp/live-volgen#livetrack`.
+- Opnieuw opgenomen omdat ze de oude starthelper toonden: `starthelper`,
+  `account-aanmaken` (eindigt op `/welkom`) en `app-op-beginscherm`. De laatste
+  speelt nu op `/hulp/beginnen#webapp-installeren`: de iPhone/Android-stappen
+  staan niet meer op `/welkom`.
+- Demodata: preset `garage` (Strava gekoppeld, een racefiets van 8.420 km met
+  ketting "Bijna", achterband en cassette), en `LIVE_INBOUND_DOMAIN` =
+  `live.voorbeeld.nl` in `serve.mjs`, anders toont Samen fietsen geen
+  Garmin-blok. De Wahoo-link wordt alleen getypt, niet gekoppeld: dat vraagt
+  wahooligan.com echt op.
+- Opgenomen in een cloudsessie: `opname.mjs` neemt nu `CHROMIUM_PATH` (een eigen
+  Chromium), `bouw.mjs` `SUBTITLE_FONT` (hier `Inter SemiBold`; Segoe UI staat
+  alleen op Windows). De nieuwe ondertitels zijn daardoor een fractie zwaarder
+  dan die van de andere clips.
+- Niet met `--publiceer`: in deze sessie stonden alleen de scènes van deze ronde
+  in `out/`, en `--publiceer` leegt eerst heel `public/hulp-video/`. De zes
+  clips zijn met de hand gekopieerd (samen nu 6,5 MB voor veertien clips).
+- Nieuwe test `tests/unit/help-videos.test.ts`: elke video in de lijst heeft
+  een bestand en omgekeerd.
+
+**Bewust niet.**
+- De uitleg over de Supabase-mail, "Wat gebeurt automatisch?" en "Wat kies je
+  zelf?" zijn weg (AGENTS.md: geen uitleg in schermen). De spamtip staat op de
+  gouden tegel van stap 1 en in de video; keuzes en privacy op `/hulp` en in de
+  privacyverklaring.
+- De kJ-tip bij intervals.icu staat niet meer op `/welkom`: de app vraagt er
+  zelf om (de durability-melding), en daar hoort de video `kj-standen` bij.
+- Geen aparte video voor "ritten zonder Strava" bij de stap ritten: één knop
+  per tegel. Die clip staat op `/hulp`.
+- Geen video van de API-key in intervals.icu zelf: daarvoor zijn echte
+  schermafdrukken nodig, zoals bij de kJ-standen; nagemaakte schermen van een
+  andere site niet.
+- Geen detectie of de app al op het beginscherm staat: dat kan alleen in de
+  browser, en dan klopt de telling van de server niet meer.
+- De hoofdvideo "Aan de slag" niet opnieuw gebouwd: scène 05 en 06 zijn
+  aangepast, de rest is niet opnieuw opgenomen in deze sessie.
+
+**Niet geverifieerd.** In de demo-app (nep-Supabase) bekeken op 390 en 1100px,
+licht en donker, uitgelogd, als nieuw lid en als goedgekeurd lid, en de clips
+beeld voor beeld via contactbladen. De staat "alles klaar" niet in beeld gehad.
+Niet tegen productie, niet op een echte telefoon en niet op Netlify. Typecheck
+en ESLint schoon; volle suite 3918 tests groen, alleen `omnium-live.test.ts`
+laadt niet (mist `.env.local` in deze omgeving, zoals eerder).
+
 ### Gebouwd — Beheer: koppelingen per lid
 
 **2026-11-04.** Commit `5d96f6a` op de branch `claude/amazing-volta-p9uvrd`;
@@ -21582,7 +21682,8 @@ korte video om vanuit `/hulp` naar te linken.
   demolid verder een gewoon lid blijft. Wat dat recht extra toont, de designknop
   en het beheerblok in het persoonlijke menu, verbergt de opname met CSS (niet
   weghalen: React loopt vast als zijn elementen verdwijnen). Registratie,
-  wachtpagina en `/welkom` zien er in beide designs hetzelfde uit.
+  wachtpagina en `/welkom` zien er in beide designs hetzelfde uit (`/welkom` is
+  sinds 2026-11-04 altijd in tegels).
 - **In `public/` van de app** (besluit eigenaar, 2026-10-19). Afgevallen:
   YouTube niet-openbaar (elke update met de hand uploaden) en Supabase Storage
   (de egress zit al dicht bij de limiet, zie de Actieve volgorde).
@@ -21597,7 +21698,9 @@ korte video om vanuit `/hulp` naar te linken.
 - Geen speler in de hulppagina zelf, alleen een link: er hoeft dan niets te
   laden tot iemand kijkt.
 - Geen clips voor trainen, live GPS en Mijn garage; die stonden als vervolg in
-  het eerste voorstel.
+  het eerste voorstel. *Bijgewerkt 2026-11-04:* intervals.icu koppelen, Mijn
+  garage en live met Garmin of Wahoo zijn er nu (ronde "Starthelper in tegels,
+  met de hulpvideo's").
 - De nep-Supabase speelt alleen na wat deze scènes nodig hebben: geen realtime,
   geen opslag, ingebedde tabellen alleen eenvoudig. Een nieuwe scène kan dus
   extra fixtures nodig hebben; onbekende tabellen worden in de console gemeld.

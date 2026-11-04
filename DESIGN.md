@@ -524,6 +524,13 @@ Alles, Voor mij en de labels op de kalender: petrol vlakken (`tg-link
 tg-kalender`) van 44px hoog in control-typografie; de gekozen volgt de
 Hierregel.
 
+### Videoknop (`tg-video`)
+Bij een stap op de starthelper (`/welkom`): een vlak van 44px hoog met ▶ en de
+duur in tabelcijfers, dat de korte hulpvideo opent. Op een tegel papier met
+inkt (zoals de startknop op de trainingstegel), op een paneel donker petrol
+(`tg-video-panel`), want ook daar is hij klikbaar. Een video als losse tegel
+is `tg-tile tg-meer` met de duur als cijfer onderaan.
+
 ### Buttons
 - **Primary:** de actiekleur (petrol bij licht, goud bij donker), 2px hoek,
   control-typografie.

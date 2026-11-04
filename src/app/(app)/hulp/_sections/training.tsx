@@ -14,6 +14,7 @@ import {
 } from "../_data";
 import { BriljantHelp } from "./briljant";
 import { GuideCards } from "./guide-cards";
+import { HelpVideoLink } from "./help-video";
 
 export function TrainingHelp() {
   return (
@@ -58,6 +59,7 @@ export function TrainingHelp() {
           >
             Open intervals.icu API-instellingen
           </a>
+          <HelpVideoLink video="intervals-koppelen" className="mt-2 flex w-fit" />
         </div>
 
         <div className="mt-5 rounded-md border bg-background p-4">

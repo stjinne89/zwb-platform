@@ -103,9 +103,57 @@ function intervalsTables(preset) {
   };
 }
 
+/**
+ * De clip over Mijn garage: Strava gekoppeld, met één racefiets en drie
+ * onderdelen in verschillende staat (ketting bijna op, banden en cassette ok).
+ */
+function garageTables(preset) {
+  if (preset !== "garage") return { strava_connections: [], strava_bikes: [], bike_components: [] };
+  const bikeId = "b0000000-0000-4000-8000-000000000001";
+  const part = (n, component_type, threshold_km, baseline_km) => ({
+    id: `c0000000-0000-4000-8000-00000000000${n}`,
+    profile_id: DEMO_USER_ID,
+    bike_id: bikeId,
+    component_type,
+    name: null,
+    wear_range: "normal",
+    wear_metric: "km",
+    threshold_value: null,
+    threshold_km,
+    baseline_distance_m: baseline_km * 1000,
+    installed_at: "2026-03-01",
+    status: "active",
+    created_at: `2026-03-0${n}T10:00:00Z`,
+  });
+  return {
+    strava_connections: [{ profile_id: DEMO_USER_ID, athlete_id: 1000001, scope: "read,activity:read_all,profile:read_all" }],
+    strava_bikes: [
+      {
+        id: bikeId,
+        profile_id: DEMO_USER_ID,
+        name: "Racefiets",
+        brand_model: "Canyon Endurace",
+        distance_m: 8420000,
+        manual_distance_m: null,
+        retired: false,
+        image_url: null,
+        source: "strava",
+        discipline: "race",
+        is_primary: true,
+      },
+    ],
+    bike_components: [
+      part(1, "chain", 3000, 5800),
+      part(2, "tire_rear", 4000, 6900),
+      part(3, "cassette", 9000, 4200),
+    ],
+  };
+}
+
 export function buildState(preset, { design = "klassiek" } = {}) {
-  const profile = demoProfile(KJ_PRESETS.includes(preset) ? "compleet" : preset);
+  const profile = demoProfile(KJ_PRESETS.includes(preset) || preset === "garage" ? "compleet" : preset);
   const { intervals, ...intervalsRows } = intervalsTables(preset);
+  const garageRows = garageTables(preset);
   const user = {
     id: DEMO_USER_ID,
     aud: "authenticated",
@@ -124,11 +172,10 @@ export function buildState(preset, { design = "klassiek" } = {}) {
       profiles: [profile, ...OTHER_MEMBERS],
       community_role_permissions:
         design === "tegels" ? [{ role: "community_member", permissions: ["roles.manage_permissions"] }] : [],
-      strava_connections: [],
       ...intervalsRows,
+      ...garageRows,
       push_subscriptions: [],
       live_tracker_tokens: [],
-      strava_bikes: [],
       strava_activities: [],
       roster_entries: [],
       events: [

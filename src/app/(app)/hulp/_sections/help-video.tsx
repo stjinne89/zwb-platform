@@ -1,20 +1,12 @@
 import { PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { HELP_VIDEOS, type HelpVideoId } from "../_data";
-
-function duration(seconds: number) {
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-}
-
-function videoById(id: HelpVideoId) {
-  return HELP_VIDEOS.find((video) => video.id === id)!;
-}
-
-// Een gewone link naar het mp4-bestand: op de telefoon opent de eigen
-// videospeler, en er hoeft geen speler in de pagina te laden.
-function videoHref(id: HelpVideoId) {
-  return `/hulp-video/${id}.mp4`;
-}
+import {
+  HELP_VIDEOS,
+  helpVideo as videoById,
+  helpVideoDuration as duration,
+  helpVideoHref as videoHref,
+  type HelpVideoId,
+} from "@/lib/help-videos";
 
 /**
  * "Bekijk de video" onder een hulponderdeel. De prop heet bewust niet `id`:

@@ -19,6 +19,9 @@ const HEIGHT = 1920;
 const SCREEN_HEIGHT = 1634; // 390x590 opgeschaald naar 1080 breed
 const BAND = "0x0a2b34"; // zwb-petrol-dark
 const FPS = 30;
+// Letter van de ondertitels. Segoe UI staat op Windows, waar de eerste clips zijn
+// gemaakt; elders (Linux, cloudsessie) bijvoorbeeld SUBTITLE_FONT="Inter SemiBold".
+const FONT = process.env.SUBTITLE_FONT ?? "Segoe UI Semibold";
 
 const manifest = JSON.parse(readFileSync(path.join(OUT, "manifest.json"), "utf8"));
 const clipsDir = path.join(OUT, "clips");
@@ -131,8 +134,8 @@ function render({ name, sceneList, label, small = false }) {
     "[V4+ Styles]",
     "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
     // ASS-kleuren zijn &HAABBGGRR.
-    "Style: Tekst,Segoe UI Semibold,46,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,2,70,70,64,1",
-    "Style: Stap,Segoe UI Semibold,30,&H003D87B8,&H003D87B8,&H00000000,&H00000000,0,0,0,0,100,100,1.5,0,1,0,0,8,70,70,1664,1",
+    `Style: Tekst,${FONT},46,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,2,70,70,64,1`,
+    `Style: Stap,${FONT},30,&H003D87B8,&H003D87B8,&H00000000,&H00000000,0,0,0,0,100,100,1.5,0,1,0,0,8,70,70,1664,1`,
     "",
     "[Events]",
     "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",

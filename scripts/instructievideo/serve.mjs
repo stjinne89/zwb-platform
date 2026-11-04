@@ -24,6 +24,8 @@ const env = {
   // De nep-Supabase beantwoordt ook de vragen aan intervals.icu (powercurve).
   INTERVALS_BASE_URL: `http://127.0.0.1:${mockPort}`,
   STRAVA_CLIENT_ID: "00000",
+  // Verzonnen domein, zodat Samen fietsen een LiveTrack-adres voor Garmin toont.
+  LIVE_INBOUND_DOMAIN: "live.voorbeeld.nl",
   NEXT_PUBLIC_VAPID_PUBLIC_KEY:
     "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U",
 };

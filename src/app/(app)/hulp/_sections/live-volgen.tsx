@@ -7,6 +7,7 @@ import {
   RIDE_MESSAGE_WAHOO_STEPS,
   RIDE_MESSAGE_NOTES,
 } from "../_data";
+import { HelpVideoLink } from "./help-video";
 
 export function LiveVolgenHelp() {
   return (
@@ -40,6 +41,8 @@ export function LiveVolgenHelp() {
             </div>
           ))}
         </div>
+
+        <HelpVideoLink video="live-gps" className="mt-4 flex w-fit" />
 
         <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
           {LIVETRACK_NOTES.map((note) => (

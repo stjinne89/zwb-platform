@@ -106,30 +106,31 @@ export const SCENES = [
     ingelogd: true,
     start: "/welkom",
     tekst:
-      "De starthelper laat zien welke stappen je al gedaan hebt, en wat je nog moet doen. Elke stap heeft een knop die je meteen naar de goede plek brengt. Je vindt de starthelper later ook terug via de pagina Hulp.",
+      "De starthelper laat zien welke stappen je al gedaan hebt. Wat je nu kunt doen, staat in de gouden tegel. Bij bijna elke stap hoort een korte video. Je vindt de starthelper later ook terug via de pagina Hulp.",
     async speel(s) {
       const p = s.page;
+      const steps = p.getByRole("list", { name: "Stappen" });
       await s.at("stappen");
-      await s.highlight(p.getByText("Voortgang").locator(".."), 1800);
-      await s.at("Elke");
-      await s.scrollTo(p.getByRole("heading", { name: "Goedkeuring door beheerder" }), "start");
-      await s.at("knop");
-      await s.highlight(p.getByRole("link", { name: "Profiel aanvullen" }), 2000);
+      await s.highlight(p.getByRole("progressbar").locator(".."), 1800);
+      await s.at("gouden");
+      await s.highlight(steps.locator("li.col-span-2").first(), 2400);
+      await s.at("video");
+      await s.highlight(p.getByRole("link", { name: /^Video: Je profiel/ }), 2000);
       await s.at("later");
-      await s.scrollTo(p.getByRole("heading", { name: "intervals.icu koppelen" }), "start");
+      await s.scrollBy(520, 2400);
     },
   },
   {
     id: "06-beginscherm",
     titel: "App op je beginscherm",
-    preset: "nieuw",
+    preset: "compleet",
     ingelogd: true,
-    start: "/welkom",
+    start: "/hulp/beginnen",
     tekst:
       "Handig: zet ZWBasis als app op je beginscherm. Op een iPhone open je de site in Safari, tik je op Delen, en kies je Zet op beginscherm. Op Android open je de site in Chrome, tik je op de drie puntjes, en kies je Toevoegen aan startscherm.",
     async speel(s) {
       const p = s.page;
-      await s.scrollTo(p.getByRole("heading", { name: "ZWB als app op je telefoon" }), "start");
+      await s.scrollTo(p.locator("#webapp-installeren"), "start");
       await s.at("iPhone");
       await s.highlight(p.getByRole("heading", { name: "iPhone of iPad" }).locator(".."), 3800);
       await s.at("Android");
@@ -349,7 +350,10 @@ export const CLIPS = [
   { id: "profiel", titel: "Je profiel", scenes: ["10-profiel"], hulp: "beginnen" },
   { id: "strava-koppelen", titel: "Strava koppelen", scenes: ["11-strava"], hulp: "strava-rechten" },
   { id: "zonder-strava", titel: "Ritten zonder Strava", scenes: ["12-zonder-strava"], hulp: "ritten-via-intervals" },
+  { id: "intervals-koppelen", titel: "intervals.icu koppelen", scenes: ["19-intervals"], hulp: "trainingsruimte" },
+  { id: "mijn-garage", titel: "Je fietsen en Mijn garage", scenes: ["20-garage"], hulp: "mijn-garage" },
   { id: "meldingen", titel: "Meldingen aanzetten", scenes: ["13-meldingen"], hulp: "meldingen-problemen" },
+  { id: "live-gps", titel: "Live met Garmin of Wahoo", scenes: ["21-live"], hulp: "livetrack" },
   { id: "aanmelden-event", titel: "Aanmelden voor een event", scenes: ["14-kalender"], hulp: "agenda" },
   { id: "kj-standen", titel: "Durability: de kJ-standen", scenes: ["16-kj-melding", "17-kj-intervals", "18-kj-ophalen"], hulp: "zwbriljant" },
 ];
@@ -465,6 +469,90 @@ export const HULP_SCENES = [
       await s.highlight(s.page.getByRole("link", { name: "Vermogen", exact: true }).first(), 1800);
       await s.at("tik");
       await s.highlight(button, 3000);
+    },
+  },
+  // ---- Clips voor de starthelper op /welkom (2026-11-04) ----
+  {
+    id: "19-intervals",
+    titel: "intervals.icu koppelen",
+    preset: "compleet",
+    ingelogd: true,
+    start: "/zwbeter-worden/doelen",
+    tekst:
+      "Voor je trainingsschema koppel je intervals.icu. Open daar Settings, dan Developer Settings, en kopieer je API-key. Plak die in ZWB bij ZWBeter, onder Doelen, en tik op Koppelen. Vraagt de app daarna om je kJ-standen? Daarover gaat de video over durability.",
+    async speel(s) {
+      const p = s.page;
+      const panel = p.getByRole("heading", { name: "Koppel intervals.icu" }).locator("../..");
+      await s.at("koppel");
+      await s.scrollTo(panel);
+      await s.highlight(panel, 2200);
+      await s.at("Plak");
+      await s.type(p.getByPlaceholder(/API-key/), "5k2r8t1w9q4m7x3v6b0n2c8z", 45);
+      await s.at("Doelen");
+      await s.highlight(p.getByRole("link", { name: "Doelen", exact: true }).first(), 1400);
+      await s.at("tik op");
+      await s.tap(p.getByRole("button", { name: "Koppelen", exact: true }));
+      await s.at("kJ-standen");
+      const dialog = p.locator('[data-slot="dialog-content"]');
+      await dialog.waitFor({ timeout: 8000 });
+      await s.highlight(dialog, 3000);
+    },
+  },
+  {
+    id: "20-garage",
+    titel: "Je fietsen en Mijn garage",
+    preset: "garage",
+    ingelogd: true,
+    start: "/dashboard",
+    tekst:
+      "Met Strava gekoppeld kent ZWB je fietsen en hun kilometers. Open Mijn garage, rechtsboven onder je naam. Voeg per fiets onderdelen toe, zoals je ketting en je banden. De balk laat zien wanneer een onderdeel aan vervanging toe is. Geen Strava? Zet je fiets dan met de hand op je profiel.",
+    async speel(s) {
+      const p = s.page;
+      await s.at("Mijn garage");
+      await s.tap(p.getByRole("button", { name: /Persoonlijk menu/ }));
+      await s.tap(p.getByRole("menuitem", { name: "Mijn garage" }));
+      await p.waitForURL(/\/mijn-garage/);
+      await s.at("onderdelen");
+      const add = p.getByRole("button", { name: "Onderdeel toevoegen" });
+      await s.scrollTo(add.locator("xpath=ancestor::form[1]"), "start");
+      await s.highlight(p.locator("select").nth(1), 2200);
+      await s.at("balk");
+      const chain = p.locator("li", { hasText: "Bijna" }).first();
+      await s.scrollTo(chain);
+      await s.highlight(chain, 3000);
+      await s.at("Geen Strava");
+      await s.scrollBy(260, 1400);
+    },
+  },
+  {
+    id: "21-live",
+    titel: "Live met Garmin of Wahoo",
+    preset: "compleet",
+    ingelogd: true,
+    start: "/live",
+    // De kaart blijft in de opname leeg (geen kaarttegels); begin bij de koppeling.
+    async voorbereiding(s) {
+      await s.page
+        .getByRole("heading", { name: "Garmin of Wahoo LiveTrack" })
+        .evaluate((el) => el.scrollIntoView({ block: "start" }));
+    },
+    tekst:
+      "Rijd je buiten met een Garmin of Wahoo? Dan sta je bij elke rit vanzelf op de kaart van Samen fietsen. Met een Garmin maak je hier een persoonlijk adres, en dat zet je in Garmin Connect bij je LiveTrack-ontvangers. Met een Wahoo plak je de Live Track-link uit de ELEMNT-app, en tik je op Koppelen.",
+    async speel(s) {
+      const p = s.page;
+      const panel = p.getByRole("heading", { name: "Garmin of Wahoo LiveTrack" }).locator("../..");
+      await s.at("Samen fietsen");
+      await s.highlight(panel, 2400);
+      await s.at("Garmin maak");
+      await s.tap(p.getByRole("button", { name: "Adres maken" }));
+      await s.at("Garmin Connect");
+      await s.highlight(p.getByText("Zet dit adres bij je LiveTrack-contacten").locator(".."), 3200);
+      await s.at("Wahoo plak");
+      const link = p.getByPlaceholder(/wahooligan/);
+      await s.scrollTo(link);
+      await s.type(link, "https://www.wahooligan.com/users/live/sanne-demo-2026", 35);
+      await s.at("tik je op");
+      await s.highlight(p.getByRole("button", { name: "Koppelen", exact: true }), 2000);
     },
   },
 ];
