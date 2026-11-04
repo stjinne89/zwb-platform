@@ -47,7 +47,7 @@ gaat stabiliteit voor nieuwe features.
    duur, percentages per route, Zonder vermogen). Zie de ronde "Club Ladder:
    advies renner tegen renner, intervals.icu eerst".
 
-0m. **"Pas vandaag aan" bij de melding "vannacht bijgewerkt" (2026-11-04):
+0t. **"Pas vandaag aan" bij de melding "vannacht bijgewerkt" (2026-11-04):
    lokaal gecommit, niet gepusht.** Geen migratie. Open: pushen op verzoek,
    daarna op Schema de beschikbaarheid van vandaag wijzigen en de link volgen.
    Zie de ronde "Pas vandaag aan bij de melding".
