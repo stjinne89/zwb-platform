@@ -8,6 +8,7 @@ import { buildLadderAdvice, DURATION_LABELS, recentMatches, type LadderAdvice } 
 import { canAssignLadderRiders, canEditLadderPuzzle } from "@/lib/club-ladder/access";
 import { riderRaces } from "@/lib/club-ladder/event-matchup";
 import { loadRiderWeights } from "@/lib/club-ladder/rider-weights";
+import { EDGE_TONE_BORDER, EDGE_TONE_TEXT, edgeTone, formatEdge } from "@/lib/club-ladder/edge-tone";
 import { ensureMatchRiders, loadStoredMatches, loadTeamMatches } from "@/lib/club-ladder/matches";
 import { riderPowerFromMatches, squadPool, squadPower } from "@/lib/club-ladder/matchup";
 import { pickFive, RECENT_RACES, recentTeamRiders, SQUAD_FOCUS_LABELS, SQUAD_FOCUSES, type SquadFocus } from "@/lib/club-ladder/opponent-five";
@@ -561,15 +562,16 @@ function AdviceView({
       <div className="flex flex-wrap gap-1.5 text-xs">
         {DURATIONS.map((d) => {
           const value = advice.edge[d];
+          const tone = edgeTone(value);
           return (
             <span
               key={d}
               className={cn(
                 "rounded-md border px-2 py-1 tabular-nums",
-                value == null ? "text-muted-foreground" : value >= 0 ? "border-primary/30 bg-primary/10 text-primary" : "bg-muted",
+                tone ? [EDGE_TONE_TEXT[tone], EDGE_TONE_BORDER[tone]] : "text-muted-foreground",
               )}
             >
-              {DURATION_LABELS[d]} {value == null ? "–" : `${value > 0 ? "+" : ""}${value}%`}
+              {DURATION_LABELS[d]} {value == null ? "–" : formatEdge(value)}
             </span>
           );
         })}

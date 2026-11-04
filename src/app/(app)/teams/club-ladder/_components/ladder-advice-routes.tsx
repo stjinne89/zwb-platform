@@ -2,6 +2,7 @@
 
 import { ExternalLink, Star } from "lucide-react";
 import type { RouteAdvice } from "@/lib/club-ladder/advice";
+import { EDGE_TONE_TEXT, edgeTone, formatEdge } from "@/lib/club-ladder/edge-tone";
 import { cn } from "@/lib/utils";
 import { RouteProfileChart, useRouteProfiles, type LadderRouteRow, type ProfileState } from "./ladder-routes";
 
@@ -68,11 +69,17 @@ function AdviceCard({
       {meta.length > 0 && <span className="block text-xs text-muted-foreground">{meta.join(" · ")}</span>}
       {route.reasons.length > 0 && (
         <span className="mt-2 block space-y-0.5 text-xs">
-          {route.reasons.map((reason) => (
-            <span key={reason} className="block">
-              {reason}
-            </span>
-          ))}
+          {route.reasons.map((reason) => {
+            const tone = edgeTone(reason.pct);
+            return (
+              <span key={reason.text} className="block">
+                {reason.text}
+                {tone && reason.pct != null && (
+                  <span className={cn("font-medium tabular-nums", EDGE_TONE_TEXT[tone])}> {formatEdge(reason.pct)}</span>
+                )}
+              </span>
+            );
+          })}
         </span>
       )}
     </>

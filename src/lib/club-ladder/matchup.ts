@@ -14,10 +14,10 @@
 import { pickFive, type PoolRider, type RecentSquad, type SquadFocus } from "./opponent-five";
 import { averageWeight, logEdges, routeWkg, shownWeight, sideRouteWkg, weightsUsable, type WeightedRider } from "./rider-weight";
 import { DURATIONS, sameTeam, teamRidersFromMatches, topFiveAverage, type PowerWkg, type StoredMatch } from "./team-power";
+import { EVEN_PCT } from "./edge-tone";
 import type { DurationTerrain, DurationWeights, PowerDuration } from "./routes";
 
-/** Verschil dat we gelijk noemen, in procenten (eigen vuistregel). */
-export const EVEN_PCT = 2;
+export { EVEN_PCT };
 
 export type RiderPower = { wkg: PowerWkg; races: number; racingScore: number | null };
 

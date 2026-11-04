@@ -129,7 +129,7 @@ describe("advies met gewicht", () => {
     expect(heavy.weightCounts).toBe(true);
     expect(heavy.weightKg).toEqual({ ours: 85, theirs: 65 });
     expect(heavy.routes[0].routeClass).toBe("vlak");
-    expect(heavy.routes[0].reasons.some((reason) => reason.startsWith("Gewicht scheelt hier +"))).toBe(true);
+    expect(heavy.routes[0].reasons.some((reason) => reason.text === "Gewicht scheelt hier" && reason.pct! > 0)).toBe(true);
     expect(["klim", "heuvel"]).toContain(advise(65, 85).routes[0].routeClass);
     // De W/kg-chips blijven gewone W/kg.
     expect(heavy.edge.m20).toBe(0);

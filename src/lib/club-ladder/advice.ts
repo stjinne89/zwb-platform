@@ -1,4 +1,4 @@
-import { EVEN_PCT } from "./matchup";
+import { EVEN_PCT, formatEdge } from "./edge-tone";
 import { logEdges, shownWeight, sideRouteWkg, weightsUsable, type WeightedRider } from "./rider-weight";
 import { routeClassOfSlug, ROUTE_CLASS_LABELS, type LadderRouteClass, type LadderRouteOption, type PowerDuration } from "./routes";
 import { DURATIONS, sameTeam, type PowerWkg, type StoredMatch } from "./team-power";
@@ -14,8 +14,15 @@ export type RouteAdvice = {
   routeClass: LadderRouteClass;
   favorite: boolean;
   score: number;
-  reasons: string[];
+  reasons: AdviceReason[];
 };
+
+/** Een reden bij een parcours. `pct` is ons voordeel in hele procenten, los van de tekst zodat hij kleur krijgt. */
+export type AdviceReason = { text: string; pct?: number };
+
+export function reasonText(reason: AdviceReason) {
+  return reason.pct == null ? reason.text : `${reason.text} ${formatEdge(reason.pct)}`;
+}
 
 export type LadderAdvice = {
   routes: RouteAdvice[];
@@ -81,9 +88,9 @@ function recordLean(record: ClassRecord | undefined) {
   return (record.pointsShare - 0.5) * (record.races / (record.races + 2));
 }
 
-function pct(value: number) {
-  const rounded = Math.round(value * 100);
-  return `${rounded > 0 ? "+" : ""}${rounded}%`;
+/** Een verschil als fractie naar hele procenten. */
+function toPct(value: number) {
+  return Math.round(value * 100);
 }
 
 export function buildLadderAdvice(input: {
@@ -119,7 +126,7 @@ export function buildLadderAdvice(input: {
   }
 
   const routes = options.map((option): RouteAdvice => {
-    const reasons: string[] = [];
+    const reasons: AdviceReason[] = [];
     const routeEdge = weightCounts
       ? logEdges(sideRouteWkg(ourRows, option.terrain, true), sideRouteWkg(theirRows, option.terrain, true))
       : edge;
@@ -140,20 +147,20 @@ export function buildLadderAdvice(input: {
     if (weightSum > 0) {
       power /= weightSum;
       wkgOnly /= weightSum;
-      if (heaviest) reasons.push(`${DURATION_LABELS[heaviest]} telt hier zwaar: wij ${pct(routeEdge[heaviest]!)}`);
+      if (heaviest) reasons.push({ text: `${DURATION_LABELS[heaviest]} telt hier zwaar: wij`, pct: toPct(routeEdge[heaviest]!) });
       // Wat het gewicht hier verandert tegenover alleen W/kg.
-      if (weightCounts && Math.abs(Math.round((power - wkgOnly) * 100)) >= EVEN_PCT) reasons.push(`Gewicht scheelt hier ${pct(power - wkgOnly)}`);
+      if (weightCounts && Math.abs(toPct(power - wkgOnly)) >= EVEN_PCT) reasons.push({ text: "Gewicht scheelt hier", pct: toPct(power - wkgOnly) });
     }
 
     const ours = ourRecords.get(option.routeClass);
     const theirs = theirRecords.get(option.routeClass);
     const history = recordLean(ours) - recordLean(theirs);
     const label = ROUTE_CLASS_LABELS[option.routeClass].toLowerCase();
-    if (ours) reasons.push(`Wij op ${label}: ${ours.wins} van ${ours.races} gewonnen`);
-    if (theirs) reasons.push(`${theirName} op ${label}: ${theirs.wins} van ${theirs.races} gewonnen`);
+    if (ours) reasons.push({ text: `Wij op ${label}: ${ours.wins} van ${ours.races} gewonnen` });
+    if (theirs) reasons.push({ text: `${theirName} op ${label}: ${theirs.wins} van ${theirs.races} gewonnen` });
 
     const picks = theirPicks.get(option.slug) ?? 0;
-    if (picks > 0) reasons.push(`Koos ${theirName} zelf (${picks}×)`);
+    if (picks > 0) reasons.push({ text: `Koos ${theirName} zelf (${picks}×)` });
 
     const favorite = favorites.has(option.slug);
     const score = power + HISTORY_WEIGHT * history - OWN_PICK_PENALTY * picks + (favorite ? FAVORITE_BONUS : 0);
@@ -161,7 +168,7 @@ export function buildLadderAdvice(input: {
   });
 
   routes.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "nl"));
-  const percent = Object.fromEntries(DURATIONS.map((d) => [d, edge[d] == null ? null : Math.round(edge[d]! * 100)])) as Record<PowerDuration, number | null>;
+  const percent = Object.fromEntries(DURATIONS.map((d) => [d, edge[d] == null ? null : toPct(edge[d]!)])) as Record<PowerDuration, number | null>;
   return {
     routes: routes.slice(0, 3),
     bestFavorite: routes.find((route) => route.favorite) ?? null,

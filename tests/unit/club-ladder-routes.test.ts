@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLadderAdvice, classRecords } from "@/lib/club-ladder/advice";
+import { buildLadderAdvice, classRecords, reasonText } from "@/lib/club-ladder/advice";
 import { parseLadderResultPage } from "@/lib/club-ladder/result-page";
 import { climbSeconds, durationWeights, effortMix, findLadderRouteSlug, ladderRouteOptions, lapsWithinRule, routeClassFor } from "@/lib/club-ladder/routes";
 import { challengeableTeams } from "@/lib/club-ladder/rules";
@@ -249,6 +249,6 @@ describe("route-advies", () => {
       matches: [match(1, "tempus-fugit", "Zij", 30, "Ander", 25)],
     })!;
     expect(advice.routes[0].slug).toBe("flat-route-rev");
-    expect(advice.routes[1].reasons).toContain("Koos Zij zelf (1×)");
+    expect(advice.routes[1].reasons.map(reasonText)).toContain("Koos Zij zelf (1×)");
   });
 });

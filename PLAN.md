@@ -11738,6 +11738,41 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: kleur voor voordeel en nadeel in het advies
+
+**2026-11-04.** Commit op de branch `claude/focused-babbage-e8rcdn` (hash in
+de git-log; dit PLAN-stuk zit in dezelfde commit). Geen migratie. Lokaal
+gecommit, nog niet gepusht.
+
+**Waarom.** De eigenaar wil aan de kleur zien of een percentage bij Advies in
+het voordeel of het nadeel van ZWB is. Tot nu toe kreeg elke chip van 0% of
+meer de petrol/goud-tint van `primary`, ook +1%, en een nadeel alleen grijs;
+de percenten in de redenen per route hadden geen kleur.
+
+**Wat er veranderde.**
+- Nieuw `club-ladder/edge-tone.ts` (puur, zonder routedata, dus ook voor
+  clientcomponenten): `edgeTone` geeft voor/achter/gelijk met dezelfde grens als
+  de matchup, `EVEN_PCT` (2%); die constante staat nu hier en `matchup.ts`
+  exporteert hem door. Kleuren als de plus en min in de statistieken:
+  `text-emerald-700`/`dark:text-emerald-400` en `text-destructive`.
+- **Chips per duur:** groen tekst en rand vanaf +2%, rood vanaf −2%, grijs
+  daartussen. De tint (`bg-primary/10`) is weg: een gekleurd vlak betekent in
+  DESIGN.md "klikbaar" (de Klikregel), gekleurde tekst niet.
+- **Redenen:** `RouteAdvice.reasons` is nu `AdviceReason[]` (`{ text, pct? }`)
+  in plaats van tekst, zodat alleen het getal bij "telt hier zwaar: wij" en
+  "Gewicht scheelt hier" kleur krijgt; `reasonText` geeft de oude tekst. Twee
+  tests aangepast, nieuw `club-ladder-edge-tone.test.ts`.
+- `/hulp` (Advies) noemt groen, rood en grijs.
+
+**Bewust niet.** De matchup op de eventpagina houdt zijn eigen stijl (voordeel
+in `primary`, nadeel grijs); niet gevraagd. Geen kleur voor de winstregels
+("2 van 3 gewonnen"): geen percentage.
+
+**Niet geverifieerd.** De echte pagina in de browser. Wel gecontroleerd: een
+nagebouwde adviesblok met de `globals.css` van het project, in licht en
+donker, is leesbaar. Typecheck en ESLint schoon; ladder- en
+racebriefing-tests slagen (147).
+
 ### Gebouwd — Club Ladder: kies de vijf van de tegenstander
 
 **2026-11-04.** Commit `4cc9124` op de branch `claude/festive-bell-ahpdri`;
