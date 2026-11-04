@@ -11728,9 +11728,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: hoogteprofiel en ZwiftInsider bij het advies
 
-**2026-11-04.** Commit op de branch `claude/focused-babbage-e8rcdn` (hash in
-de git-log van deze ronde; dit PLAN-stuk zit in dezelfde commit). Geen
-migratie. Alleen lokaal gecommit, nog niet gepusht.
+**2026-11-04.** Commit `c2dd6b4` op de branch `claude/focused-babbage-e8rcdn`;
+op 2026-11-04 op verzoek van de eigenaar naar `main` gepusht. Geen migratie.
 
 **Waarom.** De eigenaar wil dat de geadviseerde parcoursen onder Advies werken
 zoals die bij Favoriete parcoursen: de eerste klik toont het hoogteprofiel, een
