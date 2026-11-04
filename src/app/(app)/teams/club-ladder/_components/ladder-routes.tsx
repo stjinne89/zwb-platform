@@ -27,7 +27,39 @@ function lapsLabel(laps: LadderRouteRow["laps"]) {
   return laps.map((lap) => `${lap.laps}× ${km(lap.km)} km · ${lap.elevationM} hm`).join(" / ");
 }
 
-type ProfileState = LadderRouteProfile | null | "laden";
+export type ProfileState = LadderRouteProfile | null | "laden";
+
+/** Hoogteprofiel onder een uitgeklapt parcours. */
+export function RouteProfileChart({ profile }: { profile: ProfileState | undefined }) {
+  return (
+    <div className="px-2.5 pb-2.5">
+      {profile === "laden" || profile === undefined ? (
+        <p className="text-xs text-muted-foreground">Profiel laden…</p>
+      ) : profile ? (
+        <ZwiftProfile segments={profile.segments} accents={profile.accents} totalKm={profile.totalKm} />
+      ) : (
+        <p className="text-xs text-muted-foreground">Geen profiel.</p>
+      )}
+    </div>
+  );
+}
+
+/** Eén uitgeklapt parcours tegelijk; elk profiel wordt één keer opgehaald. */
+export function useRouteProfiles() {
+  const [open, setOpen] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<Record<string, ProfileState>>({});
+
+  function openRoute(slug: string) {
+    setOpen(slug);
+    if (profiles[slug] !== undefined) return;
+    setProfiles((current) => ({ ...current, [slug]: "laden" }));
+    getLadderRouteProfile(slug)
+      .then((profile) => setProfiles((current) => ({ ...current, [slug]: profile })))
+      .catch(() => setProfiles((current) => ({ ...current, [slug]: null })));
+  }
+
+  return { open, profiles, openRoute };
+}
 
 /**
  * Eén parcours. De eerste klik klapt het hoogteprofiel uit; daarna is het hele
@@ -65,17 +97,7 @@ function RouteLine({
       </span>
     </>
   );
-  const chart = open && (
-    <div className="px-2.5 pb-2.5">
-      {profile === "laden" || profile === undefined ? (
-        <p className="text-xs text-muted-foreground">Profiel laden…</p>
-      ) : profile ? (
-        <ZwiftProfile segments={profile.segments} accents={profile.accents} totalKm={profile.totalKm} />
-      ) : (
-        <p className="text-xs text-muted-foreground">Geen profiel.</p>
-      )}
-    </div>
-  );
+  const chart = open && <RouteProfileChart profile={profile} />;
 
   return (
     <li className={cn("rounded-md border bg-background text-sm", open && "md:col-span-2 border-primary/40")}>
@@ -154,8 +176,7 @@ export function LadderRoutes({
   const [query, setQuery] = useState("");
   const [routeClass, setRouteClass] = useState("");
   const [world, setWorld] = useState("");
-  const [open, setOpen] = useState<string | null>(null);
-  const [profiles, setProfiles] = useState<Record<string, ProfileState>>({});
+  const { open, profiles, openRoute } = useRouteProfiles();
 
   const worlds = useMemo(
     () => [...new Map(routes.map((route) => [route.world, route.worldLabel])).entries()].sort((a, b) => a[1].localeCompare(b[1], "nl")),
@@ -171,15 +192,6 @@ export function LadderRoutes({
       (!routeClass || route.classLabel === routeClass) &&
       (!world || route.world === world),
   );
-
-  function openRoute(slug: string) {
-    setOpen(slug);
-    if (profiles[slug] !== undefined) return;
-    setProfiles((current) => ({ ...current, [slug]: "laden" }));
-    getLadderRouteProfile(slug)
-      .then((profile) => setProfiles((current) => ({ ...current, [slug]: profile })))
-      .catch(() => setProfiles((current) => ({ ...current, [slug]: null })));
-  }
 
   function toggle(slug: string) {
     const next = !favorites.has(slug);

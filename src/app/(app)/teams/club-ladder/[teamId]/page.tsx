@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
-import { Activity, RefreshCw, Star, Swords, Trophy, Users } from "lucide-react";
+import { Activity, RefreshCw, Swords, Trophy, Users } from "lucide-react";
 import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
 import { TeamChatLinks } from "@/components/team-chat-links";
-import { buildLadderAdvice, DURATION_LABELS, recentMatches, type LadderAdvice, type RouteAdvice } from "@/lib/club-ladder/advice";
+import { buildLadderAdvice, DURATION_LABELS, recentMatches, type LadderAdvice } from "@/lib/club-ladder/advice";
 import { canAssignLadderRiders, canEditLadderPuzzle } from "@/lib/club-ladder/access";
 import { riderRaces } from "@/lib/club-ladder/event-matchup";
 import { loadRiderWeights } from "@/lib/club-ladder/rider-weights";
@@ -31,6 +31,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { DeleteResultButton, TeamChatLinksForm, TeamResultForm } from "../../[id]/_components/admin-panel";
 import { TeamAvailabilityButtons } from "../../[id]/_components/team-availability-buttons";
+import { LadderAdviceRoutes } from "../_components/ladder-advice-routes";
 import { LadderRoutes, type LadderRouteRow } from "../_components/ladder-routes";
 import { LadderSelection, type SelectionOption } from "../_components/ladder-selection";
 import { Metric, StandingsTable, TeamRidersTable } from "../_components/team-tables";
@@ -485,7 +486,6 @@ function AdviceView({
   selection: boolean;
 }) {
   if (!advice) return <EmptyState className="mt-3">Nog geen wedstrijden van {opponent} bewaard.</EmptyState>;
-  const bySlug = new Map(options.map((option) => [option.slug, option]));
   const extraFavorite =
     advice.bestFavorite && !advice.routes.some((route) => route.slug === advice.bestFavorite!.slug) ? advice.bestFavorite : null;
   return (
@@ -515,40 +515,7 @@ function AdviceView({
           {advice.ours.riders} / {advice.theirs.riders} renners · 90 d: {advice.ours.with90d} / {advice.theirs.with90d}
         </span>
       </div>
-      <ol className="grid gap-2 lg:grid-cols-3">
-        {advice.routes.map((route, index) => (
-          <AdviceCard key={route.slug} route={route} rank={index + 1} option={bySlug.get(route.slug)} />
-        ))}
-      </ol>
-      {extraFavorite && (
-        <ol className="grid gap-2 lg:grid-cols-3">
-          <AdviceCard route={extraFavorite} rank={null} option={bySlug.get(extraFavorite.slug)} />
-        </ol>
-      )}
+      <LadderAdviceRoutes routes={advice.routes} extraFavorite={extraFavorite} options={options} />
     </div>
   );
 }
-
-function AdviceCard({ route, rank, option }: { route: RouteAdvice; rank: number | null; option?: LadderRouteRow }) {
-  return (
-    <li className="rounded-md border bg-background p-3 text-sm">
-      <p className="flex items-center gap-1.5 font-medium">
-        {rank != null && <span className="tabular-nums text-muted-foreground">{rank}.</span>}
-        {route.favorite && <Star aria-label="Favoriet" className="size-3.5 fill-primary text-primary" />}
-        {route.name}
-      </p>
-      <p className="text-xs text-muted-foreground">
-        {worldLabel(route.world)} · {ROUTE_CLASS_LABELS[route.routeClass]}
-        {option ? ` · ${option.laps.map((lap) => `${lap.laps}×`).join("/")}` : ""}
-      </p>
-      {route.reasons.length > 0 && (
-        <ul className="mt-2 space-y-0.5 text-xs">
-          {route.reasons.map((reason) => (
-            <li key={reason}>{reason}</li>
-          ))}
-        </ul>
-      )}
-    </li>
-  );
-}
-

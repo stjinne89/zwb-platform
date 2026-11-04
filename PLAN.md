@@ -11726,6 +11726,41 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: hoogteprofiel en ZwiftInsider bij het advies
+
+**2026-11-04.** Commit op de branch `claude/focused-babbage-e8rcdn` (hash in
+de git-log van deze ronde; dit PLAN-stuk zit in dezelfde commit). Geen
+migratie. Alleen lokaal gecommit, nog niet gepusht.
+
+**Waarom.** De eigenaar wil dat de geadviseerde parcoursen onder Advies werken
+zoals die bij Favoriete parcoursen: de eerste klik toont het hoogteprofiel, een
+tweede klik opent de route op ZwiftInsider. De adviesblokken waren tot nu toe
+niet aanklikbaar.
+
+**Wat er veranderde.**
+- Nieuw clientcomponent `club-ladder/_components/ladder-advice-routes.tsx`
+  (`LadderAdviceRoutes`) voor de drie adviesroutes en de losse beste favoriet.
+  Eén route tegelijk open, ook over die twee lijsten heen; open beslaat hij de
+  hele rij (`lg:col-span-3`), zoals een open favoriet twee kolommen beslaat.
+- Uit `ladder-routes.tsx` gehaald en gedeeld: `useRouteProfiles` (open route +
+  profielen, elk profiel één keer via `getLadderRouteProfile`) en
+  `RouteProfileChart` (laden / profiel / geen profiel). `LadderRoutes` gebruikt
+  ze ook; het gedrag van de favorieten is niet veranderd.
+- `AdviceCard` is weg uit `[teamId]/page.tsx`. Wereld, type en rondentallen
+  komen nu uit de `LadderRouteRow` van de route, zodat de clientbundel
+  `routes.ts` niet nodig heeft. De redenen staan als spans in de knop (een
+  lijst mag niet in een `<button>`).
+- `/hulp` (Advies) noemt de klik.
+
+**Bewust niet.** Geen ster om een adviesroute favoriet te maken: dat blijft bij
+Favoriete parcoursen, waar de captainrechten al staan. Geen tweede
+profielcache: een route die bij beide tegels open gaat, haalt het profiel per
+tegel één keer op.
+
+**Niet geverifieerd.** De pagina in de browser (vraagt inloggen en een
+tegenstander met bewaarde wedstrijden). Typecheck en ESLint schoon; de elf
+Club Ladder-testbestanden (114 tests) slagen.
+
 ### Gebouwd — Club Ladder: gewicht telt mee in matchup en route-advies
 
 **2026-11-04.** Commit `33448d9` op de branch `claude/festive-bell-ahpdri`,
