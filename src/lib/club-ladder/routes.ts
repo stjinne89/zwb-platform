@@ -31,6 +31,8 @@ export type LadderRouteOption = {
   uphillFinish: boolean;
   /** Wat het parcours vraagt, verdeeld over 15 s, 1, 5 en 20 minuten (som 1). */
   weights: DurationWeights;
+  /** Op welke hellingen elke duur telt, voor het lichaamsgewicht. */
+  terrain: DurationTerrain;
 };
 
 const WORLD_LABELS: Record<string, string> = {
@@ -91,6 +93,8 @@ export function climbSeconds(km: number, pct: number) {
   return (km * 1000) / low;
 }
 
+const DURATIONS_ORDER: PowerDuration[] = ["s15", "m1", "m5", "m20"];
+
 const ANCHORS: Array<[PowerDuration, number]> = [
   ["s15", 15],
   ["m1", 60],
@@ -114,6 +118,11 @@ export function effortMix(seconds: number): DurationWeights {
   return mix;
 }
 
+/** Een deel van wat een duur op een parcours vraagt: de helling in procenten en het aandeel daarin. */
+export type TerrainPart = { pct: number; share: number };
+/** Per duur de hellingen waarop hij telt, met aandelen die per duur optellen tot 1. */
+export type DurationTerrain = Record<PowerDuration, TerrainPart[]>;
+
 /**
  * Wat een parcours vraagt, als eigen vuistregel. Elke klim weegt bij de duur
  * die hij kost: een steil muurtje van een minuut bij 1 min, een klim van een
@@ -122,26 +131,53 @@ export function effortMix(seconds: number): DurationWeights {
  * buiten de bekende klimmen tellen als glooiend (5 min), en zonder bergop
  * finish telt de sprint (15 s). Klimmen per ronde tellen met de wortel van het
  * aantal rondes: elke volgende doortocht beslist minder.
+ *
+ * Naast het gewicht per duur ook op welke hellingen dat gewicht ligt, voor het
+ * omrekenen van W/kg naar lichaamsgewicht (`rider-weight.ts`): een klim op zijn
+ * eigen helling, het glooiende deel van 5 min op het dubbele van de gemiddelde
+ * helling (de helft van de route gaat omhoog, hooguit 8%), de rest vlak.
  */
-export function durationWeights(metersPerKm: number, climbs: LadderClimb[], finishClimb: LadderClimb | null, laps = 1): DurationWeights {
+export function durationDemand(
+  metersPerKm: number,
+  climbs: LadderClimb[],
+  finishClimb: LadderClimb | null,
+  laps = 1,
+): { weights: DurationWeights; terrain: DurationTerrain } {
   const hills = clamp01(metersPerKm / 15);
-  const raw: DurationWeights = {
-    s15: 0.35 * (1 - hills) + (finishClimb ? 0 : 0.15),
-    m1: 0.2,
-    m5: 0.1 + 0.2 * hills,
-    m20: 0.1,
+  const rollingPct = Math.min(8, metersPerKm / 5);
+  const parts: Record<PowerDuration, TerrainPart[]> = {
+    s15: [{ pct: 0, share: 0.35 * (1 - hills) + (finishClimb ? 0 : 0.15) }],
+    m1: [{ pct: 0, share: 0.2 }],
+    m5: [
+      { pct: 0, share: 0.1 },
+      { pct: rollingPct, share: 0.2 * hills },
+    ],
+    m20: [{ pct: 0, share: 0.1 }],
   };
   const add = (climb: LadderClimb, factor: number) => {
     const seconds = climbSeconds(climb.km, climb.pct);
     const gainM = climb.km * 10 * climb.pct;
     const importance = (0.15 + 0.45 * Math.sqrt(clamp01(gainM / 300))) * clamp01((climb.pct - 1) / 4) * factor;
     const mix = effortMix(seconds);
-    for (const [d] of ANCHORS) raw[d] += importance * mix[d];
+    for (const [d] of ANCHORS) if (importance * mix[d] > 0) parts[d].push({ pct: climb.pct, share: importance * mix[d] });
   };
   for (const climb of climbs) add(climb, Math.sqrt(laps));
   if (finishClimb) add(finishClimb, 1);
+  const raw = Object.fromEntries(DURATIONS_ORDER.map((d) => [d, parts[d].reduce((sum, part) => sum + part.share, 0)])) as DurationWeights;
   const total = raw.s15 + raw.m1 + raw.m5 + raw.m20;
-  return { s15: raw.s15 / total, m1: raw.m1 / total, m5: raw.m5 / total, m20: raw.m20 / total };
+  const weights: DurationWeights = { s15: raw.s15 / total, m1: raw.m1 / total, m5: raw.m5 / total, m20: raw.m20 / total };
+  const terrain = Object.fromEntries(
+    DURATIONS_ORDER.map((d) => [
+      d,
+      parts[d].filter((part) => part.share > 0).map((part) => ({ pct: Math.round(part.pct * 10) / 10, share: part.share / raw[d] })),
+    ]),
+  ) as DurationTerrain;
+  return { weights, terrain };
+}
+
+/** Alleen het gewicht per duur; zie `durationDemand`. */
+export function durationWeights(metersPerKm: number, climbs: LadderClimb[], finishClimb: LadderClimb | null, laps = 1): DurationWeights {
+  return durationDemand(metersPerKm, climbs, finishClimb, laps).weights;
 }
 
 /**
@@ -201,7 +237,7 @@ export function ladderRouteOptions(): LadderRouteOption[] {
           metersPerKm,
           longestClimbKm,
           uphillFinish,
-          weights: durationWeights(metersPerKm, climbs.map(effort), finish ? effort(finish) : null, shortest.laps),
+          ...durationDemand(metersPerKm, climbs.map(effort), finish ? effort(finish) : null, shortest.laps),
         } satisfies LadderRouteOption,
       ];
     })

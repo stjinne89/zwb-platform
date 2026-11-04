@@ -1,3 +1,5 @@
+import { EVEN_PCT } from "./matchup";
+import { logEdges, shownWeight, sideRouteWkg, weightsUsable, type WeightedRider } from "./rider-weight";
 import { routeClassOfSlug, ROUTE_CLASS_LABELS, type LadderRouteClass, type LadderRouteOption, type PowerDuration } from "./routes";
 import { DURATIONS, sameTeam, type PowerWkg, type StoredMatch } from "./team-power";
 
@@ -18,14 +20,18 @@ export type RouteAdvice = {
 export type LadderAdvice = {
   routes: RouteAdvice[];
   bestFavorite: RouteAdvice | null;
-  /** Per duur ons voordeel in procenten (+ is sterker), null zonder data. */
+  /** Per duur ons voordeel in W/kg, in procenten (+ is sterker), null zonder data. */
   edge: Record<PowerDuration, number | null>;
+  /** Gemiddeld gewicht (hele kg) per kant, pas vanaf drie renners met gewicht. */
+  weightKg: { ours: number | null; theirs: number | null };
+  /** Telt gewicht mee per parcours (beide kanten minstens drie gewichten). */
+  weightCounts: boolean;
   /** Renners met vermogen, en hoeveel daarvan met 90 dagen. */
   ours: { riders: number; with90d: number };
   theirs: { riders: number; with90d: number };
 };
 
-type SidePower = { wkg: PowerWkg; riders: number; with90d?: number };
+type SidePower = { wkg: PowerWkg; riders: number; with90d?: number; rows?: WeightedRider[] };
 
 /** Gewicht van de uitslagen per routeklasse naast het krachtverschil (eigen vuistregel). */
 const HISTORY_WEIGHT = 0.1;
@@ -94,13 +100,11 @@ export function buildLadderAdvice(input: {
   const usable = (side: SidePower | null) => (side && side.riders >= MIN_RIDERS ? side : null);
   const ourPower = usable(input.ourPower);
   const theirPower = usable(input.theirPower);
-  const edge = Object.fromEntries(
-    DURATIONS.map((d) => {
-      const ours = ourPower?.wkg[d];
-      const theirs = theirPower?.wkg[d];
-      return [d, ours && theirs ? Math.log(ours / theirs) : null];
-    }),
-  ) as Record<PowerDuration, number | null>;
+  const edge = logEdges(ourPower?.wkg ?? null, theirPower?.wkg ?? null);
+  // Gewicht per parcours: per renner omgerekend naar 75 kg op de hellingen van dat parcours.
+  const ourRows = ourPower?.rows ?? [];
+  const theirRows = theirPower?.rows ?? [];
+  const weightCounts = ourRows.length > 0 && theirRows.length > 0 && weightsUsable(ourRows, theirRows);
   const ourRecords = classRecords(ourNames, matches);
   const theirRecords = classRecords([theirName], matches);
   const hasPower = DURATIONS.some((d) => edge[d] != null);
@@ -116,21 +120,29 @@ export function buildLadderAdvice(input: {
 
   const routes = options.map((option): RouteAdvice => {
     const reasons: string[] = [];
+    const routeEdge = weightCounts
+      ? logEdges(sideRouteWkg(ourRows, option.terrain, true), sideRouteWkg(theirRows, option.terrain, true))
+      : edge;
     let power = 0;
+    let wkgOnly = 0;
     let weightSum = 0;
     // De duur die op dit parcours het zwaarst weegt, niet die met de grootste bijdrage:
     // een klein gewicht maal een groot verschil is geen reden om hier te rijden.
     let heaviest: PowerDuration | null = null;
     for (const d of DURATIONS) {
-      const e = edge[d];
+      const e = routeEdge[d];
       if (e == null) continue;
       power += option.weights[d] * e;
+      wkgOnly += option.weights[d] * (edge[d] ?? e);
       weightSum += option.weights[d];
       if (!heaviest || option.weights[d] > option.weights[heaviest]) heaviest = d;
     }
     if (weightSum > 0) {
       power /= weightSum;
-      if (heaviest) reasons.push(`${DURATION_LABELS[heaviest]} telt hier zwaar: wij ${pct(edge[heaviest]!)}`);
+      wkgOnly /= weightSum;
+      if (heaviest) reasons.push(`${DURATION_LABELS[heaviest]} telt hier zwaar: wij ${pct(routeEdge[heaviest]!)}`);
+      // Wat het gewicht hier verandert tegenover alleen W/kg.
+      if (weightCounts && Math.abs(Math.round((power - wkgOnly) * 100)) >= EVEN_PCT) reasons.push(`Gewicht scheelt hier ${pct(power - wkgOnly)}`);
     }
 
     const ours = ourRecords.get(option.routeClass);
@@ -154,6 +166,8 @@ export function buildLadderAdvice(input: {
     routes: routes.slice(0, 3),
     bestFavorite: routes.find((route) => route.favorite) ?? null,
     edge: percent,
+    weightKg: { ours: shownWeight(input.ourPower?.rows ?? []), theirs: shownWeight(input.theirPower?.rows ?? []) },
+    weightCounts,
     ours: { riders: input.ourPower?.riders ?? 0, with90d: input.ourPower?.with90d ?? 0 },
     theirs: { riders: input.theirPower?.riders ?? 0, with90d: input.theirPower?.with90d ?? 0 },
   };

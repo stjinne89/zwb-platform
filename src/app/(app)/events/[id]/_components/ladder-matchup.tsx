@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 const wkg = (value: number | null | undefined) => (value == null ? "–" : value.toFixed(2));
 const pct = (value: number) => `${value > 0 ? "+" : ""}${value}%`;
+const kg = (value: number | null) => (value == null ? "–" : `${value} kg`);
 
 /** ZWB tegen de tegenstander op een ladderrace: vermogen per duur, gewogen naar het parcours. */
 export function LadderMatchupView({ matchup, routeLabel }: { matchup: LadderMatchup; routeLabel: string | null }) {
@@ -13,6 +14,7 @@ export function LadderMatchupView({ matchup, routeLabel }: { matchup: LadderMatc
   const hasData = durations.some((row) => row.edgePct != null);
   const advantages = ourAdvantages(matchup);
   const showWeight = durations.some((row) => row.weight != null);
+  const showKg = ours.weightKg != null || theirs.weightKg != null;
 
   return (
     <section className="space-y-3">
@@ -75,6 +77,15 @@ export function LadderMatchupView({ matchup, routeLabel }: { matchup: LadderMatc
                       </tr>
                     );
                   })}
+                  {showKg && (
+                    <tr className="border-t text-muted-foreground">
+                      <td className="py-1.5 pr-3">Gewicht</td>
+                      <td className="px-3 py-1.5 text-right">{kg(ours.weightKg)}</td>
+                      <td className="px-3 py-1.5 text-right">{kg(theirs.weightKg)}</td>
+                      <td className="px-3 py-1.5 text-right">{matchup.weightCounts ? "telt mee" : "–"}</td>
+                      {showWeight && <td className="py-1.5 pl-3" />}
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

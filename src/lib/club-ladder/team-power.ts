@@ -77,12 +77,12 @@ export function sameTeam(a: string, b: string) {
 }
 
 /**
- * Krachtprofiel van een team uit zijn ladderraces: per renner het beste per duur
- * over die races, dan het gemiddelde van de vijf besten (een ladderteam rijdt met vijf).
+ * Renners van een team uit zijn ladderraces: per renner het beste per duur over
+ * die races, en zijn gewicht uit de nieuwste race (wedstrijden nieuwste eerst).
  */
-export function teamPowerFromMatches(team: string[], matches: StoredMatch[]): TeamPower | null {
+export function teamRidersFromMatches(team: string[], matches: StoredMatch[]) {
   const isTeam = (name: string) => team.some((alias) => sameTeam(alias, name));
-  const best = new Map<string, PowerWkg>();
+  const best = new Map<string, { zwiftId: number | null; wkg: PowerWkg; weightKg: number | null }>();
   let races = 0;
   for (const match of matches) {
     const own = match.riders.filter((rider) => isTeam(rider.team) && rider.powerWkg);
@@ -90,16 +90,26 @@ export function teamPowerFromMatches(team: string[], matches: StoredMatch[]): Te
     races += 1;
     for (const rider of own) {
       const key = rider.zwiftId ? `z${rider.zwiftId}` : `n${rider.name}`;
-      const current = best.get(key) ?? { s15: null, m1: null, m5: null, m20: null };
+      const current = best.get(key) ?? { zwiftId: rider.zwiftId, wkg: { s15: null, m1: null, m5: null, m20: null }, weightKg: null };
       for (const d of DURATIONS) {
         const value = rider.powerWkg![d];
-        if (value != null && (current[d] == null || value > current[d]!)) current[d] = value;
+        if (value != null && (current.wkg[d] == null || value > current.wkg[d]!)) current.wkg[d] = value;
       }
+      current.weightKg = current.weightKg ?? rider.weightKg;
       best.set(key, current);
     }
   }
-  if (best.size === 0) return null;
-  return { wkg: topFiveAverage([...best.values()]), riders: best.size, races };
+  return { riders: [...best.values()], races };
+}
+
+/**
+ * Krachtprofiel van een team uit zijn ladderraces: per renner het beste per duur
+ * over die races, dan het gemiddelde van de vijf besten (een ladderteam rijdt met vijf).
+ */
+export function teamPowerFromMatches(team: string[], matches: StoredMatch[]): TeamPower | null {
+  const { riders, races } = teamRidersFromMatches(team, matches);
+  if (riders.length === 0) return null;
+  return { wkg: topFiveAverage(riders.map((rider) => rider.wkg)), riders: riders.length, races };
 }
 
 export function topFiveAverage(riders: PowerWkg[]): PowerWkg {

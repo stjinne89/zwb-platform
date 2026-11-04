@@ -7,6 +7,7 @@ import { TeamChatLinks } from "@/components/team-chat-links";
 import { buildLadderAdvice, DURATION_LABELS, recentMatches, type LadderAdvice, type RouteAdvice } from "@/lib/club-ladder/advice";
 import { canAssignLadderRiders, canEditLadderPuzzle } from "@/lib/club-ladder/access";
 import { riderRaces } from "@/lib/club-ladder/event-matchup";
+import { loadRiderWeights } from "@/lib/club-ladder/rider-weights";
 import { ensureMatchRiders, loadStoredMatches, loadTeamMatches } from "@/lib/club-ladder/matches";
 import { opponentRiderIds, riderPowerFromMatches, squadPower } from "@/lib/club-ladder/matchup";
 import { parseLadderRiderSort, sortLadderRiders } from "@/lib/club-ladder/riders";
@@ -244,7 +245,11 @@ export default async function ClubLadderTeamPage({
         ? [...new Set(selectedIds)]
         : [...new Set(teamRiders.map((rider) => rider.zwiftId).filter((id): id is number => id != null))];
     const theirIds = opponentRiderIds(stored, opponent.name);
-    const [ourRaces, metrics] = await Promise.all([riderRaces(admin, ourIds), loadRiderMetrics([...ourIds, ...theirIds])]);
+    const [ourRaces, metrics, riderWeights] = await Promise.all([
+      riderRaces(admin, ourIds),
+      loadRiderMetrics([...ourIds, ...theirIds]),
+      loadRiderWeights(admin, [...ourIds, ...theirIds]),
+    ]);
     const known = new Set(stored.map((row) => row.resultId));
     const ladderPower = riderPowerFromMatches([...stored, ...ourRaces.filter((row) => !known.has(row.resultId))]);
     // 90 dagen van ZwiftRacing, zoals de matchup.
@@ -256,9 +261,9 @@ export default async function ClubLadderTeamPage({
       options,
       favorites,
       ourNames,
-      ourPower: squadPower(ourIds, ladderPower, power90),
+      ourPower: squadPower(ourIds, ladderPower, power90, riderWeights),
       theirName: opponent.name,
-      theirPower: squadPower(theirIds, ladderPower, power90),
+      theirPower: squadPower(theirIds, ladderPower, power90, riderWeights),
       // Uitslagen per routetype en eigen routekeuzes: alleen de laatste 90 dagen, net als het vermogen.
       matches: recentMatches(stored),
     });
@@ -500,6 +505,11 @@ function AdviceView({
             </span>
           );
         })}
+        {(advice.weightKg.ours != null || advice.weightKg.theirs != null) && (
+          <span className="rounded-md border px-2 py-1 tabular-nums text-muted-foreground">
+            Gewicht {advice.weightKg.ours ?? "–"} / {advice.weightKg.theirs ?? "–"} kg
+          </span>
+        )}
         <span className="px-1 py-1 text-muted-foreground">
           {selection ? "Selectie · " : ""}
           {advice.ours.riders} / {advice.theirs.riders} renners · 90 d: {advice.ours.with90d} / {advice.theirs.with90d}

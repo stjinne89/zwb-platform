@@ -6,6 +6,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 import { ladderOpponentFromTitle } from "./fixture-events";
 import { ensureMatchRiders, loadStoredMatches, loadTeamMatches } from "./matches";
 import { buildLadderMatchup, opponentRiderIds, type LadderMatchup, type MatchupSignup } from "./matchup";
+import { loadRiderWeights } from "./rider-weights";
 import { findLadderRouteSlug, ladderRouteBySlug, ROUTE_CLASS_LABELS } from "./routes";
 import { loadLadderSelections } from "./selection";
 import { sameTeam } from "./team-power";
@@ -64,10 +65,13 @@ export async function loadLadderEventMatchup(
 
   const matches = await loadStoredMatches(admin, all);
   const theirSquad = signups.some((row) => sameTeam(row.team, opponent)) ? [] : opponentRiderIds(matches, opponent);
+  // Ook wie de laatste wedstrijden reed: dat is de vergelijking zonder aanmeldingen.
+  const raceIds = matches.flatMap((match) => match.riders.map((rider) => rider.zwiftId).filter((id): id is number => id != null));
   const zwiftIds = [...new Set([...signups.map((row) => row.zwiftId), ...ourSelection.map((row) => row.zwiftId), ...theirSquad])];
-  const [riderMatches, metrics] = await Promise.all([
+  const [riderMatches, metrics, riderWeights] = await Promise.all([
     riderRaces(admin, zwiftIds),
     loadRiderMetrics(zwiftIds),
+    loadRiderWeights(admin, [...zwiftIds, ...raceIds]),
   ]);
   if (zwiftIds.length > 0) after(() => refreshRiderMetrics(zwiftIds, metrics, { budgetMs: METRICS_BUDGET_MS }));
   const scores = new Map<number, number>();
@@ -93,6 +97,8 @@ export async function loadLadderEventMatchup(
       power90,
       scores,
       weights: option?.weights ?? null,
+      terrain: option?.terrain ?? null,
+      riderWeights,
     }),
     routeLabel: option ? ROUTE_CLASS_LABELS[option.routeClass] : null,
   };

@@ -121,7 +121,8 @@ export function ladderRiders(matchup: LadderMatchup, weights: DurationWeights | 
     ...matchup.ours.riders.map((rider) => ({ rider, own: true })),
     ...matchup.theirs.riders.map((rider) => ({ rider, own: false })),
   ];
-  const ratings = routeRatings(rows.map(({ rider }) => rider), weights);
+  // Met gewicht (als dat in de matchup meetelt) de W/kg omgerekend naar 75 kg op dit parcours.
+  const ratings = routeRatings(rows.map(({ rider }) => ({ zwiftId: rider.zwiftId, wkg: rider.routeWkg ?? rider.wkg })), weights);
   return rows.map(({ rider, own }) => ({
     zwiftId: rider.zwiftId,
     name: cleanRiderName(rider.name),

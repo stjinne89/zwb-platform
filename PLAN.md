@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-03)
+## Actieve volgorde (bijgewerkt 2026-11-04)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -137,6 +137,12 @@ gaat stabiliteit voor nieuwe features.
    Nalopen na de deploy:
    een niet-geplande rit aanklikken, RPE opslaan, en de rit daarna aan een
    training hangen. Zie de ronde "RPE bij een losse rit".
+0p. **Club Ladder: gewicht in matchup en advies (2026-11-04): gebouwd, lokaal
+   getest, niet gepusht.** Geen migratie. Open: de privacyzin over gewicht in
+   de ladder (voorstel in de ronde) wacht op akkoord van de eigenaar, net als de
+   rest van de laddertekst. Nalopen na een deploy: de regel Gewicht in de
+   matchup van ZWBullets – Mad Dogs en "Gewicht scheelt hier" in hun advies. Zie
+   de ronde "Club Ladder: gewicht telt mee in matchup en route-advies".
 
 1. **Supabase: tijdelijk op Pro sinds 2026-11-02, terug naar Free per 2026-12-02**
    (besluit eigenaar, 2026-11-03: Pro was nodig omdat het project anders op slot
@@ -11720,6 +11726,101 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Club Ladder: gewicht telt mee in matchup en route-advies
+
+**2026-11-04.** Commit: de commit die dit blok toevoegt, lokaal op de branch
+`claude/festive-bell-ahpdri`, **niet gepusht** (AGENTS.md: alleen op verzoek).
+Geen migratie.
+
+**Waarom.** De eigenaar zag dat matchup en advies alleen naar W/kg en de duur
+van de inspanning kijken, terwijl het gewicht van de ploeg en van elke renner
+ook telt. Dat klopt natuurkundig: W/kg bepaalt bergop, maar op het vlakke rijd
+je tegen de wind, en je frontaal oppervlak groeit veel minder hard dan je
+gewicht. Met de Zwift-ijking van de pacingplanner, in de groep, bij 4 W/kg:
+85 kg tegen 65 kg is op 0% ~19% sterker, op 4% ~4%, op 8% ~2%. Over een heel
+parcours: Tempus Fugit +18%, The Highline +8%, Cobbled Climbs +9%.
+
+**Wat er veranderde.**
+- **Rekenkern** (`club-ladder/rider-weight.ts`, puur): `referenceWkg` rekent de
+  W/kg van een renner om naar wat de referentierenner (75 kg, 175 cm) nodig
+  heeft om op die helling even hard te gaan: `frontalArea`, `ZWIFT_BASE_CDA`,
+  `ZWIFT_BASE_BIKE_KG` en `DRAFT_CDA_FACTOR` uit `pacing/zwift-setup.ts`,
+  rolweerstand 0,004. Iedereen krijgt Zwifts standaardlengte (die kennen we van
+  de tegenstander niet). `sideRouteWkg` doet dat per renner en neemt dan per
+  duur de vijf besten, zodat op een vlak parcours een zware renner bij de vijf
+  kan komen die er in W/kg net buiten valt: het individuele gewicht weegt mee,
+  niet alleen het gemiddelde.
+- **Hellingen per duur** (`durationDemand` in `routes.ts`): dezelfde
+  vuistregel als `durationWeights` (die nu een omhulsel is, uitkomsten gelijk),
+  maar ook op welke hellingen elke duur telt: een klim op zijn eigen helling,
+  het glooiende deel van 5 min op hoogtemeters/km ÷ 5 (hooguit 8%), de rest
+  vlak. Staat als `terrain` op elke `LadderRouteOption`. Eigen vuistregel.
+- **Gewicht per renner** (`club-ladder/rider-weights.ts`): eerst wat Zwift
+  gebruikt, voor beide teams dezelfde bron: de Zwift-uitslag van een bewaarde
+  ladderrace (`club_ladder_match_riders.weight_kg`) of een segmentpassage van de
+  racebriefing (`zwift_segment_bests.best_weight_kg`), de nieuwste. Alleen voor
+  een ZWB'er zonder die twee het gewicht uit intervals.icu
+  (`rider_power_profiles.weight_kg`). Niet `profiles.weight_kg`: dat veld heeft
+  per-veld zichtbaarheid.
+- **Wanneer.** Pas als beide kanten minstens drie renners met gewicht hebben
+  (`MIN_WEIGHTS`, zoals `MIN_RIDERS`); wie geen gewicht heeft, telt met het
+  gemiddelde van zijn kant. Zonder bekend parcours telt gewicht niet.
+- **Matchup** (`matchup.ts`): het verschil per duur en de regel "Dit parcours"
+  zijn nu met gewicht; de W/kg in de tabel blijven gewone W/kg. Nieuwe regel
+  Gewicht met het gemiddelde per kant en "telt mee". Ook de vergelijking uit
+  ladderraces (`teamRidersFromMatches`, nieuw naast `teamPowerFromMatches`)
+  heeft gewicht.
+- **Advies** (`advice.ts`): per parcours eigen verschillen met gewicht; de
+  reden "telt hier zwaar" gebruikt die. Nieuwe reden "Gewicht scheelt hier ±x%"
+  vanaf 2% (`EVEN_PCT`) tegenover alleen W/kg. De chips per duur blijven
+  gewone W/kg; erbij een chip met het gemiddelde gewicht van beide kanten.
+- **Racebriefje**: de verwachte volgorde (`routeRatings`) rekent met de
+  omgerekende W/kg als gewicht in de matchup meetelt.
+- `/hulp` (Advies, Matchup, Racebriefing) beschrijft het.
+
+**Bewust niet.**
+- **Geen gewicht per renner op een pagina.** Het staat alleen in de berekening
+  (`MatchupRider.weightKg` blijft op de server). Een gemiddelde pas vanaf drie
+  renners met gewicht (`shownWeight`), zodat het nooit het gewicht van één
+  renner is. Dit past bij de regel in de privacyverklaring dat gewicht nergens
+  los staat.
+- Geen lengte: die kennen we van de tegenstander niet; iedereen 175 cm.
+- Geen afdalingen: daar is een zwaardere renner ook sneller, maar die zitten
+  niet in de duren die het advies weegt.
+- Geen gewicht van ZwiftRacing: de API is nog niet getest (geen sleutel), en
+  de Chrome-route vult alleen W/kg.
+- De typering (Vlak/Punch/Heuvels/Klim) en de gewichten per duur niet
+  aangepast.
+
+**Privacy (open, voorleggen aan de eigenaar).** Gewicht van renners van andere
+clubs wordt al bewaard (ladderuitslagen, segmentpassages); nieuw is dat de
+ladder ermee rekent. De privacytekst over de ladder stond al open (zie
+"Ladderrace: matchup met vermogen op de eventpagina" en punt 0m). Voorstel om
+daar toe te voegen: "Voor de matchup en het route-advies rekenen we met het
+gewicht uit de Zwift-uitslag van bewaarde ladderraces en uit segmentpassages
+van de racebriefing, ook van renners van andere clubs; voor een ZWB'er zonder
+die twee met het gewicht uit intervals.icu. Het gewicht staat nergens los, alleen
+het gemiddelde van een ploeg vanaf drie renners." Niet aangepast.
+
+**Nagerekend met productiedata (2026-11-04, alleen gelezen).** Dekking: van de
+387 ladderrenners met Zwift-ID hebben er 387 een gewicht. Huidige ploegen met
+een Zwift-gewicht: ZWBeasts 9/9, ZWBullets 8/9, ZWBandits 4/9 (met intervals
+erbij meer). Met de selecties en ploegen van nu:
+- ZWBandits (4 in de selectie, 3 met gewicht, gem. 81 kg) – SZ Loki (13, gem.
+  77 kg): op elk parcours ~+2% door gewicht; bovenaan blijven London Uprising,
+  WhatYumeziWe'reLost? en Kappa Quest, want 15 s −20% weegt zwaarder.
+- ZWBullets (8, gem. 74 kg) – Mad Dogs (11, gem. 78 kg): ~−3% door gewicht,
+  van ±0% naar −3% op de beste drie (London Uprising, The Highline, Oh Hill No).
+- ZWBeasts – Galaxy Avengers: de selectie heeft twee renners, dus geen
+  krachtverschil (onder `MIN_RIDERS`), zoals voorheen.
+
+**Niet geverifieerd.** De pagina's in de browser (inloggen op productie). De
+schaal van het effect is een model (Zwift-ijking van de pacingplanner, de
+slipstreamfactor is een aanname), niet gemeten aan ladderuitslagen. Typecheck
+en ESLint schoon; 11 nieuwe tests (`club-ladder-weight.test.ts`), alle
+ladder- en racebriefing-tests slagen (145); over de hele suite faalt alleen
+`omnium-live.test.ts` op een ontbrekende `.env.local`, ook zonder deze wijziging.
 
 ### Gebouwd — Club Ladder: scrollbare ranking zonder plek in de stand
 
