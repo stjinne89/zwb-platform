@@ -164,8 +164,8 @@ gaat stabiliteit voor nieuwe features.
    volgende).** Nalopen na de deploy: een pop-up naar jezelf (zoek je eigen
    naam), in de app zien, sluiten, en "gezien" op het beheerscherm. Ook de aangevulde privacyzin is akkoord. Zie de ronde
    "Koppelingen: wie iets mist, en een pop-up".
-   **Uitleg- en videolink in de pop-up (2026-11-04): op de branch, nog niet
-   op `main`.** Geen migratie. Zie de ronde 'Pop-up "nog niet gekoppeld":
+   **Uitleg- en videolink in de pop-up (2026-11-04): gepusht naar `main`
+   (`fe6069d` en volgende).** Geen migratie. Zie de ronde 'Pop-up "nog niet gekoppeld":
    uitleg en video erbij'.
 0s. **Starthelper `/welkom` in tegels, met video's (2026-11-04): op verzoek van
    de eigenaar gepusht naar `main`.** Geen migratie. Drie
@@ -11761,7 +11761,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Pop-up "nog niet gekoppeld": uitleg en video erbij
 
-**2026-11-04.** Op de branch `claude/amazing-volta-p9uvrd`, nog niet op `main`.
+**2026-11-04.** Commit `fe6069d` op de branch `claude/amazing-volta-p9uvrd`; op
+2026-11-04 op verzoek van de eigenaar naar `main` gepusht.
 Geen migratie: de links volgen uit de koppeling, niet uit de opgeslagen
 melding, dus ook al verstuurde meldingen krijgen ze.
 
