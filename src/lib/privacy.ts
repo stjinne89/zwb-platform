@@ -101,6 +101,15 @@
  * Of dat zonder nieuwe versie kan, is aan de eigenaar: tekst op
  * `/privacy#clubverhaal`, nog niet goedgekeurd (zie PLAN.md, ronde
  * "Clubverhaal").
+ *
+ * **Twaalfde uitzondering, besluit eigenaar: koppelingen per lid (2026-11-04).**
+ * Wie `integrations.manage` heeft, ziet per lid welke koppelingen aanstaan en of
+ * ze werken (/beheer/koppelingen), ook die van Telegram, meldingen, agenda en
+ * live volgen, die eerder alleen voor het lid zelf leesbaar waren. Beheer kan een
+ * pop-up "nog niet gekoppeld" sturen; die bewaren we met wie hem stuurde en
+ * wanneer hij gezien is (0307, `integration_notices`). Geen nieuwe categorie of
+ * verwerker: alleen de tekst (`/privacy#koppelingen`), door de eigenaar
+ * goedgekeurd zonder nieuwe versie.
  */
 export const PRIVACY_VERSIONS = [
   "2026-05-31", // eerste verklaring

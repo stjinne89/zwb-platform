@@ -155,15 +155,14 @@ gaat stabiliteit voor nieuwe features.
    bovenaan), en op het event van 10 november de knoppen met de kolom Races. Zie
    de ronde "Club Ladder: kies de vijf van de tegenstander".
 0r. **Koppelingen per lid (2026-11-04): gepusht naar `main` (`5d96f6a` en
-   volgende).** Geen migratie. Open: de privacyzin `/privacy#koppelingen` staat
-   live maar wacht op akkoord van de eigenaar, net als de vraag of dit zonder
-   nieuwe privacyversie kan. Nalopen na de deploy:
+   volgende).** Geen migratie. Privacyzin `/privacy#koppelingen` akkoord
+   (eigenaar, 2026-11-04), zonder nieuwe privacyversie. Nalopen na de deploy:
    `/beheer/koppelingen` met echte data openen. Zie de ronde "Beheer:
    koppelingen per lid".
    **Vervolg (2026-11-04): wie iets mist, en een pop-up. Migratie `0307`
    toegepast (door de eigenaar) en gepusht naar `main` (`156ea83` en
    volgende).** Nalopen na de deploy: een pop-up naar jezelf (zoek je eigen
-   naam), in de app zien, sluiten, en "gezien" op het beheerscherm. De uitgebreide privacyzin wacht ook op akkoord. Zie de ronde
+   naam), in de app zien, sluiten, en "gezien" op het beheerscherm. Ook de aangevulde privacyzin is akkoord. Zie de ronde
    "Koppelingen: wie iets mist, en een pop-up".
 0s. **Starthelper `/welkom` in tegels, met video's (2026-11-04): op verzoek van
    de eigenaar gepusht naar `main`.** Geen migratie. Drie
@@ -11821,11 +11820,12 @@ de app betekent.
 - **Geen tweede melding zolang er een openstaat**; na "gezien" mag het wel
   weer.
 
-**Privacy (wacht op akkoord eigenaar).** Nieuw bewaard: per melding de
+**Privacy (akkoord eigenaar 2026-11-04, geen nieuwe versie).** Nieuw bewaard: per melding de
 koppeling, de tekst, wie hem stuurde, en wanneer hij verstuurd, gezien of
 overbodig werd, zolang het lid lid is (cascade bij het verwijderen). De zin
-in `/privacy#koppelingen` is aangevuld. Geen nieuwe privacyversie voorgesteld:
-een bericht van de club aan een lid, geen nieuwe categorie of verwerker.
+in `/privacy#koppelingen` is aangevuld. Geen nieuwe privacyversie: een bericht
+van de club aan een lid, geen nieuwe categorie of verwerker. Vastgelegd als
+twaalfde uitzondering in `src/lib/privacy.ts`.
 
 **Getest.** Typecheck, ESLint en `next build` schoon. 9 nieuwe tests
 (`integration-notices.test.ts` en `member-integrations.test.ts`), onder meer
@@ -12017,14 +12017,14 @@ loopt niet bij").
 - Geen MyWhoosh-ID en geen trainerstoegang: dat zijn geen koppelingen die
   stuk kunnen gaan.
 
-**Privacy (wacht op akkoord eigenaar).** Nieuw is geen gegeven maar wie het
+**Privacy (akkoord eigenaar 2026-11-04, geen nieuwe versie).** Nieuw is geen gegeven maar wie het
 ziet: koppelingsstatus van Telegram, meldingen, agenda en live volgen was
 alleen voor het lid zelf leesbaar (RLS), en is nu zichtbaar voor wie
 `integrations.manage` heeft. In `/privacy` staat onder "Welke gegevens we
-verwerken" een nieuw punt `#koppelingen` (Hulp bij koppelingen). Aan de
-eigenaar: akkoord op de tekst, en of dit zonder nieuwe privacyversie kan. Het
-voorstel is ja: geen nieuwe categorie gegevens of verwerker, en sectie 6 noemt
-beheerders al bij toegang tot gegevens.
+verwerken" een nieuw punt `#koppelingen` (Hulp bij koppelingen). De eigenaar
+keurde de tekst goed zonder nieuwe privacyversie: geen nieuwe categorie
+gegevens of verwerker, en sectie 6 noemt beheerders al bij toegang tot
+gegevens (twaalfde uitzondering in `src/lib/privacy.ts`).
 
 **Getest.** Typecheck en ESLint schoon; `next build` slaagt met de nieuwe
 route. Alle 44 geselecteerde kolommen bestaan op productie (2026-11-04,
