@@ -10,7 +10,7 @@ import { riderRaces } from "@/lib/club-ladder/event-matchup";
 import { loadRiderWeights } from "@/lib/club-ladder/rider-weights";
 import { EDGE_TONE_BORDER, EDGE_TONE_TEXT, edgeTone, formatEdge } from "@/lib/club-ladder/edge-tone";
 import { ensureMatchRiders, loadStoredMatches, loadTeamMatches } from "@/lib/club-ladder/matches";
-import { riderPowerFromMatches, squadPool, squadPower } from "@/lib/club-ladder/matchup";
+import { riderPowerFromMatches, squadPool } from "@/lib/club-ladder/matchup";
 import { pickFive, RECENT_RACES, recentTeamRiders, SQUAD_FOCUS_LABELS, SQUAD_FOCUSES, type SquadFocus } from "@/lib/club-ladder/opponent-five";
 import { ChoiceTabs } from "@/components/choice-tabs";
 import { parseLadderRiderSort, sortLadderRiders } from "@/lib/club-ladder/riders";
@@ -25,9 +25,11 @@ import {
   type ClubLadderResult,
   type ClubLadderStanding,
 } from "@/lib/club-ladder/summary";
-import { DURATIONS, type PowerWkg } from "@/lib/club-ladder/team-power";
+import type { PowerWkg } from "@/lib/club-ladder/team-power";
 import { normalizeTeamName } from "@/lib/ladder";
-import { loadRiderMetrics } from "@/lib/race-briefing/metrics";
+import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metrics";
+import { loadIntervalsPower } from "@/lib/club-ladder/intervals-power";
+import { riderPower, type AdviceRider } from "@/lib/club-ladder/rank-pairs";
 import { getRequestAccess } from "@/lib/auth/request";
 import { loadWeightMissing } from "@/lib/teams/missing-weight";
 import { MissingWeightNotice } from "@/components/missing-weight-notice";
@@ -60,6 +62,8 @@ export const revalidate = 0;
 
 /** Tijd om ontbrekende renners van wedstrijden op te halen voordat de pagina antwoordt. */
 const ANALYSIS_BUDGET_MS = 12_000;
+/** Zelfde budget als de racebriefing om ZRS en ZwiftRacing na het antwoord aan te vullen. */
+const METRICS_REFRESH_BUDGET_MS = 20_000;
 
 /** Ranking rondom het team: tot zeven plekken erboven (uit te dagen) en drie eronder. */
 function challengeWindow(standings: ClubLadderStanding[], match: ClubLadderStanding) {
@@ -238,7 +242,7 @@ export default async function ClubLadderTeamPage({
     ? teamFixtures.find((fixture) => normalizeTeamName(fixtureOpponent(fixture) ?? "") === normalizeTeamName(opponent.name))
     : undefined;
   const adviceSelection = opponentFixture ? selectionFor(opponentFixture) : null;
-  const selectedIds = (adviceSelection?.riders ?? []).map((rider) => rider.zwiftId).filter((id): id is number => id != null);
+  const hasSelection = (adviceSelection?.riders.length ?? 0) > 0;
   if (opponent) {
     // Eerst de verse uitslagen bewaren, dan de renners van beide teams aanvullen.
     await storeLadderResults(admin, ladderResults);
@@ -249,18 +253,35 @@ export default async function ClubLadderTeamPage({
     const stored = await loadStoredMatches(admin, all);
     // De selectie, anders wie nu in de ploeg zit, tegen wie de laatste wedstrijden van de
     // tegenstander reed; niet de oude opstelling uit eerdere ladderraces (2026-11-03).
-    const ourIds =
-      selectedIds.length > 0
-        ? [...new Set(selectedIds)]
-        : [...new Set(teamRiders.map((rider) => rider.zwiftId).filter((id): id is number => id != null))];
+    const candidates = hasSelection
+      ? adviceSelection!.riders.map((rider) => ({
+          key: `${rider.kind}:${rider.id}`,
+          name: rider.name,
+          zwiftId: rider.zwiftId,
+          profileId: rider.kind === "profile" ? rider.id : null,
+        }))
+      : teamRiders.map((rider) => ({
+          key: `${rider.rosterEntryId ? "roster" : "profile"}:${rider.id}`,
+          name: rider.name,
+          zwiftId: rider.zwiftId,
+          profileId: rider.rosterEntryId ? null : rider.id,
+        }));
+    const ourIds = [...new Set(candidates.map((rider) => rider.zwiftId).filter((id): id is number => id != null))];
     // Wie de laatste tien ladderraces voor de tegenstander reed; daaruit kiezen we per type vijf (2026-11-04).
     const recent = recentTeamRiders(stored, opponent.name);
     const theirIds = recent.riders.map((rider) => rider.zwiftId);
-    const [ourRaces, metrics, riderWeights] = await Promise.all([
+    const [ourRaces, metrics, riderWeights, intervals] = await Promise.all([
       riderRaces(admin, ourIds),
       loadRiderMetrics([...ourIds, ...theirIds]),
       loadRiderWeights(admin, [...ourIds, ...theirIds]),
+      loadIntervalsPower(
+        admin,
+        candidates.map((rider) => rider.profileId).filter((id): id is string => id != null),
+      ),
     ]);
+    // ZwiftRacing van beide ploegen na het antwoord aanvullen: wie ontbreekt (zoals een
+    // net geclaimd Zwift-ID) of ouder is dan een dag, telt bij het volgende bezoek mee.
+    after(() => refreshRiderMetrics([...ourIds, ...theirIds], metrics, { budgetMs: METRICS_REFRESH_BUDGET_MS }));
     const known = new Set(stored.map((row) => row.resultId));
     const ladderPower = riderPowerFromMatches([...stored, ...ourRaces.filter((row) => !known.has(row.resultId))]);
     // 90 dagen van ZwiftRacing, zoals de matchup.
@@ -268,7 +289,17 @@ export default async function ClubLadderTeamPage({
     for (const [id, row] of metrics) {
       if (row.power) power90.set(id, { s15: row.power.s15, m1: row.power.m1, m5: row.power.m5, m20: row.power.m20 });
     }
-    const ourPower = squadPower(ourIds, ladderPower, power90, riderWeights);
+    // Van ons eerst intervals.icu, dan 90 dagen van ZwiftRacing, dan de ladderraces (2026-11-04).
+    const ourRiders: AdviceRider[] = candidates.map((rider) => ({
+      key: rider.key,
+      name: rider.name,
+      ...riderPower({
+        intervals: rider.profileId ? intervals.get(rider.profileId) : null,
+        power90: rider.zwiftId != null ? power90.get(rider.zwiftId) : null,
+        ladder: rider.zwiftId != null ? ladderPower.get(rider.zwiftId)?.wkg : null,
+        zwiftWeightKg: rider.zwiftId != null ? riderWeights.get(rider.zwiftId) : null,
+      }),
+    }));
     const pool = squadPool(recent, ladderPower, power90, riderWeights);
     const adviceFor = (focus: SquadFocus) => {
       const five = pickFive(pool, focus, options);
@@ -279,14 +310,15 @@ export default async function ClubLadderTeamPage({
           options,
           favorites,
           ourNames,
-          ourPower,
+          ours: ourRiders,
           theirName: opponent.name,
-          theirPower: squadPower(
-            five.map((rider) => rider.zwiftId),
-            ladderPower,
-            power90,
-            riderWeights,
-          ),
+          theirs: five.map((rider) => ({
+            key: String(rider.zwiftId),
+            name: rider.name,
+            wkg: rider.wkg,
+            weightKg: rider.weightKg,
+            source: power90.has(rider.zwiftId) ? "90d" : "ladder",
+          })),
           // Uitslagen per routetype en eigen routekeuzes: alleen de laatste 90 dagen, net als het vermogen.
           matches: recentMatches(stored),
         }),
@@ -370,7 +402,7 @@ export default async function ClubLadderTeamPage({
                       advice={row.advice}
                       opponent={opponent.name}
                       options={routeRows}
-                      selection={selectedIds.length > 0}
+                      selection={hasSelection}
                       squad={row.squad}
                     />
                   ),
@@ -378,7 +410,7 @@ export default async function ClubLadderTeamPage({
               />
             </div>
           ) : (
-            <AdviceView advice={advice} opponent={opponent.name} options={routeRows} selection={selectedIds.length > 0} squad={adviceSquad} />
+            <AdviceView advice={advice} opponent={opponent.name} options={routeRows} selection={hasSelection} squad={adviceSquad} />
           )}
         </section>
       )}
@@ -536,6 +568,9 @@ type TeamResult = {
   points: number | string | null;
 };
 
+const wkgFormat = new Intl.NumberFormat("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const wkgLabel = (value: number) => wkgFormat.format(value);
+
 /** De vijf van de tegenstander waartegen het advies rekent, met in hoeveel van zijn laatste races ze reden. */
 type OpponentSquad = { riders: Array<{ name: string; races: number }>; races: number };
 
@@ -559,22 +594,34 @@ function AdviceView({
   const shown = new Set([...advice.routes, ...(extraFavorite ? [extraFavorite] : [])].map((route) => route.slug));
   return (
     <div className="mt-3 space-y-3">
-      <div className="flex flex-wrap gap-1.5 text-xs">
-        {DURATIONS.map((d) => {
-          const value = advice.edge[d];
-          const tone = edgeTone(value);
+      <div className="space-y-1.5 text-xs">
+        {advice.durations.map((row) => {
+          const tone = edgeTone(row.edgePct);
           return (
-            <span
-              key={d}
-              className={cn(
-                "rounded-md border px-2 py-1 tabular-nums",
-                tone ? [EDGE_TONE_TEXT[tone], EDGE_TONE_BORDER[tone]] : "text-muted-foreground",
-              )}
-            >
-              {DURATION_LABELS[d]} {value == null ? "–" : formatEdge(value)}
-            </span>
+            <div key={row.duration} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="w-12 shrink-0 text-muted-foreground">{DURATION_LABELS[row.duration]}</span>
+              <span
+                className={cn(
+                  "rounded-md border px-2 py-0.5 font-medium tabular-nums",
+                  tone ? [EDGE_TONE_TEXT[tone], EDGE_TONE_BORDER[tone]] : "text-muted-foreground",
+                )}
+              >
+                {row.edgePct == null ? "–" : formatEdge(row.edgePct)}
+              </span>
+              {row.pairs.map((pair, index) => {
+                const pairTone = edgeTone(pair.pct);
+                return (
+                  <span key={index} className="whitespace-nowrap tabular-nums text-muted-foreground">
+                    {wkgLabel(pair.ours)}/{wkgLabel(pair.theirs)}{" "}
+                    <span className={cn(pairTone && EDGE_TONE_TEXT[pairTone])}>{formatEdge(pair.pct)}</span>
+                  </span>
+                );
+              })}
+            </div>
           );
         })}
+      </div>
+      <div className="flex flex-wrap gap-1.5 text-xs">
         {(advice.weightKg.ours != null || advice.weightKg.theirs != null) && (
           <span className="rounded-md border px-2 py-1 tabular-nums text-muted-foreground">
             Gewicht {advice.weightKg.ours ?? "–"} / {advice.weightKg.theirs ?? "–"} kg
@@ -582,9 +629,10 @@ function AdviceView({
         )}
         <span className="px-1 py-1 text-muted-foreground">
           {selection ? "Selectie · " : ""}
-          {advice.ours.riders} / {advice.theirs.riders} renners · 90 d: {advice.ours.with90d} / {advice.theirs.with90d}
+          {advice.ours.riders} / {advice.theirs.riders} renners met vermogen
         </span>
       </div>
+      {advice.missing.length > 0 && <p className="text-xs text-muted-foreground">Zonder vermogen: {advice.missing.join(", ")}</p>}
       {squad && squad.riders.length > 0 && (
         <p className="text-xs text-muted-foreground">
           {opponent}:{" "}

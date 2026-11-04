@@ -31,8 +31,21 @@ gaat stabiliteit voor nieuwe features.
    (2026-11-04): gepusht naar `main`.** Geen
    migratie. Open: na de deploy met een lid zonder gewicht (zoals Gina
    van Rossum) de melding, het open gewichtsveld en de W/kg in de ladder nalopen.
-   Zie de ronde "Teams: powerprofiel direct na koppelen, melding bij ontbrekend
-   gewicht".
+   **Nagelopen 2026-11-04 (logs, alleen-lezend):** Gina vulde haar gewicht
+   (59 kg) in om 12:12:36 UTC, vóór de nieuwe code live stond (eerste spoor in de
+   logs 12:16:17 UTC). Er volgde dus geen nieuwe sync: haar powerprofiel heeft
+   watt maar geen gewicht en geen W/kg, tot de sync-knop op Teams of de
+   wekelijkse job. Nog doen: die knop één keer, dan staat ze goed. Het
+   ladderadvies rekent sinds de ronde "renner tegen renner" de watt zelf om met
+   het profielgewicht. Gonda Beltman heeft geen intervals.icu: geen curve is daar
+   bedoeld. Zie de ronde "Teams: powerprofiel direct na koppelen, melding bij
+   ontbrekend gewicht".
+
+0i. **Club Ladder: advies renner tegen renner (2026-11-04): op branch
+   `ccr-71e0c9cf-vu6154`, niet op `main`.** Geen migratie. Open: na een deploy
+   het advies van ZWBandits tegen SZ Loki in de browser nalopen (overzicht per
+   duur, percentages per route, Zonder vermogen). Zie de ronde "Club Ladder:
+   advies renner tegen renner, intervals.icu eerst".
 
 0b. **ZWBekers (2026-10-28): migratie `0286` toegepast en gepusht.** Open: de
    privacytekst `/privacy#zwbekers` wacht op akkoord van de eigenaar, net als de
@@ -11752,6 +11765,76 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: advies renner tegen renner, intervals.icu eerst
+
+**2026-11-04.** Deze commit, op branch `ccr-71e0c9cf-vu6154`; niet op `main`.
+Geen migratie.
+
+**Waarom.** De eigenaar zag in het advies van ZWBandits tegen SZ Loki maar 4
+van de 5 renners uit de selectie meetellen. Het viel Gina van Rossum: ze had
+geen 90 dagen van ZwiftRacing (Zwift-ID op 2026-11-04 geclaimd, na de laatste
+ophaalronde van 3 november) en geen ladderrace. Haar intervals.icu-curve
+bestond wel, maar die gebruikte het advies niet. De ladderpagina vulde
+ZwiftRacing ook niet meer aan sinds de score uit legacy vELO komt. Daarnaast
+wil de eigenaar geen teamgemiddelde meer: per vermogenswaarde de renners tegen
+elkaar, zonder toeval.
+
+**Wat er veranderde.**
+- **Renner tegen renner** (`club-ladder/rank-pairs.ts`, puur): per duur beide
+  vijftallen op volgorde, beste tegen beste tot en met vijf. Per paar het
+  log-verschil in procenten, het voordeel van de duur is het gemiddelde ervan,
+  vanaf drie paren (`MIN_PAIRS`). Per parcours de duren gewogen zoals eerder, met
+  gewicht omgerekend naar 75 kg op de hellingen als beide kanten minstens drie
+  gewichten hebben. Zonder selectie kiest het per parcours onze vijf sterksten
+  voor dat parcours (sterkte zoals `routeRatings`); bij de route staat "Met …".
+  Een kant met minder renners met vermogen geeft minder paren: zijn zwakste
+  tegenhangers vallen weg.
+- **Bron onze kant** (`riderPower`): eerst intervals.icu (keuze eigenaar: de
+  actueelste curve), dan 90 dagen van ZwiftRacing, dan de ladderraces. De watt
+  komt uit `rider_power_profiles` (nieuw `club-ladder/intervals-power.ts`) en
+  gaat door het Zwift-gewicht (`loadRiderWeights`), anders het gewicht uit
+  intervals.icu of het profiel. Watt en niet de W/kg uit die tabel, want die is
+  leeg als bij de sync het gewicht ontbrak (zoals bij Gina).
+- **Aanvullen** (punt 1 van de eigenaar): de teampagina ververst na het antwoord
+  de ZwiftRacing- en ZRS-cache van beide ploegen (`refreshRiderMetrics`, 20 s),
+  zodat een net geclaimd Zwift-ID bij het volgende bezoek meetelt.
+- **Zonder vermogen** (punt 3): wie van onze vijf geen vermogen heeft, staat
+  onder het overzicht; die telt niet mee in de paren.
+- **Weergave**: bovenaan per duur het voordeel en de paren (W/kg wij/zij met het
+  verschil), daaronder gewicht en "x / y renners met vermogen". Bij elke route
+  rechts het voordeel op dat parcours. De redenen per route zijn gebleven; de
+  volgorde rekent zoals eerst: voordeel plus de uitslagen per routetype, min de
+  eigen keuzes van de tegenstander.
+- `/hulp` (Advies) beschrijft het.
+
+**Claims bijgesteld.** In "Club Ladder: kies de vijf van de tegenstander" (onze
+kant blijft de vijf besten per duur) en "advies op de huidige ploeg" (vijf
+besten per duur, `MIN_RIDERS`, telling 90 dagen).
+
+**Bewust niet.**
+- **Geen winstkans met toeval.** Eerst gebouwd en weer verwijderd: een
+  simulatie met per renner een geijkte portie toeval. De eigenaar wil een
+  vergelijking die direct uit de vermogens volgt. De ijking staat in
+  [docs/ladder-advies-renner-tegen-renner-2026-11-04.md](docs/ladder-advies-renner-tegen-renner-2026-11-04.md),
+  voor als het later terugkomt.
+- **Geen correctie voor de bron.** Over 16 leden met beide bronnen geeft
+  intervals.icu gemiddeld 6% meer W/kg op 15 s en 1 minuut dan ZwiftRacing
+  (mediaan 2 en 4%); op 5 en 20 minuten geen verschil. De tegenstander krijgt
+  altijd ZwiftRacing, dus op korte duren valt het advies iets gunstig uit voor
+  ons. Aan de eigenaar gemeld, niet weggerekend: met 16 renners te weinig om een
+  vaste correctie op te baseren.
+- **De matchup op de eventpagina en het racebriefje niet**: die rekenen nog met
+  de vijf besten per duur en ZwiftRacing eerst. Eerst zien of het advies bevalt.
+- **De teamtabel niet**: de 1-, 5- en 20-minuten-W/kg daar rekenen nog niet om
+  met het profielgewicht.
+
+**Niet geverifieerd.** De pagina in de browser (inloggen op productie). Met de
+productiewaarden van 2026-11-04 (gewichten van intervals.icu en profiel, niet
+die van Zwift) tegen de Overall-vijf van SZ Loki: 15 s −10%, 1 min −6%,
+5 min +9%, 20 min +13%, bovenaan London Uprising +4%; tegen Klim vlakke routes
+bovenaan (+5%). Typecheck schoon; Vitest groen op `omnium-live.test.ts` na, die
+`.env.local` leest (kwam al voor). Nieuw: `club-ladder-rank-pairs.test.ts`.
+
 ### Gebouwd — Starthelper in tegels, met de hulpvideo's
 
 **2026-11-04.** Deze commit, op branch `claude/exciting-hypatia-wrs45u`; op
@@ -12031,6 +12114,9 @@ dezelfde vijf; Klim maakt de klimroutes ~3% slechter voor ZWBullets.
 **Bewust niet.**
 - Onze kant niet: die blijft de vijf besten per duur uit de selectie of de
   ploeg. Een captain kiest zelf met Selectie wie er rijdt.
+  *Bijgewerkt 2026-11-04:* niet meer waar. Het advies kiest zonder selectie per
+  parcours onze vijf sterksten voor dat parcours en vergelijkt renner tegen
+  renner; zie "Club Ladder: advies renner tegen renner, intervals.icu eerst".
 - Het racebriefje niet: de verwachte uitslag rekent nog zoals eerst (zonder
   aanmeldingen van de tegenstander geen tegenstanders in de volgorde). Eerst
   zien of de knoppen bevallen.
@@ -12370,7 +12456,10 @@ bedoeld, maar met twee fouten.
   ladderraces, ook voor een ander team (`riderRaces`, nu geëxporteerd uit
   `event-matchup.ts`). Dan de vijf besten per duur. Pas vanaf drie renners met
   vermogen per kant telt het krachtverschil (`MIN_RIDERS`). De pagina toont
-  hoeveel renners meetellen en hoeveel met 90 dagen. Uitslagen per routetype
+  hoeveel renners meetellen en hoeveel met 90 dagen. *Bijgewerkt 2026-11-04:* in het
+  advies geen vijf besten per duur meer, geen `MIN_RIDERS` en geen telling van
+  90 dagen: renner tegen renner op volgorde, onze kant eerst uit intervals.icu
+  (`rank-pairs.ts`). De matchup op de eventpagina rekent nog zo. Uitslagen per routetype
   en eigen routekeuzes tellen alleen van de laatste 90 dagen (`recentMatches`).
 - **Gewichten** (`durationWeights` in `routes.ts`): per klim een geschatte
   klimtijd (`climbSeconds`: 4 W/kg, 75 kg plus 8 kg fiets, CdA 0,3, Crr 0,004),
