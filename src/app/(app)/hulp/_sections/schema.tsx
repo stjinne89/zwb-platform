@@ -545,6 +545,13 @@ export function SchemaHelp() {
               aan- of afmeldt; een event staat wel meteen in je schema.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
+              Raakt je wijziging vandaag, dan staat er een link{" "}
+              <strong className="text-foreground">Pas vandaag aan</strong> bij de
+              melding. Daarmee pas je de training van vandaag meteen aan (zie{" "}
+              &ldquo;Een dag aanpassen&rdquo;). De herziening van die nacht gaat
+              gewoon door en zet de dagen erna recht.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
               De aanpassing van de dag zelf wacht op de meting van je horloge van
               die nacht. Vanaf vijf uur kijkt ZWB elk uur of die binnen is, en
               past dan meteen aan; om negen uur in elk geval, met wat er dan is.

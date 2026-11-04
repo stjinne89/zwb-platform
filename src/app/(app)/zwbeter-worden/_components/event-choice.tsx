@@ -8,6 +8,7 @@ import Link from "next/link";
 import { CalendarCheck, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { acceptClubEvent, declineClubEvent } from "../_actions";
+import { AdjustTodayLink, todayKeyAmsterdam } from "./adjust-today-link";
 import { EVENT_TYPE_LABELS } from "@/lib/event-types";
 import { CollapsibleCard } from "./ui";
 import { useAiDraftPoll } from "./use-ai-draft-poll";
@@ -38,6 +39,9 @@ function durationLabel(minutes: number) {
 export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  // Een event van vandaag: de rest van vandaag volgt pas na de herziening van
+  // vannacht, "Pas vandaag aan" kan het meteen.
+  const [touchesToday, setTouchesToday] = useState(false);
 
   const onCompleted = useCallback(() => {
     setResult("Je schema is eromheen bijgewerkt.");
@@ -52,6 +56,7 @@ export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
   async function decide(eventId: string, meedoen: boolean) {
     poll.setError(null);
     setResult(null);
+    setTouchesToday(false);
     setBusyId(eventId);
     try {
       const formData = new FormData();
@@ -89,6 +94,12 @@ export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
         );
       }
       if (outcome.generationId) poll.watch(outcome.generationId);
+      const event = events.find((row) => row.id === eventId);
+      setTouchesToday(
+        Boolean(!outcome.generationId && outcome.replanScheduled) &&
+          event != null &&
+          todayKeyAmsterdam(new Date(event.startAt)) === todayKeyAmsterdam(),
+      );
     } catch {
       poll.setError("Opslaan is mislukt.");
     } finally {
@@ -231,6 +242,12 @@ export function EventChoice({ events }: { events: ScheduleEventItem[] }) {
           className={`border-t p-4 text-sm ${poll.error ? "text-destructive" : "text-primary"}`}
         >
           {poll.error ?? result}
+          {!poll.error && touchesToday ? (
+            <>
+              {" "}
+              <AdjustTodayLink />
+            </>
+          ) : null}
         </p>
       )}
     </CollapsibleCard>

@@ -15,6 +15,7 @@ import { TRAINING_FORMS } from "@/lib/training/training-forms";
 import { INTENSITY_LABELS } from "@/lib/training/workouts";
 import type { OwnWorkoutOption } from "@/lib/training/own-workouts";
 import { planOwnRide } from "../_actions";
+import { AdjustTodayLink } from "./adjust-today-link";
 import { useAiDraftPoll } from "./use-ai-draft-poll";
 import { WorkoutBlocks } from "./workout-blocks";
 
@@ -62,6 +63,9 @@ export function PlanRideForm({
   const [date, setDate] = useState(todayKey);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  // Een rit voor vandaag: de rest van vandaag volgt pas na de herziening van
+  // vannacht, "Pas vandaag aan" kan het meteen.
+  const [touchesToday, setTouchesToday] = useState(false);
 
   const onCompleted = useCallback(() => {
     setResult("Ingepland. Je schema is eromheen bijgewerkt.");
@@ -83,6 +87,7 @@ export function PlanRideForm({
     event.preventDefault();
     poll.setError(null);
     setResult(null);
+    setTouchesToday(false);
 
     const formData = new FormData(event.currentTarget);
     formData.set("kind", kind);
@@ -107,6 +112,7 @@ export function PlanRideForm({
             ? "Ingepland. Je schema wordt er vannacht omheen bijgewerkt."
             : "Ingepland.",
         );
+        setTouchesToday(Boolean(outcome.replanScheduled) && date === todayKey);
       }
     } catch {
       poll.setError("Rit inplannen is mislukt.");
@@ -126,7 +132,17 @@ export function PlanRideForm({
           {busy ? "Bezig…" : "Inplannen"}
         </Button>
         {poll.error && <p className="w-full text-sm text-destructive">{poll.error}</p>}
-        {result && <p className="w-full text-sm text-primary">{result}</p>}
+        {result && (
+          <p className="w-full text-sm text-primary">
+            {result}
+            {touchesToday ? (
+              <>
+                {" "}
+                <AdjustTodayLink />
+              </>
+            ) : null}
+          </p>
+        )}
       </div>
     );
   }

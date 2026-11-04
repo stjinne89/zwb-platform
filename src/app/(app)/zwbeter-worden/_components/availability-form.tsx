@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { WEEKDAY_SLUGS, type MinutesByDay } from "@/lib/training/availability";
 import { AvailabilityGrid, minutesLabel } from "./availability-grid";
 import { resetWeekAvailability, saveWeekAvailability } from "../_actions";
+import { AdjustTodayLink } from "./adjust-today-link";
 import { useAiDraftPoll } from "./use-ai-draft-poll";
 
 export type AvailabilityWeek = {
@@ -48,6 +49,9 @@ export function AvailabilityForm({ options }: { options: AvailabilityOptions }) 
   );
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  // Deze week of de standaard: dan raakt de wijziging vandaag, en dat ziet het
+  // lid pas na de herziening van vannacht. "Pas vandaag aan" kan het meteen.
+  const [touchesToday, setTouchesToday] = useState(false);
 
   const onCompleted = useCallback(() => {
     setResult("Je schema is bijgewerkt op je beschikbaarheid.");
@@ -73,6 +77,7 @@ export function AvailabilityForm({ options }: { options: AvailabilityOptions }) 
   async function run(action: () => Promise<{ ok: boolean; error?: string; generationId?: string | null; replanScheduled?: boolean }>) {
     poll.setError(null);
     setResult(null);
+    setTouchesToday(false);
     setSaving(true);
     try {
       const outcome = await action();
@@ -85,6 +90,7 @@ export function AvailabilityForm({ options }: { options: AvailabilityOptions }) 
         poll.watch(outcome.generationId);
       } else {
         setResult(outcome.replanScheduled ? "Opgeslagen. Je schema wordt vannacht bijgewerkt." : "Opgeslagen.");
+        setTouchesToday(Boolean(outcome.replanScheduled) && (week?.key === "deze" || week?.key === "standaard"));
       }
     } catch {
       poll.setError("Beschikbaarheid opslaan is mislukt.");
@@ -176,7 +182,17 @@ export function AvailabilityForm({ options }: { options: AvailabilityOptions }) 
       </div>
 
       {poll.error && <p className="mt-2 text-sm text-destructive">{poll.error}</p>}
-      {result && <p className="mt-2 text-sm text-primary">{result}</p>}
+      {result && (
+        <p className="mt-2 text-sm text-primary">
+          {result}
+          {touchesToday ? (
+            <>
+              {" "}
+              <AdjustTodayLink />
+            </>
+          ) : null}
+        </p>
+      )}
     </section>
   );
 }

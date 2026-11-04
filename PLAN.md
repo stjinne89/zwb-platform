@@ -47,6 +47,11 @@ gaat stabiliteit voor nieuwe features.
    duur, percentages per route, Zonder vermogen). Zie de ronde "Club Ladder:
    advies renner tegen renner, intervals.icu eerst".
 
+0m. **"Pas vandaag aan" bij de melding "vannacht bijgewerkt" (2026-11-04):
+   lokaal gecommit, niet gepusht.** Geen migratie. Open: pushen op verzoek,
+   daarna op Schema de beschikbaarheid van vandaag wijzigen en de link volgen.
+   Zie de ronde "Pas vandaag aan bij de melding".
+
 0b. **ZWBekers (2026-10-28): migratie `0286` toegepast en gepusht.** Open: de
    privacytekst `/privacy#zwbekers` wacht op akkoord van de eigenaar, net als de
    vraag of dit zonder nieuwe privacyversie kan (zie de ronde "ZWBekers").
@@ -11772,6 +11777,55 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — "Pas vandaag aan" bij de melding "vannacht bijgewerkt"
+
+**2026-11-04.** Lokaal gecommit op `claude/token-extra-schema-wijziging-eb0874`,
+niet gepusht. Geen migratie.
+
+**Waarom.** Leden liepen ertegenaan dat ze voor vandaag niets konden wijzigen.
+Sinds de ronde "Herzieningen 's nachts gebundeld" (2026-11-03) zet een wijziging
+overdag de herziening alleen klaar; de cron draait hem tussen 00 en 09 uur. Wat
+niet zonder AI kan, verandert die dag dus niet. "Pas vandaag aan" op ZWBeter
+Vandaag kan dat wel, zonder daglimiet, maar werd niet gevonden: in productie
+(alleen gelezen, 31 oktober tot en met 4 november) geen enkele generatie met
+`adaptation_kind = 'day'`.
+
+**Wat.**
+- `AdjustTodayLink` (nieuw, `adjust-today-link.tsx`) linkt naar
+  `/zwbeter-worden?aanpassen=1#vandaag-aanpassen`; `AdjustTodayForm` krijgt
+  `initialOpen` uit die parameter en staat dan open.
+- De link staat bij de melding als het verzoek naar de nacht gaat
+  (`replanScheduled`) en de wijziging vandaag raakt: beschikbaarheid van deze
+  week of de standaardweek (`availability-form.tsx`), een eigen rit met de datum
+  van vandaag (`plan-ride-form.tsx`), en aan- of afmelden voor een clubevent van
+  vandaag (`event-choice.tsx`).
+- `/hulp` (beschikbaarheid) noemt de link.
+
+**Waarom dit samen gaat.** Een dag-aanpassing (`adaptation_kind = 'day'`) haalt
+het nachtverzoek niet weg: `clearReplanPending` draait alleen na een
+`plan_update` (`draft.ts`). De herziening van die nacht gaat dus door en zet de
+dagen erna recht.
+
+**Bewust niet gebouwd.**
+- *Een dagtoken voor een directe herziening.* Eerst voorgesteld: één
+  "nu bijwerken" per lid per dag via `requestReplan(..., { now: true })`. Het
+  probleem gaat alleen over vandaag (eigenaar), en een herziening kost ~$0,66.
+- Geen link bij volgende week (`week-ahead.tsx` in het weekoverzicht), een
+  FTP-uitslag, voorkeuren of de chatnotitie: die raken vandaag niet, of de
+  notitie blijft in de geschiedenis staan als de dag allang voorbij is.
+- Geen link als een ander lid (trainer) de wijziging doet.
+
+**Bekende rand (ongewijzigd).** Wie de training van vandaag heeft verwijderd of
+een rustdag nam, krijgt van "Pas vandaag aan" niets meer voor die dag (ronde
+"geplande trainingen zelf verwijderen").
+
+**Getest.** Eslint op de gewijzigde bestanden schoon; `tsc --noEmit` zonder
+fouten in deze bestanden (de drie bestaande over `modern-screenshot` en
+`@anthropic-ai/sdk` komen uit de gedeelde `node_modules`). **Niet
+geverifieerd:** de link en het open formulier in de browser (geen ingelogde
+sessie), en of de AI bij een eigen rit van vandaag de geplande training laat
+vallen.
+
 ### Gebouwd — Club Ladder: advies renner tegen renner, intervals.icu eerst
 
 **2026-11-04.** Commit `6ebd28d` op branch `ccr-71e0c9cf-vu6154`; op
@@ -13470,7 +13524,9 @@ te zien; die dag wordt weer ingevuld zodra hij binnen het venster valt.
 
 **Gevolg voor het lid.** Een wijziging overdag (beschikbaarheid, race, rit) is
 meteen zichtbaar voor zover dat zonder AI kan (dag zonder tijd vrij, event in het
-schema). De rest van het schema volgt de volgende ochtend.
+schema). De rest van het schema volgt de volgende ochtend. *Sinds 2026-11-04
+staat bij die melding een link naar "Pas vandaag aan" als de wijziging vandaag
+raakt (ronde "Pas vandaag aan bij de melding").*
 
 **Getest.** Unit-tests voor het venster, het bundelen, de harde einddatum en het
 wachten op de meting (`replan-window.test.ts`,

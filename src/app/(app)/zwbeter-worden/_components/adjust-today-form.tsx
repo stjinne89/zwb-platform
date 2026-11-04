@@ -6,6 +6,7 @@ import { ExternalLink, Moon, Sparkles } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { markTodayRestDay } from "../_actions";
+import { ADJUST_TODAY_ANCHOR } from "./adjust-today-link";
 import { useAiDraftPoll, type DraftPayload } from "./use-ai-draft-poll";
 
 const FIELD =
@@ -17,9 +18,14 @@ const FEELINGS: { value: string; label: string }[] = [
   { value: "fresh", label: "Fris" },
 ];
 
-export function AdjustTodayForm() {
+/**
+ * `initialOpen`: het lid komt via de link bij "je schema wordt vannacht
+ * bijgewerkt" (AdjustTodayLink) om vandaag meteen aan te passen; dan staat het
+ * formulier al open.
+ */
+export function AdjustTodayForm({ initialOpen = false }: { initialOpen?: boolean }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initialOpen);
   const [feeling, setFeeling] = useState("normal");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -96,7 +102,7 @@ export function AdjustTodayForm() {
 
   if (!open) {
     return (
-      <div className="rounded-lg border bg-card p-4">
+      <div id={ADJUST_TODAY_ANCHOR} className="scroll-mt-20 rounded-lg border bg-card p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 font-semibold">
             <Sparkles className="size-5 text-primary" />
@@ -126,7 +132,11 @@ export function AdjustTodayForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3 rounded-lg border bg-card p-4">
+    <form
+      id={ADJUST_TODAY_ANCHOR}
+      onSubmit={submit}
+      className="scroll-mt-20 space-y-3 rounded-lg border bg-card p-4"
+    >
       <h2 className="flex items-center gap-2 font-semibold">
         <Sparkles className="size-5 text-primary" />
         Pas je training van vandaag aan

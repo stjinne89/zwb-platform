@@ -421,7 +421,7 @@ export default async function ZwbeterWordenTodayPage({ searchParams }: SearchPar
         }}
       />
 
-      <AdjustTodayForm />
+      <AdjustTodayForm initialOpen={paramString(params.aanpassen) === "1"} />
 
       <Suspense fallback={null}>
         <PendingReviewDialog review={pendingReviewPromise} />
