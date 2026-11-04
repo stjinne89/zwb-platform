@@ -137,12 +137,10 @@ gaat stabiliteit voor nieuwe features.
    Nalopen na de deploy:
    een niet-geplande rit aanklikken, RPE opslaan, en de rit daarna aan een
    training hangen. Zie de ronde "RPE bij een losse rit".
-0p. **Club Ladder: gewicht in matchup en advies (2026-11-04): gebouwd, lokaal
-   getest, gepusht naar de branch `claude/festive-bell-ahpdri`, niet naar
-   `main`.** Geen migratie. Open: de privacyzin over gewicht in
-   de ladder (voorstel in de ronde) wacht op akkoord van de eigenaar, net als de
-   rest van de laddertekst. Nalopen na een deploy: de regel Gewicht in de
-   matchup van ZWBullets – Mad Dogs en "Gewicht scheelt hier" in hun advies. Zie
+0p. **Club Ladder: gewicht in matchup en advies (2026-11-04): gepusht naar
+   `main` (`33448d9` en volgende).** Geen migratie. Privacyzin akkoord en
+   geplaatst (eigenaar, 2026-11-04). Nalopen na de deploy: de regel Gewicht in
+   de matchup van ZWBullets – Mad Dogs en "Gewicht scheelt hier" in hun advies. Zie
    de ronde "Club Ladder: gewicht telt mee in matchup en route-advies".
 
 1. **Supabase: tijdelijk op Pro sinds 2026-11-02, terug naar Free per 2026-12-02**
@@ -11731,8 +11729,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Club Ladder: gewicht telt mee in matchup en route-advies
 
 **2026-11-04.** Commit `33448d9` op de branch `claude/festive-bell-ahpdri`,
-gepusht naar die branch op 2026-11-04 (akkoord eigenaar; niet naar `main`).
-Geen migratie.
+met de privacyzin in de commit die deze regel bijwerkt; op 2026-11-04 met
+akkoord van de eigenaar op `main` gezet en gepusht. Geen migratie.
 
 **Waarom.** De eigenaar zag dat matchup en advies alleen naar W/kg en de duur
 van de inspanning kijken, terwijl het gewicht van de ploeg en van elke renner
@@ -11794,15 +11792,18 @@ parcours: Tempus Fugit +18%, The Highline +8%, Cobbled Climbs +9%.
 - De typering (Vlak/Punch/Heuvels/Klim) en de gewichten per duur niet
   aangepast.
 
-**Privacy (open, voorleggen aan de eigenaar).** Gewicht van renners van andere
+**Privacy (akkoord eigenaar 2026-11-04).** Gewicht van renners van andere
 clubs wordt al bewaard (ladderuitslagen, segmentpassages); nieuw is dat de
-ladder ermee rekent. De privacytekst over de ladder stond al open (zie
-"Ladderrace: matchup met vermogen op de eventpagina" en punt 0m). Voorstel om
-daar toe te voegen: "Voor de matchup en het route-advies rekenen we met het
-gewicht uit de Zwift-uitslag van bewaarde ladderraces en uit segmentpassages
-van de racebriefing, ook van renners van andere clubs; voor een ZWB'er zonder
-die twee met het gewicht uit intervals.icu. Het gewicht staat nergens los, alleen
-het gemiddelde van een ploeg vanaf drie renners." Niet aangepast.
+ladder ermee rekent. Deze zin staat nu in `/privacy` (Account- en
+profielgegevens, na de Club Ladder-zinnen): "Voor de matchup en het
+route-advies rekenen we met het gewicht uit de Zwift-uitslag van bewaarde
+ladderraces en uit segmentpassages van de racebriefing, ook van renners van
+andere clubs; voor een ZWB'er zonder die twee met het gewicht uit
+intervals.icu. Het gewicht staat nergens los, alleen het gemiddelde van een
+ploeg vanaf drie renners." Alleen tekst, geen nieuwe privacyversie: geen nieuwe
+categorie of ontvanger, zoals bij de achtste uitzondering in `privacy.ts`. De
+rest van de laddertekst (zie "Ladderrace: matchup met vermogen op de
+eventpagina" en punt 0m) staat nog open.
 
 **Nagerekend met productiedata (2026-11-04, alleen gelezen).** Dekking: van de
 387 ladderrenners met Zwift-ID hebben er 387 een gewicht. Huidige ploegen met

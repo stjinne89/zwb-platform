@@ -113,7 +113,12 @@ export default function PrivacyPage() {
             in welk ladderteam je rijdt. Dat kan ook voor renners zonder
             ZWB-account: dan staat hun naam uit het rooster met Zwift-ID, rank,
             eventueel geslacht en hun Zwift Racing Score (of vELO 2) op de Club
-            Ladder-pagina, tot ze hun naam claimen.
+            Ladder-pagina, tot ze hun naam claimen. Voor de matchup en het
+            route-advies rekenen we met het gewicht uit de Zwift-uitslag van
+            bewaarde ladderraces en uit segmentpassages van de racebriefing, ook
+            van renners van andere clubs; voor een ZWB&apos;er zonder die twee met
+            het gewicht uit intervals.icu. Het gewicht staat nergens los, alleen
+            het gemiddelde van een ploeg vanaf drie renners.
           </li>
           <li>
             <strong>ZRL-teamgegevens van WTRL:</strong> voor de ZRL-teams nemen
