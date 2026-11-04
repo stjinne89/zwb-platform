@@ -11746,8 +11746,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Beheer: koppelingen per lid
 
-**2026-11-04.** Op de branch `claude/amazing-volta-p9uvrd`, nog niet op
-`main`. Geen migratie.
+**2026-11-04.** Commit `03a38d5` op de branch `claude/amazing-volta-p9uvrd`,
+lokaal, niet gepusht. Geen migratie.
 
 **Waarom.** De eigenaar wil leden met vragen makkelijker helpen: in één
 overzicht zien wat elk lid gekoppeld heeft en of dat loopt. Tot nu toe stond
