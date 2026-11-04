@@ -18,6 +18,8 @@ import { ZwiftIdDialog, type RosterClaim } from "./_components/zwift-id-dialog";
 import { DurabilitySetupDialog } from "./_components/durability-setup-dialog";
 import { TrainingNoticeDialog } from "./_components/training-notice-dialog";
 import { AppUpdateDialog } from "./_components/app-update-dialog";
+import { IntegrationNoticeDialog } from "./_components/integration-notice-dialog";
+import { loadOpenIntegrationNotices } from "@/lib/integrations/member-notices";
 import { loadLatestUpdate } from "@/lib/app-updates/queries";
 import { inPopupWindow } from "@/lib/app-updates/schedule";
 import { updateLabel } from "@/components/app-updates/update-card";
@@ -132,6 +134,15 @@ export default async function AppLayout({
       />
     ) : null;
 
+  // "Nog niet gekoppeld" van beheer (0307): nooit boven op de twee vragen
+  // hierboven. Eén indexvraag; de koppelingen laden pas als er iets openstaat.
+  const integrationNotices =
+    profile && !needsPrivacyConsent && !needsZwiftId
+      ? await loadOpenIntegrationNotices(supabase, user.id).catch(() => [])
+      : [];
+  const integrationNotice =
+    integrationNotices.length > 0 ? <IntegrationNoticeDialog notices={integrationNotices} /> : null;
+
   // Het weekoverzicht: zondagavond tot en met woensdag, en nooit boven op een
   // van de twee vragen hierboven. Of er echt iets klaarstaat vraagt de launcher
   // zelf na, zodat deze layout er geen query voor doet.
@@ -184,6 +195,7 @@ export default async function AppLayout({
             {durabilityDialog}
             {trainingNotice}
             {appUpdate}
+            {integrationNotice}
           </>
         }
       >
@@ -242,6 +254,7 @@ export default async function AppLayout({
       {durabilityDialog}
       {trainingNotice}
       {appUpdate}
+      {integrationNotice}
     </div>
   );
 }

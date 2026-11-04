@@ -109,6 +109,14 @@ export async function GET() {
     .maybeSingle();
   data.telegram_link = telegram ?? null;
 
+  // Pop-ups "nog niet gekoppeld" (0307); zonder wie hem verstuurde, want dat
+  // gegeven gaat over de beheerder.
+  const { data: integrationNotices, error: integrationNoticesError } = await admin
+    .from("integration_notices")
+    .select("id, integration, body, created_at, seen_at, resolved_at")
+    .eq("profile_id", user.id);
+  if (!integrationNoticesError) data.integration_notices = integrationNotices ?? [];
+
   // Overige tabellen met profile_id (best-effort; sla missende tabellen over).
   for (const table of PROFILE_TABLES) {
     try {

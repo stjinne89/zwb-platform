@@ -566,7 +566,10 @@ export const ADMIN_GUIDES = [
     title: "Koppelingen van leden",
     bullets: [
       "Beheer > Koppelingen toont per lid wat er gekoppeld is: Strava, intervals.icu, Zwift, Telegram, meldingen, de agendalink en live volgen. Rood is een probleem, oranje vraagt aandacht, groen loopt.",
-      "Tik op een lid voor de tijdstippen, de foutmelding en wanneer het lid voor het laatst in de app was en reed. Kies bovenaan een koppeling om alleen de leden te zien die hem hebben; wie daar een probleem heeft, staat bovenaan.",
+      "Tik op een lid voor de tijdstippen, de foutmelding en wanneer het lid voor het laatst in de app was en reed.",
+      "Kies bij Mist of misgaat een koppeling: je ziet de leden die hem niet hebben of bij wie hij misgaat, met de problemen bovenaan. Het getal is wie hem mist, het oranje getal wie er een probleem mee heeft. Zonder Strava telt niet als je ritten via intervals.icu komen, zonder Zwift-ID niet als je zei niet te zwiften.",
+      "Pop-up naar … stuurt de leden die de koppeling missen een melding in de app: wat er nog niet gekoppeld is, wat ze daardoor missen en een knop om te koppelen. De tekst kun je voor het versturen aanpassen. Ze zien hem bij hun volgende bezoek. Wie er al een open heeft staan, krijgt geen tweede; wie intussen zelf koppelde, ziet hem niet meer. Bij het lid staat wanneer hij verstuurd en gezien is.",
+      "Voor Zwift is er geen pop-up: wie geen Zwift-ID heeft, krijgt die vraag al bij elk bezoek.",
       "Strava zonder recht op activiteiten, of ingetrokken op strava.com: het lid koppelt opnieuw op zijn profiel, met het vinkje voor activiteiten aan. Zonder schrijfrecht blijft alleen de samenvatting in de Strava-beschrijving weg.",
       "Faalt de Strava-sync, start hem dan voor dat lid op Beheer > Strava-sync. Helpt dat niet, laat het lid opnieuw koppelen.",
       "intervals.icu mogelijk ingeslapen: een gratis account slaapt in na 90 dagen zonder bezoek. Het lid opent intervals.icu en vinkt de herinnering op het dashboard af. Faalt het ophalen van ritten, dan klopt de API-key vaak niet meer; het lid plakt een nieuwe bij Training → Doelen.",

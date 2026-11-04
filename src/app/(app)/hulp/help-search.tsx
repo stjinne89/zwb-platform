@@ -422,7 +422,7 @@ const HELP_INDEX: HelpResult[] = [
     title: "Koppelingen van leden",
     text: "Per lid zien wat er gekoppeld is en wat er misgaat.",
     href: "/hulp/beheer#koppelingenbeheer",
-    terms: "beheer admin koppelingen gekoppeld leden helpen strava intervals zwift telegram meldingen push agenda live status fout",
+    terms: "beheer admin koppelingen gekoppeld niet gekoppeld leden helpen strava intervals zwift telegram meldingen push agenda live status fout pop-up melding sturen",
   },
   {
     title: "Problemen oplossen",

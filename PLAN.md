@@ -160,6 +160,12 @@ gaat stabiliteit voor nieuwe features.
    nieuwe privacyversie kan. Nalopen na de deploy:
    `/beheer/koppelingen` met echte data openen. Zie de ronde "Beheer:
    koppelingen per lid".
+   **Vervolg (2026-11-04): wie iets mist, en een pop-up. Migratie `0307` nog
+   niet toegepast, code nog niet gepusht.** Zonder `0307` werkt het scherm
+   zoals voorheen, maar faalt versturen. Daarna nalopen: een pop-up naar
+   jezelf (zoek je eigen naam), in de app zien, sluiten, en "gezien" op het
+   beheerscherm. De uitgebreide privacyzin wacht ook op akkoord. Zie de ronde
+   "Koppelingen: wie iets mist, en een pop-up".
 0s. **Starthelper `/welkom` in tegels, met video's (2026-11-04): op verzoek van
    de eigenaar gepusht naar `main`.** Geen migratie. Drie
    nieuwe hulpclips (intervals.icu, Mijn garage, live met Garmin of Wahoo) en
@@ -11752,6 +11758,88 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Koppelingen: wie iets mist, en een pop-up
+
+**2026-11-04.** Op de branch `claude/amazing-volta-p9uvrd`, nog niet op `main`.
+Migratie `0307_integration_notices.sql`, **nog niet toegepast**.
+
+**Waarom.** De eigenaar: "wanneer ik filter zie ik alleen de leden die het wel
+goed gekoppeld hebben. Dit zou andersom moeten zijn." En: leden een pop-up
+kunnen sturen dat iets nog niet gekoppeld is en wat dat voor het gebruik van
+de app betekent.
+
+**Wat er veranderde.**
+- **Filter omgedraaid.** De chips per koppeling staan onder "Mist of
+  misgaat" en tonen de leden die de koppeling missen of bij wie hij misgaat:
+  probleem, aandacht, dan niet gekoppeld. Het getal is wie hem mist, het
+  oranje getal wie er een probleem mee heeft. Per lid staat dan alleen die
+  koppeling in de rij, met de laatste pop-up erachter.
+- **Wat telt als missen** (`missing` op `IntegrationStatus`, `needsHelp`):
+  uit, behalve Strava als de ritten via intervals.icu komen (die leden
+  hebben Strava niet nodig, en de Strava-plekken zijn beperkt), en Zwift bij
+  wie zei niet te zwiften
+  (`profiles.zwift_opt_out`, nieuw "Rijdt niet op Zwift"). intervals.icu telt
+  wel als gemist naast Strava: het schema heeft het nodig.
+- **Pop-up "nog niet gekoppeld"** (`0307`, tabel `integration_notices`). Met
+  een koppeling gekozen staat er "Pop-up naar N"; dat opent een venster met de
+  titel, de ontvangers en de tekst, die je kunt aanpassen (max. 600 tekens).
+  Titel, link en standaardtekst per koppeling in `lib/integrations/notices.ts`.
+  Bij Strava hangt dat af van de plekken: zijn die vol, dan wijst de melding
+  naar ritten via intervals.icu. De serveractie (`beheer/koppelingen/_actions.ts`)
+  rekent zelf na wie de koppeling echt mist en slaat wie er al een open heeft
+  over.
+- **Bij het lid** (`layout.tsx`, `integration-notice-dialog.tsx`): openstaande
+  meldingen opent de app na twee seconden, nooit boven op de privacy- of
+  Zwift-ID-vraag of een andere dialoog. Eén melding: titel, tekst, Sluiten en
+  de koppelknop; meer: onder elkaar. Sluiten of de knop zet hem op gezien.
+  Koppelde het lid intussen zelf, dan zet de layout `resolved_at` en toont hij
+  niets (`lib/integrations/member-notices.ts`). De layout doet daarvoor één
+  indexvraag onder de RLS van het lid; de koppelingen laden alleen als er iets
+  openstaat.
+- **Laden gedeeld.** De koppelingsrijen komen nu uit
+  `lib/integrations/load.ts` (voor alle leden of een paar), zodat beheer,
+  serveractie en layout dezelfde regel gebruiken.
+- **AVG-export** neemt de meldingen mee, zonder `sent_by` (dat gaat over de
+  beheerder).
+- `/hulp/beheer#koppelingenbeheer` beschrijft filter en pop-up;
+  `/privacy#koppelingen` noemt de melding en wat we ervan bewaren.
+
+**Bewust niet.**
+- **Geen pop-up voor Zwift.** Wie geen Zwift-ID heeft en niet "ik zwift niet"
+  koos, krijgt al elke sessie de Zwift-ID-vraag (`zwift-id-dialog.tsx`).
+- **Geen push erbij.** Gevraagd was een pop-up; wie meldingen mist, zou een
+  push ook niet krijgen. De pop-up komt bij het volgende bezoek.
+- **Geen pop-up voor een kapotte koppeling** (zoals Strava zonder
+  activiteitenrecht). Gevraagd was "nog niet gekoppeld"; een melding "koppel
+  opnieuw" vraagt eigen teksten per probleem. Kan erbij als dat nodig blijkt.
+- **Geen vrije titel of link.** Alleen de uitleg is aan te passen, zodat de
+  knop altijd naar de goede plek wijst.
+- **Geen tweede melding zolang er een openstaat**; na "gezien" mag het wel
+  weer.
+
+**Privacy (wacht op akkoord eigenaar).** Nieuw bewaard: per melding de
+koppeling, de tekst, wie hem stuurde, en wanneer hij verstuurd, gezien of
+overbodig werd, zolang het lid lid is (cascade bij het verwijderen). De zin
+in `/privacy#koppelingen` is aangevuld. Geen nieuwe privacyversie voorgesteld:
+een bericht van de club aan een lid, geen nieuwe categorie of verwerker.
+
+**Getest.** Typecheck, ESLint en `next build` schoon. 9 nieuwe tests
+(`integration-notices.test.ts` en `member-integrations.test.ts`), onder meer
+dat de check in `0307` precies de koppelingen van de code noemt. De migratie
+in PGlite gedraaid, twee keer (idempotent), met stubs voor `auth.uid()` en de
+rollen: een lid leest alleen de eigen melding, insert/update/delete geweigerd,
+anon geweigerd, Zwift en lege tekst door de check geweigerd. Met voorbeelddata
+bekeken op 375 px: het filter (Strava toont alleen probleem en niet gekoppeld,
+niet wie via intervals.icu rijdt), het verstuurvenster en de pop-up met één en
+met twee meldingen. Hele suite: alleen `omnium-live.test.ts` (ontbrekende
+`.env.local`). `admin-areas.test.ts` liep één keer tegen zijn time-out van 5 s
+(PGlite koud), daarna twee keer groen; ook zonder deze wijziging.
+
+**Niet geverifieerd.** Versturen en de pop-up tegen een echte database (de
+migratie staat niet op productie). Of de pop-up op de telefoon goed samengaat
+met de andere dialogen (weekoverzicht, app-update): die openen zichzelf en
+ontwijken elkaar op dezelfde manier, maar dat is niet naast elkaar getest.
+
 ### Gebouwd — Starthelper in tegels, met de hulpvideo's
 
 **2026-11-04.** Deze commit, op branch `claude/exciting-hypatia-wrs45u`; op
@@ -11867,8 +11955,10 @@ loopt niet bij").
   aandacht / in orde / niet gekoppeld, uitklapbaar met tijdstippen en de
   foutmelding, plus laatst in de app (`member_last_seen`), laatste rit (120
   dagen terug) en de ritbron. Filters: alle leden, aandacht nodig, niets
-  gekoppeld, en per koppeling (wie daar een probleem heeft staat bovenaan);
-  zoeken op naam. Leden met een probleem staan bovenaan.
+  gekoppeld, en per koppeling; zoeken op naam. Leden met een probleem staan
+  bovenaan. *Bijgesteld 2026-11-04 (ronde "Koppelingen: wie iets mist, en een
+  pop-up"):* het filter per koppeling toonde eerst wie hem wél had; nu wie hem
+  mist of bij wie hij misgaat.
 - **Regels** (`lib/integrations/member-overview.ts`, puur, 20 tests in
   `member-integrations.test.ts`):
   - *Strava*: geen activiteitenrecht = probleem; ingetrokken op strava.com of
@@ -11908,9 +11998,10 @@ loopt niet bij").
   zien.
 
 **Bewust niet.**
-- **Geen acties op deze pagina.** Syncen en opheffen blijven op
-  `/beheer/strava` (link bij een lid met Strava); dit scherm is om te kijken.
-  Een tweede plek met dezelfde knoppen gaat uiteenlopen.
+- **Geen sync- of opheffacties op deze pagina.** Syncen en opheffen blijven op
+  `/beheer/strava` (link bij een lid met Strava). Een tweede plek met dezelfde
+  knoppen gaat uiteenlopen. (Sinds de volgende ronde kan hier wel een pop-up
+  "nog niet gekoppeld" weg; dat is geen Strava-actie.)
 - **Geen "stille ritbron" als waarschuwing.** Een lid dat een maand niet rijdt
   is niet kapot; de laatste rit staat er als feit bij.
 - **Geen alarm op oude pushabonnementen.** Een toestel dat lang geen melding

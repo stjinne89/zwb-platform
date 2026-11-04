@@ -6,6 +6,7 @@ import {
   liveStatus,
   memberIntegrations,
   memberRideSource,
+  needsHelp,
   pushStatus,
   stravaStatus,
   telegramStatus,
@@ -312,5 +313,40 @@ describe("lidstatus", () => {
     );
     expect(worstState(statuses)).toBe("problem");
     expect(worstState(memberIntegrations({ ...empty, zwiftId: "1" }, NOW))).toBe("ok");
+  });
+});
+
+describe("wat een lid mist", () => {
+  const byKey = (input: MemberIntegrationInput) =>
+    Object.fromEntries(memberIntegrations(input, NOW).map((item) => [item.key, item]));
+
+  it("telt alles wat uit staat als gemist bij een lid zonder koppelingen", () => {
+    const items = byKey(empty);
+    expect(Object.values(items).every((item) => item.missing && needsHelp(item))).toBe(true);
+  });
+
+  it("mist Strava niet als de ritten via intervals.icu komen", () => {
+    const items = byKey({ ...empty, intervals: intervals() });
+    expect(memberRideSource({ ...empty, intervals: intervals() })).toBe("intervals");
+    expect(items.strava.missing).toBe(false);
+    expect(needsHelp(items.strava)).toBe(false);
+    expect(items.intervals.missing).toBe(false);
+  });
+
+  it("mist intervals.icu ook naast Strava", () => {
+    expect(byKey({ ...empty, strava: strava() }).intervals.missing).toBe(true);
+  });
+
+  it("mist Zwift niet bij wie zei niet te zwiften", () => {
+    const items = byKey({ ...empty, zwiftOptOut: true });
+    expect(items.zwift.summary).toBe("Rijdt niet op Zwift");
+    expect(items.zwift.missing).toBe(false);
+  });
+
+  it("noemt een gekoppelde koppeling met een probleem wel hulp, niet gemist", () => {
+    const item = byKey({ ...empty, strava: strava({ scope: "read" }) }).strava;
+    expect(item.missing).toBe(false);
+    expect(needsHelp(item)).toBe(true);
+    expect(needsHelp(byKey({ ...empty, strava: strava() }).strava)).toBe(false);
   });
 });

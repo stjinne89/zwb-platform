@@ -32,6 +32,12 @@ export type IntegrationStatus = {
   /** Eén korte regel: de toestand, of wat er mis is. */
   summary: string;
   facts: IntegrationFact[];
+  /**
+   * Niet gekoppeld, terwijl het lid er wel iets aan heeft. Niet bij Strava als
+   * de ritten via intervals.icu komen, en niet bij Zwift als het lid zei niet te
+   * zwiften.
+   */
+  missing: boolean;
 };
 
 export const INTEGRATION_LABELS: Record<IntegrationKey, string> = {
@@ -120,6 +126,8 @@ export type LiveInput = {
 
 export type MemberIntegrationInput = {
   zwiftId: string | null;
+  /** Het lid zei bij de Zwift-ID-vraag niet te zwiften (profiles.zwift_opt_out). */
+  zwiftOptOut?: boolean;
   /** Zwift gaf 401/403/404 op de activiteitenlijst (zwift_race_score_sync.refused). */
   zwiftRefused: boolean;
   strava: StravaInput | null;
@@ -148,7 +156,7 @@ function status(
   summary: string,
   facts: IntegrationFact[] = [],
 ): IntegrationStatus {
-  return { key, label: INTEGRATION_LABELS[key], state, summary, facts };
+  return { key, label: INTEGRATION_LABELS[key], state, summary, facts, missing: false };
 }
 
 /** Waar de ritten van dit lid vandaan komen; dezelfde regel als de sync. */
@@ -270,7 +278,11 @@ export function intervalsStatus(
 
 export function zwiftStatus(input: MemberIntegrationInput): IntegrationStatus {
   const id = input.zwiftId?.trim();
-  if (!id) return status("zwift", "off", "Geen Zwift-ID");
+  if (!id) {
+    return input.zwiftOptOut
+      ? status("zwift", "off", "Rijdt niet op Zwift")
+      : status("zwift", "off", "Geen Zwift-ID");
+  }
   const facts: IntegrationFact[] = [{ label: "Zwift-ID", text: id }];
   if (!/^\d+$/.test(id)) return status("zwift", "problem", "Zwift-ID is geen getal", facts);
   if (input.zwiftRefused) {
@@ -368,6 +380,13 @@ export function liveStatus(input: MemberIntegrationInput): IntegrationStatus {
   return status("live", "ok", names.join(", "), facts);
 }
 
+/** Of een koppeling die uit staat, dit lid iets zou opleveren. */
+function wanted(key: IntegrationKey, input: MemberIntegrationInput): boolean {
+  if (key === "strava") return memberRideSource(input) === "none";
+  if (key === "zwift") return !input.zwiftOptOut;
+  return true;
+}
+
 export function memberIntegrations(
   input: MemberIntegrationInput,
   now = new Date(),
@@ -380,7 +399,12 @@ export function memberIntegrations(
     pushStatus(input),
     agendaStatus(input, now),
     liveStatus(input),
-  ];
+  ].map((item) => ({ ...item, missing: item.state === "off" && wanted(item.key, input) }));
+}
+
+/** Probleem, aandacht of niet gekoppeld: wat bij het filter per koppeling hoort. */
+export function needsHelp(item: IntegrationStatus): boolean {
+  return item.state === "problem" || item.state === "attention" || item.missing;
 }
 
 /** De ernstigste toestand onder de koppelingen; "off" als er niets is. */

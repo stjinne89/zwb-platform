@@ -14,7 +14,7 @@ export default async function BeheerKoppelingenPage() {
   if (!access.user) redirect("/login");
   if (!access.has(adminAreaPermission("koppelingen"))) redirect("/dashboard");
 
-  const members = await loadMemberIntegrations();
+  const { members, stravaCapFull } = await loadMemberIntegrations();
 
   return (
     <div className="space-y-6">
@@ -23,6 +23,7 @@ export default async function BeheerKoppelingenPage() {
       <MemberIntegrations
         members={members}
         canSyncStrava={access.has(adminAreaPermission("strava"))}
+        stravaCapFull={stravaCapFull}
       />
     </div>
   );

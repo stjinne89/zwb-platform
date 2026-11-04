@@ -1,19 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { AlertTriangle, Check, ChevronDown, CircleAlert, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { AlertTriangle, Check, ChevronDown, CircleAlert, Search, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type {
   IntegrationFact,
   IntegrationKey,
   IntegrationState,
   IntegrationStatus,
 } from "@/lib/integrations/member-overview";
+import type { NoticeSummary } from "@/lib/integrations/load";
+import { isNoticeIntegration, NOTICE_BODY_MAX, noticeTemplate } from "@/lib/integrations/notices";
 import type { MemberIntegrationRow } from "../_data";
+import { sendIntegrationNotice } from "../_actions";
 
-// Alleen type-imports uit lib/integrations: die module trekt de ritten-logica
-// mee, en die hoort niet in de browserbundel. Labels en volgorde komen uit de
-// rijen zelf.
+// Uit member-overview alleen types: die module trekt de ritten-logica mee, en
+// die hoort niet in de browserbundel. notices.ts is puur en zonder imports.
 
 const STATE_CLASS: Record<IntegrationState, string> = {
   problem: "bg-destructive/10 text-destructive",
@@ -29,7 +41,8 @@ const STATE_LABEL: Record<IntegrationState, string> = {
   off: "niet gekoppeld",
 };
 
-const STATE_RANK: Record<IntegrationState, number> = { problem: 0, attention: 1, ok: 2, off: 3 };
+/** Bij een gekozen koppeling: eerst wat misgaat, dan wat ontbreekt. */
+const STATE_RANK: Record<IntegrationState, number> = { problem: 0, attention: 1, off: 2, ok: 3 };
 
 type Filter = "all" | "issues" | "nothing" | IntegrationKey;
 
@@ -54,8 +67,28 @@ function formatAt(value: string | null) {
   });
 }
 
+function formatDay(value: string) {
+  return new Date(value).toLocaleDateString("nl-NL", {
+    day: "numeric",
+    month: "short",
+    timeZone: "Europe/Amsterdam",
+  });
+}
+
 function factValue(fact: IntegrationFact) {
   return "text" in fact ? fact.text : formatAt(fact.at);
+}
+
+function noticeText(notice: NoticeSummary | undefined) {
+  if (!notice) return null;
+  const sent = `Pop-up ${formatDay(notice.createdAt)}`;
+  if (notice.resolvedAt) return `${sent}, daarna gekoppeld`;
+  if (notice.seenAt) return `${sent}, gezien ${formatDay(notice.seenAt)}`;
+  return `${sent}, nog niet gezien`;
+}
+
+function noticeIsOpen(notice: NoticeSummary | undefined) {
+  return Boolean(notice && !notice.seenAt && !notice.resolvedAt);
 }
 
 const RIDE_SOURCE_LABEL = {
@@ -72,32 +105,43 @@ function isIssue(state: IntegrationState) {
   return state === "problem" || state === "attention";
 }
 
+function needsHelp(item: IntegrationStatus | undefined) {
+  return Boolean(item && (isIssue(item.state) || item.missing));
+}
+
 export function MemberIntegrations({
   members,
   canSyncStrava,
+  stravaCapFull,
 }: {
   members: MemberIntegrationRow[];
   canSyncStrava: boolean;
+  stravaCapFull: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [open, setOpen] = useState<Set<string>>(() => new Set());
+  const [composing, setComposing] = useState(false);
 
-  // Per koppeling: hoeveel leden hem hebben en hoeveel daarvan aandacht vragen.
+  // Per koppeling: wie hem mist en bij wie hij misgaat.
   const perIntegration = (members[0]?.integrations ?? []).map((sample) => {
-    let linked = 0;
+    let missing = 0;
     let issues = 0;
     for (const member of members) {
       const item = member.integrations.find((i) => i.key === sample.key);
-      if (!item || item.state === "off") continue;
-      linked += 1;
-      if (isIssue(item.state)) issues += 1;
+      if (!item) continue;
+      if (item.missing) missing += 1;
+      else if (isIssue(item.state)) issues += 1;
     }
-    return { key: sample.key, label: sample.label, linked, issues };
+    return { key: sample.key, label: sample.label, missing, issues };
   });
 
   const issueCount = members.filter((m) => isIssue(m.state)).length;
   const nothingCount = members.filter((m) => m.state === "off").length;
+
+  const byIntegration = filter !== "all" && filter !== "issues" && filter !== "nothing";
+  const itemOf = (member: MemberIntegrationRow) =>
+    byIntegration ? member.integrations.find((i) => i.key === filter) : undefined;
 
   const needle = query.trim().toLocaleLowerCase("nl");
   const visible = members.filter((member) => {
@@ -105,19 +149,24 @@ export function MemberIntegrations({
     if (filter === "all") return true;
     if (filter === "issues") return isIssue(member.state);
     if (filter === "nothing") return member.state === "off";
-    const item = member.integrations.find((i) => i.key === filter);
-    return Boolean(item && item.state !== "off");
+    return needsHelp(itemOf(member));
   });
 
-  // Met een koppeling gekozen staan de leden met een probleem dáárin bovenaan.
-  const byIntegration = filter !== "all" && filter !== "issues" && filter !== "nothing";
-  const stateOf = (member: MemberIntegrationRow) =>
-    member.integrations.find((i) => i.key === filter)?.state ?? "off";
   const sorted = byIntegration
     ? [...visible].sort(
-        (a, b) => STATE_RANK[stateOf(a)] - STATE_RANK[stateOf(b)] || a.name.localeCompare(b.name, "nl"),
+        (a, b) =>
+          STATE_RANK[itemOf(a)?.state ?? "ok"] - STATE_RANK[itemOf(b)?.state ?? "ok"] ||
+          a.name.localeCompare(b.name, "nl"),
       )
     : visible;
+
+  // Pop-up: alleen wie de gekozen koppeling mist en er nog geen open heeft staan.
+  const canNotify = byIntegration && isNoticeIntegration(filter);
+  const recipients = canNotify
+    ? visible.filter((member) => itemOf(member)?.missing && !noticeIsOpen(member.notices[filter]))
+    : [];
+  const missingVisible = byIntegration ? visible.filter((member) => itemOf(member)?.missing).length : 0;
+  const selected = byIntegration ? perIntegration.find((item) => item.key === filter) : undefined;
 
   function toggle(id: string) {
     setOpen((prev) => {
@@ -128,12 +177,13 @@ export function MemberIntegrations({
     });
   }
 
-  const chip = (value: Filter, label: string, count: number, highlight = 0) => (
+  const chip = (value: Filter, label: string, count: number, highlight = 0, title?: string) => (
     <button
       key={value}
       type="button"
       onClick={() => setFilter((current) => (current === value && value !== "all" ? "all" : value))}
       aria-pressed={filter === value}
+      title={title}
       className={`tg-link tg-kalender tg-chip inline-flex min-h-11 items-center gap-2 rounded-full border px-3 py-1 text-sm ${
         filter === value ? "tg-here border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-accent"
       }`}
@@ -141,10 +191,17 @@ export function MemberIntegrations({
       <span>{label}</span>
       <span className="tabular-nums opacity-80">{count}</span>
       {highlight > 0 ? (
-        <span className="rounded-full bg-amber-500/20 px-1.5 text-xs font-semibold tabular-nums text-amber-800 dark:text-amber-300">
+        <span
+          className={`rounded-full px-1.5 text-xs font-semibold tabular-nums ${
+            filter === value
+              ? "bg-primary-foreground text-primary"
+              : "bg-amber-500/20 text-amber-800 dark:text-amber-300"
+          }`}
+        >
           {highlight}
         </span>
       ) : null}
+      {title ? <span className="sr-only">{title}</span> : null}
     </button>
   );
 
@@ -156,8 +213,21 @@ export function MemberIntegrations({
           {chip("issues", "Aandacht nodig", issueCount)}
           {chip("nothing", "Niets gekoppeld", nothingCount)}
         </div>
-        <div className="flex flex-wrap gap-2">
-          {perIntegration.map((item) => chip(item.key, item.label, item.linked, item.issues))}
+        <div className="space-y-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Mist of misgaat
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {perIntegration.map((item) =>
+              chip(
+                item.key,
+                item.label,
+                item.missing,
+                item.issues,
+                `${item.missing} niet gekoppeld, ${item.issues} met een probleem`,
+              ),
+            )}
+          </div>
         </div>
         <label className="relative block">
           <span className="sr-only">Zoek een lid</span>
@@ -175,14 +245,44 @@ export function MemberIntegrations({
         </label>
       </section>
 
+      {byIntegration && selected ? (
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4">
+          <p className="text-sm">
+            <span className="font-semibold tabular-nums">{missingVisible}</span> zonder {selected.label}
+            {visible.length > missingVisible ? (
+              <span className="text-muted-foreground">
+                {" "}
+                · <span className="tabular-nums">{visible.length - missingVisible}</span> met een probleem
+              </span>
+            ) : null}
+          </p>
+          {canNotify ? (
+            <Button
+              type="button"
+              size="sm"
+              className="min-h-11"
+              disabled={recipients.length === 0}
+              onClick={() => setComposing(true)}
+            >
+              <Send className="size-4" aria-hidden />
+              Pop-up naar {recipients.length}
+            </Button>
+          ) : filter === "zwift" ? (
+            <p className="text-xs text-muted-foreground">Krijgt al elke sessie de vraag om een Zwift-ID.</p>
+          ) : null}
+        </section>
+      ) : null}
+
       {sorted.length === 0 ? (
         <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">Geen leden.</p>
       ) : (
         <ul className="divide-y rounded-lg border bg-card">
           {sorted.map((member) => {
             const expanded = open.has(member.profileId);
+            const focus = itemOf(member);
             const linked = member.integrations.filter((i) => i.state !== "off");
             const panelId = `koppelingen-${member.profileId}`;
+            const notice = focus ? noticeText(member.notices[focus.key]) : null;
             return (
               <li key={member.profileId}>
                 <button
@@ -201,8 +301,18 @@ export function MemberIntegrations({
                     />
                     <span className="truncate">{member.name}</span>
                   </span>
-                  <span className="flex flex-wrap gap-1.5">
-                    {linked.length === 0 ? (
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    {focus ? (
+                      <>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${STATE_CLASS[focus.state]}`}
+                        >
+                          <StateIcon state={focus.state} />
+                          {focus.summary}
+                        </span>
+                        {notice ? <span className="text-xs text-muted-foreground">{notice}</span> : null}
+                      </>
+                    ) : linked.length === 0 ? (
                       <span className="text-xs text-muted-foreground">Niets gekoppeld</span>
                     ) : (
                       linked.map((item) => <StatusChip key={item.key} item={item} />)
@@ -217,7 +327,110 @@ export function MemberIntegrations({
           })}
         </ul>
       )}
+
+      {composing && canNotify && isNoticeIntegration(filter) ? (
+        <NoticeComposer
+          integration={filter}
+          recipients={recipients}
+          alreadyOpen={visible.filter((m) => itemOf(m)?.missing && noticeIsOpen(m.notices[filter])).length}
+          stravaCapFull={stravaCapFull}
+          onClose={() => setComposing(false)}
+        />
+      ) : null}
     </div>
+  );
+}
+
+function NoticeComposer({
+  integration,
+  recipients,
+  alreadyOpen,
+  stravaCapFull,
+  onClose,
+}: {
+  integration: Parameters<typeof noticeTemplate>[0];
+  recipients: MemberIntegrationRow[];
+  alreadyOpen: number;
+  stravaCapFull: boolean;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const template = noticeTemplate(integration, { stravaCapFull });
+  const [body, setBody] = useState(template.body);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const names = recipients.map((member) => member.name);
+  const shown = names.slice(0, 6).join(", ") + (names.length > 6 ? ` en ${names.length - 6} anderen` : "");
+
+  function send() {
+    setError(null);
+    startTransition(async () => {
+      const result = await sendIntegrationNotice({
+        integration,
+        profileIds: recipients.map((member) => member.profileId),
+        body,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setDone(result.sent === 1 ? "Verstuurd naar 1 lid." : `Verstuurd naar ${result.sent} leden.`);
+      router.refresh();
+    });
+  }
+
+  const tooLong = body.trim().length > NOTICE_BODY_MAX;
+
+  return (
+    <Dialog open onOpenChange={(next) => (next ? null : onClose())}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{template.title}</DialogTitle>
+          <DialogDescription>
+            Naar {recipients.length === 1 ? "1 lid" : `${recipients.length} leden`}: {shown}
+            {alreadyOpen === 1 ? ". 1 lid heeft er al een openstaan." : alreadyOpen > 1 ? `. ${alreadyOpen} leden hebben er al een openstaan.` : "."}
+          </DialogDescription>
+        </DialogHeader>
+        {done ? (
+          <p className="text-sm">{done}</p>
+        ) : (
+          <div className="space-y-2">
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">Tekst</span>
+              <textarea
+                value={body}
+                onChange={(event) => setBody(event.target.value)}
+                rows={6}
+                maxLength={NOTICE_BODY_MAX + 50}
+                className="w-full rounded-md border bg-background p-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </label>
+            <p className={`text-xs tabular-nums ${tooLong ? "text-destructive" : "text-muted-foreground"}`}>
+              {body.trim().length} / {NOTICE_BODY_MAX} · knop: {template.linkLabel}
+            </p>
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          </div>
+        )}
+        <DialogFooter>
+          <Button type="button" variant="outline" size="sm" className="min-h-11" onClick={onClose}>
+            {done ? "Sluiten" : "Annuleren"}
+          </Button>
+          {done ? null : (
+            <Button
+              type="button"
+              size="sm"
+              className="min-h-11"
+              disabled={pending || tooLong || !body.trim() || recipients.length === 0}
+              onClick={send}
+            >
+              {pending ? "Versturen…" : "Versturen"}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -292,9 +505,17 @@ function MemberDetail({
       ) : null}
 
       {off.length > 0 ? (
-        <p className="text-xs text-muted-foreground">
-          {off.map((item) => `${item.label}: ${lowerFirst(item.summary)}`).join(" · ")}
-        </p>
+        <ul className="space-y-0.5 text-xs text-muted-foreground">
+          {off.map((item) => {
+            const notice = noticeText(member.notices[item.key]);
+            return (
+              <li key={item.key}>
+                {item.label}: {lowerFirst(item.summary)}
+                {notice ? ` · ${lowerFirst(notice)}` : ""}
+              </li>
+            );
+          })}
+        </ul>
       ) : null}
 
       <div className="flex flex-wrap gap-2">

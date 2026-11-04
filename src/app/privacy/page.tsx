@@ -645,7 +645,10 @@ export default function PrivacyPage() {
             (zoals iPhone of Windows), wanneer je voor het laatst in de app was
             en wanneer je laatste rit was. Je sleutels, tokens, je Telegram-chat
             en de links zelf zien zij niet. Zo kunnen we je helpen als iets niet
-            werkt. We bewaren hiervoor niets extra.
+            werkt. Mist er een koppeling, dan kunnen ze je een melding in de app
+            sturen met wat je daardoor mist. We bewaren die melding met wanneer
+            hij verstuurd is, door wie, en wanneer je hem zag of alsnog
+            koppelde, zolang je lid bent.
           </li>
           <li>
             <strong>Door jou geplaatste inhoud:</strong> RSVP&apos;s, chatberichten,
