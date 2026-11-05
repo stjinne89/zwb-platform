@@ -21,6 +21,10 @@ import {
   WorkoutCalendar,
   type CalendarWorkout,
 } from "../../_components/workout-calendar";
+import { RideDetail, type MemberCalendarItem } from "../../_components/member-calendar";
+
+/** Een gereden rit zonder training, zoals het lid hem in zijn kalender ziet. */
+export type CalendarRide = MemberCalendarItem & { ride: NonNullable<MemberCalendarItem["ride"]> };
 
 export type CalendarEditWorkout = {
   id: string;
@@ -217,18 +221,22 @@ export function TrainerWorkoutCalendar({
   workouts,
   templates,
   reports = [],
+  rides = [],
   todayKey,
   ftpWatts,
 }: {
   workouts: CalendarEditWorkout[];
   templates: CalendarTemplate[];
   reports?: CalendarReport[];
+  /** Ritten waar geen training tegenover stond; alleen te bekijken. */
+  rides?: CalendarRide[];
   todayKey: string;
   /** Voor de vermogensbanden in de blokkenbalk. */
   ftpWatts?: number | null;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = workouts.find((workout) => workout.id === selectedId) ?? null;
+  const selectedRide = rides.find((ride) => ride.id === selectedId) ?? null;
 
   const planned = (workout: CalendarEditWorkout) =>
     plannedWorkoutIntensity(
@@ -250,6 +258,16 @@ export function TrainerWorkoutCalendar({
       methodLabel: workout.methodLabel,
     };
   });
+  for (const ride of rides) {
+    cells.push({
+      id: ride.id,
+      dateKey: ride.dateKey,
+      title: ride.title,
+      durationMinutes: ride.durationMinutes,
+      intensity: ride.intensity,
+      source: "rit",
+    });
+  }
 
   return (
     <div>
@@ -260,7 +278,11 @@ export function TrainerWorkoutCalendar({
         selectedId={selectedId}
       />
       <div className="px-4 pb-4">
-        {selected ? (
+        {selectedRide ? (
+          <div className="mt-4 rounded-md border bg-background/60 p-4">
+            <RideDetail item={selectedRide} readOnly />
+          </div>
+        ) : selected ? (
           <>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <p className="flex flex-wrap items-center gap-2 font-medium">

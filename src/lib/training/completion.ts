@@ -44,11 +44,19 @@ import { loadFtpAt, type FtpAt } from "@/lib/training/ftp-history";
 import { loadHrBasis, type HrBasis } from "@/lib/training/hr-load";
 import { loadRideRpe, writeRideRpe } from "@/lib/training/ride-rpe";
 import { canJoinRide, withRideParts } from "@/lib/training/ride-parts";
+import { daysBetween, shiftDays } from "@/lib/training/season";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
 /** Hoe ver terug we workouts nog aan een rit proberen te koppelen. */
 export const COMPLETION_WINDOW_DAYS = 7;
+
+/**
+ * Hoe ver vooruit een lid een rit met de hand aan een training kan hangen: de
+ * training van vrijdag al op donderdag gereden. De detectie koppelt nooit
+ * vooruit; een extra rit mag een geplande training niet ongemerkt opeisen.
+ */
+export const LINK_AHEAD_DAYS = 7;
 
 /**
  * Momentopname bij een afgeronde workout. CTL en de gereedscore worden nergens
@@ -705,11 +713,14 @@ export function manualRideWindow(
 /**
  * Welke andere trainingen deze rit kan zijn geweest: nog niet gereden, niet
  * als rustdag afgeschreven, geen rust en geen clubevent, en gepland in de week
- * tot en met de ritdag. Een training die later gepland staat valt af: die staat
- * nog open in het schema, en afvinken zou hem daar stilletjes laten verdwijnen.
+ * vóór de ritdag tot een week erna. Vooruit (sinds 2026-11-05): een lid dat
+ * vroeg klaar was en de training van vrijdag al op donderdag reed. Tot dan viel
+ * een latere training af, omdat afvinken hem stilletjes uit het schema zou halen;
+ * maar dat is precies wat het lid hier kiest, en anders telde vrijdag als gemist.
  *
- * Nieuwste eerst: de training van gisteren is waarschijnlijker dan die van
- * vorige week.
+ * Dichtstbij eerst, bij gelijke afstand de eerdere: de training van gisteren is
+ * waarschijnlijker dan die van vorige week, en een gemiste training waarschijnlijker
+ * dan een die nog komt.
  */
 export function reassignCandidates(
   workouts: CandidateWorkout[],
@@ -717,9 +728,9 @@ export function reassignCandidates(
   currentWorkoutId: string,
   pairedWorkoutIds: ReadonlySet<string>,
 ): ReassignCandidate[] {
-  const earliest = new Date(`${rideDayKey}T12:00:00Z`);
-  earliest.setUTCDate(earliest.getUTCDate() - (COMPLETION_WINDOW_DAYS - 1));
-  const earliestKey = earliest.toISOString().slice(0, 10);
+  const earliestKey = shiftDays(rideDayKey, -(COMPLETION_WINDOW_DAYS - 1));
+  const latestKey = shiftDays(rideDayKey, LINK_AHEAD_DAYS);
+  const distance = (dayKey: string) => Math.abs(daysBetween(rideDayKey, dayKey));
 
   return workouts
     .map((workout) => ({ workout, dayKey: amsterdamDayKey(new Date(workout.scheduled_at)) }))
@@ -731,9 +742,13 @@ export function reassignCandidates(
         workout.origin !== "event" &&
         !pairedWorkoutIds.has(workout.id) &&
         dayKey >= earliestKey &&
-        dayKey <= rideDayKey,
+        dayKey <= latestKey,
     )
-    .sort((a, b) => b.workout.scheduled_at.localeCompare(a.workout.scheduled_at))
+    .sort(
+      (a, b) =>
+        distance(a.dayKey) - distance(b.dayKey) ||
+        a.workout.scheduled_at.localeCompare(b.workout.scheduled_at),
+    )
     .map(({ workout, dayKey }) => ({
       id: workout.id,
       title: workout.title,
@@ -758,6 +773,8 @@ export type RelinkResult =
       trainerId: string | null;
       title: string | null;
       metricsJson: WorkoutMetricsSnapshot | null;
+      /** De rit hangt nu aan een training die het lid nog niet bevestigde. */
+      needsReview?: boolean;
     }
   | { ok: false; error: string };
 
@@ -1147,6 +1164,7 @@ export async function relinkRide(
     trainerId: targetRow.trainer_id,
     title: targetRow.title,
     metricsJson: metrics,
+    needsReview: !review?.confirmedAt,
   };
 }
 

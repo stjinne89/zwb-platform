@@ -22,12 +22,22 @@ export function RideLinkForm({ link, currentLabel }: { link: RideLink; currentLa
   // Een ongeplande rit zonder training in die week valt niets te kiezen.
   if (!link.workoutId && link.options.length === 0 && joinOptions.length === 0) return null;
 
-  function run(action: () => Promise<{ ok: true } | { ok: false; error: string }>) {
+  function run(
+    action: () => Promise<
+      { ok: true; reviewWorkoutId?: string | null } | { ok: false; error: string }
+    >,
+  ) {
     setError(null);
     startTransition(async () => {
       const result = await action();
       if (!result.ok) {
         setError(result.error);
+        return;
+      }
+      // Hangt de rit nu aan een training die nog bevestigd moet worden, dan
+      // meteen het bevestigscherm: RPE en gevoel horen bij de training.
+      if (result.reviewWorkoutId) {
+        router.push(`/zwbeter-worden?review=${encodeURIComponent(result.reviewWorkoutId)}`);
         return;
       }
       router.refresh();

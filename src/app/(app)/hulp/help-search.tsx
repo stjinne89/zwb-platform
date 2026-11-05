@@ -156,6 +156,13 @@ const HELP_INDEX: HelpResult[] = [
     terms: "naleving volgens plan te licht te zwaar percentage tss if intensiteit duur rpe verwacht gepland gereden",
   },
   {
+    title: "Rit bij een andere training",
+    text: "Training op een andere dag gereden? Klik de rit aan en kies bij Hoort bij de training.",
+    href: "/hulp/schema#rit-koppelen",
+    terms:
+      "rit koppelen hoort bij andere dag verkeerde training eerder gereden vooruit vroeg klaar morgen gisteren verschoven ingehaald gemist losse rit geen training loskoppelen",
+  },
+  {
     title: "Meerdere ritten als één training",
     text: "Training in stukken gereden? Klik de losse rit aan en kies Samenvoegen met.",
     href: "/hulp/schema#ritten-samenvoegen",

@@ -2403,7 +2403,11 @@ export async function relinkRideAction(formData: FormData) {
     });
     if (!result.ok) throw new Error(result.error);
     revalidatePath("/zwbeter-worden", "layout");
-    return { ok: true as const };
+    // Nog niet bevestigd: meteen naar het bevestigscherm voor RPE en gevoel.
+    return {
+      ok: true as const,
+      reviewWorkoutId: result.workoutId && result.needsReview ? result.workoutId : null,
+    };
   } catch (err) {
     return {
       ok: false as const,

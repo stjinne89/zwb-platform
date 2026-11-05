@@ -124,15 +124,44 @@ describe("reassignCandidates", () => {
     { ...donderdag, id: "al-gekoppeld", scheduled_at: "2026-09-07T16:00:00Z" },
   ];
 
-  it("biedt alleen open trainingen uit de week tot en met de ritdag aan", () => {
+  it("biedt alleen open trainingen uit de week rond de ritdag aan, dichtstbij eerst", () => {
     const candidates = reassignCandidates(
       workouts,
       "2026-09-11",
       "vr-duur",
       new Set(["al-gekoppeld"]),
     );
-    expect(candidates.map((candidate) => candidate.id)).toEqual(["do-sweetspot"]);
+    expect(candidates.map((candidate) => candidate.id)).toEqual(["do-sweetspot", "zo-later"]);
     expect(candidates[0].dayKey).toBe("2026-09-10");
+  });
+
+  // Joost, 5 november 2026: vroeg klaar en de training van vrijdag al op
+  // donderdag gereden. Die rit kon niet aan vrijdag, dus vrijdag zou als gemist
+  // tellen.
+  it("biedt een latere training aan tot een week na de ritdag", () => {
+    const open = { ...vrijdag, status: "planned" };
+    const candidates = reassignCandidates(
+      [
+        open,
+        { ...open, id: "over-7", scheduled_at: "2026-09-17T16:00:00Z" },
+        { ...open, id: "over-8", scheduled_at: "2026-09-18T16:00:00Z" },
+      ],
+      "2026-09-10",
+      "",
+      new Set(),
+    );
+    expect(candidates.map((candidate) => candidate.id)).toEqual(["vr-duur", "over-7"]);
+  });
+
+  it("zet bij gelijke afstand de gemiste training voor die nog komt", () => {
+    const woensdag = { ...donderdag, id: "wo-sweetspot", scheduled_at: "2026-09-09T16:00:00Z" };
+    const candidates = reassignCandidates(
+      [{ ...vrijdag, status: "planned" }, woensdag],
+      "2026-09-10",
+      "",
+      new Set(),
+    );
+    expect(candidates.map((candidate) => candidate.id)).toEqual(["wo-sweetspot", "vr-duur"]);
   });
 });
 

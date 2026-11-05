@@ -141,7 +141,14 @@ function nl(value: number | null | undefined, digits = 0) {
  * cijfers als bij een afgeronde training, maar zonder de vergelijking met een
  * plan — dat plan was er immers niet.
  */
-function RideDetail({ item }: { item: MemberCalendarItem & { ride: NonNullable<MemberCalendarItem["ride"]> } }) {
+export function RideDetail({
+  item,
+  readOnly = false,
+}: {
+  item: MemberCalendarItem & { ride: NonNullable<MemberCalendarItem["ride"]> };
+  /** Voor de trainer: wat het lid invulde, zonder het te kunnen wijzigen. */
+  readOnly?: boolean;
+}) {
   const { metrics, distanceKm, stravaId } = item.ride;
   const zone = detectIntensityFromLoad(metrics.tss, metrics.movingMinutes);
 
@@ -198,10 +205,14 @@ function RideDetail({ item }: { item: MemberCalendarItem & { ride: NonNullable<M
         </p>
       )}
 
-      <RideRpeForm key={`rpe-${item.id}`} activityId={String(stravaId)} rpe={item.ride.rpe ?? null} />
+      {readOnly ? (
+        item.ride.rpe != null ? <p className="text-sm">RPE {item.ride.rpe}</p> : null
+      ) : (
+        <RideRpeForm key={`rpe-${item.id}`} activityId={String(stravaId)} rpe={item.ride.rpe ?? null} />
+      )}
 
-      {item.rideLink ? <RideLinkForm key={item.id} link={item.rideLink} /> : null}
-      {item.rideLink?.manual ? (
+      {item.rideLink && !readOnly ? <RideLinkForm key={item.id} link={item.rideLink} /> : null}
+      {item.rideLink?.manual && !readOnly ? (
         <div>
           <DeleteManualRideButton key={`wis-${item.id}`} activityId={item.rideLink.activityId} />
         </div>

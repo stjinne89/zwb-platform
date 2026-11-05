@@ -3,8 +3,13 @@
 
 import { EmptyState } from "@/components/app-ui";
 import { PowerWeight } from "@/components/power-unit";
+import { StravaAttribution } from "@/components/strava-brand";
 import { adaptationLabel, groupByRoot } from "@/lib/training/plan-tree";
-import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
+import {
+  detectIntensityFromLoad,
+  normalizeWorkoutBlocks,
+  type WorkoutIntensity,
+} from "@/lib/training/workouts";
 import { methodLabelOf } from "@/lib/training/method-label";
 import { PlanActions } from "../../_components/plan-actions";
 import { PlanUpdateForm } from "../../_components/plan-update-form";
@@ -31,12 +36,20 @@ import type {
   WorkoutRow,
 } from "../../_components/types";
 import { updateTrainingPlan } from "../../_actions";
-import { activePlan, loadFtpTestState, planUpdateDefaults, todayKeyAmsterdam } from "../../_data";
+import {
+  activePlan,
+  loadFtpTestState,
+  loadScheduleRides,
+  planUpdateDefaults,
+  SCHEDULE_RIDE_DAYS,
+  todayKeyAmsterdam,
+} from "../../_data";
 import { DeleteTrainingPlanButton } from "../_components/delete-training-plan-button";
 import {
   TrainerWorkoutCalendar,
   type CalendarEditWorkout,
   type CalendarReport,
+  type CalendarRide,
   type CalendarTemplate,
 } from "../_components/calendar-editor";
 import {
@@ -122,7 +135,34 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
     families.find((family) => family.root.status !== "archived")?.root;
   const canPublish = viewer.access.has("training.publish_plans");
 
-  const ftpTestState = await loadFtpTestState(viewer, athleteId);
+  // Ook de ritten waar geen training tegenover stond: een extra rit, of een
+  // training die het lid op een andere dag reed en nog niet koppelde.
+  const [ftpTestState, scheduleRides] = await Promise.all([
+    loadFtpTestState(viewer, athleteId),
+    loadScheduleRides(
+      viewer,
+      (workoutRows ?? []) as WorkoutRow[],
+      (reportRows ?? []) as WorkoutReportRow[],
+      athlete?.ftp_watts == null ? null : Number(athlete.ftp_watts),
+      SCHEDULE_RIDE_DAYS,
+      athleteId,
+    ).catch(() => null),
+  ]);
+  const calendarRides: CalendarRide[] = (scheduleRides?.unplanned ?? []).map((ride) => ({
+    id: `rit-${ride.id}`,
+    dateKey: ride.dateKey,
+    title: ride.name,
+    durationMinutes: ride.metrics.movingMinutes,
+    intensity: detectIntensityFromLoad(ride.metrics.tss, ride.metrics.movingMinutes),
+    source: "rit",
+    skipped: false,
+    ride: {
+      stravaId: ride.id,
+      distanceKm: ride.distanceKm,
+      metrics: ride.metrics,
+      rpe: scheduleRides?.rpe.get(String(ride.id)) ?? null,
+    },
+  }));
   const templates = (templateRows ?? []) as WorkoutTemplateRow[];
   const todayKey = todayKeyAmsterdam();
   const unsent = unsentByPlan((workoutRows ?? []) as WorkoutRow[], todayKey);
@@ -246,9 +286,11 @@ export default async function TrainerPlansPage({ searchParams }: SearchParamsPro
             workouts={calendarWorkouts}
             templates={calendarTemplates}
             reports={calendarReports}
+            rides={calendarRides}
             todayKey={todayKeyAmsterdam()}
             ftpWatts={athlete?.ftp_watts}
           />
+          {calendarRides.length > 0 ? <StravaAttribution className="px-4 pb-4" /> : null}
         </CollapsibleCard>
 
         <CollapsibleCard

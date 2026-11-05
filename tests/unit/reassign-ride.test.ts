@@ -182,9 +182,26 @@ describe("relinkRide — verhuizen", () => {
     expect(tables.training_workouts[1].status).toBe("completed");
   });
 
-  it("weigert een training na de ritdag", async () => {
+  it("verhuist naar een training later die week: vooruit gereden", async () => {
     const tables = world();
     tables.training_workouts[0].scheduled_at = "2026-09-13T16:00:00Z";
+    const result = await relinkRide(fakeAdmin(tables), input);
+    expect(result.ok).toBe(true);
+    expect(tables.training_workouts[0].status).toBe("completed");
+    expect(tables.training_workouts[1].status).toBe("planned");
+    // Bevestigd in het bevestigscherm; niet nog eens vragen.
+    expect(result.ok && result.needsReview).toBe(false);
+  });
+
+  it("vraagt om bevestiging na koppelen vanuit de kalender", async () => {
+    const tables = world();
+    const result = await relinkRide(fakeAdmin(tables), { ...input, review: undefined });
+    expect(result.ok && result.needsReview).toBe(true);
+  });
+
+  it("weigert een training meer dan een week na de ritdag", async () => {
+    const tables = world();
+    tables.training_workouts[0].scheduled_at = "2026-09-19T16:00:00Z";
     const result = await relinkRide(fakeAdmin(tables), input);
     expect(result.ok).toBe(false);
     expect(tables.training_workouts[0].status).toBe("planned");

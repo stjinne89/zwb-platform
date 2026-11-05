@@ -92,7 +92,8 @@ export function recentCompleted(
   return workouts
     .flatMap((workout) => {
       const dayKey = dayKeyOf(workout.scheduled_at);
-      if (dayKey < fromKey || dayKey > todayKey) return [];
+      // Een latere training die al gereden is (vooruit gekoppeld) hoort er wel bij.
+      if (dayKey < fromKey || (dayKey > todayKey && workout.status !== "completed")) return [];
       if (workout.intensity === "rest") return [];
 
       const report = reports?.get(workout.id);

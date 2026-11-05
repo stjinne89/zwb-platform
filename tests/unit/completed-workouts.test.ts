@@ -61,6 +61,18 @@ describe("recentCompleted", () => {
     expect(items.map((item) => item.workoutId)).toEqual(["vandaag", "gisteren"]);
   });
 
+  it("toont een latere training die al vooruit gereden is", () => {
+    const items = recentCompleted(
+      [
+        workout({ id: "vrijdag", scheduled_at: "2026-08-21T09:00:00Z" }),
+        workout({ id: "zaterdag", scheduled_at: "2026-08-22T09:00:00Z", status: "planned" }),
+      ],
+      undefined,
+      TODAY,
+    );
+    expect(items.map((item) => item.workoutId)).toEqual(["vrijdag"]);
+  });
+
   it("laat een geplande rustdag weg, maar toont een afgeschreven training", () => {
     const items = recentCompleted(
       [

@@ -41,6 +41,7 @@ import {
 } from "@/lib/training/compliance";
 import {
   COMPLETION_WINDOW_DAYS,
+  LINK_AHEAD_DAYS,
   detectCompletedWorkouts,
   pickPendingReview,
   reassignCandidates,
@@ -61,6 +62,7 @@ import { STRAVA_RIDE_COLUMNS, type StravaRideRow } from "@/lib/training/ride-met
 import { unplannedRides, type UnplannedRide } from "@/lib/training/unplanned-rides";
 import { loadRideRpe } from "@/lib/training/ride-rpe";
 import { withRideParts } from "@/lib/training/ride-parts";
+import { shiftDays } from "@/lib/training/season";
 import type {
   GoalRow,
   PlanRow,
@@ -380,7 +382,8 @@ export type ScheduleRides = {
  * die nog bestaat is geen probleem, alleen een die weg is.
  */
 async function deletedPairedRides(
-  viewer: Viewer,
+  db: Viewer["supabase"],
+  profileId: string,
   reports: WorkoutReportRow[],
   known: ReadonlyMap<string, unknown>,
 ): Promise<Set<string>> {
@@ -392,10 +395,10 @@ async function deletedPairedRides(
     ),
   ].slice(0, 200);
   if (missing.length === 0) return new Set();
-  const { data, error } = await viewer.supabase
+  const { data, error } = await db
     .from("strava_activities")
     .select("id")
-    .eq("profile_id", viewer.user.id)
+    .eq("profile_id", profileId)
     .in("id", missing);
   if (error) return new Set();
   const present = new Set((data ?? []).map((row) => String(row.id)));
@@ -405,6 +408,10 @@ async function deletedPairedRides(
 /**
  * De ritten van het lid uit het schemavenster. Zelfde bron en venster als de
  * belastingpagina, zodat een rit die daar meetelt ook in het schema zichtbaar is.
+ *
+ * Met `athleteId` voor de trainer-tabs: dan via de admin-client, omdat FTP- en
+ * hartslaghistorie van een ander lid niet leesbaar zijn onder RLS. Alleen
+ * aanroepen met een id uit `resolveAthleteId`.
  */
 export async function loadScheduleRides(
   viewer: Viewer,
@@ -412,20 +419,23 @@ export async function loadScheduleRides(
   reports: WorkoutReportRow[],
   ftpWatts: number | null,
   days = SCHEDULE_RIDE_DAYS,
+  athleteId?: string,
 ): Promise<ScheduleRides> {
+  const profileId = athleteId ?? viewer.user.id;
+  const db = athleteId ? viewer.admin : viewer.supabase;
   const since = new Date(Date.now() - days * 86400_000).toISOString();
-  const { data } = await viewer.supabase
+  const { data } = await db
     .from("strava_activities")
     .select(STRAVA_RIDE_COLUMNS)
-    .eq("profile_id", viewer.user.id)
+    .eq("profile_id", profileId)
     .gte("start_date", since)
     .order("start_date", { ascending: false })
     .limit(400);
 
   const rides = await withRideParts(
-    viewer.supabase,
-    viewer.user.id,
-    await markExcludedRides(viewer.supabase, viewer.user.id, (data ?? []) as StravaRideRow[]),
+    db,
+    profileId,
+    await markExcludedRides(db, profileId, (data ?? []) as StravaRideRow[]),
   );
   const byId = new Map<string, ScheduleRide>(
     rides.map((ride) => [
@@ -441,12 +451,12 @@ export async function loadScheduleRides(
       },
     ]),
   );
-  const deleted = await deletedPairedRides(viewer, reports, byId);
+  const deleted = await deletedPairedRides(db, profileId, reports, byId);
   if (rides.length === 0) return { unplanned: [], byId, deleted, rpe: new Map() };
 
   const [ftpAt, hrBasis] = await Promise.all([
-    loadFtpAt(viewer.supabase, viewer.user.id, ftpWatts),
-    loadHrBasis(viewer.supabase, viewer.user.id),
+    loadFtpAt(db, profileId, ftpWatts),
+    loadHrBasis(db, profileId),
   ]);
   const unplanned = unplannedRides(
     rides,
@@ -467,8 +477,8 @@ export async function loadScheduleRides(
     hrBasis,
   );
   const rpe = await loadRideRpe(
-    viewer.supabase,
-    viewer.user.id,
+    db,
+    profileId,
     unplanned.map((ride) => ride.id),
   );
   return { unplanned, byId, deleted, rpe };
@@ -647,7 +657,8 @@ export async function loadPendingReview(
       .eq("status", "planned")
       .is("superseded_at", null)
       .gte("scheduled_at", from.toISOString())
-      .lte("scheduled_at", `${rideDayKey}T23:59:59Z`);
+      // Ook vooruit: de training van vrijdag kan al op donderdag gereden zijn.
+      .lte("scheduled_at", `${shiftDays(rideDayKey, LINK_AHEAD_DAYS + 1)}T00:00:00Z`);
     const open = openRows ?? [];
     const { data: pairedRows } = open.length
       ? await viewer.supabase

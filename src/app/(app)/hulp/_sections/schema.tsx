@@ -773,9 +773,10 @@ export function SchemaHelp() {
               <strong className="text-foreground">Hoort bij</strong> welke training
               het was. Dat kan bij een gereden training en bij een rit die als niet
               gepland in de kalender staat, ook nadat je al bevestigd hebt. Je kunt
-              kiezen uit trainingen die nog open staan in de week tot en met de
-              ritdag; een training die later gepland staat niet, want die blijft in
-              je schema staan. Je RPE, gevoel en opmerking verhuizen mee, de
+              kiezen uit trainingen die nog open staan, van een week vóór de ritdag
+              tot een week erna. Reed je de training van vrijdag al op donderdag,
+              kies dan vrijdag: die staat daarna als gereden en ZWB vraagt meteen
+              naar je RPE en gevoel. Je RPE, gevoel en opmerking verhuizen mee, de
               training waar de rit eerst aan hing telt weer als niet gereden. Kies
               je <strong className="text-foreground">Geen training</strong>, dan
               blijft de rit los staan en koppelt ZWB hem niet opnieuw; je RPE

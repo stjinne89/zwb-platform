@@ -47,6 +47,12 @@ gaat stabiliteit voor nieuwe features.
    duur, percentages per route, Zonder vermogen). Zie de ronde "Club Ladder:
    advies renner tegen renner, intervals.icu eerst".
 
+0u. **Vooruit koppelen en losse ritten bij de trainer (2026-11-05): gecommit,
+   niet gepusht.** Geen migratie. Open: na de deploy bij Joost de rit van
+   donderdag 4 november aan de training van vrijdag hangen (dat doet Joost zelf)
+   en op de trainer-tab Schema nakijken dat losse ritten verschijnen. Zie de
+   ronde "Vooruit koppelen en losse ritten bij de trainer".
+
 0t. **"Pas vandaag aan" bij de melding "vannacht bijgewerkt" (2026-11-04):
    gepusht naar `main` (`d162849f`, eigenaar).** Geen migratie. Open: na de deploy
    op Schema de beschikbaarheid van vandaag wijzigen en de link volgen.
@@ -11776,6 +11782,65 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Vooruit koppelen en losse ritten bij de trainer
+
+**2026-11-05.** Commit: de commit die dit blok toevoegt. Niet gepusht. Geen
+migratie.
+
+**Aanleiding.** Joost was donderdag vroeg klaar en reed de training van vrijdag
+al. De rit stond als losse rit in zijn schema, ZWB vroeg niet naar RPE of gevoel,
+en vrijdag stond er ongewijzigd. Met de hand koppelen kon niet: **Hoort bij** bood
+alleen trainingen tot en met de ritdag aan (besluit 2026-09-15, "afvinken zou hem
+stilletjes uit het schema halen"). Zaterdag had vrijdag dus als gemist geteld.
+Stijn, Joosts trainer, zag de rit ook niet op de trainer-tab Schema: die kalender
+toonde alleen geplande trainingen. Productie is niet bekeken: de
+Supabase-connector hing die dag aan een andere organisatie.
+
+**Wat.**
+- `reassignCandidates` (completion.ts) biedt open trainingen aan van een week
+  vóór tot een week ná de ritdag (`LINK_AHEAD_DAYS = 7`), dichtstbij eerst en bij
+  gelijke afstand de eerdere. Het bevestigscherm (`loadPendingReview`) vraagt de
+  open trainingen tot dezelfde grens op. `relinkRide` controleert via dezelfde
+  functie, dus ook een vooruit gekoppelde rit gaat langs die toets.
+- `relinkRide` geeft `needsReview` terug: de rit hangt aan een training die het lid
+  nog niet bevestigde. `relinkRideAction` zet dat om in `reviewWorkoutId`, en
+  `RideLinkForm` gaat dan naar `/zwbeter-worden?review=<id>`: het bevestigscherm met
+  RPE en gevoel, hetzelfde als de link uit de pushmelding. Dat geldt ook voor een
+  losse rit aan een gemiste training van eerder; een pushmelding naar het lid dat
+  net zelf koppelde leek ruis.
+- `recentCompleted` ("Afgewerkt en gemist") neemt een latere training mee die al
+  gereden is.
+- Trainer-tab Schema: losse ritten staan in de maandkalender, aanklikbaar, met
+  dezelfde cijfers als bij het lid (`RideDetail` uit `member-calendar.tsx`, nu met
+  `readOnly`: de RPE als tekst, zonder **Hoort bij** of wissen). `loadScheduleRides`
+  kreeg een optioneel `athleteId`; dan leest hij via de admin-client, omdat FTP- en
+  hartslaghistorie van een ander lid niet leesbaar zijn onder RLS. Het id komt uit
+  `resolveAthleteId`, zoals bij `loadAthleteConnection`.
+- `/hulp#rit-koppelen` en de zoekterm "Rit bij een andere training".
+
+**Bewust niet gebouwd.**
+- *Vooruit koppelen door de detectie.* `detectCompletedWorkouts` koppelt nog alleen
+  op dezelfde dag. Een extra rit zou anders ongemerkt de training van morgen
+  opeisen; vooruit is altijd een keuze van het lid.
+- *Koppelen door de trainer.* Blijft zoals besloten op 2026-09-15: de action
+  accepteert alleen het lid zelf. De trainer ziet de rit nu wel.
+- *Het intervals.icu-event van de vooruit gereden training.* Dat blijft staan, net
+  als bij een rit die aan een training van een andere dag hangt.
+
+**Wat niet meer klopt.** De ronde van 2026-09-15 (`4ea87ba`, rit koppelen) noemde een latere
+training als bewust niet gebouwd; die zin is daar gecorrigeerd.
+
+**Getest.** Unit-tests: `shifted-workout.test.ts` (vooruit tot 7 dagen, 8 niet;
+volgorde bij gelijke afstand), `reassign-ride.test.ts` (verhuizen naar een latere
+training, `needsReview` met en zonder bevestigscherm, weigeren na 8 dagen),
+`completed-workouts.test.ts` (vooruit gereden training in de terugblik). Die vier
+bestanden slagen; eslint op de gewijzigde bestanden schoon; `tsc --noEmit` zonder
+fouten in deze bestanden. De volledige suite heeft fouten die hier niet bij horen:
+`@anthropic-ai/sdk` en `modern-screenshot` ontbreken in de gedeelde
+`node_modules`, `.env.local` ontbreekt, en `race-links` en `zwift-route` falen op
+routedata. **Niet geverifieerd:** de trainerkalender en de doorverwijzing naar het
+bevestigscherm in de browser (geen ingelogde sessie).
 
 ### Gebouwd — "Pas vandaag aan" bij de melding "vannacht bijgewerkt"
 
@@ -29430,7 +29495,9 @@ hangen kon niet.
   CTL en gereedscore blijven die van de oorspronkelijke momentopname. Een rit zonder
   momentopname krijgt nieuwe waarden via `loadSnapshotContext`, dat uit
   `detectCompletedWorkouts` is gehaald. Doelen blijven `reassignCandidates`: open,
-  geen rust of clubevent, in de week tot en met de ritdag.
+  geen rust of clubevent, in de week tot en met de ritdag. *Sinds 2026-11-05 ook
+  tot een week ná de ritdag; zie de ronde "Vooruit koppelen en losse ritten bij
+  de trainer".*
 - Loskoppelen zet `training_excluded_at` vóór het loslaten; weer koppelen haalt de
   markering weg. `pickRideForWorkout` slaat gemarkeerde ritten over. Daarmee slaan
   `pairWorkoutsWithRides` (detectie en naleving) en `unplannedRides` ze ook over; die
@@ -29448,7 +29515,8 @@ hangen kon niet.
   stappen: loskoppelen, verhuizen, koppelen. Dankzij de markering koppelt de detectie
   tussendoor niets verkeerd terug.
 - **Een training die later gepland staat als doel.** Afvinken zou hem stilletjes uit
-  het schema halen.
+  het schema halen. *Teruggedraaid op 2026-11-05: het lid kiest dat juist zelf; zie
+  de ronde "Vooruit koppelen en losse ritten bij de trainer".*
 - **Koppelen door de trainer.** Daar is niet om gevraagd; de action accepteert
   alleen het lid zelf.
 - **De AI-dagcontext** (`yesterdayContextFrom`) kijkt nog naar de langste rit van
