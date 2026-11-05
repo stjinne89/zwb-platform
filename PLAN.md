@@ -47,8 +47,8 @@ gaat stabiliteit voor nieuwe features.
    duur, percentages per route, Zonder vermogen). Zie de ronde "Club Ladder:
    advies renner tegen renner, intervals.icu eerst".
 
-0u. **Vooruit koppelen en losse ritten bij de trainer (2026-11-05): gecommit,
-   niet gepusht.** Geen migratie. Open: na de deploy bij Joost de rit van
+0u. **Vooruit koppelen en losse ritten bij de trainer (2026-11-05): gepusht naar
+   `main` (`c065b938`).** Geen migratie. Open: na de deploy bij Joost de rit van
    donderdag 4 november aan de training van vrijdag hangen (dat doet Joost zelf)
    en op de trainer-tab Schema nakijken dat losse ritten verschijnen. Zie de
    ronde "Vooruit koppelen en losse ritten bij de trainer".
@@ -11785,7 +11785,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Vooruit koppelen en losse ritten bij de trainer
 
-**2026-11-05.** Commit: de commit die dit blok toevoegt. Niet gepusht. Geen
+**2026-11-05.** Commit `c065b938`, gepusht naar `main` op 2026-11-05. Geen
 migratie.
 
 **Aanleiding.** Joost was donderdag vroeg klaar en reed de training van vrijdag
