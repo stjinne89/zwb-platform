@@ -11834,10 +11834,11 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Warming-ups zonder ZRL in de naam
 
-**2026-11-06.** Commit: de commit die dit blok toevoegt. Migratie 0309
-(`0309_workout_library_warmup_names.sql`), nog niet op productie toegepast;
-lokaal niet testbaar met `supabase db reset` (geen Docker of config.toml), wel
-met PGlite (`workout-library-warmup-names-migration.test.ts`). Niet gepusht.
+**2026-11-06.** Commit `1063b755`, op 2026-11-06 op verzoek van de eigenaar
+naar `main` gepusht. Migratie 0309 (`0309_workout_library_warmup_names.sql`),
+dezelfde dag op productie toegepast; daarna stonden de vijf warming-ups daar met
+de nieuwe namen. Lokaal niet testbaar met `supabase db reset` (geen Docker of
+config.toml), wel met PGlite (`workout-library-warmup-names-migration.test.ts`).
 
 **Waarom.** De eigenaar wilde de ZRL-namen uit de warming-ups: ze passen bij
 elke scratch- of puntenrace, niet alleen bij de ZRL.
@@ -11854,7 +11855,7 @@ Al ingeplande en gereden warming-ups houden hun oude titel (op productie op
 2026-11-06: 2 gepland, 9 gereden). De geplande staan zo al in intervals.icu, en
 alleen de titel hier wijzigen zou ze van elkaar laten afwijken.
 
-**Niet geverifieerd.** Niet in de browser. De migratie zelf niet op productie.
+**Niet geverifieerd.** Niet in de browser.
 
 ### Gebouwd — Club Ladder: uitslagen onder Teamresultaten
 
