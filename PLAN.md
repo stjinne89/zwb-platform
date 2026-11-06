@@ -47,14 +47,14 @@ gaat stabiliteit voor nieuwe features.
    duur, percentages per route, Zonder vermogen). Zie de ronde "Club Ladder:
    advies renner tegen renner, intervals.icu eerst".
 
-0z. **Club Ladder: gewicht alleen bergop en in de sprint (2026-11-06): lokaal
-   gecommit, niet gepusht.** Geen migratie. Nalopen na een deploy: op het
+0z. **Club Ladder: gewicht alleen bergop en in de sprint (2026-11-06): gepusht
+   naar `main` (`f5509d69`).** Geen migratie. Nalopen na een deploy: op het
    racebriefje van ZWBeasts – Galaxy Avengers staat Pim bovenaan. Zie de ronde
    "Club Ladder: gewicht alleen bergop en in de sprint".
 
-0y. **Club Ladder: watt of W/kg in de matchup (2026-11-06): lokaal gecommit,
-   niet gepusht.** Geen migratie. Wacht op een privacyzin (gewicht per renner
-   af te leiden, ook van andere clubs). Zie de ronde "Club Ladder: watt of W/kg
+0y. **Club Ladder: watt of W/kg in de matchup (2026-11-06): gepusht naar
+   `main` (`3749ced5`, privacyzin `562d9bcc`).** Geen migratie. Nalopen na een
+   deploy: de schakelaar Watt | W/kg boven de matchup. Zie de ronde "Club Ladder: watt of W/kg
    in de matchup".
 
 0x. **Club Ladder: sorteren in de matchup en score bij de verwachte uitslag
@@ -11813,7 +11813,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: gewicht alleen bergop en in de sprint
 
-**2026-11-06.** Lokaal gecommit, niet gepusht. Geen migratie.
+**2026-11-06.** Commit `f5509d69`, op 2026-11-06 op verzoek van de eigenaar
+naar `main` gepusht. Geen migratie.
 
 **Waarom.** De eigenaar was het niet eens met de verwachte uitslag van
 ZWBeasts – Galaxy Avengers (The Muckle Yin): Pim Meulemeester, met ~1 W/kg meer
@@ -11852,7 +11853,8 @@ racebriefje in de browser. Wel: 139 ladder-tests, ESLint en typecheck schoon.
 
 ### Gebouwd — Club Ladder: watt of W/kg in de matchup
 
-**2026-11-06.** Lokaal gecommit, niet gepusht. Geen migratie.
+**2026-11-06.** Commit `3749ced5`, privacyzin in `562d9bcc`; op 2026-11-06 op
+verzoek van de eigenaar naar `main` gepusht. Geen migratie.
 
 **Waarom.** Vraag van de eigenaar, na de vraag waarom Pim Meulemeester in de
 verwachte uitslag van ZWBeasts – Galaxy Avengers derde stond terwijl hij op 1,
