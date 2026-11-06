@@ -47,6 +47,11 @@ gaat stabiliteit voor nieuwe features.
    duur, percentages per route, Zonder vermogen). Zie de ronde "Club Ladder:
    advies renner tegen renner, intervals.icu eerst".
 
+1a. **Club Ladder: intervals.icu voor onze renners in de matchup (2026-11-06):
+   lokaal gecommit, nog niet gepusht.** Geen migratie. Nalopen na een deploy:
+   de matchup van ZWBeauties toont vermogen bij de gekoppelde renners. Zie de
+   ronde "Club Ladder: intervals.icu in de matchup".
+
 0z. **Club Ladder: gewicht alleen bergop en in de sprint (2026-11-06): gepusht
    naar `main` (`f5509d69`).** Geen migratie. Nalopen na een deploy: op het
    racebriefje van ZWBeasts – Galaxy Avengers staat Pim bovenaan. Zie de ronde
@@ -11811,6 +11816,41 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: intervals.icu in de matchup
+
+**2026-11-06.** Lokaal gecommit, nog niet gepusht. Geen migratie.
+
+**Waarom.** De eigenaar zag bij de matchup van ZWBeauties (selectie Maarten
+Smits, Niels Leerentveld, Ragna van Rixtel-Zanin) bij elke renner een streepje,
+terwijl een deel van de leden intervals.icu gekoppeld heeft. De matchup las
+alleen ZwiftRacing over 90 dagen en de bewaarde ladderraces; intervals.icu zat
+alleen in het advies. Wie geen ZwiftRacing-waarden en geen ladderraces heeft,
+bleef leeg.
+
+**Wat er veranderde.** `loadLadderEventMatchup` zoekt voor onze renners
+(ladderaanmeldingen van ons team en de selectie) het profiel bij het Zwift-ID
+en laadt hun curve met `loadIntervalsPower`; `buildLadderMatchup` krijgt die als
+`ourIntervals` en kiest per renner met `riderPower` uit `rank-pairs.ts`, dezelfde
+volgorde als het advies: intervals.icu (watt gedeeld door het Zwift-gewicht,
+anders dat van intervals.icu of het profiel), dan ZwiftRacing 90 dagen, dan de
+ladderraces. De tegenstander blijft ZwiftRacing, dan ladderraces. Nieuwe test;
+`/hulp` bijgewerkt.
+
+**Correctie.** Op 2026-11-03 ging het 90-dagenprofiel uit de matchup omdat het
+maxima aan onze kant tegen race-inspanningen aan de andere kant zette. Sindsdien
+krijgt de tegenstander ook 90 dagen van ZwiftRacing (maxima), dus die reden geldt
+niet meer; de zin daarover verderop is bijgewerkt.
+
+**Bewust niet.** Een eigen label voor intervals.icu-waarden bij de renner: alleen
+(ladder) blijft gemarkeerd, omdat die waarden lager liggen; intervals.icu en
+ZwiftRacing zijn allebei 90-dagenmaxima.
+
+**Niet geverifieerd.** Niet in productie nagekeken hoeveel van de drie
+ZWBeauties een curve in `rider_power_profiles` hebben: de Supabase-connector
+toonde in deze sessie alleen een ander project. Los daarvan: Lanterne Rouge
+Rockets, de tegenstander, had geen aanmeldingen en geen bewaarde ladderraces, dus
+die kant blijft leeg tot zij zich aanmelden of er wedstrijden bewaard zijn.
+
 ### Gebouwd — Club Ladder: gewicht alleen bergop en in de sprint
 
 **2026-11-06.** Commit `f5509d69`, op 2026-11-06 op verzoek van de eigenaar
@@ -14080,7 +14120,9 @@ voordeel heeft.
   (`rider_power_profiles`), gemarkeerd "(90 d)".~~ *Vervangen 2026-11-03:* dat
   mengde maximale waarden aan ZWB-kant met race-inspanningen aan de andere kant.
   Nu 90 dagen van ZwiftRacing voor beide teams; zie "Ladderrace: matchup met
-  90 dagen van ZwiftRacing".
+  90 dagen van ZwiftRacing". *Bijgewerkt 2026-11-06:* onze renners krijgen weer
+  eerst intervals.icu, nu de tegenstander ook 90-dagenmaxima heeft; zie "Club
+  Ladder: intervals.icu in de matchup".
 - ZRS per renner uit `zwift_rider_metrics`, na het antwoord ververst.
 - Ontbrekende renners van bewaarde wedstrijden haalt de eventpagina op binnen
   6 s, de rest na het antwoord (`after`, 30 s). `ensureMatchRiders` markeert

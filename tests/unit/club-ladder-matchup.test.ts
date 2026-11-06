@@ -132,6 +132,26 @@ describe("buildLadderMatchup", () => {
     expect(result.theirs.wkg).toEqual(wkg(12, 6.6, 4, 3.6));
   });
 
+  it("neemt voor onze renners intervals.icu boven 90 dagen, niet voor de tegenstander", () => {
+    const result = buildLadderMatchup({
+      ourName: "ZWBeasts",
+      opponent: "Galaxy Avengers",
+      signups: [],
+      ourSelection: [signup(1, "ZWBeasts", null), signup(2, "ZWBeasts", null)],
+      theirSquad: opponentRiderIds(matches, "Galaxy Avengers"),
+      matches,
+      power90: new Map([[1, wkg(11, 7, 5, 4.5)]]),
+      scores: new Map(),
+      weights: null,
+      ourIntervals: new Map([[1, { watts: { s15: 800, m1: 500, m5: 400, m20: 320 }, weightKg: 80 }]]),
+    });
+    const first = result.ours.riders.find((r) => r.zwiftId === 1)!;
+    expect(first.source).toBe("intervals");
+    expect(first.wkg).toEqual(wkg(10, 6.25, 5, 4));
+    // Zonder intervals.icu en zonder 90 dagen: zijn ladderraces.
+    expect(result.ours.riders.find((r) => r.zwiftId === 2)!.source).toBe("ladder");
+  });
+
   it("negeert de selectie zodra wij op de ladder aangemeld zijn", () => {
     const result = buildLadderMatchup({
       ourName: "ZWBeasts",

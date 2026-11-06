@@ -7,6 +7,8 @@ import { ladderOpponentFromTitle } from "./fixture-events";
 import { ensureMatchRiders, loadStoredMatches, loadTeamMatches } from "./matches";
 import { buildLadderMatchup, opponentRiderIds, type LadderMatchup, type MatchupSignup } from "./matchup";
 import { RECENT_RACES, recentTeamRiders, SQUAD_FOCUSES, type SquadFocus } from "./opponent-five";
+import { loadIntervalsPower } from "./intervals-power";
+import type { IntervalsPower } from "./rank-pairs";
 import { loadRiderWeights } from "./rider-weights";
 import { findLadderRouteSlug, ladderRouteBySlug, ROUTE_CLASS_LABELS } from "./routes";
 import { loadLadderSelections } from "./selection";
@@ -86,10 +88,15 @@ export async function loadLadderEventMatchup(
       ...theirRecent.riders.map((rider) => rider.zwiftId),
     ]),
   ];
-  const [riderMatches, metrics, riderWeights] = await Promise.all([
+  // Onze renners: eerst intervals.icu, zoals het advies (2026-11-06).
+  const ourZwiftIds = [
+    ...new Set([...signups.filter((row) => sameTeam(row.team, ourName)).map((row) => row.zwiftId), ...ourSelection.map((row) => row.zwiftId)]),
+  ];
+  const [riderMatches, metrics, riderWeights, ourIntervals] = await Promise.all([
     riderRaces(admin, zwiftIds),
     loadRiderMetrics(zwiftIds),
     loadRiderWeights(admin, [...zwiftIds, ...raceIds]),
+    intervalsByZwiftId(admin, ourZwiftIds),
   ]);
   if (zwiftIds.length > 0) after(() => refreshRiderMetrics(zwiftIds, metrics, { budgetMs: METRICS_BUDGET_MS }));
   const scores = new Map<number, number>();
@@ -117,6 +124,7 @@ export async function loadLadderEventMatchup(
     terrain: option?.terrain ?? null,
     riderWeights,
     theirRecent,
+    ourIntervals,
   };
   const matchup = buildLadderMatchup(base);
   const variants = SQUAD_FOCUSES.map((focus) => [focus, buildLadderMatchup({ ...base, theirFocus: focus })] as const);
@@ -127,6 +135,24 @@ export async function loadLadderEventMatchup(
     byFocus: choosable ? (Object.fromEntries(variants) as Record<SquadFocus, LadderMatchup>) : null,
     routeLabel: option ? ROUTE_CLASS_LABELS[option.routeClass] : null,
   };
+}
+
+/** intervals.icu per Zwift-ID, via het profiel met dat Zwift-ID; zonder profiel of curve ontbreekt hij. */
+async function intervalsByZwiftId(admin: Admin, zwiftIds: number[]): Promise<Map<number, IntervalsPower>> {
+  if (zwiftIds.length === 0) return new Map();
+  const { data } = await admin.from("profiles").select("id, zwift_id").in("zwift_id", zwiftIds);
+  const profileByZwift = new Map<number, string>();
+  for (const row of (data ?? []) as Array<{ id: string; zwift_id: number | string | null }>) {
+    const id = positiveId(row.zwift_id);
+    if (id) profileByZwift.set(id, row.id);
+  }
+  const power = await loadIntervalsPower(admin, [...profileByZwift.values()]);
+  const out = new Map<number, IntervalsPower>();
+  for (const [zwiftId, profileId] of profileByZwift) {
+    const row = power.get(profileId);
+    if (row) out.set(zwiftId, row);
+  }
+  return out;
 }
 
 /** Bewaarde ladderraces van deze renners, ook als ze toen voor een ander team reden. */

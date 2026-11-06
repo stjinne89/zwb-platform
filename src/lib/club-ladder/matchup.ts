@@ -16,6 +16,7 @@ import { averageWeight, logEdges, routeWkg, shownWeight, sideRouteWkg, weightsUs
 import { DURATIONS, sameTeam, teamRidersFromMatches, topFiveAverage, type PowerWkg, type StoredMatch } from "./team-power";
 import { EVEN_PCT } from "./edge-tone";
 import { riderWatts } from "./matchup-sort";
+import { riderPower as pickRiderPower, type IntervalsPower } from "./rank-pairs";
 import type { DurationTerrain, DurationWeights, PowerDuration } from "./routes";
 
 export { EVEN_PCT };
@@ -27,8 +28,8 @@ export type MatchupRider = {
   name: string;
   position: number | null;
   wkg: PowerWkg | null;
-  /** 90 dagen van ZwiftRacing, of alleen de bewaarde ladderraces. */
-  source: "90d" | "ladder" | null;
+  /** intervals.icu (alleen ZWB), 90 dagen van ZwiftRacing, of alleen de bewaarde ladderraces. */
+  source: "intervals" | "90d" | "ladder" | null;
   racingScore: number | null;
   /** Alleen om te rekenen; staat nergens los op de pagina. */
   weightKg: number | null;
@@ -168,21 +169,27 @@ function sideRiders(
   power90: Map<number, PowerWkg>,
   scores: Map<number, number>,
   weights: Map<number, number>,
+  /** Alleen voor onze kant: intervals.icu per Zwift-ID, gaat voor op ZwiftRacing (zoals het advies). */
+  intervals?: Map<number, IntervalsPower>,
 ): { riders: MatchupRider[]; lineup: boolean } {
   const placed = signups.filter((rider) => rider.position != null);
   const chosen = placed.length > 0 ? placed : signups;
   const riders = chosen.map((signup): MatchupRider => {
     const ladder = power.get(signup.zwiftId);
-    const best90 = power90.get(signup.zwiftId);
-    const source = hasPower(best90) ? "90d" : hasPower(ladder?.wkg) ? "ladder" : null;
+    const picked = pickRiderPower({
+      intervals: intervals?.get(signup.zwiftId) ?? null,
+      power90: power90.get(signup.zwiftId),
+      ladder: ladder?.wkg,
+      zwiftWeightKg: weights.get(signup.zwiftId) ?? null,
+    });
     return {
       zwiftId: signup.zwiftId,
       name: signup.name,
       position: signup.position,
-      wkg: source === "90d" ? best90! : source === "ladder" ? ladder!.wkg : null,
-      source,
+      wkg: picked.wkg,
+      source: picked.source,
       racingScore: scores.get(signup.zwiftId) ?? ladder?.racingScore ?? null,
-      weightKg: weights.get(signup.zwiftId) ?? null,
+      weightKg: picked.weightKg,
       routeWkg: null,
       races: null,
     };
@@ -212,6 +219,11 @@ export function buildLadderMatchup(input: {
   weights: DurationWeights | null;
   /** Op welke hellingen elke duur telt; zonder parcours telt gewicht niet. */
   terrain?: DurationTerrain | null;
+  /**
+   * intervals.icu van onze renners per Zwift-ID (`intervals-power.ts`): gaat aan
+   * onze kant voor op ZwiftRacing, net als het advies (2026-11-06).
+   */
+  ourIntervals?: Map<number, IntervalsPower>;
   /** Gewicht per Zwift-ID (`rider-weights.ts`); ontbreekt het, dan W/kg alleen. */
   riderWeights?: Map<number, number>;
   /** Wie de laatste tien ladderraces voor de tegenstander reed, en hoe vaak. */
@@ -229,7 +241,7 @@ export function buildLadderMatchup(input: {
   const power = riderPowerFromMatches(input.riderMatches ?? matches);
   const ourSignups = signups.filter((row) => sameTeam(row.team, ourName));
   const selection = ourSignups.length === 0 && (input.ourSelection?.length ?? 0) > 0;
-  const ours = sideRiders(selection ? input.ourSelection! : ourSignups, power, power90, scores, riderWeights);
+  const ours = sideRiders(selection ? input.ourSelection! : ourSignups, power, power90, scores, riderWeights, input.ourIntervals);
   const theirSignups = signups.filter((row) => sameTeam(row.team, opponent));
   let theirs = sideRiders(theirSignups, power, power90, scores, riderWeights);
   const recentCount = new Map((input.theirRecent?.riders ?? []).map((rider) => [rider.zwiftId, rider.races]));
