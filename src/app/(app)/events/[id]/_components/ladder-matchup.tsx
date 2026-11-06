@@ -5,6 +5,7 @@ import { EVEN_PCT, ourAdvantages, type LadderMatchup, type MatchupSide } from "@
 import { SQUAD_FOCUS_LABELS, SQUAD_FOCUSES, type SquadFocus } from "@/lib/club-ladder/opponent-five";
 import { DURATIONS } from "@/lib/club-ladder/team-power";
 import { cn } from "@/lib/utils";
+import { MatchupRiderTable } from "./ladder-matchup-riders";
 
 const wkg = (value: number | null | undefined) => (value == null ? "–" : value.toFixed(2));
 const pct = (value: number) => `${value > 0 ? "+" : ""}${value}%`;
@@ -177,40 +178,12 @@ function SideRiders({ side }: { side: MatchupSide }) {
       </p>
       {side.riders.length > 0 && (
         <div className="mt-1 overflow-x-auto">
-          <table className="w-full text-xs tabular-nums">
-            <thead className="text-muted-foreground">
-              <tr className="border-b">
-                <th className="py-1 pr-2 text-left font-medium">Renner</th>
-                {DURATIONS.map((d) => (
-                  <th key={d} className="px-1.5 py-1 text-right font-medium">
-                    {DURATION_LABELS[d]}
-                  </th>
-                ))}
-                <th className="py-1 pl-1.5 text-right font-medium">ZRS</th>
-                {showRaces && <th className="py-1 pl-1.5 text-right font-medium">Races</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {side.riders.map((rider) => (
-                <tr key={rider.zwiftId} className="border-b last:border-0">
-                  <td className="max-w-40 truncate py-1 pr-2">
-                    {rider.position != null && <span className="mr-1 text-muted-foreground">{rider.position}.</span>}
-                    {rider.name}
-                    {rider.source === "ladder" && <span className="ml-1 text-muted-foreground">(ladder)</span>}
-                  </td>
-                  {DURATIONS.map((d) => (
-                    <td key={d} className="px-1.5 py-1 text-right">
-                      {wkg(rider.wkg?.[d])}
-                    </td>
-                  ))}
-                  <td className="py-1 pl-1.5 text-right">{rider.racingScore == null ? "–" : Math.round(rider.racingScore)}</td>
-                  {showRaces && (
-                    <td className="py-1 pl-1.5 text-right">{rider.races == null ? "–" : `${rider.races}/${side.recentRaces}`}</td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <MatchupRiderTable
+            riders={side.riders}
+            durations={DURATIONS.map((key) => ({ key, label: DURATION_LABELS[key] }))}
+            recentRaces={side.recentRaces}
+            showRaces={showRaces}
+          />
         </div>
       )}
     </div>

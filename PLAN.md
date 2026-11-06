@@ -47,6 +47,12 @@ gaat stabiliteit voor nieuwe features.
    duur, percentages per route, Zonder vermogen). Zie de ronde "Club Ladder:
    advies renner tegen renner, intervals.icu eerst".
 
+0x. **Club Ladder: sorteren in de matchup en score bij de verwachte uitslag
+   (2026-11-06): lokaal gecommit, niet gepusht.** Geen migratie. Nalopen na een
+   deploy: op een ladderevent de kolommen van de matchup sorteren, en op het
+   racebriefje de score naast "Verwachte uitslag". Zie de ronde "Club Ladder:
+   sorteren in de matchup, score bij de verwachte uitslag".
+
 0w. **Club Ladder: sync meldt een verlopen ladder-sessie (2026-11-06): gepusht
    naar `main` (`c2fe1085`).** Geen migratie. Eerst doen (eigenaar): `LADDER_COOKIE`
    vernieuwen in Netlify en `.env.local`, dan syncen en op wedstrijd 17729 Kevin
@@ -11794,6 +11800,37 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Club Ladder: sorteren in de matchup, score bij de verwachte uitslag
+
+**2026-11-06.** Lokaal gecommit, niet gepusht. Geen migratie.
+
+**Waarom.** Vraag van de eigenaar: in de matchup per kolom kunnen sorteren, en
+op het racebriefje van een ladderrace de verwachte score naast de titel
+"Verwachte uitslag".
+
+**Wat er veranderde.**
+- **Sorteren** (eventpagina, Matchup): de rennerstabellen van beide kanten zijn
+  een client-component (`ladder-matchup-riders.tsx`). Elke kolomkop (Renner,
+  15 s, 1, 5, 20 min, ZRS, Races) is een knop: eerste klik namen A–Z en getallen
+  hoogste eerst, tweede klik andersom; `aria-sort` op de kop. Zonder klik de
+  volgorde van de startplekken. Wie geen waarde heeft, staat altijd onderaan.
+  De logica is puur (`lib/club-ladder/matchup-sort.ts`, test
+  `club-ladder-matchup-sort.test.ts`). Elke tab houdt zijn eigen sortering.
+- **Score** (racebriefje): naast "Verwachte uitslag" de verwachte stand uit
+  `projectLadder`, eigen ploeg eerst (bijv. 30–25), groen als we op papier
+  winnen; een `aria-label` noemt beide ploegen.
+- `/hulp` beschrijft beide.
+
+**Bewust niet.**
+- De tabel W/kg per duur bovenaan de matchup niet sorteerbaar: dat zijn vier
+  vaste duren, geen lijst om te ordenen.
+- Geen gedeelde tabelcomponent met de teamrostertabel: die sorteert in watt of
+  W/kg met eigen kolommen; het patroon (pijltje, eerste klik) is wel gelijk.
+
+**Niet geverifieerd.** De eventpagina en het racebriefje in de browser: beide
+achter inloggen en met productiedata. Wel: tests (32 voor de ladder-matchup),
+ESLint en typecheck schoon.
 
 ### Gebouwd — ZWBekers: bekers blijven zichtbaar onder de bordjes
 

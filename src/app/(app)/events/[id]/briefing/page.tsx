@@ -384,7 +384,23 @@ export default async function RaceBriefingPage({ params }: PageProps) {
 
       {view.kind === "ladder" ? (
         <section className="space-y-3">
-          <SectionHeader title="Verwachte uitslag" />
+          <SectionHeader
+            title={
+              view.ladder?.projection ? (
+                <>
+                  Verwachte uitslag{" "}
+                  <span
+                    className={cn("ml-1 tabular-nums", view.ladder.projection.win ? "text-primary" : "text-muted-foreground")}
+                    aria-label={`${view.event.teamName ?? "Wij"} ${view.ladder.projection.ours}, ${view.ladder.opponent} ${view.ladder.projection.theirs}`}
+                  >
+                    {view.ladder.projection.ours}–{view.ladder.projection.theirs}
+                  </span>
+                </>
+              ) : (
+                "Verwachte uitslag"
+              )
+            }
+          />
           <LadderTable view={view} />
         </section>
       ) : (
