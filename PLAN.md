@@ -62,8 +62,8 @@ gaat stabiliteit voor nieuwe features.
    event, naast de verwachting".
 
 1c. **Club Ladder: uitslagen onder Teamresultaten (2026-11-06): gepusht naar
-   `main` (`f09ddad6`); de link naar de ladder voor oudere wedstrijden is lokaal
-   gecommit, niet gepusht.** Geen migratie. Nalopen na een deploy: op de
+   `main` (`f09ddad6`, link naar de ladder voor oudere wedstrijden
+   `b893f458`).** Geen migratie. Nalopen na een deploy: op de
    teampagina van ZWBeasts staat bovenaan 32–20 tegen Galaxy Avengers, een tik
    opent het event bij Uitslag, en een oudere wedstrijd opent de ladder. Zie de ronde "Club Ladder: uitslagen onder
    Teamresultaten".
@@ -11861,8 +11861,8 @@ eerste ladder-event) events aan. Op productie (2026-11-06) hadden ZWBandits 5,
 ZWBeasts 9 en ZWBullets 8 bewaarde wedstrijden, terug tot december 2025, en
 alleen ZWBeasts – Galaxy Avengers van 6 november heeft een event. In de eerste
 commit stonden die oudere zonder link; op de vraag of ze naar de openbare
-uitslag op de ladder mogen linken, koos de eigenaar ja (tweede commit, zelfde
-dag). Zo'n rij opent `ladderResultUrl` (nu één helper in `event-result.ts`,
+uitslag op de ladder mogen linken, koos de eigenaar ja (`b893f458`, zelfde
+dag op verzoek van de eigenaar naar `main` gepusht). Zo'n rij opent `ladderResultUrl` (nu één helper in `event-result.ts`,
 ook voor de link op het event en de scraper) in een nieuw tabblad, met het
 pijltje dat ook bij "Uitslag op de ladder" staat. Geen events achteraf
 aangemaakt voor oude wedstrijden: dat zou de kalender en de RSVP's van
