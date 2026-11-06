@@ -3,6 +3,9 @@ import "server-only";
 import { after } from "next/server";
 import { loadRiderMetrics, refreshRiderMetrics } from "@/lib/race-briefing/metrics";
 import type { createAdminClient } from "@/lib/supabase/admin";
+import { matchupWeights } from "./briefing";
+import { expectationRiders } from "./event-result";
+import { saveLadderExpectation } from "./expectation-store";
 import { ladderOpponentFromTitle } from "./fixture-events";
 import { ensureMatchRiders, loadStoredMatches, loadTeamMatches } from "./matches";
 import { buildLadderMatchup, opponentRiderIds, type LadderMatchup, type MatchupSignup } from "./matchup";
@@ -41,7 +44,7 @@ const positiveId = (value: unknown) => {
 export async function loadLadderEventMatchup(
   admin: Admin,
   eventId: string,
-  event: { team_id: string | null; title: string; zwift_route_id: number | string | null },
+  event: { team_id: string | null; title: string; zwift_route_id: number | string | null; start_at?: string },
   options: {
     /** Wie er echt reed (de uitslag): vervangt aanmeldingen en selectie, zonder keuze per type. */
     starters?: MatchupSignup[];
@@ -140,6 +143,12 @@ export async function loadLadderEventMatchup(
   const variants = SQUAD_FOCUSES.map((focus) => [focus, buildLadderMatchup({ ...base, theirFocus: focus })] as const);
   // Alleen als er echt te kiezen valt: voor elk type een ploeg en een vergelijking.
   const choosable = variants.every(([focus, row]) => row.theirs.focus === focus && row.basis !== "races");
+  // Vóór de start vastleggen waarmee de verwachting rekent, voor de uitslag erna (0308).
+  const startAt = event.start_at;
+  if (startAt && Date.parse(startAt) > Date.now()) {
+    const riders = expectationRiders([matchup, ...variants.map(([, row]) => row)]);
+    after(() => saveLadderExpectation(admin, eventId, startAt, riders, matchupWeights(matchup)).catch(() => null));
+  }
   return {
     matchup,
     byFocus: choosable ? (Object.fromEntries(variants) as Record<SquadFocus, LadderMatchup>) : null,

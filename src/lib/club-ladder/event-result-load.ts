@@ -1,9 +1,10 @@
 import "server-only";
 
 import type { createAdminClient } from "@/lib/supabase/admin";
-import { ladderRiders, matchupWeights } from "./briefing";
+import { matchupWeights } from "./briefing";
 import { loadLadderEventMatchup } from "./event-matchup";
-import { ladderEventResult, pickEventMatch, startersFromResult, type LadderEventResult } from "./event-result";
+import { expectationRiders, ladderEventResult, pickEventMatch, starterRatings, startersFromResult, type LadderEventResult } from "./event-result";
+import { loadLadderExpectation } from "./expectation-store";
 import { ladderOpponentFromTitle } from "./fixture-events";
 import type { MatchupSignup } from "./matchup";
 import { ensureMatchRiders, loadStoredMatches, MATCH_COLUMNS, type MatchRow } from "./matches";
@@ -67,16 +68,21 @@ export async function loadLadderEventResult(
   });
   const starters = startersFromResult(match.riders, signups);
 
-  const ratings = new Map<number, number | null>();
+  // Het vermogen van vóór de start (0308); wie daar niet in staat (een wissel),
+  // krijgt dat van nu, zonder deze race als bron.
+  let ratings = new Map<number, number | null>();
   if (starters.size >= 2) {
-    const expected = await loadLadderEventMatchup(admin, eventId, event, {
-      starters: [...starters.values()],
-      excludeResultId: match.resultId,
-    }).catch(() => null);
-    if (expected) {
-      const byZwift = new Map(ladderRiders(expected.matchup, matchupWeights(expected.matchup)).map((rider) => [rider.zwiftId, rider.rating]));
-      for (const [position, starter] of starters) ratings.set(position, byZwift.get(starter.zwiftId) ?? null);
-    }
+    const frozen = await loadLadderExpectation(admin, eventId);
+    const complete = frozen && [...starters.values()].every((starter) => frozen.riders.has(starter.zwiftId));
+    const current = complete
+      ? null
+      : await loadLadderEventMatchup(admin, eventId, event, {
+          starters: [...starters.values()],
+          excludeResultId: match.resultId,
+        }).catch(() => null);
+    const live = new Map(current ? expectationRiders([current.matchup]).map((rider) => [rider.zwiftId, rider.wkg]) : []);
+    const weights = frozen?.weights ?? (current ? matchupWeights(current.matchup) : null);
+    ratings = starterRatings(starters, frozen?.riders ?? new Map(), live, weights);
   }
   return ladderEventResult(match, ourName, ratings);
 }

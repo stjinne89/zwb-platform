@@ -5,12 +5,14 @@
 // parcours, beste eerst. Alleen over wie er echt reed, zodat een wissel na de
 // opstelling de vergelijking niet scheef trekt. Een renner zonder vermogen
 // houdt zijn echte plek; de anderen vullen de overige plekken op sterkte.
+// Het vermogen per renner is dat van vóór de start (0308), zolang het er is.
 
 import { normalizeTeamName } from "@/lib/ladder";
 import { cleanRiderName } from "@/lib/race-briefing/field";
-import { LADDER_POINTS } from "./briefing";
-import type { MatchupSignup } from "./matchup";
-import { sameTeam, type MatchRider, type StoredMatch } from "./team-power";
+import { LADDER_POINTS, routeRatings } from "./briefing";
+import type { LadderMatchup, MatchupSignup } from "./matchup";
+import type { DurationWeights } from "./routes";
+import { DURATIONS, sameTeam, type MatchRider, type PowerWkg, type StoredMatch } from "./team-power";
 
 /** Een uitslag ligt hooguit zoveel uur van de starttijd van het event. */
 const MAX_OFFSET_H = 6;
@@ -42,6 +44,48 @@ export function pickEventMatch<T extends LadderMatchCandidate>(
     if (!best || offset < best.offset) best = { row, offset };
   }
   return best?.row ?? null;
+}
+
+export type ExpectationRider = { zwiftId: number; name: string; own: boolean; wkg: PowerWkg };
+
+const hasPower = (wkg: PowerWkg | null | undefined): wkg is PowerWkg =>
+  Boolean(wkg && DURATIONS.some((d) => wkg[d] != null && wkg[d]! > 0));
+
+/**
+ * Per renner het vermogen waarop de verwachting hem zet, zoals `ladderRiders`:
+ * met gewicht omgerekend als dat in de matchup meetelt. Uit meerdere matchups
+ * (de keuze per type), de eerste wint.
+ */
+export function expectationRiders(matchups: LadderMatchup[]): ExpectationRider[] {
+  const out = new Map<number, ExpectationRider>();
+  for (const matchup of matchups) {
+    for (const [side, own] of [
+      [matchup.ours, true],
+      [matchup.theirs, false],
+    ] as const) {
+      for (const rider of side.riders) {
+        const wkg = rider.routeWkg ?? rider.wkg;
+        if (!out.has(rider.zwiftId) && hasPower(wkg)) out.set(rider.zwiftId, { zwiftId: rider.zwiftId, name: rider.name, own, wkg });
+      }
+    }
+  }
+  return [...out.values()];
+}
+
+/** Sterkte per finishplek: het vermogen van vóór de start, anders dat van nu. */
+export function starterRatings(
+  starters: Map<number, MatchupSignup>,
+  frozen: Map<number, PowerWkg>,
+  live: Map<number, PowerWkg>,
+  weights: DurationWeights | null,
+): Map<number, number | null> {
+  const rows = [...starters].map(([position, starter]) => ({
+    position,
+    zwiftId: starter.zwiftId,
+    wkg: frozen.get(starter.zwiftId) ?? live.get(starter.zwiftId) ?? null,
+  }));
+  const ratings = routeRatings(rows, weights);
+  return new Map(rows.map((row) => [row.position, ratings.get(row.zwiftId) ?? null]));
 }
 
 const nameKey = (name: string) => cleanRiderName(name).toLocaleLowerCase("nl");

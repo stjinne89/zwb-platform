@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { expectedPlaces, ladderEventResult, pickEventMatch, startersFromResult } from "@/lib/club-ladder/event-result";
-import type { MatchRider, StoredMatch } from "@/lib/club-ladder/team-power";
+import { expectationRiders, expectedPlaces, ladderEventResult, pickEventMatch, starterRatings, startersFromResult } from "@/lib/club-ladder/event-result";
+import type { LadderMatchup, MatchupRider, MatchupSide } from "@/lib/club-ladder/matchup";
+import type { MatchRider, PowerWkg, StoredMatch } from "@/lib/club-ladder/team-power";
+
+const wkg = (value: number): PowerWkg => ({ s15: value * 2, m1: value * 1.5, m5: value * 1.1, m20: value });
 
 const rider = (position: number, team: string, zwiftId: number | null = null, name = `R${position}`): MatchRider => ({
   name,
@@ -109,5 +112,61 @@ describe("ladderEventResult", () => {
     expect([result.ourScore, result.theirScore, result.won, result.opponent]).toEqual([19, 15, true, "Rivals"]);
     expect(result.expectedScore).toBeNull();
     expect(result.rows.every((row) => row.expected === null && row.delta === null)).toBe(true);
+  });
+});
+
+describe("expectationRiders", () => {
+  const matchupRider = (zwiftId: number, power: PowerWkg | null, routeWkg: PowerWkg | null = null): MatchupRider => ({
+    zwiftId,
+    name: `R${zwiftId}`,
+    position: null,
+    wkg: power,
+    source: power ? "90d" : null,
+    racingScore: null,
+    weightKg: null,
+    routeWkg,
+    races: null,
+  });
+  const side = (name: string, riders: MatchupRider[]) => ({ name, riders }) as unknown as MatchupSide;
+  const matchup = (ours: MatchupRider[], theirs: MatchupRider[]) =>
+    ({ ours: side("ZWBandits", ours), theirs: side("Rivals", theirs) }) as unknown as LadderMatchup;
+
+  it("neemt het vermogen met gewicht als dat meetelt, zonder vermogen niet, en de eerste matchup wint", () => {
+    const riders = expectationRiders([
+      matchup([matchupRider(1, wkg(4), wkg(4.2)), matchupRider(2, null)], [matchupRider(3, wkg(3.8))]),
+      matchup([], [matchupRider(3, wkg(9)), matchupRider(4, wkg(3.5))]),
+    ]);
+    expect(riders.map((rider) => [rider.zwiftId, rider.own, rider.wkg.m20])).toEqual([
+      [1, true, 4.2],
+      [3, false, 3.8],
+      [4, false, 3.5],
+    ]);
+  });
+});
+
+describe("starterRatings", () => {
+  const starters = new Map([
+    [1, { zwiftId: 11, team: "Rivals", name: "A", position: null }],
+    [2, { zwiftId: 22, team: "ZWBandits", name: "B", position: null }],
+    [3, { zwiftId: 33, team: "ZWBandits", name: "C", position: null }],
+  ]);
+
+  it("gebruikt het vermogen van vóór de start, en voor een wissel dat van nu", () => {
+    const frozen = new Map([
+      [11, wkg(3)],
+      [22, wkg(4)],
+    ]);
+    // Na de race hoger (de race zelf in de 90 dagen): telt niet, het bevroren getal wel.
+    const live = new Map([
+      [11, wkg(5)],
+      [33, wkg(3.5)],
+    ]);
+    const ratings = starterRatings(starters, frozen, live, null);
+    expect(ratings.get(2)!).toBeGreaterThan(ratings.get(3)!);
+    expect(ratings.get(3)!).toBeGreaterThan(ratings.get(1)!);
+  });
+
+  it("geeft null zonder vermogen", () => {
+    expect(starterRatings(starters, new Map(), new Map([[11, wkg(3)]]), null).get(2)).toBeNull();
   });
 });

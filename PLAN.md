@@ -53,9 +53,14 @@ gaat stabiliteit voor nieuwe features.
    ronde "Club Ladder: intervals.icu in de matchup".
 
 1b. **Club Ladder: uitslag op het event, met verwachting en verschil
-   (2026-11-06): lokaal gecommit, niet gepusht.** Geen migratie. Nalopen na een
-   deploy: op een gereden ladderevent staan score, de tien plekken, Verwacht en ±.
-   Zie de ronde "Club Ladder: uitslag op het event, naast de verwachting".
+   (2026-11-06): lokaal gecommit, niet gepusht; migratie `0308` nog niet
+   toegepast.** Eerst `0308_club_ladder_event_expectations.sql` toepassen (de
+   eigenaar koppelt de Supabase-connector weer aan zwb-platform), dan pushen.
+   Zonder 0308 werkt de uitslag, maar rekent de verwachting met vermogen van nu.
+   Nalopen na een deploy: op een gereden ladderevent staan score, de tien
+   plekken, Verwacht en ±, en na een opening vóór de start staat er een rij in
+   `club_ladder_event_expectations`. Zie de ronde "Club Ladder: uitslag op het
+   event, naast de verwachting".
 
 0z. **Club Ladder: gewicht alleen bergop en in de sprint (2026-11-06): gepusht
    naar `main` (`f5509d69`).** Geen migratie. Nalopen na een deploy: op het
@@ -11823,8 +11828,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: uitslag op het event, naast de verwachting
 
-**2026-11-06.** Lokaal gecommit op `claude/club-ladder-results-display-bca882`,
-niet gepusht; de hash komt erbij bij de push. Geen migratie.
+**2026-11-06.** Twee commits op `claude/club-ladder-results-display-bca882`
+(`de4fe84c` de uitslag, daarna de bevroren verwachting), niet gepusht.
+Migratie `0308_club_ladder_event_expectations`, **nog niet toegepast**.
 
 **Waarom.** De eigenaar zag dat de stand van de Club Ladder gesynct wordt, maar
 nergens de uitslag en plekken van de renners van een gereden wedstrijd. Daarbij
@@ -11843,9 +11849,9 @@ gekleurd. Op een telefoon kaarten (`ResponsiveTable`). Het generieke blok
 "Uitslag — ZWB'ers" verschijnt bij een ladderevent met uitslag alleen nog als er
 een uitslag-URL of handmatige uitslag is.
 
-**De verwachting.** Zoals het racebriefje (`routeRatings`/`ladderRiders` in
-`briefing.ts`), maar over wie er echt reed, niet over de opstelling: een wissel
-na de opstelling zou de vergelijking anders scheef trekken.
+**De verwachting.** Zoals het racebriefje (`routeRatings` in `briefing.ts`),
+maar over wie er echt reed, niet over de opstelling: een wissel na de opstelling
+zou de vergelijking anders scheef trekken.
 `loadLadderEventMatchup` kreeg daarvoor de opties `starters` (vervangt
 aanmeldingen en selectie, geen keuze per type) en `excludeResultId`. Die
 laatste haalt deze race uit de bewaarde ladderraces als vermogensbron, anders
@@ -11857,19 +11863,34 @@ verwacht min werkelijk, dus + is beter dan verwacht. Onder de twee renners met
 vermogen: geen verwachting. `matchupWeights` is uit `event-briefing.ts` naar
 `briefing.ts` verhuisd, zodat beide hem gebruiken. `/hulp` bijgewerkt.
 
-**Bewust niet.** De verwachting van vóór de race bewaren (snapshot bij de
-start): dat vraagt een migratie en een moment om hem weg te schrijven. Nu
-rekent de pagina hem achteraf uit. Het vermogen uit deze race telt niet mee,
-maar de 90 dagen van ZwiftRacing en intervals.icu lopen na de race door en
-kunnen de race bevatten, dus de verwachting kan iets schuiven ten opzichte van
-het briefje van vóór de race. Staat dat de eigenaar niet aan, dan is een
-snapshot de volgende stap.
+**Bevroren verwachting (0308, tweede commit, op verzoek van de eigenaar).**
+Achteraf rekenen schoof: de 90 dagen van ZwiftRacing en intervals.icu lopen na
+de race door en kunnen de race bevatten. Nu legt `loadLadderEventMatchup` vóór
+de start het vermogen per renner vast in `club_ladder_event_expectations`
+(`expectation-store.ts`, via `after()`): het vermogen waarop de verwachting hem
+zet (`expectationRiders`: met gewicht omgerekend als dat meetelt), van iedereen
+in de matchup en in de keuze per type, plus de weging van het parcours. Elke
+opening van het event of het racebriefje vóór de start overschrijft; na de start
+schrijft niemand meer. Na de race gebruikt `starterRatings` dat bevroren
+vermogen, en alleen voor wie er niet in staat (een wissel) het vermogen van nu
+(zonder deze race). Staat iedereen erin, dan rekent de pagina de matchup na de
+race niet opnieuw.
+
+**Bewust niet.** Vastleggen vanuit de sync: de team-resultatensync draait
+"naar wens" (runbook), niet vlak voor de start, en de matchup laden kost daar
+tot 6 s per wedstrijd. Gevolg: opent niemand het event of het briefje vóór de
+start, dan is er geen bevroren verwachting en rekent de pagina met vermogen van
+nu, zoals in de eerste commit. De bevroren plekken zelf bewaren in plaats van
+het vermogen: dan heeft een wissel geen verwachting en klopt de schaal 1–10 niet
+meer.
 
 **Niet geverifieerd.** Niet in de browser en niet tegen productie: de
 Supabase-connector toonde in deze sessie alleen een ander project
 (community-nations-world-cup), dus het is niet nagekeken of de gereden ZWB-wedstrijden in
-`club_ladder_matches` staan en of hun renners een Zwift-ID hebben. Nieuwe
-unittests voor koppelen, namen, verwachte plekken en score. `tsc` en de
+`club_ladder_matches` staan en of hun renners een Zwift-ID hebben. Migratie
+`0308` is lokaal niet te testen (geen Docker of Supabase-config). Nieuwe
+unittests voor koppelen, namen, verwachte plekken, score, het bevroren vermogen
+en de terugval voor een wissel. `tsc` en de
 sync-test struikelen in deze worktree over ontbrekende pakketten
 (`@anthropic-ai/sdk`, `modern-screenshot`), los van deze ronde.
 
