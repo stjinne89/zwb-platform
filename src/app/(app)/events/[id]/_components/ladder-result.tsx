@@ -84,7 +84,7 @@ export function LadderResultView({ result }: { result: LadderEventResult }) {
               : []),
             { key: "points", header: "Punten", align: "right", cell: (row) => row.points },
             { key: "time", header: "Tijd", align: "right", cell: (row) => clock(row.timeS) },
-            { key: "wkg", header: "W/kg", align: "right", cell: (row) => (row.avgWkg == null ? "–" : row.avgWkg.toFixed(1)) },
+            { key: "wkg", header: "W/kg", align: "right", cell: (row) => (row.avgWkg == null ? "–" : row.avgWkg.toFixed(2)) },
           ]}
           empty="Renners nog niet opgehaald."
         />

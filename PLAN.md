@@ -53,11 +53,9 @@ gaat stabiliteit voor nieuwe features.
    ronde "Club Ladder: intervals.icu in de matchup".
 
 1b. **Club Ladder: uitslag op het event, met verwachting en verschil
-   (2026-11-06): lokaal gecommit, niet gepusht; migratie `0308` nog niet
-   toegepast.** Eerst `0308_club_ladder_event_expectations.sql` toepassen (de
-   eigenaar koppelt de Supabase-connector weer aan zwb-platform), dan pushen.
-   Zonder 0308 werkt de uitslag, maar rekent de verwachting met vermogen van nu.
-   Nalopen na een deploy: op een gereden ladderevent staan score, de tien
+   (2026-11-06): lokaal gecommit, niet gepusht; migratie `0308` toegepast
+   (2026-11-06, via de Supabase-connector, op verzoek van de eigenaar).** Nalopen
+   na een deploy: op een gereden ladderevent staan score, de tien
    plekken, Verwacht en ±, en na een opening vóór de start staat er een rij in
    `club_ladder_event_expectations`. Zie de ronde "Club Ladder: uitslag op het
    event, naast de verwachting".
@@ -11830,7 +11828,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 **2026-11-06.** Twee commits op `claude/club-ladder-results-display-bca882`
 (`de4fe84c` de uitslag, daarna de bevroren verwachting), niet gepusht.
-Migratie `0308_club_ladder_event_expectations`, **nog niet toegepast**.
+Migratie `0308_club_ladder_event_expectations`, op 2026-11-06 via de
+Supabase-connector op productie toegepast, op verzoek van de eigenaar, vóór de
+push (main stond op 0307).
 
 **Waarom.** De eigenaar zag dat de stand van de Club Ladder gesynct wordt, maar
 nergens de uitslag en plekken van de renners van een gereden wedstrijd. Daarbij
@@ -11884,11 +11884,18 @@ nu, zoals in de eerste commit. De bevroren plekken zelf bewaren in plaats van
 het vermogen: dan heeft een wissel geen verwachting en klopt de schaal 1–10 niet
 meer.
 
-**Niet geverifieerd.** Niet in de browser en niet tegen productie: de
-Supabase-connector toonde in deze sessie alleen een ander project
-(community-nations-world-cup), dus het is niet nagekeken of de gereden ZWB-wedstrijden in
-`club_ladder_matches` staan en of hun renners een Zwift-ID hebben. Migratie
-`0308` is lokaal niet te testen (geen Docker of Supabase-config). Nieuwe
+**Nagekeken op productie (2026-11-06, alleen-lezend).** Het enige gereden
+ladderevent van de laatste drie weken, ZWBeasts – Galaxy Avengers van 6
+november, vindt zijn wedstrijd (`result_id` 18002, 32–20, zelfde dag en tijd).
+De 8 renners (geen 10: de ladder gaf er 8) hebben allemaal een Zwift-ID en
+stonden bij de aanmeldingen; 7 hebben 90 dagen van ZwiftRacing. Die race was
+vóór 0308, dus zonder bevroren verwachting: daar rekent de pagina met vermogen
+van nu. De W/kg van de ladder heeft twee decimalen; de tabel toont die nu ook.
+
+**Niet geverifieerd.** Niet in de browser: de pagina zelf en de rij die een
+opening vóór de start in `club_ladder_event_expectations` zet, zijn niet
+bekeken. Migratie `0308` is lokaal niet te testen (geen Docker of
+Supabase-config); op productie bestaat de tabel. Nieuwe
 unittests voor koppelen, namen, verwachte plekken, score, het bevroren vermogen
 en de terugval voor een wissel. `tsc` en de
 sync-test struikelen in deze worktree over ontbrekende pakketten
