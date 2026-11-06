@@ -248,6 +248,9 @@ export async function syncLadderFixtures(
 
   const pages = new Map<number, LadderFixturePage | null>();
   let cookie = options.cookie ?? null;
+  if (!cookie && matches.some((match) => Date.parse(match.fixture.startsAt) > now.getTime())) {
+    result.lineupError = "LADDER_COOKIE ontbreekt: aanmeldingen niet gelezen.";
+  }
   async function pageFor(match: LadderFixtureMatch) {
     const id = match.fixture.fixtureId;
     if (pages.has(id)) return pages.get(id) ?? null;

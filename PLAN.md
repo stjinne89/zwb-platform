@@ -47,6 +47,12 @@ gaat stabiliteit voor nieuwe features.
    duur, percentages per route, Zonder vermogen). Zie de ronde "Club Ladder:
    advies renner tegen renner, intervals.icu eerst".
 
+0w. **Club Ladder: sync meldt een verlopen ladder-sessie (2026-11-06): lokaal
+   gecommit, niet gepusht.** Geen migratie. Eerst doen (eigenaar): `LADDER_COOKIE`
+   vernieuwen in Netlify en `.env.local`, dan syncen en op wedstrijd 17729 Kevin
+   Plasmans en O Macneill in de matchup zien. Zie de ronde "Club Ladder: sync
+   meldt een verlopen ladder-sessie".
+
 0v. **Club Ladder: echte ploeg van de tegenstander eerst in de matchup
    (2026-11-06): gepusht naar `main` (`38ce2b25`).** Geen migratie. Nalopen na een
    deploy: op een ladderevent waar de tegenstander zich aanmeldde de eerste knop
@@ -11788,6 +11794,37 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Club Ladder: sync meldt een verlopen ladder-sessie
+
+**2026-11-06.** Lokaal gecommit, niet gepusht. Geen migratie.
+
+**Waarom.** Na de ronde hieronder zag de eigenaar op ZWBeasts – Galaxy
+Avengers (wedstrijd 17729) niet de echte ploegen, ook niet na "Teams en
+resultaten ophalen". Nagelopen in Chrome: de matchup toonde wel de nieuwe
+eerste knop Opstelling, maar met 3 ZWBeasts en 4 Galaxy Avengers. Op de ladder
+stonden er 4 en 5 (Kevin Plasmans en O Macneill ontbraken). De wedstrijdpagina
+zelf wordt goed gelezen; de `LADDER_COOKIE` in `.env.local` stuurt de ladder
+door naar `/signin`, dus verlopen. Dan slaat de sync de aanmeldingen over, en
+de knop toonde dat nergens: de uitkomst van de wedstrijdsync (`ladderFixtures`)
+kwam niet in beeld.
+
+**Wat er veranderde.**
+- `sync-results-button.tsx`: toont een fout van de ladderwedstrijden,
+  `lineupError` (zoals "Ladder-sessie verlopen: vernieuw LADDER_COOKIE.") en de
+  eerste waarschuwingen, in rood.
+- `syncLadderFixtures`: zonder cookie en met een komende wedstrijd ook een
+  `lineupError` ("LADDER_COOKIE ontbreekt"); eerder bleef dat stil.
+- Test erbij in `club-ladder-fixtures.test.ts`.
+
+**Open (eigenaar).** De `LADDER_COOKIE` vernieuwen in Netlify en in
+`.env.local` (`connect.sid` van ladder.cycleracing.club), daarna opnieuw
+syncen. Niet door Claude: een sessiecookie invoeren hoort bij de eigenaar.
+Dat de Netlify-waarde ook verlopen is, is aangenomen (zelfde waarde als lokaal),
+niet gecontroleerd.
+
+**Bewust niet.** Geen automatische vernieuwing van de sessie (dat vraagt
+inloggegevens op de server).
 
 ### Gebouwd — Club Ladder: echte ploeg van de tegenstander eerst in de matchup
 

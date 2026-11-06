@@ -44,6 +44,17 @@ export function SyncResultsButton() {
                     source.error ?? source.skipped
                   }`,
               );
+            // Ladderwedstrijden: zonder geldige ladder-sessie blijven de aanmeldingen oud.
+            const fixtures = res.summary.ladderFixtures;
+            const ladderProblems = !fixtures
+              ? []
+              : "error" in fixtures
+                ? [`Ladderwedstrijden: ${fixtures.error}`]
+                : [
+                    ...(fixtures.lineupError ? [`Aanmeldingen: ${fixtures.lineupError}`] : []),
+                    ...fixtures.warnings.slice(0, 3),
+                  ];
+            details.unshift(...ladderProblems);
             const rosterSynced = res.summary.sources.reduce(
               (total, source) => total + source.rosterSynced,
               0,
@@ -54,11 +65,13 @@ export function SyncResultsButton() {
                 : "";
             const resultText = `${setupText}${res.summary.insertedOrUpdated} resultaatupdates, ${rosterSynced} teamleden`;
             setState({
-              kind: failed > 0 ? "error" : skipped > 0 ? "notice" : "success",
+              kind: failed > 0 || ladderProblems.length > 0 ? "error" : skipped > 0 ? "notice" : "success",
               details,
               message:
                 failed > 0
                   ? `${resultText}, ${failed} bronnen met fout: ${firstProblem?.error ?? "onbekend"}.`
+                  : ladderProblems.length > 0
+                    ? `${resultText} verwerkt, ladderwedstrijden niet helemaal bijgewerkt.`
                   : skipped > 0
                     ? `${resultText}, ${skipped} bronnen overgeslagen: ${firstProblem?.skipped ?? "geen stand gevonden"}.`
                     : `${resultText} verwerkt.`,

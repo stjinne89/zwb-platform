@@ -391,6 +391,10 @@ describe("syncLadderFixtures", () => {
     expect(db.tables.events.find((row) => row.club_ladder_fixture_id === 17729)).toMatchObject({ zwift_event_id: 5772909, distance_km: 23.57 });
     expect(db.tables.team_event_lineups).toHaveLength(1);
     expect(db.tables.club_ladder_fixture_signups).toHaveLength(2);
+
+    // Zonder cookie meldt de sync dat de aanmeldingen niet gelezen zijn.
+    const noCookie = await syncLadderFixtures(db, summary([fixture()]), { ...options, cookie: null });
+    expect(noCookie.lineupError).toMatch(/LADDER_COOKIE ontbreekt/);
   });
 
   it("laat de selectie van een captain staan tot de ladder een opstelling heeft", async () => {
