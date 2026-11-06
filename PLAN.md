@@ -52,6 +52,11 @@ gaat stabiliteit voor nieuwe features.
    de matchup van ZWBeauties toont vermogen bij de gekoppelde renners. Zie de
    ronde "Club Ladder: intervals.icu in de matchup".
 
+1b. **Club Ladder: uitslag op het event, met verwachting en verschil
+   (2026-11-06): lokaal gecommit, niet gepusht.** Geen migratie. Nalopen na een
+   deploy: op een gereden ladderevent staan score, de tien plekken, Verwacht en ±.
+   Zie de ronde "Club Ladder: uitslag op het event, naast de verwachting".
+
 0z. **Club Ladder: gewicht alleen bergop en in de sprint (2026-11-06): gepusht
    naar `main` (`f5509d69`).** Geen migratie. Nalopen na een deploy: op het
    racebriefje van ZWBeasts – Galaxy Avengers staat Pim bovenaan. Zie de ronde
@@ -11815,6 +11820,58 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Club Ladder: uitslag op het event, naast de verwachting
+
+**2026-11-06.** Lokaal gecommit op `claude/club-ladder-results-display-bca882`,
+niet gepusht; de hash komt erbij bij de push. Geen migratie.
+
+**Waarom.** De eigenaar zag dat de stand van de Club Ladder gesynct wordt, maar
+nergens de uitslag en plekken van de renners van een gereden wedstrijd. Daarbij
+de vraag om een kolom met het verschil tussen verwachting en resultaat.
+
+**Wat er veranderde.** De uitslag zat er al: de sync van de summary bewaart elke
+wedstrijd in `club_ladder_matches` (0298) en de matchup haalt de renners op in
+`club_ladder_match_riders`. Alleen hing een wedstrijd aan niets: er is geen
+fixture-ID in de uitslag. `event-result.ts` (puur) koppelt het event aan de
+wedstrijd met dezelfde twee teams, het dichtst bij de starttijd (hooguit zes
+uur). `event-result-load.ts` laadt hem, haalt ontbrekende renners op
+(`ensureMatchRiders`, 6 s) en rekent de verwachting. Op de eventpagina staat
+boven de matchup een blok Uitslag: score, gewonnen of verloren, de verwachte
+score, en per renner plek, Verwacht, ±, punten, tijd en W/kg; onze rijen
+gekleurd. Op een telefoon kaarten (`ResponsiveTable`). Het generieke blok
+"Uitslag — ZWB'ers" verschijnt bij een ladderevent met uitslag alleen nog als er
+een uitslag-URL of handmatige uitslag is.
+
+**De verwachting.** Zoals het racebriefje (`routeRatings`/`ladderRiders` in
+`briefing.ts`), maar over wie er echt reed, niet over de opstelling: een wissel
+na de opstelling zou de vergelijking anders scheef trekken.
+`loadLadderEventMatchup` kreeg daarvoor de opties `starters` (vervangt
+aanmeldingen en selectie, geen keuze per type) en `excludeResultId`. Die
+laatste haalt deze race uit de bewaarde ladderraces als vermogensbron, anders
+voorspelt de race zijn eigen uitslag. Het Zwift-ID komt uit de uitslag, en
+anders op naam uit `club_ladder_fixture_signups`. Wie geen vermogen heeft,
+houdt in de rekensom zijn echte plek; de anderen vullen de vrije plekken op
+sterkte. Zo staan Verwacht en Plek op dezelfde schaal van 1 tot 10. ± is
+verwacht min werkelijk, dus + is beter dan verwacht. Onder de twee renners met
+vermogen: geen verwachting. `matchupWeights` is uit `event-briefing.ts` naar
+`briefing.ts` verhuisd, zodat beide hem gebruiken. `/hulp` bijgewerkt.
+
+**Bewust niet.** De verwachting van vóór de race bewaren (snapshot bij de
+start): dat vraagt een migratie en een moment om hem weg te schrijven. Nu
+rekent de pagina hem achteraf uit. Het vermogen uit deze race telt niet mee,
+maar de 90 dagen van ZwiftRacing en intervals.icu lopen na de race door en
+kunnen de race bevatten, dus de verwachting kan iets schuiven ten opzichte van
+het briefje van vóór de race. Staat dat de eigenaar niet aan, dan is een
+snapshot de volgende stap.
+
+**Niet geverifieerd.** Niet in de browser en niet tegen productie: de
+Supabase-connector toonde in deze sessie alleen een ander project
+(community-nations-world-cup), dus het is niet nagekeken of de gereden ZWB-wedstrijden in
+`club_ladder_matches` staan en of hun renners een Zwift-ID hebben. Nieuwe
+unittests voor koppelen, namen, verwachte plekken en score. `tsc` en de
+sync-test struikelen in deze worktree over ontbrekende pakketten
+(`@anthropic-ai/sdk`, `modern-screenshot`), los van deze ronde.
 
 ### Gebouwd — Club Ladder: intervals.icu in de matchup
 

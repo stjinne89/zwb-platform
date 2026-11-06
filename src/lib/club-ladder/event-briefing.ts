@@ -34,12 +34,11 @@ import {
   type LadderRole,
   ladderWatch,
   LADDER_TEAM_SIZE,
+  matchupWeights,
   projectLadder,
 } from "./briefing";
 import { loadLadderEventMatchup } from "./event-matchup";
 import { ladderChallengerFromTitle, ladderOpponentFromTitle } from "./fixture-events";
-import type { DurationWeights } from "./routes";
-import { DURATIONS } from "./team-power";
 
 type Access = Pick<CurrentUserAccess, "has">;
 
@@ -92,11 +91,7 @@ export async function loadLadderBriefing(
   const matchup = matchupResult?.matchup ?? null;
   const opponent = matchup?.theirs.name ?? (teamName ? ladderOpponentFromTitle(event.title, teamName) : null) ?? "de tegenstander";
   const challenger = teamName ? ladderChallengerFromTitle(event.title, teamName) : null;
-  const weightRows = matchup?.durations.filter((row) => row.weight != null) ?? [];
-  const weights =
-    weightRows.length === DURATIONS.length
-      ? (Object.fromEntries(weightRows.map((row) => [row.duration, row.weight])) as DurationWeights)
-      : null;
+  const weights = matchupWeights(matchup);
 
   const riders = matchup ? ladderRiders(matchup, weights) : [];
   const projection = riders.length > 0 ? projectLadder(riders, challenger === true) : null;

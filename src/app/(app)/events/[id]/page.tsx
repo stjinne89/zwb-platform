@@ -35,6 +35,8 @@ import { RaceInfoCard, RaceLinkChips } from "./_components/race-info-card";
 import { ZrlTeamRank } from "./_components/zrl-team-rank";
 import { LadderMatchupView } from "./_components/ladder-matchup";
 import { loadLadderEventMatchup } from "@/lib/club-ladder/event-matchup";
+import { loadLadderEventResult } from "@/lib/club-ladder/event-result-load";
+import { LadderResultView } from "./_components/ladder-result";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FrrStagePanel } from "./_components/frr-stage-panel";
 import { SrcPanel } from "./_components/src-panel";
@@ -504,6 +506,12 @@ export default async function EventDetailPage({
   const ladderMatchup =
     event.type === "ladder" && event.team_id && user
       ? await loadLadderEventMatchup(createAdminClient(), event.id, event).catch(() => null)
+      : null;
+  // Na de race: de uitslag van de ladder naast de verwachting. Na de matchup,
+  // die de renners van de wedstrijd al ophaalt.
+  const ladderResult =
+    event.type === "ladder" && event.team_id && user
+      ? await loadLadderEventResult(createAdminClient(), event.id, event).catch(() => null)
       : null;
 
   // Een ZRL-raceweek is waar je je aanmeldt bij een paraplu (hoofdteam met
@@ -1605,6 +1613,8 @@ export default async function EventDetailPage({
         </section>
       )}
 
+      {ladderResult && <LadderResultView result={ladderResult} />}
+
       {ladderMatchup && (
         <LadderMatchupView matchup={ladderMatchup.matchup} byFocus={ladderMatchup.byFocus} routeLabel={ladderMatchup.routeLabel} />
       )}
@@ -1771,7 +1781,7 @@ export default async function EventDetailPage({
           </a>
         </section>
       ) : (
-        (event.results_url || results.length > 0 || canManage) && (
+        (event.results_url || results.length > 0 || (canManage && !ladderResult)) && (
         <section className="space-y-3 rounded-lg border bg-card p-4">
           <header className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

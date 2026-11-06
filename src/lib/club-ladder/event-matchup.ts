@@ -42,6 +42,12 @@ export async function loadLadderEventMatchup(
   admin: Admin,
   eventId: string,
   event: { team_id: string | null; title: string; zwift_route_id: number | string | null },
+  options: {
+    /** Wie er echt reed (de uitslag): vervangt aanmeldingen en selectie, zonder keuze per type. */
+    starters?: MatchupSignup[];
+    /** Deze wedstrijd telt niet mee als vermogensbron: de verwachting vóór de race. */
+    excludeResultId?: number;
+  } = {},
 ): Promise<LadderEventMatchup | null> {
   if (!event.team_id) return null;
   // Apart gelezen: zonder 0302 geeft dit een fout en blijft de pagina heel.
@@ -60,11 +66,13 @@ export async function loadLadderEventMatchup(
     admin.from("club_ladder_fixture_signups").select("zwift_id, team, name, position").eq("fixture_id", fixtureId),
     loadLadderSelections(admin, event.team_id, [eventId]),
   ]);
-  const signups: MatchupSignup[] = ((signupRows ?? []) as Array<{ zwift_id: number | string; team: string; name: string; position: number | null }>)
-    .map((row) => ({ zwiftId: positiveId(row.zwift_id) ?? 0, team: row.team, name: row.name, position: row.position }))
-    .filter((row) => row.zwiftId > 0);
+  const signups: MatchupSignup[] =
+    options.starters ??
+    ((signupRows ?? []) as Array<{ zwift_id: number | string; team: string; name: string; position: number | null }>)
+      .map((row) => ({ zwiftId: positiveId(row.zwift_id) ?? 0, team: row.team, name: row.name, position: row.position }))
+      .filter((row) => row.zwiftId > 0);
   // Selectie van een captain: telt alleen zolang wij op de ladder niemand aangemeld hebben.
-  const ourSelection: MatchupSignup[] = signups.some((row) => sameTeam(row.team, ourName))
+  const ourSelection: MatchupSignup[] = options.starters || signups.some((row) => sameTeam(row.team, ourName))
     ? []
     : (selections.get(eventId)?.riders ?? []).flatMap((rider) =>
         rider.zwiftId ? [{ zwiftId: rider.zwiftId, team: ourName, name: rider.name, position: null }] : [],
@@ -75,7 +83,8 @@ export async function loadLadderEventMatchup(
   await ensureMatchRiders(admin, all, PAGE_BUDGET_MS);
   if (all.some((row) => !row.riders_fetched_at)) after(() => ensureMatchRiders(admin, all, AFTER_BUDGET_MS));
 
-  const matches = await loadStoredMatches(admin, all);
+  const exclude = options.excludeResultId;
+  const matches = (await loadStoredMatches(admin, all)).filter((match) => match.resultId !== exclude);
   const theirSquad = signups.some((row) => sameTeam(row.team, opponent)) ? [] : opponentRiderIds(matches, opponent);
   const theirRecent = recentTeamRiders(matches, opponent);
   // Ook wie de laatste wedstrijden reed: dat is de vergelijking zonder aanmeldingen.
@@ -93,7 +102,7 @@ export async function loadLadderEventMatchup(
     ...new Set([...signups.filter((row) => sameTeam(row.team, ourName)).map((row) => row.zwiftId), ...ourSelection.map((row) => row.zwiftId)]),
   ];
   const [riderMatches, metrics, riderWeights, ourIntervals] = await Promise.all([
-    riderRaces(admin, zwiftIds),
+    riderRaces(admin, zwiftIds).then((rows) => rows.filter((match) => match.resultId !== exclude)),
     loadRiderMetrics(zwiftIds),
     loadRiderWeights(admin, [...zwiftIds, ...raceIds]),
     intervalsByZwiftId(admin, ourZwiftIds),
@@ -127,6 +136,7 @@ export async function loadLadderEventMatchup(
     ourIntervals,
   };
   const matchup = buildLadderMatchup(base);
+  if (options.starters) return { matchup, byFocus: null, routeLabel: option ? ROUTE_CLASS_LABELS[option.routeClass] : null };
   const variants = SQUAD_FOCUSES.map((focus) => [focus, buildLadderMatchup({ ...base, theirFocus: focus })] as const);
   // Alleen als er echt te kiezen valt: voor elk type een ploeg en een vergelijking.
   const choosable = variants.every(([focus, row]) => row.theirs.focus === focus && row.basis !== "races");

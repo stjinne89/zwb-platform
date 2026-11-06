@@ -115,6 +115,12 @@ export function routeRatings(riders: Array<{ zwiftId: number; wkg: PowerWkg | nu
   return out;
 }
 
+/** Weging per duur van het parcours uit de matchup; null als een duur ontbreekt (geen route). */
+export function matchupWeights(matchup: LadderMatchup | null): DurationWeights | null {
+  const rows = matchup?.durations.filter((row) => row.weight != null) ?? [];
+  return rows.length === DURATIONS.length ? (Object.fromEntries(rows.map((row) => [row.duration, row.weight])) as DurationWeights) : null;
+}
+
 /** Beide kanten uit de matchup, met een sterkte op dit parcours. */
 export function ladderRiders(matchup: LadderMatchup, weights: DurationWeights | null): LadderBriefingRider[] {
   const rows = [

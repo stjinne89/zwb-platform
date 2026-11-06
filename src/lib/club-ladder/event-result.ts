@@ -1,0 +1,164 @@
+// Uitslag van een gereden ladderrace op de eventpagina, naast de verwachting
+// (2026-11-06, vraag eigenaar). Puur: geen I/O; event-result-load.ts laadt.
+//
+// De verwachting rekent zoals het racebriefje (briefing.ts): sterkte op dit
+// parcours, beste eerst. Alleen over wie er echt reed, zodat een wissel na de
+// opstelling de vergelijking niet scheef trekt. Een renner zonder vermogen
+// houdt zijn echte plek; de anderen vullen de overige plekken op sterkte.
+
+import { normalizeTeamName } from "@/lib/ladder";
+import { cleanRiderName } from "@/lib/race-briefing/field";
+import { LADDER_POINTS } from "./briefing";
+import type { MatchupSignup } from "./matchup";
+import { sameTeam, type MatchRider, type StoredMatch } from "./team-power";
+
+/** Een uitslag ligt hooguit zoveel uur van de starttijd van het event. */
+const MAX_OFFSET_H = 6;
+
+export type LadderMatchCandidate = {
+  result_id: number;
+  raced_on: string;
+  raced_at: string | null;
+  challenger: string;
+  opponent: string;
+};
+
+/** De gereden wedstrijd bij dit event: dezelfde twee teams, het dichtst bij de starttijd. */
+export function pickEventMatch<T extends LadderMatchCandidate>(
+  rows: T[],
+  teams: { ours: string; opponent: string },
+  startAt: string,
+): T | null {
+  const start = Date.parse(startAt);
+  const pair = (row: T) =>
+    (sameTeam(row.challenger, teams.ours) && sameTeam(row.opponent, teams.opponent)) ||
+    (sameTeam(row.challenger, teams.opponent) && sameTeam(row.opponent, teams.ours));
+  let best: { row: T; offset: number } | null = null;
+  for (const row of rows) {
+    if (!pair(row)) continue;
+    const at = Date.parse(`${row.raced_on}T${(row.raced_at ?? "00:00").slice(0, 5)}:00Z`);
+    const offset = Math.abs(at - start);
+    if (!Number.isFinite(offset) || offset > MAX_OFFSET_H * 3600_000) continue;
+    if (!best || offset < best.offset) best = { row, offset };
+  }
+  return best?.row ?? null;
+}
+
+const nameKey = (name: string) => cleanRiderName(name).toLocaleLowerCase("nl");
+
+/**
+ * Wie er reed, als aanmelding voor de matchup: met Zwift-ID uit de uitslag, en
+ * anders op naam uit de aanmeldingen van de ladder. Per finishplek, want zonder
+ * Zwift-ID is dat de enige vaste sleutel.
+ */
+export function startersFromResult(riders: MatchRider[], signups: MatchupSignup[]): Map<number, MatchupSignup> {
+  const byName = new Map<string, MatchupSignup>();
+  for (const signup of signups) byName.set(`${normalizeTeamName(signup.team)}|${nameKey(signup.name)}`, signup);
+  const out = new Map<number, MatchupSignup>();
+  const used = new Set<number>();
+  for (const rider of riders) {
+    const zwiftId = rider.zwiftId ?? byName.get(`${normalizeTeamName(rider.team)}|${nameKey(rider.name)}`)?.zwiftId ?? null;
+    if (!zwiftId || used.has(zwiftId)) continue;
+    used.add(zwiftId);
+    out.set(rider.position, { zwiftId, team: rider.team, name: rider.name, position: null });
+  }
+  return out;
+}
+
+/**
+ * Verwachte plek per finishplek. Wie geen sterkte heeft, blijft op zijn echte
+ * plek staan; de rest vult de vrije plekken, sterkste eerst. Null met minder
+ * dan twee renners met een sterkte: dan valt er niets te verwachten.
+ */
+export function expectedPlaces(rows: Array<{ position: number; rating: number | null }>): Map<number, number> | null {
+  const rated = rows.filter((row) => row.rating != null);
+  if (rated.length < 2) return null;
+  const fixed = new Set(rows.filter((row) => row.rating == null).map((row) => row.position));
+  const free = rows
+    .map((row) => row.position)
+    .filter((position) => !fixed.has(position))
+    .sort((a, b) => a - b);
+  const order = [...rated].sort((a, b) => b.rating! - a.rating! || a.position - b.position);
+  const out = new Map<number, number>();
+  order.forEach((row, index) => out.set(row.position, free[index]));
+  for (const position of fixed) out.set(position, position);
+  return out;
+}
+
+export type LadderResultRow = {
+  position: number;
+  name: string;
+  team: string;
+  own: boolean;
+  points: number;
+  timeS: number | null;
+  avgWkg: number | null;
+  /** Verwachte plek; null zonder vermogen of zonder verwachting. */
+  expected: number | null;
+  /** Verwacht min werkelijk: + is beter dan verwacht. */
+  delta: number | null;
+};
+
+export type LadderEventResult = {
+  resultId: number;
+  ourName: string;
+  opponent: string;
+  ourScore: number;
+  theirScore: number;
+  won: boolean;
+  /** Verwachte score met dezelfde renners; null zonder verwachting. */
+  expectedScore: { ours: number; theirs: number } | null;
+  rows: LadderResultRow[];
+};
+
+/** De uitslag met per renner de verwachte plek en het verschil. */
+export function ladderEventResult(
+  match: StoredMatch,
+  ourName: string,
+  /** Sterkte op dit parcours per finishplek (briefing.ts `routeRatings`). */
+  ratings: Map<number, number | null>,
+): LadderEventResult {
+  const weChallenge = sameTeam(match.challenger, ourName);
+  const ourScore = weChallenge ? match.challengerScore : match.opponentScore;
+  const theirScore = weChallenge ? match.opponentScore : match.challengerScore;
+  const riders = [...match.riders].sort((a, b) => a.position - b.position);
+  const expected = expectedPlaces(riders.map((rider) => ({ position: rider.position, rating: ratings.get(rider.position) ?? null })));
+  const rated = (position: number) => ratings.get(position) != null;
+
+  const rows = riders.map((rider): LadderResultRow => {
+    const place = expected && rated(rider.position) ? (expected.get(rider.position) ?? null) : null;
+    return {
+      position: rider.position,
+      name: rider.name,
+      team: rider.team,
+      own: sameTeam(rider.team, ourName),
+      points: rider.points,
+      timeS: rider.timeS,
+      avgWkg: rider.avgWkg,
+      expected: place,
+      delta: place == null ? null : place - rider.position,
+    };
+  });
+
+  let expectedScore: LadderEventResult["expectedScore"] = null;
+  if (expected) {
+    expectedScore = { ours: 0, theirs: 0 };
+    for (const row of rows) {
+      const points = LADDER_POINTS[(expected.get(row.position) ?? row.position) - 1] ?? 0;
+      if (row.own) expectedScore.ours += points;
+      else expectedScore.theirs += points;
+    }
+  }
+
+  return {
+    resultId: match.resultId,
+    ourName,
+    opponent: weChallenge ? match.opponent : match.challenger,
+    ourScore,
+    theirScore,
+    // Bij gelijke stand verliest de uitdager (race book).
+    won: ourScore > theirScore || (ourScore === theirScore && !weChallenge),
+    expectedScore,
+    rows,
+  };
+}

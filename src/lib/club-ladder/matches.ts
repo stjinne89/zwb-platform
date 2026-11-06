@@ -8,7 +8,7 @@ import { matchZwiftResults, type MatchRider, type PowerWkg, type StoredMatch } f
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-type MatchRow = {
+export type MatchRow = {
   result_id: number;
   raced_on: string;
   route_name: string | null;
@@ -35,7 +35,7 @@ type RiderRow = {
   power_wkg: PowerWkg | null;
 };
 
-const MATCH_COLUMNS =
+export const MATCH_COLUMNS =
   "result_id, raced_on, route_name, route_slug, challenger, challenger_score, opponent, opponent_score, zwift_event_id, riders_fetched_at";
 
 const num = (value: number | string | null) => (value == null || value === "" ? null : Number(value));
