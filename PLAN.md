@@ -47,8 +47,8 @@ gaat stabiliteit voor nieuwe features.
    duur, percentages per route, Zonder vermogen). Zie de ronde "Club Ladder:
    advies renner tegen renner, intervals.icu eerst".
 
-0w. **Club Ladder: sync meldt een verlopen ladder-sessie (2026-11-06): lokaal
-   gecommit, niet gepusht.** Geen migratie. Eerst doen (eigenaar): `LADDER_COOKIE`
+0w. **Club Ladder: sync meldt een verlopen ladder-sessie (2026-11-06): gepusht
+   naar `main` (`c2fe1085`).** Geen migratie. Eerst doen (eigenaar): `LADDER_COOKIE`
    vernieuwen in Netlify en `.env.local`, dan syncen en op wedstrijd 17729 Kevin
    Plasmans en O Macneill in de matchup zien. Zie de ronde "Club Ladder: sync
    meldt een verlopen ladder-sessie".
@@ -11797,7 +11797,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: sync meldt een verlopen ladder-sessie
 
-**2026-11-06.** Lokaal gecommit, niet gepusht. Geen migratie.
+**2026-11-06.** Commit `c2fe1085`, op 2026-11-06 op verzoek van de eigenaar
+naar `main` gepusht. Geen migratie.
 
 **Waarom.** Na de ronde hieronder zag de eigenaar op ZWBeasts – Galaxy
 Avengers (wedstrijd 17729) niet de echte ploegen, ook niet na "Teams en
