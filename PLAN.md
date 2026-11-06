@@ -61,8 +61,8 @@ gaat stabiliteit voor nieuwe features.
    `club_ladder_event_expectations`. Zie de ronde "Club Ladder: uitslag op het
    event, naast de verwachting".
 
-1c. **Club Ladder: uitslagen onder Teamresultaten (2026-11-06): lokaal
-   gecommit, niet gepusht.** Geen migratie. Nalopen na een deploy: op de
+1c. **Club Ladder: uitslagen onder Teamresultaten (2026-11-06): gepusht naar
+   `main` (`f09ddad6`).** Geen migratie. Nalopen na een deploy: op de
    teampagina van ZWBeasts staat bovenaan 32–20 tegen Galaxy Avengers, en een
    tik opent het event bij Uitslag. Zie de ronde "Club Ladder: uitslagen onder
    Teamresultaten".
@@ -11833,8 +11833,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: uitslagen onder Teamresultaten
 
-**2026-11-06.** Lokaal gecommit op `claude/club-ladder-results-display-bca882`,
-niet gepusht. Geen migratie.
+**2026-11-06.** Commit `f09ddad6`, op 2026-11-06 op verzoek van de eigenaar
+naar `main` gepusht. Geen migratie.
 
 **Waarom.** De eigenaar wilde op de teampagina van een ladderteam
 (`/teams/club-ladder/[teamId]`) onder Teamresultaten ook de uitslag van de
