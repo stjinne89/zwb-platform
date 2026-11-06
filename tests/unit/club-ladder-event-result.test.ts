@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { expectationRiders, expectedPlaces, ladderEventResult, pickEventMatch, starterRatings, startersFromResult } from "@/lib/club-ladder/event-result";
+import {
+  expectationRiders,
+  expectedPlaces,
+  ladderEventResult,
+  ladderTeamResults,
+  pickEventMatch,
+  starterRatings,
+  startersFromResult,
+} from "@/lib/club-ladder/event-result";
 import type { LadderMatchup, MatchupRider, MatchupSide } from "@/lib/club-ladder/matchup";
 import type { MatchRider, PowerWkg, StoredMatch } from "@/lib/club-ladder/team-power";
 
@@ -169,5 +177,43 @@ describe("starterRatings", () => {
 
   it("geeft null zonder vermogen", () => {
     expect(starterRatings(starters, new Map(), new Map([[11, wkg(3)]]), null).get(2)).toBeNull();
+  });
+});
+
+describe("ladderTeamResults", () => {
+  const row = (result_id: number, raced_on: string, challenger: string, challenger_score: number, opponent: string, opponent_score: number) => ({
+    result_id,
+    raced_on,
+    raced_at: "18:30:00",
+    challenger,
+    challenger_score,
+    opponent,
+    opponent_score,
+  });
+
+  it("nieuwste eerst, met onze score voorop en het event erbij", () => {
+    const results = ladderTeamResults(
+      [
+        row(1, "2026-10-01", "Rivals", 30, "ZWBeasts", 25),
+        row(2, "2026-11-06", "ZWBeasts", 32, "Galaxy Avengers", 20),
+        row(2, "2026-11-06", "ZWBeasts", 32, "Galaxy Avengers", 20),
+        row(3, "2026-11-05", "Others", 28, "Strangers", 27),
+      ],
+      ["ZWBeasts"],
+      [
+        { id: "ev-2", start_at: "2026-11-06T18:30:00.000Z", opponent: "galaxy avengers" },
+        { id: "ev-x", start_at: "2026-10-08T18:30:00.000Z", opponent: "Rivals" },
+      ],
+    );
+    expect(results.map((r) => [r.resultId, r.opponent, r.ourScore, r.theirScore, r.won, r.eventId])).toEqual([
+      [2, "Galaxy Avengers", 32, 20, true, "ev-2"],
+      [1, "Rivals", 25, 30, false, null],
+    ]);
+  });
+
+  it("bij gelijke stand verliest de uitdager", () => {
+    const [asChallenger] = ladderTeamResults([row(1, "2026-11-01", "ZWBeasts", 27, "Rivals", 27)], ["ZWBeasts"], []);
+    const [asOpponent] = ladderTeamResults([row(1, "2026-11-01", "Rivals", 27, "ZWBeasts", 27)], ["ZWBeasts"], []);
+    expect([asChallenger.won, asOpponent.won]).toEqual([false, true]);
   });
 });

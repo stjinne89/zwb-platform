@@ -18,6 +18,8 @@ import { loadLadderSelections } from "@/lib/club-ladder/selection";
 import { ladderRouteOptions, ROUTE_CLASS_LABELS, worldLabel } from "@/lib/club-ladder/routes";
 import { CHALLENGE_RANGE, challengeableTeams } from "@/lib/club-ladder/rules";
 import { storeLadderResults } from "@/lib/club-ladder/store";
+import { ladderTeamResults, type TeamMatchResult } from "@/lib/club-ladder/event-result";
+import { ladderOpponentFromTitle } from "@/lib/club-ladder/fixture-events";
 import {
   fetchClubLadderSummary,
   findStandingWindow,
@@ -157,7 +159,7 @@ export default async function ClubLadderTeamPage({
   const userId = access.user?.id ?? null;
 
   // Wat de losse teampagina had: chatkanalen, beschikbaarheid per wedstrijd en teamresultaten.
-  const [{ data: waGroups }, { data: availabilityRows }, { data: teamResults }, { data: captainRows }, selections] = await Promise.all([
+  const [{ data: waGroups }, { data: availabilityRows }, { data: teamResults }, { data: captainRows }, selections, storedMatches, { data: pastEvents }] = await Promise.all([
     supabase
       .from("whatsapp_groups")
       .select("id, name, invite_url, description, kind")
@@ -181,7 +183,40 @@ export default async function ClubLadderTeamPage({
       ? admin.from("team_members").select("role").eq("team_id", team.id).eq("profile_id", userId).in("role", ["captain", "co-captain"])
       : Promise.resolve({ data: [] }),
     loadLadderSelections(admin, team.id, matchupEventIds),
+    loadTeamMatches(admin, aliases, LADDER_RESULTS_SHOWN),
+    supabase
+      .from("events")
+      .select("id, title, start_at, club_ladder_opponent")
+      .eq("team_id", team.id)
+      .eq("type", "ladder")
+      .lt("start_at", new Date().toISOString()),
   ]);
+  // Gereden wedstrijden: de bewaarde en die van de summary van nu (die bewaart de pagina pas na het antwoord).
+  const matchResults = ladderTeamResults(
+    [
+      ...storedMatches,
+      ...ladderResults.map((result) => ({
+        result_id: result.resultId,
+        raced_on: result.date,
+        raced_at: result.time,
+        challenger: result.challenger,
+        challenger_score: result.challengerScore,
+        opponent: result.opponent,
+        opponent_score: result.opponentScore,
+      })),
+    ],
+    aliases,
+    ((pastEvents ?? []) as Array<{ id: string; title: string; start_at: string; club_ladder_opponent: string | null }>).map((event) => ({
+      id: event.id,
+      start_at: event.start_at,
+      opponent: event.club_ladder_opponent ?? ladderOpponentFromTitle(event.title, team.name),
+    })),
+  ).slice(0, LADDER_RESULTS_SHOWN);
+  // Nieuwste bovenaan; de ladderpositie (zonder datum) is de stand van nu en staat erboven.
+  const resultItems = [
+    ...matchResults.map((result) => ({ kind: "match" as const, key: `m${result.resultId}`, at: result.racedOn, result })),
+    ...((teamResults ?? []) as TeamResult[]).map((row) => ({ kind: "team" as const, key: row.id, at: row.round_at ?? "9999", row })),
+  ].sort((a, b) => b.at.localeCompare(a.at));
   const isCaptain = (captainRows ?? []).length > 0;
   const canSelect = access.has("teams.manage_roster") || isCaptain;
   const canEditChat = access.has("teams.manage_roster") || isCaptain;
@@ -521,26 +556,30 @@ export default async function ClubLadderTeamPage({
 
       <section className="rounded-lg border bg-card p-4">
         <h2 className="font-semibold">Teamresultaten</h2>
-        {(teamResults ?? []).length === 0 ? (
+        {resultItems.length === 0 ? (
           <EmptyState className="mt-3">Nog geen resultaten.</EmptyState>
         ) : (
           <ul className="mt-2 divide-y">
-            {(teamResults as TeamResult[]).map((r) => (
-              <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                <div>
-                  <p className="font-medium">
-                    {r.competition}
-                    {r.round_label ? ` - ${r.round_label}` : ""}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {r.round_at ? new Date(r.round_at).toLocaleDateString("nl-NL", { dateStyle: "medium" }) : "-"}
-                    {r.position ? ` · #${r.position}${r.total_teams ? `/${r.total_teams}` : ""}` : ""}
-                    {r.points !== null && r.points !== undefined ? ` · ${r.points} pt` : ""}
-                  </p>
-                </div>
-                {canEditResults && <DeleteResultButton teamId={team.id} resultId={r.id} />}
-              </li>
-            ))}
+            {resultItems.map((item) => {
+              if (item.kind === "match") return <MatchResultRow key={item.key} result={item.result} />;
+              const r = item.row;
+              return (
+                <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <div>
+                    <p className="font-medium">
+                      {r.competition}
+                      {r.round_label ? ` - ${r.round_label}` : ""}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {r.round_at ? new Date(r.round_at).toLocaleDateString("nl-NL", { dateStyle: "medium" }) : "-"}
+                      {r.position ? ` · #${r.position}${r.total_teams ? `/${r.total_teams}` : ""}` : ""}
+                      {r.points !== null && r.points !== undefined ? ` · ${r.points} pt` : ""}
+                    </p>
+                  </div>
+                  {canEditResults && <DeleteResultButton teamId={team.id} resultId={r.id} />}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
@@ -555,6 +594,43 @@ export default async function ClubLadderTeamPage({
         </section>
       )}
     </div>
+  );
+}
+
+/** Zoveel gereden wedstrijden onder Teamresultaten. */
+const LADDER_RESULTS_SHOWN = 20;
+
+const racedOnFormat = new Intl.DateTimeFormat("nl-NL", { dateStyle: "medium", timeZone: "UTC" });
+
+/** Een gereden wedstrijd: alleen de uitslag, en met een event klikbaar naar dat event. */
+function MatchResultRow({ result }: { result: TeamMatchResult }) {
+  const body = (
+    <>
+      <div className="min-w-0">
+        <p className="truncate font-medium">{result.opponent}</p>
+        <p className="text-xs text-muted-foreground">{racedOnFormat.format(new Date(`${result.racedOn}T12:00:00Z`))}</p>
+      </div>
+      <div className="flex shrink-0 items-baseline gap-2">
+        <span className="text-xs text-muted-foreground">{result.won ? "gewonnen" : "verloren"}</span>
+        <span className={cn("font-semibold tabular-nums", result.won && "text-primary")}>
+          {result.ourScore}–{result.theirScore}
+        </span>
+      </div>
+    </>
+  );
+  return (
+    <li>
+      {result.eventId ? (
+        <Link
+          href={`/events/${result.eventId}#uitslag`}
+          className="-mx-2 flex items-center justify-between gap-3 rounded-md px-2 py-2 text-sm hover:bg-muted/50"
+        >
+          {body}
+        </Link>
+      ) : (
+        <div className="flex items-center justify-between gap-3 py-2 text-sm">{body}</div>
+      )}
+    </li>
   );
 }
 

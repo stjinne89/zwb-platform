@@ -88,6 +88,61 @@ export function starterRatings(
   return new Map(rows.map((row) => [row.position, ratings.get(row.zwiftId) ?? null]));
 }
 
+export type LadderScoreRow = LadderMatchCandidate & { challenger_score: number; opponent_score: number };
+
+export type TeamMatchResult = {
+  resultId: number;
+  /** YYYY-MM-DD (UTC). */
+  racedOn: string;
+  opponent: string;
+  ourScore: number;
+  theirScore: number;
+  won: boolean;
+  /** Het ladder-event van deze wedstrijd, of null (wedstrijden van vóór 0300 hebben er geen). */
+  eventId: string | null;
+};
+
+/**
+ * De gereden wedstrijden van een team, nieuwste eerst, met het event erbij:
+ * hetzelfde team, dezelfde tegenstander, het dichtst bij de starttijd.
+ */
+export function ladderTeamResults(
+  rows: LadderScoreRow[],
+  aliases: string[],
+  events: Array<{ id: string; start_at: string; opponent: string | null }>,
+): TeamMatchResult[] {
+  const ours = (name: string) => aliases.some((alias) => sameTeam(alias, name));
+  const unique = [...new Map(rows.map((row) => [row.result_id, row])).values()].filter((row) => ours(row.challenger) || ours(row.opponent));
+  const eventOf = new Map<number, string>();
+  for (const event of events) {
+    if (!event.opponent) continue;
+    for (const alias of aliases) {
+      const row = pickEventMatch(unique, { ours: alias, opponent: event.opponent }, event.start_at);
+      if (row && !eventOf.has(row.result_id)) {
+        eventOf.set(row.result_id, event.id);
+        break;
+      }
+    }
+  }
+  return unique
+    .sort((a, b) => b.raced_on.localeCompare(a.raced_on) || (b.raced_at ?? "").localeCompare(a.raced_at ?? "") || b.result_id - a.result_id)
+    .map((row) => {
+      const weChallenge = ours(row.challenger);
+      const ourScore = weChallenge ? row.challenger_score : row.opponent_score;
+      const theirScore = weChallenge ? row.opponent_score : row.challenger_score;
+      return {
+        resultId: row.result_id,
+        racedOn: row.raced_on,
+        opponent: weChallenge ? row.opponent : row.challenger,
+        ourScore,
+        theirScore,
+        // Bij gelijke stand verliest de uitdager (race book).
+        won: ourScore > theirScore || (ourScore === theirScore && !weChallenge),
+        eventId: eventOf.get(row.result_id) ?? null,
+      };
+    });
+}
+
 const nameKey = (name: string) => cleanRiderName(name).toLocaleLowerCase("nl");
 
 /**

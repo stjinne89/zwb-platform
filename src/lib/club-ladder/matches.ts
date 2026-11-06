@@ -11,6 +11,8 @@ type Admin = ReturnType<typeof createAdminClient>;
 export type MatchRow = {
   result_id: number;
   raced_on: string;
+  /** HH:MM:SS (UTC). */
+  raced_at: string | null;
   route_name: string | null;
   route_slug: string | null;
   challenger: string;
@@ -36,7 +38,7 @@ type RiderRow = {
 };
 
 export const MATCH_COLUMNS =
-  "result_id, raced_on, route_name, route_slug, challenger, challenger_score, opponent, opponent_score, zwift_event_id, riders_fetched_at";
+  "result_id, raced_on, raced_at, route_name, route_slug, challenger, challenger_score, opponent, opponent_score, zwift_event_id, riders_fetched_at";
 
 const num = (value: number | string | null) => (value == null || value === "" ? null : Number(value));
 

@@ -47,10 +47,10 @@ export async function loadLadderEventResult(
 
   const { data: candidates } = await admin
     .from("club_ladder_matches")
-    .select(`${MATCH_COLUMNS}, raced_at`)
+    .select(MATCH_COLUMNS)
     .gte("raced_on", day(event.start_at, -1))
     .lte("raced_on", day(event.start_at, 1));
-  const row = pickEventMatch((candidates ?? []) as unknown as Array<MatchRow & { raced_at: string | null }>, { ours: ourName, opponent }, event.start_at);
+  const row = pickEventMatch((candidates ?? []) as unknown as MatchRow[], { ours: ourName, opponent }, event.start_at);
   if (!row) return null;
 
   if (!row.riders_fetched_at) await ensureMatchRiders(admin, [row], PAGE_BUDGET_MS);

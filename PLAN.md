@@ -61,6 +61,12 @@ gaat stabiliteit voor nieuwe features.
    `club_ladder_event_expectations`. Zie de ronde "Club Ladder: uitslag op het
    event, naast de verwachting".
 
+1c. **Club Ladder: uitslagen onder Teamresultaten (2026-11-06): lokaal
+   gecommit, niet gepusht.** Geen migratie. Nalopen na een deploy: op de
+   teampagina van ZWBeasts staat bovenaan 32–20 tegen Galaxy Avengers, en een
+   tik opent het event bij Uitslag. Zie de ronde "Club Ladder: uitslagen onder
+   Teamresultaten".
+
 0z. **Club Ladder: gewicht alleen bergop en in de sprint (2026-11-06): gepusht
    naar `main` (`f5509d69`).** Geen migratie. Nalopen na een deploy: op het
    racebriefje van ZWBeasts – Galaxy Avengers staat Pim bovenaan. Zie de ronde
@@ -11824,6 +11830,43 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Club Ladder: uitslagen onder Teamresultaten
+
+**2026-11-06.** Lokaal gecommit op `claude/club-ladder-results-display-bca882`,
+niet gepusht. Geen migratie.
+
+**Waarom.** De eigenaar wilde op de teampagina van een ladderteam
+(`/teams/club-ladder/[teamId]`) onder Teamresultaten ook de uitslag van de
+wedstrijden zien, nieuwste bovenaan, met alleen de uitslag, en een klik naar de
+eventpagina. Daar stonden alleen rijen uit `team_results`: de gesyncte
+ladderpositie en wat captains met de hand toevoegden.
+
+**Wat er veranderde.** `ladderTeamResults` (`event-result.ts`, puur) maakt van
+de bewaarde wedstrijden (`club_ladder_matches`, via `loadTeamMatches` op de
+namen van het team) en die van de summary van nu één lijst: tegenstander,
+datum, onze score voorop, gewonnen of verloren (gelijk: de uitdager verliest).
+Per gereden ladder-event zoekt `pickEventMatch` de wedstrijd erbij, dezelfde
+koppeling als de uitslag op het event. De pagina zet die wedstrijden en de
+`team_results`-rijen samen op datum, nieuwste bovenaan; de ladderpositie heeft
+geen datum en blijft als stand van nu bovenaan. Een wedstrijd met een event is
+een link naar `/events/[id]#uitslag`. Hooguit 20 wedstrijden
+(`LADDER_RESULTS_SHOWN`), zo'n vijf maanden. `MATCH_COLUMNS` leest nu ook
+`raced_at`, want de koppeling op tijd viel zonder terug op middernacht en dan
+buiten de zes uur. `/hulp` bijgewerkt.
+
+**Bewust niet.** Een link voor wedstrijden zonder event: de sync maakt pas
+sinds 6 november 2026 (0300, eerste ladder-event) events aan. Op productie
+(2026-11-06) hadden ZWBandits 5, ZWBeasts 9 en ZWBullets 8 bewaarde
+wedstrijden, terug tot december 2025, en alleen ZWBeasts – Galaxy Avengers van
+6 november heeft een event. Die oudere staan er zonder link. De openbare
+uitslagpagina van de ladder als link is niet gebouwd: de vraag was de
+eventpagina, en de eigenaar kiest (afspraak "overleg bij onhaalbare feature").
+Handmatige `team_results` die een ladderwedstrijd dubbelen, worden niet
+weggefilterd: er is geen sleutel om ze te koppelen.
+
+**Niet geverifieerd.** Niet in de browser. Unittests voor volgorde, score,
+gelijke stand en de koppeling aan het event.
 
 ### Gebouwd — Club Ladder: uitslag op het event, naast de verwachting
 
