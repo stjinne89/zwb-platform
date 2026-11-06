@@ -48,7 +48,7 @@ gaat stabiliteit voor nieuwe features.
    advies renner tegen renner, intervals.icu eerst".
 
 0x. **Club Ladder: sorteren in de matchup en score bij de verwachte uitslag
-   (2026-11-06): lokaal gecommit, niet gepusht.** Geen migratie. Nalopen na een
+   (2026-11-06): gepusht naar `main` (`4b16fcdb`).** Geen migratie. Nalopen na een
    deploy: op een ladderevent de kolommen van de matchup sorteren, en op het
    racebriefje de score naast "Verwachte uitslag". Zie de ronde "Club Ladder:
    sorteren in de matchup, score bij de verwachte uitslag".
@@ -11803,7 +11803,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: sorteren in de matchup, score bij de verwachte uitslag
 
-**2026-11-06.** Lokaal gecommit, niet gepusht. Geen migratie.
+**2026-11-06.** Commit `4b16fcdb`, op 2026-11-06 op verzoek van de eigenaar
+naar `main` gepusht. Geen migratie.
 
 **Waarom.** Vraag van de eigenaar: in de matchup per kolom kunnen sorteren, en
 op het racebriefje van een ladderrace de verwachte score naast de titel
@@ -11904,7 +11905,7 @@ niet en de sync bleef "verlopen" melden. Nieuw: `ladderCookie()` in
 `lib/ladder.ts` maakt van alleen de waarde, aanhalingstekens of een
 `Cookie:`-voorvoegsel een geldige header; de sync en het kerkhof lezen de env
 daarmee (`team-results/sync.ts`, `teams/_actions.ts`). Test
-`ladder-cookie.test.ts`. Lokaal gecommit, niet gepusht.
+`ladder-cookie.test.ts`. Commit `df7d3dec`, op 2026-11-06 naar `main` gepusht.
 Tegelijk faalde een Netlify-build op `next/font/google` in
 `zwbekers/kast-view.tsx` ("Can't resolve …/internal/font/google/font"). Die
 code en `package.json` zijn sinds eind oktober niet veranderd en latere builds
