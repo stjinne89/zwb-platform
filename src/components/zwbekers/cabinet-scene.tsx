@@ -34,6 +34,9 @@ const CABINET = {
   depth: 0.95,
   /** De houten zijkanten en tussenstijlen. */
   frame: 0.09,
+  /** Ruimte onder elke plank voor de bordjes van de plank erboven: de bekers
+      blijven eronder, en een bordje wordt nooit hoger dan dit. */
+  plaque: 0.36,
 } as const;
 
 /** De bekers per jaar, oudste jaar links; binnen een jaar op datum. */
@@ -182,7 +185,7 @@ export default function CabinetScene({ bekers, startId, sponsors = [], labels, o
     const years = byYear(current.current);
     const interiorHeight = CABINET.shelves * CABINET.gap;
     const totalHeight = CABINET.plinth + interiorHeight + CABINET.crown;
-    const anchors = new Map<string, { position: THREE.Vector3; radius: number }>();
+    const anchors = new Map<string, { position: THREE.Vector3; radius: number; room: number }>();
     const spinners: THREE.Group[] = [];
     const lights: THREE.Light[] = [];
     const centers: number[] = [];
@@ -275,9 +278,11 @@ export default function CabinetScene({ bekers, startId, sponsors = [], labels, o
         const shelf = CABINET.shelves - 1 - Math.floor(index / slots);
         const slot = index % slots;
         const trophy: BuiltTrophy = buildTrophy(beker.design, { lowQuality, serif: fonts.serif, envMap: shine });
+        // Onder de bordjes van de plank erboven blijven (eigenaar, 2026-11-06: de
+        // bekers vielen op desktop weg achter die bordjes).
         const fit = Math.min(
           1,
-          (CABINET.gap * 0.78) / trophy.height,
+          (CABINET.gap - CABINET.plaque - 0.06) / trophy.height,
           (CABINET.slot * 0.42) / Math.max(trophy.radius, 0.35),
         );
         const sx = -inner / 2 + CABINET.slot * (slot + 0.5);
@@ -289,6 +294,7 @@ export default function CabinetScene({ bekers, startId, sponsors = [], labels, o
         anchors.set(`kast:${beker.id}`, {
           position: new THREE.Vector3(cx + sx, sy - 0.045, front - 0.02),
           radius: CABINET.slot / 2,
+          room: CABINET.plaque,
         });
         places.push({ id: beker.id, cabinet: cabinetIndex, shelf, slot, slotX: cx + sx, shelfY: CABINET.plinth + shelf * CABINET.gap });
       });
@@ -522,15 +528,21 @@ export default function CabinetScene({ bekers, startId, sponsors = [], labels, o
       const map = labels.current;
       if (!map) return;
       const { width, height } = element.getBoundingClientRect();
-      for (const [name, { position, radius }] of anchors) {
+      for (const [name, { position, radius, room }] of anchors) {
         const label = map.get(name);
         if (!label) continue;
         projected.copy(position).project(camera);
         edge.set(position.x + radius, position.y, position.z).project(camera);
-        // Het bordje past in zijn vak: hooguit 90% van de breedte op het scherm.
+        // Het bordje past in zijn vak: hooguit 92% van de breedte op het scherm, en
+        // niet hoger dan de ruimte boven de bekers op de plank eronder.
         const slotPx = Math.abs(edge.x - projected.x) * width;
+        edge.set(position.x, position.y - room, position.z).project(camera);
+        const heightPx = (Math.abs(edge.y - projected.y) * height) / 2;
         const plaque = label.firstElementChild as HTMLElement | null;
-        const scale = plaque && plaque.offsetWidth > 0 ? Math.min(1, (slotPx * 0.92) / plaque.offsetWidth) : 1;
+        const scale =
+          plaque && plaque.offsetWidth > 0
+            ? Math.min(1, (slotPx * 0.92) / plaque.offsetWidth, heightPx / Math.max(1, plaque.offsetHeight))
+            : 1;
         label.style.transformOrigin = "0 0";
         label.style.transform = `translate(${((projected.x + 1) / 2) * width}px, ${((1 - projected.y) / 2) * height}px) scale(${scale.toFixed(3)})`;
         const off = Math.abs(projected.x);

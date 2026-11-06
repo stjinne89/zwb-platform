@@ -11795,6 +11795,42 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — ZWBekers: bekers blijven zichtbaar onder de bordjes
+
+**2026-11-06.** Commit op de branch `claude/bekers-visibility-kast-desktop-1645c6`,
+niet gepusht. Geen migratie.
+
+**Waarom.** Melding van de eigenaar met een screenshot: op desktop vielen de
+bekers in de kast weg. Het messing bordje van een beker hangt onder zijn plank,
+dus over de bovenkant van de bekers op de plank eronder. De bekers mochten
+78% van de plankhoogte vullen en een bordje schaalde alleen op de breedte van
+het vak; op desktop stond het daardoor op volle grootte (60 tot 78 px hoog) en
+bedekte het de kelk of de oren van de beker eronder.
+
+- **Ruimte voor de bordjes.** `CABINET.plaque` (0,36 eenheid) houdt onder elke
+  plank vrij; een beker wordt hooguit `gap - plaque - 0,06` hoog (was
+  `gap · 0,78`). De bekers zijn daardoor ongeveer een achtste kleiner.
+- **Bordje past in die ruimte.** `placeLabels` schaalt het bordje nu ook op de
+  hoogte: nooit hoger dan die 0,36 eenheid op het scherm, op elk formaat.
+- **Bordje breder en compacter** (`.plaque`: 12em in plaats van 10em, regelafstand
+  1,05, minder opvulling). Een lange titel als "1e ZWB Omnium 2026
+  AMETHYST-PLATINUM" past zo op twee regels in plaats van drie, zodat alle
+  bordjes even groot uitvallen en niet de langste het kleinst. 11em gaf weer
+  drie regels.
+
+Gemeten met de dertien bekers van het screenshot (tijdelijke testpagina, niet
+gecommit): op 1110 × 900 px alle bekers vrij, bordjes op 67% (titel ~11 px); op
+375 × 812 px bordjes op 81%.
+
+**Bewust niet.** De planken hoger maken: de kast wordt dan hoger en op een breed
+scherm valt alles kleiner uit, ook de bekers. De titel afkappen tot één regel:
+dan valt juist het onderscheidende deel (de divisie of klasse) weg.
+
+**Niet geverifieerd.** Alleen lokaal in de browser met voorbeelddata, niet op
+productie of een echte telefoon. ESLint schoon op `cabinet-scene.tsx`; de
+typecheck (met de `node_modules` van de hoofdmap) meldt alleen ontbrekende
+pakketten buiten ZWBekers.
+
 ### Gebouwd — Club Ladder: sync meldt een verlopen ladder-sessie
 
 **2026-11-06.** Commit `c2fe1085`, op 2026-11-06 op verzoek van de eigenaar

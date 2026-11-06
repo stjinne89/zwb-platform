@@ -165,13 +165,14 @@
 }
 
 /* Een messing bordje op de rand van de plank: titel en wie hem won. De scène
-   schaalt het tot de breedte van het vak. */
+   schaalt het tot de breedte van het vak en de ruimte boven de bekers eronder;
+   breed en compact, zodat een lange titel op twee regels past. */
 .plaque {
   display: grid;
   justify-items: center;
-  gap: 1px;
-  width: 10em;
-  padding: 4px 8px 5px;
+  gap: 0;
+  width: 12em;
+  padding: 3px 8px 4px;
   transform: translate(-50%, 0);
   border: 0;
   border-radius: 1px;
@@ -192,7 +193,7 @@
   font-family: var(--serif);
   font-size: 16px;
   font-weight: 500;
-  line-height: 1.1;
+  line-height: 1.05;
 }
 
 .plaque span {
