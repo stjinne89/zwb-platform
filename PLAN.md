@@ -47,6 +47,11 @@ gaat stabiliteit voor nieuwe features.
    duur, percentages per route, Zonder vermogen). Zie de ronde "Club Ladder:
    advies renner tegen renner, intervals.icu eerst".
 
+0z. **Club Ladder: gewicht alleen bergop en in de sprint (2026-11-06): lokaal
+   gecommit, niet gepusht.** Geen migratie. Nalopen na een deploy: op het
+   racebriefje van ZWBeasts – Galaxy Avengers staat Pim bovenaan. Zie de ronde
+   "Club Ladder: gewicht alleen bergop en in de sprint".
+
 0y. **Club Ladder: watt of W/kg in de matchup (2026-11-06): lokaal gecommit,
    niet gepusht.** Geen migratie. Wacht op een privacyzin (gewicht per renner
    af te leiden, ook van andere clubs). Zie de ronde "Club Ladder: watt of W/kg
@@ -11806,6 +11811,45 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: gewicht alleen bergop en in de sprint
+
+**2026-11-06.** Lokaal gecommit, niet gepusht. Geen migratie.
+
+**Waarom.** De eigenaar was het niet eens met de verwachte uitslag van
+ZWBeasts – Galaxy Avengers (The Muckle Yin): Pim Meulemeester, met ~1 W/kg meer
+op 1, 5 en 20 minuten, stond derde achter twee zware sprinters. Oorzaak: de
+omrekening naar 75 kg (`routeWkg`) gold ook op de vlakke stukken, waar 85 kg
+tegen 60 kg bij gelijke W/kg ~19% scheelt. Op dit parcours is 15 s, 20 min en
+60% van 1 min vlak. Maar in een groep met draft valt op het vlakke niemand weg:
+gewicht bepaalt daar de moeite, niet wie er lost. In de eindsprint tellen wel de
+absolute watts.
+
+Vier varianten doorgerekend met de W/kg van het briefje en aangenomen
+gewichten (Pim 60, Galaxy 85 kg): nu Adam 1,09 · Marnix 1,08 · Pim 1,06;
+zonder de vlakke delen Adam 1,10 · Marnix 1,07 · Pim 1,07 (de sprint weegt dan
+zwaarder); zonder gewicht Pim 1,20; **gewicht alleen bergop en in de sprint**
+Pim 1,12 · Adam 1,07 · Marnix 1,06 (met Pim 65, Galaxy 80 kg: Pim 1,16). Keuze
+eigenaar: de laatste, overal.
+
+**Wat er veranderde.** `routeWkg` (`rider-weight.ts`) rekent om bergop
+(helling > 0%) en voor 15 s ook op het vlakke; vlakke stukken van 1, 5 en 20 min
+blijven gewone W/kg. Omdat alles via `routeWkg` loopt, geldt het voor de
+verwachte uitslag op het racebriefje, de kolom Verschil en de parcoursregel in
+de matchup, het route-advies (renner tegen renner, onze vijf per parcours) en
+de keuze van de vijf van de tegenstander (Overall, Sprint). `referenceWkg`
+(de natuurkunde) is ongewijzigd. Tests aangepast: een zware ploeg bij gelijke
+W/kg is op Tempus Fugit nu ~+10% (was > 10%), op een volledig vlak parcours met
+gelijke duren ~+5% (was > 10%); nieuwe test dat vlak 1/20 min geen gewicht
+telt. `/hulp` bijgewerkt.
+
+**Bewust niet.** Een model met wegrijden op de klim en een sprint van wie
+overblijft: vraagt drempels die we niet kunnen ijken. Bijna-gelijke plekken als
+gelijk tonen: niet gevraagd.
+
+**Niet geverifieerd.** Echte gewichten van Pim en Galaxy Avengers (ZwiftRacing
+vraagt inloggen, de Supabase-connector wijst naar een ander project); het
+racebriefje in de browser. Wel: 139 ladder-tests, ESLint en typecheck schoon.
+
 ### Gebouwd — Club Ladder: watt of W/kg in de matchup
 
 **2026-11-06.** Lokaal gecommit, niet gepusht. Geen migratie.
@@ -12716,6 +12760,10 @@ je tegen de wind, en je frontaal oppervlak groeit veel minder hard dan je
 gewicht. Met de Zwift-ijking van de pacingplanner, in de groep, bij 4 W/kg:
 85 kg tegen 65 kg is op 0% ~19% sterker, op 4% ~4%, op 8% ~2%. Over een heel
 parcours: Tempus Fugit +18%, The Highline +8%, Cobbled Climbs +9%.
+*Bijgewerkt 2026-11-06:* op het vlakke telt gewicht nu alleen nog in de sprint
+(15 s); de vlakke stukken van 1, 5 en 20 minuten tellen gewone W/kg. Tempus
+Fugit voor een zware ploeg bij gelijke W/kg is daardoor ~+10% in plaats van
++18%. Zie "Club Ladder: gewicht alleen bergop en in de sprint".
 
 **Wat er veranderde.**
 - **Rekenkern** (`club-ladder/rider-weight.ts`, puur): `referenceWkg` rekent de

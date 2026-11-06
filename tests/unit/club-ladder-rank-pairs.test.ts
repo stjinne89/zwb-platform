@@ -60,10 +60,12 @@ describe("routeEdge", () => {
     expect(sprint.five.map((rider) => rider.key)).toEqual(expect.arrayContaining(["o0", "o1"]));
   });
 
-  it("geeft een zware ploeg met gelijke W/kg op het vlakke het voordeel", () => {
+  it("geeft een zware ploeg met gelijke W/kg op het vlakke het voordeel, alleen in de sprint", () => {
     const heavy = routeEdge({ ours: side("o", Array(5).fill(base), 85), theirs: side("z", Array(5).fill(base), 65), weights: { s15: 0.25, m1: 0.25, m5: 0.25, m20: 0.25 }, terrain: flat })!;
     expect(heavy.weightCounts).toBe(true);
-    expect(heavy.edge).toBeGreaterThan(0.1);
+    // Een kwart van ~19% sprintvoordeel; 1, 5 en 20 min op het vlakke tellen gewone W/kg.
+    expect(heavy.edge).toBeGreaterThan(0.03);
+    expect(heavy.edge).toBeLessThan(0.07);
   });
 
   it("laat wie geen vermogen heeft buiten de paren en noemt hem", () => {

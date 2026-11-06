@@ -13,6 +13,13 @@
 // groep. Iedereen krijgt Zwifts standaardlengte; die kennen we van de
 // tegenstander niet. Welke hellingen een duur op een parcours vraagt, zegt
 // `durationTerrain` in `routes.ts`.
+//
+// Sinds 2026-11-06 alleen bergop en in de sprint (15 s). Op de vlakke stukken van
+// 1, 5 en 20 minuten valt in een groep met draft niemand weg: gewicht bepaalt
+// daar hoeveel moeite het kost, niet wie er lost. Daar telt gewone W/kg. Eerder
+// telde ook het vlak, en stond in ZWBeasts – Galaxy Avengers (The Muckle Yin)
+// een renner met 1 W/kg meer op 1, 5 en 20 minuten maar ~20 kg lichter derde
+// achter twee zware sprinters (vraag van de eigenaar).
 
 import {
   DRAFT_CDA_FACTOR,
@@ -69,7 +76,10 @@ export function referenceWkg(wkg: number, kg: number, pct: number) {
   return (ref.a * v ** 3 + ref.b * v) / REFERENCE_KG;
 }
 
-/** W/kg van een renner omgerekend naar 75 kg op wat elke duur op dit parcours vraagt. */
+/**
+ * W/kg van een renner omgerekend naar 75 kg op wat elke duur op dit parcours
+ * vraagt: bergop altijd, op het vlakke alleen voor de sprint (15 s).
+ */
 export function routeWkg(wkg: PowerWkg, kg: number, terrain: DurationTerrain): PowerWkg {
   const out: PowerWkg = { s15: null, m1: null, m5: null, m20: null };
   for (const d of DURATIONS) {
@@ -82,7 +92,11 @@ export function routeWkg(wkg: PowerWkg, kg: number, terrain: DurationTerrain): P
       continue;
     }
     // Meetkundig gemiddelde over de hellingen, zoals de verschillen elders als log-verschil tellen.
-    const log = parts.reduce((sum, part) => sum + part.share * Math.log(referenceWkg(value, kg, part.pct)), 0) / share;
+    const log =
+      parts.reduce((sum, part) => {
+        const counts = d === "s15" || part.pct > 0;
+        return sum + part.share * Math.log(counts ? referenceWkg(value, kg, part.pct) : value);
+      }, 0) / share;
     out[d] = Math.exp(log);
   }
   return out;

@@ -52,7 +52,16 @@ describe("gewicht per kant", () => {
     const withGap = sideRouteWkg([{ wkg: same, weightKg: 80 }, { wkg: same, weightKg: null }], flat, true)!;
     const full = sideRouteWkg([{ wkg: same, weightKg: 80 }, { wkg: same, weightKg: 80 }], flat, true)!;
     expect(withGap).toEqual(full);
-    expect(full.m20!).toBeGreaterThan(4);
+    expect(full.s15!).toBeGreaterThan(12);
+  });
+
+  it("telt gewicht op het vlakke alleen in de sprint, bergop op elke duur", () => {
+    const heavy = sideRouteWkg([{ wkg: same, weightKg: 90 }], flat, true)!;
+    expect(heavy.s15!).toBeGreaterThan(12);
+    expect(heavy.m1).toBe(7);
+    expect(heavy.m20).toBe(4);
+    const slope: DurationTerrain = { s15: [{ pct: 6, share: 1 }], m1: [{ pct: 6, share: 1 }], m5: [{ pct: 6, share: 1 }], m20: [{ pct: 6, share: 1 }] };
+    expect(sideRouteWkg([{ wkg: same, weightKg: 90 }], slope, true)!.m20!).toBeGreaterThan(4);
   });
 
   it("rekent zonder parcours of zonder gewicht in gewone W/kg", () => {
@@ -90,11 +99,15 @@ describe("matchup met gewicht", () => {
       riderWeights,
     });
 
-  it("geeft de zwaardere ploeg bij gelijke W/kg het voordeel op een vlak parcours", () => {
+  it("geeft de zwaardere ploeg bij gelijke W/kg op een vlak parcours het voordeel in de sprint", () => {
     const matchup = build(heavy);
     expect(matchup.weightCounts).toBe(true);
     expect(matchup.durations.every((row) => row.ours === row.theirs)).toBe(true);
-    expect(matchup.routeEdgePct!).toBeGreaterThan(10);
+    expect(matchup.routeEdgePct!).toBeGreaterThan(5);
+    const edge = Object.fromEntries(matchup.durations.map((row) => [row.duration, row.edgePct]));
+    expect(edge.s15!).toBeGreaterThan(10);
+    // Op het vlakke valt in de groep niemand weg: daar geen voordeel uit gewicht.
+    expect(edge.m20).toBe(0);
     expect(matchup.ours.weightKg).toBe(85);
     expect(matchup.theirs.weightKg).toBe(65);
     expect(matchup.ours.riders[0].routeWkg!.s15!).toBeGreaterThan(12);
@@ -130,7 +143,7 @@ describe("advies met gewicht", () => {
     expect(heavy.weightCounts).toBe(true);
     expect(heavy.weightKg).toEqual({ ours: 85, theirs: 65 });
     expect(heavy.routes[0].routeClass).toBe("vlak");
-    expect(heavy.routes[0].edgePct!).toBeGreaterThan(10);
+    expect(heavy.routes[0].edgePct!).toBeGreaterThan(5);
     expect(heavy.routes[0].reasons.some((reason) => reason.text === "Gewicht scheelt hier" && reason.pct! > 0)).toBe(true);
     expect(["klim", "heuvel"]).toContain(advise(65, 85).routes[0].routeClass);
     // Het overzicht per duur blijft gewone W/kg.
