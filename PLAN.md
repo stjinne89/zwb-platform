@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-04)
+## Actieve volgorde (bijgewerkt 2026-11-06)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -46,6 +46,12 @@ gaat stabiliteit voor nieuwe features.
    het advies van ZWBandits tegen SZ Loki in de browser nalopen (overzicht per
    duur, percentages per route, Zonder vermogen). Zie de ronde "Club Ladder:
    advies renner tegen renner, intervals.icu eerst".
+
+0v. **Club Ladder: echte ploeg van de tegenstander eerst in de matchup
+   (2026-11-06): lokaal gecommit, niet gepusht.** Geen migratie. Nalopen na een
+   deploy: op een ladderevent waar de tegenstander zich aanmeldde de eerste knop
+   Opstelling of Aangemeld, daarna de vier types. Zie de ronde "Club Ladder: echte
+   ploeg van de tegenstander eerst in de matchup".
 
 0u. **Vooruit koppelen en losse ritten bij de trainer (2026-11-05): gepusht naar
    `main` (`c065b938`).** Geen migratie. Open: na de deploy bij Joost de rit van
@@ -11783,6 +11789,49 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: echte ploeg van de tegenstander eerst in de matchup
+
+**2026-11-06.** Lokaal gecommit op de branch
+`claude/club-ladder-opponent-lineup-5a536c` (hash: zie `git log`), niet
+gepusht. Geen migratie.
+
+**Waarom.** De eigenaar zag in de matchup van een ladderrace dat de knoppen
+Overall, Sprint, Klim en Punch bleven staan terwijl de ploeg van de
+tegenstander al bekend was, en dat zijn echte ploeg er niet tussen stond. Met
+aanmeldingen zonder startplek kozen die knoppen vijf uit de aanmeldingen
+(bij vijf of minder aanmeldingen vier keer dezelfde ploeg); met startplekken
+verdwenen de knoppen helemaal. Hij wil de echte ploeg erbij, als eerste.
+
+**Wat er veranderde.**
+- **Eventpagina** (`ladder-matchup.tsx`): heeft de tegenstander renners
+  aangemeld of opgesteld, dan is de eerste knop **Opstelling** (met
+  startplekken) of **Aangemeld** (zonder), met precies die renners; daarna
+  Overall, Sprint, Klim, Punch. Zonder aanmeldingen blijven het de vier knoppen.
+- **Keuze per type** (`buildLadderMatchup`, `theirFocus`): uit de aanmeldingen
+  alleen als dat er meer dan vijf zijn met vermogen en niemand een startplek
+  heeft; anders uit wie de laatste tien ladderraces voor hem reed (basis
+  `squad`). Ook naast een opstelling met startplekken staan de vier types nu.
+  `SQUAD_SIZE` uit `opponent-five.ts` is daarvoor geëxporteerd.
+- Het racebriefje en de eerste knop rekenen met dezelfde `matchup` als eerder
+  (de echte ploeg); daar verandert niets.
+- `/hulp` (Matchup) beschrijft de nieuwe eerste knop.
+- Tests: drie nieuwe gevallen in `club-ladder-weight.test.ts` (opstelling
+  zonder type, type naast opstelling, type uit meer dan vijf aanmeldingen).
+
+**Claims bijgesteld.** In "Club Ladder: kies de vijf van de tegenstander": de
+knoppen staan niet meer alleen "zolang de tegenstander geen opstelling met
+startplekken heeft", en de vijf komen niet meer altijd uit zijn aanmeldingen.
+
+**Bewust niet.**
+- De teampagina (Advies tegen …) niet: die kijkt niet naar de aanmeldingen
+  van een wedstrijd, alleen naar de recente renners; niet gevraagd.
+
+**Niet geverifieerd.** De echte eventpagina in de browser (vraagt inloggen en
+productiedata). Wel: de ladder-unittests (28) slagen, ESLint schoon,
+typecheck zonder nieuwe fouten. De volledige unitset heeft lokale fouten
+door ontbrekende pakketten (`@anthropic-ai/sdk`) en `.env.local` in deze
+worktree, los van deze ronde.
+
 ### Gebouwd — Vooruit koppelen en losse ritten bij de trainer
 
 **2026-11-05.** Commit `c065b938`, gepusht naar `main` op 2026-11-05. Geen
@@ -12357,7 +12406,11 @@ een ploeg die niet bestaat (de beste sprinter én de beste klimmer tegelijk).
 - **Matchup** (eventpagina): zolang de tegenstander geen opstelling met
   startplekken heeft, dezelfde vier knoppen (`byFocus` uit
   `loadLadderEventMatchup`). De vijf komen uit zijn aanmeldingen, of zonder
-  aanmeldingen uit zijn laatste tien races (basis `squad`). Bij zijn renners een
+  aanmeldingen uit zijn laatste tien races (basis `squad`).
+  *Bijgewerkt 2026-11-06:* de knoppen staan ook naast een opstelling, met de
+  echte ploeg als eerste knop (Opstelling of Aangemeld); uit de aanmeldingen
+  alleen bij meer dan vijf zonder startplek. Zie "Club Ladder: echte ploeg van
+  de tegenstander eerst in de matchup". Bij zijn renners een
   kolom Races ("x/10"); de kop zegt "sprintploeg" enz. Geen knoppen als er niets
   te vergelijken is (basis `races`).
 - `/hulp` (Advies, Matchup) beschrijft het; de zin over de laatste acht

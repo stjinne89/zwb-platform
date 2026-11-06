@@ -11,7 +11,7 @@
 // (`rider-weight.ts`). De tabel toont de gewone W/kg; het verschil is dat op dit
 // parcours, met gewicht.
 
-import { pickFive, type PoolRider, type RecentSquad, type SquadFocus } from "./opponent-five";
+import { pickFive, SQUAD_SIZE, type PoolRider, type RecentSquad, type SquadFocus } from "./opponent-five";
 import { averageWeight, logEdges, routeWkg, shownWeight, sideRouteWkg, weightsUsable, type WeightedRider } from "./rider-weight";
 import { DURATIONS, sameTeam, teamRidersFromMatches, topFiveAverage, type PowerWkg, type StoredMatch } from "./team-power";
 import { EVEN_PCT } from "./edge-tone";
@@ -215,8 +215,8 @@ export function buildLadderMatchup(input: {
   theirRecent?: RecentSquad;
   /**
    * Kies van de tegenstander vijf renners: zijn beste ploeg voor dit type, uit
-   * zijn aanmeldingen of anders uit `theirRecent`. Niet bij een opstelling met
-   * startplekken. Zonder focus de vijf besten per duur, zoals eerder.
+   * meer dan vijf aanmeldingen zonder startplek, anders uit `theirRecent`.
+   * Zonder focus zijn echte aanmeldingen of opstelling, de vijf besten per duur.
    */
   theirFocus?: SquadFocus;
 }): LadderMatchup {
@@ -235,9 +235,13 @@ export function buildLadderMatchup(input: {
   theirs = { ...theirs, riders: withRaces(theirs.riders) };
   let focus: SquadFocus | null = null;
   let fromRecent = false;
-  if (input.theirFocus && !theirs.lineup) {
+  if (input.theirFocus) {
+    // Uit de aanmeldingen alleen als er meer dan vijf zijn en niemand een startplek heeft;
+    // anders is dat de echte ploeg (een eigen tab) en kiezen we uit zijn recente renners (2026-11-06).
+    const signed = theirs.lineup ? [] : theirs.riders.filter((rider) => hasPower(rider.wkg));
+    const fromSignups = signed.length > SQUAD_SIZE;
     const recent = (input.theirRecent?.riders ?? []).map((rider) => ({ zwiftId: rider.zwiftId, team: opponent, name: rider.name, position: null }));
-    const candidates = theirSignups.length > 0 ? theirs.riders : withRaces(sideRiders(recent, power, power90, scores, riderWeights).riders);
+    const candidates = fromSignups ? signed : withRaces(sideRiders(recent, power, power90, scores, riderWeights).riders);
     const pool = candidates.filter((rider) => hasPower(rider.wkg));
     if (pool.length > 0) {
       const five = new Set(
@@ -248,7 +252,7 @@ export function buildLadderMatchup(input: {
       );
       theirs = { riders: pool.filter((rider) => five.has(rider.zwiftId)), lineup: false };
       focus = input.theirFocus;
-      fromRecent = theirSignups.length === 0;
+      fromRecent = !fromSignups;
     }
   }
 

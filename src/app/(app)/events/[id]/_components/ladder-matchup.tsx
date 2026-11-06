@@ -21,6 +21,26 @@ export function LadderMatchupView({
   byFocus?: Record<SquadFocus, LadderMatchup> | null;
   routeLabel: string | null;
 }) {
+  // De echte ploeg van de tegenstander (opgesteld of aangemeld) als eerste tab, voor de types.
+  const known = matchup.theirs.focus == null && matchup.theirs.riders.length > 0;
+  const tabs = byFocus
+    ? [
+        ...(known
+          ? [
+              {
+                key: "werkelijk",
+                label: matchup.theirs.lineup ? "Opstelling" : "Aangemeld",
+                content: <MatchupBody matchup={matchup} routeLabel={routeLabel} />,
+              },
+            ]
+          : []),
+        ...SQUAD_FOCUSES.map((focus) => ({
+          key: focus,
+          label: SQUAD_FOCUS_LABELS[focus],
+          content: <MatchupBody matchup={byFocus[focus]} routeLabel={routeLabel} />,
+        })),
+      ]
+    : null;
   return (
     <section id="matchup" className="scroll-mt-20 space-y-3">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Matchup</h2>
@@ -30,15 +50,8 @@ export function LadderMatchupView({
           <span className="text-xs text-muted-foreground">tegen</span>
           <p className="text-right font-semibold">{matchup.theirs.name}</p>
         </div>
-        {byFocus ? (
-          <ChoiceTabs
-            label={`Ploeg van ${matchup.theirs.name}`}
-            tabs={SQUAD_FOCUSES.map((focus) => ({
-              key: focus,
-              label: SQUAD_FOCUS_LABELS[focus],
-              content: <MatchupBody matchup={byFocus[focus]} routeLabel={routeLabel} />,
-            }))}
-          />
+        {tabs ? (
+          <ChoiceTabs label={`Ploeg van ${matchup.theirs.name}`} tabs={tabs} />
         ) : (
           <MatchupBody matchup={matchup} routeLabel={routeLabel} />
         )}

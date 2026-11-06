@@ -213,4 +213,49 @@ describe("beste vijf van de tegenstander", () => {
     expect(matchup.theirs.riders.every((r) => r.races === 3)).toBe(true);
     expect(matchup.theirs.wkg?.m20).toBe(4.6);
   });
+
+  describe("met een bekende ploeg van de tegenstander", () => {
+    const ids = [...pool.map((r) => r.zwiftId)];
+    const build = (signups: Array<{ zwiftId: number; position: number | null }>, theirFocus?: "klim") =>
+      buildLadderMatchup({
+        ourName: "Ons",
+        opponent: "Zij",
+        signups: [
+          ...[21, 22, 23].map((zwiftId) => ({ zwiftId, team: "Ons", name: `O${zwiftId}`, position: null })),
+          ...signups.map(({ zwiftId, position }) => ({ zwiftId, team: "Zij", name: `Z${zwiftId}`, position })),
+        ],
+        matches: [],
+        power90: new Map([...pool.map((r) => [r.zwiftId, r.wkg] as const), [21, same], [22, same], [23, same]]),
+        scores: new Map(),
+        weights: null,
+        riderWeights: new Map(ids.map((id) => [id, 72])),
+        theirRecent: { riders: pool.map(({ zwiftId, name, races }) => ({ zwiftId, name, races })), races: 10 },
+        theirFocus,
+      });
+    const sprinters = [1, 2, 3, 4, 5].map((zwiftId, i) => ({ zwiftId, position: i + 1 }));
+
+    it("houdt zonder type de echte opstelling", () => {
+      const matchup = build(sprinters);
+      expect(matchup.basis).toBe("lineup");
+      expect(matchup.theirs.lineup).toBe(true);
+      expect(matchup.theirs.focus).toBeNull();
+      expect(matchup.theirs.riders.map((r) => r.zwiftId)).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    it("kiest per type naast een opstelling uit de recente renners", () => {
+      const matchup = build(sprinters, "klim");
+      expect(matchup.basis).toBe("squad");
+      expect(matchup.theirs.focus).toBe("klim");
+      expect(matchup.theirs.riders.map((r) => r.zwiftId).sort((a, b) => a - b)).toEqual([11, 12, 13, 14, 15]);
+    });
+
+    it("kiest per type uit meer dan vijf aanmeldingen zonder startplek", () => {
+      const signed = [1, 2, 3, 11, 12, 13].map((zwiftId) => ({ zwiftId, position: null }));
+      const matchup = build(signed, "klim");
+      expect(matchup.basis).toBe("lineup");
+      expect(matchup.theirs.riders.map((r) => r.zwiftId)).toEqual(expect.arrayContaining([11, 12, 13]));
+      expect(matchup.theirs.riders.every((r) => [1, 2, 3, 11, 12, 13].includes(r.zwiftId))).toBe(true);
+      expect(matchup.theirs.riders).toHaveLength(5);
+    });
+  });
 });

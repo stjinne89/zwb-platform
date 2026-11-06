@@ -23,7 +23,10 @@ const METRICS_BUDGET_MS = 8_000;
 export type LadderEventMatchup = {
   /** De vijf besten per duur van wie meetelt, zoals het racebriefje rekent. */
   matchup: LadderMatchup;
-  /** Per type de beste vijf van de tegenstander; null als hij een opstelling heeft of er niets te kiezen is. */
+  /**
+   * Per type de beste vijf van de tegenstander; null als er niets te kiezen is.
+   * Heeft hij renners aangemeld of opgesteld, dan staat `matchup` met die ploeg ervoor.
+   */
   byFocus: Record<SquadFocus, LadderMatchup> | null;
   routeLabel: string | null;
 };
@@ -117,7 +120,7 @@ export async function loadLadderEventMatchup(
   };
   const matchup = buildLadderMatchup(base);
   const variants = SQUAD_FOCUSES.map((focus) => [focus, buildLadderMatchup({ ...base, theirFocus: focus })] as const);
-  // Alleen als er echt te kiezen valt: de tegenstander heeft geen opstelling en er is een vergelijking.
+  // Alleen als er echt te kiezen valt: voor elk type een ploeg en een vergelijking.
   const choosable = variants.every(([focus, row]) => row.theirs.focus === focus && row.basis !== "races");
   return {
     matchup,

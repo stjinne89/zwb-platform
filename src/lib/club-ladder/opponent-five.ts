@@ -38,7 +38,7 @@ const PROFILES: Record<Exclude<SquadFocus, "overall">, Profile> = {
 
 /** Zoveel recente ladderraces van de tegenstander tellen. */
 export const RECENT_RACES = 10;
-const SQUAD_SIZE = 5;
+export const SQUAD_SIZE = 5;
 /** Score van een renner zonder bruikbaar vermogen: altijd achteraan, zonder NaN in de sortering. */
 const NO_SCORE = -1e9;
 
