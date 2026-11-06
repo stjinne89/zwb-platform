@@ -11878,9 +11878,13 @@ voor de eigenaar. Met watt zie je wat het gewicht doet.
 
 **Privacy (open).** Keuze eigenaar: watt voor beide kanten. Daarmee is per
 renner het gewicht af te leiden (watt gedeeld door W/kg), ook van renners van
-andere clubs. De privacyverklaring zegt nog "Het gewicht staat nergens los,
-alleen het gemiddelde van een ploeg vanaf drie renners"; een nieuwe zin ligt
-bij de eigenaar en is nog niet geplaatst. Niet pushen voordat die er staat.
+andere clubs. De privacyzin in de alinea Club Ladder is aangepast ("Het gewicht
+staat nergens los: wel het gemiddelde van een ploeg vanaf drie renners, en in de
+matchup per renner het vermogen in watt naast W/kg, waaruit het gewicht af te
+leiden is, ook van renners van andere clubs."), akkoord eigenaar 2026-11-06,
+zonder nieuwe privacyversie: het gaat om gewichten die al voor de matchup
+worden gebruikt. Let op: bij de ZRL-briefing tonen we het gewicht van andere
+teams bewust niet; de ladder-matchup wijkt daar op keuze van de eigenaar van af.
 
 **Bewust niet.** Het model van de verwachte uitslag aanpassen (minder gewicht op
 de vlakke delen, of bijna-gelijke plekken als gelijk tonen): eerst een keuze
