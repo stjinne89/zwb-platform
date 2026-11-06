@@ -53,8 +53,9 @@ gaat stabiliteit voor nieuwe features.
    ronde "Club Ladder: intervals.icu in de matchup".
 
 1b. **Club Ladder: uitslag op het event, met verwachting en verschil
-   (2026-11-06): lokaal gecommit, niet gepusht; migratie `0308` toegepast
-   (2026-11-06, via de Supabase-connector, op verzoek van de eigenaar).** Nalopen
+   (2026-11-06): gepusht naar `main` (`de4fe84c`, `7f5b40ba`, `16a56693`);
+   migratie `0308` toegepast (2026-11-06, via de Supabase-connector, op verzoek
+   van de eigenaar, vóór de push).** Nalopen
    na een deploy: op een gereden ladderevent staan score, de tien
    plekken, Verwacht en ±, en na een opening vóór de start staat er een rij in
    `club_ladder_event_expectations`. Zie de ronde "Club Ladder: uitslag op het
@@ -11826,8 +11827,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: uitslag op het event, naast de verwachting
 
-**2026-11-06.** Twee commits op `claude/club-ladder-results-display-bca882`
-(`de4fe84c` de uitslag, daarna de bevroren verwachting), niet gepusht.
+**2026-11-06.** Commits `de4fe84c` (de uitslag), `7f5b40ba` (de bevroren
+verwachting) en `16a56693` (W/kg, PLAN), op 2026-11-06 op verzoek van de
+eigenaar naar `main` gepusht.
 Migratie `0308_club_ladder_event_expectations`, op 2026-11-06 via de
 Supabase-connector op productie toegepast, op verzoek van de eigenaar, vóór de
 push (main stond op 0307).
