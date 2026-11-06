@@ -48,7 +48,7 @@ gaat stabiliteit voor nieuwe features.
    advies renner tegen renner, intervals.icu eerst".
 
 1a. **Club Ladder: intervals.icu voor onze renners in de matchup (2026-11-06):
-   lokaal gecommit, nog niet gepusht.** Geen migratie. Nalopen na een deploy:
+   gepusht naar `main` (`1e979044`).** Geen migratie. Nalopen na een deploy:
    de matchup van ZWBeauties toont vermogen bij de gekoppelde renners. Zie de
    ronde "Club Ladder: intervals.icu in de matchup".
 
@@ -11818,7 +11818,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: intervals.icu in de matchup
 
-**2026-11-06.** Lokaal gecommit, nog niet gepusht. Geen migratie.
+**2026-11-06.** Commit `1e979044`, op 2026-11-06 op verzoek van de eigenaar
+naar `main` gepusht. Geen migratie.
 
 **Waarom.** De eigenaar zag bij de matchup van ZWBeauties (selectie Maarten
 Smits, Niels Leerentveld, Ragna van Rixtel-Zanin) bij elke renner een streepje,
