@@ -1,4 +1,5 @@
 import { ArrowUpRight } from "lucide-react";
+import { MemberLink } from "@/components/member-link";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import type { LadderEventResult, LadderResultRow } from "@/lib/club-ladder/event-result";
 import { cn } from "@/lib/utils";
@@ -70,7 +71,7 @@ export function LadderResultView({ result }: { result: LadderEventResult }) {
               cell: (row) => (
                 <span className={cn(row.own && "font-medium")}>
                   <span className="mr-1.5 tabular-nums text-muted-foreground sm:hidden">{row.position}.</span>
-                  {row.name}
+                  <MemberLink id={row.profileId}>{row.name}</MemberLink>
                 </span>
               ),
             },

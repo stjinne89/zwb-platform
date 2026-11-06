@@ -132,6 +132,8 @@ export function expectedPlaces(rows: Array<{ position: number; rating: number | 
 export type LadderResultRow = {
   position: number;
   name: string;
+  /** Profiel van een ZWB'er, voor de link naar /leden; null voor de rest. */
+  profileId: string | null;
   team: string;
   own: boolean;
   points: number;
@@ -161,6 +163,8 @@ export function ladderEventResult(
   ourName: string,
   /** Sterkte op dit parcours per finishplek (briefing.ts `routeRatings`). */
   ratings: Map<number, number | null>,
+  /** Profiel-ID per finishplek. */
+  profiles: Map<number, string> = new Map(),
 ): LadderEventResult {
   const weChallenge = sameTeam(match.challenger, ourName);
   const ourScore = weChallenge ? match.challengerScore : match.opponentScore;
@@ -174,6 +178,7 @@ export function ladderEventResult(
     return {
       position: rider.position,
       name: rider.name,
+      profileId: profiles.get(rider.position) ?? null,
       team: rider.team,
       own: sameTeam(rider.team, ourName),
       points: rider.points,

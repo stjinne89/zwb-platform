@@ -37,6 +37,8 @@ export type MatchupRider = {
   routeWkg: PowerWkg | null;
   /** In hoeveel van de recente ladderraces van zijn team hij reed (tegenstander), anders null. */
   races: number | null;
+  /** Profiel van een ZWB'er, voor de link naar /leden; de loader vult het in. */
+  profileId?: string | null;
 };
 
 export type MatchupSide = {

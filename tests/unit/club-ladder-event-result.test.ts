@@ -94,7 +94,8 @@ describe("ladderEventResult", () => {
       [3, 1.2],
       [4, 0.8],
     ]);
-    const result = ladderEventResult(match(riders, 17, 17), "ZWBandits", ratings);
+    const result = ladderEventResult(match(riders, 17, 17), "ZWBandits", ratings, new Map([[2, "profiel-b"]]));
+    expect(result.rows.map((row) => row.profileId)).toEqual([null, "profiel-b", null, null]);
     expect(result.rows.map((row) => [row.position, row.expected, row.delta])).toEqual([
       [1, 3, 2],
       [2, 1, -1],

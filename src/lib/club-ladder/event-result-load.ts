@@ -84,5 +84,19 @@ export async function loadLadderEventResult(
     const weights = frozen?.weights ?? (current ? matchupWeights(current.matchup) : null);
     ratings = starterRatings(starters, frozen?.riders ?? new Map(), live, weights);
   }
-  return ladderEventResult(match, ourName, ratings);
+  return ladderEventResult(match, ourName, ratings, await profilesByPosition(admin, starters));
+}
+
+/** Profiel-ID per finishplek, via het Zwift-ID; wie geen account heeft, ontbreekt. */
+async function profilesByPosition(admin: Admin, starters: Map<number, MatchupSignup>): Promise<Map<number, string>> {
+  const zwiftIds = [...new Set([...starters.values()].map((starter) => starter.zwiftId))];
+  if (zwiftIds.length === 0) return new Map();
+  const { data } = await admin.from("profiles").select("id, zwift_id").in("zwift_id", zwiftIds);
+  const byZwift = new Map(((data ?? []) as Array<{ id: string; zwift_id: number | string | null }>).map((row) => [Number(row.zwift_id), row.id]));
+  const out = new Map<number, string>();
+  for (const [position, starter] of starters) {
+    const id = byZwift.get(starter.zwiftId);
+    if (id) out.set(position, id);
+  }
+  return out;
 }

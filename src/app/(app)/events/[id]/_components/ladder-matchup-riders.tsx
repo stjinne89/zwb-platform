@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { MemberLink } from "@/components/member-link";
 import { usePowerUnit } from "@/components/power-unit";
 import type { MatchupRider } from "@/lib/club-ladder/matchup";
 import type { PowerDuration } from "@/lib/club-ladder/routes";
@@ -86,7 +87,7 @@ export function MatchupRiderTable({
           <tr key={rider.zwiftId} className="border-b last:border-0">
             <td className="max-w-40 truncate py-1 pr-2">
               {rider.position != null && <span className="mr-1 text-muted-foreground">{rider.position}.</span>}
-              {rider.name}
+              <MemberLink id={rider.profileId}>{rider.name}</MemberLink>
               {rider.source === "ladder" && <span className="ml-1 text-muted-foreground">(ladder)</span>}
             </td>
             {durations.map((d) => (

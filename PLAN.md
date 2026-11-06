@@ -11886,6 +11886,22 @@ nu, zoals in de eerste commit. De bevroren plekken zelf bewaren in plaats van
 het vermogen: dan heeft een wissel geen verwachting en klopt de schaal 1–10 niet
 meer.
 
+**Correctie: namen linken naar het profiel (2026-11-06, na de push).** De
+uitslag en de renners in de matchup toonden ZWB'ers als platte tekst, tegen de
+afspraak van 2026-10-04 in (ronde "lidnamen klikbaar naar het profiel"). De
+eigenaar wees erop. Nu zoekt `event-result-load.ts` per finishplek het profiel
+bij het Zwift-ID, en `loadLadderEventMatchup` doet dat voor iedereen in de
+matchup (`MatchupRider.profileId`, ook in de keuze per type); beide tonen de naam
+met `MemberLink`. Op productie hebben de 4 ZWBeasts van 6 november een profiel,
+de renners van Galaxy Avengers niet: die blijven platte tekst.
+
+**Nog open, niet in deze ronde.** Het racebriefje (`/events/[id]/briefing`,
+ZRL en ladder) toont in de tabellen onder het briefje ook namen zonder link (de
+eigen renners, het veld, de verwachte uitslag). Dat is ouder werk dat ook de ZRL
+raakt; `race-briefing/load.ts` laadt daar geen profiel-ID. Het briefje zelf (het
+deelbare plaatje) valt onder de uitzondering: een link in een afbeelding doet
+niets.
+
 **Nagekeken op productie (2026-11-06, alleen-lezend).** Het enige gereden
 ladderevent van de laatste drie weken, ZWBeasts – Galaxy Avengers van 6
 november, vindt zijn wedstrijd (`result_id` 18002, 32–20, zelfde dag en tijd).

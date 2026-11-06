@@ -104,11 +104,12 @@ export async function loadLadderEventMatchup(
   const ourZwiftIds = [
     ...new Set([...signups.filter((row) => sameTeam(row.team, ourName)).map((row) => row.zwiftId), ...ourSelection.map((row) => row.zwiftId)]),
   ];
-  const [riderMatches, metrics, riderWeights, ourIntervals] = await Promise.all([
+  const [riderMatches, metrics, riderWeights, ourIntervals, profileIds] = await Promise.all([
     riderRaces(admin, zwiftIds).then((rows) => rows.filter((match) => match.resultId !== exclude)),
     loadRiderMetrics(zwiftIds),
     loadRiderWeights(admin, [...zwiftIds, ...raceIds]),
     intervalsByZwiftId(admin, ourZwiftIds),
+    profilesByZwiftId(admin, zwiftIds),
   ]);
   if (zwiftIds.length > 0) after(() => refreshRiderMetrics(zwiftIds, metrics, { budgetMs: METRICS_BUDGET_MS }));
   const scores = new Map<number, number>();
@@ -138,9 +139,14 @@ export async function loadLadderEventMatchup(
     theirRecent,
     ourIntervals,
   };
-  const matchup = buildLadderMatchup(base);
+  // Elke ZWB'er in de matchup linkt naar zijn profiel (afspraak 2026-10-04).
+  const withProfiles = (row: LadderMatchup): LadderMatchup => {
+    for (const side of [row.ours, row.theirs]) for (const rider of side.riders) rider.profileId = profileIds.get(rider.zwiftId) ?? null;
+    return row;
+  };
+  const matchup = withProfiles(buildLadderMatchup(base));
   if (options.starters) return { matchup, byFocus: null, routeLabel: option ? ROUTE_CLASS_LABELS[option.routeClass] : null };
-  const variants = SQUAD_FOCUSES.map((focus) => [focus, buildLadderMatchup({ ...base, theirFocus: focus })] as const);
+  const variants = SQUAD_FOCUSES.map((focus) => [focus, withProfiles(buildLadderMatchup({ ...base, theirFocus: focus }))] as const);
   // Alleen als er echt te kiezen valt: voor elk type een ploeg en een vergelijking.
   const choosable = variants.every(([focus, row]) => row.theirs.focus === focus && row.basis !== "races");
   // Vóór de start vastleggen waarmee de verwachting rekent, voor de uitslag erna (0308).
@@ -154,6 +160,18 @@ export async function loadLadderEventMatchup(
     byFocus: choosable ? (Object.fromEntries(variants) as Record<SquadFocus, LadderMatchup>) : null,
     routeLabel: option ? ROUTE_CLASS_LABELS[option.routeClass] : null,
   };
+}
+
+/** Profiel-ID per Zwift-ID, voor de link naar /leden. */
+async function profilesByZwiftId(admin: Admin, zwiftIds: number[]): Promise<Map<number, string>> {
+  if (zwiftIds.length === 0) return new Map();
+  const { data } = await admin.from("profiles").select("id, zwift_id").in("zwift_id", zwiftIds);
+  const out = new Map<number, string>();
+  for (const row of (data ?? []) as Array<{ id: string; zwift_id: number | string | null }>) {
+    const id = positiveId(row.zwift_id);
+    if (id) out.set(id, row.id);
+  }
+  return out;
 }
 
 /** intervals.icu per Zwift-ID, via het profiel met dat Zwift-ID; zonder profiel of curve ontbreekt hij. */
