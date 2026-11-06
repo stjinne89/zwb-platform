@@ -732,12 +732,12 @@ export function SchemaHelp() {
               warming-up klaar. Hij staat dan vlak voor de race in intervals.icu,
               en zo in Zwift en op je fietscomputer. Er zijn er vijf. Tijdrit en
               ploegentijdrit (25 minuten) bouwen lang op naar wedstrijdtempo.
-              ZRL lang (21 minuten) bereidt je voor op de harde start en de
-              sprints van een scratch- of puntenrace; ZRL kort (10 minuten) is
-              er voor als je weinig tijd hebt. Lange wedstrijd (12 minuten)
-              spaart energie. Elke warming-up eindigt met bursts van 6 seconden
-              en een minuut losdraaien ertussen: voluit voor ZRL, een
-              versnelling voor de tijdritten. Wees een paar minuten voor de
+              Wedstrijd (21 minuten) bereidt je voor op de harde start en de
+              sprints van een scratch- of puntenrace; Wedstrijd kort (10
+              minuten) is er voor als je weinig tijd hebt. Lange wedstrijd (12
+              minuten) spaart energie. Elke warming-up eindigt met bursts van 6
+              seconden en een minuut losdraaien ertussen: voluit voor een
+              wedstrijd, een versnelling voor de tijdritten. Wees een paar minuten voor de
               start klaar en trap rustig door.
             </p>
           </article>

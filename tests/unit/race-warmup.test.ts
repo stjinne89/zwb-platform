@@ -28,7 +28,7 @@ describe("warming-up bij een race", () => {
   });
 
   it("kiest de voorkeuze uit titel en duur", () => {
-    expect(suggestedWarmupTitle(race)).toBe("Warming-up ZRL lang");
+    expect(suggestedWarmupTitle(race)).toBe("Warming-up wedstrijd");
     expect(suggestedWarmupTitle({ ...race, title: "ZRL TTT Watopia" })).toBe(
       "Warming-up ploegentijdrit",
     );
@@ -39,7 +39,7 @@ describe("warming-up bij een race", () => {
       "Warming-up lange wedstrijd",
     );
     // "ttt" zit niet in een gewoon woord verstopt.
-    expect(suggestedWarmupTitle({ ...race, title: "Kattteam race" })).toBe("Warming-up ZRL lang");
+    expect(suggestedWarmupTitle({ ...race, title: "Kattteam race" })).toBe("Warming-up wedstrijd");
   });
 
   it("is vijf minuten voor de start klaar en blijft op de racedag", () => {
@@ -49,8 +49,8 @@ describe("warming-up bij een race", () => {
 
   it("vindt de warming-up die al bij de race staat", () => {
     const options = [
-      { id: "t-lang", title: "Warming-up ZRL lang", durationMinutes: 21 },
-      { id: "t-kort", title: "Warming-up ZRL kort", durationMinutes: 10 },
+      { id: "t-lang", title: "Warming-up wedstrijd", durationMinutes: 21 },
+      { id: "t-kort", title: "Warming-up wedstrijd kort", durationMinutes: 10 },
     ];
     expect(raceWarmupView(race, [race], options)).toEqual({
       options,
@@ -60,7 +60,7 @@ describe("warming-up bij een race", () => {
     const warmup = {
       ...race,
       id: "w-1",
-      title: "Warming-up ZRL kort",
+      title: "Warming-up wedstrijd kort",
       intensity: "endurance",
       intervals_external_id: raceWarmupExternalId(race.id),
     };
@@ -68,7 +68,7 @@ describe("warming-up bij een race", () => {
     expect(warmupRaceId(race)).toBeNull();
     expect(raceWarmupView(race, [race, warmup], options).current).toEqual({
       id: "w-1",
-      title: "Warming-up ZRL kort",
+      title: "Warming-up wedstrijd kort",
     });
   });
 });
