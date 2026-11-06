@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
-import { Activity, RefreshCw, Swords, Trophy, Users } from "lucide-react";
+import { Activity, ArrowUpRight, RefreshCw, Swords, Trophy, Users } from "lucide-react";
 import { BackLink, EmptyState, PageHeader } from "@/components/app-ui";
 import { TeamChatLinks } from "@/components/team-chat-links";
 import { buildLadderAdvice, DURATION_LABELS, recentMatches, type LadderAdvice } from "@/lib/club-ladder/advice";
@@ -18,7 +18,7 @@ import { loadLadderSelections } from "@/lib/club-ladder/selection";
 import { ladderRouteOptions, ROUTE_CLASS_LABELS, worldLabel } from "@/lib/club-ladder/routes";
 import { CHALLENGE_RANGE, challengeableTeams } from "@/lib/club-ladder/rules";
 import { storeLadderResults } from "@/lib/club-ladder/store";
-import { ladderTeamResults, type TeamMatchResult } from "@/lib/club-ladder/event-result";
+import { ladderResultUrl, ladderTeamResults, type TeamMatchResult } from "@/lib/club-ladder/event-result";
 import { ladderOpponentFromTitle } from "@/lib/club-ladder/fixture-events";
 import {
   fetchClubLadderSummary,
@@ -602,7 +602,7 @@ const LADDER_RESULTS_SHOWN = 20;
 
 const racedOnFormat = new Intl.DateTimeFormat("nl-NL", { dateStyle: "medium", timeZone: "UTC" });
 
-/** Een gereden wedstrijd: alleen de uitslag, en met een event klikbaar naar dat event. */
+/** Een gereden wedstrijd: alleen de uitslag; klikbaar naar het event, en zonder event naar de ladder. */
 function MatchResultRow({ result }: { result: TeamMatchResult }) {
   const body = (
     <>
@@ -615,6 +615,7 @@ function MatchResultRow({ result }: { result: TeamMatchResult }) {
         <span className={cn("font-semibold tabular-nums", result.won && "text-primary")}>
           {result.ourScore}–{result.theirScore}
         </span>
+        {!result.eventId && <ArrowUpRight className="size-3.5 self-center text-muted-foreground" aria-label="op de ladder" />}
       </div>
     </>
   );
@@ -628,7 +629,14 @@ function MatchResultRow({ result }: { result: TeamMatchResult }) {
           {body}
         </Link>
       ) : (
-        <div className="flex items-center justify-between gap-3 py-2 text-sm">{body}</div>
+        <a
+          href={ladderResultUrl(result.resultId)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="-mx-2 flex items-center justify-between gap-3 rounded-md px-2 py-2 text-sm hover:bg-muted/50"
+        >
+          {body}
+        </a>
       )}
     </li>
   );

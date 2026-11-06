@@ -62,9 +62,10 @@ gaat stabiliteit voor nieuwe features.
    event, naast de verwachting".
 
 1c. **Club Ladder: uitslagen onder Teamresultaten (2026-11-06): gepusht naar
-   `main` (`f09ddad6`).** Geen migratie. Nalopen na een deploy: op de
-   teampagina van ZWBeasts staat bovenaan 32–20 tegen Galaxy Avengers, en een
-   tik opent het event bij Uitslag. Zie de ronde "Club Ladder: uitslagen onder
+   `main` (`f09ddad6`); de link naar de ladder voor oudere wedstrijden is lokaal
+   gecommit, niet gepusht.** Geen migratie. Nalopen na een deploy: op de
+   teampagina van ZWBeasts staat bovenaan 32–20 tegen Galaxy Avengers, een tik
+   opent het event bij Uitslag, en een oudere wedstrijd opent de ladder. Zie de ronde "Club Ladder: uitslagen onder
    Teamresultaten".
 
 0z. **Club Ladder: gewicht alleen bergop en in de sprint (2026-11-06): gepusht
@@ -11855,14 +11856,19 @@ een link naar `/events/[id]#uitslag`. Hooguit 20 wedstrijden
 `raced_at`, want de koppeling op tijd viel zonder terug op middernacht en dan
 buiten de zes uur. `/hulp` bijgewerkt.
 
-**Bewust niet.** Een link voor wedstrijden zonder event: de sync maakt pas
-sinds 6 november 2026 (0300, eerste ladder-event) events aan. Op productie
-(2026-11-06) hadden ZWBandits 5, ZWBeasts 9 en ZWBullets 8 bewaarde
-wedstrijden, terug tot december 2025, en alleen ZWBeasts – Galaxy Avengers van
-6 november heeft een event. Die oudere staan er zonder link. De openbare
-uitslagpagina van de ladder als link is niet gebouwd: de vraag was de
-eventpagina, en de eigenaar kiest (afspraak "overleg bij onhaalbare feature").
-Handmatige `team_results` die een ladderwedstrijd dubbelen, worden niet
+**Wedstrijden zonder event.** De sync maakt pas sinds 6 november 2026 (0300,
+eerste ladder-event) events aan. Op productie (2026-11-06) hadden ZWBandits 5,
+ZWBeasts 9 en ZWBullets 8 bewaarde wedstrijden, terug tot december 2025, en
+alleen ZWBeasts – Galaxy Avengers van 6 november heeft een event. In de eerste
+commit stonden die oudere zonder link; op de vraag of ze naar de openbare
+uitslag op de ladder mogen linken, koos de eigenaar ja (tweede commit, zelfde
+dag). Zo'n rij opent `ladderResultUrl` (nu één helper in `event-result.ts`,
+ook voor de link op het event en de scraper) in een nieuw tabblad, met het
+pijltje dat ook bij "Uitslag op de ladder" staat. Geen events achteraf
+aangemaakt voor oude wedstrijden: dat zou de kalender en de RSVP's van
+leden vullen met races die al gereden zijn.
+
+**Bewust niet.** Handmatige `team_results` die een ladderwedstrijd dubbelen, worden niet
 weggefilterd: er is geen sleutel om ze te koppelen.
 
 **Niet geverifieerd.** Niet in de browser. Unittests voor volgorde, score,

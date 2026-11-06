@@ -1,10 +1,8 @@
 import { ArrowUpRight } from "lucide-react";
 import { MemberLink } from "@/components/member-link";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
-import type { LadderEventResult, LadderResultRow } from "@/lib/club-ladder/event-result";
+import { ladderResultUrl, type LadderEventResult, type LadderResultRow } from "@/lib/club-ladder/event-result";
 import { cn } from "@/lib/utils";
-
-const RESULT_URL = "https://ladder.cycleracing.club/public/result/";
 
 function clock(seconds: number | null) {
   if (seconds == null) return "–";
@@ -91,7 +89,7 @@ export function LadderResultView({ result }: { result: LadderEventResult }) {
         />
 
         <a
-          href={`${RESULT_URL}${result.resultId}`}
+          href={ladderResultUrl(result.resultId)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"

@@ -14,6 +14,11 @@ import type { LadderMatchup, MatchupSignup } from "./matchup";
 import type { DurationWeights } from "./routes";
 import { DURATIONS, sameTeam, type MatchRider, type PowerWkg, type StoredMatch } from "./team-power";
 
+/** Openbare uitslagpagina van een wedstrijd op de ladder. */
+export function ladderResultUrl(resultId: number) {
+  return `https://ladder.cycleracing.club/public/result/${resultId}`;
+}
+
 /** Een uitslag ligt hooguit zoveel uur van de starttijd van het event. */
 const MAX_OFFSET_H = 6;
 
@@ -98,7 +103,7 @@ export type TeamMatchResult = {
   ourScore: number;
   theirScore: number;
   won: boolean;
-  /** Het ladder-event van deze wedstrijd, of null (wedstrijden van vóór 0300 hebben er geen). */
+  /** Het ladder-event van deze wedstrijd, of null (wedstrijden van vóór 0300 hebben er geen; dan linkt de rij naar de ladder). */
   eventId: string | null;
 };
 

@@ -1,7 +1,6 @@
 import * as cheerio from "cheerio";
 import { assertSafeUrl } from "@/lib/net/safe-fetch";
-
-const RESULT_URL = "https://ladder.cycleracing.club/public/result/";
+import { ladderResultUrl } from "./event-result";
 
 export type LadderResultRider = {
   name: string;
@@ -71,7 +70,7 @@ export function parseLadderResultPage(html: string, teams: { challenger: string;
 
 export async function fetchLadderResultPage(resultId: number) {
   if (!Number.isSafeInteger(resultId) || resultId <= 0) throw new Error("Ongeldig uitslag-ID.");
-  const url = `${RESULT_URL}${resultId}`;
+  const url = ladderResultUrl(resultId);
   await assertSafeUrl(url);
   const res = await fetch(url, {
     headers: { Accept: "text/html", "User-Agent": "ZWB Platform Club Ladder comparison", Referer: "https://ladder.cycleracing.club/" },
