@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MatchupRider } from "@/lib/club-ladder/matchup";
-import { nextRiderSort, sortMatchupRiders } from "@/lib/club-ladder/matchup-sort";
+import { nextRiderSort, riderWatts, sortMatchupRiders } from "@/lib/club-ladder/matchup-sort";
 
 const rider = (zwiftId: number, name: string, m5: number | null, racingScore: number | null, position: number | null): MatchupRider => ({
   zwiftId,
@@ -28,8 +28,28 @@ describe("sortMatchupRiders", () => {
     expect(ids(sortMatchupRiders(riders, { key: "zrs", direction: "desc" }))).toEqual([2, 1, 3]);
   });
 
+  it("sorteert in watt op W/kg maal gewicht, zonder gewicht onderaan", () => {
+    const withKg = [
+      { ...riders[0], weightKg: 90 }, // 4,8 × 90 = 432 W
+      { ...riders[1], weightKg: 60 },
+      { ...riders[2], weightKg: 60 }, // 5,2 × 60 = 312 W
+    ];
+    expect(ids(sortMatchupRiders(withKg, { key: "m5", direction: "desc" }, "w"))).toEqual([1, 3, 2]);
+    expect(ids(sortMatchupRiders(withKg, { key: "m5", direction: "desc" }, "wkg"))).toEqual([3, 1, 2]);
+    // Zonder gewicht heeft niemand watt: dan op naam.
+    expect(ids(sortMatchupRiders(riders, { key: "m5", direction: "desc" }, "w"))).toEqual([2, 1, 3]);
+  });
+
   it("sorteert namen op alfabet", () => {
     expect(ids(sortMatchupRiders(riders, { key: "name", direction: "asc" }))).toEqual([2, 1, 3]);
+  });
+});
+
+describe("riderWatts", () => {
+  it("rekent W/kg om met het gewicht, en geeft niets zonder geldig gewicht", () => {
+    expect(riderWatts({ s15: 10, m1: null, m5: 5, m20: 4 }, 70)).toEqual({ s15: 700, m1: null, m5: 350, m20: 280 });
+    expect(riderWatts({ s15: 10, m1: null, m5: 5, m20: 4 }, null)).toBeNull();
+    expect(riderWatts({ s15: 10, m1: null, m5: 5, m20: 4 }, 12)).toBeNull();
   });
 });
 

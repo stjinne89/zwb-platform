@@ -47,6 +47,11 @@ gaat stabiliteit voor nieuwe features.
    duur, percentages per route, Zonder vermogen). Zie de ronde "Club Ladder:
    advies renner tegen renner, intervals.icu eerst".
 
+0y. **Club Ladder: watt of W/kg in de matchup (2026-11-06): lokaal gecommit,
+   niet gepusht.** Geen migratie. Wacht op een privacyzin (gewicht per renner
+   af te leiden, ook van andere clubs). Zie de ronde "Club Ladder: watt of W/kg
+   in de matchup".
+
 0x. **Club Ladder: sorteren in de matchup en score bij de verwachte uitslag
    (2026-11-06): gepusht naar `main` (`4b16fcdb`).** Geen migratie. Nalopen na een
    deploy: op een ladderevent de kolommen van de matchup sorteren, en op het
@@ -11800,6 +11805,45 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Club Ladder: watt of W/kg in de matchup
+
+**2026-11-06.** Lokaal gecommit, niet gepusht. Geen migratie.
+
+**Waarom.** Vraag van de eigenaar, na de vraag waarom Pim Meulemeester in de
+verwachte uitslag van ZWBeasts – Galaxy Avengers derde stond terwijl hij op 1,
+5 en 20 minuten veel meer W/kg heeft. Antwoord: de verwachte uitslag rekent W/kg
+om naar 75 kg op het parcours (`rider-weight.ts`); The Muckle Yin is op 15 s,
+20 min en 60% van 1 min vlak, en daar winnen zware renners. Nagerekend met de
+W/kg van het briefje: met iedereen op 75 kg is Pim ruim eerste (1,20 tegen
+1,04), met Pim 60 kg en Galaxy 85 kg derde (1,06 tegen 1,09 en 1,08). Echte
+gewichten niet gecontroleerd. Het model is niet aangepast; dat is een keuze
+voor de eigenaar. Met watt zie je wat het gewicht doet.
+
+**Wat er veranderde.**
+- Boven de matchup de schakelaar Watt | W/kg (`PowerUnitToggle`, dezelfde
+  cookie als Teams en ZWBeter Worden). Begint in watt alleen als die cookie
+  watt zegt, anders W/kg.
+- In watt: per renner W/kg maal zijn gewicht (`riderWatts`, nu in het lichte
+  `matchup-sort.ts` zodat het mee kan naar de browser); zonder gewicht "–".
+  Per kant de vijf besten per duur in watt van wie gewicht heeft
+  (`MatchupSide.watts`). Sorteren volgt de eenheid. De kolom Verschil blijft het
+  voordeel op het parcours.
+- Tests in `club-ladder-matchup-sort.test.ts` en `club-ladder-matchup.test.ts`;
+  `/hulp` beschrijft de schakelaar.
+
+**Privacy (open).** Keuze eigenaar: watt voor beide kanten. Daarmee is per
+renner het gewicht af te leiden (watt gedeeld door W/kg), ook van renners van
+andere clubs. De privacyverklaring zegt nog "Het gewicht staat nergens los,
+alleen het gemiddelde van een ploeg vanaf drie renners"; een nieuwe zin ligt
+bij de eigenaar en is nog niet geplaatst. Niet pushen voordat die er staat.
+
+**Bewust niet.** Het model van de verwachte uitslag aanpassen (minder gewicht op
+de vlakke delen, of bijna-gelijke plekken als gelijk tonen): eerst een keuze
+van de eigenaar.
+
+**Niet geverifieerd.** De matchup in de browser (achter inloggen). Wel: tests
+(66 ladder), ESLint en typecheck schoon.
 
 ### Gebouwd — Club Ladder: sorteren in de matchup, score bij de verwachte uitslag
 

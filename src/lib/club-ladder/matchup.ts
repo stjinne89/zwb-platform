@@ -15,6 +15,7 @@ import { pickFive, SQUAD_SIZE, type PoolRider, type RecentSquad, type SquadFocus
 import { averageWeight, logEdges, routeWkg, shownWeight, sideRouteWkg, weightsUsable, type WeightedRider } from "./rider-weight";
 import { DURATIONS, sameTeam, teamRidersFromMatches, topFiveAverage, type PowerWkg, type StoredMatch } from "./team-power";
 import { EVEN_PCT } from "./edge-tone";
+import { riderWatts } from "./matchup-sort";
 import type { DurationTerrain, DurationWeights, PowerDuration } from "./routes";
 
 export { EVEN_PCT };
@@ -45,6 +46,8 @@ export type MatchupSide = {
   /** Geen aanmeldingen op de ladder: de selectie van een captain. */
   selection: boolean;
   wkg: PowerWkg | null;
+  /** Hetzelfde in watt: de vijf besten per duur van wie gewicht heeft, of null. */
+  watts: PowerWkg | null;
   races: number;
   /** Gemiddeld gewicht (hele kg) van de renners met vermogen, pas vanaf drie met gewicht. */
   weightKg: number | null;
@@ -288,6 +291,8 @@ export function buildLadderMatchup(input: {
   const theirRows = basis === "races" ? theirTeam.rows : theirLineup.length > 0 ? theirLineup : theirSquad;
   const ourWkg = ourRows.length > 0 ? topFiveAverage(ourRows.map((row) => row.wkg)) : null;
   const theirWkg = theirRows.length > 0 ? topFiveAverage(theirRows.map((row) => row.wkg)) : null;
+  const ourWatts = sideWatts(ourRows);
+  const theirWatts = sideWatts(theirRows);
 
   const weightCounts = terrain !== null && weightsUsable(ourRows, theirRows);
   const edges = logEdges(sideRouteWkg(ourRows, terrain, weightCounts), sideRouteWkg(theirRows, terrain, weightCounts));
@@ -331,6 +336,7 @@ export function buildLadderMatchup(input: {
       lineup: ours.lineup,
       selection,
       wkg: ourWkg,
+      watts: ourWatts,
       races: ourTeam.races,
       weightKg: shownWeight(ourRows),
       focus: null,
@@ -342,6 +348,7 @@ export function buildLadderMatchup(input: {
       lineup: theirs.lineup,
       selection: false,
       wkg: theirWkg,
+      watts: theirWatts,
       races: theirTeam.races,
       weightKg: shownWeight(theirRows),
       focus,
@@ -351,6 +358,12 @@ export function buildLadderMatchup(input: {
     routeEdgePct: weightSum > 0 ? Math.round((weighted / weightSum) * 100) : null,
     weightCounts,
   };
+}
+
+/** Vijf besten per duur in watt, alleen van wie gewicht heeft (2026-11-06, keuze eigenaar). */
+function sideWatts(rows: WeightedRider[]): PowerWkg | null {
+  const watts = rows.map((row) => riderWatts(row.wkg, row.weightKg)).filter((row): row is PowerWkg => row != null);
+  return watts.length > 0 ? topFiveAverage(watts) : null;
 }
 
 /** Duren waarop ZWB meer dan gelijk sterker is. */

@@ -2,12 +2,31 @@
 
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { usePowerUnit } from "@/components/power-unit";
 import type { MatchupRider } from "@/lib/club-ladder/matchup";
 import type { PowerDuration } from "@/lib/club-ladder/routes";
-import { nextRiderSort, sortMatchupRiders, type RiderSort, type RiderSortKey } from "@/lib/club-ladder/matchup-sort";
+import type { PowerWkg } from "@/lib/club-ladder/team-power";
+import { nextRiderSort, riderWatts, sortMatchupRiders, type MatchupUnit, type RiderSort, type RiderSortKey } from "@/lib/club-ladder/matchup-sort";
 import { cn } from "@/lib/utils";
 
-const wkg = (value: number | null | undefined) => (value == null ? "–" : value.toFixed(2));
+const shown = (value: number | null | undefined, unit: MatchupUnit) =>
+  value == null ? "–" : unit === "w" ? String(Math.round(value)) : value.toFixed(2);
+
+/** Watt of W/kg uit de schakelaar boven de matchup; % FTP bestaat hier niet. */
+export function useMatchupUnit(): MatchupUnit {
+  return usePowerUnit().unit === "w" ? "w" : "wkg";
+}
+
+/** Eén waarde in de gekozen eenheid, voor de tabel per duur. */
+export function MatchupPower({ wkg, watts }: { wkg: number | null | undefined; watts: number | null | undefined }) {
+  const unit = useMatchupUnit();
+  return <>{shown(unit === "w" ? watts : wkg, unit)}</>;
+}
+
+/** Kop van de tabel per duur: Watt of W/kg. */
+export function MatchupUnitLabel() {
+  return <>{useMatchupUnit() === "w" ? "Watt" : "W/kg"}</>;
+}
 
 /** Renners van één kant; elke kolom sorteert met een klik, zonder klik op startplek. */
 export function MatchupRiderTable({
@@ -23,7 +42,9 @@ export function MatchupRiderTable({
 }) {
   const [sort, setSort] = useState<RiderSort | null>(null);
 
-  const rows = useMemo(() => sortMatchupRiders(riders, sort), [riders, sort]);
+  const unit = useMatchupUnit();
+  const rows = useMemo(() => sortMatchupRiders(riders, sort, unit), [riders, sort, unit]);
+  const powerOf = (rider: MatchupRider): PowerWkg | null => (unit === "w" ? riderWatts(rider.wkg, rider.weightKg) : rider.wkg);
   const toggle = (key: RiderSortKey) => setSort((current) => nextRiderSort(current, key));
 
   const header = (key: RiderSortKey, label: string, align: "left" | "right", className: string) => {
@@ -70,7 +91,7 @@ export function MatchupRiderTable({
             </td>
             {durations.map((d) => (
               <td key={d.key} className="px-1.5 py-1 text-right">
-                {wkg(rider.wkg?.[d.key])}
+                {shown(powerOf(rider)?.[d.key], unit)}
               </td>
             ))}
             <td className="py-1 pl-1.5 text-right">{rider.racingScore == null ? "–" : Math.round(rider.racingScore)}</td>

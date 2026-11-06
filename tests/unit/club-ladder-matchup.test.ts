@@ -97,6 +97,22 @@ describe("buildLadderMatchup", () => {
     expect(result.routeEdgePct).toBe(8);
   });
 
+  it("geeft per kant ook watt, uit wie gewicht heeft", () => {
+    const result = buildLadderMatchup({
+      ourName: "ZWBeasts",
+      opponent: "Galaxy Avengers",
+      signups: [signup(1, "ZWBeasts", 1), signup(2, "ZWBeasts", 2), signup(11, "Galaxy Avengers", 1)],
+      matches,
+      power90: new Map(),
+      scores: new Map(),
+      weights: null,
+      riderWeights: new Map([[1, 80], [2, 60]]),
+    });
+    // (4,4 × 80 + 4,4 × 60) / 2 = 308 W; de tegenstander heeft geen gewicht.
+    expect(result.ours.watts?.m5).toBe(308);
+    expect(result.theirs.watts).toBeNull();
+  });
+
   it("rekent met de selectie van een captain tegen de recente renners van de tegenstander", () => {
     const result = buildLadderMatchup({
       ourName: "ZWBeasts",

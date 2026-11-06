@@ -1,18 +1,20 @@
+import { cookies } from "next/headers";
 import { EmptyState } from "@/components/app-ui";
 import { ChoiceTabs } from "@/components/choice-tabs";
+import { PowerUnitProvider, PowerUnitToggle } from "@/components/power-unit";
 import { DURATION_LABELS } from "@/lib/club-ladder/advice";
 import { EVEN_PCT, ourAdvantages, type LadderMatchup, type MatchupSide } from "@/lib/club-ladder/matchup";
 import { SQUAD_FOCUS_LABELS, SQUAD_FOCUSES, type SquadFocus } from "@/lib/club-ladder/opponent-five";
 import { DURATIONS } from "@/lib/club-ladder/team-power";
+import { POWER_UNIT_COOKIE } from "@/lib/training/power-unit";
 import { cn } from "@/lib/utils";
-import { MatchupRiderTable } from "./ladder-matchup-riders";
+import { MatchupPower, MatchupRiderTable, MatchupUnitLabel } from "./ladder-matchup-riders";
 
-const wkg = (value: number | null | undefined) => (value == null ? "–" : value.toFixed(2));
 const pct = (value: number) => `${value > 0 ? "+" : ""}${value}%`;
 const kg = (value: number | null) => (value == null ? "–" : `${value} kg`);
 
 /** ZWB tegen de tegenstander op een ladderrace: vermogen per duur, gewogen naar het parcours. */
-export function LadderMatchupView({
+export async function LadderMatchupView({
   matchup,
   byFocus,
   routeLabel,
@@ -42,22 +44,29 @@ export function LadderMatchupView({
         })),
       ]
     : null;
+  // Watt alleen als iemand dat elders (Teams, ZWBeter Worden) koos; anders W/kg zoals de ladder.
+  const unitCookie = (await cookies()).get(POWER_UNIT_COOKIE)?.value;
   return (
-    <section id="matchup" className="scroll-mt-20 space-y-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Matchup</h2>
-      <div className="space-y-4 rounded-lg border bg-card p-4">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-baseline gap-3">
-          <p className="font-semibold">{matchup.ours.name}</p>
-          <span className="text-xs text-muted-foreground">tegen</span>
-          <p className="text-right font-semibold">{matchup.theirs.name}</p>
+    <PowerUnitProvider initialUnit={unitCookie === "w" ? "w" : "wkg"} weightKg={null}>
+      <section id="matchup" className="scroll-mt-20 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Matchup</h2>
+          <PowerUnitToggle />
         </div>
-        {tabs ? (
-          <ChoiceTabs label={`Ploeg van ${matchup.theirs.name}`} tabs={tabs} />
-        ) : (
-          <MatchupBody matchup={matchup} routeLabel={routeLabel} />
-        )}
-      </div>
-    </section>
+        <div className="space-y-4 rounded-lg border bg-card p-4">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-baseline gap-3">
+            <p className="font-semibold">{matchup.ours.name}</p>
+            <span className="text-xs text-muted-foreground">tegen</span>
+            <p className="text-right font-semibold">{matchup.theirs.name}</p>
+          </div>
+          {tabs ? (
+            <ChoiceTabs label={`Ploeg van ${matchup.theirs.name}`} tabs={tabs} />
+          ) : (
+            <MatchupBody matchup={matchup} routeLabel={routeLabel} />
+          )}
+        </div>
+      </section>
+    </PowerUnitProvider>
   );
 }
 
@@ -94,7 +103,9 @@ function MatchupBody({ matchup, routeLabel }: { matchup: LadderMatchup; routeLab
             <table className="w-full text-sm tabular-nums">
               <thead className="text-xs text-muted-foreground">
                 <tr className="border-b">
-                  <th className="py-1.5 pr-3 text-left font-medium">W/kg</th>
+                  <th className="py-1.5 pr-3 text-left font-medium">
+                    <MatchupUnitLabel />
+                  </th>
                   <th className="px-3 py-1.5 text-right font-medium">{ours.name}</th>
                   <th className="px-3 py-1.5 text-right font-medium">{theirs.name}</th>
                   <th className="px-3 py-1.5 text-right font-medium">Verschil</th>
@@ -108,8 +119,12 @@ function MatchupBody({ matchup, routeLabel }: { matchup: LadderMatchup; routeLab
                   return (
                     <tr key={row.duration} className={cn("border-b last:border-0", ahead && "bg-primary/5")}>
                       <td className="py-1.5 pr-3">{DURATION_LABELS[row.duration]}</td>
-                      <td className={cn("px-3 py-1.5 text-right", ahead && "font-semibold text-primary")}>{wkg(row.ours)}</td>
-                      <td className={cn("px-3 py-1.5 text-right", behind && "font-semibold")}>{wkg(row.theirs)}</td>
+                      <td className={cn("px-3 py-1.5 text-right", ahead && "font-semibold text-primary")}>
+                        <MatchupPower wkg={row.ours} watts={ours.watts?.[row.duration]} />
+                      </td>
+                      <td className={cn("px-3 py-1.5 text-right", behind && "font-semibold")}>
+                        <MatchupPower wkg={row.theirs} watts={theirs.watts?.[row.duration]} />
+                      </td>
                       <td className={cn("px-3 py-1.5 text-right", ahead ? "text-primary" : "text-muted-foreground")}>
                         {row.edgePct == null ? "–" : Math.abs(row.edgePct) < EVEN_PCT ? "gelijk" : pct(row.edgePct)}
                       </td>
