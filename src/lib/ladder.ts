@@ -4,6 +4,21 @@
 
 const GRAVEYARD_URL = "https://ladder.cycleracing.club/graveyard";
 
+/**
+ * LADDER_COOKIE als Cookie-header. Ook goed als alleen de waarde is geplakt
+ * (zonder `connect.sid=`), tussen aanhalingstekens of met `Cookie:` ervoor
+ * (2026-11-06: alleen de waarde gaf "sessie verlopen").
+ */
+export function ladderCookie(raw: string | null | undefined = process.env.LADDER_COOKIE): string | null {
+  const value = (raw ?? "")
+    .trim()
+    .replace(/^cookie:\s*/i, "")
+    .replace(/^["']|["']$/g, "")
+    .trim();
+  if (!value) return null;
+  return /^[\w.-]+=/.test(value) ? value : `connect.sid=${value}`;
+}
+
 export type LadderGraveyardResult = {
   teamNames: string[];
   rawHtmlSnippet: string; // eerste 500 tekens voor debug

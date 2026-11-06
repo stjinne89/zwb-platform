@@ -3,7 +3,7 @@ import { parseClubLadderSummary, type ClubLadderResult, type ClubLadderSummary }
 import { storeLadderResults } from "@/lib/club-ladder/store";
 import { syncLadderFixtures, type LadderFixtureSyncResult } from "@/lib/club-ladder/fixture-sync";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { normalizeTeamName } from "@/lib/ladder";
+import { ladderCookie, normalizeTeamName } from "@/lib/ladder";
 
 type SourceTeam = {
   name?: string | null;
@@ -1120,7 +1120,7 @@ export async function syncTeamResults(
   if (ladder.summary) {
     try {
       ladderFixtures = await syncLadderFixtures(createAdminClient(), ladder.summary, {
-        cookie: process.env.LADDER_COOKIE ?? null,
+        cookie: ladderCookie(),
       });
     } catch (err) {
       ladderFixtures = { error: err instanceof Error ? err.message : "Ladderwedstrijden niet gesynct." };

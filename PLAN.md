@@ -11861,6 +11861,20 @@ syncen. Niet door Claude: een sessiecookie invoeren hoort bij de eigenaar.
 Dat de Netlify-waarde ook verlopen is, is aangenomen (zelfde waarde als lokaal),
 niet gecontroleerd.
 
+**Vervolg 2026-11-06: alleen de waarde geplakt.** De eigenaar zette een nieuwe
+cookie in Netlify zonder `connect.sid=` ervoor; de ladder kent dan de sessie
+niet en de sync bleef "verlopen" melden. Nieuw: `ladderCookie()` in
+`lib/ladder.ts` maakt van alleen de waarde, aanhalingstekens of een
+`Cookie:`-voorvoegsel een geldige header; de sync en het kerkhof lezen de env
+daarmee (`team-results/sync.ts`, `teams/_actions.ts`). Test
+`ladder-cookie.test.ts`. Lokaal gecommit, niet gepusht.
+Tegelijk faalde een Netlify-build op `next/font/google` in
+`zwbekers/kast-view.tsx` ("Can't resolve …/internal/font/google/font"). Die
+code en `package.json` zijn sinds eind oktober niet veranderd en latere builds
+slaagden; aangenomen is een tijdelijke fout bij het ophalen van Google Fonts
+tijdens de build, niet gecontroleerd. Het advies van Netlify om Next.js terug
+te zetten naar 15 is bewust niet opgevolgd.
+
 **Bewust niet.** Geen automatische vernieuwing van de sessie (dat vraagt
 inloggegevens op de server).
 

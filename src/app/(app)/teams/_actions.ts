@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { syncTeamResults } from "@/lib/team-results/sync";
-import { fetchLadderGraveyard, normalizeTeamName } from "@/lib/ladder";
+import { fetchLadderGraveyard, ladderCookie, normalizeTeamName } from "@/lib/ladder";
 import { syncOnePowerProfile, type IntervalsConnectionRow } from "@/lib/teams/power-sync";
 
 export async function syncResultsNow() {
@@ -39,7 +39,7 @@ export async function syncResultsNow() {
 }
 
 export async function syncLadderGraveyard() {
-  const cookie = process.env.LADDER_COOKIE;
+  const cookie = ladderCookie();
   if (!cookie) {
     return {
       ok: false as const,
