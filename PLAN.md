@@ -11797,8 +11797,9 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — ZWBekers: bekers blijven zichtbaar onder de bordjes
 
-**2026-11-06.** Commit op de branch `claude/bekers-visibility-kast-desktop-1645c6`,
-niet gepusht. Geen migratie.
+**2026-11-06.** Commit `dc180700` op de branch
+`claude/bekers-visibility-kast-desktop-1645c6`, op 2026-11-06 op verzoek van de
+eigenaar gepusht naar `main`. Geen migratie.
 
 **Waarom.** Melding van de eigenaar met een screenshot: op desktop vielen de
 bekers in de kast weg. Het messing bordje van een beker hangt onder zijn plank,
