@@ -48,7 +48,7 @@ gaat stabiliteit voor nieuwe features.
    advies renner tegen renner, intervals.icu eerst".
 
 0v. **Club Ladder: echte ploeg van de tegenstander eerst in de matchup
-   (2026-11-06): lokaal gecommit (`38ce2b25`), niet gepusht.** Geen migratie. Nalopen na een
+   (2026-11-06): gepusht naar `main` (`38ce2b25`).** Geen migratie. Nalopen na een
    deploy: op een ladderevent waar de tegenstander zich aanmeldde de eerste knop
    Opstelling of Aangemeld, daarna de vier types. Zie de ronde "Club Ladder: echte
    ploeg van de tegenstander eerst in de matchup".
@@ -11791,8 +11791,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: echte ploeg van de tegenstander eerst in de matchup
 
-**2026-11-06.** Commit `38ce2b25` op de branch
-`claude/club-ladder-opponent-lineup-5a536c`, lokaal, niet gepusht. Geen migratie.
+**2026-11-06.** Commit `38ce2b25`, op 2026-11-06 op verzoek van de eigenaar
+naar `main` gepusht. Geen migratie.
 
 **Waarom.** De eigenaar zag in de matchup van een ladderrace dat de knoppen
 Overall, Sprint, Klim en Punch bleven staan terwijl de ploeg van de
