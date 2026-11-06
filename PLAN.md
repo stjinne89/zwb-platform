@@ -11886,7 +11886,8 @@ nu, zoals in de eerste commit. De bevroren plekken zelf bewaren in plaats van
 het vermogen: dan heeft een wissel geen verwachting en klopt de schaal 1–10 niet
 meer.
 
-**Correctie: namen linken naar het profiel (2026-11-06, na de push).** De
+**Correctie: namen linken naar het profiel (2026-11-06, `09776d26`, op
+verzoek van de eigenaar naar `main` gepusht).** De
 uitslag en de renners in de matchup toonden ZWB'ers als platte tekst, tegen de
 afspraak van 2026-10-04 in (ronde "lidnamen klikbaar naar het profiel"). De
 eigenaar wees erop. Nu zoekt `event-result-load.ts` per finishplek het profiel
