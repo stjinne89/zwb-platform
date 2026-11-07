@@ -16,7 +16,7 @@ import { DURATIONS, type PowerWkg } from "./team-power";
 const MAX_POOL = 10;
 
 export type FiveOption = {
-  /** Wie er rust, op volgorde van de matchup. */
+  /** Wie er op de bank zit, op volgorde van de matchup. */
   rest: Array<Pick<MatchupRider, "zwiftId" | "name" | "profileId">>;
   five: number[];
   ours: number;

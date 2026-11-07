@@ -11859,9 +11859,11 @@ tegenstander meer dan vijf aangemeld, dan rekent het met zijn sterkste vijf.
 Hooguit de tien sterksten van ons (252 vijftallen). `loadLadderEventMatchup`
 hangt het advies aan elke matchup (`LadderMatchup.ourFive`), ook aan elke knop
 Overall/Sprint/Klim/Punch, want de vijf van de tegenstander verschillen per
-knop. In de matchup staat het blok Onze vijf: per vijftal wie rust (met
-profiellink) en de verwachte score, de beste zes, het beste met advies;
-renners zonder vermogen onder Zonder vermogen. `/hulp` bijgewerkt.
+knop. In de matchup staat het blok Onze vijf: per vijftal wie op de bank zit
+(met profiellink) en de verwachte score, de beste zes, het beste met advies;
+renners zonder vermogen onder Zonder vermogen. `/hulp` bijgewerkt. De kolom
+heette eerst Rust; op 2026-11-07 op verzoek van de eigenaar Op de bank, en
+`/hulp` legt uit hoe je de regels leest.
 
 **Op productie (2026-11-07, alleen-lezend).** De route van fixture 17884 staat
 nog niet op de ladder (`zwift_route_id` leeg), dus het advies rekent tot dan

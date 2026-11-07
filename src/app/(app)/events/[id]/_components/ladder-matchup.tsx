@@ -190,7 +190,7 @@ const names = (riders: FiveAdvice["withoutPower"]) =>
     </span>
   ));
 
-/** Met meer dan vijf van ons: per vijftal wie rust en de verwachte score, beste eerst. */
+/** Met meer dan vijf van ons: per vijftal wie op de bank zit en de verwachte score, beste eerst. */
 function OurFive({ advice, ourName }: { advice: FiveAdvice; ourName: string }) {
   const options = advice.options.slice(0, FIVE_OPTIONS_SHOWN);
   return (
@@ -199,7 +199,7 @@ function OurFive({ advice, ourName }: { advice: FiveAdvice; ourName: string }) {
       <table className="w-full text-sm tabular-nums">
         <thead className="text-xs text-muted-foreground">
           <tr className="border-b">
-            <th className="py-1.5 pr-3 text-left font-medium">Rust</th>
+            <th className="py-1.5 pr-3 text-left font-medium">Op de bank</th>
             <th className="px-3 py-1.5 text-right font-medium">Verwacht</th>
             <th className="py-1.5 pl-3 text-right font-medium">
               <span className="sr-only">Advies</span>
