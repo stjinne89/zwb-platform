@@ -68,8 +68,8 @@ gaat stabiliteit voor nieuwe features.
    opent het event bij Uitslag, en een oudere wedstrijd opent de ladder. Zie de ronde "Club Ladder: uitslagen onder
    Teamresultaten".
 
-1d. **Club Ladder: advies welke vijf rijden (2026-11-07): lokaal gecommit,
-   niet gepusht.** Geen migratie. Nalopen na een deploy: op ZWBeasts – Team Not
+1d. **Club Ladder: advies welke vijf rijden (2026-11-07): gepusht naar `main`
+   (`52e7fc17`).** Geen migratie. Nalopen na een deploy: op ZWBeasts – Team Not
    Pogi Giro (11 november, zes in de selectie) staat in de matchup Onze vijf.
    Open: het racebriefje rekent zijn verwachte uitslag nog met alle zes. Zie de
    ronde "Club Ladder: advies welke vijf rijden".
@@ -11840,8 +11840,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: advies welke vijf rijden
 
-**2026-11-07.** Lokaal gecommit op `claude/club-ladder-results-display-bca882`,
-niet gepusht. Geen migratie.
+**2026-11-07.** Commit `52e7fc17`, op 2026-11-07 op verzoek van de eigenaar
+naar `main` gepusht. Geen migratie.
 
 **Waarom.** ZWBeasts hebben voor ZWBeasts – Team Not Pogi Giro (11 november)
 zes renners in de selectie van de captain; op de ladder rijden er vijf. De
