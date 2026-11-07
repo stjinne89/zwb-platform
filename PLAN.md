@@ -11882,6 +11882,31 @@ punten krijgen. Het zou met het geadviseerde vijftal moeten rekenen.
 **Niet geverifieerd.** Niet in de browser. Unittests voor zes renners, renners
 zonder vermogen, geen tegenstander en de weging naar het parcours.
 
+### Gebouwd — Warming-ups zonder ZRL in de naam
+
+**2026-11-06.** Commit `1063b755`, op 2026-11-06 op verzoek van de eigenaar
+naar `main` gepusht. Migratie 0309 (`0309_workout_library_warmup_names.sql`),
+dezelfde dag op productie toegepast; daarna stonden de vijf warming-ups daar met
+de nieuwe namen. Lokaal niet testbaar met `supabase db reset` (geen Docker of
+config.toml), wel met PGlite (`workout-library-warmup-names-migration.test.ts`).
+
+**Waarom.** De eigenaar wilde de ZRL-namen uit de warming-ups: ze passen bij
+elke scratch- of puntenrace, niet alleen bij de ZRL.
+
+**Wat er veranderde.** "Warming-up ZRL lang" heet nu "Warming-up wedstrijd",
+"Warming-up ZRL kort" heet "Warming-up wedstrijd kort" (beschrijving zonder
+"ZRL-race"). Duur en opbouw zijn gelijk. `suggestedWarmupTitle` geeft voor een
+gewone race "Warming-up wedstrijd". `/hulp/schema#warming-up` en
+`docs/warming-up-per-wedstrijdtype.md` volgen de nieuwe namen.
+
+**Bewust niet.** Niet "Warming-up wedstrijd lang": dat leest als "lange
+wedstrijd", en die bestaat al (12 minuten, voor anderhalf uur of langer).
+Al ingeplande en gereden warming-ups houden hun oude titel (op productie op
+2026-11-06: 2 gepland, 9 gereden). De geplande staan zo al in intervals.icu, en
+alleen de titel hier wijzigen zou ze van elkaar laten afwijken.
+
+**Niet geverifieerd.** Niet in de browser.
+
 ### Gebouwd — Club Ladder: uitslagen onder Teamresultaten
 
 **2026-11-06.** Commit `f09ddad6`, op 2026-11-06 op verzoek van de eigenaar
@@ -27843,7 +27868,7 @@ de fietscomputer staat.
   vijf warming-ups en de knop "Zet klaar": in Vandaag (eerstvolgende workout),
   in de lijst op Schema en in het kalenderdetail. De voorkeuze volgt uit titel
   en duur van de race (`suggestedWarmupTitle`): TTT, tijdrit, 90 minuten of
-  langer, anders ZRL lang.
+  langer, anders ZRL lang (sinds 0309 "Warming-up wedstrijd").
 - `planRaceWarmup` zet de warming-up als eigen workout met origin `member` in
   het plan van de race, zo dat hij vijf minuten voor de start klaar is, en
   stuurt hem meteen naar intervals.icu. Er volgt geen herziening.
@@ -27889,6 +27914,8 @@ na en helpt start en sprint, niet het duurvermogen.
   geen vorm toegevoegd vanwege die check; hier is de vorm het hele doel.
 - Vijf standaardworkouts: tijdrit (25 min), ZRL lang (21, voor scratch en
   puntenrace), ZRL kort (10), ploegentijdrit (25) en lange wedstrijd (12).
+  Sinds 0309 (2026-11-06) heten ZRL lang en ZRL kort "wedstrijd" en
+  "wedstrijd kort".
   Scratch en puntenrace waren eerst twee workouts die alleen in het aantal
   bursts verschilden; Stijn voegde ze samen. `intensity` is
   `endurance`, zodat `dropShortRecoveryRides` ze niet weggooit.

@@ -53,7 +53,7 @@ export function suggestedWarmupTitle(race: { title: string; duration_minutes: nu
   if (/\bttt\b|ploegentijdrit|team time trial/.test(title)) return "Warming-up ploegentijdrit";
   if (/\bi?tt\b|tijdrit|time trial|race of truth/.test(title)) return "Warming-up tijdrit";
   if (race.duration_minutes >= LONG_RACE_MINUTES) return "Warming-up lange wedstrijd";
-  return "Warming-up ZRL lang";
+  return "Warming-up wedstrijd";
 }
 
 /** Het begin van de warming-up, zodat hij kort voor de start van de race klaar is. */

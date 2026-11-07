@@ -69,10 +69,10 @@ en daarna losdraait.
 | Warming-up | Min | Opbouw | Waarom |
 |---|---|---|---|
 | Tijdrit | 25 | 5 @50-60 · 4 @60-75 · 3 @80-90 · 2 @95-100 · 3 los · 1 @105-115 · 2 los · 3 bursts (versnelling) · 2 los | Constant hoog vermogen vanaf de eerste seconde: priming weegt het zwaarst. Bursts licht, omdat het bewijs dun is. |
-| ZRL lang (scratch en puntenrace) | 21 | 5 @50-60 · 4 @65-80 · 2 @90-100 · 2 los · 1 @110-120 · 2 los · 4 bursts (voluit) · 1 los | De start is het zwaarste stuk en sprints beslissen: vier activaties, het maximum dat het herstel van fosfocreatine toelaat. De laatste burst valt binnen het venster van de potentiëring. |
+| Wedstrijd (scratch en puntenrace) | 21 | 5 @50-60 · 4 @65-80 · 2 @90-100 · 2 los · 1 @110-120 · 2 los · 4 bursts (voluit) · 1 los | De start is het zwaarste stuk en sprints beslissen: vier activaties, het maximum dat het herstel van fosfocreatine toelaat. De laatste burst valt binnen het venster van de potentiëring. |
 | Ploegentijdrit | 25 | 5 @50-60 · 4 @60-80 · 3 @85-95 · 2 los · 2 x (1 @110-120 kop, 1 @80-85 wiel) · 3 los · 2 bursts (versnelling) · 2 los | Het ritme van de race zelf, plus twee versnellingen voor het op gang brengen van de trein. |
 | Lange wedstrijd | 12 | 5 @50-60 · 3 @65-75 · 1 @90-100 · 1 los · 1 burst · 1 los | Glycogeen en warmte sparen. Eén burst kost vrijwel niets. |
-| ZRL kort | 10 | 3 @50-60 · 3 @65-85 · 1 @100-110 · 1 los · 2 bursts | Het minimum dat principe 1 en 2 nog raakt. |
+| Wedstrijd kort | 10 | 3 @50-60 · 3 @65-85 · 1 @100-110 · 1 los · 2 bursts | Het minimum dat principe 1 en 2 nog raakt. |
 
 Scratch en puntenrace delen één warming-up: een verschil tussen die twee is
 uit de literatuur niet te verdedigen.
