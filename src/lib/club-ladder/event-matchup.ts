@@ -6,7 +6,8 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 import { matchupWeights } from "./briefing";
 import { expectationRiders } from "./event-result";
 import { saveLadderExpectation } from "./expectation-store";
-import { ladderOpponentFromTitle } from "./fixture-events";
+import { ladderChallengerFromTitle, ladderOpponentFromTitle } from "./fixture-events";
+import { ourFiveAdvice } from "./five-advice";
 import { ensureMatchRiders, loadStoredMatches, loadTeamMatches } from "./matches";
 import { buildLadderMatchup, opponentRiderIds, type LadderMatchup, type MatchupSignup } from "./matchup";
 import { RECENT_RACES, recentTeamRiders, SQUAD_FOCUSES, type SquadFocus } from "./opponent-five";
@@ -140,8 +141,11 @@ export async function loadLadderEventMatchup(
     ourIntervals,
   };
   // Elke ZWB'er in de matchup linkt naar zijn profiel (afspraak 2026-10-04).
+  // Meer dan vijf van ons: welke vijf rijden, per ploeg van de tegenstander (2026-11-07).
+  const challenger = ladderChallengerFromTitle(event.title, ourName) === true;
   const withProfiles = (row: LadderMatchup): LadderMatchup => {
     for (const side of [row.ours, row.theirs]) for (const rider of side.riders) rider.profileId = profileIds.get(rider.zwiftId) ?? null;
+    row.ourFive = ourFiveAdvice(row, option?.weights ?? null, challenger);
     return row;
   };
   const matchup = withProfiles(buildLadderMatchup(base));

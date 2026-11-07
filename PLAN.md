@@ -68,6 +68,12 @@ gaat stabiliteit voor nieuwe features.
    opent het event bij Uitslag, en een oudere wedstrijd opent de ladder. Zie de ronde "Club Ladder: uitslagen onder
    Teamresultaten".
 
+1d. **Club Ladder: advies welke vijf rijden (2026-11-07): lokaal gecommit,
+   niet gepusht.** Geen migratie. Nalopen na een deploy: op ZWBeasts – Team Not
+   Pogi Giro (11 november, zes in de selectie) staat in de matchup Onze vijf.
+   Open: het racebriefje rekent zijn verwachte uitslag nog met alle zes. Zie de
+   ronde "Club Ladder: advies welke vijf rijden".
+
 0z. **Club Ladder: gewicht alleen bergop en in de sprint (2026-11-06): gepusht
    naar `main` (`f5509d69`).** Geen migratie. Nalopen na een deploy: op het
    racebriefje van ZWBeasts – Galaxy Avengers staat Pim bovenaan. Zie de ronde
@@ -11831,6 +11837,50 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Club Ladder: advies welke vijf rijden
+
+**2026-11-07.** Lokaal gecommit op `claude/club-ladder-results-display-bca882`,
+niet gepusht. Geen migratie.
+
+**Waarom.** ZWBeasts hebben voor ZWBeasts – Team Not Pogi Giro (11 november)
+zes renners in de selectie van de captain; op de ladder rijden er vijf. De
+eigenaar vroeg een advies- of keuzehulp bij de matchup. Tot nu toe telde de
+matchup per duur de vijf besten uit alle zes (per duur mogelijk vijf andere
+renners), en gaf hij geen antwoord op de vraag wie er rust.
+
+**Wat er veranderde.** `ourFiveAdvice` (`five-advice.ts`, puur) rekent voor
+elk vijftal uit onze renners met vermogen de verwachte uitslag tegen de vijf van
+de tegenstander, met `projectLadder` en `routeRatings` uit het racebriefje: één
+sterkte per renner over de hele groep (W/kg op dit parcours, met gewicht
+omgerekend als dat meetelt), punten 10‥1, bij gelijke stand verliest de
+uitdager. Volgorde: grootste marge, dan winst, dan de sterkste vijf. Heeft de
+tegenstander meer dan vijf aangemeld, dan rekent het met zijn sterkste vijf.
+Hooguit de tien sterksten van ons (252 vijftallen). `loadLadderEventMatchup`
+hangt het advies aan elke matchup (`LadderMatchup.ourFive`), ook aan elke knop
+Overall/Sprint/Klim/Punch, want de vijf van de tegenstander verschillen per
+knop. In de matchup staat het blok Onze vijf: per vijftal wie rust (met
+profiellink) en de verwachte score, de beste zes, het beste met advies;
+renners zonder vermogen onder Zonder vermogen. `/hulp` bijgewerkt.
+
+**Op productie (2026-11-07, alleen-lezend).** De route van fixture 17884 staat
+nog niet op de ladder (`zwift_route_id` leeg), dus het advies rekent tot dan
+met elke duur even zwaar en schuift mee zodra de sync de route leest. Alle zes
+hebben 90 dagen van ZwiftRacing (vijf ook intervals.icu). Team Not Pogi Giro
+heeft niemand aangemeld; van hen staan 8 wedstrijden met 12 renners bewaard,
+zonder 90-dagenwaarden, dus hun vijf per knop komt uit hun ladderraces.
+
+**Bewust niet.** De keuze opslaan of doorzetten naar de selectie: de captain
+zet de selectie op de teampagina en de opstelling op de ladder; het advies wijst
+alleen aan. Een advies zonder renners van de tegenstander (geen aanmeldingen en
+geen bewaarde races): dan is er geen verwachte score.
+
+**Nog open.** Het racebriefje (`event-briefing.ts`) projecteert met alle renners
+uit de matchup: met zes in de selectie zijn dat elf renners, van wie er tien
+punten krijgen. Het zou met het geadviseerde vijftal moeten rekenen.
+
+**Niet geverifieerd.** Niet in de browser. Unittests voor zes renners, renners
+zonder vermogen, geen tegenstander en de weging naar het parcours.
 
 ### Gebouwd — Club Ladder: uitslagen onder Teamresultaten
 

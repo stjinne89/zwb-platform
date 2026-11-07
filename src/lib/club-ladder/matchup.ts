@@ -15,6 +15,7 @@ import { pickFive, SQUAD_SIZE, type PoolRider, type RecentSquad, type SquadFocus
 import { averageWeight, logEdges, routeWkg, shownWeight, sideRouteWkg, weightsUsable, type WeightedRider } from "./rider-weight";
 import { DURATIONS, sameTeam, teamRidersFromMatches, topFiveAverage, type PowerWkg, type StoredMatch } from "./team-power";
 import { EVEN_PCT } from "./edge-tone";
+import type { FiveAdvice } from "./five-advice";
 import { riderWatts } from "./matchup-sort";
 import { riderPower as pickRiderPower, type IntervalsPower } from "./rank-pairs";
 import type { DurationTerrain, DurationWeights, PowerDuration } from "./routes";
@@ -80,6 +81,8 @@ export type LadderMatchup = {
   routeEdgePct: number | null;
   /** Telt gewicht mee in de verschillen (parcours bekend, beide kanten minstens drie gewichten). */
   weightCounts: boolean;
+  /** Welke vijf van ons rijden, met meer dan vijf beschikbaar (`five-advice.ts`); de loader vult het in. */
+  ourFive?: FiveAdvice | null;
 };
 
 export type MatchupSignup = { zwiftId: number; team: string; name: string; position: number | null };

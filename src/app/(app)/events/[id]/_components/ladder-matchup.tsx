@@ -1,8 +1,10 @@
 import { cookies } from "next/headers";
 import { EmptyState } from "@/components/app-ui";
+import { MemberLink } from "@/components/member-link";
 import { ChoiceTabs } from "@/components/choice-tabs";
 import { PowerUnitProvider, PowerUnitToggle } from "@/components/power-unit";
 import { DURATION_LABELS } from "@/lib/club-ladder/advice";
+import type { FiveAdvice } from "@/lib/club-ladder/five-advice";
 import { EVEN_PCT, ourAdvantages, type LadderMatchup, type MatchupSide } from "@/lib/club-ladder/matchup";
 import { SQUAD_FOCUS_LABELS, SQUAD_FOCUSES, type SquadFocus } from "@/lib/club-ladder/opponent-five";
 import { DURATIONS } from "@/lib/club-ladder/team-power";
@@ -165,11 +167,61 @@ function MatchupBody({ matchup, routeLabel }: { matchup: LadderMatchup; routeLab
         </>
       )}
 
+      {matchup.ourFive && <OurFive advice={matchup.ourFive} ourName={ours.name} />}
+
       {(ours.riders.length > 0 || theirs.riders.length > 0) && (
         <div className="grid gap-4 md:grid-cols-2">
           <SideRiders side={ours} />
           <SideRiders side={theirs} />
         </div>
+      )}
+    </div>
+  );
+}
+
+/** Zoveel vijftallen in het advies; daaronder scheelt het steeds minder. */
+const FIVE_OPTIONS_SHOWN = 6;
+
+const names = (riders: FiveAdvice["withoutPower"]) =>
+  riders.map((rider, index) => (
+    <span key={rider.zwiftId}>
+      {index > 0 && ", "}
+      <MemberLink id={rider.profileId}>{rider.name}</MemberLink>
+    </span>
+  ));
+
+/** Met meer dan vijf van ons: per vijftal wie rust en de verwachte score, beste eerst. */
+function OurFive({ advice, ourName }: { advice: FiveAdvice; ourName: string }) {
+  const options = advice.options.slice(0, FIVE_OPTIONS_SHOWN);
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">{ourName} · onze vijf</p>
+      <table className="w-full text-sm tabular-nums">
+        <thead className="text-xs text-muted-foreground">
+          <tr className="border-b">
+            <th className="py-1.5 pr-3 text-left font-medium">Rust</th>
+            <th className="px-3 py-1.5 text-right font-medium">Verwacht</th>
+            <th className="py-1.5 pl-3 text-right font-medium">
+              <span className="sr-only">Advies</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {options.map((option, index) => (
+            <tr key={option.five.join("-")} className={cn("border-b last:border-0", index === 0 && "bg-primary/5")}>
+              <td className={cn("py-1.5 pr-3", index === 0 && "font-semibold")}>{names(option.rest)}</td>
+              <td className={cn("px-3 py-1.5 text-right", option.win ? "text-primary" : "text-muted-foreground")}>
+                {option.ours}–{option.theirs}
+              </td>
+              <td className="py-1.5 pl-3 text-right text-xs">
+                {index === 0 && <span className="rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">advies</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {advice.withoutPower.length > 0 && (
+        <p className="text-xs text-muted-foreground">Zonder vermogen: {names(advice.withoutPower)}</p>
       )}
     </div>
   );
