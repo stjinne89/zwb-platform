@@ -453,6 +453,14 @@ export function Meetproef() {
     };
   }, [masker, status]);
 
+  // Het camerarecht (Permissions-Policy) hoort bij het document. Kwam je hier via
+  // een link binnen de app, dan geldt nog de header van de vorige pagina
+  // (camera=()) en weigert de browser zonder te vragen. Dan één keer volledig laden.
+  useEffect(() => {
+    const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    if (nav && new URL(nav.name).pathname !== window.location.pathname) window.location.reload();
+  }, []);
+
   // Wake lock valt weg als het tabblad verborgen is; daarna opnieuw vragen.
   useEffect(() => {
     const opnieuw = () => {

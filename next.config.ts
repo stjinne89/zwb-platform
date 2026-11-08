@@ -25,21 +25,23 @@ const csp = [
   "manifest-src 'self'",
 ].join("; ");
 
-const CAMERA_PERMISSIONS_POLICY =
-  "camera=(self), microphone=(), payment=(), usb=(), geolocation=(self)";
+// De houding-meetproef leest live de camera; alleen daar mag het.
+const CAMERA_PAD = "/beheer/houding-meetproef";
 
-const securityHeaders = [
-  { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" },
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "X-Frame-Options", value: "DENY" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  {
-    key: "Permissions-Policy",
-    value: "camera=(), microphone=(), payment=(), usb=(), geolocation=(self)",
-  },
-  { key: "X-DNS-Prefetch-Control", value: "on" },
-  { key: "Content-Security-Policy-Report-Only", value: csp },
-];
+function securityHeaders(camera: "()" | "(self)") {
+  return [
+    { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" },
+    { key: "X-Content-Type-Options", value: "nosniff" },
+    { key: "X-Frame-Options", value: "DENY" },
+    { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+    {
+      key: "Permissions-Policy",
+      value: `camera=${camera}, microphone=(), payment=(), usb=(), geolocation=(self)`,
+    },
+    { key: "X-DNS-Prefetch-Control", value: "on" },
+    { key: "Content-Security-Policy-Report-Only", value: csp },
+  ];
+}
 
 const nextConfig: NextConfig = {
   // De wekelijkse app-update leest PLAN.md van de versie die live staat
@@ -56,14 +58,15 @@ const nextConfig: NextConfig = {
     },
   },
   async headers() {
+    // Elk pad krijgt precies één regel: twee regels met dezelfde sleutel kunnen
+    // als twee headers aankomen, en dan is niet zeker welke de browser volgt.
+    // Daarom sluit de algemene regel de meetproef uit (2026-11-08).
     return [
-      { source: "/:path*", headers: securityHeaders },
-      // De houding-meetproef (2026-11-08) leest live de camera; alleen daar mag
-      // het. Een latere regel met dezelfde sleutel wint (Next headers-docs).
       {
-        source: "/beheer/houding-meetproef",
-        headers: [{ key: "Permissions-Policy", value: CAMERA_PERMISSIONS_POLICY }],
+        source: `/:path((?!${CAMERA_PAD.slice(1)}$).*)`,
+        headers: securityHeaders("()"),
       },
+      { source: CAMERA_PAD, headers: securityHeaders("(self)") },
     ];
   },
   // /training heet nu /zwbeter-worden. Permanent, want er staan al verstuurde

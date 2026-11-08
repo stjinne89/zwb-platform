@@ -11907,9 +11907,31 @@ omdat de schatting er ver naast zat.
     nagezocht.
   - WASM en modellen komen voor de proef van jsDelivr en Google Storage.
 - **`next.config.ts`:** `Permissions-Policy` met `camera=(self)`, alleen voor
-  `/beheer/houding-meetproef`. Een latere regel met dezelfde sleutel wint (Next
-  headers-docs); met curl nagekeken: daar `camera=(self)`, op `/dashboard` nog
-  `camera=()`. De claims over `camera=()` bij de barcodescan zijn bijgewerkt.
+  `/beheer/houding-meetproef`. De claims over `camera=()` bij de barcodescan zijn
+  bijgewerkt. *Eerst via een tweede regel met dezelfde sleutel; zie de
+  herstelronde hieronder.*
+
+**Herstel, 2026-11-08: camera geweigerd op de telefoon.** Commit: de commit die
+dit blok toevoegt, lokaal, nog niet gepusht.
+- **Wat de eigenaar zag.** Op zijn telefoon gaf de meetproef "Permission denied",
+  zonder dat de browser om toestemming vroeg.
+- **Oorzaak.** Het camerarecht hoort bij het document. Wie de meetproef via een
+  link binnen de app opent, krijgt geen nieuw document: dan geldt de header van de
+  vorige pagina (`camera=()`), en de browser weigert zonder te vragen. Bij het
+  testen opende ik de pagina direct, daarom viel het niet op.
+- **Wat er veranderde.**
+  - De meetproef laadt zichzelf één keer volledig opnieuw als hij via een link
+    binnen de app is geopend. Dat ziet hij aan de navigatie-entry van de browser.
+  - In `next.config.ts` krijgt elk pad precies één regel: de algemene regel sluit
+    `/beheer/houding-meetproef` uit (negative lookahead) en de meetproef heeft een
+    eigen volledige set. Daarvoor kwamen er twee regels met dezelfde sleutel, en dan
+    is niet zeker welke Netlify en de browser volgen.
+- **Lokaal nagekeken met curl.** Elk pad heeft één `Permissions-Policy`.
+  `camera=(self)` staat alleen op `/beheer/houding-meetproef`; `/`, `/dashboard`,
+  `/beheer`, `/beheer/houding-meetproefx` en `/beheer/houding-meetproef/x` hebben
+  `camera=()`. De andere beveiligingsheaders staan er ook.
+- **Niet nagekeken:** het opnieuw laden na een link in de app (daarvoor is een
+  login nodig), en de telefoon zelf.
 
 **Bewust niet.**
 - **Een functie voor leden, advies in Zwift Ride-letters en uitleg op `/hulp`.** Dat
