@@ -11933,8 +11933,8 @@ omdat de schatting er ver naast zat.
 - **Niet nagekeken:** het opnieuw laden na een link in de app (daarvoor is een
   login nodig), en de telefoon zelf.
 
-**Herstel, 2026-11-08: alleen de achtercamera.** Commit: de commit die dit blok
-toevoegt.
+**Herstel, 2026-11-08: alleen de achtercamera.** Commit `dea86a1a`, op 2026-11-08
+op verzoek van de eigenaar naar `main` gepusht.
 - **Wat de eigenaar zag.** Op de telefoon pakte de meetproef alleen de
   achtercamera.
 - **Oorzaak.** De keuzelijst had alleen "Achtercamera", tot de camera één keer aan
