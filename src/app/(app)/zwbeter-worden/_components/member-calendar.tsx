@@ -39,8 +39,7 @@ import {
 } from "./manual-ride-dialog";
 import { WorkoutDurationControl } from "./workout-duration-control";
 import { RaceWarmupControl, type RaceWarmupView } from "./race-warmup-control";
-import { RidePlanView } from "./ride-plan-view";
-import type { RidePlan } from "@/lib/nutrition/ride-plan";
+import { WorkoutRidePlan } from "./ride-plan-view";
 import {
   ZwiftEventSuggestions,
   type ChosenZwiftEvent,
@@ -101,8 +100,8 @@ export type MemberCalendarItem = {
     outdoor?: OutdoorRouteView[];
     /** Bij een geplande race: de warming-up die het lid erbij kan zetten. */
     warmup?: RaceWarmupView | null;
-    /** Wat je voor deze rit klaarzet; null onder een uur. */
-    ridePlan?: RidePlan | null;
+    /** Er is een ritplan (klaarzetten); het plan zelf komt pas bij het openen binnen. */
+    ridePlan?: boolean;
     /** Nog niet gereden en vandaag of eerder: de rit zelf invoeren, tot deze dag. */
     enterRide?: { maxDateKey: string } | null;
   };
@@ -357,7 +356,9 @@ function WorkoutDetail({
           {detail.warmup ? (
             <RaceWarmupControl key={`warmup-${item.id}`} raceWorkoutId={item.id} warmup={detail.warmup} />
           ) : null}
-          {detail.ridePlan ? <RidePlanView plan={detail.ridePlan} /> : null}
+          {detail.ridePlan ? (
+            <WorkoutRidePlan workoutId={item.id} durationMinutes={item.durationMinutes} intensity={item.intensity} />
+          ) : null}
           {/* Onderaan, want dit is een suggestie naast de training en niet de
               training zelf: eerst wát je rijdt, dan pas waar je het kunt rijden. */}
           {suggestions ? (

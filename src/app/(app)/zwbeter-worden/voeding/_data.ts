@@ -405,13 +405,22 @@ export async function loadNutritionDayInputs(
   );
 }
 
-type PlannedRide = {
+export type PlannedRide = {
   id: string;
   scheduled_at: string;
   duration_minutes: number | null;
   intensity: string | null;
   status: string;
 };
+
+/** Krijgt deze training een ritplan: gepland, vandaag of later, en minstens een uur. */
+export function ridePlanApplies(workout: PlannedRide, today: string): boolean {
+  return (
+    workout.status === "planned" &&
+    String(workout.scheduled_at).slice(0, 10) >= today &&
+    Number(workout.duration_minutes ?? 0) >= 60
+  );
+}
 
 /**
  * Het ritplan per geplande training van vandaag of later, op training-id. Het
@@ -425,9 +434,7 @@ export async function loadRidePlans(
   today: string,
 ): Promise<Map<string, RidePlan>> {
   const dayOf = (workout: PlannedRide) => String(workout.scheduled_at).slice(0, 10);
-  const upcoming = workouts.filter(
-    (workout) => workout.status === "planned" && dayOf(workout) >= today && Number(workout.duration_minutes ?? 0) >= 60,
-  );
+  const upcoming = workouts.filter((workout) => ridePlanApplies(workout, today));
   const plans = new Map<string, RidePlan>();
   if (upcoming.length === 0) return plans;
   const days = upcoming.map(dayOf).sort();

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useId, useState, type ComponentProps } from "react";
+import { Fragment, useEffect, useId, useState, type ComponentProps } from "react";
 import Link from "next/link";
 import { Bike, Check } from "lucide-react";
 import {
@@ -102,6 +102,58 @@ export function EventRidePlan({ eventId, plan, loadFrom }: { eventId: string; pl
       ) : null}
     </div>
   );
+}
+
+// Terugklikken naar een training toont het plan meteen. De sleutel draagt duur en
+// zwaarte mee, zodat een aangepaste training een nieuw plan krijgt; na een minuut
+// halen we het toch opnieuw, voor een keuze die elders is veranderd.
+const PLAN_TTL_MS = 60_000;
+const fetchedPlans = new Map<string, { at: number; plan: Promise<RidePlan | null> }>();
+
+function fetchWorkoutRidePlan(workoutId: string, key: string): Promise<RidePlan | null> {
+  const cached = fetchedPlans.get(key);
+  if (cached && Date.now() - cached.at < PLAN_TTL_MS) return cached.plan;
+  const plan = fetch(`/api/training/workouts/${encodeURIComponent(workoutId)}/ride-plan`, { cache: "no-store" })
+    .then((response) => (response.ok ? response.json() : { plan: null }))
+    .then((body: { plan?: RidePlan | null }) => body.plan ?? null)
+    .catch(() => {
+      // Een mislukte poging niet onthouden: bij de volgende klik opnieuw.
+      fetchedPlans.delete(key);
+      return null;
+    });
+  fetchedPlans.set(key, { at: Date.now(), plan });
+  return plan;
+}
+
+/**
+ * Het ritplan bij een training in de kalender, opgehaald zodra het detail opent.
+ * Zo hoeft het schema niet elk plan van maanden vooruit mee te sturen.
+ */
+export function WorkoutRidePlan({
+  workoutId,
+  durationMinutes,
+  intensity,
+}: {
+  workoutId: string;
+  durationMinutes: number | null;
+  intensity: string | null;
+}) {
+  const key = `${workoutId}:${durationMinutes ?? ""}:${intensity ?? ""}`;
+  const [loaded, setLoaded] = useState<{ key: string; plan: RidePlan | null } | null>(null);
+  useEffect(() => {
+    let active = true;
+    void fetchWorkoutRidePlan(workoutId, key).then((plan) => {
+      if (active) setLoaded({ key, plan });
+    });
+    return () => {
+      active = false;
+    };
+  }, [workoutId, key]);
+
+  if (!loaded || loaded.key !== key) {
+    return <div aria-hidden className="h-28 animate-pulse rounded-lg border bg-muted/40" />;
+  }
+  return loaded.plan ? <RidePlanView key={key} plan={loaded.plan} /> : null;
 }
 
 export function RidePlanView({

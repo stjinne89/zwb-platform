@@ -9,9 +9,11 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Laadtijd, deel 4: schema weer sneller (2026-11-08): gepusht naar `main`
    (`25e17429`), migratie `0312` toegepast** (versie `20261108205601`, op
-   verzoek van de eigenaar). Nameting: schema 5,4–8,0 → 2,8–5,3 s. Open: de
-   resterende ~2,4 s is het opbouwen van een pagina van 986 KB, vooral de
-   ritplannen; voorstel ligt bij de eigenaar. Zie de ronde "Laadtijd, deel 4".
+   verzoek van de eigenaar). Nameting: schema 5,4–8,0 → 2,8–5,3 s.
+   **Vervolg: ritplan pas bij openklappen (2026-11-08): lokaal gecommit, niet
+   gepusht.** Geen migratie. Na de push: een training in de maandweergave openen
+   en zien dat Klaarzetten verschijnt, de bidonmaat kiezen, en het schema opnieuw
+   meten. Zie de ronde "Laadtijd, deel 4".
 
 0. **Houding (bèta) voor leden (2026-11-08): lokaal gecommit, niet gepusht.**
    Tab Houding onder ZWBeter materiaal, zonder advies in Zwift Ride-letters of
@@ -11899,6 +11901,27 @@ van de pagina van 986 KB, waarin de ritplannen het grootste deel zijn (zie "Niet
 gedaan"). Overige pagina's binnen de ruis van de eerste meting (teams 0,5–0,6 s,
 leden 0,9–1,1 s, dashboard 1,6–1,8 s); de eerste weergave na stilte blijft
 langzamer.
+
+**Vervolg: het ritplan pas bij openklappen (2026-11-08, akkoord eigenaar).** Lokaal
+gecommit, niet gepusht. Commit: de commit die dit blok toevoegt. Geen migratie.
+- De maandweergave van het schema stuurt per training alleen nog of er een ritplan
+  is (`ridePlanApplies`: gepland, vandaag of later, minstens een uur; dezelfde regel
+  als `loadRidePlans`). Het plan zelf haalt `WorkoutRidePlan` op zodra het lid de
+  training openklapt, via `GET /api/training/workouts/[id]/ride-plan`: alleen de
+  eigen, niet-vervangen training, onder de eigen RLS. Tijdens het laden een grijs
+  vlak op de plek van het plan.
+- In de browser onthouden per training, met duur en zwaarte in de sleutel en
+  hooguit een minuut; een mislukte poging wordt niet onthouden.
+- De lijstweergave toont acht trainingen met hun plan en berekent nu alleen die acht
+  in plaats van alle komende.
+
+**Gedrag dat verandert.** Het plan verschijnt bij het openklappen een ogenblik later.
+Elke eerste klik op een training met een ritplan is één functieaanroep bij Netlify.
+
+**Getest.** Typecheck, lint op de gewijzigde bestanden, 4.034 unittests (naast het
+bekende `.env.local`-bestand faalde `admin-areas.test.ts` eenmaal in de volle run;
+los twee keer groen), `npm run build`. **Niet getest:** het gedrag in de browser en
+de nieuwe paginagrootte. Ingelogd testen kan lokaal niet; dat kan pas na de push.
 
 **Waarom.** Bart de Groot meldde dat de app weer traag was. Gemeten in de browser
 (productie, drie keer per pagina, tijd tot de server antwoordt): de meeste pagina's

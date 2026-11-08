@@ -83,7 +83,7 @@ import { shiftDays } from "@/lib/training/season";
 import { manualRideWindow } from "@/lib/training/completion";
 import { loadOwnWorkoutOptions } from "@/lib/training/own-workouts";
 import { loadActiveRuns } from "../_protocol-data";
-import { loadRidePlans } from "../voeding/_data";
+import { loadRidePlans, ridePlanApplies } from "../voeding/_data";
 import { RidePlanView } from "../_components/ride-plan-view";
 import type { RidePlan } from "@/lib/nutrition/ride-plan";
 
@@ -152,11 +152,19 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   const eventChoicesPromise = plansPromise.then((loaded) =>
     loadScheduleEventChoices(viewer, activePlan(loaded)),
   );
-  // Wat je voor elke komende rit klaarzet (ritvoeding, stap 2a). Een fout in de
-  // voedingsdata mag het schema niet breken.
-  const ridePlansPromise = memberWorkoutsPromise
-    .then((workouts) => loadRidePlans(viewer, workouts, todayKeyAmsterdam()))
-    .catch(() => new Map<string, RidePlan>());
+  // Wat je voor een komende rit klaarzet (ritvoeding, stap 2a). De maandweergave
+  // haalt het plan pas op als het lid een training openklapt (WorkoutRidePlan):
+  // alle plannen vooruit meesturen maakte de pagina 986 KB en kostte ~2 s
+  // renderen. De lijst toont acht trainingen met hun plan, dus alleen die. Een
+  // fout in de voedingsdata mag het schema niet breken.
+  const ridePlansPromise =
+    workoutView === "lijst"
+      ? memberWorkoutsPromise
+          .then((workouts) =>
+            loadRidePlans(viewer, upcomingListWorkouts(workouts, todayKeyAmsterdam()), todayKeyAmsterdam()),
+          )
+          .catch(() => new Map<string, RidePlan>())
+      : Promise.resolve(new Map<string, RidePlan>());
 
   const [
     snapshot,
@@ -214,9 +222,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
   // workouts staan al in de lijst hierboven.
   const otherEvents = externalIntervalsEvents(snapshot.events, memberWorkouts);
   const upcomingEvents = upcomingIntervalsEvents(otherEvents, 5);
-  const upcomingWorkouts = memberWorkouts
-    .filter((workout) => String(workout.scheduled_at).slice(0, 10) >= todayKey)
-    .slice(0, 8);
+  const upcomingWorkouts = upcomingListWorkouts(memberWorkouts, todayKey);
 
   const unsent = unsentByPlan(memberWorkouts, todayKey);
   const canSelfManagePlans = viewer.access.has("training.create_plans");
@@ -324,7 +330,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
           warmup: isUpcomingRace(workout, todayKey)
             ? raceWarmupView(workout, memberWorkouts, warmupOptions)
             : null,
-          ridePlan: ridePlans.get(workout.id) ?? null,
+          ridePlan: ridePlanApplies(workout, todayKey),
           enterRide,
         },
       };
@@ -615,6 +621,11 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
       {extraRides.length > 0 ? <StravaAttribution /> : null}
     </div>
   );
+}
+
+/** De trainingen die de lijstweergave toont: de eerstvolgende acht. */
+function upcomingListWorkouts<T extends { scheduled_at: string }>(workouts: T[], todayKey: string): T[] {
+  return workouts.filter((workout) => String(workout.scheduled_at).slice(0, 10) >= todayKey).slice(0, 8);
 }
 
 function EventLink({ eventId }: { eventId: string }) {
