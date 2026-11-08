@@ -74,20 +74,21 @@ gaat stabiliteit voor nieuwe features.
    Open: het racebriefje rekent zijn verwachte uitslag nog met alle zes. Zie de
    ronde "Club Ladder: advies welke vijf rijden".
 
-1e. **Dubbele rit zelf verwijderen (2026-11-08): gebouwd, lokaal gecommit
-   (`92c92299`), niet gepusht; migratie `0310` niet toegepast.** Eerst `0310` toepassen
-   (alleen op verzoek van de eigenaar), dan pushen: zonder de tabel weigert de
-   knop met "Verwijderen mislukt." en blijft de sync zoals hij was. Nalopen na
-   een deploy: bij lid `c88693d3` op 1 november de 0-km-"Ochtendrit" naast "SRC -
-   Women Qualifier Race 1" weghalen (met het lid) en na de volgende sync zien dat
-   hij niet terugkomt. Zie de ronde "Dubbele rit zelf verwijderen".
+1e. **Dubbele rit zelf verwijderen (2026-11-08): migratie `0310` toegepast en
+   gepusht naar `main`** (`92c92299`, samengevoegd in `2635570a`). `0310` is op
+   2026-11-08 via de Supabase-connector toegepast, op verzoek van de eigenaar,
+   vóór de push. Nalopen na de deploy: bij lid `c88693d3` op 1 november de
+   0-km-"Ochtendrit" naast "SRC - Women Qualifier Race 1" weghalen (met het
+   lid) en na de volgende sync zien dat hij niet terugkomt. Zie de ronde
+   "Dubbele rit zelf verwijderen".
 
-1f. **Jaarplan: reisdagen bij een trainingskamp (2026-11-08): lokaal
-   gecommit, niet gepusht.** Migratie `0311_training_season_travel_days.sql`
-   is niet toegepast. Eerst toepassen (na `0310` van punt 1e), dan pushen: zonder de kolom geeft een
-   kamp opslaan een databasefout (rust en rustig werken wel, en het laden
-   valt terug op periodes zonder reisdagen). Zie de ronde "Jaarplan: reisdagen
-   bij een trainingskamp".
+1f. **Jaarplan: reisdagen bij een trainingskamp (2026-11-08): migratie `0311`
+   toegepast en gepusht naar `main`** (`c486e2d2`, `7bd25240`). `0311` is op
+   2026-11-08 na `0310` via de Supabase-connector toegepast, op verzoek van de
+   eigenaar, vóór de push. Nalopen na de deploy: een kamp met een reisdag
+   opslaan en zien dat de reisdag op de kaart staat en het schema hem na de
+   herziening leeg laat. Zie de ronde "Jaarplan: reisdagen bij een
+   trainingskamp".
 
 0z. **Club Ladder: gewicht alleen bergop en in de sprint (2026-11-06): gepusht
    naar `main` (`f5509d69`).** Geen migratie. Nalopen na een deploy: op het
@@ -11856,7 +11857,10 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Dubbele rit zelf verwijderen
 
 **2026-11-08.** Commit `92c92299`, lokaal op
-`claude/determined-shirley-52c209`, niet gepusht. Migratie `0310_strava_activity_dismissals.sql`, **niet toegepast**.
+`claude/determined-shirley-52c209`, samengevoegd in `2635570a` en op 2026-11-08
+op verzoek van de eigenaar naar `main` gepusht. Migratie
+`0310_strava_activity_dismissals.sql`, op 2026-11-08 vóór de push toegepast via
+de Supabase-connector (tabel, RLS en de leespolicy daarna gecontroleerd).
 
 **Waarom.** Een lid had een dubbele opname van een workout in de app en kon die
 niet weghalen. Alleen een handmatig ingevoerde rit had een verwijderknop. In
@@ -11914,8 +11918,12 @@ Typecheck, lint op de gewijzigde bestanden en alle unit-tests schoon, op
 
 ### Gebouwd — Jaarplan: reisdagen bij een trainingskamp
 
-**2026-11-08.** Commit: de commit die dit blok toevoegt. Lokaal, niet gepusht.
-Migratie `0311_training_season_travel_days.sql` (niet toegepast).
+**2026-11-08.** Commits `c486e2d2` en `7bd25240` (migratie hernummerd van 0310
+naar 0311, omdat de verwijderknop 0310 al had), samengevoegd in `2635570a` en op
+2026-11-08 op verzoek van de eigenaar naar `main` gepusht. Migratie
+`0311_training_season_travel_days.sql`, op 2026-11-08 na `0310` en vóór de push
+toegepast via de Supabase-connector (kolom `date[]`, niet null, standaard `{}`
+daarna gecontroleerd).
 
 **Waarom.** De eigenaar vroeg om in het jaarplan bij een trainingskamp een
 reisdag te kunnen zetten, zodat duidelijk is dat er die dag niet getraind kan
@@ -11965,7 +11973,8 @@ schema-check-, literatuur- en prompttests groen (280). In de volledige run
 falen 25 bestanden door die ontbrekende pakketten en een ontbrekende
 `.env.local`, plus drie route- en synctests die niets met het jaarplan te
 maken hebben.
-*Niet geverifieerd:* de migratie (geen lokale database); het scherm niet in de
+*Niet geverifieerd:* de migratie niet lokaal (geen lokale database), alleen
+na het toepassen op productie gecontroleerd; het scherm niet in de
 browser bekeken (de devserver bouwt niet zonder `@anthropic-ai/sdk`); of de
 AI-planner de reisdag werkelijk leeg laat.
 
