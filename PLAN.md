@@ -9,8 +9,9 @@ gaat stabiliteit voor nieuwe features.
 
 0. **Laadtijd, deel 4: schema weer sneller (2026-11-08): gepusht naar `main`
    (`25e17429`), migratie `0312` toegepast** (versie `20261108205601`, op
-   verzoek van de eigenaar). Open: `/zwbeter-worden/schema` na de deploy opnieuw
-   meten (was 5,4–8,0 s). Zie de ronde "Laadtijd, deel 4".
+   verzoek van de eigenaar). Nameting: schema 5,4–8,0 → 2,8–5,3 s. Open: de
+   resterende ~2,4 s is het opbouwen van een pagina van 986 KB, vooral de
+   ritplannen; voorstel ligt bij de eigenaar. Zie de ronde "Laadtijd, deel 4".
 
 0. **Houding (bèta) voor leden (2026-11-08): lokaal gecommit, niet gepusht.**
    Tab Houding onder ZWBeter materiaal, zonder advies in Zwift Ride-letters of
@@ -11888,6 +11889,16 @@ eigenaar (versie `20261108205601`). Gecontroleerd na het toepassen: alle 123
 aanroepen van `current_user_has_permission('…')` en de 15 van de twee andere
 functies staan omhuld, niets dubbel, de hulpfunctie is weg; de receptenvraag van
 hieronder kost 91 ms (was 491 ms) en het lid ziet dezelfde 140 recepten.
+
+**Nameting na de deploy (2026-11-08, ~21:00, zelfde lid).** De nieuwe code draaide:
+de drie meldingsvragen van de layout vertrekken binnen 1–3 ms van elkaar.
+`/zwbeter-worden/schema` 5,4–8,0 → **2,8–5,3 s** (zes metingen). In de Supabase-log
+van één weergave zijn alle databasevragen na ~1,3 s klaar, zonder het gat van 3 s
+van daarvoor. Daarna duurt het nog ~2,4 s tot het antwoord binnen is: het renderen
+van de pagina van 986 KB, waarin de ritplannen het grootste deel zijn (zie "Niet
+gedaan"). Overige pagina's binnen de ruis van de eerste meting (teams 0,5–0,6 s,
+leden 0,9–1,1 s, dashboard 1,6–1,8 s); de eerste weergave na stilte blijft
+langzamer.
 
 **Waarom.** Bart de Groot meldde dat de app weer traag was. Gemeten in de browser
 (productie, drie keer per pagina, tijd tot de server antwoordt): de meeste pagina's
