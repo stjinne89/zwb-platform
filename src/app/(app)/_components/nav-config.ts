@@ -231,6 +231,7 @@ export const BEHEER_CATEGORIES: BeheerCategory[] = [
       adminLink("appUpdates"),
       adminLink("koppelingen"),
       adminLink("strava"),
+      adminLink("houdingMeetproef"),
     ],
   },
 ];

@@ -7,6 +7,12 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Houding-meetproef (2026-11-08): gebouwd, lokaal gecommit, niet gepusht.** De
+   eigenaar test op `/beheer/houding-meetproef` met zijn Zwift Ride V2 of het
+   model de kniehoek en het oppervlak goed genoeg meet. Daarna besluit hij of er
+   een functie voor leden komt. Zie de ronde "Houding-meetproef" en
+   [houding-video-meetproef](docs/houding-video-meetproef.md).
+
 0. **OpenAI traint op ledendata (gevonden 2026-10-24).** In de OpenAI-organisatie
    staat het delen van in- en uitvoer aan voor gratis tokens; de
    privacyverklaring zegt dat niet. **Besluit eigenaar 2026-10-24: delen blijft
@@ -4181,6 +4187,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   canvas van hooguit 1600 px, alleen EAN-13, EAN-8, UPC-A en UPC-E, met
 >   `TRY_HARDER`. Het werkt op een foto via het bestandsveld, niet op live
 >   video, dus de `Permissions-Policy` (`camera=()`) blijft zoals hij is.
+>   *Sinds 2026-11-08 staat `camera=(self)` alleen op `/beheer/houding-meetproef`
+>   (ronde "Houding-meetproef"); elders nog `camera=()`.*
 > - De knop Scan staat nu in elke browser. `/hulp#voeding` aangepast.
 >
 > **Getest.** TypeScript en eslint schoon. Met een script buiten de repo
@@ -4377,7 +4385,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > **Bewust niet gebouwd.**
 > - **Live scannen met de camera.** De `Permissions-Policy` zet `camera=()`;
 >   een foto via het bestandsveld valt daar niet onder, live video wel. De
->   beveiligingsheader is niet aangepast.
+>   beveiligingsheader is niet aangepast. *Voor de scanner nog steeds waar; sinds
+>   2026-11-08 staat `camera=(self)` alleen op `/beheer/houding-meetproef`.*
 > - **Scannen op iOS.** Safari heeft geen `BarcodeDetector`; een
 >   JavaScript-bibliotheek als terugval vraagt een nieuwe dependency. Daar is
 >   de knop Scan verborgen en typ je het nummer over. Besluit voor de eigenaar.
@@ -11860,6 +11869,78 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Houding-meetproef: houding en bikefit uit live video
+
+**2026-11-08.** Commit: de commit die dit blok toevoegt, lokaal, niet gepusht. Geen
+migratie. Onderzoek en opzet: [houding-video-meetproef](docs/houding-video-meetproef.md).
+
+**Waarom.** De eigenaar zag Aerox: een webcam meet je frontaal oppervlak terwijl je
+op de trainer zit. Hij wil **live video** in plaats van foto's: één keer een camera
+neerzetten en dan doorrijden, ook 20 minuten lang om vermoeidheid te zien. Daarnaast
+wil hij **bikefit-tips**, met de maten van de Zwift Ride (hij heeft een V2). Hoeveel
+sneller je wordt, vindt hij minder belangrijk. Of het model goed genoeg meet, is
+niet bekend: MediaPipe zat bij fietsen 3–9° naast een meting met markers, terwijl de
+richtwaarde voor de knie maar 10° breed is. Daarom eerst een meetproef, voor beheer
+alleen, voordat leden iets krijgen. Dat is de les van de voedingsfoto, die eruit ging
+omdat de schatting er ver naast zat.
+
+**Wat er veranderde.**
+- **`/beheer/houding-meetproef`**, nieuw beheergebied `houdingMeetproef` onder App,
+  met het recht `roles.manage_permissions`.
+  - *Vooraanzicht:* een masker van de renner (pose of selfie), de stuurbreedte als
+    schaal, het oppervlak in m² en ten opzichte van een basis, en een grafiek per
+    seconde.
+  - *Zijaanzicht:* de kniebuiging onderin en bovenin per omwenteling (mediaan van de
+    laatste tien), gecorrigeerd met een staande meting, plus heuphoek, romp, elleboog
+    en cadans.
+  - *Bevries en meet na* zet het kale beeld vast dat het model zag; je klikt heup,
+    knie en enkel, of de omtrek, en de tabel zet model en hand naast elkaar.
+  - Uitkomsten als CSV, naar het klembord of als bestand. Er wordt niets opgeslagen.
+  - Het scherm blijft aan (Wake Lock).
+- **Rekenkern** `src/lib/houding/meting.ts` (hoeken, oppervlak, uitersten per
+  omwenteling, cadans, CSV), met tests in `tests/unit/houding-meting.test.ts`.
+- **MediaPipe** `@mediapipe/tasks-vision` **0.10.35**, exact vastgezet.
+  - Vanaf 1.0 stuurt de bibliotheek elke minuut gebruiksgegevens naar Google
+    (`odml.pa.googleapis.com`, zonder beeld en zonder uitzetknop).
+  - In 0.10.35 staat dat adres niet; dat is in de JS en de WASM van het pakket
+    nagezocht.
+  - WASM en modellen komen voor de proef van jsDelivr en Google Storage.
+- **`next.config.ts`:** `Permissions-Policy` met `camera=(self)`, alleen voor
+  `/beheer/houding-meetproef`. Een latere regel met dezelfde sleutel wint (Next
+  headers-docs); met curl nagekeken: daar `camera=(self)`, op `/dashboard` nog
+  `camera=()`. De claims over `camera=()` bij de barcodescan zijn bijgewerkt.
+
+**Bewust niet.**
+- **Een functie voor leden, advies in Zwift Ride-letters en uitleg op `/hulp`.** Dat
+  wacht op de uitkomst van de proef, en het plan hoort in het plannenboek.
+- **WASM en modellen op ZWB zelf.** Dat zijn ongeveer 11 MB WASM en 6 MB model in git
+  en in elke deploy, voor een pagina die alleen de eigenaar gebruikt. Bij een echte
+  functie wel, met de cache van de service worker, en zonder Google-adres in de
+  privacyverklaring.
+- **De nieuwste MediaPipe (1.2.2):** vanwege de gebruiksgegevens hierboven.
+- **Omrekenen naar km/h of seconden:** de eigenaar vindt dat minder belangrijk, en
+  de rekenaar van ZWBeter materiaal kan dat al.
+- **Knieën die naar binnen of buiten gaan, gezien van voren, en hoeken van enkel en
+  voet:** de modellen zijn daar slecht in.
+- **Een tabel van Zwift Ride-letter naar mm:** Zwift publiceert die niet. De proef
+  laat de eigenaar meten wat één letter in kniehoek scheelt.
+
+**Niet geverifieerd.** Met een echte camera is niets getest: het browservenster
+blokkeert de camera.
+- Getest met een nepcamera (een stilstaande foto van een persoon als videostroom), op
+  een tijdelijke pagina zonder login die weer is weggehaald:
+  - het model laadt op de GPU en rekent ongeveer 14 beelden per seconde door;
+  - masker, stuurkalibratie, romp- en elleboogshoek, bevriezen en met de hand
+    nameten werken (knie: model 78,8°, hand 76,0°), en de tabel en de CSV kloppen.
+- Niet getest:
+  - het herkennen van omwentelingen op echte video (alleen met een sinus in de
+    unittest);
+  - het selfie-masker;
+  - telefoons, iOS en een app op het beginscherm;
+  - warmte en batterij.
+- Typecheck en lint zijn schoon. Alle unittests slagen. Drie liepen in de volle run
+  vast op een time-out en slagen los wel; `omnium-live` heeft een `.env.local` nodig.
 
 ### Gebouwd — Club Ladder: één wedstrijd, één plek
 
@@ -21311,7 +21392,7 @@ Twee oorzaken, nagebootst op een testpagina met een getekende EAN-13 op een foto
   de foto wordt gelezen en opgezocht.
 
 **Niet gedaan.** Live scannen met de camera: de `Permissions-Policy` zet nog steeds
-`camera=()`, de foto blijft de route. Een kleinere barcode op een grote foto zoeken
+`camera=()`, de foto blijft de route. *Sinds 2026-11-08 staat `camera=(self)` alleen op `/beheer/houding-meetproef` (ronde "Houding-meetproef"); elders nog `camera=()`.* Een kleinere barcode op een grote foto zoeken
 door ook op volle resolutie of een uitsnede te proberen: niet nodig gebleken op de
 testpagina, eerst zien of het in de praktijk nog misgaat. ZXing bijwerken: 0.2.1 is de
 nieuwste `@zxing/browser`.
@@ -25241,7 +25322,9 @@ vroeg of daar een onderdeel voor kan komen, te beginnen met een kennisbank.
 - Fabrikanttests als bron.
 - Virtueel Zwift-materiaal in de kennisbank (dat is spelmechaniek).
 - Slipstream: dat hoort bij racen.
-- Een rekenhulp voor de zadelhoogte.
+- Een rekenhulp voor de zadelhoogte. *De houding-meetproef (2026-11-08) probeert
+  een ander pad: de kniehoek tijdens het trappen meten met video, de methode met
+  het sterkste bewijs.*
 
 **Besluiten van de eigenaar (2026-10-18).**
 - **Pad.** Vraag en Aanbod wordt niet meer gebruikt: het pad `/materiaal` gaat

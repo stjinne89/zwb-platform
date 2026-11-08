@@ -452,7 +452,9 @@ en een test die de uitkomst naast een handberekening legt.
   De rekenaar gebruikt de slipstream wel, als keuze.
 - **Een rekenhulp voor de zadelhoogte.** De beste methode meet de kniehoek
   tijdens het fietsen; een formule uit de binnenbeenlengte is minder goed, en een
-  fout geeft klachten. Het artikel verwijst naar een bikefitter.
+  fout geeft klachten. Het artikel verwijst naar een bikefitter. *Sinds
+  2026-11-08 probeert de houding-meetproef de kniehoek tijdens het trappen met
+  video te meten; zie [houding-video-meetproef](houding-video-meetproef.md).*
 - **De tabel van Vraag en Aanbod opruimen.** Zie "Waar het komt".
 
 ## Gebouwd (2026-10-18)

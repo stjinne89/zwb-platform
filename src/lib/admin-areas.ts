@@ -63,6 +63,13 @@ export const ADMIN_AREAS = {
     label: "App-updates",
     permission: "notifications.broadcast",
   },
+  // Meetproef voor houding en bikefit uit live video (2026-11-08). Het recht van
+  // de eigenaar: het is een proef, nog geen functie voor leden.
+  houdingMeetproef: {
+    href: "/beheer/houding-meetproef",
+    label: "Houding-meetproef",
+    permission: "roles.manage_permissions",
+  },
 } as const satisfies Record<string, AdminArea>;
 
 export type AdminAreaKey = keyof typeof ADMIN_AREAS;

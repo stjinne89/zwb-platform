@@ -25,6 +25,9 @@ const csp = [
   "manifest-src 'self'",
 ].join("; ");
 
+const CAMERA_PERMISSIONS_POLICY =
+  "camera=(self), microphone=(), payment=(), usb=(), geolocation=(self)";
+
 const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" },
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -53,7 +56,15 @@ const nextConfig: NextConfig = {
     },
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // De houding-meetproef (2026-11-08) leest live de camera; alleen daar mag
+      // het. Een latere regel met dezelfde sleutel wint (Next headers-docs).
+      {
+        source: "/beheer/houding-meetproef",
+        headers: [{ key: "Permissions-Policy", value: CAMERA_PERMISSIONS_POLICY }],
+      },
+    ];
   },
   // /training heet nu /zwbeter-worden. Permanent, want er staan al verstuurde
   // pushberichten en gedeelde links met de oude URL in omloop.
