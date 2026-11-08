@@ -74,7 +74,7 @@ gaat stabiliteit voor nieuwe features.
    Open: het racebriefje rekent zijn verwachte uitslag nog met alle zes. Zie de
    ronde "Club Ladder: advies welke vijf rijden".
 
-1f. **Club Ladder: één wedstrijd, één plek (2026-11-08): lokaal gecommit op
+1f. **Club Ladder: één wedstrijd, één plek (2026-11-08): lokaal gecommit (`7ec6ae58`) op
    `claude/club-ladder-structure-review-ffd55d`, niet gepusht.** Geen migratie.
    Nalopen na een deploy, als captain van ZWBeasts: op een komende ladderevent
    staan bovenaan Ben jij erbij?, daaronder Selectie met de antwoorden per lid,
@@ -11863,7 +11863,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Club Ladder: één wedstrijd, één plek
 
-**2026-11-08.** Commit volgt hieronder, lokaal op
+**2026-11-08.** Commit `7ec6ae58`, lokaal op
 `claude/club-ladder-structure-review-ffd55d`, niet gepusht. Geen migratie.
 
 **Waarom.** De eigenaar vond het zoeken waar een functie zit, met een
