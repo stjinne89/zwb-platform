@@ -39,10 +39,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 import { DeleteResultButton, TeamChatLinksForm, TeamResultForm } from "../../[id]/_components/admin-panel";
-import { TeamAvailabilityButtons } from "../../[id]/_components/team-availability-buttons";
 import { LadderAdviceRoutes } from "../_components/ladder-advice-routes";
 import { LadderRoutes, type LadderRouteRow } from "../_components/ladder-routes";
-import { LadderSelection, type SelectionOption } from "../_components/ladder-selection";
 import { Metric, StandingsTable, TeamRidersTable } from "../_components/team-tables";
 import {
   fixtureMatches,
@@ -158,21 +156,15 @@ export default async function ClubLadderTeamPage({
   const matchupEventIds = [...eventByFixture.values()];
   const userId = access.user?.id ?? null;
 
-  // Wat de losse teampagina had: chatkanalen, beschikbaarheid per wedstrijd en teamresultaten.
-  const [{ data: waGroups }, { data: availabilityRows }, { data: teamResults }, { data: captainRows }, selections, storedMatches, { data: pastEvents }] = await Promise.all([
+  // Wat de losse teampagina had: chatkanalen en teamresultaten. Aanmelden en de
+  // selectie van een wedstrijd staan sinds 2026-11-08 op het event zelf.
+  const [{ data: waGroups }, { data: teamResults }, { data: captainRows }, selections, storedMatches, { data: pastEvents }] = await Promise.all([
     supabase
       .from("whatsapp_groups")
       .select("id, name, invite_url, description, kind")
       .eq("team_id", team.id)
       .order("display_order")
       .order("name"),
-    matchupEventIds.length
-      ? supabase
-          .from("team_event_availability")
-          .select("event_id, profile_id, status")
-          .eq("team_id", team.id)
-          .in("event_id", matchupEventIds)
-      : Promise.resolve({ data: [] }),
     supabase
       .from("team_results")
       .select("id, competition, round_label, round_at, position, total_teams, points")
@@ -218,24 +210,8 @@ export default async function ClubLadderTeamPage({
     ...((teamResults ?? []) as TeamResult[]).map((row) => ({ kind: "team" as const, key: row.id, at: row.round_at ?? "9999", row })),
   ].sort((a, b) => b.at.localeCompare(a.at));
   const isCaptain = (captainRows ?? []).length > 0;
-  const canSelect = access.has("teams.manage_roster") || isCaptain;
   const canEditChat = access.has("teams.manage_roster") || isCaptain;
   const canEditResults = access.has("teams.manage_results") || isCaptain;
-  type Availability = { event_id: string; profile_id: string; status: "available" | "maybe" | "unavailable" };
-  const availability = (availabilityRows ?? []) as Availability[];
-  const availabilityNames = new Map<string, string>();
-  const availabilityIds = [...new Set(availability.map((row) => row.profile_id))];
-  if (availabilityIds.length > 0) {
-    const { data: people } = await admin.from("profiles").select("id, display_name").in("id", availabilityIds);
-    for (const person of (people ?? []) as Array<{ id: string; display_name: string | null }>) {
-      availabilityNames.set(person.id, person.display_name ?? "Lid");
-    }
-  }
-  const availabilityFor = (eventId: string, status: Availability["status"]) =>
-    availability
-      .filter((row) => row.event_id === eventId && row.status === status)
-      .map((row) => availabilityNames.get(row.profile_id) ?? "Lid")
-      .sort((a, b) => a.localeCompare(b, "nl"));
   const opponent = tegen ? standings.find((row) => normalizeTeamName(row.name) === normalizeTeamName(tegen)) ?? null : null;
 
   const options = ladderRouteOptions();
@@ -262,11 +238,6 @@ export default async function ClubLadderTeamPage({
     const eventId = fixture.fixtureId ? eventByFixture.get(fixture.fixtureId) : undefined;
     return eventId ? selections.get(eventId) ?? null : null;
   };
-  const selectionOptions: SelectionOption[] = teamRiders.map((rider) => ({
-    kind: rider.rosterEntryId ? "roster" : "profile",
-    id: rider.id,
-    name: rider.name,
-  }));
 
   let advice: LadderAdvice | null = null;
   /** Per type de beste vijf van de tegenstander met hun advies; null als er niets te kiezen is. */
@@ -496,7 +467,6 @@ export default async function ClubLadderTeamPage({
                   )}
                 </>
               );
-              const mine = eventId && userId ? availability.find((row) => row.event_id === eventId && row.profile_id === userId) : undefined;
               const rival = fixtureOpponent(fixture);
               const selection = selectionFor(fixture);
               return (
@@ -511,7 +481,16 @@ export default async function ClubLadderTeamPage({
                   ) : (
                     <div>{body}</div>
                   )}
-                  {rival && (
+                  {eventId && (
+                    <Link
+                      href={`/events/${eventId}#matchup`}
+                      className="self-start font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      Aanmelden en matchup
+                    </Link>
+                  )}
+                  {/* Het routeadvies helpt zolang het parcours nog niet vastligt; daarna telt de matchup. */}
+                  {rival && (!eventId || !fixture.route) && (
                     <Link
                       href={adviceHref(rival)}
                       scroll={false}
@@ -525,27 +504,6 @@ export default async function ClubLadderTeamPage({
                       <span className="text-muted-foreground">{selection.fromLadder ? "Opstelling" : "Selectie"}: </span>
                       {selection.riders.map((rider) => rider.name).join(", ")}
                     </p>
-                  )}
-                  {eventId && canSelect && !selection?.fromLadder && selectionOptions.length > 0 && (
-                    <LadderSelection
-                      teamId={team.id}
-                      eventId={eventId}
-                      options={selectionOptions}
-                      selected={(selection?.riders ?? []).map(({ kind, id }) => ({ kind, id }))}
-                    />
-                  )}
-                  {eventId && userId && (
-                    <div className="mt-auto space-y-2">
-                      <TeamAvailabilityButtons teamId={team.id} eventId={eventId} current={mine?.status ?? null} />
-                      {(["available", "maybe"] as const).map((status) => {
-                        const names = availabilityFor(eventId, status);
-                        return names.length > 0 ? (
-                          <p key={status} className="text-xs text-muted-foreground">
-                            {status === "available" ? "Beschikbaar" : "Misschien"}: {names.join(", ")}
-                          </p>
-                        ) : null;
-                      })}
-                    </div>
                   )}
                 </li>
               );

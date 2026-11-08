@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowUpRight, Pencil } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { refreshExternalLiveSessions } from "@/lib/live/external-refresh";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -37,6 +37,8 @@ import { LadderMatchupView } from "./_components/ladder-matchup";
 import { loadLadderEventMatchup } from "@/lib/club-ladder/event-matchup";
 import { loadLadderEventResult } from "@/lib/club-ladder/event-result-load";
 import { LadderResultView } from "./_components/ladder-result";
+import { LadderSelection, type SelectionOption } from "./_components/ladder-selection";
+import { loadLadderSelectionOptions, loadLadderSelections } from "@/lib/club-ladder/selection";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FrrStagePanel } from "./_components/frr-stage-panel";
 import { SrcPanel } from "./_components/src-panel";
@@ -1034,6 +1036,44 @@ export default async function EventDetailPage({
       strava: profile?.strava_id ?? null,
     });
   }
+  // Ladderrace: alles van deze wedstrijd op het event, ook de selectie van de
+  // captain (stond tot 2026-11-08 op de teampagina, los van "Ben jij erbij?").
+  const isLadderRace = event.type === "ladder" && Boolean(event.team_id) && !isParentEvent;
+  let ladderTeam: {
+    id: string;
+    name: string;
+    fromLadder: boolean;
+    options: SelectionOption[] | null;
+    selected: Array<{ kind: "profile" | "roster"; id: string }>;
+  } | null = null;
+  if (isLadderRace && user && event.team_id) {
+    const ladderAdmin = createAdminClient();
+    const teamId = event.team_id;
+    const isTeamCaptain = ((myTeamRows ?? []) as Array<{ team_id: string; role: string }>).some(
+      (row) => row.team_id === teamId && (row.role === "captain" || row.role === "co-captain"),
+    );
+    const canSelect = access.has("teams.manage_roster") || isTeamCaptain;
+    const [{ data: ladderTeamRow }, selections, options] = await Promise.all([
+      supabase.from("teams").select("name").eq("id", teamId).maybeSingle(),
+      loadLadderSelections(ladderAdmin, teamId, [event.id]),
+      canSelect ? loadLadderSelectionOptions(ladderAdmin, teamId) : Promise.resolve(null),
+    ]);
+    const selection = selections.get(event.id) ?? null;
+    const rsvpByProfile = new Map((rsvps ?? []).map((r) => [r.profile_id as string, r.status as RsvpStatus]));
+    const rsvpOrder = { yes: 0, maybe: 1, none: 2, no: 3 } as const;
+    ladderTeam = {
+      id: teamId,
+      name: (ladderTeamRow?.name as string | undefined) ?? "Ladderteam",
+      fromLadder: selection?.fromLadder ?? false,
+      // Wie ja of misschien zei bovenaan, wie nee zei onderaan.
+      options:
+        options
+          ?.map((option) => ({ ...option, rsvp: option.kind === "profile" ? rsvpByProfile.get(option.id) ?? null : null }))
+          .sort((a, b) => rsvpOrder[a.rsvp ?? "none"] - rsvpOrder[b.rsvp ?? "none"]) ?? null,
+      selected: (selection?.riders ?? []).map(({ kind, id }) => ({ kind, id })),
+    };
+  }
+
   const eventIsToday = isAmsterdamToday(event.start_at);
   let liveTimingOutcome: LiveTimingOutcome | null = null;
   if (eventIsToday && isChronoLiveTimingUrl(event.live_timing_url)) {
@@ -1311,6 +1351,15 @@ export default async function EventDetailPage({
               {eventLabel(event.type, event.kind)}
             </span>
             <ProgramBadges programs={programs} />
+            {ladderTeam && (
+              <Link
+                href={`/teams/club-ladder/${ladderTeam.id}`}
+                className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition hover:bg-muted"
+              >
+                {ladderTeam.name}
+                <ArrowRight className="size-3" />
+              </Link>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <WhatsAppShareLink
@@ -1604,7 +1653,34 @@ export default async function EventDetailPage({
         </section>
       )}
 
-      {!isParentEvent && ownLineup.length > 0 && (
+      {isLadderRace && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Ben jij erbij?
+          </h2>
+          <RsvpPicker eventId={event.id} current={myRsvp ?? null} groups={grouped} />
+        </section>
+      )}
+
+      {ladderTeam && (ownLineup.length > 0 || (ladderTeam.options && !ladderTeam.fromLadder)) && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            {ladderTeam.fromLadder ? "Opstelling" : "Selectie"}
+            {ownLineup.length > 0 ? ` (${ownLineup.length})` : ""}
+          </h2>
+          {ownLineup.length > 0 && <LineupNames riders={ownLineup} className="rounded-lg border bg-card p-3" />}
+          {ladderTeam.options && !ladderTeam.fromLadder && ladderTeam.options.length > 0 && (
+            <LadderSelection
+              teamId={ladderTeam.id}
+              eventId={event.id}
+              options={ladderTeam.options}
+              selected={ladderTeam.selected}
+            />
+          )}
+        </section>
+      )}
+
+      {!isParentEvent && !ladderTeam && ownLineup.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Opstelling ({ownLineup.length})
@@ -1748,7 +1824,7 @@ export default async function EventDetailPage({
         </section>
       )}
 
-      {!isParentEvent && !isRaceWeek && !isSrcSunday && (
+      {!isParentEvent && !isRaceWeek && !isSrcSunday && !isLadderRace && (
         <section className="space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Ben jij erbij?

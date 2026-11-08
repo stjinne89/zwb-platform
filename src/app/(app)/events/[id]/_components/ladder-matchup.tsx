@@ -157,7 +157,7 @@ function MatchupBody({ matchup, routeLabel }: { matchup: LadderMatchup; routeLab
               : `${ours.name} nergens sterker`}
             {" · "}
             {matchup.basis === "lineup"
-              ? `beste vijf ${ours.selection ? "uit de selectie" : "aangemelden"}, 90 dagen`
+              ? `beste vijf ${ours.selection ? "uit de selectie" : "aangemeld op de ladder"}, 90 dagen`
               : matchup.basis === "squad"
                 ? theirs.focus
                   ? `90 dagen; ${theirs.name} uit de laatste ${theirs.recentRaces} races`

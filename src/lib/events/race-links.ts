@@ -136,7 +136,7 @@ export function ladderRaceLinks(
 ): RaceLink[] {
   const links: RaceLink[] = [];
   if (event.external_url) {
-    links.push({ key: "ladder-fixture", kind: "ladder", label: "Club Ladder", url: event.external_url, icon: { glyph: "stage" } });
+    links.push({ key: "ladder-fixture", kind: "ladder", label: "Ladder-site", url: event.external_url, icon: { glyph: "stage" } });
   }
   const route = zwiftRoutes.find((item) => item.id === Number(event.zwift_route_id));
   if (route?.zwiftInsiderUrl && !own.some((link) => link.kind === "zwiftinsider")) {

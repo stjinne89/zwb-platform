@@ -61,3 +61,38 @@ export async function loadLadderSelections(admin: Admin, teamId: string, eventId
   for (const selection of out.values()) selection.riders.sort((a, b) => a.name.localeCompare(b.name, "nl"));
   return out;
 }
+
+export type LadderSelectionOption = { kind: "profile" | "roster"; id: string; name: string };
+
+/**
+ * Wie een captain voor een ladderwedstrijd kan kiezen: de leden van het team en
+ * de rosterrenners zonder eigen profiel in het team. Dezelfde set als
+ * setLadderSelection toelaat.
+ */
+export async function loadLadderSelectionOptions(admin: Admin, teamId: string): Promise<LadderSelectionOption[]> {
+  const [{ data: memberRows }, { data: rosterRows }] = await Promise.all([
+    admin.from("team_members").select("profile_id").eq("team_id", teamId),
+    admin.from("ladder_roster_riders").select("roster_entry_id, roster_entries(name, zwift_id)").eq("team_id", teamId),
+  ]);
+  const memberIds = [...new Set(((memberRows ?? []) as Array<{ profile_id: string }>).map((row) => row.profile_id))];
+  const { data: profileRows } = memberIds.length
+    ? await admin.from("profiles").select("id, display_name, zwift_id").eq("is_approved", true).in("id", memberIds)
+    : { data: [] };
+  const profiles = (profileRows ?? []) as Array<{ id: string; display_name: string | null; zwift_id: string | number | null }>;
+  const memberZwiftIds = new Set(profiles.map((row) => positiveId(row.zwift_id)).filter((id): id is number => id != null));
+  type Joined<T> = T | T[] | null;
+  const one = <T>(value: Joined<T>) => (Array.isArray(value) ? value[0] ?? null : value);
+  const roster = ((rosterRows ?? []) as Array<{
+    roster_entry_id: string;
+    roster_entries: Joined<{ name: string | null; zwift_id: string | number | null }>;
+  }>)
+    .map((row) => ({ id: row.roster_entry_id, entry: one(row.roster_entries) }))
+    .filter(({ entry }) => {
+      const zwiftId = positiveId(entry?.zwift_id);
+      return zwiftId == null || !memberZwiftIds.has(zwiftId);
+    });
+  return [
+    ...profiles.map((row) => ({ kind: "profile" as const, id: row.id, name: row.display_name?.trim() || "Lid" })),
+    ...roster.map(({ id, entry }) => ({ kind: "roster" as const, id, name: entry?.name?.trim() || "Renner" })),
+  ].sort((a, b) => a.name.localeCompare(b.name, "nl"));
+}

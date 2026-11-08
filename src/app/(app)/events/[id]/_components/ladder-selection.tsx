@@ -2,9 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { setLadderSelection, type LineupRider } from "../../[id]/_actions";
+import { setLadderSelection, type LineupRider } from "../../../teams/[id]/_actions";
 
-export type SelectionOption = LineupRider & { name: string };
+/** Een renner van het team, met zijn antwoord op "Ben jij erbij?". */
+export type SelectionOption = LineupRider & { name: string; rsvp?: "yes" | "maybe" | "no" | null };
+
+const RSVP_LABELS = { yes: "ja", maybe: "misschien", no: "nee" } as const;
 
 const keyOf = (rider: LineupRider) => `${rider.kind}:${rider.id}`;
 
@@ -62,6 +65,11 @@ export function LadderSelection({
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={chosen.has(key)} onChange={() => toggle(key)} disabled={pending} />
                 <span className="truncate">{option.name}</span>
+                {option.rsvp && (
+                  <span className={option.rsvp === "no" ? "text-xs text-destructive" : "text-xs text-muted-foreground"}>
+                    {RSVP_LABELS[option.rsvp]}
+                  </span>
+                )}
               </label>
             </li>
           );

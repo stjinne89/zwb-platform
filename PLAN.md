@@ -74,6 +74,13 @@ gaat stabiliteit voor nieuwe features.
    Open: het racebriefje rekent zijn verwachte uitslag nog met alle zes. Zie de
    ronde "Club Ladder: advies welke vijf rijden".
 
+1f. **Club Ladder: één wedstrijd, één plek (2026-11-08): lokaal gecommit op
+   `claude/club-ladder-structure-review-ffd55d`, niet gepusht.** Geen migratie.
+   Nalopen na een deploy, als captain van ZWBeasts: op een komende ladderevent
+   staan bovenaan Ben jij erbij?, daaronder Selectie met de antwoorden per lid,
+   en de teamnaam in de kop opent de teampagina. Zie de ronde "Club Ladder: één
+   wedstrijd, één plek".
+
 1e. **Dubbele rit zelf verwijderen (2026-11-08): migratie `0310` toegepast en
    gepusht naar `main`** (`92c92299`, samengevoegd in `2635570a`). `0310` is op
    2026-11-08 via de Supabase-connector toegepast, op verzoek van de eigenaar,
@@ -11854,6 +11861,70 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Club Ladder: één wedstrijd, één plek
+
+**2026-11-08.** Commit volgt hieronder, lokaal op
+`claude/club-ladder-structure-review-ffd55d`, niet gepusht. Geen migratie.
+
+**Waarom.** De eigenaar vond het zoeken waar een functie zit, met een
+eventpagina en een ladder-teampagina naast elkaar. Onderzoek (productie,
+alleen-lezend, 2026-11-08) op de zes ladderevents:
+- Twee aanmeldknoppen. "Ben jij erbij?" op het event (`event_rsvps`) en
+  Beschikbaar/Misschien op de kaart van de teampagina
+  (`team_event_availability`). Van de 29 RSVP's waren de 21 ja's allemaal van
+  een selectie of opstelling; de 8 nee's zetten leden zelf. Beschikbaarheid had
+  3 rijen, alle drie van renners die al geselecteerd waren en een ja hadden.
+- De captain koos de selectie op de teampagina, maar zag daar niet wat leden
+  op het event hadden geantwoord.
+- Vanaf het event was er geen link naar de teampagina: terug ging naar de
+  Kalender, en de link "Club Ladder" opende de externe ladder-site.
+- "Ben jij erbij?" stond onderaan, na route en weer.
+
+Uitgangspunt nu: alles van één wedstrijd op het event, de teampagina voor de
+stand, het uitdagen en het team.
+
+**Wat er veranderde.**
+- **Event van een ladderrace** (`events/[id]/page.tsx`): in de kop een link met
+  de naam van het ladderteam naar `/teams/club-ladder/[id]`. "Ben jij erbij?"
+  staat vóór de opstelling (onderaan valt hij voor een ladderrace weg). Het blok
+  heet Opstelling als de ladder er een zette, anders Selectie; een captain,
+  co-captain of iemand met `teams.manage_roster` kiest daar met **Selectie** wie
+  er rijdt. Voorheen ging alleen de Opstelling als lijst op het event.
+- **Selectielijst** (`ladder-selection.tsx`, verhuisd van
+  `teams/club-ladder/_components` naar `events/[id]/_components`): bij elk lid
+  staat zijn antwoord op "Ben jij erbij?" (nee in rood). De volgorde is ja,
+  misschien, geen antwoord, nee. De renners komen uit de nieuwe
+  `loadLadderSelectionOptions` (`lib/club-ladder/selection.ts`): goedgekeurde
+  leden van het team en rosterrenners zonder profiel in het team, dezelfde set
+  die `setLadderSelection` toelaat.
+- **Teampagina**: de knoppen Beschikbaar/Misschien/Niet, de namen eronder en
+  Selectie zijn van de kaarten onder Komende matchups af. Een kaart met een
+  event heeft de link **Aanmelden en matchup** (`/events/[id]#matchup`). Advies
+  (routeadvies op de teampagina) staat er alleen nog zonder event, of zolang de
+  ladder het parcours niet noemt.
+- Labels: de ladderlink bij Raceinfo heet **Ladder-site** (was "Club Ladder").
+  De matchup zegt "aangemeld op de ladder" in plaats van "aangemelden": het gaat
+  om de aanmelding op ladder.cycleracing.club, niet om "Ben jij erbij?".
+- `/hulp` (Teams en wedstrijden): de alinea's over Komende matchups en Selectie.
+
+**Bewust niet.**
+- Advies en matchup samenvoegen: het advies helpt kiezen wie je uitdaagt en
+  waar, de matchup gaat over een wedstrijd die vastligt.
+- Een fix voor de RSVP die de sync weghaalt wie uit een opstelling of selectie
+  valt. In de analyse noemde ik dat eerst een bug, maar het is hetzelfde ontwerp
+  als bij de ZRL: geselecteerd is ja, eruit is die ja kwijt.
+- De drie rijen in `team_event_availability` voor ladderevents laten staan;
+  geen migratie of opschoning, want die renners hebben al een ja.
+- De overzichtspagina (stap 3 van het voorstel: volgende wedstrijd per tegel,
+  pool en captains onder Beheer) wacht op een besluit van de eigenaar.
+
+**Niet geverifieerd.** Niet in de browser bekeken: daarvoor zijn een
+captain-account en een `.env.local` nodig, en die heeft deze worktree niet.
+Typecheck en lint op de gewijzigde bestanden zijn schoon. Bij de typecheck
+ontbreken `modern-screenshot` en `@anthropic-ai/sdk` in deze worktree; dat
+staat los van deze ronde. Van de ladder-tests slagen alle 152 die draaien.
+`club-ladder-sync.test.ts` start niet, omdat `@anthropic-ai/sdk` ontbreekt.
+
 ### Gebouwd — Dubbele rit zelf verwijderen
 
 **2026-11-08.** Commit `92c92299`, lokaal op
@@ -13304,7 +13375,9 @@ aanmeldingen heeft, wist ZWB niet wie. Keuze van de eigenaar: per matchup, niet
 
 **Wat er veranderde.**
 - Op elke komende matchup-kaart zet een captain, co-captain of iemand met
-  `teams.manage_roster` met **Selectie** wie er rijdt (vinkjes, Opslaan). Dat
+  `teams.manage_roster` met **Selectie** wie er rijdt (vinkjes, Opslaan).
+  *Sinds 2026-11-08 staat Selectie op het event zelf, niet meer op de kaart;
+  zie "Club Ladder: één wedstrijd, één plek".* Dat
   komt in `team_event_lineups` van het ladder-event, zoals een ZRL-opstelling:
   `selected_by` is de captain. Nieuwe actie `setLadderSelection` in
   `teams/[id]/_actions.ts` vervangt de selectie in één keer, controleert dat
@@ -13477,7 +13550,9 @@ advies zelf werkte.
 
 **Wat er veranderde.** Elke kaart onder Komende matchups op
 `/teams/club-ladder/[teamId]` heeft een link Advies naar `?tegen=<tegenstander>#advies`,
-los van de ranking. Alleen als de tegenstander in de stand staat, want anders
+los van de ranking. *Sinds 2026-11-08 alleen nog zolang het parcours niet
+vastligt of er geen event is; anders linkt de kaart naar de matchup op het
+event. Zie "Club Ladder: één wedstrijd, één plek".* Alleen als de tegenstander in de stand staat, want anders
 toont de pagina geen adviesblok. `/hulp` zegt het erbij.
 
 **Bewust niet.** De ranking van een ploeg zonder plek niet anders gemaakt
@@ -14637,6 +14712,8 @@ Ladder (`/teams/club-ladder/<id>`). De eerste mocht weg, de tweede op die plek.
     (`TeamChatLinksForm`, uit het beheerpaneel gehaald).
   - **Beschikbaarheid per wedstrijd**: bij elke komende matchup met een event de
     knoppen Beschikbaar/Misschien/Niet, en wie beschikbaar of misschien is.
+    *Weggehaald op 2026-11-08:* aanmelden gaat alleen nog via "Ben jij erbij?" op
+    het event. Zie "Club Ladder: één wedstrijd, één plek".
   - **Teamresultaten** met verwijderen, en onder Beheer handmatig toevoegen
     (`TeamResultForm`).
   - De acties van de losse teampagina verversen nu ook de Club Ladder-pagina.
