@@ -11,6 +11,7 @@
 // de inspanningen zelf bewaren we sinds oktober 2026 niet meer (migratie 0212).
 
 import { applyCuratedEffortsFromDetail } from "@/lib/segments/sync";
+import { dismissedRideIds } from "@/lib/rides/dismissed";
 import { isCyclingSportType } from "@/lib/strava/sports";
 import { weekStartDate } from "@/lib/strava/client";
 import { recordRateLimitUsage } from "@/lib/strava/rate-limit-budget";
@@ -186,6 +187,10 @@ export async function ingestStravaActivity(
 
   const row = activityRowFromDetail(detail, target.profileId, target.stravaAthleteId);
   if (!row) return { status: "skipped", reason: "Onvolledige activiteit." };
+  // Door het lid weggehaald als dubbele opname (0310): niet terugzetten.
+  if ((await dismissedRideIds(admin, target.profileId, [row.id])).size > 0) {
+    return { status: "skipped", reason: "Door het lid weggehaald." };
+  }
 
   const { error } = await admin
     .from("strava_activities")

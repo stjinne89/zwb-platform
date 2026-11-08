@@ -354,6 +354,7 @@ export default async function ZwbeterWordenSchemaPage({ searchParams }: SearchPa
           dateKey: ride.dateKey,
           name: ride.name,
           manual: ridesById.get(String(ride.id))?.manual,
+          duplicate: ridesById.get(String(ride.id))?.duplicate,
         },
         null,
         memberWorkouts,

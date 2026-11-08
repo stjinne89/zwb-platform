@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { deleteDuplicateRide } from "@/app/(app)/_actions/duplicate-ride";
 import { deleteManualRide, saveManualRide } from "@/app/(app)/_actions/manual-ride";
 
 const FIELD =
@@ -180,6 +181,35 @@ export function DeleteManualRideButton({ activityId }: { activityId: string }) {
     <span className="inline-flex flex-wrap items-center gap-2">
       <button type="button" onClick={remove} disabled={pending} className={SMALL_BUTTON}>
         {pending ? "Bezig…" : "Ingevoerde rit verwijderen"}
+      </button>
+      {error ? <span className="text-xs text-destructive">{error}</span> : null}
+    </span>
+  );
+}
+
+/** Een dubbele opname weghalen; de sync zet hem daarna niet terug (0310). */
+export function DeleteDuplicateRideButton({ activityId }: { activityId: string }) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function remove() {
+    if (!confirm("Deze dubbele rit verwijderen?")) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await deleteDuplicateRide(Number(activityId)).catch(() => null);
+      if (!res?.ok) {
+        setError(res?.error ?? "Verwijderen mislukt.");
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <button type="button" onClick={remove} disabled={pending} className={SMALL_BUTTON}>
+        {pending ? "Bezig…" : "Dubbele rit verwijderen"}
       </button>
       {error ? <span className="text-xs text-destructive">{error}</span> : null}
     </span>

@@ -118,6 +118,7 @@ export const HELP_CATEGORIES = [
       "ritten-samenvoegen",
       "rpe-losse-rit",
       "rit-invoeren",
+      "dubbele-rit",
       "naleving",
       "tijd-per-zone",
     ],

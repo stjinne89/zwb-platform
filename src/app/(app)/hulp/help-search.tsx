@@ -183,6 +183,13 @@ const HELP_INDEX: HelpResult[] = [
       "handmatig invoeren rit toevoegen opname mislukt bestand kwijt vergeten op te nemen geen bestand training afvinken niet gereden tss vermogen hartslag verwijderen",
   },
   {
+    title: "Dubbele rit verwijderen",
+    text: "Dezelfde rit twee keer opgenomen? Klik de opname aan en kies Dubbele rit verwijderen.",
+    href: "/hulp/schema#dubbele-rit",
+    terms:
+      "dubbele rit dubbel twee keer opgenomen opname horloge zwift garmin wahoo strava verwijderen weghalen dubbele workout",
+  },
+  {
     title: "Tijd per zone",
     text: "Gemeten minuten per zone bij een gereden training.",
     href: "/hulp/schema#tijd-per-zone",

@@ -13,6 +13,7 @@
 import { awardCompletedAchievementWeeks } from "@/lib/achievements/awards";
 import { syncIntervalsActivities } from "@/lib/intervals/activities";
 import { fetchIntervalsActivityTrack } from "@/lib/intervals/client";
+import { dropDismissedRides } from "@/lib/rides/dismissed";
 import {
   carryOverFromImport,
   dedupeRides,
@@ -198,7 +199,7 @@ export async function syncIntervalsRidesForProfile(
     const existing = (existingData ?? []) as ExistingRow[];
     const existingById = new Map(existing.map((row) => [Number(row.id), row]));
 
-    const candidates = list.flatMap((activity) => {
+    const built = list.flatMap((activity) => {
       const known = existingById.get(intervalsRideId(activity.id) ?? 0);
       const track = existingTrack(known);
       const row = intervalsActivityToRideRow(profileId, activity, {
@@ -212,6 +213,8 @@ export async function syncIntervalsRidesForProfile(
       if (known?.raw?.gps_col_times) row.raw.gps_col_times = known.raw.gps_col_times;
       return [row];
     });
+    // Door het lid weggehaalde dubbele opnames (0310) niet terugzetten.
+    const candidates = await dropDismissedRides(admin, profileId, built);
 
     // Een eigen upload zonder vermogen maakt plaats voor dezelfde rit met
     // vermogen; spoor en eigen segmenttijden gaan mee.

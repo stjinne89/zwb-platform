@@ -32,7 +32,11 @@ import { RemoveWorkoutButton } from "./remove-workout-button";
 import type { RideLink } from "./ride-link";
 import { RideLinkForm } from "./ride-link-form";
 import { RideRpeForm } from "./ride-rpe-form";
-import { DeleteManualRideButton, ManualRideDialog } from "./manual-ride-dialog";
+import {
+  DeleteDuplicateRideButton,
+  DeleteManualRideButton,
+  ManualRideDialog,
+} from "./manual-ride-dialog";
 import { WorkoutDurationControl } from "./workout-duration-control";
 import { RaceWarmupControl, type RaceWarmupView } from "./race-warmup-control";
 import { RidePlanView } from "./ride-plan-view";
@@ -215,6 +219,10 @@ export function RideDetail({
       {item.rideLink?.manual && !readOnly ? (
         <div>
           <DeleteManualRideButton key={`wis-${item.id}`} activityId={item.rideLink.activityId} />
+        </div>
+      ) : item.rideLink?.duplicate && !readOnly ? (
+        <div>
+          <DeleteDuplicateRideButton key={`dubbel-${item.id}`} activityId={item.rideLink.activityId} />
         </div>
       ) : null}
 
@@ -399,6 +407,10 @@ function WorkoutDetail({
           {item.rideLink?.manual && item.rideLink.workoutId ? (
             <div>
               <DeleteManualRideButton key={`wis-${item.id}`} activityId={item.rideLink.activityId} />
+            </div>
+          ) : item.rideLink?.duplicate && item.rideLink.workoutId ? (
+            <div>
+              <DeleteDuplicateRideButton key={`dubbel-${item.id}`} activityId={item.rideLink.activityId} />
             </div>
           ) : null}
           <WorkoutReportForm
