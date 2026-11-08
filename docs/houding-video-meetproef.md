@@ -99,11 +99,14 @@ op de zadelpen scheelt.
 - **Modellen:**
   - pose landmarker lite (5,8 MB): 33 lichaamspunten plus een masker van de persoon;
   - selfie segmenter (0,25 MB): als tweede masker, ter vergelijking.
-- **Herkomst van de bestanden.** Voor de proef komen WASM en modellen van jsDelivr en
-  Google Storage. Een echte functie zet ze op ZWB zelf, in de cache van de service
-  worker; let dan op de Netlify-tegoeden.
+- **Herkomst van de bestanden.** Sinds de bèta voor leden (2026-11-08) komen WASM en
+  modellen van ZWB zelf, onder `/mediapipe/`. De modellen staan in git; de WASM zet
+  `scripts/kopieer-mediapipe.mjs` bij elke build uit `node_modules` neer. Een
+  service worker cachet ze niet, want die is er alleen voor wie pushmeldingen
+  aanzet. Elk lid haalt dus eenmalig ongeveer 17 MB op; let op de Netlify-tegoeden.
 - **Camerarecht:** `Permissions-Policy: camera=(self)` geldt alleen op
-  `/beheer/houding-meetproef`; elders blijft `camera=()`.
+  `/beheer/houding-meetproef` en `/zwbeter-worden/materiaal/houding`; elders blijft
+  `camera=()`.
 - **Bekende risico's:**
   - een app op het beginscherm van een iPhone vergeet soms de cameratoestemming;
   - warmte en batterij bij 20–30 minuten meten. De proef rekent daarom 15 beelden per
@@ -144,4 +147,13 @@ resultaten gaan als CSV naar het klembord of als bestand naar je toestel.
 4. Hoe houdt een telefoon 20 minuten meten vol: beelden per seconde, warmte, batterij?
 5. Werkt het op de iPhone, ook als app op het beginscherm?
 
-Pas daarna besluit de eigenaar of er een functie voor leden komt.
+~~Pas daarna besluit de eigenaar of er een functie voor leden komt.~~ De eigenaar
+koos ervoor om niet te wachten: sinds 2026-11-08 is er een bèta voor leden op
+`/zwbeter-worden/materiaal/houding`, met alleen de delen die niet afhangen van
+vraag 1 tot en met 3:
+- een vergelijking van voren in procent ten opzichte van een basis, zonder
+  stuurschaal;
+- de knie onderin met de richtwaarde 33–43° en een meetmarge van 5°;
+- romp, elleboog en cadans zonder richtwaarde.
+
+Advies in Zwift Ride-letters komt er pas als vraag 3 met ja beantwoord is.

@@ -154,7 +154,7 @@ export const HELP_CATEGORIES = [
     label: "Kennis",
     text: "Protocollen, voeding, materiaal, core en kracht, en het logboek.",
     tone: "meer",
-    anchors: ["protocollen", "voeding", "materiaal", "core-mobiliteit", "spiergroepen", "kracht", "logboek"],
+    anchors: ["protocollen", "voeding", "materiaal", "houding", "core-mobiliteit", "spiergroepen", "kracht", "logboek"],
   },
   {
     id: "problemen",

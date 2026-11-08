@@ -1,17 +1,20 @@
-// MediaPipe laden voor de houding-meetproef. Versie 0.10.35 staat bewust vast:
+// MediaPipe laden voor de houdingmeting. Versie 0.10.35 staat bewust vast:
 // vanaf 1.0 stuurt de bibliotheek elke minuut gebruiksgegevens naar Google
 // (odml.pa.googleapis.com), 0.10.35 niet. Het beeld zelf verlaat het toestel
-// nooit. Voor de proef komen WASM en modellen van jsDelivr en Google Storage;
-// bij een echte functie zetten we ze op ZWB zelf (PLAN.md, "Houding-meetproef").
+// nooit.
+//
+// WASM en modellen komen van ZWB zelf (2026-11-08), niet van jsDelivr en
+// Google Storage. De WASM zet scripts/kopieer-mediapipe.mjs bij elke build uit
+// node_modules in public/mediapipe/<versie>; de modellen staan in git onder
+// public/mediapipe/modellen.
 
 import type { ImageSegmenter, PoseLandmarker } from "@mediapipe/tasks-vision";
 
-const VERSIE = "0.10.35";
-const WASM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VERSIE}/wasm`;
-const POSE_MODEL =
-  "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
-const SELFIE_MODEL =
-  "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite";
+/** Moet gelijk zijn aan de versie in package.json (er is een test voor). */
+export const MEDIAPIPE_VERSIE = "0.10.35";
+const WASM = `/mediapipe/${MEDIAPIPE_VERSIE}`;
+const POSE_MODEL = "/mediapipe/modellen/pose_landmarker_lite.task";
+const SELFIE_MODEL = "/mediapipe/modellen/selfie_segmenter.tflite";
 
 export type Rekenaar = "GPU" | "CPU";
 

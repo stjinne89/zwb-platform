@@ -25,8 +25,9 @@ const csp = [
   "manifest-src 'self'",
 ].join("; ");
 
-// De houding-meetproef leest live de camera; alleen daar mag het.
-const CAMERA_PAD = "/beheer/houding-meetproef";
+// De houdingmeting leest live de camera; alleen daar mag het. Zonder "/"
+// vooraan, voor de uitsluiting in de algemene regel.
+const CAMERA_PADEN = ["beheer/houding-meetproef", "zwbeter-worden/materiaal/houding"];
 
 function securityHeaders(camera: "()" | "(self)") {
   return [
@@ -60,13 +61,13 @@ const nextConfig: NextConfig = {
   async headers() {
     // Elk pad krijgt precies één regel: twee regels met dezelfde sleutel kunnen
     // als twee headers aankomen, en dan is niet zeker welke de browser volgt.
-    // Daarom sluit de algemene regel de meetproef uit (2026-11-08).
+    // Daarom sluit de algemene regel de camerapaden uit (2026-11-08).
     return [
       {
-        source: `/:path((?!${CAMERA_PAD.slice(1)}$).*)`,
+        source: `/:path((?!(?:${CAMERA_PADEN.join("|")})$).*)`,
         headers: securityHeaders("()"),
       },
-      { source: CAMERA_PAD, headers: securityHeaders("(self)") },
+      ...CAMERA_PADEN.map((pad) => ({ source: `/${pad}`, headers: securityHeaders("(self)") })),
     ];
   },
   // /training heet nu /zwbeter-worden. Permanent, want er staan al verstuurde

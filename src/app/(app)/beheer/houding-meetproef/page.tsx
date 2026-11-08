@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/app-ui";
 import { adminAreaPermission } from "@/lib/admin-areas";
 import { getRequestAccess } from "@/lib/auth/request";
-import { Meetproef } from "./_components/meetproef";
+import { HoudingMeting } from "@/components/houding/houding-meting";
 
 // Meetproef voor houding en bikefit uit live video (2026-11-08). Alleen voor
 // beheer: eerst nagaan of het model goed genoeg meet, daarna pas een functie
@@ -18,7 +18,7 @@ export default async function HoudingMeetproefPage() {
   return (
     <div className="space-y-4">
       <PageHeader eyebrow="Beheer" title="Houding-meetproef" />
-      <Meetproef />
+      <HoudingMeting proef />
     </div>
   );
 }

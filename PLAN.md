@@ -7,10 +7,13 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Houding-meetproef (2026-11-08): gepusht naar `main` (`c44673e8`).** De
-   eigenaar test op `/beheer/houding-meetproef` met zijn Zwift Ride V2 of het
-   model de kniehoek en het oppervlak goed genoeg meet. Daarna besluit hij of er
-   een functie voor leden komt. Zie de ronde "Houding-meetproef" en
+0. **Houding (bèta) voor leden (2026-11-08): lokaal gecommit, niet gepusht.**
+   Tab Houding onder ZWBeter materiaal, zonder advies in Zwift Ride-letters of
+   millimeters. De eigenaar doet deze week de lettertest op
+   `/beheer/houding-meetproef` (gepusht, `c44673e8`) met zijn Zwift Ride V2; pas
+   als één letter zichtbaar is in de kniehoek, komt er letteradvies. Open: de zin
+   over de camera in de privacyverklaring ligt bij de eigenaar. Zie de rondes
+   "Houding (bèta) voor leden" en "Houding-meetproef", en
    [houding-video-meetproef](docs/houding-video-meetproef.md).
 
 0. **OpenAI traint op ledendata (gevonden 2026-10-24).** In de OpenAI-organisatie
@@ -4188,7 +4191,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 >   `TRY_HARDER`. Het werkt op een foto via het bestandsveld, niet op live
 >   video, dus de `Permissions-Policy` (`camera=()`) blijft zoals hij is.
 >   *Sinds 2026-11-08 staat `camera=(self)` alleen op `/beheer/houding-meetproef`
->   (ronde "Houding-meetproef"); elders nog `camera=()`.*
+>   en `/zwbeter-worden/materiaal/houding` (rondes "Houding-meetproef" en
+>   "Houding (bèta) voor leden"); elders nog `camera=()`.*
 > - De knop Scan staat nu in elke browser. `/hulp#voeding` aangepast.
 >
 > **Getest.** TypeScript en eslint schoon. Met een script buiten de repo
@@ -4386,7 +4390,8 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > - **Live scannen met de camera.** De `Permissions-Policy` zet `camera=()`;
 >   een foto via het bestandsveld valt daar niet onder, live video wel. De
 >   beveiligingsheader is niet aangepast. *Voor de scanner nog steeds waar; sinds
->   2026-11-08 staat `camera=(self)` alleen op `/beheer/houding-meetproef`.*
+>   2026-11-08 staat `camera=(self)` alleen op `/beheer/houding-meetproef` en
+>   `/zwbeter-worden/materiaal/houding`.*
 > - **Scannen op iOS.** Safari heeft geen `BarcodeDetector`; een
 >   JavaScript-bibliotheek als terugval vraagt een nieuwe dependency. Daar is
 >   de knop Scan verborgen en typ je het nummer over. Besluit voor de eigenaar.
@@ -11870,6 +11875,90 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Houding (bèta) voor leden
+
+**2026-11-08.** Lokaal gecommit, nog niet gepusht. Geen migratie. Het plan staat in
+het plannenboek ("Houding en bikefit uit live video").
+
+**Waarom.** De meetproef werkte op de telefoon van de eigenaar. Hij vroeg of het
+verder kon zonder de test af te wachten. Dat kan voor de delen die niet afhangen van
+hoe nauwkeurig het model is:
+- een relatieve vergelijking van voren, binnen één sessie met dezelfde camera;
+- hoeken als informatie, met de richtwaarde en een meetmarge;
+- voor en na een aanpassing, waarbij een vaste fout van het model grotendeels
+  wegvalt.
+
+Advies als "zet je zadel één letter hoger" wacht op de lettertest: zit het model er
+stelselmatig 5° naast, dan stuur je leden de verkeerde kant op, met knieklachten als
+mogelijk gevolg. De eigenaar doet die test deze week.
+
+**Wat er veranderde.**
+- **`/zwbeter-worden/materiaal/houding`**, een derde tab naast Kennisbank en
+  Rekenaar, met een label bèta en een link naar de uitleg.
+  - *Vooraanzicht:* een masker van de renner, **Basis**, het oppervlak in procent
+    ten opzichte van die basis, en de grafiek per seconde. Zonder stuurschaal: voor
+    een procent binnen één sessie is die niet nodig, en het scheelt leden een stap.
+  - *Zijaanzicht:* **Staand meten**, dan de knie onderin min de staande meting,
+    met de richtwaarde 33–43° (Swart & Holliday 2019, Millour 2019). Een waarde
+    buiten de richtwaarde maar binnen 5° heet "op de rand", omdat het model 3–9°
+    naast markers zit (Bini 2023). Verder romp, elleboog en cadans.
+  - **Leg vast** zet een meting in een tabel om voor en na te vergelijken. Er
+    wordt niets opgeslagen; de tabel is weg als je de pagina sluit.
+- **Eén component voor beide.** De meetproef is verhuisd naar
+  `src/components/houding/houding-meting.tsx`; `/beheer/houding-meetproef` toont
+  hem met `proef`, met de stuurschaal, de maskerkeuze, nameten met de hand en CSV
+  erbij. `vision.ts` staat nu in `src/lib/houding/`.
+- **Richtwaarde in de rekenkern:** `KNIE_ONDERIN`, `MEETMARGE_GRADEN` en
+  `beoordeel()` in `src/lib/houding/meting.ts`, met tests.
+- **WASM en modellen op ZWB zelf**, niet meer van jsDelivr en Google Storage.
+  - De modellen (pose lite 5,8 MB, selfie 0,25 MB) staan in git onder
+    `public/mediapipe/modellen`. Zo laadt de app nooit stilletjes een ander model:
+    het selfiemodel stond bij Google onder `latest`.
+  - De WASM (twee varianten van 10–11 MB) zet `scripts/kopieer-mediapipe.mjs` vóór
+    elke `dev` en `build` uit `node_modules` in `public/mediapipe/<versie>`; die
+    map staat in `.gitignore`. Een test bewaakt dat `MEDIAPIPE_VERSIE` gelijk is aan
+    `package.json`.
+  - De middleware slaat `/mediapipe/` over: anders vraagt elk bestand de sessie en
+    het profiel op, net als bij de hulpvideo's.
+- **Camerarecht:** `CAMERA_PADEN` in `next.config.ts` geeft `camera=(self)` aan de
+  meetproef en aan de tab Houding; elk pad heeft nog steeds precies één
+  `Permissions-Policy`. Het herladen na een link binnen de app geldt ook voor de
+  tab.
+- **`/hulp`:** een artikel "Houding meten (bèta)" onder ZWBeter materiaal
+  (`#houding`), in de zoekindex en in de lijst met ankers.
+
+**Bewust niet.**
+- **Advies in Zwift Ride-letters of millimeters:** wacht op de lettertest.
+- **Een richtwaarde voor romp en elleboog:** het onderzoek geeft er geen duidelijke
+  grens voor (Husband 2024). Ze staan er zonder oordeel.
+- **De cache van de service worker.** Die wordt alleen geregistreerd voor leden die
+  pushmeldingen aanzetten, dus niet voor iedereen. De bestanden staan op een pad
+  met het versienummer, zodat de browser ze kan bewaren. Netlify kan ze wel bij
+  elke keer laden opnieuw controleren.
+- **Opslaan van metingen:** dat vraagt een tabel en een privacytekst over
+  lichaamsmaten. Eerst zien of leden het gebruiken.
+- **De zin over de camera in de privacyverklaring:** ligt eerst bij de eigenaar.
+  Er komt geen nieuwe versie, omdat ZWB niets van het beeld ontvangt of bewaart.
+
+**Nagekeken.**
+- In de browser met een nepcamera (een foto als videostroom), op een tijdelijke
+  pagina:
+  - WASM en model komen van `localhost`, niets van jsDelivr of Google Storage;
+  - 14 beelden per seconde op de GPU;
+  - Basis, procent, Leg vast en de tabel werken;
+  - Staand meten, romp en elleboog werken;
+  - de proefmodus heeft nog stuur, masker, bevriezen en CSV.
+- Met curl: `camera=(self)` op beide paden, `camera=()` op
+  `/zwbeter-worden/materiaal/rekenaar` en `.../houdingx`, één header per pad.
+- Typecheck, lint en de tests voor houding, hulp en middleware.
+
+**Niet nagekeken.**
+- Het oordeel bij de knie op echte trapbewegingen: een foto trapt niet.
+- De tab zelf na inloggen.
+- Of `prebuild` op Netlify draait en de WASM in de deploy komt. `npm run build`
+  roept `prebuild` aan, maar dat is pas na een push te zien.
+- De iPhone, warmte en batterij.
+
 ### Gebouwd — Houding-meetproef: houding en bikefit uit live video
 
 **2026-11-08.** Commit `c44673e8`, op 2026-11-08 op verzoek van de eigenaar naar
@@ -11905,7 +11994,8 @@ omdat de schatting er ver naast zat.
     (`odml.pa.googleapis.com`, zonder beeld en zonder uitzetknop).
   - In 0.10.35 staat dat adres niet; dat is in de JS en de WASM van het pakket
     nagezocht.
-  - WASM en modellen komen voor de proef van jsDelivr en Google Storage.
+  - WASM en modellen komen voor de proef van jsDelivr en Google Storage. *Sinds
+    de ronde "Houding (bèta) voor leden" van ZWB zelf.*
 - **`next.config.ts`:** `Permissions-Policy` met `camera=(self)`, alleen voor
   `/beheer/houding-meetproef`. De claims over `camera=()` bij de barcodescan zijn
   bijgewerkt. *Eerst via een tweede regel met dezelfde sleutel; zie de
@@ -11945,15 +12035,19 @@ op verzoek van de eigenaar naar `main` gepusht.
   - Een andere keuze terwijl de camera aan staat, stopt de oude stroom en start de
     nieuwe. iOS geeft maar één camera tegelijk.
 - **Getest met een nepcamera.** Na het wisselen vraagt de pagina
-  `facingMode: user`, en de meting loopt door. Op de telefoon niet getest.
+  `facingMode: user`, en de meting loopt door. *Op 2026-11-08 meldde de eigenaar
+  dat de camera op zijn telefoon werkt.*
 
 **Bewust niet.**
 - **Een functie voor leden, advies in Zwift Ride-letters en uitleg op `/hulp`.** Dat
-  wacht op de uitkomst van de proef, en het plan hoort in het plannenboek.
+  wacht op de uitkomst van de proef, en het plan hoort in het plannenboek. *De
+  functie en de uitleg kwamen er toch, als bèta zonder letteradvies: zie de ronde
+  "Houding (bèta) voor leden".*
 - **WASM en modellen op ZWB zelf.** Dat zijn ongeveer 11 MB WASM en 6 MB model in git
   en in elke deploy, voor een pagina die alleen de eigenaar gebruikt. Bij een echte
   functie wel, met de cache van de service worker, en zonder Google-adres in de
-  privacyverklaring.
+  privacyverklaring. *Gebeurd in de ronde "Houding (bèta) voor leden", zonder de
+  service worker; de WASM staat niet in git.*
 - **De nieuwste MediaPipe (1.2.2):** vanwege de gebruiksgegevens hierboven.
 - **Omrekenen naar km/h of seconden:** de eigenaar vindt dat minder belangrijk, en
   de rekenaar van ZWBeter materiaal kan dat al.
@@ -21428,7 +21522,7 @@ Twee oorzaken, nagebootst op een testpagina met een getekende EAN-13 op een foto
   de foto wordt gelezen en opgezocht.
 
 **Niet gedaan.** Live scannen met de camera: de `Permissions-Policy` zet nog steeds
-`camera=()`, de foto blijft de route. *Sinds 2026-11-08 staat `camera=(self)` alleen op `/beheer/houding-meetproef` (ronde "Houding-meetproef"); elders nog `camera=()`.* Een kleinere barcode op een grote foto zoeken
+`camera=()`, de foto blijft de route. *Sinds 2026-11-08 staat `camera=(self)` alleen op `/beheer/houding-meetproef` en `/zwbeter-worden/materiaal/houding` (rondes "Houding-meetproef" en "Houding (bèta) voor leden"); elders nog `camera=()`.* Een kleinere barcode op een grote foto zoeken
 door ook op volle resolutie of een uitsnede te proberen: niet nodig gebleken op de
 testpagina, eerst zien of het in de praktijk nog misgaat. ZXing bijwerken: 0.2.1 is de
 nieuwste `@zxing/browser`.

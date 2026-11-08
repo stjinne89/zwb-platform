@@ -1,5 +1,10 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { MEDIAPIPE_VERSIE } from "@/lib/houding/vision";
 import {
+  KNIE_ONDERIN,
+  beoordeel,
   cadans,
   hoek,
   knieBuiging,
@@ -110,5 +115,23 @@ describe("hulpjes", () => {
 
   it("maakt CSV met puntkomma's en decimale komma's", () => {
     expect(naarCsv([{ a: 1.5, b: "x;y" }, { a: 2, c: null }])).toBe('a;b;c\n1,5;"x;y";\n2;;');
+  });
+});
+
+describe("beoordeel", () => {
+  it("deelt een kniehoek in tegen de richtwaarde met de meetmarge", () => {
+    expect(beoordeel(38, KNIE_ONDERIN)).toBe("binnen");
+    expect(beoordeel(33, KNIE_ONDERIN)).toBe("binnen");
+    expect(beoordeel(29, KNIE_ONDERIN)).toBe("rand");
+    expect(beoordeel(48, KNIE_ONDERIN)).toBe("rand");
+    expect(beoordeel(27.9, KNIE_ONDERIN)).toBe("lager");
+    expect(beoordeel(48.1, KNIE_ONDERIN)).toBe("hoger");
+  });
+});
+
+describe("MediaPipe-versie", () => {
+  it("laadt de WASM uit de map van de geïnstalleerde versie", () => {
+    const pakket = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8"));
+    expect(pakket.dependencies["@mediapipe/tasks-vision"]).toBe(MEDIAPIPE_VERSIE);
   });
 });

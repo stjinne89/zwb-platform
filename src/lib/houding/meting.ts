@@ -139,3 +139,29 @@ export function naarCsv(rijen: Record<string, unknown>[]): string {
     "\n",
   );
 }
+
+/**
+ * Richtwaarde voor de kniebuiging onderin de trap, gemeten tijdens het trappen
+ * en verminderd met de staande meting: 33–43° bij rustig trappen (Swart &
+ * Holliday 2019, Millour 2019). Zie docs/houding-video-meetproef.md.
+ */
+export const KNIE_ONDERIN = { min: 33, max: 43 } as const;
+
+/** Het model zit 3–9° naast een meting met markers (Bini 2023). */
+export const MEETMARGE_GRADEN = 5;
+
+export type Oordeel = "binnen" | "rand" | "lager" | "hoger";
+
+/**
+ * Waar een hoek valt ten opzichte van een richtwaarde. "rand": buiten de
+ * richtwaarde maar binnen de meetmarge, dus niet te onderscheiden.
+ */
+export function beoordeel(
+  waarde: number,
+  bereik: { min: number; max: number },
+  marge = MEETMARGE_GRADEN,
+): Oordeel {
+  if (waarde >= bereik.min && waarde <= bereik.max) return "binnen";
+  if (waarde >= bereik.min - marge && waarde <= bereik.max + marge) return "rand";
+  return waarde < bereik.min ? "lager" : "hoger";
+}

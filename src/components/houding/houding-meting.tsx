@@ -4,6 +4,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { ImageSegmenter, NormalizedLandmark, PoseLandmarker } from "@mediapipe/tasks-vision";
 import { Button } from "@/components/ui/button";
 import {
+  KNIE_ONDERIN,
+  beoordeel,
   cadans,
   hoek,
   knieBuiging,
@@ -16,9 +18,10 @@ import {
   uiterstenPerOmwenteling,
   veelhoekOppervlak,
   type Monster,
+  type Oordeel,
   type Punt,
 } from "@/lib/houding/meting";
-import { laadPose, laadSelfie, POSE_PUNTEN, type Kant, type Rekenaar } from "./vision";
+import { laadPose, laadSelfie, POSE_PUNTEN, type Kant, type Rekenaar } from "@/lib/houding/vision";
 
 type Modus = "voor" | "zij";
 type Masker = "pose" | "selfie";
@@ -81,7 +84,19 @@ function kiesKant(lm: NormalizedLandmark[]): Kant {
   return zicht("links") >= zicht("rechts") ? "links" : "rechts";
 }
 
-export function Meetproef() {
+const OORDEEL: Record<Oordeel, string> = {
+  binnen: "binnen",
+  rand: "op de rand van",
+  lager: "meer gestrekt dan",
+  hoger: "meer gebogen dan",
+};
+
+/**
+ * Houding meten uit live video. `proef`: de meetproef voor beheer, met de
+ * schaal van het stuur, de keuze van het masker, nameten met de hand en CSV.
+ * Zonder: de bèta voor leden, met alleen relatieve maten en richtwaarden.
+ */
+export function HoudingMeting({ proef = false }: { proef?: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -239,8 +254,9 @@ export function Meetproef() {
       let oppervlak: number | null = null;
       if (isVoor && maskData && mw && mh) {
         const pixels = maskerPixels(maskData) * ((vw * vh) / (mw * mh));
+        // Leden vergelijken alleen met hun basis; daarvoor is geen schaal nodig.
         const s = schaalRef.current;
-        oppervlak = s ? pixelsNaarM2(pixels, s) : null;
+        oppervlak = !proef ? pixels : s ? pixelsNaarM2(pixels, s) : null;
         if (toonMaskerRef.current) {
           const mc = (maskCanvasRef.current ??= document.createElement("canvas"));
           if (mc.width !== mw || mc.height !== mh) {
@@ -304,7 +320,7 @@ export function Meetproef() {
       verwerktRef.current.push(nu);
       while (verwerktRef.current.length && verwerktRef.current[0] < nu - 2000) verwerktRef.current.shift();
     },
-    [stuurPunten, tekenPunten],
+    [proef, stuurPunten, tekenPunten],
   );
 
   // ---- de lus -----------------------------------------------------------------
@@ -374,6 +390,8 @@ export function Meetproef() {
     }, 250);
     return () => window.clearInterval(id);
   }, [status]);
+
+  const knieGecorrigeerd = live.knieOnder !== null && staand !== null ? live.knieOnder - staand : null;
 
   // ---- camera ----------------------------------------------------------------
 
@@ -575,6 +593,22 @@ export function Meetproef() {
   }
 
   function legLiveVast() {
+    if (!proef) {
+      setLog((oud) => [
+        ...oud,
+        modus === "voor"
+          ? { Tijd: tijdNu(), Notitie: notitie, "T.o.v. basis (%)": live.procent }
+          : {
+              Tijd: tijdNu(),
+              Notitie: notitie,
+              "Knie onderin (°)": knieGecorrigeerd,
+              "Romp (°)": live.romp,
+              "Elleboog (°)": live.elleboog,
+              Cadans: live.cadans,
+            },
+      ]);
+      return;
+    }
     setLog((oud) => [
       ...oud,
       modus === "voor"
@@ -625,7 +659,8 @@ export function Meetproef() {
 
   // ---- weergave ---------------------------------------------------------------
 
-  const knieGecorrigeerd = live.knieOnder !== null && staand !== null ? live.knieOnder - staand : null;
+  const knieOordeel = knieGecorrigeerd !== null ? beoordeel(knieGecorrigeerd, KNIE_ONDERIN) : null;
+  const bereik = `${KNIE_ONDERIN.min}–${KNIE_ONDERIN.max}°`;
 
   return (
     <div className="space-y-4">
@@ -697,40 +732,44 @@ export function Meetproef() {
       <div className="flex flex-wrap items-center gap-2">
         {modus === "voor" ? (
           <>
-            <label className="flex items-center gap-1 text-sm">
-              Stuur
-              <input
-                type="number"
-                inputMode="numeric"
-                className="h-7 w-20 rounded-md border bg-background px-2"
-                value={stuurMm}
-                onChange={(e) => setStuurMm(Number(e.target.value) || 0)}
-              />
-              mm
-            </label>
-            <Button
-              size="sm"
-              variant={klik === "stuur" ? "default" : "outline"}
-              onClick={() => {
-                setStuurPunten([]);
-                setKlik("stuur");
-              }}
-            >
-              {klik === "stuur" ? "Klik beide stuureinden" : schaal ? "Stuur opnieuw" : "Stuur aanklikken"}
-            </Button>
-            <select
-              className="h-7 rounded-md border bg-background px-2 text-sm"
-              value={masker}
-              onChange={(e) => setMasker(e.target.value as Masker)}
-              aria-label="Masker"
-            >
-              <option value="pose">Masker: pose</option>
-              <option value="selfie">Masker: selfie</option>
-            </select>
-            <label className="flex items-center gap-1 text-sm">
-              <input type="checkbox" checked={toonMasker} onChange={(e) => setToonMasker(e.target.checked)} />
-              Tonen
-            </label>
+            {proef ? (
+              <>
+                <label className="flex items-center gap-1 text-sm">
+                  Stuur
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    className="h-7 w-20 rounded-md border bg-background px-2"
+                    value={stuurMm}
+                    onChange={(e) => setStuurMm(Number(e.target.value) || 0)}
+                  />
+                  mm
+                </label>
+                <Button
+                  size="sm"
+                  variant={klik === "stuur" ? "default" : "outline"}
+                  onClick={() => {
+                    setStuurPunten([]);
+                    setKlik("stuur");
+                  }}
+                >
+                  {klik === "stuur" ? "Klik beide stuureinden" : schaal ? "Stuur opnieuw" : "Stuur aanklikken"}
+                </Button>
+                <select
+                  className="h-7 rounded-md border bg-background px-2 text-sm"
+                  value={masker}
+                  onChange={(e) => setMasker(e.target.value as Masker)}
+                  aria-label="Masker"
+                >
+                  <option value="pose">Masker: pose</option>
+                  <option value="selfie">Masker: selfie</option>
+                </select>
+                <label className="flex items-center gap-1 text-sm">
+                  <input type="checkbox" checked={toonMasker} onChange={(e) => setToonMasker(e.target.checked)} />
+                  Tonen
+                </label>
+              </>
+            ) : null}
             <Button size="sm" variant="outline" disabled={live.oppervlak === null} onClick={() => setBasis(live.oppervlak)}>
               Basis
             </Button>
@@ -750,7 +789,28 @@ export function Meetproef() {
         )}
       </div>
 
-      {modus === "voor" ? (
+      {!proef ? (
+        modus === "voor" ? (
+          <dl className="grid grid-cols-2 gap-2">
+            <Cijfer
+              label="T.o.v. basis"
+              waarde={live.procent !== null ? `${live.procent > 0 ? "+" : ""}${rond(live.procent)} %` : "–"}
+            />
+            <Cijfer label="Tijd" waarde={`${rond(grafiek.length ? grafiek[grafiek.length - 1].t / 60 : 0, 0)} min`} />
+          </dl>
+        ) : (
+          <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <Cijfer
+              label="Knie onderin"
+              waarde={`${rond(knieGecorrigeerd)}°`}
+              sub={knieOordeel ? `${OORDEEL[knieOordeel]} ${bereik}` : staand === null ? "meet eerst staand" : bereik}
+            />
+            <Cijfer label="Romp" waarde={`${rond(live.romp)}°`} />
+            <Cijfer label="Elleboog" waarde={`${rond(live.elleboog)}°`} />
+            <Cijfer label="Cadans" waarde={`${rond(live.cadans, 0)} omw/min`} />
+          </dl>
+        )
+      ) : modus === "voor" ? (
         <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Cijfer label="Oppervlak" waarde={schaal ? `${rond(live.oppervlak, 3)} m²` : "stuur aanklikken"} />
           <Cijfer label="Basis" waarde={basis !== null ? `${rond(basis, 3)} m²` : "–"} />
@@ -782,7 +842,7 @@ export function Meetproef() {
         <Button size="sm" variant="outline" disabled={status !== "aan" || bevroren !== null} onClick={legLiveVast}>
           Leg vast
         </Button>
-        {bevroren ? (
+        {!proef ? null : bevroren ? (
           <>
             <span className="text-sm">
               {bevroren.modus === "zij"
@@ -816,12 +876,16 @@ export function Meetproef() {
       {log.length > 0 ? (
         <div className="space-y-2">
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => void kopieer()}>
-              {gekopieerd ? "Gekopieerd" : "Kopieer CSV"}
-            </Button>
-            <Button size="sm" variant="outline" onClick={bewaarCsv}>
-              Bewaar CSV
-            </Button>
+            {proef ? (
+              <>
+                <Button size="sm" variant="outline" onClick={() => void kopieer()}>
+                  {gekopieerd ? "Gekopieerd" : "Kopieer CSV"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={bewaarCsv}>
+                  Bewaar CSV
+                </Button>
+              </>
+            ) : null}
             <Button size="sm" variant="ghost" onClick={() => setLog([])}>
               Wissen
             </Button>
@@ -842,7 +906,7 @@ export function Meetproef() {
                   <tr key={i} className="border-t">
                     {[...new Set(log.flatMap((x) => Object.keys(x)))].map((k) => (
                       <td key={k} className="px-2 py-1 tabular-nums">
-                        {typeof r[k] === "number" ? rond(r[k] as number, 3) : (r[k] ?? "")}
+                        {typeof r[k] === "number" ? rond(r[k] as number, proef ? 3 : 1) : (r[k] ?? "")}
                       </td>
                     ))}
                   </tr>
@@ -856,11 +920,12 @@ export function Meetproef() {
   );
 }
 
-function Cijfer({ label, waarde }: { label: string; waarde: string }) {
+function Cijfer({ label, waarde, sub }: { label: string; waarde: string; sub?: string }) {
   return (
     <div className="rounded-lg border bg-card px-3 py-2">
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="text-lg font-semibold tabular-nums">{waarde}</dd>
+      {sub ? <dd className="text-xs text-muted-foreground">{sub}</dd> : null}
     </div>
   );
 }

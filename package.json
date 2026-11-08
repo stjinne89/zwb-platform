@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/kopieer-mediapipe.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/kopieer-mediapipe.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

@@ -51,3 +51,8 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+# MediaPipe-WASM voor de houdingmeting: scripts/kopieer-mediapipe.mjs zet die
+# bij elke dev en build uit node_modules neer. De modellen staan wel in git.
+/public/mediapipe/*/
+!/public/mediapipe/modellen/

@@ -618,8 +618,9 @@ export function KennisHelp() {
           <div>
             <h2 className="font-semibold">ZWBeter materiaal</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Een kennisbank over materiaal en kleine winsten, en een rekenaar die
-              laat zien wat een verandering jou oplevert. ZWB geeft geen
+              Een kennisbank over materiaal en kleine winsten, een rekenaar die
+              laat zien wat een verandering jou oplevert, en een houdingmeting met
+              de camera van je telefoon (bèta). ZWB geeft geen
               koopadvies. Merken staan alleen in de rekenaar, met cijfers uit
               onafhankelijke tests.
             </p>
@@ -685,6 +686,46 @@ export function KennisHelp() {
               className="mt-3 inline-flex min-h-[44px] items-center text-sm font-medium text-primary hover:underline"
             >
               Open de rekenaar
+            </Link>
+          </article>
+          <article id="houding" className="scroll-mt-20 rounded-md border bg-background p-4">
+            <h3 className="text-sm font-semibold">Houding meten (bèta)</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Zet je telefoon op een vaste plek bij de trainer en rijd. Van voren zie
+              je hoeveel groter je silhouet wordt dan bij je basis, de houding
+              waarmee je begint: druk op Basis en rijd 20 minuten door. Loopt het
+              percentage op, dan kom je omhoog of zak je in. Dat vergelijkt alleen
+              binnen één sessie; verzet je de camera, druk dan opnieuw op Basis.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Van opzij zet je de telefoon liggend op 2 tot 3 meter, recht van opzij
+              en op zadelhoogte, met goed licht. Sta eerst 3 seconden rechtop naast
+              de fiets en druk op Staand meten: die hoek gaat af van wat ZWB tijdens
+              het trappen meet. Trap daarna rustig, op 75 tot 95 omwentelingen per
+              minuut. Knie onderin is hoe ver je knie gebogen is onderin de trap,
+              over de laatste tien omwentelingen. De richtwaarde is 33 tot 43
+              graden bij rustig trappen.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Het model zit 3 tot 9 graden naast een meting met markers. Op de rand
+              betekent: buiten de richtwaarde, maar binnen 5 graden, en dus niet te
+              onderscheiden van goed. Meer gebogen kan op een te laag zadel wijzen,
+              meer gestrekt op een te hoog zadel. ZWB geeft geen advies in letters of
+              millimeters; twijfel je, ga dan naar een bikefitter. Romp en elleboog
+              staan er zonder richtwaarde, omdat het onderzoek daar geen duidelijke
+              grens geeft.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Met Leg vast zet je een meting in de tabel. Zo vergelijk je voor en na
+              een aanpassing, en valt een vaste fout van het model grotendeels weg.
+              Het beeld blijft op je toestel: er wordt niets opgeslagen of
+              verstuurd, en de tabel is weg als je de pagina sluit.
+            </p>
+            <Link
+              href="/zwbeter-worden/materiaal/houding"
+              className="mt-3 inline-flex min-h-[44px] items-center text-sm font-medium text-primary hover:underline"
+            >
+              Open Houding
             </Link>
           </article>
         </div>

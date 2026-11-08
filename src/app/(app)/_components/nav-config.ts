@@ -109,6 +109,7 @@ export const RACEN_SECTIONS: NavLeaf[] = [
 export const MATERIAAL_SECTIONS: NavLeaf[] = [
   { type: "link", href: "/zwbeter-worden/materiaal/kennis", label: "Kennisbank" },
   { type: "link", href: "/zwbeter-worden/materiaal/rekenaar", label: "Rekenaar" },
+  { type: "link", href: "/zwbeter-worden/materiaal/houding", label: "Houding" },
 ];
 
 export const NAV_GROUPS: NavNode[] = [

@@ -334,6 +334,13 @@ const HELP_INDEX: HelpResult[] = [
       "materiaal aero aerodynamica luchtweerstand cda houding helm kleding skinsuit pak sokken aero-sokken overschoenen wielen frame banden bandenspanning tubeless rolweerstand ketting wax smeren gewicht ventilator fan vermogensmeter powermeter smart trainer kalibreren bikefit zadelhoogte schoenplaatjes cranklengte cranks neusstrips compressie inlegzolen rekenaar watt seconden marginal gains",
   },
   {
+    title: "Houding meten",
+    text: "Je houding live met de camera van je telefoon: van voren de vermoeidheid, van opzij de kniehoek (bèta).",
+    href: "/hulp/kennis#houding",
+    terms:
+      "houding meten camera video telefoon webcam silhouet frontaal oppervlak vermoeidheid inzakken basis kniehoek knie onderin zadelhoogte zadel bikefit staand meten romp elleboog cadans richtwaarde zwift ride letter leg vast voor na vergelijken aerox",
+  },
+  {
     title: "Core & mobiliteit",
     text: "Korte series naast de fiets, zelf afvinken, los van je trainingsbelasting.",
     href: "/hulp/kennis#core-mobiliteit",
