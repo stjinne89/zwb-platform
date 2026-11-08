@@ -7,10 +7,10 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Laadtijd, deel 4: schema weer sneller (2026-11-08): lokaal gecommit, niet
-   gepusht.** Migratie `0312_rls_permission_initplan.sql` staat klaar, **niet
-   toegepast**. Na de push en de migratie: `/zwbeter-worden/schema` opnieuw meten
-   (was 5,4–8,0 s). Zie de ronde "Laadtijd, deel 4".
+0. **Laadtijd, deel 4: schema weer sneller (2026-11-08): gepusht naar `main`
+   (`25e17429`), migratie `0312` toegepast** (versie `20261108205601`, op
+   verzoek van de eigenaar). Open: `/zwbeter-worden/schema` na de deploy opnieuw
+   meten (was 5,4–8,0 s). Zie de ronde "Laadtijd, deel 4".
 
 0. **Houding (bèta) voor leden (2026-11-08): lokaal gecommit, niet gepusht.**
    Tab Houding onder ZWBeter materiaal, zonder advies in Zwift Ride-letters of
@@ -11882,8 +11882,12 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Laadtijd, deel 4: schema, layout en de rechtencheck in RLS
 
-**2026-11-08.** Lokaal gecommit, niet gepusht. Commit: de commit die dit blok
-toevoegt. Migratie `0312_rls_permission_initplan.sql`, **niet toegepast**.
+**2026-11-08.** Gepusht naar `main` als `25e17429`. Migratie
+`0312_rls_permission_initplan.sql` op 2026-11-08 toegepast op verzoek van de
+eigenaar (versie `20261108205601`). Gecontroleerd na het toepassen: alle 123
+aanroepen van `current_user_has_permission('…')` en de 15 van de twee andere
+functies staan omhuld, niets dubbel, de hulpfunctie is weg; de receptenvraag van
+hieronder kost 91 ms (was 491 ms) en het lid ziet dezelfde 140 recepten.
 
 **Waarom.** Bart de Groot meldde dat de app weer traag was. Gemeten in de browser
 (productie, drie keer per pagina, tijd tot de server antwoordt): de meeste pagina's
@@ -11940,9 +11944,12 @@ DUB, met 10–60 ms per vraag in plaats van ~130 ms. Waar Netlify ze nu draait, 
 niet in Netlify nagekeken.
 
 **Getest.** 4.034 unittests (één bestand faalt omdat de worktree geen `.env.local`
-heeft), lint op de gewijzigde bestanden, `npm run build`. **Niet getest:** de
-migratie als geheel (geen Docker of lokale Supabase; alleen de herschrijving en
-drie policies, zie boven) en de laadtijd op productie; dat kan pas na de push.
+heeft), lint op de gewijzigde bestanden, `npm run build`. De migratie is vóór het
+toepassen niet lokaal te draaien (geen Docker of lokale Supabase); alleen de
+herschrijving en drie policies zijn vooraf op productie geprobeerd en
+teruggedraaid. **Niet getest:** of elk recht na `0312` nog precies zo werkt; dat
+volgt uit de constructie (zelfde `STABLE`-functie, letterlijk argument), niet uit
+een test per policy.
 
 ### Gebouwd — Houding (bèta) voor leden
 
