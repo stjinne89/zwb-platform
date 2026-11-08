@@ -11933,6 +11933,20 @@ omdat de schatting er ver naast zat.
 - **Niet nagekeken:** het opnieuw laden na een link in de app (daarvoor is een
   login nodig), en de telefoon zelf.
 
+**Herstel, 2026-11-08: alleen de achtercamera.** Commit: de commit die dit blok
+toevoegt.
+- **Wat de eigenaar zag.** Op de telefoon pakte de meetproef alleen de
+  achtercamera.
+- **Oorzaak.** De keuzelijst had alleen "Achtercamera", tot de camera één keer aan
+  had gestaan. Een andere keuze werkte pas na Camera uit en weer aan.
+- **Wat er veranderde.**
+  - Een vaste keuze **Voorcamera** (`facingMode: user`) naast Achtercamera, plus
+    de camera's van het toestel zodra de browser ze noemt.
+  - Een andere keuze terwijl de camera aan staat, stopt de oude stroom en start de
+    nieuwe. iOS geeft maar één camera tegelijk.
+- **Getest met een nepcamera.** Na het wisselen vraagt de pagina
+  `facingMode: user`, en de meting loopt door. Op de telefoon niet getest.
+
 **Bewust niet.**
 - **Een functie voor leden, advies in Zwift Ride-letters en uitleg op `/hulp`.** Dat
   wacht op de uitkomst van de proef, en het plan hoort in het plannenboek.

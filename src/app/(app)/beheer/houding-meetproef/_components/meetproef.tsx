@@ -123,7 +123,8 @@ export function Meetproef() {
   const [status, setStatus] = useState<"uit" | "laden" | "aan">("uit");
   const [fout, setFout] = useState<string | null>(null);
   const [rekenaar, setRekenaar] = useState<Rekenaar | null>(null);
-  const [camera, setCamera] = useState<string>("");
+  /** "achter", "voor" of een deviceId uit de lijst. */
+  const [camera, setCamera] = useState<string>("achter");
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [camInfo, setCamInfo] = useState<string | null>(null);
   const [stuurMm, setStuurMm] = useState(420);
@@ -396,7 +397,7 @@ export function Meetproef() {
     setStatus("uit");
   }, []);
 
-  const start = useCallback(async () => {
+  const start = useCallback(async (keuze: string) => {
     setFout(null);
     setStatus("laden");
     try {
@@ -404,7 +405,11 @@ export function Meetproef() {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
-          ...(camera ? { deviceId: { exact: camera } } : { facingMode: { ideal: "environment" } }),
+          ...(keuze === "achter"
+            ? { facingMode: { ideal: "environment" } }
+            : keuze === "voor"
+              ? { facingMode: { ideal: "user" } }
+              : { deviceId: { exact: keuze } }),
           width: { ideal: 1280 },
           height: { ideal: 720 },
           frameRate: { ideal: 60 },
@@ -436,7 +441,17 @@ export function Meetproef() {
       stop();
       setFout(e instanceof Error ? `${e.name}: ${e.message}` : String(e));
     }
-  }, [camera, startLus, stop, vraagWakeLock]);
+  }, [startLus, stop, vraagWakeLock]);
+
+  // Een andere camera kiezen terwijl hij aan staat: de oude stroom eerst stoppen
+  // (iOS geeft maar één camera tegelijk) en met de nieuwe opnieuw beginnen.
+  function kiesCamera(keuze: string) {
+    setCamera(keuze);
+    if (streamRef.current) {
+      stop();
+      void start(keuze);
+    }
+  }
 
   // Selfie-model pas laden als het gekozen wordt.
   useEffect(() => {
@@ -636,17 +651,19 @@ export function Meetproef() {
             Camera uit
           </Button>
         ) : (
-          <Button size="sm" onClick={() => void start()} disabled={status === "laden"}>
+          <Button size="sm" onClick={() => void start(camera)} disabled={status === "laden"}>
             {status === "laden" ? "Laden…" : "Camera aan"}
           </Button>
         )}
         <select
           className="h-7 rounded-md border bg-background px-2 text-sm"
           value={camera}
-          onChange={(e) => setCamera(e.target.value)}
+          onChange={(e) => kiesCamera(e.target.value)}
           aria-label="Camera"
+          disabled={status === "laden"}
         >
-          <option value="">Achtercamera</option>
+          <option value="achter">Achtercamera</option>
+          <option value="voor">Voorcamera</option>
           {cameras.map((c, i) => (
             <option key={c.deviceId || i} value={c.deviceId}>
               {c.label || `Camera ${i + 1}`}
