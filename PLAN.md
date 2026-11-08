@@ -11911,8 +11911,8 @@ omdat de schatting er ver naast zat.
   bijgewerkt. *Eerst via een tweede regel met dezelfde sleutel; zie de
   herstelronde hieronder.*
 
-**Herstel, 2026-11-08: camera geweigerd op de telefoon.** Commit: de commit die
-dit blok toevoegt, lokaal, nog niet gepusht.
+**Herstel, 2026-11-08: camera geweigerd op de telefoon.** Commit `720dc3ad`, op
+2026-11-08 op verzoek van de eigenaar naar `main` gepusht.
 - **Wat de eigenaar zag.** Op zijn telefoon gaf de meetproef "Permission denied",
   zonder dat de browser om toestemming vroeg.
 - **Oorzaak.** Het camerarecht hoort bij het document. Wie de meetproef via een
