@@ -102,8 +102,8 @@ gaat stabiliteit voor nieuwe features.
    Opstelling of Aangemeld, daarna de vier types. Zie de ronde "Club Ladder: echte
    ploeg van de tegenstander eerst in de matchup".
 
-1e. **Dubbele rit zelf verwijderen (2026-11-08): gebouwd, lokaal gecommit,
-   niet gepusht; migratie `0310` niet toegepast.** Eerst `0310` toepassen
+1e. **Dubbele rit zelf verwijderen (2026-11-08): gebouwd, lokaal gecommit
+   (`92c92299`), niet gepusht; migratie `0310` niet toegepast.** Eerst `0310` toepassen
    (alleen op verzoek van de eigenaar), dan pushen: zonder de tabel weigert de
    knop met "Verwijderen mislukt." en blijft de sync zoals hij was. Nalopen na
    een deploy: bij lid `c88693d3` op 1 november de 0-km-"Ochtendrit" naast "SRC -
@@ -11848,8 +11848,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Dubbele rit zelf verwijderen
 
-**2026-11-08.** Lokaal gecommit op `claude/determined-shirley-52c209`, niet
-gepusht. Migratie `0310_strava_activity_dismissals.sql`, **niet toegepast**.
+**2026-11-08.** Commit `92c92299`, lokaal op
+`claude/determined-shirley-52c209`, niet gepusht. Migratie `0310_strava_activity_dismissals.sql`, **niet toegepast**.
 
 **Waarom.** Een lid had een dubbele opname van een workout in de app en kon die
 niet weghalen. Alleen een handmatig ingevoerde rit had een verwijderknop. In
