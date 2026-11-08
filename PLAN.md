@@ -75,7 +75,7 @@ gaat stabiliteit voor nieuwe features.
    ronde "Club Ladder: advies welke vijf rijden".
 
 1e. **Jaarplan: reisdagen bij een trainingskamp (2026-11-08): lokaal
-   gecommit, niet gepusht.** Migratie `0310_training_season_travel_days.sql`
+   gecommit, niet gepusht.** Migratie `0311_training_season_travel_days.sql`
    is niet toegepast. Eerst toepassen, dan pushen: zonder de kolom geeft een
    kamp opslaan een databasefout (rust en rustig werken wel, en het laden
    valt terug op periodes zonder reisdagen). Zie de ronde "Jaarplan: reisdagen
@@ -11848,7 +11848,7 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ### Gebouwd — Jaarplan: reisdagen bij een trainingskamp
 
 **2026-11-08.** Commit: de commit die dit blok toevoegt. Lokaal, niet gepusht.
-Migratie `0310_training_season_travel_days.sql` (niet toegepast).
+Migratie `0311_training_season_travel_days.sql` (niet toegepast).
 
 **Waarom.** De eigenaar vroeg om in het jaarplan bij een trainingskamp een
 reisdag te kunnen zetten, zodat duidelijk is dat er die dag niet getraind kan

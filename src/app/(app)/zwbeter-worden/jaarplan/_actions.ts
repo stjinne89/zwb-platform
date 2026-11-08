@@ -50,7 +50,7 @@ function mustPeriodKind(value: FormDataEntryValue | null) {
  * Reisdagen uit het formulier, alleen dagen binnen het kamp: wie het kamp na
  * het kiezen korter maakt, houdt geen losse reisdag over. Alleen een kamp
  * schrijft de kolom; bij een andere soort negeert travelDaysOf() hem toch, en
- * zo blijven rust en rustig ook werken zonder migratie 0310.
+ * zo blijven rust en rustig ook werken zonder migratie 0311.
  */
 function travelDaysPatch(formData: FormData, kind: string, startDate: string, endDate: string) {
   if (kind !== "kamp") return {};

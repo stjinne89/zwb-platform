@@ -69,7 +69,7 @@ export async function loadSeasonPeriods(
       .gte("end_date", from)
       .order("start_date", { ascending: true })
       .returns<Array<Record<string, unknown>>>();
-  // Zonder migratie 0310 bestaat travel_days nog niet. Dan liever de periodes
+  // Zonder migratie 0311 bestaat travel_days nog niet. Dan liever de periodes
   // zonder reisdagen dan helemaal geen: anders plant het schema door elke
   // vakantie heen.
   let { data, error } = await query("id, title, start_date, end_date, kind, note, travel_days");
