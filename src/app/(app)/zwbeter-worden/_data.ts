@@ -57,6 +57,7 @@ import {
 import { loadFtpAt } from "@/lib/training/ftp-history";
 import { loadHrBasis } from "@/lib/training/hr-load";
 import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
+import { duplicateRideIds } from "@/lib/rides/same-ride";
 import { MANUAL_IMPORT_SOURCE } from "@/lib/strava/import";
 import { STRAVA_RIDE_COLUMNS, type StravaRideRow } from "@/lib/training/ride-metrics";
 import { unplannedRides, type UnplannedRide } from "@/lib/training/unplanned-rides";
@@ -350,6 +351,8 @@ export type ScheduleRide = {
   dateKey: string;
   name: string;
   manual: boolean;
+  /** Een andere rit van het lid overlapt deze (isDuplicateRecording). */
+  duplicate: boolean;
   /** De ritten die bij deze rit horen, met naam en rijtijd. */
   parts: Array<{ activityId: string; label: string }>;
 };
@@ -437,6 +440,9 @@ export async function loadScheduleRides(
     profileId,
     await markExcludedRides(db, profileId, (data ?? []) as StravaRideRow[]),
   );
+  const duplicates = duplicateRideIds(
+    rides.map((ride) => ({ ...ride, distance_m: ride.distance_m ?? null })),
+  );
   const byId = new Map<string, ScheduleRide>(
     rides.map((ride) => [
       String(ride.id),
@@ -444,6 +450,7 @@ export async function loadScheduleRides(
         dateKey: amsterdamDayKey(new Date(ride.start_date)),
         name: ride.name?.trim() || "Rit",
         manual: (ride.raw as { import_source?: unknown } | null)?.import_source === MANUAL_IMPORT_SOURCE,
+        duplicate: duplicates.has(String(ride.id)),
         parts: (ride.parts ?? []).map((part) => ({
           activityId: String(part.id),
           label: `${part.name?.trim() || "Rit"}${minutesLabel(part.moving_time_seconds)}`,
@@ -495,6 +502,7 @@ export function rideLinkFor(
     dateKey: string;
     name: string;
     manual?: boolean;
+    duplicate?: boolean;
     parts?: ScheduleRide["parts"];
   },
   workoutId: string | null,
@@ -537,6 +545,7 @@ export function rideLinkFor(
     activityId: ride.activityId,
     workoutId,
     manual: ride.manual ?? false,
+    duplicate: ride.duplicate ?? false,
     rideLabel: `${ride.name} · ${formatDayMonth(`${ride.dateKey}T12:00:00`)}`,
     options: reassignCandidates(pool, ride.dateKey, workoutId ?? "", paired).map(
       (candidate) => ({

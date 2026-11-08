@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { rateLimitHit } from "@/lib/rate-limit";
+import { dropDismissedRides } from "@/lib/rides/dismissed";
 import { awardCompletedAchievementWeeks } from "@/lib/achievements/awards";
 import { evaluateMilestonesForUser } from "@/lib/achievements/milestone-evaluators";
 import { syncStravaActivitiesForUser } from "@/lib/strava/client";
@@ -420,9 +421,11 @@ async function importOneFile(
     }
 
     const plan = planRideImport(rows, existing);
+    // Door het lid weggehaalde dubbele opnames (0310) niet terugzetten.
+    const upserts = await dropDismissedRides(supabase, profileId, plan.upsert);
 
-    for (let index = 0; index < plan.upsert.length; index += 500) {
-      const batch = plan.upsert.slice(index, index + 500);
+    for (let index = 0; index < upserts.length; index += 500) {
+      const batch = upserts.slice(index, index + 500);
       const { error } = await supabase
         .from("strava_activities")
         .upsert(batch, { onConflict: "id" });
@@ -485,7 +488,7 @@ async function importOneFile(
     // bestand in terechtkwam (nieuw, of de CSV-rit die het spoor kreeg). Alleen
     // hier is het bestand met alle tijden er nog; bewaard wordt een uitgedunde lijn.
     let segmentEfforts = 0;
-    const trackRideId = timedTrack ? (plan.upsert[0]?.id ?? plan.attach[0]?.id) : undefined;
+    const trackRideId = timedTrack ? (upserts[0]?.id ?? plan.attach[0]?.id) : undefined;
     if (timedTrack && trackRideId != null) {
       try {
         const stored = await storeGpsEfforts(
@@ -513,10 +516,10 @@ async function importOneFile(
 
     return {
       ok: true as const,
-      imported: plan.upsert.length,
+      imported: upserts.length,
       tracksAdded: plan.attach.length,
       segmentEfforts,
-      skippedRows: skippedRows + plan.duplicates,
+      skippedRows: skippedRows + plan.duplicates + plan.upsert.length - upserts.length,
       skippedNoTrack: 0,
       skippedNonCycling,
     };

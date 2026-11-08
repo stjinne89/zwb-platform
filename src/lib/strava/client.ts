@@ -3,6 +3,7 @@ import { ridesComeViaIntervals } from "@/lib/intervals/ride-preference";
 import { guessDiscipline } from "@/lib/maintenance/guess-discipline";
 import { hasActivityWriteScope } from "@/lib/strava/scope";
 import { isCyclingSportType } from "@/lib/strava/sports";
+import { dropDismissedRides } from "@/lib/rides/dismissed";
 import { isInvalidGrant } from "@/lib/strava/deauthorize";
 import {
   revocationPatch,
@@ -646,7 +647,7 @@ export async function syncStravaActivitiesForUser(
     }
 
     if (cycling.length > 0) {
-      const rows = cycling
+      const built = cycling
         .filter((a): a is StravaActivity & { start_date: string } =>
           Boolean(a.id && a.start_date),
         )
@@ -657,6 +658,8 @@ export async function syncStravaActivitiesForUser(
             Number((connection as StravaConnection).strava_athlete_id),
           ),
         );
+      // Een door het lid weggehaalde dubbele opname (0310) niet terugzetten.
+      const rows = await dropDismissedRides(supabase, profileId, built);
 
       // Batch upsert: 1 supabase-call i.p.v. 100. Stuk sneller.
       if (rows.length > 0) {

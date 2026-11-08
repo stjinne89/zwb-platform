@@ -3,7 +3,8 @@
 // De ingest houdt een tweede kopie meestal tegen (dedupeRides in
 // intervals/rides.ts), maar niet als het lid de rit zelf twee keer opnam en
 // beide naar Strava zette, of hem twee keer importeerde. Die staan bij Strava ook
-// dubbel, dus ZWB wist ze niet; de lezers tellen ze één keer. Zie
+// dubbel, dus ZWB wist ze niet uit zichzelf; de lezers tellen ze één keer. Het
+// lid kan er zelf één weghalen (Dubbele rit verwijderen, migratie 0310). Zie
 // docs/dubbele-ritten-2026-10-18.md.
 //
 // Puur.

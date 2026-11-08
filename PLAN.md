@@ -74,9 +74,17 @@ gaat stabiliteit voor nieuwe features.
    Open: het racebriefje rekent zijn verwachte uitslag nog met alle zes. Zie de
    ronde "Club Ladder: advies welke vijf rijden".
 
-1e. **Jaarplan: reisdagen bij een trainingskamp (2026-11-08): lokaal
+1e. **Dubbele rit zelf verwijderen (2026-11-08): gebouwd, lokaal gecommit
+   (`92c92299`), niet gepusht; migratie `0310` niet toegepast.** Eerst `0310` toepassen
+   (alleen op verzoek van de eigenaar), dan pushen: zonder de tabel weigert de
+   knop met "Verwijderen mislukt." en blijft de sync zoals hij was. Nalopen na
+   een deploy: bij lid `c88693d3` op 1 november de 0-km-"Ochtendrit" naast "SRC -
+   Women Qualifier Race 1" weghalen (met het lid) en na de volgende sync zien dat
+   hij niet terugkomt. Zie de ronde "Dubbele rit zelf verwijderen".
+
+1f. **Jaarplan: reisdagen bij een trainingskamp (2026-11-08): lokaal
    gecommit, niet gepusht.** Migratie `0311_training_season_travel_days.sql`
-   is niet toegepast. Eerst toepassen, dan pushen: zonder de kolom geeft een
+   is niet toegepast. Eerst toepassen (na `0310` van punt 1e), dan pushen: zonder de kolom geeft een
    kamp opslaan een databasefout (rust en rustig werken wel, en het laden
    valt terug op periodes zonder reisdagen). Zie de ronde "Jaarplan: reisdagen
    bij een trainingskamp".
@@ -11844,6 +11852,65 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Dubbele rit zelf verwijderen
+
+**2026-11-08.** Commit `92c92299`, lokaal op
+`claude/determined-shirley-52c209`, niet gepusht. Migratie `0310_strava_activity_dismissals.sql`, **niet toegepast**.
+
+**Waarom.** Een lid had een dubbele opname van een workout in de app en kon die
+niet weghalen. Alleen een handmatig ingevoerde rit had een verwijderknop. In
+productie (2026-11-08, alleen-lezend) zijn het vooral twee Strava-activiteiten
+van dezelfde rit: Zwift naast een horloge of fietscomputer, vaak met 0 km
+("SRC - Women Qualifier Race 1" 45 km naast "Ochtendrit" 0 km, start 3 s uit
+elkaar), of een opname die halverwege stopte. Soort B uit
+[docs/dubbele-ritten-2026-10-18.md](docs/dubbele-ritten-2026-10-18.md).
+`isSameRide` en `uniqueRides` zien die niet, want de afstand verschilt meer dan
+5%. Dus tellen ze dubbel in belasting en schema.
+
+**Wat er veranderde.**
+- `isDuplicateRecording` en `duplicateRideIds` (`lib/rides/same-ride.ts`,
+  puur). Twee eigen ritten zijn een dubbele opname als `isSameRide` ze gelijk
+  vindt, of als de kortste (start + rijtijd) voor minstens de helft binnen de
+  andere valt. Een warming-up vóór een race overlapt niet en telt dus niet.
+- `loadScheduleRides` zet `duplicate` op elke rit. `rideLinkFor` geeft het door
+  aan de `RideLink`, en de kalender toont bij zo'n rit **Dubbele rit
+  verwijderen** (`DeleteDuplicateRideButton`, met `confirm`). De knop staat
+  zowel bij een losse rit als bij een training met een gekoppelde rit; voor een
+  handmatige rit blijft Ingevoerde rit verwijderen.
+- `deleteDuplicateRide` (`_actions/duplicate-ride.ts`): eigen rit, rate-limit
+  20 per uur, op de server opnieuw de overlaptoets (±1 dag). Eerst een rij in
+  `strava_activity_dismissals`, dan de rit weg, dan het nawerk met
+  `removedActivityIds` (training los, coltijden), `workoutCompletion` (de rit die
+  bleef kan de training overnemen), milestones en weekbadges.
+- `strava_activity_dismissals` (0310): `profile_id` + `activity_id`, lezen
+  alleen het lid zelf, schrijven alleen de service role. Elk schrijfpad haalt die
+  id's eruit vóór de upsert (`dropDismissedRides`, `lib/rides/dismissed.ts`):
+  Strava-sync (`client.ts`), historie (`history-backfill.ts`), webhook
+  (`ingest-activity.ts`), intervals.icu (`ride-sync.ts`) en de CSV/GPX-import
+  (`stats/rankings/_actions.ts`). Zonder dat zette de volgende sync de rit terug:
+  die haalt het venster van de laatste dagen opnieuw op en upsert op id.
+- `/hulp/schema#dubbele-rit` en een zoekitem.
+
+**Bewust niet.**
+- Een kolom op `strava_activities` in plaats van een tabel: dan moest elke
+  lezer (65 bestanden) de rit wegfilteren.
+- Elke rit verwijderbaar maken: een losse rit die er gewoon hoort, verdwijnt
+  dan met één klik uit belasting, badges en ranglijsten. Wie een rit echt kwijt
+  wil, verwijdert hem in Strava.
+- De rit ook in Strava verwijderen: de API kan dat niet.
+- Terugzetten van een weggehaalde rit: bij een vergissing kan de beheerder de
+  rij uit `strava_activity_dismissals` halen en een sync draaien. Een knop
+  daarvoor wacht op een eerste vraag.
+- Handmatige ritten krijgen geen markering: die komen uit geen enkele sync terug.
+
+**Niet geverifieerd.** De migratie is niet lokaal te testen (geen Docker of
+Supabase-config). Zolang 0310 er niet is, lezen de schrijfpaden een lege set en
+gaat de sync door zoals voorheen (`dismissedRideIds` vangt de fout af); de knop
+weigert dan. Niet in de browser bekeken. Unittests voor de overlaptoets (vormen
+uit productie) en het filter in `tests/unit/duplicate-recording.test.ts`.
+Typecheck, lint op de gewijzigde bestanden en alle unit-tests schoon, op
+`omnium-live` na (vraagt een `.env.local`, die deze worktree niet heeft).
 
 ### Gebouwd — Jaarplan: reisdagen bij een trainingskamp
 

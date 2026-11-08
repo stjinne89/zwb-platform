@@ -10,6 +10,8 @@ export type RideLink = {
   workoutId: string | null;
   /** Zelf ingevoerd (Rit invoeren): het lid kan hem weer verwijderen. */
   manual?: boolean;
+  /** Een andere rit overlapt deze: het lid kan de dubbele opname weghalen (0310). */
+  duplicate?: boolean;
   /** Naam en dag van de rit, voor bij een training. */
   rideLabel: string;
   options: Array<{ workoutId: string; label: string }>;

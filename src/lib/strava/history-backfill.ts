@@ -23,6 +23,7 @@ import {
   type StravaActivity,
   type StravaConnection,
 } from "@/lib/strava/client";
+import { dropDismissedRides } from "@/lib/rides/dismissed";
 import { isCyclingSportType } from "@/lib/strava/sports";
 import {
   loadRateLimitUsage,
@@ -278,9 +279,15 @@ function defaultDeps(
       }
     },
     storeRides: async (candidate, rides) => {
-      const rows = rides.map((ride) =>
-        stravaActivityRow(ride, candidate.profile_id, Number(candidate.strava_athlete_id)),
+      // Een door het lid weggehaalde dubbele opname (0310) niet terugzetten.
+      const rows = await dropDismissedRides(
+        admin,
+        candidate.profile_id,
+        rides.map((ride) =>
+          stravaActivityRow(ride, candidate.profile_id, Number(candidate.strava_athlete_id)),
+        ),
       );
+      if (rows.length === 0) return 0;
       const { error } = await admin.from("strava_activities").upsert(rows, { onConflict: "id" });
       if (error) throw new Error(error.message);
       return rows.length;

@@ -836,6 +836,19 @@ export function SchemaHelp() {
               de training staat daarna weer open.
             </p>
             <p
+              id="dubbele-rit"
+              className="mt-2 scroll-mt-20 text-sm text-muted-foreground"
+            >
+              Nam je één rit twee keer op, bijvoorbeeld met Zwift en met je
+              horloge, en staan ze allebei in Strava? Dan staan ze ook in je
+              kalender twee keer. Klik de opname aan die weg moet en kies{" "}
+              <strong className="text-foreground">Dubbele rit verwijderen</strong>.
+              De knop staat alleen bij ritten die in tijd overlappen met een andere
+              rit. ZWB haalt de rit weg en zet hem bij de volgende sync niet terug;
+              in Strava blijft hij staan. Hing de rit aan een training, dan neemt de
+              rit die bleef die plek over.
+            </p>
+            <p
               id="naleving"
               className="mt-2 scroll-mt-20 text-sm text-muted-foreground"
             >
