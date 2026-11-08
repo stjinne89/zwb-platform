@@ -315,6 +315,13 @@ export default function PrivacyPage() {
             het bestuur en andere leden niet, en ze gaan niet naar {AI}. Je
             kunt elke test wissen, en ze staan in je data-export.
           </li>
+          <li id="houding" className="scroll-mt-20">
+            <strong>Houding meten:</strong> meet je je houding met de camera, dan
+            verwerkt je browser het beeld op je eigen toestel. Het beeld en de
+            metingen gaan niet naar ZWB of een ander, en we bewaren er niets van;
+            sluit je de pagina, dan is alles weg. De rekenmodellen laadt je
+            browser van ZWB zelf.
+          </li>
           <li id="zwbieb" className="scroll-mt-20">
             <strong>ZWBieb, eerst &ldquo;Wie weet wat&rdquo; (alleen met
             opt-in):</strong> doe je mee of stel je een vraag, dan teken je daar

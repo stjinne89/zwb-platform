@@ -11,8 +11,7 @@ gaat stabiliteit voor nieuwe features.
    Tab Houding onder ZWBeter materiaal, zonder advies in Zwift Ride-letters of
    millimeters. De eigenaar doet deze week de lettertest op
    `/beheer/houding-meetproef` (gepusht, `c44673e8`) met zijn Zwift Ride V2; pas
-   als één letter zichtbaar is in de kniehoek, komt er letteradvies. Open: de zin
-   over de camera in de privacyverklaring ligt bij de eigenaar. Zie de rondes
+   als één letter zichtbaar is in de kniehoek, komt er letteradvies. Zie de rondes
    "Houding (bèta) voor leden" en "Houding-meetproef", en
    [houding-video-meetproef](docs/houding-video-meetproef.md).
 
@@ -11937,8 +11936,10 @@ mogelijk gevolg. De eigenaar doet die test deze week.
   elke keer laden opnieuw controleren.
 - **Opslaan van metingen:** dat vraagt een tabel en een privacytekst over
   lichaamsmaten. Eerst zien of leden het gebruiken.
-- **De zin over de camera in de privacyverklaring:** ligt eerst bij de eigenaar.
-  Er komt geen nieuwe versie, omdat ZWB niets van het beeld ontvangt of bewaart.
+- **Een nieuwe privacyversie.** De privacyverklaring kreeg een punt "Houding
+  meten" (`/privacy#houding`): het beeld blijft op het toestel en ZWB bewaart
+  niets. De eigenaar keurde de tekst op 2026-11-08 goed. Er komt geen nieuwe versie
+  en geen hertekening, omdat ZWB niets van het beeld ontvangt of bewaart.
 
 **Nagekeken.**
 - In de browser met een nepcamera (een foto als videostroom), op een tijdelijke
