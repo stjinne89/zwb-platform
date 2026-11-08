@@ -27,6 +27,7 @@ import {
   SEASON_PRIORITIES,
   SEASON_PRIORITY_LABELS,
   seasonRoad,
+  travelDaysOf,
   type SeasonEvent,
   type SeasonPeriod,
   type SeasonPlanBar,
@@ -35,6 +36,7 @@ import {
   type SeasonWarning,
 } from "@/lib/training/season";
 import { useAiDraftPoll } from "../../_components/use-ai-draft-poll";
+import { TravelDaysPicker } from "./travel-days";
 import {
   createSeasonTarget,
   deleteSeasonPeriod,
@@ -552,6 +554,10 @@ function PeriodeHalte({
   const { period } = stop;
   const [bewerken, setBewerken] = useState(false);
   const { pending, fout, voerUit } = useActie();
+  const [van, setVan] = useState(period.startDate);
+  const [tot, setTot] = useState(period.endDate);
+  const [kind, setKind] = useState<string>(period.kind);
+  const reisdagen = travelDaysOf(period);
 
   return (
     <>
@@ -573,6 +579,11 @@ function PeriodeHalte({
             {SEASON_PERIOD_LABELS[period.kind]} · t/m {dagMaand(period.endDate)} · {stop.days}{" "}
             {stop.days === 1 ? "dag" : "dagen"}
           </p>
+          {reisdagen.length > 0 ? (
+            <p className="jp-meta">
+              {reisdagen.length === 1 ? "Reisdag" : "Reisdagen"} {reisdagen.map(dagMaand).join(", ")}
+            </p>
+          ) : null}
           {period.note ? <p className="jp-meta">{period.note}</p> : null}
         </div>
         {editable ? (
@@ -610,6 +621,7 @@ function PeriodeHalte({
               name="start_date"
               required
               defaultValue={period.startDate}
+              onChange={(change) => setVan(change.target.value)}
               className={`mt-1 ${FIELD}`}
             />
           </label>
@@ -620,12 +632,18 @@ function PeriodeHalte({
               name="end_date"
               required
               defaultValue={period.endDate}
+              onChange={(change) => setTot(change.target.value)}
               className={`mt-1 ${FIELD}`}
             />
           </label>
           <label className="text-sm">
             Soort
-            <select name="kind" defaultValue={period.kind} className={`mt-1 ${FIELD}`}>
+            <select
+              name="kind"
+              defaultValue={period.kind}
+              onChange={(change) => setKind(change.target.value)}
+              className={`mt-1 ${FIELD}`}
+            >
               {SEASON_PERIOD_KINDS.map((kind) => (
                 <option key={kind} value={kind}>
                   {SEASON_PERIOD_LABELS[kind]}
@@ -633,6 +651,9 @@ function PeriodeHalte({
               ))}
             </select>
           </label>
+          {kind === "kamp" ? (
+            <TravelDaysPicker startDate={van} endDate={tot} defaultDays={reisdagen} />
+          ) : null}
           <label className="text-sm sm:col-span-2">
             Notitie
             <input name="note" defaultValue={period.note ?? ""} className={`mt-1 ${FIELD}`} />

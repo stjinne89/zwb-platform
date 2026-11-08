@@ -18,6 +18,7 @@ import {
   isRaceOrTestDay,
   minutesOn,
   mondayKey,
+  offDay,
   periodOn,
   shiftDays,
   weekdayOf,
@@ -229,9 +230,12 @@ function composeWeek(state: State, week: WeekPlan, variant: number, range: PlanW
   if (days.some((day) => periodOn(input, day) === "rust")) {
     reason("dag.rust", `Rustperiode in de week van ${dayLabel(week.weekStart)}: die dagen blijven leeg.`);
   }
+  for (const day of days.filter((day) => periodOn(input, day) === "reis")) {
+    reason("dag.reis", `${dayLabel(day)} is een reisdag: die dag blijft leeg.`);
+  }
   const caps = new Map<string, number>();
   for (const day of days) {
-    if (periodOn(input, day) === "rust" || fixedOn(input, day).length > 0 || eventDays.has(day)) continue;
+    if (offDay(input, day) || fixedOn(input, day).length > 0 || eventDays.has(day)) continue;
     const cap = dayCap(input, day);
     if (cap > 0) caps.set(day, cap);
   }

@@ -122,6 +122,7 @@ export function adaptDay(input: TrainingAiInput, buildSession: BuildSession): En
 
   const inCamp = periodOn(input, today) === "kamp" || periodOn(input, shiftDays(today, -1)) === "kamp";
   const restPeriod = periodOn(input, today) === "rust";
+  const travelDay = periodOn(input, today) === "reis";
   const feeling = input.today?.feeling ?? null;
   const availableMinutes = input.today?.availableMinutes ?? null;
 
@@ -163,6 +164,16 @@ export function adaptDay(input: TrainingAiInput, buildSession: BuildSession): En
       rule: "dag.rustperiode",
       date: today,
       text: "Vandaag valt in een rustperiode: er komt niets bij.",
+      caution: false,
+    });
+    return { workouts, reasons };
+  }
+
+  if (travelDay) {
+    reasons.push({
+      rule: "dag.reisdag",
+      date: today,
+      text: "Vandaag is een reisdag: er komt niets bij.",
       caution: false,
     });
     return { workouts, reasons };

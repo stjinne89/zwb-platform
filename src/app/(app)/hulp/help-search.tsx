@@ -223,7 +223,7 @@ const HELP_INDEX: HelpResult[] = [
     text: "A-, B- en C-doelen, vakanties, drukke periodes en trainingskampen, en wat ze met je schema doen.",
     href: "/hulp/schema#jaarplan",
     terms:
-      "jaarplan jaarplanning seizoen mikpunt mikpunten a-doel b-doel c-doel prioriteit piek rustperiode rust rustig vakantie winterstop drukke periode tijdlijn weg asfalt hek paaltje stippellijn grind finish clubevent kalender misschien event koppelen vlaggetje prioriteit wijzigen dubbel lijst mikpunt verwijderen bewerken verschuiven verplaatsen datum wijzigen trainingskamp kamp stage volume melding waarschuwing",
+      "jaarplan jaarplanning seizoen mikpunt mikpunten a-doel b-doel c-doel prioriteit piek rustperiode rust rustig vakantie winterstop drukke periode tijdlijn weg asfalt hek paaltje stippellijn grind finish clubevent kalender misschien event koppelen vlaggetje prioriteit wijzigen dubbel lijst mikpunt verwijderen bewerken verschuiven verplaatsen datum wijzigen trainingskamp kamp stage reisdag reisdagen reizen heenreis terugreis volume melding waarschuwing",
   },
   {
     title: "Een doeltijd voor je gran fondo",

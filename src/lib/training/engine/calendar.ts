@@ -3,7 +3,7 @@
 
 import { mondayKey, weekdayOf } from "@/lib/training/availability";
 import { daysBetween, shiftDays } from "@/lib/training/season";
-import type { SeasonPeriodKind } from "@/lib/training/season";
+import type { SeasonDayKind } from "@/lib/training/season";
 import type { TrainingAiInput } from "@/lib/training/engine/types";
 
 export { daysBetween, mondayKey, shiftDays, weekdayOf };
@@ -58,10 +58,19 @@ export function isRaceOrTestDay(input: TrainingAiInput, date: string): boolean {
   );
 }
 
-/** De soort periode uit de jaarplanning waarin `date` valt, of null. */
-export function periodOn(input: TrainingAiInput, date: string): SeasonPeriodKind | null {
-  const period = (input.seasonPlan?.periods ?? []).find((row) => date >= row.from && date <= row.to);
-  return period?.kind ?? null;
+/**
+ * De soort periode uit de jaarplanning waarin `date` valt, of null. Een reisdag
+ * gaat vóór het kamp waar hij in ligt.
+ */
+export function periodOn(input: TrainingAiInput, date: string): SeasonDayKind | null {
+  const matches = (input.seasonPlan?.periods ?? []).filter((row) => date >= row.from && date <= row.to);
+  return (matches.find((row) => row.kind === "reis") ?? matches[0])?.kind ?? null;
+}
+
+/** Een dag waarop het lid er niet is of niet kan trainen: rust of een reisdag. */
+export function offDay(input: TrainingAiInput, date: string): boolean {
+  const kind = periodOn(input, date);
+  return kind === "rust" || kind === "reis";
 }
 
 /** Minuten van vaste afspraken in [from, to]; telt mee in de weekbelasting. */

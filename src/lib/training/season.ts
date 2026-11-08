@@ -17,6 +17,14 @@ export type SeasonPriority = (typeof SEASON_PRIORITIES)[number];
 export const SEASON_PERIOD_KINDS = ["rust", "rustig", "kamp"] as const;
 export type SeasonPeriodKind = (typeof SEASON_PERIOD_KINDS)[number];
 
+/**
+ * Wat de planner per dag ziet. 'reis' is geen soort periode die het lid kiest,
+ * maar een reisdag binnen een kamp (`SeasonPeriod.travelDays`): die dag kan er
+ * niet getraind worden. seasonForAi() zet elke reisdag als eigen dag vóór het
+ * kamp, zodat hij voorrang krijgt.
+ */
+export type SeasonDayKind = SeasonPeriodKind | "reis";
+
 export const SEASON_PRIORITY_LABELS: Record<SeasonPriority, string> = {
   a: "A-doel",
   b: "B-doel",
@@ -70,6 +78,8 @@ export type SeasonPeriod = {
   endDate: string;
   kind: SeasonPeriodKind;
   note: string | null;
+  /** Reisdagen binnen een kamp, 'YYYY-MM-DD'. Leeg bij andere soorten. */
+  travelDays: string[];
 };
 
 /** Eén schema als balk: een plan-familie samengetrokken tot begin en eind. */
@@ -120,6 +130,18 @@ export function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: str
 
 export function withinPeriod(dayKey: string, period: SeasonPeriod): boolean {
   return dayKey >= period.startDate && dayKey <= period.endDate;
+}
+
+/**
+ * De reisdagen van een kamp die echt binnen het kamp liggen, op volgorde en
+ * zonder dubbele. Een kamp dat na het kiezen korter werd, houdt zo geen
+ * reisdag buiten zijn eigen dagen over; andere soorten hebben er geen.
+ */
+export function travelDaysOf(period: Pick<SeasonPeriod, "kind" | "startDate" | "endDate" | "travelDays">): string[] {
+  if (period.kind !== "kamp") return [];
+  return [...new Set(period.travelDays ?? [])]
+    .filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day) && day >= period.startDate && day <= period.endDate)
+    .sort();
 }
 
 /**
@@ -213,7 +235,7 @@ export type SeasonForAi = {
     title: string;
     from: string;
     to: string;
-    kind: SeasonPeriodKind;
+    kind: SeasonDayKind;
   }>;
   /**
    * Het eerstvolgende A- of B-mikpunt ná het einde van deze planperiode. Zonder
@@ -247,15 +269,25 @@ export function seasonForAi(input: {
       priority: target.priority,
     }));
 
-  const periods = input.periods
+  const inRange = input.periods
     .filter((period) => overlaps(period.startDate, period.endDate, input.from, input.to))
-    .sort((a, b) => a.startDate.localeCompare(b.startDate))
-    .map((period) => ({
+    .sort((a, b) => a.startDate.localeCompare(b.startDate));
+  // Reisdagen eerst: wie de periode van een dag zoekt, vindt dan de reisdag en
+  // niet het kamp eromheen.
+  const travel = inRange.flatMap((period) =>
+    travelDaysOf(period)
+      .filter((day) => day >= input.from && day <= input.to)
+      .map((day) => ({ title: `${period.title}: reisdag`, from: day, to: day, kind: "reis" as const })),
+  );
+  const periods: SeasonForAi["periods"] = [
+    ...travel,
+    ...inRange.map((period) => ({
       title: period.title,
       from: period.startDate,
       to: period.endDate,
       kind: period.kind,
-    }));
+    })),
+  ];
 
   const after = input.targets
     .filter((target) => target.targetDate > input.to && target.priority !== "c")
@@ -289,7 +321,8 @@ export type SeasonWarningCode =
   | "twee_a_doelen_dicht_bij_elkaar"
   | "a_doel_zonder_schema"
   | "rustperiode_botst_met_event"
-  | "kamp_vlak_voor_a_doel";
+  | "kamp_vlak_voor_a_doel"
+  | "training_op_reisdag";
 
 /** Waar op de weg een signalering thuishoort: bij de regel waar hij over gaat. */
 export type SeasonWarningAnchor = {
@@ -467,6 +500,23 @@ export function seasonWarnings(input: SeasonWarningInput): SeasonWarning[] {
       detail:
         "Minder dan een week is te kort om de vermoeidheid van een kamp kwijt te raken. Een tot twee weken ertussen is ruim genoeg.",
       action: null,
+      anchor: { kind: "period", id: period.id },
+    });
+  }
+
+  // 6. Een geplande training op een reisdag van een kamp.
+  for (const period of periods) {
+    const reisdagen = travelDaysOf(period).filter(
+      (day) => day >= today && input.plannedWorkoutDays.includes(day),
+    );
+    if (reisdagen.length === 0) continue;
+    warnings.push({
+      code: "training_op_reisdag",
+      severity: "let_op",
+      id: `training_op_reisdag:${period.id}`,
+      title: `Je schema traint op een reisdag van "${period.title}"`,
+      detail: `Er staat een training op ${reisdagen.map(dagMaand).join(" en ")}.`,
+      action: { kind: "herzie_schema", label: "Laat je schema herzien" },
       anchor: { kind: "period", id: period.id },
     });
   }

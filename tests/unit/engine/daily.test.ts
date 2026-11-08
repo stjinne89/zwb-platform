@@ -170,6 +170,22 @@ describe("adaptDay", () => {
     expect(adaptDay(home, stubSession).workouts).toHaveLength(1);
   });
 
+  it("plant niets op een reisdag", () => {
+    const input = dayInput({
+      seasonPlan: {
+        targets: [],
+        periods: [
+          { title: "Kamp", from: "2026-10-20", to: "2026-10-25", kind: "kamp" },
+          { title: "Kamp: reisdag", from: "2026-10-20", to: "2026-10-20", kind: "reis" },
+        ],
+        nextTargetAfterPlan: null,
+      },
+    });
+    const result = adaptDay(input, stubSession);
+    expect(result.workouts).toEqual([]);
+    expect(result.reasons.some((reason) => reason.rule === "dag.reisdag")).toBe(true);
+  });
+
   it("maakt een rustige rit steviger als het lid zich fris meldt", () => {
     const input = dayInput({
       currentPlan: {

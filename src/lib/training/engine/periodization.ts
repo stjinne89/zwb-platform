@@ -20,6 +20,7 @@ import {
   fixedMinutesBetween,
   minutesOn,
   mondayKey,
+  offDay,
   periodOn,
   shiftDays,
   weekdayOf,
@@ -76,6 +77,8 @@ type Frame = {
   rustDays: number;
   rustigDays: number;
   kampDays: number;
+  /** Reisdagen van een kamp: geen training en geen kampvolume. */
+  reisDays: number;
   normalDays: number;
   /** Beschikbaar over [from, to]; null = er is een onbeperkte dag. */
   capacity: number | null;
@@ -138,11 +141,13 @@ function buildFrame(input: TrainingAiInput, monday: string, window: PlanWindow):
   let rustDays = 0;
   let rustigDays = 0;
   let kampDays = 0;
+  let reisDays = 0;
   for (const day of days) {
     const period = periodOn(input, day);
     if (period === "rust") rustDays += 1;
     else if (period === "rustig") rustigDays += 1;
     else if (period === "kamp") kampDays += 1;
+    else if (period === "reis") reisDays += 1;
   }
 
   const minutes = days.map((day) => minutesOn(input, day));
@@ -167,7 +172,7 @@ function buildFrame(input: TrainingAiInput, monday: string, window: PlanWindow):
   let lastKeyDay: string | null = null;
   days.forEach((day, index) => {
     const available = minutes[index];
-    if (periodOn(input, day) === "rust") return;
+    if (offDay(input, day)) return;
     if (available != null && available < KEY_SESSION_MIN_MINUTES) return;
     if (lastKeyDay && daysBetween(lastKeyDay, day) < 2) return;
     keyDays += 1;
@@ -182,7 +187,8 @@ function buildFrame(input: TrainingAiInput, monday: string, window: PlanWindow):
     rustDays,
     rustigDays,
     kampDays,
-    normalDays: days.length - rustDays - rustigDays - kampDays,
+    reisDays,
+    normalDays: days.length - rustDays - rustigDays - kampDays - reisDays,
     capacity: sumOrNull(minutes),
     ceiling: limits.length > 0 ? Math.min(...limits) : null,
     explicitWeek: (input.availability?.weeks ?? []).some((week) => week.weekStart === monday),
@@ -602,6 +608,9 @@ export function planWeeks(input: TrainingAiInput, window: PlanWindow): WeekPlan[
 
     if (kind !== "rust" && frame.rustDays > 0) {
       add("volume.rust", `${frame.rustDays} ${frame.rustDays === 1 ? "dag" : "dagen"} rust uit je jaarplanning: minder volume.`);
+    }
+    if (kind !== "rust" && frame.reisDays > 0) {
+      add("volume.reis", `${frame.reisDays} ${frame.reisDays === 1 ? "reisdag" : "reisdagen"} uit je jaarplanning: minder volume.`);
     }
     if (kind !== "kamp" && kind !== "rust" && frame.capacity != null) target = Math.min(target, frame.capacity);
     if (frame.days.length < 7 && kind !== "rust") {

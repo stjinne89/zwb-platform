@@ -60,13 +60,20 @@ export async function loadSeasonPeriods(
   from: string,
   to: string,
 ): Promise<SeasonPeriod[]> {
-  const { data } = await admin
-    .from("training_season_periods")
-    .select("id, title, start_date, end_date, kind, note")
-    .eq("profile_id", profileId)
-    .lte("start_date", to)
-    .gte("end_date", from)
-    .order("start_date", { ascending: true });
+  const query = (columns: string) =>
+    admin
+      .from("training_season_periods")
+      .select(columns)
+      .eq("profile_id", profileId)
+      .lte("start_date", to)
+      .gte("end_date", from)
+      .order("start_date", { ascending: true })
+      .returns<Array<Record<string, unknown>>>();
+  // Zonder migratie 0310 bestaat travel_days nog niet. Dan liever de periodes
+  // zonder reisdagen dan helemaal geen: anders plant het schema door elke
+  // vakantie heen.
+  let { data, error } = await query("id, title, start_date, end_date, kind, note, travel_days");
+  if (error) ({ data, error } = await query("id, title, start_date, end_date, kind, note"));
 
   return (data ?? []).map((row) => ({
     id: row.id as string,
@@ -75,6 +82,7 @@ export async function loadSeasonPeriods(
     endDate: String(row.end_date).slice(0, 10),
     kind: row.kind as SeasonPeriodKind,
     note: (row.note as string | null) ?? null,
+    travelDays: ((row.travel_days as string[] | null) ?? []).map((day) => String(day).slice(0, 10)),
   }));
 }
 

@@ -41,9 +41,9 @@ const SEASON: SeasonWarningInput = {
     { id: "t3", title: "Clubkampioenschap tijdrit", targetDate: "2026-11-28", priority: "c", eventId: "e3", goalId: null, note: null },
   ],
   periods: [
-    { id: "p1", title: "Herfstvakantie", startDate: "2026-10-17", endDate: "2026-10-25", kind: "rust", note: null },
-    { id: "p2", title: "Drukke weken op het werk", startDate: "2026-12-07", endDate: "2026-12-18", kind: "rustig", note: null },
-    { id: "p3", title: "Trainingskamp Mallorca", startDate: "2027-04-17", endDate: "2027-04-24", kind: "kamp", note: null },
+    { id: "p1", title: "Herfstvakantie", startDate: "2026-10-17", endDate: "2026-10-25", kind: "rust", note: null, travelDays: [] },
+    { id: "p2", title: "Drukke weken op het werk", startDate: "2026-12-07", endDate: "2026-12-18", kind: "rustig", note: null, travelDays: [] },
+    { id: "p3", title: "Trainingskamp Mallorca", startDate: "2027-04-17", endDate: "2027-04-24", kind: "kamp", note: null, travelDays: ["2027-04-17", "2027-04-24"] },
   ],
   plans: [
     { rootId: "r1", title: "Basis winter", startDate: "2026-09-21", endDate: "2026-10-26", status: "published", goalId: "g1" },

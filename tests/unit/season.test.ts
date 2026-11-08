@@ -14,6 +14,7 @@ import {
   seasonStand,
   seasonWarnings,
   shiftDays,
+  travelDaysOf,
   type SeasonEvent,
   type SeasonPeriod,
   type SeasonPlanBar,
@@ -41,6 +42,7 @@ function period(patch: Partial<SeasonPeriod> = {}): SeasonPeriod {
     endDate: patch.endDate ?? "2026-07-14",
     kind: patch.kind ?? "rust",
     note: patch.note ?? null,
+    travelDays: patch.travelDays ?? [],
   };
 }
 
@@ -322,6 +324,25 @@ describe("seasonWarnings", () => {
     expect(codes(bDoel)).not.toContain("kamp_vlak_voor_a_doel");
   });
 
+  it("meldt een training op een reisdag van een kamp", () => {
+    const kamp = period({
+      id: "k1",
+      kind: "kamp",
+      title: "Mallorca",
+      startDate: "2026-07-01",
+      endDate: "2026-07-08",
+      travelDays: ["2026-07-01", "2026-07-08"],
+    });
+    const warnings = warn({ periods: [kamp], plannedWorkoutDays: ["2026-07-01", "2026-07-03"] });
+    const gevonden = warnings.find((w) => w.code === "training_op_reisdag");
+    expect(gevonden?.title).toBe('Je schema traint op een reisdag van "Mallorca"');
+    expect(gevonden?.detail).toBe("Er staat een training op 1 juli.");
+    expect(gevonden?.action?.kind).toBe("herzie_schema");
+
+    const zonder = warn({ periods: [kamp], plannedWorkoutDays: ["2026-07-03"] });
+    expect(codes(zonder)).not.toContain("training_op_reisdag");
+  });
+
   it("ziet een trainingskamp niet als rustperiode", () => {
     const warnings = warn({
       periods: [period({ kind: "kamp" })],
@@ -579,5 +600,35 @@ describe("seasonStand", () => {
     });
     expect(stand.plan).toBeNull();
     expect(stand.peak).toBeNull();
+  });
+});
+
+describe("reisdagen", () => {
+  const kamp = period({
+    id: "k1",
+    kind: "kamp",
+    title: "Mallorca",
+    startDate: "2026-07-01",
+    endDate: "2026-07-08",
+  });
+
+  it("houdt alleen reisdagen binnen een kamp over, gesorteerd en zonder dubbele", () => {
+    expect(
+      travelDaysOf({ ...kamp, travelDays: ["2026-07-08", "2026-06-30", "2026-07-01", "2026-07-08", "geen"] }),
+    ).toEqual(["2026-07-01", "2026-07-08"]);
+    expect(travelDaysOf({ ...kamp, kind: "rust", travelDays: ["2026-07-01"] })).toEqual([]);
+  });
+
+  it("geeft elke reisdag aan de planner als eigen dag vóór het kamp", () => {
+    const result = seasonForAi({
+      targets: [],
+      periods: [{ ...kamp, travelDays: ["2026-07-01", "2026-07-08"] }],
+      from: "2026-07-02",
+      to: "2026-08-31",
+    });
+    expect(result?.periods).toEqual([
+      { title: "Mallorca: reisdag", from: "2026-07-08", to: "2026-07-08", kind: "reis" },
+      { title: "Mallorca", from: "2026-07-01", to: "2026-07-08", kind: "kamp" },
+    ]);
   });
 });

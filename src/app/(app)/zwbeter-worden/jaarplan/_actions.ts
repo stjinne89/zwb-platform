@@ -7,7 +7,7 @@ import { getCurrentUserAccess } from "@/lib/auth/permissions";
 import { activeBasePlan } from "@/lib/training/active-plan";
 import { startPlanUpdate } from "@/lib/training/draft";
 import { requestReplan } from "@/lib/training/replan";
-import { SEASON_PERIOD_KINDS, SEASON_PRIORITIES } from "@/lib/training/season";
+import { SEASON_PERIOD_KINDS, SEASON_PRIORITIES, travelDaysOf } from "@/lib/training/season";
 import { amsterdamDayKey } from "@/lib/training/zwbeterworden";
 
 type SeasonActionState = { ok: boolean; error?: string } | null;
@@ -44,6 +44,18 @@ function mustPeriodKind(value: FormDataEntryValue | null) {
     throw new Error("Ongeldig soort periode.");
   }
   return text;
+}
+
+/**
+ * Reisdagen uit het formulier, alleen dagen binnen het kamp: wie het kamp na
+ * het kiezen korter maakt, houdt geen losse reisdag over. Alleen een kamp
+ * schrijft de kolom; bij een andere soort negeert travelDaysOf() hem toch, en
+ * zo blijven rust en rustig ook werken zonder migratie 0310.
+ */
+function travelDaysPatch(formData: FormData, kind: string, startDate: string, endDate: string) {
+  if (kind !== "kamp") return {};
+  const days = formData.getAll("travel_days").map((value) => String(value).trim());
+  return { travel_days: travelDaysOf({ kind, startDate, endDate, travelDays: days }) };
 }
 
 async function currentUser() {
@@ -251,6 +263,7 @@ export async function createSeasonPeriod(formData: FormData): Promise<SeasonActi
       start_date: startDate,
       end_date: endDate,
       kind,
+      ...travelDaysPatch(formData, kind, startDate, endDate),
       note: optionalString(formData.get("note")),
       created_by: user.id,
       updated_by: user.id,
@@ -274,6 +287,7 @@ export async function updateSeasonPeriod(formData: FormData): Promise<SeasonActi
     const startDate = mustDate(formData.get("start_date"), "Begindatum");
     const endDate = mustDate(formData.get("end_date"), "Einddatum");
     if (endDate < startDate) throw new Error("De einddatum ligt vóór de begindatum.");
+    const kind = mustPeriodKind(formData.get("kind"));
 
     const { error } = await admin
       .from("training_season_periods")
@@ -281,7 +295,8 @@ export async function updateSeasonPeriod(formData: FormData): Promise<SeasonActi
         title,
         start_date: startDate,
         end_date: endDate,
-        kind: mustPeriodKind(formData.get("kind")),
+        kind,
+        ...travelDaysPatch(formData, kind, startDate, endDate),
         note: optionalString(formData.get("note")),
         updated_by: user.id,
       })

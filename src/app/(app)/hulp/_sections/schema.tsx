@@ -473,6 +473,16 @@ export function SchemaHelp() {
                 </a>{" "}
                 vond winst bij een taper van zeven dagen tot drie weken.
               </li>
+              <li>
+                <strong className="text-foreground">Reisdag:</strong> bij een
+                trainingskamp tik je onder Reisdagen de dagen aan waarop je
+                reist, meestal de eerste of laatste dag. Op een reisdag plant
+                het schema niets, en het kampvolume van die week gaat er
+                evenredig door omlaag. Reis je de dag vóór of na het kamp, laat
+                het kamp dan op die dag beginnen of eindigen en tik hem aan.
+                Staat er toch een training op een reisdag, dan zie je een
+                melding bij het kamp.
+              </li>
             </ul>
             <p className="mt-2 text-sm text-muted-foreground">
               Met het potlood pas je een mikpunt of periode aan: titel, datum,

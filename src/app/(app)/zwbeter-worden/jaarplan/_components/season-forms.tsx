@@ -12,6 +12,7 @@ import {
   type SeasonEvent,
 } from "@/lib/training/season";
 import { createSeasonPeriod, createSeasonTarget } from "../_actions";
+import { TravelDaysPicker } from "./travel-days";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -169,6 +170,9 @@ function TargetForm({
 function PeriodForm({ todayKey, onDone }: { todayKey: string; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [fout, setFout] = useState<string | null>(null);
+  const [van, setVan] = useState(todayKey);
+  const [tot, setTot] = useState(todayKey);
+  const [kind, setKind] = useState("rust");
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -197,6 +201,7 @@ function PeriodForm({ todayKey, onDone }: { todayKey: string; onDone: () => void
           name="start_date"
           required
           defaultValue={todayKey}
+          onChange={(change) => setVan(change.target.value)}
           className={`mt-1 ${FIELD}`}
         />
       </label>
@@ -207,12 +212,18 @@ function PeriodForm({ todayKey, onDone }: { todayKey: string; onDone: () => void
           name="end_date"
           required
           defaultValue={todayKey}
+          onChange={(change) => setTot(change.target.value)}
           className={`mt-1 ${FIELD}`}
         />
       </label>
       <label className="text-sm">
         Soort
-        <select name="kind" defaultValue="rust" className={`mt-1 ${FIELD}`}>
+        <select
+          name="kind"
+          defaultValue="rust"
+          onChange={(change) => setKind(change.target.value)}
+          className={`mt-1 ${FIELD}`}
+        >
           {Object.entries(SEASON_PERIOD_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -220,6 +231,7 @@ function PeriodForm({ todayKey, onDone }: { todayKey: string; onDone: () => void
           ))}
         </select>
       </label>
+      {kind === "kamp" ? <TravelDaysPicker startDate={van} endDate={tot} defaultDays={[]} /> : null}
       <label className="sm:col-span-2 text-sm">
         Notitie
         <input name="note" className={`mt-1 ${FIELD}`} />

@@ -1,6 +1,6 @@
 # ZWB Platform — Plan & Status
 
-## Actieve volgorde (bijgewerkt 2026-11-06)
+## Actieve volgorde (bijgewerkt 2026-11-08)
 
 Alleen wat nu openstaat, in volgorde. De rondes hieronder en "Bekende open
 dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
@@ -73,6 +73,13 @@ gaat stabiliteit voor nieuwe features.
    Pogi Giro (11 november, zes in de selectie) staat in de matchup Onze vijf.
    Open: het racebriefje rekent zijn verwachte uitslag nog met alle zes. Zie de
    ronde "Club Ladder: advies welke vijf rijden".
+
+1e. **Jaarplan: reisdagen bij een trainingskamp (2026-11-08): lokaal
+   gecommit, niet gepusht.** Migratie `0310_training_season_travel_days.sql`
+   is niet toegepast. Eerst toepassen, dan pushen: zonder de kolom geeft een
+   kamp opslaan een databasefout (rust en rustig werken wel, en het laden
+   valt terug op periodes zonder reisdagen). Zie de ronde "Jaarplan: reisdagen
+   bij een trainingskamp".
 
 0z. **Club Ladder: gewicht alleen bergop en in de sprint (2026-11-06): gepusht
    naar `main` (`f5509d69`).** Geen migratie. Nalopen na een deploy: op het
@@ -11837,6 +11844,63 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Jaarplan: reisdagen bij een trainingskamp
+
+**2026-11-08.** Commit: de commit die dit blok toevoegt. Lokaal, niet gepusht.
+Migratie `0310_training_season_travel_days.sql` (niet toegepast).
+
+**Waarom.** De eigenaar vroeg om in het jaarplan bij een trainingskamp een
+reisdag te kunnen zetten, zodat duidelijk is dat er die dag niet getraind kan
+worden. Tot nu toe was elke dag van een kamp een volle kampdag: het schema
+plande op de heen- en terugreis net zo goed lange ritten.
+
+**Wat er veranderde.**
+- `training_season_periods.travel_days` (`date[]`, standaard leeg). Alleen bij
+  een kamp gebruikt; `travelDaysOf()` houdt alleen dagen binnen het kamp over,
+  zodat een kamp dat korter wordt geen losse reisdag buiten zichzelf houdt.
+- Formulier (nieuw en bewerken): bij soort Trainingskamp staat onder Reisdagen
+  één knop per kampdag (`travel-days.tsx`). Op de kaart van het kamp staat de
+  reisdag erbij. De acties schrijven `travel_days` alleen bij een kamp.
+- `seasonForAi()` geeft elke reisdag als eigen periode met kind `reis` vóór het
+  kamp; `periodOn()` laat een reisdag voorgaan op het kamp eromheen. Nieuwe
+  `offDay()` (rust of reis). Het engine plant op een reisdag niets
+  (`compose`, `dag.reis`), telt hem niet als sleuteldag, en `reisDays` telt niet
+  mee in het kampvolume (`normalDays` en `kampDays` gaan er allebei af), dus
+  het weekdoel van een kampweek met een reisdag is evenredig lager
+  (`volume.reis`). De dagaanpassing doet op een reisdag niets (`dag.reisdag`).
+  De literatuurcheck ziet een reisdag niet als gat in het schema. Twee
+  promptregels voor de AI-planner over kind `reis`.
+- Nieuwe signalering `training_op_reisdag` bij het kamp, met "Laat je schema
+  herzien".
+- `loadSeasonPeriods` valt terug op de select zonder `travel_days` als die
+  kolom er nog niet is: anders zou een push vóór de migratie alle rust- en
+  kampperiodes voor de planner laten verdwijnen.
+- `/hulp/schema#jaarplan` legt de reisdag uit.
+
+**Bewust niet.**
+- Geen reisdag vóór of na het kamp, buiten de kampdagen: wie de dag ervoor
+  reist, laat het kamp op die dag beginnen. Dat houdt het één periode met één
+  formulier.
+- Geen eigen soort periode "Reisdag" in de keuzelijst: een reisdag hoort bij
+  een kamp. `reis` bestaat alleen in wat de planner ziet (`SeasonDayKind`).
+- Geen reisdag bij rust of rustig: daar traint het lid al niet of weinig.
+
+**Niet meer waar.** Dat een kampdag altijd een volle kampdag is (ronde
+"Jaarplan: mikpunten en periodes bewerken, en trainingskamp als soort
+periode", 2026-10-04).
+
+**Verificatie.** `tsc --noEmit` zonder nieuwe fouten (de bestaande gaan over
+`@anthropic-ai/sdk` en `modern-screenshot`, die in deze worktree niet in
+`node_modules` staan). eslint schoon. Nieuwe tests in `season.test.ts`,
+`engine/compose.test.ts` en `engine/daily.test.ts`; alle season-, engine-,
+schema-check-, literatuur- en prompttests groen (280). In de volledige run
+falen 25 bestanden door die ontbrekende pakketten en een ontbrekende
+`.env.local`, plus drie route- en synctests die niets met het jaarplan te
+maken hebben.
+*Niet geverifieerd:* de migratie (geen lokale database); het scherm niet in de
+browser bekeken (de devserver bouwt niet zonder `@anthropic-ai/sdk`); of de
+AI-planner de reisdag werkelijk leeg laat.
 
 ### Gebouwd — Club Ladder: advies welke vijf rijden
 
@@ -31692,7 +31756,7 @@ maanden (een maand terug, elf vooruit) met vier banen — schema's, rustperiodes
 mikpunten en clubevents — plus een maandlijst eronder en een blok signaleringen
 bovenaan. Migratie `0140` voegt `training_season_targets` (mikpunt met datum en
 prioriteit a/b/c, optioneel gekoppeld aan een event en aan het doel dat ervoor
-is gemaakt) en `training_season_periods` (periode met kind `rust` of `rustig`; sinds 2026-10-04 ook `kamp`)
+is gemaakt) en `training_season_periods` (periode met kind `rust` of `rustig`; sinds 2026-10-04 ook `kamp`, en sinds 2026-11-08 met reisdagen in `travel_days`)
 toe. RLS spiegelt `training_availability`: lezen mag het lid én zijn trainer,
 schrijven alleen het lid zelf. De trainer heeft een eigen leesweergave op
 `/zwbeter-worden/trainer/jaarplan`.

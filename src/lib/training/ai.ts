@@ -201,7 +201,7 @@ export type TrainingAiInput = {
    */
   seasonPlan?: {
     targets: Array<{ title: string; date: string; priority: "a" | "b" | "c" }>;
-    periods: Array<{ title: string; from: string; to: string; kind: "rust" | "rustig" | "kamp" }>;
+    periods: Array<{ title: string; from: string; to: string; kind: "rust" | "rustig" | "kamp" | "reis" }>;
     /** Het eerste A- of B-mikpunt ná het einde van deze planperiode. */
     nextTargetAfterPlan: { title: string; date: string; priority: "a" | "b" } | null;
   } | null;

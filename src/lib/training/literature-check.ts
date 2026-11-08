@@ -196,7 +196,7 @@ export function longestGap(input: TrainingAiInput, workouts: Dated[], window: { 
   const trained = trainedDays(input, workouts);
   const last = [...trained].filter((date) => date >= window.from && date <= window.to).sort().at(-1);
   if (!last) return 0;
-  const rest = (input.seasonPlan?.periods ?? []).filter((period) => period.kind === "rust");
+  const rest = (input.seasonPlan?.periods ?? []).filter((period) => period.kind === "rust" || period.kind === "reis");
   const excused = (date: string) => rest.some((period) => date >= period.from && date <= period.to);
   let longest = 0;
   let run = 0;

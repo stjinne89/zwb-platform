@@ -129,6 +129,23 @@ describe("composePlan", () => {
     expect(reasons.some((reason) => reason.rule === "dag.rust")).toBe(true);
   });
 
+  it("plant niets op een reisdag van een kamp", () => {
+    const input = baseInput({
+      seasonPlan: {
+        targets: [],
+        periods: [
+          { title: "Kamp: reisdag", from: "2026-11-08", to: "2026-11-08", kind: "reis" },
+          { title: "Kamp", from: "2026-11-02", to: "2026-11-08", kind: "kamp" },
+        ],
+        nextTargetAfterPlan: null,
+      },
+    });
+    const { workouts, reasons } = compose(input);
+    expect(workouts.some((workout) => workout.date >= "2026-11-02" && workout.date < "2026-11-08")).toBe(true);
+    expect(workouts.some((workout) => workout.date === "2026-11-08")).toBe(false);
+    expect(reasons.some((reason) => reason.rule === "dag.reis")).toBe(true);
+  });
+
   it("zet nooit twee sleutelsessies op opeenvolgende dagen", () => {
     const every = { ma: 90, di: 90, wo: 90, do: 90, vr: 90, za: 180, zo: 120 };
     const input = baseInput({
