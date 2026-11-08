@@ -7,7 +7,7 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
-0. **Houding-meetproef (2026-11-08): gebouwd, lokaal gecommit, niet gepusht.** De
+0. **Houding-meetproef (2026-11-08): gepusht naar `main` (`c44673e8`).** De
    eigenaar test op `/beheer/houding-meetproef` met zijn Zwift Ride V2 of het
    model de kniehoek en het oppervlak goed genoeg meet. Daarna besluit hij of er
    een functie voor leden komt. Zie de ronde "Houding-meetproef" en
@@ -11872,8 +11872,8 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ### Gebouwd — Houding-meetproef: houding en bikefit uit live video
 
-**2026-11-08.** Commit: de commit die dit blok toevoegt, lokaal, niet gepusht. Geen
-migratie. Onderzoek en opzet: [houding-video-meetproef](docs/houding-video-meetproef.md).
+**2026-11-08.** Commit `c44673e8`, op 2026-11-08 op verzoek van de eigenaar naar
+`main` gepusht. Geen migratie. Onderzoek en opzet: [houding-video-meetproef](docs/houding-video-meetproef.md).
 
 **Waarom.** De eigenaar zag Aerox: een webcam meet je frontaal oppervlak terwijl je
 op de trainer zit. Hij wil **live video** in plaats van foto's: één keer een camera
