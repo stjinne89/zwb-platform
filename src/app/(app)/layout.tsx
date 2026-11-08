@@ -107,23 +107,30 @@ export default async function AppLayout({
   // Alleen regels mét een Zwift-ID, anders lost de claim de vraag niet op en
   // komt de dialoog bij de volgende pagina gewoon terug. Alleen ophalen als de
   // vraag ook echt gesteld wordt — deze layout draait op elke pagina.
-  const claims = needsZwiftId ? await claimableRosterEntries(supabase, displayName) : [];
+  //
+  // De meldingen hieronder gaan nooit boven op die twee vragen. Ze vertrekken
+  // samen in één ronde: deze layout draait op elke pagina, en na elkaar kostte
+  // dat vier oversteken naar de database voordat de pagina kon renderen.
+  const showNotices = Boolean(profile) && !needsPrivacyConsent && !needsZwiftId;
+  const [claims, fatigueIssue, latestUpdate, integrationNotices] = await Promise.all([
+    needsZwiftId ? claimableRosterEntries(supabase, displayName) : [],
+    // ZWBriljant: geen bruikbare kJ-standen in intervals.icu, dus geen
+    // durability. Het weekoverzicht ontwijkt de dialoog zelf (hij opent niet
+    // als er al een openstaat).
+    showNotices ? loadFatigueSetupIssue(supabase, user.id) : null,
+    // De app-update van deze week (0293): vanaf donderdag 17:00 een week lang.
+    // Of het lid hem al zag, weet alleen de browser.
+    showNotices ? loadLatestUpdate(supabase).catch(() => null) : null,
+    // "Nog niet gekoppeld" van beheer (0307). Eén indexvraag; de koppelingen
+    // laden pas als er iets openstaat.
+    showNotices ? loadOpenIntegrationNotices(supabase, user.id).catch(() => []) : [],
+  ]);
 
-  // ZWBriljant: geen bruikbare kJ-standen in intervals.icu, dus geen durability.
-  // Ook nooit boven op de twee vragen hierboven; het weekoverzicht ontwijkt de
-  // dialoog zelf (hij opent niet als er al een openstaat).
-  const fatigueIssue =
-    profile && !needsPrivacyConsent && !needsZwiftId ? await loadFatigueSetupIssue(supabase, user.id) : null;
   const durabilityDialog = fatigueIssue ? <DurabilitySetupDialog issue={fatigueIssue} /> : null;
   // "Nieuw in ZWBeter trainen": zelf eenmalig per apparaat, nooit boven op de
   // twee vragen hierboven. Of het lid ZWBeter gebruikt, vraagt hij zelf na.
-  const trainingNotice = profile && !needsPrivacyConsent && !needsZwiftId ? <TrainingNoticeDialog /> : null;
+  const trainingNotice = showNotices ? <TrainingNoticeDialog /> : null;
 
-  // De app-update van deze week (0293): vanaf donderdag 17:00 een week lang,
-  // en nooit boven op de twee vragen hierboven. Of het lid hem al zag, weet
-  // alleen de browser.
-  const latestUpdate =
-    profile && !needsPrivacyConsent && !needsZwiftId ? await loadLatestUpdate(supabase).catch(() => null) : null;
   const appUpdate =
     latestUpdate && inPopupWindow(latestUpdate.publishAt) ? (
       <AppUpdateDialog
@@ -134,12 +141,6 @@ export default async function AppLayout({
       />
     ) : null;
 
-  // "Nog niet gekoppeld" van beheer (0307): nooit boven op de twee vragen
-  // hierboven. Eén indexvraag; de koppelingen laden pas als er iets openstaat.
-  const integrationNotices =
-    profile && !needsPrivacyConsent && !needsZwiftId
-      ? await loadOpenIntegrationNotices(supabase, user.id).catch(() => [])
-      : [];
   const integrationNotice =
     integrationNotices.length > 0 ? <IntegrationNoticeDialog notices={integrationNotices} /> : null;
 

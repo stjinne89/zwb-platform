@@ -11,6 +11,8 @@ import {
 } from "@/lib/training/availability";
 import { normalizeWorkoutBlocks, type WorkoutIntensity } from "@/lib/training/workouts";
 import {
+  amsterdamDay,
+  buildPopularityIndex,
   suggestZwiftEvents,
   type MatchAthlete,
   type PlannedSession,
@@ -159,6 +161,12 @@ export async function loadZwiftSuggestions(
 
   const candidates = ((rows ?? []) as CachedEventRow[]).map(candidateFromRow);
   if (candidates.length === 0) return result;
+  // De spiegel reikt een dag of twee vooruit, het schema maanden: alleen een
+  // training op een dag met events kan een voorstel krijgen.
+  const eventDays = new Set(candidates.map((event) => amsterdamDay(event.startAt)));
+  const scored = open.filter((workout) => eventDays.has(amsterdamDay(workout.scheduledAt)));
+  if (scored.length === 0) return result;
+  const popularity = buildPopularityIndex(candidates);
 
   const [profile, availability] = await Promise.all([
     loadAthlete(admin, profileId),
@@ -167,7 +175,7 @@ export async function loadZwiftSuggestions(
     ),
   ]);
 
-  for (const workout of open) {
+  for (const workout of scored) {
     const athlete: MatchAthlete = {
       ...profile,
       availableMinutes: minutesForDate(availability, dayKey(workout.scheduledAt)),
@@ -181,6 +189,7 @@ export async function loadZwiftSuggestions(
     const matches = suggestZwiftEvents(candidates, session, athlete, {
       now,
       limit: options.limit,
+      popularity,
     });
     if (matches.length > 0) result.set(workout.id, matches);
   }
@@ -228,9 +237,7 @@ export async function loadChosenZwiftEvents(
   return chosen;
 }
 
-function dayKey(iso: string) {
-  return new Date(iso).toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
-}
+const dayKey = amsterdamDay;
 
 /**
  * Begin en eind van de dag in Amsterdamse tijd, als ISO. De marge van een paar

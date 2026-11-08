@@ -7,6 +7,11 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **Laadtijd, deel 4: schema weer sneller (2026-11-08): lokaal gecommit, niet
+   gepusht.** Migratie `0312_rls_permission_initplan.sql` staat klaar, **niet
+   toegepast**. Na de push en de migratie: `/zwbeter-worden/schema` opnieuw meten
+   (was 5,4–8,0 s). Zie de ronde "Laadtijd, deel 4".
+
 0. **Houding (bèta) voor leden (2026-11-08): lokaal gecommit, niet gepusht.**
    Tab Houding onder ZWBeter materiaal, zonder advies in Zwift Ride-letters of
    millimeters. De eigenaar doet deze week de lettertest op
@@ -6963,8 +6968,9 @@ drie 2026-10-16; `0246_workout_method_labels` en
 > **Waarom.** Na de databaseronde zijn de queries snel (dashboardfeed 377 → 5 ms),
 > maar een ingelogde pagina deed er op de server nog 1 tot 3 seconden over (gemeten
 > in de browser, acht pagina's elk vier keer: teams ~1,0 s, dashboard 1,6–2,0 s,
-> stats 2,0–2,7 s, ZWBeter Worden 2,8–3,2 s). Oorzaak: de Netlify-functies draaien
-> in Ohio (CMH), Supabase staat in Ierland. Elke vraag aan database of Auth is een
+> stats 2,0–2,7 s, ZWBeter Worden 2,8–3,2 s). Oorzaak: de Netlify-functies draaiden
+> toen in Ohio (CMH), Supabase staat in Ierland. *(2026-11-08: de verzoeken komen nu
+> via Cloudflare DUB binnen, 10–60 ms per vraag; zie "Laadtijd, deel 4".)* Elke vraag aan database of Auth is een
 > oversteek, en een pagina doet er meerdere na elkaar. De regio aanpassen kan alleen
 > op een betaald Netlify-plan; de eigenaar wil eerst de gratis stappen.
 >
@@ -11873,6 +11879,70 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Laadtijd, deel 4: schema, layout en de rechtencheck in RLS
+
+**2026-11-08.** Lokaal gecommit, niet gepusht. Commit: de commit die dit blok
+toevoegt. Migratie `0312_rls_permission_initplan.sql`, **niet toegepast**.
+
+**Waarom.** Bart de Groot meldde dat de app weer traag was. Gemeten in de browser
+(productie, drie keer per pagina, tijd tot de server antwoordt): de meeste pagina's
+0,6–1,5 s, de eerste weergave na stilte tot 6,3 s (koude start), en
+`/zwbeter-worden/schema` **5,4–8,0 s** (na deel 3 was dat 2,3–2,6 s). De
+Supabase-log van één schemaweergave liet zien dat alle databasevragen in de eerste
+1,7 s vallen, en daarna ~3 s niets: in die tijd stond de functie stil op rekenwerk.
+
+**Oorzaken.**
+- **Zwift-voorstellen.** `loadZwiftSuggestions` rekende voor elke geplande
+  training tot het eind van het schema (46 open bij het gemeten lid) elk event uit
+  de spiegel door (435, alleen vandaag en morgen): ~20.000 duurschattingen, en pas
+  daarna wees `rejectReason` de events van een andere dag af. Daarbij bouwde
+  `toLocaleDateString` met tijdzone bij elke aanroep een nieuwe formatter (~40 µs).
+  Lokaal gemeten met de echte data: 0,85–1,0 s per weergave, op een Netlify-functie
+  meer.
+- **Leesregels op recepten.** `current_user_has_permission('…')` stond kaal in 123
+  policies en draaide dus per rij. Alle recepten met ingrediënten lezen (de
+  ritvoeding op het schema, de voedingspagina's) kostte 491 ms, waarvan ~385 ms in
+  `nutrition_recipe_ingredients_write`: die is `FOR ALL` en telt dus ook bij lezen.
+  De advisor ziet dit niet; die kijkt alleen naar `auth.*`.
+- **Layout.** Durability-melding, app-update en "nog niet gekoppeld" kwamen er sinds
+  eind oktober na elkaar bij, elk met een eigen databasevraag, op elke pagina.
+
+**Wat.**
+- `suggestZwiftEvents` scoort alleen events op de dag van de training, en de
+  drukte-index wordt één keer per weergave gebouwd in plaats van per training.
+  `loadZwiftSuggestions` slaat trainingen over op een dag zonder events. Eén vaste
+  `Intl.DateTimeFormat` voor de dag in Amsterdam (over twee jaar aan tijdstippen,
+  incl. zomertijd, dezelfde uitkomst als de oude). Uitkomst gelijk; lokaal 0,28 s,
+  en dat is vooral het ophalen van de events.
+- `0312`: omhult `current_user_has_permission('…')`,
+  `current_user_moderates_member_tips()` en `current_user_answers_questions()` in
+  `(select …)`, mechanisch zoals `0210`. De functies zijn `STABLE` en de argumenten
+  letterlijk, dus de uitkomst is gelijk. Raakt 99 policies. Vooraf gecontroleerd met
+  een SELECT op `pg_policies` (niets dubbel omhuld, niets kaal over, een tweede keer
+  toepassen verandert niets). Gemeten in een transactie die is teruggedraaid, met
+  alleen de drie receptpolicies aangepast: 491 → 104 ms.
+- De layout vraagt de vier meldingen in één ronde op in plaats van na elkaar.
+
+**Niet gedaan, en waarom.**
+- **De ritvoeding op het schema kleiner maken.** Het antwoord van het schema is
+  986 KB HTML; 338 KB daarvan zijn de ritplannen (34 stuks, elk met `options`: het
+  plan nog eens voor elke bidonmaat en houder). Pas laden bij het openklappen of
+  alleen de komende twee weken tonen verandert wat het lid ziet; eerst voorleggen.
+- `current_user_can_train_profile(profile_id)` hangt aan de rij en blijft per rij;
+  op `training_workouts` kost dat ~34 ms voor 133 rijen.
+- `prune_superseded_training_workouts` (cron, 1,2 s per run) en de 145 foreign keys
+  zonder index: achtergrondwerk, niet wat een lid merkt.
+
+**Klopt niet meer.** In deel 1 staat dat de functies in Ohio draaien. Op
+2026-11-08 kwamen de verzoeken van de functie bij Supabase binnen via Cloudflare
+DUB, met 10–60 ms per vraag in plaats van ~130 ms. Waar Netlify ze nu draait, is
+niet in Netlify nagekeken.
+
+**Getest.** 4.034 unittests (één bestand faalt omdat de worktree geen `.env.local`
+heeft), lint op de gewijzigde bestanden, `npm run build`. **Niet getest:** de
+migratie als geheel (geen Docker of lokale Supabase; alleen de herschrijving en
+drie policies, zie boven) en de laadtijd op productie; dat kan pas na de push.
 
 ### Gebouwd — Houding (bèta) voor leden
 

@@ -209,8 +209,12 @@ function clampPct(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-function amsterdamDay(iso: string) {
-  return new Date(iso).toLocaleDateString("en-CA", { timeZone: "Europe/Amsterdam" });
+// Eén formatter voor alle aanroepen: toLocaleDateString met een tijdzone bouwt er
+// elke keer een nieuwe (~40 µs), en het schema vergelijkt tienduizenden events.
+const AMSTERDAM_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Amsterdam" });
+
+export function amsterdamDay(iso: string) {
+  return AMSTERDAM_DAY.format(new Date(iso));
 }
 
 /**
@@ -487,7 +491,9 @@ export function buildPopularityIndex(events: ZwiftEventCandidate[]): PopularityI
     const sport = (event.sport ?? "").toUpperCase();
     if (sport && sport !== "CYCLING") continue;
     const hour = new Date(event.startAt).getUTCHours();
-    buckets.set(hour, [...(buckets.get(hour) ?? []), event.totalSignups]);
+    const bucket = buckets.get(hour);
+    if (bucket) bucket.push(event.totalSignups);
+    else buckets.set(hour, [event.totalSignups]);
   }
   for (const [hour, counts] of buckets) {
     buckets.set(
@@ -810,10 +816,15 @@ export function suggestZwiftEvents(
   events: ZwiftEventCandidate[],
   session: PlannedSession,
   athlete: MatchAthlete,
-  options: { now?: Date; limit?: number } = {},
+  options: { now?: Date; limit?: number; popularity?: PopularityIndex } = {},
 ): ZwiftEventMatch[] {
-  const popularity = buildPopularityIndex(events);
+  // De drukte telt over álle events; de score alleen voor events op de dag van de
+  // training. Een event op een andere dag wijst rejectReason toch af, maar pas na
+  // de duurschatting, en dat is bij ~450 events per training het dure deel.
+  const popularity = options.popularity ?? buildPopularityIndex(events);
+  const day = amsterdamDay(session.scheduledAt);
   return events
+    .filter((event) => amsterdamDay(event.startAt) === day)
     .flatMap((event) => {
       const match = scoreEvent(event, session, athlete, { now: options.now, popularity });
       return match && match.scorePct >= MATCH_FLOOR_PCT ? [match] : [];
