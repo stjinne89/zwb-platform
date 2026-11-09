@@ -124,11 +124,17 @@ export function RacenHelp() {
             plek en tijd, net als op de site van FRR.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Een race die niet in de kalender staat, open je door de link van
-            het Zwift-event te plakken (zwift.com/events/view/…, of de link uit
-            ZwiftPower). De app haalt de race alleen op als je in de uitslag
-            staat; daarna staat hij in je lijst. Staat de race wel in de
-            kalender, dan ga je naar die race.
+            Ook races die niet in de kalender staan, komen vanzelf in je lijst,
+            meestal binnen een paar uur na de race. De app leest daarvoor via je
+            Zwift-ID je lijst met Zwift-races. De uitslag haalt hij pas op als je
+            de race opent; de eerste keer duurt dat even.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Mist er een race, bijvoorbeeld omdat je Zwift-profiel is afgeschermd,
+            open hem dan door de link van het Zwift-event te plakken
+            (zwift.com/events/view/…, of de link uit ZwiftPower). De app haalt de
+            race alleen op als je in de uitslag staat; daarna staat hij in je
+            lijst. Staat de race wel in de kalender, dan ga je naar die race.
           </p>
         </div>
 

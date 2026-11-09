@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkCronSecret } from "@/lib/cron/auth";
 import { loadZrlLive } from "@/lib/zrl-live/snapshot";
+import { freezeCalendarRace } from "@/lib/zrl-analysis/load";
 import { RACE_OVER_AFTER_MS } from "@/lib/zrl-live/team-result";
 
 // Bevriest de teamuitslag van gereden ZRL-races (migr. 0188), ook als niemand de
@@ -16,6 +17,12 @@ import { RACE_OVER_AFTER_MS } from "@/lib/zrl-live/team-result";
 // of zodra alle renners binnen waren), dan rekent deze cron hem daarna nog één
 // keer na: wie te vroeg klikte (renners nog onderweg), wordt zo vanzelf
 // rechtgezet. Uit bevroren Zwift-data (migr. 0197) kost dat geen Zwift-aanroepen.
+//
+// Sinds 2026-11-09 ook de andere Zwift-races uit de kalender (type zwift en
+// ladder, geen groepsrit): de uitslag één keer bewaren, zodat de race in "Jouw
+// races" staat bij iedereen die meereed. Eerst stond hij er pas na een eerste
+// bezoek. FRR-tijdsloten niet: die staan er al via de FRR-uitslagen, en het zijn
+// er veel.
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -75,6 +82,32 @@ export async function POST(request: NextRequest) {
       event: event.title as string,
       status: outcome.status === "ok" ? (outcome.freeze ?? "onbekend") : outcome.status,
     });
+  }
+
+  // Andere kalenderraces: alleen die nog geen bewaarde uitslag hebben.
+  const { data: others } = await admin
+    .from("events")
+    .select("title, zwift_event_id")
+    .in("type", ["zwift", "ladder"])
+    .not("zwift_event_id", "is", null)
+    .or("zwift_event_type.is.null,zwift_event_type.in.(RACE,TIME_TRIAL,TEAM_TIME_TRIAL)")
+    .gte("start_at", new Date(startedAt - LOOKBACK_MS).toISOString())
+    .lte("start_at", new Date(startedAt - RACE_OVER_AFTER_MS).toISOString())
+    .order("start_at", { ascending: false });
+  const titleOf = new Map<string, string>();
+  for (const row of (others ?? []) as Array<{ title: string; zwift_event_id: number | string }>) {
+    titleOf.set(String(row.zwift_event_id), row.title);
+  }
+  const { data: stored } = titleOf.size
+    ? await admin.from("zrl_race_snapshots").select("zwift_event_id").in("zwift_event_id", [...titleOf.keys()])
+    : { data: [] };
+  for (const row of stored ?? []) titleOf.delete(String(row.zwift_event_id));
+  for (const [zwiftEventId, title] of titleOf) {
+    if (Date.now() - startedAt > BUDGET_MS) {
+      results.push({ event: title, status: "volgende run" });
+      continue;
+    }
+    results.push({ event: title, status: await freezeCalendarRace(zwiftEventId) });
   }
 
   return NextResponse.json({ ok: true, alreadyFrozen: done.size, results });

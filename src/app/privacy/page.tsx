@@ -175,7 +175,10 @@ export default function PrivacyPage() {
             Score van vóór de race. Met die score rekenen we je verwachte plek en
             punten uit. Je eigen races leggen we naast elkaar: je eerdere passages
             over dezelfde sprint of klim, je PR en de richttijd van het
-            racebriefje. Die terugblik ziet alleen jij. Een geplakte race
+            racebriefje. Die terugblik ziet alleen jij. Om je eigen races te
+            vinden, ook buiten de kalender, lezen we via je Zwift-ID je lijst met
+            Zwift-races en bewaren we per race welk Zwift-event het was (nummer en
+            naam). Die lijst ziet alleen jij. Een geplakte race
             halen we alleen op als je zelf in de uitslag staat. Andere <MemberNoun plural />{" "}
             in zo&apos;n race zien jouw plek en tijd, niet je vermogen.
           </li>

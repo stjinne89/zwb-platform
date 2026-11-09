@@ -611,14 +611,29 @@ export async function fetchRiderRacePage(
   return { count: rows.length, races, startedAts };
 }
 
-/** De startgroep (subgroep) van een race-activiteit; null als Zwift geen event kent. */
-export async function fetchActivitySubgroup(activityId: string): Promise<string | null> {
+/** Het Zwift-event achter een race-activiteit. */
+export type ActivityEvent = { eventId: string | null; eventName: string | null; subgroupId: string | null };
+
+/**
+ * Het event en de startgroep van een race-activiteit, uit `eventInfo` in het
+ * detail (gemeten 2026-11-09: `id`, `name`, `eventSubGroupId`). Velden die Zwift
+ * niet geeft, zijn null.
+ */
+export async function fetchActivityEvent(activityId: string): Promise<ActivityEvent> {
   if (!/^\d+$/.test(activityId)) throw new Error("Ongeldig activiteit-ID.");
   const detail = (await authedJson(`${apiBase()}/activities/${activityId}`)) as {
-    eventInfo?: { eventSubGroupId?: unknown } | null;
+    eventInfo?: { id?: unknown; name?: unknown; eventSubGroupId?: unknown } | null;
   } | null;
-  const subgroup = Number(detail?.eventInfo?.eventSubGroupId);
-  return Number.isInteger(subgroup) && subgroup > 0 ? String(subgroup) : null;
+  const positive = (value: unknown) => {
+    const id = Number(value);
+    return Number.isSafeInteger(id) && id > 0 ? String(id) : null;
+  };
+  const name = String(detail?.eventInfo?.name ?? "").trim();
+  return {
+    eventId: positive(detail?.eventInfo?.id),
+    eventName: name || null,
+    subgroupId: positive(detail?.eventInfo?.eventSubGroupId),
+  };
 }
 
 /** De Zwift Racing Score van een renner vóór en na een race; null waar Zwift er geen geeft. */
