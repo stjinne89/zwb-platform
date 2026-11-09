@@ -150,7 +150,7 @@ export function buildClub(row: ClubRow | null): Club {
     isEnabled: (key) => !disabled.has(key),
     allowsPath: (pathname) => pathAllowed(pathname, disabled),
     moduleLabel,
-    texts: buildClubTexts(settings.name, settings.shortName, moduleLabel),
+    texts: buildClubTexts(settings, moduleLabel, disabled),
   };
 }
 

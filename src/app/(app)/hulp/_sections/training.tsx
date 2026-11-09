@@ -15,6 +15,8 @@ import {
 import { BriljantHelp } from "./briljant";
 import { GuideCards } from "./guide-cards";
 import { HelpVideoLink } from "./help-video";
+import { ClubShortName, MemberNoun, ModuleName } from "@/components/club-texts-provider";
+import { ClubText } from "@/components/club-texts-provider";
 
 export function TrainingHelp() {
   return (
@@ -33,7 +35,7 @@ export function TrainingHelp() {
             </h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Deze waarden beantwoorden verschillende vragen. Daarom kunnen ze
-              van elkaar afwijken zonder dat de data fout is. ZWB voegt ze samen
+              van elkaar afwijken zonder dat de data fout is. <ClubShortName /> voegt ze samen
               in één praktisch advies:{" "}
               <strong className="text-foreground">ZWBeterWorden</strong>, met vijf
               niveaus van &ldquo;doe niks&rdquo; tot topvorm.
@@ -47,7 +49,7 @@ export function TrainingHelp() {
             {INTERVALS_CONNECT_STEPS.map((step, index) => (
               <li key={step} className="flex gap-2">
                 <span className="font-semibold text-foreground">{index + 1}.</span>
-                <span>{step}</span>
+                <span><ClubText text={step} /></span>
               </li>
             ))}
           </ol>
@@ -68,7 +70,7 @@ export function TrainingHelp() {
             {DATA_FRESHNESS_HELP.map((item) => (
               <li key={item} className="flex gap-2">
                 <span aria-hidden>·</span>
-                <span>{item}</span>
+                <span><ClubText text={item} /></span>
               </li>
             ))}
           </ul>
@@ -119,12 +121,12 @@ export function TrainingHelp() {
             <p className="mt-2 text-sm text-muted-foreground">
               Is de readiness van vandaag nog niet binnen, dan zie je de laatste
               meting met de datum erbij, maar die telt niet mee in je advies. Pas
-              je je training van vandaag aan, dan haalt ZWB eerst je nieuwste
+              je je training van vandaag aan, dan haalt <ClubShortName /> eerst je nieuwste
               hersteldata op. Heb je vandaag al gereden, dan komt er geen tweede
               training op die dag bij.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Als je hersteldata deelt, gebruikt ZWB slaap, HRV en rusthartslag
+              Als je hersteldata deelt, gebruikt <ClubShortName /> slaap, HRV en rusthartslag
               uit intervals.icu voor trainingsplanning. Alleen jij en je trainer
               zien deze data.
             </p>
@@ -136,7 +138,7 @@ export function TrainingHelp() {
               ZWBeterWorden
             </h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              ZWB combineert belasting en herstel tot één advies in vijf
+              <ClubShortName /> combineert belasting en herstel tot één advies in vijf
               niveaus. Een sterk negatieve Form of readiness van 50 of lager duwt
               je naar een laag niveau (rust/herstel). Readiness 51-69 telt als
               matig. Pas wanneer belasting én herstel gunstig zijn, klim je naar
@@ -175,7 +177,7 @@ export function TrainingHelp() {
           <div className="rounded-md border border-zwb-gold/50 bg-zwb-gold/10 p-3">
             <p className="text-sm font-semibold">BETER WORDT HET NIET</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Alles mag, probeer die andere ZWB&apos;ers er vandaag maar vanaf te
+              Alles mag, probeer die andere <MemberNoun plural /> er vandaag maar vanaf te
               rijden.
             </p>
           </div>
@@ -211,7 +213,7 @@ export function TrainingHelp() {
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Vragen over trainen, voeding of kracht beantwoordt hij met de
-            kennisbanken van ZWB, met een link naar het artikel waar zijn antwoord
+            kennisbanken van <ClubShortName />, met een link naar het artikel waar zijn antwoord
             op steunt. Zegt de kennisbank er niets over, dan zegt hij dat erbij.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -269,7 +271,7 @@ export function TrainingHelp() {
           >
             <h3 className="text-sm font-semibold">Watt, W/kg of % FTP</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Met de knop Watt / W/kg / % FTP bovenaan ZWBeter Worden kies je hoe
+              Met de knop Watt / W/kg / % FTP bovenaan <ModuleName module="training" /> kies je hoe
               vermogen overal in de trainingsruimte staat: je FTP, de
               testuitslagen, de doelen in de blokken en het vermogen van gereden
               trainingen. De keuze geldt op dit apparaat. W/kg rekent met het
@@ -300,7 +302,7 @@ export function TrainingHelp() {
                 <span>
                   Beweeg over de lijn voor de exacte duur en waarde. Watt toont
                   je beste absolute vermogen. Voor je eigen W/kg-lijn gebruikt
-                  ZWB het historische W/kg-record dat Intervals voor die duur
+                  {" "}<ClubShortName /> het historische W/kg-record dat Intervals voor die duur
                   heeft opgeslagen, dus met het gewicht rond die prestatie.
                 </span>
               </li>
@@ -315,9 +317,9 @@ export function TrainingHelp() {
           </article>
 
           <article className="rounded-md border bg-background p-4">
-            <h3 className="text-sm font-semibold">Vergelijken met ZWB</h3>
+            <h3 className="text-sm font-semibold">Vergelijken met <ClubShortName /></h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              De ZWB-mediaan en ledenkeuze gebruiken de volledige
+              De <ClubShortName />-mediaan en ledenkeuze gebruiken de volledige
               gesynchroniseerde 90-daagse powercurve van leden met een
               voltooide intervals.icu-koppeling. Daardoor vergelijk je niet
               alleen 15s, 30s, 1m, 2m, 5m, 10m en 20m, maar de hele lijn.
@@ -326,7 +328,7 @@ export function TrainingHelp() {
               Profielen die nog niet opnieuw zijn gesynchroniseerd na deze
               uitbreiding vallen tijdelijk terug op die zeven vaste waarden.
               Na een nieuwe sync wordt hun volledige curve opgeslagen. Alleen
-              ingelogde ZWB-leden kunnen deze vergelijking zien.
+              ingelogde <ClubShortName />-leden kunnen deze vergelijking zien.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Volledig gesynchroniseerde W/kg-curves gebruiken de historische
@@ -355,7 +357,7 @@ export function TrainingHelp() {
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Iedereen die 1000 en 2000 kJ gebruikt, vergelijkt in dezelfde stand
-            met de ZWB-mediaan en met andere leden. Wie andere waarden of niets
+            met de <ClubShortName />-mediaan en met andere leden. Wie andere waarden of niets
             heeft ingesteld, doet in die stand niet mee aan de vergelijking.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -382,7 +384,7 @@ export function TrainingHelp() {
           <h3 className="text-sm font-semibold">Waarom de lijn altijd daalt</h3>
           <p className="mt-2 text-sm text-muted-foreground">
             Een maximaal gemiddeld vermogen kan bij een langere duur nooit hoger
-            zijn dan bij een kortere duur. ZWB verwijdert daarom ongeldige losse
+            zijn dan bij een kortere duur. <ClubShortName /> verwijdert daarom ongeldige losse
             punten uit de API-respons en maakt minieme afrondingssprongen vlak.
             Een echte prestatie blijft zichtbaar, maar een technische piek of
             dip hoort niet in de curve.
@@ -411,8 +413,8 @@ export function TrainingHelp() {
               ZWBeter-samenvatting in je Strava-omschrijving
             </h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Na een rit zet ZWB automatisch een blokje onderaan de omschrijving
-              van die rit op Strava. Je ziet in één oogopslag je ZWBriljant-steen,
+              Na een rit zet <ClubShortName /> automatisch een blokje onderaan de omschrijving
+              van die rit op Strava. Je ziet in één oogopslag je <ModuleName module="rennersniveau" />-steen,
               wat er gepland stond, wat je er werkelijk van maakte en hoe je
               ervoor staat, met als laatste regel een tip of grap bij de rit.
             </p>
@@ -439,7 +441,7 @@ export function TrainingHelp() {
                 <Link href="/profiel?weergave=bewerken" className="underline">
                   je profiel
                 </Link>{" "}
-                en laat het vinkje staan waarmee ZWB je activiteiten mag
+                en laat het vinkje staan waarmee <ClubShortName /> je activiteiten mag
                 bijwerken. Zonder dat recht blijft de omschrijving leeg.
               </li>
               <li>
@@ -472,7 +474,7 @@ export function TrainingHelp() {
                 verwerkt, meestal binnen een uur.
               </li>
               <li>
-                De steen komt uit je laatste ZWBriljant-week. Deel je je steen
+                De steen komt uit je laatste <ModuleName module="rennersniveau" />-week. Deel je je steen
                 niet met leden, dan staat hij ook niet op Strava en zie je je CTL.
               </li>
               <li>

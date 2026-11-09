@@ -125,7 +125,7 @@ export function BackLink({
   className,
 }: {
   href: string;
-  label: string;
+  label: React.ReactNode;
   className?: string;
 }) {
   return (

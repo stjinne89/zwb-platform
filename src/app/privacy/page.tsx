@@ -2,12 +2,22 @@ import Link from "next/link";
 import { BackLink } from "@/components/app-ui";
 import { formatPrivacyVersion } from "@/lib/privacy";
 import { aiProcessorName } from "@/lib/ai/settings";
+import {
+  ClubContactLink,
+  ClubName,
+  ClubShortName,
+  MemberNoun,
+  ModuleName,
+} from "@/components/club-texts-provider";
+import { getClub } from "@/lib/club";
 
-export const metadata = {
-  title: "Privacyverklaring — ZWB Cycling",
-  description:
-    "Hoe ZWB Cycling met je persoonsgegevens omgaat: welke data we verwerken, waarom, hoe lang en welke rechten je hebt.",
-};
+export async function generateMetadata() {
+  const { name } = (await getClub()).texts;
+  return {
+    title: `Privacyverklaring — ${name}`,
+    description: `Hoe ${name} met je persoonsgegevens omgaat: welke data we verwerken, waarom, hoe lang en welke rechten je hebt.`,
+  };
+}
 
 // Uit de versielijst, niet met de hand. Deze regel stond op "31 mei 2026"
 // terwijl de tekst sindsdien vier keer inhoudelijk was gewijzigd; met een los
@@ -39,19 +49,17 @@ export default function PrivacyPage() {
         <h1 className="text-2xl font-bold text-foreground">Privacyverklaring</h1>
         <p className="text-sm text-muted-foreground">
           Laatst bijgewerkt: {UPDATED}. Deze verklaring legt uit hoe het
-          ZWB Cycling-platform met je persoonsgegevens omgaat, conform de Algemene
+          {" "}<ClubName />-platform met je persoonsgegevens omgaat, conform de Algemene
           Verordening Gegevensbescherming (AVG/GDPR).
         </p>
       </header>
 
       <Section title="1. Wie verwerkt je gegevens?">
         <p>
-          ZWB Cycling (de wielerclub en haar bestuur) is verwerkings­verantwoordelijke
+          <ClubName /> (de wielerclub en haar bestuur) is verwerkings­verantwoordelijke
           voor de gegevens die via dit platform worden verwerkt. Vragen over
           privacy of een verzoek over je gegevens? Mail naar{" "}
-          <a href="mailto:info@zwbcycling.nl" className="text-primary underline">
-            info@zwbcycling.nl
-          </a>
+          <ClubContactLink className="text-primary underline" />
           .
         </p>
       </Section>
@@ -59,7 +67,7 @@ export default function PrivacyPage() {
       <Section title="2. Welke gegevens we verwerken">
         <ul className="list-disc space-y-1 pl-5">
           <li>
-            <strong>ZWBgame:</strong> goedgekeurde leden en het clubroster vormen het
+            <strong><ModuleName module="managerspel" />:</strong> goedgekeurde leden en het clubroster vormen het
             deelnemersveld van dit besloten clubspel. Je naam is zichtbaar bij je
             renner. Voor elk lid leiden we spelkwaliteiten (vlak, klimmen, sprint en
             rennerstype) af uit gegevens die al in het platform staan: FTP en gewicht
@@ -83,7 +91,7 @@ export default function PrivacyPage() {
             op andere apparaten kunnen we niet op afstand wissen.
           </li>
           <li id="voorzpwelbokaal" className="scroll-mt-20">
-            <strong>voorZpWelBokaal:</strong> alleen als je zelf op Meedoen tikt.
+            <strong><ModuleName module="voorspelspel" />:</strong> alleen als je zelf op Meedoen tikt.
             Dan bewaren we per seizoen dat je meedoet, je inzetten (renner, soort
             inzet, quotering en aantal ZWBallen) en je antwoorden op de
             bonusvragen. Clubleden zien op de lei je naam met je saldo, hoeveel
@@ -111,12 +119,12 @@ export default function PrivacyPage() {
             maar volgt uit FTP en W/kg. Voor die indeling legt een captain ook
             je ladderrank vast (de rank die zwiftracing.app openbaar toont) en
             in welk ladderteam je rijdt. Dat kan ook voor renners zonder
-            ZWB-account: dan staat hun naam uit het rooster met Zwift-ID, rank,
+            {" "}<ClubShortName />-account: dan staat hun naam uit het rooster met Zwift-ID, rank,
             eventueel geslacht en hun Zwift Racing Score (of vELO 2) op de Club
             Ladder-pagina, tot ze hun naam claimen. Voor de matchup en het
             route-advies rekenen we met het gewicht uit de Zwift-uitslag van
             bewaarde ladderraces en uit segmentpassages van de racebriefing, ook
-            van renners van andere clubs; voor een ZWB&apos;er zonder die twee met
+            van renners van andere clubs; voor een <MemberNoun /> zonder die twee met
             het gewicht uit intervals.icu. Het gewicht staat nergens los: wel het
             gemiddelde van een ploeg vanaf drie renners, en in de matchup per
             renner het vermogen in watt naast W/kg, waaruit het gewicht af te
@@ -126,11 +134,11 @@ export default function PrivacyPage() {
             <strong>ZRL-teamgegevens van WTRL:</strong> voor de ZRL-teams nemen
             beheerders van WTRL over wat daar per teamlid staat: naam, Zwift-ID,
             zFTP (in watt en per kilo), zMAP (per kilo) en de status in het team.
-            Dat gebeurt ook voor teamleden zonder ZWB-account. Ingelogde leden zien
+            Dat gebeurt ook voor teamleden zonder <ClubShortName />-account. Ingelogde leden zien
             deze waarden op de teampagina, met de categorie en de divisie die
             daaruit volgen. Bij een volgende import worden de gegevens van dat team
             vervangen. Staat iemand bij WTRL in een team, dan zetten we hem ook in
-            het bijbehorende ZWB-team; zonder ZWB-account komt zijn naam in het
+            het bijbehorende <ClubShortName />-team; zonder <ClubShortName />-account komt zijn naam in het
             rooster van dat team, tot hij zijn naam claimt.
           </li>
           <li>
@@ -147,7 +155,7 @@ export default function PrivacyPage() {
             minuten, het finishmoment, per sprint of klim het vermogen en de Zwift
             Racing Score van vóór de race. Dat is
             wat Zwift ook in de game en op ZwiftPower laat zien, en het geldt voor
-            iedereen in de groep, ook renners zonder ZWB-account en van andere
+            iedereen in de groep, ook renners zonder <ClubShortName />-account en van andere
             clubs. Hartslag nemen we niet over. Wie de race reed of in de
             opstelling stond, de captains van het team en wie teams beheert, zien
             voor de renners van het team vermogen, W/kg, de segmenten en tips per
@@ -155,29 +163,29 @@ export default function PrivacyPage() {
             bij, maar volgt uit vermogen en W/kg, net als op ZwiftPower. Plant een
             captain een ploegentijdrit in de TTT Planner, dan ziet die per renner
             van het plan ook diens eerdere ZRL-ploegentijdritten bij andere
-            ZWB-teams: W/kg, vermogen op de klimmen en of je loste. Reed je
+            {" "}<ClubShortName />-teams: W/kg, vermogen op de klimmen en of je loste. Reed je
             zelf mee en heb je intervals.icu gekoppeld, dan halen we bij het
             openen je rit per seconde en je vermogenscurve van de laatste 90 dagen
             op om je eigen rit te analyseren. Die analyse ziet alleen jij, en we
             bewaren haar niet. Bij een FRR-etappe, een andere Zwift-race uit de
             kalender of een race waarvan je de link plakt, bewaren we de uitslag
             en de segmenttijden van je startgroep; vermogen, gewicht en naam alleen
-            van ZWB&apos;ers, van anderen alleen plek, tijden en de Zwift Racing
+            van <MemberNoun plural />, van anderen alleen plek, tijden en de Zwift Racing
             Score van vóór de race. Met die score rekenen we je verwachte plek en
             punten uit. Je eigen races leggen we naast elkaar: je eerdere passages
             over dezelfde sprint of klim, je PR en de richttijd van het
             racebriefje. Die terugblik ziet alleen jij. Een geplakte race
-            halen we alleen op als je zelf in de uitslag staat. Andere ZWB&apos;ers
+            halen we alleen op als je zelf in de uitslag staat. Andere <MemberNoun plural />{" "}
             in zo&apos;n race zien jouw plek en tijd, niet je vermogen.
           </li>
           <li id="zwb-ds" className="scroll-mt-20">
-            <strong>ZWB DS (live raceoverzicht):</strong> tijdens een Zwift-race
+            <strong><ModuleName module="live_race" /> (live raceoverzicht):</strong> tijdens een Zwift-race
             uit de kalender vragen we bij Zwift van de renners in de startgroep de
             actuele stand op: afstand in de race, snelheid, vermogen, cadans,
             draft, rijtijd en verbruikte energie, met de naam en het gewicht uit
             de startlijst; het gewicht alleen om W/kg te rekenen, het staat
             nergens los. Dat geldt
-            ook voor renners zonder ZWB-account en van andere clubs, en het is wat
+            ook voor renners zonder <ClubShortName />-account en van andere clubs, en het is wat
             Zwift ook in de game laat zien. Alleen ingelogde leden zien het
             overzicht, met W/kg per renner. Hartslag lezen en bewaren we niet. De
             laatste stand per renner bewaren we hooguit zes uur; daarna wissen we
@@ -185,8 +193,8 @@ export default function PrivacyPage() {
           </li>
           <li id="racebriefing" className="scroll-mt-20">
             <strong>Racebriefing (ZRL):</strong> voor een ZRL-race van een
-            ZWB-team vragen we bij Zwift van iedereen in de startgroep de Zwift
-            Racing Score en categorie op, ook van renners zonder ZWB-account en
+            {" "}<ClubShortName />-team vragen we bij Zwift van iedereen in de startgroep de Zwift
+            Racing Score en categorie op, ook van renners zonder <ClubShortName />-account en
             van andere clubs; dat is wat Zwift in de game toont. Zodra we
             gekoppeld zijn met ZwiftRacing.app, halen we daar ook de vELO-rating
             en het beste vermogen in W/kg over 15 seconden tot 20 minuten op,
@@ -210,10 +218,10 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Sunday Race Club (MyWhoosh):</strong> doe je mee aan de SRC,
-            dan leggen we per maand vast onder welk ZWB-team je rijdt, in welke race
+            dan leggen we per maand vast onder welk <ClubShortName />-team je rijdt, in welke race
             en in welke categorie je verwacht te rijden, en per zondag of je kunt.
             Na elke race halen we de openbare uitslag van MyWhoosh op. Daaruit
-            bewaren we alleen renners onder een ZWB-teamnaam, leden die aan hun
+            bewaren we alleen renners onder een <ClubShortName />-teamnaam, leden die aan hun
             MyWhoosh-account zijn gekoppeld, en renners met precies de naam van een
             lid (als koppelvoorstel voor een beheerder): naam, MyWhoosh-ID, team,
             categorie, plaats en tijd. Vermogen, gewicht en prijzengeld nemen we
@@ -318,12 +326,12 @@ export default function PrivacyPage() {
           <li id="houding" className="scroll-mt-20">
             <strong>Houding meten:</strong> meet je je houding met de camera, dan
             verwerkt je browser het beeld op je eigen toestel. Het beeld en de
-            metingen gaan niet naar ZWB of een ander, en we bewaren er niets van;
+            metingen gaan niet naar <ClubShortName /> of een ander, en we bewaren er niets van;
             sluit je de pagina, dan is alles weg. De rekenmodellen laadt je
-            browser van ZWB zelf.
+            browser van <ClubShortName /> zelf.
           </li>
           <li id="zwbieb" className="scroll-mt-20">
-            <strong>ZWBieb, eerst &ldquo;Wie weet wat&rdquo; (alleen met
+            <strong><ModuleName module="bibliotheek" />, eerst &ldquo;Wie weet wat&rdquo; (alleen met
             opt-in):</strong> doe je mee of stel je een vraag, dan teken je daar
             apart voor. We bewaren de onderwerpen waar je ervaring mee hebt en
             de spullen die je wilt uitlenen, met je korte toelichting, de tips
@@ -400,7 +408,7 @@ export default function PrivacyPage() {
             je posities op bij Garmin of Wahoo. Stoppen kan op Samen fietsen met
             &ldquo;Koppeling stoppen&rdquo; of &ldquo;Ontkoppelen&rdquo;. Op
             hoeveel dagen je live reed (geen locatie of tijden) telt, samen met
-            de events waar je ja op zei, mee voor de ranglijst Clubmens op ZWB
+            de events waar je ja op zei, mee voor de ranglijst Clubmens op <ClubShortName />{" "}
             Rankings en bij Rider of the month op het dashboard, die alle
             goedgekeurde leden zien.
           </li>
@@ -416,7 +424,7 @@ export default function PrivacyPage() {
             ontkoppelen op Samen fietsen of met /stop in Telegram.
           </li>
           <li>
-            <strong>Grofmazig bereden gebied (ZWBlokken):</strong> uit je
+            <strong>Grofmazig bereden gebied (<ModuleName module="blokkenjacht" />):</strong> uit je
             Strava-ritten leiden we af in welke vakken van ongeveer anderhalve
             kilometer je gereden hebt. Die kaart is voor clubleden zichtbaar,
             per lid en voor de club samen. Er staan geen routes of tijden in:
@@ -426,18 +434,18 @@ export default function PrivacyPage() {
             uit af te leiden is. Zwift-ritten kleuren blokken in de
             Zwift-werelden, los van deze kaart. Daar tellen start en einde wel
             mee, want een virtuele wereld is geen echte plek. Andere
-            indoorritten blijven volledig buiten ZWBlokken. Clubleden zien ook wie per land en per provincie
+            indoorritten blijven volledig buiten <ModuleName module="blokkenjacht" />. Clubleden zien ook wie per land en per provincie
             de meeste vakken heeft; die krijgt een titel. Voor een land is dat
             Koning of Koningin als je in je profiel een geslacht hebt opgegeven,
             en anders Vorst. Wie je titel ziet, kan daar dus je opgegeven
             geslacht uit afleiden.
           </li>
           <li>
-            <strong>ZWB Segments:</strong> van de segmenten en cols die ZWB heeft
+            <strong><ModuleName module="segmenten" />:</strong> van de segmenten en cols die <ClubShortName /> heeft
             uitgekozen bewaren we je besttijd, hoe vaak je ze reed en wanneer.
             Andere goedgekeurde leden zien je naam, tijd en positie in de ranglijst
             per segment. Van ritten via intervals.icu en geüploade GPX-bestanden
-            meet ZWB die tijd zelf uit het GPS-spoor; hij staat met het label GPS
+            meet <ClubShortName /> die tijd zelf uit het GPS-spoor; hij staat met het label GPS
             in dezelfde ranglijst. Verbreek je je Strava-koppeling, dan vervallen
             je Strava-tijden op de uitgekozen segmenten, tenzij je ervoor kiest je
             ritten te bewaren; cols en eigen GPS-tijden blijven.
@@ -465,7 +473,7 @@ export default function PrivacyPage() {
             halen we elk uur je fietsritten daar op:
             naam, tijd, afstand, hoogtemeters, vermogen, hartslag, cadans, het
             toestel en een vereenvoudigd GPS-spoor. Net als Strava-ritten tellen
-            ze mee voor badges, weekstanden, clubstatistieken, cols, ZWBlokken en
+            ze mee voor badges, weekstanden, clubstatistieken, cols, <ModuleName module="blokkenjacht" /> en
             je trainingsschema, en zien clubleden ze bij de recente ritten en op
             je profiel. Bij een rit van een Garmin noemen we het toestel, omdat
             intervals.icu dat van ons vraagt. Elke 60 dagen herinneren we je eraan
@@ -478,7 +486,7 @@ export default function PrivacyPage() {
             duur. Een krachttraining telt mee voor het krachtadvies, een workout
             pas als je er spieren bij aantikt. Welke spieren je per training
             aantikt, bewaren we bij die training. Dat ziet alleen jij. Het staat
-            in je data-export en verdwijnt als de training uit ZWB verdwijnt of
+            in je data-export en verdwijnt als de training uit <ClubShortName /> verdwijnt of
             als je je account opheft.
           </li>
           <li>
@@ -487,7 +495,7 @@ export default function PrivacyPage() {
             hoogtemeters, en bij een GPX of FIT een vereenvoudigd GPS-spoor.
             Vermogen en hartslag uit een FIT-bestand bewaren we niet. Net als
             Strava-ritten tellen ze mee voor badges, weekstanden,
-            clubstatistieken, cols, ZWB Segments en ZWBlokken, en zien clubleden
+            clubstatistieken, cols, <ModuleName module="segmenten" /> en <ModuleName module="blokkenjacht" />, en zien clubleden
             ze bij de recente ritten en op je profiel.
           </li>
           <li>
@@ -519,7 +527,7 @@ export default function PrivacyPage() {
             schema, belasting, vermogen, teamuitslagen (in een ZRL-race ook je
             plek en punten tegenover de verwachting, en de punten of W/kg van je
             ploeggenoten zonder naam), voedings- en
-            corelogboek en clubritten, je ZWBriljant-steen (klasse, punten en
+            corelogboek en clubritten, je <ModuleName module="rennersniveau" />-steen (klasse, punten en
             het onderdeel waar je het meest wint, uit je bewaarde weeksteen), en of je het
             overzicht hebt gezien. Alleen jij kunt het lezen, ook als je je
             steen niet met leden deelt. Gebruik je ZWBeter voor je training, dan
@@ -529,7 +537,7 @@ export default function PrivacyPage() {
             als je je account opheft.
           </li>
           <li id="zwbriljant" className="scroll-mt-20">
-            <strong>ZWBriljant:</strong> bij Stats zie je je niveau als
+            <strong><ModuleName module="rennersniveau" />:</strong> bij Stats zie je je niveau als
             edelsteen, met een score in punten. Daarvoor gebruiken we wat je al
             met ons deelt: je vermogenscurve, vermoeide curve en CTL uit
             intervals.icu, je Zwift Racing Score via je Zwift-ID, je ritten
@@ -537,7 +545,7 @@ export default function PrivacyPage() {
             geslacht (de normen voor vrouwen zijn anders). Reed je de
             durability-test, dan zoeken we de dag daarvan op in je schema of in het
             protocol en halen we de vermogenscurve van die dag op bij intervals.icu. Heb je intervals.icu
-            gekoppeld, dan maken we elke week je steen, ook als je ZWBriljant zelf
+            gekoppeld, dan maken we elke week je steen, ook als je <ModuleName module="rennersniveau" /> zelf
             nooit opent: we bewaren per week je score, je punten per onderdeel, je
             consistentie (een getal van 0 tot 1), per bron alleen óf die er
             was, en of durability uit de test of uit je ritten kwam. Geen watts, W/kg, gewicht, CTL of ZRS. De eerste keer maken we
@@ -548,21 +556,21 @@ export default function PrivacyPage() {
             daarna verversen we je vermogensprofiel na een nieuwe rit en
             minstens één keer per week, en je Racing Score één keer per week. Alle goedgekeurde leden zien standaard je laatste score,
             je punten per onderdeel en je consistentie (geen metingen) en kunnen
-            die naast hun eigen steen zetten. Op ZWB Rankings zien zij ook hoeveel
+            die naast hun eigen steen zetten. Op <ClubShortName /> Rankings zien zij ook hoeveel
             punten je score sinds vorige week steeg, en bij Rider of the month op
             het dashboard hoeveel sinds vorige maand, met je score van toen en van
             nu (Groeibriljant). Wil je dat niet, zet dan
-            &ldquo;Mijn ZWBriljant-steen delen met leden&rdquo; in je profiel uit:
+            &ldquo;Mijn <ModuleName module="rennersniveau" />-steen delen met leden&rdquo; in je profiel uit:
             dan is je steen meteen voor niemand anders meer te zien, en zie je
-            zelf ook de stenen van andere leden niet. Voor het ZWB-gemiddelde tellen we de laatste score van
-            iedereen met ZWBriljant mee, ook als je niet deelt. Heb je in je profiel een
+            zelf ook de stenen van andere leden niet. Voor het <ClubShortName />-gemiddelde tellen we de laatste score van
+            iedereen met <ModuleName module="rennersniveau" /> mee, ook als je niet deelt. Heb je in je profiel een
             geslacht opgegeven, dan tel je ook mee in het gemiddelde voor mannen of voor
             vrouwen. Elk gemiddelde is anoniem en verschijnt pas vanaf vijf leden. Er gaat niets naar{" "}
             {AI} of een andere partij. Het staat in je data-export en
             verdwijnt als je je account opheft.
           </li>
           <li id="zwbekers" className="scroll-mt-20">
-            <strong>ZWBekers:</strong> een lid kan een prestatie voordragen voor
+            <strong><ModuleName module="bekers" />:</strong> een lid kan een prestatie voordragen voor
             een beker in de prijzenkast, van zichzelf, van een ander lid of van
             een team. We bewaren wie voordroeg, voor wie, het team (en de leden
             die meereden), de titel, de datum, het verhaal, het ontwerp van de
@@ -585,7 +593,7 @@ export default function PrivacyPage() {
           </li>
           <li id="clubverhaal" className="scroll-mt-20">
             <strong>Clubverhaal:</strong> een lid kan een anekdote of verhaal
-            met hooguit zes foto&apos;s insturen voor het verhaal van ZWB op{" "}
+            met hooguit zes foto&apos;s insturen voor het verhaal van <ClubShortName /> op{" "}
             <Link href="/verhaal" className="underline">/verhaal</Link>. We bewaren de
             titel, de hoofdstukken met hun tekst en gekozen scène, het jaar, een
             eventuele ZWBeker, de
@@ -618,11 +626,11 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Terugschrijven naar Strava:</strong> koppel je Strava met het
-            recht om je activiteiten te wijzigen, dan zet ZWB na een rit een
+            recht om je activiteiten te wijzigen, dan zet <ClubShortName /> na een rit een
             samenvatting onderaan de omschrijving van die rit. Daarin staan je
             geplande en gedetecteerde trainingstype, de duur, de belasting (TSS)
             en het verschil met het plan, je gereedscore, je fitness-richting en
-            een tip die uit die gegevens volgt. Deel je je ZWBriljant-steen met
+            een tip die uit die gegevens volgt. Deel je je <ModuleName module="rennersniveau" />-steen met
             leden, dan staan ook je klasse, je punten en de punten tot de
             volgende klasse erin, en soms het onderdeel waar je het meest wint; deel je hem niet,
             dan staat er je CTL. Wie jouw Strava-activiteit kan zien, kan die
@@ -668,7 +676,7 @@ export default function PrivacyPage() {
             je @zwb_cycling op een foto in een openbare post, dan tonen we die post
             met je Instagram-naam aan ingelogde clubleden op het dashboard en bij
             Media. We halen dit op via Instagram en koppelen het niet aan je
-            ZWB-profiel. Haal je de tag of de post weg, of zet je je account op
+            {" "}<ClubShortName />-profiel. Haal je de tag of de post weg, of zet je je account op
             privé, dan verdwijnt hij binnen een uur. Het bestuur kan een post ook
             verbergen.
           </li>
@@ -716,7 +724,7 @@ export default function PrivacyPage() {
         <ul className="list-disc space-y-1 pl-5">
           <li>Live GPS-posities worden na 30 dagen automatisch verwijderd.</li>
           <li>
-            Je ZWBlokken worden mee verwijderd als je account wordt verwijderd.
+            Je <ModuleName module="blokkenjacht" /> worden mee verwijderd als je account wordt verwijderd.
           </li>
           <li>
             Profiel-, activiteiten- en communityinhoud bewaren we zolang je lid
@@ -728,7 +736,7 @@ export default function PrivacyPage() {
             verwijderen of bewaren. Bewaar je ze, dan blijven ze staan zolang je
             lid bent en zien clubleden ze zoals voorheen; wil je ze later alsnog
             weg, vraag het bestuur (zie &ldquo;Je rechten&rdquo;). Badges en
-            ZWBlokken blijven in beide gevallen staan. Stap je van Strava over naar intervals.icu,
+            {" "}<ModuleName module="blokkenjacht" /> blijven in beide gevallen staan. Stap je van Strava over naar intervals.icu,
             dan verdwijnen je Strava-ritten en komen je ritten voortaan via
             intervals.icu.
           </li>
@@ -747,7 +755,7 @@ export default function PrivacyPage() {
             Het aantal Strava-koppelingen is beperkt. Daarom houden we bij wanneer
             je voor het laatst in de app was. Ben je 90 dagen niet geweest, dan
             verbreken we je Strava-koppeling en ruimen we de opgehaalde ritten op;
-            twee weken vooraf krijg je een melding. Badges en ZWBlokken blijven
+            twee weken vooraf krijg je een melding. Badges en <ModuleName module="blokkenjacht" /> blijven
             staan.
           </li>
           <li>
@@ -842,7 +850,7 @@ export default function PrivacyPage() {
       </Section>
 
       <footer className="border-t pt-6 text-sm">
-        <BackLink href="/" label="ZWB Cycling" />
+        <BackLink href="/" label={<ClubName />} />
       </footer>
     </main>
   );

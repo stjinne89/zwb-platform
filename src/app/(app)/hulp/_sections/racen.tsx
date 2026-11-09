@@ -4,6 +4,7 @@ import {
   Mountain,
   Trophy,
 } from "lucide-react";
+import { ClubShortName, MemberNoun, ModuleName } from "@/components/club-texts-provider";
 
 export function RacenHelp() {
   return (
@@ -23,7 +24,7 @@ export function RacenHelp() {
               segmenten, en in een ploegentijdrit waar de ploeg tijd won of
               verloor. Bij een FRR-etappe of een andere Zwift-race is het je
               eigen race: je plek en tijd in je startgroep, wat je per segment
-              op de snelste verloor, en de andere ZWB&apos;ers in die race. Je ziet
+              op de snelste verloor, en de andere <MemberNoun plural /> in die race. Je ziet
               de races die je zelf reed of waarvoor je in de opstelling stond.
               Ben je captain of co-captain, dan zie je ook alle ZRL-races van je
               teams, ook van de subteams, met tips voor de ploeg en per renner.
@@ -40,7 +41,7 @@ export function RacenHelp() {
             erbij. Je kunt je eigen tip later aanpassen of verwijderen. Een deel
             van de tips is een samenvatting uit Zwift Insider; daar staat de bron
             bij, met een link naar het artikel. Racetips
-            staan ook in de ZWBieb, bij het onderwerp Zwift-racen of Wegracen en
+            staan ook in de <ModuleName module="bibliotheek" />, bij het onderwerp Zwift-racen of Wegracen en
             criteriums, en bij jouw tips op je profiel.
           </p>
         </div>
@@ -51,7 +52,7 @@ export function RacenHelp() {
             Onder Racen → Kennisbank staat wat er bekend is over tactiek in een
             Zwift-race: het wiel en je plek in de groep, wat een race vraagt,
             klimmen, aanvallen, ontsnappen, de sprint, de ploegentijdrit en de
-            spelregels van Zwift. Dezelfde artikelen staan in de ZWBieb op de plank
+            spelregels van Zwift. Dezelfde artikelen staan in de <ModuleName module="bibliotheek" /> op de plank
             Racetactiek, en de coach kent ze.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -118,8 +119,8 @@ export function RacenHelp() {
           <p className="mt-2 text-sm text-muted-foreground">
             Een FRR-tijdslot of een andere Zwift-race uit de kalender staat
             vanzelf in je lijst zodra je hem gereden hebt. Bij FRR zie je ook
-            de ZWB&apos;ers in dezelfde etappe over alle tijdsloten, met hun tijd, en
-            je plek in het klassement van FRR. Van andere ZWB&apos;ers zie je alleen
+            de <MemberNoun plural /> in dezelfde etappe over alle tijdsloten, met hun tijd, en
+            je plek in het klassement van FRR. Van andere <MemberNoun plural /> zie je alleen
             plek en tijd, net als op de site van FRR.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -337,7 +338,7 @@ export function RacenHelp() {
                 is er niets te kiezen en staat de lijst er niet.
               </p>
               <p>
-                Welke fietsen je in Zwift hebt, kan ZWB niet uit Zwift lezen. Vul ze
+                Welke fietsen je in Zwift hebt, kan <ClubShortName /> niet uit Zwift lezen. Vul ze
                 in bij Mijn garage onder Zwift-fietsen: je frames met hun
                 upgradeniveau en je wielen. Dan rekent Snelste fiets elk frame uit
                 je garage op zijn eigen niveau en elk ander frame op stage 0, wat je

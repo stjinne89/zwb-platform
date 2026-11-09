@@ -11,6 +11,7 @@ import {
   TROUBLESHOOTING,
 } from "../_data";
 import { HelpVideoLink } from "./help-video";
+import { ClubText } from "@/components/club-texts-provider";
 
 export function ProblemenHelp() {
   return (
@@ -46,7 +47,7 @@ export function ProblemenHelp() {
             {TROUBLESHOOTING.map((item) => (
               <li key={item} className="flex gap-2">
                 <CircleHelp className="mt-0.5 size-4 shrink-0 text-primary" />
-                <span>{item}</span>
+                <span><ClubText text={item} /></span>
               </li>
             ))}
           </ul>
@@ -62,7 +63,7 @@ export function ProblemenHelp() {
           {QA_HELP.map((item) => (
             <li key={item} className="flex gap-2">
               <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-              <span>{item}</span>
+              <span><ClubText text={item} /></span>
             </li>
           ))}
         </ul>

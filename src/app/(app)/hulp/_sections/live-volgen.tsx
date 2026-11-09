@@ -8,6 +8,7 @@ import {
   RIDE_MESSAGE_NOTES,
 } from "../_data";
 import { HelpVideoLink } from "./help-video";
+import { ClubText } from "@/components/club-texts-provider";
 
 export function LiveVolgenHelp() {
   return (
@@ -27,14 +28,14 @@ export function LiveVolgenHelp() {
             { title: "Wahoo ELEMNT", steps: WAHOO_LIVETRACK_STEPS },
           ].map((device) => (
             <div key={device.title} className="rounded-md border bg-background p-4">
-              <h3 className="text-sm font-semibold">{device.title}</h3>
+              <h3 className="text-sm font-semibold"><ClubText text={device.title} /></h3>
               <ol className="mt-3 space-y-3">
                 {device.steps.map((step, index) => (
                   <li key={step} className="flex gap-3">
                     <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
                       {index + 1}
                     </span>
-                    <p className="text-sm text-muted-foreground">{step}</p>
+                    <p className="text-sm text-muted-foreground"><ClubText text={step} /></p>
                   </li>
                 ))}
               </ol>
@@ -48,7 +49,7 @@ export function LiveVolgenHelp() {
           {LIVETRACK_NOTES.map((note) => (
             <li key={note} className="flex gap-2">
               <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-              <span>{note}</span>
+              <span><ClubText text={note} /></span>
             </li>
           ))}
         </ul>
@@ -69,14 +70,14 @@ export function LiveVolgenHelp() {
             { title: "Wahoo ELEMNT", steps: RIDE_MESSAGE_WAHOO_STEPS },
           ].map((device) => (
             <div key={device.title} className="rounded-md border bg-background p-4">
-              <h3 className="text-sm font-semibold">{device.title}</h3>
+              <h3 className="text-sm font-semibold"><ClubText text={device.title} /></h3>
               <ol className="mt-3 space-y-3">
                 {device.steps.map((step, index) => (
                   <li key={step} className="flex gap-3">
                     <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
                       {index + 1}
                     </span>
-                    <p className="text-sm text-muted-foreground">{step}</p>
+                    <p className="text-sm text-muted-foreground"><ClubText text={step} /></p>
                   </li>
                 ))}
               </ol>
@@ -88,7 +89,7 @@ export function LiveVolgenHelp() {
           {RIDE_MESSAGE_NOTES.map((note) => (
             <li key={note} className="flex gap-2">
               <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-              <span>{note}</span>
+              <span><ClubText text={note} /></span>
             </li>
           ))}
         </ul>

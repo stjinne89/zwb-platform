@@ -16,6 +16,7 @@ import {
   ZWIFT_MATCH_NOTES,
   OUTDOOR_ROUTE_NOTES,
 } from "../_data";
+import { ClubText } from "@/components/club-texts-provider";
 
 export function WorkoutsHelp() {
   return (
@@ -57,9 +58,9 @@ export function WorkoutsHelp() {
                     {index + 1}
                   </span>
                   <div>
-                    <p className="text-sm font-medium">{step.title}</p>
+                    <p className="text-sm font-medium"><ClubText text={step.title} /></p>
                     <p className="mt-0.5 text-sm text-muted-foreground">
-                      {step.text}
+                      <ClubText text={step.text} />
                     </p>
                   </div>
                 </li>
@@ -136,9 +137,9 @@ export function WorkoutsHelp() {
                     {index + 1}
                   </span>
                   <div>
-                    <p className="text-sm font-medium">{step.title}</p>
+                    <p className="text-sm font-medium"><ClubText text={step.title} /></p>
                     <p className="mt-0.5 text-sm text-muted-foreground">
-                      {step.text}
+                      <ClubText text={step.text} />
                     </p>
                   </div>
                 </li>
@@ -155,7 +156,7 @@ export function WorkoutsHelp() {
               {ZWIFT_NOTES.map((note) => (
                 <li key={note} className="flex gap-2">
                   <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <span>{note}</span>
+                  <span><ClubText text={note} /></span>
                 </li>
               ))}
             </ul>
@@ -189,8 +190,8 @@ export function WorkoutsHelp() {
                 <li key={factor.title} className="flex gap-2">
                   <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                   <span>
-                    <strong className="text-foreground">{factor.title}</strong>{" "}
-                    {factor.text}
+                    <strong className="text-foreground"><ClubText text={factor.title} /></strong>{" "}
+                    <ClubText text={factor.text} />
                   </span>
                 </li>
               ))}
@@ -212,7 +213,7 @@ export function WorkoutsHelp() {
               {ZWIFT_MATCH_NOTES.map((note) => (
                 <li key={note} className="flex gap-2">
                   <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <span>{note}</span>
+                  <span><ClubText text={note} /></span>
                 </li>
               ))}
             </ul>
@@ -240,7 +241,7 @@ export function WorkoutsHelp() {
           {OUTDOOR_ROUTE_NOTES.map((note) => (
             <li key={note} className="flex gap-2 text-sm text-muted-foreground">
               <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-              <span>{note}</span>
+              <span><ClubText text={note} /></span>
             </li>
           ))}
         </ul>

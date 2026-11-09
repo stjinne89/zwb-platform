@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { BackLink } from "@/components/app-ui";
+import { getClub } from "@/lib/club";
+import { ClubName, ClubShortName, ModuleName } from "@/components/club-texts-provider";
 
-export const metadata = {
-  title: "Gebruikersvoorwaarden — ZWB Cycling",
-  description:
-    "De afspraken voor het gebruik van het ZWB Cycling-platform: waar het onderhoudsadvies wel en niet voor is, en hoe we omgaan met citaten en tips van leden.",
-};
+export async function generateMetadata() {
+  const { name } = (await getClub()).texts;
+  return {
+    title: `Gebruikersvoorwaarden — ${name}`,
+    description: `De afspraken voor het gebruik van het ${name}-platform: waar het onderhoudsadvies wel en niet voor is, en hoe we omgaan met citaten en tips van leden.`,
+  };
+}
 
 const UPDATED = "18 augustus 2026";
 
@@ -13,7 +17,7 @@ function Section({
   title,
   children,
 }: {
-  title: string;
+  title: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -33,7 +37,7 @@ export default function VoorwaardenPage() {
         <h1 className="text-2xl font-bold text-foreground">Gebruikersvoorwaarden</h1>
         <p className="text-sm text-muted-foreground">
           Laatst bijgewerkt: {UPDATED}. Deze voorwaarden gelden voor iedereen die
-          het ZWB Cycling-platform gebruikt. Voor gegevensverwerking geldt
+          het <ClubName />-platform gebruikt. Voor gegevensverwerking geldt
           daarnaast de{" "}
           <Link href="/privacy" className="text-primary underline">
             privacyverklaring
@@ -44,7 +48,7 @@ export default function VoorwaardenPage() {
 
       <Section title="1. Waar dit platform voor is">
         <p>
-          Het platform is er voor de leden van ZWB Cycling: kalender, training,
+          Het platform is er voor de leden van <ClubName />: kalender, training,
           teams, materiaal en onderling contact. Je account is persoonlijk. Je
           krijgt toegang na goedkeuring door het bestuur en die toegang kan bij
           misbruik worden ingetrokken.
@@ -69,7 +73,7 @@ export default function VoorwaardenPage() {
           Blijf zelf kijken en voelen, en meet waar dat kan: een ketting met een
           kettingmeter, remblokken op dikte. Twijfel je, ga dan naar een
           fietsenmaker. Je blijft zelf verantwoordelijk voor de staat en de
-          veiligheid van je fiets. ZWB Cycling is niet aansprakelijk voor schade
+          veiligheid van je fiets. <ClubName /> is niet aansprakelijk voor schade
           die ontstaat doordat je op het advies in deze module bent afgegaan.
         </p>
       </Section>
@@ -78,20 +82,20 @@ export default function VoorwaardenPage() {
         <p>
           Bij de onderdelen in Mijn garage staan tips uit drie bronnen: algemene
           onderhoudskennis, samenvattingen van openbaar gepubliceerd advies met
-          een verwijzing naar de bron, en uitspraken van ZWB-leden uit de
-          clubgroepen. Bij ZWBieb staan tips van leden zelf, per onderwerp
+          een verwijzing naar de bron, en uitspraken van <ClubShortName />-leden uit de
+          clubgroepen. Bij <ModuleName module="bibliotheek" /> staan tips van leden zelf, per onderwerp
           en soms bij een event of col.
         </p>
         <p>
-          Plaats je iets in een ZWB-groepsapp, dan kan het bestuur dat als citaat
-          of als tip bij ZWBieb overnemen in het platform, met je naam
+          Plaats je iets in een <ClubShortName />-groepsapp, dan kan het bestuur dat als citaat
+          of als tip bij <ModuleName module="bibliotheek" /> overnemen in het platform, met je naam
           erbij. Je ziet je eigen citaten en tips altijd terug en je kunt ze zelf
           aanpassen of verwijderen — zonder dat je iemand om toestemming hoeft te
           vragen. Verwijder je er een, dan verdwijnt hij meteen uit de app. Je
           kunt ook vragen om helemaal geen citaten of tips van jou op te nemen.
         </p>
         <p>
-          Hetzelfde geldt voor een antwoord dat je in een gesprek bij ZWBieb
+          Hetzelfde geldt voor een antwoord dat je in een gesprek bij <ModuleName module="bibliotheek" />{" "}
           geeft: het lid dat je vraag stelde, of aan wie je antwoordde, kan dat
           als tip voor de club bewaren, onder jouw naam. Je krijgt daar een
           melding van en kunt de tip zelf aanpassen of verwijderen.
@@ -102,19 +106,19 @@ export default function VoorwaardenPage() {
         </p>
       </Section>
 
-      <Section title="3a. Spullen lenen via ZWBieb">
+      <Section title={<>3a. Spullen lenen via <ModuleName module="bibliotheek" /></>}>
         <p>
-          Bij ZWBieb kun je laten weten welke spullen je wilt uitlenen aan een
-          ander ZWB-lid. Wat je afspreekt, regelen jullie samen: ophalen,
+          Bij <ModuleName module="bibliotheek" /> kun je laten weten welke spullen je wilt uitlenen aan een
+          ander <ClubShortName />-lid. Wat je afspreekt, regelen jullie samen: ophalen,
           terugbrengen, een vergoeding en wat er gebeurt bij schade of verlies.
-          ZWB is geen partij bij die afspraak en is niet aansprakelijk voor de
+          {" "}<ClubShortName /> is geen partij bij die afspraak en is niet aansprakelijk voor de
           spullen.
         </p>
       </Section>
 
       <Section title="4. Trainingsschema's">
         <p>
-          De trainingsschema&apos;s in ZWBeter Worden worden deels automatisch
+          De trainingsschema&apos;s in <ModuleName module="training" /> worden deels automatisch
           opgesteld en door een trainer van de club beoordeeld. Het is
           sportbegeleiding, geen medisch advies. Heb je klachten, gebruik je
           medicatie of twijfel je over je belastbaarheid, overleg dan met een
@@ -162,7 +166,7 @@ export default function VoorwaardenPage() {
       </Section>
 
       <footer className="border-t pt-6 text-sm">
-        <BackLink href="/" label="ZWB Cycling" />
+        <BackLink href="/" label={<ClubName />} />
       </footer>
     </main>
   );

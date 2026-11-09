@@ -7,6 +7,7 @@ import {
   ListChecks,
   Utensils,
 } from "lucide-react";
+import { ClubShortName, ModuleName } from "@/components/club-texts-provider";
 
 export function KennisHelp() {
   return (
@@ -157,7 +158,7 @@ export function KennisHelp() {
         <div className="mt-4 rounded-md border bg-background p-4">
           <h3 className="text-sm font-semibold">Grenzen</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            ZWB geeft geen medisch advies. Heb je hart- of vaatproblemen, hoge
+            <ClubShortName /> geeft geen medisch advies. Heb je hart- of vaatproblemen, hoge
             bloeddruk, nierproblemen of een andere aandoening, of gebruik je
             medicijnen, overleg dan eerst met je huisarts of een sportarts. Stop
             een hittesessie bij duizeligheid, misselijkheid of hoofdpijn.
@@ -166,7 +167,7 @@ export function KennisHelp() {
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Supplementen kunnen verontreinigd zijn met verboden stoffen. Kies een
-            batch met het NZVT-keurmerk van de Dopingautoriteit; ZWB noemt geen
+            batch met het NZVT-keurmerk van de Dopingautoriteit; <ClubShortName /> noemt geen
             merken. Je eigen trainer ziet welke protocollen je volgt en wat je
             afvinkt.
           </p>
@@ -234,7 +235,7 @@ export function KennisHelp() {
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                 <span>
-                  Er staat nergens een caloriedoel. ZWB geeft bewust geen
+                  Er staat nergens een caloriedoel. <ClubShortName /> geeft bewust geen
                   afvaladvies: te weinig eten bij veel trainen schaadt je
                   gezondheid en je vorm.
                 </span>
@@ -370,7 +371,7 @@ export function KennisHelp() {
                   zweet: doe de zweettest (bij Protocollen), dan staat er
                   hoeveel liter per uur, en volgt het aantal bidons daaruit.
                   Je drinkt dan zo dat je onder ongeveer 2% van je gewicht
-                  verliest, maar niet meer dan je zweet. ZWB rekent met je
+                  verliest, maar niet meer dan je zweet. <ClubShortName /> rekent met je
                   laatste test.
                 </span>
               </li>
@@ -620,7 +621,7 @@ export function KennisHelp() {
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Een kennisbank over materiaal en kleine winsten, een rekenaar die
               laat zien wat een verandering jou oplevert, en een houdingmeting met
-              de camera van je telefoon (bèta). ZWB geeft geen
+              de camera van je telefoon (bèta). <ClubShortName /> geeft geen
               koopadvies. Merken staan alleen in de rekenaar, met cijfers uit
               onafhankelijke tests.
             </p>
@@ -700,7 +701,7 @@ export function KennisHelp() {
             <p className="mt-2 text-sm text-muted-foreground">
               Van opzij zet je de telefoon liggend op 2 tot 3 meter, recht van opzij
               en op zadelhoogte, met goed licht. Sta eerst 3 seconden rechtop naast
-              de fiets en druk op Staand meten: die hoek gaat af van wat ZWB tijdens
+              de fiets en druk op Staand meten: die hoek gaat af van wat <ClubShortName /> tijdens
               het trappen meet. Trap daarna rustig, op 75 tot 95 omwentelingen per
               minuut. Knie onderin is hoe ver je knie gebogen is onderin de trap,
               over de laatste tien omwentelingen. De richtwaarde is 33 tot 43
@@ -710,7 +711,7 @@ export function KennisHelp() {
               Het model zit 3 tot 9 graden naast een meting met markers. Op de rand
               betekent: buiten de richtwaarde, maar binnen 5 graden, en dus niet te
               onderscheiden van goed. Meer gebogen kan op een te laag zadel wijzen,
-              meer gestrekt op een te hoog zadel. ZWB geeft geen advies in letters of
+              meer gestrekt op een te hoog zadel. <ClubShortName /> geeft geen advies in letters of
               millimeters; twijfel je, ga dan naar een bikefitter. Romp en elleboog
               staan er zonder richtwaarde, omdat het onderzoek daar geen duidelijke
               grens geeft.
@@ -858,7 +859,7 @@ export function KennisHelp() {
             Strava in intervals.icu komt, geeft intervals.icu niet aan ons door;
             koppel je horloge dan rechtstreeks aan intervals.icu. Ze tellen mee voor de rust tussen krachtsessies en
             het maximum van twee per week, dus na een avond in de sportschool
-            stelt ZWB de volgende dagen geen krachtserie voor. Tik op een
+            stelt <ClubShortName /> de volgende dagen geen krachtserie voor. Tik op een
             training en daarna op het figuur om aan te geven welke spieren je
             trainde; die tellen mee in &quot;Deze week getraind&quot;, als
             ongeveer drie sets per spiergroep. Een training als
@@ -873,7 +874,7 @@ export function KennisHelp() {
             Fietsen belast je botten weinig. De serie Springen voor je botten is
             vijf keer tien sprongen, in een paar minuten. Doe hem drie à vier
             keer per week; hij mag ook op een fietsdag en telt niet mee voor de
-            rust tussen krachtsessies. ZWB stelt hem niet uit zichzelf voor.
+            rust tussen krachtsessies. <ClubShortName /> stelt hem niet uit zichzelf voor.
             Land zacht en stop bij pijn in je knieën of enkels.
           </p>
           <h4 className="mt-4 text-sm font-semibold">Gym: zwaar werk</h4>
@@ -894,7 +895,7 @@ export function KennisHelp() {
             de app noemt geen kilo&apos;s. In de studies stond er de eerste
             weken een begeleider bij. Heb je nooit met een halterstang
             getraind, laat de techniek dan eerst door een trainer in je
-            sportschool bekijken. ZWB stelt deze series nooit uit zichzelf
+            sportschool bekijken. <ClubShortName /> stelt deze series nooit uit zichzelf
             voor: je kiest ze zelf, en ze tellen wel mee voor de rust tussen
             twee krachtsessies.
           </p>
@@ -913,7 +914,7 @@ export function KennisHelp() {
           <p className="mt-2 text-sm text-muted-foreground">
             Deze series zijn algemeen onderhoudswerk, geen behandeling. Stop bij
             pijn. Heb je aanhoudende rug-, knie- of heupklachten, of een
-            blessure, ga dan naar een fysiotherapeut of huisarts. ZWB geeft
+            blessure, ga dan naar een fysiotherapeut of huisarts. <ClubShortName /> geeft
             daar bewust geen advies over, en de AI-trainer ook niet.
           </p>
           <Link
@@ -944,7 +945,7 @@ export function KennisHelp() {
       >
         <h2 className="text-lg font-semibold">Logboek: hoe je je voelt</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Onder ZWBeter Worden staat een logboek waarin je per dag bijhoudt
+          Onder <ModuleName module="training" /> staat een logboek waarin je per dag bijhoudt
           hoeveel last je hebt en waarvan: buikpijn, slecht geslapen, stemming,
           darmen. Je kunt er ook de eerste dag van je menstruatie markeren; de
           cycluslengte volgt dan vanzelf. De vragen zijn daarop geschreven, dus

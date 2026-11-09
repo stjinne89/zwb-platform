@@ -9,6 +9,9 @@ import {
   OVERVIEW,
 } from "../_data";
 import { HelpVideoLink, HelpVideoList } from "./help-video";
+import { ClubShortName } from "@/components/club-texts-provider";
+import { ModuleGate } from "@/components/club-texts-provider";
+import { ClubText } from "@/components/club-texts-provider";
 
 export function BeginnenHelp() {
   return (
@@ -23,8 +26,8 @@ export function BeginnenHelp() {
             <span className="flex size-7 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
               {index + 1}
             </span>
-            <h2 className="mt-3 font-semibold">{step.title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{step.text}</p>
+            <h2 className="mt-3 font-semibold"><ClubText text={step.title} /></h2>
+            <p className="mt-1 text-sm text-muted-foreground"><ClubText text={step.text} /></p>
           </Link>
         ))}
       </section>
@@ -61,7 +64,7 @@ export function BeginnenHelp() {
         <header className="flex items-start gap-2">
           <Smartphone className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
-            <h2 className="font-semibold">ZWB als app op je telefoon</h2>
+            <h2 className="font-semibold"><ClubShortName /> als app op je telefoon</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Zet de webapp op je beginscherm voor snelle toegang zonder App
               Store of Play Store.
@@ -75,7 +78,7 @@ export function BeginnenHelp() {
             <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
               <li className="flex gap-2">
                 <span className="font-semibold text-foreground">1.</span>
-                <span>Open ZWB in Safari.</span>
+                <span>Open <ClubShortName /> in Safari.</span>
               </li>
               <li className="flex gap-2">
                 <span className="font-semibold text-foreground">2.</span>
@@ -93,7 +96,7 @@ export function BeginnenHelp() {
             <ol className="mt-3 space-y-2 text-sm text-muted-foreground">
               <li className="flex gap-2">
                 <span className="font-semibold text-foreground">1.</span>
-                <span>Open ZWB in Chrome.</span>
+                <span>Open <ClubShortName /> in Chrome.</span>
               </li>
               <li className="flex gap-2">
                 <span className="font-semibold text-foreground">2.</span>
@@ -117,14 +120,15 @@ export function BeginnenHelp() {
         </p>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {OVERVIEW.map((item) => (
+            <ModuleGate key={item.href} href={item.href}>
             <Link
-              key={item.href}
               href={item.href}
               className="rounded-lg border bg-card/90 p-3 transition hover:border-primary/40"
             >
-              <p className="text-sm font-semibold">{item.name}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{item.text}</p>
+              <p className="text-sm font-semibold"><ClubText text={item.name} /></p>
+              <p className="mt-0.5 text-xs text-muted-foreground"><ClubText text={item.text} /></p>
             </Link>
+            </ModuleGate>
           ))}
         </div>
       </section>

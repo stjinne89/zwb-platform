@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/app-ui";
+import { ClubShortName } from "@/components/club-texts-provider";
 import { HelpCategoriesGrid } from "./help-categories-grid";
 import { HelpHashRedirect } from "./help-hash-redirect";
 import { HelpSearch } from "./help-search";
@@ -11,7 +12,7 @@ export default function HelpPage() {
     <div className="space-y-6">
       <HelpHashRedirect />
       <PageHeader
-        eyebrow="ZWB gids"
+        eyebrow={<><ClubShortName /> gids</>}
         title="Hulp voor leden"
         description="Wat elke pagina doet, hoe je koppelt en live tracking instelt, en wat te doen als iets niet werkt."
       />

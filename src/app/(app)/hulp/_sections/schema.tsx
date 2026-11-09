@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   Sparkles,
 } from "lucide-react";
+import { ClubShortName, MemberNoun, ModuleName } from "@/components/club-texts-provider";
 
 export function SchemaHelp() {
   return (
@@ -94,12 +95,12 @@ export function SchemaHelp() {
               </li>
               <li>
                 <strong className="text-foreground">Je steen:</strong> welke
-                klasse van je ZWBriljant-steen de doeltijd vraagt, naast de klasse
+                klasse van je <ModuleName module="rennersniveau" />-steen de doeltijd vraagt, naast de klasse
                 die je nu hebt. Bij drempel is dat je beste 20 minuten per kilo,
                 zoveel sterker als de doeltijd vraagt; is hij al haalbaar, dan zie
                 je hoeveel minder het mag zijn. Bij fitheid is het de geschatte
                 belasting van de rit in je doeltijd, gedeeld door zeven: de helft
-                van de ZWB&apos;ers met lange ritten reed er minstens één uit die
+                van de <MemberNoun plural /> met lange ritten reed er minstens één uit die
                 zo ver boven hun CTL lag. Dat is een schatting, geen grens.
                 Durability staat er niet bij, omdat je steen en de prognose het
                 verval anders meten. Sprint, anaeroob en racen beslissen geen
@@ -371,7 +372,7 @@ export function SchemaHelp() {
           >
             <h3 className="text-sm font-semibold">Voor trainers: schema&apos;s vergelijken</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Naast de AI maakt ZWB schema&apos;s met een eigen regelmotor. Op
+              Naast de AI maakt <ClubShortName /> schema&apos;s met een eigen regelmotor. Op
               het trainerstabblad{" "}
               <Link href="/zwbeter-worden/trainer/vergelijken" className="underline hover:text-primary">
                 Vergelijken
@@ -563,10 +564,10 @@ export function SchemaHelp() {
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               De aanpassing van de dag zelf wacht op de meting van je horloge van
-              die nacht. Vanaf vijf uur kijkt ZWB elk uur of die binnen is, en
+              die nacht. Vanaf vijf uur kijkt <ClubShortName /> elk uur of die binnen is, en
               past dan meteen aan; om negen uur in elk geval, met wat er dan is.
               Je horloge moet daarvoor wel met je telefoon hebben gesynchroniseerd,
-              en dat kan ZWB niet afdwingen: open zo nodig even de app van je
+              en dat kan <ClubShortName /> niet afdwingen: open zo nodig even de app van je
               horloge.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -599,7 +600,7 @@ export function SchemaHelp() {
               in: het hoogste minuutvermogen bij een ramptest, het gemiddelde bij
               een 20-minutentest. Met een intervals.icu-koppeling staat daar al
               het vermogen dat intervals die dag heeft gemeten; klopt het niet,
-              typ dan je eigen waarde. ZWB rekent daar je FTP uit (75%
+              typ dan je eigen waarde. <ClubShortName /> rekent daar je FTP uit (75%
               respectievelijk 95%), zet die in je profiel en werkt de targetwatts
               van de rest van je schema bij. Typte je het verkeerde vermogen in,
               dan pas je de uitslag aan of verwijder je hem bij{" "}
@@ -643,7 +644,7 @@ export function SchemaHelp() {
               anaeroob. Een training heet naar zijn kernwerk. Intensieve duur loopt
               tot 80% en kleurt daardoor boven 76% al groen, zoals in Zwift. In
               intervals.icu, en zo ook in Zwift en op je fietscomputer, staat
-              ZWBeter Worden voor de naam van elke training.
+              {" "}<ModuleName module="training" /> voor de naam van elke training.
             </p>
           </article>
           <article className="rounded-md border bg-background p-4">
@@ -778,18 +779,18 @@ export function SchemaHelp() {
               id="rit-koppelen"
               className="mt-2 scroll-mt-20 text-sm text-muted-foreground"
             >
-              ZWB koppelt een rit vanzelf aan de training van die dag. Zit dat
+              <ClubShortName /> koppelt een rit vanzelf aan de training van die dag. Zit dat
               ernaast, kies dan zelf bij{" "}
               <strong className="text-foreground">Hoort bij</strong> welke training
               het was. Dat kan bij een gereden training en bij een rit die als niet
               gepland in de kalender staat, ook nadat je al bevestigd hebt. Je kunt
               kiezen uit trainingen die nog open staan, van een week vóór de ritdag
               tot een week erna. Reed je de training van vrijdag al op donderdag,
-              kies dan vrijdag: die staat daarna als gereden en ZWB vraagt meteen
+              kies dan vrijdag: die staat daarna als gereden en <ClubShortName /> vraagt meteen
               naar je RPE en gevoel. Je RPE, gevoel en opmerking verhuizen mee, de
               training waar de rit eerst aan hing telt weer als niet gereden. Kies
               je <strong className="text-foreground">Geen training</strong>, dan
-              blijft de rit los staan en koppelt ZWB hem niet opnieuw; je RPE
+              blijft de rit los staan en koppelt <ClubShortName /> hem niet opnieuw; je RPE
               blijft bij de rit, je gevoel en opmerking vervallen. Verwijder je een rit in
               Strava, dan komt de training vanzelf weer vrij en blijft wat je
               invulde staan, zodat je er een andere rit aan kunt hangen.
@@ -828,10 +829,10 @@ export function SchemaHelp() {
               <strong className="text-foreground">Rit invoeren</strong>. Datum,
               naam en duur staan al ingevuld; vul de starttijd in en wat je weet
               van afstand, hoogtemeters, vermogen en hartslag. De rit hangt meteen
-              aan die training. Met vermogen rekent ZWB de TSS met je NP; vul je
+              aan die training. Met vermogen rekent <ClubShortName /> de TSS met je NP; vul je
               alleen het gemiddelde in, dan valt die iets te laag uit. Zonder
-              vermogen komt de TSS uit je hartslag. Zonder spoor tellen cols, ZWB
-              Segments en ZWBlokken niet mee. Klopt er iets niet, kies dan{" "}
+              vermogen komt de TSS uit je hartslag. Zonder spoor tellen cols, <ClubShortName />{" "}
+              Segments en <ModuleName module="blokkenjacht" /> niet mee. Klopt er iets niet, kies dan{" "}
               <strong className="text-foreground">Ingevoerde rit verwijderen</strong>;
               de training staat daarna weer open.
             </p>
@@ -844,7 +845,7 @@ export function SchemaHelp() {
               kalender twee keer. Klik de opname aan die weg moet en kies{" "}
               <strong className="text-foreground">Dubbele rit verwijderen</strong>.
               De knop staat alleen bij ritten die in tijd overlappen met een andere
-              rit. ZWB haalt de rit weg en zet hem bij de volgende sync niet terug;
+              rit. <ClubShortName /> haalt de rit weg en zet hem bij de volgende sync niet terug;
               in Strava blijft hij staan. Hing de rit aan een training, dan neemt de
               rit die bleef die plek over.
             </p>
@@ -886,11 +887,11 @@ export function SchemaHelp() {
               Whoop, Oura en Polar sturen een eigen readiness of herstelscore naar
               intervals.icu; die nemen we één op één over. Garmin doet dat niet:
               Body Battery en Training Readiness blijven in Garmin Connect en
-              komen niet mee. Voor die horloges rekent ZWB zelf een readiness uit
+              komen niet mee. Voor die horloges rekent <ClubShortName /> zelf een readiness uit
               je HRV en je rust-hartslag, afgezet tegen je eigen gemiddelde van de
               afgelopen 30 dagen, en je slaapscore. Korte nachten tellen daarna
               apart mee, net als bij de andere apparaten. Zo&apos;n waarde staat in
-              de app met <em>berekend door ZWB</em> erbij.
+              de app met <em>berekend door <ClubShortName /></em> erbij.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               Meet je horloge geen HRV, of is je laatste meting ouder dan een

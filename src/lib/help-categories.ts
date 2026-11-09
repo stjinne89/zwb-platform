@@ -1,4 +1,5 @@
 import type { PlaceTone } from "@/components/tegels/link-grid";
+import { moduleForPath, type ModuleKey } from "@/lib/modules";
 
 // De hulp is opgedeeld in categorieën, elk een eigen pagina /hulp/<id>. Tot
 // 2026-10-18 stond alles op één lange pagina /hulp; links in de app gaan nu
@@ -15,6 +16,8 @@ export type HelpCategory = {
   tone: PlaceTone;
   anchors: readonly string[];
   legacy?: readonly string[];
+  /** Hoort de hele categorie bij één module, dan valt hij weg als die uit staat. */
+  module?: ModuleKey;
 };
 
 export const HELP_CATEGORIES = [
@@ -46,7 +49,7 @@ export const HELP_CATEGORIES = [
   {
     id: "club",
     label: "Club en profiel",
-    text: "Profiel, privacy, rankings, badges, cols, ZWBieb, ZWBlokken en je garage.",
+    text: "Profiel, privacy, rankings, badges, cols, {m:bibliotheek}, {m:blokkenjacht} en je garage.",
     tone: "club",
     anchors: [
       "profiel",
@@ -69,7 +72,7 @@ export const HELP_CATEGORIES = [
   {
     id: "wedstrijden",
     label: "Events en wedstrijden",
-    text: "Kalender, teams, ZRL, FRR, SRC, ZWB DS, ZWBgame en voorZpWelBokaal.",
+    text: "Kalender, teams, ZRL, FRR, SRC, {m:live_race}, {m:managerspel} en {m:voorspelspel}.",
     tone: "kalender",
     anchors: ["events", "teams", "zwb-ds", "zwbgame", "voorzpwelbokaal"],
   },
@@ -82,8 +85,9 @@ export const HELP_CATEGORIES = [
   },
   {
     id: "training",
+    module: "training",
     label: "Training",
-    text: "Form, herstel, trainer-toegang, vermogen, ZWBriljant en je Strava-samenvatting.",
+    text: "Form, herstel, trainer-toegang, vermogen, {m:rennersniveau} en je Strava-samenvatting.",
     tone: "zwbeter",
     anchors: [
       "training",
@@ -98,6 +102,7 @@ export const HELP_CATEGORIES = [
   },
   {
     id: "schema",
+    module: "training",
     label: "Schema en jaarplan",
     text: "Doel, jaarplan, FTP-test, je week aanpassen en warming-ups.",
     tone: "zwbeter",
@@ -125,6 +130,7 @@ export const HELP_CATEGORIES = [
   },
   {
     id: "workouts",
+    module: "training",
     label: "Workouts en routes",
     text: "Op je fietscomputer, in Zwift en rondjes voor buiten.",
     tone: "zwbeter",
@@ -132,6 +138,7 @@ export const HELP_CATEGORIES = [
   },
   {
     id: "racen",
+    module: "training",
     label: "Racen en pacing",
     text: "Je Zwift-races analyseren en een pacingplan maken.",
     tone: "kalender",
@@ -151,6 +158,7 @@ export const HELP_CATEGORIES = [
   },
   {
     id: "kennis",
+    module: "training",
     label: "Kennis",
     text: "Protocollen, voeding, materiaal, core en kracht, en het logboek.",
     tone: "meer",
@@ -207,4 +215,31 @@ export function helpHrefForAnchor(anchor: string): string | null {
   const category = helpCategoryForAnchor(anchor);
   if (!category) return null;
   return category.anchors.includes(anchor) ? `/hulp/${category.id}#${anchor}` : `/hulp/${category.id}`;
+}
+
+/**
+ * Ankers in een gemengde categorie die bij één module horen (fase 3 van de
+ * generieke versie). Staat die module uit, dan verdwijnen de gids en het
+ * zoekresultaat.
+ */
+export const HELP_ANCHOR_MODULES: Readonly<Record<string, ModuleKey>> = {
+  teams: "teams",
+  "zwb-ds": "live_race",
+  zwbgame: "managerspel",
+  voorzpwelbokaal: "voorspelspel",
+  rankings: "stats",
+  badges: "bekers",
+  cols: "segmenten",
+  onderhoud: "garage",
+  zwbieb: "bibliotheek",
+  zwbriljant: "rennersniveau",
+};
+
+/** De module waar deze link heen gaat: een hulpanker, een hulpcategorie of een pagina. */
+export function helpHrefModule(href: string): ModuleKey | null {
+  const match = /^\/hulp\/([^#?]+)(?:#(.+))?$/.exec(href);
+  if (!match) return moduleForPath(href);
+  const [, categoryId, anchor] = match;
+  if (anchor && HELP_ANCHOR_MODULES[anchor]) return HELP_ANCHOR_MODULES[anchor];
+  return helpCategory(categoryId)?.module ?? null;
 }

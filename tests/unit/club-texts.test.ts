@@ -55,7 +55,7 @@ describe("clubteksten", () => {
   });
 
   it("toont de neutrale namen bij een club zonder eigen namen", () => {
-    const names = buildClubTexts("Testclub", "TC", (key) => neutralModuleNames()[key]).modules;
+    const names = buildClubTexts({ name: "Testclub", shortName: "TC" }, (key) => neutralModuleNames()[key]).modules;
     const nav = labels(filterNavForPermissions(NAV_GROUPS, () => true, null, () => true, names));
     expect(nav).toContain("Training");
     expect(nav).toContain("Bibliotheek");

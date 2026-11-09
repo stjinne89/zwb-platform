@@ -15,6 +15,8 @@ import {
   INTERVALS_RIDE_NOTES,
 } from "../_data";
 import { HelpVideoLink } from "./help-video";
+import { ClubShortName, ModuleName } from "@/components/club-texts-provider";
+import { ClubText } from "@/components/club-texts-provider";
 
 export function KoppelenHelp() {
   return (
@@ -28,7 +30,7 @@ export function KoppelenHelp() {
           <div>
             <h2 className="font-semibold">Strava opnieuw koppelen</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              ZWB heeft activiteitenrecht nodig om je ritten, badges, cols,
+              <ClubShortName /> heeft activiteitenrecht nodig om je ritten, badges, cols,
               fietsen en statistieken bij te werken.
             </p>
           </div>
@@ -74,8 +76,8 @@ export function KoppelenHelp() {
                 {index + 1}
               </span>
               <div>
-                <p className="text-sm font-medium">{step.title}</p>
-                <p className="mt-0.5 text-sm text-muted-foreground">{step.text}</p>
+                <p className="text-sm font-medium"><ClubText text={step.title} /></p>
+                <p className="mt-0.5 text-sm text-muted-foreground"><ClubText text={step.text} /></p>
               </div>
             </li>
           ))}
@@ -85,7 +87,7 @@ export function KoppelenHelp() {
           {INTERVALS_RIDE_NOTES.map((note) => (
             <li key={note} className="flex gap-2">
               <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
-              <span>{note}</span>
+              <span><ClubText text={note} /></span>
             </li>
           ))}
         </ul>
@@ -118,7 +120,7 @@ export function KoppelenHelp() {
             </p>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
               De koppeling haalt eerst de laatste vijf jaar op en daarna, beetje
-              bij beetje, je oudere ritten. Records, badges, ZWBlokken en
+              bij beetje, je oudere ritten. Records, badges, <ModuleName module="blokkenjacht" /> en
               segmenten gaan pas over je hele historie als die helemaal binnen
               is.
             </p>
@@ -166,10 +168,10 @@ export function KoppelenHelp() {
               </li>
             </ol>
             <p className="mt-3 text-xs text-muted-foreground">
-              De taal van je Strava-account maakt niet uit: ZWB herkent
+              De taal van je Strava-account maakt niet uit: <ClubShortName /> herkent
               Nederlandse, Engelse en andere kolomnamen. Alleen fietsritten
               (ook virtueel, gravel, MTB en e-bike) komen binnen; de rest slaat
-              ZWB over. Opnieuw importeren kan altijd, ritten tellen niet
+              {" "}<ClubShortName /> over. Opnieuw importeren kan altijd, ritten tellen niet
               dubbel.
             </p>
           </article>
@@ -197,9 +199,9 @@ export function KoppelenHelp() {
             </ol>
             <p className="mt-3 text-xs text-muted-foreground">
               Gebruik de GPX van een gereden rit (met tijden), geen route-GPX.
-              Afstand, hoogtemeters en rijtijd rekent ZWB uit het bestand.
-              Met het spoor tellen cols, ZWB Segments en ZWBlokken mee, en meet
-              ZWB je tijd op cols en uitgekozen segmenten. Die staat met GPS in
+              Afstand, hoogtemeters en rijtijd rekent <ClubShortName /> uit het bestand.
+              Met het spoor tellen cols, <ModuleName module="segmenten" /> en <ModuleName module="blokkenjacht" /> mee, en meet
+              {" "}<ClubShortName /> je tijd op cols en uitgekozen segmenten. Die staat met GPS in
               de ranglijst.
               Staat de rit al binnen via activities.csv, dan krijgt die het
               spoor erbij. Dezelfde rit twee keer uploaden is geen probleem.
@@ -235,8 +237,8 @@ export function KoppelenHelp() {
             </ol>
             <p className="mt-3 text-xs text-muted-foreground">
               Elke rit uit activities.csv krijgt zo zijn spoor. Zwift-ritten
-              tellen daarna mee in de Zwift-werelden van ZWBlokken, buitenritten
-              voor cols, ZWB Segments en ZWBlokken buiten. Andere sporten,
+              tellen daarna mee in de Zwift-werelden van <ModuleName module="blokkenjacht" />, buitenritten
+              voor cols, <ModuleName module="segmenten" /> en <ModuleName module="blokkenjacht" /> buiten. Andere sporten,
               ritten zonder GPS en TCX-bestanden worden overgeslagen. Een los
               FIT-bestand van Zwift, Garmin of Wahoo werkt ook.
             </p>
@@ -338,12 +340,12 @@ export function KoppelenHelp() {
         <header className="flex items-start gap-2">
           <CalendarPlus className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
-            <h2 className="font-semibold">ZWB in je eigen agenda</h2>
+            <h2 className="font-semibold"><ClubShortName /> in je eigen agenda</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Met een persoonlijke link zie je in je gewone agenda de events waar
               je ja op zei, de teamraces waarvoor je bent opgesteld en je eigen
               trainingen. Een training staat als hele dag, zonder tijd. Het werkt
-              één kant op: wat je in je agenda verandert, komt niet terug in ZWB.
+              één kant op: wat je in je agenda verandert, komt niet terug in <ClubShortName />.
             </p>
           </div>
         </header>

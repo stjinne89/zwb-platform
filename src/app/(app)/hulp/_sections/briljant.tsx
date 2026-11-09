@@ -3,6 +3,7 @@ import { Gem } from "lucide-react";
 import { FACET_WEIGHTS, LEVELS, powerAnchors } from "@/lib/briljant/norms";
 import { FACETS, FACET_LABELS, FACET_MEASURES } from "@/lib/briljant/score";
 import { HelpVideoLink } from "./help-video";
+import { ClubShortName, ModuleName } from "@/components/club-texts-provider";
 
 const pct = (value: number) => `${(value * 100).toLocaleString("nl-NL", { maximumFractionDigits: 1 })}%`;
 const wkg = (value: number) => value.toLocaleString("nl-NL", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -19,7 +20,7 @@ export function BriljantHelp() {
       <header className="flex items-start gap-2">
         <Gem className="mt-0.5 size-5 shrink-0 text-primary" />
         <div>
-          <h2 className="font-semibold">ZWBriljant: je niveau als edelsteen</h2>
+          <h2 className="font-semibold"><ModuleName module="rennersniveau" />: je niveau als edelsteen</h2>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
             Eén score in punten uit zeven onderdelen: vier duren vermogen, durability, fitheid en racen. De vorm van
             je steen is je profiel, de grootte je score, de kleur je klasse.
@@ -127,7 +128,7 @@ export function BriljantHelp() {
           <p className="mt-2 text-xs text-muted-foreground">
             Vermogen en fitheid volgen de spreiding onder renners: Goud is het gemiddelde, elke klasse een halve
             standaarddeviatie verder, tot Diamant op drie boven het gemiddelde (ongeveer de beste 1 op 1000).
-            Inschattingen van ZWB; geen studie koppelt vermogen aan klassen.
+            Inschattingen van <ClubShortName />; geen studie koppelt vermogen aan klassen.
           </p>
         </article>
 
@@ -175,12 +176,12 @@ export function BriljantHelp() {
               meting bij Waarden, de punten bij Punten. Bij durability is omlaag in procenten beter, en dus groen. Tik
               op de regel onder je score voor alle verschillen bij elkaar.
             </dd>
-            <dt className="font-medium">Ik, ZWB en Vergelijken</dt>
+            <dt className="font-medium">Ik, <ClubShortName /> en Vergelijken</dt>
             <dd className="text-muted-foreground">
-              Bovenaan kies je tussen drie tabbladen. Ik is je eigen steen, met de datum. ZWB is de galerij: een museum
+              Bovenaan kies je tussen drie tabbladen. Ik is je eigen steen, met de datum. <ClubShortName /> is de galerij: een museum
               met alle stenen die je mag zien op een rij sokkels, van laag naar hoog met de recordsteen achteraan.
               Scroll of sleep erlangs; klik op het bordje op een sokkel om die steen los te bekijken. Vergelijken
-              zet twee stenen naast elkaar: standaard de jouwe tegen het ZWB-gemiddelde, maar links en rechts kies
+              zet twee stenen naast elkaar: standaard de jouwe tegen het <ClubShortName />-gemiddelde, maar links en rechts kies
               je zelf uit jij, de gemiddelden, je mooiste steen (de week met je hoogste score), de records en
               de leden, dus ook twee leden tegen elkaar. Onderin staat in een paar zinnen waar het verschil zit; klik op de
               tweede steen voor de onderdelen naast elkaar. Van anderen zie je alleen punten.
@@ -193,16 +194,16 @@ export function BriljantHelp() {
             <dt className="font-medium">Delen</dt>
             <dd className="text-muted-foreground">
               Alle leden zien standaard je laatste steen: punten per onderdeel en je consistentie, geen metingen. Zet
-              &ldquo;Mijn ZWBriljant-steen delen met leden&rdquo; bij Zichtbaarheid in je profiel uit om hem te
+              &ldquo;Mijn <ModuleName module="rennersniveau" />-steen delen met leden&rdquo; bij Zichtbaarheid in je profiel uit om hem te
               verbergen; dat werkt meteen. Wie zijn steen verbergt, ziet ook die van andere leden niet; het
-              ZWB-gemiddelde en de records blijven.
+              {" "}<ClubShortName />-gemiddelde en de records blijven.
             </dd>
-            <dt className="font-medium">ZWB-gemiddelde</dt>
+            <dt className="font-medium"><ClubShortName />-gemiddelde</dt>
             <dd className="text-muted-foreground">
-              Per onderdeel het gemiddelde van de laatste steen van iedereen met ZWBriljant uit de afgelopen acht
-              weken, anoniem en pas vanaf vijf leden. Daarnaast is er een gemiddelde ZWB-man en een gemiddelde
-              ZWB-vrouw, naar het geslacht in het profiel; wie dat leeg laat, telt alleen mee in het
-              ZWB-gemiddelde. Ook die verschijnen pas vanaf vijf leden, en een onderdeel dat minder dan vijf leden
+              Per onderdeel het gemiddelde van de laatste steen van iedereen met <ModuleName module="rennersniveau" /> uit de afgelopen acht
+              weken, anoniem en pas vanaf vijf leden. Daarnaast is er een gemiddelde <ClubShortName />-man en een gemiddelde
+              {" "}<ClubShortName />-vrouw, naar het geslacht in het profiel; wie dat leeg laat, telt alleen mee in het
+              {" "}<ClubShortName />-gemiddelde. Ook die verschijnen pas vanaf vijf leden, en een onderdeel dat minder dan vijf leden
               hebben, blijft op een gemiddelde steen leeg.
             </dd>
             <dt className="font-medium">Hier win je het meest</dt>
@@ -266,7 +267,7 @@ export function BriljantHelp() {
             href="/stats/zwbriljant"
             className="mt-4 inline-flex text-sm font-medium text-primary hover:underline"
           >
-            Open ZWBriljant
+            Open <ModuleName module="rennersniveau" />
           </Link>
         </article>
       </div>

@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { helpCategory } from "@/lib/help-categories";
+import { helpCategory, helpHrefModule } from "@/lib/help-categories";
+import { useClubTexts } from "@/components/club-texts-provider";
+import { fillClubText } from "@/lib/club-texts";
 
 type HelpResult = {
   title: string;
@@ -14,13 +16,13 @@ type HelpResult = {
 
 const HELP_INDEX: HelpResult[] = [
   {
-    title: "ZWB DS",
-    text: "Live raceoverzicht tijdens een Zwift-race: groepen, achterstanden en de ZWB'ers, voor je telefoon of tablet.",
+    title: "{m:live_race}",
+    text: "Live raceoverzicht tijdens een Zwift-race: groepen, achterstanden en de {leden}, voor je telefoon of tablet.",
     href: "/hulp/wedstrijden#zwb-ds",
     terms:
       "zwb ds directeur sportif ds live race overzicht raceoverzicht tweede scherm telefoon tablet ipad sauce groepen groep achterstand gat kop koersbalk sprint kom w/kg wkg watt zwift stand bijwerken",
   },
-  { title: "ZWBgame", text: "Zwift-racegame: ladder, ZRL, FRR-tour, routes, slipstream, W′, powerups, ploegorders, deelname en sportgegevens.", href: "/hulp/wedstrijden#zwbgame", terms: "game spel wielrennen koers race zwift ladder club ladder uitdagen zrl wtrl puntenrace race of truth scratch ploegentijdrit ttt fal fts leaguepunten frr flamme rouge tour etappe tijdrit klassement egap trui groen bolletjes blauw bezemwagen punten ploeg peloton blob slipstream draft wiel w' w-prime frisheid tactiek powerup veer aerohelm draft boost supertuck sprint kom lead-out breng me terug dagvorm route ronden liggend landschap volledig scherm groep bekijken camera hoogteprofiel om beurten aanvallen tegenaanval standen sparen meerijden naar voren aanvallen ftp gewicht wkg kwaliteiten strava intervals spelprofiel toestemming pauzeren hervatten" },
+  { title: "{m:managerspel}", text: "Zwift-racegame: ladder, ZRL, FRR-tour, routes, slipstream, W′, powerups, ploegorders, deelname en sportgegevens.", href: "/hulp/wedstrijden#zwbgame", terms: "game spel wielrennen koers race zwift ladder club ladder uitdagen zrl wtrl puntenrace race of truth scratch ploegentijdrit ttt fal fts leaguepunten frr flamme rouge tour etappe tijdrit klassement egap trui groen bolletjes blauw bezemwagen punten ploeg peloton blob slipstream draft wiel w' w-prime frisheid tactiek powerup veer aerohelm draft boost supertuck sprint kom lead-out breng me terug dagvorm route ronden liggend landschap volledig scherm groep bekijken camera hoogteprofiel om beurten aanvallen tegenaanval standen sparen meerijden naar voren aanvallen ftp gewicht wkg kwaliteiten strava intervals spelprofiel toestemming pauzeren hervatten" },
   {
     title: "FRR-tours",
     text: "Etappes en tijdsloten van Flamme Rouge Racing, klassement en renners om in de gaten te houden.",
@@ -76,21 +78,21 @@ const HELP_INDEX: HelpResult[] = [
       "zwiftpower zwiftracing zwift racing app strava intervals icu zwift-id athlete id profiel link knop grijs externe profielen",
   },
   {
-    title: "ZWB in je eigen agenda",
+    title: "{kort} in je eigen agenda",
     text: "Je aanmeldingen en trainingen in Google Agenda, Outlook of Apple Agenda.",
     href: "/hulp/koppelen#agenda",
     terms:
       "agenda kalender abonnement abonneren ics ical webcal google agenda calendar outlook apple icloud iphone mac thunderbird synchroniseren sync link trainingen aanmeldingen",
   },
   {
-    title: "ZWBriljant goed instellen",
+    title: "{m:rennersniveau} goed instellen",
     text: "Wat je koppelt en invult zodat alle onderdelen van je steen meetellen.",
     href: "/hulp/training#zwbriljant",
     terms:
       "zwbriljant briljant steen edelsteen onderdelen ontbreken leeg durability durability-test test p25 plafond kj 1000 2000 gewicht geslacht zwift-id zrs racen strava consistentie schema intervals instellen galerij vergelijken",
   },
   {
-    title: "ZWB Rankings",
+    title: "{kort} Rankings",
     text: "Welke ranglijsten er zijn en wat ervoor telt.",
     href: "/hulp/club#rankings",
     terms: "rankings ranglijst zitvleeskampioen kilometervreter klimmer meest actief lange adem buitenbeentje binnenvetter metronoom clubmens groeibriljant top 3 achievements kudo",
@@ -120,7 +122,7 @@ const HELP_INDEX: HelpResult[] = [
     terms: "cols segmenten records pr ranglijst kom qom zwb kom alpe ventoux stelvio",
   },
   {
-    title: "ZWBieb",
+    title: "{m:bibliotheek}",
     text: "Wie weet wat en wie heeft wat: kennis en uitleenspullen van leden, tips en een vraag stellen in de app.",
     href: "/hulp/club#zwbieb",
     terms: "wie weet wat kennis kenner ervaring onderwerp vraag vragen gesprek bericht berichten tip tips van leden advies hulp gravel bikefit sleutelen banden tubeless zwift racen zwbieb bieb wie heeft wat lenen uitlenen spullen fietskoffer momentsleutel fietsendrager seasucker dakdrager camper werkstandaard leeszaal kennisbank artikel artikelen lezen boeken plank",
@@ -139,12 +141,12 @@ const HELP_INDEX: HelpResult[] = [
   },
   {
     title: "Berichten op je fietscomputer",
-    text: "Garmin via ZWB-meldingen, Wahoo via Telegram.",
+    text: "Garmin via {kort}-meldingen, Wahoo via Telegram.",
     href: "/hulp/live-volgen#ritberichten",
     terms: "bericht berichten melding meldingen fietscomputer garmin wahoo elemnt edge telegram bot koppelen organisator livechat hergroeperen",
   },
   {
-    title: "ZWB als app installeren",
+    title: "{kort} als app installeren",
     text: "Zet de webapp op je beginscherm op iOS of Android.",
     href: "/hulp/beginnen#webapp-installeren",
     terms: "app installeren webapp telefoon beginscherm startscherm ios iphone ipad android chrome safari",
@@ -355,7 +357,7 @@ const HELP_INDEX: HelpResult[] = [
       "spiergroep spiergroepen spieren spierkaart figuur poppetje animatie kleur getraind deze week bilspieren quadriceps hamstrings kuiten buik",
   },
   {
-    title: "ZWBeter Worden-samenvatting in Strava",
+    title: "{m:training}-samenvatting in Strava",
     text: "Het blokje dat na een rit onderaan je Strava-omschrijving komt.",
     href: "/hulp/training#strava-samenvatting",
     terms:
@@ -401,14 +403,14 @@ const HELP_INDEX: HelpResult[] = [
     terms: "verjaardag verjaardagsrondje aanmelden rit jarig",
   },
   {
-    title: "ZWBlokken",
+    title: "{m:blokkenjacht}",
     text: "De blokkenkaart: waar heb jij en waar heeft de club al gereden?",
     href: "/hulp/club#zwblokken",
     terms:
       "zwblokken blokken kaart heatmap verkennen gebied squadrats tegels ontdekken koning koningin vorst gouverneur titel provincie deelstaat zwift watopia makuri france london new york virtueel",
   },
   {
-    title: "ZWBekers",
+    title: "{m:bekers}",
     text: "De prijzenkast: een prestatie voordragen, de beker ontwerpen en feliciteren.",
     href: "/hulp/club#zwbekers",
     terms:
@@ -416,7 +418,7 @@ const HELP_INDEX: HelpResult[] = [
   },
   {
     title: "Clubverhaal",
-    text: "Een anekdote of verhaal met foto's insturen voor het verhaal van ZWB.",
+    text: "Een anekdote of verhaal met foto's insturen voor het verhaal van {kort}.",
     href: "/hulp/club#clubverhaal",
     terms:
       "clubverhaal verhaal verhalen anekdote anekdotes geschiedenis historie foto fotos insturen plaatsen hoofdstuk hoofdstukken scene tenue shirt periode poppetje juichen sprinten afzien klimmen afdalen avond beker",
@@ -469,14 +471,28 @@ function normalize(value: string) {
 export function HelpSearch() {
   const [query, setQuery] = useState("");
   const normalizedQuery = normalize(query.trim());
+  // Titels en teksten met de clubwoorden ({kort}, {m:…}) ingevuld.
+  const texts = useClubTexts();
+  const index = useMemo(
+    () =>
+      HELP_INDEX.filter((item) => {
+        const key = helpHrefModule(item.href);
+        return !key || !texts.off.includes(key);
+      }).map((item) => ({
+        ...item,
+        title: fillClubText(item.title, texts),
+        text: fillClubText(item.text, texts),
+      })),
+    [texts],
+  );
   const results = useMemo(() => {
     if (normalizedQuery.length < 2) return [];
-    return HELP_INDEX.filter((item) =>
+    return index.filter((item) =>
       normalize(`${item.title} ${item.text} ${item.terms}`).includes(
         normalizedQuery,
       ),
     ).slice(0, 8);
-  }, [normalizedQuery]);
+  }, [index, normalizedQuery]);
 
   return (
     <section className="rounded-lg border bg-card/90 p-4">

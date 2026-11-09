@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { GuideCards } from "./guide-cards";
 import { HelpVideoLink } from "./help-video";
+import { ClubShortName, ModuleName } from "@/components/club-texts-provider";
 
 export function ClubHelp() {
   return (
@@ -70,7 +71,7 @@ export function ClubHelp() {
         <header className="flex items-start gap-2">
           <Grid3x3 className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
-            <h2 className="font-semibold">ZWBlokken</h2>
+            <h2 className="font-semibold"><ModuleName module="blokkenjacht" /></h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               De kaart is verdeeld in blokken van ongeveer anderhalve kilometer.
               Rijd je door een blok, dan kleurt het in, voor jou én voor de
@@ -164,7 +165,7 @@ export function ClubHelp() {
             className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium hover:border-primary/40"
           >
             <Grid3x3 className="size-4 text-primary" />
-            Naar ZWBlokken
+            Naar <ModuleName module="blokkenjacht" />
           </Link>
         </div>
       </section>
@@ -176,7 +177,7 @@ export function ClubHelp() {
         <header className="flex items-start gap-2">
           <Trophy className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
-            <h2 className="font-semibold">ZWBekers</h2>
+            <h2 className="font-semibold"><ModuleName module="bekers" /></h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               De prijzenkast van de club. Elk lid kan een prestatie voordragen
               die aandacht verdient, van een clubgenoot of van een team, en
@@ -277,8 +278,8 @@ export function ClubHelp() {
           <div>
             <h2 className="font-semibold">Clubverhaal</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Het verhaal van ZWB op /verhaal, in vier hoofdstukken met de
-              renners uit de ZWBgame in het tenue van toen. Leden vullen het aan
+              Het verhaal van <ClubShortName /> op /verhaal, in vier hoofdstukken met de
+              renners uit de <ModuleName module="managerspel" /> in het tenue van toen. Leden vullen het aan
               met anekdotes en verhalen met foto&apos;s.
             </p>
           </div>
@@ -497,7 +498,7 @@ export function ClubHelp() {
             <span>
               <strong className="text-foreground">Herstel</strong> (rust-HR,
               HRV en slaap door de tijd) zie je alleen als je de herstel-opt-in
-              op ZWBeter Worden aan hebt staan.
+              op <ModuleName module="training" /> aan hebt staan.
             </span>
           </li>
           <li className="flex gap-2">
@@ -530,7 +531,7 @@ export function ClubHelp() {
           <div>
             <h2 className="font-semibold">Mijn fietsen en onderhoud</h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Zodra je Strava gekoppeld en gesynchroniseerd hebt, kent ZWB je
+              Zodra je Strava gekoppeld en gesynchroniseerd hebt, kent <ClubShortName /> je
               fietsen met hun totale kilometerstand. Daarmee toon je je fietsen
               op je profiel en houd je de slijtage van onderdelen bij. Onder
               Zwift-fietsen vul je in welke frames en wielen je in Zwift hebt;
