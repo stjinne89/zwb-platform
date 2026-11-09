@@ -45,6 +45,11 @@ gaat stabiliteit voor nieuwe features.
    Mountain en zes wielsets ontbraken in de garage en bij Snelste fiets. Zie de
    ronde "Zwift-garage: fietslijst voorbij 1000 rijen".
 
+0. **Generieke versie, fase 5: schone installatie (2026-11-09): lokaal, niet
+   gepusht.** Geen migratie. Baseline en seed in `supabase/baseline/`,
+   handleiding in [docs/installatie.md](docs/installatie.md). Alleen getest op
+   PGlite; de echte proef is fase 7. Zie de ronde "fase 5: schone installatie".
+
 0. **Generieke versie, fase 4: clubherkenning (2026-11-09): gepusht naar
    `main` (`5b50f06a`), migratie `0320` toegepast** (versie `20261109135410`,
    op verzoek van de eigenaar, vóór de push). Open: na de deploy de volgende
@@ -12018,6 +12023,93 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Generieke versie, fase 5: schone installatie
+
+**2026-11-09.** Op verzoek van de eigenaar ("ga maar verder", na fase 4), met
+vier keuzes vooraf. Geen migratie. Nieuwe devDependency
+`@electric-sql/pglite-tools@0.4.8` (pg_dump; precies de versie bij PGlite
+0.5.8).
+
+Doel: een nieuwe club kan een leeg Supabase-project vullen zonder de 322
+migraties van ZWB en zonder ZWB-data. ZWB zelf verandert niets.
+
+Wat er is:
+
+- **Baseline en seed** (keuze eigenaar: "Baseline + seed"), in
+  `supabase/baseline/`:
+  - `0320_baseline.sql`: het schema na `0320`, met pg_dump uit een PGlite waarop
+    alle migraties zijn afgespeeld. Wat pg_dump met `--schema=public` niet
+    meeneemt, schrijft `scripts/build-baseline.mjs` er zelf bij: de rechten, de
+    buckets en storage-policies, de trigger op `auth.users` en de
+    realtimetabellen;
+  - `0320_seed.sql`: de startinhoud (keuze eigenaar: "Generieke inhoud mee").
+    Eruit: het ledenroster uit `0005` (93 namen met Zwift-ID), teams en
+    bronnen, sponsors, releasenotes en het auditlog. De clubrij heet "Club",
+    zonder eigen woorden of herkenning, en de modules hebben geen eigen naam.
+    De drie badges "in een ZWB-week" zeggen "in een week". Het script stopt
+    als er nog "ZWB" of "zwbcycling" in de seed staat.
+- **Rechten expliciet.** Supabase geeft `anon`, `authenticated` en
+  `service_role` vanzelf alles op een nieuw object in public. De migraties
+  nemen dat op plekken terug (bijvoorbeeld `execute` op functies). Een gewone
+  dump zou die intrekkingen kwijtraken; daarom trekt de baseline eerst alles in
+  en geeft dan precies de rechten van na `0320` terug. De stub doet de
+  standaardrechten van Supabase na, zodat de afgespeelde rechten kloppen.
+- **De stub** (`scripts/baseline/stub.mjs`): rollen, auth, storage, de
+  realtimepublicatie en `uuid-ossp` in het schema extensions, zoals op
+  Supabase. Hij deelt ook `schemaFingerprint()` met de test.
+- **`tests/unit/baseline.test.ts`** speelt beide routes af (alle migraties, en
+  baseline + seed + de migraties na `0320`) en vergelijkt kolommen,
+  constraints, indexen, functies, views, policies, RLS, triggers, rechten,
+  buckets en realtime. Ook: geen ZWB-data in de seed, een neutrale clubrij, de
+  startinhoud compleet en een profiel bij een aanmelding. Duurt ongeveer 6
+  seconden.
+- **De eerste beheerder**: één SQL-regel in de handleiding (keuze eigenaar:
+  "SQL-regel in handleiding"), geen automatische beheerder.
+- **De handleiding** `docs/installatie.md`: database, Netlify en env, de
+  eerste beheerder, de club inrichten met SQL tot fase 6, de koppelingen (met
+  verwijzingen naar de runbook) en de regels voor nieuwe migraties.
+
+**Gecontroleerd tegen productie** (alleen lezen, met de Supabase-connector):
+het afgespeelde schema telt evenveel tabellen (205), functies (85), policies
+(338 in public, 22 in storage), triggers (63), indexen (518) en realtimetabellen
+(4), met dezelfde namen. Eén verschil: productie heeft een kolom
+`external_event_participants.screenshot_path` en een bucket
+`event-scan-screenshots` die geen migratie aanmaakt en geen code gebruikt. Een
+oude handmatige wijziging; niet opgelost, staat in de handleiding (§8).
+
+**Bewust niet:**
+
+- **Het migratiescript voor meerdere installaties** (keuze eigenaar: "Bij fase
+  7"). Er is nog geen tweede installatie om het op te testen. De handleiding
+  geeft tot dan een `psql`-lus.
+- **Het `zwiftladies`-filter in `claim_roster_entry`**: het zet de
+  vrouwendivisie als een rosternaam "zwiftladies" bevat. Bij een andere club
+  gebeurt dat nooit, dus het doet daar niets. Een filter op de teaminstelling
+  zou ZWB raken, en dat was niet gevraagd.
+- **`event_links.kind = 'zwb'`** en tabel- en functienamen met zwb: interne
+  sleutels; het label is sinds 3a `{kort}-website`.
+- **`supabase/config.toml` en een lokale Supabase**: er is geen Docker.
+
+**Niet meer waar:** het ontwerp (§2.4) zei dat er geen baseline is en dat geen
+test alle migraties afspeelt, en (§10) dat niet lokaal te testen is of alle
+migraties op een leeg project aflopen en of de dubbele nummers botsen. Op
+PGlite lopen alle 322 migraties af, ook 0066, 0067, 0172 en 0173 dubbel. Die
+zinnen zijn aangepast.
+
+Lokaal: `tsc` en eslint zijn schoon. De volledige suite: 4172 groen, 19
+overgeslagen. Vijf bestanden met PGlite-migratietests (`club-theme`,
+`gps-times-flag`, `rls-initplan-migration`,
+`training-plan-status-cleanup-migration`, `admin-areas`) liepen vast op een
+time-out onder belasting; los gedraaid zijn ze groen (65 tests).
+`omnium-live` heeft `.env.local` nodig.
+
+**Niet bekeken:**
+
+- de baseline op een echt leeg Supabase-project (Postgres 17; PGlite is 18).
+  De dump bevat niets wat alleen in 18 bestaat (gezocht op onder meer
+  `NOT ENFORCED`, `\restrict` en statistieken), maar dat is geen proef;
+- de handleiding van begin tot eind: dat is fase 7.
 
 ### Gebouwd — Generieke versie, fase 4: clubherkenning
 
