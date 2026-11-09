@@ -173,6 +173,22 @@ export const HELP_CATEGORIES = [
     legacy: ["meldingen-problemen"],
   },
   {
+    id: "inrichten",
+    label: "Inrichten",
+    text: "De app inrichten voor je club: naam, huisstijl, modules en namen.",
+    tone: "meer",
+    anchors: [
+      "inrichten",
+      "inrichten-stappen",
+      "inrichten-club",
+      "inrichten-huisstijl",
+      "inrichten-modules",
+      "inrichten-namen",
+      "inrichten-herkenning",
+      "inrichten-afronden",
+    ],
+  },
+  {
     id: "beheer",
     label: "Beheer",
     text: "Naslag voor bestuur, beheerders, trainers en captains.",

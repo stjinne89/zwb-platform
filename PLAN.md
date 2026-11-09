@@ -45,6 +45,11 @@ gaat stabiliteit voor nieuwe features.
    Mountain en zes wielsets ontbraken in de garage en bij Snelste fiets. Zie de
    ronde "Zwift-garage: fietslijst voorbij 1000 rijen".
 
+0. **Generieke versie, fase 6: inrichtingsmodule (2026-11-09): lokaal, niet
+   gepusht.** Geen migratie. `/beheer/inrichting` met de stappen Club,
+   Huisstijl, Modules, Namen en woorden, en Herkenning, plus een controle en
+   afronden. Niet in de app bekeken. Zie de ronde "fase 6: inrichtingsmodule".
+
 0. **Generieke versie, fase 5: schone installatie (2026-11-09): gepusht naar
    main** (`49f0bd31`). Geen migratie. Baseline en seed in `supabase/baseline/`,
    handleiding in [docs/installatie.md](docs/installatie.md). Alleen getest op
@@ -12023,6 +12028,86 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Generieke versie, fase 6: inrichtingsmodule
+
+**2026-11-09.** Op verzoek van de eigenaar ("begin daar maar aan", daarna "Ja,
+bouwen" op het voorstel). Geen migratie: alle kolommen bestaan al (`0313` tot en
+met `0320`).
+
+Doel: een beheerder van een nieuwe installatie richt de club in de app in,
+zonder SQL. Voor ZWB verandert er niets: `setup_completed_at` staat bij ZWB
+sinds `0313` ingevuld.
+
+Wat er is:
+
+- **`/beheer/inrichting`**, een beheergebied in de categorie App, met het recht
+  `roles.manage_permissions`, net als modules en huisstijl. Het toont de stappen
+  met de stand Eigen, Standaard of Open, een controle met een samenvatting, en de
+  knop "Inrichting afronden", die `setup_completed_at` zet.
+- **De stappen** (`SETUP_STEPS` in `src/lib/club-setup.ts`):
+  1. Club, `/beheer/inrichting/club` (nieuw): naam, korte naam, lid en leden,
+     e-mailadres en website;
+  2. Huisstijl: het bestaande `/beheer/huisstijl`;
+  3. Modules: het bestaande `/beheer/modules`;
+  4. Namen en woorden, `/beheer/inrichting/namen` (nieuw): de woorden uit
+     `0319` en per aangezette module een eigen naam, met de neutrale als
+     placeholder. Een naam gelijk aan de neutrale slaat op als leeg;
+  5. Herkenning en koppelingen, `/beheer/inrichting/herkenning` (nieuw):
+     eventmarkers, teamtag, Instagram en YouTube, en per groep env-sleutels of
+     die gezet zijn ("ingesteld", "deels", "niet ingesteld"), zonder waarde.
+     Groepen van uitgezette modules vallen weg. Staat `ZWB_EVENT_MARKERS`, dan
+     zegt het veld dat de env voorgaat.
+- **Validatie** in `src/lib/club-setup.ts` (puur): verplichte naam en korte
+  naam, maximale lengtes, e-mail en website, markers gesplitst op komma's of
+  regels zonder dubbele, handles uit een link of met @, teamtag zonder haken.
+- **Schrijven** via `src/lib/club-settings-write.ts` (`requireClubOwner`,
+  `writeClubSettings`, `refreshClub`). Dat stond eerst alleen in de acties van
+  de huisstijl; die gebruiken het nu ook.
+- **De balk op het dashboard** "De inrichting van de club is nog niet af", voor
+  wie het recht heeft, zolang `setup_completed_at` leeg is. `Club.setupPending`
+  is alleen waar als er echt een clubrij is: bij de terugval zonder rij (een
+  leesfout) blijft de balk weg. Het recht wordt alleen opgevraagd als de
+  inrichting open is.
+- **De hulp**: een nieuwe categorie "Inrichten" (`/hulp/inrichten`) met een
+  stuk per stap. De hulpknop op elke stap, ook op huisstijl en modules, wijst
+  ernaar.
+- **Test** `tests/unit/club-setup.test.ts`: validatie, stand, balk, de
+  hulplinks per stap en de env-groepen (geen waarden in de uitvoer).
+
+**Bewust niet:**
+
+- **Een aparte route `/inrichten` met de eerste gebruiker als beheerder**: in
+  fase 5 koos de eigenaar voor één SQL-regel in de handleiding. Er is dus geen
+  eerste gebruiker die vanzelf beheerder wordt, en een tweede route naast het
+  beheer zou dezelfde schermen dubbel maken.
+- **De welkomtekst**: de app heeft nog geen plek die hem toont. Staat in het
+  plannenboek ("Welkomtekst voor een nieuwe club").
+- **Startinhoud kiezen**: de seed laadt alles, en een uitgezette module
+  verbergt zijn inhoud al. Kiezen zou rijen wissen, voor weinig winst.
+- **Aparte velden voor de verwerkingsverantwoordelijke**: de privacyverklaring
+  gebruikt al de clubnaam en het contactadres.
+- **Geheimen in de app invoeren**: die blijven env (ontwerp §4).
+- **De inrichting weer openzetten**: niet nodig, want elke stap blijft aan te
+  passen, en een knop zou bij ZWB de balk terug kunnen brengen.
+
+**Niet meer waar:** het ontwerp (§5) noemde `/inrichten` voor de eerste
+gebruiker, een stap Inhoud met welkomtekst en startinhoud, en zeven stappen. Dat
+is aangepast naar wat er gebouwd is.
+
+Lokaal: `tsc`, eslint en `next build` zijn schoon (de vier nieuwe routes staan
+in de build). De volledige suite: 4180 groen, 23 overgeslagen. Zes bestanden
+liepen vast op een time-out onder belasting (`club-theme`, `gps-times-flag`,
+`rls-initplan-migration`, `training-plan-status-cleanup-migration`,
+`training-storage-retention`, `zwift-club-calendar`); los gedraaid zijn ze groen.
+`omnium-live` heeft `.env.local` nodig.
+
+**Niet bekeken:**
+
+- de schermen in de browser. Opslaan zou op de productiedatabase schrijven, en
+  eigen clubinstellingen worden niet op productie uitgeprobeerd. De echte proef
+  is fase 7 op een eigen Supabase-project;
+- de balk op het dashboard: die verschijnt bij ZWB nooit.
 
 ### Gebouwd — Generieke versie, fase 5: schone installatie
 

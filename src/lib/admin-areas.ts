@@ -21,6 +21,9 @@ export const ADMIN_AREAS = {
   // Welke modules deze club gebruikt (0313, docs/multi-club-ontwerp.md). Het
   // recht van de eigenaar: een module uit zetten raakt alle leden.
   modules: { href: "/beheer/modules", label: "Modules", permission: "roles.manage_permissions" },
+  // De inrichting van de club in stappen (fase 6): naam, huisstijl, modules,
+  // namen en herkenning. Zelfde recht als de modules.
+  inrichting: { href: "/beheer/inrichting", label: "Inrichting", permission: "roles.manage_permissions" },
   // De vijf kleuren van de club (0314). Zelfde recht als de modules.
   huisstijl: { href: "/beheer/huisstijl", label: "Huisstijl", permission: "roles.manage_permissions" },
   achievements: {

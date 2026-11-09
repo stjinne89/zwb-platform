@@ -176,6 +176,11 @@ export type Club = {
   texts: ClubTexts;
   /** Waaraan de app eigen events, renners en uitslagen herkent (fase 4). */
   recognition: ClubRecognition;
+  /**
+   * Er is een clubrij, maar de inrichting is niet afgerond (fase 6). Niet bij de
+   * terugval zonder rij: een leesfout mag bij ZWB geen inrichtingsbalk tonen.
+   */
+  setupPending: boolean;
 };
 
 export function buildClub(row: ClubRow | null): Club {
@@ -199,6 +204,7 @@ export function buildClub(row: ClubRow | null): Club {
       teamTag: settings.teamTag,
       envMarkers: process.env.ZWB_EVENT_MARKERS,
     }),
+    setupPending: row?.settings != null && !row.settings.setupCompletedAt,
   };
 }
 

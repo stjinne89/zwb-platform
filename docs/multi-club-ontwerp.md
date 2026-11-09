@@ -305,27 +305,30 @@ een aparte afweging.
 
 ## 5. De inrichtingsmodule
 
-- **`/inrichten`** is er alleen zolang de inrichting niet af is. De eerste
-  gebruiker van een lege installatie wordt beheerder; dat vervangt het
-  handwerk met `profiles.is_admin`. Daarna loopt hij de stappen door.
-- **`/beheer/inrichting`** toont dezelfde stappen later als beheergebied, om
-  achteraf aan te passen.
+Gebouwd in fase 6 (2026-11-09), anders dan hier eerst stond:
+
+- **`/beheer/inrichting`** is het enige scherm, voor wie
+  `roles.manage_permissions` heeft. Een aparte route `/inrichten` voor de eerste
+  gebruiker is er niet: de eerste beheerder komt er met één SQL-regel
+  (fase 5, [installatie.md](installatie.md) §4). Zolang de inrichting niet af is,
+  staat er een balk op het dashboard van beheerders.
 - Stappen:
-  1. **Club**: naam, korte naam, leden-aanduiding, logo, contact.
-  2. **Huisstijl**: 5 kleuren met een live voorbeeld (tegels, knop, grafiek, licht
-     en donker) en een contrastcontrole volgens de Goudregel; font kiezen.
-  3. **Modules**: aan/uit per module. Afhankelijkheden gaan automatisch mee (wie
-     Teams aanzet, krijgt Kalender), en de Zwift-modules staan samen in een groep.
-  4. **Namen**: per module de naam, met de neutrale naam als voorinvulling.
-  5. **Koppelingen en herkenning**: Zwift-club-ID, markers, teamtag, social.
-     Ontbrekende env-geheimen worden getoond als "nog niet ingesteld", zonder dat
-     de waarde zichtbaar is.
-  6. **Inhoud**: welkomtekst en de contactgegevens voor de privacyverklaring.
-     Daarnaast een keuze welke startinhoud geladen wordt: workouts, mobiliteit,
-     cols, kennisbank.
-  7. **Controle**: een samenvatting, en dan publiceren.
+  1. **Club**: naam, korte naam, leden-aanduiding, contact en website.
+  2. **Huisstijl**: het bestaande `/beheer/huisstijl` (kleuren met live
+     voorbeeld en contrastcontrole, letter, logo).
+  3. **Modules**: het bestaande `/beheer/modules`; afhankelijkheden gaan mee.
+  4. **Namen en woorden**: per aangezette module de naam, met de neutrale als
+     voorinvulling, en de eigen woorden (`0319`).
+  5. **Herkenning en koppelingen**: eventmarkers, teamtag en social. Per groep
+     env-sleutels "ingesteld" of "niet ingesteld", zonder dat de waarde
+     zichtbaar is.
+  6. **Controle**: een samenvatting, en dan afronden (`setup_completed_at`).
+- Niet gebouwd: de welkomtekst (geen plek die hem toont; plannenboek), de keuze
+  van de startinhoud (de seed laadt alles; een uitgezette module verbergt zijn
+  inhoud) en aparte velden voor de verwerkingsverantwoordelijke (de
+  privacyverklaring gebruikt de clubnaam en het contactadres).
 - Volgens AGENTS.md komt er geen uitleg in de formulieren. Wat een stap betekent,
-  staat op `/hulp` in een nieuwe categorie "Inrichten".
+  staat op `/hulp/inrichten`.
 
 ## 6. Teksten
 
@@ -382,7 +385,7 @@ die fasen niets merken; dat is tegelijk de test.
 | 3. Teksten en namen | deel 1 (gebouwd): clubnaam en modulenamen via `getClub().texts` en `ClubTextsProvider` in metadata, manifest, menu, beheer en schermen; geen title-template. Deel 2 (gebouwd): hulp, privacy en voorwaarden met clubwoorden (`{club}`, `{m:…}` in data, componenten in JSX), contactadres uit de club, hulp van uitgezette modules weg. Deel 3a (gebouwd): korte naam, clubnaam en lidwoord in schermen, meldingen, Telegram, agenda en AI-prompts (tokens, bij verzenden ingevuld). Deel 3b (gebouwd, `0319`): eigen woorden per club (appnaam, dagadvies, betaalmiddel, beker, beter-woord), user agents met de korte naam, kennisbanken neutraal ("de app"), eventsoort, rechtenlabels en workout-titel. Drie kennisbankzinnen houden op verzoek "ZWB" | groot | klein (`0319`) |
 | 4. Clubherkenning | gebouwd (`0320`): eventmarkers en teamtag in `club_settings` (env `ZWB_EVENT_MARKERS` gaat voor), ZRL-live, ZWB DS en uitslagscraper volgen de tag, teams alleen uit de DB (seeds en WTRL-fallback weg), SRC-standaardteam met de korte naam, Instagram en YouTube uit de clubinstellingen. Zwift-club-ID en podcast-RSS blijven env | middel | ja |
 | 5. Schone installatie | gebouwd (geen migratie): baseline `0320` en generieke seed in `supabase/baseline/` (pg_dump uit PGlite, rechten expliciet), test die beide routes vergelijkt, eerste beheerder met één SQL-regel, [installatie.md](installatie.md). Het migratiescript voor meerdere projecten schuift naar fase 7 | groot | baseline |
-| 6. Inrichtingsmodule | `/inrichten` en `/beheer/inrichting`, de 7 stappen, live voorbeeld, hulpcategorie | middel | nee |
+| 6. Inrichtingsmodule | gebouwd (geen migratie): `/beheer/inrichting` met Club, Huisstijl, Modules, Namen en woorden, Herkenning en een controle met afronden, balk op het dashboard, hulpcategorie Inrichten. Geen `/inrichten`, welkomtekst of keuze van de startinhoud | middel | nee |
 | 7. Proefinstallatie | een testclub op een eigen Netlify-site en Supabase-project, de hele vragenlijst doorlopen, verschillen vastleggen | klein | – |
 
 Fase 1 kan alleen. De fasen 2, 3 en 4 hangen alleen van fase 1 af en raken

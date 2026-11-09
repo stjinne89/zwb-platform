@@ -66,6 +66,12 @@ export const HELP_ANCHORS: ReadonlyArray<readonly [pattern: string, anchor: stri
   ["/beheer/rechten", "rollenbeheer"],
   ["/beheer/strava", "stravabeheer"],
   ["/beheer/koppelingen", "koppelingenbeheer"],
+  ["/beheer/inrichting", "inrichten-stappen"],
+  ["/beheer/inrichting/club", "inrichten-club"],
+  ["/beheer/inrichting/namen", "inrichten-namen"],
+  ["/beheer/inrichting/herkenning", "inrichten-herkenning"],
+  ["/beheer/huisstijl", "inrichten-huisstijl"],
+  ["/beheer/modules", "inrichten-modules"],
 ];
 
 function segments(path: string) {

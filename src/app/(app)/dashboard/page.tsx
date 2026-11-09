@@ -11,6 +11,7 @@ import {
   Mountain,
   Newspaper,
   Pin,
+  Settings2,
   Vote,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -67,7 +68,7 @@ import {
 } from "@/lib/training/workouts";
 import { CYCLING_SPORTS } from "@/lib/strava/sports";
 import { amsterdamDateKey, amsterdamWallTimeToIso } from "@/lib/birthdays";
-import { getRequestUser } from "@/lib/auth/request";
+import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { getClub } from "@/lib/club";
 import { instagramProfileUrl } from "@/lib/instagram";
 import { points as briljantPoints, positionFor as briljantPosition } from "@/lib/briljant/score";
@@ -888,6 +889,9 @@ export default async function DashboardPage({
     }
   }
 
+  // Alleen bij een open inrichting de rechten opvragen; bij ZWB is die af.
+  const showSetupBar = club.setupPending && (await getRequestAccess()).has("roles.manage_permissions");
+
   return (
     <div className="tg-dash space-y-2">
       <DashboardHeader
@@ -911,6 +915,18 @@ export default async function DashboardPage({
         </Link>
       )}
       {needsWeight && <MissingWeightNotice />}
+
+      {/* Een nieuwe installatie (fase 6): tot de inrichting af is. Bij ZWB staat
+          setup_completed_at al, dus daar komt deze vraag niet. */}
+      {showSetupBar && (
+        <Link
+          href="/beheer/inrichting"
+          className="flex items-center gap-2 rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm transition hover:border-primary/70"
+        >
+          <Settings2 className="size-4 shrink-0 text-primary" />
+          De inrichting van de club is nog niet af.
+        </Link>
+      )}
 
       {/* Wat het lid op het profiel verborgen heeft, staat er niet (show). */}
       <TileRow label="Mijn training">

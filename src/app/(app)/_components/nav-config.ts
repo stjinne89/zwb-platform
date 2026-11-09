@@ -236,6 +236,7 @@ export const BEHEER_CATEGORIES: BeheerCategory[] = [
     tone: "meer",
     items: [
       adminLink("rechten"),
+      adminLink("inrichting"),
       adminLink("modules"),
       adminLink("huisstijl"),
       adminLink("notificaties"),

@@ -1,10 +1,8 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUserAccess } from "@/lib/auth/permissions";
-import { CLUB_TAG, getClub } from "@/lib/club";
+import { getClub } from "@/lib/club";
+import { requireClubOwner, writeClubSettings as writeSettings, type WriteResult as Result } from "@/lib/club-settings-write";
 import {
   CLUB_FONTS,
   DEFAULT_FONT,
@@ -14,45 +12,13 @@ import {
   type PaletteInput,
 } from "@/lib/club-theme";
 
-type Result = { ok: true } | { ok: false; error: string };
-
 const BUCKET = "club-assets";
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const IMAGE_TYPES: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg" };
 
 /** De ingelogde gebruiker, als die de huisstijl mag wijzigen. */
-async function requireOwner(): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
-  const supabase = await createClient();
-  const access = await getCurrentUserAccess(supabase);
-  if (!access.user) return { ok: false, error: "Niet ingelogd." };
-  if (!access.has("roles.manage_permissions")) {
-    return { ok: false, error: "Geen recht om de huisstijl te wijzigen." };
-  }
-  return { ok: true, userId: access.user.id };
-}
-
-/**
- * Werkt kolommen van club_settings bij; de naam en de rest van de rij blijven
- * staan. Een installatie zonder rij krijgt er een, met de neutrale naam.
- * Schrijven met de service role na de rechtencheck; club_settings heeft geen
- * schrijfpolicy (0313).
- */
-async function writeSettings(userId: string, columns: Record<string, string | null>): Promise<Result> {
-  const admin = createAdminClient();
-  const changes = { ...columns, updated_at: new Date().toISOString(), updated_by: userId };
-  const { data, error } = await admin.from("club_settings").update(changes).eq("id", true).select("id");
-  if (error) return { ok: false, error: error.message };
-  if (!data?.length) {
-    const { settings } = await getClub();
-    const { error: insertError } = await admin
-      .from("club_settings")
-      .insert({ id: true, name: settings.name, short_name: settings.shortName, ...changes });
-    if (insertError) return { ok: false, error: insertError.message };
-  }
-  updateTag(CLUB_TAG);
-  // De huisstijl staat in de root layout van elke pagina.
-  revalidatePath("/", "layout");
-  return { ok: true };
+function requireOwner() {
+  return requireClubOwner("Geen recht om de huisstijl te wijzigen.");
 }
 
 /** De vijf kleuren (0314), of null: weer de standaard huisstijl. */

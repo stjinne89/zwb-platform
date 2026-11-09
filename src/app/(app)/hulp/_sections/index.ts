@@ -4,6 +4,7 @@ import { BeginnenHelp } from "./beginnen";
 import { BeheerHelp } from "./beheer";
 import { ClubHelp } from "./club";
 import { KennisHelp } from "./kennis";
+import { InrichtenHelp } from "./inrichten";
 import { KoppelenHelp } from "./koppelen";
 import { LiveVolgenHelp } from "./live-volgen";
 import { ProblemenHelp } from "./problemen";
@@ -26,5 +27,6 @@ export const HELP_SECTIONS: Record<HelpCategoryId, ComponentType> = {
   racen: RacenHelp,
   kennis: KennisHelp,
   problemen: ProblemenHelp,
+  inrichten: InrichtenHelp,
   beheer: BeheerHelp,
 };
