@@ -15,11 +15,11 @@ gaat stabiliteit voor nieuwe features.
    resetlink laten aanvragen. Zie de ronde "Inloglinks bestand tegen
    mailscanners".
 
-0. **Alle auth-mails in ZWB-stijl (2026-11-09): templates in de docs, nog niet
-   in Supabase.** Magic link, wachtwoord vergeten, e-mail wijzigen, uitnodiging
-   en bevestigingscode, in de stijl van de bevestigingsmail. Plakken in het
-   dashboard, en eigen SMTP via Resend (stappen in het docs-bestand). Zie de
-   ronde "Alle auth-mails in ZWB-stijl".
+0. **Alle auth-mails in ZWB-stijl (2026-11-09): ingesteld in Supabase.** Magic
+   link, wachtwoord vergeten, e-mail wijzigen, uitnodiging en bevestigingscode,
+   in de stijl van de bevestigingsmail. De afzender blijft Supabase tot er eigen
+   SMTP is (Resend, stappen in het docs-bestand). Zie de ronde "Alle auth-mails
+   in ZWB-stijl".
 
 0. **Generieke versie, fase 2 deel 2: lettertype, logo, kaarten en klassiek weg
    (2026-11-09): gepusht naar `main`; migratie `0315` toegepast** (versie
@@ -11959,10 +11959,22 @@ en niet meer via Supabase's eigen `/verify`. De uitnodiging gaat naar
 *Reauthentication* is alleen een code. "Verloopt na een uur" volgt
 `mailer_otp_exp` = 3600.
 
-**Nog niet op productie.** De templates in Supabase zelf zijn niet aangepast:
-opslaan via de Management API vanuit het dashboard werd door de
-veiligheidscontrole van de sessie geweigerd. Plakken kan in het dashboard
-(Authentication -> Emails -> Templates), uit het docs-bestand.
+**Ingesteld op productie op 2026-11-09**, op verzoek van de eigenaar ("Paste
+via dashboard"): per template in het dashboard (Authentication -> Emails ->
+Templates) onderwerp en inhoud ingevuld en met *Save changes* opgeslagen.
+Opslaan via de Management API was eerder door de veiligheidscontrole van de
+sessie geweigerd; de knop in het dashboard niet. Na het opslaan zijn onderwerp
+en inhoud van *Reset password*, *Magic link*, *Invite* en *Change email* teken
+voor teken gelijk aan het docs-bestand (uitgelezen via de auth-config). Die van
+*Reauthentication* kon niet zo worden uitgelezen (de sessie houdt die waarden
+af); na herladen toont het dashboard daar wel het ZWB-onderwerp en de nieuwe
+HTML. *Confirm signup* is ongemoeid gebleven. Vóór deze ronde stond *Reset
+password* op een eigen Engelse template ("Reset your password") met dezelfde
+`token_hash`-link; die oude tekst is niet bewaard.
+
+Gevolg voor de live code: de magic link gaat nu naar `/auth/confirm` met een
+`token_hash`. Zolang de knop-pagina (`4c9877d1`) niet gepusht is, verzilvert
+de live versie dat token nog meteen bij openen, net als de resetlink.
 
 **Maillimiet.** Stand op 2026-11-09: geen eigen SMTP, `rate_limit_email_sent`
 = 2 per uur. `zwbcycling.nl` heeft DMARC `p=reject`, dus versturen namens dat
