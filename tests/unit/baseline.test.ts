@@ -69,6 +69,17 @@ describe("baseline voor een nieuwe installatie", () => {
     }
   });
 
+  it("zet geen regeleinde van Windows in functies of startinhoud", async () => {
+    const functions = await fresh.query<{ n: number }>(
+      "select count(*)::int as n from pg_proc where pronamespace = 'public'::regnamespace and prosrc like '%' || chr(13) || '%'",
+    );
+    expect(functions.rows[0].n).toBe(0);
+    const tips = await fresh.query<{ n: number }>(
+      "select count(*)::int as n from public.maintenance_tips t where t::text like '%' || chr(13) || '%'",
+    );
+    expect(tips.rows[0].n).toBe(0);
+  });
+
   it("maakt bij een aanmelding een profiel aan", async () => {
     await fresh.exec(`
       insert into auth.users (id, email, raw_user_meta_data)

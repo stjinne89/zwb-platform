@@ -82,7 +82,9 @@ export function migrationFiles({ after = -1 } = {}) {
 /** Speelt bestanden af; een fout noemt het bestand. */
 export async function applySqlFiles(db, files, dir = MIGRATIONS_DIR) {
   for (const file of files) {
-    const sql = fs.readFileSync(path.join(dir, file), "utf8");
+    // Op Windows checkt git de bestanden uit met CRLF; zonder dit komt een CR in
+    // functies en in tekst van de seed. In git en op productie is het LF.
+    const sql = fs.readFileSync(path.join(dir, file), "utf8").replace(/\r\n/g, "\n");
     try {
       await db.exec(sql);
     } catch (err) {

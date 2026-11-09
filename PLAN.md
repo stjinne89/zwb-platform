@@ -53,15 +53,24 @@ gaat stabiliteit voor nieuwe features.
    Mountain en zes wielsets ontbraken in de garage en bij Snelste fiets. Zie de
    ronde "Zwift-garage: fietslijst voorbij 1000 rijen".
 
+0. **Generieke versie, fase 7: proefinstallatie (2026-11-09): lokaal
+   gecommit, niet gepusht.** Geen migratie voor ZWB. Proefproject
+   `zwb-proefclub` ($10 per maand) staat nog aan. Migratiescript
+   `scripts/migrate-installation.mjs`, de handleiding bijgewerkt. Open: het
+   ZWB-logo als terugval bij een andere club (voorstel nodig), en het
+   proefproject pauzeren of verwijderen. Zie de ronde "fase 7:
+   proefinstallatie".
+
 0. **Generieke versie, fase 6: inrichtingsmodule (2026-11-09): gepusht naar
    main** (`ae323155`). Geen migratie. `/beheer/inrichting` met de stappen Club,
    Huisstijl, Modules, Namen en woorden, en Herkenning, plus een controle en
-   afronden. Niet in de app bekeken. Zie de ronde "fase 6: inrichtingsmodule".
+   afronden. In fase 7 op de proefclub doorlopen. Zie de ronde "fase 6:
+   inrichtingsmodule".
 
 0. **Generieke versie, fase 5: schone installatie (2026-11-09): gepusht naar
    main** (`49f0bd31`). Geen migratie. Baseline en seed in `supabase/baseline/`,
-   handleiding in [docs/installatie.md](docs/installatie.md). Alleen getest op
-   PGlite; de echte proef is fase 7. Zie de ronde "fase 5: schone installatie".
+   handleiding in [docs/installatie.md](docs/installatie.md). In fase 7 getest op
+   een echt leeg project. Zie de ronde "fase 5: schone installatie".
 
 0. **Generieke versie, fase 4: clubherkenning (2026-11-09): gepusht naar
    `main` (`5b50f06a`), migratie `0320` toegepast** (versie `20261109135410`,
@@ -12038,6 +12047,124 @@ link naar `/live/[eventId]`, zie de update hierboven).
 
 ## Chronologisch werkplan vanaf 2026-06-23
 
+### Gebouwd — Generieke versie, fase 7: proefinstallatie
+
+**2026-11-09, commit `COMMIT7`.** Op verzoek van de eigenaar ("ga verder", na
+fase 6), met keuzes vooraf: een eigen Supabase-project aanmaken, de app lokaal
+draaien (geen Netlify), en per installatie een eigen tabel voor de migraties.
+Geen migratie voor ZWB. Nieuwe devDependency `postgres@3.4.9`.
+
+Doel: de handleiding van begin tot eind op een echte lege installatie
+doorlopen, opschrijven wat anders bleek, en het migratiescript voor meerdere
+installaties bouwen (uit fase 5 hierheen geschoven).
+
+**Het proefproject:** `zwb-proefclub` in de Supabase-organisatie van de
+eigenaar, Postgres 17, regio eu-west-1, $10 per maand (per uur gerekend;
+akkoord eigenaar). Het databasewachtwoord en de service-role-sleutel heeft de
+eigenaar zelf in `.env.proefclub` en `.env.proefclub-app` gezet; die vallen
+onder `.gitignore`. Productie is niet aangeraakt, behalve lezen voor de
+schemavergelijking.
+
+Wat er is:
+
+- **`scripts/migrate-installation.mjs`**:
+  `node --env-file=.env.<club> scripts/migrate-installation.mjs [--init] [--dry-run]`.
+  Op een lege database zet `--init` de baseline en de seed, daarna elke
+  migratie na `0320`. Wat er staat, houdt de tabel
+  `installation.applied_migrations` bij (eigen schema, geen rechten voor
+  `anon` of `authenticated`). Elk bestand loopt in één transactie met het
+  vastleggen erbij. Een database met `club_settings` maar zonder die tabel
+  (ZWB, of een installatie met de hand) weigert het; `--init` op een database
+  met baseline ook. Na afloop `notify pgrst` voor de schema-cache.
+  Eerst via de Supabase-connector geprobeerd: 1,6 MB SQL in stukken
+  doorgeven bleek onwerkbaar, waarna de eigenaar koos voor het script.
+- **Regeleinden van Windows.** Git checkt op Windows uit met CRLF. Het script
+  en `applySqlFiles` in `scripts/baseline/stub.mjs` lazen de SQL zo in, en
+  zetten daarmee een `\r` in functiebodies en in tekst van de seed (in de
+  proef: alle functies en de onderhoudstips). Nu zetten beide `\r\n` om naar
+  `\n`. Nieuwe test in `tests/unit/baseline.test.ts`: geen `chr(13)` in de
+  functies van public of in `maintenance_tips`. Het proefproject zelf is vóór
+  die fix gevuld en heeft de `\r` nog; alleen cosmetisch, niet hersteld.
+- **`docs/installatie.md`** bijgewerkt: §2 met het script en de Session pooler,
+  eigen SMTP in §1 en §2, §4 met de werkende SQL voor de eerste beheerder, §5
+  naar de inrichtingsmodule, §8 met het derde verschil, en een nieuwe §9 voor
+  lokaal proefdraaien.
+
+**Bevindingen:**
+
+1. **Baseline, seed en `0321` lopen schoon af** op Postgres 17, in ongeveer
+   twee seconden. De trigger op `auth.users` maakt bij een aanmelding het
+   profiel, ook op echt Supabase.
+2. **Het schema is gelijk aan productie**, op drie dingen na die geen migratie
+   aanmaakt: de kolom `external_event_participants.screenshot_path` en de
+   bucket `event-scan-screenshots` (al bekend uit fase 5), en een foreign key
+   die productie **mist**: `profile_climbed_cols_best_time_activity_id_fkey`
+   uit `0075`. Op productie niets aan gedaan.
+3. **De directe databaseverbinding is alleen IPv6** en werkte vanaf hier niet.
+   De Session pooler wel.
+4. **De SQL voor de eerste beheerder uit de handleiding faalde**: de trigger
+   `profiles_protect_admin_fields` (`0205`) laat alleen een beheerder
+   `is_admin` wijzigen, en bij een nieuwe installatie is er nog geen. Nu zet
+   de handleiding hem in dezelfde transactie even uit.
+5. **De bevestigingsmail kwam niet aan**, al zegt het auth-log dat hij
+   verstuurd is. De standaardmail van Supabase is traag en beperkt; een
+   installatie heeft een eigen SMTP nodig. In de proef is het account met de
+   hand bevestigd (op verzoek van de eigenaar).
+6. **Zonder eigen logo en beeldmerk toont de app het ZWB-logo en de
+   ZWB-iconen** (`clubLogoUrl` en `ICON_VARIANTS` in `src/lib/club-icons.ts`).
+   Bewust zo gebouwd in fase 2, zodat er bij ZWB niets veranderde, maar bij
+   een andere club is het fout. De live-pagina's en de omnium-site tonen
+   `ZwbMark` vast. Niet opgelost: zie "Bewust niet".
+7. **De inrichting werkt van begin tot eind**: Club (de titel volgt meteen),
+   Namen en woorden (woord en modulenaam in `club_settings` en
+   `club_modules`), Herkenning (teamtag `[TCU]` wordt `TCU`, markers als
+   lijst, alle env-groepen "niet ingesteld"), Controle, en Inrichting
+   afronden. Daarna is de balk op het dashboard weg.
+8. **Geen ZWB-tekst** in de HTML van het dashboard, `/hulp`, `/privacy`,
+   `/training`, `/leden`, `/kalender`, `/stats`, `/live` en de beheerpagina's
+   voor modules en huisstijl, behalve het logo uit punt 6. De routes heten nog
+   wel `/zwbeter-worden` en zo (ontwerp §10, punt 6).
+9. **`node --env-file` werkt niet voor `next build`**: de workers van Next
+   weigeren het in `NODE_OPTIONS`. Voor de proef een klein wrapperscript dat
+   de env inleest en Next start (niet in de repository; de handleiding §9
+   beschrijft het).
+
+**Bewust niet:**
+
+- **Het logo en de iconen neutraal maken** (punt 6). ZWB heeft geen logo in
+  `club_settings` en leunt op dezelfde terugval; wie hem aanpast, moet eerst
+  het ZWB-logo in de database zetten. Dat raakt ZWB en vraagt een voorstel.
+  Tot dan zegt de handleiding: zet meteen een eigen logo en beeldmerk.
+- **De eerste beheerder zonder trigger uit te zetten**, bijvoorbeeld met een
+  functie die alleen werkt als er nog geen beheerder is: in fase 5 koos de
+  eigenaar voor een SQL-regel in de handleiding, en die werkt nu.
+- **De ontbrekende foreign key op productie herstellen**: niet gevraagd, en
+  een migratie zou eerst moeten nagaan of er rijen zijn die hem schenden.
+- **ZWB op het script zetten**: keuze eigenaar. ZWB houdt de connector en zijn
+  versies als tijdstempel.
+- **Een script dat alle installaties in één keer bijwerkt**: er is er één
+  naast ZWB. Per installatie één env-bestand en één keer draaien.
+- **De wrapper voor `next` in de repository**: alleen nodig om lokaal tegen een
+  andere installatie te draaien.
+
+**Niet meer waar:** fase 5 en 6 zeiden dat de baseline alleen op PGlite getest
+is, dat de handleiding nog van begin tot eind moest, en dat de schermen van de
+inrichting niet bekeken zijn. De handleiding gaf een `psql`-lus en een
+SQL-regel voor de eerste beheerder die niet werkt. Die zinnen zijn aangepast.
+
+Lokaal: `tsc` en eslint zijn schoon; `baseline.test.ts` en `club-setup.test.ts` groen (18 tests). De volledige suite is niet opnieuw gedraaid: buiten de scripts en één test verandert er geen code.
+
+**Niet getest:**
+
+- de Netlify-site (§3 van de handleiding), en dus ook de build met de env van
+  een andere club op Netlify;
+- een eigen SMTP en de mailtemplates op een andere installatie;
+- de koppelingen en geplande taken (Strava, Zwift, WTRL, Telegram, crons);
+- de stappen Huisstijl en Modules op de proefclub (wel bij ZWB in gebruik);
+- het script na een nieuwe migratie: alleen gezien dat het met
+  `--dry-run` "niets" te doen meldt en `--init` op een gevulde database
+  weigert.
+
 ### Gebouwd — Generieke versie, fase 6: inrichtingsmodule
 
 **2026-11-09, commit `ae323155`.** Op verzoek van de eigenaar ("begin daar maar aan", daarna "Ja,
@@ -12113,10 +12240,12 @@ liepen vast op een time-out onder belasting (`club-theme`, `gps-times-flag`,
 
 **Niet bekeken:**
 
-- de schermen in de browser. Opslaan zou op de productiedatabase schrijven, en
+- ~~de schermen in de browser. Opslaan zou op de productiedatabase schrijven, en
   eigen clubinstellingen worden niet op productie uitgeprobeerd. De echte proef
-  is fase 7 op een eigen Supabase-project;
-- de balk op het dashboard: die verschijnt bij ZWB nooit.
+  is fase 7 op een eigen Supabase-project;~~ inmiddels in fase 7 doorlopen op de
+  proefclub, behalve de stappen Huisstijl en Modules;
+- ~~de balk op het dashboard: die verschijnt bij ZWB nooit.~~ In fase 7 op de
+  proefclub gezien, en weg na afronden.
 
 ### Gebouwd — Generieke versie, fase 5: schone installatie
 
@@ -12160,7 +12289,9 @@ Wat er is:
   startinhoud compleet en een profiel bij een aanmelding. Duurt ongeveer 6
   seconden.
 - **De eerste beheerder**: één SQL-regel in de handleiding (keuze eigenaar:
-  "SQL-regel in handleiding"), geen automatische beheerder.
+  "SQL-regel in handleiding"), geen automatische beheerder. In fase 7 bleek dat
+  de trigger `profiles_protect_admin_fields` die regel tegenhoudt; de
+  handleiding zet de trigger nu in dezelfde transactie even uit.
 - **De handleiding** `docs/installatie.md`: database, Netlify en env, de
   eerste beheerder, de club inrichten met SQL tot fase 6, de koppelingen (met
   verwijzingen naar de runbook) en de regels voor nieuwe migraties.
@@ -12177,7 +12308,8 @@ oude handmatige wijziging; niet opgelost, staat in de handleiding (§8).
 
 - **Het migratiescript voor meerdere installaties** (keuze eigenaar: "Bij fase
   7"). Er is nog geen tweede installatie om het op te testen. De handleiding
-  geeft tot dan een `psql`-lus.
+  geeft tot dan een `psql`-lus. Inmiddels gebouwd in fase 7
+  (`scripts/migrate-installation.mjs`); de `psql`-lus is uit de handleiding.
 - **Het `zwiftladies`-filter in `claim_roster_entry`**: het zet de
   vrouwendivisie als een rosternaam "zwiftladies" bevat. Bij een andere club
   gebeurt dat nooit, dus het doet daar niets. Een filter op de teaminstelling
@@ -12201,10 +12333,12 @@ time-out onder belasting; los gedraaid zijn ze groen (65 tests).
 
 **Niet bekeken:**
 
-- de baseline op een echt leeg Supabase-project (Postgres 17; PGlite is 18).
+- ~~de baseline op een echt leeg Supabase-project (Postgres 17; PGlite is 18).
   De dump bevat niets wat alleen in 18 bestaat (gezocht op onder meer
-  `NOT ENFORCED`, `\restrict` en statistieken), maar dat is geen proef;
-- de handleiding van begin tot eind: dat is fase 7.
+  `NOT ENFORCED`, `\restrict` en statistieken), maar dat is geen proef;~~
+  inmiddels in fase 7: loopt schoon af op Postgres 17;
+- ~~de handleiding van begin tot eind: dat is fase 7.~~ In fase 7 doorlopen,
+  behalve Netlify en de koppelingen.
 
 ### Gebouwd — Generieke versie, fase 4: clubherkenning
 
@@ -13871,7 +14005,8 @@ merken er niets van.
 
 **Niet lokaal te verifiëren:** of alle migraties op een leeg project aflopen, en
 of de dubbele nummers botsen. Er is geen Docker of `config.toml`; dat wordt pas
-in fase 7 getest, op een leeg Supabase-project.
+in fase 7 getest, op een leeg Supabase-project. (Inmiddels: op PGlite in fase 5,
+en de baseline op een echt leeg project in fase 7.)
 
 ### Gebouwd — Laadtijd, deel 4: schema, layout en de rechtencheck in RLS
 

@@ -1,18 +1,24 @@
 # Installatiehandleiding: het platform voor een andere club
 
-Fase 5 van [multi-club-ontwerp.md](multi-club-ontwerp.md). Zo zet je een eigen
-installatie op voor een club: een eigen Netlify-site met een eigen
+Fase 5 en 7 van [multi-club-ontwerp.md](multi-club-ontwerp.md). Zo zet je een
+eigen installatie op voor een club: een eigen Netlify-site met een eigen
 Supabase-project. ZWB zelf draait niet op deze route: ZWB houdt zijn
 migratiegeschiedenis.
 
-**Niet getest op een echt leeg project.** De baseline is alleen getest op PGlite
-met een Supabase-stub (`tests/unit/baseline.test.ts`). De eerste echte
-installatie is fase 7. Loop daarna deze handleiding na en zet erin wat anders
-bleek.
+**Getest op een echt project, behalve Netlify.** Op 2026-11-09 (fase 7) is §2 tot
+en met §5 doorlopen op een leeg Supabase-project (`zwb-proefclub`, Postgres 17),
+met de app lokaal ertegen (§9). Wat anders bleek, staat hieronder verwerkt.
+Niet getest: de Netlify-site (§3), een eigen SMTP, en de koppelingen en
+geplande taken (§6).
 
 ## 1. Wat je nodig hebt
 
 - Een Supabase-project (Postgres 17) en een Netlify-site.
+- Node 20.6 of nieuwer (`--env-file`) en een checkout van de repository, voor het
+  migratiescript.
+- Een eigen SMTP-dienst voor de inlogmails. De standaardmail van Supabase is
+  traag en heeft een lage limiet per uur; in de proef kwam de bevestigingsmail
+  niet aan.
 - Een eigen Strava-app, als de club Strava wil gebruiken.
 - Een eigen Telegram-bot, als de club meldingen op de fietscomputer wil.
 - Een account op cron-job.org voor de geplande taken.
@@ -34,28 +40,44 @@ De baseline staat in `supabase/baseline/`:
 De seed bevat geen ledenroster, teams, sponsors of releasenotes van ZWB. De
 clubrij heet "Club" en de modules hebben geen eigen naam.
 
-Zet ze met `psql` op het lege project. De bestanden zijn samen 1,6 MB, te groot
-voor de SQL-editor van Supabase. De verbindingsgegevens staan bij Project
-Settings → Database → Connection string (de directe verbinding, niet de pooler).
+Zet de database op met `scripts/migrate-installation.mjs`. Het script zet op
+een lege database de baseline en de seed, daarna elke migratie na `0320`, en
+houdt in de tabel `installation.applied_migrations` bij wat er staat. Elk
+bestand loopt in een eigen transactie. Een database met clubtabellen maar
+zonder die tabel (ZWB) weigert het.
 
-```bash
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/baseline/0320_baseline.sql
-```
+1. Maak in de repository een bestand `.env.<club>` (valt onder `.gitignore`)
+   met één regel:
 
-```bash
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/baseline/0320_seed.sql
-```
+   ```
+   DATABASE_URL=postgresql://postgres.<project-ref>:<wachtwoord>@aws-0-<regio>.pooler.supabase.com:5432/postgres
+   ```
 
-Draai daarna elke migratie **na** `0320` uit `supabase/migrations/`, op volgorde
-van nummer:
+   Dat is de **Session pooler** bij Connect → Connection string. De directe
+   verbinding (`db.<ref>.supabase.co`) is alleen IPv6 en werkt vanaf veel
+   thuisnetwerken niet. Het wachtwoord is het databasewachtwoord van het
+   project.
 
-```bash
-for f in $(ls supabase/migrations/*.sql | sort); do n=$(basename "$f" | cut -c1-4); [ "$n" -gt 320 ] && psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"; done
-```
+2. Eerst kijken wat het gaat doen:
 
-Een script dat de migraties op alle installaties bijhoudt, komt in fase 7
-(keuze eigenaar 2026-11-09). Tot die tijd: noteer per installatie tot welk
-nummer je bent.
+   ```bash
+   node --env-file=.env.<club> scripts/migrate-installation.mjs --init --dry-run
+   ```
+
+3. Dan echt. `--init` mag alleen op een lege database:
+
+   ```bash
+   node --env-file=.env.<club> scripts/migrate-installation.mjs --init
+   ```
+
+4. Bij een nieuwe migratie in de repository, per installatie:
+
+   ```bash
+   node --env-file=.env.<club> scripts/migrate-installation.mjs
+   ```
+
+In de proef duurde de eerste keer (baseline, seed en `0321`) ongeveer twee
+seconden.
 
 Daarna in Supabase:
 
@@ -63,8 +85,11 @@ Daarna in Supabase:
   Netlify-site.
 - Authentication → Email Templates: zie
   [supabase-auth-email-templates.md](supabase-auth-email-templates.md).
+- Authentication → SMTP Settings: de eigen SMTP-dienst uit §1.
 
 ## 3. Netlify
+
+Niet getest in fase 7.
 
 - Koppel de repository. Build: `npm run build`.
 - Zet de env-variabelen bij Site configuration → Environment variables. De
@@ -84,38 +109,40 @@ Daarna in Supabase:
 
 ## 4. De eerste beheerder
 
-Meld je aan op de nieuwe site. Zet daarna in de SQL-editor van Supabase je
-eigen account op beheerder en goedgekeurd (keuze eigenaar 2026-11-09: geen
-automatische eerste beheerder):
+Meld je aan op de nieuwe site. Komt de bevestigingsmail niet (zie §1), dan kun
+je het account in Supabase bevestigen bij Authentication → Users.
+
+Zet daarna in de SQL-editor van Supabase je eigen account op beheerder en
+goedgekeurd (keuze eigenaar 2026-11-09: geen automatische eerste beheerder).
+De trigger `profiles_protect_admin_fields` laat alleen een beheerder iemand
+beheerder maken; voor de eerste gaat hij in dezelfde transactie even uit:
 
 ```sql
+begin;
+alter table public.profiles disable trigger profiles_protect_admin_fields;
 update public.profiles
 set is_admin = true, is_approved = true, approved_at = now(), community_roles = array['board']
 where id = (select id from auth.users where email = 'jij@example.com');
+alter table public.profiles enable trigger profiles_protect_admin_fields;
+commit;
 ```
 
 Andere leden keur je daarna goed vanuit de app.
 
 ## 5. De club inrichten
 
-Een scherm daarvoor komt in fase 6. Tot dan gaat het met SQL. De kolommen staan
-in het ontwerp (§4) en in de migraties `0313`, `0314`, `0315`, `0319` en
-`0320`:
+In de app: Beheer → App → Inrichting (`/beheer/inrichting`). Zolang die niet is
+afgerond, toont het dashboard de beheerder een balk ernaartoe. De stappen staan
+op `/hulp`, onder "De club inrichten". Teams maak je daarna in de app; de seed
+heeft er geen.
 
-```sql
-update public.club_settings set
-  name = 'Testclub Utrecht', short_name = 'TCU',
-  member_noun = 'TCU''er', member_noun_plural = 'TCU''ers',
-  contact_email = 'bestuur@example.com', website_url = 'https://example.com',
-  team_tag = 'TCU', event_markers = array['tcu'];
-```
-
-- Een module uitzetten of een eigen naam geven: `club_modules` (`enabled`,
-  `label`).
-- Kleuren, letter en logo: `/beheer/huisstijl`.
-- Teams maak je in de app; de seed heeft er geen.
+Zonder eigen logo en beeldmerk (stap Huisstijl) toont de app het ZWB-logo en de
+ZWB-iconen. Zet ze dus meteen.
 
 ## 6. Koppelingen en geplande taken
+
+Niet getest in fase 7. Op de stap Herkenning en koppelingen van de inrichting
+staat welke env-variabelen er nog niet zijn.
 
 | Wat | Waar |
 |---|---|
@@ -132,13 +159,38 @@ Een migratie na `0320` geldt voor ZWB en voor elke nieuwe installatie. Daarom:
 - Data die alleen voor ZWB is, alleen met een voorwaarde op de club, zoals in
   `0319` en `0320`: `where id and short_name = 'ZWB'`.
 - Geen namen, Zwift-ID's of andere persoonsgegevens in een migratie.
+- ZWB krijgt hem via de Supabase-connector; elke andere installatie via het
+  script uit §2.
 - De baseline blijft op `0320` staan. Hem verschuiven naar een later nummer kan
   met `node scripts/build-baseline.mjs` na het ophogen van `BASELINE_VERSION`
-  in `scripts/baseline/stub.mjs`; de test vergelijkt daarna beide routes.
+  in `scripts/baseline/stub.mjs`; de test vergelijkt daarna beide routes. Een
+  installatie die al draait, merkt daar niets van: het script slaat bestanden
+  over die in `installation.applied_migrations` staan. Een nieuwe baseline
+  heeft wel een eigen bestandsnaam, dus zet een bestaande installatie er nooit
+  `--init` op.
 
-## 8. Bekend verschil met de ZWB-productie
+## 8. Bekende verschillen met de ZWB-productie
 
-Productie heeft een kolom `external_event_participants.screenshot_path` en een
-bucket `event-scan-screenshots` die geen migratie aanmaakt en geen code
-gebruikt (gevonden 2026-11-09). Een nieuwe installatie krijgt ze niet en mist
-ze niet.
+Gevonden 2026-11-09 door het schema van de proefinstallatie naast productie te
+leggen. Geen van drieën komt uit een migratie; een nieuwe installatie mist niets.
+
+- Productie heeft een kolom `external_event_participants.screenshot_path` en een
+  bucket `event-scan-screenshots` die geen migratie aanmaakt en geen code
+  gebruikt.
+- Productie mist de foreign key
+  `profile_climbed_cols_best_time_activity_id_fkey`, die migratie `0075` zou
+  aanmaken. Een nieuwe installatie heeft hem wel.
+
+## 9. Lokaal proefdraaien tegen een installatie
+
+Zonder Netlify, bijvoorbeeld om een installatie te testen. Maak naast het
+bestand uit §2 een `.env.<club>-app` met de variabelen uit §3 en
+`NEXT_PUBLIC_SITE_URL=http://localhost:3000`, en zet in Supabase
+`http://localhost:3000` bij de redirect-URL's.
+
+Next leest `.env.local` altijd in. Haal dat bestand tijdens de proef weg, anders
+praat de app met ZWB. `node --env-file` werkt niet voor `next build`: de
+workers van Next weigeren het in `NODE_OPTIONS`. Zet de variabelen dus zelf in
+de omgeving voordat je `next build` en `next start` draait.
+
+Bouw daarna opnieuw voor ZWB, want `.next` bevat dan de proefclub.

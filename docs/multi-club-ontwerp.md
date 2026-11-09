@@ -386,7 +386,7 @@ die fasen niets merken; dat is tegelijk de test.
 | 4. Clubherkenning | gebouwd (`0320`): eventmarkers en teamtag in `club_settings` (env `ZWB_EVENT_MARKERS` gaat voor), ZRL-live, ZWB DS en uitslagscraper volgen de tag, teams alleen uit de DB (seeds en WTRL-fallback weg), SRC-standaardteam met de korte naam, Instagram en YouTube uit de clubinstellingen. Zwift-club-ID en podcast-RSS blijven env | middel | ja |
 | 5. Schone installatie | gebouwd (geen migratie): baseline `0320` en generieke seed in `supabase/baseline/` (pg_dump uit PGlite, rechten expliciet), test die beide routes vergelijkt, eerste beheerder met één SQL-regel, [installatie.md](installatie.md). Het migratiescript voor meerdere projecten schuift naar fase 7 | groot | baseline |
 | 6. Inrichtingsmodule | gebouwd (geen migratie): `/beheer/inrichting` met Club, Huisstijl, Modules, Namen en woorden, Herkenning en een controle met afronden, balk op het dashboard, hulpcategorie Inrichten. Geen `/inrichten`, welkomtekst of keuze van de startinhoud | middel | nee |
-| 7. Proefinstallatie | een testclub op een eigen Netlify-site en Supabase-project, de hele vragenlijst doorlopen, verschillen vastleggen | klein | – |
+| 7. Proefinstallatie | gedaan (geen migratie): testclub op een eigen Supabase-project (`zwb-proefclub`) met de app lokaal, zonder Netlify; baseline, inrichting en eerste beheerder doorlopen, verschillen in [installatie.md](installatie.md); migratiescript `scripts/migrate-installation.mjs` met een eigen tabel per installatie. Open: ZWB-logo als terugval | klein | – |
 
 Fase 1 kan alleen. De fasen 2, 3 en 4 hangen alleen van fase 1 af en raken
 grotendeels andere bestanden; ze kunnen dus na elkaar of naast elkaar. Fase 6
@@ -417,16 +417,20 @@ schrijft in wat fase 1 tot en met 4 uitlezen, en komt daarom pas daarna.
 8. **Updates naar meerdere databases.** Een migratie moet straks op N projecten
    worden toegepast, en als dat op één project halverwege mislukt, lopen de
    installaties uiteen. Dat vraagt een script en een vaste volgorde.
+   (Fase 7: `scripts/migrate-installation.mjs`, per installatie, elk bestand in
+   een eigen transactie en bijgehouden in `installation.applied_migrations`.)
 
 ## 10. Niet lokaal te verifiëren
 
 Deze repo heeft geen Docker en geen `supabase/config.toml`. Daarom zijn niet
 lokaal te testen:
 
-- de baseline op een echt Supabase-project (Postgres 17, met de echte auth,
-  storage en standaardrechten).
+- ~~de baseline op een echt Supabase-project (Postgres 17, met de echte auth,
+  storage en standaardrechten).~~ Gedaan in fase 7 op een eigen proefproject;
+  niet lokaal, wel echt.
 
 Op PGlite (Postgres 18) met een Supabase-stub lopen alle migraties af, ook de
 dubbele nummers, en geven ze hetzelfde schema als de baseline
-(`tests/unit/baseline.test.ts`). De echte proef is fase 7 op een leeg
-Supabase-project.
+(`tests/unit/baseline.test.ts`). In fase 7 liep de baseline ook op een leeg
+Supabase-project schoon af; het schema is gelijk aan productie, op drie oude
+handmatige verschillen na ([installatie.md](installatie.md) §8).
