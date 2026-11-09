@@ -12,6 +12,14 @@ const TOO_MANY = "Te veel pogingen. Wacht even en probeer het opnieuw.";
 const INVALID_LOGIN =
   "E-mail of wachtwoord klopt niet. Gebruik 'Wachtwoord vergeten?' om een nieuw wachtwoord in te stellen.";
 
+const MAIL_LIMIT = "Er is net te veel mail verstuurd. Probeer het over een uur opnieuw.";
+
+/** Supabase-fout naar tekst voor het lid; de maillimiet in het Nederlands. */
+function authErrorMessage(error: { code?: string; status?: number; message: string }) {
+  if (error.code === "over_email_send_rate_limit" || error.status === 429) return MAIL_LIMIT;
+  return error.message;
+}
+
 async function siteOrigin() {
   return (
     process.env.NEXT_PUBLIC_SITE_URL ??
@@ -148,7 +156,7 @@ export async function signUp(formData: FormData) {
     },
   });
 
-  if (error) return { ok: false as const, error: error.message };
+  if (error) return { ok: false as const, error: authErrorMessage(error) };
 
   // Beheer laten weten dat er iemand wacht. Stil falend: een registratie mag
   // niet stuklopen op een pushbericht.
@@ -189,7 +197,7 @@ export async function sendMagicLink(formData: FormData) {
     options: { emailRedirectTo: `${origin}/auth/confirm` },
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: authErrorMessage(error) };
   return { ok: true };
 }
 
@@ -209,6 +217,6 @@ export async function requestPasswordReset(formData: FormData) {
     redirectTo: `${origin}/auth/confirm?next=/wachtwoord-resetten`,
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: authErrorMessage(error) };
   return { ok: true };
 }

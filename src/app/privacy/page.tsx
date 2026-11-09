@@ -126,9 +126,10 @@ export default function PrivacyPage() {
             bewaarde ladderraces en uit segmentpassages van de racebriefing, ook
             van renners van andere clubs; voor een <MemberNoun /> zonder die twee met
             het gewicht uit intervals.icu. Het gewicht staat nergens los: wel het
-            gemiddelde van een ploeg vanaf drie renners, en in de matchup per
-            renner het vermogen in watt naast W/kg, waaruit het gewicht af te
-            leiden is, ook van renners van andere clubs.
+            gemiddelde van een ploeg vanaf drie renners, en in de matchup en de
+            verwachte uitslag van het racebriefje per renner het vermogen in
+            watt naast W/kg, waaruit het gewicht af te leiden is, ook van
+            renners van andere clubs.
           </li>
           <li>
             <strong>ZRL-teamgegevens van WTRL:</strong> voor de ZRL-teams nemen

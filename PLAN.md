@@ -13,6 +13,20 @@ gaat stabiliteit voor nieuwe features.
    (hulp, privacy, voorwaarden) en deel 3 (de overige "ZWB"-teksten) volgen. Zie
    de ronde "Generieke versie, fase 3 deel 1".
 
+0. **Inloglinks bestand tegen mailscanners (2026-11-09): gepusht naar `main`
+   (`d48dd9c9`), samen met de bevestigingsmail-ronde.** Geen migratie. Aanleiding: Tino van Ramesdonk kwam niet
+   meer binnen. **Nog te doen door de eigenaar:** eigen SMTP instellen in
+   Supabase (Authentication -> Emails -> SMTP); de ingebouwde mailer stuurt
+   maar twee mails per uur voor de hele club. Na de deploy: Tino een nieuwe
+   resetlink laten aanvragen. Zie de ronde "Inloglinks bestand tegen
+   mailscanners".
+
+0. **Alle auth-mails in ZWB-stijl (2026-11-09): ingesteld in Supabase.** Magic
+   link, wachtwoord vergeten, e-mail wijzigen, uitnodiging en bevestigingscode,
+   in de stijl van de bevestigingsmail. De afzender blijft Supabase tot er eigen
+   SMTP is (Resend, stappen in het docs-bestand). Zie de ronde "Alle auth-mails
+   in ZWB-stijl".
+
 0. **Generieke versie, fase 2 deel 2: lettertype, logo, kaarten en klassiek weg
    (2026-11-09): gepusht naar `main`; migratie `0315` toegepast** (versie
    `20261109101801`, op verzoek van de eigenaar, vóór de push; de bucket
@@ -24,6 +38,14 @@ gaat stabiliteit voor nieuwe features.
    weghalen van klassiek), en `/beheer/huisstijl` opent. Niets opslaan: dat ziet
    elk lid. Zie de ronde "Generieke
    versie, fase 2 deel 2" en "Oude design klassiek weg".
+
+0. **Club Ladder: duren, watt en kleur in de verwachte uitslag (2026-11-09):
+   gepusht naar `main` (`2dd807dc`, privacyzin `5d02c352`, kleur `85138f0b`).**
+   Geen migratie. Privacyzin uitgebreid naar het racebriefje (akkoord eigenaar
+   2026-11-09). Nalopen: op het racebriefje
+   van een ladderrace 15 s en 20 min aanzetten, naar Watt schakelen, op een
+   duur sorteren en zien dat de hoogste waarde rood en de laagste groen is. Zie de ronde "Club Ladder: duren en watt in de verwachte
+   uitslag".
 
 0. **Generieke versie, fase 2 deel 1: clubkleuren (2026-11-09): gepusht naar
    `main`; migratie `0314` toegepast** (versie `20261109093654`, in de
@@ -12001,6 +12023,170 @@ en beheer gelijk, en een club zonder namen ziet geen "ZWB").
 schermen achter de login in de browser, en een club met andere namen. Dat laatste
 kan niet op productie zonder dat elk lid het ziet.
 
+### Gebouwd — Club Ladder: duren en watt in de verwachte uitslag
+
+**2026-11-09.** Commits `2dd807dc`, `5d02c352` (privacy) en `85138f0b` (kleur), op
+2026-11-09 op verzoek van de eigenaar naar `main` gepusht. Geen migratie.
+
+**Waarom.** Vraag van de eigenaar: in de tabel Verwachte uitslag op het
+racebriefje van een ladderrace stond alleen de zwaarste duur van het parcours
+(vaak 5 min) in W/kg, plus ZRS en punten. Hij wilde ook 15 s, 1 min en 20 min
+zien, in W/kg en in watt, als filter te kiezen, en erop sorteren.
+
+**Wat er veranderde.**
+- **Duren kiezen**: boven de tabel een knoppenrij 15 s · 1 min · 5 min · 20 min
+  (meer tegelijk aan, minstens één). Zonder keuze staat alleen de zwaarste duur
+  van het parcours aan, zoals eerst.
+- **Watt of W/kg**: dezelfde schakelaar als in de matchup (`PowerUnitToggle`,
+  cookie `zwb-power-unit`); zonder eerdere keuze W/kg. Watt is W/kg maal het
+  gewicht uit de matchup (`riderWatts`); wie geen gewicht heeft, krijgt "—".
+  Daarvoor dragen `LadderBriefingRider`s nu `weightKg` en `profileId` mee
+  (optioneel, telt niet mee in de sterkte).
+- **Sorteren**: de koppen #, Renner, Punten, elke duur en ZRS zijn knoppen;
+  eerste klik plek en naam oplopend, getallen hoogste eerst, tweede klik
+  andersom. Zonder klik de verwachte volgorde; zonder waarde altijd onderaan.
+  Sorteren verandert de punten niet: die horen bij de verwachte volgorde.
+  Pure logica in `lib/club-ladder/briefing-sort.ts` (test
+  `club-ladder-briefing-sort.test.ts`), tabel in
+  `briefing/_components/ladder-result-table.tsx`.
+- Namen in die tabel linken nu via `MemberLink` naar het profiel.
+- `/hulp` beschrijft de keuze en het sorteren.
+- **Kleur per duur** (vervolgvraag dezelfde dag, met een screenshot van de
+  Club Ladder): elke vermogenswaarde krijgt een achtergrond van rood (hoogste
+  van de tien) via geel naar groen (laagste), per kolom en in de gekozen
+  eenheid, zoals de Club Ladder het doet. `ladderPowerRange` en `heatHue` in
+  `briefing-sort.ts`; de kleur is `hsl(… / 0.3)`, zodat de tekst in licht en
+  donker leesbaar blijft. Zonder waarde of zonder verschil geen kleur. Bewust
+  rood = hoogste, als op de Club Ladder, ook al is hoog voor ons goed.
+  ZRS, punten en plek krijgen geen kleur: de ladder kleurt alleen vermogen.
+
+**Bewust niet.**
+- Geen watt of extra duren op het gedeelde racebriefje (het plaatje) en niet
+  in de ZRL-tabellen: de vraag ging over de ladder-uitslag, en bij de
+  ZRL-briefing tonen we het gewicht van andere teams bewust niet.
+- Geen gedeelde sorteercomponent met de matchup: andere kolommen (punten,
+  plek); het patroon (pijltje, eerste klik) is gelijk.
+- De gekozen duren worden niet onthouden: elke briefing begint bij de
+  zwaarste duur van dat parcours.
+
+**Privacy.** De privacyverklaring zei dat watt naast W/kg per renner "in de
+matchup" staat; het racebriefje toont nu hetzelfde (dezelfde gewichten,
+dezelfde renners). De zin in de alinea Club Ladder luidt nu "in de matchup en
+de verwachte uitslag van het racebriefje per renner het vermogen in watt naast
+W/kg", akkoord eigenaar 2026-11-09, in een eigen commit. Zonder nieuwe
+privacyversie: het gaat om gewichten die al voor de matchup worden gebruikt.
+
+**Niet geverifieerd.** Het racebriefje in de browser: achter inloggen. Wel:
+tests (ladder, 7 nieuw), ESLint en typecheck schoon. In deze worktree moest
+eerst `npm ci` (pakketten als `@anthropic-ai/sdk` ontbraken).
+
+### Gebouwd — Alle auth-mails in ZWB-stijl
+
+**2026-11-09.** Op verzoek van de eigenaar: elke mail van Supabase moet als ZWB
+herkenbaar zijn, ook bij wachtwoord vergeten. De ronde "Eigen bevestigingsmail
+na registreren" (branch `claude/supabase-registration-email-98e2d3`) is
+hiervoor overgenomen (cherry-pick) en zo mee naar `main` gegaan, zodat alle
+templates in één docs-bestand staan.
+
+[supabase-auth-email-templates](docs/supabase-auth-email-templates.md) heeft nu
+onderwerp en volledige HTML voor *Magic link*, *Reset password*, *Change email
+address*, *Invite user* en *Reauthentication*, in dezelfde opmaak als de
+bevestigingsmail (logo, petrol balk en knop, link als platte tekst, een regel
+voor wie het niet aanvroeg). Alle links gebruiken de `token_hash`-vorm naar
+`/auth/confirm`, dus ook de magic link loopt nu via de knop op `/auth/doorgaan`
+en niet meer via Supabase's eigen `/verify`. De uitnodiging gaat naar
+`/wachtwoord-resetten`, omdat een uitgenodigd lid nog geen wachtwoord heeft;
+*Reauthentication* is alleen een code. "Verloopt na een uur" volgt
+`mailer_otp_exp` = 3600.
+
+**Ingesteld op productie op 2026-11-09**, op verzoek van de eigenaar ("Paste
+via dashboard"): per template in het dashboard (Authentication -> Emails ->
+Templates) onderwerp en inhoud ingevuld en met *Save changes* opgeslagen.
+Opslaan via de Management API was eerder door de veiligheidscontrole van de
+sessie geweigerd; de knop in het dashboard niet. Na het opslaan zijn onderwerp
+en inhoud van *Reset password*, *Magic link*, *Invite* en *Change email* teken
+voor teken gelijk aan het docs-bestand (uitgelezen via de auth-config). Die van
+*Reauthentication* kon niet zo worden uitgelezen (de sessie houdt die waarden
+af); na herladen toont het dashboard daar wel het ZWB-onderwerp en de nieuwe
+HTML. *Confirm signup* is ongemoeid gebleven. Vóór deze ronde stond *Reset
+password* op een eigen Engelse template ("Reset your password") met dezelfde
+`token_hash`-link; die oude tekst is niet bewaard.
+
+Gevolg voor de code: de magic link gaat nu naar `/auth/confirm` met een
+`token_hash`, en loopt dus ook via de knop op `/auth/doorgaan` (`d48dd9c9`,
+gepusht op 2026-11-09).
+
+**Maillimiet.** Stand op 2026-11-09: geen eigen SMTP, `rate_limit_email_sent`
+= 2 per uur. `zwbcycling.nl` heeft DMARC `p=reject`, dus versturen namens dat
+domein kan alleen met DKIM. Het docs-bestand beschrijft Resend (bestaand
+account) met een subdomein `auth.zwbcycling.nl`, afzendernaam "ZWB Cycling
+Community", en daarna de limiet op 30 per uur. Dat is een keuze en een
+DNS-wijziging van de eigenaar; niets daarvan is ingesteld.
+
+Lokaal bekeken als HTML met ingevulde voorbeeldwaarden. **Niet geverifieerd:**
+de mails in Gmail, Outlook en Apple Mail, en een echte invite of
+e-mailwijziging (de app gebruikt die twee nu niet).
+
+**Bewust niet.** De beveiligingsmeldingen (wachtwoord of e-mail gewijzigd,
+inlogmethode gekoppeld) staan uit in Supabase en zijn niet opgemaakt. De
+afzender blijft Supabase zolang er geen eigen SMTP is; dat is met templates
+niet op te lossen.
+
+### Gebouwd — Inloglinks bestand tegen mailscanners
+
+**2026-11-09.** Op verzoek van de eigenaar: Tino van Ramesdonk (hotmail-adres)
+kon niet meer inloggen, en wachtwoord herstellen werkte niet. Het account zelf
+was in orde (goedgekeurd, niet geblokkeerd, wachtwoord gezet). De auth-logs van
+die ochtend laten twee oorzaken zien:
+
+1. **Een mailscanner verzilverde de resetlink.** Om 10:10:28 UTC kwam
+   `/auth/confirm` twee keer binnen in dezelfde seconde: de eerste `verifyOtp`
+   slaagde, de tweede (Tino zelf) kreeg `otp_expired`. Outlook/Hotmail (Safe
+   Links) opent elke link in een mail vóór de ontvanger. Omdat de route het
+   eenmalige `token_hash` bij een gewone GET gebruikte, logde de scanner in en
+   kreeg het lid "link verlopen". Bij de bevestigingsmail van een ander
+   hotmail-lid zag je hetzelfde: een `HEAD /verify` van een Microsoft-adres.
+2. **De maillimiet van Supabase.** De ingebouwde mailer (`noreply@mail.app.supabase.io`)
+   stuurt twee mails per uur voor het hele project. Een registratie-bevestiging
+   (09:51) en Tino's resetmail (10:08) waren er twee, dus elke magic link en
+   resetaanvraag daarna kreeg `429 over_email_send_rate_limit`. Die melding
+   kwam in het Engels op het scherm.
+
+Wat er veranderd is:
+
+- `src/app/auth/confirm/route.ts`: een GET met `token_hash` verzilvert niets
+  meer, maar stuurt door naar de nieuwe pagina `/auth/doorgaan`. Daar staat
+  één knop (Inloggen / Bevestigen / Wachtwoord instellen), die met een POST
+  terug naar `/auth/confirm` gaat; pas die POST doet `verifyOtp`. Een scanner
+  opent de pagina wel, maar drukt niet op de knop. De mailtemplates hoeven
+  daarvoor niet te veranderen. Ook: `next` wordt alleen nog als pad binnen de
+  eigen site gevolgd (een `//`-adres of volledige URL wordt `/dashboard`), en
+  `type` alleen uit de bekende OTP-types.
+- `src/app/(auth)/login/actions.ts`: de maillimiet geeft bij magic link,
+  wachtwoord vergeten en registreren nu een Nederlandse melding.
+
+Lokaal getest met `next dev` en een nep-token: de link komt op de knop, de knop
+eindigt in `/login?error=auth-link-invalid`, en `next=//evil.example` wordt
+`/dashboard`. `tsc` geeft geen fouten in de gewijzigde bestanden; eslint
+schoon. **Niet getest:** een echte resetlink tot en met het nieuwe wachtwoord
+(dat vraagt een mail, en de limiet zat vol), en of Safe Links de knop met rust
+laat. Dat laatste is de gangbare aanpak, maar niet hier bewezen.
+
+**Bewust niet.**
+
+- De `code`-flow (PKCE, de standaardlink `{{ .ConfirmationURL }}`) is niet te
+  beschermen: Supabase verzilvert dat token zelf al vóórdat de browser bij ons
+  is. De bevestigingsmail bij registratie gebruikt die link nog (de logs tonen
+  een GET op Supabase's `/verify` en daarna `flow_state_expired`). Zet die
+  template om naar de `token_hash`-link uit
+  `docs/supabase-auth-email-templates.md`; dat is een instelling in het
+  dashboard, geen code.
+- Eigen SMTP is niet ingesteld: dat is een keuze van de eigenaar (welke
+  maildienst, welk afzenderadres) en een instelling in het Supabase-dashboard.
+- Een zescijferige code in de mail in plaats van een link is robuuster tegen
+  scanners, maar vraagt een ander inlogscherm; de knop is de kleinere stap.
+- Geen wachtwoord voor Tino gezet of een link met de hand gemaakt.
+
 ### Gebouwd — Oude design "klassiek" weg
 
 **2026-11-09.** Besluit van de eigenaar, bij fase 2 deel 2 van de generieke
@@ -12091,6 +12277,51 @@ browser.
 `/omnium`), het pushicoon `badge-96.png` en `/brochure`: die horen bij de
 teksten en de clubherkenning (fase 3 en 4) of blijven van ZWB. De merkwerelden
 houden hun vaste kleuren (keuze eigenaar).
+
+### Gebouwd — Eigen bevestigingsmail na registreren
+
+**2026-11-09.** Op verzoek van de eigenaar: de mail die Supabase na het
+registreren stuurt, in ZWB-stijl. Geen code en geen migratie; alleen
+[supabase-auth-email-templates](docs/supabase-auth-email-templates.md) onder
+*Confirm Signup*.
+
+De template staat in Supabase zelf (**Authentication → Emails → Confirm
+signup**), niet in de repo. Het docs-bestand is de bron om uit te plakken. De
+nieuwe versie heeft het onderwerp "Bevestig je account bij ZWB", het logo
+(`{{ .SiteURL }}/zwb-logo.png`), een welkom met `{{ .Data.full_name }}` (de naam
+die `signUp()` als metadata meegeeft), een knop in clubpetrol, drie stappen die
+gelijklopen met `/welkom` (bevestigen, goedkeuring door een beheerder, profiel),
+de link als platte tekst, en een regel voor wie zich niet heeft aangemeld. Het is
+HTML met tabellen en inline stijlen, omdat mailprogramma's geen stylesheet en
+geen CSS-variabelen lezen. De link houdt de `token_hash`-vorm voor iOS.
+
+**Ingesteld op productie op 2026-11-09**, via het dashboard in Chrome. Na
+herladen zijn onderwerp en inhoud teken voor teken gelijk aan het docs-bestand.
+Daarvoor stond er nog de Engelse standaardtemplate van Supabase met
+`{{ .ConfirmationURL }}` (de PKCE-`code`-flow), ondanks de oproep in het
+docs-bestand om de `token_hash`-link te gebruiken. Die oude link werkte via de
+`code`-tak van `/auth/confirm`, maar kon op iOS stuklopen als Mail een andere
+browser opent. ~~Niet nagekeken: of *Magic link* en *Reset password* nog op de
+standaard staan.~~ Nagekeken op 2026-11-09: *Reset password* had een eigen,
+Engelse template met de `token_hash`-link; *Magic link*, *Change email* en
+*Invite* stonden op de Engelse standaard met `{{ .ConfirmationURL }}`. Zie de
+ronde "Alle auth-mails in ZWB-stijl". De Site URL is `https://zwb-platform.netlify.app`, dus de knop
+en het logo wijzen naar productie.
+
+Het dashboard waarschuwt dat het project de ingebouwde maildienst gebruikt, met
+een laag uurlimiet en Supabase als afzender. Eigen SMTP is niet ingesteld.
+
+Lokaal bekeken als HTML met ingevulde voorbeeldwaarden. **Niet geverifieerd:**
+hoe de mail er in Gmail, Outlook en Apple Mail uitziet, en of de nieuwe link een
+echte registratie bevestigt. Dat blijkt pas bij de eerstvolgende aanmelding.
+
+**Bewust niet:** de kleuren en naam per club laten volgen (generieke versie).
+Een Supabase-template kent alleen de projectinstellingen en de metadata van de
+gebruiker, niet `club_settings`. Per club een eigen mail vraagt een Send Email
+Hook of een eigen Supabase-project per club; dat hoort bij de proefinstallatie
+(fase 7). ~~Ook niet: de andere mails (magic link, wachtwoord resetten) in dezelfde
+stijl. Daar is niet om gevraagd.~~ Inmiddels gevraagd en gemaakt, zie "Alle
+auth-mails in ZWB-stijl".
 
 ### Gebouwd — Generieke versie, fase 2 deel 1: clubkleuren
 

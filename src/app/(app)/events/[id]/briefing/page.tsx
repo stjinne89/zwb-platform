@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { BackLink, EmptyState, SectionHeader } from "@/components/app-ui";
 import { Button } from "@/components/ui/button";
 import { ResponsiveTable, type ResponsiveColumn } from "@/components/ui/responsive-table";
+import { PowerUnitProvider } from "@/components/power-unit";
+import { POWER_UNIT_COOKIE } from "@/lib/training/power-unit";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestAccess, getRequestUser } from "@/lib/auth/request";
 import { loadRaceBriefing, type BriefingRider, type BriefingView, type OwnBriefingRider } from "@/lib/race-briefing/load";
 import { loadLadderBriefing } from "@/lib/club-ladder/event-briefing";
-import { DURATION_LABELS } from "@/lib/club-ladder/advice";
-import type { LadderPlace } from "@/lib/club-ladder/briefing";
 import { FORMAT_LABELS } from "@/lib/race-briefing/rules";
 import { cleanRiderName, ROLE_LABELS, type ProjectedTeam } from "@/lib/race-briefing/field";
 import { climbSeconds } from "@/lib/race-briefing/route";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { ZwiftRouteSection } from "../_components/zwift-route-section";
 import { BikeAdviceList, type BikeAdviceRow } from "../_components/bike-advice-list";
 import { saveRaceBriefing } from "./_actions";
+import { LadderResultTable } from "./_components/ladder-result-table";
 import { RaceSheet } from "./_components/race-sheet";
 import { ShareableSheet } from "./_components/share-sheet";
 import { SheetEditor } from "./_components/sheet-editor";
@@ -237,31 +239,12 @@ function FieldTable({ view }: { view: BriefingView }) {
 function LadderTable({ view }: { view: BriefingView }) {
   const ladder = view.ladder;
   if (!ladder?.projection) return <EmptyState>Nog geen aanmeldingen van de ladder.</EmptyState>;
-  const key = ladder.keyDuration;
-  const columns: Array<ResponsiveColumn<LadderPlace>> = [
-    { key: "place", header: "#", cell: (r) => (r.rating === null ? "—" : r.place), secondary: true },
-    {
-      key: "name",
-      header: "Renner",
-      primary: true,
-      cell: (r) => (
-        <span className={cn(r.own && "font-semibold")}>
-          {r.name}
-          {r.source === "ladder" && <span className="ml-1 text-xs font-normal text-muted-foreground">(ladder)</span>}
-        </span>
-      ),
-    },
-    { key: "team", header: "Ploeg", cell: (r) => (r.own ? view.event.teamName : ladder.opponent) },
-    { key: "points", header: "Punten", cell: (r) => (r.rating === null ? "—" : r.points), align: "right" },
-    { key: "wkg", header: DURATION_LABELS[key], cell: (r) => wkg(r.wkg?.[key]), align: "right" },
-    { key: "zrs", header: "ZRS", cell: (r) => (r.racingScore == null ? "—" : Math.round(r.racingScore)), align: "right" },
-  ];
   return (
-    <ResponsiveTable
-      columns={columns}
+    <LadderResultTable
       rows={ladder.projection.order}
-      rowKey={(r) => String(r.zwiftId)}
-      rowClassName={(r) => (r.own ? "bg-primary/5" : undefined)}
+      keyDuration={ladder.keyDuration}
+      ownTeam={view.event.teamName}
+      opponent={ladder.opponent}
     />
   );
 }
@@ -315,6 +298,8 @@ export default async function RaceBriefingPage({ params }: PageProps) {
   const eventRidePlan = await loadBriefingRidePlan(supabase, view.event.id);
   const loaded = view.route?.loaded ?? null;
   const ladder = view.ladder;
+  // Watt alleen als iemand dat elders (Teams, ZWBeter Worden, de matchup) koos; anders W/kg zoals de ladder.
+  const unitCookie = ladder ? (await cookies()).get(POWER_UNIT_COOKIE)?.value : undefined;
   const meta = ladder
     ? [
         "Club Ladder",
@@ -401,7 +386,9 @@ export default async function RaceBriefingPage({ params }: PageProps) {
               )
             }
           />
-          <LadderTable view={view} />
+          <PowerUnitProvider initialUnit={unitCookie === "w" ? "w" : "wkg"} weightKg={null}>
+            <LadderTable view={view} />
+          </PowerUnitProvider>
         </section>
       ) : (
         <>
