@@ -262,12 +262,12 @@ export const GUIDES = [
     icon: Trophy,
     title: "{m:voorspelspel}: wedden op het veldrijden",
     bullets: [
-      "Via Club → {m:voorspelspel} zet je ZWBallen in op de elitewedstrijden van dames en heren in het veldrijden. Tik op Meedoen; je begint het seizoen met 10 ZWBallen.",
+      "Via Club → {m:voorspelspel} zet je {ballen} in op de elitewedstrijden van dames en heren in het veldrijden. Tik op Meedoen; je begint het seizoen met 10 {ballen}.",
       "Op het bord staan per renner drie quoteringen: wint, podium (top 3) en top 10. Daaronder staan twee duels: wie van de twee eindigt hoger. Tik een quotering aan, kies met + en − hoeveel ballen erop gaan en tik Op de lei zetten. Een raak briefje betaalt inzet × quotering terug op je saldo; die winst kun je weer inzetten.",
       "Per wedstrijd zet je hoogstens 5 ballen in, dames en heren apart, ook als je saldo groter is. Met 10 ballen speel je dus beide wedstrijden voluit; staat je saldo lager, dan kies je.",
       "Je kunt inzetten en intrekken tot de start van die wedstrijd. Je quotering ligt vast op het moment dat je inzet, ook als het bord daarna nog verandert.",
       "De quotering komt uit de veldritrating van CyclingFlash. Elke renner krijgt een kracht e^(rating ÷ 35); de kans om te winnen is zijn kracht gedeeld door de som van alle krachten op de startlijst. Podium en top 10 komen uit 20.000 gesimuleerde koersen met dezelfde krachten, een duel is kracht A ÷ (kracht A + kracht B). De quotering is 1 ÷ kans, naar beneden afgerond op de ladder van een gokkantoor (1,05 · 1,10 · … · 33 · 50). Onder 1,05 staat er een streepje, boven 50 wordt het 50. Renners zonder rating rekenen met 600.",
-      "Per wedstrijd is er een bonusvraag met vaste antwoorden. Antwoorden kost niets; een goed antwoord levert 1 ZWBal op. Het platform kijkt hem na uit de uitslag.",
+      "Per wedstrijd is er een bonusvraag met vaste antwoorden. Antwoorden kost niets; een goed antwoord levert 1 {bal} op. Het platform kijkt hem na uit de uitslag.",
       "Niet gestart: je inzet komt terug. Opgegeven telt als niet gefinisht. In een duel waarin geen van beiden finisht, krijg je je inzet terug. Gaat een wedstrijd niet door, dan krijgt iedereen zijn inzet terug.",
       "Briefjes toont al je inzetten van dit seizoen met wat ze opleverden. Op de lei staat iedereen die meedoet, met saldo. Na de laatste wedstrijd van het seizoen wint het hoogste saldo. Sta je op nul, dan kom je terug via de bonusvragen.",
       "Met Stoppen onder je briefjes wis je je deelname van dit seizoen, met al je inzetten en antwoorden.",
@@ -285,7 +285,7 @@ export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/src", name: "Sunday Race Club", text: "Je SRC-team per maand en per zondag wie er kan, per categorie." },
   { href: "/leden", name: "Leden", text: "Ledenlijst met categorie en badges; filter op regio of categorie." },
   { href: "/stats/rankings", name: "{kort} Rankings", text: "De ranglijsten van deze en vorige week, de Hall of fame en het herberekenen van badges." },
-  { href: "/zwbeter-worden", name: "{m:training}", text: "Schema's, AI-coach, je ZWBeterWorden-advies, belasting en de koppelingen." },
+  { href: "/zwbeter-worden", name: "{m:training}", text: "Schema's, AI-coach, je {advies}, belasting en de koppelingen." },
   { href: "/zwbeter-worden/vermogen", name: "Mijn vermogen", text: "Je powercurve en de vergelijking met de club." },
   { href: "/zwbeter-worden/racen", name: "ZWBeter racen", text: "Je gereden Zwift-races (ZRL, FRR of via een geplakte link): tips, de ploeg of je eigen race, en je rit uit intervals.icu. Onder Racetips: tips van leden over racen in Zwift en buiten. Onder Kennisbank: tactiek in een Zwift-race, met bronnen." },
   { href: "/zwbeter-worden/materiaal", name: "ZWBeter materiaal", text: "Kennisbank over materiaal en kleine winsten, met een rekenaar wat een verandering je oplevert, en je houding meten met de camera (bèta)." },
@@ -301,7 +301,7 @@ export const OVERVIEW: { href: string; name: string; text: string }[] = [
   { href: "/sponsors", name: "Sponsors", text: "Onze sponsoren en ledenvoordeel." },
   { href: "/clubverhaal", name: "Clubverhaal", text: "Je anekdotes en verhalen met foto's voor het verhaal van {kort}." },
   { href: "/zwbekers", name: "{m:bekers}", text: "De prijzenkast van de club: per jaar een kast met bekers voor prestaties die aandacht verdienen." },
-  { href: "/voorzpwelbokaal", name: "{m:voorspelspel}", text: "Wedden met ZWBallen op het veldrijden: het bord, je briefjes en de lei." },
+  { href: "/voorzpwelbokaal", name: "{m:voorspelspel}", text: "Wedden met {ballen} op het veldrijden: het bord, je briefjes en de lei." },
   { href: "/profiel?weergave=bewerken", name: "Profiel", text: "Je gegevens, zichtbaarheid, je fietsen, koppelingen (Strava/intervals) en account." },
 ];
 

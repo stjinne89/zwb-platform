@@ -1,5 +1,5 @@
 // Voedingsprotocollen: supplementen en koolhydraatstrategieën die je uitvoert.
-// De onderbouwing staat in docs/protocollen-onderzoek.md. ZWB noemt geen merken.
+// De onderbouwing staat in docs/protocollen-onderzoek.md. De app noemt geen merken.
 //
 // Doses staan per kg; de app rekent ze om met het gewicht van het lid. Dat is
 // een omkering van het besluit uit de voedingsmodule (PLAN.md, "geen
@@ -678,7 +678,7 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     group: "Opbouw",
     title: "Zweettest: je vochtverlies per uur",
     shortLabel: "Zweettest",
-    summary: "Weeg jezelf voor en na een rit van minstens drie kwartier en noteer wat je dronk. ZWB rekent je zweetverlies per uur uit.",
+    summary: "Weeg jezelf voor en na een rit van minstens drie kwartier en noteer wat je dronk. De app rekent je zweetverlies per uur uit.",
     goal: "Een eigen vochtdoel voor onderweg in plaats van een algemeen getal.",
     evidence: "matig",
     anchor: "start",
@@ -713,8 +713,8 @@ export const NUTRITION_PROTOCOLS: Protocol[] = [
     notFor: [],
     limits: [
       "Een kilo lichter is ongeveer een liter zweet; wat je ademt en wat je verbrandt, telt de test niet apart.",
-      "Hoeveel zout je verliest, meet deze test niet. Daar geeft ZWB geen getal voor.",
-      "Zweetverlies verschilt per dag. ZWB rekent met je laatste test.",
+      "Hoeveel zout je verliest, meet deze test niet. Daar geeft de app geen getal voor.",
+      "Zweetverlies verschilt per dag. De app rekent met je laatste test.",
     ],
     sources: [BAKER_2017, MCCUBBIN_2020],
     article: { href: "/zwbeter-worden/voeding/kennis/vocht-en-zout", title: "Vocht en zout" },

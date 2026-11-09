@@ -2,6 +2,7 @@
 // Genoeg voor 95% van de podcast-hosts (Anchor, Buzzsprout, Podbean, Castos, Acast).
 
 import { assertSafeUrl } from "@/lib/net/safe-fetch";
+import { getClub } from "@/lib/club";
 
 export type RssEpisode = {
   guid: string;
@@ -62,10 +63,11 @@ function extractAttr(xml: string, tag: string, attr: string): string | null {
 }
 
 export async function fetchRssFeed(url: string): Promise<RssFeed> {
+  const clubShort = (await getClub()).texts.shortName;
   await assertSafeUrl(url); // SSRF-bescherming: blokkeer interne/private adressen
   const res = await fetch(url, {
     headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; ZWB-Platform RSS fetcher)",
+      "User-Agent": `Mozilla/5.0 (compatible; ${clubShort}-Platform RSS fetcher)`,
       Accept: "application/rss+xml, application/xml, text/xml",
     },
     cache: "no-store",

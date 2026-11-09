@@ -1,6 +1,8 @@
 // Haalt publieke Open Graph metadata op van een chat.whatsapp.com invite URL.
 // Werkt zolang de groep "shareable via link" aan heeft staan in WhatsApp.
 
+import { getClub } from "@/lib/club";
+
 const HTML_ENTITIES: Record<string, string> = {
   "&amp;": "&",
   "&lt;": "<",
@@ -36,6 +38,9 @@ export function isChannelUrl(url: string): boolean {
 export async function fetchWhatsAppGroupInfo(
   inviteUrl: string,
 ): Promise<WhatsAppGroupInfo> {
+  const club = await getClub();
+  const clubShort = club.texts.shortName;
+  const clubSite = club.settings.websiteUrl ? `; +${club.settings.websiteUrl}` : "";
   if (!isValidInviteUrl(inviteUrl)) {
     return { name: null, iconUrl: null, description: null };
   }
@@ -46,7 +51,7 @@ export async function fetchWhatsAppGroupInfo(
       headers: {
         // chat.whatsapp.com serveert de Open Graph metadata aan elk user-agent.
         "User-Agent":
-          "Mozilla/5.0 (compatible; ZWB-Platform/1.0; +https://zwbcycling.nl)",
+          `Mozilla/5.0 (compatible; ${clubShort}-Platform/1.0${clubSite})`,
         Accept: "text/html,application/xhtml+xml",
       },
       redirect: "follow",

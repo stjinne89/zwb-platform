@@ -15,6 +15,7 @@ import {
   type BulkEvent,
   type BulkInput,
 } from "../_actions";
+import { ClubText } from "@/components/club-texts-provider";
 
 const FIELD =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -287,7 +288,7 @@ function BulkLinkForm({ programId }: { programId: string }) {
             <option value="">Alle</option>
             {EVENT_TYPES.map((entry) => (
               <option key={entry.value} value={entry.value}>
-                {entry.label}
+                <ClubText text={entry.label} />
               </option>
             ))}
           </select>
@@ -352,7 +353,7 @@ function BulkLinkForm({ programId }: { programId: string }) {
                   />
                   <span className="min-w-0 flex-1 truncate">{event.title}</span>
                   <span className="shrink-0 text-xs text-muted-foreground">
-                    {eventLabel(event.type, event.kind)} ·{" "}
+                    <ClubText text={eventLabel(event.type, event.kind)} /> ·{" "}
                     {new Date(event.startAt).toLocaleDateString("nl-NL", {
                       day: "numeric",
                       month: "short",

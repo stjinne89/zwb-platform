@@ -15,8 +15,7 @@ import {
 import { BriljantHelp } from "./briljant";
 import { GuideCards } from "./guide-cards";
 import { HelpVideoLink } from "./help-video";
-import { ClubShortName, MemberNoun, ModuleName } from "@/components/club-texts-provider";
-import { ClubText } from "@/components/club-texts-provider";
+import { ClubShortName, ClubText, MemberNoun, ModuleName } from "@/components/club-texts-provider";
 
 export function TrainingHelp() {
   return (
@@ -31,13 +30,13 @@ export function TrainingHelp() {
           <HeartPulse className="mt-0.5 size-5 shrink-0 text-primary" />
           <div>
             <h2 className="font-semibold">
-              Form, herstel en je ZWBeterWorden-advies
+              Form, herstel en je{" "}<ClubText text="{advies}" />
             </h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
               Deze waarden beantwoorden verschillende vragen. Daarom kunnen ze
               van elkaar afwijken zonder dat de data fout is. <ClubShortName /> voegt ze samen
               in één praktisch advies:{" "}
-              <strong className="text-foreground">ZWBeterWorden</strong>, met vijf
+              <strong className="text-foreground"><ClubText text="{adviesnaam}" /></strong>, met vijf
               niveaus van &ldquo;doe niks&rdquo; tot topvorm.
             </p>
           </div>
@@ -135,7 +134,7 @@ export function TrainingHelp() {
           <article className="rounded-md border bg-background p-4">
             <h3 className="flex items-center gap-2 text-sm font-semibold">
               <Gauge className="size-4 text-primary" />
-              ZWBeterWorden
+              <ClubText text="{adviesnaam}" />
             </h3>
             <p className="mt-2 text-sm text-muted-foreground">
               <ClubShortName /> combineert belasting en herstel tot één advies in vijf
@@ -187,8 +186,8 @@ export function TrainingHelp() {
           <strong className="text-foreground">Voorbeeld:</strong> Form -14,
           readiness 66 en een goede HRV-trend betekent niet dat je volledig fris
           bent. De HRV is positief, maar recente trainingsbelasting en
-          middelmatige readiness houden je in het middensegment. Je
-          ZWBeterWorden-advies wordt dan niveau 3 &ldquo;ALLEEN DUUR&rdquo;.
+          middelmatige readiness houden je in het middensegment. Je{" "}
+          <ClubText text="{advies}" /> wordt dan niveau 3 &ldquo;ALLEEN DUUR&rdquo;.
         </div>
 
         <div className="mt-4 rounded-md border bg-background p-4">
@@ -423,12 +422,12 @@ export function TrainingHelp() {
 
         <div className="mt-5 rounded-md border bg-background p-4">
           <pre className="overflow-x-auto whitespace-pre text-xs text-muted-foreground">
-{`${ZWB_SUMMARY_HEADER}
-💎 ZWBriljant Platina · 427 punten, nog 73 tot Amethist
+<ClubText text={`${ZWB_SUMMARY_HEADER}
+💎 {m:rennersniveau} Platina · 427 punten, nog 73 tot Amethist
 🎯 3x10 min drempel (75 min) → gereden als drempel
 ⚡ 82 TSS, 8% boven plan
 🔋 Gereedscore 72, fris genoeg · fitheid stijgt
-💬 Je fitheid stijgt al een paar weken. Gewoon zo doorgaan.`}
+💬 Je fitheid stijgt al een paar weken. Gewoon zo doorgaan.`} />
           </pre>
         </div>
 

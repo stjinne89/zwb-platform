@@ -6,6 +6,7 @@
 
 import { safeFetch } from "@/lib/net/safe-fetch";
 import { isSrcName, parseSrcRace, SRC_EVENTS_FEED_URL, type SrcFeedRow } from "@/lib/src/feed";
+import { getClub } from "@/lib/club";
 
 export type HealthCheckResult = {
   source: string;
@@ -194,11 +195,12 @@ export function evaluateEnvPresent(
 // ---- Netwerk-runner -----------------------------------------------------------
 
 async function withTimeout(url: string): Promise<Response> {
+  const clubShort = (await getClub()).texts.shortName;
   return safeFetch(url, {
     cache: "no-store",
     redirect: "follow",
     signal: AbortSignal.timeout(TIMEOUT_MS),
-    headers: { "user-agent": "ZWB-healthcheck/1.0" },
+    headers: { "user-agent": `${clubShort}-healthcheck/1.0` },
   });
 }
 

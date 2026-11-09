@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import { assertSafeUrl } from "@/lib/net/safe-fetch";
+import { getClub } from "@/lib/club";
 
 export const CLUB_LADDER_FIXTURE_URL = "https://ladder.cycleracing.club/fixture/";
 
@@ -71,12 +72,13 @@ export function parseLadderFixturePage(html: string): LadderFixturePage {
 }
 
 export async function fetchLadderFixturePage(fixtureId: number, cookie: string): Promise<LadderFixturePage> {
+  const clubShort = (await getClub()).texts.shortName;
   const url = `${CLUB_LADDER_FIXTURE_URL}${fixtureId}`;
   await assertSafeUrl(url);
   const res = await fetch(url, {
     headers: {
       Accept: "text/html,application/xhtml+xml",
-      "User-Agent": "ZWB Platform Club Ladder comparison",
+      "User-Agent": `${clubShort} Platform Club Ladder comparison`,
       Referer: "https://ladder.cycleracing.club/",
       Cookie: cookie,
     },

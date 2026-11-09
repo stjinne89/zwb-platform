@@ -119,7 +119,7 @@ export function KastView({ bekers, startId, sponsors, ownOpen, waiting }: Props)
         {empty ? (
           <div className={styles.empty}>
             <BekerIcon design={{ ...DEFAULT_DESIGN, gravure: clubTexts.shortName }} title="" />
-            <p>Wie verdient de eerste ZWBeker?</p>
+            <p>Wie verdient de eerste {clubTexts.words.beker}?</p>
           </div>
         ) : failed ? (
           <ul className={styles.shelf} role="list">

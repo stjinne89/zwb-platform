@@ -39,7 +39,7 @@ export type StrengthArticle = {
   title: string;
   summary: string;
   points: string[];
-  /** Wat de bronnen níét laten zien, of wat een eigen keuze van ZWB is. */
+  /** Wat de bronnen níét laten zien, of wat een eigen keuze van de app is. */
   limits: string[];
   sources: StrengthSource[];
   /** Series waar dit artikel de onderbouwing van is (slug uit mobility_series). */

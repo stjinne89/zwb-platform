@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import { fillClubText, neutralModuleNames, type ClubTexts } from "@/lib/club-texts";
+import { buildClubWords, fillClubText, neutralModuleNames, type ClubTexts } from "@/lib/club-texts";
 import { moduleForPath, type ModuleKey } from "@/lib/modules";
 
 // De clubnaam en de modulenamen voor client components. De root layout zet de
@@ -15,6 +15,7 @@ const NEUTRAL: ClubTexts = {
   contactEmail: null,
   modules: neutralModuleNames(),
   off: [],
+  words: buildClubWords({ shortName: "Club" }),
 };
 
 const ClubTextsContext = createContext<ClubTexts>(NEUTRAL);
@@ -59,7 +60,7 @@ export function MemberNoun({ plural = false }: { plural?: boolean }) {
   return <>{plural ? texts.memberNounPlural : texts.memberNoun}</>;
 }
 
-/** Een vaste tekst met clubwoorden ({kort}, {m:sleutel}; zie fillClubText). */
+/** Een vaste tekst met clubwoorden ({kort}, {beker}, {m:sleutel}; zie fillClubText). */
 export function ClubText({ text }: { text: string }) {
   return <>{fillClubText(text, useClubTexts())}</>;
 }

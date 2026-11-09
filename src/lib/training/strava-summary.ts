@@ -67,6 +67,8 @@ export type BriljantSummary = {
 };
 
 export type ZwbSummaryInput = {
+  /** De naam van de steen bij de club (module rennersniveau); standaard ZWBriljant. */
+  briljantName?: string;
   /** Strava-id van de rit; kiest de variant van de tip. */
   activityId: number;
   plannedTitle: string | null;
@@ -152,7 +154,7 @@ export function fitnessTrendLabel(trend: FitnessTrend): string | null {
 function progressLine(input: ZwbSummaryInput): string | null {
   const stone = input.briljant;
   if (stone) {
-    const head = `💎 ZWBriljant ${stone.level} · ${stone.points.toLocaleString("nl-NL")} punten`;
+    const head = `💎 ${input.briljantName ?? "ZWBriljant"} ${stone.level} · ${stone.points.toLocaleString("nl-NL")} punten`;
     if (stone.nextLevel) return `${head}, nog ${stone.toNext} tot ${stone.nextLevel}`;
     if (stone.delta4w != null && stone.delta4w !== 0) {
       const sign = stone.delta4w > 0 ? "+" : "-";

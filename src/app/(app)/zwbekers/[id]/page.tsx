@@ -8,9 +8,14 @@ import { KIND_LABEL, STATUS_LABEL, canEdit, dayLabel, zrlRoundLabel } from "@/li
 import { REVIEW_PERMISSION, loadBeker, requireBekerMember } from "@/lib/zwbekers/server";
 import { loadStoriesForBeker } from "@/lib/clubverhaal/server";
 import { BekerActions, Congrats, ReviewPanel } from "../_components/beker-controls";
+import { getClub } from "@/lib/club";
+import { fillClubText } from "@/lib/club-texts";
+import { ClubText } from "@/components/club-texts-provider";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "ZWBeker" };
+export async function generateMetadata() {
+  return { title: fillClubText("{Beker}", (await getClub()).texts) };
+}
 
 const sectionTitle = "text-sm font-semibold uppercase tracking-wide text-muted-foreground";
 
@@ -64,7 +69,7 @@ export default async function BekerPage({ params }: { params: Promise<{ id: stri
           <header className="space-y-2">
             <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               <Trophy className="size-3.5" aria-hidden />
-              ZWBeker · {KIND_LABEL[beker.kind]} · {dayLabel(beker.achievedOn)}
+              <ClubText text="{Beker}" /> · {KIND_LABEL[beker.kind]} · {dayLabel(beker.achievedOn)}
             </p>
             <h1 className="text-3xl font-semibold tracking-tight">{beker.title}</h1>
             {beker.kind === "team" && beker.teamName && (

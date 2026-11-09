@@ -532,6 +532,7 @@ export async function insertPlanWorkouts(
     keepDurationWishes?: boolean;
   } = {},
 ) {
+  const clubTexts = (await getClub()).texts;
   // Testdagen, dagen die het lid heeft vrijgemaakt, dagen waarop al een
   // training is gereden en dagen met een eigen rit of clubevent; zie
   // dropWorkoutsOnBlockedDays(). Gereden omdat een gereden training nooit wordt
@@ -614,7 +615,7 @@ export async function insertPlanWorkouts(
         ftpWatts,
       );
       const intensity = aligned.intensity;
-      let title = conciseWorkoutTitle(workout.title);
+      let title = conciseWorkoutTitle(workout.title, clubTexts.modules.training);
       let blocks = aligned.blocks;
       let durationMinutes = Math.min(480, Math.round(workout.durationMinutes));
       // Eén training per dag krijgt de wens; zette de AI er twee neer, dan

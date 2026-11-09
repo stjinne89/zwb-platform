@@ -22,6 +22,7 @@ import {
   readCapped,
 } from "@/lib/events/link-prefill";
 import { translateIngredient } from "./english-ingredients";
+import { getClub } from "@/lib/club";
 export { guessRole } from "./scale";
 
 export type ImportedRecipe = {
@@ -569,7 +570,12 @@ export type RecipeImportResult = { ok: true; recipe: ImportedRecipe } | { ok: fa
 const AH_API = "https://api.ah.nl";
 const AH_RECIPE_PATH = /^\/allerhande\/recept\/R-R(\d{1,10})(?:[/?#]|$)/i;
 const AH_TIMEOUT_MS = 8000;
-const AH_USER_AGENT = "Mozilla/5.0 (compatible; ZWB-Platform/1.0; +https://zwbcycling.nl)";
+/** "<korte naam>-Platform/1.0; +<website>", zoals de gemeten user agent van ZWB. */
+async function clubBrowserAgent(): Promise<string> {
+  const club = await getClub();
+  const site = club.settings.websiteUrl ? `; +${club.settings.websiteUrl}` : "";
+  return `Mozilla/5.0 (compatible; ${club.texts.shortName}-Platform/1.0${site})`;
+}
 
 /** Het receptnummer uit een Allerhande-link, of null voor elke andere link. */
 export function allerhandeRecipeId(link: string): number | null {
@@ -635,7 +641,7 @@ async function allerhandeToken(): Promise<string> {
   const response = await fetch(`${AH_API}/mobile-auth/v1/auth/token/anonymous`, {
     method: "POST",
     cache: "no-store",
-    headers: { "content-type": "application/json", "user-agent": AH_USER_AGENT },
+    headers: { "content-type": "application/json", "user-agent": await clubBrowserAgent() },
     body: JSON.stringify({ clientId: "appie" }),
     signal: AbortSignal.timeout(AH_TIMEOUT_MS),
   });
@@ -655,7 +661,7 @@ async function fetchAllerhande(id: number, link: string): Promise<RecipeImportRe
       headers: {
         authorization: `Bearer ${await allerhandeToken()}`,
         "content-type": "application/json",
-        "user-agent": AH_USER_AGENT,
+        "user-agent": await clubBrowserAgent(),
       },
       body: JSON.stringify({ query: AH_RECIPE_QUERY, variables: { id } }),
       signal: AbortSignal.timeout(AH_TIMEOUT_MS),

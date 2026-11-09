@@ -7,6 +7,7 @@ import { loadSubjectiveRecovery } from "@/lib/training/subjective-recovery";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestUser } from "@/lib/auth/request";
 import type { WellnessDevice } from "@/lib/training/wellness";
+import { ClubText } from "@/components/club-texts-provider";
 
 export type TrainingStatusConn = {
   api_key: string;
@@ -98,7 +99,7 @@ export async function TrainingStatus({
           ZWBeter trainen{advice.level > 0 ? ` · niveau ${advice.level}` : ""}
         </span>
         <span className="tg-tile-title mt-0.5">{advice.title}</span>
-        <span className="mt-1 text-sm opacity-90">{advice.description}</span>
+        <span className="mt-1 text-sm opacity-90"><ClubText text={advice.description} /></span>
       </Link>
       {hasMetrics &&
         stats.map((stat) => (

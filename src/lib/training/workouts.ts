@@ -320,7 +320,7 @@ export function defaultTrainingPrompt() {
     // gemiddeld rond 93-96 % van FTP en op FTP zelf hielden renners het gemiddeld
     // 34 minuten vol (Inglis 2020; Wong 2023). De zones zelf blijven gelijk.
     "Drempelblokken van 15 minuten of langer krijgen 90-95% FTP, kortere drempelblokken hooguit 100%. Boven 100% FTP alleen in blokken van hooguit 8 minuten (VO2max, over-unders). Een lang blok op 100% of hoger is voor veel renners al boven hun steady state. Een blok met onSeconds valt hier niet onder: daar geldt het doel alleen voor het harde deel.",
-    "Een titel is kort en herkenbaar: de trainingsvorm van het kernwerk plus de opbouw of duur, bijvoorbeeld 'Intensieve duur 3x15', 'Sweet spot 2x20', 'VO2max 5x4' of 'Rustige duur 90 min'. Hooguit 30 tekens. Geen uitleg, reden of vergelijking in de titel: niet 'ingekort', 'aangepast', 'lichter', 'rustiger na ...' of een verwijzing naar een andere dag of rit — dat hoort in description of cautions. Zet 'ZWBeter Worden' niet in de titel; de app voegt dat zelf toe.",
+    "Een titel is kort en herkenbaar: de trainingsvorm van het kernwerk plus de opbouw of duur, bijvoorbeeld 'Intensieve duur 3x15', 'Sweet spot 2x20', 'VO2max 5x4' of 'Rustige duur 90 min'. Hooguit 30 tekens. Geen uitleg, reden of vergelijking in de titel: niet 'ingekort', 'aangepast', 'lichter', 'rustiger na ...' of een verwijzing naar een andere dag of rit — dat hoort in description of cautions. Zet '{m:training}' niet in de titel; de app voegt dat zelf toe.",
     "Als FTP ontbreekt, gebruik RPE en korte gevoelstaal.",
     "Kies targetType bij voorkeur 'power' wanneer FTP bekend is.",
     "Gebruik Nederlands in titel, samenvatting, beschrijving en bloknotities.",
@@ -950,10 +950,24 @@ export function alignWorkoutIntensities(
   return { intensity: pct == null ? intensity : intensityFromPct(pct), blocks: aligned };
 }
 
-/** Staat in de naam van elke workout in intervals.icu, en zo ook in Zwift. */
+/**
+ * Staat in de naam van elke workout in intervals.icu, en zo ook in Zwift: de
+ * naam van de trainingsmodule bij de club. Dit is de ZWB-naam, als standaard en
+ * omdat oude titels hem dragen.
+ */
 export const WORKOUT_TITLE_BRAND = "ZWBeter Worden";
 
 const BRAND_PATTERN = /\bzw\s*beter\s*worden\b/gi;
+
+/** De merknaam uit een titel halen: de ZWB-naam, en die van de club zelf. */
+function withoutBrand(title: string, brand: string): string {
+  const stripped = title.replace(BRAND_PATTERN, " ");
+  const own = brand
+    .trim()
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\s+/g, "\\s*");
+  return own ? stripped.replace(new RegExp(own, "gi"), " ") : stripped;
+}
 
 /**
  * Woorden waarmee de AI uitlegt wat hij aan een workout veranderde: "ingekort",
@@ -970,8 +984,8 @@ const TITLE_MAX_LENGTH = 40;
  * (ingekort)" of "Tempo 3x10 – rustiger na zaterdag". Alleen voor AI-uitvoer:
  * een titel die een trainer zelf typt, blijft zoals hij is.
  */
-export function conciseWorkoutTitle(title: string): string {
-  const original = title.replace(BRAND_PATTERN, " ").replace(/\s+/g, " ").trim();
+export function conciseWorkoutTitle(title: string, brand = WORKOUT_TITLE_BRAND): string {
+  const original = withoutBrand(title, brand).replace(/\s+/g, " ").trim();
   let text = original
     .replace(/\([^)]*\)|\[[^\]]*\]/g, " ")
     .split(/\s+[-–—|]\s+|:\s+|,\s+/)[0]
@@ -990,15 +1004,14 @@ export function conciseWorkoutTitle(title: string): string {
  * De naam van een workout in intervals.icu. Daar gaat hij naar Zwift en de
  * fietscomputer, tussen workouts uit andere bronnen; vandaar de merknaam
  * vooraan, waar hij ook in een smalle lijst nog te lezen is. In ZWB zelf staat
- * hij er niet bij: daar is elke workout van ZWBeter Worden.
+ * hij er niet bij: daar is elke workout van de trainingsmodule.
  */
-export function intervalsWorkoutName(title: string): string {
-  const rest = title
-    .replace(BRAND_PATTERN, " ")
+export function intervalsWorkoutName(title: string, brand = WORKOUT_TITLE_BRAND): string {
+  const rest = withoutBrand(title, brand)
     .replace(/\s+/g, " ")
     .replace(/^[\s\-–—|:,·]+|[\s\-–—|:,·]+$/g, "")
     .trim();
-  return rest ? `${WORKOUT_TITLE_BRAND} - ${rest}` : WORKOUT_TITLE_BRAND;
+  return rest ? `${brand} - ${rest}` : brand;
 }
 
 // Bouwt een NATIVE intervals.icu workout_doc uit onze blokken. Dit is de bron

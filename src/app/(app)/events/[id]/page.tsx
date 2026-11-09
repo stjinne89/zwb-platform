@@ -1355,7 +1355,7 @@ export default async function EventDetailPage({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs uppercase tracking-wide text-secondary-foreground">
-              {eventLabel(event.type, event.kind)}
+              {fillClubText(eventLabel(event.type, event.kind), clubTexts)}
             </span>
             <ProgramBadges programs={programs} />
             {ladderTeam && (

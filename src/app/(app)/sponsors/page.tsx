@@ -197,7 +197,7 @@ export default async function SponsorsPage() {
       <section className="rounded-lg border bg-muted/30 p-6 text-center">
         <h2 className="text-lg font-semibold">Zelf ook <ClubShortName />-sponsor worden?</h2>
         <a
-          href="mailto:info@zwbcycling.nl"
+          href={clubTexts.contactEmail ? `mailto:${clubTexts.contactEmail}` : "/hulp"}
           className="mt-3 inline-block rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"
         >
           Mail het bestuur

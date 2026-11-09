@@ -8,6 +8,7 @@ import { chapterById } from "@/lib/clubverhaal/chapters";
 import { describeScene } from "@/lib/clubverhaal/scenes";
 import { loadReviewQueue } from "@/lib/clubverhaal/server";
 import { RemoveStoryButton, StoryReviewPanel } from "../../clubverhaal/_components/story-controls";
+import { ClubText } from "@/components/club-texts-provider";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Clubverhaal plaatsen" };
@@ -49,7 +50,7 @@ export default async function ClubverhaalBeheerPage() {
                   <h3 className="text-lg font-semibold">{story.title}</h3>
                   {story.beker && (
                     <p className="text-sm">
-                      ZWBeker:{" "}
+                      <ClubText text="{Beker}" />:{" "}
                       <Link href={`/zwbekers/${story.beker.id}`} className="font-medium hover:underline">
                         {story.beker.title}
                       </Link>

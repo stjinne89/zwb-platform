@@ -58,7 +58,7 @@ const SCHEMA = {
   },
 };
 
-const SYSTEM = `Je schrijft de wekelijkse app-update voor de leden van {kort}, een wielerclub met een eigen app (ZWBasis). Leden lezen hem op donderdag in een pop-up en op de pagina App-updates.
+const SYSTEM = `Je schrijft de wekelijkse app-update voor de leden van {kort}, een wielerclub met een eigen app ({app}). Leden lezen hem op donderdag in een pop-up en op de pagina App-updates.
 
 Je krijgt de rondes uit het projectplan van de afgelopen week. Dat plan is geschreven voor ontwikkelaars. Maak er een korte update voor leden van.
 

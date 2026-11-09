@@ -10,6 +10,8 @@ import { defaultSpec, describeScene, type Scene } from "@/lib/clubverhaal/scenes
 import { CAPTION_MAX, EARLIEST_YEAR, PHOTOS_MAX, TITLE_MAX } from "@/lib/clubverhaal/story";
 import { confirmStoryPhoto, requestStoryPhotoUpload, saveStory, submitStory } from "../_actions";
 import { SceneBuilder } from "./scene-builder";
+import { fillClubText } from "@/lib/club-texts";
+import { useClubTexts } from "@/components/club-texts-provider";
 
 export type StoryFormInitial = {
   id: string;
@@ -63,6 +65,7 @@ export function StoryForm({
   initial?: StoryFormInitial;
   presetBeker?: string | null;
 }) {
+  const clubTexts = useClubTexts();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -167,7 +170,7 @@ export function StoryForm({
                 onChange={(event) => setHappenedYear(event.target.value)}
               />
             </Field>
-            <Field label="ZWBeker">
+            <Field label={fillClubText("{Beker}", clubTexts)}>
               <select className={field} value={bekerId} onChange={(event) => setBekerId(event.target.value)}>
                 <option value="">Geen</option>
                 {bekers.map((beker) => (

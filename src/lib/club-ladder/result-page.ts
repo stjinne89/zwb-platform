@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 import { assertSafeUrl } from "@/lib/net/safe-fetch";
 import { ladderResultUrl } from "./event-result";
+import { getClub } from "@/lib/club";
 
 export type LadderResultRider = {
   name: string;
@@ -69,11 +70,12 @@ export function parseLadderResultPage(html: string, teams: { challenger: string;
 }
 
 export async function fetchLadderResultPage(resultId: number) {
+  const clubShort = (await getClub()).texts.shortName;
   if (!Number.isSafeInteger(resultId) || resultId <= 0) throw new Error("Ongeldig uitslag-ID.");
   const url = ladderResultUrl(resultId);
   await assertSafeUrl(url);
   const res = await fetch(url, {
-    headers: { Accept: "text/html", "User-Agent": "ZWB Platform Club Ladder comparison", Referer: "https://ladder.cycleracing.club/" },
+    headers: { Accept: "text/html", "User-Agent": `${clubShort} Platform Club Ladder comparison`, Referer: "https://ladder.cycleracing.club/" },
     cache: "no-store",
     signal: AbortSignal.timeout(15000),
   });

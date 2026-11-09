@@ -37,7 +37,8 @@ const pages: [string, ReactElement][] = [
 // Woordspelingen, het enkelvoud van ZWBekers en het voorbeeld van de
 // Strava-samenvatting hebben nog geen instelling; die volgen in fase 3 deel 3
 // (PLAN.md).
-const NOT_YET = /ZWBeter(?:Worden)?|ZWBallen|ZWBal\b|ZWBeker\b|💎 ZWBriljant/g;
+// "ZWBeter X" (ZWBeter racen, ZWBeter-samenvatting) heeft nog geen eigen woord.
+const NOT_YET = /ZWBeter\b/g;
 
 describe("fillClubText", () => {
   it("vult de clubwoorden in", () => {

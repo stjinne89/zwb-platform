@@ -58,7 +58,7 @@ export type NutritionArticle = {
   title: string;
   summary: string;
   points: string[];
-  /** Wat het onderzoek níét laat zien, of wat een eigen keuze van ZWB is. */
+  /** Wat het onderzoek níét laat zien, of wat een eigen keuze van de app is. */
   limits: string[];
   sources: NutritionSource[];
 };
@@ -1068,7 +1068,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Gevolgen kunnen zijn: minder sterke botten, hormonale verstoringen, vaker ziek, slechter herstel en lagere prestaties. Dat geldt voor vrouwen én mannen.",
       "Signalen: aanhoudende vermoeidheid, stagnerende vorm, vaker blessures of ziek, bij vrouwen een onregelmatige of uitblijvende menstruatie.",
       "Afvallen tijdens zware trainingsblokken vergroot het risico.",
-      "Herken je dit? Ga naar een sportarts of sportdiëtist. ZWB geeft bewust geen afvaladvies.",
+      "Herken je dit? Ga naar een sportarts of sportdiëtist. De app geeft bewust geen afvaladvies.",
     ],
     limits: [
       "Energiebeschikbaarheid is buiten een lab moeilijk te meten; er is geen betrouwbare thuistest.",
@@ -1240,7 +1240,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Geen of te weinig bewijs: BCAA's, magnesium tegen kramp, CBD en ketonen.",
       "Supplementen kunnen verontreinigd zijn met verboden stoffen. Kies bij voorkeur NZVT-geteste batches.",
       "Supplementprotocollen zijn er vanaf 18 jaar. Daaronder zijn eten en sportvoeding genoeg.",
-      "ZWB noemt bewust geen merken.",
+      "De app noemt bewust geen merken.",
     ],
     limits: [
       "Het bewijs per supplement komt vooral van getrainde mannen.",
@@ -1339,7 +1339,7 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
       "Probiotica kunnen bij sommige sporters luchtweginfecties en darmklachten iets verminderen, maar het effect hangt af van de bacteriestam en is wisselend.",
     points: [
       "Het ISSN-standpunt ziet mogelijke voordelen voor afweer en darmklachten, steeds voor een bepaalde stam. Wat voor de ene stam geldt, geldt niet voor een andere.",
-      "ZWB noemt geen merken en dus geen stammen; daarom staat er geen protocol.",
+      "De app noemt geen merken en dus geen stammen; daarom staat er geen protocol.",
       "Yoghurt, kwark en kefir horen gewoon bij gevarieerd eten.",
     ],
     limits: [
@@ -1395,12 +1395,12 @@ export const NUTRITION_ARTICLES: NutritionArticle[] = [
     conclusion: "geen-effect",
     title: "Ketonen",
     summary:
-      "Ketondrankjes verhogen de ketonen in je bloed, maar maken je in een wedstrijd niet sneller. ZWB raadt ze af.",
+      "Ketondrankjes verhogen de ketonen in je bloed, maar maken je in een wedstrijd niet sneller. De app raadt ze af.",
     points: [
       "Een meta-analyse van dertien proeven vond geen effect op prestatie, ook niet op tijdritten en niet voor ketonesters. Een nieuwere meta-analyse vond hetzelfde voor een drankje vlak voor of tijdens de inspanning.",
       "Na elke training in een zwaar blok van drie weken remde een ketonester de signalen van overbelasting, en de renners hielden meer vol. Dat is één onderzoeksgroep met kleine groepen mannen. Dezelfde groep vond later dat een ketonester de REM-slaap beschermde in een zwaar blok; de renners merkten zelf geen verschil.",
       "In een echte etappewedstrijd hielp een ketondrankje (butanediol) na elke etappe niet bij het herstel.",
-      "Ze zijn duur en het bewijs voor herstel is dun; daarom staat er geen protocol voor in ZWB.",
+      "Ze zijn duur en het bewijs voor herstel is dun; daarom staat er geen protocol voor in de app.",
     ],
     limits: [
       "Het herstelonderzoek komt van één groep, met kleine aantallen mannen en een trainingsbelasting die clubrenners zelden halen.",

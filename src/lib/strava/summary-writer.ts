@@ -65,6 +65,7 @@ import {
   normalizeWorkoutBlocks,
   type WorkoutIntensity,
 } from "@/lib/training/workouts";
+import { getClub } from "@/lib/club";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -162,6 +163,7 @@ export async function writeZwbSummariesForUser(
   accessToken: string,
   options: { maxWrites?: number; maxAgeHours?: number } = {},
 ): Promise<SummaryWriteResult> {
+  const clubTexts = (await getClub()).texts;
   const maxWrites = Math.max(0, options.maxWrites ?? 1);
   const since = summarySinceDate();
   if (maxWrites === 0 || !since) return EMPTY_RESULT;
@@ -330,6 +332,7 @@ export async function writeZwbSummariesForUser(
         )
       : null;
     const block = buildZwbSummaryBlock({
+      briljantName: clubTexts.modules.rennersniveau,
       activityId: candidate.id,
       plannedTitle: matchedWorkout?.title ?? null,
       plannedIntensity: matchedWorkout?.intensity ?? null,

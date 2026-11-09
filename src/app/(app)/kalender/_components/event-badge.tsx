@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import { eventColorStyle, eventLabel } from "@/lib/event-types";
 import type { EventProgram } from "@/lib/events/programs";
+import { ClubText } from "@/components/club-texts-provider";
 
 /** Het gekleurde label van een event: categorie, met het type erachter. */
 export function EventBadge({ type, kind }: { type: string; kind?: string | null }) {
@@ -11,7 +12,7 @@ export function EventBadge({ type, kind }: { type: string; kind?: string | null 
       style={eventColorStyle(type, kind).badge}
     >
       {kind === "goed_doel" && <Heart className="size-3 fill-current" aria-hidden />}
-      {eventLabel(type, kind)}
+      <ClubText text={eventLabel(type, kind)} />
     </span>
   );
 }

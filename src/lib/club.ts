@@ -40,6 +40,12 @@ export type ClubSettings = {
   /** Logo en beeldmerk (0315) als publieke URL, of null: de vaste ZWB-bestanden. */
   logoUrl: string | null;
   markUrl: string | null;
+  /** Eigen woorden (0316), of null: het neutrale woord (lib/club-texts.ts). */
+  appName: string | null;
+  adviceName: string | null;
+  currencyNoun: string | null;
+  currencyNounPlural: string | null;
+  cupNoun: string | null;
 };
 
 type ClubRow = {
@@ -66,6 +72,11 @@ export const EMPTY_CLUB_SETTINGS: ClubSettings = {
   font: null,
   logoUrl: null,
   markUrl: null,
+  appName: null,
+  adviceName: null,
+  currencyNoun: null,
+  currencyNounPlural: null,
+  cupNoun: null,
 };
 
 const loadClubRows = unstable_cache(
@@ -108,6 +119,11 @@ const loadClubRows = unstable_cache(
             font: resolveFont(s.font as string | null | undefined),
             logoUrl: (s.logo_url as string | null) ?? null,
             markUrl: (s.mark_url as string | null) ?? null,
+            appName: (s.app_name as string | null | undefined) ?? null,
+            adviceName: (s.advice_name as string | null | undefined) ?? null,
+            currencyNoun: (s.currency_noun as string | null | undefined) ?? null,
+            currencyNounPlural: (s.currency_noun_plural as string | null | undefined) ?? null,
+            cupNoun: (s.cup_noun as string | null | undefined) ?? null,
           }
         : null,
       modules: (modules.data ?? []).map((m) => ({
@@ -117,7 +133,7 @@ const loadClubRows = unstable_cache(
       })),
     };
   },
-  ["club-settings", "v3"],
+  ["club-settings", "v4"],
   { revalidate: 60 * 60, tags: [CLUB_TAG] },
 );
 

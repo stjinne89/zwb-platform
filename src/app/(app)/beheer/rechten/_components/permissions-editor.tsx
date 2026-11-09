@@ -13,6 +13,7 @@ import {
 } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { updateRolePermissions } from "../_actions";
+import { ClubText } from "@/components/club-texts-provider";
 
 type Matrix = Record<CommunityRole, CommunityPermission[]>;
 
@@ -93,7 +94,7 @@ export function PermissionsEditor({ initial }: { initial: Matrix }) {
                 <div>
                   <h3 className="font-semibold">{meta.label}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {meta.description}
+                    <ClubText text={meta.description} />
                   </p>
                 </div>
                 <Button
@@ -110,7 +111,7 @@ export function PermissionsEditor({ initial }: { initial: Matrix }) {
                 {groups.map((group) => (
                   <div key={group.category} className="space-y-2">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {group.category}
+                      <ClubText text={group.category} />
                     </p>
                     <div className="grid gap-2">
                       {group.permissions.map((permission) => (
@@ -128,10 +129,10 @@ export function PermissionsEditor({ initial }: { initial: Matrix }) {
                           />
                           <span>
                             <span className="block font-medium">
-                              {permission.label}
+                              <ClubText text={permission.label} />
                             </span>
                             <span className="block text-xs text-muted-foreground">
-                              {permission.description}
+                              <ClubText text={permission.description} />
                             </span>
                           </span>
                         </label>

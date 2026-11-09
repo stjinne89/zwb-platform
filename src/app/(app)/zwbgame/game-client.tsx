@@ -76,6 +76,9 @@ const climbOf = (route: GameRoute) => Math.round(route.grades.reduce((sum, g) =>
 
 export function GameClient({ initial }: { initial: GameBootstrap }) {
   const clubTexts = useClubTexts();
+  // Zonder eigen team rijdt het lid onder de korte clubnaam.
+  const clubShort = clubTexts.shortName;
+  const ownTeam = useCallback((team: GameBootstrap["team"]) => team ?? { name: clubShort, memberIds: [] }, [clubShort]);
   const gameName = useModuleName("managerspel");
   const [data, setData] = useState(initial);
   const [mode, setMode] = useState<GameMode | "drill">("ladder");
@@ -113,8 +116,8 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
   const stage = shownTour ? stageConfig(shownTour, data.playerId) : null;
   // A stage whose route left the library shows a plain grid; starting it asks for a new tour.
   const route = mode === "drill" ? DRILL_ROUTES[drill] : mode === "frr" ? data.routes.find((r) => r.id === stage?.routeId) ?? data.routes[0] : routeList.find((r) => r.id === routeId) ?? routeList[0];
-  const teams = useMemo(() => buildLadderTeams(data.roster, data.playerId, data.team, ladderSeed(data.playerId)), [data]);
-  const zrlTeams = useMemo(() => buildZrlTeams(data.roster, data.playerId, data.zrlTeam, ladderSeed(data.playerId)), [data]);
+  const teams = useMemo(() => buildLadderTeams(data.roster, data.playerId, ownTeam(data.team), ladderSeed(data.playerId)), [data, ownTeam]);
+  const zrlTeams = useMemo(() => buildZrlTeams(data.roster, data.playerId, ownTeam(data.zrlTeam), ladderSeed(data.playerId)), [data, ownTeam]);
   const standing = useMemo(() => normalizeLadder(ladder, teams.rivals), [ladder, teams]);
   const targets = challengeable(standing.order);
   const rival = teams.rivals.find((t) => t.id === (rivalId && targets.includes(rivalId) ? rivalId : targets[targets.length - 1]));
@@ -299,7 +302,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
         let squads: Squad[] | undefined;
         if (mode === "drill") next = createDrill(drill, fresh.roster, fresh.playerId, crypto.getRandomValues(new Uint32Array(1))[0], fresh.zrlTeam);
         else if (mode === "ladder") {
-          const freshTeams = buildLadderTeams(fresh.roster, fresh.playerId, fresh.team, ladderSeed(fresh.playerId));
+          const freshTeams = buildLadderTeams(fresh.roster, fresh.playerId, ownTeam(fresh.team), ladderSeed(fresh.playerId));
           const freshRival = freshTeams.rivals.find((t) => t.id === rival?.id);
           if (!freshRival) throw new Error("Kies een ploeg om uit te dagen.");
           squads = [squad(freshTeams.own), squad(freshRival)];
@@ -314,7 +317,7 @@ export function GameClient({ initial }: { initial: GameBootstrap }) {
           if (!stageRoute) { localStorage.removeItem(tourKey(fresh.playerId)); setTour(null); throw new Error("Een route van deze tour is niet meer beschikbaar. Start een nieuwe tour."); }
           next = createRace({ ...config, seed: crypto.getRandomValues(new Uint32Array(1))[0] }, fresh.roster, stageRoute);
         } else if (mode === "zrl") {
-          const freshTeams = buildZrlTeams(fresh.roster, fresh.playerId, fresh.zrlTeam, ladderSeed(fresh.playerId));
+          const freshTeams = buildZrlTeams(fresh.roster, fresh.playerId, ownTeam(fresh.zrlTeam), ladderSeed(fresh.playerId));
           squads = [squad(freshTeams.own), ...freshTeams.rivals.map(squad)];
         }
         if (mode !== "frr" && mode !== "drill") next = createRace({

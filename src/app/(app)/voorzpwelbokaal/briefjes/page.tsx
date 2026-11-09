@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import styles from "@/components/bokaal/bokaal.module.css";
 import { LeaveBokaal } from "./leave";
 import { moduleName } from "@/lib/club";
+import { ClubText } from "@/components/club-texts-provider";
 
 export async function generateMetadata() {
   return { title: `Briefjes · ${await moduleName("voorspelspel")}` };
@@ -33,7 +34,7 @@ export default async function BriefjesPage() {
       <div className={styles.history}>
         {data.player.joined && (
           <div className={styles.slip}>
-            <div className={styles.slipHead}><span>Saldo</span><span>{formatBalls(data.player.balance)} ZWBallen</span></div>
+            <div className={styles.slipHead}><span>Saldo</span><span>{formatBalls(data.player.balance)} <ClubText text="{ballen}" /></span></div>
             <BallRack free={data.player.balance} label={`${formatBalls(data.player.balance)} op het rek`} />
           </div>
         )}

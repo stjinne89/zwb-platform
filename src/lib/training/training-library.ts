@@ -72,7 +72,7 @@ export type TrainingArticle = {
   title: string;
   summary: string;
   points: string[];
-  /** Wat de bronnen níét laten zien, of wat een eigen keuze van ZWB is. */
+  /** Wat de bronnen níét laten zien, of wat een eigen keuze van de app is. */
   limits: string[];
   sources: KnowledgeSource[];
   /** Nieuwe methode; zie method-label.ts. */
@@ -748,7 +748,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       "In een proef van acht weken stegen VO2max en maximaal aeroob vermogen meer als de VO2max-blokken en sprints op 50 tot 70 toeren werden gereden dan op eigen cadans (8,7 tegen 4,6 procent).",
       "Een systematische review vond in 2017 geen sterk bewijs voor lage cadans, en raadde het hooguit aan op matige tot maximale intensiteit.",
       "Een torque-programma op 50 toeren bij 70 procent van het VO2max-vermogen deed in tien weken niets; zware squats in de gym verbeterden wel het vermogen.",
-      "ZWB zet lage cadans daarom alleen op VO2max-blokken en sprints, als protocol dat de AI-coach in je schema verwerkt.",
+      "De app zet lage cadans daarom alleen op VO2max-blokken en sprints, als protocol dat de AI-coach in je schema verwerkt.",
     ],
     limits: [
       "De positieve proef had 24 jonge, goed getrainde vrouwen. Of het bij mannen, oudere of minder getrainde renners net zo werkt, is niet onderzocht; tot oktober 2026 is daar geen nieuwe proef bij gekomen.",
@@ -762,16 +762,16 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
     evidence: "sterk",
     title: "Zones: een afspraak, geen grens in je lijf",
     summary:
-      "De zones in ZWB zijn die van Zwift, in procenten van je FTP. Handig om af te spreken, maar dezelfde procent betekent niet voor iedereen hetzelfde.",
+      "De zones in de app zijn die van Zwift, in procenten van je FTP. Handig om af te spreken, maar dezelfde procent betekent niet voor iedereen hetzelfde.",
     points: [
       "Je lijf kent een paar echte overgangen: de eerste drempel, waaronder je lang rustig kunt rijden, en het hoogste vermogen dat nog stabiel blijft. Bij honderd mensen lagen die overgangen op heel verschillende percentages van hun maximum. Een vaste procent zet dus niet iedereen in hetzelfde gebied.",
       "Het hoogste stabiele vermogen ligt bij veel renners rond 93 tot 96 % van hun FTP, en op hun FTP zelf hielden renners het gemiddeld een half uur tot drie kwartier vol.",
-      "Daarom krijgen lange drempelblokken (vijftien minuten of meer) in ZWB 90 tot 95 % FTP, kortere hooguit 100 %. Boven de 100 % komt alleen in blokken van hooguit acht minuten.",
+      "Daarom krijgen lange drempelblokken (vijftien minuten of meer) in de app 90 tot 95 % FTP, kortere hooguit 100 %. Boven de 100 % komt alleen in blokken van hooguit acht minuten.",
       "Op 85 % FTP waren hartslag, ademhaling en gevoel al 'zwaar'. Let dus ook op hartslag en hoe het voelt; die zeggen soms meer dan het wattage.",
-      "De koppeling tussen RPE en een procent FTP in ZWB is een eigen afspraak. Wie zijn training op gevoel indeelt, krijgt een heel ander beeld dan op vermogen of hartslag.",
+      "De koppeling tussen RPE en een procent FTP in de app is een eigen afspraak. Wie zijn training op gevoel indeelt, krijgt een heel ander beeld dan op vermogen of hartslag.",
     ],
     limits: [
-      "Waar je eigen drempels liggen, meet je alleen met een inspanningstest met lactaat of ademgassen. ZWB heeft die gegevens niet.",
+      "Waar je eigen drempels liggen, meet je alleen met een inspanningstest met lactaat of ademgassen. De app heeft die gegevens niet.",
       "De studies zijn klein en vaak bij getrainde mannen gedaan.",
     ],
     sources: [IANNETTA_2020, JAMNICK_2018, INGLIS_2020, BORSZCZ_2019, WONG_2023, DENHAM_2026, SANDERS_2017],
@@ -873,7 +873,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       "Een meta-analyse vond voor gepolariseerd trainen een klein voordeel op VO2max, vooral bij korte programma's en zeer goed getrainde sporters. Op tijdrit en uithoudingsvermogen was er geen verschil.",
       "Een grotere analyse op de gegevens van individuele deelnemers vond geen verschil tussen gepolariseerd en piramidaal, ook niet op VO2max. Wedstrijdsporters leken meer te hebben aan gepolariseerd, recreanten juist aan piramidaal.",
       "Bij matig getrainde fietsers voegden vier uur extra rustig-tot-matig rijden per week naast intervaltraining in zes weken niets toe aan de tijdrit.",
-      "ZWB schrijft daarom geen verdeling voor; de AI-coach volgt de periodisering en je voorkeuren.",
+      "De app schrijft daarom geen verdeling voor; de AI-coach volgt de periodisering en je voorkeuren.",
     ],
     limits: [
       "De studies zijn kort (vaak minder dan twaalf weken) en verschillen sterk in opzet.",
@@ -917,17 +917,17 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
     summary:
       "Een FTP-test is een goed herhaalbare prestatietest, maar geen exacte meting van je drempel. Per renner zit hij er al gauw een paar procent naast.",
     points: [
-      "De 20-minutentest is goed herhaalbaar: twee keer testen scheelt meestal maar een paar procent. Een nieuwe FTP die minder dan 3 % afwijkt van de vorige, toont ZWB daarom als gelijk gebleven.",
+      "De 20-minutentest is goed herhaalbaar: twee keer testen scheelt meestal maar een paar procent. Een nieuwe FTP die minder dan 3 % afwijkt van de vorige, toont de app daarom als gelijk gebleven.",
       "95 % van je twintig minuten komt op groepsniveau dicht bij de drempel, maar per renner wijkt het al gauw 10 % af. Recreatieve renners komen er vaak iets onder uit.",
       "Op hun FTP hielden renners het gemiddeld 34 tot 51 minuten vol, geen uur. Een lang drempelblok op 100 % is voor veel renners dus zwaarder dan het lijkt.",
-      "De warming-up telt mee. Na een lange warming-up met een harde blok van vijf minuten reden renners hun test ongeveer 5 % lager. ZWB gebruikt daarom drie korte versnellingen.",
+      "De warming-up telt mee. Na een lange warming-up met een harde blok van vijf minuten reden renners hun test ongeveer 5 % lager. De app gebruikt daarom drie korte versnellingen.",
       "De ramptest neemt 75 % van je hoogste minuut. Dat getal is nooit gepubliceerd getoetst, en de uitkomst hangt af van hoe snel de test oploopt. Wie explosief is, haalt een hoge laatste minuut en komt daardoor vaak te hoog uit; een echte duurrenner eerder te laag.",
       "Wijkt je test meer dan 8 % af van je vermogenscurve (CP en eFTP uit intervals.icu), dan krijgen jij en je trainer een seintje. Overweeg dan om opnieuw te testen, of kies de 20-minutentest.",
     ],
     limits: [
       "De meeste studies zijn klein en gedaan bij getrainde mannen.",
       "CP en eFTP zijn zelf ook schattingen. Ze zeggen alleen iets als je de laatste tijd ook echt hard hebt gereden.",
-      "Hoe vaak je moet testen is niet onderzocht. Acht weken is een keuze van ZWB.",
+      "Hoe vaak je moet testen is niet onderzocht. Acht weken is een keuze van de app.",
       "Dat explosieve renners op de ramptest hoger uitkomen, volgt uit hoe de test werkt (de hoogste minuut leunt op je anaerobe reserve); als zodanig gemeten is het niet.",
     ],
     sources: [
@@ -952,9 +952,9 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
     points: [
       "In een proef met ruim vijfhonderd beginnende hardlopers gaf een schema volgens de 10 %-regel evenveel blessures als een gewoon schema.",
       "Tussen 10 en 24 % opbouw per week werd geen verschil gevonden; wie in twee weken meer dan 30 % bijdeed, had wel vaker overbelastingsklachten.",
-      "Een te lage belasting is ook een risico. Bij duursporters, ook fietsers, was het risico op klachten het laagst met weinig pieken en een flinke belasting over vier weken. Daarom plant ZWB een opbouwweek nooit onder wat je nu al rijdt.",
-      "ZWB houdt 10 % per week aan als voorzichtige standaard en vermijdt sprongen van meer dan een kwart.",
-      "Fitness, vermoeidheid en vorm (CTL, ATL en TSB) komen uit een rekenmodel. Op groepsniveau past dat redelijk, maar per renner zijn de onderliggende tijden erg onzeker. De grenzen die ZWB op TSB legt, zijn daarom afspraken, geen metingen.",
+      "Een te lage belasting is ook een risico. Bij duursporters, ook fietsers, was het risico op klachten het laagst met weinig pieken en een flinke belasting over vier weken. Daarom plant de app een opbouwweek nooit onder wat je nu al rijdt.",
+      "De app houdt 10 % per week aan als voorzichtige standaard en vermijdt sprongen van meer dan een kwart.",
+      "Fitness, vermoeidheid en vorm (CTL, ATL en TSB) komen uit een rekenmodel. Op groepsniveau past dat redelijk, maar per renner zijn de onderliggende tijden erg onzeker. De grenzen die de app op TSB legt, zijn daarom afspraken, geen metingen.",
       "Na een pauze van twee tot vier weken zakken je VO2max en bloedvolume al merkbaar; wat je recent hebt opgebouwd, verlies je het snelst. Na meer dan tien dagen rust begint het schema daarom lager en bouwt het in een week of twee terug op.",
     ],
     limits: [
@@ -984,7 +984,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
       "Voor een tijdrit van twintig minuten maakte geen, een gewone of een warming-up met sprints per saldo niets uit. Met sprints begon je alleen harder.",
       "Korte, maximale activaties verbeterden duurprestaties niet in een meta-analyse van 35 studies.",
       "Voor een FTP-test werkte een korte warming-up met een paar versnellingen beter dan een lange met een zwaar blok.",
-      "De warming-ups bij een race in ZWB volgen dit: kort en licht voor een lange wedstrijd, meer activatie voor een korte race met een harde start.",
+      "De warming-ups bij een race in de app volgen dit: kort en licht voor een lange wedstrijd, meer activatie voor een korte race met een harde start.",
     ],
     limits: [
       "Geen onderzoek vergelijkt warming-ups per soort Zwift-race; de keuze per race is een afleiding.",
@@ -1019,18 +1019,18 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
     summary:
       "Je horloge meet elke nacht je HRV en rusthartslag. Eén ochtend zegt weinig; een week vergeleken met je eigen normale waarden zegt wel iets.",
     points: [
-      "HRV schommelt van dag tot dag flink. Daarom kijkt ZWB naar het gemiddelde van de laatste week, niet naar één nacht.",
+      "HRV schommelt van dag tot dag flink. Daarom kijkt de app naar het gemiddelde van de laatste week, niet naar één nacht.",
       "Dat weekgemiddelde wordt vergeleken met je eigen normale band: wat je de dertig dagen daarvoor gewoon was, met een marge die past bij hoeveel jouw metingen van nature schommelen.",
       "Zakt je HRV onder die band, of stijgt je rusthartslag erboven, dan is dat een teken van vermoeidheid. Het schema wordt dan voorzichtiger.",
       "Een HRV boven je band is niet altijd goed nieuws. Bij sporters die bewust te zwaar trainden, steeg het weekgemiddelde juist. Bij zware belasting telt een hoge HRV daarom niet als geruststelling.",
-      "Wielrenners die op HRV, rusthartslag en hun eigen gevoel samen trainden, gingen er meer op vooruit dan op HRV alleen. ZWB weegt daarom ook mee hoe een rit voelde.",
+      "Wielrenners die op HRV, rusthartslag en hun eigen gevoel samen trainden, gingen er meer op vooruit dan op HRV alleen. De app weegt daarom ook mee hoe een rit voelde.",
       "Een korte nacht kost prestatie: gemiddeld enkele procenten na een nacht van zes uur of minder, vooral als je daarna lang wakker bent.",
     ],
     limits: [
       "Het onderzoek naar sturen op HRV is klein, en de winst ten opzichte van een vast schema is bescheiden.",
       "Horloges en ringen meten HRV 's nachts, de studies meestal 's ochtends met een borstband. Hoe goed die metingen overeenkomen, verschilt per apparaat.",
-      "De marge van de band (een halve standaardafwijking) is de gangbare keuze in onderzoek; de ondergrens van 3 % voor heel stabiele metingen is een eigen keuze van ZWB.",
-      "Er is geen vaste definitie of meting van readiness. Een review van veertien studies vond dat scores zelden getoetst zijn op hoe goed ze je prestatie voorspellen. Zie de score van ZWB als samenvatting van je eigen signalen, niet als voorspelling.",
+      "De marge van de band (een halve standaardafwijking) is de gangbare keuze in onderzoek; de ondergrens van 3 % voor heel stabiele metingen is een eigen keuze van de app.",
+      "Er is geen vaste definitie of meting van readiness. Een review van veertien studies vond dat scores zelden getoetst zijn op hoe goed ze je prestatie voorspellen. Zie de score van de app als samenvatting van je eigen signalen, niet als voorspelling.",
     ],
     sources: [
       PLEWS_2013,
@@ -1212,7 +1212,7 @@ export const TRAINING_ARTICLES: TrainingArticle[] = [
     limits: [
       "Je hebt speciale banden nodig en een gemeten afsluitdruk per been. Zonder die meting weet je niet hoeveel je afknijpt.",
       "De bloeddruk stijgt tijdens het fietsen met banden hoger dan bij gewone intervallen.",
-      "Gebruik het alleen met een fysiotherapeut of sportarts. ZWB plant het daarom niet in.",
+      "Gebruik het alleen met een fysiotherapeut of sportarts. De app plant het daarom niet in.",
     ],
     sources: [ZAMBOLIN_2026, CASTILLA_LOPEZ_2022, ZHANG_BFR_2025, THOMAS_2018],
     methodLabel: "experimenteel",

@@ -6,6 +6,7 @@ import {
   ClubContactLink,
   ClubName,
   ClubShortName,
+  ClubText,
   MemberNoun,
   ModuleName,
 } from "@/components/club-texts-provider";
@@ -93,7 +94,7 @@ export default function PrivacyPage() {
           <li id="voorzpwelbokaal" className="scroll-mt-20">
             <strong><ModuleName module="voorspelspel" />:</strong> alleen als je zelf op Meedoen tikt.
             Dan bewaren we per seizoen dat je meedoet, je inzetten (renner, soort
-            inzet, quotering en aantal ZWBallen) en je antwoorden op de
+            inzet, quotering en aantal <ClubText text="{ballen}" />) en je antwoorden op de
             bonusvragen. Clubleden zien op de lei je naam met je saldo, hoeveel
             ballen er nog openstaan en hoeveel inzetten raak waren. Je inzetten en
             antwoorden zien andere leden pas vanaf de start van die wedstrijd. De
@@ -597,7 +598,7 @@ export default function PrivacyPage() {
             met hooguit zes foto&apos;s insturen voor het verhaal van <ClubShortName /> op{" "}
             <Link href="/verhaal" className="underline">/verhaal</Link>. We bewaren de
             titel, de hoofdstukken met hun tekst en gekozen scène, het jaar, een
-            eventuele ZWBeker, de
+            eventuele <ClubText text="{beker}" />, de
             foto&apos;s met onderschrift, wie het schreef en wat het bestuur
             besloot, met een eventuele notitie. Zolang het bestuur het nog niet
             plaatste, zien alleen jij en wie verhalen plaatst het. Een geplaatst

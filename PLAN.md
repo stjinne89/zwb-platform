@@ -15,27 +15,12 @@ gaat stabiliteit voor nieuwe features.
    "Generieke versie, fase 3 deel 1" en "deel 2".
    **Deel 3a** (de clubwoorden in schermen, meldingen en AI-prompts) is lokaal
    gecommit en nog niet gepusht. Geen migratie. Zie de ronde "fase 3 deel 3a".
-   **Deel 3b** volgt. De eigenaar koos op 2026-11-09:
-   - **Eigen woorden per club.** Eén nieuw veld in de clubinstellingen
-     (migratie) voor de naam van het dagadvies, het betaalmiddel van de bokaal
-     (enkelvoud en meervoud) en het enkelvoud van de beker. ZWB houdt
-     ZWBeterWorden, ZWBal en ZWBallen, en ZWBeker. Zonder eigen woord ziet een
-     club een neutraal woord.
-   - **Eigen appnaam per club** (bij ZWB "ZWBasis"), onder meer voor de prompt
-     van de app-updates.
-   - **De user agents nemen de korte clubnaam, niet de appnaam.** Zo blijft de
-     UA van ZWB gelijk ("ZWB-Platform …") en hoeft de gemeten cyclingflash-UA
-     niet opnieuw getest te worden.
-   - **De kennisbanken en protocollen worden voor iedereen neutraal**, ook voor
-     ZWB: "ZWB" wordt "de app" in zo'n 40 zinnen. De keuzes zijn van het
-     platform, niet van de club. Zinnen waar "de app" stroef leest, worden
-     eerst aan de eigenaar voorgelegd.
-   - **Zonder keuze, met dezelfde tekst voor ZWB:**
-     - de korte naam in het event-blok, de awards ("ZWB-week") en de twee
-       terugvallen;
-     - de module- of clubnaam in `EVENT_TYPES` en de rechtenlabels;
-     - de workout-titel volgt de modulenaam van training. De oude Strava-kop
-       blijft herkenbaar.
+   **Deel 3b** (eigen woorden, appnaam, user agents, neutrale kennisbanken) is
+   lokaal gebouwd en nog niet gepusht, met migratie `0316` (nog **niet**
+   toegepast). **Pas `0316` toe vóór de push**: zonder de kolommen ziet ZWB
+   "Dagadvies", "ballen" en "beker". Nog open bij de eigenaar: een eigen woord
+   voor "ZWBeter X" en vijf stroeve kennisbankzinnen. Zie de ronde "fase 3 deel
+   3b".
 
 0. **Inloglinks bestand tegen mailscanners (2026-11-09): gepusht naar `main`
    (`d48dd9c9`), samen met de bevestigingsmail-ronde.** Geen migratie. Aanleiding: Tino van Ramesdonk kwam niet
@@ -11977,6 +11962,126 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — Generieke versie, fase 3 deel 3b: eigen woorden, appnaam en neutrale kennisbanken
+
+**2026-11-09.** Op verzoek van de eigenaar ("Yes, start 3b"), na de keuzes van
+dezelfde dag (zie het bovenste punt van de actieve volgorde). Migratie `0316`
+(`club_words`) is **niet toegepast** en niet lokaal te testen. Hij moet vóór de
+push op productie staan: zonder de kolommen valt ZWB terug op de neutrale
+woorden.
+
+Wat er is:
+
+- **Eigen woorden (`0316`).** `club_settings` krijgt vijf kolommen. Elke lege
+  kolom geeft een neutraal woord.
+
+  | Kolom | Bij ZWB | Neutraal |
+  |---|---|---|
+  | `app_name` | ZWBasis | `<korte naam>-app` |
+  | `advice_name` | ZWBeterWorden | Dagadvies |
+  | `currency_noun` | ZWBal | bal |
+  | `currency_noun_plural` | ZWBallen | ballen |
+  | `cup_noun` | ZWBeker | beker |
+
+  - De migratie vult de ZWB-waarden alleen in als de korte naam "ZWB" is, en
+    alleen in lege kolommen.
+  - Een scherm om ze te bewerken komt er niet: dat hoort bij de
+    inrichtingsmodule (fase 6), net als de naam en het lidwoord.
+- **Tokens.** `ClubTexts.words` (`buildClubWords()` in `lib/club-texts.ts`) en
+  zes nieuwe tokens: `{app}`, `{adviesnaam}`, `{advies}`, `{bal}`, `{ballen}`
+  en `{beker}`.
+  - `{advies}` is "ZWBeterWorden-advies" of "dagadvies".
+  - Met een hoofdletter (`{Beker}`) begint het woord met een hoofdletter, voor
+    titels.
+  - `fillClubText` herkent nu elk `{woord}` en laat een onbekend woord staan.
+- **Waar ze staan:**
+  - het dagadvies in de hulp, op het herstelkaartje, in het trainerpaneel, in
+    de ledenlijst en in de lege-staattekst van `zwbeterworden.ts`. Die laatste
+    wordt gevuld op het dashboard, het herstelkaartje en het trainerpaneel;
+  - de ballen in de hulp, de briefjes, het bord en de privacyverklaring;
+  - de beker in de prijzenkast, de bekerpagina en de voordracht (titels via
+    `generateMetadata`), de pushmeldingen, het verhaalformulier, het beheer
+    van het clubverhaal, de hulp en de privacyverklaring;
+  - de appnaam in de prompt van de app-updates.
+- **Zonder keuze, voor ZWB gelijk:**
+  - de notitie bij het event-blok ("Clubevent uit de ZWB-kalender") neemt de
+    korte naam (`EventWorkoutOptions.clubShortName`);
+  - de eventsoort "ZWB Omnium" is `{m:omnium}`, gevuld in de kalender, het
+    eventscherm, de ritverslagen, de programma's en de agenda-feed;
+  - de rechtenlabels van ZWBgame en "naar ZWB publiceren" dragen tokens; het
+    rechtenscherm vult ze in;
+  - de terugval van het eigen team in ZWBgame (het spel geeft nu zelf de korte
+    naam mee) en die van `analysePersonalRace` (hoe een lid heet);
+  - de workout-titel in intervals.icu volgt de modulenaam van training
+    (`intervalsWorkoutName(title, brand)`), en de oude ZWB-naam wordt er nog
+    steeds afgehaald;
+  - de steen in de Strava-samenvatting en het voorbeeld in de hulp volgen de
+    modulenaam van rennersniveau;
+  - het contactadres op de sponsorpagina komt uit de club.
+- **User agents** nemen de korte clubnaam, en waar een website in stond die
+  van de club. Bij ZWB komt daar precies de oude tekst uit, ook bij
+  cyclingflash ("ZWB-platform voorZpWelBokaal (clubspel)"). Het gaat om:
+  - Club Ladder (5 plekken);
+  - FRR;
+  - de healthcheck;
+  - het eetdagboek en Allerhande;
+  - WhatsApp, RSS, de teamuitslagen, LiveTrack en het voorinvullen van links.
+
+  De browser-UA's voor Zwift en de uitslagscraper hadden geen clubnaam.
+- **Kennisbanken en protocollen**, voor iedereen, ook voor ZWB: "ZWB" is "de
+  app" geworden in 42 zinnen en typecommentaren. Dat gebeurde in de training-,
+  kracht-, race-, voeding- en materiaalbibliotheek en in de protocollen.
+
+**Gevonden en meegenomen:** het rechtenscherm (`/beheer/rechten`) toonde sinds
+3a de rolomschrijving met een rauw `{kort}`. De rolomschrijvingen kregen in 3a
+tokens, maar dit scherm vulde ze niet in. Dat is hersteld.
+
+**Bewust niet:**
+
+- **"ZWBeter X"** (ZWBeter trainen, kracht, racen en materiaal, "in ZWBeter",
+  de ZWBeter-samenvatting en de Strava-kop "ZWBeter workout-samenvatting"),
+  ongeveer 20 plekken. Het is een woordspeling zonder eigen woord. De keuzes
+  van deze dag noemden hem niet, dus hij ligt bij de eigenaar.
+  `club-texts-render.test.ts` laat alleen dit nog door (`NOT_YET`).
+- **Vijf kennisbankzinnen** blijven op "ZWB" staan, omdat "de app" er stroef
+  leest. Die liggen bij de eigenaar:
+  - `protocols/training.ts` 404 en 469: "…de app als sessie telt, is een
+    eigen keuze van ZWB";
+  - "is een afleiding van ZWB" (voeding, twee keer);
+  - "de ZWB-workouts" (`training-library.ts`).
+- **"durability in ZWBriljant"** in het durability-protocol: een modulenaam in
+  kennistekst, die nergens wordt ingevuld. Die blijft staan.
+- **De weekawards ("ZWB-week")**: de getoonde tekst staat in de tabel `badges`
+  (seed in `0011` en `0277`), niet in de code. Dat is de generieke seed van
+  fase 5.
+- **Het adres in de LiveTrack-UA** (`zwb-platform.netlify.app`) is dat van de
+  installatie: fase 5.
+
+**Niet meer waar:** de keuzelijst bovenaan noemde "één nieuw veld"; het zijn vijf
+kolommen. Hij noemde ook de awards onder "zonder keuze"; die staan in de
+database en zijn niet aangepast.
+
+Lokaal: `tsc` en eslint zijn schoon op de geraakte bestanden. In de volledige
+suite falen deze tests:
+
+- `club-theme`, `modules`, `rls-initplan`, `training-plan-status-cleanup` en
+  `intervals-ride-sync` lopen onder belasting in een time-out. Los gedraaid
+  zijn ze groen.
+- `omnium-live` heeft `.env.local` nodig.
+
+`club-texts-tokens.test.ts` dekt:
+
+- de nieuwe woorden voor ZWB en voor een testclub, en de hoofdletter;
+- de eventsoort en de rechtenlabels;
+- de workout-titel met een andere naam (ook met regex-tekens).
+
+Elke gewijzigde regel met "ZWB" is met de ZWB-waarden ingevuld en vergeleken met
+de oude regel; buiten de kennisbanken is alles voor ZWB gelijk. **Niet bekeken:**
+
+- een build en de schermen in de browser;
+- echte user agents tegen de sites;
+- het gedrag vóór en na `0316` op productie.
 
 ### Gebouwd — Generieke versie, fase 3 deel 3a: clubwoorden in schermen, meldingen en AI-prompts
 

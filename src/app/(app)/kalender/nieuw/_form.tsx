@@ -14,6 +14,7 @@ import {
 import type { EventPrefill } from "@/lib/events/link-prefill";
 import { Button } from "@/components/ui/button";
 import { EVENT_KINDS, EVENT_TYPES } from "@/lib/event-types";
+import { ClubText } from "@/components/club-texts-provider";
 
 const FIELD_CLASS =
   "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring";
@@ -482,7 +483,7 @@ export function EventForm({
         >
           {EVENT_TYPES.map((t) => (
             <option key={t.value} value={t.value}>
-              {t.label}
+              <ClubText text={t.label} />
             </option>
           ))}
         </select>

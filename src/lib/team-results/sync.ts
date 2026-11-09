@@ -4,6 +4,7 @@ import { storeLadderResults } from "@/lib/club-ladder/store";
 import { syncLadderFixtures, type LadderFixtureSyncResult } from "@/lib/club-ladder/fixture-sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ladderCookie, normalizeTeamName } from "@/lib/ladder";
+import { getClub } from "@/lib/club";
 
 type SourceTeam = {
   name?: string | null;
@@ -310,10 +311,10 @@ function absoluteWtrlUrl(path: string) {
   return path.startsWith("http") ? path : `https://www.wtrl.racing${path}`;
 }
 
-function fetchHeaders(provider: SourceRow["provider"]): HeadersInit {
+function fetchHeaders(provider: SourceRow["provider"], clubShort: string): HeadersInit {
   const headers: Record<string, string> = {
     Accept: "application/json, text/html;q=0.9, */*;q=0.8",
-    "User-Agent": "ZWB Platform result sync",
+    "User-Agent": `${clubShort} Platform result sync`,
   };
 
   if (provider === "wtrl" && process.env.WTRL_COOKIE) {
@@ -333,7 +334,7 @@ async function fetchText(source: SourceRow, url = source.source_url) {
   await assertSafeUrl(url); // SSRF-bescherming: blokkeer interne/private adressen
   const res = await fetch(url, {
     cache: "no-store",
-    headers: fetchHeaders(source.provider),
+    headers: fetchHeaders(source.provider, (await getClub()).texts.shortName),
   });
 
   if (!res.ok) {

@@ -86,7 +86,7 @@ export type Protocol = {
   cautions: string[];
   /** Wanneer je het niet doet. */
   notFor: string[];
-  /** Wat het onderzoek níét laat zien, of wat een eigen keuze van ZWB is. */
+  /** Wat het onderzoek níét laat zien, of wat een eigen keuze van de app is. */
   limits: string[];
   /**
    * Staat als markering in de agenda van het schema. Alleen voor protocollen

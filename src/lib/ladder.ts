@@ -2,6 +2,8 @@
 // Vereist LADDER_COOKIE env var met de ingelogde session cookie
 // (bv. "connect.sid=s%3A...").
 
+import { getClub } from "@/lib/club";
+
 const GRAVEYARD_URL = "https://ladder.cycleracing.club/graveyard";
 
 /**
@@ -38,12 +40,15 @@ function decodeEntities(s: string): string {
 export async function fetchLadderGraveyard(
   cookie: string,
 ): Promise<LadderGraveyardResult> {
+  const club = await getClub();
+  const clubShort = club.texts.shortName;
+  const clubSite = club.settings.websiteUrl ? `; +${club.settings.websiteUrl}` : "";
   const res = await fetch(GRAVEYARD_URL, {
     headers: {
       Cookie: cookie,
       Accept: "text/html,application/xhtml+xml",
       "User-Agent":
-        "Mozilla/5.0 (compatible; ZWB-Platform Ladder sync; +https://zwbcycling.nl)",
+        `Mozilla/5.0 (compatible; ${clubShort}-Platform Ladder sync${clubSite})`,
       Referer: "https://ladder.cycleracing.club/",
     },
     redirect: "manual",
