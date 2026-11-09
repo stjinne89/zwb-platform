@@ -138,7 +138,7 @@ export function OwnRide({ ride }: { ride: RideOutcome }) {
               .
             </p>
           )}
-          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-5">
             {a.best.map((b) => (
               <li key={b.seconds} className="rounded-lg border bg-card p-3">
                 <div className="flex items-baseline justify-between gap-2">

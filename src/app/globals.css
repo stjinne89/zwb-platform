@@ -111,6 +111,8 @@
   --chart-3: oklch(0.63 0.101 77);
   --chart-4: oklch(0.58 0.039 177);
   --chart-5: oklch(0.49 0.039 205);
+  /* Hoogteprofiel achter het vermogen: een aardetint die niet met de lijnen botst. */
+  --chart-terrain: oklch(0.7 0.05 70);
   --radius: 0.5rem;
   --sidebar: oklch(0.985 0.008 103);
   --sidebar-foreground: oklch(0.22 0.034 215);
@@ -165,6 +167,7 @@
   --chart-2: oklch(0.55 0.04 210);
   --chart-3: oklch(0.7 0.06 220);
   --chart-4: oklch(0.45 0.04 80);
+  --chart-terrain: oklch(0.55 0.05 70);
   --chart-5: oklch(0.65 0.04 210);
   --sidebar: oklch(0.22 0.025 220);
   --sidebar-foreground: oklch(0.97 0.005 80);
