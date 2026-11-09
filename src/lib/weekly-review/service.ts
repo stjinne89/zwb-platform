@@ -70,6 +70,8 @@ async function createRow(admin: Admin, profileId: string, weekStart: string, nex
   if (aiConfigured() && (await usesTraining(admin, profileId))) {
     const started = await startCoachAnswerBackground(WEEK_COACH_PROMPT, coachInput(summary, next), {
       kind: "weekly",
+      // Het weekoverzicht maakt de app zelf aan; het lid vroeg er niet om.
+      meter: { profileId, trigger: "automatic" },
     }).catch(() => null);
     if (started) {
       coach = {

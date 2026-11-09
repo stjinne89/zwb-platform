@@ -111,6 +111,7 @@ export async function requestReplan(
       actorId: profileId,
       // Alles wat vandaag al lag gaat mee, niet alleen dit bericht.
       reason: (await loadPendingReplan(admin, profileId).catch(() => null))?.reason ?? reason,
+      trigger: "follow_up",
       rollingWindow: true,
     });
     if (!result.ok) return { started: false, reason: "failed", error: result.error };

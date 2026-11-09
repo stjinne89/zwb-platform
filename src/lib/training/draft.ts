@@ -75,6 +75,7 @@ import {
   zrlPlanSpecificityCautions,
 } from "@/lib/training/specificity";
 import { pushPlanWorkoutsToIntervals } from "@/lib/training/publish";
+import type { AiTrigger } from "@/lib/ai/usage";
 import { TARGET_TIME_GOAL_TYPES } from "@/lib/training/goal-target-types";
 import { amsterdamDayKey, endOfWeekKey } from "@/lib/training/zwbeterworden";
 import { changeReachSince, replanWindowEnd, type ChangeReach } from "@/lib/training/replan-window";
@@ -982,6 +983,7 @@ export async function generateAiDraftFromForm(formData: FormData): Promise<Train
       reasoningEffort: "medium",
       timeoutMs: 15_000,
       kind: "nieuw_schema",
+      meter: { profileId: athleteId, trigger: "member" },
     });
     const initialStatus: TrainingDraftStatus = background.status === "queued" ? "queued" : "in_progress";
 
@@ -1154,6 +1156,7 @@ export async function startTodayAdjustmentDraft(
       // Een dag-aanpassing mag één workout zijn; het oude minimum van 3 dwong de
       // AI om de rest van de week te verzinnen.
       minWorkouts: 1,
+      meter: { profileId: user.id, trigger: "member" },
     });
     const initialStatus: TrainingDraftStatus =
       background.status === "queued" ? "queued" : "in_progress";
@@ -1388,6 +1391,11 @@ type PlanUpdateArgs = {
   planId: string;
   actorId: string;
   reason: string;
+  /**
+   * Wie de herziening veroorzaakte, voor ai_usage (0316): "member" als het lid
+   * op een knop tikte, "follow_up" als het schema meeging met een wijziging.
+   */
+  trigger: AiTrigger;
   goalUpdates?: GoalUpdates;
   authorized?: boolean;
   /**
@@ -1703,6 +1711,7 @@ export async function startPlanUpdate(args: PlanUpdateArgs): Promise<TrainingDra
     reasoningEffort: "medium" as const,
     timeoutMs: 15_000,
     kind: "plan_update" as const,
+    meter: { profileId: plan.profile_id as string, trigger: args.trigger },
   };
 
   // Eerst de rij, dan pas OpenAI. Andersom was de grendel in preparePlanUpdate
@@ -1807,6 +1816,8 @@ export async function startBackgroundAdaptation(args: {
     minWorkouts: args.options?.minWorkouts ?? 1,
     timeoutMs: args.options?.timeoutMs ?? 15_000,
     kind: trainingKind(args.adaptationKind),
+    // Alleen de cron zet dit uit: het lid vroeg er niet om.
+    meter: { profileId: args.profileId, trigger: "automatic" as const },
   };
 
   const { data: aiRow, error: aiError } = await args.admin
@@ -1892,6 +1903,7 @@ export async function runPlanUpdateNow(
     reasoningEffort: "medium",
     timeoutMs: 120_000,
     kind: "plan_update",
+    meter: { profileId: plan.profile_id as string, trigger: args.trigger },
   });
 
   const { data: aiRow, error: aiError } = await args.admin
@@ -1952,6 +1964,7 @@ export async function startPlanUpdateDraft(formData: FormData): Promise<Training
       planId,
       actorId: user.id,
       reason: optionalString(formData.get("reason")) ?? "Schema bijgewerkt.",
+      trigger: "member",
       authorized: true,
       goalUpdates: goalUpdatesFromForm(formData),
     });

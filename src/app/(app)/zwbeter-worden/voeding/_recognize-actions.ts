@@ -100,6 +100,7 @@ export async function startRecognition(input: { text: string }): Promise<StartRe
         system: RECOGNITION_INSTRUCTIONS,
         user: text,
         schema: RECOGNITION_SCHEMA,
+        meter: { profileId: viewer.user.id, trigger: "member" },
       });
     } catch {
       return { ok: false, error: "Herkennen lukt nu niet. Voer de maaltijd zelf in." };

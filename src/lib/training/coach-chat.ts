@@ -181,6 +181,7 @@ export async function startCoachAnswer(
     const started = await startCoachAnswerBackground(
       coachInstructions(),
       buildCoachUserText(context, history, question),
+      { meter: { profileId, trigger: "member" } },
     );
 
     await admin.from("training_chat_messages").insert({

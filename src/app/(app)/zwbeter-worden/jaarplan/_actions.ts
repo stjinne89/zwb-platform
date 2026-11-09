@@ -358,6 +358,7 @@ export async function startNextBlock(): Promise<
       planId: plan.id,
       actorId: user.id,
       reason: "Volgend blok klaargezet vanuit het jaarplan.",
+      trigger: "member",
       nextBlock: true,
     });
     if (!result.ok || !result.generationId) {

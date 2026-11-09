@@ -7,6 +7,14 @@ dingen" geven de details. Het bestuur overweegt een featurepauze (zie de
 [gebruiksanalyse](docs/gebruiksanalyse-2026-09-17.md)); tot dat besluit er is,
 gaat stabiliteit voor nieuwe features.
 
+0. **AI-verbruik meten, fase 0 van ZWBrandstof (2026-11-09): lokaal op branch
+   `claude/community-token-economy-6def6e`, niet gepusht.** Migratie
+   `0316_ai_usage` is niet toegepast en lokaal niet getest. **De privacytekst
+   wacht op akkoord van de eigenaar** en staat nog niet in de commit; niet
+   pushen zonder die tekst. Na toepassen en deploy: een coachvraag stellen en
+   zien dat hij op `/beheer/ai-verbruik` verschijnt. Zie de ronde "AI-verbruik
+   meten".
+
 0. **Generieke versie, fase 3 deel 1 en 2: clubnaam, modulenamen, hulp,
    privacy en voorwaarden (2026-11-09): gepusht naar `main` (deel 1
    `c8ed7cb3`, deel 2 `fdbdbd91`).** Geen
@@ -11955,6 +11963,86 @@ link naar `/live/[eventId]`, zie de update hierboven).
 ---
 
 ## Chronologisch werkplan vanaf 2026-06-23
+
+### Gebouwd — AI-verbruik meten (fase 0 van ZWBrandstof)
+
+**2026-11-09.** Op verzoek van de eigenaar ("Doe beide": het voorstel in het
+plannenboek en fase 0 bouwen). Migratie `0316_ai_usage`. Commit: de commit die
+dit blok toevoegt, op `claude/community-token-economy-6def6e`, niet gepusht.
+
+**Waarom.** Het bestuur wil dat leden en sponsoren gaan bijdragen aan de app,
+met een verbruiksmunt (ZWBrandstof) en een munt voor hulp aan anderen
+(ZWBidons). Het voorstel staat in het plannenboek ("ZWBrandstof en ZWBidons:
+leden en sponsoren dragen bij"). Een prijs per actie kan pas kloppen als we
+weten wat elke actie kost en wie hem veroorzaakt. Dat was niet te zien:
+`ai_jobs` weet niet van wie een opdracht is en gooit hem na zeven dagen weg.
+
+**Wat er de week ervoor gemeten is** (2 tot en met 9 november, uit `ai_jobs`
+gekoppeld aan `training_ai_generations`, tegen de lijstprijs van Opus 5.5,
+$4 / $20 per miljoen tokens): zo'n $30 per week. Bijna alles zat in schema's: 120
+opdrachten voor ~$28,70. Daarvan waren 64 dagvoorstellen van de cron
+(15 leden, $6,68) en de rest vooral herzieningen na een wijziging
+(beschikbaarheid, opstelling, een eigen rit, een vervallen rit). Coachvragen
+kostten samen ~$0,55. Vandaar de regel in het voorstel dat alleen wat een lid
+zelf start ZWBrandstof kost.
+
+Wat er is:
+
+- **`ai_usage` (0316).** Eén rij per Claude-aanroep: lid (`on delete set
+  null`, zodat clubtotalen blijven kloppen), functie, soort (`AiKind`),
+  herkomst, model, stop-reden, de vier tokentellers en de kosten in dollars.
+  Geen prompt, geen antwoord. RLS aan, geen policies, `anon` en
+  `authenticated` zonder rechten; alleen de server leest en schrijft. Rijen
+  ouder dan dertien maanden ruimt `processClaudeJob` op.
+- **Meten in `runClaude`** (`lib/ai/claude.ts`), dus voor achtergrondopdrachten
+  en de synchrone aanroep. Ook een geweigerd of afgekapt antwoord telt, want dat
+  kost ook tokens. Een fout bij het schrijven laat de aanroep nooit mislukken.
+  `ClaudeRequest.meter` is **verplicht**, zodat een nieuwe aanroep niet
+  ongemeten kan blijven; de typecheck dwingt het af.
+- **Herkomst per aanroep** (`AiTrigger` in `lib/ai/usage.ts`):
+  - `member`, zelf gevraagd: nieuw schema, dag aanpassen, "schema bijwerken",
+    volgend blok uit het jaarplan, coachvraag, pacingplan, maaltijd herkennen.
+  - `follow_up`, na een wijziging: `replan.ts` en de uitgestelde herzieningen
+    die de cron uitvoert. `PlanUpdateArgs.trigger` is daarvoor verplicht. Of de
+    wijziging van het lid zelf of van een ander kwam (captain, organisator),
+    staat alleen in de reden bij de generatie, niet in `ai_usage`.
+  - `automatic`: dagvoorstel van de cron (`startBackgroundAdaptation`),
+    weekoverzicht, app-update (zonder lid).
+- **Prijzen** in `lib/ai/usage.ts`, de lijstprijzen van Anthropic per model;
+  cache schrijven telt als 1,25 keer invoer. Een model zonder prijs krijgt `null`
+  en de pagina meldt het aantal apart. Met een fallback rekent de rij met het
+  model dat het antwoord afmaakte.
+- **`/beheer/ai-verbruik`**, onder App, met het recht van de eigenaar
+  (`roles.manage_permissions`). Per maand: totaal en per herkomst, per soort
+  (aantal, gemiddeld, kosten) en per lid (`MemberLink`). Zonder tabel staat er
+  dat het verbruik nog niet wordt bijgehouden.
+- **Data-export** bevat `ai_usage`.
+- **Privacytekst** (`/privacy`, onder Weekoverzicht): een blok "AI-verbruik".
+  **Nog niet in de commit; wacht op akkoord.** Aanbevolen: alleen tekst, geen
+  nieuwe privacyversie. Het zijn gegevens over aanroepen die het lid al doet,
+  zonder nieuwe ontvanger buiten het bestuur, net als de eerdere gevallen
+  waarin de eigenaar voor alleen tekst koos.
+
+**Bewust niet:**
+
+- **Nog geen ZWBrandstof of ZWBidons**, geen saldo en geen prijzen in de app.
+  Eerst een maand meten, dan kiezen (plannenboek, fase 1 tot en met 3).
+- **Geen eigen verbruik voor het lid.** Dat hoort bij fase 2, als er een saldo
+  is.
+- **Geen terugrekening van de oude week.** `ai_jobs` en de generaties gaven het
+  lid wel, maar de herkomst alleen als vrije tekst. De meting begint pas bij de
+  deploy.
+- **Het OpenAI-pad wordt niet gemeten.** De app draait op Claude; `meter` geldt
+  alleen voor de Claude-aanroep.
+- **Geen euro's.** De kosten staan in dollars tegen de lijstprijs; de factuur
+  van Anthropic blijft leidend.
+
+**Niet lokaal te controleren:** de migratie (geen Docker en geen config),
+het schrijven in productie, en de pagina in de browser (niet bekeken). Lokaal
+waren `tsc` en eslint schoon, en waren de nieuwe tests (`tests/unit/ai-usage.test.ts`,
+prijzen, tellers, samenvatting en maand) groen. De volledige suite was groen op
+een paar migratietests na die onder belasting time-outen; los gedraaid zijn ze
+groen. `next build` is niet gedraaid.
 
 ### Gebouwd — Generieke versie, fase 3 deel 2: hulp, privacy en voorwaarden
 
